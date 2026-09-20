@@ -13,8 +13,8 @@ import {
 } from "../scripts/monster-art/imported-monster-art.mjs";
 
 test("F4 carries the source-aware picks and the reviewed-unmatched remainder", () => {
-  assert.equal(IMPORTED_MONSTER_ART_ROWS.length, 73);
-  assert.equal(Object.keys(IMPORTED_MONSTER_ART).length, 73);
+  assert.equal(IMPORTED_MONSTER_ART_ROWS.length, 85);
+  assert.equal(Object.keys(IMPORTED_MONSTER_ART).length, 85);
   assert.equal(importedMonsterArtKey("Cursed Scroll #2", "Horse,   War"), "CS2:horse, war");
   assert.equal(importedMonsterArtKey("Western Reaches", "Horse, War"), "WR:horse, war");
   assert.notEqual(
@@ -211,4 +211,85 @@ test("missing exact source files are reported as unmatched rather than fuzzy-fil
   assert.equal(report.applied.length, 0);
   assert.equal(report.unmatched[0].reason, "path-unavailable");
   assert.deepEqual(setting.picks, {});
+});
+
+test("the GM Guide inherits the reviewed art of the zine it reprints", () => {
+  // 57 of the GM Guide's 90 statblocks are Cursed Scroll reprints, reviewed
+  // under the zine that printed them first. Without inheritance a GM Guide
+  // import matches no row at all and loses every curated file.
+  assert.equal(curatedImportedMonsterArtFor("GMWR", "Canyon Ape")?.key, "CS2:canyon ape");
+  assert.equal(importedMonsterArtDisposition("GMWR", "Canyon Ape"), "curated");
+  assert.equal(importedMonsterArtKey("Western Reaches GM Guide", "Adept"), "GMWR:adept");
+
+  // Reviewed-and-rejected stays rejected under the consolidating book, or the
+  // GM Guide copy would collect the community art the review turned down.
+  // "Death Slug" is unmatched under CS4 and curated nowhere.
+  assert.equal(importedMonsterArtDisposition("GMWR", "Death Slug"), "unmatched");
+  // "Scrag, War" is the opposite case and must NOT read as unmatched: the
+  // reviewers could not place the Western Reaches copy, but CS2's is curated,
+  // and it is the same creature — so the GM Guide inherits the art it has.
+  assert.equal(importedMonsterArtDisposition("GMWR", "Scrag, War"), "curated");
+  assert.equal(curatedImportedMonsterArtFor("GMWR", "Scrag, War")?.key, "CS2:scrag, war");
+
+  // Unanimity is the licence: "Horse, War" is reviewed under CS2 AND WR and
+  // both name the identical files, so it resolves.
+  const horse = curatedImportedMonsterArtFor("GMWR", "Horse, War");
+  assert.equal(horse?.token, "modules/pf2e-tokens-monster-core/assets/tokens/horse-war.webp");
+
+  // Books that are NOT the consolidating one keep the exact-key rule: no book
+  // may borrow another's row by name.
+  assert.equal(curatedImportedMonsterArtFor("CS1", "Canyon Ape"), null);
+  assert.equal(curatedImportedMonsterArtFor("CS2", "Horse"), null, "still no bare-name fallback");
+
+  // A name whose books disagreed would stay unresolved rather than guess.
+  const split = {
+    "CS1:two faced": { book: "CS1", name: "Two Faced", source: "a", token: "a/t.webp", portrait: "a/p.webp" },
+    "CS3:two faced": { book: "CS3", name: "Two Faced", source: "b", token: "b/t.webp", portrait: "b/p.webp" },
+  };
+  assert.equal(curatedImportedMonsterArtFor("GMWR", "Two Faced", split), null);
+
+  // The reviewed data itself is unchanged by any of this.
+  assert.equal(IMPORTED_MONSTER_ART_ROWS.length, 85);
+  assert.equal(IMPORTED_MONSTER_ART_UNMATCHED_KEYS.length, 10);
+});
+
+test("the GM Guide's own bestiary carries GMWR rows of its own", () => {
+  // 33 of the 90 statblocks print in the GM Guide first, so there is nothing to
+  // inherit: they need rows keyed GMWR. Picked from the statblock, never the
+  // name — a Badgerling is a halfling, a Kyzian is a mounted archer.
+  const gmwr = IMPORTED_MONSTER_ART_ROWS.filter((r) => r.book === "GMWR");
+  assert.equal(gmwr.length, 12);
+  assert.ok(gmwr.every((r) => r.key.startsWith("GMWR:") && r.token && r.portrait && r.source));
+
+  assert.equal(curatedImportedMonsterArtFor("Western Reaches GM Guide", "Kyzian")?.key, "GMWR:kyzian");
+  assert.equal(curatedImportedMonsterArtFor("GMWR", "Badgerling")?.source, "pf2e-tokens-characters");
+  // The comma survives normalization, as it does for "Horse, War".
+  assert.equal(curatedImportedMonsterArtFor("GMWR", "Hag, Swamp")?.key, "GMWR:hag, swamp");
+  assert.equal(importedMonsterArtDisposition("GMWR", "Thunderbird"), "curated");
+
+  // No row may leak to another book by name: these are GM Guide creatures.
+  assert.equal(curatedImportedMonsterArtFor("CS4", "Kyzian"), null);
+
+  // Stone Shaman stays reviewed-unmatched. CS4's review found no defensible
+  // art, and a GMWR row here would have split one creature's verdict in two.
+  assert.equal(curatedImportedMonsterArtFor("GMWR", "Stone Shaman"), null);
+  assert.equal(importedMonsterArtDisposition("GMWR", "Stone Shaman"), "unmatched");
+});
+
+test("the Player's Guide inherits the same way, mule and all", () => {
+  // Four WR mounts were reviewed-unmatched while CS2 curates the same
+  // creatures. The rejected option for WR:donkey was a HORSE token; CS2's
+  // reviewed row is a mule, so inheriting it is not the rejected art.
+  assert.equal(curatedImportedMonsterArtFor("WR", "Donkey")?.token,
+    "modules/dnd-monster-manual/assets/tokens/mule.webp");
+  assert.equal(curatedImportedMonsterArtFor("WR", "Camel, Silver")?.key, "CS2:camel, silver");
+  assert.equal(curatedImportedMonsterArtFor("WR", "Scrag")?.key, "CS2:scrag");
+  assert.equal(importedMonsterArtDisposition("WR", "Donkey"), "curated");
+
+  // WR's own reviewed rows still win outright — inheritance is the fallback,
+  // never an override of a row the book already has.
+  assert.equal(curatedImportedMonsterArtFor("WR", "Horse, War")?.key, "WR:horse, war");
+
+  // And a Cursed Scroll import still may not borrow another book's row.
+  assert.equal(curatedImportedMonsterArtFor("CS1", "Donkey"), null);
 });

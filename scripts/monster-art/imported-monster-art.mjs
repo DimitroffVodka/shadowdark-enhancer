@@ -41,7 +41,7 @@ export function normalizeImportedMonsterName(name) {
 export function importedMonsterSourceKey(source) {
   const key = sourceKey(source);
   if (!key) return "";
-  if (/^cs[1-6]$/.test(key) || key === "wr") return key.toUpperCase();
+  if (/^cs[1-6]$/.test(key) || key === "wr" || key === "gmwr") return key.toUpperCase();
   return key;
 }
 
@@ -59,7 +59,7 @@ export function importedMonsterArtKey(source, name) {
 }
 
 /**
- * N6's 16 reviewed rows. `book` is the imported monster's source identity;
+ * The reviewed rows. `book` is the imported monster's source identity;
  * `source` is the authorizing installed art package. Paths are relative to
  * Foundry's Data root and are never copied into this module.
  */
@@ -452,6 +452,80 @@ const ROWS = [
     token: "modules/too-many-tokens-dnd/Aboleth/AbolethCatifish%20(1).webp",
     portrait: "modules/too-many-tokens-dnd/Aboleth/AbolethCatifish%20(1).webp",
   },
+  // The GM Guide's own bestiary (pp. 284-309). 33 of its 90 statblocks print
+  // there for the first time, so they key GMWR: there is no Cursed Scroll row
+  // for CONSOLIDATING_BOOKS to inherit.
+  //
+  // Every pick below is the creature the STATBLOCK describes, not the one the
+  // NAME suggests, which is why the ordinary catalog left them Browse-only: a
+  // Badgerling is a halfling in a badger-skin cloak (not a badger), a Kyzian is
+  // a horse-riding steppe archer (not an undead), a Crabling is an amphibious
+  // humanoid with claws (not a crab), and the three Sisters of St. Sofia are
+  // armoured nuns graded by rank. A bare-name match would have been wrong on
+  // all six.
+  //
+  // Where a source ships no separate portrait directory the two paths are the
+  // same file, exactly as the library reports it (see CS5 Nuln).
+  {
+    book: "GMWR", name: "Badgerling", source: "pf2e-tokens-characters",
+    token: "modules/pf2e-tokens-characters/assets/tokens/pc-halfling-ambusher.webp",
+    portrait: "modules/pf2e-tokens-characters/assets/tokens/pc-halfling-ambusher.webp",
+  },
+  {
+    book: "GMWR", name: "Crabling", source: "shadowdark-community-tokens",
+    token: "modules/shadowdark-community-tokens/artwork/tokens/chuul.webp",
+    portrait: "modules/shadowdark-community-tokens/artwork/portraits/chuul.webp",
+  },
+  {
+    book: "GMWR", name: "Elder Sister", source: "dnd-players-handbook",
+    token: "modules/dnd-players-handbook/assets/tokens/war-domain-cleric.webp",
+    portrait: "modules/dnd-players-handbook/assets/tokens/war-domain-cleric.webp",
+  },
+  {
+    book: "GMWR", name: "Hag, Swamp", source: "shadowdark-community-tokens-monster24",
+    token: "modules/shadowdark-community-tokens/monster24/tokens/hag-marsh.webp",
+    portrait: "modules/shadowdark-community-tokens/monster24/portraits/hag-marsh.webp",
+  },
+  {
+    book: "GMWR", name: "Hell Toad", source: "shadowdark-community-tokens-monster24",
+    token: "modules/shadowdark-community-tokens/monster24/tokens/demon-toad.webp",
+    portrait: "modules/shadowdark-community-tokens/monster24/portraits/demon-toad.webp",
+  },
+  {
+    book: "GMWR", name: "Knight of St. Ydris", source: "pf2e-tokens-characters",
+    token: "modules/pf2e-tokens-characters/assets/tokens/hellknight-order-nail.webp",
+    portrait: "modules/pf2e-tokens-characters/assets/tokens/hellknight-order-nail.webp",
+  },
+  {
+    book: "GMWR", name: "Kyzian", source: "pf2e-tokens-npc-core",
+    token: "modules/pf2e-tokens-npc-core/assets/tokens/archer-sentry.webp",
+    portrait: "modules/pf2e-tokens-npc-core/assets/tokens/archer-sentry.webp",
+  },
+  {
+    book: "GMWR", name: "Little Sister", source: "dnd-monster-manual",
+    token: "modules/dnd-monster-manual/assets/tokens/priest-acolyte-01.webp",
+    portrait: "modules/dnd-monster-manual/assets/tokens/priest-acolyte-01.webp",
+  },
+  {
+    book: "GMWR", name: "Marsh Fog", source: "shadowdark-community-tokens-monster24",
+    token: "modules/shadowdark-community-tokens/monster24/tokens/ebon-mist.webp",
+    portrait: "modules/shadowdark-community-tokens/monster24/portraits/ebon-mist.webp",
+  },
+  {
+    book: "GMWR", name: "Sister Marjory", source: "pf2e-tokens-npc-core",
+    token: "modules/pf2e-tokens-npc-core/assets/tokens/deific-champion-of-iomedae.webp",
+    portrait: "modules/pf2e-tokens-npc-core/assets/tokens/deific-champion-of-iomedae.webp",
+  },
+  {
+    book: "GMWR", name: "Swashbuckler", source: "pf2e-tokens-npc-core",
+    token: "modules/pf2e-tokens-npc-core/assets/tokens/peerless-duelist.webp",
+    portrait: "modules/pf2e-tokens-npc-core/assets/tokens/peerless-duelist.webp",
+  },
+  {
+    book: "GMWR", name: "Thunderbird", source: "pf2e-tokens-monster-core",
+    token: "modules/pf2e-tokens-monster-core/assets/tokens/roc.webp",
+    portrait: "modules/pf2e-tokens-monster-core/assets/portraits/roc.webp",
+  },
 ];
 
 /** Detached, frozen rows with the derived key exposed for audits and callers. */
@@ -465,6 +539,56 @@ export const IMPORTED_MONSTER_ART_ROWS = Object.freeze(ROWS.map((row) => Object.
 export const IMPORTED_MONSTER_ART = Object.freeze(
   Object.fromEntries(IMPORTED_MONSTER_ART_ROWS.map((row) => [row.key, row])),
 );
+
+/**
+ * Both Western Reaches volumes consolidate Cursed Scroll content, and their
+ * reprinted creatures are already reviewed under the zine that printed them
+ * first. Without this, importing from either volume silently loses that work:
+ * `GMWR:adept` matches no row at all (57 of the GM Guide's 90 statblocks are
+ * reprints), and four Player's Guide mounts sit in the reviewed-unmatched list
+ * while CS2 curates the same creatures.
+ *
+ * A consolidating volume resolves onto a reviewed row ONLY when every row
+ * sharing that name agrees on the art (same source, same two files). "Horse,
+ * War" is reviewed under both CS2 and WR naming identical files, so it
+ * resolves; a name whose books disagreed stays unresolved, because the whole
+ * purpose of the source-aware key is that nothing guesses between two imported
+ * copies. That is a refusal, not a miss — the identity falls through to the
+ * ordinary catalog exactly as an uncurated import does.
+ *
+ * On the four Player's Guide mounts this deliberately overrides a
+ * reviewed-unmatched verdict, and the verdict's own evidence is why: what the
+ * review rejected for `WR:donkey` was a HORSE token offered for a donkey, not
+ * CS2's reviewed mule. Same creature, different file. Inheriting the reviewed
+ * row hands over the mule, the camel and the giant lizard; the rejected option
+ * stays rejected because it was never a reviewed row to inherit.
+ */
+const CONSOLIDATING_BOOKS = new Set(["GMWR", "WR"]);
+const _unanimousByName = new WeakMap();
+
+/** name -> the single reviewed row every book agrees on, for one key->row map. */
+function unanimousRows(map) {
+  let index = _unanimousByName.get(map);
+  if (index) return index;
+  index = new Map();
+  const rejected = new Set();
+  for (const row of Object.values(map ?? {})) {
+    const name = normalizeImportedMonsterName(row?.name);
+    if (!name || rejected.has(name)) continue;
+    const seen = index.get(name);
+    if (!seen) { index.set(name, row); continue; }
+    const agrees = seen.source === row.source && seen.token === row.token && seen.portrait === row.portrait;
+    if (!agrees) { index.delete(name); rejected.add(name); }
+  }
+  _unanimousByName.set(map, index);
+  return index;
+}
+
+/** The reviewed row a consolidating book inherits, or null. */
+function consolidatedRow(source, name, map) {
+  if (!CONSOLIDATING_BOOKS.has(importedMonsterSourceKey(source))) return null;
+  return unanimousRows(map).get(normalizeImportedMonsterName(name)) ?? null;
+}
 
 /**
  * N6's reviewed rows for which no installed art was defensible. These are
@@ -489,6 +613,13 @@ const REVIEWED_UNMATCHED_KEYS = [
 /** Detached N6 reviewed-unmatched keys for audits and catalog consumers. */
 export const IMPORTED_MONSTER_ART_UNMATCHED_KEYS = Object.freeze(REVIEWED_UNMATCHED_KEYS);
 const REVIEWED_UNMATCHED = new Set(REVIEWED_UNMATCHED_KEYS);
+/** Reviewed-unmatched names, for the consolidating book (see consolidatedRow). */
+const REVIEWED_UNMATCHED_NAMES = new Set(
+  REVIEWED_UNMATCHED_KEYS.map((k) => normalizeImportedMonsterName(k.slice(k.indexOf(":") + 1))),
+);
+const consolidatedUnmatched = (source, name) =>
+  CONSOLIDATING_BOOKS.has(importedMonsterSourceKey(source))
+  && REVIEWED_UNMATCHED_NAMES.has(normalizeImportedMonsterName(name));
 
 /** Final-catalog status for an imported monster before exact-path validation. */
 export const CURATED_IMPORTED_MONSTER_ART_STATUS = Object.freeze({
@@ -510,7 +641,12 @@ export function importedMonsterArtDisposition(source, name) {
   const key = importedMonsterArtKey(source, name);
   if (!key) return null;
   if (IMPORTED_MONSTER_ART[key]) return CURATED_IMPORTED_MONSTER_ART_STATUS.CURATED;
-  return REVIEWED_UNMATCHED.has(key) ? CURATED_IMPORTED_MONSTER_ART_STATUS.UNMATCHED : null;
+  if (consolidatedRow(source, name, IMPORTED_MONSTER_ART)) return CURATED_IMPORTED_MONSTER_ART_STATUS.CURATED;
+  if (REVIEWED_UNMATCHED.has(key)) return CURATED_IMPORTED_MONSTER_ART_STATUS.UNMATCHED;
+  // A reprint the reviewers could not place stays unmatched under the
+  // consolidating book too, or the GM Guide copy would read as uncurated and
+  // quietly collect community art the review had already rejected.
+  return consolidatedUnmatched(source, name) ? CURATED_IMPORTED_MONSTER_ART_STATUS.UNMATCHED : null;
 }
 
 // Descriptive aliases keep the map discoverable to callers without creating a
@@ -529,7 +665,8 @@ export const IMPORTED_MONSTER_ART_MAP = IMPORTED_MONSTER_ART;
  */
 export function curatedImportedMonsterArtFor(source, name, map = IMPORTED_MONSTER_ART) {
   const key = importedMonsterArtKey(source, name);
-  return key ? (map?.[key] ?? null) : null;
+  if (!key) return null;
+  return map?.[key] ?? consolidatedRow(source, name, map) ?? null;
 }
 
 const clone = (value) => {

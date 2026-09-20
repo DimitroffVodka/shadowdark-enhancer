@@ -163,7 +163,7 @@ identically to the core bestiary:
 * **Supported actor types:** The manager includes imported NPCs and Mount
   documents from `sde-actors`. Loose world actors, boats, and core mounts are
   excluded.
-* **Curated art picks:** The manager ships 73 exact reviewed art mappings for
+* **Curated art picks:** The manager ships 85 exact reviewed art mappings for
   imported creatures and mounts (such as Giant Catfish and Western Reaches
   mounts).
 * **Unmatched creatures stay Browse-only:** Certain creatures are deliberately
