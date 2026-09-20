@@ -27,7 +27,7 @@ supported books.
 
 ## Shapes
 
-**133 tables** currently carry a recipe. Each recipe specifies a shape kind:
+**156 tables** currently carry a recipe. Each recipe specifies a shape kind:
 
 | Kind | For |
 |---|---|
@@ -76,10 +76,38 @@ Some recipes include extra tuning options:
   - Pin `\"1\"` for tables requiring each row on a single line.
   - Pin `\"2mid\"` if column detection misplaces the gutter, forcing a midline
     split.
+  - Pin `\"2layout\"` for a page printing **two grids side by side** — it splits
+    at the gutter like `auto` *and* keeps each column's cell spacing like
+    `layout`. Every *Game Master's Guide* region spread needs it
+    (`ENCOUNTER ZONE` on the left, `ENCOUNTERS` on the right).
 
 All seven Core `d20 × 3-column` generator pages (*Tavern*, *Shop*, *Adventure*,
 *Adventuring Site Name*, *NPC Qualities*, *Party Name*, *Magic Item Idea*)
 pin `\"layout\"`.
+
+Every *Game Master's Guide to the Western Reaches* recipe pins its own
+`extractCols`, because that book's pages are more often wrong than right under
+the default. Its 103 rows cover the fifteen region spreads (rumors, the two
+grids, points of interest), the six two-page `d100` terrain spreads, the 21
+trainer benefit tables, Tal-Yool Jungle, the City of Masks and the trouble
+generator.
+
+### Importing the GM Guide's Master Hex Key (pp. 73–83)
+
+The Master Hex Key is **not** a roll table and has no manifest row. It is 270
+keyed hexes, and they belong on a hexcrawl journal rather than in a table:
+
+1. **Extract from PDF** → book *Western Reaches GM Guide*, pages `73-83`,
+   columns `layout` (`auto` returns garbage here).
+2. Set **Importing** to *Auto* and press **Parse** — the keyed rows are lifted
+   out before anything else sees the text.
+3. **Create** files them on the crawl entry, where the hex-map tagger reads
+   them.
+
+Pages 73–83 also print 24 Morzomotha hexes keyed `M###`, which are not on the
+numbered grid and do not come through; the page headers can parse as a small
+stray table, so check the preview before committing. Each region's own *local
+hexes* page is a subset of this same key — import the master key, not those.
 
 ---
 

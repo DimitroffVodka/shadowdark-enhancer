@@ -112,7 +112,7 @@ const NONE     = "NONE";
 /**
  * Map a source id to its display label for pack sub-folders.
  *   cs1..cs6 / "Cursed Scroll N"  → "CS1".."CS6"
- *   pgwr / gmgwr / wr / "Western Reaches" → "Western Reaches"
+ *   pgwr / gmgwr / gmwr / wr / "Western Reaches" (+ GM Guide) → "Western Reaches"
  *   core / "Core Rulebook" → "CORE"
  *   custom / "" / null / undefined → "Custom"
  *   anything else → upper-cased id
@@ -132,7 +132,12 @@ export function sourceFolderName(sourceId) {
   if (/^cs[1-6]$/.test(s)) return s.toUpperCase();
   const cs = s.match(/^cursed scroll\s*([1-6])$/);
   if (cs) return `CS${cs[1]}`;
-  if (s === "pgwr" || s === "gmgwr" || s === "wr" || s === "western reaches") return "Western Reaches";
+  // The Player's Guide and the GM's Guide are separate SOURCE keys (each has
+  // its own PDF — see source-keys.mjs) but one FOLDER: a GM filing Western
+  // Reaches content looks in one place, not two.
+  if (s === "pgwr" || s === "gmgwr" || s === "gmwr" || s === "wr"
+    || s === "western reaches" || s === "western reaches gm guide"
+    || s === "game master's guide to the western reaches") return "Western Reaches";
   if (s === "core" || s === "core rulebook") return "CORE";
   return s.toUpperCase();
 }

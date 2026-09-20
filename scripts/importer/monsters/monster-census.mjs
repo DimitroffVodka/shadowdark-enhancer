@@ -38,7 +38,7 @@ export function normalizeMonsterName(name) {
 function sourceOrder(sourceId) {
   const s = String(sourceId ?? "").trim().toLowerCase();
   if (/^cs([1-6])$/.test(s)) return Number(s.slice(2));               // 1-6
-  if (s === "pgwr" || s === "gmgwr" || s === "wr") return 10;          // Western Reaches
+  if (s === "pgwr" || s === "gmgwr" || s === "gmwr" || s === "wr") return 10;   // Western Reaches
   if (s.startsWith("lftd-")) return 20 + s.charCodeAt(5);             // LFTD-* alphabetically
   return 999;                                                           // Custom / unsourced
 }

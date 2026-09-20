@@ -121,3 +121,57 @@ test("a default path the HEAD check found missing is no link, and comes back onc
     assert.ok(sourcePdfTarget("WR", "72"));
   } finally { restore(); }
 });
+
+/**
+ * The two Western Reaches guides are one book FOLDER but two separate PDFs.
+ * They shared a source key until a GM Guide page cite resolved through
+ * SOURCE_PDFS.WR and opened the PLAYER'S Guide at that page number — a
+ * different book, silently, with a plausible-looking page on screen.
+ */
+test("the GM Guide resolves to its own PDF, not the Player's Guide", async () => {
+  const restore = stubGlobals({ journal: undefined, fetchOk: true });
+  try {
+    await listSourcePdfs();                                   // arm the HEAD cache
+    const target = sourcePdfTarget("GMWR", "86");
+    assert.equal(target.file, "assets/Game Master's Guide to the Western Reaches V1.pdf");
+    assert.equal(target.page, 86);                            // printed page == PDF page: no offset
+    assert.equal(sourcePdfTarget("WR", "86").file, "assets/Player_s_Guide_to_the_Western_Reaches_V1.pdf");
+  } finally { restore(); }
+});
+
+test("the GM Guide is its own row in the Source PDFs library", async () => {
+  const restore = stubGlobals({ journal: undefined, fetchOk: true });
+  try {
+    const rows = await listSourcePdfs();
+    const gm = rows.find((r) => r.src === "GMWR");
+    const wr = rows.find((r) => r.src === "WR");
+    assert.ok(gm, "listSourcePdfs walks CHAR_SOURCES, so a new book appears on its own");
+    assert.equal(gm.label, "Western Reaches GM Guide");
+    assert.notEqual(gm.file, wr.file);
+  } finally { restore(); }
+});
+
+/**
+ * The asymmetry between MANIFEST and CHAR_SOURCES is load-bearing and easy to
+ * break: gatherCharContentCensus reads CHAR_SOURCES[src].label for every
+ * MANIFEST key, so a manifest block with no source entry throws, while the
+ * reverse is harmless. The GM's Guide was the source with no block when this
+ * test was written; wave 3 gave it one (103 roll tables, no character content),
+ * so the census now has to carry those and nothing else for that book.
+ */
+test("the GM Guide contributes roll tables and no character content", async () => {
+  const { CHAR_SOURCES, gatherCharContentEntries } =
+    await import("../scripts/importer/char-content/char-content-manifest.mjs");
+  assert.ok(CHAR_SOURCES.GMWR, "the GM Guide is a known source");
+  const presence = {
+    present: new Set(), presentNames: new Set(), tablesPresent: new Set(),
+    tablesBySource: new Map(), tablesByManifestId: new Map(),
+  };
+  const entries = await gatherCharContentEntries(presence);
+  const gm = entries.filter((e) => e.src === "GMWR");
+  assert.equal(gm.length, 103, "the GM Guide's table rows");
+  assert.deepEqual([...new Set(gm.map((e) => e.type))], ["Table"],
+    "a GM book ships no classes, talents or spells — only tables");
+  assert.ok(gm.every((e) => e.pages), "every GM Guide row carries its page cite");
+  assert.ok(entries.some((e) => e.src === "WR"), "the Player's Guide still contributes entries");
+});

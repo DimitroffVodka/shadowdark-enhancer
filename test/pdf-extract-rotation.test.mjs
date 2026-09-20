@@ -1,5 +1,5 @@
 /**
- * Regressions for sideways pages.
+ * Regressions for sideways pages and for the "2layout" column mode.
  *
  * Some books DRAW a page's text rotated in page space rather than rotating the
  * page: PDF.js then reports every item with a rotated transform ([0, s, -s, 0,
@@ -13,6 +13,11 @@
  * The decision is per PAGE, on a majority of its items: a lone sideways caption
  * on an upright page must not flip the page, and an upright page must come out
  * exactly as it does today.
+ *
+ * "2layout" covers the other half of the same books: a page printing two GRIDS
+ * side by side needs the gutter split of "auto" AND the padded emitter of
+ * "layout". Neither alone works — "auto" collapses each column's cell gaps to a
+ * single space, "layout" never splits and welds the two grids' rows together.
  *
  * Only geometry is reproduced here; every string is a placeholder.
  */
@@ -113,6 +118,58 @@ test("an empty page is not treated as rotated", () => {
   const out = _readingSpace([], W, H);
   assert.deepEqual(out.items, []);
   assert.equal(out.width, W);
+});
+
+/**
+ * Two grids side by side: a "d8 A B" table in the left column and a "d8 C D"
+ * table in the right, each with a wide gap between its own cells. This is the
+ * Western Reaches region-page layout (ENCOUNTER ZONE beside ENCOUNTERS).
+ * Four printed rows, which is what detectGutter needs before it will accept a
+ * cut at all (three cleanly separated rows).
+ */
+const SIDE_BY_SIDE = [];
+for (const [r, y] of [[0, 500], [1, 480], [2, 460], [3, 440]]) {
+  const head = r === 0;
+  // left grid, cells at x = 40 / 90 / 150
+  SIDE_BY_SIDE.push([40, y, head ? "d8" : `${r}`], [90, y, head ? "A" : `a${r}`], [150, y, head ? "B" : `b${r}`]);
+  // right grid, across the gutter, at x = 240 / 290 / 350
+  SIDE_BY_SIDE.push([240, y, head ? "d8" : `${r}`], [290, y, head ? "C" : `c${r}`], [350, y, head ? "D" : `d${r}`]);
+}
+
+/** The fixture's rows, per grid, as the cells they are meant to split into. */
+const LEFT_ROWS = [["d8", "A", "B"], ["1", "a1", "b1"], ["2", "a2", "b2"], ["3", "a3", "b3"]];
+const RIGHT_ROWS = [["d8", "C", "D"], ["1", "c1", "d1"], ["2", "c2", "d2"], ["3", "c3", "d3"]];
+
+const sideBySide = () => SIDE_BY_SIDE.map(([x, y, s]) => upright(x, y, s, s.length * 5));
+
+test("2layout splits the columns AND keeps each column's cell alignment", () => {
+  const { gutter, lines } = layoutPageItems(sideBySide(), W, "2layout");
+  assert.ok(gutter != null, "the two grids are separated by a gutter");
+  assert.equal(lines.length, 8, "four rows per grid, the grids not welded together");
+  // Each line is one grid's row with its cells still 2+ spaces apart — which is
+  // exactly what the grid parsers split on.
+  for (const ln of lines) assert.match(ln, /\S {2,}\S/);
+  assert.deepEqual(lines.map((l) => l.trim().split(/\s{2,}/)), [...LEFT_ROWS, ...RIGHT_ROWS]);
+});
+
+test("2layout is the mode that does it — neither auto nor layout can", () => {
+  // "auto" splits the columns but collapses every cell gap to one space.
+  const auto = layoutPageItems(sideBySide(), W, "auto").lines;
+  assert.equal(auto.length, 8);
+  assert.ok(auto.every((l) => !/\S {2,}\S/.test(l)), "auto keeps no cell alignment");
+  // "layout" keeps the alignment but never splits, so the two grids' rows weld.
+  const layout = layoutPageItems(sideBySide(), W, "layout").lines;
+  assert.equal(layout.length, 4, "one line per printed row, both grids on it");
+  assert.match(layout[0], /d8.*A.*B.*d8.*C.*D/);
+});
+
+test("2layout on a single-column page behaves like layout", () => {
+  const its = [
+    upright(40, 500, "only-a"), upright(40, 480, "only-b"), upright(40, 460, "only-c"),
+  ];
+  const { gutter, lines } = layoutPageItems(its, W, "2layout");
+  assert.equal(gutter, null, "no gutter to find, so nothing is split");
+  assert.deepEqual(lines, ["only-a", "only-b", "only-c"]);
 });
 
 /**

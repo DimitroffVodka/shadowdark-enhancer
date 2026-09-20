@@ -22,14 +22,17 @@ export const t = (key, data) => {
 };
 
 /** Common source labels offered as datalist suggestions. */
-export const SOURCE_SUGGESTIONS = ["CS1", "CS2", "CS3", "CS4", "CS5", "CS6", "Western Reaches"];
+export const SOURCE_SUGGESTIONS = ["CS1", "CS2", "CS3", "CS4", "CS5", "CS6",
+  "Western Reaches", "Western Reaches GM Guide"];
 
-/** The eight books, as a fixed Source dropdown (value = the folder/tag label). */
+/** The nine books, as a fixed Source dropdown (value = the folder/tag label).
+ *  Plain strings, not localization keys: these ARE the stored tag values, so
+ *  translating them would file the same book under a different name per client. */
 export const BOOK_SOURCES = [
   "Core Rulebook",
   "Cursed Scroll 1", "Cursed Scroll 2", "Cursed Scroll 3",
   "Cursed Scroll 4", "Cursed Scroll 5", "Cursed Scroll 6",
-  "Western Reaches",
+  "Western Reaches", "Western Reaches GM Guide",
 ];
 
 /** A short, correct example of each import type's paste format — shown as the

@@ -21,6 +21,13 @@ import { charSourceKey } from "../../shared/source-keys.mjs";
 export const CHAR_SOURCES = {
   CORE: { label: "Core Rulebook", book: "Shadowdark RPG" },
   WR:  { label: "Western Reaches", book: "Shadowdark RPG: Western Reaches" },
+  // The GM's Guide is its own book with its own PDF, so it needs its own key —
+  // a GM Guide page cite resolved through WR opens the Player's Guide at that
+  // number, which is a different book. It carries no MANIFEST block, because
+  // nothing in the character builder comes from it, and that is safe:
+  // gatherCharContentEntries/Census walk MANIFEST and never CHAR_SOURCES, so a
+  // source listed only here simply has no census row. (The reverse throws.)
+  GMWR: { label: "Western Reaches GM Guide", book: "Game Master's Guide to the Western Reaches" },
   CS1: { label: "Cursed Scroll 1", book: "Cursed Scroll 1 — Diablerie!" },
   CS2: { label: "Cursed Scroll 2", book: "Cursed Scroll 2 — Red Sands" },
   CS3: { label: "Cursed Scroll 3", book: "Cursed Scroll 3 — Midnight Sun" },
@@ -43,6 +50,7 @@ export const CHAR_SOURCES = {
 export const SOURCE_PDFS = {
   CORE: "assets/[Shadowdark RPG] - Core Rulebook - Shadowdark RPG (V4-9).pdf",
   WR:   "assets/Player_s_Guide_to_the_Western_Reaches_V1.pdf",
+  GMWR: "assets/Game Master's Guide to the Western Reaches V1.pdf",
   CS1:  "assets/Cursed Scroll 1 - Diablerie V4-3.pdf",
   CS2:  "assets/Cursed Scroll 2 - Red Sands V2-2.pdf",
   CS3:  "assets/Cursed Scroll 3 - Midnight Sun V3-5.pdf",
@@ -213,6 +221,86 @@ export async function gatherSpellListCensus() {
   return new Map(SPELL_LISTS.map((l) => [l.key, { present: counts.get(l.key) > 0, count: counts.get(l.key) }]));
 }
 
+/**
+ * GM Guide region spreads: the page carrying RUMORS and the two side-by-side
+ * grids. POINTS OF INTEREST is always the FACING page, so the four rows a
+ * region contributes are generated from this one number — a name and its page
+ * cannot drift apart, and the fifteen regions read as fifteen lines instead of
+ * sixty. Every page verified against the PDF (wave 3).
+ */
+const GMWR_REGION_PAGES = {
+  "Bastion Mountains": 86, "Dhalpurna Mountains": 94, "Djurum Desert": 102,
+  "Duchy of Montmar": 114, "Gilzai Mountains": 124, "The Gloaming": 132,
+  "Isles of Andrik": 142, "Kyzian Steppes": 150, "The Last Sea": 160,
+  "Lowland Moor": 170, "Morzomotha": 178, "Myre Swamp": 188,
+  "Rimespire Mountains": 198, "Sablewood": 206, "Silent Mountains": 218,
+};
+
+/**
+ * Every GM Guide table row as [name, printed page], in page order: the four
+ * per-region rows, then the rest of the book. The names are what the Manage
+ * tree shows and what table-shapes.mjs registers a recipe for — the two are
+ * matched by name through contentIdForName, so a name changed here without
+ * changing it there silently drops the recipe and the row parses generically.
+ */
+const GMWR_TABLES = [
+  ...Object.entries(GMWR_REGION_PAGES).flatMap(([region, page]) => [
+    [`${region} Rumors`, String(page)],
+    [`${region} Encounter Zone`, String(page)],
+    [`${region} Encounters`, String(page)],
+    [`${region} Points of Interest`, String(page + 1)],
+  ]),
+  ["Trouble in the Reaches: Region", "48"],
+  ["Trouble in the Reaches: Settlement", "48"],
+  ["Type of Trouble", "49"],
+  ["Trouble Urgency Level", "49"],
+  ["Rumors in the Reaches", "50-53"],
+  // The six two-page terrain d100s.
+  ["Arctic Sea Encounters", "54-55"],
+  ["Canyon Encounters", "56-57"],
+  ["Lake Encounters", "58-59"],
+  ["Lava Encounters", "60-61"],
+  ["Path Encounters", "62-63"],
+  ["Salt Flat Encounters", "64-65"],
+  // One trainer per region's downtime section — a d4 of benefits each.
+  ["Yodeling Training Benefits", "91"],
+  ["Moon Fist Training Benefits", "99"],
+  ["Gladiator Training Benefits", "111"],
+  ["Wizardly Arts Training Benefits", "120"],
+  ["Healer Training Benefits", "121"],
+  ["Assassin Training Benefits", "129"],
+  ["Witch Training Benefits", "139"],
+  ["Altering Fate Training Benefits", "147"],
+  ["Kyzian Riding Training Benefits", "157"],
+  ["Sea Diving Training Benefits", "166"],
+  ["Piracy Training Benefits", "167"],
+  ["Survival Training Benefits", "175"],
+  ["Sorcerous Training Benefits", "185"],
+  ["Necromancy Training Benefits", "195"],
+  ["Dwarvish Combat Training Benefits", "203"],
+  ["Bandit Training Benefits", "214"],
+  ["Green Knight Training Benefits", "215"],
+  ["Mystical Training Benefits", "223"],
+  ["Swashbuckler Training Benefits", "245"],
+  ["Ancient Ritual Training Benefits", "246"],
+  ["Tomb Delver Training Benefits", "247"],
+  // Tal-Yool Jungle: p228 holds two tables that need DIFFERENT extraction
+  // modes, so they are two rows (see table-shapes.mjs).
+  ["Tal-Yool Jungle Encounter Type by Terrain", "228"],
+  ["Tal-Yool Jungle Special Encounters", "228"],
+  ["Tal-Yool Jungle Day Encounters", "229"],
+  ["Tal-Yool Jungle Night Encounters", "229"],
+  ["Tal-Yool Jungle Points of Interest", "230"],
+  ["Tal-Yool Jungle Rumors", "231"],
+  // The City of Masks.
+  ["City of Masks Day Encounters", "253"],
+  ["City of Masks Night Encounters", "253"],
+  ["City of Masks Rumors", "262-263"],
+  ["d40 NPCs in the City of Masks", "281"],
+  // The bestiary's one roll table.
+  ["Wendel Types", "308"],
+];
+
 // src → Foundry item type → expected names (from the source books' character
 // chapters). WR lists regenerated from the built suite after the compendium
 // reorg (talents/weapons/gear renamed, boats + siege weapons dropped as
@@ -292,6 +380,12 @@ const MANIFEST = {
       "Cursed Scroll 3 p26: Arctic Sea Encounters",
       "Sea Wolf Plunder From Distant Lands",
     ],
+  },
+  GMWR: {
+    // The Game Master's Guide is a GM book: no classes, no talents, no spells —
+    // 103 roll tables and a bestiary. The bestiary is tracked by the monster
+    // census like every other book's, so the manifest carries the tables only.
+    Table: GMWR_TABLES.map(([name]) => name),
   },
   CS4: {
     Spell: [
@@ -633,6 +727,8 @@ const TABLE_PAGES = {
     "Diabolical Mishap 1-3": "22",
     "Diabolical Mishap 4-5": "23",
   },
+  // The GM Guide's printed page IS its PDF page, so these are both at once.
+  GMWR: Object.fromEntries(GMWR_TABLES),
   CS6: {
     // p28 = the Cost/Example Event/Bonus lookup; p29 = d8 outcome lookup;
     // Benefit/Mishap are 4-page d100 longtables.
@@ -804,6 +900,12 @@ function _isContestedTable(normName) {
  * strips the want — otherwise the colon prefix defeats both the exact and
  * "- " suffix match and the Unlock button never clears after import.
  */
+/** The book a rep-prefixed name cites ("Cursed Scroll 3 p26: …" → "CS3"), or null. */
+function _repPrefixSrc(raw) {
+  const m = String(raw ?? "").match(/^(Core PDF|Cursed Scroll \d+|Western Reaches)\s+p\.?\s?\d{1,3}\s*:/i);
+  return m ? charSourceKey(/^core pdf$/i.test(m[1]) ? "core" : m[1]) : null;
+}
+
 export function tableNameMatches(raw, want, src) {
   const w = _norm(_tableProbeName(want));
   const anc = w.match(/^(.+?)\s+names$/)?.[1] ?? null;   // "dwarf names" → "dwarf"
@@ -811,6 +913,13 @@ export function tableNameMatches(raw, want, src) {
   // A name several books print is only satisfied by a copy that says which book
   // it is — see _isContestedTable.
   if (src && _isContestedTable(w)) {
+    // A rep-prefixed import ("Cursed Scroll 3 p26: Arctic Sea Encounters")
+    // names its book as plainly as the "<Book> - <name>" convention does. It
+    // matched by exact name until the GM Guide printed its own Arctic Sea
+    // Encounters and made that name contested — at which point every world
+    // holding the Cursed Scroll import would have started reporting a gap it
+    // does not have.
+    if (n === w && _repPrefixSrc(raw) === src) return true;
     if (!n.endsWith(`- ${w}`)) return false;
     return charSourceKey(n.slice(0, n.length - `- ${w}`.length).trim()) === src;
   }

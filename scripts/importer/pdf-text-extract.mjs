@@ -136,7 +136,8 @@ function _coverProfile(its, W, n = COVER_SAMPLES) {
  *
  * @param {Array} its   text items (already filtered to non-empty str)
  * @param {number} W    page width in PDF units
- * @param {"auto"|"1"|"2"|"2mid"|"layout"} mode
+ * @param {"auto"|"1"|"2"|"2mid"|"layout"|"2layout"} mode  "2layout" rides the
+ *   "auto" path here — it differs only in how layoutPageItems emits the columns
  * @returns {number|null} gutter x, or null
  */
 function detectGutter(its, W, mode = "auto") {
@@ -661,7 +662,14 @@ function layoutPageItems(its, W, mode) {
 
   const gutter = detectGutter(its, W, mode);
   const cols = gutter == null ? [its] : splitColumns(its, W, gutter);
-  return { gutter, lines: cols.flatMap((c) => columnLines(c, mode === "layout")) };
+  // "2layout" is the gutter split of "auto" feeding the padded emitter of
+  // "layout". Neither alone can read a page that prints two GRIDS side by side:
+  // "auto" splits the columns but collapses each one's cell gaps to a single
+  // space, and "layout" preserves the gaps but never splits, so the left grid's
+  // row and the right grid's row arrive welded into one line. Every Western
+  // Reaches region page is that layout (ENCOUNTER ZONE left, ENCOUNTERS right).
+  const pad = mode === "layout" || mode === "2layout";
+  return { gutter, lines: cols.flatMap((c) => columnLines(c, pad)) };
 }
 
 /**
@@ -735,7 +743,9 @@ async function extractPageLines(page, mode, { cropTablePrefix = false } = {}) {
  * @param {string} filePath  served path to the user's PDF (data-relative)
  * @param {object} [opts]
  * @param {number[]} [opts.pages]     1-based PDF page numbers (default: [1])
- * @param {"auto"|"1"|"2"|"2mid"|"layout"} [opts.columns="auto"]  column handling
+ * @param {"auto"|"1"|"2"|"2mid"|"layout"|"2layout"} [opts.columns="auto"]
+ *        column handling. "2layout" splits like "auto" AND pads like "layout",
+ *        for a page printing two grids side by side.
  * @param {boolean} [opts.cropTablePrefix=false]  drop a leading full-width
  *        price-table block before column detection (shared gear pages)
  * @returns {Promise<{text:string, numPages:number, warnings:string[],
@@ -768,7 +778,7 @@ export async function extractPdfText(filePath, { pages = [1], columns = "auto", 
  * break. Advisory only: the text is already in hand either way.
  *
  * Note for pinned callers: "1" and "layout" never detect a gutter, so they
- * never warn; "auto", "2" and "2mid" can.
+ * never warn; "auto", "2", "2mid" and "2layout" can.
  *
  * @param {{warnings?:string[]}} result  an extractPdfText result
  */

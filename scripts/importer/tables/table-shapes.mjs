@@ -157,6 +157,159 @@ const CAROUSING_EVENT_10 = {
 const _entry = (id, src, name, shape, aliases = []) =>
   ({ id, src, names: [name, ...aliases], shape });
 
+// ── Game Master's Guide to the Western Reaches (GMWR) ────────────────────────
+// One book, 103 rows, built from six repeating typographies — so these are
+// generated from a table of column labels rather than written out by hand.
+//
+// EXTRACTION MODE IS PART OF THE RECIPE HERE. Every GM Guide entry pins
+// `extractCols`, the first thing the hub's grab reads (importer-hub-manage),
+// because this is the first book whose pages are more often wrong than right
+// under the default:
+//   "2layout" region spreads — ENCOUNTER ZONE and ENCOUNTERS are two grids
+//             printed SIDE BY SIDE, which needs "auto"'s gutter split and
+//             "layout"'s padded cells at once (see pdf-text-extract.mjs).
+//   "layout"  full-width grids and banded blocks (Tal-Yool, the City, p49).
+//   "1"       the two-page d100 spreads and the d20 lists.
+//   "auto"    a small table set beside prose (the trainers, Wendel Types).
+// A row that fell through to the default would read a different page than the
+// one its recipe was proven against — test/table-gmwr-shapes.test.mjs pins it.
+const gmwr = (cols, shape) => ({ ...shape, cols, extractCols: cols });
+
+/**
+ * One captioned grid as a SUITE: one press, one single-die table per printed
+ * column, named "<Row>: <Column>". The book rolls each column on its own die,
+ * so flattening the grid to a matrix would be the wrong table — and making the
+ * GM press Unlock four times for one printed grid is what SUITE exists to
+ * avoid.
+ */
+const GMWR_GRID = (row, caption, labels, cols = "2layout") => gmwr(cols, SUITE(
+  labels.map((label, i) => ({ name: `${row}: ${label}`, shape: GRIDCOL(caption, i, labels.length, cols) })),
+));
+
+// [region, ENCOUNTER ZONE columns, ENCOUNTERS columns] — the labels the page
+// prints, footnote markers stripped. The column COUNT is what the grid parser
+// cuts each row on, so a list that drifts from the page mis-cuts every row.
+const GMWR_REGIONS = [
+  ["Bastion Mountains", ["Coast", "Mountain", "Water"], ["Aquatic", "Beast", "Monstrosity", "People"]],
+  ["Dhalpurna Mountains", ["N. Mountain", "S. Mountain", "Water"], ["Aquatic", "Beast", "Flier", "People"]],
+  ["Djurum Desert", ["Desert", "Path", "Salt Flat"], ["Digger", "Flier", "People", "Walker"]],
+  ["Duchy of Montmar", ["Fields", "Forest", "Path", "Water"], ["Aquatic", "Beast", "Wildling", "People"]],
+  ["Gilzai Mountains", ["Canyon", "Mountain", "Water"], ["Aquatic", "Beast", "Demon", "People"]],
+  ["The Gloaming", ["Forest", "Swamp", "Path", "Water"], ["Aquatic", "Animal", "Demon", "People"]],
+  ["Isles of Andrik", ["Forest", "Mountain", "Sea", "River"], ["Aquatic", "Flier", "People", "Walker"]],
+  ["Kyzian Steppes", ["Grass", "Path", "Water"], ["Aquatic", "Beast", "Elemental", "People"]],
+  ["The Last Sea", ["Land", "N. Ocean", "S. Ocean"], ["Arctic", "Beast", "Tropical", "People"]],
+  ["Lowland Moor", ["Forest", "Coast", "River", "Swamp"], ["Aquatic", "Beast", "Eldritch", "People"]],
+  ["Morzomotha", ["Caves", "Tunnels", "Water"], ["Beast", "Horror", "People"]],
+  ["Myre Swamp", ["Swamp, Day", "Swamp, Night", "New Moon"], ["Beast", "Cursed", "Devil", "People"]],
+  ["Rimespire Mountains", ["Forest", "Mountain", "Path", "Water"], ["Aquatic", "Beast", "Fiend", "People"]],
+  ["Sablewood", ["Coast", "Forest", "Path", "Water"], ["Aquatic", "Beast", "Denizen", "People"]],
+  ["Silent Mountains", ["Canyon", "Mountain", "Full Moon"], ["Beast", "Demon", "Moon", "People"]],
+];
+
+/**
+ * The trainer each region's downtime section offers, in page order. Every one
+ * prints the same page: a d4 BENEFITS table beside prose, with the die face set
+ * against the MIDDLE of its cell — `banded`, not `section`. A section slice
+ * reads that typography as rows made of the wrong halves of two cells, and does
+ * it without losing a face or raising a blocker: p91 came out "CHA check once
+ * per day" / "Gain +5 renown Gain immunity to sound-" and still scored 4/4.
+ * Counts cannot catch this; only reading the rows can.
+ */
+const GMWR_TRAINERS = [
+  "Yodeling", "Moon Fist", "Gladiator", "Wizardly Arts", "Healer", "Assassin",
+  "Witch", "Altering Fate", "Kyzian Riding", "Sea Diving", "Piracy", "Survival",
+  "Sorcerous", "Necromancy", "Dwarvish Combat", "Bandit", "Green Knight",
+  "Mystical", "Swashbuckler", "Ancient Ritual", "Tomb Delver",
+];
+
+// The six two-page d100 terrain spreads (pp.54-65), captioned "<NAME>
+// ENCOUNTERS". Each page prints a footnote keyed to its new-monster markers,
+// with the page number beside it — see stripFootnoteLines in table-importer.
+const GMWR_TERRAINS = ["Arctic Sea", "Canyon", "Lake", "Lava", "Path", "Salt Flat"];
+
+const GMWR_ENTRIES = [
+  ...GMWR_REGIONS.flatMap(([region, zone, enc]) => [
+    _entry(`gmwr/${_slug(region)}-rumors`, "GMWR", `${region} Rumors`,
+      gmwr("2layout", SECTION("RUMORS", "1", 10))),
+    _entry(`gmwr/${_slug(region)}-encounter-zone`, "GMWR", `${region} Encounter Zone`,
+      GMWR_GRID(`${region} Encounter Zone`, "ENCOUNTER ZONE", zone)),
+    _entry(`gmwr/${_slug(region)}-encounters`, "GMWR", `${region} Encounters`,
+      GMWR_GRID(`${region} Encounters`, "ENCOUNTERS", enc)),
+    // The facing page is one full-width d20 list: single-column keeps each
+    // entry's sentence whole and the caption slice keeps the page header out.
+    _entry(`gmwr/${_slug(region)}-points-of-interest`, "GMWR", `${region} Points of Interest`,
+      gmwr("1", SECTION("POINTS OF INTEREST", "1", 20))),
+  ]),
+  ...GMWR_TRAINERS.map((t) =>
+    _entry(`gmwr/${_slug(t)}-training-benefits`, "GMWR", `${t} Training Benefits`,
+      gmwr("auto", BANDED("BENEFITS", 4)))),
+  ...GMWR_TERRAINS.map((t) =>
+    _entry(`gmwr/${_slug(t)}-encounters`, "GMWR", `${t} Encounters`,
+      gmwr("1", LONGTABLE(`${t.toUpperCase()} ENCOUNTERS`)))),
+  _entry("gmwr/rumors-in-the-reaches", "GMWR", "Rumors in the Reaches",
+    gmwr("1", LONGTABLE("RUMORS"))),
+  // p48 prints the region d20 beside a settlement d4; p49 the trouble d10 above
+  // the urgency 2d6. Four rows, because each one is its own roll.
+  _entry("gmwr/trouble-region", "GMWR", "Trouble in the Reaches: Region",
+    gmwr("2layout", SECTION("TROUBLE IN...", "1", 20))),
+  _entry("gmwr/trouble-settlement", "GMWR", "Trouble in the Reaches: Settlement",
+    gmwr("2layout", SECTION("LOCATION", "1", 4))),
+  // Each entry wraps around its own face AND embeds a nested "1d6: 1. … 6. …",
+  // which a section slice shreds into ten scrambled rows.
+  _entry("gmwr/type-of-trouble", "GMWR", "Type of Trouble",
+    gmwr("layout", BANDED("TYPE OF TROUBLE", 10))),
+  // Printed as bands on a 2d6 starting at "1-6" — see the NdM first-band
+  // tolerance in computeBlockers (table-importer.mjs).
+  _entry("gmwr/trouble-urgency-level", "GMWR", "Trouble Urgency Level",
+    gmwr("layout", SECTION("URGENCY LEVEL", "1", 12))),
+  // Tal-Yool p228 needs BOTH modes, one per table: SPECIAL ENCOUNTERS is set in
+  // the page's right-hand column and only survives the gutter split, while
+  // ENCOUNTER TYPE BY TERRAIN is full width and only survives "layout".
+  _entry("gmwr/tal-yool-special-encounters", "GMWR", "Tal-Yool Jungle Special Encounters",
+    gmwr("2layout", SECTION("SPECIAL ENCOUNTERS", "1", 8))),
+  // Column names come from the GM GUIDE's own printed header, never from the
+  // Cursed Scroll twin's. These five grids were first registered with the
+  // zine's labels ("Canal/Street/Roof/Sewer", "Land/River/Sea/Ruins"), which
+  // parse to the right CELLS under the wrong NAMES — and on the terrain grid
+  // the zine also orders Coast and River the other way round, so the columns
+  // were mislabelled as well as misnamed. Nothing catches that: face counts,
+  // row counts and blockers are all identical either way. Check a grid's
+  // labels against the page, not against its reprint.
+  _entry("gmwr/tal-yool-encounter-type-by-terrain", "GMWR", "Tal-Yool Jungle Encounter Type by Terrain",
+    GMWR_GRID("Tal-Yool Jungle Encounter Type", "ENCOUNTER TYPE BY TERRAIN",
+      ["Jungle/Path", "Coast", "River", "Mountain/Lava"], "layout")),
+  _entry("gmwr/tal-yool-day-encounters", "GMWR", "Tal-Yool Jungle Day Encounters",
+    GMWR_GRID("Tal-Yool Jungle Day Encounters", "DAY ENCOUNTERS",
+      ["Land", "Aquatic", "People", "Cursed"], "layout")),
+  _entry("gmwr/tal-yool-night-encounters", "GMWR", "Tal-Yool Jungle Night Encounters",
+    GMWR_GRID("Tal-Yool Jungle Night Encounters", "NIGHT ENCOUNTERS",
+      ["Land", "Aquatic", "People", "Cursed"], "layout")),
+  _entry("gmwr/tal-yool-points-of-interest", "GMWR", "Tal-Yool Jungle Points of Interest",
+    gmwr("1", SECTION("POINTS OF INTEREST", "1", 20))),
+  _entry("gmwr/tal-yool-rumors", "GMWR", "Tal-Yool Jungle Rumors",
+    gmwr("auto", SECTION("RUMORS", "1", 20))),
+  // The City of Masks stacks DAY over NIGHT full width, so "auto" would cut
+  // both grids in half at the page's own gutter.
+  _entry("gmwr/city-of-masks-day-encounters", "GMWR", "City of Masks Day Encounters",
+    GMWR_GRID("City of Masks Day Encounters", "DAY ENCOUNTERS",
+      ["Canal", "Wealthy District", "Working District", "Poor District"], "layout")),
+  _entry("gmwr/city-of-masks-night-encounters", "GMWR", "City of Masks Night Encounters",
+    GMWR_GRID("City of Masks Night Encounters", "NIGHT ENCOUNTERS",
+      ["Canal", "Wealthy District", "Working District", "Poor District"], "layout")),
+  _entry("gmwr/city-of-masks-rumors", "GMWR", "City of Masks Rumors",
+    gmwr("1", LONGTABLE("RUMORS"))),
+  // "d40 NPCs in the City of Masks" (p281) is deliberately NOT registered. It
+  // is one full-page list under a title-case caption that no recipe here can
+  // anchor on, and it does not need one: the generic parse reads all forty
+  // entries in printed order as a flat 1d40 under the default extraction. The
+  // book keys its rows 10-49 (roll d4 for the tens, d10 for the ones), and that
+  // key stays at the head of each row's text — a cross-reference to the page,
+  // not noise, and the same forty equally-likely results either way.
+  _entry("gmwr/wendel-types", "GMWR", "Wendel Types",
+    gmwr("auto", BANDED("WENDEL TYPES", 8))),
+];
+
 // Raw list kept separate from CONTENT so the uniqueness test asserts over the
 // authored entries BEFORE Object.fromEntries silently dedups a slug collision
 // (Codex review finding #5).
@@ -349,6 +502,32 @@ export const CONTENT_ENTRIES = [
   // automatic route completes.
   _entry("cs1/diabolical-mishap-1-3", "CS1", "Diabolical Mishap 1-3", SECTION("DIABOLICAL MISHAP 1-3")),
   _entry("cs1/diabolical-mishap-4-5", "CS1", "Diabolical Mishap 4-5", SECTION("DIABOLICAL MISHAP 4-5")),
+  // Western Reaches pp.184-185 REPRINT the two Cursed Scroll 1 mishap tables
+  // (verified word for word against both PDFs: the CS1 p22 / WR p184 pages
+  // differ by exactly one token, the page number in the footer). They are
+  // reprints, but not the same LAYOUT: CS1 prints the die face at the head of
+  // the row's first line, while WR centres it vertically against the cell —
+  // "Maelstrom! Roll twice …" / "1" / "further 1s)". The section slice reads
+  // that as rows made of the wrong halves of two cells (11 scrambled rows on
+  // p185, 12 misaligned ones on p184); `banded` exists for exactly this
+  // typography and reassembles them through _centeredRuns. Harness-verified:
+  // WR p184 comes out 12/12 byte-identical to the CS1 parse, WR p185 12/12
+  // rows with one printed reword ("nearby creatures" → "creatures within
+  // near" — the book, not the parse).
+  //
+  // ponytail: WR p185's row 12 loses its second line, because _centeredRuns
+  // (table-importer.mjs) stops the LAST run where centering says it should and
+  // the tie goes to the shorter run. It truncates the same row off CS1's own
+  // page, so it is the banded kind's ceiling rather than anything about this
+  // book; fix it there if a third table ever needs it.
+  //
+  // The "(Tier N-M)" aliases are the names the Roll Tables catalogue lists the
+  // Western Reaches printing under, so a paste made from either hub resolves
+  // to this recipe rather than falling through to a generic parse.
+  _entry("wr/diabolical-mishap-1-3", "WR", "Diabolical Mishap 1-3",
+    BANDED("DIABOLICAL MISHAP 1-3", 12), ["Diabolical Mishap (Tier 1-3)"]),
+  _entry("wr/diabolical-mishap-4-5", "WR", "Diabolical Mishap 4-5",
+    BANDED("DIABOLICAL MISHAP 4-5", 12), ["Diabolical Mishap (Tier 4-5)"]),
   _entry("cs3/sea-wolf-plunder", "CS3", "Sea Wolf Plunder From Distant Lands",
     SECTION("SEA WOLF PLUNDER FROM DISTANT LANDS")),
   // p68 back-cover treasure tables. Both have a wide die→text gutter that the
@@ -489,6 +668,8 @@ export const CONTENT_ENTRIES = [
   _entry("core/potion-features-3", "CORE", "Potion Features - Feature 3", GRIDCOL("POTION FEATURES", 2, 3, "layout")),
   _entry("core/mixing-potions-1", "CORE", "Mixing Potions - Effect 1", GRIDCOL("MIXING POTIONS", 0, 2, "layout")),
   _entry("core/mixing-potions-2", "CORE", "Mixing Potions - Effect 2", GRIDCOL("MIXING POTIONS", 1, 2, "layout")),
+  // The GM's Guide to the Western Reaches — see GMWR_ENTRIES above.
+  ...GMWR_ENTRIES,
 ];
 
 export const CONTENT = Object.fromEntries(CONTENT_ENTRIES.map((e) => [e.id, e]));

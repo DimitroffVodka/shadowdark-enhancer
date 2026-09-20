@@ -2028,8 +2028,23 @@ function stripFootnoteLines(text) {
     return !(/^[*†‡]/.test(core) && core.length > 1);
   }).join("\n");
 }
+
+/**
+ * A caption minus a trailing parenthetical GLOSS — the lower-case aside some
+ * pages set beside the caption ("ENCOUNTERS (humanoids in water have ships)",
+ * GM Guide p160). Without this the line is not a caption at all: the previous
+ * table's block runs straight through the grid below it (the page's RUMORS
+ * table swallowed eight more rows and overlapped), and the grid's own recipe
+ * finds no "ENCOUNTERS" to slice.
+ *
+ * Only a gloss with lower case is dropped, so an ALL-CAPS parenthetical that
+ * distinguishes two captions survives — CS2 pg 22's "LOW STAKES PIT FIGHT
+ * (SOLO)" and "(GROUP)" differ by nothing else.
+ */
+const captionCore = (line) => String(line).trim().replace(/\s*\([^)]*[a-z][^)]*\)\s*$/, "").trim();
+
 function isSectionCaption(line) {
-  const t = String(line).trim();
+  const t = captionCore(line);
   if (t.length < 2) return false;
   if (parseDieHeader(t) || parseLeadingRange(t)) return false;
   if (!/[A-Z]/.test(t)) return false;
@@ -2067,7 +2082,7 @@ function _sliceSection(text, { name = "", caption, size } = {}) {
   // `size` pseudo-header rescue may still handle, e.g. Drinks' "d* Details").
   const starts = [];
   for (let i = 0; i < lines.length; i++) {
-    if (isSectionCaption(lines[i]) && lines[i].toUpperCase().replace(/\s+/g, " ") === want) starts.push(i);
+    if (isSectionCaption(lines[i]) && captionCore(lines[i]).toUpperCase().replace(/\s+/g, " ") === want) starts.push(i);
   }
   if (!starts.length) return null;
   let start = starts.find((s) => {
@@ -2197,9 +2212,18 @@ function parseBandedSlice(text, { name = "", caption, size } = {}) {
   const body = s.body;
   const hits = body.map((l) => parseLeadingRange(l));
   const anchors = [];
+  let last = 0;
   body.forEach((l, i) => {
     const h = hits[i];
-    if (h && h.min >= 1 && h.max <= faces) anchors.push(i);
+    if (!h || h.min < 1 || h.max > faces) return;
+    // Faces ascend down a banded table, so a "face" that steps BACKWARDS is a
+    // wrapped line that happens to begin with a number, not a row: the GM
+    // Guide's witch trainer wraps "Your broomstick spell lasts 1 / hour of real
+    // time", and reading that stray 1 as a second row 1 both overlapped the
+    // table and cut the real row 3 in half.
+    if (h.min <= last) return;
+    last = h.max;
+    anchors.push(i);
   });
   if (!anchors.length) return null;
 
@@ -2496,7 +2520,7 @@ export function parseByShape(text, shape, { name = "" } = {}) {
       // header's column positions off them, and trimming the slice would leave
       // the aligned candidate with nothing to align to.
       const glines = gtext.split(/\r?\n/);
-      const norm = (l) => String(l).trim().toUpperCase().replace(/\s+/g, " ");
+      const norm = (l) => captionCore(l).toUpperCase().replace(/\s+/g, " ");
       const want = norm(shape.caption);
       const s = glines.findIndex((l) => isSectionCaption(l) && norm(l) === want);
       if (s !== -1) {
@@ -2760,15 +2784,23 @@ export function computeBlockers(pt) {
   if (!m) B("bad-formula", `Formula "${pt.formula}" is not a plain NdM die.`);
   const lo = m ? Number(m[1]) : null;
   const hi = m ? Number(m[1]) * Number(m[2]) : null;
+  // An NdM table cannot roll below N, but books routinely print its first BAND
+  // starting at 1 anyway — the GM Guide's 2d6 URGENCY LEVEL reads "1-6 / 7-9 /
+  // 10-11 / 12". Read that band as reaching the die's floor: clamping it is the
+  // difference between the table the book prints and a row reported as
+  // out-of-bounds with five faces left uncovered. Only a band that REACHES into
+  // range is clamped, so a lone "1" on a 2d6 is still out of bounds.
+  const checked = (!m || lo <= 1) ? rows
+    : rows.map((r) => (r.min < lo && r.max >= lo ? { ...r, min: lo } : r));
   const reversed = [], oob = [];
-  for (const r of rows) {
+  for (const r of checked) {
     if (r.max < r.min) reversed.push(`${r.min}-${r.max}`);
     else if (m && (r.min < lo || r.max > hi)) oob.push(r.min === r.max ? String(r.min) : `${r.min}-${r.max}`);
   }
   if (reversed.length) B("reversed-range", `${reversed.length} reversed range(s): ${reversed.slice(0, 4).join(", ")}.`);
   if (oob.length) B("out-of-bounds", `${oob.length} row(s) outside ${lo}..${hi}: ${oob.slice(0, 4).join(", ")}${oob.length > 4 ? ", …" : ""}.`);
   if (m) {
-    const inb = rows.filter((r) => r.min >= lo && r.max <= hi && r.max >= r.min).sort((a, b) => a.min - b.min);
+    const inb = checked.filter((r) => r.min >= lo && r.max <= hi && r.max >= r.min).sort((a, b) => a.min - b.min);
     let cursor = lo, uncovered = 0, overs = 0;
     for (const r of inb) {
       if (r.min > cursor) uncovered += r.min - cursor;
