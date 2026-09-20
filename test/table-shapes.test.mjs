@@ -374,6 +374,140 @@ test("folder resolver mirrors the Manage tree (category-first)", () => {
   assert.equal(p({ name: "Random Junk", category: "other", source: "CS9 Zine" }), "Roll Tables / CS9 Zine");
 });
 
+// Every hub seed stamps `category = custom, customLabel = <the book's own
+// sub-heading>` and `folderPath = [category, sub]` onto the parsed table
+// (table-hub-app._applyImportSeed). Step 1 used to honour that outright, so
+// each of the ~90 headings claimed a TOP-LEVEL pack folder — "Djurum Desert"
+// beside "Roll Tables" — while the catalog's browse list was grouped by region
+// all along. A manifestId now says the manifest places this table, not a label.
+test("folder resolver groups a manifest table under its book's own section", () => {
+  const p = (o) => resolveTableFolderPath(o).join(" / ");
+  // What a real catalog import passes: the seed's hijacked category AND the
+  // [category, sub] folderPath, both of which the manifest identity outranks.
+  const seeded = (manifestId, name, sub, category) => p({
+    name, manifestId, category: "custom", customLabel: sub, folderPath: [category, sub],
+    source: "GMWR",
+  });
+
+  // One region keeps its four tables together, though the book files its
+  // rumors/points of interest under Hexcrawl/Adventure and its encounters
+  // under Random Encounter Tables — the split that made this unnavigable.
+  const region = "Roll Tables / Western Reaches GM Guide / Bastion Mountains";
+  assert.equal(seeded("gmgwr-bastion-mountains-rumors", "Bastion Mountains Rumors",
+    "Bastion Mountains", "Hexcrawl/Adventure"), region);
+  assert.equal(seeded("gmgwr-bastion-mountains-points-of-interest", "Bastion Mountains Points of Interest",
+    "Bastion Mountains", "Hexcrawl/Adventure"), region);
+  assert.equal(seeded("gmgwr-bastion-mountains-encounters", "Bastion Mountains Encounters",
+    "Bastion Mountains", "Random Encounter Tables"), region);
+
+  // A topical section groups the same way, and a matrix column lands with the
+  // grid it was split from.
+  assert.equal(seeded("gmgwr-yodeling-training-benefits", "Yodeling Training Benefits",
+    "Training", "Gameplay"), "Roll Tables / Western Reaches GM Guide / Training");
+  assert.equal(p({ name: "Points of Interest - Descriptor", manifestId: "cs4-points-of-interest:descriptor" }),
+    "Roll Tables / Cursed Scroll #4 / The Black River");
+
+  // The book is the entry's, not the caller's free-text source: a GM importing
+  // the Cursed Scroll printing of a reprint files under that book.
+  assert.equal(p({ name: "Rumors", manifestId: "cs4-rumors", source: "Western Reaches GM Guide" }),
+    "Roll Tables / Cursed Scroll #4 / The Black River");
+
+  // Guard rails: a typed Custom… label still wins when nothing places the
+  // table, the earlier steps still outrank the section, and an unidentified
+  // table is still not routed by guesswork.
+  assert.equal(p({ name: "My Homebrew", category: "custom", customLabel: "Djurum Desert" }), "Djurum Desert");
+  assert.equal(
+    p({ name: "Bastion Mountains Rumors", manifestId: "gmgwr-bastion-mountains-rumors",
+      category: "custom", customLabel: "My Campaign" }),
+    "My Campaign",
+    "a label the GM actually typed still outranks the manifest's own section",
+  );
+  assert.equal(
+    seeded("cs2-low-stakes-pit-fight-solo", "Low Stakes Pit Fight (solo)",
+      "Pit Fighting Encounters", "Gameplay"),
+    "Gameplay / Pit Fighting",
+    "the pit-fighting suite still files by feature, not by its book's section",
+  );
+});
+
+// A suite import names its members from its own recipe and stamps no
+// per-member manifestId, so 193 of one GM's 207 tables sat in a single
+// "Roll Tables / GMWR" folder. These land by NAME instead.
+test("folder resolver places a suite member, which carries no manifest id", () => {
+  const p = (o) => resolveTableFolderPath(o).join(" / ");
+  const gm = "Roll Tables / Western Reaches GM Guide";
+
+  // The grid recipe's "<row>: <column>" naming, with and without the book
+  // prefix an older build stamped on every member.
+  assert.equal(p({ name: "Bastion Mountains Encounter Zone: Coast", source: "GMWR" }),
+    `${gm} / Bastion Mountains`);
+  assert.equal(p({ name: "Western Reaches GM Guide - Bastion Mountains Encounters: People", source: "GMWR" }),
+    `${gm} / Bastion Mountains`);
+  // A scalar table, and one whose printed name contains its own colon —
+  // matched whole, before anything is stripped off the end of it.
+  assert.equal(p({ name: "Bastion Mountains Rumors", source: "GMWR" }), `${gm} / Bastion Mountains`);
+  assert.equal(p({ name: "Trouble in the Reaches: Region", source: "GMWR" }),
+    `${gm} / Trouble in the Reaches`);
+  // The hyphen in a region's own name is not a book prefix.
+  assert.equal(p({ name: "Tal-Yool Jungle Points of Interest", source: "GMWR" }),
+    `${gm} / Tal-Yool Jungle`);
+
+  // Two books print "d40 NPCs in the City of Masks"; the draft's source picks.
+  assert.equal(p({ name: "d40 NPCs in the City of Masks", source: "GMWR" }), `${gm} / NPC`);
+  assert.equal(p({ name: "d40 NPCs in the City of Masks", source: "CS6" }),
+    "Roll Tables / Cursed Scroll #6 / NPC");
+  // With no source to settle it, the ambiguous name is left alone, not guessed.
+  assert.equal(p({ name: "d40 NPCs in the City of Masks" }), "Roll Tables / Custom");
+
+  // A name the manifest has never heard of still gets no folder invented for it.
+  assert.equal(p({ name: "Barry's Homebrew Oddities", source: "GMWR" }),
+    "Roll Tables / Western Reaches GM Guide");
+});
+
+// The suite recipes do not always spell a table the way its manifest row does:
+// the GM Guide's terrain grid is "...Encounter Type by Terrain" in the manifest
+// and "...Encounter Type: Coast" on the imported document, which left four of
+// Tal-Yool's tables loose in the book folder while its other eleven grouped.
+test("folder resolver falls back to the section its name begins with", () => {
+  const p = (o) => resolveTableFolderPath(o).join(" / ");
+  const gm = "Roll Tables / Western Reaches GM Guide";
+  for (const col of ["Coast", "Jungle/Path", "Mountain/Lava", "River"]) {
+    assert.equal(p({ name: `Tal-Yool Jungle Encounter Type: ${col}`, source: "GMWR" }),
+      `${gm} / Tal-Yool Jungle`, col);
+  }
+  // Still a last resort: an exact section name outranks the prefix scan, so
+  // "Rumors in the Reaches" lands in Rumors and not in a region.
+  assert.equal(p({ name: "Rumors in the Reaches", source: "GMWR" }), `${gm} / Rumors`);
+
+  // Word boundary only — "Lake" is a GM Guide section, "Lakeside" is not it.
+  assert.equal(p({ name: "Lakeside Ruins of Barry", source: "GMWR" }), gm);
+  // And a name sharing no heading still invents nothing.
+  assert.equal(p({ name: "Homebrew Oddities", source: "GMWR" }), gm);
+  // The prefix pass needs a book: with no source there is nothing to scan.
+  assert.equal(p({ name: "Tal-Yool Jungle Encounter Type: Coast" }), "Roll Tables / Custom");
+});
+
+// The GM Guide heads each of its six terrain encounter tables (pp.54-65) with
+// the terrain, so each was a folder holding one table, sitting among the
+// eighteen real regions. They are a list, not places.
+test("folder resolver collects the standalone terrain encounters in one folder", () => {
+  const p = (o) => resolveTableFolderPath(o).join(" / ");
+  const shelf = "Roll Tables / Western Reaches GM Guide / Encounters";
+  for (const t of ["Arctic Sea", "Canyon", "Lake", "Lava", "Path", "Salt Flat"]) {
+    assert.equal(p({ name: `${t} Encounters`, source: "GMWR" }), shelf, t);
+  }
+  // Same table where Cursed Scroll #3 prints it, under its own book.
+  assert.equal(p({ name: "Arctic Sea Encounters", source: "CS3" }),
+    "Roll Tables / Cursed Scroll #3 / Encounters");
+  // A real region is untouched — "Lake" aliasing must not swallow these.
+  assert.equal(p({ name: "The Last Sea Rumors", source: "GMWR" }),
+    "Roll Tables / Western Reaches GM Guide / The Last Sea");
+  // Cursed Scroll #4's eight keyed locations stay foldered by place: every one
+  // of those tables is named "Random Encounters", so the folder is the label.
+  assert.equal(p({ name: "Random Encounters", manifestId: "cs4-random-encounters-tsibalba", source: "CS4" }),
+    "Roll Tables / Cursed Scroll #4 / Tsibalba");
+});
+
 // Column drift: a cell wider than its header ("1,200 gp" under "Cost") pushes
 // every later boundary on that line right of its header x. Searching around the
 // raw x then found no gap in the window and fell back to a word-snap, cutting
