@@ -6,10 +6,97 @@
  * dashboard resolves live actors to these shapes before calling in, so
  * this layer stays node-testable.
  *
- * Exports: normalizeMonsterName, censusRows, duplicateGroups, gapNames
+ * Exports: BESTIARY_BOOKS, normalizeMonsterName, censusRows, duplicateGroups, gapNames
  */
 
 import { sourceFolderName } from "../../shared/compendium-suite.mjs";
+
+// ─── Published bestiary contents ─────────────────────────────────────────────
+
+/**
+ * What each published bestiary contains — NAMES ONLY, with its page range.
+ *
+ * No statblock text, no stats, no descriptions: an index, like MOUNT_MANIFEST
+ * and the curated art map, and for the same reason — the Manage tree cannot
+ * tell what a book still owes the GM without knowing what the book contains.
+ * Each list was produced by running this module's own splitStatblocks /
+ * parseStatblock over the book PDF, so every name is byte-identical to the name
+ * an import of those pages creates; a spelling that drifted would leave a row
+ * that can never reconcile.
+ *
+ * Presence is checked across ALL sources, never per book: 57 of the GM Guide's
+ * 90 statblocks reprint a Cursed Scroll, spelled identically in both books, and
+ * the importer's duplicate check is global by name. A reprint imported from
+ * either book therefore satisfies both books' rows — without that, the other
+ * book's row stayed below its count forever and "Import everything" re-ran it
+ * on every pass, skipping every monster on it as a duplicate.
+ *
+ * CS6 has no bestiary section, so it has no entry here.
+ */
+export const BESTIARY_BOOKS = {
+  CS1: {
+    pages: "46-48",
+    names: [
+      "Bittermold", "Bogthorn", "Dralech", "Gordock Breeg", "Hexling", "Howler",
+      "Ichor Ooze", "Marrow Fiend", "Mugdulblub", "Mutant Catfish", "Skrell",
+      "Tar Bat", "Plogrina B.", "The Willowman",
+    ],
+  },
+  CS2: {
+    pages: "40-43",
+    names: [
+      "Camel, Silver", "Canyon Ape", "Donkey", "Dunefiend", "Dust Devil",
+      "Hero", "Horse, War", "Mirage", "Ras-Godai", "Rookie", "Scrag",
+      "Scrag, War", "Siruul", "The Scourge",
+    ],
+  },
+  CS3: {
+    pages: "44-47",
+    names: [
+      "Drake, Greater", "Drake, Lesser", "Draugr", "Dverg", "Nord", "Oracle",
+      "Orca", "Sea Nymph", "Sea Serpent", "Troll, Deep", "Valkyrie", "Werebear",
+    ],
+  },
+  CS4: {
+    pages: "60-64",
+    names: [
+      "Anaconda, Giant", "Stone Warrior", "Ant, Giant", "Stone Shaman",
+      "Basilisk Hatchling", "Cobra Statue", "Blue Dart Frog", "Catfish, Giant",
+      "Condor, Dire", "Death Slug", "Jaguar King", "Javelina",
+      "Javelina, Diseased", "Kawitzek", "Skandrill", "Skandrill, Rex",
+      "Void Bat", "Void Being",
+    ],
+  },
+  CS5: {
+    pages: "34-35",
+    names: [
+      "Bezelak", "Dremir", "Librarian of Leng", "Nuln", "Morzo Moth", "Wendel",
+    ],
+  },
+  GMWR: {
+    label: "GM Guide", pages: "284-309",
+    names: [
+      "Adept", "Anaconda, Giant", "Ant, Giant", "Badgerling", "Bard",
+      "Basilisk Hatchling", "Bezelak", "Blue Dart Frog", "Bogthorn",
+      "Camel, Silver", "Canyon Ape", "Captain", "Catfish, Giant",
+      "Cobra Statue", "Condor, Dire", "Crabling", "Dai Oni", "Death Slug",
+      "Deep Orc", "Donkey", "Drake, Greater", "Drake, Lesser", "Dralech",
+      "Draugr", "Dremir", "Dunefiend", "Dust Devil", "Dverg", "Dwarf",
+      "Fey Knight", "Green Knight", "Hag, Swamp", "Half-Orc", "Halfling",
+      "Hell Toad", "Hero", "Hexling", "Horse, Prized", "Horse, War",
+      "Jaguar King", "Javelina", "Javelina, Diseased", "Knight of St. Ydris",
+      "Kyzian", "Librarian of Leng", "Marrow Fiend", "Marsh Fog", "Mirage",
+      "Monk", "Moon Dragon", "Morzo Moth", "Mugdulblub", "Necromancer", "Nord",
+      "Nuln", "Oracle", "Orca", "Pony", "Ranger", "Ras-Godai", "Red Knight",
+      "Rookie", "Scout", "Scrag", "Scrag, War", "Sea Nymph", "Sea Serpent",
+      "Siruul", "Sister Marjory", "Little Sister", "Elder Sister", "Skandrill",
+      "Skandrill, Rex", "Skrell", "Stone Warrior", "Stone Shaman",
+      "Swashbuckler", "Tar Bat", "The Scourge", "Thunderbird", "Tiger",
+      "Troll, Deep", "Valkyrie", "Void Bat", "Void Being", "Wendel", "Wendigo",
+      "Werebear", "The Willowman", "Witch",
+    ],
+  },
+};
 
 // ─── Name normalization ───────────────────────────────────────────────────────
 

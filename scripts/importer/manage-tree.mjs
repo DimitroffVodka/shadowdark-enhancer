@@ -21,7 +21,7 @@
  *                       traps & hazards, boons, casting mishaps)
  *   Roll Tables       → per source — the remaining manifest Table entries
  *                       (generators, encounters, treasure, names)
- *   Monsters          → CS1…CS6 · Western Reaches (fixed skeleton) + any other present source
+ *   Monsters          → CS1…CS6 · GM Guide (fixed skeleton) · Mounts
  *   Items             → Basic Gear · Armor · Weapons · Magic Items (Potion+Scroll+Wand)
  *   Downtime          → one row per source book, censused from the
  *                       `downtimeContent` world setting (counts only)
@@ -45,6 +45,7 @@ import { gatherCensus, liveActorRecords } from "./monsters/monster-census-live.m
 import { liveItemRecords } from "./items/item-census-live.mjs";
 import { isCurrencyName } from "./items/item-parser.mjs";
 import { findMonsterPack } from "./monsters/monster-pack.mjs";
+import { BESTIARY_BOOKS } from "./monsters/monster-census.mjs";
 import { sourceFolderName, findSuitePack } from "../shared/compendium-suite.mjs";
 import { MODULE_ID } from "../shared/module-id.mjs";
 import {
@@ -75,24 +76,19 @@ export function firstLinkedCite(cites, linked = (c) => !!sourcePdfTarget(c?.src,
   return (cites ?? []).find((c) => c && linked(c)) ?? null;
 }
 
-/** Curated bestiary skeleton. Western Reaches creatures are represented by Mounts. */
-const MONSTER_SOURCES = ["CS1", "CS2", "CS3", "CS4", "CS5", "CS6"];
+/**
+ * Curated bestiary skeleton — one leaf per SOURCE KEY (not per display label).
+ * The key is what an entry's `src` carries, so it has to be a CHAR_SOURCES /
+ * source-PDF key or the row's "Grab from PDF" resolves nothing and the row is
+ * blocked for good. GMWR is the GM's Guide bestiary; the Player's Guide
+ * creatures are the Mounts leaf, and neither is labelled "Western Reaches" —
+ * that FOLDER holds both guides' actors (mounts and boats included), so a leaf
+ * counting it would report mounts as bestiary monsters.
+ */
+const MONSTER_SOURCES = ["CS1", "CS2", "CS3", "CS4", "CS5", "CS6", "GMWR"];
 
 // GAMEPLAY_TABLES / PATRON_TABLES routing sets now live in table-folders.mjs
 // (single source of truth shared with the pack-folder resolver) — imported above.
-
-/**
- * Published bestiary sizes (source label → monster count). The monster census
- * is reference-driven, so a fresh world may have no named gaps. These totals
- * keep each source discoverable as a direct paste/import action.
- */
-const BESTIARY_COUNTS = {
-  CS1: { count: 14, pages: "46-48" },
-  CS2: { count: 14, pages: "40-43" },
-  CS3: { count: 12, pages: "44-47" },
-  CS4: { count: 18, pages: "60-64" },
-  CS5: { count: 6,  pages: "34-35" },
-};
 
 /** Sort a leaf's entries: importable (locked) first, then imported, alpha within. */
 function sortEntries(entries, alpha = false) {
@@ -450,9 +446,10 @@ function buildMishaps(charEntries, _tablesPresent) {
 }
 
 /**
- * Monsters top-level branch. Only curated CS bestiaries are source leaves;
- * reference-derived Custom/Core noise and Western Reaches mount actors do not
- * become generic monster folders. Western Reaches is represented by Mounts.
+ * Monsters top-level branch. Only curated published bestiaries are source
+ * leaves; reference-derived Custom/Core noise and Western Reaches mount actors
+ * do not become generic monster folders. The Player's Guide creatures are the
+ * Mounts leaf; the GM's Guide bestiary is its own leaf.
  */
 function buildMonsters(monsterRows, actorRecords) {
   // Imported monster names grouped by display source label (deduped).
@@ -464,21 +461,41 @@ function buildMonsters(monsterRows, actorRecords) {
   }
   const rowByLabel = new Map(monsterRows.map((r) => [r.label, r]));
 
-  const makeLeaf = (label) => {
-    // Stamp each entry's source (the leaf label) so the seed carries the book —
-    // monster gaps have no page cite, but knowing the source lets the import
-    // folder + the "Grab from PDF" page-range extractor default to the right book.
-    const present = [...(presentByLabel.get(label)?.values() ?? [])].map((name) => ({ name, present: true, src: label }));
-    const missing = (rowByLabel.get(label)?.missingNames ?? []).map((name) => ({ name, present: false, src: label }));
-    const node = leaf(`monsters/${label}`, label, "fa-dragon", [...present, ...missing], "monsterSeedPaste");
-    // Incomplete published bestiary → one direct paste/import row.
-    const expected = BESTIARY_COUNTS[label];
-    if (expected && node.have < expected.count) {
+  // Every spelling of every imported actor's name. Mount rows already reconcile
+  // through this (see below); a published bestiary's rows use the same set, so
+  // an index-style "Horse, War" is satisfied by an actor named "War Horse".
+  const actorKeys = new Set(actorRecords.flatMap((r) => [...mountNameKeys(r.name)]));
+  const inLibrary = (name) => [...mountNameKeys(name)].some((key) => actorKeys.has(key));
+
+  const makeLeaf = (src) => {
+    // Stamp each entry's SOURCE KEY (not the display label) so the seed carries
+    // the book — monster gaps have no page cite, but knowing the source lets the
+    // import folder + the "Grab from PDF" extractor default to the right book.
+    const book = BESTIARY_BOOKS[src];
+    const label = book?.label ?? src;
+    // Presence is name-based across ALL sources, never per book. 57 of the GM
+    // Guide's 90 statblocks reprint a Cursed Scroll, identically spelled, and
+    // the importer's duplicate check is global by name — so a per-book count
+    // left the OTHER book's row permanently short, and "Import everything"
+    // re-ran that row every time only to skip every monster as a duplicate.
+    const present = book
+      ? book.names.filter(inLibrary).map((name) => ({ name, present: true, src }))
+      : [...(presentByLabel.get(label)?.values() ?? [])].map((name) => ({ name, present: true, src }));
+    const listed = new Set(present.map((r) => _norm(r.name)));
+    const missing = (rowByLabel.get(label)?.missingNames ?? [])
+      .filter((name) => !listed.has(_norm(name)))
+      .map((name) => ({ name, present: false, src }));
+    const node = leaf(`monsters/${src}`, label, "fa-dragon", [...present, ...missing], "monsterSeedPaste");
+    // Incomplete published bestiary → one direct paste/import row. The book's
+    // own names carry no page cite of their own, so they are NOT enumerated as
+    // individual Import rows: the whole range comes down in one grab.
+    const absent = book ? book.names.length - present.length : 0;
+    if (absent > 0) {
       node.entries.unshift({
-        name: `Import the ${label} bestiary — ${expected.count} monsters (${expected.pages})`,
-        present: false, seedAction: "monsterSeedPaste", type: "Actor", src: label, pages: expected.pages,
+        name: `Import the ${label} bestiary — ${book.names.length} monsters (${book.pages})`,
+        present: false, seedAction: "monsterSeedPaste", type: "Actor", src, pages: book.pages,
       });
-      node.locked = expected.count - node.have;
+      node.locked = absent;
     }
     return node;
   };
@@ -490,7 +507,6 @@ function buildMonsters(monsterRows, actorRecords) {
   // Matched on every spelling of the name (mountNameKeys), because the books
   // print "WAR HORSE" where the manifest indexes "Horse, War" — an exact-name
   // check leaves such an actor unreconciled and its row locked for good.
-  const actorKeys = new Set(actorRecords.flatMap((r) => [...mountNameKeys(r.name)]));
   const mountRecords = MOUNT_MANIFEST.map((m) => ({
     name: m.name,
     present: [...mountNameKeys(m.name)].some((key) => actorKeys.has(key)),
