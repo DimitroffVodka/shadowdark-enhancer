@@ -38,6 +38,52 @@
   disagreed it stays unset and you decide. Only the 33 creatures the GM Guide
   introduces needed a type of their own.
 ### Fixed
+- **A book's own row numbers no longer sit in front of every result.** The GM
+  Guide's *d40 NPCs in the City of Masks* (p281) keys its forty rows 10-49,
+  because the book has you roll d4 for the tens and d10 for the ones. Foundry
+  rolls the table's own d40 and shows rows 1-40, so that key could never match
+  what you rolled — it read as a number attached to nothing. It is now dropped
+  at import, and only where the numbers prove they are a key column: at least
+  four rows, every one prefixed, and the numbers running consecutively. A
+  result that merely starts with a digit ("15 years in donjon") cannot satisfy
+  that, so nothing real is trimmed.
+- **Imported roll tables now file by region, not in one pile per book.** A
+  book's own sub-heading is what the Roll Tables catalog has always grouped its
+  browse list by — a region through the hexcrawl chapters, a topic elsewhere —
+  and the pack folders were the only surface ignoring it, so everything you
+  imported from a book landed in a single folder together. They now follow the
+  list you picked them from: `Roll Tables → Western Reaches GM Guide → Bastion
+  Mountains` holds that region's encounters, encounter zone, rumors and points
+  of interest side by side, and `→ Training` holds all 21 trainer benefit
+  tables. The same for `Djurum Desert`, `Tal-Yool Jungle`, `The Black River`
+  and every other region across the seven books. Grid columns land with the
+  region they were split from even though only the grid itself carries a
+  manifest id.
+  Two folder bugs fell out of it and are fixed too: a section heading no longer
+  claims a **top-level** folder of its own (the import stamped each one as if
+  you had typed a Custom… folder name, so "Djurum Desert" and "Training" sat
+  beside "Roll Tables" itself — a folder you actually type still wins), and
+  every book's `Rumors` and `Random Encounters` no longer file under **Core
+  Rulebook** because their bare names matched a Core group. The pit-fighting
+  suite is also whole again: its 18 grid columns had peeled off into Cursed
+  Scroll #2's own section while the other 12 tables sat under Gameplay.
+  The six terrain encounter tables the GM Guide prints over pp.54-65 — Arctic
+  Sea, Canyon, Lake, Lava, Path, Salt Flat — share one `Encounters` folder
+  instead of a folder apiece. The book heads each with its terrain, but they
+  are a list you pick a terrain from, not places, and a single-table folder per
+  terrain sat oddly among the eighteen real regions. Cursed Scroll #4's eight
+  keyed locations deliberately keep a folder each: every one of those tables is
+  named just "Random Encounters", so the location is the only label they have.
+  A table whose name simply begins with one of its book's section headings now
+  files under that section as a last resort. The suite recipes do not always
+  spell a table the way its manifest row does — the GM Guide's terrain grid is
+  "Tal-Yool Jungle Encounter Type **by Terrain**" in the manifest but
+  "Tal-Yool Jungle Encounter Type: Coast" on the imported document — which left
+  four of Tal-Yool's fifteen tables loose in the book folder while the other
+  eleven grouped. The match needs a word boundary, so a heading like "Lake"
+  cannot claim "Lakeside Ruins".
+  Tables already in your pack keep the folder and name they were imported
+  with — re-import a book to re-file it.
 - **Grid cells no longer borrow their neighbour's text.** Where a printed grid
   set two cells barely more than a word-space apart, the grab read the boundary
   as an ordinary space and the two cells came through welded — the Djurum
