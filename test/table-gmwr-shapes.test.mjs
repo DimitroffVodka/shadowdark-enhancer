@@ -308,6 +308,24 @@ test("GM Guide grids are labelled from the GM Guide's own header, not the zine's
   }
 });
 
+test("a grid row counts as imported once its per-column tables are there", async () => {
+  // The row is "Bastion Mountains Encounter Zone"; the documents it creates are
+  // "… : Coast" / "… : Mountain" / "… : Water". Judged on the row's own name it
+  // reads locked forever and every batch re-imports it — which is exactly what
+  // a live GM Guide run did to 35 rows.
+  const { hasTable } = await import("../scripts/importer/char-content/char-content-manifest.mjs");
+  const row = "Bastion Mountains Encounter Zone";
+  const cols = ["Coast", "Mountain", "Water"].map((c) => `Western Reaches GM Guide - ${row}: ${c}`);
+
+  assert.equal(hasTable([], row, "GMWR"), false, "nothing imported yet");
+  assert.equal(hasTable(cols.slice(0, 2), row, "GMWR"), false, "a missing column keeps the row locked");
+  assert.equal(hasTable(cols, row, "GMWR"), true, "every column present means imported");
+
+  // A plain row still needs its own name — the member rule must not leak.
+  assert.equal(hasTable(["Western Reaches GM Guide - Bastion Mountains Rumors: Coast"],
+    "Bastion Mountains Rumors", "GMWR"), false);
+});
+
 test("page furniture never becomes a row in a generic parse", () => {
   // Both caught by importing the GM Guide into a live world, where counts and
   // blockers all looked healthy.

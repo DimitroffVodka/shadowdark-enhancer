@@ -17,8 +17,9 @@ import { MODULE_ID } from "../../shared/module-id.mjs";
 import {
   verify, isMatrix, columnManifestId, SOURCES, sourceShort, citesOf, catalogEntries,
 } from "./table-manifest.mjs";
+import { suiteMemberNames } from "./table-shapes.mjs";
 import { findSuitePack } from "../../shared/compendium-suite.mjs";
-import { SOURCE_LABEL } from "../../shared/source-keys.mjs";
+import { charSourceKey, SOURCE_LABEL } from "../../shared/source-keys.mjs";
 
 const SYSTEM_PACK = "shadowdark.rollable-tables";
 
@@ -113,6 +114,51 @@ export function matrixStatusOf(entry, presentIds) {
   const total = ids.length;
   const state = present === 0 ? "missing" : present >= total ? "imported" : "partial";
   return { state, present, total };
+}
+
+/**
+ * The member names of a SUITE row, in the catalogue's own vocabulary, or null.
+ *
+ * A suite is a grid printed as one table and imported as one table per column,
+ * so no document is ever called what the catalogue row is called. The registry
+ * keys on its own source ids ("GMWR"), the catalogue on its ("gmgwr"), and
+ * charSourceKey is the single translator between them.
+ */
+export function suiteMembersOf(entry) {
+  for (const c of citesOf(entry)) {
+    const names = suiteMemberNames(c.name, charSourceKey(c.src) ?? c.src);
+    if (names) return names;
+  }
+  return null;
+}
+
+/**
+ * Classify a suite entry by how many of its per-column tables exist.
+ *
+ * Matched by NAME, not by manifest id: the Manage tree stamps no id on a
+ * suite's members (it deliberately skips the seed application that would
+ * otherwise rename them), so an id-only check reports every Manage import
+ * missing. The names are the registry's, which is what both surfaces commit.
+ *
+ * @param {string[]} members  member names
+ * @param {Map<string, object[]>} byNorm  world+pack index, normalized name → tables
+ * @returns {{state:"imported"|"partial"|"missing", present:number, total:number,
+ *   uuid:string|null}}
+ */
+export function suiteStatusOf(members, byNorm) {
+  let present = 0;
+  let uuid = null;
+  for (const m of members) {
+    const hit = (byNorm.get(normalizeName(m)) ?? [])[0];
+    if (!hit) continue;
+    present++;
+    uuid ??= hit.uuid ?? null;
+  }
+  const total = members.length;
+  return {
+    state: present === 0 ? "missing" : present >= total ? "imported" : "partial",
+    present, total, uuid,
+  };
 }
 
 export const TableHub = {
@@ -270,7 +316,33 @@ export const TableHub = {
 
     for (const entry of catalogEntries()) {
       let row;
-      if (isMatrix(entry)) {
+      const members = suiteMembersOf(entry);
+      if (members) {
+        // A grid imported as one table per printed column. Reported exactly
+        // like a matrix — "imported" only when every column is there, "partial"
+        // when some are — because a grid missing a column is genuinely
+        // incomplete and saying so is how the GM learns a column failed rather
+        // than finding the gap mid-session.
+        const ss = suiteStatusOf(members, world.byNorm);
+        row = {
+          id: entry.id, name: entry.name, sub: entry.sub, page: entry.page, die: entry.die,
+          state: ss.state,
+          isSystem: false,
+          isImported: ss.state === "imported",
+          isPartial: ss.state === "partial",
+          isMissing: ss.state === "missing",
+          isMatrix: true,
+          // Same row furniture as a matrix — N columns, a partial state, one
+          // Import — but it is not a cross-index matrix, so it does not say so.
+          splitLabel: `${ss.total}-table grid`,
+          columnsTotal: ss.total,
+          columnsPresent: ss.present,
+          rowsExpected: entry.rows, rowsActual: null, verifyOk: null, worldName: null,
+          uuid: ss.uuid,
+        };
+        summary.total++;
+        summary[ss.state]++;
+      } else if (isMatrix(entry)) {
         // Multi-column matrix (e.g. NPC Names by Ancestry): "imported" only
         // when all N per-column sub-tables exist in the world.
         const ms = matrixStatusOf(entry, presentFlagIds);
@@ -287,6 +359,7 @@ export const TableHub = {
           isPartial: ms.state === "partial",
           isMissing: ms.state === "missing",
           isMatrix: true,
+          splitLabel: `${ms.total}-table matrix`,
           columnsTotal: ms.total,
           columnsPresent: ms.present,
           rowsExpected: entry.rows, rowsActual: null, verifyOk: null, worldName: null, uuid,

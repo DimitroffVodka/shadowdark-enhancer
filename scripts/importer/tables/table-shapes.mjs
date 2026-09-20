@@ -761,6 +761,30 @@ export function contentIdForName(name, src) {
  *      name match keeps working.
  * @param {{contentId?:string, name?:string, src?:string}} entry
  */
+/**
+ * The per-column names a grid row's tables actually carry, or null.
+ *
+ * A grid row imports as ONE TABLE PER PRINTED COLUMN — "Bastion Mountains
+ * Encounter Zone" commits as "… : Coast", "… : Mountain", "… : Water" — so no
+ * document ever bears the row's own name. Judged on that name alone the row
+ * reads absent forever on every surface that asks: the Manage tree re-grabs its
+ * pages on every batch and skips every table as a duplicate (35 GM Guide rows
+ * stayed locked after a clean live import), and the Roll Tables catalogue lists
+ * it as missing however many times it has been imported.
+ *
+ * Both surfaces ask the same question, so both ask it here.
+ *
+ * @param {string} name  the ROW's own name
+ * @param {string} src   the shape registry's source key ("GMWR", "CS2", …)
+ * @returns {string[]|null} every member's name, or null when this is not a suite
+ */
+export function suiteMemberNames(name, src) {
+  const shape = resolveShape({ contentId: contentIdForName(name, src), name, src });
+  if (shape?.kind !== "suite") return null;
+  const names = (shape.members ?? []).map((m) => m.name).filter(Boolean);
+  return names.length ? names : null;
+}
+
 export function resolveShape({ contentId, name, src } = {}) {
   if (contentId) return CONTENT[contentId]?.shape ?? null;
   if (src) {

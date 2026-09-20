@@ -911,10 +911,15 @@ class HubPasteMethods {
             // "Source - Name" convention, and list any member the paste didn't
             // contain rather than quietly importing 13 of 14.
             const srcLabel = CHAR_SOURCES[seed?.src]?.label;
-            if (srcLabel) {
-              for (const pt of [...this._importTables, ...this._importGenerators]) {
-                pt.name = sourcedTableName(srcLabel, pt.name);
-              }
+            for (const pt of [...this._importTables, ...this._importGenerators]) {
+              if (srcLabel) pt.name = sourcedTableName(srcLabel, pt.name);
+              // Skipping _applyImportSeed to protect the members' own names
+              // also skipped the one thing it does for EVERY draft: stamp the
+              // book. Without it a suite's tables commit with no source flag
+              // and file under "Custom" — 130 GM Guide grid tables did, and
+              // CS2's pit-fighting suite has the same hole. Names stay theirs;
+              // provenance is the seed's.
+              if (seed?.src) pt.source ??= seed.src;
             }
             for (const miss of bucket.missing ?? []) {
               this._importSkipped.push({ name: miss, reason: "not found in the pasted pages — use “Grab text” to pull the whole cited range" });

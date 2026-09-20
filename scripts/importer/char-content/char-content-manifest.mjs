@@ -17,6 +17,9 @@
 import { parseClassSection, parseClassSupplement } from "./class-parser.mjs";
 import { MODULE_ID } from "../../shared/module-id.mjs";   // source flags on imported tables
 import { charSourceKey } from "../../shared/source-keys.mjs";
+// Shape registry: a grid row's members are the only names its tables ever
+// carry. table-shapes.mjs imports nothing, so this cannot cycle.
+import { suiteMemberNames } from "../tables/table-shapes.mjs";
 
 export const CHAR_SOURCES = {
   CORE: { label: "Core Rulebook", book: "Shadowdark RPG" },
@@ -985,7 +988,13 @@ function _citeHave(tablesPresent, cite, tablesBySource) {
  * this is the same loop it always was.
  */
 function _tableHave(tablesPresent, want, src, tablesBySource) {
-  return citesForTable(src, want).some((cite) => _citeHave(tablesPresent, cite, tablesBySource));
+  if (citesForTable(src, want).some((cite) => _citeHave(tablesPresent, cite, tablesBySource))) return true;
+  // EVERY column must be there. A grid missing one column is genuinely
+  // incomplete, and saying so is the whole point — that is how the GM learns a
+  // column failed its quality check rather than finding the gap in play.
+  const members = suiteMemberNames(want, src);
+  return !!members && members.every((m) =>
+    citesForTable(src, m).some((cite) => _citeHave(tablesPresent, cite, tablesBySource)));
 }
 
 

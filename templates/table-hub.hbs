@@ -67,7 +67,7 @@
             <span class="sde-thub-meta">p{{r.page}} &middot; {{r.die}}{{#if r.sourceShort}} &middot; {{r.sourceShort}}{{/if}}</span>
 
             {{#if r.isMatrix}}
-            <span class="sde-thub-matrix-tag" title="One d20 grid that splits into {{r.columnsTotal}} per-column tables">{{r.columnsTotal}}-table matrix</span>
+            <span class="sde-thub-matrix-tag" title="One printed grid that splits into {{r.columnsTotal}} per-column tables">{{r.splitLabel}}</span>
             {{#if r.isImported}}
               <span class="sde-thub-badge ok"><i class="fas fa-check"></i> All {{r.columnsTotal}} imported</span>
             {{/if}}

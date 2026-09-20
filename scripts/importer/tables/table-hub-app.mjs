@@ -356,8 +356,17 @@ export class RollTablesApp extends HandlebarsApplicationMixin(ApplicationV2) {
   async _onImportParse() {
     const ta = this.element.querySelector("textarea[data-import-text]");
     if (ta) this._importText = ta.value;
+    this._importShape = null;
+    this._importMissing = [];
     this._importParsed = (await this._parseByShapeIfKnown()) ?? TableImporter.parse(this._importText);
     this._applyImportSeed();
+    if (this._importMissing.length) {
+      const total = this._importMissing.length + this._importParsed.length;
+      ui.notifications.warn(
+        `${this._importMissing.length} of ${total} tables in this grid weren't in the pasted text `
+        + `(${this._importMissing.join(", ")}). Grab the whole cited page range before Create.`,
+      );
+    }
     await this._linkLootTables();
     if (!this._importParsed.length) {
       ui.notifications.warn("No tables found in the pasted text.");
@@ -397,6 +406,11 @@ export class RollTablesApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const bucket = TableImporter.parseByShape(this._importText, shape, { name: entry.name });
     const tables = bucket?.tables ?? [];
     if (!tables.length) return null;          // recipe didn't match — generic parse still gets its turn
+    // A suite hands back one table per printed column plus the names of any it
+    // could not find. Both matter downstream: the seed must not rename them,
+    // and a grid short a column must say so rather than import 3 of 4 quietly.
+    this._importShape = shape;
+    this._importMissing = bucket?.missing ?? [];
     return tables;
   }
 
@@ -438,6 +452,22 @@ export class RollTablesApp extends HandlebarsApplicationMixin(ApplicationV2) {
         if (folderPath.length) merged.folderPath = folderPath;
         else { merged.category = CUSTOM_ID; merged.customLabel = seed.folderLabel; }
         this._importParsed = [merged];
+      }
+      return;
+    }
+
+    if (this._importShape?.kind === "suite") {
+      // A suite already named every member from its own recipe
+      // ("Bastion Mountains Encounter Zone: Coast"), and those names are what
+      // the Manage tree commits and what presence matches on. Stamping the
+      // seed's single name over the first one renamed a column to the grid and
+      // left the other N-1 with no folder and no book — they landed in Custom,
+      // unattributed, while the row still read missing. Names stay theirs;
+      // everything else the seed carries is applied to EVERY member.
+      for (const t of this._importParsed) {
+        if (seed.folderLabel) { t.category = CUSTOM_ID; t.customLabel = seed.folderLabel; }
+        if (folderPath.length) t.folderPath = folderPath;
+        t.source ??= seed.src;
       }
       return;
     }
