@@ -113,6 +113,22 @@ class HubCommitMethods {
   }
 
   /**
+   * Record how many drafts a commit SKIPPED as already in the library.
+   *
+   * Every commit empties the bucket it wrote — skipped drafts included — so an
+   * unattended batch run, which measures what it created as the DROP in bucket
+   * size, counted a wholly-skipped book as created: re-running the GM Guide's
+   * 90 statblocks over a full library reported "90 created" and created
+   * nothing. `_batchCommitPreview` zeroes this per job and reads it back.
+   *
+   * The per-type Create buttons don't call this: each shows the GM its own
+   * "N created, N skipped" summary at the moment it runs.
+   */
+  _noteCommitSkips(result) {
+    this._commitSkipped = (this._commitSkipped ?? 0) + (result?.skipped?.length ?? 0);
+  }
+
+  /**
    * Read-only one-line stat summary for a Weapon/Armor draft, mirroring the
    * system's item subtext (AC/attribute/properties for armor; type/range/damage/
    * properties for weapons). Empty string for plain gear (no stat line shown).
@@ -248,6 +264,7 @@ class HubCommitMethods {
     if (report.created.length) bits.push(`${report.created.length} created`);
     if (report.skipped.length) bits.push(`${report.skipped.length} already present`);
     ui.notifications.info(t("SDE.importer.done.boats", { bits: bits.join(", ") || t("SDE.importer.done.nothingToDo"), pack: MonsterImporter.PACK_LABEL, source: source ? ` / ${source}` : "" }));
+    this._noteCommitSkips(report);
     this._importBoats = [];
     this._invalidateManageTree?.();
     this.render();
@@ -651,6 +668,7 @@ class HubCommitMethods {
         const result = await MountImporter.createMounts(drafts, { source });
         if (result) {
           parts.push(`mounts: ${ImporterHubApp._commitSummary(result)}`);
+          this._noteCommitSkips(result);
           this._importMonsters = [];
           this._invalidateMonstersCache();
         }
@@ -658,6 +676,7 @@ class HubCommitMethods {
         const result = await MonsterImporter.createMonsters(drafts, { source, onConflict: this._monsterConflictDialog() });
         if (result) {
           parts.push(`monsters: ${ImporterHubApp._commitSummary(result)}`);
+          this._noteCommitSkips(result);
           this._importMonsters = [];
           this._invalidateMonstersCache();
         }
@@ -683,6 +702,7 @@ class HubCommitMethods {
       const result = await ItemImporter.createItems(drafts, { source, onConflict: this._itemConflictDialog() });
       if (result) {
         parts.push(`items: ${ImporterHubApp._commitSummary(result)}`);
+        this._noteCommitSkips(result);
         this._importItems = [];
       }
     }
@@ -692,6 +712,7 @@ class HubCommitMethods {
       const result = await this._commitSpells(source);
       if (result) {
         parts.push(`spells: ${ImporterHubApp._commitSummary(result)}`);
+        this._noteCommitSkips(result);
         this._importSpells = [];
       }
     }

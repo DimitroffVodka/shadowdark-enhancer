@@ -356,3 +356,42 @@ test("a null element ends the run cleanly instead of failing entries on a DOM er
   assert.ok(rows.every(r => r.status !== "failed"),
     "a missing element is a clean stop, never a failed entry");
 });
+
+// A row re-run over a book the GM already owns: every statblock parses, the
+// importer skips every one as a duplicate, and the commit empties the preview
+// bucket regardless. Measuring "created" as the DROP in bucket size therefore
+// reported the whole book as created — an "Import everything" pass over the GM
+// Guide's 90 statblocks claimed 90 created and created nothing.
+function bestiaryHub(drafts, skipped) {
+  const h = hub();
+  h._onHubClear = () => {};
+  h.render = async () => {};
+  h._onMonsterSeedPaste = async (_event, { dataset }) => {
+    h._importSeed = { name: dataset.name, src: dataset.src };
+    h._importText = `${dataset.name}\nADEPT\nAC 12, HP 9, ATK 1 club +1 (1d4), MV near, LV 3`;
+  };
+  h._onHubParse = async () => { h._importMonsters = drafts.map((name) => ({ draft: { name } })); };
+  h._batchCommitPreview = async () => { h._importMonsters = []; return skipped; };
+  return h;
+}
+const bestiaryJob = {
+  route: ROUTE.HUB,
+  entry: {
+    name: "Import the GM Guide bestiary — 90 monsters (284-309)",
+    seedAction: "monsterSeedPaste", type: "Actor", src: "GMWR", pages: "284-309",
+  },
+};
+
+test("a batch row counts skipped duplicates as skipped, not as created", async () => {
+  const result = await bestiaryHub(["Adept", "Bard", "Scout"], 3)._batchRunHub(bestiaryJob);
+  assert.equal(result.created, 0);
+  assert.equal(result.status, "nothing");
+  assert.match(result.note, /3 already in your library/);
+});
+
+test("a partly-reprinted bestiary reports both halves", async () => {
+  const result = await bestiaryHub(["Adept", "Bard", "Scout"], 2)._batchRunHub(bestiaryJob);
+  assert.equal(result.created, 1);
+  assert.equal(result.status, "created");
+  assert.match(result.note, /1 created; 2 already in your library/);
+});

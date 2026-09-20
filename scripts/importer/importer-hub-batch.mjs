@@ -391,23 +391,26 @@ class HubBatchMethods {
     if (!before) {
       return { status: "nothing", note: this._batchFirstProblem() ?? "nothing recognized on those pages", created: 0 };
     }
-    await this._batchCommitPreview();
-    // The commit paths empty each bucket they wrote, so what's LEFT is what was
-    // skipped (a conflict, or a draft the quality gate held back).
+    const skipped = await this._batchCommitPreview();
+    // The commit paths empty each bucket they wrote, so what's LEFT is what the
+    // quality gate held back. A draft the importer SKIPPED as already-present
+    // was emptied out too, so it has to be subtracted by name-count instead —
+    // otherwise a re-run over a book already in the library reports every one of
+    // its statblocks as created (the GM Guide's 90, creating nothing).
     const left = this._batchDraftCount();
-    const created = Math.max(0, before - left);
+    const created = Math.max(0, before - left - skipped);
     if (!created) {
       return {
-        status: "nothing", created: 0,
-        note: this._batchFirstProblem() ?? "already in your library, or stopped by the quality check",
+        status: "nothing", created: 0, skipped,
+        note: skipped
+          ? `${skipped} already in your library`
+          : this._batchFirstProblem() ?? "already in your library, or stopped by the quality check",
       };
     }
-    return {
-      status: "created", created,
-      note: left
-        ? `${created} created; ${left} failed the quality check and were NOT imported — re-run this row's own Import to fix them`
-        : `${created} created`,
-    };
+    const notes = [`${created} created`];
+    if (skipped) notes.push(`${skipped} already in your library`);
+    if (left) notes.push(`${left} failed the quality check and were NOT imported — re-run this row's own Import to fix them`);
+    return { status: "created", created, skipped, note: notes.join("; ") };
   }
 
   /**
@@ -422,8 +425,11 @@ class HubBatchMethods {
    * commits the paste's d100 table itself when one is still pending — running
    * it after the tables makes that a no-op (each commit clears what it wrote)
    * rather than a second pass over the same draft.
+   *
+   * @returns {Promise<number>} drafts the commits skipped as already present
    */
   async _batchCommitPreview() {
+    this._commitSkipped = 0;
     if (this._importGenerators.length) await this._onHubCommitGenerators();
     if (this._importBoats.length) await this._onHubCommitBoats();
     if (this._importMonsters.length || this._importItems.length
@@ -431,6 +437,7 @@ class HubBatchMethods {
       await this._onHubCommitAll();
     }
     if (this._importChar.length) await this._onHubCommitChar();
+    return this._commitSkipped ?? 0;
   }
 
   /**
