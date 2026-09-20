@@ -17,6 +17,11 @@
  * (see detectGutter), split into columns, and read each column fully before
  * the next. Verified live against CS1 two-column spell pages.
  *
+ * The second hard case is a page whose text is DRAWN SIDEWAYS (the Western
+ * Reaches GM Guide does it on 39 pages; the Cursed Scrolls do it on their map
+ * and adventure-site spreads). Those are rotated into reading space before any
+ * of the above runs — see _readingSpace.
+ *
  * Exports:
  *   extractPdfText(filePath, opts) — { text, warnings,
  *                                      pages: [{page, gutter, lines, warnings, empty}] }
@@ -612,6 +617,45 @@ function layoutPageItems(its, W, mode) {
   return { gutter, lines: cols.flatMap((c) => columnLines(c, mode === "layout")) };
 }
 
+/**
+ * Map a sideways page's text into reading space, or hand back the page as-is.
+ *
+ * A PDF may draw a page's text rotated in page space — the Western Reaches GM
+ * Guide does it on 39 pages, and the Cursed Scrolls do it on their map and
+ * adventure-site spreads. PDF.js reports those items with a rotated transform
+ * ([0, s, -s, 0, e, f] for +90), which the y-ordered layout below reads as one
+ * column per line of text: the page comes out as stacked gibberish. Rotating
+ * the items into an upright frame — and handing the layout the page HEIGHT as
+ * its width — makes them read like any other page.
+ *
+ * The decision is PER PAGE, on a majority of the page's items, never per item.
+ * A sideways caption, a spine label or one rotated table header on an otherwise
+ * upright page is a handful of items; mapping only those would drop them into a
+ * frame the rest of the page does not share and scatter them through the text.
+ * The page commits whole or not at all. (Measured across both GM Guide
+ * editions: 39 pages rotated, all of them entirely, and no mixed page at all.)
+ *
+ * @param {Array} its  text items (already filtered to non-empty str)
+ * @param {number} W   page width, from a rotation:0 viewport
+ * @param {number} H   page height, from the same viewport
+ * @returns {{items:Array, width:number}} the same array and W when the page is
+ *   upright — reference-identical, so an upright page cannot change behaviour.
+ */
+function _readingSpace(its, W, H) {
+  const sideways = (i) => Math.abs(i.transform[1]) > Math.abs(i.transform[0]);
+  if (its.filter(sideways).length * 2 <= its.length) return { items: its, width: W };
+  const items = its.map((i) => {
+    const [a, b, , , e, f] = i.transform;
+    if (!sideways(i)) return i;
+    // b > 0 is +90 (text advances up the page), b < 0 is -90 (it advances down)
+    // — the two are mirror images, so one expression covers both.
+    const up = b > 0;
+    const s = Math.hypot(a, b);
+    return { ...i, transform: [s, 0, 0, s, up ? f : H - f, up ? W - e : e], height: s };
+  });
+  return { items, width: H };
+}
+
 /** Extract one already-loaded page to an ordered array of text lines. */
 async function extractPageLines(page, mode, { cropTablePrefix = false } = {}) {
   // Force rotation:0 so page width matches the text items' coordinate space.
@@ -619,16 +663,22 @@ async function extractPageLines(page, mode, { cropTablePrefix = false } = {}) {
   // viewport's default width reflects the page's /Rotate (e.g. a Rotate-90 page
   // reports 595 instead of 419) — that swap would corrupt gutter detection on
   // rotated pages (the "Horizontal Pages" printings of some Cursed Scrolls
-  // rotate their map/spread pages). Pinning rotation:0 keeps both in sync.
+  // rotate their map/spread pages). Pinning rotation:0 keeps both in sync — and
+  // it is also what makes vp.height usable as the reading-space width below,
+  // since both dimensions then describe the same unrotated page.
   const vp = page.getViewport({ scale: 1, rotation: 0 });
   const tc = await page.getTextContent();
-  let its = tc.items.filter((i) => i.str && i.str.trim().length);
+  // Rotate a sideways page into reading space FIRST, so the crop, the column
+  // split and the gutter warnings all reason in one frame.
+  const { items, width } = _readingSpace(
+    tc.items.filter((i) => i.str && i.str.trim().length), vp.width, vp.height);
+  let its = items;
   if (cropTablePrefix) its = _cropTablePrefix(its);
-  const { gutter, lines } = layoutPageItems(its, vp.width, mode);
+  const { gutter, lines } = layoutPageItems(its, width, mode);
   return {
     gutter: gutter == null ? null : Math.round(gutter),
     lines,
-    warnings: gutterRisks(its, vp.width, gutter, { layoutMode: mode }),
+    warnings: gutterRisks(its, width, gutter, { layoutMode: mode }),
   };
 }
 
@@ -693,6 +743,7 @@ export const _internals = {
   _gutterRiskItems,
   _yLineGroups,
   _cropTablePrefix,
+  _readingSpace,
   PRICED_ROW_RE,
 };
 
