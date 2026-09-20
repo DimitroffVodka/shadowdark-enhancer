@@ -114,3 +114,41 @@ test("an empty page is not treated as rotated", () => {
   assert.deepEqual(out.items, []);
   assert.equal(out.width, W);
 });
+
+/**
+ * Cell boundaries in a padded grid row, and the footnote markers hung off them.
+ *
+ * Both defects were invisible to every count-based check: the row split into
+ * the right NUMBER of cells and covered every die face, so the importer
+ * reported a clean table while the cells held their neighbours' text. They were
+ * found by reading the GM Guide's own pages back against the book.
+ *
+ * The figures below are the real ones, in points. p102's ENCOUNTERS grid sets
+ * "Purple worm" and "The Scourge*" 8.5pt apart with a ~5.3pt glyph — 1.6
+ * glyphs, under the old 1.8 bar — so a column boundary came out as an ordinary
+ * word space and the two cells welded into one.
+ */
+
+/** One PDF text item as columnLines wants it: a grid cell is always exactly one
+ *  of these, which is why an inter-item gap can be read as a boundary at all —
+ *  spacing WITHIN a cell lives inside the item's own string. */
+const cell = (x, w, str, h = 9) => ({ transform: [1, 0, 0, 1, x, 0], width: w, str, height: h });
+const padded = (items) => _internals.columnLines(items, true)[0];
+
+test("a padded row splits cells a hair over a word-space apart (GM Guide p102 face 1)", () => {
+  const line = padded([
+    cell(278.1, 3.9, "1", 10),
+    cell(295.0, 59.6, "Purple worm"),
+    cell(363.1, 60.6, "The Scourge*"),
+    cell(432.2, 67.9, "1d8 Ras-Godai*"),
+    cell(523.9, 43.2, "Rakshasa"),
+  ]);
+  assert.deepEqual(line.split(/\s{2,}/).filter(Boolean),
+    ["1", "Purple worm", "The Scourge*", "1d8 Ras-Godai*", "Rakshasa"]);
+});
+
+test("a padded row keeps a real word space single", () => {
+  // 2.7pt apart: a styling run split mid-sentence, not a column boundary.
+  assert.equal(padded([cell(8.5, 42.3, "death of"), cell(53.5, 65.5, "The Scourge")]),
+    "death of The Scourge");
+});

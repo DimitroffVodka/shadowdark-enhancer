@@ -482,9 +482,15 @@ function columnLines(col, pad = false) {
       if (prevEnd !== null) {
         const gap = p.x - prevEnd;
         if (pad) {
-          // Wide gap (> ~1.8 glyphs) = a column boundary → pad proportionally so
-          // char-index tracks x; normal word gaps stay a single space.
-          const n = gap > cw * 1.8 ? Math.min(40, Math.max(2, Math.round(gap / cw))) : (gap > 1.5 ? 1 : 0);
+          // A gap between two ITEMS this wide is a column boundary → pad
+          // proportionally so char-index tracks x; a word space stays single.
+          // The bar sits at ~1.2 glyphs because spacing WITHIN a cell is inside
+          // the item's own string: a gap here is either a column or the ~0.5
+          // glyph seam where a styling run was split. At the old 1.8 the
+          // Western Reaches region grids fell in between — p102's "Purple worm
+          // | The Scourge*" is 1.6 glyphs apart — so a real boundary came out
+          // as one space and the two cells welded into one.
+          const n = gap > cw * 1.2 ? Math.min(40, Math.max(2, Math.round(gap / cw))) : (gap > 1.5 ? 1 : 0);
           if (n) text += " ".repeat(n);
         } else if (gap > 1.5 && !text.endsWith(" ")) {
           text += " ";

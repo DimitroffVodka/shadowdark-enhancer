@@ -566,6 +566,96 @@ function _consensusColX(rests, n) {
 }
 
 /**
+ * The same consensus, taken on each column's CENTRE rather than its start.
+ *
+ * A centred grid — which is what the Western Reaches region pages print — has
+ * no stable left edge: a cell's start moves with its own text length, so the
+ * start medians wobble by several characters and a cut placed from them lands a
+ * word early or late. The centre of a centred column does not move. Used only
+ * by _unweldCells, which needs to place a cut precisely; _consensusColX keeps
+ * measuring starts because a positional SLICE wants edges, not midpoints.
+ */
+function _consensusColCentres(rests, n) {
+  const samples = Array.from({ length: n }, () => []);
+  let clean = 0;
+  for (const rest of rests) {
+    const s = String(rest);
+    const st = _cellStarts(s);
+    if (!st || st.length !== n) continue;
+    clean++;
+    for (let i = 0; i < n; i++) {
+      const text = s.slice(st[i], st[i + 1] ?? s.length).replace(/\s+$/, "");
+      samples[i].push(st[i] + text.length / 2);
+    }
+  }
+  if (clean < 2) return null;
+  const med = (a) => { const x = a.slice().sort((p, q) => p - q); return x[Math.floor(x.length / 2)]; };
+  const colC = samples.map(med);
+  for (let i = 1; i < n; i++) if (!(colC[i] > colC[i - 1])) return null;
+  return colC;
+}
+
+/**
+ * Rescue a padded grid row whose neighbouring cells TOUCHED.
+ *
+ * Padded extraction ("layout" / "2layout") writes a column boundary as a run of
+ * 2+ spaces, which is what splitCells reads. But a wide cell sitting next to a
+ * cell that starts hard against it leaves a single space, and those two cells
+ * arrive welded: on the GM Guide p86 ENCOUNTERS grid, "1d4 gt. wasp" and "1d4
+ * void spiders" come through as one piece. splitCells then falls past its
+ * delimiter step to the capital-boundary heuristic, which is wrong exactly when
+ * a cell opens with a die or a lowercase abbreviation — the row became
+ * "1d4" | "gt." | "wasp 1d4 void spiders Goat giant", and the bare "1d4" then
+ * tripped the die-as-row blocker.
+ *
+ * So: re-cut the over-long piece at the word gap whose resulting cell centres
+ * best match the block's own consensus centres, repeating until the row has n
+ * cells. Every candidate cut is scored against measured geometry, never guessed
+ * from capitalisation.
+ *
+ * THE SAFETY IS THE PIECE COUNT. This returns null the moment the row already
+ * has n or more 2+-space pieces, so a row that splits cleanly can never reach
+ * it — which is what keeps the existing callers (the Nord names grid, the Core
+ * FOOD page, both extracted single-column and so carrying no consensus at all)
+ * byte-identical. It also returns null when there is no consensus, when a cut
+ * cannot be placed, or when any resulting cell is empty; every one of those
+ * hands the row back to splitCells unchanged.
+ *
+ * @param {string} rest  a row's post-die-number remainder
+ * @param {number} n     expected cell count
+ * @param {number[]|null} colC  consensus column centres for the block
+ * @returns {string[]|null} exactly n cells, or null to leave the row alone
+ */
+function _unweldCells(rest, n, colC) {
+  const s = String(rest);
+  if (!colC || colC.length !== n || s.includes("|")) return null;
+  const starts = _cellStarts(s);
+  if (!starts || !starts.length || starts.length >= n) return null;
+  let pieces = starts.map((st, i) => ({ st, text: s.slice(st, starts[i + 1] ?? s.length).replace(/\s+$/, "") }));
+  const centre = (p) => p.st + p.text.length / 2;
+  while (pieces.length < n) {
+    let best = null;
+    for (let p = 0; p < pieces.length; p++) {
+      for (const m of pieces[p].text.matchAll(/ /g)) {
+        const g = m.index;
+        const trial = [
+          ...pieces.slice(0, p),
+          { st: pieces[p].st, text: pieces[p].text.slice(0, g).replace(/\s+$/, "") },
+          { st: pieces[p].st + g + 1, text: pieces[p].text.slice(g + 1) },
+          ...pieces.slice(p + 1),
+        ];
+        const err = trial.reduce((sum, q, i) => sum + Math.abs(centre(q) - colC[i]), 0);
+        if (!best || err < best.err) best = { err, trial };
+      }
+    }
+    if (!best) return null;
+    pieces = best.trial;
+  }
+  const cells = pieces.map((p) => p.text.trim());
+  return cells.every(Boolean) ? cells : null;
+}
+
+/**
  * Split a row's result text into exactly n cells. Column detection, in order:
  *   1. an explicit "|" delimiter (user pref for multi-column tables),
  *   2. tab / 2+ spaces (aligned PDF columns),
@@ -2131,11 +2221,16 @@ function parseGridColumn(text, { name = "", caption, col = 0, ncols = 3 } = {}) 
   // row with a blank tier packs left and this column silently receives the
   // NEXT tier's value (and only the last column ever reports a coverage gap).
   const parsed = s.body.map(parseLeadingRange).filter(Boolean);  // grid rows lead with a die value
-  const colX = _consensusColX(parsed.map((r) => r.rest), ncols);
+  const rests = parsed.map((r) => r.rest);
+  const colX = _consensusColX(rests, ncols);
+  const colC = _consensusColCentres(rests, ncols);
   const dataLines = [];
   const shortRows = [];
   for (const r of parsed) {
-    const res = splitCells(r.rest, ncols, colX);
+    // A row whose cells touched is re-cut from the block's own geometry first;
+    // _unweldCells declines every row that already splits cleanly, so this can
+    // only ever rescue a row splitCells would otherwise have guessed at.
+    const res = _unweldCells(r.rest, ncols, colC) ?? splitCells(r.rest, ncols, colX);
     if (_isShort(res)) shortRows.push(r.min === r.max ? `${r.min}` : `${r.min}-${r.max}`);
     const cell = (_cells(res)[col] ?? "").trim();
     if (cell) dataLines.push(`${r.min === r.max ? r.min : `${r.min}-${r.max}`} ${cell}`);
