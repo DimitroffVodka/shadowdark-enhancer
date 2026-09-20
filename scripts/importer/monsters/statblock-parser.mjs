@@ -313,11 +313,20 @@ function parseAttacks(atkText, warnings) {
   // split. (Graceful limitation: a count-less trailing special "… and pounce"
   // merges into the prior name rather than splitting — far less destructive than
   // the old mis-split, and rare in canonical content.)
-  const parts = atkText.split(/\s+(?:and|or)\s+(?=\d|spell\b)/i).map((s) => s.trim()).filter(Boolean);
-  for (const p of parts) {
-    const a = parseOneAttack(p, warnings);
-    if (a?.spell) { spellAttack = a; continue; }
-    if (a) actions.push(a);
+  // The separator is CAPTURED, not discarded: "or" means the creature picks one
+  // clause and "and" means it does both, so the notes builder has to put the
+  // book's own word back (an Adept attacks "or 1 spell", never "and 1 spell").
+  // split() with a capture yields [clause, sep, clause, …] — a clause's `join`
+  // is the separator BEFORE it; the first clause has none.
+  const parts = atkText.split(/\s+(and|or)\s+(?=\d|spell\b)/i);
+  for (let i = 0; i < parts.length; i += 2) {
+    const text = parts[i]?.trim();
+    if (!text) continue;
+    const a = parseOneAttack(text, warnings);
+    if (!a) continue;
+    if (i && /^or$/i.test(parts[i - 1])) a.join = "or";
+    if (a.spell) { spellAttack = a; continue; }
+    actions.push(a);
   }
   return { actions, spellAttack };
 }
@@ -510,6 +519,7 @@ export function parseStatblock(chunk) {
     if (spellAttack) {
       draft.spellcasting.bonus = spellAttack.bonus;
       draft.spellcasting.attacks = spellAttack.num || 1;
+      if (spellAttack.join) draft.spellcasting.join = spellAttack.join;
     }
   } else warnings.push("ATK clause not found");
 

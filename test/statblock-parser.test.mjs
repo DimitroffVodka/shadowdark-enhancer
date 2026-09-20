@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { titleCaseName, splitStatblocks, parseStatblock } from "../scripts/importer/monsters/statblock-parser.mjs";
+import { buildAtkText } from "../scripts/monster-creator/npc-statblock.mjs";
 
 test("titleCaseName", () => {
   assert.equal(titleCaseName("GOBLIN"), "Goblin");
@@ -229,4 +230,25 @@ test("flat damage modifiers are still absorbed, not split off by the comma chang
   const a = parseStatblock(SB).draft.actions.find((x) => x.type === "NPC Attack");
   assert.equal(a.damage, "1d6 + 2");
   assert.equal(a.description, "");
+});
+
+// The ATK separator is data, not decoration: the book's Adept attacks with its
+// shortsword OR casts, and the old parser dropped the word on the split so the
+// notes builder rejoined every clause with "and" — printing a monster that does
+// both. Round-trip the two separators through parse → notes.
+test("ATK keeps the book's 'or' / 'and' through the notes builder", () => {
+  const ADEPT = [
+    "ADEPT",
+    "AC 13 (chainmail), HP 13, ATK 1 shortsword +1 (1d6) or 1 spell +4, MV near,",
+    "S +0, D +0, C +0, I +0, W +1, Ch +2, AL N, LV 3",
+  ].join("\n");
+  const { draft } = parseStatblock(ADEPT);
+  assert.equal(buildAtkText(draft), "1 shortsword +1 (1d6) or 1 spell +4");
+
+  const BRUTE = [
+    "BRUTE",
+    "AC 13, HP 13, ATK 2 claw +3 (1d6) and 1 bite +3 (1d8), MV near,",
+    "S +3, D +0, C +2, I -2, W +0, Ch -1, AL C, LV 3",
+  ].join("\n");
+  assert.equal(buildAtkText(parseStatblock(BRUTE).draft), "2 claw +3 (1d6) and 1 bite +3 (1d8)");
 });

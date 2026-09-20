@@ -37,13 +37,22 @@ export function buildMvText(draft) {
   return note ? `${base} (${note})` : base;
 }
 
-/** Reconstruct the packed ATK text ("3 rend +9 (2d10) and 1 spell +4") from actions + spellcasting. */
+/**
+ * Reconstruct the packed ATK text ("1 shortsword +1 (1d6) or 1 spell +4") from
+ * actions + spellcasting. Each clause carries the separator the source printed
+ * before it (`action.join` / `spellcasting.join`, set by the statblock parser);
+ * "and" is the default, so hand-built drafts read as they always did.
+ *
+ * `join` lives on the DRAFT only — nothing in the Shadowdark NPC schema has a
+ * home for it, so an actor re-saved from the Creator or Quick Adjust comes back
+ * joined with "and". Import gets it right; a later re-save flattens it.
+ */
 export function buildAtkText(draft) {
   const clauses = [];
   for (const a of (draft?.actions ?? [])) {
     const num = Number(a?.num ?? 1);
     if (a?.type === "NPC Special Attack") {
-      clauses.push(`${num} ${String(a?.name ?? "").toLowerCase()}`.trim());
+      clauses.push({ text: `${num} ${String(a?.name ?? "").toLowerCase()}`.trim(), join: a?.join });
       continue;
     }
     const ranges = Array.isArray(a?.ranges) ? a.ranges.filter(Boolean) : [];
@@ -54,14 +63,23 @@ export function buildAtkText(draft) {
     else if (a?.damage) dmg = ` (${a.damage})`;
     else if (a?.description) dmg = ` (${a.description})`;
     // Stat line uses lowercase attack names ("1 dagger"); the item itself is Title Case.
-    clauses.push(`${num} ${String(a?.name ?? "attack").toLowerCase()}${rangeStr} ${sign(a?.bonus)}${dmg}`.replace(/\s+/g, " ").trim());
+    clauses.push({
+      text: `${num} ${String(a?.name ?? "attack").toLowerCase()}${rangeStr} ${sign(a?.bonus)}${dmg}`.replace(/\s+/g, " ").trim(),
+      join: a?.join,
+    });
   }
   const sc = draft?.spellcasting;
   if (sc && Number(sc.attacks) > 0) {
     const n = Number(sc.attacks);
-    clauses.push(`${n} spell${n === 1 ? "" : "s"}${sc.bonus ? ` ${sign(sc.bonus)}` : ""}`);
+    clauses.push({
+      text: `${n} spell${n === 1 ? "" : "s"}${sc.bonus ? ` ${sign(sc.bonus)}` : ""}`,
+      join: sc.join,
+    });
   }
-  return clauses.join(" and ");
+  return clauses.reduce(
+    (acc, c, i) => (i ? `${acc} ${c.join === "or" ? "or" : "and"} ${c.text}` : c.text),
+    "",
+  );
 }
 
 /**
