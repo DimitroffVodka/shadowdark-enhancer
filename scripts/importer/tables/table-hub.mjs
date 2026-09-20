@@ -18,19 +18,55 @@ import {
   verify, isMatrix, columnManifestId, SOURCES, sourceShort, citesOf, catalogEntries,
 } from "./table-manifest.mjs";
 import { findSuitePack } from "../../shared/compendium-suite.mjs";
+import { SOURCE_LABEL } from "../../shared/source-keys.mjs";
 
 const SYSTEM_PACK = "shadowdark.rollable-tables";
 
 /**
- * Normalize a table name for best-effort matching. Strips the `Core PDF p##:`
- * / `Cursed Scroll …:` import prefixes this module's earlier imports used, then
- * reduces to lowercase alphanumerics so casing/punctuation don't block a match.
+ * The source qualifier every import writes in front of a table's name.
+ *
+ * TWO conventions, both this module's own: the old rep prefix
+ * ("Cursed Scroll 2 p26: Enduring Wounds") and the current suffix convention
+ * sourcedTableName builds ("Cursed Scroll 2 - Low Stakes"). One pattern covers
+ * both — an optional page cite, then the "-" or ":" that closes the qualifier.
+ *
+ * Built FROM the labels rather than written out, because there are two
+ * vocabularies for the same books and a hand-written pattern would drift from
+ * one of them: the Manage tree writes CHAR_SOURCES' "Cursed Scroll 2", the
+ * catalogue writes SOURCE_LABEL's "Cursed Scroll #2", and both reach this
+ * function. The "#" is therefore optional, and the longest label wins the
+ * alternation so "Western Reaches GM Guide" is never cut down to
+ * "Western Reaches" with " GM Guide" left stranded on the front of the name.
+ *
+ * The trailing separator is REQUIRED, so a table genuinely named after a book
+ * ("Western Reaches Rumors") keeps its name.
+ */
+const SOURCE_QUALIFIER = (() => {
+  const labels = [...new Set([...Object.values(SOURCE_LABEL), "Core PDF"])]
+    .sort((a, b) => b.length - a.length)
+    .map((l) => l.replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace(/#/g, "#?").replace(/\s+/g, "\\s*"));
+  return new RegExp(`^\\s*(?:${labels.join("|")})\\s*(?:p\\.?\\s?\\d{1,3}\\s*)?[-\u2013\u2014:]\\s*`, "i");
+})();
+
+/**
+ * Normalize a table name for best-effort matching: drop the source qualifier,
+ * then reduce to lowercase alphanumerics so casing and punctuation can't block
+ * a match.
+ *
+ * The qualifier strip is what lets this surface see a table the MANAGE tree
+ * imported. Manage names every table "<Book> - <Name>" and stamps no manifest
+ * id, so before this the catalogue matched neither: "Western Reaches -
+ * Carousing Event" normalized with its prefix intact and missed the bare entry
+ * name, and "Cursed Scroll 2 - Low Stakes" hit the old pattern's greedy
+ * [^:]* and normalized to the EMPTY STRING, which the index drops outright.
+ * Every Manage import therefore read "missing" here no matter how many times it
+ * had been run — offering the GM a re-import of a table they already own.
+ * worldSourceHint still rejects a cross-book collision on the bare name.
  */
 export function normalizeName(s) {
   return String(s ?? "")
+    .replace(SOURCE_QUALIFIER, "")
     .toLowerCase()
-    .replace(/^\s*core\s*pdf\s*p?\d*\s*:?\s*/i, "")
-    .replace(/^\s*cursed\s*scroll[^:]*:?\s*/i, "")
     .replace(/[^a-z0-9]+/g, "");
 }
 
@@ -45,6 +81,12 @@ export function worldSourceHint(name) {
   if (/\bcore\s*pdf\b/i.test(s)) return "core";
   const cs = /\bcursed\s*scroll\s*(\d+)/i.exec(s);
   if (cs) return `cs${cs[1]}`;
+  // The two Western Reaches books share a filter chip but not a printing, and
+  // now that normalizeName drops their qualifier they would otherwise collide
+  // on every bare name they share. Test the GM Guide FIRST — its label starts
+  // with the Player's Guide's.
+  if (/\bwestern\s*reaches\s*gm\s*guide\b|\bgame\s*master(?:'|\u2019)?s?\s*guide\b/i.test(s)) return "gmgwr";
+  if (/\bwestern\s*reaches\b/i.test(s)) return "pgwr";
   return null;
 }
 
