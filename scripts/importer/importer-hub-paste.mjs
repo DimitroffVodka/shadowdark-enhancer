@@ -1106,7 +1106,13 @@ class HubPasteMethods {
       const { stripSeedNoise } = await import("./tables/table-importer.mjs");
       const res = stripSeedNoise(effectiveText, { name: this._importSeed.name, pages: this._importSeed.page });
       if (res.dropped) {
-        const reparsed = parseTables(res.text);
+        // Give the parser exactly ONE caption back. stripSeedNoise removes the
+        // seed line AND every printed repeat of it, which can leave the text
+        // opening on a data row — the parser then adopts that row as the
+        // table's name and the entry is silently gone (the GM Guide's d40 NPC
+        // page lost "10: Ratvort Bingle" this way). Re-prepending the seed name
+        // cannot duplicate a caption, because none are left.
+        const reparsed = parseTables(`${this._importSeed.name}\n${res.text}`);
         if (reparsed.length) {
           tables = reparsed;
           seedNoiseNote = `Stripped ${res.dropped} seed/caption/header line(s) before parsing.`;

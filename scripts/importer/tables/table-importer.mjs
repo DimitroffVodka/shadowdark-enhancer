@@ -940,7 +940,32 @@ function _inheritTableProvenance(tables, provenance) {
  */
 export function parseTables(text, provenance) {
   const out = [];
-  for (const block of splitBlocks(text)) out.push(...parseBlock(block));
+  // Two kinds of page furniture the generic path must not read as rows.
+  //
+  // A line that is ONLY a footnote marker can never be a row — a row needs a
+  // face and text. (The shaped path strips a wider class of footnote through
+  // stripFootnoteLines; this narrower rule is safe even for a hand-typed
+  // paste, where "* something" is a legitimate bullet and must survive.)
+  //
+  // And a later line repeating the paste's FIRST line is the book printing the
+  // title the seed already supplied. An unlock seeds "<name>\n" and the grab
+  // appends the page under it, so a page that prints its own title carries it
+  // twice; the first is consumed as the caption and the second is left as an
+  // orphan row. That shifts every face by one and pushes the last entry off
+  // the end — the GM Guide's d40 NPCs imported as 1d41 with the title as
+  // result 1 and NPC 49 missing.
+  const lines = String(text).split(/\r?\n/);
+  const head = lines[0]?.trim().toLowerCase();
+  const swept = lines.filter((l, i) => {
+    const line = l.trim();
+    if (/^[*†‡]+$/.test(line)) return false;
+    // "*Roll a d4 for the tens…" is a footnote; "* a starred option" is a
+    // hand-typed bullet. The space after the marker is the difference, and
+    // books do not put one there.
+    if (/^[*†‡]\S/.test(line)) return false;
+    return !(i > 0 && head && line.toLowerCase() === head);
+  }).join("\n");
+  for (const block of splitBlocks(swept)) out.push(...parseBlock(block));
   return _inheritTableProvenance(out.filter(pt => pt.rows.length), provenance);
 }
 
@@ -1982,15 +2007,27 @@ function parseLookupShape(text, { name = "", cols = 2, size, labels, dieIndexed 
  * in the last one: "4 rust monster *New monsters, pg. 39".
  *
  * Recognized as: an optional bare page number at either end, and the rest
- * opening with "*". A real row always opens with its die face, never a marker.
+ * opening with a footnote marker ("*", "†" or "‡"). A real row always opens
+ * with its die face, never a marker.
+ *
+ * The GM Guide prints the same note under every d100 terrain spread, and its
+ * page numbers are inside the die's range: "54 *New monsters, pg. 283" reads
+ * as face 54 and collides with the real row 54 (`overlap` on all six spreads),
+ * while the mirrored "*New monsters, pg. 283 55" wraps onto row 00's text.
  */
 function stripFootnoteLines(text) {
   return String(text).split(/\r?\n/).filter((l) => {
     const core = l.trim().replace(/^\d{1,3}\s+/, "").replace(/\s+\d{1,3}$/, "").trim();
-    return !(core.startsWith("*") && core.length > 1);
+    // A line that is NOTHING but footnote markers is furniture too. The GM
+    // Guide's d40 NPC page opens with a bare "*", and once a seed line is
+    // pasted above it the generic parser takes it as the table's first row:
+    // every one of the forty NPCs shifts down a face and the last is pushed
+    // off the end. Counts still look right (40 rows, no blockers), which is
+    // why this survived the offline proof and was caught in a live import.
+    if (/^[*†‡]+$/.test(core)) return false;
+    return !(/^[*†‡]/.test(core) && core.length > 1);
   }).join("\n");
 }
-
 function isSectionCaption(line) {
   const t = String(line).trim();
   if (t.length < 2) return false;
@@ -2078,6 +2115,13 @@ function _sliceSection(text, { name = "", caption, size } = {}) {
 function parseSectionSlice(text, { name = "", caption, size } = {}) {
   const s = _sliceSection(text, { name, caption, size });
   if (!s) return null;
+  // A page number printed under the last row is furniture, not a row: the "49"
+  // beneath the GM Guide's URGENCY LEVEL block reads as face 49 on a 2d6 and
+  // trips `out-of-bounds`. Trailing only, and only here — a `banded` slice
+  // legitimately prints bare face digits on their own lines (the same page's
+  // TYPE OF TROUBLE prints all ten that way), so parseBandedSlice keeps its
+  // body exactly as the slice handed it over.
+  while (s.body.length > 1 && /^\d{1,4}$/.test(s.body.at(-1))) s.body.pop();
   // Force single-die (columns stripped) so a multi-word title never matrix-splits.
   const pt = parseSingleDieBlock(name || s.die.remainder, { count: s.die.count, size: s.die.size, columns: [], remainder: "" }, s.body);
   if (name) pt.name = name;
@@ -2374,6 +2418,11 @@ function parseLongTable(text, { name = "", caption, size = 100 } = {}) {
 
 export function parseByShape(text, shape, { name = "" } = {}) {
   if (!shape) return null;
+  // Footnotes are page furniture for EVERY recipe, not just the grid compounds
+  // that used to strip them on their own — see stripFootnoteLines. Stripping
+  // once here is what keeps a page number printed beside a footnote marker from
+  // reading as the face of that number (all six GM Guide terrain d100s).
+  text = stripFootnoteLines(text);
   if (shape.kind === "suite") {
     // A whole feature in one press: run every member shape over the SAME text
     // and collect what each one claims. Members are caption-bound, so they can
