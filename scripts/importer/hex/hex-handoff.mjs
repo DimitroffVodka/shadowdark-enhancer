@@ -24,21 +24,40 @@ export function extrasHexApi() {
 }
 
 /**
- * Dataset from a crawl entry: its pages are the keyed hexes (name, description
- * with links intact), its flag carries the summary rows (zone, terrain, feature).
- * @param {JournalEntry} entry
+ * Dataset from one or more crawl entries: their pages are the keyed hexes
+ * (name, description with links intact), their flag carries the summary rows
+ * (zone, terrain, feature).
+ *
+ * Takes a LIST because a book imported per region files one entry per region
+ * (hex-book-import.mjs) and the map they describe is one map — the hand-off has
+ * to see all of them or Extras gets a crawl with one region's hexes on it.
+ * Hexes are keyed by published number inside buildHexDataset, so entries never
+ * collide; the dataset is named after the book once there is more than one.
+ * @param {JournalEntry[]|JournalEntry} entries
  * @returns {object} dataset (hex-dataset.mjs)
  */
-export function datasetFromEntry(entry, { tags = {}, gridHint } = {}) {
-  const flag = entry?.getFlag?.(MODULE_ID, HEX_FLAG) ?? {};
-  const drafts = [];
-  for (const p of entry?.pages?.contents ?? []) {
-    const f = p.getFlag?.(MODULE_ID, HEX_FLAG);
-    if (!f?.key) continue;
-    drafts.push({ hexId: f.num, key: f.key, name: String(p.name ?? "").replace(/^\d{3,4}\s*/, ""), html: p.text?.content ?? "" });
+export function datasetFromEntries(entries, { tags = {}, gridHint, assignments } = {}) {
+  const list = (Array.isArray(entries) ? entries : [entries]).filter(Boolean);
+  const drafts = [], summaryRows = [];
+  let name = "", source = "";
+  for (const entry of list) {
+    const flag = entry.getFlag?.(MODULE_ID, HEX_FLAG) ?? {};
+    source ||= flag.source ?? "";
+    name ||= flag.crawl ?? entry.name ?? "";
+    summaryRows.push(...(flag.keyed ?? []));
+    for (const p of entry.pages?.contents ?? []) {
+      const f = p.getFlag?.(MODULE_ID, HEX_FLAG);
+      if (!f?.key) continue;
+      drafts.push({ hexId: f.num, key: f.key, name: String(p.name ?? "").replace(/^\d{3,4}\s*/, ""), html: p.text?.content ?? "" });
+    }
   }
-  return buildHexDataset({ name: flag.crawl ?? entry?.name ?? "", source: flag.source ?? "", drafts, summaryRows: flag.keyed ?? [], tags, gridHint });
+  if (list.length > 1 && source) name = source;
+  return buildHexDataset({ name, source, drafts, summaryRows, tags, assignments, gridHint });
 }
+
+/** One entry's dataset. The tagger's own art manifest rides along (it always
+ *  passed `assignments`; this function used to drop it on the floor). */
+export const datasetFromEntry = (entry, opts) => datasetFromEntries([entry], opts);
 
 const slug = (s) => String(s ?? "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || "hexcrawl";
 
@@ -51,6 +70,108 @@ function downloadDataset(dataset) {
   const filename = `${slug(dataset.name)}-hexcrawl.json`;
   save(JSON.stringify(dataset, null, 2), "text/json", filename);
   return { via: "download", filename };
+}
+
+/**
+ * The dataset fields Extras' upsertHexRecords accepts on an EXISTING scene.
+ *
+ * A whitelist, not a blacklist of `art`/`icon`. Extras validates record keys
+ * fail-closed — an unsupported field throws `unsupported hex field <key>` and
+ * takes the whole batch with it, not just that hex — so a field added to the
+ * dataset later must not silently start breaking the import. `art` and `icon`
+ * are build-only there by design: they say how a hex is PAINTED, and painting
+ * is the builder's job.
+ */
+const UPSERT_FIELDS = ["name", "terrain", "desc", "zone"];
+
+/**
+ * Push a dataset's per-hex details onto a hexcrawl scene Extras ALREADY built,
+ * without rebuilding it.
+ *
+ * `handoffDataset` below is the other half: it calls buildHexcrawl, which makes
+ * a whole new scene and (with overwrite) deletes the old one, taking its
+ * tokens, pins and fog progress with it. That is right for a first import and
+ * wrong for a correction, which is what this is for — retag a few cells in the
+ * tagger, then write the words onto the live map.
+ *
+ * Tile art follows too, when Extras is new enough to expose repaintHexTiles and
+ * the caller asks for it. Words are written first: if the repaint then fails,
+ * the GM is left with correct text over stale art, which is recoverable, rather
+ * than new art over stale text, which reads as correct and is not.
+ *
+ * @param {string} sceneId  an Extras hexcrawl scene (built by buildHexcrawl)
+ * @param {object} dataset  from buildHexDataset / datasetFromEntries
+ * @param {{repaint?:boolean}} [opts]  repaint defaults to true
+ * @returns {Promise<{via:"extras", summary:object}|{via:"none", reason:string}>}
+ */
+export async function importDatasetRecords(sceneId, dataset, opts = {}) {
+  if (!globalThis.game?.user?.isGM) {
+    globalThis.ui?.notifications?.warn("Only a GM can import hex details.");
+    return { via: "none", reason: "not-gm" };
+  }
+  const api = extrasHexApi();
+  if (typeof api?.upsertHexRecords !== "function") {
+    globalThis.ui?.notifications?.warn("Shadowdark Extras is not available, or is too old to update hex details.");
+    return { via: "none", reason: "no-extras" };
+  }
+  if (!sceneId) {
+    globalThis.ui?.notifications?.warn("Pick the hexcrawl scene to update first.");
+    return { via: "none", reason: "no-scene" };
+  }
+
+  const records = [];
+  for (const hex of dataset?.hexes ?? []) {
+    const record = { num: hex.num };
+    for (const key of UPSERT_FIELDS) {
+      if (typeof hex[key] === "string" && hex[key]) record[key] = hex[key];
+    }
+    // num alone would be a no-op write; skip it rather than send it.
+    if (Object.keys(record).length > 1) records.push(record);
+  }
+  if (!records.length) {
+    globalThis.ui?.notifications?.warn("This dataset carries no hex details to import.");
+    return { via: "none", reason: "empty" };
+  }
+
+  let summary;
+  try {
+    summary = await api.upsertHexRecords(sceneId, records);
+  } catch (err) {
+    console.error(`${MODULE_ID} | hex detail import failed`, err);
+    globalThis.ui?.notifications?.error(`Shadowdark Extras refused the hex details: ${err.message}`);
+    return { via: "none", reason: "extras-error" };
+  }
+
+  // Repaint only the hexes whose terrain we actually asserted. A hex with a
+  // name but no terrain word has nothing to repaint FROM, and Extras refuses a
+  // repaint without one rather than guessing — which is the behaviour we want,
+  // so do not send those.
+  const repaintable = [];
+  for (const hex of dataset?.hexes ?? []) {
+    if (typeof hex.terrain !== "string" || !hex.terrain) continue;
+    const entry = { num: hex.num, terrain: hex.terrain };
+    if (typeof hex.art === "string" && hex.art) entry.art = hex.art;
+    repaintable.push(entry);
+  }
+
+  let repaint = null;
+  if (opts.repaint !== false && repaintable.length) {
+    if (typeof api.repaintHexTiles !== "function") {
+      globalThis.ui?.notifications?.warn(`Updated ${records.length} hex${records.length === 1 ? "" : "es"}. Shadowdark Extras is too old to repaint the tiles, so the art still shows the old terrain.`);
+      return { via: "extras", summary, repaint: null, reason: "no-repaint" };
+    }
+    try {
+      repaint = await api.repaintHexTiles(sceneId, repaintable);
+    } catch (err) {
+      console.error(`${MODULE_ID} | hex tile repaint failed`, err);
+      globalThis.ui?.notifications?.error(`Hex details were saved, but the tiles could not be repainted: ${err.message}`);
+      return { via: "extras", summary, repaint: null, reason: "repaint-error" };
+    }
+  }
+
+  const painted = repaint ? `, repainted ${repaint.repainted}` : "";
+  globalThis.ui?.notifications?.info(`Updated ${records.length} hex${records.length === 1 ? "" : "es"}${painted}.`);
+  return { via: "extras", summary, repaint };
 }
 
 /**
