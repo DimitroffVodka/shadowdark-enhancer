@@ -1,0 +1,116 @@
+{{!--
+  Regional Training — Character Builder design language, the same vocabulary
+  downtime.hbs speaks: pinned header, panel cards on a black page, blackletter
+  section titles over a hairline rule, list rows whose state reads as a left
+  rail. Every visible string is a localisation key (#169); trainer names,
+  benefit labels and task text are data, not chrome.
+--}}
+<div class="sde-training-root">
+
+  {{!-- Pinned header: who is training, and with whom. --}}
+  <header class="sde-trn-header">
+    <div class="sde-trn-field">
+      <label for="sde-trn-actor">{{localize "SDE.training.character"}}</label>
+      <select id="sde-trn-actor" data-trn-select="actor">
+        <option value="">{{localize "SDE.training.pickCharacter"}}</option>
+        {{#each actors}}
+          <option value="{{id}}" {{#if selected}}selected{{/if}}>{{name}}</option>
+        {{/each}}
+      </select>
+    </div>
+    <div class="sde-trn-field">
+      <label for="sde-trn-trainer">{{localize "SDE.training.trainer"}}</label>
+      <select id="sde-trn-trainer" data-trn-select="trainer">
+        {{#each groups}}
+          <optgroup label="{{region}}">
+            {{#each trainers}}
+              <option value="{{key}}" {{#if selected}}selected{{/if}}>{{name}}</option>
+            {{/each}}
+          </optgroup>
+        {{/each}}
+      </select>
+    </div>
+    <div class="sde-trn-remaining">
+      <span class="sde-trn-remaining-n">{{remaining}}</span>
+      <span class="sde-trn-remaining-of">{{localize "SDE.training.ofFour"}}</span>
+    </div>
+  </header>
+
+  <div class="sde-trn-scroll">
+
+    {{!-- The trainer: emblem, name, where they are, what they teach. --}}
+    <section class="sde-trn-card sde-trn-trainer-card">
+      {{#if art}}<img class="sde-trn-emblem" src="{{art}}" alt="" />{{/if}}
+      <div class="sde-trn-trainer-text">
+        <h2 class="sde-trn-name">{{trainer.trainer}}</h2>
+        <p class="sde-trn-sub">
+          {{trainer.topic}}{{#if trainer.region}} · {{trainer.region}}{{/if}}
+          · {{localize "SDE.training.page" page=trainer.page}}
+        </p>
+        {{#if description}}<p class="sde-trn-desc">{{description}}</p>{{/if}}
+      </div>
+    </section>
+
+    {{#if tableMissing}}
+      <p class="sde-trn-warn">{{localize "SDE.training.tableMissing" table=trainer.table}}</p>
+    {{/if}}
+
+    {{!-- Tasks: what must be done before anything is taught. --}}
+    <section class="sde-trn-card">
+      <h3 class="sde-trn-head">
+        {{localize "SDE.training.tasks"}}
+        {{#if journalUuid}}
+          <a class="sde-trn-headlink" data-action="trnOpenJournal">{{localize "SDE.training.openJournal"}}</a>
+        {{/if}}
+      </h3>
+      {{#if tasks.length}}
+        <ol class="sde-trn-tasks">
+          {{#each tasks}}<li>{{this}}</li>{{/each}}
+        </ol>
+      {{else}}
+        <p class="sde-trn-empty">{{localize "SDE.training.noTasks"}}</p>
+        {{#if canImport}}
+          <button type="button" class="sde-trn-btn" data-action="trnImport">
+            <i class="fa-solid fa-book-open"></i> {{localize "SDE.training.importJournals"}}
+          </button>
+        {{/if}}
+      {{/if}}
+    </section>
+
+    {{!-- Benefits: all four, with the taught ones marked. --}}
+    <section class="sde-trn-card">
+      <h3 class="sde-trn-head">
+        {{localize "SDE.training.benefits"}}
+        <span class="sde-trn-headnote">{{localize "SDE.training.onceEach"}}</span>
+      </h3>
+      <ol class="sde-trn-benefits">
+        {{#each benefits}}
+          <li class="sde-trn-benefit {{#if taken}}sde-trn-taken{{/if}}">
+            <span class="sde-trn-face">{{roll}}</span>
+            <div class="sde-trn-benefit-body">
+              <span class="sde-trn-benefit-text">{{#if printed}}{{printed}}{{else}}{{label}}{{/if}}</span>
+              {{#if todo}}<span class="sde-trn-hint">{{todo}}</span>{{/if}}
+            </div>
+            <span class="sde-trn-tag {{#if mechanical}}sde-trn-tag-auto{{/if}}">
+              {{#if taken}}{{localize "SDE.training.tagTaught"}}
+              {{else if mechanical}}{{localize "SDE.training.tagAuto"}}
+              {{else}}{{localize "SDE.training.tagTable"}}{{/if}}
+            </span>
+          </li>
+        {{/each}}
+      </ol>
+    </section>
+
+  </div>
+
+  <footer class="sde-trn-footer">
+    {{#if spent}}
+      <span class="sde-trn-empty">{{localize "SDE.training.spent"}}</span>
+    {{/if}}
+    <button type="button" class="sde-trn-btn sde-trn-primary" data-action="trnRoll"
+      {{#unless canRoll}}disabled{{/unless}}>
+      <i class="fa-solid fa-dice-d4"></i> {{localize "SDE.training.roll"}}
+    </button>
+  </footer>
+
+</div>

@@ -123,6 +123,22 @@ artwork is otherwise unchanged.
 - `raise-zombie.svg` (Necromancer), `pentacle.svg` (Warlock) — **Skoll**
 - `clover.svg` (Roustabout) — **Sbed**
 
+## Trainer icons (`icons/game-icons/trainers/`)
+
+One emblem per regional trainer in the Game Master's Guide to the Western
+Reaches. Fifteen of the twenty-one reuse a class emblem from the folder above —
+often because it is the honest pick rather than a saving, e.g. the assassin
+trainer leads the Ras-Godai and wears that class's emblem. These six had no
+good match in that set. Also from [game-icons.net](https://game-icons.net/)
+under [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/); recolored gold
+(`fill` changed from `#fff` to `#c9a54a`, the solid background path removed)
+and the artwork otherwise unchanged.
+
+- `healing.svg` (Healer), `scuba-mask.svg` (Sea Diving),
+  `vampire-cape.svg` (Ancient Ritual), `wool.svg` (Altering Fate)
+  — **Delapouite**
+- `battle-axe.svg` (Dwarvish Combat), `campfire.svg` (Survival) — **Lorc**
+
 ## Item icons (`assets/icons/shikashi/`)
 
 284 item icons from **Shikashi's Fantasy Icons Pack v2** by **Shikashi**
