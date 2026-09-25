@@ -277,6 +277,16 @@ match its PDF pages, and either printing works — the standard one or the
   in that folder yourself under the same names work the same way. Hosts that
   keep uploads in an asset library (The Forge, S3) put the file there instead.
   Nothing is sent anywhere else.
+- **Link a file on the server** links a PDF that is already on the server
+  instead of uploading one — the route to use when your host refuses a
+  book-sized upload as "too large" (see
+  [Troubleshooting](Troubleshooting.md#uploading-a-book-pdf-is-rejected-as-too-large)).
+  Put the file in your Foundry data folder by any route you like, press the
+  button and pick it.
+- **A link is only as good as the file behind it.** Every linked book is
+  checked when the library opens, so one whose file has moved or was never
+  written reads as missing rather than linked. Books in a host's asset library
+  (The Forge, S3) are taken on trust — the browser cannot check them.
 
 ### Bundle export / import
 

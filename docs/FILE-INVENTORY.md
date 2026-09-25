@@ -1,7 +1,7 @@
 # Shadowdark Enhancer — File Inventory
 
 <!-- inventory:stats:start -->
-970 tracked files · ~167,000 lines of code/markup across scripts+templates+styles+test.
+970 tracked files · ~167,100 lines of code/markup across scripts+templates+styles+test.
 `v0.17.3` in both `module.json` and `package.json`.
 <!-- inventory:stats:end -->
 **Layout reflects the 2026-07-21 feature-folder reorganization (v0.11.0 cycle).**
@@ -238,14 +238,14 @@
 | `importer-hub-batch.mjs` | 711 | Batch “Import everything” runner: seeds, grabs, parses and commits each planned entry unattended. |
 | `importer-hub-shared.mjs` | 109 | Hub-shared constants/helpers + `installMethods` (the split's descriptor copier). |
 | `importer-hub-news.mjs` | 123 | What a module update added to the import library: snapshots every Manage-tree row once per module version, diffs the new snapshot against the last, and hands the hub the rows this release added but the GM has not imported (the "New" filter and badge) plus a one-time notice. |
-| `importer-hub-maintenance.mjs` | 244 | Tools-menu bodies (bundle export/import, source-PDF library). |
+| `importer-hub-maintenance.mjs` | 282 | Tools-menu bodies (bundle export/import, source-PDF library). |
 | `dump-segmenter.mjs` | 307 | Routes a mixed dump through the recognizer registry: hexcrawl → spell → monster → item → table. |
 | `bundle-io.mjs` | 406 | Whole-suite export/import as one JSON; validates, skips existing, never overwrites. |
 | `manage-tree.mjs` | 687 | Composes the folder/sub-folder unlock-review tree the Manage strip renders. |
 | `batch-import.mjs` | 262 | Pure batch planner: locked tree rows → deduped import jobs, routes, and the run report. |
 | `pdf-text-extract.mjs` | 832 | Clean reading-ordered PDF text via Foundry's bundled PDF.js; column-aware gutter detection. |
 | `pdf-text-utils.mjs` | 157 | Shared PDF-text helpers + the HTML-safety contract. |
-| `source-pdf-registry.mjs` | 300 | Content source → the user's own uploaded PDF, for page deep-links. |
+| `source-pdf-registry.mjs` | 319 | Content source → the user's own uploaded PDF, for page deep-links. |
 | `source-pdf-viewer.mjs` | 66 | Singleton ApplicationV2 embedding Foundry's PDF.js viewer at a given page. |
 | `char-content/char-content-manifest.mjs` | 1835 | Metadata-only manifest of CS4–6 + WR char-builder content (names/types/sources, no rules text) + `parseCharContent` + census. |
 | `char-content/class-parser.mjs` | 1100 | Class section → structured unit (writeup, talents, tables, spellcasting). Pure. |

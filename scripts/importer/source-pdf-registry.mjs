@@ -209,6 +209,18 @@ export function sourcePdfTarget(src, pages) {
   return { file, page: page + (PAGE_OFFSETS[src] ?? 0) };
 }
 
+/**
+ * Is this registered file really there? Same HEAD as a fallback path, with one
+ * exemption: an absolute URL (The Forge, S3) is taken on trust, because a
+ * cross-origin HEAD can fail for a file that exists and calling that book
+ * missing is the worse lie.
+ */
+async function _linkOk(file) {
+  if (!file) return false;
+  if (/^https?:\/\//i.test(file)) return true;
+  return _fileExists(file);
+}
+
 /** Does a served file actually exist? HEAD against its route; false on any error. */
 async function _fileExists(path) {
   try {
@@ -223,10 +235,13 @@ async function _fileExists(path) {
 
 /**
  * One row per known source, with its current link status — for the manager UI.
- * `origin` distinguishes a verified journal UPLOAD from the static FALLBACK
- * path: fallbacks are deployment-local (never bundled), so on a clean install
- * they can point at nothing — each is HEAD-verified before being reported as
- * linked, instead of trusting the configured path. (review 2026-07-12 #5)
+ * `origin` distinguishes a journal UPLOAD from the static FALLBACK path.
+ * BOTH are HEAD-verified before being reported as linked. Fallbacks are
+ * deployment-local (never bundled), so on a clean install they can point at
+ * nothing (review 2026-07-12 #5); a journal row used to be trusted as
+ * "verified at upload time", which it never was — an upload the server refused
+ * registered a path that was never written, and the book then read as linked
+ * for good (Discord, 2026-09-20). Files also move.
  * @returns {Promise<Array<{src,label,book,file,origin,linked}>>}
  *   origin: "journal" (uploaded + registered) | "fallback" (static default) | null
  */
@@ -237,10 +252,7 @@ export async function listSourcePdfs() {
     const page = j?.pages.find((p) => p.type === "pdf" && p.src && p.getFlag(MODULE_ID, KEY_FLAG) === src);
     const file = page?.src ?? SOURCE_PDFS[src] ?? null;
     const origin = page ? "journal" : (SOURCE_PDFS[src] ? "fallback" : null);
-    // Journal registrations were verified at upload time; fallbacks are checked live.
-    const linked = origin === "journal" ? true
-      : origin === "fallback" ? await _fileExists(file)
-      : false;
+    const linked = origin ? await _linkOk(file) : false;
     rows.push({ src, label: meta.label, book: meta.book, file, origin, linked, custom: false });
   }
   // Books the GM added themselves: any registered page whose key isn't built in.
@@ -250,7 +262,7 @@ export async function listSourcePdfs() {
     const key = p.getFlag(MODULE_ID, KEY_FLAG);
     if (!key || p.type !== "pdf" || !p.src || !isCustomSource(key)) continue;
     rows.push({ src: key, label: p.name, book: null, file: p.src,
-      origin: "journal", linked: true, custom: true });
+      origin: "journal", linked: await _linkOk(p.src), custom: true });
   }
   return rows;
 }
@@ -294,7 +306,14 @@ export async function uploadSourcePdf(src, file, label) {
   const FP = filePicker();
   try { await FP.createDirectory("data", SHARED_DIR); } catch (_e) { /* already exists */ }
   const result = await FP.upload("data", SHARED_DIR, upload, {}, { notify: false });
-  const path = result?.path ?? `${SHARED_DIR}/${name}`;
-  await registerSourcePdf(src, path, label);
-  return path;
+  // FilePicker.upload does NOT throw when the server refuses the file: a 413
+  // from a proxy in front of Foundry resolves to undefined, a server-side
+  // refusal to `false`, a non-JSON error body to `{}`. Defaulting to the path
+  // we ASKED for registered a file that was never written — the book then read
+  // as linked for good, and every Grab failed later somewhere unrelated
+  // (Discord, 2026-09-20: a Western Reaches Player's Guide refused as "too
+  // large"). No path means no link.
+  if (!result?.path) throw new Error(`the server refused the upload of ${name}`);
+  await registerSourcePdf(src, result.path, label);
+  return result.path;
 }

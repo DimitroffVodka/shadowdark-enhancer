@@ -55,12 +55,51 @@ test("a journal-registered upload reports origin 'journal' and wins over the fal
     find: (fn) => (fn({ getFlag: (_m, k) => k === "sourcePdfLibrary" }) ? { pages: [page] } : null),
     getName: () => null,
   };
-  const restore = stubGlobals({ journal, fetchOk: false });   // fetch says missing — journal is trusted anyway
+  const restore = stubGlobals({ journal, fetchOk: true });
   try {
     const wr = (await listSourcePdfs()).find((r) => r.src === "WR");
     assert.equal(wr.origin, "journal");
     assert.equal(wr.file, "worlds/w/source-pdfs/wr.pdf");
     assert.equal(wr.linked, true);
+  } finally { restore(); }
+});
+
+/**
+ * A registered row used to be reported as linked without ever being checked
+ * ("verified at upload time" — it was not). A refused upload, or a file the GM
+ * later moved, then read as linked for good and offered Grab buttons that
+ * could only fail. An absolute URL stays trusted: a cross-origin HEAD can fail
+ * for a file that is there.
+ */
+test("a registered book whose file is gone is not reported as linked", async () => {
+  const page = {
+    type: "pdf", src: "assets/wr.pdf",
+    getFlag: (_m, k) => (k === "sourceKey" ? "WR" : undefined),
+  };
+  const journal = {
+    find: (fn) => (fn({ getFlag: (_m, k) => k === "sourcePdfLibrary" }) ? { pages: [page] } : null),
+    getName: () => null,
+  };
+  const restore = stubGlobals({ journal, fetchOk: false });
+  try {
+    const wr = (await listSourcePdfs()).find((r) => r.src === "WR");
+    assert.equal(wr.origin, "journal");
+    assert.equal(wr.linked, false);
+  } finally { restore(); }
+});
+
+test("a registered book on The Forge or S3 is trusted without a cross-origin HEAD", async () => {
+  const page = {
+    type: "pdf", src: "https://assets.forge-vtt.com/u1/worlds/w/wr.pdf",
+    getFlag: (_m, k) => (k === "sourceKey" ? "WR" : undefined),
+  };
+  const journal = {
+    find: (fn) => (fn({ getFlag: (_m, k) => k === "sourcePdfLibrary" }) ? { pages: [page] } : null),
+    getName: () => null,
+  };
+  const restore = stubGlobals({ journal, fetchOk: false });
+  try {
+    assert.equal((await listSourcePdfs()).find((r) => r.src === "WR").linked, true);
   } finally { restore(); }
 });
 
@@ -105,6 +144,33 @@ test("Upload & link stores a known book in the shared assets/ folder under its d
     assert.equal(custom, "assets/My Adventure.pdf");
   } finally { delete globalThis.FilePicker; restore(); }
 });
+
+/**
+ * FilePicker.upload resolves instead of throwing when the server refuses the
+ * file — undefined for a 413 from a proxy, `false` for a server refusal, `{}`
+ * for an error body that isn't JSON. Defaulting to the path we asked for
+ * registered a book that was never written: the library then showed it linked
+ * for good and every Grab failed later, somewhere unrelated. Reported on
+ * Discord 2026-09-20 ("rejected my Western Reaches Player's Guide as being too
+ * large") — the refusal was real, the "Linked ✔" that followed was not.
+ */
+for (const refusal of [undefined, false, {}, { path: "" }]) {
+  test(`a refused upload (${JSON.stringify(refusal)}) links nothing and says so`, async () => {
+    const created = [];
+    const journal = { pages: [], createEmbeddedDocuments: async (_t, data) => { created.push(...data); return data; } };
+    const restore = stubGlobals({
+      journal: { find: (fn) => (fn({ getFlag: (_m, k) => k === "sourcePdfLibrary" }) ? journal : null), getName: () => null },
+    });
+    globalThis.FilePicker = {
+      createDirectory: async () => {},
+      upload: async () => refusal,
+    };
+    try {
+      await assert.rejects(() => uploadSourcePdf("WR", new File(["x"], "wr.pdf", { type: "application/pdf" })));
+      assert.deepEqual(created, [], "nothing is registered for a file that was never written");
+    } finally { delete globalThis.FilePicker; restore(); }
+  });
+}
 
 test("a default path the HEAD check found missing is no link, and comes back once the file exists", async () => {
   let restore = stubGlobals({ journal: undefined, fetchOk: false });
