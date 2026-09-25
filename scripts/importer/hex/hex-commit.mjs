@@ -198,12 +198,16 @@ export async function commitHexDrafts(drafts, { source = "", crawlTitle = "", ke
  * one paragraph per printed line until something re-imported them — and
  * nothing said to (live count, 2026-09-25).
  *
- * Idempotent: a reflowed page no longer matches, so after the first run this
- * only reads. Touches `text.content` of pages carrying the hex flag and nothing
- * else; never creates or deletes. A locked pack is skipped, not unlocked.
+ * Once per world: a fresh import's paragraphs have the same plain-`<p>` shape,
+ * so running on every load would keep merging them. The `hexReflowDone` stamp
+ * is set after a run that reached every page; a locked pack is skipped, not
+ * unlocked, and leaves the stamp unset so a later load finishes the job.
+ * Touches `text.content` of pages carrying the hex flag and nothing else;
+ * never creates or deletes.
  * @returns {Promise<number>} pages rewritten
  */
 export async function reflowLegacyHexPages() {
+  if (game.settings.get(MODULE_ID, "hexReflowDone")) return 0;
   const pack = findSuitePack("journal");
   const packEntries = pack && !pack.locked ? await pack.getDocuments() : [];
   let changed = 0;
@@ -220,5 +224,6 @@ export async function reflowLegacyHexPages() {
     changed += updates.length;
   }
   if (changed) ui.notifications?.info(game.i18n.format("SDE.importer.hexPagesReflowed", { n: changed }));
+  if (!pack?.locked) await game.settings.set(MODULE_ID, "hexReflowDone", true);
   return changed;
 }

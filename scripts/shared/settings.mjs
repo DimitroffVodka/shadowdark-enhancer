@@ -401,6 +401,12 @@ export function registerSettings() {
     scope: "world", config: false, type: Object, default: {},
   });
 
+  // The one-time rewrite of hex pages filed one <p> per printed line has run
+  // (reflowLegacyHexPages). Once, because later imports share that shape.
+  game.settings.register(MODULE_ID, "hexReflowDone", {
+    scope: "world", config: false, type: Boolean, default: false,
+  });
+
   // Last module version whose automatic monster backfill ran in this world —
   // the update-time sweep that replaced Maintenance → "Backfill monsters".
   game.settings.register(MODULE_ID, "backfillVersion", {

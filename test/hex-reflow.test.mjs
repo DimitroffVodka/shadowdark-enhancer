@@ -77,3 +77,51 @@ test("a page the GM formatted, or one already a paragraph, is left alone", () =>
   assert.equal(reflowLegacyHexHtml("<h2>HEAD</h2><p>a</p><p>b</p>"), null);
   assert.equal(reflowLegacyHexHtml(""), null);
 });
+
+test("real paragraphs are not a legacy page: a fresh import's, or the GM's own", () => {
+  const fresh = buildHexPageHtml({ bodyLines: ["The tower leans.", "", "Its keeper sells maps."] }, new Set());
+  assert.equal(fresh, "<p>The tower leans.</p>\n<p>Its keeper sells maps.</p>");
+  assert.equal(reflowLegacyHexHtml(fresh), null);
+  assert.equal(reflowLegacyHexHtml("<p>First.</p><p>Second.</p>"), null);
+  assert.equal(reflowLegacyHexHtml("<p>TREASURE</p><p>A gold ring.</p>"), null, "a heading line is not a cut line");
+});
+
+test("the ready-time rewrite runs once per world, and waits for a locked pack", async () => {
+  const { reflowLegacyHexPages } = await import("../scripts/importer/hex/hex-commit.mjs");
+  const legacy = "<p>A tower leans</p>\n<p>over the harbor.</p>";
+  const makePage = () => ({ id: "p1", text: { content: legacy }, getFlag: () => ({ num: "1204" }) });
+  const makeEntry = (page, writes) => ({
+    pages: [page],
+    getFlag: () => ({ crawl: "WR" }),
+    updateEmbeddedDocuments: async (_type, updates) => {
+      writes.push(...updates);
+      page.text.content = updates[0]["text.content"];
+    },
+  });
+  const run = async ({ locked = false, done = false } = {}) => {
+    const writes = [];
+    const settings = new Map([["shadowdark-enhancer.hexReflowDone", done]]);
+    const packEntry = makeEntry(makePage(), writes);
+    const pack = {
+      locked, collection: "world.sde-journal", metadata: { packageType: "world" },
+      getDocuments: async () => [packEntry],
+    };
+    globalThis.ui = {};
+    globalThis.game = {
+      packs: [pack],
+      journal: [makeEntry(makePage(), writes)],
+      settings: { get: (m, k) => settings.get(`${m}.${k}`), set: async (m, k, v) => settings.set(`${m}.${k}`, v) },
+      i18n: { format: (k) => k },
+    };
+    const n = await reflowLegacyHexPages();
+    delete globalThis.game; delete globalThis.ui;
+    return { n, writes, stamped: settings.get("shadowdark-enhancer.hexReflowDone") };
+  };
+  const first = await run();
+  assert.equal(first.writes[0]["text.content"], "<p>A tower leans over the harbor.</p>");
+  assert.equal(first.stamped, true);
+  assert.deepEqual(await run({ done: true }), { n: 0, writes: [], stamped: true }, "a stamped world is never read");
+  const locked = await run({ locked: true });
+  assert.equal(locked.n, 1, "the world copy is still repaired");
+  assert.equal(locked.stamped, false, "the locked pack keeps the job open");
+});

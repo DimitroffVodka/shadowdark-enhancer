@@ -383,6 +383,9 @@ export function reflowBodyLines(lines) {
 
 const PLAIN_P_RE = /<p>([^<]*)<\/p>/g;
 
+/** A line the column cut mid-sentence: it ends in a letter, digit, comma or hyphen. */
+const BROKEN_LINE_RE = /[\p{L}\d,-]$/u;
+
 /**
  * A page filed before reflowBodyLines existed → the page it would be now.
  *
@@ -391,6 +394,12 @@ const PLAIN_P_RE = /<p>([^<]*)<\/p>/g;
  * already in place) and reflowing them is a re-import without the PDF. The
  * one thing it cannot recover is a blank line the old import dropped, so a
  * rare two-paragraph entry comes back as one; a real re-import restores that.
+ *
+ * Plain `<p>`s alone do not prove a page is legacy: a fresh import and a GM's
+ * own paragraphs have the same shape. A column's lines give themselves away by
+ * breaking mid-sentence, so a page where every line but the last ends a
+ * sentence (or is a heading) is real paragraphs and stays. The ready hook also
+ * runs this once per world (hexReflowDone), so nothing written later is read.
  *
  * Anything else is left alone: a page with any other markup (a GM's own
  * edit), a page already one paragraph, or one that reflows to nothing.
@@ -401,6 +410,7 @@ export function reflowLegacyHexHtml(html) {
   const src = String(html ?? "");
   const lines = [...src.matchAll(PLAIN_P_RE)].map((m) => m[1]);
   if (lines.length < 2 || src.replace(PLAIN_P_RE, "").trim()) return null;
+  if (!lines.slice(0, -1).some((l) => !isHeading(l.trim()) && BROKEN_LINE_RE.test(l.trim()))) return null;
   const paragraphs = reflowBodyLines(lines);
   if (!paragraphs.length) return null;
   const next = paragraphs.map((p) => `<p>${p}</p>`).join("\n");

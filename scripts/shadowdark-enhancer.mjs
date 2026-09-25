@@ -101,7 +101,7 @@ const STYLESHEET_REV = "000935629eaf";
 // stale); module.json carries the same hash and is fetched fresh at runtime. A
 // mismatch is a stale cache by construction — it cannot be anything else. Both
 // stamps are written by `npm run inventory` and gated by `inventory:check`.
-const BUILD_REV = "c46badcb77e7";
+const BUILD_REV = "3e631d4105c2";
 
 /**
  * Tell the user when their browser is running an old build of this module, and
@@ -935,7 +935,8 @@ Hooks.once("ready", () => {
     }, 1500);
 
     // Hex pages filed before the importer reflowed them keep one paragraph per
-    // printed line. Rewrite them in place; idempotent, so no version stamp.
+    // printed line. Rewrite them in place, once per world (hexReflowDone): a
+    // fresh import has the same shape and must never be merged.
     setTimeout(async () => {
       if (game.users.activeGM?.id !== game.user.id) return;
       try {
