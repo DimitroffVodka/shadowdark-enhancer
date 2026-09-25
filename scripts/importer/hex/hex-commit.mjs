@@ -18,8 +18,8 @@
  */
 
 import { MODULE_ID } from "../../shared/module-id.mjs";
-import { ensureSuite, ensureSourceFolder, cleanImportHtml, sourceFolderName } from "../../shared/compendium-suite.mjs";
-import { buildHexPageHtml, rewriteHexPlaceholders } from "../tables/hex-parser.mjs";
+import { ensureSuite, ensureSourceFolder, cleanImportHtml, sourceFolderName, findSuitePack } from "../../shared/compendium-suite.mjs";
+import { buildHexPageHtml, rewriteHexPlaceholders, reflowLegacyHexHtml } from "../tables/hex-parser.mjs";
 
 /** Flag key under `flags.shadowdark-enhancer` on the entry and its pages. */
 export const HEX_FLAG = "hex";
@@ -189,4 +189,36 @@ export async function commitHexDrafts(drafts, { source = "", crawlTitle = "", ke
   report.entryUuid = dbEntry.uuid;
   report.pages = uuidByKey;
   return report;
+}
+
+/**
+ * Reflow every hex page filed before the importer did it (reflowLegacyHexHtml),
+ * in the Journals pack and in the crawl entries deployed into the world. The
+ * fix lived only in the import, so 268 of the Western Reaches' 270 pages kept
+ * one paragraph per printed line until something re-imported them — and
+ * nothing said to (live count, 2026-09-25).
+ *
+ * Idempotent: a reflowed page no longer matches, so after the first run this
+ * only reads. Touches `text.content` of pages carrying the hex flag and nothing
+ * else; never creates or deletes. A locked pack is skipped, not unlocked.
+ * @returns {Promise<number>} pages rewritten
+ */
+export async function reflowLegacyHexPages() {
+  const pack = findSuitePack("journal");
+  const packEntries = pack && !pack.locked ? await pack.getDocuments() : [];
+  let changed = 0;
+  for (const entry of [...packEntries, ...game.journal]) {
+    if (!entry.getFlag(MODULE_ID, HEX_FLAG)?.crawl) continue;
+    const updates = [];
+    for (const page of entry.pages) {
+      if (!page.getFlag(MODULE_ID, HEX_FLAG)) continue;
+      const next = reflowLegacyHexHtml(page.text?.content);
+      if (next !== null) updates.push({ _id: page.id, "text.content": next });
+    }
+    if (!updates.length) continue;
+    await entry.updateEmbeddedDocuments("JournalEntryPage", updates);
+    changed += updates.length;
+  }
+  if (changed) ui.notifications?.info(game.i18n.format("SDE.importer.hexPagesReflowed", { n: changed }));
+  return changed;
 }

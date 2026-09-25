@@ -1,7 +1,7 @@
 # Shadowdark Enhancer — File Inventory
 
 <!-- inventory:stats:start -->
-985 tracked files · ~169,300 lines of code/markup across scripts+templates+styles+test.
+985 tracked files · ~169,400 lines of code/markup across scripts+templates+styles+test.
 `v0.17.3` in both `module.json` and `package.json`.
 <!-- inventory:stats:end -->
 **Layout reflects the 2026-07-21 feature-folder reorganization (v0.11.0 cycle).**
@@ -46,7 +46,7 @@
 
 | File | Lines | Description |
 |---|---:|---|
-| `shadowdark-enhancer.mjs` | 1096 | **Entry point** (module.json esmodules). Registers hooks, settings, sheets, actor sub-types, the public `game.shadowdarkEnhancer` API, and wires every sub-system. |
+| `shadowdark-enhancer.mjs` | 1108 | **Entry point** (module.json esmodules). Registers hooks, settings, sheets, actor sub-types, the public `game.shadowdarkEnhancer` API, and wires every sub-system. |
 | `luck-reroll/luck-reroll.mjs` | 171 | Wraps the system's `_onReroll` to enforce nat-1 prevention and log Luck rerolls to the session recap. |
 | `spell-mishap/spell-mishap.mjs` | 270 | Nat-1 spellcasting failures auto-roll the class's mishap table (wizard / witch / necromancer sets); divine casters are exempt. |
 | `scavenger/scavenger-core.mjs` | 171 | Pure Delver Scavenger rules: the 5-6 success range and Master Scavenger's widening (floored at 3-6), what counts as expending a consumable's last use (a 1→0 decrement or a delete at quantity 1 — never a stack deleted whole), and which single client rolls. |
@@ -275,7 +275,7 @@
 | `tables/table-enrich.mjs` | 267 | Brings imported tables to "Ruin Encounters" standard; owns the debounced auto-relink sweep. |
 | `tables/core-table-groups.mjs` | 277 | Core Rulebook table groups (`section: "gameplay"` vs roll tables) for the Manage tree. |
 | `tables/compound-table.mjs` | 93 | Mad-libs generator roll behaviour. |
-| `tables/hex-parser.mjs` | 452 | Hex-key dumps → per-hex draft journal pages. Pure. |
+| `tables/hex-parser.mjs` | 478 | Hex-key dumps → per-hex draft journal pages. Pure. |
 | `monsters/statblock-parser.mjs` | 550 | Monster statblock dump → draft objects. Pure. |
 | `monsters/monster-importer.mjs` | 232 | Drafts → NPC actors in `sde-actors`. |
 | `monsters/monster-importer-app.mjs` | 394 | Paste dump → per-monster preview/edit grid → create. |
@@ -307,7 +307,7 @@
 | `boats/siege-parser.mjs` | 438 | Parses the WR p119 siege-weapons table → Weapon drafts + ammunition (pure). |
 | `boats/siege-importer.mjs` | 44 | Materializes Blast/Exploding Property items for the siege weapons in `sde-items`. |
 | `hex/hex-book-import.mjs` | 154 | A book's whole hex key in one pass: per region, the keyed-location table and the pages of write-ups after it → one crawl entry per region. Page map only; no book text. |
-| `hex/hex-commit.mjs` | 192 | Hex-key drafts → JournalEntry pages in sde-journal (one entry per crawl, one page per hex); pure planner + two-pass link rewrite. |
+| `hex/hex-commit.mjs` | 224 | Hex-key drafts → JournalEntry pages in sde-journal (one entry per crawl, one page per hex); pure planner + two-pass link rewrite. |
 | `hex/hex-dataset.mjs` | 298 | Drafts + summary rows + tags → the Shadowdark Extras hexcrawl dataset (numbers only at the boundary). Pure. |
 | `hex/hex-handoff.mjs` | 218 | Crawl entry → dataset; hands it to Extras when its builder exists, else downloads JSON. |
 | `hex/hex-summary.mjs` | 174 | Keyed hex summary rows (number, region, terrain, name) → structured rows; zone/terrain split decided by the table. Pure. |

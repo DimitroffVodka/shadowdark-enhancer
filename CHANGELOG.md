@@ -156,6 +156,27 @@
   disagreed it stays unset and you decide. Only the 33 creatures the GM Guide
   introduces needed a type of their own.
 ### Fixed
+- **Hex journal pages imported earlier now read as paragraphs.** The fix that
+  joins a PDF column's lines back into paragraphs only ran on import, so pages
+  filed before it kept one paragraph per printed line, and some still ended in
+  a page footer such as "pg. 245)". On a GM's next load they are rewritten in
+  place: the Journals compendium and the crawl journals placed in the world
+  alike, links kept. A page you have formatted yourself is left alone. One limit:
+  where the old import dropped a blank line between two paragraphs, they come
+  back as one; importing the key locations again restores the break. Text
+  already sent to Shadowdark Extras updates the next time you send it.
+- **A book your host won't let you upload can now be linked where it lies.**
+  A PDF refused as "too large" is stopped by the web server or proxy in front
+  of Foundry, not by Foundry — and the importer took the refusal as a success:
+  it linked the book to a file that was never written, so the library showed it
+  as linked and every Grab failed later for no visible reason. A refused upload
+  now says so and links nothing, and Tools → Source PDFs has a second button,
+  **Link a file on the server**: put the PDF in your Foundry data folder by any
+  route you like and point at it — no upload, same link. The library also
+  checks the file behind every linked book now instead of trusting the
+  registration, so a bad link from an older version corrects itself; a book in
+  a host's asset library (The Forge, S3) is still taken on trust, since the
+  browser cannot check it.
 - **The god prayer generators refused every hand-typed paste.** The eight
   Western Reaches prayer tables were reconstructed from the column positions on
   the page, which only survive a **Grab text** pull from a linked PDF — text

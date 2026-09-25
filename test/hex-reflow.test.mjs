@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { reflowBodyLines, buildHexPageHtml } from "../scripts/importer/tables/hex-parser.mjs";
+import { reflowBodyLines, buildHexPageHtml, reflowLegacyHexHtml } from "../scripts/importer/tables/hex-parser.mjs";
 
 // Invented fixtures (D1): prose written here, wrapped the way a column wraps it.
 
@@ -55,4 +55,25 @@ test("nothing to reflow is not an error", () => {
 test("the page HTML is one paragraph per paragraph, not per line", () => {
   const html = buildHexPageHtml({ bodyLines: ["one", "two", "", "three"] }, new Set());
   assert.equal(html, "<p>one two</p>\n<p>three</p>");
+});
+
+test("a page filed one paragraph per printed line is reflowed in place", () => {
+  const old = [
+    "<p>A salt &amp; pepper tower leans</p>",
+    "<p>over the harbor (@UUID[Compendium.world.x.JournalEntry.a.JournalEntryPage.b]{1204}), and its</p>",
+    "<p>keeper is a gnome who sells magi-</p>",
+    "<p>cal maps.</p>",
+    "<p>pg. 12)</p>",
+  ].join("\n");
+  const next = reflowLegacyHexHtml(old);
+  assert.equal(next, "<p>A salt &amp; pepper tower leans over the harbor "
+    + "(@UUID[Compendium.world.x.JournalEntry.a.JournalEntryPage.b]{1204}), and its keeper is a gnome who sells magical maps.</p>");
+  assert.equal(reflowLegacyHexHtml(next), null, "a second pass changes nothing");
+});
+
+test("a page the GM formatted, or one already a paragraph, is left alone", () => {
+  assert.equal(reflowLegacyHexHtml("<p>one line</p>\n<p><strong>two</strong></p>"), null);
+  assert.equal(reflowLegacyHexHtml("<p>Already one paragraph.</p>"), null);
+  assert.equal(reflowLegacyHexHtml("<h2>HEAD</h2><p>a</p><p>b</p>"), null);
+  assert.equal(reflowLegacyHexHtml(""), null);
 });

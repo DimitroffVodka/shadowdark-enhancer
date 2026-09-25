@@ -101,7 +101,7 @@ const STYLESHEET_REV = "000935629eaf";
 // stale); module.json carries the same hash and is fetched fresh at runtime. A
 // mismatch is a stale cache by construction — it cannot be anything else. Both
 // stamps are written by `npm run inventory` and gated by `inventory:check`.
-const BUILD_REV = "94b86a5611eb";
+const BUILD_REV = "c46badcb77e7";
 
 /**
  * Tell the user when their browser is running an old build of this module, and
@@ -933,6 +933,18 @@ Hooks.once("ready", () => {
         console.error(`${MODULE_ID} | patron backfill failed:`, err);
       }
     }, 1500);
+
+    // Hex pages filed before the importer reflowed them keep one paragraph per
+    // printed line. Rewrite them in place; idempotent, so no version stamp.
+    setTimeout(async () => {
+      if (game.users.activeGM?.id !== game.user.id) return;
+      try {
+        const { reflowLegacyHexPages } = await import("./importer/hex/hex-commit.mjs");
+        await reflowLegacyHexPages();
+      } catch (err) {
+        console.error(`${MODULE_ID} | hex page reflow failed:`, err);
+      }
+    }, 2000);
 
     // A release grows the import library — a book, a bestiary, a hundred table
     // rows — and a GM who already imported what they own would never find out.

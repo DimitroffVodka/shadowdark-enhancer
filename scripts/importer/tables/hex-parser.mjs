@@ -381,6 +381,32 @@ export function reflowBodyLines(lines) {
   return out;
 }
 
+const PLAIN_P_RE = /<p>([^<]*)<\/p>/g;
+
+/**
+ * A page filed before reflowBodyLines existed → the page it would be now.
+ *
+ * Those pages hold one `<p>` per printed line, and the import stored nothing
+ * else, so each `<p>`'s text is exactly a body line (escaped, @UUID links
+ * already in place) and reflowing them is a re-import without the PDF. The
+ * one thing it cannot recover is a blank line the old import dropped, so a
+ * rare two-paragraph entry comes back as one; a real re-import restores that.
+ *
+ * Anything else is left alone: a page with any other markup (a GM's own
+ * edit), a page already one paragraph, or one that reflows to nothing.
+ * @param {string} html
+ * @returns {string|null} the new content, or null when the page should stay
+ */
+export function reflowLegacyHexHtml(html) {
+  const src = String(html ?? "");
+  const lines = [...src.matchAll(PLAIN_P_RE)].map((m) => m[1]);
+  if (lines.length < 2 || src.replace(PLAIN_P_RE, "").trim()) return null;
+  const paragraphs = reflowBodyLines(lines);
+  if (!paragraphs.length) return null;
+  const next = paragraphs.map((p) => `<p>${p}</p>`).join("\n");
+  return next === src ? null : next;
+}
+
 /**
  * Draft body → page HTML: reflow the column's lines into paragraphs, linkify,
  * then `<p>`-wrap each paragraph (D4).

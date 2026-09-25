@@ -1222,6 +1222,7 @@
   "SDE.importer.done.nothingToDo": "nothing to do",
   "SDE.importer.done.hexes": "Hex pages: {bits} → Journals{source}.",
   "SDE.importer.done.pinFailed": "Pinning failed: {error}",
+  "SDE.importer.hexPagesReflowed": "Shadowdark Enhancer: {n} hex journal page(s) had one paragraph per printed line and now read as paragraphs.",
   "SDE.importer.done.pinned": "Keyed hexes on \"{scene}\": {bits}. Notes open the pages of \"{journal}\" in your Journal sidebar.",
   "SDE.importer.done.datasetInvalid": "Hex dataset failed its contract check: {error}",
   "SDE.importer.done.sentExtras": "Sent \"{name}\" to Shadowdark Extras ({n} keyed hexes).",
