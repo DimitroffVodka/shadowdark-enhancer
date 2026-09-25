@@ -25,6 +25,8 @@ import { cellNumber, foundryOffsetToCube } from "./geometry.mjs";
 import { decodeTags, encodeTags, applySheet, strandedRiver, OVERLAYS } from "./tag-store.mjs";
 import { FIXES_FLAG, DEFAULT_REVIEW_MARGIN, decodeFixes, encodeFixes, recordEdits, withdrawEdits, sameTags } from "./tag-corrections.mjs";
 import { TERRAIN_TAGS, SETTLEMENTS } from "../importer/hex/hex-summary.mjs";
+import { pickZoneTable, encounterZonesByRegion } from "../encounter/encounter-terrain.mjs";
+import { neighbourNumbers, encodeRegions, REGIONS_FLAG } from "./region-scan.mjs";
 
 /** Scene flag key holding the tag store (hex-tagger-app.mjs owns it; the literal avoids an import cycle). */
 const TAGS_FLAG = "hexTags";
@@ -63,6 +65,124 @@ export const TERRAIN_COLORS = {
  * hash if a map ever carries more than a handful of invented terrains.
  */
 export const SPARE_COLORS = [0xb05fc9, 0xd9478a, 0x4fc9b0, 0xc98f2f, 0x7a86d9, 0x59a02f, 0xd96f4f, 0x2f9ec9];
+
+/**
+ * Region fills, from Shadowdark Extras' own zone palette.
+ *
+ * Mirrors ZONE_COLORS in its scripts/hex/HexTooltipSD.mjs, minus its "Default"
+ * entry, so a region painted here and the same region given a zone colour in an
+ * Extras hex record look like each other. Patrick: "You should have color zones
+ * that are available in Shadow Dark Extra."
+ *
+ * This is the FALLBACK. Extras now exposes the list as api.hex.getZoneColors()
+ * and extrasPalette() below reads it, so an installed Extras is the authority
+ * and this copy only answers when it is absent or its hex feature is off.
+ */
+export const REGION_COLORS = [
+  0xe74c3c, 0xe67e22, 0xf1c40f, 0x8bc34a, 0x2ecc71, 0x1e7e34, 0x808000,
+  0x1abc9c, 0x00bcd4, 0x3498db, 0x1f3a93, 0x9b59b6, 0xc9a7eb, 0xe91e9b,
+  0x7b241c, 0xd4b483, 0x8b6914, 0xecf0f1, 0x95a5a6, 0x2c3e50,
+];
+
+/**
+ * Shadowdark Extras' own zone palette, when it is installed and offering it.
+ *
+ * REGION_COLORS above is a copy of that list, and a copy drifts: restyle the
+ * palette there and nothing fails here, the colours just quietly stop matching.
+ * Extras exposes `api.hex.getZoneColors()` as of the change agreed for this
+ * (shadowdark-extras, zoneColor + palette accessor), so when it is there the
+ * copy is not used at all.
+ *
+ * Detected per call rather than cached at startup: `api.hex` is structurally
+ * absent when Extras' hex painter feature is off — the whole namespace, not
+ * some of its keys — so a feature toggled mid-session must degrade rather than
+ * throw. Its "Default" entry carries an empty `value` and is skipped: that
+ * means "no colour set", not a colour.
+ * @returns {number[]|null} fills, or null when Extras cannot answer
+ */
+export function extrasPalette() {
+  const get = globalThis.game?.shadowdarkExtras?.hex?.getZoneColors
+    ?? globalThis.game?.modules?.get?.("shadowdark-extras")?.api?.hex?.getZoneColors;
+  if (typeof get !== "function") return null;
+  try {
+    const out = [];
+    for (const entry of get() ?? []) {
+      const value = String(entry?.value ?? "").trim();
+      if (/^#[0-9a-f]{6}$/i.test(value)) out.push(Number.parseInt(value.slice(1), 16));
+    }
+    return out.length ? out : null;
+  } catch (err) {
+    console.warn(`${MODULE_ID} | Extras zone palette`, err);
+    return null;
+  }
+}
+
+/** Fill colour for a region name when nothing has assigned one; stable because it is hashed. */
+export function regionColor(name) {
+  const key = String(name ?? "").trim().toLowerCase();
+  if (!key) return 0x8a8a8a;
+  let h = 0;
+  for (let i = 0; i < key.length; i++) h = (h * 31 + key.charCodeAt(i)) >>> 0;
+  return REGION_COLORS[h % REGION_COLORS.length];
+}
+
+/**
+ * A colour per region such that NO TWO TOUCHING REGIONS SHARE ONE.
+ *
+ * Hashing a name to a colour is stable but blind: two regions that happen to
+ * collide are indistinguishable exactly when they are side by side, which is
+ * the one case the picture has to get right. Patrick: "Some of them have the
+ * same color, even though they're right next to each other."
+ *
+ * So the regions are coloured as a map instead — greedy, most-constrained
+ * first, each taking a palette colour none of its neighbours has. Ties break on
+ * the name, so one map always paints the same way.
+ *
+ * Of the colours still free it takes the LEAST USED, which matters more than it
+ * sounds: taking the first free one is the textbook rule and it minimises the
+ * number of colours, so a fifteen-region map came out in four. Minimising
+ * colours is the opposite of what a map wants. Least-used spreads them, so
+ * fifteen regions get fifteen colours and the constraint still holds.
+ * @param {Map<number, string>} keyByNum  published number → whatever is being drawn as one area
+ * @returns {Map<string, number>} that key → fill colour
+ */
+export function assignRegionColors(keyByNum, { shifted = "odd", palette = REGION_COLORS } = {}) {
+  const adj = new Map();
+  for (const [num, key] of keyByNum ?? []) {
+    if (!adj.has(key)) adj.set(key, new Set());
+    for (const n of neighbourNumbers(num, shifted)) {
+      const other = keyByNum.get(n);
+      if (other !== undefined && other !== key) adj.get(key).add(other);
+    }
+  }
+  const order = [...adj.keys()].sort((a, b) => (adj.get(b).size - adj.get(a).size) || String(a).localeCompare(String(b)));
+  const index = new Map();
+  const used = new Array(palette.length).fill(0);
+  for (const key of order) {
+    const taken = new Set([...adj.get(key)].map((k) => index.get(k)).filter((i) => i !== undefined));
+    let pick = -1;
+    for (let i = 0; i < palette.length; i++) {
+      if (taken.has(i)) continue;
+      if (pick === -1 || used[i] < used[pick]) pick = i;
+    }
+    if (pick === -1) pick = index.size % palette.length;   // touches every colour: unavoidable
+    used[pick]++;
+    index.set(key, pick);
+  }
+  return new Map([...index].map(([k, i]) => [k, palette[i]]));
+}
+
+/**
+ * Encounter-zone fills. This overlay answers one question — would a wandering
+ * check on this hex find a table? — so it is deliberately a three-colour
+ * picture rather than one colour per table: green rolls, amber needs something
+ * the map cannot say (a time of day, a moon, a compass half), grey has no
+ * table for that region at all.
+ */
+export const ZONE_COLORS = { ok: 0x3f8f4f, ambiguous: 0xe0a72c, none: 0x8a8a8a };
+
+/** What the overlay is showing. */
+export const MODES = ["terrain", "region", "encounter"];
 
 /** Dot colour per overlay tag. */
 export const OVERLAY_COLORS = { river: 0x2f6fd0, path: 0x7a4a1e, coast: 0xf0e08a };
@@ -147,20 +267,75 @@ export class HexTagOverlay {
   /** Fill opacity; see FILL_ALPHA. Set it before toggling, or redraw after. */
   static fillAlpha = FILL_ALPHA;
 
-  /** Show it, or hide it when it is already up. `alpha` tunes the fill against this map. GM only. */
-  static toggle({ alpha } = {}) {
+  /**
+   * Show it, hide it, or switch what it draws. `alpha` tunes the fill against
+   * this map. GM only.
+   *
+   * Pressing the mode that is already up hides the overlay; pressing a
+   * different one SWITCHES it, because hiding and reopening to change picture
+   * is the round trip this exists to avoid.
+   * @param {{alpha?:number, mode?:"terrain"|"region"|"encounter"}} [opts]
+   */
+  static async toggle({ alpha, mode = "terrain" } = {}) {
     if (alpha !== undefined) HexTagOverlay.fillAlpha = Number(alpha);
-    if (HexTagOverlay.current) { HexTagOverlay.current.hide(); return false; }
+    const showing = HexTagOverlay.current;
+    if (showing && showing.mode === mode) { showing.hide(); return false; }
     if (!game.user?.isGM) { ui.notifications?.warn(t("SDE.hexMap.notify.gmOnlyReview")); return false; }
     const scene = canvas?.scene;
     const flag = scene?.getFlag(MODULE_ID, TAGS_FLAG);
     if (!flag?.origin) { ui.notifications?.warn(t("SDE.hexMap.notify.noNumbering")); return false; }
     const geom = sceneCells(canvas);
     if (geom.error) { ui.notifications?.warn(t(geom.error)); return false; }
+    const extra = await HexTagOverlay._regionContext(mode, scene);
+    if (showing) { showing.mode = mode; Object.assign(showing, extra); showing.draw(); return true; }
     const o = flag.origin;
     const overlay = new HexTagOverlay(scene, geom, { cube: { q: o.q, r: o.r }, num: o.num, shifted: o.shifted ?? "odd", bounds: o.bounds });
+    overlay.mode = mode;
+    Object.assign(overlay, extra);
     overlay.show();
     return true;
+  }
+
+  /**
+   * What the region and encounter pictures need, loaded once per toggle: the
+   * scanned enclosures named by the filed crawls, and the region's imported
+   * encounter grids. The terrain picture needs neither, so it pays for neither.
+   */
+  static async _regionContext(mode, scene) {
+    if (mode === "terrain") return { regionByNum: new Map(), componentByNum: new Map(), zonesByRegion: new Map() };
+    const { sceneRegions, sceneRegionFixes, regionSeeds, nameComponents, nearestRegion, crawlEntries } = await import("./hex-region.mjs");
+    // The enclosures are worth looking at BEFORE a hex key names them: that is
+    // the scan's own output, and checking it is the reason to draw this at all.
+    const componentByNum = sceneRegions(scene);
+    const fixByNum = sceneRegionFixes(scene);
+    const seeds = regionSeeds(await crawlEntries());
+    const { byNum } = nameComponents(componentByNum, seeds);
+    for (const [num, region] of fixByNum) byNum.set(num, region);   // the GM's word outranks the scan
+    // An enclosure with no keyed hex in it is usually not a region at all: a
+    // coastline closes a ring round a one-hex island, a lake draws its own. The
+    // nearest keyed hex names those, which beats joining them to whatever
+    // surrounds them — an island in open sea is likelier to belong with the
+    // other islands than with the water. Kept apart from `byNum` so the map can
+    // show which answers were read and which were reasoned.
+    const inferredByNum = new Map();
+    if (seeds.length) {
+      for (const num of componentByNum.keys()) {
+        if (byNum.has(num)) continue;
+        const near = nearestRegion(num, seeds);
+        if (near) inferredByNum.set(num, near.region);
+      }
+    }
+    // One key per drawn area — a name where there is one, the enclosure itself
+    // where there is not — so the colouring treats both the same way.
+    const keyByNum = new Map();
+    for (const [num, id] of componentByNum) keyByNum.set(num, byNum.get(num) ?? inferredByNum.get(num) ?? `#${id}`);
+    const colorByKey = assignRegionColors(keyByNum, {
+      shifted: scene?.getFlag(MODULE_ID, TAGS_FLAG)?.origin?.shifted ?? "odd",
+      palette: extrasPalette() ?? REGION_COLORS,
+    });
+    const ctx = { regionByNum: byNum, inferredByNum, componentByNum, fixByNum, keyByNum, colorByKey };
+    if (mode === "region") return { ...ctx, zonesByRegion: new Map() };
+    return { ...ctx, zonesByRegion: await encounterZonesByRegion() };
   }
 
   constructor(scene, geom, origin) {
@@ -183,6 +358,22 @@ export class HexTagOverlay {
     this.lastStroke = new Map();
     /** @type {object|null} the open one-hex editor, so a second click replaces it */
     this._editor = null;
+    /** @type {"terrain"|"region"|"encounter"} */
+    this.mode = "terrain";
+    /** @type {Map<number, string>} published number → region name */
+    this.regionByNum = new Map();
+    /** @type {Map<number, number>} published number → the enclosure it sits in */
+    this.componentByNum = new Map();
+    /** @type {Map<number, string>} region guessed from the nearest keyed hex, not read off the print */
+    this.inferredByNum = new Map();
+    /** @type {Map<number, string>} published number → the area it is drawn as */
+    this.keyByNum = new Map();
+    /** @type {Map<string, number>} that area → its fill, no two touching areas alike */
+    this.colorByKey = new Map();
+    /** @type {Map<number, string>} regions the GM set by hand */
+    this.fixByNum = new Map();
+    /** @type {Map<string, object[]>} region → its imported encounter columns */
+    this.zonesByRegion = new Map();
   }
 
   show() {
@@ -232,6 +423,30 @@ export class HexTagOverlay {
     if (HexTagOverlay.current === this) HexTagOverlay.current = null;
   }
 
+  /** The encounter verdict for one hex: which column it would roll on. */
+  zoneFor(num) {
+    const cell = this.state.cells.get(String(num));
+    const region = this.regionByNum.get(num) ?? this.inferredByNum.get(num);
+    if (!region) return { status: "none", region: null };
+    return { ...pickZoneTable(region, cell?.terrain, cell?.overlays, this.zonesByRegion), region };
+  }
+
+  /** Fill colour for a hex in the current mode, or null to leave it unpainted. */
+  fillFor(num) {
+    if (this.mode === "region") {
+      const key = this.keyByNum.get(num);
+      if (key === undefined) return null;
+      return this.colorByKey.get(key) ?? regionColor(key);
+    }
+    if (this.mode === "encounter") {
+      const { status, region } = this.zoneFor(num);
+      // A hex with no region at all is not "no table" — nothing was asked.
+      return region ? ZONE_COLORS[status] : null;
+    }
+    const cell = this.state.cells.get(String(num));
+    return cell?.terrain ? terrainColor(cell.terrain) : null;
+  }
+
   draw() {
     const g = this.graphics;
     if (!g || g.destroyed) return;
@@ -241,11 +456,20 @@ export class HexTagOverlay {
     const dot = Math.min(grid.sizeX, grid.sizeY) * 0.09;
     for (const [num, at] of this.cells) {
       const cell = this.state.cells.get(String(num));
-      if (!cell?.terrain) continue;
+      const fill = this.fillFor(num);
+      if (fill === null) continue;
       g.lineStyle({ width: 0, alpha: 0 });
-      g.beginFill(terrainColor(cell.terrain), HexTagOverlay.fillAlpha);
+      g.beginFill(fill, HexTagOverlay.fillAlpha);
       g.drawPolygon(shape.map((p) => new PIXI.Point(p.x + at.x, p.y + at.y)));
       g.endFill();
+      if (this.mode !== "terrain") {
+        if (this.inferredByNum.has(num) && !this.regionByNum.has(num)) {
+          g.lineStyle({ width: Math.max(1.5, dot * 0.4), color: REVIEW_COLOR, alpha: 0.7 });
+          g.drawPolygon(shape.map((p) => new PIXI.Point(p.x * REVIEW_INSET + at.x, p.y * REVIEW_INSET + at.y)));
+          g.lineStyle({ width: 0, alpha: 0 });
+        }
+        continue;
+      }
       if (needsReview(cell, this.reviewMargin, strandedRiver(this.state, num))) {
         g.lineStyle({ width: Math.max(2, dot * 0.6), color: REVIEW_COLOR, alpha: 0.95 });
         g.drawPolygon(shape.map((p) => new PIXI.Point(p.x * REVIEW_INSET + at.x, p.y * REVIEW_INSET + at.y)));
@@ -281,6 +505,30 @@ export class HexTagOverlay {
     }
   }
 
+  /** Hover text for the picture currently drawn. */
+  _labelFor(num) {
+    if (this.mode === "terrain") {
+      return cellLabel(num, this.state.cells.get(String(num)), this.reviewMargin, strandedRiver(this.state, num));
+    }
+    const region = this.regionByNum.get(num) ?? this.inferredByNum.get(num);
+    if (this.mode === "region") {
+      if (this.regionByNum.has(num)) return `${num} — ${region}`;
+      // Say which answers were reasoned rather than read: this one has no keyed
+      // hex inside its own enclosure.
+      if (region) return `${num} — ${t("SDE.hexMap.zone.inferred", { region })}`;
+      const id = this.componentByNum.get(num);
+      return `${num} — ${id === undefined ? t("SDE.hexMap.zone.noRegion") : t("SDE.hexMap.zone.unnamed", { id })}`;
+    }
+    const verdict = this.zoneFor(num);
+    if (!region) return `${num} — ${t("SDE.hexMap.zone.noRegion")}`;
+    if (verdict.status === "ok") return `${num} — ${region}: ${verdict.column.column}`;
+    // Name the columns it is stuck between: that is the whole diagnostic.
+    if (verdict.status === "ambiguous") {
+      return `${num} — ${region}: ${t("SDE.hexMap.zone.ambiguous", { columns: verdict.columns.map((c) => c.column).join(", ") })}`;
+    }
+    return `${num} — ${region}: ${t("SDE.hexMap.zone.noTable")}`;
+  }
+
   /** Published number of the cell under a scene point, or null. */
   numberAt(point) {
     const offset = canvas.grid.getOffset(point);
@@ -292,7 +540,7 @@ export class HexTagOverlay {
     const point = event.getLocalPosition(this.container);
     const num = this.numberAt(point);
     if (num === null) { this.label.visible = false; return; }
-    this.label.text = cellLabel(num, this.state.cells.get(String(num)), this.reviewMargin, strandedRiver(this.state, num));
+    this.label.text = this._labelFor(num);
     const at = this.cells.get(num);
     this.label.position.set(at.x, at.y);
     this.label.scale.set(1 / canvas.stage.scale.x);
@@ -363,8 +611,90 @@ export class HexTagOverlay {
     return last.size;
   }
 
-  /** Small dialog on one cell; saves through the tagger's own flag write. */
+  /**
+   * Small dialog on one cell, for whatever is being drawn.
+   *
+   * Clicking a hex while looking at the regions used to open the TERRAIN box,
+   * which is the one thing it cannot be about. Patrick: "when you click on the
+   * hex, it only allows you to change the terrain type, not the region type."
+   */
   async edit(num) {
+    if (this.mode !== "terrain") return this.editRegion(num);
+    return this.editTerrain(num);
+  }
+
+  /**
+   * Put a hex in a different region, or the whole enclosure it belongs to.
+   *
+   * Per-hex because a border can be read a cell wrong; whole-enclosure because
+   * when the answer is wrong it is usually wrong for the entire shape, and
+   * correcting 500 hexes one at a time is not a correction, it is a punishment.
+   */
+  async editRegion(num) {
+    await this._editor?.close();
+    const esc = foundry.utils.escapeHTML;
+    const current = this.regionByNum.get(num) ?? this.inferredByNum.get(num) ?? "";
+    const id = this.componentByNum.get(num);
+    const size = id === undefined ? 0 : [...this.componentByNum.values()].filter((c) => c === id).length;
+    // Every region already on this map, plus whatever the GM has typed before.
+    const names = [...new Set([...this.regionByNum.values(), ...this.inferredByNum.values()])].sort();
+    const content = `<form class="standard-form">
+      <div class="form-group"><label>${t("SDE.hexMap.label.region")}</label><div class="form-fields">
+        <select name="region" autofocus>
+          <option value="">${t("SDE.hexMap.label.asScanned")}</option>
+          ${names.map((n) => `<option value="${esc(n)}" ${n === current ? "selected" : ""}>${esc(n)}</option>`).join("")}
+          <option value="${OTHER}">${t("SDE.hexMap.label.otherOption")}</option>
+        </select>
+        <input type="text" name="other" placeholder="${t('SDE.hexMap.brush.ownWord')}" hidden>
+      </div></div>
+      ${size > 1 ? `<div class="form-group"><div class="form-fields"><label class="checkbox"><input type="checkbox" name="whole"> ${t("SDE.hexMap.label.wholeEnclosure", { n: size })}</label></div></div>` : ""}
+    </form>`;
+    const answer = await foundry.applications.api.DialogV2.prompt({
+      window: { title: t("SDE.hexMap.edit.title", { num }), icon: "fa-solid fa-draw-polygon" },
+      content,
+      render: (_event, dialog) => {
+        this._editor = dialog;
+        const form = dialog.element.querySelector("form");
+        const select = form.elements.region, other = form.elements.other;
+        select.addEventListener("change", () => {
+          other.hidden = select.value !== OTHER;
+          if (!other.hidden) other.focus();
+        });
+      },
+      ok: { label: t("SDE.hexMap.btn.save"), callback: (_event, button) => new FormDataExtended(button.form).object },
+      rejectClose: false,
+    });
+    this._editor = null;
+    if (!answer) return;
+    const chosen = answer.region === OTHER ? String(answer.other ?? "").trim() : answer.region;
+    if (answer.region === OTHER && !chosen) return;
+    const targets = (answer.whole && id !== undefined)
+      ? [...this.componentByNum].filter(([, c]) => c === id).map(([n]) => n)
+      : [num];
+    for (const n of targets) {
+      if (chosen) this.fixByNum.set(n, chosen);
+      else this.fixByNum.delete(n);       // "(as scanned)" withdraws the correction
+    }
+    await this._saveRegions();
+    ui.notifications?.info(chosen
+      ? t("SDE.hexMap.notify.regionSet", { n: targets.length, region: chosen })
+      : t("SDE.hexMap.notify.regionCleared", { n: targets.length }));
+    Object.assign(this, await HexTagOverlay._regionContext(this.mode, this.scene));
+    this.draw();
+  }
+
+  /** Write the corrections back, keeping the scan's own enclosures untouched. */
+  async _saveRegions() {
+    this._writing = true;
+    try {
+      await replaceModuleFlag(this.scene, REGIONS_FLAG, encodeRegions(this.componentByNum, this.fixByNum));
+    } finally {
+      this._writing = false;
+    }
+  }
+
+  /** Small dialog on one cell; saves through the tagger's own flag write. */
+  async editTerrain(num) {
     // One at a time: clicking another hex moves this box to it rather than
     // stacking a second one on top.
     await this._editor?.close();

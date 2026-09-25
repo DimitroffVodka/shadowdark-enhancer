@@ -24,7 +24,7 @@
 import { MODULE_ID } from "../shared/module-id.mjs";
 import { imageInk } from "./ink.mjs";
 import { detectLattice, latticeCentre, cornerSupport } from "./lattice.mjs";
-import { foundryOffsetToCube } from "./geometry.mjs";
+import { foundryOffsetToCube, framesTopRow } from "./geometry.mjs";
 import { emptyState, encodeTags } from "./tag-store.mjs";
 
 const TAGS_FLAG = "hexTags";
@@ -197,7 +197,7 @@ export function alignedSceneData({ name, src, imageW, imageH, lat, firstNum = "0
   // which is where a print like the Western Reaches writes its column labels.
   // That row is margin, so it is not numbered; the tagger's "top row is frame"
   // box undoes it for a print whose first row really is map.
-  if (bounds.rowsLowered === rows - 1) bounds.firstRow = 1;
+  if (framesTopRow(bounds)) bounds.firstRow = 1;
   state.origin = { i: 0, j: 0, q: cube.q, r: cube.r, num: firstNum, shifted: lat.lowered, bounds };
   const width = Math.round(imageW * kx), height = Math.round(imageH * ky);
   // The background mesh sits at the scene rect's centre with its anchor at

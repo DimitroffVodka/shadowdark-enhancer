@@ -77,3 +77,19 @@ test("a row with no feature is not a tag", () => {
   assert.equal(rowTag({ terrain: ["jungle", "path"] }), null);
   assert.equal(rowTag(null), null);
 });
+
+test("an overlay printed as the FIRST terrain word is still an overlay", () => {
+  // The books say only "Coast" or "River" for a keyed hex when there is nothing
+  // else to say about the ground. The tag's terrain is the feature, so that
+  // word is free to be read as the overlay it is.
+  assert.deepEqual(rowTag({ feature: "keyed_location", terrain: ["coast"] }),
+    { terrain: "keyed_location", overlays: ["coast"] });
+  assert.deepEqual(rowTag({ feature: "village", terrain: ["river", "swamp"] }),
+    { terrain: "village", overlays: ["river"] });
+  // Both words count when both are overlays, in printed order.
+  assert.deepEqual(rowTag({ feature: "city_state", terrain: ["coast", "river"] }),
+    { terrain: "city_state", overlays: ["coast", "river"] });
+  // A terrain word that is not an overlay is still not one.
+  assert.deepEqual(rowTag({ feature: "keyed_location", terrain: ["arctic_sea"] }),
+    { terrain: "keyed_location", overlays: [] });
+});

@@ -232,6 +232,14 @@ currently in your world packs.
 
 **Hex tagger** opens the [Hex Tagger](Hex-Maps.md) for the active scene: a contact sheet over your hex-map image where you tag terrain and overlays, then hand the result to Shadowdark Extras or download it.
 
+**Key locations** reads a book's whole hex key out of your own PDF in one pass.
+Pick the book and it walks the regions, filing each one as its own journal
+entry with a page per keyed hex — the full write-up, not the summary line — and
+the region's summary table on the entry for the map notes and the dataset. The
+Game Master's Guide to the Western Reaches files 270 keyed hexes across 15
+regions this way. Run it again whenever you like: pages are matched by their
+hex number and updated in place, never duplicated.
+
 Open the **Tools** dropdown to manage PDFs and world backups:
 
 ### Source PDFs

@@ -25,6 +25,18 @@ const TAGS_FLAG = "hexTags";
 /** World setting: { terrainKey: rollTableUuid }. */
 export const TERRAIN_TABLES = "encounterTerrainTables";
 
+/**
+ * The suite pack every table in this file comes from.
+ *
+ * A constant because the two readers below asked for it under DIFFERENT names:
+ * one said "tables" (right) and one said "roll-tables" (wrong — findSuitePack
+ * matches a descriptor's `key` or `id`, and there is no such descriptor). The
+ * wrong one returned undefined and the function then returned an empty map, so
+ * every hex on a fully tagged map reported "no encounter table" and nothing
+ * anywhere said why. Named once so the two cannot drift again.
+ */
+export const TABLES_PACK = "tables";
+
 /** A terrain word as the tables are keyed: lower case, underscores ("Salt Flat" → "salt_flat"). */
 export function terrainKey(terrain) {
   return String(terrain ?? "").trim().toLowerCase().replace(/\s+/g, "_");
@@ -34,6 +46,118 @@ export function terrainKey(terrain) {
 export function pickTable(tables, terrain, fallback = "") {
   const key = terrainKey(terrain);
   return (key && tables?.[key]) || fallback || "";
+}
+
+/**
+ * A book's per-region encounter grid, as the importer files it.
+ *
+ * The GM Guide prints one Encounter Zone grid per region and the importer files
+ * a table per printed column: "Western Reaches GM Guide - Bastion Mountains
+ * Encounter Zone: Coast". So the region and the column are recoverable from the
+ * name, and nothing about the book has to ship here — this reads whatever the
+ * GM actually imported.
+ * @returns {{region:string, column:string}|null}
+ */
+export function parseZoneTableName(name) {
+  // "Encounter Zone" in most regions; Tal-Yool Jungle heads the same grid
+  // "Encounter Type by Terrain" (WR p228) and the importer files it as
+  // "Encounter Type: Jungle/Path". Same shape, same job: roll the terrain's
+  // column to find out what kind of encounter it is.
+  const m = String(name ?? "").match(/^(?:.*?\s-\s)?(.+?)\s+Encounter (?:Zone|Type):\s*(.+)$/);
+  return m ? { region: m[1].trim(), column: m[2].trim() } : null;
+}
+
+/**
+ * A printed column label as terrain keys.
+ *
+ * The books do NOT use one vocabulary for these columns. Most are terrain
+ * ("Coast", "Salt Flat"), some are terrain under another name ("Grass",
+ * "Fields"), and some are not terrain at all: a compass half ("N. Mountain",
+ * "S. Ocean"), a time of day ("Swamp, Night") or a moon phase ("Full Moon").
+ * The qualifier is stripped so the terrain underneath can still be matched —
+ * which deliberately collapses "N. Mountain" and "S. Mountain" onto one key, so
+ * a mountain hex in that region comes back as AMBIGUOUS rather than being given
+ * whichever column happened to be checked first.
+ */
+export function zoneColumnKeys(label) {
+  // One column can head two terrains — Tal-Yool prints "Jungle/Path" and
+  // "Mountain/Lava" — and a hex matching either rolls it.
+  return String(label ?? "").split("/").map((part) => {
+    const bare = part.trim().toLowerCase()
+      .replace(/^[ns]\.\s*/, "")                 // compass half
+      .replace(/,\s*(day|night)$/, "")           // time of day
+      .trim();
+    const key = terrainKey(bare);
+    return ZONE_COLUMN_ALIASES[key] ?? key;
+  }).filter(Boolean);
+}
+
+/** Column labels that name a terrain the tagger spells differently. */
+export const ZONE_COLUMN_ALIASES = { grass: "grassland", fields: "grassland", sea: "ocean", marsh: "swamp", woods: "forest" };
+
+/** Terrain keys a "Water" or "Land" column sorts a hex by. */
+export const WATERY = new Set(["ocean", "arctic_sea", "lake", "river", "coast", "sea", "water"]);
+
+/**
+ * Which of a region's columns this hex could roll on.
+ *
+ * Two tiers, and the tiers matter: a column naming the hex's own terrain (or
+ * one of its river/path/coast overlays) beats a catch-all like "Water", so a
+ * coast hex in a region printing both Coast and Water takes Coast.
+ *
+ * More than one match is not resolved here. It means the book split that
+ * terrain by something the map does not say — day and night, a moon phase,
+ * north and south — and picking one would be inventing the answer.
+ * @param {string} terrain            the hex's terrain tag
+ * @param {string[]} overlays         its river/path/coast tags
+ * @param {Array<{column:string}>} columns  that region's imported columns
+ * @returns {Array<object>} the columns that fit, best tier only
+ */
+export function zoneCandidates(terrain, overlays, columns) {
+  const key = terrainKey(terrain);
+  const marks = (overlays ?? []).map(terrainKey);
+  const exact = [], category = [];
+  const wet = WATERY.has(key) || marks.some((m) => WATERY.has(m));
+  for (const col of columns ?? []) {
+    const keys = zoneColumnKeys(col.column);
+    if (!keys.length) continue;
+    if (keys.some((ck) => ck === key || marks.includes(ck))) { exact.push(col); continue; }
+    if (keys.some((ck) => (ck === "water" || ck === "ocean") && wet)) category.push(col);
+    else if (keys.some((ck) => ck === "land") && key && !wet) category.push(col);
+  }
+  return exact.length ? exact : category;
+}
+
+/**
+ * The encounter table for a hex, by region and terrain.
+ * @returns {{status:"ok", column:object}|{status:"ambiguous", columns:object[]}|{status:"none"}}
+ */
+export function pickZoneTable(region, terrain, overlays, byRegion) {
+  const columns = byRegion?.get?.(region) ?? byRegion?.[region];
+  if (!columns?.length) return { status: "none" };
+  const hit = zoneCandidates(terrain, overlays, columns);
+  if (hit.length === 1) return { status: "ok", column: hit[0] };
+  if (hit.length > 1) return { status: "ambiguous", columns: hit };
+  return { status: "none" };
+}
+
+/** Every imported Encounter Zone table, grouped by region. @returns {Promise<Map<string, object[]>>} */
+export async function encounterZonesByRegion() {
+  const pack = findSuitePack(TABLES_PACK);
+  const out = new Map();
+  if (!pack) {
+    // Distinguishable from "imported no grids": without this the caller cannot
+    // tell a missing pack from an empty one, and the map just looks unusable.
+    console.warn(`Shadowdark Enhancer | encounter zones: no "${TABLES_PACK}" pack in this world`);
+    return out;
+  }
+  for (const row of pack.index ?? []) {
+    const parsed = parseZoneTableName(row.name);
+    if (!parsed) continue;
+    if (!out.has(parsed.region)) out.set(parsed.region, []);
+    out.get(parsed.region).push({ ...parsed, uuid: `Compendium.${pack.collection}.${row._id}`, name: row.name });
+  }
+  return out;
 }
 
 /** Every terrain on a scene's tags, most cells first: { key, label, count }. */
@@ -83,7 +207,7 @@ export function partyHex(canvasRef = globalThis.canvas) {
 /** Every roll table the GM could pick: the world's, then this module's pack. */
 async function tableChoices() {
   const groups = [{ label: "World", tables: game.tables.contents.map((t) => ({ uuid: t.uuid, name: t.name })) }];
-  const pack = findSuitePack("tables");
+  const pack = findSuitePack(TABLES_PACK);
   if (pack) {
     const index = await pack.getIndex();
     groups.push({ label: pack.title ?? "Compendium", tables: index.map((t) => ({ uuid: `Compendium.${pack.collection}.RollTable.${t._id}`, name: t.name })) });

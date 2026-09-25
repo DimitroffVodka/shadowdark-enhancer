@@ -94,6 +94,8 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
       // PDF → text extraction (Foundry's bundled PDF.js; no external tool)
       hubGrabPdfText:         function (...args) { return this._onGrabPdfText(...args); },
       hubExtractPdf:          function (...args) { return this._onExtractPdf(...args); },
+      // Tools → Key locations: a book's whole hex key, region by region (hex-book-import.mjs)
+      hubKeyLocations:        function (...args) { return this._onImportKeyLocations(...args); },
       // Manage strip — census/gap/duplicate + maintenance
       monsterGapExpand:       function (...args) { return this._onMonsterGapExpand(...args); },
       monsterSeedPaste:       function (...args) { return this._onMonsterSeedPaste(...args); },

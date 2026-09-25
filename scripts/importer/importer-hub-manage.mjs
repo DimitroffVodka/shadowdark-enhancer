@@ -1117,6 +1117,59 @@ class HubManageMethods {
     this.render();
   }
 
+  /**
+   * Tools → "Key locations": every keyed location of a book, filed as one
+   * journal entry per REGION with a page per hex (hex/hex-book-import.mjs).
+   *
+   * Confirmed first, because one press reads dozens of pages out of the GM's
+   * PDF and writes hundreds of journal pages. The dialog says the run repeats
+   * safely: hex-commit matches pages by the hex flag and updates them in
+   * place, so a second run after a parser fix costs nothing but time.
+   */
+  async _onImportKeyLocations() {
+    const { keyLocationBooks, importKeyLocations } = await import("./hex/hex-book-import.mjs");
+    const books = keyLocationBooks();
+    if (!books.length) { ui.notifications.warn(t("SDE.importer.hex.book.noBooks")); return; }
+    const options = books
+      .map((src) => `<option value="${src}">${foundry.utils.escapeHTML(CHAR_SOURCES[src]?.label ?? src)}</option>`)
+      .join("");
+    const picked = await foundry.applications.api.DialogV2.wait({
+      window: { title: t("SDE.importer.hex.book.title"), icon: "fas fa-map-location-dot" },
+      content: `
+        <p>${t("SDE.importer.hex.book.lead")}</p>
+        <div style="display:grid;grid-template-columns:auto 1fr;gap:0.4rem 0.6rem;align-items:center;">
+          <label for="sde-keyloc-src"><strong>${t("SDE.importer.downtime.book")}</strong></label>
+          <select id="sde-keyloc-src" name="src">${options}</select>
+        </div>
+        <p class="notes">${t("SDE.importer.hex.book.notes")}</p>`,
+      buttons: [
+        { action: "import", label: t("SDE.importer.hex.book.import"), icon: "fas fa-book-open", default: true,
+          callback: (event, button) => button.form.elements.src.value },
+        { action: "cancel", label: t("SDE.importer.btn.cancel"), icon: "fas fa-xmark" },
+      ],
+      rejectClose: false,
+    }).catch(() => null);
+    if (!picked || picked === "cancel") return;
+
+    // A permanent notification is the progress bar here: the run is one long
+    // await with no render of its own, and fifteen per-region toasts would bury
+    // everything else the GM has on screen.
+    const note = ui.notifications.info(t("SDE.importer.hex.book.working"), { permanent: true, progress: true, console: false });
+    let report;
+    try {
+      report = await importKeyLocations(picked, {
+        onRegion: (region, i, n) => note?.update?.({ message: t("SDE.importer.hex.book.progress", { region, i, n }), pct: (i - 1) / n }),
+      });
+    } finally {
+      note?.remove?.();
+    }
+    ui.notifications.info(t("SDE.importer.hex.book.done",
+      { hexes: report.hexes, regions: report.regions.length, book: report.label }));
+    if (report.failed.length) {
+      ui.notifications.warn(t("SDE.importer.hex.book.failed", { n: report.failed.length, first: report.failed[0].region }));
+    }
+  }
+
 }
 
 export function installHubManage(cls) { installMethods(cls, HubManageMethods); }

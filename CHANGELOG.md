@@ -3,6 +3,113 @@
 ## [Unreleased]
 
 ### Added
+- **Every hex reaches Shadowdark Extras with its region and zone colour.** The
+  hand-off used to name a zone only on the book's keyed hexes, so Extras filled
+  the rest with the map's name: 4,466 of the Western Reaches' 4,736 hexes read
+  "Western Reaches" and no zone had a colour. With the print's region borders
+  scanned, the Hex Tagger's build and `hexMaps.importDetails` now send every
+  hex's region (the book's own spelling, "Rimespire Mountains" rather than the
+  key table's "Rimespire Mtns") and a zone colour from Extras' palette, with no
+  two touching regions sharing one. Needs Shadowdark Extras 6.15.0 or later for
+  the colours.
+- **A book's key locations in one press.** Importer Hub → Tools → **Key
+  locations** reads a whole hex key out of your own PDF: for each region it
+  takes the keyed-location table and the pages of write-ups that follow it, and
+  files the region as its own journal entry with a page per keyed hex. You get
+  the book's **full entry** for each location, not the one-line blurb from the
+  table. The Game Master's Guide to the Western Reaches files **270 keyed hexes
+  across 15 regions**; every one of its summary rows has a write-up and every
+  write-up has a row. Pages are matched by hex number, so a second run updates
+  what you have instead of duplicating it.
+- **Pin every region at once.** A book imported per region files more than one
+  crawl, so the Hex Tagger's hex-key picker now offers **(every crawl)**: one
+  press pins the whole book on the scene, and the keyed sheet, the book's
+  terrain answers and the Extras hand-off read every region together instead of
+  whichever one happened to be chosen.
+- **Play on the publisher's own print, with the Extras hex tools on top.**
+  Shadowdark Extras only lends its hex records, tooltips and explorer to a
+  scene it built itself, which used to mean choosing between its painted map
+  and the map that came with your book. The reference tile now has a second
+  job: tick **Use the print as the map** and it is placed visible and opaque
+  over the painted hexes, aligned so the print's hex field lands exactly on the
+  scene's cells. The table looks at the publisher's map; Extras still sees its
+  own grid underneath. Hide the tile again and the painted map comes back, so
+  one scene holds both.
+- **Key-location write-ups read like prose again.** A PDF column gives one line
+  per printed line, and each of those was becoming its own paragraph — so a
+  five-sentence entry arrived as fourteen stubby lines with the book's ragged
+  column edge baked in. The lines are now re-joined into paragraphs, words the
+  column broke in half are put back together, headings and bullets keep their
+  own line, and the printed page number that the extraction picks up at the
+  foot of the page is dropped. Re-run **Key locations** to reformat entries you
+  have already imported — pages are matched by hex number and updated in place.
+- **Coasts are worked out, not looked for.** A coastline is a line *shared*
+  between two hexes, which is exactly what the scanner reads worst — but sea,
+  lake and river it reads well. So tagging now marks every land hex touching
+  water as coast, as part of the same pass that decides terrain, with no button
+  to press. A river *crossing* a hex doesn't count: that's a line through it
+  like a path, not a shore. Checked against the Game Master's Guide's own 270
+  keyed locations, where the book prints the terrain itself, this finds **all
+  13** of the coasts it names. Hexes you tagged by hand are left alone — you
+  were asked about their overlays and you answered.
+- **You can correct a region by clicking it.** Clicking a hex on the region
+  overlay now edits its **region** rather than its terrain — pick one already
+  on the map or type your own — and when a whole enclosure has the wrong name
+  there is a box to move all of it in one go. Corrections are kept beside the
+  scan, not inside it, so re-reading the map's borders replaces the shapes and
+  leaves your corrections standing.
+- **Region colours come from Shadowdark Extras itself when it is installed.**
+  The palette used to be a copy of Extras' zone colours, which meant a restyle
+  there drifted silently apart from the map here. Extras now offers the list
+  directly and the overlay reads it, falling back to the built-in copy only
+  when Extras is absent or its hex feature is off.
+- **Regions are coloured like a map, not by name.** The region overlay takes
+  Shadowdark Extras' own zone palette, so a region here and the same region
+  given a zone colour in an Extras hex record look alike, and it assigns those
+  colours the way an atlas does: **no two regions that touch can share one**.
+  Colours are spread across the palette rather than reused as sparingly as
+  possible, so fifteen regions get fifteen colours instead of the four a
+  textbook map-colouring would settle for.
+- **Two more ways to look at a tagged map.** The Hex Tagger's header now offers
+  **Regions** and **Encounter zones** beside Show tags, and they switch between
+  each other rather than making you close one to open the next. Regions paints
+  every hex in its region's colour — the fastest way to check the border scan,
+  since a region that leaked into its neighbour shows up as a stain at the
+  whole-map zoom. Encounter zones answers a different question: would a
+  wandering check on this hex find a table? Green rolls, amber is stuck between
+  two of the book's columns because it split that terrain by a time of day, a
+  moon phase or a compass half that the map cannot say, and grey has no
+  encounter grid imported for that region. Hovering an amber hex names the two
+  columns it is torn between. It reads the tables you actually imported and
+  matches their printed column labels to your hexes' terrain, so nothing needs
+  setting up per map and it improves as you import more of the book.
+- **The map scan now reads the region borders too.** A hexcrawl map draws its
+  region borders as a thick line along hex edges, against the thin line every
+  other edge gets — so **Hex map from image** now reads the edges as well as
+  the cells, and the enclosures those borders make are the regions. It happens
+  without being asked, while the map is being set up, and costs nothing: the
+  cell pictures it needs were already read for the terrain legend, and the
+  whole pass takes well under a second. Your hex key then names each enclosure,
+  so once a book's key locations are imported **every hex on the map knows its
+  region**, not just the keyed ones. On the Game Master's Guide to the Western
+  Reaches it finds 84 enclosures and not one of them holds keyed hexes from two
+  different regions, which is the check that says no border was missed. Pieces
+  the borders carve off with no keyed hex in them — the ring a coastline or a
+  lake draws — fall back to the nearest keyed hex. If two regions do run
+  together you are told, with the count, rather than quietly given a wrong
+  answer.
+- **Which region is a hex in?** A keyed-location table names a region on every
+  row, so once a book's key locations are filed the module knows the region of
+  every keyed hex — and now answers for the hexes between them as well, by
+  taking the region of the nearest keyed hex:
+  `game.shadowdarkEnhancer.hexMaps.regionOf(1403)`. Every answer says which
+  kind it is: `exact` is the book's own word, anything else is the guess with
+  the distance it was made from. On the Game Master's Guide to the Western
+  Reaches it gets about 84% of them right, measured by holding out each of the
+  book's 270 keyed locations in turn and answering it from the other 269. The
+  misses are border hexes and the open sea, which is 984 hexes with only 14
+  keyed locations in it. Near a border, trust the printed map. No region shapes
+  ship with the module — they are the publisher's map.
 - **The Game Master's Guide to the Western Reaches.** The book is now its own
   source (Tools → Source PDFs), with **103 rows** covering its roll tables:
   every region's rumors, encounter-zone and encounter grids and points of
@@ -54,6 +161,26 @@
   a table to hang it on, so a total miss looked like nothing happening. It now
   says so, and says what to do: pull the page with **Grab text**, or paste the
   rows with their spacing intact.
+- **A hex key printed without blank lines lost all but its first entry.** Books
+  run their keyed locations together — a heading, its prose, then the next
+  heading — and the parser split hexes on blank lines only, so a page grabbed
+  from a PDF arrived as one hex whose body held every other entry's text. Each
+  block is now split at every `643. ROCK EATERS` heading first. The rule is
+  deliberately narrow (three or four digits, a period, an ALL-CAPS title), so
+  summary-table rows, prose opening on a page cite and short numbered lists are
+  untouched. On a real book this took one region's three pages from 3 parsed
+  hexes to 11.
+- **A keyed hex lost its river or coast when the book printed it first.** The
+  keyed-location table names the terrain and then whatever runs through it
+  ("Jungle, path"), but a hex with nothing else to say about the ground is
+  printed as just "Coast" or "River" — and only the words after the first were
+  read as overlays. 10 of the Game Master's Guide's 270 keyed hexes lost their
+  overlay outright (4 rivers, 6 coasts); the tagger now reads all of them,
+  taking the book's keyed hexes from 21 overlays to 33.
+- **The Hex Tagger's own tile art never reached the dataset** when a hex key
+  was chosen. The tagger passed its art manifest on every hand-off, but the
+  crawl-entry path dropped the argument on the floor, so the painted scene came
+  out with art only when no crawl was selected.
 - **A book's own row numbers no longer sit in front of every result.** The GM
   Guide's *d40 NPCs in the City of Masks* (p281) keys its forty rows 10-49,
   because the book has you roll d4 for the tens and d10 for the ones. Foundry

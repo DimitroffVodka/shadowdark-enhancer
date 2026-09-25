@@ -24,11 +24,20 @@
       {{!-- These read the scene's stored tags, so they work whether or not it is sampled. --}}
       {{#if origin}}
       {{#if hasKey}}
-      <label title="{{localize 'SDE.hexMap.tip.hexKey'}}">{{localize "SDE.hexMap.label.hexKey"}} <select data-hxt-entry><option value="">{{localize "SDE.hexMap.label.none"}}</option>{{#each entries as |e|}}<option value="{{e.uuid}}" {{#if e.selected}}selected{{/if}}>{{e.name}}</option>{{/each}}</select></label>
+      <label title="{{localize 'SDE.hexMap.tip.hexKey'}}">{{localize "SDE.hexMap.label.hexKey"}} <select data-hxt-entry><option value="">{{localize "SDE.hexMap.label.none"}}</option>{{#if allCrawls}}<option value="*" {{#if allSelected}}selected{{/if}}>{{localize "SDE.hexMap.label.allCrawls"}}</option>{{/if}}{{#each entries as |e|}}<option value="{{e.uuid}}" {{#if e.selected}}selected{{/if}}>{{e.name}}</option>{{/each}}</select></label>
       <button type="button" data-action="hxtPinKeyed" class="sde-import-secondary" title="{{localize 'SDE.hexMap.tip.pinKeyed'}}"><i class="fas fa-map-pin"></i> {{localize "SDE.hexMap.btn.pinKeyed"}}</button>
       {{/if}}
+      {{!-- Each picture is offered when the thing it draws exists: the regions
+            were scanned off the print and need no terrain, the encounter zones
+            need both a region and a terrain to say anything at all. --}}
+      {{#if hasRegions}}
+      <button type="button" data-action="hxtShowTags" data-mode="region" class="sde-import-secondary" title="{{localize 'SDE.hexMap.tip.showRegions'}}"><i class="fas fa-draw-polygon"></i> {{#if (eq overlayMode "region")}}{{localize "SDE.hexMap.btn.hideRegions"}}{{else}}{{localize "SDE.hexMap.btn.showRegions"}}{{/if}}</button>
       {{#if hasTags}}
-      <button type="button" data-action="hxtShowTags" class="sde-import-secondary" title="{{localize 'SDE.hexMap.tip.showTags'}}"><i class="fas fa-eye"></i> {{#if overlayShown}}{{localize "SDE.hexMap.btn.hideTags"}}{{else}}{{localize "SDE.hexMap.btn.showTags"}}{{/if}}</button>
+      <button type="button" data-action="hxtShowTags" data-mode="encounter" class="sde-import-secondary" title="{{localize 'SDE.hexMap.tip.showZones'}}"><i class="fas fa-dice-d20"></i> {{#if (eq overlayMode "encounter")}}{{localize "SDE.hexMap.btn.hideZones"}}{{else}}{{localize "SDE.hexMap.btn.showZones"}}{{/if}}</button>
+      {{/if}}
+      {{/if}}
+      {{#if hasTags}}
+      <button type="button" data-action="hxtShowTags" data-mode="terrain" class="sde-import-secondary" title="{{localize 'SDE.hexMap.tip.showTags'}}"><i class="fas fa-eye"></i> {{#if (eq overlayMode "terrain")}}{{localize "SDE.hexMap.btn.hideTags"}}{{else}}{{localize "SDE.hexMap.btn.showTags"}}{{/if}}</button>
       <button type="button" data-action="hxtBrush" class="sde-import-secondary" title="{{localize 'SDE.hexMap.tip.brush'}}"><i class="fas fa-paintbrush"></i> {{localize "SDE.hexMap.btn.brush"}}</button>
       <button type="button" data-action="hxtBuildDataset" class="{{#if primaryBuild}}sde-import-primary{{else}}sde-import-secondary{{/if}}">{{#if viaExtras}}<i class="fas fa-paper-plane"></i> {{localize "SDE.hexMap.btn.sendExtras"}}{{else}}<i class="fas fa-download"></i> {{localize "SDE.hexMap.btn.download"}}{{/if}}</button>
       {{/if}}

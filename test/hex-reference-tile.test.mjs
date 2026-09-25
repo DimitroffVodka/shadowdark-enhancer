@@ -152,3 +152,20 @@ test("building in Extras leaves the reference image off the painted scene", asyn
     Object.assign(globalThis, previous);
   }
 });
+
+test("the print can be the map, not only a tracing aid", async () => {
+  const made = [];
+  const scene = { tiles: { find: () => null }, createEmbeddedDocuments: async (_t, [d]) => { made.push(d); return [d]; } };
+  const placement = { x: 0, y: 0, width: 100, height: 100 };
+  await placeReferenceTile(scene, "print.jpg", placement);
+  await placeReferenceTile(scene, "print.jpg", placement, { asMap: true });
+  const [aid, map] = made;
+  // a tracing aid stays out of the players' way
+  assert.equal(aid.hidden, true);
+  assert.equal(aid.alpha, 0.5);
+  // the map is what the table looks at
+  assert.equal(map.hidden, false);
+  assert.equal(map.alpha, 1);
+  // both stay locked and above the painted terrain, whichever job they do
+  for (const d of made) { assert.equal(d.locked, true); assert.equal(d.sort, REFERENCE_SORT); }
+});

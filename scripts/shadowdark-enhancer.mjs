@@ -101,7 +101,7 @@ const STYLESHEET_REV = "000935629eaf";
 // stale); module.json carries the same hash and is fetched fresh at runtime. A
 // mismatch is a stale cache by construction — it cannot be anything else. Both
 // stamps are written by `npm run inventory` and gated by `inventory:check`.
-const BUILD_REV = "dfeb39f6f627";
+const BUILD_REV = "6c512645ea4c";
 
 /**
  * Tell the user when their browser is running an old build of this module, and
@@ -779,11 +779,16 @@ Hooks.once("init", () => {
       // Write hex details onto a hexcrawl scene Extras already built, instead
       // of rebuilding it and losing the scene's tokens, pins and fog progress.
       // Repaints the tiles to match unless { repaint: false }. Defaults to the
-      // active scene.
-      importDetails: async (entryOrDataset, sceneId, opts) => {
+      // active scene. Given crawl entries (one, several, or [] for zones only),
+      // every hex also gets its region as zone + zoneColor from the print's
+      // border scan: { regionScene } names the print when the world has more
+      // than one scanned scene.
+      importDetails: async (entriesOrDataset, sceneId, opts = {}) => {
         const h = await import("./importer/hex/hex-handoff.mjs");
-        const ds = entryOrDataset?.pages ? h.datasetFromEntry(entryOrDataset) : entryOrDataset;
-        return h.importDatasetRecords(sceneId ?? canvas?.scene?.id, ds, opts);
+        const target = sceneId ?? canvas?.scene?.id;
+        const x = entriesOrDataset;
+        const ds = (Array.isArray(x) || x?.pages) ? await h.detailsDataset(x, opts.regionScene ?? target) : x;
+        return h.importDatasetRecords(target, ds, opts);
       },
     },
   };

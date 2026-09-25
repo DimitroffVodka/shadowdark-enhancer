@@ -11,7 +11,7 @@
 
 import { MODULE_ID } from "../../shared/module-id.mjs";
 import { HEX_FLAG } from "./hex-commit.mjs";
-import { buildHexDataset } from "./hex-dataset.mjs";
+import { buildHexDataset, ZONE_COLOR } from "./hex-dataset.mjs";
 
 /**
  * Extras' compatible hex API when it mounts the agreed namespace, else null.
@@ -36,7 +36,7 @@ export function extrasHexApi() {
  * @param {JournalEntry[]|JournalEntry} entries
  * @returns {object} dataset (hex-dataset.mjs)
  */
-export function datasetFromEntries(entries, { tags = {}, gridHint, assignments } = {}) {
+export function datasetFromEntries(entries, { tags = {}, gridHint, assignments, zones } = {}) {
   const list = (Array.isArray(entries) ? entries : [entries]).filter(Boolean);
   const drafts = [], summaryRows = [];
   let name = "", source = "";
@@ -52,7 +52,7 @@ export function datasetFromEntries(entries, { tags = {}, gridHint, assignments }
     }
   }
   if (list.length > 1 && source) name = source;
-  return buildHexDataset({ name, source, drafts, summaryRows, tags, assignments, gridHint });
+  return buildHexDataset({ name, source, drafts, summaryRows, tags, assignments, zones, gridHint });
 }
 
 /** One entry's dataset. The tagger's own art manifest rides along (it always
@@ -82,7 +82,19 @@ function downloadDataset(dataset) {
  * are build-only there by design: they say how a hex is PAINTED, and painting
  * is the builder's job.
  */
-const UPSERT_FIELDS = ["name", "terrain", "desc", "zone"];
+const UPSERT_FIELDS = ["name", "terrain", "desc", "zone", "zoneColor"];
+
+/**
+ * importDetails' dataset from crawl entries: their keyed pages, plus a zone
+ * and colour for every hex when a region scan can be found (scanSceneFor).
+ * @param {JournalEntry[]|JournalEntry} entries  may be empty: zones alone
+ * @param {string|object} scene  the scan scene, or the Extras scene being updated
+ */
+export async function detailsDataset(entries, scene) {
+  const { sceneZones, scanSceneFor } = await import("../../hex-map/hex-region.mjs");
+  const { byNum } = await sceneZones(scanSceneFor(scene));
+  return datasetFromEntries(entries, { zones: byNum });
+}
 
 /**
  * Push a dataset's per-hex details onto a hexcrawl scene Extras ALREADY built,
@@ -123,7 +135,10 @@ export async function importDatasetRecords(sceneId, dataset, opts = {}) {
   for (const hex of dataset?.hexes ?? []) {
     const record = { num: hex.num };
     for (const key of UPSERT_FIELDS) {
-      if (typeof hex[key] === "string" && hex[key]) record[key] = hex[key];
+      if (typeof hex[key] !== "string" || !hex[key]) continue;
+      // One unparseable colour fails the whole batch there; drop just that one.
+      if (key === "zoneColor" && !ZONE_COLOR.test(hex[key])) continue;
+      record[key] = hex[key];
     }
     // num alone would be a no-op write; skip it rather than send it.
     if (Object.keys(record).length > 1) records.push(record);

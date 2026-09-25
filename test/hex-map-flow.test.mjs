@@ -4,6 +4,7 @@ import assert from "node:assert/strict";
 // The flow's scene geometry is pure apart from Foundry's constants.
 globalThis.CONST = { GRID_TYPES: { HEXODDQ: 4, HEXEVENQ: 5 }, GRID_MIN_SIZE: 20 };
 const { alignedSceneData } = await import("../scripts/hex-map/hex-map-flow.mjs");
+const { framesTopRow } = await import("../scripts/hex-map/geometry.mjs");
 
 // A stretched print (hexes taller than regular), odd columns lowered, with margins.
 const lat = { x0: 486.66, y0: 196.44, pitchX: 142.87, pitchY: 174.43, lowered: "odd", cols: 64, rows: 75 };
@@ -46,4 +47,19 @@ test("alignedSceneData puts every print cell on its Foundry cell, whichever sche
   assert.equal(twoShort.flags["shadowdark-enhancer"].hexTags.origin.bounds.firstRow, undefined, "two rows short is not the both-ends frame cut; leave the top row alone");
   const evenData = alignedSceneData({ name: "Map", src: "x.png", imageW: 1000, imageH: 800, lat: { ...lat, lowered: "even" }, cols: 4, rows: 3, levels: true });
   assert.equal(evenData.grid.type, 5, "even columns lowered → HEXEVENQ");
+});
+
+test("the frame box starts ticked when the lowered columns end one row short", () => {
+  // That shape means the frame clips both ends: the other parity's top row is
+  // the print's label margin, which must not be numbered.
+  assert.equal(framesTopRow({ cols: 64, rows: 75, rowsLowered: 74 }), true);
+  // Not that shape: nothing to assume.
+  assert.equal(framesTopRow({ cols: 64, rows: 75, rowsLowered: 75 }), false);
+  assert.equal(framesTopRow({ cols: 64, rows: 75 }), false);
+  assert.equal(framesTopRow(null), false);
+});
+
+test("a stored answer beats the guess, in both directions", () => {
+  assert.equal(framesTopRow({ rows: 75, rowsLowered: 74, firstRow: 0 }), false);  // the GM unticked it
+  assert.equal(framesTopRow({ rows: 75, rowsLowered: 75, firstRow: 1 }), true);   // and ticked it elsewhere
 });

@@ -17,7 +17,7 @@
  * if a map ever exceeds about 10 000 cells.
  */
 
-import { neighbours } from "./geometry.mjs";
+import { neighbours, onMap } from "./geometry.mjs";
 
 export const STORE_VERSION = 1;
 export const OVERLAYS = ["river", "path", "coast"];
@@ -98,6 +98,62 @@ const WET = new Set(["river", "coast", "ocean", "lake", "arctic_sea"]);
  * @param {number|string} num
  * @returns {boolean}
  */
+/**
+ * Standing and running water a hex can be ON THE SHORE OF.
+ *
+ * Only terrain counts, never an overlay: a hex whose terrain is lake or ocean
+ * IS water, while a river crossing a forest is a line drawn through the hex,
+ * the same as a path. Patrick: "if it's like a river going through it like
+ * similar to a path that does not count that's something different."
+ */
+export const COASTAL_WATER = new Set(["arctic_sea", "ocean", "sea", "lake", "river"]);
+
+/**
+ * Mark every land hex that touches water as coast.
+ *
+ * The scanner reads a coastline badly — it is a thin line shared between two
+ * hexes rather than a glyph inside one — but it reads sea, lake and river
+ * reliably, and a coast is just a land hex beside them. So the overlay is
+ * derived from terrain the classifier is good at instead of detected from ink
+ * it is bad at. Measured on the Western Reaches against the 270 keyed rows,
+ * where the book prints the terrain words itself: this finds 13 of the book's
+ * 13 coasts and misses none.
+ *
+ * Whether RIVER belongs in `water` is a judgement, not a fact. Including it is
+ * what makes the recall perfect — 5 of those 13 touch only a river — but some
+ * regions print a Coast column AND a River column in the same encounter grid
+ * (Lowland Moor, Isles of Andrik), and a hex marked both matches both, which
+ * the encounter picture then has to report as undecidable. Pass a narrower set
+ * to drop it.
+ *
+ * Never changes a terrain and never removes a coast: this only ever adds one
+ * where the map implies it. That includes hexes the GM tagged themselves. A
+ * GM tags TERRAIN; the coast follows from the neighbours, which the GM did
+ * not weigh when naming the hex forest. Skipping GM hexes (the old default)
+ * left half of Take 4's shoreline untagged once half its cells had been
+ * reviewed. Pass onlyAuto to keep GM hexes untouched.
+ * @param {object} state           the tag store
+ * @param {{water?:Set<string>, onlyAuto?:boolean}} [opts]
+ * @returns {number[]} the hexes it marked
+ */
+export function deriveCoasts(state, { water = COASTAL_WATER, onlyAuto = false } = {}) {
+  const shifted = state?.origin?.shifted ?? "odd";
+  const marked = [];
+  for (const [key, cell] of state?.cells ?? []) {
+    if (!cell?.terrain || water.has(cell.terrain)) continue;          // water is not its own shore
+    if (cell.overlays?.includes("coast")) continue;                    // already said
+    if (onlyAuto && cell.source && cell.source !== "auto") continue;    // the GM's hex is the GM's
+    const n = Number(key);
+    if (!Number.isFinite(n)) continue;
+    const wet = neighbours(Math.floor(n / 100), n % 100, shifted)
+      .some(({ col, row }) => water.has(state.cells.get(String(col * 100 + row))?.terrain));
+    if (!wet) continue;
+    cell.overlays = [...new Set([...(cell.overlays ?? []), "coast"])];
+    marked.push(n);
+  }
+  return marked.sort((a, b) => a - b);
+}
+
 export function strandedRiver(state, num) {
   const cell = state?.cells?.get(String(num));
   if (cell?.terrain !== "river" || cell.source !== "auto") return false;
@@ -225,13 +281,27 @@ export function applySheet(state, answers) {
   return transitions;
 }
 
-/** Tags in the shape hex-dataset's buildHexDataset takes: { num: { terrain, overlays } }. */
+/**
+ * Tags in the shape hex-dataset's buildHexDataset takes: { num: { terrain, overlays } }.
+ *
+ * Cells the map does not have are dropped. A tag can arrive by NUMBER rather
+ * than by position — a truth CSV, an exported tag file, tags written before the
+ * map's size was set — so the store can hold a cell in the frame, and the
+ * store is not where that is noticed. Shadowdark Extras bakes the grid into a
+ * built scene and refuses a record outside it ("hex N is outside the published
+ * grid"), which would surface as a failed hand-off AFTER the scene was built.
+ * Dropping them here keeps that from ever leaving.
+ */
 export function tagsForDataset(state) {
+  const shifted = state?.origin?.shifted ?? "odd";
+  const bounds = state?.origin?.bounds;
   const out = {};
-  for (const [num, c] of state.cells) if (c?.terrain) out[String(num).padStart(3, "0")] = {
-    terrain: c.terrain,
-    overlays: [...new Set(c.overlays ?? [])],
-  };
+  for (const [num, c] of state?.cells ?? []) {
+    if (!c?.terrain) continue;
+    const n = parseInt(num, 10);
+    if (!Number.isInteger(n) || !onMap(Math.floor(n / 100), n % 100, bounds, shifted)) continue;
+    out[String(num).padStart(3, "0")] = { terrain: c.terrain, overlays: [...new Set(c.overlays ?? [])] };
+  }
   return out;
 }
 

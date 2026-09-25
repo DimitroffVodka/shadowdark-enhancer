@@ -22,15 +22,17 @@ import { MODULE_ID } from "../shared/module-id.mjs";
 import { replaceModuleFlag } from "../shared/module-flags.mjs";
 import { findSuitePack } from "../shared/compendium-suite.mjs";
 import { sceneCells, sourceImage, CellSampler } from "./sampler.mjs";
-import { cellNumber, neighbours } from "./geometry.mjs";
-import { decodeTags, encodeTags, nextSheet, applySheet, tagsForDataset, summarize, importTags, rowsFromJson, sheetRisk, OVERLAYS } from "./tag-store.mjs";
+import { cellNumber, neighbours, framesTopRow } from "./geometry.mjs";
+import { decodeTags, encodeTags, nextSheet, applySheet, tagsForDataset, summarize, importTags, rowsFromJson, sheetRisk, deriveCoasts, OVERLAYS } from "./tag-store.mjs";
 import { FIXES_FLAG, BASELINE_FLAG, emptyLog, decodeFixes, encodeFixes, recordEdits, recordLegend, legendReport, accuracyReport, encodeBaseline, decodeBaseline, baselineReport } from "./tag-corrections.mjs";
 import { cellBoxOf, referenceTilePlacement, gridCellBox, loweredColumns, placeReferenceTile } from "./reference-tile.mjs";
 import { createClassifier, compareTags, parseTruthCsv, featureVector, keepMask, scoreClassifier, smoothTerrain } from "./classify.mjs";
 import { buildLegend } from "./legend.mjs";
+import { scanRegions, encodeRegions, decodeRegions, REGIONS_FLAG } from "./region-scan.mjs";
+import { regionSeeds, nameComponents } from "./hex-region.mjs";
 import { TERRAIN_TAGS, SETTLEMENTS, rowTag } from "../importer/hex/hex-summary.mjs";
 import { HEX_FLAG } from "../importer/hex/hex-commit.mjs";
-import { datasetFromEntry, handoffDataset, extrasHexApi } from "../importer/hex/hex-handoff.mjs";
+import { datasetFromEntries, handoffDataset, extrasHexApi } from "../importer/hex/hex-handoff.mjs";
 import { buildHexDataset, validateHexDataset, hexNum, assignmentsFromManifest } from "../importer/hex/hex-dataset.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
@@ -39,6 +41,8 @@ const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 export const TAGS_FLAG = "hexTags";
 /** The GM's own tile-art manifest for this map. Read at hand-off; never shipped. */
 export const ART_FLAG = "hexArt";
+/** Hex-key picker value meaning "every filed crawl" — a book keyed per region. */
+export const ALL_CRAWLS = "*";
 
 /**
  * One string, from `languages/en.json`.
@@ -67,6 +71,7 @@ export const EXPAND_PICKS = 8;
 export const KEYED_TERRAIN = "keyed_location";
 /** Cell bitmap width for classification (height follows the cell's aspect); the calibration cell was 95×87. */
 export const BITMAP_SIZE = 96;
+
 
 /**
  * Dev check: score a scene's tags against a truth CSV (see classify.mjs).
@@ -237,6 +242,19 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
     return app;
   }
 
+  /**
+   * Read the active scene's region borders on their own (GM only). The image
+   * flow does this without being asked; this is for a map that was set up
+   * before the module could read borders, or after the print was replaced.
+   * @returns {Promise<number>} enclosures found
+   */
+  static async scanRegions() {
+    const app = HexTaggerApp.open();
+    if (!app) return 0;
+    if (!(await app._onSample())) return 0;
+    return app._onScanRegions();
+  }
+
   _onRender(context, options) {
     super._onRender(context, options);
 
@@ -269,7 +287,16 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
     }
     if (!this._autoLegend) return;
     this._autoLegend = false;
-    this._onSample().then(() => { if (this._cells.length && this._state?.origin) return this._onLegend(); }).catch((err) => console.warn(`${MODULE_ID} | legend`, err));
+    this._onSample()
+      .then(async () => {
+        if (!this._cells.length || !this._state?.origin) return;
+        // Regions first: it needs the same cell bitmaps the legend is about to
+        // build, and it finishes without asking the GM anything, so the borders
+        // are already read by the time they start naming glyphs.
+        await this._onScanRegions();
+        return this._onLegend();
+      })
+      .catch((err) => console.warn(`${MODULE_ID} | legend`, err));
   }
 
   _geom = null;
@@ -291,6 +318,8 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
   /** @type {Array<{size:number, members:number[], core:number[], samples:number[]}>|null} the legend's cards while they are shown */
   _legend = null;
   _autoLegend = false;
+  /** Which overlay picture is on the map: "", "terrain", "region" or "encounter". */
+  _overlayMode = "";
 
   /**
    * Sampled cells by scene id, kept for the life of the page. They come from
@@ -373,25 +402,60 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
     if (!pack) { this._entries = []; return; }
     const docs = await pack.getDocuments();
     this._entries = docs.filter((d) => d.getFlag(MODULE_ID, HEX_FLAG)?.crawl).map((d) => ({ uuid: d.uuid, name: d.name, doc: d }));
-    // One filed crawl is the obvious choice; the GM can still pick (none).
-    if (this._entries.length === 1 && !this._entryUuid) this._entryUuid = this._entries[0].uuid;
+    // One filed crawl is the obvious choice; several filed crawls are one BOOK
+    // imported per region, and the obvious choice there is all of them. Left on
+    // "(none)" a whole imported hex key looks like it did not arrive: the Pin
+    // button has nothing to pin and says so about a map with 270 keyed hexes
+    // sitting in the pack. The GM can still pick (none).
+    if (!this._entryUuid) this._entryUuid = this._entries.length === 1 ? this._entries[0].uuid : (this._entries.length ? ALL_CRAWLS : "");
   }
 
-  /** Keyed hexes of the chosen crawl as map notes on this scene (hex-pins.mjs). */
+  /**
+   * The crawl entries the picker is on: one, all of them, or none. Everything
+   * that reads the book's own answers goes through this, so "(every crawl)"
+   * means the same thing to the keyed sheet, the pins and the hand-off.
+   * @returns {JournalEntry[]}
+   */
+  _selectedEntries() {
+    if (this._entryUuid === ALL_CRAWLS) return this._entries.map((e) => e.doc);
+    return [this._entries.find((e) => e.uuid === this._entryUuid)?.doc].filter(Boolean);
+  }
+
+  /**
+   * Keyed hexes of the chosen crawl as map notes on this scene (hex-pins.mjs).
+   *
+   * A book whose key locations were imported per region (hex-book-import.mjs)
+   * files one crawl entry per region, so "every crawl" pins the whole map in
+   * one press instead of fifteen. Each pass matches its own notes by the hex
+   * number on their flag, and hex numbers do not repeat across regions, so a
+   * later region never moves an earlier one's pin.
+   */
   async _onPinKeyed() {
     if (!this._requireCurrentScene()) return;
     this._readHeader();
-    const entry = this._entries.find((e) => e.uuid === this._entryUuid)?.doc;
-    if (!entry) { ui.notifications?.warn(t("SDE.hexMap.notify.chooseCrawl")); return; }
+    const all = this._entryUuid === ALL_CRAWLS;
+    const entries = this._selectedEntries();
+    if (!entries.length) { ui.notifications?.warn(t("SDE.hexMap.notify.chooseCrawl")); return; }
     const { pinCrawlOnActiveScene } = await import("./hex-pins.mjs");
-    this._setProgress(t("SDE.hexMap.progress.pinning"));
-    const res = await pinCrawlOnActiveScene(entry).catch((err) => { console.error(`${MODULE_ID} | pin keyed hexes`, err); ui.notifications?.error(t("SDE.hexMap.notify.pinFailed", { error: err.message })); return null; });
+    const tally = { created: 0, moved: 0, missing: 0 };
+    let last = null;
+    for (const [i, entry] of entries.entries()) {
+      this._setProgress(all ? t("SDE.hexMap.progress.pinningOf", { name: entry.name, i: i + 1, n: entries.length })
+        : t("SDE.hexMap.progress.pinning"));
+      const res = await pinCrawlOnActiveScene(entry).catch((err) => { console.error(`${MODULE_ID} | pin keyed hexes`, err); ui.notifications?.error(t("SDE.hexMap.notify.pinFailed", { error: err.message })); return null; });
+      if (!res) break;
+      tally.created += res.created; tally.moved += res.moved; tally.missing += res.missing.length;
+      last = res;
+    }
     this._setProgress("");
-    if (!res) return;
-    const bits = [`${res.created} pinned`];
-    if (res.moved) bits.push(`${res.moved} moved`);
-    if (res.missing.length) bits.push(`${res.missing.length} not on this map`);
-    ui.notifications?.info(t("SDE.hexMap.notify.pinned", { scene: this._scene()?.name, bits: bits.join(", "), journal: res.journal.name }));
+    if (!last) return;
+    const bits = [t("SDE.hexMap.notify.pinnedCount", { n: tally.created })];
+    if (tally.moved) bits.push(t("SDE.hexMap.notify.movedCount", { n: tally.moved }));
+    if (tally.missing) bits.push(t("SDE.hexMap.notify.offMapCount", { n: tally.missing }));
+    ui.notifications?.info(t("SDE.hexMap.notify.pinned", {
+      scene: this._scene()?.name, bits: bits.join(", "),
+      journal: all ? t("SDE.hexMap.label.allCrawls") : last.journal.name,
+    }));
   }
 
   /**
@@ -550,15 +614,23 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
   async _onBrush() {
     if (!this._requireCurrentScene()) return;
     (await import("./hex-brush-app.mjs")).HexBrushApp.open();
-    this._overlayShown = true;
+    this._overlayMode = "terrain";
     this.render();
   }
 
-  /** The tags drawn on the map itself for review (tag-overlay.mjs); the button toggles. */
-  async _onShowTags() {
+  /**
+   * The scene's own answers drawn on the map for review (tag-overlay.mjs).
+   *
+   * Three pictures of the same map, one button each: the terrain tags, the
+   * regions the border scan found, and whether a wandering check on each hex
+   * would find a table. Pressing the picture that is up hides it; pressing
+   * another switches to it.
+   */
+  async _onShowTags(event, target) {
     if (!this._requireCurrentScene()) return;
+    const mode = target?.dataset?.mode ?? "terrain";
     const { HexTagOverlay } = await import("./tag-overlay.mjs");
-    this._overlayShown = HexTagOverlay.toggle();
+    this._overlayMode = (await HexTagOverlay.toggle({ mode })) ? mode : "";
     this.render();
   }
 
@@ -574,12 +646,12 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
    * @returns {Map<number, {terrain:string, overlays:string[]}>}
    */
   _keyedFromBook() {
-    const e = this._entries.find((x) => x.uuid === this._entryUuid);
     const out = new Map();
-    if (!e) return out;
-    for (const r of e.doc.getFlag(MODULE_ID, HEX_FLAG)?.keyed ?? []) {
-      const n = hexNum(r.num), tag = rowTag(r);
-      if (n !== null && tag) out.set(n, tag);
+    for (const doc of this._selectedEntries()) {
+      for (const r of doc.getFlag(MODULE_ID, HEX_FLAG)?.keyed ?? []) {
+        const n = hexNum(r.num), tag = rowTag(r);
+        if (n !== null && tag) out.set(n, tag);
+      }
     }
     return out;
   }
@@ -601,11 +673,11 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
   }
 
   _keyedNumbers() {
-    const e = this._entries.find((x) => x.uuid === this._entryUuid);
-    if (!e) return new Set();
     const out = new Set();
-    for (const r of e.doc.getFlag(MODULE_ID, HEX_FLAG)?.keyed ?? []) { const n = hexNum(r.num); if (n !== null) out.add(n); }
-    for (const p of e.doc.pages.contents) { const n = hexNum(p.getFlag(MODULE_ID, HEX_FLAG)?.num); if (n !== null) out.add(n); }
+    for (const doc of this._selectedEntries()) {
+      for (const r of doc.getFlag(MODULE_ID, HEX_FLAG)?.keyed ?? []) { const n = hexNum(r.num); if (n !== null) out.add(n); }
+      for (const p of doc.pages.contents) { const n = hexNum(p.getFlag(MODULE_ID, HEX_FLAG)?.num); if (n !== null) out.add(n); }
+    }
     return out;
   }
 
@@ -719,6 +791,11 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
       // a scene with nothing tagged yet: "Half this shit I don't even know what
       // it does." Most of it could not have done anything for him at that point.
       hasTags: summary.tagged > 0,               // tags to draw, paint over or send
+      // The region picture needs the scanned enclosures and NOTHING else — not
+      // terrain, not a hex key, not even a re-read of the image. Gating it on
+      // hasTags hid it on exactly the map it exists to check: one just scanned,
+      // with no terrain decided yet.
+      hasRegions: decodeRegions(this._scene()?.getFlag(MODULE_ID, REGIONS_FLAG)).size > 0,
       canSheet: summary.untagged > 0 || summary.auto > 0,   // hexes to tag or to check
       hasKey: this._entries.length > 0,          // a book text to attach
       artCount: Object.keys(this._artAssignments()).length,
@@ -730,12 +807,13 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
       baseline: baseline?.checked >= 20 ? baseline : null, noCrawl: this._entries.length > 0 && !this._entryUuid,
       sceneName: scene?.name ?? "(no scene)", sampled, cellCount: this._cells.length, numberedCount: total,
       summary, origin, originText: origin ? `${String(origin.num).padStart(4, "0")} at grid ${origin.i},${origin.j}` : "",
-      boundsCols: origin?.bounds?.cols ?? "", boundsRows: origin?.bounds?.rows ?? "", skipTopRow: origin?.bounds?.firstRow === 1,
+      boundsCols: origin?.bounds?.cols ?? "", boundsRows: origin?.bounds?.rows ?? "", skipTopRow: framesTopRow(origin?.bounds),
       mode: this._mode, modes: [["random", "SDE.hexMap.mode.random"], ["keyed", "SDE.hexMap.mode.keyed"], ["review", "SDE.hexMap.mode.review"]]
         .map(([v, k]) => ({ value: v, label: t(k), selected: v === this._mode })),
       entries: this._entries.map((e) => ({ uuid: e.uuid, name: e.name, selected: e.uuid === this._entryUuid })),
+      allCrawls: this._entries.length > 1, allSelected: this._entryUuid === ALL_CRAWLS,
       sheet, hasSheet: sheet.length > 0, needsOrigin: sampled && !origin, viaExtras: !!extrasHexApi(), error: this._error,
-      overlays: OVERLAYS, overlayShown: !!this._overlayShown,
+      overlays: OVERLAYS, overlayShown: !!this._overlayMode, overlayMode: this._overlayMode ?? "",
       canClassify: !!origin && summarize(state, this._numbered.size || state.cells.size).gm > 0, sensitivity: this._sensitivity, progress: this._progress,
     };
   }
@@ -755,6 +833,37 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
       if (++k % 200 === 0) { this._setProgress(t("SDE.hexMap.progress.reading", { k, total })); await new Promise((r) => setTimeout(r, 0)); }
     }
     this._setProgress("");
+  }
+
+  /**
+   * Read the print's region borders and keep the enclosures on the scene.
+   *
+   * Only the SHAPES are stored. Which region each enclosure is comes from the
+   * crawl's keyed rows at read time (hex-region.mjs), so importing a book's key
+   * locations after the map was scanned names every hex on it without a
+   * re-scan — and a map scanned before the book is imported is not wasted.
+   * @returns {Promise<number>} how many enclosures were found
+   */
+  async _onScanRegions() {
+    const scene = this._scene();
+    if (!scene || !this._geom || !this._numbered.size) return 0;
+    await this._ensureBitmaps();
+    this._setProgress(t("SDE.hexMap.progress.regions"));
+    const { components } = scanRegions(this._numbered, this._bitmaps, {
+      cellW: this._geom.cellW, cellH: this._geom.cellH,
+      shifted: this._state?.origin?.shifted ?? "odd",
+    });
+    this._setProgress("");
+    if (!components.size) return 0;
+    await replaceModuleFlag(scene, REGIONS_FLAG, encodeRegions(components));
+    const total = new Set(components.values()).size;
+    // Say what it found in the terms the GM can act on: how many of the
+    // enclosures the book can name, and whether any of them ran together.
+    const { regions } = nameComponents(components, regionSeeds(this._selectedEntries()));
+    const conflicts = [...regions.values()].filter((r) => r.conflict.length).length;
+    ui.notifications?.info(t("SDE.hexMap.notify.regionsFound", { total, named: regions.size }));
+    if (conflicts) ui.notifications?.warn(t("SDE.hexMap.notify.regionsConflict", { n: conflicts }));
+    return total;
   }
 
   /**
@@ -823,6 +932,13 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
       const cell = this._state.cells.get(f.num);
       if (cell) this._state.cells.set(f.num, { ...cell, terrain: f.to });
     }
+    // A coastline is a line SHARED between two hexes, so the classifier reads
+    // it badly; sea, lake and river it reads well. So the coast is derived from
+    // the terrain rather than detected from the ink, once the terrain has
+    // settled — after the smoothing, because a hex the neighbours just turned
+    // into water makes its neighbours coast too. GM-tagged hexes get it as
+    // well: a GM names the terrain, and the coast follows from the neighbours.
+    const coasts = deriveCoasts(this._state);
     await this._saveState();
     // The first scan of a map is written down once and never again: it is the
     // only record of what the module made of it unaided, and every correction
@@ -844,7 +960,7 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
     this._setProgress("");
     this._mode = "review";
     this._sheet = nextSheet(this._state, { nums: [...this._numbered.keys()], size: SHEET_SIZE, mode: "review", reviewMargin: this._log().margin });
-    ui.notifications?.info(t("SDE.hexMap.notify.classified", { auto, examples: exemplars.length, fixes: fixes.length, review }));
+    ui.notifications?.info(t("SDE.hexMap.notify.classified", { auto, examples: exemplars.length, fixes: fixes.length, coasts: coasts.length, review }));
     for (const w of clf.warnings) ui.notifications?.warn(w);
     this.render();
     return true;
@@ -1117,17 +1233,22 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
     // published grid". buildHexDataset works it out from the hexes it is about
     // to emit, which cannot disagree with them.
     const gridHint = b?.cols ? { cols: b.cols, rows: b.rows, firstRow: b.firstRow, rowsLowered: b.rowsLowered } : undefined;
-    const entry = this._entries.find((e) => e.uuid === this._entryUuid)?.doc ?? null;
+    const chosen = this._selectedEntries();
     const assignments = this._artAssignments();
-    const dataset = entry ? datasetFromEntry(entry, { tags, gridHint, assignments })
-      : buildHexDataset({ name: this._scene()?.name ?? t("SDE.hexMap.app.defaultName"), source: "", tags, assignments, gridHint });
+    // Every hex's region as its Extras zone, from this print's border scan.
+    // Only the tagged hexes: a scan older than the bounds can still hold
+    // margin cells, and one hex outside the grid fails the whole build.
+    const { sceneZones } = await import("./hex-region.mjs");
+    const zones = new Map([...(await sceneZones(this._scene())).byNum].filter(([num]) => tags[String(num).padStart(3, "0")]));
+    const dataset = chosen.length ? datasetFromEntries(chosen, { tags, gridHint, assignments, zones })
+      : buildHexDataset({ name: this._scene()?.name ?? t("SDE.hexMap.app.defaultName"), source: "", tags, assignments, zones, gridHint });
     const check = validateHexDataset(dataset);
     if (!check.ok) { ui.notifications?.error(t("SDE.hexMap.notify.datasetInvalid", { error: check.errors[0] })); console.warn(`${MODULE_ID} | hex dataset`, check.errors); return; }
     if (Object.values(tags).some((tag) => tag.overlays?.includes("coast"))) {
       ui.notifications?.warn(t("SDE.hexMap.notify.coastStays"));
     }
     // The painted scene must not share the print scene's name.
-    const res = await handoffDataset(dataset, { sceneName: entry ? dataset.name : `${dataset.name} (painted)` });
+    const res = await handoffDataset(dataset, { sceneName: chosen.length ? dataset.name : `${dataset.name} (painted)` });
     const n = Object.keys(tags).length;
     const painted = dataset.hexes.filter((h) => h.art).length;
     const art = painted ? t("SDE.hexMap.notify.withArt", { n: painted }) : "";
@@ -1235,7 +1356,7 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
   }
 
   /** Put this scene's print on `target` so the hex field covers its first cols × rows cells. */
-  async _placeReferenceOn(target, src = this._scene()?.background?.src) {
+  async _placeReferenceOn(target, src = this._scene()?.background?.src, { asMap = false } = {}) {
     const b = this._state.origin?.bounds;
     const imageBox = this._imageCellBox();
     if (!b?.cols || !imageBox) { ui.notifications?.warn(t("SDE.hexMap.notify.sampleFirst")); return null; }
@@ -1244,7 +1365,7 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
     if (!sceneBox) { ui.notifications?.warn(t("SDE.hexMap.notify.noHexGrid", { name: target.name })); return null; }
     const tf = this._geom.transform;
     const placement = referenceTilePlacement({ x: 0, y: 0, w: tf.texW, h: tf.texH }, imageBox, sceneBox);
-    const tile = await placeReferenceTile(target, src, placement);
+    const tile = await placeReferenceTile(target, src, placement, { asMap });
     const shifted = this._state.origin.shifted ?? "odd", lowered = loweredColumns(target);
     if (lowered !== shifted) ui.notifications?.warn(t("SDE.hexMap.notify.parityMismatch", { name: target.name, lowered, shifted }));
     ui.notifications?.info(t("SDE.hexMap.notify.referencePlaced", { name: target.name }));
@@ -1261,17 +1382,21 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const id = await foundry.applications.api.DialogV2.wait({
       window: { title: t("SDE.hexMap.btn.reference") },
       content: `<p>${t("SDE.hexMap.reference.hint", { cols: this._state.origin?.bounds?.cols ?? "?", rows: this._state.origin?.bounds?.rows ?? "?" })}</p>
-        <label>${t("SDE.hexMap.reference.scene")} <select name="hex-ref-target">${options}</select></label>`,
+        <label>${t("SDE.hexMap.reference.scene")} <select name="hex-ref-target">${options}</select></label>
+        <div class="form-group"><div class="form-fields"><label class="checkbox" title="${t('SDE.hexMap.tip.asMap')}"><input type="checkbox" name="hex-ref-as-map"> ${t("SDE.hexMap.reference.asMap")}</label></div></div>`,
       buttons: [
-        { action: "place", label: t("SDE.hexMap.btn.place"), default: true, callback: (ev, button, dialog) => (dialog.element ?? dialog)?.querySelector?.("select[name='hex-ref-target']")?.value ?? null },
+        { action: "place", label: t("SDE.hexMap.btn.place"), default: true, callback: (ev, button, dialog) => {
+          const root = dialog.element ?? dialog;
+          return { id: root?.querySelector?.("select[name='hex-ref-target']")?.value ?? null, asMap: !!root?.querySelector?.("input[name='hex-ref-as-map']")?.checked };
+        } },
         { action: "cancel", label: t("SDE.hexMap.btn.cancel") },
       ],
       rejectClose: false,
     }).catch(() => null);
-    if (!id || id === "cancel") return;
+    if (!id || id === "cancel" || !id.id) return;
     if (!this._requireCurrentScene()) return;
-    const target = game.scenes.get(id);
-    if (target) await this._placeReferenceOn(target);
+    const target = game.scenes.get(id.id);
+    if (target) await this._placeReferenceOn(target, undefined, { asMap: id.asMap });
   }
 
   async _onClearTags() {
