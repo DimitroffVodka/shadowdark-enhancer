@@ -12,6 +12,17 @@
   key table's "Rimespire Mtns") and a zone colour from Extras' palette, with no
   two touching regions sharing one. Needs Shadowdark Extras 6.15.0 or later for
   the colours.
+- **You're told when an update gives you something new to import.** A release
+  that adds a book, a bestiary or another hundred table rows used to be
+  invisible to anyone who had already imported what they own. The importer now
+  remembers the library each module version shipped: when the version changes,
+  the active GM is asked whether they want to see what's new, and **Show me**
+  opens the Importer Hub with the new rows already filtered. The Manage tree
+  gains a **New (N)** filter and each new row carries a **new** tag, so **Not
+  now** just leaves them there for later — you're asked once per update, not
+  once per login. Only rows you haven't imported are counted, and they drop off as you
+  import them. A world importing for the first time is told nothing — with no
+  earlier library to compare against, everything would be "new".
 - **A book's key locations in one press.** Importer Hub → Tools → **Key
   locations** reads a whole hex key out of your own PDF: for each region it
   takes the keyed-location table and the pages of write-ups that follow it, and

@@ -69,6 +69,10 @@
           </button>
         {{/if}}
         {{else}}
+          {{!-- Added by the module version this world last loaded, and not
+                imported yet — see importer-hub-news.mjs. --}}
+          {{#if e.isNew}}<span class="sde-mtree-entry-tag sde-mtree-entry-new"
+                title="{{localize 'SDE.importer.tree.newTip'}}">{{localize "SDE.importer.tree.new"}}</span>{{/if}}
           {{!-- State for rows that are partly filled rather than simply absent
                 (downtime: "Partial (21/25)" / "Locked"). Counts only. --}}
           {{#if e.stateNote}}<span class="sde-mtree-entry-tag">{{e.stateNote}}</span>{{/if}}

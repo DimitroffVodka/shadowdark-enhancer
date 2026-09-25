@@ -2160,7 +2160,11 @@ body.theme-light .sde-mtree-node.depth-2 > .sde-mtree-row .sde-mtree-icon { colo
   opacity: 0.6;
 }
 body.theme-light .sde-mtree-entry.is-present .sde-mtree-entry-mark,
+/* "new" sits in the same slot as the green "imported" tag but means the
+   opposite thing — a row this update added — so it takes the accent. */
+.sde-mtree-entry-new { color: var(--sde-bar-accent); opacity: 1; }
 body.theme-light .sde-mtree-entry-tag { color: #2e6b2e; }
+body.theme-light .sde-mtree-entry-new { color: var(--sde-bar-accent); }
 body.theme-light .sde-mtree-entry-bundle { color: #6b6b6b; }
 body.theme-light .sde-mtree-entry.is-locked .sde-mtree-entry-mark { color: #9c5210; }
 .sde-mtree-unlock {

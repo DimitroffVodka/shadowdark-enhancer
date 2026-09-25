@@ -1,7 +1,7 @@
 # Shadowdark Enhancer — File Inventory
 
 <!-- inventory:stats:start -->
-968 tracked files · ~166,700 lines of code/markup across scripts+templates+styles+test.
+970 tracked files · ~167,000 lines of code/markup across scripts+templates+styles+test.
 `v0.17.3` in both `module.json` and `package.json`.
 <!-- inventory:stats:end -->
 **Layout reflects the 2026-07-21 feature-folder reorganization (v0.11.0 cycle).**
@@ -88,7 +88,7 @@
 | `curated-icon-maps/sea-wolf-plunder-icons.mjs` | 38 | The N3 §5.1/D4 Sea Wolf Plunder map: exactly 20 CS3 p68 source-qualified item phrases and reviewed native Foundry `icons/**.webp` paths, keyed without each row's terminal gp price. |
 | `curated-icon-maps/weapon-icons.mjs` | 47 | N3's 37 reviewed Foundry-native weapon icons, keyed by source-agnostic normalized final Item name and registered through the A4 discovery seam. |
 | `attack-card.mjs` | 107 | Reading a Shadowdark attack card — was it an attack at all (a targeted spell is not), did it land, who was it aimed at, who swung. Shared by Parry and Taunt so the two can never disagree about the target (they once did, silently). |
-| `settings.mjs` | 573 | All `game.settings.register` calls + migration-safe defaults. |
+| `settings.mjs` | 581 | All `game.settings.register` calls + migration-safe defaults. |
 | `icons.mjs` | 87 | Centralized icon registry — FontAwesome snippets and vendored SVG references. |
 | `compendium-suite.mjs` | 459 | Find-or-create layer for managed world packs, ownership, sidebar folders, and source folders. |
 | `loading-dialog-guard.mjs` | 112 | Guards the system's leaked `LoadingSD` spinner when `ItemSheetSD.getData` throws. |
@@ -231,12 +231,13 @@
 
 | File | Lines | Description |
 |---|---:|---|
-| `importer-hub-app.mjs` | 941 | **The single front door (shell).** ApplicationV2 lifecycle, singleton, instance fields/caches, `_prepareContext`; installs the three method packs below onto the class (split 2026-07-22). |
+| `importer-hub-app.mjs` | 967 | **The single front door (shell).** ApplicationV2 lifecycle, singleton, instance fields/caches, `_prepareContext`; installs the three method packs below onto the class (split 2026-07-22). |
 | `importer-hub-paste.mjs` | 1585 | Paste box, type selector, parse dispatch, per-type preview field/row wiring. |
 | `importer-hub-commit.mjs` | 951 | Conflict dialogs, quality gates, magic-bundle plan, all per-type commit flows. |
-| `importer-hub-manage.mjs` | 1175 | Manage strip: censuses + caches, manage tree, gap/seed/cull, source-PDF grab/extract. |
+| `importer-hub-manage.mjs` | 1184 | Manage strip: censuses + caches, manage tree, gap/seed/cull, source-PDF grab/extract. |
 | `importer-hub-batch.mjs` | 711 | Batch “Import everything” runner: seeds, grabs, parses and commits each planned entry unattended. |
 | `importer-hub-shared.mjs` | 109 | Hub-shared constants/helpers + `installMethods` (the split's descriptor copier). |
+| `importer-hub-news.mjs` | 123 | What a module update added to the import library: snapshots every Manage-tree row once per module version, diffs the new snapshot against the last, and hands the hub the rows this release added but the GM has not imported (the "New" filter and badge) plus a one-time notice. |
 | `importer-hub-maintenance.mjs` | 244 | Tools-menu bodies (bundle export/import, source-PDF library). |
 | `dump-segmenter.mjs` | 307 | Routes a mixed dump through the recognizer registry: hexcrawl → spell → monster → item → table. |
 | `bundle-io.mjs` | 406 | Whole-suite export/import as one JSON; validates, skips existing, never overwrites. |

@@ -207,6 +207,17 @@ A collapsible panel comparing what each supported book contains against what is
 currently in your world packs.
 
 - Filter by **All**, **Still locked**, or **Imported**.
+- **New (N)** appears after a module update that added content you can import —
+  a new book, a bestiary, more roll-table rows. The update is compared against
+  the library this world last saw, so only rows that are genuinely new *and*
+  not yet in your packs are counted; each one also carries a small **new** tag
+  in the tree. The single active GM is asked at world load whether they want to
+  see them — **Show me** opens the Hub with the **New** filter already applied,
+  **Not now** leaves the rows tagged for whenever you come back. You are asked
+  once per module version, so dismissing it costs you nothing.
+  A world importing for the first time is told nothing: with no
+  earlier library to compare against, everything would be "new". Rows drop off
+  the list as you import them, and the list is replaced by the next update's.
 - **Search…** narrows the tree to rows whose name, book, or page cite matches
   what you type, and opens the folders holding them so the hits are visible
   without clicking. A folder's own name matches too, so searching *Ancestries*

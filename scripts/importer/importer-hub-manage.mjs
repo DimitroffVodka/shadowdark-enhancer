@@ -18,6 +18,7 @@ import { planBatch } from "./batch-import.mjs";
 import { contentIdForName } from "./tables/table-shapes.mjs";
 import { findById, importNameFor, isMatrix } from "./tables/table-manifest.mjs";
 import { installMethods, t } from "./importer-hub-shared.mjs";
+import { entryKey, freshKeys } from "./importer-hub-news.mjs";
 import { MODULE_ID } from "../shared/module-id.mjs";
 import { charSourceKey } from "../shared/source-keys.mjs";
 import { SOURCES as DOWNTIME_SOURCES, SOURCE_SLUGS as DOWNTIME_SLUGS } from "../downtime/downtime-skeleton.mjs";
@@ -43,23 +44,29 @@ const DOWNTIME_PDF_KEYS = { "cs6": "CS6", "western-reaches": "WR" };
  *
  * @param {Array} nodes           top-level nodes from buildManageTree()
  * @param {object} opts
- * @param {"all"|"locked"|"imported"} [opts.filter]
+ * @param {"all"|"locked"|"imported"|"new"} [opts.filter]
  * @param {string} [opts.query]   free-text search over entry name / src / pages
  * @param {Set<string>} [opts.expanded] node ids the GM has opened
  * @param {(node:object)=>number} [opts.runnable] rows a folder's "Import all" can run
+ * @param {Set<string>} [opts.fresh] row keys this module version added (importer-hub-news)
  * @returns {Array}
  */
-export function filterManageTree(nodes, { filter = "all", query = "", expanded = new Set(), runnable = () => 0 } = {}) {
+export function filterManageTree(nodes, { filter = "all", query = "", expanded = new Set(), runnable = () => 0, fresh = new Set() } = {}) {
   const q = String(query || "").trim().toLowerCase();
   const wanted = (e) => filter === "locked" ? !e.present
     : filter === "imported" ? !!e.present
+    : filter === "new" ? e.isNew
     : true;
   const hit = (s) => String(s ?? "").toLowerCase().includes(q);
   const shape = (node, depth, underHit) => {
     const selfHit = !!q && hit(node.label);
     const inBranch = underHit || selfHit;
-    const entries = (node.entries ?? []).filter((e) =>
-      wanted(e) && (!q || inBranch || hit(e.name) || hit(e.src) || hit(e.pages)));
+    // Stamped before the filter runs, because "New" is one of the filters.
+    // Only not-yet-imported rows carry the flag, so a row stops advertising
+    // itself the moment it is imported.
+    const entries = (node.entries ?? [])
+      .map((e) => (!e.present && fresh.has(entryKey(node.id, e.name)) ? { ...e, isNew: true } : e))
+      .filter((e) => wanted(e) && (!q || inBranch || hit(e.name) || hit(e.src) || hit(e.pages)));
     const children = (node.children ?? []).map((c) => shape(c, depth + 1, inBranch)).filter(Boolean);
     const empty = !entries.length && !children.length;
     if (empty && (q ? !selfHit : filter !== "all")) return null;
@@ -322,6 +329,7 @@ class HubManageMethods {
       query: this._manageSearch,
       expanded: this._manageExpandedNodes,
       runnable,
+      fresh: freshKeys(),
     });
   }
 
@@ -494,10 +502,11 @@ class HubManageMethods {
 
   /** Expand every node in the Manage tree. */
   /** Narrow the tree to everything / only what's still locked / only what's
-   *  imported. Cheap: the census cache is untouched, only the view is reshaped. */
+   *  imported / only what this module update added. Cheap: the census cache is
+   *  untouched, only the view is reshaped. */
   _onManageFilter(event, target) {
     const next = target?.dataset?.filter;
-    if (!["all", "locked", "imported"].includes(next)) return;
+    if (!["all", "locked", "imported", "new"].includes(next)) return;
     this._manageFilter = next;
     this.render();
   }
