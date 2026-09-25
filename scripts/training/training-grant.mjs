@@ -244,12 +244,6 @@ export async function grantBenefit(actor, trainerKey, roll, choiceKey = null) {
   const printed = await benefitText(trainer, roll);
   const body = printed || benefit.label;
 
-  const notes = [];
-  for (const action of benefit.actions ?? []) {
-    const line = await _runAction(actor, action);
-    if (line) notes.push(line);
-  }
-
   const description = [
     `<p>${esc(body)}</p>`,
     `<p><em>Taught by ${esc(trainer.trainer)} — ${esc(trainer.topic)} training`
@@ -257,6 +251,9 @@ export async function grantBenefit(actor, trainerKey, roll, choiceKey = null) {
     benefit.todo ? `<p><strong>At the table:</strong> ${esc(benefit.todo)}</p>` : "",
   ].filter(Boolean).join("");
 
+  // The Talent goes on BEFORE the actions: it is the once-each record that
+  // takenRolls reads. Created after them, a failure here would leave the HP or
+  // renown paid with the face still open, and a retry would pay it twice.
   // The trainer's own emblem, so a sheet full of trainings reads at a glance
   // instead of showing the same scroll four times over.
   const [item] = await actor.createEmbeddedDocuments("Item", [{
@@ -283,6 +280,20 @@ export async function grantBenefit(actor, trainerKey, roll, choiceKey = null) {
       },
     },
   }]);
+
+  // An action that fails now leaves the face spent and the reward unpaid: the
+  // chat card says which, and the GM applies it by hand. Never a double grant.
+  const notes = [];
+  for (const action of benefit.actions ?? []) {
+    try {
+      const line = await _runAction(actor, action);
+      if (line) notes.push(line);
+    } catch (err) {
+      console.error(`${MODULE_ID} | training action failed`, action, err);
+      notes.push(`Could not apply "${esc(benefit.label)}" automatically `
+        + `(${esc(err?.message ?? err)}); apply it by hand.`);
+    }
+  }
 
   return { ok: true, item, notes };
 }

@@ -205,3 +205,51 @@ describe("trainer emblems", () => {
     assert.equal(trainerArt(undefined), null);
   });
 });
+
+describe("grantBenefit — the once-each record comes first", () => {
+  /** An actor whose Talent write can fail, and whose HP write is recorded. */
+  const makeActor = ({ failItem = false, failUpdate = false } = {}) => {
+    const log = [];
+    const items = [];
+    return {
+      log,
+      items,
+      system: { attributes: { hp: { max: 10, value: 10 } } },
+      async createEmbeddedDocuments(_type, [data]) {
+        log.push(`item:${data.type}`);
+        if (failItem) throw new Error("create refused");
+        const flags = data.flags ?? {};
+        const item = { ...data, getFlag: (scope, key) => flags[scope]?.[key] };
+        items.push(item);
+        return [item];
+      },
+      async update() {
+        log.push("update");
+        if (failUpdate) throw new Error("update refused");
+      },
+    };
+  };
+  const withGame = async (fn) => {
+    globalThis.game = { packs: [], tables: [] };
+    globalThis.Roll = class { constructor() { this.total = 3; } async evaluate() { return this; } };
+    try { return await fn(); } finally { delete globalThis.game; delete globalThis.Roll; }
+  };
+
+  it("pays nothing when the Talent cannot be created", async () => {
+    const { grantBenefit } = await import("../scripts/training/training-grant.mjs");
+    const actor = makeActor({ failItem: true });
+    await withGame(() => assert.rejects(grantBenefit(actor, "witch", 4)));
+    assert.deepEqual(actor.log, ["item:Talent"], "no HP written before the record");
+  });
+
+  it("keeps the face spent when an action fails, and says so", async () => {
+    const { grantBenefit, takenRolls } = await import("../scripts/training/training-grant.mjs");
+    const actor = makeActor({ failUpdate: true });
+    const r = await withGame(() => grantBenefit(actor, "witch", 4));
+    assert.equal(r.ok, true);
+    assert.deepEqual(takenRolls(actor, "witch"), [4]);
+    assert.match(r.notes.join(" "), /apply it by hand/);
+    const again = await withGame(() => grantBenefit(actor, "witch", 4));
+    assert.equal(again.error, "AlreadyTaught", "a retry cannot pay it twice");
+  });
+});
