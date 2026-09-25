@@ -303,7 +303,8 @@ export class HexTagOverlay {
    */
   static async _regionContext(mode, scene) {
     if (mode === "terrain") return { regionByNum: new Map(), componentByNum: new Map(), zonesByRegion: new Map() };
-    const { sceneRegions, sceneRegionFixes, regionSeeds, nameComponents, nearestRegion, crawlEntries } = await import("./hex-region.mjs");
+    const { sceneRegions, sceneRegionFixes, sceneShift, regionSeeds, nameComponents, nearestRegion, crawlEntries } = await import("./hex-region.mjs");
+    const shifted = sceneShift(scene);
     // The enclosures are worth looking at BEFORE a hex key names them: that is
     // the scan's own output, and checking it is the reason to draw this at all.
     const componentByNum = sceneRegions(scene);
@@ -321,7 +322,7 @@ export class HexTagOverlay {
     if (seeds.length) {
       for (const num of componentByNum.keys()) {
         if (byNum.has(num)) continue;
-        const near = nearestRegion(num, seeds);
+        const near = nearestRegion(num, seeds, { shifted });
         if (near) inferredByNum.set(num, near.region);
       }
     }
@@ -330,7 +331,7 @@ export class HexTagOverlay {
     const keyByNum = new Map();
     for (const [num, id] of componentByNum) keyByNum.set(num, byNum.get(num) ?? inferredByNum.get(num) ?? `#${id}`);
     const colorByKey = assignRegionColors(keyByNum, {
-      shifted: scene?.getFlag(MODULE_ID, TAGS_FLAG)?.origin?.shifted ?? "odd",
+      shifted,
       palette: extrasPalette() ?? REGION_COLORS,
     });
     const ctx = { regionByNum: byNum, inferredByNum, componentByNum, fixByNum, keyByNum, colorByKey };

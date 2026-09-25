@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { regionSeeds, nearestRegion, knownRegions } from "../scripts/hex-map/hex-region.mjs";
+import { regionSeeds, nearestRegion, knownRegions, regionOf, sceneShift } from "../scripts/hex-map/hex-region.mjs";
 
 // All fixture content is invented (D1) — no book content, no real region names.
 
@@ -72,4 +72,20 @@ test("no seeds, or a number the map cannot key, answers nothing", () => {
   assert.equal(nearestRegion(1200, []), null);
   assert.equal(nearestRegion("M104", SEEDS), null);
   assert.equal(nearestRegion(null, SEEDS), null);
+});
+
+test("regionOf guesses with the scene's own column shift", async () => {
+  // Hex 505 is 3 from 0207 and 4 from 0402 on an odd-shift map, and the
+  // reverse on an even one, so the shift decides the answer outright.
+  const seeds = [{ num: 207, region: "Odd side" }, { num: 402, region: "Even side" }];
+  const sceneOf = (shifted) => ({
+    getFlag: (_scope, key) => (key === "hexTags" ? { origin: { shifted } } : undefined),
+  });
+  assert.equal(sceneShift(sceneOf("even")), "even");
+  assert.equal(sceneShift(null), "odd");
+  const on = (scene) => regionOf(505, { seeds, components: new Map(), scene });
+  assert.equal((await on(sceneOf("odd"))).region, "Odd side");
+  assert.equal((await on(sceneOf("even"))).region, "Even side");
+  assert.equal((await regionOf(505, { seeds, components: new Map(), scene: sceneOf("even"), shifted: "odd" })).region,
+    "Odd side", "an explicit shift still wins");
 });

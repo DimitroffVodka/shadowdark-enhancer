@@ -175,6 +175,15 @@ export function sceneRegionFixes(scene = globalThis.canvas?.scene) {
 }
 
 /**
+ * Which columns the scene's map lowers, as the tagger stored it. Every hex
+ * distance on that scene needs it: odd and even geometry can pick different
+ * nearest seeds for the same published number.
+ */
+export function sceneShift(scene = globalThis.canvas?.scene) {
+  return scene?.getFlag?.(MODULE_ID, "hexTags")?.origin?.shifted ?? "odd";
+}
+
+/**
  * Which region is this hex in?
  *
  * Reads the scanned borders on the active scene first and the filed crawls for
@@ -206,7 +215,7 @@ export async function regionOf(id, { seeds, components, scene, shifted } = {}) {
       seed: null,
     };
   }
-  const near = nearestRegion(num, seeds, { shifted });
+  const near = nearestRegion(num, seeds, { shifted: shifted ?? sceneShift(scene) });
   return near && { ...near, via: "nearest" };
 }
 
@@ -258,7 +267,7 @@ export async function sceneZones(scene) {
     components: sceneRegions(scene),
     fixes: sceneRegionFixes(scene),
     seeds: regionSeeds(await crawlEntries()),
-    shifted: scene.getFlag?.(MODULE_ID, "hexTags")?.origin?.shifted ?? "odd",
+    shifted: sceneShift(scene),
     palette: extrasPalette() ?? REGION_COLORS,
   });
 }
