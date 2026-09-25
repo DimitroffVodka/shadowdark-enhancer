@@ -204,6 +204,7 @@ export const RENOWN_SOURCE_LABELS = {
   "level-up": "Gained a level",
   downtime: "Downtime",
   carousing: "Carousing",
+  training: "Regional training",
   external: "Changed outside the module",
 };
 

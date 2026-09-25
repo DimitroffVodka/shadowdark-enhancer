@@ -207,6 +207,17 @@ A collapsible panel comparing what each supported book contains against what is
 currently in your world packs.
 
 - Filter by **All**, **Still locked**, or **Imported**.
+- **New (N)** appears after a module update that added content you can import —
+  a new book, a bestiary, more roll-table rows. The update is compared against
+  the library this world last saw, so only rows that are genuinely new *and*
+  not yet in your packs are counted; each one also carries a small **new** tag
+  in the tree. The single active GM is asked at world load whether they want to
+  see them — **Show me** opens the Hub with the **New** filter already applied,
+  **Not now** leaves the rows tagged for whenever you come back. You are asked
+  once per module version, so dismissing it costs you nothing.
+  A world importing for the first time is told nothing: with no
+  earlier library to compare against, everything would be "new". Rows drop off
+  the list as you import them, and the list is replaced by the next update's.
 - **Search…** narrows the tree to rows whose name, book, or page cite matches
   what you type, and opens the folders holding them so the hits are visible
   without clicking. A folder's own name matches too, so searching *Ancestries*
@@ -231,6 +242,14 @@ currently in your world packs.
 **Hex map from image** takes a map image, finds its hex grid on its own, creates the aligned scene and opens the tagger on it ([Hex Maps](Hex-Maps.md)).
 
 **Hex tagger** opens the [Hex Tagger](Hex-Maps.md) for the active scene: a contact sheet over your hex-map image where you tag terrain and overlays, then hand the result to Shadowdark Extras or download it.
+
+**Key locations** reads a book's whole hex key out of your own PDF in one pass.
+Pick the book and it walks the regions, filing each one as its own journal
+entry with a page per keyed hex — the full write-up, not the summary line — and
+the region's summary table on the entry for the map notes and the dataset. The
+Game Master's Guide to the Western Reaches files 270 keyed hexes across 15
+regions this way. Run it again whenever you like: pages are matched by their
+hex number and updated in place, never duplicated.
 
 Open the **Tools** dropdown to manage PDFs and world backups:
 
@@ -258,6 +277,16 @@ match its PDF pages, and either printing works — the standard one or the
   in that folder yourself under the same names work the same way. Hosts that
   keep uploads in an asset library (The Forge, S3) put the file there instead.
   Nothing is sent anywhere else.
+- **Link a file on the server** links a PDF that is already on the server
+  instead of uploading one — the route to use when your host refuses a
+  book-sized upload as "too large" (see
+  [Troubleshooting](Troubleshooting.md#uploading-a-book-pdf-is-rejected-as-too-large)).
+  Put the file in your Foundry data folder by any route you like, press the
+  button and pick it.
+- **A link is only as good as the file behind it.** Every linked book is
+  checked when the library opens, so one whose file has moved or was never
+  written reads as missing rather than linked. Books in a host's asset library
+  (The Forge, S3) are taken on trust — the browser cannot check them.
 
 ### Bundle export / import
 

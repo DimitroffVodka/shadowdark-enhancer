@@ -8,7 +8,8 @@ its own:
 
 1. **Hex key pages** — the [Importer Hub](Importer-Hub.md) files a pasted hex
    key as one journal page per hex, and the keyed summary table (number,
-   region, terrain, name) alongside it.
+   region, terrain, name) alongside it. For a book it has a page map for, it
+   reads the whole key — every region's full write-ups — in one pass.
 2. **The Hex Tagger** — a contact sheet over your map scene where you tag each
    hex's terrain and its river, path or coast overlays.
 3. **The dataset** — one JSON file (or a direct hand-off to Extras) with the
@@ -26,10 +27,13 @@ three steps, the third optional:
 1. **The map.** Importer Hub → Tools → **Hex map from image**: the grid is
    found on the print and a scene is made with a working hex grid (next
    section).
-2. **The keyed locations.** Importer Hub → paste (or **Grab from PDF**) the
-   book's hex key and its keyed-location table, **Create hex pages**, then
-   **Pin on [scene]**: one map note per keyed hex on the scene you are
-   viewing, each opening its journal page (see *Keyed locations on the map*).
+2. **The keyed locations.** Importer Hub → Tools → **Key locations**, pick the
+   book, and the whole hex key is filed for you (next section). For a book
+   with no page map, or for your own crawl, paste (or **Grab from PDF**) the
+   hex key and its keyed-location table and press **Create hex pages**. Then
+   **Pin on [scene]**, or the tagger's **Pin keyed hexes**: one map note per
+   keyed hex on the scene you are viewing, each opening its journal page (see
+   *Keyed locations on the map*).
 3. **The terrain**, optional: the tagger's **Legend** names the terrain of
    every hex from one card per glyph (see *The legend*), for encounters and
    for a painted Shadowdark Extras crawl if you want one.
@@ -67,12 +71,41 @@ printed column labels); the detector reports that and the tagger skips those
 cells. Prints with a faint or hand-drawn grid get a message instead; those
 are set up the old way below.
 
+## A whole book's key locations
+
+Importer Hub → Tools → **Key locations** does step 2 for a book the module has
+a verified page map for. Pick the book and it works through the regions,
+reading two things out of *your* PDF for each one: the region's keyed-location
+table (number, region, terrain, name) and the pages of write-ups that follow
+it, where the book gives each location its own heading and a paragraph or
+three. Those write-ups are what you get — the full entry, not the one-line
+blurb from the table.
+
+Each region is filed as its own journal entry in the Journals pack, with one
+page per keyed hex inside it and the region's summary rows stored on the entry
+for the map notes and the dataset. One entry per region keeps the sidebar
+readable and still gives every location its own page to pin, link to and edit.
+
+The **Game Master's Guide to the Western Reaches** files 270 keyed hexes across
+15 regions. Morzomotha is not among them: the book keys that underworld level
+M010, M1004 and so on, which are not coordinates on the surface map, so there
+is nowhere to pin them — paste that chapter by hand if you want its pages.
+
+Running it again is safe and is how you pick up a parser improvement: pages are
+matched by the hex number on their flag and updated where they sit, so your own
+edits to a page's name are kept and nothing is duplicated. Cross-references
+between hexes become links inside a region; a reference to a hex in another
+region stays as plain text, because the two are separate journal entries.
+
 ## Keyed locations on the map
 
 Once the hex key is filed as pages (Importer Hub, **Create hex pages**), the
 keyed locations go on the map as Foundry notes: **Pin on [scene]** in the
 hub right after filing, or **Pin keyed hexes** in the tagger's header with
-the crawl chosen. Each note sits on its printed hex, is labelled with the
+the crawl chosen. A book imported per region files more than one crawl, so
+the tagger's hex-key picker also offers **(every crawl)** — one press pins
+every region of the book, and the same choice makes the keyed sheet, the
+terrain answers and the dataset hand-off read all of them together. Each note sits on its printed hex, is labelled with the
 page name, uses a house, city or castle icon for a village, town, city or
 city-state from the keyed table and a book for other locations, and opens
 the hex's page on click. Foundry notes can only point at journals in the
@@ -83,6 +116,66 @@ existing notes rather than adding more. Keyed hexes the print does not have
 are listed in the message and skipped. The scene must be numbered: one made
 by Hex map from image is, and any other hex scene is once you have sampled
 it in the tagger and set the anchor.
+
+## Which region is a hex in?
+
+**Hex map from image** reads the region borders while it sets the map up — you
+do not have to ask for it, and there is nothing to press.
+
+A hexcrawl map draws its region borders as a **thick line along hex edges**,
+against the thin line every other edge gets. The scan reads the edges the same
+way you do: it walks the middle of each shared edge and asks how much of it is
+inked. A border runs *along* an edge; a river only *crosses* it, which is why
+measuring the whole edge tells them apart. The enclosures those borders make
+are the regions, and your hex key names them — each enclosure takes the region
+of the keyed locations inside it.
+
+So once a book's key locations are imported, **every hex knows its region**,
+not just the 270 keyed ones:
+
+```js
+await game.shadowdarkEnhancer.hexMaps.regionOf(1403);
+// { num: 1403, region: "Isles of Andrik", via: "border", exact: false, distance: 0 }
+
+await game.shadowdarkEnhancer.hexMaps.regions();   // every hex at once
+```
+
+`via` says where the answer came from. **`"border"`** means the print drew the
+line and the book named what is inside it — nothing was guessed.
+**`"nearest"`** is the fallback for a hex the borders could not place: it takes
+the region of the nearest keyed hex, which is right about 84% of the time and
+worst in open sea. `exact: true` still means the book keyed that hex itself.
+
+On the Game Master's Guide to the Western Reaches the scan finds **84
+enclosures**, and **not one of them holds keyed hexes from two different
+regions** — that is the check that says no border was missed badly enough to
+run two regions together. If any ever do, you are told the count rather than
+handed a wrong answer quietly. 98% of its hexes land in an enclosure the hex
+key can name; the rest are pieces a coastline or a lake ring carved off, and
+those fall back to the nearest keyed hex.
+
+How right is it? The only thing that can answer that is the book, which prints
+a region beside each of its 270 keyed locations. Holding each one out in turn
+and naming its enclosure from the other 269: **255 right, none wrong**, and 15
+where the held-out location was the only keyed hex in its enclosure, so there
+was nothing left to name it with. The same test puts the nearest-keyed-hex
+fallback at 229 of 270. That measures only the hexes the book keyed, which are
+not an even sample of the map — for the rest there is nothing to check against,
+which is the honest answer rather than a percentage.
+
+The scan stores only the **shapes**. The names are worked out when you ask, so
+importing a book's key locations *after* the map was scanned names every hex
+without re-reading the image — and a map scanned before you own the book is not
+wasted work.
+
+A map set up before this existed can be scanned on its own:
+
+```js
+await game.shadowdarkEnhancer.hexMaps.scanRegions();
+```
+
+Near a border the print is still the authority: check it there rather than
+trusting a single hex.
 
 ## The legend
 
@@ -297,6 +390,48 @@ sits in the frame.
 
 ## Reviewing the tags on the map
 
+Three pictures of the same map, one button each in the tagger's header.
+Pressing the one that is up hides it; pressing another switches to it.
+
+- **Show tags** — every hex in its terrain colour, with dots for river, path
+  and coast and an amber ring on the automatic cells the classifier was unsure
+  of. Hovering names a hex; clicking edits it.
+- **Regions** — every hex in its region's colour, from the borders read off the
+  print. One colour per region, worked out from the name, so the same region
+  looks the same in every world. This is the quickest way to check the border
+  scan: a region that leaked into its neighbour is a stain you can see at the
+  whole-map zoom.
+- **Encounter zones** — whether a wandering check on this hex would find a
+  table. **Green** rolls: that region prints a column for this terrain.
+  **Amber** is stuck between two columns because the book split that terrain by
+  something the map does not say — a time of day, a moon phase, a northern and
+  a southern half — and hovering names the columns it is torn between.
+  **Grey** means that region has no encounter grid imported at all. Nothing is
+  guessed: a hex that cannot be decided says so rather than picking a table.
+
+Coasts come free with tagging: once the terrain is decided, every land hex
+touching sea, lake or river is marked coast in the same pass. A coastline is a
+line shared between two hexes and the scanner reads those badly, while it reads
+sea and lake well — so the coast is worked out from the terrain rather than
+looked for in the ink. A river *crossing* a hex is a line through it, like a
+path, and does not make its neighbours coastal. Hexes you tagged yourself are
+left as you left them.
+
+**Clicking a hex edits whatever you are looking at.** On the terrain picture
+that is its terrain and overlays, as before. On the regions picture it is the
+region: pick one already on the map or type your own, and if the whole
+enclosure is wrong there is a box to move all of it at once rather than a
+hex at a time. **(as read off the map)** takes a correction back off again.
+
+Corrections are stored beside the scan rather than inside it, so re-reading
+the borders never throws your work away: the enclosures are replaced, the
+regions you set by hand stay.
+
+The encounter picture reads whatever you have imported, matching each region's
+printed column labels against the terrain on your hexes, so it gets better as
+you import more of the book and needs no per-map setup.
+
+
 A contact sheet shows forty cells at a time; the print shows all of them at
 once. **Show tags** in the tagger's header (or
 `game.shadowdarkEnhancer.hexMaps.showTags()`) draws every numbered hex on the
@@ -461,6 +596,21 @@ Three more buttons sit in the tagger's header once the scene is sampled.
 Delete the reference tile when tracing is done. Hidden tiles are not drawn
 for players, but Foundry still sends every client the tile's data, including
 the image's URL.
+
+## Playing on the print itself
+
+Shadowdark Extras lends its hex records, tooltips and explorer only to a scene
+it built. That does not mean giving up the map from your book.
+
+Hand the dataset over as usual so Extras builds its scene — that is what gives
+the scene the layout Extras needs — then use **Reference tile** from the
+tagger's More menu, pick that scene, and tick **Use the print as the map**. The
+print goes on visible and opaque, stretched so its hex field lands exactly on
+the scene's cells (a print whose hexes are taller than regular is squared up in
+the process). Your table looks at the publisher's map; Extras still sees its
+own hexes underneath, so every hex keeps its record.
+
+Hide that tile again and the painted map is back. One scene, both maps.
 
 ## The dataset
 

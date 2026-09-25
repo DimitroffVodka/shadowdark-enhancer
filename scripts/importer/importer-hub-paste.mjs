@@ -898,6 +898,15 @@ class HubPasteMethods {
         // so the preview and the commit gate treat it as suspect.
         this._shapeFailNote = bucket ? null
           : `BLOCKER: "${seed?.name ?? "this entry"}" has a registered ${shape.kind} shape that did not match the pasted text — the result below is a generic best-effort parse; verify it against the book before Create.`;
+        // Say it out loud too. The note only reaches the preview when the
+        // generic fallback still produced a table to hang it on, so a total
+        // miss used to fail in silence — the GM saw shredded rows, or nothing,
+        // with no hint that the paste itself was the problem (reported for the
+        // god prayer generators, 2026-09-20).
+        if (!bucket) {
+          ui.notifications.warn(t("SDE.importer.parse.shapeMismatch",
+            { name: seed?.name ?? t("SDE.importer.parse.aTable") }));
+        }
         if (bucket) {
           this._importMonsters = []; this._importItems = []; this._importSpells = []; this._importBoats = []; this._importHexes = []; this._importHexSummary = [];
           this._importGenerators = bucket.generators ?? [];

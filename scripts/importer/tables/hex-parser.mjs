@@ -18,6 +18,11 @@
  *   adaptive; K = 0 when every block is anchored) — anything past the cap
  *   stays in the remainder for later recognizers / the Skipped list.
  *
+ *   Books print their key sections with no blank line between entries, so each
+ *   blank-line block is split at every interior "643. ROCK EATERS" heading
+ *   BEFORE clustering (isHexHeadingLine) — otherwise a whole page arrives as
+ *   one block and every entry but the first is buried in its body.
+ *
  * Hex-ID rule (seed, verified on the CS1–CS6 manual build):
  *   row = last TWO digits, col = leading digit(s). "1403" → col 14 row 03;
  *   "122" → col 1 row 22.
@@ -55,6 +60,9 @@ export const MAX_ANCHOR_GAP = 2;
 /** Pass-1 placeholder written into page HTML; pass-2 rewrites to @UUID. */
 const HEX_PLACEHOLDER_RE = /@@HEX\[([0-9]+,[0-9]+)\]\{([^}]*)\}@@/g;
 
+/** Longest an entry heading's title can be before it reads as prose. */
+const MAX_HEADING_TITLE = 60;
+
 /** Reference spans (A-03): "(1403)", "(207, 1404)", "hex 1403", "hexes 207 and 1404". */
 const REF_SPAN_RES = [
   /\b(?:hex(?:es)?)\s+(\d{3,4}(?:\s*(?:,|and|&)\s*\d{3,4})*)/gi,
@@ -91,6 +99,52 @@ export function matchHexAnchor(block) {
   if (hexIdKey(m[1]) === null) return null;
   return { id: m[1], sameLineTitle: (m[2] ?? "").trim() };
 }
+
+/**
+ * A hex entry HEADING standing on its own line — the book's "643. ROCK EATERS".
+ *
+ * Needed because a key section printed straight out of a PDF has no blank line
+ * between entries: splitRawBlocks hands back a whole page as ONE block, so
+ * every entry after the first would be buried in the first one's body (live
+ * check on a real book, 11 entries over 3 pages came back as 3).
+ *
+ * Deliberately strict, because this splits blocks and block-splitting is how a
+ * recognizer steals another one's content: the id must be followed by a PERIOD
+ * and an ALL-CAPS title of at least two letters. A summary-table row
+ * ("643  Bastion Mtns  Mountain  Rock Eaters") has no period, prose that opens
+ * on a page cite ("303) that he will use…") has no all-caps title, and a
+ * numbered list item ("3. BASILISK CULT") is one or two digits, not three.
+ * @param {string} line
+ * @returns {boolean}
+ */
+export function isHexHeadingLine(line) {
+  const m = /^(\d{3,4})\.\s+(\S.*)$/.exec(String(line ?? "").trim());
+  if (!m || hexIdKey(m[1]) === null) return false;
+  const title = m[2];
+  if (/[a-z]/.test(title) || title.length > MAX_HEADING_TITLE) return false;
+  return (title.match(/[A-Z]/g) ?? []).length >= 2;
+}
+
+/**
+ * Split one raw block at every heading AFTER its first line, so each entry of
+ * a run-together key section becomes its own anchored block. A block with no
+ * interior heading comes back unchanged.
+ * @param {string} block
+ * @returns {string[]}
+ */
+export function splitAtHexHeadings(block) {
+  const out = [];
+  let cur = [];
+  for (const line of String(block ?? "").split("\n")) {
+    if (cur.length && isHexHeadingLine(line)) { out.push(cur.join("\n")); cur = []; }
+    cur.push(line);
+  }
+  if (cur.length) out.push(cur.join("\n"));
+  return out.filter((b) => b.trim());
+}
+
+/** Blank-line blocks, then each block split at its interior entry headings. */
+const hexBlocks = (rawText) => splitRawBlocks(rawText).flatMap(splitAtHexHeadings);
 
 /**
  * Anchor-evidence predicate: a bare 3–4 digit block ("101" alone — a page
@@ -210,7 +264,7 @@ export function parseHexUnit(unitText) {
  * @returns {string}
  */
 export function detectCrawlTitle(rawText) {
-  const blocks = splitRawBlocks(rawText);
+  const blocks = hexBlocks(rawText);
   const { claimedIdxSet } = clusterHexRuns(blocks);
   if (!claimedIdxSet.size) return "";
   const first = Math.min(...claimedIdxSet);
@@ -271,17 +325,111 @@ export function linkifyHexText(text, hexKeySet) {
 }
 
 /**
- * Draft body → page HTML: linkify, then `<p>`-wrap each body line (D4).
+ * A line that is only page furniture: the printed page number a PDF column
+ * extraction picks up at the foot of the page, bare ("164") or as the tail of
+ * a citation the two-column split cut in half ("pg. 167)").
+ */
+const PAGE_FURNITURE_RE = /^\(?\s*(?:pg\.?|p\.?)?\s*\d{1,4}\s*\)?$/i;
+
+/**
+ * A line that is its own thing: a printed heading, or an item in a list.
+ *
+ * A heading needs LETTERS, not merely the absence of lower-case ones — the
+ * same two-capitals rule isHexHeadingLine already uses. Without it a bare
+ * "1334" on its own line reads as a heading and is cut out of the sentence it
+ * belongs to, and a bare number in a hex body is usually a cross-reference.
+ */
+const isHeading = (line) => !/[a-z]/.test(line) && (line.match(/[A-Z]/g) ?? []).length >= 2;
+const BULLET_RE = /^[-–—•*·]\s+/;
+
+/**
+ * Body lines → paragraphs.
+ *
+ * A PDF column gives ONE LINE PER PRINTED LINE, and the book's columns are
+ * narrow, so wrapping each of those in its own `<p>` reproduced the column's
+ * ragged edge as real line breaks — a five-sentence entry arriving as fourteen
+ * paragraphs. Patrick: "the key location text is not formatted properly. Like
+ * there should be not all these line breaks."
+ *
+ * So the lines are re-joined. A blank line starts a new paragraph, a heading or
+ * a bullet stands alone, and a word broken across a line ("magi-" / "cal") is
+ * put back together. Sentence endings are NOT treated as breaks: a paragraph's
+ * middle line routinely ends in a full stop, and splitting there would break
+ * one paragraph into several just as wrongly as before.
+ *
+ * Trailing page furniture is dropped, and only trailing: a bare 3-4 digit line
+ * inside an entry is far more likely to be a hex cross-reference, which the
+ * linkifier needs.
+ * @param {string[]} lines
+ * @returns {string[]} paragraphs
+ */
+export function reflowBodyLines(lines) {
+  const kept = (lines ?? []).map((l) => String(l ?? "").trim());
+  while (kept.length && PAGE_FURNITURE_RE.test(kept[kept.length - 1])) kept.pop();
+  const out = [];
+  let buf = [];
+  const flush = () => { if (buf.length) { out.push(buf.join(" ")); buf = []; } };
+  for (const line of kept) {
+    if (!line) { flush(); continue; }
+    if (isHeading(line) || BULLET_RE.test(line)) { flush(); out.push(line); continue; }
+    const prev = buf[buf.length - 1];
+    // "magi-" + "cal" is one word the column broke, not two.
+    if (prev && /[A-Za-z]-$/.test(prev)) buf[buf.length - 1] = prev.slice(0, -1) + line;
+    else buf.push(line);
+  }
+  flush();
+  return out;
+}
+
+const PLAIN_P_RE = /<p>([^<]*)<\/p>/g;
+
+/** A line the column cut mid-sentence: it ends in a letter, digit, comma or hyphen. */
+const BROKEN_LINE_RE = /[\p{L}\d,-]$/u;
+
+/**
+ * A page filed before reflowBodyLines existed → the page it would be now.
+ *
+ * Those pages hold one `<p>` per printed line, and the import stored nothing
+ * else, so each `<p>`'s text is exactly a body line (escaped, @UUID links
+ * already in place) and reflowing them is a re-import without the PDF. The
+ * one thing it cannot recover is a blank line the old import dropped, so a
+ * rare two-paragraph entry comes back as one; a real re-import restores that.
+ *
+ * Plain `<p>`s alone do not prove a page is legacy: a fresh import and a GM's
+ * own paragraphs have the same shape. A column's lines give themselves away by
+ * breaking mid-sentence, so a page where every line but the last ends a
+ * sentence (or is a heading) is real paragraphs and stays. The ready hook also
+ * runs this once per world (hexReflowDone), so nothing written later is read.
+ *
+ * Anything else is left alone: a page with any other markup (a GM's own
+ * edit), a page already one paragraph, or one that reflows to nothing.
+ * @param {string} html
+ * @returns {string|null} the new content, or null when the page should stay
+ */
+export function reflowLegacyHexHtml(html) {
+  const src = String(html ?? "");
+  const lines = [...src.matchAll(PLAIN_P_RE)].map((m) => m[1]);
+  if (lines.length < 2 || src.replace(PLAIN_P_RE, "").trim()) return null;
+  if (!lines.slice(0, -1).some((l) => !isHeading(l.trim()) && BROKEN_LINE_RE.test(l.trim()))) return null;
+  const paragraphs = reflowBodyLines(lines);
+  if (!paragraphs.length) return null;
+  const next = paragraphs.map((p) => `<p>${p}</p>`).join("\n");
+  return next === src ? null : next;
+}
+
+/**
+ * Draft body → page HTML: reflow the column's lines into paragraphs, linkify,
+ * then `<p>`-wrap each paragraph (D4).
  * @param {{bodyLines: string[]}} draft
  * @param {Set<string>} hexKeySet
  * @returns {string}
  */
 export function buildHexPageHtml(draft, hexKeySet) {
-  const lines = draft?.bodyLines ?? [];
-  if (!lines.length) return "<p></p>";
+  const paragraphs = reflowBodyLines(draft?.bodyLines);
+  if (!paragraphs.length) return "<p></p>";
   // Escape BEFORE linkify: pasted text is never markup (review #1); the hex
   // placeholders inserted afterwards contain no HTML metacharacters.
-  return lines.map((l) => `<p>${linkifyHexText(escapeHtml(l), hexKeySet)}</p>`).join("\n");
+  return paragraphs.map((l) => `<p>${linkifyHexText(escapeHtml(l), hexKeySet)}</p>`).join("\n");
 }
 
 /**
@@ -312,7 +460,7 @@ export const hexcrawlRecognizer = {
 
   /** @param {string} rawText */
   claim(rawText) {
-    const blocks = splitRawBlocks(rawText);
+    const blocks = hexBlocks(rawText);
     const { runs, claimedIdxSet } = clusterHexRuns(blocks);
     const claimed = [];
     for (const run of runs) for (const unitBlocks of run.units) claimed.push(unitBlocks.join("\n\n"));
@@ -337,4 +485,4 @@ export const hexcrawlRecognizer = {
 
 // ─── Internal exports for tests ───────────────────────────────────────────────
 
-export const _internals = { clusterHexRuns, matchHexAnchor, anchorHasEvidence, splitRawBlocks, MIN_RUN_UNITS, MAX_ANCHOR_GAP };
+export const _internals = { clusterHexRuns, matchHexAnchor, anchorHasEvidence, splitRawBlocks, hexBlocks, MIN_RUN_UNITS, MAX_ANCHOR_GAP };

@@ -143,7 +143,7 @@ export const CrawlBar = {
         <button class="sde-bar-btn" data-action="encounter" title="Left-click: open Encounter Roller · Right-click: menu">
           ${ICONS.encounter} Encounter
         </button>
-        <button class="sde-bar-btn" data-action="loot" title="Loot Generator · Magic Item Forge · Merchant Shop · Party XP · Downtime · Pit Fighting · Renown · Session Recap">
+        <button class="sde-bar-btn" data-action="loot" title="Loot Generator · Magic Item Forge · Merchant Shop · Party XP · Downtime · Pit Fighting · Regional Training · Renown · Session Recap">
           ${ICONS.forge} Forge &amp; Loot
         </button>
         <button class="sde-bar-btn" data-action="rollTables" title="Importer — paste a PDF dump; manage tables &amp; monsters">
@@ -494,6 +494,9 @@ export const CrawlBar = {
       <div class="sde-menu-item sde-menu-btn" data-loot-action="pitFighting" role="menuitem" tabindex="0">
         <i class="fas fa-hand-fist"></i> Pit Fighting
       </div>
+      <div class="sde-menu-item sde-menu-btn" data-loot-action="training" role="menuitem" tabindex="0">
+        <i class="fas fa-dumbbell"></i> Regional Training
+      </div>
       <div class="sde-menu-item sde-menu-btn" data-loot-action="renown" role="menuitem" tabindex="0">
         <i class="fas fa-crown"></i> Renown
       </div>
@@ -535,6 +538,7 @@ export const CrawlBar = {
       if (target.dataset.lootAction === "partyXp") game.shadowdarkEnhancer.partyXp.open();
       if (target.dataset.lootAction === "downtime") game.shadowdarkEnhancer.downtime.open();
       if (target.dataset.lootAction === "pitFighting") game.shadowdarkEnhancer.pitFighting.open();
+      if (target.dataset.lootAction === "training") game.shadowdarkEnhancer.training.open();
       if (target.dataset.lootAction === "renown") game.shadowdarkEnhancer.renown.open();
       if (target.dataset.lootAction === "recap") game.shadowdarkEnhancer.recap.open();
       menu.remove();

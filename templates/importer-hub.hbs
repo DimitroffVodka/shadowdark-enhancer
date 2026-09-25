@@ -99,6 +99,9 @@
           <button type="button" data-action="hubOpenHexTagger"
                   title="{{localize 'SDE.importer.tools.hexTaggerTip'}}">
             <i class="fas fa-map-location-dot"></i><span>{{localize "SDE.importer.tools.hexTagger"}}</span><small>{{localize "SDE.importer.tools.hexTaggerSub"}}</small></button>
+          <button type="button" data-action="hubKeyLocations"
+                  title="{{localize 'SDE.importer.tools.keyLocationsTip'}}">
+            <i class="fas fa-location-dot"></i><span>{{localize "SDE.importer.tools.keyLocations"}}</span><small>{{localize "SDE.importer.tools.keyLocationsSub"}}</small></button>
         </div>
       </div>
     </details>
@@ -908,6 +911,13 @@
               <button type="button" class="sde-mtree-filterbtn{{#if manage.filterImported}} is-on{{/if}}"
                       data-action="manageFilter" data-filter="imported" title="{{localize 'SDE.importer.manage.importedTip'}}">
                 <i class="fas fa-circle-check"></i> {{localize "SDE.importer.manage.imported"}}</button>
+              {{!-- Offered only while this module version actually added rows
+                    the GM hasn't imported (importer-hub-news.mjs). --}}
+              {{#if manage.newTotal}}
+              <button type="button" class="sde-mtree-filterbtn{{#if manage.filterNew}} is-on{{/if}}"
+                      data-action="manageFilter" data-filter="new" title="{{localize 'SDE.importer.manage.newTip'}}">
+                <i class="fas fa-sparkles"></i> {{localize "SDE.importer.manage.new" n=manage.newTotal}}</button>
+              {{/if}}
             </div>
             <input type="search" class="sde-mtree-search" data-manage-search value="{{manage.search}}"
                    placeholder="{{localize 'SDE.importer.manage.searchPlaceholder'}}" aria-label="{{localize 'SDE.importer.manage.searchAria'}}"
@@ -952,6 +962,7 @@
         <p class="sde-import-empty sde-mtree-filter-empty">
           {{#if manage.searching}}<i class="fas fa-magnifying-glass"></i> {{localize "SDE.importer.manage.noMatch" search=manage.search}}{{#unless manage.filterAll}}{{localize "SDE.importer.manage.noMatchFilter"}}{{/unless}}{{localize "SDE.importer.manage.noMatchClear"}}
           {{else if manage.filterLocked}}<i class="fas fa-circle-check"></i> {{localize "SDE.importer.manage.allImported"}}
+          {{else if manage.filterNew}}<i class="fas fa-circle-check"></i> {{localize "SDE.importer.manage.allNewImported"}}
           {{else}}<i class="fas fa-file-import"></i> {{{localize "SDE.importer.manage.noneImported"}}}{{/if}}
         </p>
         {{/if}}

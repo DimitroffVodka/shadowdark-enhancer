@@ -86,7 +86,7 @@ import { initRivalClassTable } from "./forge-loot/rival-class-table-adapter.mjs"
 // templates, producing unstyled block-flow UI. Keep the manifest stylesheet as
 // the startup fallback, then layer a content-addressed copy above it. The layout
 // contract test requires this revision to change whenever the CSS file changes.
-const STYLESHEET_REV = "c5cd3c92fba2";
+const STYLESHEET_REV = "000935629eaf";
 
 // The same problem for the SCRIPTS, which cannot be solved the same way: their
 // URLs come from the manifest, which Foundry validates as real package paths,
@@ -101,7 +101,7 @@ const STYLESHEET_REV = "c5cd3c92fba2";
 // stale); module.json carries the same hash and is fetched fresh at runtime. A
 // mismatch is a stale cache by construction — it cannot be anything else. Both
 // stamps are written by `npm run inventory` and gated by `inventory:check`.
-const BUILD_REV = "73d09839e056";
+const BUILD_REV = "ffe06807ec54";
 
 /**
  * Tell the user when their browser is running an old build of this module, and
@@ -707,6 +707,28 @@ Hooks.once("init", () => {
       awardFame: async (args) =>
         (await import("./pit-fighting/pit-fighting-app.mjs")).PitFighting.awardFame(args),
     },
+    // Regional Training — the GM Guide's 21 trainers. Same sealed-content
+    // contract as pit fighting: the module ships the trainers, the pages and
+    // what each benefit DOES, and reads the book's own wording out of the
+    // "<Topic> Training Benefits" table the GM imported from their own copy.
+    // Every benefit lands on the character as a Talent, mechanical or not.
+    training: {
+      // The trainer window. Lazy — nothing loads until it is opened.
+      open: async (opts) => (await import("./training/training-app.mjs")).TrainingApp.open(opts),
+      // Headless grant, for a macro or another module: teaches one d4 face and
+      // enforces the book's "once each" against the character's own Talents.
+      grant: async (actor, trainer, roll, choice = null) =>
+        (await import("./training/training-grant.mjs")).grantBenefit(actor, trainer, roll, choice),
+      // Which faces this character has already been taught by one trainer.
+      taught: async (actor, trainer) =>
+        (await import("./training/training-grant.mjs")).takenRolls(actor, trainer),
+      // Read the 21 trainer spreads out of the GM's own registered GM Guide
+      // PDF and file each one as a journal entry: who they are, and the four
+      // TASKS that must be completed before a benefit is on offer. Identity is
+      // a flag, so re-running updates in place and never duplicates.
+      importJournals: async (opts) =>
+        (await import("./training/training-journal.mjs")).importTrainerJournals(opts),
+    },
     // 1.5.0 — additive: hex maps. The Hex Tagger reads the active hex scene's
     // background cell by cell and stores the GM's terrain tags on the scene;
     // datasets go to Shadowdark Extras' hexcrawl builder or download as JSON.
@@ -718,6 +740,23 @@ Hooks.once("init", () => {
       showTags: async (opts) => (await import("./hex-map/tag-overlay.mjs")).HexTagOverlay.toggle(opts),
       // Pick a terrain once, then paint the hexes that have it wrong (GM only).
       brush: async () => (await import("./hex-map/hex-brush-app.mjs")).HexBrushApp.open(),
+      // Read the print's region borders onto the active scene. The Hex map
+      // from image flow runs this itself; this re-runs it on an older map.
+      scanRegions: async () => (await import("./hex-map/hex-tagger-app.mjs")).HexTaggerApp.scanRegions(),
+      // Every hex's region on the active scene, in one read.
+      regions: async () => {
+        const m = await import("./hex-map/hex-region.mjs");
+        return m.nameComponents(m.sceneRegions(), m.regionSeeds(await m.crawlEntries())).byNum;
+      },
+      // Which region is a hex in? The book's own word when the hex is keyed,
+      // the nearest keyed hex's region otherwise (hex-region.mjs says how well
+      // that holds). Pass { seeds } from regionSeeds() when asking about many.
+      regionOf: async (num, opts) => (await import("./hex-map/hex-region.mjs")).regionOf(num, opts),
+      // The keyed hexes every region answer is made from, loaded once.
+      regionSeeds: async () => {
+        const m = await import("./hex-map/hex-region.mjs");
+        return m.regionSeeds(await m.crawlEntries());
+      },
       // Pure builder for the Extras dataset from drafts, keyed rows and tags.
       buildDataset: async (args) => (await import("./importer/hex/hex-dataset.mjs")).buildHexDataset(args),
       // Dev check: what a first-time user would get on a map you have verified,
@@ -736,6 +775,20 @@ Hooks.once("init", () => {
         const h = await import("./importer/hex/hex-handoff.mjs");
         const ds = entryOrDataset?.pages ? h.datasetFromEntry(entryOrDataset) : entryOrDataset;
         return h.handoffDataset(ds);
+      },
+      // Write hex details onto a hexcrawl scene Extras already built, instead
+      // of rebuilding it and losing the scene's tokens, pins and fog progress.
+      // Repaints the tiles to match unless { repaint: false }. Defaults to the
+      // active scene. Given crawl entries (one, several, or [] for zones only),
+      // every hex also gets its region as zone + zoneColor from the print's
+      // border scan: { regionScene } names the print when the world has more
+      // than one scanned scene.
+      importDetails: async (entriesOrDataset, sceneId, opts = {}) => {
+        const h = await import("./importer/hex/hex-handoff.mjs");
+        const target = sceneId ?? canvas?.scene?.id;
+        const x = entriesOrDataset;
+        const ds = (Array.isArray(x) || x?.pages) ? await h.detailsDataset(x, opts.regionScene ?? target) : x;
+        return h.importDatasetRecords(target, ds, opts);
       },
     },
   };
@@ -880,6 +933,41 @@ Hooks.once("ready", () => {
         console.error(`${MODULE_ID} | patron backfill failed:`, err);
       }
     }, 1500);
+
+    // Hex pages filed before the importer reflowed them keep one paragraph per
+    // printed line. Rewrite them in place, once per world (hexReflowDone): a
+    // fresh import has the same shape and must never be merged.
+    setTimeout(async () => {
+      if (game.users.activeGM?.id !== game.user.id) return;
+      try {
+        const { reflowLegacyHexPages } = await import("./importer/hex/hex-commit.mjs");
+        await reflowLegacyHexPages();
+      } catch (err) {
+        console.error(`${MODULE_ID} | hex page reflow failed:`, err);
+      }
+    }, 2000);
+
+    // A release grows the import library — a book, a bestiary, a hundred table
+    // rows — and a GM who already imported what they own would never find out.
+    // Once per module version (the census is not cheap), diff the library
+    // against what this world last saw and ASK whether they want the new
+    // material, opening the hub on it if they say yes. Gated to the single
+    // active GM because it stamps a world setting; every other GM reads the
+    // badges it leaves in the Manage tree.
+    setTimeout(async () => {
+      if (game.users.activeGM?.id !== game.user.id) return;
+      try {
+        const { checkImporterNews, CATALOG_SETTING } = await import("./importer/importer-hub-news.mjs");
+        await checkImporterNews({
+          version: String(game.modules.get(MODULE_ID)?.version ?? ""),
+          read: () => game.settings.get(MODULE_ID, CATALOG_SETTING),
+          write: (value) => game.settings.set(MODULE_ID, CATALOG_SETTING, value),
+          // `announce` defaults to the prompt; only tests pass their own.
+        });
+      } catch (err) {
+        console.error(`${MODULE_ID} | importer news check failed:`, err);
+      }
+    }, 2500);
 
     // When the module version changes, quietly bring already-imported monsters
     // up to fresh-import fidelity. The version stamp advances only on success.

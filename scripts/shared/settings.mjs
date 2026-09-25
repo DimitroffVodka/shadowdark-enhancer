@@ -393,6 +393,20 @@ export function registerSettings() {
     scope: "world", config: false, type: Boolean, default: false,
   });
 
+  // Importer library snapshot — { version, keys, fresh }. `keys` is every row
+  // the Manage tree knew about when this module version first loaded; `fresh`
+  // is the subset that version ADDED, which the hub badges and its "New"
+  // filter read. See scripts/importer/importer-hub-news.mjs.
+  game.settings.register(MODULE_ID, "importerCatalog", {
+    scope: "world", config: false, type: Object, default: {},
+  });
+
+  // The one-time rewrite of hex pages filed one <p> per printed line has run
+  // (reflowLegacyHexPages). Once, because later imports share that shape.
+  game.settings.register(MODULE_ID, "hexReflowDone", {
+    scope: "world", config: false, type: Boolean, default: false,
+  });
+
   // Last module version whose automatic monster backfill ran in this world —
   // the update-time sweep that replaced Maintenance → "Backfill monsters".
   game.settings.register(MODULE_ID, "backfillVersion", {

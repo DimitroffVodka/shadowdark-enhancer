@@ -20,8 +20,16 @@
  */
 
 import { hexIdKey, buildHexPageHtml, rewriteHexPlaceholders } from "../tables/hex-parser.mjs";
+import { COASTAL_WATER } from "../../hex-map/tag-store.mjs";
+
+/** Keyed-row feature kinds that cross to Extras as a `features` entry; the
+ *  generic keyed_location does not, it would only say "keyed" on every hex. */
+const SETTLEMENT_FEATURES = new Set(["city", "city_state", "town", "village"]);
 
 export const DATASET_VERSION = 1;
+
+/** The only zoneColor Extras accepts: empty, or #rrggbb. */
+export const ZONE_COLOR = /^(#[0-9a-f]{6})?$/i;
 
 /** Overlay tags become networks, not terrain. The book's "path" is Extras' road. */
 export const OVERLAY_TO_NETWORK = { river: "river", path: "road" };
@@ -96,11 +104,13 @@ export function hexNum(id) {
  * @param {object[]} [args.summaryRows]  hex-summary rows
  * @param {Object<string,{terrain?:string, overlays?:string[]}>} [args.tags]  per published number (string or int keys)
  * @param {Object<string|number,{art:string, icon?:string}>} [args.assignments]  per-hex tile art (assignmentsFromManifest)
+ * @param {Map<number,{zone:string, zoneColor?:string}>} [args.zones]  every hex's region (hex-region.mjs hexZones); it
+ *   outranks a keyed row's zone, whose printed spelling is the book's abbreviation
  * @param {{cols:number, rows:number, origin?:0|1, firstRow?:number, rowsLowered?:number}} [args.gridHint]  the map's size and numbering
  *   origin as the tagger knows them; without a hint the origin is 0 when any hex sits in column 0 or row 0
  * @returns {object} dataset
  */
-export function buildHexDataset({ name = "", source = "", drafts = [], summaryRows = [], tags = {}, assignments = {}, gridHint } = {}) {
+export function buildHexDataset({ name = "", source = "", drafts = [], summaryRows = [], tags = {}, assignments = {}, zones, gridHint } = {}) {
   const byNum = new Map();
   const slot = (num) => { if (!byNum.has(num)) byNum.set(num, { num }); return byNum.get(num); };
 
@@ -110,9 +120,16 @@ export function buildHexDataset({ name = "", source = "", drafts = [], summaryRo
     const h = slot(num);
     h.name = r.name || h.name;
     h.zone = r.zone || h.zone;
-    h.terrain = r.terrain?.[0] || h.terrain;
+    // The book's Terrain column is a list, and its order is not a ranking:
+    // "River, Swamp" is a swamp with a river through it, the same hex as
+    // "Swamp, River". So the first LAND word is the terrain and any water word
+    // beside it is the overlay (river and path become networks); a row that is
+    // only water ("River" for a confluence, "Ocean" for a wreck) stays water.
+    const words = r.terrain ?? [];
+    const terrain = words.find((t) => !COASTAL_WATER.has(t)) ?? words[0];
+    h.terrain = terrain || h.terrain;
     h.feature = r.feature || h.feature;
-    for (const t of r.terrain?.slice(1) ?? []) if (OVERLAY_TO_NETWORK[t]) (h.overlays ??= new Set()).add(t);
+    for (const t of words) if (t !== terrain && OVERLAY_TO_NETWORK[t]) (h.overlays ??= new Set()).add(t);
   }
   const keySet = new Set(drafts.map((d) => d?.key).filter(Boolean));
   for (const d of drafts) {
@@ -131,6 +148,15 @@ export function buildHexDataset({ name = "", source = "", drafts = [], summaryRo
     const h = slot(num);
     if (t.terrain) h.terrain = h.terrain || t.terrain;   // a keyed row's terrain wins over a tag
     for (const o of t.overlays ?? []) if (OVERLAY_TO_NETWORK[o]) (h.overlays ??= new Set()).add(o);
+  }
+
+  // Regions from the border scan, for every hex it covers, not only the keyed.
+  for (const [k, z] of zones ?? []) {
+    const num = hexNum(k);
+    if (num === null || !z?.zone) continue;
+    const h = slot(num);
+    h.zone = z.zone;
+    if (z.zoneColor) h.zoneColor = z.zoneColor;
   }
 
   // Curated art, last: it names a file and says nothing about terrain, so it
@@ -168,8 +194,9 @@ export function buildHexDataset({ name = "", source = "", drafts = [], summaryRo
   // costs one short record and keeps "arctic sea" on the hex the GM opens,
   // whatever the art under it ends up being.
   //
-  // The book's settlement marker still has no field of its own; it stays on the
-  // crawl entry's keyed rows.
+  // The book's settlement marker crosses as an Extras `features` entry (type,
+  // name, discovered), the record field Extras paints a Specials tile from;
+  // the generic keyed_location kind stays on the crawl entry's keyed rows.
   const hexes = [...byNum.values()]
     .filter((h) => h.name || h.terrain || h.desc || h.zone || h.art)
     .sort((a, b) => a.num - b.num).map((h) => {
@@ -179,8 +206,11 @@ export function buildHexDataset({ name = "", source = "", drafts = [], summaryRo
       if (word) out.terrain = word;
       if (h.desc) out.desc = h.desc;
       if (h.zone) out.zone = h.zone;
+      if (h.zoneColor) out.zoneColor = h.zoneColor;
       if (h.art) out.art = h.art;
       if (h.icon) out.icon = h.icon;
+      // Extras wants an id per entry; one settlement per hex, so the number is it.
+      if (SETTLEMENT_FEATURES.has(h.feature)) out.features = [{ id: `settlement-${h.num}`, type: h.feature, name: h.name ?? "", discovered: false }];
       return out;
     });
 
@@ -225,6 +255,8 @@ export function validateHexDataset(ds) {
     for (const key of ["art", "icon"]) {
       if (key in h && typeof h[key] !== "string") errors.push(`hex ${h.num} ${key} must be text`);
     }
+    // Extras refuses the whole build over one colour it cannot parse.
+    if ("zoneColor" in h && !ZONE_COLOR.test(h.zoneColor)) errors.push(`hex ${h.num} zoneColor must be empty or #rrggbb`);
     if ("col" in h || "row" in h) errors.push(`hex ${h.num} carries col/row — numbers only at the boundary`);
   }
   for (const r of ds.terrain?.regions ?? []) {

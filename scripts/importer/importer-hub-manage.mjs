@@ -18,6 +18,7 @@ import { planBatch } from "./batch-import.mjs";
 import { contentIdForName } from "./tables/table-shapes.mjs";
 import { findById, importNameFor, isMatrix } from "./tables/table-manifest.mjs";
 import { installMethods, t } from "./importer-hub-shared.mjs";
+import { entryKey, freshKeys } from "./importer-hub-news.mjs";
 import { MODULE_ID } from "../shared/module-id.mjs";
 import { charSourceKey } from "../shared/source-keys.mjs";
 import { SOURCES as DOWNTIME_SOURCES, SOURCE_SLUGS as DOWNTIME_SLUGS } from "../downtime/downtime-skeleton.mjs";
@@ -43,23 +44,29 @@ const DOWNTIME_PDF_KEYS = { "cs6": "CS6", "western-reaches": "WR" };
  *
  * @param {Array} nodes           top-level nodes from buildManageTree()
  * @param {object} opts
- * @param {"all"|"locked"|"imported"} [opts.filter]
+ * @param {"all"|"locked"|"imported"|"new"} [opts.filter]
  * @param {string} [opts.query]   free-text search over entry name / src / pages
  * @param {Set<string>} [opts.expanded] node ids the GM has opened
  * @param {(node:object)=>number} [opts.runnable] rows a folder's "Import all" can run
+ * @param {Set<string>} [opts.fresh] row keys this module version added (importer-hub-news)
  * @returns {Array}
  */
-export function filterManageTree(nodes, { filter = "all", query = "", expanded = new Set(), runnable = () => 0 } = {}) {
+export function filterManageTree(nodes, { filter = "all", query = "", expanded = new Set(), runnable = () => 0, fresh = new Set() } = {}) {
   const q = String(query || "").trim().toLowerCase();
   const wanted = (e) => filter === "locked" ? !e.present
     : filter === "imported" ? !!e.present
+    : filter === "new" ? e.isNew
     : true;
   const hit = (s) => String(s ?? "").toLowerCase().includes(q);
   const shape = (node, depth, underHit) => {
     const selfHit = !!q && hit(node.label);
     const inBranch = underHit || selfHit;
-    const entries = (node.entries ?? []).filter((e) =>
-      wanted(e) && (!q || inBranch || hit(e.name) || hit(e.src) || hit(e.pages)));
+    // Stamped before the filter runs, because "New" is one of the filters.
+    // Only not-yet-imported rows carry the flag, so a row stops advertising
+    // itself the moment it is imported.
+    const entries = (node.entries ?? [])
+      .map((e) => (!e.present && fresh.has(entryKey(node.id, e.name)) ? { ...e, isNew: true } : e))
+      .filter((e) => wanted(e) && (!q || inBranch || hit(e.name) || hit(e.src) || hit(e.pages)));
     const children = (node.children ?? []).map((c) => shape(c, depth + 1, inBranch)).filter(Boolean);
     const empty = !entries.length && !children.length;
     if (empty && (q ? !selfHit : filter !== "all")) return null;
@@ -322,6 +329,7 @@ class HubManageMethods {
       query: this._manageSearch,
       expanded: this._manageExpandedNodes,
       runnable,
+      fresh: freshKeys(),
     });
   }
 
@@ -494,10 +502,11 @@ class HubManageMethods {
 
   /** Expand every node in the Manage tree. */
   /** Narrow the tree to everything / only what's still locked / only what's
-   *  imported. Cheap: the census cache is untouched, only the view is reshaped. */
+   *  imported / only what this module update added. Cheap: the census cache is
+   *  untouched, only the view is reshaped. */
   _onManageFilter(event, target) {
     const next = target?.dataset?.filter;
-    if (!["all", "locked", "imported"].includes(next)) return;
+    if (!["all", "locked", "imported", "new"].includes(next)) return;
     this._manageFilter = next;
     this.render();
   }
@@ -1115,6 +1124,59 @@ class HubManageMethods {
 
     this._invalidateItemsCache();
     this.render();
+  }
+
+  /**
+   * Tools → "Key locations": every keyed location of a book, filed as one
+   * journal entry per REGION with a page per hex (hex/hex-book-import.mjs).
+   *
+   * Confirmed first, because one press reads dozens of pages out of the GM's
+   * PDF and writes hundreds of journal pages. The dialog says the run repeats
+   * safely: hex-commit matches pages by the hex flag and updates them in
+   * place, so a second run after a parser fix costs nothing but time.
+   */
+  async _onImportKeyLocations() {
+    const { keyLocationBooks, importKeyLocations } = await import("./hex/hex-book-import.mjs");
+    const books = keyLocationBooks();
+    if (!books.length) { ui.notifications.warn(t("SDE.importer.hex.book.noBooks")); return; }
+    const options = books
+      .map((src) => `<option value="${src}">${foundry.utils.escapeHTML(CHAR_SOURCES[src]?.label ?? src)}</option>`)
+      .join("");
+    const picked = await foundry.applications.api.DialogV2.wait({
+      window: { title: t("SDE.importer.hex.book.title"), icon: "fas fa-map-location-dot" },
+      content: `
+        <p>${t("SDE.importer.hex.book.lead")}</p>
+        <div style="display:grid;grid-template-columns:auto 1fr;gap:0.4rem 0.6rem;align-items:center;">
+          <label for="sde-keyloc-src"><strong>${t("SDE.importer.downtime.book")}</strong></label>
+          <select id="sde-keyloc-src" name="src">${options}</select>
+        </div>
+        <p class="notes">${t("SDE.importer.hex.book.notes")}</p>`,
+      buttons: [
+        { action: "import", label: t("SDE.importer.hex.book.import"), icon: "fas fa-book-open", default: true,
+          callback: (event, button) => button.form.elements.src.value },
+        { action: "cancel", label: t("SDE.importer.btn.cancel"), icon: "fas fa-xmark" },
+      ],
+      rejectClose: false,
+    }).catch(() => null);
+    if (!picked || picked === "cancel") return;
+
+    // A permanent notification is the progress bar here: the run is one long
+    // await with no render of its own, and fifteen per-region toasts would bury
+    // everything else the GM has on screen.
+    const note = ui.notifications.info(t("SDE.importer.hex.book.working"), { permanent: true, progress: true, console: false });
+    let report;
+    try {
+      report = await importKeyLocations(picked, {
+        onRegion: (region, i, n) => note?.update?.({ message: t("SDE.importer.hex.book.progress", { region, i, n }), pct: (i - 1) / n }),
+      });
+    } finally {
+      note?.remove?.();
+    }
+    ui.notifications.info(t("SDE.importer.hex.book.done",
+      { hexes: report.hexes, regions: report.regions.length, book: report.label }));
+    if (report.failed.length) {
+      ui.notifications.warn(t("SDE.importer.hex.book.failed", { n: report.failed.length, first: report.failed[0].region }));
+    }
   }
 
 }

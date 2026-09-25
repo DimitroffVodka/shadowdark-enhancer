@@ -2160,7 +2160,11 @@ body.theme-light .sde-mtree-node.depth-2 > .sde-mtree-row .sde-mtree-icon { colo
   opacity: 0.6;
 }
 body.theme-light .sde-mtree-entry.is-present .sde-mtree-entry-mark,
+/* "new" sits in the same slot as the green "imported" tag but means the
+   opposite thing — a row this update added — so it takes the accent. */
+.sde-mtree-entry-new { color: var(--sde-bar-accent); opacity: 1; }
 body.theme-light .sde-mtree-entry-tag { color: #2e6b2e; }
+body.theme-light .sde-mtree-entry-new { color: var(--sde-bar-accent); }
 body.theme-light .sde-mtree-entry-bundle { color: #6b6b6b; }
 body.theme-light .sde-mtree-entry.is-locked .sde-mtree-entry-mark { color: #9c5210; }
 .sde-mtree-unlock {
@@ -10527,3 +10531,259 @@ body.theme-light .sde-parry-note { color: #2e6b2e; }
 
 /* Hex map: what the grid confirmation can and cannot change. */
 .sde-hexmap-scope { border-left: 3px solid var(--color-border-highlight, #a88); padding-left: 8px; }
+
+/* ==========================================================================
+   Regional Training (sde-training) — Character Builder design language.
+
+   Same reasoning as the Downtime block above: the builder is the house style,
+   so this window speaks its vocabulary rather than inventing another one —
+   printed-rulebook palette, blackletter titles over a hairline rule, panel
+   cards on a black page, and the same button scale.
+
+   Deliberately NOT coupled to .sde-cb-* or .sde-dt-* selectors: the palette is
+   re-declared here and the classes are this window's own, so a change to the
+   builder's or downtime's internals cannot silently re-skin this one.
+   ========================================================================== */
+.sde-training .window-content {
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.sde-training-root {
+  /* Printed-rulebook palette, mirrored from the Character Builder. */
+  --sd-page:#000; --sd-panel:#0d0d0d; --sd-quote-inner:#1a1a1a;
+  --sd-text:#fff; --sd-text-body:#f0f0f0; --sd-text-2:#e0e0e0; --sd-text-muted:#999;
+  --sd-hairline:#443c3c; --sd-frame:#c9c9c9; --sd-gold:#c9aa58;
+  --sd-font-title:"JSL Blackletter", var(--font-header, serif);
+  --sd-font-body:"Montserrat-Medium", var(--font-sans, "Signika"), sans-serif;
+
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  background: var(--sd-page);
+  color: var(--sd-text-body);
+  font-family: var(--sd-font-body);
+  font-size: 13px;
+  /* Native selects/scrollbars follow core's theme, not this always-dark app. */
+  color-scheme: dark;
+}
+.sde-training-root select {
+  background: var(--sd-panel);
+  color: var(--sd-text);
+  border: 1px solid var(--sd-hairline);
+  border-radius: 5px;
+  padding: 4px 6px;
+  font-size: 12.5px;
+}
+.sde-training-root select option { background: var(--sd-quote-inner); color: var(--sd-text); }
+
+/* --- Pinned header -------------------------------------------------------- */
+.sde-trn-header {
+  flex: 0 0 auto;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 12px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--sd-hairline);
+}
+.sde-trn-field { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.sde-trn-field label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--sd-text-muted);
+}
+.sde-trn-field select { min-width: 150px; max-width: 230px; }
+/* The count is the one number that changes as a trainer is worked through, so
+   it gets the display face and sits opposite the two pickers. */
+.sde-trn-remaining {
+  margin-left: auto;
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+  white-space: nowrap;
+}
+.sde-trn-remaining-n {
+  font-family: var(--sd-font-title);
+  font-size: 26px;
+  line-height: 1;
+  color: var(--sd-gold);
+  font-variant-numeric: tabular-nums;
+}
+.sde-trn-remaining-of { font-size: 11px; color: var(--sd-text-muted); }
+
+/* --- Scroll plumbing: pinned header and footer, scrolling body ------------ */
+.sde-trn-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 12px;
+  scrollbar-width: auto;
+  scrollbar-gutter: stable;
+  scrollbar-color: var(--sd-hairline) var(--sd-page);
+}
+.sde-trn-scroll::-webkit-scrollbar { width: 10px; }
+.sde-trn-scroll::-webkit-scrollbar-track { background: var(--sd-page); }
+.sde-trn-scroll::-webkit-scrollbar-thumb { background: var(--sd-hairline); border-radius: 5px; }
+
+/* --- Panel cards ---------------------------------------------------------- */
+.sde-trn-card {
+  background: var(--sd-panel);
+  border: 1px solid var(--sd-hairline);
+  border-radius: 8px;
+  padding: 14px 16px;
+}
+.sde-trn-head {
+  display: flex; flex-wrap: wrap; align-items: baseline; gap: 10px;
+  margin: 0 0 10px;
+  font-family: var(--sd-font-title);
+  font-size: 17px;
+  font-weight: normal;
+  color: var(--sd-text);
+  letter-spacing: 0.03em;
+  border-bottom: 1px solid var(--sd-frame);
+  padding-bottom: 5px;
+}
+.sde-trn-headnote,
+.sde-trn-headlink {
+  margin-left: auto;
+  font-family: var(--sd-font-body);
+  font-size: 11px;
+  color: var(--sd-text-muted);
+  white-space: nowrap;
+}
+.sde-trn-headlink { cursor: pointer; text-decoration: underline; }
+.sde-trn-headlink:hover { color: var(--sd-text); }
+
+/* --- The trainer card ----------------------------------------------------- */
+.sde-trn-trainer-card { display: flex; gap: 14px; align-items: flex-start; }
+/* The emblem SVGs are pre-tinted gold in the file (fill #c9a54a), so there is
+   no CSS filter here — same treatment as the Character Builder's class art. */
+.sde-trn-emblem {
+  flex: 0 0 auto;
+  width: 64px; height: 64px;
+  border: 1px solid var(--sd-hairline);
+  border-radius: 8px;
+  padding: 7px;
+  background: var(--sd-quote-inner);
+}
+.sde-trn-trainer-text { min-width: 0; }
+.sde-trn-name {
+  margin: 0;
+  font-family: var(--sd-font-title);
+  font-size: 22px;
+  font-weight: normal;
+  line-height: 1.15;
+  color: var(--sd-text);
+  letter-spacing: 0.02em;
+}
+.sde-trn-sub {
+  margin: 3px 0 0;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--sd-text-muted);
+}
+.sde-trn-desc { margin: 8px 0 0; font-size: 12.5px; line-height: 1.5; color: var(--sd-text-2); }
+
+/* --- Tasks ---------------------------------------------------------------- */
+.sde-trn-tasks { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 7px; }
+.sde-trn-tasks li { font-size: 12.5px; line-height: 1.5; color: var(--sd-text-2); }
+.sde-trn-tasks li::marker { color: var(--sd-gold); font-family: var(--sd-font-title); }
+
+/* --- Benefit rows --------------------------------------------------------- */
+.sde-trn-benefits { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.sde-trn-benefit {
+  display: flex; align-items: flex-start; gap: 10px;
+  padding: 8px 10px;
+  border: 1px solid var(--sd-hairline);
+  border-radius: 5px;
+  transition: border-color 0.12s, background 0.12s;
+}
+.sde-trn-benefit:hover { border-color: var(--sd-frame); }
+/* Taught rows read as a left rail, like the builder's chosen option. A real
+   border-left rather than an inset shadow: inset shadows capture as a solid
+   fill in html2canvas, which makes a correct window look broken in a
+   screenshot (the note in the Downtime block above). */
+.sde-trn-taken {
+  border-left: 3px solid var(--sd-gold);
+  padding-left: 8px;
+  background: var(--sd-quote-inner);
+}
+.sde-trn-taken .sde-trn-benefit-text { color: var(--sd-text-muted); text-decoration: line-through; }
+.sde-trn-face {
+  flex: 0 0 auto;
+  width: 22px; height: 22px;
+  display: inline-flex; align-items: center; justify-content: center;
+  border: 1px solid var(--sd-hairline);
+  border-radius: 4px;
+  font-family: var(--sd-font-title);
+  font-size: 13px;
+  color: var(--sd-gold);
+  font-variant-numeric: tabular-nums;
+}
+.sde-trn-benefit-body { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.sde-trn-benefit-text { font-size: 12.5px; line-height: 1.45; color: var(--sd-text); }
+.sde-trn-hint { font-size: 11px; font-style: italic; color: var(--sd-text-muted); line-height: 1.4; }
+/* The honest label on every row: what this module will actually do with it. */
+.sde-trn-tag {
+  flex: 0 0 auto;
+  align-self: center;
+  padding: 1px 6px;
+  border: 1px solid var(--sd-hairline);
+  border-radius: 3px;
+  font-size: 9.5px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--sd-text-muted);
+  white-space: nowrap;
+}
+.sde-trn-tag-auto { border-color: var(--sd-gold); color: var(--sd-gold); }
+
+/* --- Notices and footer --------------------------------------------------- */
+.sde-trn-warn {
+  margin: 0;
+  padding: 9px 12px;
+  border: 1px solid var(--sd-gold);
+  border-radius: 6px;
+  background: var(--sd-quote-inner);
+  font-size: 12px;
+  color: var(--sd-text-2);
+}
+.sde-trn-empty { margin: 0; font-size: 12px; font-style: italic; color: var(--sd-text-muted); }
+.sde-trn-footer {
+  flex: 0 0 auto;
+  display: flex; align-items: center; gap: 12px;
+  padding: 10px 12px;
+  border-top: 1px solid var(--sd-hairline);
+}
+.sde-trn-footer .sde-trn-btn { margin-left: auto; }
+.sde-trn-btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  width: auto; flex: 0 0 auto;
+  padding: 7px 14px;
+  border: 1px solid var(--sd-hairline);
+  border-radius: 5px;
+  background: var(--sd-panel);
+  color: var(--sd-text);
+  font-size: 13px;
+  line-height: 1.5;
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s, filter 0.12s;
+}
+.sde-trn-btn:hover:not(:disabled) { border-color: var(--sd-text); }
+.sde-trn-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+/* The builder's "ready" treatment: filled, inverted, bold. */
+.sde-trn-primary {
+  background: var(--sd-text); border-color: var(--sd-text);
+  color: var(--sd-page); font-weight: 700;
+}
+.sde-trn-primary:hover:not(:disabled) { filter: brightness(1.1); }

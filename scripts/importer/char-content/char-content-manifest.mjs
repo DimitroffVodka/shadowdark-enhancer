@@ -240,6 +240,47 @@ const GMWR_REGION_PAGES = {
 };
 
 /**
+ * GM Guide key locations, per region: the LOCAL HEXES table (number, region,
+ * terrain, name — the summary row) and the pages of "643. ROCK EATERS"
+ * write-ups that follow it. Page numbers only; no book text ships (D1).
+ *
+ * The two need different extraction modes — the table is printed full width
+ * and needs one column, the write-ups are two columns — so they are two
+ * fields, not one range. Verified page by page against the PDF (2026-09-20):
+ * every region's key pages run from its LOCAL HEXES page + 3 to the page
+ * before its training spread.
+ *
+ * Morzomotha is deliberately absent. Its entries are keyed M010, M1004 … — an
+ * underworld level with no surface coordinates, so hexIdKey returns null and
+ * the commit would drop every one of them.
+ * ponytail: surface regions only; the M-prefixed underworld needs a second
+ * coordinate space to be keyed at all, not another row here.
+ */
+export const GMWR_KEY_LOCATIONS = {
+  "Bastion Mountains":   { hexes: "85",     keys: "88-90" },
+  "Dhalpurna Mountains": { hexes: "93",     keys: "96-98" },
+  "Djurum Desert":       { hexes: "101",    keys: "104-110" },
+  "Duchy of Montmar":    { hexes: "113",    keys: "116-119" },
+  "Gilzai Mountains":    { hexes: "123",    keys: "126-128" },
+  "The Gloaming":        { hexes: "131",    keys: "134-138" },
+  "Isles of Andrik":     { hexes: "141",    keys: "144-146" },
+  "Kyzian Steppes":      { hexes: "149",    keys: "152-156" },
+  "The Last Sea":        { hexes: "159",    keys: "162-165" },
+  "Lowland Moor":        { hexes: "169",    keys: "172-174" },
+  "Myre Swamp":          { hexes: "187",    keys: "190-194" },
+  "Rimespire Mountains": { hexes: "197",    keys: "200-202" },
+  "Sablewood":           { hexes: "205",    keys: "208-213" },
+  "Silent Mountains":    { hexes: "217",    keys: "220-222" },
+  "Tal-Yool Jungle":     { hexes: "226-227", keys: "234-244" },
+};
+
+/**
+ * Books whose key locations can be imported in one pass, by source key.
+ * A book earns a row here only once its page map is verified against the PDF.
+ */
+export const KEY_LOCATION_PAGES = { GMWR: GMWR_KEY_LOCATIONS };
+
+/**
  * Every GM Guide table row as [name, printed page], in page order: the four
  * per-region rows, then the rest of the book. The names are what the Manage
  * tree shows and what table-shapes.mjs registers a recipe for — the two are

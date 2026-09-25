@@ -36,6 +36,7 @@ import { installHubCommit } from "./importer-hub-commit.mjs";
 import { installHubManage } from "./importer-hub-manage.mjs";
 import { installHubBatch } from "./importer-hub-batch.mjs";
 import { planBatch } from "./batch-import.mjs";
+import { freshKeys, lockedKeys } from "./importer-hub-news.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
@@ -94,6 +95,8 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
       // PDF → text extraction (Foundry's bundled PDF.js; no external tool)
       hubGrabPdfText:         function (...args) { return this._onGrabPdfText(...args); },
       hubExtractPdf:          function (...args) { return this._onExtractPdf(...args); },
+      // Tools → Key locations: a book's whole hex key, region by region (hex-book-import.mjs)
+      hubKeyLocations:        function (...args) { return this._onImportKeyLocations(...args); },
       // Manage strip — census/gap/duplicate + maintenance
       monsterGapExpand:       function (...args) { return this._onMonsterGapExpand(...args); },
       monsterSeedPaste:       function (...args) { return this._onMonsterSeedPaste(...args); },
@@ -333,6 +336,22 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
    * every unlock entry point shares one seeding path.
    * @param {{name:string, src?:string, type?:string, contentId?:string|null, page?:string|null, manifestId?:string|null}} seed
    */
+  /**
+   * Open the hub already filtered to what this module version added — the
+   * action behind the update prompt (importer-hub-news.mjs). The filter is set
+   * BEFORE open() renders so the GM never sees a flash of the full tree.
+   * @returns {ImporterHubApp}
+   */
+  static openNewContent() {
+    this._instance ??= new ImporterHubApp();
+    this._instance._manageFilter = "new";
+    // And OPEN the Manage strip. It is collapsed by default (its census is
+    // lazy), so setting the filter alone landed the GM on a hub showing
+    // nothing — the one thing the prompt promised to show them.
+    this._instance._manageExpanded = true;
+    return this.open();
+  }
+
   static async openContentUnlock(seed) {
     const inst = this.open();
     await inst._seedGenericUnlock(seed);
@@ -786,12 +805,21 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
         this._prepareItemsContext(),
         this._prepareManageTree(),
       ]);
+      const fresh = freshKeys();
       manage = {
         monstersData, itemsData, tree,
         filter: this._manageFilter,
         filterAll: this._manageFilter === "all",
         filterLocked: this._manageFilter === "locked",
         filterImported: this._manageFilter === "imported",
+        filterNew: this._manageFilter === "new",
+        // Rows this module version added that are still not imported — the
+        // count on the "New" filter, which is offered only while there are
+        // any. Read off the unfiltered cache for the same reason as the two
+        // totals below: the button's scope is the library, not the view.
+        newTotal: fresh.size
+          ? lockedKeys(this._manageTreeCache ?? []).filter((key) => fresh.has(key)).length
+          : 0,
         search: this._manageSearch,
         searching: !!this._manageSearch.trim(),
         // Filtered (or searched) to nothing is an ANSWER ("nothing left to

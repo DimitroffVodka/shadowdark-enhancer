@@ -302,10 +302,15 @@ const GMWR_ENTRIES = [
   // "d40 NPCs in the City of Masks" (p281) is deliberately NOT registered. It
   // is one full-page list under a title-case caption that no recipe here can
   // anchor on, and it does not need one: the generic parse reads all forty
-  // entries in printed order as a flat 1d40 under the default extraction. The
-  // book keys its rows 10-49 (roll d4 for the tens, d10 for the ones), and that
-  // key stays at the head of each row's text — a cross-reference to the page,
-  // not noise, and the same forty equally-likely results either way.
+  // entries in printed order as a flat 1d40 under the default extraction.
+  //
+  // The book keys its rows 10-49 (roll d4 for the tens, d10 for the ones). That
+  // key used to be kept at the head of each row's text as a cross-reference to
+  // the page; it is now stripped by stripPrintedRowKeys (table-importer.mjs).
+  // Foundry rolls the table's own 1d40 and shows ranges 1-40, so the printed
+  // key can never agree with the result the player sees — reversed on a user
+  // report that the numbers correlate with nothing (2026-09-20). Still the same
+  // forty equally-likely results.
   _entry("gmwr/wendel-types", "GMWR", "Wendel Types",
     gmwr("auto", BANDED("WENDEL TYPES", 8))),
 ];

@@ -142,6 +142,33 @@ crossed column boundaries.
 The extractor handles full-width lower tables automatically. If a warning
 appears on a dense page, review the preview text before committing.
 
+### Uploading a book PDF is rejected as "too large"
+
+The limit is not Foundry's and not the module's. Foundry's server sets no
+upload size limit at all — the refusal comes from the web server or proxy in
+front of it (nginx allows 1 MB by default, Cloudflare 100 MB), and a
+full-colour rulebook is larger than both. Foundry's own wording says so:
+*"too large for your proxy server to handle."* Nothing in the module can raise
+it.
+
+Link the file where it lies instead of uploading it:
+
+1. Put the PDF into your Foundry data folder by whatever route you already
+   have — your host's file manager or asset library, SFTP, or simply copying
+   it into `Data/assets/`.
+2. **Tools → Source PDFs**, choose the book, then press **Link a file on the
+   server** and pick the file. Nothing is uploaded, and the book links exactly
+   as an upload would.
+
+Up to 0.17.3 a refused upload reported success: it linked the book to a file
+that was never written, so the library showed it as linked and every **Grab
+text** or batch import for that book failed later for no visible reason.
+Update the module — the refusal is now reported and nothing is linked, and a
+book whose file is missing is shown as missing the next time you open the
+library, so a bad link from an older version corrects itself. Books held in a
+host's asset library (The Forge, S3) are taken on trust; the browser cannot
+check them.
+
 ### Grab text fails with "Couldn't read text from that PDF"
 
 The notice ends with the reason the browser gave, and the console holds the

@@ -41,10 +41,25 @@ test("drafts and rows merge by number; rows give zone, terrain and feature, draf
   assert.match(h[101].desc, /hex 0203\./);           // placeholder degraded to its label, no @@HEX
   assert.doesNotMatch(h[101].desc, /@@HEX/);
   assert.equal(h[203].name, "Fen of Sighs");
-  // Extras' builder rejects any hex key outside its record fields; the settlement marker has none.
-  const allowed = new Set(["num", "name", "terrain", "desc", "zone"]);
+  // Extras' builder rejects any hex key outside its record fields; the keyed
+  // row's own `feature` word never crosses, only a settlement does (below).
+  const allowed = new Set(["num", "name", "terrain", "desc", "zone", "features"]);
   for (const x of ds.hexes) for (const k of Object.keys(x)) assert.ok(allowed.has(k), `unexpected hex field ${k}`);
   assert.equal("feature" in h[203], false);
+});
+
+test("a settlement crosses as an Extras features entry; a plain keyed location does not", () => {
+  const ds = buildHexDataset({ name: "Test", summaryRows: [
+    { num: "0305", key: "3,5", zone: "Z", terrain: ["forest"], name: "Low Town", feature: "town" },
+    { num: "0306", key: "3,6", zone: "Z", terrain: ["forest"], name: "A Cellar", feature: "keyed_location" },
+    { num: "0307", key: "3,7", zone: "Z", terrain: ["desert"], name: "Reme", feature: "city_state" },
+  ] });
+  const h = Object.fromEntries(ds.hexes.map((x) => [x.num, x]));
+  assert.deepEqual(h[305].features, [{ id: "settlement-305", type: "town", name: "Low Town", discovered: false }]);
+  assert.deepEqual(h[307].features, [{ id: "settlement-307", type: "city_state", name: "Reme", discovered: false }]);
+  assert.equal("features" in h[306], false);
+  assert.equal("feature" in h[305], false, "the raw word still stays home");
+  assert.ok(validateHexDataset(ds).ok);
 });
 
 test("grid origin and clipped staggered edges survive the handoff and are validated", () => {
@@ -197,4 +212,20 @@ test("a clipped top row and a short lowered column are honoured, not just cols Ã
   assert.match(check("000").errors.join(" "), /outside/, "raised column 0 has no row 0 â€” that half cell is the frame");
   assert.match(check("0103").errors.join(" "), /outside/, "lowered column 1 stops one row short");
   for (const id of ["001", "0100", "0102"]) assert.equal(check(id).ok, true, `${id} is on the map`);
+});
+
+test("a keyed row's first land word is the terrain; a water word beside it is the overlay", () => {
+  const ds = buildHexDataset({ name: "Test", summaryRows: [
+    { num: "1626", key: "16,26", zone: "Z", terrain: ["river", "swamp"], name: "Buried Ruins", feature: "keyed_location" },
+    { num: "1627", key: "16,27", zone: "Z", terrain: ["swamp", "river"], name: "Same hex, other order", feature: "keyed_location" },
+    { num: "2025", key: "20,25", zone: "Z", terrain: ["river"], name: "The Forks", feature: "keyed_location" },
+    { num: "0503", key: "5,3", zone: "Z", terrain: ["ocean"], name: "Sea Nymphs", feature: "keyed_location" },
+  ] });
+  const h = Object.fromEntries(ds.hexes.map((x) => [x.num, x]));
+  assert.equal(h[1626].terrain, "swamp", "the land word wins whatever the column's order");
+  assert.equal(h[1627].terrain, "swamp");
+  assert.deepEqual(ds.networks.river.sort(), [1626, 1627], "the river runs through both as a network");
+  assert.equal(h[2025].terrain, "river", "a row that is only water stays water");
+  assert.equal(h[503].terrain, "ocean");
+  assert.deepEqual(ds.networks.road, []);
 });

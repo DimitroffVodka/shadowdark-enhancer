@@ -45,6 +45,56 @@ export function isArcticSeaEncounterTable(table) {
 }
 
 /**
+ * Trailing footnote markers the PDF extraction flattens into a cell.
+ *
+ * The GM Guide prints daggers against some encounter categories ("Fiend†") and
+ * the grab has no superscript to drop, so the marker lands in the result text.
+ * Four Rimespire zone tables carry one.
+ */
+const FOOTNOTE_MARKER = /[\u2020\u2021*\u00ba\u00b0]+\s*$/u;
+
+/** True for a table that routes to another table rather than to a monster. */
+export function isEncounterZoneTable(name) {
+  return /\bEncounter (?:Zone|Type)\b/.test(String(name ?? ""));
+}
+
+/**
+ * The table(s) one Encounter Zone row should roll on.
+ *
+ * A zone table is an index, not content: rolling "Djurum Desert Encounter Zone:
+ * Salt Flat" yields a CATEGORY ("Digger"), and the GM is meant to roll that
+ * region's table for it. The sibling is named by convention, so the mapping is
+ * "<region> Encounter Zone: <terrain>" + "Digger" -> "<region> Encounters:
+ * Digger". Returns names, resolved to documents by the caller; [] when this is
+ * not a zone table or the row is empty.
+ *
+ * Two shapes in the books beyond the plain one:
+ *   - Morzomotha pairs two categories in a cell ("Beast + Horror"), which is
+ *     two tables to roll, so both are returned.
+ *   - Tal-Yool's "Special" points at "<region> Special Encounters", which is
+ *     not a per-category table.
+ * Pure.
+ *
+ * @param {string} zoneName    the zone table's name
+ * @param {string} resultText  one row's text
+ * @returns {string[]} sibling table names, in roll order
+ */
+export function encounterZoneTargets(zoneName, resultText) {
+  const name = String(zoneName ?? "");
+  if (!isEncounterZoneTable(name)) return [];
+  const base = name.replace(/\s*Encounter (?:Zone|Type).*$/, "").trim();
+  if (!base) return [];
+  return String(resultText ?? "")
+    .replace(FOOTNOTE_MARKER, "")
+    .split(/\s*\+\s*/)
+    .map((part) => part.replace(FOOTNOTE_MARKER, "").trim())
+    .filter(Boolean)
+    .map((part) => (/^special$/i.test(part)
+      ? `${base} Special Encounters`
+      : `${base} Encounters: ${part}`));
+}
+
+/**
  * Infer a table's enrichment kind from descriptive text fragments (category,
  * custom label, folder path, flags, name). Pure — shared by import-time
  * auto-enrich (table-importer.mjs) and the pack sweep below.

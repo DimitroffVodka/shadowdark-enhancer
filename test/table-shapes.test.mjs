@@ -5,7 +5,7 @@
 // user's own uploaded PDFs, not in this repo.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { parseByShape, buildTableData, parseTables } from "../scripts/importer/tables/table-importer.mjs";
+import { parseByShape, buildTableData, parseTables, stripPrintedRowKeys } from "../scripts/importer/tables/table-importer.mjs";
 import { shapeForName, TABLE_SHAPES } from "../scripts/importer/tables/table-shapes.mjs";
 import { resolveTableFolderPath } from "../scripts/importer/tables/table-folders.mjs";
 import { hasTable, sourcedTableName } from "../scripts/importer/char-content/char-content-manifest.mjs";
@@ -29,6 +29,59 @@ test("prayer shape reconstructs 3 columns incl. merges + a wrapped row", () => {
   assert.deepEqual(g.columns[1].rows.map((r) => r.text), ["beta shall", "zeta shall", "nu xi will", "tau upsilon will"]);
   assert.deepEqual(g.columns[2].rows.map((r) => r.text), ["gamma delta!", "theta iota!", "omicron pi rho!", "phi chi psi!"]);
   assert.equal(g.warnings.length, 0);
+});
+
+// A prayer page copied out of a PDF VIEWER loses the column x-positions the
+// layout parser reads: every face arrives glued onto one line. Reported by a GM
+// who could not import any of the eight gods (2026-09-20) — before the reflow
+// fallback the shape returned null and the generic parser shredded the page
+// into six single-word tables.
+const PRAYER_REFLOWED = [
+  "PRAYER GENERATOR",
+  "d4 Detail 1 Detail 2 Detail 3",
+  "1 Alpha uno, beta shall gamma delta!",
+  "2 Epsilon dos, zeta shall theta iota!",
+  "3 Kappa lambda, nu xi will omicron pi rho!",
+  "4 Sigma cuatro, tau upsilon will phi chi psi!",
+].join("\n");
+
+test("prayer shape rebuilds a reflowed paste that kept no column spacing", () => {
+  const g = parseByShape(PRAYER_REFLOWED, PRAYER, { name: "T" }).generators[0];
+  assert.deepEqual(g.columns[0].rows.map((r) => r.text), ["Alpha uno,", "Epsilon dos,", "Kappa lambda,", "Sigma cuatro,"]);
+  assert.deepEqual(g.columns[1].rows.map((r) => r.text), ["beta shall", "zeta shall", "nu xi will", "tau upsilon will"]);
+  assert.deepEqual(g.columns[2].rows.map((r) => r.text), ["gamma delta!", "theta iota!", "omicron pi rho!", "phi chi psi!"]);
+  // Rebuilt from punctuation, not geometry — the GM has to be told to check it.
+  assert.match(g.warnings.join(" "), /no column spacing/i);
+});
+
+test("prayer reflow re-glues rows the paste wrapped mid-cell", () => {
+  const wrapped = PRAYER_REFLOWED.replace("beta shall gamma", "beta shall\ngamma");
+  const g = parseByShape(wrapped, PRAYER, { name: "T" }).generators[0];
+  assert.equal(g.columns[2].rows[0].text, "gamma delta!");
+});
+
+test("prayer reflow accepts a hand-typed '|' paste", () => {
+  const piped = [
+    "d4 | Detail 1 | Detail 2 | Detail 3",
+    "1 | Alpha uno, | beta shall | gamma delta!",
+    "2 | Epsilon dos, | zeta shall | theta iota!",
+    "3 | Kappa lambda, | nu xi will | omicron pi rho!",
+    "4 | Sigma cuatro, | tau upsilon will | phi chi psi!",
+  ].join("\n");
+  const g = parseByShape(piped, PRAYER, { name: "T" }).generators[0];
+  assert.deepEqual(g.columns[1].rows.map((r) => r.text), ["beta shall", "zeta shall", "nu xi will", "tau upsilon will"]);
+});
+
+test("prayer reflow refuses a column-major paste rather than committing half a prayer", () => {
+  // All of Detail 1, then all of Detail 2, then all of Detail 3 — unsplittable
+  // by the row terminators, and a wrong guess here commits 216 nonsense rows.
+  const colMajor = [
+    "d4 Detail 1 Detail 2 Detail 3",
+    "Alpha uno, Epsilon dos, Kappa lambda, Sigma cuatro,",
+    "beta shall zeta shall nu xi will tau upsilon will",
+    "gamma delta! theta iota! omicron pi rho! phi chi psi!",
+  ].join("\n");
+  assert.equal(parseByShape(colMajor, PRAYER, { name: "T" }), null);
 });
 
 test("prayer cartesian rows read as a sentence — honor the space separator, not ' | '", () => {
@@ -374,6 +427,140 @@ test("folder resolver mirrors the Manage tree (category-first)", () => {
   assert.equal(p({ name: "Random Junk", category: "other", source: "CS9 Zine" }), "Roll Tables / CS9 Zine");
 });
 
+// Every hub seed stamps `category = custom, customLabel = <the book's own
+// sub-heading>` and `folderPath = [category, sub]` onto the parsed table
+// (table-hub-app._applyImportSeed). Step 1 used to honour that outright, so
+// each of the ~90 headings claimed a TOP-LEVEL pack folder — "Djurum Desert"
+// beside "Roll Tables" — while the catalog's browse list was grouped by region
+// all along. A manifestId now says the manifest places this table, not a label.
+test("folder resolver groups a manifest table under its book's own section", () => {
+  const p = (o) => resolveTableFolderPath(o).join(" / ");
+  // What a real catalog import passes: the seed's hijacked category AND the
+  // [category, sub] folderPath, both of which the manifest identity outranks.
+  const seeded = (manifestId, name, sub, category) => p({
+    name, manifestId, category: "custom", customLabel: sub, folderPath: [category, sub],
+    source: "GMWR",
+  });
+
+  // One region keeps its four tables together, though the book files its
+  // rumors/points of interest under Hexcrawl/Adventure and its encounters
+  // under Random Encounter Tables — the split that made this unnavigable.
+  const region = "Roll Tables / Western Reaches GM Guide / Bastion Mountains";
+  assert.equal(seeded("gmgwr-bastion-mountains-rumors", "Bastion Mountains Rumors",
+    "Bastion Mountains", "Hexcrawl/Adventure"), region);
+  assert.equal(seeded("gmgwr-bastion-mountains-points-of-interest", "Bastion Mountains Points of Interest",
+    "Bastion Mountains", "Hexcrawl/Adventure"), region);
+  assert.equal(seeded("gmgwr-bastion-mountains-encounters", "Bastion Mountains Encounters",
+    "Bastion Mountains", "Random Encounter Tables"), region);
+
+  // A topical section groups the same way, and a matrix column lands with the
+  // grid it was split from.
+  assert.equal(seeded("gmgwr-yodeling-training-benefits", "Yodeling Training Benefits",
+    "Training", "Gameplay"), "Roll Tables / Western Reaches GM Guide / Training");
+  assert.equal(p({ name: "Points of Interest - Descriptor", manifestId: "cs4-points-of-interest:descriptor" }),
+    "Roll Tables / Cursed Scroll #4 / The Black River");
+
+  // The book is the entry's, not the caller's free-text source: a GM importing
+  // the Cursed Scroll printing of a reprint files under that book.
+  assert.equal(p({ name: "Rumors", manifestId: "cs4-rumors", source: "Western Reaches GM Guide" }),
+    "Roll Tables / Cursed Scroll #4 / The Black River");
+
+  // Guard rails: a typed Custom… label still wins when nothing places the
+  // table, the earlier steps still outrank the section, and an unidentified
+  // table is still not routed by guesswork.
+  assert.equal(p({ name: "My Homebrew", category: "custom", customLabel: "Djurum Desert" }), "Djurum Desert");
+  assert.equal(
+    p({ name: "Bastion Mountains Rumors", manifestId: "gmgwr-bastion-mountains-rumors",
+      category: "custom", customLabel: "My Campaign" }),
+    "My Campaign",
+    "a label the GM actually typed still outranks the manifest's own section",
+  );
+  assert.equal(
+    seeded("cs2-low-stakes-pit-fight-solo", "Low Stakes Pit Fight (solo)",
+      "Pit Fighting Encounters", "Gameplay"),
+    "Gameplay / Pit Fighting",
+    "the pit-fighting suite still files by feature, not by its book's section",
+  );
+});
+
+// A suite import names its members from its own recipe and stamps no
+// per-member manifestId, so 193 of one GM's 207 tables sat in a single
+// "Roll Tables / GMWR" folder. These land by NAME instead.
+test("folder resolver places a suite member, which carries no manifest id", () => {
+  const p = (o) => resolveTableFolderPath(o).join(" / ");
+  const gm = "Roll Tables / Western Reaches GM Guide";
+
+  // The grid recipe's "<row>: <column>" naming, with and without the book
+  // prefix an older build stamped on every member.
+  assert.equal(p({ name: "Bastion Mountains Encounter Zone: Coast", source: "GMWR" }),
+    `${gm} / Bastion Mountains`);
+  assert.equal(p({ name: "Western Reaches GM Guide - Bastion Mountains Encounters: People", source: "GMWR" }),
+    `${gm} / Bastion Mountains`);
+  // A scalar table, and one whose printed name contains its own colon —
+  // matched whole, before anything is stripped off the end of it.
+  assert.equal(p({ name: "Bastion Mountains Rumors", source: "GMWR" }), `${gm} / Bastion Mountains`);
+  assert.equal(p({ name: "Trouble in the Reaches: Region", source: "GMWR" }),
+    `${gm} / Trouble in the Reaches`);
+  // The hyphen in a region's own name is not a book prefix.
+  assert.equal(p({ name: "Tal-Yool Jungle Points of Interest", source: "GMWR" }),
+    `${gm} / Tal-Yool Jungle`);
+
+  // Two books print "d40 NPCs in the City of Masks"; the draft's source picks.
+  assert.equal(p({ name: "d40 NPCs in the City of Masks", source: "GMWR" }), `${gm} / NPC`);
+  assert.equal(p({ name: "d40 NPCs in the City of Masks", source: "CS6" }),
+    "Roll Tables / Cursed Scroll #6 / NPC");
+  // With no source to settle it, the ambiguous name is left alone, not guessed.
+  assert.equal(p({ name: "d40 NPCs in the City of Masks" }), "Roll Tables / Custom");
+
+  // A name the manifest has never heard of still gets no folder invented for it.
+  assert.equal(p({ name: "Barry's Homebrew Oddities", source: "GMWR" }),
+    "Roll Tables / Western Reaches GM Guide");
+});
+
+// The suite recipes do not always spell a table the way its manifest row does:
+// the GM Guide's terrain grid is "...Encounter Type by Terrain" in the manifest
+// and "...Encounter Type: Coast" on the imported document, which left four of
+// Tal-Yool's tables loose in the book folder while its other eleven grouped.
+test("folder resolver falls back to the section its name begins with", () => {
+  const p = (o) => resolveTableFolderPath(o).join(" / ");
+  const gm = "Roll Tables / Western Reaches GM Guide";
+  for (const col of ["Coast", "Jungle/Path", "Mountain/Lava", "River"]) {
+    assert.equal(p({ name: `Tal-Yool Jungle Encounter Type: ${col}`, source: "GMWR" }),
+      `${gm} / Tal-Yool Jungle`, col);
+  }
+  // Still a last resort: an exact section name outranks the prefix scan, so
+  // "Rumors in the Reaches" lands in Rumors and not in a region.
+  assert.equal(p({ name: "Rumors in the Reaches", source: "GMWR" }), `${gm} / Rumors`);
+
+  // Word boundary only — "Lake" is a GM Guide section, "Lakeside" is not it.
+  assert.equal(p({ name: "Lakeside Ruins of Barry", source: "GMWR" }), gm);
+  // And a name sharing no heading still invents nothing.
+  assert.equal(p({ name: "Homebrew Oddities", source: "GMWR" }), gm);
+  // The prefix pass needs a book: with no source there is nothing to scan.
+  assert.equal(p({ name: "Tal-Yool Jungle Encounter Type: Coast" }), "Roll Tables / Custom");
+});
+
+// The GM Guide heads each of its six terrain encounter tables (pp.54-65) with
+// the terrain, so each was a folder holding one table, sitting among the
+// eighteen real regions. They are a list, not places.
+test("folder resolver collects the standalone terrain encounters in one folder", () => {
+  const p = (o) => resolveTableFolderPath(o).join(" / ");
+  const shelf = "Roll Tables / Western Reaches GM Guide / Encounters";
+  for (const t of ["Arctic Sea", "Canyon", "Lake", "Lava", "Path", "Salt Flat"]) {
+    assert.equal(p({ name: `${t} Encounters`, source: "GMWR" }), shelf, t);
+  }
+  // Same table where Cursed Scroll #3 prints it, under its own book.
+  assert.equal(p({ name: "Arctic Sea Encounters", source: "CS3" }),
+    "Roll Tables / Cursed Scroll #3 / Encounters");
+  // A real region is untouched — "Lake" aliasing must not swallow these.
+  assert.equal(p({ name: "The Last Sea Rumors", source: "GMWR" }),
+    "Roll Tables / Western Reaches GM Guide / The Last Sea");
+  // Cursed Scroll #4's eight keyed locations stay foldered by place: every one
+  // of those tables is named "Random Encounters", so the folder is the label.
+  assert.equal(p({ name: "Random Encounters", manifestId: "cs4-random-encounters-tsibalba", source: "CS4" }),
+    "Roll Tables / Cursed Scroll #4 / Tsibalba");
+});
+
 // Column drift: a cell wider than its header ("1,200 gp" under "Cost") pushes
 // every later boundary on that line right of its header x. Searching around the
 // raw x then found no gap in the window and fell back to a word-snap, cutting
@@ -485,4 +672,36 @@ test("grid shape: narrow columns with a blank cell don't re-learn drift", () => 
   assert.equal(at(1, 2), "");        // blank stays blank
   assert.equal(at(2, 2), "Cora");    // NOT pulled left into Bbbb
   assert.equal(at(3, 2), "Dain");
+});
+
+// The GM Guide's "d40 NPCs in the City of Masks" (p281) keys its rows 10-49,
+// because the book has you roll d4 for the tens and d10 for the ones. Foundry
+// rolls the table's own 1d40 and shows ranges 1-40, so that key can never agree
+// with what the player rolled.
+test("a printed row key is stripped only when it proves to be a key column", () => {
+  const rows = (...texts) => texts.map((text, i) => ({ min: i + 1, max: i + 1, text }));
+  const textOf = (rs) => stripPrintedRowKeys(rs).map((r) => r.text);
+
+  assert.deepEqual(
+    textOf(rows("10: Ratvort Bingle, rich", "11: Mistress Savoy, elderly",
+      "12: Amril Tovin, baker", "13: Lethrin Masiope, elf")),
+    ["Ratvort Bingle, rich", "Mistress Savoy, elderly", "Amril Tovin, baker", "Lethrin Masiope, elf"],
+  );
+  // Content that merely begins with a digit cannot satisfy the proof.
+  const prose = rows("15 years in donjon", "20 gp for the job", "3 days later", "9 lives left");
+  assert.deepEqual(textOf(prose), prose.map((r) => r.text));
+  // A gap in the numbering means it is not a key column.
+  const gapped = rows("10: alpha", "12: beta", "13: gamma", "14: delta");
+  assert.deepEqual(textOf(gapped), gapped.map((r) => r.text));
+  // One unprefixed row is enough to leave every row alone.
+  const partial = rows("10: alpha", "beta", "12: gamma", "13: delta");
+  assert.deepEqual(textOf(partial), partial.map((r) => r.text));
+  // Too few rows to be evidence of anything.
+  const tiny = rows("1: a", "2: b");
+  assert.deepEqual(textOf(tiny), tiny.map((r) => r.text));
+
+  // The rows keep their ranges — only the text changes.
+  const kept = stripPrintedRowKeys(rows("7. one", "8. two", "9. three", "10. four"));
+  assert.deepEqual(kept.map((r) => [r.min, r.max]), [[1, 1], [2, 2], [3, 3], [4, 4]]);
+  assert.deepEqual(kept.map((r) => r.text), ["one", "two", "three", "four"]);
 });

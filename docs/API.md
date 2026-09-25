@@ -865,6 +865,60 @@ list, so a headless caller sees the same gaps the window shows.
 
 ---
 
+## `training` — the Western Reaches regional trainers
+
+The GM Guide prints 21 trainers across its regions. A trainer spread is four
+TASKS and four BENEFITS, joined by one line of rule: complete a task and the
+trainer teaches you a technique, **once each**. So the gate is an adventure,
+not a check — there is no DC here and no cost — and a single trainer is worth
+four visits rather than one.
+
+```js
+const api = game.shadowdarkEnhancer;
+
+await api.training.open();                  // the trainer window
+await api.training.open({ actor });         // …on a particular character
+
+// Headless grant: teaches one d4 face. `choice` names a branch for the four
+// either/or benefits ("+2 CHA or +4 renown"); omit it elsewhere.
+const r = await api.training.grant(actor, "gladiator", 2);
+// → { ok: true, item, notes: [] }
+const c = await api.training.grant(actor, "swashbuckler", 4, "renown");
+
+// Which faces this trainer has already taught this character.
+await api.training.taught(actor, "gladiator");   // → [2]
+```
+
+**Every benefit lands on the character**, mechanical or not. A benefit this
+module can compute grants a Talent carrying Active Effect changes; one it
+cannot grants a Talent carrying the trainer's name, the book's line and a
+plain sentence saying what the table still does by hand. Of the 84 benefits,
+**24 compute something today and 60 are recorded as prose** — 13 carry effect
+changes, 10 run a one-time write, 4 offer an either/or.
+
+Roughly half the prose is automatable and simply is not automated yet: the
+ones needing a pick (which weapon, which spell, which mount) and the ones
+whose mechanic lives in another feature of this module (luck tokens, spell
+mishaps, downtime checks, party XP, the renown floor). Those carry a `todo`
+naming exactly what is missing. The rest are prose for good reason — a
+trap-only advantage has no honest key, because the only core one covers every
+DEX check in the game.
+
+`grant` fails with `AlreadyTaught` when that face is already on the sheet,
+`ChoiceRequired` when an either/or benefit was given no branch, and
+`UnknownBenefit` for a trainer key or face that does not exist. "Once each" is
+read off the character's own Talents rather than a counter, so **deleting the
+Talent correctly frees the benefit to be learned again** and nothing can drift
+out of step with what the sheet shows.
+
+**Ships no book prose.** The wording of a benefit comes from the
+`<Topic> Training Benefits` RollTable you import from your own copy of the GM
+Guide, joined by table name and d4 face. A table that isn't there is **named**
+in the window, which then falls back to this module's own compressed label —
+it never substitutes a sentence of its own and presents it as the book's.
+
+---
+
 ## `hexMaps` — hex map tagging and the Extras dataset
 
 Added in 1.5.0. Nothing from a published map ships with the module; every call
@@ -875,6 +929,7 @@ works on the GM's own scene image and book text.
 | `hexMaps.openTagger()` | GM | Open the Hex Tagger on the active hex scene (see the wiki page *Hex Maps*). Lazy. |
 | `hexMaps.buildDataset({ name, source, drafts, summaryRows, tags, gridHint })` | any | Pure builder for the Shadowdark Extras hexcrawl dataset. `tags` is `{ [num]: { terrain, overlays } }`. |
 | `hexMaps.compare(csvText, { sources })` | GM + `hexMapsDevTools` | Score the active scene's tags against a truth CSV (`hex_id` plus `tags` or `terrain_tags`); returns terrain accuracy and river/path precision and recall. Dev check, ships no data. |
+| `hexMaps.importDetails(entriesOrDataset, sceneId?, { regionScene?, repaint? })` | GM | Write hex details onto a scene Extras already built (default: the active scene) through its `hex.upsertHexRecords`, then repaint the tiles unless `repaint: false`. Given crawl entries (one, a list, or `[]` for zones alone), every hex the print's region scan covers also gets `zone` and `zoneColor`; `regionScene` names the scanned print scene, needed when the world has more than one. |
 | `hexMaps.handoff(entryOrDataset)` | GM | Hand a dataset (or a filed crawl JournalEntry, converted first) to Extras' `hex.buildHexcrawl` when it exists, else download it as JSON. Returns `{ via: "extras" \| "download" \| "none", ... }`. |
 
 The dataset carries published hex numbers only (`num`, column-major: 1403 is

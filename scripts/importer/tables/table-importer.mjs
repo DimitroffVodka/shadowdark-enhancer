@@ -1271,6 +1271,72 @@ function _binByFaces(frags, faceEndLines) {
   return faces.map((p) => p.join(" ").trim());
 }
 
+/** Assemble the prayer ParsedTable from three ready column-text arrays. */
+function _prayerTable(cols, { name = "", size = 6, labels, warnings = [] } = {}) {
+  const lab = labels && labels.length === 3 ? labels : ["Detail 1", "Detail 2", "Detail 3"];
+  const mkRows = (arr) => Array.from({ length: size }, (_, i) => ({
+    min: i + 1, max: i + 1, text: (arr?.[i]?.text ?? arr?.[i] ?? "").trim(),
+  }));
+  const columns = lab.map((label, i) => ({ label, formula: `1d${size}`, rows: mkRows(cols[i]) }));
+  const nm = (name || "Prayer Generator").trim();
+  // A prayer rolls one d6 per column (3d6), then cartesian-expands to a flat
+  // 6³ = 216-row table at commit. The top-level formula is the human roll
+  // (`3d6`), not the per-column `1d6` — the preview shows this verbatim, and
+  // `expand:"cartesian"` marks the intent explicitly (buildTableData already
+  // auto-expands 216 ≤ cap, so the committed 1d216 table is unchanged).
+  return {
+    name: nm, formula: `${columns.length}d${size}`, replacement: true, isCompound: true,
+    expand: "cartesian",
+    category: classify(nm), customLabel: "",
+    separator: " ", compound: { separator: " ", columns }, columns,
+    rows: [], warnings,
+  };
+}
+
+/**
+ * Reflow fallback: a prayer page copied out of a PDF VIEWER (rather than pulled
+ * with "Grab text", which extracts in layout mode) arrives with the column
+ * x-positions gone — each face glued onto one line, "1 Alpha uno, beta shall
+ * gamma delta!". Reported by a GM who could not import any of the eight gods,
+ * 2026-09-20.
+ *
+ * Rebuild the three cells from the SAME terminators the layout path already
+ * peels single-space merges apart with: Detail 1 ends at the FIRST clause
+ * separator, Detail 3 starts after the LAST modal before the "!". Any face that
+ * will not split that way returns null — half a prayer must never commit, and
+ * null leaves the caller exactly where it stood before this path existed.
+ * Wrapped rows need no special care: everything is re-glued before the split,
+ * so "!" is the only row boundary. Pure.
+ *
+ * ponytail: "last modal wins" is the same bet the layout path makes for merged
+ * cells, but here it runs on EVERY row — a Detail 3 that itself contains
+ * "will" would take a word from the cell before it. The warning this path
+ * attaches is the mitigation; pin real column positions (Grab text) to avoid
+ * the guess entirely.
+ *
+ * @returns {Array<string[]>|null} three column-text arrays, or null
+ */
+function _prayerCellsFromReflow(bodyLines, size) {
+  const body = String(bodyLines.join(" ")).replace(/\|/g, " ").replace(/\s+/g, " ").trim();
+  const faces = body.match(/[^!]*!/g) ?? [];
+  if (faces.length < size) return null;
+  const cols = [[], [], []];
+  for (const face of faces.slice(0, size)) {
+    const row = face.replace(/^\s*\d{1,3}[.)]?\s+/, "").trim();   // drop the die number
+    const clause = _CLAUSE.exec(row);
+    if (!clause) return null;
+    const rest = row.slice(clause.index + 1).trim();
+    let m, last = null; _MODAL.lastIndex = 0;
+    while ((m = _MODAL.exec(rest))) last = m;
+    if (!last) return null;
+    const cut = last.index + last[0].length;
+    cols[0].push(row.slice(0, clause.index + 1).trim());
+    cols[1].push(rest.slice(0, cut).trim());
+    cols[2].push(rest.slice(cut).trim());
+  }
+  return cols.every((c) => c.every(Boolean)) ? cols : null;
+}
+
 /**
  * Deterministic parse of a 3-column "PRAYER GENERATOR" compound (WR gods,
  * pp.191-205): Detail 1 always ends in a clause separator (, ; :), Detail 3
@@ -1278,16 +1344,25 @@ function _binByFaces(frags, faceEndLines) {
  * generators). Column x-bands come from the header; wrapped fragments re-join
  * by those punctuation terminators, and single-space column merges are peeled
  * apart (Detail1|Detail2 at the first clause sep, Detail2|Detail3 at the last
- * modal). Returns an isCompound ParsedTable (buildTableData cartesian-expands
- * it) or null when the layout doesn't match the shape.
+ * modal). A paste with no column spacing left to read falls back to
+ * `_prayerCellsFromReflow`. Returns an isCompound ParsedTable (buildTableData
+ * cartesian-expands it) or null when neither route matches the shape.
  */
 function parsePrayerGenerator(text, { name = "", size = 6, labels } = {}) {
   const raw = String(text).split(/\r?\n/);
   const hi = raw.findIndex((l) =>
     /(^|\s)d\d{1,3}(\s|$)/.test(l) && (/detail/i.test(l) || _layoutPieces(l).length >= 4));
   if (hi < 0) return null;
+  // Rebuilt from punctuation, not from the page's own geometry — say so, so a
+  // GM checks the three cells instead of discovering a mis-split mid-session.
+  const reflow = () => {
+    const cols = _prayerCellsFromReflow(raw.slice(hi + 1), size);
+    return cols ? _prayerTable(cols, { name, size, labels, warnings: [
+      "Prayer parse: rebuilt from a paste with no column spacing — check each row's three cells against the book.",
+    ] }) : null;
+  };
   const starts = _layoutPieces(raw[hi]).map((p) => p.x);
-  if (starts.length < 4) return null;
+  if (starts.length < 4) return reflow();
   const [, x1, x2, x3] = starts;
   const refs = [x1, x2, x3];
   const frag = [[], [], []];
@@ -1364,28 +1439,15 @@ function parsePrayerGenerator(text, { name = "", size = 6, labels } = {}) {
   const warnings = [];
   if (c1.length !== size) warnings.push(`Prayer parse: ${c1.length} Detail-1 entries, expected ${size}.`);
   if (c3.length !== size) warnings.push(`Prayer parse: ${c3.length} Detail-3 entries, expected ${size}.`);
-  const lab = labels && labels.length === 3 ? labels : ["Detail 1", "Detail 2", "Detail 3"];
-  const mkRows = (arr) => Array.from({ length: size }, (_, i) => ({
-    min: i + 1, max: i + 1, text: (arr[i]?.text ?? arr[i] ?? "").trim(),
-  }));
-  const columns = [
-    { label: lab[0], formula: `1d${size}`, rows: mkRows(c1) },
-    { label: lab[1], formula: `1d${size}`, rows: mkRows(c2) },
-    { label: lab[2], formula: `1d${size}`, rows: mkRows(c3) },
-  ];
-  const nm = (name || "Prayer Generator").trim();
-  // A prayer rolls one d6 per column (3d6), then cartesian-expands to a flat
-  // 6³ = 216-row table at commit. The top-level formula is the human roll
-  // (`3d6`), not the per-column `1d6` — the preview shows this verbatim, and
-  // `expand:"cartesian"` marks the intent explicitly (buildTableData already
-  // auto-expands 216 ≤ cap, so the committed 1d216 table is unchanged).
-  return {
-    name: nm, formula: `${columns.length}d${size}`, replacement: true, isCompound: true,
-    expand: "cartesian",
-    category: classify(nm), customLabel: "",
-    separator: " ", compound: { separator: " ", columns }, columns,
-    rows: [], warnings,
-  };
+  // A header wide enough to read x-bands off does not promise the ROWS kept
+  // their spacing — a partly-reflowed paste reads as four header pieces and
+  // then shreds. When the columns come out the wrong height, give the reflow
+  // route the same chance the grid shapes give their three strategies.
+  if (warnings.length) {
+    const fallback = reflow();
+    if (fallback) return fallback;
+  }
+  return _prayerTable([c1, c2, c3], { name, size, labels, warnings });
 }
 
 /** Slice a line into columns at the header x-positions. For each boundary,
@@ -2593,6 +2655,38 @@ export function parseByShape(text, shape, { name = "" } = {}) {
 }
 
 /** Public (pure): build a RollTable.create payload from a ParsedTable. */
+/**
+ * Drop a printed row key that leaked into every row's text.
+ *
+ * Some book tables carry their own number column INSIDE the row text because
+ * the caption gives no die to index on — the GM Guide's "d40 NPCs in the City
+ * of Masks" (p281) keys its forty rows 10-49, because the book has you roll d4
+ * for the tens and d10 for the ones. Foundry rolls the table's own 1d40 and
+ * shows ranges 1-40, so the printed key can never agree with the result the
+ * player sees; it reads as a number that correlates with nothing.
+ *
+ * Only strips when the keys PROVE they are a key column: at least four rows,
+ * every one of them prefixed, and the numbers running consecutively. Content
+ * that merely starts with a digit ("15 years in donjon") cannot satisfy that,
+ * so this can never eat a real row. Pure.
+ *
+ * @param {Array<{text?: string}>} rows
+ * @returns {Array<object>} rows, keys removed, or the input untouched
+ */
+export function stripPrintedRowKeys(rows) {
+  const list = Array.isArray(rows) ? rows : [];
+  if (list.length < 4) return list;
+  const KEY = /^\s*(\d{1,3})\s*[:.]\s+/;
+  const keys = [];
+  for (const r of list) {
+    const m = KEY.exec(String(r?.text ?? ""));
+    if (!m) return list;
+    keys.push(Number(m[1]));
+  }
+  for (let i = 1; i < keys.length; i++) if (keys[i] !== keys[i - 1] + 1) return list;
+  return list.map((r) => ({ ...r, text: String(r.text ?? "").replace(KEY, "") }));
+}
+
 export function buildTableData(pt) {
   const TEXT = (typeof CONST !== "undefined" && CONST?.TABLE_RESULT_TYPES?.TEXT != null)
     ? CONST.TABLE_RESULT_TYPES.TEXT
@@ -2675,7 +2769,7 @@ export function buildTableData(pt) {
   }
   const maxRange = (pt.rows ?? []).reduce((m, r) => Math.max(m, r.max), 0);
   const formula = (pt.formula ?? "").trim() || `1d${Math.max(1, maxRange)}`;
-  const results = (pt.rows ?? []).map(r => {
+  const results = stripPrintedRowKeys(pt.rows ?? []).map(r => {
     let resultText = r.text ?? "";
     // Loot linking: embed a clickable @UUID on the matched noun. String
     // replace touches only the first occurrence; if the GM edited the text

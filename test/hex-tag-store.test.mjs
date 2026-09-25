@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { emptyState, decodeTags, encodeTags, nextSheet, applySheet, tagsForDataset, summarize, lcg, importTags, rowsFromJson , errorRate, sheetRisk, strandedRiver, STRANDED_RIVER_RATE, REVIEW_BANDS } from "../scripts/hex-map/tag-store.mjs";
+import { emptyState, decodeTags, encodeTags, nextSheet, applySheet, tagsForDataset, summarize, lcg, importTags, rowsFromJson, errorRate, sheetRisk, strandedRiver, STRANDED_RIVER_RATE, REVIEW_BANDS } from "../scripts/hex-map/tag-store.mjs";
 import { buildHexDataset } from "../scripts/importer/hex/hex-dataset.mjs";
 import { neighbours } from "../scripts/hex-map/geometry.mjs";
 
@@ -193,4 +193,26 @@ test("the review queue serves a stranded river before every thin margin", () => 
   s.cells.set("5000", { terrain: "forest", overlays: [], source: "auto", margin: 1.01 });
   const nums = [...s.cells.keys()].map(Number);
   assert.deepEqual(nextSheet(s, { nums, mode: "review", size: 1 }), [303]);
+});
+
+test("a tag on the frame never reaches the dataset", () => {
+  // The Western Reaches shape: lowered (odd) columns run 0..73, raised (even)
+  // ones 1..74 — their row 0 is the half-cell the print writes labels in.
+  const state = emptyState();
+  state.origin = { shifted: "odd", bounds: { cols: 64, rows: 75, rowsLowered: 74, firstRow: 1 } };
+  state.cells.set("2000", { terrain: "arctic_sea", overlays: [] });   // raised column, row 0: frame
+  state.cells.set("2001", { terrain: "arctic_sea", overlays: [] });   // raised column, row 1: map
+  state.cells.set("1900", { terrain: "arctic_sea", overlays: [] });   // lowered column, row 0: map
+  state.cells.set("6400", { terrain: "forest", overlays: [] });       // past the last column
+  state.cells.set("1974", { terrain: "forest", overlays: [] });       // lowered column, one row short
+  assert.deepEqual(Object.keys(tagsForDataset(state)).sort(), ["1900", "2001"]);
+});
+
+test("with no bounds set, every tagged cell still goes", () => {
+  // Before the map's size is known, dropping cells would throw away real work.
+  const state = emptyState();
+  state.origin = { shifted: "odd" };
+  state.cells.set("2000", { terrain: "arctic_sea", overlays: [] });
+  state.cells.set("6400", { terrain: "forest", overlays: [] });
+  assert.deepEqual(Object.keys(tagsForDataset(state)).sort(), ["2000", "6400"]);
 });

@@ -70,3 +70,18 @@ test("fillable counts the imported patron rows still offering Fill description",
   assert.equal(filterManageTree(nodes)[0].fillable, 1);
   assert.equal(filterManageTree(nodes, { filter: "locked" })[0].fillable, 0);
 });
+
+test("rows a module update added are stamped, and the New filter shows only them", () => {
+  const fresh = new Set(["char/ancestries::Kobold", "char/ancestries::Elf"]);
+  assert.deepEqual(names(filterManageTree(tree(), { filter: "new", fresh })), ["Kobold"]);
+  const [kobold] = filterManageTree(tree(), { fresh })[0].children[0].entries;
+  assert.equal(kobold.isNew, true);
+  // Elf is in the fresh set but already imported: nothing to unlock, no badge.
+  const elf = filterManageTree(tree(), { fresh })[0].children[0].entries[1];
+  assert.equal(elf.isNew, undefined);
+});
+
+test("without a fresh set nothing is stamped and the New filter is empty", () => {
+  assert.deepEqual(filterManageTree(tree(), { filter: "new" }), []);
+  assert.equal(filterManageTree(tree())[0].children[0].entries[0].isNew, undefined);
+});

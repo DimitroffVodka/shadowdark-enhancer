@@ -100,16 +100,27 @@ export function tileData(placement) {
 
 /**
  * Create the reference tile on `scene`, or move the one already there.
+ *
+ * Two jobs, one tile. As a TRACING AID it is hidden and half transparent, for
+ * a GM copying rivers and roads onto a painted map. As the MAP it is visible
+ * and opaque, and the painted hexes underneath simply stop being the picture —
+ * which is how a table plays on the publisher's own print while the scene
+ * keeps everything Extras needs: its grid, its layout flag, and therefore its
+ * hex records, tooltips and explorer. Patrick: "there has to be a way for
+ * people to play on the original print."
+ *
+ * Hiding it again turns the painted map back on, so one scene holds both.
  * @param {Scene} scene
  * @param {string} src   image path
  * @param {{x:number,y:number,width:number,height:number}} placement
+ * @param {{asMap?:boolean}} [opts]  true = the map people look at, false = a tracing aid
  * @returns {Promise<TileDocument>}
  */
-export async function placeReferenceTile(scene, src, placement) {
+export async function placeReferenceTile(scene, src, placement, { asMap = false } = {}) {
   const t = tileData(placement);
   const data = {
     ...t, texture: { src, fit: "fill", scaleX: 1, scaleY: 1, ...t.texture },
-    hidden: true, locked: true, alpha: 0.5, sort: REFERENCE_SORT,
+    hidden: !asMap, locked: true, alpha: asMap ? 1 : 0.5, sort: REFERENCE_SORT,
     flags: { [MODULE_ID]: { [REFERENCE_FLAG]: true } },
   };
   const existing = scene.tiles?.find?.((t) => t.getFlag?.(MODULE_ID, REFERENCE_FLAG));

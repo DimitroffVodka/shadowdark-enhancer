@@ -136,7 +136,7 @@ const NEW_BOOK = "__new";
 
 export async function manageSourcePdfs(app) {
   if (!game.user?.isGM) { ui.notifications.warn(t("SDE.importer.notify.gmOnlyPdfs")); return; }
-  const { listSourcePdfs, uploadSourcePdf, sourcePdfBookHref, customSourceKey, sourceLabel } =
+  const { listSourcePdfs, uploadSourcePdf, registerSourcePdf, sourcePdfBookHref, customSourceKey, sourceLabel } =
     await import("./source-pdf-registry.mjs");
 
   const rows = await listSourcePdfs();
@@ -187,6 +187,21 @@ export async function manageSourcePdfs(app) {
           return file ? { src, file, newLabel } : null;
         },
       },
+      {
+        // For a book the upload route cannot take: a proxy in front of Foundry
+        // caps request size (nginx defaults to 1 MB, Cloudflare to 100), and a
+        // full-colour rulebook is hundreds. Put the file on the server by any
+        // other means and link it where it already is — no upload at all.
+        action: "browse", label: t("SDE.importer.srcpdf.linkExisting"),
+        callback: (ev, button, dialog) => {
+          const root = dialog.element ?? dialog;
+          return {
+            src: root.querySelector("select[name='src']")?.value,
+            browse: true,
+            newLabel: root.querySelector("input[name='newlabel']")?.value?.trim() ?? "",
+          };
+        },
+      },
       { action: "close", label: t("SDE.importer.btn.done") },
     ],
     rejectClose: false,
@@ -212,8 +227,8 @@ export async function manageSourcePdfs(app) {
     },
   }).catch(() => null);
 
-  if (!picked || picked === "close" || !picked.file) return;
-  if (picked.file.type && picked.file.type !== "application/pdf") {
+  if (!picked || picked === "close" || (!picked.file && !picked.browse)) return;
+  if (picked.file?.type && picked.file.type !== "application/pdf") {
     ui.notifications.warn(t("SDE.importer.srcpdf.notPdf"));
     return manageSourcePdfs(app);
   }
@@ -230,13 +245,36 @@ export async function manageSourcePdfs(app) {
     }
   }
 
+  const book = label || CHAR_SOURCES[src]?.label || src;
+
+  // Link where it lies: Foundry's own browser over the server's files, so the
+  // book never travels through an upload the host might refuse.
+  if (picked.browse) {
+    const FP = foundry.applications?.apps?.FilePicker?.implementation ?? globalThis.FilePicker;
+    new FP({
+      type: "any", current: "assets",
+      callback: async (path) => {
+        if (!/\.pdf$/i.test(String(path ?? ""))) {
+          ui.notifications.warn(t("SDE.importer.srcpdf.notPdf"));
+          return manageSourcePdfs(app);
+        }
+        await registerSourcePdf(src, path, label);
+        ui.notifications.info(t("SDE.importer.srcpdf.linked", { book, file: path.split("/").pop() }));
+        app._invalidateManageTree?.();
+        app.render();
+        return manageSourcePdfs(app);
+      },
+    }).browse();
+    return;
+  }
+
   try {
     const path = await uploadSourcePdf(src, picked.file, label);
-    ui.notifications.info(t("SDE.importer.srcpdf.linked", { book: label || CHAR_SOURCES[src]?.label || src, file: path.split("/").pop() }));
+    ui.notifications.info(t("SDE.importer.srcpdf.linked", { book, file: path.split("/").pop() }));
   } catch (err) {
     console.error("[SDE] source PDF upload failed", err);
     ui.notifications.error(t("SDE.importer.srcpdf.uploadFailed"));
-    return;
+    return manageSourcePdfs(app);
   }
   app._invalidateManageTree?.();   // the new link changes what the tree can run
   app.render();
