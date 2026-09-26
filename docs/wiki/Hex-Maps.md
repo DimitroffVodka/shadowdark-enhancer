@@ -648,11 +648,21 @@ is named, not worked round.
   (see *Terrain and features*), so Extras' tooltip shows River, Path and Coast
   pills on the print.
 - Send again after retagging and the records update in place. A hex's river,
-  path and coast are replaced, so a tag you took off goes and nothing is listed
-  twice; every other feature on the hex, such as a dungeon you added in Extras,
-  is left alone. Settlements go until they have arrived once, then no more,
-  because Extras keeps what the players have discovered on them and sending
-  them again would reset it.
+  path and coast are replaced, so a tag you took off goes (even when you
+  cleared the hex's tags completely) and nothing is listed twice; every other
+  feature on the hex, such as a dungeon you added in Extras, is left alone.
+  Settlements go until they have arrived once, then no more, because Extras
+  keeps what the players have discovered on them and sending them again would
+  reset it.
+- To merge like that, the tagger reads what Extras holds for the map first. If
+  it cannot (other than on the very first send, when Extras holds nothing
+  yet), the details still go but no features do, and the tagger says so:
+  replacing the lists blind would erase discoveries. Send again once the
+  records are in.
+- Extras' **Hex Editor** does not know river, path and coast yet: saving a hex
+  there turns them into *dungeon*
+  ([shadowdark-extras#157](https://github.com/DimitroffVodka/shadowdark-extras/issues/157)).
+  The next **Send to Extras** puts them back.
 - Extras numbers a map from the scene's top-left cell, so the map's first hex
   (`0000`, or `0101` on a map numbered from 1) has to be that cell. A map set
   up through *Hex map from image* already is. If yours is not, the tagger says

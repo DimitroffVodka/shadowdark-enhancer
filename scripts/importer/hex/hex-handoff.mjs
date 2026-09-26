@@ -208,34 +208,56 @@ const EXTRAS_ID = "shadowdark-extras";
 const EXTRAS_HEX_JOURNAL = "__sdx_hex_data__";
 
 /**
- * The `features` Extras holds for each hex of an adopted print, by published
- * number, so a send can merge into them instead of replacing them.
+ * Every record Extras holds for a scene, keyed by published number, or null
+ * when there is nothing to read.
  *
- * ponytail: api.hex has no read call, so this reads the journal flag Extras'
- * own fog and solo mode read. If Extras ever moves that store, ask it for a
- * read call rather than following it here.
+ * ponytail: the ONE place that reads Extras' private store (the `hexData` flag
+ * on its `__sdx_hex_data__` journal, which its own fog and solo mode read),
+ * because api.hex has no read call yet. Swap the body for
+ * `api.hex.getHexRecords(sceneId)` once shadowdark-extras#157 ships; that call
+ * returns the same shape (null without a layout, {} with one and no records).
  *
  * An adopted print puts published (col, row) on Foundry offset
  * {i: row - base, j: col - base} (geometry.mjs extrasNumbersAlike, which the
  * tagger checks before any send), and Extras keys a record `${i}_${j}`.
  * @param {string} sceneId
  * @param {0|1} base  the map's numbering origin (grid.origin; 1 when absent)
- * @returns {Map<number, object[]>|null} null when the store cannot be read
+ * @returns {Object<number, object>|null}
  */
-export function extrasFeaturesOn(sceneId, base = 1) {
-  let all;
+export function extrasHexRecords(sceneId, base = 1) {
+  const stored = globalThis.game?.journal?.getName?.(EXTRAS_HEX_JOURNAL)?.getFlag?.(EXTRAS_ID, "hexData")?.[sceneId];
+  if (!stored) return null;
+  const out = {};
+  for (const [key, record] of Object.entries(stored)) {
+    const [i, j] = key.split("_").map(Number);
+    if (Number.isInteger(i) && Number.isInteger(j)) out[(j + base) * 100 + i + base] = record;
+  }
+  return out;
+}
+
+/**
+ * The `features` Extras holds for each hex, by published number, so a send
+ * can merge into them instead of replacing them.
+ *
+ * Nothing to read is trusted as "no features" only right after a fresh
+ * adoption, when Extras cannot hold records for this map yet. Anywhere else it
+ * may mean the store has moved, and reading that as empty would send each
+ * hex's river alone and erase everything else on it, so it is null.
+ * @param {string} sceneId
+ * @param {0|1} base
+ * @param {{fresh?:boolean}} [opts]  fresh: adoptHexcrawl said adopted in this same hand-off
+ * @returns {Map<number, object[]>|null} null: send no features at all
+ */
+export function extrasFeaturesOn(sceneId, base = 1, { fresh = false } = {}) {
+  let records;
   try {
-    all = globalThis.game?.journal?.getName?.(EXTRAS_HEX_JOURNAL)?.getFlag?.(EXTRAS_ID, "hexData");
+    records = extrasHexRecords(sceneId, base);
   } catch (err) {
     console.warn(`${MODULE_ID} | could not read Extras' hex records`, err);
     return null;
   }
-  const out = new Map();
-  for (const [key, record] of Object.entries(all?.[sceneId] ?? {})) {
-    const [i, j] = key.split("_").map(Number);
-    if (Number.isInteger(i) && Number.isInteger(j) && Array.isArray(record?.features)) out.set((j + base) * 100 + i + base, record.features);
-  }
-  return out;
+  if (!records) return fresh ? new Map() : null;
+  return new Map(Object.entries(records).filter(([, r]) => Array.isArray(r?.features)).map(([num, r]) => [Number(num), r.features]));
 }
 
 /**
@@ -254,8 +276,9 @@ export function extrasFeaturesOn(sceneId, base = 1) {
  *
  * @param {string} sceneId  the tagged print
  * @param {object} dataset  from buildHexDataset / datasetFromEntries
- * @returns {Promise<{via:"extras", adopted:boolean, summary:object}
+ * @returns {Promise<{via:"extras", adopted:boolean, summary:object, featuresUnread?:true}
  *   |{via:"none", reason:"not-gm"|"no-extras"|"no-adopt"|"extras-error"|string, error?:string}>}
+ *   featuresUnread: the records went without features, because what Extras holds could not be read
  */
 export async function handoffToPrint(sceneId, dataset) {
   if (!globalThis.game?.user?.isGM) return { via: "none", reason: "not-gm" };
@@ -280,11 +303,19 @@ export async function handoffToPrint(sceneId, dataset) {
   // Extras replaces a record's whole features list, so each hex's list is
   // merged with the one Extras holds. Unreadable, no features go at all:
   // sending blind would wipe what the GM and the players put there.
-  const current = extrasFeaturesOn(sceneId, dataset?.grid?.origin ?? 1);
-  const merged = current && {
-    ...dataset,
-    hexes: (dataset?.hexes ?? []).map((h) => ({ ...h, features: mergeFeatures(current.get(h.num), h.features, { settlements }) ?? undefined })),
-  };
+  const current = extrasFeaturesOn(sceneId, dataset?.grid?.origin ?? 1, { fresh: adopted === true });
+  let merged = null;
+  if (current) {
+    const hexes = (dataset?.hexes ?? []).map((h) => ({ ...h, features: mergeFeatures(current.get(h.num), h.features, { settlements }) ?? undefined }));
+    // A hex whose tags were cleared is not in the dataset any more, but Extras
+    // still lists its river, path or coast: take those off, keep the rest.
+    const inDataset = new Set(hexes.map((h) => h.num));
+    for (const [num, features] of current) {
+      const left = inDataset.has(num) ? null : mergeFeatures(features, [], { settlements: false });
+      if (left) hexes.push({ num, features: left });
+    }
+    merged = { ...dataset, hexes };
+  }
   const res = await importDatasetRecords(sceneId, merged ?? dataset, { repaint: false, features: !!merged, quiet: true });
   if (res.via !== "extras") return res;
   // Only once some hex carried one: a dataset without the crawl's keyed pages
@@ -299,7 +330,8 @@ export async function handoffToPrint(sceneId, dataset) {
       console.warn(`${MODULE_ID} | could not mark the settlements as sent`, err);
     }
   }
-  return { ...res, adopted };
+  // The tagger says so, once per send: the details went, the features did not.
+  return { ...res, adopted, ...(merged ? {} : { featuresUnread: true }) };
 }
 
 /**

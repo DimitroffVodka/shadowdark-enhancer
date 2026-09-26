@@ -1,5 +1,5 @@
 // The Game Master's Guide to the Western Reaches: the manifest/recipe contract
-// for its 103 table rows, and the five parser rules that book forced.
+// for its 104 table rows, and the five parser rules that book forced.
 //
 // Pure — no Foundry globals, and every fixture is SYNTHETIC placeholder text.
 // No book content ships in this repo; the real pages are proven against the
@@ -7,7 +7,9 @@
 // pinned here is the structure that harness run depends on.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { parseByShape, parseTables, computeBlockers } from "../scripts/importer/tables/table-importer.mjs";
+import {
+  parseByShape, parseTables, computeBlockers, splitNestedRoll, createNestedTables, buildTableData, nestedConflictChoice,
+} from "../scripts/importer/tables/table-importer.mjs";
 import { CONTENT_ENTRIES, resolveShape, contentIdForName } from "../scripts/importer/tables/table-shapes.mjs";
 import {
   CHAR_SOURCES, citesForTable, gatherCharContentEntries, tableNameMatches, tablePagesFor,
@@ -15,7 +17,7 @@ import {
 import {
   GAMEPLAY_TABLES, MISHAP_TABLES, PATRON_TABLES, PIT_FIGHTING_TABLES,
 } from "../scripts/importer/tables/table-folders.mjs";
-import { TABLE_MANIFEST, bySource, sources } from "../scripts/importer/tables/table-manifest.mjs";
+import { TABLE_MANIFEST, bySource, sources, tableRowCount, verify } from "../scripts/importer/tables/table-manifest.mjs";
 
 const _norm = (s) => String(s).toLowerCase().replace(/\s+/g, " ").trim();
 const EMPTY_PRESENCE = {
@@ -28,7 +30,7 @@ const gmEntries = CONTENT_ENTRIES.filter((e) => e.src === "GMWR");
 // ── the manifest ⇄ recipe contract ──────────────────────────────────────────
 
 test("every GM Guide row carries a page and the book's printed page is its PDF page", () => {
-  assert.equal(gmRows.length, 103);
+  assert.equal(gmRows.length, 104);
   for (const r of gmRows) {
     assert.match(String(r.pages), /^\d{2,3}(-\d{2,3})?$/, `${r.name} has no usable page cite`);
     assert.equal(tablePagesFor("GMWR", r.name), r.pages);
@@ -76,7 +78,7 @@ test("no registered GM Guide recipe is an orphan", () => {
     assert.ok(rowNames.has(e.names[0]),
       `${e.id} has a recipe but no manifest row — nothing can ever reach it`);
   }
-  assert.equal(gmEntries.length, 102);
+  assert.equal(gmEntries.length, 103);
 });
 
 test("GM Guide names stay clear of the routing sets that would file them elsewhere", () => {
@@ -131,7 +133,7 @@ test("a Cursed Scroll copy satisfies the GM Guide row that reprints it", () => {
 
 test("the GM Guide is a catalogue source in its own right", () => {
   assert.ok(sources().includes("gmgwr"));
-  assert.equal(TABLE_MANIFEST.filter((e) => e.source === "gmgwr").length, 103);
+  assert.equal(TABLE_MANIFEST.filter((e) => e.source === "gmgwr").length, 104);
   assert.ok(bySource("gmgwr").length > 0, "its filter chip lists rows");
   for (const e of TABLE_MANIFEST.filter((x) => x.source === "gmgwr")) {
     assert.match(e.die, /^\d?d\d+$/, `${e.id} has no measured die`);
@@ -350,4 +352,123 @@ test("page furniture never becomes a row in a generic parse", () => {
   // the paste's first line is.
   const dupe = parseTables("MY TABLE\nd4 Result\n1 rats\n2 rats\n3 bats\n4 rats")[0];
   assert.equal(dupe.rows.length, 4);
+});
+
+// ── Type of Trouble: the roll inside each row (#188) ─────────────────────────
+
+// The page's typography: every cell wraps around its own face, and every cell
+// prints a second numbered roll after its label.
+const TROUBLE_TEXT = [
+  "TYPE OF TROUBLE",
+  "1d10 It's a...",
+  "Gremlins. 1d6: 1. Alpha (3 of them) 2. Beta",
+  "1",
+  "3. Gamma 4. Delta 5. Epsilon 6. Zeta",
+  "Weather. 1d4: 1. Hail 2. Fog",
+  "2",
+  "3. Drizzle 4. Gale",
+].join("\n");
+
+test("a row's own roll splits into its label and a table on the die the row prints", () => {
+  assert.deepEqual(splitNestedRoll("Gremlins. 1d6: 1. Alpha (3 of them) 2. Beta 3. Gamma 4. Delta 5. Epsilon 6. Zeta"), {
+    label: "Gremlins", formula: "1d6",
+    rows: ["Alpha (3 of them)", "Beta", "Gamma", "Delta", "Epsilon", "Zeta"]
+      .map((text, i) => ({ min: i + 1, max: i + 1, text })),
+  });
+  const d4 = splitNestedRoll("Weather front. 1d4: 1. Hail 2. Fog 3. Drizzle 4. Gale");
+  assert.equal(d4.label, "Weather front");
+  assert.equal(d4.formula, "1d4", "the die is read from the row, not assumed");
+  assert.equal(d4.rows.length, 4);
+  // Anything short of a whole numbered list stays one row.
+  assert.equal(splitNestedRoll("Gremlins. 1d6: 1. Alpha 2. Beta 3. Gamma"), null, "faces 4-6 missing");
+  assert.equal(splitNestedRoll("Gremlins. 1d4: before 1. Alpha 2. Beta 3. Gamma 4. Delta"), null, "text before face 1");
+  assert.equal(splitNestedRoll("Gremlins in the cellar"), null, "no roll at all");
+});
+
+test("the Type of Trouble recipe marks its rows for splitting", () => {
+  const shape = resolveShape({ contentId: "gmwr/type-of-trouble", name: "Type of Trouble", src: "GMWR" });
+  const pt = parseByShape(TROUBLE_TEXT, shape, { name: "Type of Trouble" }).tables[0];
+  assert.equal(pt.nestedRolls, true);
+  // The preview keeps the rows as printed; only the commit splits them.
+  assert.deepEqual(pt.rows.map((r) => splitNestedRoll(r.text)?.formula), ["1d6", "1d4"]);
+});
+
+test("each nested roll is committed first, and the row draws it", async () => {
+  const made = [];
+  const create = async (draft) => {
+    made.push(draft);
+    if (draft.name.endsWith("Weather")) return null;   // the GM cancelled this one
+    return { uuid: `Compendium.x.y.RollTable.${made.length}`, name: draft.name };
+  };
+  const shape = resolveShape({ contentId: "gmwr/type-of-trouble", name: "Type of Trouble", src: "GMWR" });
+  const pt = { ...parseByShape(TROUBLE_TEXT, shape, { name: "Type of Trouble" }).tables[0], source: "GMWR" };
+  const parent = await createNestedTables(pt, create);
+
+  assert.deepEqual(made.map((d) => [d.name, d.formula, d.rows.length, d.source]), [
+    ["Type of Trouble: Gremlins", "1d6", 6, "GMWR"],
+    ["Type of Trouble: Weather", "1d4", 4, "GMWR"],
+  ]);
+  assert.equal(parent.nestedRolls, false);
+  assert.equal(parent.rows[0].text, "Gremlins");
+  assert.equal(parent.rows[1].text, pt.rows[1].text, "a sub-table that did not commit leaves its row as printed");
+
+  // One label and one RollTable result on the same face: Foundry rolls the
+  // table result recursively, so the chat card shows both.
+  const results = buildTableData(parent).results.filter((r) => r.range[0] === 1);
+  assert.deepEqual(results.map((r) => [r.type, r.name, r.documentUuid]), [
+    [0, "Gremlins", undefined],
+    ["document", "Type of Trouble: Gremlins", "Compendium.x.y.RollTable.1"],
+  ]);
+
+  // …and it still counts as the rows the book prints: the Roll Tables hub read
+  // a ten-row Type of Trouble as twenty and called it broken.
+  const all = buildTableData(parent).results;
+  assert.equal(all.length, pt.rows.length + 1);
+  assert.equal(tableRowCount(all), pt.rows.length);
+  assert.equal(verify({ rows: pt.rows.length }, { rows: tableRowCount(all) }).ok, true);
+});
+
+test("a nested row's table counts once; other document results still count", () => {
+  const text = (n) => ({ type: "text", range: [n, n] });
+  const nested = (n) => ({ type: "document", range: [n, n], flags: { "shadowdark-enhancer": { nestedRoll: true } } });
+  const doc = (n) => ({ type: "document", range: [n, n] });
+  const tenNested = Array.from({ length: 10 }, (_, i) => [text(i + 1), nested(i + 1)]).flat();
+  assert.equal(tableRowCount(tenNested), 10);
+  // A boon table's "Choose 1" band: a text row plus its options, all counted as before.
+  assert.equal(tableRowCount([text(12), doc(12), doc(12)]), 3);
+  assert.equal(tableRowCount(undefined), 0);
+});
+
+test("the sub-tables follow the parent's answer instead of asking again", () => {
+  assert.equal(nestedConflictChoice({ existing: true, replace: true }), "replace");
+  assert.equal(nestedConflictChoice({ existing: true, replace: false }), "rename", "a copy of the parent gets copies");
+  assert.equal(nestedConflictChoice({ existing: false, replace: false }), "replace",
+    "a fresh parent replaces leftovers of an earlier import rather than duplicating them");
+});
+
+test("Caught in Danger! is read under its shouting caption, each detail around its face", () => {
+  // Invented rows in the page's typography: the caption ends in "!", and a
+  // two-line detail prints its face between its lines.
+  const text = [
+    "CAUGHT IN DANGER!",
+    "d6 Details",
+    "Placeholder alpha, DC 12 or",
+    "1",
+    "something happens",
+    "Placeholder beta wraps",
+    "2",
+    "onto a second line",
+    "3 Placeholder gamma",
+    "4 Placeholder delta",
+    "5 Placeholder epsilon",
+    "6 Placeholder zeta",
+  ].join("\n");
+  const name = "Caught in Danger!";
+  const shape = resolveShape({ contentId: contentIdForName(name, "GMWR"), name, src: "GMWR" });
+  assert.equal(shape?.kind, "banded");
+  const pt = parseByShape(text, shape, { name }).tables[0];
+  assert.equal(pt.formula, "1d6");
+  assert.deepEqual(pt.rows.map((r) => r.min), [1, 2, 3, 4, 5, 6]);
+  assert.equal(pt.rows[1].text, "Placeholder beta wraps onto a second line");
+  assert.deepEqual(computeBlockers(pt), []);
 });

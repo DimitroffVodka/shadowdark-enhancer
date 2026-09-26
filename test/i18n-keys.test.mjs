@@ -13,10 +13,12 @@ const dir = (path, match = /\.mjs$/) => readdirSync(path).filter((f) => match.te
 
 const FEATURES = {
   "SDE.hexMap.": [...dir("scripts/hex-map"), "templates/hex-tagger.hbs", "templates/hex-brush.hbs"],
-  // The hex subfolder is in here because the key-location importer runs
-  // headless (no hub instance) and still speaks to the GM through en.json.
+  // The hex subfolder and the chapter importer are in here because they run
+  // headless (no hub instance) and still speak to the GM through en.json.
   "SDE.importer.": [...dir("scripts/importer", /^importer-hub.*\.mjs$/), ...dir("scripts/importer/hex"),
+    "scripts/importer/chapter-journal.mjs",
     "templates/importer-hub.hbs", "templates/partials/tree-node.hbs"],
+  "SDE.quests.": [...dir("scripts/quests"), "templates/quest-log.hbs"],
 };
 
 /** Every key of `prefix` mentioned anywhere in its files, with one file that mentions it. */
@@ -69,7 +71,7 @@ for (const [prefix, sources] of Object.entries(FEATURES)) {
  * nothing at all. That shipped once; this is what stops it shipping twice.
  */
 test("no file that has the translator also declares a local t", () => {
-  const files = [...dir("scripts/hex-map"), ...dir("scripts/importer", /^importer-hub.*\.mjs$/)];
+  const files = [...dir("scripts/hex-map"), ...dir("scripts/importer", /^importer-hub.*\.mjs$/), ...dir("scripts/quests")];
   const bad = [];
   for (const file of files) {
     const src = readFileSync(file, "utf8");

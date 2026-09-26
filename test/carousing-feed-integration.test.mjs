@@ -54,6 +54,7 @@ function installGlobals() {
   globalThis.Hooks = {
     on: (name, fn) => { (hooks.get(name) ?? hooks.set(name, []).get(name)).push(fn); },
     call: (name, ...args) => (hooks.get(name) ?? []).forEach((fn) => fn(...args)),
+    callAll: (name, ...args) => (hooks.get(name) ?? []).forEach((fn) => fn(...args)),
   };
   globalThis.ui = { notifications: { info: () => {}, warn: () => {} } };
   globalThis.game = {
