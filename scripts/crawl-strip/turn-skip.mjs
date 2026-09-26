@@ -93,7 +93,15 @@ export async function maybeSkipDeadTurn(combat) {
     while (guard-- > 0) {
       const entries = combat.turns.map(combatantEntry);
       if (!shouldSkipTurn(entries, combat.turn)) break;
+      const round = combat.round;
       await combat.nextTurn();
+      // Skipping past the last corpse starts a new round, and its updateCombat
+      // reached chaosThenSkip while this lock was held, so it stood down.
+      // Reroll here, still under the lock; the loop then skips on the new order.
+      if (combat.round > round && game.settings.get(MODULE_ID, "modeChaosInitiative") === true) {
+        await chaosReroll(combat).catch((error) =>
+          console.error(`${MODULE_ID} | Chaos Mode could not reroll initiative`, error));
+      }
     }
   } catch (error) {
     console.error(`${MODULE_ID} | failed to skip a defeated combatant's turn`, error);

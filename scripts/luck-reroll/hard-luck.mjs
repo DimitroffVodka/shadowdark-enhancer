@@ -14,10 +14,11 @@
 
 /**
  * Spells and abilities that grant a luck token. Grows when a book adds one.
- * Bless: core priest spell. Trance: Western Reaches seer spell. Omen:
- * Western Reaches Seer class ability.
+ * Bless: core priest spell. Inspire: the Bard's class ability (Bard and
+ * Ranger, in the system's own compendium). Trance: Western Reaches seer
+ * spell. Omen: Western Reaches Seer class ability.
  */
-export const LUCK_GRANTING = ["Bless", "Trance", "Omen"];
+export const LUCK_GRANTING = ["Bless", "Inspire", "Trance", "Omen"];
 
 const norm = (s) => String(s ?? "").trim().toLowerCase();
 

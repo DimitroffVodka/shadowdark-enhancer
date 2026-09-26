@@ -3,6 +3,21 @@
 ## [Unreleased]
 
 ### Added
+- **Stat damage is tracked.** Damage to STR, DEX, CON, INT, WIS or CHA is one
+  line per ability in the character sheet's Effects tab, such as *2 STR
+  damage*: the score and its modifier drop, and the line is gone when healed.
+  There is no setting and nothing on the sheet until it happens. A character
+  whose CON reaches 0 from it dies. Other modules drive it through
+  `game.shadowdarkEnhancer.statDamage.{apply, heal, of}` (API 1.6.0).
+  From the Shadowdark Extras release that adds it
+  ([shadowdark-extras#149](https://github.com/DimitroffVodka/shadowdark-extras/issues/149)),
+  Extras' rest heals it all, or 1 per ability in Grinder Mode. (#182)
+- **Monster attacks apply their stat-damage riders.** A monster hit whose
+  attack text, or the feature it names, says *1 STR damage* lowers the
+  target's STR automatically, with the amount rolled in chat. A rider behind
+  a save (*DC 12 CON or 1d4 STR damage*) asks the character's player to roll
+  the save and applies only on a failure; the GM's client rolls it when no
+  player can. Works without Shadowdark Extras. (#183)
 - **Modes of Play.** A new window under Configure Settings holds the optional
   rules from the core rulebook (p.111) and Hard Luck from the Game Master's
   Guide to the Western Reaches (p.30). Every rule is its own switch, so one
@@ -18,8 +33,9 @@
   Blitz off leaves no torch short. Shadowdark Extras' camping campfire keeps
   its 8 hours. (#179)
 - **Hard Luck Mode.** Its second rule, *No luck rerolls with luck-granting
-  effects*, refuses a luck reroll of any roll made with Bless, Trance or a
-  Seer's Omen, whatever the result, so luck can't be spent to earn more luck.
+  effects*, refuses a luck reroll of any roll made with Bless, a Bard's
+  Inspire, Trance or a Seer's Omen, whatever the result, so luck can't be
+  spent to earn more luck.
   Its first rule, no luck on a critical failure, now uses the system's own
   critical failure, so an effect that widens the failure range counts too,
   and a damage reroll is never refused. (#186)
@@ -37,6 +53,16 @@
   combatants off. Dice So Nice stays quiet for these rerolls unless you tick
   its option in the Chaos box. While the system's clockwise initiative is on,
   Chaos does nothing and says so once. (#180)
+- **Pulp Mode: session luck, luck crits and forced rerolls.** Three rules,
+  each its own checkbox in the Pulp box. Choosing **Start New Session** when a
+  crawl starts sets every player's character to 1d4 luck tokens and posts one card
+  with the rolls. Once an attack hits, its owner gets a **Luck: critical hit**
+  button on the card: damage already rolled keeps its dice and gains what a
+  critical hit adds (a 1d8 weapon gets one more d8), and damage not rolled yet
+  is rolled once as a critical hit. A player who can see a GM's roll gets a
+  **Luck: force a reroll** button; the roll is redone on the same card, which
+  says who forced it. Both spend one luck token, and the GM's client checks
+  and spends it, so a token is never spent without the effect. (#185)
 - **Dying and death timers, with Deadly and Fatality.** A character at 0 HP,
   from damage or a sheet edit, is now dying: the Dying status, a death timer of
   1d4 + CON modifier (minimum 1) rolled by its player, and a d20 at the start
@@ -594,7 +620,7 @@
 
 ### Changed
 - **Preventing luck rerolls on natural 1s is now off by default, and lives in
-  Modes of Play.** It is Hard Luck's first rule. A world that ever saved this
+  Modes of Play** as *No luck rerolls on critical failures*. It is Hard Luck's first rule. A world that ever saved this
   setting keeps its choice; a world that never did stops blocking luck
   rerolls of natural 1s until a GM switches it on under **Modes of Play →
   Hard Luck**. (#178)

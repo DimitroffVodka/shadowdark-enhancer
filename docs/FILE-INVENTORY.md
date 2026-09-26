@@ -1,7 +1,7 @@
 # Shadowdark Enhancer — File Inventory
 
 <!-- inventory:stats:start -->
-998 tracked files · ~171,500 lines of code/markup across scripts+templates+styles+test.
+1007 tracked files · ~173,000 lines of code/markup across scripts+templates+styles+test.
 `v0.17.3` in both `module.json` and `package.json`.
 <!-- inventory:stats:end -->
 **Layout reflects the 2026-07-21 feature-folder reorganization (v0.11.0 cycle).**
@@ -46,8 +46,8 @@
 
 | File | Lines | Description |
 |---|---:|---|
-| `shadowdark-enhancer.mjs` | 1131 | **Entry point** (module.json esmodules). Registers hooks, settings, sheets, actor sub-types, the public `game.shadowdarkEnhancer` API, and wires every sub-system. |
-| `luck-reroll/luck-reroll.mjs` | 172 | Wraps the system's `_onReroll` to enforce nat-1 prevention and log Luck rerolls to the session recap. |
+| `shadowdark-enhancer.mjs` | 1146 | **Entry point** (module.json esmodules). Registers hooks, settings, sheets, actor sub-types, the public `game.shadowdarkEnhancer` API, and wires every sub-system. |
+| `luck-reroll/luck-reroll.mjs` | 176 | Wraps the system's `_onReroll` to enforce nat-1 prevention and log Luck rerolls to the session recap. |
 | `spell-mishap/spell-mishap.mjs` | 270 | Nat-1 spellcasting failures auto-roll the class's mishap table (wizard / witch / necromancer sets); divine casters are exempt. |
 | `scavenger/scavenger-core.mjs` | 171 | Pure Delver Scavenger rules: the 5-6 success range and Master Scavenger's widening (floored at 3-6), what counts as expending a consumable's last use (a 1→0 decrement or a delete at quantity 1 — never a stack deleted whole), and which single client rolls. |
 | `scavenger/scavenger.mjs` | 183 | Foundry wiring for Scavenger: pre-hooks snapshot the quantity and a restore copy, post-hooks roll the d6, post the card, and hand back one use — refuelling and unlighting a restored light source. |
@@ -55,6 +55,9 @@
 | `parry/parry.mjs` | 441 | Parry button on an attack card that hit: spends the 1/day use, makes the attack miss, and reverses damage the GM already applied — HP, defeated flag and downed conditions. Player clicks go through the authenticated gm-relay. |
 | `taunt/taunt-core.mjs` | 118 | Pure Duelist Taunt rules: round+turn as one ordinal, the "end of your NEXT turn" expiry comparison, advantage/disadvantage cancelling, and what arms the talent (a miss — including a parried hit). |
 | `taunt/taunt.mjs` | 249 | Arms Taunt when an enemy misses its holder, sets `mainRoll.advantage` on attacks back at that enemy via `SD-Player-Attack` (with the reason printed on the roll card), and expires it when the holder's next turn ends. |
+| `stat-damage/stat-damage-core.mjs` | 205 | Pure stat-damage rules and the effect contract Shadowdark Extras' Effects library follows: a negative ADD on `system.abilities.<key>.value` flagged `statDamage: { ability }`, summed across effects, healed whole or N per ability, the #181 seam for surviving CON 0, and the parser for monster riders ("DC 12 CON or 1d4 STR damage", enriched or not). |
+| `stat-damage/stat-damage.mjs` | 137 | `statDamage.{apply, heal, of}`: writes replace an ability's effects with one holding the new total (serialized per client), and the active GM marks a character dead when a stat-damage effect takes CON to 0. |
+| `stat-damage/stat-riders.mjs` | 123 | Applies a monster attack's stat-damage riders when its card HIT a character, reading the attack's rider and the NPC feature it names (or shares its name with). Only a card posted by a GM or the attacker's owner, naming the attacker's own item, counts. A rider behind a save asks the owning player to roll it (GM→player user query, GM sender required) and falls back to the GM's client. |
 | `dying/dying-core.mjs` | 183 | Dying rules (#181), pure: the dying-modifier vocabulary (Active Effect flag keys: timer die and bonus, rise range, own and near stabilize DC, no death at CON 0), the 1d4 + CON timer (minimum 1; none under Deadly, whose 1 beats every die and bonus), stabilize DC resolution (15, Deadly 18, raised near a Draugr, the helper's own DC beats both), the turn-start outcome, what an HP change means (Fatality: 0 HP kills) and the strip badge with the hidden timer. |
 | `dying/dying.mjs` | 436 | Dying on the active GM (#181): 0 HP from updateActor gives the Dying status and rolls the death timer on the owner's client (user query) or blind on the GM's; a wrapped Combat#_onStartTurn and the crawlRound hook roll the d20 once per round (rise, tick, dead + defeated). Stabilize (the helper's system INT check, relayed), rise, adjust, conscious and onConZero; the strip badge and its menu. One `dying` flag via replaceModuleFlag, serialized per actor. Off while Crawl Helper is active. |
 | `hex-map/bitmap.mjs` | 145 | 0/1 cell bitmaps: dilate, 8-connected components, majority stamps, hex masks, residual features, label zone. Pure. |
@@ -74,10 +77,12 @@
 | `hex-map/tag-corrections.mjs` | 337 | What the GM judged about the classifier, kept on the scene: per-cell corrections (was, now, margin, whether it was flagged) and wrong/judged counts per margin band, plus the scene's review margin and the report that says what it catches. Pure. |
 | `hex-map/tag-overlay.mjs` | 745 | The tag overlay: every numbered hex drawn on the map in its terrain colour, dots for river/path/coast, an amber ring on unsure automatic cells; hover names a hex, a click edits it through the same scene-flag write. |
 | `hex-map/tag-store.mjs` | 375 | The tagger's scene-flag store: compact tag strings, sheet selection (random/keyed/review), dataset tags. Pure. |
-| `luck-reroll/hard-luck.mjs` | 56 | Hard Luck Mode (GMWR p.30, #186), pure: the system's criticalFailure test with a plain-d20 fallback, and the luck-granting spell/ability (Bless, Trance, Omen) a roll came from, by name. |
-| `modes-of-play/blitz.mjs` | 98 | Blitz Mode (#179): lighting a Basic light source clamps its remaining time to 30 min (and marks it used); a light spell's Effect is created with 30 min. Pure patch helpers + preUpdateItem/preCreateItem hooks. |
-| `modes-of-play/chaos.mjs` | 99 | Chaos Mode (#180): reroll every combatant's initiative (Combatant#getInitiativeRoll) at the start of rounds 2+, one combatant update with combatTurn 0, one card per round without hidden combatants; off under clockwise initiative. Called from turn-skip.mjs under its lock. |
-| `modes-of-play/hunter.mjs` | 85 | Hunter Mode (#184): on deleteCombat the active GM pays every PC in the fight XP for each NPC still defeated (half its level, level 1 → 1) through PartyXP.award, one card. Pure hunterXp/hunterAward + payHunterXp. |
+| `luck-reroll/hard-luck.mjs` | 57 | Hard Luck Mode (GMWR p.30, #186), pure: the system's criticalFailure test with a plain-d20 fallback, and the luck-granting spell/ability (Bless, Trance, Omen) a roll came from, by name. |
+| `modes-of-play/blitz.mjs` | 100 | Blitz Mode (#179): lighting a Basic light source clamps its remaining time to 30 min (and marks it used); a light spell's Effect is created with 30 min. Pure patch helpers + preUpdateItem/preCreateItem hooks. |
+| `modes-of-play/chaos.mjs` | 103 | Chaos Mode (#180): reroll every combatant's initiative (Combatant#getInitiativeRoll) at the start of rounds 2+, one combatant update with combatTurn 0, one card per round without hidden combatants; off under clockwise initiative. Called from turn-skip.mjs under its lock. |
+| `modes-of-play/hunter.mjs` | 94 | Hunter Mode (#184): on deleteCombat the active GM pays every PC in the fight XP for each NPC still defeated (half its level, level 1 → 1) through PartyXP.award, one card. Pure hunterXp/hunterAward + payHunterXp. |
+| `modes-of-play/pulp-core.mjs` | 127 | Pulp Mode pure half: critExtraFormula (the dice a crit adds to rolled damage, per applyCriticalHit), showLuckCrit, showForceReroll. |
+| `modes-of-play/pulp.mjs` | 294 | Pulp Mode (#185): session luck on the sessionStart hook (1d4, set), and the Luck: critical hit / force a reroll chat buttons. Both relay to the active GM (PULP_QUERY), which checks the requester, spends the token and edits the card. |
 | `training/training-app.mjs` | 240 | The Regional Training window (AppV2): pick a character, pick a trainer grouped by region, see all four benefits with the ones already taught struck through, and roll the trainer's d4. Names a benefits table that has not been imported instead of inventing its contents. |
 | `training/training-art.mjs` | 61 | One game-icons.net emblem per regional trainer, pre-tinted gold in the SVG the way the Character Builder's class art is. Fifteen reuse a vendored class emblem (often the honest pick — the assassin trainer leads the Ras-Godai); six are vendored under icons/game-icons/trainers/. Returns null rather than a placeholder path. |
 | `training/training-core.mjs` | 572 | Pure metadata for the Game Master's Guide's 21 regional trainers: trainer and region names, page numbers, the benefits table each one imports as, and a recipe per d4 face — Active Effect changes, one-time actions, either/or branches, or a stated reason the table must handle it. Ships no rules text; the book's wording is read from the GM's own imported table. Also the "once each" helpers and the roll walk. |
@@ -133,7 +138,7 @@
 | `crawl-tracker-core.mjs` | 138 | Pure view model for the tracker tab: `buildTrackerRows()` (rolled first, unrolled last, holder flagged), `showOocReset()`, and `parseInitiativeInput()` — which treats a blanked box as "no change" rather than the initiative of 0 that `Number("")` yields. Node-testable. |
 | `initiative-manager.mjs` | 133 | Combat/initiative state machine glue for the strip. |
 | `hidden-sync.mjs` | 66 | Bidirectional `token.hidden` ↔ `combatant.hidden` sync, GM-only. |
-| `turn-skip.mjs` | 103 | Auto-advances past combatants the strip renders no card for (dead enemies). Active-GM gated. |
+| `turn-skip.mjs` | 111 | Auto-advances past combatants the strip renders no card for (dead enemies). Active-GM gated. |
 | `turn-skip-core.mjs` | 124 | Pure strip-visibility test shared by the strip and the auto-skip, so the two can't drift. |
 | `movement-tracker.mjs` | 806 | Crawl-mode movement budget enforcement + turn-start rollback (`displace` waypoints). |
 | `movement-calc.mjs` | 88 | Pure per-segment feet-moved math. |
@@ -233,7 +238,7 @@
 
 | File | Lines | Description |
 |---|---:|---|
-| `session-recap.mjs` | 746 | Session event tracker singleton (loot, sales, XP, combats, per-PC stats). |
+| `session-recap.mjs` | 749 | Session event tracker singleton (loot, sales, XP, combats, per-PC stats). |
 | `session-recap-core.mjs` | 402 | Pure data shape, currency math, duration format, Discord-markdown export. |
 | `session-recap-app.mjs` | 338 | Recap window: Overview / Combat / Loot / XP / History. |
 | `carousing-feed.mjs` | 141 | Mirrors Shadowdark Extras' carousing into the session log. SDX emits no carousing hook and exposes none of it on `module.api`, but it keeps the whole live carouse in one journal flag on the hidden `__sdx_carousing_sync__` entry — so this watches that document rather than calling anything. Each carouse is COPIED into our own `carousing` array keyed on SDX's `logId`, because SDX's overlay holds only one live carouse and resetting it for the next round erases the last. Self-gates on SDX being active with carousing enabled, on an active session, and on the primary GM. |

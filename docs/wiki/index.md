@@ -40,6 +40,7 @@ Tools you run during an active game session.
 | [Renown](Renown.md) | The fame track, its four bands, reaction-roll bonuses, awarding and docking points |
 | [Pit Fighting](Pit-Fighting.md) | Cursed Scroll 2 bouts: venues, stakes scaled to party level, danger calls, twists |
 | [Session Recap](Session-Recap.md) | Automatic session log (loot, XP, combats, rolls, kills) with Discord export |
+| [Stat Damage](Stat-Damage.md) | Ability damage from drains and hardship: one line in the Effects tab, healed by rests, death at CON 0 |
 
 ## Building content
 
