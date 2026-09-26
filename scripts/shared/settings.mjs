@@ -499,6 +499,18 @@ export function registerSettings() {
     default: false,
   });
 
+  // Chaos Mode's reroll shows Dice So Nice only when asked: 3D dice for the
+  // whole tracker every round get tiresome. An option, not a rule, so the
+  // Chaos box's switch leaves it alone.
+  game.settings.register(MODULE_ID, "modeChaosDiceSoNice", {
+    name: "SDE.settings.modeChaosDiceSoNice.name",
+    hint: "SDE.settings.modeChaosDiceSoNice.hint",
+    scope: "world",
+    config: false,
+    type: Boolean,
+    default: false,
+  });
+
   game.settings.register(MODULE_ID, "modeDeadlyTimer", {
     name: "SDE.settings.modeDeadlyTimer.name",
     hint: "SDE.settings.modeDeadlyTimer.hint",
