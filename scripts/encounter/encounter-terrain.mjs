@@ -390,7 +390,8 @@ export function forgetHexZones() {
   hexZonesCache.clear();
 }
 
-async function hexZonesFor(scene) {
+/** A scanned print's hex zones and region row ranges, cached until a journal or scene changes. */
+export async function hexZonesFor(scene) {
   if (!hexZonesWatched && globalThis.Hooks?.on) {
     hexZonesWatched = true;
     // Crawl entries name the regions; a scene carries the scan, its fixes and its column shift.
