@@ -371,9 +371,10 @@ export const CrawlBar = {
 
       case "deleteEncounter":
         if (game.combat) {
-          const ok = await this._confirm("SDE.crawlBar.deleteEncounter", "SDE.crawlBar.confirm.deleteEncounter");
+          const ok = await this._confirm("SDE.crawlBar.deleteEncounterTitle", "SDE.crawlBar.deleteEncounterConfirm");
           if (ok) {
-            await game.combat.delete();
+            // Hunter, Loot drops and Session Recap skip a combat deleted with this.
+            await game.combat.delete({ [MODULE_ID]: { discard: true } });
             this.render();
             CrawlStrip.render();
           }

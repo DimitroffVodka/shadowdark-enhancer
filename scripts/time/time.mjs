@@ -11,6 +11,7 @@
 import { MODULE_ID } from "../shared/module-id.mjs";
 import { isActiveGM } from "../shared/gm-relay.mjs";
 import * as core from "./time-core.mjs";
+import { nightWithOverride, skyOverride } from "../overland/sky-core.mjs";
 import { advanceOffDuty, handleOffDutyQuery, OFF_DUTY_QUERY } from "./off-duty.mjs";
 
 /** World setting: a worldTime at which the moon was new. The phases count from it. */
@@ -41,7 +42,14 @@ export const timeApi = {
     const s = core.season(calendar(), when(t));
     return { ...s, name: s.name && game.i18n.localize(s.name) };
   },
-  isNight: (t) => core.isNight(calendar(), when(t)),
+  /**
+   * Is it night? With `{ region }` (the party's), the Isles of Andrik's skies
+   * apply: never night under the Midnight Sun, always under the Long Dark (#235).
+   */
+  isNight: (t, { region } = {}) => {
+    const at = when(t);
+    return nightWithOverride(core.isNight(calendar(), at), skyOverride(region, core.season(calendar(), at).key));
+  },
   sun: (t) => core.sun(calendar(), when(t)),
   moonPhase: (t) => core.moonPhase(calendar(), when(t), moonEpoch()),
   /** `year` is core's count (`game.time.components.year`); the current year by default. */

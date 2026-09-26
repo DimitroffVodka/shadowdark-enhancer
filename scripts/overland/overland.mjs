@@ -139,7 +139,7 @@ export function overlandState() {
     climate,
     stormy,
     harsh: harshToday(climate, stormy),
-    isNight: api.time?.isNight?.() ?? null,
+    isNight: api.time?.isNight?.(undefined, { region: s.hex?.region }) ?? null,
   };
 }
 

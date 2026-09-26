@@ -57,6 +57,14 @@ it needs.
   forage. Players get a Forage button on their own characters. The GM also
   sees the check hours and the day's buttons, which players never do. It
   hides during combat. (#234)
+- **The sky on outdoor scenes.** The hex map, and any scene set to **Follows
+  the sky** in Scene Configuration's Environment tab, darkens with the clock.
+  It is 0 by day, deepens over an hour of twilight to a night the moon
+  lightens, and lifts again before dawn. The hex map only darkens to a
+  readable tint. Stormy weather shows as Foundry's rain storm, or a blizzard
+  in the cold. The Isles of Andrik keep their Midnight Sun and Long Dark.
+  Locked scenes, Calendaria's scenes and a weather effect you chose are left
+  alone. (#235)
 - **Rules data.** A new **Rules data** window under Configure Settings holds
   the Western Reaches tables you look up rather than roll: terrain costs on
   foot and by boat, terrain types, hexes per day, hex visibility, each
@@ -344,6 +352,10 @@ page walks through it in order.
   Extras** reads what Extras already holds for a map through `getHexRecords`,
   and the Quest Log lists parties through `api.party`, instead of reading
   Extras' stored data directly. An older Extras still works as before. (#226)
+- **Delete Encounter on the Crawl Bar now throws the fight away.** It pays no
+  Hunter XP, rolls no loot drops and leaves no Session Recap entry, as its
+  confirm always said. Until now it did all three, just like **End
+  Encounter**, which still does.
 - **Every string the module shows now comes from `languages/en.json`**, so the
   whole interface can be translated from one file. The English is unchanged.
   Book content you import, and the rules tables the module carries, stay as
