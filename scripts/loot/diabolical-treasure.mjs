@@ -37,6 +37,16 @@ export const DIABOLICAL_TREASURE_MANIFEST_IDS = Object.freeze([
 export const DIABOLICAL_TREASURE_TABLE_NAME = "Diabolical Treasure";
 export const DIABOLICAL_TREASURE_FOLDER_PATH = Object.freeze(["Cursed Scroll 1", "Treasure"]);
 
+/** One string from `languages/en.json`; the key when no i18n is mounted (node tests). */
+const L = (key, data) => {
+  const i18n = globalThis.game?.i18n;
+  if (!i18n) return key;
+  return data ? i18n.format(key, data) : i18n.localize(key);
+};
+
+/** The book table's own name, filled into this file's GM warnings. */
+const NOTIFY_TABLE = "Diabolical Treasure";
+
 const MANIFEST_SET = new Set(DIABOLICAL_TREASURE_MANIFEST_IDS);
 const TABLE_NAME_KEY = curatedNameKey(DIABOLICAL_TREASURE_TABLE_NAME);
 const D6_ICON_REGISTRY = buildCuratedIconRegistry([DIABOLICAL_TREASURE_ICONS]);
@@ -739,7 +749,7 @@ export async function materializeDiabolicalTreasure(table, {
   if (!definitions.censusComplete) {
     const reason = "incomplete-census";
     summary.failures.push({ reason, error: "D6 requires the complete reviewed source census before reduction" });
-    notify("Diabolical Treasure: incomplete source census; original rows were preserved for retry.");
+    notify(L("SDE.loot.materialize.censusIncomplete", { table: NOTIFY_TABLE }));
     return summary;
   }
   const DOC = globalThis.CONST?.TABLE_RESULT_TYPES?.DOCUMENT ?? 1;
@@ -754,7 +764,7 @@ export async function materializeDiabolicalTreasure(table, {
       summary.unresolvedRows.push(unresolvedRecord(entry, "pack-failed"));
     }
     summary.unresolved += definitions.resolved.length;
-    notify("Diabolical Treasure: generated Item pack access failed; rows remain unresolved.");
+    notify(L("SDE.loot.materialize.packAccessFailed", { table: NOTIFY_TABLE }));
     return summary;
   }
   if (!pack || pack.collection !== MANAGED_ITEMS_PACK) {
@@ -764,7 +774,7 @@ export async function materializeDiabolicalTreasure(table, {
     }
     summary.unresolved += definitions.resolved.length;
     summary.failures.push({ reason, error: null });
-    notify("Diabolical Treasure: generated Items require the managed sde-items pack; rows remain unresolved.");
+    notify(L("SDE.loot.materialize.packRequired", { table: NOTIFY_TABLE }));
     return summary;
   }
 
@@ -790,7 +800,7 @@ export async function materializeDiabolicalTreasure(table, {
     summary.failures.push({ reason: "reconcile-failed", error: String(error?.message ?? error) });
     for (const entry of definitions.resolved) summary.unresolvedRows.push(unresolvedRecord(entry, "reconcile-failed"));
     summary.unresolved += definitions.resolved.length;
-    notify("Diabolical Treasure: generated Item reconciliation failed; rows remain unresolved.");
+    notify(L("SDE.loot.materialize.reconcileFailed", { table: NOTIFY_TABLE }));
     return summary;
   }
 
@@ -810,7 +820,7 @@ export async function materializeDiabolicalTreasure(table, {
       if (reason) summary.unresolvedRows.push(unresolvedRecord(entry, reason));
     }
     summary.unresolved += blocked.size;
-    notify("Diabolical Treasure: generated Item reconciliation was incomplete; original rows were preserved for retry.");
+    notify(L("SDE.loot.materialize.reconcileIncomplete", { table: NOTIFY_TABLE }));
     return summary;
   }
 
@@ -821,7 +831,7 @@ export async function materializeDiabolicalTreasure(table, {
     summary.failures.push({ reason: "documents-failed", error: String(error?.message ?? error) });
     for (const entry of definitions.resolved) summary.unresolvedRows.push(unresolvedRecord(entry, "documents-failed"));
     summary.unresolved += definitions.resolved.length;
-    notify("Diabolical Treasure: generated Item documents could not be read; rows remain unresolved.");
+    notify(L("SDE.loot.materialize.documentsUnreadable", { table: NOTIFY_TABLE }));
     return summary;
   }
   const byIdentity = new Map();
@@ -883,7 +893,7 @@ export async function materializeDiabolicalTreasure(table, {
     for (const entry of linkedEntries) summary.unresolvedRows.push(unresolvedRecord(entry, reason));
     summary.unresolved += linkedEntries.length;
     summary.linked = 0;
-    notify("Diabolical Treasure: no safe RollTable writer was available; source rows remain available for retry.");
+    notify(L("SDE.loot.materialize.noWriterSourceRows", { table: NOTIFY_TABLE }));
     return summary;
   }
 
@@ -902,8 +912,8 @@ export async function materializeDiabolicalTreasure(table, {
     summary.unresolved += linkedEntries.length;
     summary.linked = 0;
     notify(restored
-      ? "Diabolical Treasure: RollTable write failed; original source rows were restored for retry."
-      : "Diabolical Treasure: RollTable write and automatic restoration failed; manual recovery may be required.");
+      ? L("SDE.loot.materialize.writeFailedRestoredRetry", { table: NOTIFY_TABLE })
+      : L("SDE.loot.materialize.writeRestoreFailedManual", { table: NOTIFY_TABLE }));
   }
   return summary;
 }

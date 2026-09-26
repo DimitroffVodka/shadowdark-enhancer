@@ -71,7 +71,7 @@ test("a Core-forged weapon is a complete item-data object (claim copy loses noth
   assert.equal(data.flags[MODULE_ID].bonus, 2);
   assert.equal(data.flags[MODULE_ID].forge.version, 2);
   assert.equal(data.system.identification.identified, true);
-  assert.match(data.system.description, /Feature:/);
+  assert.match(data.system.description, /SDE\.magicForge\.descriptor\.feature:/); // key: no i18n under node
   assert.deepEqual(data.system.properties, ["finesse"]);
   assert.equal(data.system.damage.value, "d8");
   // No book prose leaked into the persisted flags.

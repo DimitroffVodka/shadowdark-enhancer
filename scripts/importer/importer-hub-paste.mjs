@@ -24,7 +24,8 @@ import { spellRecognizer } from "./spells/spell-parser.mjs";
 import { parseCharContent, expandNamePartTables, normalizeTwoColumnRanges, CHAR_SOURCES, sourcedTableName } from "./char-content/char-content-manifest.mjs";
 import { revalidateTalentBandWarnings } from "./char-content/class-parser.mjs";
 import { MODULE_ID } from "../shared/module-id.mjs";
-import { installMethods, t } from "./importer-hub-shared.mjs";
+// `tr` is the same translator, for the loops below that call their table `t`.
+import { installMethods, t, t as tr } from "./importer-hub-shared.mjs";
 import { ImporterHubApp } from "./importer-hub-app.mjs";
 import { parseDowntimeText, looksLikeDowntimePage } from "../downtime/downtime-parser.mjs";
 import { SOURCES as DOWNTIME_SOURCES, SOURCE_SLUGS as DOWNTIME_SLUGS } from "../downtime/downtime-skeleton.mjs";
@@ -840,8 +841,8 @@ class HubPasteMethods {
       const missingRequested = batchNames
         ? requestedNames.filter((name) => !matchedNames.has(name)).map((name) => ({
           name, reason: drafts.length
-            ? "not among the statblocks on the extracted pages"
-            : "no statblock (AC…LV) found in the extracted pages",
+            ? t("SDE.importer.skipReason.notInStatblocks")
+            : t("SDE.importer.skipReason.noStatblock"),
         }))
         : [];
       this._importMonsters = selected;
@@ -851,7 +852,7 @@ class HubPasteMethods {
       this._importSkipped = [
         ...(sk ?? []),
         ...drafts.filter((d) => !selected.includes(d)).map((d) => ({
-          name: d.draft.name, reason: `dropped — this unlock expects only "${want}"`,
+          name: d.draft.name, reason: t("SDE.importer.skipReason.dropped", { name: want }),
         })),
         ...missingRequested,
       ];
@@ -859,8 +860,8 @@ class HubPasteMethods {
         if (!batchNames) this._importSkipped.unshift({
           name: want,
           reason: drafts.length
-            ? "not among the statblocks on the extracted pages"
-            : "no statblock (AC…LV) found in the extracted pages",
+            ? t("SDE.importer.skipReason.notInStatblocks")
+            : t("SDE.importer.skipReason.noStatblock"),
         });
         ui.notifications.warn(drafts.length
           ? t("SDE.importer.parse.mountNotFound", { name: want, n: drafts.length, pages })
@@ -897,7 +898,8 @@ class HubPasteMethods {
         // into a generic guess (Codex review) — flag the fallback as a blocker
         // so the preview and the commit gate treat it as suspect.
         this._shapeFailNote = bucket ? null
-          : `BLOCKER: "${seed?.name ?? "this entry"}" has a registered ${shape.kind} shape that did not match the pasted text — the result below is a generic best-effort parse; verify it against the book before Create.`;
+          // The "BLOCKER:" tag is matched by the commit gate (computeBlockers), so it stays literal.
+          : `BLOCKER: ${t("SDE.importer.shapeFail.note", { name: seed?.name ?? t("SDE.importer.shapeFail.thisEntry"), kind: shape.kind })}`;
         // Say it out loud too. The note only reaches the preview when the
         // generic fallback still produced a table to hang it on, so a total
         // miss used to fail in silence — the GM saw shredded rows, or nothing,
@@ -931,7 +933,7 @@ class HubPasteMethods {
               if (seed?.src) pt.source ??= seed.src;
             }
             for (const miss of bucket.missing ?? []) {
-              this._importSkipped.push({ name: miss, reason: "not found in the pasted pages — use “Grab text” to pull the whole cited range" });
+              this._importSkipped.push({ name: miss, reason: t("SDE.importer.skipReason.notInPaste") });
             }
             if (bucket.missing?.length) {
               const total = bucket.missing.length + this._importTables.length + this._importGenerators.length;
@@ -1041,10 +1043,9 @@ class HubPasteMethods {
       if (sniff.isDowntime) {
         const named = sniff.activities.length;
         this._importSkipped = [{
-          name: "Downtime page",
-          reason: `recognized ${named} downtime ${named === 1 ? "activity" : "activities"} and `
-            + `${sniff.bullets} DC lines. Auto-detect can't unlock downtime — set Importing to `
-            + `"Downtime", pick the Book, then Parse again.`,
+          name: t("SDE.importer.skipReason.downtimePage"),
+          reason: t(named === 1 ? "SDE.importer.skipReason.downtimeSniffOne" : "SDE.importer.skipReason.downtimeSniffMany",
+            { n: named, bullets: sniff.bullets }),
         }];
         this._importMonsters = [];
         this._importItems = [];
@@ -1174,7 +1175,7 @@ class HubPasteMethods {
         if (full && (full.rows?.length ?? 0) > (keep?.rows?.length ?? 0)) keep = full;
       }
       for (const t of [...nameTables, ...tables]) {
-        if (t !== keep) skipped.push({ name: t.name || `(untitled ${t.formula ?? ""} table)`, reason: `dropped — this unlock expects only "${want}"` });
+        if (t !== keep) skipped.push({ name: t.name || tr("SDE.importer.skipReason.untitledTable", { formula: t.formula ?? "" }), reason: tr("SDE.importer.skipReason.dropped", { name: want }) });
       }
       // Convention: imported tables are named "Source - Table Name" (e.g.
       // "Western Reaches - Dwarf Trinket"); ancestry NAME tables instead become
@@ -1207,7 +1208,7 @@ class HubPasteMethods {
         if (id) {
           t.name = sourcedTableName(CHAR_SOURCES.WR.label, id.name);
           t.category = id.category;
-          (t.warnings ??= []).push(`Identified from the page caption as "${id.name}" (WR pg ${id.pages}).`);
+          (t.warnings ??= []).push(tr("SDE.importer.pasteNote.identified", { name: id.name, pages: id.pages }));
           continue;
         }
         if (t.category === "character-names") {
@@ -1219,10 +1220,10 @@ class HubPasteMethods {
             .filter((m) => m.type === "Table" && /\bnames$/i.test(m.name));
           if (missing.length === 1) {
             t.name = sourcedTableName(CHAR_SOURCES.WR.label, missing[0].name);
-            (t.warnings ??= []).push(`Assumed "${missing[0].name}" — the only names table still missing.`);
+            (t.warnings ??= []).push(tr("SDE.importer.pasteNote.assumed", { name: missing[0].name }));
           } else {
             (t.warnings ??= []).push(
-              `Which ancestry? The page caption just says NAMES — edit the table name above (e.g. "Elf Names") before creating. Still missing: ${missing.map((m) => m.name).join(", ")}.`);
+              tr("SDE.importer.pasteNote.whichAncestry", { missing: missing.map((m) => m.name).join(", ") }));
           }
         }
       }
@@ -1298,7 +1299,7 @@ class HubPasteMethods {
     const out = [];
     for (const block of String(remainder ?? "").split(/\n\s*\n/)) {
       const first = block.split("\n")[0]?.trim();
-      if (first) out.push({ name: first, reason: "not recognized as the selected type" });
+      if (first) out.push({ name: first, reason: t("SDE.importer.skipReason.notRecognized") });
     }
     return out;
   }
@@ -1434,14 +1435,14 @@ class HubPasteMethods {
   _onMimportAddAttack(event, target) {
     const draft = this._hubMonsterDraft(target);
     if (!draft) return;
-    draft.actions.push({ name: "New Attack", type: "NPC Attack", num: 1, bonus: 0, damage: "1d6", ranges: ["close"], description: "" });
+    draft.actions.push({ name: t("SDE.importer.monsterImporter.newAttack"), type: "NPC Attack", num: 1, bonus: 0, damage: "1d6", ranges: ["close"], description: "" });
     this.render();
   }
 
   _onMimportAddSpecial(event, target) {
     const draft = this._hubMonsterDraft(target);
     if (!draft) return;
-    draft.actions.push({ name: "New Special", type: "NPC Special Attack", num: 1, bonus: 0, damage: "", ranges: [], description: "" });
+    draft.actions.push({ name: t("SDE.importer.monsterImporter.newSpecial"), type: "NPC Special Attack", num: 1, bonus: 0, damage: "", ranges: [], description: "" });
     this.render();
   }
 
@@ -1456,7 +1457,7 @@ class HubPasteMethods {
   _onMimportAddFeature(event, target) {
     const draft = this._hubMonsterDraft(target);
     if (!draft) return;
-    draft.features.push({ name: "New Feature", description: "" });
+    draft.features.push({ name: t("SDE.importer.monsterImporter.newFeature"), description: "" });
     this.render();
   }
 

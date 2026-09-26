@@ -30,6 +30,7 @@
 
 import { collapse } from "./pdf-text-utils.mjs";
 import { fileRoute } from "../shared/file-route.mjs";
+import { t as tr } from "./importer-hub-shared.mjs";
 
 /** Cached ESM import of Foundry's bundled PDF.js (loaded once per session). */
 let _pdfjs = null;
@@ -784,7 +785,7 @@ export async function extractPdfText(filePath, { pages = [1], columns = "auto", 
  */
 export function notifyGutterWarnings(result) {
   for (const w of result?.warnings ?? []) {
-    ui.notifications?.warn(`Column check — ${w}. Compare the extracted text against the page before importing.`);
+    ui.notifications?.warn(tr("SDE.importer.pdfText.notify.columnCheck", { warning: w }));
   }
 }
 

@@ -39,7 +39,8 @@ test("rows with no automated route are reported, never silently dropped", () => 
   const plan = planBatch([leaf("items", "Items", [gap])]);
   assert.equal(plan.jobs.length, 0);
   assert.equal(plan.blocked.length, 1);
-  assert.match(plan.blocked[0].reason, /page citation/i);
+  // No i18n is mounted here, so the reason comes back as its en.json key.
+  assert.equal(plan.blocked[0].reason, "SDE.importer.batchNote.gapNoCite");
   assert.equal(plan.lockedCount, 1);
 });
 

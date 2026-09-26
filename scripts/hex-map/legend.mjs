@@ -106,7 +106,7 @@ export async function kmeans(vecs, k, { iters = 12, rng = lcg(1), onProgress } =
  * Group cells by glyph. Every cell lands in exactly one group; groups come
  * biggest first, members nearest the centroid first.
  * @param {Array<{num:number, bitmap:{w:number,h:number,data:Uint8Array}}>} cells
- * @param {Partial<typeof LEGEND_DEFAULTS> & {onProgress?:(text:string)=>Promise<void>|void}} [opts]
+ * @param {Partial<typeof LEGEND_DEFAULTS> & {onProgress?:(p:{pass:number, passes:number, step:number})=>Promise<void>|void}} [opts]
  * @returns {Promise<{clusters: Array<{size:number, members:number[], core:number[], samples:number[]}>}>}
  */
 /**
@@ -182,7 +182,7 @@ export async function buildLegend(cells, opts = {}) {
   const k = Math.max(1, Math.min(T.k, Math.ceil(cs.length / 6)));
   let best = null;
   for (let r = 0; r < T.restarts; r++) {
-    const run = await kmeans(vecs, k, { iters: T.iters, rng: lcg(r + 1), onProgress: (it) => T.onProgress?.(`Sorting cells by glyph… pass ${r + 1} of ${T.restarts}, step ${it + 1}`) });
+    const run = await kmeans(vecs, k, { iters: T.iters, rng: lcg(r + 1), onProgress: (it) => T.onProgress?.({ pass: r + 1, passes: T.restarts, step: it + 1 }) });
     if (!best || run.inertia < best.inertia) best = run;
   }
   const groups = Array.from({ length: k }, () => []);

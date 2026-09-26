@@ -297,7 +297,8 @@ test("manual row edits are replaced with one warning", async () => {
   const result = await regenerateRivalClassTable({ game: gameRef, pack, report, RollTable, notify: (message) => notices.push(message) });
   assert.equal(result.status, "updated");
   assert.equal(result.replacedManualEdits, true);
-  assert.deepEqual(notices, [RIVAL_CLASS_TABLE_WARNING]);
+  // No i18n is mounted here, so the toast is its en.json key (same text as the description).
+  assert.deepEqual(notices, ["SDE.forgeLoot.rivalTable.manualEdits"]);
   assert.equal(doc.results[0].name, "Edited");
 });
 

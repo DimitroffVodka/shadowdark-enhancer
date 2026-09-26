@@ -81,6 +81,12 @@ export const QUERY_TIMEOUT_MS = 20000;
 /** How long a GM→player cosmetic notice waits before being abandoned. */
 export const NOTICE_TIMEOUT_MS = 5000;
 
+/**
+ * `game.i18n.format`, or the key when no i18n is mounted: the pure halves of
+ * this file run under node tests with no Foundry at all.
+ */
+const fmt = (key, data = {}) => globalThis.game?.i18n?.format(key, data) ?? key;
+
 // ─── Pure decision logic (unit-tested; no Foundry globals) ──────────────────
 
 /**
@@ -112,20 +118,14 @@ export function evaluateHandshake({ gmPresent, answered, gmVersion, myVersion })
  * @param {string} label   Plural noun phrase for the blocked action, e.g.
  *                         "downtime actions". Reads as "… before X can land."
  */
-export function handshakeWarning(result, label = "that action") {
-  if (result?.reason === "no-gm") {
-    return `No GM is connected — ${label} can't be processed until one is online.`;
-  }
-  if (result?.reason === "no-query-permission") {
-    return `Your user role can't send ${label} to the GM — ask them to re-enable `
-      + `the "Query User" permission for your role.`;
-  }
+export function handshakeWarning(result, label = null) {
+  label ??= fmt("SDE.shared.relay.thatAction");
+  if (result?.reason === "no-gm") return fmt("SDE.shared.relay.noGm", { label });
+  if (result?.reason === "no-query-permission") return fmt("SDE.shared.relay.noQueryPermission", { label });
   if (result?.reason === "version") {
-    return `Your GM's Foundry tab is running Shadowdark Enhancer ${result.gmVersion} `
-      + `and yours is ${result.myVersion} — the out-of-date tab needs a reload `
-      + `before ${label} can land.`;
+    return fmt("SDE.shared.relay.versionReload", { gmVersion: result.gmVersion, myVersion: result.myVersion, label });
   }
-  return `Your GM's Foundry tab needs a reload before ${label} can land.`;
+  return fmt("SDE.shared.relay.reload", { label });
 }
 
 /**
@@ -145,9 +145,9 @@ export function handshakeWarning(result, label = "that action") {
  * @returns {{ok: boolean, error?: string}}
  */
 export function authorizeActorRequest({ actorExists, requesterIsGM, requesterOwnsActor } = {}) {
-  if (!actorExists) return { ok: false, error: "That character no longer exists." };
+  if (!actorExists) return { ok: false, error: fmt("SDE.shared.relay.actorGone") };
   if (requesterIsGM || requesterOwnsActor) return { ok: true };
-  return { ok: false, error: "You don't own that character." };
+  return { ok: false, error: fmt("SDE.shared.relay.notOwner") };
 }
 
 // ─── GM side ────────────────────────────────────────────────────────────────
@@ -210,9 +210,9 @@ export function isActiveGM() {
  * @param {string} what Plural noun phrase for the refusal sentence.
  * @returns {null|{ok: false, error: string}} null when the query may proceed.
  */
-export function refuseQuery(user, what = "these actions") {
-  if (!user?.id) return { ok: false, error: `Request refused: the sender could not be identified.` };
-  if (!isActiveGM()) return { ok: false, error: `${what} are resolved by the primary GM.` };
+export function refuseQuery(user, what = null) {
+  if (!user?.id) return { ok: false, error: fmt("SDE.shared.relay.unidentified") };
+  if (!isActiveGM()) return { ok: false, error: fmt("SDE.shared.relay.primaryGm", { what: what ?? fmt("SDE.shared.relay.theseActions") }) };
   return null;
 }
 
@@ -243,7 +243,7 @@ export function refuseQuery(user, what = "these actions") {
  *   no answer came back. Never throws.
  */
 export async function queryActiveGM(queryName, data, {
-  label = "that action", queryTimeoutMs = QUERY_TIMEOUT_MS, targetUser = null,
+  label = null, queryTimeoutMs = QUERY_TIMEOUT_MS, targetUser = null,
 } = {}) {
   const gm = targetUser ?? game.users?.activeGM;
   if (!gm) return { ok: false, error: handshakeWarning({ reason: "no-gm" }, label) };
@@ -260,7 +260,7 @@ export async function queryActiveGM(queryName, data, {
   try {
     // The timeout is not optional — see the header note.
     const reply = await gm.query(queryName, data, { timeout: queryTimeoutMs });
-    return reply ?? { ok: false, error: "The GM's tab returned nothing." };
+    return reply ?? { ok: false, error: fmt("SDE.shared.relay.emptyReply") };
   } catch (err) {
     // Unregistered query name on a stale GM, a disconnect mid-flight, or the
     // ack timeout. All of them mean the same thing to the player.

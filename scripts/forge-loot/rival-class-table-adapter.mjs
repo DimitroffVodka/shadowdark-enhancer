@@ -19,7 +19,6 @@ import { valueFingerprint } from "./forge-loot-core.mjs";
 import { CLASS_INDEX_INVALIDATED_HOOK as CLASS_INDEX_HOOK } from "../importer/char-content/class-index.mjs";
 import {
   RIVAL_CLASS_TABLE_FOLDER,
-  RIVAL_CLASS_TABLE_WARNING,
   buildRivalClassTablePayload,
   isRivalClassTable,
   rivalClassTableContent,
@@ -31,6 +30,9 @@ import {
 export const RIVAL_CLASS_TABLE_INVALIDATION_HOOK = CLASS_INDEX_HOOK;
 export const CLASS_INDEX_INVALIDATED_HOOK = RIVAL_CLASS_TABLE_INVALIDATION_HOOK;
 export const RIVAL_CLASS_TABLE_DEBOUNCE_MS = 50;
+
+/** One string from `languages/en.json`; the key when no i18n is mounted (node tests). */
+const L = (key) => globalThis.game?.i18n?.localize(key) ?? key;
 
 function isObject(value) {
   return !!value && typeof value === "object";
@@ -304,7 +306,9 @@ export async function regenerateRivalClassTable({
     const { doc: document, mode } = await replaceDocument(
       existing, writeData(payload, existing, await rivalFolderId(pack)), pack,
     );
-    if (replacedManualEdits) notifyManualEdit(RIVAL_CLASS_TABLE_WARNING, notify);
+    // The table description keeps RIVAL_CLASS_TABLE_WARNING in English: it is part of
+    // the fingerprint that detects manual edits. Only the GM toast is localized.
+    if (replacedManualEdits) notifyManualEdit(L("SDE.forgeLoot.rivalTable.manualEdits"), notify);
     return resultSummary({
       status: mode === "recreated" ? "updated" : "updated",
       mode, rowCount: winners.length, document,

@@ -77,8 +77,8 @@ async function postCompoundCard(table, combined, detail, options = {}) {
   const content = `
     <div class="sde-compound-card">
       <header class="sde-cg-head"><i class="fas fa-dice-d6"></i> ${foundry.utils.escapeHTML(table.name)}</header>
-      <div class="sde-cg-combined">${foundry.utils.escapeHTML(combined) || "<em>(empty)</em>"}</div>
-      <details class="sde-cg-detail"><summary>Breakdown</summary>${rows}</details>
+      <div class="sde-cg-combined">${foundry.utils.escapeHTML(combined) || `<em>${game.i18n.localize("SDE.importer.compoundCard.empty")}</em>`}</div>
+      <details class="sde-cg-detail"><summary>${game.i18n.localize("SDE.importer.compoundCard.breakdown")}</summary>${rows}</details>
     </div>`;
 
   const data = {

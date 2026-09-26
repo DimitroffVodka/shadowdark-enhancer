@@ -445,11 +445,11 @@ export async function tableForHex(hex, opts) {
 
 /** Every roll table the GM could pick: the world's, then this module's pack. */
 async function tableChoices() {
-  const groups = [{ label: "World", tables: game.tables.contents.map((t) => ({ uuid: t.uuid, name: t.name })) }];
+  const groups = [{ label: game.i18n.localize("SDE.encounter.terrain.groupWorld"), tables: game.tables.contents.map((t) => ({ uuid: t.uuid, name: t.name })) }];
   const pack = findSuitePack(TABLES_PACK);
   if (pack) {
     const index = await pack.getIndex();
-    groups.push({ label: pack.title ?? "Compendium", tables: index.map((t) => ({ uuid: `Compendium.${pack.collection}.RollTable.${t._id}`, name: t.name })) });
+    groups.push({ label: pack.title ?? game.i18n.localize("SDE.encounter.terrain.groupCompendium"), tables: index.map((t) => ({ uuid: `Compendium.${pack.collection}.RollTable.${t._id}`, name: t.name })) });
   }
   return groups.filter((g) => g.tables.length);
 }
@@ -466,30 +466,31 @@ export async function openTerrainTables() {
   const rows = sceneTerrains(canvas?.scene?.getFlag(MODULE_ID, TAGS_FLAG));
   for (const key of Object.keys(tables)) if (!rows.some((r) => r.key === key)) rows.push({ key, label: key, count: 0 });
   if (!rows.length) {
-    ui.notifications?.warn("No terrain to map yet: tag a hex scene (Importer Hub → Hex tagger), then pick this again while viewing it.");
+    ui.notifications?.warn(game.i18n.localize("SDE.encounter.terrain.notify.noTerrain"));
     return null;
   }
   const groups = await tableChoices();
   const options = (selected) => groups.map((g) =>
     `<optgroup label="${escapeHtml(g.label)}">${g.tables.map((t) =>
       `<option value="${escapeHtml(t.uuid)}" ${t.uuid === selected ? "selected" : ""}>${escapeHtml(t.name)}</option>`).join("")}</optgroup>`).join("");
+  const none = escapeHtml(game.i18n.localize("SDE.encounter.terrain.none"));
   const content = `<form class="standard-form">
-    <p class="hint">The encounter check rolls the table for the hex the party is in. Terrain left at (none) falls back to the active table.</p>
+    <p class="hint">${escapeHtml(game.i18n.localize("SDE.encounter.terrain.hint"))}</p>
     ${rows.map((r) => `<div class="form-group"><label>${escapeHtml(r.label)}${r.count ? ` <span class="hint">(${r.count})</span>` : ""}</label><div class="form-fields">
-      <select name="${escapeHtml(r.key)}"><option value="">(none)</option>${options(tables[r.key])}</select>
+      <select name="${escapeHtml(r.key)}"><option value="">${none}</option>${options(tables[r.key])}</select>
     </div></div>`).join("")}
   </form>`;
   const answer = await foundry.applications.api.DialogV2.prompt({
-    window: { title: "Encounter tables by terrain", icon: "fa-solid fa-mountain-sun" },
+    window: { title: "SDE.encounter.terrain.title", icon: "fa-solid fa-mountain-sun" },
     position: { width: 520 },
     content,
-    ok: { label: "Save", callback: (_event, button) => new FormDataExtended(button.form).object },
+    ok: { label: "SDE.encounter.terrain.save", callback: (_event, button) => new FormDataExtended(button.form).object },
     rejectClose: false,
   });
   if (!answer) return null;
   const next = {};
   for (const [key, uuid] of Object.entries(answer)) if (uuid) next[key] = String(uuid);
   await game.settings.set(MODULE_ID, TERRAIN_TABLES, next);
-  ui.notifications?.info(`Encounter tables by terrain: ${Object.keys(next).length} mapped.`);
+  ui.notifications?.info(game.i18n.format("SDE.encounter.terrain.notify.saved", { count: Object.keys(next).length }));
   return next;
 }

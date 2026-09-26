@@ -367,7 +367,10 @@ function fakeWorld({ documents = [] } = {}) {
   for (const key of ["game", "ui", "Item", "Folder"]) {
     saved.set(key, Object.getOwnPropertyDescriptor(globalThis, key));
   }
-  globalThis.game = { user: { isGM: true }, packs: [pack] };
+  globalThis.game = {
+    user: { isGM: true }, packs: [pack],
+    i18n: { localize: (k) => k, format: (k, d) => k + JSON.stringify(d) },
+  };
   globalThis.ui = {
     notifications: {
       warn: (m) => notifications.warn.push(m),
@@ -426,7 +429,7 @@ test("an ordinary import that says Replace never replaces a generated Monster Sp
     assert.equal(world.notifications.warn.length, 1);
     const notice = world.notifications.warn[0];
     assert.ok(notice.includes("Fireball - Goblin Shaman"), "the notice names the document");
-    assert.ok(/monster spell/i.test(notice), "the notice says what it protected");
+    assert.ok(notice.startsWith("SDE.importer.itemImport.notify.monsterSpellKept"), "the notice says what it protected");
     assert.ok(notice.includes("Fireball - Goblin Shaman (2)"), "the notice states the outcome");
   } finally {
     world.restore();

@@ -309,6 +309,7 @@ async function nonActiveGmHarness() {
     actors: { get: (id) => ({ pc1: mine, pc2: other }[id] ?? null) },
     scenes: { get: () => scene },
     settings: { get: () => true, set: async () => {} },
+    i18n: { localize: (k) => k, format: (k) => k },
   };
 
   const { CrawlStrip } = await import("../scripts/crawl-strip/crawl-strip.mjs");
@@ -333,7 +334,7 @@ test("EXPLOIT: a second GM addressed directly must not run the action a second t
       { action: "luck:give", giverId: mine.id, receiverId: other.id }, PLAYER,
     );
     assert.equal(reply.ok, false, "a non-designated GM must refuse");
-    assert.match(reply.error, /primary GM/);
+    assert.match(reply.error, /SDE\.shared\.relay\.primaryGm/);
     assert.equal(gave, 0, "and must not perform the transfer");
   } finally {
     CrawlStrip._giveLuckToken = real;
@@ -371,7 +372,7 @@ test("the gate is shared, so every feature's query entry point inherits it", asy
   }, GM);
 
   assert.equal(reply.ok, false);
-  assert.match(reply.error, /primary GM/);
+  assert.match(reply.error, /SDE\.shared\.relay\.primaryGm/);
   assert.equal(created.actors.length, 0, "no duplicate world Actor");
   assert.equal(created.tokens.length, 0, "no duplicate Scene Token");
 });
@@ -477,7 +478,7 @@ test("EXPLOIT: an NPC receiver is refused too", async () => {
     assert.equal(reply.ok, false, "an NPC receiver must be refused");
     // And it must say WHY. "No longer exists" was both false and useless once
     // these sentences started reaching the player.
-    assert.match(reply.error, /only be given to a player character/);
+    assert.match(reply.error, /SDE\.crawlStrip\.receiverNotPc/);
     assert.equal(updates.length, 0, "nothing spent, nothing credited");
   } finally {
     restore();
@@ -528,7 +529,7 @@ test("classic mode: a receiver already holding a token is refused before anyone 
     );
 
     assert.equal(reply.ok, false);
-    assert.match(reply.error, /already has a luck token/);
+    assert.match(reply.error, /SDE\.crawlStrip\.luckAlreadyHas/);
     assert.equal(updates.length, 0, "nobody is debited for a gift that cannot land");
     assert.equal(chat.length, 0);
   } finally {
@@ -565,7 +566,7 @@ test("a refusal from the transfer reaches the player, not just the GM", async ()
     );
 
     assert.equal(reply.ok, false, "a give that spent nothing is not a success");
-    assert.match(reply.error, /no luck token to give/);
+    assert.match(reply.error, /SDE\.crawlStrip\.luckNoneToGive/);
     assert.equal(updates.length, 0, "and the receiver is not credited");
   } finally {
     restore();

@@ -99,8 +99,11 @@ async function _resolve(actor, { name, type, deleted, snapshot, itemId }, boosts
   const safe = esc(name);
   await roll.toMessage({
     speaker: ChatMessage.getSpeaker({ actor }),
-    flavor: `<strong>Scavenger</strong> — ${safe} (last use spent, success on ${successRangeLabel(boosts)})`
-      + `<br>${success ? `Recovered one use of <strong>${safe}</strong>.` : "Nothing left to salvage."}`,
+    flavor: `<strong>${game.i18n.localize("SDE.scavenger.talent")}</strong> — `
+      + game.i18n.format("SDE.scavenger.spent", { name: safe, range: successRangeLabel(boosts) })
+      + `<br>${success
+        ? game.i18n.format("SDE.scavenger.recovered", { name: `<strong>${safe}</strong>` })
+        : game.i18n.localize("SDE.scavenger.nothing")}`,
   });
 
   if (!success) return;

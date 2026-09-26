@@ -19,6 +19,10 @@ import assert from "node:assert/strict";
 import { martialTierBuckets } from "../scripts/downtime/downtime-session.mjs";
 import { DOWNTIME_SKELETON } from "../scripts/downtime/downtime-skeleton.mjs";
 
+// i18n stub: a key comes back as itself and `format` appends its data, so an
+// assertion still sees which sentence was picked and what went into it.
+globalThis.game = { i18n: { localize: (k) => k, format: (k, d) => k + JSON.stringify(d) } };
+
 const MARTIAL = DOWNTIME_SKELETON.activities.find((a) => a.key === "martialTraining");
 const TIERS = MARTIAL.gate.tiers;
 
@@ -59,13 +63,13 @@ describe("unreadable hit die", () => {
   });
 
   test("the note names why, quoting the class error", () => {
-    assert.match(blocked.gateNote, /Showing every tier/);
+    assert.match(blocked.gateNote, /SDE\.downtime\.gate\.everyTier/);
     assert.match(blocked.gateNote, /no class is set on this character/);
   });
 
   test("a missing class error still yields a note, never `undefined`", () => {
     const r = martialTierBuckets(MARTIAL, { facts: { martialTier: null }, casterList: null });
-    assert.match(r.gateNote, /couldn't read class hit die/);
+    assert.match(r.gateNote, /SDE\.downtime\.classError\.noHitDie/);
     assert.doesNotMatch(r.gateNote, /undefined|null/);
   });
 
@@ -120,7 +124,7 @@ describe("readable hit die", () => {
     });
     assert.equal(r.buckets[0].key, "d8plus");
     assert.equal(r.buckets[0].enabled, false);
-    assert.equal(r.buckets[0].reason, "Vera trains at d4.");
+    assert.equal(r.buckets[0].reason, 'SDE.downtime.gate.trainsAt{"name":"Vera","tier":"d4"}');
     assert.ok(r.buckets[0].slots.length > 0, "a browsed tier still shows its rows");
   });
 

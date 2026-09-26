@@ -7,22 +7,22 @@
 
 <div class="sde-thub-summary">
   <span class="sde-thub-stat ok">
-    <i class="fas fa-box-archive"></i> {{data.totalHave}} in suite + system</span>
+    <i class="fas fa-box-archive"></i> {{localize "SDE.importer.census.inSuite" n=data.totalHave}}</span>
   {{#if data.totalGap}}
   <span class="sde-thub-stat miss">
-    <i class="fas fa-circle-exclamation"></i> {{data.totalGap}} referenced but missing</span>
+    <i class="fas fa-circle-exclamation"></i> {{localize "SDE.importer.census.missing" n=data.totalGap}}</span>
   {{/if}}
 </div>
 
 {{#if data.noCensus}}
-<p class="sde-hub-monsters-empty"><i class="fas fa-circle-info"></i> Nothing catalogued yet.</p>
+<p class="sde-hub-monsters-empty"><i class="fas fa-circle-info"></i> {{localize "SDE.importer.census.empty"}}</p>
 {{else}}
 <table class="sde-hub-monsters-table">
   <thead>
     <tr>
-      <th class="sde-hub-monsters-th-source">Source</th>
-      <th class="sde-hub-monsters-th-have" title="{{data.noun}} records owned (suite + system)">Have</th>
-      <th class="sde-hub-monsters-th-have" title="Referenced in pack tables but not resolvable">Gap</th>
+      <th class="sde-hub-monsters-th-source">{{localize "SDE.importer.source.label"}}</th>
+      <th class="sde-hub-monsters-th-have" title="{{localize 'SDE.importer.census.haveTip' noun=data.noun}}">{{localize "SDE.importer.census.have"}}</th>
+      <th class="sde-hub-monsters-th-have" title="{{localize 'SDE.importer.census.gapTip'}}">{{localize "SDE.importer.census.gap"}}</th>
     </tr>
   </thead>
   <tbody>
@@ -34,7 +34,7 @@
         {{#if r.hasGap}}
         <button type="button" class="sde-hub-monsters-expand-btn"
                 data-action="{{r.expandAction}}" data-source="{{r.label}}"
-                title="Show the {{r.gap}} referenced names that aren't resolvable">
+                title="{{localize 'SDE.importer.census.expandTip' n=r.gap}}">
           {{r.gap}} {{#if r.expanded}}<i class="fas fa-caret-down"></i>{{else}}<i class="fas fa-caret-right"></i>{{/if}}
         </button>
         {{else}}0{{/if}}
@@ -49,8 +49,8 @@
             <span class="sde-hub-monsters-missing-name">{{mn.name}}</span>
             <button type="button" class="sde-hub-monsters-seed-btn"
                     data-action="{{mn.seedAction}}" data-name="{{mn.name}}"
-                    title="Seed the Import paste box with “{{mn.name}}”">
-              <i class="fas fa-file-import"></i> Seed
+                    title="{{localize 'SDE.importer.census.seedTip' name=mn.name}}">
+              <i class="fas fa-file-import"></i> {{localize "SDE.importer.census.seed"}}
             </button>
           </li>
           {{/each}}

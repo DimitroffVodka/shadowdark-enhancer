@@ -16,6 +16,13 @@
 import { slotByKey } from "./downtime-core.mjs";
 import { DOWNTIME_SKELETON } from "./downtime-skeleton.mjs";
 
+/** One string from `languages/en.json`; the key when no i18n is mounted. */
+const L = (key, data) => {
+  const i18n = globalThis.game?.i18n;
+  if (!i18n) return key;
+  return data ? i18n.format(key, data) : i18n.localize(key);
+};
+
 /** Slot key → its printed label, for warning prose. */
 export function slotLabel(key) {
   try {
@@ -28,7 +35,7 @@ export function slotLabel(key) {
 /** Activity key → its printed name ("martialTraining" → "Martial Training"). */
 function activityLabel(key) {
   const found = (DOWNTIME_SKELETON?.activities ?? []).find((a) => a.key === key);
-  return found?.name ?? key ?? "This activity";
+  return found?.name ?? key ?? L("SDE.downtime.warn.thisActivity");
 }
 
 /**
@@ -39,11 +46,14 @@ function activityLabel(key) {
  * line to look for rather than leaving the GM to infer it. Martial Training
  * and Magical Research need a true sub-heading; Skulduggery needs the check
  * line that tells its CHA half from its DEX half.
+ *
+ * The quoted lines are the book's own headings (what the parser looks for), so
+ * they stay data; only the sentence around them is translated.
  */
 const SUBHEADING_HINT = {
-  martialTraining: 'a tier line — "d4. INT, STR, or DEX Check"',
-  magicalResearch: 'a subsection line — "INT or CHA Spellcasters"',
-  skulduggery: 'a check line — "CHA Check" or "DEX Check"',
+  martialTraining: ["SDE.downtime.warn.hintTier", { line: "d4. INT, STR, or DEX Check" }],
+  magicalResearch: ["SDE.downtime.warn.hintSubsection", { line: "INT or CHA Spellcasters" }],
+  skulduggery: ["SDE.downtime.warn.hintCheck", { cha: "CHA Check", dex: "DEX Check" }],
 };
 
 /**
@@ -53,35 +63,40 @@ const SUBHEADING_HINT = {
 export const WARNING_TEXT = {
   "segment-overflow": {
     info: true,
-    text: (w) => `Two-column paste detected: the "${w.segmentId}" block held ${w.bullets} lines for ${w.slots} slots. The extra lines were re-homed below.`,
+    text: (w) => L("SDE.downtime.warn.segmentOverflow", { segment: w.segmentId, bullets: w.bullets, slots: w.slots }),
   },
   "orphan-segment": {
     info: true,
-    text: (w) => `"${w.activity}" had no lines of its own — its column was merged into a neighbour. Re-homed below.`,
+    text: (w) => L("SDE.downtime.warn.orphanSegment", { activity: w.activity }),
   },
   "phase2-fill": {
     info: true,
-    text: (w) => `Recovered "${slotLabel(w.slot)}" out of the "${w.fromSegment}" block.`,
+    text: (w) => L("SDE.downtime.warn.phase2Fill", { slot: slotLabel(w.slot), segment: w.fromSegment }),
   },
   "asterisk-mismatch": {
     info: false,
-    text: (w) => `"${slotLabel(w.slot)}": the paste ${w.bulletStar ? "marks" : "does not mark"} this activity with an asterisk, but this book ${w.skeletonPaid ? "charges" : "does not charge"} for it. The book's cost rule wins — check the page.`,
+    text: (w) => {
+      const key = w.bulletStar
+        ? (w.skeletonPaid ? "SDE.downtime.warn.asteriskMarkedPaid" : "SDE.downtime.warn.asteriskMarkedFree")
+        : (w.skeletonPaid ? "SDE.downtime.warn.asteriskUnmarkedPaid" : "SDE.downtime.warn.asteriskUnmarkedFree");
+      return L(key, { slot: slotLabel(w.slot) });
+    },
   },
   "duplicate-fill": {
     info: false,
-    text: (w) => `Two pasted lines both matched "${slotLabel(w.slot)}". The first one was kept.`,
+    text: (w) => L("SDE.downtime.warn.duplicateFill", { slot: slotLabel(w.slot) }),
   },
   "ambiguous-match": {
     info: false,
-    text: (w) => `A line could have been any of: ${(w.candidates ?? []).map(slotLabel).join(", ")}. It was left unmatched — assign it by hand or paste that column on its own.`,
+    text: (w) => L("SDE.downtime.warn.ambiguousMatch", { candidates: (w.candidates ?? []).map(slotLabel).join(", ") }),
   },
   "authority-mismatch": {
     info: false,
-    text: (w) => `This text names "${w.found}" but ${w.source} expects "${w.expected}" — you may have picked the wrong source book.`,
+    text: (w) => L("SDE.downtime.warn.authorityMismatch", { found: w.found, source: w.source, expected: w.expected }),
   },
   "incomplete-unlock": {
     info: false,
-    text: (w) => `Only ${w.filled} of ${w.expected} slots matched. The rest stay locked until you paste them.`,
+    text: (w) => L("SDE.downtime.warn.incompleteUnlock", { filled: w.filled, expected: w.expected }),
   },
 
   /* The four below are the parser's "couldn't place this line" codes. They used
@@ -93,32 +108,34 @@ export const WARNING_TEXT = {
     info: false,
     text: (w) => {
       const hint = SUBHEADING_HINT[w.activity];
-      return `"${activityLabel(w.activity)}": lines arrived with no sub-heading to file them under, so none of them matched.`
-        + (hint ? ` The paste needs ${hint} above its DC lines.` : "");
+      const activity = activityLabel(w.activity);
+      return hint
+        ? L("SDE.downtime.warn.unresolvedSegmentHint", { activity, hint: L(...hint) })
+        : L("SDE.downtime.warn.unresolvedSegment", { activity });
     },
   },
   "missing-activity-header": {
     info: false,
-    text: () => "Lines arrived before any activity heading, so none of them matched. Paste the ALL-CAPS activity name (SPIRITUALISM, SKULDUGGERY, MARTIAL TRAINING, MAGICAL RESEARCH) above its own lines.",
+    text: () => L("SDE.downtime.warn.missingHeader"),
   },
   "keyword-miss": {
     info: false,
-    text: (w) => `A DC ${w.dc} line under "${w.segmentId}" matched no entry there — its wording differs from the one this book prints. Left unmatched rather than guessed at.`,
+    text: (w) => L("SDE.downtime.warn.keywordMiss", { dc: w.dc, segment: w.segmentId }),
   },
   "dc-not-in-segment": {
     info: false,
-    text: (w) => `"${w.segmentId}" has no DC ${w.dc} entry, so that line was left unmatched. Check it sits under the heading it belongs to.`,
+    text: (w) => L("SDE.downtime.warn.dcNotInSegment", { dc: w.dc, segment: w.segmentId }),
   },
 };
 
 /** Turn a warning object from the parser into {text, info} for a preview. */
 export function warningText(w) {
   const def = WARNING_TEXT[w?.code];
-  if (!def) return { text: `Parser note: ${w?.code ?? "unknown"}`, info: true };
+  if (!def) return { text: L("SDE.downtime.warn.parserNote", { code: w?.code ?? "unknown" }), info: true };
   try {
     return { text: def.text(w), info: def.info };
   } catch {
-    return { text: `Parser note: ${w.code}`, info: def.info };
+    return { text: L("SDE.downtime.warn.parserNote", { code: w.code }), info: def.info };
   }
 }
 

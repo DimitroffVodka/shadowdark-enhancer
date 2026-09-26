@@ -110,7 +110,7 @@ export class HexBrushApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const state = decodeTags(scene?.getFlag(MODULE_ID, TAGS_FLAG));
     const brush = HexTagOverlay.current?.brush ?? null;
     return {
-      sceneName: scene?.name ?? "(no scene)",
+      sceneName: scene?.name ?? t("SDE.hexMap.label.noScene"),
       features: FEATURES.map((o) => ({ value: o, label: t(FEATURE_LABELS[o]), checked: !!brush?.features?.includes(o) })),
       terrainOptions: terrainOptions(state.cells).map((o) => ({ ...o, selected: o.value === brush?.terrain })),
       other: OTHER,

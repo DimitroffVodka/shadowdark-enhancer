@@ -5,6 +5,7 @@ import { readFile } from "node:fs/promises";
 
 import {
   automaticMonsterSpellSourceIds,
+  DEFERRED_REFRESH_WARNING,
   MONSTER_SPELL_SYNC_VERSION_SETTING,
   resetMonsterSpellUpdateGateSession,
   runMonsterSpellUpdateGate,
@@ -395,7 +396,10 @@ test("the deferral is surfaced to the GM once per session, not once per activati
   assert.equal(first.warned, true);
   assert.equal(second.warned, false, "a warning per activation would train people to ignore it");
   assert.equal(warned.length, 1);
-  assert.match(warned[0], /Build \/ Refresh/, "the warning must name the manual workaround");
+  // No i18n is mounted under node, so the warning arrives as its en.json key.
+  assert.equal(warned[0], DEFERRED_REFRESH_WARNING);
+  const en = JSON.parse(await readFile(new URL("../languages/en.json", import.meta.url), "utf8"));
+  assert.match(en[DEFERRED_REFRESH_WARNING], /Build \/ Refresh/, "the warning must name the manual workaround");
 });
 
 test("a failed stamp is reported as a failure rather than a silent success", async () => {

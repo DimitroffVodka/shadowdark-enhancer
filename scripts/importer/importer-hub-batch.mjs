@@ -109,24 +109,26 @@ class HubBatchMethods {
    */
   _batchCanRun(entry, route) {
     const src = entry?.src ?? "";
-    const book = CHAR_SOURCES[src]?.label || src || "its source book";
+    const book = CHAR_SOURCES[src]?.label || src || t("SDE.importer.batchNote.itsBook");
     if (route === ROUTE.SPELLS && !entry?.listKey) {
-      return "no spell list to preset — open the Spell Importer for this one";
+      return t("SDE.importer.batchNote.noSpellList");
     }
     if (route === ROUTE.DOWNTIME) {
       // A downtime row deliberately carries a BLANK src (so its page chip reads
       // "pg 26-27", not "cs6 pg 26-27") — the book key lives on the slug, the
       // same lookup _seedDowntimeUnlock does.
       const key = DOWNTIME_PDF_KEYS[entry?.listKey];
-      const label = CHAR_SOURCES[key]?.label || entry?.name || "that book";
-      if (!key) return "no source book mapped for this downtime row — unlock it by hand";
+      const label = CHAR_SOURCES[key]?.label || entry?.name || t("SDE.importer.batchNote.thatBook");
+      if (!key) return t("SDE.importer.batchNote.noDowntimeBook");
       return sourcePdfTarget(key, entry?.pages) ? true
-        : `${label}'s PDF isn't linked — upload it under Source PDFs, then run this again`;
+        : t("SDE.importer.batchNote.downtimeNoPdf", { book: label });
     }
     if (route === ROUTE.GEAR) {
       const pages = GEAR_GRABBABLE[src]?.[entry?.type];
-      if (!pages) return `the Item Builder has no verified page cite for ${book} ${entry?.type ?? "gear"} — build this one by hand`;
-      return sourcePdfTarget(src, pages) ? true : `${book}'s PDF isn't linked — upload it under Source PDFs`;
+      if (!pages) {
+        return t("SDE.importer.batchNote.gearNoCite", { book, type: entry?.type ?? t("SDE.importer.batchNote.gear") });
+      }
+      return sourcePdfTarget(src, pages) ? true : t("SDE.importer.batchNote.gearNoPdf", { book });
     }
     // Every other route grabs the row's cited pages out of the book. A reprint
     // cites several books, and any ONE of them being linked is enough to run
@@ -134,12 +136,14 @@ class HubBatchMethods {
     // book that would do rather than only the edition the row happens to lead
     // with. Otherwise the report sends a GM to buy Western Reaches for a table
     // their Cursed Scroll already prints.
-    if (!entry?.pages) return "no page citation on this row — import it by hand";
+    if (!entry?.pages) return t("SDE.importer.batchNote.noCite");
     const cites = entry?.cites?.length ? entry.cites : citesForTable(src, entry?.name, entry.pages);
     if (firstLinkedCite(cites)) return true;
     const books = cites.map((c) => CHAR_SOURCES[c.src]?.label || c.src || book);
     return t("SDE.importer.batch.noBookLinked", {
-      books: books.length > 1 ? `${books.slice(0, -1).join(", ")} or ${books.at(-1)}` : books[0] || book,
+      books: books.length > 1
+        ? t("SDE.importer.batchNote.booksOr", { list: books.slice(0, -1).join(", "), last: books.at(-1) })
+        : books[0] || book,
     });
   }
 
@@ -180,7 +184,7 @@ class HubBatchMethods {
         // DOM TypeError.
         if (this.rendered === false || !this.element) this._batchState.cancelled = true;
         if (this._batchState.cancelled) {
-          results.push({ job, status: "cancelled", note: "stopped before this entry ran", created: 0 });
+          results.push({ job, status: "cancelled", note: t("SDE.importer.batchNote.stopped"), created: 0 });
           continue;
         }
         this._batchState.current = job.label;
@@ -193,7 +197,7 @@ class HubBatchMethods {
           result = await this._runBatchJob(job);
         } catch (err) {
           console.error(`${MODULE_ID} | batch import failed on "${job.label}"`, err);
-          result = { status: "failed", note: err?.message ? String(err.message) : "see the console", created: 0 };
+          result = { status: "failed", note: err?.message ? String(err.message) : t("SDE.importer.batchNote.seeConsole"), created: 0 };
         }
         results.push({ job, ...result });
         this._batchState.done++;
@@ -267,7 +271,7 @@ class HubBatchMethods {
       case ROUTE.CLASS:    return this._batchRunClass(job);
       case ROUTE.GEAR:     return this._batchRunGear(job);
       case ROUTE.DOWNTIME: return this._batchRunDowntime(job);
-      default:             return { status: "failed", note: `unknown route "${job.route}"`, created: 0 };
+      default:             return { status: "failed", note: t("SDE.importer.batchNote.unknownRoute", { route: job.route }), created: 0 };
     }
   }
 
@@ -286,7 +290,7 @@ class HubBatchMethods {
       .map((entry) => String(entry.name ?? "").trim()).filter(Boolean))];
     const first = requested[0] ?? job.entry;
     if (!names.length || !first?.name) {
-      return { status: "failed", created: 0, note: "the Mount batch had no selected entries" };
+      return { status: "failed", created: 0, note: t("SDE.importer.batchNote.noMounts") };
     }
 
     this._onHubClear();
@@ -301,7 +305,7 @@ class HubBatchMethods {
     await this.render();
 
     const noTextNote = this._batchFirstProblem()
-      ?? "the source PDF gave no selectable text for those pages";
+      ?? t("SDE.importer.batchNote.noText");
     if (!this._batchGrabbedBody(first.name)) {
       return {
         status: "nothing", created: 0,
@@ -327,26 +331,27 @@ class HubBatchMethods {
       if (!parsedNames.has(name)) {
         return {
           name, status: "failed", created: 0,
-          note: skippedByName.get(name) ?? "not among the statblocks on the extracted pages",
+          note: skippedByName.get(name) ?? t("SDE.importer.skipReason.notInStatblocks"),
         };
       }
       if (createdNames.has(name) || replacedNames.has(name)) {
         return {
           name, status: "created", created: 1,
-          note: replacedNames.has(name) ? "replaced" : "created",
+          note: t(replacedNames.has(name) ? "SDE.importer.batchNote.replaced" : "SDE.importer.batchNote.created"),
         };
       }
       if (skippedNames.has(name)) {
-        return { name, status: "nothing", created: 0, note: "already in your library" };
+        return { name, status: "nothing", created: 0, note: t("SDE.importer.batchNote.inLibrary") };
       }
-      return { name, status: "failed", created: 0, note: "the Mount importer did not report a result" };
+      return { name, status: "failed", created: 0, note: t("SDE.importer.batchNote.mountNoResult") };
     });
     const created = entries.filter((entry) => entry.status === "created").length;
     const status = created ? "created"
       : entries.some((entry) => entry.status === "failed") ? "failed" : "nothing";
     return {
       status, created, entries,
-      note: `${created} of ${names.length} mount${names.length === 1 ? "" : "s"} created`,
+      note: t(names.length === 1 ? "SDE.importer.batchNote.mountsCreatedOne" : "SDE.importer.batchNote.mountsCreatedMany",
+        { created, n: names.length }),
     };
   }
 
@@ -382,14 +387,14 @@ class HubBatchMethods {
     if (!this._batchGrabbedBody(this._importSeed?.name ?? entry.name)) {
       return {
         status: "nothing", created: 0,
-        note: this._batchFirstProblem() ?? "the source PDF gave no selectable text for those pages",
+        note: this._batchFirstProblem() ?? t("SDE.importer.batchNote.noText"),
       };
     }
 
     await this._onHubParse();
     const before = this._batchDraftCount();
     if (!before) {
-      return { status: "nothing", note: this._batchFirstProblem() ?? "nothing recognized on those pages", created: 0 };
+      return { status: "nothing", note: this._batchFirstProblem() ?? t("SDE.importer.batchNote.nothingRecognized"), created: 0 };
     }
     const skipped = await this._batchCommitPreview();
     // The commit paths empty each bucket they wrote, so what's LEFT is what the
@@ -403,13 +408,13 @@ class HubBatchMethods {
       return {
         status: "nothing", created: 0, skipped,
         note: skipped
-          ? `${skipped} already in your library`
-          : this._batchFirstProblem() ?? "already in your library, or stopped by the quality check",
+          ? t("SDE.importer.batchNote.inLibraryN", { n: skipped })
+          : this._batchFirstProblem() ?? t("SDE.importer.batchNote.inLibraryOrGate"),
       };
     }
-    const notes = [`${created} created`];
-    if (skipped) notes.push(`${skipped} already in your library`);
-    if (left) notes.push(`${left} failed the quality check and were NOT imported — re-run this row's own Import to fix them`);
+    const notes = [t("SDE.importer.count.created", { n: created })];
+    if (skipped) notes.push(t("SDE.importer.batchNote.inLibraryN", { n: skipped }));
+    if (left) notes.push(t("SDE.importer.batchNote.gateHeld", { n: left }));
     return { status: "created", created, skipped, note: notes.join("; ") };
   }
 
@@ -483,15 +488,15 @@ class HubBatchMethods {
       return {
         status: "nothing", created: 0,
         note: app._pasteText?.trim()
-          ? "pulled the list's pages but found no spell writeups on them"
-          : "couldn't pull this list's pages from the source PDF",
+          ? t("SDE.importer.batchNote.noSpellWriteups")
+          : t("SDE.importer.batchNote.noSpellPages"),
       };
     }
     const wanted = app._spells.length;
     await app._onImport();
     const created = app._imported?.created ?? 0;
-    if (!created) return { status: "nothing", note: `all ${wanted} spells were already in your library`, created: 0 };
-    return { status: "created", created, note: `${created} of ${wanted} spells created` };
+    if (!created) return { status: "nothing", note: t("SDE.importer.batchNote.spellsAllPresent", { n: wanted }), created: 0 };
+    return { status: "created", created, note: t("SDE.importer.batchNote.spellsCreated", { created, wanted }) };
   }
 
   // ── Route: the Class Importer ──────────────────────────────────────────────
@@ -513,11 +518,11 @@ class HubBatchMethods {
     await app.render();
     await app._onGrabPdf();
     if (!app._bodyText?.trim()) {
-      return { status: "nothing", note: "couldn't pull the class writeup from the source PDF", created: 0 };
+      return { status: "nothing", note: t("SDE.importer.batchNote.noClassText"), created: 0 };
     }
     app._onParseBody();
     if (!app._bodyParsed) {
-      return { status: "nothing", note: "the grabbed pages didn't parse as a class (no Hit Points line)", created: 0 };
+      return { status: "nothing", note: t("SDE.importer.batchNote.noClassParse"), created: 0 };
     }
     app._refreshTalentWarnings();   // bands may tile after the grab — clear stale gate blockers
     const issues = classGateIssues({
@@ -529,13 +534,16 @@ class HubBatchMethods {
     if (issues.length) {
       return {
         status: "failed", created: 0,
-        note: `held back by the class quality check — ${issues[0]} Open the Class Importer to finish this one.`,
+        note: t("SDE.importer.batchNote.classHeld", { issue: issues[0] }),
       };
     }
     await app._onCreateBody();
-    if (!app._classUuid) return { status: "nothing", note: "the class wasn't created — see the Class Importer", created: 0 };
+    if (!app._classUuid) return { status: "nothing", note: t("SDE.importer.batchNote.classNotCreated"), created: 0 };
     const created = app._lastReport?.created ?? 0;
-    return { status: "created", created, note: `class created with ${created} document${created === 1 ? "" : "s"}` };
+    return {
+      status: "created", created,
+      note: t(created === 1 ? "SDE.importer.batchNote.classCreatedOne" : "SDE.importer.batchNote.classCreatedMany", { n: created }),
+    };
   }
 
   // ── Route: the Item Builder ────────────────────────────────────────────────
@@ -561,7 +569,7 @@ class HubBatchMethods {
       const dupes = app._systemDupes?.length ?? 0;
       return {
         status: "nothing", created: 0,
-        note: dupes ? `every row is already in the Shadowdark system (${dupes} matched)` : "no priced rows parsed out of the price table",
+        note: dupes ? t("SDE.importer.batchNote.gearAllSystem", { n: dupes }) : t("SDE.importer.batchNote.gearNoRows"),
       };
     }
     await app._onGrabDesc();      // grab + match (best-effort: rows commit either way)
@@ -569,10 +577,12 @@ class HubBatchMethods {
     await app._onCreate();
     const created = app._lastReport?.created ?? 0;
     const replaced = app._lastReport?.replaced ?? 0;
-    if (!created && !replaced) return { status: "nothing", note: `none of the ${wanted} rows were created`, created: 0 };
+    if (!created && !replaced) return { status: "nothing", note: t("SDE.importer.batchNote.gearNoneCreated", { n: wanted }), created: 0 };
     return {
       status: "created", created,
-      note: `${created} created${replaced ? `, ${replaced} refreshed` : ""} of ${wanted} rows`,
+      note: t("SDE.importer.batchNote.gearCreated", {
+        created, wanted, refreshed: replaced ? t("SDE.importer.batchNote.gearRefreshed", { n: replaced }) : "",
+      }),
     };
   }
 
@@ -584,16 +594,16 @@ class HubBatchMethods {
     await this._onDowntimeSeedPaste(null, { dataset: { listKey: job.entry.listKey ?? "" } });
     await this.render();
     if (!this._importText.trim()) {
-      return { status: "nothing", note: "the source PDF gave no selectable text for the downtime pages", created: 0 };
+      return { status: "nothing", note: t("SDE.importer.batchNote.downtimeNoText"), created: 0 };
     }
     await this._onHubParse();
     const filled = Object.keys(this._downtimeParse?.filled ?? {}).length;
-    if (!filled) return { status: "nothing", note: "nothing matched the downtime skeleton on those pages", created: 0 };
+    if (!filled) return { status: "nothing", note: t("SDE.importer.batchNote.downtimeNoMatch"), created: 0 };
     await this._onHubCommitDowntime();
     if (this._downtimeParse) {
-      return { status: "nothing", note: this._batchFirstProblem() ?? "the existing unlock was kept (it has more outcomes)", created: 0 };
+      return { status: "nothing", note: this._batchFirstProblem() ?? t("SDE.importer.batchNote.downtimeKept"), created: 0 };
     }
-    return { status: "created", created: filled, note: `${filled} downtime outcomes unlocked` };
+    return { status: "created", created: filled, note: t("SDE.importer.batchNote.downtimeUnlocked", { n: filled }) };
   }
 
   // ── Toast capture ──────────────────────────────────────────────────────────
@@ -650,8 +660,9 @@ class HubBatchMethods {
     const byRoute = new Map();
     for (const job of plan.jobs) byRoute.set(job.route, (byRoute.get(job.route) ?? 0) + 1);
     const routeLabel = {
-      [ROUTE.HUB]: "through the paste box", [ROUTE.SPELLS]: "spell lists",
-      [ROUTE.CLASS]: "classes", [ROUTE.GEAR]: "gear tables", [ROUTE.DOWNTIME]: "downtime books",
+      [ROUTE.HUB]: t("SDE.importer.batchRoute.hub"), [ROUTE.SPELLS]: t("SDE.importer.batchRoute.spells"),
+      [ROUTE.CLASS]: t("SDE.importer.batchRoute.classes"), [ROUTE.GEAR]: t("SDE.importer.batchRoute.gear"),
+      [ROUTE.DOWNTIME]: t("SDE.importer.batchRoute.downtime"),
     };
     const rows = [...byRoute].map(([route, n]) =>
       `<li><strong>${n}</strong> ${esc(routeLabel[route] ?? route)}</li>`).join("");

@@ -434,7 +434,8 @@ test("interactive refresh returns null and warns for non-GM callers", async () =
       sources: [],
     });
     assert.equal(result, null);
-    assert.deepEqual(messages, ["Monster Spell Library refresh is GM only."]);
+    // No i18n is mounted under node, so the warning is its en.json key.
+    assert.deepEqual(messages, ["SDE.monsterCreator.spellLibrary.notify.gmOnly"]);
   } finally {
     globalThis.ui = previousUi;
   }
@@ -453,7 +454,7 @@ test("interactive refresh returns null and warns for a secondary active GM", asy
       sources: [],
     });
     assert.equal(result, null);
-    assert.deepEqual(messages, ["Only the primary active GM can refresh the Monster Spell Library."]);
+    assert.deepEqual(messages, ["SDE.monsterCreator.spellLibrary.notify.primaryGmOnly"]);
   } finally {
     globalThis.ui = previousUi;
   }
@@ -482,7 +483,7 @@ test("interactive refresh blocks a concurrent refresh on the same client", async
     });
     const second = await runMonsterSpellLibraryRefresh({ game, sources: [source] });
     assert.equal(second, null);
-    assert.deepEqual(messages, ["A Monster Spell Library refresh is already in progress."]);
+    assert.deepEqual(messages, ["SDE.monsterCreator.spellLibrary.notify.inProgress"]);
     releaseSelection([]);
     assert.equal(await first, null);
   } finally {
@@ -618,7 +619,7 @@ test("interactive refresh aborts when source data changes after the dry run", as
 
     assert.equal(result, null);
     assert.equal(applied, false);
-    assert.match(messages[0], /changed after the dry run/i);
+    assert.equal(messages[0], "SDE.monsterCreator.spellLibrary.notify.changed");
   } finally {
     globalThis.ui = previousUi;
   }

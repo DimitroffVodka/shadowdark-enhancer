@@ -231,7 +231,7 @@ test("a player who addresses the query handler directly is refused", async () =>
   const res = await Renown.handleQuery({ action: "award", actorId: "a1", delta: 99 }, PLAYER);
 
   assert.equal(res.ok, false);
-  assert.equal(res.error, "Only a GM can change renown.");
+  assert.equal(res.error, "SDE.renown.error.gmOnly");
   assert.equal(actor.system.renown, 5);
   assert.equal(logged.length, 0);
 });
@@ -246,7 +246,7 @@ test("a forwarded award is refused by a client that is not the active GM", async
   const res = await Renown.handleQuery({ action: "award", actorId: "a1", delta: 1 }, GM);
 
   assert.equal(res.ok, false);
-  assert.match(res.error, /primary GM/);
+  assert.match(res.error, /SDE\.shared\.relay\.primaryGm/);
   assert.equal(actor.system.renown, 5);
 });
 
@@ -267,7 +267,7 @@ test("a player calling award directly is refused and not relayed", async () => {
   const res = await Renown.award({ actor, delta: 1, chat: false });
 
   assert.equal(res.ok, false);
-  assert.equal(res.error, "Only a GM can change renown.");
+  assert.equal(res.error, "SDE.renown.error.gmOnly");
   assert.equal(actor.system.renown, 5);
   // The refusal has to come BEFORE the hand-off, or a player could launder a
   // write through the relay.

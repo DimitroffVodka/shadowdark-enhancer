@@ -29,6 +29,9 @@
 import { MODULE_ID } from "../shared/module-id.mjs";
 import { esc } from "../shared/esc.mjs";
 
+/** A document's name, or the menu's placeholder for a blank one. */
+const nameOf = (doc) => doc.name || game.i18n.localize("SDE.crawlStrip.menu.unnamed");
+
 // ─── Damage Label Helpers (Shadowdark adapters) ───────────────────────────────
 
 function _npcAttackDmgLabel(item) {
@@ -87,9 +90,9 @@ function _spellDmgLabel(item) {
   const tier = item.system?.tier ?? 0;
   const damageType = item.system?.damageType ?? "none";
   if (damageType === "none" || !damageType) {
-    return `<span class="sde-strip-menu-dmg">T${tier}</span>`;
+    return `<span class="sde-strip-menu-dmg">${esc(game.i18n.format("SDE.crawlStrip.menu.tier", { tier }))}</span>`;
   }
-  return `<span class="sde-strip-menu-dmg">T${tier} ${damageType}</span>`;
+  return `<span class="sde-strip-menu-dmg">${esc(game.i18n.format("SDE.crawlStrip.menu.tier", { tier }))} ${damageType}</span>`;
 }
 
 // ─── Item-List Builders (Shadowdark adapters) ─────────────────────────────────
@@ -106,7 +109,7 @@ function _buildNpcActions(actor) {
       const num = Number(item.system?.attack?.num ?? 1);
       const prefix = num > 1 ? `×${num} ` : "";
       return {
-        label: `${prefix}${item.name || "Unnamed"}`,
+        label: `${prefix}${nameOf(item)}`,
         dmg: _npcAttackDmgLabel(item),
         itemId: item.id,
         attackNum: num,
@@ -119,7 +122,7 @@ function _buildNpcAbilities(actor) {
   return (actor.items?.contents ?? [])
     .filter(i => i.type === "NPC Feature")
     .map(item => ({
-      label: item.name || "Unnamed",
+      label: nameOf(item),
       dmg: "",
       itemId: item.id,
       kind: "npc-feature",
@@ -147,7 +150,7 @@ async function _buildPcWeapons(actor) {
       const isThrownVariant = attackType === "ranged" && nativeType === "melee" && item.system?.isThrown;
       const bonus = a.mainRoll?.bonus ?? "";
       entries.push({
-        label: isThrownVariant ? `${item.name || "Unnamed"} (thrown)` : (item.name || "Unnamed"),
+        label: isThrownVariant ? game.i18n.format("SDE.crawlStrip.menu.thrown", { name: nameOf(item) }) : nameOf(item),
         dmg: _weaponDmgLabel(item, { bonus, attackType }),
         itemUuid: item.uuid,
         itemId: item.id,
@@ -155,7 +158,7 @@ async function _buildPcWeapons(actor) {
         kind: "weapon",
         icon: attackType === "ranged" ? "fa-crosshairs" : "fa-swords",
         iconVariant: attackType,
-        iconTitle: attackType === "ranged" ? "Ranged" : "Melee",
+        iconTitle: game.i18n.localize(attackType === "ranged" ? "SDE.crawlStrip.menu.ranged" : "SDE.crawlStrip.menu.melee"),
       });
     }
   }
@@ -237,7 +240,7 @@ async function _buildPcSpells(actor) {
   for (const src of spellItemSources(actor.items?.contents ?? [], { canUseMagicItems })) {
     if (src.source === "spell") {
       entries.push({
-        label: src.item.name || "Unnamed",
+        label: nameOf(src.item),
         dmg: _spellDmgLabel(src.item),
         itemId: src.item.id,
         kind: "spell",
@@ -253,15 +256,15 @@ async function _buildPcSpells(actor) {
 
     const isWand = src.source === "wand";
     entries.push({
-      label: spell.name || "Unnamed",
+      label: nameOf(spell),
       dmg: _spellDmgLabel(spell),
       itemId: src.item.id,
       spellUuid: src.spellUuid,
       kind: src.source,
       icon: isWand ? "fa-wand-magic-sparkles" : "fa-scroll",
       iconVariant: src.source,
-      iconTitle: isWand ? "Wand" : "Scroll",
-      tooltip: `${isWand ? "Wand" : "Scroll"}: ${src.item.name || "Unnamed"}`,
+      iconTitle: game.i18n.localize(isWand ? "SDE.crawlStrip.menu.wand" : "SDE.crawlStrip.menu.scroll"),
+      tooltip: game.i18n.format(isWand ? "SDE.crawlStrip.menu.wandTip" : "SDE.crawlStrip.menu.scrollTip", { name: nameOf(src.item) }),
     });
   }
 
@@ -275,7 +278,7 @@ function _buildPcAbilities(actor) {
   return (actor.items?.contents ?? [])
     .filter(i => i.type === "Class Ability")
     .map(item => ({
-      label: item.name || "Unnamed",
+      label: nameOf(item),
       dmg: "",
       itemId: item.id,
       kind: "ability",
@@ -289,16 +292,16 @@ function _buildPcAbilities(actor) {
 async function _buildMenuData(actor, isNPC) {
   if (isNPC) {
     return {
-      tabA: "Actions",
-      tabB: "Abilities",
+      tabA: game.i18n.localize("SDE.crawlStrip.menu.actions"),
+      tabB: game.i18n.localize("SDE.crawlStrip.menu.abilities"),
       itemsA: _buildNpcActions(actor),
       itemsB: _buildNpcAbilities(actor),
     };
   }
   return {
-    tabA: "Weapons",
-    tabB: "Spells",
-    tabC: "Abilities",
+    tabA: game.i18n.localize("SDE.crawlStrip.menu.weapons"),
+    tabB: game.i18n.localize("SDE.crawlStrip.menu.spells"),
+    tabC: game.i18n.localize("SDE.crawlStrip.menu.abilities"),
     itemsA: await _buildPcWeapons(actor),
     itemsB: await _buildPcSpells(actor),
     itemsC: _buildPcAbilities(actor),
@@ -312,16 +315,16 @@ function _menuTabAvailability(actor, isNPC) {
   const items = actor.items?.contents ?? [];
   if (isNPC) {
     return {
-      tabA: "Actions",
-      tabB: "Abilities",
+      tabA: game.i18n.localize("SDE.crawlStrip.menu.actions"),
+      tabB: game.i18n.localize("SDE.crawlStrip.menu.abilities"),
       hasA: items.some(i => i.type === "NPC Attack" || i.type === "NPC Special Attack"),
       hasB: items.some(i => i.type === "NPC Feature"),
     };
   }
   return {
-    tabA: "Weapons",
-    tabB: "Spells",
-    tabC: "Abilities",
+    tabA: game.i18n.localize("SDE.crawlStrip.menu.weapons"),
+    tabB: game.i18n.localize("SDE.crawlStrip.menu.spells"),
+    tabC: game.i18n.localize("SDE.crawlStrip.menu.abilities"),
     hasA: items.some(i => i.system?.isWeapon && i.system?.equipped),
     // Wands and scrolls count, so a caster (or an `allowAllItems` non-caster)
     // carrying one gets the tab. Same filter AND same gate the panel uses, so
@@ -346,9 +349,9 @@ export function buildTabStripHTML(actor, isNPC) {
   const firstShown = hasA ? "a" : hasB ? "b" : "c";
   return `
     <div class="sde-strip-action-tabs" data-actor-id="${actor.id}">
-      ${hasA ? `<button class="sde-strip-atab ${firstShown === "a" ? "sde-strip-atab-active" : ""}" data-tab="a">${tabA}</button>` : ""}
-      ${hasB ? `<button class="sde-strip-atab ${firstShown === "b" ? "sde-strip-atab-active" : ""}" data-tab="b">${tabB}</button>` : ""}
-      ${hasC ? `<button class="sde-strip-atab ${firstShown === "c" ? "sde-strip-atab-active" : ""}" data-tab="c">${tabC}</button>` : ""}
+      ${hasA ? `<button class="sde-strip-atab ${firstShown === "a" ? "sde-strip-atab-active" : ""}" data-tab="a">${esc(tabA)}</button>` : ""}
+      ${hasB ? `<button class="sde-strip-atab ${firstShown === "b" ? "sde-strip-atab-active" : ""}" data-tab="b">${esc(tabB)}</button>` : ""}
+      ${hasC ? `<button class="sde-strip-atab ${firstShown === "c" ? "sde-strip-atab-active" : ""}" data-tab="c">${esc(tabC)}</button>` : ""}
     </div>`;
 }
 
@@ -424,7 +427,7 @@ async function _showPanel(stripEl, cardWrap, actor, isNPC, activeTab) {
           ${typeIcon}<span class="sde-strip-panel-name">${esc(it.label)}</span>${it.dmg}
         </button>`;
       }).join("")
-    : `<div class="sde-strip-panel-empty">None</div>`;
+    : `<div class="sde-strip-panel-empty">${esc(game.i18n.localize("SDE.crawlStrip.menu.none"))}</div>`;
 
   const panel = document.createElement("div");
   panel.className = "sde-strip-action-panel";
@@ -432,9 +435,9 @@ async function _showPanel(stripEl, cardWrap, actor, isNPC, activeTab) {
   panel.dataset.tokenId = cardWrap.querySelector(".sde-strip-member")?.dataset.tokenId ?? "";
   panel.innerHTML = `
     <div class="sde-strip-panel-tabs">
-      ${hasA ? `<button class="sde-strip-ptab ${startTab === "a" ? "sde-strip-ptab-active" : ""}" data-tab="a">${tabA}</button>` : ""}
-      ${hasB ? `<button class="sde-strip-ptab ${startTab === "b" ? "sde-strip-ptab-active" : ""}" data-tab="b">${tabB}</button>` : ""}
-      ${hasC ? `<button class="sde-strip-ptab ${startTab === "c" ? "sde-strip-ptab-active" : ""}" data-tab="c">${tabC}</button>` : ""}
+      ${hasA ? `<button class="sde-strip-ptab ${startTab === "a" ? "sde-strip-ptab-active" : ""}" data-tab="a">${esc(tabA)}</button>` : ""}
+      ${hasB ? `<button class="sde-strip-ptab ${startTab === "b" ? "sde-strip-ptab-active" : ""}" data-tab="b">${esc(tabB)}</button>` : ""}
+      ${hasC ? `<button class="sde-strip-ptab ${startTab === "c" ? "sde-strip-ptab-active" : ""}" data-tab="c">${esc(tabC)}</button>` : ""}
     </div>
     ${hasA ? `<div class="sde-strip-panel-body" data-panel="a" style="${startTab !== "a" ? "display:none" : ""}">${renderItems(itemsA)}</div>` : ""}
     ${hasB ? `<div class="sde-strip-panel-body" data-panel="b" style="${startTab !== "b" ? "display:none" : ""}">${renderItems(itemsB)}</div>` : ""}
@@ -458,7 +461,7 @@ async function _showPanel(stripEl, cardWrap, actor, isNPC, activeTab) {
       const token = tokenId ? canvas.tokens?.get(tokenId) : null;
       const resolvedActor = token?.actor ?? game.actors.get(actor.id);
       if (!resolvedActor?.isOwner) {
-        ui.notifications.warn("You don't control this character.");
+        ui.notifications.warn(game.i18n.localize("SDE.crawlStrip.menu.notYours"));
         return;
       }
       await _onItemClick(resolvedActor, item.dataset.kind, item.dataset.itemId, {
@@ -573,7 +576,7 @@ async function _onItemClick(actor, kind, itemId, opts = {}) {
     }
   } catch (err) {
     console.error(`${MODULE_ID} | Action fire error (${kind}):`, err);
-    ui.notifications.error("Action failed — check console.");
+    ui.notifications.error(game.i18n.localize("SDE.crawlStrip.menu.failed"));
   }
 }
 

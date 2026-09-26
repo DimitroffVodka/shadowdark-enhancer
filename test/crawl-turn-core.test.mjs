@@ -265,7 +265,7 @@ async function gmClientHarness({ combat, advanced, responder = GM, activeGM = GM
       activeGM,
       get: (id) => [PLAYER, OTHER_PLAYER, GM].find((u) => u.id === id),
     },
-    i18n: { localize: (key) => `[${key}]` },
+    i18n: { localize: (key) => `[${key}]`, format: (key) => `[${key}]` },
     combat,
     actors: { get: () => null },
     // CrawlState._commit persists + nudges; the OOC relay handler drives the
@@ -404,7 +404,7 @@ test("EXPLOIT: a non-designated GM refuses — the sender can address every GM, 
 
   const reply = await handle({ action: "combat:nextTurn" }, PLAYER);
   assert.equal(reply.ok, false);
-  assert.match(reply.error, /primary GM/);
+  assert.match(reply.error, /SDE\.shared\.relay\.primaryGm/);
   assert.deepEqual(advanced, [], "the non-designated GM must not advance");
 });
 
@@ -695,7 +695,7 @@ test("EXPLOIT: a non-designated GM refuses the OOC advance (the sender picks the
 
   const reply = await oocHandle({ action: "ooc:nextTurn" }, PLAYER);
   assert.equal(reply.ok, false);
-  assert.match(reply.error, /primary GM/);
+  assert.match(reply.error, /SDE\.shared\.relay\.primaryGm/);
   assert.equal(CrawlState.oocTurn, "pc1", "the non-designated GM must not advance");
 });
 

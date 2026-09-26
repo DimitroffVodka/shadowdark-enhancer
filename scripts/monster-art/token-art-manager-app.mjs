@@ -19,7 +19,7 @@ export class TokenArtManagerApp extends HandlebarsApplicationMixin(ApplicationV2
     id: "sde-token-art-manager",
     classes: ["sde-token-art-manager"],
     tag: "div",
-    window: { title: "Token Art Manager", icon: "fa-solid fa-images", resizable: true },
+    window: { title: "SDE.tokenArt.manager.title", icon: "fa-solid fa-images", resizable: true },
     position: { width: 720, height: 760 },
     actions: {
       sourceUp: TokenArtManagerApp._onSourceMove,
@@ -109,7 +109,7 @@ export class TokenArtManagerApp extends HandlebarsApplicationMixin(ApplicationV2
     for (const m of cat.byMonster) {
       const chosen = res.chosen[m.id];
       const p = picks[m.id];
-      const pick = p ? { thumb: p.token, label: p.source ? srcLabel(p.source) : "Custom", file: p.file ?? "" } : null;
+      const pick = p ? { thumb: p.token, label: p.source ? srcLabel(p.source) : game.i18n.localize("SDE.tokenArt.manager.custom"), file: p.file ?? "" } : null;
       const isOverride = !!overrides[m.id] || !!pick;
       rows.push({
         id: m.id,
@@ -260,7 +260,7 @@ export class TokenArtManagerApp extends HandlebarsApplicationMixin(ApplicationV2
       });
       // Live hover status — source + filename (native title is slow/hidden).
       const status = overlay.querySelector(".sde-tam-browser-status");
-      const idle = `<span class="sde-tam-dim">Hover a token to see its source &amp; filename</span>`;
+      const idle = `<span class="sde-tam-dim">${foundry.utils.escapeHTML(game.i18n.localize("SDE.tokenArt.manager.hoverIdle"))}</span>`;
       bgrid?.addEventListener("mouseover", (ev) => {
         const btn = ev.target.closest(".sde-tam-browse-opt");
         const entry = btn && this._library?.[Number(btn.dataset.idx)];
@@ -324,19 +324,19 @@ export class TokenArtManagerApp extends HandlebarsApplicationMixin(ApplicationV2
     const editing = Number.isInteger(parsedIndex) && parsedIndex >= 0 ? state.folders[parsedIndex] : null;
     const DialogV2 = foundry.applications?.api?.DialogV2;
     if (!DialogV2?.prompt) {
-      ui.notifications.error("Token Art Manager needs Foundry's dialog API to edit Browse folders.");
+      ui.notifications.error(game.i18n.localize("SDE.tokenArt.notify.noDialogApi"));
       return false;
     }
     const esc = foundry.utils.escapeHTML;
     const result = await DialogV2.prompt({
-      window: { title: editing ? "Edit Token Art Browse Folder" : "Add Token Art Browse Folder" },
+      window: { title: editing ? "SDE.tokenArt.folder.editTitle" : "SDE.tokenArt.folder.addTitle" },
       content: `<div class="sde-tam-folder-form">
-        <label>Label<input type="text" name="label" value="${esc(editing?.label ?? "")}" maxlength="120" autofocus></label>
-        <label>Data folder path<input type="text" name="path" value="${esc(editing?.path ?? "")}" placeholder="modules/my-token-pack/tokens" spellcheck="false"></label>
-        <p class="notes">Enter a folder under Foundry's Data directory. Images in child folders are included when you Browse.</p>
+        <label>${game.i18n.localize("SDE.tokenArt.folder.label")}<input type="text" name="label" value="${esc(editing?.label ?? "")}" maxlength="120" autofocus></label>
+        <label>${game.i18n.localize("SDE.tokenArt.folder.path")}<input type="text" name="path" value="${esc(editing?.path ?? "")}" placeholder="modules/my-token-pack/tokens" spellcheck="false"></label>
+        <p class="notes">${game.i18n.localize("SDE.tokenArt.folder.notes")}</p>
       </div>`,
       ok: {
-        label: "Save",
+        label: "SDE.tokenArt.folder.save",
         callback: (_event, button) => ({
           label: button.form.elements.label.value,
           path: button.form.elements.path.value,
@@ -349,17 +349,17 @@ export class TokenArtManagerApp extends HandlebarsApplicationMixin(ApplicationV2
     const label = String(result.label ?? "").trim();
     const path = String(result.path ?? "").trim();
     if (!label || !path) {
-      ui.notifications.warn("A Browse folder needs both a label and a data folder path.");
+      ui.notifications.warn(game.i18n.localize("SDE.tokenArt.notify.folderIncomplete"));
       return false;
     }
     const folders = state.folders.map((folder) => ({ ...folder }));
     const duplicate = folders.findIndex((folder, i) => i !== parsedIndex && folder.path === path);
     if (duplicate >= 0) {
-      ui.notifications.warn(`That data folder is already listed as “${folders[duplicate].label}”.`);
+      ui.notifications.warn(game.i18n.format("SDE.tokenArt.notify.folderDuplicate", { label: folders[duplicate].label }));
       return false;
     }
     if (!(await TokenArtManagerApp._probeFolder(path))) {
-      ui.notifications.error(`Could not read the Browse folder “${path}”. Check the path and your file permissions.`);
+      ui.notifications.error(game.i18n.format("SDE.tokenArt.notify.folderUnreadable", { path }));
       return false;
     }
 
@@ -374,7 +374,7 @@ export class TokenArtManagerApp extends HandlebarsApplicationMixin(ApplicationV2
     this._catalog = null;
     this._library = null;
     await this.render({ parts: ["body"] });
-    ui.notifications.info(`${editing ? "Updated" : "Added"} Browse folder “${label}”.`);
+    ui.notifications.info(game.i18n.format(editing ? "SDE.tokenArt.notify.folderUpdated" : "SDE.tokenArt.notify.folderAdded", { label }));
     return true;
   }
 
@@ -393,8 +393,8 @@ export class TokenArtManagerApp extends HandlebarsApplicationMixin(ApplicationV2
     const DialogV2 = foundry.applications?.api?.DialogV2;
     if (!DialogV2?.confirm) return false;
     const confirmed = await DialogV2.confirm({
-      window: { title: "Remove Token Art Browse Folder" },
-      content: `<p>Remove the Browse folder <strong>${foundry.utils.escapeHTML(folder.label)}</strong>?</p>`,
+      window: { title: "SDE.tokenArt.folder.removeTitle" },
+      content: `<p>${game.i18n.format("SDE.tokenArt.folder.removeQuestion", { label: `<strong>${foundry.utils.escapeHTML(folder.label)}</strong>` })}</p>`,
       rejectClose: false,
     }).catch(() => false);
     if (!confirmed) return false;
@@ -405,7 +405,7 @@ export class TokenArtManagerApp extends HandlebarsApplicationMixin(ApplicationV2
     this._catalog = null;
     this._library = null;
     await this.render({ parts: ["body"] });
-    ui.notifications.info(`Removed Browse folder “${folder.label}”.`);
+    ui.notifications.info(game.i18n.format("SDE.tokenArt.notify.folderRemoved", { label: folder.label }));
     return true;
   }
 
@@ -524,14 +524,14 @@ export class TokenArtManagerApp extends HandlebarsApplicationMixin(ApplicationV2
   static async _onBrowse(event, target) {
     const { monster, name } = target.dataset;
     if (!this._library) {
-      ui.notifications.info("Scanning token libraries…");
+      ui.notifications.info(game.i18n.localize("SDE.tokenArt.notify.scanning"));
       this._library = await TokenArtCatalog.buildLibrary();
     }
     const root = this.element;
     const overlay = root.querySelector(".sde-tam-browser");
     if (!overlay) return;
     overlay.dataset.monster = monster;
-    root.querySelector(".sde-tam-browser-title").textContent = `Choose art — ${name}`;
+    root.querySelector(".sde-tam-browser-title").textContent = game.i18n.format("SDE.tokenArt.browser.title", { name });
     const grid = overlay.querySelector(".sde-tam-browser-grid");
     grid.innerHTML = this._browserGridHTML();
     grid.style.setProperty("--tam-thumb", `${this._thumbPx}px`);
@@ -564,7 +564,7 @@ export class TokenArtManagerApp extends HandlebarsApplicationMixin(ApplicationV2
     return [...groups.values()].map((g) => {
       const collapsed = this._collapsedSources.has(g.source);
       return `<section class="sde-tam-bgroup${collapsed ? " is-collapsed" : ""}" data-source="${esc(g.source)}">` +
-        `<div class="sde-tam-bgroup-head" role="button" tabindex="0" title="Click to collapse / expand">` +
+        `<div class="sde-tam-bgroup-head" role="button" tabindex="0" title="${esc(game.i18n.localize("SDE.tokenArt.browser.collapseTip"))}">` +
           `<i class="fa-solid fa-caret-down sde-tam-bgroup-caret"></i> ${esc(g.label)} <span class="sde-tam-dim">${g.items.length}</span>` +
         `</div>` +
         `<div class="sde-tam-bgroup-items">` +
@@ -619,7 +619,7 @@ export class TokenArtManagerApp extends HandlebarsApplicationMixin(ApplicationV2
       g.style.display = gShown ? "" : "none";
     }
     const count = overlay.querySelector(".sde-tam-browser-count");
-    if (count) count.textContent = `${shown} shown`;
+    if (count) count.textContent = game.i18n.format("SDE.tokenArt.browser.shown", { count: shown });
     return shown;
   }
 
@@ -647,7 +647,7 @@ export class TokenArtManagerApp extends HandlebarsApplicationMixin(ApplicationV2
   static async _onRefresh() {
     this._catalog = null;
     this._library = null;
-    ui.notifications.info("Rescanning art sources…");
+    ui.notifications.info(game.i18n.localize("SDE.tokenArt.notify.rescanning"));
     await this.render({ parts: ["body"] });
   }
 
@@ -670,10 +670,10 @@ export class TokenArtManagerApp extends HandlebarsApplicationMixin(ApplicationV2
       const { tables, stats } = TokenArtCatalog.resolve(cat);
       await MonsterTokenArt.applyResolvedMapping(tables);
       const per = Object.entries(stats.perSource).map(([s, n]) => `${n} ${s.replace(/-tokens.*|-monster.*|dnd-/g, "").replace(/-/g, " ").trim()}`).join(", ");
-      ui.notifications.info(`Applied token art to ${stats.mapped}/${stats.total} monsters (${per}). Every drag now uses your picks.`);
+      ui.notifications.info(game.i18n.format("SDE.tokenArt.notify.applied", { mapped: stats.mapped, total: stats.total, per }));
     } catch (e) {
       console.error(`${MODULE_ID} | applying token art failed:`, e);
-      ui.notifications.error(`Could not apply token art: ${e.message}`);
+      ui.notifications.error(game.i18n.format("SDE.tokenArt.notify.applyFailed", { error: e.message }));
       return;
     }
     this.render({ parts: ["body"] });
@@ -690,15 +690,16 @@ export class TokenArtManagerApp extends HandlebarsApplicationMixin(ApplicationV2
       extraPaths: TokenArtCatalog.managedArtPaths(),
     });
     if (r && !r.missing) {
-      ui.notifications.info(`Re-skinned ${r.tokens} placed tokens, ${r.portraits} portraits (${r.kept} kept, ${r.skipped.length} unmatched).`);
+      ui.notifications.info(game.i18n.format("SDE.tokenArt.notify.reskinnedPlaced",
+        { tokens: r.tokens, portraits: r.portraits, kept: r.kept, unmatched: r.skipped.length }));
     } else if (r && r.missing) {
-      ui.notifications.warn("No token art resolved yet — pick sources or apply first.");
+      ui.notifications.warn(game.i18n.localize("SDE.tokenArt.notify.nothingResolved"));
     }
   }
 
   static async _onTurnOff() {
     await MonsterTokenArt.disableCompendiumMapping();
-    ui.notifications.info("Compendium art turned off — monsters show their default art again.");
+    ui.notifications.info(game.i18n.localize("SDE.tokenArt.notify.compendiumOff"));
     this.render({ parts: ["body"] });
   }
 }

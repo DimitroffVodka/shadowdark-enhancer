@@ -28,7 +28,7 @@ export const LootDrops = {
       buttons.unshift({
         class: "sde-loot-drops-config",
         icon: "fas fa-coins",
-        label: "Loot",
+        label: "SDE.loot.label",
         onclick: () => this.openConfig(actor),
       });
     });
@@ -98,7 +98,7 @@ export const LootDrops = {
     const names = defeated.map(c => c.actor.name);
     batch.source = names.length <= 3
       ? names.join(", ")
-      : `${names.slice(0, 3).join(", ")} +${names.length - 3} more`;
+      : game.i18n.format("SDE.loot.drops.sourceMore", { names: names.slice(0, 3).join(", "), count: names.length - 3 });
     await LootDelivery.postCard(batch);
   },
 
@@ -118,7 +118,11 @@ export const LootDrops = {
     // or never a curated loot table) must still show as the selection.
     if (currentTable && !tables.some(t => t.uuid === currentTable)) {
       const doc = await fromUuid(currentTable).catch(() => null);
-      tables.push({ uuid: currentTable, name: doc?.name ?? "(missing table)", group: "Other" });
+      tables.push({
+        uuid: currentTable,
+        name: doc?.name ?? game.i18n.localize("SDE.loot.missingTable"),
+        group: game.i18n.localize("SDE.loot.group.other"),
+      });
     }
 
     const chanceFlag = actor.getFlag(MODULE_ID, "lootDropChance");
@@ -127,8 +131,8 @@ export const LootDrops = {
     const tierUuid = LootGenerator.tableForLevel(level);
     const tierName = tierUuid ? (fromUuidSync(tierUuid)?.name ?? null) : null;
     const defaultLabel = tierName
-      ? `Default — ${tierName} (tier table for level ${level})`
-      : `Default — no tier table mapped for level ${level}`;
+      ? game.i18n.format("SDE.loot.drops.defaultTier", { name: tierName, level })
+      : game.i18n.format("SDE.loot.drops.defaultNone", { level });
 
     const options = [
       `<option value="">${esc(defaultLabel)}</option>`,
@@ -138,37 +142,37 @@ export const LootDrops = {
 
     const content = `
       <div style="display:flex;flex-direction:column;gap:8px;padding:6px 2px;">
-        <label>Loot table<br>
+        <label>${game.i18n.localize("SDE.monsterLoot.colTable")}<br>
           <select name="table" style="width:100%;">${options}</select>
         </label>
-        <label>Drop chance %<br>
+        <label>${game.i18n.localize("SDE.loot.drops.chanceLabel")}<br>
           <input type="number" name="chance" min="0" max="100" step="1"
                  value="${Number.isFinite(Number(chanceFlag)) && chanceFlag !== undefined ? Number(chanceFlag) : ""}"
-                 placeholder="World setting (${globalChance}%)" style="width:100%;">
+                 placeholder="${game.i18n.format("SDE.loot.drops.chancePlaceholder", { chance: globalChance })}" style="width:100%;">
         </label>
-        <p class="notes" style="margin:0;">Rolled once per defeated NPC when combat ends. Blank fields use the world settings.</p>
+        <p class="notes" style="margin:0;">${game.i18n.localize("SDE.loot.drops.configHint")}</p>
       </div>`;
 
     // Same DialogV2.wait pattern as loot-delivery's recipient picker: the
     // "save" callback's return value becomes the resolved choice.
     const choice = await foundry.applications.api.DialogV2.wait({
-      window: { title: `Loot Drops — ${actor.name}` },
+      window: { title: game.i18n.format("SDE.loot.drops.configTitle", { name: actor.name }) },
       content,
       buttons: [
         {
-          action: "save", label: "Save", default: true,
+          action: "save", label: "SDE.loot.btn.save", default: true,
           callback: (_e, _b, dlg) => ({
             table: dlg.element.querySelector('select[name="table"]').value,
             chance: dlg.element.querySelector('input[name="chance"]').value.trim(),
           }),
         },
-        { action: "cancel", label: "Cancel" },
+        { action: "cancel", label: "SDE.loot.btn.cancel" },
       ],
       rejectClose: false,
     }).catch(() => null);
     if (!choice || choice === "cancel") return;
     await this.setOverrides(actor, choice);
-    ui.notifications.info(`Loot drops updated for ${actor.name}.`);
+    ui.notifications.info(game.i18n.format("SDE.loot.drops.notify.updated", { name: actor.name }));
   },
 
   /**

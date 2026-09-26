@@ -25,6 +25,12 @@ import {
 } from "../scripts/session-recap/carousing-feed-core.mjs";
 import { DEFAULT_DATA, formatForDiscordFromData } from "../scripts/session-recap/session-recap-core.mjs";
 
+// i18n stub: a key comes back as itself and `format` appends its data, so an
+// assertion still sees which phrase was picked and what went into it. `f` is
+// the same formatter, for building expectations.
+const f = (k, d) => k + JSON.stringify(d);
+globalThis.game = { i18n: { localize: (k) => k, format: f } };
+
 /** SDX original mode: one d8 outcome row, an optional benefit, GM applies it. */
 function originalResult(over = {}) {
   return {
@@ -252,12 +258,17 @@ describe("subtotals", () => {
     }), resolve);
     assert.equal(
       carousingSubtotal(c.entries),
-      "2 carousers · 10 XP · 2 benefits · 1 mishap · renown +2",
+      [
+        f("SDE.sessionRecap.carousing.carouserMany", { n: 2 }), "10 XP",
+        f("SDE.sessionRecap.carousing.benefitMany", { n: 2 }),
+        f("SDE.sessionRecap.carousing.mishapOne", { n: 1 }),
+        f("SDE.sessionRecap.carousing.renown", { delta: "+2" }),
+      ].join(" · "),
     );
   });
 
   test("a lone carouser is singular", () => {
-    assert.equal(carousingSubtotal([{ xp: 0, benefits: [], mishaps: [] }]), "1 carouser");
+    assert.equal(carousingSubtotal([{ xp: 0, benefits: [], mishaps: [] }]), f("SDE.sessionRecap.carousing.carouserOne", { n: 1 }));
   });
 
   test("original mode counts unapplied outcomes so they are chaseable", () => {
@@ -265,7 +276,7 @@ describe("subtotals", () => {
       "user-dimi": originalResult(),
       "user-sam": originalResult({ applied: { at: 1, summary: "+2 XP", actorName: "Ysolde" } }),
     }), resolve);
-    assert.match(carousingSubtotal(c.entries), /1 not applied$/);
+    assert.ok(carousingSubtotal(c.entries).endsWith(f("SDE.sessionRecap.carousing.notApplied", { n: 1 })));
   });
 
   test("original mode reports NO renown rather than inventing one", () => {
@@ -281,7 +292,7 @@ describe("subtotals", () => {
       }),
     }), resolve);
     assert.equal(c.entries[0].renownDelta, 0, "a renown delta was fabricated from the outcome text");
-    assert.equal(carousingSubtotal(c.entries).includes("renown"), false);
+    assert.equal(carousingSubtotal(c.entries).includes("SDE.sessionRecap.carousing.renown"), false);
     // …but it is not hidden: the applied summary carries it.
     assert.equal(c.entries[0].applied, "-3 renown");
   });
@@ -295,16 +306,16 @@ describe("subtotals", () => {
         benefits: [{ description: "A patron", renownDelta: 2 }], mishaps: [],
       }),
     }), resolve);
-    assert.match(carousingSubtotal(c.entries), /renown \+2/);
+    assert.ok(carousingSubtotal(c.entries).includes(f("SDE.sessionRecap.carousing.renown", { delta: "+2" })));
   });
 
   test("a net-zero renown swing is omitted rather than shown as 0", () => {
     const c = normalizeCarousingSession(session({ "user-sam": expandedResult() }), resolve);
-    assert.equal(carousingSubtotal(c.entries).includes("renown"), false);
+    assert.equal(carousingSubtotal(c.entries).includes("SDE.sessionRecap.carousing.renown"), false);
   });
 
   test("an empty set does not throw", () => {
-    assert.equal(carousingSubtotal(), "0 carousers");
+    assert.equal(carousingSubtotal(), f("SDE.sessionRecap.carousing.carouserMany", { n: 0 }));
   });
 });
 
@@ -312,13 +323,13 @@ describe("the tier line", () => {
   test("description and both costs", () => {
     assert.equal(
       tierLine({ tierDescription: "A hazy, weeklong bender", tierCost: 900, costPerPerson: 300 }),
-      "A hazy, weeklong bender — 900 gp total, 300 gp each",
+      `A hazy, weeklong bender — ${f("SDE.sessionRecap.carousing.costEach", { cost: 900, each: 300 })}`,
     );
   });
 
   test("a solo carouse omits the per-person half", () => {
     assert.equal(tierLine({ tierDescription: "One quiet night", tierCost: 30, costPerPerson: 0 }),
-      "One quiet night — 30 gp total");
+      `One quiet night — ${f("SDE.sessionRecap.carousing.costTotal", { cost: 30 })}`);
   });
 
   test("no tier data yields no line", () => {
@@ -335,18 +346,22 @@ describe("the Discord export", () => {
       "user-sam": expandedResult(),
     }), resolve);
     const out = formatForDiscordFromData(withCarousing([c]), 1000, 61_000);
-    assert.match(out, /## Carousing/);
-    assert.match(out, /\*\*7\/28\/2026, 8:14:00 PM\*\* — 1 carouser · 6 XP · 1 benefit · 1 mishap/);
-    assert.match(out, /\*A full day and night of revelry — 300 gp total, 100 gp each\*/);
+    assert.ok(out.includes("## SDE.sessionRecap.discord.carousing"));
+    assert.ok(out.includes(`**7/28/2026, 8:14:00 PM** — ${[
+      f("SDE.sessionRecap.carousing.carouserOne", { n: 1 }), "6 XP",
+      f("SDE.sessionRecap.carousing.benefitOne", { n: 1 }),
+      f("SDE.sessionRecap.carousing.mishapOne", { n: 1 }),
+    ].join(" · ")}`));
+    assert.ok(out.includes(`*A full day and night of revelry — ${f("SDE.sessionRecap.carousing.costEach", { cost: 300, each: 100 })}*`));
     assert.match(out, /- Ysolde — d8 13 · 6 XP/);
-    assert.match(out, / {2}- Benefit: A patron takes an interest/);
-    assert.match(out, / {2}- Mishap: You wake up in the wrong bed/);
+    assert.ok(out.includes(`  - ${f("SDE.sessionRecap.discord.benefit", { text: "A patron takes an interest" })}`));
+    assert.ok(out.includes(`  - ${f("SDE.sessionRecap.discord.mishap", { text: "You wake up in the wrong bed" })}`));
   });
 
   test("an unapplied original-mode outcome is called out", () => {
     const c = normalizeCarousingSession(session({ "user-dimi": originalResult() }), resolve);
     const out = formatForDiscordFromData(withCarousing([c]), 1000, 61_000);
-    assert.match(out, / {2}- \*not applied\*/);
+    assert.ok(out.includes("  - *SDE.sessionRecap.discord.notApplied*"));
   });
 
   test("an applied summary replaces the not-applied note", () => {
@@ -355,12 +370,12 @@ describe("the Discord export", () => {
     }), resolve);
     const out = formatForDiscordFromData(withCarousing([c]), 1000, 61_000);
     assert.match(out, / {2}- \*\+3 XP, 12 gp lost\*/);
-    assert.equal(out.includes("not applied"), false);
+    assert.equal(out.includes("SDE.sessionRecap.discord.notApplied"), false);
   });
 
   test("no carousing means no Carousing section", () => {
     const out = formatForDiscordFromData(withCarousing([]), 1000, 61_000);
-    assert.equal(out.includes("## Carousing"), false);
+    assert.equal(out.includes("## SDE.sessionRecap.discord.carousing"), false);
   });
 
   test("carousing alone is enough activity to produce a recap", () => {
@@ -368,7 +383,7 @@ describe("the Discord export", () => {
     // a night that was nothing but carousing must not hit that path.
     const c = normalizeCarousingSession(session({ "user-sam": expandedResult() }), resolve);
     const out = formatForDiscordFromData(withCarousing([c]), 1000, 61_000);
-    assert.equal(out.includes("No session activity recorded."), false);
+    assert.equal(out.includes("SDE.sessionRecap.discord.empty"), false);
   });
 
   test("a legacy payload with no carousing key does not throw", () => {

@@ -18,6 +18,13 @@
 
 import { foundryOffsetToCube } from "./geometry.mjs";
 
+/** One string from `languages/en.json`; the key when no i18n is mounted. */
+const t = (key, data) => {
+  const i18n = globalThis.game?.i18n;
+  if (!i18n) return key;
+  return data ? i18n.format(key, data) : i18n.localize(key);
+};
+
 /** Scene → image transform from the drawn background sprite, or null. */
 export function backgroundTransform(canvasRef = globalThis.canvas) {
   const bg = canvasRef?.primary?.background;
@@ -69,10 +76,10 @@ export async function sourceImage(canvasRef = globalThis.canvas) {
   const src = canvasRef?.primary?.background?.texture?.baseTexture?.resource?.source;
   if (src && (src instanceof HTMLImageElement || (globalThis.ImageBitmap && src instanceof ImageBitmap) || src instanceof HTMLCanvasElement)) return src;
   const path = canvasRef?.scene?.background?.src;
-  if (!path) throw new Error("The scene has no background image.");
+  if (!path) throw new Error(t("SDE.hexMap.error.sceneNoImage"));
   const img = new Image();
   img.decoding = "async";
-  await new Promise((resolve, reject) => { img.onload = resolve; img.onerror = () => reject(new Error(`Could not load ${path}`)); img.src = path; });
+  await new Promise((resolve, reject) => { img.onload = resolve; img.onerror = () => reject(new Error(t("SDE.hexMap.error.loadFailed", { path }))); img.src = path; });
   return img;
 }
 

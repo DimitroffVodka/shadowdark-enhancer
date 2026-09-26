@@ -68,7 +68,8 @@ export const InitiativeManager = {
       actorUuid: actor.uuid,
       mainRoll: { formula },
       type: "initiative",
-      heading: `${actor.name} — Initiative <em>(out of combat)</em>`,
+      heading: `${game.i18n.format("SDE.crawlStrip.oocInitHeading", { name: actor.name })} `
+        + `<em>${game.i18n.localize("SDE.crawlStrip.oocTag")}</em>`,
       // Tag the config so the createChatMessage hook can identify this roll
       // (and any later reroll via the system's reroll-icon) as an OoC init
       // roll for this specific actor, and update CrawlState accordingly.
@@ -93,7 +94,7 @@ export const InitiativeManager = {
       return true;
     });
     if (candidates.length === 0) {
-      ui.notifications.info("Shadowdark Enhancer: nothing to roll.");
+      ui.notifications.info(game.i18n.localize("SDE.crawlStrip.nothingToRoll"));
       return;
     }
     for (const actorId of candidates) {
@@ -123,7 +124,7 @@ export const InitiativeManager = {
     const content = await roll.render();
     await roll.toMessage({
       speaker: ChatMessage.getSpeaker({ actor }),
-      flavor: `${actor.name} rolls Initiative <em>(out of combat)</em>
+      flavor: `${game.i18n.format("SDE.crawlStrip.oocInitFlavor", { name: actor.name })} <em>${game.i18n.localize("SDE.crawlStrip.oocTag")}</em>
         <strong class="sde-chat-init-total">${roll.total}</strong>`,
       content,
     });

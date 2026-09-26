@@ -43,10 +43,11 @@ async function _createFromMutatedDraft(draft, results, opts = {}) {
     applyResult(draft, result, { idFn: foundry.utils.randomID });
   }
 
-  const baseName = opts.baseName ?? draft.name ?? "Creature";
+  const baseName = opts.baseName ?? draft.name ?? game.i18n.localize("SDE.monsterCreator.mutator.fallbackName");
   // Generic copy name only where a distinct name is needed — no source-derived
   // prefixes/suffixes (decision 7).
-  draft.name = opts.customName?.trim() || `${baseName} (Variant)`;
+  draft.name = opts.customName?.trim()
+    || game.i18n.format("SDE.monsterCreator.mutator.variantName", { name: baseName });
 
   // Provenance meta rides on the draft so draftToActorData emits the v3 actor
   // flag (baseUuid/baseName/createdAt) + per-item generation flags in one place.
@@ -121,19 +122,21 @@ export async function createMutatedFromDraft(sourceDraft, results, customName = 
  */
 async function _postMutationCard(actor, baseName, summary) {
   const chips = (summary?.applications ?? []).flatMap((a) => a.chips.map((c) => c.label));
-  const list = chips.length ? chips.map((c) => esc(c)).join(", ") : "none";
+  const list = chips.length
+    ? chips.map((c) => esc(c)).join(", ")
+    : esc(game.i18n.localize("SDE.monsterCreator.mutator.noEffects"));
   await ChatMessage.create({
-    speaker: { alias: "Monster Mutator" },
+    speaker: { alias: game.i18n.localize("SDE.monsterCreator.mutator.speaker") },
     content: `
       <div class="sde-mutation-card">
         <header class="sde-mutation-card-header">
           <img src="${esc(actor.img)}" width="40" height="40" alt="${esc(actor.name)}">
           <div>
             <h3>${esc(actor.name)}</h3>
-            <span class="sde-mutation-card-sub">variant of ${esc(baseName)}</span>
+            <span class="sde-mutation-card-sub">${esc(game.i18n.format("SDE.monsterCreator.mutator.variantOf", { name: baseName }))}</span>
           </div>
         </header>
-        <p class="sde-mutation-card-list"><strong>Generated effects:</strong> ${list}</p>
+        <p class="sde-mutation-card-list"><strong>${esc(game.i18n.localize("SDE.monsterCreator.mutator.effectsLabel"))}</strong> ${list}</p>
       </div>`,
   });
 }

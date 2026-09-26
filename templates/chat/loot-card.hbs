@@ -1,5 +1,5 @@
 <div class="sde-loot-card">
-  <header class="sde-loot-head"><i class="fas fa-coins"></i> {{#if source}}{{source}} — {{/if}}Loot — Treasure {{tier}}</header>
+  <header class="sde-loot-head"><i class="fas fa-coins"></i> {{#if source}}{{localize "SDE.loot.card.headingSource" source=source tier=tier}}{{else}}{{localize "SDE.loot.card.heading" tier=tier}}{{/if}}</header>
 
   {{#if items.length}}
   <ul class="sde-loot-items">
@@ -11,14 +11,14 @@
       <span class="sde-loot-claimed"><i class="fas fa-check"></i> {{it.claimedByName}}</span>
       {{else}}
       <button type="button" class="sde-loot-claim" data-item-index="{{it.idx}}">
-        <i class="fas fa-hand-holding"></i> Claim
+        <i class="fas fa-hand-holding"></i> {{localize "SDE.loot.btn.claim"}}
       </button>
       <button type="button" class="sde-loot-give sde-loot-gm" data-item-index="{{it.idx}}">
-        <i class="fas fa-gift"></i> Give
+        <i class="fas fa-gift"></i> {{localize "SDE.loot.btn.give"}}
       </button>
       {{#if it.forgeable}}
       <button type="button" class="sde-loot-forge sde-loot-gm" data-item-index="{{it.idx}}">
-        <i class="fas fa-hammer"></i> Forge
+        <i class="fas fa-hammer"></i> {{localize "SDE.loot.btn.forge"}}
       </button>
       {{/if}}
       {{/if}}
@@ -34,13 +34,13 @@
     <span class="sde-loot-claimed"><i class="fas fa-arrow-right"></i> {{coinsAssigned.actorName}}</span>
     {{else}}
     <button type="button" class="sde-loot-claim-coins">
-      <i class="fas fa-hand-holding"></i> Claim
+      <i class="fas fa-hand-holding"></i> {{localize "SDE.loot.btn.claim"}}
     </button>
     <span class="sde-loot-gm">
-      <select class="sde-loot-coins-actor" aria-label="Assign coins to">
+      <select class="sde-loot-coins-actor" aria-label="{{localize 'SDE.loot.card.assignCoinsTo'}}">
         {{#each party as |p|}}<option value="{{p.id}}">{{p.name}}</option>{{/each}}
       </select>
-      <button type="button" class="sde-loot-assign-coins">Assign</button>
+      <button type="button" class="sde-loot-assign-coins">{{localize "SDE.loot.card.assign"}}</button>
     </span>
     {{/if}}
   </div>
@@ -53,6 +53,6 @@
   {{/if}}
 
   {{#if hasTotals}}
-  <div class="sde-loot-total"><i class="fas fa-coins"></i> Hoard: {{totalGp}} gp · {{totalXp}} XP</div>
+  <div class="sde-loot-total"><i class="fas fa-coins"></i> {{localize "SDE.loot.card.hoard" gp=totalGp xp=totalXp}}</div>
   {{/if}}
 </div>

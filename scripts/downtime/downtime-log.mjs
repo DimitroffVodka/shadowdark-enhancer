@@ -40,8 +40,9 @@ const JOURNAL_FLAG = "downtimeLog";
 /** Flags the single text page inside it. */
 const PAGE_FLAG = "downtimeLogPage";
 
-const JOURNAL_NAME = "Downtime Log";
-const PAGE_NAME = "Log";
+// en.json keys, localized at creation: the journal and page are found by flag, never by name.
+const JOURNAL_NAME = "SDE.downtime.log.journalName";
+const PAGE_NAME = "SDE.downtime.log.pageName";
 
 /**
  * Serializes journal read-modify-write cycles. Appending is
@@ -85,7 +86,7 @@ export async function ensureDowntimeJournal() {
   const existing = findDowntimeJournal();
   if (existing) return existing;
   return JournalEntry.create({
-    name: JOURNAL_NAME,
+    name: game.i18n.localize(JOURNAL_NAME),
     flags: { [MODULE_ID]: { [JOURNAL_FLAG]: true } },
   });
 }
@@ -95,7 +96,7 @@ async function ensureLogPage(journal) {
   const existing = journal.pages.find((p) => p.getFlag(MODULE_ID, PAGE_FLAG));
   if (existing) return existing;
   const [page] = await journal.createEmbeddedDocuments("JournalEntryPage", [{
-    name: PAGE_NAME,
+    name: game.i18n.localize(PAGE_NAME),
     type: "text",
     text: { content: "", format: CONST.JOURNAL_ENTRY_PAGE_FORMATS.HTML },
     flags: { [MODULE_ID]: { [PAGE_FLAG]: true } },

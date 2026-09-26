@@ -162,16 +162,17 @@ Foundry and Shadowdark versions you saw it work on.
 
 ## Localization
 
-The module is **English-only by design**. `languages/en.json` exists and some
-templates use `localize`, but full string extraction is deliberately deferred:
-much of the UI renders GM-imported book content verbatim, so translated chrome
-around untranslated content buys little.
+Every user-facing string comes from `languages/en.json` (#169): template text
+and attributes, `ui.notifications`, dialog titles, content and buttons, menu
+labels, chat-card chrome, and settings names and hints
+(`SDE.settings.<key>.name` / `.hint`). Book content the GM imports, and the
+rules data the module carries (loot, treasure and training tables, names), is
+data, not interface text, and stays as it is.
 
-Please don't add translation keys for their own sake — plain English strings in
-templates and controllers are the house style until a real localization pass is
-scheduled. Settings are the exception: they conventionally use
-`SDE.settings.<key>.name` / `.hint`, though a few use literal strings and that's
-accepted.
+Write every key out literally (`game.i18n.localize("SDE.feature.thing")`,
+`{{localize "SDE.feature.thing"}}`), never build one from pieces:
+`test/i18n-keys.test.mjs` finds keys by scanning the source, and checks that
+every key the code asks for exists and that en.json carries none nobody uses.
 
 ## Pull requests
 

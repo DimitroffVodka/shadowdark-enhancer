@@ -22,6 +22,10 @@ import assert from "node:assert/strict";
 import { parseDowntimeText, looksLikeDowntimePage } from "../scripts/downtime/downtime-parser.mjs";
 import { warningLines } from "../scripts/downtime/downtime-warnings.mjs";
 
+// i18n stub: a key comes back as itself and `format` appends its data, so an
+// assertion still sees which note was picked and what went into it.
+globalThis.game = { i18n: { localize: (k) => k, format: (k, d) => k + JSON.stringify(d) } };
+
 const keys = (r) => Object.keys(r.filled);
 const problems = (r) => warningLines(r).filter((l) => !l.info).map((l) => l.text);
 
@@ -158,14 +162,14 @@ Spellcasters of any stripe
 
   test("the per-bullet codes collapse to one line per activity, not one per bullet", () => {
     // 3 unplaced bullets, but only 2 activities failed to open.
-    const notes = problems(r).filter((t) => t.includes("no sub-heading"));
+    const notes = problems(r).filter((t) => t.includes("SDE.downtime.warn.unresolvedSegment"));
     assert.equal(notes.length, 2);
   });
 
   test("these are problems, never quiet info notes", () => {
     const quiet = warningLines(r).filter((l) => l.info).map((l) => l.text);
     assert.deepEqual(quiet, [], `unexpected info-level notes: ${quiet.join(" | ")}`);
-    assert.equal(warningLines(r).every((l) => !/^Parser note:/.test(l.text)), true);
+    assert.equal(warningLines(r).every((l) => !/^SDE\.downtime\.warn\.parserNote/.test(l.text)), true);
   });
 });
 

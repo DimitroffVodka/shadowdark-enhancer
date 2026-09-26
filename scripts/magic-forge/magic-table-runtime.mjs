@@ -42,6 +42,20 @@ import { findById, formulaFromDie } from "../importer/tables/table-manifest.mjs"
 import { escapeHtml } from "../importer/pdf-text-utils.mjs";
 import { findSuitePack } from "../shared/compendium-suite.mjs";
 
+/** One string from `languages/en.json`; the key when no i18n is mounted. */
+const L = (key, data) => {
+  const i18n = globalThis.game?.i18n;
+  if (!i18n) return key;
+  return data ? i18n.format(key, data) : i18n.localize(key);
+};
+
+/** "p.292" / "pp.292/293" for a set's source pages. */
+export function pageLabel({ pages, page }) {
+  return pages.length > 1
+    ? L("SDE.magicForge.pages", { pages: pages.join("/") })
+    : L("SDE.magicForge.page", { page });
+}
+
 /* -------------------------------------------------------------------------- */
 /*  Formula domain + child roles (pure).                                      */
 /* -------------------------------------------------------------------------- */
@@ -305,7 +319,9 @@ export function validateChildTable(descriptor, { expectedFormula, domain, expect
   const [lo, hi] = Array.isArray(domain) ? domain : [NaN, NaN];
 
   if (formula !== String(expectedFormula).toLowerCase()) {
-    errors.push(`Formula "${formula || "(none)"}" is not ${expectedFormula}.`);
+    errors.push(L("SDE.magicForge.validate.formula", {
+      formula: formula || L("SDE.magicForge.validate.none"), expected: expectedFormula,
+    }));
   }
 
   const results = rawResults
@@ -318,14 +334,14 @@ export function validateChildTable(descriptor, { expectedFormula, domain, expect
     .sort((a, b) => (a.min - b.min) || (a.max - b.max));
 
   if (expectedCount != null && results.length !== expectedCount) {
-    errors.push(`Expected ${expectedCount} results, found ${results.length}.`);
+    errors.push(L("SDE.magicForge.validate.count", { expected: expectedCount, found: results.length }));
   }
 
   const missingIds = results.filter((r) => r.id == null || String(r.id).trim() === "").length;
-  if (missingIds) errors.push(`${missingIds} result(s) have no stable id.`);
+  if (missingIds) errors.push(L("SDE.magicForge.validate.noId", { n: missingIds }));
 
   const emptyCount = results.filter((r) => !r.text).length;
-  if (emptyCount) errors.push(`${emptyCount} result(s) have no text.`);
+  if (emptyCount) errors.push(L("SDE.magicForge.validate.noText", { n: emptyCount }));
 
   // Exact, gapless, non-overlapping, in-domain coverage of [lo, hi].
   let cursor = lo;
@@ -337,7 +353,7 @@ export function validateChildTable(descriptor, { expectedFormula, domain, expect
     cursor = r.max + 1;
   }
   if (!coverageOk || cursor !== hi + 1) {
-    errors.push(`Result ranges do not cleanly cover ${lo}..${hi}.`);
+    errors.push(L("SDE.magicForge.validate.coverage", { lo, hi }));
   }
 
   return { valid: errors.length === 0, errors, results };
@@ -362,30 +378,33 @@ function _diagnose(def, reqs, state) {
   const missing = reqs.filter((c) => c.count === 0).map((c) => c.label);
   const dupes   = reqs.filter((c) => c.count > 1).map((c) => c.label);
   const broken  = reqs.filter((c) => c.count === 1 && !c.valid);
-  const pageStr = def.pages.length > 1 ? `pp.${def.pages.join("/")}` : `p.${def.page}`;
+  const pageStr = pageLabel(def);
 
   switch (state) {
     case "locked":
       out.push({
         code: "locked",
-        message: `Not imported. Open the Core Rulebook PDF (${pageStr}) and import the “${def.label}” table${def.children.length > 1 ? "s" : ""} via the Importer Hub.`,
+        message: L(def.children.length > 1 ? "SDE.magicForge.diag.lockedMany" : "SDE.magicForge.diag.locked",
+          { pages: pageStr, label: def.label }),
       });
       break;
     case "partial":
       out.push({
         code: "partial",
-        message: `${reqs.length - missing.length}/${reqs.length} table(s) imported. Missing: ${missing.join(", ")}. Import the rest of the “${def.label}” set.`,
+        message: L("SDE.magicForge.diag.partial", {
+          done: reqs.length - missing.length, total: reqs.length, missing: missing.join(", "), label: def.label,
+        }),
       });
       break;
     case "ambiguous":
       out.push({
         code: "ambiguous",
-        message: `Duplicate imported tables for: ${dupes.join(", ")}. Remove extras from sde-tables so exactly one table carries each flag.`,
+        message: L("SDE.magicForge.diag.ambiguous", { tables: dupes.join(", ") }),
       });
       break;
     case "invalid":
       for (const c of broken) {
-        out.push({ code: "invalid", message: `Table “${c.label}” failed validation: ${c.errors.join(" ")}` });
+        out.push({ code: "invalid", message: L("SDE.magicForge.diag.invalid", { label: c.label, errors: c.errors.join(" ") }) });
       }
       break;
     default:
@@ -433,7 +452,7 @@ export function buildSetState(def, descriptors) {
         }));
       }
     } else if (count > 1) {
-      errors = [`${count} tables carry this table's flag — ambiguous.`];
+      errors = [L("SDE.magicForge.validate.ambiguousFlag", { n: count })];
     }
 
     return {
@@ -508,7 +527,7 @@ export function matchBundleTables(def, drafts) {
     return { ok: false, errors: [{ code: "invalid", message: "Unknown set." }], payloads: [] };
   }
   if (def.perTable) {
-    return { ok: false, errors: [{ code: "per-table", message: `The “${def.label}” set must be imported one table at a time.` }], payloads: [] };
+    return { ok: false, errors: [{ code: "per-table", message: L("SDE.magicForge.bundle.perTable", { label: def.label }) }], payloads: [] };
   }
   const list = Array.isArray(drafts) ? drafts : [];
   const errors = [];
@@ -525,12 +544,12 @@ export function matchBundleTables(def, drafts) {
     }
 
     if (candidates.length === 0) {
-      errors.push({ code: "missing", childId: child.manifestId, message: `Missing the “${child.label}” table (${child.formula}).` });
+      errors.push({ code: "missing", childId: child.manifestId, message: L("SDE.magicForge.bundle.missing", { label: child.label, formula: child.formula }) });
       continue;
     }
     if (candidates.length > 1) {
       candidates.forEach((c) => used.add(c.i));
-      errors.push({ code: "duplicate", childId: child.manifestId, message: `${candidates.length} tables match “${child.label}” — ambiguous.` });
+      errors.push({ code: "duplicate", childId: child.manifestId, message: L("SDE.magicForge.bundle.duplicate", { n: candidates.length, label: child.label }) });
       continue;
     }
 
@@ -538,7 +557,7 @@ export function matchBundleTables(def, drafts) {
     used.add(i);
     const v = validateChildTable(d, { expectedFormula: child.formula, domain: child.domain, expectedCount: child.expectedCount });
     if (!v.valid) {
-      errors.push({ code: "invalid", childId: child.manifestId, message: `“${child.label}” failed validation: ${v.errors.join(" ")}` });
+      errors.push({ code: "invalid", childId: child.manifestId, message: L("SDE.magicForge.bundle.invalid", { label: child.label, errors: v.errors.join(" ") }) });
       continue;
     }
     payloads.push({
@@ -625,7 +644,7 @@ export async function resolveResultRefs(refs) {
   const { live, stale } = resolveSelection(states, refs);
   if (stale.length) {
     const names = stale.map((s) => `${s.manifestId ?? "?"}/${s.resultId ?? "?"}`).join(", ");
-    throw new Error(`Imported result(s) no longer available (table changed or deleted): ${names}`);
+    throw new Error(L("SDE.magicForge.error.stale", { names }));
   }
   return live;
 }

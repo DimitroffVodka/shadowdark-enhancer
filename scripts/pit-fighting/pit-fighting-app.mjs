@@ -46,6 +46,13 @@ const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 /** The three set-up tables, by the name the importer gives them. */
 const SETUP_TABLES = { venue: "Venue", twist: "Twist" };
 
+/** One string from `languages/en.json`; the key when no i18n is mounted. */
+const L = (key, data) => {
+  const i18n = globalThis.game?.i18n;
+  if (!i18n) return key;
+  return data ? i18n.format(key, data) : i18n.localize(key);
+};
+
 /* ────────────────────────────────────────────────────────────────────────── */
 /* Table access                                                               */
 /* ────────────────────────────────────────────────────────────────────────── */
@@ -407,7 +414,7 @@ export class PitFightingApp extends HandlebarsApplicationMixin(ApplicationV2) {
   static DEFAULT_OPTIONS = {
     id: "sde-pit-fighting",
     tag: "form",
-    window: { title: "Pit Fighting", icon: "fas fa-hand-fist", resizable: true },
+    window: { title: "SDE.pitFighting.title", icon: "fas fa-hand-fist", resizable: true },
     position: { width: 520, height: "auto" },
     actions: {
       rollVenue: PitFightingApp.prototype._onRollVenue,
@@ -437,7 +444,7 @@ export class PitFightingApp extends HandlebarsApplicationMixin(ApplicationV2) {
 
   static open() {
     if (!game.user?.isGM) {
-      ui.notifications?.warn("Only a GM can run a pit fight.");
+      ui.notifications?.warn(L("SDE.pitFighting.notify.gmOnly"));
       return null;
     }
     if (!this._instance) this._instance = new PitFightingApp();
@@ -623,7 +630,7 @@ export class PitFightingApp extends HandlebarsApplicationMixin(ApplicationV2) {
       })),
 
       group: this._group,
-      sizeLabel: this._group ? "Group bout" : "Solo bout",
+      sizeLabel: this._group ? L("SDE.pitFighting.groupBout") : L("SDE.pitFighting.soloBout"),
 
       bout,
       venueText: setUp?.venueText ?? "",
@@ -800,7 +807,7 @@ export class PitFightingApp extends HandlebarsApplicationMixin(ApplicationV2) {
   async _onPlaceFoes() {
     const foes = this._setUp?.foes;
     if (!foes?.placeable) {
-      ui.notifications?.warn("No foe from this row resolves to a monster you own.");
+      ui.notifications?.warn(L("SDE.pitFighting.notify.noPlaceable"));
       return;
     }
 
@@ -823,12 +830,12 @@ export class PitFightingApp extends HandlebarsApplicationMixin(ApplicationV2) {
     }
 
     if (!queue.length) {
-      ui.notifications?.warn("Could not load the foe actors.");
+      ui.notifications?.warn(L("SDE.pitFighting.notify.foeLoadFailed"));
       return;
     }
 
     if (foes.unresolved.length) {
-      ui.notifications?.info(`Not placed (no matching monster): ${foes.unresolved.join(", ")}.`);
+      ui.notifications?.info(L("SDE.pitFighting.notify.notPlaced", { names: foes.unresolved.join(", ") }));
     }
 
     await this.minimize();
@@ -871,25 +878,27 @@ export class PitFightingApp extends HandlebarsApplicationMixin(ApplicationV2) {
     // Default to the venue's first map; with no venue rolled, the library default.
     const preselect = suited[0]?.id ?? DEFAULT_ARENA_MAP_ID;
     const venueText = this._setUp?.venueText;
-    const suitedHeading = venueText ? `This venue — ${venueText}` : "This venue";
+    const suitedHeading = venueText
+      ? L("SDE.pitFighting.arena.thisVenueText", { venue: venueText })
+      : L("SDE.pitFighting.arena.thisVenue");
 
     const groups = [];
     if (suited.length) {
       groups.push(`<optgroup label="${esc(suitedHeading)}">`
         + suited.map((m) => opt(m, m.id === preselect)).join("") + `</optgroup>`);
-      groups.push(`<optgroup label="Other maps">`
+      groups.push(`<optgroup label="${esc(L("SDE.pitFighting.arena.otherMaps"))}">`
         + other.map((m) => opt(m, false)).join("") + `</optgroup>`);
     } else {
       groups.push(other.map((m) => opt(m, m.id === preselect)).join(""));
     }
 
     const mapId = await DialogV2.prompt({
-      window: { title: "Arena" },
+      window: { title: "SDE.pitFighting.arena.title" },
       content: `<div class="form-group">
-          <label>Choose a battle map</label>
+          <label>${L("SDE.pitFighting.arena.chooseMap")}</label>
           <select name="mapId" autofocus>${groups.join("")}</select>
         </div>`,
-      ok: { label: "Open", callback: (_ev, button) => button.form.elements.mapId.value },
+      ok: { label: "SDE.pitFighting.arena.open", callback: (_ev, button) => button.form.elements.mapId.value },
       // Dismissing the picker is a decision, not an error. `rejectClose: true`
       // made X / Escape / click-outside REJECT, and nothing here caught it, so
       // every cancelled pick logged an unhandled rejection and the guard below
@@ -902,13 +911,13 @@ export class PitFightingApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const result = await createArenaScene({ mapId, view: true });
     if (result?.created) {
       const map = ARENA_MAPS.find((m) => m.id === result.mapId);
-      ui.notifications?.info(`Created the ${map?.venueLabel ?? map?.label ?? result.mapId} arena scene.`);
+      ui.notifications?.info(L("SDE.pitFighting.notify.arenaCreated", { name: map?.venueLabel ?? map?.label ?? result.mapId }));
     }
   }
 
   async _onAccept() {
     if (!this._fighters.size) {
-      ui.notifications?.warn("Tick who steps up first.");
+      ui.notifications?.warn(L("SDE.pitFighting.notify.tickFighters"));
       return;
     }
     this._accepted = true;
@@ -944,13 +953,13 @@ export class PitFightingApp extends HandlebarsApplicationMixin(ApplicationV2) {
 
     this._twistRevealed = true;
     const sub = setUp.twistSub;
-    const body = setUp.twistText || "(the Twist table is not imported)";
+    const body = setUp.twistText || L("SDE.pitFighting.card.twistMissing");
 
     await ChatMessage.create({
       user: game.user.id,
       content: `
         <div class="sde-pit-card">
-          <header class="sde-pit-card-head"><i class="fas fa-bolt"></i> A Twist</header>
+          <header class="sde-pit-card-head"><i class="fas fa-bolt"></i> ${L("SDE.pitFighting.card.twist")}</header>
           <div class="sde-pit-card-body">${esc(body)}${sub ? ` <em>(1d4: ${sub})</em>` : ""}</div>
         </div>`,
     });
@@ -963,7 +972,7 @@ export class PitFightingApp extends HandlebarsApplicationMixin(ApplicationV2) {
     if (!table) return;
     const { text, missing } = await PitFighting.drawPrize(table);
     if (missing) {
-      ui.notifications?.warn(`The "${missing}" table is not imported yet.`);
+      ui.notifications?.warn(L("SDE.pitFighting.notify.tableMissing", { table: missing }));
       return;
     }
     this._prize = text;
@@ -999,9 +1008,10 @@ export class PitFightingApp extends HandlebarsApplicationMixin(ApplicationV2) {
       // stale primary-GM tab is the common one — and "it failed" alone leaves
       // the GM with nothing to act on.
       const why = failed.find((f) => f.error)?.error ?? "";
-      ui.notifications?.warn(
-        `Renown could not be applied for ${failed.map((f) => f.name).join(", ")}.${why ? ` ${why}` : ""}`,
-      );
+      const names = failed.map((f) => f.name).join(", ");
+      ui.notifications?.warn(why
+        ? L("SDE.pitFighting.notify.renownFailedWhy", { names, why })
+        : L("SDE.pitFighting.notify.renownFailed", { names }));
     }
 
     await this._postBoutCard({ reason, awarded, failed });
@@ -1023,15 +1033,15 @@ export class PitFightingApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const setUp = this._setUp;
     const bout = setUp.bout;
     const rows = [
-      setUp.venueText && `<div><strong>Venue:</strong> ${esc(setUp.venueText)}</div>`,
-      `<div><strong>Stakes:</strong> ${esc(bout.stakes.label)}${bout.stakes.raised ? " <em>(raised by the twist)</em>" : ""}</div>`,
-      `<div><strong>Danger:</strong> ${esc(bout.danger.label)}</div>`,
-      setUp.foeText && `<div><strong>Foe:</strong> ${esc(setUp.foeText)}</div>`,
-      this._prize && `<div><strong>Prize:</strong> ${esc(this._prize)}</div>`,
+      setUp.venueText && `<div><strong>${L("SDE.pitFighting.card.venue")}</strong> ${esc(setUp.venueText)}</div>`,
+      `<div><strong>${L("SDE.pitFighting.card.stakes")}</strong> ${esc(bout.stakes.label)}${bout.stakes.raised ? ` <em>${L("SDE.pitFighting.card.raised")}</em>` : ""}</div>`,
+      `<div><strong>${L("SDE.pitFighting.card.danger")}</strong> ${esc(bout.danger.label)}</div>`,
+      setUp.foeText && `<div><strong>${L("SDE.pitFighting.card.foe")}</strong> ${esc(setUp.foeText)}</div>`,
+      this._prize && `<div><strong>${L("SDE.pitFighting.card.prize")}</strong> ${esc(this._prize)}</div>`,
       // Only characters whose renown actually moved. Listing a name here is a
       // claim that it landed, and the award can legitimately refuse.
-      awarded.length && `<div><strong>Fame:</strong> ${esc(awarded.map((r) => r.name).join(", "))}</div>`,
-      failed.length && `<div class="sde-pit-card-warn"><strong>Renown not applied:</strong> ${esc(failed.map((r) => r.name).join(", "))}</div>`,
+      awarded.length && `<div><strong>${L("SDE.pitFighting.card.fame")}</strong> ${esc(awarded.map((r) => r.name).join(", "))}</div>`,
+      failed.length && `<div class="sde-pit-card-warn"><strong>${L("SDE.pitFighting.card.notApplied")}</strong> ${esc(failed.map((r) => r.name).join(", "))}</div>`,
     ].filter(Boolean).join("");
 
     return ChatMessage.create({

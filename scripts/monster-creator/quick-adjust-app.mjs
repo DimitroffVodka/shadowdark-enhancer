@@ -64,7 +64,9 @@ export class QuickAdjustApp extends HandlebarsApplicationMixin(ApplicationV2) {
   }
 
   get title() {
-    return game.i18n.format("SDE.quickAdjust.title", { name: this.actor?.name ?? "Monster" });
+    return game.i18n.format("SDE.quickAdjust.title", {
+      name: this.actor?.name ?? game.i18n.localize("SDE.quickAdjust.fallbackName"),
+    });
   }
 
   static _instance = null;
@@ -313,7 +315,7 @@ export class QuickAdjustApp extends HandlebarsApplicationMixin(ApplicationV2) {
       this.render();
     } catch (err) {
       console.error(`${MODULE_ID} | quick adjust failed:`, err);
-      ui.notifications.error(`Quick adjust failed: ${err.message}`);
+      ui.notifications.error(game.i18n.format("SDE.quickAdjust.applyFailed", { error: err.message }));
     }
   }
 
@@ -359,7 +361,7 @@ export class QuickAdjustApp extends HandlebarsApplicationMixin(ApplicationV2) {
       this.render();
     } catch (err) {
       console.error(`${MODULE_ID} | quick adjust revert failed:`, err);
-      ui.notifications.error(`Revert failed: ${err.message}`);
+      ui.notifications.error(game.i18n.format("SDE.quickAdjust.revertFailed", { error: err.message }));
     }
   }
 
@@ -381,7 +383,7 @@ export class QuickAdjustApp extends HandlebarsApplicationMixin(ApplicationV2) {
       await this.close();
     } catch (err) {
       console.error(`${MODULE_ID} | could not open the Creator:`, err);
-      ui.notifications.error(`Could not open the Monster Creator: ${err.message}`);
+      ui.notifications.error(game.i18n.format("SDE.quickAdjust.openFailed", { error: err.message }));
     }
   }
 
@@ -420,13 +422,15 @@ export class QuickAdjustApp extends HandlebarsApplicationMixin(ApplicationV2) {
       }
       // Name goes through customName, not draft.name — the mutator records
       // draft.name as the provenance baseName.
-      const actor = await createMutatedFromDraft(draft, [], `${this.actor.name} (LV ${target})`);
+      const actor = await createMutatedFromDraft(
+        draft, [], game.i18n.format("SDE.quickAdjust.copyName", { name: this.actor.name, level: target }),
+      );
       if (actor) {
         ui.notifications.info(game.i18n.format("SDE.quickAdjust.copyCreated", { name: actor.name }));
       }
     } catch (err) {
       console.error(`${MODULE_ID} | quick adjust copy failed:`, err);
-      ui.notifications.error(`Create copy failed: ${err.message}`);
+      ui.notifications.error(game.i18n.format("SDE.quickAdjust.copyFailed", { error: err.message }));
     }
   }
 }

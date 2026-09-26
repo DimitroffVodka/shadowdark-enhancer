@@ -10,6 +10,7 @@
  * actors live only in the GM's local world compendium.
  */
 import { MODULE_ID } from "../../shared/module-id.mjs";
+import { t as tr } from "../importer-hub-shared.mjs";
 import { draftToActorData } from "../../monster-creator/encounter-creator.mjs";
 import { syncImportedMonsterSpells } from "../../monster-creator/monster-spell-library.mjs";
 import { MonsterLinker } from "./monster-linker.mjs";
@@ -146,7 +147,7 @@ export async function resolveDraftArt(draft) {
  * @returns {Promise<{uuid?:string, name:string, status:"created"|"skipped"|"replaced"}|null>}
  */
 export async function createMonster(draft, { pack, folder = null, source = "", onConflict } = {}) {
-  if (!game.user?.isGM) { ui.notifications?.warn("Only a GM can import monsters."); return null; }
+  if (!game.user?.isGM) { ui.notifications?.warn(tr("SDE.importer.gm.monsters")); return null; }
   if (!pack) pack = await ensureMonsterPack();
 
   // Foundry-bound enrichment of the parsed draft before the (pure) data build:
@@ -201,7 +202,7 @@ export async function createMonster(draft, { pack, folder = null, source = "", o
  * @returns {Promise<{pack:string, created:object[], replaced:object[], skipped:string[], total:number}|null>}
  */
 export async function createMonsters(drafts, { source = "", onConflict } = {}) {
-  if (!game.user?.isGM) { ui.notifications?.warn("Only a GM can import monsters."); return null; }
+  if (!game.user?.isGM) { ui.notifications?.warn(tr("SDE.importer.gm.monsters")); return null; }
   const pack = await ensureMonsterPack();
   const folder = await ensureSourceFolder(pack, source);
   const out = { pack: pack.collection, created: [], replaced: [], skipped: [], total: drafts.length };

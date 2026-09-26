@@ -68,7 +68,7 @@ export const PartyXP = {
     const n = normalizeXp(xp);
     if (!item?.setFlag || n == null) return false;
     if (!game.user?.isGM && !item.isOwner) {
-      ui.notifications?.warn("You don't have permission to tag that item.");
+      ui.notifications?.warn(game.i18n.localize("SDE.partyXp.notify.noPermission"));
       return false;
     }
     await item.setFlag(MODULE_ID, XP_FLAG, n);
@@ -81,14 +81,14 @@ export const PartyXP = {
    * per-actor results, or null when nothing was awarded.
    */
   async award(amount, { actorIds = null, label = "" } = {}) {
-    if (!game.user?.isGM) { ui.notifications?.warn("Only a GM can award party XP."); return null; }
+    if (!game.user?.isGM) { ui.notifications?.warn(game.i18n.localize("SDE.partyXp.notify.gmOnly")); return null; }
     const add = normalizeXp(amount);
-    if (add == null || add <= 0) { ui.notifications?.warn("Enter a positive XP amount."); return null; }
+    if (add == null || add <= 0) { ui.notifications?.warn(game.i18n.localize("SDE.partyXp.notify.positive")); return null; }
 
     const actors = (actorIds?.length
       ? actorIds.map(id => game.actors.get(id)).filter(Boolean)
       : this.party());
-    if (!actors.length) { ui.notifications?.warn("No party members selected."); return null; }
+    if (!actors.length) { ui.notifications?.warn(game.i18n.localize("SDE.partyXp.notify.noMembers")); return null; }
 
     const results = [];
     for (const a of actors) {
@@ -99,7 +99,10 @@ export const PartyXP = {
 
     await this._postCard({ added: add, label, results });
     Hooks.callAll(`${MODULE_ID}.partyXpAwarded`, { amount: add, label, results });
-    ui.notifications?.info(`Awarded ${add} XP to ${results.length} character${results.length === 1 ? "" : "s"}.`);
+    ui.notifications?.info(game.i18n.format(
+      results.length === 1 ? "SDE.partyXp.notify.awardedOne" : "SDE.partyXp.notify.awardedMany",
+      { amount: add, count: results.length },
+    ));
     return results;
   },
 
@@ -107,19 +110,21 @@ export const PartyXP = {
   async _postCard({ added, label, results }) {
     const rows = results.map(r => `
       <li class="sde-pxp-row">
-        <span class="sde-pxp-who">${esc(r.name)}${r.level != null ? ` <span class="sde-pxp-lvl">L${esc(r.level)}</span>` : ""}</span>
-        <span class="sde-pxp-delta">${r.before} → <strong>${r.after}</strong> XP</span>
-        ${r.readyToLevel ? `<span class="sde-pxp-ready"><i class="fas fa-star"></i> ready to level up</span>` : ""}
+        <span class="sde-pxp-who">${esc(r.name)}${r.level != null ? ` <span class="sde-pxp-lvl">${game.i18n.format("SDE.partyXp.levelShort", { level: esc(r.level) })}</span>` : ""}</span>
+        <span class="sde-pxp-delta">${game.i18n.format("SDE.partyXp.card.delta", { before: r.before, after: `<strong>${r.after}</strong>` })}</span>
+        ${r.readyToLevel ? `<span class="sde-pxp-ready"><i class="fas fa-star"></i> ${game.i18n.localize("SDE.partyXp.card.ready")}</span>` : ""}
       </li>`).join("");
     const content = `
       <div class="sde-party-xp-card">
-        <header class="sde-pxp-head"><i class="fas fa-star"></i> Party XP${label ? ` — ${esc(label)}` : ""}</header>
-        <p class="sde-pxp-amount">+${added} XP to each character</p>
+        <header class="sde-pxp-head"><i class="fas fa-star"></i> ${label
+          ? game.i18n.format("SDE.partyXp.card.headingLabel", { label: esc(label) })
+          : game.i18n.localize("SDE.partyXp.title")}</header>
+        <p class="sde-pxp-amount">${game.i18n.format("SDE.partyXp.card.amount", { amount: added })}</p>
         <ul class="sde-pxp-list">${rows}</ul>
       </div>`;
     return ChatMessage.create({
       content,
-      speaker: { alias: "Party XP" },
+      speaker: { alias: game.i18n.localize("SDE.partyXp.title") },
       flags: { [MODULE_ID]: { partyXpCard: true } },
     });
   },
@@ -138,7 +143,7 @@ export class PartyXpApp extends HandlebarsApplicationMixin(ApplicationV2) {
   static DEFAULT_OPTIONS = {
     id: "sde-party-xp",
     tag: "form",
-    window: { title: "Party XP", icon: "fas fa-star", resizable: true },
+    window: { title: "SDE.partyXp.title", icon: "fas fa-star", resizable: true },
     position: { width: 460, height: "auto" },
     actions: {
       award:      PartyXpApp.prototype._onAward,
@@ -155,7 +160,7 @@ export class PartyXpApp extends HandlebarsApplicationMixin(ApplicationV2) {
   static _instance = null;
 
   static open({ item = null } = {}) {
-    if (!game.user?.isGM) { ui.notifications?.warn("Only a GM can award party XP."); return null; }
+    if (!game.user?.isGM) { ui.notifications?.warn(game.i18n.localize("SDE.partyXp.notify.gmOnly")); return null; }
     if (!this._instance) this._instance = new PartyXpApp();
     if (item) this._instance._loadItem(item);
     if (!this._instance.rendered) this._instance.render(true);
@@ -200,7 +205,7 @@ export class PartyXpApp extends HandlebarsApplicationMixin(ApplicationV2) {
       hasItem: !!this._item,
       saveToItem: this._saveToItem,
       itemSourceLabel: this._item
-        ? (this._item.source === "flag" ? "tagged on item" : "from loot value")
+        ? game.i18n.localize(this._item.source === "flag" ? "SDE.partyXp.sourceFlag" : "SDE.partyXp.sourceScore")
         : "",
       hasParty: party.length > 0,
       party: party.map(a => ({
@@ -252,7 +257,7 @@ export class PartyXpApp extends HandlebarsApplicationMixin(ApplicationV2) {
     let data;
     try { data = JSON.parse(ev.dataTransfer.getData("text/plain")); } catch { return; }
     if (data?.type !== "Item" || !data.uuid) {
-      ui.notifications?.warn("Drop an Item to read its XP value.");
+      ui.notifications?.warn(game.i18n.localize("SDE.partyXp.notify.dropItem"));
       return;
     }
     const item = await fromUuid(data.uuid).catch(() => null);
@@ -272,10 +277,10 @@ export class PartyXpApp extends HandlebarsApplicationMixin(ApplicationV2) {
   async _onAward() {
     const { amount, label } = this._readInputs();
     const n = normalizeXp(amount);
-    if (n == null || n <= 0) { ui.notifications?.warn("Enter a positive XP amount."); return; }
+    if (n == null || n <= 0) { ui.notifications?.warn(game.i18n.localize("SDE.partyXp.notify.positive")); return; }
 
     const actorIds = [...(this._selected ?? [])];
-    if (!actorIds.length) { ui.notifications?.warn("Select at least one party member."); return; }
+    if (!actorIds.length) { ui.notifications?.warn(game.i18n.localize("SDE.partyXp.notify.selectMember")); return; }
 
     // Persist the value onto the dropped item when asked (the "assign XP to
     // an item" half of the feature).

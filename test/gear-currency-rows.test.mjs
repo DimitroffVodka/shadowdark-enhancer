@@ -72,7 +72,7 @@ test("Items > Basic Gear hides currency an older import already created", () => 
   ];
   const items = _testBuildItems(charEntries, itemRecords);
   const basic = items.children.find((c) => c.id === "items/basic");
-  assert.equal(basic.label, "Basic Gear");
+  assert.equal(basic.label, "SDE.charBuilder.gear.catBasic");   // the key: no i18n is mounted here
   // Locked rows sort ahead of imported ones (sortEntries), hence Candle first.
   assert.deepEqual(basic.entries.map((e) => e.name), ["Candle", "Ball Bearing", "Coin Purse"]);
   assert.equal(basic.have, 2);

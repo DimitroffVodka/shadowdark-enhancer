@@ -70,17 +70,17 @@
     <img class="sde-qa-portrait" src="{{img}}" alt="">
     <div>
       <div class="sde-qa-name">{{actorName}}</div>
-      <div class="sde-qa-sub">Currently level {{currentLevel}}</div>
+      <div class="sde-qa-sub">{{localize "SDE.quickAdjust.currentLevel" level=currentLevel}}</div>
     </div>
     <div class="sde-qa-level">
       <label for="sde-qa-target">{{localize "SDE.quickAdjust.targetLevel"}}</label>
       <div class="sde-qa-stepper">
         <button type="button" class="sde-qa-step" data-action="qa-step" data-step="-1"
-                aria-label="Lower the target level" title="Lower the target level"
+                aria-label="{{localize 'SDE.quickAdjust.levelDown'}}" title="{{localize 'SDE.quickAdjust.levelDown'}}"
                 {{#if atMinLevel}}disabled{{/if}}><i class="fa-solid fa-minus"></i></button>
         <input id="sde-qa-target" type="number" data-qa-level value="{{targetLevel}}" min="0" max="{{maxLevel}}">
         <button type="button" class="sde-qa-step" data-action="qa-step" data-step="1"
-                aria-label="Raise the target level" title="Raise the target level"
+                aria-label="{{localize 'SDE.quickAdjust.levelUp'}}" title="{{localize 'SDE.quickAdjust.levelUp'}}"
                 {{#if atMaxLevel}}disabled{{/if}}><i class="fa-solid fa-plus"></i></button>
       </div>
     </div>
@@ -88,7 +88,7 @@
 
   {{#if spellBump}}
   <div class="sde-qa-spell">
-    <b>Spells raise this monster's effective level to {{spellLevel}}.</b>
+    <b>{{localize "SDE.quickAdjust.spellBump" level=spellLevel}}</b>
     {{#each spellReasons}} {{this}}.{{/each}}
   </div>
   {{/if}}
@@ -96,28 +96,28 @@
   {{#if changed}}
   <table>
     <thead>
-      <tr><th class="sde-qa-check"></th><th>Stat</th><th>Now</th><th></th><th>Guideline</th><th class="sde-qa-delta">&Delta;</th></tr>
+      <tr><th class="sde-qa-check"></th><th>{{localize "SDE.monsterCreator.baseline.colStat"}}</th><th>{{localize "SDE.monsterCreator.baseline.colNow"}}</th><th></th><th>{{localize "SDE.monsterCreator.baseline.colGuideline"}}</th><th class="sde-qa-delta">&Delta;</th></tr>
     </thead>
     <tbody>
       <tr class="{{#unless rows.ac.changed}}is-same{{/unless}}">
-        <td class="sde-qa-check"><input type="checkbox" data-qa-apply="ac" {{#if apply.ac}}checked{{/if}} aria-label="Apply AC"></td>
-        <td class="sde-qa-stat">AC</td>
+        <td class="sde-qa-check"><input type="checkbox" data-qa-apply="ac" {{#if apply.ac}}checked{{/if}} aria-label="{{localize 'SDE.monsterCreator.baseline.applyAc'}}"></td>
+        <td class="sde-qa-stat">{{localize "SDE.importer.monsters.ac"}}</td>
         <td>{{rows.ac.fromLabel}}</td>
         <td class="sde-qa-arrow">&rarr;</td>
         <td class="sde-qa-to">{{rows.ac.toLabel}}</td>
         <td class="sde-qa-delta">{{rows.ac.deltaLabel}}</td>
       </tr>
       <tr class="{{#unless rows.hp.changed}}is-same{{/unless}}">
-        <td class="sde-qa-check"><input type="checkbox" data-qa-apply="hp" {{#if apply.hp}}checked{{/if}} aria-label="Apply HP"></td>
-        <td class="sde-qa-stat">HP</td>
+        <td class="sde-qa-check"><input type="checkbox" data-qa-apply="hp" {{#if apply.hp}}checked{{/if}} aria-label="{{localize 'SDE.monsterCreator.baseline.applyHp'}}"></td>
+        <td class="sde-qa-stat">{{localize "SDE.importer.monsters.hp"}}</td>
         <td>{{rows.hp.fromLabel}}</td>
         <td class="sde-qa-arrow">&rarr;</td>
         <td class="sde-qa-to">{{rows.hp.toLabel}}</td>
         <td class="sde-qa-delta">{{rows.hp.deltaLabel}}</td>
       </tr>
       <tr class="{{#unless abilitiesChanged}}is-same{{/unless}}">
-        <td class="sde-qa-check"><input type="checkbox" data-qa-apply="abilities" {{#if apply.abilities}}checked{{/if}} aria-label="Apply ability modifiers"></td>
-        <td class="sde-qa-stat">Abilities</td>
+        <td class="sde-qa-check"><input type="checkbox" data-qa-apply="abilities" {{#if apply.abilities}}checked{{/if}} aria-label="{{localize 'SDE.monsterCreator.baseline.applyAbilities'}}"></td>
+        <td class="sde-qa-stat">{{localize "SDE.monsterCreator.stat.abilities"}}</td>
         <td colspan="4">
           <div class="sde-qa-abilities">
             {{#each rows.abilities}}
@@ -131,7 +131,7 @@
       <tr class="{{#unless attacksChanged}}is-same{{/unless}}">
         <td class="sde-qa-check">
           <input type="checkbox" data-qa-apply="attacks" {{#if apply.attacks}}checked{{/if}}
-                 aria-label="Apply attacks" {{#unless hasAttacks}}disabled{{/unless}}>
+                 aria-label="{{localize 'SDE.monsterCreator.baseline.applyAttacks'}}" {{#unless hasAttacks}}disabled{{/unless}}>
         </td>
         <td class="sde-qa-stat">{{localize "SDE.quickAdjust.attacksHeading"}}</td>
         <td colspan="4">
@@ -140,9 +140,9 @@
               {{#each attacks}}
                 <div class="sde-qa-attack {{#unless this.changed}}is-same{{/unless}}">
                   <b>{{this.name}}</b>
-                  {{this.num.from}} atk +{{this.bonus.from}} ({{this.damage.from}})
+                  {{localize "SDE.monsterCreator.baseline.attackLine" num=this.num.from bonus=this.bonus.from damage=this.damage.from}}
                   {{#if this.changed}}<span class="sde-qa-arrow">&rarr;</span>
-                    <span class="sde-qa-to">{{this.num.to}} atk +{{this.bonus.to}} ({{this.damage.to}})</span>{{/if}}
+                    <span class="sde-qa-to">{{localize "SDE.monsterCreator.baseline.attackLine" num=this.num.to bonus=this.bonus.to damage=this.damage.to}}</span>{{/if}}
                 </div>
               {{/each}}
             </div>
@@ -155,7 +155,7 @@
   </table>
 
   <p class="sde-qa-note">
-    HP is applied as level &times; 4.5 + CON. {{localize "SDE.quickAdjust.statBlockNote"}}
+    {{localize "SDE.quickAdjust.hpNote"}} {{localize "SDE.quickAdjust.statBlockNote"}}
   </p>
   {{else}}
   <p class="sde-qa-ontarget">{{localize "SDE.quickAdjust.noChange" level=targetLevel}}</p>

@@ -24,6 +24,13 @@ export const TRAINING_FLAG = "regionTraining";
 
 const ICON = "icons/sundries/scrolls/scroll-writing-tan-red.webp";
 
+/** One string from `languages/en.json`; the key when no i18n is mounted. */
+const L = (key, data) => {
+  const i18n = globalThis.game?.i18n;
+  if (!i18n) return key;
+  return data ? i18n.format(key, data) : i18n.localize(key);
+};
+
 /* ────────────────────────────────────────────────────────────────────────── */
 /* The GM's own tables                                                        */
 /* ────────────────────────────────────────────────────────────────────────── */
@@ -139,21 +146,21 @@ async function _runAction(actor, action) {
         "system.attributes.hp.max": Number(hp.max ?? 0) + gained,
         "system.attributes.hp.value": Number(hp.value ?? 0) + gained,
       });
-      return `+${gained} max HP (${action.formula}).`;
+      return L("SDE.training.note.hp", { n: gained, formula: action.formula });
     }
 
     case "renown": {
       // Through the module's own award path, never `system.renown` directly, so
       // the change lands in the renown ledger with its provenance.
       const api = game.shadowdarkEnhancer?.renown;
-      if (!api?.award) return `Renown +${action.value} — award it by hand.`;
+      if (!api?.award) return L("SDE.training.note.renownByHand", { n: action.value });
       await api.award({
         actor,
         delta: Number(action.value),
         reason: "Regional training",
         source: "training",
       });
-      return `+${action.value} renown.`;
+      return L("SDE.training.note.renown", { n: action.value });
     }
 
     case "statRoll": {
@@ -161,7 +168,7 @@ async function _runAction(actor, action) {
       const rolled = await _total(action.formula);
       const abl = String(action.ability);
       await actor.update({ [`system.abilities.${abl}.value`]: rolled });
-      return `${abl.toUpperCase()} rerolled to ${rolled} (${action.formula}).`;
+      return L("SDE.training.note.statRoll", { ability: abl.toUpperCase(), n: rolled, formula: action.formula });
     }
 
     case "ensureWeapon": {
@@ -176,7 +183,7 @@ async function _runAction(actor, action) {
         system: { damage: { oneHanded: action.damage }, range: "close", equipped: true },
         flags: { [MODULE_ID]: { [TRAINING_FLAG]: { granted: true } } },
       }]);
-      return `Gained ${action.name} (${action.damage}).`;
+      return L("SDE.training.note.gainedWeapon", { name: action.name, damage: action.damage });
     }
 
     case "ensureGear": {
@@ -191,7 +198,7 @@ async function _runAction(actor, action) {
           : [],
         flags: { [MODULE_ID]: { [TRAINING_FLAG]: { granted: true } } },
       }]);
-      return `Gained ${action.name}.`;
+      return L("SDE.training.note.gained", { name: action.name });
     }
 
     default:
@@ -246,9 +253,13 @@ export async function grantBenefit(actor, trainerKey, roll, choiceKey = null) {
 
   const description = [
     `<p>${esc(body)}</p>`,
-    `<p><em>Taught by ${esc(trainer.trainer)} — ${esc(trainer.topic)} training`
-      + `${trainer.region ? `, ${esc(trainer.region)}` : ""} (pg. ${trainer.page}).</em></p>`,
-    benefit.todo ? `<p><strong>At the table:</strong> ${esc(benefit.todo)}</p>` : "",
+    `<p><em>${trainer.region
+      ? L("SDE.training.desc.taughtRegion", {
+        trainer: esc(trainer.trainer), topic: esc(trainer.topic), region: esc(trainer.region), page: trainer.page,
+      })
+      : L("SDE.training.desc.taught", { trainer: esc(trainer.trainer), topic: esc(trainer.topic), page: trainer.page })
+    }</em></p>`,
+    benefit.todo ? `<p><strong>${L("SDE.training.desc.atTable")}</strong> ${esc(benefit.todo)}</p>` : "",
   ].filter(Boolean).join("");
 
   // The Talent goes on BEFORE the actions: it is the once-each record that
@@ -257,13 +268,13 @@ export async function grantBenefit(actor, trainerKey, roll, choiceKey = null) {
   // The trainer's own emblem, so a sheet full of trainings reads at a glance
   // instead of showing the same scroll four times over.
   const [item] = await actor.createEmbeddedDocuments("Item", [{
-    name: `${trainer.topic} Training: ${benefit.label}`,
+    name: L("SDE.training.desc.talentName", { topic: trainer.topic, benefit: benefit.label }),
     type: "Talent",
     img: trainerArt(trainerKey) ?? ICON,
     system: { talentClass: "level", description },
     effects: benefit.changes?.length
       ? [{
-        name: `${trainer.topic} Training`,
+        name: L("SDE.training.desc.effectName", { topic: trainer.topic }),
         img: ICON,
         transfer: true,
         changes: benefit.changes,
@@ -290,8 +301,9 @@ export async function grantBenefit(actor, trainerKey, roll, choiceKey = null) {
       if (line) notes.push(line);
     } catch (err) {
       console.error(`${MODULE_ID} | training action failed`, action, err);
-      notes.push(`Could not apply "${esc(benefit.label)}" automatically `
-        + `(${esc(err?.message ?? err)}); apply it by hand.`);
+      notes.push(L("SDE.training.note.actionFailed", {
+        benefit: esc(benefit.label), error: esc(err?.message ?? err),
+      }));
     }
   }
 

@@ -15,6 +15,7 @@
 import { parseGear } from "./gear-parser.mjs";
 import { itemRecognizer, splitDescriptionsByNames } from "./item-parser.mjs";
 import { stripPageFurniture } from "./record-boundary.mjs";
+import { t as tr } from "../importer-hub-shared.mjs";
 
 const _strip = (h) => String(h ?? "").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
 const _norm  = (s) => String(s ?? "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
@@ -286,12 +287,12 @@ export function gearStatsLabel(it, gearType) {
   const props = (it.propNames ?? []).join(", ");
   if (gearType === "Weapon") {
     const dmg = [it.damage?.oneHanded, it.damage?.twoHanded].filter(Boolean).join("/");
-    return [dmg || "no damage", it.range, it.wtype, props].filter(Boolean).join(" · ");
+    return [dmg || tr("SDE.importer.itemBuilder.noDamage"), it.range, it.wtype, props].filter(Boolean).join(" · ");
   }
   if (gearType === "Armor") {
     const ac = it.ac?.base
       ? `AC ${it.ac.base}${it.ac.attribute ? ` +${it.ac.attribute}` : ""}`
-      : (it.ac?.modifier ? `AC +${it.ac.modifier}` : "no AC");
+      : (it.ac?.modifier ? `AC +${it.ac.modifier}` : tr("SDE.importer.itemBuilder.noAc"));
     return [ac, it.baseArmor, props].filter(Boolean).join(" · ");
   }
   return "";

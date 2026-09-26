@@ -21,6 +21,10 @@ import {
   refKey,
 } from "../scripts/monster-creator/monster-table-runtime.mjs";
 
+// Diagnostics and validation errors are en.json strings. This stub echoes the
+// key plus its values, so the assertions still check what each message says.
+globalThis.game = { i18n: { localize: (key) => key, format: (key, data) => key + JSON.stringify(data) } };
+
 /* -- helpers: synthetic descriptors ---------------------------------------- */
 
 // A valid child table for a set def's column at index `col`.
@@ -85,7 +89,7 @@ test("one set complete, the other missing → independent unlock", () => {
   assert.equal(states.generator.ready, true);
   assert.equal(states.mutations.state, "locked");
   assert.equal(states.mutations.ready, false);
-  assert.match(states.mutations.diagnostics[0].message, /Not imported/i);
+  assert.match(states.mutations.diagnostics[0].message, /^SDE\.monsterCreator\.tables\.diag\.locked\{/);
 });
 
 test("both locked when nothing is imported", () => {
@@ -101,7 +105,7 @@ test("3/4 columns present → Generator partial", () => {
   const set = buildSetState(GEN, tables);
   assert.equal(set.state, "partial");
   assert.equal(set.ready, false);
-  assert.match(set.diagnostics[0].message, /Missing: Weakness/);
+  assert.match(set.diagnostics[0].message, /"missing":"Weakness"/);
 });
 
 test("2/3 columns present → Mutations partial", () => {
@@ -127,7 +131,7 @@ test("duplicate exact manifestId flag → ambiguous (blocks the set)", () => {
   const set = buildSetState(GEN, [...makeReadySet(GEN), dupe]);
   assert.equal(set.state, "ambiguous");
   assert.equal(set.ready, false);
-  assert.match(set.diagnostics[0].message, /Duplicate/i);
+  assert.match(set.diagnostics[0].message, /^SDE\.monsterCreator\.tables\.diag\.ambiguous\{/);
   assert.match(set.diagnostics[0].message, /Combat/);
 });
 
@@ -148,7 +152,7 @@ test("wrong formula → invalid", () => {
   const set = buildSetState(GEN, tables);
   assert.equal(set.state, "invalid");
   assert.match(set.diagnostics[0].message, /Combat/);
-  assert.match(set.diagnostics[0].message, /not 1d20/);
+  assert.match(set.diagnostics[0].message, /tables\.error\.formula.*1d12.*1d20/);
 });
 
 test("wrong cardinality → invalid", () => {
@@ -156,7 +160,7 @@ test("wrong cardinality → invalid", () => {
   tables[1].results = tables[1].results.slice(0, 10); // 10 not 12
   const set = buildSetState(MUT, tables);
   assert.equal(set.state, "invalid");
-  assert.match(set.diagnostics.map((d) => d.message).join(" "), /Expected 12/);
+  assert.match(set.diagnostics.map((d) => d.message).join(" "), /tables\.error\.count.*expected\\?":12/);
 });
 
 test("validateChildTable flags gaps, overlaps, and empty rows", () => {
@@ -167,7 +171,7 @@ test("validateChildTable flags gaps, overlaps, and empty rows", () => {
   for (let i = 1; i <= 12; i++) if (i !== 6) gap.results.push({ id: `g${i}`, range: [i, i], text: `t${i}` });
   const gv = validateChildTable(gap, expect);
   assert.equal(gv.valid, false);
-  assert.match(gv.errors.join(" "), /cover 1\.\.12/);
+  assert.match(gv.errors.join(" "), /tables\.error\.coverage\{"count":12\}/);
 
   // Overlap: two rows both cover face 3.
   const ov = { formula: "1d12", results: [] };
@@ -182,7 +186,7 @@ test("validateChildTable flags gaps, overlaps, and empty rows", () => {
   for (let i = 1; i <= 12; i++) empt.results.push({ id: `e${i}`, range: [i, i], text: i === 5 ? "   " : `t${i}` });
   const ev = validateChildTable(empt, expect);
   assert.equal(ev.valid, false);
-  assert.match(ev.errors.join(" "), /no text/);
+  assert.match(ev.errors.join(" "), /tables\.error\.empty\{"count":1\}/);
 });
 
 test("shuffled result collections are sorted by range", () => {

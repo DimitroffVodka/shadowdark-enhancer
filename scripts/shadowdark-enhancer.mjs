@@ -114,7 +114,7 @@ const STYLESHEET_REV = "d56c20d355c9";
 // stale); module.json carries the same hash and is fetched fresh at runtime. A
 // mismatch is a stale cache by construction — it cannot be anything else. Both
 // stamps are written by `npm run inventory` and gated by `inventory:check`.
-const BUILD_REV = "8c180a5cdb25";
+const BUILD_REV = "63f892bd4860";
 
 /**
  * Tell the user when their browser is running an old build of this module, and
@@ -172,13 +172,14 @@ async function checkBuildRev() {
 
     console.warn(`${MODULE_ID} | stale scripts: running ${BUILD_REV}, ${onDisk} is installed.`);
     const reload = await foundry.applications.api.DialogV2.confirm({
-      window: { title: "Shadowdark Enhancer is running an old build" },
-      content:
-        "<p>Your browser is serving a cached copy of this module's code, so you are running an "
-        + "older version than the one installed. Fixes and improvements you are expecting will be missing.</p>"
-        + `<p>Reload to pick up the current build? <em>(cached ${BUILD_REV}, installed ${onDisk})</em></p>`,
-      yes: { label: "Reload now", icon: "fa-solid fa-rotate" },
-      no: { label: "Keep going" },
+      // Old cached code reads these keys from whatever en.json is installed,
+      // so renaming one blanks the very dialog meant to rescue that build.
+      window: { title: "SDE.staleBuild.title" },
+      content: `<p>${game.i18n.localize("SDE.staleBuild.body")}</p>`
+        + `<p>${game.i18n.localize("SDE.staleBuild.prompt")} <em>${game.i18n.format("SDE.staleBuild.versions",
+          { cached: BUILD_REV, installed: onDisk })}</em></p>`,
+      yes: { label: "SDE.staleBuild.reload", icon: "fa-solid fa-rotate" },
+      no: { label: "SDE.staleBuild.keepGoing" },
       // Closing the window is "keep going", not an error to swallow below.
       rejectClose: false,
       modal: true,
@@ -597,7 +598,7 @@ Hooks.once("init", () => {
       generateHoard: async (level, rolls = 1, tableUuid = null) => {
         const batch = await LootGenerator.generate(level, { rolls, tableUuid });
         if (batch.error === "no-table") {
-          ui.notifications.warn("No loot table set for that tier — load one from a PDF or build via the Importer, then map it in the Loot Generator.");
+          ui.notifications.warn(game.i18n.localize("SDE.notifications.noLootTable"));
           return null;
         }
         return LootDelivery.postCard(batch);
@@ -630,7 +631,7 @@ Hooks.once("init", () => {
           });
         },
         reconcile: async (desired, { source = "" } = {}) => {
-          if (!game.user?.isGM) { ui.notifications?.warn("Only a GM can reconcile generated items."); return null; }
+          if (!game.user?.isGM) { ui.notifications?.warn(game.i18n.localize("SDE.notifications.reconcileGmOnly")); return null; }
           const pack = await ensureLootPack();
           return pack ? reconcileGeneratedItems(pack, desired, { source }) : null;
         },
@@ -993,7 +994,7 @@ Hooks.once("ready", () => {
   if (game.user.isGM && !game.settings.get(MODULE_ID, "lootSetupSeen")) {
     const bound = boundCount(game.settings.get(MODULE_ID, "lootTierTables") ?? {});
     if (bound < 4) {
-      ui.notifications.info("Shadowdark Enhancer: set up your loot tables so the Loot Generator produces real items — open the Loot Generator and click “Set up loot tables”.");
+      ui.notifications.info(game.i18n.localize("SDE.notifications.lootSetup"));
     }
     game.settings.set(MODULE_ID, "lootSetupSeen", true);
   }
@@ -1109,7 +1110,7 @@ Hooks.once("ready", () => {
               return;
             }
             if (result?.changed?.length) {
-              ui.notifications.info(`Shadowdark Enhancer: ${result.changed.length} imported monster(s) upgraded to current import fidelity.`);
+              ui.notifications.info(game.i18n.format("SDE.notifications.monstersUpgraded", { count: result.changed.length }));
             }
             await game.settings.set(MODULE_ID, "backfillVersion", cur);
             resolve(true);
@@ -1133,7 +1134,7 @@ Hooks.once("ready", () => {
         const { runMonsterTextBackfillAfterLegacy } = await import("./importer/monsters/monster-text-backfill.mjs");
         const result = await runMonsterTextBackfillAfterLegacy({ game, legacyBackfillDone });
         if (result?.status === "completed" && result.applied?.length) {
-          ui.notifications.info(`Shadowdark Enhancer: enriched monster text for ${result.applied.length} imported monster(s).`);
+          ui.notifications.info(game.i18n.format("SDE.notifications.monsterTextEnriched", { count: result.applied.length }));
         } else if (result?.status === "failed") {
           console.error(`${MODULE_ID} | automatic monster text backfill did not complete:`, result);
         }
@@ -1150,7 +1151,7 @@ Hooks.once("ready", () => {
         const { runCreatureTypeBackfill } = await import("./importer/monsters/creature-type-backfill.mjs");
         const result = await runCreatureTypeBackfill({ game });
         if (result?.status === "completed" && result.counts?.applied) {
-          ui.notifications.info(`Shadowdark Enhancer: assigned creature types to ${result.counts.applied} imported Actor(s).`);
+          ui.notifications.info(game.i18n.format("SDE.notifications.creatureTypesAssigned", { count: result.counts.applied }));
         } else if (result?.status === "failed") {
           console.error(`${MODULE_ID} | automatic creature-type backfill did not complete:`, result);
         }
@@ -1169,7 +1170,7 @@ Hooks.once("ready", () => {
       try {
         const { relinkSpellsToClasses } = await import("./importer/items/item-importer.mjs");
         const n = await relinkSpellsToClasses();
-        if (n) ui.notifications.info(`Shadowdark Enhancer: linked ${n} spell(s) to their caster class.`);
+        if (n) ui.notifications.info(game.i18n.format("SDE.notifications.spellsLinked", { count: n }));
       } catch (err) {
         console.error(`${MODULE_ID} | spell↔class re-link sweep failed:`, err);
       }
@@ -1187,7 +1188,7 @@ Hooks.once("ready", () => {
       try {
         const { tagBorrowedSpellLists } = await import("./importer/char-content/class-unit-importer.mjs");
         const n = await tagBorrowedSpellLists();
-        if (n) ui.notifications.info(`Shadowdark Enhancer: tagged ${n} spell(s) to a borrowed-list caster class.`);
+        if (n) ui.notifications.info(game.i18n.format("SDE.notifications.borrowedSpellsTagged", { count: n }));
       } catch (err) {
         console.error(`${MODULE_ID} | borrowed-list spell tag sweep failed:`, err);
       }
@@ -1203,7 +1204,7 @@ Hooks.once("ready", () => {
       try {
         const { pruneBoughtGearGrants } = await import("./importer/char-content/class-unit-importer.mjs");
         const n = await pruneBoughtGearGrants();
-        if (n) ui.notifications.info(`Shadowdark Enhancer: ${n} class(es) no longer hand out purchasable gear at character creation.`);
+        if (n) ui.notifications.info(game.i18n.format("SDE.notifications.classGearPruned", { count: n }));
       } catch (err) {
         console.error(`${MODULE_ID} | class-grant prune sweep failed:`, err);
       }

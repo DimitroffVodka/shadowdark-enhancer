@@ -9,6 +9,7 @@
 
 import { boatDraftToActorData } from "./boat-parser.mjs";
 import { ensureMonsterPack, ensureSourceFolder } from "../monsters/monster-importer.mjs";
+import { t as tr } from "../importer-hub-shared.mjs";
 
 export const BoatImporter = {
   /**
@@ -19,7 +20,7 @@ export const BoatImporter = {
    */
   async createBoats(drafts, { source = "", onConflict } = {}) {
     const report = { created: [], skipped: [], replaced: [] };
-    if (!game.user?.isGM) { ui.notifications?.warn("Only a GM can import boats."); return report; }
+    if (!game.user?.isGM) { ui.notifications?.warn(tr("SDE.importer.gm.boats")); return report; }
     if (!drafts?.length) return report;
 
     const pack = await ensureMonsterPack();          // the sde-actors world pack

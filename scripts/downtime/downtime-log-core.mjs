@@ -12,6 +12,13 @@
 
 import { esc } from "../shared/esc.mjs";
 
+/** One string from `languages/en.json`; the key when no i18n is mounted. */
+const L = (key, data) => {
+  const i18n = globalThis.game?.i18n;
+  if (!i18n) return key;
+  return data ? i18n.format(key, data) : i18n.localize(key);
+};
+
 /** Marks the per-day section heading so grouping never depends on its text. */
 export const DAY_ATTR = "data-sde-day";
 
@@ -80,9 +87,9 @@ export function timeOfDay(iso) {
 /** `19 vs DC 18` — or just the DC when the roll is missing. */
 function checkText(e) {
   if (e.total == null && e.dc == null) return "";
-  if (e.total == null) return `DC ${e.dc}`;
-  if (e.dc == null) return `rolled ${e.total}`;
-  return `${e.total} vs DC ${e.dc}`;
+  if (e.total == null) return L("SDE.downtime.log.dc", { dc: e.dc });
+  if (e.dc == null) return L("SDE.downtime.log.rolled", { total: e.total });
+  return L("SDE.downtime.log.vsDc", { total: e.total, dc: e.dc });
 }
 
 /**
@@ -99,7 +106,7 @@ export function recapRow(entry) {
   const parts = [];
   const check = checkText(e);
   if (check) parts.push(check);
-  parts.push(e.success ? "success" : "failure");
+  parts.push(e.success ? L("SDE.downtime.log.success") : L("SDE.downtime.log.failure"));
   if (e.costGp > 0) parts.push(`${e.costGp} gp`);
   return `${e.actorName} — ${e.slotLabel}: ${parts.join(", ")}`;
 }
@@ -107,7 +114,7 @@ export function recapRow(entry) {
 /** Shared trailing markers: who rolled it, and which book it came from. */
 function metaSuffix(e) {
   const bits = [];
-  if (e.gmRolled) bits.push("GM");
+  if (e.gmRolled) bits.push(L("SDE.downtime.log.gm"));
   if (e.sourceSlug) bits.push(e.sourceSlug);
   return bits.length ? ` (${bits.join(" · ")})` : "";
 }
@@ -121,7 +128,7 @@ export function journalRow(entry) {
   const time = timeOfDay(e.timestamp);
   const timeCell = time ? `<strong>${esc(time)}</strong> — ` : "";
   const check = checkText(e);
-  const verdict = e.success ? "success" : "failure";
+  const verdict = e.success ? L("SDE.downtime.log.success") : L("SDE.downtime.log.failure");
   const bits = [];
   if (check) bits.push(esc(check));
   bits.push(verdict);

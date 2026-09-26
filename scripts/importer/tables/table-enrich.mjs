@@ -15,6 +15,7 @@ import { MonsterLinker, enrichEncounterText } from "../monsters/monster-linker.m
 import { LootCatalog } from "../../loot/loot-catalog.mjs";
 import { MODULE_ID } from "../../shared/module-id.mjs";
 import { sourceKey } from "../../shared/source-keys.mjs";
+import { t as tr } from "../importer-hub-shared.mjs";
 
 const resultText = (r) => { const s = r.toObject(); return s.name || s.description || ""; };
 
@@ -168,14 +169,16 @@ export const TableEnricher = {
   /** Enrich a single table by uuid + kind ("encounter" | "treasure"). */
   async enrich(uuid, kind) {
     const table = await fromUuid(uuid).catch(() => null);
-    if (!table) { ui.notifications?.warn("Table not found."); return null; }
+    if (!table) { ui.notifications?.warn(tr("SDE.importer.tableEnrich.notify.notFound")); return null; }
     const res = kind === "treasure"
       ? await this.enrichTreasure(table)
       : await this.enrichEncounters(table);
     if (kind !== "treasure") {
-      ui.notifications?.info(`${table.name}: linked ${res.linked} monster reference(s) across ${res.updated} row(s).`);
+      ui.notifications?.info(tr("SDE.importer.tableEnrich.notify.encounterLinked", {
+        name: table.name, linked: res.linked, updated: res.updated,
+      }));
     } else {
-      ui.notifications?.info(`${table.name}: treasure items linked.`);
+      ui.notifications?.info(tr("SDE.importer.tableEnrich.notify.treasureLinked", { name: table.name }));
     }
     return res;
   },
@@ -191,7 +194,7 @@ export const TableEnricher = {
    */
   async sweepPack() {
     if (!game.user?.isGM) {
-      ui.notifications?.warn("Only a GM can re-link pack tables.");
+      ui.notifications?.warn(tr("SDE.importer.tableEnrich.notify.gmOnly"));
       return null;
     }
     const { findSuitePack } = await import("../../shared/compendium-suite.mjs");
@@ -245,7 +248,7 @@ export const TableEnricher = {
       try {
         const tally = await this.sweepPack();
         if (tally?.updated) {
-          ui.notifications?.info(`Roll tables re-linked to the new imports: ${tally.updated} row(s) updated.`);
+          ui.notifications?.info(tr("SDE.importer.tableEnrich.notify.relinked", { n: tally.updated }));
         }
       } catch (err) {
         console.error(`${MODULE_ID} | auto table re-link failed:`, err);
@@ -261,7 +264,8 @@ export const TableEnricher = {
       tables++;
       linked += res?.linked ?? 0;
     }
-    ui.notifications?.info(`Enriched ${tables} table(s)${linked ? `, ${linked} monster links` : ""}.`);
+    const links = linked ? tr("SDE.importer.tableEnrich.notify.enrichedLinks", { n: linked }) : "";
+    ui.notifications?.info(tr("SDE.importer.tableEnrich.notify.enriched", { tables, links }));
     return { tables, linked };
   },
 };

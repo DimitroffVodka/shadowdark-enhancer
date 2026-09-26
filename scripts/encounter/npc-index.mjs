@@ -8,6 +8,9 @@
 
 const DEFAULT_IMG = "icons/svg/mystery-man.svg";
 
+/** One string from `languages/en.json`; the key when no i18n is mounted. */
+const t = (key) => globalThis.game?.i18n?.localize(key) ?? key;
+
 export function createNpcIndexRow(actor, {
   sourceId = "",
   sourceLabel = "",
@@ -39,7 +42,7 @@ export function createNpcIndexRow(actor, {
   return {
     uuid: actor?.uuid,
     id: actor?.id,
-    name: actor?.name ?? "Unknown",
+    name: actor?.name ?? t("SDE.encounter.unknownName"),
     img: actor?.img ?? DEFAULT_IMG,
     level,
     levelLabel: Number.isFinite(level) ? String(level) : "--",
@@ -164,7 +167,7 @@ function _summarizeAttacks(items) {
     if (ranges.includes("close")) attackKinds.melee = true;
     if (ranges.some(r => r === "near" || r === "far" || r === "nearLine")) attackKinds.ranged = true;
     attacks.push({
-      name: item.name ?? "Attack",
+      name: item.name ?? t("SDE.encounter.browse.attackFallback"),
       num,
       bonus,
       damage,
@@ -183,7 +186,7 @@ function _summarizeAttacks(items) {
     primaryBits.push(`${primary.bonus >= 0 ? "+" : ""}${primary.bonus}`);
     if (primary.damage) primaryBits.push(primary.damage);
   }
-  if (specialCount > 0) primaryBits.push("+ special");
+  if (specialCount > 0) primaryBits.push(t("SDE.encounter.browse.specialSuffix"));
 
   return {
     attackCount,

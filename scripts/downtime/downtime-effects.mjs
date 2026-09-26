@@ -59,6 +59,13 @@ export {
 };
 
 /** v14 string change type. Numeric `mode` is deprecated since v14, gone in v16. */
+/** One string from `languages/en.json`; the key when no i18n is mounted. */
+const L = (key, data) => {
+  const i18n = globalThis.game?.i18n;
+  if (!i18n) return key;
+  return data ? i18n.format(key, data) : i18n.localize(key);
+};
+
 const AE_CHANGE_ADD = "add";
 
 /** Per-weapon training bookkeeping lives on the ITEM, not the actor. */
@@ -210,7 +217,7 @@ async function gearCandidates({ includeArmor = false, dieCap = null } = {}) {
       );
       if (best > capIdx) continue;
     }
-    out.push({ id: entry.name, label: `${entry.name}${isArmor ? " (armor)" : ""}` });
+    out.push({ id: entry.name, label: isArmor ? L("SDE.downtime.effect.armorOption", { name: entry.name }) : entry.name });
   }
   return out.sort((a, b) => a.label.localeCompare(b.label)).slice(0, MAX_GEAR_OPTIONS);
 }
@@ -231,7 +238,7 @@ async function gearCandidates({ includeArmor = false, dieCap = null } = {}) {
  */
 export async function effectPlanFor(slotKey, actor) {
   const spec = slotEffectSpec(slotKey);
-  if (!spec) return { kind: "narrative", prompt: "The GM adjudicates this outcome." };
+  if (!spec) return { kind: "narrative", prompt: L("SDE.downtime.effect.gmAdjudicates") };
   if (spec.kind !== "choice") return { kind: spec.kind };
 
   try {
@@ -241,11 +248,11 @@ export async function effectPlanFor(slotKey, actor) {
       case "spell-trade":  return await tradePlan(actor);
       case "potion":       return potionPlan();
       case "effect-remove": return cursePlan(actor);
-      default:             return { kind: "narrative", prompt: "The GM adjudicates this outcome." };
+      default:             return { kind: "narrative", prompt: L("SDE.downtime.effect.gmAdjudicates") };
     }
   } catch (err) {
     console.warn(`${MODULE_ID} | downtime: could not build an effect plan for "${slotKey}"`, err);
-    return { kind: "narrative", prompt: "Options could not be read — the GM applies this by hand." };
+    return { kind: "narrative", prompt: L("SDE.downtime.effect.optionsUnreadable") };
   }
 }
 
@@ -266,14 +273,16 @@ async function weaponPlan(slotKey, spec, actor) {
       freeText: true,
       options,
       prompt: spec.includeArmor
-        ? "Pick the weapon or armor trained with (or type a name)."
-        : `Pick the weapon trained with (or type a name)${spec.dieCap ? ` — ${spec.dieCap} damage or smaller` : ""}.`,
+        ? L("SDE.downtime.effect.pickWeaponOrArmorTyped")
+        : spec.dieCap
+          ? L("SDE.downtime.effect.pickWeaponTypedCap", { cap: spec.dieCap })
+          : L("SDE.downtime.effect.pickWeaponTyped"),
     };
   }
 
   const weapons = ownedWeapons(actor);
   if (!weapons.length) {
-    return { kind: "narrative", prompt: `${actor?.name ?? "This character"} carries no weapon to train with.` };
+    return { kind: "narrative", prompt: L("SDE.downtime.effect.noWeapon", { name: actor?.name ?? L("SDE.downtime.thisCharacter") }) };
   }
 
   // Step the damage die up.
@@ -289,7 +298,7 @@ async function weaponPlan(slotKey, spec, actor) {
         reason: check.ok ? null : check.error,
       };
     });
-    return { kind: "choice", choiceType: "weapon", options, prompt: "Step one weapon's damage die up." };
+    return { kind: "choice", choiceType: "weapon", options, prompt: L("SDE.downtime.effect.stepPrompt") };
   }
 
   // +1 to hit and/or damage.
@@ -297,8 +306,8 @@ async function weaponPlan(slotKey, spec, actor) {
   for (const w of weapons) {
     const state = trainingFlagOf(w);
     const modes = spec.weaponMode === "either"
-      ? [{ mode: "hit", suffix: "+1 to hit" }, { mode: "damage", suffix: "+1 damage" }]
-      : [{ mode: "both", suffix: "+1 hit and damage" }];
+      ? [{ mode: "hit", suffix: L("SDE.downtime.effect.plusHit") }, { mode: "damage", suffix: L("SDE.downtime.effect.plusDamage") }]
+      : [{ mode: "both", suffix: L("SDE.downtime.effect.plusHitDamage") }];
     for (const m of modes) {
       const check = canGrantTraining(state, slotKey, m.mode);
       options.push({
@@ -314,8 +323,8 @@ async function weaponPlan(slotKey, spec, actor) {
     choiceType: "weapon",
     options,
     prompt: spec.weaponMode === "either"
-      ? "Pick one weapon and whether the bonus is to hit or to damage."
-      : "Pick the weapon that gains +1 to hit and damage.",
+      ? L("SDE.downtime.effect.pickHitOrDamage")
+      : L("SDE.downtime.effect.pickWeaponBoth"),
   };
 }
 
@@ -324,7 +333,9 @@ async function craftPlan(slotKey, spec, actor) {
   if (!spells.length) {
     return {
       kind: "narrative",
-      prompt: `${actor?.name ?? "This character"} knows no spell of tier ${MAX_CRAFT_TIER} or lower to inscribe.`,
+      prompt: L("SDE.downtime.effect.noCraftSpell", {
+        name: actor?.name ?? L("SDE.downtime.thisCharacter"), tier: MAX_CRAFT_TIER,
+      }),
     };
   }
   const options = spells.map((s) => {
@@ -333,15 +344,15 @@ async function craftPlan(slotKey, spec, actor) {
     let reason = null;
     if (spec.craft === "wand" && wandsHolding(actor, uuid).length) {
       disabled = true;
-      reason = "A wand of this spell is already carried and unbroken.";
+      reason = L("SDE.downtime.effect.wandCarried");
     }
-    return { id: s.id, label: `${s.name} (Tier ${s.system?.tier})`, disabled, reason };
+    return { id: s.id, label: L("SDE.downtime.effect.spellTier", { name: s.name, tier: s.system?.tier }), disabled, reason };
   });
   return {
     kind: "choice",
     choiceType: "spell-new",
     options,
-    prompt: `Pick the spell to bind into the ${spec.craft === "wand" ? "wand" : "scroll"}.`,
+    prompt: spec.craft === "wand" ? L("SDE.downtime.effect.bindWand") : L("SDE.downtime.effect.bindScroll"),
   };
 }
 
@@ -353,11 +364,11 @@ async function craftPlan(slotKey, spec, actor) {
 async function tradePlan(actor) {
   const spells = knownSpells(actor);
   if (!spells.length) {
-    return { kind: "narrative", prompt: `${actor?.name ?? "This character"} knows no spell to trade away.` };
+    return { kind: "narrative", prompt: L("SDE.downtime.effect.noTradeSpell", { name: actor?.name ?? L("SDE.downtime.thisCharacter") }) };
   }
   const classUuid = actorClassUuid(actor);
   if (!classUuid) {
-    return { kind: "narrative", prompt: "No class is set on this character, so no spell list can be resolved." };
+    return { kind: "narrative", prompt: L("SDE.downtime.effect.noClassList") };
   }
   const knownNames = new Set(spells.map((s) => String(s.name ?? "").toLowerCase()));
   const byTier = new Map();
@@ -370,18 +381,18 @@ async function tradePlan(actor) {
     const gain = byTier.get(tier);
     options.push({
       id: s.id,
-      label: `${s.name} (Tier ${tier})`,
+      label: L("SDE.downtime.effect.spellTier", { name: s.name, tier }),
       tier,
       gain,
       disabled: !gain.length,
-      reason: gain.length ? null : "No other spell of this tier is available on this class list.",
+      reason: gain.length ? null : L("SDE.downtime.effect.noOtherSpell"),
     });
   }
   return {
     kind: "choice",
     choiceType: "spell-trade",
     options,
-    prompt: "Pick the spell to give up, then its same-tier replacement.",
+    prompt: L("SDE.downtime.effect.tradePrompt"),
   };
 }
 
@@ -390,7 +401,7 @@ function potionPlan() {
     kind: "choice",
     choiceType: "potion",
     options: ARCANE_POTION_NAMES.map((n) => ({ id: n, label: n })),
-    prompt: "Pick which potion was brewed.",
+    prompt: L("SDE.downtime.effect.pickPotion"),
   };
 }
 
@@ -400,14 +411,14 @@ function cursePlan(actor) {
     // Shadowdark has no curse item, status or field — nothing to clear.
     return {
       kind: "narrative",
-      prompt: "Shadowdark models no curse mechanically — the GM ends the curse at the table.",
+      prompt: L("SDE.downtime.effect.noCurseModel"),
     };
   }
   return {
     kind: "choice",
     choiceType: "effect-remove",
     options: curses.map((e) => ({ id: e.id, label: e.name })),
-    prompt: "Pick the curse to lift.",
+    prompt: L("SDE.downtime.effect.cursePrompt"),
   };
 }
 
@@ -425,19 +436,21 @@ function cursePlan(actor) {
  * @returns {Promise<{ok:boolean, summary:string, error?:string}>}
  */
 export async function applyDowntimeEffect({ actor, slotKey, choice = null } = {}) {
-  if (!actor) return fail("No character was supplied.");
+  if (!actor) return fail(L("SDE.downtime.effect.noActor"));
   const spec = slotEffectSpec(slotKey);
-  if (!spec) return fail(`"${slotKey}" is not a downtime slot this build knows.`);
+  if (!spec) return fail(L("SDE.downtime.effect.unknownSlot", { slot: slotKey }));
 
   try {
     const handler = HANDLERS[slotKey];
     if (!handler) {
-      return ok("The GM adjudicates this outcome at the table.");
+      return ok(L("SDE.downtime.effect.gmAtTable"));
     }
     return await handler(actor, choice ?? {}, slotKey, spec);
   } catch (err) {
     console.error(`${MODULE_ID} | downtime: applying "${slotKey}" failed`, err);
-    return fail(err?.message ? `Could not apply it: ${err.message}` : "Could not apply it.");
+    return fail(err?.message
+      ? L("SDE.downtime.effect.applyFailedWhy", { error: err.message })
+      : L("SDE.downtime.effect.applyFailed"));
   }
 }
 
@@ -453,9 +466,9 @@ async function bumpRenown(actor, delta) {
     actor, delta, source: "downtime", chat: false,
     reason: "Downtime",
   });
-  if (!result.ok) return fail(result.error ?? "Renown could not be changed.");
+  if (!result.ok) return fail(result.error ?? L("SDE.downtime.renownFailed"));
   const sign = delta < 0 ? String(delta) : `+${delta}`;
-  return ok(`${actor.name}: renown ${sign} → ${result.after}.`);
+  return ok(L("SDE.downtime.renownChanged", { name: actor.name, delta: sign, after: result.after }));
 }
 
 async function grantXp(actor, delta) {
@@ -465,12 +478,13 @@ async function grantXp(actor, delta) {
   // Polite level-up: the system's own sheet consumes this flag on next render
   // (PlayerSheetSD reads `showLevelUp`), so only raise it once the character
   // is actually at the threshold `level.value * 10`.
-  let note = "";
+  let levelUp = false;
   if (shouldPromptLevelUp(next, level)) {
     await actor.setFlag("shadowdark", "showLevelUp", true);
-    note = " Level-up is ready on their sheet.";
+    levelUp = true;
   }
-  return ok(`${actor.name}: +${delta} XP → ${next}.${note}`);
+  const data = { name: actor.name, delta: `+${delta}`, next };
+  return ok(levelUp ? L("SDE.downtime.xpChangedLevelUp", data) : L("SDE.downtime.xpChanged", data));
 }
 
 /* ── Martial training ─────────────────────────────────────────────────────── */
@@ -484,11 +498,11 @@ function parseWeaponChoice(choice) {
 async function applyWeaponBonus(actor, choice, slotKey, spec) {
   const { itemId, mode } = parseWeaponChoice(choice);
   const item = itemId ? actor.items.get(itemId) : null;
-  if (!item || item.type !== "Weapon") return fail("Pick a weapon this character carries.");
+  if (!item || item.type !== "Weapon") return fail(L("SDE.downtime.effect.pickWeapon"));
 
   const wantMode = spec.weaponMode === "either" ? mode : "both";
   if (spec.weaponMode === "either" && wantMode !== "hit" && wantMode !== "damage") {
-    return fail("Pick whether the bonus is to hit or to damage.");
+    return fail(L("SDE.downtime.effect.pickBonusMode"));
   }
 
   const state = trainingFlagOf(item);
@@ -500,7 +514,7 @@ async function applyWeaponBonus(actor, choice, slotKey, spec) {
   const effects = [];
   if (flags.hit) {
     effects.push({
-      name: "Weapon Training (+1 to hit)",
+      name: L("SDE.downtime.effect.aeHit"),
       img: ICON_ATTACK,
       disabled: false,
       transfer: true,
@@ -510,7 +524,7 @@ async function applyWeaponBonus(actor, choice, slotKey, spec) {
   }
   if (flags.damage) {
     effects.push({
-      name: "Weapon Training (+1 damage)",
+      name: L("SDE.downtime.effect.aeDamage"),
       img: ICON_DAMAGE,
       disabled: false,
       transfer: true,
@@ -518,13 +532,18 @@ async function applyWeaponBonus(actor, choice, slotKey, spec) {
       flags: provenance,
     });
   }
-  if (!effects.length) return fail("That slot grants no weapon bonus.");
+  if (!effects.length) return fail(L("SDE.downtime.effect.noWeaponBonus"));
 
   await item.createEmbeddedDocuments("ActiveEffect", effects);
   await item.setFlag(MODULE_ID, TRAINING_FLAG, withTrainingGrant(state, slotKey, wantMode));
 
-  const what = flags.hit && flags.damage ? "+1 to hit and damage" : flags.hit ? "+1 to hit" : "+1 damage";
-  return ok(`${item.name}: ${what}.${suppressionNote(item)}`);
+  const what = flags.hit && flags.damage
+    ? L("SDE.downtime.effect.plusHitAndDamage")
+    : flags.hit ? L("SDE.downtime.effect.plusHit") : L("SDE.downtime.effect.plusDamage");
+  const note = suppressionNote(item);
+  return ok(note
+    ? L("SDE.downtime.effect.weaponBonusNote", { item: item.name, what, note })
+    : L("SDE.downtime.effect.weaponBonus", { item: item.name, what }));
 }
 
 /**
@@ -532,9 +551,9 @@ async function applyWeaponBonus(actor, choice, slotKey, spec) {
  * unidentified — worth saying only when it actually applies right now.
  */
 function suppressionNote(item) {
-  if (item.system?.stashed) return " (stashed — the bonus is suppressed until it is carried).";
+  if (item.system?.stashed) return L("SDE.downtime.effect.noteStashed");
   if (item.system?.canBeEquipped && item.system?.equipped === false) {
-    return " (not equipped — the bonus applies once it is).";
+    return L("SDE.downtime.effect.noteUnequipped");
   }
   return "";
 }
@@ -542,7 +561,7 @@ function suppressionNote(item) {
 async function stepWeaponDie(actor, choice) {
   const { itemId } = parseWeaponChoice(choice);
   const item = itemId ? actor.items.get(itemId) : null;
-  if (!item || item.type !== "Weapon") return fail("Pick a weapon this character carries.");
+  if (!item || item.type !== "Weapon") return fail(L("SDE.downtime.effect.pickWeapon"));
 
   const state = trainingFlagOf(item);
   const oneHanded = item.system?.damage?.oneHanded ?? "";
@@ -564,32 +583,33 @@ async function stepWeaponDie(actor, choice) {
     const next = stepDamageDie(twoHanded);
     if (next) { update["system.damage.twoHanded"] = next; parts.push(`${twoHanded}→${next}`); }
   }
-  if (!parts.length) return fail("That weapon's damage die is already d12.");
+  if (!parts.length) return fail(L("SDE.downtime.effect.dieMaxed"));
 
   await item.update(update);
   await item.setFlag(MODULE_ID, TRAINING_FLAG, withDieStep(state));
-  return ok(`${item.name}: damage die stepped up (${parts.join(", ")}).`);
+  return ok(L("SDE.downtime.effect.dieStepped", { item: item.name, steps: parts.join(", ") }));
 }
 
 async function trainNewProficiency(actor, choice, slotKey, spec) {
   const name = String(choice?.name ?? choice?.id ?? "").trim();
-  if (!name) return fail("Name the weapon or armor trained with.");
+  if (!name) return fail(L("SDE.downtime.effect.nameTrained"));
 
   // Shadowdark has no proficiency field of any kind, so this is recorded as a
   // Talent the GM can point at — honestly descriptive, not a fake mechanic.
-  const what = spec.includeArmor ? "weapon or armor" : "weapon";
+  const recorded = spec.includeArmor
+    ? L("SDE.downtime.effect.recordedWeaponOrArmor")
+    : L("SDE.downtime.effect.recordedWeapon");
   await actor.createEmbeddedDocuments("Item", [{
-    name: `Training: ${name}`,
+    name: L("SDE.downtime.effect.trainingItem", { name }),
     type: "Talent",
     img: ICON_TRAINING,
     system: {
-      description: `<p>Downtime martial training: this character may now use <strong>${esc(name)}</strong>.</p>`
-        + `<p><em>Recorded from the ${esc(what)} training downtime activity — the GM applies it at the table; `
-        + "Shadowdark has no proficiency field to set.</em></p>",
+      description: `<p>${L("SDE.downtime.effect.mayNowUse", { name: `<strong>${esc(name)}</strong>` })}</p>`
+        + `<p><em>${esc(recorded)}</em></p>`,
     },
     flags: { [MODULE_ID]: { [TRAINING_FLAG]: { slotKey } } },
   }]);
-  return ok(`${actor.name} is now trained with ${name}.`);
+  return ok(L("SDE.downtime.effect.nowTrained", { name: actor.name, weapon: name }));
 }
 
 /* ── Magical research ─────────────────────────────────────────────────────── */
@@ -597,16 +617,16 @@ async function trainNewProficiency(actor, choice, slotKey, spec) {
 async function craftSpellItem(actor, choice, slotKey, spec) {
   const spellId = String(choice?.id ?? choice?.spellItemId ?? "");
   const spell = spellId ? actor.items.get(spellId) : null;
-  if (!spell || spell.type !== "Spell") return fail("Pick a spell this character knows.");
+  if (!spell || spell.type !== "Spell") return fail(L("SDE.downtime.effect.pickSpell"));
   if (!isCraftableTier(spell.system?.tier)) {
-    return fail(`Only spells of tier ${MAX_CRAFT_TIER} or lower can be inscribed.`);
+    return fail(L("SDE.downtime.effect.tierTooHigh", { tier: MAX_CRAFT_TIER }));
   }
   const spellUuid = sourceUuidOf(spell);
-  if (!spellUuid) return fail("That spell has no resolvable source to bind.");
+  if (!spellUuid) return fail(L("SDE.downtime.effect.noSpellSource"));
 
   const isWand = spec.craft === "wand";
   if (isWand && wandsHolding(actor, spellUuid).length) {
-    return fail("A wand of that spell is already carried and unbroken.");
+    return fail(L("SDE.downtime.effect.wandCarriedThat"));
   }
 
   // magic-forge's pure builder produces the working shape: a Scroll with
@@ -614,21 +634,23 @@ async function craftSpellItem(actor, choice, slotKey, spec) {
   // system's own casting pipeline runs (DC = tier + 10).
   const data = assembleItemData({
     type: isWand ? "wand" : "scroll",
-    name: `${isWand ? "Wand" : "Scroll"} of ${spell.name}`,
+    name: isWand
+      ? L("SDE.downtime.effect.wandName", { spell: spell.name })
+      : L("SDE.downtime.effect.scrollName", { spell: spell.name }),
     spellUuids: [spellUuid],
     identified: true,
   });
   data.flags = data.flags ?? {};
   data.flags[MODULE_ID] = { ...(data.flags[MODULE_ID] ?? {}), downtimeCrafted: { slotKey } };
   await actor.createEmbeddedDocuments("Item", [data]);
-  return ok(`${actor.name} created ${data.name}.`);
+  return ok(L("SDE.downtime.effect.created", { name: actor.name, item: data.name }));
 }
 
 async function brewPotion(actor, choice, slotKey, { fixedName = null } = {}) {
   const name = fixedName ?? String(choice?.id ?? choice?.name ?? "").trim();
-  if (!name) return fail("Pick which potion was brewed.");
+  if (!name) return fail(L("SDE.downtime.effect.pickPotion"));
   if (!fixedName && !ARCANE_POTION_NAMES.includes(name)) {
-    return fail("That potion is not on this activity's list.");
+    return fail(L("SDE.downtime.effect.potionNotListed"));
   }
   // Shadowdark ships no potion documents at all (its `magic-items` pack holds
   // only the named uniques), so the item is fabricated. `system.spellName` is
@@ -640,32 +662,32 @@ async function brewPotion(actor, choice, slotKey, { fixedName = null } = {}) {
     system: {
       spellName: name,
       magicItem: true,
-      description: `<p><em>Brewed during downtime. Its effect is resolved from the book at the table.</em></p>`,
+      description: `<p><em>${L("SDE.downtime.effect.brewedDesc")}</em></p>`,
     },
     flags: { [MODULE_ID]: { downtimeCrafted: { slotKey } } },
   }]);
-  return ok(`${actor.name} brewed ${name}. Its effect is resolved from the book.`);
+  return ok(L("SDE.downtime.effect.brewed", { name: actor.name, potion: name }));
 }
 
 async function tradeSpell(actor, choice) {
   const dropId = String(choice?.dropSpellItemId ?? choice?.id ?? "");
   const gainUuid = String(choice?.gainSpellUuid ?? choice?.gain ?? "");
   const drop = dropId ? actor.items.get(dropId) : null;
-  if (!drop || drop.type !== "Spell") return fail("Pick a spell this character knows to give up.");
-  if (!gainUuid) return fail("Pick the replacement spell.");
+  if (!drop || drop.type !== "Spell") return fail(L("SDE.downtime.effect.pickDropSpell"));
+  if (!gainUuid) return fail(L("SDE.downtime.effect.pickReplacement"));
 
   const gainDoc = await fromUuid(gainUuid).catch(() => null);
-  if (!gainDoc || gainDoc.type !== "Spell") return fail("That replacement is not a spell.");
+  if (!gainDoc || gainDoc.type !== "Spell") return fail(L("SDE.downtime.effect.notASpell"));
 
   if (Number(gainDoc.system?.tier) !== Number(drop.system?.tier)) {
-    return fail("A traded spell must be the same tier as the one given up.");
+    return fail(L("SDE.downtime.effect.sameTier"));
   }
   const classUuid = actorClassUuid(actor);
   if (!classUuid || !(gainDoc.system?.class ?? []).includes(classUuid)) {
-    return fail("That spell is not on this character's class list.");
+    return fail(L("SDE.downtime.effect.notClassList"));
   }
   if (knownSpells(actor).some((s) => s.name === gainDoc.name)) {
-    return fail(`${actor.name} already knows ${gainDoc.name}.`);
+    return fail(L("SDE.downtime.effect.alreadyKnows", { name: actor.name, spell: gainDoc.name }));
   }
 
   const dropName = drop.name;
@@ -676,7 +698,9 @@ async function tradeSpell(actor, choice) {
   delete gainData.ownership;
   await actor.deleteEmbeddedDocuments("Item", [drop.id]);
   await actor.createEmbeddedDocuments("Item", [gainData]);
-  return ok(`${actor.name} traded ${dropName} for ${gainDoc.name} (Tier ${gainDoc.system.tier}).`);
+  return ok(L("SDE.downtime.effect.traded", {
+    name: actor.name, drop: dropName, gain: gainDoc.name, tier: gainDoc.system.tier,
+  }));
 }
 
 /**
@@ -684,7 +708,8 @@ async function tradeSpell(actor, choice) {
  * so the bonus actually lands, but nothing decrements it — the effect is
  * labelled and the summary says to remove it after use.
  */
-async function grantAdvantageBuff(actor, slotKey, { label, uses }) {
+async function grantAdvantageBuff(actor, slotKey, { labelKey, uses }) {
+  const label = L(labelKey);
   await actor.createEmbeddedDocuments("ActiveEffect", [{
     name: label,
     img: ICON_BUFF,
@@ -692,30 +717,28 @@ async function grantAdvantageBuff(actor, slotKey, { label, uses }) {
     changes: [{ key: "system.roll.spell.advantage.all", value: 1, type: AE_CHANGE_ADD }],
     flags: { [MODULE_ID]: { [BUFF_FLAG]: { slotKey, uses } } },
   }]);
-  const which = uses > 1 ? `the next ${uses} casts` : "the next cast";
-  return ok(`${actor.name} gains "${label}" — advantage on ${which}. Delete the effect once it is used.`);
+  return ok(uses > 1
+    ? L("SDE.downtime.effect.buffMany", { name: actor.name, label, uses })
+    : L("SDE.downtime.effect.buffOne", { name: actor.name, label }));
 }
 
 async function liftCurse(actor, choice) {
   const id = String(choice?.id ?? choice?.effectId ?? "");
   const effect = id ? actor.effects.get(id) : null;
-  if (!effect) return fail("Pick a curse on this character.");
+  if (!effect) return fail(L("SDE.downtime.effect.pickCurse"));
   if (!effect.getFlag(MODULE_ID, CURSE_FLAG)) {
-    return fail("That effect is not flagged as a curse.");
+    return fail(L("SDE.downtime.effect.notCurse"));
   }
   const name = effect.name;
   await actor.deleteEmbeddedDocuments("ActiveEffect", [effect.id]);
-  return ok(`${actor.name} is free of ${name}.`);
+  return ok(L("SDE.downtime.effect.curseLifted", { name: actor.name, curse: name }));
 }
 
 /* ── Skulduggery ──────────────────────────────────────────────────────────── */
 
 async function armExtortion(actor) {
   await actor.setFlag(MODULE_ID, EXTORTION_FLAG, extortionFlagValue());
-  return ok(
-    `${actor.name} has leverage over the merchant: their next purchase costs ${EXTORTION_PCT}% less, `
-    + `or their next sale earns ${EXTORTION_PCT}% more — whichever comes first.`,
-  );
+  return ok(L("SDE.downtime.effect.extortion", { name: actor.name, pct: EXTORTION_PCT }));
 }
 
 /* ────────────────────────────────────────────────────────────────────────── */
@@ -729,7 +752,7 @@ const HANDLERS = {
   "spiritual-cleansing": (actor, choice) =>
     (curseEffects(actor).length
       ? liftCurse(actor, choice)
-      : Promise.resolve(ok("The GM ends one curse afflicting this character — Shadowdark models none mechanically."))),
+      : Promise.resolve(ok(L("SDE.downtime.effect.gmEndsCurse")))),
 
   // Skulduggery
   "rumor": (actor, choice) => {
@@ -750,9 +773,9 @@ const HANDLERS = {
 
   // Magical research
   "arcane-scroll-adv": (actor, choice, slotKey) =>
-    grantAdvantageBuff(actor, slotKey, { label: "Downtime Research: next scroll", uses: 1 }),
+    grantAdvantageBuff(actor, slotKey, { labelKey: "SDE.downtime.effect.buffScroll", uses: 1 }),
   "divine-spell-adv": (actor, choice, slotKey) =>
-    grantAdvantageBuff(actor, slotKey, { label: "Downtime Research: next three spells", uses: 3 }),
+    grantAdvantageBuff(actor, slotKey, { labelKey: "SDE.downtime.effect.buffSpells", uses: 3 }),
   "arcane-create-scroll": (actor, choice, slotKey, spec) => craftSpellItem(actor, choice, slotKey, spec),
   "divine-create-scroll": (actor, choice, slotKey, spec) => craftSpellItem(actor, choice, slotKey, spec),
   "arcane-create-wand": (actor, choice, slotKey, spec) => craftSpellItem(actor, choice, slotKey, spec),

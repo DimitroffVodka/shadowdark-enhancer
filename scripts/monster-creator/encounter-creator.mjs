@@ -36,6 +36,7 @@ import {
 } from "./monster-effect-runtime.mjs";
 import { createMutatedFromDraft } from "./monster-mutator.mjs";
 import {
+  ABILITY_LABEL_KEYS,
   getGuidelinesTable,
   guidelineFor,
   planLevelAdjust,
@@ -44,10 +45,19 @@ import {
 import { buildNpcNotes, extractFlavor } from "./npc-statblock.mjs";
 import { titleCaseName } from "../importer/monsters/statblock-parser.mjs";
 import { normalizeMonsterSpellAttachment } from "./monster-spell-library-core.mjs";
+import { esc } from "../shared/esc.mjs";
 
 const { renderTemplate } = foundry.applications.handlebars;
 
 const TEMPLATE_PATH = "modules/shadowdark-enhancer/templates/encounter-creator.hbs";
+
+/** One string from `languages/en.json`; the key when no i18n is mounted
+ *  (node tests load this module through a minimal Foundry shim). */
+const L = (key, data) => {
+  const i18n = globalThis.game?.i18n;
+  if (!i18n) return key;
+  return data ? i18n.format(key, data) : i18n.localize(key);
+};
 
 /**
  * Default shape for a fresh-from-scratch monster. Mirrors the
@@ -292,9 +302,12 @@ export class MonsterCreatorApp {
       // user-supplied data can't inject markup into the panel.
       const box = document.createElement("div");
       box.className = "sde-creator-error";
-      box.append(`Monster Creator failed to render: ${err?.message ?? err}`, document.createElement("br"));
+      box.append(
+        L("SDE.encounterCreator.renderFailed", { error: err?.message ?? err }),
+        document.createElement("br"),
+      );
       const small = document.createElement("small");
-      small.textContent = "Check console for stack trace.";
+      small.textContent = L("SDE.encounterCreator.renderFailedHint");
       box.append(small);
       this._mountHost.replaceChildren(box);
     }
@@ -375,7 +388,7 @@ export class MonsterCreatorApp {
     const spellQuery = this._spellSearch.trim();
     let spellResults = [];
     let spellResultTotal = 0;
-    let spellSourceOptions = [{ value: "", label: "All spell sources" }];
+    let spellSourceOptions = [{ value: "", label: L("SDE.monsterCreator.spellIndex.allSources") }];
     if (this._sectionOpen.spellcasting) {
       const { SpellIndex } = await import("./spell-index.mjs");
       const all = await SpellIndex.loadAll();
@@ -424,9 +437,16 @@ export class MonsterCreatorApp {
 
     // Non-null only when the draft was loaded from a live actor — drives the
     // "editing X" banner and turns Save into an in-place update.
+    // The banner bolds the name, so its HTML is built here with every value
+    // escaped and rendered unescaped ({{{ }}}) by the template.
     const source = this._sourceRef && {
       name:  this._sourceRef.name,
-      scope: this._sourceRef.isToken ? "this token only" : "world actor",
+      editingHtml: L("SDE.encounterCreator.source.editing", {
+        name: `<b>${esc(this._sourceRef.name)}</b>`,
+        scope: `<span class="sde-creator-source-scope">(${esc(L(this._sourceRef.isToken
+          ? "SDE.encounterCreator.source.scopeToken"
+          : "SDE.encounterCreator.source.scopeWorld"))})</span>`,
+      }),
     };
 
     return {
@@ -439,6 +459,8 @@ export class MonsterCreatorApp {
       mutations,
       baseline,
       alignments:  ["L", "N", "C"],
+      // Stat-block abbreviations for the Stats section's ability grid.
+      abilityFields: Object.entries(ABILITY_LABEL_KEYS).map(([key, labelKey]) => ({ key, label: L(labelKey) })),
       // Movement options come from the system's NPC_MOVES enum — the
       // full set (close/near/doubleNear/tripleNear/far/special/none),
       // not just close/near/far. Read at render-time so we follow any
@@ -784,7 +806,7 @@ export class MonsterCreatorApp {
   _onAddAction() {
     this._draft.actions.push({
       id: foundry.utils.randomID(),
-      name: "New Attack",
+      name: L("SDE.encounterCreator.draft.newAttack"),
       type: "NPC Attack",
       num: 1,
       bonus: 0,
@@ -799,9 +821,9 @@ export class MonsterCreatorApp {
   _onAddSpecial() {
     this._draft.actions.push({
       id: foundry.utils.randomID(),
-      name: "New Special",
+      name: L("SDE.encounterCreator.draft.newSpecial"),
       type: "NPC Special Attack",
-      description: "Description of the special effect.",
+      description: L("SDE.encounterCreator.draft.newSpecialDesc"),
     });
     this._sectionOpen.actions = true;
     this.render();
@@ -829,8 +851,8 @@ export class MonsterCreatorApp {
   _onAddFeature() {
     this._draft.features.push({
       id: foundry.utils.randomID(),
-      name: "New Feature",
-      description: "Description of the feature.",
+      name: L("SDE.encounterCreator.draft.newFeature"),
+      description: L("SDE.encounterCreator.draft.newFeatureDesc"),
     });
     this._sectionOpen.features = true;
     this.render();
@@ -866,7 +888,7 @@ export class MonsterCreatorApp {
     if (this._draft.spells.some(s => s.uuid === uuid)) return;
     const doc = await fromUuid(uuid);
     if (!doc || doc.type !== "Spell") {
-      ui.notifications.warn("That spell could not be loaded.");
+      ui.notifications.warn(L("SDE.encounterCreator.notify.spellLoadFailed"));
       return;
     }
     const source = normalizeMonsterSpellAttachment(doc.toObject());
@@ -892,7 +914,7 @@ export class MonsterCreatorApp {
     if (!uuid) return;
     const actor = await fromUuid(uuid);
     if (!actor) {
-      ui.notifications.warn("The source monster could not be loaded.");
+      ui.notifications.warn(L("SDE.encounterCreator.notify.sourceLoadFailed"));
       return;
     }
     actor.sheet?.render(true);
@@ -1018,8 +1040,11 @@ export class MonsterCreatorApp {
       );
     }
     const STATE_LABELS = {
-      locked: "Locked", partial: "Partial", ambiguous: "Ambiguous",
-      invalid: "Invalid", ready: "Ready",
+      locked: "SDE.encounterCreator.mut.stateLocked",
+      partial: "SDE.encounterCreator.mut.statePartial",
+      ambiguous: "SDE.encounterCreator.mut.stateAmbiguous",
+      invalid: "SDE.encounterCreator.mut.stateInvalid",
+      ready: "SDE.encounterCreator.mut.stateReady",
     };
     const selByManifest = new Map(this._mutSelection.map((r) => [r.manifestId, r]));
     const setLabelByManifest = new Map();
@@ -1030,7 +1055,7 @@ export class MonsterCreatorApp {
       return {
         key: s.key, label: s.label, page: s.page, formula: s.formula,
         manifestId: s.manifestId, state: s.state, ready: s.ready,
-        stateLabel: STATE_LABELS[s.state] ?? s.state,
+        stateLabel: STATE_LABELS[s.state] ? L(STATE_LABELS[s.state]) : s.state,
         diagnostics: s.diagnostics,
         columns: s.columns.map((c) => {
           setLabelByManifest.set(c.manifestId, s.label);
@@ -1049,7 +1074,12 @@ export class MonsterCreatorApp {
       };
     });
 
-    const MODE_LABELS = { automated: "Automated", mixed: "Mixed", gm: "GM adjudication" };
+    const MODE_LABELS = {
+      automated: "SDE.encounterCreator.mut.modeAutomated",
+      mixed: "SDE.encounterCreator.mut.modeMixed",
+      gm: "SDE.encounterCreator.mut.modeGm",
+    };
+    const modeLabel = mode => (MODE_LABELS[mode] ? L(MODE_LABELS[mode]) : mode);
     const selection = live.map((r) => {
       const plan = planResultEffects(r, this._draft);
       return {
@@ -1057,7 +1087,7 @@ export class MonsterCreatorApp {
         columnLabel: r.columnLabel, setLabel: setLabelByManifest.get(r.manifestId) ?? "",
         text: r.text,
         mode: plan.mode,
-        modeLabel: MODE_LABELS[plan.mode] ?? plan.mode,
+        modeLabel: modeLabel(plan.mode),
       };
     });
 
@@ -1072,10 +1102,12 @@ export class MonsterCreatorApp {
       gm: summary.counts.gm ?? 0,
       applications: summary.applications.map((a) => ({
         setKey: a.setKey,
-        setLabel: a.setKey === "generator" ? "Generator" : "Make It Weird",
+        setLabel: L(a.setKey === "generator"
+          ? "SDE.encounterCreator.mut.setGenerator"
+          : "SDE.encounterCreator.mut.setMutations"),
         columnLabel: columnLabelByManifest.get(a.slotKey) ?? a.slotKey,
         mode: a.mode,
-        modeLabel: MODE_LABELS[a.mode] ?? a.mode,
+        modeLabel: modeLabel(a.mode),
         edited: a.edited,
         conflict: a.conflict,
         chips: a.chips,
@@ -1135,7 +1167,7 @@ export class MonsterCreatorApp {
    *  gate — then imports it in one place (reuses the canonical flow). */
   async _onMutImport(event, target) {
     if (!game.user?.isGM) {
-      ui.notifications.warn("Only a GM can import roll tables.");
+      ui.notifications.warn(L("SDE.encounterCreator.notify.importGmOnly"));
       return;
     }
     const setKey = target.dataset.set === "generator" ? "generator" : "mutations";
@@ -1156,7 +1188,7 @@ export class MonsterCreatorApp {
     const states = await this._getMutStates();
     const { live } = resolveSelection(states, this._mutSelection);
     if (!live.length) {
-      ui.notifications.warn("Select at least one imported result to apply.");
+      ui.notifications.warn(L("SDE.encounterCreator.notify.selectToApply"));
       return;
     }
     let applied = 0;
@@ -1169,31 +1201,52 @@ export class MonsterCreatorApp {
     this._sectionOpen.mutations = true;
     ui.notifications.info(
       applied
-        ? `Applied ${applied} generated effect${applied === 1 ? "" : "s"} to the draft.`
-        : "Those results were already applied — no changes.",
+        ? L(applied === 1 ? "SDE.encounterCreator.notify.appliedOne" : "SDE.encounterCreator.notify.appliedMany", { count: applied })
+        : L("SDE.encounterCreator.notify.alreadyApplied"),
     );
     this.render();
   }
 
   /** Remove all Generator-set generated changes (conflict-safe, manual-preserving). */
-  _onMutRemoveGenerator() { this._removeGenerated({ setKey: "generator" }, "Generator"); }
+  _onMutRemoveGenerator() {
+    this._removeGenerated({ setKey: "generator" }, {
+      none: "SDE.encounterCreator.notify.noneGenerator",
+      removed: "SDE.encounterCreator.notify.removedGenerator",
+    });
+  }
 
   /** Remove all Make It Weird generated changes (conflict-safe, manual-preserving). */
-  _onMutRemoveMutations() { this._removeGenerated({ setKey: "mutations" }, "Make It Weird"); }
+  _onMutRemoveMutations() {
+    this._removeGenerated({ setKey: "mutations" }, {
+      none: "SDE.encounterCreator.notify.noneMutations",
+      removed: "SDE.encounterCreator.notify.removedMutations",
+    });
+  }
 
   /** Remove every generated change (conflict-safe, manual-preserving). */
-  _onMutRemoveAll() { this._removeGenerated({ all: true }, "all generated"); }
+  _onMutRemoveAll() {
+    this._removeGenerated({ all: true }, {
+      none: "SDE.encounterCreator.notify.noneAll",
+      removed: "SDE.encounterCreator.notify.removedAll",
+    });
+  }
 
-  /** Shared applied-effect removal + user report. */
-  _removeGenerated(filter, label) {
+  /** Shared applied-effect removal + user report. `keys` names the en.json
+   *  strings for this filter: `none` (nothing to remove) and `removed`. */
+  _removeGenerated(filter, keys) {
     const report = removeGeneratedEffects(this._draft, filter);
     if (!report.removedApplications.length) {
-      ui.notifications.info(`No ${label} changes to remove.`);
+      ui.notifications.info(L(keys.none));
       return;
     }
-    const bits = [`Removed ${report.removedApplications.length} ${label} application(s)`];
-    if (report.detached.length) bits.push(`${report.detached.length} edited item(s) kept as manual`);
-    if (report.conflicts.length) bits.push(`${report.conflicts.length} change(s) preserved (conflict)`);
+    // Each clause is a whole statement; they join with "; " as before.
+    const bits = [L(keys.removed, { count: report.removedApplications.length })];
+    if (report.detached.length) {
+      bits.push(L("SDE.encounterCreator.notify.detachedKept", { count: report.detached.length }));
+    }
+    if (report.conflicts.length) {
+      bits.push(L("SDE.encounterCreator.notify.conflictsKept", { count: report.conflicts.length }));
+    }
     ui.notifications.info(`${bits.join("; ")}.`);
     this.render();
   }
@@ -1204,19 +1257,19 @@ export class MonsterCreatorApp {
     const states = await this._getMutStates();
     const { live } = resolveSelection(states, this._mutSelection);
     if (!live.length) {
-      ui.notifications.warn("Select at least one imported result to create a variant copy.");
+      ui.notifications.warn(L("SDE.encounterCreator.notify.selectToCopy"));
       return;
     }
     if (!this._draft.name?.trim()) {
-      ui.notifications.warn("The draft needs a name before creating a variant copy.");
+      ui.notifications.warn(L("SDE.encounterCreator.notify.copyNeedsName"));
       return;
     }
     try {
       const actor = await createMutatedFromDraft(this._draft, live);
-      ui.notifications.info(`Created variant copy: ${actor.name}`);
+      ui.notifications.info(L("SDE.encounterCreator.notify.copyCreated", { name: actor.name }));
     } catch (err) {
       console.error(MODULE_ID, "Create variant copy failed:", err);
-      ui.notifications.error(`Failed to create variant copy: ${err.message}`);
+      ui.notifications.error(L("SDE.encounterCreator.notify.copyFailed", { error: err.message }));
     }
   }
 
@@ -1481,7 +1534,7 @@ export class MonsterCreatorApp {
   async _onSave(opts = {}) {
     const d = this._draft;
     if (!d.name?.trim()) {
-      ui.notifications.warn("Monster needs a name before it can be saved.");
+      ui.notifications.warn(L("SDE.encounterCreator.notify.saveNeedsName"));
       return;
     }
 
@@ -1495,15 +1548,14 @@ export class MonsterCreatorApp {
       if (source) {
         const report = await this._updateSourceActor(source);
         const bits = [];
-        if (report.updated) bits.push(`${report.updated} updated`);
-        if (report.created) bits.push(`${report.created} added`);
-        if (report.deleted) bits.push(`${report.deleted} removed`);
-        const itemNote = bits.length ? ` (items: ${bits.join(", ")})` : "";
-        ui.notifications.info(`Updated ${source.name}${itemNote}.`);
+        if (report.updated) bits.push(L("SDE.encounterCreator.notify.itemsUpdated", { count: report.updated }));
+        if (report.created) bits.push(L("SDE.encounterCreator.notify.itemsAdded", { count: report.created }));
+        if (report.deleted) bits.push(L("SDE.encounterCreator.notify.itemsRemoved", { count: report.deleted }));
+        ui.notifications.info(bits.length
+          ? L("SDE.encounterCreator.notify.updatedWithItems", { name: source.name, items: bits.join(", ") })
+          : L("SDE.encounterCreator.notify.updated", { name: source.name }));
         if (report.droppedBackup) {
-          ui.notifications.warn(
-            `${source.name}'s quick-adjust "Revert" point was cleared — the Creator has rewritten its stats.`,
-          );
+          ui.notifications.warn(L("SDE.encounterCreator.notify.backupCleared", { name: source.name }));
         }
         // Keep the draft and the link: editing an existing monster is usually
         // iterative, and a wiped form would lose the GM's place.
@@ -1513,20 +1565,18 @@ export class MonsterCreatorApp {
       }
 
       if (this._sourceRef && !forceCreate) {
-        ui.notifications.warn(
-          `The monster this draft came from (${this._sourceRef.name}) no longer exists — creating a new one instead.`,
-        );
+        ui.notifications.warn(L("SDE.encounterCreator.notify.sourceGone", { name: this._sourceRef.name }));
       }
 
       const actor = await this._createFromDraft();
-      ui.notifications.info(`Created NPC: ${actor.name}`);
+      ui.notifications.info(L("SDE.encounterCreator.notify.created", { name: actor.name }));
       // Reset the draft so the form is ready for the next monster.
       this._draft = _defaultDraft();
       this._sourceRef = null;
       this.render();
     } catch (err) {
       console.error(MODULE_ID, "Monster Creator save failed:", err);
-      ui.notifications.error(`Failed to save monster: ${err.message}`);
+      ui.notifications.error(L("SDE.encounterCreator.notify.saveFailed", { error: err.message }));
     }
   }
 }
@@ -1686,7 +1736,7 @@ function _readItemGeneration(item) {
  * @returns {{actorData: object, items: object[]}}
  */
 export function draftToActorData(d) {
-  const name = (d.name || "").trim() || "New Monster";
+  const name = (d.name || "").trim() || L("SDE.encounterCreator.draft.newMonster");
   const img = d.img || "icons/svg/mystery-man.svg";
 
   const actorData = {
@@ -1750,7 +1800,7 @@ export function draftToActorData(d) {
     const base = {
       // Title-case the item name to match the system bestiary ("Dagger",
       // "Flaming Greatsword"); the stat line in the notes stays lowercase.
-      name: titleCaseName((a.name || "").trim()) || "New Action",
+      name: titleCaseName((a.name || "").trim()) || L("SDE.encounterCreator.draft.newAction"),
       type: a.type,
       img: NPC_ITEM_ICONS[a.type],
       // NPC Attack keeps its rider as PLAIN text (it's mirrored into
@@ -1787,7 +1837,7 @@ export function draftToActorData(d) {
     // but it's still listed in the notes stat block above.
     if (f.isSpell) continue;
     const feature = {
-      name: (f.name || "").trim() || "New Feature",
+      name: (f.name || "").trim() || L("SDE.encounterCreator.draft.newFeature"),
       type: "NPC Feature",
       img: NPC_ITEM_ICONS["NPC Feature"],
       system: { description: _descHtml(f.description) },
@@ -1860,12 +1910,12 @@ const NPC_ITEM_ICONS = {
 function _loaderSourcesLabel(selectedIds, options) {
   const optionIds = new Set(options.map(o => o.id));
   const visible = (selectedIds ?? []).filter(id => optionIds.has(id));
-  if (!visible.length) return "No sources";
-  if (visible.length === options.length) return "All sources";
+  if (!visible.length) return L("SDE.encounterCreator.loader.sourcesNone");
+  if (visible.length === options.length) return L("SDE.encounterCreator.loader.sourcesAll");
   if (visible.length === 1) {
     return options.find(o => o.id === visible[0])?.label ?? visible[0];
   }
-  return `${visible.length} sources`;
+  return L("SDE.encounterCreator.loader.sourcesCount", { count: visible.length });
 }
 
 /**
@@ -1889,13 +1939,16 @@ function _draftPreview(d) {
   const traits = (d.features?.length ?? 0)
     + (d.spellcasting?.ability ? 1 : 0)
     + (d.darkAdapted ? 1 : 0);
-  return `LV ${level} · HP ${hp} · AC ${ac} · ${attack} · ${traits} trait${traits === 1 ? "" : "s"}`;
+  return L("SDE.encounterCreator.preview.line", {
+    level, hp, ac, attack,
+    traits: L(traits === 1 ? "SDE.encounterCreator.preview.traitOne" : "SDE.encounterCreator.preview.traitMany", { count: traits }),
+  });
 }
 
 function _draftAttackSummary(actions) {
   const firstAttack = actions.find(a => a.type === "NPC Attack");
   const specialCount = actions.filter(a => a.type === "NPC Special Attack").length;
-  if (!firstAttack && specialCount === 0) return "no attacks";
+  if (!firstAttack && specialCount === 0) return L("SDE.encounterCreator.preview.noAttacks");
   const bits = [];
   if (firstAttack) {
     bits.push(`x${Number(firstAttack.num ?? 1)}`);
@@ -1903,7 +1956,7 @@ function _draftAttackSummary(actions) {
     bits.push(`${bonus >= 0 ? "+" : ""}${bonus}`);
     if (firstAttack.damage) bits.push(firstAttack.damage);
   }
-  if (specialCount) bits.push("+ special");
+  if (specialCount) bits.push(L("SDE.encounterCreator.preview.special"));
   return bits.join(" ");
 }
 

@@ -23,6 +23,7 @@
  * node:test importable — mirroring the 08-01 dynamic-import deviation.
  */
 import { MODULE_ID } from "../../shared/module-id.mjs";
+import { t as tr } from "../importer-hub-shared.mjs";
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
@@ -134,7 +135,7 @@ export function sourceTally(actors) {
  */
 export async function planActorMigration() {
   if (!game.user?.isGM) {
-    ui.notifications?.warn("Only a GM can plan the actor migration.");
+    ui.notifications?.warn(tr("SDE.importer.monsterImporter.notify.gmPlanMigration"));
     return null;
   }
 
@@ -210,7 +211,7 @@ export async function planActorMigration() {
  */
 export async function migrateActors({ dryRun = false } = {}) {
   if (!game.user?.isGM) {
-    ui.notifications?.warn("Only a GM can run the actor migration.");
+    ui.notifications?.warn(tr("SDE.importer.monsterImporter.notify.gmRunMigration"));
     return null;
   }
 

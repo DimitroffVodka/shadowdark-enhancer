@@ -250,7 +250,7 @@ describe("grantBenefit — the once-each record comes first", () => {
     const r = await withGame(() => grantBenefit(actor, "witch", 4));
     assert.equal(r.ok, true);
     assert.deepEqual(takenRolls(actor, "witch"), [4]);
-    assert.match(r.notes.join(" "), /apply it by hand/);
+    assert.match(r.notes.join(" "), /SDE\.training\.note\.actionFailed/);
     const again = await withGame(() => grantBenefit(actor, "witch", 4));
     assert.equal(again.error, "AlreadyTaught", "a retry cannot pay it twice");
   });

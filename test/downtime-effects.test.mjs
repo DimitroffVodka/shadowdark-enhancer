@@ -154,7 +154,7 @@ describe("martial training limits", () => {
     state = withTrainingGrant(state, "d6-hit-and-damage", "both");
     const second = canGrantTraining(state, "d6-hit-and-damage", "both");
     assert.equal(second.ok, false);
-    assert.match(second.error, /already been applied/);
+    assert.match(second.error, /SDE\.downtime\.effect\.trainingApplied/);
   });
 
   test("the d4 slot allows one of each on the same weapon", () => {
@@ -191,19 +191,19 @@ describe("martial training limits", () => {
     assert.equal(state.dieSteps, MAX_DIE_STEPS);
     const blocked = canStepDie(state, "d10");
     assert.equal(blocked.ok, false);
-    assert.match(blocked.error, /already been stepped up/);
+    assert.match(blocked.error, /SDE\.downtime\.effect\.dieMaxSteps/);
   });
 
   test("a d12 weapon cannot be stepped even on the first attempt", () => {
     const blocked = canStepDie(trainingState(null), "d12");
     assert.equal(blocked.ok, false);
-    assert.match(blocked.error, /already d12/);
+    assert.match(blocked.error, /SDE\.downtime\.effect\.dieMaxed/);
   });
 
   test("an unreadable die is refused, not guessed at", () => {
     const blocked = canStepDie(trainingState(null), "");
     assert.equal(blocked.ok, false);
-    assert.match(blocked.error, /no readable damage die/);
+    assert.match(blocked.error, /SDE\.downtime\.effect\.noDie/);
   });
 
   test("a legal step reports the next die", () => {

@@ -806,8 +806,8 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
       // when to stop. This answers it: what this sheet is expected to contain.
       sheetExpected: Math.round(sheetRisk(state, this._sheet).expected),
       baseline: baseline?.checked >= 20 ? baseline : null, noCrawl: this._entries.length > 0 && !this._entryUuid,
-      sceneName: scene?.name ?? "(no scene)", sampled, cellCount: this._cells.length, numberedCount: total,
-      summary, origin, originText: origin ? `${String(origin.num).padStart(4, "0")} at grid ${origin.i},${origin.j}` : "",
+      sceneName: scene?.name ?? t("SDE.hexMap.label.noScene"), sampled, cellCount: this._cells.length, numberedCount: total,
+      summary, origin, originText: origin ? t("SDE.hexMap.label.originAt", { num: String(origin.num).padStart(4, "0"), i: origin.i, j: origin.j }) : "",
       boundsCols: origin?.bounds?.cols ?? "", boundsRows: origin?.bounds?.rows ?? "", skipTopRow: framesTopRow(origin?.bounds),
       mode: this._mode, modes: [["random", "SDE.hexMap.mode.random"], ["keyed", "SDE.hexMap.mode.keyed"], ["review", "SDE.hexMap.mode.review"]]
         .map(([v, k]) => ({ value: v, label: t(k), selected: v === this._mode })),
@@ -984,7 +984,7 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
     if (!this._requireCurrentScene()) return;
     const keyed = this._keyedNumbers();
     const cells = [...this._numbered.keys()].filter((n) => !keyed.has(n)).map((n) => ({ num: n, bitmap: this._bitmaps.get(n) }));
-    const { clusters } = await buildLegend(cells, { onProgress: async (text) => { this._setProgress(text); await new Promise((r) => setTimeout(r, 0)); } });
+    const { clusters } = await buildLegend(cells, { onProgress: async (p) => { this._setProgress(t("SDE.hexMap.progress.sorting", p)); await new Promise((r) => setTimeout(r, 0)); } });
     if (!this._requireCurrentScene()) return;
     this._setProgress("");
     this._legend = clusters;

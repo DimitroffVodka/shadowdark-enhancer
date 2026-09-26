@@ -192,7 +192,7 @@ class SDETokenRuler extends foundry.canvas.placeables.tokens.TokenRuler {
     const base = super._getWaypointLabelContext(waypoint, state);
     if (!this._isTracked || !base) return base;
     const after = this._moveRemaining - this._cumulativeAt(waypoint);
-    const tag   = after < 0 ? `OVER: ${after}ft` : `${after}ft left`;
+    const tag   = game.i18n.format(after < 0 ? "SDE.crawlStrip.movement.over" : "SDE.crawlStrip.movement.left", { n: after });
     base.label  = base.label ? `${base.label} (${tag})` : tag;
     return base;
   }
@@ -294,7 +294,7 @@ export const MovementTracker = {
 
       const btn = document.createElement("div");
       btn.classList.add("control-icon");
-      btn.title = "Rollback Movement";
+      btn.title = game.i18n.localize("SDE.crawlStrip.movement.rollbackTip");
       btn.innerHTML = ICONS.rollbackMove;
       btn.addEventListener("click", () => {
         hud.close();
@@ -339,9 +339,9 @@ export const MovementTracker = {
    * @returns {Promise<{ok: boolean, error?: string}>}
    */
   async handleQuery(data, user) {
-    const refusal = refuseQuery(user, "Movement rollbacks");
+    const refusal = refuseQuery(user, game.i18n.localize("SDE.crawlStrip.refuse.rollbacks"));
     if (refusal) return refusal;
-    if (data?.action !== "rollbackMove") return { ok: false, error: "Unknown movement action." };
+    if (data?.action !== "rollbackMove") return { ok: false, error: game.i18n.localize("SDE.crawlStrip.movement.unknownAction") };
 
     // The requester must be a GM or an owner of the token's actor. The old
     // raw-socket version read the id out of the payload and its own comment
@@ -352,9 +352,9 @@ export const MovementTracker = {
     // lookup here rejected every request whose token wasn't on the responding
     // GM's viewed scene (or any request at all on a headless GM), silently.
     const actor = this._resolveTokenDoc(data.tokenId)?.actor;
-    if (!actor) return { ok: false, error: "That token is no longer on any scene." };
+    if (!actor) return { ok: false, error: game.i18n.localize("SDE.crawlStrip.movement.tokenGone") };
     const auth = authorizeActorFor(actor.id, user);
-    if (!auth.ok) return { ok: false, error: "You don't control that token." };
+    if (!auth.ok) return { ok: false, error: game.i18n.localize("SDE.crawlStrip.movement.notYours") };
 
     await this.rollback(data.tokenId);
     return { ok: true };
@@ -514,7 +514,7 @@ export const MovementTracker = {
     if (segFt > limit) {
       delete this._pendingDeduct[doc.id];
       if (userId === game.userId) {
-        const msg = `${actor.name}: only ${Math.max(0, moveRemaining)}ft remaining.`;
+        const msg = game.i18n.format("SDE.crawlStrip.movement.onlyRemaining", { name: actor.name, n: Math.max(0, moveRemaining) });
         ui.notifications.warn(msg);
         this._clearRulerLoop(doc.id);
       }
@@ -579,7 +579,7 @@ export const MovementTracker = {
   async rollback(tokenId) {
     // Players relay to a GM (only GM clients may write the rollback).
     if (!game.user.isGM) {
-      await relayToGM(MOVEMENT_QUERY, { action: "rollbackMove", tokenId }, { label: "movement rollbacks" });
+      await relayToGM(MOVEMENT_QUERY, { action: "rollbackMove", tokenId }, { label: game.i18n.localize("SDE.crawlStrip.relay.rollbacks") });
       return;
     }
     const doc = this._resolveTokenDoc(tokenId);
@@ -589,7 +589,7 @@ export const MovementTracker = {
     // player relay — can serve the rollback. The in-memory copy is only a
     // fallback for a turn begun before this fix deployed.
     const start = doc.getFlag(MODULE_ID, "turnStart") ?? this._turnStartPos[tokenId];
-    if (!start) { ui.notifications.warn("No turn-start position recorded for this token."); return; }
+    if (!start) { ui.notifications.warn(game.i18n.localize("SDE.crawlStrip.movement.noStart")); return; }
 
     const actor = doc.actor;
 
@@ -643,7 +643,7 @@ export const MovementTracker = {
       const fullSpeed = Math.round(_getBaseSpeed(actor, doc) / 5) * 5;
       await doc.setFlag(MODULE_ID, "moveRemaining", fullSpeed);
       CrawlStrip.queueRender();
-      ui.notifications.info(`${actor.name} rolled back to turn start — movement restored.`);
+      ui.notifications.info(game.i18n.format("SDE.crawlStrip.movement.rolledBack", { name: actor.name }));
     }
   },
 

@@ -43,6 +43,7 @@ globalThis.game = {
   modules: [],
   system: { id: "shadowdark" },
   packs: new Map(),
+  i18n: { localize: (k) => k, format: (k, d) => `${k} ${JSON.stringify(d)}` },
 };
 globalThis.ui = {
   notifications: {

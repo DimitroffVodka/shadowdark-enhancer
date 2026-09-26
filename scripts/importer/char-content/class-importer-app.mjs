@@ -23,6 +23,7 @@ import { overlayFor } from "./class-overlays.mjs";
 import { sourcePdfHref, titlePageFor } from "../source-pdf-registry.mjs";
 import { CHAR_SOURCES, classGrabPages } from "./char-content-manifest.mjs";
 import { MODULE_ID } from "../../shared/module-id.mjs";
+import { t as tr } from "../importer-hub-shared.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
@@ -51,7 +52,7 @@ const _featureHtml = (h) => String(h ?? "")
 export class ClassImporterApp extends HandlebarsApplicationMixin(ApplicationV2) {
   static DEFAULT_OPTIONS = {
     id: "sde-class-importer",
-    window: { title: "Class Importer", icon: "fa-solid fa-hat-wizard", resizable: true },
+    window: { title: "SDE.importer.classImporter.title", icon: "fa-solid fa-hat-wizard", resizable: true },
     position: { width: 720, height: 800 },
     actions: {
       ciParseBody:   ClassImporterApp.prototype._onParseBody,
@@ -145,17 +146,22 @@ export class ClassImporterApp extends HandlebarsApplicationMixin(ApplicationV2) 
     // What roll tables the parse/grab detected — surfaced in the body preview so
     // the GM sees the class's tables came through, not just its features (issue #5).
     const detectedTables = [];
-    if (this._talentTable) detectedTables.push(`talent table — ${this._talentTable.rows.length} rows`);
-    if (this._titles.length) detectedTables.push(`titles — ${this._titles.length} bands`);
-    if (this._spellsKnown.length) detectedTables.push(`spells known — ${this._spellsKnown.length} levels`);
-    for (const t of this._extraTables) detectedTables.push(`${t.name} — ${(t.rows ?? []).length} rows`);
+    if (this._talentTable) detectedTables.push(tr("SDE.importer.classImporter.detTalent", { n: this._talentTable.rows.length }));
+    if (this._titles.length) detectedTables.push(tr("SDE.importer.classImporter.detTitles", { n: this._titles.length }));
+    if (this._spellsKnown.length) detectedTables.push(tr("SDE.importer.classImporter.detSpells", { n: this._spellsKnown.length }));
+    for (const t of this._extraTables) detectedTables.push(tr("SDE.importer.classImporter.detExtra", { name: t.name, n: (t.rows ?? []).length }));
 
     const bodyPreview = p ? {
       name: p.name,
       hp: p.hitPoints,
       features: p.features.map((f) => ({ name: f.name, html: _featureHtml(f.description) })),
-      weapons: [p.allWeapons && "all weapons", p.allMeleeWeapons && "all melee", p.allRangedWeapons && "all ranged", ...p.weaponNames].filter(Boolean).join(", "),
-      armor: [p.allArmor && "all armor", ...p.armorNames].filter(Boolean).join(", "),
+      weapons: [
+        p.allWeapons && tr("SDE.importer.classImporter.allWeapons"),
+        p.allMeleeWeapons && tr("SDE.importer.classImporter.allMelee"),
+        p.allRangedWeapons && tr("SDE.importer.classImporter.allRanged"),
+        ...p.weaponNames,
+      ].filter(Boolean).join(", "),
+      armor: [p.allArmor && tr("SDE.importer.classImporter.allArmor"), ...p.armorNames].filter(Boolean).join(", "),
       isCaster: !!p.spellcasting,
       hasTables: !!(p.talentTable || p.titles?.length || p.spellsKnown?.length || p.extraTables?.length),
       // Drop warnings about roll tables added in Stage 2 — EXCEPT blockers:
@@ -189,6 +195,7 @@ export class ClassImporterApp extends HandlebarsApplicationMixin(ApplicationV2) 
     const writeupPdf = (srcKey && writeupPage) ? sourcePdfHref(srcKey, writeupPage) : null;
     const titlesPdf = (srcKey && titlesPage) ? sourcePdfHref(srcKey, titlesPage) : null;
 
+    const displayName = this._className || this._bodyName || this._seedClassName || tr("SDE.importer.classImporter.thisClass");
     return {
       source: this._source,
       sourceList: SOURCE_SUGGESTIONS,
@@ -200,7 +207,9 @@ export class ClassImporterApp extends HandlebarsApplicationMixin(ApplicationV2) 
       className: this._className,
       bodyName: this._bodyName || this._seedClassName || "",
       // Name shown on the Attach button (before create there's no _className yet).
-      displayName: this._className || this._bodyName || this._seedClassName || "this class",
+      displayName,
+      // Escaped for the two notes that bold the name inside a localized sentence.
+      displayNameHtml: foundry.utils.escapeHTML(displayName),
       // Caster state — from the created class, or the parsed preview before create.
       isCaster: this._isCaster || !!p?.spellcasting,
       // Roll tables the parse/grab detected — listed in the body preview (issue #5).
@@ -217,8 +226,9 @@ export class ClassImporterApp extends HandlebarsApplicationMixin(ApplicationV2) 
           range: r.lo === r.hi ? String(r.lo) : `${r.lo}-${r.hi}`,
           text: _strip(r.text ?? ""),
           wired: !!talentWiring[i]?.wired,
-          wiredVia: talentWiring[i]?.via ?? null,
-          wiredMatch: talentWiring[i]?.match ?? null,
+          // "" not null: the tooltips format these in, and format prints a null as "null".
+          wiredVia: talentWiring[i]?.via ?? "",
+          wiredMatch: talentWiring[i]?.match ?? "",
         })),
       } : null,
       titles,
@@ -241,6 +251,7 @@ export class ClassImporterApp extends HandlebarsApplicationMixin(ApplicationV2) 
       })),
       // Source-PDF deep links
       seedClassName: this._seedClassName || null,
+      seedClassNameHtml: foundry.utils.escapeHTML(this._seedClassName || ""),
       pdfName: name || null,
       writeupPdf, writeupPage: writeupPage ? String(writeupPage) : null,
       titlesPdf, titlesPage: titlesPage ? String(titlesPage) : null,
@@ -272,11 +283,11 @@ export class ClassImporterApp extends HandlebarsApplicationMixin(ApplicationV2) 
   /** Human summary of what's captured vs. pending for the footer. */
   _attachPending() {
     const done = [];
-    if (this._talentTable) done.push("talent table");
-    if (this._titles.length) done.push(`${this._titles.length} title${this._titles.length === 1 ? "" : "s"}`);
-    if (this._spellsKnown.length) done.push("spells known");
-    if (this._extraTables.length) done.push(`${this._extraTables.length} extra table${this._extraTables.length === 1 ? "" : "s"}`);
-    return done.length ? done.join(" · ") : "nothing captured yet";
+    if (this._talentTable) done.push(tr("SDE.importer.charContent.partTalent"));
+    if (this._titles.length) done.push(tr(this._titles.length === 1 ? "SDE.importer.classImporter.partTitle" : "SDE.importer.classImporter.partTitles", { n: this._titles.length }));
+    if (this._spellsKnown.length) done.push(tr("SDE.importer.charContent.partSpells"));
+    if (this._extraTables.length) done.push(tr(this._extraTables.length === 1 ? "SDE.importer.charContent.partExtraTable" : "SDE.importer.charContent.partExtraTables", { n: this._extraTables.length }));
+    return done.length ? done.join(" · ") : tr("SDE.importer.classImporter.nothingCaptured");
   }
 
   // ── Render wiring ──────────────────────────────────────────────────────────
@@ -391,23 +402,23 @@ export class ClassImporterApp extends HandlebarsApplicationMixin(ApplicationV2) 
   _ingestPaste(text) {
     if (!String(text).trim()) return;
     const sup = parseClassSupplement(text);
-    if (!sup) { ui.notifications?.info("No talent table, titles, spells known, or extra table found in that paste."); return; }
+    if (!sup) { ui.notifications?.info(tr("SDE.importer.classImporter.notify.noTables")); return; }
     const got = [];
-    if (sup.talentTable) { this._talentTable = sup.talentTable; got.push("talent table"); }
+    if (sup.talentTable) { this._talentTable = sup.talentTable; got.push(tr("SDE.importer.charContent.partTalent")); }
     if (sup.titles?.length) {
       this._titles.push(...sup.titles);
-      got.push(`${sup.titles.length} title band(s)`);
+      got.push(tr("SDE.importer.classImporter.gotTitleBands", { n: sup.titles.length }));
       this._titleWarnings.push(...(sup.warnings ?? []).filter((w) => /couldn'?t split|titles?\s+row/i.test(w)));
     }
-    if (sup.spellsKnown?.length) { this._spellsKnown = sup.spellsKnown; got.push("spells known"); }
+    if (sup.spellsKnown?.length) { this._spellsKnown = sup.spellsKnown; got.push(tr("SDE.importer.charContent.partSpells")); }
     if (sup.extraTables?.length) {
       for (const t of sup.extraTables) {
         const i = this._extraTables.findIndex((e) => e.name.toLowerCase() === t.name.toLowerCase());
         if (i >= 0) this._extraTables[i] = t; else this._extraTables.push(t);
       }
-      got.push(`${sup.extraTables.length} extra table(s)`);
+      got.push(tr("SDE.importer.classImporter.gotExtraTables", { n: sup.extraTables.length }));
     }
-    if (got.length) ui.notifications?.info(`Captured: ${got.join(", ")}.`);
+    if (got.length) ui.notifications?.info(tr("SDE.importer.classImporter.notify.captured", { parts: got.join(", ") }));
     if (sup.talentTable) this._refreshTalentWarnings();   // re-derive bands from the re-pasted table
     this.render();
   }
@@ -430,7 +441,7 @@ export class ClassImporterApp extends HandlebarsApplicationMixin(ApplicationV2) 
       body = `${name}\n${body}`;
     }
     const parsed = parseClassSection(body);
-    if (!parsed) { ui.notifications?.warn("Couldn't read a class from that paste — it needs a Hit Points line."); return; }
+    if (!parsed) { ui.notifications?.warn(tr("SDE.importer.classImporter.notify.noClass")); return; }
     this._bodyParsed = parsed;
     // Roll tables embedded in the body — talent table, titles, spells known,
     // extra tables (e.g. pulled in by Grab-text) — flow into stage 2 so Create
@@ -495,7 +506,10 @@ export class ClassImporterApp extends HandlebarsApplicationMixin(ApplicationV2) 
     // Tell any open Character Builder / Importer Hub to drop caches + re-render so
     // the class flips from gap→have without a close/reopen (issue #1).
     Hooks.callAll(`${MODULE_ID}.contentUnlocked`);
-    ui.notifications?.info(`Class "${this._className}" ${rep.updated?.length ? "updated" : "created"}${hadTables ? " with its roll tables" : " — add its roll tables below, then Attach"}.`);
+    const doneKey = rep.updated?.length
+      ? (hadTables ? "SDE.importer.classImporter.notify.updatedWithTables" : "SDE.importer.classImporter.notify.updatedNoTables")
+      : (hadTables ? "SDE.importer.classImporter.notify.createdWithTables" : "SDE.importer.classImporter.notify.createdNoTables");
+    ui.notifications?.info(tr(doneKey, { name: this._className }));
     this.render();
   }
 
@@ -638,17 +652,17 @@ export class ClassImporterApp extends HandlebarsApplicationMixin(ApplicationV2) 
       this._lastReport = { created: rep.created.length, updated: (rep.updated ?? []).length, reused: rep.reused.length };
       if (rep.warnings.length) {
         console.warn(`${MODULE_ID} | Class Importer — attach notes:\n- ${rep.warnings.join("\n- ")}`);
-        ui.notifications?.warn(`Tables attached with ${rep.warnings.length} note(s) — see the console (F12).`);
+        ui.notifications?.warn(tr("SDE.importer.classImporter.notify.attachNotes", { n: rep.warnings.length }));
       }
     }
     return rep;
   }
 
   async _onAttach() {
-    if (!this._classUuid) { ui.notifications?.warn("Create the class body first."); return; }
-    if (!this._hasStage2()) { ui.notifications?.warn("Nothing to attach yet — paste a talent table, titles, or another table."); return; }
+    if (!this._classUuid) { ui.notifications?.warn(tr("SDE.importer.classImporter.notify.createFirst")); return; }
+    if (!this._hasStage2()) { ui.notifications?.warn(tr("SDE.importer.classImporter.notify.nothingToAttach")); return; }
     const rep = await this._attach();
-    if (rep && !rep.warnings.length) ui.notifications?.info(`Roll tables attached to "${this._className}".`);
+    if (rep && !rep.warnings.length) ui.notifications?.info(tr("SDE.importer.classImporter.notify.attached", { name: this._className }));
     this._updateImported();
     Hooks.callAll(`${MODULE_ID}.contentUnlocked`);
     this.render();
@@ -658,7 +672,7 @@ export class ClassImporterApp extends HandlebarsApplicationMixin(ApplicationV2) 
     const href = target?.dataset?.href;
     if (!href) return;
     const { SourcePdfViewer } = await import("../source-pdf-viewer.mjs");
-    SourcePdfViewer.show(href, target.dataset.title || "Source PDF");
+    SourcePdfViewer.show(href, target.dataset.title || tr("SDE.importer.pdf.sourcePdf"));
   }
 
   /**
@@ -676,7 +690,7 @@ export class ClassImporterApp extends HandlebarsApplicationMixin(ApplicationV2) 
     const { sourcePdfTarget } = await import("../source-pdf-registry.mjs");
     const target = (srcKey && page) ? sourcePdfTarget(srcKey, page) : null;
     if (!target) {
-      ui.notifications?.warn("No source PDF / writeup page for this class — set the source above, or add the PDF in the hub's Source PDFs manager.");
+      ui.notifications?.warn(tr("SDE.importer.classImporter.notify.noWriteupPdf"));
       return;
     }
     const { extractPdfText, parsePageRange, notifyGutterWarnings } = await import("../pdf-text-extract.mjs");
@@ -695,10 +709,10 @@ export class ClassImporterApp extends HandlebarsApplicationMixin(ApplicationV2) 
       writeupText = writeup.text;
     } catch (err) {
       console.error("Shadowdark Enhancer | class PDF grab failed", err);
-      ui.notifications?.error(`Couldn't read text from that PDF page — ${err?.message || err} (details in the console).`);
+      ui.notifications?.error(tr("SDE.importer.pdf.readPageFailed", { error: err?.message || err }));
       return;
     }
-    if (!writeupText) { ui.notifications?.warn(`Page ${target.page} has no selectable text.`); return; }
+    if (!writeupText) { ui.notifications?.warn(tr("SDE.importer.classImporter.notify.pageNoText", { page: target.page })); return; }
 
     // Also pull the TITLES appendix — a separate page holding several classes'
     // title tables. Extracted in "layout" mode: the 4-column Level/Lawful/
@@ -741,8 +755,7 @@ export class ClassImporterApp extends HandlebarsApplicationMixin(ApplicationV2) 
     // Import — no separate Preview click. _onParseBody reads _bodyText, populates
     // the stage-2 tables, and re-renders (or warns and leaves the box shown).
     this._onParseBody();
-    const titleNote = titlesText ? " + titles" : "";
-    ui.notifications?.info(`Pulled and parsed the writeup${titleNote} (p.${target.page}) — review the class, talent table${titlesText ? ", and titles" : ""} below.`);
+    ui.notifications?.info(tr(titlesText ? "SDE.importer.classImporter.notify.pulledWithTitles" : "SDE.importer.classImporter.notify.pulled", { page: target.page }));
   }
 
   /** Clear the whole workspace (no render). Shared by "Start over" and the hub's

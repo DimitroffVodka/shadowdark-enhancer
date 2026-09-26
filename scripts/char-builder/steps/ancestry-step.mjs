@@ -135,16 +135,31 @@ export class AncestryStep extends ListStep {
       if (d?.name) names.push(d.name);
     }
     names.sort((a, b) => (a === "Common" ? -1 : b === "Common" ? 1 : 0)); // Common first, like the book
-    const word = (n) => ["", "one", "two", "three", "four", "five"][n] || String(n);
+    const fmt = (key, data) => game.i18n.format(key, data);
+    const word = (n) => {
+      const key = [null, "SDE.charBuilder.ancestry.lang.one", "SDE.charBuilder.ancestry.lang.two",
+        "SDE.charBuilder.ancestry.lang.three", "SDE.charBuilder.ancestry.lang.four",
+        "SDE.charBuilder.ancestry.lang.five"][n];
+      return key ? game.i18n.localize(key) : String(n);
+    };
     const items = [...names];
-    if (lang.common > 0) items.push(`${word(lang.common)} additional common language${lang.common > 1 ? "s" : ""} of your choice`);
-    if (lang.rare > 0) items.push(`${word(lang.rare)} rare language${lang.rare > 1 ? "s" : ""} of your choice`);
-    if (lang.select > 0) items.push(`${word(lang.select)} more language${lang.select > 1 ? "s" : ""} of your choice`);
+    if (lang.common > 0) {
+      items.push(fmt(lang.common > 1 ? "SDE.charBuilder.ancestry.lang.commonMany" : "SDE.charBuilder.ancestry.lang.commonOne",
+        { n: word(lang.common) }));
+    }
+    if (lang.rare > 0) {
+      items.push(fmt(lang.rare > 1 ? "SDE.charBuilder.ancestry.lang.rareMany" : "SDE.charBuilder.ancestry.lang.rareOne",
+        { n: word(lang.rare) }));
+    }
+    if (lang.select > 0) {
+      items.push(fmt(lang.select > 1 ? "SDE.charBuilder.ancestry.lang.selectMany" : "SDE.charBuilder.ancestry.lang.selectOne",
+        { n: word(lang.select) }));
+    }
     if (!items.length) return "";
     const join = (a) => a.length <= 1 ? (a[0] || "")
-      : a.length === 2 ? `${a[0]} and ${a[1]}`
-        : `${a.slice(0, -1).join(", ")}, and ${a[a.length - 1]}`;
-    return `You know ${join(items)}.`;
+      : a.length === 2 ? fmt("SDE.charBuilder.ancestry.lang.pair", { a: a[0], b: a[1] })
+        : fmt("SDE.charBuilder.ancestry.lang.series", { list: a.slice(0, -1).join(", "), last: a[a.length - 1] });
+    return fmt("SDE.charBuilder.ancestry.lang.sentence", { list: join(items) });
   }
 
   async extraContext(item) {

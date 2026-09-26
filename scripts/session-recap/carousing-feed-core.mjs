@@ -37,6 +37,13 @@
 /** Fallback character label, matching SDX's own log table. */
 const UNKNOWN = "?";
 
+/** One string from `languages/en.json`; the key when no i18n is mounted. */
+const L = (key, data) => {
+  const i18n = globalThis.game?.i18n;
+  if (!i18n) return key;
+  return data ? i18n.format(key, data) : i18n.localize(key);
+};
+
 /** Expanded mode is the one that carries benefit/mishap ARRAYS. */
 export function isExpandedResult(result) {
   return Array.isArray(result?.benefits) || Array.isArray(result?.mishaps);
@@ -171,22 +178,32 @@ export function signedDelta(n) {
  */
 export function carousingSubtotal(entries = []) {
   const count = entries.length;
-  const parts = [`${count} carouser${count === 1 ? "" : "s"}`];
+  const parts = [count === 1
+    ? L("SDE.sessionRecap.carousing.carouserOne", { n: count })
+    : L("SDE.sessionRecap.carousing.carouserMany", { n: count })];
 
   const xp = entries.reduce((s, e) => s + num(e.xp), 0);
   if (xp > 0) parts.push(`${xp} XP`);
 
   const benefits = entries.reduce((s, e) => s + (e.benefits?.length ?? 0), 0);
-  if (benefits > 0) parts.push(`${benefits} benefit${benefits === 1 ? "" : "s"}`);
+  if (benefits > 0) {
+    parts.push(benefits === 1
+      ? L("SDE.sessionRecap.carousing.benefitOne", { n: benefits })
+      : L("SDE.sessionRecap.carousing.benefitMany", { n: benefits }));
+  }
 
   const mishaps = entries.reduce((s, e) => s + (e.mishaps?.length ?? 0), 0);
-  if (mishaps > 0) parts.push(`${mishaps} mishap${mishaps === 1 ? "" : "s"}`);
+  if (mishaps > 0) {
+    parts.push(mishaps === 1
+      ? L("SDE.sessionRecap.carousing.mishapOne", { n: mishaps })
+      : L("SDE.sessionRecap.carousing.mishapMany", { n: mishaps }));
+  }
 
   const renown = entries.reduce((s, e) => s + num(e.renownDelta), 0);
-  if (renown !== 0) parts.push(`renown ${signedDelta(renown)}`);
+  if (renown !== 0) parts.push(L("SDE.sessionRecap.carousing.renown", { delta: signedDelta(renown) }));
 
   const pending = entries.filter((e) => e.appliedState === "pending").length;
-  if (pending > 0) parts.push(`${pending} not applied`);
+  if (pending > 0) parts.push(L("SDE.sessionRecap.carousing.notApplied", { n: pending }));
 
   return parts.join(" · ");
 }
@@ -201,7 +218,9 @@ export function tierLine(carouse) {
   const cost = num(carouse?.tierCost);
   if (cost > 0) {
     const each = num(carouse?.costPerPerson);
-    bits.push(each > 0 ? `${cost} gp total, ${each} gp each` : `${cost} gp total`);
+    bits.push(each > 0
+      ? L("SDE.sessionRecap.carousing.costEach", { cost, each })
+      : L("SDE.sessionRecap.carousing.costTotal", { cost }));
   }
   return bits.join(" — ");
 }

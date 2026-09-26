@@ -597,7 +597,7 @@ class HubManageMethods {
         if (sourcePdfTarget(src, page)) await app._onGrabPdf();
         else {
           const href = sourcePdfHref(src, page);
-          if (href) this._showSourcePdf(href, `${name} writeup${page ? ` — p.${page}` : ""}`);
+          if (href) this._showSourcePdf(href, page ? t("SDE.importer.pdfTitle.writeupAt", { name, page }) : t("SDE.importer.pdfTitle.writeup", { name }));
         }
       } catch (err) {
         console.error("Shadowdark Enhancer | class unlock extraction failed", err);
@@ -730,7 +730,7 @@ class HubManageMethods {
       await this._onGrabPdfText();
     } else {
       const href = sourcePdfHref(src, this._importSeed.page);
-      if (href) this._showSourcePdf(href, `${seedName}${this._importSeed.page ? ` — p.${this._importSeed.page}` : ""}`);
+      if (href) this._showSourcePdf(href, `${seedName}${this._importSeed.page ? t("SDE.importer.pdf.atPage", { page: this._importSeed.page }) : ""}`);
     }
   }
 
@@ -781,7 +781,7 @@ class HubManageMethods {
     this._importTextFocused = true;
     this._importTextCursor = 0;
     const href = sourcePdfHref(seed.src, seed.page);
-    if (href) await this._showSourcePdf(href, `${seed.name} — pg ${seed.page}`);
+    if (href) await this._showSourcePdf(href, t("SDE.importer.pdfTitle.namePg", { name: seed.name, page: seed.page }));
     await this.render();
   }
 
@@ -806,7 +806,7 @@ class HubManageMethods {
     // NOT a `_charSeed`: the downtime parse branch returns before any seed
     // handling, so nothing here reaches _applyImportSeed or the table paths.
     this._importSeed = pdfKey ? {
-      name: `${src.label} downtime`,
+      name: t("SDE.importer.seedName.downtime", { book: src.label }),
       src: pdfKey,
       type: "Downtime",
       page: src.pages,
