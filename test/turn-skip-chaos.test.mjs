@@ -47,7 +47,7 @@ function fakeCombat() {
 
 test("skipping the last corpse into a new round rerolls Chaos initiative, then skips on the new order", async () => {
   const combat = fakeCombat();
-  game.combat = combat;
+  globalThis.game.combat = combat;
   cards.length = 0;
   await maybeSkipDeadTurn(combat);
   assert.equal(combat.round, 3);
@@ -59,7 +59,7 @@ test("skipping the last corpse into a new round rerolls Chaos initiative, then s
 test("without Chaos the walk just wraps the round", async () => {
   settings["shadowdark-enhancer.modeChaosInitiative"] = false;
   const combat = fakeCombat();
-  game.combat = combat;
+  globalThis.game.combat = combat;
   await maybeSkipDeadTurn(combat);
   assert.equal(combat.rerolls, 0);
   assert.equal(combat.turns[combat.turn].name, "Ana");
