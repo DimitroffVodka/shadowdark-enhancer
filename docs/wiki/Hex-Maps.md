@@ -449,7 +449,8 @@ Pressing the one that is up hides it; pressing another switches to it.
   [Time](Random-Encounters.md#time)). **Amber** means a check could not decide
   between two columns, and hovering names them. **Grey** means that region has
   no column for this terrain, or no encounter grid imported at all. The
-  picture redraws itself at dusk, at dawn and when the moon changes phase.
+  picture redraws itself at dusk, at dawn and when a new or full moon begins
+  or ends.
 
 Coasts come free with tagging: once the terrain is decided, every land hex
 touching sea, lake or a river tile is marked coast in the same pass. A

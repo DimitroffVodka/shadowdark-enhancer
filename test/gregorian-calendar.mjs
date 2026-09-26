@@ -1,7 +1,7 @@
 // A stand-in for Foundry's world calendar in Node tests (not a test file
 // itself): core's Simplified Gregorian as its config describes it. Leap years
 // from year 8, every 4th; weekday 0 is Monday; seasons by month. Only the calls
-// Foundry 13 and 14 both have. Written for the tests, not copied from Foundry.
+// the time API makes. Written for the tests, not copied from Foundry.
 
 const MONTH_DAYS = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
 const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
@@ -9,7 +9,8 @@ const WEEKDAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Satur
 const DAY = 86400;
 
 const isLeapYear = (y) => y >= 8 && (y - 8) % 4 === 0;
-const yearDays = (y) => (isLeapYear(y) ? 366 : 365);
+/** Days before year `y` begins. */
+const daysBefore = (y) => y * 365 + (y <= 8 ? 0 : Math.ceil((y - 8) / 4));
 const monthDays = (m, leap) => (m === 1 && leap ? 29 : MONTH_DAYS[m]);
 
 export const gregorian = {
@@ -31,16 +32,16 @@ export const gregorian = {
   },
   isLeapYear,
   componentsToTime({ year = 0, day = 0, hour = 0, minute = 0, second = 0 } = {}) {
-    let days = day;
-    for (let y = 0; y < year; y++) days += yearDays(y);
-    return days * DAY + hour * 3600 + minute * 60 + second;
+    return (daysBefore(year) + day) * DAY + hour * 3600 + minute * 60 + second;
   },
   timeToComponents(t = 0) {
-    let year = 0, rest = t;
-    while (rest >= yearDays(year) * DAY) rest -= yearDays(year++) * DAY;
-    const day = Math.floor(rest / DAY);
-    rest -= day * DAY;
-    return { year, day, ...monthOf(day, isLeapYear(year)), dayOfWeek: (Math.floor(t / DAY) + this.years.firstWeekday) % 7,
+    const days = Math.floor(t / DAY);
+    let year = Math.max(0, Math.floor(days / 365.25));
+    while (year > 0 && daysBefore(year) > days) year--;
+    while (daysBefore(year + 1) <= days) year++;
+    const day = days - daysBefore(year);
+    const rest = t - days * DAY;
+    return { year, day, ...monthOf(day, isLeapYear(year)), dayOfWeek: (days + this.years.firstWeekday) % 7,
       hour: Math.floor(rest / 3600), minute: Math.floor((rest % 3600) / 60), second: rest % 60, leapYear: isLeapYear(year) };
   },
 };

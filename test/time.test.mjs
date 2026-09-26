@@ -3,8 +3,6 @@
 // the timeAdvanced hook and the recap stamp against a stubbed game.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { readFileSync, readdirSync } from "node:fs";
-import { join } from "node:path";
 import {
   SYNODIC_DAYS, ANCHORS, anchor, crossings, dateParts, isNight, moonPhase, season, sun, startOfDay,
 } from "../scripts/time/time-core.mjs";
@@ -123,9 +121,24 @@ test("seasons come from the core calendar's months, and Fall is autumn", () => {
   assert.equal(season({ ...gregorian, seasons: { values: [] } }, at(1301, 9, 1)).key, null);
 });
 
+test("a season's key comes from where it falls in the year, not from its name", () => {
+  // The same months as core's seasons, under other names.
+  const names = ["Thaw", "Highsun", "Harvest", "Snowfall"];
+  const renamed = { ...gregorian, seasons: { values: gregorian.seasons.values.map((s, i) => ({ ...s, name: names[i] })) } };
+  assert.deepEqual([3, 6, 9, 12].map((m) => season(renamed, at(1301, m, 10)).key), ["spring", "summer", "autumn", "winter"]);
+  // By days instead of months: days 335 to 59 are December to February.
+  const byDay = { ...gregorian, seasons: { values: [{ name: "Snowfall", dayStart: 335, dayEnd: 59 }] },
+    timeToComponents: (t) => ({ ...gregorian.timeToComponents(t), season: 0 }) };
+  assert.equal(season(byDay, at(1301, 1, 10)).key, "winter");
+  // Neither months nor days: only then does the name decide.
+  const bare = { ...byDay, seasons: { values: [{ name: "Late Summer" }] } };
+  assert.equal(season(bare, at(1301, 1, 10)).key, "summer");
+});
+
 test("28 February to 1 March reports winter to spring", () => {
   const out = crossings(gregorian, at(1301, 2, 28, 20), at(1301, 3, 1, 8));
   assert.deepEqual(out.seasons, [{ from: "winter", to: "spring", at: at(1301, 3, 1) }]);
+  assert.equal(out.seasonChanges, 1);
   assert.equal(out.days, 1);
   assert.equal(out.dawns, 1);
   assert.equal(out.dusks, 0);
@@ -144,7 +157,7 @@ test("Sunday 23:00 plus 10 days reports weeks: 2", () => {
 });
 
 test("a move backwards, or none, crosses nothing", () => {
-  const none = { days: 0, weeks: 0, seasons: [], dawns: 0, dusks: 0 };
+  const none = { days: 0, weeks: 0, seasons: [], seasonChanges: 0, dawns: 0, dusks: 0 };
   assert.deepEqual(crossings(gregorian, at(1301, 3, 2), at(1301, 2, 20)), none);
   assert.deepEqual(crossings(gregorian, at(1301, 3, 2), at(1301, 3, 2)), none);
   // A tick of the real-time clock inside one day crosses nothing either.
@@ -154,8 +167,33 @@ test("a move backwards, or none, crosses nothing", () => {
 test("a year's jump crosses four seasons and its sunrises", () => {
   const out = crossings(gregorian, at(1301, 1, 15), at(1302, 1, 15));
   assert.deepEqual(out.seasons.map((s) => `${s.from}>${s.to}`), ["winter>spring", "spring>summer", "summer>autumn", "autumn>winter"]);
+  assert.equal(out.seasonChanges, 4);
   assert.equal(out.days, 365);
   assert.equal(out.dawns, 365);
+  assert.equal(out.dusks, 365);
+});
+
+test("season changes land on the 1st the calendar shows, even in core's leap-year display", () => {
+  for (const year of [1299, 1300, 1301]) {
+    const out = crossings(quirkyGregorian, at(year, 1, 15), at(year + 1, 1, 15));
+    assert.deepEqual(out.seasons.map((s) => shows(quirkyGregorian, s.at)), [3, 6, 9, 12].map((m) => `${year}-${m}-1`), `${year}`);
+  }
+});
+
+test("a jump of 1300 years is quick, counts everything, and lists only the last year's seasons", () => {
+  const from = at(0, 1, 15), to = at(1300, 1, 15);
+  const started = performance.now();
+  const out = crossings(gregorian, from, to);
+  const took = performance.now() - started;
+  assert.ok(took < 500, `took ${Math.round(took)} ms`);
+  const days = (to - from) / DAY;
+  assert.equal(out.days, days);
+  assert.equal(out.dawns, days);
+  assert.equal(out.dusks, days);
+  assert.equal(out.weeks, Math.floor((days + 14) / 7) - Math.floor(14 / 7), "worldTime 0 is a Monday, 15 January is day 14");
+  assert.equal(out.seasonChanges, 1300 * 4);
+  assert.deepEqual(out.seasons.map((s) => `${s.from}>${s.to}@${shows(gregorian, s.at)}`),
+    ["winter>spring@1299-3-1", "spring>summer@1299-6-1", "summer>autumn@1299-9-1", "autumn>winter@1299-12-1"]);
 });
 
 test("dateParts: weekday and month as the calendar names them, the day from 1, HH:MM", () => {
@@ -164,21 +202,6 @@ test("dateParts: weekday and month as the calendar names them, the day from 1, H
     day: 21, month: "CALENDAR.GREGORIAN.June", year: 1301, time: "14:05",
   });
   assert.equal(dateParts({ ...gregorian, years: { ...gregorian.years, yearZero: 1000 } }, at(301, 1, 1)).year, 1301, "yearZero is added");
-});
-
-// ── Foundry 13 ───────────────────────────────────────────────────────────────
-
-test("no Foundry 14-only calendar call is used, so Foundry 13 works", () => {
-  const files = [];
-  const walk = (dir) => {
-    for (const e of readdirSync(dir, { withFileTypes: true })) {
-      if (e.isDirectory()) walk(join(dir, e.name));
-      else if (e.name.endsWith(".mjs")) files.push(join(dir, e.name));
-    }
-  };
-  walk("scripts");
-  const hits = files.filter((f) => /componentsToUnit|\.formatDuration\b/.test(readFileSync(f, "utf8")));
-  assert.deepEqual(hits, []);
 });
 
 // ── The Foundry wrapper, against a stubbed game ──────────────────────────────
@@ -231,7 +254,10 @@ test("timeAdvanced fires on the active GM only, with what the move crossed and t
   assert.equal(calls[0].name, "shadowdark-enhancer.timeAdvanced");
   assert.deepEqual(calls[0].payload, {
     from, to, dt: to - from, offDuty: "downtime",
-    crossed: { days: 1, weeks: calls[0].payload.crossed.weeks, seasons: [{ from: "winter", to: "spring", at: at(1301, 3, 1) }], dawns: 1, dusks: 0 },
+    crossed: {
+      days: 1, weeks: calls[0].payload.crossed.weeks, dawns: 1, dusks: 0,
+      seasons: [{ from: "winter", to: "spring", at: at(1301, 3, 1) }], seasonChanges: 1,
+    },
   });
   handlers.updateWorldTime(to, 60, {}, "u1");
   assert.equal(calls[1].payload.offDuty, null, "an ordinary move");
@@ -240,6 +266,31 @@ test("timeAdvanced fires on the active GM only, with what the move crossed and t
   registerTimeHooks();
   other.handlers.updateWorldTime(to, 60, {}, "u2");
   assert.equal(other.calls.length, 0, "another GM's client stays quiet");
+});
+
+test("timeAdvanced for a clock set back, and for a first set from 0 to the year 1300", async () => {
+  // game.time.set and game.time.advance both reach updateWorldTime as (worldTime, dt).
+  const { registerTimeHooks } = await import("../scripts/time/time.mjs");
+  const later = at(1301, 3, 5, 12), earlier = at(1301, 2, 20, 12);
+  let { calls, handlers } = stubGame(earlier);
+  registerTimeHooks();
+  handlers.updateWorldTime(earlier, earlier - later, {}, "u1");   // set back 13 days
+  assert.equal(calls.length, 1, "a move back still fires");
+  assert.deepEqual(calls[0].payload, {
+    from: later, to: earlier, dt: earlier - later, offDuty: null,
+    crossed: { days: 0, weeks: 0, seasons: [], seasonChanges: 0, dawns: 0, dusks: 0 },
+  });
+
+  const year1300 = at(1300, 1, 1);
+  ({ calls, handlers } = stubGame(year1300));
+  registerTimeHooks();
+  const started = performance.now();
+  handlers.updateWorldTime(year1300, year1300, {}, "u1");         // set from worldTime 0
+  assert.ok(performance.now() - started < 500);
+  const { crossed } = calls[0].payload;
+  assert.equal(crossed.days, year1300 / DAY);
+  assert.equal(crossed.seasonChanges, 1300 * 4, "four a year, years 0 to 1299");
+  assert.equal(crossed.seasons.length, 4);
 });
 
 test("Session Recap's entry stamp carries the in-game time", async () => {
@@ -251,5 +302,6 @@ test("Session Recap's entry stamp carries the in-game time", async () => {
   assert.match(stamp.gameTime, /^\w+day, 21 June 1301, 09:15$/);
   assert.ok(Number.isFinite(stamp.timestamp) && stamp.time, "the real time is still there");
   delete globalThis.game.time;
-  assert.equal("worldTime" in SessionRecap._stamp(), false, "no clock, no game time");
+  const bare = SessionRecap._stamp();
+  assert.deepEqual([bare.worldTime, bare.gameTime], [null, null], "no clock: the keys are there, empty");
 });

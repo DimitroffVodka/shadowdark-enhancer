@@ -598,7 +598,9 @@ const data = api.recap.getData();
 Every logged entry is stamped with the real time (`timestamp`, ms, and `time`,
 "14:05") and, since 1.12.0, the in-game time: `worldTime` (seconds) and
 `gameTime`, the date as [`time.format()`](#time--season-day-and-night-sun-moon-and-anchors)
-writes it. Entries logged before 1.12.0 have no in-game time.
+writes it (both `null` without a world clock). Entries logged before 1.12.0
+have no in-game time. A carousing row that Shadowdark Extras rewrites keeps
+the stamp of its first capture.
 
 Each entry in `playerStats` carries:
 
@@ -1319,15 +1321,17 @@ time.format(t);          // the date string alone
 | Call | Returns |
 |---|---|
 | `now()` | `{ worldTime, components, label }`: the clock, core's components, and `format()` of it. |
-| `season(t?)` | `{ key, index, name }`. `key` is `spring`, `summer`, `autumn` or `winter` (core's *Fall* is `autumn`), or `null` for a season named otherwise; `index` and `name` (localised) are the calendar's. |
+| `season(t?)` | `{ key, index, name }`. `key` is `spring`, `summer`, `autumn` or `winter`, by where the season's middle falls in the year (December to February is `winter`, and so on), so core's *Fall* is `autumn` whatever it is called; `index` and `name` (localised) are the calendar's. |
 | `isNight(t?)` | Before sunrise, or from sunset on. |
 | `sun(t?)` | `{ sunrise, sunset }` on that day, in hours (`4.5` is 04:30). |
 | `moonPhase(t?)` | `{ index, key, fraction, illumination }`. `index` 0–7 with `key` `new`, `waxingCrescent`, `firstQuarter`, `waxingGibbous`, `full`, `waningGibbous`, `lastQuarter`, `waningCrescent`; `fraction` 0–1 through the month; `illumination` 0–1. |
-| `anchor(name, year?)` | The worldTime of the 00:00 the anchor falls on, or `null` for an unknown name. `year` is core's count (`game.time.components.year`), this year by default. |
+| `anchor(name, year?)` | The worldTime of the 00:00 the anchor falls on. `null` for an unknown name, and for `lastFullMoon` in a year too short to hold a full moon (never on a 365-day year). `year` is core's count (`game.time.components.year`), this year by default. |
 | `format(t?)` | The date and time the way the Overland bar shows it, with the calendar's own weekday and month names. |
 
 - **Seasons** are core's: the calendar's own seasons, which on the Gregorian
   calendar go by month (spring is March to May), so a season changes on the 1st.
+  A season the calendar gives neither months nor days is keyed by its name
+  (`null` if the name says nothing).
 - **Anchors:** `springEquinox` (20 March), `summerSolstice` (21 June),
   `autumnEquinox` (22 September), `winterSolstice` (21 December), the
   cross-quarters between them, `springCrossQuarter` (5 May),
@@ -1341,9 +1345,8 @@ time.format(t);          // the date string alone
   equinoxes, centred on noon. One latitude for the whole world.
 - **The moon** follows the synodic month, 29.530588853 days, from a new moon at
   the `moonEpoch` world setting (worldTime 0 until a GM sets another).
-- **Foundry 13 and 14.** Only calendar calls both versions have are used. Nothing
-  assumes the Gregorian calendar: weekdays, months, seasons and the length of a
-  day come from the world's.
+- **Any calendar.** Nothing assumes the Gregorian calendar: weekdays, months,
+  seasons and the length of a day come from the world's.
 
 ### `shadowdark-enhancer.timeAdvanced`
 
@@ -1352,18 +1355,26 @@ subscriber that writes is a single writer by construction:
 
 ```js
 Hooks.on("shadowdark-enhancer.timeAdvanced", ({ from, to, dt, offDuty, crossed }) => {
-  // crossed: { days, weeks, seasons: [{ from: "winter", to: "spring", at }], dawns, dusks }
+  // crossed: { days, weeks, seasons: [{ from: "winter", to: "spring", at }], seasonChanges, dawns, dusks }
 });
 ```
 
 `crossed` counts what falls after `from` and up to `to`: midnights (`days`),
 week starts (`weeks`; a week starts at weekday 0, 00:00, which is Monday on
-core's calendar), season changes (each with the worldTime it changed at),
-sunrises (`dawns`) and sunsets (`dusks`). Sunday 23:00 plus ten days is
-`weeks: 2`. A move backwards crosses nothing. `offDuty` is the reason given in
+core's calendar), season changes (`seasonChanges`), sunrises (`dawns`) and
+sunsets (`dusks`). Sunday 23:00 plus ten days is `weeks: 2`.
+
+`seasons` lists the **last** season changes, each with the worldTime it
+changed at, and holds at most one per season of the calendar (four on core's
+calendar, a year's worth). A GM who first sets the clock from 0 to the year
+1300 gets `seasonChanges: 5200` and the four changes of 1299, not 5,200
+entries.
+
+A move backwards (`dt` below 0, from `game.time.set` or a negative
+`advance`) still fires, and crosses nothing. `offDuty` is the reason given in
 `game.time.advance(seconds, { "shadowdark-enhancer": { offDuty: "downtime" } })`,
-else `null`. The hook is cheap, because when the system's real-time light
-clock is on it advances the world time on every tick.
+else `null`. The hook is cheap for any jump, because when the system's
+real-time light clock is on it advances the world time on every tick.
 
 ## Stability notes
 
