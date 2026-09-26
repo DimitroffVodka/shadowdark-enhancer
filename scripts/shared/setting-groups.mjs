@@ -69,7 +69,7 @@ export const SETTING_GROUPS = [
     icon: "fa-solid fa-dice",
     sections: [
       { label: "SDE.settings.modesOfPlayMenu.blitz", hint: "SDE.settings.modesOfPlayMenu.blitzHint", mode: true,
-        entries: [{ key: "modeBlitzLights", pending: true }] },
+        entries: ["modeBlitzLights"] },
       { label: "SDE.settings.modesOfPlayMenu.chaos", hint: "SDE.settings.modesOfPlayMenu.chaosHint", mode: true,
         entries: [{ key: "modeChaosInitiative", pending: true }] },
       { label: "SDE.settings.modesOfPlayMenu.deadly", hint: "SDE.settings.modesOfPlayMenu.deadlyHint", mode: true,
@@ -98,7 +98,7 @@ export const SETTING_GROUPS = [
           { note: "SDE.settings.modesOfPlayMenu.pulpExtraAction" },
         ] },
       { label: "SDE.settings.modesOfPlayMenu.hardLuck", hint: "SDE.settings.modesOfPlayMenu.hardLuckHint", mode: true,
-        entries: ["luckRerollPreventNat1", { key: "modeHardLuckEffects", pending: true }] },
+        entries: ["luckRerollPreventNat1", "modeHardLuckEffects"] },
     ],
   },
   {

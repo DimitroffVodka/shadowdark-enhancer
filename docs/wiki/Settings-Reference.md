@@ -145,7 +145,7 @@ under its checkbox in the window.
 
 | Mode | Setting | Default | What it does |
 |---|---|---|---|
-| Blitz | **Light sources last 30 minutes** | off | *Not automated yet.* A torch, a lantern or a light spell lasts 30 minutes instead of an hour. |
+| Blitz | **Light sources last 30 minutes** | off | Lighting a torch or lantern sets it to 30 minutes left (less if it already had less), and a light spell lasts 30 minutes. The item's own maximum is untouched, so its sheet can read "30 of 60 minutes". Shadowdark Extras' camping campfire keeps its 8 hours. |
 | Chaos | **Reroll initiative every round** | off | *Not automated yet.* Everyone rolls initiative again at the start of every round after the first. |
 | Deadly | **Death timers are always 1** | off | *Not automated yet.* A dying character has 1 round to live, whatever their Constitution. |
 | Deadly | **Stabilizing is DC 18** | off | *Not automated yet.* Stabilizing a dying character is an Intelligence check at DC 18 instead of 15. |
@@ -157,8 +157,8 @@ under its checkbox in the window.
 | Pulp | **1d4 luck at the start of each session** | off | *Not automated yet.* Starting a session sets each party member's luck tokens to 1d4. |
 | Pulp | **Spend luck to turn a hit into a critical hit** | off | *Not automated yet.* After an attack hits, its owner can spend a luck token to make it a critical hit. |
 | Pulp | **Spend luck to make the GM reroll** | off | *Not automated yet.* A player can spend a luck token to make the GM reroll a roll the player can see. |
-| Hard Luck | **Prevent Luck rerolls on natural 1s** | off | Luck tokens can't reroll a critical failure, a natural 1. Before the Modes of Play window it sat under PC Automation and was on by default. |
-| Hard Luck | **No luck rerolls with luck-granting effects** | off | *Not automated yet.* Luck can't reroll a roll made under an effect that grants luck itself, such as Bless, Trance or a Seer's Omen. |
+| Hard Luck | **No luck rerolls on critical failures** | off | Luck tokens can't reroll a critical failure, by the system's own rule, so an effect that widens the failure range counts too. Damage rerolls and the GM's own rerolls are never refused. Before the Modes of Play window it sat under PC Automation and was on by default. |
+| Hard Luck | **No luck rerolls with luck-granting effects** | off | Luck can't reroll a roll made with Bless, a Bard's Inspire, Trance or a Seer's Omen, whatever the result. Matched by the spell's or ability's name; a spell cast from a scroll or wand counts. Only the chat card's reroll can be checked: luck spent from the crawl strip or Shadowdark Extras isn't tied to a roll. |
 
 ### Movement
 
