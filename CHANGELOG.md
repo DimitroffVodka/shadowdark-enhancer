@@ -8,8 +8,10 @@
   damage*: the score and its modifier drop, and the line is gone when healed.
   There is no setting and nothing on the sheet until it happens. A character
   whose CON reaches 0 from it dies. Other modules drive it through
-  `game.shadowdarkEnhancer.statDamage.{apply, heal, of}` (API 1.6.0);
-  Shadowdark Extras' rest heals it all, or 1 per ability in Grinder Mode. (#182)
+  `game.shadowdarkEnhancer.statDamage.{apply, heal, of}` (API 1.6.0).
+  From the Shadowdark Extras release that adds it
+  ([shadowdark-extras#149](https://github.com/DimitroffVodka/shadowdark-extras/issues/149)),
+  Extras' rest heals it all, or 1 per ability in Grinder Mode. (#182)
 - **The hex data goes on the printed map.** The Hex Tagger's **Send to
   Extras** now puts every hex's terrain, region, zone colour, name,
   description and settlement on the map you tagged, instead of building a

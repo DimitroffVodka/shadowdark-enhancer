@@ -24,13 +24,23 @@ export const ABILITIES = Object.freeze(["str", "dex", "con", "int", "wis", "cha"
 /** Core icon for a stat-damage effect. */
 export const STAT_DAMAGE_ICON = "icons/svg/downgrade.svg";
 
+/** Each key, and the full name the book also uses, to the key. */
+const ABILITY_NAMES = Object.freeze({
+  str: "str", strength: "str",
+  dex: "dex", dexterity: "dex",
+  con: "con", constitution: "con",
+  int: "int", intelligence: "int",
+  wis: "wis", wisdom: "wis",
+  cha: "cha", charisma: "cha",
+});
+
 /**
- * "STR", "str" or "Strength" → "str"; anything else → null. The first three
- * letters of each full name are its key, which is how the book abbreviates.
+ * "STR", "str" or "Strength" → "str"; anything else → null. Exact words
+ * only: "strike", "control" and "charm" are not abilities.
  */
 export function abilityKey(ability) {
-  const key = String(ability ?? "").trim().toLowerCase().slice(0, 3);
-  return ABILITIES.includes(key) ? key : null;
+  const word = String(ability ?? "").trim().toLowerCase();
+  return Object.hasOwn(ABILITY_NAMES, word) ? ABILITY_NAMES[word] : null;
 }
 
 /** The field a stat-damage effect changes. */
