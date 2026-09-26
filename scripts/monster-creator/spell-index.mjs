@@ -12,6 +12,13 @@
 
 const DEFAULT_IMG = "icons/svg/daze.svg";
 
+/** One string from `languages/en.json`; the key when no i18n is mounted. */
+const L = (key, data) => {
+  const i18n = globalThis.game?.i18n;
+  if (!i18n) return key;
+  return data ? i18n.format(key, data) : i18n.localize(key);
+};
+
 // In-memory cache: sourceId → array<row>. Cleared on browser refresh.
 const _cache = new Map();
 
@@ -24,7 +31,7 @@ export const SpellIndex = {
    */
   listSources() {
     const sources = [
-      { id: "world", label: "World Items", type: "virtual" },
+      { id: "world", label: L("SDE.monsterCreator.spellIndex.worldItems"), type: "virtual" },
     ];
     for (const pack of game.packs) {
       if (pack.metadata.type !== "Item") continue;
@@ -81,7 +88,9 @@ export const SpellIndex = {
       if (!value || byId.has(value)) continue;
       byId.set(value, {
         value,
-        label: value === "monster-spells" ? "Monster Spells" : String(row?.sourceLabel ?? value),
+        label: value === "monster-spells"
+          ? L("SDE.monsterCreator.spellIndex.monsterSpells")
+          : String(row?.sourceLabel ?? value),
       });
     }
     const options = [...byId.values()].sort((left, right) => {
@@ -89,7 +98,7 @@ export const SpellIndex = {
       if (right.value === "monster-spells") return 1;
       return left.label.localeCompare(right.label);
     });
-    return [{ value: "", label: "All spell sources" }, ...options];
+    return [{ value: "", label: L("SDE.monsterCreator.spellIndex.allSources") }, ...options];
   },
 
   /**
@@ -141,7 +150,7 @@ export const SpellIndex = {
         range: item.system?.range,
         duration: item.system?.duration,
         sourceId: "world",
-        sourceLabel: "World Items",
+        sourceLabel: L("SDE.monsterCreator.spellIndex.worldItems"),
       }));
     }
     return rows;
@@ -176,7 +185,9 @@ export const SpellIndex = {
         duration: entry.system?.duration,
         sourceId: isMonsterSpell ? "monster-spells" : packId,
         sourceLabel: isMonsterSpell
-          ? `Monster Spell — ${primarySource.actorName || "Unknown Source"}`
+          ? L("SDE.monsterCreator.spellIndex.monsterSpellSource", {
+            name: primarySource.actorName || L("SDE.monsterCreator.spellIndex.unknownSource"),
+          })
           : (label ?? pack.metadata.label),
         isMonsterSpell,
         sourceActorUuid: primarySource.actorUuid ?? "",
@@ -211,7 +222,7 @@ function _makeRow({
   const durationLabel = _durationLabel(duration);
   return {
     uuid,
-    name: name ?? "Spell",
+    name: name ?? L("SDE.monsterCreator.spellIndex.unnamedSpell"),
     img: img || DEFAULT_IMG,
     tier: Number.isFinite(tierNum) ? tierNum : 0,
     tierLabel: Number.isFinite(tierNum) ? `T${tierNum}` : "T?",

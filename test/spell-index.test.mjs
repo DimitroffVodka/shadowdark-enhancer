@@ -26,9 +26,10 @@ test("source options group generated Monster Spells ahead of compendium sources"
     { sourceId: "shadowdark.spells", sourceLabel: "Spells" },
   ];
 
+  // No i18n is mounted here, so the module's own labels come back as en.json keys.
   assert.deepEqual(SpellIndex.sourceOptions(rows), [
-    { value: "", label: "All spell sources" },
-    { value: "monster-spells", label: "Monster Spells" },
+    { value: "", label: "SDE.monsterCreator.spellIndex.allSources" },
+    { value: "monster-spells", label: "SDE.monsterCreator.spellIndex.monsterSpells" },
     { value: "shadowdark.spells", label: "Spells" },
   ]);
 });
@@ -65,7 +66,11 @@ test("generated library rows expose monster provenance and source Actor links", 
   };
   const packs = [fakePack];
   packs.get = id => packs.find(candidate => candidate.collection === id);
-  globalThis.game = { packs, items: [], i18n: { localize: value => value } };
+  globalThis.game = {
+    packs,
+    items: [],
+    i18n: { localize: value => value, format: (key, data) => key + JSON.stringify(data) },
+  };
   globalThis.CONFIG = { SHADOWDARK: { SPELL_RANGES: {}, SPELL_DURATIONS: {} } };
 
   try {
@@ -74,7 +79,7 @@ test("generated library rows expose monster provenance and source Actor links", 
     const row = rows[0];
     assert.ok(requestedFields.includes("flags.shadowdark-enhancer.monsterSpell"));
     assert.equal(row.sourceId, "monster-spells");
-    assert.equal(row.sourceLabel, "Monster Spell — Mage");
+    assert.equal(row.sourceLabel, 'SDE.monsterCreator.spellIndex.monsterSpellSource{"name":"Mage"}');
     assert.equal(row.isMonsterSpell, true);
     assert.equal(row.sourceActorUuid, "Compendium.shadowdark.monsters.Actor.mage");
     assert.equal(row.variant, true);

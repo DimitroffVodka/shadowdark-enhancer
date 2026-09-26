@@ -27,7 +27,7 @@ test("creator wires the three separate remove-generated actions to handlers", as
 
 test("bulk removal goes through removeGeneratedEffects and reports removed/detached/conflicts", async () => {
   const src = await read("scripts/monster-creator/encounter-creator.mjs");
-  assert.match(src, /_removeGenerated\(filter, label\)\s*\{[\s\S]*removeGeneratedEffects\(this\._draft, filter\)/);
+  assert.match(src, /_removeGenerated\(filter, keys\)\s*\{[\s\S]*removeGeneratedEffects\(this\._draft, filter\)/);
   assert.match(src, /report\.removedApplications\.length/);
   assert.match(src, /report\.detached\.length/);
   assert.match(src, /report\.conflicts\.length/);
@@ -95,14 +95,21 @@ test("Create Variant Copy uses the SAME runtime + v3 provenance (no divergent pa
 
 test("template exposes the exact visible labels and badge classes", async () => {
   const tpl = await read("templates/encounter-creator.hbs");
-  for (const label of [
-    "Clear selection",
-    "Clear all selections",
-    "Remove Generator changes",
-    "Remove Make It Weird changes",
-    "Remove all generated changes",
-  ]) {
-    assert.ok(tpl.includes(label), `template missing label: ${label}`);
+  // Labels live in en.json; the template must localize each one by its key.
+  const en = JSON.parse(await read("languages/en.json"));
+  const labels = {
+    "SDE.encounterCreator.mut.clearSet": "Clear selection",
+    "SDE.encounterCreator.mut.clearAll": "Clear all selections",
+    "SDE.encounterCreator.mut.removeGenerator": "Remove Generator changes",
+    "SDE.encounterCreator.mut.removeMutations": "Remove Make It Weird changes",
+    "SDE.encounterCreator.mut.removeAll": "Remove all generated changes",
+    "SDE.encounterCreator.mut.countAutomated": "{count} Automated",
+    "SDE.encounterCreator.mut.countMixed": "{count} Mixed",
+    "SDE.encounterCreator.mut.countGm": "{count} GM adjudication",
+  };
+  for (const [key, label] of Object.entries(labels)) {
+    assert.ok(tpl.includes(`{{localize "${key}"`), `template missing label: ${label}`);
+    assert.equal(en[key], label, `en.json label for ${key}`);
   }
   for (const action of ["creatorMutRemoveGenerator", "creatorMutRemoveMutations", "creatorMutRemoveAll"]) {
     assert.match(tpl, new RegExp(`data-action="${action}"`), `template missing action: ${action}`);
@@ -110,10 +117,6 @@ test("template exposes the exact visible labels and badge classes", async () => 
   for (const cls of ["sde-mut-mode-automated", "sde-mut-mode-mixed", "sde-mut-mode-gm"]) {
     assert.ok(tpl.includes(cls), `template missing badge class: ${cls}`);
   }
-  // Automated / Mixed / GM adjudication summary labels.
-  assert.match(tpl, /Automated/);
-  assert.match(tpl, /Mixed/);
-  assert.match(tpl, /GM adjudication/);
   assert.match(
     tpl,
     /sde-mut-selected[\s\S]*sde-mut-mode-\{\{this\.mode\}\}/,

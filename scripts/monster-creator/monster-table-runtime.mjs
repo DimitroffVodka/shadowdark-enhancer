@@ -40,6 +40,13 @@ import {
 import { escapeHtml } from "../importer/pdf-text-utils.mjs";
 import { findSuitePack } from "../shared/compendium-suite.mjs";
 
+/** One string from `languages/en.json`; the key when no i18n is mounted. */
+const L = (key, data) => {
+  const i18n = globalThis.game?.i18n;
+  if (!i18n) return key;
+  return data ? i18n.format(key, data) : i18n.localize(key);
+};
+
 /* -------------------------------------------------------------------------- */
 /*  Set definitions — derived from the table manifest, not hand-duplicated.   */
 /* -------------------------------------------------------------------------- */
@@ -201,7 +208,10 @@ export function validateChildTable(descriptor, { expectedFormula, cardinality })
   const formula = String(descriptor?.formula ?? "").trim().toLowerCase();
 
   if (formula !== String(expectedFormula).toLowerCase()) {
-    errors.push(`Formula "${formula || "(none)"}" is not ${expectedFormula}.`);
+    errors.push(L("SDE.monsterCreator.tables.error.formula", {
+      formula: formula || L("SDE.monsterCreator.tables.error.noFormula"),
+      expected: expectedFormula,
+    }));
   }
 
   const results = rawResults
@@ -214,11 +224,11 @@ export function validateChildTable(descriptor, { expectedFormula, cardinality })
     .sort((a, b) => (a.min - b.min) || (a.max - b.max));
 
   if (results.length !== cardinality) {
-    errors.push(`Expected ${cardinality} results, found ${results.length}.`);
+    errors.push(L("SDE.monsterCreator.tables.error.count", { expected: cardinality, found: results.length }));
   }
 
   const emptyCount = results.filter((r) => !r.text).length;
-  if (emptyCount) errors.push(`${emptyCount} result(s) have no text.`);
+  if (emptyCount) errors.push(L("SDE.monsterCreator.tables.error.empty", { count: emptyCount }));
 
   // Exact, gapless, non-overlapping coverage of 1..cardinality.
   let cursor = 1;
@@ -231,7 +241,7 @@ export function validateChildTable(descriptor, { expectedFormula, cardinality })
     cursor = r.max + 1;
   }
   if (!coverageOk || cursor !== cardinality + 1) {
-    errors.push(`Result ranges do not cleanly cover 1..${cardinality}.`);
+    errors.push(L("SDE.monsterCreator.tables.error.coverage", { count: cardinality }));
   }
 
   return { valid: errors.length === 0, errors, results };
@@ -261,26 +271,31 @@ function _diagnose(def, columns, state) {
     case "locked":
       out.push({
         code: "locked",
-        message: `Not imported. Open the Core Rulebook PDF (p.${def.page}) and import the “${def.label}” table via the Importer Hub.`,
+        message: L("SDE.monsterCreator.tables.diag.locked", { page: def.page, table: def.label }),
       });
       break;
     case "partial":
       out.push({
         code: "partial",
-        message: `${columns.length - missing.length}/${columns.length} columns imported. Missing: ${missing.join(", ")}. Re-import the “${def.label}” matrix so all columns land.`,
+        message: L("SDE.monsterCreator.tables.diag.partial", {
+          imported: columns.length - missing.length,
+          total: columns.length,
+          missing: missing.join(", "),
+          table: def.label,
+        }),
       });
       break;
     case "ambiguous":
       out.push({
         code: "ambiguous",
-        message: `Duplicate imported tables for: ${dupes.join(", ")}. Remove extras from sde-tables so exactly one table carries each column flag.`,
+        message: L("SDE.monsterCreator.tables.diag.ambiguous", { columns: dupes.join(", ") }),
       });
       break;
     case "invalid":
       for (const c of broken) {
         out.push({
           code: "invalid",
-          message: `Column “${c.columnLabel}” failed validation: ${c.errors.join(" ")}`,
+          message: L("SDE.monsterCreator.tables.diag.invalid", { column: c.columnLabel, errors: c.errors.join(" ") }),
         });
       }
       break;
@@ -328,7 +343,7 @@ export function buildSetState(def, descriptors) {
         }));
       }
     } else if (count > 1) {
-      errors = [`${count} tables carry this column's flag — ambiguous.`];
+      errors = [L("SDE.monsterCreator.tables.error.ambiguous", { count })];
     }
 
     return {

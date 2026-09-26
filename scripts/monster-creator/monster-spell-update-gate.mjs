@@ -25,12 +25,8 @@ export const MONSTER_SPELL_SYNC_VERSION_SETTING = "monsterSpellSyncVersion";
  */
 export const CORE_MONSTER_SOURCE_ID = "shadowdark.monsters";
 
-/** Shown at most once per session — see `warnDeferredRefresh`. */
-export const DEFERRED_REFRESH_WARNING =
-  "Shadowdark Enhancer: the retired Monster Spells compendium still holds content"
-  + " that could not be consolidated, so the automatic Monster Spell refresh was"
-  + " deferred to protect it. Use Build / Refresh in the Monster Spell Library to"
-  + " update the library manually.";
+/** en.json key of the warning shown at most once per session — see `warnDeferredRefresh`. */
+export const DEFERRED_REFRESH_WARNING = "SDE.monsterCreator.spellLibrary.notify.refreshDeferred";
 
 let deferralWarned = false;
 
@@ -49,10 +45,11 @@ export function resetMonsterSpellUpdateGateSession() {
  * console error is not enough. Once per session, because the gate retries on
  * every activation and a warning per load would train people to ignore it.
  */
-function warnDeferredRefresh(notifications) {
+function warnDeferredRefresh(notifications, game) {
   if (deferralWarned) return false;
   deferralWarned = true;
-  notifications?.warn?.(DEFERRED_REFRESH_WARNING);
+  // The key itself when no i18n is mounted (node tests).
+  notifications?.warn?.(game?.i18n?.localize?.(DEFERRED_REFRESH_WARNING) ?? DEFERRED_REFRESH_WARNING);
   return true;
 }
 
@@ -203,7 +200,7 @@ export async function runMonsterSpellUpdateGate({
   // One bounded rule for both failure modes: refuse to refresh only while the
   // retired pack still holds content the refresh could regenerate over.
   if (failureReason && await legacyPackHoldsDocuments({ game, findLegacyPack })) {
-    const warned = warnDeferredRefresh(notifications);
+    const warned = warnDeferredRefresh(notifications, game);
     return {
       status: "failed",
       stage: "migration",

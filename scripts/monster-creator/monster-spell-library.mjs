@@ -14,6 +14,13 @@ import { findMonsterPack, SDE_ACTORS_LABEL } from "../importer/monsters/monster-
 
 const MODULE_ID = "shadowdark-enhancer";
 
+/** One string from `languages/en.json`; the key when no i18n is mounted. */
+const L = (key, data) => {
+  const i18n = globalThis.game?.i18n;
+  if (!i18n) return key;
+  return data ? i18n.format(key, data) : i18n.localize(key);
+};
+
 /**
  * Generated Monster Spells live in the managed Items pack, not in a pack of
  * their own (#54). The dedicated `world.shadowdark-enhancer--monster-spells`
@@ -323,19 +330,19 @@ async function chooseSourcesDialog(sources) {
       <span>${escapeHtml(source.label)}</span>
     </label>`).join("");
   const choice = await foundry.applications.api.DialogV2.wait({
-    window: { title: "Build Monster Spell Library" },
-    content: `<p>Select the Actor compendiums to scan. Source monsters keep their embedded spells.</p>${rows}`,
+    window: { title: "SDE.monsterCreator.spellLibrary.chooseTitle" },
+    content: `<p>${L("SDE.monsterCreator.spellLibrary.chooseIntro")}</p>${rows}`,
     buttons: [
       {
         action: "preview",
-        label: "Preview",
+        label: "SDE.monsterCreator.spellLibrary.preview",
         icon: "fas fa-magnifying-glass",
         default: true,
         callback: (_event, _button, dialog) => [
           ...dialog.element.querySelectorAll('input[name="monsterSpellSource"]:checked'),
         ].map(input => input.value),
       },
-      { action: "cancel", label: "Cancel", icon: "fas fa-times" },
+      { action: "cancel", label: "SDE.monsterCreator.spellLibrary.cancel", icon: "fas fa-times" },
     ],
     rejectClose: false,
   }).catch(() => null);
@@ -352,25 +359,30 @@ async function confirmRefreshDialog(preview) {
     .map(entry => `<li><strong>${escapeHtml(entry.name)}</strong>: ${escapeHtml(entry.warnings.map(w => w.message).join(" "))}</li>`)
     .join("");
   const warningBlock = warnings
-    ? `<details><summary>${summary.warnings} validation warning(s)</summary><ul>${warnings}</ul></details>`
+    ? `<details><summary>${L("SDE.monsterCreator.spellLibrary.warnings", { count: summary.warnings })}</summary><ul>${warnings}</ul></details>`
     : "";
+  // Counts are numbers, so the <strong> markup rides in the format values
+  // and en.json stays plain text.
+  const strong = n => `<strong>${n}</strong>`;
   return foundry.applications.api.DialogV2.confirm({
-    window: { title: "Refresh Monster Spell Library" },
+    window: { title: "SDE.monsterCreator.spellLibrary.confirmTitle" },
     content: `
-      <p>Scanned <strong>${summary.embeddedSpells}</strong> embedded spells on
-      <strong>${summary.actorsWithSpells}</strong> spellcasting actors and found
-      <strong>${summary.libraryEntries}</strong> library entries.</p>
+      <p>${L("SDE.monsterCreator.spellLibrary.scanned", {
+        spells: strong(summary.embeddedSpells),
+        actors: strong(summary.actorsWithSpells),
+        entries: strong(summary.libraryEntries),
+      })}</p>
       <ul>
-        <li>Add: ${operations.create}</li>
-        <li>Update: ${operations.update}</li>
-        <li>Unchanged: ${operations.unchanged}</li>
-        <li>Curated conflicts preserved: ${operations.conflict}</li>
-        <li>Stale entries preserved: ${operations.stale}</li>
+        <li>${L("SDE.monsterCreator.spellLibrary.opCreate", { count: operations.create })}</li>
+        <li>${L("SDE.monsterCreator.spellLibrary.opUpdate", { count: operations.update })}</li>
+        <li>${L("SDE.monsterCreator.spellLibrary.opUnchanged", { count: operations.unchanged })}</li>
+        <li>${L("SDE.monsterCreator.spellLibrary.opConflict", { count: operations.conflict })}</li>
+        <li>${L("SDE.monsterCreator.spellLibrary.opStale", { count: operations.stale })}</li>
       </ul>
       ${warningBlock}
-      <p>No source Actor spells or user-created Items will be removed.</p>`,
-    yes: { label: "Build / Refresh", icon: "fas fa-wand-magic-sparkles" },
-    no: { label: "Cancel" },
+      <p>${L("SDE.monsterCreator.spellLibrary.nothingRemoved")}</p>`,
+    yes: { label: "SDE.monsterCreator.spellLibrary.confirm", icon: "fas fa-wand-magic-sparkles" },
+    no: { label: "SDE.monsterCreator.spellLibrary.cancel" },
     rejectClose: false,
   }).catch(() => false);
 }
@@ -452,23 +464,21 @@ export async function runMonsterSpellLibraryRefresh({
   apply = applyMonsterSpellRefresh,
 } = {}) {
   if (!game?.user?.isGM) {
-    globalThis.ui?.notifications?.warn("Monster Spell Library refresh is GM only.");
+    globalThis.ui?.notifications?.warn(L("SDE.monsterCreator.spellLibrary.notify.gmOnly"));
     return null;
   }
   const activeGm = game?.users?.activeGM;
   if (activeGm && activeGm.id !== game.user.id) {
-    globalThis.ui?.notifications?.warn(
-      "Only the primary active GM can refresh the Monster Spell Library.",
-    );
+    globalThis.ui?.notifications?.warn(L("SDE.monsterCreator.spellLibrary.notify.primaryGmOnly"));
     return null;
   }
   if (!tryAcquireRefreshLock()) {
-    globalThis.ui?.notifications?.warn("A Monster Spell Library refresh is already in progress.");
+    globalThis.ui?.notifications?.warn(L("SDE.monsterCreator.spellLibrary.notify.inProgress"));
     return null;
   }
   try {
     if (!sources.length) {
-      globalThis.ui?.notifications?.warn("No supported monster Actor compendiums are installed.");
+      globalThis.ui?.notifications?.warn(L("SDE.monsterCreator.spellLibrary.notify.noSources"));
       return null;
     }
     const selectedSources = await chooseSources(sources);
@@ -483,15 +493,15 @@ export async function runMonsterSpellLibraryRefresh({
       targetPack: resolvedTarget,
     });
     if (refreshStateSignature(currentPreview) !== refreshStateSignature(preview)) {
-      globalThis.ui?.notifications?.warn(
-        "Monster Spell sources or library entries changed after the dry run. Review a new preview before writing.",
-      );
+      globalThis.ui?.notifications?.warn(L("SDE.monsterCreator.spellLibrary.notify.changed"));
       return null;
     }
     const result = await apply(currentPreview, { game });
-    globalThis.ui?.notifications?.info(
-      `Monster Spells: ${result.created ?? 0} added, ${result.updated ?? 0} updated, ${result.conflict ?? 0} curated conflict(s) preserved.`,
-    );
+    globalThis.ui?.notifications?.info(L("SDE.monsterCreator.spellLibrary.notify.done", {
+      created: result.created ?? 0,
+      updated: result.updated ?? 0,
+      conflicts: result.conflict ?? 0,
+    }));
     return result;
   } finally {
     releaseRefreshLock();

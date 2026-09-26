@@ -37,6 +37,23 @@
  * document. Treat it as a hint and edit it freely.
  */
 
+/** One string from `languages/en.json`; the key when no i18n is mounted. */
+const L = (key, data) => {
+  const i18n = globalThis.game?.i18n;
+  if (!i18n) return key;
+  return data ? i18n.format(key, data) : i18n.localize(key);
+};
+
+/** Stat-block abbreviation for each ability key (STR, DEX, …), as en.json keys. */
+export const ABILITY_LABEL_KEYS = {
+  str: "SDE.importer.abil.str",
+  dex: "SDE.importer.abil.dex",
+  con: "SDE.importer.abil.con",
+  int: "SDE.importer.abil.int",
+  wis: "SDE.importer.abil.wis",
+  cha: "SDE.importer.abil.cha",
+};
+
 /** Levels present in the table. 20–29 are interpolated; see `guidelineFor`. */
 const TABLE_LEVELS = [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,30];
 
@@ -240,8 +257,16 @@ export function spellLevelAdjustment(spells = []) {
   const highest = Math.max(...tiers);
   const base = SPELL_TIER_ADJUSTMENT[Math.min(highest, 5)] ?? 0;
   const extra = Math.max(0, tiers.length - 2);
-  const reasons = [`Tier ${highest} spell: +${base} level${base === 1 ? "" : "s"}`];
-  if (extra) reasons.push(`${extra} spell${extra === 1 ? "" : "s"} beyond 2: +${extra}`);
+  const reasons = [L(
+    base === 1 ? "SDE.monsterCreator.baseline.reasonTier" : "SDE.monsterCreator.baseline.reasonTierPlural",
+    { tier: highest, n: base },
+  )];
+  if (extra) {
+    reasons.push(L(
+      extra === 1 ? "SDE.monsterCreator.baseline.reasonExtra" : "SDE.monsterCreator.baseline.reasonExtraPlural",
+      { n: extra },
+    ));
+  }
 
   return { adjustment: base + extra, tiers, reasons };
 }
@@ -299,13 +324,13 @@ export function planLevelAdjust(current, targetLevel, opts = {}) {
   const nextHp = hpForLevel(target, conForHp);
 
   const rows = [
-    _row("level", "Level", current?.level ?? 0, target),
-    _row("ac", "AC", Number(current?.ac ?? 0), guideline.ac),
-    _row("hp", "HP", Number(current?.hp?.max ?? current?.hp ?? 0), nextHp),
+    _row("level", L("SDE.monsterCreator.stat.level"), current?.level ?? 0, target),
+    _row("ac", L("SDE.importer.monsters.ac"), Number(current?.ac ?? 0), guideline.ac),
+    _row("hp", L("SDE.importer.monsters.hp"), Number(current?.hp?.max ?? current?.hp ?? 0), nextHp),
   ];
 
   for (const key of ABILITY_KEYS) {
-    rows.push(_row(`abilities.${key}`, key.toUpperCase(), Number(curAbilities[key] ?? 0), nextAbilities[key], "abilities"));
+    rows.push(_row(`abilities.${key}`, L(ABILITY_LABEL_KEYS[key]), Number(curAbilities[key] ?? 0), nextAbilities[key], "abilities"));
   }
 
   const attacks = (current?.attacks ?? []).map(a => ({
@@ -435,48 +460,48 @@ export function parseGuidelinesJSON(text) {
   try {
     data = JSON.parse(String(text ?? ""));
   } catch (err) {
-    return { ok: false, error: `Not valid JSON: ${err.message}` };
+    return { ok: false, error: L("SDE.settings.levelGuidelines.error.badJson", { error: err.message }) };
   }
   if (!data || typeof data !== "object" || Array.isArray(data)) {
-    return { ok: false, error: "Top level must be an object keyed by level." };
+    return { ok: false, error: L("SDE.settings.levelGuidelines.error.notObject") };
   }
 
   const table = {};
   for (const [key, row] of Object.entries(data)) {
     const level = Number(key);
     if (!Number.isInteger(level) || level < 0) {
-      return { ok: false, error: `"${key}" is not a valid level key.` };
+      return { ok: false, error: L("SDE.settings.levelGuidelines.error.badKey", { key }) };
     }
     if (!row || typeof row !== "object") {
-      return { ok: false, error: `Level ${key}: row must be an object.` };
+      return { ok: false, error: L("SDE.settings.levelGuidelines.error.rowNotObject", { level: key }) };
     }
     for (const field of ["ac", "hp", "talentDC"]) {
       if (!Number.isFinite(Number(row[field]))) {
-        return { ok: false, error: `Level ${key}: "${field}" must be a number.` };
+        return { ok: false, error: L("SDE.settings.levelGuidelines.error.notNumber", { level: key, field }) };
       }
     }
     if (!row.atk || typeof row.atk !== "object") {
-      return { ok: false, error: `Level ${key}: missing "atk" block.` };
+      return { ok: false, error: L("SDE.settings.levelGuidelines.error.missingBlock", { level: key, block: "atk" }) };
     }
     for (const field of ["num", "bonus"]) {
       if (!Number.isFinite(Number(row.atk[field]))) {
-        return { ok: false, error: `Level ${key}: "atk.${field}" must be a number.` };
+        return { ok: false, error: L("SDE.settings.levelGuidelines.error.notNumber", { level: key, field: `atk.${field}` }) };
       }
     }
     const damage = String(row.atk.damage ?? "").trim();
     if (!/^(\d+|\d+d\d+)$/.test(damage)) {
-      return { ok: false, error: `Level ${key}: "atk.damage" must look like "2d6" or a plain number.` };
+      return { ok: false, error: L("SDE.settings.levelGuidelines.error.badDamage", { level: key }) };
     }
     if (!row.statMod || typeof row.statMod !== "object") {
-      return { ok: false, error: `Level ${key}: missing "statMod" block.` };
+      return { ok: false, error: L("SDE.settings.levelGuidelines.error.missingBlock", { level: key, block: "statMod" }) };
     }
     for (const field of ["median", "low", "high"]) {
       if (!Number.isFinite(Number(row.statMod[field]))) {
-        return { ok: false, error: `Level ${key}: "statMod.${field}" must be a number.` };
+        return { ok: false, error: L("SDE.settings.levelGuidelines.error.notNumber", { level: key, field: `statMod.${field}` }) };
       }
     }
     if (Number(row.statMod.low) > Number(row.statMod.high)) {
-      return { ok: false, error: `Level ${key}: statMod.low is above statMod.high.` };
+      return { ok: false, error: L("SDE.settings.levelGuidelines.error.lowAboveHigh", { level: key }) };
     }
 
     table[String(level)] = {
@@ -494,7 +519,7 @@ export function parseGuidelinesJSON(text) {
   }
 
   if (!Object.keys(table).length) {
-    return { ok: false, error: "No level rows found." };
+    return { ok: false, error: L("SDE.settings.levelGuidelines.error.noRows") };
   }
   return { ok: true, table };
 }
