@@ -6,7 +6,7 @@
 - **The City of Masks holidays.** Chapter to journal has a new preset,
   *Cursed Scroll 6: the City of Masks holidays* (pp. 46–47), that files a
   journal with one page per holiday from your own PDF. A new `holidays` API
-  (`list()`, `today({ place })`, API 1.8.0) gives each imported holiday's
+  (`list()`, `today({ place })`, API 1.9.0) gives each imported holiday's
   place, the day it falls, its carousing effects and its garb questions, for
   Shadowdark Extras' carousing window to apply. Maytide, the Duke's Ball and
   the Night of St. Anton fall on May 1, June 21 and September 22 of the world
@@ -111,6 +111,23 @@
   **Luck: force a reroll** button; the roll is redone on the same card, which
   says who forced it. Both spend one luck token, and the GM's client checks
   and spends it, so a token is never spent without the effect. (#185)
+- **Dying and death timers, with Deadly and Fatality.** A character at 0 HP,
+  from damage or a sheet edit, is now dying: the Dying status, a death timer of
+  1d4 + CON modifier (minimum 1) rolled by its player, and a d20 at the start
+  of each of its turns, rising at 1 HP on a natural 20. When the timer runs out
+  it is dead: its turn is skipped, and Hunter Mode pays it no XP. Out of combat
+  the timer runs on crawl rounds, and stepping a round back and forward again
+  never costs a round twice. Another character stabilizes it with a DC 15
+  Intelligence check from the Dying badge on the crawl strip, and a Luck
+  reroll of that check counts; healing above 0 HP clears it all. Deadly's two
+  rules (a timer of 1, stabilizing at DC 18) and Fatality (0 HP is death) now
+  work, and a new option hides the timer from players. Class features, training
+  and monsters change the rule through a small set of Active Effect keys; the
+  Gladiator's +1 to death timer rolls, the Heath Witch's stabilize DC 12 and
+  the Ancient Ritual's *Survive 0 CON* now carry them, and stat damage's death
+  at CON 0 goes through the same rule. The GM gets buttons for the situational
+  rules. Off while Shadowdark Crawl Helper is active, which its warning now
+  says. See the new wiki page *Dying and Death Timers*. (#181)
 - **The hex data goes on the printed map.** The Hex Tagger's **Send to
   Extras** now puts every hex's terrain, region, zone colour, name,
   description and settlement on the map you tagged, instead of building a

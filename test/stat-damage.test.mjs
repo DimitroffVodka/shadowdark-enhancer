@@ -112,7 +112,8 @@ function fakeActor({ type = "Player", con = 10 } = {}) {
 globalThis.game = {
   i18n: {
     localize: (k) => ({ "SHADOWDARK.ability_str": "Str", "SHADOWDARK.ability_con": "Con" })[k] ?? k,
-    format: (_k, { amount, ability }) => `${amount} ${ability} damage`,
+    // Stat damage's effect name, or any other string (dying's `{name}` lines).
+    format: (k, d = {}) => ("ability" in d ? `${d.amount} ${d.ability} damage` : k),
   },
   user: { id: "gm", isGM: true },
   users: { activeGM: { id: "gm" } },
@@ -177,13 +178,20 @@ test("CON reaching 0 kills; above 0, or another ability, does not", async () => 
   assert.ok(!weak.statuses.has("dead"));
 });
 
+test("CON 0 spares a character with no death at 0 CON (River of Death, #181)", async () => {
+  const actor = fakeActor({ con: 0 });
+  actor.flags = { "shadowdark-enhancer": { noDeathAtZeroCon: true } };
+  await StatDamage._checkCon({ ...statDamageEffect("con", 10, ""), parent: actor });
+  assert.ok(!actor.statuses.has("dead"));
+});
+
 test("two CON effects created in one batch mark the character dead once", async () => {
   const actor = fakeActor({ con: 0 });
   let toggles = 0;
-  actor.toggleStatusEffect = async (id) => {
-    toggles++;
+  actor.toggleStatusEffect = async (id, { active } = {}) => {
+    if (id === "dead") toggles++; // dying's death also clears its own status
     await null; // the status lands after a server round trip, not at once
-    actor.statuses.add(id);
+    if (active) actor.statuses.add(id);
   };
   const effect = { ...statDamageEffect("con", 5, ""), parent: actor };
   await Promise.all([StatDamage._checkCon(effect), StatDamage._checkCon(effect)]);
@@ -258,7 +266,8 @@ test("a rider mirrored into the description, enriched or not, counts once", () =
 
 const docs = new Map();
 globalThis.fromUuid = async (uuid) => docs.get(uuid) ?? null;
-globalThis.ChatMessage = { getSpeaker: ({ actor }) => ({ alias: actor.name }) };
+// `create` is dying's death line, posted when CON 0 kills (#181).
+globalThis.ChatMessage = { getSpeaker: ({ actor }) => ({ alias: actor.name }), create: async (data) => data };
 const chat = [];
 globalThis.Roll = class {
   constructor(formula) { this.formula = formula; }

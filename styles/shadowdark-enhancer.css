@@ -1071,6 +1071,35 @@ body.theme-light .sde-chat-dis { color: #a33326; }
   .sde-strip-light-badge.sde-strip-light-lit i { animation: none; }
 }
 
+/* ── Dying badge (PC cards at 0 HP, dying.mjs) ───────────────────────────────
+   Centred on the portrait, where the skull sits for the dead: a dying or
+   stable PC shows this instead. A <button> for the GM and for players while
+   the PC is dying (stabilize); a plain label otherwise. */
+.sde-strip-dying {
+  position: absolute;
+  top: 45%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 5;
+  width: auto;
+  height: auto;
+  margin: 0;
+  padding: 1px 7px;
+  border: 1px solid rgba(0, 0, 0, 0.6);
+  border-radius: 9px;
+  font-size: 11px;
+  line-height: 16px;
+  font-weight: bold;
+  white-space: nowrap;
+  color: #fff;
+  background: rgba(150, 20, 20, 0.9);
+  pointer-events: auto;
+}
+button.sde-strip-dying { cursor: pointer; }
+button.sde-strip-dying:hover { filter: brightness(1.25); }
+.sde-strip-dying.sde-strip-dying-stable { background: rgba(60, 60, 70, 0.9); }
+.sde-dying-menu .form-footer { flex-direction: column; }
+
 .sde-strip-remove {
   position: absolute;
   top: 2px;

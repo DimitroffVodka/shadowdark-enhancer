@@ -30,6 +30,7 @@ Tools you run during an active game session.
 | Page | What it covers |
 |---|---|
 | [Crawl Strip & Crawl Bar](Crawl-Strip-and-Crawl-Bar.md) | Party HP, movement, and Luck at a glance, marching order, crawl rounds, combat HUD |
+| [Dying and Death Timers](Dying-and-Death-Timers.md) | 0 HP, the death timer and the rise roll, stabilizing, Deadly and Fatality, class and training modifiers |
 | [Movement Budgets](Movement-Budgets.md) | Turn movement allowances, over-budget warnings or enforcement, rollback to turn start |
 | [Random Encounters](Random-Encounters.md) | The `1d6` encounter check, the Encounter Roller, placing results directly on the map |
 | [Loot & Treasure](Loot-and-Treasure.md) | Hoard rolls, claimable chat cards, opt-in loot drops on combat end, coin piles |

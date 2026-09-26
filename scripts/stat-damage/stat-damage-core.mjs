@@ -192,14 +192,3 @@ export function cardMayApply({ authorIsGM, authorOwnsAttacker, attackOwnerUuid, 
   if (!attackerUuid || attackOwnerUuid !== attackerUuid) return false;
   return !!(authorIsGM || authorOwnsAttacker);
 }
-
-/**
- * Does reaching CON 0 kill this character? Always, today.
- *
- * The seam for #181: its dying modifiers are read from Active Effects, and
- * "no death at 0 CON" (the Necromancer's River of Death) answers false here.
- * This is the only place that asks.
- */
-export function diesAtZeroCon() {
-  return true;
-}
