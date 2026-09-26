@@ -327,6 +327,9 @@
   it first, as long as every book recording that name agrees; where two books
   disagreed it stays unset and you decide. Only the 33 creatures the GM Guide
   introduces needed a type of their own.
+### Changed
+- **Foundry 14 is now the minimum.** The module no longer lists Foundry 13 as
+  supported, matching Shadowdark Extras, which already needs 14.
 ### Fixed
 - **Hex journal pages imported earlier now read as paragraphs.** The fix that
   joins a PDF column's lines back into paragraphs only ran on import, so pages

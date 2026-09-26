@@ -8,7 +8,7 @@
 
 | | Minimum | Verified |
 |---|---|---|
-| Foundry VTT | v13 | **v14.365** |
+| Foundry VTT | v14 | **v14.365** |
 | Shadowdark RPG system | v3.6.2 | **v4.0.6** |
 
 **Recommended, not required:** [shadowdark-extras](https://github.com/DimitroffVodka/shadowdark-extras)
