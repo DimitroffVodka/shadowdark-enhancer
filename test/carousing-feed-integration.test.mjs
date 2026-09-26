@@ -17,6 +17,7 @@
 
 import { test, describe, beforeEach } from "node:test";
 import assert from "node:assert/strict";
+import { at, gregorian } from "./gregorian-calendar.mjs";
 
 const MODULE_ID = "shadowdark-enhancer";
 const SDX_ID = "shadowdark-extras";
@@ -170,6 +171,30 @@ describe("capturing a carouse", () => {
     assert.equal(rows[0].entries[0].xp, 9);
     // The row stays where the evening put it rather than jumping to the front.
     assert.equal(rows[0].timestamp, firstStamp);
+  });
+
+  test("a re-capture keeps the FIRST capture's in-game time too (#227)", async () => {
+    let now = at(1301, 6, 21, 20);
+    globalThis.game.time = { calendar: gregorian, get worldTime() { return now; } };
+    globalThis.game.i18n = {
+      localize: (k) => k.replace("CALENDAR.GREGORIAN.", ""),
+      format: (k, d) => `${d.day} ${d.month} ${d.year}, ${d.time}`,
+    };
+    const drops = { "user-dimi": "bazogo" };
+    await CarousingFeed.capture(syncJournal({ session: sdxSession({ "user-dimi": expandedResult() }), drops }));
+    const first = { ...carousing()[0] };
+    assert.equal(first.worldTime, at(1301, 6, 21, 20));
+    assert.equal(first.gameTime, "21 June 1301, 20:00");
+
+    // The GM applies an outcome later that night: SDX rewrites the same logId.
+    now = at(1301, 6, 22, 1, 30);
+    await CarousingFeed.capture(syncJournal({ session: sdxSession({ "user-dimi": expandedResult({ xp: 9 }) }), drops }));
+
+    const [row] = carousing();
+    assert.equal(row.entries[0].xp, 9, "the update landed");
+    for (const key of ["worldTime", "gameTime", "timestamp", "time"]) {
+      assert.equal(row[key], first[key], `${key} is the first capture's`);
+    }
   });
 
   test("a genuinely new carouse appends beside the first", async () => {

@@ -19,9 +19,10 @@ and Forge & Loot features.
 [`dying`](#dying--death-timers-and-stabilizing) ·
 [`hexMaps`](#hexmaps--hex-map-tagging-and-the-extras-dataset) ·
 [`rules`](#rules--western-reaches-rules-data) ·
-[`holidays`](#holidays--when-a-holiday-falls-and-what-it-does-to-carousing)
+[`holidays`](#holidays--when-a-holiday-falls-and-what-it-does-to-carousing) ·
+[`time`](#time--season-day-and-night-sun-moon-and-anchors)
 
-**API version:** `1.11.0` (semver — additive changes bump the minor version,
+**API version:** `1.12.0` (semver — additive changes bump the minor version,
 breaking changes the major; check `apiVersion` before relying on newer keys).
 
 ## Discovery
@@ -146,9 +147,11 @@ grids), else the table mapped to the terrain under **Tables by terrain**, else
 the active table. Day and night columns (`Swamp, Day` / `Swamp, Night`) are
 read at the call: `hour` (0–23) overrides the world clock, night being 18:00
 to 06:00 (fixed, on a 24-hour day; a world clock that never advances sits at
-00:00, which is night). A moon column (`New Moon`, `Full Moon`) needs the moon phase, which
-the world clock does not give yet, so until it does a night that could be one
-rolls the ordinary night column; `moon` (`"new"`, `"full"`) decides it.
+00:00, which is night). These are the book's check halves, not the sunset of
+`time.sun()`. A moon column (`New Moon`, `Full Moon`) takes over on its night:
+since 1.12.0 the phase comes from [`time.moonPhase()`](#time--season-day-and-night-sun-moon-and-anchors),
+so a Myre Swamp hex on a new-moon night rolls *New Moon*. `moon` (`"new"`,
+`"full"`, or `null` to leave it undecided) overrides the clock.
 `scene` names the scene whose region scan answers (default: the one being
 viewed, or the world's only scanned print).
 
@@ -591,6 +594,13 @@ const data = api.recap.getData();
 //     loot: [], sales: [], purchases: [], xp: [], combats: [],
 //     encounterChecks: [], playerStats: { [actorId]: {...} } }
 ```
+
+Every logged entry is stamped with the real time (`timestamp`, ms, and `time`,
+"14:05") and, since 1.12.0, the in-game time: `worldTime` (seconds) and
+`gameTime`, the date as [`time.format()`](#time--season-day-and-night-sun-moon-and-anchors)
+writes it (both `null` without a world clock). Entries logged before 1.12.0
+have no in-game time. A carousing row that Shadowdark Extras rewrites keeps
+the stamp of its first capture.
 
 Each entry in `playerStats` carries:
 
@@ -1229,8 +1239,8 @@ Today's date comes from the core calendar (`game.time.components`) as
   May 5), June 21, September 22 and December 21. Real solstices and equinoxes
   drift a day either side. A world on a non-Gregorian calendar gets the same
   month and day numbers in its own months.
-- **Lastmoon** needs the moon, which nothing tracks yet, so it never falls
-  until the Overland time feature (#192) supplies `isLastFullMoonOfYear`.
+- **Lastmoon** falls on the day of the year's last full moon, which is
+  `time.anchor("lastFullMoon")` (since 1.12.0). Before that it never fell.
 
 ---
 
@@ -1287,6 +1297,85 @@ const harsh = today?.harsh === "always" || (today?.harsh === "storm" && stormy);
 const cost = rules.terrainCost("forest", { weather: stormy ? "stormy" : "", harsh });
 ```
 
+---
+
+## `time` — season, day and night, sun, moon and anchors
+
+Added in 1.12.0. Readings on Foundry's world clock (`game.time`), which stays
+the one clock: nothing here sets the time, and there is no calendar window.
+Every call is synchronous and works for players too. `t` is a worldTime in
+seconds and defaults to now.
+
+```js
+const time = game.shadowdarkEnhancer.time;
+time.now();              // { worldTime, components, label: "Monday, 21 June 1300, 14:30" }
+time.season();           // { key: "summer", index: 1, name: "Summer" }
+time.isNight();          // true before sunrise and from sunset on
+time.sun();              // { sunrise: 4.5, sunset: 19.5 }, hours with their fraction
+time.moonPhase();        // { index: 0, key: "new", fraction: 0.01, illumination: 0.0 }
+time.anchor("summerSolstice");       // worldTime of 21 June 00:00, this year
+time.anchor("lastFullMoon", 1300);   // the day of that year's last full moon
+time.format(t);          // the date string alone
+```
+
+| Call | Returns |
+|---|---|
+| `now()` | `{ worldTime, components, label }`: the clock, core's components, and `format()` of it. |
+| `season(t?)` | `{ key, index, name }`. `key` is `spring`, `summer`, `autumn` or `winter`, by where the season's middle falls in the year (December to February is `winter`, and so on), so core's *Fall* is `autumn` whatever it is called; `index` and `name` (localised) are the calendar's. |
+| `isNight(t?)` | Before sunrise, or from sunset on. |
+| `sun(t?)` | `{ sunrise, sunset }` on that day, in hours (`4.5` is 04:30). |
+| `moonPhase(t?)` | `{ index, key, fraction, illumination }`. `index` 0–7 with `key` `new`, `waxingCrescent`, `firstQuarter`, `waxingGibbous`, `full`, `waningGibbous`, `lastQuarter`, `waningCrescent`; `fraction` 0–1 through the month; `illumination` 0–1. |
+| `anchor(name, year?)` | The worldTime of the 00:00 the anchor falls on. `null` for an unknown name, and for `lastFullMoon` in a year too short to hold a full moon (never on a 365-day year). `year` is core's count (`game.time.components.year`), this year by default. |
+| `format(t?)` | The date and time the way the Overland bar shows it, with the calendar's own weekday and month names. |
+
+- **Seasons** are core's: the calendar's own seasons, which on the Gregorian
+  calendar go by month (spring is March to May), so a season changes on the 1st.
+  A season the calendar gives neither months nor days is keyed by its name
+  (`null` if the name says nothing).
+- **Anchors:** `springEquinox` (20 March), `summerSolstice` (21 June),
+  `autumnEquinox` (22 September), `winterSolstice` (21 December), the
+  cross-quarters between them, `springCrossQuarter` (5 May),
+  `summerCrossQuarter` (7 August), `autumnCrossQuarter` (6 November) and
+  `winterCrossQuarter` (4 February), and `lastFullMoon`. A solar anchor is the
+  day the calendar shows with that date. A calendar without twelve months puts
+  it at the same fraction of its year. (The `holidays` recipes keep their own
+  dates: Maytide stays on the traditional 1 May.)
+- **Daylight** follows a cosine between the solstices: 15 hours on 21 June
+  (04:30 to 19:30), 9 on 21 December (07:30 to 16:30), about 12 at the
+  equinoxes, centred on noon. One latitude for the whole world.
+- **The moon** follows the synodic month, 29.530588853 days, from a new moon at
+  the `moonEpoch` world setting (worldTime 0 until a GM sets another).
+- **Any calendar.** Nothing assumes the Gregorian calendar: weekdays, months,
+  seasons and the length of a day come from the world's.
+
+### `shadowdark-enhancer.timeAdvanced`
+
+Fires on the **active GM's client only**, once per world-time change, so a
+subscriber that writes is a single writer by construction:
+
+```js
+Hooks.on("shadowdark-enhancer.timeAdvanced", ({ from, to, dt, offDuty, crossed }) => {
+  // crossed: { days, weeks, seasons: [{ from: "winter", to: "spring", at }], seasonChanges, dawns, dusks }
+});
+```
+
+`crossed` counts what falls after `from` and up to `to`: midnights (`days`),
+week starts (`weeks`; a week starts at weekday 0, 00:00, which is Monday on
+core's calendar), season changes (`seasonChanges`), sunrises (`dawns`) and
+sunsets (`dusks`). Sunday 23:00 plus ten days is `weeks: 2`.
+
+`seasons` lists the **last** season changes, each with the worldTime it
+changed at, and holds at most one per season of the calendar (four on core's
+calendar, a year's worth). A GM who first sets the clock from 0 to the year
+1300 gets `seasonChanges: 5200` and the four changes of 1299, not 5,200
+entries.
+
+A move backwards (`dt` below 0, from `game.time.set` or a negative
+`advance`) still fires, and crosses nothing. `offDuty` is the reason given in
+`game.time.advance(seconds, { "shadowdark-enhancer": { offDuty: "downtime" } })`,
+else `null`. The hook is cheap for any jump, because when the system's
+real-time light clock is on it advances the world time on every tick.
+
 ## Stability notes
 
 - Everything documented here is public surface; undocumented internals
@@ -1307,6 +1396,9 @@ const cost = rules.terrainCost("forest", { weather: stormy ? "stormy" : "", hars
 - `1.9.0` adds the `holidays` namespace (`list`, `today`).
 - `1.10.0` adds the `rules` namespace (Western Reaches rules data).
 - `1.11.0` adds `encounter.tableForHex`.
+- `1.12.0` adds the `time` namespace and the `shadowdark-enhancer.timeAdvanced`
+  hook. Holidays' Lastmoon and the encounter tables' moon columns now resolve,
+  and recap entries carry `worldTime` and `gameTime`.
 - `1.4.0` adds the shared `forgeLoot.open()` preview shell. Generator rules and
   document writes remain behind the later NPC/Rival adapter implementations.
   The version policy is additive: new namespaces bump the minor version; breaking
@@ -1404,6 +1496,7 @@ plus `authorizeActorFor(actorId, user)` on the GM side, and
 | `shadowdark-enhancer.crawlStart` | A crawl session starts | the crawl state |
 | `shadowdark-enhancer.crawlEnd` | A crawl session ends | the crawl state |
 | `shadowdark-enhancer.crawlRound` | The crawl round advances, on the one GM client that advanced it (the death timers tick on it) | the crawl state |
+| `shadowdark-enhancer.timeAdvanced` | The world time changes; on the active GM only, once per change | `{ from, to, dt, offDuty, crossed }` — see [`time`](#shadowdark-enhancertimeadvanced) |
 | `sde.stateChanged` | Any crawl-state change (mode, turn, roster, out-of-combat initiative) — this is the high-frequency one the strip and bar re-render on | the crawl state |
 
 > **Three prefixes are in play, deliberately.** The ready signal uses camelCase

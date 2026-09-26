@@ -1,5 +1,5 @@
 // City of Masks holidays (#191): recipes, when they fall, where, and the API.
-// Foundry is stubbed: the core calendar's components, i18n, and the journals
+// Foundry is stubbed: the core calendar and clock (test/gregorian-calendar.mjs), i18n, and the journals
 // pack holding what the Chapter-to-journal preset imported.
 import { test, beforeEach } from "node:test";
 import assert from "node:assert/strict";
@@ -7,6 +7,8 @@ import {
   ANCHORS, HOLIDAYS, HOLIDAY_PRESET, holidaysToday, listHolidays, placeMatches, whenMatches,
 } from "../scripts/holidays/holidays.mjs";
 import { CHAPTER_PRESETS } from "../scripts/importer/chapter-journal.mjs";
+import { SYNODIC_DAYS, anchor } from "../scripts/time/time-core.mjs";
+import { at, clockAt, gregorian } from "./gregorian-calendar.mjs";
 
 const byKey = Object.fromEntries(HOLIDAYS.map((h) => [h.key, h]));
 const on = (month, day, extra = {}) => ({ year: 1300, month, day, dayOfYear: 0, ...extra });
@@ -52,7 +54,7 @@ test("each holiday falls on its anchor and no other day", () => {
   assert.equal(whenMatches(byKey["dukes-ball"].when, on(6, 21)), true);
   assert.equal(whenMatches(byKey["st-anton"].when, on(9, 22)), true);
   assert.equal(whenMatches(byKey["st-anton"].when, on(6, 21)), false);
-  // No moon yet: Lastmoon waits for a date source that knows it.
+  // Lastmoon is the date's to say: currentDateInfo asks the time API.
   assert.equal(whenMatches(byKey.lastmoon.when, on(12, 20)), false);
   assert.equal(whenMatches(byKey.lastmoon.when, on(12, 20, { isLastFullMoonOfYear: true })), true);
   assert.equal(whenMatches({ anchor: "nonsense" }, on(5, 1)), false);
@@ -79,7 +81,7 @@ test("a leading \"The\" and a zero-padded hex number still name the place", () =
 // ── the API, against a stubbed world ─────────────────────────────────────────
 
 const preset = CHAPTER_PRESETS.find((p) => p.id === HOLIDAY_PRESET);
-let components, imported, journalPreset;
+let now, imported, journalPreset;
 
 function journalsPack() {
   const entry = {
@@ -99,11 +101,11 @@ function journalsPack() {
 }
 
 beforeEach(() => {
-  components = { year: 1300, month: 4, dayOfMonth: 0, day: 120 };   // May 1 (zero-based month and day)
+  now = at(1300, 5, 1);
   imported = ["lastmoon", "maytide", "night-of-st-anton", "the-duke-s-ball"];
   journalPreset = preset.id;
   globalThis.game = {
-    time: { get components() { return components; } },
+    get time() { return clockAt(now); },
     i18n: { localize: (k) => `<${k}>` },
     get packs() { return [journalsPack()]; },
   };
@@ -145,6 +147,16 @@ test("a free-range journal over the same pages is not the holidays journal", asy
 test("today() names Maytide on May 1 in the City of Masks, and nothing elsewhere", async () => {
   assert.deepEqual((await holidaysToday({ place: "City of Masks" })).map((h) => h.key), ["maytide"]);
   assert.deepEqual(await holidaysToday({ place: "Alkesh" }), []);
-  components = { year: 1300, month: 5, dayOfMonth: 20, day: 171 };  // June 21
+  now = at(1300, 6, 21, 20);
   assert.deepEqual((await holidaysToday({ place: "settlement-1334" })).map((h) => h.key), ["dukes-ball"]);
+});
+
+test("Lastmoon falls on the day of the year's last full moon, through the time API (#227)", async () => {
+  const day = anchor(gregorian, "lastFullMoon", 1300);          // the moon's epoch is worldTime 0
+  now = day + 21 * 3600;
+  assert.deepEqual((await holidaysToday({ place: "City of Masks" })).map((h) => h.key), ["lastmoon"]);
+  now = day - 3600;                                               // the evening before
+  assert.deepEqual(await holidaysToday({ place: "City of Masks" }), []);
+  now = day - SYNODIC_DAYS * 86400;                               // the full moon before it
+  assert.deepEqual(await holidaysToday({ place: "City of Masks" }), []);
 });

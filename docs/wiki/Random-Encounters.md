@@ -126,16 +126,38 @@ book intends for the party's hex, ahead of your **Tables by terrain**:
 - **North and south** (*N. Ocean* / *S. Ocean*) split the region's own rows in
   half, the top half north; with an odd number of rows the middle row counts
   as north.
-- **A moon column** (*New Moon*, *Full Moon*) needs the moon phase, which the
-  world clock does not give yet. Until it does, a night that could be that
-  moon rolls the ordinary night column, and the map's encounter picture marks
-  those hexes amber.
+- **A moon column** (*New Moon*, *Full Moon*) takes over on a night of that
+  moon, read off the world clock like the hour (see [Time](#time) below). A
+  Myre Swamp hex on a new-moon night rolls *New Moon*; on any other night it
+  rolls *Swamp, Night*. Day and night here keep the fixed 18:00 and 06:00
+  above, which are the book's halves for check hours, not the real sunset.
 
 The chat card then names the column too — *Hex 2849 · forest, coast · Lowland
 Moor: Coast*. When no grid answers (no region, or a terrain the region does not
 print) the check falls back to **Tables by terrain**, then to the active table,
 as before. Other modules can ask for the same table with
 `game.shadowdarkEnhancer.encounter.tableForHex()` (see `docs/API.md`).
+
+### Time
+
+The module reads Foundry's own world clock and never sets it. Advance time
+with Foundry's time controls or a calendar module; there is no calendar
+window of the module's own. From the clock it works out:
+
+- **The season**, from the calendar's months: spring is March to May, summer
+  June to August, autumn September to November, winter December to February.
+- **Sunrise and sunset**: 04:30 to 19:30 on 21 June, 07:30 to 16:30 on
+  21 December, and about 06:00 to 18:00 at the equinoxes.
+- **The moon**, new to full and back every 29½ days. The first new moon is at
+  the very start of the world's calendar. To make tonight a new moon instead,
+  run this once as a GM macro:
+  `game.settings.set("shadowdark-enhancer", "moonEpoch", game.time.worldTime)`.
+- **The equinoxes, the solstices and the year's last full moon**, which date
+  the City of Masks holidays. Lastmoon falls on the day of the last full moon.
+
+Session Recap entries also record the in-game date and time. Macros and other
+modules read all of this through `game.shadowdarkEnhancer.time` (see
+`docs/API.md`).
 
 ---
 

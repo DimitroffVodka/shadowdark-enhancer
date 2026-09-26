@@ -142,7 +142,7 @@ The cost is one party per world (Q1).
 |---|---|---|
 | `time.now()` | `{worldTime, components, label}` | rumors #190 (`heardAt.world`), recap |
 | `time.season(t?)` | `{key: spring\|summer\|autumn\|winter\|null, index, name}` from core | #195 `climate()`, the bar |
-| `time.isNight(t?, {region}?)` | bool; the region applies the Isles of Andrik override (§6) | #197's column seam, SDX#152 fog |
+| `time.isNight(t?, {region}?)` | bool; the region applies the Isles of Andrik override (§6, added with O9; O1 shipped `isNight(t?)`) | SDX#152 fog, the bar. Not #197's columns: they keep the fixed 18:00/06:00 check halves of §5.7, and take only the moon from `moonPhase` |
 | `time.moonPhase(t?)` | `{index 0-7, key, fraction, illumination}`, where index 0 is new and 4 is full | #197 Myre Swamp "New Moon", Lastmoon |
 | `time.sun(t?, {region}?)` | `{sunrise, sunset}` in hours | the bar, the darkness driver |
 | `time.anchor(name, year?)` | worldTime of that day's 00:00. Names: `springEquinox`, `summerSolstice`, `autumnEquinox`, `winterSolstice`, the four cross-quarters, `lastFullMoon` | holidays #191 (`holidays.today`) |
@@ -155,7 +155,7 @@ The cost is one party per world (Q1).
 
 | Hook | Where | Payload | Subscribers |
 |---|---|---|---|
-| `shadowdark-enhancer.timeAdvanced` | active GM only, once per world-time change | `{from, to, dt, offDuty: reason\|null, crossed: {days, weeks, seasons: [{from, to, at}], dawns, dusks}}` | Trouble #193 (weeks, and `to` against stage thresholds), the underground check (seasons) |
+| `shadowdark-enhancer.timeAdvanced` | active GM only, once per world-time change | `{from, to, dt, offDuty: reason\|null, crossed: {days, weeks, seasons: [{from, to, at}], seasonChanges, dawns, dusks}}`; `seasons` keeps the last changes, one per season of the calendar at most, and `seasonChanges` counts them all | Trouble #193 (weeks, and `to` against stage thresholds), the underground check (seasons) |
 | `shadowdark-enhancer.overlandChanged` | every client, after a commit | the state | the bar, SDX party sheet |
 | `shadowdark-enhancer.overlandStart` / `overlandEnd` | every client | the state | Session Recap, as with `crawlStart` / `crawlEnd` (`crawl-state.mjs:230`, `:240`) |
 

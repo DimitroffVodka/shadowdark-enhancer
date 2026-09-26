@@ -6,6 +6,8 @@ import {
   resolveHexTable, tableForHex, tableForCheck, forgetHexZones,
 } from "../scripts/encounter/encounter-terrain.mjs";
 import { emptyState, readCell } from "../scripts/hex-map/tag-store.mjs";
+import { SYNODIC_DAYS } from "../scripts/time/time-core.mjs";
+import { clockAt } from "./gregorian-calendar.mjs";
 
 // Invented fixtures (D1): table NAMES are structure, never book content.
 
@@ -187,9 +189,15 @@ test("hexTableUuid: the region's column first, then the terrain's table, then th
   assert.equal(hexTableUuid({ terrain: "forest", zone: "Grey Moor" }, ctx).zone, "Grey Moor");
 });
 
-test("the world clock reads Foundry's hour, and knows no moon until Overland", () => {
-  assert.deepEqual(worldClock({ components: { hour: 21 }, worldTime: 0 }), { hour: 21, moon: null });
-  assert.deepEqual(worldClock({ worldTime: 7 * 3600 + 86400 * 3 }), { hour: 7, moon: null });
+// A night of a new moon and one of a full moon, with the moon's epoch at worldTime 0.
+const NEW_MOON_NIGHT = Math.round(10 * SYNODIC_DAYS) * 86400 + 22 * 3600;
+const FULL_MOON_NIGHT = NEW_MOON_NIGHT + 15 * 86400;
+
+test("the world clock reads Foundry's hour and the time API's moon (#227)", () => {
+  assert.deepEqual(worldClock({ components: { hour: 21 }, worldTime: 0 }), { hour: 21, moon: "new" });
+  assert.deepEqual(worldClock({ worldTime: 7 * 3600 + 86400 * 3 }), { hour: 7, moon: "waxingCrescent" });
+  assert.deepEqual(worldClock(clockAt(NEW_MOON_NIGHT)), { hour: 22, moon: "new" });
+  assert.deepEqual(worldClock(clockAt(FULL_MOON_NIGHT)), { hour: 22, moon: "full" });
   assert.equal(isNight(DUSK), true);
   assert.equal(isNight(DAWN), false);
   assert.equal(isNight(DAWN - 1), true);
@@ -207,7 +215,9 @@ const fire = (name) => { for (const fn of hooks.get(name) ?? []) fn(); };
 
 function world({ journalFails = false } = {}) {
   forgetHexZones();
-  const grids = [["Grey Moor", ["Forest", "Coast", "River", "Swamp"]], ["Deep Sea", ["Land", "N. Ocean", "S. Ocean"]]];
+  const grids = [["Grey Moor", ["Forest", "Coast", "River", "Swamp"]], ["Deep Sea", ["Land", "N. Ocean", "S. Ocean"]],
+    // The Myre Swamp's printed column heads, as table-shapes.mjs knows them (structure).
+    ["Myre Swamp", ["Swamp, Day", "Swamp, Night", "New Moon"]]];
   const index = grids.flatMap(([region, labels]) => labels.map((label) => ({ _id: `${region}-${label}`.replace(/\W+/g, ""), name: `Invented Book - ${region} Encounter Zone: ${label}` })));
   const w = { reads: 0 };
   const journals = {
@@ -244,6 +254,17 @@ test("resolveHexTable finds the hex's region on the print and rolls its column",
   // No region grid for the terrain, or no hex at all: the old answers.
   assert.equal((await resolveHexTable({ num: 1510, terrain: "desert" }, { scene: w.scene })).uuid, "uuid-active");
   assert.equal((await resolveHexTable(null)).uuid, "uuid-active");
+});
+
+test("a Myre Swamp hex on a new-moon night rolls the New Moon column (#227)", async () => {
+  world();
+  const roll = async (t) => {
+    globalThis.game.time = clockAt(t);
+    return (await resolveHexTable({ terrain: "swamp", zone: "Myre Swamp" })).uuid;
+  };
+  assert.equal(await roll(NEW_MOON_NIGHT), "Compendium.world.sde-tables.MyreSwampNewMoon");
+  assert.equal(await roll(FULL_MOON_NIGHT), "Compendium.world.sde-tables.MyreSwampSwampNight", "another night");
+  assert.equal(await roll(NEW_MOON_NIGHT - 10 * 3600), "Compendium.world.sde-tables.MyreSwampSwampDay", "by day, no moon");
 });
 
 test("the regions are read once, and again after a crawl entry or scene changes", async () => {

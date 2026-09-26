@@ -21,6 +21,8 @@ import { MODULE_ID } from "../shared/module-id.mjs";
 import { findSuitePack } from "../shared/compendium-suite.mjs";
 import { cellNumber, foundryOffsetToCube } from "../hex-map/geometry.mjs";
 import { decodeTags, readCell } from "../hex-map/tag-store.mjs";
+import { moonPhase } from "../time/time-core.mjs";
+import { moonEpoch } from "../time/time.mjs";
 
 /** Scene flag holding the tag store (hex-tagger-app.mjs owns it). */
 const TAGS_FLAG = "hexTags";
@@ -168,9 +170,10 @@ export function zoneCandidates(terrain, features, columns) {
  * split it would have decided comes back ambiguous rather than guessed.
  *
  * A moon column ("New Moon", "Full Moon") takes over the region's hexes on its
- * night. Until the world clock knows the moon (Overland, #192) that is the one
- * thing still ambiguous: the verdict names the moon column beside the
- * ordinary one, and `column` is the ordinary one, which is what a roll uses.
+ * night. The world clock knows the moon (worldClock); a caller that leaves
+ * `moon` null gets the one thing still ambiguous: the verdict names the moon
+ * column beside the ordinary one, and `column` is the ordinary one, which is
+ * what a roll uses.
  * @param {{night?:boolean, moon?:string|null, north?:boolean}} [at]
  * @returns {{status:"ok", column:object}|{status:"ambiguous", columns:object[], column?:object, moon?:true}|{status:"none"}}
  */
@@ -190,21 +193,25 @@ export function pickZoneTable(region, terrain, features, byRegion, { night, moon
   return hit.length === 1 ? { status: "ok", column: hit[0] } : { status: "ambiguous", columns: hit };
 }
 
-/** Dusk and dawn. ponytail: fixed 18:00 to 06:00; the real sunrise is Overland's (#192). */
+/**
+ * Dusk and dawn for a Day or Night column: fixed 18:00 to 06:00, not the
+ * sunset of time.sun(). These are the halves the book's d12 check hours fall
+ * in (docs/plans/overland.md §5.7), so a night check at 18:00 in June rolls
+ * the Night column although the sun is still up.
+ */
 export const DUSK = 18, DAWN = 6;
 export const isNight = (hour) => hour >= DUSK || hour < DAWN;
 
 /**
- * The world clock a column is read against: the hour and the moon phase.
- *
- * THE seam for Overland (#192), which replaces this one function. Until it
- * lands the hour is Foundry's own world time and the moon is not known (null),
- * so a moon column stays ambiguous.
+ * The world clock a column is read against: the hour, and the moon phase from
+ * the time API (#227); `new` and `full` name the columns they pick ("New Moon").
+ * No clock at all (a test with no game) knows no moon.
  * @returns {{hour:number, moon:string|null}}
  */
 export function worldClock(time = globalThis.game?.time) {
-  const hour = time?.components?.hour ?? Math.floor(((((time?.worldTime ?? 0) % 86400) + 86400) % 86400) / 3600);
-  return { hour, moon: null };
+  const t = time?.worldTime ?? 0;
+  const hour = time?.components?.hour ?? Math.floor((((t % 86400) + 86400) % 86400) / 3600);
+  return { hour, moon: time ? moonPhase(time.calendar, t, moonEpoch()).key : null };
 }
 
 /**

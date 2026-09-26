@@ -275,8 +275,8 @@ in the Journals pack, in the book's folder.
   apply each holiday's carousing effects and garb questions on its day in the
   City of Masks (the module's `holidays` API; see *API.md*). Maytide falls on
   May 1, the Duke's Ball on June 21 and the Night of St. Anton on September 22,
-  read from the world calendar. Lastmoon (the year's last full moon) waits for
-  a moon to be tracked, so for now it never falls.
+  read from the world calendar. Lastmoon falls on the day of the year's last
+  full moon (see [Time](Random-Encounters.md#time)).
 - **Key locations:** a page whose name matches an imported key location links
   to that hex's page, and the hex page links back. If the crawl has been
   pinned on a scene, the link goes to the world copy of the page, so its

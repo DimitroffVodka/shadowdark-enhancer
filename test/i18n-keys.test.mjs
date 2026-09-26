@@ -21,6 +21,7 @@ const FEATURES = {
   "SDE.holidays.": ["scripts/holidays/holidays.mjs"],
   "SDE.quests.": [...dir("scripts/quests"), "templates/quest-log.hbs"],
   "SDE.dying.": dir("scripts/dying"),
+  "SDE.time.": dir("scripts/time"),
 };
 
 /** Every key of `prefix` mentioned anywhere in its files, with one file that mentions it. */

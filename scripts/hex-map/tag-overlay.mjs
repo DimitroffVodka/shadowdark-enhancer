@@ -175,9 +175,9 @@ export function assignRegionColors(keyByNum, { shifted = "odd", palette = REGION
 /**
  * Encounter-zone fills. This overlay answers one question — would a wandering
  * check on this hex find a table? — so it is deliberately a three-colour
- * picture rather than one colour per table: green rolls, amber is waiting on
- * the one thing the clock cannot say yet (the moon phase, #192), grey has no
- * table for that region at all.
+ * picture rather than one colour per table: green rolls, amber is stuck
+ * between two columns nothing on the map or the clock can choose between, grey
+ * has no table for that region at all.
  */
 export const ZONE_COLORS = { ok: 0x3f8f4f, ambiguous: 0xe0a72c, none: 0x8a8a8a };
 
@@ -418,14 +418,19 @@ export class HexTagOverlay {
       this.draw();
     })]);
     this._hooks.push(["canvasTearDown", Hooks.on("canvasTearDown", () => this.hide())]);
-    // Dusk and dawn change which column a hex rolls on, and nothing else the
-    // clock does: a clock module ticking every second must not redraw ~4,800
-    // hexes a second, so only a flip between day and night redraws.
-    let night = isNight(worldClock().hour);
+    // Dusk, dawn and a new or full moon change which column a hex rolls on, and
+    // nothing else the clock does: a clock module ticking every second must not
+    // redraw ~4,800 hexes a second, so only a change in one of those redraws.
+    // The other six phases pick no column, so passing between them redraws nothing.
+    const sky = () => {
+      const { hour, moon } = worldClock();
+      return `${isNight(hour)}|${moon === "new" || moon === "full" ? moon : ""}`;
+    };
+    let was = sky();
     this._hooks.push(["updateWorldTime", Hooks.on("updateWorldTime", () => {
-      const now = isNight(worldClock().hour);
-      if (now === night) return;
-      night = now;
+      const now = sky();
+      if (now === was) return;
+      was = now;
       if (this.mode === "encounter") this.draw();
     })]);
     ui.notifications?.info(t("SDE.hexMap.notify.overlayShown"));
@@ -444,25 +449,27 @@ export class HexTagOverlay {
   /**
    * The encounter verdict for one hex: which column a check would roll on right
    * now, the same answer the check itself gives (encounter-terrain.mjs).
+   * `clock` is read once per draw and handed in: reading it per hex reads the
+   * moon's epoch setting ~4,800 times, and an unsaved world setting builds a
+   * new Setting document on every read.
    */
-  zoneFor(num) {
+  zoneFor(num, clock = worldClock()) {
     const cell = readCell(this.state, num);   // as the check reads it: legacy coast terrain is ground plus coast
     const region = this.regionByNum.get(num) ?? this.inferredByNum.get(num);
     if (!region) return { status: "none", region: null };
-    const { hour, moon } = worldClock();
-    const at = { night: isNight(hour), moon, north: inNorthHalf(num, this.rowRanges.get(region)) };
+    const at = { night: isNight(clock.hour), moon: clock.moon, north: inNorthHalf(num, this.rowRanges.get(region)) };
     return { ...pickZoneTable(region, cell?.terrain, cell?.features, this.zonesByRegion, at), region };
   }
 
   /** Fill colour for a hex in the current mode, or null to leave it unpainted. */
-  fillFor(num) {
+  fillFor(num, clock) {
     if (this.mode === "region") {
       const key = this.keyByNum.get(num);
       if (key === undefined) return null;
       return this.colorByKey.get(key) ?? regionColor(key);
     }
     if (this.mode === "encounter") {
-      const { status, region } = this.zoneFor(num);
+      const { status, region } = this.zoneFor(num, clock);
       // A hex with no region at all is not "no table" — nothing was asked.
       return region ? ZONE_COLORS[status] : null;
     }
@@ -477,9 +484,10 @@ export class HexTagOverlay {
     const grid = canvas.grid;
     const shape = grid.getShape();
     const dot = Math.min(grid.sizeX, grid.sizeY) * 0.09;
+    const clock = this.mode === "encounter" ? worldClock() : null;
     for (const [num, at] of this.cells) {
       const cell = this.state.cells.get(String(num));
-      const fill = this.fillFor(num);
+      const fill = this.fillFor(num, clock);
       if (fill === null) continue;
       g.lineStyle({ width: 0, alpha: 0 });
       g.beginFill(fill, HexTagOverlay.fillAlpha);
@@ -545,11 +553,6 @@ export class HexTagOverlay {
     const verdict = this.zoneFor(num);
     if (!region) return `${num} — ${t("SDE.hexMap.zone.noRegion")}`;
     if (verdict.status === "ok") return `${num} — ${region}: ${verdict.column.column}`;
-    // Waiting on the moon: say what a check rolls meanwhile, and what it waits for.
-    if (verdict.moon && verdict.column) {
-      const moons = verdict.columns.filter((c) => c !== verdict.column).map((c) => c.column).join(", ");
-      return `${num} — ${region}: ${t("SDE.hexMap.zone.moon", { column: verdict.column.column, moons })}`;
-    }
     // Name the columns it is stuck between: that is the whole diagnostic.
     if (verdict.status === "ambiguous") {
       return `${num} — ${region}: ${t("SDE.hexMap.zone.ambiguous", { columns: verdict.columns.map((c) => c.column).join(", ") })}`;
