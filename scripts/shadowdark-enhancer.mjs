@@ -108,7 +108,7 @@ const STYLESHEET_REV = "43e7806e11f6";
 // stale); module.json carries the same hash and is fetched fresh at runtime. A
 // mismatch is a stale cache by construction — it cannot be anything else. Both
 // stamps are written by `npm run inventory` and gated by `inventory:check`.
-const BUILD_REV = "d8e7bf049a40";
+const BUILD_REV = "af0b11e8d64c";
 
 /**
  * Tell the user when their browser is running an old build of this module, and
@@ -413,10 +413,18 @@ Hooks.once("init", () => {
   // game.modules.get(MODULE_ID).api on ready; consumers should listen for
   // the "shadowdarkEnhancer.ready" hook. Reference: docs/API.md.
   game.shadowdarkEnhancer = {
+    // 1.5.0 — additive: hexMaps namespace (hex tagger, dataset, hand-off).
     // 1.6.0 — additive: statDamage namespace (tracked ability damage).
     // 1.7.0 — additive: quests namespace (the Quest Log) and questsChanged.
     // 1.8.0 — additive: dying namespace and the crawlRound hook (#181).
-    apiVersion: "1.8.0",
+    // 1.9.0 — additive: holidays namespace (City of Masks holidays, #191).
+    apiVersion: "1.9.0",
+    // Holidays for carousing (Shadowdark Extras reads `today`). Both async and
+    // lazy; a holiday is listed once the GM has imported its journal page.
+    holidays: {
+      list: async () => (await import("./holidays/holidays.mjs")).listHolidays(),
+      today: async (opts) => (await import("./holidays/holidays.mjs")).holidaysToday(opts),
+    },
     // Guided, ordered Character Builder — a replacement for the system's
     // random generator. `open({ level0?, actor? })` renders the wizard.
     charBuilder: {

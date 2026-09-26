@@ -3,6 +3,14 @@
 ## [Unreleased]
 
 ### Added
+- **The City of Masks holidays.** Chapter to journal has a new preset,
+  *Cursed Scroll 6: the City of Masks holidays* (pp. 46–47), that files a
+  journal with one page per holiday from your own PDF. A new `holidays` API
+  (`list()`, `today({ place })`, API 1.9.0) gives each imported holiday's
+  place, the day it falls, its carousing effects and its garb questions, for
+  Shadowdark Extras' carousing window to apply. Maytide, the Duke's Ball and
+  the Night of St. Anton fall on May 1, June 21 and September 22 of the world
+  calendar. Lastmoon needs the moon, which isn't tracked yet. (#191)
 - **A Quest Log.** Press Ctrl+Q, or **Quest Log** at the foot of the Journal
   sidebar. Each quest is a journal entry in a *Quests* folder, with a page
   your players can read and a GM notes page they can't. Quests are Hidden
