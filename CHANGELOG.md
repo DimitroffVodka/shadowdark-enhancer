@@ -10,6 +10,27 @@
   d4 for External faction and Power change), named "Type of Trouble: <type>"
   and filed beside it. One roll of Type of Trouble posts the type and a result
   from its table. (#188)
+- **Modes of Play.** A new window under Configure Settings holds the optional
+  rules from the core rulebook (p.111) and Hard Luck from the Game Master's
+  Guide to the Western Reaches (p.30). Every rule is its own switch, so one
+  rule of a mode can run without the rest, and each mode has a switch that
+  turns all of its rules on or off. The system's Pulp and Momentum settings
+  and Shadowdark Extras' Grinder settings show in the same window, so each
+  still has one home. Rules marked *Not automated yet* are saved but do
+  nothing until the update that builds them. (#178)
+- **Blitz Mode: light timers last 30 minutes.** With Blitz on, lighting a
+  torch or lantern sets it to 30 minutes left (less if it already had less),
+  however it is lit, and a light spell lasts 30 minutes. A torch's own
+  maximum is untouched, so its sheet can read "30 of 60 minutes" and turning
+  Blitz off leaves no torch short. Shadowdark Extras' camping campfire keeps
+  its 8 hours. (#179)
+- **Hard Luck Mode.** Its second rule, *No luck rerolls with luck-granting
+  effects*, refuses a luck reroll of any roll made with Bless, a Bard's
+  Inspire, Trance or a Seer's Omen, whatever the result, so luck can't be
+  spent to earn more luck.
+  Its first rule, no luck on a critical failure, now uses the system's own
+  critical failure, so an effect that widens the failure range counts too,
+  and a damage reroll is never refused. (#186)
 - **The hex data goes on the printed map.** The Hex Tagger's **Send to
   Extras** now puts every hex's terrain, region, zone colour, name,
   description and settlement on the map you tagged, instead of building a
@@ -552,6 +573,11 @@
   `api.encounter.getCheckFrequency()` / `setCheckFrequency(n)`. (#171)
 
 ### Changed
+- **Preventing luck rerolls on natural 1s is now off by default, and lives in
+  Modes of Play** as *No luck rerolls on critical failures*. It is Hard Luck's first rule. A world that ever saved this
+  setting keeps its choice; a world that never did stops blocking luck
+  rerolls of natural 1s until a GM switches it on under **Modes of Play →
+  Hard Luck**. (#178)
 - **Water is read the way the map's legend draws it.** The legend key printed on
   the Western Reaches map states the symbols outright: river is one wave stroke,
   lake two, ocean three, arctic sea three with a small mark above them. Block
