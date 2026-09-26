@@ -96,7 +96,7 @@ import { initRivalClassTable } from "./forge-loot/rival-class-table-adapter.mjs"
 // templates, producing unstyled block-flow UI. Keep the manifest stylesheet as
 // the startup fallback, then layer a content-addressed copy above it. The layout
 // contract test requires this revision to change whenever the CSS file changes.
-const STYLESHEET_REV = "cd7129d5783e";
+const STYLESHEET_REV = "04c122556d8d";
 
 // The same problem for the SCRIPTS, which cannot be solved the same way: their
 // URLs come from the manifest, which Foundry validates as real package paths,
@@ -111,7 +111,7 @@ const STYLESHEET_REV = "cd7129d5783e";
 // stale); module.json carries the same hash and is fetched fresh at runtime. A
 // mismatch is a stale cache by construction — it cannot be anything else. Both
 // stamps are written by `npm run inventory` and gated by `inventory:check`.
-const BUILD_REV = "a37879df15e6";
+const BUILD_REV = "f50a2fd9cb79";
 
 /**
  * Tell the user when their browser is running an old build of this module, and
@@ -282,7 +282,7 @@ Hooks.once("init", () => {
   ItemDrops.registerSettings();
   Renown.registerSettings();
   MonsterTokenArt.register();
-  // Quest Log: its Ctrl+Q keybinding can only be registered during init.
+  // Quest Log: its keybinding can only be registered during init.
   registerQuests();
   // Out-of-combat tracker as a sidebar tab, beside Combat. Must run in init:
   // Game#initializeUI constructs CONFIG.ui entries during setup, and anything

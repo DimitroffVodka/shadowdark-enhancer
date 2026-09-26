@@ -10833,6 +10833,7 @@ body.theme-light .sde-parry-note { color: #2e6b2e; }
   cursor: pointer;
 }
 .sde-trn-take:hover { border-color: var(--sd-text); }
+.sde-trn-take:disabled { color: var(--sd-text-muted); cursor: not-allowed; border-color: var(--sd-hairline); }
 
 /* ==========================================================================
    Quest Log (sde-quest-log) — the Regional Training window's vocabulary,

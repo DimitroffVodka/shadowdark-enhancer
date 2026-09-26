@@ -77,6 +77,10 @@
                   <button type="button" class="sde-trn-take" data-action="trnTakeTask" data-task="{{index}}">
                     {{localize "SDE.training.takeTask"}}
                   </button>
+                {{else if needsActor}}
+                  <button type="button" class="sde-trn-take" disabled data-tooltip="{{localize "SDE.training.takeTaskNeedsCharacter"}}">
+                    {{localize "SDE.training.takeTask"}}
+                  </button>
                 {{/if}}
               </div>
             </li>

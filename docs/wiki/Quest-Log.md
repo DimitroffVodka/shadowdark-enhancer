@@ -11,14 +11,14 @@ trouble, a trainer or you. You run it; your players read it.
 
 | Route | How |
 |---|---|
-| **Keyboard** | **Ctrl+Q** (change it under *Configure Controls*) |
+| **Keyboard** | **Alt+Q** (change it under *Configure Controls*) |
 | **Journal sidebar** | **Quest Log** at the foot of the Journal tab |
 | **API** | `game.shadowdarkEnhancer.quests.open()` |
 
 Everyone can open it. Players get it read-only; only the GM edits.
 
-> Firefox on Linux quits the browser on Ctrl+Q before Foundry sees the key,
-> and no web page can stop it. To use another key: **Game Settings →
+> The key is Alt+Q rather than Ctrl+Q because browsers on Linux quit on
+> Ctrl+Q before Foundry sees the key. To use another key: **Game Settings →
 > Configure Controls → Shadowdark Enhancer → Open the Quest Log**, then set
 > the key you want. Each player sets their own.
 
@@ -101,8 +101,9 @@ to *Nobody*.
 
 ## Trainer tasks
 
-Each task in the Regional Training window has a **Take this task** button
-(GM only, with a character chosen). It adds an **Available** quest personal
+Each task in the Regional Training window has an **Add to Quest Log** button
+(GM only). Choose the character in the window's **Character** list first; until
+then the button is greyed out. It adds an **Available** quest personal
 to that character, with the task as its one objective and the trainer's
 benefit as its reward. The task then shows **Taken**, and **Done** once the
 quest is completed.
