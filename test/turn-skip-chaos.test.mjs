@@ -30,7 +30,7 @@ registerTurnSkip();
  * first await, and the `current` an update landing after that await would see.
  * An initiative given as a list is one roll after another.
  */
-function fakeCombat(people, { round = 2, turn = people.length - 1, onReorder = null } = {}) {
+function fakeCombat(people, { round = 2, turn = people.length - 1, onReorder = null, failDispatch = null } = {}) {
   const who = ([id, type, hp, init]) => ({
     id, name: id, hidden: false, defeated: false, initiative: 0,
     actor: { type, system: { attributes: { hp: { value: hp } } } },
@@ -47,6 +47,7 @@ function fakeCombat(people, { round = 2, turn = people.length - 1, onReorder = n
     async _manageTurnEvents() {
       const event = { previous: { ...this.previous }, current: { ...this.current }, order: this.turns.map((c) => c.id) };
       this.events.push(event);
+      if (failDispatch?.(event)) throw new Error("a turn handler failed");
       await null;
       event.meanwhile = { ...this.current };
     },
@@ -167,6 +168,43 @@ test("a round held again while the first is replayed is replayed once, from wher
     [3, 2, null, 4, 0, "Bo", "Bo,Ana,Cy"],      // round 4 starts on its new top, Bo
   ], "each round's events once, in order");
   assert.deepEqual(cards.map((c) => c.flags["shadowdark-enhancer"].chaosRound), [3, 4], "one card per round, each naming its own");
+});
+
+// The GM double-clicks Next Round: round 4 is held while round 3's reroll is still going out.
+const doubleClick = async (c) => {
+  if (c.round !== 3) return;
+  const options = { direction: 1 };
+  hooks.combatRound(c, { round: 4, turn: 0 }, options);
+  await c.update({ round: 4, turn: 0 }, options);
+};
+const quietly = async (fn) => {
+  const error = console.error;
+  console.error = () => {};
+  try { await fn(); } finally { console.error = error; }
+};
+
+test("a round whose events fail still hands on where it ended, so the next never fires twice", async () => {
+  const combat = fakeCombat([["Ana", "Player", 5, [1, 10]], ["Bo", "Player", 5, [2, 20]], ["Cy", "Player", 5, [18, 1]]], {
+    onReorder: doubleClick,
+    failDispatch: (e) => e.current.round === 3 && e.current.turn === 0,
+  });
+  globalThis.game.combat = combat;
+  await quietly(async () => { await combat.nextTurn(); await settle(); await settle(); });
+  assert.deepEqual(combat.events[1].previous, { round: 3, turn: 0, combatantId: "Cy", tokenId: null },
+    "round 4's replay starts from round 3's new top, not from what was taken mid-replay");
+  assert.deepEqual(combat.events.at(-1).current, { round: 4, turn: 0, combatantId: "Bo", tokenId: null });
+});
+
+test("a round held while an unheld reroll runs is replayed right after it, not a round late", async () => {
+  // A macro sets round 3 itself, so it is not held; meanwhile round 4 is.
+  const combat = fakeCombat([["Ana", "Player", 5, [1, 10]], ["Bo", "Player", 5, [2, 20]], ["Cy", "Player", 5, [18, 1]]], { onReorder: doubleClick });
+  globalThis.game.combat = combat;
+  cards.length = 0;
+  await combat.update({ round: 3, turn: 0 }, { direction: 1 });
+  await settle(); await settle();
+  assert.equal(combat.rerolls, 2, "round 3's reroll, then round 4's");
+  assert.deepEqual(cards.map((c) => c.flags["shadowdark-enhancer"].chaosRound), [3, 4], "each card names its own round");
+  assert.deepEqual(combat.events.at(-1).current, { round: 4, turn: 0, combatantId: "Bo", tokenId: null }, "round 4 starts on its new top");
 });
 
 test("a held round's events go out even when nothing rerolls it", async () => {

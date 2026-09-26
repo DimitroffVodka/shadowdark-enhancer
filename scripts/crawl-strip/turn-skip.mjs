@@ -82,8 +82,11 @@ async function chaosThenSkip(combat) {
   if (_walking.has(combat.id)) return;
   _walking.add(combat.id);
   try {
-    if (_held.has(combat.id)) await drainHeld(combat);
-    else await chaosReroll(combat);
+    // A round changed without Combat#nextRound was not held: its events have
+    // fired, so it rerolls after them. Then every held round, including any
+    // held while that reroll ran.
+    if (!_held.has(combat.id)) await chaosReroll(combat);
+    await drainHeld(combat);
   } catch (error) {
     console.error(`${MODULE_ID} | Chaos Mode could not reroll initiative`, error);
   } finally {
@@ -135,18 +138,14 @@ export async function maybeSkipDeadTurn(combat) {
     // underneath the loop; one full lap is more than any legitimate skip needs.
     let guard = combat.turns.length + 1;
     while (guard-- > 0) {
+      // A Chaos round held while this lock was held stood down in
+      // chaosThenSkip: skipping past the last corpse starts one, and so can
+      // anyone else. Reroll and replay it here, still under the lock; the skip
+      // then reads the new order.
+      await drainHeld(combat);
       const entries = combat.turns.map(combatantEntry);
       if (!shouldSkipTurn(entries, combat.turn)) break;
-      const round = combat.round;
       await combat.nextTurn();
-      // Skipping past the last corpse starts a new round, and its updateCombat
-      // reached chaosThenSkip while this lock was held, so it stood down. A
-      // Chaos round was held: reroll and replay it here, still under the lock;
-      // the loop then skips on the new order.
-      if (combat.round > round) {
-        await drainHeld(combat).catch((error) =>
-          console.error(`${MODULE_ID} | Chaos Mode could not reroll initiative`, error));
-      }
     }
   } catch (error) {
     console.error(`${MODULE_ID} | failed to skip a defeated combatant's turn`, error);

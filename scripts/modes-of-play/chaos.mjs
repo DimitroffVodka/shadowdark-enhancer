@@ -100,8 +100,9 @@ let _clockwiseWarned = false;
  */
 export async function chaosReroll(combat, held = null, { reroll = true } = {}) {
   if (!held) {
+    const round = combat.round;
     const rolled = reroll ? await rerollOrder(combat, { turnEvents: true }) : null;
-    if (rolled) await postOrder(rolled, combat.round);
+    if (rolled) await postOrder(rolled, round);
     return !!rolled;
   }
   const count = combat.turns.length;
@@ -118,8 +119,12 @@ export async function chaosReroll(combat, held = null, { reroll = true } = {}) {
   // turn when it rerolled.
   const turn = rolled ? 0 : held.turn;
   const to = { round: held.round, turn, combatantId: combat.turns[turn]?.id ?? null, tokenId: combat.turns[turn]?.tokenId ?? null };
-  await dispatch(combat, from, to, held.previous);
-  if (rolled) await postOrder(rolled, held.round);
+  // A failure here is logged and the round still counts as replayed, so a
+  // round held meanwhile starts from it and nothing fires twice.
+  await dispatch(combat, from, to, held.previous).catch((error) =>
+    console.error(`${MODULE_ID} | Chaos Mode: the round's turn events failed`, error));
+  if (rolled) await postOrder(rolled, held.round).catch((error) =>
+    console.error(`${MODULE_ID} | Chaos Mode: the round's card`, error));
   return to;
 }
 
@@ -146,10 +151,12 @@ async function passOwedTurns(combat, previous) {
 /**
  * Foundry's own dispatcher (Combat#_manageTurnEvents) run from `from` to `to`.
  * It reads both, and the order, before its first await, so the real state goes
- * back at once: an update that lands while the events run compares against
- * the real state, never the made-up one, and `previous` is left as Foundry
- * leaves it after a round change, at the old round's last turn (`last`). Fresh
- * objects, because Foundry records a later change into `previous` in place.
+ * back at once. Only the opening lines of the first handler it calls run
+ * before that, and nothing installed reads the combat's state there. An
+ * update that lands while the events run compares against the real state,
+ * never the made-up one, and `previous` is left as Foundry leaves it after a
+ * round change, at the old round's last turn (`last`). Fresh objects, because
+ * Foundry records a later change into `previous` in place.
  */
 async function dispatch(combat, from, to, last) {
   combat.previous = { ...from };
