@@ -297,6 +297,8 @@ When combat ends:
 3. The result is posted to chat as a claimable card. Only the active GM client
    processes drops to prevent duplicate cards.
 
+A fight thrown away with **Delete Encounter** on the Crawl Bar drops nothing.
+
 ### Per-NPC loot overrides
 
 Every NPC sheet shows a GM-only **Loot** button in its header, whether or not

@@ -126,7 +126,8 @@ It is paid as one [Party XP](Party-XP.md) card per combat, named *Hunter* and
 listing the monsters, with the usual "ready to level up" marker, and it is
 logged in [Session Recap](Session-Recap.md).
 
-Any end of the combat pays, including **Delete Encounter** on the Crawl Bar.
+**Delete Encounter** on the Crawl Bar throws the fight away and pays nothing.
+Any other end of the combat pays, including **End Encounter**.
 
 ---
 

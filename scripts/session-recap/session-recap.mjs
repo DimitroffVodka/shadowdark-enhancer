@@ -450,19 +450,22 @@ export const SessionRecap = {
     });
 
     // ── Combat end ─────────────────────────────────────────
-    Hooks.on("deleteCombat", async (combat) => {
+    Hooks.on("deleteCombat", async (combat, options) => {
       if (!this._isPrimaryGM()) return;
       const active = this._activeCombats.get(combat.id);
       if (!active) return;
-      const enemies = this._snapshotEnemies(combat).map(e => ({
-        name: e.name, defeated: e.defeated,
-        killedBy: e.defeated ? (this._killMap.get(e.tokenId) ?? null) : null,
-      }));
-      await this.logCombat({
-        id: combat.id, rounds: combat.round ?? active.rounds ?? 0,
-        startTime: active.startTime, endTime: Date.now(),
-        enemies, participants: active.participants,
-      });
+      // A fight thrown away with the Crawl Bar's Delete Encounter leaves no entry.
+      if (!options?.[MODULE_ID]?.discard) {
+        const enemies = this._snapshotEnemies(combat).map(e => ({
+          name: e.name, defeated: e.defeated,
+          killedBy: e.defeated ? (this._killMap.get(e.tokenId) ?? null) : null,
+        }));
+        await this.logCombat({
+          id: combat.id, rounds: combat.round ?? active.rounds ?? 0,
+          startTime: active.startTime, endTime: Date.now(),
+          enemies, participants: active.participants,
+        });
+      }
       this._activeCombats.delete(combat.id);
       this._killMap.clear();
     });

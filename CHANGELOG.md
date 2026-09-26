@@ -321,6 +321,10 @@ page walks through it in order.
   Extras** reads what Extras already holds for a map through `getHexRecords`,
   and the Quest Log lists parties through `api.party`, instead of reading
   Extras' stored data directly. An older Extras still works as before. (#226)
+- **Delete Encounter on the Crawl Bar now throws the fight away.** It pays no
+  Hunter XP, rolls no loot drops and leaves no Session Recap entry, as its
+  confirm always said. Until now it did all three, just like **End
+  Encounter**, which still does.
 
 ### Fixed
 
