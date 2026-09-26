@@ -1,7 +1,7 @@
 # Shadowdark Enhancer — File Inventory
 
 <!-- inventory:stats:start -->
-992 tracked files · ~170,800 lines of code/markup across scripts+templates+styles+test.
+997 tracked files · ~171,700 lines of code/markup across scripts+templates+styles+test.
 `v0.17.3` in both `module.json` and `package.json`.
 <!-- inventory:stats:end -->
 **Layout reflects the 2026-07-21 feature-folder reorganization (v0.11.0 cycle).**
@@ -46,7 +46,7 @@
 
 | File | Lines | Description |
 |---|---:|---|
-| `shadowdark-enhancer.mjs` | 1111 | **Entry point** (module.json esmodules). Registers hooks, settings, sheets, actor sub-types, the public `game.shadowdarkEnhancer` API, and wires every sub-system. |
+| `shadowdark-enhancer.mjs` | 1123 | **Entry point** (module.json esmodules). Registers hooks, settings, sheets, actor sub-types, the public `game.shadowdarkEnhancer` API, and wires every sub-system. |
 | `luck-reroll/luck-reroll.mjs` | 176 | Wraps the system's `_onReroll` to enforce nat-1 prevention and log Luck rerolls to the session recap. |
 | `spell-mishap/spell-mishap.mjs` | 270 | Nat-1 spellcasting failures auto-roll the class's mishap table (wizard / witch / necromancer sets); divine casters are exempt. |
 | `scavenger/scavenger-core.mjs` | 171 | Pure Delver Scavenger rules: the 5-6 success range and Master Scavenger's widening (floored at 3-6), what counts as expending a consumable's last use (a 1→0 decrement or a delete at quantity 1 — never a stack deleted whole), and which single client rolls. |
@@ -55,6 +55,9 @@
 | `parry/parry.mjs` | 441 | Parry button on an attack card that hit: spends the 1/day use, makes the attack miss, and reverses damage the GM already applied — HP, defeated flag and downed conditions. Player clicks go through the authenticated gm-relay. |
 | `taunt/taunt-core.mjs` | 118 | Pure Duelist Taunt rules: round+turn as one ordinal, the "end of your NEXT turn" expiry comparison, advantage/disadvantage cancelling, and what arms the talent (a miss — including a parried hit). |
 | `taunt/taunt.mjs` | 249 | Arms Taunt when an enemy misses its holder, sets `mainRoll.advantage` on attacks back at that enemy via `SD-Player-Attack` (with the reason printed on the roll card), and expires it when the holder's next turn ends. |
+| `stat-damage/stat-damage-core.mjs` | 205 | Pure stat-damage rules and the effect contract Shadowdark Extras' Effects library follows: a negative ADD on `system.abilities.<key>.value` flagged `statDamage: { ability }`, summed across effects, healed whole or N per ability, the #181 seam for surviving CON 0, and the parser for monster riders ("DC 12 CON or 1d4 STR damage", enriched or not). |
+| `stat-damage/stat-damage.mjs` | 137 | `statDamage.{apply, heal, of}`: writes replace an ability's effects with one holding the new total (serialized per client), and the active GM marks a character dead when a stat-damage effect takes CON to 0. |
+| `stat-damage/stat-riders.mjs` | 123 | Applies a monster attack's stat-damage riders when its card HIT a character, reading the attack's rider and the NPC feature it names (or shares its name with). Only a card posted by a GM or the attacker's owner, naming the attacker's own item, counts. A rider behind a save asks the owning player to roll it (GM→player user query, GM sender required) and falls back to the GM's client. |
 | `hex-map/bitmap.mjs` | 145 | 0/1 cell bitmaps: dilate, 8-connected components, majority stamps, hex masks, residual features, label zone. Pure. |
 | `hex-map/classify.mjs` | 885 | Nearest-exemplar terrain + stamp-subtraction overlay classifier with a review queue; truth-CSV comparison for the dev check. Pure. |
 | `hex-map/geometry.mjs` | 166 | Hex numbering by cube difference from one anchor cell; printed offset ↔ cube under the map's column-shift rule. Pure. |
