@@ -223,14 +223,14 @@ export function needsReview(cell, margin = DEFAULT_REVIEW_MARGIN, stranded = fal
 
 /** Hover text for a cell: "1403 — forest, river (auto 1.42, review)". */
 export function cellLabel(num, cell, margin = DEFAULT_REVIEW_MARGIN, stranded = false) {
-  if (!cell) return `${num} — not tagged`;
+  if (!cell) return `${num} — ${t("SDE.hexMap.cellLabel.untagged")}`;
   const tags = [cell.terrain, ...(cell.features ?? [])].join(", ");
   const notes = [];
-  if (cell.source === "auto") notes.push(cell.margin !== undefined ? `auto ${Number(cell.margin).toFixed(2)}` : "auto");
+  if (cell.source === "auto") notes.push(cell.margin !== undefined ? t("SDE.hexMap.cellLabel.autoMargin", { margin: Number(cell.margin).toFixed(2) }) : t("SDE.hexMap.cellLabel.auto"));
   // Say WHY it is ringed. An amber ring the GM cannot explain is a ring they
   // learn to ignore.
-  if (stranded) notes.push("river with nothing wet beside it");
-  else if (needsReview(cell, margin)) notes.push("review");
+  if (stranded) notes.push(t("SDE.hexMap.cellLabel.stranded"));
+  else if (needsReview(cell, margin)) notes.push(t("SDE.hexMap.cellLabel.review"));
   return `${num} — ${tags}${notes.length ? ` (${notes.join(", ")})` : ""}`;
 }
 
@@ -618,8 +618,8 @@ export class HexTagOverlay {
     const changed = painted.size - confirmed;
     const word = this.brush.terrain.replace(/_/g, " ");
     const bits = [];
-    if (changed) bits.push(`${changed} changed to ${word}`);
-    if (confirmed) bits.push(`${confirmed} confirmed as ${word}`);
+    if (changed) bits.push(t("SDE.hexMap.brush.changedTo", { n: changed, terrain: word }));
+    if (confirmed) bits.push(t("SDE.hexMap.brush.confirmedAs", { n: confirmed, terrain: word }));
     ui.notifications?.info(t(painted.size === 1 ? "SDE.hexMap.brush.paintedOne" : "SDE.hexMap.brush.paintedMany", { n: painted.size, tags: bits.join(", ") }));
     // The brush window shows what Undo would put back, so tell it.
     Hooks.callAll(`${MODULE_ID}.hexStroke`, this);

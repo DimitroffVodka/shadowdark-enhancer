@@ -195,7 +195,7 @@ export const OocControls = {
   async advance() {
     if (game.user.isGM) return withAdvanceLock("ooc", () => CrawlState.advanceOocTurn());
     await relayToGM(OOC_TURN_QUERY, { action: "ooc:nextTurn" },
-      { label: "out-of-combat turn advances" });
+      { label: game.i18n.localize("SDE.crawlStrip.relay.oocAdvances") });
     return true;
   },
 
@@ -293,9 +293,9 @@ export const CrawlStrip = {
    * @returns {Promise<{ok: boolean, error?: string}>}
    */
   async handleLuckQuery(data, user) {
-    const refusal = refuseQuery(user, "Luck token gifts");
+    const refusal = refuseQuery(user, game.i18n.localize("SDE.crawlStrip.refuse.luckGifts"));
     if (refusal) return refusal;
-    if (data?.action !== "luck:give") return { ok: false, error: "Unknown luck action." };
+    if (data?.action !== "luck:give") return { ok: false, error: game.i18n.localize("SDE.crawlStrip.unknownLuckAction") };
 
     // Only someone who owns the GIVER may give from it — and both ends must be
     // Player actors. Players routinely own NPCs (familiars, mounts, hirelings),
@@ -312,9 +312,9 @@ export const CrawlStrip = {
     // sentences reach the player who pressed the button rather than dying in a
     // notification on the GM's screen.
     const receiver = game.actors.get(data.receiverId);
-    if (!receiver) return { ok: false, error: "That character no longer exists." };
+    if (!receiver) return { ok: false, error: game.i18n.localize("SDE.crawlStrip.receiverGone") };
     if (receiver.type !== "Player") {
-      return { ok: false, error: "Luck tokens can only be given to a player character." };
+      return { ok: false, error: game.i18n.localize("SDE.crawlStrip.receiverNotPc") };
     }
 
     // Hand the transfer's own refusals back to the requester. They used to be
@@ -350,7 +350,7 @@ export const CrawlStrip = {
    * @returns {Promise<{ok: boolean, error?: string}>}
    */
   async handleAdvanceTurnQuery(data, user) {
-    const refusal = refuseQuery(user, "Combat turn advances");
+    const refusal = refuseQuery(user, game.i18n.localize("SDE.crawlStrip.refuse.combatAdvances"));
     if (refusal) return refusal;
     if (data?.action !== "combat:nextTurn") {
       return { ok: false, error: game.i18n.localize("SDE.crawlStrip.unknownCombatAction") };
@@ -415,7 +415,7 @@ export const CrawlStrip = {
    * @returns {Promise<{ok: boolean, error?: string}>}
    */
   async handleOocAdvanceQuery(data, user) {
-    const refusal = refuseQuery(user, "Out-of-combat turn advances");
+    const refusal = refuseQuery(user, game.i18n.localize("SDE.crawlStrip.refuse.oocAdvances"));
     if (refusal) return refusal;
     if (data?.action !== "ooc:nextTurn") {
       return { ok: false, error: game.i18n.localize("SDE.crawlStrip.unknownAction") };
@@ -578,7 +578,7 @@ export const CrawlStrip = {
         });
       const heroes = entries.map(({ actorId, actor, tokenDoc }) => ({
         id:      `member-${actorId}`,
-        name:    tokenDoc?.name ?? actor.name ?? "Token",
+        name:    tokenDoc?.name ?? actor.name ?? game.i18n.localize("SDE.crawlStrip.tokenFallback"),
         img:     tokenDoc?.texture?.src ?? actor.img ?? "icons/svg/mystery-man.svg",
         type:    "player",
         actorId,
@@ -589,7 +589,7 @@ export const CrawlStrip = {
       // light tracker ticks, etc. (Vagabond pattern.)
       heroes.push({
         id:      "sde-gm",
-        name:    "Game Master",
+        name:    game.i18n.localize("SDE.crawlStrip.gmName"),
         img:     game.settings.get(MODULE_ID, "gmAvatarImage") || "icons/svg/cowled.svg",
         type:    "gm",
         actorId: null,
@@ -745,7 +745,7 @@ export const CrawlStrip = {
 
       // AC sub-line — rendered right under the name to keep the pill row uncrowded.
       const acLine = (data && data.ac != null && !concealStats)
-        ? `<div class="sde-strip-ac-line" title="Armor Class">AC ${data.ac}</div>`
+        ? `<div class="sde-strip-ac-line" title="${esc(game.i18n.localize("SDE.crawlStrip.acTitle"))}">${esc(game.i18n.format("SDE.crawlStrip.acLine", { ac: data.ac }))}</div>`
         : "";
 
       // Pills:
@@ -759,9 +759,9 @@ export const CrawlStrip = {
           // one of yours. data-action only when there's a token to spend;
           // data-actor-id always, so an empty pill still takes a right-click.
           const ownsLuck = !!game.actors.get(m.actorId)?.isOwner;
-          const luckTitle = !ownsLuck ? "Click or right-click to give one of your Luck Tokens"
-            : data.luck > 0 ? "Click to spend a Luck Token, right-click to add one"
-            : "No Luck Tokens — right-click to add one";
+          const luckTitle = esc(game.i18n.localize(!ownsLuck ? "SDE.crawlStrip.luckGiveTip"
+            : data.luck > 0 ? "SDE.crawlStrip.luckSpendTip"
+            : "SDE.crawlStrip.luckEmptyTip"));
           const luckClickable = data.luck > 0 ? `data-action="spendLuck" role="button" tabindex="0" aria-label="${luckTitle}"` : "";
           pills = `
         <div class="sde-strip-pills">
@@ -783,9 +783,9 @@ export const CrawlStrip = {
         if (activeEffects.length) {
           const icons = activeEffects.map(e => {
             const icon = esc(e.img || "icons/svg/aura.svg");
-            const label = esc(e.name || "Effect");
+            const label = esc(e.name || game.i18n.localize("SDE.crawlStrip.effectFallback"));
             const durationInfo = e.duration?.rounds
-              ? ` (${e.duration.rounds}R)`
+              ? ` ${esc(game.i18n.format("SDE.crawlStrip.effectRounds", { rounds: e.duration.rounds }))}`
               : "";
             return `<img class="sde-strip-effect-icon" src="${icon}" title="${label}${durationInfo}" alt="${label}" width="18" height="18" />`;
           }).join("");
@@ -806,7 +806,7 @@ export const CrawlStrip = {
         <div class="sde-strip-member ${isActivePhase ? "sde-strip-active" : "sde-strip-dim"} ${isTurn ? "sde-strip-is-turn" : ""} ${isDefeated ? "sde-strip-defeated" : ""} ${isHidden ? "sde-strip-hidden" : ""} sde-strip-type-${m.type}"
              data-member-id="${m.id}" data-token-id="${m.tokenId ?? ""}" data-actor-id="${m.actorId ?? ""}" ${m.combatantId ? `data-combatant-id="${m.combatantId}"` : ""} title="${!inCombat && isTurn ? game.i18n.localize("SDE.crawlStrip.currentTurn") : ""}" tabindex="0">
           <img class="sde-strip-portrait" src="${esc(m.img)}" alt="${esc(m.name)}" />
-          ${isHidden ? `<div class="sde-strip-hidden-icon" title="Hidden from players">${ICONS.eyeSlash}</div>` : ""}
+          ${isHidden ? `<div class="sde-strip-hidden-icon" title="${esc(game.i18n.localize("SDE.crawlStrip.hiddenTip"))}">${ICONS.eyeSlash}</div>` : ""}
           <div class="sde-strip-overlay">
             ${displayName ? `<div class="sde-strip-name">${displayName}</div>` : ""}
             ${acLine}
@@ -826,10 +826,10 @@ export const CrawlStrip = {
             // Combat mode: dice when combatant has no initiative; otherwise show the rolled value as a badge.
             if (inCombat && combatant) {
               if (combatant.initiative == null && (actor?.isOwner || game.user.isGM)) {
-                return `<button class="sde-strip-rollinit-btn" data-combatant-id="${combatant.id}" data-action="rollInit" title="Roll Initiative">${ICONS.diceD20}</button>`;
+                return `<button class="sde-strip-rollinit-btn" data-combatant-id="${combatant.id}" data-action="rollInit" title="${esc(game.i18n.localize("SDE.crawlStrip.rollInit"))}">${ICONS.diceD20}</button>`;
               }
               if (combatant.initiative != null) {
-                return `<div class="sde-strip-init-badge" title="Initiative">${combatant.initiative}</div>`;
+                return `<div class="sde-strip-init-badge" title="${esc(game.i18n.localize("SDE.crawlStrip.initiative"))}">${combatant.initiative}</div>`;
               }
             }
             // Crawl mode: dice when no oocInitiative; otherwise show the rolled
@@ -838,15 +838,15 @@ export const CrawlStrip = {
             if (!inCombat && m.actorId && m.type === "player") {
               const oocEntry = CrawlState.oocInitiative[m.actorId];
               if (!oocEntry && (actor?.isOwner || game.user.isGM)) {
-                return `<button class="sde-strip-rollinit-btn" data-actor-id="${m.actorId}" data-action="rollOocInit" title="Roll Initiative (out of combat)">${ICONS.diceD20}</button>`;
+                return `<button class="sde-strip-rollinit-btn" data-actor-id="${m.actorId}" data-action="rollOocInit" title="${esc(game.i18n.localize("SDE.crawlStrip.rollOocInit"))}">${ICONS.diceD20}</button>`;
               }
               if (oocEntry) {
-                return `<div class="sde-strip-init-badge" title="Initiative (out of combat)">${oocEntry.roll}</div>`;
+                return `<div class="sde-strip-init-badge" title="${esc(game.i18n.localize("SDE.crawlStrip.oocInitiative"))}">${oocEntry.roll}</div>`;
               }
             }
             return "";
           })()}
-          ${inCombat && combatant && game.user.isGM ? `<button class="sde-strip-activate-btn ${isCurrent ? "sde-strip-activate-active" : ""}" data-combatant-id="${combatant.id}" data-action="${isCurrent ? "endTurn" : "activateTurn"}" title="${isCurrent ? "End Turn" : "Activate Turn"}">${isCurrent ? ICONS.deactivate : ICONS.activate}</button>` : ""}
+          ${inCombat && combatant && game.user.isGM ? `<button class="sde-strip-activate-btn ${isCurrent ? "sde-strip-activate-active" : ""}" data-combatant-id="${combatant.id}" data-action="${isCurrent ? "endTurn" : "activateTurn"}" title="${esc(game.i18n.localize(isCurrent ? "SDE.crawlStrip.endTurn" : "SDE.crawlStrip.activateTurn"))}">${isCurrent ? ICONS.deactivate : ICONS.activate}</button>` : ""}
         </div>`;
 
       // Action menu tab strip — owned cards in any mode. Players need to cast
@@ -890,7 +890,7 @@ export const CrawlStrip = {
       memberCount: state.members?.length ?? 0,
       orderComplete: oocOrderComplete(state),
     })
-      ? `<button class="sde-strip-cbtn sde-strip-rollall-btn" data-action="rollAllOocInit" title="Roll initiative for everyone who hasn't rolled">${ICONS.diceD20}</button>`
+      ? `<button class="sde-strip-cbtn sde-strip-rollall-btn" data-action="rollAllOocInit" title="${esc(game.i18n.localize("SDE.crawlStrip.rollAllOoc"))}">${ICONS.diceD20}</button>`
       : "";
     // GM-only, like the rest of the badge (#165). Previous turn sits above the
     // round number, where combat's Previous Turn sits, and needs a live order
@@ -934,7 +934,7 @@ export const CrawlStrip = {
     const shopAvailable = !inCombat
       && (game.user.isGM || game.settings.get(MODULE_ID, "shopAvailableToPlayers"));
     const shopButton = shopAvailable
-      ? `<button class="sde-strip-merchant-btn" data-action="openMerchant" title="Open Merchant Shop"><i class="fas fa-store"></i></button>`
+      ? `<button class="sde-strip-merchant-btn" data-action="openMerchant" title="${esc(game.i18n.localize("SDE.crawlStrip.openMerchant"))}"><i class="fas fa-store"></i></button>`
       : "";
 
     // Combat: single flat init-ordered list, no PARTY/NPCS label.
@@ -948,7 +948,7 @@ export const CrawlStrip = {
              </div>`
           : `<div class="sde-strip-group sde-strip-group-heroes">
                <div class="sde-strip-label-col sde-strip-label-heroes">
-                 <div class="sde-strip-group-label">PARTY</div>
+                 <div class="sde-strip-group-label">${esc(game.i18n.localize("SDE.crawlStrip.partyLabel"))}</div>
                  ${shopButton}
                </div>
                <div class="sde-strip-members">${heroCards}</div>
@@ -990,7 +990,7 @@ export const CrawlStrip = {
    */
   _combatControlsHTML() {
     const combat = game.combat;
-    const roundNum = `<div class="sde-strip-round-num">R${combat?.round ?? 1}</div>`;
+    const roundNum = `<div class="sde-strip-round-num">${esc(game.i18n.format("SDE.crawlStrip.roundShort", { round: combat?.round ?? 1 }))}</div>`;
     if (game.user.isGM) {
       return `<div class="sde-strip-combat-controls">
         <button class="sde-strip-cbtn" data-combat="prevRound" title="${game.i18n.localize("SDE.crawlStrip.combatPrevRound")}">${ICONS.prevRound}</button>
@@ -1114,13 +1114,14 @@ export const CrawlStrip = {
 
     let title;
     if (lit) {
-      const mins = showMins ? ` — ${state.remainingMins} min left` : "";
-      const tail = clickable ? " · click to put out" : "";
-      title = `${state.activeName} is lit${mins}${tail}`;
+      const key = showMins
+        ? (clickable ? "SDE.crawlStrip.lightLitMinsClick" : "SDE.crawlStrip.lightLitMins")
+        : (clickable ? "SDE.crawlStrip.lightLitClick" : "SDE.crawlStrip.lightLit");
+      title = game.i18n.format(key, { name: state.activeName, mins: state.remainingMins });
     } else if (state.choices.length === 1) {
-      title = `Light ${state.choices[0].name}`;
+      title = game.i18n.format("SDE.crawlStrip.lightOne", { name: state.choices[0].name });
     } else {
-      title = `Light a source (${state.choices.length} carried)`;
+      title = game.i18n.format("SDE.crawlStrip.lightChoose", { count: state.choices.length });
     }
 
     const classes = [
@@ -1170,7 +1171,7 @@ export const CrawlStrip = {
       }
     } catch (err) {
       console.error(`${MODULE_ID} | light toggle failed`, err);
-      ui.notifications?.warn("Could not toggle that light source.");
+      ui.notifications?.warn(game.i18n.localize("SDE.crawlStrip.lightToggleFailed"));
     }
     this.queueRender();
   },
@@ -1198,8 +1199,8 @@ export const CrawlStrip = {
     const buttons = carried.map(i => ({ action: i.id, label: esc(i.name), icon: "fas fa-fire" }));
     buttons.push({ action: "cancel", label: game.i18n.localize("Cancel"), icon: "fas fa-times" });
     const result = await dlg.wait({
-      window: { title: "Light a Source", icon: "fas fa-fire" },
-      content: `<p>Which light source should ${esc(actor.name)} light?</p>`,
+      window: { title: "SDE.crawlStrip.lightDialogTitle", icon: "fas fa-fire" },
+      content: `<p>${game.i18n.format("SDE.crawlStrip.lightDialogPrompt", { name: esc(actor.name) })}</p>`,
       buttons,
       rejectClose: false,
     }).catch(() => null);
@@ -1397,7 +1398,7 @@ export const CrawlStrip = {
             btn.disabled = true;
             try {
               await relayToGM(CRAWL_TURN_QUERY, { action: "combat:nextTurn" },
-                { label: "combat turn advances" });
+                { label: game.i18n.localize("SDE.crawlStrip.relay.combatAdvances") });
             } finally {
               this._turnAdvanceInFlight = false;
               this.queueRender(); // re-render re-enables the button
@@ -1517,7 +1518,7 @@ export const CrawlStrip = {
     // only ever reads luck.available outside pulp — an "extra" written to
     // luck.remaining there is a token the player can never spend. Say so.
     if (!pulp && system.luck?.available) {
-      ui.notifications?.warn(`${actor.name} already has a luck token.`);
+      ui.notifications?.warn(game.i18n.format("SDE.crawlStrip.luckAlreadyHas", { name: actor.name }));
       return;
     }
 
@@ -1547,7 +1548,7 @@ export const CrawlStrip = {
     );
 
     if (!owned.length) {
-      ui.notifications?.warn("You have no luck tokens to give.");
+      ui.notifications?.warn(game.i18n.localize("SDE.crawlStrip.luckNoneOwned"));
       return;
     }
 
@@ -1560,12 +1561,12 @@ export const CrawlStrip = {
         return;
       }
       const confirmed = await dlg.confirm({
-        window: { title: "Give Luck Token" },
+        window: { title: "SDE.crawlStrip.giveLuckTitle" },
         content: game.i18n.format("SDE.crawlStrip.giveLuckConfirm", {
           giver: giver.name,
           receiver: receiver.name,
         }),
-        yes: { label: "Give", icon: "fas fa-hand-holding-heart" },
+        yes: { label: "SDE.crawlStrip.giveLuckYes", icon: "fas fa-hand-holding-heart" },
         no: { label: "Cancel", icon: "fas fa-times" },
         defaultYes: false,
       }).catch(() => false);
@@ -1581,12 +1582,12 @@ export const CrawlStrip = {
     }
     const buttons = owned.map(a => ({
       action: a.id,
-      label: `${a.name} (${this._luckCount(a)} luck)`,
+      label: game.i18n.format("SDE.crawlStrip.giveLuckFrom", { name: a.name, count: this._luckCount(a) }),
       icon: "fas fa-user",
     }));
     buttons.push({ action: "cancel", label: game.i18n.localize("Cancel"), icon: "fas fa-times" });
     const chosen = await dlg.wait({
-      window: { title: "Give Luck Token" },
+      window: { title: "SDE.crawlStrip.giveLuckTitle" },
       content: game.i18n.format("SDE.crawlStrip.giveLuckChoose", { receiver: receiver.name }),
       buttons,
       rejectClose: false,
@@ -1610,7 +1611,7 @@ export const CrawlStrip = {
         action: "luck:give",
         giverId: giver.id,
         receiverId: receiver.id,
-      }, { label: "luck token gifts" });
+      }, { label: game.i18n.localize("SDE.crawlStrip.relay.luckGifts") });
     }
   },
 
@@ -1632,7 +1633,7 @@ export const CrawlStrip = {
     // it has nowhere to put a second — refuse before anyone spends anything
     // rather than bank an unspendable one (see _addLuckToken).
     if (!pulp && rSystem.luck?.available) {
-      return { ok: false, error: `${receiver.name} already has a luck token.` };
+      return { ok: false, error: game.i18n.format("SDE.crawlStrip.luckAlreadyHas", { name: receiver.name }) };
     }
 
     // Spend from giver (use the system method so classic/pulp are handled
@@ -1643,7 +1644,7 @@ export const CrawlStrip = {
     // on either falsy answer would mint a token out of nothing.
     const spent = await giver.system?.useLuckToken?.(false);
     if (!spent) {
-      return { ok: false, error: `${giver.name} has no luck token to give.` };
+      return { ok: false, error: game.i18n.format("SDE.crawlStrip.luckNoneToGive", { name: giver.name }) };
     }
 
     const update = pulp

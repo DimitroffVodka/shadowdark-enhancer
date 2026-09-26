@@ -169,7 +169,7 @@ async function uploadMap(file) {
   const dir = `worlds/${game.world.id}/hex-maps`;
   try { await FP.createDirectory("data", dir); } catch (_err) { /* exists */ }
   const res = await FP.upload("data", dir, file, {}, { notify: false });
-  if (!res?.path) throw new Error("upload failed");
+  if (!res?.path) throw new Error(t("SDE.hexMap.error.uploadFailed"));
   return res.path;
 }
 
