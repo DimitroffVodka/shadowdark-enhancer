@@ -74,6 +74,7 @@ import { PartyXP } from "./party-xp/party-xp.mjs";
 import { SessionRecap } from "./session-recap/session-recap.mjs";
 import { DowntimeSession } from "./downtime/downtime-session.mjs";
 import { Renown } from "./renown/renown.mjs";
+import { Quests, openQuestLog, registerQuests } from "./quests/quests.mjs";
 import { registerActorTypes } from "./actors/register-actors.mjs";
 // Imported for its top-level createChatMessage hook: the out-of-combat
 // initiative sync must be live on the GM from load, not only after the GM
@@ -107,7 +108,7 @@ const STYLESHEET_REV = "32773381b43f";
 // stale); module.json carries the same hash and is fetched fresh at runtime. A
 // mismatch is a stale cache by construction — it cannot be anything else. Both
 // stamps are written by `npm run inventory` and gated by `inventory:check`.
-const BUILD_REV = "6600171b4483";
+const BUILD_REV = "30c2d66eecde";
 
 /**
  * Tell the user when their browser is running an old build of this module, and
@@ -276,6 +277,8 @@ Hooks.once("init", () => {
   ItemDrops.registerSettings();
   Renown.registerSettings();
   MonsterTokenArt.register();
+  // Quest Log: its Ctrl+Q keybinding can only be registered during init.
+  registerQuests();
   // Out-of-combat tracker as a sidebar tab, beside Combat. Must run in init:
   // Game#initializeUI constructs CONFIG.ui entries during setup, and anything
   // registered after that pass never gets an instance.
@@ -410,9 +413,10 @@ Hooks.once("init", () => {
   // game.modules.get(MODULE_ID).api on ready; consumers should listen for
   // the "shadowdarkEnhancer.ready" hook. Reference: docs/API.md.
   game.shadowdarkEnhancer = {
-    // 1.7.0 — additive: dying namespace and crawlRound hook (#181).
     // 1.6.0 — additive: statDamage namespace (tracked ability damage).
-    apiVersion: "1.7.0",
+    // 1.7.0 — additive: quests namespace (the Quest Log) and questsChanged.
+    // 1.8.0 — additive: dying namespace and the crawlRound hook (#181).
+    apiVersion: "1.8.0",
     // Guided, ordered Character Builder — a replacement for the system's
     // random generator. `open({ level0?, actor? })` renders the wizard.
     charBuilder: {
@@ -820,6 +824,16 @@ Hooks.once("init", () => {
       apply: (actor, ability, amount) => StatDamage.apply(actor, ability, amount),
       heal: (actor, opts) => StatDamage.heal(actor, opts),
       of: (actor) => StatDamage.of(actor),
+    },
+    // 1.7.0 — additive: the Quest Log. One world journal per quest; reads are
+    // filtered to what the calling user may see, writes are the GM's.
+    // `shadowdark-enhancer.questsChanged` fires on every client after a change.
+    quests: {
+      open: () => openQuestLog(),
+      list: (filter) => Quests.list(filter),
+      get: (id) => Quests.get(id),
+      create: (data) => Quests.create(data),
+      setStatus: (id, status) => Quests.setStatus(id, status),
     },
   };
 });

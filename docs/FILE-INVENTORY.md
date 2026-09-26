@@ -1,7 +1,7 @@
 # Shadowdark Enhancer — File Inventory
 
 <!-- inventory:stats:start -->
-1007 tracked files · ~173,100 lines of code/markup across scripts+templates+styles+test.
+1016 tracked files · ~176,000 lines of code/markup across scripts+templates+styles+test.
 `v0.17.3` in both `module.json` and `package.json`.
 <!-- inventory:stats:end -->
 **Layout reflects the 2026-07-21 feature-folder reorganization (v0.11.0 cycle).**
@@ -46,7 +46,7 @@
 
 | File | Lines | Description |
 |---|---:|---|
-| `shadowdark-enhancer.mjs` | 1145 | **Entry point** (module.json esmodules). Registers hooks, settings, sheets, actor sub-types, the public `game.shadowdarkEnhancer` API, and wires every sub-system. |
+| `shadowdark-enhancer.mjs` | 1159 | **Entry point** (module.json esmodules). Registers hooks, settings, sheets, actor sub-types, the public `game.shadowdarkEnhancer` API, and wires every sub-system. |
 | `luck-reroll/luck-reroll.mjs` | 176 | Wraps the system's `_onReroll` to enforce nat-1 prevention and log Luck rerolls to the session recap. |
 | `spell-mishap/spell-mishap.mjs` | 270 | Nat-1 spellcasting failures auto-roll the class's mishap table (wizard / witch / necromancer sets); divine casters are exempt. |
 | `scavenger/scavenger-core.mjs` | 171 | Pure Delver Scavenger rules: the 5-6 success range and Master Scavenger's widening (floored at 3-6), what counts as expending a consumable's last use (a 1→0 decrement or a delete at quantity 1 — never a stack deleted whole), and which single client rolls. |
@@ -83,7 +83,7 @@
 | `modes-of-play/hunter.mjs` | 96 | Hunter Mode (#184): on deleteCombat the active GM pays every PC in the fight XP for each NPC still defeated (half its level, level 1 → 1) through PartyXP.award, one card. Pure hunterXp/hunterAward + payHunterXp. |
 | `modes-of-play/pulp-core.mjs` | 127 | Pulp Mode pure half: critExtraFormula (the dice a crit adds to rolled damage, per applyCriticalHit), showLuckCrit, showForceReroll. |
 | `modes-of-play/pulp.mjs` | 294 | Pulp Mode (#185): session luck on the sessionStart hook (1d4, set), and the Luck: critical hit / force a reroll chat buttons. Both relay to the active GM (PULP_QUERY), which checks the requester, spends the token and edits the card. |
-| `training/training-app.mjs` | 240 | The Regional Training window (AppV2): pick a character, pick a trainer grouped by region, see all four benefits with the ones already taught struck through, and roll the trainer's d4. Names a benefits table that has not been imported instead of inventing its contents. |
+| `training/training-app.mjs` | 293 | The Regional Training window (AppV2): pick a character, pick a trainer grouped by region, see all four benefits with the ones already taught struck through, and roll the trainer's d4. Each task can be taken as a Quest Log quest for the character (GM) and shows Taken or Done. Names a benefits table that has not been imported instead of inventing its contents. |
 | `training/training-art.mjs` | 61 | One game-icons.net emblem per regional trainer, pre-tinted gold in the SVG the way the Character Builder's class art is. Fifteen reuse a vendored class emblem (often the honest pick — the assassin trainer leads the Ras-Godai); six are vendored under icons/game-icons/trainers/. Returns null rather than a placeholder path. |
 | `training/training-core.mjs` | 573 | Pure metadata for the Game Master's Guide's 21 regional trainers: trainer and region names, page numbers, the benefits table each one imports as, and a recipe per d4 face — Active Effect changes, one-time actions, either/or branches, or a stated reason the table must handle it. Ships no rules text; the book's wording is read from the GM's own imported table. Also the "once each" helpers and the roll walk. |
 | `training/training-grant.mjs` | 299 | Grants one training benefit for real: finds the GM's imported benefits table by name, reads the book's line for that d4 face, writes the Talent with its effects and provenance flag, and runs the one-time actions (permanent HP, a renown award through the ledger, an ability reroll, a granted weapon or item). Enforces "once each" off the character's own Talents. |
@@ -105,7 +105,7 @@
 | `curated-icon-maps/sea-wolf-plunder-icons.mjs` | 38 | The N3 §5.1/D4 Sea Wolf Plunder map: exactly 20 CS3 p68 source-qualified item phrases and reviewed native Foundry `icons/**.webp` paths, keyed without each row's terminal gp price. |
 | `curated-icon-maps/weapon-icons.mjs` | 47 | N3's 37 reviewed Foundry-native weapon icons, keyed by source-agnostic normalized final Item name and registered through the A4 discovery seam. |
 | `attack-card.mjs` | 107 | Reading a Shadowdark attack card — was it an attack at all (a targeted spell is not), did it land, who was it aimed at, who swung. Shared by Parry and Taunt so the two can never disagree about the target (they once did, silently). |
-| `settings.mjs` | 706 | All `game.settings.register` calls + migration-safe defaults. |
+| `settings.mjs` | 720 | All `game.settings.register` calls + migration-safe defaults. |
 | `icons.mjs` | 87 | Centralized icon registry — FontAwesome snippets and vendored SVG references. |
 | `compendium-suite.mjs` | 459 | Find-or-create layer for managed world packs, ownership, sidebar folders, and source folders. |
 | `loading-dialog-guard.mjs` | 112 | Guards the system's leaked `LoadingSD` spinner when `ItemSheetSD.getData` throws. |
@@ -123,7 +123,7 @@
 | `hover-peek.mjs` | 94 | Hover-to-enlarge for an image grid: one reusable fixed-position preview that flips away from the viewport edge and never takes the pointer. Shared by the character builder's art gallery and the Token Art Manager's image browser, which cannot scale a tile in place because their grids scroll. |
 | `module-flags.mjs` | 153 | What this module owns on a document's flags, and what survives a wholesale replacement (pure). `replaceDocument` updates with `recursive: false`, which is right for `system` and wrong for `flags`: a creation payload knows only the bookkeeping ITS pipeline stamps, so replacing the object outright deletes every other pipeline's — including `monsterSpell.libraryId`, the only handle the Monster Spell planner has on a generated spell, whose loss makes the next refresh create a duplicate (A8/#93). `preservedModuleFlags` re-merges this module's namespace only: keys the payload declares win, keys it never mentions survive, and other packages' namespaces are left exactly as the payload states them. `replacementFlags` then answers the two replace branches SEPARATELY, because they are not symmetric — an update keeps the document, so a payload declaring no flags correctly omits the key and the stored object is never touched, while a recreate DELETES the original and must therefore carry those blocks itself or lose them (the defect that quietly recreated a Monster Spell without its `libraryId` on any forced fallback or type mismatch). Also carries `isGeneratedMonsterSpell`, read from the library's own `monsterSpell.generated` marker and never from the A7/D6 `flags[MODULE_ID].generated` replace-always marker — the two contracts share the managed Items pack and mean opposite things. Foundry-free, node-tested. |
 | `property-note.mjs` | 194 | Stamps and preserves the "no core Shadowdark property" note on imported gear (pure). Also owns which description survives a REPLACE: the GM's own text beats importer output, and importer output is the empty placeholder, the note alone, or — since A8 — a description that merely echoes the document's name, which is exactly what `buildItemData`'s Spell path writes when a paste brings no prose. |
-| `setting-groups.mjs` | 182 | Feature groups for Configure Settings — which settings, nested editors, other packages' settings and notes each pop-out shows, in display order, incl. the Modes of Play boxes. Pure data; the docs-contract test imports it. |
+| `setting-groups.mjs` | 183 | Feature groups for Configure Settings — which settings, nested editors, other packages' settings and notes each pop-out shows, in display order, incl. the Modes of Play boxes. Pure data; the docs-contract test imports it. |
 | `settings-group-menu.mjs` | 208 | The per-feature settings pop-out (ApplicationV2): builds a DataField per setting the way SettingsConfig does (other packages' settings too), renders nested editor buttons, notes and Modes of Play switches, saves on submit, and mints one registerMenu class per group. |
 
 ### 3.3 `scripts/crawl-strip/` — the top strip + movement + combat sync
@@ -248,10 +248,10 @@
 
 | File | Lines | Description |
 |---|---:|---|
-| `importer-hub-app.mjs` | 967 | **The single front door (shell).** ApplicationV2 lifecycle, singleton, instance fields/caches, `_prepareContext`; installs the three method packs below onto the class (split 2026-07-22). |
+| `importer-hub-app.mjs` | 969 | **The single front door (shell).** ApplicationV2 lifecycle, singleton, instance fields/caches, `_prepareContext`; installs the three method packs below onto the class (split 2026-07-22). |
 | `importer-hub-paste.mjs` | 1585 | Paste box, type selector, parse dispatch, per-type preview field/row wiring. |
 | `importer-hub-commit.mjs` | 951 | Conflict dialogs, quality gates, magic-bundle plan, all per-type commit flows. |
-| `importer-hub-manage.mjs` | 1184 | Manage strip: censuses + caches, manage tree, gap/seed/cull, source-PDF grab/extract. |
+| `importer-hub-manage.mjs` | 1275 | Manage strip: censuses + caches, manage tree, gap/seed/cull, source-PDF grab/extract. |
 | `importer-hub-batch.mjs` | 711 | Batch “Import everything” runner: seeds, grabs, parses and commits each planned entry unattended. |
 | `importer-hub-shared.mjs` | 109 | Hub-shared constants/helpers + `installMethods` (the split's descriptor copier). |
 | `importer-hub-news.mjs` | 123 | What a module update added to the import library: snapshots every Manage-tree row once per module version, diffs the new snapshot against the last, and hands the hub the rows this release added but the GM has not imported (the "New" filter and badge) plus a one-time notice. |
@@ -264,7 +264,7 @@
 | `pdf-text-utils.mjs` | 157 | Shared PDF-text helpers + the HTML-safety contract. |
 | `source-pdf-registry.mjs` | 319 | Content source → the user's own uploaded PDF, for page deep-links. |
 | `source-pdf-viewer.mjs` | 66 | Singleton ApplicationV2 embedding Foundry's PDF.js viewer at a given page. |
-| `char-content/char-content-manifest.mjs` | 1835 | Metadata-only manifest of CS4–6 + WR char-builder content (names/types/sources, no rules text) + `parseCharContent` + census. |
+| `char-content/char-content-manifest.mjs` | 1841 | Metadata-only manifest of CS4–6 + WR char-builder content (names/types/sources, no rules text) + `parseCharContent` + census. |
 | `char-content/class-parser.mjs` | 1100 | Class section → structured unit (writeup, talents, tables, spellcasting). Pure. |
 | `char-content/class-importer-app.mjs` | 789 | Purpose-built single-view class workspace. |
 | `char-content/class-unit-importer.mjs` | 1448 | Class unit → real documents in dependency order. |
@@ -274,8 +274,8 @@
 | `char-content/language-resolver.mjs` | 16 | Language names → system UUIDs. |
 | `spells/spell-parser.mjs` | 290 | Spell blocks → Spell drafts. Pure. |
 | `spells/spell-importer-app.mjs` | 465 | Spell workspace organized by class / tier / alignment. |
-| `tables/table-importer.mjs` | 3702 | Roll-table text → structure. The big one; includes `repairSharedStartRanges`. |
-| `tables/table-shapes.mjs` | 800 | Per-unlock deterministic table SHAPE recipes (prayer/grid/lookup/reflow kinds). |
+| `tables/table-importer.mjs` | 3791 | Roll-table text → structure. The big one; includes `repairSharedStartRanges`. |
+| `tables/table-shapes.mjs` | 809 | Per-unlock deterministic table SHAPE recipes (prayer/grid/lookup/reflow kinds). |
 | `tables/table-hub.mjs` | 448 | Reconciles the shipped manifest against the live world (system / imported / missing). |
 | `tables/table-hub-app.mjs` | 596 | "Set up ALL tables" window — dashboard + import view. |
 | `tables/table-registry.mjs` | 206 | Parses live tables into `{source, page, displayName, subCategory}` and groups them. |
@@ -309,14 +309,15 @@
 | `items/item-builder-gear.mjs` | 298 | Pure stage-①/③ logic for the Item Builder. |
 | `items/item-census-live.mjs` | 200 | Items census adapter (same shape as monsters). |
 | `items/shikashi-icons.mjs` | 235 | Item name → bundled Shikashi icon matcher (284 icons). |
-| `tables/table-manifest.mjs` | 293 | Table manifest logic — the registry of catalogued tables (id, name, source, page) that drives the Manage-tree census. |
-| `tables/table-manifest-data.mjs` | 499 | The `TABLE_MANIFEST` data array — every catalogued table's metadata (names/sources/pages; no rules text). |
+| `tables/table-manifest.mjs` | 308 | Table manifest logic — the registry of catalogued tables (id, name, source, page) that drives the Manage-tree census. |
+| `tables/table-manifest-data.mjs` | 500 | The `TABLE_MANIFEST` data array — every catalogued table's metadata (names/sources/pages; no rules text). |
 | `boats/mount-parser.mjs` | 55 | Names-only WR mount manifest + selection of the requested mount from parsed statblock drafts. |
 | `boats/mount-importer.mjs` | 149 | Mount drafts → `shadowdark-enhancer.mount` actors in `sde-actors`, reusing the monster import pipeline. |
 | `boats/boat-parser.mjs` | 155 | Parses the WR p118 boats table → boat actor drafts (pure); names-only manifest. |
 | `boats/boat-importer.mjs` | 49 | Boat drafts → `shadowdark-enhancer.boat` actors in `sde-actors`. |
 | `boats/siege-parser.mjs` | 438 | Parses the WR p119 siege-weapons table → Weapon drafts + ammunition (pure). |
 | `boats/siege-importer.mjs` | 44 | Materializes Blast/Exploding Property items for the siege weapons in `sde-items`. |
+| `chapter-journal.mjs` | 308 | Chapter to journal (#194): a printed page range of a linked book → one JournalEntry in the journals pack, split at ALL-CAPS headings (or a preset's sections, e.g. the GM Guide's City-States) and reflowed, with page furniture dropped. Identity by flag, so a re-import updates in place and keeps GM pages; pages naming a key location link to its hex page and back. Presets are page numbers only. |
 | `hex/hex-book-import.mjs` | 154 | A book's whole hex key in one pass: per region, the keyed-location table and the pages of write-ups after it → one crawl entry per region. Page map only; no book text. |
 | `hex/hex-commit.mjs` | 229 | Hex-key drafts → JournalEntry pages in sde-journal (one entry per crawl, one page per hex); pure planner + two-pass link rewrite. |
 | `hex/hex-dataset.mjs` | 301 | Drafts + summary rows + tags → the Shadowdark Extras hexcrawl dataset (numbers only at the boundary). Pure. |
@@ -343,7 +344,7 @@
 | `char-builder-app.mjs` | 306 | `ShadowdarkCharBuilder` ApplicationV2 shell; drives the step lifecycle. |
 | `state.mjs` | 148 | `CharBuilderState` — the in-progress character. |
 | `constants.mjs` | 187 | Shared constants; hands off to the system's `CharacterGeneratorSD`. |
-| `data.mjs` | 255 | Thin wrappers over the system's compendium loaders. |
+| `data.mjs` | 296 | Thin wrappers over the system's compendium loaders. |
 | `commit.mjs` | 289 | `commitCharacter` — final actor creation + `coinsAfterGear`. |
 | `art.mjs` | 77 | Ancestry/class NAME → local portrait manifest. |
 | `art-gallery.mjs` | 525 | GM-curated portrait gallery (avoids granting players `FILES_BROWSE`). |
@@ -352,7 +353,7 @@
 | `steps/base-step.mjs` | 68 | Base class for character-builder wizard steps (shared lifecycle, render and validation). |
 | `steps/list-step.mjs` | 197 | Base class for the list/detail/aside steps (Ancestry, Class, Background, Deity). |
 | `steps/alignment-step.mjs` | 68 | Step — Alignment. Three choice cards (Lawful / Neutral / Chaotic). |
-| `steps/ancestry-step.mjs` | 233 | Step — Ancestry. List/detail pick contributing ancestry talents and languages. |
+| `steps/ancestry-step.mjs` | 237 | Step — Ancestry. List/detail pick contributing ancestry talents and languages. |
 | `steps/background-step.mjs` | 40 | Step — Background. A simple list/detail pick. |
 | `steps/class-step.mjs` | 896 | Step — Class. List/detail pick; parses the class writeup, talent table and spellcasting. |
 | `steps/deity-step.mjs` | 77 | Step — Deity. Optional list/detail pick showing the deity's detail. |
@@ -408,7 +409,7 @@ Ships the skeleton only (activity names, slot labels, DCs, paid flags, renown/XP
 
 | File | Lines | Description |
 |---|---:|---|
-| `renown-core.mjs` | 327 | Pure band ladder and phrasing: `renownBand`/`renownBonus` (≤3 / 4–7 / 8–11 / 12+ → +0/+1/+2/+3), `startingRenown` (the CHA modifier), the shared `recapRow`/`renownChangeLine` wording, the short trigger labels, `isDoubleOnes` — a raw 2d6 total of 2 can only be 1+1 — and `authorizeRenownAward`, the GM-only rule both the direct call and the query handler check. Also the two rules the automatic writes turn on: `shouldSeedStartingRenown` (a character is owed its one starting seed only while the flag is unspent, renown is 0 AND the ledger is empty) and the ledger helpers `appendRenownHistory` (capped, non-mutating), `historyRow` and `groupHistoryByPlayer`. Foundry-free, node-tested. |
+| `renown-core.mjs` | 328 | Pure band ladder and phrasing: `renownBand`/`renownBonus` (≤3 / 4–7 / 8–11 / 12+ → +0/+1/+2/+3), `startingRenown` (the CHA modifier), the shared `recapRow`/`renownChangeLine` wording, the short trigger labels, `isDoubleOnes` — a raw 2d6 total of 2 can only be 1+1 — and `authorizeRenownAward`, the GM-only rule both the direct call and the query handler check. Also the two rules the automatic writes turn on: `shouldSeedStartingRenown` (a character is owed its one starting seed only while the flag is unspent, renown is 0 AND the ledger is empty) and the ledger helpers `appendRenownHistory` (capped, non-mutating), `historyRow` and `groupHistoryByPlayer`. Foundry-free, node-tested. |
 | `renown.mjs` | 737 | The single write path for `system.renown`. `Renown.award` updates the actor, logs to the Session Recap and posts a chat card; downtime and the level-up watcher both route through it. Because the write is read-add-write, it is also the single WRITER: an award made on a GM client that is not `game.users.activeGM` is forwarded there over the `sde.renown` query (the delta travels, never a computed total), and on that client awards run one at a time through `_txQueue`, each re-reading the actor inside its turn — two GMs, or two overlapping awards on one, would otherwise lose one of them. Also the party readers the Encounter Roller uses, and the two automatic triggers, each settings-gated and active-GM-gated: the `renownOnLevelUp` `updateActor` watcher, and `renownOnCreate`'s `maybeSeedFromCha`, attempted on `createActor` and again on the first CHA change (an actor made through Create Actor starts on the model's default 10s, so a +0 seed does not spend the flag). Every award also writes a permanent per-character ledger to the `renownLog` flag IN THE SAME `actor.update` as the number, because `SessionRecap.logRenown` returns early with no session running; `history`/`historyByPlayer` read it back. An `updateActor` watcher also logs any renown change this module did NOT make (the Shadowdark sheet input, a macro, shadowdark-extras carousing calling `applyRenownDelta`) as `source: "external"`, told apart from our own writes by the ledger flag riding in the same update. GM-side only. |
 | `renown-award-dialog.mjs` | 238 | The GM's award / dock DialogV2. Party roster (renown, band, meaning, bonus) on top, then character + change + reason with the book's triggers as suggestions, then the collapsed per-player **Renown log** (native `<details>`, since DialogV2 does not re-render its content), plus a "Start at CHA mod" seed that forces past both the setting and the once-only rule. GM-only; every write goes through `Renown.award`. |
 
@@ -442,6 +443,16 @@ Structure and thresholds only. Venue descriptions, twist details, what each stak
 | `supporting-tables.mjs` | 800 | Foundry-free G8 logical-role registry for NPC/Rival supporting tables: exact manifest/source identities, ancestry/alignment dynamic child resolution, Signature Tactics matrix identities, pure row selection, and a read-only managed-pack adapter that fails closed on missing, foreign, duplicate, or name-only tables. |
 
 The report and idiom seams are pure data policy. Foundry adapters must translate documents into snapshots and keep reads separate from later generator/commit work.
+
+### 3.22 `scripts/quests/` — the Quest Log
+
+| File | Lines | Description |
+|---|---:|---|
+| `quest-core.mjs` | 357 | The Quest Log's rules, pure: the quest flag's one shape, status changes and the ownership each status gives, who a player may see, objectives, when rewards are paid (once, on the way into Completed) and to whom, list filters, which trainer tasks a character has taken, which map pin to jump to, and the player page's HTML. |
+| `quests.mjs` | 463 | The Quest Log's data and public API: one world JournalEntry per quest in a flagged Quests folder, with a player page rewritten from the flag and a GM notes page left alone. GM-only writes serialized per client through replaceModuleFlag; the payout confirmation and payout through Party XP, the renown ledger and item copies; Shadowdark Extras parties read from its flags behind a feature check; jump to pin; the Ctrl+Q keybinding, the Journal sidebar button and the debounced questsChanged hook. |
+| `quest-log-app.mjs` | 241 | The Quest Log window (AppV2): a tab per status (Hidden for the GM only), filters by character, party and source, the quest list and the chosen quest. The GM edits in place (objectives, rewards with items dropped on, characters, party, hex); players get the same quest read-only. |
+
+One world JournalEntry per quest, its state one flag on the entry. World journals rather than the managed journal pack, because a compendium has one ownership for the whole pack and a quest's visibility is per quest. Every write is the GM's.
 <!-- inventory:scripts:end -->
 ---
 

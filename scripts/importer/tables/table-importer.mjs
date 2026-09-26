@@ -2114,7 +2114,8 @@ function isSectionCaption(line) {
   // "LOW STAKES PIT FIGHT (SOLO)" / "(GROUP)", and rejecting those left six
   // stacked encounter tables with no boundary between them — the whole page
   // parsed as one table with overlapping rows.
-  return /^[A-Z0-9][A-Z0-9 '&/.()-]*$/.test(t) && !/[a-z]/.test(t);
+  // A caption may shout: the GM Guide's p33 table is "CAUGHT IN DANGER!".
+  return /^[A-Z0-9][A-Z0-9 '&/.()!-]*$/.test(t) && !/[a-z]/.test(t);
 }
 
 /**
@@ -2550,6 +2551,9 @@ export function parseByShape(text, shape, { name = "" } = {}) {
   }
   if (shape.kind === "banded") {
     const pt = parseBandedSlice(text, { name, caption: shape.caption, size: shape.size });
+    // Split at commit, not here, so the preview shows the rows as printed and
+    // the GM's edits to them reach the sub-tables (createNestedTables).
+    if (pt && shape.nested) pt.nestedRolls = true;
     return pt ? { tables: [pt] } : null;
   }
   if (shape.kind === "labeled-section") {
@@ -2769,7 +2773,7 @@ export function buildTableData(pt) {
   }
   const maxRange = (pt.rows ?? []).reduce((m, r) => Math.max(m, r.max), 0);
   const formula = (pt.formula ?? "").trim() || `1d${Math.max(1, maxRange)}`;
-  const results = stripPrintedRowKeys(pt.rows ?? []).map(r => {
+  const results = stripPrintedRowKeys(pt.rows ?? []).flatMap(r => {
     let resultText = r.text ?? "";
     // Loot linking: embed a clickable @UUID on the matched noun. String
     // replace touches only the first occurrence; if the GM edited the text
@@ -2777,12 +2781,16 @@ export function buildTableData(pt) {
     if (r.link?.uuid && r.link.matched) {
       resultText = resultText.replace(r.link.matched, `@UUID[${r.link.uuid}]{${r.link.matched}}`);
     }
-    return {
-      type: TEXT,
-      name: resultText,
-      weight: 1,
-      range: [r.min, r.max],
-    };
+    const text = { type: TEXT, name: resultText, weight: 1, range: [r.min, r.max] };
+    // A row that rolls its own table (createNestedTables) keeps its label and
+    // gains a RollTable result on the same range. Foundry draws that result
+    // recursively, so one roll posts the label and the nested answer.
+    if (!r.subtable?.uuid) return [text];
+    return [text, {
+      type: "document", name: r.subtable.name ?? "", documentUuid: r.subtable.uuid, weight: 1, range: [r.min, r.max],
+      // Marked so the row count (tableRowCount) sees one row, not two.
+      flags: { "shadowdark-enhancer": { nestedRoll: true } },
+    }];
   });
   // displayRoll:false keeps the roll formula out of the chat card, which is
   // what Dice So Nice's "Enable 3D dice on Roll Tables" feature requires to
@@ -2791,6 +2799,78 @@ export function buildTableData(pt) {
     name, formula, replacement: pt.replacement !== false, displayRoll: false, results,
     ...(pt.description ? { description: pt.description } : {}),
   };
+}
+
+/**
+ * Read the follow-up roll a row prints inside itself — "Gremlins. 1d6: 1. Alpha
+ * 2. Beta … 6. Zeta" — as the row's label and that roll's rows. The die comes
+ * from the row (the GM Guide's Type of Trouble rolls a d6 on eight rows and a
+ * d4 on two). Every face 1..N must be numbered, in order, from the start of the
+ * list, or the row is left whole: half a list would roll answers the book never
+ * printed. Pure.
+ *
+ * @param {string} text  one row's text
+ * @returns {{label:string, formula:string, rows:{min:number,max:number,text:string}[]}|null}
+ */
+export function splitNestedRoll(text) {
+  const m = /^(.+?)\.?\s+1?d(\d{1,2})\s*:\s*(.+)$/i.exec(String(text ?? "").trim());
+  if (!m) return null;
+  const size = Number(m[2]);
+  const list = m[3];
+  const marks = [];
+  let from = 0;
+  for (let face = 1; face <= size; face++) {
+    const re = new RegExp(`(?:^|\\s)${face}\\.\\s+`, "g");
+    re.lastIndex = from;
+    const hit = re.exec(list);
+    if (!hit || (face === 1 && hit.index !== 0)) return null;
+    from = hit.index + hit[0].length;
+    marks.push({ at: hit.index, body: from });
+  }
+  const rows = marks.map((mk, i) => ({
+    min: i + 1, max: i + 1, text: list.slice(mk.body, marks[i + 1]?.at ?? list.length).trim(),
+  }));
+  if (!size || rows.some((r) => !r.text)) return null;
+  return { label: m[1].trim(), formula: `1d${size}`, rows };
+}
+
+/**
+ * What a nested row's sub-table does when its name is taken: whatever the GM
+ * chose for the parent. Replace → replace; "create as copy" → copies too. A
+ * parent with no conflict is a fresh import, so a sub-table already there is
+ * a leftover of an earlier one and is replaced in place, never duplicated.
+ * Pure.
+ * @param {{existing:boolean, replace:boolean}} parent
+ * @returns {"replace"|"rename"}
+ */
+export function nestedConflictChoice({ existing, replace }) {
+  return existing && !replace ? "rename" : "replace";
+}
+
+/**
+ * Give every row that prints its own follow-up roll a table of its own (#188).
+ * `create` commits one sub-table draft and returns the document (createTable in
+ * production, once the parent's own conflict is settled). Sub-tables are made
+ * before the parent is written so the row can point at a real uuid, and are
+ * named "<parent>: <label>" — the grid convention, so they file beside the
+ * parent. A sub-table that did not commit (blocked) leaves its row exactly as
+ * printed, so nothing the GM imported is lost.
+ *
+ * @param {object} pt  a parsed table draft
+ * @param {(draft: object) => Promise<object|null>} create
+ * @returns {Promise<object>} the parent draft, rows relabelled and linked
+ */
+export async function createNestedTables(pt, create) {
+  const rows = [];
+  for (const row of pt.rows ?? []) {
+    const nested = splitNestedRoll(row.text);
+    const sub = nested && await create({
+      name: `${pt.name}: ${nested.label}`, formula: nested.formula, replacement: true, rows: nested.rows,
+      category: pt.category, customLabel: pt.customLabel, folderPath: pt.folderPath, source: pt.source,
+    });
+    rows.push(sub?.uuid ? { ...row, text: nested.label, subtable: { uuid: sub.uuid, name: sub.name } } : row);
+  }
+  return { ...pt, rows, nestedRolls: false };
 }
 
 // Internal exports for tooling/tests that want the lower-level pieces.
@@ -3031,6 +3111,15 @@ export async function createTable(pt, { onConflict, allowInvalid = false } = {})
     } else {
       data.name = _uniqueNameAgainstIndex(data.name, [...packIndex]);
     }
+  }
+
+  // Rows that print their own follow-up roll get their tables now (#188):
+  // after the parent's own answer, so cancelling it leaves nothing behind,
+  // and the sub-tables take that answer instead of asking ten more times.
+  if (pt.nestedRolls) {
+    const follow = nestedConflictChoice({ existing: !!existing, replace: !!replaceTarget });
+    pt = await createNestedTables(pt, (sub) => createTable(sub, { onConflict: async () => follow, allowInvalid }));
+    data.results = buildTableData(pt).results;
   }
 
   // File into the category-first folder tree that mirrors the Manage strip

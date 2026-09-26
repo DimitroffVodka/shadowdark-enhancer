@@ -29,6 +29,7 @@ Encounters, and Loot & XP.
 | **Animate dice (Dice So Nice)** | off | Plays 3D dice roll animations for builder rolls. Chat audit card posts either way. |
 | **Max Level-1 HP** | off | Sets HP to maximum hit die + CON instead of rolling. Above level 1, every level's die is maxed. |
 | **Fixed starting gold (gp)** | `0` | Flat starting gold amount. `0` rolls standard `2d6 × 5 gp`. |
+| **Random ancestry table** | *(empty)* | A roll table dropped here, such as the Western Reaches *Ancestry (Population)* d100, is what the Ancestry step's Random rolls. The result is matched to an ancestry by name. Empty keeps each ancestry's random weight. |
 | **Extra gear** *(menu)* | *(empty)* | GM-only picker (**Manage Extra Gear**) adding custom items to the starting shop. |
 
 See [Character Builder](Character-Builder.md).

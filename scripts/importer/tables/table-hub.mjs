@@ -15,7 +15,7 @@
  */
 import { MODULE_ID } from "../../shared/module-id.mjs";
 import {
-  verify, isMatrix, columnManifestId, SOURCES, sourceShort, citesOf, catalogEntries,
+  verify, isMatrix, columnManifestId, SOURCES, sourceShort, citesOf, catalogEntries, tableRowCount,
 } from "./table-manifest.mjs";
 import { suiteMemberNames } from "./table-shapes.mjs";
 import { findSuitePack } from "../../shared/compendium-suite.mjs";
@@ -371,7 +371,7 @@ export const TableHub = {
           ? sysIds.has(entry.systemUuid.split(".").pop())
           : false;
         const match = this._matchWorld(entry, world);
-        const ctx = { systemPresent, world: match ? { rows: match.results.size } : null };
+        const ctx = { systemPresent, world: match ? { rows: tableRowCount(match.results) } : null };
         const st = statusOf(entry, ctx);
         const uuid = st.state === "system" ? entry.systemUuid
           : st.state === "imported" ? (match?.uuid ?? null)

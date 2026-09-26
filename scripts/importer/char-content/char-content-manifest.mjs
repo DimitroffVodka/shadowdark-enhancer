@@ -294,6 +294,8 @@ const GMWR_TABLES = [
     [`${region} Encounters`, String(page)],
     [`${region} Points of Interest`, String(page + 1)],
   ]),
+  // What befalls a PC still in an adventuring site when the session ends.
+  ["Caught in Danger!", "33"],
   ["Trouble in the Reaches: Region", "48"],
   ["Trouble in the Reaches: Settlement", "48"],
   ["Type of Trouble", "49"],
@@ -521,6 +523,9 @@ const MANIFEST = {
       "Carousing Mishap", "Carousing Benefit", "Western Reach Backgrounds",
       // Necromancer mishap tables (WR pp.186-187)
       "Necromancer Mishap 1-3", "Necromancer Mishap 4-5",
+      // The population d100 the Character Builder's Random ancestry can roll
+      // (setting charBuilderAncestryTable)
+      "Ancestry (Population)",
     ],
     Talent: [
       "+1 Parry Use Per Day", "+1 to Any Stat and Roll Again", "+1 to Any Two Stats",
@@ -753,6 +758,7 @@ const TABLE_PAGES = {
     // Necromancer mishap tables
     "Necromancer Mishap 1-3": "186",
     "Necromancer Mishap 4-5": "187",
+    "Ancestry (Population)": "14",
   },
   CS3: {
     "Cursed Scroll 3 p16: Nord Male Names": "16",
