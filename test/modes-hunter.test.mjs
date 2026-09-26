@@ -34,3 +34,9 @@ test("nothing defeated pays nothing", () => {
   assert.deepEqual(hunterAward([pc("ana"), npc("Troll", 7, false)]), { total: 0, monsters: [], pcIds: ["ana"] });
   assert.deepEqual(hunterAward(), { total: 0, monsters: [], pcIds: [] });
 });
+
+test("friendly and hidden combatants pay nothing, even when down", () => {
+  const out = hunterAward([pc("ana"), { ...npc("Skeleton", 2), friendly: true }, { ...npc("Lurker", 4), hidden: true }, npc("Orc", 2)]);
+  assert.equal(out.total, 1);
+  assert.deepEqual(out.monsters.map((m) => m.name), ["Orc"]);
+});

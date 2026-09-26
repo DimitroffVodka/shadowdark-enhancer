@@ -520,6 +520,9 @@
   "SDE.taunt.armed": "{name} has advantage against {enemy} until the end of their next turn.",
   "SDE.taunt.applied": "Taunt: advantage against {enemy}.",
   "SDE.taunt.cancelled": "Taunt: advantage against {enemy}, cancelled by disadvantage.",
+  "SDE.statDamage.effect": "{amount} {ability} damage",
+  "SDE.statDamage.rider": "{target} takes {ability} damage from {source}.",
+  "SDE.statDamage.saveTitle": "Save against {source}",
   "SDE.settings.renownOnCreate.name": "Starting renown from CHA",
   "SDE.settings.renownOnCreate.hint": "New characters start with renown equal to their Charisma modifier.",
   "SDE.settings.renownOnLevelUp.name": "Renown on level-up",
@@ -1451,5 +1454,6 @@
   "SDE.hunter.label": "Hunter: {monsters}",
   "SDE.chaos.clockwise": "Chaos Mode is off while the system's clockwise initiative is on: clockwise re-sorts the order every time initiative changes.",
   "SDE.chaos.speaker": "Chaos",
-  "SDE.chaos.header": "Round {round}: initiative rerolled"
+  "SDE.chaos.header": "Round {round}: initiative rerolled",
+  "SDE.hunter.count": "{name} ×{count}"
 }
