@@ -86,14 +86,19 @@ export function encounterZoneTargets(zoneName, resultText) {
   if (!isEncounterZoneTable(name)) return [];
   const base = name.replace(/\s*Encounter (?:Zone|Type).*$/, "").trim();
   if (!base) return [];
+  return zoneCategories(resultText)
+    .map((part) => (/^special$/i.test(part)
+      ? `${base} Special Encounters`
+      : `${base} Encounters: ${part}`));
+}
+
+/** A zone row's categories, footnote markers off: "Land1 + Horror†" → ["Land", "Horror"]. */
+export function zoneCategories(resultText) {
   return String(resultText ?? "")
     .replace(FOOTNOTE_MARKER, "")
     .split(/\s*\+\s*/)
     .map((part) => part.replace(FOOTNOTE_MARKER, "").trim())
-    .filter(Boolean)
-    .map((part) => (/^special$/i.test(part)
-      ? `${base} Special Encounters`
-      : `${base} Encounters: ${part}`));
+    .filter(Boolean);
 }
 
 /**

@@ -3356,9 +3356,6 @@ body.theme-light .sde-hub-monsters-row td {
 
 /* Flavor result card (chat + window) — large readable text, no facets. */
 .sde-result-flavor .sde-flavor-text,
-/* Which table a zone table's category sent the roll to (#262). */
-.sde-result-via { margin: 0 0 6px; font-size: 0.85em; font-style: italic; opacity: 0.8; }
-
 .sde-encounter-flavor-card .sde-flavor-text {
   padding: 12px 16px;
   font-size: 14px;
@@ -3369,6 +3366,9 @@ body.theme-light .sde-hub-monsters-row td {
   border-left: 3px solid var(--sde-bar-accent-dim);
   border-radius: 0 var(--sde-bar-radius) var(--sde-bar-radius) 0;
 }
+
+/* Which table a zone table's category sent the roll to (#262). */
+.sde-result-via { margin: 0 0 6px; font-size: 0.85em; font-style: italic; opacity: 0.8; }
 
 /* ── Result Card ────────────────────────────────────────────────────────── */
 

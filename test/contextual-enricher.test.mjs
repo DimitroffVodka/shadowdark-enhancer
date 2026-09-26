@@ -30,7 +30,7 @@ import {
   enrichDice,
 } from "../scripts/shared/contextual-enricher.mjs";
 import { convertDice, enrichEncounterText, MonsterLinker } from "../scripts/importer/monsters/monster-linker.mjs";
-import { isArcticSeaEncounterTable, TableEnricher, encounterZoneTargets, isEncounterZoneTable, categoryTables } from "../scripts/importer/tables/table-enrich.mjs";
+import { isArcticSeaEncounterTable, TableEnricher, encounterZoneTargets, isEncounterZoneTable, categoryTables, zoneCategories } from "../scripts/importer/tables/table-enrich.mjs";
 import { MODULE_ID } from "../scripts/shared/module-id.mjs";
 
 /** The system's own enricher pattern — copied, not imported (it lives in the system). */
@@ -447,6 +447,12 @@ test("two concurrent treasure enrichments of one table run the catalog once", as
 // ── Encounter Zone → encounter table routing ────────────────────────────────
 // A zone table is an INDEX, not content: rolling it yields a category, and the
 // GM is meant to roll that region's table for it. These names decide which.
+test("zoneCategories: a row's categories as the card names them, footnote markers off", () => {
+  assert.deepEqual(zoneCategories("Land1"), ["Land"]);
+  assert.deepEqual(zoneCategories("Beast + Horror\u2020"), ["Beast", "Horror"]);
+  assert.deepEqual(zoneCategories(""), []);
+});
+
 test("encounterZoneTargets maps a zone row to its region's encounter table", () => {
   assert.deepEqual(
     encounterZoneTargets("Djurum Desert Encounter Zone: Salt Flat", "Digger"),

@@ -168,7 +168,7 @@
 
 | File | Lines | Description |
 |---|---:|---|
-| `encounter-roller-app.mjs` | 1468 | The Encounter Roller shell + tabs (Roll Tables / Build / Browse / Creator). |
+| `encounter-roller-app.mjs` | 1480 | The Encounter Roller shell + tabs (Roll Tables / Build / Browse / Creator). |
 | `encounter-check.mjs` | 113 | The d6 random-encounter check + chat post. Options (#232): a threshold, the travel hex (its region as the zone), a card label and the recap clock label, for Overland's travel checks. |
 | `encounter-result.mjs` | 41 | Distance / Activity / Reaction RAW lookups. |
 | `encounter-build.mjs` | 292 | Build-a-table data layer (slots, die formats, save to RollTable). |
@@ -295,7 +295,7 @@
 | `tables/table-structure-seeds.mjs` | 2106 | Structure-only seeds (formulas, folders, flags, chain links). |
 | `tables/table-folders.mjs` | 426 | Single source of truth for where a table files in `sde-tables` — **owns the Gameplay vs Roll Tables split**. |
 | `tables/table-categories.mjs` | 65 | Table-type taxonomy + classifier. |
-| `tables/table-enrich.mjs` | 297 | Brings imported tables to "Ruin Encounters" standard; owns the debounced auto-relink sweep. |
+| `tables/table-enrich.mjs` | 302 | Brings imported tables to "Ruin Encounters" standard; owns the debounced auto-relink sweep. |
 | `tables/core-table-groups.mjs` | 277 | Core Rulebook table groups (`section: "gameplay"` vs roll tables) for the Manage tree. |
 | `tables/compound-table.mjs` | 93 | Mad-libs generator roll behaviour. |
 | `tables/hex-parser.mjs` | 488 | Hex-key dumps → per-hex draft journal pages. Pure. |
