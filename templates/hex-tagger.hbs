@@ -195,10 +195,10 @@
           {{#each c.terrainOptions as |o|}}<option value="{{o.value}}" {{#if o.selected}}selected{{/if}}>{{o.label}}</option>{{/each}}
         </select>
         <input type="text" data-hxt-terrain-other data-num="{{c.num}}" value="{{c.terrainOther}}" placeholder="{{localize 'SDE.hexMap.label.otherTerrain'}}" aria-label="{{localize 'SDE.hexMap.label.otherTerrainAria'}}" {{#unless c.terrainOther}}hidden{{/unless}}>
-        <span class="sde-hxt-overlays">
-          <label><input type="checkbox" data-hxt-overlay data-num="{{c.num}}" value="river" {{#if c.overlays.river}}checked{{/if}}> {{localize "SDE.hexMap.overlay.river"}}</label>
-          <label><input type="checkbox" data-hxt-overlay data-num="{{c.num}}" value="path" {{#if c.overlays.path}}checked{{/if}}> {{localize "SDE.hexMap.overlay.path"}}</label>
-          <label title="{{localize 'SDE.hexMap.tip.coast'}}"><input type="checkbox" data-hxt-overlay data-num="{{c.num}}" value="coast" {{#if c.overlays.coast}}checked{{/if}}> {{localize "SDE.hexMap.overlay.coast"}}</label>
+        <span class="sde-hxt-features">
+          <label><input type="checkbox" data-hxt-feature data-num="{{c.num}}" value="river" {{#if c.features.river}}checked{{/if}}> {{localize "SDE.hexMap.feature.river"}}</label>
+          <label><input type="checkbox" data-hxt-feature data-num="{{c.num}}" value="path" {{#if c.features.path}}checked{{/if}}> {{localize "SDE.hexMap.feature.path"}}</label>
+          <label title="{{localize 'SDE.hexMap.tip.coast'}}"><input type="checkbox" data-hxt-feature data-num="{{c.num}}" value="coast" {{#if c.features.coast}}checked{{/if}}> {{localize "SDE.hexMap.feature.coast"}}</label>
         </span>
       </div>
       {{/if}}

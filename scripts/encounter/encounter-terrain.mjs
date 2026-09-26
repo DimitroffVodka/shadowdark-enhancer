@@ -102,20 +102,20 @@ export const WATERY = new Set(["ocean", "arctic_sea", "lake", "river", "coast", 
  * Which of a region's columns this hex could roll on.
  *
  * Two tiers, and the tiers matter: a column naming the hex's own terrain (or
- * one of its river/path/coast overlays) beats a catch-all like "Water", so a
+ * one of its river/path/coast features) beats a catch-all like "Water", so a
  * coast hex in a region printing both Coast and Water takes Coast.
  *
  * More than one match is not resolved here. It means the book split that
  * terrain by something the map does not say — day and night, a moon phase,
  * north and south — and picking one would be inventing the answer.
  * @param {string} terrain            the hex's terrain tag
- * @param {string[]} overlays         its river/path/coast tags
+ * @param {string[]} features         its river/path/coast tags
  * @param {Array<{column:string}>} columns  that region's imported columns
  * @returns {Array<object>} the columns that fit, best tier only
  */
-export function zoneCandidates(terrain, overlays, columns) {
+export function zoneCandidates(terrain, features, columns) {
   const key = terrainKey(terrain);
-  const marks = (overlays ?? []).map(terrainKey);
+  const marks = (features ?? []).map(terrainKey);
   const exact = [], category = [];
   const wet = WATERY.has(key) || marks.some((m) => WATERY.has(m));
   for (const col of columns ?? []) {
@@ -132,10 +132,10 @@ export function zoneCandidates(terrain, overlays, columns) {
  * The encounter table for a hex, by region and terrain.
  * @returns {{status:"ok", column:object}|{status:"ambiguous", columns:object[]}|{status:"none"}}
  */
-export function pickZoneTable(region, terrain, overlays, byRegion) {
+export function pickZoneTable(region, terrain, features, byRegion) {
   const columns = byRegion?.get?.(region) ?? byRegion?.[region];
   if (!columns?.length) return { status: "none" };
-  const hit = zoneCandidates(terrain, overlays, columns);
+  const hit = zoneCandidates(terrain, features, columns);
   if (hit.length === 1) return { status: "ok", column: hit[0] };
   if (hit.length > 1) return { status: "ambiguous", columns: hit };
   return { status: "none" };
@@ -184,7 +184,7 @@ function partyPoints(canvasRef) {
 
 /**
  * The hex the party is in on the active scene.
- * @returns {{num:number, terrain:string|null, overlays:string[]}|null} null when the
+ * @returns {{num:number, terrain:string|null, features:string[]}|null} null when the
  *   scene is not a numbered hex map or no party token is on it
  */
 export function partyHex(canvasRef = globalThis.canvas) {
@@ -201,7 +201,7 @@ export function partyHex(canvasRef = globalThis.canvas) {
   const num = [...counts.entries()].sort((a, b) => b[1] - a[1])[0]?.[0];
   if (num === undefined) return null;
   const cell = decodeTags(flag).cells.get(String(num));
-  return { num, terrain: cell?.terrain ?? null, overlays: cell?.overlays ?? [] };
+  return { num, terrain: cell?.terrain ?? null, features: cell?.features ?? [] };
 }
 
 /** Every roll table the GM could pick: the world's, then this module's pack. */

@@ -66,10 +66,10 @@ test("a keyed row becomes the tag the map wants: the feature, plus the book's ri
   ].join("\n"));
   assert.equal(rows.length, 4);
   assert.deepEqual(rows.map((r) => [r.num, rowTag(r)]), [
-    ["1251", { terrain: "keyed_location", overlays: ["path"] }],
-    ["358", { terrain: "town", overlays: [] }],
-    ["211", { terrain: "keyed_location", overlays: [] }],
-    ["418", { terrain: "city", overlays: ["river"] }],
+    ["1251", { terrain: "keyed_location", features: ["path"] }],
+    ["358", { terrain: "town", features: [] }],
+    ["211", { terrain: "keyed_location", features: [] }],
+    ["418", { terrain: "city", features: ["river"] }],
   ]);
 });
 
@@ -78,18 +78,18 @@ test("a row with no feature is not a tag", () => {
   assert.equal(rowTag(null), null);
 });
 
-test("an overlay printed as the FIRST terrain word is still an overlay", () => {
+test("a feature printed as the FIRST terrain word is still a feature", () => {
   // The books say only "Coast" or "River" for a keyed hex when there is nothing
   // else to say about the ground. The tag's terrain is the feature, so that
-  // word is free to be read as the overlay it is.
+  // word is free to be read as the feature it is.
   assert.deepEqual(rowTag({ feature: "keyed_location", terrain: ["coast"] }),
-    { terrain: "keyed_location", overlays: ["coast"] });
+    { terrain: "keyed_location", features: ["coast"] });
   assert.deepEqual(rowTag({ feature: "village", terrain: ["river", "swamp"] }),
-    { terrain: "village", overlays: ["river"] });
-  // Both words count when both are overlays, in printed order.
+    { terrain: "village", features: ["river"] });
+  // Both words count when both are features, in printed order.
   assert.deepEqual(rowTag({ feature: "city_state", terrain: ["coast", "river"] }),
-    { terrain: "city_state", overlays: ["coast", "river"] });
-  // A terrain word that is not an overlay is still not one.
+    { terrain: "city_state", features: ["coast", "river"] });
+  // A terrain word that is not a feature is still not one.
   assert.deepEqual(rowTag({ feature: "keyed_location", terrain: ["arctic_sea"] }),
-    { terrain: "keyed_location", overlays: [] });
+    { terrain: "keyed_location", features: [] });
 });

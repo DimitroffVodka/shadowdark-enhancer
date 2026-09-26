@@ -11,12 +11,39 @@ its own:
    region, terrain, name) alongside it. For a book it has a page map for, it
    reads the whole key — every region's full write-ups — in one pass.
 2. **The Hex Tagger** — a contact sheet over your map scene where you tag each
-   hex's terrain and its river, path or coast overlays.
+   hex's terrain and its river, path or coast features.
 3. **The dataset** — one JSON file (or a direct hand-off to Extras) with the
    keyed hexes, terrain regions and river/road networks, hex numbers only.
 
 Everything is built from your own book text and your own map image in your
 browser. Nothing is uploaded, and nothing from a book ships with the module.
+
+## Terrain and features
+
+Every hex has one **terrain** and any number of **features**, and the two are
+never mixed up. The word *river* is both, which is why this matters:
+
+| | What it means | Examples |
+|---|---|---|
+| **Terrain** | What the hex **is**. One word. | forest, mountain, ocean, **river**: a *river tile*, where the whole hex is water |
+| **Features** | What **runs through or sits in** a land hex. A list. | **river**: a *river feature*, a river line through a forest hex; **path**; **coast**; a settlement |
+
+- **A river tile is water.** It makes the land hexes beside it coastal, rolls
+  on a region's River column, and counts as river terrain for travel.
+- **A river feature is not water.** It behaves exactly like a path: it never
+  makes a hex wet, never makes a neighbour coastal and never chooses an
+  encounter column.
+- **Coast is a feature**, worked out from touching water tiles (sea, ocean,
+  lake, a river tile), never from a river feature. It is the one feature an
+  encounter check listens to: in a region whose table prints a Coast column, a
+  coastal hex rolls on it.
+- **Only terrain chooses an encounter column**, apart from that coast rule.
+
+So a forest with a river through it is terrain *forest* with a *river*
+feature, and a hex that is all river is terrain *river* with no river
+feature. Shadowdark Extras gets them the same way: the terrain as the hex's
+terrain, and river, path and coast as entries in its feature list, which its
+tooltip shows as River, Path and Coast pills.
 
 ## The three steps
 
@@ -411,15 +438,16 @@ Pressing the one that is up hides it; pressing another switches to it.
   guessed: a hex that cannot be decided says so rather than picking a table.
 
 Coasts come free with tagging: once the terrain is decided, every land hex
-touching sea, lake or river is marked coast in the same pass. A coastline is a
-line shared between two hexes and the scanner reads those badly, while it reads
-sea and lake well — so the coast is worked out from the terrain rather than
-looked for in the ink. A river *crossing* a hex is a line through it, like a
-path, and does not make its neighbours coastal. Hexes you tagged yourself are
-left as you left them.
+touching sea, lake or a river tile is marked coast in the same pass. A
+coastline is a line shared between two hexes and the scanner reads those
+badly, while it reads sea and lake well — so the coast is worked out from the
+terrain rather than looked for in the ink. A river *feature* is a line through
+a hex, like a path, and does not make its neighbours coastal (see *Terrain and
+features*). Hexes you tagged yourself get their coast too, and no coast is
+ever taken away.
 
 **Clicking a hex edits whatever you are looking at.** On the terrain picture
-that is its terrain and overlays, as before. On the regions picture it is the
+that is its terrain and features, as before. On the regions picture it is the
 region: pick one already on the map or type your own, and if the whole
 enclosure is wrong there is a box to move all of it at once rather than a
 hex at a time. **(as read off the map)** takes a correction back off again.
@@ -543,14 +571,15 @@ better tagged by hand (they are small).
 - Your tagged cells are the examples. Each untagged cell takes the terrain of
   the example it most resembles.
 - The terrain's stamp is then subtracted from the cell and whatever ink is left
-  decides the overlay: one long stroke reaching two edges is a **river**, a
-  chain of short marks is a **path**. Coast is never guessed; tick it by hand.
+  decides the feature: one long stroke reaching two edges is a **river**, a
+  chain of short marks is a **path**. Coast is not read from the ink; it is
+  worked out from the water around the hex afterwards.
 - Cells the classifier is unsure about, a close call between two terrains or an
-  unclear overlay, go to the **Review queue**. Tag those sheets and every answer
+  unclear river or path, go to the **Review queue**. Tag those sheets and every answer
   becomes a new example for the next Classify. Keyed hexes are never classified;
   their terrain comes from the book's text.
-- **Sensitivity** scales the overlay thresholds: raise it if paths and rivers
-  are missed, lower it if plain cells pick up overlays.
+- **Sensitivity** scales the feature thresholds: raise it if paths and rivers
+  are missed, lower it if plain cells pick up features.
 
 Measured in Foundry on the Western Reaches map against a hand-verified table,
 with half the map tagged and the other half classified: terrain 96%, rivers
@@ -575,7 +604,7 @@ Three more buttons sit in the tagger's header once the scene is sampled.
   `source` column (`gm` or `auto`); or a JSON, either one exported here or a
   hexcrawl dataset (its regions, keyed hexes and networks become tags). The
   first tag that is not river, path or coast is the terrain; a row of
-  overlays only, such as a hex that is all river, keeps its first tag as the
+  features only, such as a hex that is all river, keeps its first tag as the
   terrain. Imported rows replace the cell's tags; other cells are untouched.
   If the JSON carries an anchor and the scene has none, the anchor is taken
   too. A table you built outside Foundry goes in this way and never ships
@@ -610,15 +639,21 @@ hex explorer, fog and coordinates work on the print itself. It needs a
 Shadowdark Extras new enough to adopt a map (`hex.adoptHexcrawl`); an older one
 is named, not worked round.
 
-- Send again after retagging and the records update in place. Settlements go
-  until they have arrived once, then no more, because Extras keeps what the
-  players have discovered on them and sending them again would reset it.
+- Every hex's river, path and coast go too, as features beside its terrain
+  (see *Terrain and features*), so Extras' tooltip shows River, Path and Coast
+  pills on the print.
+- Send again after retagging and the records update in place. A hex's river,
+  path and coast are replaced, so a tag you took off goes and nothing is listed
+  twice; every other feature on the hex, such as a dungeon you added in Extras,
+  is left alone. Settlements go until they have arrived once, then no more,
+  because Extras keeps what the players have discovered on them and sending
+  them again would reset it.
 - Extras numbers a map from the scene's top-left cell, so the map's first hex
   (`0000`, or `0101` on a map numbered from 1) has to be that cell. A map set
   up through *Hex map from image* already is. If yours is not, the tagger says
   so before anything is written, instead of putting the details on the wrong
   hexes.
-- Rivers, roads and coasts are not sent: the print already shows them.
+- No river or road is painted: the print already shows them.
 
 **Build painted map**, under **More**, is the other way: Extras builds a new
 scene painted from your tags, with its own rivers and roads. You can still lay
@@ -637,7 +672,9 @@ painted map is back.
           origin: 0,        // only for a map that numbers its first column and row 0
           rowsLowered: 74 },// only when the lowered columns end one row short
   terrain: { default: "forest", regions: [ { biome: "mountain", hexes: [1346, ...] } ] },
-  hexes:   [ { num: 4546, name, terrain, desc, zone } ],
+  hexes:   [ { num: 2849, name, terrain: "forest", desc, zone,
+               features: [ { id: "settlement-2849", type: "town", name, discovered: false },
+                           { id: "river-2849", type: "river", name: "", discovered: true } ] } ],
   networks: { river: [1251, ...], road: [4654, ...], spanning: true }
 }
 ```
@@ -653,14 +690,17 @@ preserves this column-major numbering; `grid.landscape: false` is not a
 transposition instruction. A direct Extras hand-off needs Shadowdark Extras
 with `game.shadowdarkExtras.hex.buildHexcrawl` (6.15 or later, with the
 origin option for maps numbered from 0); without it the dataset downloads as
-JSON. The book's **path** tag
-becomes Extras' **road** network. Every hex a river or path is tagged on goes
-into its network, so `networks.spanning: true` asks Extras to drop the links
-that would close a loop between neighbouring tagged hexes. Terrain goes out as the book's word
-(`salt flat`, `deep tunnels`); Extras keeps that label on the hex record and
-chooses the painted biome itself. The summary table's settlement marker has
-no field in Extras' contract, so it stays on the crawl entry in the Journals
-pack.
+JSON. A hex's river, path and coast features are
+entries in its `features` list, one id per kind (`river-2849`), named by
+Extras from their type and sent discovered; a river tile is terrain `river`
+with no river feature. The summary table's settlement marker (village, town,
+city, city state) goes in the same list as `settlement-<num>`, undiscovered.
+River and path features are also drawn as networks for the painted build: the
+book's **path** becomes Extras' **road** network. Every hex a river or path is
+tagged on goes into its network, so `networks.spanning: true` asks Extras to
+drop the links that would close a loop between neighbouring tagged hexes.
+Terrain goes out as the book's word (`salt flat`, `deep tunnels`); Extras
+keeps that label on the hex record and chooses the painted biome itself.
 
 ## Troubleshooting
 

@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { extrasHexApi, handoffDataset, handoffToPrint, importDatasetRecords, SETTLEMENTS_SENT_FLAG } from "../scripts/importer/hex/hex-handoff.mjs";
+import { extrasHexApi, extrasFeaturesOn, handoffDataset, handoffToPrint, importDatasetRecords, SETTLEMENTS_SENT_FLAG } from "../scripts/importer/hex/hex-handoff.mjs";
 
 const clean = () => {
   delete globalThis.game;
@@ -237,6 +237,55 @@ test("a send without the crawl's settlements does not mark them delivered", asyn
   const bare = { ...printDataset, hexes: printDataset.hexes.map((hex) => { const copy = { ...hex }; delete copy.features; return copy; }) };
   await handoffToPrint("print-1", bare);
   assert.equal(calls.scene.getFlag("shadowdark-enhancer", SETTLEMENTS_SENT_FLAG), undefined, "a later send with the keyed pages must still carry them");
+});
+
+// Extras' hex store as the print's records sit in it: published (col, row) on
+// Foundry offset {i: row - base, j: col - base}, keyed `${i}_${j}` (#196).
+function extrasStore(records) {
+  globalThis.game.journal = { getName: (name) => (name === "__sdx_hex_data__"
+    ? { getFlag: (scope, key) => (scope === "shadowdark-extras" && key === "hexData" ? { "print-1": records } : undefined) }
+    : undefined) };
+}
+
+test("extrasFeaturesOn reads Extras' records back by published number", () => {
+  printExtras();
+  extrasStore({ "1_1": { features: [{ id: "a" }] }, "3_2": { features: [] }, "0_0": { name: "no features" } });
+  assert.deepEqual([...extrasFeaturesOn("print-1", 0)], [[101, [{ id: "a" }]], [203, []]]);
+  assert.deepEqual([...extrasFeaturesOn("print-1", 1)].map(([num]) => num), [202, 304], "a map numbered from 1 shifts by one");
+  globalThis.game.journal = undefined;
+  assert.deepEqual([...extrasFeaturesOn("print-1", 0)], [], "no store yet: nothing there");
+});
+
+test("a re-send merges river, path and coast into what Extras holds, and keeps the rest (#196)", async () => {
+  const calls = printExtras({ adopted: false, scene: printScene({ [SETTLEMENTS_SENT_FLAG]: true }) });
+  extrasStore({ "1_1": { features: [
+    { id: "settlement-101", type: "town", name: "Town", discovered: true },
+    { id: "gm-dungeon", type: "dungeon", name: "Barrow", discovered: false },
+    { id: "path-101", type: "path", name: "", discovered: true },
+  ] } });
+  const dataset = { ...printDataset, hexes: [
+    { ...printDataset.hexes[0], features: [
+      { id: "settlement-101", type: "town", name: "Town", discovered: false },
+      { id: "river-101", type: "river", name: "", discovered: true },
+      { id: "coast-101", type: "coast", name: "", discovered: true },
+    ] },
+    printDataset.hexes[1],
+  ] };
+  await handoffToPrint("print-1", dataset);
+  const [town, wood] = calls.upsert[0].records;
+  assert.deepEqual(town.features.map((f) => f.id), ["settlement-101", "gm-dungeon", "river-101", "coast-101"],
+    "the path taken off the tag goes, river and coast arrive, no id twice");
+  assert.equal(town.features[0].discovered, true, "the players' discovery survives");
+  assert.equal("features" in wood, false, "a hex whose features would not change sends none");
+});
+
+test("an unreadable Extras store sends no features at all rather than wiping them", async () => {
+  const calls = printExtras();
+  globalThis.game.journal = { getName: () => ({ getFlag: () => { throw new Error("scope not active"); } }) };
+  const warn = console.warn; console.warn = () => {};
+  try { await handoffToPrint("print-1", printDataset); } finally { console.warn = warn; }
+  assert.equal("features" in calls.upsert[0].records[0], false);
+  assert.equal(calls.scene.getFlag("shadowdark-enhancer", SETTLEMENTS_SENT_FLAG), undefined, "nothing delivered, nothing marked");
 });
 
 test("an Extras that cannot adopt is named, not worked round with a new scene", async () => {

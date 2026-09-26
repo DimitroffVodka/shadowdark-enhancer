@@ -1,15 +1,15 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { terrainColor, needsReview, cellLabel, terrainOptions, TERRAIN_COLORS, SPARE_COLORS, OVERLAY_COLORS } from "../scripts/hex-map/tag-overlay.mjs";
+import { terrainColor, needsReview, cellLabel, terrainOptions, TERRAIN_COLORS, SPARE_COLORS, FEATURE_COLORS } from "../scripts/hex-map/tag-overlay.mjs";
 import { DEFAULT_REVIEW_MARGIN } from "../scripts/hex-map/tag-corrections.mjs";
 import { TERRAIN_TAGS } from "../scripts/importer/hex/hex-summary.mjs";
-import { OVERLAYS } from "../scripts/hex-map/tag-store.mjs";
+import { FEATURES } from "../scripts/hex-map/tag-store.mjs";
 
 test("terrainColor: every printed terrain tag has its own colour", () => {
   const tags = Object.values(TERRAIN_TAGS);
   for (const t of tags) assert.equal(terrainColor(t), TERRAIN_COLORS[t], `${t} has no palette entry`);
   assert.equal(new Set(tags.map(terrainColor)).size, tags.length, "two terrains share a colour");
-  for (const o of OVERLAYS) assert.ok(OVERLAY_COLORS[o] !== undefined, `${o} has no dot colour`);
+  for (const o of FEATURES) assert.ok(FEATURE_COLORS[o] !== undefined, `${o} has no dot colour`);
 });
 
 test("terrainColor: free-text terrain is stable, case-insensitive and not all one colour", () => {
@@ -32,9 +32,9 @@ test("needsReview: only unsure automatic cells", () => {
 });
 
 test("cellLabel: number, tags and why it is in the review pool", () => {
-  assert.equal(cellLabel(1403, { terrain: "forest", overlays: ["river"], source: "gm" }), "1403 — forest, river");
-  assert.equal(cellLabel(1404, { terrain: "forest", overlays: [], source: "auto", margin: 1.42 }), "1404 — forest (auto 1.42)");
-  assert.equal(cellLabel(1405, { terrain: "swamp", overlays: [], source: "auto", margin: 1.1 }), "1405 — swamp (auto 1.10, review)");
+  assert.equal(cellLabel(1403, { terrain: "forest", features: ["river"], source: "gm" }), "1403 — forest, river");
+  assert.equal(cellLabel(1404, { terrain: "forest", features: [], source: "auto", margin: 1.42 }), "1404 — forest (auto 1.42)");
+  assert.equal(cellLabel(1405, { terrain: "swamp", features: [], source: "auto", margin: 1.1 }), "1405 — swamp (auto 1.10, review)");
   assert.equal(cellLabel(1406, null), "1406 — not tagged");
 });
 

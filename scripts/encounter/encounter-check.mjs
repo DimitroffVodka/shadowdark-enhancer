@@ -84,7 +84,7 @@ export const EncounterCheck = {
       : `🎲 Encounter Check — the dungeon is quiet (threshold ${threshold}-in-6)`;
     // "Hex 3723 · forest, river" when the party stands on a tagged hex map.
     const where = hex
-      ? [`Hex ${hex.num}`, [hex.terrain, ...(hex.overlays ?? [])].filter(Boolean).join(", ").replace(/_/g, " ")].filter(Boolean).join(" · ")
+      ? [`Hex ${hex.num}`, [hex.terrain, ...(hex.features ?? [])].filter(Boolean).join(", ").replace(/_/g, " ")].filter(Boolean).join(" · ")
       : "";
 
     const content = await renderTemplate(

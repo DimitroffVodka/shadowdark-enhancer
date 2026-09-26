@@ -43,6 +43,16 @@
   key table's "Rimespire Mtns") and a zone colour from Extras' palette, with no
   two touching regions sharing one. Needs Shadowdark Extras 6.15.0 or later for
   the colours.
+- **Rivers, paths and coasts reach Shadowdark Extras.** The Hex Tagger's
+  **Send to Extras** now puts each hex's river, path and coast on its Extras
+  record as features beside its terrain, so Extras' tooltip shows River, Path
+  and Coast pills on the print. A forest with a river through it goes as
+  forest with a river feature; a hex that is all river goes as river terrain
+  with no river feature; a keyed hex the book lists only as "Coast" no longer
+  goes with coast as its terrain. Sending again replaces those three and
+  nothing else, so a dungeon you added in Extras and what the players
+  discovered stay. The tagger and the brush call river, path and coast
+  **features** now, and the warning that coasts stay behind is gone. (#196)
 - **You're told when an update gives you something new to import.** A release
   that adds a book, a bestiary or another hundred table rows used to be
   invisible to anyone who had already imported what they own. The importer now

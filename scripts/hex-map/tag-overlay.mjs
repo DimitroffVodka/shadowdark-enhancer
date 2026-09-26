@@ -4,7 +4,7 @@
  * Patrick's complaint about the tagger: "it is really hard to review the data
  * afterwards to see if it is correct". A contact sheet shows 40 cells out of
  * 4768; the map shows all of them at once. This draws one translucent fill per
- * numbered cell coloured by its terrain, a dot per overlay (river, path,
+ * numbered cell coloured by its terrain, a dot per feature (river, path,
  * coast) and an amber outline around the automatic cells the classifier is
  * unsure of, so a wrong patch is a stain you can see from the whole-map zoom.
  * Hovering a cell names it; clicking one edits its tags in place through the
@@ -22,7 +22,7 @@ import { MODULE_ID } from "../shared/module-id.mjs";
 import { replaceModuleFlag } from "../shared/module-flags.mjs";
 import { sceneCells } from "./sampler.mjs";
 import { cellNumber, foundryOffsetToCube } from "./geometry.mjs";
-import { decodeTags, encodeTags, applySheet, strandedRiver, OVERLAYS } from "./tag-store.mjs";
+import { decodeTags, encodeTags, applySheet, strandedRiver, FEATURES } from "./tag-store.mjs";
 import { FIXES_FLAG, DEFAULT_REVIEW_MARGIN, decodeFixes, encodeFixes, recordEdits, withdrawEdits, sameTags } from "./tag-corrections.mjs";
 import { TERRAIN_TAGS, SETTLEMENTS } from "../importer/hex/hex-summary.mjs";
 import { pickZoneTable, encounterZonesByRegion } from "../encounter/encounter-terrain.mjs";
@@ -184,8 +184,11 @@ export const ZONE_COLORS = { ok: 0x3f8f4f, ambiguous: 0xe0a72c, none: 0x8a8a8a }
 /** What the overlay is showing. */
 export const MODES = ["terrain", "region", "encounter"];
 
-/** Dot colour per overlay tag. */
-export const OVERLAY_COLORS = { river: 0x2f6fd0, path: 0x7a4a1e, coast: 0xf0e08a };
+/** Dot colour per feature. */
+export const FEATURE_COLORS = { river: 0x2f6fd0, path: 0x7a4a1e, coast: 0xf0e08a };
+
+/** Each feature's name on screen (languages/en.json). */
+export const FEATURE_LABELS = { river: "SDE.hexMap.feature.river", path: "SDE.hexMap.feature.path", coast: "SDE.hexMap.feature.coast" };
 
 /** Outline on unsure automatic cells; the margin is the scene's (tag-corrections.mjs). */
 export const REVIEW_COLOR = 0xffc400;
@@ -221,7 +224,7 @@ export function needsReview(cell, margin = DEFAULT_REVIEW_MARGIN, stranded = fal
 /** Hover text for a cell: "1403 — forest, river (auto 1.42, review)". */
 export function cellLabel(num, cell, margin = DEFAULT_REVIEW_MARGIN, stranded = false) {
   if (!cell) return `${num} — not tagged`;
-  const tags = [cell.terrain, ...(cell.overlays ?? [])].join(", ");
+  const tags = [cell.terrain, ...(cell.features ?? [])].join(", ");
   const notes = [];
   if (cell.source === "auto") notes.push(cell.margin !== undefined ? `auto ${Number(cell.margin).toFixed(2)}` : "auto");
   // Say WHY it is ringed. An amber ring the GM cannot explain is a ring they
@@ -352,7 +355,7 @@ export class HexTagOverlay {
     this._hooks = [];
     this._down = null;
     this._writing = false;
-    /** @type {{terrain:string, overlays:string[]}|null} set by the brush window */
+    /** @type {{terrain:string, features:string[]}|null} set by the brush window */
     this.brush = null;
     /** Cells this stroke has painted, and what each was before it (for Undo). */
     this.stroke = new Map();
@@ -429,7 +432,7 @@ export class HexTagOverlay {
     const cell = this.state.cells.get(String(num));
     const region = this.regionByNum.get(num) ?? this.inferredByNum.get(num);
     if (!region) return { status: "none", region: null };
-    return { ...pickZoneTable(region, cell?.terrain, cell?.overlays, this.zonesByRegion), region };
+    return { ...pickZoneTable(region, cell?.terrain, cell?.features, this.zonesByRegion), region };
   }
 
   /** Fill colour for a hex in the current mode, or null to leave it unpainted. */
@@ -476,9 +479,9 @@ export class HexTagOverlay {
         g.drawPolygon(shape.map((p) => new PIXI.Point(p.x * REVIEW_INSET + at.x, p.y * REVIEW_INSET + at.y)));
         g.lineStyle({ width: 0, alpha: 0 });
       }
-      const marks = (cell.overlays ?? []).filter((o) => OVERLAY_COLORS[o]);
+      const marks = (cell.features ?? []).filter((o) => FEATURE_COLORS[o]);
       marks.forEach((o, k) => {
-        g.beginFill(OVERLAY_COLORS[o], 0.95);
+        g.beginFill(FEATURE_COLORS[o], 0.95);
         g.drawCircle(at.x + (k - (marks.length - 1) / 2) * dot * 2.6, at.y, dot);
         g.endFill();
       });
@@ -572,7 +575,7 @@ export class HexTagOverlay {
     // already confirmed by hand is nothing to do.
     if (before && sameTags(before, this.brush) && before.source !== "auto") return;
     this.stroke.set(num, before);
-    this.state.cells.set(key, { terrain: this.brush.terrain, overlays: [...this.brush.overlays], source: "gm" });
+    this.state.cells.set(key, { terrain: this.brush.terrain, features: [...this.brush.features], source: "gm" });
     this.draw();
   }
 
@@ -712,7 +715,7 @@ export class HexTagOverlay {
         <input type="text" name="other" placeholder="${t('SDE.hexMap.brush.ownWord')}" hidden>
       </div></div>
       <div class="form-group"><label>${t("SDE.hexMap.brush.onTheHex")}</label><div class="form-fields">
-        ${OVERLAYS.map((o) => `<label class="checkbox"><input type="checkbox" name="${o}" ${cell?.overlays?.includes(o) ? "checked" : ""}> ${o}</label>`).join("")}
+        ${FEATURES.map((o) => `<label class="checkbox"><input type="checkbox" name="${o}" ${cell?.features?.includes(o) ? "checked" : ""}> ${t(FEATURE_LABELS[o])}</label>`).join("")}
       </div></div>
     </form>`;
     const answer = await foundry.applications.api.DialogV2.prompt({
@@ -738,7 +741,7 @@ export class HexTagOverlay {
     const terrain = String(chosen ?? "").trim().toLowerCase().replace(/\s+/g, "_");
     // Through applySheet so this is the same write the tagger's sheet makes,
     // and so the verdict on the classifier is recorded the same way.
-    const verdicts = applySheet(this.state, { [num]: { terrain, overlays: OVERLAYS.filter((o) => answer[o]) } });
+    const verdicts = applySheet(this.state, { [num]: { terrain, features: FEATURES.filter((o) => answer[o]) } });
     await this._save(verdicts);
     this.draw();
   }
