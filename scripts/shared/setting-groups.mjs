@@ -5,7 +5,9 @@
  * (registered by settings-group-menu.mjs). A section's `entries` are:
  *   - a setting key of this module, registered elsewhere with `config: false`
  *     so it leaves the main list; or `{ key, pending: true }` for one whose
- *     automation is not built yet, which renders with a note saying so;
+ *     automation is not built yet, which renders with a note saying so; or
+ *     `{ key, option: true }` for a mode's option that is not one of its
+ *     rules (Chaos's Dice So Nice), which the mode's switch leaves alone;
  *   - `{ menu, icon }` for a nested editor window;
  *   - `{ setting: "namespace.key", missing, showIf }` for ANOTHER package's
  *     setting, rendered in place so it keeps one source of truth (the
@@ -70,7 +72,7 @@ export const SETTING_GROUPS = [
       { label: "SDE.settings.modesOfPlayMenu.blitz", hint: "SDE.settings.modesOfPlayMenu.blitzHint", mode: true,
         entries: ["modeBlitzLights"] },
       { label: "SDE.settings.modesOfPlayMenu.chaos", hint: "SDE.settings.modesOfPlayMenu.chaosHint", mode: true,
-        entries: [{ key: "modeChaosInitiative", pending: true }] },
+        entries: ["modeChaosInitiative", { key: "modeChaosDiceSoNice", option: true }] },
       { label: "SDE.settings.modesOfPlayMenu.deadly", hint: "SDE.settings.modesOfPlayMenu.deadlyHint", mode: true,
         entries: [{ key: "modeDeadlyTimer", pending: true }, { key: "modeDeadlyStabilize", pending: true }] },
       { label: "SDE.settings.modesOfPlayMenu.fatality", hint: "SDE.settings.modesOfPlayMenu.fatalityHint", mode: true,
