@@ -112,7 +112,7 @@ const STYLESHEET_REV = "04c122556d8d";
 // stale); module.json carries the same hash and is fetched fresh at runtime. A
 // mismatch is a stale cache by construction — it cannot be anything else. Both
 // stamps are written by `npm run inventory` and gated by `inventory:check`.
-const BUILD_REV = "e22a141f2ed7";
+const BUILD_REV = "ec956668658a";
 
 /**
  * Tell the user when their browser is running an old build of this module, and
@@ -427,6 +427,7 @@ Hooks.once("init", () => {
     // 1.10.0 — additive: rules namespace (rules data: terrain costs, climate, limits).
     // 1.11.0 — additive: encounter.tableForHex (the table for a hex by region and terrain).
     // 1.12.0 — additive: time namespace and the timeAdvanced hook (Overland O1, #227).
+    // 1.13.0 — additive: time.advanceOffDuty (the off-duty clock move, Overland O2, #228).
     // 1.14.0 — additive: overland namespace and the overland* hooks (Overland O3, #229).
     apiVersion: "1.14.0",
     // The one travel state per world (scripts/overland/overland.mjs): a copy
@@ -437,6 +438,7 @@ Hooks.once("init", () => {
     },
     // Readings on Foundry's world clock: season, day and night, sun, moon,
     // anchors, the date string. Synchronous, any user (scripts/time/time.mjs).
+    // advanceOffDuty is the one writer: GM only, async (scripts/time/off-duty.mjs).
     time: timeApi,
     // Holidays for carousing (Shadowdark Extras reads `today`). Both async and
     // lazy; a holiday is listed once the GM has imported its journal page.

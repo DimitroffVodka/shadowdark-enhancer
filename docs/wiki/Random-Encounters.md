@@ -140,9 +140,12 @@ as before. Other modules can ask for the same table with
 
 ### Time
 
-The module reads Foundry's own world clock and never sets it. Advance time
-with Foundry's time controls or a calendar module; there is no calendar
-window of the module's own. From the clock it works out:
+The module reads Foundry's own world clock. Advance time with Foundry's time
+controls or a calendar module; there is no calendar window of the module's
+own. The one time it moves the clock itself is the off-duty move for downtime,
+which puts torches out first so they keep their time (see
+[Downtime → Moving the clock for downtime](Downtime.md#moving-the-clock-for-downtime)).
+From the clock it works out:
 
 - **The season**, from the calendar's months: spring is March to May, summer
   June to August, autumn September to November, winter December to February.

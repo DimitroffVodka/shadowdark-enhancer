@@ -208,6 +208,7 @@ test("dateParts: weekday and month as the calendar names them, the day from 1, H
 
 function stubGame(t, { gm = true, active = true } = {}) {
   const calls = [], handlers = {};
+  globalThis.CONFIG = { queries: {} };
   globalThis.Hooks = {
     on: (name, fn) => { handlers[name] = fn; },
     callAll: (name, payload) => calls.push({ name, payload }),

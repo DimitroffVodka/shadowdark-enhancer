@@ -248,6 +248,10 @@ test("relay: a GM tab with no such query registered reads as the stale tab", asy
   assert.equal(warnings.length, 1);
   assert.match(warnings[0], /reload/i);
   assert.match(warnings[0], /downtime actions/);
+
+  // Sent and never answered is not "refused": a slow GM may still have acted.
+  const reply = await quietly(() => queryActiveGM("q", { action: "x" }));
+  assert.equal(reply.answered, false);
 });
 
 test("relay: a revoked QUERY_USER permission is reported, not disguised as a stale GM", async () => {
@@ -301,4 +305,15 @@ test("relay: a GM that answers nothing at all is not read as success", async () 
   const reply = await queryActiveGM("sde.loot", { action: "x" }, { label: "loot claims" });
   assert.equal(reply.ok, false);
   assert.ok(reply.error);
+});
+
+test("relay: targetUser sends to that GM instead of the active one (a GM-to-GM hand-off, #228)", async () => {
+  actAs(BRIDGE_GM);
+  const asked = [];
+  const primary = { ...GM, id: "gm3", query: async (name, data, opts) => { asked.push({ name, data, opts }); return { ok: true }; } };
+  const reply = await queryActiveGM("sde.offDuty", { seconds: 60 }, { targetUser: primary });
+  assert.equal(reply.ok, true);
+  assert.deepEqual(sent, [], "the active GM was not asked");
+  assert.equal(asked.length, 1);
+  assert.equal(asked[0].opts.timeout, QUERY_TIMEOUT_MS, "the timeout still goes with it");
 });

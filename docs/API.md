@@ -1303,9 +1303,10 @@ const cost = rules.terrainCost("forest", { weather: stormy ? "stormy" : "", hars
 ## `time` — season, day and night, sun, moon and anchors
 
 Added in 1.12.0. Readings on Foundry's world clock (`game.time`), which stays
-the one clock: nothing here sets the time, and there is no calendar window.
-Every call is synchronous and works for players too. `t` is a worldTime in
-seconds and defaults to now.
+the one clock, and there is no calendar window. Every reading is synchronous
+and works for players too. `t` is a worldTime in seconds and defaults to now.
+The one call that sets the time is
+[`advanceOffDuty`](#timeadvanceoffdutyseconds--reason-), added in 1.13.0.
 
 ```js
 const time = game.shadowdarkEnhancer.time;
@@ -1377,6 +1378,59 @@ A move backwards (`dt` below 0, from `game.time.set` or a negative
 else `null`. The hook is cheap for any jump, because when the system's
 real-time light clock is on it advances the world time on every tick.
 
+### `time.advanceOffDuty(seconds, { reason? })`
+
+Added in 1.13.0. Moves the clock for downtime, carousing or a rest without
+burning the torches the party carries. GM only (a player gets a refusal);
+async.
+
+```js
+await game.shadowdarkEnhancer.time.advanceOffDuty(3 * 86400, { reason: "downtime" });
+// { ok: true, worldTime, doused: [{ actorId, itemId }] }
+// or { ok: false, error, doused? }: the clock did not move; doused lists what was already put out
+```
+
+The Shadowdark system burns every lit light for the whole of a clock move, and
+deletes one that reaches 0, so a three-day jump with Foundry's own controls
+destroys every torch left lit. This call instead:
+
+1. Runs on the system's **primary GM**, the one whose tab burns lights (the
+   user flag `flags.shadowdark.primaryGM`, not Foundry's active GM). From any
+   other GM it is handed there as a GM-to-GM query, and that tab refuses it if
+   yet another GM holds the flag. With nobody online holding it, the calling
+   GM takes the flag first, which is what the system would do on the next
+   clock move. **Two GM tabs holding the flag** (each clears only its own when
+   it loads) would both burn, each from its own cached list, so the move is
+   refused, naming them; reloading all but one fixes it.
+2. Stops the system's real-time light clock on that tab for the move (a tick
+   sent after the jump would set the clock back), and starts it again after.
+3. Puts out every lit **Basic** light (torch, lantern, candle) carried by a
+   player-owned PC, the same actors the system's tracker burns. Each keeps its
+   `remainingSecs`, and its token's light goes out (on a tab in core's
+   no-canvas mode, only the prototype token's).
+4. Rebuilds the tracker's cached list and waits until it holds no PC's Basic
+   light (it otherwise rebuilds only once a second, and not on an item
+   update). It refuses to move the clock if the list never lets go, or if
+   another tab has taken the flag meanwhile.
+5. Calls `game.time.advance(seconds, { "shadowdark-enhancer": { offDuty: reason } })`,
+   so `timeAdvanced` reports `offDuty`.
+
+One chat line names the lights put out and says whether the clock moved. A
+refusal, or an error part-way, never moves the clock and returns what was put
+out in `doused`. When the calling GM hands the move off and gets no answer in
+60 seconds, the reply says the outcome is unknown: the other tab may still have
+moved the clock, so check it before calling again.
+
+With the system's light tracking off it only advances. A Light spell and a
+Light actor dropped on the scene are left to the clock: a spell's duration is
+real, and a light left behind burns out. Lights stay out afterwards; players
+light them again as usual. `reason` is free text, `"downtime"` by default;
+Overland uses `"downtime"`, `"carousing"` and `"rest"`. `seconds` must be more
+than 0.
+
+This relies on the light tracker of Shadowdark 4.0.6 (its cache, its dirty
+flag and the primary GM flag); a later system version is checked live before
+it is trusted.
 
 ## `overland` — the travel state
 
@@ -1440,6 +1494,7 @@ o.state();      // a copy of the travel state, plus derived fields:
 - `1.12.0` adds the `time` namespace and the `shadowdark-enhancer.timeAdvanced`
   hook. Holidays' Lastmoon and the encounter tables' moon columns now resolve,
   and recap entries carry `worldTime` and `gameTime`.
+- `1.13.0` adds `time.advanceOffDuty`, the off-duty clock move.
 - `1.14.0` adds the `overland` namespace and the `overlandChanged`,
   `overlandStart` and `overlandEnd` hooks. The crawl state is version 3, with
   an `overland` mode.
@@ -1513,6 +1568,12 @@ the receiving client re-reads the actor and applies the **delta** inside a
 serialized queue. The delta is what travels; a computed total never does. The
 queue is needed on top of the single-writer rule because `actor.update` awaits a
 server round trip, so two awards on one client can still overlap.
+
+The off-duty clock move has the same shape with a different writer: the
+lights must go out on the GM whose tab burns them, the Shadowdark system's
+primary GM, which need not be `game.users.activeGM`. It is sent there with
+`queryActiveGM(name, data, { targetUser })`, and the receiving tab checks the
+server-stamped sender is a GM and refuses if another GM holds the flag.
 
 Two consequences worth knowing:
 
