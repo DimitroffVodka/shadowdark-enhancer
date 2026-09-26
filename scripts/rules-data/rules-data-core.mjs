@@ -162,7 +162,8 @@ export function stormEffects(rules) {
   const cost = (k, weather) => terrainCost(rules, k, { weather }) ?? 1;
   return {
     slows: Object.keys(rules?.terrain ?? {}).some((k) => cost(k, "stormy") !== cost(k, "")),
-    harsh: (rules?.climate ?? []).some((row) => SEASONS.some((s) => row?.[s]?.harsh)),
+    // A marker on a cell with no label is not a climate (climate() below).
+    harsh: (rules?.climate ?? []).some((row) => SEASONS.some((s) => row?.[s]?.label && row[s].harsh)),
   };
 }
 

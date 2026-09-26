@@ -200,6 +200,8 @@ test("what a storm does: only what the terrain costs and the climate table give 
     "no difficult cost to raise normal terrain to");
   const climate = [{ region: "Bastion Mountains", spring_fall: { label: "Cold", harsh: "storm" } }];
   assert.deepEqual(stormEffects(rulesFrom({ climate })), { slows: false, harsh: true }, "a harsh climate alone still stops travel");
+  const unlabelled = [{ region: "Bastion Mountains", spring_fall: { label: "", harsh: "storm" } }];
+  assert.equal(stormEffects(rulesFrom({ climate: unlabelled })).harsh, false, "a marker with no climate to it stops nothing");
 });
 
 test("preview: only filled values the import changes; elevation and hand rows survive", () => {

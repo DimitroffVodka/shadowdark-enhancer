@@ -158,7 +158,7 @@ page walks through it in order.
   terrain is the tagger's: one whose tags name no ground (coast alone) clears
   the terrain Extras holds for it, whether an earlier send left it or you
   typed it there, so give the hex its ground in the tagger. A hex you never
-  tagged keeps its terrain (#264).
+  tagged, or whose tags you cleared, keeps its terrain (#264).
   It needs a
   Shadowdark Extras with `hex.adoptHexcrawl`
   ([shadowdark-extras#147](https://github.com/DimitroffVodka/shadowdark-extras/issues/147)),

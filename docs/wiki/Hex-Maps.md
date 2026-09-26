@@ -689,7 +689,8 @@ is named, not worked round.
   A tagged hex's terrain is the tagger's: one whose tags name no ground, such
   as coast alone, clears the terrain Extras holds for it, whether an earlier
   send left it or you typed it there. Give the hex its ground in the tagger
-  instead. A hex you never tagged keeps its terrain.
+  instead. A hex you never tagged keeps its terrain, and so does one whose
+  tags you cleared completely: set it in Extras, or tag the hex again.
   Settlements go until they have arrived once, then no more, because Extras
   keeps what the players have discovered on them and sending them again would
   reset it.
