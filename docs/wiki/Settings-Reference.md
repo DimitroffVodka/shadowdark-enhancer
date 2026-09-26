@@ -144,7 +144,7 @@ under its checkbox in the window.
 
 | Mode | Setting | Default | What it does |
 |---|---|---|---|
-| Blitz | **Light sources last 30 minutes** | off | *Not automated yet.* A torch, a lantern or a light spell lasts 30 minutes instead of an hour. |
+| Blitz | **Light sources last 30 minutes** | off | Lighting a torch or lantern sets it to 30 minutes left (less if it already had less), and a light spell lasts 30 minutes. The item's own maximum is untouched, so its sheet can read "30 of 60 minutes". Shadowdark Extras' camping campfire keeps its 8 hours. |
 | Chaos | **Reroll initiative every round** | off | *Not automated yet.* Everyone rolls initiative again at the start of every round after the first. |
 | Deadly | **Death timers are always 1** | off | *Not automated yet.* A dying character has 1 round to live, whatever their Constitution. |
 | Deadly | **Stabilizing is DC 18** | off | *Not automated yet.* Stabilizing a dying character is an Intelligence check at DC 18 instead of 15. |
