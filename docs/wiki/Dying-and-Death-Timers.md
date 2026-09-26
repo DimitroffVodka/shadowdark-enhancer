@@ -3,9 +3,9 @@
 [← Wiki home](index.md)
 
 The core rulebook's dying rule (p.89), run for you: a character at 0 HP is
-dying, rolls a death timer, gets a chance to rise every turn, and can be
-stabilized by a friend. Deadly and Fatality (p.111) change it from the
-[Modes of Play](Modes-of-Play.md) window.
+dying, rolls a death timer on its first turn, gets a chance to rise every turn
+after that, and can be stabilized by a friend. Deadly and Fatality (p.111)
+change it from the [Modes of Play](Modes-of-Play.md) window.
 
 Nothing else in a Shadowdark world does this. The system only marks a character
 prone and unconscious when damage takes it to 0 HP. Shadowdark Crawl Helper used
@@ -20,11 +20,8 @@ turns it off).
 
 A player character that reaches 0 HP by any path (damage from a chat card, an
 edit on the sheet, an effect) gets the **Dying** status and **unconscious**.
-Its death timer is rolled straight away: **1d4 + CON modifier, minimum 1**. The
-owning player's client rolls the die, so the dice are theirs, and the GM's
-client adds the modifiers; if the player is not connected, the GM's client
-rolls. The timer shows on the character's crawl strip card as **Dying: 3**, and
-a chat line says how many rounds are left.
+Its strip card shows **Dying** with no count yet: the death timer is rolled on
+the character's turn, as the book reads.
 
 The system also marks the character defeated in the combat tracker. On the
 strip, a dying or stable character shows the dying badge instead of the skull;
@@ -32,7 +29,13 @@ the skull is for the dead, in combat or out of it.
 
 ## Each turn
 
-At the start of a dying character's turn, its owner rolls a d20:
+**Its first turn** rolls the death timer: **1d4 + CON modifier, minimum 1**,
+and nothing else that turn. The owning player's client rolls the die, so the
+dice are theirs, and the GM's client adds the modifiers; if the player is not
+connected, the GM's client rolls. The strip card then shows **Dying: 3**, and a
+chat line says how many rounds are left.
+
+At the start of **every turn after that**, its owner rolls a d20:
 
 - a **natural 20** and the character rises with 1 HP, and all of this clears;
 - anything else takes one round off the timer;
@@ -84,7 +87,7 @@ Clicking the badge as GM also offers the situational rules:
 
 | Button | For |
 |---|---|
-| **One more round** / **One round fewer** | Pit Fighter's Relentless, a spell that buys time. Never below 1. |
+| **One more round** / **One round fewer** | Pit Fighter's Relentless, a spell that buys time. Never below 1. Offered once the timer has been rolled. |
 | **Stabilize, no roll** | A potion that stops dying, Last Stand's once-a-day success |
 | **Conscious while dying** | The tier-5 necromancer spell's rounds of acting while dying. The timer still runs, and the defeated mark comes off so *Skip Defeated* doesn't skip the turns it acts in. |
 | **Rise now, at 1 HP** | Any rule that simply brings the character back |
