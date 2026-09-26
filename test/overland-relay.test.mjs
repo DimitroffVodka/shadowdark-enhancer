@@ -24,19 +24,37 @@ class Roll {
     } else this.total = dice.shift();
     return this;
   }
+  async toMessage(data) { cards.push({ ...data, rolls: [this] }); }
 }
 const cards = [];
 const owner = (userId) => ({ testUserPermission: (u) => u.id === userId });
-const actors = {
-  mine: { id: "mine", name: "Mine", type: "Player", ...owner("player1") },
-  theirs: { id: "theirs", name: "Theirs", type: "Player", ...owner("player2") },
+// Stat checks (forage INT, the underground CHA) take the next queued result;
+// none queued is a failure. No player is connected, so the GM's client rolls.
+const statResults = [];
+const statRolls = [];
+const character = (id, name, userId) => ({
+  id, name, type: "Player", ...owner(userId), items: [], created: [],
+  system: { rollStatCheck: async (ability, opts) => { statRolls.push({ id, ability, dc: opts?.mainRoll?.dc }); return statResults.shift() ?? { success: false }; } },
+  async createEmbeddedDocuments(type, data) { this.created.push(...data); },
+});
+/** A Rations stack on an actor, as the system's gear item keeps it. */
+const rations = (actor, quantity) => {
+  const item = {
+    name: "Rations", system: { quantity },
+    async update(changes) { this.system.quantity = changes["system.quantity"]; },
+    async delete() { actor.items.splice(actor.items.indexOf(item), 1); },
+  };
+  actor.items.push(item);
+  return item;
 };
+const actors = { mine: character("mine", "Mine", "player1"), theirs: character("theirs", "Theirs", "player2") };
 Object.assign(globalThis, {
   foundry: deep, CONFIG: { queries: {} }, Hooks: { on() {}, once() {}, callAll() {} }, ui: { notifications: { warn() {} } },
-  Roll, ChatMessage: { create: async (data) => { cards.push(data); }, getWhisperRecipients: () => [{ id: "gm" }] },
+  Roll, ChatMessage: { create: async (data) => { cards.push(data); }, getWhisperRecipients: () => [{ id: "gm" }], getSpeaker: () => ({}) },
   game: {
     user: { id: "gm", isGM: true },
-    users: { activeGM: { id: "gm" } },
+    users: { activeGM: { id: "gm" }, filter: () => [] },
+    packs: { get: () => null },
     actors: { get: (id) => actors[id] ?? null, filter: () => [] },
     settings: {
       get: (ns, key) => stored[key],
@@ -51,12 +69,12 @@ Object.assign(globalThis, {
     modules: { get: () => null },
   },
 });
-const { applyAction, registerOverland, weatherNow, recordMove, advanceTravel } = await import("../scripts/overland/overland.mjs");
+const { applyAction, registerOverland, weatherNow, recordMove, advanceTravel, undergroundCheck } = await import("../scripts/overland/overland.mjs");
 const { BOAT_TYPE } = await import("../scripts/actors/register-actors.mjs");
 const { CrawlState } = await import("../scripts/crawl-strip/crawl-state.mjs");
 
 function travelling(members) {
-  stored.overlandState = { members, foraged: [] };
+  stored.overlandState = { members, foraged: [], day: 0 };
   registerOverland();
   CrawlState._state = { ...CrawlState._state, mode: "overland" };
 }
@@ -373,4 +391,164 @@ test("a travel check resolves its table on the travel token's scene, not the one
   await applyAction({ action: "startDay", method: "walking" }, gm);
   assert.equal(calls.length, 1);
   assert.equal(calls[0].scene, travelScene);
+});
+
+// ── Forage, camp and the underground check (#233) ─────────────────────────────
+
+/** Let the forage roll, which runs after the queue, finish. */
+const settle = () => new Promise((resolve) => { setTimeout(resolve, 20); });
+
+function campWorld({ climate = null, weather = null, hex = { num: 1, terrain: "forest", region: "R", features: [] } } = {}) {
+  travellingDay();
+  for (const a of Object.values(actors)) { a.items.length = 0; a.created.length = 0; }
+  statResults.length = statRolls.length = 0;
+  const damage = [];
+  Object.assign(globalThis.game.shadowdarkEnhancer, {
+    statDamage: { apply: async (actor, ability, amount) => { damage.push([actor.id, ability, amount]); } },
+    time: { season: () => ({ key: "summer" }), isNight: () => false, format: () => "" },
+    encounter: { check: async () => ({ hit: false }) },
+  });
+  if (climate) globalThis.game.shadowdarkEnhancer.rules.climate = () => climate;
+  stored.overlandState = { ...stored.overlandState, members: ["mine", "theirs"], hex, weather };
+  registerOverland();
+  return damage;
+}
+
+test("forage: once a day, the owner rolls INT at DC 12, and a success adds a ration", async () => {
+  campWorld();
+  dice.push(3);
+  await applyAction({ action: "startDay", method: "walking" }, gm);
+  statResults.push({ success: true });
+  const res = await applyAction({ action: "forage", actorId: "mine" }, { id: "player1", isGM: false });
+  assert.equal(res.ok, true);
+  await settle();
+  assert.deepEqual(statRolls, [{ id: "mine", ability: "int", dc: 12 }]);
+  assert.equal(actors.mine.created.length, 1, "a new Rations stack");
+  assert.equal(actors.mine.created[0].system.quantity, 1);
+  assert.equal((await applyAction({ action: "forage", actorId: "mine" }, gm)).ok, false, "once a day");
+
+  // A second forager with a stack: the stack grows. A failure finds nothing.
+  const stack = rations(actors.theirs, 2);
+  statResults.push({ success: false });
+  await applyAction({ action: "forage", actorId: "theirs" }, gm);
+  await settle();
+  assert.equal(stack.system.quantity, 2, "a failed forage finds nothing");
+});
+
+test("forage is refused with no day open and on a pushed day; DC 18 when harsh; impossible in a harsh storm", async () => {
+  campWorld();
+  assert.equal((await applyAction({ action: "forage", actorId: "mine" }, gm)).error, "SDE.overland.notify.forageNoDay");
+  dice.push(3);
+  await applyAction({ action: "startDay", method: "walking", pushed: true }, gm);
+  assert.equal((await applyAction({ action: "forage", actorId: "mine" }, gm)).error, "SDE.overland.notify.foragePushed");
+
+  campWorld({ climate: { harsh: "always" } });
+  dice.push(3);
+  await applyAction({ action: "startDay", method: "walking" }, gm);
+  await applyAction({ action: "forage", actorId: "mine" }, gm);
+  await settle();
+  assert.equal(statRolls[0].dc, 18, "harsh: DC 18");
+
+  campWorld({ climate: { harsh: "storm" } });
+  dice.push(1);                                    // a stormy day, in a climate harsh in storms
+  await applyAction({ action: "startDay", method: "walking" }, gm);
+  assert.equal((await applyAction({ action: "forage", actorId: "mine" }, gm)).error, "SDE.overland.notify.forageImpossible");
+});
+
+test("camp without Extras: to dawn with the night's checks; 1 ration each, and 1 CON for whoever has none", async () => {
+  const damage = campWorld();
+  dice.push(3, 2, 9, 1, 12);                       // the weather, and checks at 07:00, 14:00, 18:00, 05:00
+  globalThis.game.time.worldTime = at(1301, 6, 21, 8);
+  await applyAction({ action: "startDay", method: "walking" }, gm);
+  const stack = rations(actors.mine, 1);
+  dice.push(4);                                    // the new day's weather
+  const res = await applyAction({ action: "camp" }, gm);
+  assert.deepEqual(res, { ok: true, stopped: false });
+  assert.equal(globalThis.game.time.worldTime, at(1301, 6, 22, 5), "the 05:00 night check, after a 04:30 sunrise");
+  assert.equal(actors.mine.items.includes(stack), false, "Mine ate the one ration");
+  assert.deepEqual(damage, [["theirs", "con", 1]], "Theirs had none");
+  assert.equal(stored.overlandState.day, null, "the day is closed until the GM starts the next");
+  assert.equal(stored.overlandState.weather.roll, 4, "the new day's weather is rolled at dawn");
+});
+
+test("camp in a harsh climate: 2 rations each, and one ration counts as none", async () => {
+  const damage = campWorld({ climate: { harsh: "always" } });
+  dice.push(3);
+  await applyAction({ action: "startDay", method: "walking" }, gm);
+  const one = rations(actors.mine, 1);
+  const three = rations(actors.theirs, 3);
+  dice.push(4);
+  await applyAction({ action: "camp" }, gm);
+  assert.equal(one.system.quantity, 1, "Mine keeps the single ration");
+  assert.equal(three.system.quantity, 1, "Theirs ate two");
+  assert.deepEqual(damage, [["mine", "con", 1]]);
+});
+
+test("a hit during the night stops camp; Continue finishes to dawn and then the rations are eaten", async () => {
+  const damage = campWorld();
+  dice.push(3, 2, 9, 1, 12);
+  globalThis.game.time.worldTime = at(1301, 6, 21, 8);
+  await applyAction({ action: "startDay", method: "walking" }, gm);
+  const hits = [false, true];                     // 14:00 misses, 18:00 hits (07:00 went at the start)
+  globalThis.game.shadowdarkEnhancer.encounter.check = async () => ({ hit: hits.shift() ?? false });
+  const res = await applyAction({ action: "camp" }, gm);
+  assert.deepEqual(res, { ok: true, stopped: true });
+  assert.equal(globalThis.game.time.worldTime, at(1301, 6, 21, 18));
+  assert.equal(stored.overlandState.pending.reason, "camp");
+  assert.deepEqual(damage, [], "no rations until the night is over");
+  dice.push(4);
+  await applyAction({ action: "resume" }, gm);
+  assert.equal(stored.overlandState.day, null);
+  assert.equal(damage.length, 2, "both went without");
+});
+
+test("camp hands the rations to Shadowdark Extras' camping rest when the travel token is its party", async () => {
+  const damage = campWorld();
+  const party = { id: "party" };
+  const opened = [];
+  globalThis.game.modules = { get: (id) => (id === "shadowdark-extras" ? {
+    active: true,
+    api: { party: { list: () => [party] }, camping: { open: async (opts) => { opened.push(opts); return { completed: true, fed: {} }; } } },
+  } : null) };
+  stored.overlandState = { ...stored.overlandState, tokenUuid: "Scene.s.Token.party" };
+  registerOverland();
+  globalThis.fromUuidSync = (uuid) => (uuid === "Scene.s.Token.party" ? { actor: party } : null);
+  dice.push(3);
+  await applyAction({ action: "startDay", method: "walking" }, gm);
+  dice.push(4);
+  await applyAction({ action: "camp" }, gm);
+  globalThis.game.modules = { get: () => null };
+  assert.equal(opened.length, 1);
+  assert.equal(opened[0].party, party);
+  assert.deepEqual(opened[0].members.map((a) => a.id), ["mine", "theirs"]);
+  assert.equal(opened[0].rationsEach, 1);
+  assert.equal(opened[0].advanceTime, false);
+  assert.deepEqual(damage, [], "Overland eats nothing on top");
+});
+
+test("the underground check: a season change on deep tunnels asks each member for CHA 12; a failure costs 1d4 CHA", async () => {
+  const damage = campWorld({ hex: { num: 5, terrain: "deep_tunnels", region: "R", features: [] } });
+  statResults.push({ success: true }, { success: false }, { success: false }, { success: true });
+  dice.push(3, 2);                                 // the 1d4 for each failure
+  await undergroundCheck({ crossed: { seasonChanges: 2 } });
+  assert.deepEqual(statRolls.map((r) => [r.id, r.ability, r.dc]),
+    [["mine", "cha", 12], ["theirs", "cha", 12], ["mine", "cha", 12], ["theirs", "cha", 12]], "once per season crossed");
+  assert.deepEqual(damage, [["theirs", "cha", 3], ["mine", "cha", 2]]);
+
+  statRolls.length = 0;
+  await undergroundCheck({ crossed: { seasonChanges: 0 } });
+  campWorld();
+  await undergroundCheck({ crossed: { seasonChanges: 1 } });
+  assert.equal(statRolls.length, 0, "no season change, or not on deep tunnels: nothing");
+});
+
+test("camp breaks at sunrise when both night checks come before it", async () => {
+  campWorld();
+  dice.push(3, 2, 9, 1, 1);                       // night checks at 18:00 and 18:00
+  globalThis.game.time.worldTime = at(1301, 6, 21, 8);
+  await applyAction({ action: "startDay", method: "walking" }, gm);
+  dice.push(4);
+  await applyAction({ action: "camp" }, gm);
+  const t = globalThis.game.time.worldTime;
+  assert.ok(t > at(1301, 6, 22, 4) && t < at(1301, 6, 22, 5), "at the next sunrise");
 });

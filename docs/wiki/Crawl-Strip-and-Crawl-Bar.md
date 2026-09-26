@@ -146,7 +146,8 @@ On a tagged hex map the Crawl Bar also offers **Travel**. It starts overland
 travel instead of a crawl. Overland is being built in pieces (#192). So far it
 switches the mode, keeps the travel state, rolls the weather, charges each
 move of the travel token against the day's hexes, moving the clock with it,
-and rolls the day's encounter checks as the clock reaches them.
+rolls the day's encounter checks as the clock reaches them, and ends the day
+with forage and camp.
 
 - **Which token travels.** The Shadowdark Extras party token, when exactly one
   is on the map. Otherwise select the one token that travels before pressing
@@ -189,7 +190,27 @@ and rolls the day's encounter checks as the clock reaches them.
   **Displace**. A check whose hour had passed before you started the day is
   rolled at once.
 
-Foraging, rations and camp, with the night's checks, come with the next piece.
+- **Forage** lets travelling characters look for food: tick who forages.
+  - Each character's player rolls INT: DC 12, or 18 in a harsh climate. When
+    the player isn't connected, you roll it.
+  - A success adds a ration to their Rations.
+  - Once a day, only after Start day, never on a pushed day, and nothing is
+    found in a storm in a harsh climate.
+  - A player can forage for their own character from a macro:
+    `game.shadowdarkEnhancer.overland.forage("<actor id>")`.
+- **Make camp** ends the day:
+  - Carried lights go out, keeping their time, as with the off-duty move.
+  - The clock runs to dawn, rolling the rest of the day's checks and the
+    night's. A hit stops the night until you press **Continue**.
+  - At dawn everyone eats a ration, or two after a harsh night. Anyone
+    without one takes 1 CON damage, and mounts eat what's left. When the
+    travel token is a Shadowdark Extras party that offers its camping rest
+    to Overland, that rest opens instead and does the rations.
+  - The next day's weather is rolled, and you press **Start day** when the
+    party sets out.
+- **Deep tunnels.** When a season changes while the party's last hex is deep
+  tunnels, each member makes a DC 12 CHA check (their player rolls), and a
+  failure costs 1d4 CHA. That happens whether or not they're travelling.
 
 ## The party cards
 

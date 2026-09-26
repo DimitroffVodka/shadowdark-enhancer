@@ -3,6 +3,17 @@
 ## [Unreleased]
 
 ### Added
+- **Overland forage and camp.** While travelling, **Forage** sends each
+  character's player an INT check (DC 12, or 18 when harsh); a success adds a
+  ration. It happens once a day, never on a pushed day, and not in a harsh
+  storm. **Make camp** puts carried lights out (they keep their time), runs the
+  clock to dawn with the night's encounter checks, and feeds everyone at dawn:
+  one ration, two after a harsh night, and 1 CON damage for anyone without.
+  Then it rolls the new day's weather. A Shadowdark Extras party hands the
+  rations to Extras' camping rest once Extras offers it. When a season turns
+  with the party on a deep-tunnels hex, each member makes a DC 12 CHA check
+  or takes 1d4 CHA damage. `time.advanceOffDuty(0)` now just puts the lights
+  out. (API 1.18.0, #233)
 - **Overland encounter checks.** **Start day** sets the day's four encounter
   checks: two by day, two at night, each at an hour rolled on a d12 and
   whispered to the GM. The chance is 1 in 6, or 2 in 6 when pushed. A move

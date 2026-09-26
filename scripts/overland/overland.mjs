@@ -9,7 +9,7 @@
  * Who writes (docs/plans/overland.md §2.3):
  * - Only the active GM, in one queue, so a read-modify-write never races.
  * - Another GM's Start or End travel is forwarded there (queryActiveGM).
- * - A player's one action, Forage, is relayed (relayToGM), and the receiver
+ * - A player's one action, Forage, is forwarded (queryActiveGM), and the receiver
  *   checks the sender from the query context, never from the payload.
  * - The weather (#230) is a GM's roll, forwarded the same way; the dice are
  *   rolled on the active GM, inside the queue. So is Start day (#231).
@@ -20,6 +20,10 @@
  * - Every Overland clock advance rolls the day's encounter checks it passes
  *   (#232, §5.3). A hit stops the clock at the check's hour and waits for
  *   Continue (resume), which finishes the advance.
+ * - Forage and Make camp end the day (#233, §5.4-5.6). The owner of each
+ *   character rolls its checks through the stat-damage save prompt
+ *   (StatRiders.save), and the GM rolls when they're offline. The underground
+ *   season check follows timeAdvanced in every mode.
  *
  * The mode itself is CrawlState's `overland` (crawl-state-core.mjs). In it the
  * Crawl Strip is off and movement tracking idle; a combat hides it and
@@ -32,17 +36,19 @@
 
 import { MODULE_ID } from "../shared/module-id.mjs";
 import { CrawlState } from "../crawl-strip/crawl-state.mjs";
-import { authorizeActorFor, isActiveGM, queryActiveGM, refuseQuery, relayToGM } from "../shared/gm-relay.mjs";
+import { authorizeActorFor, isActiveGM, queryActiveGM, refuseQuery } from "../shared/gm-relay.mjs";
 import { makeQueue } from "../quests/quest-core.mjs";
 import { hexReader, isHexMapScene, partyHex } from "../encounter/encounter-terrain.mjs";
 import { BOAT_TYPE } from "../actors/register-actors.mjs";
 import { dawnAfter, dateParts, startOfDay } from "../time/time-core.mjs";
+import { advanceOffDuty } from "../time/off-duty.mjs";
+import { StatRiders } from "../stat-damage/stat-riders.mjs";
 import { esc } from "../shared/esc.mjs";
 import {
   defaultOverlandState, normalizeOverlandState, startTravel, setHex, recordForage,
   pickTravelToken, forageRefusal, setWeather, weatherHolds, weatherAdvantage, weatherFormula,
   weatherFromRoll, harshToday, WEATHER_RULES, METHODS, openDay, spendMove, priceMove, moveVerdict, hexCost,
-  dayChecks, dueChecks, markCheck, setPending,
+  dayChecks, dueChecks, markCheck, setPending, forageDC, closeDay, planRations,
 } from "./overland-state-core.mjs";
 
 export const OVERLAND_SETTING = "overlandState";
@@ -58,8 +64,18 @@ const serialize = makeQueue();
 const FORAGE_REFUSED = {
   notTravelling: "SDE.overland.notify.notTravelling",
   notMember: "SDE.overland.notify.notMember",
+  noDay: "SDE.overland.notify.forageNoDay",
+  pushed: "SDE.overland.notify.foragePushed",
+  impossible: "SDE.overland.notify.forageImpossible",
   alreadyForaged: "SDE.overland.notify.alreadyForaged",
 };
+
+/** Rations are matched by name, as Shadowdark Extras does (§5.4). */
+const RATIONS = /^rations?$/i;
+
+/** The underground season check's DC, and how many seasons at most one clock jump asks for. */
+const UNDERGROUND_DC = 12;
+const UNDERGROUND_MAX = 4;
 
 /** Each weather's name and what it does, for the chat card (literal keys, as above). */
 const WEATHER_TEXT = {
@@ -507,12 +523,183 @@ export function recordMove(doc, origin, dest, priced) {
 }
 
 /**
- * Forage for a character (a player for their own, or the GM). Records it for
- * today; the INT check and the ration it finds are #233's.
+ * Forage for a character: a player for their own, a GM for any member (§5.4).
+ * The active GM checks it and records the attempt; then the character's owner
+ * rolls INT (DC 12, 18 when harsh), and a success adds one ration. The reply
+ * comes before the roll, which lands in chat.
  * @param {string} actorId
+ * @returns {Promise<{ok:true}|{ok:false, error:string}>}
  */
-export function requestForage(actorId) {
-  return relayToGM(OVERLAND_QUERY, { action: "forage", actorId }, { label: t("SDE.overland.relayLabel") });
+export async function forage(actorId) {
+  const data = { action: "forage", actorId };
+  const reply = isActiveGM() ? await applyAction(data, game.user)
+    : await queryActiveGM(OVERLAND_QUERY, data, { label: t("SDE.overland.relayLabel") });
+  if (!reply?.ok && reply?.error) ui.notifications?.warn(reply.error);
+  return reply;
+}
+
+/** The forage roll, after the queue: the owner rolls, and a success finds a ration. */
+async function forageRoll(actor, dc) {
+  const found = await StatRiders.save(actor, { ability: "int", dc }, t("SDE.overland.forage.source"),
+    { title: t("SDE.overland.forage.title", { name: actor.name, dc }) });
+  if (found) await addRation(actor);
+  await ChatMessage.create({
+    speaker: ChatMessage.getSpeaker({ actor }),
+    content: `<p>${esc(t(found ? "SDE.overland.forage.found" : "SDE.overland.forage.nothing", { name: actor.name }))}</p>`,
+  });
+}
+
+/** One more ration on the character: onto their Rations stack, else a new one from the system's gear. */
+async function addRation(actor) {
+  const stack = actor.items.find((i) => RATIONS.test(i.name));
+  if (stack) return stack.update({ "system.quantity": (Number(stack.system?.quantity) || 0) + 1 });
+  const pack = game.packs.get("shadowdark.gear");
+  const entry = pack ? (await pack.getIndex()).find((e) => RATIONS.test(e.name)) : null;
+  const source = entry ? (await pack.getDocument(entry._id))?.toObject() : null;
+  const data = source ?? { name: t("SDE.overland.forage.rations"), type: "Basic" };
+  delete data._id;
+  data.system = { ...data.system, quantity: 1 };
+  return actor.createEmbeddedDocuments("Item", [data]);
+}
+
+/** The Forage dialog (GM): tick who forages. Resolves to their actor ids, or null when closed. */
+export async function askForage() {
+  const members = _state.members.map((id) => game.actors.get(id)).filter(Boolean);
+  const rows = members.map((a) => `<label class="checkbox"><input type="checkbox" name="${esc(a.id)}"${
+    _state.foraged.includes(a.id) ? " disabled" : " checked"}> ${esc(a.name)}</label>`).join("");
+  return foundry.applications.api.DialogV2.prompt({
+    window: { title: t("SDE.overland.forage.dialogTitle") },
+    content: `<p>${esc(t("SDE.overland.forage.dialogPick"))}</p><div class="form-fields">${rows}</div>`,
+    ok: {
+      label: t("SDE.overland.forage.button"),
+      callback: (event, button) => members.filter((a) => button.form.elements[a.id]?.checked).map((a) => a.id),
+    },
+    rejectClose: false,
+  });
+}
+
+// ── Camp (#233, §5.5) ─────────────────────────────────────────────────────────
+
+/**
+ * Make camp (GM): put the carried lights out (they keep their time), then run
+ * the clock to the next sunrise, rolling the day's remaining checks and the
+ * night's as they fall due. A hit stops the night there, and Continue
+ * finishes it. At dawn the rations are eaten and the next day's weather is
+ * rolled; the GM then starts the day.
+ * @returns {Promise<{ok:true, stopped:boolean}|{ok:false, error:string}>}
+ */
+export async function makeCamp() {
+  if (!game.user?.isGM) return { ok: false, error: t("SDE.overland.notify.dayGmOnly") };
+  const data = { action: "camp" };
+  return isActiveGM() ? applyAction(data, game.user) : queryActiveGM(OVERLAND_QUERY, data, { label: t("SDE.overland.relayLabel") });
+}
+
+/**
+ * When camp breaks: the next sunrise, or the last night check if it falls
+ * later. A summer sunrise at 04:30 comes before a 05:00 check, and both night
+ * checks are the camp's (§5.5 step 2).
+ */
+function campEnd() {
+  const dawn = dawnAfter(game.time.calendar, game.time.worldTime);
+  const night = _state.checks.filter((c) => c.half === "night" && !c.rolled).map((c) => c.at);
+  return Math.max(dawn, ...night);
+}
+
+/** The Shadowdark Extras party actor the travel token stands for, or null. */
+function travelParty() {
+  try {
+    const actor = _state.tokenUuid ? fromUuidSync(_state.tokenUuid)?.actor : null;
+    return actor && extrasParties().some((a) => a.id === actor.id) ? actor : null;
+  } catch { return null; }
+}
+
+/** How much food a character carries: the quantity of their Rations stacks. */
+const rationsOf = (actor) => actor.items.filter((i) => RATIONS.test(i.name))
+  .reduce((n, i) => n + (Number(i.system?.quantity) || 0), 0);
+
+/** Take `n` rations from the character's stacks, emptying a stack before the next and deleting it at 0. */
+async function takeRations(actor, n) {
+  for (const item of actor.items.filter((i) => RATIONS.test(i.name))) {
+    if (n <= 0) return;
+    const have = Number(item.system?.quantity) || 0;
+    const take = Math.min(have, n);
+    n -= take;
+    if (have - take > 0) await item.update({ "system.quantity": have - take });
+    else await item.delete();
+  }
+}
+
+/** Overland's own rations, without Extras (§5.5 step 3): eat, and 1 CON for each who goes without. */
+async function eatRations(members, each) {
+  const plan = planRations({ members: members.map((a) => ({ id: a.id, have: rationsOf(a) })), mounts: _state.mounts, each });
+  const lines = [];
+  for (const actor of members) {
+    if (plan.eat[actor.id]) await takeRations(actor, plan.eat[actor.id]);
+    if (plan.fed[actor.id]) continue;
+    const statDamage = game.shadowdarkEnhancer?.statDamage;
+    if (typeof statDamage?.apply === "function") await statDamage.apply(actor, "con", 1);
+    lines.push(t("SDE.overland.camp.hungry", { name: actor.name }));
+  }
+  if (_state.mounts) lines.push(t("SDE.overland.camp.mounts", { fed: plan.mountsFed, mounts: _state.mounts }));
+  return { plan, lines };
+}
+
+/**
+ * Dawn after camp (§5.5 steps 3-4): the rations, handed to Extras' camping
+ * rest when the travel token is its party and it offers camping.open
+ * (shadowdark-extras#163), else eaten here; then the day closes and the new
+ * day's weather is rolled.
+ */
+async function finishCamp() {
+  const s = overlandState();
+  const stormy = _state.weather?.kind === "stormy";   // the night's weather, rolled for the day just ended
+  const harsh = !!harshToday(s.climate, stormy);
+  const each = harsh ? 2 : 1;
+  const members = _state.members.map((id) => game.actors.get(id)).filter(Boolean);
+  const party = travelParty();
+  const camping = game.modules?.get("shadowdark-extras")?.api?.camping;
+  let lines = [];
+  if (party && typeof camping?.open === "function") {
+    await camping.open({ party, members, mounts: _state.mounts, pushed: _state.pushed, harsh, stormy, rationsEach: each, advanceTime: false })
+      .catch((err) => console.error(`${MODULE_ID} | Shadowdark Extras' camping rest`, err));
+  } else {
+    ({ lines } = await eatRations(members, each));
+  }
+  await ChatMessage.create({
+    content: `<p>${esc(t(harsh ? "SDE.overland.camp.dawnHarsh" : "SDE.overland.camp.dawn"))}</p>${
+      lines.map((l) => `<p>${esc(l)}</p>`).join("")}`,
+  }).catch((err) => console.error(`${MODULE_ID} | camp chat line`, err));
+  await commit(closeDay(_state).state);
+  await rollWeatherHere(false);
+}
+
+// ── The underground season check (#233, §5.6) ─────────────────────────────────
+
+/**
+ * On the active GM (timeAdvanced fires there only), in every mode: a season
+ * change with the party on a deep-tunnels hex asks each member for a DC 12 CHA
+ * check, once per season crossed, and a failure costs 1d4 CHA stat damage.
+ * ponytail: at most UNDERGROUND_MAX seasons per clock jump, so a jump of years
+ * asks for a year's worth, not hundreds.
+ */
+export async function undergroundCheck({ crossed } = {}) {
+  const seasons = Math.min(UNDERGROUND_MAX, crossed?.seasonChanges ?? 0);
+  if (!seasons || _state.hex?.terrain !== "deep_tunnels") return;
+  const members = _state.members.map((id) => game.actors.get(id)).filter(Boolean);
+  const statDamage = game.shadowdarkEnhancer?.statDamage;
+  for (let n = 0; n < seasons; n++) {
+    for (const actor of members) {
+      const passed = await StatRiders.save(actor, { ability: "cha", dc: UNDERGROUND_DC }, t("SDE.overland.underground.source"),
+        { title: t("SDE.overland.underground.title", { name: actor.name }) });
+      if (passed) continue;
+      const roll = await new Roll("1d4").evaluate();
+      await roll.toMessage({
+        speaker: ChatMessage.getSpeaker({ actor }),
+        flavor: esc(t("SDE.overland.underground.failed", { name: actor.name })),
+      });
+      if (typeof statDamage?.apply === "function") await statDamage.apply(actor, "cha", roll.total);
+    }
+  }
 }
 
 /**
@@ -579,19 +766,37 @@ export function applyAction(data, user) {
         if (!pending) return { ok: false, error: t("SDE.overland.notify.nothingPending") };
         await commit(setPending(_state, null).state);
         const { stopped } = await advanceTravel(pending.until, pending.reason);
+        if (!stopped && pending.reason === "camp") await finishCamp();
         return { ok: true, stopped };
       }
       case "forage": {
         const auth = authorizeActorFor(data.actorId, user, { type: "Player" });
         if (!auth.ok) return auth;
+        const s = overlandState();
         const why = forageRefusal({
           travelling: CrawlState.isOverland,
           member: _state.members.includes(auth.actor.id),
           foraged: _state.foraged.includes(auth.actor.id),
+          dayOpen: _state.day !== null, pushed: _state.pushed, stormy: s.stormy, harsh: !!s.harsh,
         });
         if (why) return { ok: false, error: t(FORAGE_REFUSED[why], { name: auth.actor.name }) };
         await commit(recordForage(_state, auth.actor.id).state);
+        // The attempt is recorded; the roll waits on the player, so it runs
+        // outside the queue rather than holding every travel action up.
+        forageRoll(auth.actor, forageDC(!!s.harsh))
+          .catch((err) => console.error(`${MODULE_ID} | forage roll`, err));
         return { ok: true };
+      }
+      case "camp": {
+        if (!user.isGM) return { ok: false, error: t("SDE.overland.notify.dayGmOnly") };
+        if (!CrawlState.isOverland) return { ok: false, error: t("SDE.overland.notify.notTravelling") };
+        if (_state.pending) return { ok: false, error: t("SDE.overland.notify.pending") };
+        // Q8: carried lights go out and keep their time, through the off-duty
+        // move with no clock of its own (a refusal there warns, and camp goes on).
+        await advanceOffDuty(0, { reason: "camp" });
+        const { stopped } = await advanceTravel(campEnd(), "camp");
+        if (!stopped) await finishCamp();
+        return { ok: true, stopped };
       }
       default:
         return { ok: false, error: t("SDE.overland.notify.unknown") };
@@ -605,4 +810,7 @@ export function registerOverland() {
   game.socket.on(SOCKET, (msg) => { if (msg?.type === "overland") reread(); });
   Hooks.on("preMoveToken", onPreMoveToken);
   Hooks.on("moveToken", onMoveToken);
+  Hooks.on(`${MODULE_ID}.timeAdvanced`, (payload) => {
+    undergroundCheck(payload).catch((err) => console.error(`${MODULE_ID} | underground season check`, err));
+  });
 }
