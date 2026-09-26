@@ -5,6 +5,8 @@ import {
   pickTravelToken, forageRefusal, OVERLAND_VERSION,
   setWeather, weatherHolds, weatherAdvantage, weatherFormula, weatherFromRoll, harshToday, hexCost,
   dayBudget, pointSeconds, openDay, spendMove, priceMove, moveVerdict,
+  dayChecks, dueChecks, markCheck, setPending,
+  forageDC, closeDay, planRations,
 } from "../scripts/overland/overland-state-core.mjs";
 import { rulesApi } from "../scripts/rules-data/rules-data-core.mjs";
 
@@ -216,4 +218,66 @@ test("a move spends its cost and records the hex", () => {
   assert.equal(changed, true);
   assert.equal(state.spent, 5);
   assert.deepEqual(state.hex, hex);
+});
+
+// ── Encounter checks (#232) ──────────────────────────────────────────────────
+
+test("the day's checks: two by day from 06:00 to 17:00, two at night from 18:00 to 05:00, in time order", () => {
+  const checks = dayChecks({ midnight: 0, d12s: [12, 1, 12, 1], pushed: false });
+  assert.deepEqual(checks.map((c) => [c.half, c.at / HOUR, c.chance]),
+    [["day", 6, 1], ["day", 17, 1], ["night", 18, 1], ["night", 29, 1]]);
+  assert.ok(checks.every((c) => !c.rolled && c.hit === null));
+  assert.deepEqual(dayChecks({ midnight: 0, d12s: [1, 1, 1, 1], pushed: true }).map((c) => c.chance), [2, 2, 2, 2],
+    "a pushed day, night checks too");
+});
+
+test("the checks an advance passes: unrolled, at or before the target, in time order", () => {
+  const checks = dayChecks({ midnight: 0, d12s: [3, 1, 5, 2], pushed: false });   // 06, 08, 19, 22
+  assert.deepEqual(dueChecks(checks, 7 * HOUR).map((i) => checks[i].at / HOUR), [6]);
+  assert.deepEqual(dueChecks(checks, 22 * HOUR).map((i) => checks[i].at / HOUR), [6, 8, 19, 22]);
+  const { state } = markCheck({ ...defaultOverlandState(), checks }, 0, false);
+  assert.deepEqual(dueChecks(state.checks, 7 * HOUR), [], "a rolled check isn't rolled again");
+  assert.equal(state.checks[0].hit, false);
+});
+
+test("a stopped advance waits, and nothing but Continue moves the token on", () => {
+  const day = { ...defaultOverlandState(), day: 0, budget: 5 };
+  const { state } = setPending(day, { until: 99, reason: "move" });
+  assert.deepEqual(state.pending, { until: 99, reason: "move" });
+  assert.equal(moveVerdict(state, { cost: 1, blocked: null }), "pending");
+  assert.equal(moveVerdict(state, { cost: 0, blocked: null }), null, "a displace is still free");
+  assert.equal(setPending(state, null).state.pending, null);
+  assert.equal(normalizeOverlandState({ pending: { until: "x" } }).pending, null);
+  assert.deepEqual(normalizeOverlandState({ checks: [{ at: 5, half: "odd", chance: 9 }, { at: "x" }] }).checks,
+    [{ half: "day", at: 5, chance: 6, rolled: false, hit: null }]);
+});
+
+// ── Forage, camp (#233) ──────────────────────────────────────────────────────
+
+test("forage: once a day, only during a travel day, never pushed, never in a harsh storm; DC 12 or 18", () => {
+  const ok = { travelling: true, member: true, foraged: false };
+  assert.equal(forageRefusal(ok), null);
+  assert.equal(forageRefusal({ ...ok, dayOpen: false }), "noDay");
+  assert.equal(forageRefusal({ ...ok, pushed: true }), "pushed");
+  assert.equal(forageRefusal({ ...ok, stormy: true, harsh: true }), "impossible");
+  assert.equal(forageRefusal({ ...ok, stormy: true }), null, "a storm in a mild climate is fine");
+  assert.equal(forageRefusal({ ...ok, foraged: true }), "alreadyForaged");
+  assert.equal(forageDC(false), 12);
+  assert.equal(forageDC(true), 18);
+});
+
+test("rations: each member eats their own, one who can't cover them eats none; mounts eat what's left", () => {
+  assert.deepEqual(planRations({ members: [{ id: "a", have: 2 }, { id: "b", have: 0 }], each: 1 }),
+    { eat: { a: 1, b: 0 }, fed: { a: true, b: false }, mountsFed: 0 });
+  assert.deepEqual(planRations({ members: [{ id: "a", have: 1 }, { id: "b", have: 3 }], each: 2 }),
+    { eat: { a: 0, b: 2 }, fed: { a: false, b: true }, mountsFed: 0 }, "harsh: a single ration counts as none");
+  const mounts = planRations({ members: [{ id: "a", have: 2 }, { id: "b", have: 2 }], mounts: 3, each: 1 });
+  assert.deepEqual(mounts, { eat: { a: 2, b: 2 }, fed: { a: true, b: true }, mountsFed: 2 }, "two left over feed two of three mounts");
+});
+
+test("closing the day: no day open, no push, and the day's forage and checks done with", () => {
+  const { state } = closeDay({ ...defaultOverlandState(), day: 5, pushed: true, budget: 6, spent: 4, foraged: ["a"],
+    checks: [{ half: "day", at: 1, chance: 1, rolled: true, hit: false }], pending: { until: 9, reason: "camp" } });
+  assert.deepEqual([state.day, state.pushed, state.budget, state.spent, state.foraged, state.checks, state.pending],
+    [null, false, 0, 0, [], [], null]);
 });

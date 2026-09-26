@@ -331,13 +331,13 @@ test("a tab without a canvas: the prototype token goes dark instead of reading t
   assert.deepEqual(log.protoLight, [{ "prototypeToken.light": { dim: 0, bright: 0 } }]);
 });
 
-test("refused for players, and for a move that goes nowhere", async () => {
+test("refused for players, and for a move that goes backwards or is no number (0 only puts the lights out)", async () => {
   const player = world({ self: { id: "p", isGM: false, flags: {} } });
   assert.equal((await advanceOffDuty(DAY)).ok, false);
   assert.deepEqual(player.log.warnings, ["SDE.time.offDuty.gmOnly"]);
   assert.deepEqual(player.log.advanced, []);
   const { log, pc } = world();
-  for (const s of [0, -60, NaN, "soon"]) assert.equal((await advanceOffDuty(s)).ok, false, String(s));
+  for (const s of [-60, NaN, "soon"]) assert.equal((await advanceOffDuty(s)).ok, false, String(s));
   assert.deepEqual(log.advanced, []);
   assert.equal(pc.items[0].system.light.active, true, "and no torch was touched");
 });
@@ -358,4 +358,19 @@ test("the hand-off receiver: a GM sender only, and it never passes the move on",
   const reply = await handleOffDutyQuery({ seconds: DAY, reason: "downtime" }, me);
   assert.equal(reply.ok, true);
   assert.equal(here.log.advanced[0].options["shadowdark-enhancer"].offDuty, "downtime");
+});
+
+test("0 seconds puts the lights out, keeping their time, and moves no clock (Overland's camp, #233)", async () => {
+  const { log, torch, start } = world();
+  const reply = await advanceOffDuty(0, { reason: "camp" });
+  assert.equal(reply.ok, true);
+  assert.deepEqual(reply.doused, [{ actorId: "aria", itemId: "torch" }]);
+  assert.equal(torch.system.light.remainingSecs, 2400);
+  assert.deepEqual(log.advanced, [], "no clock move");
+  assert.equal(reply.worldTime, start);
+  assert.equal(log.chats.length, 1, "the line names the torch");
+  const off = world({ tracking: false });
+  assert.equal((await advanceOffDuty(0)).ok, true);
+  assert.deepEqual(off.log.advanced, [], "tracking off: nothing to do at all");
+  assert.equal((await advanceOffDuty(-1)).ok, false, "below 0 is refused");
 });

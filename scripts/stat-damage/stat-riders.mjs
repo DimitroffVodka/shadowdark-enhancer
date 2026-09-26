@@ -44,13 +44,13 @@ const SAVE_TIMEOUT_MS = 120_000;
 let _installed = false;
 
 /** The system's stat check against a DC: the dialog for a player, none for the GM's fallback. */
-function rollSave(actor, ability, dc, source, skipPrompt) {
-  return actor.system.rollStatCheck(ability, {
-    mainRoll: { dc },
-    skipPrompt,
-    title: game.i18n.format("SDE.statDamage.saveTitle", { source }),
-  });
+function rollSave(actor, ability, dc, title, skipPrompt) {
+  return actor.system.rollStatCheck(ability, { mainRoll: { dc }, skipPrompt, title });
 }
+
+/** The check's heading: the caller's own (Overland's forage), else "Save against {source}". */
+const saveTitle = (source, title) => (typeof title === "string" && title
+  ? title : game.i18n.format("SDE.statDamage.saveTitle", { source }));
 
 export const StatRiders = {
 
@@ -96,18 +96,21 @@ export const StatRiders = {
 
   /**
    * Ask the character's player to make the save; roll it here when no player can.
+   * Overland's forage and underground checks (#233) reuse it with their own `title`.
+   * @param {{title?:string}} [options]
    * @returns {Promise<boolean>} true when the save succeeded.
    */
-  async save(target, { ability, dc }, source) {
+  async save(target, { ability, dc }, source, { title } = {}) {
+    const heading = saveTitle(source, title);
     const owners = game.users.filter((u) => u.active && !u.isGM && target.testUserPermission(u, "OWNER"));
     const player = owners.find((u) => u.character?.id === target.id) ?? owners[0];
     if (player) {
       const reply = await player.query(SAVE_QUERY,
-        { actorUuid: target.uuid, ability, dc, source }, { timeout: SAVE_TIMEOUT_MS })
+        { actorUuid: target.uuid, ability, dc, source, title: heading }, { timeout: SAVE_TIMEOUT_MS })
         .catch(() => null);
       if (reply?.ok) return !!reply.saved;
     }
-    return rollHit((await rollSave(target, ability, dc, source, true)) || {});
+    return rollHit((await rollSave(target, ability, dc, heading, true)) || {});
   },
 
   /** Player side: only a GM may ask, and only for a character this client owns. */
@@ -117,7 +120,7 @@ export const StatRiders = {
     const ability = abilityKey(data?.ability);
     const dc = Number(data?.dc);
     if (!actor?.isOwner || !ability || !(dc > 0)) return { ok: false };
-    const roll = await rollSave(actor, ability, dc, String(data.source ?? ""), false);
+    const roll = await rollSave(actor, ability, dc, saveTitle(String(data.source ?? ""), data.title), false);
     return roll ? { ok: true, saved: rollHit(roll) } : { ok: false };
   },
 };

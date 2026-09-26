@@ -23,7 +23,7 @@ and Forge & Loot features.
 [`time`](#time--season-day-and-night-sun-moon-and-anchors) ·
 [`overland`](#overland--the-travel-state)
 
-**API version:** `1.16.0` (semver — additive changes bump the minor version,
+**API version:** `1.18.0` (semver — additive changes bump the minor version,
 breaking changes the major; check `apiVersion` before relying on newer keys).
 
 ## Discovery
@@ -117,12 +117,27 @@ api.linker.invalidate(); // drop both caches after bulk content changes
 
 ```js
 await api.encounter.check();          // run an encounter check
+await api.encounter.check({ threshold: 2, hex, scene, label, clockLabel }); // 1.17.0: the chance, hex, map and labels given
 api.encounter.openRoller();           // roller window
 api.encounter.setActiveTable(uuid);   // bind the active encounter table
 api.encounter.getThreshold(); api.encounter.setThreshold(3);
 api.encounter.getCheckFrequency(); api.encounter.setCheckFrequency(3); // automatic crawl-round check: every 3 rounds, counted from the last check
 await api.encounter.tableForHex({ num: 2849, terrain: "forest", features: ["river", "coast"] }); // → RollTable | null
 ```
+
+`check(options?)` resolves to `{ total, hit }`. With no options it is the
+crawl's check: the threshold setting, and the party's hex on a tagged map.
+Since 1.17.0 it also takes:
+
+- `threshold`: the chance to use, in 6.
+- `hex`: `{ num, terrain, features, region }`, used instead of the party's
+  hex. The region names the table's zone.
+- `scene`: the map the hex is on. Its region scan decides a table's north or
+  south half, whatever map the GM is viewing.
+- `label`: shown first on the card.
+- `clockLabel`: the Session Recap's clock label.
+
+Overland's travel checks use these.
 
 ### `encounter.tableForHex(hex, { hour?, moon?, scene? })`
 
@@ -1425,8 +1440,9 @@ With the system's light tracking off it only advances. A Light spell and a
 Light actor dropped on the scene are left to the clock: a spell's duration is
 real, and a light left behind burns out. Lights stay out afterwards; players
 light them again as usual. `reason` is free text, `"downtime"` by default;
-Overland uses `"downtime"`, `"carousing"` and `"rest"`. `seconds` must be more
-than 0.
+Overland uses `"downtime"`, `"carousing"` and `"rest"`. `seconds` must be 0 or
+more. Since 1.18.0, 0 puts the lights out and moves no clock: Overland's camp
+does that, then moves the clock itself with its encounter checks.
 
 This relies on the light tracker of Shadowdark 4.0.6 (its cache, its dirty
 flag and the primary GM flag); a later system version is checked live before
@@ -1456,6 +1472,9 @@ o.state();      // a copy of the travel state, plus derived fields:
 await o.rollWeather();                 // GM: roll today's weather (1.15.0)
 await o.rollWeather({ reroll: true }); // replace today's roll (Predict)
 await o.startDay({ method: "walking", pushed: false, boatUuid: null });   // GM (1.16.0)
+await o.resume();   // GM: finish an advance an encounter stopped (1.17.0)
+await o.forage(actorId);   // the owner or a GM: forage for a travelling character (1.18.0)
+await o.makeCamp();        // GM: camp for the night (1.18.0)
 // { ok: true, rolled: true, weather }   rolled, stored, one chat card
 // { ok: true, rolled: false, weather }  today's still holds: nothing rolled or posted
 // { ok: false, error }                  a player, or the roll failed
@@ -1536,6 +1555,36 @@ tokens, a combat, and moves while not travelling are left alone.
   is any queued move that starts where a refused one ended, even an
   affordable one.
 
+### Encounter checks and `overland.resume()`
+
+Added in 1.17.0 (Overland O6, #232; design §5.1 step 4, §5.3, Q4, §5.7).
+
+- **The day's checks.** Start day rolls four d12s for their hours: two day
+  checks at 06:00 + (d12 − 1) h, and two night checks at 18:00 + (d12 − 1) h,
+  so up to 05:00 the next morning.
+  - The chance is 1-in-6, or 2-in-6 for all four on a pushed day.
+  - They are stored as `checks: [{ half, at, chance, rolled, hit }]`.
+  - The GM alone gets a chat line with the hours; players never see them.
+  - A check whose hour went by before the day was started falls due at once.
+- **Rolling them.** Every Overland clock advance (a move, and later the
+  night's camp) runs from now to its target. Each unrolled check whose hour
+  falls inside is rolled in time order at its hour, through
+  `encounter.check({ threshold, hex, scene, label, clockLabel })` on the travel
+  hex and the travel token's scene.
+  The table resolves at that hour, including the night columns and the moon,
+  and a hit behaves as any encounter check: the pause setting, the roller, and
+  the auto-rolled table.
+- **A hit stops the clock** at its hour and stores
+  `pending: { until, reason }`. The move itself stands and is paid for; only
+  the clock waits. When no clock is left but more checks are due at that
+  moment (a second check at the same hour, or a late Start day's overdue
+  checks), `pending` holds them for Continue too. While something is pending, the travel token can't move
+  on, except by displace.
+- **`overland.resume()`** (GM, forwarded to the active GM; the crawl bar's
+  **Continue**) clears `pending` and finishes the advance, rolling any later
+  check on the way. It resolves to `{ ok: true, stopped }` (`stopped` when
+  another check hit), or `{ ok: false, error }` when nothing is pending.
+
 - **Starting and ending travel** is the GM's, from the crawl bar's **Travel**
   and **End travel** (offered on a tagged hex map). Another GM's click is
   forwarded to the active GM. The travel token is the Shadowdark Extras party
@@ -1553,6 +1602,62 @@ tokens, a combat, and moves while not travelling are left alone.
 - The day's budget and the clock (#231), encounter checks (#232) and rations
   (#233) fill the fields above as they land; until then they keep their
   defaults.
+
+### Forage, `overland.makeCamp()` and the underground check
+
+Added in 1.18.0 (Overland O7, #233; design §5.4–5.6, Q6, Q8, §5.7).
+
+**`overland.forage(actorId)`** is for a player's own character, or a GM's for
+any member. It resolves to `{ ok: true }` or `{ ok: false, error }`, and the
+error is also shown as a warning.
+
+- The active GM checks the sender from the query context. It refuses when
+  nobody is travelling, the character isn't a member, no travel day is open,
+  the day is pushed, the day is stormy in a harsh climate, or they already
+  foraged today.
+- Otherwise it records the attempt, and the character's owner rolls INT: DC
+  12, or 18 in a harsh climate. It is the stat-damage save prompt with a
+  forage title (`StatRiders.save`), and the GM's client rolls when the owner
+  is offline.
+- A success adds one ration to the character's Rations stack (matched by name,
+  `/^rations?$/i`, as Extras does), or a new stack from the system's gear
+  pack. One chat line says what was found. Foraging takes no clock time.
+
+**`overland.makeCamp()`**, GM only, forwarded to the active GM. Refused when
+nobody is travelling or an encounter is pending. Resolves to
+`{ ok: true, stopped }` or `{ ok: false, error }`.
+
+1. **Lights.** Carried lights go out and keep their time: `time.advanceOffDuty(0, { reason: "camp" })`.
+   A refusal there is shown, and camp goes on.
+2. **The night.** The clock runs to the next sunrise, or to the last night
+   check if that is later (a summer sunrise at 04:30 comes before a 05:00
+   check), through the same advance as moves. A hit stops the night with
+   `pending.reason === "camp"`, and `resume()` finishes it. That holds even
+   for a hit at the camp's very last moment: the dawn step is still to come.
+3. **Rations**, at the end of the night. Any forage roll still waiting on a
+   player is settled first, so a ration found tonight is eaten tonight.
+   - **With Shadowdark Extras**, when the travel token is its party and its
+     API offers `camping.open` (shadowdark-extras#163): that rest is opened
+     with `{ party, members, mounts, pushed, harsh, stormy, rationsEach, advanceTime: false }`,
+     and it does the rations. Overland adds nothing. When that rest is
+     closed, declined or fails (`completed` not true), the camp stays pending
+     with a warning. The day isn't closed, and Continue opens the rest again
+     rather than passing a second night.
+   - **Otherwise Overland eats them.** Each member eats 1 ration from their
+     own stacks, or 2 when the night was harsh. One who can't cover them all
+     eats none (a single ration in a harsh climate counts as none) and takes 1
+     CON through `statDamage.apply`. Mounts (`mounts`) eat the same from
+     whatever the members have left.
+4. **Dawn.** One chat line sums it up. The day is closed (`day: null`, the push
+   reset), and the new day's weather is rolled. The GM then presses Start day.
+
+**The underground season check** runs on the active GM, on `timeAdvanced`, in
+any mode (the party may be crawling below the hex).
+
+- When the clock crosses a season change and the travel state's hex is deep
+  tunnels, each member makes a DC 12 CHA check through the same save prompt.
+- A failure costs 1d4 CHA stat damage.
+- The check is made once per season crossed, at most four per clock jump.
 
 ## Stability notes
 
@@ -1586,6 +1691,12 @@ tokens, a combat, and moves while not travelling are left alone.
 - `1.16.0` adds `overland.startDay` and the travel state's `pointSeconds`.
   While travelling, moving the travel token spends the day's budget and moves
   the clock.
+- `1.17.0` adds `overland.resume`, the options of `encounter.check`, and the
+  travel day's encounter checks. The travel state's `checks` and `pending` are
+  now filled in.
+- `1.18.0` adds `overland.forage` and `overland.makeCamp`, and the underground
+  season check. `time.advanceOffDuty(0)` now puts the lights out and moves no
+  clock.
 - `1.4.0` adds the shared `forgeLoot.open()` preview shell. Generator rules and
   document writes remain behind the later NPC/Rival adapter implementations.
   The version policy is additive: new namespaces bump the minor version; breaking

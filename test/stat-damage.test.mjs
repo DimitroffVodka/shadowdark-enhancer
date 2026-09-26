@@ -371,7 +371,7 @@ test("the target's player makes the save; the damage lands only when it fails", 
       query: async (name, data) => { asked.push({ name, data }); return { ok: true, saved }; },
     }], () => StatRiders._onAttackCard(monsterCard({ special: "DC 12 CON or 1d4 STR damage" })));
     assert.equal(asked.length, 1);
-    assert.deepEqual(asked[0].data, { actorUuid: "Actor.pc", ability: "con", dc: 12, source: "Touch" });
+    assert.deepEqual(asked[0].data, { actorUuid: "Actor.pc", ability: "con", dc: 12, source: "Touch", title: "SDE.statDamage.saveTitle" });
     assert.equal(target.checks.length, 0, "the GM did not roll it too");
     assert.equal(StatDamage.of(target).str, saved ? 0 : 3);
   }
@@ -403,4 +403,12 @@ test("the player's client rolls the save only when a GM asks, for a character it
 
   target.isOwner = false;
   assert.deepEqual(await StatRiders.handleSaveQuery(ask, { isGM: true }), { ok: false });
+});
+
+test("a save asked with its own title shows it; without one it reads \"Save against {source}\" (#233)", async () => {
+  const target = hitTarget(false);
+  const ask = { actorUuid: "Actor.pc", ability: "int", dc: 12, source: "Forage" };
+  await StatRiders.handleSaveQuery({ ...ask, title: "Mine forages (INT, DC 12)" }, { isGM: true });
+  await StatRiders.handleSaveQuery(ask, { isGM: true });
+  assert.deepEqual(target.checks.map((c) => c.title), ["Mine forages (INT, DC 12)", "SDE.statDamage.saveTitle"]);
 });

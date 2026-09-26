@@ -421,11 +421,12 @@ export function terrainTable(hex) {
 /**
  * resolveHexTable for the encounter check, which must never lose its chat
  * card to it: if the region lookup throws, the check rolls what it rolled
- * before this lookup existed.
+ * before this lookup existed. `scene` is the map the hex is on (Overland's
+ * travel scene), else the one being viewed.
  */
-export async function tableForCheck(hex) {
+export async function tableForCheck(hex, { scene } = {}) {
   try {
-    return await resolveHexTable(hex);
+    return await resolveHexTable(hex, { scene });
   } catch (err) {
     console.error(`${MODULE_ID} | the table for the party's hex failed; using the terrain's table`, err);
     return terrainTable(hex);

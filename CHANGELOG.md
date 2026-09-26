@@ -34,6 +34,29 @@ it needs.
   terrain difficult, and a storm in a harsh climate makes every hex
   impassable. Macros and Shadowdark Extras roll it with
   `game.shadowdarkEnhancer.overland.rollWeather()`. (#230)
+- **Encounter checks.** **Start day** sets the day's four encounter checks:
+  two by day, two at night, each at an hour rolled on a d12 and whispered to
+  the GM. The chance is 1 in 6, or 2 in 6 when pushed. A move whose clock
+  passes a check's hour rolls it at that hour, on the table the book intends
+  for the party's hex. A hit stops the clock there until the GM presses
+  **Continue**. `game.shadowdarkEnhancer.encounter.check()` now takes a
+  threshold, a hex and labels. (#232)
+- **Forage and camp.** **Forage** sends each character's player an INT check
+  (DC 12, or 18 when harsh); a success adds a ration. It happens once a day,
+  never on a pushed day, and not in a harsh storm. **Make camp** puts carried
+  lights out (they keep their time), runs the clock to dawn with the night's
+  encounter checks, and feeds everyone at dawn: one ration, two after a harsh
+  night, and 1 CON damage for anyone without. Then it rolls the new day's
+  weather. A Shadowdark Extras party hands the rations to Extras' camping rest
+  once Extras offers it. When a season turns with the party on a deep-tunnels
+  hex, each member makes a DC 12 CHA check or takes 1d4 CHA damage. (#233)
+- **The travel bar.** While travelling, everyone sees a slim bar at the top
+  centre: the date and time, the sun or the moon's phase, the weather and the
+  hexes left. Opened, it shows a small sky with the sun or moon in its place,
+  the season and climate, the day's budget, and each member's rations and
+  forage. Players get a Forage button on their own characters. The GM also
+  sees the check hours and the day's buttons, which players never do. It
+  hides during combat. (#234)
 - **Rules data.** A new **Rules data** window under Configure Settings holds
   the Western Reaches tables you look up rather than roll: terrain costs on
   foot and by boat, terrain types, hexes per day, hex visibility, each

@@ -144,9 +144,25 @@ Differences from combat:
 
 On a tagged hex map the Crawl Bar also offers **Travel**. It starts overland
 travel instead of a crawl. Overland is being built in pieces (#192). So far it
-switches the mode, keeps the travel state, rolls the weather, and charges each
-move of the travel token against the day's hexes, moving the clock with it.
+switches the mode, keeps the travel state, rolls the weather, charges each
+move of the travel token against the day's hexes, moving the clock with it,
+rolls the day's encounter checks as the clock reaches them, and ends the day
+with forage and camp.
 
+- **The travel bar.** While travelling on the hex map, everyone gets a slim
+  bar at the top centre, where the Crawl Strip sits during a crawl. It shows
+  the date and time, the sun (and when it sets) or the moon's phase, the
+  weather and the hexes left. Click it to open the details:
+  - a small sky with the sun or moon in its place;
+  - the season and climate, and the travel method;
+  - the day's budget;
+  - each member's rations, and who has foraged today, with a **Forage** button
+    on each character you own.
+
+  The GM also sees the day's check hours and results, and the Start day,
+  Weather, Make camp and End travel buttons. Players never see the check
+  hours. The bar hides during a combat, and on any scene that isn't a tagged
+  hex map.
 - **Which token travels.** The Shadowdark Extras party token, when exactly one
   is on the map. Otherwise select the one token that travels before pressing
   **Travel**.
@@ -178,7 +194,37 @@ move of the travel token against the day's hexes, moving the clock with it.
 - **Start** still begins a crawl, for example when the party reaches a dungeon.
   To travel again after a crawl, end the crawl first.
 
-Encounter checks, foraging, rations and camp come with the next pieces.
+- **Encounter checks.** Start day sets four check hours, whispered to you
+  alone: two by day between 06:00 and 17:00, and two at night between 18:00
+  and 05:00. The chance is 1 in 6, or 2 in 6 on a pushed day. When a move's
+  clock passes a check's hour, it's rolled at that hour on the table for the
+  party's hex, day or night columns and the moon included. A hit stops the
+  clock at that hour: run the encounter, then press **Continue** on the bar to
+  finish the rest of the move. The token can't move on until you do, except by
+  **Displace**. A check whose hour had passed before you started the day is
+  rolled at once.
+
+- **Forage** lets travelling characters look for food: tick who forages.
+  - Each character's player rolls INT: DC 12, or 18 in a harsh climate. When
+    the player isn't connected, you roll it.
+  - A success adds a ration to their Rations.
+  - Once a day, only after Start day, never on a pushed day, and nothing is
+    found in a storm in a harsh climate.
+  - A player can forage for their own character from a macro:
+    `game.shadowdarkEnhancer.overland.forage("<actor id>")`.
+- **Make camp** ends the day:
+  - Carried lights go out, keeping their time, as with the off-duty move.
+  - The clock runs to dawn, rolling the rest of the day's checks and the
+    night's. A hit stops the night until you press **Continue**.
+  - At dawn everyone eats a ration, or two after a harsh night. Anyone
+    without one takes 1 CON damage, and mounts eat what's left. When the
+    travel token is a Shadowdark Extras party that offers its camping rest
+    to Overland, that rest opens instead and does the rations.
+  - The next day's weather is rolled, and you press **Start day** when the
+    party sets out.
+- **Deep tunnels.** When a season changes while the party's last hex is deep
+  tunnels, each member makes a DC 12 CHA check (their player rolls), and a
+  failure costs 1d4 CHA. That happens whether or not they're travelling.
 
 ## The party cards
 
