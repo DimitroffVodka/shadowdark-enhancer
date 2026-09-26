@@ -73,6 +73,7 @@ import { PartyXP } from "./party-xp/party-xp.mjs";
 import { SessionRecap } from "./session-recap/session-recap.mjs";
 import { DowntimeSession } from "./downtime/downtime-session.mjs";
 import { Renown } from "./renown/renown.mjs";
+import { Quests, openQuestLog, registerQuests } from "./quests/quests.mjs";
 import { registerActorTypes } from "./actors/register-actors.mjs";
 // Imported for its top-level createChatMessage hook: the out-of-combat
 // initiative sync must be live on the GM from load, not only after the GM
@@ -91,7 +92,7 @@ import { initRivalClassTable } from "./forge-loot/rival-class-table-adapter.mjs"
 // templates, producing unstyled block-flow UI. Keep the manifest stylesheet as
 // the startup fallback, then layer a content-addressed copy above it. The layout
 // contract test requires this revision to change whenever the CSS file changes.
-const STYLESHEET_REV = "000935629eaf";
+const STYLESHEET_REV = "aacb2a84e9d6";
 
 // The same problem for the SCRIPTS, which cannot be solved the same way: their
 // URLs come from the manifest, which Foundry validates as real package paths,
@@ -106,7 +107,7 @@ const STYLESHEET_REV = "000935629eaf";
 // stale); module.json carries the same hash and is fetched fresh at runtime. A
 // mismatch is a stale cache by construction — it cannot be anything else. Both
 // stamps are written by `npm run inventory` and gated by `inventory:check`.
-const BUILD_REV = "b423cac99ba7";
+const BUILD_REV = "47d31e85e114";
 
 /**
  * Tell the user when their browser is running an old build of this module, and
@@ -275,6 +276,8 @@ Hooks.once("init", () => {
   ItemDrops.registerSettings();
   Renown.registerSettings();
   MonsterTokenArt.register();
+  // Quest Log: its Ctrl+Q keybinding can only be registered during init.
+  registerQuests();
   // Out-of-combat tracker as a sidebar tab, beside Combat. Must run in init:
   // Game#initializeUI constructs CONFIG.ui entries during setup, and anything
   // registered after that pass never gets an instance.
@@ -411,8 +414,9 @@ Hooks.once("init", () => {
   game.shadowdarkEnhancer = {
     // 1.5.0 — additive: hexMaps namespace (hex tagger, dataset, hand-off).
     // 1.6.0 — additive: statDamage namespace (tracked ability damage).
-    // 1.7.0 — additive: holidays namespace (City of Masks holidays, #191).
-    apiVersion: "1.7.0",
+    // 1.7.0 — additive: quests namespace (the Quest Log) and questsChanged.
+    // 1.8.0 — additive: holidays namespace (City of Masks holidays, #191).
+    apiVersion: "1.8.0",
     // Holidays for carousing (Shadowdark Extras reads `today`). Both async and
     // lazy; a holiday is listed once the GM has imported its journal page.
     holidays: {
@@ -811,6 +815,16 @@ Hooks.once("init", () => {
       apply: (actor, ability, amount) => StatDamage.apply(actor, ability, amount),
       heal: (actor, opts) => StatDamage.heal(actor, opts),
       of: (actor) => StatDamage.of(actor),
+    },
+    // 1.7.0 — additive: the Quest Log. One world journal per quest; reads are
+    // filtered to what the calling user may see, writes are the GM's.
+    // `shadowdark-enhancer.questsChanged` fires on every client after a change.
+    quests: {
+      open: () => openQuestLog(),
+      list: (filter) => Quests.list(filter),
+      get: (id) => Quests.get(id),
+      create: (data) => Quests.create(data),
+      setStatus: (id, status) => Quests.setStatus(id, status),
     },
   };
 });

@@ -6,11 +6,24 @@
 - **The City of Masks holidays.** Chapter to journal has a new preset,
   *Cursed Scroll 6: the City of Masks holidays* (pp. 46–47), that files a
   journal with one page per holiday from your own PDF. A new `holidays` API
-  (`list()`, `today({ place })`, API 1.7.0) gives each imported holiday's
+  (`list()`, `today({ place })`, API 1.8.0) gives each imported holiday's
   place, the day it falls, its carousing effects and its garb questions, for
   Shadowdark Extras' carousing window to apply. Maytide, the Duke's Ball and
   the Night of St. Anton fall on May 1, June 21 and September 22 of the world
   calendar. Lastmoon needs the moon, which isn't tracked yet. (#191)
+- **A Quest Log.** Press Ctrl+Q, or **Quest Log** at the foot of the Journal
+  sidebar. Each quest is a journal entry in a *Quests* folder, with a page
+  your players can read and a GM notes page they can't. Quests are Hidden
+  (yours alone until you change that), Available, Active, Completed or Failed,
+  and come from you, a rumor, a trouble or a trainer. Give one objectives to
+  tick off and rewards: XP, renown, items dragged onto it, a training benefit.
+  Marking it Completed asks you to confirm who gets what, then pays it once:
+  XP through Party XP, renown through the ledger, items onto the sheets you
+  pick. A quest can be personal to characters, assigned to a Shadowdark Extras
+  party, and jump to its hex's map pin. In Regional Training, **Take this
+  task** turns a trainer's task into a quest for the chosen character, and
+  completing it offers to open Training on that trainer for the benefit roll.
+  Players get the log read-only. See the wiki page *Quest Log*. (#189)
 - **Chapter to journal.** Importer Hub → Tools → **Chapter to journal**
   turns any range of printed pages from a linked PDF into one readable
   journal. It's split into pages at the book's headings, its paragraphs are
@@ -19,6 +32,25 @@
   (GM Guide pp. 16–27) in one click, with a page per city-state. Each city
   links to its key-location hex page, and the hex page links back. Running
   it again updates the journal in place and keeps pages you added. (#194)
+- **Type of Trouble rolls its nested table.** Every row of the GM Guide's
+  Type of Trouble (p. 49) prints a second roll ("Monster horde. 1d6: 1. …
+  6. …"), and rolling the table used to hand you that whole list. Importing it
+  now also creates one table per row, on the die the row prints (a d6, or a
+  d4 for External faction and Power change), named "Type of Trouble: <type>"
+  and filed beside it. One roll of Type of Trouble posts the type and a result
+  from its table. If your world already has Type of Trouble, import it again
+  and choose **Replace**: the table is updated in place and its ten tables
+  are made, following that one answer. (#188)
+- **Two more Western Reaches tables, and Random ancestry by population.** The
+  importer now knows the GM Guide's *Caught in Danger!* (p. 33, d6: what
+  befalls a PC still in an adventuring site when the session ends) and the
+  Player's Guide's *Ancestry (Population)* d100 (p. 14). Both are read from
+  your own PDF. A new Character Builder setting, **Random ancestry table**,
+  takes a roll table. When one is set, the Ancestry step's Random rolls it and
+  picks the ancestry the result names or links to, so random characters follow
+  the setting's population odds. If a result matches no ancestry in the world,
+  or the table gives nothing, you're told and Random falls back to each
+  ancestry's weight. Left empty, Random works as before. (#187)
 - **Stat damage is tracked.** Damage to STR, DEX, CON, INT, WIS or CHA is one
   line per ability in the character sheet's Effects tab, such as *2 STR
   damage*: the score and its modifier drop, and the line is gone when healed.

@@ -28,6 +28,8 @@ import {
 import { benefitText, findBenefitsTable, grantBenefit, takenRolls } from "./training-grant.mjs";
 import { importTrainerJournals, trainerJournal } from "./training-journal.mjs";
 import { trainerArt } from "./training-art.mjs";
+import { QUESTS_CHANGED, Quests } from "../quests/quests.mjs";
+import { trainerTaskQuests } from "../quests/quest-core.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin, DialogV2 } = foundry.applications.api;
 
@@ -48,6 +50,7 @@ export class TrainingApp extends HandlebarsApplicationMixin(ApplicationV2) {
       trnRoll: function (...a) { return this._onRoll(...a); },
       trnImport: function (...a) { return this._onImportJournals(...a); },
       trnOpenJournal: function (...a) { return this._onOpenJournal(...a); },
+      trnTakeTask: function (...a) { return this._onTakeTask(...a); },
     },
   };
 
@@ -62,22 +65,40 @@ export class TrainingApp extends HandlebarsApplicationMixin(ApplicationV2) {
    * a player opening this almost always means "me", and a GM almost always
    * means "the one I have selected".
    */
-  static open({ actor = null } = {}) {
+  static open({ actor = null, trainer = null } = {}) {
     const subject = actor
       ?? game.user?.character
       ?? canvas?.tokens?.controlled?.[0]?.actor
       ?? null;
+    const trainerKey = trainerByKey(trainer)?.key ?? null;
     const existing = foundry.applications.instances?.get?.("sde-training");
-    if (existing) { existing.actorId = subject?.id ?? existing.actorId; existing.render(true); existing.bringToFront?.(); return existing; }
+    if (existing) {
+      existing.actorId = subject?.id ?? existing.actorId;
+      if (trainerKey) existing.trainerKey = trainerKey;
+      existing.render(true);
+      existing.bringToFront?.();
+      return existing;
+    }
     const app = new TrainingApp();
     app.actorId = subject?.id ?? null;
-    app.trainerKey = TRAINERS[0].key;
+    app.trainerKey = trainerKey ?? TRAINERS[0].key;
     app.render(true);
     return app;
   }
 
   get actor() {
     return this.actorId ? game.actors?.get(this.actorId) ?? null : null;
+  }
+
+  // A task taken or completed in the Quest Log shows here without a reopen.
+  async _onFirstRender(context, options) {
+    await super._onFirstRender(context, options);
+    this._questHook = Hooks.on(QUESTS_CHANGED, () => this.render());
+  }
+
+  _onClose(options) {
+    Hooks.off(QUESTS_CHANGED, this._questHook);
+    super._onClose(options);
   }
 
   _onRender(context, options) {
@@ -122,8 +143,22 @@ export class TrainingApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const filed = page?.getFlag(MODULE_ID, "regionTraining") ?? {};
     const left = actor ? remainingRolls(trainer.key, taken).length : trainer.benefits.length;
 
+    // Each task with the quest this character took it as, if any (#189).
+    // "Once each" is not decided here: it stays on the grant.
+    const questOf = actor ? trainerTaskQuests(Quests.list(), { actorUuid: actor.uuid, trainer: trainer.key }) : new Map();
+    const tasks = (filed.tasks ?? []).map((text, index) => {
+      const quest = questOf.get(index);
+      return {
+        text,
+        index,
+        quest: !!quest,
+        done: quest?.status === "completed",
+        canTake: !quest && !!actor && !!game.user?.isGM,
+      };
+    });
+
     return {
-      tasks: filed.tasks ?? [],
+      tasks,
       description: filed.description ?? "",
       art: trainerArt(trainer.key),
       journalUuid: journal?.uuid ?? null,
@@ -216,6 +251,24 @@ export class TrainingApp extends HandlebarsApplicationMixin(ApplicationV2) {
       if (button) button.disabled = false;
       this.render();
     }
+  }
+
+  /**
+   * Take one task as a quest for the chosen character (GM). The task's text
+   * is read back from the filed journal, not from the page.
+   */
+  async _onTakeTask(_event, target) {
+    const actor = this.actor;
+    const trainer = trainerByKey(this.trainerKey);
+    if (!actor || !trainer) { ui.notifications?.warn(t("SDE.training.notify.pickCharacter")); return; }
+    const task = Number(target?.dataset?.task);
+    const journal = await trainerJournal(trainer.key);
+    const page = journal?.pages?.find?.((p) => p.getFlag(MODULE_ID, "regionTraining")?.trainer === trainer.key);
+    const text = page?.getFlag(MODULE_ID, "regionTraining")?.tasks?.[task];
+    if (!text) return;
+    const quest = await Quests.takeTrainerTask({ actor, trainer: trainer.key, task, text, journalUuid: journal?.uuid ?? null });
+    if (quest) ui.notifications?.info(t("SDE.training.notify.taskTaken", { name: quest.name }));
+    this.render();
   }
 
   /** Open the filed journal entry for the trainer on show. */

@@ -305,7 +305,7 @@ describe("source tags", () => {
     // The tags `Renown.award` is called with across the module, plus the two
     // that arrive from outside it. A missing one renders as a raw slug in the
     // dialog — how the carousing tag was caught in review.
-    for (const tag of ["gm", "start", "level-up", "downtime", "carousing", "external"]) {
+    for (const tag of ["gm", "start", "level-up", "downtime", "carousing", "quest", "external"]) {
       assert.ok(RENOWN_SOURCE_LABELS[tag], `source "${tag}" has no label`);
       assert.equal(sourceLabel(tag), RENOWN_SOURCE_LABELS[tag]);
     }
