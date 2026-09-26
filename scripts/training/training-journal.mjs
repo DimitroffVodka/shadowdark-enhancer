@@ -36,6 +36,13 @@ const ROOT_FOLDER = "Regional Training";
 /** Trainers the book keys to a hex rather than to one of the fifteen regions. */
 const LOOSE_FOLDER = "Elsewhere in the Reaches";
 
+/** One string from `languages/en.json`; the key when no i18n is mounted. */
+const L = (key, data) => {
+  const i18n = globalThis.game?.i18n;
+  if (!i18n) return key;
+  return data ? i18n.format(key, data) : i18n.localize(key);
+};
+
 /**
  * The page body for one trainer.
  *
@@ -48,17 +55,19 @@ const LOOSE_FOLDER = "Elsewhere in the Reaches";
 export function trainerPageHtml(trainer, parsed, tableUuid = null) {
   const tasks = (parsed.tasks ?? []).map((task) => `<li>${esc(task)}</li>`).join("");
   return [
-    `<p><em>${esc(trainer.topic)} training with ${esc(trainer.trainer)}`,
-    trainer.region ? ` — ${esc(trainer.region)}` : "",
-    `, pg. ${trainer.page}.</em></p>`,
+    `<p><em>${trainer.region
+      ? L("SDE.training.journal.bylineRegion", {
+        topic: esc(trainer.topic), trainer: esc(trainer.trainer), region: esc(trainer.region), page: trainer.page,
+      })
+      : L("SDE.training.journal.byline", { topic: esc(trainer.topic), trainer: esc(trainer.trainer), page: trainer.page })
+    }</em></p>`,
     parsed.description ? `<p>${esc(parsed.description)}</p>` : "",
-    tasks ? `<h3>Tasks</h3><ol>${tasks}</ol>` : "",
-    `<h3>Benefits</h3>`,
-    `<p>Complete a task and ${esc(trainer.trainer)} teaches one technique. `,
-    `Each of the four can be learned <strong>once</strong>.</p>`,
+    tasks ? `<h3>${L("SDE.training.tasks")}</h3><ol>${tasks}</ol>` : "",
+    `<h3>${L("SDE.training.benefits")}</h3>`,
+    `<p>${L("SDE.training.journal.howItWorks", { trainer: esc(trainer.trainer) })}</p>`,
     tableUuid
       ? `<p>@UUID[${tableUuid}]{${esc(trainer.table)}}</p>`
-      : `<p><em>"${esc(trainer.table)}" is not imported yet.</em></p>`,
+      : `<p><em>${L("SDE.training.journal.tableMissing", { table: esc(trainer.table) })}</em></p>`,
   ].join("");
 }
 
@@ -125,7 +134,7 @@ export async function importTrainerJournals({ only = null, onProgress = null } =
 
     const table = await findBenefitsTable(trainer.table);
     const html = trainerPageHtml(trainer, parsed, table?.uuid ?? null);
-    const name = `${trainer.topic} Training — ${trainer.trainer}`;
+    const name = L("SDE.training.journal.entryName", { topic: trainer.topic, trainer: trainer.trainer });
     const pageData = {
       name: trainer.trainer,
       type: "text",

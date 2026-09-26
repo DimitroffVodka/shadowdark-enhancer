@@ -33,7 +33,7 @@ export class LootSetupApp extends HandlebarsApplicationMixin(ApplicationV2) {
   static DEFAULT_OPTIONS = {
     id: "sde-loot-setup",
     tag: "form",
-    window: { title: "Loot Setup — Treasure Tables", icon: "fas fa-gear", resizable: true },
+    window: { title: "SDE.loot.setup.title", icon: "fas fa-gear", resizable: true },
     position: { width: 620, height: "auto" },
     actions: {
       bindLibrary:   LootSetupApp.prototype._onBindLibrary,
@@ -126,8 +126,8 @@ export class LootSetupApp extends HandlebarsApplicationMixin(ApplicationV2) {
     // the four tiers' state is visible without a second list of tables.
     const tierOptions = LOOT_TIER_ENTRIES.map((e) => ({
       tier: e.tier,
-      label: e.label.replace(/^Treasure — /, ""),
-      boundName: map[e.tier] ? (fromUuidSync(map[e.tier])?.name ?? "(missing table)") : null,
+      label: game.i18n.format("SDE.loot.setup.tierOption", { tier: e.tier }),
+      boundName: map[e.tier] ? (fromUuidSync(map[e.tier])?.name ?? game.i18n.localize("SDE.loot.missingTable")) : null,
     }));
 
     // "Add to Loot Generator" section: what's currently in the picker (with a
@@ -156,7 +156,7 @@ export class LootSetupApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const { tier, uuid } = target.dataset;
     if (!tier || !uuid) return;
     await this._bind(tier, uuid);
-    ui.notifications.info(`Treasure ${tier}: bound.`);
+    ui.notifications.info(game.i18n.format("SDE.loot.setup.notify.bound", { tier }));
     this.render();
   }
 
@@ -165,10 +165,10 @@ export class LootSetupApp extends HandlebarsApplicationMixin(ApplicationV2) {
     if (!game.user.isGM) return;
     const tier = this.element.querySelector("select[data-custom-tier]")?.value;
     const uuid = this.element.querySelector("select[data-custom-table]")?.value;
-    if (!tier) { ui.notifications.warn("Pick a tier first."); return; }
-    if (!uuid) { ui.notifications.warn("Pick a loot table first."); return; }
+    if (!tier) { ui.notifications.warn(game.i18n.localize("SDE.loot.setup.notify.pickTier")); return; }
+    if (!uuid) { ui.notifications.warn(game.i18n.localize("SDE.loot.setup.notify.pickTable")); return; }
     await this._bind(tier, uuid);
-    ui.notifications.info(`Treasure ${tier}: bound to the selected table.`);
+    ui.notifications.info(game.i18n.format("SDE.loot.setup.notify.boundSelected", { tier }));
     this.render();
   }
 
@@ -179,7 +179,7 @@ export class LootSetupApp extends HandlebarsApplicationMixin(ApplicationV2) {
     if (!entry) return;
     const { ImporterHubApp } = await import("../importer/importer-hub-app.mjs");
     ImporterHubApp.openContentUnlock(unlockSeedFor(entry));
-    ui.notifications.info(`Opening the Importer to unlock “${entry.displayName ?? entry.name}”.`);
+    ui.notifications.info(game.i18n.format("SDE.loot.setup.notify.opening", { name: entry.displayName ?? entry.name }));
   }
 
   /**
@@ -191,7 +191,7 @@ export class LootSetupApp extends HandlebarsApplicationMixin(ApplicationV2) {
   async _onAddPicker(_event, _target) {
     if (!game.user.isGM) return;
     const uuid = this.element.querySelector("select[data-picker-add]")?.value;
-    if (!uuid) { ui.notifications.warn("Pick a table to add first."); return; }
+    if (!uuid) { ui.notifications.warn(game.i18n.localize("SDE.loot.setup.notify.pickAdd")); return; }
     if (uuid.startsWith("Compendium.")) {
       const extras = [...getPickerExtras()];
       if (!extras.includes(uuid)) { extras.push(uuid); await game.settings.set(MODULE_ID, LOOT_PICKER_SETTING, extras); }
@@ -199,7 +199,7 @@ export class LootSetupApp extends HandlebarsApplicationMixin(ApplicationV2) {
       const doc = await fromUuid(uuid).catch(() => null);
       await doc?.setFlag(MODULE_ID, "isLootTable", true);
     }
-    ui.notifications.info("Added to the Loot Generator.");
+    ui.notifications.info(game.i18n.localize("SDE.loot.setup.notify.added"));
     this._invalidateAddable();
     this._refreshGenerator();
     this.render();
@@ -217,7 +217,7 @@ export class LootSetupApp extends HandlebarsApplicationMixin(ApplicationV2) {
       const doc = await fromUuid(uuid).catch(() => null);
       if (doc?.getFlag(MODULE_ID, "isLootTable") === true) await doc.unsetFlag(MODULE_ID, "isLootTable");
     }
-    ui.notifications.info("Removed from the Loot Generator.");
+    ui.notifications.info(game.i18n.localize("SDE.loot.setup.notify.removed"));
     this._invalidateAddable();
     this._refreshGenerator();
     this.render();

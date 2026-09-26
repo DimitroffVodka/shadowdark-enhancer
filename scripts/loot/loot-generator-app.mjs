@@ -18,7 +18,7 @@ export class LootGeneratorApp extends HandlebarsApplicationMixin(ApplicationV2) 
   static DEFAULT_OPTIONS = {
     id: "sde-loot-generator",
     tag: "form",
-    window: { title: "Loot Generator", icon: "fas fa-coins", resizable: true },
+    window: { title: "SDE.loot.generator.title", icon: "fas fa-coins", resizable: true },
     position: { width: 560, height: "auto" },
     actions: {
       rollLoot:       LootGeneratorApp.prototype._onRollLoot,
@@ -123,27 +123,27 @@ export class LootGeneratorApp extends HandlebarsApplicationMixin(ApplicationV2) 
   /** Roll the selected table once → { table, batch }, or null with a warning. */
   async _roll() {
     const uuid = this._selectedTableUuid;
-    if (!uuid) { ui.notifications.warn("Select a loot table first."); return null; }
+    if (!uuid) { ui.notifications.warn(game.i18n.localize("SDE.loot.generator.notify.selectTable")); return null; }
     const table = await fromUuid(uuid).catch(() => null);
     const level = LootGenerator.levelForTier(LootGenerator.tierForTable(uuid));
     const batch = await LootGenerator.generate(level, { rolls: 1, tableUuid: uuid });
-    if (batch.error) { ui.notifications.warn("That table couldn't be rolled."); return null; }
+    if (batch.error) { ui.notifications.warn(game.i18n.localize("SDE.loot.generator.notify.rollFailed")); return null; }
     return { table, batch };
   }
 
   async _onRollLoot() {
     const r = await this._roll();
     if (!r) return;
-    this._history.unshift({ id: foundry.utils.randomID(), tableName: r.table?.name ?? "Loot", batch: r.batch });
+    this._history.unshift({ id: foundry.utils.randomID(), tableName: r.table?.name ?? game.i18n.localize("SDE.loot.label"), batch: r.batch });
     this.render();
   }
 
   async _onRollForToken() {
     const token = canvas.tokens?.controlled?.[0];
-    if (!token?.actor) { ui.notifications.warn("Select a token first."); return; }
+    if (!token?.actor) { ui.notifications.warn(game.i18n.localize("SDE.loot.generator.notify.selectToken")); return; }
     const r = await this._roll();
     if (!r) return;
-    r.batch.source = r.table?.name ?? "Loot";
+    r.batch.source = r.table?.name ?? game.i18n.localize("SDE.loot.label");
     this._history.unshift({ id: foundry.utils.randomID(), tableName: r.batch.source, batch: r.batch });
     await LootDelivery.postCard(r.batch, { whisperToActor: token.actor });
     this.render();
@@ -168,33 +168,33 @@ export class LootGeneratorApp extends HandlebarsApplicationMixin(ApplicationV2) 
       return;
     }
     const actor = game.actors.get(sel.value);
-    if (!actor) { ui.notifications.warn("Pick a recipient first."); return; }
+    if (!actor) { ui.notifications.warn(game.i18n.localize("SDE.loot.generator.notify.pickRecipient")); return; }
     await LootDelivery.depositToActor(actor, entry.batch);
-    ui.notifications.info(`Gave ${entry.tableName} loot to ${actor.name}.`);
+    ui.notifications.info(game.i18n.format("SDE.loot.generator.notify.gave", { table: entry.tableName, name: actor.name }));
   }
 
   /** Prompt for an arbitrary coin amount and drop it on the canvas (GM). */
   async _onDropCoinsPrompt() {
     const result = await foundry.applications.api.DialogV2.wait({
-      window: { title: "Drop Coins on Canvas", icon: "fas fa-coins" },
+      window: { title: "SDE.loot.generator.dropCoinsTitle", icon: "fas fa-coins" },
       content: `<div style="padding:8px;display:flex;gap:12px;align-items:flex-end;">
-        <label style="display:flex;flex-direction:column;gap:2px;">GP<input type="number" name="gp" value="0" min="0" step="1" style="width:5em;"></label>
-        <label style="display:flex;flex-direction:column;gap:2px;">SP<input type="number" name="sp" value="0" min="0" step="1" style="width:5em;"></label>
-        <label style="display:flex;flex-direction:column;gap:2px;">CP<input type="number" name="cp" value="0" min="0" step="1" style="width:5em;"></label>
+        <label style="display:flex;flex-direction:column;gap:2px;">${game.i18n.localize("SDE.loot.coins.gp")}<input type="number" name="gp" value="0" min="0" step="1" style="width:5em;"></label>
+        <label style="display:flex;flex-direction:column;gap:2px;">${game.i18n.localize("SDE.loot.coins.sp")}<input type="number" name="sp" value="0" min="0" step="1" style="width:5em;"></label>
+        <label style="display:flex;flex-direction:column;gap:2px;">${game.i18n.localize("SDE.loot.coins.cp")}<input type="number" name="cp" value="0" min="0" step="1" style="width:5em;"></label>
       </div>
-      <p class="notes" style="padding:0 8px;">Drops a pickup-able coin pile at your view centre (or on a selected token). Players grab it from the token's HUD.</p>`,
+      <p class="notes" style="padding:0 8px;">${game.i18n.localize("SDE.loot.generator.dropCoinsHint")}</p>`,
       buttons: [
-        { action: "ok", label: "Drop", default: true, icon: "fas fa-coins", callback: (_e, _b, dlg) => {
+        { action: "ok", label: "SDE.loot.btn.drop", default: true, icon: "fas fa-coins", callback: (_e, _b, dlg) => {
           const q = (n) => Number(dlg.element.querySelector(`input[name="${n}"]`).value) || 0;
           return { gp: q("gp"), sp: q("sp"), cp: q("cp") };
         } },
-        { action: "cancel", label: "Cancel" },
+        { action: "cancel", label: "SDE.loot.btn.cancel" },
       ],
       rejectClose: false,
     }).catch(() => null);
     if (!result || result === "cancel") return;
     const actor = await ItemDrops.dropCoins(result);
-    if (actor) ui.notifications.info(`Dropped ${actor.name} on the canvas — players can pick it up from the token.`);
+    if (actor) ui.notifications.info(game.i18n.format("SDE.loot.generator.notify.coinsDropped", { name: actor.name }));
   }
 
   /**
@@ -208,10 +208,10 @@ export class LootGeneratorApp extends HandlebarsApplicationMixin(ApplicationV2) 
     const items = entry.batch.items ?? [];
     const coins = entry.batch.coins ?? { gp: 0, sp: 0, cp: 0 };
     const hasCoins = (coins.gp || 0) + (coins.sp || 0) + (coins.cp || 0) > 0;
-    if (!items.length && !hasCoins) { ui.notifications.warn("This result has nothing to drop."); return; }
+    if (!items.length && !hasCoins) { ui.notifications.warn(game.i18n.localize("SDE.loot.generator.notify.nothingToDrop")); return; }
 
     const scene = canvas.scene ?? game.scenes.active;
-    if (!scene) { ui.notifications.warn("No active scene to drop loot onto."); return; }
+    if (!scene) { ui.notifications.warn(game.i18n.localize("SDE.loot.generator.notify.noScene")); return; }
 
     // Cluster the 0.5-grid tokens in a 3-wide grid at the drop point so a
     // big hoard doesn't land in one unclickable stack.
@@ -236,8 +236,8 @@ export class LootGeneratorApp extends HandlebarsApplicationMixin(ApplicationV2) 
       const p = nextPoint();
       if (await ItemDrops.dropCoins(coins, { sceneId: scene.id, source: entry.tableName, x: p.x, y: p.y })) dropped++;
     }
-    if (dropped) ui.notifications.info(`Dropped ${entry.tableName} loot on the canvas — players pick it up from the tokens.`);
-    else ui.notifications.warn("Nothing in this result could be dropped.");
+    if (dropped) ui.notifications.info(game.i18n.format("SDE.loot.generator.notify.dropped", { table: entry.tableName }));
+    else ui.notifications.warn(game.i18n.localize("SDE.loot.generator.notify.nothingDropped"));
   }
 
   _onClearHistory() {

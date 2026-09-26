@@ -685,7 +685,7 @@ export class TokenArtCatalog {
    */
   static async applyCuratedImportedArt({ pack: suppliedPack = null, library: suppliedLibrary = null, pathExists = null, map = CURATED_IMPORTED_MONSTER_ART } = {}) {
     if (!globalThis.game?.user?.isGM) {
-      globalThis.ui?.notifications?.warn?.("Only the GM can apply curated monster art.");
+      globalThis.ui?.notifications?.warn?.(globalThis.game?.i18n?.localize("SDE.tokenArt.notify.gmOnlyCurated"));
       return null;
     }
 

@@ -28,14 +28,21 @@ import {
 
 export { createSeededRng, pickSeeded, randomInt, seededPick, seededRng };
 
+/**
+ * One string from `languages/en.json`; the key when no i18n is mounted, so this
+ * file still runs Foundry-free (node tests see keys).
+ */
+const L = (key) => globalThis.game?.i18n?.localize(key) ?? key;
+
 export const GENERATOR_IDS = Object.freeze({
   NPC: "npc",
   RIVAL: "rival",
 });
 
+/** en.json keys; localize at use time (i18n is not ready at import). */
 export const GENERATOR_LABELS = Object.freeze({
-  [GENERATOR_IDS.NPC]: "Ordinary NPC",
-  [GENERATOR_IDS.RIVAL]: "Rival Crawlers",
+  [GENERATOR_IDS.NPC]: "SDE.forgeLoot.generator.npc",
+  [GENERATOR_IDS.RIVAL]: "SDE.forgeLoot.generator.rival",
 });
 
 export const FORGE_LOOT_PHASES = Object.freeze({
@@ -361,7 +368,7 @@ export function transitionForgeLootState(current, event = {}) {
       return stateWith({
         ...clearPreview(state, FORGE_LOOT_PHASES.PLANNING),
         error: null,
-        statusMessage: "Planning preview…",
+        statusMessage: L("SDE.forgeLoot.status.planning"),
       });
     case FORGE_LOOT_EVENTS.PREVIEW_READY:
       if (state.commit.inFlight) return state;
@@ -381,7 +388,7 @@ export function transitionForgeLootState(current, event = {}) {
         disabled: false,
         error: normalizeError(event.error, "preview-failed"),
         result: null,
-        statusMessage: "Preview could not be generated.",
+        statusMessage: L("SDE.forgeLoot.status.previewFailed"),
       });
     case FORGE_LOOT_EVENTS.REROLL: {
       if (state.commit.inFlight || state.commit.consumed || !state.generator || state.phase === FORGE_LOOT_PHASES.COMMITTED) return state;
@@ -397,7 +404,7 @@ export function transitionForgeLootState(current, event = {}) {
       if (state.commit.inFlight || state.commit.consumed || state.phase === FORGE_LOOT_PHASES.COMMITTED) return state;
       return stateWith({
         ...clearPreview(state, FORGE_LOOT_PHASES.CANCELLED),
-        statusMessage: "Cancelled — nothing was written.",
+        statusMessage: L("SDE.forgeLoot.status.cancelled"),
       });
     case FORGE_LOOT_EVENTS.APPROVE_START:
       if (!canApprovePreview(state) || state.commit.inFlight) return state;
@@ -405,7 +412,7 @@ export function transitionForgeLootState(current, event = {}) {
         ...state,
         phase: FORGE_LOOT_PHASES.COMMITTING,
         error: null,
-        statusMessage: "Creating approved preview…",
+        statusMessage: L("SDE.forgeLoot.status.creating"),
         commit: { inFlight: true, consumed: false },
       });
     case FORGE_LOOT_EVENTS.COMMIT_SUCCESS:
@@ -423,7 +430,7 @@ export function transitionForgeLootState(current, event = {}) {
         disabled: false,
         error: null,
         result: event.result === undefined ? null : immutable(event.result),
-        statusMessage: event.statusMessage ? String(event.statusMessage) : "Created from the approved preview.",
+        statusMessage: event.statusMessage ? String(event.statusMessage) : L("SDE.forgeLoot.status.created"),
         commit: { inFlight: false, consumed: true },
       });
     case FORGE_LOOT_EVENTS.COMMIT_ERROR:
@@ -432,7 +439,7 @@ export function transitionForgeLootState(current, event = {}) {
         ...state,
         phase: FORGE_LOOT_PHASES.ERROR,
         error: normalizeError(event.error, event.code ?? "commit-failed"),
-        statusMessage: "Nothing was approved.",
+        statusMessage: L("SDE.forgeLoot.status.notApproved"),
         commit: { inFlight: false, consumed: false },
       });
     case FORGE_LOOT_EVENTS.RESET:
@@ -663,7 +670,7 @@ export class ForgeLootController {
     const state = this._state;
     const adapter = this.registry?.get(state.generator);
     if (!adapter) {
-      this.dispatch({ type: FORGE_LOOT_EVENTS.PREVIEW_ERROR, error: new Error("Choose a generator first." ) });
+      this.dispatch({ type: FORGE_LOOT_EVENTS.PREVIEW_ERROR, error: new Error(L("SDE.forgeLoot.error.chooseGenerator")) });
       return { ok: false, reason: "unknown-generator", state: this._state };
     }
     if (this._commitInFlight) return { ok: false, reason: "commit-in-progress", state: this._state };
@@ -693,7 +700,7 @@ export class ForgeLootController {
       }
       const normalized = normalizePlanResult(result, { generator: state.generator, seed: state.seed });
       if (normalized.generator !== state.generator || normalized.seed !== state.seed) {
-        const error = Object.assign(new Error("The planner returned a preview for a different generator or seed."), { code: "preview-metadata-mismatch" });
+        const error = Object.assign(new Error(L("SDE.forgeLoot.error.metadataMismatch")), { code: "preview-metadata-mismatch" });
         this.dispatch({ type: FORGE_LOOT_EVENTS.PREVIEW_ERROR, error });
         return { ok: false, reason: "preview-metadata-mismatch", error: normalizeError(error), state: this._state };
       }
@@ -764,23 +771,23 @@ export class ForgeLootController {
     this._commitInFlight = true;
     this.dispatch({ type: FORGE_LOOT_EVENTS.APPROVE_START });
     try {
-      if (!(await this.isActiveGM())) throw Object.assign(new Error("Only the active GM can approve a Forge & Loot preview."), { code: "not-active-gm" });
+      if (!(await this.isActiveGM())) throw Object.assign(new Error(L("SDE.forgeLoot.error.notActiveGm")), { code: "not-active-gm" });
 
       const reader = adapter.readSourceSnapshot ?? adapter.readSource ?? adapter.readSources;
       if (typeof reader !== "function") {
-        throw Object.assign(new Error("The generator cannot recheck its source snapshot; generate a fresh preview."), { code: "source-check-unavailable" });
+        throw Object.assign(new Error(L("SDE.forgeLoot.error.sourceCheckUnavailable")), { code: "source-check-unavailable" });
       }
       if (typeof reader === "function") {
         const live = liveSnapshotFromResult(await reader({ ...captured, signal: undefined }));
         if (!sourceSnapshotsEqual(captured.sourceSnapshot, live)) {
-          throw Object.assign(new Error("The generator source changed after this preview. Generate a fresh preview before approving."), { code: "source-drift" });
+          throw Object.assign(new Error(L("SDE.forgeLoot.error.sourceDrift")), { code: "source-drift" });
         }
       }
       if (this._staleApproval(captured, fingerprints)) {
-        throw Object.assign(new Error("This preview is no longer current. Generate a fresh preview."), { code: "stale-preview" });
+        throw Object.assign(new Error(L("SDE.forgeLoot.error.stalePreview")), { code: "stale-preview" });
       }
       // Recheck immediately before entering the adapter's write boundary.
-      if (!(await this.isActiveGM())) throw Object.assign(new Error("The active GM changed before approval. Generate a fresh preview."), { code: "not-active-gm" });
+      if (!(await this.isActiveGM())) throw Object.assign(new Error(L("SDE.forgeLoot.error.gmChanged")), { code: "not-active-gm" });
 
       // No planner, dice, or re-read is called here. The adapter receives the
       // exact frozen proposal captured above and owns the actual writes.
@@ -814,11 +821,11 @@ export function buildPreviewDisplay({ preview = null, view = null, generator = n
       }
     }
   }
-  if (!rows.length) rows.push({ label: "Seed", value: seed });
+  if (!rows.length) rows.push({ label: L("SDE.forgeLoot.seed"), value: seed });
   return immutable({
-    title: GENERATOR_LABELS[generator] ?? "Forge & Loot Preview",
-    summary: "Complete proposal — nothing is written until you approve it.",
-    sections: [{ title: "Proposal", rows }],
+    title: L(GENERATOR_LABELS[generator] ?? "SDE.forgeLoot.preview.title"),
+    summary: L("SDE.forgeLoot.preview.summary"),
+    sections: [{ title: L("SDE.forgeLoot.preview.proposal"), rows }],
   });
 }
 

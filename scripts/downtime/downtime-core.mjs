@@ -128,6 +128,9 @@ export const FREE_TEXT_MAX_LENGTH = 60;
  */
 export { authorizeActorRequest } from "../shared/gm-relay.mjs";
 
+/** One string from `languages/en.json`; the key when no i18n is mounted. */
+const L = (key) => globalThis.game?.i18n?.localize(key) ?? key;
+
 /**
  * Is this ChatMessage a legitimate, unspent roll for this attempt?
  *
@@ -156,32 +159,32 @@ export function validateRollClaim({
   messageAuthorId, messageActorId, requesterId,
   consumedNonces = [], settledMessageIds = [],
 } = {}) {
-  if (!pick) return { ok: false, error: "You haven't chosen an activity." };
-  if (pick.slotKey !== slotKey) return { ok: false, error: "That doesn't match your locked pick." };
+  if (!pick) return { ok: false, error: L("SDE.downtime.error.noPick") };
+  if (pick.slotKey !== slotKey) return { ok: false, error: L("SDE.downtime.claim.notLockedPick") };
   if (!pick.nonce) {
     // Only reachable for a pick recorded before this guard shipped. Failing
     // closed is the whole point, so say plainly how to get unstuck.
-    return { ok: false, error: "That pick predates a security update — ask your GM to reopen picks so you can choose again." };
+    return { ok: false, error: L("SDE.downtime.claim.pickPredates") };
   }
-  if (!hasRoll) return { ok: false, error: "Couldn't find that roll." };
+  if (!hasRoll) return { ok: false, error: L("SDE.downtime.claim.noRoll") };
 
   if (!rollFlag || typeof rollFlag !== "object") {
-    return { ok: false, error: "That message isn't a downtime roll." };
+    return { ok: false, error: L("SDE.downtime.claim.notDowntimeRoll") };
   }
-  if (rollFlag.actorId !== actorId) return { ok: false, error: "That roll was made for a different character." };
-  if (rollFlag.slotKey !== slotKey) return { ok: false, error: "That roll was made for a different activity." };
-  if (rollFlag.nonce !== pick.nonce) return { ok: false, error: "That roll doesn't belong to this attempt." };
+  if (rollFlag.actorId !== actorId) return { ok: false, error: L("SDE.downtime.claim.otherCharacter") };
+  if (rollFlag.slotKey !== slotKey) return { ok: false, error: L("SDE.downtime.claim.otherActivity") };
+  if (rollFlag.nonce !== pick.nonce) return { ok: false, error: L("SDE.downtime.claim.otherAttempt") };
 
   if (requesterId && messageAuthorId && messageAuthorId !== requesterId) {
-    return { ok: false, error: "That roll isn't yours." };
+    return { ok: false, error: L("SDE.downtime.claim.notYours") };
   }
   if (messageActorId && messageActorId !== actorId) {
-    return { ok: false, error: "That roll was spoken by a different character." };
+    return { ok: false, error: L("SDE.downtime.claim.otherSpeaker") };
   }
 
-  if (consumedNonces.includes(pick.nonce)) return { ok: false, error: "That roll has already been used." };
+  if (consumedNonces.includes(pick.nonce)) return { ok: false, error: L("SDE.downtime.claim.used") };
   if (messageId && settledMessageIds.includes(messageId)) {
-    return { ok: false, error: "That roll has already been used." };
+    return { ok: false, error: L("SDE.downtime.claim.used") };
   }
   return { ok: true };
 }
@@ -203,6 +206,6 @@ export function sanitizeFreeTextName(raw, { max = FREE_TEXT_MAX_LENGTH } = {}) {
     .trim()
     .slice(0, max)
     .trim();
-  if (!cleaned) return { ok: false, error: "Type the name of the weapon or armor trained with." };
+  if (!cleaned) return { ok: false, error: L("SDE.downtime.error.typeName") };
   return { ok: true, name: cleaned };
 }

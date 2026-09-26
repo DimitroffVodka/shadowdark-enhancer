@@ -49,7 +49,7 @@ export const LootTableTag = {
 
       entries.push(
         {
-          label: "Mark as Loot Table",
+          label: "SDE.loot.tag.mark",
           icon: '<i class="fa-solid fa-coins"></i>',
           visible: showWhen(false),
           condition: showWhen(false),
@@ -57,12 +57,12 @@ export const LootTableTag = {
             const t = _tableFor(li ?? event);
             if (!t) return;
             await t.setFlag(MODULE_ID, FLAG, true);
-            ui.notifications.info(`"${t.name}" marked as a loot table.`);
+            ui.notifications.info(game.i18n.format("SDE.loot.tag.notify.marked", { name: t.name }));
             _refreshGenerator();
           },
         },
         {
-          label: "Unmark as Loot Table",
+          label: "SDE.loot.tag.unmark",
           icon: '<i class="fa-solid fa-coins"></i>',
           visible: showWhen(true),
           condition: showWhen(true),
@@ -70,7 +70,7 @@ export const LootTableTag = {
             const t = _tableFor(li ?? event);
             if (!t) return;
             await t.unsetFlag(MODULE_ID, FLAG);
-            ui.notifications.info(`"${t.name}" unmarked as a loot table.`);
+            ui.notifications.info(game.i18n.format("SDE.loot.tag.notify.unmarked", { name: t.name }));
             _refreshGenerator();
           },
         },

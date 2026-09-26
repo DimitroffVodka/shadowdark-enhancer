@@ -13,6 +13,7 @@ import { MODULE_ID } from "../../shared/module-id.mjs";
 import { replaceModuleFlag } from "../../shared/module-flags.mjs";
 import { HEX_FLAG } from "./hex-commit.mjs";
 import { buildHexDataset, mergeFeatures, ZONE_COLOR } from "./hex-dataset.mjs";
+import { t } from "../importer-hub-shared.mjs";
 
 /**
  * Extras' compatible hex API when it mounts the agreed namespace, else null.
@@ -65,7 +66,7 @@ const slug = (s) => String(s ?? "").toLowerCase().replace(/[^a-z0-9]+/g, "-").re
 function downloadDataset(dataset) {
   const save = globalThis.foundry?.utils?.saveDataToFile ?? globalThis.saveDataToFile;
   if (typeof save !== "function") {
-    globalThis.ui?.notifications?.error("saveDataToFile unavailable — cannot download the hex dataset.");
+    globalThis.ui?.notifications?.error(t("SDE.importer.hexHandoff.notify.noSave"));
     return { via: "none" };
   }
   const filename = `${slug(dataset.name)}-hexcrawl.json`;
@@ -124,16 +125,16 @@ export async function detailsDataset(entries, scene) {
  */
 export async function importDatasetRecords(sceneId, dataset, opts = {}) {
   if (!globalThis.game?.user?.isGM) {
-    globalThis.ui?.notifications?.warn("Only a GM can import hex details.");
+    globalThis.ui?.notifications?.warn(t("SDE.importer.hexHandoff.notify.gmOnlyImport"));
     return { via: "none", reason: "not-gm" };
   }
   const api = extrasHexApi();
   if (typeof api?.upsertHexRecords !== "function") {
-    globalThis.ui?.notifications?.warn("Shadowdark Extras is not available, or is too old to update hex details.");
+    globalThis.ui?.notifications?.warn(t("SDE.importer.hexHandoff.notify.noExtras"));
     return { via: "none", reason: "no-extras" };
   }
   if (!sceneId) {
-    globalThis.ui?.notifications?.warn("Pick the hexcrawl scene to update first.");
+    globalThis.ui?.notifications?.warn(t("SDE.importer.hexHandoff.notify.noScene"));
     return { via: "none", reason: "no-scene" };
   }
 
@@ -151,7 +152,7 @@ export async function importDatasetRecords(sceneId, dataset, opts = {}) {
     if (Object.keys(record).length > 1) records.push(record);
   }
   if (!records.length) {
-    globalThis.ui?.notifications?.warn("This dataset carries no hex details to import.");
+    globalThis.ui?.notifications?.warn(t("SDE.importer.hexHandoff.notify.empty"));
     return { via: "none", reason: "empty" };
   }
 
@@ -160,7 +161,7 @@ export async function importDatasetRecords(sceneId, dataset, opts = {}) {
     summary = await api.upsertHexRecords(sceneId, records);
   } catch (err) {
     console.error(`${MODULE_ID} | hex detail import failed`, err);
-    globalThis.ui?.notifications?.error(`Shadowdark Extras refused the hex details: ${err.message}`);
+    globalThis.ui?.notifications?.error(t("SDE.importer.hexHandoff.notify.refused", { error: err.message }));
     return { via: "none", reason: "extras-error" };
   }
 
@@ -179,20 +180,24 @@ export async function importDatasetRecords(sceneId, dataset, opts = {}) {
   let repaint = null;
   if (opts.repaint !== false && repaintable.length) {
     if (typeof api.repaintHexTiles !== "function") {
-      globalThis.ui?.notifications?.warn(`Updated ${records.length} hex${records.length === 1 ? "" : "es"}. Shadowdark Extras is too old to repaint the tiles, so the art still shows the old terrain.`);
+      globalThis.ui?.notifications?.warn(t(records.length === 1 ? "SDE.importer.hexHandoff.notify.tooOldOne" : "SDE.importer.hexHandoff.notify.tooOldMany",
+        { n: records.length }));
       return { via: "extras", summary, repaint: null, reason: "no-repaint" };
     }
     try {
       repaint = await api.repaintHexTiles(sceneId, repaintable);
     } catch (err) {
       console.error(`${MODULE_ID} | hex tile repaint failed`, err);
-      globalThis.ui?.notifications?.error(`Hex details were saved, but the tiles could not be repainted: ${err.message}`);
+      globalThis.ui?.notifications?.error(t("SDE.importer.hexHandoff.notify.repaintFailed", { error: err.message }));
       return { via: "extras", summary, repaint: null, reason: "repaint-error" };
     }
   }
 
-  const painted = repaint ? `, repainted ${repaint.repainted}` : "";
-  if (!opts.quiet) globalThis.ui?.notifications?.info(`Updated ${records.length} hex${records.length === 1 ? "" : "es"}${painted}.`);
+  const painted = repaint ? t("SDE.importer.hexHandoff.notify.repainted", { n: repaint.repainted }) : "";
+  if (!opts.quiet) {
+    globalThis.ui?.notifications?.info(t(records.length === 1 ? "SDE.importer.hexHandoff.notify.updatedOne" : "SDE.importer.hexHandoff.notify.updatedMany",
+      { n: records.length, painted }));
+  }
   return { via: "extras", summary, repaint };
 }
 
@@ -353,7 +358,7 @@ export async function handoffToPrint(sceneId, dataset) {
  */
 export async function handoffDataset(dataset, opts = {}) {
   if (!globalThis.game?.user?.isGM) {
-    globalThis.ui?.notifications?.warn("Only a GM can hand off hex datasets.");
+    globalThis.ui?.notifications?.warn(t("SDE.importer.hexHandoff.notify.gmOnlyHandoff"));
     return { via: "none", reason: "not-gm" };
   }
   const api = extrasHexApi();
@@ -363,7 +368,7 @@ export async function handoffDataset(dataset, opts = {}) {
       return { via: "extras", summary };
     } catch (err) {
       console.error(`${MODULE_ID} | hex dataset hand-off failed`, err);
-      globalThis.ui?.notifications?.error("Shadowdark Extras could not build this hex dataset; downloading the JSON instead.");
+      globalThis.ui?.notifications?.error(t("SDE.importer.hexHandoff.notify.buildFailed"));
       const fallback = downloadDataset(dataset);
       return fallback.via === "download" ? { ...fallback, reason: "extras-error" } : fallback;
     }

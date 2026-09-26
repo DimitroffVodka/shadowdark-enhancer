@@ -21,6 +21,14 @@
  */
 
 import { resolveAdapterOps } from "./monster-mechanical-adapters.mjs";
+import { ABILITY_LABEL_KEYS } from "./level-guidelines.mjs";
+
+/** One string from `languages/en.json`; the key when no i18n is mounted. */
+const L = (key, data) => {
+  const i18n = globalThis.game?.i18n;
+  if (!i18n) return key;
+  return data ? i18n.format(key, data) : i18n.localize(key);
+};
 
 /* -------------------------------------------------------------------------- */
 /*  Ledger + identity helpers.                                                 */
@@ -354,28 +362,32 @@ function _chipsFor(app, draft) {
   for (const op of app.operations) {
     switch (op.kind) {
       case "delta-number": {
-        const label = op.path === "level" ? "Level" : op.path === "ac" ? "AC" : op.path;
+        const label = op.path === "level" ? L("SDE.monsterCreator.stat.level")
+          : op.path === "ac" ? L("SDE.importer.monsters.ac") : op.path;
         chips.push({ label: `${label} ${op.applied >= 0 ? "+" : ""}${op.applied}` });
         break;
       }
-      case "set-if-unchanged":
-        chips.push({ label: `${op.path.split(".").pop().toUpperCase()} ≥ ${op.after}` });
+      case "set-if-unchanged": {
+        const stat = op.path.split(".").pop();
+        const statLabel = ABILITY_LABEL_KEYS[stat] ? L(ABILITY_LABEL_KEYS[stat]) : stat.toUpperCase();
+        chips.push({ label: `${statLabel} ≥ ${op.after}` });
         break;
+      }
       case "configure-spellcasting":
-        chips.push({ label: `Spellcasting (${op.after.ability || "—"})` });
+        chips.push({ label: L("SDE.monsterCreator.chip.spellcasting", { ability: op.after.ability || "—" }) });
         break;
       case "append-movement-token":
-        chips.push({ label: `Move: ${op.token}` });
+        chips.push({ label: L("SDE.monsterCreator.chip.move", { token: op.token }) });
         break;
       case "add-action": {
         const item = draft.actions.find((a) => a.id === op.itemId);
-        chips.push({ label: `${item?.name ?? "Attack"} · Attack added` });
+        chips.push({ label: L("SDE.monsterCreator.chip.attackAdded", { name: item?.name ?? L("SDE.monsterCreator.chip.attack") }) });
         break;
       }
       case "add-feature":
       case "gm-adjudicated": {
         const item = draft.features.find((f) => f.id === op.itemId);
-        chips.push({ label: item?.name ?? "Feature" });
+        chips.push({ label: item?.name ?? L("SDE.monsterCreator.chip.feature") });
         break;
       }
       default:

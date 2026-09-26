@@ -69,6 +69,13 @@ export {
  */
 const LEVEL_UP_SETTING = "renownOnLevelUp";
 
+/** One string from `languages/en.json`; the key when no i18n is mounted. */
+const L = (key, data) => {
+  const i18n = globalThis.game?.i18n;
+  if (!i18n) return key;
+  return data ? i18n.format(key, data) : i18n.localize(key);
+};
+
 /**
  * World setting: seed a new character's renown from their CHA modifier.
  * Spelled out as a literal at the registration below for the same reason.
@@ -253,7 +260,7 @@ export const Renown = {
     const before = this.valueOf(actor);
 
     if (!actor) {
-      return { ok: false, before: 0, after: 0, delta: 0, band: renownBand(0), summary: "", error: "No character was supplied." };
+      return { ok: false, before: 0, after: 0, delta: 0, band: renownBand(0), summary: "", error: L("SDE.renown.error.noActor") };
     }
 
     // Deliberately loud. Renown writes the recap world setting too, so a
@@ -279,7 +286,7 @@ export const Renown = {
         reason: String(reason ?? ""),
         source: String(source ?? "gm"),
         chat: chat !== false,
-      }, { label: "Renown changes" });
+      }, { label: L("SDE.renown.relayLabel") });
       return _shapeReply(reply, before);
     }
 
@@ -317,7 +324,7 @@ export const Renown = {
       await live.update({ "system.renown": after, [HISTORY_PATH]: nextHistory });
     } catch (err) {
       console.error(`${MODULE_ID} | renown: could not update ${live?.name}`, err);
-      return { ok: false, before, after: before, delta: 0, band: renownBand(before), summary: "", error: err?.message ?? "The update failed." };
+      return { ok: false, before, after: before, delta: 0, band: renownBand(before), summary: "", error: err?.message ?? L("SDE.renown.error.updateFailed") };
     }
 
     const summary = renownChangeLine({ actorName: live.name, delta: step, after });
@@ -380,16 +387,16 @@ export const Renown = {
    * @param {User}   user  The AUTHENTICATED sender, from core's query context.
    */
   async handleQuery(data, user) {
-    const refusal = refuseQuery(user, "Renown changes");
+    const refusal = refuseQuery(user, L("SDE.renown.relayLabel"));
     if (refusal) return refusal;
 
-    if (data?.action !== "award") return { ok: false, error: "Unknown renown action." };
+    if (data?.action !== "award") return { ok: false, error: L("SDE.renown.error.unknownAction") };
 
     const denied = authorizeRenownAward({ requesterIsGM: !!user?.isGM });
     if (denied) return denied;
 
     const actor = game.actors?.get(data.actorId);
-    if (!actor) return { ok: false, error: "No character was supplied." };
+    if (!actor) return { ok: false, error: L("SDE.renown.error.noActor") };
 
     return this._enqueueTx(() => this._awardNow({
       actor,
@@ -467,7 +474,7 @@ export const Renown = {
   async seedFromCha(actor, { chat = true } = {}) {
     const chaMod = Number(actor?.system?.abilities?.cha?.mod);
     if (!Number.isFinite(chaMod)) {
-      return { ok: false, before: this.valueOf(actor), after: this.valueOf(actor), delta: 0, band: this.bandOf(actor), summary: "", error: "That character has no CHA modifier." };
+      return { ok: false, before: this.valueOf(actor), after: this.valueOf(actor), delta: 0, band: this.bandOf(actor), summary: "", error: L("SDE.renown.error.noCha") };
     }
     const target = startingRenown(chaMod);
     const delta = target - this.valueOf(actor);
@@ -653,7 +660,7 @@ function _shapeReply(reply, before) {
     delta: 0,
     band: renownBand(before),
     summary: "",
-    error: reply?.error ?? "The primary GM did not answer.",
+    error: reply?.error ?? L("SDE.renown.error.noAnswer"),
   };
 }
 
@@ -718,13 +725,13 @@ async function _postRenownCard({ actor, delta, after, reason }) {
   const content = `
     <div class="sde-renown-card ${up ? "sde-renown-up" : "sde-renown-down"}">
       <header class="sde-renown-card-head">
-        <i class="fas fa-crown"></i> Renown
+        <i class="fas fa-crown"></i> ${L("SDE.renown.title")}
         <span class="sde-renown-delta">${esc(signedRenown(delta))}</span>
       </header>
       <div class="sde-renown-card-body">
         <span class="sde-renown-who">${esc(actor.name)}</span>
         <span class="sde-renown-total">${renownValue(after)}</span>
-        <span class="sde-renown-band">${esc(band.label)}${band.bonus ? ` · ${signedRenown(band.bonus)} reaction` : ""}</span>
+        <span class="sde-renown-band">${esc(band.label)}${band.bonus ? ` · ${esc(L("SDE.renown.card.reaction", { bonus: signedRenown(band.bonus) }))}` : ""}</span>
       </div>
       ${reason ? `<footer class="sde-renown-card-foot">${esc(String(reason))}</footer>` : ""}
     </div>`;

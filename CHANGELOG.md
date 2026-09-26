@@ -356,6 +356,10 @@ page walks through it in order.
   Hunter XP, rolls no loot drops and leaves no Session Recap entry, as its
   confirm always said. Until now it did all three, just like **End
   Encounter**, which still does.
+- **Every string the module shows now comes from `languages/en.json`**, so the
+  whole interface can be translated from one file. The English is unchanged.
+  Book content you import, and the rules tables the module carries, stay as
+  they are. (#169)
 
 ### Fixed
 

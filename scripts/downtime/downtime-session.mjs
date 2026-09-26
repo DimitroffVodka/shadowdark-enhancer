@@ -74,6 +74,13 @@ import {
 import { effectPlanFor, applyDowntimeEffect } from "./downtime-effects.mjs";
 import { refuseQuery } from "../shared/gm-relay.mjs";
 
+/** One string from `languages/en.json`; the key when no i18n is mounted. */
+const L = (key, data) => {
+  const i18n = globalThis.game?.i18n;
+  if (!i18n) return key;
+  return data ? i18n.format(key, data) : i18n.localize(key);
+};
+
 const SETTING_KEY = "downtimeSession";
 const CONTENT_KEY = "downtimeContent";
 const SOCKET = `module.${MODULE_ID}`;
@@ -172,16 +179,16 @@ export async function classFacts(actor) {
     classItem = await actor.system?.getClass?.();
   } catch (err) {
     console.warn(`${MODULE_ID} | downtime: getClass() failed`, err);
-    facts.classError = "the class item could not be loaded";
+    facts.classError = L("SDE.downtime.classError.loadFailed");
     return facts;
   }
   if (!classItem) {
-    facts.classError = "no class is set on this character";
+    facts.classError = L("SDE.downtime.classError.noClass");
     return facts;
   }
   facts.hitDie = classItem.system?.hitPoints ?? null;
   facts.martialTier = facts.hitDie ? (martialTierForHitDie(facts.hitDie) ?? null) : null;
-  if (!facts.martialTier) facts.classError = "couldn't read class hit die";
+  if (!facts.martialTier) facts.classError = L("SDE.downtime.classError.noHitDie");
   facts.castingAbility = classItem.system?.spellcasting?.ability ?? null;
   facts.casterList = facts.castingAbility ? (casterListForAbility(facts.castingAbility) ?? null) : null;
   return facts;
@@ -322,7 +329,9 @@ export function martialTierBuckets(activity, {
   if (!detected) {
     return {
       gateBlocked: true,
-      gateNote: `Showing every tier — ${facts?.classError ?? "couldn't read class hit die"}.`,
+      gateNote: L("SDE.downtime.gate.everyTier", {
+        reason: facts?.classError ?? L("SDE.downtime.classError.noHitDie"),
+      }),
       tierPicker: null,
       buckets: tiers.map(t => ({
         key: t,
@@ -356,7 +365,9 @@ export function martialTierBuckets(activity, {
       label: null,
       enabled: isGM || tierLegal,
       reason: (!isGM && !tierLegal)
-        ? `${actorName ?? "This character"} trains at ${tierLabel(detected)}.`
+        ? L("SDE.downtime.gate.trainsAt", {
+          name: actorName ?? L("SDE.downtime.thisCharacter"), tier: tierLabel(detected),
+        })
         : null,
       slots,
     }],
@@ -387,7 +398,7 @@ export function abilityChipFor(activity, slot) {
     const g = (check.groups ?? []).find(x => x.id === slot?.group) ?? (check.groups ?? [])[0];
     return (g?.abilities ?? []).map(a => a.toUpperCase()).join("/");
   }
-  if (check.kind === "spellcasting") return "Spellcasting";
+  if (check.kind === "spellcasting") return L("SDE.downtime.check.spellcastingChip");
   return "";
 }
 
@@ -415,10 +426,11 @@ export async function recordDowntimeSafe(entry) {
 /** Advantage modes. Declared at PICK time so the GM sees them before unlocking. */
 // `label` stays compact because the GM roster prints it inline next to a pick
 // ("Lay low (Advantage)"); `long` spells the dice out for the picker itself.
+// Both are en.json KEYS (import time is too early for i18n): localize at use.
 export const ADV_MODES = [
-  { key: "adv",    label: "Advantage",    long: "Advantage (2d20 keep highest)", dice: "2d20kh" },
-  { key: "normal", label: "Normal",       long: "Normal (1d20)",                 dice: "1d20" },
-  { key: "dis",    label: "Disadvantage", long: "Disadvantage (2d20 keep lowest)", dice: "2d20kl" },
+  { key: "adv",    label: "SDE.downtime.adv.adv",    long: "SDE.downtime.adv.advLong",    dice: "2d20kh" },
+  { key: "normal", label: "SDE.downtime.adv.normal", long: "SDE.downtime.adv.normalLong", dice: "1d20" },
+  { key: "dis",    label: "SDE.downtime.adv.dis",    long: "SDE.downtime.adv.disLong",    dice: "2d20kl" },
 ];
 export function advMode(key) {
   return ADV_MODES.find(m => m.key === key) ?? ADV_MODES[1];
@@ -494,13 +506,13 @@ export const DowntimeSession = {
    *   sender's client shows `error` itself, so no rejection socket is needed.
    */
   async handleQuery(data, user) {
-    const refusal = refuseQuery(user, "Downtime actions");
+    const refusal = refuseQuery(user, L("SDE.downtime.relayWhat"));
     if (refusal) return refusal;
     const action = data?.action;
     if (action === ACTIONS.PICK)   return this._enqueue(() => this._handlePick(data, user));
     if (action === ACTIONS.ROLLED) return this._enqueue(() => this._handleRolled(data, user));
     if (action === ACTIONS.CHOICE) return this._enqueue(() => this._handleEffectChoice(data, user));
-    return { ok: false, error: "Unknown downtime action." };
+    return { ok: false, error: L("SDE.downtime.error.unknownAction") };
   },
 
   // ── Persistence ───────────────────────────────────────────────────────────
@@ -576,18 +588,18 @@ export const DowntimeSession = {
    */
   async context(actorId, slotKey, { choiceAbility } = {}) {
     const state = this._read();
-    if (!state.active) return { ok: false, error: "No downtime session is running." };
+    if (!state.active) return { ok: false, error: L("SDE.downtime.error.noSession") };
 
     const actor = game.actors.get(actorId);
-    if (!actor || actor.type !== "Player") return { ok: false, error: "That character no longer exists." };
+    if (!actor || actor.type !== "Player") return { ok: false, error: L("SDE.downtime.error.noCharacter") };
 
     const found = this.findSlot(slotKey);
-    if (!found) return { ok: false, error: "That downtime activity is not in the skeleton." };
+    if (!found) return { ok: false, error: L("SDE.downtime.error.notInSkeleton") };
     const { activity, slot } = found;
 
     const stored = this.storedFor(state.source);
     const text = stored.slots?.[slot.key] ?? "";
-    if (!text) return { ok: false, error: `"${slot.label}" is not unlocked for this book.` };
+    if (!text) return { ok: false, error: L("SDE.downtime.error.slotLocked", { slot: slot.label }) };
 
     const facts = await classFacts(actor);
     const flag = downtimeFlag(actor);
@@ -596,7 +608,7 @@ export const DowntimeSession = {
       : facts.casterList;
 
     if (!slotAllowed(activity, slot, { facts, casterList })) {
-      return { ok: false, error: `${actor.name} can't take "${slot.label}".` };
+      return { ok: false, error: L("SDE.downtime.error.cantTake", { name: actor.name, slot: slot.label }) };
     }
 
     const level = Number(actor.system?.level?.value ?? 0);
@@ -614,7 +626,7 @@ export const DowntimeSession = {
   async start(sourceSlug) {
     if (!game.user.isGM) return null;
     const stored = this.storedFor(sourceSlug);
-    if (!stored.ok) { ui.notifications.warn("That book isn't unlocked yet — import it first."); return null; }
+    if (!stored.ok) { ui.notifications.warn(L("SDE.downtime.notify.bookLocked")); return null; }
 
     const next = { ...defaultSession(), active: true, source: sourceSlug, phase: "select" };
     const msg = await this._postAnnouncement(sourceSlug);
@@ -649,7 +661,7 @@ export const DowntimeSession = {
 
   /** GM sets or clears a pick on a player's behalf (absent player). */
   async gmSetPick(actorId, slotKey, opts = {}) {
-    if (!game.user.isGM) return { ok: false, error: "Only a GM can set a pick." };
+    if (!game.user.isGM) return { ok: false, error: L("SDE.downtime.error.gmOnlyPick") };
     if (!slotKey) {
       const state = this._read();
       const picks = { ...state.picks };
@@ -673,8 +685,8 @@ export const DowntimeSession = {
 
   async _applyPick({ actorId, slotKey, ability, advantage }) {
     const state = this._read();
-    if (state.phase !== "select") return this._refuse("Picks are locked — the GM has already unlocked the dice.");
-    if (state.results?.[actorId]) return this._refuse("That character already rolled this session.");
+    if (state.phase !== "select") return this._refuse(L("SDE.downtime.error.picksLocked"));
+    if (state.results?.[actorId]) return this._refuse(L("SDE.downtime.error.alreadyRolledSession"));
 
     const ctx = await this.context(actorId, slotKey, { choiceAbility: ability });
     if (!ctx.ok) return this._refuse(ctx.error);
@@ -686,10 +698,9 @@ export const DowntimeSession = {
     // No GM override by design: adding coin to the sheet is the escape hatch.
     const money = affordability(ctx.actor, ctx.state.source, ctx.slot, ctx.level);
     if (!money.affordable) {
-      return this._refuse(
-        `"${ctx.slot.label}" costs ${money.cost} gp per attempt and ${ctx.actor.name} is `
-        + `${money.shortfallText} short — pick something else, or get the coin first.`,
-      );
+      return this._refuse(L("SDE.downtime.error.pickElse", {
+        slot: ctx.slot.label, cost: money.cost, name: ctx.actor.name, short: money.shortfallText,
+      }));
     }
 
     // Only keep an ability choice the check actually offers.
@@ -727,9 +738,9 @@ export const DowntimeSession = {
     if (!auth.ok) return auth;
 
     const state = this._read();
-    if (!state.active) return this._refuse("No downtime session is running.");
-    if (state.phase !== "roll") return this._refuse("Rolls aren't unlocked yet.");
-    if (state.results?.[actorId]) return this._refuse("That character already rolled.");
+    if (!state.active) return this._refuse(L("SDE.downtime.error.noSession"));
+    if (state.phase !== "roll") return this._refuse(L("SDE.downtime.error.rollsLocked"));
+    if (state.results?.[actorId]) return this._refuse(L("SDE.downtime.error.alreadyRolled"));
 
     const message = game.messages.get(messageId);
     const roll = message?.rolls?.[0];
@@ -747,7 +758,7 @@ export const DowntimeSession = {
     if (!claim.ok) return this._refuse(claim.error);
 
     const total = Number(roll.total);
-    if (!Number.isFinite(total)) return this._refuse("That roll has no total.");
+    if (!Number.isFinite(total)) return this._refuse(L("SDE.downtime.error.noTotal"));
 
     const pick = state.picks[actorId];
     const ctx = await this.context(actorId, slotKey, { choiceAbility: pick.ability });
@@ -793,11 +804,11 @@ export const DowntimeSession = {
       // why a real-looking roll produced no outcome.
       if (!canAfford(actor.system.coins, price)) {
         const short = affordability(actor, state.source, slot, ctx.level);
-        return this._refuse(
-          `The fee couldn't be paid — that roll didn't count. "${slot.label}" costs ${cost} gp`
-          + `${short.shortfallText ? ` and ${actor.name} is ${short.shortfallText} short` : ""}.`
-          + " Your pick is still set; roll again once you can pay.",
-        );
+        return this._refuse(short.shortfallText
+          ? L("SDE.downtime.error.feeUnpaidShort", {
+            slot: slot.label, cost, name: actor.name, short: short.shortfallText,
+          })
+          : L("SDE.downtime.error.feeUnpaid", { slot: slot.label, cost }));
       }
       const remaining = spendFromPurse(actor.system.coins, toCopper(price));
       await actor.update({
@@ -839,7 +850,7 @@ export const DowntimeSession = {
           pending: true,
           choiceType: plan.choiceType ?? null,
           freeText: !!plan.freeText,
-          prompt: plan.prompt ?? "Choose one:",
+          prompt: plan.prompt ?? L("SDE.downtime.chooseOne"),
           // Keep the option rows WHOLE. They carry more than {id,label}:
           // `disabled`+`reason` (rendered greyed, never hidden) and, for a
           // spell trade, the `gain` list of legal same-tier replacements. An
@@ -861,7 +872,7 @@ export const DowntimeSession = {
       } else if (plan?.kind === "auto") {
         result.effect = await this._applyEffect(actor, slot, null);
       } else {
-        result.effect = { summary: plan?.prompt ?? "Resolve this one with your GM.", narrative: true };
+        result.effect = { summary: plan?.prompt ?? L("SDE.downtime.effect.resolveWithGm"), narrative: true };
       }
     }
 
@@ -897,11 +908,11 @@ export const DowntimeSession = {
   async _applyEffect(actor, slot, choice) {
     try {
       const out = await applyDowntimeEffect({ actor, slotKey: slot.key, choice });
-      if (out?.ok) return { summary: out.summary ?? "Applied." };
-      return { summary: out?.error ?? "Couldn't apply that automatically — resolve with your GM.", narrative: true };
+      if (out?.ok) return { summary: out.summary ?? L("SDE.downtime.effect.applied") };
+      return { summary: out?.error ?? L("SDE.downtime.effect.couldNotApply"), narrative: true };
     } catch (err) {
       console.warn(`${MODULE_ID} | downtime: applyDowntimeEffect failed for "${slot.key}"`, err);
-      return { summary: "Couldn't apply that automatically — resolve with your GM.", narrative: true };
+      return { summary: L("SDE.downtime.effect.couldNotApply"), narrative: true };
     }
   },
 
@@ -913,11 +924,11 @@ export const DowntimeSession = {
 
     const state = this._read();
     const result = state.results?.[actorId];
-    if (!result || result.slotKey !== slotKey) return this._refuse("No pending downtime effect for that character.");
-    if (!result.effect?.pending) return this._refuse("That effect was already resolved.");
+    if (!result || result.slotKey !== slotKey) return this._refuse(L("SDE.downtime.error.noPendingEffect"));
+    if (!result.effect?.pending) return this._refuse(L("SDE.downtime.error.effectResolved"));
 
     const found = this.findSlot(slotKey);
-    if (!found) return this._refuse("That activity is no longer in the skeleton.");
+    if (!found) return this._refuse(L("SDE.downtime.error.activityNotInSkeleton"));
 
     /**
      * downtime-effects reads `choice?.id`, `choice?.gain`, `choice?.name` … —
@@ -931,12 +942,12 @@ export const DowntimeSession = {
 
     let choiceObj;
     if (opt) {
-      if (opt.disabled) return this._refuse(opt.reason ?? "That option isn't available.");
+      if (opt.disabled) return this._refuse(opt.reason ?? L("SDE.downtime.error.optionUnavailable"));
       const gainUuid = String(choice?.gainSpellUuid ?? "");
       if (Array.isArray(opt.gain) && opt.gain.length) {
-        if (!gainUuid) return this._refuse("Pick the replacement spell as well.");
+        if (!gainUuid) return this._refuse(L("SDE.downtime.error.pickReplacementToo"));
         if (!opt.gain.some(g => g.uuid === gainUuid)) {
-          return this._refuse("That replacement isn't offered for the spell you gave up.");
+          return this._refuse(L("SDE.downtime.error.replacementNotOffered"));
         }
       }
       choiceObj = { ...opt, ...(gainUuid ? { gainSpellUuid: gainUuid } : {}) };
@@ -955,7 +966,7 @@ export const DowntimeSession = {
       if (!clean.ok) return this._refuse(clean.error);
       choiceObj = { id: clean.name, label: clean.name, name: clean.name, freeText: true };
     } else {
-      return this._refuse("That isn't one of the offered options.");
+      return this._refuse(L("SDE.downtime.error.notOffered"));
     }
 
     const applied = await this._applyEffect(actor, found.slot, choiceObj);
@@ -972,15 +983,15 @@ export const DowntimeSession = {
     const label = SOURCES?.[sourceSlug]?.label ?? sourceSlug;
     const content = `
       <div class="sde-downtime-card sde-dt-announce">
-        <header class="sde-dt-head"><i class="fas fa-mug-hot"></i> Downtime</header>
-        <p class="sde-dt-line">The party has time between crawls. Pick one activity for your character.</p>
+        <header class="sde-dt-head"><i class="fas fa-mug-hot"></i> ${L("SDE.downtime.title")}</header>
+        <p class="sde-dt-line">${L("SDE.downtime.card.announce")}</p>
         <p class="sde-dt-line sde-dt-book">${esc(label)}</p>
-        <button type="button" class="sde-dt-open-btn"><i class="fas fa-mug-hot"></i> Open Downtime</button>
-        <footer class="sde-dt-foot">Luck tokens cannot be spent on downtime checks.</footer>
+        <button type="button" class="sde-dt-open-btn"><i class="fas fa-mug-hot"></i> ${L("SDE.downtime.card.open")}</button>
+        <footer class="sde-dt-foot">${L("SDE.downtime.card.noLuck")}</footer>
       </div>`;
     return ChatMessage.create({
       content,
-      speaker: { alias: "Downtime" },
+      speaker: { alias: L("SDE.downtime.title") },
       flags: { [MODULE_ID]: { downtimeAnnounce: true, source: sourceSlug } },
     });
   },
@@ -999,13 +1010,13 @@ export const DowntimeSession = {
   async _postResult(ctx, result) {
     const { actor, activity, slot, outcomeText } = ctx;
     const costLine = result.cost > 0
-      ? `<div class="sde-dt-line"><i class="fas fa-coins"></i> Paid ${result.cost} gp (per attempt, win or lose)</div>` : "";
+      ? `<div class="sde-dt-line"><i class="fas fa-coins"></i> ${L("SDE.downtime.card.paid", { cost: result.cost })}</div>` : "";
     const effectLine = result.effect?.pending
-      ? `<div class="sde-dt-line"><i class="fas fa-hourglass-half"></i> Waiting on a choice…</div>`
+      ? `<div class="sde-dt-line"><i class="fas fa-hourglass-half"></i> ${L("SDE.downtime.card.waiting")}</div>`
       : (result.effect?.summary ? `<div class="sde-dt-line"><i class="fas fa-wand-sparkles"></i> ${esc(result.effect.summary)}</div>` : "");
     const body = result.success
       ? `<div class="sde-dt-outcome">${esc(outcomeText)}</div>${effectLine}`
-      : `<div class="sde-dt-line">Next attempt on this activity is <strong>DC ${result.nextDC}</strong>.</div>`;
+      : `<div class="sde-dt-line">${L("SDE.downtime.card.nextAttempt", { dc: result.nextDC })}</div>`;
     const content = `
       <div class="sde-downtime-card ${result.success ? "sde-dt-success" : "sde-dt-failure"}">
         <header class="sde-dt-head">
@@ -1015,11 +1026,11 @@ export const DowntimeSession = {
         <div class="sde-dt-check">${esc(actor.name)}</div>
         <div class="sde-dt-total">
           <span class="sde-dt-num">${result.total}</span>
-          <span class="sde-dt-vs">vs DC ${result.dc}</span>
-          <span class="sde-dt-verdict">${result.success ? "SUCCESS" : "FAILURE"}</span>
+          <span class="sde-dt-vs">${L("SDE.downtime.card.vsDc", { dc: result.dc })}</span>
+          <span class="sde-dt-verdict">${result.success ? L("SDE.downtime.card.success") : L("SDE.downtime.card.failure")}</span>
         </div>
         ${costLine}${body}
-        <footer class="sde-dt-foot">Luck tokens cannot be spent on downtime checks.</footer>
+        <footer class="sde-dt-foot">${L("SDE.downtime.card.noLuck")}</footer>
       </div>`;
     return ChatMessage.create({
       content,
@@ -1054,13 +1065,13 @@ export const DowntimeSession = {
     if (flags.superseded) {
       btn.disabled = true;
       btn.style.opacity = "0.5";
-      btn.innerHTML = `<i class="fas fa-ban"></i> Downtime ended`;
+      btn.innerHTML = `<i class="fas fa-ban"></i> ${L("SDE.downtime.card.ended")}`;
       return;
     }
     btn.addEventListener("click", async (ev) => {
       ev.preventDefault();
       // Re-check live state, not the state the card was rendered with.
-      if (!this.active) { ui.notifications.warn("That downtime session has ended."); return; }
+      if (!this.active) { ui.notifications.warn(L("SDE.downtime.notify.sessionEnded")); return; }
       const { DowntimeApp } = await import("./downtime-app.mjs");
       DowntimeApp.open();
     });

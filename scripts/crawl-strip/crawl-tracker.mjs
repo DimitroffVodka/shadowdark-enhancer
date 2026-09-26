@@ -52,7 +52,7 @@ export class CrawlTrackerTab extends HandlebarsApplicationMixin(
     // row markup — IS how this tab matches the combat tracker, rather than a
     // copied stylesheet that drifts on the next Foundry release.
     classes: ["combat-sidebar", "sde-tracker-tab"],
-    window: { title: "Crawl Order", icon: "fa-solid fa-person-hiking" },
+    window: { title: "SDE.crawlStrip.tracker.title", icon: "fa-solid fa-person-hiking" },
     actions: {
       trackerRollAll:   CrawlTrackerTab.prototype._onRollAll,
       trackerRollOne:   CrawlTrackerTab.prototype._onRollOne,
@@ -119,7 +119,9 @@ export class CrawlTrackerTab extends HandlebarsApplicationMixin(
     context.round = state.crawlTurn;
     // Mirrors COMBAT.Round / COMBAT.NotStarted: a crawl with no order rolled is
     // the out-of-combat equivalent of an encounter nobody has rolled for.
-    context.title = orderActive ? `Crawl Round ${state.crawlTurn}` : "No Initiative Rolled";
+    context.title = orderActive
+      ? game.i18n.format("SDE.crawlStrip.tracker.round", { round: state.crawlTurn })
+      : game.i18n.localize("SDE.crawlStrip.tracker.notStarted");
     // The d20 art the combat tracker rolls with, so the two roll buttons are
     // the same button.
     context.initiativeIcon = CONFIG.Combat.initiativeIcon;
@@ -130,7 +132,7 @@ export class CrawlTrackerTab extends HandlebarsApplicationMixin(
       const hasInitiative = row.initiative !== null;
       return {
         ...row,
-        name: actor?.name ?? "(missing character)",
+        name: actor?.name ?? game.i18n.localize("SDE.crawlStrip.tracker.missing"),
         img: actor?.img ?? "icons/svg/mystery-man.svg",
         hasInitiative,
         // `active` is core's own current-turn class — the holder gets combat's
@@ -226,8 +228,8 @@ export class CrawlTrackerTab extends HandlebarsApplicationMixin(
     const confirm = foundry.applications.api.DialogV2?.confirm;
     const ok = confirm
       ? await foundry.applications.api.DialogV2.confirm({
-        window: { title: "End Crawl" },
-        content: "<p>End crawl mode?</p>",
+        window: { title: "SDE.crawlStrip.tracker.endCrawl" },
+        content: `<p>${game.i18n.localize("SDE.crawlStrip.tracker.endCrawlConfirm")}</p>`,
         rejectClose: false,
       })
       : true;
@@ -320,10 +322,9 @@ export function registerCrawlTracker() {
 
     CONFIG.ui[TRACKER_TAB_ID] = CrawlTrackerTab;
 
-    // Core runs the tooltip through `localize`, which returns a non-key
-    // unchanged — so a plain English label is safe here, per CONTRIBUTING.md.
+    // Core runs the tooltip through `localize`, so it takes the key itself.
     const def = {
-      tooltip: "Crawl Order",
+      tooltip: "SDE.crawlStrip.tracker.title",
       icon: "fa-solid fa-person-hiking",
     };
     const rebuilt = {};

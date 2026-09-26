@@ -25,6 +25,7 @@ import {
 import { findSuitePack, sourceFolderName } from "../../shared/compendium-suite.mjs";
 import { BACKUP_FOLDER_NAME } from "../monsters/actor-migration.mjs";
 import { LootLinker } from "../../loot/loot-linker.mjs";
+import { t as tr } from "../importer-hub-shared.mjs";
 
 // ─── Item source resolution ──────────────────────────────────────────────────
 
@@ -171,7 +172,7 @@ export async function gatherItemDuplicates({ records } = {}) {
  */
 export async function cullItemDuplicates(keepUuid, dropUuids) {
   if (!game.user?.isGM) {
-    ui.notifications?.warn(`${MODULE_ID} | cullItemDuplicates: GM only`);
+    ui.notifications?.warn(tr("SDE.importer.itemCensus.notify.gmOnly", { module: MODULE_ID }));
     return { deleted: 0, skipped: 0, failed: 0 };
   }
   const itemsPack = findSuitePack("sde-items");

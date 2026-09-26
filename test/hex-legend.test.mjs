@@ -84,10 +84,12 @@ test("buildLegend on nothing, on one cell, and with a progress callback", async 
   const { centroid, ...rest } = one.clusters[0];
   assert.deepEqual(rest, { size: 1, members: [7], core: [7], samples: [7] });
   assert.ok(centroid?.length > 0, "and the centroid is there to compare against");
-  const texts = [];
-  await buildLegend(cells().slice(0, 12), { k: 2, restarts: 2, onProgress: (t) => { texts.push(t); } });
-  assert.ok(texts.length >= 2 && texts[0].startsWith("Sorting cells by glyph… pass 1 of 2"), texts[0]);
-  assert.ok(texts.some((t) => t.includes("pass 2 of 2")));
+  // Progress arrives as numbers; the tagger words it from en.json.
+  const steps = [];
+  await buildLegend(cells().slice(0, 12), { k: 2, restarts: 2, onProgress: (p) => { steps.push(p); } });
+  assert.ok(steps.length >= 2, `${steps.length} progress reports`);
+  assert.deepEqual(steps[0], { pass: 1, passes: 2, step: 1 });
+  assert.ok(steps.some((p) => p.pass === 2 && p.passes === 2));
 });
 
 

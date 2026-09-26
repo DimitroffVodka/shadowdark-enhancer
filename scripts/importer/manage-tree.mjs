@@ -57,6 +57,7 @@ import { readStored } from "../downtime/downtime-core.mjs";
 import { BOAT_MANIFEST } from "./boats/boat-parser.mjs";
 import { SIEGE_MANIFEST } from "./boats/siege-parser.mjs";
 import { MOUNT_MANIFEST, mountNameKeys } from "./boats/mount-parser.mjs";
+import { t as tr } from "./importer-hub-shared.mjs";
 
 const _norm = (s) => String(s || "").toLowerCase().replace(/\s+/g, " ").trim();
 
@@ -148,10 +149,10 @@ function buildCharContent(charEntries, patronsNeedDesc = new Set()) {
     && ancestryTableNames.has(_norm(e.name)) && /\bnames$/i.test(e.name));
   const trinketTableRecs = charEntries.filter((e) => e.type === "Table"
     && ancestryTableNames.has(_norm(e.name)) && /\btrinket$/i.test(e.name));
-  const ancestries = branch("char/ancestries", "Ancestries", "fa-people-group", [
-    leaf("char/ancestries/kinds", "Ancestries", "fa-people-group", ancestryItemRecs, "charSeedPaste", true),
-    leaf("char/ancestries/names", "Names", "fa-signature", nameTableRecs, "charSeedPaste", true),
-    leaf("char/ancestries/trinkets", "Trinkets", "fa-gem", trinketTableRecs, "charSeedPaste", true),
+  const ancestries = branch("char/ancestries", tr("SDE.importer.manageTree.ancestries"), "fa-people-group", [
+    leaf("char/ancestries/kinds", tr("SDE.importer.manageTree.ancestries"), "fa-people-group", ancestryItemRecs, "charSeedPaste", true),
+    leaf("char/ancestries/names", tr("SDE.charBuilder.tableSources.nameCol"), "fa-signature", nameTableRecs, "charSeedPaste", true),
+    leaf("char/ancestries/trinkets", tr("SDE.charBuilder.tableSources.trinketCol"), "fa-gem", trinketTableRecs, "charSeedPaste", true),
   ]);
 
   // Backgrounds: the per-book d100 background roll tables only (one row each).
@@ -160,7 +161,7 @@ function buildCharContent(charEntries, patronsNeedDesc = new Set()) {
   // enumerated here, keeping this to one entry per roll table.
   const backgroundRecords = charEntries.filter((e) =>
     e.type === "Table" && BACKGROUND_TABLES.has(_norm(e.name)));
-  const backgrounds = leaf("char/backgrounds", "Backgrounds", "fa-scroll", backgroundRecords, "charSeedPaste");
+  const backgrounds = leaf("char/backgrounds", tr("SDE.importer.type.backgrounds"), "fa-scroll", backgroundRecords, "charSeedPaste");
 
   // Classes: one Unlock row per class, alphabetical. Unlocking a class is a
   // BUNDLE — it brings that class's talents, talent table, abilities and spells
@@ -186,12 +187,12 @@ function buildCharContent(charEntries, patronsNeedDesc = new Set()) {
     return {
       name: cls, present: !!primary?.present, seedAction: "charSeedPaste",
       type: "Class", src: primary?.src ?? "", pages: primary?.pages ?? "",
-      pagesAlt: alt ? `${alt.src} pg ${alt.pages}` : "",
+      pagesAlt: alt ? `${alt.src} ${tr("SDE.importer.tree.page", { pages: alt.pages })}` : "",
       cites: recs.filter((e) => e.pages).map((e) => ({ src: e.src, page: e.pages, name: cls })),
     };
   });
   const classes = {
-    id: "char/classes", label: "Classes", icon: "fa-users-rectangle",
+    id: "char/classes", label: tr("SDE.importer.manageTree.classes"), icon: "fa-users-rectangle",
     entries: classEntries, children: [],
     have: classEntries.filter((e) => e.present).length,
     locked: classEntries.filter((e) => !e.present).length,
@@ -213,12 +214,12 @@ function buildCharContent(charEntries, patronsNeedDesc = new Set()) {
   }));
   const prayerRecs = patronRecords.filter((e) => /\bprayers$/i.test(e.name));
   const otherPatron = patronRecords.filter((e) => !/\b(boons|prayers)\b/i.test(e.name));
-  const patrons = branch("char/patrons", "Patrons & Deities", "fa-hands-praying", [
-    leaf("char/patrons/boons", "Boons", "fa-gift", [...boonRecs, ...otherPatron], "charSeedPaste", true),
-    leaf("char/patrons/prayers", "Prayers", "fa-hands-praying", prayerRecs, "charSeedPaste", true),
+  const patrons = branch("char/patrons", tr("SDE.importer.manageTree.patrons"), "fa-hands-praying", [
+    leaf("char/patrons/boons", tr("SDE.importer.manageTree.boons"), "fa-gift", [...boonRecs, ...otherPatron], "charSeedPaste", true),
+    leaf("char/patrons/prayers", tr("SDE.importer.manageTree.prayers"), "fa-hands-praying", prayerRecs, "charSeedPaste", true),
   ]);
 
-  return branch("char", "Character Content", "fa-user-plus", [ancestries, backgrounds, classes, patrons]);
+  return branch("char", tr("SDE.importer.manageTree.charContent"), "fa-user-plus", [ancestries, backgrounds, classes, patrons]);
 }
 
 /** Pure test seam for the dual-source class rows' book choice. */
@@ -277,8 +278,10 @@ function buildSpells(spellListCensus, mishapsNode = null) {
         src: l.source,
         pages: l.page,
         listKey: l.key,
-        importLabel: "Import list",
-        countNote: c.count ? `${c.count} imported${shared ? " · covers CS + WR" : ""}` : (shared ? "covers CS + WR" : ""),
+        importLabel: tr("SDE.importer.manageTree.importList"),
+        countNote: c.count
+          ? tr(shared ? "SDE.importer.manageTree.countImportedShared" : "SDE.importer.manageTree.countImported", { n: c.count })
+          : (shared ? tr("SDE.importer.manageTree.coversShared") : ""),
       };
     });
     const have = entries.filter((e) => e.present).length;
@@ -288,7 +291,7 @@ function buildSpells(spellListCensus, mishapsNode = null) {
     };
   });
   if (mishapsNode) children.push(mishapsNode);
-  return branch("spells", "Spells", "fa-book-sparkles", children);
+  return branch("spells", tr("SDE.charBuilder.class.spells"), "fa-book-sparkles", children);
 }
 
 /**
@@ -358,7 +361,7 @@ function buildRollTables(charEntries, tablesPresent, tablesByManifestId) {
       ? buildCoreRulebook("rolltables", tablesPresent, tablesByManifestId)
       : leaf(`tables/${src}`, CHAR_SOURCES[src]?.label ?? src, "fa-dice",
           tableRecs.filter((r) => r.src === src), "charSeedPaste"));
-  return branch("tables", "Roll Tables", "fa-table-list", children);
+  return branch("tables", tr("SDE.importer.manageTree.rollTables"), "fa-table-list", children);
 }
 
 /**
@@ -386,7 +389,7 @@ function buildGameplay(charEntries, tablesPresent, tablesByManifestId) {
 
   if (pit.length) children.push(buildPitFighting(pit));
 
-  return branch("gameplay", "Gameplay", "fa-dice-d20", children);
+  return branch("gameplay", tr("SDE.importer.manageTree.gameplay"), "fa-dice-d20", children);
 }
 
 /**
@@ -413,7 +416,7 @@ function buildPitFighting(pit) {
     .flat().map(Number).filter(Number.isFinite);
   const cite = pages.length ? `${Math.min(...pages)}-${Math.max(...pages)}` : "20-24";
 
-  return branch("gameplay/pit-fighting", "Pit Fighting", "fa-hand-fist", [], {
+  return branch("gameplay/pit-fighting", tr("SDE.importer.manageTree.pitFighting"), "fa-hand-fist", [], {
     have: have === total ? 1 : 0,
     locked: have === total ? 0 : 1,
     entries: [{
@@ -423,9 +426,9 @@ function buildPitFighting(pit) {
       type: "Table",
       src: "CS2",
       pages: cite,
-      importLabel: "Unlock",
-      countNote: `Unlocked (${have}/${total})`,
-      stateNote: have ? `Partial (${have}/${total})` : "Locked",
+      importLabel: tr("SDE.charBuilder.unlock"),
+      countNote: tr("SDE.importer.manageTree.unlockedCount", { n: have, total }),
+      stateNote: have ? tr("SDE.importer.manageTree.partialCount", { n: have, total }) : tr("SDE.importer.manageTree.locked"),
     }],
   });
 }
@@ -442,7 +445,7 @@ function buildMishaps(charEntries, _tablesPresent) {
   const children = sources.map((src) =>
     leaf(`spells/mishaps/${src}`, CHAR_SOURCES[src]?.label ?? src, "fa-clover",
         recs.filter((r) => r.src === src), "charSeedPaste"));
-  return branch("spells-mishaps", "Mishaps", "fa-clover", children);
+  return branch("spells-mishaps", tr("SDE.importer.manageTree.mishaps"), "fa-clover", children);
 }
 
 /**
@@ -512,9 +515,9 @@ function buildMonsters(monsterRows, actorRecords) {
     present: [...mountNameKeys(m.name)].some((key) => actorKeys.has(key)),
     type: "Mount", src: m.src, pages: m.pages,
   }));
-  children.push(leaf("monsters/mounts", "Mounts", "fa-horse", mountRecords, "charSeedPaste", true));
+  children.push(leaf("monsters/mounts", tr("SDE.importer.manageTree.mounts"), "fa-horse", mountRecords, "charSeedPaste", true));
 
-  return branch("monsters", "Monsters", "fa-dragon", children);
+  return branch("monsters", tr("SDE.importer.type.monsters"), "fa-dragon", children);
 }
 
 /** Pure test seam for curated source filtering and cross-source mount presence. */
@@ -552,11 +555,11 @@ function buildItems(charEntries, itemRecords) {
       .map((e) => ({ name: e.name, present: false, type: e.type, src: e.src, pages: e.pages }));
     return leaf(id, label, icon, [...present, ...importable], "charSeedPaste");
   };
-  const basic = typeLeaf("items/basic", "Basic Gear", "fa-box-open", ["Basic"], { dropCurrency: true });
-  const armor = typeLeaf("items/armor", "Armor", "fa-shield-halved", ["Armor"]);
-  const weapons = typeLeaf("items/weapons", "Weapons", "fa-gavel", ["Weapon"]);
-  const magic = typeLeaf("items/magic", "Magic Items", "fa-hat-wizard", ["Potion", "Scroll", "Wand"]);
-  return branch("items", "Items", "fa-gem", [basic, armor, weapons, magic]);
+  const basic = typeLeaf("items/basic", tr("SDE.charBuilder.gear.catBasic"), "fa-box-open", ["Basic"], { dropCurrency: true });
+  const armor = typeLeaf("items/armor", tr("SDE.charBuilder.gear.catArmor"), "fa-shield-halved", ["Armor"]);
+  const weapons = typeLeaf("items/weapons", tr("SDE.charBuilder.gear.catWeapon"), "fa-gavel", ["Weapon"]);
+  const magic = typeLeaf("items/magic", tr("SDE.importer.manageTree.magicItems"), "fa-hat-wizard", ["Potion", "Scroll", "Wand"]);
+  return branch("items", tr("SDE.importer.type.items"), "fa-gem", [basic, armor, weapons, magic]);
 }
 
 /** Pure test seam for the type-bucketed Items leaves. */
@@ -606,9 +609,9 @@ function buildVehicles(boatNames, itemNames) {
     name: s.name, present: itemNames.has(s.name.toLowerCase()),
     type: "SiegeWeapon", src: s.src, pages: s.page,
   }));
-  return branch("vehicles", "Vehicles", "fa-anchor", [
-    leaf("vehicles/boats", "Boats", "fa-sailboat", boatRecords, "charSeedPaste", true),
-    leaf("vehicles/siege", "Siege Weapons", "fa-explosion", siegeRecords, "charSeedPaste", true),
+  return branch("vehicles", tr("SDE.importer.manageTree.vehicles"), "fa-anchor", [
+    leaf("vehicles/boats", tr("SDE.importer.type.boats"), "fa-sailboat", boatRecords, "charSeedPaste", true),
+    leaf("vehicles/siege", tr("SDE.importer.manageTree.siegeWeapons"), "fa-explosion", siegeRecords, "charSeedPaste", true),
   ]);
 }
 
@@ -645,13 +648,15 @@ function buildDowntime() {
       listKey: slug,
       // "Import" is the tree's generic verb; downtime unlocks a setting, and
       // both the Downtime window and the hub's commit say "unlock".
-      importLabel: "Unlock",
-      countNote: `Unlocked (${count}/${EXPECTED_SLOT_COUNT})`,
-      stateNote: count ? `Partial (${count}/${EXPECTED_SLOT_COUNT})` : "Locked",
+      importLabel: tr("SDE.charBuilder.unlock"),
+      countNote: tr("SDE.importer.manageTree.unlockedCount", { n: count, total: EXPECTED_SLOT_COUNT }),
+      stateNote: count
+        ? tr("SDE.importer.manageTree.partialCount", { n: count, total: EXPECTED_SLOT_COUNT })
+        : tr("SDE.importer.manageTree.locked"),
     };
   });
   return {
-    id: "downtime", label: "Downtime", icon: "fa-mug-hot",
+    id: "downtime", label: tr("SDE.importer.type.downtime"), icon: "fa-mug-hot",
     entries, children: [],
     have: entries.filter((e) => e.present).length,
     locked: entries.filter((e) => !e.present).length,

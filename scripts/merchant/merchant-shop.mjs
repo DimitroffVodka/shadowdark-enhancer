@@ -40,7 +40,7 @@ const _rollDice = async (dice) => (await new Roll(dice).evaluate()).total;
  * can't reach the active GM. Money moves on the GM side, so a silently dropped
  * relay looks to the player like the shop simply ignored them.
  */
-const SHOP_RELAY_LABEL = "shop transactions";
+const SHOP_RELAY_LABEL = "SDE.merchant.relayLabel";
 
 /**
  * The one authenticated player→GM channel for transactions, namespaced per
@@ -105,7 +105,7 @@ export const MerchantShop = {
    * @returns {Promise<{ok: boolean, error?: string}>}
    */
   async handleQuery(data, user) {
-    const refusal = refuseQuery(user, "Shop transactions");
+    const refusal = refuseQuery(user, game.i18n.localize("SDE.merchant.refuseLabel"));
     if (refusal) return refusal;
     const action = data?.action;
     const run = {
@@ -114,7 +114,7 @@ export const MerchantShop = {
       "shop:catalogBuy": () => this._handleCatalogBuy(data, user),
       "shop:gamble":     () => this._handleGamble(data, user),
     }[action];
-    if (!run) return { ok: false, error: "Unknown shop action." };
+    if (!run) return { ok: false, error: game.i18n.localize("SDE.merchant.notify.unknownAction") };
     // A handler that returns nothing has already posted its own result card;
     // only a refusal comes back as a value (`_broadcastError`).
     return (await this._enqueueTx(run)) ?? { ok: true };
@@ -151,8 +151,8 @@ export const MerchantShop = {
       scope: "world", config: false, type: Array, default: [],
     });
     game.settings.register(MODULE_ID, "shopSellRatio", {
-      name: "Merchant Sell Ratio (%)",
-      hint: "Percentage of an item's value players receive when selling back to the shop.",
+      name: "SDE.settings.shopSellRatio.name",
+      hint: "SDE.settings.shopSellRatio.hint",
       scope: "world", config: false, type: Number, default: 50,
       range: { min: 0, max: 100, step: 5 },
     });
@@ -166,8 +166,8 @@ export const MerchantShop = {
       scope: "world", config: false, type: Array, default: [],
     });
     game.settings.register(MODULE_ID, "shopName", {
-      name: "Merchant Shop Name",
-      hint: "Display name shown on the shop window.",
+      name: "SDE.settings.shopName.name",
+      hint: "SDE.settings.shopName.hint",
       scope: "world", config: false, type: String, default: "The Merchant",
     });
     game.settings.register(MODULE_ID, "savedShopConfigs", {
@@ -250,14 +250,14 @@ export const MerchantShop = {
       if (flags.superseded) {
         btn.disabled = true;
         btn.style.opacity = "0.5";
-        btn.innerHTML = `<i class="fas fa-ban"></i> Shop status changed`;
+        btn.innerHTML = `<i class="fas fa-ban"></i> ${game.i18n.localize("SDE.merchant.card.statusChanged")}`;
         return;
       }
       // Close card has no button (above), so this only fires on open cards.
       btn.addEventListener("click", (ev) => {
         ev.preventDefault();
         if (!game.settings.get(MODULE_ID, "shopAvailableToPlayers")) {
-          ui.notifications.warn("The shop isn't available right now.");
+          ui.notifications.warn(game.i18n.localize("SDE.merchant.notify.unavailable"));
           return;
         }
         this.openLocally();
@@ -277,7 +277,7 @@ export const MerchantShop = {
    */
   open(opts = {}) {
     if (!game.user.isGM) {
-      ui.notifications.warn("Only the GM can open the Merchant Shop.");
+      ui.notifications.warn(game.i18n.localize("SDE.merchant.notify.gmOnlyOpen"));
       return;
     }
 
@@ -505,7 +505,7 @@ export const MerchantShop = {
     const data = this._cachedAvailabilityData
       ?? game.settings.get(MODULE_ID, "shopAvailabilityData");
     if (!data) {
-      ui.notifications.warn("The shop isn't available right now.");
+      ui.notifications.warn(game.i18n.localize("SDE.merchant.notify.unavailable"));
       return;
     }
     this._cachedAvailabilityData = data;
@@ -598,16 +598,16 @@ export const MerchantShop = {
              <header class="card-header">
                <div class="header-icon"><i class="fas fa-store" style="font-size:24px;"></i></div>
                <div class="header-info">
-                 <h3 class="header-title">${shopName} is Open</h3>
+                 <h3 class="header-title">${game.i18n.format("SDE.merchant.card.openTitle", { name: shopName })}</h3>
                  <div class="metadata-tags-row">
-                   <div class="meta-tag"><span>Browse at your own pace</span></div>
+                   <div class="meta-tag"><span>${game.i18n.localize("SDE.merchant.card.openTag")}</span></div>
                  </div>
                </div>
              </header>
              <section class="content-body">
                <div class="card-description" style="padding:6px 0;">
                  <button type="button" class="sdems-shop-card-open-btn" style="width:100%;padding:8px;">
-                   <i class="fas fa-store"></i> Open Shop
+                   <i class="fas fa-store"></i> ${game.i18n.localize("SDE.merchant.card.openButton")}
                  </button>
                </div>
              </section>
@@ -618,12 +618,12 @@ export const MerchantShop = {
              <header class="card-header">
                <div class="header-icon"><i class="fas fa-door-closed" style="font-size:24px;"></i></div>
                <div class="header-info">
-                 <h3 class="header-title">${shopName} is Closed</h3>
+                 <h3 class="header-title">${game.i18n.format("SDE.merchant.card.closedTitle", { name: shopName })}</h3>
                </div>
              </header>
              <section class="content-body">
                <div class="card-description" style="padding:6px 8px; text-align:center; color:var(--vcb-text-muted, #aaa);">
-                 The shop is no longer available.
+                 ${game.i18n.localize("SDE.merchant.card.closedBody")}
                </div>
              </section>
            </div>
@@ -653,14 +653,16 @@ export const MerchantShop = {
    * was a forged message, so it is gone.
    */
   _onResult(data) {
-    const verb = data.txAction === "buy" ? "bought" : "sold";
+    const isBuy = data.txAction === "buy";
     const qtyStr = data.quantity > 1 ? ` ×${data.quantity}` : "";
     // Name the downtime extortion swing when it moved this price.
     const pct = Number(data.extortionPct) || 0;
-    const swingStr = pct
-      ? ` (extortion: ${data.txAction === "buy" ? `${pct}% off` : `+${pct}%`})`
-      : "";
-    ui.notifications.info(`${data.playerName} ${verb} ${data.itemName}${qtyStr} for ${_formatPrice(data.price)}${swingStr}.`);
+    const key = pct
+      ? (isBuy ? "SDE.merchant.notify.boughtExtortion" : "SDE.merchant.notify.soldExtortion")
+      : (isBuy ? "SDE.merchant.notify.bought" : "SDE.merchant.notify.sold");
+    ui.notifications.info(game.i18n.format(key, {
+      player: data.playerName, item: data.itemName, qty: qtyStr, price: _formatPrice(data.price), pct,
+    }));
 
     // Update inventory stock in local app
     if (this._app?._inventory) {
@@ -750,19 +752,19 @@ export const MerchantShop = {
     const userId = user?.id;
     const quantity = this._sanitizeQty(data.quantity);
     const buyer = this._resolveOwnedActor(buyerActorId, user);
-    if (!buyer) return this._broadcastError("Actor not found.", userId);
+    if (!buyer) return this._broadcastError(game.i18n.localize("SDE.merchant.notify.actorNotFound"), userId);
 
     const ctx = this._txContext(userId);
-    if (!ctx) return this._broadcastError("The shop isn't available right now.", userId);
+    if (!ctx) return this._broadcastError(game.i18n.localize("SDE.merchant.notify.unavailable"), userId);
 
     // Find item in the authoritative inventory (never the payload's).
     const inv = this._buildInventory(ctx.mode, ctx.actorId);
     const entry = inv.find(e => e.id === shopItemId);
-    if (!entry) return this._broadcastError("Item not found in shop.", userId);
+    if (!entry) return this._broadcastError(game.i18n.localize("SDE.merchant.notify.itemNotInShop"), userId);
 
     // Check stock
     if (entry.stock !== -1 && entry.stock < quantity) {
-      return this._broadcastError("Not enough stock.", userId);
+      return this._broadcastError(game.i18n.localize("SDE.merchant.notify.notEnoughStock"), userId);
     }
 
     // Calculate total cost with the GM-side (never client-supplied) multiplier,
@@ -775,7 +777,7 @@ export const MerchantShop = {
 
     // Check funds
     if (!_canAfford(buyer, totalCost)) {
-      return this._broadcastError("Insufficient funds.", userId);
+      return this._broadcastError(game.i18n.localize("SDE.merchant.notify.insufficientFunds"), userId);
     }
 
     // Execute: deduct currency (preserving the player's coin denominations)
@@ -807,7 +809,8 @@ export const MerchantShop = {
     // Execute: the extortion swing is spent once the transaction has landed —
     // a failed funds/stock check above returns early and leaves it unspent.
     if (swing.applied) await spendExtortion(buyer);
-    const swingNote = swing.applied ? ` <em>(${swing.pct}% off — extortion)</em>` : "";
+    const swingNote = swing.applied
+      ? ` <em>${game.i18n.format("SDE.merchant.card.swingBuy", { pct: swing.pct })}</em>` : "";
 
     // Log
     await this.logTransaction({
@@ -823,7 +826,7 @@ export const MerchantShop = {
     // Chat message
     const qtyStr = quantity > 1 ? ` ×${quantity}` : "";
     await ChatMessage.create({
-      speaker: { alias: this._app?._shopName ?? "Merchant" },
+      speaker: { alias: this._app?._shopName ?? game.i18n.localize("SDE.merchant.card.speaker") },
       content: `<div class="sdems-chat-card-v2" data-card-type="generic">
         <div class="card-body">
           <header class="card-header">
@@ -831,7 +834,7 @@ export const MerchantShop = {
               <img src="${esc(entry.img || "icons/svg/item-bag.svg")}" alt="${esc(entry.name)}">
             </div>
             <div class="header-info">
-              <h3 class="header-title">Item Purchased</h3>
+              <h3 class="header-title">${game.i18n.localize("SDE.merchant.card.purchased")}</h3>
               <div class="metadata-tags-row">
                 <div class="meta-tag"><span>${esc(buyer.name)}</span></div>
               </div>
@@ -839,7 +842,11 @@ export const MerchantShop = {
           </header>
           <section class="content-body">
             <div class="card-description" style="padding:4px 0;">
-              <p><strong>${esc(buyer.name)}</strong> bought <strong>${esc(entry.name)}${qtyStr}</strong> for ${_formatPrice(totalCost)}.${swingNote}</p>
+              <p>${game.i18n.format("SDE.merchant.card.boughtLine", {
+                buyer: `<strong>${esc(buyer.name)}</strong>`,
+                item: `<strong>${esc(entry.name)}${qtyStr}</strong>`,
+                price: _formatPrice(totalCost),
+              })}${swingNote}</p>
             </div>
           </section>
         </div>
@@ -869,17 +876,17 @@ export const MerchantShop = {
     const userId = user?.id;
     const quantity = this._sanitizeQty(data.quantity);
     const seller = this._resolveOwnedActor(sellerActorId, user);
-    if (!seller) return this._broadcastError("Actor not found.", userId);
+    if (!seller) return this._broadcastError(game.i18n.localize("SDE.merchant.notify.actorNotFound"), userId);
 
     const item = seller.items.get(itemId);
-    if (!item) return this._broadcastError("Item not found in inventory.", userId);
+    if (!item) return this._broadcastError(game.i18n.localize("SDE.merchant.notify.itemNotInInventory"), userId);
 
     // Sell needs the same shop-open gate buy, catalogBuy and gamble already
     // have. Without it the `?.` below swallowed a missing context and the
     // transaction went through at the default ratio against a shop the GM had
     // never made available to players (audit 2026-07-29, F4).
     const ctx = this._txContext(userId);
-    if (!ctx) return this._broadcastError("The shop isn't available right now.", userId);
+    if (!ctx) return this._broadcastError(game.i18n.localize("SDE.merchant.notify.unavailable"), userId);
     const sellRatio = ctx.sellRatio ?? game.settings.get(MODULE_ID, "shopSellRatio") ?? 50;
     const cost = item.system.cost ?? { gp: 0, sp: 0, cp: 0 };
     const unitSellPrice = _applySellRatio(cost, sellRatio);
@@ -912,7 +919,8 @@ export const MerchantShop = {
 
     // The extortion swing is spent once the sale has landed.
     if (swing.applied) await spendExtortion(seller);
-    const swingNote = swing.applied ? ` <em>(+${swing.pct}% — extortion)</em>` : "";
+    const swingNote = swing.applied
+      ? ` <em>${game.i18n.format("SDE.merchant.card.swingSell", { pct: swing.pct })}</em>` : "";
 
     // Restock the merchant with the sold item
     await this._restockMerchantInventory(itemData, quantity, originalUuid, ctx);
@@ -940,7 +948,7 @@ export const MerchantShop = {
     // Chat message
     const qtyStr = quantity > 1 ? ` ×${quantity}` : "";
     await ChatMessage.create({
-      speaker: { alias: this._app?._shopName ?? "Merchant" },
+      speaker: { alias: this._app?._shopName ?? game.i18n.localize("SDE.merchant.card.speaker") },
       content: `<div class="sdems-chat-card-v2" data-card-type="generic">
         <div class="card-body">
           <header class="card-header">
@@ -948,7 +956,7 @@ export const MerchantShop = {
               <img src="${esc(item.img || "icons/svg/item-bag.svg")}" alt="${esc(item.name)}">
             </div>
             <div class="header-info">
-              <h3 class="header-title">Item Sold</h3>
+              <h3 class="header-title">${game.i18n.localize("SDE.merchant.card.sold")}</h3>
               <div class="metadata-tags-row">
                 <div class="meta-tag"><span>${esc(seller.name)}</span></div>
               </div>
@@ -956,7 +964,12 @@ export const MerchantShop = {
           </header>
           <section class="content-body">
             <div class="card-description" style="padding:4px 0;">
-              <p><strong>${esc(seller.name)}</strong> sold <strong>${esc(item.name)}${qtyStr}</strong> for ${_formatPrice(totalSellPrice)} (${sellRatio}%).${swingNote}</p>
+              <p>${game.i18n.format("SDE.merchant.card.soldLine", {
+                seller: `<strong>${esc(seller.name)}</strong>`,
+                item: `<strong>${esc(item.name)}${qtyStr}</strong>`,
+                price: _formatPrice(totalSellPrice),
+                ratio: sellRatio,
+              })}${swingNote}</p>
             </div>
           </section>
         </div>
@@ -992,21 +1005,21 @@ export const MerchantShop = {
     const userId = user?.id;
     const quantity = this._sanitizeQty(data.quantity);
     const buyer = this._resolveOwnedActor(buyerActorId, user);
-    if (!buyer) return this._broadcastError("Actor not found.", userId);
+    if (!buyer) return this._broadcastError(game.i18n.localize("SDE.merchant.notify.actorNotFound"), userId);
 
     const ctx = this._txContext(userId);
-    if (!ctx) return this._broadcastError("The shop isn't available right now.", userId);
-    if (!ctx.catalogEnabled) return this._broadcastError("The catalog isn't available.", userId);
+    if (!ctx) return this._broadcastError(game.i18n.localize("SDE.merchant.notify.unavailable"), userId);
+    if (!ctx.catalogEnabled) return this._broadcastError(game.i18n.localize("SDE.merchant.notify.catalogUnavailable"), userId);
 
     // Only items from the published catalog packs may be bought this way —
     // never an arbitrary world/compendium UUID from the socket payload.
     if (!this._isCatalogUuid(itemUuid)) {
-      return this._broadcastError("That item isn't available in the catalog.", userId);
+      return this._broadcastError(game.i18n.localize("SDE.merchant.notify.notInCatalog"), userId);
     }
 
     // Load the item from compendium
     const doc = await fromUuid(itemUuid);
-    if (!doc) return this._broadcastError("Item not found in compendium.", userId);
+    if (!doc) return this._broadcastError(game.i18n.localize("SDE.merchant.notify.itemNotInCompendium"), userId);
 
     const cost = doc.system.cost ?? { gp: 0, sp: 0, cp: 0 };
     const catMult = ctx.buyMultiplier / 100;
@@ -1017,7 +1030,7 @@ export const MerchantShop = {
 
     // Check funds
     if (!_canAfford(buyer, totalCost)) {
-      return this._broadcastError("Insufficient funds.", userId);
+      return this._broadcastError(game.i18n.localize("SDE.merchant.notify.insufficientFunds"), userId);
     }
 
     // Deduct currency (preserving the player's coin denominations)
@@ -1035,7 +1048,8 @@ export const MerchantShop = {
 
     // Spend the one-shot downtime extortion swing now the purchase has landed.
     if (swing.applied) await spendExtortion(buyer);
-    const swingNote = swing.applied ? ` <em>(${swing.pct}% off — extortion)</em>` : "";
+    const swingNote = swing.applied
+      ? ` <em>${game.i18n.format("SDE.merchant.card.swingBuy", { pct: swing.pct })}</em>` : "";
 
     // Log
     await this.logTransaction({
@@ -1049,7 +1063,7 @@ export const MerchantShop = {
     // Chat message
     const qtyStr = quantity > 1 ? ` ×${quantity}` : "";
     await ChatMessage.create({
-      speaker: { alias: this._app?._shopName ?? "Merchant" },
+      speaker: { alias: this._app?._shopName ?? game.i18n.localize("SDE.merchant.card.speaker") },
       content: `<div class="sdems-chat-card-v2" data-card-type="generic">
         <div class="card-body">
           <header class="card-header">
@@ -1057,7 +1071,7 @@ export const MerchantShop = {
               <img src="${esc(doc.img || "icons/svg/item-bag.svg")}" alt="${esc(doc.name)}">
             </div>
             <div class="header-info">
-              <h3 class="header-title">Item Purchased</h3>
+              <h3 class="header-title">${game.i18n.localize("SDE.merchant.card.purchased")}</h3>
               <div class="metadata-tags-row">
                 <div class="meta-tag"><span>${esc(buyer.name)}</span></div>
               </div>
@@ -1065,7 +1079,11 @@ export const MerchantShop = {
           </header>
           <section class="content-body">
             <div class="card-description" style="padding:4px 0;">
-              <p><strong>${esc(buyer.name)}</strong> bought <strong>${esc(doc.name)}${qtyStr}</strong> for ${_formatPrice(totalCost)}.${swingNote}</p>
+              <p>${game.i18n.format("SDE.merchant.card.boughtLine", {
+                buyer: `<strong>${esc(buyer.name)}</strong>`,
+                item: `<strong>${esc(doc.name)}${qtyStr}</strong>`,
+                price: _formatPrice(totalCost),
+              })}${swingNote}</p>
             </div>
           </section>
         </div>
@@ -1188,15 +1206,15 @@ export const MerchantShop = {
     // Identity comes from the query context, never from `data`.
     const userId = user?.id;
     const buyer = this._resolveOwnedActor(buyerActorId, user);
-    if (!buyer) return this._broadcastError("Actor not found.", userId);
+    if (!buyer) return this._broadcastError(game.i18n.localize("SDE.merchant.notify.actorNotFound"), userId);
 
     const ctx = this._txContext(userId);
-    if (!ctx?.gambleEnabled) return this._broadcastError("Gamble isn't available right now.", userId);
+    if (!ctx?.gambleEnabled) return this._broadcastError(game.i18n.localize("SDE.merchant.notify.gambleUnavailable"), userId);
 
     // Find the gamble option
     const options = game.settings.get(MODULE_ID, "gambleOptions") || [];
     const option = options.find(o => o.id === gambleId);
-    if (!option) return this._broadcastError("Gamble option not found.", userId);
+    if (!option) return this._broadcastError(game.i18n.localize("SDE.merchant.notify.gambleNotFound"), userId);
 
     const costCopper = _toCopper(option.cost);
 
@@ -1205,7 +1223,7 @@ export const MerchantShop = {
     // one, so reject it before deducting funds.
     if (option.source.startsWith("loot-level:")) {
       return this._broadcastError(
-        "This gamble option isn't supported. Configure Gamble with a Shadowdark roll table.",
+        game.i18n.localize("SDE.merchant.notify.gambleUnsupported"),
         userId,
       );
     }
@@ -1217,12 +1235,12 @@ export const MerchantShop = {
     // above, so only roll-table sources reach here.)
     const table = await fromUuid(option.source).catch(() => null);
     if (!table) {
-      return this._broadcastError("That gamble's roll table is missing — tell your GM.", userId);
+      return this._broadcastError(game.i18n.localize("SDE.merchant.notify.gambleTableMissing"), userId);
     }
 
     // Check funds
     if (_toCopper(buyer.system.coins) < costCopper) {
-      return this._broadcastError("Insufficient funds.", userId);
+      return this._broadcastError(game.i18n.localize("SDE.merchant.notify.insufficientFunds"), userId);
     }
 
     // Deduct cost (preserving the player's coin denominations)
@@ -1250,7 +1268,7 @@ export const MerchantShop = {
         "system.coins.sp": refunded.sp,
         "system.coins.cp": refunded.cp,
       });
-      return this._broadcastError("The gamble's table failed to roll — your coins were refunded.", userId);
+      return this._broadcastError(game.i18n.localize("SDE.merchant.notify.gambleRefunded"), userId);
     }
 
     // Add currency to buyer (field-wise so their denominations are preserved)
@@ -1309,24 +1327,24 @@ export const MerchantShop = {
       : "";
 
     await ChatMessage.create({
-      speaker: { alias: this._app?._shopName ?? "Merchant" },
+      speaker: { alias: this._app?._shopName ?? game.i18n.localize("SDE.merchant.card.speaker") },
       content: `<div class="sdems-chat-card-v2" data-card-type="generic">
         <div class="card-body">
           <header class="card-header">
             <div class="header-icon">
-              <img src="${esc(itemIcon)}" alt="Gamble">
+              <img src="${esc(itemIcon)}" alt="${game.i18n.localize("SDE.merchant.card.gambleAlt")}">
             </div>
             <div class="header-info">
-              <h3 class="header-title">Gamble — ${esc(option.name)}</h3>
+              <h3 class="header-title">${game.i18n.format("SDE.merchant.card.gambleTitle", { name: esc(option.name) })}</h3>
               <div class="metadata-tags-row">
                 <div class="meta-tag"><span>${esc(buyer.name)}</span></div>
-                <div class="meta-tag"><span>Cost: ${costDisplay}</span></div>
+                <div class="meta-tag"><span>${game.i18n.format("SDE.merchant.card.cost", { cost: costDisplay })}</span></div>
               </div>
             </div>
           </header>
           <section class="content-body">
             <div class="card-description" style="padding:4px 8px;">
-              <p>${bodyLines || "<em>No items</em>"}${currLine}</p>
+              <p>${bodyLines || `<em>${game.i18n.localize("SDE.merchant.card.noItems")}</em>`}${currLine}</p>
             </div>
           </section>
         </div>
@@ -1338,7 +1356,7 @@ export const MerchantShop = {
     const notice = {
       txAction: "buy",
       playerName: buyer.name,
-      itemName: `Gamble (${option.name})`,
+      itemName: game.i18n.format("SDE.merchant.card.gambleItem", { name: option.name }),
       quantity: 1,
       price: option.cost,
       stockUpdate: null,
@@ -1425,13 +1443,13 @@ export const MerchantShop = {
 
   async addItemToShop(uuid, stock = -1) {
     const doc = await fromUuid(uuid);
-    if (!doc) { ui.notifications.warn("Item not found."); return; }
+    if (!doc) { ui.notifications.warn(game.i18n.localize("SDE.merchant.notify.itemNotFound")); return; }
 
     const inv = game.settings.get(MODULE_ID, "shopInventory") || [];
 
     // Check for duplicate
     if (inv.find(e => e.uuid === uuid)) {
-      ui.notifications.info(`${doc.name} is already in the shop.`);
+      ui.notifications.info(game.i18n.format("SDE.merchant.notify.alreadyInShop", { name: doc.name }));
       return;
     }
 
@@ -1502,7 +1520,7 @@ export const MerchantShop = {
 
   formatForDiscord() {
     const log = this.getLog();
-    if (log.length === 0) return "No merchant transactions recorded this session.";
+    if (log.length === 0) return game.i18n.localize("SDE.merchant.export.logEmpty");
 
     // Group by player
     const byPlayer = {};
@@ -1511,7 +1529,7 @@ export const MerchantShop = {
       byPlayer[e.player].push(e);
     }
 
-    const lines = ["# Merchant Transactions", ""];
+    const lines = [`# ${game.i18n.localize("SDE.merchant.export.logTitle")}`, ""];
 
     for (const [player, entries] of Object.entries(byPlayer)) {
       lines.push(`## ${player}`);
@@ -1520,7 +1538,7 @@ export const MerchantShop = {
       const sells = entries.filter(e => e.action === "sell");
 
       if (buys.length) {
-        lines.push("**Purchases:**");
+        lines.push(`**${game.i18n.localize("SDE.merchant.export.purchases")}**`);
         for (const e of buys) {
           const qtyStr = e.quantity > 1 ? ` ×${e.quantity}` : "";
           lines.push(`- ${e.item}${qtyStr} (${_formatPrice(e.price)}) — ${e.time}`);
@@ -1528,7 +1546,7 @@ export const MerchantShop = {
       }
 
       if (sells.length) {
-        lines.push("**Sales:**");
+        lines.push(`**${game.i18n.localize("SDE.merchant.export.sales")}**`);
         for (const e of sells) {
           const qtyStr = e.quantity > 1 ? ` ×${e.quantity}` : "";
           lines.push(`- ${e.item}${qtyStr} (${_formatPrice(e.price)}) — ${e.time}`);
@@ -1540,8 +1558,8 @@ export const MerchantShop = {
       for (const e of buys) spent += _toCopper(e.price);
       for (const e of sells) earned += _toCopper(e.price);
       const parts = [];
-      if (spent) parts.push(`Spent: ${_formatPrice(_fromCopper(spent))}`);
-      if (earned) parts.push(`Earned: ${_formatPrice(_fromCopper(earned))}`);
+      if (spent) parts.push(game.i18n.format("SDE.merchant.export.spent", { amount: _formatPrice(_fromCopper(spent)) }));
+      if (earned) parts.push(game.i18n.format("SDE.merchant.export.earned", { amount: _formatPrice(_fromCopper(earned)) }));
       if (parts.length) lines.push(`*${parts.join(" | ")}*`);
 
       lines.push("");
@@ -1557,14 +1575,14 @@ export const MerchantShop = {
     const lootLog = lootTracker?.getLog() ?? [];
     const shopLog = this.getLog();
 
-    if (!lootLog.length && !shopLog.length) return "No activity recorded this session.";
+    if (!lootLog.length && !shopLog.length) return game.i18n.localize("SDE.merchant.export.summaryEmpty");
 
     // Collect all player names
     const players = new Set();
     for (const e of lootLog) players.add(e.player);
     for (const e of shopLog) players.add(e.player);
 
-    const lines = ["# Session Summary", ""];
+    const lines = [`# ${game.i18n.localize("SDE.merchant.export.summaryTitle")}`, ""];
 
     for (const player of [...players].sort()) {
       lines.push(`## ${player}`);
@@ -1575,7 +1593,7 @@ export const MerchantShop = {
       const itemEntries = lootEntries.filter(e => e.type === "item" || e.type === "pickup");
 
       if (currEntries.length || itemEntries.length) {
-        lines.push("**Loot Gained:**");
+        lines.push(`**${game.i18n.localize("SDE.merchant.export.lootGained")}**`);
         if (currEntries.length) {
           let totalGold = 0, totalSilver = 0, totalCopper = 0;
           for (const e of currEntries) {
@@ -1590,10 +1608,12 @@ export const MerchantShop = {
           if (totalGold) cp.push(`${totalGold}g`);
           if (totalSilver) cp.push(`${totalSilver}s`);
           if (totalCopper) cp.push(`${totalCopper}c`);
-          if (cp.length) lines.push(`- Currency: ${cp.join(", ")}`);
+          if (cp.length) lines.push(`- ${game.i18n.format("SDE.merchant.export.currency", { amount: cp.join(", ") })}`);
         }
         for (const e of itemEntries) {
-          const src = e.source !== "Ground" ? ` *(from ${e.source})*` : " *(picked up)*";
+          const src = e.source !== "Ground"
+            ? ` *${game.i18n.format("SDE.merchant.export.fromSource", { source: e.source })}*`
+            : ` *${game.i18n.localize("SDE.merchant.export.pickedUp")}*`;
           lines.push(`- ${e.detail}${src}`);
         }
       }
@@ -1601,7 +1621,7 @@ export const MerchantShop = {
       // Purchases
       const buys = shopLog.filter(e => e.player === player && e.action === "buy");
       if (buys.length) {
-        lines.push("**Purchased:**");
+        lines.push(`**${game.i18n.localize("SDE.merchant.export.purchased")}**`);
         for (const e of buys) {
           const qtyStr = e.quantity > 1 ? ` ×${e.quantity}` : "";
           lines.push(`- ${e.item}${qtyStr} (${_formatPrice(e.price)})`);
@@ -1611,7 +1631,7 @@ export const MerchantShop = {
       // Sales
       const sells = shopLog.filter(e => e.player === player && e.action === "sell");
       if (sells.length) {
-        lines.push("**Sold:**");
+        lines.push(`**${game.i18n.localize("SDE.merchant.export.sold")}**`);
         for (const e of sells) {
           const qtyStr = e.quantity > 1 ? ` ×${e.quantity}` : "";
           lines.push(`- ${e.item}${qtyStr} (${_formatPrice(e.price)})`);
@@ -1623,8 +1643,8 @@ export const MerchantShop = {
       for (const e of buys) spent += _toCopper(e.price);
       for (const e of sells) earned += _toCopper(e.price);
       const parts = [];
-      if (spent) parts.push(`Spent: ${_formatPrice(_fromCopper(spent))}`);
-      if (earned) parts.push(`Earned: ${_formatPrice(_fromCopper(earned))}`);
+      if (spent) parts.push(game.i18n.format("SDE.merchant.export.spent", { amount: _formatPrice(_fromCopper(spent)) }));
+      if (earned) parts.push(game.i18n.format("SDE.merchant.export.earned", { amount: _formatPrice(_fromCopper(earned)) }));
       if (parts.length) lines.push(`*${parts.join(" | ")}*`);
 
       lines.push("");
@@ -1651,7 +1671,7 @@ class MerchantShopApp extends HandlebarsApplicationMixin(ApplicationV2) {
   static DEFAULT_OPTIONS = {
     id: "shadowdark-enhancer-merchant-shop",
     tag: "div",
-    window: { title: "Merchant Shop", resizable: true },
+    window: { title: "SDE.merchant.title", resizable: true },
     position: { width: 740, height: 620 },
     classes: ["shadowdark-enhancer-merchant-shop"],
   };
@@ -1686,10 +1706,11 @@ class MerchantShopApp extends HandlebarsApplicationMixin(ApplicationV2) {
   }
 
   get title() {
-    const status = game.user.isGM
-      ? (MerchantShop._isOpenForPlayers ? "Open" : "Closed")
-      : null;
-    return status ? `${this._shopName} — ${status}` : this._shopName;
+    if (!game.user.isGM) return this._shopName;
+    return game.i18n.format(
+      MerchantShop._isOpenForPlayers ? "SDE.merchant.titleOpen" : "SDE.merchant.titleClosed",
+      { name: this._shopName },
+    );
   }
 
   // ── Data ────────────────────────────────────────────────────────────────
@@ -1739,13 +1760,13 @@ class MerchantShopApp extends HandlebarsApplicationMixin(ApplicationV2) {
     // category. Poisons/venoms are split out of Basic/Potion by name; anything
     // that matches no known category falls into a trailing "Other" section.
     const SHOP_SECTIONS = [
-      { key: "Basic",  label: "Basic Gear" },
-      { key: "Weapon", label: "Weapons" },
-      { key: "Armor",  label: "Armor" },
-      { key: "Scroll", label: "Scrolls" },
-      { key: "Wand",   label: "Wands" },
-      { key: "Potion", label: "Potions" },
-      { key: "Poison", label: "Poisons" },
+      { key: "Basic",  label: "SDE.merchant.section.basic" },
+      { key: "Weapon", label: "SDE.merchant.section.weapon" },
+      { key: "Armor",  label: "SDE.merchant.section.armor" },
+      { key: "Scroll", label: "SDE.merchant.section.scroll" },
+      { key: "Wand",   label: "SDE.merchant.section.wand" },
+      { key: "Potion", label: "SDE.merchant.section.potion" },
+      { key: "Poison", label: "SDE.merchant.section.poison" },
     ];
     const sectionKeyOf = (e) =>
       /\b(poison|venom)\b/i.test(e.name || "") ? "Poison" : (e.category || "Other");
@@ -1758,13 +1779,13 @@ class MerchantShopApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const inventorySections = SHOP_SECTIONS
       .filter(s => buckets.get(s.key).length)
       .map(s => ({
-        key: s.key, label: s.label,
+        key: s.key, label: game.i18n.localize(s.label),
         items: buckets.get(s.key), count: buckets.get(s.key).length,
         collapsed: this._collapsedSections.has(s.key),
       }));
     if (otherItems.length) {
       inventorySections.push({
-        key: "Other", label: "Other", items: otherItems, count: otherItems.length,
+        key: "Other", label: game.i18n.localize("SDE.merchant.section.other"), items: otherItems, count: otherItems.length,
         collapsed: this._collapsedSections.has("Other"),
       });
     }
@@ -1893,7 +1914,7 @@ class MerchantShopApp extends HandlebarsApplicationMixin(ApplicationV2) {
       wallet: _formatPrice(wallet),
       walletDetail: `${wallet.gp} gp ${wallet.sp} sp ${wallet.cp} cp`,
       hasActor: !!playerActor,
-      actorName: playerActor?.name ?? "No Character",
+      actorName: playerActor?.name ?? game.i18n.localize("SDE.merchant.noCharacterName"),
       inventory: filteredInventory,
       inventorySections,
       inventoryCount: filteredInventory.length,
@@ -1947,7 +1968,7 @@ class MerchantShopApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const groups = [];
 
     const world = game.tables.contents.map(t => ({ id: t.uuid, label: t.name })).sort(byName);
-    if (world.length) groups.push({ label: "World Roll Tables", options: world });
+    if (world.length) groups.push({ label: game.i18n.localize("SDE.merchant.gambleSource.world"), options: world });
 
     // Two packs can share a display label ("Roll Tables" ships in more than one
     // package), so qualify each group with the package it comes from.
@@ -1957,7 +1978,7 @@ class MerchantShopApp extends HandlebarsApplicationMixin(ApplicationV2) {
         .sort(byName);
       if (!options.length) continue;
       const { packageType, packageName, label } = pack.metadata;
-      const owner = packageType === "world" ? "World compendium"
+      const owner = packageType === "world" ? game.i18n.localize("SDE.merchant.gambleSource.worldCompendium")
         : packageName === game.system.id ? game.system.title
         : game.modules.get(packageName)?.title ?? packageName;
       groups.push({ label: `${label} — ${owner}`, options });
@@ -1969,20 +1990,20 @@ class MerchantShopApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const isGM = game.user.isGM;
     const showCatalog = this._catalogEnabled || isGM;
     const tabs = [
-      { id: "buy",     label: "Buy",     icon: "fa-cart-shopping",  active: this._tab === "buy" },
+      { id: "buy",     label: game.i18n.localize("SDE.merchant.tab.buy"),     icon: "fa-cart-shopping",  active: this._tab === "buy" },
     ];
     if (showCatalog) {
-      tabs.push({ id: "catalog", label: "Catalog", icon: "fa-book-open", active: this._tab === "catalog" });
+      tabs.push({ id: "catalog", label: game.i18n.localize("SDE.merchant.tab.catalog"), icon: "fa-book-open", active: this._tab === "catalog" });
     }
     if (this._gambleEnabled || isGM) {
-      tabs.push({ id: "gamble", label: "Gamble", icon: "fa-dice", active: this._tab === "gamble" });
+      tabs.push({ id: "gamble", label: game.i18n.localize("SDE.merchant.tab.gamble"), icon: "fa-dice", active: this._tab === "gamble" });
     }
     tabs.push(
-      { id: "sell",    label: "Sell",    icon: "fa-coins",           active: this._tab === "sell" },
-      { id: "log",     label: "Log",    icon: "fa-clipboard-list",  active: this._tab === "log" },
+      { id: "sell",    label: game.i18n.localize("SDE.merchant.tab.sell"),    icon: "fa-coins",           active: this._tab === "sell" },
+      { id: "log",     label: game.i18n.localize("SDE.merchant.tab.log"),     icon: "fa-clipboard-list",  active: this._tab === "log" },
     );
     if (isGM) {
-      tabs.push({ id: "manage", label: "Manage", icon: "fa-cog", active: this._tab === "manage" });
+      tabs.push({ id: "manage", label: game.i18n.localize("SDE.merchant.tab.manage"), icon: "fa-cog", active: this._tab === "manage" });
     }
     return tabs;
   }
@@ -2104,7 +2125,7 @@ class MerchantShopApp extends HandlebarsApplicationMixin(ApplicationV2) {
       const desc = doc.system?.description;
       const enriched = desc
         ? await foundry.applications.ux.TextEditor.enrichHTML(desc, { relativeTo: doc })
-        : "<em>No description.</em>";
+        : `<em>${game.i18n.localize("SDE.merchant.noDescription")}</em>`;
 
       const descEl = document.createElement("div");
       descEl.className = "sdems-item-desc";
@@ -2231,16 +2252,16 @@ class MerchantShopApp extends HandlebarsApplicationMixin(ApplicationV2) {
     // Sell all junk
     el.querySelector(".sdems-sell-all-junk")?.addEventListener("click", async () => {
       const actor = this._getPlayerActor();
-      if (!actor) { ui.notifications.warn("No character selected."); return; }
+      if (!actor) { ui.notifications.warn(game.i18n.localize("SDE.merchant.notify.noCharacter")); return; }
 
       const junkItems = actor.items.filter(i =>
         ["Basic", "Weapon", "Armor"].includes(i.type) && i.getFlag(MODULE_ID, "junk")
       );
-      if (!junkItems.length) { ui.notifications.info("No junk items to sell."); return; }
+      if (!junkItems.length) { ui.notifications.info(game.i18n.localize("SDE.merchant.notify.noJunk")); return; }
 
       const ok = await foundry.applications.api.DialogV2.confirm({
-        window: { title: "Sell All Junk" },
-        content: `<p>Sell ${junkItems.length} junk item(s)?</p>`,
+        window: { title: "SDE.merchant.dialog.sellJunkTitle" },
+        content: `<p>${game.i18n.format("SDE.merchant.dialog.sellJunkBody", { n: junkItems.length })}</p>`,
         rejectClose: false,
       });
       if (!ok) return;
@@ -2256,21 +2277,21 @@ class MerchantShopApp extends HandlebarsApplicationMixin(ApplicationV2) {
     el.querySelector(".sdems-copy-discord")?.addEventListener("click", async () => {
       const text = MerchantShop.formatForDiscord();
       const ok = await copyText(text);
-      if (ok) ui.notifications.info("Shop log copied to clipboard!");
-      else ui.notifications.error("Could not copy shop log — clipboard unavailable.");
+      if (ok) ui.notifications.info(game.i18n.localize("SDE.merchant.notify.logCopied"));
+      else ui.notifications.error(game.i18n.localize("SDE.merchant.notify.logCopyFailed"));
     }, { signal });
 
     el.querySelector(".sdems-copy-session")?.addEventListener("click", async () => {
       const text = MerchantShop.formatSessionSummary();
       const ok = await copyText(text);
-      if (ok) ui.notifications.info("Session summary copied to clipboard!");
-      else ui.notifications.error("Could not copy session summary — clipboard unavailable.");
+      if (ok) ui.notifications.info(game.i18n.localize("SDE.merchant.notify.summaryCopied"));
+      else ui.notifications.error(game.i18n.localize("SDE.merchant.notify.summaryCopyFailed"));
     }, { signal });
 
     el.querySelector(".sdems-clear-log")?.addEventListener("click", async () => {
       const ok = await foundry.applications.api.DialogV2.confirm({
-        window: { title: "Clear Transaction Log" },
-        content: "<p>Clear all merchant transaction log entries?</p>",
+        window: { title: "SDE.merchant.dialog.clearLogTitle" },
+        content: `<p>${game.i18n.localize("SDE.merchant.dialog.clearLogBody")}</p>`,
         rejectClose: false,
       });
       if (ok) await MerchantShop.clearLog();
@@ -2327,7 +2348,7 @@ class MerchantShopApp extends HandlebarsApplicationMixin(ApplicationV2) {
         const name = nameInput?.value?.trim();
         const source = sourceSelect?.value;
         const gp = parseInt(gpInput?.value) || 5;
-        if (!name || !source) { ui.notifications.warn("Enter a name and select a table."); return; }
+        if (!name || !source) { ui.notifications.warn(game.i18n.localize("SDE.merchant.notify.enterGamble")); return; }
 
         const opts = game.settings.get(MODULE_ID, "gambleOptions") || [];
         opts.push({
@@ -2461,14 +2482,14 @@ class MerchantShopApp extends HandlebarsApplicationMixin(ApplicationV2) {
           buyMultiplier: this._buyMultiplier,
           gambleEnabled: this._gambleEnabled,
         });
-        ui.notifications.info("Shop is now available — players can open it from chat or the Crawl Strip.");
+        ui.notifications.info(game.i18n.localize("SDE.merchant.notify.nowAvailable"));
         this.render();
       }, { signal });
 
       // Close shop for all players
       el.querySelector(".sdems-close-for-all")?.addEventListener("click", async () => {
         await MerchantShop._setAvailability(false);
-        ui.notifications.info("Shop closed.");
+        ui.notifications.info(game.i18n.localize("SDE.merchant.notify.closed"));
         this.render();
       }, { signal });
 
@@ -2476,11 +2497,11 @@ class MerchantShopApp extends HandlebarsApplicationMixin(ApplicationV2) {
       el.querySelector(".sdems-load-merchant-btn")?.addEventListener("click", async () => {
         const select = el.querySelector(".sdems-load-config-select");
         const configName = select?.value;
-        if (!configName) { ui.notifications.warn("Select a configuration to load."); return; }
+        if (!configName) { ui.notifications.warn(game.i18n.localize("SDE.merchant.notify.selectToLoad")); return; }
 
         const configs = game.settings.get(MODULE_ID, "savedShopConfigs") || {};
         const config = configs[configName];
-        if (!config) { ui.notifications.warn("Configuration not found."); return; }
+        if (!config) { ui.notifications.warn(game.i18n.localize("SDE.merchant.notify.configNotFound")); return; }
 
         // Apply the config
         this._mode = config.mode || "compendium";
@@ -2500,7 +2521,7 @@ class MerchantShopApp extends HandlebarsApplicationMixin(ApplicationV2) {
         }
         await game.settings.set(MODULE_ID, "gambleOptions", config.gambleOptions || []);
 
-        ui.notifications.info(`Loaded configuration "${configName}".`);
+        ui.notifications.info(game.i18n.format("SDE.merchant.notify.configLoaded", { name: configName }));
         this.render();
       }, { signal });
 
@@ -2508,11 +2529,11 @@ class MerchantShopApp extends HandlebarsApplicationMixin(ApplicationV2) {
       el.querySelector(".sdems-delete-merchant-btn")?.addEventListener("click", async () => {
         const select = el.querySelector(".sdems-load-config-select");
         const configName = select?.value;
-        if (!configName) { ui.notifications.warn("Select a configuration to delete."); return; }
+        if (!configName) { ui.notifications.warn(game.i18n.localize("SDE.merchant.notify.selectToDelete")); return; }
 
         const confirmed = await foundry.applications.api.DialogV2.confirm({
-          window: { title: "Delete Merchant Configuration" },
-          content: `<p>Delete the configuration <strong>${configName}</strong>? This cannot be undone.</p>`,
+          window: { title: "SDE.merchant.dialog.deleteConfigTitle" },
+          content: `<p>${game.i18n.format("SDE.merchant.dialog.deleteConfigBody", { name: `<strong>${configName}</strong>` })}</p>`,
           rejectClose: false,
         });
         if (!confirmed) return;
@@ -2521,7 +2542,7 @@ class MerchantShopApp extends HandlebarsApplicationMixin(ApplicationV2) {
         delete configs[configName];
         await game.settings.set(MODULE_ID, "savedShopConfigs", configs);
 
-        ui.notifications.info(`Deleted configuration "${configName}".`);
+        ui.notifications.info(game.i18n.format("SDE.merchant.notify.configDeleted", { name: configName }));
         this.render();
       }, { signal });
 
@@ -2529,7 +2550,7 @@ class MerchantShopApp extends HandlebarsApplicationMixin(ApplicationV2) {
       el.querySelector(".sdems-save-config-btn")?.addEventListener("click", async () => {
         const configName = this._shopName;
         if (!configName) {
-          ui.notifications.warn("Shop name is required to save configuration.");
+          ui.notifications.warn(game.i18n.localize("SDE.merchant.notify.nameRequired"));
           return;
         }
 
@@ -2548,7 +2569,7 @@ class MerchantShopApp extends HandlebarsApplicationMixin(ApplicationV2) {
         };
 
         await game.settings.set(MODULE_ID, "savedShopConfigs", configs);
-        ui.notifications.info(`Saved configuration "${configName}".`);
+        ui.notifications.info(game.i18n.format("SDE.merchant.notify.configSaved", { name: configName }));
         this.render();
       }, { signal });
 
@@ -2574,7 +2595,7 @@ class MerchantShopApp extends HandlebarsApplicationMixin(ApplicationV2) {
   async _doBuy(shopItemId, quantity) {
     const actor = this._getPlayerActor();
     if (!actor) {
-      ui.notifications.warn("No character selected. Select a token or assign a character.");
+      ui.notifications.warn(game.i18n.localize("SDE.merchant.notify.noCharacterHint"));
       return;
     }
 
@@ -2582,7 +2603,7 @@ class MerchantShopApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const entry = this._inventory.find(e => e.id === shopItemId);
     if (!entry) return;
     if (entry.stock !== -1 && entry.stock < quantity) {
-      ui.notifications.warn("Not enough stock.");
+      ui.notifications.warn(game.i18n.localize("SDE.merchant.notify.notEnoughStock"));
       return;
     }
     // Mirror the GM-side formula exactly, extortion swing included, so the
@@ -2592,7 +2613,7 @@ class MerchantShopApp extends HandlebarsApplicationMixin(ApplicationV2) {
       Math.round(_toCopper(entry.cost) * mult * quantity), readExtortion(actor), "buy",
     ).copper);
     if (!_canAfford(actor, totalCost)) {
-      ui.notifications.warn("Insufficient funds.");
+      ui.notifications.warn(game.i18n.localize("SDE.merchant.notify.insufficientFunds"));
       return;
     }
 
@@ -2604,19 +2625,19 @@ class MerchantShopApp extends HandlebarsApplicationMixin(ApplicationV2) {
       buyMultiplier: this._buyMultiplier,
     };
     if (game.user.isGM) await MerchantShop._enqueueTx(() => MerchantShop._handleBuy(request));
-    else await relayToGM(MERCHANT_QUERY, request, { label: SHOP_RELAY_LABEL });
+    else await relayToGM(MERCHANT_QUERY, request, { label: game.i18n.localize(SHOP_RELAY_LABEL) });
   }
 
   async _doSell(itemId, quantity) {
     const actor = this._getPlayerActor();
     if (!actor) {
-      ui.notifications.warn("No character selected.");
+      ui.notifications.warn(game.i18n.localize("SDE.merchant.notify.noCharacter"));
       return;
     }
 
     const request = { action: "shop:sell", sellerActorId: actor.id, itemId, quantity };
     if (game.user.isGM) await MerchantShop._enqueueTx(() => MerchantShop._handleSell(request));
-    else await relayToGM(MERCHANT_QUERY, request, { label: SHOP_RELAY_LABEL });
+    else await relayToGM(MERCHANT_QUERY, request, { label: game.i18n.localize(SHOP_RELAY_LABEL) });
   }
 
   /** Resolve a UUID for an item row that doesn't have data-item-uuid. */
@@ -2640,7 +2661,7 @@ class MerchantShopApp extends HandlebarsApplicationMixin(ApplicationV2) {
   async _doGamble(gambleId) {
     const actor = this._getPlayerActor();
     if (!actor) {
-      ui.notifications.warn("No character selected. Select a token or assign a character.");
+      ui.notifications.warn(game.i18n.localize("SDE.merchant.notify.noCharacterHint"));
       return;
     }
 
@@ -2650,19 +2671,19 @@ class MerchantShopApp extends HandlebarsApplicationMixin(ApplicationV2) {
     if (!option) return;
 
     if (_toCopper(actor.system.coins) < _toCopper(option.cost)) {
-      ui.notifications.warn("Insufficient funds.");
+      ui.notifications.warn(game.i18n.localize("SDE.merchant.notify.insufficientFunds"));
       return;
     }
 
     const request = { action: "shop:gamble", buyerActorId: actor.id, gambleId };
     if (game.user.isGM) await MerchantShop._enqueueTx(() => MerchantShop._handleGamble(request));
-    else await relayToGM(MERCHANT_QUERY, request, { label: SHOP_RELAY_LABEL });
+    else await relayToGM(MERCHANT_QUERY, request, { label: game.i18n.localize(SHOP_RELAY_LABEL) });
   }
 
   async _doCatalogBuy(itemUuid, quantity) {
     const actor = this._getPlayerActor();
     if (!actor) {
-      ui.notifications.warn("No character selected. Select a token or assign a character.");
+      ui.notifications.warn(game.i18n.localize("SDE.merchant.notify.noCharacterHint"));
       return;
     }
 
@@ -2674,7 +2695,7 @@ class MerchantShopApp extends HandlebarsApplicationMixin(ApplicationV2) {
         Math.round(entry.copperValue * catMult * quantity), readExtortion(actor), "buy",
       ).copper);
       if (!_canAfford(actor, totalCost)) {
-        ui.notifications.warn("Insufficient funds.");
+        ui.notifications.warn(game.i18n.localize("SDE.merchant.notify.insufficientFunds"));
         return;
       }
     }
@@ -2687,6 +2708,6 @@ class MerchantShopApp extends HandlebarsApplicationMixin(ApplicationV2) {
       buyMultiplier: this._buyMultiplier,
     };
     if (game.user.isGM) await MerchantShop._enqueueTx(() => MerchantShop._handleCatalogBuy(request));
-    else await relayToGM(MERCHANT_QUERY, request, { label: SHOP_RELAY_LABEL });
+    else await relayToGM(MERCHANT_QUERY, request, { label: game.i18n.localize(SHOP_RELAY_LABEL) });
   }
 }

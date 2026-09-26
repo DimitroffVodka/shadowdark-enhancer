@@ -25,7 +25,11 @@ const MANIFEST_IDS = new Set(MANIFEST.fields.map((f) => f.id));
 function installGlobals(uuidMap = {}) {
   const prev = {
     fromUuid: globalThis.fromUuid, fromUuidSync: globalThis.fromUuidSync, CONFIG: globalThis.CONFIG,
+    game: globalThis.game,
   };
+  // i18n stub: a key comes back as itself and `format` appends its data, so an
+  // assertion still sees which phrase was picked and what went into it.
+  globalThis.game = { i18n: { localize: (k) => k, format: (k, d) => k + JSON.stringify(d) } };
   globalThis.fromUuid = async (u) => uuidMap[u] ?? null;
   globalThis.fromUuidSync = (u) => uuidMap[u] ?? null;
   globalThis.CONFIG = {
@@ -176,7 +180,7 @@ test("slots + free-carry: getSlotUsage total, trinkets/0-slot to free box", asyn
     assert.equal(text.gear_slots_used, "9");     // model total wins over local sum
     assert.equal(text.gear_slots_max, "17");
     assert.equal(text.gear_1, "Rope");
-    assert.equal(text.gear_2, "Torches (x4) — 8 slots");
+    assert.equal(text.gear_2, 'Torches (x4) — SDE.pdfExport.gearSlots{"n":8}');
     assert.equal(text.gear_3, undefined, "trinket/0-slot/stashed do not take gear lines");
     assert.match(text.free_carry, /Lucky Trinket/);
     assert.match(text.free_carry, /Feather/);
@@ -225,9 +229,9 @@ test("overflow: extra attacks/spells summarised in notes, capped fields not exce
     assert.equal(text.spell_17_name, undefined, "only 16 spell rows on the sheet");
     assert.equal(text.gear_20 !== undefined, true);
     assert.equal(text.gear_21, undefined, "only 20 gear lines");
-    assert.match(text.notes, /2 more attack/);
-    assert.match(text.notes, /2 more spell/);
-    assert.match(text.notes, /Gear overflow/);
+    assert.ok(text.notes.includes('SDE.pdfExport.moreAttacks{"n":2}'));
+    assert.ok(text.notes.includes('SDE.pdfExport.moreSpells{"n":2}'));
+    assert.match(text.notes, /SDE\.pdfExport\.gearOverflow/);
   } finally { restore(); }
 });
 
@@ -250,9 +254,9 @@ test("talents vs features split by talentClass: acquired on page 1, class/ancest
     assert.doesNotMatch(text.talents, /Ambitious/);        // ancestry feature not here
     assert.doesNotMatch(text.talents, /Grit/);             // class feature not here
     // page 2 — class/ancestry features, grouped, WITH their descriptions
-    assert.match(text.features, /ANCESTRY: Dwarf/);
+    assert.ok(text.features.includes('SDE.pdfExport.ancestry{"name":"Dwarf"}'));
     assert.match(text.features, /Ambitious — One extra talent roll at 1st level\./);
-    assert.match(text.features, /CLASS: Fighter \(hit die d8\)/);
+    assert.ok(text.features.includes('SDE.pdfExport.classHd{"name":"Fighter","hd":"d8"}'));
     assert.match(text.features, /Grit — Reroll a failed check once per day\./);
     assert.doesNotMatch(text.features, /Melee Attacks/);   // acquired talent not here
     assert.doesNotMatch(text.features, /Force Morale/);

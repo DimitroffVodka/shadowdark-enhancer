@@ -104,11 +104,11 @@ class HubCommitMethods {
    * this makes the count visible in the summary the GM reads either way.
    */
   static _commitSummary(result) {
-    const parts = [`${result.created.length} created`];
-    if (result.updated?.length) parts.push(`${result.updated.length} updated`);
-    if (result.replaced?.length) parts.push(`${result.replaced.length} replaced`);
-    if (result.skipped?.length) parts.push(`${result.skipped.length} skipped`);
-    if (result.collisions?.length) parts.push(`${result.collisions.length} kept beside a Monster Spell`);
+    const parts = [t("SDE.importer.count.created", { n: result.created.length })];
+    if (result.updated?.length) parts.push(t("SDE.importer.count.updated", { n: result.updated.length }));
+    if (result.replaced?.length) parts.push(t("SDE.importer.count.replaced", { n: result.replaced.length }));
+    if (result.skipped?.length) parts.push(t("SDE.importer.cull.skipped", { n: result.skipped.length }));
+    if (result.collisions?.length) parts.push(t("SDE.importer.count.keptBeside", { n: result.collisions.length }));
     return parts.join(", ");
   }
 
@@ -261,8 +261,8 @@ class HubCommitMethods {
     const drafts = this._importBoats.map((p) => p.draft);
     const report = await BoatImporter.createBoats(drafts, { source });
     const bits = [];
-    if (report.created.length) bits.push(`${report.created.length} created`);
-    if (report.skipped.length) bits.push(`${report.skipped.length} already present`);
+    if (report.created.length) bits.push(t("SDE.importer.count.created", { n: report.created.length }));
+    if (report.skipped.length) bits.push(t("SDE.importer.count.alreadyPresent", { n: report.skipped.length }));
     ui.notifications.info(t("SDE.importer.done.boats", { bits: bits.join(", ") || t("SDE.importer.done.nothingToDo"), pack: MonsterImporter.PACK_LABEL, source: source ? ` / ${source}` : "" }));
     this._noteCommitSkips(report);
     this._importBoats = [];
@@ -284,10 +284,13 @@ class HubCommitMethods {
     const crawlTitle = String(titleInput?.value ?? this._importHexTitle ?? "").trim();
     const report = await commitHexDrafts(this._importHexes, { source, crawlTitle, keyed: this._importHexSummary });
     const bits = [];
-    if (report.created.length) bits.push(`${report.created.length} created`);
-    if (report.updated.length) bits.push(`${report.updated.length} updated`);
-    if (report.keyed) bits.push(`${report.keyed} keyed rows on file`);
-    if (report.collisions.length) bits.push(`${report.collisions.length} duplicate id${report.collisions.length === 1 ? "" : "s"} skipped`);
+    if (report.created.length) bits.push(t("SDE.importer.count.created", { n: report.created.length }));
+    if (report.updated.length) bits.push(t("SDE.importer.count.updated", { n: report.updated.length }));
+    if (report.keyed) bits.push(t("SDE.importer.count.keyedRows", { n: report.keyed }));
+    if (report.collisions.length) {
+      bits.push(t(report.collisions.length === 1 ? "SDE.importer.count.dupIdOne" : "SDE.importer.count.dupIdMany",
+        { n: report.collisions.length }));
+    }
     ui.notifications.info(t("SDE.importer.done.hexes", { bits: bits.join(", ") || t("SDE.importer.done.nothingToDo"), source: source ? ` / ${source}` : "" }));
     if (report.entryUuid) {
       this._importHexes = []; this._importHexTitle = ""; this._importHexSummary = [];
@@ -306,9 +309,14 @@ class HubCommitMethods {
     const { pinCrawlOnActiveScene } = await import("../hex-map/hex-pins.mjs");
     const res = await pinCrawlOnActiveScene(entry).catch((err) => { console.error(`${MODULE_ID} | pin keyed hexes`, err); ui.notifications.error(t("SDE.importer.done.pinFailed", { error: err.message })); return null; });
     if (!res) return;
-    const bits = [`${res.created} pinned`];
-    if (res.moved) bits.push(`${res.moved} moved`);
-    if (res.missing.length) bits.push(`${res.missing.length} not on this map (${res.missing.slice(0, 5).map((n) => String(n).padStart(4, "0")).join(", ")}${res.missing.length > 5 ? "…" : ""})`);
+    const bits = [t("SDE.importer.count.pinned", { n: res.created })];
+    if (res.moved) bits.push(t("SDE.importer.count.moved", { n: res.moved }));
+    if (res.missing.length) {
+      bits.push(t("SDE.importer.count.notOnMap", {
+        n: res.missing.length,
+        list: `${res.missing.slice(0, 5).map((n) => String(n).padStart(4, "0")).join(", ")}${res.missing.length > 5 ? "…" : ""}`,
+      }));
+    }
     ui.notifications.info(t("SDE.importer.done.pinned", { scene: canvas.scene?.name, bits: bits.join(", "), journal: res.journal.name }));
   }
 
@@ -667,7 +675,7 @@ class HubCommitMethods {
         const { MountImporter } = await import("./boats/mount-importer.mjs");
         const result = await MountImporter.createMounts(drafts, { source });
         if (result) {
-          parts.push(`mounts: ${ImporterHubApp._commitSummary(result)}`);
+          parts.push(t("SDE.importer.count.mounts", { summary: ImporterHubApp._commitSummary(result) }));
           this._noteCommitSkips(result);
           this._importMonsters = [];
           this._invalidateMonstersCache();
@@ -675,7 +683,7 @@ class HubCommitMethods {
       } else {
         const result = await MonsterImporter.createMonsters(drafts, { source, onConflict: this._monsterConflictDialog() });
         if (result) {
-          parts.push(`monsters: ${ImporterHubApp._commitSummary(result)}`);
+          parts.push(t("SDE.importer.count.monsters", { summary: ImporterHubApp._commitSummary(result) }));
           this._noteCommitSkips(result);
           this._importMonsters = [];
           this._invalidateMonstersCache();
@@ -701,7 +709,7 @@ class HubCommitMethods {
       }
       const result = await ItemImporter.createItems(drafts, { source, onConflict: this._itemConflictDialog() });
       if (result) {
-        parts.push(`items: ${ImporterHubApp._commitSummary(result)}`);
+        parts.push(t("SDE.importer.count.items", { summary: ImporterHubApp._commitSummary(result) }));
         this._noteCommitSkips(result);
         this._importItems = [];
       }
@@ -711,7 +719,7 @@ class HubCommitMethods {
     if (hasSpells) {
       const result = await this._commitSpells(source);
       if (result) {
-        parts.push(`spells: ${ImporterHubApp._commitSummary(result)}`);
+        parts.push(t("SDE.importer.count.spells", { summary: ImporterHubApp._commitSummary(result) }));
         this._noteCommitSkips(result);
         this._importSpells = [];
       }
@@ -739,7 +747,7 @@ class HubCommitMethods {
         // announces the unlock itself.
         const n = await this._commitMagicBundle(bundlePlan);
         if (n > 0) {
-          parts.push(`tables: ${n} created (bundle)`);
+          parts.push(t("SDE.importer.count.tablesBundle", { n }));
           ui.notifications.info(t("SDE.importer.done.complete", { parts: parts.join("; ") }));
         } else {
           // Bundle failed/cancelled: do NOT claim a tables entry, do NOT say
@@ -765,7 +773,9 @@ class HubCommitMethods {
           if (tbl.manifestId) this._importSeed = null;
         }
       }
-      parts.push(`tables: ${created} created${gate.skip.size ? `, ${gate.skip.size} blocked` : ""}`);
+      parts.push(t("SDE.importer.count.tables", {
+        n: created, blocked: gate.skip.size ? t("SDE.importer.count.tablesBlocked", { n: gate.skip.size }) : "",
+      }));
     }
 
     ui.notifications.info(t("SDE.importer.done.complete", { parts: parts.join("; ") }));
@@ -833,7 +843,10 @@ class HubCommitMethods {
         }
         if (!rep || rep.blocked) continue;
         const updated = rep.updated ?? [];
-        parts.push(`class "${p.draft.name}": ${rep.created.length} created, ${updated.length} updated, ${rep.reused.length} reused, ${rep.systemReuse.length} system talents linked`);
+        parts.push(t("SDE.importer.count.classUnit", {
+          name: p.draft.name, created: rep.created.length, updated: updated.length,
+          reused: rep.reused.length, linked: rep.systemReuse.length,
+        }));
         if (updated.length) {
           // Corrected re-import summary (review #12): say WHAT changed, per doc.
           console.info(`${MODULE_ID} | class import "${p.draft.name}" — updated in place:\n- ${
@@ -864,7 +877,10 @@ class HubCommitMethods {
           rep = await mergeClassSupplement(p.draft.attachTo, p.draft.classSupplement, { source, sourceTitle, allowInvalid: true });
         }
         if (!rep || rep.blocked) continue;
-        parts.push(`tables → "${target?.name ?? "class"}": ${rep.created.length} created, ${rep.updated.length} updated, ${rep.reused.length} reused`);
+        parts.push(t("SDE.importer.count.classSupplement", {
+          name: target?.name ?? t("SDE.importer.count.classFallback"),
+          created: rep.created.length, updated: rep.updated.length, reused: rep.reused.length,
+        }));
         if (rep.warnings.length) {
           console.warn(`${MODULE_ID} | class supplement → "${target?.name ?? p.draft.attachTo}" — review notes:\n- ${rep.warnings.join("\n- ")}`);
           ui.notifications.warn(t("SDE.importer.done.mergeNotes", { n: rep.warnings.length }));
@@ -884,9 +900,9 @@ class HubCommitMethods {
       const { ItemImporter } = await import("./items/item-importer.mjs");
       const result = await ItemImporter.createItems(drafts, { source, onConflict: this._itemConflictDialog() });
       if (!result) return;
-      parts.push(`${result.created.length} created`);
-      if (result.replaced.length) parts.push(`${result.replaced.length} replaced`);
-      if (result.skipped.length) parts.push(`${result.skipped.length} skipped`);
+      parts.push(t("SDE.importer.count.created", { n: result.created.length }));
+      if (result.replaced.length) parts.push(t("SDE.importer.count.replaced", { n: result.replaced.length }));
+      if (result.skipped.length) parts.push(t("SDE.importer.cull.skipped", { n: result.skipped.length }));
     }
     ui.notifications.info(t("SDE.importer.done.charContent", { parts: parts.join("; "), source: source ? ` / ${source}` : "" }));
     // Keep supplement drafts the user never assigned a target — everything

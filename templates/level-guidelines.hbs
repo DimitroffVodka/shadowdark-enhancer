@@ -87,15 +87,15 @@
         {{#each rows}}
         <tr data-level="{{this.level}}">
           <td class="sde-lg-level">{{this.level}}</td>
-          <td><input type="number" data-field="ac" value="{{this.ac}}" aria-label="Level {{this.level}} AC"></td>
-          <td><input type="number" data-field="hp" value="{{this.hp}}" min="1" aria-label="Level {{this.level}} HP"></td>
-          <td><input type="number" data-field="num" value="{{this.num}}" min="1" aria-label="Level {{this.level}} attacks"></td>
-          <td><input type="number" data-field="bonus" value="{{this.bonus}}" aria-label="Level {{this.level}} attack bonus"></td>
-          <td><input type="text" class="sde-lg-die" data-field="damage" value="{{this.damage}}" aria-label="Level {{this.level}} damage"></td>
-          <td><input type="number" data-field="median" value="{{this.median}}" aria-label="Level {{this.level}} median ability mod"></td>
-          <td><input type="number" data-field="low" value="{{this.low}}" aria-label="Level {{this.level}} lowest ability mod"></td>
-          <td><input type="number" data-field="high" value="{{this.high}}" aria-label="Level {{this.level}} highest ability mod"></td>
-          <td><input type="number" data-field="talentDC" value="{{this.talentDC}}" aria-label="Level {{this.level}} talent DC"></td>
+          <td><input type="number" data-field="ac" value="{{this.ac}}" aria-label="{{localize 'SDE.settings.levelGuidelines.aria.ac' level=this.level}}"></td>
+          <td><input type="number" data-field="hp" value="{{this.hp}}" min="1" aria-label="{{localize 'SDE.settings.levelGuidelines.aria.hp' level=this.level}}"></td>
+          <td><input type="number" data-field="num" value="{{this.num}}" min="1" aria-label="{{localize 'SDE.settings.levelGuidelines.aria.num' level=this.level}}"></td>
+          <td><input type="number" data-field="bonus" value="{{this.bonus}}" aria-label="{{localize 'SDE.settings.levelGuidelines.aria.bonus' level=this.level}}"></td>
+          <td><input type="text" class="sde-lg-die" data-field="damage" value="{{this.damage}}" aria-label="{{localize 'SDE.settings.levelGuidelines.aria.damage' level=this.level}}"></td>
+          <td><input type="number" data-field="median" value="{{this.median}}" aria-label="{{localize 'SDE.settings.levelGuidelines.aria.median' level=this.level}}"></td>
+          <td><input type="number" data-field="low" value="{{this.low}}" aria-label="{{localize 'SDE.settings.levelGuidelines.aria.low' level=this.level}}"></td>
+          <td><input type="number" data-field="high" value="{{this.high}}" aria-label="{{localize 'SDE.settings.levelGuidelines.aria.high' level=this.level}}"></td>
+          <td><input type="number" data-field="talentDC" value="{{this.talentDC}}" aria-label="{{localize 'SDE.settings.levelGuidelines.aria.talentDC' level=this.level}}"></td>
         </tr>
         {{/each}}
       </tbody>

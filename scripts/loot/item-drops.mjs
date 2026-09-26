@@ -29,6 +29,13 @@ import { esc } from "../shared/esc.mjs";
 import { addToPurse } from "../shared/coins.mjs";
 import { relayToGM, authorizeActorFor, refuseQuery } from "../shared/gm-relay.mjs";
 
+/** One string from `languages/en.json`; the key when no i18n is mounted (node tests). */
+const L = (key, data) => {
+  const i18n = globalThis.game?.i18n;
+  if (!i18n) return key;
+  return data ? i18n.format(key, data) : i18n.localize(key);
+};
+
 /* -------------------------------------------- */
 /*  Droppable Item Types                        */
 /* -------------------------------------------- */
@@ -46,7 +53,7 @@ const COIN_IMG = "icons/commodities/currency/coins-plain-stack-gold.webp";
  * so an undelivered drop leaves the item gone from the player's sheet with
  * nothing on the canvas to show for it.
  */
-const DROP_RELAY_LABEL = "item drops and pickups";
+const DROP_RELAY_LABEL = "SDE.loot.itemDrops.relayLabel";
 
 /**
  * The one authenticated player→GM channel for drops and pickups, namespaced per
@@ -78,8 +85,8 @@ export const ItemDrops = {
 
   registerSettings() {
     game.settings.register(MODULE_ID, "itemDropsEnabled", {
-      name: "Item Drops",
-      hint: "Let players drag items from a sheet onto the map as a pickup token.",
+      name: "SDE.settings.itemDropsEnabled.name",
+      hint: "SDE.settings.itemDropsEnabled.hint",
       scope: "world",
       config: false,
       type: Boolean,
@@ -120,11 +127,11 @@ export const ItemDrops = {
    * @returns {Promise<{ok: boolean, error?: string}>}
    */
   async handleQuery(data, user) {
-    const refusal = refuseQuery(user, "Item drops");
+    const refusal = refuseQuery(user, L("SDE.loot.itemDrops.queryLabel"));
     if (refusal) return refusal;
     if (data?.action === "itemDrop:create") return this._createDroppedItemToken(data, user);
     if (data?.action === "itemDrop:pickup") return this._handlePickup(data, user);
-    return { ok: false, error: "Unknown item-drop action." };
+    return { ok: false, error: L("SDE.loot.itemDrops.error.unknownAction") };
   },
 
   /**
@@ -259,7 +266,7 @@ export const ItemDrops = {
       // Player: the GM re-reads the item off the source actor and checks OWNER
       // against the sender the SERVER identified, so a crafted request can
       // neither fabricate item data nor drop from an actor it doesn't own.
-      await relayToGM(DROP_QUERY, { action: "itemDrop:create", ...dropData }, { label: DROP_RELAY_LABEL });
+      await relayToGM(DROP_QUERY, { action: "itemDrop:create", ...dropData }, { label: L(DROP_RELAY_LABEL) });
     }
   },
 
@@ -271,14 +278,14 @@ export const ItemDrops = {
   async _promptDropQuantity(name, max) {
     const safeName = Handlebars.escapeExpression(name ?? "");
     const result = await foundry.applications.api.DialogV2.wait({
-      window: { title: "Drop Item" },
+      window: { title: "SDE.loot.itemDrops.dropTitle" },
       content: `<div style="padding:8px;">
-        <label>How many <strong>${safeName}</strong> to drop? (1–${max})<br>
+        <label>${L("SDE.loot.itemDrops.dropQtyPrompt", { name: `<strong>${safeName}</strong>`, max })}<br>
         <input type="number" name="qty" value="1" min="1" max="${max}" step="1" autofocus style="width:6em;margin-top:4px;"></label>
       </div>`,
       buttons: [
-        { action: "ok", label: "Drop", default: true, callback: (_e, _b, dlg) => dlg.element.querySelector('input[name="qty"]').value },
-        { action: "cancel", label: "Cancel" },
+        { action: "ok", label: "SDE.loot.btn.drop", default: true, callback: (_e, _b, dlg) => dlg.element.querySelector('input[name="qty"]').value },
+        { action: "cancel", label: "SDE.loot.btn.cancel" },
       ],
       rejectClose: false,
     }).catch(() => null);
@@ -315,9 +322,9 @@ export const ItemDrops = {
       const auth = authorizeActorFor(sourceActorId, requester);
       if (!auth.ok) return auth;
       const sourceItem = sourceActor.items.get(sourceItemId);
-      if (!sourceItem) return { ok: false, error: "That item isn't on that character." };
+      if (!sourceItem) return { ok: false, error: L("SDE.loot.itemDrops.error.notOnCharacter") };
       if (!DROPPABLE_TYPES.includes(sourceItem.type) || _isLightSource(sourceItem)) {
-        return { ok: false, error: "That kind of item can't be dropped." };
+        return { ok: false, error: L("SDE.loot.itemDrops.error.notDroppable") };
       }
       itemData = sourceItem.toObject();
       const available = Math.max(1, Math.floor(Number(sourceItem.system?.quantity ?? 1)) || 1);
@@ -326,9 +333,9 @@ export const ItemDrops = {
       // No source actor means there is nothing to re-read, so `itemData` could
       // only have come from the payload. Only a GM may drop from a compendium,
       // the world, or the Loot Generator (`dropItemData` below).
-      return { ok: false, error: "Only the GM can drop an item that isn't from a character sheet." };
+      return { ok: false, error: L("SDE.loot.itemDrops.error.gmOnlyLooseItem") };
     }
-    if (!itemData) return { ok: false, error: "Nothing to drop." };
+    if (!itemData) return { ok: false, error: L("SDE.loot.itemDrops.error.nothingToDrop") };
 
     // Remove item from source actor (or decrement quantity). World/compendium
     // drops carry no source actor, so there is nothing to take from.
@@ -415,10 +422,10 @@ export const ItemDrops = {
    * party to divvy up.
    */
   async dropItemData(itemData, { sceneId = null, x = null, y = null } = {}) {
-    if (!game.user.isGM) { ui.notifications?.warn("Only a GM can drop items."); return false; }
+    if (!game.user.isGM) { ui.notifications?.warn(L("SDE.loot.itemDrops.notify.gmOnlyItems")); return false; }
     if (!itemData?.name) return false;
     const scene = (sceneId ? game.scenes.get(sceneId) : null) || canvas.scene || game.scenes.active;
-    if (!scene) { ui.notifications?.warn("No active scene to drop items onto."); return false; }
+    if (!scene) { ui.notifications?.warn(L("SDE.loot.itemDrops.notify.noSceneItems")); return false; }
     let dropX = x, dropY = y;
     if (dropX == null || dropY == null) ({ x: dropX, y: dropY } = this.defaultDropPoint(scene));
     const qty = Math.max(1, Math.floor(Number(itemData.system?.quantity ?? 1)) || 1);
@@ -441,7 +448,7 @@ export const ItemDrops = {
    * Generator; players pick the pile up via the Token HUD.
    */
   async dropCoins(coins = {}, { sceneId = null, source = null, x = null, y = null } = {}) {
-    if (!game.user.isGM) { ui.notifications?.warn("Only a GM can drop coins."); return null; }
+    if (!game.user.isGM) { ui.notifications?.warn(L("SDE.loot.itemDrops.notify.gmOnlyCoins")); return null; }
 
     const coinData = {
       gp: Math.max(0, Math.floor(Number(coins.gp) || 0)),
@@ -449,12 +456,12 @@ export const ItemDrops = {
       cp: Math.max(0, Math.floor(Number(coins.cp) || 0)),
     };
     if (coinData.gp + coinData.sp + coinData.cp <= 0) {
-      ui.notifications?.warn("No coins to drop.");
+      ui.notifications?.warn(L("SDE.loot.itemDrops.notify.noCoins"));
       return null;
     }
 
     const scene = (sceneId ? game.scenes.get(sceneId) : null) || canvas.scene || game.scenes.active;
-    if (!scene) { ui.notifications?.warn("No active scene to drop coins onto."); return null; }
+    if (!scene) { ui.notifications?.warn(L("SDE.loot.itemDrops.notify.noSceneCoins")); return null; }
 
     // Placement: explicit coords → controlled token → view centre → scene centre.
     let dropX = x, dropY = y;
@@ -515,7 +522,7 @@ export const ItemDrops = {
 
     const btn = document.createElement("div");
     btn.classList.add("control-icon");
-    btn.title = `Pick up ${actor.name}`;
+    btn.title = L("SDE.loot.itemDrops.pickUpTip", { name: actor.name });
     btn.innerHTML = `<i class="fas fa-hand-holding" style="font-size:1.2em;"></i>`;
     btn.addEventListener("click", async (ev) => {
       ev.preventDefault();
@@ -524,7 +531,7 @@ export const ItemDrops = {
       // Find the player's character to receive the item
       const recipient = this._getRecipientActor();
       if (!recipient) {
-        ui.notifications.warn("No character assigned — cannot pick up item.");
+        ui.notifications.warn(L("SDE.loot.itemDrops.notify.noCharacter"));
         return;
       }
 
@@ -535,7 +542,7 @@ export const ItemDrops = {
         sceneId: canvas.scene.id,
       };
       if (game.user.isGM) await this._handlePickup(request);
-      else await relayToGM(DROP_QUERY, { action: "itemDrop:pickup", ...request }, { label: DROP_RELAY_LABEL });
+      else await relayToGM(DROP_QUERY, { action: "itemDrop:pickup", ...request }, { label: L(DROP_RELAY_LABEL) });
 
       // Close the HUD
       canvas.hud.token.clear();
@@ -552,7 +559,7 @@ export const ItemDrops = {
     const { tokenId, actorId, recipientId, sceneId } = data;
 
     const dropActor = game.actors.get(actorId);
-    if (!dropActor) return { ok: false, error: "That pile is already gone." };
+    if (!dropActor) return { ok: false, error: L("SDE.loot.itemDrops.error.pileGone") };
 
     // CHECK UNCONDITIONALLY. The recipient id comes off the wire, and the old
     // `if (userId && userId !== game.userId)` shape meant a payload naming a GM
@@ -569,7 +576,7 @@ export const ItemDrops = {
     // exclusion (JS is single-threaded; the set is claimed synchronously
     // before any await).
     this._pickupInFlight ??= new Set();
-    if (this._pickupInFlight.has(actorId)) return { ok: false, error: "Someone is already picking that up." };
+    if (this._pickupInFlight.has(actorId)) return { ok: false, error: L("SDE.loot.itemDrops.error.pickupInFlight") };
     this._pickupInFlight.add(actorId);
     try {
       await this._doPickup(dropActor, recipient, tokenId, sceneId);
@@ -590,7 +597,7 @@ export const ItemDrops = {
     if (coinData) {
       // Coins go into the recipient's purse. Only Player actors have one.
       if (!recipient.system?.coins) {
-        ui.notifications.warn(`${recipient.name} can't carry coins.`);
+        ui.notifications.warn(L("SDE.loot.itemDrops.notify.cantCarryCoins", { name: recipient.name }));
         return;
       }
       const next = addToPurse(recipient.system.coins, coinData);
@@ -603,7 +610,7 @@ export const ItemDrops = {
       cardImg = dropActor.img || COIN_IMG;
       recapEntry = {
         type: "currency", player: recipient.name, detail: cardLabel,
-        source: dropActor.getFlag(MODULE_ID, "droppedSource") ?? "Drop",
+        source: dropActor.getFlag(MODULE_ID, "droppedSource") ?? L("SDE.loot.itemDrops.recapSource"),
         coins: { gp: coinData.gp ?? 0, sp: coinData.sp ?? 0, cp: coinData.cp ?? 0 },
       };
     } else {
@@ -649,7 +656,7 @@ export const ItemDrops = {
       cardImg = itemData.img || "icons/svg/item-bag.svg";
       recapEntry = {
         type: "item", player: recipient.name, detail: itemData.name,
-        source: "Drop", img: itemData.img, qty: dropQty,
+        source: L("SDE.loot.itemDrops.recapSource"), img: itemData.img, qty: dropQty,
       };
     }
 
@@ -660,13 +667,13 @@ export const ItemDrops = {
     await dropActor.delete();
 
     // Notify + chat card
-    ui.notifications.info(`${recipient.name} picked up ${cardLabel}.`);
+    ui.notifications.info(L("SDE.loot.itemDrops.notify.pickedUp", { name: recipient.name, label: cardLabel }));
     await ChatMessage.create({
       speaker: ChatMessage.getSpeaker({ actor: recipient }),
       content: `<div class="shadowdark-enhancer item-pickup-card" style="display:flex;align-items:center;gap:8px;padding:6px 4px;">
         <img src="${esc(cardImg)}" alt="" width="36" height="36" style="border:none;flex:0 0 auto;">
         <div style="line-height:1.2;">
-          <strong>${esc(recipient.name)}</strong> picked up<br>
+          ${L("SDE.loot.itemDrops.pickedUpCard", { name: `<strong>${esc(recipient.name)}</strong>` })}<br>
           <span>${esc(cardLabel)}</span>
         </div>
       </div>`,

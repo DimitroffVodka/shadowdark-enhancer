@@ -29,6 +29,7 @@
  *   planBatch        — tree nodes → { jobs, blocked, ... }
  *   summarizeBatch   — run results → counts + per-outcome report lines
  */
+import { t } from "./importer-hub-shared.mjs";
 
 /** Which workspace drives a job. */
 export const ROUTE = {
@@ -188,7 +189,7 @@ export function planBatch(nodes, { rootId = null, canRun = () => true } = {}) {
     }
     const verdict = canRun(entry, route);
     if (verdict !== true) {
-      const reason = String(verdict || "can't be imported automatically");
+      const reason = String(verdict || t("SDE.importer.batchNote.cantAuto"));
       byKey.set(key, { reason });
       blocked.push({ entry, reason });
       continue;
@@ -204,10 +205,10 @@ export function planBatch(nodes, { rootId = null, canRun = () => true } = {}) {
 /** Why an entry has no automated route — specific enough to act on. */
 function unroutableReason(entry) {
   if (entry?.seedAction === "itemSeedPaste") {
-    return "a census gap with no page citation — use its Import button and paste the entry by hand";
+    return t("SDE.importer.batchNote.gapNoCite");
   }
-  if (entry?.type === "Spell") return "single spells import through the Spell Importer's list rows";
-  return "no automated import route for this row — use its Import button";
+  if (entry?.type === "Spell") return t("SDE.importer.batchNote.singleSpell");
+  return t("SDE.importer.batchNote.noRoute");
 }
 
 /**

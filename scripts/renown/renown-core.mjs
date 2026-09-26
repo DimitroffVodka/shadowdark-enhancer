@@ -14,38 +14,46 @@
  * the book's own social paragraphs do not ship. See docs/wiki/Renown.md.
  */
 
+/** One string from `languages/en.json`; the key when no i18n is mounted. */
+const L = (key, data) => {
+  const i18n = globalThis.game?.i18n;
+  if (!i18n) return key;
+  return data ? i18n.format(key, data) : i18n.localize(key);
+};
+
 /**
  * The four bands, low to high. `max` is inclusive; the top band is open-ended.
- * `bonus` is the renown bonus that band grants.
+ * `bonus` is the renown bonus that band grants. `label` and `note` are en.json
+ * keys here; `renownBand` hands back a copy with them translated.
  */
 export const RENOWN_BANDS = [
   {
     key: "unknown",
-    label: "Unknown",
+    label: "SDE.renown.band.unknown",
     max: 3,
     bonus: 0,
-    note: "No one who matters knows your face.",
+    note: "SDE.renown.band.unknownNote",
   },
   {
     key: "local",
-    label: "Locally known",
+    label: "SDE.renown.band.local",
     max: 7,
     bonus: 1,
-    note: "Ordinary folk warm to you. Nobody grand does.",
+    note: "SDE.renown.band.localNote",
   },
   {
     key: "name",
-    label: "Known name",
+    label: "SDE.renown.band.name",
     max: 11,
     bonus: 2,
-    note: "The powerful treat you as one of their own.",
+    note: "SDE.renown.band.nameNote",
   },
   {
     key: "celebrity",
-    label: "Celebrity",
+    label: "SDE.renown.band.celebrity",
     max: Infinity,
     bonus: 3,
-    note: "Doors open everywhere, and important people defer.",
+    note: "SDE.renown.band.celebrityNote",
   },
 ];
 
@@ -83,7 +91,8 @@ export function renownValue(raw) {
  */
 export function renownBand(value) {
   const v = renownValue(value);
-  return RENOWN_BANDS.find((b) => v <= b.max) ?? RENOWN_BANDS[RENOWN_BANDS.length - 1];
+  const band = RENOWN_BANDS.find((b) => v <= b.max) ?? RENOWN_BANDS[RENOWN_BANDS.length - 1];
+  return { ...band, label: L(band.label), note: L(band.note) };
 }
 
 /**
@@ -112,7 +121,7 @@ export function renownBonus(value) {
  * @returns {null|{ok:false, error:string}} null when the award may proceed.
  */
 export function authorizeRenownAward({ requesterIsGM } = {}) {
-  if (!requesterIsGM) return { ok: false, error: "Only a GM can change renown." };
+  if (!requesterIsGM) return { ok: false, error: L("SDE.renown.error.gmOnly") };
   return null;
 }
 
@@ -196,17 +205,18 @@ export function appendRenownHistory(existing, entry, { cap = RENOWN_HISTORY_CAP 
  * `carousing` is shadowdark-extras', which delegates its carousing renown to
  * `Renown.award` when this module is present (CarousingSD.mjs
  * `applyRenownDelta`). A tag arriving from anywhere else still renders — see
- * `sourceLabel` — so an unknown module's slug is never swallowed.
+ * `sourceLabel` — so an unknown module's slug is never swallowed. The values
+ * are en.json keys; `sourceLabel` translates them.
  */
 export const RENOWN_SOURCE_LABELS = {
-  gm: "GM adjustment",
-  start: "Starting renown",
-  "level-up": "Gained a level",
-  downtime: "Downtime",
-  carousing: "Carousing",
-  training: "Regional training",
-  quest: "Quest reward",
-  external: "Changed outside the module",
+  gm: "SDE.renown.source.gm",
+  start: "SDE.renown.source.start",
+  "level-up": "SDE.renown.source.levelUp",
+  downtime: "SDE.renown.source.downtime",
+  carousing: "SDE.renown.source.carousing",
+  training: "SDE.renown.source.training",
+  quest: "SDE.renown.source.quest",
+  external: "SDE.renown.source.external",
 };
 
 /**
@@ -216,7 +226,7 @@ export const RENOWN_SOURCE_LABELS = {
  */
 export function sourceLabel(source) {
   const tag = String(source ?? "").trim();
-  return RENOWN_SOURCE_LABELS[tag] ?? tag;
+  return RENOWN_SOURCE_LABELS[tag] ? L(RENOWN_SOURCE_LABELS[tag]) : tag;
 }
 
 /**
@@ -294,9 +304,14 @@ export function signedRenown(delta) {
  * notification and the recap row so all three read alike.
  * @param {{actorName?:string, delta:number, after:number}} change
  */
-export function renownChangeLine({ actorName = "Someone", delta = 0, after = 0 } = {}) {
+export function renownChangeLine({ actorName, delta = 0, after = 0 } = {}) {
   const band = renownBand(after);
-  return `${actorName}: renown ${signedRenown(delta)} → ${renownValue(after)} (${band.label})`;
+  return L("SDE.renown.changeLine", {
+    name: actorName ?? L("SDE.renown.someone"),
+    delta: signedRenown(delta),
+    after: renownValue(after),
+    band: band.label,
+  });
 }
 
 /**

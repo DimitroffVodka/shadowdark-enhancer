@@ -36,6 +36,7 @@ import { MODULE_ID } from "../../shared/module-id.mjs";
 import { escapeHtml } from "../pdf-text-utils.mjs";
 import { SPELL_LIST_VARIANTS } from "./char-content-manifest.mjs";
 import { classGateBlockers, supplementGateBlockers } from "./class-quality-gate.mjs";
+import { t as tr } from "../importer-hub-shared.mjs";
 import { preservedDescription } from "../../shared/property-note.mjs";
 import { prepareLanceProperties } from "../items/wr-property-importer.mjs";
 import {
@@ -780,7 +781,7 @@ async function buildClassTalentTable(parsed, { talentsPack, tablesPack, sysTalen
  *   import and were updated in place ({name, type, uuid, fields}).
  */
 export async function createClassUnit(parsed, { source = "", sourceTitle = "", overlay = null, bodyOnly = false, allowInvalid = false } = {}) {
-  if (!game.user?.isGM) { ui.notifications?.warn("Only a GM can import a class."); return null; }
+  if (!game.user?.isGM) { ui.notifications?.warn(tr("SDE.importer.charContent.notify.gmOnly")); return null; }
   // Fail closed: BLOCKER-grade parse issues are never persisted without an
   // explicit override. UI adapters compute the same issues (class-quality-gate)
   // and prompt the user before passing allowInvalid; a direct caller that skips
@@ -790,7 +791,7 @@ export async function createClassUnit(parsed, { source = "", sourceTitle = "", o
   const { ensureSuite, ensureFolderPath, sourceFolderName } = await import("../../shared/compendium-suite.mjs");
   const suite = await ensureSuite();
   if (!suite?.items || !suite?.tables || !suite?.classes || !suite?.talents || !suite?.classAbilities) {
-    ui.notifications?.error("Suite packs unavailable."); return null;
+    ui.notifications?.error(tr("SDE.importer.charContent.notify.suiteUnavailable")); return null;
   }
   const itemsPack = suite.items, tablesPack = suite.tables;
   const classesPack = suite.classes, talentsPack = suite.talents;
@@ -1089,7 +1090,7 @@ export async function createClassUnit(parsed, { source = "", sourceTitle = "", o
     const relinked = await relinkSpellsToClasses();
     if (relinked) {
       report.relinkedSpells = relinked;
-      ui.notifications?.info(`Linked ${relinked} already-imported spell(s) to their caster class.`);
+      ui.notifications?.info(tr("SDE.importer.charContent.notify.linkedSpells", { n: relinked }));
     }
   } catch (err) {
     console.error(`${MODULE_ID} | spell re-link after class import failed:`, err);
@@ -1104,7 +1105,7 @@ export async function createClassUnit(parsed, { source = "", sourceTitle = "", o
     const tagged = await tagBorrowedSpellLists();
     if (tagged) {
       report.taggedBorrowedSpells = tagged;
-      ui.notifications?.info(`Tagged ${tagged} spell(s) to a borrowed-list class.`);
+      ui.notifications?.info(tr("SDE.importer.charContent.notify.taggedSpells", { n: tagged }));
     }
   } catch (err) {
     console.error(`${MODULE_ID} | tagBorrowedSpellLists after class import failed:`, err);
@@ -1130,10 +1131,10 @@ export async function createClassUnit(parsed, { source = "", sourceTitle = "", o
  * @returns {Promise<object|null>} report, or null when the target/suite is unusable
  */
 export async function mergeClassSupplement(targetClassUuid, sup, { source = "", sourceTitle = "", overlay = null, allowInvalid = false } = {}) {
-  if (!game.user?.isGM) { ui.notifications?.warn("Only a GM can import a class."); return null; }
-  if (!targetClassUuid || !sup) { ui.notifications?.warn("Pick a class to attach these tables to."); return null; }
+  if (!game.user?.isGM) { ui.notifications?.warn(tr("SDE.importer.charContent.notify.gmOnly")); return null; }
+  if (!targetClassUuid || !sup) { ui.notifications?.warn(tr("SDE.importer.charContent.notify.pickClass")); return null; }
   const cls = await fromUuid(targetClassUuid).catch(() => null);
-  if (!cls || cls.type !== "Class") { ui.notifications?.error("Attach-to class not found."); return null; }
+  if (!cls || cls.type !== "Class") { ui.notifications?.error(tr("SDE.importer.charContent.notify.classNotFound")); return null; }
   // Fail closed: writing a SPELLS KNOWN grid onto a class flagged NON-caster
   // (or any BLOCKER-tagged supplement warning) is refused without an explicit
   // override — the exact "warns then writes anyway" bug this replaces.
@@ -1141,7 +1142,7 @@ export async function mergeClassSupplement(targetClassUuid, sup, { source = "", 
   if (gateBlockers.length && !allowInvalid) return { blocked: true, name: cls.name, issues: gateBlockers };
   const { ensureSuite, ensureFolderPath } = await import("../../shared/compendium-suite.mjs");
   const suite = await ensureSuite();
-  if (!suite?.talents || !suite?.tables) { ui.notifications?.error("Suite packs unavailable."); return null; }
+  if (!suite?.talents || !suite?.tables) { ui.notifications?.error(tr("SDE.importer.charContent.notify.suiteUnavailable")); return null; }
   const talentsPack = suite.talents, tablesPack = suite.tables;
 
   const report = { created: [], reused: [], updated: [], systemReuse: [], warnings: [...(sup.warnings ?? [])] };

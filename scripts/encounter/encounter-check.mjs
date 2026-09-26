@@ -44,7 +44,7 @@ export const EncounterCheck = {
     // Record the check in the session recap (self-guards on an active session).
     SessionRecap.logEncounterCheck({
       roll: roll.total, threshold, hit,
-      clockLabel: clockLabel ?? (crawlRound === null ? null : `Round ${crawlRound}`),
+      clockLabel: clockLabel ?? (crawlRound === null ? null : game.i18n.format("SDE.encounter.check.clockRound", { round: crawlRound })),
     });
 
     // Anchor the frequency countdown to the round this check ran on, so the
@@ -86,13 +86,13 @@ export const EncounterCheck = {
   async _postToChat(roll, threshold, hit, hex = null, table = null, label = "") {
     const gmOnly = game.settings.get(MODULE_ID, "encounterRollGMOnly");
     const flavor = hit
-      ? `🎲 Encounter Check — encounter occurs (threshold ${threshold}-in-6)`
-      : `🎲 Encounter Check — the dungeon is quiet (threshold ${threshold}-in-6)`;
+      ? game.i18n.format("SDE.encounter.check.flavorHit", { threshold })
+      : game.i18n.format("SDE.encounter.check.flavorMiss", { threshold });
     // "Hex 3723 · forest, river · Lowland Moor: Forest" when the party stands
     // on a tagged hex map, the last part naming the column a hit rolls.
     const column = table?.verdict?.column?.column;
     const where = [label, ...(hex
-      ? [`Hex ${hex.num}`, [hex.terrain, ...(hex.features ?? [])].filter(Boolean).join(", ").replace(/_/g, " "),
+      ? [game.i18n.format("SDE.encounter.check.hex", { num: hex.num }), [hex.terrain, ...(hex.features ?? [])].filter(Boolean).join(", ").replace(/_/g, " "),
         column ? `${table.zone}: ${column}` : ""]
       : [])].filter(Boolean).join(" · ");
 

@@ -2,29 +2,25 @@
 
   <header class="sde-tam-head">
     <details class="sde-tam-blurb" data-remember="blurb" {{#if blurbOpen}}open{{/if}}>
-      <summary class="sde-tam-blurb-title">How this works</summary>
-      Choose which installed art source skins each monster. The order below sets the
-      default; click a thumbnail to override a single monster, or <strong>Browse</strong> to
-      hand-pick any token from every source (needed for monsters with no automatic match).
-      <strong>Apply</strong> makes every future monster drag use your picks (nothing is copied —
-      art is referenced from disk).
+      <summary class="sde-tam-blurb-title">{{localize "SDE.tokenArt.manager.howItWorks"}}</summary>
+      {{{localize "SDE.tokenArt.manager.blurb"}}}
     </details>
     <div class="sde-tam-actions">
       <button type="button" data-action="apply" class="sde-tam-apply">
-        <i class="fa-solid fa-wand-magic-sparkles"></i> Apply{{#if enabled}} (update){{/if}}
+        <i class="fa-solid fa-wand-magic-sparkles"></i> {{#if enabled}}{{localize "SDE.tokenArt.manager.applyUpdate"}}{{else}}{{localize "SDE.tokenArt.manager.apply"}}{{/if}}
       </button>
-      <button type="button" data-action="reskinPlaced" title="Fix monsters already placed on scenes / in the Actors tab">
-        <i class="fa-solid fa-street-view"></i> Re-skin placed
+      <button type="button" data-action="reskinPlaced" title="{{localize 'SDE.tokenArt.manager.reskinTip'}}">
+        <i class="fa-solid fa-street-view"></i> {{localize "SDE.tokenArt.dialog.reskinPlaced"}}
       </button>
-      <button type="button" data-action="resetAll" title="Clear all per-monster overrides and hand-picked images">
-        <i class="fa-solid fa-rotate-left"></i> Reset picks
+      <button type="button" data-action="resetAll" title="{{localize 'SDE.tokenArt.manager.resetTip'}}">
+        <i class="fa-solid fa-rotate-left"></i> {{localize "SDE.tokenArt.manager.resetPicks"}}
       </button>
       {{#if enabled}}
-      <button type="button" data-action="turnOff" title="Restore default art">
-        <i class="fa-solid fa-power-off"></i> Turn off
+      <button type="button" data-action="turnOff" title="{{localize 'SDE.tokenArt.manager.turnOffTip'}}">
+        <i class="fa-solid fa-power-off"></i> {{localize "SDE.tokenArt.dialog.turnOff"}}
       </button>
       {{/if}}
-      <button type="button" data-action="refresh" title="Rescan installed art sources">
+      <button type="button" data-action="refresh" title="{{localize 'SDE.tokenArt.manager.refreshTip'}}">
         <i class="fa-solid fa-arrows-rotate"></i>
       </button>
     </div>
@@ -32,45 +28,45 @@
 
   <div class="sde-tam-folders">
     <div class="sde-tam-folders-head">
-      <div class="sde-tam-sources-title">Manual Browse folders <span class="sde-tam-dim">(Browse-only; never used for automatic matching)</span></div>
-      <button type="button" data-action="folderAdd" class="sde-tam-folder-add"><i class="fa-solid fa-plus"></i> Add folder</button>
+      <div class="sde-tam-sources-title">{{localize "SDE.tokenArt.manager.foldersTitle"}} <span class="sde-tam-dim">{{localize "SDE.tokenArt.manager.foldersNote"}}</span></div>
+      <button type="button" data-action="folderAdd" class="sde-tam-folder-add"><i class="fa-solid fa-plus"></i> {{localize "SDE.tokenArt.manager.addFolder"}}</button>
     </div>
     {{#each folders}}
     <div class="sde-tam-folder" data-folder="{{@index}}">
       <div class="sde-tam-folder-name">{{label}}</div>
       <code class="sde-tam-folder-path">{{path}}</code>
-      <button type="button" data-action="folderEdit" data-folder="{{@index}}" title="Edit folder"><i class="fa-solid fa-pen"></i></button>
-      <button type="button" data-action="folderRemove" data-folder="{{@index}}" title="Remove folder"><i class="fa-solid fa-trash"></i></button>
+      <button type="button" data-action="folderEdit" data-folder="{{@index}}" title="{{localize 'SDE.tokenArt.manager.editFolder'}}"><i class="fa-solid fa-pen"></i></button>
+      <button type="button" data-action="folderRemove" data-folder="{{@index}}" title="{{localize 'SDE.tokenArt.manager.removeFolder'}}"><i class="fa-solid fa-trash"></i></button>
     </div>
     {{else}}
-    <div class="sde-tam-folder-empty">No manual folders yet. Add a token-art folder to make it available in Browse.</div>
+    <div class="sde-tam-folder-empty">{{localize "SDE.tokenArt.manager.foldersEmpty"}}</div>
     {{/each}}
   </div>
 
   <details class="sde-tam-sources" data-remember="sources" {{#if sourcesOpen}}open{{/if}}>
-    <summary class="sde-tam-sources-title">Source priority
-      <span class="sde-tam-dim">· {{sourceCount}} sources · highest wins where a monster has art in more than one</span>
+    <summary class="sde-tam-sources-title">{{localize "SDE.tokenArt.manager.sourcePriority"}}
+      <span class="sde-tam-dim">· {{localize "SDE.tokenArt.manager.sourcesNote" count=sourceCount}}</span>
     </summary>
     {{#each sources}}
-    <div class="sde-tam-source" draggable="true" data-source="{{id}}" title="Drag to reorder">
+    <div class="sde-tam-source" draggable="true" data-source="{{id}}" title="{{localize 'SDE.tokenArt.manager.dragTip'}}">
       <i class="fa-solid fa-grip-vertical sde-tam-grip" aria-hidden="true"></i>
       <div class="sde-tam-rank">
-        <button type="button" data-action="sourceUp" data-source="{{id}}" {{#if isFirst}}disabled{{/if}} title="Higher priority"><i class="fa-solid fa-caret-up"></i></button>
-        <button type="button" data-action="sourceDown" data-source="{{id}}" {{#if isLast}}disabled{{/if}} title="Lower priority"><i class="fa-solid fa-caret-down"></i></button>
+        <button type="button" data-action="sourceUp" data-source="{{id}}" {{#if isFirst}}disabled{{/if}} title="{{localize 'SDE.tokenArt.manager.higher'}}"><i class="fa-solid fa-caret-up"></i></button>
+        <button type="button" data-action="sourceDown" data-source="{{id}}" {{#if isLast}}disabled{{/if}} title="{{localize 'SDE.tokenArt.manager.lower'}}"><i class="fa-solid fa-caret-down"></i></button>
       </div>
       <div class="sde-tam-source-name">
         {{label}}
-        <span class="sde-tam-dim">· {{count}} available{{#if kind}} · {{kind}}{{/if}}</span>
+        <span class="sde-tam-dim">· {{localize "SDE.tokenArt.manager.available" count=count}}{{#if kind}} · {{kind}}{{/if}}</span>
       </div>
-      <div class="sde-tam-source-used" title="Monsters currently using this source">{{used}}</div>
+      <div class="sde-tam-source-used" title="{{localize 'SDE.tokenArt.manager.usedTip'}}">{{used}}</div>
     </div>
     {{/each}}
   </details>
 
   <div class="sde-tam-toolbar">
-    <input type="text" name="filter" placeholder="Filter monsters…" value="{{filter}}" autocomplete="off">
+    <input type="text" name="filter" placeholder="{{localize 'SDE.tokenArt.manager.filterPlaceholder'}}" value="{{filter}}" autocomplete="off">
     <label class="sde-tam-toggle">
-      <input type="checkbox" name="conflicts" {{#if conflictsOnly}}checked{{/if}}> Only monsters with a choice
+      <input type="checkbox" name="conflicts" {{#if conflictsOnly}}checked{{/if}}> {{localize "SDE.tokenArt.manager.conflictsOnly"}}
     </label>
     <span class="sde-tam-count">{{shown}} / {{total}}</span>
   </div>
@@ -80,49 +76,49 @@
     <div class="sde-tam-row {{#if isOverride}}is-override{{/if}}" data-name="{{name}}" data-multi="{{#if multi}}1{{/if}}">
       <div class="sde-tam-name">
         {{name}}
-        {{#if imported}}<span class="sde-tam-imported" title="Imported monster (managed pack)">imported</span>{{/if}}
-        {{#if isOverride}}<i class="fa-solid fa-thumbtack" title="Overridden — click to clear" data-action="clearRow" data-monster="{{id}}"></i>{{/if}}
+        {{#if imported}}<span class="sde-tam-imported" title="{{localize 'SDE.tokenArt.manager.importedTip'}}">{{localize "SDE.tokenArt.manager.imported"}}</span>{{/if}}
+        {{#if isOverride}}<i class="fa-solid fa-thumbtack" title="{{localize 'SDE.tokenArt.manager.overriddenTip'}}" data-action="clearRow" data-monster="{{id}}"></i>{{/if}}
       </div>
       <div class="sde-tam-opts">
         {{#if pick}}
-        <div class="sde-tam-opt sde-tam-pick is-chosen" title="Hand-picked: {{pick.label}} · {{pick.file}}">
+        <div class="sde-tam-opt sde-tam-pick is-chosen" title="{{localize 'SDE.tokenArt.manager.handPicked' label=pick.label file=pick.file}}">
           <img src="/{{pick.thumb}}" loading="lazy" alt="">
           <i class="fa-solid fa-hand-pointer sde-tam-check"></i>
         </div>
         {{/if}}
         {{#each options}}
-        <button type="button" class="sde-tam-opt {{#if chosen}}is-chosen{{/if}}" data-action="choose" data-monster="{{../id}}" data-source="{{source}}" title="{{label}}{{#if ring}} · ring{{/if}}">
+        <button type="button" class="sde-tam-opt {{#if chosen}}is-chosen{{/if}}" data-action="choose" data-monster="{{../id}}" data-source="{{source}}" title="{{label}}{{#if ring}} · {{localize 'SDE.tokenArt.manager.ring'}}{{/if}}">
           <img src="/{{thumb}}" loading="lazy" alt="{{label}}">
           {{#if chosen}}<i class="fa-solid fa-check sde-tam-check"></i>{{/if}}
         </button>
         {{/each}}
-        {{#unless hasOptions}}{{#unless pick}}<span class="sde-tam-nomatch">no automatic match</span>{{/unless}}{{/unless}}
-        <button type="button" class="sde-tam-browse" data-action="browse" data-monster="{{id}}" data-name="{{name}}" title="Browse every source's tokens and pick one by hand">
-          <i class="fa-solid fa-images"></i> Browse
+        {{#unless hasOptions}}{{#unless pick}}<span class="sde-tam-nomatch">{{localize "SDE.tokenArt.manager.noMatch"}}</span>{{/unless}}{{/unless}}
+        <button type="button" class="sde-tam-browse" data-action="browse" data-monster="{{id}}" data-name="{{name}}" title="{{localize 'SDE.tokenArt.manager.browseTip'}}">
+          <i class="fa-solid fa-images"></i> {{localize "SDE.tokenArt.manager.browse"}}
         </button>
       </div>
     </div>
     {{/each}}
-    {{#unless rows.length}}<div class="sde-tam-empty">No monsters match.</div>{{/unless}}
+    {{#unless rows.length}}<div class="sde-tam-empty">{{localize "SDE.tokenArt.manager.noRows"}}</div>{{/unless}}
   </div>
 
   <div class="sde-tam-browser" hidden data-monster="">
     <div class="sde-tam-browser-head">
-      <span class="sde-tam-browser-title">Choose art</span>
+      <span class="sde-tam-browser-title">{{localize "SDE.tokenArt.browser.chooseArt"}}</span>
       <div class="sde-tam-browser-searchwrap">
-        <input type="search" class="sde-tam-browser-search" placeholder="Filter tokens…" autocomplete="off">
-        <button type="button" class="sde-tam-browser-clear" title="Clear search" hidden><i class="fa-solid fa-xmark"></i></button>
+        <input type="search" class="sde-tam-browser-search" placeholder="{{localize 'SDE.tokenArt.browser.filterPlaceholder'}}" autocomplete="off">
+        <button type="button" class="sde-tam-browser-clear" title="{{localize 'SDE.tokenArt.browser.clearSearch'}}" hidden><i class="fa-solid fa-xmark"></i></button>
       </div>
-      <label class="sde-tam-browser-zoomwrap" title="Thumbnail size (Ctrl + scroll, or Ctrl + / Ctrl −)">
+      <label class="sde-tam-browser-zoomwrap" title="{{localize 'SDE.tokenArt.browser.zoomTip'}}">
         <i class="fa-solid fa-magnifying-glass-minus sde-tam-dim"></i>
         <input type="range" class="sde-tam-browser-zoom" min="40" max="320" step="8" value="56">
         <i class="fa-solid fa-magnifying-glass-plus sde-tam-dim"></i>
       </label>
       <span class="sde-tam-browser-count sde-tam-dim"></span>
-      <button type="button" class="sde-tam-browser-close" data-action="browserClose"><i class="fa-solid fa-xmark"></i> Close</button>
+      <button type="button" class="sde-tam-browser-close" data-action="browserClose"><i class="fa-solid fa-xmark"></i> {{localize "SDE.tokenArt.dialog.close"}}</button>
     </div>
     <div class="sde-tam-browser-grid"></div>
-    <div class="sde-tam-browser-status"><span class="sde-tam-dim">Hover a token to see its source &amp; filename</span></div>
+    <div class="sde-tam-browser-status"><span class="sde-tam-dim">{{localize "SDE.tokenArt.manager.hoverIdle"}}</span></div>
   </div>
 
 </section>

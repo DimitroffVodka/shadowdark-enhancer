@@ -18,6 +18,16 @@ import {
   DEAD_BANDIT_LOOT_ROWS,
 } from "../shared/curated-icon-maps/dead-bandit-loot-icons.mjs";
 
+/** One string from `languages/en.json`; the key when no i18n is mounted (node tests). */
+const L = (key, data) => {
+  const i18n = globalThis.game?.i18n;
+  if (!i18n) return key;
+  return data ? i18n.format(key, data) : i18n.localize(key);
+};
+
+/** The book table's own name, filled into this file's GM warnings. */
+const NOTIFY_TABLE = "Dead Bandit Loot";
+
 export const DEAD_BANDIT_LOOT_SOURCE = "cs2";
 export const DEAD_BANDIT_LOOT_CONTENT_ID = "cs2/in-a-dead-bandits-hand";
 export const DEAD_BANDIT_LOOT_MANIFEST_ID = "cs2-in-a-dead-bandit-s-hand-you-find";
@@ -446,7 +456,7 @@ export async function materializeDeadBanditLoot(table, {
     summary.failures.push({ reason: "pack-failed", error: String(error?.message ?? error) });
     for (const entry of definitions.resolved) summary.unresolvedRows.push(unresolvedRecord(entry, "pack-failed"));
     summary.unresolved += definitions.resolved.length;
-    notify(`Dead Bandit Loot: ${summary.failures[0].reason}; rows remain unresolved.`);
+    notify(L("SDE.loot.materialize.failedReason", { table: NOTIFY_TABLE, reason: summary.failures[0].reason }));
     return summary;
   }
   if (!pack || pack.collection !== MANAGED_ITEMS_PACK) {
@@ -454,7 +464,7 @@ export async function materializeDeadBanditLoot(table, {
     for (const entry of definitions.resolved) summary.unresolvedRows.push(unresolvedRecord(entry, reason));
     summary.unresolved += definitions.resolved.length;
     summary.failures.push({ reason, error: null });
-    notify("Dead Bandit Loot: generated Items require the managed sde-items pack; rows remain unresolved.");
+    notify(L("SDE.loot.materialize.packRequired", { table: NOTIFY_TABLE }));
     return summary;
   }
 
@@ -480,7 +490,7 @@ export async function materializeDeadBanditLoot(table, {
     summary.failures.push({ reason: "reconcile-failed", error: String(error?.message ?? error) });
     for (const entry of definitions.resolved) summary.unresolvedRows.push(unresolvedRecord(entry, "reconcile-failed"));
     summary.unresolved += definitions.resolved.length;
-    notify("Dead Bandit Loot: generated Item reconciliation failed; rows remain unresolved.");
+    notify(L("SDE.loot.materialize.reconcileFailed", { table: NOTIFY_TABLE }));
     return summary;
   }
 
@@ -501,7 +511,7 @@ export async function materializeDeadBanditLoot(table, {
     summary.failures.push({ reason: "documents-failed", error: String(error?.message ?? error) });
     for (const entry of definitions.resolved) summary.unresolvedRows.push(unresolvedRecord(entry, "documents-failed"));
     summary.unresolved += definitions.resolved.length;
-    notify("Dead Bandit Loot: generated Item documents could not be read; rows remain unresolved.");
+    notify(L("SDE.loot.materialize.documentsUnreadable", { table: NOTIFY_TABLE }));
     return summary;
   }
   const byIdentity = new Map();
@@ -568,7 +578,7 @@ export async function materializeDeadBanditLoot(table, {
     for (const entry of linkedEntries) summary.unresolvedRows.push(unresolvedRecord(entry, reason));
     summary.unresolved += linkedEntries.length;
     summary.linked = 0;
-    notify("Dead Bandit Loot: no safe RollTable writer was available; no write was attempted and source text remains available for retry.");
+    notify(L("SDE.loot.materialize.noWriterSourceText", { table: NOTIFY_TABLE }));
     return summary;
   }
   try {
@@ -586,9 +596,9 @@ export async function materializeDeadBanditLoot(table, {
     summary.unresolved += linkedEntries.length;
     summary.linked = 0;
     if (restored) {
-      notify("Dead Bandit Loot: RollTable write failed; original source rows were restored and remain available for retry.");
+      notify(L("SDE.loot.materialize.writeFailedRestored", { table: NOTIFY_TABLE }));
     } else {
-      notify("Dead Bandit Loot: RollTable write and automatic restoration failed; source rows may require recovery before retry.");
+      notify(L("SDE.loot.materialize.writeRestoreFailed", { table: NOTIFY_TABLE }));
     }
   }
   return summary;

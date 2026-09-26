@@ -30,6 +30,10 @@ import {
   refKey,
 } from "../scripts/magic-forge/magic-table-runtime.mjs";
 
+// Messages come from en.json. Keys stand in for the strings; `format` keeps the
+// data visible, so the tests still check which table / count / range is named.
+globalThis.game = { i18n: { localize: (k) => k, format: (k, d) => `${k} ${JSON.stringify(d)}` } };
+
 /* -- synthetic fixtures ---------------------------------------------------- */
 
 /** Partition [lo,hi] into `n` contiguous integer ranges (gapless, complete). */
@@ -189,7 +193,7 @@ test("READY when every child resolves to exactly one valid table", () => {
 test("LOCKED when nothing imported", () => {
   const states = buildSetStates([]);
   for (const k of MAGIC_SET_KEYS) assert.equal(states[k].state, "locked");
-  assert.match(states["magic-weapon-base"].diagnostics[0].message, /Not imported/i);
+  assert.match(states["magic-weapon-base"].diagnostics[0].message, /^SDE\.magicForge\.diag\.lockedMany /);
 });
 
 test("PARTIAL when some (but not all) children present", () => {
@@ -203,7 +207,7 @@ test("AMBIGUOUS when a child manifestId is duplicated", () => {
   const dupe = makeChildFor(WB.children[0], { uuid: "Compendium.world.sde-tables.RollTable.dupe" });
   const set = buildSetState(WB, [...readySet(WB), dupe]);
   assert.equal(set.state, "ambiguous");
-  assert.match(set.diagnostics[0].message, /Duplicate/i);
+  assert.match(set.diagnostics[0].message, /^SDE\.magicForge\.diag\.ambiguous /);
 });
 
 test("INVALID when a present child fails validation", () => {
@@ -211,7 +215,7 @@ test("INVALID when a present child fails validation", () => {
   tables[1].formula = "1d20"; // weapon-bonus is 2d6
   const set = buildSetState(WB, tables);
   assert.equal(set.state, "invalid");
-  assert.match(set.diagnostics.map((d) => d.message).join(" "), /not 2d6/);
+  assert.match(set.diagnostics.map((d) => d.message).join(" "), /SDE\.magicForge\.validate\.formula .*expected.*2d6/);
 });
 
 test("precedence: ambiguous outranks invalid outranks partial", () => {
@@ -251,7 +255,7 @@ test("row-count mismatch is rejected (rows need not equal face cardinality, but 
   short.results = short.results.slice(0, 15);
   const v = validateChildTable(short, { expectedFormula: child.formula, domain: child.domain, expectedCount: 16 });
   assert.equal(v.valid, false);
-  assert.match(v.errors.join(" "), /Expected 16/);
+  assert.match(v.errors.join(" "), /SDE\.magicForge\.validate\.count \{"expected":16,/);
 });
 
 test("gaps, overlaps, reversed, out-of-domain, missing ids, empty text all fail", () => {
@@ -283,14 +287,14 @@ test("gaps, overlaps, reversed, out-of-domain, missing ids, empty text all fail"
   noId.results[2].id = "";
   const nv = validateChildTable(noId, exp);
   assert.equal(nv.valid, false);
-  assert.match(nv.errors.join(" "), /no stable id/);
+  assert.match(nv.errors.join(" "), /SDE\.magicForge\.validate\.noId \{"n":1\}/);
 
   // empty text
   const empty = makeChildFor(child);
   empty.results[4].text = "   ";
   const ev = validateChildTable(empty, exp);
   assert.equal(ev.valid, false);
-  assert.match(ev.errors.join(" "), /no text/);
+  assert.match(ev.errors.join(" "), /SDE\.magicForge\.validate\.noText \{"n":1\}/);
 });
 
 test("2d6 domain lower bound is 2 — a face-1 result is out of domain", () => {
@@ -299,7 +303,7 @@ test("2d6 domain lower bound is 2 — a face-1 result is out of domain", () => {
   bad.results[0].range = [1, bad.results[0].range[1]];
   const v = validateChildTable(bad, { expectedFormula: "2d6", domain: [2, 12], expectedCount: 4 });
   assert.equal(v.valid, false);
-  assert.match(v.errors.join(" "), /cover 2\.\.12/);
+  assert.match(v.errors.join(" "), /SDE\.magicForge\.validate\.coverage \{"lo":2,"hi":12\}/);
 });
 
 /* -- bundle import atomicity ----------------------------------------------- */

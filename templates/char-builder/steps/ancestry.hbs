@@ -52,7 +52,7 @@
                   <i class="fa-solid fa-dice"></i>
                 </button>
                 {{#if step.lockedName}}
-                <button type="button" class="sde-cb-btn sm" data-cb-unlock="{{step.lockedName.id}}" title="Locked — import the name table from Western Reaches pg {{step.lockedName.pages}}">
+                <button type="button" class="sde-cb-btn sm" data-cb-unlock="{{step.lockedName.id}}" title="{{localize 'SDE.charBuilder.ancestry.lockedNameTip' pages=step.lockedName.pages}}">
                   <i class="fa-solid fa-lock"></i> {{localize "SDE.charBuilder.unlock"}}
                 </button>
                 {{/if}}
@@ -70,7 +70,7 @@
                   <i class="fa-solid fa-dice"></i>
                 </button>
                 {{#if step.lockedTrinket}}
-                <button type="button" class="sde-cb-btn sm" data-cb-unlock="{{step.lockedTrinket.id}}" title="Locked — import the trinket table from Western Reaches pg {{step.lockedTrinket.pages}}">
+                <button type="button" class="sde-cb-btn sm" data-cb-unlock="{{step.lockedTrinket.id}}" title="{{localize 'SDE.charBuilder.ancestry.lockedTrinketTip' pages=step.lockedTrinket.pages}}">
                   <i class="fa-solid fa-lock"></i> {{localize "SDE.charBuilder.unlock"}}
                 </button>
                 {{/if}}

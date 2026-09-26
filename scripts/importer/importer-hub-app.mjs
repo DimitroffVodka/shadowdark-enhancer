@@ -324,7 +324,7 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
           await inst._onGrabPdfText();
         } else {
           const href = sourcePdfHref(seed.src, seed.page);
-          if (href) await inst._showSourcePdf(href, `${seed.name} — p.${seed.page}`);
+          if (href) await inst._showSourcePdf(href, `${seed.name}${tr("SDE.importer.pdf.atPage", { page: seed.page })}`);
         }
       }).catch((err) => console.warn(`${MODULE_ID} | matrix seed auto-grab failed`, err));
     }
@@ -605,14 +605,14 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
         // importer; naming the gap points at the paste instead.
         return { name: t.name, formula: t.formula, rows, ok,
           problem: summarizeStructuralWarnings(structural),
-          expected: isNames ? "100 rows on 1d100" : "full die coverage" };
+          expected: tr(isNames ? "SDE.importer.seedExpect.names" : "SDE.importer.seedExpect.full") };
       })(),
       // Type selector — the single "what am I importing" control. Parse-in-
       // place types are grouped first; the two guided workspaces (Spells,
       // Classes) sit in their own group and OPEN when picked (handled in
       // _wireHubType) rather than parsing inline.
       importType: t,
-      formatExample: FORMAT_EXAMPLES[t] ?? FORMAT_EXAMPLES.auto,
+      formatExample: tr(FORMAT_EXAMPLES[t] ?? FORMAT_EXAMPLES.auto),
       typeGroups: [
         { group: tr("SDE.importer.type.groupPaste"), options: [
           // Spelled out rather than built from the value, so every key stays
@@ -694,7 +694,7 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
               isCaster: !!u.spellcasting,
               scText: u.spellcasting ? strip(u.spellcasting.text) : "",
               spellListOptions: [
-                { value: "", label: `Own list (${p.draft.name})`, selected: !u.spellcasting?.spellClass },
+                { value: "", label: tr("SDE.importer.spellListOption.own", { name: p.draft.name }), selected: !u.spellcasting?.spellClass },
                 ...casterChoices.map((c) => ({
                   value: c.uuid, label: c.name, selected: u.spellcasting?.spellClass?.uuid === c.uuid,
                 })),

@@ -27,6 +27,13 @@ const ARENA_FLAG_KEY = "arenaMap";
 
 const SCENE_PREFIX = "Arena:";
 
+/** One string from `languages/en.json`; the key when no i18n is mounted. */
+const L = (key, data) => {
+  const i18n = globalThis.game?.i18n;
+  if (!i18n) return key;
+  return data ? i18n.format(key, data) : i18n.localize(key);
+};
+
 /**
  * The scene name for a map, e.g. "Arena: Large Arena".
  *
@@ -138,13 +145,13 @@ async function _wireFloors(scene, map) {
  */
 export async function createArenaScene({ mapId = DEFAULT_ARENA_MAP_ID, view = true } = {}) {
   if (!game.user?.isGM) {
-    ui.notifications?.warn("Only a GM can create an arena scene.");
+    ui.notifications?.warn(L("SDE.pitFighting.notify.arenaGmOnly"));
     return null;
   }
 
   const map = getArenaMap(mapId);
   if (!map) {
-    ui.notifications?.warn(`Unknown arena map: ${mapId}`);
+    ui.notifications?.warn(L("SDE.pitFighting.notify.unknownMap", { id: mapId }));
     return null;
   }
 

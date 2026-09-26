@@ -11,6 +11,7 @@
  */
 
 import { resolveWrWeaponProperties } from "../items/wr-property-importer.mjs";
+import { t as tr } from "../importer-hub-shared.mjs";
 
 /**
  * Turn each draft's `siegeProperties: [{name, description}]` into real Property
@@ -36,9 +37,7 @@ export async function prepareSiegeProperties(drafts) {
     return true;
   } catch (err) {
     console.error("shadowdark-enhancer | siege property preparation failed:", err);
-    globalThis.ui?.notifications?.error?.(
-      "Siege weapon Properties could not be prepared; no items were imported. See the console.",
-    );
+    globalThis.ui?.notifications?.error?.(tr("SDE.importer.boatImport.siegePropsFailed"));
     return false;
   }
 }

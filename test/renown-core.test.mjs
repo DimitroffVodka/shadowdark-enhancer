@@ -32,6 +32,14 @@ import {
 } from "../scripts/renown/renown-core.mjs";
 import { reactionBand } from "../scripts/encounter/encounter-result.mjs";
 
+// i18n stub: a key comes back as itself and `format` appends its data, so an
+// assertion still sees which phrase was picked and what went into it. `f` is
+// the same formatter, for building expectations.
+const f = (k, d) => k + JSON.stringify(d);
+globalThis.game = { i18n: { localize: (k) => k, format: f } };
+const line = (name, delta, after, band) =>
+  f("SDE.renown.changeLine", { name, delta, after, band: `SDE.renown.band.${band}` });
+
 describe("renown bands", () => {
   test("the ladder is contiguous, ascending, and open-ended at the top", () => {
     assert.equal(RENOWN_BANDS.length, 4);
@@ -102,22 +110,22 @@ describe("phrasing", () => {
   test("the change line names the band it lands in", () => {
     assert.equal(
       renownChangeLine({ actorName: "Eliara", delta: 1, after: 8 }),
-      "Eliara: renown +1 → 8 (Known name)"
+      line("Eliara", "+1", 8, "name"),
     );
     assert.equal(
       renownChangeLine({ actorName: "Bazogo", delta: -1, after: -2 }),
-      "Bazogo: renown -1 → -2 (Unknown)"
+      line("Bazogo", "-1", -2, "unknown"),
     );
   });
 
   test("the recap row appends the reason only when there is one", () => {
     const base = { actorName: "Eliara", delta: 1, after: 4 };
-    assert.equal(recapRow(base), "Eliara: renown +1 → 4 (Locally known)");
+    assert.equal(recapRow(base), line("Eliara", "+1", 4, "local"));
     assert.equal(
       recapRow({ ...base, reason: "Gained a level" }),
-      "Eliara: renown +1 → 4 (Locally known) — Gained a level"
+      `${line("Eliara", "+1", 4, "local")} — Gained a level`
     );
-    assert.equal(recapRow({ ...base, reason: "   " }), "Eliara: renown +1 → 4 (Locally known)");
+    assert.equal(recapRow({ ...base, reason: "   " }), line("Eliara", "+1", 4, "local"));
   });
 
   test("the trigger lists are short labels, not sentences", () => {
@@ -169,7 +177,7 @@ describe("who may change renown", () => {
   test("a player is refused, and the refusal is already result-shaped", () => {
     const denied = authorizeRenownAward({ requesterIsGM: false });
     assert.equal(denied.ok, false);
-    assert.equal(denied.error, "Only a GM can change renown.");
+    assert.equal(denied.error, "SDE.renown.error.gmOnly");
   });
 
   test("an absent or malformed context is refused, not waved through", () => {
@@ -260,8 +268,8 @@ describe("ledger display", () => {
   });
 
   test("with no reason, the source tag is spelled out instead of leaking a slug", () => {
-    assert.equal(historyRow({ delta: 1, after: 2, source: "level-up" }), "+1 → 2 · Gained a level");
-    assert.equal(historyRow({ delta: 2, after: 2, source: "start" }), "+2 → 2 · Starting renown");
+    assert.equal(historyRow({ delta: 1, after: 2, source: "level-up" }), "+1 → 2 · SDE.renown.source.levelUp");
+    assert.equal(historyRow({ delta: 2, after: 2, source: "start" }), "+2 → 2 · SDE.renown.source.start");
     // An unrecognised tag falls back to itself rather than vanishing.
     assert.equal(historyRow({ delta: 1, after: 1, source: "pit-fighting" }), "+1 → 1 · pit-fighting");
     assert.equal(historyRow({ delta: 1, after: 1, source: "" }), "+1 → 1");
@@ -321,9 +329,9 @@ describe("source tags", () => {
   });
 
   test("carousing renders as words, not a slug", () => {
-    assert.equal(sourceLabel("carousing"), "Carousing");
+    assert.equal(sourceLabel("carousing"), "SDE.renown.source.carousing");
     // With no reason supplied, the row text IS the label.
-    assert.equal(historyRow({ delta: -3, after: -1, source: "carousing" }), "-3 → -1 · Carousing");
+    assert.equal(historyRow({ delta: -3, after: -1, source: "carousing" }), "-3 → -1 · SDE.renown.source.carousing");
     // With a reason, the reason wins and the tag is rendered separately by the
     // dialog — so both the wording and the cause are visible.
     assert.equal(

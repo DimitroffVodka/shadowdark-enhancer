@@ -43,6 +43,7 @@ import { SPELL_ICONS } from "../../shared/curated-icon-maps/spell-icons.mjs";
  */
 const SPELL_ICON_REGISTRY = buildCuratedIconRegistry([SPELL_ICONS]);
 import { sourceTitleSlug } from "./item-builder-gear.mjs";
+import { t as tr } from "../importer-hub-shared.mjs";
 
 // Re-exported so the gear importer stays the one door callers already know;
 // the helpers themselves are Foundry-free and live in shared/.
@@ -542,7 +543,7 @@ function _uniqueName(index, base) {
  * @returns {Promise<{uuid?:string, name:string, status:"created"|"skipped"|"replaced"}|null>}
  */
 export async function createItem(draft, { pack, folder = null, source = "", onConflict } = {}) {
-  if (!game.user?.isGM) { ui.notifications?.warn("Only a GM can import items."); return null; }
+  if (!game.user?.isGM) { ui.notifications?.warn(tr("SDE.importer.gm.items")); return null; }
   if (!pack) pack = findSuitePack("sde-items") ?? (await ensureSuite())?.items;
   if (!pack) { console.error(`${MODULE_ID} | createItem: sde-items pack not found`); return null; }
 
@@ -617,10 +618,9 @@ export async function createItem(draft, { pack, folder = null, source = "", onCo
  * @param {{protectedName: string, renamedTo: string}} collision
  */
 function _warnMonsterSpellCollision({ protectedName, renamedTo }) {
-  const message = `"${protectedName}" is a generated Monster Spell and was not replaced — `
-    + `the imported item was kept as "${renamedTo}". Delete the Monster Spell yourself if you meant to replace it.`;
-  globalThis.ui?.notifications?.warn(message);
-  console.warn(`${MODULE_ID} | ${message}`);
+  globalThis.ui?.notifications?.warn(tr("SDE.importer.itemImport.notify.monsterSpellKept", { name: protectedName, renamedTo }));
+  console.warn(`${MODULE_ID} | "${protectedName}" is a generated Monster Spell and was not replaced — `
+    + `the imported item was kept as "${renamedTo}". Delete the Monster Spell yourself if you meant to replace it.`);
 }
 
 /**
@@ -857,7 +857,7 @@ async function _sourceFolderName(folderId, pack) {
  * @returns {Promise<{created:object[], replaced:object[], skipped:string[], total:number}|null>}
  */
 export async function createItems(drafts, { source = "", onConflict } = {}) {
-  if (!game.user?.isGM) { ui.notifications?.warn("Only a GM can import items."); return null; }
+  if (!game.user?.isGM) { ui.notifications?.warn(tr("SDE.importer.gm.items")); return null; }
 
   // Group by target pack so each pack's source folder + index are set up once.
   const byPack = new Map();   // packId → drafts[]
@@ -916,7 +916,7 @@ export async function createItems(drafts, { source = "", onConflict } = {}) {
       try {
         const { tagBorrowedSpellLists } = await import("../char-content/class-unit-importer.mjs");
         const tagged = await tagBorrowedSpellLists();
-        if (tagged) ui.notifications?.info(`Tagged ${tagged} spell(s) to a borrowed-list class.`);
+        if (tagged) ui.notifications?.info(tr("SDE.importer.itemImport.notify.tagged", { n: tagged }));
       } catch (err) {
         console.error(`${MODULE_ID} | tagBorrowedSpellLists after spell import failed:`, err);
       }
@@ -1059,7 +1059,7 @@ export async function partitionSystemDuplicates(items) {
   const duplicates = [];
   for (const it of items) {
     const hit = sys.get(normalizeItemName(it?.draft?.name));
-    if (hit) duplicates.push({ name: it.draft.name, reason: `already in ${hit.pack} (system content) — not re-imported` });
+    if (hit) duplicates.push({ name: it.draft.name, reason: tr("SDE.importer.skipReason.systemDupe", { pack: hit.pack }) });
     else fresh.push(it);
   }
   return { fresh, duplicates };

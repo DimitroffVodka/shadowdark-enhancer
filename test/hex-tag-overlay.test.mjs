@@ -32,10 +32,19 @@ test("needsReview: only unsure automatic cells", () => {
 });
 
 test("cellLabel: number, tags and why it is in the review pool", () => {
-  assert.equal(cellLabel(1403, { terrain: "forest", features: ["river"], source: "gm" }), "1403 — forest, river");
-  assert.equal(cellLabel(1404, { terrain: "forest", features: [], source: "auto", margin: 1.42 }), "1404 — forest (auto 1.42)");
-  assert.equal(cellLabel(1405, { terrain: "swamp", features: [], source: "auto", margin: 1.1 }), "1405 — swamp (auto 1.10, review)");
-  assert.equal(cellLabel(1406, null), "1406 — not tagged");
+  // The words come from en.json; a key-echoing i18n shows which one and with what.
+  const saved = globalThis.game;
+  globalThis.game = { i18n: { localize: (k) => k, format: (k, d) => k + JSON.stringify(d) } };
+  try {
+    assert.equal(cellLabel(1403, { terrain: "forest", features: ["river"], source: "gm" }), "1403 — forest, river");
+    assert.equal(cellLabel(1404, { terrain: "forest", features: [], source: "auto", margin: 1.42 }),
+      '1404 — forest (SDE.hexMap.cellLabel.autoMargin{"margin":"1.42"})');
+    assert.equal(cellLabel(1405, { terrain: "swamp", features: [], source: "auto", margin: 1.1 }),
+      '1405 — swamp (SDE.hexMap.cellLabel.autoMargin{"margin":"1.10"}, SDE.hexMap.cellLabel.review)');
+    assert.equal(cellLabel(1406, null), "1406 — SDE.hexMap.cellLabel.untagged");
+  } finally {
+    globalThis.game = saved;
+  }
 });
 
 test("terrainOptions: every printed terrain plus the scene's own words, alphabetical by label", () => {

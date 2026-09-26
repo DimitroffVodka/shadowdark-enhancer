@@ -15,7 +15,8 @@ test("toCopper / fromCopper round-trip", () => {
 test("formatPrice", () => {
   assert.equal(formatPrice({ gp: 2, sp: 5, cp: 0 }), "2 gp 5 sp");
   assert.equal(formatPrice({ gp: 0, sp: 0, cp: 10 }), "10 cp");
-  assert.equal(formatPrice({ gp: 0, sp: 0, cp: 0 }), "Free");
+  // "Free" comes from en.json; with no i18n mounted the key stands in for it.
+  assert.equal(formatPrice({ gp: 0, sp: 0, cp: 0 }), "SDE.shared.coins.free");
 });
 
 test("canAfford", () => {

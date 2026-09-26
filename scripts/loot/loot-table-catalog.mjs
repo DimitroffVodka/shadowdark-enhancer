@@ -47,10 +47,10 @@ const INDEX_FLAG_FIELDS = [
  * the loot engine bins each by its tier band.
  */
 export const LOOT_TIER_ENTRIES = [
-  { tier: "0-3", name: "TREASURE 0-3", src: "CORE", page: "270-271", contentId: "core/treasure-0-3", label: "Treasure — Levels 0-3" },
-  { tier: "4-6", name: "TREASURE 4-6", src: "CORE", page: "272-273", contentId: "core/treasure-4-6", label: "Treasure — Levels 4-6" },
-  { tier: "7-9", name: "TREASURE 7-9", src: "CORE", page: "274-275", contentId: "core/treasure-7-9", label: "Treasure — Levels 7-9" },
-  { tier: "10+", name: "TREASURE 10+", src: "CORE", page: "276-277", contentId: "core/treasure-10",  label: "Treasure — Levels 10+" },
+  { tier: "0-3", name: "TREASURE 0-3", src: "CORE", page: "270-271", contentId: "core/treasure-0-3" },
+  { tier: "4-6", name: "TREASURE 4-6", src: "CORE", page: "272-273", contentId: "core/treasure-4-6" },
+  { tier: "7-9", name: "TREASURE 7-9", src: "CORE", page: "274-275", contentId: "core/treasure-7-9" },
+  { tier: "10+", name: "TREASURE 10+", src: "CORE", page: "276-277", contentId: "core/treasure-10" },
 ];
 
 /** Count of the four treasure tiers bound in a lootTierTables map (pure). */
@@ -171,7 +171,7 @@ async function scanAllTables() {
   // raw flags, so flattening the flags onto the record would defeat the
   // classifier (its readFlags looks under .flags[MODULE_ID], not the top level).
   for (const t of game.tables.contents) {
-    out.push({ uuid: t.uuid, name: t.name, group: "World", loot: isLootTable(t) });
+    out.push({ uuid: t.uuid, name: t.name, group: game.i18n.localize("SDE.loot.group.world"), loot: isLootTable(t) });
   }
 
   const suite = findSuitePack(SUITE_TABLES_PACK);
@@ -181,7 +181,7 @@ async function scanAllTables() {
       for (const e of index) {
         out.push({
           uuid: `Compendium.${suite.collection}.RollTable.${e._id}`,
-          name: e.name, group: "Compendium", loot: isLootTable(e),
+          name: e.name, group: game.i18n.localize("SDE.loot.group.compendium"), loot: isLootTable(e),
         });
       }
     } catch (_) { /* pack not ready — appears on next render */ }
@@ -219,7 +219,7 @@ export async function gatherLootTables() {
     const doc = await fromUuid(uuid).catch(() => null);
     if (doc?.documentName !== "RollTable") continue;
     seen.add(uuid);
-    tables.push({ uuid, name: doc.name, group: uuid.startsWith("Compendium.") ? "Compendium" : "World" });
+    tables.push({ uuid, name: doc.name, group: game.i18n.localize(uuid.startsWith("Compendium.") ? "SDE.loot.group.compendium" : "SDE.loot.group.world") });
   }
   tables.sort((a, b) => a.name.localeCompare(b.name));
   return tables;
@@ -233,7 +233,7 @@ export async function gatherAddableTables() {
   const current = new Set((await gatherLootTables()).map((t) => t.uuid));
   const out = [];
   for (const t of game.tables.contents) {
-    if (!current.has(t.uuid)) out.push({ uuid: t.uuid, name: t.name, group: "World" });
+    if (!current.has(t.uuid)) out.push({ uuid: t.uuid, name: t.name, group: game.i18n.localize("SDE.loot.group.world") });
   }
   for (const pack of game.packs) {
     if (pack.documentName !== "RollTable") continue;
@@ -257,14 +257,14 @@ export async function gatherPickerManaged() {
   const out = [];
   const seen = new Set();
   for (const t of game.tables.contents) {
-    if (t.getFlag(MODULE_ID, "isLootTable") === true) { out.push({ uuid: t.uuid, name: t.name, group: "World" }); seen.add(t.uuid); }
+    if (t.getFlag(MODULE_ID, "isLootTable") === true) { out.push({ uuid: t.uuid, name: t.name, group: game.i18n.localize("SDE.loot.group.world") }); seen.add(t.uuid); }
   }
   for (const uuid of getPickerExtras()) {
     if (seen.has(uuid)) continue;
     const doc = await fromUuid(uuid).catch(() => null);
     if (doc?.documentName !== "RollTable") continue;
     seen.add(uuid);
-    out.push({ uuid, name: doc.name, group: uuid.startsWith("Compendium.") ? "Compendium" : "World" });
+    out.push({ uuid, name: doc.name, group: game.i18n.localize(uuid.startsWith("Compendium.") ? "SDE.loot.group.compendium" : "SDE.loot.group.world") });
   }
   out.sort((a, b) => a.name.localeCompare(b.name));
   return out;

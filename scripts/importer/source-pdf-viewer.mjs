@@ -19,7 +19,7 @@ export class SourcePdfViewer extends ApplicationV2 {
   static DEFAULT_OPTIONS = {
     id: "sde-source-pdf-viewer",
     tag: "div",
-    window: { title: "Source PDF", icon: "fas fa-file-pdf", resizable: true },
+    window: { title: "SDE.importer.pdf.sourcePdf", icon: "fas fa-file-pdf", resizable: true },
     position: { width: 900, height: 820 },
   };
 

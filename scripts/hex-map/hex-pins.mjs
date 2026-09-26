@@ -82,7 +82,7 @@ export async function deployCrawlJournal(packEntry) {
   });
   let world = game.journal.get(packEntry.id);
   if (!world) return JournalEntry.create(data, { keepId: true });
-  if (!world.getFlag(MODULE_ID, HEX_FLAG)?.crawl) throw new Error(`World journal entry ${packEntry.id} is not this crawl`);
+  if (!world.getFlag(MODULE_ID, HEX_FLAG)?.crawl) throw new Error(t("SDE.hexMap.error.notThisCrawl", { id: packEntry.id }));
   await world.update({ name: data.name, flags: data.flags });
   const updates = data.pages.filter((p) => world.pages.has(p._id)), creates = data.pages.filter((p) => !world.pages.has(p._id));
   if (updates.length) await world.updateEmbeddedDocuments("JournalEntryPage", updates);

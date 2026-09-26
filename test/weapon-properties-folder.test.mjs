@@ -273,8 +273,9 @@ test("failed Property creation blocks the prepass and reports an import error", 
     const draft = siegeDraft(["Blast"]);
     assert.equal(await prepareSiegeProperties([draft]), false);
     assert.equal(world.calls.itemCreates.length, 0);
+    // No i18n in the fake world, so the notice arrives as its en.json key.
     assert.deepEqual(world.calls.notificationErrors, [
-      "Siege weapon Properties could not be prepared; no items were imported. See the console.",
+      "SDE.importer.boatImport.siegePropsFailed",
     ]);
     assert.equal("siegeProperties" in draft, true, "failed prepass consumed the retry marker");
     assert.equal("properties" in draft, false, "failed prepass stamped an incomplete properties list");

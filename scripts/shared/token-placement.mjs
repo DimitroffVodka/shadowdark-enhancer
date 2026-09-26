@@ -28,6 +28,9 @@ import {
   _isPlaceholderArt,
 } from "./art-utils.mjs";
 
+/** `game.i18n.format`, or the key when no i18n is mounted (node tests). */
+const fmt = (key, data = {}) => globalThis.game?.i18n?.format(key, data) ?? key;
+
 /**
  * Get a world actor for a possibly-compendium one.
  *
@@ -126,7 +129,7 @@ export async function placeTokensByClick(queue) {
   if (!entries.length) return { placed: 0, cancelled: false };
 
   if (!canvas?.ready || !canvas.scene) {
-    ui.notifications?.warn("No active scene to place tokens on.");
+    ui.notifications?.warn(fmt("SDE.shared.placement.noScene"));
     return { placed: 0, cancelled: false };
   }
 
@@ -161,9 +164,7 @@ export async function placeTokensByClick(queue) {
     const announce = () => {
       const c = current();
       if (!c) return;
-      ui.notifications?.info(
-        `Click the canvas to place ${c.label} (${placed + 1} of ${total}) — Esc to stop.`,
-      );
+      ui.notifications?.info(fmt("SDE.shared.placement.clickToPlace", { label: c.label, n: placed + 1, total }));
     };
 
     const cleanup = (cancelled) => {
@@ -217,7 +218,7 @@ export async function placeTokensByClick(queue) {
 
       if (placed >= total) {
         cleanup(false);
-        ui.notifications?.info(`Placed all ${total} token${total === 1 ? "" : "s"}.`);
+        ui.notifications?.info(fmt(total === 1 ? "SDE.shared.placement.placedAllOne" : "SDE.shared.placement.placedAllMany", { total }));
       } else {
         announce();
       }
@@ -226,7 +227,7 @@ export async function placeTokensByClick(queue) {
     const onKey = (event) => {
       if (event.key !== "Escape") return;
       cleanup(true);
-      ui.notifications?.info(`Stopped after ${placed} of ${total}.`);
+      ui.notifications?.info(fmt("SDE.shared.placement.stopped", { placed, total }));
     };
 
     document.addEventListener("pointerdown", onClick, true);

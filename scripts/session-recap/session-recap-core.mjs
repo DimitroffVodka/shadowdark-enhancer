@@ -25,6 +25,13 @@ import {
   recapRow as carousingRecapRow, carousingSubtotal, tierLine,
 } from "./carousing-feed-core.mjs";
 
+/** One string from `languages/en.json`; the key when no i18n is mounted. */
+const L = (key, data) => {
+  const i18n = globalThis.game?.i18n;
+  if (!i18n) return key;
+  return data ? i18n.format(key, data) : i18n.localize(key);
+};
+
 /** Empty session payload. Cloned on session start / clear. */
 export const DEFAULT_DATA = {
   sessionState: "inactive",
@@ -108,37 +115,42 @@ export function generateSessionName(timestamp, existingNames = []) {
  */
 export function formatForDiscordFromData(data, startTime, endTime) {
   const lines = [];
-  const duration = startTime ? formatDuration((endTime ?? startTime) - startTime) : "N/A";
-  lines.push("# Session Recap");
-  lines.push(`**Duration:** ${duration}`);
+  const duration = startTime ? formatDuration((endTime ?? startTime) - startTime) : L("SDE.sessionRecap.discord.na");
+  lines.push(`# ${L("SDE.sessionRecap.title")}`);
+  lines.push(`**${L("SDE.sessionRecap.discord.duration")}** ${duration}`);
   lines.push("");
 
   // ── Encounter Checks ───────────────────────────────────────
   const checks = Array.isArray(data.encounterChecks) ? data.encounterChecks : [];
   if (checks.length > 0) {
-    lines.push("## Encounter Checks");
+    lines.push(`## ${L("SDE.sessionRecap.discord.encounterChecks")}`);
     const hits = checks.filter((c) => c.hit).length;
     const hitPct = Math.round((hits / checks.length) * 100);
     const avg = (checks.reduce((a, c) => a + (Number(c.roll) || 0), 0) / checks.length).toFixed(1);
-    lines.push(`${checks.length} rolls — ${hits} encounter${hits === 1 ? "" : "s"} (${hitPct}%) · avg d6: ${avg}`);
+    const summary = { rolls: checks.length, hits, pct: hitPct, avg };
+    lines.push(hits === 1
+      ? L("SDE.sessionRecap.discord.checksOne", summary)
+      : L("SDE.sessionRecap.discord.checksMany", summary));
     lines.push("");
     for (const c of checks) {
       const rollCell = c.hit ? `**${c.roll}**` : `${c.roll}`;
-      const verdict = c.hit ? "💀 **Encounter**" : "✅ safe";
+      const verdict = c.hit
+        ? `💀 **${L("SDE.sessionRecap.discord.encounter")}**`
+        : `✅ ${L("SDE.sessionRecap.discord.safe")}`;
       const clock = c.clockLabel ? ` · ${c.clockLabel}` : "";
       const time = c.time ? `${c.time} · ` : "";
-      lines.push(`- ${time}d6=${rollCell} vs ${c.threshold}${clock} · ${verdict}`);
+      lines.push(`- ${time}${L("SDE.sessionRecap.discord.checkRoll", { roll: rollCell, threshold: c.threshold })}${clock} · ${verdict}`);
     }
     lines.push("");
   }
 
   // ── Combat ─────────────────────────────────────────────────
   if (data.combats.length > 0) {
-    lines.push("## Combat");
+    lines.push(`## ${L("SDE.sessionRecap.discord.combat")}`);
     data.combats.forEach((combat, idx) => {
       const dur = combat.startTime && combat.endTime
         ? ` (${formatDuration(combat.endTime - combat.startTime)})` : "";
-      lines.push(`**Encounter ${idx + 1}** — ${combat.rounds} rounds${dur}`);
+      lines.push(`**${L("SDE.sessionRecap.encounterN", { n: idx + 1 })}** — ${L("SDE.sessionRecap.discord.rounds", { n: combat.rounds })}${dur}`);
 
       const counts = {};
       for (const e of combat.enemies) {
@@ -153,7 +165,7 @@ export function formatForDiscordFromData(data, startTime, endTime) {
       const enemyList = Object.entries(counts)
         .map(([name, c]) => `${name}${c.total > 1 ? ` x${c.total}` : ""}`)
         .join(" · ");
-      lines.push(`- Enemies: ${enemyList}`);
+      lines.push(`- ${L("SDE.sessionRecap.discord.enemies", { list: enemyList })}`);
 
       const defeatedParts = [];
       for (const [name, c] of Object.entries(counts)) {
@@ -165,7 +177,7 @@ export function formatForDiscordFromData(data, startTime, endTime) {
         const label = c.defeated > 1 ? `${name} x${c.defeated}` : name;
         defeatedParts.push(killerStr ? `${label} (${killerStr})` : label);
       }
-      if (defeatedParts.length > 0) lines.push(`- Defeated: ${defeatedParts.join(" · ")}`);
+      if (defeatedParts.length > 0) lines.push(`- ${L("SDE.sessionRecap.discord.defeated", { list: defeatedParts.join(" · ") })}`);
       lines.push("");
     });
   }
@@ -177,31 +189,33 @@ export function formatForDiscordFromData(data, startTime, endTime) {
     || s.damageDealt > 0 || s.damageTaken > 0 || s.kills > 0);
 
   if (statEntries.length > 0) {
-    lines.push("## Player Stats");
+    lines.push(`## ${L("SDE.sessionRecap.discord.playerStats")}`);
+    // "3 nat 20s, 1 nat 1" — singular and plural are separate keys.
+    const nats = (n20, n1) => {
+      const p = [];
+      if (n20 > 0) p.push(n20 > 1 ? L("SDE.sessionRecap.discord.nat20Many", { n: n20 }) : L("SDE.sessionRecap.discord.nat20One", { n: n20 }));
+      if (n1 > 0) p.push(n1 > 1 ? L("SDE.sessionRecap.discord.nat1Many", { n: n1 }) : L("SDE.sessionRecap.discord.nat1One", { n: n1 }));
+      return p.length ? ` — ${p.join(", ")}` : "";
+    };
     for (const [, stats] of statEntries) {
       lines.push(`### ${stats.name}`);
       const totalAtk = stats.attacks.hits + stats.attacks.misses;
       if (totalAtk > 0) {
         const hitPct = Math.round((stats.attacks.hits / totalAtk) * 100);
-        let atkLine = `- **Attacks:** ${stats.attacks.hits}/${totalAtk} hit (${hitPct}%)`;
-        const p = [];
-        if (stats.attacks.nat20s > 0) p.push(`${stats.attacks.nat20s} nat 20${stats.attacks.nat20s > 1 ? "s" : ""}`);
-        if (stats.attacks.nat1s > 0) p.push(`${stats.attacks.nat1s} nat 1${stats.attacks.nat1s > 1 ? "s" : ""}`);
-        if (p.length) atkLine += ` — ${p.join(", ")}`;
-        lines.push(atkLine);
+        const rate = L("SDE.sessionRecap.discord.hitRate", { hits: stats.attacks.hits, total: totalAtk, pct: hitPct });
+        lines.push(`- **${L("SDE.sessionRecap.discord.attacks")}** ${rate}${nats(stats.attacks.nat20s, stats.attacks.nat1s)}`);
       }
       const totalSave = stats.saves.passes + stats.saves.fails;
       if (totalSave > 0) {
-        let saveLine = `- **Checks/Saves:** ${stats.saves.passes}/${totalSave} passed`;
-        const p = [];
-        if (stats.saves.nat20s > 0) p.push(`${stats.saves.nat20s} nat 20${stats.saves.nat20s > 1 ? "s" : ""}`);
-        if (stats.saves.nat1s > 0) p.push(`${stats.saves.nat1s} nat 1${stats.saves.nat1s > 1 ? "s" : ""}`);
-        if (p.length) saveLine += ` — ${p.join(", ")}`;
-        lines.push(saveLine);
+        const rate = L("SDE.sessionRecap.discord.passRate", { passes: stats.saves.passes, total: totalSave });
+        lines.push(`- **${L("SDE.sessionRecap.discord.saves")}** ${rate}${nats(stats.saves.nat20s, stats.saves.nat1s)}`);
       }
-      if (stats.rolls.total > 0) lines.push(`- **Avg d20:** ${(stats.rolls.sum / stats.rolls.total).toFixed(1)}`);
-      if (stats.damageDealt > 0 || stats.damageTaken > 0) lines.push(`- **Damage:** ${stats.damageDealt} dealt / ${stats.damageTaken} taken`);
-      if (stats.kills > 0) lines.push(`- **Kills:** ${stats.kills}`);
+      if (stats.rolls.total > 0) lines.push(`- **${L("SDE.sessionRecap.discord.avgD20")}** ${(stats.rolls.sum / stats.rolls.total).toFixed(1)}`);
+      if (stats.damageDealt > 0 || stats.damageTaken > 0) {
+        const dmg = L("SDE.sessionRecap.discord.damageLine", { dealt: stats.damageDealt, taken: stats.damageTaken });
+        lines.push(`- **${L("SDE.sessionRecap.discord.damage")}** ${dmg}`);
+      }
+      if (stats.kills > 0) lines.push(`- **${L("SDE.sessionRecap.discord.kills")}** ${stats.kills}`);
       lines.push("");
     }
   }
@@ -213,19 +227,19 @@ export function formatForDiscordFromData(data, startTime, endTime) {
       const bucket = e.claimed === false ? unclaimed : claimed;
       (bucket[e.player] ??= []).push(e);
     }
-    lines.push("## Loot");
+    lines.push(`## ${L("SDE.sessionRecap.discord.loot")}`);
     for (const [player, entries] of Object.entries(claimed)) {
       lines.push(`### ${player}`);
       const currency = entries.filter((e) => e.type === "currency");
       const items = entries.filter((e) => e.type === "item");
       if (currency.length > 0) {
         const cp = currency.reduce((s, e) => s + toCopper(e.coins), 0);
-        if (cp > 0) lines.push(`- **Currency:** ${formatCurrency(cp)}`);
+        if (cp > 0) lines.push(`- **${L("SDE.sessionRecap.discord.currency")}** ${formatCurrency(cp)}`);
       }
       if (items.length > 0) {
-        lines.push("- **Items:**");
+        lines.push(`- **${L("SDE.sessionRecap.discord.items")}**`);
         for (const e of items) {
-          const src = e.source ? ` *(from ${e.source})*` : "";
+          const src = e.source ? ` *(${L("SDE.sessionRecap.discord.from", { source: e.source })})*` : "";
           lines.push(`  - ${e.detail}${(e.qty ?? 1) > 1 ? ` ×${e.qty}` : ""}${src}`);
         }
       }
@@ -233,7 +247,7 @@ export function formatForDiscordFromData(data, startTime, endTime) {
     }
     const unclaimedPlayers = Object.entries(unclaimed);
     if (unclaimedPlayers.length > 0) {
-      lines.push("### Unclaimed");
+      lines.push(`### ${L("SDE.sessionRecap.discord.unclaimed")}`);
       for (const [player, entries] of unclaimedPlayers) {
         const bits = [];
         const cp = entries.filter((e) => e.type === "currency").reduce((s, e) => s + toCopper(e.coins), 0);
@@ -241,7 +255,7 @@ export function formatForDiscordFromData(data, startTime, endTime) {
         for (const e of entries.filter((e) => e.type === "item")) {
           bits.push(`${e.detail}${(e.qty ?? 1) > 1 ? ` ×${e.qty}` : ""}`);
         }
-        if (bits.length) lines.push(`- **${player}** (rolled, not claimed): ${bits.join(", ")}`);
+        if (bits.length) lines.push(`- **${player}** ${L("SDE.sessionRecap.discord.notClaimed", { items: bits.join(", ") })}`);
       }
       lines.push("");
     }
@@ -249,7 +263,7 @@ export function formatForDiscordFromData(data, startTime, endTime) {
 
   // ── Sales ──────────────────────────────────────────────────
   if (Array.isArray(data.sales) && data.sales.length > 0) {
-    lines.push("## Sales");
+    lines.push(`## ${L("SDE.sessionRecap.discord.sales")}`);
     const byPlayer = {};
     for (const s of data.sales) (byPlayer[s.player] ??= []).push(s);
     let partyCp = 0;
@@ -263,17 +277,17 @@ export function formatForDiscordFromData(data, startTime, endTime) {
         cp += lineCp;
         lines.push(`- ${e.item}${qtyStr} — ${formatCurrency(lineCp)}${ratioStr}`);
       }
-      lines.push(`- **Subtotal:** ${formatCurrency(cp)}`);
+      lines.push(`- **${L("SDE.sessionRecap.discord.subtotal")}** ${formatCurrency(cp)}`);
       partyCp += cp;
       lines.push("");
     }
-    lines.push(`**Party total:** ${formatCurrency(partyCp)}`);
+    lines.push(`**${L("SDE.sessionRecap.discord.partyTotal")}** ${formatCurrency(partyCp)}`);
     lines.push("");
   }
 
   // ── Purchases ──────────────────────────────────────────────
   if (Array.isArray(data.purchases) && data.purchases.length > 0) {
-    lines.push("## Purchases");
+    lines.push(`## ${L("SDE.sessionRecap.discord.purchases")}`);
     const byPlayer = {};
     for (const p of data.purchases) (byPlayer[p.player] ??= []).push(p);
     let partyCp = 0;
@@ -286,11 +300,11 @@ export function formatForDiscordFromData(data, startTime, endTime) {
         cp += lineCp;
         lines.push(`- ${e.item}${qtyStr} — ${formatCurrency(lineCp)}`);
       }
-      lines.push(`- **Subtotal:** ${formatCurrency(cp)}`);
+      lines.push(`- **${L("SDE.sessionRecap.discord.subtotal")}** ${formatCurrency(cp)}`);
       partyCp += cp;
       lines.push("");
     }
-    lines.push(`**Party total:** ${formatCurrency(partyCp)}`);
+    lines.push(`**${L("SDE.sessionRecap.discord.partyTotal")}** ${formatCurrency(partyCp)}`);
     lines.push("");
   }
 
@@ -302,7 +316,7 @@ export function formatForDiscordFromData(data, startTime, endTime) {
       byPlayer[e.player].entries.push(e);
       byPlayer[e.player].total += e.totalXp;
     }
-    lines.push("## XP");
+    lines.push(`## ${L("SDE.sessionRecap.discord.xp")}`);
     let grandTotal = 0;
     for (const [player, { entries, total }] of Object.entries(byPlayer)) {
       grandTotal += total;
@@ -310,15 +324,15 @@ export function formatForDiscordFromData(data, startTime, endTime) {
       // Consolidate by award label across the session.
       const byLabel = new Map();
       for (const e of entries) {
-        const k = e.label || "Award";
+        const k = e.label || L("SDE.sessionRecap.award");
         byLabel.set(k, (byLabel.get(k) || 0) + e.totalXp);
       }
       for (const [label, xp] of byLabel) lines.push(`- ${label} — ${xp} XP`);
-      lines.push(`- **Total: ${total} XP**`);
+      lines.push(`- **${L("SDE.sessionRecap.discord.totalXp", { n: total })}**`);
       lines.push("");
     }
     if (Object.keys(byPlayer).length > 1) {
-      lines.push(`**Session XP Awarded: ${grandTotal} XP**`);
+      lines.push(`**${L("SDE.sessionRecap.discord.sessionXp", { n: grandTotal })}**`);
       lines.push("");
     }
   }
@@ -329,9 +343,9 @@ export function formatForDiscordFromData(data, startTime, endTime) {
   // appears under Downtime as part of that attempt's effect summary; this
   // section is the renown ledger, the same double-entry Purchases has.
   if (Array.isArray(data.renown) && data.renown.length > 0) {
-    lines.push("## Renown");
+    lines.push(`## ${L("SDE.sessionRecap.discord.renown")}`);
     const byPlayer = {};
-    for (const e of data.renown) (byPlayer[e.player || "GM"] ??= []).push(e);
+    for (const e of data.renown) (byPlayer[e.player || L("SDE.sessionRecap.gm")] ??= []).push(e);
     for (const [player, entries] of Object.entries(byPlayer)) {
       lines.push(`### ${player}`);
       for (const e of entries) lines.push(`- ${renownRecapRow(e)}`);
@@ -343,9 +357,9 @@ export function formatForDiscordFromData(data, startTime, endTime) {
   // The narrative record. Paid attempts ALSO appear under Purchases (the money
   // ledger) — that double-entry is deliberate, see downtime-log.mjs.
   if (Array.isArray(data.downtime) && data.downtime.length > 0) {
-    lines.push("## Downtime");
+    lines.push(`## ${L("SDE.sessionRecap.discord.downtime")}`);
     const byPlayer = {};
-    for (const e of data.downtime) (byPlayer[e.player || "GM"] ??= []).push(e);
+    for (const e of data.downtime) (byPlayer[e.player || L("SDE.sessionRecap.gm")] ??= []).push(e);
     for (const [player, entries] of Object.entries(byPlayer)) {
       lines.push(`### ${player}`);
       for (const e of entries) {
@@ -354,7 +368,8 @@ export function formatForDiscordFromData(data, startTime, endTime) {
       }
       const spent = entries.reduce((s, e) => s + (Number(e.costGp) || 0), 0);
       const won = entries.filter((e) => e.success).length;
-      lines.push(`- **${won}/${entries.length} succeeded**${spent > 0 ? ` · ${spent} gp spent` : ""}`);
+      const tally = L("SDE.sessionRecap.discord.succeeded", { won, n: entries.length });
+      lines.push(`- **${tally}**${spent > 0 ? ` · ${L("SDE.sessionRecap.discord.gpSpent", { gp: spent })}` : ""}`);
       lines.push("");
     }
   }
@@ -364,18 +379,18 @@ export function formatForDiscordFromData(data, startTime, endTime) {
   // because a carouse is one shared event the whole party bought into — the
   // tier and its cost belong to the night, not to any one character.
   if (Array.isArray(data.carousing) && data.carousing.length > 0) {
-    lines.push("## Carousing");
+    lines.push(`## ${L("SDE.sessionRecap.discord.carousing")}`);
     for (const carouse of data.carousing) {
       const entries = Array.isArray(carouse.entries) ? carouse.entries : [];
-      lines.push(`**${carouse.date || "Carouse"}** — ${carousingSubtotal(entries)}`);
+      lines.push(`**${carouse.date || L("SDE.sessionRecap.carouse")}** — ${carousingSubtotal(entries)}`);
       const tier = tierLine(carouse);
       if (tier) lines.push(`*${tier}*`);
       for (const e of entries) {
         lines.push(`- ${carousingRecapRow(e)}`);
-        for (const b of e.benefits ?? []) lines.push(`  - Benefit: ${b.text}`);
-        for (const m of e.mishaps ?? []) lines.push(`  - Mishap: ${m.text}`);
+        for (const b of e.benefits ?? []) lines.push(`  - ${L("SDE.sessionRecap.discord.benefit", { text: b.text })}`);
+        for (const m of e.mishaps ?? []) lines.push(`  - ${L("SDE.sessionRecap.discord.mishap", { text: m.text })}`);
         if (e.applied) lines.push(`  - *${e.applied}*`);
-        else if (e.appliedState === "pending") lines.push("  - *not applied*");
+        else if (e.appliedState === "pending") lines.push(`  - *${L("SDE.sessionRecap.discord.notApplied")}*`);
       }
       lines.push("");
     }
@@ -387,9 +402,12 @@ export function formatForDiscordFromData(data, startTime, endTime) {
     for (const e of data.luckSpent) {
       (byPlayer[e.player] ??= []).push(e);
     }
-    lines.push("## Luck Spent");
+    lines.push(`## ${L("SDE.sessionRecap.discord.luckSpent")}`);
     for (const [player, entries] of Object.entries(byPlayer)) {
-      lines.push(`- **${player}:** ${entries.length} token${entries.length !== 1 ? "s" : ""}`);
+      const n = entries.length;
+      lines.push(`- **${player}:** ${n !== 1
+        ? L("SDE.sessionRecap.discord.tokenMany", { n })
+        : L("SDE.sessionRecap.discord.tokenOne", { n })}`);
       for (const e of entries) {
         lines.push(`  - ${e.formula}: ${e.oldTotal} → ${e.newTotal}`);
       }
@@ -397,6 +415,6 @@ export function formatForDiscordFromData(data, startTime, endTime) {
     lines.push("");
   }
 
-  if (lines.length <= 3) return "No session activity recorded.";
+  if (lines.length <= 3) return L("SDE.sessionRecap.discord.empty");
   return lines.join("\n");
 }

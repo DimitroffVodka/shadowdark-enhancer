@@ -37,7 +37,8 @@ import { cardHit, isAttackCard, targetActorOf, attackerActorOf } from "../shared
 /** The one authenticated player→GM channel for parries. */
 export const PARRY_QUERY = `${MODULE_ID}.parry`;
 
-const RELAY_LABEL = "parries";
+/** Localized at use: i18n is not ready when this module loads. */
+const RELAY_LABEL = "SDE.parry.relayLabel";
 
 /** Ability name to fall back on when nothing carries the flag (pre-flag worlds). */
 const PARRY_NAME = "parry";
@@ -250,7 +251,7 @@ export const Parry = {
       if (isActiveGM()) {
         const reply = await Parry._handleParry(request);
         if (!reply?.ok) { btn.disabled = false; if (reply?.error) ui.notifications?.warn(reply.error); }
-      } else if (!await relayToGM(PARRY_QUERY, request, { label: RELAY_LABEL })) {
+      } else if (!await relayToGM(PARRY_QUERY, request, { label: game.i18n.localize(RELAY_LABEL) })) {
         btn.disabled = false;
       }
     });
@@ -294,17 +295,17 @@ export const Parry = {
 
   /** Query entry point — the only way a player reaches the handler. */
   async handleQuery(data, user) {
-    const refusal = refuseQuery(user, "Parries");
+    const refusal = refuseQuery(user, game.i18n.localize("SDE.parry.refuseLabel"));
     if (refusal) return refusal;
     if (data?.action === "parry") return this._handleParry(data, user);
-    return { ok: false, error: "Unknown parry action." };
+    return { ok: false, error: game.i18n.localize("SDE.parry.error.unknown") };
   },
 
   /** One parry per card at a time; the work is in `_resolveParry`. */
   async _handleParry(request, user = game.user) {
     const { messageId } = request ?? {};
-    if (!messageId) return { ok: false, error: "That attack card is gone." };
-    if (_inFlight.has(messageId)) return { ok: false, error: "That parry is already being resolved." };
+    if (!messageId) return { ok: false, error: game.i18n.localize("SDE.parry.error.cardGone") };
+    if (_inFlight.has(messageId)) return { ok: false, error: game.i18n.localize("SDE.parry.error.inFlight") };
     _inFlight.add(messageId);
     try {
       return await this._resolveParry(request, user);
@@ -319,12 +320,12 @@ export const Parry = {
    */
   async _resolveParry({ messageId, actorId }, user = game.user) {
     const message = game.messages.get(messageId);
-    if (!message) return { ok: false, error: "That attack card is gone." };
-    if (message.flags?.[MODULE_ID]?.parry) return { ok: false, error: "That attack was already parried." };
+    if (!message) return { ok: false, error: game.i18n.localize("SDE.parry.error.cardGone") };
+    if (message.flags?.[MODULE_ID]?.parry) return { ok: false, error: game.i18n.localize("SDE.parry.error.already") };
     // Re-asked here rather than trusted from the click: a client decides what
     // to SHOW, never what is true, and a stale or hand-made request could name
     // a spell card.
-    if (!isAttackCard(message)) return { ok: false, error: "That roll wasn't an attack." };
+    if (!isAttackCard(message)) return { ok: false, error: game.i18n.localize("SDE.parry.error.notAttack") };
 
     const auth = authorizeActorFor(actorId, user);
     if (!auth.ok) return auth;
@@ -334,7 +335,7 @@ export const Parry = {
     // spend their own Parry to wave away a blow aimed at somebody else.
     const target = await targetActorOf(message);
     if (!target || target.id !== actor.id) {
-      return { ok: false, error: "That attack wasn't aimed at your character." };
+      return { ok: false, error: game.i18n.localize("SDE.parry.error.notTarget") };
     }
 
     const ability = findParryAbility(actor);
@@ -349,12 +350,12 @@ export const Parry = {
     });
     if (!verdict.ok) {
       const errors = {
-        "no-ability": "That character has no Parry ability.",
-        "missed": "That attack missed anyway.",
-        "no-uses": "No Parry uses left today.",
-        "lost": "That ability is spent until you rest.",
+        "no-ability": "SDE.parry.error.noAbility",
+        "missed": "SDE.parry.error.missed",
+        "no-uses": "SDE.parry.error.noUses",
+        "lost": "SDE.parry.error.lost",
       };
-      return { ok: false, error: errors[verdict.reason] ?? "That attack can't be parried." };
+      return { ok: false, error: game.i18n.localize(errors[verdict.reason] ?? "SDE.parry.error.cantParry") };
     }
 
     // Spend first: if the reversal below throws, a used Parry is the safe

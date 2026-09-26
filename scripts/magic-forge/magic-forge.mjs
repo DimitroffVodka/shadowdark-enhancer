@@ -14,7 +14,8 @@
  * the bug this rebuild fixes. Armor uses the direct `system.ac.modifier` slot.
  *
  * Pure module: no Foundry globals are touched at module scope or inside
- * `assembleItemData`, so the engine stays unit-testable under `node --test`.
+ * `assembleItemData` (bar the guarded `game.i18n` read in `L`, which falls back
+ * to the key), so the engine stays unit-testable under `node --test`.
  * Ships no table contents.
  */
 import { MODULE_ID } from "../shared/module-id.mjs";
@@ -34,14 +35,24 @@ const SD_TYPE = { weapon: "Weapon", armor: "Armor", scroll: "Scroll", wand: "Wan
 // under node --test. Numeric `mode` is deprecated since v14, removed in v16.
 const AE_CHANGE_ADD = "add";
 
+/** One string from `languages/en.json`; the key when no i18n is mounted. */
+const L = (key, data) => {
+  const i18n = globalThis.game?.i18n;
+  if (!i18n) return key;
+  return data ? i18n.format(key, data) : i18n.localize(key);
+};
+
 // Generic label for a Core-mode descriptive rider role (never book prose).
+// Keys, localized when the description is written.
 const DESCRIPTOR_LABELS = {
-  feature: "Feature", benefit: "Benefit", curse: "Curse",
-  virtue: "Virtue", flaw: "Flaw", trait: "Personality", type: "Type",
+  feature: "SDE.magicForge.descriptor.feature", benefit: "SDE.magicForge.descriptor.benefit",
+  curse: "SDE.magicForge.descriptor.curse", virtue: "SDE.magicForge.descriptor.virtue",
+  flaw: "SDE.magicForge.descriptor.flaw", trait: "SDE.magicForge.descriptor.trait",
+  type: "SDE.magicForge.descriptor.type",
 };
 
 /** A visible marker that a descriptive rider is NOT mechanized by the system. */
-const NON_AUTO_MARKER = `<em class="sde-forge-nonauto">(descriptive — apply at the table)</em>`;
+const nonAutoMarker = () => `<em class="sde-forge-nonauto">${esc(L("SDE.magicForge.nonAuto"))}</em>`;
 
 // Legacy count/bonus curves. No longer on the create path (the rebuild does not
 // auto-roll flavor), but retained as exports because the unit tests pin them and
@@ -79,7 +90,7 @@ export function parseBonusValue(text) {
 export function resolveSelectedBonus(text) {
   const n = parseBonusValue(text);
   if (n == null) {
-    throw new Error("The selected Bonus result is not a usable +N value (expected +0 to +3). Clear it or pick a numeric bonus result.");
+    throw new Error(L("SDE.magicForge.error.bonusNotUsable"));
   }
   return n;
 }
@@ -154,7 +165,7 @@ function applyBonus(itemData, type, bonus) {
     itemData.effects = itemData.effects ?? [];
     itemData.effects.push(
       {
-        name: `Magic Weapon Attack Bonus (+${bonus})`,
+        name: L("SDE.magicForge.effect.attack", { bonus }),
         img: "icons/skills/melee/strike-polearm-glowing-white.webp",
         disabled: false,
         transfer: true,
@@ -162,7 +173,7 @@ function applyBonus(itemData, type, bonus) {
         flags: { [MODULE_ID]: { forgeBonus: true } },
       },
       {
-        name: `Magic Weapon Damage Bonus (+${bonus})`,
+        name: L("SDE.magicForge.effect.damage", { bonus }),
         img: "icons/weapons/ammunition/arrow-head-war-flight.webp",
         disabled: false,
         transfer: true,
@@ -211,14 +222,15 @@ export function assembleItemData(draft) {
 
   // ── Optional forged flavor text (appended to any carried-through description) ──
   const parts = [];
-  if (draft.feature) parts.push(`<p><strong>Feature:</strong> ${esc(draft.feature)}</p>`);
-  for (const b of draft.benefits ?? []) if (b) parts.push(`<p><strong>Benefit:</strong> ${esc(b)}</p>`);
-  if (draft.curse) parts.push(`<p><strong>Curse:</strong> ${esc(draft.curse)}</p>`);
+  const line = (role, text) => `<p><strong>${esc(L(DESCRIPTOR_LABELS[role]))}:</strong> ${esc(text)}</p>`;
+  if (draft.feature) parts.push(line("feature", draft.feature));
+  for (const b of draft.benefits ?? []) if (b) parts.push(line("benefit", b));
+  if (draft.curse) parts.push(line("curse", draft.curse));
   const p = draft.personality;
   if (p?.present) {
-    if (p.virtue) parts.push(`<p><strong>Virtue:</strong> ${esc(p.virtue)}</p>`);
-    if (p.flaw) parts.push(`<p><strong>Flaw:</strong> ${esc(p.flaw)}</p>`);
-    if (p.trait) parts.push(`<p><strong>Personality:</strong> ${esc(p.trait)}</p>`);
+    if (p.virtue) parts.push(line("virtue", p.virtue));
+    if (p.flaw) parts.push(line("flaw", p.flaw));
+    if (p.trait) parts.push(line("trait", p.trait));
   }
   // ── Core-mode descriptive riders (Feature/Benefit/Curse/Virtue/Flaw/Trait) ──
   // Each is escaped and carries a visible non-automated marker; "type" rows are
@@ -226,8 +238,9 @@ export function assembleItemData(draft) {
   for (const d of draft.descriptors ?? []) {
     const text = String(d?.text ?? "").trim();
     if (!text || d?.role === "type") continue;
-    const label = DESCRIPTOR_LABELS[d.role] ?? (d.role ? d.role[0].toUpperCase() + d.role.slice(1) : "Detail");
-    parts.push(`<p><strong>${esc(label)}:</strong> ${esc(text)} ${NON_AUTO_MARKER}</p>`);
+    const label = DESCRIPTOR_LABELS[d.role] ? L(DESCRIPTOR_LABELS[d.role])
+      : (d.role ? d.role[0].toUpperCase() + d.role.slice(1) : L("SDE.magicForge.descriptor.detail"));
+    parts.push(`<p><strong>${esc(label)}:</strong> ${esc(text)} ${nonAutoMarker()}</p>`);
   }
   const flavor = parts.join("\n");
   const baseDesc = data.system.description ?? "";

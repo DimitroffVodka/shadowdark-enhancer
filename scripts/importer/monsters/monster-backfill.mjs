@@ -15,6 +15,7 @@
  * monster-pack, monster-linker) are loaded lazily via dynamic import() so that
  * the pure detectChanges helper can be imported in Foundry-free node:test suites.
  */
+import { t as tr } from "../importer-hub-shared.mjs";
 
 /** Item types the backfill rebuilds (matches what a fresh import creates). */
 const BACKFILL_ITEM_TYPES = new Set(["NPC Attack", "NPC Special Attack", "NPC Feature", "Spell"]);
@@ -225,7 +226,7 @@ export function detectChanges(actor, builtActorData, builtItems) {
  */
 export async function backfillActor(actor, { dryRun = false } = {}) {
   if (!game.user?.isGM) {
-    ui.notifications?.warn("Only a GM can run the monster backfill.");
+    ui.notifications?.warn(tr("SDE.importer.monsterImporter.notify.gmBackfill"));
     return null;
   }
 
@@ -416,7 +417,7 @@ export async function backfillTargets({
   dryRun = false,
 } = {}) {
   if (!game.user?.isGM) {
-    ui.notifications?.warn("Only a GM can run the monster backfill.");
+    ui.notifications?.warn(tr("SDE.importer.monsterImporter.notify.gmBackfill"));
     return null;
   }
 
@@ -427,7 +428,7 @@ export async function backfillTargets({
   if (scope === "pack") {
     const pack = packCollection ?? findMonsterPack();
     if (!pack) {
-      ui.notifications?.warn("No imported-monsters compendium found. Import some monsters first.");
+      ui.notifications?.warn(tr("SDE.importer.monsterImporter.notify.noPack"));
       return { dryRun, total: 0, changed: [], unchanged: [], failed: [], totals: _zeroTotals() };
     }
     const docs = await pack.getDocuments();

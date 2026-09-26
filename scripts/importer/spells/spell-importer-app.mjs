@@ -20,23 +20,26 @@ import { joinPageTexts } from "../pdf-text-utils.mjs";
 import { SPELL_LISTS, CHAR_SOURCES, spellListWriteupRange } from "../char-content/char-content-manifest.mjs";
 import { sourcePdfHref } from "../source-pdf-registry.mjs";
 import { MODULE_ID } from "../../shared/module-id.mjs";
+import { t as tr } from "../importer-hub-shared.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
 const SOURCE_SUGGESTIONS = ["CS1", "CS2", "CS3", "CS4", "CS5", "CS6", "Western Reaches"];
+// Labels are en.json keys, localized at render (i18n isn't ready at import).
 const ALIGNMENTS = [
-  { value: "", label: "Universal (any alignment)" },
-  { value: "lawful", label: "Lawful" },
-  { value: "neutral", label: "Neutral" },
-  { value: "chaotic", label: "Chaotic" },
+  { value: "", label: "SDE.importer.spellImporter.universalAny" },
+  { value: "lawful", label: "SDE.importer.cls.lawful" },
+  { value: "neutral", label: "SDE.importer.cls.neutral" },
+  { value: "chaotic", label: "SDE.importer.cls.chaotic" },
 ];
+const _alignments = () => ALIGNMENTS.map((a) => ({ ...a, label: tr(a.label) }));
 const _strip = (h) => String(h ?? "").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
 const _titleCase = (s) => String(s ?? "").replace(/\S+/g, (w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase());
 
 export class SpellImporterApp extends HandlebarsApplicationMixin(ApplicationV2) {
   static DEFAULT_OPTIONS = {
     id: "sde-spell-importer",
-    window: { title: "Spell Importer", icon: "fa-solid fa-wand-sparkles", resizable: true },
+    window: { title: "SDE.importer.spellImporter.title", icon: "fa-solid fa-wand-sparkles", resizable: true },
     position: { width: 760, height: 820 },
     actions: {
       siParse:     SpellImporterApp.prototype._onParse,
@@ -81,19 +84,20 @@ export class SpellImporterApp extends HandlebarsApplicationMixin(ApplicationV2) 
   async _prepareContext() {
     // Group the parsed spells by Class → Tier → Alignment for the "broken up" view.
     const groups = new Map();
+    const alignments = _alignments();
     this._spells.forEach((s, idx) => {
-      const cls = (s.className || "").trim() || "(unclassed)";
+      const cls = (s.className || "").trim() || tr("SDE.importer.spellImporter.unclassedGroup");
       const al = s.alignment || "";
       const key = `${cls.toLowerCase()}||${s.tier}||${al}`;
       if (!groups.has(key)) groups.set(key, {
         class: _titleCase(cls), tier: s.tier,
-        alignmentLabel: (ALIGNMENTS.find((a) => a.value === al) ?? ALIGNMENTS[0]).label,
+        alignmentLabel: (alignments.find((a) => a.value === al) ?? alignments[0]).label,
         spells: [],
       });
       groups.get(key).spells.push({
         idx, name: s.name, tier: s.tier, className: s.className ?? "", alignment: s.alignment ?? "",
         desc: _strip(s.description).slice(0, 90),
-        alignOptions: ALIGNMENTS.map((a) => ({ ...a, selected: (s.alignment || "") === a.value })),
+        alignOptions: alignments.map((a) => ({ ...a, selected: (s.alignment || "") === a.value })),
         warn: (s.warnings?.length ?? 0) > 0,
       });
     });
@@ -112,7 +116,7 @@ export class SpellImporterApp extends HandlebarsApplicationMixin(ApplicationV2) 
       listPdf, listPage: list?.page ?? null, listLabel: list?.label ?? null,
       pasteText: this._pasteText,
       bulkClass: this._bulkClass,
-      bulkAlignOptions: ALIGNMENTS.map((a) => ({ ...a, selected: this._bulkAlignment === a.value })),
+      bulkAlignOptions: alignments.map((a) => ({ ...a, selected: this._bulkAlignment === a.value })),
       spellCount: this._spells.length,
       groups: groupList,
       summary: this._summary(),
@@ -130,7 +134,13 @@ export class SpellImporterApp extends HandlebarsApplicationMixin(ApplicationV2) 
     const classes = [...new Set(this._spells.map((s) => (s.className || "").trim()).filter(Boolean))];
     const tiers = [...new Set(this._spells.map((s) => Number(s.tier)).filter(Boolean))].sort((a, b) => a - b);
     const aligns = [...new Set(this._spells.map((s) => s.alignment || "universal"))];
-    return `${this._spells.length} spell${this._spells.length === 1 ? "" : "s"} · ${classes.map(_titleCase).join(", ") || "unclassed"} · tier${tiers.length > 1 ? "s" : ""} ${tiers.join(", ") || "?"} · ${aligns.map((a) => a === "universal" ? "universal" : _titleCase(a)).join(", ")}`;
+    const n = this._spells.length;
+    return [
+      tr(n === 1 ? "SDE.importer.spellImporter.summarySpell" : "SDE.importer.spellImporter.summarySpells", { n }),
+      classes.map(_titleCase).join(", ") || tr("SDE.importer.spellImporter.unclassed"),
+      tr(tiers.length > 1 ? "SDE.importer.spellImporter.summaryTiers" : "SDE.importer.spellImporter.summaryTier", { tiers: tiers.join(", ") || "?" }),
+      aligns.map((a) => a === "universal" ? tr("SDE.importer.spellImporter.universal") : _titleCase(a)).join(", "),
+    ].join(" · ");
   }
 
   // ── Render wiring ──────────────────────────────────────────────────────────
@@ -178,7 +188,7 @@ export class SpellImporterApp extends HandlebarsApplicationMixin(ApplicationV2) 
     const { claimed } = spellRecognizer.claim(this._pasteText);
     const results = spellRecognizer.parse(claimed);
     if (!results.length) {
-      ui.notifications?.warn("No spells found — each spell needs a name line, a 'Tier N' line, and a Range/Duration line.");
+      ui.notifications?.warn(tr("SDE.importer.spellImporter.notify.noSpells"));
       return;
     }
     // Default each spell's class + alignment from the bulk bar (editable per-spell).
@@ -206,7 +216,7 @@ export class SpellImporterApp extends HandlebarsApplicationMixin(ApplicationV2) 
       if (this._spells.length) this._onApplyBulk();   // re-tag anything already parsed
       if (openPdf) {
         const href = sourcePdfHref(list.source, list.page);
-        if (href) this._showPdf(href, `${list.label}${list.page ? ` — p.${list.page}` : ""}`);
+        if (href) this._showPdf(href, `${list.label}${list.page ? tr("SDE.importer.pdf.atPage", { page: list.page }) : ""}`);
       }
     }
     this.render();
@@ -274,9 +284,11 @@ export class SpellImporterApp extends HandlebarsApplicationMixin(ApplicationV2) 
     // reach the preview as clean-looking spell text with no way to notice.
     (await import("../pdf-text-extract.mjs")).notifyGutterWarnings(res);
     const lastKept = printed[kept.length - 1] ?? printed[0];
-    const span = printed[0] === lastKept ? `p.${printed[0]}` : `p.${printed[0]}–${lastKept}`;
-    if (n) ui.notifications?.info(`Pulled ${span} and parsed ${n} spell${n === 1 ? "" : "s"} — review, then Import.`);
-    else   ui.notifications?.warn(`Pulled ${span} but found no spell writeups — widen the pages with “Grab from PDF”.`);
+    const span = printed[0] === lastKept
+      ? tr("SDE.importer.spellImporter.spanPage", { page: printed[0] })
+      : tr("SDE.importer.spellImporter.spanPages", { from: printed[0], to: lastKept });
+    if (n) ui.notifications?.info(tr(n === 1 ? "SDE.importer.spellImporter.notify.pulledOne" : "SDE.importer.spellImporter.notify.pulledMany", { span, n }));
+    else   ui.notifications?.warn(tr("SDE.importer.spellImporter.notify.pulledNone", { span }));
     return n > 0;
   }
 
@@ -285,8 +297,8 @@ export class SpellImporterApp extends HandlebarsApplicationMixin(ApplicationV2) 
     const list = this._selectedList();
     if (!list) return;
     const href = sourcePdfHref(list.source, list.page);
-    if (href) this._showPdf(href, `${list.label}${list.page ? ` — p.${list.page}` : ""}`);
-    else ui.notifications?.warn(`No uploaded PDF for ${CHAR_SOURCES[list.source]?.label ?? list.source} — add it in the hub's Source PDFs manager.`);
+    if (href) this._showPdf(href, `${list.label}${list.page ? tr("SDE.importer.pdf.atPage", { page: list.page }) : ""}`);
+    else ui.notifications?.warn(tr("SDE.importer.spellImporter.notify.noPdfFor", { book: CHAR_SOURCES[list.source]?.label ?? list.source }));
   }
 
   async _showPdf(href, title) {
@@ -305,7 +317,7 @@ export class SpellImporterApp extends HandlebarsApplicationMixin(ApplicationV2) 
   async _onGrabPdf() {
     const { listSourcePdfs, resolveSourcePdf } = await import("../source-pdf-registry.mjs");
     const rows = (await listSourcePdfs()).filter((r) => r.linked && r.file);
-    if (!rows.length) { ui.notifications?.warn("No source PDFs linked yet — add them in the hub's Source PDFs manager."); return; }
+    if (!rows.length) { ui.notifications?.warn(tr("SDE.importer.spellImporter.notify.noPdfsLinked")); return; }
 
     // Default the book + page from the selected preset list, else the source field.
     const list = this._selectedList();
@@ -322,52 +334,50 @@ export class SpellImporterApp extends HandlebarsApplicationMixin(ApplicationV2) 
       .join("");
 
     const picked = await foundry.applications.api.DialogV2.wait({
-      window: { title: "Grab spells from PDF", icon: "fas fa-wand-sparkles" },
+      window: { title: "SDE.importer.spellImporter.grab.title", icon: "fas fa-wand-sparkles" },
       content: `
-        <p>Pull spell writeups out of your book with Foundry's built-in PDF engine —
-        nothing is uploaded. Writeups (name · Tier · Duration · Range · rules) usually
-        span several pages.</p>
+        <p>${tr("SDE.importer.spellImporter.grab.lead")}</p>
         <div style="display:grid;grid-template-columns:auto 1fr;gap:0.4rem 0.6rem;align-items:center;">
-          <label><strong>Book</strong></label><select name="src">${options}</select>
-          <label><strong>Pages</strong></label><input name="pages" type="text" value="${defaultPage}" placeholder="e.g. 17-21 or 122,124">
-          <label><strong>Columns</strong></label>
-          <select name="cols"><option value="auto" selected>Auto-detect</option><option value="1">Single</option><option value="2">Two</option></select>
+          <label><strong>${tr("SDE.importer.downtime.book")}</strong></label><select name="src">${options}</select>
+          <label><strong>${tr("SDE.importer.extract.pages")}</strong></label><input name="pages" type="text" value="${defaultPage}" placeholder="${foundry.utils.escapeHTML(tr("SDE.importer.spellImporter.grab.pagesPlaceholder"))}">
+          <label><strong>${tr("SDE.importer.extract.columns")}</strong></label>
+          <select name="cols"><option value="auto" selected>${tr("SDE.importer.extract.auto")}</option><option value="1">${tr("SDE.importer.spellImporter.grab.single")}</option><option value="2">${tr("SDE.importer.spellImporter.grab.two")}</option></select>
         </div>
-        <p class="notes">Book PDF page numbers. A preset's cited page is the spell <em>list</em>; the writeups usually begin at or just after it.</p>`,
+        <p class="notes">${tr("SDE.importer.spellImporter.grab.notes")}</p>`,
       buttons: [
-        { action: "extract", label: "Grab", icon: "fas fa-wand-sparkles", default: true,
+        { action: "extract", label: "SDE.importer.spellImporter.grab.grab", icon: "fas fa-wand-sparkles", default: true,
           callback: (event, button) => ({
             src: button.form.elements.src.value,
             pages: button.form.elements.pages.value,
             cols: button.form.elements.cols.value,
           }) },
-        { action: "cancel", label: "Cancel", icon: "fas fa-xmark" },
+        { action: "cancel", label: "SDE.importer.btn.cancel", icon: "fas fa-xmark" },
       ],
       rejectClose: false,
     }).catch(() => null);
     if (!picked || picked === "cancel") return;
 
     const file = resolveSourcePdf(picked.src);
-    if (!file) { ui.notifications?.warn("That book isn't linked to a PDF."); return; }
+    if (!file) { ui.notifications?.warn(tr("SDE.importer.pdf.bookNotLinked")); return; }
     let res;
     try {
       const { extractPdfText, parsePageRange } = await import("../pdf-text-extract.mjs");
       const first = await extractPdfText(file, { pages: [1] });   // cheap open for page count
       const pages = parsePageRange(picked.pages, first.numPages);
-      if (!pages.length) { ui.notifications?.warn("Enter at least one valid page number."); return; }
+      if (!pages.length) { ui.notifications?.warn(tr("SDE.importer.pdf.needPage")); return; }
       res = await extractPdfText(file, { pages, columns: picked.cols });
     } catch (err) {
       console.error("Shadowdark Enhancer | spell PDF grab failed", err);
-      ui.notifications?.error(`Couldn't read text from that PDF — ${err?.message || err} (details in the console).`);
+      ui.notifications?.error(tr("SDE.importer.pdf.readFailed", { error: err?.message || err }));
       return;
     }
-    if (!res.text) { ui.notifications?.warn("Those pages have no selectable text."); return; }
+    if (!res.text) { ui.notifications?.warn(tr("SDE.importer.spellImporter.notify.pagesNoText")); return; }
     const base = (this._pasteText || "").replace(/\s*$/, "");
     this._pasteText = base ? `${base}\n${res.text}\n` : `${res.text}\n`;
     if (CHAR_SOURCES[picked.src]) this._source = CHAR_SOURCES[picked.src].label;
     this.render();
     const empties = res.pages.filter((p) => p.empty).length;
-    ui.notifications?.info(`Grabbed ${res.pages.length - empties} page(s) into the paste box — click Parse to detect spells.`);
+    ui.notifications?.info(tr("SDE.importer.spellImporter.notify.grabbed", { n: res.pages.length - empties }));
     // A mis-detected gutter moves a word between columns and still parses
     // clean, so flag an uncertain column split while the text is reviewable.
     (await import("../pdf-text-extract.mjs")).notifyGutterWarnings(res);
@@ -388,8 +398,8 @@ export class SpellImporterApp extends HandlebarsApplicationMixin(ApplicationV2) 
   }
 
   async _onImport() {
-    if (!game.user?.isGM) { ui.notifications?.warn("Only a GM can import spells."); return; }
-    if (!this._spells.length) { ui.notifications?.warn("Parse some spells first."); return; }
+    if (!game.user?.isGM) { ui.notifications?.warn(tr("SDE.importer.gm.spells")); return; }
+    if (!this._spells.length) { ui.notifications?.warn(tr("SDE.importer.spellImporter.notify.parseFirst")); return; }
     const { ItemImporter } = await import("../items/item-importer.mjs");
     const { resolveSpellClass, ClassIndex } = await import("../char-content/class-index.mjs");
     ClassIndex.invalidate();   // a class imported this session (e.g. Necromancer) must resolve
@@ -411,12 +421,12 @@ export class SpellImporterApp extends HandlebarsApplicationMixin(ApplicationV2) 
       created: result.created.length,
       skipped: result.skipped.length,
       classes: [...new Set(this._spells.map((s) => _titleCase((s.className || "").trim())).filter(Boolean))].join(", "),
-      alignments: [...new Set(this._spells.map((s) => s.alignment || "universal"))].map((a) => a === "universal" ? "universal" : _titleCase(a)).join(", "),
+      alignments: [...new Set(this._spells.map((s) => s.alignment || "universal"))].map((a) => a === "universal" ? tr("SDE.importer.spellImporter.universal") : _titleCase(a)).join(", "),
     };
-    const parts = [`${result.created.length} created`];
-    if (result.skipped.length) parts.push(`${result.skipped.length} already existed`);
-    if (unresolved.length) parts.push(`${unresolved.length} without a class link`);
-    ui.notifications?.info(`Spells: ${parts.join(", ")} → world.spells.`);
+    const parts = [tr("SDE.importer.bundle.created", { n: result.created.length })];
+    if (result.skipped.length) parts.push(tr("SDE.importer.spellImporter.existed", { n: result.skipped.length }));
+    if (unresolved.length) parts.push(tr("SDE.importer.spellImporter.noClassLink", { n: unresolved.length }));
+    ui.notifications?.info(tr("SDE.importer.spellImporter.notify.done", { summary: parts.join(", ") }));
     if (unresolved.length) console.warn(`${MODULE_ID} | Spell Importer — no class link for: ${unresolved.join(", ")}`);
     // Tell any open Character Builder / Importer Hub to drop caches + re-render so
     // the newly-imported spells flip from gap→have without a close/reopen.

@@ -26,7 +26,7 @@ const { renderTemplate } = foundry.applications.handlebars;
 const CARD_TEMPLATE = "modules/shadowdark-enhancer/templates/chat/loot-card.hbs";
 
 /** Fills "…needs a reload before X can land" for an undeliverable claim. */
-const LOOT_RELAY_LABEL = "loot claims";
+const LOOT_RELAY_LABEL = "SDE.loot.card.relayLabel";
 
 /**
  * The one authenticated player→GM channel for claims, namespaced per Foundry's
@@ -63,11 +63,11 @@ export const LootDelivery = {
    * @returns {Promise<{ok: boolean, error?: string}>}
    */
   async handleQuery(data, user) {
-    const refusal = refuseQuery(user, "Loot claims");
+    const refusal = refuseQuery(user, game.i18n.localize("SDE.loot.card.queryLabel"));
     if (refusal) return refusal;
     if (data?.action === "lootClaimItem") return this._handleClaimItem(data, user);
     if (data?.action === "lootClaimCoins") return this._handleClaimCoins(data, user);
-    return { ok: false, error: "Unknown loot action." };
+    return { ok: false, error: game.i18n.localize("SDE.loot.card.error.unknownAction") };
   },
 
   /**
@@ -76,7 +76,7 @@ export const LootDelivery = {
    * owners + all GMs (used by "Roll for Selected Token").
    */
   async postCard(batch, { whisperToActor = null } = {}) {
-    if (!game.user?.isGM) { ui.notifications?.warn("Only a GM can post loot."); return null; }
+    if (!game.user?.isGM) { ui.notifications?.warn(game.i18n.localize("SDE.loot.card.notify.gmOnlyPost")); return null; }
     const flags = {
       lootCard: true,
       tier: batch.tier,
@@ -99,7 +99,7 @@ export const LootDelivery = {
     const content = await this._renderCard(flags);
     const data = {
       content,
-      speaker: { alias: "Loot" },
+      speaker: { alias: game.i18n.localize("SDE.loot.label") },
       flags: { [MODULE_ID]: flags },
     };
     if (whisperToActor) {
@@ -178,13 +178,13 @@ export const LootDelivery = {
         const idx = Number(btn.dataset.itemIndex);
         const actor = game.user.character
           ?? game.actors.find(a => a.type === "Player" && a.isOwner);
-        if (!actor) { ui.notifications.warn("No character assigned to claim with."); return; }
+        if (!actor) { ui.notifications.warn(game.i18n.localize("SDE.loot.card.notify.noCharacter")); return; }
         btn.disabled = true;
         const request = { action: "lootClaimItem", messageId: message.id, itemIndex: idx, actorId: actor.id };
         if (game.user.isGM) await this._handleClaimItem(request);
         // A refused claim never re-renders this card — hand the button back or
         // the item looks permanently claimed.
-        else if (!await relayToGM(LOOT_QUERY, request, { label: LOOT_RELAY_LABEL })) btn.disabled = false;
+        else if (!await relayToGM(LOOT_QUERY, request, { label: game.i18n.localize(LOOT_RELAY_LABEL) })) btn.disabled = false;
       });
     });
 
@@ -220,11 +220,11 @@ export const LootDelivery = {
       claimCoinsBtn.addEventListener("click", async () => {
         const actor = game.user.character
           ?? game.actors.find(a => a.type === "Player" && a.isOwner);
-        if (!actor) { ui.notifications.warn("No character assigned to claim with."); return; }
+        if (!actor) { ui.notifications.warn(game.i18n.localize("SDE.loot.card.notify.noCharacter")); return; }
         claimCoinsBtn.disabled = true;
         const request = { action: "lootClaimCoins", messageId: message.id, actorId: actor.id };
         if (game.user.isGM) await this._handleClaimCoins(request);
-        else if (!await relayToGM(LOOT_QUERY, request, { label: LOOT_RELAY_LABEL })) claimCoinsBtn.disabled = false;
+        else if (!await relayToGM(LOOT_QUERY, request, { label: game.i18n.localize(LOOT_RELAY_LABEL) })) claimCoinsBtn.disabled = false;
       });
     }
 
@@ -244,7 +244,7 @@ export const LootDelivery = {
     if (feature) {
       obj.system = obj.system ?? {};
       const cur = obj.system.description ?? "";
-      obj.system.description = `${cur}<p><em>Unique feature: ${esc(feature)}</em></p>`;
+      obj.system.description = `${cur}<p><em>${game.i18n.format("SDE.loot.card.uniqueFeature", { feature: esc(feature) })}</em></p>`;
     }
     return obj;
   },
@@ -279,7 +279,7 @@ export const LootDelivery = {
       if (item.feature) {
         data.system = data.system ?? {};
         const cur = data.system.description ?? "";
-        data.system.description = `${cur}<p><em>Unique feature: ${esc(item.feature)}</em></p>`;
+        data.system.description = `${cur}<p><em>${game.i18n.format("SDE.loot.card.uniqueFeature", { feature: esc(item.feature) })}</em></p>`;
       }
       return data;
     }
@@ -298,9 +298,9 @@ export const LootDelivery = {
   async _handleClaimItem({ messageId, itemIndex, actorId }, user = game.user) {
     const message = game.messages.get(messageId);
     const flags = message?.flags?.[MODULE_ID];
-    if (!flags?.lootCard) return { ok: false, error: "That loot card is gone." };
+    if (!flags?.lootCard) return { ok: false, error: game.i18n.localize("SDE.loot.card.error.cardGone") };
     const item = flags.items[itemIndex];
-    if (!item || item.claimedBy) return { ok: false, error: "Someone already claimed that." };
+    if (!item || item.claimedBy) return { ok: false, error: game.i18n.localize("SDE.loot.card.error.itemClaimed") };
     const auth = authorizeActorFor(actorId, user);
     if (!auth.ok) return auth;
     const actor = auth.actor;
@@ -308,7 +308,7 @@ export const LootDelivery = {
     // Claim the in-memory lock synchronously before any await so a concurrent
     // claim of the same item bails here rather than double-creating it.
     const lockKey = `${messageId}:item:${itemIndex}`;
-    if (this._claimsInFlight.has(lockKey)) return { ok: false, error: "Someone already claimed that." };
+    if (this._claimsInFlight.has(lockKey)) return { ok: false, error: game.i18n.localize("SDE.loot.card.error.itemClaimed") };
     this._claimsInFlight.add(lockKey);
     try {
       // Optimistic lock: mark claimed FIRST (persisted flag survives reload).
@@ -357,8 +357,8 @@ export const LootDelivery = {
   async _handleClaimCoins({ messageId, actorId }, user = game.user) {
     const message = game.messages.get(messageId);
     const flags = message?.flags?.[MODULE_ID];
-    if (!flags?.lootCard) return { ok: false, error: "That loot card is gone." };
-    if (flags.coinsAssigned) return { ok: false, error: "Someone already claimed the coins." };
+    if (!flags?.lootCard) return { ok: false, error: game.i18n.localize("SDE.loot.card.error.cardGone") };
+    if (flags.coinsAssigned) return { ok: false, error: game.i18n.localize("SDE.loot.card.error.coinsClaimed") };
     const auth = authorizeActorFor(actorId, user);   // see _handleClaimItem
     if (!auth.ok) return auth;
     const actor = auth.actor;
@@ -366,7 +366,7 @@ export const LootDelivery = {
     // Synchronous in-memory lock (see _handleClaimItem) so two concurrent coin
     // claims can't both credit before either persists the coinsAssigned flag.
     const lockKey = `${messageId}:coins`;
-    if (this._claimsInFlight.has(lockKey)) return { ok: false, error: "Someone already claimed the coins." };
+    if (this._claimsInFlight.has(lockKey)) return { ok: false, error: game.i18n.localize("SDE.loot.card.error.coinsClaimed") };
     this._claimsInFlight.add(lockKey);
     try {
       await message.update({ [`flags.${MODULE_ID}.coinsAssigned`]: { actorId, actorName: actor.name } });
@@ -390,18 +390,18 @@ export const LootDelivery = {
   /** GM recipient picker — resolves to a Player actor id or null. */
   async _pickRecipient() {
     const players = game.actors.filter(a => a.type === "Player" && a.hasPlayerOwner);
-    if (!players.length) { ui.notifications.warn("No player characters to give to."); return null; }
+    if (!players.length) { ui.notifications.warn(game.i18n.localize("SDE.loot.card.notify.noPlayers")); return null; }
     const options = players.map(a => `<option value="${a.id}">${esc(a.name)}</option>`).join("");
     // Mirror the module's proven DialogV2.wait() pattern (see
     // encounter-roller-app.mjs _createImportedTable). The "ok" button's
     // callback return becomes the resolved value (the chosen actor id);
     // "cancel" returns the action string; closing returns null.
     const choice = await foundry.applications.api.DialogV2.wait({
-      window: { title: "Give Loot — Pick Recipient" },
-      content: `<div style="padding:8px;"><label>Give to: <select name="recipient">${options}</select></label></div>`,
+      window: { title: "SDE.loot.card.giveTitle" },
+      content: `<div style="padding:8px;"><label>${game.i18n.localize("SDE.loot.card.giveTo")} <select name="recipient">${options}</select></label></div>`,
       buttons: [
-        { action: "ok", label: "Give", default: true, callback: (_e, _b, dlg) => dlg.element.querySelector('select[name="recipient"]').value },
-        { action: "cancel", label: "Cancel" },
+        { action: "ok", label: "SDE.loot.btn.give", default: true, callback: (_e, _b, dlg) => dlg.element.querySelector('select[name="recipient"]').value },
+        { action: "cancel", label: "SDE.loot.btn.cancel" },
       ],
       rejectClose: false,
     }).catch(() => null);

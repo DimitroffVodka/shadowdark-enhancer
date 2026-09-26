@@ -23,6 +23,7 @@
  */
 import { MODULE_ID } from "../shared/module-id.mjs";
 import { LEGACY_BUNDLE_PACK_KEY } from "../monster-creator/monster-spell-pack-migration.mjs";
+import { t as tr } from "./importer-hub-shared.mjs";
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
@@ -119,15 +120,15 @@ export function scrubNonSuiteProvenance(docObj, suiteSlugs) {
  */
 export function validateBundle(obj) {
   const errors = [];
-  if (!obj || typeof obj !== "object") errors.push("not an object");
+  if (!obj || typeof obj !== "object") errors.push(tr("SDE.importer.bundleIo.err.notObject"));
   else {
-    if (obj.format !== BUNDLE_FORMAT) errors.push(`format ${obj.format} != ${BUNDLE_FORMAT}`);
-    if (obj.module !== MODULE_ID) errors.push(`module "${obj.module}" != "${MODULE_ID}"`);
-    if (!obj.packs || typeof obj.packs !== "object") errors.push("missing packs");
+    if (obj.format !== BUNDLE_FORMAT) errors.push(tr("SDE.importer.bundleIo.err.format", { found: obj.format, want: BUNDLE_FORMAT }));
+    if (obj.module !== MODULE_ID) errors.push(tr("SDE.importer.bundleIo.err.module", { found: obj.module, want: MODULE_ID }));
+    if (!obj.packs || typeof obj.packs !== "object") errors.push(tr("SDE.importer.bundleIo.err.noPacks"));
     else {
       for (const [key, p] of Object.entries(obj.packs)) {
         if (!p || !Array.isArray(p.docs) || !Array.isArray(p.folders)) {
-          errors.push(`pack "${key}" missing docs/folders arrays`);
+          errors.push(tr("SDE.importer.bundleIo.err.packShape", { key }));
         }
       }
     }
@@ -146,7 +147,7 @@ export function validateBundle(obj) {
  */
 export async function buildBundle() {
   if (!game.user?.isGM) {
-    ui.notifications?.warn("Only a GM can export the bundle.");
+    ui.notifications?.warn(tr("SDE.importer.bundleIo.notify.gmOnlyExport"));
     return null;
   }
   const { SUITE_PACKS, findSuitePack, ensureSuite } = await import("../shared/compendium-suite.mjs");
@@ -224,7 +225,7 @@ export async function exportBundle() {
   if (!bundle) return null;
   const save = foundry.utils?.saveDataToFile ?? globalThis.saveDataToFile;
   if (typeof save !== "function") {
-    ui.notifications?.error("saveDataToFile unavailable — cannot download the bundle.");
+    ui.notifications?.error(tr("SDE.importer.bundleIo.notify.noSave"));
     return bundle;
   }
   const date = bundle.exported.slice(0, 10);
@@ -255,7 +256,7 @@ const DOC_CLASSES = {
  */
 export async function applyBundle(bundle) {
   if (!game.user?.isGM) {
-    ui.notifications?.warn("Only a GM can import a bundle.");
+    ui.notifications?.warn(tr("SDE.importer.bundleIo.notify.gmOnlyImport"));
     return null;
   }
   const check = validateBundle(bundle);
@@ -347,7 +348,10 @@ export async function applyBundle(bundle) {
         report.ok = false;
         report.errors = [
           ...(report.errors ?? []),
-          `${restored.failures + restored.unaccounted} of ${restored.examined} legacy Monster Spell document(s) could not be restored into ${restored.targetCollection || "the Items pack"}`,
+          tr("SDE.importer.bundleIo.err.legacyLost", {
+            n: restored.failures + restored.unaccounted, examined: restored.examined,
+            pack: restored.targetCollection || tr("SDE.importer.bundleIo.err.itemsPack"),
+          }),
         ];
       }
     } catch (err) {
@@ -360,7 +364,7 @@ export async function applyBundle(bundle) {
       report.ok = false;
       report.errors = [
         ...(report.errors ?? []),
-        `legacy Monster Spell payload failed to restore: ${err.message}`,
+        tr("SDE.importer.bundleIo.err.legacyFailed", { error: err.message }),
       ];
     }
   }
@@ -394,13 +398,13 @@ export async function importBundleFromFile(file) {
   try {
     text = await file.text();
   } catch (err) {
-    return { ok: false, errors: [`could not read file: ${err.message}`] };
+    return { ok: false, errors: [tr("SDE.importer.bundleIo.err.unreadable", { error: err.message })] };
   }
   let bundle;
   try {
     bundle = JSON.parse(text);
   } catch (err) {
-    return { ok: false, errors: [`not valid JSON: ${err.message}`] };
+    return { ok: false, errors: [tr("SDE.importer.bundleIo.err.badJson", { error: err.message })] };
   }
   return applyBundle(bundle);
 }

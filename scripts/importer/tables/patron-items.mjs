@@ -191,7 +191,7 @@ export async function fillPatronDescriptions({ only = null } = {}) {
   const pIdx = findSuitePack("patrons-and-deities")
     ? await findSuitePack("patrons-and-deities").getIndex({ fields: ["type"] }) : [];
   if (!tables || !pIdx.some((e) => e.type === "Patron")) {
-    ui.notifications.warn("No Western Reaches patron is imported yet — import a patron's boon table first.");
+    ui.notifications.warn(game.i18n.localize("SDE.importer.patronItems.notify.noPatron"));
     return null;
   }
   const { tablePagesFor } = await import("../char-content/char-content-manifest.mjs");
@@ -205,10 +205,10 @@ export async function fillPatronDescriptions({ only = null } = {}) {
     if (!t || !pIdx.some((e) => e.type === "Patron" && e.name === patron)) { out.missing++; continue; }
     const target = sourcePdfTarget("WR", tablePagesFor("WR", tableName));
     if (!target) {
-      ui.notifications.warn("No Western Reaches PDF is linked. Use Tools → Source PDFs to upload it first.");
+      ui.notifications.warn(game.i18n.localize("SDE.importer.patronItems.notify.noPdf"));
       return null;
     }
-    if (!announced) { ui.notifications.info("Reading patron pages from your Western Reaches PDF…"); announced = true; }
+    if (!announced) { ui.notifications.info(game.i18n.localize("SDE.importer.patronItems.notify.reading")); announced = true; }
     // Same single-column mode the boon-table unlock grabs with, so the blurb
     // parses identically whichever way it arrives.
     const { text } = await extractPdfText(target.file, { pages: [target.page], columns: "1" });
@@ -218,6 +218,6 @@ export async function fillPatronDescriptions({ only = null } = {}) {
       : null;
     if (r?.changed) out.filled++; else out.kept++;
   }
-  ui.notifications.info(`Patron descriptions: ${out.filled} filled, ${out.kept} already set or edited by hand, ${out.missing} not imported.`);
+  ui.notifications.info(game.i18n.format("SDE.importer.patronItems.notify.done", out));
   return out;
 }

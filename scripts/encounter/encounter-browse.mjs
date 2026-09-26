@@ -175,7 +175,7 @@ export const EncounterBrowse = {
     const rows = [];
     for (const actor of game.actors) {
       if (actor.type !== "NPC") continue;
-      rows.push(createNpcIndexRow(actor, { sourceId: "world", sourceLabel: "World Actors" }));
+      rows.push(createNpcIndexRow(actor, { sourceId: "world", sourceLabel: game.i18n.localize("SDE.encounter.browse.source.world") }));
     }
     return rows;
   },
@@ -190,7 +190,7 @@ export const EncounterBrowse = {
       if (!actor || actor.type !== "NPC") continue;
       if (seen.has(actor.uuid)) continue;
       seen.add(actor.uuid);
-      rows.push(createNpcIndexRow(actor, { sourceId: "scene", sourceLabel: "Current Scene" }));
+      rows.push(createNpcIndexRow(actor, { sourceId: "scene", sourceLabel: game.i18n.localize("SDE.encounter.browse.source.scene") }));
     }
     return rows;
   },

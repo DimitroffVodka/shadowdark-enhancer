@@ -36,18 +36,19 @@ export const BOOK_SOURCES = [
 ];
 
 /** A short, correct example of each import type's paste format — shown as the
- *  paste-box placeholder so a manually-picked type is self-documenting. */
+ *  paste-box placeholder so a manually-picked type is self-documenting. Values
+ *  are en.json keys; the hub localizes the one it shows. */
 export const FORMAT_EXAMPLES = {
-  auto: "Paste anything — monsters, items, spells, or tables (or a mix). Auto-detect sorts it.\n\nENHANCED SYNTHETIC\nAC 13, HP 9, ATK 1 calibration beam +3 (1d6), MV near, S +1, D +2, C +1, I +0, W +0, Ch -2, AL N, LV 2",
-  monsters: "One statblock per block (blank line between):\n\nENHANCED SYNTHETIC\nAC 13, HP 9, ATK 1 calibration beam +3 (1d6), MV near, S +1, D +2, C +1, I +0, W +0, Ch -2, AL N, LV 2",
-  items: "One item per line — Name then cost (and optional description):\n\nTorch  5 sp\nRope, 60'  1 gp\nGrappling hook  1 gp\n\nOr paste the book's 'Name. text…' block and use Tools → Fill item descriptions.",
-  tables: "A die header, then one row per line:\n\nd6  Result\n1  A cave-in blocks the passage\n2  The floor gives way beneath you\n3  A cold draft snuffs your light\n…",
-  backgrounds: "The book's d100 background list, one entry per line:\n\n01  Urchin. You grew up on the streets, quick and unseen.\n02  Wanted. There is a price on your head.\n…",
-  talents: "One talent per block — Name. then its rules text:\n\nWeapon Mastery. Choose one weapon type. You gain +1 to attack and damage rolls with it.",
-  ancestries: "The ancestry writeup — flavor, languages, and its named feature:\n\nDWARF\nBrave, stalwart folk. You know Common and Dwarvish.\nStout. Start with +2 HP; roll hit dice with advantage.",
-  generators: "A multi-column grid — pick the dice (e.g. 3d6), one row per line:\n\nd6  Trap  Trigger  Damage\n1  Pit  Pressure plate  1d6\n2  Dart wall  Tripwire  1d4 poison\n…",
-  cartesian: "Same as a compound generator, but every column combination is spelled out into one long, fully-visible table. Pick the dice (e.g. 3d6); put | between columns to force the splits.",
-  downtime: "Pick the book above, then paste its downtime pages — headers, check lines and DC bullets, exactly as printed:\n\nSPIRITUALISM\nWIS Check\nDC 9: …\nDC 12: …\nDC 15*: …",
+  auto: "SDE.importer.formatExample.auto",
+  monsters: "SDE.importer.formatExample.monsters",
+  items: "SDE.importer.formatExample.items",
+  tables: "SDE.importer.formatExample.tables",
+  backgrounds: "SDE.importer.formatExample.backgrounds",
+  talents: "SDE.importer.formatExample.talents",
+  ancestries: "SDE.importer.formatExample.ancestries",
+  generators: "SDE.importer.formatExample.generators",
+  cartesian: "SDE.importer.formatExample.cartesian",
+  downtime: "SDE.importer.formatExample.downtime",
 };
 
 

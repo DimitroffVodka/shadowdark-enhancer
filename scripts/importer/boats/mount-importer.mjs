@@ -9,6 +9,7 @@
  */
 
 import { MODULE_ID } from "../../shared/module-id.mjs";
+import { t as tr } from "../importer-hub-shared.mjs";
 import {
   ensureMonsterPack,
   resolveSpellFeatures, resolveDraftArt,
@@ -89,13 +90,13 @@ export const MountImporter = {
    */
   async createMounts(drafts, { source = "" } = {}) {
     const report = { created: [], skipped: [], replaced: [] };
-    if (!game.user?.isGM) { ui.notifications?.warn("Only a GM can import mounts."); return report; }
+    if (!game.user?.isGM) { ui.notifications?.warn(tr("SDE.importer.boatImport.gmMounts")); return report; }
     if (!drafts?.length) return report;
 
     const pack = await ensureMonsterPack();
     const folder = await ensureMountFolder(pack);
     if (!folder) {
-      ui.notifications?.error("Mounts folder could not be prepared; no mounts were imported. See the console.");
+      ui.notifications?.error(tr("SDE.importer.boatImport.mountFolderFailed"));
       return report;
     }
 

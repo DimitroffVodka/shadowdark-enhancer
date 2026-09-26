@@ -8,6 +8,13 @@
 
 import { MODULE_ID } from "../shared/module-id.mjs";
 
+/** One string from `languages/en.json`; the key when no i18n is mounted. */
+const t = (key, data) => {
+  const i18n = globalThis.game?.i18n;
+  if (!i18n) return key;
+  return data ? i18n.format(key, data) : i18n.localize(key);
+};
+
 /**
  * Supported die formulas for Build Table.
  *
@@ -99,7 +106,7 @@ export const EncounterBuild = {
    * @param {Actor} actor
    */
   fillSlotFromActor(slot, actor) {
-    slot.name = actor.name ?? "Unknown";
+    slot.name = actor.name ?? t("SDE.encounter.unknownName");
     slot.uuid = actor.uuid;
     slot.flavor = false;
     // Leave `appearing` alone — GM may have already set a formula and
@@ -173,13 +180,13 @@ export const EncounterBuild = {
       if (s.min < die.min || s.max > die.max) {
         issues.push({
           severity: "error",
-          message: `Slot ${i + 1} range ${s.min}-${s.max} is outside the die's ${die.min}-${die.max} range.`,
+          message: t("SDE.encounter.build.error.outsideDie", { slot: i + 1, min: s.min, max: s.max, dieMin: die.min, dieMax: die.max }),
         });
       }
       if (s.min > s.max) {
         issues.push({
           severity: "error",
-          message: `Slot ${i + 1} has min (${s.min}) greater than max (${s.max}).`,
+          message: t("SDE.encounter.build.error.minOverMax", { slot: i + 1, min: s.min, max: s.max }),
         });
       }
     }
@@ -191,7 +198,7 @@ export const EncounterBuild = {
         if (a.max >= b.min && a.min <= b.max) {
           issues.push({
             severity: "warning",
-            message: `Slots ${i + 1} and ${j + 1} overlap.`,
+            message: t("SDE.encounter.build.warn.overlap", { a: i + 1, b: j + 1 }),
           });
         }
       }
@@ -203,7 +210,7 @@ export const EncounterBuild = {
       if (!covered) {
         issues.push({
           severity: "warning",
-          message: `Face ${face} is not covered by any slot.`,
+          message: t("SDE.encounter.build.warn.gap", { face }),
         });
       }
     }
@@ -227,7 +234,7 @@ export const EncounterBuild = {
    */
   async saveAsRollTable({ name, dieKey, slots }) {
     const die = this.getDie(dieKey);
-    const trimmedName = (name ?? "").trim() || "Untitled Encounter Table";
+    const trimmedName = (name ?? "").trim() || t("SDE.encounter.build.untitledTable");
 
     // Build TableResult data from non-empty slots only.
     const resultData = [];

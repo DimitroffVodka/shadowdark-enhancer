@@ -19,12 +19,14 @@ import { copyText } from "../shared/clipboard.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
+const L = (key, data) => (data ? game.i18n.format(key, data) : game.i18n.localize(key));
+
 export class SessionRecapApp extends HandlebarsApplicationMixin(ApplicationV2) {
   static DEFAULT_OPTIONS = {
     id: "shadowdark-enhancer-session-recap",
     classes: ["shadowdark-enhancer", "sde-session-recap"],
     tag: "div",
-    window: { title: "Session Recap", icon: "fas fa-scroll", resizable: true },
+    window: { title: "SDE.sessionRecap.title", icon: "fas fa-scroll", resizable: true },
     position: { width: 660, height: 560 },
     actions: {
       changeTab: SessionRecapApp._onChangeTab,
@@ -73,7 +75,7 @@ export class SessionRecapApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const hasDamageLog = game.modules.get("damage-log")?.active ?? false;
     const sessionDuration = viewingSession
       ? SessionRecap._formatDuration(viewingSession.endTime - viewingSession.startTime)
-      : data.sessionStart ? SessionRecap._formatDuration(Date.now() - data.sessionStart) : "No events yet";
+      : data.sessionStart ? SessionRecap._formatDuration(Date.now() - data.sessionStart) : L("SDE.sessionRecap.noEvents");
 
     // Overview — party cards
     const playerSummaries = Object.entries(data.playerStats).map(([actorId, s]) => ({
@@ -84,7 +86,7 @@ export class SessionRecapApp extends HandlebarsApplicationMixin(ApplicationV2) {
     // Combat — encounters
     const combats = data.combats.map((c, idx) => ({
       index: idx,
-      label: `Encounter ${idx + 1}`,
+      label: L("SDE.sessionRecap.encounterN", { n: idx + 1 }),
       rounds: c.rounds,
       duration: c.startTime && c.endTime ? SessionRecap._formatDuration(c.endTime - c.startTime) : "",
       enemies: c.enemies,
@@ -148,7 +150,7 @@ export class SessionRecapApp extends HandlebarsApplicationMixin(ApplicationV2) {
     }
     const xpPlayers = Object.entries(xpByPlayer).map(([player, { entries, total }]) => ({
       player,
-      awards: entries.map(e => ({ time: e.time, totalXp: e.totalXp, label: e.label || "Award" })),
+      awards: entries.map(e => ({ time: e.time, totalXp: e.totalXp, label: e.label || L("SDE.sessionRecap.award") })),
       total,
     }));
 
@@ -157,7 +159,7 @@ export class SessionRecapApp extends HandlebarsApplicationMixin(ApplicationV2) {
     // rarely produces more than a couple of renown rows — not enough to earn a
     // tab of its own.
     const renownByPlayer = {};
-    for (const e of data.renown ?? []) (renownByPlayer[e.player || "GM"] ??= []).push(e);
+    for (const e of data.renown ?? []) (renownByPlayer[e.player || L("SDE.sessionRecap.gm")] ??= []).push(e);
     const renownPlayers = Object.entries(renownByPlayer).map(([player, list]) => ({
       player,
       net: signedRenown(list.reduce((s, e) => s + (Number(e.delta) || 0), 0)),
@@ -172,7 +174,7 @@ export class SessionRecapApp extends HandlebarsApplicationMixin(ApplicationV2) {
     // The headline row is formatted by the same pure helper the Discord export
     // and the persistent Downtime Log journal use, so all three read alike.
     const downtimeByPlayer = {};
-    for (const e of data.downtime) (downtimeByPlayer[e.player || "GM"] ??= []).push(e);
+    for (const e of data.downtime) (downtimeByPlayer[e.player || L("SDE.sessionRecap.gm")] ??= []).push(e);
     const downtimePlayers = Object.entries(downtimeByPlayer).map(([player, list]) => ({
       player,
       subtotal: (() => {
@@ -193,7 +195,7 @@ export class SessionRecapApp extends HandlebarsApplicationMixin(ApplicationV2) {
     // night the party bought, and every character rolled against the same one.
     const carousing = [...data.carousing].reverse().map(c => ({
       logId: c.logId,
-      heading: c.date || c.time || "Carouse",
+      heading: c.date || c.time || L("SDE.sessionRecap.carouse"),
       subtotal: carousingSubtotal(c.entries ?? []),
       tier: tierLine(c),
       rows: (c.entries ?? []).map(e => ({
@@ -213,21 +215,25 @@ export class SessionRecapApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const checks = data.encounterChecks;
     const encounterChecks = checks.map(c => ({ ...c }));
     const encounterSummary = checks.length > 0
-      ? `${checks.length} rolls — ${checks.filter(c => c.hit).length} encounters · avg d6 ${(checks.reduce((a, c) => a + (Number(c.roll) || 0), 0) / checks.length).toFixed(1)}`
+      ? L("SDE.sessionRecap.encounterSummary", {
+        rolls: checks.length,
+        hits: checks.filter(c => c.hit).length,
+        avg: (checks.reduce((a, c) => a + (Number(c.roll) || 0), 0) / checks.length).toFixed(1),
+      })
       : null;
 
     const totalCombats = data.combats.length;
     const totalEnemiesDefeated = data.combats.reduce((sum, c) => sum + c.enemies.filter(e => e.defeated).length, 0);
 
     const sessionDisplayName = viewingSession ? viewingSession.name
-      : data.sessionStart ? SessionRecap._generateSessionName(data.sessionStart) : "Session";
-    const sessionStatusLabel = viewingSession ? "Archived"
-      : data.sessionState === "active" ? "In Progress"
-        : data.sessionStart ? "Idle" : "Not Started";
+      : data.sessionStart ? SessionRecap._generateSessionName(data.sessionStart) : L("SDE.sessionRecap.session");
+    const sessionStatusLabel = viewingSession ? L("SDE.sessionRecap.status.archived")
+      : data.sessionState === "active" ? L("SDE.sessionRecap.status.inProgress")
+        : data.sessionStart ? L("SDE.sessionRecap.status.idle") : L("SDE.sessionRecap.status.notStarted");
     const sessionStats = [
       { label: sessionDuration },
-      { label: totalCombats === 1 ? "1 combat" : `${totalCombats} combats` },
-      { label: `${totalEnemiesDefeated} defeated` },
+      { label: totalCombats === 1 ? L("SDE.sessionRecap.oneCombat") : L("SDE.sessionRecap.nCombats", { n: totalCombats }) },
+      { label: L("SDE.sessionRecap.nDefeated", { n: totalEnemiesDefeated }) },
     ];
 
     return {
@@ -298,8 +304,8 @@ export class SessionRecapApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const id = target.dataset.sessionId;
     if (!id) return;
     const ok = await foundry.applications.api.DialogV2.confirm({
-      window: { title: "Delete Session" },
-      content: "<p>Delete this saved session? This cannot be undone.</p>",
+      window: { title: "SDE.sessionRecap.dialog.deleteTitle" },
+      content: `<p>${L("SDE.sessionRecap.dialog.deleteBody")}</p>`,
       rejectClose: false,
     }).catch(() => false);
     if (!ok) return;
@@ -317,20 +323,20 @@ export class SessionRecapApp extends HandlebarsApplicationMixin(ApplicationV2) {
     if (!text) text = SessionRecap.formatForDiscord();
     try {
       await game.clipboard.copyPlainText(text);
-      ui.notifications.info("Session recap copied to clipboard!");
+      ui.notifications.info(L("SDE.sessionRecap.notify.copied"));
     } catch {
       // Fall back to the shared helper — navigator.clipboard is undefined on
       // insecure origins, so it in turn falls back to a hidden textarea copy.
       const ok = await copyText(text);
-      if (ok) ui.notifications.info("Session recap copied to clipboard!");
-      else ui.notifications.error("Could not copy session recap — clipboard unavailable.");
+      if (ok) ui.notifications.info(L("SDE.sessionRecap.notify.copied"));
+      else ui.notifications.error(L("SDE.sessionRecap.notify.copyFailed"));
     }
   }
 
   static async _onClearSession() {
     const ok = await foundry.applications.api.DialogV2.confirm({
-      window: { title: "Clear Session" },
-      content: "<p>Clear all current session data? This cannot be undone.</p>",
+      window: { title: "SDE.sessionRecap.dialog.clearTitle" },
+      content: `<p>${L("SDE.sessionRecap.dialog.clearBody")}</p>`,
       rejectClose: false,
     }).catch(() => false);
     if (ok) { await SessionRecap.clear(); this.render(); }
