@@ -18,6 +18,7 @@ const FEATURES = {
   "SDE.importer.": [...dir("scripts/importer", /^importer-hub.*\.mjs$/), ...dir("scripts/importer/hex"),
     "scripts/importer/chapter-journal.mjs",
     "templates/importer-hub.hbs", "templates/partials/tree-node.hbs"],
+  "SDE.holidays.": ["scripts/holidays/holidays.mjs"],
 };
 
 /** Every key of `prefix` mentioned anywhere in its files, with one file that mentions it. */

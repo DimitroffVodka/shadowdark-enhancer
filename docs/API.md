@@ -14,9 +14,10 @@ and Forge & Loot features.
 [`merchant`](#merchant--shop-window--transaction-log) ·
 [`partyXp`](#partyxp--party-xp-awards) · [`recap`](#recap--session-recap) ·
 [`charBuilder`](#charbuilder--guided-character-creation) ·
-[`actors`](#actors--western-reaches-boats)
+[`actors`](#actors--western-reaches-boats) ·
+[`holidays`](#holidays--when-a-holiday-falls-and-what-it-does-to-carousing)
 
-**API version:** `1.5.0` (semver — additive changes bump the minor version,
+**API version:** `1.6.0` (semver — additive changes bump the minor version,
 breaking changes the major; check `apiVersion` before relying on newer keys).
 
 ## Discovery
@@ -935,6 +936,76 @@ works on the GM's own scene image and book text.
 The dataset carries published hex numbers only (`num`, column-major: 1403 is
 column 14, row 03); never a column and row pair.
 
+---
+
+## `holidays` — when a holiday falls, and what it does to carousing
+
+Added in 1.6.0. Holidays today are the four City of Masks holidays from Cursed
+Scroll 6 (pp. 46–47). Shadowdark Extras' carousing window reads them
+(shadowdark-extras#151). The shape is generic, so another book's holidays can
+join later.
+
+```js
+const api = game.shadowdarkEnhancer;
+
+await api.holidays.list();                          // every imported holiday
+await api.holidays.today({ place: "City of Masks" }); // falling today, there
+await api.holidays.today({ place: "settlement-1334" }); // Extras' feature id works too
+```
+
+Both calls are **async**. A holiday is listed only once the GM has imported
+its page: Importer Hub → Tools → **Chapter to journal** → preset *Cursed
+Scroll 6: the City of Masks holidays*. Before that, both return `[]`.
+
+`place` takes a settlement name (case and a footnote `*` are ignored), a hex
+number (`1334` or `"1334"`), or Extras' settlement feature id
+(`"settlement-1334"`). With no `place`, `today()` returns every holiday falling
+today, wherever it is.
+
+Each holiday:
+
+```js
+{
+  key: "maytide", name: "Maytide", source: "CS6", page: 46,
+  pageKey: "maytide",                 // the imported journal page's key
+  pageUuid: "Compendium.…JournalEntryPage.…", // that page, for its text
+  place: { name: "City of Masks", hex: "1334" },
+  when: { anchor: "springCrossQuarter" },
+  carousing: {
+    eventBonus: 1,            // added to carousing event rolls
+    benefitBonus: 15,         // added to benefit rolls (d100)
+    // also, where they apply: extraBenefit, extraMishap (booleans),
+    // benefitAdvantage (boolean), chances: [{ key, oneIn: 20, label }]
+  },
+  garb: [                     // questions for the table; "yes" applies `modifier`
+    { key: "maytideNoFloral", modifier: -1, label: "…" },
+    { key: "maytideGems", modifier: 1, label: "…" },
+    { key: "maytideDarkTones", modifier: -1, label: "…" },
+  ],
+}
+```
+
+A garb question with `required: true` (the Duke's Ball's 500 gp costume) gates
+entry: a "no" keeps the character out of the ball. A question with a `note`
+(red at the Duke's Ball) should post that note when answered "yes". Labels
+come back already localised. Mechanics only: the book's wording is the
+imported page, at `pageUuid`.
+
+### When a holiday falls
+
+`when.anchor` is one of `springEquinox`, `springCrossQuarter`,
+`summerSolstice`, `autumnEquinox`, `winterSolstice` or `lastFullMoonOfYear`.
+Today's date comes from the core calendar (`game.time.components`) as
+`{ year, month (1–12), day (1–31), dayOfYear (1-based) }`.
+
+- **Solar anchors** are fixed Gregorian dates: March 20, May 1 (the
+  traditional cross-quarter day, not the astronomical midpoint of about
+  May 5), June 21, September 22 and December 21. Real solstices and equinoxes
+  drift a day either side. A world on a non-Gregorian calendar gets the same
+  month and day numbers in its own months.
+- **Lastmoon** needs the moon, which nothing tracks yet, so it never falls
+  until the Overland time feature (#192) supplies `isLastFullMoonOfYear`.
+
 ## Stability notes
 
 - Everything documented here is public surface; undocumented internals
@@ -947,6 +1018,7 @@ column 14, row 03); never a column and row pair.
   not bump `apiVersion`.
 - `1.3.0` adds `loot.resolve` and `loot.generated.{identity,plan,reconcile}`.
 - `1.5.0` adds the `hexMaps` namespace (Hex Tagger, dataset builder, hand-off).
+- `1.6.0` adds the `holidays` namespace (`list`, `today`).
 - `1.4.0` adds the shared `forgeLoot.open()` preview shell. Generator rules and
   document writes remain behind the later NPC/Rival adapter implementations.
   The version policy is additive: new namespaces bump the minor version; breaking

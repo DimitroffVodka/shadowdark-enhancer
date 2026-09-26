@@ -3,6 +3,14 @@
 ## [Unreleased]
 
 ### Added
+- **The City of Masks holidays.** Chapter to journal has a new preset,
+  *Cursed Scroll 6: the City of Masks holidays* (pp. 46–47), that files a
+  journal with one page per holiday from your own PDF. A new `holidays` API
+  (`list()`, `today({ place })`, API 1.6.0) gives each imported holiday's
+  place, the day it falls, its carousing effects and its garb questions, for
+  Shadowdark Extras' carousing window to apply. Maytide, the Duke's Ball and
+  the Night of St. Anton fall on May 1, June 21 and September 22 of the world
+  calendar. Lastmoon needs the moon, which isn't tracked yet. (#191)
 - **Chapter to journal.** Importer Hub → Tools → **Chapter to journal**
   turns any range of printed pages from a linked PDF into one readable
   journal. It's split into pages at the book's headings, its paragraphs are
