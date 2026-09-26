@@ -3,6 +3,13 @@
 ## [Unreleased]
 
 ### Added
+- **The travel bar.** While travelling on a hex map, everyone sees a slim bar
+  at the top centre: the date and time, the sun or the moon's phase, the
+  weather and the hexes left. Opened, it shows a small sky with the sun or
+  moon in its place, the season and climate, the day's budget, and each
+  member's rations and forage. Players get a Forage button on their own
+  characters. The GM also sees the check hours and the day's buttons, which
+  players never do. It hides during combat. (#234)
 - **Overland forage and camp.** While travelling, **Forage** sends each
   character's player an INT check (DC 12, or 18 when harsh); a success adds a
   ration. It happens once a day, never on a pushed day, and not in a harsh
