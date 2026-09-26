@@ -72,3 +72,16 @@ export function barModel({ state, isGM, owns, actors }) {
     checks: isGM ? state.checks.map((c) => ({ half: c.half, at: c.at, rolled: c.rolled, hit: c.hit })) : [],
   };
 }
+
+/**
+ * What a clock redraw depends on: the absolute minute (so a jump of whole
+ * days still redraws; the bar shows the date) and the weather that holds.
+ * Real-time light tracking ticks every second, so the bar redraws once a
+ * minute, not once a tick.
+ */
+export const redrawStamp = (worldTime, secondsPerMinute, weather) =>
+  `${Math.floor(worldTime / (secondsPerMinute || 60))}|${weather ?? ""}`;
+
+/** Does an Item change touch the bar: an item on one of the travelling members (their rations)? */
+export const itemTouchesBar = (item, members) =>
+  item?.parent?.documentName === "Actor" && members.includes(item.parent.id);

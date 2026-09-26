@@ -22,7 +22,7 @@ import {
   overlandState, weatherNow, weatherName, methodName, rollWeather, askDay, startDay, makeCamp,
   endOverland, resume, forage, OVERLAND_CHANGED,
 } from "./overland.mjs";
-import { DOME, barModel, domePoint, moonShadow, skyPosition } from "./overland-bar-core.mjs";
+import { DOME, barModel, domePoint, itemTouchesBar, moonShadow, redrawStamp, skyPosition } from "./overland-bar-core.mjs";
 
 const BAR_ID = "shadowdark-enhancer-travel";
 const t = (key, data) => (data ? game.i18n.format(key, data) : game.i18n.localize(key));
@@ -64,6 +64,11 @@ export const TravelBar = {
     Hooks.on("canvasReady", queue);
     // Real-time light tracking moves the clock every second: redraw on the minute.
     Hooks.on("updateWorldTime", () => { if (this._stamp() !== this._drawn) this.render(); });
+    // A member's rations change when they forage, buy, trade or eat.
+    const onItem = (item) => {
+      if (this._el?.classList.contains("sde-travel-visible") && itemTouchesBar(item, overlandState().members)) this.render();
+    };
+    for (const hook of ["createItem", "updateItem", "deleteItem"]) Hooks.on(hook, onItem);
   },
 
   mount() {
@@ -76,10 +81,9 @@ export const TravelBar = {
     this.render();
   },
 
-  /** What a redraw on the clock depends on: the minute, and the weather that holds. */
+  /** What a redraw on the clock depends on: the absolute minute, and the weather that holds. */
   _stamp() {
-    const now = game.time.worldTime;
-    return `${dateParts(game.time.calendar, now).time}|${CrawlState.isOverland ? weatherNow() : ""}`;
+    return redrawStamp(game.time.worldTime, game.time.calendar?.days?.secondsPerMinute, CrawlState.isOverland ? weatherNow() : "");
   },
 
   render() {

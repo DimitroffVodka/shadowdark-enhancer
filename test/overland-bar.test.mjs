@@ -2,7 +2,7 @@
 // dome, the moon's shadow, and what each viewer is shown.
 import test from "node:test";
 import assert from "node:assert/strict";
-import { DOME, barModel, domePoint, moonShadow, skyPosition } from "../scripts/overland/overland-bar-core.mjs";
+import { DOME, barModel, domePoint, itemTouchesBar, moonShadow, redrawStamp, skyPosition } from "../scripts/overland/overland-bar-core.mjs";
 
 test("the sun rises at 0 and sets at 1; at night the moon runs from sunset to the next sunrise", () => {
   const sky = { sunrise: 6, sunset: 18 };
@@ -55,4 +55,19 @@ test("a player sees no check hours, no Continue, and Forage only on a character 
   const noDay = barModel({ state: { ...STATE, day: null }, isGM: false, owns: () => true, actors: ACTORS });
   assert.equal(noDay.dayOpen, false);
   assert.deepEqual(noDay.members.map((p) => p.canForage), [false, false], "not before the day starts");
+});
+
+test("the clock redraws the bar once a minute, and after a jump of whole days too (#249 review)", () => {
+  const t = 1000 * 60 + 5;
+  assert.equal(redrawStamp(t, 60, "fair"), redrawStamp(t + 30, 60, "fair"), "the same minute: no redraw");
+  assert.notEqual(redrawStamp(t, 60, "fair"), redrawStamp(t + 60, 60, "fair"), "the next minute");
+  assert.notEqual(redrawStamp(t, 60, "fair"), redrawStamp(t + 86400, 60, "fair"), "24 hours later, same HH:MM");
+  assert.notEqual(redrawStamp(t, 60, "fair"), redrawStamp(t, 60, null), "the weather ended");
+});
+
+test("an item change redraws the bar when it's on a travelling member (#249 review)", () => {
+  const on = (id) => ({ parent: { documentName: "Actor", id } });
+  assert.equal(itemTouchesBar(on("mine"), ["mine", "theirs"]), true);
+  assert.equal(itemTouchesBar(on("stranger"), ["mine"]), false);
+  assert.equal(itemTouchesBar({ parent: null }, ["mine"]), false, "a world item");
 });
