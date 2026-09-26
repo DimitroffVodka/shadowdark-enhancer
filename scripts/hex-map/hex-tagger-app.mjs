@@ -23,7 +23,7 @@ import { replaceModuleFlag } from "../shared/module-flags.mjs";
 import { findSuitePack } from "../shared/compendium-suite.mjs";
 import { sceneCells, sourceImage, CellSampler } from "./sampler.mjs";
 import { cellNumber, neighbours, framesTopRow, extrasNumbersAlike } from "./geometry.mjs";
-import { decodeTags, encodeTags, nextSheet, applySheet, tagsForDataset, summarize, importTags, rowsFromJson, sheetRisk, deriveCoasts, OVERLAYS } from "./tag-store.mjs";
+import { decodeTags, encodeTags, nextSheet, applySheet, tagsForDataset, summarize, importTags, rowsFromJson, sheetRisk, deriveCoasts, FEATURES } from "./tag-store.mjs";
 import { FIXES_FLAG, BASELINE_FLAG, emptyLog, decodeFixes, encodeFixes, recordEdits, recordLegend, legendReport, accuracyReport, encodeBaseline, decodeBaseline, baselineReport } from "./tag-corrections.mjs";
 import { cellBoxOf, referenceTilePlacement, gridCellBox, loweredColumns, placeReferenceTile } from "./reference-tile.mjs";
 import { createClassifier, compareTags, parseTruthCsv, featureVector, keepMask, scoreClassifier, smoothTerrain } from "./classify.mjs";
@@ -168,19 +168,19 @@ export async function benchmarkFirstRun(opts = {}) {
     for (const n of card.core) {
       state.set(String(n), { terrain: name, source: "gm" });
       const bitmap = app._bitmaps.get(n);
-      if (bitmap) exemplars.push({ num: n, tag: name, overlays: [], bitmap });
+      if (bitmap) exemplars.push({ num: n, tag: name, features: [], bitmap });
     }
   }
   const thresholds = { sensitivity: opts.sensitivity ?? 1 };
   if (opts.runOff !== undefined) thresholds.runOff = opts.runOff;
   const clf = createClassifier({ exemplars, allBitmaps: [...app._bitmaps.values()], thresholds });
-  if (!clf.ready) { ui.notifications?.error(clf.warnings[0] ?? t("SDE.hexMap.dev.noClassifier")); return null; }
+  if (!clf.ready) { ui.notifications?.error(clf.warnings[0] ? t(clf.warnings[0].key, clf.warnings[0].data) : t("SDE.hexMap.dev.noClassifier")); return null; }
   let n = 0, runOffs = 0;
   for (const c of cells) {
     if (state.has(String(c.num))) continue;
     const r = clf.classify(c);
     if (r.runOff) runOffs++;
-    state.set(String(c.num), { terrain: r.terrain, overlays: r.overlays, source: "auto", margin: Number.isFinite(r.margin) ? Math.min(r.margin, 99) : 99, review: r.ambiguous });
+    state.set(String(c.num), { terrain: r.terrain, features: r.features, source: "auto", margin: Number.isFinite(r.margin) ? Math.min(r.margin, 99) : 99, review: r.ambiguous });
     if (++n % 700 === 0) await new Promise((z) => setTimeout(z, 0));
   }
   const pct = (m) => { let j = 0, ok = 0; for (const [num, want] of truth) { const got = m.get(num)?.terrain; if (!got) continue; j++; if (got === want) ok++; } return j ? Math.round(ok / j * 1000) / 10 : null; };
@@ -601,7 +601,7 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
       if (this._numbered.size && !this._numbered.has(Number(num))) continue;   // not on this map
       const mine = this._state.cells.get(num);
       if (mine && mine.source !== "auto") { kept++; continue; }
-      this._state.cells.set(num, { terrain: cell.terrain, overlays: [...(cell.overlays ?? [])], source: "gm" });
+      this._state.cells.set(num, { terrain: cell.terrain, features: [...(cell.features ?? [])], source: "gm" });
       added++;
     }
     if (!added) { ui.notifications?.warn(t("SDE.hexMap.notify.learnNothing", { from: from.name })); return; }
@@ -644,7 +644,7 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
    * keyed locations is we just scrape them from the pdf... the main thing with
    * keyed locations is rivers and paths."
    *
-   * @returns {Map<number, {terrain:string, overlays:string[]}>}
+   * @returns {Map<number, {terrain:string, features:string[]}>}
    */
   _keyedFromBook() {
     const out = new Map();
@@ -667,7 +667,7 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
       const key = String(num);
       const had = this._state.cells.get(key);
       if (had?.source && had.source !== "auto" && had.terrain) continue;   // the GM's word wins
-      this._state.cells.set(key, { terrain: tag.terrain, overlays: [...tag.overlays], source: "gm" });
+      this._state.cells.set(key, { terrain: tag.terrain, features: [...tag.features], source: "gm" });
       n++;
     }
     return n;
@@ -716,7 +716,7 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
           num, label: String(num).padStart(4, "0"), i: c?.i, j: c?.j, thumb: c ? this._thumb(c) : "",
           terrain: cell?.terrain ?? "", source: cell?.source ?? "", keyed: keyed.has(num),
           margin: cell?.margin !== undefined ? Number(cell.margin).toFixed(2) : "", review: !!cell?.review,
-          overlays: Object.fromEntries(OVERLAYS.map((o) => [o, !!cell?.overlays?.includes(o)])),
+          features: Object.fromEntries(FEATURES.map((o) => [o, !!cell?.features?.includes(o)])),
           terrainOther,
           terrainOptions: [...terrainOptions, { value: "__other", label: t("SDE.hexMap.label.otherOption"), selected: !!terrainOther }]
             .map((o) => ({ ...o, selected: o.value === (terrainOther ? "__other" : (cell?.terrain ?? "")) })),
@@ -814,7 +814,7 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
       entries: this._entries.map((e) => ({ uuid: e.uuid, name: e.name, selected: e.uuid === this._entryUuid })),
       allCrawls: this._entries.length > 1, allSelected: this._entryUuid === ALL_CRAWLS,
       sheet, hasSheet: sheet.length > 0, needsOrigin: sampled && !origin, viaExtras: !!extrasHexApi(), error: this._error,
-      overlays: OVERLAYS, overlayShown: !!this._overlayMode, overlayMode: this._overlayMode ?? "",
+      features: FEATURES, overlayShown: !!this._overlayMode, overlayMode: this._overlayMode ?? "",
       canClassify: !!origin && summarize(state, this._numbered.size || state.cells.size).gm > 0, sensitivity: this._sensitivity, progress: this._progress,
     };
   }
@@ -885,14 +885,14 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
   }
 
   /**
-   * The classifier run behind Classify and Apply legend. `overlayOnly` names
-   * hand-tagged cells whose overlays are still unknown (the legend's cores):
+   * The classifier run behind Classify and Apply legend. `featuresOnly` names
+   * hand-tagged cells whose features are still unknown (the legend's cores):
    * they keep their terrain and take the classifier's river or path.
    * @returns {Promise<boolean>} whether the run completed and saved
    */
-  async _classify(overlayOnly = new Set()) {
+  async _classify(featuresOnly = new Set()) {
     const keyed = this._keyedNumbers();
-    // The book answers its own keyed hexes, terrain and overlays both, so they
+    // The book answers its own keyed hexes, terrain and features both, so they
     // are tagged from the page before anything is guessed from the picture.
     const fromBook = this._applyBookKey();
     if (fromBook) ui.notifications?.info(t(fromBook === 1 ? "SDE.hexMap.notify.bookOne" : "SDE.hexMap.notify.bookMany", { n: fromBook }));
@@ -905,20 +905,20 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
     // comes from the book's text, so they must be left out — and that needs the
     // crawl entry to be chosen.
     if (!keyed.size && this._entries.length) ui.notifications?.warn(t("SDE.hexMap.notify.noHexKey"));
-    const exemplars = gm.map(([num, c]) => ({ num: Number(num), tag: c.terrain, overlays: c.overlays ?? [], bitmap: this._bitmaps.get(Number(num)) })).filter((e) => e.bitmap);
+    const exemplars = gm.map(([num, c]) => ({ num: Number(num), tag: c.terrain, features: c.features ?? [], bitmap: this._bitmaps.get(Number(num)) })).filter((e) => e.bitmap);
     const cells = [...this._numbered.keys()]
-      .filter((n) => !keyed.has(n) && (overlayOnly.has(n) || (this._state.cells.get(String(n))?.source ?? "auto") === "auto"))
+      .filter((n) => !keyed.has(n) && (featuresOnly.has(n) || (this._state.cells.get(String(n))?.source ?? "auto") === "auto"))
       .map((n) => ({ num: n, bitmap: this._bitmaps.get(n) })).filter((c) => c.bitmap);
     this._setProgress(t("SDE.hexMap.progress.preparing", { n: exemplars.length })); await new Promise((r) => setTimeout(r, 0));
     const clf = createClassifier({ exemplars, allBitmaps: [...this._bitmaps.values()], thresholds: { sensitivity: this._sensitivity } });
-    if (!clf.ready) { for (const w of clf.warnings) ui.notifications?.warn(w); this._setProgress(""); return false; }
+    if (!clf.ready) { for (const w of clf.warnings) ui.notifications?.warn(t(w.key, w.data)); this._setProgress(""); return false; }
     let done = 0, auto = 0, review = 0;
     for (const c of cells) {
       const r = clf.classify(c);
-      const kept = overlayOnly.has(c.num) ? this._state.cells.get(String(c.num)) : null;
-      if (kept) kept.overlays = r.overlays;
+      const kept = featuresOnly.has(c.num) ? this._state.cells.get(String(c.num)) : null;
+      if (kept) kept.features = r.features;
       else {
-        this._state.cells.set(String(c.num), { terrain: r.terrain, overlays: r.overlays, source: "auto", margin: Number.isFinite(r.margin) ? Math.min(r.margin, 99) : 99, review: r.ambiguous });
+        this._state.cells.set(String(c.num), { terrain: r.terrain, features: r.features, source: "auto", margin: Number.isFinite(r.margin) ? Math.min(r.margin, 99) : 99, review: r.ambiguous });
         auto++; if (r.ambiguous) review++;
       }
       // Yield so the browser (and Foundry's socket heartbeat) keeps breathing on big maps.
@@ -962,7 +962,7 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
     this._mode = "review";
     this._sheet = nextSheet(this._state, { nums: [...this._numbered.keys()], size: SHEET_SIZE, mode: "review", reviewMargin: this._log().margin });
     ui.notifications?.info(t("SDE.hexMap.notify.classified", { auto, examples: exemplars.length, fixes: fixes.length, coasts: coasts.length, review }));
-    for (const w of clf.warnings) ui.notifications?.warn(w);
+    for (const w of clf.warnings) ui.notifications?.warn(t(w.key, w.data));
     this.render();
     return true;
   }
@@ -994,7 +994,7 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
   /**
    * Each named card's core becomes hand tags, then everything else is
    * classified from them. A ticked river/path/coast box is the GM's word for
-   * the whole core; an unticked card leaves its cores' overlays to the classifier.
+   * the whole core; an unticked card leaves its cores' features to the classifier.
    */
   async _onApplyLegend() {
     if (!this._requireCurrentScene() || !this._legend) return;
@@ -1008,10 +1008,10 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
       card.chosen = sel.value === "__other" ? (other || "") : sel.value;    // survives a re-render
       if (terrain === SPLIT) { splits.push(idx); continue; }
       if (!terrain) continue;
-      // No overlays here: a card is a terrain. Rivers, paths and coasts are
+      // No features here: a card is a terrain. Rivers, paths and coasts are
       // found cell by cell by the classifier, and ticking them on a card only
       // stamped its dozen core cells with whatever the pictures happened to show.
-      for (const n of card.core) { answers[n] = { terrain, overlays: [] }; cores.add(n); }
+      for (const n of card.core) { answers[n] = { terrain, features: [] }; cores.add(n); }
     }
     // An opened card's hexes are answered one at a time, and each answer is a
     // hand tag on that hex alone.
@@ -1022,7 +1022,7 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
       const card = this._legend[Number(sel.dataset.idx)];
       if (card) (card.picked ??= {})[num] = sel.value === "__other" ? (other || "") : sel.value;
       if (!terrain || terrain === SPLIT) continue;
-      answers[num] = { terrain, overlays: [] }; cores.add(num);
+      answers[num] = { terrain, features: [] }; cores.add(num);
     }
     // "These are not all the same" is the one thing only the GM can see. Take it
     // literally: open that card up so its hexes can be answered individually,
@@ -1146,9 +1146,9 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const answers = {};
     for (const sel of this.element.querySelectorAll("select[data-hxt-terrain]")) {
       const num = sel.dataset.num;
-      const overlays = [...this.element.querySelectorAll(`input[data-hxt-overlay][data-num="${num}"]:checked`)].map((i) => i.value);
+      const features = [...this.element.querySelectorAll(`input[data-hxt-feature][data-num="${num}"]:checked`)].map((i) => i.value);
       const other = this.element.querySelector(`input[data-hxt-terrain-other][data-num="${num}"]`)?.value.trim();
-      answers[num] = { terrain: sel.value === "__other" ? other : sel.value, overlays };
+      answers[num] = { terrain: sel.value === "__other" ? other : sel.value, features };
     }
     // Every cell on the sheet was looked at, so every one is a verdict on the
     // classifier — the corrections AND the ones left alone (tag-corrections.mjs).
@@ -1229,6 +1229,10 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
    * @returns {Promise<{dataset:object, tags:object, chosen:JournalEntry[], sceneId:string, origin:object}|null>}
    */
   async _handoffDataset() {
+    // The crawl entries load with the first render. A send made before that
+    // (from a macro, right after openTagger) read no keyed rows, and so sent a
+    // different dataset from the next send; load them here instead.
+    if (!this._entries.length) await this._loadEntries();
     if (!this._requireCurrentScene()) return null;
     this._readHeader();
     if (!this._state.origin) { ui.notifications?.warn(t("SDE.hexMap.notify.setAnchor")); return null; }
@@ -1287,6 +1291,7 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
     if (res.via === "extras") {
       const hexes = res.summary?.records ?? dataset.hexes.length;
       ui.notifications?.info(t(res.adopted ? "SDE.hexMap.notify.onPrintFirst" : "SDE.hexMap.notify.onPrint", { hexes }));
+      if (res.featuresUnread) ui.notifications?.warn(t("SDE.hexMap.notify.featuresUnread"));
     } else if (res.reason === "no-adopt") ui.notifications?.warn(t("SDE.hexMap.notify.needsAdopt"));
     else if (res.reason === "extras-error" && res.error) ui.notifications?.error(t("SDE.hexMap.notify.adoptFailed", { error: res.error }));
   }
@@ -1296,9 +1301,6 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const built = await this._handoffDataset();
     if (!built) return;
     const { dataset, tags, chosen } = built;
-    if (Object.values(tags).some((tag) => tag.overlays?.includes("coast"))) {
-      ui.notifications?.warn(t("SDE.hexMap.notify.coastStays"));
-    }
     // The painted scene must not share the print scene's name.
     const res = await handoffDataset(dataset, { sceneName: chosen.length ? dataset.name : `${dataset.name} (painted)` });
     const n = Object.keys(tags).length;

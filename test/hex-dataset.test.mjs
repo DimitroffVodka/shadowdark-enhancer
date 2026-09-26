@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { hexcrawlRecognizer } from "../scripts/importer/tables/hex-parser.mjs";
 import { parseHexSummaryRows } from "../scripts/importer/hex/hex-summary.mjs";
-import { buildHexDataset, validateHexDataset, hexNum, assignmentsFromManifest } from "../scripts/importer/hex/hex-dataset.mjs";
+import { buildHexDataset, validateHexDataset, hexNum, assignmentsFromManifest, mergeFeatures } from "../scripts/importer/hex/hex-dataset.mjs";
 
 // All fixture text is invented (D1) — no book content.
 
@@ -85,7 +85,7 @@ test("terrain regions, networks and grid come out in numbers only", () => {
     { biome: "swamp", hexes: [203] },
   ], "the book's words, not biome keys: Extras maps them");
   assert.equal(ds.terrain.default, "forest");
-  assert.deepEqual(ds.networks, { river: [102], road: [304], spanning: true });   // row overlay + tag overlay, path → road; area-derived, so Extras prunes loops
+  assert.deepEqual(ds.networks, { river: [102], road: [304], spanning: true });   // row feature + tag feature, path → road; area-derived, so Extras prunes loops
   assert.deepEqual([ds.grid.cols, ds.grid.rows], [3, 4], "columns 1..3 and rows 1..4 under the contract's default origin");
   assert.equal("numbering" in ds.grid, false, "only the contract's grid keys");
   assert.equal("origin" in ds.grid, false, "the default origin is not sent");
@@ -128,12 +128,13 @@ test("a tagged hex travels with the book's own terrain word, named or not", () =
   // regions and its biome vocabulary is far coarser, so this is the only place
   // "arctic sea" survives as itself.
   const ds = buildHexDataset({
-    tags: { "0101": { terrain: "arctic_sea" }, "0102": { terrain: "salt_flat" }, "0103": { terrain: "forest", overlays: ["river"] } },
+    tags: { "0101": { terrain: "arctic_sea" }, "0102": { terrain: "salt_flat" }, "0103": { terrain: "forest", features: ["river"] } },
   });
   const by = Object.fromEntries(ds.hexes.map((h) => [h.num, h]));
   assert.deepEqual(by[101], { num: 101, terrain: "arctic sea" });
   assert.deepEqual(by[102], { num: 102, terrain: "salt flat" });
-  assert.deepEqual(by[103], { num: 103, terrain: "forest" }, "an overlay is a network, never a hex field");
+  assert.deepEqual(by[103], { num: 103, terrain: "forest", features: [{ id: "river-103", type: "river", name: "", discovered: true }] },
+    "a river feature goes out as a feature beside the terrain, never as the terrain");
   assert.equal(ds.hexes.length, 3, "every tagged hex, not only the keyed ones");
   assert.deepEqual(ds.networks.river, [103]);
   assert.equal(validateHexDataset(ds).ok, true);
@@ -214,18 +215,98 @@ test("a clipped top row and a short lowered column are honoured, not just cols �
   for (const id of ["001", "0100", "0102"]) assert.equal(check(id).ok, true, `${id} is on the map`);
 });
 
-test("a keyed row's first land word is the terrain; a water word beside it is the overlay", () => {
+test("a keyed row's first land word is the terrain; a river, path or coast beside it is a feature", () => {
   const ds = buildHexDataset({ name: "Test", summaryRows: [
     { num: "1626", key: "16,26", zone: "Z", terrain: ["river", "swamp"], name: "Buried Ruins", feature: "keyed_location" },
     { num: "1627", key: "16,27", zone: "Z", terrain: ["swamp", "river"], name: "Same hex, other order", feature: "keyed_location" },
     { num: "2025", key: "20,25", zone: "Z", terrain: ["river"], name: "The Forks", feature: "keyed_location" },
     { num: "0503", key: "5,3", zone: "Z", terrain: ["ocean"], name: "Sea Nymphs", feature: "keyed_location" },
+    { num: "0933", key: "9,33", zone: "Z", terrain: ["coast"], name: "Old Light", feature: "keyed_location" },
+    { num: "0934", key: "9,34", zone: "Z", terrain: ["coast", "forest"], name: "Shore Wood", feature: "keyed_location" },
   ] });
   const h = Object.fromEntries(ds.hexes.map((x) => [x.num, x]));
   assert.equal(h[1626].terrain, "swamp", "the land word wins whatever the column's order");
   assert.equal(h[1627].terrain, "swamp");
-  assert.deepEqual(ds.networks.river.sort(), [1626, 1627], "the river runs through both as a network");
-  assert.equal(h[2025].terrain, "river", "a row that is only water stays water");
+  assert.deepEqual(h[1626].features.map((f) => f.id), ["river-1626"], "the river through a swamp is a feature");
+  assert.deepEqual(ds.networks.river.sort(), [1626, 1627], "and still a network, for the painted build");
+  assert.equal(h[2025].terrain, "river", "a row that is only water stays water: a river tile");
+  assert.equal(h[2025].features, undefined, "a river tile carries no river feature");
   assert.equal(h[503].terrain, "ocean");
+  assert.equal(h[933].terrain, undefined, "coast is never terrain; alone it says nothing about the ground");
+  assert.deepEqual(h[933].features.map((f) => f.id), ["coast-933"]);
+  assert.equal(h[934].terrain, "forest");
+  assert.deepEqual(h[934].features.map((f) => f.id), ["coast-934"]);
   assert.deepEqual(ds.networks.road, []);
+});
+
+// ── #196: river, path and coast are features, never terrain ─────────────────
+
+test("a river mouth on land is not a river tile, with or without its keyed row, so every send agrees", () => {
+  // Invented: a city on the shore where a river meets the sea. Its keyed row
+  // says only coast and river; its tag is the legacy features-only reading,
+  // coast where the terrain goes; the land around it is grassland.
+  const tags = {
+    1334: { terrain: "grassland", features: ["river", "coast"] },   // as tagsForDataset reads the legacy "coast;river" cell
+  };
+  const row = { num: "1334", key: "13,34", zone: "Z", terrain: ["coast", "river"], name: "Port", feature: "city_state" };
+  const withRow = buildHexDataset({ summaryRows: [row], tags }).hexes[0];
+  const tagsOnly = buildHexDataset({ tags }).hexes[0];
+  assert.equal(withRow.terrain, "grassland", "the row names no ground, so the tag's answers");
+  assert.deepEqual(withRow.features.map((f) => f.id), ["settlement-1334", "river-1334", "coast-1334"]);
+  assert.equal(tagsOnly.terrain, withRow.terrain, "a send that has not loaded the keyed rows sends the same terrain");
+  assert.deepEqual(tagsOnly.features.map((f) => f.id), ["river-1334", "coast-1334"]);
+  // The raw legacy tag, straight into the builder, never goes out as coast terrain either.
+  const raw = buildHexDataset({ tags: { 1334: { terrain: "coast", features: ["river"] } } }).hexes[0];
+  assert.equal(raw.terrain, undefined);
+  assert.deepEqual(raw.features.map((f) => f.id), ["river-1334", "coast-1334"]);
+  assert.equal(validateHexDataset(buildHexDataset({ tags: { 1334: { terrain: "coast", features: [] } } })).ok, true,
+    "a hex carrying only features is a valid record");
+});
+
+test("a river tile is terrain river with no river feature, even when a tag ticks both", () => {
+  const ds = buildHexDataset({ tags: { "0201": { terrain: "river", features: ["river"] }, "0202": { terrain: "forest", features: ["river", "path", "coast"] } } });
+  const h = Object.fromEntries(ds.hexes.map((x) => [x.num, x]));
+  assert.deepEqual(h[201], { num: 201, terrain: "river" });
+  assert.deepEqual(h[202].features.map((f) => [f.id, f.type, f.discovered]),
+    [["river-202", "river", true], ["path-202", "path", true], ["coast-202", "coast", true]]);
+  assert.deepEqual(ds.networks.river, [202], "only the river line is drawn as a river network");
+  assert.equal(validateHexDataset(ds).ok, true);
+});
+
+test("the old tag shape, { overlays }, is still read", () => {
+  const ds = buildHexDataset({ tags: { "0301": { terrain: "forest", overlays: ["coast"] } } });
+  assert.deepEqual(ds.hexes[0].features.map((f) => f.id), ["coast-301"]);
+});
+
+test("a settlement and its river travel together, the settlement first", () => {
+  const ds = buildHexDataset({
+    summaryRows: [{ num: "0402", key: "4,2", zone: "Z", terrain: ["forest", "river"], name: "Ford", feature: "town" }],
+    tags: { "0402": { terrain: "town", features: ["river", "coast"] } },
+  });
+  assert.deepEqual(ds.hexes[0].features.map((f) => f.id), ["settlement-402", "river-402", "coast-402"], "one id per kind, no duplicates");
+  assert.equal(ds.hexes[0].terrain, "forest");
+});
+
+test("mergeFeatures: a re-send replaces ours by id and leaves everything else alone", () => {
+  const settlement = { id: "settlement-2849", type: "town", name: "Ford", discovered: true };   // the players found it
+  const dungeon = { id: "Xy12ab", type: "dungeon", name: "The GM's own", discovered: false };
+  const current = [settlement, dungeon, { id: "river-2849", type: "river", name: "", discovered: true }, { id: "path-2849", type: "path", name: "", discovered: true }];
+  const ours = [
+    { id: "settlement-2849", type: "town", name: "Ford", discovered: false },
+    { id: "river-2849", type: "river", name: "", discovered: true },
+    { id: "coast-2849", type: "coast", name: "", discovered: true },
+  ];
+  const next = mergeFeatures(current, ours, { settlements: true });
+  assert.deepEqual(next.map((f) => f.id), ["settlement-2849", "Xy12ab", "river-2849", "coast-2849"],
+    "the path tag was taken off, the coast added, the river kept once");
+  assert.equal(next[0].discovered, true, "a settlement already there keeps the players' discovery");
+  assert.equal(new Set(next.map((f) => f.id)).size, next.length, "no duplicate ids");
+  assert.equal(mergeFeatures(next, ours, { settlements: true }), null, "sending the same again changes nothing");
+});
+
+test("mergeFeatures: a settlement goes only while it has not yet arrived", () => {
+  const ours = [{ id: "settlement-101", type: "town", name: "Town", discovered: false }];
+  assert.deepEqual(mergeFeatures([], ours, { settlements: true }), ours);
+  assert.equal(mergeFeatures([], ours, { settlements: false }), null, "a GM who deleted it in Extras does not get it back");
+  assert.equal(mergeFeatures(undefined, [], {}), null, "a hex with nothing on either side sends nothing");
 });

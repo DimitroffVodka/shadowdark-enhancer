@@ -15,7 +15,7 @@
  * ponytail: thresholds were tuned on one map; expose only `sensitivity`.
  */
 
-import { cellMasks, majorityStamp, unionStamp, and, features, labelZone, coverage } from "./bitmap.mjs";
+import { cellMasks, majorityStamp, unionStamp, and, features as inkFeatures, labelZone, coverage } from "./bitmap.mjs";
 
 export const WATER = ["ocean", "lake", "arctic_sea"];
 /** Tags whose cells carry no stamp to subtract. */
@@ -468,7 +468,7 @@ export function nearestExemplar(vec, exemplars, { runOff = null, profile = null,
 /**
  * One stamp per terrain from overlay-free exemplars (falling back to all of
  * that terrain's exemplars), water tags share one union stamp.
- * @param {Array<{tag:string, overlays:string[], bitmap:object}>} exemplars
+ * @param {Array<{tag:string, features:string[], bitmap:object}>} exemplars
  * @returns {{ stamps: Map<string, object>, counts: Map<string, number>, coverage: Map<string, number> }}
  */
 export function buildStamps(exemplars, T = DEFAULT_THRESHOLDS) {
@@ -477,7 +477,7 @@ export function buildStamps(exemplars, T = DEFAULT_THRESHOLDS) {
     if (!e.tag || BARE.includes(e.tag)) continue;
     if (!byTag.has(e.tag)) { byTag.set(e.tag, []); clean.set(e.tag, []); }
     byTag.get(e.tag).push(e.bitmap);
-    if (!(e.overlays?.length)) clean.get(e.tag).push(e.bitmap);
+    if (!(e.features?.length)) clean.get(e.tag).push(e.bitmap);
   }
   const stamps = new Map(), counts = new Map(), cov = new Map();
   for (const [tag, all] of byTag) {
@@ -559,16 +559,17 @@ export function scaledOverlayThresholds(area, T = DEFAULT_THRESHOLDS) {
  * to call in a loop that yields to the event loop (the app does, every 100
  * cells), so a 4800-cell map never freezes the browser.
  * @param {object} args
- * @param {Array<{num:number, tag:string, overlays:string[], bitmap:object}>} args.exemplars
+ * @param {Array<{num:number, tag:string, features:string[], bitmap:object}>} args.exemplars
  * @param {object[]} [args.allBitmaps]  every cell bitmap on the map, for the label zone (defaults to the exemplars)
  * @param {object} [args.thresholds]
- * @returns {{ classify: (cell:{num:number,bitmap:object}) => {terrain:string, overlays:string[], margin:number, ambiguous:boolean, reason:string}, warnings: string[], stampCoverage: Object<string, number>, ready: boolean }}
+ * @returns {{ classify: (cell:{num:number,bitmap:object}) => {terrain:string, features:string[], margin:number, ambiguous:boolean, reason:string}, warnings: Array<{key:string, data?:object}>, stampCoverage: Object<string, number>, ready: boolean }}
+ *   warnings are languages/en.json keys with their format data; the caller localizes them.
  */
 export function createClassifier({ exemplars, allBitmaps, thresholds = {} }) {
   const T = { ...DEFAULT_THRESHOLDS, ...thresholds };
   const warnings = [];
   const ex = (exemplars ?? []).filter((e) => e?.tag && e.bitmap);
-  if (!ex.length) return { classify: () => null, warnings: ["No exemplars: tag a sheet by hand first."], stampCoverage: {}, ready: false };
+  if (!ex.length) return { classify: () => null, warnings: [{ key: "SDE.hexMap.classify.noExamples" }], stampCoverage: {}, ready: false };
   const { w, h } = ex[0].bitmap;
   const area = w * h;
   const px = scaledOverlayThresholds(area, T);
@@ -577,9 +578,9 @@ export function createClassifier({ exemplars, allBitmaps, thresholds = {} }) {
   const keep = keepMask(allBitmaps?.length ? allBitmaps : ex.map((e) => e.bitmap), masks);
   const vecs = ex.map((e) => ({ ...e, vec: featureVector(e.bitmap), profile: shapeProfile(and(e.bitmap, keep)) }));
   const { stamps, counts, coverage: cov } = buildStamps(vecs, T);
-  for (const [tag, n] of counts) if (n < T.minExemplars) warnings.push(`${tag}: only ${n} tagged cell${n === 1 ? "" : "s"}, needs ${T.minExemplars} for overlay detection`);
+  for (const [tag, n] of counts) if (n < T.minExemplars) warnings.push({ key: "SDE.hexMap.classify.fewExamples", data: { tag, n, need: T.minExemplars } });
   const weak = [...cov.entries()].filter(([, c]) => c < 0.5).map(([t]) => t);
-  if (weak.length) warnings.push(`Stamps for ${weak.join(", ")} explain under half of their cells' ink: the icons are not identical from cell to cell (hand-drawn map?), so overlay detection will be poor there.`);
+  if (weak.length) warnings.push({ key: "SDE.hexMap.classify.weakStamps", data: { tags: weak.join(", ") } });
 
   // The water family is settled by the wave strokes the legend draws, not by
   // block means: see WATER_ARBITER. Built once from the same exemplars.
@@ -600,20 +601,20 @@ export function createClassifier({ exemplars, allBitmaps, thresholds = {} }) {
       if (picked && picked !== terrain) waterCall = { from: terrain, to: picked };
       if (picked) terrain = picked;
     }
-    let overlays = [], ambiguous = nn.margin < T.margin, reason = ambiguous ? "close call between terrains" : "";
+    let features = [], ambiguous = nn.margin < T.margin, reason = ambiguous ? "close call between terrains" : "";
     if (!BARE.includes(terrain)) {
       const stamp = stamps.get(terrain);
       if (!stamp) { ambiguous = true; reason = reason || `no stamp for ${terrain} yet`; }
       else {
         const { residual } = registeredResidual(and(c.bitmap, keep), stamp, T.maxShift);
-        const feat = features(residual, masks, { minPiece });
+        const feat = inkFeatures(residual, masks, { minPiece });
         const o = classifyOverlay(feat, px);
-        if (o.overlay === "stroke") overlays = ["river"];
-        else if (o.overlay === "path") overlays = ["path"];
+        if (o.overlay === "stroke") features = ["river"];
+        else if (o.overlay === "path") features = ["path"];
         if (o.ambiguous) { ambiguous = true; reason = reason || "overlay unclear"; }
       }
     }
-    return { terrain, overlays, margin: nn.margin, ambiguous, reason, runOff: nn.runOff ?? null, water: waterCall, marker: mark ?? null };
+    return { terrain, features, margin: nn.margin, ambiguous, reason, runOff: nn.runOff ?? null, water: waterCall, marker: mark ?? null };
   };
   return { classify, warnings, stampCoverage: Object.fromEntries(cov), ready: true,
     water: water ? { profiles: water.profiles, markGap: water.markGap } : null,
@@ -623,7 +624,7 @@ export function createClassifier({ exemplars, allBitmaps, thresholds = {} }) {
 /**
  * Classify cells in one call (tests, small maps). The app uses createClassifier
  * and loops with yields instead.
- * @returns {{ results: Map<number, object>, review: number[], warnings: string[], stampCoverage: Object<string, number> }}
+ * @returns {{ results: Map<number, object>, review: number[], warnings: Array<{key:string, data?:object}>, stampCoverage: Object<string, number> }}
  */
 export function classifyCells({ cells, exemplars, allBitmaps, thresholds = {} }) {
   const results = new Map(), review = [];
@@ -667,7 +668,7 @@ export function parseTruthCsv(text) {
 /**
  * Precision/recall of the scene's tags against a truth table, over the cells
  * present in both. Terrain accuracy counts the first non-overlay truth tag.
- * @param {Map<string, {terrain:string, overlays:string[], source:string}>} cells   the tag store's cells
+ * @param {Map<string, {terrain:string, features:string[], source:string}>} cells   the tag store's cells
  * @param {Array<{num:number, tags:string[]}>} truth
  * @param {{ sources?: string[] }} [opts]   restrict to cells with these sources (e.g. ["auto"])
  */
@@ -682,7 +683,7 @@ export function compareTags(cells, truth, { sources } = {}) {
     const truthPrimary = t.tags.find((x) => !overlayTags.includes(x)) ?? t.tags[0];
     if (c.terrain === truthPrimary) terrainOk++;
     for (const o of ["river", "path"]) {
-      const has = c.terrain === o || (c.overlays ?? []).includes(o);
+      const has = c.terrain === o || (c.features ?? []).includes(o);
       const truthHas = t.tags.includes(o);
       if (has && truthHas) pr[o].tp++; else if (has) pr[o].fp++; else if (truthHas) pr[o].fn++;
     }

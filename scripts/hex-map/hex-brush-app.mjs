@@ -6,7 +6,7 @@
  * report errors I see." One wrong cell at a time through a dialog is the wrong
  * shape for that — the mistakes come in patches, and he can see the patch.
  *
- * So: pick the terrain and overlays once here, then click or drag across the
+ * So: pick the terrain and features once here, then click or drag across the
  * wrong hexes on the tag overlay and they take it. A stroke is ONE write to the
  * scene however many hexes it covers, and every cell the classifier had tagged
  * is recorded as a verdict on the way past (tag-corrections.mjs) — a patch of
@@ -18,8 +18,8 @@
  */
 
 import { MODULE_ID } from "../shared/module-id.mjs";
-import { decodeTags, OVERLAYS } from "./tag-store.mjs";
-import { HexTagOverlay, terrainOptions, OTHER } from "./tag-overlay.mjs";
+import { decodeTags, FEATURES } from "./tag-store.mjs";
+import { HexTagOverlay, terrainOptions, OTHER, FEATURE_LABELS } from "./tag-overlay.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
@@ -88,13 +88,13 @@ export class HexBrushApp extends HandlebarsApplicationMixin(ApplicationV2) {
     if (other) other.hidden = select?.value !== OTHER;
     const raw = select?.value === OTHER ? other?.value : select?.value;
     const terrain = String(raw ?? "").trim().toLowerCase().replace(/\s+/g, "_");
-    const overlays = OVERLAYS.filter((o) => root.querySelector(`input[data-hxb-overlay][value="${o}"]`)?.checked);
+    const features = FEATURES.filter((o) => root.querySelector(`input[data-hxb-feature][value="${o}"]`)?.checked);
     const overlay = HexTagOverlay.current;
-    if (overlay) overlay.brush = terrain ? { terrain, overlays } : null;
+    if (overlay) overlay.brush = terrain ? { terrain, features } : null;
     const hint = root.querySelector("[data-hxb-hint]");
     if (hint) {
       hint.textContent = terrain
-        ? t("SDE.hexMap.brush.hintPicked", { tags: [terrain.replace(/_/g, " "), ...overlays].join(", ") })
+        ? t("SDE.hexMap.brush.hintPicked", { tags: [terrain.replace(/_/g, " "), ...features].join(", ") })
         : t("SDE.hexMap.brush.hintNone");
     }
     const undo = root.querySelector("button[data-action='hxbUndo']");
@@ -111,7 +111,7 @@ export class HexBrushApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const brush = HexTagOverlay.current?.brush ?? null;
     return {
       sceneName: scene?.name ?? "(no scene)",
-      overlays: OVERLAYS.map((o) => ({ value: o, checked: !!brush?.overlays?.includes(o) })),
+      features: FEATURES.map((o) => ({ value: o, label: t(FEATURE_LABELS[o]), checked: !!brush?.features?.includes(o) })),
       terrainOptions: terrainOptions(state.cells).map((o) => ({ ...o, selected: o.value === brush?.terrain })),
       other: OTHER,
       painted: HexTagOverlay.current?.lastStroke?.size ?? 0,

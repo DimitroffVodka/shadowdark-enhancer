@@ -414,7 +414,7 @@ body.theme-light .sde-bar-start-btn:hover {
  * its own `pointer-events: auto` below.
  *
  * z-index 50 keeps us above the canvas but below Foundry's sidebar/hotbar
- * and most module overlays — appropriate for a top banner.
+ * and most module features — appropriate for a top banner.
  */
 #shadowdark-enhancer-strip {
   display: none;
@@ -5917,7 +5917,7 @@ body.theme-light .sde-hub-monsters-row td {
   color: var(--sde-bar-text);
 }
 
-/* Tools menu: a <details> disclosure that overlays a small action list so the
+/* Tools menu: a <details> disclosure that features a small action list so the
    power-user / one-time-setup buttons don't crowd the control bar. */
 .sde-hub-tools {
   position: relative;
@@ -10505,8 +10505,8 @@ body.theme-light .sde-parry-note { color: #2e6b2e; }
 .sde-hxt-fields { display: flex; flex-direction: column; gap: 3px; font-size: 0.8rem; }
 .sde-hxt-label { font-weight: bold; }
 .sde-hxt-num { width: 5rem; }
-.sde-hxt-overlays { display: flex; gap: 6px; flex-wrap: wrap; }
-.sde-hxt-overlays label { display: inline-flex; gap: 2px; align-items: center; }
+.sde-hxt-features { display: flex; gap: 6px; flex-wrap: wrap; }
+.sde-hxt-features label { display: inline-flex; gap: 2px; align-items: center; }
 .sde-hxt-foot { display: flex; gap: 6px; justify-content: flex-end; align-items: center; }
 .sde-hxt-foot .sde-hxt-muted { margin-right: auto; }
 
@@ -10546,8 +10546,8 @@ body.theme-light .sde-parry-note { color: #2e6b2e; }
 .sde-hxt-facts { border-left: 3px solid #d3af63; padding: 3px 8px; margin: 2px 0; font-size: 0.9em; line-height: 1.35; }
 /* The hex brush: a small window that stays open over the map while painting. */
 .sde-hxb { display: flex; flex-direction: column; gap: 6px; }
-.sde-hxb .sde-hxb-overlays { display: flex; flex-wrap: wrap; gap: 8px; }
-.sde-hxb .sde-hxb-overlays label { display: inline-flex; align-items: center; gap: 4px; }
+.sde-hxb .sde-hxb-features { display: flex; flex-wrap: wrap; gap: 8px; }
+.sde-hxb .sde-hxb-features label { display: inline-flex; align-items: center; gap: 4px; }
 .sde-hxb-hint { margin: 0; font-size: 0.85rem; opacity: 0.8; min-height: 2.2em; }
 .sde-hxb-foot { display: flex; justify-content: flex-end; }
 

@@ -933,7 +933,7 @@ works on the GM's own scene image and book text.
 | Call | Who | What |
 |---|---|---|
 | `hexMaps.openTagger()` | GM | Open the Hex Tagger on the active hex scene (see the wiki page *Hex Maps*). Lazy. |
-| `hexMaps.buildDataset({ name, source, drafts, summaryRows, tags, gridHint })` | any | Pure builder for the Shadowdark Extras hexcrawl dataset. `tags` is `{ [num]: { terrain, overlays } }`. |
+| `hexMaps.buildDataset({ name, source, drafts, summaryRows, tags, gridHint })` | any | Pure builder for the Shadowdark Extras hexcrawl dataset. `tags` is `{ [num]: { terrain, features } }`, where `features` lists `river`, `path` and `coast` (`overlays`, the old name, is still read). Each hex's river, path and coast come out as entries in its Extras `features` list. |
 | `hexMaps.compare(csvText, { sources })` | GM + `hexMapsDevTools` | Score the active scene's tags against a truth CSV (`hex_id` plus `tags` or `terrain_tags`); returns terrain accuracy and river/path precision and recall. Dev check, ships no data. |
 | `hexMaps.importDetails(entriesOrDataset, sceneId?, { regionScene?, repaint? })` | GM | Write hex details onto a scene Extras already built (default: the active scene) through its `hex.upsertHexRecords`, then repaint the tiles unless `repaint: false`. Given crawl entries (one, a list, or `[]` for zones alone), every hex the print's region scan covers also gets `zone` and `zoneColor`; `regionScene` names the scanned print scene, needed when the world has more than one. |
 | `hexMaps.handoff(entryOrDataset)` | GM | Hand a dataset (or a filed crawl JournalEntry, converted first) to Extras' `hex.buildHexcrawl` when it exists, else download it as JSON. Returns `{ via: "extras" \| "download" \| "none", ... }`. |

@@ -9,22 +9,41 @@
  *     cells: { "1403": "forest;river|gm", "1404": "forest|auto:1.42" } }
  *
  * A cell value is `tags|source[:margin][?]`: the first tag is the terrain, the
- * rest are overlays (river, path, coast); a trailing `?` marks an automatic
- * result the classifier flagged for review (unclear overlay or missing stamp)
+ * rest are features (river, path, coast); a trailing `?` marks an automatic
+ * result the classifier flagged for review (unclear feature or missing stamp)
  * beyond what the margin alone says. Numbers are published numbers as
  * decimal strings without leading zeros. ponytail: the flag re-sends the whole
  * object on every write; move to a flagged journal page (as Extras' hexData)
  * if a map ever exceeds about 10 000 cells.
+ *
+ * TERRAIN and FEATURES are different things, and "river" is both (#196):
+ *
+ *   terrain   what the hex IS, one word. Terrain "river" is a river TILE: the
+ *             whole hex is water. It rolls on a River column, makes the land
+ *             beside it coastal, and is costed as river for travel.
+ *   features  what runs through or sits in a land hex. A "river" feature is a
+ *             river LINE through, say, a forest: it is exactly like a path. It
+ *             never makes a hex wet, never makes a neighbour coastal and never
+ *             chooses an encounter column. "coast" is derived from touching
+ *             water tiles (deriveCoasts), and is the one feature an encounter
+ *             column may follow (encounter-terrain.mjs).
+ *
+ * The persisted format stays `terrain;feature;feature|source`; older code
+ * called the features "overlays", so a decoded cell still answers to that.
  */
 
 import { neighbours, onMap } from "./geometry.mjs";
+import { SETTLEMENTS } from "../importer/hex/hex-summary.mjs";
 
 export const STORE_VERSION = 1;
-export const OVERLAYS = ["river", "path", "coast"];
+export const FEATURES = ["river", "path", "coast"];
 
 export function emptyState() {
   return { version: STORE_VERSION, origin: null, cells: new Map() };
 }
+
+/** `overlays`, the old name, as a read-only alias of `features`. Not enumerable, so it never reaches a write. */
+const OVERLAYS_ALIAS = { get() { return this.features; }, enumerable: false };
 
 /** Flag object → state. Tolerates a missing or foreign flag. */
 export function decodeTags(flag) {
@@ -37,10 +56,10 @@ export function decodeTags(flag) {
     if (!tags.length) continue;
     const review = srcPart.endsWith("?");
     const [source, margin] = (review ? srcPart.slice(0, -1) : srcPart).split(":");
-    state.cells.set(String(parseInt(num, 10)), {
-      terrain: tags[0], overlays: tags.slice(1).filter((t) => OVERLAYS.includes(t)),
+    state.cells.set(String(parseInt(num, 10)), Object.defineProperty({
+      terrain: tags[0], features: tags.slice(1).filter((t) => FEATURES.includes(t)),
       source: source || "gm", margin: margin !== undefined ? Number(margin) : undefined, review,
-    });
+    }, "overlays", OVERLAYS_ALIAS));
   }
   return state;
 }
@@ -50,7 +69,7 @@ export function encodeTags(state) {
   const cells = {};
   for (const [num, c] of state.cells) {
     if (!c?.terrain) continue;
-    const tags = [c.terrain, ...(c.overlays ?? [])].join(";");
+    const tags = [c.terrain, ...(c.features ?? [])].join(";");
     const src = c.margin !== undefined ? `${c.source ?? "gm"}:${Number(c.margin).toFixed(2)}` : (c.source ?? "gm");
     cells[num] = `${tags}|${src}${c.review ? "?" : ""}`;
   }
@@ -101,7 +120,7 @@ const WET = new Set(["river", "coast", "ocean", "lake", "arctic_sea"]);
 /**
  * Standing and running water a hex can be ON THE SHORE OF.
  *
- * Only terrain counts, never an overlay: a hex whose terrain is lake or ocean
+ * Only terrain counts, never a feature: a hex whose terrain is lake or ocean
  * IS water, while a river crossing a forest is a line drawn through the hex,
  * the same as a path. Patrick: "if it's like a river going through it like
  * similar to a path that does not count that's something different."
@@ -113,7 +132,7 @@ export const COASTAL_WATER = new Set(["arctic_sea", "ocean", "sea", "lake", "riv
  *
  * The scanner reads a coastline badly — it is a thin line shared between two
  * hexes rather than a glyph inside one — but it reads sea, lake and river
- * reliably, and a coast is just a land hex beside them. So the overlay is
+ * reliably, and a coast is just a land hex beside them. So the feature is
  * derived from terrain the classifier is good at instead of detected from ink
  * it is bad at. Measured on the Western Reaches against the 270 keyed rows,
  * where the book prints the terrain words itself: this finds 13 of the book's
@@ -141,14 +160,14 @@ export function deriveCoasts(state, { water = COASTAL_WATER, onlyAuto = false } 
   const marked = [];
   for (const [key, cell] of state?.cells ?? []) {
     if (!cell?.terrain || water.has(cell.terrain)) continue;          // water is not its own shore
-    if (cell.overlays?.includes("coast")) continue;                    // already said
+    if (cell.features?.includes("coast")) continue;                    // already said
     if (onlyAuto && cell.source && cell.source !== "auto") continue;    // the GM's hex is the GM's
     const n = Number(key);
     if (!Number.isFinite(n)) continue;
     const wet = neighbours(Math.floor(n / 100), n % 100, shifted)
       .some(({ col, row }) => water.has(state.cells.get(String(col * 100 + row))?.terrain));
     if (!wet) continue;
-    cell.overlays = [...new Set([...(cell.overlays ?? []), "coast"])];
+    cell.features = [...new Set([...(cell.features ?? []), "coast"])];
     marked.push(n);
   }
   return marked.sort((a, b) => a - b);
@@ -162,7 +181,7 @@ export function strandedRiver(state, num) {
   for (const nb of neighbours(Math.floor(n / 100), n % 100, state.origin?.shifted ?? "odd")) {
     const other = state.cells.get(String(nb.col * 100 + nb.row));
     if (!other) continue;
-    if (WET.has(other.terrain) || (other.overlays ?? []).includes("river")) return false;
+    if (WET.has(other.terrain) || (other.features ?? []).includes("river")) return false;
   }
   return true;
 }
@@ -256,7 +275,7 @@ export function nextSheet(state, { nums, size = 40, mode = "random", keyed = new
 }
 
 /**
- * Apply a sheet's answers. `answers` = { num: { terrain, overlays } }; an empty
+ * Apply a sheet's answers. `answers` = { num: { terrain, features } }; an empty
  * terrain clears the cell. GM answers always carry source "gm".
  *
  * Returns what each answer replaced, so a caller can record the GM's verdict on
@@ -273,7 +292,7 @@ export function applySheet(state, answers) {
     let after = null;
     if (!a?.terrain) state.cells.delete(key);
     else {
-      after = { terrain: a.terrain, overlays: (a.overlays ?? []).filter((t) => OVERLAYS.includes(t)), source: "gm" };
+      after = { terrain: a.terrain, features: (a.features ?? []).filter((t) => FEATURES.includes(t)), source: "gm" };
       state.cells.set(key, after);
     }
     transitions.push({ num: key, before, after });
@@ -282,7 +301,7 @@ export function applySheet(state, answers) {
 }
 
 /**
- * Tags in the shape hex-dataset's buildHexDataset takes: { num: { terrain, overlays } }.
+ * Tags in the shape hex-dataset's buildHexDataset takes: { num: { terrain, features } }.
  *
  * Cells the map does not have are dropped. A tag can arrive by NUMBER rather
  * than by position — a truth CSV, an exported tag file, tags written before the
@@ -291,6 +310,10 @@ export function applySheet(state, answers) {
  * built scene and refuses a record outside it ("hex N is outside the published
  * grid"), which would surface as a failed hand-off AFTER the scene was built.
  * Dropping them here keeps that from ever leaving.
+ *
+ * Each cell goes out as readCell reads it, so a legacy "coast" terrain never
+ * leaves as a terrain; a cell whose ground nothing names goes with its
+ * features alone.
  */
 export function tagsForDataset(state) {
   const shifted = state?.origin?.shifted ?? "odd";
@@ -300,9 +323,63 @@ export function tagsForDataset(state) {
     if (!c?.terrain) continue;
     const n = parseInt(num, 10);
     if (!Number.isInteger(n) || !onMap(Math.floor(n / 100), n % 100, bounds, shifted)) continue;
-    out[String(num).padStart(3, "0")] = { terrain: c.terrain, overlays: [...new Set(c.overlays ?? [])] };
+    const { terrain, features } = readCell(state, n, c);
+    out[String(num).padStart(3, "0")] = terrain ? { terrain, features } : { features };
   }
   return out;
+}
+
+/**
+ * What a list of tags says about a hex, read the #196 way.
+ *
+ * The persisted store can hold a feature word where the terrain goes, and so
+ * can a book's Terrain column: an imported row of features only ("coast;river")
+ * keeps its first tag as the terrain (importTags), and the keyed row of a city
+ * at a river mouth prints "Coast, river". Read here, never migrated:
+ *   - the first land word is the terrain;
+ *   - failing that, sea, ocean, lake or arctic sea is, a water tile;
+ *   - "river" is a river tile only when nothing else says land: beside coast
+ *     or path it is a river running through land to the shore, a feature;
+ *   - coast and path are never terrain; with no land word the ground is
+ *     unknown (null), and readCell asks the neighbours.
+ * Order does not matter, so "coast;river" and "river;coast" read the same.
+ * @param {string[]} words  tags or a keyed row's terrain words
+ * @returns {{terrain:string|null, features:string[]}}  features in FEATURES order
+ */
+export function readTags(words) {
+  const w = (words ?? []).filter(Boolean);
+  const land = w.find((t) => !COASTAL_WATER.has(t) && !FEATURES.includes(t));
+  const ashore = w.includes("coast") || w.includes("path");
+  const tile = w.find((t) => COASTAL_WATER.has(t) && t !== "river") ?? (!ashore && w.includes("river") ? "river" : null);
+  const terrain = land ?? tile ?? null;
+  return { terrain, features: FEATURES.filter((f) => f !== terrain && w.includes(f)) };
+}
+
+/** What sits on a hex rather than the ground under it: never a neighbour's terrain. */
+const NOT_GROUND = new Set([...Object.values(SETTLEMENTS), "keyed_location"]);
+
+/**
+ * One stored cell read by readTags, the ground filled in from the hex's
+ * neighbours when nothing names it: the land terrain most of the six have
+ * (water, settlements and keyed locations do not count), ties to the
+ * alphabetically first, null when none has one. Only the neighbours' own
+ * words are read, so the answer depends on nothing but the tags and is the
+ * same on every send.
+ * @returns {{terrain:string|null, features:string[]}|null} null for an untagged cell
+ */
+export function readCell(state, num, cell = state?.cells?.get(String(num))) {
+  // `cell` is passed when the caller holds it under a key of its own ("001").
+  if (!cell?.terrain) return null;
+  const read = readTags([cell.terrain, ...(cell.features ?? [])]);
+  if (read.terrain) return read;
+  const n = Number(num), votes = new Map();
+  for (const { col, row } of neighbours(Math.floor(n / 100), n % 100, state.origin?.shifted ?? "odd")) {
+    const other = state.cells.get(String(col * 100 + row));
+    const t = other?.terrain ? readTags([other.terrain, ...(other.features ?? [])]).terrain : null;
+    if (t && !COASTAL_WATER.has(t) && !NOT_GROUND.has(t)) votes.set(t, (votes.get(t) ?? 0) + 1);
+  }
+  const ground = [...votes].sort((a, b) => (b[1] - a[1]) || a[0].localeCompare(b[0]))[0]?.[0] ?? null;
+  return { terrain: ground, features: read.features };
 }
 
 /** Counts for the header. */
@@ -315,8 +392,8 @@ export function summarize(state, total) {
 /**
  * Side door in (Phase 4): rows from a CSV (classify.mjs parseTruthCsv) or from
  * rowsFromJson. A row is { num, tags, source?, margin?, review? }; the first
- * non-overlay tag is the terrain, so "river;forest" and "forest;river" agree,
- * and a row of overlays only ("river" for a cell that is all water) keeps its
+ * non-feature tag is the terrain, so "river;forest" and "forest;river" agree,
+ * and a row of features only ("river" for a cell that is all water) keeps its
  * first tag as the terrain, the same rule compareTags applies to a truth CSV
  * (167 of the Western Reaches table's 4768 rows are like that). Imported rows
  * replace the cell; `origin` is taken only when the store has none (it is tied
@@ -327,9 +404,9 @@ export function importTags(state, rows, { origin = null } = {}) {
   for (const r of rows ?? []) {
     const num = parseInt(r?.num, 10);
     const tags = (r?.tags ?? []).map((t) => String(t).trim().toLowerCase().replace(/\s+/g, "_")).filter(Boolean);
-    const terrain = tags.find((t) => !OVERLAYS.includes(t)) ?? tags[0];
+    const terrain = tags.find((t) => !FEATURES.includes(t)) ?? tags[0];
     if (!Number.isInteger(num) || num < 0 || !terrain) continue;
-    const cell = { terrain, overlays: tags.filter((t) => OVERLAYS.includes(t) && t !== terrain), source: r.source === "auto" ? "auto" : "gm", review: !!r.review };
+    const cell = { terrain, features: tags.filter((t) => FEATURES.includes(t) && t !== terrain), source: r.source === "auto" ? "auto" : "gm", review: !!r.review };
     if (Number.isFinite(r.margin)) cell.margin = Number(r.margin);
     state.cells.set(String(num), cell);
     n++;
@@ -348,13 +425,13 @@ export function importTags(state, rows, { origin = null } = {}) {
 export function rowsFromJson(obj) {
   if (obj?.cells && typeof obj.cells === "object" && !Array.isArray(obj.cells)) {
     const s = decodeTags(obj);
-    return { origin: s.origin, rows: [...s.cells].map(([num, c]) => ({ num, tags: [c.terrain, ...c.overlays], source: c.source, margin: c.margin, review: c.review })) };
+    return { origin: s.origin, rows: [...s.cells].map(([num, c]) => ({ num, tags: [c.terrain, ...c.features], source: c.source, margin: c.margin, review: c.review })) };
   }
   const byNum = new Map();
   const add = (num, tag) => { const k = String(parseInt(num, 10)); if (k === "NaN" || !tag) return; if (!byNum.has(k)) byNum.set(k, []); byNum.get(k).push(tag); };
   for (const r of obj?.terrain?.regions ?? []) for (const n of r.hexes ?? []) add(n, r.biome);
   for (const h of obj?.hexes ?? []) add(h.num, h.terrain);
-  for (const [net, overlay] of [["river", "river"], ["road", "path"]]) for (const n of obj?.networks?.[net] ?? []) add(n, overlay);
+  for (const [net, feature] of [["river", "river"], ["road", "path"]]) for (const n of obj?.networks?.[net] ?? []) add(n, feature);
   // A compact dataset paints every cell of the grid with terrain.default:
   // expand it under the contract's numbering (origin 1 unless the dataset
   // says 0; the lowered columns, odd physical ones, may end a row short).
@@ -367,7 +444,7 @@ export function rowsFromJson(obj) {
       const last = ((col - origin) % 2 === 1 ? rowsLowered : rows) + origin;
       for (let row = origin; row < last; row++) {
         const tags = byNum.get(String(col * 100 + row)) ?? [];
-        if (!tags.some((t) => !OVERLAYS.includes(String(t).trim().toLowerCase()))) add(col * 100 + row, fallback);
+        if (!tags.some((t) => !FEATURES.includes(String(t).trim().toLowerCase()))) add(col * 100 + row, fallback);
       }
     }
   }

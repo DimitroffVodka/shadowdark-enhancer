@@ -7,12 +7,12 @@ import { emptyState, deriveCoasts, COASTAL_WATER } from "../scripts/hex-map/tag-
 const build = (cells) => {
   const state = emptyState();
   state.origin = { shifted: "odd" };
-  for (const [num, terrain, overlays = [], source = "auto"] of cells) {
-    state.cells.set(String(num), { terrain, overlays: [...overlays], source });
+  for (const [num, terrain, features = [], source = "auto"] of cells) {
+    state.cells.set(String(num), { terrain, features: [...features], source });
   }
   return state;
 };
-const ov = (state, num) => state.cells.get(String(num)).overlays;
+const ov = (state, num) => state.cells.get(String(num)).features;
 
 test("land touching the sea becomes coast", () => {
   const state = build([[1000, "ocean"], [1001, "forest"]]);
@@ -26,7 +26,7 @@ test("water is not its own shore", () => {
 });
 
 test("a river CROSSING a hex is a line, not a shore", () => {
-  // 1001 has a river overlay but its terrain is forest: its neighbours are inland.
+  // 1000 has a river feature but its terrain is forest: its neighbours are inland.
   const state = build([[1000, "forest", ["river"]], [1001, "forest"]]);
   assert.deepEqual(deriveCoasts(state), []);
 });
@@ -63,7 +63,7 @@ test("onlyAuto keeps the GM's hexes untouched", () => {
   assert.deepEqual(ov(state, 1001), []);
 });
 
-test("an existing overlay survives the new one", () => {
+test("an existing feature survives the new one", () => {
   const state = build([[1000, "lake"], [1001, "forest", ["path"]]]);
   deriveCoasts(state);
   assert.deepEqual(ov(state, 1001).sort(), ["coast", "path"]);
