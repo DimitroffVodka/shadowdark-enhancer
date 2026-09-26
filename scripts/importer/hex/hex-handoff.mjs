@@ -211,20 +211,29 @@ const EXTRAS_HEX_JOURNAL = "__sdx_hex_data__";
  * Every record Extras holds for a scene, keyed by published number, or null
  * when there is nothing to read.
  *
- * ponytail: the ONE place that reads Extras' private store (the `hexData` flag
- * on its `__sdx_hex_data__` journal, which its own fog and solo mode read),
- * because api.hex has no read call yet. Swap the body for
- * `api.hex.getHexRecords(sceneId)` once shadowdark-extras#157 ships; that call
- * returns the same shape (null without a layout, {} with one and no records).
+ * Extras' own read call, `api.hex.getHexRecords` (shadowdark-extras#157),
+ * when it has one: null without a layout, `{}` with a layout and no records,
+ * so `{}` really means none. An older Extras has no read call, and this falls
+ * back to its private store (the `hexData` flag on its `__sdx_hex_data__`
+ * journal), where finding nothing can also mean the store moved: that returns
+ * null, never `{}`.
  *
- * An adopted print puts published (col, row) on Foundry offset
- * {i: row - base, j: col - base} (geometry.mjs extrasNumbersAlike, which the
- * tagger checks before any send), and Extras keys a record `${i}_${j}`.
+ * The fallback converts Extras' keys itself: an adopted print puts published
+ * (col, row) on Foundry offset {i: row - base, j: col - base} (geometry.mjs
+ * extrasNumbersAlike, which the tagger checks before any send), and Extras
+ * keys a record `${i}_${j}`.
  * @param {string} sceneId
- * @param {0|1} base  the map's numbering origin (grid.origin; 1 when absent)
- * @returns {Object<number, object>|null}
+ * @param {0|1} base  the map's numbering origin (grid.origin; 1 when absent), for the fallback only
+ * @returns {Promise<Object<number, object>|null>}
  */
-export function extrasHexRecords(sceneId, base = 1) {
+export async function extrasHexRecords(sceneId, base = 1) {
+  const read = extrasHexApi()?.getHexRecords;
+  if (typeof read === "function") return (await read(sceneId)) ?? null;
+  return storedHexRecords(sceneId, base);
+}
+
+/** An Extras without getHexRecords: its private store, read directly. */
+function storedHexRecords(sceneId, base) {
   const stored = globalThis.game?.journal?.getName?.(EXTRAS_HEX_JOURNAL)?.getFlag?.(EXTRAS_ID, "hexData")?.[sceneId];
   if (!stored) return null;
   const out = {};
@@ -246,12 +255,12 @@ export function extrasHexRecords(sceneId, base = 1) {
  * @param {string} sceneId
  * @param {0|1} base
  * @param {{fresh?:boolean}} [opts]  fresh: adoptHexcrawl said adopted in this same hand-off
- * @returns {Map<number, object[]>|null} null: send no features at all
+ * @returns {Promise<Map<number, object[]>|null>} null: send no features at all
  */
-export function extrasFeaturesOn(sceneId, base = 1, { fresh = false } = {}) {
+export async function extrasFeaturesOn(sceneId, base = 1, { fresh = false } = {}) {
   let records;
   try {
-    records = extrasHexRecords(sceneId, base);
+    records = await extrasHexRecords(sceneId, base);
   } catch (err) {
     console.warn(`${MODULE_ID} | could not read Extras' hex records`, err);
     return null;
@@ -303,7 +312,7 @@ export async function handoffToPrint(sceneId, dataset) {
   // Extras replaces a record's whole features list, so each hex's list is
   // merged with the one Extras holds. Unreadable, no features go at all:
   // sending blind would wipe what the GM and the players put there.
-  const current = extrasFeaturesOn(sceneId, dataset?.grid?.origin ?? 1, { fresh: adopted === true });
+  const current = await extrasFeaturesOn(sceneId, dataset?.grid?.origin ?? 1, { fresh: adopted === true });
   let merged = null;
   if (current) {
     const hexes = (dataset?.hexes ?? []).map((h) => ({ ...h, features: mergeFeatures(current.get(h.num), h.features, { settlements }) ?? undefined }));

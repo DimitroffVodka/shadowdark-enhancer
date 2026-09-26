@@ -90,12 +90,27 @@ export function partiesAvailable() {
   return !!game.modules?.get(EXTRAS)?.active;
 }
 
+/**
+ * Extras' party reads (`api.party.list()` / `api.party.members(party)`,
+ * shadowdark-extras#150), or null on an Extras from before them. The fallbacks
+ * below read the same flags those calls read, so both give the same answer.
+ */
+function extrasParty() {
+  const party = game.modules?.get(EXTRAS)?.api?.party;
+  return typeof party?.list === "function" && typeof party?.members === "function" ? party : null;
+}
+
 export function partyActors() {
   if (!partiesAvailable()) return [];
+  const api = extrasParty();
+  if (api) return api.list();
   return (game.actors?.contents ?? []).filter((a) => a.type === "NPC" && a.flags?.[EXTRAS]?.isParty === true);
 }
 
 export function partyMembers(partyUuid) {
+  if (!partiesAvailable()) return [];
+  const api = extrasParty();
+  if (api) return api.members(partyUuid);
   const party = partyActors().find((p) => p.uuid === partyUuid);
   return (party?.flags?.[EXTRAS]?.members ?? [])
     .map((id) => game.actors?.get(id)?.uuid ?? (String(id).includes(".") ? String(id) : null))
