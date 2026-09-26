@@ -22,6 +22,7 @@ import { registerHiddenSync } from "./crawl-strip/hidden-sync.mjs";
 import { registerTurnSkip } from "./crawl-strip/turn-skip.mjs";
 import { MovementTracker } from "./crawl-strip/movement-tracker.mjs";
 import { EncounterCheck } from "./encounter/encounter-check.mjs";
+import { tableForHex } from "./encounter/encounter-terrain.mjs";
 import { migrateEncounterSources } from "./encounter/encounter-sources.mjs";
 import { MonsterCreator } from "./monster-creator/encounter-creator.mjs";
 import {
@@ -102,7 +103,7 @@ const STYLESHEET_REV = "dfd1041d68d4";
 // stale); module.json carries the same hash and is fetched fresh at runtime. A
 // mismatch is a stale cache by construction — it cannot be anything else. Both
 // stamps are written by `npm run inventory` and gated by `inventory:check`.
-const BUILD_REV = "99818c401d83";
+const BUILD_REV = "8d6aefa616d0";
 
 /**
  * Tell the user when their browser is running an old build of this module, and
@@ -405,8 +406,9 @@ Hooks.once("init", () => {
   // game.modules.get(MODULE_ID).api on ready; consumers should listen for
   // the "shadowdarkEnhancer.ready" hook. Reference: docs/API.md.
   game.shadowdarkEnhancer = {
+    // 1.6.0 — additive: encounter.tableForHex (the table for a hex by region and terrain).
     // 1.5.0 — additive: hexMaps namespace (hex tagger, dataset, hand-off).
-    apiVersion: "1.5.0",
+    apiVersion: "1.6.0",
     // Guided, ordered Character Builder — a replacement for the system's
     // random generator. `open({ level0?, actor? })` renders the wizard.
     charBuilder: {
@@ -474,6 +476,11 @@ Hooks.once("init", () => {
       // How often the automatic crawl-round check runs (1 = every round).
       getCheckFrequency: () => game.settings.get(MODULE_ID, "encounterCheckFrequency"),
       setCheckFrequency: (n) => game.settings.set(MODULE_ID, "encounterCheckFrequency", n),
+      // The roll table for a hex, { num?, terrain, zone?, features? }: its region's
+      // printed column with day/night, moon and north/south resolved, else its
+      // terrain's table, else the active table. Every encounter check uses it,
+      // so Shadowdark Extras' hex fog can roll the same one. { hour } overrides the clock.
+      tableForHex: (hex, opts) => tableForHex(hex, opts),
     },
     monsterCreator: {
       open: () => MonsterCreator.open(),

@@ -16,7 +16,7 @@ and Forge & Loot features.
 [`charBuilder`](#charbuilder--guided-character-creation) ·
 [`actors`](#actors--western-reaches-boats)
 
-**API version:** `1.5.0` (semver — additive changes bump the minor version,
+**API version:** `1.6.0` (semver — additive changes bump the minor version,
 breaking changes the major; check `apiVersion` before relying on newer keys).
 
 ## Discovery
@@ -114,7 +114,37 @@ api.encounter.openRoller();           // roller window
 api.encounter.setActiveTable(uuid);   // bind the active encounter table
 api.encounter.getThreshold(); api.encounter.setThreshold(3);
 api.encounter.getCheckFrequency(); api.encounter.setCheckFrequency(3); // automatic crawl-round check: every 3 rounds, counted from the last check
+await api.encounter.tableForHex({ num: 2849, terrain: "forest", features: ["river", "coast"] }); // → RollTable | null
 ```
+
+### `encounter.tableForHex(hex, { hour?, moon?, scene? })`
+
+Added in 1.6.0. The roll table the book intends for a hex, the same one every
+encounter check rolls, so another module (Shadowdark Extras' hex fog) can roll
+it too. Resolves to the `RollTable` document, or `null` when nothing answers.
+
+`hex` is `{ num?, terrain, zone?, features? }`:
+
+- `terrain` is the hex's terrain word (`forest`, `arctic sea`, `river` for a
+  river tile). Only terrain picks a column.
+- `features` is the tag store's list (`["river", "coast"]`) or an Extras
+  record's (`[{ type: "coast", ... }]`). Only `coast` counts: in a region whose
+  imported grid prints a Coast column, a coastal hex rolls on it.
+- `zone` is the region name. Left out, it comes from the print's region scan
+  by `num`, as the map overlay and the Extras hand-off read it.
+- `num`, the published hex number, also places the hex in the northern or
+  southern half of its region's rows, for grids printed as `N. Ocean` /
+  `S. Ocean`. Without it that split cannot be decided.
+
+The order is: the region's printed column (from the imported *Encounter Zone*
+grids), else the table mapped to the terrain under **Tables by terrain**, else
+the active table. Day and night columns (`Swamp, Day` / `Swamp, Night`) are
+read at the call: `hour` (0–23) overrides the world clock, night being 18:00
+to 06:00. A moon column (`New Moon`, `Full Moon`) needs the moon phase, which
+the world clock does not give yet, so until it does a night that could be one
+rolls the ordinary night column; `moon` (`"new"`, `"full"`) decides it.
+`scene` names the scene whose region scan answers (default: the one being
+viewed, or the world's only scanned print).
 
 ## `loot`
 
@@ -947,6 +977,7 @@ column 14, row 03); never a column and row pair.
   not bump `apiVersion`.
 - `1.3.0` adds `loot.resolve` and `loot.generated.{identity,plan,reconcile}`.
 - `1.5.0` adds the `hexMaps` namespace (Hex Tagger, dataset builder, hand-off).
+- `1.6.0` adds `encounter.tableForHex`.
 - `1.4.0` adds the shared `forgeLoot.open()` preview shell. Generator rules and
   document writes remain behind the later NPC/Rival adapter implementations.
   The version policy is additive: new namespaces bump the minor version; breaking

@@ -25,7 +25,7 @@ import { cellNumber, foundryOffsetToCube } from "./geometry.mjs";
 import { decodeTags, encodeTags, applySheet, strandedRiver, FEATURES } from "./tag-store.mjs";
 import { FIXES_FLAG, DEFAULT_REVIEW_MARGIN, decodeFixes, encodeFixes, recordEdits, withdrawEdits, sameTags } from "./tag-corrections.mjs";
 import { TERRAIN_TAGS, SETTLEMENTS } from "../importer/hex/hex-summary.mjs";
-import { pickZoneTable, encounterZonesByRegion } from "../encounter/encounter-terrain.mjs";
+import { pickZoneTable, encounterZonesByRegion, worldClock, isNight, regionRowRanges, inNorthHalf } from "../encounter/encounter-terrain.mjs";
 import { neighbourNumbers, encodeRegions, REGIONS_FLAG } from "./region-scan.mjs";
 
 /** Scene flag key holding the tag store (hex-tagger-app.mjs owns it; the literal avoids an import cycle). */
@@ -175,8 +175,8 @@ export function assignRegionColors(keyByNum, { shifted = "odd", palette = REGION
 /**
  * Encounter-zone fills. This overlay answers one question — would a wandering
  * check on this hex find a table? — so it is deliberately a three-colour
- * picture rather than one colour per table: green rolls, amber needs something
- * the map cannot say (a time of day, a moon, a compass half), grey has no
+ * picture rather than one colour per table: green rolls, amber is waiting on
+ * the one thing the clock cannot say yet (the moon phase, #192), grey has no
  * table for that region at all.
  */
 export const ZONE_COLORS = { ok: 0x3f8f4f, ambiguous: 0xe0a72c, none: 0x8a8a8a };
@@ -305,7 +305,7 @@ export class HexTagOverlay {
    * encounter grids. The terrain picture needs neither, so it pays for neither.
    */
   static async _regionContext(mode, scene) {
-    if (mode === "terrain") return { regionByNum: new Map(), componentByNum: new Map(), zonesByRegion: new Map() };
+    if (mode === "terrain") return { regionByNum: new Map(), componentByNum: new Map(), zonesByRegion: new Map(), rowRanges: new Map() };
     const { sceneRegions, sceneRegionFixes, sceneShift, regionSeeds, nameComponents, nearestRegion, crawlEntries } = await import("./hex-region.mjs");
     const shifted = sceneShift(scene);
     // The enclosures are worth looking at BEFORE a hex key names them: that is
@@ -338,8 +338,10 @@ export class HexTagOverlay {
       palette: extrasPalette() ?? REGION_COLORS,
     });
     const ctx = { regionByNum: byNum, inferredByNum, componentByNum, fixByNum, keyByNum, colorByKey };
-    if (mode === "region") return { ...ctx, zonesByRegion: new Map() };
-    return { ...ctx, zonesByRegion: await encounterZonesByRegion() };
+    if (mode === "region") return { ...ctx, zonesByRegion: new Map(), rowRanges: new Map() };
+    // North and south split each region's own rows, as far as the map puts hexes in it.
+    const rowRanges = regionRowRanges(new Map([...inferredByNum, ...byNum]));
+    return { ...ctx, zonesByRegion: await encounterZonesByRegion(), rowRanges };
   }
 
   constructor(scene, geom, origin) {
@@ -378,6 +380,8 @@ export class HexTagOverlay {
     this.fixByNum = new Map();
     /** @type {Map<string, object[]>} region → its imported encounter columns */
     this.zonesByRegion = new Map();
+    /** @type {Map<string, {min:number, max:number}>} region → its rows, for the north and south halves */
+    this.rowRanges = new Map();
   }
 
   show() {
@@ -414,6 +418,8 @@ export class HexTagOverlay {
       this.draw();
     })]);
     this._hooks.push(["canvasTearDown", Hooks.on("canvasTearDown", () => this.hide())]);
+    // Dusk and dawn change which column a hex rolls on.
+    this._hooks.push(["updateWorldTime", Hooks.on("updateWorldTime", () => { if (this.mode === "encounter") this.draw(); })]);
     ui.notifications?.info(t("SDE.hexMap.notify.overlayShown"));
   }
 
@@ -427,12 +433,17 @@ export class HexTagOverlay {
     if (HexTagOverlay.current === this) HexTagOverlay.current = null;
   }
 
-  /** The encounter verdict for one hex: which column it would roll on. */
+  /**
+   * The encounter verdict for one hex: which column a check would roll on right
+   * now, the same answer the check itself gives (encounter-terrain.mjs).
+   */
   zoneFor(num) {
     const cell = this.state.cells.get(String(num));
     const region = this.regionByNum.get(num) ?? this.inferredByNum.get(num);
     if (!region) return { status: "none", region: null };
-    return { ...pickZoneTable(region, cell?.terrain, cell?.features, this.zonesByRegion), region };
+    const { hour, moon } = worldClock();
+    const at = { night: isNight(hour), moon, north: inNorthHalf(num, this.rowRanges.get(region)) };
+    return { ...pickZoneTable(region, cell?.terrain, cell?.features, this.zonesByRegion, at), region };
   }
 
   /** Fill colour for a hex in the current mode, or null to leave it unpainted. */
@@ -526,6 +537,11 @@ export class HexTagOverlay {
     const verdict = this.zoneFor(num);
     if (!region) return `${num} — ${t("SDE.hexMap.zone.noRegion")}`;
     if (verdict.status === "ok") return `${num} — ${region}: ${verdict.column.column}`;
+    // Waiting on the moon: say what a check rolls meanwhile, and what it waits for.
+    if (verdict.moon && verdict.column) {
+      const moons = verdict.columns.filter((c) => c !== verdict.column).map((c) => c.column).join(", ");
+      return `${num} — ${region}: ${t("SDE.hexMap.zone.moon", { column: verdict.column.column, moons })}`;
+    }
     // Name the columns it is stuck between: that is the whole diagnostic.
     if (verdict.status === "ambiguous") {
       return `${num} — ${region}: ${t("SDE.hexMap.zone.ambiguous", { columns: verdict.columns.map((c) => c.column).join(", ") })}`;

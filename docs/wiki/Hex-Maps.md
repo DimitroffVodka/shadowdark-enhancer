@@ -429,13 +429,17 @@ Pressing the one that is up hides it; pressing another switches to it.
   looks the same in every world. This is the quickest way to check the border
   scan: a region that leaked into its neighbour is a stain you can see at the
   whole-map zoom.
-- **Encounter zones** — whether a wandering check on this hex would find a
-  table. **Green** rolls: that region prints a column for this terrain.
-  **Amber** is stuck between two columns because the book split that terrain by
-  something the map does not say — a time of day, a moon phase, a northern and
-  a southern half — and hovering names the columns it is torn between.
-  **Grey** means that region has no encounter grid imported at all. Nothing is
-  guessed: a hex that cannot be decided says so rather than picking a table.
+- **Encounter zones** — which table a wandering check on this hex would roll
+  right now, the same one the check itself picks (see
+  [Random Encounters](Random-Encounters.md)). **Green** rolls: that region
+  prints a column for this terrain, with day or night read off the world clock
+  and the northern or southern half off the region's rows; hovering names the
+  column. **Amber** is waiting on the moon: at night, in a region whose grid
+  prints a *New Moon* or *Full Moon* column, the world clock cannot say the
+  phase yet, so hovering names the column a check rolls meanwhile and the moon
+  column it would switch to. **Grey** means that region has no column for this
+  terrain, or no encounter grid imported at all. The picture redraws itself at
+  dusk and dawn.
 
 Coasts come free with tagging: once the terrain is decided, every land hex
 touching sea, lake or a river tile is marked coast in the same pass. A
@@ -457,8 +461,9 @@ the borders never throws your work away: the enclosures are replaced, the
 regions you set by hand stay.
 
 The encounter picture reads whatever you have imported, matching each region's
-printed column labels against the terrain on your hexes, so it gets better as
-you import more of the book and needs no per-map setup.
+printed column labels against the terrain on your hexes (and, for a Coast
+column, the coast feature), so it gets better as you import more of the book
+and needs no per-map setup.
 
 
 A contact sheet shows forty cells at a time; the print shows all of them at

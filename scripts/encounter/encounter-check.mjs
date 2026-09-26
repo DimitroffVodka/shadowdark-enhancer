@@ -6,7 +6,7 @@
 import { MODULE_ID } from "../shared/module-id.mjs";
 import { CrawlState } from "../crawl-strip/crawl-state.mjs";
 import { SessionRecap } from "../session-recap/session-recap.mjs";
-import { partyHex, pickTable, TERRAIN_TABLES } from "./encounter-terrain.mjs";
+import { partyHex, resolveHexTable } from "./encounter-terrain.mjs";
 
 // v13/v14 namespaced renderTemplate (the global `renderTemplate` still
 // works but emits deprecation warnings).
@@ -25,8 +25,11 @@ export const EncounterCheck = {
     // On a tagged hex map the party's hex names itself on the card and picks
     // the table; everywhere else this is null and nothing below changes.
     const hex = partyHex();
+    // The table for a hit: the region's column for this hex, resolved at the
+    // moment of the roll, else the terrain's table, else the active one.
+    const table = hit ? await resolveHexTable(hex) : null;
 
-    await this._postToChat(roll, threshold, hit, hex);
+    await this._postToChat(roll, threshold, hit, hex, table);
 
     const crawlRound = CrawlState.mode === "crawl" ? CrawlState.crawlTurn : null;
 
@@ -51,14 +54,9 @@ export const EncounterCheck = {
       // Open roller on tables tab
       const roller = await game.shadowdarkEnhancer.encounter.openRoller("tables");
 
-      // Auto-roll if configured and table set. The party's terrain chooses the
-      // table when one is mapped for it; otherwise the single active table.
+      // Auto-roll if configured and a table was found for the party's hex.
       const autoRoll = game.settings.get(MODULE_ID, "autoRollActiveTable");
-      const tableUuid = pickTable(
-        game.settings.get(MODULE_ID, TERRAIN_TABLES),
-        hex?.terrain,
-        game.settings.get(MODULE_ID, "encounterTableUuid"),
-      );
+      const tableUuid = table?.uuid;
       if (autoRoll && tableUuid) {
         // Short delay to let window render
         setTimeout(() => roller.rollActiveTable(tableUuid), 200);
@@ -77,14 +75,17 @@ export const EncounterCheck = {
    *
    * @private
    */
-  async _postToChat(roll, threshold, hit, hex = null) {
+  async _postToChat(roll, threshold, hit, hex = null, table = null) {
     const gmOnly = game.settings.get(MODULE_ID, "encounterRollGMOnly");
     const flavor = hit
       ? `🎲 Encounter Check — encounter occurs (threshold ${threshold}-in-6)`
       : `🎲 Encounter Check — the dungeon is quiet (threshold ${threshold}-in-6)`;
-    // "Hex 3723 · forest, river" when the party stands on a tagged hex map.
+    // "Hex 3723 · forest, river · Lowland Moor: Forest" when the party stands
+    // on a tagged hex map, the last part naming the column a hit rolls.
+    const column = table?.verdict?.column?.column;
     const where = hex
-      ? [`Hex ${hex.num}`, [hex.terrain, ...(hex.features ?? [])].filter(Boolean).join(", ").replace(/_/g, " ")].filter(Boolean).join(" · ")
+      ? [`Hex ${hex.num}`, [hex.terrain, ...(hex.features ?? [])].filter(Boolean).join(", ").replace(/_/g, " "),
+        column ? `${table.zone}: ${column}` : ""].filter(Boolean).join(" · ")
       : "";
 
     const content = await renderTemplate(

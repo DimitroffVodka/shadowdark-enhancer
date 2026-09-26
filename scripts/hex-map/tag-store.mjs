@@ -137,11 +137,12 @@ export const COASTAL_WATER = new Set(["arctic_sea", "ocean", "sea", "lake", "riv
  * where the book prints the terrain words itself: this finds 13 of the book's
  * 13 coasts and misses none.
  *
- * Whether RIVER belongs in `water` is a judgement, not a fact. Including it is
- * what makes the recall perfect — 5 of those 13 touch only a river — but some
- * regions print a Coast column AND a River column in the same encounter grid
- * (Lowland Moor, Isles of Andrik), and a hex marked both matches both, which
- * the encounter picture then has to report as undecidable. Pass a narrower set
+ * RIVER here means a river TILE, terrain river, never a river feature. Whether
+ * it belongs in `water` is a judgement, not a fact; including it is what makes
+ * the recall perfect (5 of those 13 touch only a river tile). It costs the
+ * encounter picker nothing: only terrain picks a column, so a coastal forest
+ * beside a river tile rolls Coast where the region prints one (Lowland Moor)
+ * and Forest where it does not (encounter-terrain.mjs). Pass a narrower set
  * to drop it.
  *
  * Never changes a terrain and never removes a coast: this only ever adds one

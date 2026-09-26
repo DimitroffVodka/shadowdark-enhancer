@@ -53,6 +53,17 @@
   nothing else, so a dungeon you added in Extras and what the players
   discovered stay. The tagger and the brush call river, path and coast
   **features** now, and the warning that coasts stay behind is gone. (#196)
+- **Encounter checks roll the book's table for the party's hex.** On a tagged
+  hex map with the region grids imported (*Encounter Zone* tables) and the
+  regions read, a hit rolls the region's column for the hex's terrain, ahead of
+  your Tables by terrain. A forest with a river through it rolls Forest, a hex
+  that is all river rolls River, and a coastal hex rolls Coast where the region
+  prints one. Day and night columns follow the world clock at the moment of the
+  roll (night is 18:00 to 06:00), and N./S. columns split the region's rows in
+  half, so the Encounter zones picture is amber only where a moon column waits
+  on a moon phase the clock does not give yet; until it does, those nights roll
+  the ordinary night column. The chat card names the column it rolled, and
+  `encounter.tableForHex()` gives other modules the same table. (#197)
 - **You're told when an update gives you something new to import.** A release
   that adds a book, a bestiary or another hundred table rows used to be
   invisible to anyone who had already imported what they own. The importer now
