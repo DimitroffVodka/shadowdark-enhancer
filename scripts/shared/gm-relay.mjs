@@ -234,13 +234,17 @@ export function refuseQuery(user, what = "these actions") {
  * @param {object} [options]
  * @param {string} [options.label]    Plural noun phrase, e.g. "loot claims".
  * @param {number} [options.queryTimeoutMs] Override the GM's answer window.
+ * @param {User} [options.targetUser] Send to this user instead of the active
+ *   GM: a GM→GM hand-off, e.g. to the system's primary light GM (#228). It
+ *   changes only who is asked; the receiver still decides for itself whether
+ *   it should act, from the server-stamped sender (trust rules 2 and 3).
  * @returns {Promise<object>} The GM's reply, or `{ok:false, error}` when the
  *   query could not be delivered. Never throws.
  */
 export async function queryActiveGM(queryName, data, {
-  label = "that action", queryTimeoutMs = QUERY_TIMEOUT_MS,
+  label = "that action", queryTimeoutMs = QUERY_TIMEOUT_MS, targetUser = null,
 } = {}) {
-  const gm = game.users?.activeGM;
+  const gm = targetUser ?? game.users?.activeGM;
   if (!gm) return { ok: false, error: handshakeWarning({ reason: "no-gm" }, label) };
 
   // QUERY_USER is a Player-role permission by default, but a world can revoke

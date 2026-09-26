@@ -325,6 +325,43 @@ paste the full spread.
 
 ---
 
+## Moving the clock for downtime
+
+Downtime, carousing and long rests take days, and the world clock should show
+it. Advancing Foundry's clock by those days has a cost, though: the Shadowdark
+system burns every lit torch, lantern and candle for the whole jump and
+deletes any that run out. A torch left lit at the end of the crawl is gone
+after three days of downtime.
+
+The **off-duty move** puts the lights out first. Run it as a GM macro:
+
+```js
+game.shadowdarkEnhancer.time.advanceOffDuty(3 * 86400, { reason: "downtime" });
+```
+
+- Every lit torch, lantern or candle a PC carries goes out, and keeps the time
+  it had left. A torch with 40 minutes left still has 40 minutes after the
+  jump. One chat line names what was put out.
+- The clock then moves by exactly that much (the number is in seconds, so a
+  day is `86400`).
+- Light spells and lights dropped on the map are left burning. A spell's
+  duration is real time in the world, and a light left behind burns out.
+- Nothing relights on its own afterwards. Players light their torches again
+  when play resumes.
+- It works from any GM's tab. If a second GM (an assistant, or the Bridge
+  user) runs it, it is carried out on the tab that tracks light sources.
+- With the system's light tracking turned off, it simply moves the clock.
+
+Use `reason: "carousing"` or `reason: "rest"` for those. Macros and modules
+that watch the clock see the reason with the jump, so they can tell time off
+from time on the road.
+
+Downtime and Shadowdark Extras' carousing will move the clock this way on
+their own once each activity has a duration. Until then, run the macro after
+the downtime is done.
+
+---
+
 ## The downtime log
 
 Downtime records attempts in two locations:

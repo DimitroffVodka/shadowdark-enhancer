@@ -426,9 +426,11 @@ Hooks.once("init", () => {
     // 1.10.0 — additive: rules namespace (rules data: terrain costs, climate, limits).
     // 1.11.0 — additive: encounter.tableForHex (the table for a hex by region and terrain).
     // 1.12.0 — additive: time namespace and the timeAdvanced hook (Overland O1, #227).
-    apiVersion: "1.12.0",
+    // 1.13.0 — additive: time.advanceOffDuty (the off-duty clock move, Overland O2, #228).
+    apiVersion: "1.13.0",
     // Readings on Foundry's world clock: season, day and night, sun, moon,
     // anchors, the date string. Synchronous, any user (scripts/time/time.mjs).
+    // advanceOffDuty is the one writer: GM only, async (scripts/time/off-duty.mjs).
     time: timeApi,
     // Holidays for carousing (Shadowdark Extras reads `today`). Both async and
     // lazy; a holiday is listed once the GM has imported its journal page.

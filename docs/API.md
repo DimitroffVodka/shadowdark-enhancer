@@ -22,7 +22,7 @@ and Forge & Loot features.
 [`holidays`](#holidays--when-a-holiday-falls-and-what-it-does-to-carousing) ·
 [`time`](#time--season-day-and-night-sun-moon-and-anchors)
 
-**API version:** `1.12.0` (semver — additive changes bump the minor version,
+**API version:** `1.13.0` (semver — additive changes bump the minor version,
 breaking changes the major; check `apiVersion` before relying on newer keys).
 
 ## Discovery
@@ -1302,9 +1302,10 @@ const cost = rules.terrainCost("forest", { weather: stormy ? "stormy" : "", hars
 ## `time` — season, day and night, sun, moon and anchors
 
 Added in 1.12.0. Readings on Foundry's world clock (`game.time`), which stays
-the one clock: nothing here sets the time, and there is no calendar window.
-Every call is synchronous and works for players too. `t` is a worldTime in
-seconds and defaults to now.
+the one clock, and there is no calendar window. Every reading is synchronous
+and works for players too. `t` is a worldTime in seconds and defaults to now.
+The one call that sets the time is
+[`advanceOffDuty`](#timeadvanceoffdutyseconds--reason-), added in 1.13.0.
 
 ```js
 const time = game.shadowdarkEnhancer.time;
@@ -1376,6 +1377,47 @@ A move backwards (`dt` below 0, from `game.time.set` or a negative
 else `null`. The hook is cheap for any jump, because when the system's
 real-time light clock is on it advances the world time on every tick.
 
+### `time.advanceOffDuty(seconds, { reason? })`
+
+Added in 1.13.0. Moves the clock for downtime, carousing or a rest without
+burning the torches the party carries. GM only (a player gets a refusal);
+async.
+
+```js
+await game.shadowdarkEnhancer.time.advanceOffDuty(3 * 86400, { reason: "downtime" });
+// { ok: true, worldTime, doused: [{ actorId, itemId }] }, or { ok: false, error }
+```
+
+The Shadowdark system burns every lit light for the whole of a clock move, and
+deletes one that reaches 0, so a three-day jump with Foundry's own controls
+destroys every torch left lit. This call instead:
+
+1. Runs on the system's **primary GM**, the one whose tab burns lights (the
+   user flag `flags.shadowdark.primaryGM`, not Foundry's active GM). From any
+   other GM it is handed there as a GM-to-GM query, and that tab refuses it if
+   yet another GM holds the flag. With nobody online holding it, the calling
+   GM takes the flag first, which is what the system would do on the next
+   clock move.
+2. Puts out every lit **Basic** light (torch, lantern, candle) carried by a
+   player-owned PC, the same actors the system's tracker burns. Each keeps its
+   `remainingSecs`, and its token's light goes out. One chat line names them.
+3. Waits until the tracker's cached list no longer holds them (it only rebuilds
+   that list once a second, and not on an item update), and refuses to move the
+   clock if it never lets go.
+4. Calls `game.time.advance(seconds, { "shadowdark-enhancer": { offDuty: reason } })`,
+   so `timeAdvanced` reports `offDuty`.
+
+With the system's light tracking off it only advances. A Light spell and a
+Light actor dropped on the scene are left to the clock: a spell's duration is
+real, and a light left behind burns out. Lights stay out afterwards; players
+light them again as usual. `reason` is free text, `"downtime"` by default;
+Overland uses `"downtime"`, `"carousing"` and `"rest"`. `seconds` must be more
+than 0.
+
+This relies on the light tracker of Shadowdark 4.0.6 (its cache, its dirty
+flag and the primary GM flag); a later system version is checked live before
+it is trusted.
+
 ## Stability notes
 
 - Everything documented here is public surface; undocumented internals
@@ -1399,6 +1441,7 @@ real-time light clock is on it advances the world time on every tick.
 - `1.12.0` adds the `time` namespace and the `shadowdark-enhancer.timeAdvanced`
   hook. Holidays' Lastmoon and the encounter tables' moon columns now resolve,
   and recap entries carry `worldTime` and `gameTime`.
+- `1.13.0` adds `time.advanceOffDuty`, the off-duty clock move.
 - `1.4.0` adds the shared `forgeLoot.open()` preview shell. Generator rules and
   document writes remain behind the later NPC/Rival adapter implementations.
   The version policy is additive: new namespaces bump the minor version; breaking
@@ -1469,6 +1512,12 @@ the receiving client re-reads the actor and applies the **delta** inside a
 serialized queue. The delta is what travels; a computed total never does. The
 queue is needed on top of the single-writer rule because `actor.update` awaits a
 server round trip, so two awards on one client can still overlap.
+
+The off-duty clock move has the same shape with a different writer: the
+lights must go out on the GM whose tab burns them, the Shadowdark system's
+primary GM, which need not be `game.users.activeGM`. It is sent there with
+`queryActiveGM(name, data, { targetUser })`, and the receiving tab checks the
+server-stamped sender is a GM and refuses if another GM holds the flag.
 
 Two consequences worth knowing:
 

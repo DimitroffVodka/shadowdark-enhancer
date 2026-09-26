@@ -302,3 +302,14 @@ test("relay: a GM that answers nothing at all is not read as success", async () 
   assert.equal(reply.ok, false);
   assert.ok(reply.error);
 });
+
+test("relay: targetUser sends to that GM instead of the active one (a GM-to-GM hand-off, #228)", async () => {
+  actAs(BRIDGE_GM);
+  const asked = [];
+  const primary = { ...GM, id: "gm3", query: async (name, data, opts) => { asked.push({ name, data, opts }); return { ok: true }; } };
+  const reply = await queryActiveGM("sde.offDuty", { seconds: 60 }, { targetUser: primary });
+  assert.equal(reply.ok, true);
+  assert.deepEqual(sent, [], "the active GM was not asked");
+  assert.equal(asked.length, 1);
+  assert.equal(asked[0].opts.timeout, QUERY_TIMEOUT_MS, "the timeout still goes with it");
+});

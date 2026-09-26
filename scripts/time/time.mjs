@@ -2,8 +2,8 @@
  * Shadowdark Enhancer — time, read from Foundry's world clock (#227, Overland O1).
  *
  * `game.shadowdarkEnhancer.time` and the `shadowdark-enhancer.timeAdvanced`
- * hook. The world clock (`game.time`) is the one clock and is never written
- * here; there is no calendar UI. The arithmetic is time-core.mjs; this file
+ * hook. The world clock (`game.time`) is the one clock and only the off-duty
+ * move (off-duty.mjs, #228) writes it; there is no calendar UI. The arithmetic is time-core.mjs; this file
  * hands it `game.time.calendar`, the current worldTime and the moon's epoch.
  * Docs: docs/API.md, the `time` section.
  */
@@ -11,6 +11,7 @@
 import { MODULE_ID } from "../shared/module-id.mjs";
 import { isActiveGM } from "../shared/gm-relay.mjs";
 import * as core from "./time-core.mjs";
+import { advanceOffDuty, handleOffDutyQuery, OFF_DUTY_QUERY } from "./off-duty.mjs";
 
 /** World setting: a worldTime at which the moon was new. The phases count from it. */
 export const MOON_EPOCH = "moonEpoch";
@@ -47,6 +48,8 @@ export const timeApi = {
   anchor: (name, year) => core.anchor(calendar(), name,
     Number.isInteger(year) ? year : calendar().timeToComponents(game.time.worldTime).year, moonEpoch()),
   format,
+  /** GM only: move the clock with the party's carried lights put out, keeping their time (#228). */
+  advanceOffDuty,
 };
 
 /**
@@ -57,6 +60,7 @@ export const timeApi = {
  * Cheap on purpose: the system's real-time light clock advances every tick.
  */
 export function registerTimeHooks() {
+  CONFIG.queries[OFF_DUTY_QUERY] = (data, { user } = {}) => handleOffDutyQuery(data, user);
   Hooks.on("updateWorldTime", (worldTime, dt, options) => {
     if (!isActiveGM()) return;
     const from = worldTime - dt;
