@@ -22,7 +22,7 @@ import { MODULE_ID } from "../shared/module-id.mjs";
 import { replaceModuleFlag } from "../shared/module-flags.mjs";
 import { sceneCells } from "./sampler.mjs";
 import { cellNumber, foundryOffsetToCube } from "./geometry.mjs";
-import { decodeTags, encodeTags, applySheet, strandedRiver, FEATURES } from "./tag-store.mjs";
+import { decodeTags, encodeTags, applySheet, strandedRiver, readCell, FEATURES } from "./tag-store.mjs";
 import { FIXES_FLAG, DEFAULT_REVIEW_MARGIN, decodeFixes, encodeFixes, recordEdits, withdrawEdits, sameTags } from "./tag-corrections.mjs";
 import { TERRAIN_TAGS, SETTLEMENTS } from "../importer/hex/hex-summary.mjs";
 import { pickZoneTable, encounterZonesByRegion, worldClock, isNight, regionRowRanges, inNorthHalf } from "../encounter/encounter-terrain.mjs";
@@ -446,7 +446,7 @@ export class HexTagOverlay {
    * now, the same answer the check itself gives (encounter-terrain.mjs).
    */
   zoneFor(num) {
-    const cell = this.state.cells.get(String(num));
+    const cell = readCell(this.state, num);   // as the check reads it: legacy coast terrain is ground plus coast
     const region = this.regionByNum.get(num) ?? this.inferredByNum.get(num);
     if (!region) return { status: "none", region: null };
     const { hour, moon } = worldClock();

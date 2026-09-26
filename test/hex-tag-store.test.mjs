@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { emptyState, decodeTags, encodeTags, nextSheet, applySheet, tagsForDataset, summarize, lcg, importTags, rowsFromJson, errorRate, sheetRisk, strandedRiver, STRANDED_RIVER_RATE, REVIEW_BANDS } from "../scripts/hex-map/tag-store.mjs";
+import { emptyState, decodeTags, encodeTags, nextSheet, applySheet, tagsForDataset, summarize, lcg, importTags, rowsFromJson, errorRate, sheetRisk, strandedRiver, STRANDED_RIVER_RATE, REVIEW_BANDS, readTags, readCell } from "../scripts/hex-map/tag-store.mjs";
 import { buildHexDataset } from "../scripts/importer/hex/hex-dataset.mjs";
 import { neighbours } from "../scripts/hex-map/geometry.mjs";
 
@@ -20,6 +20,49 @@ test("encode/decode round trip keeps terrain, features, source and margin", () =
   assert.equal(decodeTags(encodeTags(s)).cells.get("202").review, true);
   assert.equal(decodeTags(undefined).cells.size, 0);
   assert.equal(decodeTags({ cells: { "0203": "forest;road|gm" } }).cells.get("203").features.length, 0, "unknown features are dropped");
+});
+
+test("readTags: coast and path are never terrain, and river is a tile only when nothing says land", () => {
+  assert.deepEqual(readTags(["forest", "river"]), { terrain: "forest", features: ["river"] });
+  assert.deepEqual(readTags(["river", "swamp"]), { terrain: "swamp", features: ["river"] }, "order is not a ranking");
+  assert.deepEqual(readTags(["river"]), { terrain: "river", features: [] }, "river alone is a river tile");
+  assert.deepEqual(readTags(["lake", "river"]), { terrain: "lake", features: ["river"] });
+  // A river mouth on land: coast says the hex is ashore, so the river runs through it.
+  assert.deepEqual(readTags(["coast", "river"]), { terrain: null, features: ["river", "coast"] });
+  assert.deepEqual(readTags(["river", "coast"]), { terrain: null, features: ["river", "coast"] });
+  assert.deepEqual(readTags(["coast"]), { terrain: null, features: ["coast"] }, "a legacy coast terrain names no ground");
+  assert.deepEqual(readTags(["path", "coast"]), { terrain: null, features: ["path", "coast"] });
+  assert.deepEqual(readTags(["ocean", "coast"]), { terrain: "ocean", features: ["coast"] }, "sea stays sea whatever is ticked");
+  assert.deepEqual(readTags(["village", "river"]), { terrain: "village", features: ["river"] });
+});
+
+test("readCell: a hex whose ground nothing names takes its neighbours' land terrain", () => {
+  // A city at a river mouth, invented: sea to the west, grassland inland with
+  // the river coming down through it, a swamp to the north.
+  const s = emptyState();
+  s.origin = { shifted: "odd" };
+  const at = (num, tags) => s.cells.set(String(num), { terrain: tags[0], features: tags.slice(1), source: "gm" });
+  at(1334, ["coast", "river"]);           // the legacy store: first tag of a features-only row
+  at(1333, ["swamp"]); at(1335, ["grassland"]); at(1434, ["river", "grassland"]); at(1435, ["grassland", "path"]);
+  at(1234, ["ocean"]); at(1235, ["ocean"]);
+  assert.deepEqual(readCell(s, 1334), { terrain: "grassland", features: ["river", "coast"] });
+  assert.deepEqual(tagsForDataset(s)["1334"], { terrain: "grassland", features: ["river", "coast"] });
+  // Settlements, keyed locations and water are not ground; with nothing else around, the ground stays unknown.
+  const t = emptyState();
+  t.origin = { shifted: "odd" };
+  t.cells.set("1334", { terrain: "coast", features: [] });
+  t.cells.set("1335", { terrain: "town", features: [] });
+  t.cells.set("1234", { terrain: "ocean", features: [] });
+  assert.deepEqual(readCell(t, 1334), { terrain: null, features: ["coast"] });
+  assert.deepEqual(tagsForDataset(t)["1334"], { features: ["coast"] }, "no terrain goes rather than a guess of nothing");
+  assert.equal(readCell(t, 9999), null);
+  // Ties go to the alphabetically first, so the answer never depends on iteration order.
+  const u = emptyState();
+  u.origin = { shifted: "odd" };
+  u.cells.set("1334", { terrain: "coast", features: [] });
+  u.cells.set("1333", { terrain: "swamp", features: [] });
+  u.cells.set("1335", { terrain: "forest", features: [] });
+  assert.equal(readCell(u, 1334).terrain, "forest");
 });
 
 test("the stored format is unchanged, and a decoded cell still answers to its old name (#196)", () => {
@@ -119,7 +162,9 @@ test("importTags: first non-feature tag is the terrain, sources normalised, orig
   assert.deepEqual(s.cells.get("400"), { terrain: "river", features: [], source: "gm", review: false });
   assert.deepEqual(tagsForDataset(s)["400"], { terrain: "river", features: [] },
     "a river terrain tile is not a river running through another terrain");
-  assert.deepEqual(tagsForDataset(s)["402"], { terrain: "path", features: [] });
+  // The store keeps "path" where the terrain goes (no migration); read for the
+  // dataset it is a path on ground nothing names (#196).
+  assert.deepEqual(tagsForDataset(s)["402"], { features: ["path"] });
   assert.equal(s.cells.has("401"), false);
   assert.equal(s.origin.num, "0000");
   importTags(s, [], { origin: { num: "9999" } });

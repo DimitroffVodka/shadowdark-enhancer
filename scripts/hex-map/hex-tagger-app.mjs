@@ -1229,6 +1229,10 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
    * @returns {Promise<{dataset:object, tags:object, chosen:JournalEntry[], sceneId:string, origin:object}|null>}
    */
   async _handoffDataset() {
+    // The crawl entries load with the first render. A send made before that
+    // (from a macro, right after openTagger) read no keyed rows, and so sent a
+    // different dataset from the next send; load them here instead.
+    if (!this._entries.length) await this._loadEntries();
     if (!this._requireCurrentScene()) return null;
     this._readHeader();
     if (!this._state.origin) { ui.notifications?.warn(t("SDE.hexMap.notify.setAnchor")); return null; }

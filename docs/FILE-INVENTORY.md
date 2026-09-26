@@ -1,7 +1,7 @@
 # Shadowdark Enhancer — File Inventory
 
 <!-- inventory:stats:start -->
-1018 tracked files · ~177,100 lines of code/markup across scripts+templates+styles+test.
+1023 tracked files · ~178,300 lines of code/markup across scripts+templates+styles+test.
 `v0.17.3` in both `module.json` and `package.json`.
 <!-- inventory:stats:end -->
 **Layout reflects the 2026-07-21 feature-folder reorganization (v0.11.0 cycle).**
@@ -46,7 +46,7 @@
 
 | File | Lines | Description |
 |---|---:|---|
-| `shadowdark-enhancer.mjs` | 1174 | **Entry point** (module.json esmodules). Registers hooks, settings, sheets, actor sub-types, the public `game.shadowdarkEnhancer` API, and wires every sub-system. |
+| `shadowdark-enhancer.mjs` | 1181 | **Entry point** (module.json esmodules). Registers hooks, settings, sheets, actor sub-types, the public `game.shadowdarkEnhancer` API, and wires every sub-system. |
 | `luck-reroll/luck-reroll.mjs` | 176 | Wraps the system's `_onReroll` to enforce nat-1 prevention and log Luck rerolls to the session recap. |
 | `spell-mishap/spell-mishap.mjs` | 270 | Nat-1 spellcasting failures auto-roll the class's mishap table (wizard / witch / necromancer sets); divine casters are exempt. |
 | `scavenger/scavenger-core.mjs` | 171 | Pure Delver Scavenger rules: the 5-6 success range and Master Scavenger's widening (floored at 3-6), what counts as expending a consumable's last use (a 1→0 decrement or a delete at quantity 1 — never a stack deleted whole), and which single client rolls. |
@@ -67,7 +67,7 @@
 | `hex-map/hex-map-flow.mjs` | 262 | Hex map from an image: file dialog, lattice detection, confirmation preview, upload into the world folder, an aligned scene (stretch to Foundry's pitches, offset to cell 0,0), tagger opened on its legend. |
 | `hex-map/hex-pins.mjs` | 126 | Keyed hexes as map notes: deploys the crawl journal into the world with stable ids (links rewritten), plans one Note per keyed page at its hex centre (pure planner), moves existing pins on re-run. |
 | `hex-map/hex-region.mjs` | 289 | Which region is a hex in: the book's own word for a keyed hex, the nearest keyed hex's region for any other (84.8% on the Western Reaches, leave-one-out over the book's own keyed rows). Seeds come from the filed crawls; nothing is stored. |
-| `hex-map/hex-tagger-app.mjs` | 1465 | Hex Tagger AppV2: contact sheet over the active hex scene, anchor numbering, tags on the scene flag, dataset hand-off. |
+| `hex-map/hex-tagger-app.mjs` | 1469 | Hex Tagger AppV2: contact sheet over the active hex scene, anchor numbering, tags on the scene flag, dataset hand-off. |
 | `hex-map/ink.mjs` | 62 | Whole-image 0/1 ink bitmap at a working scale, one browser resize then strip reads; ink threshold from the paper's brightness. Browser-bound. |
 | `hex-map/lattice.mjs` | 407 | Hex lattice detection from a map's ink: row and column pitch by autocorrelation, phase by folding long horizontal runs, the hex field by outline support with frame-cut half cells, edge-band pitch refinement. Pure. |
 | `hex-map/legend.mjs` | 250 | The legend: cells grouped by glyph with k-means++ over masked cell features (restarts, lowest inertia kept), one card per group with sample members and a core that becomes the hand tags. Pure. |
@@ -76,7 +76,7 @@
 | `hex-map/sampler.mjs` | 146 | Reads the active scene's background per hex cell (one drawImage each) for bitmaps and thumbnails; scene→image transform from the drawn sprite. |
 | `hex-map/tag-corrections.mjs` | 337 | What the GM judged about the classifier, kept on the scene: per-cell corrections (was, now, margin, whether it was flagged) and wrong/judged counts per margin band, plus the scene's review margin and the report that says what it catches. Pure. |
 | `hex-map/tag-overlay.mjs` | 772 | The tag overlay: every numbered hex drawn on the map in its terrain colour, dots for river/path/coast, an amber ring on unsure automatic cells; hover names a hex, a click edits it through the same scene-flag write. |
-| `hex-map/tag-store.mjs` | 394 | The tagger's scene-flag store: compact `terrain;feature\|source` strings (terrain is what a hex is, features what runs through it), coast derivation, sheet selection (random/keyed/review), dataset tags. Pure. |
+| `hex-map/tag-store.mjs` | 453 | The tagger's scene-flag store: compact `terrain;feature\|source` strings (terrain is what a hex is, features what runs through it), coast derivation, sheet selection (random/keyed/review), dataset tags. Pure. |
 | `holidays/holidays.mjs` | 205 | Holidays for carousing (#191): the four City of Masks holidays (CS6 pp.46-47) as recipes (name, page, place, `when` anchor, carousing mechanics, garb questions with modifiers), no book wording; pure `whenMatches(rule, dateInfo)` / `placeMatches`, and `holidays.list()` / `today({place})`, which list a holiday once its page is imported by the Chapter-to-journal preset. `currentDateInfo()` reads the core calendar and is the seam the Overland time feature replaces (moon). |
 | `luck-reroll/hard-luck.mjs` | 57 | Hard Luck Mode (GMWR p.30, #186), pure: the system's criticalFailure test with a plain-d20 fallback, and the luck-granting spell/ability (Bless, Trance, Omen) a roll came from, by name. |
 | `modes-of-play/blitz.mjs` | 100 | Blitz Mode (#179): lighting a Basic light source clamps its remaining time to 30 min (and marks it used); a light spell's Effect is created with 30 min. Pure patch helpers + preUpdateItem/preCreateItem hooks. |
@@ -84,6 +84,8 @@
 | `modes-of-play/hunter.mjs` | 96 | Hunter Mode (#184): on deleteCombat the active GM pays every PC in the fight XP for each NPC still defeated (half its level, level 1 → 1) through PartyXP.award, one card. Pure hunterXp/hunterAward + payHunterXp. |
 | `modes-of-play/pulp-core.mjs` | 127 | Pulp Mode pure half: critExtraFormula (the dice a crit adds to rolled damage, per applyCriticalHit), showLuckCrit, showForceReroll. |
 | `modes-of-play/pulp.mjs` | 294 | Pulp Mode (#185): session luck on the sessionStart hook (1d4, set), and the Luck: critical hit / force a reroll chat buttons. Both relay to the active GM (PULP_QUERY), which checks the requester, spends the token and edits the card. |
+| `rules-data/rules-data-app.mjs` | 207 | The GM-only Rules data window (AppV2, Configure Settings menu): shows and edits every rules table, staged until Save. Import from GM Guide runs table-shapes RULES_TABLES over the GM's own linked GM Guide and Player's Guide PDFs (lazy-loaded), canonicalises region names through hex-region knownRegions, and previews every filled value it would replace. |
+| `rules-data/rules-data-core.mjs` | 344 | Rules data (#195), pure: the Western Reaches lookup tables (terrain cost and elevation, terrain types, hexes per day, hex visibility, climate by region and season, carousing and recruiting limits) as one sparse world setting laid over an empty structure, the game.shadowdarkEnhancer.rules lookups over it, the readers that turn the importer's `reference` rows into those tables, and the overwrite preview and merge for an import. Ships structure only (tagger terrain words, travel methods, conditions, seasons, settlement kinds), never a value. |
 | `training/training-app.mjs` | 293 | The Regional Training window (AppV2): pick a character, pick a trainer grouped by region, see all four benefits with the ones already taught struck through, and roll the trainer's d4. Each task can be taken as a Quest Log quest for the character (GM) and shows Taken or Done. Names a benefits table that has not been imported instead of inventing its contents. |
 | `training/training-art.mjs` | 61 | One game-icons.net emblem per regional trainer, pre-tinted gold in the SVG the way the Character Builder's class art is. Fifteen reuse a vendored class emblem (often the honest pick — the assassin trainer leads the Ras-Godai); six are vendored under icons/game-icons/trainers/. Returns null rather than a placeholder path. |
 | `training/training-core.mjs` | 573 | Pure metadata for the Game Master's Guide's 21 regional trainers: trainer and region names, page numbers, the benefits table each one imports as, and a recipe per d4 face — Active Effect changes, one-time actions, either/or branches, or a stated reason the table must handle it. Ships no rules text; the book's wording is read from the GM's own imported table. Also the "once each" helpers and the roll walk. |
@@ -106,7 +108,7 @@
 | `curated-icon-maps/sea-wolf-plunder-icons.mjs` | 38 | The N3 §5.1/D4 Sea Wolf Plunder map: exactly 20 CS3 p68 source-qualified item phrases and reviewed native Foundry `icons/**.webp` paths, keyed without each row's terminal gp price. |
 | `curated-icon-maps/weapon-icons.mjs` | 47 | N3's 37 reviewed Foundry-native weapon icons, keyed by source-agnostic normalized final Item name and registered through the A4 discovery seam. |
 | `attack-card.mjs` | 107 | Reading a Shadowdark attack card — was it an attack at all (a targeted spell is not), did it land, who was it aimed at, who swung. Shared by Parry and Taunt so the two can never disagree about the target (they once did, silently). |
-| `settings.mjs` | 720 | All `game.settings.register` calls + migration-safe defaults. |
+| `settings.mjs` | 736 | All `game.settings.register` calls + migration-safe defaults. |
 | `icons.mjs` | 87 | Centralized icon registry — FontAwesome snippets and vendored SVG references. |
 | `compendium-suite.mjs` | 459 | Find-or-create layer for managed world packs, ownership, sidebar folders, and source folders. |
 | `loading-dialog-guard.mjs` | 112 | Guards the system's leaked `LoadingSD` spinner when `ItemSheetSD.getData` throws. |
@@ -164,7 +166,7 @@
 | `encounter-browse.mjs` | 217 | Browse-NPCs data layer (sources, loading, cache, filter/sort). |
 | `npc-index.mjs` | 260 | NPC actors → compact browse row model. |
 | `encounter-sources.mjs` | 56 | Pure, node-testable core for the Encounter Roller's source list (which tables/monsters feed a roll). |
-| `encounter-terrain.mjs` | 460 | The table for the party's hex: the region's printed Encounter Zone column for its terrain (coast the one feature that counts), day/night from the world clock (worldClock, the seam Overland replaces), N./S. halves from the region's rows (the regions cached until a crawl entry or scene changes); else the terrain→RollTable mapping and its dialog, else the single active table, which is also where a failing lookup lands. Backs encounter.tableForHex. |
+| `encounter-terrain.mjs` | 461 | The table for the party's hex: the region's printed Encounter Zone column for its terrain (coast the one feature that counts), day/night from the world clock (worldClock, the seam Overland replaces), N./S. halves from the region's rows (the regions cached until a crawl entry or scene changes); else the terrain→RollTable mapping and its dialog, else the single active table, which is also where a failing lookup lands. Backs encounter.tableForHex. |
 
 ### 3.6 `scripts/monster-creator/`
 
@@ -275,8 +277,8 @@
 | `char-content/language-resolver.mjs` | 16 | Language names → system UUIDs. |
 | `spells/spell-parser.mjs` | 290 | Spell blocks → Spell drafts. Pure. |
 | `spells/spell-importer-app.mjs` | 465 | Spell workspace organized by class / tier / alignment. |
-| `tables/table-importer.mjs` | 3791 | Roll-table text → structure. The big one; includes `repairSharedStartRanges`. |
-| `tables/table-shapes.mjs` | 809 | Per-unlock deterministic table SHAPE recipes (prayer/grid/lookup/reflow kinds). |
+| `tables/table-importer.mjs` | 3833 | Roll-table text → structure. The big one; includes `repairSharedStartRanges`. |
+| `tables/table-shapes.mjs` | 839 | Per-unlock deterministic table SHAPE recipes (prayer/grid/lookup/reflow kinds). |
 | `tables/table-hub.mjs` | 448 | Reconciles the shipped manifest against the live world (system / imported / missing). |
 | `tables/table-hub-app.mjs` | 596 | "Set up ALL tables" window — dashboard + import view. |
 | `tables/table-registry.mjs` | 206 | Parses live tables into `{source, page, displayName, subCategory}` and groups them. |
@@ -321,7 +323,7 @@
 | `chapter-journal.mjs` | 317 | Chapter to journal (#194): a printed page range of a linked book → one JournalEntry in the journals pack, split at ALL-CAPS headings (or a preset's sections, e.g. the GM Guide's City-States) and reflowed, with page furniture dropped. Identity by flag, so a re-import updates in place and keeps GM pages; pages naming a key location link to its hex page and back. Presets are page numbers only. |
 | `hex/hex-book-import.mjs` | 154 | A book's whole hex key in one pass: per region, the keyed-location table and the pages of write-ups after it → one crawl entry per region. Page map only; no book text. |
 | `hex/hex-commit.mjs` | 229 | Hex-key drafts → JournalEntry pages in sde-journal (one entry per crawl, one page per hex); pure planner + two-pass link rewrite. |
-| `hex/hex-dataset.mjs` | 348 | Drafts + summary rows + tags → the Shadowdark Extras hexcrawl dataset (numbers only at the boundary); river, path and coast as record features, merged by id with what Extras holds. Pure. |
+| `hex/hex-dataset.mjs` | 349 | Drafts + summary rows + tags → the Shadowdark Extras hexcrawl dataset (numbers only at the boundary); river, path and coast as record features, merged by id with what Extras holds. Pure. |
 | `hex/hex-handoff.mjs` | 363 | Crawl entry → dataset; puts it on the tagged print through Extras (adoptHexcrawl), merging each hex's features into the record Extras holds, builds a painted Extras scene, or downloads JSON. |
 | `hex/hex-summary.mjs` | 174 | Keyed hex summary rows (number, region, terrain, name) → structured rows; zone/terrain split decided by the table. Pure. |
 | `items/record-boundary.mjs` | 210 | Where one pasted description record ends and the next begins. Pure. |

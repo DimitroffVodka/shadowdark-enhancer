@@ -5,6 +5,7 @@ import {
   regionRowRanges, inNorthHalf, hexTableUuid, worldClock, isNight, DUSK, DAWN,
   resolveHexTable, tableForHex, tableForCheck, forgetHexZones,
 } from "../scripts/encounter/encounter-terrain.mjs";
+import { emptyState, readCell } from "../scripts/hex-map/tag-store.mjs";
 
 // Invented fixtures (D1): table NAMES are structure, never book content.
 
@@ -145,6 +146,19 @@ test("north and south split the region's own rows, the middle row north", () => 
   assert.equal(col(pickZoneTable("Deep Sea", "ocean", [], ZONES, { north: false })), "S. Ocean");
   assert.equal(col(pickZoneTable("Deep Sea", "forest", ["coast"], ZONES, { north: true })), "Land");
   assert.equal(col(pickZoneTable("Twin Peaks", "mountain", [], ZONES, { north: false })), "S. Mountain");
+});
+
+test("a legacy coast terrain is read as its ground plus a coast before a column is picked", () => {
+  // Invented: a city at a river mouth whose stored tag is "coast;river", grassland inland.
+  const s = emptyState();
+  s.origin = { shifted: "odd" };
+  for (const [num, terrain, features] of [[1334, "coast", ["river"]], [1335, "grassland", []], [1434, "grassland", ["river"]], [1234, "ocean", []]]) {
+    s.cells.set(String(num), { terrain, features, source: "gm" });
+  }
+  const read = readCell(s, 1334);
+  assert.deepEqual(read, { terrain: "grassland", features: ["river", "coast"] });
+  assert.equal(col(pickZoneTable("Low Vale", read.terrain, read.features, ZONES)), "Fields", "no Coast column: the ground's");
+  assert.equal(col(pickZoneTable("Grey Moor", read.terrain, read.features, ZONES)), "Coast", "a Coast column: the coast");
 });
 
 test("with the clock and the rows known, only the moon is ever ambiguous", () => {

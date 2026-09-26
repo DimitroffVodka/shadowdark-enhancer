@@ -3,6 +3,17 @@
 ## [Unreleased]
 
 ### Added
+- **Rules data.** A new **Rules data** window under Configure Settings holds
+  the Western Reaches tables you look up rather than roll: what each terrain
+  costs to enter (on foot and by boat), terrain types, hexes per day, hex
+  visibility, the climate of each region by season, and each settlement's
+  carousing and warband-recruiting limits. **Import from GM Guide** fills them
+  from your own GM Guide and Player's Guide PDFs; if that would change
+  something you already entered, you see the changes first and choose. A world
+  without the books can fill in every table by hand. Mountain counts as high
+  elevation for hex visibility until you change it. Nothing from the books
+  ships with the module. Macros and other modules read the tables through
+  `game.shadowdarkEnhancer.rules` (API 1.10.0). (#195)
 - **The City of Masks holidays.** Chapter to journal has a new preset,
   *Cursed Scroll 6: the City of Masks holidays* (pp. 46–47), that files a
   journal with one page per holiday from your own PDF. A new `holidays` API
@@ -152,8 +163,10 @@
   record as features beside its terrain, so Extras' tooltip shows River, Path
   and Coast pills on the print. A forest with a river through it goes as
   forest with a river feature; a hex that is all river goes as river terrain
-  with no river feature; a keyed hex the book lists only as "Coast" no longer
-  goes with coast as its terrain. Sending again replaces those three and
+  with no river feature; a keyed hex the book lists only as "Coast" (or as
+  "Coast, river", a city at a river mouth) no longer goes with coast or river
+  as its terrain but with the land around it, and the same for an older tag
+  that holds coast or path where the terrain goes. Sending again replaces those three and
   nothing else, so a dungeon you added in Extras and what the players
   discovered stay; if the tagger cannot read what Extras holds, it sends no
   features and says so. Extras' Hex Editor turns them into "dungeon" on save

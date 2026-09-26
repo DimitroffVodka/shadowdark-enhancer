@@ -20,7 +20,7 @@
 import { MODULE_ID } from "../shared/module-id.mjs";
 import { findSuitePack } from "../shared/compendium-suite.mjs";
 import { cellNumber, foundryOffsetToCube } from "../hex-map/geometry.mjs";
-import { decodeTags } from "../hex-map/tag-store.mjs";
+import { decodeTags, readCell } from "../hex-map/tag-store.mjs";
 
 /** Scene flag holding the tag store (hex-tagger-app.mjs owns it). */
 const TAGS_FLAG = "hexTags";
@@ -306,7 +306,8 @@ export function partyHex(canvasRef = globalThis.canvas) {
   }
   const num = [...counts.entries()].sort((a, b) => b[1] - a[1])[0]?.[0];
   if (num === undefined) return null;
-  const cell = decodeTags(flag).cells.get(String(num));
+  // Read the #196 way, so a legacy "coast" terrain is ground plus a coast feature.
+  const cell = readCell(decodeTags(flag), num);
   return { num, terrain: cell?.terrain ?? null, features: cell?.features ?? [] };
 }
 

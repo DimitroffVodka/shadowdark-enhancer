@@ -20,7 +20,7 @@
  */
 
 import { hexIdKey, buildHexPageHtml, rewriteHexPlaceholders } from "../tables/hex-parser.mjs";
-import { COASTAL_WATER, FEATURES } from "../../hex-map/tag-store.mjs";
+import { FEATURES, readTags } from "../../hex-map/tag-store.mjs";
 
 /** Keyed-row feature kinds that cross to Extras as a `features` entry; the
  *  generic keyed_location does not, it would only say "keyed" on every hex. */
@@ -161,16 +161,15 @@ export function buildHexDataset({ name = "", source = "", drafts = [], summaryRo
     h.zone = r.zone || h.zone;
     // The book's Terrain column is a list, and its order is not a ranking:
     // "River, Swamp" is a swamp with a river through it, the same hex as
-    // "Swamp, River". So the first LAND word is the terrain and a river, path
-    // or coast beside it is a feature; a row that is only water ("River" for a
-    // confluence, "Ocean" for a wreck) stays water, a river TILE. Coast and
-    // path are never terrain (#196): "Coast" alone says the hex is on the
-    // shore, not what the ground is, so it leaves the terrain to the tags.
-    const words = r.terrain ?? [];
-    const terrain = words.find((t) => !COASTAL_WATER.has(t) && !FEATURES.includes(t)) ?? words.find((t) => COASTAL_WATER.has(t));
+    // "Swamp, River". readTags reads it the same way the tag store is read:
+    // the first land word is the terrain, a row of water alone is a water
+    // tile, and coast and path are never terrain. "Coast, river" is a river
+    // mouth on land, not a river tile, so it names no ground and leaves the
+    // terrain to the tags.
+    const { terrain, features } = readTags(r.terrain);
     h.terrain = terrain || h.terrain;
     h.feature = r.feature || h.feature;
-    for (const t of words) if (t !== terrain && FEATURES.includes(t)) (h.marks ??= new Set()).add(t);
+    for (const f of features) (h.marks ??= new Set()).add(f);
   }
   const keySet = new Set(drafts.map((d) => d?.key).filter(Boolean));
   for (const d of drafts) {
@@ -187,8 +186,10 @@ export function buildHexDataset({ name = "", source = "", drafts = [], summaryRo
     const num = hexNum(k);
     if (num === null || !t) continue;
     const h = slot(num);
-    if (t.terrain) h.terrain = h.terrain || t.terrain;   // a keyed row's terrain wins over a tag
-    for (const f of t.features ?? t.overlays ?? []) if (FEATURES.includes(f)) (h.marks ??= new Set()).add(f);
+    // Read like a keyed row, so a legacy "coast" terrain never goes out as one.
+    const read = readTags([t.terrain, ...(t.features ?? t.overlays ?? [])]);
+    if (read.terrain) h.terrain = h.terrain || read.terrain;   // a keyed row's terrain wins over a tag
+    for (const f of read.features) (h.marks ??= new Set()).add(f);
   }
   // A river tile has no river feature: the hex IS the river (#196).
   for (const h of byNum.values()) h.marks?.delete(h.terrain);
@@ -243,7 +244,7 @@ export function buildHexDataset({ name = "", source = "", drafts = [], summaryRo
   // The hex's river, path and coast go in the same list (#196), next to its
   // terrain and never instead of it.
   const hexes = [...byNum.values()]
-    .filter((h) => h.name || h.terrain || h.desc || h.zone || h.art)
+    .filter((h) => h.name || h.terrain || h.desc || h.zone || h.art || h.marks?.size)
     .sort((a, b) => a.num - b.num).map((h) => {
       const out = { num: h.num };
       if (h.name) out.name = h.name;
@@ -301,7 +302,7 @@ export function validateHexDataset(ds) {
     seen.add(h.num);
     // A name is not required: Extras does not ask for one, and a hex that
     // carries only its terrain is the ordinary case on a tagged map.
-    if (!h.name && !h.terrain && !h.desc && !h.zone && !h.art) errors.push(`hex ${h.num} carries nothing`);
+    if (!h.name && !h.terrain && !h.desc && !h.zone && !h.art && !h.features?.length) errors.push(`hex ${h.num} carries nothing`);
     for (const key of ["art", "icon"]) {
       if (key in h && typeof h[key] !== "string") errors.push(`hex ${h.num} ${key} must be text`);
     }

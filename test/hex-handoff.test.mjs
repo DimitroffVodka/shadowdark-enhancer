@@ -308,6 +308,28 @@ test("a re-send merges river, path and coast into what Extras holds, and keeps t
   assert.deepEqual(calls.hexData["print-1"]["1_1"].features.map((f) => f.id), ["settlement-101", "gm-dungeon", "river-101", "coast-101"]);
 });
 
+test("the same tags give the same records on every send: a second and third send change nothing", async () => {
+  const calls = printExtras();
+  const dataset = { ...printDataset, hexes: [
+    ...printDataset.hexes,
+    { num: 303, terrain: "grassland", features: [   // a river mouth on land, as buildHexDataset now reads it
+      { id: "settlement-303", type: "city_state", name: "Port", discovered: false },
+      { id: "river-303", type: "river", name: "", discovered: true },
+      { id: "coast-303", type: "coast", name: "", discovered: true },
+    ] },
+  ] };
+  await handoffToPrint("print-1", dataset);
+  const first = structuredClone(calls.hexData);
+  globalThis.game.shadowdarkExtras.hex.adoptHexcrawl = async (sceneId) => ({ sceneId, adopted: false });
+  await handoffToPrint("print-1", dataset);
+  assert.deepEqual(calls.hexData, first, "send 2 leaves every record as send 1 left it");
+  assert.equal(calls.upsert[1].records.some((r) => "features" in r), false, "and writes no features list at all");
+  await handoffToPrint("print-1", dataset);
+  assert.deepEqual(calls.hexData, first, "and so does send 3");
+  assert.equal(first["print-1"]["3_3"].terrain, "grassland");
+  assert.deepEqual(first["print-1"]["3_3"].features.map((f) => f.id), ["settlement-303", "river-303", "coast-303"]);
+});
+
 test("a missing store on a send that did not just adopt sends no features, and says so", async () => {
   // The review's case: if Extras moved its store, reading it as empty would send
   // each hex's river alone, and Extras would drop the settlement and the GM's

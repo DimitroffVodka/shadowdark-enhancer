@@ -241,6 +241,28 @@ test("a keyed row's first land word is the terrain; a river, path or coast besid
 
 // ── #196: river, path and coast are features, never terrain ─────────────────
 
+test("a river mouth on land is not a river tile, with or without its keyed row, so every send agrees", () => {
+  // Invented: a city on the shore where a river meets the sea. Its keyed row
+  // says only coast and river; its tag is the legacy features-only reading,
+  // coast where the terrain goes; the land around it is grassland.
+  const tags = {
+    1334: { terrain: "grassland", features: ["river", "coast"] },   // as tagsForDataset reads the legacy "coast;river" cell
+  };
+  const row = { num: "1334", key: "13,34", zone: "Z", terrain: ["coast", "river"], name: "Port", feature: "city_state" };
+  const withRow = buildHexDataset({ summaryRows: [row], tags }).hexes[0];
+  const tagsOnly = buildHexDataset({ tags }).hexes[0];
+  assert.equal(withRow.terrain, "grassland", "the row names no ground, so the tag's answers");
+  assert.deepEqual(withRow.features.map((f) => f.id), ["settlement-1334", "river-1334", "coast-1334"]);
+  assert.equal(tagsOnly.terrain, withRow.terrain, "a send that has not loaded the keyed rows sends the same terrain");
+  assert.deepEqual(tagsOnly.features.map((f) => f.id), ["river-1334", "coast-1334"]);
+  // The raw legacy tag, straight into the builder, never goes out as coast terrain either.
+  const raw = buildHexDataset({ tags: { 1334: { terrain: "coast", features: ["river"] } } }).hexes[0];
+  assert.equal(raw.terrain, undefined);
+  assert.deepEqual(raw.features.map((f) => f.id), ["river-1334", "coast-1334"]);
+  assert.equal(validateHexDataset(buildHexDataset({ tags: { 1334: { terrain: "coast", features: [] } } })).ok, true,
+    "a hex carrying only features is a valid record");
+});
+
 test("a river tile is terrain river with no river feature, even when a tag ticks both", () => {
   const ds = buildHexDataset({ tags: { "0201": { terrain: "river", features: ["river"] }, "0202": { terrain: "forest", features: ["river", "path", "coast"] } } });
   const h = Object.fromEntries(ds.hexes.map((x) => [x.num, x]));
