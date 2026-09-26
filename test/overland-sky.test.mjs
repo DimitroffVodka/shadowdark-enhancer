@@ -3,7 +3,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
-  HEX_MAP_CAP, calendariaDrives, darknessAt, darknessMoved, followsSky, nightWithOverride, skyOverride, weatherEffect, weatherPlan,
+  HEX_MAP_CAP, darknessAt, darknessMoved, followsSky, nightWithOverride, skyOverride, weatherEffect, weatherPlan,
 } from "../scripts/overland/sky-core.mjs";
 
 const SUN = { sunrise: 6, sunset: 18 };
@@ -51,15 +51,11 @@ test("weather ownership: Overland changes only what it put there, takes an empty
   assert.deepEqual(weatherPlan({ current: "", owned: null, effect: "" }), {});
 });
 
-test("which scenes follow the sky, and when Calendaria owns the darkness", () => {
+test("which scenes follow the sky", () => {
   assert.equal(followsSky(undefined, true), true, "a hex map by default");
   assert.equal(followsSky("default", false), false, "a dungeon by default");
   assert.equal(followsSky("on", false), true);
   assert.equal(followsSky("off", true), false);
-  assert.equal(calendariaDrives({ active: false, sceneFlag: "enabled", worldSetting: true }), false);
-  assert.equal(calendariaDrives({ active: true, sceneFlag: "enabled", worldSetting: false }), true);
-  assert.equal(calendariaDrives({ active: true, sceneFlag: "disabled", worldSetting: true }), false);
-  assert.equal(calendariaDrives({ active: true, sceneFlag: "default", worldSetting: true }), true);
   assert.equal(darknessMoved(0.4, 0.41), false);
   assert.equal(darknessMoved(0.4, 0.42), true);
 });
@@ -72,7 +68,6 @@ const deep = new Proxy(function () {}, {
 });
 const { gregorian, at } = await import("./gregorian-calendar.mjs");
 const stored = {};
-const settings = {};
 // Foundry 14's forced-deletion operator, a global in the client.
 const DEL = Symbol("_del");
 globalThis._del = DEL;
@@ -81,7 +76,14 @@ Object.assign(globalThis, {
   foundry: deep, CONFIG: { queries: {} }, Hooks: { on() {}, once() {}, callAll() {} }, ui: { notifications: { warn() {} } },
   game: {
     user: gm, users: { activeGM: gm },
-    settings: { get: (ns, key) => (ns === "shadowdark-enhancer" ? stored[key] : settings[`${ns}.${key}`]), set: async () => {} },
+    // Foundry throws for a setting nobody registered; so does this stub (#255).
+    settings: {
+      get: (ns, key) => {
+        if (ns !== "shadowdark-enhancer") throw new Error(`"${ns}.${key}" is not a registered game setting`);
+        return stored[key];
+      },
+      set: async () => {},
+    },
     socket: { emit() {}, on() {} },
     time: { worldTime: at(1301, 6, 21, 21), calendar: gregorian },
     i18n: { localize: (k) => k, format: (k) => k },
@@ -93,15 +95,18 @@ const { applySky } = await import("../scripts/overland/sky.mjs");
 const { registerOverland } = await import("../scripts/overland/overland.mjs");
 
 /** A stubbed Scene that keeps its flags and applies its updates, so a reload is a fresh stub with the same data. */
-function scene({ hex = true, follows, darkness = 0, locked = false, weather = "", calendaria, owned } = {}) {
+function scene({ hex = true, follows, darkness = 0, locked = false, weather = "", owned } = {}) {
   const writes = [];
   const flags = { hexTags: hex ? { origin: {} } : null, followsSky: follows, skyWeather: owned };
   const doc = {
     writes, weather, flags,
     grid: { isHexagonal: hex },
     environment: { darknessLevel: darkness, darknessLock: locked },
-    getFlag: (ns, key) => (ns === "shadowdark-enhancer" ? flags[key]
-      : ns === "calendaria" && key === "darknessSync" ? calendaria : undefined),
+    // Foundry 14 throws for a scope that isn't an active module; so does this stub (#255).
+    getFlag: (ns, key) => {
+      if (ns !== "shadowdark-enhancer") throw new Error(`Flag scope "${ns}" is not valid or not currently active`);
+      return flags[key];
+    },
     async update(changes, options) {
       writes.push({ changes, options });
       if ("weather" in changes) doc.weather = changes.weather;
@@ -134,7 +139,7 @@ test("the active GM darkens a hex map at night to its cap, animated for a short 
   assert.deepEqual(jump.writes[0].options, {}, "a long jump isn't animated");
 });
 
-test("a dungeon, a locked scene, another GM, and Calendaria's scenes are left alone", async () => {
+test("a dungeon, a locked scene and another GM are left alone; no other module is consulted", async () => {
   sky();
   const dungeon = scene({ hex: false });
   await applySky(dungeon);
@@ -145,20 +150,20 @@ test("a dungeon, a locked scene, another GM, and Calendaria's scenes are left al
   const locked = scene({ locked: true });
   await applySky(locked);
   assert.deepEqual(locked.writes, []);
-  globalThis.game.modules = { get: (id) => (id === "calendaria" ? { active: true } : null) };
-  settings["calendaria.darknessSync"] = true;
-  const cal = scene();
-  await applySky(cal);
-  assert.deepEqual(cal.writes, [], "Calendaria owns the darkness");
-  const opted = scene({ calendaria: "disabled" });
-  await applySky(opted);
-  assert.equal(opted.writes.length, 1, "unless the scene opts out of Calendaria's sync");
-  globalThis.game.modules = { get: () => null };
-  globalThis.game.users.activeGM = { id: "other" };
-  const notMine = scene();
-  await applySky(notMine);
-  assert.deepEqual(notMine.writes, []);
-  globalThis.game.users.activeGM = gm;
+  try {
+    globalThis.game.modules = { get: (id) => (id === "calendaria" ? { active: true } : null) };
+    const other = scene();
+    await applySky(other);
+    assert.equal(other.writes.length, 1, "another calendar module, on or off, changes nothing");
+    globalThis.game.modules = { get: () => null };
+    globalThis.game.users.activeGM = { id: "other" };
+    const notMine = scene();
+    await applySky(notMine);
+    assert.deepEqual(notMine.writes, []);
+  } finally {
+    globalThis.game.modules = { get: () => null };
+    globalThis.game.users.activeGM = gm;
+  }
 });
 
 const STORMY = { kind: "stormy", roll: 1, rule: "western", until: at(1301, 6, 22, 5), advantageNext: false, advantage: false, days: null };

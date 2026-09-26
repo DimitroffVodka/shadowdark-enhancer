@@ -1682,9 +1682,8 @@ untouched unless marked.
   never goes above 0.3, and the Long Dark holds the night level all day.
 - It is written as `environment.darknessLevel` only when it moves by 0.02 or
   more, animated for a clock step under an hour.
-- Nothing is written when the scene's darkness is locked, or when Calendaria
-  drives that scene's darkness: its scene flag, else its `darknessSync`
-  setting.
+- Nothing is written when the scene's darkness is locked. No other module is
+  consulted; set a scene's **Follows the sky** to No to keep Overland off it.
 
 **Weather.**
 - `scene.weather` is Foundry's `rainStorm` while today's weather is stormy,

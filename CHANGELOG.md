@@ -67,8 +67,8 @@ it needs.
   lightens, and lifts again before dawn. The hex map only darkens to a
   readable tint. Stormy weather shows as Foundry's rain storm, or a blizzard
   in the cold. The Isles of Andrik keep their Midnight Sun and Long Dark.
-  Locked scenes, Calendaria's scenes and a weather effect you chose are left
-  alone. (#235)
+  Locked scenes and a weather effect you chose are left alone. It needs no
+  other module. (#235)
 - **Rules data.** A new **Rules data** window under Configure Settings holds
   the Western Reaches tables you look up rather than roll: terrain costs on
   foot and by boat, terrain types, hexes per day, hex visibility, each

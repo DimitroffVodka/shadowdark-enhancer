@@ -96,15 +96,3 @@ export function weatherPlan({ current, owned, effect }) {
  * @param {"on"|"off"|"default"|undefined} choice  the scene's followsSky flag
  */
 export const followsSky = (choice, isHexMap) => (choice === "on" ? true : choice === "off" ? false : !!isHexMap);
-
-/**
- * Does Calendaria drive this scene's darkness? Its scene flag wins
- * ("enabled"/true or "disabled"/false); otherwise its darknessSync setting.
- * Only one writer may own a scene's darkness.
- */
-export function calendariaDrives({ active, sceneFlag, worldSetting }) {
-  if (!active) return false;
-  if (sceneFlag === true || sceneFlag === "enabled") return true;
-  if (sceneFlag === false || sceneFlag === "disabled") return false;
-  return !!worldSetting;
-}

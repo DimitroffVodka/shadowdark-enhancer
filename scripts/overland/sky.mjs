@@ -9,8 +9,8 @@
  *
  * - Darkness (sky-core.mjs darknessAt) is written only when it moves by 0.02
  *   or more, animated for a step under an hour. The hex map stops at 0.6.
- *   Nothing is written when the scene's darkness is locked, or when
- *   Calendaria drives that scene's darkness: one writer per scene.
+ *   Nothing is written when the scene's darkness is locked. No other module
+ *   is consulted: a scene set to not follow the sky is the way out.
  * - Weather: Foundry's rainStorm when stormy, its blizzard when stormy in a
  *   cold climate, else none. Overland records the effect it put on a scene
  *   (the skyWeather flag) and only ever changes or clears that one; a weather
@@ -24,7 +24,7 @@ import { esc } from "../shared/esc.mjs";
 import { overlandState, OVERLAND_CHANGED } from "./overland.mjs";
 import { hourOfDay } from "../time/time-core.mjs";
 import {
-  HEX_MAP_CAP, calendariaDrives, darknessAt, darknessMoved, followsSky, skyOverride, weatherEffect, weatherPlan,
+  HEX_MAP_CAP, darknessAt, darknessMoved, followsSky, skyOverride, weatherEffect, weatherPlan,
 } from "./sky-core.mjs";
 
 export const FOLLOWS_SKY = "followsSky";
@@ -44,12 +44,6 @@ const FOLLOWS_LABEL = {
 /** Is this scene a tagged hex map? (The scene's own, not the viewed canvas.) */
 const isHexMap = (scene) => !!scene?.getFlag?.(MODULE_ID, "hexTags")?.origin && !!scene?.grid?.isHexagonal;
 
-/** A setting of another module, or undefined when it isn't registered. */
-function otherSetting(ns, key) {
-  try { return game.settings.get(ns, key); } catch { return undefined; }
-}
-
-let _calendariaNoted = false;
 let _running = null;
 let _again = null;
 
@@ -71,15 +65,7 @@ export async function applySky(scene = game.scenes?.active, { dt = null } = {}) 
   const updates = {};
   const options = {};
 
-  const calendaria = calendariaDrives({
-    active: !!game.modules?.get("calendaria")?.active,
-    sceneFlag: scene.getFlag?.("calendaria", "darknessSync"),
-    worldSetting: otherSetting("calendaria", "darknessSync"),
-  });
-  if (calendaria) {
-    if (!_calendariaNoted) console.log(`${MODULE_ID} | Calendaria drives scene darkness here; Overland leaves it alone`);
-    _calendariaNoted = true;
-  } else if (!scene.environment?.darknessLock) {
+  if (!scene.environment?.darknessLock) {
     const next = darknessAt({
       hour: hourOfDay(game.time.calendar, now), ...api.sun(now), illumination: api.moonPhase(now).illumination,
       cap: hex ? HEX_MAP_CAP : 1, override,
