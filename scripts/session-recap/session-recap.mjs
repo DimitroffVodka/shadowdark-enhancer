@@ -591,6 +591,9 @@ export const SessionRecap = {
     fresh.sessionState = "active";
     fresh.sessionStart = Date.now();
     await this._save(fresh);
+    // A fresh session, not a continued one: Pulp Mode's session luck (#185)
+    // and anything else that happens "at the start of a session" hang here.
+    Hooks.callAll(`${MODULE_ID}.sessionStart`, { sessionStart: fresh.sessionStart });
   },
 
   async continueSession() {

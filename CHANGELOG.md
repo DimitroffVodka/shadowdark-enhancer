@@ -53,6 +53,16 @@
   combatants off. Dice So Nice stays quiet for these rerolls unless you tick
   its option in the Chaos box. While the system's clockwise initiative is on,
   Chaos does nothing and says so once. (#180)
+- **Pulp Mode: session luck, luck crits and forced rerolls.** Three rules,
+  each its own checkbox in the Pulp box. Choosing **Start New Session** when a
+  crawl starts sets every player's character to 1d4 luck tokens and posts one card
+  with the rolls. Once an attack hits, its owner gets a **Luck: critical hit**
+  button on the card: damage already rolled keeps its dice and gains what a
+  critical hit adds (a 1d8 weapon gets one more d8), and damage not rolled yet
+  is rolled once as a critical hit. A player who can see a GM's roll gets a
+  **Luck: force a reroll** button; the roll is redone on the same card, which
+  says who forced it. Both spend one luck token, and the GM's client checks
+  and spends it, so a token is never spent without the effect. (#185)
 - **The hex data goes on the printed map.** The Hex Tagger's **Send to
   Extras** now puts every hex's terrain, region, zone colour, name,
   description and settlement on the map you tagged, instead of building a
