@@ -7,6 +7,7 @@ import { MODULE_ID } from "./shared/module-id.mjs";
 import { ICONS } from "./shared/icons.mjs";
 
 import { registerSettings } from "./shared/settings.mjs";
+import { rulesApi } from "./rules-data/rules-data-core.mjs";
 import { CrawlState } from "./crawl-strip/crawl-state.mjs";
 import { CrawlStrip } from "./crawl-strip/crawl-strip.mjs";
 import { registerCrawlTracker, refreshTracker } from "./crawl-strip/crawl-tracker.mjs";
@@ -108,7 +109,7 @@ const STYLESHEET_REV = "cd7129d5783e";
 // stale); module.json carries the same hash and is fetched fresh at runtime. A
 // mismatch is a stale cache by construction — it cannot be anything else. Both
 // stamps are written by `npm run inventory` and gated by `inventory:check`.
-const BUILD_REV = "f4ccb3ba647d";
+const BUILD_REV = "6fbcb737119d";
 
 /**
  * Tell the user when their browser is running an old build of this module, and
@@ -418,7 +419,8 @@ Hooks.once("init", () => {
     // 1.7.0 — additive: quests namespace (the Quest Log) and questsChanged.
     // 1.8.0 — additive: dying namespace and the crawlRound hook (#181).
     // 1.9.0 — additive: holidays namespace (City of Masks holidays, #191).
-    apiVersion: "1.9.0",
+    // 1.10.0 — additive: rules namespace (rules data: terrain costs, climate, limits).
+    apiVersion: "1.10.0",
     // Holidays for carousing (Shadowdark Extras reads `today`). Both async and
     // lazy; a holiday is listed once the GM has imported its journal page.
     holidays: {
@@ -843,6 +845,11 @@ Hooks.once("init", () => {
       create: (data) => Quests.create(data),
       setStatus: (id, status) => Quests.setStatus(id, status),
     },
+    // 1.10.0 — additive: rules data (#195). The tables the Western Reaches books
+    // consult rather than roll, from the `rulesData` world setting the Rules
+    // data window fills (import from the GM's own PDF, or by hand). Synchronous;
+    // nothing ships, so an unfilled value is null.
+    rules: rulesApi(() => game.settings.get(MODULE_ID, "rulesData")),
   };
 });
 
