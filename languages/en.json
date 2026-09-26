@@ -1631,7 +1631,7 @@
   "SDE.quests.trainerQuestName": "{topic} training with {trainer}: task {n}",
   "SDE.quests.page.player": "Quest",
   "SDE.quests.page.gmNotes": "GM notes",
-  "SDE.quests.page.gmHint": "Only the GM sees this page. The Quest page is rewritten by the Quest Log (Ctrl+Q): edit the description, objectives and rewards there.",
+  "SDE.quests.page.gmHint": "Only the GM sees this page. The Quest page is rewritten by the Quest Log (Alt+Q): edit the description, objectives and rewards there.",
   "SDE.quests.page.statusLine": "{status} · {source}",
   "SDE.quests.payout.title": "Complete the quest",
   "SDE.quests.payout.intro": "Completing \"{name}\" pays these rewards, once:",

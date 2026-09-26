@@ -36,7 +36,7 @@
   Shadowdark Extras' carousing window to apply. Maytide, the Duke's Ball and
   the Night of St. Anton fall on May 1, June 21 and September 22 of the world
   calendar, and Lastmoon on the year's last full moon. (#191)
-- **A Quest Log.** Press Ctrl+Q, or **Quest Log** at the foot of the Journal
+- **A Quest Log.** Press Alt+Q, or **Quest Log** at the foot of the Journal
   sidebar. Each quest is a journal entry in a *Quests* folder, with a page
   your players can read and a GM notes page they can't. Quests are Hidden
   (yours alone until you change that), Available, Active, Completed or Failed,
