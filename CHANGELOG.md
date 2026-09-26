@@ -3,6 +3,15 @@
 ## [Unreleased]
 
 ### Added
+- **Overland weather.** While travelling, the Crawl Bar's **Weather** rolls
+  today's weather, posts it to chat and shows it on the bar. It holds until the
+  next dawn. The Western Reaches rule is the default: a 1 is stormy, and a 6 is
+  excellent and gives the next roll advantage. The core rule, a storm of 1d4
+  days, is a setting in the new **Overland** settings window. A storm makes
+  normal terrain difficult, and a storm in a harsh climate makes every hex
+  impassable; the day's movement will charge for it. Macros and Shadowdark
+  Extras can roll it with `game.shadowdarkEnhancer.overland.rollWeather()`.
+  (API 1.15.0, #230)
 - **Overland travel, first piece.** On a tagged hex map the Crawl Bar offers
   **Travel**: the Shadowdark Extras party token (or the one token you select)
   travels, the Crawl Strip steps aside and movement isn't tracked, a combat

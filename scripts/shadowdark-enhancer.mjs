@@ -9,7 +9,7 @@ import { ICONS } from "./shared/icons.mjs";
 import { registerSettings } from "./shared/settings.mjs";
 import { rulesApi } from "./rules-data/rules-data-core.mjs";
 import { timeApi, registerTimeHooks } from "./time/time.mjs";
-import { overlandState, isOverland, registerOverland } from "./overland/overland.mjs";
+import { overlandState, isOverland, rollWeather, registerOverland } from "./overland/overland.mjs";
 import { CrawlState } from "./crawl-strip/crawl-state.mjs";
 import { CrawlStrip } from "./crawl-strip/crawl-strip.mjs";
 import { registerCrawlTracker, refreshTracker } from "./crawl-strip/crawl-tracker.mjs";
@@ -112,7 +112,7 @@ const STYLESHEET_REV = "04c122556d8d";
 // stale); module.json carries the same hash and is fetched fresh at runtime. A
 // mismatch is a stale cache by construction — it cannot be anything else. Both
 // stamps are written by `npm run inventory` and gated by `inventory:check`.
-const BUILD_REV = "ec956668658a";
+const BUILD_REV = "c60c4a3e0a0d";
 
 /**
  * Tell the user when their browser is running an old build of this module, and
@@ -429,12 +429,15 @@ Hooks.once("init", () => {
     // 1.12.0 — additive: time namespace and the timeAdvanced hook (Overland O1, #227).
     // 1.13.0 — additive: time.advanceOffDuty (the off-duty clock move, Overland O2, #228).
     // 1.14.0 — additive: overland namespace and the overland* hooks (Overland O3, #229).
-    apiVersion: "1.14.0",
+    // 1.15.0 — additive: overland.rollWeather (Overland O4, #230).
+    apiVersion: "1.15.0",
     // The one travel state per world (scripts/overland/overland.mjs): a copy
-    // with hexes left, climate and night derived; and whether travel is on.
+    // with hexes left, climate, storm, harshness and night derived; whether
+    // travel is on; and today's weather roll (GM).
     overland: {
       state: () => overlandState(),
       isActive: () => isOverland(),
+      rollWeather: (options) => rollWeather(options),
     },
     // Readings on Foundry's world clock: season, day and night, sun, moon,
     // anchors, the date string. Synchronous, any user (scripts/time/time.mjs).

@@ -11,6 +11,8 @@
  * - Another GM's Start or End travel is forwarded there (queryActiveGM).
  * - A player's one action, Forage, is relayed (relayToGM), and the receiver
  *   checks the sender from the query context, never from the payload.
+ * - The weather (#230) is a GM's roll, forwarded the same way; the dice are
+ *   rolled on the active GM, inside the queue.
  *
  * The mode itself is CrawlState's `overland` (crawl-state-core.mjs). In it the
  * Crawl Strip is off and movement tracking idle; a combat hides it and
@@ -26,14 +28,18 @@ import { CrawlState } from "../crawl-strip/crawl-state.mjs";
 import { authorizeActorFor, isActiveGM, queryActiveGM, refuseQuery, relayToGM } from "../shared/gm-relay.mjs";
 import { makeQueue } from "../quests/quest-core.mjs";
 import { isHexMapScene, partyHex } from "../encounter/encounter-terrain.mjs";
+import { dawnAfter } from "../time/time-core.mjs";
+import { esc } from "../shared/esc.mjs";
 import {
   defaultOverlandState, normalizeOverlandState, startTravel, setHex, recordForage,
-  pickTravelToken, forageRefusal,
+  pickTravelToken, forageRefusal, setWeather, weatherHolds, weatherAdvantage, weatherFormula,
+  weatherFromRoll, harshToday, WEATHER_RULES,
 } from "./overland-state-core.mjs";
 
 export const OVERLAND_SETTING = "overlandState";
 export const OVERLAND_QUERY = `${MODULE_ID}.overland`;
 export const OVERLAND_CHANGED = `${MODULE_ID}.overlandChanged`;
+export const WEATHER_RULE_SETTING = "overlandWeatherRule";
 const SOCKET = `module.${MODULE_ID}`;
 
 const t = (key, data) => (data ? game.i18n.format(key, data) : game.i18n.localize(key));
@@ -45,6 +51,16 @@ const FORAGE_REFUSED = {
   notMember: "SDE.overland.notify.notMember",
   alreadyForaged: "SDE.overland.notify.alreadyForaged",
 };
+
+/** Each weather's name and what it does, for the chat card (literal keys, as above). */
+const WEATHER_TEXT = {
+  stormy: ["SDE.overland.weather.stormy", "SDE.overland.weather.stormyEffect"],
+  fair: ["SDE.overland.weather.fair", "SDE.overland.weather.fairEffect"],
+  excellent: ["SDE.overland.weather.excellent", "SDE.overland.weather.excellentEffect"],
+};
+
+/** A weather kind's name, localised. */
+export const weatherName = (kind) => (WEATHER_TEXT[kind] ? t(WEATHER_TEXT[kind][0]) : "");
 
 let _state = defaultOverlandState();
 
@@ -66,22 +82,34 @@ async function commit(next) {
 
 /**
  * A copy of the travel state plus what is derived from it, never stored:
- * hexes left today, the climate of the travel hex's region this season, and
- * whether it is night (§2.1).
+ * hexes left today, the climate of the travel hex's region this season,
+ * whether today's weather is a storm that still holds, whether today is harsh
+ * (null when the climate isn't known), and whether it is night (§2.1).
  */
 export function overlandState() {
   const s = structuredClone(_state);
   const api = game.shadowdarkEnhancer ?? {};
   const season = api.time?.season?.()?.key ?? null;
   const climate = s.hex?.region && season ? api.rules?.climate?.(s.hex.region, season) ?? null : null;
+  const stormy = s.weather?.kind === "stormy" && weatherHolds(s.weather, game.time.worldTime);
   return {
     ...s,
     hexesLeft: Math.max(0, s.budget - s.spent),
     climate,
-    harsh: climate?.harsh ?? null,
+    stormy,
+    harsh: harshToday(climate, stormy),
     isNight: api.time?.isNight?.() ?? null,
   };
 }
+
+/** Today's weather kind while it holds, else null. Cheap: the crawl bar asks on every clock move. */
+export const weatherNow = () => (weatherHolds(_state.weather, game.time.worldTime) ? _state.weather.kind : null);
+
+/** The weather rule this world plays by: the Western Reaches' (default) or the core book's. */
+const weatherRule = () => {
+  const rule = game.settings.get(MODULE_ID, WEATHER_RULE_SETTING);
+  return WEATHER_RULES.includes(rule) ? rule : WEATHER_RULES[0];
+};
 
 export const isOverland = () => CrawlState.isOverland;
 
@@ -164,6 +192,33 @@ export async function endOverland() {
 }
 
 /**
+ * Roll today's weather (GM). When today's still holds, nothing is rolled
+ * (`rolled: false`); `reroll` replaces it anyway (Predict). A GM who isn't the
+ * active GM is forwarded there; a player is refused.
+ * @param {{reroll?: boolean}} [options]
+ * @returns {Promise<{ok:true, rolled:boolean, weather:object}|{ok:false, error:string}>}
+ */
+export async function rollWeather({ reroll = false } = {}) {
+  if (!game.user?.isGM) return { ok: false, error: t("SDE.overland.notify.weatherGmOnly") };
+  const data = { action: "weather", reroll: reroll === true };
+  return isActiveGM() ? applyAction(data, game.user) : queryActiveGM(OVERLAND_QUERY, data, { label: t("SDE.overland.relayLabel") });
+}
+
+/** One chat card for a weather roll: what it is, what it does, until when, and the dice. */
+async function postWeather(weather, rolls, reroll) {
+  const [, effect] = WEATHER_TEXT[weather.kind];
+  const lines = [
+    `<p><strong>${esc(t("SDE.overland.weather.title", { weather: weatherName(weather.kind) }))}</strong></p>`,
+    `<p>${esc(weather.days ? t("SDE.overland.weather.stormDays", { days: weather.days }) : t(effect))}</p>`,
+    `<p>${esc(t("SDE.overland.weather.until", { date: game.shadowdarkEnhancer?.time?.format?.(weather.until) ?? "" }))}</p>`,
+    `<p><em>${esc(t(weather.advantage ? "SDE.overland.weather.rolledAdvantage" : "SDE.overland.weather.rolled", { roll: weather.roll }))}${
+      reroll ? ` ${esc(t("SDE.overland.weather.rerolled"))}` : ""}</em></p>`,
+  ];
+  await ChatMessage.create({ content: `<div class="sde-weather-card">${lines.join("")}</div>`, rolls })
+    .catch((err) => console.error(`${MODULE_ID} | weather chat card`, err));
+}
+
+/**
  * Forage for a character (a player for their own, or the GM). Records it for
  * today; the INT check and the ration it finds are #233's.
  * @param {string} actorId
@@ -175,7 +230,7 @@ export function requestForage(actorId) {
 /**
  * The active GM's side of every action. `user` comes from the query context
  * (or is this GM), never from the payload.
- * @param {{action:string, tokenUuid?:string, actorId?:string, hex?:object}} data
+ * @param {{action:string, tokenUuid?:string, actorId?:string, hex?:object, reroll?:boolean}} data
  * @param {User} user
  */
 export function applyAction(data, user) {
@@ -196,6 +251,23 @@ export function applyAction(data, user) {
         if (!user.isGM) return { ok: false, error: t("SDE.overland.notify.gmOnly") };
         await CrawlState.endOverland();
         return { ok: true };
+      }
+      case "weather": {
+        if (!user.isGM) return { ok: false, error: t("SDE.overland.notify.weatherGmOnly") };
+        const now = game.time.worldTime;
+        const reroll = data.reroll === true;
+        if (!reroll && weatherHolds(_state.weather, now)) return { ok: true, rolled: false, weather: structuredClone(_state.weather) };
+        const rule = weatherRule();
+        const advantage = weatherAdvantage(_state.weather, { rule, reroll, now });
+        const roll = await new Roll(weatherFormula(advantage)).evaluate();
+        const days = rule === "core" && roll.total === 1 ? await new Roll("1d4").evaluate() : null;
+        const cal = game.time.calendar;
+        const weather = weatherFromRoll({
+          rule, roll: roll.total, advantage, stormDays: days?.total ?? null, dawnAfter: (n) => dawnAfter(cal, now, n),
+        });
+        await commit(setWeather(_state, weather).state);
+        await postWeather(weather, [roll, days].filter(Boolean), reroll);
+        return { ok: true, rolled: true, weather: structuredClone(weather) };
       }
       case "forage": {
         const auth = authorizeActorFor(data.actorId, user, { type: "Player" });
