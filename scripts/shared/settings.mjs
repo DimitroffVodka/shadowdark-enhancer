@@ -198,6 +198,20 @@ export function registerSettings() {
     default: false,
   });
 
+  // A population table for the builder's Random ancestry (e.g. the Western
+  // Reaches d100): its result is matched to an ancestry by name. Empty keeps
+  // each ancestry's system.randomWeight. A uuid field renders as a drop target
+  // for a RollTable from the sidebar or a compendium.
+  game.settings.register(MODULE_ID, "charBuilderAncestryTable", {
+    name: "SDE.settings.charBuilderAncestryTable.name",
+    hint: "SDE.settings.charBuilderAncestryTable.hint",
+    scope: "world",
+    config: false,
+    // blank: clearing the drop target submits "", which must save as "unset".
+    type: new foundry.data.fields.DocumentUUIDField({ type: "RollTable", blank: true, nullable: true, initial: null }),
+    default: null,
+  });
+
   // Fixed starting gold (gp). 0 = roll the standard 2d6×5 gp in the builder.
   game.settings.register(MODULE_ID, "charBuilderStartingGold", {
     name: "SDE.settings.charBuilderStartingGold.name",

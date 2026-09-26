@@ -16,6 +16,33 @@
   task** turns a trainer's task into a quest for the chosen character, and
   completing it offers to open Training on that trainer for the benefit roll.
   Players get the log read-only. See the wiki page *Quest Log*. (#189)
+- **Chapter to journal.** Importer Hub → Tools → **Chapter to journal**
+  turns any range of printed pages from a linked PDF into one readable
+  journal. It's split into pages at the book's headings, its paragraphs are
+  rejoined, and page numbers are dropped. You get a preview of the pages
+  before anything is written. A preset does the Western Reaches City-States
+  (GM Guide pp. 16–27) in one click, with a page per city-state. Each city
+  links to its key-location hex page, and the hex page links back. Running
+  it again updates the journal in place and keeps pages you added. (#194)
+- **Type of Trouble rolls its nested table.** Every row of the GM Guide's
+  Type of Trouble (p. 49) prints a second roll ("Monster horde. 1d6: 1. …
+  6. …"), and rolling the table used to hand you that whole list. Importing it
+  now also creates one table per row, on the die the row prints (a d6, or a
+  d4 for External faction and Power change), named "Type of Trouble: <type>"
+  and filed beside it. One roll of Type of Trouble posts the type and a result
+  from its table. If your world already has Type of Trouble, import it again
+  and choose **Replace**: the table is updated in place and its ten tables
+  are made, following that one answer. (#188)
+- **Two more Western Reaches tables, and Random ancestry by population.** The
+  importer now knows the GM Guide's *Caught in Danger!* (p. 33, d6: what
+  befalls a PC still in an adventuring site when the session ends) and the
+  Player's Guide's *Ancestry (Population)* d100 (p. 14). Both are read from
+  your own PDF. A new Character Builder setting, **Random ancestry table**,
+  takes a roll table. When one is set, the Ancestry step's Random rolls it and
+  picks the ancestry the result names or links to, so random characters follow
+  the setting's population odds. If a result matches no ancestry in the world,
+  or the table gives nothing, you're told and Random falls back to each
+  ancestry's weight. Left empty, Random works as before. (#187)
 - **Stat damage is tracked.** Damage to STR, DEX, CON, INT, WIS or CHA is one
   line per ability in the character sheet's Effects tab, such as *2 STR
   damage*: the score and its modifier drop, and the line is gone when healed.

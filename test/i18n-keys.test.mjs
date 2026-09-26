@@ -13,9 +13,10 @@ const dir = (path, match = /\.mjs$/) => readdirSync(path).filter((f) => match.te
 
 const FEATURES = {
   "SDE.hexMap.": [...dir("scripts/hex-map"), "templates/hex-tagger.hbs", "templates/hex-brush.hbs"],
-  // The hex subfolder is in here because the key-location importer runs
-  // headless (no hub instance) and still speaks to the GM through en.json.
+  // The hex subfolder and the chapter importer are in here because they run
+  // headless (no hub instance) and still speak to the GM through en.json.
   "SDE.importer.": [...dir("scripts/importer", /^importer-hub.*\.mjs$/), ...dir("scripts/importer/hex"),
+    "scripts/importer/chapter-journal.mjs",
     "templates/importer-hub.hbs", "templates/partials/tree-node.hbs"],
   "SDE.quests.": [...dir("scripts/quests"), "templates/quest-log.hbs"],
 };

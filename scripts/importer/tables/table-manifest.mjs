@@ -277,6 +277,21 @@ export function formulaFromDie(die) {
  *           hashExpected:string|null, hashActual:string|null, hashOk:boolean|null,
  *           ok:boolean}}
  */
+/**
+ * A live table's row count, as `verify` compares it with the manifest's
+ * `rows`: every result except the RollTable result a nested row adds beside
+ * its text (flagged `nestedRoll` by buildTableData, #188). Without that,
+ * Type of Trouble's ten rows read as twenty and the hub called it broken.
+ * Pure: takes plain results or a results Collection.
+ * @param {Iterable<{flags?:object}>} results
+ * @returns {number}
+ */
+export function tableRowCount(results) {
+  let n = 0;
+  for (const r of results ?? []) if (!r?.flags?.["shadowdark-enhancer"]?.nestedRoll) n++;
+  return n;
+}
+
 export function verify(entry, actual = {}) {
   const rowsExpected = entry?.rows ?? null;
   const rowsActual   = actual?.rows ?? null;
