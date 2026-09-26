@@ -101,8 +101,9 @@ to *Nobody*.
 
 ## Trainer tasks
 
-Each task in the Regional Training window has a **Take this task** button
-(GM only, with a character chosen). It adds an **Available** quest personal
+Each task in the Regional Training window has an **Add to Quest Log** button
+(GM only). Choose the character in the window's **Character** list first; until
+then the button is greyed out. It adds an **Available** quest personal
 to that character, with the task as its one objective and the trainer's
 benefit as its reward. The task then shows **Taken**, and **Done** once the
 quest is completed.

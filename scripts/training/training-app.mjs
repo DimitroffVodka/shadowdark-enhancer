@@ -154,6 +154,8 @@ export class TrainingApp extends HandlebarsApplicationMixin(ApplicationV2) {
         quest: !!quest,
         done: quest?.status === "completed",
         canTake: !quest && !!actor && !!game.user?.isGM,
+        // The quest is personal, so there is nothing to file until a character is chosen.
+        needsActor: !quest && !actor && !!game.user?.isGM,
       };
     });
 

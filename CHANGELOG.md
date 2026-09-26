@@ -344,6 +344,11 @@
 - **Foundry 14 is now the minimum.** The module no longer lists Foundry 13 as
   supported, matching Shadowdark Extras, which already needs 14.
 ### Fixed
+- **Adding a training task to the Quest Log is easier to find.** The button
+  now reads **Add to Quest Log** and shows before a character is chosen,
+  greyed out with a hint to pick the character first. It used to appear only
+  once a character was chosen. The Quest Log also opens with **Alt+Q**, not
+  Ctrl+Q, which quits the browser on Linux.
 - **Hex journal pages imported earlier now read as paragraphs.** The fix that
   joins a PDF column's lines back into paragraphs only ran on import, so pages
   filed before it kept one paragraph per printed line, and some still ended in
