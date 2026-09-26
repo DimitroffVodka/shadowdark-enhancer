@@ -23,7 +23,7 @@ and Forge & Loot features.
 [`time`](#time--season-day-and-night-sun-moon-and-anchors) ·
 [`overland`](#overland--the-travel-state)
 
-**API version:** `1.14.0` (semver — additive changes bump the minor version,
+**API version:** `1.15.0` (semver — additive changes bump the minor version,
 breaking changes the major; check `apiVersion` before relying on newer keys).
 
 ## Discovery
@@ -1449,9 +1449,49 @@ o.state();      // a copy of the travel state, plus derived fields:
 //   day, budget, spent,            // the open day's dawn (worldTime) and points
 //   weather, checks, pending, foraged,
 //   hex: { num, terrain, region, features },  // the travel token's last hex
-//   hexesLeft, climate, harsh, isNight,       // derived, never stored
+//   hexesLeft, climate, stormy, harsh, isNight,  // derived, never stored
 // }
+
+await o.rollWeather();                 // GM: roll today's weather (1.15.0)
+await o.rollWeather({ reroll: true }); // replace today's roll (Predict)
+// { ok: true, rolled: true, weather }   rolled, stored, one chat card
+// { ok: true, rolled: false, weather }  today's still holds: nothing rolled or posted
+// { ok: false, error }                  a player, or the roll failed
 ```
+
+**Derived fields.** `climate` is `rules.climate(hex.region, season)`, or
+`null` before the rules data or a hex exists. `stormy` is true while today's
+weather is a storm that still holds. `harsh` is true when the climate is harsh
+always (†), or harsh in storms (*) and it is stormy. It is `null` when the
+climate isn't known.
+
+### `overland.rollWeather({ reroll? })`
+
+Added in 1.15.0 (Overland O4, #230; design §5.1). Only a GM rolls: a GM who
+isn't the active GM is forwarded there, and a player is refused. The dice are
+rolled on the active GM, stored in the travel state, and posted as one chat
+card with the roll.
+
+`weather` is `{ kind, roll, rule, until, advantageNext, advantage, days }`:
+
+- `kind` is `"stormy"`, `"fair"` or `"excellent"`. `roll` is the kept d6.
+- `rule` is the world's **Weather rule** setting at the time of the roll:
+  - `"western"` (the default): a d6 each day. 1 is stormy, 6 is excellent, and
+    2 to 5 is fair. A 6 sets `advantageNext`, so the next roll is 2d6 keep
+    highest.
+  - `"core"`: a 1 is a storm lasting 1d4 dawns (`days`), and anything else is
+    fair.
+- `until` is the worldTime the weather holds to: the next dawn, or the storm's
+  last dawn under the core rule. Until then `rollWeather()` rolls nothing and
+  returns `rolled: false`, which is how a core storm goes on with no daily
+  roll.
+- `advantage` says whether this roll had advantage. `{ reroll: true }` always
+  rolls, replacing today's weather, with the advantage the replaced roll had:
+  a reroll is not the next roll.
+
+A storm makes normal terrain difficult, and a storm in a harsh climate makes
+every hex impassable. The day's movement (#231) prices hexes that way, from
+`rules.terrainCost(terrain, { weather, harsh })`.
 
 - **Starting and ending travel** is the GM's, from the crawl bar's **Travel**
   and **End travel** (offered on a tagged hex map). Another GM's click is
@@ -1467,9 +1507,9 @@ o.state();      // a copy of the travel state, plus derived fields:
 - **Players:** one relayed action, Forage, for a character they own; the GM
   checks the sender from the query context. It records the forage for today;
   the check and the ration are the next pieces of the build (#233).
-- Weather (#230), the day's budget and the clock (#231), encounter checks
-  (#232) and rations (#233) fill the fields above as they land; until then
-  they keep their defaults.
+- The day's budget and the clock (#231), encounter checks (#232) and rations
+  (#233) fill the fields above as they land; until then they keep their
+  defaults.
 
 ## Stability notes
 
@@ -1498,6 +1538,8 @@ o.state();      // a copy of the travel state, plus derived fields:
 - `1.14.0` adds the `overland` namespace and the `overlandChanged`,
   `overlandStart` and `overlandEnd` hooks. The crawl state is version 3, with
   an `overland` mode.
+- `1.15.0` adds `overland.rollWeather` and the derived `overland.state().stormy`.
+  `harsh` is now a boolean (or `null`) rather than the climate's marker.
 - `1.4.0` adds the shared `forgeLoot.open()` preview shell. Generator rules and
   document writes remain behind the later NPC/Rival adapter implementations.
   The version policy is additive: new namespaces bump the minor version; breaking

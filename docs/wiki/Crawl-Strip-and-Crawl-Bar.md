@@ -143,23 +143,32 @@ Differences from combat:
 ## Overland travel
 
 On a tagged hex map the Crawl Bar also offers **Travel**. It starts overland
-travel instead of a crawl. Overland is being built in pieces (#192); this first
-piece switches the mode and keeps the travel state.
+travel instead of a crawl. Overland is being built in pieces (#192). So far it
+switches the mode, keeps the travel state and rolls the weather.
 
 - **Which token travels.** The Shadowdark Extras party token, when exactly one
   is on the map. Otherwise select the one token that travels before pressing
   **Travel**.
 - **Who travels.** That party's members, or every player-owned character.
 - **While travelling** the Crawl Strip is off and movement isn't tracked. The
-  bar shows **Overland** and **End travel**. A combat started while travelling
-  takes over as usual and hands back to travel when it ends.
+  bar shows **Overland** (with today's weather once it's rolled), **Weather**
+  and **End travel**. A combat started while travelling takes over as usual and
+  hands back to travel when it ends.
+- **Weather** rolls today's weather and posts it to chat. It holds until the
+  next dawn, so pressing it again the same day only reminds you what it is.
+  With the Western Reaches rule (the default) a 1 is stormy and a 6 is
+  excellent, which gives the next day's roll advantage. With the core rule a 1
+  is a storm for 1d4 days, with no roll while it lasts. Pick the rule under
+  **Configure Settings → Shadowdark Enhancer → Overland**. A storm makes
+  normal terrain difficult, and a storm in a harsh climate stops travel
+  altogether. The day's movement will charge for that once it is built.
 - **End travel** stops travelling but keeps where the party is and the day's
   progress, so **Travel** later picks up where it left off.
 - **Start** still begins a crawl, for example when the party reaches a dungeon.
   To travel again after a crawl, end the crawl first.
 
-Weather, the day's movement budget, encounter checks, foraging and rations
-come with the next pieces.
+The day's movement budget, encounter checks, foraging and rations come with
+the next pieces.
 
 ## The party cards
 

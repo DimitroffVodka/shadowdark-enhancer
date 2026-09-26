@@ -10,10 +10,10 @@ All settings are **world-scoped**. They are configured by the GM for the whole w
 
 ## Settings you can see
 
-Go to **Configure Settings → Shadowdark Enhancer**. Every setting lives in one of eight
+Go to **Configure Settings → Shadowdark Enhancer**. Every setting lives in one of nine
 pop-out windows, one per feature, each opened by its own **Configure** button:
 Character Builder, Monsters, PC Automation, Modes of Play, Movement, Crawl Strip,
-Encounters, and Loot & XP. One more button, **Edit Rules Data**, opens the
+Overland, Encounters, and Loot & XP. One more button, **Edit Rules Data**, opens the
 Western Reaches rules tables (see [Rules data](#rules-data) below).
 
 ### Character Builder
@@ -181,6 +181,14 @@ See [Movement Budgets](Movement-Budgets.md).
 | **Game Master avatar** | `assets/gm-avatar.jpg` (bundled) | Portrait on the Game Master card in the crawl strip. Blank shows a plain cowled icon; click the card's portrait in the strip to change it. |
 | **Warn when shadowdark-crawl-helper is enabled** | on | Non-blocking notice at world load if Crawl Helper is active. |
 
+### Overland
+
+| Setting | Default | What it does |
+|---|---|---|
+| **Weather rule** | Western Reaches | How the crawl bar's **Weather** rolls during overland travel. *Western Reaches*: a d6 each day, where 1 is stormy until the next dawn and 6 is excellent and gives the next roll advantage. *Core rules*: a 1 is a storm lasting 1d4 days, with no roll while it lasts. |
+
+See [Crawl Strip and Crawl Bar](Crawl-Strip-and-Crawl-Bar.md#overland-travel).
+
 ### Loot & XP
 
 | Setting | Default | What it does |
@@ -254,6 +262,7 @@ Stored as world settings for persistence. **Do not edit these manually.**
 | Key | Holds |
 |---|---|
 | `crawlState` | Crawl state machine (mode, turn counter, roster, out-of-combat order) |
+| `overlandState` | Overland travel state (travel token, members, weather, the day's progress) |
 | `sessionRecap` | Live session recap log |
 | `sessionHistory` | Saved past session recaps |
 | `shopInventory` · `shopLog` · `savedShopConfigs` · `shopAvailableToPlayers` · `shopAvailabilityData` · `gambleOptions` · `shopDefaultApplied` | Merchant shop state and player permissions |
