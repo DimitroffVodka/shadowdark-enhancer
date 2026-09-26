@@ -1153,13 +1153,13 @@ the table-facing description is the wiki page *Dying and Death Timers*.
 const d = game.shadowdarkEnhancer.dying;
 
 d.isDying(actor);                  // → true while dying (not stable, not dead)
-d.timer(actor);                    // → rounds left, or null
+d.timer(actor);                    // → rounds left; null until its first turn rolls it, or when not dying
 d.state(actor);                    // → { timer, stable, conscious, tick } or null
 
 await d.stabilize(actor, { by: helper }); // helper's INT check on THIS client; → did it succeed
 await d.stabilize(actor);                 // GM: no roll (a potion, an automatic success)
 await d.rise(actor);                      // GM: up at 1 HP, everything cleared
-await d.adjust(actor, +1);                // GM: rounds added (or removed), never below 1
+await d.adjust(actor, +1);                // GM: rounds added (or removed), never below 1; nothing before the timer is rolled
 await d.setConscious(actor, true);        // GM: acting while dying; the timer still runs
 
 d.STATUS;                          // "sde-dying", the status this module registers
