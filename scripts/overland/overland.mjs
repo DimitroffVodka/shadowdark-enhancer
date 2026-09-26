@@ -281,6 +281,11 @@ async function postDay(boat) {
     .catch((err) => console.error(`${MODULE_ID} | travel day chat line`, err));
 }
 
+/** The travel token's scene: its region scan decides a table's north or south half. */
+function travelScene() {
+  try { return _state.tokenUuid ? fromUuidSync(_state.tokenUuid)?.parent ?? null : null; } catch { return null; }
+}
+
 /** A check's label on its card and in the recap: "Night check, 21:00". */
 function checkLabel(check) {
   const time = dateParts(game.time.calendar, check.at).time;
@@ -309,16 +314,22 @@ async function postCheckHours() {
  */
 export async function advanceTravel(target, reason) {
   const check = game.shadowdarkEnhancer?.encounter?.check;
+  const scene = travelScene();
   for (const i of dueChecks(_state.checks, target)) {
     const c = _state.checks[i];
     if (c.at > game.time.worldTime) await game.time.advance(c.at - game.time.worldTime);
     const label = checkLabel(c);
     const { hit } = typeof check === "function"
-      ? await check({ threshold: c.chance, hex: _state.hex, label, clockLabel: label })
+      ? await check({ threshold: c.chance, hex: _state.hex, scene, label, clockLabel: label })
       : { hit: false };
     await commit(markCheck(_state, i, hit).state);
     if (hit) {
-      if (target > game.time.worldTime) await commit(setPending(_state, { until: target, reason }).state);
+      // Something is left for Continue when there's clock to run, or checks
+      // still due at this very moment (a second check at the same hour, or the
+      // overdue checks of a late Start day): they wait, not the next move.
+      if (target > game.time.worldTime || dueChecks(_state.checks, target).length) {
+        await commit(setPending(_state, { until: Math.max(target, game.time.worldTime), reason }).state);
+      }
       return { stopped: true };
     }
   }

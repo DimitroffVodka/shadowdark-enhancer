@@ -18,12 +18,14 @@ export const EncounterCheck = {
    * Perform one encounter check (1d6 vs threshold).
    *
    * Overland's travel checks (#232) pass their own chance, the travel hex
-   * (with its region as the zone), a label for the card and the recap's clock
-   * label. With no options this is exactly the crawl's check.
-   * @param {{threshold?:number, hex?:object|null, label?:string, clockLabel?:string}} [options]
+   * (with its region as the zone) and its scene, a label for the card and the
+   * recap's clock label. The scene decides the table's north or south half
+   * whatever map the GM is viewing. With no options this is exactly the
+   * crawl's check.
+   * @param {{threshold?:number, hex?:object|null, scene?:Scene|null, label?:string, clockLabel?:string}} [options]
    * @returns {Promise<{total: number, hit: boolean}>}
    */
-  async check({ threshold: chance, hex: travelHex, label = "", clockLabel } = {}) {
+  async check({ threshold: chance, hex: travelHex, scene = null, label = "", clockLabel } = {}) {
     const threshold = Number.isInteger(chance) ? chance : game.settings.get(MODULE_ID, "encounterThreshold");
     const roll = await new Roll("1d6").evaluate();
     const hit = roll.total <= threshold;
@@ -33,7 +35,7 @@ export const EncounterCheck = {
     // The table for a hit: the region's column for this hex, resolved at the
     // moment of the roll, else the terrain's table, else the active one. A
     // failing lookup falls back to the terrain picker, so the card still posts.
-    const table = hit ? await tableForCheck(hex) : null;
+    const table = hit ? await tableForCheck(hex, { scene: scene ?? undefined }) : null;
 
     await this._postToChat(roll, threshold, hit, hex, table, label);
 

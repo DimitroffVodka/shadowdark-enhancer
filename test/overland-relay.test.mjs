@@ -345,3 +345,32 @@ test("an advance through the night rolls the night checks in time order, and sto
   assert.equal(globalThis.game.time.worldTime, dawn);
   assert.ok(stored.overlandState.checks.every((c) => c.rolled));
 });
+
+test("a hit with checks still due at the same moment leaves them for Continue, not the next move (#246 review)", async () => {
+  // A late Start day at 08:00: 06:00 and 07:00 are both overdue, and the first hits.
+  const calls = await dayWithChecks([1, 2, 1, 12], [true]);
+  assert.equal(calls.length, 1);
+  assert.deepEqual(stored.overlandState.pending, { until: at(1301, 6, 21, 8), reason: "day" }, "no clock left, but a check is");
+  assert.equal(stored.overlandState.checks[1].rolled, false);
+  const res = await applyAction({ action: "resume" }, gm);
+  assert.deepEqual(res, { ok: true, stopped: false });
+  assert.equal(calls.length, 2, "Continue rolls the 07:00 check");
+  assert.equal(calls[1].label, "SDE.overland.check.day");
+  assert.equal(stored.overlandState.pending, null);
+  assert.equal(globalThis.game.time.worldTime, at(1301, 6, 21, 8), "and moves no clock");
+});
+
+test("a travel check resolves its table on the travel token's scene, not the one being viewed (#246 review)", async () => {
+  travellingDay();
+  const travelScene = { id: "travel-scene" };
+  stored.overlandState = { ...stored.overlandState, tokenUuid: "Scene.travel-scene.Token.t" };
+  registerOverland();
+  globalThis.fromUuidSync = (uuid) => (uuid === "Scene.travel-scene.Token.t" ? { parent: travelScene } : null);
+  const calls = [];
+  globalThis.game.shadowdarkEnhancer.encounter = { check: async (opts) => { calls.push(opts); return { hit: false }; } };
+  globalThis.game.time.worldTime = at(1301, 6, 21, 8);
+  dice.push(3, 1, 12, 1, 12);            // 06:00 is overdue
+  await applyAction({ action: "startDay", method: "walking" }, gm);
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0].scene, travelScene);
+});

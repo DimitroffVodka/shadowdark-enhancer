@@ -117,7 +117,7 @@ api.linker.invalidate(); // drop both caches after bulk content changes
 
 ```js
 await api.encounter.check();          // run an encounter check
-await api.encounter.check({ threshold: 2, hex, label, clockLabel }); // 1.17.0: the chance, hex and labels given
+await api.encounter.check({ threshold: 2, hex, scene, label, clockLabel }); // 1.17.0: the chance, hex, map and labels given
 api.encounter.openRoller();           // roller window
 api.encounter.setActiveTable(uuid);   // bind the active encounter table
 api.encounter.getThreshold(); api.encounter.setThreshold(3);
@@ -132,6 +132,8 @@ Since 1.17.0 it also takes:
 - `threshold`: the chance to use, in 6.
 - `hex`: `{ num, terrain, features, region }`, used instead of the party's
   hex. The region names the table's zone.
+- `scene`: the map the hex is on. Its region scan decides a table's north or
+  south half, whatever map the GM is viewing.
 - `label`: shown first on the card.
 - `clockLabel`: the Session Recap's clock label.
 
@@ -1564,13 +1566,16 @@ Added in 1.17.0 (Overland O6, #232; design §5.1 step 4, §5.3, Q4, §5.7).
 - **Rolling them.** Every Overland clock advance (a move, and later the
   night's camp) runs from now to its target. Each unrolled check whose hour
   falls inside is rolled in time order at its hour, through
-  `encounter.check({ threshold, hex, label, clockLabel })` on the travel hex.
+  `encounter.check({ threshold, hex, scene, label, clockLabel })` on the travel
+  hex and the travel token's scene.
   The table resolves at that hour, including the night columns and the moon,
   and a hit behaves as any encounter check: the pause setting, the roller, and
   the auto-rolled table.
 - **A hit stops the clock** at its hour and stores
   `pending: { until, reason }`. The move itself stands and is paid for; only
-  the clock waits. While something is pending, the travel token can't move
+  the clock waits. When no clock is left but more checks are due at that
+  moment (a second check at the same hour, or a late Start day's overdue
+  checks), `pending` holds them for Continue too. While something is pending, the travel token can't move
   on, except by displace.
 - **`overland.resume()`** (GM, forwarded to the active GM; the crawl bar's
   **Continue**) clears `pending` and finishes the advance, rolling any later
