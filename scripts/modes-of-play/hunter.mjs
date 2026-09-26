@@ -34,7 +34,7 @@ export function hunterXp(level) {
 
 /**
  * What a finished combat pays. Pure over plain combatant records.
- * @param {Array<{type:string, name:string, level:number, defeated:boolean, actorId:string, friendly?:boolean, hidden?:boolean}>} combatants
+ * @param {Array<{type:string, name:string, level:number, defeated:boolean, actorId:string, friendly?:boolean, hidden?:boolean, dead?:boolean}>} combatants
  * @returns {{ total:number, monsters:Array<{name:string, count:number, xp:number}>, pcIds:string[] }}
  */
 export function hunterAward(combatants = []) {
@@ -42,7 +42,8 @@ export function hunterAward(combatants = []) {
   let total = 0;
   const pcIds = new Set();
   for (const c of combatants) {
-    if (c?.type === "Player" && c.actorId) { pcIds.add(c.actorId); continue; }
+    // The dead (core's `dead` status, #181) earn nothing; the dying still do.
+    if (c?.type === "Player" && c.actorId) { if (!c.dead) pcIds.add(c.actorId); continue; }
     if (c?.type !== "NPC" || !c.defeated || c.friendly || c.hidden) continue;
     const xp = hunterXp(c.level);
     if (!xp) continue;
@@ -64,6 +65,7 @@ function record(combatant) {
     defeated: !!(combatant.isDefeated ?? combatant.defeated) || isHiddenFromStrip(combatantEntry(combatant)),
     friendly: (combatant.token?.disposition ?? actor?.prototypeToken?.disposition) === CONST.TOKEN_DISPOSITIONS.FRIENDLY,
     hidden: !!combatant.hidden,
+    dead: !!actor?.statuses?.has("dead"),
     actorId: actor?.isToken ? (actor.baseActor?.id ?? combatant.actorId) : (actor?.id ?? combatant.actorId),
   };
 }

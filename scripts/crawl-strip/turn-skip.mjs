@@ -45,6 +45,10 @@ export function registerTurnSkip() {
   // so nothing else would notice the card had just vanished.
   Hooks.on("updateActor", check);
   Hooks.on("updateCombatant", check);
+  // A PC gets core's `dead` status (dying.mjs, stat damage, a token HUD) while
+  // its combatant was already marked defeated by the system at 0 HP, so no
+  // combatant update follows to notice its turn is over.
+  Hooks.on("createActiveEffect", check);
   // Removing a combatant shifts every index after it; the pointer can land on
   // a corpse without any turn change of its own.
   Hooks.on("deleteCombatant", check);

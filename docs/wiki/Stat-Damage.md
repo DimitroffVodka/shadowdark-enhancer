@@ -62,7 +62,10 @@ the Effects tab to heal it by hand.
 ## Death at CON 0
 
 A character whose CON reaches 0 from stat damage dies: they get the dead
-status, and they are marked defeated in any combat they are in.
+status, they are marked defeated in any combat they are in, and any dying state
+ends. A character with the *no death at 0 CON* dying modifier (the
+Necromancer's River of Death, or the Ancient Ritual training's *Survive 0 CON*)
+survives it. See [Dying and Death Timers](Dying-and-Death-Timers.md#modifiers).
 
 ## Applying it by hand
 

@@ -10,6 +10,7 @@ import {
   trainerByKey,
   trainersByRegion,
 } from "../scripts/training/training-core.mjs";
+import { DYING_KEYS } from "../scripts/dying/dying-core.mjs";
 
 describe("regional training — the shipped trainers", () => {
   it("is the book's twenty-one trainers, four benefits each", () => {
@@ -60,7 +61,8 @@ describe("regional training — the shipped trainers", () => {
           assert.ok(["add", "override"].includes(c.type), `${t.key}/${b.roll} type`);
           assert.equal(typeof c.value, "number", `${t.key}/${b.roll} value is a number`);
           assert.ok(!("mode" in c), `${t.key}/${b.roll} must not carry a numeric mode`);
-          assert.ok(c.key.startsWith("system."), `${t.key}/${b.roll} key`);
+          // A system key, or one of this module's own dying modifiers (#181).
+          assert.ok(c.key.startsWith("system.") || Object.values(DYING_KEYS).includes(c.key), `${t.key}/${b.roll} key`);
           seen.push(c.key);
         }
       }

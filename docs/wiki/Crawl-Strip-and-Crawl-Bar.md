@@ -78,8 +78,11 @@ In combat, the strip displays one card per combatant in initiative order:
   are removed from the strip automatically. They remain in the combat tracker so
   loot generators and session recaps can still count them. Healing an enemy
   above 0 HP returns its card.
-- **Downed PCs stay on the strip:** Player characters at 0 HP remain visible
-  with a skull badge.
+- **Downed PCs stay on the strip:** A player character at 0 HP shows a
+  **Dying** badge with its death timer (or **Stable**), and a dead one a skull.
+  See [Dying and Death Timers](Dying-and-Death-Timers.md).
+- **Dead PCs' turns are skipped:** A dead character keeps its card but no
+  longer takes a turn.
 - **Dead turns are skipped automatically:** When an enemy dies, the module
   skips their turn in the tracker automatically to keep combat moving.
 
@@ -154,7 +157,8 @@ Each card displays live actor data:
 | **Light source** | PC cards: click to toggle character light source |
 | **Initiative** | d20 button when unrolled; badge showing result once rolled |
 | **Current turn** | Active combatant card is outlined in accent color; others dim |
-| **Skull** | Marks a downed PC (0 HP) |
+| **Dying badge** | A PC at 0 HP: **Dying** with the rounds left (no count for players under hidden timers) or **Stable**. Click it to stabilize with your selected character, or, as GM, for the dying buttons |
+| **Skull** | Marks a dead PC, or a defeated combatant |
 | **Eye-slash** | Marks a combatant hidden from players |
 
 Players see only the HP bar on a hostile NPC's card: no HP numbers, no AC, and
