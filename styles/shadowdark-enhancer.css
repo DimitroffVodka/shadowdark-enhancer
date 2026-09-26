@@ -11004,7 +11004,7 @@ body.theme-light .sde-parry-note { color: #2e6b2e; }
 .sde-ql-objectives { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
 .sde-ql-objective { display: flex; align-items: center; gap: 8px; }
 .sde-ql-objective input[type="text"] { flex: 1 1 auto; }
-.sde-ql-objective input[type="checkbox"] { flex: 0 0 auto; margin: 0; }
+.sde-ql-objective input[type="checkbox"] { flex: 0 0 auto; margin: 0; width: var(--checkbox-size); }
 .sde-ql-done span { color: var(--sd-text-muted); text-decoration: line-through; }
 .sde-ql-addrow { display: flex; gap: 6px; }
 .sde-ql-addrow input { flex: 1 1 auto; }
