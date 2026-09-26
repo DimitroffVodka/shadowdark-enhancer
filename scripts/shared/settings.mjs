@@ -5,6 +5,7 @@ import { registerSettingGroups } from "./settings-group-menu.mjs";
 import { MonsterLootReviewApp } from "../loot/monster-loot-review-app.mjs";
 import { defaultCrawlState } from "../crawl-strip/crawl-state-core.mjs";
 import { DEFAULT_ENCOUNTER_SOURCES } from "../encounter/encounter-sources.mjs";
+import { RulesDataApp } from "../rules-data/rules-data-app.mjs";
 
 /**
  * Settings-menu entry for Build / Refresh Monster Spells.
@@ -196,6 +197,20 @@ export function registerSettings() {
     config: false,
     type: Boolean,
     default: false,
+  });
+
+  // A population table for the builder's Random ancestry (e.g. the Western
+  // Reaches d100): its result is matched to an ancestry by name. Empty keeps
+  // each ancestry's system.randomWeight. A uuid field renders as a drop target
+  // for a RollTable from the sidebar or a compendium.
+  game.settings.register(MODULE_ID, "charBuilderAncestryTable", {
+    name: "SDE.settings.charBuilderAncestryTable.name",
+    hint: "SDE.settings.charBuilderAncestryTable.hint",
+    scope: "world",
+    config: false,
+    // blank: clearing the drop target submits "", which must save as "unset".
+    type: new foundry.data.fields.DocumentUUIDField({ type: "RollTable", blank: true, nullable: true, initial: null }),
+    default: null,
   });
 
   // Fixed starting gold (gp). 0 = roll the standard 2d6×5 gp in the builder.
@@ -499,6 +514,29 @@ export function registerSettings() {
     default: false,
   });
 
+  // Chaos Mode's reroll shows Dice So Nice only when asked: 3D dice for the
+  // whole tracker every round get tiresome. An option, not a rule, so the
+  // Chaos box's switch leaves it alone.
+  game.settings.register(MODULE_ID, "modeChaosDiceSoNice", {
+    name: "SDE.settings.modeChaosDiceSoNice.name",
+    hint: "SDE.settings.modeChaosDiceSoNice.hint",
+    scope: "world",
+    config: false,
+    type: Boolean,
+    default: false,
+  });
+
+  // The core dying rule's one option (#181), shown in the Deadly box of the
+  // Modes of Play window as an option, not a rule: the Deadly switch leaves it.
+  game.settings.register(MODULE_ID, "dyingHiddenTimer", {
+    name: "SDE.settings.dyingHiddenTimer.name",
+    hint: "SDE.settings.dyingHiddenTimer.hint",
+    scope: "world",
+    config: false,
+    type: Boolean,
+    default: false,
+  });
+
   game.settings.register(MODULE_ID, "modeDeadlyTimer", {
     name: "SDE.settings.modeDeadlyTimer.name",
     hint: "SDE.settings.modeDeadlyTimer.hint",
@@ -679,5 +717,20 @@ export function registerSettings() {
     monsterSpellLibrary: MonsterSpellLibraryMenu,
     levelGuidelines: LevelGuidelinesEditor,
     monsterLoot: MonsterLootReviewApp,
+  });
+
+  // Rules data (#195): the tables the Western Reaches books consult rather
+  // than roll, read by game.shadowdarkEnhancer.rules. Starts empty; nothing
+  // from a book ships. One GM-only window shows, edits and imports them.
+  game.settings.register(MODULE_ID, "rulesData", {
+    scope: "world", config: false, type: Object, default: {},
+  });
+  game.settings.registerMenu(MODULE_ID, "rulesData", {
+    name: "SDE.settings.rulesData.name",
+    hint: "SDE.settings.rulesData.hint",
+    label: "SDE.settings.rulesData.label",
+    icon: "fa-solid fa-scroll",
+    type: RulesDataApp,
+    restricted: true,
   });
 }

@@ -32,7 +32,7 @@ function withPath(b) {            // a chain of short dashes edge to edge
 const TAGS = { blob: "forest", chevron: "mountain", dots: "desert" };
 function exemplars() {
   const out = []; let n = 1;
-  for (const kind of Object.keys(TAGS)) for (let k = 0; k < 4; k++) out.push({ num: n++, tag: TAGS[kind], overlays: [], bitmap: noisy(glyph(kind), n * 7) });
+  for (const kind of Object.keys(TAGS)) for (let k = 0; k < 4; k++) out.push({ num: n++, tag: TAGS[kind], features: [], bitmap: noisy(glyph(kind), n * 7) });
   return out;
 }
 
@@ -67,17 +67,18 @@ test("classifyCells: terrain from the glyph, river from the residual stroke, pat
   ];
   const { results, review, warnings } = classifyCells({ cells, exemplars: ex });
   assert.deepEqual(warnings, []);
-  assert.deepEqual([results.get(101).terrain, results.get(101).overlays], ["forest", []]);
-  assert.deepEqual([results.get(102).terrain, results.get(102).overlays], ["forest", ["river"]]);
-  assert.deepEqual([results.get(103).terrain, results.get(103).overlays], ["mountain", ["path"]]);
-  assert.deepEqual([results.get(104).terrain, results.get(104).overlays], ["desert", []]);
+  assert.deepEqual([results.get(101).terrain, results.get(101).features], ["forest", []]);
+  assert.deepEqual([results.get(102).terrain, results.get(102).features], ["forest", ["river"]]);
+  assert.deepEqual([results.get(103).terrain, results.get(103).features], ["mountain", ["path"]]);
+  assert.deepEqual([results.get(104).terrain, results.get(104).features], ["desert", []]);
   assert.ok(!review.includes(101) && !review.includes(104), "clean cells are not queued for review");
 });
 
 test("classifyCells: too few exemplars for a terrain is a warning and its cells are queued", () => {
   const ex = exemplars().filter((e) => e.tag !== "desert" || e.num % 2);   // 2 desert exemplars
   const { results, review, warnings } = classifyCells({ cells: [{ num: 200, bitmap: noisy(glyph("dots"), 8) }], exemplars: ex });
-  assert.ok(warnings.some((w) => w.startsWith("desert: only 2")));
+  // A key and its data, localized by the tagger: no English leaves the classifier.
+  assert.ok(warnings.some((w) => w.key === "SDE.hexMap.classify.fewExamples" && w.data.tag === "desert" && w.data.n === 2));
   assert.equal(results.get(200).terrain, "desert");
   assert.ok(review.includes(200));
 });
@@ -88,9 +89,9 @@ test("parseTruthCsv and compareTags", () => {
   assert.deepEqual(truth, [{ num: 101, tags: ["forest", "river"] }, { num: 102, tags: ["forest"] }, { num: 203, tags: ["swamp", "path"] }]);
   assert.deepEqual(parseTruthCsv("hex_id,tags,source\n0101,forest,auto\n0102,swamp,\n"), [{ num: 101, tags: ["forest"], source: "auto" }, { num: 102, tags: ["swamp"] }], "the side-door source column is optional per row");
   const cells = new Map([
-    ["101", { terrain: "forest", overlays: ["river"], source: "auto" }],
-    ["102", { terrain: "forest", overlays: ["path"], source: "auto" }],
-    ["203", { terrain: "forest", overlays: [], source: "gm" }],
+    ["101", { terrain: "forest", features: ["river"], source: "auto" }],
+    ["102", { terrain: "forest", features: ["path"], source: "auto" }],
+    ["203", { terrain: "forest", features: [], source: "gm" }],
   ]);
   const all = compareTags(cells, truth);
   assert.equal(all.cells, 3);
@@ -125,7 +126,7 @@ test("a mislabelled exemplar is outvoted, not believed", () => {
   // card's one name — and on a verified map 10.7% of them carry the wrong one.
   // Here one blob is filed under mountain, and the query is nearly a copy of it,
   // so the single nearest exemplar is the poisoned one.
-  const poison = { num: 99, tag: "mountain", overlays: [], bitmap: noisy(glyph("blob"), 1234) };
+  const poison = { num: 99, tag: "mountain", features: [], bitmap: noisy(glyph("blob"), 1234) };
   const ex = [...exemplars(), poison].map((e) => ({ ...e, vec: featureVector(e.bitmap) }));
   // The query IS the poisoned cell, so the single nearest exemplar is certainly
   // it — the case where 1-NN has no chance at all.
@@ -158,7 +159,7 @@ function waterExemplars() {
   const out = []; let n = 1;
   const kinds = [["river", 1, false], ["lake", 2, false], ["ocean", 3, false], ["arctic_sea", 3, true]];
   for (const [tag, k, mark] of kinds) for (let i = 0; i < 4; i++) {
-    out.push({ num: n++, tag, overlays: [], bitmap: noisy(waves(k, mark), n * 11) });
+    out.push({ num: n++, tag, features: [], bitmap: noisy(waves(k, mark), n * 11) });
   }
   return out;
 }
@@ -190,7 +191,7 @@ test("fail-safe: water that is drawn identically leaves the decision alone", () 
   // every water terrain the same two strokes, no mark: nothing to arbitrate
   const flat = []; let n = 1;
   for (const tag of ["river", "lake", "ocean", "arctic_sea"]) for (let i = 0; i < 4; i++) {
-    flat.push({ num: n++, tag, overlays: [], bitmap: noisy(waves(2), n * 11) });
+    flat.push({ num: n++, tag, features: [], bitmap: noisy(waves(2), n * 11) });
   }
   assert.equal(buildWaterArbiter(flat), null);
 

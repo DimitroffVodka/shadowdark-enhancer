@@ -4,20 +4,20 @@ import { encodeBaseline, decodeBaseline, baselineReport } from "../scripts/hex-m
 
 const cells = (rows) => new Map(Object.entries(rows));
 
-test("encodeBaseline / decodeBaseline: the scan round-trips, overlays and all", () => {
+test("encodeBaseline / decodeBaseline: the scan round-trips, features and all", () => {
   const scan = cells({
-    100: { terrain: "swamp", overlays: ["river"], source: "auto" },
-    101: { terrain: "grassland", overlays: [], source: "auto" },
-    102: { terrain: "", overlays: [], source: "auto" },
+    100: { terrain: "swamp", features: ["river"], source: "auto" },
+    101: { terrain: "grassland", features: [], source: "auto" },
+    102: { terrain: "", features: [], source: "auto" },
   });
-  scan.set("103", { terrain: "lava", overlays: [], source: "gm" });
+  scan.set("103", { terrain: "lava", features: [], source: "gm" });
   const flag = encodeBaseline(scan, { at: 1234, from: "classify" });
   assert.deepEqual(flag.cells, { 100: "swamp;river", 101: "grassland" },
     "an untagged hex is not part of the record, and neither is one the GM had already answered");
   const back = decodeBaseline(flag);
   assert.equal(back.at, 1234);
   assert.equal(back.from, "classify");
-  assert.deepEqual(back.cells.get("100"), { terrain: "swamp", overlays: ["river"] });
+  assert.deepEqual(back.cells.get("100"), { terrain: "swamp", features: ["river"] });
   assert.deepEqual([...decodeBaseline(undefined).cells], [], "a map with no scan on record reports nothing");
 });
 

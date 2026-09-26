@@ -247,6 +247,10 @@ const GMWR_ENTRIES = [
   ...GMWR_TERRAINS.map((t) =>
     _entry(`gmwr/${_slug(t)}-encounters`, "GMWR", `${t} Encounters`,
       gmwr("1", LONGTABLE(`${t.toUpperCase()} ENCOUNTERS`)))),
+  // p33 sets it in the right-hand column beside prose, each detail wrapped
+  // around its face: `banded` under the gutter split, like the trainers.
+  _entry("gmwr/caught-in-danger", "GMWR", "Caught in Danger!",
+    gmwr("auto", BANDED("CAUGHT IN DANGER!", 6))),
   _entry("gmwr/rumors-in-the-reaches", "GMWR", "Rumors in the Reaches",
     gmwr("1", LONGTABLE("RUMORS"))),
   // p48 prints the region d20 beside a settlement d4; p49 the trouble d10 above
@@ -256,9 +260,10 @@ const GMWR_ENTRIES = [
   _entry("gmwr/trouble-settlement", "GMWR", "Trouble in the Reaches: Settlement",
     gmwr("2layout", SECTION("LOCATION", "1", 4))),
   // Each entry wraps around its own face AND embeds a nested "1d6: 1. … 6. …",
-  // which a section slice shreds into ten scrambled rows.
+  // which a section slice shreds into ten scrambled rows. `nested`: at commit
+  // each embedded roll becomes its own table that the row draws (#188).
   _entry("gmwr/type-of-trouble", "GMWR", "Type of Trouble",
-    gmwr("layout", BANDED("TYPE OF TROUBLE", 10))),
+    gmwr("layout", { ...BANDED("TYPE OF TROUBLE", 10), nested: true })),
   // Printed as bands on a 2d6 starting at "1-6" — see the NdM first-band
   // tolerance in computeBlockers (table-importer.mjs).
   _entry("gmwr/trouble-urgency-level", "GMWR", "Trouble Urgency Level",
@@ -576,6 +581,10 @@ export const CONTENT_ENTRIES = [
   _entry("wr/carousing-outcome", "WR", "Carousing Outcome",
     { kind: "lookup", cols: 4, size: 25, labels: ["Mishaps", "Benefits", "d100 Modifier", "XP"],
       dieIndexed: true, extractCols: "1", tokens: true }),
+  // WR pg 14: the population d100 sits in the left column under prose, beside a
+  // second column of prose, so it needs the gutter split. The name is the
+  // table catalogue's (pgwr-ancestry-population), so both hubs file one table.
+  _entry("wr/ancestry-population", "WR", "Ancestry (Population)", SECTION("ANCESTRY", "auto", 100)),
   // Side-by-side two-column-caption pages (Armor/Weapon/Utility Type+Feature on
   // p284/290/292, Scroll/Wand Feature on p288, spell Tier 2-5 on p289). The
   // captions merge in 1-col, so these use the 2-column extraction and section-
@@ -798,3 +807,33 @@ export function resolveShape({ contentId, name, src } = {}) {
   }
   return shapeForName(name);
 }
+
+// ── Rules data (#195): the tables the books CONSULT rather than roll ─────────
+// Terrain costs, travel, visibility, climate, and the carousing and warband
+// recruiting limits. They are read into the `rulesData` world setting by the
+// Rules data window (scripts/rules-data), never filed as RollTables, so they
+// sit outside CONTENT_ENTRIES: no catalogue row, no Manage-tree unlock.
+//
+// A recipe is the caption, the number of cells per row, the number of rows the
+// page prints and the extraction mode its page needs — structure only, like
+// the sizes on the recipes above; every value comes from the GM's own PDF.
+// `rows` is how a table that was only PARTLY read gets named: the parser stops
+// at the first line that is not a row, so a cell that wraps in another
+// printing ends the table early rather than reading wrong.
+// `id` is the rules-data table it fills (rules-data-core.mjs READERS).
+// Modes, verified offline against the real pages: "2layout" where the table
+// sits in one column beside prose (the gutter split keeps the prose out, the
+// padding keeps the cells apart); "layout" for the two full-width grids, which
+// the gutter would cut in half.
+const REFERENCE = (caption, cells, rows, extractCols) => ({ kind: "reference", caption, cells, rows, extractCols });
+
+export const RULES_TABLES = [
+  { id: "travel", src: "GMWR", page: 40, shape: REFERENCE("ENTERING HEXES", 2, 3, "2layout") },
+  { id: "terrainTypes", src: "GMWR", page: 40, shape: REFERENCE("TERRAIN TYPES", 2, 3, "2layout") },
+  { id: "visibility", src: "GMWR", page: 41, shape: REFERENCE("HEX VISIBILITY", 2, 5, "2layout") },
+  { id: "terrain", src: "GMWR", page: 41, shape: REFERENCE("TERRAIN IN THE REACHES", 3, 16, "layout") },
+  { id: "climate", src: "GMWR", page: 43, shape: REFERENCE("CLIMATE IN THE REACHES", 4, 15, "layout") },
+  { id: "carousing", src: "GMWR", page: 30, shape: REFERENCE("CAROUSING LIMITS", 2, 4, "2layout") },
+  // The Player's Guide, not the GM Guide: warbands are a player-facing rule.
+  { id: "recruiting", src: "WR", page: 249, shape: REFERENCE("RECRUITING LIMITS", 2, 4, "2layout") },
+];

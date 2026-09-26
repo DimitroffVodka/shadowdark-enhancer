@@ -241,7 +241,7 @@ currently in your world packs.
 
 **Hex map from image** takes a map image, finds its hex grid on its own, creates the aligned scene and opens the tagger on it ([Hex Maps](Hex-Maps.md)).
 
-**Hex tagger** opens the [Hex Tagger](Hex-Maps.md) for the active scene: a contact sheet over your hex-map image where you tag terrain and overlays, then hand the result to Shadowdark Extras or download it.
+**Hex tagger** opens the [Hex Tagger](Hex-Maps.md) for the active scene: a contact sheet over your hex-map image where you tag terrain and features (river, path, coast), then hand the result to Shadowdark Extras or download it.
 
 **Key locations** reads a book's whole hex key out of your own PDF in one pass.
 Pick the book and it walks the regions, filing each one as its own journal
@@ -250,6 +250,52 @@ the region's summary table on the entry for the map notes and the dataset. The
 Game Master's Guide to the Western Reaches files 270 keyed hexes across 15
 regions this way. Run it again whenever you like: pages are matched by their
 hex number and updated in place, never duplicated.
+
+**Chapter to journal** turns a range of pages from a linked PDF into one
+journal you can read at the table. Pick the book, type the printed pages
+(`16-27`) and a name, then press **Preview**. You'll see the page names and a
+sample of each before anything is written. Press **Create** to file the journal
+in the Journals pack, in the book's folder.
+
+- **Pages** are split at the book's ALL-CAPS headings. Lines are rejoined into
+  paragraphs, words broken across lines are mended, and page numbers are
+  dropped. So is a short title line (four words or fewer) printed straight
+  after a page number, which is where a page's big title lands; the preview
+  lists every line it left out that way, so you can spot one that was prose.
+- **The preset** *Western Reaches GM Guide: the City-States* does it in one
+  click. That chapter prints a city's name as a large title rather than a
+  heading, so the preset gives each city-state its own page (City of Masks,
+  Alkesh, Stonehall, the Kyzian Tribes, Lydonia) plus the introduction before
+  them. The headings inside each city (Overview, History, Factions…) become
+  sub-headings.
+- **The preset** *Cursed Scroll 6: the City of Masks holidays* files pp. 46–47
+  as *City of Masks Holidays*, one page per holiday (Lastmoon, Maytide, the
+  Night of St. Anton, the Duke's Ball). The book's introduction to the spread
+  is left out. Once they're imported, Shadowdark Extras' carousing window can
+  apply each holiday's carousing effects and garb questions on its day in the
+  City of Masks (the module's `holidays` API; see *API.md*). Maytide falls on
+  May 1, the Duke's Ball on June 21 and the Night of St. Anton on September 22,
+  read from the world calendar. Lastmoon (the year's last full moon) waits for
+  a moon to be tracked, so for now it never falls.
+- **Key locations:** a page whose name matches an imported key location links
+  to that hex's page, and the hex page links back. If the crawl has been
+  pinned on a scene, the link goes to the world copy of the page, so its
+  **Jump to Pin** works. Import the key locations first to get these links.
+  Importing the key locations again rewrites their hex pages and drops the
+  "See also" line; running the chapter import again puts it back.
+- **Running it again** on the same book and range updates the journal in
+  place. Pages you added yourself are left alone, but the pages it imported
+  are rewritten from the book, so **your edits to those pages are lost**. Keep
+  your notes on a page of your own. A preset and a free range over the same
+  pages are separate journals.
+- **Column warnings:** if the column split was uncertain on a page, the
+  preview lists it by printed page number, so you know which pages to check
+  against the book.
+- **What it can't see:** paragraph breaks are worked out from the text, since
+  a PDF doesn't mark them. A paragraph whose last line runs almost the full
+  column width can merge into the next one. A table inside the range comes
+  out as running text.
+- Who can read the journal is up to you, through normal journal ownership.
 
 Open the **Tools** dropdown to manage PDFs and world backups:
 

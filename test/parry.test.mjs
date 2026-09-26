@@ -183,7 +183,7 @@ test("heal never goes negative, and an empty snapshot is a no-op", () => {
 });
 
 test("defeat statuses follow the actor type the system branches on", () => {
-  assert.deepEqual(defeatStatusesFor("Player"), ["prone", "unconscious"]);
+  assert.deepEqual(defeatStatusesFor("Player"), ["prone", "unconscious", "dead"]);
   assert.deepEqual(defeatStatusesFor("NPC"), ["dead"]);
   assert.deepEqual(defeatStatusesFor(undefined), ["dead"]);
 });

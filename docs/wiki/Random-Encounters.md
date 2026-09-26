@@ -69,7 +69,7 @@ Three things, each individually toggleable in
 |---|---|---|
 | Pause game on encounter | on | The game pauses the moment the check hits |
 | *(always)* | — | The Encounter Roller opens on the **Roll Tables** tab |
-| Auto-roll active table on hit | on | The active table is rolled automatically |
+| Auto-roll active table on hit | on | The table for the party's hex is rolled automatically (see *A table per terrain*); anywhere else, the active table |
 | Roll Encounters as GM-only | on | The check card and roller results are whispered to the GM |
 
 A miss posts a quiet card, *"the dungeon is quiet"*, and does nothing else.
@@ -102,6 +102,40 @@ otherwise the hex most of the player characters' tokens stand in. The check's
 chat card names it — *Hex 1210 · arctic sea* — so a check nobody expected is
 traceable to the hex it came from. The mapping is per world and lives beside
 the active table; the menu item shows how many terrains are mapped.
+
+### The book's own table for the hex
+
+A hexcrawl book like the Western Reaches GM Guide prints an *Encounter Zone*
+grid for every region: one column per terrain, sometimes split by the time of
+day, the moon or the northern and southern half of the region. Once you have
+imported those grids (Importer Hub → Tables) and the map's regions are read
+(see [Hex Maps](Hex-Maps.md)), a hit on a tagged hex map rolls the column the
+book intends for the party's hex, ahead of your **Tables by terrain**:
+
+- **The region comes from the map**, the same answer the map's region picture
+  gives, and **the column from the hex's terrain alone.** A forest with a river
+  running through it rolls Forest; a hex that is all river rolls River.
+- **Coast is the one exception.** In a region whose grid prints a Coast column,
+  a coastal hex rolls on it; in a region without one it rolls on its terrain.
+- **Day and night** (*Swamp, Day* / *Swamp, Night*) are read off the world
+  clock at the moment of the roll: night runs from 18:00 to 06:00. Those hours
+  are fixed and assume a 24-hour day, whatever calendar the world uses. A
+  world whose clock is never advanced sits at 00:00, so it is always night
+  there: advance the time (Foundry's own clock, or a calendar module) and
+  the day columns follow.
+- **North and south** (*N. Ocean* / *S. Ocean*) split the region's own rows in
+  half, the top half north; with an odd number of rows the middle row counts
+  as north.
+- **A moon column** (*New Moon*, *Full Moon*) needs the moon phase, which the
+  world clock does not give yet. Until it does, a night that could be that
+  moon rolls the ordinary night column, and the map's encounter picture marks
+  those hexes amber.
+
+The chat card then names the column too — *Hex 2849 · forest, coast · Lowland
+Moor: Coast*. When no grid answers (no region, or a terrain the region does not
+print) the check falls back to **Tables by terrain**, then to the active table,
+as before. Other modules can ask for the same table with
+`game.shadowdarkEnhancer.encounter.tableForHex()` (see `docs/API.md`).
 
 ---
 

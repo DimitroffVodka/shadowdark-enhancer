@@ -27,7 +27,7 @@ supported books.
 
 ## Shapes
 
-**156 tables** currently carry a recipe. Each recipe specifies a shape kind:
+**158 tables** currently carry a recipe. Each recipe specifies a shape kind:
 
 | Kind | For |
 |---|---|
@@ -112,10 +112,23 @@ pin `\"layout\"`.
 
 Every *Game Master's Guide to the Western Reaches* recipe pins its own
 `extractCols`, because that book's pages are more often wrong than right under
-the default. Its 103 rows cover the fifteen region spreads (rumors, the two
+the default. Its 104 rows cover the fifteen region spreads (rumors, the two
 grids, points of interest), the six two-page `d100` terrain spreads, the 21
 trainer benefit tables, Tal-Yool Jungle, the City of Masks and the trouble
 generator.
+
+*Type of Trouble* (p. 49) prints a second roll inside every row, such as
+"Monster horde. 1d6: 1. … 6. …". When you create it, each of those rolls becomes
+its own table, named after the row (*Type of Trouble: Monster horde*) and
+filed beside it, on the die the row prints: a `d6` for eight types, a `d4`
+for *External faction* and *Power change*. Each row keeps its type and also
+points at its table, so one roll of *Type of Trouble* posts the type and a
+result from its sub-table. The preview shows the rows as printed, and any
+edits you make there carry into the sub-tables. Importing it again asks once,
+about *Type of Trouble* itself, and the ten tables follow your answer:
+**Replace** updates them all in place, **Create as copy** copies them all, and
+**Cancel** leaves everything as it was. A world that imported *Type of
+Trouble* before this change should import it again with **Replace**.
 
 ### Importing the GM Guide's Master Hex Key (pp. 73–83)
 
@@ -133,6 +146,23 @@ Pages 73–83 also print 24 Morzomotha hexes keyed `M###`, which are not on the
 numbered grid and do not come through; the page headers can parse as a small
 stray table, so check the preview before committing. Each region's own *local
 hexes* page is a subset of this same key — import the master key, not those.
+
+### Rules data tables
+
+The Western Reaches tables you look things up in rather than roll on (terrain
+costs, hexes per day, hex visibility, climate, carousing and recruiting limits)
+are **not** roll tables either, and have no manifest row or Manage-tree entry.
+They go to [Rules Data](Rules-Data.md), and its **Import from GM Guide** reads
+them with seven `reference` recipes (`RULES_TABLES` in `table-shapes.mjs`).
+
+A `reference` recipe is a caption, the number of cells in a row, and a pinned
+`extractCols`: `2layout` where the table sits in one column beside prose,
+`layout` for the two full-width tables. The parser takes the header line under
+the caption, then every following line that splits into exactly that many
+cells, and stops at the first that doesn't, so the prose or page number after a
+table never joins it. When a page prints the caption twice (a prose heading and
+the table), the one with a header under it wins. These recipes are not counted
+in the total above.
 
 ---
 

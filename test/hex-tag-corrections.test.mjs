@@ -2,8 +2,8 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { emptyLog, decodeFixes, encodeFixes, recordEdits, withdrawEdits, accuracyReport, bandOf, bandMargin, sameTags , recordLegend, legendReport } from "../scripts/hex-map/tag-corrections.mjs";
 
-const auto = (terrain, margin, extra = {}) => ({ terrain, overlays: [], source: "auto", margin, review: false, ...extra });
-const gm = (terrain, overlays = []) => ({ terrain, overlays, source: "gm" });
+const auto = (terrain, margin, extra = {}) => ({ terrain, features: [], source: "auto", margin, review: false, ...extra });
+const gm = (terrain, features = []) => ({ terrain, features, source: "gm" });
 
 test("bandOf: 0.1 bands in tenths, everything confident in the top one, never a dot in a key", () => {
   assert.equal(bandOf(1.42), "14");
@@ -30,7 +30,7 @@ test("recordEdits: only the classifier's cells count, and leaving one alone is a
   assert.equal(log.fixes.has("101"), false, "a confirmed cell is a count, not a fix");
 });
 
-test("recordEdits: an overlay-only change is still wrong, and a cleared cell is recorded", () => {
+test("recordEdits: a feature-only change is still wrong, and a cleared cell is recorded", () => {
   const log = emptyLog();
   recordEdits(log, [
     { num: 200, before: auto("forest", 2.1), after: gm("forest", ["river"]) },
@@ -39,7 +39,7 @@ test("recordEdits: an overlay-only change is still wrong, and a cleared cell is 
   ]);
   assert.equal(log.fixes.get("200").now, "forest;river");
   assert.deepEqual(log.fixes.get("201"), { was: "ocean", now: "(cleared)", margin: 1.1, review: true });
-  assert.equal(log.fixes.has("202"), false, "same terrain, same overlays: confirmed");
+  assert.equal(log.fixes.has("202"), false, "same terrain, same features: confirmed");
   assert.deepEqual(log.seen.get("21"), { bad: 1, total: 2 });
 });
 
@@ -106,10 +106,10 @@ test("withdrawEdits: a band with nothing left in it goes away", () => {
 });
 
 test("sameTags: the brush skips a hex that already says what it says", () => {
-  assert.equal(sameTags({ terrain: "arctic_sea", overlays: [] }, { terrain: "arctic_sea", overlays: [] }), true);
-  assert.equal(sameTags({ terrain: "arctic_sea", overlays: ["river"] }, { terrain: "arctic_sea", overlays: [] }), false);
-  assert.equal(sameTags({ terrain: "ocean", overlays: [] }, { terrain: "arctic_sea", overlays: [] }), false);
-  assert.equal(sameTags(null, { terrain: "ocean", overlays: [] }), false);
+  assert.equal(sameTags({ terrain: "arctic_sea", features: [] }, { terrain: "arctic_sea", features: [] }), true);
+  assert.equal(sameTags({ terrain: "arctic_sea", features: ["river"] }, { terrain: "arctic_sea", features: [] }), false);
+  assert.equal(sameTags({ terrain: "ocean", features: [] }, { terrain: "arctic_sea", features: [] }), false);
+  assert.equal(sameTags(null, { terrain: "ocean", features: [] }), false);
 });
 
 test("accuracyReport: says re-classify, not re-threshold, when the examples are the problem", () => {

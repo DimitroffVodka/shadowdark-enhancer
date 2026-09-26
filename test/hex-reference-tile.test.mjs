@@ -139,7 +139,7 @@ test("building in Extras leaves the reference image off the painted scene", asyn
     const HexTaggerApp = await taggerClass();
     const app = Object.create(HexTaggerApp.prototype);
     Object.assign(app, {
-      _state: { origin: { bounds: { cols: 1, rows: 2, firstRow: 1 }, shifted: "odd" }, cells: new Map([["001", { terrain: "forest", overlays: [], source: "gm" }]]) },
+      _state: { origin: { bounds: { cols: 1, rows: 2, firstRow: 1 }, shifted: "odd" }, cells: new Map([["001", { terrain: "forest", features: [], source: "gm" }]]) },
       _stateSceneId: source.id,
       _geom: { cellW: 10, cellH: 10, transform: { texW: 100, texH: 100 } },
       _numbered: new Map([[1, { u: 10, v: 10, col: 0, row: 1 }]]),
@@ -175,7 +175,7 @@ test("Send to Extras puts the details on the tagged print and builds nothing (#1
     // scene's top-left cell, which is how Extras numbers an adopted map.
     const origin = { q: 0, r: 1, num: "0001", shifted: "odd", bounds: { cols: 1, rows: 2, firstRow: 1 } };
     Object.assign(app, {
-      _state: { origin, cells: new Map([["001", { terrain: "forest", overlays: [], source: "gm" }]]) },
+      _state: { origin, cells: new Map([["001", { terrain: "forest", features: [], source: "gm" }]]) },
       _stateSceneId: source.id, _entries: [], _entryUuid: "", _mode: "random", element: null,
     });
     await app._onBuildDataset();

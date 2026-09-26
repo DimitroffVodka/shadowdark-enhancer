@@ -12,7 +12,7 @@
 import { MODULE_ID } from "../../shared/module-id.mjs";
 import { replaceModuleFlag } from "../../shared/module-flags.mjs";
 import { HEX_FLAG } from "./hex-commit.mjs";
-import { buildHexDataset, ZONE_COLOR } from "./hex-dataset.mjs";
+import { buildHexDataset, mergeFeatures, ZONE_COLOR } from "./hex-dataset.mjs";
 
 /**
  * Extras' compatible hex API when it mounts the agreed namespace, else null.
@@ -115,9 +115,10 @@ export async function detailsDataset(entries, scene) {
  * @param {string} sceneId  an Extras hexcrawl scene (built by buildHexcrawl or adopted)
  * @param {object} dataset  from buildHexDataset / datasetFromEntries
  * @param {{repaint?:boolean, features?:boolean, quiet?:boolean}} [opts]  repaint defaults to true.
- *   features sends the settlement entries too; Extras REPLACES a record's whole
- *   features list, discovery flags included, so only a hand-off that has not yet
- *   delivered them asks for it (handoffToPrint).
+ *   features sends each hex's `features` list as it stands in the dataset, an
+ *   empty one included. Extras REPLACES a record's whole features list,
+ *   discovery flags included, so the caller sends a list already merged with
+ *   what Extras holds (handoffToPrint, mergeFeatures).
  *   quiet leaves the success toast to the caller.
  * @returns {Promise<{via:"extras", summary:object}|{via:"none", reason:string}>}
  */
@@ -145,7 +146,7 @@ export async function importDatasetRecords(sceneId, dataset, opts = {}) {
       if (key === "zoneColor" && !ZONE_COLOR.test(hex[key])) continue;
       record[key] = hex[key];
     }
-    if (opts.features && Array.isArray(hex.features) && hex.features.length) record.features = hex.features;
+    if (opts.features && Array.isArray(hex.features)) record.features = hex.features;
     // num alone would be a no-op write; skip it rather than send it.
     if (Object.keys(record).length > 1) records.push(record);
   }
@@ -202,12 +203,71 @@ export async function importDatasetRecords(sceneId, dataset, opts = {}) {
  */
 export const SETTLEMENTS_SENT_FLAG = "extrasSettlementsSent";
 
+/** Where Shadowdark Extras keeps every hex record: one flag on one journal entry. */
+const EXTRAS_ID = "shadowdark-extras";
+const EXTRAS_HEX_JOURNAL = "__sdx_hex_data__";
+
+/**
+ * Every record Extras holds for a scene, keyed by published number, or null
+ * when there is nothing to read.
+ *
+ * ponytail: the ONE place that reads Extras' private store (the `hexData` flag
+ * on its `__sdx_hex_data__` journal, which its own fog and solo mode read),
+ * because api.hex has no read call yet. Swap the body for
+ * `api.hex.getHexRecords(sceneId)` once shadowdark-extras#157 ships; that call
+ * returns the same shape (null without a layout, {} with one and no records).
+ *
+ * An adopted print puts published (col, row) on Foundry offset
+ * {i: row - base, j: col - base} (geometry.mjs extrasNumbersAlike, which the
+ * tagger checks before any send), and Extras keys a record `${i}_${j}`.
+ * @param {string} sceneId
+ * @param {0|1} base  the map's numbering origin (grid.origin; 1 when absent)
+ * @returns {Object<number, object>|null}
+ */
+export function extrasHexRecords(sceneId, base = 1) {
+  const stored = globalThis.game?.journal?.getName?.(EXTRAS_HEX_JOURNAL)?.getFlag?.(EXTRAS_ID, "hexData")?.[sceneId];
+  if (!stored) return null;
+  const out = {};
+  for (const [key, record] of Object.entries(stored)) {
+    const [i, j] = key.split("_").map(Number);
+    if (Number.isInteger(i) && Number.isInteger(j)) out[(j + base) * 100 + i + base] = record;
+  }
+  return out;
+}
+
+/**
+ * The `features` Extras holds for each hex, by published number, so a send
+ * can merge into them instead of replacing them.
+ *
+ * Nothing to read is trusted as "no features" only right after a fresh
+ * adoption, when Extras cannot hold records for this map yet. Anywhere else it
+ * may mean the store has moved, and reading that as empty would send each
+ * hex's river alone and erase everything else on it, so it is null.
+ * @param {string} sceneId
+ * @param {0|1} base
+ * @param {{fresh?:boolean}} [opts]  fresh: adoptHexcrawl said adopted in this same hand-off
+ * @returns {Map<number, object[]>|null} null: send no features at all
+ */
+export function extrasFeaturesOn(sceneId, base = 1, { fresh = false } = {}) {
+  let records;
+  try {
+    records = extrasHexRecords(sceneId, base);
+  } catch (err) {
+    console.warn(`${MODULE_ID} | could not read Extras' hex records`, err);
+    return null;
+  }
+  if (!records) return fresh ? new Map() : null;
+  return new Map(Object.entries(records).filter(([, r]) => Array.isArray(r?.features)).map(([num, r]) => [Number(num), r.features]));
+}
+
 /**
  * Put a dataset's hex details on the print the GM tagged, instead of building
  * a new scene: Extras adopts the scene (adoptHexcrawl, shadowdark-extras#147),
  * then every hex's record is written onto it. Nothing is painted, so the
  * publisher's art, the pins and the notes stay as they are. Running it again
- * updates the records in place.
+ * updates the records in place, features included: each hex's river, path and
+ * coast are replaced by id, and nothing else in its features list is touched
+ * (mergeFeatures).
  *
  * The caller has already checked the numbering (extrasNumbersAlike): Extras
  * can only tell whether each published cell lands on the scene, not whether it
@@ -216,8 +276,9 @@ export const SETTLEMENTS_SENT_FLAG = "extrasSettlementsSent";
  *
  * @param {string} sceneId  the tagged print
  * @param {object} dataset  from buildHexDataset / datasetFromEntries
- * @returns {Promise<{via:"extras", adopted:boolean, summary:object}
+ * @returns {Promise<{via:"extras", adopted:boolean, summary:object, featuresUnread?:true}
  *   |{via:"none", reason:"not-gm"|"no-extras"|"no-adopt"|"extras-error"|string, error?:string}>}
+ *   featuresUnread: the records went without features, because what Extras holds could not be read
  */
 export async function handoffToPrint(sceneId, dataset) {
   if (!globalThis.game?.user?.isGM) return { via: "none", reason: "not-gm" };
@@ -238,12 +299,29 @@ export async function handoffToPrint(sceneId, dataset) {
   // failed and delivered nothing. A fresh adoption has fresh records, so it sends.
   const scene = globalThis.game?.scenes?.get?.(sceneId);
   const sent = scene?.getFlag?.(MODULE_ID, SETTLEMENTS_SENT_FLAG) === true;
-  const features = adopted || !sent;
-  const res = await importDatasetRecords(sceneId, dataset, { repaint: false, features, quiet: true });
+  const settlements = adopted || !sent;
+  // Extras replaces a record's whole features list, so each hex's list is
+  // merged with the one Extras holds. Unreadable, no features go at all:
+  // sending blind would wipe what the GM and the players put there.
+  const current = extrasFeaturesOn(sceneId, dataset?.grid?.origin ?? 1, { fresh: adopted === true });
+  let merged = null;
+  if (current) {
+    const hexes = (dataset?.hexes ?? []).map((h) => ({ ...h, features: mergeFeatures(current.get(h.num), h.features, { settlements }) ?? undefined }));
+    // A hex whose tags were cleared is not in the dataset any more, but Extras
+    // still lists its river, path or coast: take those off, keep the rest.
+    const inDataset = new Set(hexes.map((h) => h.num));
+    for (const [num, features] of current) {
+      const left = inDataset.has(num) ? null : mergeFeatures(features, [], { settlements: false });
+      if (left) hexes.push({ num, features: left });
+    }
+    merged = { ...dataset, hexes };
+  }
+  const res = await importDatasetRecords(sceneId, merged ?? dataset, { repaint: false, features: !!merged, quiet: true });
   if (res.via !== "extras") return res;
   // Only once some hex carried one: a dataset without the crawl's keyed pages
   // has no settlements yet, and marking it sent would keep them out for good.
-  const carried = features && (dataset?.hexes ?? []).some((h) => Array.isArray(h.features) && h.features.length);
+  const carried = !!merged && settlements
+    && (dataset?.hexes ?? []).some((h) => (h.features ?? []).some((f) => String(f?.id).startsWith("settlement-")));
   if (carried && !sent && scene) {
     try {
       await replaceModuleFlag(scene, SETTLEMENTS_SENT_FLAG, true);
@@ -252,7 +330,8 @@ export async function handoffToPrint(sceneId, dataset) {
       console.warn(`${MODULE_ID} | could not mark the settlements as sent`, err);
     }
   }
-  return { ...res, adopted };
+  // The tagger says so, once per send: the details went, the features did not.
+  return { ...res, adopted, ...(merged ? {} : { featuresUnread: true }) };
 }
 
 /**

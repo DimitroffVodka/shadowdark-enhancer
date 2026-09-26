@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import {
   combatantEntry,
   isHiddenFromStrip,
+  isTurnless,
   shouldSkipTurn,
 } from "../scripts/crawl-strip/turn-skip-core.mjs";
 
@@ -24,11 +25,25 @@ const combatant = ({ type = "NPC", hp = 5, defeated = false, actor = undefined }
 
 test("combatantEntry: reads type, defeated flag and Shadowdark HP", () => {
   assert.deepEqual(combatantEntry(combatant({ type: "Player", hp: 7 })), {
-    hasActor: true, isPlayer: true, defeated: false, hp: 7,
+    hasActor: true, isPlayer: true, defeated: false, hp: 7, dead: false,
   });
   assert.deepEqual(combatantEntry(combatant({ type: "NPC", hp: 0, defeated: true })), {
-    hasActor: true, isPlayer: false, defeated: true, hp: 0,
+    hasActor: true, isPlayer: false, defeated: true, hp: 0, dead: false,
   });
+});
+
+test("combatantEntry: reads core's dead status", () => {
+  const actor = { type: "Player", statuses: new Set(["dead"]), system: { attributes: { hp: { value: 0 } } } };
+  assert.equal(combatantEntry({ defeated: true, actor }).dead, true);
+});
+
+test("a dead PC keeps its card but its turn is skipped (#181)", () => {
+  const deadPc = { ...pc(0), defeated: true, dead: true };
+  assert.equal(isHiddenFromStrip(deadPc), false, "the skull stays on the strip");
+  assert.equal(isTurnless(deadPc), true);
+  assert.equal(shouldSkipTurn([npc(), deadPc], 1), true);
+  assert.equal(shouldSkipTurn([npc(), { ...pc(0), defeated: true }], 1), false, "a dying PC keeps its turn");
+  assert.equal(shouldSkipTurn([deadPc, dead()], 0), false, "a wipe never moves");
 });
 
 test("combatantEntry: falls back to the system.hp.value shape", () => {

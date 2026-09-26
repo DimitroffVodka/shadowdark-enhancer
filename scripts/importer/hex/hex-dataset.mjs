@@ -20,7 +20,7 @@
  */
 
 import { hexIdKey, buildHexPageHtml, rewriteHexPlaceholders } from "../tables/hex-parser.mjs";
-import { COASTAL_WATER } from "../../hex-map/tag-store.mjs";
+import { FEATURES, readTags } from "../../hex-map/tag-store.mjs";
 
 /** Keyed-row feature kinds that cross to Extras as a `features` entry; the
  *  generic keyed_location does not, it would only say "keyed" on every hex. */
@@ -31,8 +31,46 @@ export const DATASET_VERSION = 1;
 /** The only zoneColor Extras accepts: empty, or #rrggbb. */
 export const ZONE_COLOR = /^(#[0-9a-f]{6})?$/i;
 
-/** Overlay tags become networks, not terrain. The book's "path" is Extras' road. */
-export const OVERLAY_TO_NETWORK = { river: "river", path: "road" };
+/** River and path features are also drawn as networks for the painted build. The book's "path" is Extras' road. */
+export const FEATURE_TO_NETWORK = { river: "river", path: "road" };
+
+/** The ids this module gives a hex's river, path and coast in Extras' `features` list. */
+const TERRAIN_FEATURE_ID = /^(?:river|path|coast)-\d+$/;
+
+/**
+ * One hex's river, path and coast as Extras `features` entries (#196), in
+ * FEATURES order. The name is left empty: Extras labels an unnamed feature by
+ * its type, so the tooltip shows a River, Path or Coast pill and no English
+ * word ships from here. They are what anyone can see on the map, so they go
+ * out discovered.
+ */
+export const terrainFeatures = (num, kinds) => FEATURES.filter((type) => kinds?.has?.(type))
+  .map((type) => ({ id: `${type}-${num}`, type, name: "", discovered: true }));
+
+/**
+ * A hex's `features` for Extras, merged with the list Extras already holds.
+ *
+ * Extras REPLACES a record's whole features list on every write, so what goes
+ * has to be the whole list, and three kinds of entry are treated differently:
+ *   - river, path and coast are this module's, by id: they are replaced, so a
+ *     retag updates them and a tag taken off takes its feature with it;
+ *   - a settlement already there is kept exactly as it is, so what the players
+ *     discovered survives; one that is missing is added only while
+ *     `settlements` says the settlements have not yet arrived;
+ *   - anything else (a dungeon the GM added in Extras) is kept untouched.
+ * @param {object[]} [current]  the hex's features in Extras now
+ * @param {object[]} [ours]     the hex's features in the dataset
+ * @param {{settlements?:boolean}} [opts]
+ * @returns {object[]|null} the list to send, or null when it would change nothing
+ */
+export function mergeFeatures(current, ours, { settlements = false } = {}) {
+  const now = current ?? [];
+  const kept = now.filter((f) => !TERRAIN_FEATURE_ID.test(f?.id));
+  const ids = new Set(kept.map((f) => f?.id));
+  const added = (ours ?? []).filter((f) => !ids.has(f.id) && (TERRAIN_FEATURE_ID.test(f.id) || settlements));
+  const next = [...kept, ...added];
+  return JSON.stringify(next) === JSON.stringify(now) ? null : next;
+}
 
 /**
  * Terrain goes out as the book's word ("salt flat", "deep tunnels"), never a
@@ -102,7 +140,8 @@ export function hexNum(id) {
  * @param {string} [args.source]         Enhancer source key or label, informational
  * @param {object[]} [args.drafts]       hex-parser drafts; a draft may carry `html` (already built page HTML) instead of bodyLines
  * @param {object[]} [args.summaryRows]  hex-summary rows
- * @param {Object<string,{terrain?:string, overlays?:string[]}>} [args.tags]  per published number (string or int keys)
+ * @param {Object<string,{terrain?:string, features?:string[]}>} [args.tags]  per published number (string or int keys);
+ *   `overlays`, the old name for `features`, is still read
  * @param {Object<string|number,{art:string, icon?:string}>} [args.assignments]  per-hex tile art (assignmentsFromManifest)
  * @param {Map<number,{zone:string, zoneColor?:string}>} [args.zones]  every hex's region (hex-region.mjs hexZones); it
  *   outranks a keyed row's zone, whose printed spelling is the book's abbreviation
@@ -122,14 +161,15 @@ export function buildHexDataset({ name = "", source = "", drafts = [], summaryRo
     h.zone = r.zone || h.zone;
     // The book's Terrain column is a list, and its order is not a ranking:
     // "River, Swamp" is a swamp with a river through it, the same hex as
-    // "Swamp, River". So the first LAND word is the terrain and any water word
-    // beside it is the overlay (river and path become networks); a row that is
-    // only water ("River" for a confluence, "Ocean" for a wreck) stays water.
-    const words = r.terrain ?? [];
-    const terrain = words.find((t) => !COASTAL_WATER.has(t)) ?? words[0];
+    // "Swamp, River". readTags reads it the same way the tag store is read:
+    // the first land word is the terrain, a row of water alone is a water
+    // tile, and coast and path are never terrain. "Coast, river" is a river
+    // mouth on land, not a river tile, so it names no ground and leaves the
+    // terrain to the tags.
+    const { terrain, features } = readTags(r.terrain);
     h.terrain = terrain || h.terrain;
     h.feature = r.feature || h.feature;
-    for (const t of words) if (t !== terrain && OVERLAY_TO_NETWORK[t]) (h.overlays ??= new Set()).add(t);
+    for (const f of features) (h.marks ??= new Set()).add(f);
   }
   const keySet = new Set(drafts.map((d) => d?.key).filter(Boolean));
   for (const d of drafts) {
@@ -146,9 +186,13 @@ export function buildHexDataset({ name = "", source = "", drafts = [], summaryRo
     const num = hexNum(k);
     if (num === null || !t) continue;
     const h = slot(num);
-    if (t.terrain) h.terrain = h.terrain || t.terrain;   // a keyed row's terrain wins over a tag
-    for (const o of t.overlays ?? []) if (OVERLAY_TO_NETWORK[o]) (h.overlays ??= new Set()).add(o);
+    // Read like a keyed row, so a legacy "coast" terrain never goes out as one.
+    const read = readTags([t.terrain, ...(t.features ?? t.overlays ?? [])]);
+    if (read.terrain) h.terrain = h.terrain || read.terrain;   // a keyed row's terrain wins over a tag
+    for (const f of read.features) (h.marks ??= new Set()).add(f);
   }
+  // A river tile has no river feature: the hex IS the river (#196).
+  for (const h of byNum.values()) h.marks?.delete(h.terrain);
 
   // Regions from the border scan, for every hex it covers, not only the keyed.
   for (const [k, z] of zones ?? []) {
@@ -179,7 +223,7 @@ export function buildHexDataset({ name = "", source = "", drafts = [], summaryRo
     minCol = Math.min(minCol, c); minRow = Math.min(minRow, r);
     const word = terrainWord(h.terrain);
     if (word) { if (!regions.has(word)) regions.set(word, []); regions.get(word).push(h.num); }
-    for (const o of h.overlays ?? []) networks[OVERLAY_TO_NETWORK[o]].push(h.num);
+    for (const f of h.marks ?? []) if (FEATURE_TO_NETWORK[f]) networks[FEATURE_TO_NETWORK[f]].push(h.num);
   }
   const counts = [...regions.entries()].sort((a, b) => (b[1].length - a[1].length) || a[0].localeCompare(b[0]));
   // Only the fields Extras' builder accepts (it rejects any other key: see
@@ -197,8 +241,10 @@ export function buildHexDataset({ name = "", source = "", drafts = [], summaryRo
   // The book's settlement marker crosses as an Extras `features` entry (type,
   // name, discovered), the record field Extras paints a Specials tile from;
   // the generic keyed_location kind stays on the crawl entry's keyed rows.
+  // The hex's river, path and coast go in the same list (#196), next to its
+  // terrain and never instead of it.
   const hexes = [...byNum.values()]
-    .filter((h) => h.name || h.terrain || h.desc || h.zone || h.art)
+    .filter((h) => h.name || h.terrain || h.desc || h.zone || h.art || h.marks?.size)
     .sort((a, b) => a.num - b.num).map((h) => {
       const out = { num: h.num };
       if (h.name) out.name = h.name;
@@ -209,8 +255,10 @@ export function buildHexDataset({ name = "", source = "", drafts = [], summaryRo
       if (h.zoneColor) out.zoneColor = h.zoneColor;
       if (h.art) out.art = h.art;
       if (h.icon) out.icon = h.icon;
-      // Extras wants an id per entry; one settlement per hex, so the number is it.
-      if (SETTLEMENT_FEATURES.has(h.feature)) out.features = [{ id: `settlement-${h.num}`, type: h.feature, name: h.name ?? "", discovered: false }];
+      // Extras wants an id per entry; one of each per hex, so the number makes it.
+      const features = terrainFeatures(h.num, h.marks);
+      if (SETTLEMENT_FEATURES.has(h.feature)) features.unshift({ id: `settlement-${h.num}`, type: h.feature, name: h.name ?? "", discovered: false });
+      if (features.length) out.features = features;
       return out;
     });
 
@@ -231,7 +279,7 @@ export function buildHexDataset({ name = "", source = "", drafts = [], summaryRo
       regions: counts.map(([biome, nums]) => ({ biome, hexes: nums.sort((a, b) => a - b) })),
     },
     hexes,
-    // Every hex an overlay marks goes out, so neighbouring marked hexes mesh
+    // Every hex a river or path is tagged on goes out, so neighbouring ones mesh
     // and three mutually adjacent ones close a triangle; a watercourse is a
     // tree. Extras prunes such loops only when asked (shadowdark-extras#153).
     networks: { river: networks.river.sort((a, b) => a - b), road: networks.road.sort((a, b) => a - b), spanning: true },
@@ -254,7 +302,7 @@ export function validateHexDataset(ds) {
     seen.add(h.num);
     // A name is not required: Extras does not ask for one, and a hex that
     // carries only its terrain is the ordinary case on a tagged map.
-    if (!h.name && !h.terrain && !h.desc && !h.zone && !h.art) errors.push(`hex ${h.num} carries nothing`);
+    if (!h.name && !h.terrain && !h.desc && !h.zone && !h.art && !h.features?.length) errors.push(`hex ${h.num} carries nothing`);
     for (const key of ["art", "icon"]) {
       if (key in h && typeof h[key] !== "string") errors.push(`hex ${h.num} ${key} must be text`);
     }

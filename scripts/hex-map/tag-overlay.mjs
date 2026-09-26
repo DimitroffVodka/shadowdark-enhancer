@@ -4,7 +4,7 @@
  * Patrick's complaint about the tagger: "it is really hard to review the data
  * afterwards to see if it is correct". A contact sheet shows 40 cells out of
  * 4768; the map shows all of them at once. This draws one translucent fill per
- * numbered cell coloured by its terrain, a dot per overlay (river, path,
+ * numbered cell coloured by its terrain, a dot per feature (river, path,
  * coast) and an amber outline around the automatic cells the classifier is
  * unsure of, so a wrong patch is a stain you can see from the whole-map zoom.
  * Hovering a cell names it; clicking one edits its tags in place through the
@@ -22,10 +22,10 @@ import { MODULE_ID } from "../shared/module-id.mjs";
 import { replaceModuleFlag } from "../shared/module-flags.mjs";
 import { sceneCells } from "./sampler.mjs";
 import { cellNumber, foundryOffsetToCube } from "./geometry.mjs";
-import { decodeTags, encodeTags, applySheet, strandedRiver, OVERLAYS } from "./tag-store.mjs";
+import { decodeTags, encodeTags, applySheet, strandedRiver, readCell, FEATURES } from "./tag-store.mjs";
 import { FIXES_FLAG, DEFAULT_REVIEW_MARGIN, decodeFixes, encodeFixes, recordEdits, withdrawEdits, sameTags } from "./tag-corrections.mjs";
 import { TERRAIN_TAGS, SETTLEMENTS } from "../importer/hex/hex-summary.mjs";
-import { pickZoneTable, encounterZonesByRegion } from "../encounter/encounter-terrain.mjs";
+import { pickZoneTable, encounterZonesByRegion, worldClock, isNight, regionRowRanges, inNorthHalf } from "../encounter/encounter-terrain.mjs";
 import { neighbourNumbers, encodeRegions, REGIONS_FLAG } from "./region-scan.mjs";
 
 /** Scene flag key holding the tag store (hex-tagger-app.mjs owns it; the literal avoids an import cycle). */
@@ -175,8 +175,8 @@ export function assignRegionColors(keyByNum, { shifted = "odd", palette = REGION
 /**
  * Encounter-zone fills. This overlay answers one question — would a wandering
  * check on this hex find a table? — so it is deliberately a three-colour
- * picture rather than one colour per table: green rolls, amber needs something
- * the map cannot say (a time of day, a moon, a compass half), grey has no
+ * picture rather than one colour per table: green rolls, amber is waiting on
+ * the one thing the clock cannot say yet (the moon phase, #192), grey has no
  * table for that region at all.
  */
 export const ZONE_COLORS = { ok: 0x3f8f4f, ambiguous: 0xe0a72c, none: 0x8a8a8a };
@@ -184,8 +184,11 @@ export const ZONE_COLORS = { ok: 0x3f8f4f, ambiguous: 0xe0a72c, none: 0x8a8a8a }
 /** What the overlay is showing. */
 export const MODES = ["terrain", "region", "encounter"];
 
-/** Dot colour per overlay tag. */
-export const OVERLAY_COLORS = { river: 0x2f6fd0, path: 0x7a4a1e, coast: 0xf0e08a };
+/** Dot colour per feature. */
+export const FEATURE_COLORS = { river: 0x2f6fd0, path: 0x7a4a1e, coast: 0xf0e08a };
+
+/** Each feature's name on screen (languages/en.json). */
+export const FEATURE_LABELS = { river: "SDE.hexMap.feature.river", path: "SDE.hexMap.feature.path", coast: "SDE.hexMap.feature.coast" };
 
 /** Outline on unsure automatic cells; the margin is the scene's (tag-corrections.mjs). */
 export const REVIEW_COLOR = 0xffc400;
@@ -221,7 +224,7 @@ export function needsReview(cell, margin = DEFAULT_REVIEW_MARGIN, stranded = fal
 /** Hover text for a cell: "1403 — forest, river (auto 1.42, review)". */
 export function cellLabel(num, cell, margin = DEFAULT_REVIEW_MARGIN, stranded = false) {
   if (!cell) return `${num} — not tagged`;
-  const tags = [cell.terrain, ...(cell.overlays ?? [])].join(", ");
+  const tags = [cell.terrain, ...(cell.features ?? [])].join(", ");
   const notes = [];
   if (cell.source === "auto") notes.push(cell.margin !== undefined ? `auto ${Number(cell.margin).toFixed(2)}` : "auto");
   // Say WHY it is ringed. An amber ring the GM cannot explain is a ring they
@@ -302,7 +305,7 @@ export class HexTagOverlay {
    * encounter grids. The terrain picture needs neither, so it pays for neither.
    */
   static async _regionContext(mode, scene) {
-    if (mode === "terrain") return { regionByNum: new Map(), componentByNum: new Map(), zonesByRegion: new Map() };
+    if (mode === "terrain") return { regionByNum: new Map(), componentByNum: new Map(), zonesByRegion: new Map(), rowRanges: new Map() };
     const { sceneRegions, sceneRegionFixes, sceneShift, regionSeeds, nameComponents, nearestRegion, crawlEntries } = await import("./hex-region.mjs");
     const shifted = sceneShift(scene);
     // The enclosures are worth looking at BEFORE a hex key names them: that is
@@ -335,8 +338,10 @@ export class HexTagOverlay {
       palette: extrasPalette() ?? REGION_COLORS,
     });
     const ctx = { regionByNum: byNum, inferredByNum, componentByNum, fixByNum, keyByNum, colorByKey };
-    if (mode === "region") return { ...ctx, zonesByRegion: new Map() };
-    return { ...ctx, zonesByRegion: await encounterZonesByRegion() };
+    if (mode === "region") return { ...ctx, zonesByRegion: new Map(), rowRanges: new Map() };
+    // North and south split each region's own rows, as far as the map puts hexes in it.
+    const rowRanges = regionRowRanges(new Map([...inferredByNum, ...byNum]));
+    return { ...ctx, zonesByRegion: await encounterZonesByRegion(), rowRanges };
   }
 
   constructor(scene, geom, origin) {
@@ -352,7 +357,7 @@ export class HexTagOverlay {
     this._hooks = [];
     this._down = null;
     this._writing = false;
-    /** @type {{terrain:string, overlays:string[]}|null} set by the brush window */
+    /** @type {{terrain:string, features:string[]}|null} set by the brush window */
     this.brush = null;
     /** Cells this stroke has painted, and what each was before it (for Undo). */
     this.stroke = new Map();
@@ -375,6 +380,8 @@ export class HexTagOverlay {
     this.fixByNum = new Map();
     /** @type {Map<string, object[]>} region → its imported encounter columns */
     this.zonesByRegion = new Map();
+    /** @type {Map<string, {min:number, max:number}>} region → its rows, for the north and south halves */
+    this.rowRanges = new Map();
   }
 
   show() {
@@ -411,6 +418,16 @@ export class HexTagOverlay {
       this.draw();
     })]);
     this._hooks.push(["canvasTearDown", Hooks.on("canvasTearDown", () => this.hide())]);
+    // Dusk and dawn change which column a hex rolls on, and nothing else the
+    // clock does: a clock module ticking every second must not redraw ~4,800
+    // hexes a second, so only a flip between day and night redraws.
+    let night = isNight(worldClock().hour);
+    this._hooks.push(["updateWorldTime", Hooks.on("updateWorldTime", () => {
+      const now = isNight(worldClock().hour);
+      if (now === night) return;
+      night = now;
+      if (this.mode === "encounter") this.draw();
+    })]);
     ui.notifications?.info(t("SDE.hexMap.notify.overlayShown"));
   }
 
@@ -424,12 +441,17 @@ export class HexTagOverlay {
     if (HexTagOverlay.current === this) HexTagOverlay.current = null;
   }
 
-  /** The encounter verdict for one hex: which column it would roll on. */
+  /**
+   * The encounter verdict for one hex: which column a check would roll on right
+   * now, the same answer the check itself gives (encounter-terrain.mjs).
+   */
   zoneFor(num) {
-    const cell = this.state.cells.get(String(num));
+    const cell = readCell(this.state, num);   // as the check reads it: legacy coast terrain is ground plus coast
     const region = this.regionByNum.get(num) ?? this.inferredByNum.get(num);
     if (!region) return { status: "none", region: null };
-    return { ...pickZoneTable(region, cell?.terrain, cell?.overlays, this.zonesByRegion), region };
+    const { hour, moon } = worldClock();
+    const at = { night: isNight(hour), moon, north: inNorthHalf(num, this.rowRanges.get(region)) };
+    return { ...pickZoneTable(region, cell?.terrain, cell?.features, this.zonesByRegion, at), region };
   }
 
   /** Fill colour for a hex in the current mode, or null to leave it unpainted. */
@@ -476,9 +498,9 @@ export class HexTagOverlay {
         g.drawPolygon(shape.map((p) => new PIXI.Point(p.x * REVIEW_INSET + at.x, p.y * REVIEW_INSET + at.y)));
         g.lineStyle({ width: 0, alpha: 0 });
       }
-      const marks = (cell.overlays ?? []).filter((o) => OVERLAY_COLORS[o]);
+      const marks = (cell.features ?? []).filter((o) => FEATURE_COLORS[o]);
       marks.forEach((o, k) => {
-        g.beginFill(OVERLAY_COLORS[o], 0.95);
+        g.beginFill(FEATURE_COLORS[o], 0.95);
         g.drawCircle(at.x + (k - (marks.length - 1) / 2) * dot * 2.6, at.y, dot);
         g.endFill();
       });
@@ -523,6 +545,11 @@ export class HexTagOverlay {
     const verdict = this.zoneFor(num);
     if (!region) return `${num} — ${t("SDE.hexMap.zone.noRegion")}`;
     if (verdict.status === "ok") return `${num} — ${region}: ${verdict.column.column}`;
+    // Waiting on the moon: say what a check rolls meanwhile, and what it waits for.
+    if (verdict.moon && verdict.column) {
+      const moons = verdict.columns.filter((c) => c !== verdict.column).map((c) => c.column).join(", ");
+      return `${num} — ${region}: ${t("SDE.hexMap.zone.moon", { column: verdict.column.column, moons })}`;
+    }
     // Name the columns it is stuck between: that is the whole diagnostic.
     if (verdict.status === "ambiguous") {
       return `${num} — ${region}: ${t("SDE.hexMap.zone.ambiguous", { columns: verdict.columns.map((c) => c.column).join(", ") })}`;
@@ -572,7 +599,7 @@ export class HexTagOverlay {
     // already confirmed by hand is nothing to do.
     if (before && sameTags(before, this.brush) && before.source !== "auto") return;
     this.stroke.set(num, before);
-    this.state.cells.set(key, { terrain: this.brush.terrain, overlays: [...this.brush.overlays], source: "gm" });
+    this.state.cells.set(key, { terrain: this.brush.terrain, features: [...this.brush.features], source: "gm" });
     this.draw();
   }
 
@@ -712,7 +739,7 @@ export class HexTagOverlay {
         <input type="text" name="other" placeholder="${t('SDE.hexMap.brush.ownWord')}" hidden>
       </div></div>
       <div class="form-group"><label>${t("SDE.hexMap.brush.onTheHex")}</label><div class="form-fields">
-        ${OVERLAYS.map((o) => `<label class="checkbox"><input type="checkbox" name="${o}" ${cell?.overlays?.includes(o) ? "checked" : ""}> ${o}</label>`).join("")}
+        ${FEATURES.map((o) => `<label class="checkbox"><input type="checkbox" name="${o}" ${cell?.features?.includes(o) ? "checked" : ""}> ${t(FEATURE_LABELS[o])}</label>`).join("")}
       </div></div>
     </form>`;
     const answer = await foundry.applications.api.DialogV2.prompt({
@@ -738,7 +765,7 @@ export class HexTagOverlay {
     const terrain = String(chosen ?? "").trim().toLowerCase().replace(/\s+/g, "_");
     // Through applySheet so this is the same write the tagger's sheet makes,
     // and so the verdict on the classifier is recorded the same way.
-    const verdicts = applySheet(this.state, { [num]: { terrain, overlays: OVERLAYS.filter((o) => answer[o]) } });
+    const verdicts = applySheet(this.state, { [num]: { terrain, features: FEATURES.filter((o) => answer[o]) } });
     await this._save(verdicts);
     this.draw();
   }

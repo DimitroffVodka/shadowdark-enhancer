@@ -3,6 +3,80 @@
 ## [Unreleased]
 
 ### Added
+- **Rules data.** A new **Rules data** window under Configure Settings holds
+  the Western Reaches tables you look up rather than roll: what each terrain
+  costs to enter (on foot and by boat), terrain types, hexes per day, hex
+  visibility, the climate of each region by season, and each settlement's
+  carousing and warband-recruiting limits. **Import from GM Guide** fills them
+  from your own GM Guide and Player's Guide PDFs; if that would change
+  something you already entered, you see the changes first and choose. A world
+  without the books can fill in every table by hand. Mountain counts as high
+  elevation for hex visibility until you change it. Nothing from the books
+  ships with the module. Macros and other modules read the tables through
+  `game.shadowdarkEnhancer.rules` (API 1.10.0). (#195)
+- **The City of Masks holidays.** Chapter to journal has a new preset,
+  *Cursed Scroll 6: the City of Masks holidays* (pp. 46–47), that files a
+  journal with one page per holiday from your own PDF. A new `holidays` API
+  (`list()`, `today({ place })`, API 1.9.0) gives each imported holiday's
+  place, the day it falls, its carousing effects and its garb questions, for
+  Shadowdark Extras' carousing window to apply. Maytide, the Duke's Ball and
+  the Night of St. Anton fall on May 1, June 21 and September 22 of the world
+  calendar. Lastmoon needs the moon, which isn't tracked yet. (#191)
+- **A Quest Log.** Press Ctrl+Q, or **Quest Log** at the foot of the Journal
+  sidebar. Each quest is a journal entry in a *Quests* folder, with a page
+  your players can read and a GM notes page they can't. Quests are Hidden
+  (yours alone until you change that), Available, Active, Completed or Failed,
+  and come from you, a rumor, a trouble or a trainer. Give one objectives to
+  tick off and rewards: XP, renown, items dragged onto it, a training benefit.
+  Marking it Completed asks you to confirm who gets what, then pays it once:
+  XP through Party XP, renown through the ledger, items onto the sheets you
+  pick. A quest can be personal to characters, assigned to a Shadowdark Extras
+  party, and jump to its hex's map pin. In Regional Training, **Take this
+  task** turns a trainer's task into a quest for the chosen character, and
+  completing it offers to open Training on that trainer for the benefit roll.
+  Players get the log read-only. See the wiki page *Quest Log*. (#189)
+- **Chapter to journal.** Importer Hub → Tools → **Chapter to journal**
+  turns any range of printed pages from a linked PDF into one readable
+  journal. It's split into pages at the book's headings, its paragraphs are
+  rejoined, and page numbers are dropped. You get a preview of the pages
+  before anything is written. A preset does the Western Reaches City-States
+  (GM Guide pp. 16–27) in one click, with a page per city-state. Each city
+  links to its key-location hex page, and the hex page links back. Running
+  it again updates the journal in place and keeps pages you added. (#194)
+- **Type of Trouble rolls its nested table.** Every row of the GM Guide's
+  Type of Trouble (p. 49) prints a second roll ("Monster horde. 1d6: 1. …
+  6. …"), and rolling the table used to hand you that whole list. Importing it
+  now also creates one table per row, on the die the row prints (a d6, or a
+  d4 for External faction and Power change), named "Type of Trouble: <type>"
+  and filed beside it. One roll of Type of Trouble posts the type and a result
+  from its table. If your world already has Type of Trouble, import it again
+  and choose **Replace**: the table is updated in place and its ten tables
+  are made, following that one answer. (#188)
+- **Two more Western Reaches tables, and Random ancestry by population.** The
+  importer now knows the GM Guide's *Caught in Danger!* (p. 33, d6: what
+  befalls a PC still in an adventuring site when the session ends) and the
+  Player's Guide's *Ancestry (Population)* d100 (p. 14). Both are read from
+  your own PDF. A new Character Builder setting, **Random ancestry table**,
+  takes a roll table. When one is set, the Ancestry step's Random rolls it and
+  picks the ancestry the result names or links to, so random characters follow
+  the setting's population odds. If a result matches no ancestry in the world,
+  or the table gives nothing, you're told and Random falls back to each
+  ancestry's weight. Left empty, Random works as before. (#187)
+- **Stat damage is tracked.** Damage to STR, DEX, CON, INT, WIS or CHA is one
+  line per ability in the character sheet's Effects tab, such as *2 STR
+  damage*: the score and its modifier drop, and the line is gone when healed.
+  There is no setting and nothing on the sheet until it happens. A character
+  whose CON reaches 0 from it dies. Other modules drive it through
+  `game.shadowdarkEnhancer.statDamage.{apply, heal, of}` (API 1.6.0).
+  From the Shadowdark Extras release that adds it
+  ([shadowdark-extras#149](https://github.com/DimitroffVodka/shadowdark-extras/issues/149)),
+  Extras' rest heals it all, or 1 per ability in Grinder Mode. (#182)
+- **Monster attacks apply their stat-damage riders.** A monster hit whose
+  attack text, or the feature it names, says *1 STR damage* lowers the
+  target's STR automatically, with the amount rolled in chat. A rider behind
+  a save (*DC 12 CON or 1d4 STR damage*) asks the character's player to roll
+  the save and applies only on a failure; the GM's client rolls it when no
+  player can. Works without Shadowdark Extras. (#183)
 - **Modes of Play.** A new window under Configure Settings holds the optional
   rules from the core rulebook (p.111) and Hard Luck from the Game Master's
   Guide to the Western Reaches (p.30). Every rule is its own switch, so one
@@ -24,6 +98,47 @@
   Its first rule, no luck on a critical failure, now uses the system's own
   critical failure, so an effect that widens the failure range counts too,
   and a damage reroll is never refused. (#186)
+- **Hunter Mode: XP for defeated monsters.** With Hunter on, ending a
+  combat pays every character who was in it XP for each monster still marked
+  defeated: half its level, rounded down, and 1 for a level 1 monster (level 0
+  pays nothing). It is one Party XP card per combat, with the usual "ready to
+  level up" marker and a Session Recap entry. Monsters killed outside a
+  combat aren't counted. (#184)
+- **Chaos Mode: initiative is rerolled every round.** With Chaos on, every
+  combatant rolls initiative again at the start of each round after the
+  first, with the system's own roll and any advantage, and the turn goes to
+  whoever is now on top; a defeated monster that rolls to the top is skipped
+  as usual. One chat card per round lists the new order, leaving hidden
+  combatants off. Dice So Nice stays quiet for these rerolls unless you tick
+  its option in the Chaos box. While the system's clockwise initiative is on,
+  Chaos does nothing and says so once. (#180)
+- **Pulp Mode: session luck, luck crits and forced rerolls.** Three rules,
+  each its own checkbox in the Pulp box. Choosing **Start New Session** when a
+  crawl starts sets every player's character to 1d4 luck tokens and posts one card
+  with the rolls. Once an attack hits, its owner gets a **Luck: critical hit**
+  button on the card: damage already rolled keeps its dice and gains what a
+  critical hit adds (a 1d8 weapon gets one more d8), and damage not rolled yet
+  is rolled once as a critical hit. A player who can see a GM's roll gets a
+  **Luck: force a reroll** button; the roll is redone on the same card, which
+  says who forced it. Both spend one luck token, and the GM's client checks
+  and spends it, so a token is never spent without the effect. (#185)
+- **Dying and death timers, with Deadly and Fatality.** A character at 0 HP,
+  from damage or a sheet edit, is now dying: the Dying status, a death timer of
+  1d4 + CON modifier (minimum 1) rolled by its player, and a d20 at the start
+  of each of its turns, rising at 1 HP on a natural 20. When the timer runs out
+  it is dead: its turn is skipped, and Hunter Mode pays it no XP. Out of combat
+  the timer runs on crawl rounds, and stepping a round back and forward again
+  never costs a round twice. Another character stabilizes it with a DC 15
+  Intelligence check from the Dying badge on the crawl strip, and a Luck
+  reroll of that check counts; healing above 0 HP clears it all. Deadly's two
+  rules (a timer of 1, stabilizing at DC 18) and Fatality (0 HP is death) now
+  work, and a new option hides the timer from players. Class features, training
+  and monsters change the rule through a small set of Active Effect keys; the
+  Gladiator's +1 to death timer rolls, the Heath Witch's stabilize DC 12 and
+  the Ancient Ritual's *Survive 0 CON* now carry them, and stat damage's death
+  at CON 0 goes through the same rule. The GM gets buttons for the situational
+  rules. Off while Shadowdark Crawl Helper is active, which its warning now
+  says. See the new wiki page *Dying and Death Timers*. (#181)
 - **The hex data goes on the printed map.** The Hex Tagger's **Send to
   Extras** now puts every hex's terrain, region, zone colour, name,
   description and settlement on the map you tagged, instead of building a
@@ -43,6 +158,32 @@
   key table's "Rimespire Mtns") and a zone colour from Extras' palette, with no
   two touching regions sharing one. Needs Shadowdark Extras 6.15.0 or later for
   the colours.
+- **Rivers, paths and coasts reach Shadowdark Extras.** The Hex Tagger's
+  **Send to Extras** now puts each hex's river, path and coast on its Extras
+  record as features beside its terrain, so Extras' tooltip shows River, Path
+  and Coast pills on the print. A forest with a river through it goes as
+  forest with a river feature; a hex that is all river goes as river terrain
+  with no river feature; a keyed hex the book lists only as "Coast" (or as
+  "Coast, river", a city at a river mouth) no longer goes with coast or river
+  as its terrain but with the land around it, and the same for an older tag
+  that holds coast or path where the terrain goes. Sending again replaces those three and
+  nothing else, so a dungeon you added in Extras and what the players
+  discovered stay; if the tagger cannot read what Extras holds, it sends no
+  features and says so. Extras' Hex Editor turns them into "dungeon" on save
+  until shadowdark-extras#157; the next send puts them back. The tagger and
+  the brush call river, path and coast **features** now, and the warning that
+  coasts stay behind is gone. (#196)
+- **Encounter checks roll the book's table for the party's hex.** On a tagged
+  hex map with the region grids imported (*Encounter Zone* tables) and the
+  regions read, a hit rolls the region's column for the hex's terrain, ahead of
+  your Tables by terrain. A forest with a river through it rolls Forest, a hex
+  that is all river rolls River, and a coastal hex rolls Coast where the region
+  prints one. Day and night columns follow the world clock at the moment of the
+  roll (night is 18:00 to 06:00), and N./S. columns split the region's rows in
+  half, so the Encounter zones picture is amber only where a moon column waits
+  on a moon phase the clock does not give yet; until it does, those nights roll
+  the ordinary night column. The chat card names the column it rolled, and
+  `encounter.tableForHex()` gives other modules the same table. (#197)
 - **You're told when an update gives you something new to import.** A release
   that adds a book, a bestiary or another hundred table rows used to be
   invisible to anyone who had already imported what they own. The importer now

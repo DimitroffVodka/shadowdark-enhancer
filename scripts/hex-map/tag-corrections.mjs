@@ -168,10 +168,10 @@ export function encodeFixes(log) {
   return { version: FIXES_VERSION, margin: log.margin ?? DEFAULT_REVIEW_MARGIN, fixes, seen, legend };
 }
 
-/** Two cells agree when the terrain and the overlays both do. */
+/** Two cells agree when the terrain and the features both do. */
 export function sameTags(a, b) {
   if (a?.terrain !== b?.terrain) return false;
-  const x = [...(a?.overlays ?? [])].sort(), y = [...(b?.overlays ?? [])].sort();
+  const x = [...(a?.features ?? [])].sort(), y = [...(b?.features ?? [])].sort();
   return x.length === y.length && x.every((t, i) => t === y[i]);
 }
 
@@ -196,8 +196,8 @@ export function recordEdits(log, transitions) {
       row.bad++;
       wrong++;
       log.fixes.set(String(parseInt(num, 10)), {
-        was: [before.terrain, ...(before.overlays ?? [])].join(";"),
-        now: after?.terrain ? [after.terrain, ...(after.overlays ?? [])].join(";") : "(cleared)",
+        was: [before.terrain, ...(before.features ?? [])].join(";"),
+        now: after?.terrain ? [after.terrain, ...(after.features ?? [])].join(";") : "(cleared)",
         margin: before.margin, review: !!before.review,
       });
     }
@@ -295,17 +295,17 @@ export function encodeBaseline(cells, { at = Date.now(), from = "classify" } = {
   // legend card's core carries the name they gave it — is not the module's work
   // and would score itself right by construction: the first cut of this counted
   // 1485 of them and reported 98.5%.
-  for (const [num, c] of cells) if (c?.terrain && c.source === "auto") out[num] = [c.terrain, ...(c.overlays ?? [])].join(";");
+  for (const [num, c] of cells) if (c?.terrain && c.source === "auto") out[num] = [c.terrain, ...(c.features ?? [])].join(";");
   return { version: FIXES_VERSION, at, from, cells: out };
 }
 
-/** Flag object → { at, from, cells: Map<num, {terrain, overlays}> }. */
+/** Flag object → { at, from, cells: Map<num, {terrain, features}> }. */
 export function decodeBaseline(flag) {
   const cells = new Map();
   if (!flag || typeof flag !== "object") return { at: null, from: null, cells };
   for (const [num, raw] of Object.entries(flag.cells ?? {})) {
     const tags = String(raw).split(";").filter(Boolean);
-    if (tags.length) cells.set(String(parseInt(num, 10)), { terrain: tags[0], overlays: tags.slice(1) });
+    if (tags.length) cells.set(String(parseInt(num, 10)), { terrain: tags[0], features: tags.slice(1) });
   }
   return { at: flag.at ?? null, from: flag.from ?? null, cells };
 }

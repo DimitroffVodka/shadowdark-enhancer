@@ -1,0 +1,104 @@
+<div class="sde-rd">
+<style>
+/* Embedded, as in the other settings editors: module CSS is cached hard and a
+   settings window must render right on first open. Theme-neutral gray alphas. */
+.sde-rules-data .window-content { padding: 0; display: flex; flex-direction: column; min-height: 0; }
+.sde-rules-data .sde-rd { display: flex; flex-direction: column; flex: 1 1 auto; min-height: 0; padding: 8px 10px; gap: 6px; box-sizing: border-box; }
+.sde-rules-data .sde-rd-intro { font-size: 12px; opacity: 0.8; line-height: 1.45; margin: 0; }
+.sde-rules-data .sde-rd-tools { display: flex; gap: 4px; flex: 0 0 auto; }
+.sde-rules-data .sde-rd-tools button { width: auto; flex: 0 0 auto; padding: 2px 10px; line-height: 1.6; font-size: 12px; }
+.sde-rules-data .sde-rd-body { flex: 1 1 auto; min-height: 0; overflow: auto; display: flex; flex-direction: column; gap: 8px; padding-right: 2px; }
+.sde-rules-data fieldset { margin: 0; padding: 4px 6px 6px; border: 1px solid rgba(127,127,127,0.35); border-radius: 4px; }
+.sde-rules-data legend { font-weight: 700; padding: 0 4px; }
+.sde-rules-data .sde-rd-hint { font-size: 11px; opacity: 0.7; margin: 0 0 4px; line-height: 1.4; }
+.sde-rules-data .sde-rd-flats { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 8px; }
+.sde-rules-data table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.sde-rules-data thead th { background: rgba(127,127,127,0.22); padding: 3px 4px; text-align: center; white-space: nowrap; }
+.sde-rules-data tbody tr:nth-child(even) { background: rgba(127,127,127,0.08); }
+.sde-rules-data tbody td { padding: 2px 3px; }
+.sde-rules-data td.sde-rd-name { text-transform: capitalize; white-space: nowrap; }
+.sde-rules-data input, .sde-rules-data select { width: 100%; min-width: 0; height: 22px; padding: 1px 3px; font-size: 12px; }
+.sde-rules-data input[type="number"] { text-align: center; }
+.sde-rules-data .sde-rd-footer { display: flex; gap: 6px; justify-content: flex-end; flex: 0 0 auto; }
+.sde-rules-data .sde-rd-footer button { width: auto; flex: 0 0 auto; padding: 3px 12px; }
+</style>
+
+  <p class="sde-rd-intro">{{localize "SDE.rulesData.intro"}}</p>
+
+  <div class="sde-rd-tools">
+    <button type="button" data-action="rd-import" data-tooltip="{{localize 'SDE.rulesData.importHint'}}">
+      <i class="fa-solid fa-file-import"></i> {{localize "SDE.rulesData.import"}}
+    </button>
+  </div>
+
+  <div class="sde-rd-body">
+    <fieldset>
+      <legend>{{localize "SDE.rulesData.table.terrain"}}</legend>
+      <p class="sde-rd-hint">{{localize "SDE.rulesData.hint.terrain"}}</p>
+      <table>
+        <thead><tr>
+          <th>{{localize "SDE.rulesData.col.terrain"}}</th>
+          <th>{{localize "SDE.rulesData.col.type"}}</th>
+          <th>{{localize "SDE.rulesData.col.cost"}}</th>
+          <th>{{localize "SDE.rulesData.col.boat"}}</th>
+          <th>{{localize "SDE.rulesData.col.elevation"}}</th>
+        </tr></thead>
+        <tbody>
+          {{#each terrain}}
+          <tr>
+            <td class="sde-rd-name">{{this.word}}</td>
+            <td><select name="terrain.{{this.key}}.type" aria-label="{{localize 'SDE.rulesData.col.type'}}">{{selectOptions @root.typeChoices selected=this.type blank="—" localize=true}}</select></td>
+            <td><input type="number" step="1" name="terrain.{{this.key}}.cost" value="{{this.cost}}" aria-label="{{localize 'SDE.rulesData.col.cost'}}"></td>
+            <td><input type="number" step="1" name="terrain.{{this.key}}.boat" value="{{this.boat}}" aria-label="{{localize 'SDE.rulesData.col.boat'}}"></td>
+            <td><select name="terrain.{{this.key}}.elevation" aria-label="{{localize 'SDE.rulesData.col.elevation'}}">{{selectOptions @root.elevationChoices selected=this.elevation blank="—" localize=true}}</select></td>
+          </tr>
+          {{/each}}
+        </tbody>
+      </table>
+    </fieldset>
+
+    <div class="sde-rd-flats">
+      {{#each flats}}
+      <fieldset>
+        <legend>{{localize this.title}}</legend>
+        <p class="sde-rd-hint">{{localize this.hint}}</p>
+        <table><tbody>
+          {{#each this.rows}}
+          <tr>
+            <td class="sde-rd-name">{{localize this.label}}</td>
+            <td><input type="number" step="1" name="{{this.name}}" value="{{this.value}}" placeholder="{{this.placeholder}}" aria-label="{{localize this.label}}"></td>
+          </tr>
+          {{/each}}
+        </tbody></table>
+      </fieldset>
+      {{/each}}
+    </div>
+
+    <fieldset>
+      <legend>{{localize "SDE.rulesData.table.climate"}}</legend>
+      <p class="sde-rd-hint">{{localize "SDE.rulesData.hint.climate"}}</p>
+      <table>
+        <thead><tr>
+          <th>{{localize "SDE.rulesData.col.region"}}</th>
+          {{#each seasons}}<th colspan="2">{{localize this}}</th>{{/each}}
+        </tr></thead>
+        <tbody>
+          {{#each climate}}
+          <tr>
+            <td><input type="text" name="climate.{{this.i}}.region" value="{{this.region}}" placeholder="{{localize 'SDE.rulesData.addRegion'}}" aria-label="{{localize 'SDE.rulesData.col.region'}}"></td>
+            {{#each this.cells}}
+            <td><input type="text" name="climate.{{../i}}.{{this.season}}.label" value="{{this.label}}" aria-label="{{localize 'SDE.rulesData.col.climate'}}"></td>
+            <td><select name="climate.{{../i}}.{{this.season}}.harsh" aria-label="{{localize 'SDE.rulesData.col.harsh'}}">{{selectOptions @root.harshChoices selected=this.harsh blank="—" localize=true}}</select></td>
+            {{/each}}
+          </tr>
+          {{/each}}
+        </tbody>
+      </table>
+    </fieldset>
+  </div>
+
+  <footer class="sde-rd-footer">
+    <button type="button" data-action="rd-cancel"><i class="fa-solid fa-xmark"></i> {{localize "SDE.rulesData.cancel"}}</button>
+    <button type="submit"><i class="fa-solid fa-floppy-disk"></i> {{localize "SDE.rulesData.save"}}</button>
+  </footer>
+</div>

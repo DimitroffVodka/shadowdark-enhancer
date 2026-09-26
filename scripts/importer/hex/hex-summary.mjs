@@ -151,24 +151,24 @@ export function splitSummaryRows(text) {
  * hand. The book's underlying terrain word is not lost: it travels separately
  * into the dataset, where Extras wants it.
  *
- * EVERY printed terrain word is read for an overlay, including the first. The
+ * EVERY printed terrain word is read for a feature, including the first. The
  * first word is normally the hex's terrain and the rest are what runs through
  * it — but the tag's terrain is the FEATURE here, so the first word is not
  * being used for anything else and dropping it only loses information. The
- * books print a keyed hex's overlay first whenever there is nothing else to
+ * books print a keyed hex's feature first whenever there is nothing else to
  * say about the ground: "933  Coast  Old Lighthouse", "2025  River  The
  * Forks". Reading only the second word onward lost 10 of the GM Guide's 270
  * keyed hexes their river or coast outright (measured, 2026-09-20).
  *
  * @param {{terrain?:string[], feature?:string}} row
- * @returns {{terrain:string, overlays:string[]}|null}
+ * @returns {{terrain:string, features:string[]}|null}
  */
 export function rowTag(row) {
   const terrain = row?.feature;
   if (!terrain) return null;
-  const overlays = (row.terrain ?? []).filter((t) => OVERLAY_TAGS.includes(t));
-  return { terrain, overlays };
+  const features = (row.terrain ?? []).filter((t) => FEATURE_TAGS.includes(t));
+  return { terrain, features };
 }
 
-/** Overlay tags a keyed row can carry beside its terrain. Matches the tag store's OVERLAYS. */
-export const OVERLAY_TAGS = ["river", "path", "coast"];
+/** Feature tags a keyed row can carry beside its terrain. Matches the tag store's FEATURES. */
+export const FEATURE_TAGS = ["river", "path", "coast"];

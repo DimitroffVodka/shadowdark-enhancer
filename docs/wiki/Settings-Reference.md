@@ -1,8 +1,3 @@
-| **Monster loot overrides** *(menu)* | — | GM-only list (**Review Monsters**) of every world NPC with its loot table and drop chance, editable inline. |
-| **Lock HP rolls** | on | Hides Roll Again, Take Max and Random for players once Level-1 HP is rolled. GMs are never locked. |
-| **Lock gold rolls** | on | Hides Roll Again and Random for players once starting gold is rolled. GMs are never locked and keep the manual gp box. |
-| **Lock ability rolls** | on | Hides Roll Again, Reset and Random for players once abilities are rolled. The 3d6 under-14 reroll stays. GMs are never locked. |
-| **Lock talent rolls** | on | Hides Reroll for players once a class or bonus talent is rolled. Duplicates the rules say to reroll stay rerollable. GMs are never locked. |
 # Settings Reference
 
 [← Wiki home](index.md)
@@ -18,17 +13,23 @@ All settings are **world-scoped**. They are configured by the GM for the whole w
 Go to **Configure Settings → Shadowdark Enhancer**. Every setting lives in one of eight
 pop-out windows, one per feature, each opened by its own **Configure** button:
 Character Builder, Monsters, PC Automation, Modes of Play, Movement, Crawl Strip,
-Encounters, and Loot & XP.
+Encounters, and Loot & XP. One more button, **Edit Rules Data**, opens the
+Western Reaches rules tables (see [Rules data](#rules-data) below).
 
 ### Character Builder
 
 | Setting | Default | What it does |
 |---|---|---|
 | **Ability roll method** | `3d6, Reroll if None ≥ 14` | GM-dictated method (3d6 down/assign/reroll, 4d6k3 down/assign, Standard Array, Point Buy). |
+| **Lock ability rolls** | on | Hides Roll Again, Reset and Random for players once abilities are rolled. The 3d6 under-14 reroll stays. GMs are never locked. |
+| **Lock talent rolls** | on | Hides Reroll for players once a class or bonus talent is rolled. Duplicates the rules say to reroll stay rerollable. GMs are never locked. |
+| **Lock gold rolls** | on | Hides Roll Again and Random for players once starting gold is rolled. GMs are never locked and keep the manual gp box. |
+| **Lock HP rolls** | on | Hides Roll Again, Take Max and Random for players once Level-1 HP is rolled. GMs are never locked. |
 | **Portrait/token art folders** | `assets/portraits, assets/ancestries` | Folders offered as the Preview gallery, picked with Foundry's folder browser. Browsed through the GM; discovers datasheet manifests. |
 | **Animate dice (Dice So Nice)** | off | Plays 3D dice roll animations for builder rolls. Chat audit card posts either way. |
 | **Max Level-1 HP** | off | Sets HP to maximum hit die + CON instead of rolling. Above level 1, every level's die is maxed. |
 | **Fixed starting gold (gp)** | `0` | Flat starting gold amount. `0` rolls standard `2d6 × 5 gp`. |
+| **Random ancestry table** | *(empty)* | A roll table dropped here, such as the Western Reaches *Ancestry (Population)* d100, is what the Ancestry step's Random rolls. The result is matched to an ancestry by name. Empty keeps each ancestry's random weight. |
 | **Extra gear** *(menu)* | *(empty)* | GM-only picker (**Manage Extra Gear**) adding custom items to the starting shop. |
 
 See [Character Builder](Character-Builder.md).
@@ -145,17 +146,19 @@ under its checkbox in the window.
 | Mode | Setting | Default | What it does |
 |---|---|---|---|
 | Blitz | **Light sources last 30 minutes** | off | Lighting a torch or lantern sets it to 30 minutes left (less if it already had less), and a light spell lasts 30 minutes. The item's own maximum is untouched, so its sheet can read "30 of 60 minutes". Shadowdark Extras' camping campfire keeps its 8 hours. |
-| Chaos | **Reroll initiative every round** | off | *Not automated yet.* Everyone rolls initiative again at the start of every round after the first. |
-| Deadly | **Death timers are always 1** | off | *Not automated yet.* A dying character has 1 round to live, whatever their Constitution. |
-| Deadly | **Stabilizing is DC 18** | off | *Not automated yet.* Stabilizing a dying character is an Intelligence check at DC 18 instead of 15. |
-| Fatality | **Characters die at 0 HP** | off | *Not automated yet.* There is no dying: a character reduced to 0 HP is dead. |
+| Chaos | **Reroll initiative every round** | off | At the start of every round after the first, everyone rolls initiative again (the system's roll, with any advantage) and the turn goes to the new top; a defeated monster on top is skipped as usual. One chat card per round lists the new order, without hidden combatants. Does nothing while the system's clockwise initiative is on, and says so once. An effect lasting "until the start of your next turn" can end early or late, because turns move. Whoever was on top before the reroll has their turn start and end once as the order changes, so an effect that ends at the start or end of their turn can end a turn early. |
+| Chaos | **Show Dice So Nice for Chaos rerolls** | off | An option, not a rule, so the Chaos switch leaves it alone: shows the 3D dice for every round's reroll. |
+| Deadly | **Death timers are always 1** | off | A PC at 0 HP has 1 round to live: nothing is rolled, and this beats every timer die and bonus (a Necromancer's d6, Gladiator training's +1). See [Dying and Death Timers](Dying-and-Death-Timers.md). |
+| Deadly | **Stabilizing is DC 18** | off | The Intelligence check to stabilize a dying PC is DC 18 instead of 15. A helper with a stabilize DC of their own keeps it: a Heath Witch-trained character still needs 12. |
+| Deadly | **Hidden death timers** | off | An option of the dying rule, not one of Deadly's, so the Deadly switch leaves it alone and it works without Deadly's rules. The GM's client rolls each death timer blind (a GM-only roll), and the rounds left are whispered to the GM. Players see *Dying* on the strip with no count. The count is still in the character's data, so this hides it from the table, not from a player who opens the console. |
+| Fatality | **Characters die at 0 HP** | off | There is no dying: a PC reduced to 0 HP by damage or a sheet edit gets the dead status and is marked defeated, and its turn is skipped. A Parry that undoes the blow undoes the death too. |
 | Grinder | Shadowdark Extras' Grinder settings | off | Shown here when Shadowdark Extras has them (`shadowdark-extras.grinderMode`, and `grinderHitDice`, shown only while Grinder is on); its camping rest is where Grinder takes effect. Without them, the box says what is needed. |
-| Hunter | **XP for defeated monsters** | off | *Not automated yet.* At the end of a combat, every character in it gets XP for each defeated monster: half its level, rounded down, and 1 for level 1. |
+| Hunter | **XP for defeated monsters** | off | When a combat ends, every character in it gets XP (a dead one does not; a dying one does) for each monster still marked defeated: half its level, rounded down, 1 for a level 1 monster, nothing for level 0. One Party XP card per combat, logged in Session Recap. Monsters killed outside a combat aren't counted. |
 | Momentum | the system's exploding damage setting | off | Shown here; it is the Shadowdark system's own setting. Advantage on repeating a failed action is granted at the table. |
 | Pulp | the system's Pulp Mode setting | off | Shown here; it is the Shadowdark system's own setting (no maximum on luck tokens). |
-| Pulp | **1d4 luck at the start of each session** | off | *Not automated yet.* Starting a session sets each party member's luck tokens to 1d4. |
-| Pulp | **Spend luck to turn a hit into a critical hit** | off | *Not automated yet.* After an attack hits, its owner can spend a luck token to make it a critical hit. |
-| Pulp | **Spend luck to make the GM reroll** | off | *Not automated yet.* A player can spend a luck token to make the GM reroll a roll the player can see. |
+| Pulp | **1d4 luck at the start of each session** | off | Choosing **Start New Session** in Session Recap's prompt when a crawl starts sets each player's character to 1d4 luck tokens (Continue Session doesn't), as the system's own luck macro does, and posts one card with the rolls. |
+| Pulp | **Spend luck to turn a hit into a critical hit** | off | Once an attack card shows a hit, its owner gets a **Luck: critical hit** button. Damage already on the card keeps its dice and gains what a critical hit adds; damage not rolled yet is rolled once as a critical hit. Costs one luck token. |
+| Pulp | **Spend luck to make the GM reroll** | off | A player whose character has luck gets a **Luck: force a reroll** button on a GM's roll they can see (not blind, not whispered to others): a Shadowdark roll card, or a plain roll showing just its total, never initiative. The roll is redone on the same card, which names who forced it; an attack's damage follows the new result. Costs one luck token, logged in Session Recap. |
 | Hard Luck | **No luck rerolls on critical failures** | off | Luck tokens can't reroll a critical failure, by the system's own rule, so an effect that widens the failure range counts too. Damage rerolls and the GM's own rerolls are never refused. Before the Modes of Play window it sat under PC Automation and was on by default. |
 | Hard Luck | **No luck rerolls with luck-granting effects** | off | Luck can't reroll a roll made with Bless, a Bard's Inspire, Trance or a Seer's Omen, whatever the result. Matched by the spell's or ability's name; a spell cast from a scroll or wand counts. Only the chat card's reroll can be checked: luck spent from the crawl strip or Shadowdark Extras isn't tied to a roll. |
 
@@ -185,6 +188,7 @@ See [Movement Budgets](Movement-Budgets.md).
 | **Loot drops on combat end** | off | Defeated NPCs roll loot tables and post shared claim cards to chat. Overridden via NPC sheet header. |
 | **Loot drop mode** | `Per defeated NPC` | **Per defeated NPC**: each rolls separately. **Per encounter**: one pooled roll at highest NPC level. |
 | **Loot drop chance (%)** | `50` | Drop percentage chance on combat end (mode-dependent). |
+| **Monster loot overrides** *(menu)* | — | GM-only list (**Review Monsters**) of every world NPC with its loot table and drop chance, editable inline. |
 | **Item Drops** | on | Allows dragging items from sheets onto the canvas as pickup tokens. |
 | **Treasure XP threshold — normal (gp)** | `10` | Loot worth at least this much is suggested as 1 XP when dragged into Party XP. Nothing is awarded automatically. |
 | **Treasure XP threshold — fabulous (gp)** | `150` | Loot worth at least this much is suggested as 3 XP in Party XP. Magic items count as fabulous regardless of value. |
@@ -201,6 +205,14 @@ See [Movement Budgets](Movement-Budgets.md).
 > **The encounter threshold and check frequency are set on the Crawl Bar.**
 > Right-click **Encounter** on the bar to adjust either. See
 > [Random Encounters](Random-Encounters.md).
+
+### Rules data
+
+| Setting | Default | What it does |
+|---|---|---|
+| **Rules data** *(menu)* | *(empty)* | GM-only window (**Edit Rules Data**) with the tables the Western Reaches books consult rather than roll: terrain costs and elevation, terrain types, hexes per day, hex visibility, climate by region and season, and carousing and recruiting limits. **Import from GM Guide** fills them from your own linked PDFs and shows anything it would replace first; every value can also be typed in. Nothing from the books ships, so every table starts empty, except that mountain counts as high elevation. Stored as the `rulesData` world setting and read by `game.shadowdarkEnhancer.rules`. |
+
+See [Rules Data](Rules-Data.md).
 
 ## Settings edited elsewhere
 

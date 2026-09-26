@@ -30,15 +30,18 @@ Tools you run during an active game session.
 | Page | What it covers |
 |---|---|
 | [Crawl Strip & Crawl Bar](Crawl-Strip-and-Crawl-Bar.md) | Party HP, movement, and Luck at a glance, marching order, crawl rounds, combat HUD |
+| [Dying and Death Timers](Dying-and-Death-Timers.md) | 0 HP, the death timer and the rise roll, stabilizing, Deadly and Fatality, class and training modifiers |
 | [Movement Budgets](Movement-Budgets.md) | Turn movement allowances, over-budget warnings or enforcement, rollback to turn start |
 | [Random Encounters](Random-Encounters.md) | The `1d6` encounter check, the Encounter Roller, placing results directly on the map |
 | [Loot & Treasure](Loot-and-Treasure.md) | Hoard rolls, claimable chat cards, opt-in loot drops on combat end, coin piles |
 | [Merchant Shop](Merchant-Shop.md) | A live shop window for the whole party, buying and selling against `system.coins` |
 | [Party XP](Party-XP.md) | Whole-party XP awards and Shadowdark treasure-XP rules |
+| [Quest Log](Quest-Log.md) | Quests from rumors, troubles, trainer tasks and the GM: statuses, objectives, rewards paid once, readable by players |
 | [Downtime](Downtime.md) | Between-crawl activities, the DC step-down ladder, per-attempt costs from your books |
 | [Renown](Renown.md) | The fame track, its four bands, reaction-roll bonuses, awarding and docking points |
 | [Pit Fighting](Pit-Fighting.md) | Cursed Scroll 2 bouts: venues, stakes scaled to party level, danger calls, twists |
 | [Session Recap](Session-Recap.md) | Automatic session log (loot, XP, combats, rolls, kills) with Discord export |
+| [Stat Damage](Stat-Damage.md) | Ability damage from drains and hardship: one line in the Effects tab, healed by rests, death at CON 0 |
 
 ## Building content
 
@@ -50,6 +53,7 @@ Tools you use in prep between sessions.
 | [Hex Maps](Hex-Maps.md) | Tag a hex-map scene's terrain from a contact sheet and hand the dataset to Shadowdark Extras |
 | [Class & Spell Importers](Class-and-Spell-Importers.md) | Dedicated workspaces for complex class and spell statblocks |
 | [Table Import & Shapes](Table-Import-and-Shapes.md) | How PDF tables parse deterministically and how to add parsing recipes |
+| [Rules Data](Rules-Data.md) | The Western Reaches lookup tables (terrain costs, travel, visibility, climate, carousing and recruiting limits), imported from your own PDF or typed in |
 | [Monster Creator](Monster-Creator.md) | Author a Shadowdark monster or NPC from scratch, or remix an existing statblock |
 | [Monster Spell Library](Monster-Spell-Library.md) | Extract embedded monster spells into a searchable GM library with source links |
 | [Monster Level Guidelines](Monster-Level-Guidelines.md) | Target stats for level-N monsters: editable baseline table and token re-leveling |
