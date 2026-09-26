@@ -3,6 +3,14 @@
 ## [Unreleased]
 
 ### Added
+- **The sky on outdoor scenes.** The hex map, and any scene set to **Follows the
+  sky** (Scene Configuration, Environment tab), darkens with the clock. It is
+  0 by day, deepens over an hour of twilight to a night the moon lightens, and
+  lifts again before dawn. The hex map only darkens to a readable tint. Stormy
+  weather shows as Foundry's rain storm, or a blizzard in the cold. The Isles
+  of Andrik keep their Midnight Sun and Long Dark. Locked scenes, Calendaria's
+  scenes and a weather effect you chose are left alone.
+  `time.isNight(t, { region })` applies the Isles too. (API 1.19.0, #235)
 - **The travel bar.** While travelling on a hex map, everyone sees a slim bar
   at the top centre: the date and time, the sun or the moon's phase, the
   weather and the hexes left. Opened, it shows a small sky with the sun or

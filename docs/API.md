@@ -23,7 +23,7 @@ and Forge & Loot features.
 [`time`](#time--season-day-and-night-sun-moon-and-anchors) ·
 [`overland`](#overland--the-travel-state)
 
-**API version:** `1.18.0` (semver — additive changes bump the minor version,
+**API version:** `1.19.0` (semver — additive changes bump the minor version,
 breaking changes the major; check `apiVersion` before relying on newer keys).
 
 ## Discovery
@@ -1328,6 +1328,7 @@ const time = game.shadowdarkEnhancer.time;
 time.now();              // { worldTime, components, label: "Monday, 21 June 1300, 14:30" }
 time.season();           // { key: "summer", index: 1, name: "Summer" }
 time.isNight();          // true before sunrise and from sunset on
+time.isNight(undefined, { region: "Isles of Andrik" });   // 1.19.0: that region's own skies
 time.sun();              // { sunrise: 4.5, sunset: 19.5 }, hours with their fraction
 time.moonPhase();        // { index: 0, key: "new", fraction: 0.01, illumination: 0.0 }
 time.anchor("summerSolstice");       // worldTime of 21 June 00:00, this year
@@ -1339,7 +1340,7 @@ time.format(t);          // the date string alone
 |---|---|
 | `now()` | `{ worldTime, components, label }`: the clock, core's components, and `format()` of it. |
 | `season(t?)` | `{ key, index, name }`. `key` is `spring`, `summer`, `autumn` or `winter`, by where the season's middle falls in the year (December to February is `winter`, and so on), so core's *Fall* is `autumn` whatever it is called; `index` and `name` (localised) are the calendar's. |
-| `isNight(t?)` | Before sunrise, or from sunset on. |
+| `isNight(t?, { region }?)` | Before sunrise, or from sunset on. Since 1.19.0 a `region` applies the Isles of Andrik's skies: never night under the Midnight Sun (spring and summer), always night in the Long Dark (winter). `overland.state().isNight` passes the party's region. |
 | `sun(t?)` | `{ sunrise, sunset }` on that day, in hours (`4.5` is 04:30). |
 | `moonPhase(t?)` | `{ index, key, fraction, illumination }`. `index` 0–7 with `key` `new`, `waxingCrescent`, `firstQuarter`, `waxingGibbous`, `full`, `waningGibbous`, `lastQuarter`, `waningCrescent`; `fraction` 0–1 through the month; `illumination` 0–1. |
 | `anchor(name, year?)` | The worldTime of the 00:00 the anchor falls on. `null` for an unknown name, and for `lastFullMoon` in a year too short to hold a full moon (never on a 365-day year). `year` is core's count (`game.time.components.year`), this year by default. |
@@ -1659,6 +1660,41 @@ any mode (the party may be crawling below the hex).
 - A failure costs 1d4 CHA stat damage.
 - The check is made once per season crossed, at most four per clock jump.
 
+### The sky on scenes
+
+Added in 1.19.0 (Overland O9, #235; design §6.2, Q7). This isn't a call: the
+active GM keeps the active scene's darkness and weather effect in step with
+the clock, whether or not anyone is travelling.
+
+**Which scenes.** A scene follows the sky when Scene Configuration's
+Environment tab says so. The choice is stored as the scene flag
+`shadowdark-enhancer.followsSky`: `"on"`, `"off"`, or `"default"`, which is
+yes for a tagged hex map and no everywhere else. Dungeons and interiors are
+untouched unless marked.
+
+**Darkness.**
+- It is 0 by day. Over a one-hour twilight after sunset it deepens to the
+  night level, `1 − 0.2 × the moon's illumination` (0.8 at full moon, 1 at
+  new), and it lifts over the hour before sunrise.
+- A tagged hex map stops at 0.6, so the overview stays readable.
+- The party's region applies the Isles of Andrik's skies: the Midnight Sun
+  never goes above 0.3, and the Long Dark holds the night level all day.
+- It is written as `environment.darknessLevel` only when it moves by 0.02 or
+  more, animated for a clock step under an hour.
+- Nothing is written when the scene's darkness is locked, or when Calendaria
+  drives that scene's darkness: its scene flag, else its `darknessSync`
+  setting.
+
+**Weather.**
+- `scene.weather` is Foundry's `rainStorm` while today's weather is stormy,
+  or its `blizzard` when the region's climate is cold or freezing, and
+  nothing otherwise.
+- A weather effect the GM chose (fog, snow, leaves...) is left alone.
+
+**When it runs.** On every clock move (at most one write in flight), when
+Overland's weather or hex changes, when a scene is activated, when the
+scene's choice changes, and once on load.
+
 ## Stability notes
 
 - Everything documented here is public surface; undocumented internals
@@ -1697,6 +1733,8 @@ any mode (the party may be crawling below the hex).
 - `1.18.0` adds `overland.forage` and `overland.makeCamp`, and the underground
   season check. `time.advanceOffDuty(0)` now puts the lights out and moves no
   clock.
+- `1.19.0` adds `time.isNight`'s `{ region }`, and the sky on scenes (the
+  `followsSky` scene flag).
 - `1.4.0` adds the shared `forgeLoot.open()` preview shell. Generator rules and
   document writes remain behind the later NPC/Rival adapter implementations.
   The version policy is additive: new namespaces bump the minor version; breaking

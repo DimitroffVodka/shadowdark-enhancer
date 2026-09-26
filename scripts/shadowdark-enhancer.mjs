@@ -11,6 +11,7 @@ import { rulesApi } from "./rules-data/rules-data-core.mjs";
 import { timeApi, registerTimeHooks } from "./time/time.mjs";
 import { overlandState, isOverland, rollWeather, startDay, resume, forage, makeCamp, registerOverland } from "./overland/overland.mjs";
 import { TravelBar } from "./overland/overland-bar.mjs";
+import { registerSky } from "./overland/sky.mjs";
 import { CrawlState } from "./crawl-strip/crawl-state.mjs";
 import { CrawlStrip } from "./crawl-strip/crawl-strip.mjs";
 import { registerCrawlTracker, refreshTracker } from "./crawl-strip/crawl-tracker.mjs";
@@ -113,7 +114,7 @@ const STYLESHEET_REV = "d56c20d355c9";
 // stale); module.json carries the same hash and is fetched fresh at runtime. A
 // mismatch is a stale cache by construction — it cannot be anything else. Both
 // stamps are written by `npm run inventory` and gated by `inventory:check`.
-const BUILD_REV = "adbe7ab26c5f";
+const BUILD_REV = "6024d5c27fce";
 
 /**
  * Tell the user when their browser is running an old build of this module, and
@@ -434,7 +435,8 @@ Hooks.once("init", () => {
     // 1.16.0 — additive: overland.startDay, and moves spend the day's budget (Overland O5, #231).
     // 1.17.0 — additive: overland.resume, encounter.check options, travel checks (Overland O6, #232).
     // 1.18.0 — additive: overland.forage and makeCamp, time.advanceOffDuty(0) (Overland O7, #233).
-    apiVersion: "1.18.0",
+    // 1.19.0 — additive: time.isNight(t, { region }), the sky on scenes (Overland O9, #235).
+    apiVersion: "1.19.0",
     // The one travel state per world (scripts/overland/overland.mjs): a copy
     // with hexes left, climate, storm, harshness and night derived; whether
     // travel is on; today's weather roll, the travel day's start, Continue
@@ -966,6 +968,8 @@ Hooks.once("ready", () => {
   CrawlBar.init();
   // The travel bar, for everyone, while travelling on a hex map (#234).
   TravelBar.init();
+  // Outdoor scenes follow the sun, the moon and the weather (#235).
+  registerSky();
   // If the GM enabled the monster compendium-art overlay, inject it now so every
   // monster drag carries the referenced art (all clients; GM-only settings write).
   MonsterTokenArt.initCompendiumArt();
