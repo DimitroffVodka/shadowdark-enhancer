@@ -65,7 +65,22 @@
       </h3>
       {{#if tasks.length}}
         <ol class="sde-trn-tasks">
-          {{#each tasks}}<li>{{this}}</li>{{/each}}
+          {{#each tasks}}
+            <li>
+              <div class="sde-trn-task">
+                <span class="sde-trn-task-text">{{text}}</span>
+                {{#if quest}}
+                  <span class="sde-trn-tag {{#if done}}sde-trn-tag-auto{{/if}}">
+                    {{#if done}}{{localize "SDE.training.taskDone"}}{{else}}{{localize "SDE.training.taskTaken"}}{{/if}}
+                  </span>
+                {{else if canTake}}
+                  <button type="button" class="sde-trn-take" data-action="trnTakeTask" data-task="{{index}}">
+                    {{localize "SDE.training.takeTask"}}
+                  </button>
+                {{/if}}
+              </div>
+            </li>
+          {{/each}}
         </ol>
       {{else}}
         <p class="sde-trn-empty">{{localize "SDE.training.noTasks"}}</p>
