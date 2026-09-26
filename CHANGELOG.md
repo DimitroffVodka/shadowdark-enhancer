@@ -3,6 +3,19 @@
 ## [Unreleased]
 
 ### Added
+- **A Quest Log.** Press Ctrl+Q, or **Quest Log** at the foot of the Journal
+  sidebar. Each quest is a journal entry in a *Quests* folder, with a page
+  your players can read and a GM notes page they can't. Quests are Hidden
+  (yours alone until you change that), Available, Active, Completed or Failed,
+  and come from you, a rumor, a trouble or a trainer. Give one objectives to
+  tick off and rewards: XP, renown, items dragged onto it, a training benefit.
+  Marking it Completed asks you to confirm who gets what, then pays it once:
+  XP through Party XP, renown through the ledger, items onto the sheets you
+  pick. A quest can be personal to characters, assigned to a Shadowdark Extras
+  party, and jump to its hex's map pin. In Regional Training, **Take this
+  task** turns a trainer's task into a quest for the chosen character, and
+  completing it offers to open Training on that trainer for the benefit roll.
+  Players get the log read-only. See the wiki page *Quest Log*. (#189)
 - **Modes of Play.** A new window under Configure Settings holds the optional
   rules from the core rulebook (p.111) and Hard Luck from the Game Master's
   Guide to the Western Reaches (p.30). Every rule is its own switch, so one

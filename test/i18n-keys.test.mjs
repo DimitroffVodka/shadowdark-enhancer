@@ -17,6 +17,7 @@ const FEATURES = {
   // headless (no hub instance) and still speaks to the GM through en.json.
   "SDE.importer.": [...dir("scripts/importer", /^importer-hub.*\.mjs$/), ...dir("scripts/importer/hex"),
     "templates/importer-hub.hbs", "templates/partials/tree-node.hbs"],
+  "SDE.quests.": [...dir("scripts/quests"), "templates/quest-log.hbs"],
 };
 
 /** Every key of `prefix` mentioned anywhere in its files, with one file that mentions it. */
@@ -69,7 +70,7 @@ for (const [prefix, sources] of Object.entries(FEATURES)) {
  * nothing at all. That shipped once; this is what stops it shipping twice.
  */
 test("no file that has the translator also declares a local t", () => {
-  const files = [...dir("scripts/hex-map"), ...dir("scripts/importer", /^importer-hub.*\.mjs$/)];
+  const files = [...dir("scripts/hex-map"), ...dir("scripts/importer", /^importer-hub.*\.mjs$/), ...dir("scripts/quests")];
   const bad = [];
   for (const file of files) {
     const src = readFileSync(file, "utf8");

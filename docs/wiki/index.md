@@ -35,6 +35,7 @@ Tools you run during an active game session.
 | [Loot & Treasure](Loot-and-Treasure.md) | Hoard rolls, claimable chat cards, opt-in loot drops on combat end, coin piles |
 | [Merchant Shop](Merchant-Shop.md) | A live shop window for the whole party, buying and selling against `system.coins` |
 | [Party XP](Party-XP.md) | Whole-party XP awards and Shadowdark treasure-XP rules |
+| [Quest Log](Quest-Log.md) | Quests from rumors, troubles, trainer tasks and the GM: statuses, objectives, rewards paid once, readable by players |
 | [Downtime](Downtime.md) | Between-crawl activities, the DC step-down ladder, per-attempt costs from your books |
 | [Renown](Renown.md) | The fame track, its four bands, reaction-roll bonuses, awarding and docking points |
 | [Pit Fighting](Pit-Fighting.md) | Cursed Scroll 2 bouts: venues, stakes scaled to party level, danger calls, twists |
