@@ -696,8 +696,11 @@ export const CrawlStrip = {
         ? game.combat?.combatants.get(m.combatantId)
         : (m.tokenId ? combatantMap.get(m.tokenId) : null);
       // The system marks a PC defeated at 0 HP; a dying or stable one shows
-      // the dying badge instead of the skull, which stays for the dead.
-      const isDefeated = (combatant?.defeated ?? false) && !(m.type === "player" && dyingState(actor));
+      // the dying badge instead of the skull. The skull is for the dead, in
+      // or out of combat (core's `dead` status needs no combatant).
+      const isPlayer   = m.type === "player";
+      const isDefeated = (isPlayer && !!actor?.statuses?.has("dead"))
+        || ((combatant?.defeated ?? false) && !(isPlayer && dyingState(actor)));
 
       // A player sees a hostile (or secret) NPC's HP bar but none of its
       // numbers — no HP, AC, or movement (#163). Disposition is read off the

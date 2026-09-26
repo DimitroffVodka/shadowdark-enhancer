@@ -107,7 +107,7 @@ const STYLESHEET_REV = "32773381b43f";
 // stale); module.json carries the same hash and is fetched fresh at runtime. A
 // mismatch is a stale cache by construction — it cannot be anything else. Both
 // stamps are written by `npm run inventory` and gated by `inventory:check`.
-const BUILD_REV = "9b4c0ac4df44";
+const BUILD_REV = "6600171b4483";
 
 /**
  * Tell the user when their browser is running an old build of this module, and
@@ -701,8 +701,9 @@ Hooks.once("init", () => {
       historyByPlayer: () => Renown.historyByPlayer(),
     },
     // Dying (core p.89) with Deadly and Fatality (p.111). Reads for anyone;
-    // every write is the GM's, except `stabilize({ by })`, whose INT check a
-    // player rolls for their own character and the GM applies.
+    // every write is the active GM's (another GM's call is relayed), except
+    // `stabilize({ by })`, whose INT check the helper's owner rolls and whose
+    // card the active GM reads.
     dying: {
       isDying: (actor) => Dying.isDying(actor),
       timer: (actor) => Dying.timer(actor),
@@ -711,8 +712,6 @@ Hooks.once("init", () => {
       rise: (actor) => Dying.rise(actor),
       adjust: (actor, delta) => Dying.adjust(actor, delta),
       setConscious: (actor, conscious) => Dying.setConscious(actor, conscious),
-      // The stat damage seam (#182): CON 0 kills unless River of Death.
-      onConZero: (actor) => Dying.onConZero(actor),
       STATUS: Dying.DYING_STATUS,
       KEYS: { ...Dying.DYING_KEYS },
     },

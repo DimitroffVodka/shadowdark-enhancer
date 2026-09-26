@@ -1,19 +1,19 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
-  DYING_KEYS, modifier, timerRoll, deathTimer, stabilizeDC, riseMin, turnOutcome, hpAction, tickKey, badge,
-  checkedRoll,
+  DYING_KEYS, modifier, timerRoll, deathTimer, stabilizeDC, riseMin, turnOutcome, hpAction, shouldTick, badge,
+  checkedNatural, cardStabilizes,
 } from "../scripts/dying/dying-core.mjs";
 
 const actorWith = (flags) => ({ flags: { "shadowdark-enhancer": flags } });
 
 test("the death timer is 1d4 + CON modifier, with a die and a bonus from modifiers", () => {
-  assert.deepEqual(timerRoll({ con: 2 }), { formula: "1d4 + 2", faces: 4 });
-  assert.deepEqual(timerRoll({ con: -1 }), { formula: "1d4 - 1", faces: 4 });
-  assert.deepEqual(timerRoll({}), { formula: "1d4", faces: 4 });
+  assert.deepEqual(timerRoll({ con: 2 }), { formula: "1d4 + 2", faces: 4, mod: 2 });
+  assert.deepEqual(timerRoll({ con: -1 }), { formula: "1d4 - 1", faces: 4, mod: -1 });
+  assert.deepEqual(timerRoll({}), { formula: "1d4", faces: 4, mod: 0 });
   // River of Death's d6 and the Gladiator's +1.
-  assert.deepEqual(timerRoll({ die: 6, bonus: 1, con: 0 }), { formula: "1d6 + 1", faces: 6 });
-  assert.deepEqual(timerRoll({ die: 6, bonus: 1, con: -2 }), { formula: "1d6 - 2 + 1", faces: 6 });
+  assert.deepEqual(timerRoll({ die: 6, bonus: 1, con: 0 }), { formula: "1d6 + 1", faces: 6, mod: 1 });
+  assert.deepEqual(timerRoll({ die: 6, bonus: 1, con: -2 }), { formula: "1d6 - 2 + 1", faces: 6, mod: -1 });
 });
 
 test("Deadly's timer of 1 beats every die and bonus: there is no roll", () => {
@@ -85,19 +85,56 @@ test("modifiers are read off the actor's derived flags, numbers from strings too
   assert.equal(modifier({}, "riseMin"), undefined);
   assert.equal(modifier(actorWith({ noDeathAtZeroCon: true }), "noDeathAtZeroCon"), true);
   assert.equal(modifier(actorWith({}), "noDeathAtZeroCon"), false);
+  assert.equal(modifier(actorWith({ noDeathAtZeroCon: 1 }), "noDeathAtZeroCon"), true, "training effects carry numbers");
+  assert.equal(modifier(actorWith({ noDeathAtZeroCon: 0 }), "noDeathAtZeroCon"), false);
   assert.equal(DYING_KEYS.timerDie, "flags.shadowdark-enhancer.dyingTimerDie");
   assert.ok(Object.values(DYING_KEYS).every((k) => k.split(".").length === 3), "no dot inside a flag key");
 });
 
-test("a roll back from a player is used only when it is a real die result", () => {
-  assert.deepEqual(checkedRoll({ ok: true, total: 14, natural: 14 }, 20), { total: 14, natural: 14 });
-  assert.equal(checkedRoll({ total: 21, natural: 21 }, 20), null);
-  assert.equal(checkedRoll({ total: 3, natural: 0 }, 4), null);
-  assert.equal(checkedRoll({ total: "3", natural: 3 }, 4), null);
-  assert.equal(checkedRoll(null, 20), null);
+test("only a real natural die comes back from a player; the GM adds the modifiers", () => {
+  assert.equal(checkedNatural({ ok: true, natural: 14 }, 20), 14);
+  assert.equal(checkedNatural({ natural: 21 }, 20), null);
+  assert.equal(checkedNatural({ natural: 0 }, 4), null);
+  assert.equal(checkedNatural({ natural: "3" }, 4), null);
+  assert.equal(checkedNatural({ total: 3 }, 4), null, "a total alone is never taken");
+  assert.equal(checkedNatural(null, 20), null);
+  // The timer is the natural die plus what the GM works out, minimum 1.
+  const r = timerRoll({ con: -2, bonus: 1 });
+  assert.equal(deathTimer(checkedNatural({ natural: 4, total: 99 }, r.faces) + r.mod), 3);
 });
 
-test("a tick is recorded once per round", () => {
-  assert.equal(tickKey("combat1", 3), "combat1:3");
-  assert.equal(tickKey("crawl", 7), "crawl:7");
+test("a round counts once: the same round again does not", () => {
+  assert.equal(shouldTick(null, "c1", 1), true, "the first turn after dropping");
+  assert.equal(shouldTick({ scope: "c1", round: 3 }, "c1", 3), false, "a second turn start in round 3 (Chaos, a replay)");
+  assert.equal(shouldTick({ scope: "c1", round: 3 }, "c1", 4), true);
+});
+
+test("a rewind and the replay forward never cost a round twice", () => {
+  // Ticked in round 3; the GM goes back to round 2, then forward again. Foundry
+  // starts every turn passed, so round 2's turn and round 3's both fire.
+  const last = { scope: "c1", round: 3 };
+  assert.equal(shouldTick(last, "c1", 2), false);
+  assert.equal(shouldTick(last, "c1", 3), false);
+  assert.equal(shouldTick(last, "c1", 4), true, "round 4 is new");
+  // The same for the crawl's rounds.
+  assert.equal(shouldTick({ scope: "crawl", round: 7 }, "crawl", 5), false);
+  assert.equal(shouldTick({ scope: "crawl", round: 7 }, "crawl", 8), true);
+});
+
+test("a new combat, or the crawl after one, always counts", () => {
+  assert.equal(shouldTick({ scope: "c1", round: 5 }, "c2", 1), true);
+  assert.equal(shouldTick({ scope: "c1", round: 5 }, "crawl", 2), true);
+  assert.equal(shouldTick({ scope: "crawl", round: 9 }, "c1", 1), true);
+  assert.equal(shouldTick(null, "c1", undefined), false, "no round, no tick");
+});
+
+test("a stabilize card counts only from the helper's owner or a GM, on the GM's DC", () => {
+  const card = { authorIsGM: false, authorOwnsHelper: true, helperIsTarget: false, total: 15, dc: 15 };
+  assert.equal(cardStabilizes(card), true);
+  assert.equal(cardStabilizes({ ...card, total: 14 }), false, "a failed check, or a card claiming a lower DC");
+  assert.equal(cardStabilizes({ ...card, authorOwnsHelper: false }), false, "someone else's character");
+  assert.equal(cardStabilizes({ ...card, authorOwnsHelper: false, authorIsGM: true }), true, "a GM rolling an NPC ally");
+  assert.equal(cardStabilizes({ ...card, helperIsTarget: true }), false, "nobody stabilizes themselves");
+  assert.equal(cardStabilizes({ ...card, total: undefined }), false);
+  assert.equal(cardStabilizes({ ...card, total: 20, dc: 18 }), true, "Deadly");
 });

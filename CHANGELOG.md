@@ -67,16 +67,19 @@
   from damage or a sheet edit, is now dying: the Dying status, a death timer of
   1d4 + CON modifier (minimum 1) rolled by its player, and a d20 at the start
   of each of its turns, rising at 1 HP on a natural 20. When the timer runs out
-  it is dead, and its turn is skipped. Out of combat the timer runs on crawl
-  rounds. Another character stabilizes it with a DC 15 Intelligence check from
-  the Dying badge on the crawl strip, and healing above 0 HP clears it all.
-  Deadly's two rules (a timer of 1, stabilizing at DC 18) and Fatality (0 HP is
-  death) now work, and a new option hides the timer from players. Class
-  features, training and monsters change the rule through a small set of
-  Active Effect keys; the Gladiator's +1 to death timer rolls and the Heath
-  Witch's stabilize DC 12 now carry them. The GM gets buttons for the
-  situational rules. Off while Shadowdark Crawl Helper is active. See the new
-  wiki page *Dying and Death Timers*. (#181)
+  it is dead: its turn is skipped, and Hunter Mode pays it no XP. Out of combat
+  the timer runs on crawl rounds, and stepping a round back and forward again
+  never costs a round twice. Another character stabilizes it with a DC 15
+  Intelligence check from the Dying badge on the crawl strip, and a Luck
+  reroll of that check counts; healing above 0 HP clears it all. Deadly's two
+  rules (a timer of 1, stabilizing at DC 18) and Fatality (0 HP is death) now
+  work, and a new option hides the timer from players. Class features, training
+  and monsters change the rule through a small set of Active Effect keys; the
+  Gladiator's +1 to death timer rolls, the Heath Witch's stabilize DC 12 and
+  the Ancient Ritual's *Survive 0 CON* now carry them, and stat damage's death
+  at CON 0 goes through the same rule. The GM gets buttons for the situational
+  rules. Off while Shadowdark Crawl Helper is active, which its warning now
+  says. See the new wiki page *Dying and Death Timers*. (#181)
 - **The hex data goes on the printed map.** The Hex Tagger's **Send to
   Extras** now puts every hex's terrain, region, zone colour, name,
   description and settlement on the map you tagged, instead of building a

@@ -43,7 +43,7 @@
  *   system.roll.spell.bonus.all                        PlayerSD.mjs:456
  *   system.roll.<melee|ranged>.critical-success.<sel>  PlayerSD.mjs:270-280
  *   system.roll.attack.upgrade-damage-die.<sel>        config.mjs
- *   flags.shadowdark-enhancer.dyingTimerBonus / .stabilizeDC   dying-core.mjs
+ *   flags.shadowdark-enhancer.dyingTimerBonus / .stabilizeDC / .noDeathAtZeroCon   dying-core.mjs
  *     (this module's own dying modifiers, #181; read by dying.mjs)
  *
  * Per-weapon keys work by SELECTOR: `all`, one of the item's property names,
@@ -468,7 +468,8 @@ export const TRAINERS = [
       { roll: 1, label: "1/day, become a panther", todo: "Once-per-day, declared at the table." },
       { roll: 2, label: "1/day, drink blood to heal", todo: "Once-per-day, declared at the table." },
       { roll: 3, label: "Gain 3d4 HP", actions: [{ type: "hp", formula: "3d4" }] },
-      { roll: 4, label: "Survive 0 CON", todo: "Death rule, applied at the table." },
+      // A number, as every recipe value is: the dying modifier reads 1 as true.
+      { roll: 4, label: "Survive 0 CON", changes: [override(DYING_KEYS.noDeathAtZeroCon, 1)] },
     ],
   },
   {

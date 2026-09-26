@@ -85,7 +85,7 @@
   "SDE.settings.warnIfCrawlHelperEnabled.name": "Warn when shadowdark-crawl-helper is enabled",
   "SDE.settings.warnIfCrawlHelperEnabled.hint": "Warn at world load if shadowdark-crawl-helper is also active.",
   "SDE.tokenArt.button": "Monster Art",
-  "SDE.notifications.crawlHelperConflict": "Shadowdark Enhancer detected that shadowdark-crawl-helper is also enabled. For best results, disable Crawl Helper. (You can suppress this warning in Module Settings.)",
+  "SDE.notifications.crawlHelperConflict": "Shadowdark Enhancer detected that shadowdark-crawl-helper is also enabled. Dying and death timers stay off while it runs, because it runs its own. For best results, disable Crawl Helper. (You can suppress this warning in Module Settings.)",
   "SDE.notifications.notYourTurn": "It's not your turn.",
   "SDE.settings.encounterRollGMOnly.name": "Roll Encounters as GM-only",
   "SDE.settings.encounterRollGMOnly.hint": "Whisper encounter checks and roller cards to the GM only.",
@@ -1483,7 +1483,6 @@
   "SDE.dying.rise": "{name} rises with 1 HP!",
   "SDE.dying.stabilized": "{name} is stable: no longer dying, and unconscious at 0 HP until healed.",
   "SDE.dying.dead": "{name} has died.",
-  "SDE.dying.crawlHelper": "Dying and death timers are off: Shadowdark Crawl Helper is active and runs its own.",
   "SDE.dying.menuTitle": "{name} at 0 HP",
   "SDE.dying.menuHint": "To stabilize, select the token of the character who helps (not the dying one) and pick the check.",
   "SDE.dying.stabilizeWith": "Stabilize with {name} (INT, DC {dc})",
@@ -1497,5 +1496,7 @@
   "SDE.dying.noInt": "{name} has no Intelligence score to make the check with.",
   "SDE.dying.checkTitle": "Stabilize {name}",
   "SDE.dying.notDying": "{name} is not dying.",
-  "SDE.dying.relayLabel": "stabilize checks"
+  "SDE.dying.relayLabel": "dying actions",
+  "SDE.dying.gmOnly": "Only a GM can do that.",
+  "SDE.dying.unknown": "That isn't a dying action this module knows."
 }

@@ -52,14 +52,15 @@ export const DYING_KEYS = Object.fromEntries(
 /**
  * A modifier's value on an actor, from its derived flags. Numbers may arrive as
  * strings from the effect sheet; anything that is not a number reads as unset.
- * `noDeathAtZeroCon` is a boolean.
+ * `noDeathAtZeroCon` is a boolean: `true`, or any number above 0 (training
+ * effects carry numbers).
  * @param {object} actor
  * @param {keyof DYING_KEYS} name
  * @returns {number|boolean|undefined}
  */
 export function modifier(actor, name) {
   const raw = actor?.flags?.[MODULE_ID]?.[FLAG_NAMES[name]];
-  if (name === "noDeathAtZeroCon") return raw === true || raw === "true";
+  if (name === "noDeathAtZeroCon") return raw === "true" || Number(raw) > 0;
   const n = Number(raw);
   return raw === undefined || raw === null || raw === "" || !Number.isFinite(n) ? undefined : n;
 }
@@ -75,7 +76,9 @@ const signed = (n) => (n < 0 ? ` - ${-n}` : ` + ${n}`);
  * @param {number} [p.die]    timer die faces (default 4)
  * @param {number} [p.bonus]
  * @param {number} [p.con]    the CON modifier
- * @returns {{formula: string, faces: number}|null}
+ * `mod` is what the GM adds to the natural die, so the total is never taken
+ * from a player's client.
+ * @returns {{formula: string, faces: number, mod: number}|null}
  */
 export function timerRoll({ deadly = false, die, bonus = 0, con = 0 } = {}) {
   if (deadly) return null;
@@ -83,7 +86,7 @@ export function timerRoll({ deadly = false, die, bonus = 0, con = 0 } = {}) {
   let formula = `1d${faces}`;
   if (con) formula += signed(con);
   if (bonus) formula += signed(bonus);
-  return { formula, faces };
+  return { formula, faces, mod: (con || 0) + (bonus || 0) };
 }
 
 /**
@@ -149,8 +152,36 @@ export function hpAction({ hp, tracked, dead, fatality = false }) {
   return tracked ? "clear" : null;
 }
 
-/** Once per combat round, or per crawl round: the key a tick is recorded under. */
-export const tickKey = (scope, round) => `${scope}:${round}`;
+/**
+ * Does this turn start (or crawl round) cost a round? Once per round of a
+ * scope, a combat's id or "crawl", and only moving forward: Foundry fires no
+ * turn events on a rewind and then starts every turn passed again on the way
+ * forward, so "a round I have not ticked yet" must mean a LATER round, not a
+ * different one. Another scope (a new combat, back to the crawl) always counts.
+ * @param {{scope: string, round: number}|null} last  the last tick recorded
+ * @param {string} scope
+ * @param {number} round
+ * @returns {boolean}
+ */
+export function shouldTick(last, scope, round) {
+  if (!Number.isFinite(round)) return false;
+  if (!last || last.scope !== scope) return true;
+  return round > last.round;
+}
+
+/**
+ * Does a stabilize check's chat card stabilize? Anyone can post a card, and a
+ * reroll repeats the original's config, so nothing on the card is taken on
+ * trust but the dice: its author must be a GM or own the helper, the helper
+ * is not the dying character, and the roll's total meets the DC the GM works
+ * out itself, never the one the card carries.
+ * @param {object} p
+ * @returns {boolean}
+ */
+export function cardStabilizes({ authorIsGM, authorOwnsHelper, helperIsTarget, total, dc }) {
+  if (helperIsTarget || !(authorIsGM || authorOwnsHelper)) return false;
+  return Number.isFinite(total) && Number.isFinite(dc) && total >= dc;
+}
 
 /**
  * What the crawl strip's badge says. Players never see the count while the
@@ -169,15 +200,13 @@ export function badge(state, { hidden, isGM }) {
 }
 
 /**
- * A roll that came back from a player's client, checked before it is used:
- * an integer total, and a natural die inside its faces.
+ * The natural die a player's client reports, checked before it is used. Only
+ * the die travels: the GM adds the modifiers itself.
  * @param {object} reply
  * @param {number} faces
- * @returns {{total: number, natural: number}|null}
+ * @returns {number|null}
  */
-export function checkedRoll(reply, faces) {
-  const { total, natural } = reply ?? {};
-  if (!Number.isInteger(total) || !Number.isInteger(natural)) return null;
-  if (natural < 1 || natural > faces) return null;
-  return { total, natural };
+export function checkedNatural(reply, faces) {
+  const natural = reply?.natural;
+  return Number.isInteger(natural) && natural >= 1 && natural <= faces ? natural : null;
 }
