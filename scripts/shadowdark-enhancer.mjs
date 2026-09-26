@@ -13,6 +13,7 @@ import { registerCrawlTracker, refreshTracker } from "./crawl-strip/crawl-tracke
 import { init as luckRerollInit } from "./luck-reroll/luck-reroll.mjs";
 import { init as blitzInit } from "./modes-of-play/blitz.mjs";
 import { init as hunterInit } from "./modes-of-play/hunter.mjs";
+import * as Dying from "./dying/dying.mjs";
 import { init as spellMishapInit } from "./spell-mishap/spell-mishap.mjs";
 import { init as prayerRollInit } from "./character-sheet/prayer-roll.mjs";
 import { init as scavengerInit } from "./scavenger/scavenger.mjs";
@@ -88,7 +89,7 @@ import { initRivalClassTable } from "./forge-loot/rival-class-table-adapter.mjs"
 // templates, producing unstyled block-flow UI. Keep the manifest stylesheet as
 // the startup fallback, then layer a content-addressed copy above it. The layout
 // contract test requires this revision to change whenever the CSS file changes.
-const STYLESHEET_REV = "000935629eaf";
+const STYLESHEET_REV = "32773381b43f";
 
 // The same problem for the SCRIPTS, which cannot be solved the same way: their
 // URLs come from the manifest, which Foundry validates as real package paths,
@@ -103,7 +104,7 @@ const STYLESHEET_REV = "000935629eaf";
 // stale); module.json carries the same hash and is fetched fresh at runtime. A
 // mismatch is a stale cache by construction — it cannot be anything else. Both
 // stamps are written by `npm run inventory` and gated by `inventory:check`.
-const BUILD_REV = "cb94b52d34f1";
+const BUILD_REV = "78a55c0f82b0";
 
 /**
  * Tell the user when their browser is running an old build of this module, and
@@ -406,8 +407,8 @@ Hooks.once("init", () => {
   // game.modules.get(MODULE_ID).api on ready; consumers should listen for
   // the "shadowdarkEnhancer.ready" hook. Reference: docs/API.md.
   game.shadowdarkEnhancer = {
-    // 1.5.0 — additive: hexMaps namespace (hex tagger, dataset, hand-off).
-    apiVersion: "1.5.0",
+    // 1.6.0 — additive: dying namespace (death timers, stabilize, #181).
+    apiVersion: "1.6.0",
     // Guided, ordered Character Builder — a replacement for the system's
     // random generator. `open({ level0?, actor? })` renders the wizard.
     charBuilder: {
@@ -695,6 +696,22 @@ Hooks.once("init", () => {
       history: (actor) => Renown.history(actor),
       historyByPlayer: () => Renown.historyByPlayer(),
     },
+    // Dying (core p.89) with Deadly and Fatality (p.111). Reads for anyone;
+    // every write is the GM's, except `stabilize({ by })`, whose INT check a
+    // player rolls for their own character and the GM applies.
+    dying: {
+      isDying: (actor) => Dying.isDying(actor),
+      timer: (actor) => Dying.timer(actor),
+      state: (actor) => Dying.dyingState(actor),
+      stabilize: (actor, opts) => Dying.stabilize(actor, opts),
+      rise: (actor) => Dying.rise(actor),
+      adjust: (actor, delta) => Dying.adjust(actor, delta),
+      setConscious: (actor, conscious) => Dying.setConscious(actor, conscious),
+      // The stat damage seam (#182): CON 0 kills unless River of Death.
+      onConZero: (actor) => Dying.onConZero(actor),
+      STATUS: Dying.DYING_STATUS,
+      KEYS: { ...Dying.DYING_KEYS },
+    },
     // Pit Fighting — CS2's bouts (pgs 20–24). Mechanics only: the venue, twist,
     // prize and foe text all come from RollTables the GM imports from their own
     // book, and the window names any that are missing instead of inventing them.
@@ -859,6 +876,7 @@ Hooks.once("ready", () => {
   luckRerollInit();
   blitzInit();
   hunterInit();
+  Dying.init();
   spellMishapInit();
   prayerRollInit();
   scavengerInit();

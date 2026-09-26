@@ -17,6 +17,7 @@ const FEATURES = {
   // headless (no hub instance) and still speaks to the GM through en.json.
   "SDE.importer.": [...dir("scripts/importer", /^importer-hub.*\.mjs$/), ...dir("scripts/importer/hex"),
     "templates/importer-hub.hbs", "templates/partials/tree-node.hbs"],
+  "SDE.dying.": dir("scripts/dying"),
 };
 
 /** Every key of `prefix` mentioned anywhere in its files, with one file that mentions it. */

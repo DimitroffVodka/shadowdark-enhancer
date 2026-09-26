@@ -73,10 +73,13 @@ export const SETTING_GROUPS = [
         entries: ["modeBlitzLights"] },
       { label: "SDE.settings.modesOfPlayMenu.chaos", hint: "SDE.settings.modesOfPlayMenu.chaosHint", mode: true,
         entries: ["modeChaosInitiative", { key: "modeChaosDiceSoNice", option: true }] },
+      // The hidden death timer is an option of the dying rule, not one of
+      // Deadly's: it rides the box of the mode that changes dying, as Chaos's
+      // Dice So Nice does, so the Deadly switch leaves it alone.
       { label: "SDE.settings.modesOfPlayMenu.deadly", hint: "SDE.settings.modesOfPlayMenu.deadlyHint", mode: true,
-        entries: [{ key: "modeDeadlyTimer", pending: true }, { key: "modeDeadlyStabilize", pending: true }] },
+        entries: ["modeDeadlyTimer", "modeDeadlyStabilize", { key: "dyingHiddenTimer", option: true }] },
       { label: "SDE.settings.modesOfPlayMenu.fatality", hint: "SDE.settings.modesOfPlayMenu.fatalityHint", mode: true,
-        entries: [{ key: "modeFatality", pending: true }] },
+        entries: ["modeFatality"] },
       { label: "SDE.settings.modesOfPlayMenu.grinder", hint: "SDE.settings.modesOfPlayMenu.grinderHint", mode: true,
         entries: [
           // The keys are the contract with Extras (DimitroffVodka/shadowdark-extras#149).

@@ -43,6 +43,8 @@
  *   system.roll.spell.bonus.all                        PlayerSD.mjs:456
  *   system.roll.<melee|ranged>.critical-success.<sel>  PlayerSD.mjs:270-280
  *   system.roll.attack.upgrade-damage-die.<sel>        config.mjs
+ *   flags.shadowdark-enhancer.dyingTimerBonus / .stabilizeDC   dying-core.mjs
+ *     (this module's own dying modifiers, #181; read by dying.mjs)
  *
  * Per-weapon keys work by SELECTOR: `all`, one of the item's property names,
  * its `baseWeapon`, or its slugified NAME (_ActorBaseSD.mjs:189-209). That is
@@ -57,6 +59,8 @@
  *
  * Pure data + pure helpers: no Foundry globals, no Date, no Math.random.
  */
+
+import { DYING_KEYS } from "../dying/dying-core.mjs";
 
 /**
  * A change is `{key, value, type, phase}`, NOT the numeric `mode` of older
@@ -155,7 +159,7 @@ export const TRAINERS = [
     manifestId: "gmgwr-gladiator-training-benefits",
     table: "Gladiator Training Benefits",
     benefits: [
-      { roll: 1, label: "+1 to death timer rolls", todo: "Shadowdark's death timer is a countdown, not a roll." },
+      { roll: 1, label: "+1 to death timer rolls", changes: [add(DYING_KEYS.timerBonus)] },
       {
         roll: 2,
         label: "+1 melee attacks and damage",
@@ -192,7 +196,7 @@ export const TRAINERS = [
     manifestId: "gmgwr-healer-training-benefits",
     table: "Healer Training Benefits",
     benefits: [
-      { roll: 1, label: "Stabilising is always DC 12", todo: "Set the DC when the check is called for." },
+      { roll: 1, label: "Stabilising is always DC 12", changes: [override(DYING_KEYS.stabilizeDC, 12)] },
       { roll: 2, label: "+1d4 HP on healing you give", todo: "Add the die to healing you administer." },
       { roll: 3, label: "Immune to snake venom", todo: "Narrower than any immunity the system models." },
       { roll: 4, label: "+2 CON", changes: [add("system.abilities.con.value", 2)] },

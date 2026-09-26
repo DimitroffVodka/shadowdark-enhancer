@@ -20,6 +20,7 @@ import { canAdvanceTurn, canAdvanceOocTurn, nextTurnWouldRollRound } from "./cra
 import { oocOrderComplete } from "./crawl-state-core.mjs";
 import { combatantEntry, isHiddenFromStrip } from "./turn-skip-core.mjs";
 import { showOocReset } from "./crawl-tracker-core.mjs";
+import { dyingState, badgeHTML as dyingBadgeHTML, openMenu as openDyingMenu } from "../dying/dying.mjs";
 import {
   buildTabStripHTML,
   bindActionMenuEvents,
@@ -694,7 +695,9 @@ export const CrawlStrip = {
       const combatant  = m.combatantId
         ? game.combat?.combatants.get(m.combatantId)
         : (m.tokenId ? combatantMap.get(m.tokenId) : null);
-      const isDefeated = combatant?.defeated ?? false;
+      // The system marks a PC defeated at 0 HP; a dying or stable one shows
+      // the dying badge instead of the skull, which stays for the dead.
+      const isDefeated = (combatant?.defeated ?? false) && !(m.type === "player" && dyingState(actor));
 
       // A player sees a hostile (or secret) NPC's HP bar but none of its
       // numbers — no HP, AC, or movement (#163). Disposition is read off the
@@ -814,6 +817,7 @@ export const CrawlStrip = {
             </div>
           </div>
           ${lightBadge}
+          ${actor && m.type === "player" ? dyingBadgeHTML(actor) : ""}
           ${isDefeated ? `<div class="sde-strip-defeated-icon">${ICONS.skull}</div>` : ""}
           ${(() => {
             // Combat mode: dice when combatant has no initiative; otherwise show the rolled value as a badge.
@@ -1316,6 +1320,17 @@ export const CrawlStrip = {
         ev.preventDefault();
         ev.stopPropagation();
         el.click();
+      });
+    });
+
+    // Dying badges (dying.mjs): the GM's buttons and the stabilize check.
+    // A real <button>, so the card's own key handler leaves it alone.
+    this._el.querySelectorAll('[data-action="dying"]').forEach(el => {
+      el.addEventListener("click", ev => {
+        ev.stopPropagation();
+        ev.preventDefault();
+        const actor = fromUuidSync(el.dataset.actorUuid);
+        if (actor) void openDyingMenu(actor);
       });
     });
 

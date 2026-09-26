@@ -16,7 +16,7 @@ and Forge & Loot features.
 [`charBuilder`](#charbuilder--guided-character-creation) ·
 [`actors`](#actors--western-reaches-boats)
 
-**API version:** `1.5.0` (semver — additive changes bump the minor version,
+**API version:** `1.6.0` (semver — additive changes bump the minor version,
 breaking changes the major; check `apiVersion` before relying on newer keys).
 
 ## Discovery
@@ -893,7 +893,7 @@ await api.training.taught(actor, "gladiator");   // → [2]
 module can compute grants a Talent carrying Active Effect changes; one it
 cannot grants a Talent carrying the trainer's name, the book's line and a
 plain sentence saying what the table still does by hand. Of the 84 benefits,
-**24 compute something today and 60 are recorded as prose** — 13 carry effect
+**26 compute something today and 58 are recorded as prose** — 15 carry effect
 changes, 10 run a one-time write, 4 offer an either/or.
 
 Roughly half the prose is automatable and simply is not automated yet: the
@@ -935,6 +935,49 @@ works on the GM's own scene image and book text.
 The dataset carries published hex numbers only (`num`, column-major: 1403 is
 column 14, row 03); never a column and row pair.
 
+---
+
+## `dying` — death timers and stabilizing
+
+Added in 1.6.0. The core dying rule (p.89) with Deadly and Fatality (p.111);
+the table-facing description is the wiki page *Dying and Death Timers*.
+
+```js
+const d = game.shadowdarkEnhancer.dying;
+
+d.isDying(actor);                  // → true while dying (not stable, not dead)
+d.timer(actor);                    // → rounds left, or null
+d.state(actor);                    // → { timer, stable, conscious, tick } or null
+
+await d.stabilize(actor, { by: helper }); // helper's INT check on THIS client; true on success
+await d.stabilize(actor);                 // GM: no roll (a potion, an automatic success)
+await d.rise(actor);                      // GM: up at 1 HP, everything cleared
+await d.adjust(actor, +1);                // GM: rounds added (or removed), never below 1
+await d.setConscious(actor, true);        // GM: acting while dying; the timer still runs
+await d.onConZero(actor);                 // GM: CON 0 → dead unless noDeathAtZeroCon; → died?
+
+d.STATUS;                          // "sde-dying", the status this module registers
+d.KEYS.timerDie;                   // "flags.shadowdark-enhancer.dyingTimerDie", …
+```
+
+| Call | Who | Notes |
+|---|---|---|
+| `isDying`, `timer`, `state` | anyone | Read the actor's `flags["shadowdark-enhancer"].dying`. The hidden timer hides the count in the UI only. |
+| `stabilize(actor, { by })` | owner of `by`, or GM | Runs the system's `rollStatCheck("int")` for `by` with the DC resolved (15; 18 under Deadly or near a `stabilizeDCNear` creature; `by`'s own `stabilizeDC` beats both). A player's success is relayed to the active GM (query `shadowdark-enhancer.dying`), which re-checks that the sender owns `by` and that the target is still dying. |
+| `stabilize(actor)` | GM | No roll. |
+| `rise`, `adjust`, `setConscious` | GM | Serialized per actor with the automatic steps. |
+| `onConZero(actor)` | GM | The stat damage seam (#182): call it when CON reaches 0. Returns `false` when the character carries `noDeathAtZeroCon` (River of Death), else kills it and returns `true`. Works on any actor. |
+
+`KEYS` is the modifier vocabulary, set on Active Effects (`override`, except
+`timerBonus`, which is `add`): `timerDie`, `timerBonus`, `riseMin`,
+`riseMinNear`, `stabilizeDC`, `stabilizeDCNear`, `noDeathAtZeroCon`. Values are
+read from the actor's derived flags at the moment they are needed.
+
+Everything automatic runs on the active GM: 0 HP in `updateActor`, the turn
+start in a wrapped `Combat#_onStartTurn`, and the out-of-combat tick on the
+`shadowdark-enhancer.crawlRound` hook. None of it runs while Shadowdark Crawl
+Helper is active.
+
 ## Stability notes
 
 - Everything documented here is public surface; undocumented internals
@@ -947,6 +990,8 @@ column 14, row 03); never a column and row pair.
   not bump `apiVersion`.
 - `1.3.0` adds `loot.resolve` and `loot.generated.{identity,plan,reconcile}`.
 - `1.5.0` adds the `hexMaps` namespace (Hex Tagger, dataset builder, hand-off).
+- `1.6.0` adds the `dying` namespace (death timers, stabilize, the stat damage
+  seam `onConZero`) and the `shadowdark-enhancer.crawlRound` hook.
 - `1.4.0` adds the shared `forgeLoot.open()` preview shell. Generator rules and
   document writes remain behind the later NPC/Rival adapter implementations.
   The version policy is additive: new namespaces bump the minor version; breaking
@@ -1042,6 +1087,7 @@ plus `authorizeActorFor(actorId, user)` on the GM side, and
 | `shadowdark-enhancer.lootScored` | A claimable loot card is posted | `{ totalGp, totalXp, items, source, messageId }` |
 | `shadowdark-enhancer.crawlStart` | A crawl session starts | the crawl state |
 | `shadowdark-enhancer.crawlEnd` | A crawl session ends | the crawl state |
+| `shadowdark-enhancer.crawlRound` | The crawl round advances, on the one GM client that advanced it (the death timers tick on it) | the crawl state |
 | `sde.stateChanged` | Any crawl-state change (mode, turn, roster, out-of-combat initiative) — this is the high-frequency one the strip and bar re-render on | the crawl state |
 
 > **Three prefixes are in play, deliberately.** The ready signal uses camelCase
