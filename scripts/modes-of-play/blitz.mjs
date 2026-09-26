@@ -91,7 +91,9 @@ export function init() {
   });
 
   Hooks.on("preCreateItem", (item, data) => {
-    if (!blitzOn()) return;
+    // Only a light an actor carries: an Effect created in the Items sidebar or
+    // a compendium is a template, and rewriting it would outlast Blitz.
+    if (!blitzOn() || !item.parent) return;
     const patch = blitzEffectPatch(item.toObject?.() ?? data, CONFIG.SHADOWDARK?.DURATION_UNITS);
     if (patch) item.updateSource(patch);
   });
