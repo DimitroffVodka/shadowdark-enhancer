@@ -50,9 +50,10 @@ export function isArcticSeaEncounterTable(table) {
  *
  * The GM Guide prints daggers against some encounter categories ("Fiend†") and
  * the grab has no superscript to drop, so the marker lands in the result text.
- * Four Rimespire zone tables carry one.
+ * Four Rimespire zone tables carry one. Footnote numbers land the same way
+ * ("Land1" for "Land¹", in many zone tables), and no category ends in one (#262).
  */
-const FOOTNOTE_MARKER = /[\u2020\u2021*\u00ba\u00b0]+\s*$/u;
+const FOOTNOTE_MARKER = /[\u2020\u2021*\u00ba\u00b0\u00b9\u00b2\u00b3\d]+\s*$/u;
 
 /** True for a table that routes to another table rather than to a monster. */
 export function isEncounterZoneTable(name) {
@@ -93,6 +94,31 @@ export function encounterZoneTargets(zoneName, resultText) {
     .map((part) => (/^special$/i.test(part)
       ? `${base} Special Encounters`
       : `${base} Encounters: ${part}`));
+}
+
+/**
+ * The category tables an encounter check rolls after a zone table's row, as the
+ * GM actually has them (#262). encounterZoneTargets names "<region> Encounters:
+ * <category>"; Tal-Yool Jungle splits that table by the time of day ("<region>
+ * Day Encounters: Land", "… Night Encounters: Land"), and a table may be filed
+ * without the "<book> - " prefix the zone table carries. Each target resolves to
+ * the first name `available` holds, else is dropped. Pure.
+ *
+ * @param {string} zoneName            the zone table's name
+ * @param {string} resultText          the row it gave
+ * @param {Iterable<string>} available table names that exist
+ * @param {{night?:boolean}} [opts]
+ * @returns {string[]} table names to roll, in order
+ */
+export function categoryTables(zoneName, resultText, available, { night = false } = {}) {
+  // Case-blind: an imported row can read "horror" for the "Horror" table.
+  const have = new Map([...available].map((n) => [n.toLowerCase(), n]));
+  const unprefixed = (name) => name.replace(/^.*?\s-\s/, "");
+  return encounterZoneTargets(zoneName, resultText).map((name) => {
+    const timed = name.replace(/ Encounters: /, night ? " Night Encounters: " : " Day Encounters: ");
+    const hit = [name, timed, unprefixed(name), unprefixed(timed)].find((n) => have.has(n.toLowerCase()));
+    return hit ? have.get(hit.toLowerCase()) : null;
+  }).filter(Boolean);
 }
 
 /**

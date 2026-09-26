@@ -131,6 +131,13 @@ book intends for the party's hex, ahead of your **Tables by terrain**:
   Myre Swamp hex on a new-moon night rolls *New Moon*; on any other night it
   rolls *Swamp, Night*. Day and night here keep the fixed 18:00 and 06:00
   above, which are the book's halves for check hours, not the real sunset.
+- **Then the category's own table.** A zone grid's cell names a category
+  (*Beast*, *Land*), and the book sends you to that region's table for it. The
+  roll carries on there by itself — Tal-Yool Jungle's *Day* or *Night* table by
+  the clock — and the card says which table it used ("Land: rolled on Tal-Yool
+  Jungle Night Encounters: Land"). A cell naming two (*Beast + Horror*) rolls
+  both; the second posts to chat on its own. A row in that table that points on
+  again (*Special*, *Land + Cursed*) is shown as printed, for you to follow.
 
 The chat card then names the column too — *Hex 2849 · forest, coast · Lowland
 Moor: Coast*. When no grid answers (no region, or a terrain the region does not

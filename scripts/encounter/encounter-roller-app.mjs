@@ -22,6 +22,8 @@ import {
 } from "../shared/art-utils.mjs";
 import { MonsterCreator } from "../monster-creator/encounter-creator.mjs";
 import { findSuitePack } from "../shared/compendium-suite.mjs";
+import { categoryTables, isEncounterZoneTable } from "../importer/tables/table-enrich.mjs";
+import { parseZoneTableName } from "./encounter-terrain.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 // v13/v14 namespaced renderTemplate (the global emits deprecation warnings).
@@ -756,7 +758,39 @@ export class EncounterRollerApp extends HandlebarsApplicationMixin(ApplicationV2
       return;
     }
 
-    await this._buildResultFrom(result);
+    // A zone table only names a category: roll the region's table for it (#262).
+    const chained = await this._rollCategory(table, result);
+    await this._buildResultFrom(chained?.result ?? result, { via: chained?.via ?? null });
+  }
+
+  /**
+   * An Encounter Zone (or Type) table's row is a category ("Beast"), and the
+   * book sends the GM to that region's table for it: draw it, by day or night
+   * where the region splits it by time (Tal-Yool Jungle). A second category in
+   * the same row ("Beast + Horror") is drawn to chat on its own. Null when this
+   * isn't a zone table or the category's table isn't imported (#262).
+   * @private
+   */
+  async _rollCategory(table, result) {
+    if (!isEncounterZoneTable(table?.name)) return null;
+    const pack = table.pack ? game.packs.get(table.pack) : null;
+    const names = pack ? [...(pack.index ?? [])].map((e) => e.name) : game.tables.map((t) => t.name);
+    const region = parseZoneTableName(table.name)?.region;
+    const night = game.shadowdarkEnhancer?.time?.isNight?.(undefined, { region }) ?? false;
+    const category = _resultBody(result).replace(/<[^>]*>/g, "").trim();
+    const [first, ...more] = categoryTables(table.name, category, names, { night });
+    if (!first) return null;
+    const get = (name) => (pack
+      ? pack.getDocument(pack.index.find((e) => e.name === name)?._id)
+      : game.tables.getName(name));
+    // Posted like the check itself: to the GMs when encounter rolls are GM-only.
+    const messageMode = game.settings.get(MODULE_ID, "encounterRollGMOnly") ? "gm" : undefined;
+    for (const name of more) await (await get(name))?.draw({ messageMode });
+    const next = await get(first);
+    const drawn = next ? (await next.draw({ displayChat: false })).results[0] : null;
+    if (!drawn) return null;
+    const shown = next.name.replace(/^.*?\s-\s/, "");
+    return { result: drawn, via: game.i18n.format("SDE.encounter.roller.via", { category, table: shown }) };
   }
 
   /**
@@ -770,7 +804,7 @@ export class EncounterRollerApp extends HandlebarsApplicationMixin(ApplicationV2
    * @param {TableResult} result
    * @private
    */
-  async _buildResultFrom(result) {
+  async _buildResultFrom(result, { via = null } = {}) {
     const monster = await this._parseMonsterFromResult(result);
     if (monster) {
       // Resolve best art: if the actor is a world copy of a compendium
@@ -798,6 +832,8 @@ export class EncounterRollerApp extends HandlebarsApplicationMixin(ApplicationV2
         this._lastResult = { kind: "empty" };
       }
     }
+    // Which table a category sent the roll to, shown on the card and in chat (#262).
+    this._lastResult.via = via;
     this.render();
   }
 

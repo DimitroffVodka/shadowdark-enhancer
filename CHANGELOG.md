@@ -166,11 +166,14 @@ page walks through it in order.
   river rolls River, and a coastal hex rolls Coast where the region prints
   one. Day and night columns follow the world clock (night is 18:00 to
   06:00). N./S. columns split the region's rows in half. A *New Moon* or *Full
-  Moon* column takes over on its night. Without those tables, **Tables by
-  terrain** in the Encounter right-click menu gives each terrain a roll table
-  of your own. The chat card names the hex and the column it rolled. A hex
-  with no table, or a party off the map, falls back to the active table.
-  `encounter.tableForHex()` gives other modules the same table. (#169, #197)
+  Moon* column takes over on its night. The column names a category (Beast,
+  Land), and the roll carries on to the region's table for it, Tal-Yool
+  Jungle's day or night table by the clock; the card says which table it
+  used. Without those tables, **Tables by terrain** in the Encounter
+  right-click menu gives each terrain a roll table of your own. The chat card
+  names the hex and the column it rolled. A hex with no table, or a party off
+  the map, falls back to the active table. `encounter.tableForHex()` gives
+  other modules the same table. (#169, #197, #262)
 
 #### Modes of Play
 
