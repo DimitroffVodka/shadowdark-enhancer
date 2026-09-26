@@ -344,6 +344,10 @@ page walks through it in order.
   Extras** reads what Extras already holds for a map through `getHexRecords`,
   and the Quest Log lists parties through `api.party`, instead of reading
   Extras' stored data directly. An older Extras still works as before. (#226)
+- **Every string the module shows now comes from `languages/en.json`**, so the
+  whole interface can be translated from one file. The English is unchanged.
+  Book content you import, and the rules tables the module carries, stay as
+  they are. (#169)
 
 ### Fixed
 
