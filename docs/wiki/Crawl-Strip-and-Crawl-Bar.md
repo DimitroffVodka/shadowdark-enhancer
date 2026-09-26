@@ -144,15 +144,16 @@ Differences from combat:
 
 On a tagged hex map the Crawl Bar also offers **Travel**. It starts overland
 travel instead of a crawl. Overland is being built in pieces (#192). So far it
-switches the mode, keeps the travel state and rolls the weather.
+switches the mode, keeps the travel state, rolls the weather, and charges each
+move of the travel token against the day's hexes, moving the clock with it.
 
 - **Which token travels.** The Shadowdark Extras party token, when exactly one
   is on the map. Otherwise select the one token that travels before pressing
   **Travel**.
 - **Who travels.** That party's members, or every player-owned character.
-- **While travelling** the Crawl Strip is off and movement isn't tracked. The
-  bar shows **Overland** (with today's weather once it's rolled), **Weather**
-  and **End travel**. A combat started while travelling takes over as usual and
+- **While travelling** the Crawl Strip is off and the crawl's movement isn't
+  tracked. The bar shows **Overland**, today's weather once it's rolled, and the
+  hexes left, followed by **Start day**, **Weather** and **End travel**. A combat started while travelling takes over as usual and
   hands back to travel when it ends.
 - **Weather** rolls today's weather and posts it to chat. It holds until the
   next dawn, so pressing it again the same day only reminds you what it is.
@@ -161,14 +162,23 @@ switches the mode, keeps the travel state and rolls the weather.
   is a storm for 1d4 days, with no roll while it lasts. Pick the rule under
   **Configure Settings → Shadowdark Enhancer → Overland**. A storm makes
   normal terrain difficult, and a storm in a harsh climate stops travel
-  altogether. The day's movement will charge for that once it is built.
+  altogether.
+- **Start day** opens a travel day. Pick walking, mounted or sailing, and a
+  boat actor to sail aboard. Tick **Push on** for half as many hexes again,
+  at the same pace. The weather is rolled first if today's hasn't been. The
+  hexes per day come from **Edit Rules Data**, or from the boat's speed.
+- **Moving the travel token** costs each hex's terrain cost from the day's
+  hexes, and moves the world clock: a travel day is 8 hours, so walking costs
+  2 hours per point. Following a path from one path hex to the next costs 1.
+  A move the day can't pay for bounces, with a message saying why. To
+  reposition the token without spending anything, move it with the
+  **Displace** movement action.
 - **End travel** stops travelling but keeps where the party is and the day's
   progress, so **Travel** later picks up where it left off.
 - **Start** still begins a crawl, for example when the party reaches a dungeon.
   To travel again after a crawl, end the crawl first.
 
-The day's movement budget, encounter checks, foraging and rations come with
-the next pieces.
+Encounter checks, foraging, rations and camp come with the next pieces.
 
 ## The party cards
 

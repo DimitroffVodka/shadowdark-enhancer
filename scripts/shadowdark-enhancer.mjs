@@ -9,7 +9,7 @@ import { ICONS } from "./shared/icons.mjs";
 import { registerSettings } from "./shared/settings.mjs";
 import { rulesApi } from "./rules-data/rules-data-core.mjs";
 import { timeApi, registerTimeHooks } from "./time/time.mjs";
-import { overlandState, isOverland, rollWeather, registerOverland } from "./overland/overland.mjs";
+import { overlandState, isOverland, rollWeather, startDay, registerOverland } from "./overland/overland.mjs";
 import { CrawlState } from "./crawl-strip/crawl-state.mjs";
 import { CrawlStrip } from "./crawl-strip/crawl-strip.mjs";
 import { registerCrawlTracker, refreshTracker } from "./crawl-strip/crawl-tracker.mjs";
@@ -112,7 +112,7 @@ const STYLESHEET_REV = "04c122556d8d";
 // stale); module.json carries the same hash and is fetched fresh at runtime. A
 // mismatch is a stale cache by construction — it cannot be anything else. Both
 // stamps are written by `npm run inventory` and gated by `inventory:check`.
-const BUILD_REV = "c60c4a3e0a0d";
+const BUILD_REV = "ee8cfce740d0";
 
 /**
  * Tell the user when their browser is running an old build of this module, and
@@ -430,14 +430,16 @@ Hooks.once("init", () => {
     // 1.13.0 — additive: time.advanceOffDuty (the off-duty clock move, Overland O2, #228).
     // 1.14.0 — additive: overland namespace and the overland* hooks (Overland O3, #229).
     // 1.15.0 — additive: overland.rollWeather (Overland O4, #230).
-    apiVersion: "1.15.0",
+    // 1.16.0 — additive: overland.startDay, and moves spend the day's budget (Overland O5, #231).
+    apiVersion: "1.16.0",
     // The one travel state per world (scripts/overland/overland.mjs): a copy
     // with hexes left, climate, storm, harshness and night derived; whether
-    // travel is on; and today's weather roll (GM).
+    // travel is on; today's weather roll and the travel day's start (GM).
     overland: {
       state: () => overlandState(),
       isActive: () => isOverland(),
       rollWeather: (options) => rollWeather(options),
+      startDay: (options) => startDay(options),
     },
     // Readings on Foundry's world clock: season, day and night, sun, moon,
     // anchors, the date string. Synchronous, any user (scripts/time/time.mjs).

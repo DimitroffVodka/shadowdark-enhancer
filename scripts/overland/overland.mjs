@@ -12,7 +12,11 @@
  * - A player's one action, Forage, is relayed (relayToGM), and the receiver
  *   checks the sender from the query context, never from the payload.
  * - The weather (#230) is a GM's roll, forwarded the same way; the dice are
- *   rolled on the active GM, inside the queue.
+ *   rolled on the active GM, inside the queue. So is Start day (#231).
+ * - Moving the travel token spends the day's budget (#231, §5.2). The mover's
+ *   client refuses a move the day can't pay for (preMoveToken); the active GM
+ *   re-prices what was moved (moveToken), spends it, records the hex and moves
+ *   the clock, and sends the token back if two quick moves overdrew the day.
  *
  * The mode itself is CrawlState's `overland` (crawl-state-core.mjs). In it the
  * Crawl Strip is off and movement tracking idle; a combat hides it and
@@ -27,13 +31,14 @@ import { MODULE_ID } from "../shared/module-id.mjs";
 import { CrawlState } from "../crawl-strip/crawl-state.mjs";
 import { authorizeActorFor, isActiveGM, queryActiveGM, refuseQuery, relayToGM } from "../shared/gm-relay.mjs";
 import { makeQueue } from "../quests/quest-core.mjs";
-import { isHexMapScene, partyHex } from "../encounter/encounter-terrain.mjs";
+import { hexReader, isHexMapScene, partyHex } from "../encounter/encounter-terrain.mjs";
+import { BOAT_TYPE } from "../actors/register-actors.mjs";
 import { dawnAfter } from "../time/time-core.mjs";
 import { esc } from "../shared/esc.mjs";
 import {
   defaultOverlandState, normalizeOverlandState, startTravel, setHex, recordForage,
   pickTravelToken, forageRefusal, setWeather, weatherHolds, weatherAdvantage, weatherFormula,
-  weatherFromRoll, harshToday, WEATHER_RULES,
+  weatherFromRoll, harshToday, WEATHER_RULES, METHODS, openDay, spendMove, priceMove, moveVerdict, hexCost,
 } from "./overland-state-core.mjs";
 
 export const OVERLAND_SETTING = "overlandState";
@@ -57,6 +62,13 @@ const WEATHER_TEXT = {
   stormy: ["SDE.overland.weather.stormy", "SDE.overland.weather.stormyEffect"],
   fair: ["SDE.overland.weather.fair", "SDE.overland.weather.fairEffect"],
   excellent: ["SDE.overland.weather.excellent", "SDE.overland.weather.excellentEffect"],
+};
+
+/** Each travel method's name (literal keys). */
+const METHOD_NAME = {
+  walking: "SDE.overland.method.walking",
+  mounted: "SDE.overland.method.mounted",
+  sailing: "SDE.overland.method.sailing",
 };
 
 /** A weather kind's name, localised. */
@@ -151,11 +163,11 @@ function membersFor(actorId) {
 }
 
 /** The hex's region, from the print's region scan (lazy: hex-region is large). */
-async function withRegion(hex) {
+async function withRegion(hex, scene = canvas.scene) {
   if (!hex) return null;
   try {
     const { sceneZones } = await import("../hex-map/hex-region.mjs");
-    return { ...hex, region: (await sceneZones(canvas.scene)).byNum.get(hex.num)?.zone ?? null };
+    return { ...hex, region: (await sceneZones(scene)).byNum.get(hex.num)?.zone ?? null };
   } catch {
     return { ...hex, region: null };
   }
@@ -219,6 +231,210 @@ async function postWeather(weather, rolls, reroll) {
 }
 
 /**
+ * Roll today's weather here, on the active GM inside the queue, unless today's
+ * still holds and this isn't a reroll.
+ * @returns {Promise<{rolled:boolean, weather:object}>}
+ */
+async function rollWeatherHere(reroll) {
+  const now = game.time.worldTime;
+  if (!reroll && weatherHolds(_state.weather, now)) return { rolled: false, weather: structuredClone(_state.weather) };
+  const rule = weatherRule();
+  const advantage = weatherAdvantage(_state.weather, { rule, reroll, now });
+  const roll = await new Roll(weatherFormula(advantage)).evaluate();
+  const days = rule === "core" && roll.total === 1 ? await new Roll("1d4").evaluate() : null;
+  const cal = game.time.calendar;
+  const weather = weatherFromRoll({
+    rule, roll: roll.total, advantage, stormDays: days?.total ?? null, dawnAfter: (n) => dawnAfter(cal, now, n),
+  });
+  await commit(setWeather(_state, weather).state);
+  await postWeather(weather, [roll, days].filter(Boolean), reroll);
+  return { rolled: true, weather: structuredClone(weather) };
+}
+
+/** Seconds in an hour of the world's calendar. */
+function hourSeconds() {
+  const d = game.time.calendar?.days;
+  return (d?.secondsPerMinute ?? 60) * (d?.minutesPerHour ?? 60);
+}
+
+/** A boat actor by uuid, or null. */
+function boatActor(uuid) {
+  try { const a = uuid ? fromUuidSync(uuid) : null; return a?.type === BOAT_TYPE ? a : null; } catch { return null; }
+}
+
+/** "2 h" or "1 h 20 min": how long one point of cost takes today. */
+function pointDuration() {
+  const minutes = Math.round(_state.pointSeconds / (hourSeconds() / 60));
+  const h = Math.floor(minutes / 60), m = minutes % 60;
+  return m ? t("SDE.overland.day.hoursMinutes", { h, m }) : t("SDE.overland.day.hours", { h });
+}
+
+/** One chat line for the new travel day. */
+async function postDay(boat) {
+  const key = _state.pushed ? "SDE.overland.day.chatPushed" : "SDE.overland.day.chat";
+  const method = boat ? t("SDE.overland.day.aboard", { boat: boat.name }) : t(METHOD_NAME[_state.method]);
+  await ChatMessage.create({ content: `<p>${esc(t(key, { method, budget: _state.budget, time: pointDuration() }))}</p>` })
+    .catch((err) => console.error(`${MODULE_ID} | travel day chat line`, err));
+}
+
+/**
+ * Start a travel day now (GM), with its method and push, and a boat actor when
+ * sailing aboard one. The weather is rolled first unless today's still holds.
+ * A GM who isn't the active GM is forwarded there.
+ * @param {{method?:string, pushed?:boolean, boatUuid?:string|null}} [options]
+ * @returns {Promise<{ok:true}|{ok:false, error:string}>}
+ */
+export async function startDay({ method = "walking", pushed = false, boatUuid = null } = {}) {
+  if (!game.user?.isGM) return { ok: false, error: t("SDE.overland.notify.dayGmOnly") };
+  const data = { action: "startDay", method, pushed: pushed === true, boatUuid: boatUuid || null };
+  return isActiveGM() ? applyAction(data, game.user) : queryActiveGM(OVERLAND_QUERY, data, { label: t("SDE.overland.relayLabel") });
+}
+
+/**
+ * The Start day dialog: the method, the push, and a boat when there are boat
+ * actors. Resolves to startDay's options, or null when closed.
+ */
+export async function askDay() {
+  const boats = game.actors.filter((a) => a.type === BOAT_TYPE);
+  const option = (value, label, selected) => `<option value="${esc(value)}"${selected ? " selected" : ""}>${esc(label)}</option>`;
+  const content = `
+    <div class="form-group"><label>${esc(t("SDE.overland.day.method"))}</label>
+      <select name="method">${METHODS.map((m) => option(m, t(METHOD_NAME[m]), m === _state.method)).join("")}</select></div>
+    <div class="form-group"><label>${esc(t("SDE.overland.day.pushed"))}</label><input type="checkbox" name="pushed"></div>
+    <p class="hint">${esc(t("SDE.overland.day.pushedHint"))}</p>
+    ${boats.length ? `<div class="form-group"><label>${esc(t("SDE.overland.day.boat"))}</label>
+      <select name="boatUuid">${option("", t("SDE.overland.day.noBoat"), !_state.boatUuid)}${
+  boats.map((b) => option(b.uuid, b.name, b.uuid === _state.boatUuid)).join("")}</select></div>` : ""}`;
+  return foundry.applications.api.DialogV2.prompt({
+    window: { title: t("SDE.overland.day.title") },
+    content,
+    ok: {
+      label: t("SDE.overland.startDay"),
+      callback: (event, button) => {
+        const f = button.form.elements;
+        return { method: f.method.value, pushed: f.pushed.checked, boatUuid: f.boatUuid?.value || null };
+      },
+    },
+    rejectClose: false,
+  });
+}
+
+// ── Moving the travel token (#231, §5.2) ────────────────────────────────────
+
+/** Is this a move of the travel token that Overland prices? Not its own sending back. */
+const isTravelMove = (doc, options) => CrawlState.isOverland && !!_state.tokenUuid
+  && doc?.uuid === _state.tokenUuid && !options?.[MODULE_ID]?.overlandRollback;
+
+/**
+ * The steps of a move over the scene's grid: each tagged hex entered, the hex
+ * it was entered from, and whether that leg was a displace (free).
+ */
+function moveSteps(doc, grid, origin, waypoints, read) {
+  const steps = [];
+  let at = origin;
+  let from = read(grid.getOffset(doc.getCenterPoint(origin)));
+  for (const wp of waypoints) {
+    const displace = wp.action === "displace";
+    for (const offset of grid.getDirectPath([doc.getCenterPoint(at), doc.getCenterPoint(wp)]).slice(1)) {
+      const hex = read(offset);
+      if (!hex || hex.num === from?.num) continue;
+      steps.push({ hex, from, displace });
+      from = hex;
+    }
+    at = wp;
+  }
+  return steps;
+}
+
+/** A hex's cost today: hexCost with today's weather, harshness and boat bound. */
+function costToday() {
+  const s = overlandState();
+  const terrainCost = game.shadowdarkEnhancer?.rules?.terrainCost;
+  if (typeof terrainCost !== "function") return () => 1;
+  return (hex, from) => hexCost(terrainCost, hex, { from, stormy: s.stormy, harsh: !!s.harsh, boat: s.method === "sailing" });
+}
+
+/** Price a move of the travel token, or null when its scene isn't a tagged hex map. */
+function priceTravelMove(doc, origin, waypoints) {
+  const scene = doc.parent;
+  const read = hexReader({ scene, grid: scene?.grid });
+  if (!read) return null;
+  const steps = moveSteps(doc, scene.grid, origin, waypoints, read);
+  return { steps, ...priceMove(steps, costToday()) };
+}
+
+/** Why a move is refused, for the mover. */
+function refusalText(why, { cost, blocked }) {
+  if (why === "noDay") return t("SDE.overland.notify.noDay");
+  if (why === "impassable") return t("SDE.overland.notify.impassable", { num: blocked?.num ?? "", terrain: blocked?.terrain ?? "" });
+  return t("SDE.overland.notify.bounce", { cost, left: Math.max(0, _state.budget - _state.spent), budget: _state.budget });
+}
+
+/** The mover's client: refuse a move the day can't pay for, before it happens. */
+function onPreMoveToken(doc, move, options) {
+  if (!isTravelMove(doc, options)) return;
+  const priced = priceTravelMove(doc, move.origin, [...move.passed.waypoints, ...move.pending.waypoints]);
+  const why = priced && moveVerdict(_state, priced);
+  if (!why) return;
+  ui.notifications?.warn(refusalText(why, priced));
+  return false;
+}
+
+/** The active GM: spend what was moved. */
+function onMoveToken(doc, movement, operation) {
+  if (!isActiveGM() || !isTravelMove(doc, operation)) return;
+  const dest = movement.passed.waypoints.at(-1);
+  const priced = dest && priceTravelMove(doc, movement.origin, movement.passed.waypoints);
+  // Even a move within one hex goes through: it may start from an unpaid spot.
+  if (priced) recordMove(doc, movement.origin, dest, priced);
+}
+
+/**
+ * Where the token was sent back from, and to (#245 review). The server has
+ * already applied every move by the time the queue reaches it, so a queued
+ * move can start where a rejected one ended. Each rejected move's destination
+ * maps to the last paid position, so a move starting there is rejected too,
+ * and every rollback of the chain lands on that one position.
+ * ponytail: keyed by position and kept in memory on the active GM; a new day,
+ * or starting or ending travel, clears it.
+ */
+const _unpaid = new Map();
+const posKey = (p) => `${Math.round(p.x)}:${Math.round(p.y)}:${p.elevation ?? 0}`;
+
+/**
+ * On the active GM, in the queue: spend the move's cost, record the hex the
+ * token stands in, and move the clock by the cost at today's rate. A move the
+ * day can no longer pay for (two quick moves both passed the mover's check),
+ * or one that starts where a refused move ended, sends the token back to the
+ * last position that was paid for, displaced.
+ * @param {{x:number, y:number, elevation?:number}} origin  where this move started
+ * @param {{x:number, y:number, elevation?:number}} dest    where it ended
+ */
+export function recordMove(doc, origin, dest, priced) {
+  return serialize(async () => {
+    const back = _unpaid.get(posKey(origin));
+    const why = back ? "dependent" : moveVerdict(_state, priced);
+    if (why) {
+      const to = back ?? origin;
+      _unpaid.set(posKey(dest), to);
+      if (why !== "dependent") ui.notifications?.warn(refusalText(why, priced));
+      await doc.update({ x: to.x, y: to.y }, {
+        movement: { [doc.id]: { waypoints: [{ x: to.x, y: to.y, elevation: to.elevation,
+          action: "displace", snapped: false, explicit: false, checkpoint: true }] } },
+        animate: false, [MODULE_ID]: { overlandRollback: true },
+      });
+      return false;
+    }
+    _unpaid.delete(posKey(dest));
+    if (!priced.steps.length) return true;
+    const hex = await withRegion(priced.steps.at(-1).hex, doc.parent);
+    await commit(spendMove(_state, { cost: priced.cost, hex }).state);
+    if (priced.cost > 0) await game.time.advance(priced.cost * _state.pointSeconds);
+    return true;
+  });
+}
+
+/**
  * Forage for a character (a player for their own, or the GM). Records it for
  * today; the INT check and the ration it finds are #233's.
  * @param {string} actorId
@@ -230,7 +446,8 @@ export function requestForage(actorId) {
 /**
  * The active GM's side of every action. `user` comes from the query context
  * (or is this GM), never from the payload.
- * @param {{action:string, tokenUuid?:string, actorId?:string, hex?:object, reroll?:boolean}} data
+ * @param {{action:string, tokenUuid?:string, actorId?:string, hex?:object, reroll?:boolean,
+ *   method?:string, pushed?:boolean, boatUuid?:string|null}} data
  * @param {User} user
  */
 export function applyAction(data, user) {
@@ -241,6 +458,7 @@ export function applyAction(data, user) {
       case "start": {
         if (!user.isGM) return { ok: false, error: t("SDE.overland.notify.gmOnly") };
         if (CrawlState.mode !== "off" && !CrawlState.isOverland) return { ok: false, error: t("SDE.overland.notify.busy") };
+        _unpaid.clear();
         let { state } = startTravel(_state, { tokenUuid: data.tokenUuid, members: membersFor(data.actorId) });
         if (data.hex) state = setHex(state, data.hex).state;
         await commit(state);
@@ -249,25 +467,30 @@ export function applyAction(data, user) {
       }
       case "end": {
         if (!user.isGM) return { ok: false, error: t("SDE.overland.notify.gmOnly") };
+        _unpaid.clear();
         await CrawlState.endOverland();
         return { ok: true };
       }
       case "weather": {
         if (!user.isGM) return { ok: false, error: t("SDE.overland.notify.weatherGmOnly") };
-        const now = game.time.worldTime;
-        const reroll = data.reroll === true;
-        if (!reroll && weatherHolds(_state.weather, now)) return { ok: true, rolled: false, weather: structuredClone(_state.weather) };
-        const rule = weatherRule();
-        const advantage = weatherAdvantage(_state.weather, { rule, reroll, now });
-        const roll = await new Roll(weatherFormula(advantage)).evaluate();
-        const days = rule === "core" && roll.total === 1 ? await new Roll("1d4").evaluate() : null;
-        const cal = game.time.calendar;
-        const weather = weatherFromRoll({
-          rule, roll: roll.total, advantage, stormDays: days?.total ?? null, dawnAfter: (n) => dawnAfter(cal, now, n),
-        });
-        await commit(setWeather(_state, weather).state);
-        await postWeather(weather, [roll, days].filter(Boolean), reroll);
-        return { ok: true, rolled: true, weather: structuredClone(weather) };
+        return { ok: true, ...await rollWeatherHere(data.reroll === true) };
+      }
+      case "startDay": {
+        if (!user.isGM) return { ok: false, error: t("SDE.overland.notify.dayGmOnly") };
+        if (!CrawlState.isOverland) return { ok: false, error: t("SDE.overland.notify.notTravelling") };
+        if (!METHODS.includes(data.method)) return { ok: false, error: t("SDE.overland.notify.unknown") };
+        const boat = data.method === "sailing" ? boatActor(data.boatUuid) : null;
+        const base = boat ? Number(boat.system?.speed) : Number(game.shadowdarkEnhancer?.rules?.hexesPerDay?.(data.method));
+        if (!(base > 0)) return { ok: false, error: t("SDE.overland.notify.noBase", { method: t(METHOD_NAME[data.method]) }) };
+        // §5.1: the weather first, unless today's still holds; then the budget.
+        _unpaid.clear();
+        await rollWeatherHere(false);
+        await commit(openDay(_state, {
+          now: game.time.worldTime, method: data.method, pushed: data.pushed === true, base,
+          boatUuid: boat?.uuid ?? null, hourSeconds: hourSeconds(),
+        }).state);
+        await postDay(boat);
+        return { ok: true };
       }
       case "forage": {
         const auth = authorizeActorFor(data.actorId, user, { type: "Player" });
@@ -291,4 +514,6 @@ export function registerOverland() {
   _state = normalizeOverlandState(game.settings.get(MODULE_ID, OVERLAND_SETTING));
   CONFIG.queries[OVERLAND_QUERY] = (data, { user } = {}) => applyAction(data, user);
   game.socket.on(SOCKET, (msg) => { if (msg?.type === "overland") reread(); });
+  Hooks.on("preMoveToken", onPreMoveToken);
+  Hooks.on("moveToken", onMoveToken);
 }

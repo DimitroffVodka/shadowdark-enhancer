@@ -16,6 +16,10 @@ export const OVERLAND_VERSION = 1;
 export const METHODS = ["walking", "mounted", "sailing"];
 export const WEATHER_RULES = ["western", "core"];
 export const WEATHER_KINDS = ["stormy", "fair", "excellent"];
+/** A travel day is 8 hours of movement (decided, Q3: the boat's "hexes per 8-hour day"). */
+export const TRAVEL_DAY_HOURS = 8;
+/** A pushed day has half as many points again, at the same rate (§5.1). */
+export const PUSH = 1.5;
 
 /** @returns {object} a fresh travel state: no token, no day open */
 export function defaultOverlandState() {
@@ -30,6 +34,7 @@ export function defaultOverlandState() {
     pushed: false,        // chosen at dawn only
     budget: 0,            // the day's points, fixed at dawn
     spent: 0,             // points spent; hexes left = budget - spent
+    pointSeconds: 0,      // clock seconds per point, fixed at dawn (#231)
     weather: null,        // {kind, roll, rule, until, advantageNext, advantage, days} (#230)
     checks: [],           // the day's encounter checks (#232)
     pending: null,        // {until, reason}: an advance stopped by a hit (#232)
@@ -78,6 +83,7 @@ export function normalizeOverlandState(value) {
     pushed: value.pushed === true,
     budget: int(value.budget),
     spent: int(value.spent),
+    pointSeconds: int(value.pointSeconds),
     weather: weatherOf(value.weather),
     checks: Array.isArray(value.checks) ? value.checks.map(obj).filter(Boolean) : [],
     pending: obj(value.pending),
@@ -122,6 +128,29 @@ export function recordForage(state, actorId) {
 export function setWeather(state, weather) {
   const next = normalizeOverlandState({ ...state, weather });
   return { state: next, changed: JSON.stringify(next.weather) !== JSON.stringify(state.weather) };
+}
+
+/**
+ * Open a travel day at `now` (§5.1 step 3): the method, the push and the
+ * budget are fixed here, and so is the clock rate, so a rules edit mid-day
+ * changes nothing. The day's forage, checks and any stopped advance start
+ * over. `base` is rules.hexesPerDay(method), or the boat's speed.
+ * @param {{now:number, method:string, pushed:boolean, base:number, boatUuid?:string|null, hourSeconds?:number}} day
+ */
+export function openDay(state, { now, method, pushed, base, boatUuid = null, hourSeconds = 3600 }) {
+  const next = normalizeOverlandState({
+    ...state,
+    day: now, method, pushed: !!pushed, boatUuid: method === "sailing" ? boatUuid : null,
+    budget: dayBudget(base, pushed), spent: 0, pointSeconds: pointSeconds(base, hourSeconds),
+    foraged: [], checks: [], pending: null,
+  });
+  return { state: next, changed: true };
+}
+
+/** The travel token moved: `cost` points spent, and it stands in `hex` now. */
+export function spendMove(state, { cost, hex }) {
+  const next = normalizeOverlandState({ ...state, spent: state.spent + cost, hex: hex ?? state.hex });
+  return { state: next, changed: cost > 0 || JSON.stringify(next.hex) !== JSON.stringify(state.hex) };
 }
 
 // ── Decisions ──────────────────────────────────────────────────────────────
@@ -217,4 +246,43 @@ export function hexCost(terrainCost, hex, { from = null, stormy = false, harsh =
   const onPath = (h) => (h?.features ?? []).includes("path");
   if (onPath(hex) && onPath(from)) return 1;
   return terrainCost(hex.terrain, { boat, weather: stormy ? "stormy" : "", harsh: !!harsh });
+}
+
+// ── The day's budget and the clock (#231, design §5.1, §5.2) ───────────────
+
+/** The day's points: the base, or half as many again rounded down when pushed. */
+export const dayBudget = (base, pushed) => (pushed ? Math.floor(base * PUSH) : base);
+
+/** Clock seconds per point: the 8-hour travel day over the method's base, so walking 4 costs 2 hours a point. */
+export const pointSeconds = (base, hourSeconds = 3600) => (base > 0 ? Math.round((TRAVEL_DAY_HOURS * hourSeconds) / base) : 0);
+
+/**
+ * Price a move, step by step: each step is a hex entered and the hex it was
+ * entered from. A displaced step (Foundry's "displace" movement action, how
+ * the GM repositions the token) is free. A hex whose cost the rules data
+ * doesn't know costs 1, so missing data never stops travel.
+ * @param {Array<{hex:object, from:object|null, displace?:boolean}>} steps
+ * @param {(hex:object, from:object|null) => number|null} costOf  hexCost with today's weather bound
+ * @returns {{cost:number, blocked:object|null}} `blocked`: the first hex that can't be entered today
+ */
+export function priceMove(steps, costOf) {
+  let cost = 0;
+  for (const { hex, from, displace } of steps) {
+    if (displace) continue;
+    const c = costOf(hex, from) ?? 1;
+    if (!Number.isFinite(c)) return { cost: Infinity, blocked: hex };
+    cost += c;
+  }
+  return { cost, blocked: null };
+}
+
+/**
+ * May the travel token make this move (the budget is hard, decided Q9)?
+ * @returns {null|"noDay"|"impassable"|"bounce"} null: go
+ */
+export function moveVerdict(state, { cost, blocked }) {
+  if (cost === 0 && !blocked) return null;   // displaced, or within one hex
+  if (state.day === null) return "noDay";
+  if (blocked) return "impassable";
+  return cost > state.budget - state.spent ? "bounce" : null;
 }

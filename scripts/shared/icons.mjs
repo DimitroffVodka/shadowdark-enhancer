@@ -60,6 +60,7 @@ export const ICONS = {
   shamrock:    `<img class="sde-bar-icon-shamrock" src="${P}/shamrock.svg" alt="" />`,
   walking:     `<i class="fas fa-person-walking"></i>`,
   weather:     `<i class="fas fa-cloud-sun"></i>`,
+  sunrise:     `<i class="fas fa-sun"></i>`,
   flying:      `<i class="fas fa-dove"></i>`,
   swimming:    `<i class="fas fa-person-swimming"></i>`,
   climbing:    `<i class="fas fa-hands-holding"></i>`,

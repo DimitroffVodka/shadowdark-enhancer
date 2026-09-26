@@ -311,21 +311,37 @@ export function isHexMapScene(canvasRef = globalThis.canvas) {
  *   scene is not a numbered hex map or no party token is on it
  */
 export function partyHex(canvasRef = globalThis.canvas) {
+  const read = hexReader(canvasRef);
+  if (!read) return null;
+  const counts = new Map();
+  for (const point of partyPoints(canvasRef)) {
+    const hex = read(canvasRef.grid.getOffset(point));
+    if (hex) counts.set(hex.num, { hex, n: (counts.get(hex.num)?.n ?? 0) + 1 });
+  }
+  return [...counts.values()].sort((a, b) => b.n - a.n)[0]?.hex ?? null;
+}
+
+/**
+ * A reader for the tagged hexes of the viewed scene: a grid offset in, the
+ * printed hex out as `{num, terrain, features}`, or null off the numbered map.
+ * The tags are decoded once, so one reader can price a whole move (Overland,
+ * #231). null when the scene is not a tagged hex map.
+ * @returns {((offset:{i:number, j:number}) => {num:number, terrain:string|null, features:string[]}|null)|null}
+ */
+export function hexReader(canvasRef = globalThis.canvas) {
   const grid = canvasRef?.grid;
   const flag = canvasRef?.scene?.getFlag?.(MODULE_ID, TAGS_FLAG);
   if (!flag?.origin || !grid?.isHexagonal || !grid.columns) return null;
   const o = flag.origin;
   const origin = { cube: { q: o.q, r: o.r }, num: o.num, shifted: o.shifted ?? "odd", bounds: o.bounds };
-  const counts = new Map();
-  for (const point of partyPoints(canvasRef)) {
-    const { num } = cellNumber(foundryOffsetToCube(grid.getOffset(point), !!grid.even), origin);
-    if (num !== null) counts.set(num, (counts.get(num) ?? 0) + 1);
-  }
-  const num = [...counts.entries()].sort((a, b) => b[1] - a[1])[0]?.[0];
-  if (num === undefined) return null;
-  // Read the #196 way, so a legacy "coast" terrain is ground plus a coast feature.
-  const cell = readCell(decodeTags(flag), num);
-  return { num, terrain: cell?.terrain ?? null, features: cell?.features ?? [] };
+  const tags = decodeTags(flag);
+  return (offset) => {
+    const { num } = cellNumber(foundryOffsetToCube(offset, !!grid.even), origin);
+    if (num === null) return null;
+    // Read the #196 way, so a legacy "coast" terrain is ground plus a coast feature.
+    const cell = readCell(tags, num);
+    return { num, terrain: cell?.terrain ?? null, features: cell?.features ?? [] };
+  };
 }
 
 /**
