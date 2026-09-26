@@ -1,5 +1,5 @@
 import { MODULE_ID } from "./module-id.mjs";
-import { SETTING_GROUPS } from "./setting-groups.mjs";
+import { SETTING_GROUPS, modeSwitchState } from "./setting-groups.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
@@ -43,13 +43,57 @@ export class SettingsGroupMenu extends HandlebarsApplicationMixin(ApplicationV2)
   async _prepareContext() {
     const sections = this.constructor.GROUP.sections.map((s) => ({
       label: s.label,
-      entries: s.entries.map((e) =>
-        typeof e === "string"
-          ? this._settingEntry(game.settings.settings.get(`${MODULE_ID}.${e}`))
-          : this._menuEntry(e),
-      ),
+      hint: s.hint,
+      mode: !!s.mode,
+      switchLabel: s.mode && s.label ? `${s.label}Switch` : null,
+      entries: s.entries.map((e) => this._entry(e)).filter(Boolean),
     }));
     return { rootId: this.id, sections };
+  }
+
+  /** One section entry, by its shape (see setting-groups.mjs); null renders nothing. */
+  _entry(e) {
+    if (typeof e === "string") return this._settingEntry(game.settings.settings.get(`${MODULE_ID}.${e}`));
+    if (e.menu) return this._menuEntry(e);
+    if (e.note) return { note: e.note };
+    if (e.key) {
+      const entry = this._settingEntry(game.settings.settings.get(`${MODULE_ID}.${e.key}`));
+      return e.pending ? { ...entry, pending: true } : entry;
+    }
+    if (e.setting) {
+      // Another package's setting, shown in place. Absent package or setting:
+      // say so when the group gave the words, otherwise leave the row out.
+      const setting = game.settings.settings.get(e.setting);
+      if (setting) return this._settingEntry(setting);
+      return e.missing ? { note: e.missing } : null;
+    }
+    return null;
+  }
+
+  /**
+   * A mode's switch sets or clears every rule checkbox in its fieldset and
+   * shows "on" only when all of them are on (mixed = indeterminate). It has no
+   * name, so it is never submitted: the rules are the settings.
+   */
+  _onRender(context, options) {
+    super._onRender?.(context, options);
+    for (const box of this.element.querySelectorAll("fieldset[data-mode]")) {
+      const toggle = box.querySelector("input[data-mode-switch]");
+      const rules = [...box.querySelectorAll("input[type=checkbox][name]")];
+      if (!toggle) continue;
+      if (!rules.length) { toggle.disabled = true; continue; }
+      const sync = () => {
+        const state = modeSwitchState(rules.map((r) => r.checked));
+        toggle.checked = state === "on";
+        toggle.indeterminate = state === "mixed";
+      };
+      toggle.addEventListener("change", () => {
+        for (const r of rules) r.checked = toggle.checked;
+        sync();
+      });
+      for (const r of rules) r.addEventListener("change", sync);
+      sync();
+    }
   }
 
   _menuEntry({ menu, icon }) {

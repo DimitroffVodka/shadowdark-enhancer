@@ -49,13 +49,26 @@
 .sde-settings-group details[open] > summary::before { transform: rotate(90deg); }
 .sde-settings-group summary + .form-group { border-top: 0; }
 
+/* Modes of Play: always-open fieldsets, the mode's switch in the legend. */
+.sde-settings-group fieldset.sde-sg-mode { margin: 10px 0 0; padding: 4px 12px 6px; border: 1px solid rgba(127, 127, 127, 0.35); border-radius: 4px; }
+.sde-settings-group fieldset.sde-sg-mode > legend { display: flex; align-items: center; gap: 8px; padding: 0 6px; font-weight: 700; font-size: 13.5px; }
+.sde-settings-group fieldset.sde-sg-mode > legend input { margin: 0; }
+.sde-settings-group .sde-sg-mode-hint { margin: 0 0 2px; font-size: 12px; opacity: 0.8; }
+.sde-settings-group .sde-sg-note { margin: 0; padding: 8px 0; font-size: 12px; line-height: 1.45; opacity: 0.85; border-top: 1px solid rgba(127, 127, 127, 0.28); }
+.sde-settings-group .sde-sg-pending { margin: -6px 0 0; padding: 0 0 8px; font-size: 11.5px; font-style: italic; opacity: 0.7; }
+
 .sde-settings-group .form-footer { flex: 0 0 auto; margin: 0; padding: 8px 16px; border-top: 1px solid rgba(127, 127, 127, 0.28); }
 </style>
 <div class="sde-sg-scroll">
 {{#each sections as |section|}}
-{{#if section.label}}<details><summary>{{localize section.label}}</summary>{{/if}}
+{{#if section.mode}}<fieldset class="sde-sg-mode" data-mode>
+<legend><input type="checkbox" data-mode-switch aria-label="{{localize section.switchLabel}}" data-tooltip="{{localize section.switchLabel}}"> {{localize section.label}}</legend>
+{{#if section.hint}}<p class="sde-sg-mode-hint">{{localize section.hint}}</p>{{/if}}
+{{else if section.label}}<details><summary>{{localize section.label}}</summary>{{/if}}
 {{#each section.entries as |entry|}}
-{{#if entry.menu}}
+{{#if entry.note}}
+<p class="sde-sg-note">{{localize entry.note}}</p>
+{{else if entry.menu}}
 <div class="form-group">
   <label>{{localize entry.label}}</label>
   <div class="form-fields">
@@ -86,9 +99,10 @@
 </div>
 {{else}}
 {{formGroup entry.field value=entry.value input=entry.input rootId=@root.rootId localize=true}}
+{{#if entry.pending}}<p class="sde-sg-pending">{{localize "SDE.settingsGroup.pending"}}</p>{{/if}}
 {{/if}}
 {{/each}}
-{{#if section.label}}</details>{{/if}}
+{{#if section.mode}}</fieldset>{{else if section.label}}</details>{{/if}}
 {{/each}}
 </div>
 <footer class="form-footer">

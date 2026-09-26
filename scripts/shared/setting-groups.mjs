@@ -2,10 +2,19 @@
  * Feature groups for Configure Settings.
  *
  * Each group is one GM-only pop-out button under Shadowdark Enhancer
- * (registered by settings-group-menu.mjs). A section's `entries` are either a
- * setting key — registered elsewhere with `config: false`, so it leaves the
- * main list — or `{ menu, icon }` for a nested editor window. Order here is
- * display order; a section with a `label` renders as a titled fieldset.
+ * (registered by settings-group-menu.mjs). A section's `entries` are:
+ *   - a setting key of this module, registered elsewhere with `config: false`
+ *     so it leaves the main list; or `{ key, pending: true }` for one whose
+ *     automation is not built yet, which renders with a note saying so;
+ *   - `{ menu, icon }` for a nested editor window;
+ *   - `{ setting: "namespace.key", missing }` for ANOTHER package's setting,
+ *     rendered in place so it keeps one source of truth (the system's Pulp
+ *     and Momentum switches, Extras' Grinder); `missing` is the note shown
+ *     when that package or setting is absent;
+ *   - `{ note }` for a rule nothing can automate: a line of text.
+ * Order here is display order. A section with a `label` renders as a titled
+ * block: collapsible by default, or an always-open fieldset with `mode: true`,
+ * which also gets a switch that sets or clears every rule checkbox in it.
  *
  * Pure data, no Foundry globals: test/docs-contract.test.mjs imports it under
  * node so grouped settings stay held to the same docs and i18n contract as
@@ -44,10 +53,46 @@ export const SETTING_GROUPS = [
     key: "pcAutomationMenu",
     icon: "fa-solid fa-wand-magic-sparkles",
     sections: [
-      { entries: ["spellMishapAutoRoll", "luckRerollPreventNat1"] },
+      { entries: ["spellMishapAutoRoll"] },
       { label: "SDE.settings.pcAutomationMenu.duelist", entries: ["tauntAutomate", "parryAutomate"] },
       { label: "SDE.settings.pcAutomationMenu.delver", entries: ["scavengerAutomate", "scavengerWatchAmmo"] },
       { label: "SDE.settings.pcAutomationMenu.renown", entries: ["renownOnCreate", "renownOnLevelUp"] },
+    ],
+  },
+  {
+    // Core rulebook p.111 and GMWR p.30. Every rule is its own setting so any
+    // one can run without the rest of its mode; a mode's switch is a UI
+    // convenience over its checkboxes, never a setting of its own.
+    key: "modesOfPlayMenu",
+    icon: "fa-solid fa-dice",
+    sections: [
+      { label: "SDE.settings.modesOfPlayMenu.blitz", hint: "SDE.settings.modesOfPlayMenu.blitzHint", mode: true,
+        entries: [{ key: "modeBlitzLights", pending: true }] },
+      { label: "SDE.settings.modesOfPlayMenu.chaos", hint: "SDE.settings.modesOfPlayMenu.chaosHint", mode: true,
+        entries: [{ key: "modeChaosInitiative", pending: true }] },
+      { label: "SDE.settings.modesOfPlayMenu.deadly", hint: "SDE.settings.modesOfPlayMenu.deadlyHint", mode: true,
+        entries: [{ key: "modeDeadlyTimer", pending: true }, { key: "modeDeadlyStabilize", pending: true }] },
+      { label: "SDE.settings.modesOfPlayMenu.fatality", hint: "SDE.settings.modesOfPlayMenu.fatalityHint", mode: true,
+        entries: [{ key: "modeFatality", pending: true }] },
+      { label: "SDE.settings.modesOfPlayMenu.grinder", hint: "SDE.settings.modesOfPlayMenu.grinderHint", mode: true,
+        entries: [
+          { setting: "shadowdark-extras.grinderMode", missing: "SDE.settings.modesOfPlayMenu.grinderNeedsExtras" },
+          { setting: "shadowdark-extras.grinderHitDice" },
+        ] },
+      { label: "SDE.settings.modesOfPlayMenu.hunter", hint: "SDE.settings.modesOfPlayMenu.hunterHint", mode: true,
+        entries: [{ key: "modeHunterXp", pending: true }] },
+      { label: "SDE.settings.modesOfPlayMenu.momentum", hint: "SDE.settings.modesOfPlayMenu.momentumHint", mode: true,
+        entries: [{ setting: "shadowdark.useMomentumMode" }, { note: "SDE.settings.modesOfPlayMenu.momentumRepeat" }] },
+      { label: "SDE.settings.modesOfPlayMenu.pulp", hint: "SDE.settings.modesOfPlayMenu.pulpHint", mode: true,
+        entries: [
+          { setting: "shadowdark.usePulpMode" },
+          { key: "modePulpSessionLuck", pending: true },
+          { key: "modePulpLuckCrit", pending: true },
+          { key: "modePulpForceReroll", pending: true },
+          { note: "SDE.settings.modesOfPlayMenu.pulpExtraAction" },
+        ] },
+      { label: "SDE.settings.modesOfPlayMenu.hardLuck", hint: "SDE.settings.modesOfPlayMenu.hardLuckHint", mode: true,
+        entries: ["luckRerollPreventNat1", { key: "modeHardLuckEffects", pending: true }] },
     ],
   },
   {
@@ -91,12 +136,37 @@ export const SETTING_GROUPS = [
   },
 ];
 
-/** Every setting key that renders inside a group pop-out. */
+/** This module's setting key for an entry, or null (a menu, a note, another package's setting). */
+export const entryKey = (e) => (typeof e === "string" ? e : (e?.key ?? null));
+
+/** Every setting key of this module that renders inside a group pop-out. */
 export const GROUPED_SETTING_KEYS = SETTING_GROUPS.flatMap((g) =>
-  g.sections.flatMap((s) => s.entries.filter((e) => typeof e === "string")),
+  g.sections.flatMap((s) => s.entries.map(entryKey).filter(Boolean)),
 );
 
 /** Every nested menu key that renders inside a group pop-out. */
 export const GROUPED_MENU_KEYS = SETTING_GROUPS.flatMap((g) =>
-  g.sections.flatMap((s) => s.entries.filter((e) => typeof e !== "string").map((e) => e.menu)),
+  g.sections.flatMap((s) => s.entries.filter((e) => e?.menu).map((e) => e.menu)),
 );
+
+/** Every i18n key a group renders besides its settings' own name and hint. */
+export const GROUP_STRING_KEYS = SETTING_GROUPS.flatMap((g) => [
+  `SDE.settings.${g.key}.name`, `SDE.settings.${g.key}.hint`, `SDE.settings.${g.key}.label`,
+  ...g.sections.flatMap((s) => [
+    s.label, s.hint, ...(s.mode && s.label ? [`${s.label}Switch`] : []),
+    ...s.entries.flatMap((e) => [e?.note, e?.missing]),
+  ]),
+]).filter(Boolean);
+
+/**
+ * A mode switch's state from its rules' checkbox values: "on" only when every
+ * rule is on, "off" when none is, else "mixed". A mode with no checkbox (its
+ * rules all belong to a package that is not installed) is "off".
+ * @param {boolean[]} values
+ * @returns {"on"|"off"|"mixed"}
+ */
+export function modeSwitchState(values) {
+  const on = values.filter(Boolean).length;
+  if (!values.length || on === 0) return "off";
+  return on === values.length ? "on" : "mixed";
+}
