@@ -25,7 +25,9 @@ const BAR_ID = "shadowdark-enhancer-bar";
 const CHECK_FREQUENCY_CHOICES = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
 
 /** "every round" / "every 3 rounds" — the header's reading of the setting. */
-const frequencyLabel = (n) => (n === 1 ? "every round" : `every ${n} rounds`);
+const frequencyLabel = (n) => (n === 1
+  ? game.i18n.localize("SDE.crawlBar.encounterMenu.everyRound")
+  : game.i18n.format("SDE.crawlBar.encounterMenu.everyNRounds", { n }));
 
 export const CrawlBar = {
 
@@ -128,14 +130,14 @@ export const CrawlBar = {
       this._el.innerHTML = `
         <div class="sde-bar-inner">
           ${combatStarted
-            ? `<button class="sde-bar-btn sde-bar-danger-btn" data-action="endEncounter">${ICONS.close} End Encounter</button>`
-            : `<button class="sde-bar-btn sde-bar-combat-btn" data-action="beginEncounter">${ICONS.combat} Begin Encounter</button>`
+            ? `<button class="sde-bar-btn sde-bar-danger-btn" data-action="endEncounter">${ICONS.close} ${game.i18n.localize("SDE.crawlBar.endEncounter")}</button>`
+            : `<button class="sde-bar-btn sde-bar-combat-btn" data-action="beginEncounter">${ICONS.combat} ${game.i18n.localize("SDE.crawlBar.beginEncounter")}</button>`
           }
-          <button class="sde-bar-btn" data-action="addSelectedTokens" title="Add selected tokens to the combat tracker">
-            ${ICONS.addTokens} Add Tokens
+          <button class="sde-bar-btn" data-action="addSelectedTokens" title="${game.i18n.localize("SDE.crawlBar.addTokensCombatTip")}">
+            ${ICONS.addTokens} ${game.i18n.localize("SDE.crawlBar.addTokens")}
           </button>
-          <button class="sde-bar-btn sde-bar-danger-btn" data-action="deleteEncounter" title="Delete the combat encounter without ending it">
-            ${ICONS.close} Delete Encounter
+          <button class="sde-bar-btn sde-bar-danger-btn" data-action="deleteEncounter" title="${game.i18n.localize("SDE.crawlBar.deleteEncounterTip")}">
+            ${ICONS.close} ${game.i18n.localize("SDE.crawlBar.deleteEncounter")}
           </button>
         </div>`;
       this._bindEvents();
@@ -177,26 +179,26 @@ export const CrawlBar = {
           ${ICONS.nextTurn} ${game.i18n.localize("SDE.crawlBar.nextRound")}
         </button>
 
-        <button class="sde-bar-btn" data-action="addSelectedTokens" title="Left-click: add selected tokens to the crawl · Right-click: reset out-of-combat initiative">
-          ${ICONS.addTokens} Add Tokens
+        <button class="sde-bar-btn" data-action="addSelectedTokens" title="${game.i18n.localize("SDE.crawlBar.addTokensCrawlTip")}">
+          ${ICONS.addTokens} ${game.i18n.localize("SDE.crawlBar.addTokens")}
         </button>
         <button class="sde-bar-btn sde-bar-combat-btn" data-action="startCombat" ${idleAttr}>
-          ${ICONS.combat} Combat
+          ${ICONS.combat} ${game.i18n.localize("SDE.crawlBar.combat")}
         </button>
 
-        <button class="sde-bar-btn" data-action="encounter" title="Left-click: open Encounter Roller · Right-click: menu">
-          ${ICONS.encounter} Encounter
+        <button class="sde-bar-btn" data-action="encounter" title="${game.i18n.localize("SDE.crawlBar.encounterTip")}">
+          ${ICONS.encounter} ${game.i18n.localize("SDE.crawlBar.encounter")}
         </button>
-        <button class="sde-bar-btn" data-action="loot" title="Loot Generator · Magic Item Forge · Merchant Shop · Party XP · Downtime · Pit Fighting · Regional Training · Renown · Session Recap">
-          ${ICONS.forge} Forge &amp; Loot
+        <button class="sde-bar-btn" data-action="loot" title="${game.i18n.localize("SDE.crawlBar.forgeLootTip")}">
+          ${ICONS.forge} ${game.i18n.localize("SDE.crawlBar.forgeLoot")}
         </button>
-        <button class="sde-bar-btn" data-action="rollTables" title="Importer — paste a PDF dump; manage tables &amp; monsters">
-          ${ICONS.importer} Importer
+        <button class="sde-bar-btn" data-action="rollTables" title="${game.i18n.localize("SDE.crawlBar.importerTip")}">
+          ${ICONS.importer} ${game.i18n.localize("SDE.crawlBar.importer")}
         </button>
         ${travelButton}
         ${idle
-          ? `<button class="sde-bar-btn sde-bar-start-btn" data-action="startCrawl" title="Start a new crawl session">${ICONS.startCrawl} Start</button>`
-          : `<button class="sde-bar-btn sde-bar-danger-btn" data-action="endCrawl" title="End the crawl session">${ICONS.close} End</button>`}
+          ? `<button class="sde-bar-btn sde-bar-start-btn" data-action="startCrawl" title="${game.i18n.localize("SDE.crawlBar.startTip")}">${ICONS.startCrawl} ${game.i18n.localize("SDE.crawlBar.start")}</button>`
+          : `<button class="sde-bar-btn sde-bar-danger-btn" data-action="endCrawl" title="${game.i18n.localize("SDE.crawlBar.endTip")}">${ICONS.close} ${game.i18n.localize("SDE.crawlBar.end")}</button>`}
 
       </div>`;
 
@@ -246,7 +248,7 @@ export const CrawlBar = {
             const table = await fromUuid(data.uuid);
             if (table) {
               await game.shadowdarkEnhancer.encounter.setActiveTable(table.uuid);
-              ui.notifications.info(`Active encounter table set to: ${table.name}`);
+              ui.notifications.info(game.i18n.format("SDE.crawlBar.notify.tableSet", { name: table.name }));
             }
           }
         });
@@ -329,7 +331,7 @@ export const CrawlBar = {
         break;
 
       case "endCrawl": {
-        const ok = await this._confirm("End Crawl", "End crawl mode?");
+        const ok = await this._confirm("SDE.crawlBar.confirm.endCrawlTitle", "SDE.crawlBar.confirm.endCrawl");
         if (ok) {
           await CrawlState.endCrawl();
           this.render();
@@ -369,7 +371,7 @@ export const CrawlBar = {
 
       case "deleteEncounter":
         if (game.combat) {
-          const ok = await this._confirm("Delete Encounter", "Delete this combat encounter? This will not trigger the end-of-combat flow.");
+          const ok = await this._confirm("SDE.crawlBar.deleteEncounter", "SDE.crawlBar.confirm.deleteEncounter");
           if (ok) {
             await game.combat.delete();
             this.render();
@@ -411,12 +413,12 @@ export const CrawlBar = {
     menu.id = "sde-add-tokens-context-menu";
     menu.className = "sde-bar-context-menu";
     menu.innerHTML = `
-      <div class="sde-menu-header">Add Tokens</div>
+      <div class="sde-menu-header">${game.i18n.localize("SDE.crawlBar.addTokens")}</div>
       <div class="sde-menu-item sde-menu-btn ${hasInit ? "" : "sde-menu-disabled"}"
            data-addtokens-action="resetOocInit" role="menuitem" tabindex="0"
            aria-disabled="${hasInit ? "false" : "true"}"
-           title="${hasInit ? "Clear all out-of-combat initiative rolls" : "No out-of-combat initiative rolls to clear"}">
-        ${ICONS.diceD20} Reset Initiative
+           title="${game.i18n.localize(hasInit ? "SDE.crawlBar.addTokensMenu.resetInitTip" : "SDE.crawlBar.addTokensMenu.resetInitNoneTip")}">
+        ${ICONS.diceD20} ${game.i18n.localize("SDE.crawlBar.addTokensMenu.resetInit")}
       </div>
     `;
 
@@ -461,7 +463,9 @@ export const CrawlBar = {
     const threshold = game.shadowdarkEnhancer.encounter.getThreshold();
     const frequency = game.shadowdarkEnhancer.encounter.getCheckFrequency();
     const tableUuid = game.settings.get(MODULE_ID, "encounterTableUuid");
-    const tableName = tableUuid ? (fromUuidSync(tableUuid)?.name ?? "(deleted table)") : "(none)";
+    const tableName = tableUuid
+      ? (fromUuidSync(tableUuid)?.name ?? game.i18n.localize("SDE.crawlBar.encounterMenu.deletedTable"))
+      : game.i18n.localize("SDE.crawlBar.encounterMenu.noTable");
     const terrainCount = Object.keys(game.settings.get(MODULE_ID, "encounterTerrainTables") ?? {}).length;
 
     const menu = document.createElement("div");
@@ -471,29 +475,31 @@ export const CrawlBar = {
     // frequency choices, and the active table's document name.
     menu.innerHTML = `
       <div class="sde-menu-item sde-menu-btn" data-action="check" role="menuitem" tabindex="0">
-        <i class="fas fa-dice-d6"></i> Encounter Check
+        <i class="fas fa-dice-d6"></i> ${game.i18n.localize("SDE.crawlBar.encounterMenu.check")}
       </div>
       <div class="sde-menu-divider"></div>
-      <div class="sde-menu-header">Threshold (current: ${threshold} in 6)</div>
+      <div class="sde-menu-header">${game.i18n.format("SDE.crawlBar.encounterMenu.threshold", { threshold })}</div>
       ${[1, 2, 3, 4, 5].map(n => `
         <div class="sde-menu-item sde-menu-radio" data-action="setThreshold" data-value="${n}" role="menuitemradio" aria-checked="${threshold === n}" tabindex="0">
-          <i class="far ${threshold === n ? "fa-dot-circle" : "fa-circle"}"></i> ${n} in 6 ${n === 1 ? "(RAW default)" : ""}
+          <i class="far ${threshold === n ? "fa-dot-circle" : "fa-circle"}"></i> ${game.i18n.format(n === 1 ? "SDE.crawlBar.encounterMenu.thresholdDefault" : "SDE.crawlBar.encounterMenu.thresholdOption", { n })}
         </div>
       `).join("")}
       <div class="sde-menu-divider"></div>
-      <div class="sde-menu-header">Check Frequency (current: ${frequencyLabel(frequency)})</div>
-      <div class="sde-menu-numbers" role="group" aria-label="Encounter check frequency">
+      <div class="sde-menu-header">${game.i18n.format("SDE.crawlBar.encounterMenu.frequency", { frequency: frequencyLabel(frequency) })}</div>
+      <div class="sde-menu-numbers" role="group" aria-label="${game.i18n.localize("SDE.crawlBar.encounterMenu.frequencyAria")}">
         ${CHECK_FREQUENCY_CHOICES.map(n => `
-          <button type="button" class="sde-menu-number ${n === frequency ? "active" : ""}" data-action="setFrequency" data-value="${n}" aria-pressed="${n === frequency}" title="${frequencyLabel(n)} — counted from the last check">${n}</button>
+          <button type="button" class="sde-menu-number ${n === frequency ? "active" : ""}" data-action="setFrequency" data-value="${n}" aria-pressed="${n === frequency}" title="${game.i18n.format("SDE.crawlBar.encounterMenu.frequencyTip", { frequency: frequencyLabel(n) })}">${n}</button>
         `).join("")}
       </div>
       <div class="sde-menu-divider"></div>
       <div class="sde-menu-item sde-menu-table">
-        Active Table: <span class="sde-table-name">${tableName}</span>
-        ${tableUuid ? `<i class="fas fa-times sde-clear-table" data-action="clearTable" title="Clear active table" role="button" tabindex="0" aria-label="Clear active table"></i>` : ""}
+        ${game.i18n.localize("SDE.crawlBar.encounterMenu.activeTable")} <span class="sde-table-name">${tableName}</span>
+        ${tableUuid ? `<i class="fas fa-times sde-clear-table" data-action="clearTable" title="${game.i18n.localize("SDE.crawlBar.encounterMenu.clearTable")}" role="button" tabindex="0" aria-label="${game.i18n.localize("SDE.crawlBar.encounterMenu.clearTable")}"></i>` : ""}
       </div>
-      <div class="sde-menu-item sde-menu-btn" data-action="terrainTables" role="menuitem" tabindex="0" title="On a tagged hex map, roll a different table per terrain; the check uses the hex the party is in.">
-        <i class="fas fa-mountain-sun"></i> Tables by terrain${terrainCount ? ` (${terrainCount})` : ""}
+      <div class="sde-menu-item sde-menu-btn" data-action="terrainTables" role="menuitem" tabindex="0" title="${game.i18n.localize("SDE.crawlBar.encounterMenu.terrainTablesTip")}">
+        <i class="fas fa-mountain-sun"></i> ${terrainCount
+          ? game.i18n.format("SDE.crawlBar.encounterMenu.terrainTablesCount", { count: terrainCount })
+          : game.i18n.localize("SDE.crawlBar.encounterMenu.terrainTables")}
       </div>
     `;
 
@@ -545,7 +551,7 @@ export const CrawlBar = {
         await openTerrainTables();
       } else if (action === "clearTable") {
         await game.shadowdarkEnhancer.encounter.setActiveTable(null);
-        ui.notifications.info("Active encounter table cleared.");
+        ui.notifications.info(game.i18n.localize("SDE.crawlBar.notify.tableCleared"));
         menu.remove();
       }
     });
@@ -574,31 +580,31 @@ export const CrawlBar = {
     // game.shadowdarkEnhancer.forgeLoot.open() for development.
     menu.innerHTML = `
       <div class="sde-menu-item sde-menu-btn" data-loot-action="lootGen" role="menuitem" tabindex="0">
-        <i class="fas fa-coins"></i> Loot Generator
+        <i class="fas fa-coins"></i> ${game.i18n.localize("SDE.crawlBar.lootMenu.lootGen")}
       </div>
       <div class="sde-menu-item sde-menu-btn" data-loot-action="magicForge" role="menuitem" tabindex="0">
-        <i class="fas fa-hammer"></i> Magic Item Forge
+        <i class="fas fa-hammer"></i> ${game.i18n.localize("SDE.crawlBar.lootMenu.magicForge")}
       </div>
       <div class="sde-menu-item sde-menu-btn" data-loot-action="merchant" role="menuitem" tabindex="0">
-        <i class="fas fa-store"></i> Merchant Shop
+        <i class="fas fa-store"></i> ${game.i18n.localize("SDE.crawlBar.lootMenu.merchant")}
       </div>
       <div class="sde-menu-item sde-menu-btn" data-loot-action="partyXp" role="menuitem" tabindex="0">
-        <i class="fas fa-star"></i> Party XP
+        <i class="fas fa-star"></i> ${game.i18n.localize("SDE.crawlBar.lootMenu.partyXp")}
       </div>
       <div class="sde-menu-item sde-menu-btn" data-loot-action="downtime" role="menuitem" tabindex="0">
-        <i class="fas fa-mug-hot"></i> Downtime
+        <i class="fas fa-mug-hot"></i> ${game.i18n.localize("SDE.crawlBar.lootMenu.downtime")}
       </div>
       <div class="sde-menu-item sde-menu-btn" data-loot-action="pitFighting" role="menuitem" tabindex="0">
-        <i class="fas fa-hand-fist"></i> Pit Fighting
+        <i class="fas fa-hand-fist"></i> ${game.i18n.localize("SDE.crawlBar.lootMenu.pitFighting")}
       </div>
       <div class="sde-menu-item sde-menu-btn" data-loot-action="training" role="menuitem" tabindex="0">
-        <i class="fas fa-dumbbell"></i> Regional Training
+        <i class="fas fa-dumbbell"></i> ${game.i18n.localize("SDE.crawlBar.lootMenu.training")}
       </div>
       <div class="sde-menu-item sde-menu-btn" data-loot-action="renown" role="menuitem" tabindex="0">
-        <i class="fas fa-crown"></i> Renown
+        <i class="fas fa-crown"></i> ${game.i18n.localize("SDE.crawlBar.lootMenu.renown")}
       </div>
       <div class="sde-menu-item sde-menu-btn" data-loot-action="recap" role="menuitem" tabindex="0">
-        <i class="fas fa-scroll"></i> Session Recap
+        <i class="fas fa-scroll"></i> ${game.i18n.localize("SDE.crawlBar.lootMenu.recap")}
       </div>
     `;
 
@@ -627,7 +633,7 @@ export const CrawlBar = {
       if (target.dataset.lootAction === "forgeLoot") {
         import("../forge-loot/forge-loot-app.mjs")
           .then(({ ForgeLootApp }) => ForgeLootApp.open())
-          .catch((error) => ui.notifications?.error(`Forge & Loot could not open: ${error.message}`));
+          .catch((error) => ui.notifications?.error(game.i18n.format("SDE.crawlBar.notify.forgeLootFailed", { error: error.message })));
       }
       if (target.dataset.lootAction === "lootGen") game.shadowdarkEnhancer.loot.open();
       if (target.dataset.lootAction === "magicForge") game.shadowdarkEnhancer.forge.open();
@@ -651,7 +657,7 @@ export const CrawlBar = {
   async _addSelectedTokens() {
     const selected = canvas.tokens?.controlled ?? [];
     if (!selected.length) {
-      ui.notifications.warn("Select tokens first.");
+      ui.notifications.warn(game.i18n.localize("SDE.crawlBar.notify.selectTokens"));
       return;
     }
 
@@ -660,11 +666,11 @@ export const CrawlBar = {
       const existing = new Set(game.combat.combatants.map(c => c.tokenId));
       const docs = selected.map(t => t.document).filter(td => !existing.has(td.id));
       if (!docs.length) {
-        ui.notifications.info("Selected tokens already in combat.");
+        ui.notifications.info(game.i18n.localize("SDE.crawlBar.notify.alreadyInCombat"));
         return;
       }
       await TokenDocument.implementation.createCombatants(docs);
-      ui.notifications.info(`Added ${docs.length} token(s) to combat.`);
+      ui.notifications.info(game.i18n.format("SDE.crawlBar.notify.addedToCombat", { count: docs.length }));
       this.render();
       CrawlStrip.render();
       return;
@@ -681,7 +687,7 @@ export const CrawlBar = {
       )];
       const skipped = selected.length - selected.filter(t => t.actor?.type === "Player").length;
       if (!pcActorIds.length) {
-        ui.notifications.warn("Select Player tokens to add to the crawl.");
+        ui.notifications.warn(game.i18n.localize("SDE.crawlBar.notify.selectPlayers"));
         return;
       }
       const before = new Set(CrawlState.members);
@@ -689,20 +695,20 @@ export const CrawlBar = {
       const added = pcActorIds.filter(id => !before.has(id)).length;
       const dup = pcActorIds.length - added;
       const parts = [];
-      if (added) parts.push(`Added ${added}`);
-      if (dup) parts.push(`${dup} already in roster`);
-      if (skipped) parts.push(`${skipped} non-PC skipped`);
-      ui.notifications.info(parts.join(" • ") || "No changes.");
+      if (added) parts.push(game.i18n.format("SDE.crawlBar.notify.membersAdded", { count: added }));
+      if (dup) parts.push(game.i18n.format("SDE.crawlBar.notify.membersAlready", { count: dup }));
+      if (skipped) parts.push(game.i18n.format("SDE.crawlBar.notify.nonPcSkipped", { count: skipped }));
+      ui.notifications.info(parts.join(" • ") || game.i18n.localize("SDE.crawlBar.notify.noChanges"));
       return;
     }
 
-    ui.notifications.warn("Start a Crawl or Combat first.");
+    ui.notifications.warn(game.i18n.localize("SDE.crawlBar.notify.startFirst"));
   },
 
   async _startCombat() {
     const scene = canvas.scene;
     if (!scene) {
-      ui.notifications.warn("No active scene.");
+      ui.notifications.warn(game.i18n.localize("SDE.crawlBar.notify.noScene"));
       return;
     }
 
@@ -742,27 +748,12 @@ export const CrawlBar = {
     CrawlStrip.render();
   },
 
-  async _confirm(title, content) {
-    // Foundry v13/14 — DialogV2.confirm preferred when available; fall back to Dialog.
-    const dlgV2 = foundry?.applications?.api?.DialogV2;
-    if (dlgV2?.confirm) {
-      return await dlgV2.confirm({
-        window: { title },
-        content: `<p>${content}</p>`,
-        rejectClose: false,
-      });
-    }
-    return await new Promise((resolve) => {
-      new Dialog({
-        title,
-        content: `<p>${content}</p>`,
-        buttons: {
-          yes: { label: "Yes", callback: () => resolve(true) },
-          no:  { label: "No",  callback: () => resolve(false) },
-        },
-        default: "no",
-        close: () => resolve(false),
-      }).render(true);
+  /** Yes/no confirm; `titleKey` and `contentKey` are en.json keys. */
+  async _confirm(titleKey, contentKey) {
+    return foundry.applications.api.DialogV2.confirm({
+      window: { title: titleKey },
+      content: `<p>${game.i18n.localize(contentKey)}</p>`,
+      rejectClose: false,
     });
   },
 };
