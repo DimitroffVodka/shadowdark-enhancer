@@ -30,7 +30,7 @@ import {
   enrichDice,
 } from "../scripts/shared/contextual-enricher.mjs";
 import { convertDice, enrichEncounterText, MonsterLinker } from "../scripts/importer/monsters/monster-linker.mjs";
-import { isArcticSeaEncounterTable, TableEnricher, encounterZoneTargets, isEncounterZoneTable } from "../scripts/importer/tables/table-enrich.mjs";
+import { isArcticSeaEncounterTable, TableEnricher, encounterZoneTargets, isEncounterZoneTable, categoryTables, zoneCategories } from "../scripts/importer/tables/table-enrich.mjs";
 import { MODULE_ID } from "../scripts/shared/module-id.mjs";
 
 /** The system's own enricher pattern — copied, not imported (it lives in the system). */
@@ -447,6 +447,12 @@ test("two concurrent treasure enrichments of one table run the catalog once", as
 // ── Encounter Zone → encounter table routing ────────────────────────────────
 // A zone table is an INDEX, not content: rolling it yields a category, and the
 // GM is meant to roll that region's table for it. These names decide which.
+test("zoneCategories: a row's categories as the card names them, footnote markers off", () => {
+  assert.deepEqual(zoneCategories("Land1"), ["Land"]);
+  assert.deepEqual(zoneCategories("Beast + Horror\u2020"), ["Beast", "Horror"]);
+  assert.deepEqual(zoneCategories(""), []);
+});
+
 test("encounterZoneTargets maps a zone row to its region's encounter table", () => {
   assert.deepEqual(
     encounterZoneTargets("Djurum Desert Encounter Zone: Salt Flat", "Digger"),
@@ -456,6 +462,11 @@ test("encounterZoneTargets maps a zone row to its region's encounter table", () 
   assert.deepEqual(
     encounterZoneTargets("Rimespire Mountains Encounter Zone: Forest", "Fiend†"),
     ["Rimespire Mountains Encounters: Fiend"],
+  );
+  // So must a footnote number flattened onto the word ("Land¹" read as "Land1").
+  assert.deepEqual(
+    encounterZoneTargets("Tal-Yool Jungle Encounter Type: Jungle/Path", "Land1"),
+    ["Tal-Yool Jungle Encounters: Land"],
   );
   // Morzomotha pairs two categories in one cell — that is two tables to roll.
   assert.deepEqual(
@@ -479,4 +490,32 @@ test("encounterZoneTargets maps a zone row to its region's encounter table", () 
   assert.deepEqual(encounterZoneTargets("Djurum Desert Encounter Zone: Path", "   "), []);
   assert.equal(isEncounterZoneTable("Djurum Desert Encounter Zone: Path"), true);
   assert.equal(isEncounterZoneTable("Djurum Desert Encounters: Digger"), false);
+});
+
+// The check rolls the category's table itself (#262), by the names the GM has.
+// Invented table set in the importer's real shapes: a book prefix on most, Tal-Yool
+// split by day and night, its Special table filed without the prefix.
+test("categoryTables finds the table a zone row sends you to, by day or night", () => {
+  const P = "Western Reaches GM Guide - ";
+  const have = [
+    `${P}Djurum Desert Encounters: Digger`,
+    `${P}Tal-Yool Jungle Day Encounters: Land`, `${P}Tal-Yool Jungle Night Encounters: Land`,
+    "Tal-Yool Jungle Special Encounters",
+    `${P}Morzomotha Encounters: Beast`, `${P}Morzomotha Encounters: Horror`,
+  ];
+  assert.deepEqual(categoryTables(`${P}Djurum Desert Encounter Zone: Salt Flat`, "Digger", have), [`${P}Djurum Desert Encounters: Digger`]);
+  assert.deepEqual(categoryTables(`${P}Tal-Yool Jungle Encounter Type: Jungle/Path`, "Land", have), [`${P}Tal-Yool Jungle Day Encounters: Land`]);
+  assert.deepEqual(categoryTables(`${P}Tal-Yool Jungle Encounter Type: Jungle/Path`, "Land", have, { night: true }),
+    [`${P}Tal-Yool Jungle Night Encounters: Land`]);
+  assert.deepEqual(categoryTables(`${P}Tal-Yool Jungle Encounter Type: Coast`, "Special", have), ["Tal-Yool Jungle Special Encounters"]);
+  assert.deepEqual(categoryTables(`${P}Morzomotha Encounter Zone: Caves`, "Beast + Horror", have),
+    [`${P}Morzomotha Encounters: Beast`, `${P}Morzomotha Encounters: Horror`]);
+  // A footnote the PDF flattened onto the word, and a lower-case row, still find their table.
+  assert.deepEqual(categoryTables(`${P}Tal-Yool Jungle Encounter Type: Jungle/Path`, "Land1", have, { night: true }),
+    [`${P}Tal-Yool Jungle Night Encounters: Land`]);
+  assert.deepEqual(categoryTables(`${P}Morzomotha Encounter Zone: Caves`, "beast + horror", have),
+    [`${P}Morzomotha Encounters: Beast`, `${P}Morzomotha Encounters: Horror`]);
+  // A category nobody imported is dropped rather than guessed at.
+  assert.deepEqual(categoryTables(`${P}Djurum Desert Encounter Zone: Salt Flat`, "Walker", have), []);
+  assert.deepEqual(categoryTables(`${P}Djurum Desert Encounters: Digger`, "Goblin", have), []);
 });

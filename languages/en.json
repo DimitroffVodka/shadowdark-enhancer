@@ -437,6 +437,8 @@
   "SDE.encounter.roller.placeEntryTip": "Place tokens for this entry",
   "SDE.encounter.roller.drawEmpty": "Table draw produced no usable result — check the table contents",
   "SDE.encounter.roller.flavorHeading": "Environmental Result",
+  "SDE.encounter.roller.via": "{category}: rolled on {table}",
+  "SDE.encounter.roller.viaSpecial": "{category}: rolled on {table}, then on {special}",
   "SDE.encounter.roller.postTip": "Post to Chat",
   "SDE.encounter.roller.post": "Post",
   "SDE.encounter.roller.resultHeading": "Encounter Result",

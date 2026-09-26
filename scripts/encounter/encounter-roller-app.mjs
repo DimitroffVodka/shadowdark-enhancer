@@ -22,6 +22,8 @@ import {
 } from "../shared/art-utils.mjs";
 import { MonsterCreator } from "../monster-creator/encounter-creator.mjs";
 import { findSuitePack } from "../shared/compendium-suite.mjs";
+import { categoryTables, isEncounterZoneTable, zoneCategories } from "../importer/tables/table-enrich.mjs";
+import { isNight, worldClock } from "./encounter-terrain.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 // v13/v14 namespaced renderTemplate (the global emits deprecation warnings).
@@ -756,7 +758,51 @@ export class EncounterRollerApp extends HandlebarsApplicationMixin(ApplicationV2
       return;
     }
 
-    await this._buildResultFrom(result);
+    // A zone table only names a category: roll the region's table for it (#262).
+    // If that fails, the zone's own row still shows.
+    const chained = await this._rollCategory(table, result).catch((err) => {
+      console.warn(`${MODULE_ID} | rolling the category's table failed`, err);
+      return null;
+    });
+    await this._buildResultFrom(chained?.result ?? result, { via: chained?.via ?? null });
+  }
+
+  /**
+   * An Encounter Zone (or Type) table's row is a category ("Beast"), and the
+   * book sends the GM to that region's table for it: draw it, by day or night
+   * where the region splits it by time (Tal-Yool Jungle), on the zone columns'
+   * fixed 18:00 to 06:00 night. A second category in the same row ("Beast +
+   * Horror") is drawn to the GMs' chat on its own, and a "Special" row in the
+   * category's table (Tal-Yool's give one on a 1) goes on to the region's
+   * Special Encounters table. Null when this isn't a zone table or the
+   * category's table isn't imported (#262).
+   * @private
+   */
+  async _rollCategory(table, result) {
+    if (!isEncounterZoneTable(table?.name)) return null;
+    const pack = table.pack ? game.packs.get(table.pack) : null;
+    const names = pack ? [...(pack.index ?? [])].map((e) => e.name) : game.tables.map((t) => t.name);
+    const category = zoneCategories(_resultBody(result).replace(/<[^>]*>/g, "")).join(" + ");
+    const [first, ...more] = categoryTables(table.name, category, names, { night: isNight(worldClock().hour) });
+    if (!first) return null;
+    const get = (name) => (pack
+      ? pack.getDocument(pack.index.find((e) => e.name === name)?._id)
+      : game.tables.getName(name));
+    // To the GMs only, whatever the chat mode: the GM posts the encounter, and
+    // its second half must not reach the players before the first.
+    for (const name of more) await (await get(name))?.draw({ messageMode: "gm" });
+    const drawFrom = async (name) => {
+      const next = await get(name);
+      const drawn = next ? (await next.draw({ displayChat: false })).results[0] : null;
+      return drawn ? { drawn, table: next.name.replace(/^.*?\s-\s/, "") } : null;
+    };
+    const hit = await drawFrom(first);
+    if (!hit) return null;
+    const isSpecial = /^special$/i.test(zoneCategories(_resultBody(hit.drawn).replace(/<[^>]*>/g, "")).join(" + "));
+    const [special] = isSpecial ? categoryTables(table.name, "Special", names) : [];
+    const then = special ? await drawFrom(special) : null;
+    if (!then) return { result: hit.drawn, via: game.i18n.format("SDE.encounter.roller.via", { category, table: hit.table }) };
+    return { result: then.drawn, via: game.i18n.format("SDE.encounter.roller.viaSpecial", { category, table: hit.table, special: then.table }) };
   }
 
   /**
@@ -770,7 +816,7 @@ export class EncounterRollerApp extends HandlebarsApplicationMixin(ApplicationV2
    * @param {TableResult} result
    * @private
    */
-  async _buildResultFrom(result) {
+  async _buildResultFrom(result, { via = null } = {}) {
     const monster = await this._parseMonsterFromResult(result);
     if (monster) {
       // Resolve best art: if the actor is a world copy of a compendium
@@ -798,6 +844,8 @@ export class EncounterRollerApp extends HandlebarsApplicationMixin(ApplicationV2
         this._lastResult = { kind: "empty" };
       }
     }
+    // Which table a category sent the roll to, shown on the card and in chat (#262).
+    this._lastResult.via = via;
     this.render();
   }
 

@@ -88,6 +88,7 @@
                   <button type="button" data-action="postToChat" title="{{localize 'SDE.encounter.roller.postTip'}}"><i class="fas fa-clipboard-list"></i> {{localize "SDE.encounter.roller.post"}}</button>
                 </div>
               </header>
+              {{#if lastResult.via}}<p class="sde-result-via">{{lastResult.via}}</p>{{/if}}
               <div class="sde-flavor-text">{{lastResult.text}}</div>
             </div>
 
@@ -102,6 +103,7 @@
                 </div>
               </header>
 
+              {{#if lastResult.via}}<p class="sde-result-via">{{lastResult.via}}</p>{{/if}}
               <div class="sde-monster-row">
                 <img src="{{lastResult.img}}" width="48" height="48" alt="{{lastResult.name}}" loading="lazy" decoding="async" />
                 <div class="sde-monster-info">

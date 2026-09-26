@@ -3367,6 +3367,9 @@ body.theme-light .sde-hub-monsters-row td {
   border-radius: 0 var(--sde-bar-radius) var(--sde-bar-radius) 0;
 }
 
+/* Which table a zone table's category sent the roll to (#262). */
+.sde-result-via { margin: 0 0 6px; font-size: 0.85em; font-style: italic; opacity: 0.8; }
+
 /* ── Result Card ────────────────────────────────────────────────────────── */
 
 .sde-result-panel {
