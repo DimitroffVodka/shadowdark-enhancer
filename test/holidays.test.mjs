@@ -69,7 +69,7 @@ test("a place is a name, a hex number or Extras' settlement id", () => {
 // ── the API, against a stubbed world ─────────────────────────────────────────
 
 const preset = CHAPTER_PRESETS.find((p) => p.id === HOLIDAY_PRESET);
-let components, imported;
+let components, imported, journalPreset;
 
 function journalsPack() {
   const entry = {
@@ -82,7 +82,7 @@ function journalsPack() {
     collection: "world.sde-journal",
     metadata: { packageType: "world", label: "Shadowdark Enhancer — Journals" },
     getIndex: async () => (imported.length
-      ? [{ _id: "h", flags: { "shadowdark-enhancer": { chapter: { src: preset.src, pages: preset.pages } } } }]
+      ? [{ _id: "h", flags: { "shadowdark-enhancer": { chapter: { src: preset.src, pages: preset.pages, preset: journalPreset } } } }]
       : []),
     getDocument: async () => entry,
   };
@@ -91,6 +91,7 @@ function journalsPack() {
 beforeEach(() => {
   components = { year: 1300, month: 4, dayOfMonth: 0, day: 120 };   // May 1 (zero-based month and day)
   imported = ["lastmoon", "maytide", "night-of-st-anton", "the-duke-s-ball"];
+  journalPreset = preset.id;
   globalThis.game = {
     time: { get components() { return components; } },
     i18n: { localize: (k) => `<${k}>` },
@@ -109,6 +110,11 @@ test("list() returns the imported holidays, labels localised and pages linked", 
 
 test("nothing is listed until the journal is imported", async () => {
   imported = [];
+  assert.deepEqual(await listHolidays(), []);
+});
+
+test("a free-range journal over the same pages is not the holidays journal", async () => {
+  journalPreset = "custom";
   assert.deepEqual(await listHolidays(), []);
 });
 

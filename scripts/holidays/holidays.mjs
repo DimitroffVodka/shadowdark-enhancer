@@ -28,7 +28,7 @@
  */
 
 import { MODULE_ID } from "../shared/module-id.mjs";
-import { CHAPTER_FLAG, CHAPTER_PRESETS, nameKey } from "../importer/chapter-journal.mjs";
+import { CHAPTER_FLAG, CHAPTER_PRESETS, isSameChapter, nameKey } from "../importer/chapter-journal.mjs";
 
 /** The chapter preset that imports the holiday pages (its src + pages are the journal's identity). */
 export const HOLIDAY_PRESET = "cs6-holidays";
@@ -150,10 +150,8 @@ async function importedPages() {
   const out = new Map();
   try {
     const index = await pack?.getIndex({ fields: [`flags.${MODULE_ID}.${CHAPTER_FLAG}`] });
-    const row = index?.find((e) => {
-      const f = e.flags?.[MODULE_ID]?.[CHAPTER_FLAG];
-      return f?.src === preset.src && f?.pages === preset.pages;
-    });
+    const row = index?.find((e) => isSameChapter(e.flags?.[MODULE_ID]?.[CHAPTER_FLAG] ?? null,
+      { src: preset.src, pages: preset.pages, preset: preset.id }));
     const entry = row ? await pack.getDocument(row._id) : null;
     for (const p of entry?.pages ?? []) {
       const key = p.getFlag(MODULE_ID, CHAPTER_FLAG)?.key;

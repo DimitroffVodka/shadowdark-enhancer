@@ -4,7 +4,8 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
-  CHAPTER_PRESETS, buildChapterPages, matchKeyedHexes, stripPageFurniture, withLink,
+  CHAPTER_PRESETS, buildChapterPages, isSameChapter, matchKeyedHexes, printedPageWarnings,
+  stripPageFurniture, withLink,
 } from "../scripts/importer/chapter-journal.mjs";
 import { parsePageRange } from "../scripts/importer/pdf-text-extract.mjs";
 
@@ -34,13 +35,60 @@ const PAGE_41 = [
   "41",
 ];
 
-test("page furniture goes wherever the column split left it", () => {
-  const kept = stripPageFurniture(PAGE_40, 40);
+test("page furniture goes wherever the column split left it, and what went is reported", () => {
+  const dropped = [];
+  const kept = stripPageFurniture(PAGE_40, 40, dropped);
   assert.equal(kept.includes("40"), false, "the page's own number, mid-page");
-  assert.equal(kept.includes("Gullport"), false, "the page title after it, above a heading");
+  assert.equal(kept.includes("Gullport"), false, "the page title straight after it");
+  assert.deepEqual(dropped, ["Gullport"]);
   assert.deepEqual(stripPageFurniture(PAGE_41, 41), ["OVERVIEW", "A quiet town of hedges."]);
   // Another page's number is text, and so is a title-like line inside prose.
   assert.deepEqual(stripPageFurniture(["see 40", "Gullport", "is lovely."], 41), ["see 40", "Gullport", "is lovely."]);
+});
+
+test("short capitalised prose survives beside a heading or the page number", () => {
+  // Both used to vanish: one sat above an ALL-CAPS heading, the other straight
+  // after the page's number. Neither is a page title.
+  const lines = [
+    "The court is small and loyal:",
+    "Queen Marisol and her twelve clerks",
+    "TRADE",
+    "Its chief exports are",
+    "40",
+    "Salted fish and river pearls",
+    "carried downriver each spring.",
+  ];
+  const dropped = [];
+  const kept = stripPageFurniture(lines, 40, dropped);
+  assert.ok(kept.includes("Queen Marisol and her twelve clerks"));
+  assert.ok(kept.includes("Salted fish and river pearls"));
+  assert.deepEqual(dropped, []);
+});
+
+test("the text before the first heading keeps its key when the journal is renamed", () => {
+  const pages = [{ page: 12, lines: ["A preamble about the season.", "FIRST FEAST", "Pies are eaten."] }];
+  const a = buildChapterPages(pages, { name: "Feasts" });
+  const b = buildChapterPages(pages, { name: "Feasts of the Year" });
+  assert.deepEqual(a.map((p) => p.key), ["lead", "first-feast"]);
+  assert.deepEqual(b.map((p) => p.key), a.map((p) => p.key));
+  assert.equal(b[0].name, "Feasts of the Year");
+});
+
+test("a preset and a free range over the same pages are different journals", () => {
+  const preset = { src: "GMWR", pages: "16-27", preset: "gmwr-city-states" };
+  const custom = { src: "GMWR", pages: "16-27", preset: "custom" };
+  assert.equal(isSameChapter({ ...preset }, preset), true);
+  assert.equal(isSameChapter({ ...custom }, custom), true);
+  assert.equal(isSameChapter({ ...preset }, custom), false);
+  assert.equal(isSameChapter({ ...custom }, preset), false);
+  assert.equal(isSameChapter({ src: "GMWR", pages: "16-27" }, { src: "GMWR", pages: "16-27" }), true,
+    "no preset on either side is a free range");
+  assert.equal(isSameChapter(null, custom), false);
+});
+
+test("column warnings name the printed page, not the PDF's", () => {
+  assert.deepEqual(printedPageWarnings(["p98: text crossed the gutter (\"word\")", "odd"], 4),
+    ["p94: text crossed the gutter (\"word\")", "odd"]);
 });
 
 test("a free range becomes one page per heading, reflowed", () => {

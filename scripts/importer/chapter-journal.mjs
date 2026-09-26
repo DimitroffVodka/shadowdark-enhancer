@@ -13,7 +13,8 @@
  *
  * Filed in the `shadowdark-enhancer--journals` pack, in the book's folder.
  * Identity is a flag, never the name: `flags.shadowdark-enhancer.chapter =
- * { src, pages }` on the entry and `{ key }` on each page, so importing the
+ * { src, pages, preset }` on the entry (preset id, or "custom") and `{ key }`
+ * on each page, so importing the
  * same range again updates those pages in place and leaves any page the GM
  * added alone. A page whose name matches an imported key location (the hex
  * importer's pages) links to it, and the hex page links back.
@@ -64,24 +65,36 @@ export const nameKey = (s) => String(s ?? "").toLowerCase()
 
 const slug = (s) => nameKey(s).replace(/ /g, "-") || "page";
 
-/** Short, capitalised, no sentence punctuation: a page title, never a line of prose. */
-const TITLE_LIKE = /^[A-Z][^.,;:!?]{0,38}[A-Za-z]$/;
+/**
+ * A page title: capitalised, one to four words, no sentence punctuation. Four
+ * words covers every running title measured ("Holidays", "City of Masks", "The
+ * City-States"); a line of prose that happens to start a column is longer.
+ */
+const TITLE_LIKE = /^[A-Z][^\s.,;:!?]*(?:\s+[^\s.,;:!?]+){0,3}$/;
 
 /**
  * One page's lines without its furniture. The column split files the foot of
  * the LEFT column mid-page, so the page's own number is dropped wherever it
- * lands, not only at the ends; and the page's big title lands wherever the
- * split sends it — after that number, or just above a heading — where it would
- * otherwise read as the last words of a paragraph.
+ * lands, not only at the ends. The page's big title is filed at the top of the
+ * right column, so it comes straight after that number, where it would read
+ * as the last words of a paragraph: a short title-like line there goes too,
+ * and nowhere else. Every line dropped that way is pushed onto `dropped`, so
+ * the preview can say what went.
  * @param {string[]} lines
  * @param {number} [printed]  the page's printed number
+ * @param {string[]} [dropped]  collects the title lines removed
  * @returns {string[]}
  */
-export function stripPageFurniture(lines, printed) {
+export function stripPageFurniture(lines, printed, dropped = []) {
   const all = (lines ?? []).map((l) => String(l ?? "").trim()).filter(Boolean);
   const own = (l) => l === String(printed);
-  const kept = all.filter((l, i) => !own(l)
-    && !(!isHeading(l) && TITLE_LIKE.test(l) && (own(all[i - 1] ?? "") || isHeading(all[i + 1] ?? ""))));
+  const title = (l, i) => !isHeading(l) && TITLE_LIKE.test(l) && own(all[i - 1] ?? "");
+  const kept = all.filter((l, i) => {
+    if (own(l)) return false;
+    if (!title(l, i)) return true;
+    dropped.push(l);
+    return false;
+  });
   while (kept.length && PAGE_FURNITURE_RE.test(kept[0])) kept.shift();
   while (kept.length && PAGE_FURNITURE_RE.test(kept.at(-1))) kept.pop();
   return kept;
@@ -121,9 +134,13 @@ export function sectionHtml(name, lines) {
     .join("\n");
 }
 
-/** Lines → sections, a new one at every ALL-CAPS heading; text before the first is `leadName`'s. */
+/**
+ * Lines → sections, a new one at every ALL-CAPS heading. Text before the first
+ * is named `leadName` but keyed "lead", so re-importing under another journal
+ * name updates that page instead of adding a second one.
+ */
 function splitAtHeadings(lines, leadName) {
-  const out = [{ name: leadName, lines: [] }];
+  const out = [{ name: leadName, key: "lead", lines: [] }];
   for (const l of lines) {
     if (isHeading(l)) out.push({ name: titleCaseName(l), lines: [] });
     else out.at(-1).lines.push(l);
@@ -135,15 +152,16 @@ function splitAtHeadings(lines, leadName) {
  * Pure: extracted pages → journal pages.
  * @param {Array<{page:number, lines:string[]}>} pages  extractPdfText's `pages`,
  *   numbered by PRINTED page
- * @param {{name?:string, sections?:Array<{name:string, pages:number[]}>|null, lead?:boolean}} [opts]
+ * @param {{name?:string, sections?:Array<{name:string, pages:number[]}>|null, lead?:boolean, dropped?:string[]}} [opts]
  *   `sections` (printed pages) makes each section one page; without it the
  *   text is split at its ALL-CAPS headings, and `lead: false` drops the text
- *   before the first one.
+ *   before the first one. `dropped` collects the lines removed as page
+ *   titles, for the preview to show.
  * @returns {Array<{key:string, name:string, html:string}>}
  */
-export function buildChapterPages(pages, { name = "", sections = null, lead = true } = {}) {
+export function buildChapterPages(pages, { name = "", sections = null, lead = true, dropped = [] } = {}) {
   const linesOf = (nums) => (pages ?? []).filter((p) => !nums || nums.includes(p.page))
-    .flatMap((p) => stripPageFurniture(p.lines, p.page));
+    .flatMap((p) => stripPageFurniture(p.lines, p.page, dropped));
   const parts = sections?.length
     ? sections.map((s) => ({ name: s.name, lines: linesOf(s.pages) }))
     : splitAtHeadings(linesOf(null), name).slice(lead ? 0 : 1);
@@ -153,7 +171,7 @@ export function buildChapterPages(pages, { name = "", sections = null, lead = tr
     const html = sectionHtml(part.name, part.lines);
     if (!html) continue;
     // Headings repeat (OVERVIEW under every city), and the key is identity.
-    const base = slug(part.name);
+    const base = part.key ?? slug(part.name);
     const n = (seen.get(base) ?? 0) + 1;
     seen.set(base, n);
     out.push({ key: n > 1 ? `${base}-${n}` : base, name: part.name, html });
@@ -187,7 +205,8 @@ const t = (key, data) => (data ? game.i18n.format(key, data) : game.i18n.localiz
  * Read a chapter out of the GM's own PDF. Printed pages are offset to PDF
  * pages the way every grab does it (sourcePdfTarget).
  * @param {{src:string, pages:string, name:string, sections?:Array<{name:string,pages:string}>, lead?:boolean}} req
- * @returns {Promise<{pages:Array<{key,name,html}>, warnings:string[]}|null>} null when the book has no PDF
+ * @returns {Promise<{pages:Array<{key,name,html}>, warnings:string[], dropped:string[]}|null>}
+ *   null when the book has no PDF; `dropped` = lines removed as page titles
  */
 export async function readChapter({ src, pages, name, sections = null, lead = true }) {
   const { resolveSourcePdf, sourcePdfTarget } = await import("./source-pdf-registry.mjs");
@@ -197,20 +216,40 @@ export async function readChapter({ src, pages, name, sections = null, lead = tr
   // Work in printed pages: the ones the GM typed, and the ones the book prints.
   const offset = (sourcePdfTarget(src, "1")?.page ?? 1) - 1;
   const result = await extractPdfText(file, { pages: parsePageRange(pages).map((p) => p + offset), columns: "auto" });
+  // The extractor names PDF pages ("p98: …"); the GM typed printed ones.
+  result.warnings = printedPageWarnings(result.warnings, offset);
   notifyGutterWarnings(result);
   const printed = (result.pages ?? []).map((p) => ({ ...p, page: p.page - offset }));
   const secs = sections?.map((s) => ({ name: s.name, pages: parsePageRange(s.pages) })) ?? null;
-  return { pages: buildChapterPages(printed, { name, sections: secs, lead }), warnings: result.warnings ?? [] };
+  const dropped = [];
+  return { pages: buildChapterPages(printed, { name, sections: secs, lead, dropped }), warnings: result.warnings, dropped };
+}
+
+/** Pure: extractor warnings ("p98: …") renumbered to the printed page ("p94: …"). */
+export function printedPageWarnings(warnings, offset = 0) {
+  return (warnings ?? []).map((w) => String(w).replace(/^p(\d+):/, (_, n) => `p${Number(n) - offset}:`));
+}
+
+/**
+ * Pure: is this entry flag the journal a request files into? A preset and a
+ * free range over the same pages are different journals (the preset splits by
+ * section, the free range by heading), so the preset id, or "custom", is part
+ * of the identity alongside the book and the range.
+ * @param {{src?:string, pages?:string, preset?:string}|null} flag
+ * @param {{src:string, pages:string, preset?:string}} req
+ */
+export function isSameChapter(flag, { src, pages, preset = "custom" }) {
+  return !!flag && flag.src === src && flag.pages === pages && (flag.preset ?? "custom") === preset;
 }
 
 /**
  * File a read chapter as one JournalEntry, then link its pages to the key
  * locations they name. GM-gated like every other commit.
- * @param {{src:string, pages:string, name:string}} req
+ * @param {{src:string, pages:string, name:string, preset?:string}} req  `preset` is the preset id, or "custom"
  * @param {Array<{key,name,html}>} built  readChapter's pages
  * @returns {Promise<{uuid:string|null, created:number, updated:number, linked:number}>}
  */
-export async function commitChapterJournal({ src, pages, name }, built) {
+export async function commitChapterJournal({ src, pages, name, preset = "custom" }, built) {
   const report = { uuid: null, created: 0, updated: 0, linked: 0 };
   if (!game.user?.isGM) { ui.notifications?.warn(t("SDE.importer.chapter.gmOnly")); return report; }
   const { ensureSuite, ensureSourceFolder, cleanImportHtml, sourceFolderName } = await import("../shared/compendium-suite.mjs");
@@ -219,10 +258,10 @@ export async function commitChapterJournal({ src, pages, name }, built) {
   if (!pack) { ui.notifications?.error(t("SDE.importer.chapter.noPack")); return report; }
 
   const flagOf = (doc) => doc?.getFlag?.(MODULE_ID, CHAPTER_FLAG) ?? null;
-  let entry = (await pack.getDocuments()).find((d) => flagOf(d)?.src === src && flagOf(d)?.pages === pages);
+  let entry = (await pack.getDocuments()).find((d) => isSameChapter(flagOf(d), { src, pages, preset }));
   entry ??= await JournalEntry.create({
     name, folder: await ensureSourceFolder(pack, sourceLabel(src)),
-    flags: { [MODULE_ID]: { [CHAPTER_FLAG]: { src, pages } } },
+    flags: { [MODULE_ID]: { [CHAPTER_FLAG]: { src, pages, preset } } },
   }, { pack: pack.collection });
 
   const mine = new Map(entry.pages.filter((p) => flagOf(p)?.key).map((p) => [flagOf(p).key, p.id]));

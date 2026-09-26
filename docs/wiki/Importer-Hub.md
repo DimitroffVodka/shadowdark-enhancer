@@ -258,8 +258,10 @@ sample of each before anything is written. Press **Create** to file the journal
 in the Journals pack, in the book's folder.
 
 - **Pages** are split at the book's ALL-CAPS headings. Lines are rejoined into
-  paragraphs, words broken across lines are mended, and page numbers and page
-  titles are dropped.
+  paragraphs, words broken across lines are mended, and page numbers are
+  dropped. So is a short title line (four words or fewer) printed straight
+  after a page number, which is where a page's big title lands; the preview
+  lists every line it left out that way, so you can spot one that was prose.
 - **The preset** *Western Reaches GM Guide: the City-States* does it in one
   click. That chapter prints a city's name as a large title rather than a
   heading, so the preset gives each city-state its own page (City of Masks,
@@ -279,10 +281,16 @@ in the Journals pack, in the book's folder.
   to that hex's page, and the hex page links back. If the crawl has been
   pinned on a scene, the link goes to the world copy of the page, so its
   **Jump to Pin** works. Import the key locations first to get these links.
+  Importing the key locations again rewrites their hex pages and drops the
+  "See also" line; running the chapter import again puts it back.
 - **Running it again** on the same book and range updates the journal in
-  place. Pages you added yourself are left alone.
+  place. Pages you added yourself are left alone, but the pages it imported
+  are rewritten from the book, so **your edits to those pages are lost**. Keep
+  your notes on a page of your own. A preset and a free range over the same
+  pages are separate journals.
 - **Column warnings:** if the column split was uncertain on a page, the
-  preview lists it, so you know which pages to check against the book.
+  preview lists it by printed page number, so you know which pages to check
+  against the book.
 - **What it can't see:** paragraph breaks are worked out from the text, since
   a PDF doesn't mark them. A paragraph whose last line runs almost the full
   column width can merge into the next one. A table inside the range comes
