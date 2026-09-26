@@ -11,6 +11,14 @@ import { gregorian, quirkyGregorian, at, clockAt } from "./gregorian-calendar.mj
 const DAY = 86400;
 const hhmm = (h) => `${String(Math.floor(h)).padStart(2, "0")}:${String(Math.round((h % 1) * 60)).padStart(2, "0")}`;
 const shows = (cal, t) => { const c = cal.timeToComponents(t); return `${c.year}-${c.month + 1}-${c.dayOfMonth + 1}`; };
+/** `cal` counting its reads in `reads`: what a call costs, measured without a clock a loaded machine can slow. */
+const counted = (cal) => {
+  const c = { ...cal, reads: 0 };
+  for (const fn of ["timeToComponents", "componentsToTime"]) c[fn] = function (...args) { c.reads++; return cal[fn].apply(this, args); };
+  return c;
+};
+/** A few reads per season change and a few for the two ends; a read per day would be 474,823 over 1300 years. */
+const cheapEnough = (cal, crossed) => assert.ok(cal.reads <= 6 * crossed.seasonChanges + 50, `${cal.reads} calendar reads`);
 
 // ── Sun ──────────────────────────────────────────────────────────────────────
 
@@ -180,12 +188,11 @@ test("season changes land on the 1st the calendar shows, even in core's leap-yea
   }
 });
 
-test("a jump of 1300 years is quick, counts everything, and lists only the last year's seasons", () => {
+test("a jump of 1300 years is cheap, counts everything, and lists only the last year's seasons", () => {
   const from = at(0, 1, 15), to = at(1300, 1, 15);
-  const started = performance.now();
-  const out = crossings(gregorian, from, to);
-  const took = performance.now() - started;
-  assert.ok(took < 500, `took ${Math.round(took)} ms`);
+  const cal = counted(gregorian);
+  const out = crossings(cal, from, to);
+  cheapEnough(cal, out);
   const days = (to - from) / DAY;
   assert.equal(out.days, days);
   assert.equal(out.dawns, days);
@@ -206,7 +213,7 @@ test("dateParts: weekday and month as the calendar names them, the day from 1, H
 
 // ── The Foundry wrapper, against a stubbed game ──────────────────────────────
 
-function stubGame(t, { gm = true, active = true } = {}) {
+function stubGame(t, { gm = true, active = true, calendar } = {}) {
   const calls = [], handlers = {};
   globalThis.CONFIG = { queries: {} };
   globalThis.Hooks = {
@@ -215,7 +222,7 @@ function stubGame(t, { gm = true, active = true } = {}) {
   };
   const user = { id: "u1", isGM: gm };
   globalThis.game = {
-    time: clockAt(t),
+    time: clockAt(t, calendar),
     user,
     users: { activeGM: active ? user : { id: "u2" } },
     settings: { get: () => 0 },
@@ -283,12 +290,12 @@ test("timeAdvanced for a clock set back, and for a first set from 0 to the year 
   });
 
   const year1300 = at(1300, 1, 1);
-  ({ calls, handlers } = stubGame(year1300));
+  const cal = counted(gregorian);
+  ({ calls, handlers } = stubGame(year1300, { calendar: cal }));
   registerTimeHooks();
-  const started = performance.now();
   handlers.updateWorldTime(year1300, year1300, {}, "u1");         // set from worldTime 0
-  assert.ok(performance.now() - started < 500);
   const { crossed } = calls[0].payload;
+  cheapEnough(cal, crossed);
   assert.equal(crossed.days, year1300 / DAY);
   assert.equal(crossed.seasonChanges, 1300 * 4, "four a year, years 0 to 1299");
   assert.equal(crossed.seasons.length, 4);
