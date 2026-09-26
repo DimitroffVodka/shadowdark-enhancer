@@ -660,7 +660,7 @@
     "scripts/importer/hex/hex-commit.mjs": "Hex-key drafts → JournalEntry pages in sde-journal (one entry per crawl, one page per hex); pure planner + two-pass link rewrite.",
     "scripts/importer/hex/hex-summary.mjs": "Keyed hex summary rows (number, region, terrain, name) → structured rows; zone/terrain split decided by the table. Pure.",
     "scripts/importer/hex/hex-dataset.mjs": "Drafts + summary rows + tags → the Shadowdark Extras hexcrawl dataset (numbers only at the boundary). Pure.",
-    "scripts/importer/hex/hex-handoff.mjs": "Crawl entry → dataset; hands it to Extras when its builder exists, else downloads JSON.",
+    "scripts/importer/hex/hex-handoff.mjs": "Crawl entry → dataset; puts it on the tagged print through Extras (adoptHexcrawl), builds a painted Extras scene, or downloads JSON.",
     "scripts/hex-map/geometry.mjs": "Hex numbering by cube difference from one anchor cell; printed offset ↔ cube under the map's column-shift rule. Pure.",
     "scripts/hex-map/hex-region.mjs": "Which region is a hex in: the book's own word for a keyed hex, the nearest keyed hex's region for any other (84.8% on the Western Reaches, leave-one-out over the book's own keyed rows). Seeds come from the filed crawls; nothing is stored.",
     "scripts/hex-map/region-scan.mjs": "Region borders read off the print: the thick line a hexcrawl map draws along a hex edge, measured across the whole edge so a river crossing it is not mistaken for one, then flood-filled into enclosures. Reuses the cell bitmaps the tagger already built, so it costs no extra image reads (45 ms for 4768 hexes). Pure.",

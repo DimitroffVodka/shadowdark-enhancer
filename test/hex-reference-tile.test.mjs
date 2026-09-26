@@ -145,9 +145,50 @@ test("building in Extras leaves the reference image off the painted scene", asyn
       _numbered: new Map([[1, { u: 10, v: 10, col: 0, row: 1 }]]),
       _entries: [], _entryUuid: "", _mode: "random", element: null,
     });
-    await app._onBuildDataset();
+    await app._onBuildPainted();
     assert.equal(created, undefined);
     assert.equal(built.grid.firstRow, 1, "the source map's clipped first row reaches Extras");
+  } finally {
+    Object.assign(globalThis, previous);
+  }
+});
+
+test("Send to Extras puts the details on the tagged print and builds nothing (#175)", async () => {
+  const previous = { foundry: globalThis.foundry, game: globalThis.game, canvas: globalThis.canvas, ui: globalThis.ui };
+  const adopted = [], upserts = [], warnings = [];
+  let built;
+  const source = { id: "source", name: "Source", background: { src: "maps/source.jpg" } };
+  globalThis.canvas = { scene: source };
+  globalThis.ui = { notifications: { info() {}, warn: (m) => warnings.push(m), error() {} } };
+  globalThis.game = {
+    user: { isGM: true },
+    shadowdarkExtras: { hex: {
+      async buildHexcrawl(dataset) { built = dataset; },
+      async adoptHexcrawl(sceneId, opts) { adopted.push({ sceneId, opts }); return { sceneId, adopted: true }; },
+      async upsertHexRecords(sceneId, records) { upserts.push({ sceneId, records }); return { sceneId, records: records.length }; },
+    } },
+  };
+  try {
+    const HexTaggerApp = await taggerClass();
+    const app = Object.create(HexTaggerApp.prototype);
+    // Anchored on 0001 at Foundry offset {i:1, j:0}: the first hex, 0000, is the
+    // scene's top-left cell, which is how Extras numbers an adopted map.
+    const origin = { q: 0, r: 1, num: "0001", shifted: "odd", bounds: { cols: 1, rows: 2, firstRow: 1 } };
+    Object.assign(app, {
+      _state: { origin, cells: new Map([["001", { terrain: "forest", overlays: [], source: "gm" }]]) },
+      _stateSceneId: source.id, _entries: [], _entryUuid: "", _mode: "random", element: null,
+    });
+    await app._onBuildDataset();
+    assert.equal(built, undefined, "no new scene");
+    assert.equal(adopted[0].sceneId, "source", "the print itself is adopted");
+    assert.equal(adopted[0].opts.grid.firstRow, 1);
+    assert.deepEqual(upserts[0], { sceneId: "source", records: [{ num: 1, terrain: "forest" }] });
+
+    app._state.origin = { ...origin, q: 1 };
+    adopted.length = 0; upserts.length = 0;
+    await app._onBuildDataset();
+    assert.deepEqual([adopted, upserts], [[], []], "a map numbered off the top-left cell is refused before anything is written");
+    assert.equal(warnings.length, 1);
   } finally {
     Object.assign(globalThis, previous);
   }
