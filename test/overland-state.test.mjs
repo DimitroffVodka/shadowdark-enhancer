@@ -5,6 +5,7 @@ import {
   pickTravelToken, forageRefusal, OVERLAND_VERSION,
   setWeather, weatherHolds, weatherAdvantage, weatherFormula, weatherFromRoll, harshToday, hexCost,
   dayBudget, pointSeconds, openDay, spendMove, priceMove, moveVerdict,
+  dayChecks, dueChecks, markCheck, setPending,
 } from "../scripts/overland/overland-state-core.mjs";
 import { rulesApi } from "../scripts/rules-data/rules-data-core.mjs";
 
@@ -216,4 +217,36 @@ test("a move spends its cost and records the hex", () => {
   assert.equal(changed, true);
   assert.equal(state.spent, 5);
   assert.deepEqual(state.hex, hex);
+});
+
+// ── Encounter checks (#232) ──────────────────────────────────────────────────
+
+test("the day's checks: two by day from 06:00 to 17:00, two at night from 18:00 to 05:00, in time order", () => {
+  const checks = dayChecks({ midnight: 0, d12s: [12, 1, 12, 1], pushed: false });
+  assert.deepEqual(checks.map((c) => [c.half, c.at / HOUR, c.chance]),
+    [["day", 6, 1], ["day", 17, 1], ["night", 18, 1], ["night", 29, 1]]);
+  assert.ok(checks.every((c) => !c.rolled && c.hit === null));
+  assert.deepEqual(dayChecks({ midnight: 0, d12s: [1, 1, 1, 1], pushed: true }).map((c) => c.chance), [2, 2, 2, 2],
+    "a pushed day, night checks too");
+});
+
+test("the checks an advance passes: unrolled, at or before the target, in time order", () => {
+  const checks = dayChecks({ midnight: 0, d12s: [3, 1, 5, 2], pushed: false });   // 06, 08, 19, 22
+  assert.deepEqual(dueChecks(checks, 7 * HOUR).map((i) => checks[i].at / HOUR), [6]);
+  assert.deepEqual(dueChecks(checks, 22 * HOUR).map((i) => checks[i].at / HOUR), [6, 8, 19, 22]);
+  const { state } = markCheck({ ...defaultOverlandState(), checks }, 0, false);
+  assert.deepEqual(dueChecks(state.checks, 7 * HOUR), [], "a rolled check isn't rolled again");
+  assert.equal(state.checks[0].hit, false);
+});
+
+test("a stopped advance waits, and nothing but Continue moves the token on", () => {
+  const day = { ...defaultOverlandState(), day: 0, budget: 5 };
+  const { state } = setPending(day, { until: 99, reason: "move" });
+  assert.deepEqual(state.pending, { until: 99, reason: "move" });
+  assert.equal(moveVerdict(state, { cost: 1, blocked: null }), "pending");
+  assert.equal(moveVerdict(state, { cost: 0, blocked: null }), null, "a displace is still free");
+  assert.equal(setPending(state, null).state.pending, null);
+  assert.equal(normalizeOverlandState({ pending: { until: "x" } }).pending, null);
+  assert.deepEqual(normalizeOverlandState({ checks: [{ at: 5, half: "odd", chance: 9 }, { at: "x" }] }).checks,
+    [{ half: "day", at: 5, chance: 6, rolled: false, hit: null }]);
 });

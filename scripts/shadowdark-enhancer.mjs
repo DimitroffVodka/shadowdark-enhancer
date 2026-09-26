@@ -9,7 +9,7 @@ import { ICONS } from "./shared/icons.mjs";
 import { registerSettings } from "./shared/settings.mjs";
 import { rulesApi } from "./rules-data/rules-data-core.mjs";
 import { timeApi, registerTimeHooks } from "./time/time.mjs";
-import { overlandState, isOverland, rollWeather, startDay, registerOverland } from "./overland/overland.mjs";
+import { overlandState, isOverland, rollWeather, startDay, resume, registerOverland } from "./overland/overland.mjs";
 import { CrawlState } from "./crawl-strip/crawl-state.mjs";
 import { CrawlStrip } from "./crawl-strip/crawl-strip.mjs";
 import { registerCrawlTracker, refreshTracker } from "./crawl-strip/crawl-tracker.mjs";
@@ -112,7 +112,7 @@ const STYLESHEET_REV = "04c122556d8d";
 // stale); module.json carries the same hash and is fetched fresh at runtime. A
 // mismatch is a stale cache by construction — it cannot be anything else. Both
 // stamps are written by `npm run inventory` and gated by `inventory:check`.
-const BUILD_REV = "ee8cfce740d0";
+const BUILD_REV = "6d0e29ae2c67";
 
 /**
  * Tell the user when their browser is running an old build of this module, and
@@ -431,15 +431,18 @@ Hooks.once("init", () => {
     // 1.14.0 — additive: overland namespace and the overland* hooks (Overland O3, #229).
     // 1.15.0 — additive: overland.rollWeather (Overland O4, #230).
     // 1.16.0 — additive: overland.startDay, and moves spend the day's budget (Overland O5, #231).
-    apiVersion: "1.16.0",
+    // 1.17.0 — additive: overland.resume, encounter.check options, travel checks (Overland O6, #232).
+    apiVersion: "1.17.0",
     // The one travel state per world (scripts/overland/overland.mjs): a copy
     // with hexes left, climate, storm, harshness and night derived; whether
-    // travel is on; today's weather roll and the travel day's start (GM).
+    // travel is on; today's weather roll, the travel day's start, and Continue
+    // after an encounter stopped the clock (GM).
     overland: {
       state: () => overlandState(),
       isActive: () => isOverland(),
       rollWeather: (options) => rollWeather(options),
       startDay: (options) => startDay(options),
+      resume: () => resume(),
     },
     // Readings on Foundry's world clock: season, day and night, sun, moon,
     // anchors, the date string. Synchronous, any user (scripts/time/time.mjs).
@@ -509,7 +512,8 @@ Hooks.once("init", () => {
       apply: (b) => applyBundle(b),
     },
     encounter: {
-      check: () => EncounterCheck.check(),
+      // Options (1.17.0): { threshold, hex, label, clockLabel }; none is the crawl's check.
+      check: (options) => EncounterCheck.check(options),
       openRoller: async (tab, seed) =>
         (await import("./encounter/encounter-roller-app.mjs")).EncounterRollerApp.open(tab, seed),
       setActiveTable: (uuid) => game.settings.set(MODULE_ID, "encounterTableUuid", uuid || ""),

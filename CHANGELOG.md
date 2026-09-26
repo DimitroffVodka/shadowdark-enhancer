@@ -3,6 +3,13 @@
 ## [Unreleased]
 
 ### Added
+- **Overland encounter checks.** **Start day** sets the day's four encounter
+  checks: two by day, two at night, each at an hour rolled on a d12 and
+  whispered to the GM. The chance is 1 in 6, or 2 in 6 when pushed. A move
+  whose clock passes a check's hour rolls it at that hour, on the table the
+  book intends for the party's hex. A hit stops the clock there until the GM
+  presses **Continue**. `game.shadowdarkEnhancer.encounter.check()` now takes
+  a threshold, a hex and labels. (API 1.17.0, #232)
 - **Overland travel days.** While travelling, **Start day** on the Crawl Bar
   opens a day: walking, mounted or sailing (aboard a boat actor if you like),
   optionally pushed for half as many hexes again. Each move of the travel token

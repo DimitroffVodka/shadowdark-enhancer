@@ -36,8 +36,8 @@ export function defaultOverlandState() {
     spent: 0,             // points spent; hexes left = budget - spent
     pointSeconds: 0,      // clock seconds per point, fixed at dawn (#231)
     weather: null,        // {kind, roll, rule, until, advantageNext, advantage, days} (#230)
-    checks: [],           // the day's encounter checks (#232)
-    pending: null,        // {until, reason}: an advance stopped by a hit (#232)
+    checks: [],           // the day's encounter checks, {half, at, chance, rolled, hit} (#232)
+    pending: null,        // {until, reason}: an advance stopped by a hit, waiting for Continue (#232)
     foraged: [],          // actor ids that foraged today (#233)
     hex: null,            // {num, terrain, region, features}: the travel token's last hex
   };
@@ -47,6 +47,21 @@ const str = (v) => (typeof v === "string" && v ? v : null);
 const int = (v, min = 0) => (Number.isFinite(Number(v)) ? Math.max(min, Math.trunc(Number(v))) : min);
 const ids = (v) => [...new Set((Array.isArray(v) ? v : []).filter((id) => typeof id === "string" && id))];
 const obj = (v) => (v && typeof v === "object" && !Array.isArray(v) ? { ...v } : null);
+
+/** A stored encounter check, or null when it isn't one. */
+function checkOf(v) {
+  if (!obj(v) || !Number.isFinite(v.at)) return null;
+  return {
+    half: v.half === "night" ? "night" : "day",
+    at: v.at,
+    chance: Math.min(6, int(v.chance, 1)),
+    rolled: v.rolled === true,
+    hit: typeof v.hit === "boolean" ? v.hit : null,
+  };
+}
+
+/** A stored stopped advance, or null. */
+const pendingOf = (v) => (obj(v) && Number.isFinite(v.until) ? { until: v.until, reason: str(v.reason) } : null);
 
 /** A stored weather, or null when it isn't one. */
 function weatherOf(v) {
@@ -85,8 +100,8 @@ export function normalizeOverlandState(value) {
     spent: int(value.spent),
     pointSeconds: int(value.pointSeconds),
     weather: weatherOf(value.weather),
-    checks: Array.isArray(value.checks) ? value.checks.map(obj).filter(Boolean) : [],
-    pending: obj(value.pending),
+    checks: Array.isArray(value.checks) ? value.checks.map(checkOf).filter(Boolean) : [],
+    pending: pendingOf(value.pending),
     foraged: ids(value.foraged),
     hex: hex && Number.isInteger(hex.num)
       ? { num: hex.num, terrain: str(hex.terrain), region: str(hex.region), features: ids(hex.features) }
@@ -133,18 +148,32 @@ export function setWeather(state, weather) {
 /**
  * Open a travel day at `now` (§5.1 step 3): the method, the push and the
  * budget are fixed here, and so is the clock rate, so a rules edit mid-day
- * changes nothing. The day's forage, checks and any stopped advance start
- * over. `base` is rules.hexesPerDay(method), or the boat's speed.
- * @param {{now:number, method:string, pushed:boolean, base:number, boatUuid?:string|null, hourSeconds?:number}} day
+ * changes nothing. The day's forage starts over, its encounter checks are
+ * `checks` (dayChecks), and any stopped advance is dropped. `base` is
+ * rules.hexesPerDay(method), or the boat's speed.
+ * @param {{now:number, method:string, pushed:boolean, base:number, boatUuid?:string|null,
+ *   hourSeconds?:number, checks?:object[]}} day
  */
-export function openDay(state, { now, method, pushed, base, boatUuid = null, hourSeconds = 3600 }) {
+export function openDay(state, { now, method, pushed, base, boatUuid = null, hourSeconds = 3600, checks = [] }) {
   const next = normalizeOverlandState({
     ...state,
     day: now, method, pushed: !!pushed, boatUuid: method === "sailing" ? boatUuid : null,
     budget: dayBudget(base, pushed), spent: 0, pointSeconds: pointSeconds(base, hourSeconds),
-    foraged: [], checks: [], pending: null,
+    foraged: [], checks, pending: null,
   });
   return { state: next, changed: true };
+}
+
+/** Check `index` was rolled, and hit or not. */
+export function markCheck(state, index, hit) {
+  const checks = state.checks.map((c, i) => (i === index ? { ...c, rolled: true, hit: !!hit } : c));
+  return { state: normalizeOverlandState({ ...state, checks }), changed: true };
+}
+
+/** An advance stopped by a hit waits here for Continue; null clears it. */
+export function setPending(state, pending) {
+  const next = normalizeOverlandState({ ...state, pending });
+  return { state: next, changed: JSON.stringify(next.pending) !== JSON.stringify(state.pending) };
 }
 
 /** The travel token moved: `cost` points spent, and it stands in `hex` now. */
@@ -278,11 +307,43 @@ export function priceMove(steps, costOf) {
 
 /**
  * May the travel token make this move (the budget is hard, decided Q9)?
- * @returns {null|"noDay"|"impassable"|"bounce"} null: go
+ * @returns {null|"noDay"|"pending"|"impassable"|"bounce"} null: go
  */
 export function moveVerdict(state, { cost, blocked }) {
   if (cost === 0 && !blocked) return null;   // displaced, or within one hex
   if (state.day === null) return "noDay";
+  if (state.pending) return "pending";        // an encounter stopped the clock: Continue first
   if (blocked) return "impassable";
   return cost > state.budget - state.spent ? "bounce" : null;
 }
+
+// ── Encounter checks (#232, design §5.1 step 4, §5.3, §5.7) ────────────────
+
+/**
+ * The day's four checks from four d12s: two by day at 06:00 + (d12 − 1) h
+ * (06:00 to 17:00) and two at night at 18:00 + (d12 − 1) h (18:00 to 05:00
+ * the next morning), in time order. The chance is 1-in-6, or 2-in-6 on a
+ * pushed day for all four, the night ones included (§5.7).
+ * @param {{midnight:number, d12s:number[], pushed:boolean, hourSeconds?:number}} day
+ *   `midnight`: the worldTime of the day's 00:00
+ */
+export function dayChecks({ midnight, d12s, pushed, hourSeconds = 3600 }) {
+  const chance = pushed ? 2 : 1;
+  return d12s.slice(0, 4)
+    .map((d, i) => {
+      const half = i < 2 ? "day" : "night";
+      return { half, at: midnight + ((half === "day" ? 6 : 18) + d - 1) * hourSeconds, chance, rolled: false, hit: null };
+    })
+    .sort((a, b) => a.at - b.at);
+}
+
+/**
+ * The checks an advance to `target` passes, as indexes in time order: every
+ * one not yet rolled whose hour is at or before `target`. A check whose hour
+ * went by before the day was started falls due at once (§5.1).
+ */
+export const dueChecks = (checks, target) => checks
+  .map((c, i) => ({ c, i }))
+  .filter(({ c }) => !c.rolled && c.at <= target)
+  .sort((a, b) => a.c.at - b.c.at)
+  .map(({ i }) => i);

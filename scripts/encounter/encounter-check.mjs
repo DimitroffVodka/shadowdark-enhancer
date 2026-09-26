@@ -16,28 +16,33 @@ export const EncounterCheck = {
 
   /**
    * Perform one encounter check (1d6 vs threshold).
+   *
+   * Overland's travel checks (#232) pass their own chance, the travel hex
+   * (with its region as the zone), a label for the card and the recap's clock
+   * label. With no options this is exactly the crawl's check.
+   * @param {{threshold?:number, hex?:object|null, label?:string, clockLabel?:string}} [options]
    * @returns {Promise<{total: number, hit: boolean}>}
    */
-  async check() {
-    const threshold = game.settings.get(MODULE_ID, "encounterThreshold");
+  async check({ threshold: chance, hex: travelHex, label = "", clockLabel } = {}) {
+    const threshold = Number.isInteger(chance) ? chance : game.settings.get(MODULE_ID, "encounterThreshold");
     const roll = await new Roll("1d6").evaluate();
     const hit = roll.total <= threshold;
     // On a tagged hex map the party's hex names itself on the card and picks
     // the table; everywhere else this is null and nothing below changes.
-    const hex = partyHex();
+    const hex = travelHex ? { ...travelHex, zone: travelHex.zone ?? travelHex.region ?? undefined } : partyHex();
     // The table for a hit: the region's column for this hex, resolved at the
     // moment of the roll, else the terrain's table, else the active one. A
     // failing lookup falls back to the terrain picker, so the card still posts.
     const table = hit ? await tableForCheck(hex) : null;
 
-    await this._postToChat(roll, threshold, hit, hex, table);
+    await this._postToChat(roll, threshold, hit, hex, table, label);
 
     const crawlRound = CrawlState.mode === "crawl" ? CrawlState.crawlTurn : null;
 
     // Record the check in the session recap (self-guards on an active session).
     SessionRecap.logEncounterCheck({
       roll: roll.total, threshold, hit,
-      clockLabel: crawlRound === null ? null : `Round ${crawlRound}`,
+      clockLabel: clockLabel ?? (crawlRound === null ? null : `Round ${crawlRound}`),
     });
 
     // Anchor the frequency countdown to the round this check ran on, so the
@@ -76,7 +81,7 @@ export const EncounterCheck = {
    *
    * @private
    */
-  async _postToChat(roll, threshold, hit, hex = null, table = null) {
+  async _postToChat(roll, threshold, hit, hex = null, table = null, label = "") {
     const gmOnly = game.settings.get(MODULE_ID, "encounterRollGMOnly");
     const flavor = hit
       ? `🎲 Encounter Check — encounter occurs (threshold ${threshold}-in-6)`
@@ -84,10 +89,10 @@ export const EncounterCheck = {
     // "Hex 3723 · forest, river · Lowland Moor: Forest" when the party stands
     // on a tagged hex map, the last part naming the column a hit rolls.
     const column = table?.verdict?.column?.column;
-    const where = hex
+    const where = [label, ...(hex
       ? [`Hex ${hex.num}`, [hex.terrain, ...(hex.features ?? [])].filter(Boolean).join(", ").replace(/_/g, " "),
-        column ? `${table.zone}: ${column}` : ""].filter(Boolean).join(" · ")
-      : "";
+        column ? `${table.zone}: ${column}` : ""]
+      : [])].filter(Boolean).join(" · ");
 
     const content = await renderTemplate(
       "modules/shadowdark-enhancer/templates/chat/encounter-check.hbs",
