@@ -212,7 +212,8 @@ async function tick(actor, scope, round) {
     // The first turn only rolls the timer; the d20s start on the next one.
     const rounds = await rollTimer(actor);
     await replaceModuleFlag(actor, FLAG, { ...s, timer: rounds, tick: { scope, round } });
-    return sayRounds(actor, rounds);
+    await sayRounds(actor, rounds);
+    return;
   }
   // Checked at the moment of the roll: an ally's aura counts if it is near now.
   const min = riseMin({
@@ -457,12 +458,15 @@ export async function openMenu(actor) {
   }
   if (game.user.isGM) {
     if (!s.stable) {
-      buttons.push(
-        { action: "stabilize", label: fmt("SDE.dying.stabilizeNow") },
-        { action: "add", label: fmt("SDE.dying.addRound") },
-        { action: "remove", label: fmt("SDE.dying.removeRound") },
-        { action: "conscious", label: s.conscious ? fmt("SDE.dying.unconsciousAgain") : fmt("SDE.dying.conscious") },
-      );
+      buttons.push({ action: "stabilize", label: fmt("SDE.dying.stabilizeNow") });
+      // Rounds exist once the first turn has rolled the timer (#263).
+      if (Number.isInteger(s.timer)) {
+        buttons.push(
+          { action: "add", label: fmt("SDE.dying.addRound") },
+          { action: "remove", label: fmt("SDE.dying.removeRound") },
+        );
+      }
+      buttons.push({ action: "conscious", label: s.conscious ? fmt("SDE.dying.unconsciousAgain") : fmt("SDE.dying.conscious") });
     }
     buttons.push({ action: "rise", label: fmt("SDE.dying.riseNow") });
   }

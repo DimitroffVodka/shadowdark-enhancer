@@ -3,9 +3,9 @@
 [← Wiki home](index.md)
 
 The core rulebook's dying rule (p.89), run for you: a character at 0 HP is
-dying, rolls a death timer, gets a chance to rise every turn, and can be
-stabilized by a friend. Deadly and Fatality (p.111) change it from the
-[Modes of Play](Modes-of-Play.md) window.
+dying, rolls a death timer on its first turn, gets a chance to rise every turn
+after that, and can be stabilized by a friend. Deadly and Fatality (p.111)
+change it from the [Modes of Play](Modes-of-Play.md) window.
 
 Nothing else in a Shadowdark world does this. The system only marks a character
 prone and unconscious when damage takes it to 0 HP. Shadowdark Crawl Helper used
@@ -87,7 +87,7 @@ Clicking the badge as GM also offers the situational rules:
 
 | Button | For |
 |---|---|
-| **One more round** / **One round fewer** | Pit Fighter's Relentless, a spell that buys time. Never below 1. |
+| **One more round** / **One round fewer** | Pit Fighter's Relentless, a spell that buys time. Never below 1. Offered once the timer has been rolled. |
 | **Stabilize, no roll** | A potion that stops dying, Last Stand's once-a-day success |
 | **Conscious while dying** | The tier-5 necromancer spell's rounds of acting while dying. The timer still runs, and the defeated mark comes off so *Skip Defeated* doesn't skip the turns it acts in. |
 | **Rise now, at 1 HP** | Any rule that simply brings the character back |
