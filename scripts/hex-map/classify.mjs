@@ -562,13 +562,14 @@ export function scaledOverlayThresholds(area, T = DEFAULT_THRESHOLDS) {
  * @param {Array<{num:number, tag:string, features:string[], bitmap:object}>} args.exemplars
  * @param {object[]} [args.allBitmaps]  every cell bitmap on the map, for the label zone (defaults to the exemplars)
  * @param {object} [args.thresholds]
- * @returns {{ classify: (cell:{num:number,bitmap:object}) => {terrain:string, features:string[], margin:number, ambiguous:boolean, reason:string}, warnings: string[], stampCoverage: Object<string, number>, ready: boolean }}
+ * @returns {{ classify: (cell:{num:number,bitmap:object}) => {terrain:string, features:string[], margin:number, ambiguous:boolean, reason:string}, warnings: Array<{key:string, data?:object}>, stampCoverage: Object<string, number>, ready: boolean }}
+ *   warnings are languages/en.json keys with their format data; the caller localizes them.
  */
 export function createClassifier({ exemplars, allBitmaps, thresholds = {} }) {
   const T = { ...DEFAULT_THRESHOLDS, ...thresholds };
   const warnings = [];
   const ex = (exemplars ?? []).filter((e) => e?.tag && e.bitmap);
-  if (!ex.length) return { classify: () => null, warnings: ["No exemplars: tag a sheet by hand first."], stampCoverage: {}, ready: false };
+  if (!ex.length) return { classify: () => null, warnings: [{ key: "SDE.hexMap.classify.noExamples" }], stampCoverage: {}, ready: false };
   const { w, h } = ex[0].bitmap;
   const area = w * h;
   const px = scaledOverlayThresholds(area, T);
@@ -577,9 +578,9 @@ export function createClassifier({ exemplars, allBitmaps, thresholds = {} }) {
   const keep = keepMask(allBitmaps?.length ? allBitmaps : ex.map((e) => e.bitmap), masks);
   const vecs = ex.map((e) => ({ ...e, vec: featureVector(e.bitmap), profile: shapeProfile(and(e.bitmap, keep)) }));
   const { stamps, counts, coverage: cov } = buildStamps(vecs, T);
-  for (const [tag, n] of counts) if (n < T.minExemplars) warnings.push(`${tag}: only ${n} tagged cell${n === 1 ? "" : "s"}, needs ${T.minExemplars} for river and path detection`);
+  for (const [tag, n] of counts) if (n < T.minExemplars) warnings.push({ key: "SDE.hexMap.classify.fewExamples", data: { tag, n, need: T.minExemplars } });
   const weak = [...cov.entries()].filter(([, c]) => c < 0.5).map(([t]) => t);
-  if (weak.length) warnings.push(`Stamps for ${weak.join(", ")} explain under half of their cells' ink: the icons are not identical from cell to cell (hand-drawn map?), so river and path detection will be poor there.`);
+  if (weak.length) warnings.push({ key: "SDE.hexMap.classify.weakStamps", data: { tags: weak.join(", ") } });
 
   // The water family is settled by the wave strokes the legend draws, not by
   // block means: see WATER_ARBITER. Built once from the same exemplars.
@@ -623,7 +624,7 @@ export function createClassifier({ exemplars, allBitmaps, thresholds = {} }) {
 /**
  * Classify cells in one call (tests, small maps). The app uses createClassifier
  * and loops with yields instead.
- * @returns {{ results: Map<number, object>, review: number[], warnings: string[], stampCoverage: Object<string, number> }}
+ * @returns {{ results: Map<number, object>, review: number[], warnings: Array<{key:string, data?:object}>, stampCoverage: Object<string, number> }}
  */
 export function classifyCells({ cells, exemplars, allBitmaps, thresholds = {} }) {
   const results = new Map(), review = [];

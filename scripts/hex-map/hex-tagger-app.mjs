@@ -174,7 +174,7 @@ export async function benchmarkFirstRun(opts = {}) {
   const thresholds = { sensitivity: opts.sensitivity ?? 1 };
   if (opts.runOff !== undefined) thresholds.runOff = opts.runOff;
   const clf = createClassifier({ exemplars, allBitmaps: [...app._bitmaps.values()], thresholds });
-  if (!clf.ready) { ui.notifications?.error(clf.warnings[0] ?? t("SDE.hexMap.dev.noClassifier")); return null; }
+  if (!clf.ready) { ui.notifications?.error(clf.warnings[0] ? t(clf.warnings[0].key, clf.warnings[0].data) : t("SDE.hexMap.dev.noClassifier")); return null; }
   let n = 0, runOffs = 0;
   for (const c of cells) {
     if (state.has(String(c.num))) continue;
@@ -911,7 +911,7 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
       .map((n) => ({ num: n, bitmap: this._bitmaps.get(n) })).filter((c) => c.bitmap);
     this._setProgress(t("SDE.hexMap.progress.preparing", { n: exemplars.length })); await new Promise((r) => setTimeout(r, 0));
     const clf = createClassifier({ exemplars, allBitmaps: [...this._bitmaps.values()], thresholds: { sensitivity: this._sensitivity } });
-    if (!clf.ready) { for (const w of clf.warnings) ui.notifications?.warn(w); this._setProgress(""); return false; }
+    if (!clf.ready) { for (const w of clf.warnings) ui.notifications?.warn(t(w.key, w.data)); this._setProgress(""); return false; }
     let done = 0, auto = 0, review = 0;
     for (const c of cells) {
       const r = clf.classify(c);
@@ -962,7 +962,7 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
     this._mode = "review";
     this._sheet = nextSheet(this._state, { nums: [...this._numbered.keys()], size: SHEET_SIZE, mode: "review", reviewMargin: this._log().margin });
     ui.notifications?.info(t("SDE.hexMap.notify.classified", { auto, examples: exemplars.length, fixes: fixes.length, coasts: coasts.length, review }));
-    for (const w of clf.warnings) ui.notifications?.warn(w);
+    for (const w of clf.warnings) ui.notifications?.warn(t(w.key, w.data));
     this.render();
     return true;
   }
@@ -1287,6 +1287,7 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
     if (res.via === "extras") {
       const hexes = res.summary?.records ?? dataset.hexes.length;
       ui.notifications?.info(t(res.adopted ? "SDE.hexMap.notify.onPrintFirst" : "SDE.hexMap.notify.onPrint", { hexes }));
+      if (res.featuresUnread) ui.notifications?.warn(t("SDE.hexMap.notify.featuresUnread"));
     } else if (res.reason === "no-adopt") ui.notifications?.warn(t("SDE.hexMap.notify.needsAdopt"));
     else if (res.reason === "extras-error" && res.error) ui.notifications?.error(t("SDE.hexMap.notify.adoptFailed", { error: res.error }));
   }

@@ -77,7 +77,8 @@ test("classifyCells: terrain from the glyph, river from the residual stroke, pat
 test("classifyCells: too few exemplars for a terrain is a warning and its cells are queued", () => {
   const ex = exemplars().filter((e) => e.tag !== "desert" || e.num % 2);   // 2 desert exemplars
   const { results, review, warnings } = classifyCells({ cells: [{ num: 200, bitmap: noisy(glyph("dots"), 8) }], exemplars: ex });
-  assert.ok(warnings.some((w) => w.startsWith("desert: only 2")));
+  // A key and its data, localized by the tagger: no English leaves the classifier.
+  assert.ok(warnings.some((w) => w.key === "SDE.hexMap.classify.fewExamples" && w.data.tag === "desert" && w.data.n === 2));
   assert.equal(results.get(200).terrain, "desert");
   assert.ok(review.includes(200));
 });

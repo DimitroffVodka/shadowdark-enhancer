@@ -51,8 +51,11 @@
   with no river feature; a keyed hex the book lists only as "Coast" no longer
   goes with coast as its terrain. Sending again replaces those three and
   nothing else, so a dungeon you added in Extras and what the players
-  discovered stay. The tagger and the brush call river, path and coast
-  **features** now, and the warning that coasts stay behind is gone. (#196)
+  discovered stay; if the tagger cannot read what Extras holds, it sends no
+  features and says so. Extras' Hex Editor turns them into "dungeon" on save
+  until shadowdark-extras#157; the next send puts them back. The tagger and
+  the brush call river, path and coast **features** now, and the warning that
+  coasts stay behind is gone. (#196)
 - **You're told when an update gives you something new to import.** A release
   that adds a book, a bestiary or another hundred table rows used to be
   invisible to anyone who had already imported what they own. The importer now
