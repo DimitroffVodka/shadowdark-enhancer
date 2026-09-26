@@ -366,7 +366,7 @@ export const TABLE_MANIFEST = [
   {"id":"pgwr-carousing-benefit","name":"Carousing Benefit","source":"pgwr","sourceLabel":"Western Reaches","category":"Gameplay","sub":"Carousing","page":238,"die":"d100","systemUuid":null,"rows":100,"hash":null},
   {"id":"pgwr-carousing-mishap","name":"Carousing Mishap","source":"pgwr","sourceLabel":"Western Reaches","category":"Gameplay","sub":"Carousing","page":242,"die":"d100","systemUuid":null,"rows":100,"hash":null},
   // ── Game Master's Guide to the Western Reaches — HAND-CURATED (wave 3) ──────
-  // 103 rows, every one of them run through the module's own extractor and
+  // 104 rows, every one of them run through the module's own extractor and
   // parsers against the real PDF: `die` and `rows` are MEASURED, not read off
   // the page, and `hash` is null because no census fingerprint was recorded.
   // The printed page IS the PDF page in this book.
@@ -393,6 +393,7 @@ export const TABLE_MANIFEST = [
   // Djurum Desert Rumors IS cited, and it is a REWRITE, not a reprint: only 3
   // of its 10 rows survive from Cursed Scroll 2. A CS2 owner gets the older
   // list from the book they have, which is worth more than no table at all.
+  {"id":"gmgwr-caught-in-danger","name":"Caught in Danger!","source":"gmgwr","sourceLabel":"Western Reaches GM Guide","category":"Game Master","sub":"Back to Safety","page":33,"die":"d6","systemUuid":null,"rows":6,"hash":null},
   {"id":"gmgwr-trouble-in-the-reaches-region","name":"Trouble in the Reaches: Region","source":"gmgwr","sourceLabel":"Western Reaches GM Guide","category":"Game Master","sub":"Trouble in the Reaches","page":48,"die":"d20","systemUuid":null,"rows":15,"hash":null},
   {"id":"gmgwr-trouble-in-the-reaches-settlement","name":"Trouble in the Reaches: Settlement","source":"gmgwr","sourceLabel":"Western Reaches GM Guide","category":"Game Master","sub":"Trouble in the Reaches","page":48,"die":"d4","systemUuid":null,"rows":4,"hash":null},
   {"id":"gmgwr-trouble-urgency-level","name":"Trouble Urgency Level","source":"gmgwr","sourceLabel":"Western Reaches GM Guide","category":"Game Master","sub":"Trouble in the Reaches","page":49,"die":"2d6","systemUuid":null,"rows":4,"hash":null},

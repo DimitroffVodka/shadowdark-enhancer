@@ -247,6 +247,10 @@ const GMWR_ENTRIES = [
   ...GMWR_TERRAINS.map((t) =>
     _entry(`gmwr/${_slug(t)}-encounters`, "GMWR", `${t} Encounters`,
       gmwr("1", LONGTABLE(`${t.toUpperCase()} ENCOUNTERS`)))),
+  // p33 sets it in the right-hand column beside prose, each detail wrapped
+  // around its face: `banded` under the gutter split, like the trainers.
+  _entry("gmwr/caught-in-danger", "GMWR", "Caught in Danger!",
+    gmwr("auto", BANDED("CAUGHT IN DANGER!", 6))),
   _entry("gmwr/rumors-in-the-reaches", "GMWR", "Rumors in the Reaches",
     gmwr("1", LONGTABLE("RUMORS"))),
   // p48 prints the region d20 beside a settlement d4; p49 the trouble d10 above
@@ -256,9 +260,10 @@ const GMWR_ENTRIES = [
   _entry("gmwr/trouble-settlement", "GMWR", "Trouble in the Reaches: Settlement",
     gmwr("2layout", SECTION("LOCATION", "1", 4))),
   // Each entry wraps around its own face AND embeds a nested "1d6: 1. … 6. …",
-  // which a section slice shreds into ten scrambled rows.
+  // which a section slice shreds into ten scrambled rows. `nested`: at commit
+  // each embedded roll becomes its own table that the row draws (#188).
   _entry("gmwr/type-of-trouble", "GMWR", "Type of Trouble",
-    gmwr("layout", BANDED("TYPE OF TROUBLE", 10))),
+    gmwr("layout", { ...BANDED("TYPE OF TROUBLE", 10), nested: true })),
   // Printed as bands on a 2d6 starting at "1-6" — see the NdM first-band
   // tolerance in computeBlockers (table-importer.mjs).
   _entry("gmwr/trouble-urgency-level", "GMWR", "Trouble Urgency Level",
@@ -576,6 +581,10 @@ export const CONTENT_ENTRIES = [
   _entry("wr/carousing-outcome", "WR", "Carousing Outcome",
     { kind: "lookup", cols: 4, size: 25, labels: ["Mishaps", "Benefits", "d100 Modifier", "XP"],
       dieIndexed: true, extractCols: "1", tokens: true }),
+  // WR pg 14: the population d100 sits in the left column under prose, beside a
+  // second column of prose, so it needs the gutter split. The name is the
+  // table catalogue's (pgwr-ancestry-population), so both hubs file one table.
+  _entry("wr/ancestry-population", "WR", "Ancestry (Population)", SECTION("ANCESTRY", "auto", 100)),
   // Side-by-side two-column-caption pages (Armor/Weapon/Utility Type+Feature on
   // p284/290/292, Scroll/Wand Feature on p288, spell Tier 2-5 on p289). The
   // captions merge in 1-col, so these use the 2-column extraction and section-
