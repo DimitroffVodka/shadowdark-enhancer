@@ -222,6 +222,17 @@ with forage and camp.
     to Overland, that rest opens instead and does the rations.
   - The next day's weather is rolled, and you press **Start day** when the
     party sets out.
+- **The sky.** Outdoor scenes darken with the clock:
+  - Darkness is 0 by day. It deepens over the hour after sunset, to a night
+    that a full moon lightens, and lifts over the hour before sunrise.
+  - A storm shows as rain, or as a blizzard in a cold climate.
+  - The tagged hex map counts as outdoors and only darkens to a readable
+    tint. Any other scene joins in when you set **Follows the sky** to Yes in
+    its Scene Configuration, on the Environment tab; dungeons are left alone.
+  - A scene whose darkness is locked, or that Calendaria already darkens, is
+    left alone, and so is a weather effect you picked yourself.
+  - On the Isles of Andrik, the summer sun never sets and the winter night
+    never lifts.
 - **Deep tunnels.** When a season changes while the party's last hex is deep
   tunnels, each member makes a DC 12 CHA check (their player rolls), and a
   failure costs 1d4 CHA. That happens whether or not they're travelling.

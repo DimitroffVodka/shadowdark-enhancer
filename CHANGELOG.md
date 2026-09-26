@@ -57,6 +57,14 @@ it needs.
   forage. Players get a Forage button on their own characters. The GM also
   sees the check hours and the day's buttons, which players never do. It
   hides during combat. (#234)
+- **The sky on outdoor scenes.** The hex map, and any scene set to **Follows
+  the sky** in Scene Configuration's Environment tab, darkens with the clock.
+  It is 0 by day, deepens over an hour of twilight to a night the moon
+  lightens, and lifts again before dawn. The hex map only darkens to a
+  readable tint. Stormy weather shows as Foundry's rain storm, or a blizzard
+  in the cold. The Isles of Andrik keep their Midnight Sun and Long Dark.
+  Locked scenes, Calendaria's scenes and a weather effect you chose are left
+  alone. (#235)
 - **Rules data.** A new **Rules data** window under Configure Settings holds
   the Western Reaches tables you look up rather than roll: terrain costs on
   foot and by boat, terrain types, hexes per day, hex visibility, each
