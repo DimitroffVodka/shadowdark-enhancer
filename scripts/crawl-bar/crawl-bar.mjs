@@ -134,7 +134,7 @@ export const CrawlBar = {
           <button class="sde-bar-btn" data-action="addSelectedTokens" title="Add selected tokens to the combat tracker">
             ${ICONS.addTokens} Add Tokens
           </button>
-          <button class="sde-bar-btn sde-bar-danger-btn" data-action="deleteEncounter" title="Delete the combat encounter without ending it">
+          <button class="sde-bar-btn sde-bar-danger-btn" data-action="deleteEncounter" title="${game.i18n.localize("SDE.crawlBar.deleteEncounterTip")}">
             ${ICONS.close} Delete Encounter
           </button>
         </div>`;
@@ -369,9 +369,11 @@ export const CrawlBar = {
 
       case "deleteEncounter":
         if (game.combat) {
-          const ok = await this._confirm("Delete Encounter", "Delete this combat encounter? This will not trigger the end-of-combat flow.");
+          const ok = await this._confirm(game.i18n.localize("SDE.crawlBar.deleteEncounterTitle"),
+            game.i18n.localize("SDE.crawlBar.deleteEncounterConfirm"));
           if (ok) {
-            await game.combat.delete();
+            // Hunter, Loot drops and Session Recap skip a combat deleted with this.
+            await game.combat.delete({ [MODULE_ID]: { discard: true } });
             this.render();
             CrawlStrip.render();
           }

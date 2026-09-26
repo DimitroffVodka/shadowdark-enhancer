@@ -1,7 +1,7 @@
 # Shadowdark Enhancer — File Inventory
 
 <!-- inventory:stats:start -->
-1043 tracked files · ~183,500 lines of code/markup across scripts+templates+styles+test.
+1044 tracked files · ~183,500 lines of code/markup across scripts+templates+styles+test.
 `v0.17.3` in both `module.json` and `package.json`.
 <!-- inventory:stats:end -->
 **Layout reflects the 2026-07-21 feature-folder reorganization (v0.11.0 cycle).**
@@ -81,7 +81,7 @@
 | `luck-reroll/hard-luck.mjs` | 57 | Hard Luck Mode (GMWR p.30, #186), pure: the system's criticalFailure test with a plain-d20 fallback, and the luck-granting spell/ability (Bless, Trance, Omen) a roll came from, by name. |
 | `modes-of-play/blitz.mjs` | 100 | Blitz Mode (#179): lighting a Basic light source clamps its remaining time to 30 min (and marks it used); a light spell's Effect is created with 30 min. Pure patch helpers + preUpdateItem/preCreateItem hooks. |
 | `modes-of-play/chaos.mjs` | 103 | Chaos Mode (#180): reroll every combatant's initiative (Combatant#getInitiativeRoll) at the start of rounds 2+, one combatant update with combatTurn 0, one card per round without hidden combatants; off under clockwise initiative. Called from turn-skip.mjs under its lock. |
-| `modes-of-play/hunter.mjs` | 96 | Hunter Mode (#184): on deleteCombat the active GM pays every PC in the fight XP for each NPC still defeated (half its level, level 1 → 1) through PartyXP.award, one card. Pure hunterXp/hunterAward + payHunterXp. |
+| `modes-of-play/hunter.mjs` | 99 | Hunter Mode (#184): on deleteCombat (not a Delete Encounter discard) the active GM pays every PC in the fight XP for each NPC still defeated (half its level, level 1 → 1) through PartyXP.award, one card. Pure hunterXp/hunterAward + payHunterXp. |
 | `modes-of-play/pulp-core.mjs` | 127 | Pulp Mode pure half: critExtraFormula (the dice a crit adds to rolled damage, per applyCriticalHit), showLuckCrit, showForceReroll. |
 | `modes-of-play/pulp.mjs` | 294 | Pulp Mode (#185): session luck on the sessionStart hook (1d4, set), and the Luck: critical hit / force a reroll chat buttons. Both relay to the active GM (PULP_QUERY), which checks the requester, spends the token and edits the card. |
 | `overland/overland-bar-core.mjs` | 87 | The travel bar (#234, O8), pure: where the sun (sunrise to sunset) or the moon (sunset to the next sunrise) stands on the sky dome's arc, the moon's shadow offset by phase, and the bar's model for one viewer (members' rations and forage state, Forage only on owned members of an open unpushed day, and the check hours for a GM only). |
@@ -162,7 +162,7 @@
 
 | File | Lines | Description |
 |---|---:|---|
-| `crawl-bar.mjs` | 768 | GM-only persistent bottom bar above the macro bar (mode toggles, tools, launchers). |
+| `crawl-bar.mjs` | 770 | GM-only persistent bottom bar above the macro bar (mode toggles, tools, launchers). |
 
 ### 3.5 `scripts/encounter/` — the Encounter Roller
 
@@ -207,7 +207,7 @@
 | `loot-generator-app.mjs` | 265 | Roll a loot table, work a running batch, whisper claimable cards. |
 | `loot-generator.mjs` | 234 | RollTable → structured loot batch (documents, coins, flavor). |
 | `loot-delivery.mjs` | 450 | Shared claimable chat card; first-claim-wins, GM-authoritative over an authenticated relay query. |
-| `loot-drops.mjs` | 187 | Auto-drop loot on NPC defeat at combat end. |
+| `loot-drops.mjs` | 190 | Auto-drop loot on NPC defeat at combat end. |
 | `loot-setup-app.mjs` | 237 | Browsable Loot & Treasure library; rows unlock from the GM's own PDF. |
 | `loot-value.mjs` | 68 | gp value → Shadowdark XP quality tiers. |
 | `loot-table-catalog.mjs` | 312 | Loot/treasure table catalog + classifier across Core, CS1–6, WR (metadata only). |
@@ -250,7 +250,7 @@
 
 | File | Lines | Description |
 |---|---:|---|
-| `session-recap.mjs` | 763 | Session event tracker singleton (loot, sales, XP, combats, per-PC stats). |
+| `session-recap.mjs` | 766 | Session event tracker singleton (loot, sales, XP, combats, per-PC stats). |
 | `session-recap-core.mjs` | 402 | Pure data shape, currency math, duration format, Discord-markdown export. |
 | `session-recap-app.mjs` | 338 | Recap window: Overview / Combat / Loot / XP / History. |
 | `carousing-feed.mjs` | 141 | Mirrors Shadowdark Extras' carousing into the session log. SDX emits no carousing hook and exposes none of it on `module.api`, but it keeps the whole live carouse in one journal flag on the hidden `__sdx_carousing_sync__` entry — so this watches that document rather than calling anything. Each carouse is COPIED into our own `carousing` array keyed on SDX's `logId`, because SDX's overlay holds only one live carouse and resetting it for the next round erases the last. Self-gates on SDX being active with carousing enabled, on an active session, and on the primary GM. |
