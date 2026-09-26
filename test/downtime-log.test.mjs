@@ -26,6 +26,13 @@ import {
 } from "../scripts/downtime/downtime-log-core.mjs";
 import { DEFAULT_DATA, formatForDiscordFromData } from "../scripts/session-recap/session-recap-core.mjs";
 
+// i18n stub: a key comes back as itself and `format` appends its data, so an
+// assertion still sees which phrase was picked and what went into it. `f` is
+// the same formatter, for building expectations.
+const f = (k, d) => k + JSON.stringify(d);
+globalThis.game = { i18n: { localize: (k) => k, format: f } };
+const VS = f("SDE.downtime.log.vsDc", { total: 19, dc: 18 });
+
 /** A resolved attempt matching the frozen recordDowntime contract. */
 function entry(over = {}) {
   return {
@@ -88,21 +95,21 @@ describe("recap row", () => {
   test("matches the pinned format", () => {
     assert.equal(
       recapRow(entry()),
-      "Bazogo — New weapon (d6 max): 19 vs DC 18, success, 50 gp",
+      `Bazogo — New weapon (d6 max): ${VS}, SDE.downtime.log.success, 50 gp`,
     );
   });
 
   test("a failure with no fee drops the trailing parts", () => {
     assert.equal(
       recapRow(entry({ success: false, costGp: 0 })),
-      "Bazogo — New weapon (d6 max): 19 vs DC 18, failure",
+      `Bazogo — New weapon (d6 max): ${VS}, SDE.downtime.log.failure`,
     );
   });
 
   test("a missing roll still reports the DC", () => {
     assert.equal(
       recapRow(entry({ total: null, costGp: 0 })),
-      "Bazogo — New weapon (d6 max): DC 18, success",
+      `Bazogo — New weapon (d6 max): ${f("SDE.downtime.log.dc", { dc: 18 })}, SDE.downtime.log.success`,
     );
   });
 
@@ -118,15 +125,16 @@ describe("journal row", () => {
     assert.match(html, /<\/li>$/);
     assert.ok(html.includes("Bazogo"));
     assert.ok(html.includes("Martial Training"));
-    assert.ok(html.includes("19 vs DC 18"));
-    assert.ok(html.includes("success"));
+    // The check text is escaped into the row, JSON quotes and all.
+    assert.ok(html.includes("SDE.downtime.log.vsDc{&quot;total&quot;:19,&quot;dc&quot;:18}"));
+    assert.ok(html.includes("SDE.downtime.log.success"));
     assert.ok(html.includes("50 gp"));
     assert.ok(html.includes("<em>Bazogo is now trained with Longsword.</em>"));
   });
 
   test("a GM-rolled entry from a book is marked", () => {
     const html = journalRow(entry({ gmRolled: true }));
-    assert.ok(html.includes("GM"));
+    assert.ok(html.includes("SDE.downtime.log.gm"));
     assert.ok(html.includes("western-reaches"));
   });
 
@@ -241,15 +249,16 @@ describe("discord export", () => {
       { ...entry() },
       { ...entry({ success: false, costGp: 50, slotLabel: "Step up damage die", effectSummary: "" }) },
     ]), 0, 1000);
-    assert.ok(md.includes("## Downtime"));
+    assert.ok(md.includes("## SDE.sessionRecap.discord.downtime"));
     assert.ok(md.includes("### Dimi"));
-    assert.ok(md.includes("- Bazogo — New weapon (d6 max): 19 vs DC 18, success, 50 gp"));
+    assert.ok(md.includes(`- Bazogo — New weapon (d6 max): ${VS}, SDE.downtime.log.success, 50 gp`));
     assert.ok(md.includes("  - *Bazogo is now trained with Longsword.*"));
-    assert.ok(md.includes("**1/2 succeeded** · 100 gp spent"));
+    assert.ok(md.includes(`**${f("SDE.sessionRecap.discord.succeeded", { won: 1, n: 2 })}**`
+      + ` · ${f("SDE.sessionRecap.discord.gpSpent", { gp: 100 })}`));
   });
 
   test("no downtime means no section", () => {
-    assert.ok(!formatForDiscordFromData(dataWith([]), 0, 1000).includes("## Downtime"));
+    assert.ok(!formatForDiscordFromData(dataWith([]), 0, 1000).includes("## SDE.sessionRecap.discord.downtime"));
   });
 
   test("an archived payload with no downtime array does not crash", () => {
@@ -260,7 +269,7 @@ describe("discord export", () => {
 
   test("downtime alone is enough to make a recap non-empty", () => {
     const md = formatForDiscordFromData(dataWith([entry()]), 0, 1000);
-    assert.notEqual(md, "No session activity recorded.");
+    assert.notEqual(md, "SDE.sessionRecap.discord.empty");
   });
 });
 

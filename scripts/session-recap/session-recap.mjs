@@ -28,6 +28,13 @@ import {
 import { CarousingFeed } from "./carousing-feed.mjs";
 import { format as formatGameTime } from "../time/time.mjs";
 
+/** One string from `languages/en.json`; the key when no i18n is mounted. */
+const L = (key, data) => {
+  const i18n = globalThis.game?.i18n;
+  if (!i18n) return key;
+  return data ? i18n.format(key, data) : i18n.localize(key);
+};
+
 const SETTING_KEY = "sessionRecap";
 const HISTORY_KEY = "sessionHistory";
 
@@ -648,12 +655,12 @@ export const SessionRecap = {
     history.unshift(snapshot);
     await this._saveHistory(history);
     await this.clear();
-    ui.notifications.info(`Session saved: ${snapshot.name}`);
+    ui.notifications.info(L("SDE.sessionRecap.notify.saved", { name: snapshot.name }));
   },
 
   async discardSession() {
     await this.clear();
-    ui.notifications.info("Session discarded.");
+    ui.notifications.info(L("SDE.sessionRecap.notify.discarded"));
   },
 
   async deleteFromHistory(id) {
@@ -682,13 +689,14 @@ export const SessionRecap = {
     Hooks.on(`${MODULE_ID}.crawlStart`, async () => {
       const data = this.getData();
       const isPaused = data.sessionState === "paused";
-      const buttons = [{ label: "Start New Session", icon: "fas fa-play", value: "start" }];
-      if (isPaused) buttons.push({ label: "Continue Session", icon: "fas fa-forward", value: "continue" });
-      buttons.push({ label: "No Tracking", icon: "fas fa-ban", value: "skip" });
+      // Labels and title are keys: DialogV2 localizes them itself.
+      const buttons = [{ label: "SDE.sessionRecap.dialog.startNew", icon: "fas fa-play", value: "start" }];
+      if (isPaused) buttons.push({ label: "SDE.sessionRecap.dialog.continue", icon: "fas fa-forward", value: "continue" });
+      buttons.push({ label: "SDE.sessionRecap.dialog.noTracking", icon: "fas fa-ban", value: "skip" });
 
       const choice = await this._waitChoice({
-        title: "Session Tracking",
-        content: isPaused ? "A paused session exists. What would you like to do?" : "Start tracking a new session?",
+        title: "SDE.sessionRecap.dialog.title",
+        content: isPaused ? L("SDE.sessionRecap.dialog.pausedExists") : L("SDE.sessionRecap.dialog.startTracking"),
         buttons, defaultButton: isPaused ? "continue" : "start",
       });
       if (choice === "start") await this.startSession();
@@ -708,14 +716,14 @@ export const SessionRecap = {
         || (data.carousing?.length ?? 0) > 0;
 
       const buttons = [
-        { label: "End & Save", icon: "fas fa-save", value: "save" },
-        { label: "Pause Session", icon: "fas fa-pause", value: "pause" },
+        { label: "SDE.sessionRecap.dialog.endSave", icon: "fas fa-save", value: "save" },
+        { label: "SDE.sessionRecap.dialog.pause", icon: "fas fa-pause", value: "pause" },
       ];
-      if (hasData) buttons.push({ label: "Discard", icon: "fas fa-trash", value: "discard" });
+      if (hasData) buttons.push({ label: "SDE.sessionRecap.dialog.discard", icon: "fas fa-trash", value: "discard" });
 
       const choice = await this._waitChoice({
-        title: "Session Tracking",
-        content: "The crawl is ending. What would you like to do with this session?",
+        title: "SDE.sessionRecap.dialog.title",
+        content: L("SDE.sessionRecap.dialog.crawlEnding"),
         buttons, defaultButton: "save",
       });
       if (choice === "save") await this.endAndSave();

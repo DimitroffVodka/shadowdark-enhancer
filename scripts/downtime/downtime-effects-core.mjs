@@ -13,6 +13,13 @@
 
 import { SLOT_INDEX } from "./downtime-skeleton.mjs";
 
+/** One string from `languages/en.json`; the key when no i18n is mounted. */
+const L = (key, data) => {
+  const i18n = globalThis.game?.i18n;
+  if (!i18n) return key;
+  return data ? i18n.format(key, data) : i18n.localize(key);
+};
+
 /* ────────────────────────────────────────────────────────────────────────── */
 /* Slot → effect plan                                                         */
 /* ────────────────────────────────────────────────────────────────────────── */
@@ -155,7 +162,7 @@ export function canGrantTraining(state, slotKey, mode) {
   const s = trainingState(state);
   const key = trainingGrantKey(slotKey, mode);
   if (s.grants[key]) {
-    return { ok: false, error: "That training has already been applied to this weapon." };
+    return { ok: false, error: L("SDE.downtime.effect.trainingApplied") };
   }
   return { ok: true, key };
 }
@@ -171,13 +178,13 @@ export function withTrainingGrant(state, slotKey, mode) {
 export function canStepDie(state, die) {
   const s = trainingState(state);
   if (s.dieSteps >= MAX_DIE_STEPS) {
-    return { ok: false, error: `This weapon's damage die has already been stepped up ${MAX_DIE_STEPS} times.` };
+    return { ok: false, error: L("SDE.downtime.effect.dieMaxSteps", { n: MAX_DIE_STEPS }) };
   }
   if (!isLadderDie(die)) {
-    return { ok: false, error: "That weapon has no readable damage die to step up." };
+    return { ok: false, error: L("SDE.downtime.effect.noDie") };
   }
   const next = stepDamageDie(die);
-  if (!next) return { ok: false, error: "That weapon's damage die is already d12." };
+  if (!next) return { ok: false, error: L("SDE.downtime.effect.dieMaxed") };
   return { ok: true, next };
 }
 

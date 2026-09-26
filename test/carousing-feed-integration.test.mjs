@@ -425,7 +425,8 @@ describe("archiving a session", () => {
 
     const [snapshot] = SessionRecap.getHistory();
     const out = SessionRecap.formatForDiscordFromData(snapshot.data, snapshot.startTime, snapshot.endTime);
-    assert.match(out, /## Carousing/);
+    // No i18n is mounted here, so the section heading is its en.json key.
+    assert.match(out, /## SDE\.sessionRecap\.discord\.carousing/);
     assert.match(out, /Bazogo — d8 13 · 6 XP/);
   });
 

@@ -22,6 +22,8 @@ import {
 
 const { DialogV2 } = foundry.applications.api;
 
+const L = (key, data) => (data ? game.i18n.format(key, data) : game.i18n.localize(key));
+
 export const RenownAwardDialog = {
 
   /**
@@ -34,13 +36,13 @@ export const RenownAwardDialog = {
    */
   async open({ actorId = null, delta = 1, reason = "" } = {}) {
     if (!game.user?.isGM) {
-      ui.notifications?.warn("Only a GM can change renown.");
+      ui.notifications?.warn(L("SDE.renown.error.gmOnly"));
       return null;
     }
 
     const party = Renown.party();
     if (!party.length) {
-      ui.notifications?.warn("No player characters found. Renown is tracked on Player actors with a player owner.");
+      ui.notifications?.warn(L("SDE.renown.dialog.noParty"));
       return null;
     }
 
@@ -57,13 +59,13 @@ export const RenownAwardDialog = {
       ?? party[0].actorId;
 
     const choice = await DialogV2.wait({
-      window: { title: "Renown", icon: "fas fa-crown" },
+      window: { title: "SDE.renown.title", icon: "fas fa-crown" },
       position: { width: 460 },
       content: _content({ party, preferred, delta, reason, history }),
       buttons: [
-        { action: "apply", label: "Apply", icon: "fas fa-check", default: true, callback: _readForm },
-        { action: "cha", label: "Start at CHA mod", icon: "fas fa-dice-d20", callback: _readForm },
-        { action: "cancel", label: "Cancel", icon: "fas fa-times" },
+        { action: "apply", label: "SDE.renown.dialog.apply", icon: "fas fa-check", default: true, callback: _readForm },
+        { action: "cha", label: "SDE.renown.dialog.startCha", icon: "fas fa-dice-d20", callback: _readForm },
+        { action: "cancel", label: "SDE.renown.dialog.cancel", icon: "fas fa-times" },
       ],
       rejectClose: false,
     }).catch(() => null);
@@ -72,7 +74,7 @@ export const RenownAwardDialog = {
 
     const actor = game.actors.get(choice.actorId);
     if (!actor) {
-      ui.notifications?.warn("That character no longer exists.");
+      ui.notifications?.warn(L("SDE.renown.error.noCharacter"));
       return null;
     }
 
@@ -83,11 +85,11 @@ export const RenownAwardDialog = {
       : await Renown.award({ actor, delta: choice.delta, reason: choice.reason, source: "gm" });
 
     if (!result.ok) {
-      ui.notifications?.error(result.error ?? "Renown could not be changed.");
+      ui.notifications?.error(result.error ?? L("SDE.renown.error.notChanged"));
       return null;
     }
     if (result.delta === 0) {
-      ui.notifications?.info(`${actor.name}: renown unchanged.`);
+      ui.notifications?.info(L("SDE.renown.dialog.unchanged", { name: actor.name }));
       return result;
     }
     ui.notifications?.info(result.summary);
@@ -132,10 +134,9 @@ function _historySection(history) {
   if (!history.length) {
     return `
       <details class="sde-renown-history">
-        <summary>Renown log</summary>
+        <summary>${L("SDE.renown.dialog.log")}</summary>
         <p class="sde-renown-history-empty">
-          No renown changes recorded yet. Every change from here, from a level-up
-          and from downtime is logged on the character from now on.
+          ${L("SDE.renown.dialog.logEmpty")}
         </p>
       </details>`;
   }
@@ -161,7 +162,9 @@ function _historySection(history) {
       <details class="sde-renown-history-player">
         <summary>
           <span class="sde-renown-history-name">${esc(group.player)}</span>
-          <span class="sde-renown-history-net">${signedRenown(group.net)} over ${group.count} change${group.count === 1 ? "" : "s"}</span>
+          <span class="sde-renown-history-net">${esc(group.count === 1
+            ? L("SDE.renown.dialog.netOne", { net: signedRenown(group.net), count: group.count })
+            : L("SDE.renown.dialog.netMany", { net: signedRenown(group.net), count: group.count }))}</span>
         </summary>
         <ul class="sde-renown-history-list">${rows}</ul>
       </details>`;
@@ -171,11 +174,12 @@ function _historySection(history) {
 
   return `
     <details class="sde-renown-history">
-      <summary>Renown log — ${total} change${total === 1 ? "" : "s"}</summary>
+      <summary>${esc(total === 1
+        ? L("SDE.renown.dialog.logCountOne", { total })
+        : L("SDE.renown.dialog.logCountMany", { total }))}</summary>
       <div class="sde-renown-history-body">${players}</div>
       <p class="sde-renown-history-foot">
-        Grouped by the player who owned the character when the change was made.
-        Each character keeps its last ${RENOWN_HISTORY_CAP} changes.
+        ${L("SDE.renown.dialog.logFoot", { cap: RENOWN_HISTORY_CAP })}
       </p>
     </details>`;
 }
@@ -205,34 +209,28 @@ function _content({ party, preferred, delta, reason, history = [] }) {
     <div class="sde-renown-dialog">
       <table class="sde-renown-roster">
         <thead>
-          <tr><th>Character</th><th>Renown</th><th>Band</th><th title="Bonus on reaction rolls, which the Encounter Roller applies, and on carousing rolls, which you apply yourself">Bonus</th></tr>
+          <tr><th>${L("SDE.training.character")}</th><th>${L("SDE.renown.title")}</th><th>${L("SDE.renown.dialog.band")}</th><th title="${esc(L("SDE.renown.dialog.bonusTip"))}">${L("SDE.renown.dialog.bonus")}</th></tr>
         </thead>
         <tbody>${rows}</tbody>
       </table>
 
       <div class="sde-renown-form">
-        <label for="sde-renown-actor">Character</label>
+        <label for="sde-renown-actor">${L("SDE.training.character")}</label>
         <select id="sde-renown-actor" name="renownActor">${options}</select>
 
-        <label for="sde-renown-delta">Change</label>
+        <label for="sde-renown-delta">${L("SDE.renown.dialog.change")}</label>
         <input id="sde-renown-delta" type="number" name="renownDelta" step="1" value="${Number(delta) || 0}" />
 
-        <label for="sde-renown-reason">Reason</label>
+        <label for="sde-renown-reason">${L("SDE.renown.dialog.reason")}</label>
         <input id="sde-renown-reason" type="text" name="renownReason" list="sde-renown-triggers"
-               placeholder="Why it changed" value="${esc(String(reason ?? ""))}" />
+               placeholder="${esc(L("SDE.renown.dialog.reasonPlaceholder"))}" value="${esc(String(reason ?? ""))}" />
         <datalist id="sde-renown-triggers">${suggestions}</datalist>
       </div>
 
       ${_historySection(history)}
 
       <p class="sde-renown-hint">
-        Renown may go negative. The Encounter Roller adds the bonus to a reaction
-        roll when you mark the party as recognised — you decide that per roll.
-        Carousing rolls are not automated, so add it by hand there.
-        A new character is seeded from their CHA modifier automatically;
-        <strong>Start at CHA mod</strong> does it again on demand, for a character
-        made before this was on or one whose CHA has since changed. It ignores the
-        Change field.
+        ${L("SDE.renown.dialog.hint")}
       </p>
     </div>`;
 }

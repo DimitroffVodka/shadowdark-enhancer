@@ -76,7 +76,14 @@ const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 const DOWNTIME_FLAG = "downtime";
 
 /** Fills "…needs a reload before X can land" when a relay can't be delivered. */
-const DOWNTIME_RELAY_LABEL = "downtime actions";
+const DOWNTIME_RELAY_LABEL = "SDE.downtime.relayLabel";
+
+/** One string from `languages/en.json`; the key when no i18n is mounted. */
+const L = (key, data) => {
+  const i18n = globalThis.game?.i18n;
+  if (!i18n) return key;
+  return data ? i18n.format(key, data) : i18n.localize(key);
+};
 
 // ADV_MODES / advMode now live in downtime-session.mjs so the player's window,
 // the GM's window and the GM-side validator all read the same dice formulas.
@@ -95,7 +102,7 @@ export class DowntimeApp extends HandlebarsApplicationMixin(ApplicationV2) {
     // the nested-form trap that silently broke the boat sheet.
     tag: "div",
     classes: ["shadowdark", "sde-downtime"],
-    window: { title: "Downtime", icon: "fas fa-mug-hot", resizable: true },
+    window: { title: "SDE.downtime.title", icon: "fas fa-mug-hot", resizable: true },
     position: { width: 720, height: "auto" },
     actions: {
       attempt:         DowntimeApp.prototype._onAttempt,
@@ -137,7 +144,7 @@ export class DowntimeApp extends HandlebarsApplicationMixin(ApplicationV2) {
    */
   static open() {
     if (!game.user.isGM && !DowntimeSession.active) {
-      ui.notifications.warn("There's no downtime session running right now.");
+      ui.notifications.warn(L("SDE.downtime.notify.noSession"));
       return null;
     }
     if (!this._instance) this._instance = new DowntimeApp();
@@ -266,16 +273,16 @@ export class DowntimeApp extends HandlebarsApplicationMixin(ApplicationV2) {
       classItem = await actor.system?.getClass?.();
     } catch (err) {
       console.warn(`${MODULE_ID} | downtime: getClass() failed`, err);
-      facts.classError = "the class item could not be loaded";
+      facts.classError = L("SDE.downtime.classError.loadFailed");
       return facts;
     }
     if (!classItem) {
-      facts.classError = "no class is set on this character";
+      facts.classError = L("SDE.downtime.classError.noClass");
       return facts;
     }
     facts.hitDie = classItem.system?.hitPoints ?? null;
     facts.martialTier = facts.hitDie ? (martialTierForHitDie(facts.hitDie) ?? null) : null;
-    if (!facts.martialTier) facts.classError = "couldn't read class hit die";
+    if (!facts.martialTier) facts.classError = L("SDE.downtime.classError.noHitDie");
     facts.castingAbility = classItem.system?.spellcasting?.ability ?? null;
     facts.casterList = facts.castingAbility
       ? (casterListForAbility(facts.castingAbility) ?? null)
@@ -389,6 +396,8 @@ export class DowntimeApp extends HandlebarsApplicationMixin(ApplicationV2) {
       renownBonus: band.bonus ? signed(band.bonus) : "",
       advModes: ADV_MODES.map(m => ({
         ...m,
+        label: L(m.label),
+        long: L(m.long),
         selected: m.key === (myPick?.advantage ?? this._advantage),
       })),
       activities,
@@ -421,13 +430,13 @@ export class DowntimeApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const base = !!(inSession && phase === "roll" && myPick && !myResult);
     if (!base || !actor) return { canRoll: base, rollBlockedReason: null };
     const found = slotByKey(myPick.slotKey);
-    if (!found) return { canRoll: false, rollBlockedReason: "That activity is no longer available." };
+    if (!found) return { canRoll: false, rollBlockedReason: L("SDE.downtime.error.activityGone") };
     const money = affordability(actor, source, found.slot, level);
     if (money.affordable) return { canRoll: true, rollBlockedReason: null };
     return {
       canRoll: false,
       rollBlockedReason:
-        `Costs ${money.cost} gp per attempt — you're ${money.shortfallText} short.`,
+        L("SDE.downtime.money.costsShort", { cost: money.cost, short: money.shortfallText }),
     };
   }
 
@@ -438,7 +447,7 @@ export class DowntimeApp extends HandlebarsApplicationMixin(ApplicationV2) {
       slotKey: pick.slotKey,
       label: found?.slot?.label ?? pick.slotKey,
       activityName: found?.activity?.name ?? "",
-      advantage: advMode(pick.advantage).label,
+      advantage: L(advMode(pick.advantage).label),
       advKey: advMode(pick.advantage).key,
     };
   }
@@ -457,7 +466,7 @@ export class DowntimeApp extends HandlebarsApplicationMixin(ApplicationV2) {
       nextDC: result.nextDC,
       effectSummary: result.effect?.pending ? null : (result.effect?.summary ?? null),
       pendingChoice: result.effect?.pending ? {
-        prompt: result.effect.prompt ?? "Choose one:",
+        prompt: result.effect.prompt ?? L("SDE.downtime.chooseOne"),
         options: result.effect.options ?? [],
         // Martial training records a descriptive Talent, so the indexed gear
         // list is a shortlist rather than the rules. Dropping this flag here is
@@ -478,7 +487,7 @@ export class DowntimeApp extends HandlebarsApplicationMixin(ApplicationV2) {
         name: a.name,
         picked: !!pick,
         pickLabel: pick ? (slotByKey(pick.slotKey)?.slot?.label ?? pick.slotKey) : null,
-        advantage: pick ? advMode(pick.advantage).label : null,
+        advantage: pick ? L(advMode(pick.advantage).label) : null,
         rolled: !!res,
         total: res?.total ?? null,
         dc: res?.dc ?? null,
@@ -526,7 +535,7 @@ export class DowntimeApp extends HandlebarsApplicationMixin(ApplicationV2) {
       if (!actor?.system?.isSpellCaster) return null;
       const lists = gate.lists ?? ["arcane", "divine"];
       if (!activeCasterList || activeCasterList === "ambiguous") {
-        gateNote = "Couldn't tell which spell list this caster uses.";
+        gateNote = L("SDE.downtime.gate.casterListUnknown");
         gateBlocked = true;
       }
       buckets = lists.map(list => {
@@ -541,7 +550,9 @@ export class DowntimeApp extends HandlebarsApplicationMixin(ApplicationV2) {
           label: CASTER_LIST_LABELS[list] ?? list,
           enabled: !gateBlocked && legal,
           reason: (!gateBlocked && !legal)
-            ? `${actor?.name ?? "This character"} casts from the ${activeCasterList} list.`
+            ? L("SDE.downtime.gate.castsFrom", {
+              name: actor?.name ?? L("SDE.downtime.thisCharacter"), list: activeCasterList,
+            })
             : null,
           slots: listSlots,
         };
@@ -599,7 +610,7 @@ export class DowntimeApp extends HandlebarsApplicationMixin(ApplicationV2) {
         // A gate reason (wrong tier / wrong list) outranks the money one: it is
         // the more fundamental block, and both can be true at once.
         rowReason: bucket.reason
-          ?? (tooPoor ? `Costs ${money.cost} gp per attempt — you're ${money.shortfallText} short.` : null),
+          ?? (tooPoor ? L("SDE.downtime.money.costsShort", { cost: money.cost, short: money.shortfallText }) : null),
         unaffordable: tooPoor,
         outcome: text,
         inSession,
@@ -669,14 +680,14 @@ export class DowntimeApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const check = activity.check ?? {};
     const one = (a) => `${String(a).toUpperCase()} ${signed(this._mod(actor, a))}`;
     if (check.kind === "ability") return (check.abilities ?? []).map(one).join(" / ");
-    if (check.kind === "choice") return (check.abilities ?? []).map(one).join(" or ");
+    if (check.kind === "choice") return (check.abilities ?? []).map(one).join(` ${L("SDE.downtime.check.or")} `);
     if (check.kind === "grouped") {
       return (check.groups ?? [])
         .map(g => (g.abilities ?? []).map(one).join("/"))
         .join(" · ");
     }
     if (check.kind === "spellcasting") {
-      if (!facts.castingAbility) return "spellcasting ability unknown";
+      if (!facts.castingAbility) return L("SDE.downtime.check.spellAbilityUnknown");
       const list = activeCasterList && activeCasterList !== "ambiguous" ? ` · ${activeCasterList}` : "";
       return `${one(facts.castingAbility)}${list}`;
     }
@@ -791,16 +802,16 @@ export class DowntimeApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const slotKey = target?.dataset?.slotKey;
     const activityKey = target?.dataset?.activityKey;
     const actor = this._actor();
-    if (!actor) return ui.notifications.warn("Pick a character first.");
+    if (!actor) return ui.notifications.warn(L("SDE.downtime.notify.pickCharacter"));
 
     const found = this._lookupSlot(activityKey, slotKey);
-    if (!found) return ui.notifications.warn("That downtime slot is no longer in the skeleton.");
+    if (!found) return ui.notifications.warn(L("SDE.downtime.notify.slotGone"));
     const { activity, slot } = found;
 
     const stored = this._stored(this._sourceSlug);
     const outcomeText = stored.slots?.[slot.key] ?? "";
     if (!outcomeText) {
-      return ui.notifications.warn(`"${slot.label}" has no unlocked text — unlock ${this._sourceSlug} first.`);
+      return ui.notifications.warn(L("SDE.downtime.notify.notUnlocked", { slot: slot.label, source: this._sourceSlug }));
     }
 
     // The GM is bound by the fee too — running the attempt for a character who
@@ -810,10 +821,9 @@ export class DowntimeApp extends HandlebarsApplicationMixin(ApplicationV2) {
       const money = affordability(actor, this._sourceSlug, slot,
         Number(actor.system?.level?.value ?? 0));
       if (!money.affordable) {
-        return ui.notifications.warn(
-          `${actor.name} can't afford the ${money.cost} gp fee for "${slot.label}" `
-          + `(${money.shortfallText} short) — add coin to the sheet first.`,
-        );
+        return ui.notifications.warn(L("SDE.downtime.notify.cantAffordFee", {
+          name: actor.name, cost: money.cost, slot: slot.label, short: money.shortfallText,
+        }));
       }
     }
 
@@ -827,7 +837,7 @@ export class DowntimeApp extends HandlebarsApplicationMixin(ApplicationV2) {
     if (cost > 0) {
       const price = { gp: cost, sp: 0, cp: 0 };
       if (!canAfford(actor.system.coins, price)) {
-        return ui.notifications.warn(`${actor.name} can't afford ${cost} gp for "${slot.label}".`);
+        return ui.notifications.warn(L("SDE.downtime.notify.cantAfford", { name: actor.name, cost, slot: slot.label }));
       }
       const remaining = spendFromPurse(actor.system.coins, toCopper(price));
       await actor.update({
@@ -845,7 +855,8 @@ export class DowntimeApp extends HandlebarsApplicationMixin(ApplicationV2) {
     }
 
     const { ability, mod } = this._modFor(activity, slot, actor);
-    const mode = ADV_MODES.find(m => m.key === this._advantage) ?? ADV_MODES[1];
+    const modeDef = ADV_MODES.find(m => m.key === this._advantage) ?? ADV_MODES[1];
+    const mode = { ...modeDef, label: L(modeDef.label) };
     const formula = `${mode.dice} ${mod < 0 ? "-" : "+"} ${Math.abs(mod)}`;
     const roll = await new Roll(formula).evaluate();
     const total = roll.total;
@@ -861,7 +872,7 @@ export class DowntimeApp extends HandlebarsApplicationMixin(ApplicationV2) {
 
     await roll.toMessage({
       speaker: ChatMessage.getSpeaker({ actor }),
-      flavor: `<strong>${esc(activity.name)} — ${esc(slot.label)} (DC ${dc})</strong>`,
+      flavor: `<strong>${L("SDE.downtime.card.flavor", { activity: esc(activity.name), slot: esc(slot.label), dc })}</strong>`,
       content: this._cardHtml({
         activity, slot, actor, ability, mod, mode, total, dc, success,
         cost, outcomeText, nextDC,
@@ -987,11 +998,11 @@ export class DowntimeApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const abilityLabel = ability ? String(ability).toUpperCase() : "—";
     const modeNote = mode.key === "normal" ? "" : ` · ${esc(mode.label)}`;
     const costLine = cost > 0
-      ? `<div class="sde-dt-line"><i class="fas fa-coins"></i> Paid ${cost} gp (per attempt, win or lose)</div>`
+      ? `<div class="sde-dt-line"><i class="fas fa-coins"></i> ${L("SDE.downtime.card.paid", { cost })}</div>`
       : "";
     const body = success
       ? `<div class="sde-dt-outcome">${esc(outcomeText)}</div>`
-      : `<div class="sde-dt-line">Next attempt on this activity is <strong>DC ${nextDC}</strong>.</div>`;
+      : `<div class="sde-dt-line">${L("SDE.downtime.card.nextAttempt", { dc: nextDC })}</div>`;
     return `
       <div class="sde-downtime-card ${success ? "sde-dt-success" : "sde-dt-failure"}">
         <header class="sde-dt-head">
@@ -1003,12 +1014,12 @@ export class DowntimeApp extends HandlebarsApplicationMixin(ApplicationV2) {
         </div>
         <div class="sde-dt-total">
           <span class="sde-dt-num">${total}</span>
-          <span class="sde-dt-vs">vs DC ${dc}</span>
-          <span class="sde-dt-verdict">${success ? "SUCCESS" : "FAILURE"}</span>
+          <span class="sde-dt-vs">${L("SDE.downtime.card.vsDc", { dc })}</span>
+          <span class="sde-dt-verdict">${success ? L("SDE.downtime.card.success") : L("SDE.downtime.card.failure")}</span>
         </div>
         ${costLine}
         ${body}
-        <footer class="sde-dt-foot">Luck tokens cannot be spent on downtime checks.</footer>
+        <footer class="sde-dt-foot">${L("SDE.downtime.card.noLuck")}</footer>
       </div>`;
   }
 
@@ -1028,7 +1039,7 @@ export class DowntimeApp extends HandlebarsApplicationMixin(ApplicationV2) {
     if (!r) return;
     const sign = target?.dataset?.sign === "-" ? -1 : 1;
     const actor = game.actors.get(r.targetActorId) ?? this._actor();
-    if (!actor) return ui.notifications.warn("Pick a character to receive the rumor.");
+    if (!actor) return ui.notifications.warn(L("SDE.downtime.notify.pickRumorTarget"));
     await this._bumpRenown(actor, sign);
     r.applied = true;
     this.render();
@@ -1046,10 +1057,10 @@ export class DowntimeApp extends HandlebarsApplicationMixin(ApplicationV2) {
       reason: "Downtime",
     });
     if (!result.ok) {
-      ui.notifications.warn(result.error ?? "Renown could not be changed.");
+      ui.notifications.warn(result.error ?? L("SDE.downtime.renownFailed"));
       return;
     }
-    ui.notifications.info(`${actor.name}: renown ${signed(delta)} → ${result.after}.`);
+    ui.notifications.info(L("SDE.downtime.renownChanged", { name: actor.name, delta: signed(delta), after: result.after }));
   }
 
   async _onApplyXp() {
@@ -1059,7 +1070,7 @@ export class DowntimeApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const delta = Number(r.xpDelta) || 0;
     const next = Number(actor.system?.level?.xp ?? 0) + delta;
     await actor.update({ "system.level.xp": next });
-    ui.notifications.info(`${actor.name}: ${signed(delta)} XP → ${next}.`);
+    ui.notifications.info(L("SDE.downtime.xpChanged", { name: actor.name, delta: signed(delta), next }));
     r.applied = true;
     this.render();
   }
@@ -1083,14 +1094,14 @@ export class DowntimeApp extends HandlebarsApplicationMixin(ApplicationV2) {
     // GM-only, matching the per-slot steppers. The button is already hidden on
     // player windows; this guards a hand-fired action.
     if (!game.user.isGM) {
-      ui.notifications.warn("Only the GM can clear downtime DC progress.");
+      ui.notifications.warn(L("SDE.downtime.notify.clearGmOnly"));
       return;
     }
     const actor = this._actor();
     if (!actor) return;
     const flag = this._downtimeFlag(actor);
     await this._writeFlag(actor, { ...flag, steps: {} });
-    ui.notifications.info(`Cleared downtime DC progress for ${actor.name}.`);
+    ui.notifications.info(L("SDE.downtime.notify.cleared", { name: actor.name }));
     this.render();
   }
 
@@ -1111,7 +1122,7 @@ export class DowntimeApp extends HandlebarsApplicationMixin(ApplicationV2) {
     // wait for itself.
     const reply = game.user.isGM
       ? await DowntimeSession.handleQuery(data, game.user)
-      : await queryActiveGM(DOWNTIME_QUERY, data, { label: DOWNTIME_RELAY_LABEL });
+      : await queryActiveGM(DOWNTIME_QUERY, data, { label: L(DOWNTIME_RELAY_LABEL) });
     if (!reply?.ok && reply?.error) ui.notifications.warn(reply.error);
     return reply ?? { ok: false };
   }
@@ -1124,11 +1135,11 @@ export class DowntimeApp extends HandlebarsApplicationMixin(ApplicationV2) {
    */
   async _onPickSlot(event, target) {
     const actor = this._actor();
-    if (!actor) return ui.notifications.warn("Pick a character first.");
+    if (!actor) return ui.notifications.warn(L("SDE.downtime.notify.pickCharacter"));
     const slotKey = target?.dataset?.slotKey;
     if (!slotKey) return;
     if (DowntimeSession.phase !== "select") {
-      return ui.notifications.warn("Picks are locked — the GM has unlocked the dice.");
+      return ui.notifications.warn(L("SDE.downtime.notify.picksLocked"));
     }
     // Same gate as the button state, re-read live — a force-enabled button must
     // not get a pick past. The GM validates this again on arrival.
@@ -1137,10 +1148,9 @@ export class DowntimeApp extends HandlebarsApplicationMixin(ApplicationV2) {
       const money = affordability(actor, DowntimeSession.source, found.slot,
         Number(actor.system?.level?.value ?? 0));
       if (!money.affordable) {
-        return ui.notifications.warn(
-          `"${found.slot.label}" costs ${money.cost} gp per attempt and ${actor.name} is `
-          + `${money.shortfallText} short — you can't choose it.`,
-        );
+        return ui.notifications.warn(L("SDE.downtime.notify.cantChoose", {
+          slot: found.slot.label, cost: money.cost, name: actor.name, short: money.shortfallText,
+        }));
       }
     }
     await this._sendDowntime({
@@ -1168,18 +1178,16 @@ export class DowntimeApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const actor = this._actor();
     if (!actor) return;
     const sess = DowntimeSession;
-    if (sess.phase !== "roll") return ui.notifications.warn("The GM hasn't unlocked the dice yet.");
+    if (sess.phase !== "roll") return ui.notifications.warn(L("SDE.downtime.notify.diceLocked"));
     const pick = sess.pickFor(actor.id);
-    if (!pick) return ui.notifications.warn("You haven't chosen an activity.");
-    if (sess.resultFor(actor.id)) return ui.notifications.warn("You've already rolled this session.");
+    if (!pick) return ui.notifications.warn(L("SDE.downtime.error.noPick"));
+    if (sess.resultFor(actor.id)) return ui.notifications.warn(L("SDE.downtime.notify.alreadyRolled"));
     if (!pick.nonce) {
-      return ui.notifications.warn(
-        "Your pick predates a security update — ask your GM to reopen picks so you can choose again.",
-      );
+      return ui.notifications.warn(L("SDE.downtime.notify.pickPredates"));
     }
 
     const found = slotByKey(pick.slotKey);
-    if (!found) return ui.notifications.warn("That activity is no longer available.");
+    if (!found) return ui.notifications.warn(L("SDE.downtime.error.activityGone"));
 
     // PAY BEFORE YOU ROLL. RAW charges per attempt, so an unaffordable attempt
     // isn't an attempt at all — bail out BEFORE the dice exist. Rolling first
@@ -1189,10 +1197,9 @@ export class DowntimeApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const money = affordability(actor, DowntimeSession.source, found.slot,
       Number(actor.system?.level?.value ?? 0));
     if (!money.affordable) {
-      return ui.notifications.warn(
-        `"${found.slot.label}" costs ${money.cost} gp per attempt and ${actor.name} is `
-        + `${money.shortfallText} short — no fee, no roll.`,
-      );
+      return ui.notifications.warn(L("SDE.downtime.notify.noFeeNoRoll", {
+        slot: found.slot.label, cost: money.cost, name: actor.name, short: money.shortfallText,
+      }));
     }
 
     const facts = await classFacts(actor);
@@ -1207,9 +1214,9 @@ export class DowntimeApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const roll = await new Roll(formula).evaluate();
     const msg = await roll.toMessage({
       speaker: ChatMessage.getSpeaker({ actor }),
-      flavor: `<strong>${esc(found.activity.name)} — ${esc(found.slot.label)} (DC ${dc})</strong>`
+      flavor: `<strong>${L("SDE.downtime.card.flavor", { activity: esc(found.activity.name), slot: esc(found.slot.label), dc })}</strong>`
         + `<br><span class="sde-dt-check">${ability ? String(ability).toUpperCase() : "—"} ${signed(mod)}`
-        + `${mode.key === "normal" ? "" : ` · ${esc(mode.label)}`}</span>`,
+        + `${mode.key === "normal" ? "" : ` · ${esc(L(mode.label))}`}</span>`,
       flags: {
         [MODULE_ID]: {
           [ROLL_FLAG]: { actorId: actor.id, slotKey: pick.slotKey, nonce: pick.nonce },
@@ -1266,7 +1273,7 @@ export class DowntimeApp extends HandlebarsApplicationMixin(ApplicationV2) {
     if (!res?.effect?.pending || !res.effect.freeText) return;
     const input = target?.closest(".sde-dt-choice-box")?.querySelector(".sde-dt-freetext-input");
     const name = String(input?.value ?? "").trim();
-    if (!name) return ui.notifications.warn("Type the name of the weapon or armor trained with.");
+    if (!name) return ui.notifications.warn(L("SDE.downtime.error.typeName"));
     await this._sendDowntime({
       action: ACTIONS.CHOICE,
       actorId: actor.id, slotKey: res.slotKey,
@@ -1280,7 +1287,7 @@ export class DowntimeApp extends HandlebarsApplicationMixin(ApplicationV2) {
   async _onStartSession() {
     if (!game.user.isGM) return;
     const slug = this._sourceSlug;
-    if (!slug) return ui.notifications.warn("Pick a book first.");
+    if (!slug) return ui.notifications.warn(L("SDE.downtime.notify.pickBook"));
     await DowntimeSession.start(slug);
     this.render();
   }
@@ -1310,12 +1317,10 @@ export class DowntimeApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const actor = game.actors.get(actorId);
     if (!actor) return;
     const pick = DowntimeSession.pickFor(actorId);
-    if (!pick) return ui.notifications.warn(`${actor.name} hasn't chosen an activity.`);
-    if (DowntimeSession.phase !== "roll") return ui.notifications.warn("Unlock the dice first.");
+    if (!pick) return ui.notifications.warn(L("SDE.downtime.notify.noPickFor", { name: actor.name }));
+    if (DowntimeSession.phase !== "roll") return ui.notifications.warn(L("SDE.downtime.notify.unlockDiceFirst"));
     if (!pick.nonce) {
-      return ui.notifications.warn(
-        `${actor.name}'s pick predates a security update — reopen picks and set it again.`,
-      );
+      return ui.notifications.warn(L("SDE.downtime.notify.pickPredatesGm", { name: actor.name }));
     }
 
     const found = slotByKey(pick.slotKey);
@@ -1326,10 +1331,9 @@ export class DowntimeApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const money = affordability(actor, DowntimeSession.source, found.slot,
       Number(actor.system?.level?.value ?? 0));
     if (!money.affordable) {
-      return ui.notifications.warn(
-        `${actor.name} can't cover the ${money.cost} gp fee for "${found.slot.label}" `
-        + `(${money.shortfallText} short) — add coin to the sheet first.`,
-      );
+      return ui.notifications.warn(L("SDE.downtime.notify.cantCoverFee", {
+        name: actor.name, cost: money.cost, slot: found.slot.label, short: money.shortfallText,
+      }));
     }
 
     const facts = await classFacts(actor);
@@ -1338,7 +1342,7 @@ export class DowntimeApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const roll = await new Roll(`${mode.dice} ${mod < 0 ? "-" : "+"} ${Math.abs(mod)}`).evaluate();
     const msg = await roll.toMessage({
       speaker: ChatMessage.getSpeaker({ actor }),
-      flavor: `<strong>${esc(found.activity.name)} — ${esc(found.slot.label)}</strong> <em>(rolled by the GM)</em>`,
+      flavor: `<strong>${esc(found.activity.name)} — ${esc(found.slot.label)}</strong> <em>${L("SDE.downtime.card.rolledByGm")}</em>`,
       flags: {
         [MODULE_ID]: {
           [ROLL_FLAG]: { actorId, slotKey: pick.slotKey, nonce: pick.nonce },
@@ -1365,7 +1369,7 @@ export class DowntimeApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const slug = target?.dataset?.source ?? this._sourceSlug;
     const hub = game.shadowdarkEnhancer?.tables;
     if (!hub?.openHub) {
-      return ui.notifications.error("The Importer Hub isn't available in this build.");
+      return ui.notifications.error(L("SDE.downtime.notify.noHub"));
     }
     // Remember which book the GM was after, so the refresh lands on it.
     this._sourceSlug = slug;

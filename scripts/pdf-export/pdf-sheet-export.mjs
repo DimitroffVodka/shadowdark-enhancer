@@ -28,6 +28,13 @@ async function getPdfLib() {
 
 /* ---------------------------------------------------------------- helpers */
 
+/** One string from `languages/en.json`; the key when no i18n is mounted. */
+const L = (key, data) => {
+  const i18n = globalThis.game?.i18n;
+  if (!i18n) return key;
+  return data ? i18n.format(key, data) : i18n.localize(key);
+};
+
 const cap = (s) => (s ? String(s)[0].toUpperCase() + String(s).slice(1) : "");
 const fmtMod = (n) => (Number(n) >= 0 ? `+${Number(n)}` : `${Number(n)}`);
 /** " + 4" / "d20 + 4" → "+4" / "d20+4" (collapse the display padding). */
@@ -127,7 +134,7 @@ function gearLine(item) {
   const qty = item.system?.quantity ?? 1;
   if (qty > 1) line += ` (x${qty})`;
   const slots = itemSlotCount(item);
-  if (slots > 1) line += ` — ${slots} slots`;
+  if (slots > 1) line += ` — ${L("SDE.pdfExport.gearSlots", { n: slots })}`;
   return line;
 }
 
@@ -280,25 +287,27 @@ export async function buildFieldValues(actor) {
   const features = [];
   const ancName = text.ancestry;
   if (ancName) {
-    features.push(`ANCESTRY: ${ancName}`);
+    features.push(L("SDE.pdfExport.ancestry", { name: ancName }));
     talents.filter(isAncestryFeat).forEach((i) => features.push(featLine(i)));
   }
   const clsName = text.class;
   if (clsName) {
-    const hd = classDoc?.system?.hitPoints ? ` (hit die ${classDoc.system.hitPoints})` : "";
+    const hd = classDoc?.system?.hitPoints;
     if (ancName) features.push("");
-    features.push(`CLASS: ${clsName}${hd}`);
+    features.push(hd
+      ? L("SDE.pdfExport.classHd", { name: clsName, hd })
+      : L("SDE.pdfExport.class", { name: clsName }));
     talents.filter(isClassFeat).forEach((i) => features.push(featLine(i)));
   }
   T("features", features.join("\n"));
   const notes = [];
   const acTip = sys.attributes?.ac?.tooltips;
-  if (acTip) notes.push(`AC ${sys.attributes.ac.value} = ${acTip}`);
+  if (acTip) notes.push(L("SDE.pdfExport.acLine", { ac: sys.attributes.ac.value, tip: acTip }));
   const bio = htmlToText(sys.notes);
   if (bio) notes.push(bio);
-  if (overflow.length) notes.push(`Gear overflow (no line): ${overflow.join("; ")}`);
-  if (attacks.length > 5) notes.push(`+${attacks.length - 5} more attack(s) not shown above.`);
-  if (spells.length > 16) notes.push(`+${spells.length - 16} more spell(s) not shown above.`);
+  if (overflow.length) notes.push(L("SDE.pdfExport.gearOverflow", { items: overflow.join("; ") }));
+  if (attacks.length > 5) notes.push(L("SDE.pdfExport.moreAttacks", { n: attacks.length - 5 }));
+  if (spells.length > 16) notes.push(L("SDE.pdfExport.moreSpells", { n: spells.length - 16 }));
   T("notes", notes.join("\n"));
 
   return { text, checks };
@@ -310,7 +319,8 @@ export async function buildFieldValues(actor) {
 export async function fillActorPdf(actor) {
   const PDFLib = await getPdfLib();
   const res = await fetch(foundry.utils.getRoute(TEMPLATE_PATH));
-  if (!res.ok) throw new Error(`character-sheet template not found (${res.status})`);
+  // Shown to the GM through the "PDF export failed" notification below.
+  if (!res.ok) throw new Error(L("SDE.pdfExport.error.noTemplate", { status: res.status }));
   const pdfDoc = await PDFLib.PDFDocument.load(await res.arrayBuffer());
   const form = pdfDoc.getForm();
 
@@ -346,7 +356,7 @@ export async function fillActorPdf(actor) {
  */
 export async function exportActorToPdf(actor) {
   if (!actor) return;
-  ui.notifications?.info(`Exporting ${actor.name} to PDF…`);
+  ui.notifications?.info(L("SDE.pdfExport.notify.exporting", { name: actor.name }));
   try {
     const bytes = await fillActorPdf(actor);
     const safe = actor.name.replace(/[\s\\/:*?"<>|]+/g, "_").replace(/^_+|_+$/g, "") || "character";
@@ -360,12 +370,12 @@ export async function exportActorToPdf(actor) {
       try {
         const handle = await window.showSaveFilePicker({
           suggestedName: filename,
-          types: [{ description: "PDF Document", accept: { "application/pdf": [".pdf"] } }],
+          types: [{ description: L("SDE.pdfExport.fileType"), accept: { "application/pdf": [".pdf"] } }],
         });
         const writable = await handle.createWritable();
         await writable.write(bytes);
         await writable.close();
-        ui.notifications?.info(`Saved ${filename}`);
+        ui.notifications?.info(L("SDE.pdfExport.notify.saved", { file: filename }));
         return;
       } catch (err) {
         if (err.name === "AbortError") return; // user cancelled
@@ -383,14 +393,13 @@ export async function exportActorToPdf(actor) {
     // No anchor fallback here on purpose: a hand-rolled anchor was tried and
     // silently failed in production Firefox (see the note above the function).
     if (typeof saveAs !== "function") {
-      throw new Error("FileSaver.js did not load — reinstall the module, or check "
-        + "the browser console for a blocked script (scripts/pdf-export/lib/FileSaver.min.js).");
+      throw new Error(L("SDE.pdfExport.error.noFileSaver"));
     }
     saveAs(new Blob([bytes], { type: "application/pdf" }), filename);
-    ui.notifications?.info(`Downloaded ${filename}`);
+    ui.notifications?.info(L("SDE.pdfExport.notify.downloaded", { file: filename }));
   } catch (err) {
     console.error(`${MODULE_ID} | PDF export failed`, err);
-    ui.notifications?.error(`PDF export failed: ${err.message}`);
+    ui.notifications?.error(L("SDE.pdfExport.notify.failed", { error: err.message }));
   }
 }
 
@@ -412,7 +421,7 @@ export const PdfSheetExport = {
       if (!actor || actor.type !== "Player" || !actor.isOwner) return;
       if (buttons.some((b) => b.class === "sde-pdf-export")) return;
       buttons.unshift({
-        label: "PDF",
+        label: L("SDE.pdfExport.button"),
         class: "sde-pdf-export",
         icon: "fa-solid fa-file-pdf",
         onclick: () => exportActorToPdf(actor),
