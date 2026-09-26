@@ -10,11 +10,15 @@
  * At the start of round 2 and every round after, every combatant rolls the
  * system's own initiative (d20 + DEX, with any advantage, from
  * Combatant#getInitiativeRoll), the order is rebuilt in ONE combatant update
- * and the turn goes to the new top (`combatTurn: 0`). Foundry fires
- * combatTurnChange for that move but no second turn start, so nobody starts
- * two turns; the round change already started the round for the old top, which
- * is the rule's own oddity (an effect "until your next turn" can end early or
- * late because turns move).
+ * and the turn goes to the new top (`combatTurn: 0`). Foundry treats that as
+ * the order changing under the pointer: it ends the old top's turn and starts
+ * the new top's (Combat#_manageTurnEvents). The round change had already
+ * started the old top's turn, so that combatant's turn-start and turn-end
+ * effects fire once early and turn-start fires again on its real turn. Passing
+ * `turnEvents: false` instead would leave the new top with no turn start at
+ * all, which is worse (the dying timer ticks there). The rule's own oddity
+ * stands too: an effect "until your next turn" can end early or late because
+ * turns move.
  *
  * One chat card per round lists the new order. A hidden combatant is left off
  * it (the GM still sees them in the tracker). The rolls ride the card only
