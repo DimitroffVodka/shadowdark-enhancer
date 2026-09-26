@@ -1054,6 +1054,7 @@
   "SDE.importer.chapter.previewTitle": "Chapter to journal: {name}",
   "SDE.importer.chapter.previewLead": "{n} pages from pp. {pages}. Check the names and samples below. To change the range, cancel and read it again.",
   "SDE.importer.chapter.gutter": "The column split was uncertain here. Compare these pages against the book:",
+  "SDE.importer.chapter.dropped": "Left out as page titles:",
   "SDE.importer.chapter.create": "Create journal",
   "SDE.importer.chapter.defaultName": "{book}, pp. {pages}",
   "SDE.importer.chapter.noBooks": "No book is linked to a PDF yet. Link one under Tools → Source PDFs.",

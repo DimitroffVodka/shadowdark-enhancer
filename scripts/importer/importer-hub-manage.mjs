@@ -1221,9 +1221,9 @@ class HubManageMethods {
 
     const preset = CHAPTER_PRESETS.find((p) => p.id === form.preset);
     const req = preset
-      ? { src: preset.src, pages: preset.pages, name: preset.name, sections: preset.sections }
+      ? { src: preset.src, pages: preset.pages, name: preset.name, sections: preset.sections, preset: preset.id }
       // The range is the journal's identity, so "16 - 27" and "16-27" must be one.
-      : { src: form.src, pages: String(form.pages ?? "").replace(/\s+/g, ""), name: String(form.name ?? "").trim() };
+      : { src: form.src, pages: String(form.pages ?? "").replace(/\s+/g, ""), name: String(form.name ?? "").trim(), preset: "custom" };
     if (!/\d/.test(req.pages)) { ui.notifications.warn(t("SDE.importer.chapter.noPages")); return; }
     req.name ||= t("SDE.importer.chapter.defaultName",
       { book: books.find((b) => b.src === req.src)?.label ?? req.src, pages: req.pages });
@@ -1243,11 +1243,16 @@ class HubManageMethods {
     const warned = read.warnings.length
       ? `<p><strong>${t("SDE.importer.chapter.gutter")}</strong></p><ul>${read.warnings.map((w) => `<li>${esc(w)}</li>`).join("")}</ul>`
       : "";
+    // Lines taken for page titles are said out loud: if one was prose, the GM sees it here.
+    const titles = read.dropped.length
+      ? `<p><strong>${t("SDE.importer.chapter.dropped")}</strong> ${read.dropped.map((l) => `“${esc(l)}”`).join(", ")}</p>`
+      : "";
     const go = await foundry.applications.api.DialogV2.wait({
       window: { title: t("SDE.importer.chapter.previewTitle", { name: req.name }), icon: "fas fa-book-open-reader" },
       content: `
         <p>${t("SDE.importer.chapter.previewLead", { n: read.pages.length, pages: esc(req.pages) })}</p>
         ${warned}
+        ${titles}
         <ol style="max-height:22rem;overflow-y:auto;">${read.pages.map((p) =>
           `<li><strong>${esc(p.name)}</strong><br><small>${sample(p.html)}…</small></li>`).join("")}</ol>`,
       buttons: [
