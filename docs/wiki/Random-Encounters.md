@@ -136,8 +136,10 @@ book intends for the party's hex, ahead of your **Tables by terrain**:
   roll carries on there by itself — Tal-Yool Jungle's *Day* or *Night* table by
   the clock — and the card says which table it used ("Land: rolled on Tal-Yool
   Jungle Night Encounters: Land"). A cell naming two (*Beast + Horror*) rolls
-  both; the second posts to chat on its own. A row in that table that points on
-  again (*Special*, *Land + Cursed*) is shown as printed, for you to follow.
+  both; the second is whispered to the GMs on its own. A *Special* row in
+  Tal-Yool's tables goes on to its Special Encounters table the same way ("…,
+  then on Tal-Yool Jungle Special Encounters"). Any other row that points on
+  again (*Land + Cursed*) is shown as printed, for you to follow.
 
 The chat card then names the column too — *Hex 2849 · forest, coast · Lowland
 Moor: Coast*. When no grid answers (no region, or a terrain the region does not
