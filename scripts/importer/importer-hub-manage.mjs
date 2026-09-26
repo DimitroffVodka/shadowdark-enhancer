@@ -1179,6 +1179,97 @@ class HubManageMethods {
     }
   }
 
+  /**
+   * Tools → "Chapter to journal": any printed page range of a linked book as
+   * one reflowed journal, or a ready-made preset (chapter-journal.mjs). Read
+   * first, then a preview of the page names and a sample of each — nothing is
+   * written until the GM presses Create, and a wrong range is fixed by
+   * cancelling and reading again.
+   */
+  async _onChapterToJournal() {
+    if (!game.user?.isGM) { ui.notifications.warn(t("SDE.importer.chapter.gmOnly")); return; }
+    const { CHAPTER_PRESETS, readChapter, commitChapterJournal } = await import("./chapter-journal.mjs");
+    const esc = foundry.utils.escapeHTML;
+    const books = (await listSourcePdfs()).filter((b) => b.linked);
+    if (!books.length) { ui.notifications.warn(t("SDE.importer.chapter.noBooks")); return; }
+    const presets = [`<option value="">${t("SDE.importer.chapter.custom")}</option>`,
+      ...CHAPTER_PRESETS.map((p) => `<option value="${p.id}">${esc(t(p.label))}</option>`)].join("");
+    const bookOpts = books.map((b) => `<option value="${esc(b.src)}">${esc(b.label)}</option>`).join("");
+    const form = await foundry.applications.api.DialogV2.wait({
+      window: { title: t("SDE.importer.chapter.title"), icon: "fas fa-book-open-reader" },
+      content: `
+        <p>${t("SDE.importer.chapter.lead")}</p>
+        <div style="display:grid;grid-template-columns:auto 1fr;gap:0.4rem 0.6rem;align-items:center;">
+          <label for="sde-chapter-preset"><strong>${t("SDE.importer.chapter.preset")}</strong></label>
+          <select id="sde-chapter-preset" name="preset">${presets}</select>
+          <label for="sde-chapter-src"><strong>${t("SDE.importer.downtime.book")}</strong></label>
+          <select id="sde-chapter-src" name="src">${bookOpts}</select>
+          <label for="sde-chapter-pages"><strong>${t("SDE.importer.chapter.pages")}</strong></label>
+          <input id="sde-chapter-pages" name="pages" type="text" placeholder="${esc(t("SDE.importer.chapter.pagesHint"))}">
+          <label for="sde-chapter-name"><strong>${t("SDE.importer.chapter.name")}</strong></label>
+          <input id="sde-chapter-name" name="name" type="text">
+        </div>
+        <p class="notes">${t("SDE.importer.chapter.notes")}</p>`,
+      buttons: [
+        { action: "read", label: t("SDE.importer.chapter.read"), icon: "fas fa-eye", default: true,
+          callback: (event, button) => Object.fromEntries(new FormData(button.form)) },
+        { action: "cancel", label: t("SDE.importer.btn.cancel"), icon: "fas fa-xmark" },
+      ],
+      rejectClose: false,
+    }).catch(() => null);
+    if (!form || form === "cancel") return;
+
+    const preset = CHAPTER_PRESETS.find((p) => p.id === form.preset);
+    const req = preset
+      ? { src: preset.src, pages: preset.pages, name: preset.name, sections: preset.sections, preset: preset.id }
+      // The range is the journal's identity, so "16 - 27" and "16-27" must be one.
+      : { src: form.src, pages: String(form.pages ?? "").replace(/\s+/g, ""), name: String(form.name ?? "").trim(), preset: "custom" };
+    if (!/\d/.test(req.pages)) { ui.notifications.warn(t("SDE.importer.chapter.noPages")); return; }
+    req.name ||= t("SDE.importer.chapter.defaultName",
+      { book: books.find((b) => b.src === req.src)?.label ?? req.src, pages: req.pages });
+
+    let read;
+    try {
+      read = await readChapter(req);
+    } catch (err) {
+      console.error("Shadowdark Enhancer | chapter extraction failed", err);
+      ui.notifications.error(t("SDE.importer.pdf.readPageFailed", { error: err?.message || err }));
+      return;
+    }
+    if (!read) { ui.notifications.warn(t("SDE.importer.pdf.bookNotLinked")); return; }
+    if (!read.pages.length) { ui.notifications.warn(t("SDE.importer.chapter.empty")); return; }
+
+    const sample = (html) => esc(String(html).replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim().slice(0, 160));
+    const warned = read.warnings.length
+      ? `<p><strong>${t("SDE.importer.chapter.gutter")}</strong></p><ul>${read.warnings.map((w) => `<li>${esc(w)}</li>`).join("")}</ul>`
+      : "";
+    // Lines taken for page titles are said out loud: if one was prose, the GM sees it here.
+    const titles = read.dropped.length
+      ? `<p><strong>${t("SDE.importer.chapter.dropped")}</strong> ${read.dropped.map((l) => `“${esc(l)}”`).join(", ")}</p>`
+      : "";
+    const go = await foundry.applications.api.DialogV2.wait({
+      window: { title: t("SDE.importer.chapter.previewTitle", { name: req.name }), icon: "fas fa-book-open-reader" },
+      content: `
+        <p>${t("SDE.importer.chapter.previewLead", { n: read.pages.length, pages: esc(req.pages) })}</p>
+        ${warned}
+        ${titles}
+        <ol style="max-height:22rem;overflow-y:auto;">${read.pages.map((p) =>
+          `<li><strong>${esc(p.name)}</strong><br><small>${sample(p.html)}…</small></li>`).join("")}</ol>`,
+      buttons: [
+        { action: "create", label: t("SDE.importer.chapter.create"), icon: "fas fa-book", default: true },
+        { action: "cancel", label: t("SDE.importer.btn.cancel"), icon: "fas fa-xmark" },
+      ],
+      rejectClose: false,
+    }).catch(() => null);
+    if (go !== "create") return;
+
+    const report = await commitChapterJournal(req, read.pages);
+    if (report.uuid) {
+      ui.notifications.info(t("SDE.importer.chapter.done",
+        { name: req.name, created: report.created, updated: report.updated, linked: report.linked }));
+    }
+  }
+
 }
 
 export function installHubManage(cls) { installMethods(cls, HubManageMethods); }
