@@ -356,9 +356,22 @@ test("init(): a malformed-but-current-version (v1) setting is repaired and persi
   } finally { env.restore(); }
 });
 
-test("init(): an ALREADY-normalized v2 setting is not rewritten (no-op, no loop)", async () => {
+test("init(): a v2 setting is upgraded to v3 once, then left alone (#229)", async () => {
   const { CrawlState } = await import("../scripts/crawl-strip/crawl-state.mjs");
-  const clean = { _v: 2, mode: "crawl", crawlTurn: 3, oocInitiative: {}, oocTurn: null, members: ["a"], priorMode: "off" };
+  const v2 = { _v: 2, mode: "crawl", crawlTurn: 3, oocInitiative: {}, oocTurn: null, members: ["a"], priorMode: "off" };
+  const env = setup({ users: [GM_A], activeGMId: GM_A.id, crawlState: v2 });
+  try {
+    env.game.user = GM_A;
+    CrawlState.init();
+    assert.equal(env.settingsSetCalls.length, 1);
+    assert.equal(env.settingsSetCalls[0].value._v, 3);
+    assert.equal(env.settingsSetCalls[0].value.mode, "crawl");
+  } finally { env.restore(); }
+});
+
+test("init(): an ALREADY-normalized current setting is not rewritten (no-op, no loop)", async () => {
+  const { CrawlState } = await import("../scripts/crawl-strip/crawl-state.mjs");
+  const clean = { _v: 3, mode: "crawl", crawlTurn: 3, oocInitiative: {}, oocTurn: null, members: ["a"], priorMode: "off" };
   const env = setup({ users: [GM_A], activeGMId: GM_A.id, crawlState: clean });
   try {
     env.game.user = GM_A;

@@ -3,6 +3,12 @@
 ## [Unreleased]
 
 ### Added
+- **Overland travel, first piece.** On a tagged hex map the Crawl Bar offers
+  **Travel**: the Shadowdark Extras party token (or the one token you select)
+  travels, the Crawl Strip steps aside and movement isn't tracked, a combat
+  takes over and hands back, and **End travel** keeps where the party is for
+  next time. Weather, the day's movement, encounter checks and rations come
+  with the next pieces. (#229)
 - **Move the clock off duty without burning torches.** Advancing Foundry's
   clock three days for downtime burns every lit torch for those three days,
   and the system deletes a torch that runs out. A new macro call,

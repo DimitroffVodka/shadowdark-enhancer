@@ -140,6 +140,27 @@ Differences from combat:
 
 ---
 
+## Overland travel
+
+On a tagged hex map the Crawl Bar also offers **Travel**. It starts overland
+travel instead of a crawl. Overland is being built in pieces (#192); this first
+piece switches the mode and keeps the travel state.
+
+- **Which token travels.** The Shadowdark Extras party token, when exactly one
+  is on the map. Otherwise select the one token that travels before pressing
+  **Travel**.
+- **Who travels.** That party's members, or every player-owned character.
+- **While travelling** the Crawl Strip is off and movement isn't tracked. The
+  bar shows **Overland** and **End travel**. A combat started while travelling
+  takes over as usual and hands back to travel when it ends.
+- **End travel** stops travelling but keeps where the party is and the day's
+  progress, so **Travel** later picks up where it left off.
+- **Start** still begins a crawl, for example when the party reaches a dungeon.
+  To travel again after a crawl, end the crawl first.
+
+Weather, the day's movement budget, encounter checks, foraging and rations
+come with the next pieces.
+
 ## The party cards
 
 ![A single crawl strip card](images/crawl-strip-card.png)

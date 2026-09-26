@@ -20,9 +20,10 @@ and Forge & Loot features.
 [`hexMaps`](#hexmaps--hex-map-tagging-and-the-extras-dataset) ·
 [`rules`](#rules--western-reaches-rules-data) ·
 [`holidays`](#holidays--when-a-holiday-falls-and-what-it-does-to-carousing) ·
-[`time`](#time--season-day-and-night-sun-moon-and-anchors)
+[`time`](#time--season-day-and-night-sun-moon-and-anchors) ·
+[`overland`](#overland--the-travel-state)
 
-**API version:** `1.13.0` (semver — additive changes bump the minor version,
+**API version:** `1.14.0` (semver — additive changes bump the minor version,
 breaking changes the major; check `apiVersion` before relying on newer keys).
 
 ## Discovery
@@ -1431,6 +1432,45 @@ This relies on the light tracker of Shadowdark 4.0.6 (its cache, its dirty
 flag and the primary GM flag); a later system version is checked live before
 it is trusted.
 
+## `overland` — the travel state
+
+Added in 1.14.0 (Overland O3, #229; design `docs/plans/overland.md` §2). One
+travel state per world, in the `overlandState` world setting: the setting is
+the truth, only the active GM writes it, and every client re-reads it.
+
+```js
+const o = game.shadowdarkEnhancer.overland;
+
+o.isActive();   // true while travelling (the crawl state's mode is "overland")
+o.state();      // a copy of the travel state, plus derived fields:
+// {
+//   tokenUuid, members,            // the travel token; who travels (actor ids)
+//   method, mounts, boatUuid, pushed,
+//   day, budget, spent,            // the open day's dawn (worldTime) and points
+//   weather, checks, pending, foraged,
+//   hex: { num, terrain, region, features },  // the travel token's last hex
+//   hexesLeft, climate, harsh, isNight,       // derived, never stored
+// }
+```
+
+- **Starting and ending travel** is the GM's, from the crawl bar's **Travel**
+  and **End travel** (offered on a tagged hex map). Another GM's click is
+  forwarded to the active GM. The travel token is the Shadowdark Extras party
+  token when exactly one is on the scene, otherwise the one token the GM has
+  selected. The members are that party's members, or every player-owned
+  character.
+- **The mode:** travel is the crawl state's `overland` mode (version 3). In it
+  the Crawl Strip is off and movement tracking idle; a combat started while
+  travelling hides it and returns to it. `CrawlState.isActive` is true for a
+  crawl or a combat only. Ending travel keeps the travel state, so starting
+  again resumes it.
+- **Players:** one relayed action, Forage, for a character they own; the GM
+  checks the sender from the query context. It records the forage for today;
+  the check and the ration are the next pieces of the build (#233).
+- Weather (#230), the day's budget and the clock (#231), encounter checks
+  (#232) and rations (#233) fill the fields above as they land; until then
+  they keep their defaults.
+
 ## Stability notes
 
 - Everything documented here is public surface; undocumented internals
@@ -1455,6 +1495,9 @@ it is trusted.
   hook. Holidays' Lastmoon and the encounter tables' moon columns now resolve,
   and recap entries carry `worldTime` and `gameTime`.
 - `1.13.0` adds `time.advanceOffDuty`, the off-duty clock move.
+- `1.14.0` adds the `overland` namespace and the `overlandChanged`,
+  `overlandStart` and `overlandEnd` hooks. The crawl state is version 3, with
+  an `overland` mode.
 - `1.4.0` adds the shared `forgeLoot.open()` preview shell. Generator rules and
   document writes remain behind the later NPC/Rival adapter implementations.
   The version policy is additive: new namespaces bump the minor version; breaking
@@ -1559,6 +1602,9 @@ plus `authorizeActorFor(actorId, user)` on the GM side, and
 | `shadowdark-enhancer.crawlEnd` | A crawl session ends | the crawl state |
 | `shadowdark-enhancer.crawlRound` | The crawl round advances, on the one GM client that advanced it (the death timers tick on it) | the crawl state |
 | `shadowdark-enhancer.timeAdvanced` | The world time changes; on the active GM only, once per change | `{ from, to, dt, offDuty, crossed }` — see [`time`](#shadowdark-enhancertimeadvanced) |
+| `shadowdark-enhancer.overlandChanged` | The travel state was written; on every client | a copy of the travel state |
+| `shadowdark-enhancer.overlandStart` | Overland travel starts, on the GM client that started it (as `crawlStart`) | [`overland.state()`](#overland--the-travel-state) |
+| `shadowdark-enhancer.overlandEnd` | Overland travel ends, on the GM client that ended it (as `crawlEnd`) | [`overland.state()`](#overland--the-travel-state) |
 | `sde.stateChanged` | Any crawl-state change (mode, turn, roster, out-of-combat initiative) — this is the high-frequency one the strip and bar re-render on | the crawl state |
 
 > **Three prefixes are in play, deliberately.** The ready signal uses camelCase

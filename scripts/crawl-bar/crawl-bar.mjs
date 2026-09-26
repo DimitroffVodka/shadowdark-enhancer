@@ -11,6 +11,8 @@ import { MODULE_ID }       from "../shared/module-id.mjs";
 import { CrawlState }      from "../crawl-strip/crawl-state.mjs";
 import { ICONS }           from "../shared/icons.mjs";
 import { CrawlStrip }      from "../crawl-strip/crawl-strip.mjs";
+import { isHexMapScene }   from "../encounter/encounter-terrain.mjs";
+import { startOverland, endOverland } from "../overland/overland.mjs";
 
 const BAR_ID = "shadowdark-enhancer-bar";
 
@@ -40,6 +42,8 @@ export const CrawlBar = {
     on("createCombat",  queue);
     on("deleteCombat",  queue);
     on("updateCombat",  queue);
+    // The Travel button is offered only on a hex map, so it follows the scene.
+    on("canvasReady",   queue);
   },
 
   /**
@@ -122,13 +126,24 @@ export const CrawlBar = {
       return;
     }
 
+    // Overland travel (#229) is a mode of its own: not a crawl, so the crawl's
+    // session actions stay idle; Start still begins a crawl from it (§4.3).
+    const overland = state.mode === "overland";
+    const travelButton = overland
+      ? `<button class="sde-bar-btn sde-bar-danger-btn" data-action="endTravel" title="${game.i18n.localize("SDE.overland.endTravelHint")}">${ICONS.close} ${game.i18n.localize("SDE.overland.endTravel")}</button>`
+      : (state.mode === "off" && isHexMapScene()
+        ? `<button class="sde-bar-btn" data-action="startTravel" title="${game.i18n.localize("SDE.overland.startTravelHint")}">${ICONS.walking} ${game.i18n.localize("SDE.overland.startTravel")}</button>`
+        : "");
+
     // CRAWL state — single phase, just turn counter + next button
     this._el.innerHTML = `
       <div class="sde-bar-inner sde-bar-active">
 
-        <span class="sde-bar-phase-badge sde-bar-phase-crawl"${idle ? ' style="opacity:0.55"' : ""}>
+        ${overland
+          ? `<span class="sde-bar-phase-badge sde-bar-phase-overland">${ICONS.walking} ${game.i18n.localize("SDE.overland.badge")}</span>`
+          : `<span class="sde-bar-phase-badge sde-bar-phase-crawl"${idle ? ' style="opacity:0.55"' : ""}>
           ${ICONS.startCrawl} ${game.i18n.format("SDE.crawlBar.roundBadge", { turn: state.crawlTurn })}
-        </span>
+        </span>`}
         <button class="sde-bar-btn sde-bar-next-btn" data-action="nextCrawlTurn" ${idleAttr}>
           ${ICONS.nextTurn} ${game.i18n.localize("SDE.crawlBar.nextRound")}
         </button>
@@ -149,6 +164,7 @@ export const CrawlBar = {
         <button class="sde-bar-btn" data-action="rollTables" title="Importer — paste a PDF dump; manage tables &amp; monsters">
           ${ICONS.importer} Importer
         </button>
+        ${travelButton}
         ${idle
           ? `<button class="sde-bar-btn sde-bar-start-btn" data-action="startCrawl" title="Start a new crawl session">${ICONS.startCrawl} Start</button>`
           : `<button class="sde-bar-btn sde-bar-danger-btn" data-action="endCrawl" title="End the crawl session">${ICONS.close} End</button>`}
@@ -223,6 +239,18 @@ export const CrawlBar = {
 
       case "encounter":
         game.shadowdarkEnhancer.encounter.openRoller("tables");
+        break;
+
+      case "startTravel":
+        await startOverland();
+        this.render();
+        CrawlStrip.render();
+        break;
+
+      case "endTravel":
+        await endOverland();
+        this.render();
+        CrawlStrip.render();
         break;
 
       case "startCrawl":

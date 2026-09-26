@@ -9,6 +9,7 @@ import { ICONS } from "./shared/icons.mjs";
 import { registerSettings } from "./shared/settings.mjs";
 import { rulesApi } from "./rules-data/rules-data-core.mjs";
 import { timeApi, registerTimeHooks } from "./time/time.mjs";
+import { overlandState, isOverland, registerOverland } from "./overland/overland.mjs";
 import { CrawlState } from "./crawl-strip/crawl-state.mjs";
 import { CrawlStrip } from "./crawl-strip/crawl-strip.mjs";
 import { registerCrawlTracker, refreshTracker } from "./crawl-strip/crawl-tracker.mjs";
@@ -111,7 +112,7 @@ const STYLESHEET_REV = "04c122556d8d";
 // stale); module.json carries the same hash and is fetched fresh at runtime. A
 // mismatch is a stale cache by construction — it cannot be anything else. Both
 // stamps are written by `npm run inventory` and gated by `inventory:check`.
-const BUILD_REV = "e87a183c1735";
+const BUILD_REV = "ec956668658a";
 
 /**
  * Tell the user when their browser is running an old build of this module, and
@@ -427,7 +428,14 @@ Hooks.once("init", () => {
     // 1.11.0 — additive: encounter.tableForHex (the table for a hex by region and terrain).
     // 1.12.0 — additive: time namespace and the timeAdvanced hook (Overland O1, #227).
     // 1.13.0 — additive: time.advanceOffDuty (the off-duty clock move, Overland O2, #228).
-    apiVersion: "1.13.0",
+    // 1.14.0 — additive: overland namespace and the overland* hooks (Overland O3, #229).
+    apiVersion: "1.14.0",
+    // The one travel state per world (scripts/overland/overland.mjs): a copy
+    // with hexes left, climate and night derived; and whether travel is on.
+    overland: {
+      state: () => overlandState(),
+      isActive: () => isOverland(),
+    },
     // Readings on Foundry's world clock: season, day and night, sun, moon,
     // anchors, the date string. Synchronous, any user (scripts/time/time.mjs).
     // advanceOffDuty is the one writer: GM only, async (scripts/time/off-duty.mjs).
@@ -918,6 +926,7 @@ Hooks.once("ready", () => {
     }
   })();
   CrawlState.init();
+  registerOverland();
   // The sidebar rendered during setup, before the line above read the saved
   // crawl state, so the tracker tab's rail button is still hidden on a world
   // reloaded mid-crawl. Re-evaluate it now that the state is real.
