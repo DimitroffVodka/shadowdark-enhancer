@@ -97,7 +97,7 @@ export const SETTING_GROUPS = [
           { note: "SDE.settings.modesOfPlayMenu.pulpExtraAction" },
         ] },
       { label: "SDE.settings.modesOfPlayMenu.hardLuck", hint: "SDE.settings.modesOfPlayMenu.hardLuckHint", mode: true,
-        entries: ["luckRerollPreventNat1", { key: "modeHardLuckEffects", pending: true }] },
+        entries: ["luckRerollPreventNat1", "modeHardLuckEffects"] },
     ],
   },
   {
