@@ -45,6 +45,14 @@
   pays nothing). It is one Party XP card per combat, with the usual "ready to
   level up" marker and a Session Recap entry. Monsters killed outside a
   combat aren't counted. (#184)
+- **Chaos Mode: initiative is rerolled every round.** With Chaos on, every
+  combatant rolls initiative again at the start of each round after the
+  first, with the system's own roll and any advantage, and the turn goes to
+  whoever is now on top; a defeated monster that rolls to the top is skipped
+  as usual. One chat card per round lists the new order, leaving hidden
+  combatants off. Dice So Nice stays quiet for these rerolls unless you tick
+  its option in the Chaos box. While the system's clockwise initiative is on,
+  Chaos does nothing and says so once. (#180)
 - **The hex data goes on the printed map.** The Hex Tagger's **Send to
   Extras** now puts every hex's terrain, region, zone colour, name,
   description and settlement on the map you tagged, instead of building a

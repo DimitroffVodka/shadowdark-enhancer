@@ -482,6 +482,8 @@
   "SDE.settings.modeBlitzLights.hint": "A torch, a lantern or a light spell lasts 30 minutes instead of an hour.",
   "SDE.settings.modeChaosInitiative.name": "Reroll initiative every round",
   "SDE.settings.modeChaosInitiative.hint": "At the start of every round after the first, everyone rolls initiative again and the turn order is rebuilt.",
+  "SDE.settings.modeChaosDiceSoNice.name": "Show Dice So Nice for Chaos rerolls",
+  "SDE.settings.modeChaosDiceSoNice.hint": "Roll the 3D dice for every round's initiative reroll. Off by default: dice for the whole tracker every round get tiresome. The order is posted either way.",
   "SDE.settings.modeDeadlyTimer.name": "Death timers are always 1",
   "SDE.settings.modeDeadlyTimer.hint": "A dying character has 1 round to live, whatever their Constitution.",
   "SDE.settings.modeDeadlyStabilize.name": "Stabilizing is DC 18",
@@ -1450,5 +1452,8 @@
   "SDE.training.tagTable": "At the table",
   "SDE.training.spent": "This trainer has nothing left to teach.",
   "SDE.hunter.label": "Hunter: {monsters}",
+  "SDE.chaos.clockwise": "Chaos Mode is off while the system's clockwise initiative is on: clockwise re-sorts the order every time initiative changes.",
+  "SDE.chaos.speaker": "Chaos",
+  "SDE.chaos.header": "Round {round}: initiative rerolled",
   "SDE.hunter.count": "{name} ×{count}"
 }
