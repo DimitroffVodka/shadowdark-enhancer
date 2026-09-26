@@ -21,11 +21,12 @@ test("a roll made with Bless, Trance or Omen is found by name; others are not", 
   const nameOf = (uuid) => names[uuid] ?? null;
   assert.equal(luckGrantingSource({ itemUuid: "Actor.a.Item.bless", cast: { spellUuid: "Actor.a.Item.bless" } }, nameOf), "Bless");
   assert.equal(luckGrantingSource({ itemUuid: "Actor.a.Item.omen" }, nameOf), "Omen", "a class ability");
+  assert.equal(luckGrantingSource({ itemUuid: "Actor.a.Item.inspire" }, (u) => (u.endsWith("inspire") ? "Inspire" : null)), "Inspire", "the Bard's Inspire");
   assert.equal(luckGrantingSource({ itemUuid: "Actor.a.Item.scroll", cast: { spellUuid: "Compendium.x.Item.trance" } }, nameOf), "Trance",
     "a scroll is judged by the spell it casts");
   assert.equal(luckGrantingSource({ itemUuid: "Actor.a.Item.mm", cast: { spellUuid: "Actor.a.Item.mm" } }, nameOf), null);
   assert.equal(luckGrantingSource({}, nameOf), null, "a plain check");
   assert.equal(luckGrantingSource(undefined, nameOf), null);
   assert.equal(luckGrantingSource({ itemUuid: "Actor.a.Item.gone" }, nameOf), null, "an item that no longer resolves");
-  assert.deepEqual(LUCK_GRANTING, ["Bless", "Trance", "Omen"]);
+  assert.deepEqual(LUCK_GRANTING, ["Bless", "Inspire", "Trance", "Omen"]);
 });
