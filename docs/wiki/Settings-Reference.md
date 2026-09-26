@@ -11,10 +11,11 @@ All settings are **world-scoped**. They are configured by the GM for the whole w
 ## Settings you can see
 
 Go to **Configure Settings → Shadowdark Enhancer**. Every setting lives in one of nine
-pop-out windows, one per feature, each opened by its own **Configure** button:
-Character Builder, Monsters, PC Automation, Modes of Play, Movement, Crawl Strip,
-Overland, Encounters, and Loot & XP. One more button, **Edit Rules Data**, opens the
-Western Reaches rules tables (see [Rules data](#rules-data) below).
+pop-out windows, one per feature, each opened by its own button (**Configure**, or
+**Modes of Play** for that one): Character Builder, Monsters, PC Automation, Modes
+of Play, Movement, Crawl Strip, Overland, Encounters, and Loot & XP. One more
+button, **Edit Rules Data**, opens the Western Reaches rules tables (see
+[Rules data](#rules-data) below).
 
 ### Character Builder
 
@@ -137,11 +138,7 @@ rules, and every rule switches on by itself: Deadly's death timer of 1 can run
 without its DC 18 stabilize, for example. Each box has a switch that turns all
 of that mode's rules on or off at once; it shows as on only when all of them
 are. There is no switch for every mode together. Players are not told which
-modes are on.
-
-A rule marked **Not automated yet** can already be switched on and is saved,
-but nothing acts on it until the update that builds it. The same words show
-under its checkbox in the window.
+modes are on. [Modes of Play](Modes-of-Play.md) explains how each mode plays.
 
 | Mode | Setting | Default | What it does |
 |---|---|---|---|
@@ -153,7 +150,7 @@ under its checkbox in the window.
 | Deadly | **Hidden death timers** | off | An option of the dying rule, not one of Deadly's, so the Deadly switch leaves it alone and it works without Deadly's rules. The GM's client rolls each death timer blind (a GM-only roll), and the rounds left are whispered to the GM. Players see *Dying* on the strip with no count. The count is still in the character's data, so this hides it from the table, not from a player who opens the console. |
 | Fatality | **Characters die at 0 HP** | off | There is no dying: a PC reduced to 0 HP by damage or a sheet edit gets the dead status and is marked defeated, and its turn is skipped. A Parry that undoes the blow undoes the death too. |
 | Grinder | Shadowdark Extras' Grinder settings | off | Shown here when Shadowdark Extras has them (`shadowdark-extras.grinderMode`, and `grinderHitDice`, shown only while Grinder is on); its camping rest is where Grinder takes effect. Without them, the box says what is needed. |
-| Hunter | **XP for defeated monsters** | off | When a combat ends, every character in it gets XP (a dead one does not; a dying one does) for each monster still marked defeated: half its level, rounded down, 1 for a level 1 monster, nothing for level 0. One Party XP card per combat, logged in Session Recap. Monsters killed outside a combat aren't counted. |
+| Hunter | **XP for defeated monsters** | off | When a combat ends, every character in it gets XP (a dead one does not; a dying one does) for each monster still marked defeated or at 0 HP, leaving out friendly and hidden ones: half its level, rounded down, 1 for a level 1 monster, nothing for level 0. One Party XP card per combat, logged in Session Recap. Monsters killed outside a combat aren't counted. |
 | Momentum | the system's exploding damage setting | off | Shown here; it is the Shadowdark system's own setting. Advantage on repeating a failed action is granted at the table. |
 | Pulp | the system's Pulp Mode setting | off | Shown here; it is the Shadowdark system's own setting (no maximum on luck tokens). |
 | Pulp | **1d4 luck at the start of each session** | off | Choosing **Start New Session** in Session Recap's prompt when a crawl starts sets each player's character to 1d4 luck tokens (Continue Session doesn't), as the system's own luck macro does, and posts one card with the rolls. |

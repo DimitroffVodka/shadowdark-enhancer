@@ -5,7 +5,7 @@
 The core rulebook's dying rule (p.89), run for you: a character at 0 HP is
 dying, rolls a death timer, gets a chance to rise every turn, and can be
 stabilized by a friend. Deadly and Fatality (p.111) change it from the
-[Modes of Play](Settings-Reference.md#modes-of-play) window.
+[Modes of Play](Modes-of-Play.md) window.
 
 Nothing else in a Shadowdark world does this. The system only marks a character
 prone and unconscious when damage takes it to 0 HP. Shadowdark Crawl Helper used
@@ -122,7 +122,7 @@ creature) with the change type shown.
 Use `override` rather than `upgrade`/`downgrade`: Foundry's upgrade does
 nothing on a flag no effect has set yet. Values are numbers.
 
-The Regional Training benefits **+1 to death timer rolls** (Gladiator),
+The [Regional Training](Regional-Training.md) benefits **+1 to death timer rolls** (Gladiator),
 **Stabilising is always DC 12** (Healer) and **Survive 0 CON** (Ancient Ritual)
 carry these effects when taught.
 

@@ -20,12 +20,28 @@ A plain reload will **not** refetch module CSS, and neither will Foundry's
 "Reload Application". The module loads a content-addressed stylesheet copy to
 mitigate this, but a stale browser cache still needs the hard reload.
 
+### "Shadowdark Enhancer is running an old build"
+
+After an update, a browser can keep running the previous version's scripts
+from its cache. Nothing errors; the fixes you updated for just seem not to
+have happened. When a GM loads the world, the module compares the build it is
+running with the one installed and, if they differ, shows this window.
+
+**Fix:** Press **Reload now**. It clears the cached copies of every module
+script, including the ones that only load when you open a feature, and then
+reloads. A plain browser reload is not enough, because the cache hands back
+the same old files. **Keep going** closes the window and changes nothing.
+
+Only GMs are checked, and **Reload now** fixes only the browser it runs in. If
+a player's client behaves as if it missed an update, have them clear their
+browser's cached files for your Foundry site and reload.
+
 ### Nothing from the module appears at all
 
 1. Confirm **Shadowdark Enhancer** is enabled in **Manage Modules**.
 2. Check your browser console (`F12`) for `shadowdark-enhancer | ready`. If it
    is missing, the module failed to initialize; the error above it will say why.
-3. Confirm you are running Foundry **v13+** and Shadowdark system **v3.6.2+**.
+3. Confirm you are running Foundry **v14+** and Shadowdark system **v3.6.2+**.
 
 ### Mount and Boat aren't in Create Actor
 
@@ -279,6 +295,9 @@ Three maintenance tasks run automatically on world load for the active GM:
 
 None of these sweeps overwrite custom data. To re-run a sweep, clear its
 version stamp in settings.
+
+If the update added content you can import, the active GM is also asked once
+whether to see it. See [Importer Hub → The Manage review tree](Importer-Hub.md#the-manage-review-tree).
 
 ---
 

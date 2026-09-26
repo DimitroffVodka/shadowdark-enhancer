@@ -11026,3 +11026,151 @@ body.theme-light .sde-parry-note { color: #2e6b2e; }
 
 /* The payout confirmation is a core dialog; only its recipient list needs help. */
 .sde-ql-payout fieldset { display: flex; flex-direction: column; gap: 2px; }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   TRAVEL BAR (Overland, #234)
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/*
+ * Top centre while travelling on a hex map, in the Crawl Strip's slot (the
+ * two never show at once). Like the strip, the wrapper is click-transparent
+ * and only the bar itself takes clicks.
+ */
+#shadowdark-enhancer-travel {
+  display: none;
+  position: absolute;
+  top: 6px;
+  left: 0;
+  right: 0;
+  z-index: 50;
+  justify-content: center;
+  pointer-events: none;
+  font-family: var(--sde-bar-font);
+}
+#shadowdark-enhancer-travel.sde-travel-visible {
+  display: flex;
+}
+.sde-travel-bar {
+  pointer-events: auto;
+  max-width: min(760px, 92vw);
+  background: var(--sde-bar-bg);
+  color: var(--sde-bar-text);
+  border: 1px solid var(--sde-bar-border);
+  border-radius: var(--sde-bar-radius);
+  box-shadow: 0 2px 8px var(--sde-bar-shadow-md);
+}
+.sde-travel-slim {
+  display: flex;
+  align-items: stretch;
+}
+.sde-travel-toggle {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  padding: 5px 8px;
+  background: none;
+  border: none;
+  color: inherit;
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+.sde-travel-toggle:hover,
+.sde-travel-toggle:focus-visible {
+  background: var(--sde-bar-bg-hover);
+}
+.sde-travel-cell {
+  padding: 0 10px;
+  white-space: nowrap;
+  border-right: 1px solid var(--sde-bar-border);
+}
+.sde-travel-cell:last-of-type {
+  border-right: none;
+}
+.sde-travel-cell strong {
+  color: var(--sde-bar-accent);
+  font-weight: 600;
+}
+.sde-travel-stormy {
+  color: var(--sde-bar-danger-light);
+}
+.sde-travel-btn {
+  padding: 2px 8px;
+  font-size: 12px;
+}
+.sde-travel-go {
+  margin: 3px;
+  border-color: var(--sde-bar-accent);
+}
+.sde-travel-panel {
+  display: grid;
+  grid-template-columns: 120px 1fr;
+  gap: 8px 12px;
+  padding: 8px 10px;
+  border-top: 1px solid var(--sde-bar-border);
+  font-size: 12px;
+}
+.sde-travel-dome {
+  width: 120px;
+  height: 60px;
+}
+.sde-dome-arc {
+  fill: none;
+  stroke: var(--sde-bar-accent-dark);
+  stroke-dasharray: 2 2;
+}
+.sde-dome-horizon {
+  stroke: var(--sde-bar-border);
+}
+.sde-dome-sun {
+  fill: var(--sde-bar-accent);
+}
+.sde-dome-moon {
+  fill: var(--sde-bar-text-dim);
+}
+.sde-dome-shadow {
+  fill: var(--sde-bar-bg);
+}
+.sde-travel-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.sde-travel-row {
+  display: grid;
+  grid-template-columns: 80px 1fr;
+  gap: 6px;
+  align-items: baseline;
+}
+.sde-travel-row > span:first-child {
+  color: var(--sde-bar-text-muted);
+}
+.sde-travel-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.sde-travel-list li + li {
+  margin-top: 2px;
+}
+.sde-travel-budget {
+  display: inline-block;
+  width: 80px;
+  height: 6px;
+  margin-right: 6px;
+  vertical-align: middle;
+  overflow: hidden;
+  background: var(--sde-bar-surface-2);
+  border-radius: 3px;
+}
+.sde-travel-budget > span {
+  display: block;
+  height: 100%;
+  background: var(--sde-bar-accent);
+}
+.sde-travel-actions {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+}

@@ -114,8 +114,12 @@ Every *Game Master's Guide to the Western Reaches* recipe pins its own
 `extractCols`, because that book's pages are more often wrong than right under
 the default. Its 104 rows cover the fifteen region spreads (rumors, the two
 grids, points of interest), the six two-page `d100` terrain spreads, the 21
-trainer benefit tables, Tal-Yool Jungle, the City of Masks and the trouble
-generator.
+trainer benefit tables (read by [Regional Training](Regional-Training.md)),
+Tal-Yool Jungle, the City of Masks, the trouble generator, and *Caught in
+Danger!* (p. 33), the `d6` for a character still in an adventuring site when
+the session ends. The *Player's Guide*'s *Ancestry (Population)* `d100` (p. 14)
+imports too; the [Character Builder](Character-Builder.md) can roll it for a
+random ancestry.
 
 *Type of Trouble* (p. 49) prints a second roll inside every row, such as
 "Monster horde. 1d6: 1. … 6. …". When you create it, each of those rolls becomes

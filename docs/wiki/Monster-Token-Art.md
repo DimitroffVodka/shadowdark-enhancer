@@ -165,7 +165,12 @@ identically to the core bestiary:
   excluded.
 * **Curated art picks:** The manager ships 85 exact reviewed art mappings for
   imported creatures and mounts (such as Giant Catfish and Western Reaches
-  mounts).
+  mounts), including twelve creatures the *Game Master's Guide to the Western
+  Reaches* prints first, such as the Badgerling and the Kyzian.
+* **Reprints inherit their art:** A creature either Western Reaches volume
+  reprints from a *Cursed Scroll* takes the art reviewed under that zine, as
+  long as every reviewed row for that name agrees on the image. Where they
+  disagree, nothing is guessed and the creature is matched like any other.
 * **Unmatched creatures stay Browse-only:** Certain creatures are deliberately
   left unmapped when no suitable art exists. For example, *Death Slug* and
   *Wendel* are slugs, and no slug art exists in any catalogued pack. They remain

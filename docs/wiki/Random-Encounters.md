@@ -142,8 +142,11 @@ as before. Other modules can ask for the same table with
 
 The module reads Foundry's own world clock. Advance time with Foundry's time
 controls or a calendar module; there is no calendar window of the module's
-own. The one time it moves the clock itself is the off-duty move for downtime,
-which puts torches out first so they keep their time (see
+own. It moves the clock itself in two places: overland travel, where each move
+of the travel token takes its share of the day (see
+[Crawl Strip & Crawl Bar → Overland travel](Crawl-Strip-and-Crawl-Bar.md#overland-travel)),
+and the off-duty move for downtime, which puts torches out first so they keep
+their time (see
 [Downtime → Moving the clock for downtime](Downtime.md#moving-the-clock-for-downtime)).
 From the clock it works out:
 

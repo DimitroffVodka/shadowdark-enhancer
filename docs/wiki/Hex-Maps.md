@@ -219,22 +219,31 @@ trusting a single hex.
 
 The tagger's **Legend** button (the image flow presses it for you) reads
 every cell once and groups the cells by their glyph, without knowing what any
-glyph means. One card per group follows, biggest groups first: four typical
-members pictured and a terrain select. Name the pictures you recognise and
-leave the rest on
-**(skip)**: the star and castle icons of keyed hexes, margins, and the odd
-mixed group. The same glyph often gets two or three cards (a river through
-it, a slightly different print position); name each. A river, path or keyed
-marker on one picture does not change the name: name the glyph the pictures
-share. Tick a card's river, path or coast box only when every picture shows
-it; the box then counts as your word for that card's core cells, and the
-classifier finds rivers and paths cell by cell everywhere else. **Apply
-legend** then
+glyph means. One card per group follows, biggest groups first (48 at most):
+four member pictures, one from each kind of cell inside the card, and a
+terrain select. Name what the pictures have in common. A mountain with a river
+across it is still *mountain*: rivers, paths and coasts are found cell by cell
+by the classifier, so the cards have no boxes for them. Use *village*, *town*,
+*city*, *city state* or *keyed location* for the marker symbols. The same
+glyph often gets two or three cards (a slightly different print position);
+name each. Leave a card you can't name on **(skip)**, and it goes to the
+classifier.
 
-- tags the twelve cells nearest the middle of each named group by hand, as
-  if you had tagged them on a sheet, and
-- runs **Classify** from those: every other cell takes the terrain of the
-  example it most resembles, gets its river or path from the ink left after
+When a card's pictures show different things, choose **these are not all the
+same**. The card opens there and then with eight of its hexes, spread across
+the card, each with its own answer. What you pick for one of them is a hand
+tag on that hex alone; the rest of the card goes to the classifier. Every
+other card keeps its answer.
+
+**Apply legend** then
+
+- checks the names first: a card that looks far more like the cards you gave
+  another name opens **A card may be named wrong**, listing it. **Go back and
+  look** returns you to the cards; **Apply anyway** carries on;
+- tags the 40 cells nearest the middle of each named card by hand, as if you
+  had tagged them on a sheet, and
+- runs **Classify** from those: every other cell takes the terrain its
+  nearest examples vote for, gets its river or path from the ink left after
   the terrain's stamp, and lands in the Review queue when unsure.
 
 When it is done the tagger says so: the map is tagged, the dataset is ready,
@@ -246,15 +255,18 @@ map, the reference tile, Clear) sit under **More**.
 Choose the crawl entry first if you have one: keyed hexes then stay out of
 the legend and out of the classifier, and take their terrain from the book.
 Opening the legend again pre-fills each card with what most of its members
-are tagged, so a wrong name is one change. Measured on the Western Reaches
-print against the author's table: 32 cards, and naming each by its true
-terrain puts 96% of the unkeyed cells in the right group before the
-classifier runs, and the whole legend-then-classify pass lands 92% of them
-on the table's terrain (97% once ocean, arctic sea and lake count as one:
-they share the wave glyph on that print, and only the region tells them
-apart, so name the wave cards by the water that covers most of the map and
-fix the rest by region). The rest is the Review queue's job. Hand-drawn maps
-group poorly (no two cells share a glyph) and are better tagged by sheet.
+are tagged, so a wrong name is one change. The answers you gave are written
+down on the scene beside your corrections (the last five passes), so a card
+whose hexes you keep correcting can be named as the culprit.
+
+Water is told apart the way the map's own legend draws it. Once the
+classifier has decided a hex is water, the wave strokes decide which water:
+on the Western Reaches print one stroke is river, two lake, three ocean, and
+three with a small mark above them arctic sea. Nothing about that map is
+built in: each water's strokes are learned from your own examples, and if
+they don't separate, the check stands aside. The rest is the Review queue's
+job. Hand-drawn maps group poorly (no two cells share a glyph) and are better
+tagged by sheet.
 
 ## Another go at the same map
 
@@ -353,17 +365,24 @@ can tell you which you have.
 ## What the classifier's confidence means
 
 When the classifier tags a hex it compares it to the hexes you tagged by hand
-and picks the closest. It also notes how much closer that winner was than the
-runner-up from a *different* terrain, as a multiple: **2×** means the second
-choice was twice as far off — an easy call; **1.05×** means the two were
+and lets the seven closest vote, so one mislabelled example is outvoted. It
+also notes how close the call was, as a multiple: how much farther off the
+closest example of the second-nearest terrain was than the closest example of
+all. **2×** means the second choice was twice as far off — an easy call; **1.05×** means the two were
 nearly tied and it effectively guessed. That multiple is what the hover label
-shows (*auto 1.16*) and what the **Review queue** sorts on: the queue holds
-every automatic hex whose call was closer than the threshold, 1.3× to begin
-with, and the map overlay rings those same hexes in amber.
+shows (*auto 1.16*).
 
-A threshold is a trade. Raise it and more hexes are queued, including ones the
-classifier got right; lower it and you see fewer, including ones it got wrong.
-Nothing about 1.3 is special — it was a starting guess.
+The **Review queue** holds every automatic hex, least sure first, and each
+sheet says roughly how many of its 40 to expect to be wrong, so you know when
+to stop. A river hex with nothing wet beside it (no river, lake, coast or sea
+next to it) goes to the head of the queue whatever its margin: it is usually
+desert stipple or a printed hex number read as water. Its hover says so.
+
+The threshold, 1.3× to begin with, decides only which hexes the map overlay
+rings in amber: those closer than it, and the lone rivers. Raise it and more
+hexes are ringed, including ones the classifier got right; lower it and fewer
+are, including ones it got wrong. Nothing about 1.3 is special — it was a
+starting guess.
 
 **Classify** is the rescan: press it again after a round of corrections and
 every hex you have not touched is re-tagged from your hand tags, corrections
@@ -375,8 +394,8 @@ corrections got 54 right.
 Once you have corrected a few dozen hexes, the tagger stops guessing and tells
 you what your own corrections say: how many you judged, how many were wrong,
 what share of those the current threshold actually caught, and the threshold
-that would have caught nine in ten — with the number of hexes each puts in the
-queue, so you can see what it costs. The button takes that threshold.
+that would have caught nine in ten — with the number of hexes each would ring,
+so you can see what it costs. **Ring at N×** takes that threshold.
 
 If the classifier is wrong most of the time you check it, the threshold is not
 the problem and the note says so: it is working from bad examples, and your
@@ -435,10 +454,11 @@ Pressing the one that is up hides it; pressing another switches to it.
   and coast and an amber ring on the automatic cells the classifier was unsure
   of. Hovering names a hex; clicking edits it.
 - **Regions** — every hex in its region's colour, from the borders read off the
-  print. One colour per region, worked out from the name, so the same region
-  looks the same in every world. This is the quickest way to check the border
-  scan: a region that leaked into its neighbour is a stain you can see at the
-  whole-map zoom.
+  print. The colours are Shadowdark Extras' own zone colours (a built-in copy
+  of them when Extras is absent or its hex feature is off), and they are handed
+  out like an atlas: no two regions that touch share one. This is the quickest
+  way to check the border scan: a region that leaked into its neighbour is a
+  stain you can see at the whole-map zoom.
 - **Encounter zones** — which table a wandering check on this hex would roll
   right now, the same one the check itself picks (see
   [Random Encounters](Random-Encounters.md)). **Green** rolls: that region
@@ -584,15 +604,19 @@ works well on maps whose terrain icons are stamped, the same pixels in every
 cell, like the Western Reaches print; hand-drawn maps get a warning and are
 better tagged by hand (they are small).
 
-- Your tagged cells are the examples. Each untagged cell takes the terrain of
-  the example it most resembles.
+- Your tagged cells are the examples. Each untagged cell takes the terrain its
+  seven most similar examples vote for.
+- A neighbour pass then tidies lone mistakes: a cell with five neighbours that
+  agree on something else takes their answer. It never turns land into water,
+  so the coast survives, and it never overrules your own tags.
 - The terrain's stamp is then subtracted from the cell and whatever ink is left
   decides the feature: one long stroke reaching two edges is a **river**, a
   chain of short marks is a **path**. Coast is not read from the ink; it is
   worked out from the water around the hex afterwards.
-- Cells the classifier is unsure about, a close call between two terrains or an
-  unclear river or path, go to the **Review queue**. Tag those sheets and every answer
-  becomes a new example for the next Classify. Keyed hexes are never classified;
+- The **Review queue** serves every cell it tagged, the least sure first: a
+  close call between two terrains, an unclear river or path, a river with
+  nothing wet beside it. Tag those sheets and every answer becomes a new
+  example for the next Classify. Keyed hexes are never classified;
   their terrain comes from the book's text.
 - **Sensitivity** scales the feature thresholds: raise it if paths and rivers
   are missed, lower it if plain cells pick up features.

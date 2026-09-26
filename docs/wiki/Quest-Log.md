@@ -101,7 +101,7 @@ to *Nobody*.
 
 ## Trainer tasks
 
-Each task in the Regional Training window has an **Add to Quest Log** button
+Each task in the [Regional Training](Regional-Training.md) window has an **Add to Quest Log** button
 (GM only). Choose the character in the window's **Character** list first; until
 then the button is greyed out. It adds an **Available** quest personal
 to that character, with the task as its one objective and the trainer's

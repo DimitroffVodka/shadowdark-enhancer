@@ -49,7 +49,7 @@ itself when there are no active members to show.
 | **Add Tokens** | Adds selected tokens to crawl roster | **Reset Initiative** (clears roll order) |
 | **Combat** | Starts a combat encounter from current state | — |
 | **Encounter** | Opens [Encounter Roller](Random-Encounters.md) | Encounter menu (check, threshold, frequency, table) |
-| **Forge & Loot** | Opens tools menu ([Forge & Loot](Forge-and-Loot.md), [Shop](Merchant-Shop.md), [XP](Party-XP.md), [Downtime](Downtime.md), [Renown](Renown.md)) | Same menu |
+| **Forge & Loot** | Opens the tools menu: [Loot Generator](Loot-and-Treasure.md), [Magic Item Forge](Magic-Item-Forge.md), [Merchant Shop](Merchant-Shop.md), [Party XP](Party-XP.md), [Downtime](Downtime.md), [Pit Fighting](Pit-Fighting.md), [Regional Training](Regional-Training.md), [Renown](Renown.md), [Session Recap](Session-Recap.md) | Same menu |
 | **Importer** | Opens [Importer Hub](Importer-Hub.md) | — |
 | **Start / End** | Starts or ends the crawl session | — |
 
@@ -149,6 +149,20 @@ move of the travel token against the day's hexes, moving the clock with it,
 rolls the day's encounter checks as the clock reaches them, and ends the day
 with forage and camp.
 
+- **The travel bar.** While travelling on the hex map, everyone gets a slim
+  bar at the top centre, where the Crawl Strip sits during a crawl. It shows
+  the date and time, the sun (and when it sets) or the moon's phase, the
+  weather and the hexes left. Click it to open the details:
+  - a small sky with the sun or moon in its place;
+  - the season and climate, and the travel method;
+  - the day's budget;
+  - each member's rations, and who has foraged today, with a **Forage** button
+    on each character you own.
+
+  The GM also sees the day's check hours and results, and the Start day,
+  Weather, Make camp and End travel buttons. Players never see the check
+  hours. The bar hides during a combat, and on any scene that isn't a tagged
+  hex map.
 - **Which token travels.** The Shadowdark Extras party token, when exactly one
   is on the map. Otherwise select the one token that travels before pressing
   **Travel**.
