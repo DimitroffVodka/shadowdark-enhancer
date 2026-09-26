@@ -590,7 +590,7 @@
     "scripts/monster-art/token-art-manager-app.mjs": "GM window to review/apply matches.",
     "scripts/monster-art/token-art-manager-state.mjs": "Normalizes the persistent Token Art Manager state and named Browse folders.",
     "scripts/pdf-export/pdf-sheet-export.mjs": "\"Export to PDF\" header button; fills the bundled form-fillable sheet from SD data-model getters.",
-    "scripts/encounter/encounter-terrain.mjs": "The table for the party's hex: the region's printed Encounter Zone column for its terrain (coast the one feature that counts), day/night from the world clock (worldClock, the seam Overland replaces), N./S. halves from the region's rows; else the terrain→RollTable mapping and its dialog, else the single active table. Backs encounter.tableForHex.",
+    "scripts/encounter/encounter-terrain.mjs": "The table for the party's hex: the region's printed Encounter Zone column for its terrain (coast the one feature that counts), day/night from the world clock (worldClock, the seam Overland replaces), N./S. halves from the region's rows (the regions cached until a crawl entry or scene changes); else the terrain→RollTable mapping and its dialog, else the single active table, which is also where a failing lookup lands. Backs encounter.tableForHex.",
     "scripts/encounter/encounter-sources.mjs": "Pure, node-testable core for the Encounter Roller's source list (which tables/monsters feed a roll).",
     "scripts/monster-creator/level-guidelines-app.mjs": "GM-facing editor for the per-level monster guidelines — what a level-N monster's stats should look like.",
     "scripts/monster-creator/level-guidelines.mjs": "Pure, node-testable monster level-guideline math (isotonic-smoothed medians over the system's 244 monsters).",

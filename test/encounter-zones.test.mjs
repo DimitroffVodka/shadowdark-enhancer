@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import {
   parseZoneTableName, zoneColumnKeys, zoneCandidates, pickZoneTable,
   regionRowRanges, inNorthHalf, hexTableUuid, worldClock, isNight, DUSK, DAWN,
+  resolveHexTable, tableForHex, tableForCheck, forgetHexZones,
 } from "../scripts/encounter/encounter-terrain.mjs";
 
 // Invented fixtures (D1): table NAMES are structure, never book content.
@@ -179,4 +180,87 @@ test("the world clock reads Foundry's hour, and knows no moon until Overland", (
   assert.equal(isNight(DAWN), false);
   assert.equal(isNight(DAWN - 1), true);
   assert.equal(isNight(12), false);
+});
+
+// ── resolveHexTable / tableForHex / tableForCheck against a stand-in world ──
+// The tables pack holds the imported grids; the journals pack one filed crawl
+// whose keyed rows name the regions; the print carries the border scan. The
+// world's Hooks registry is kept so the cache's invalidation can be fired.
+
+const hooks = new Map();
+globalThis.Hooks = { on: (name, fn) => { if (!hooks.has(name)) hooks.set(name, []); hooks.get(name).push(fn); } };
+const fire = (name) => { for (const fn of hooks.get(name) ?? []) fn(); };
+
+function world({ journalFails = false } = {}) {
+  forgetHexZones();
+  const grids = [["Grey Moor", ["Forest", "Coast", "River", "Swamp"]], ["Deep Sea", ["Land", "N. Ocean", "S. Ocean"]]];
+  const index = grids.flatMap(([region, labels]) => labels.map((label) => ({ _id: `${region}-${label}`.replace(/\W+/g, ""), name: `Invented Book - ${region} Encounter Zone: ${label}` })));
+  const w = { reads: 0 };
+  const journals = {
+    metadata: { packageType: "world" }, collection: "world.sde-journal",
+    getDocuments: async () => {
+      w.reads++;
+      if (journalFails) throw new Error("journals pack offline");
+      return [{ getFlag: (scope, key) => (key === "hex" ? { crawl: "Invented Book", keyed: [{ num: "1510", zone: "Grey Moor" }, { num: "3015", zone: "Deep Sea" }] } : undefined) }];
+    },
+  };
+  // Grey Moor is enclosure 1 (column 15); Deep Sea is enclosure 2, column 30, rows 10..20.
+  const comp = { 1510: 1, 1511: 1 };
+  for (let row = 10; row <= 20; row++) comp[3000 + row] = 2;
+  w.scene = { id: "print", getFlag: (scope, key) => ({ hexRegions: { v: 1, comp }, hexTags: { origin: { shifted: "odd" } } })[key] };
+  const settings = { encounterTerrainTables: { forest: "uuid-terrain-forest" }, encounterTableUuid: "uuid-active" };
+  globalThis.game = {
+    packs: [{ metadata: { packageType: "world" }, collection: "world.sde-tables", index }, journals],
+    settings: { get: (mod, key) => settings[key] },
+    scenes: { get: (id) => (id === "print" ? w.scene : undefined), filter: (fn) => [w.scene].filter(fn) },
+  };
+  return w;
+}
+
+test("resolveHexTable finds the hex's region on the print and rolls its column", async () => {
+  const w = world();
+  const coastal = await resolveHexTable({ num: 1510, terrain: "forest", features: ["coast"] }, { scene: w.scene, hour: 12 });
+  assert.equal(coastal.zone, "Grey Moor");
+  assert.equal(coastal.uuid, "Compendium.world.sde-tables.GreyMoorCoast");
+  const inland = await resolveHexTable({ num: 1511, terrain: "forest", features: ["river"] }, { scene: w.scene, hour: 12 });
+  assert.equal(inland.uuid, "Compendium.world.sde-tables.GreyMoorForest", "a river feature does not pick River");
+  // The region's own rows 10..20: row 15 is the middle of eleven, so north.
+  assert.equal((await resolveHexTable({ num: 3015, terrain: "ocean" }, { scene: w.scene })).uuid, "Compendium.world.sde-tables.DeepSeaNOcean");
+  assert.equal((await resolveHexTable({ num: 3016, terrain: "ocean" }, { scene: w.scene })).uuid, "Compendium.world.sde-tables.DeepSeaSOcean");
+  // No region grid for the terrain, or no hex at all: the old answers.
+  assert.equal((await resolveHexTable({ num: 1510, terrain: "desert" }, { scene: w.scene })).uuid, "uuid-active");
+  assert.equal((await resolveHexTable(null)).uuid, "uuid-active");
+});
+
+test("the regions are read once, and again after a crawl entry or scene changes", async () => {
+  const w = world();
+  await resolveHexTable({ num: 1510, terrain: "forest" }, { scene: w.scene });
+  await resolveHexTable({ num: 3012, terrain: "ocean" }, { scene: w.scene });
+  assert.equal(w.reads, 1, "every check after the first reuses the regions");
+  fire("updateJournalEntry");
+  await resolveHexTable({ num: 1510, terrain: "forest" }, { scene: w.scene });
+  assert.equal(w.reads, 2);
+  fire("updateScene");
+  await resolveHexTable({ num: 1510, terrain: "forest" }, { scene: w.scene });
+  assert.equal(w.reads, 3);
+});
+
+test("tableForHex resolves to the table document", async () => {
+  const w = world();
+  globalThis.fromUuid = async (uuid) => ({ uuid });
+  try {
+    assert.deepEqual(await tableForHex({ num: 1510, terrain: "river" }, { scene: w.scene }), { uuid: "Compendium.world.sde-tables.GreyMoorRiver" });
+    assert.deepEqual(await tableForHex({ terrain: "forest" }), { uuid: "uuid-terrain-forest" }, "no number: the terrain's own table");
+  } finally { delete globalThis.fromUuid; }
+});
+
+test("tableForCheck: a failing lookup falls back to the terrain's table, so the check still posts", async () => {
+  const w = world({ journalFails: true });
+  globalThis.canvas = { scene: w.scene };
+  const error = console.error; console.error = () => {};
+  try {
+    await assert.rejects(resolveHexTable({ num: 1510, terrain: "forest" }), /journals pack offline/);
+    assert.deepEqual(await tableForCheck({ num: 1510, terrain: "forest" }), { uuid: "uuid-terrain-forest", zone: null, verdict: { status: "none" } });
+    assert.equal((await tableForCheck(null)).uuid, "uuid-active");
+  } finally { console.error = error; delete globalThis.canvas; }
 });

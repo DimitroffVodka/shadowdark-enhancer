@@ -327,10 +327,9 @@ export async function resolveHexTable(hex, { hour, moon, scene } = {}) {
   let zone = hex?.zone, rowRange;
   // The number finds the region when none was given, and the region's rows.
   if (zonesByRegion.size && Number.isInteger(num)) {
-    const { sceneZones, scanSceneFor } = await import("../hex-map/hex-region.mjs");
-    const { byNum } = await sceneZones(scanSceneFor(scene ?? globalThis.canvas?.scene));
+    const { byNum, rowRanges } = await hexZonesFor(scene ?? globalThis.canvas?.scene);
     zone ||= byNum.get(num)?.zone;
-    rowRange = regionRowRanges(new Map([...byNum].map(([n, z]) => [n, z.zone]))).get(zone);
+    rowRange = rowRanges.get(zone);
   }
   return hexTableUuid({ ...hex, num, zone }, {
     zonesByRegion, rowRange,
@@ -338,6 +337,65 @@ export async function resolveHexTable(hex, { hour, moon, scene } = {}) {
     terrainTables: game.settings.get(MODULE_ID, TERRAIN_TABLES),
     fallback: game.settings.get(MODULE_ID, "encounterTableUuid"),
   });
+}
+
+/**
+ * Every hex's region on the scene whose scan answers for `scene`, with each
+ * region's rows, kept between checks. Naming the regions loads every crawl
+ * entry in the journals pack (crawlEntries), which is too much to do on every
+ * hit and every tableForHex call.
+ *
+ * ponytail: one cache for the world, dropped whole by any crawl entry or scene
+ * change (the hooks below); per-document invalidation if that ever churns.
+ */
+const hexZonesCache = new Map();
+let hexZonesWatched = false;
+
+/** Drop the cache: the regions are read again on the next lookup. */
+export function forgetHexZones() {
+  hexZonesCache.clear();
+}
+
+async function hexZonesFor(scene) {
+  if (!hexZonesWatched && globalThis.Hooks?.on) {
+    hexZonesWatched = true;
+    // Crawl entries name the regions; a scene carries the scan, its fixes and its column shift.
+    for (const hook of ["createJournalEntry", "updateJournalEntry", "deleteJournalEntry", "createScene", "updateScene", "deleteScene"]) {
+      globalThis.Hooks.on(hook, forgetHexZones);
+    }
+  }
+  const { sceneZones, scanSceneFor } = await import("../hex-map/hex-region.mjs");
+  const scan = scanSceneFor(scene);
+  const key = scan?.id ?? "";
+  if (!hexZonesCache.has(key)) {
+    const read = sceneZones(scan).then(({ byNum }) => ({
+      byNum, rowRanges: regionRowRanges(new Map([...byNum].map(([n, z]) => [n, z.zone]))),
+    }));
+    // A failed read is not remembered: the next check tries again.
+    read.catch(() => hexZonesCache.delete(key));
+    hexZonesCache.set(key, read);
+  }
+  return hexZonesCache.get(key);
+}
+
+/** The check's table before region grids: the terrain's mapped table, else the active one. */
+export function terrainTable(hex) {
+  const uuid = pickTable(game.settings.get(MODULE_ID, TERRAIN_TABLES), hex?.terrain, game.settings.get(MODULE_ID, "encounterTableUuid"));
+  return { uuid, zone: null, verdict: { status: "none" } };
+}
+
+/**
+ * resolveHexTable for the encounter check, which must never lose its chat
+ * card to it: if the region lookup throws, the check rolls what it rolled
+ * before this lookup existed.
+ */
+export async function tableForCheck(hex) {
+  try {
+    return await resolveHexTable(hex);
+  } catch (err) {
+    console.error(`${MODULE_ID} | the table for the party's hex failed; using the terrain's table`, err);
+    return terrainTable(hex);
+  }
 }
 
 /**

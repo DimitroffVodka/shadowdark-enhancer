@@ -141,7 +141,8 @@ The order is: the region's printed column (from the imported *Encounter Zone*
 grids), else the table mapped to the terrain under **Tables by terrain**, else
 the active table. Day and night columns (`Swamp, Day` / `Swamp, Night`) are
 read at the call: `hour` (0–23) overrides the world clock, night being 18:00
-to 06:00. A moon column (`New Moon`, `Full Moon`) needs the moon phase, which
+to 06:00 (fixed, on a 24-hour day; a world clock that never advances sits at
+00:00, which is night). A moon column (`New Moon`, `Full Moon`) needs the moon phase, which
 the world clock does not give yet, so until it does a night that could be one
 rolls the ordinary night column; `moon` (`"new"`, `"full"`) decides it.
 `scene` names the scene whose region scan answers (default: the one being

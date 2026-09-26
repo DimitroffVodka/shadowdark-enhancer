@@ -6,7 +6,7 @@
 import { MODULE_ID } from "../shared/module-id.mjs";
 import { CrawlState } from "../crawl-strip/crawl-state.mjs";
 import { SessionRecap } from "../session-recap/session-recap.mjs";
-import { partyHex, resolveHexTable } from "./encounter-terrain.mjs";
+import { partyHex, tableForCheck } from "./encounter-terrain.mjs";
 
 // v13/v14 namespaced renderTemplate (the global `renderTemplate` still
 // works but emits deprecation warnings).
@@ -26,8 +26,9 @@ export const EncounterCheck = {
     // the table; everywhere else this is null and nothing below changes.
     const hex = partyHex();
     // The table for a hit: the region's column for this hex, resolved at the
-    // moment of the roll, else the terrain's table, else the active one.
-    const table = hit ? await resolveHexTable(hex) : null;
+    // moment of the roll, else the terrain's table, else the active one. A
+    // failing lookup falls back to the terrain picker, so the card still posts.
+    const table = hit ? await tableForCheck(hex) : null;
 
     await this._postToChat(roll, threshold, hit, hex, table);
 

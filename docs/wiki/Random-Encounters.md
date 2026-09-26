@@ -118,7 +118,11 @@ book intends for the party's hex, ahead of your **Tables by terrain**:
 - **Coast is the one exception.** In a region whose grid prints a Coast column,
   a coastal hex rolls on it; in a region without one it rolls on its terrain.
 - **Day and night** (*Swamp, Day* / *Swamp, Night*) are read off the world
-  clock at the moment of the roll: night runs from 18:00 to 06:00.
+  clock at the moment of the roll: night runs from 18:00 to 06:00. Those hours
+  are fixed and assume a 24-hour day, whatever calendar the world uses. A
+  world whose clock is never advanced sits at 00:00, so it is always night
+  there: advance the time (Foundry's own clock, or a calendar module) and
+  the day columns follow.
 - **North and south** (*N. Ocean* / *S. Ocean*) split the region's own rows in
   half, the top half north; with an odd number of rows the middle row counts
   as north.
