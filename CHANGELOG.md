@@ -11,6 +11,12 @@
   and Shadowdark Extras' Grinder settings show in the same window, so each
   still has one home. Rules marked *Not automated yet* are saved but do
   nothing until the update that builds them. (#178)
+- **Blitz Mode: light timers last 30 minutes.** With Blitz on, lighting a
+  torch or lantern sets it to 30 minutes left (less if it already had less),
+  however it is lit, and a light spell lasts 30 minutes. A torch's own
+  maximum is untouched, so its sheet can read "30 of 60 minutes" and turning
+  Blitz off leaves no torch short. Shadowdark Extras' camping campfire keeps
+  its 8 hours. (#179)
 - **The hex data goes on the printed map.** The Hex Tagger's **Send to
   Extras** now puts every hex's terrain, region, zone colour, name,
   description and settlement on the map you tagged, instead of building a
