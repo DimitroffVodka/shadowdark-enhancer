@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { extrasHexApi, handoffDataset, handoffToPrint, importDatasetRecords } from "../scripts/importer/hex/hex-handoff.mjs";
+import { extrasHexApi, handoffDataset, handoffToPrint, importDatasetRecords, SETTLEMENTS_SENT_FLAG } from "../scripts/importer/hex/hex-handoff.mjs";
 
 const clean = () => {
   delete globalThis.game;
@@ -165,15 +165,32 @@ const printDataset = {
     { num: 202, terrain: "forest", zone: "Vale" },
   ],
 };
-function printExtras({ adopted = true, adopt = true } = {}) {
-  const calls = { adopt: [], upsert: [], repaint: 0 };
+// The print as a Foundry scene: getFlag, and update() understanding the
+// `-=key` deletion replaceModuleFlag writes before the new value.
+function printScene(flags = {}) {
+  const scene = {
+    id: "print-1", flags: { "shadowdark-enhancer": { ...flags } },
+    getFlag: (scope, key) => scene.flags[scope]?.[key],
+    async update(diff) {
+      for (const [path, value] of Object.entries(diff)) {
+        const [, scope, key] = path.split(".");
+        scene.flags[scope] ??= {};
+        if (key.startsWith("-=")) delete scene.flags[scope][key.slice(2)];
+        else scene.flags[scope][key] = value;
+      }
+    },
+  };
+  return scene;
+}
+function printExtras({ adopted = true, adopt = true, scene = printScene() } = {}) {
+  const calls = { adopt: [], upsert: [], repaint: 0, scene };
   const hex = {
     buildHexcrawl: async () => { throw new Error("must not build"); },
     upsertHexRecords: async (sceneId, records) => { calls.upsert.push({ sceneId, records }); return { sceneId, records: records.length }; },
     repaintHexTiles: async () => { calls.repaint++; return { repainted: 0 }; },
   };
   if (adopt) hex.adoptHexcrawl = async (sceneId, opts) => { calls.adopt.push({ sceneId, opts }); return { sceneId, adopted }; };
-  globalThis.game = { user: { isGM: true }, shadowdarkExtras: { hex } };
+  globalThis.game = { user: { isGM: true }, shadowdarkExtras: { hex }, scenes: { get: (id) => (id === scene.id ? scene : undefined) } };
   globalThis.ui = { notifications: { info: () => { calls.toast = true; }, warn: () => {}, error: () => {} } };
   return calls;
 }
@@ -189,14 +206,37 @@ test("the print is adopted with the dataset's grid, then every hex's details lan
   assert.deepEqual(town, { num: 101, name: "Town", terrain: "grassland", desc: "Invented.", zone: "Vale", zoneColor: "#1e7e34",
     features: [{ id: "settlement-101", type: "town", name: "Town", discovered: false }] }, "art stays behind; the settlement goes on the first adoption");
   assert.deepEqual(wood, { num: 202, terrain: "forest", zone: "Vale" });
+  assert.equal(calls.scene.getFlag("shadowdark-enhancer", SETTLEMENTS_SENT_FLAG), true, "the settlements are marked delivered");
 });
 
-test("a map Extras already adopted gets its records updated, and keeps the players' discoveries", async () => {
-  const calls = printExtras({ adopted: false });
+test("once the settlements are in, a re-send updates the records and keeps the players' discoveries", async () => {
+  const calls = printExtras({ adopted: false, scene: printScene({ [SETTLEMENTS_SENT_FLAG]: true }) });
   const res = await handoffToPrint("print-1", printDataset);
   assert.equal(res.adopted, false);
   assert.equal(calls.upsert[0].records[0].features, undefined, "features would replace the discovery state Extras holds");
   assert.equal(calls.upsert[0].records[0].name, "Town");
+});
+
+test("a first send whose record write failed still delivers the settlements on the retry", async () => {
+  const calls = printExtras();
+  const hex = globalThis.game.shadowdarkExtras.hex;
+  const upsert = hex.upsertHexRecords;
+  hex.upsertHexRecords = async () => { throw new Error("storage failed"); };
+  assert.equal((await handoffToPrint("print-1", printDataset)).reason, "extras-error");
+  assert.equal(calls.scene.getFlag("shadowdark-enhancer", SETTLEMENTS_SENT_FLAG), undefined, "nothing was delivered");
+  hex.upsertHexRecords = upsert;
+  hex.adoptHexcrawl = async (sceneId) => ({ sceneId, adopted: false }); // the layout from the first try stayed
+  const res = await handoffToPrint("print-1", printDataset);
+  assert.equal(res.adopted, false);
+  assert.equal(calls.upsert[0].records[0].features?.[0]?.id, "settlement-101", "the retry carries them");
+  assert.equal(calls.scene.getFlag("shadowdark-enhancer", SETTLEMENTS_SENT_FLAG), true);
+});
+
+test("a send without the crawl's settlements does not mark them delivered", async () => {
+  const calls = printExtras();
+  const bare = { ...printDataset, hexes: printDataset.hexes.map((hex) => { const copy = { ...hex }; delete copy.features; return copy; }) };
+  await handoffToPrint("print-1", bare);
+  assert.equal(calls.scene.getFlag("shadowdark-enhancer", SETTLEMENTS_SENT_FLAG), undefined, "a later send with the keyed pages must still carry them");
 });
 
 test("an Extras that cannot adopt is named, not worked round with a new scene", async () => {

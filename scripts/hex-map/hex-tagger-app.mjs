@@ -1224,12 +1224,16 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
    * The hand-off dataset for this map: its tags, the chosen crawl's keyed
    * pages, the GM's tile art and every hex's region. Null after telling the GM
    * why there is none.
-   * @returns {Promise<{dataset:object, tags:object, chosen:JournalEntry[]}|null>}
+   * The scene and anchor come back with it, taken before the awaits below: a GM
+   * who switches scenes meanwhile must not have this map's data sent to the next.
+   * @returns {Promise<{dataset:object, tags:object, chosen:JournalEntry[], sceneId:string, origin:object}|null>}
    */
   async _handoffDataset() {
     if (!this._requireCurrentScene()) return null;
     this._readHeader();
     if (!this._state.origin) { ui.notifications?.warn(t("SDE.hexMap.notify.setAnchor")); return null; }
+    const sceneId = this._stateSceneId;
+    const origin = this._originForGeometry();
     const tags = tagsForDataset(this._state);
     const b = this._state.origin.bounds;
     // The numbering origin is NOT taken from the in-memory sample. It used to
@@ -1251,7 +1255,7 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
       : buildHexDataset({ name: this._scene()?.name ?? t("SDE.hexMap.app.defaultName"), source: "", tags, assignments, zones, gridHint });
     const check = validateHexDataset(dataset);
     if (!check.ok) { ui.notifications?.error(t("SDE.hexMap.notify.datasetInvalid", { error: check.errors[0] })); console.warn(`${MODULE_ID} | hex dataset`, check.errors); return null; }
-    return { dataset, tags, chosen };
+    return { dataset, tags, chosen, sceneId, origin };
   }
 
   /**
@@ -1263,19 +1267,23 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
   async _onBuildDataset() {
     const built = await this._handoffDataset();
     if (!built) return;
-    const { dataset, tags } = built;
+    const { dataset, tags, sceneId, origin } = built;
     const cells = Object.keys(tags).length;
     if (!extrasHexApi()) {
       const res = await handoffDataset(dataset);
       if (res.via === "download") ui.notifications?.info(t("SDE.hexMap.notify.downloaded", { file: res.filename, hexes: dataset.hexes.length, cells, art: "" }));
       return;
     }
+    // Building the dataset awaited the region scan and the journal pack; if the
+    // GM changed scenes meanwhile, the data is the old map's and must not land
+    // on the new one. From here on only the scene captured with the data is used.
+    if (!this._requireCurrentScene() || this._stateSceneId !== sceneId) return;
     const base = dataset.grid.origin ?? 1;
-    if (!extrasNumbersAlike(this._originForGeometry(), base)) {
+    if (!extrasNumbersAlike(origin, base)) {
       ui.notifications?.warn(t("SDE.hexMap.notify.notTopLeft", { first: base ? "0101" : "0000" }));
       return;
     }
-    const res = await handoffToPrint(this._scene().id, dataset);
+    const res = await handoffToPrint(sceneId, dataset);
     if (res.via === "extras") {
       const hexes = res.summary?.records ?? dataset.hexes.length;
       ui.notifications?.info(t(res.adopted ? "SDE.hexMap.notify.onPrintFirst" : "SDE.hexMap.notify.onPrint", { hexes }));

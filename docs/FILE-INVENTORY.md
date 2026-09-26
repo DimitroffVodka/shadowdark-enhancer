@@ -62,7 +62,7 @@
 | `hex-map/hex-map-flow.mjs` | 262 | Hex map from an image: file dialog, lattice detection, confirmation preview, upload into the world folder, an aligned scene (stretch to Foundry's pitches, offset to cell 0,0), tagger opened on its legend. |
 | `hex-map/hex-pins.mjs` | 126 | Keyed hexes as map notes: deploys the crawl journal into the world with stable ids (links rewritten), plans one Note per keyed page at its hex centre (pure planner), moves existing pins on re-run. |
 | `hex-map/hex-region.mjs` | 289 | Which region is a hex in: the book's own word for a keyed hex, the nearest keyed hex's region for any other (84.8% on the Western Reaches, leave-one-out over the book's own keyed rows). Seeds come from the filed crawls; nothing is stored. |
-| `hex-map/hex-tagger-app.mjs` | 1459 | Hex Tagger AppV2: contact sheet over the active hex scene, anchor numbering, tags on the scene flag, dataset hand-off. |
+| `hex-map/hex-tagger-app.mjs` | 1467 | Hex Tagger AppV2: contact sheet over the active hex scene, anchor numbering, tags on the scene flag, dataset hand-off. |
 | `hex-map/ink.mjs` | 62 | Whole-image 0/1 ink bitmap at a working scale, one browser resize then strip reads; ink threshold from the paper's brightness. Browser-bound. |
 | `hex-map/lattice.mjs` | 407 | Hex lattice detection from a map's ink: row and column pitch by autocorrelation, phase by folding long horizontal runs, the hex field by outline support with frame-cut half cells, edge-band pitch refinement. Pure. |
 | `hex-map/legend.mjs` | 250 | The legend: cells grouped by glyph with k-means++ over masked cell features (restarts, lowest inertia kept), one card per group with sample members and a core that becomes the hand tags. Pure. |
@@ -309,7 +309,7 @@
 | `hex/hex-book-import.mjs` | 154 | A book's whole hex key in one pass: per region, the keyed-location table and the pages of write-ups after it → one crawl entry per region. Page map only; no book text. |
 | `hex/hex-commit.mjs` | 229 | Hex-key drafts → JournalEntry pages in sde-journal (one entry per crawl, one page per hex); pure planner + two-pass link rewrite. |
 | `hex/hex-dataset.mjs` | 298 | Drafts + summary rows + tags → the Shadowdark Extras hexcrawl dataset (numbers only at the boundary). Pure. |
-| `hex/hex-handoff.mjs` | 257 | Crawl entry → dataset; puts it on the tagged print through Extras (adoptHexcrawl), builds a painted Extras scene, or downloads JSON. |
+| `hex/hex-handoff.mjs` | 284 | Crawl entry → dataset; puts it on the tagged print through Extras (adoptHexcrawl), builds a painted Extras scene, or downloads JSON. |
 | `hex/hex-summary.mjs` | 174 | Keyed hex summary rows (number, region, terrain, name) → structured rows; zone/terrain split decided by the table. Pure. |
 | `items/record-boundary.mjs` | 210 | Where one pasted description record ends and the next begins. Pure. |
 | `tables/patron-items.mjs` | 223 | Patron Items for the imported WR boon tables (#167): find-or-create in `patrons-and-deities`, plus the ready-time rename/link backfill. |

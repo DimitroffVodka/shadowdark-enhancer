@@ -611,8 +611,8 @@ Shadowdark Extras new enough to adopt a map (`hex.adoptHexcrawl`); an older one
 is named, not worked round.
 
 - Send again after retagging and the records update in place. Settlements go
-  only the first time, because Extras keeps what the players have discovered
-  on them and sending them again would reset it.
+  until they have arrived once, then no more, because Extras keeps what the
+  players have discovered on them and sending them again would reset it.
 - Extras numbers a map from the scene's top-left cell, so the map's first hex
   (`0000`, or `0101` on a map numbered from 1) has to be that cell. A map set
   up through *Hex map from image* already is. If yours is not, the tagger says

@@ -189,6 +189,17 @@ test("Send to Extras puts the details on the tagged print and builds nothing (#1
     await app._onBuildDataset();
     assert.deepEqual([adopted, upserts], [[], []], "a map numbered off the top-left cell is refused before anything is written");
     assert.equal(warnings.length, 1);
+
+    // The GM switches scenes while the dataset is being built: the data is the
+    // print's, so nothing may be written to the scene now on the canvas.
+    app._state.origin = origin;
+    const other = { id: "other", name: "Other", getFlag: () => undefined };
+    Object.assign(app, { _bitmaps: new Map(), _cells: [], render() {} });
+    const build = app._handoffDataset;
+    app._handoffDataset = async function () { const out = await build.call(this); globalThis.canvas.scene = other; return out; };
+    await app._onBuildDataset();
+    assert.deepEqual([adopted, upserts], [[], []], "no adoption or records on the scene switched to");
+    assert.equal(warnings.length, 2, "the GM is told the scene changed");
   } finally {
     Object.assign(globalThis, previous);
   }
