@@ -247,6 +247,10 @@ const GMWR_ENTRIES = [
   ...GMWR_TERRAINS.map((t) =>
     _entry(`gmwr/${_slug(t)}-encounters`, "GMWR", `${t} Encounters`,
       gmwr("1", LONGTABLE(`${t.toUpperCase()} ENCOUNTERS`)))),
+  // p33 sets it in the right-hand column beside prose, each detail wrapped
+  // around its face: `banded` under the gutter split, like the trainers.
+  _entry("gmwr/caught-in-danger", "GMWR", "Caught in Danger!",
+    gmwr("auto", BANDED("CAUGHT IN DANGER!", 6))),
   _entry("gmwr/rumors-in-the-reaches", "GMWR", "Rumors in the Reaches",
     gmwr("1", LONGTABLE("RUMORS"))),
   // p48 prints the region d20 beside a settlement d4; p49 the trouble d10 above
@@ -577,6 +581,10 @@ export const CONTENT_ENTRIES = [
   _entry("wr/carousing-outcome", "WR", "Carousing Outcome",
     { kind: "lookup", cols: 4, size: 25, labels: ["Mishaps", "Benefits", "d100 Modifier", "XP"],
       dieIndexed: true, extractCols: "1", tokens: true }),
+  // WR pg 14: the population d100 sits in the left column under prose, beside a
+  // second column of prose, so it needs the gutter split. The name is the
+  // table catalogue's (pgwr-ancestry-population), so both hubs file one table.
+  _entry("wr/ancestry-population", "WR", "Ancestry (Population)", SECTION("ANCESTRY", "auto", 100)),
   // Side-by-side two-column-caption pages (Armor/Weapon/Utility Type+Feature on
   // p284/290/292, Scroll/Wand Feature on p288, spell Tier 2-5 on p289). The
   // captions merge in 1-col, so these use the 2-column extraction and section-

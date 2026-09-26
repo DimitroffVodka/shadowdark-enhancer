@@ -2114,7 +2114,8 @@ function isSectionCaption(line) {
   // "LOW STAKES PIT FIGHT (SOLO)" / "(GROUP)", and rejecting those left six
   // stacked encounter tables with no boundary between them — the whole page
   // parsed as one table with overlapping rows.
-  return /^[A-Z0-9][A-Z0-9 '&/.()-]*$/.test(t) && !/[a-z]/.test(t);
+  // A caption may shout: the GM Guide's p33 table is "CAUGHT IN DANGER!".
+  return /^[A-Z0-9][A-Z0-9 '&/.()!-]*$/.test(t) && !/[a-z]/.test(t);
 }
 
 /**

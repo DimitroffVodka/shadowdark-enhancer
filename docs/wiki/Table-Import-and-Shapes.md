@@ -27,7 +27,7 @@ supported books.
 
 ## Shapes
 
-**156 tables** currently carry a recipe. Each recipe specifies a shape kind:
+**158 tables** currently carry a recipe. Each recipe specifies a shape kind:
 
 | Kind | For |
 |---|---|
@@ -112,7 +112,7 @@ pin `\"layout\"`.
 
 Every *Game Master's Guide to the Western Reaches* recipe pins its own
 `extractCols`, because that book's pages are more often wrong than right under
-the default. Its 103 rows cover the fifteen region spreads (rumors, the two
+the default. Its 104 rows cover the fifteen region spreads (rumors, the two
 grids, points of interest), the six two-page `d100` terrain spreads, the 21
 trainer benefit tables, Tal-Yool Jungle, the City of Masks and the trouble
 generator.
