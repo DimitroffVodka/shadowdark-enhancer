@@ -70,6 +70,12 @@ const FORAGE_REFUSED = {
   alreadyForaged: "SDE.overland.notify.alreadyForaged",
 };
 
+/**
+ * Forage rolls still waiting on a player. Camp's food waits for them, so a
+ * ration found tonight is eaten tonight, not after its finder went hungry.
+ */
+const _foraging = new Set();
+
 /** Rations are matched by name, as Shadowdark Extras does (§5.4). */
 const RATIONS = /^rations?$/i;
 
@@ -340,10 +346,11 @@ export async function advanceTravel(target, reason) {
       : { hit: false };
     await commit(markCheck(_state, i, hit).state);
     if (hit) {
-      // Something is left for Continue when there's clock to run, or checks
+      // Something is left for Continue when there's clock to run, checks
       // still due at this very moment (a second check at the same hour, or the
-      // overdue checks of a late Start day): they wait, not the next move.
-      if (target > game.time.worldTime || dueChecks(_state.checks, target).length) {
+      // overdue checks of a late Start day), or a camp to finish: its dawn
+      // step (rations, the day's close, the weather) comes after its last check.
+      if (target > game.time.worldTime || dueChecks(_state.checks, target).length || reason === "camp") {
         await commit(setPending(_state, { until: Math.max(target, game.time.worldTime), reason }).state);
       }
       return { stopped: true };
@@ -648,9 +655,13 @@ async function eatRations(members, each) {
  * Dawn after camp (§5.5 steps 3-4): the rations, handed to Extras' camping
  * rest when the travel token is its party and it offers camping.open
  * (shadowdark-extras#163), else eaten here; then the day closes and the new
- * day's weather is rolled.
+ * day's weather is rolled. Any forage still being rolled is settled first.
+ * An Extras rest that was closed, declined or failed leaves the camp pending,
+ * so Continue opens it again rather than a second night passing.
+ * @returns {Promise<boolean>} true when the camp is done
  */
 async function finishCamp() {
+  await Promise.allSettled([..._foraging]);
   const s = overlandState();
   const stormy = _state.weather?.kind === "stormy";   // the night's weather, rolled for the day just ended
   const harsh = !!harshToday(s.climate, stormy);
@@ -660,8 +671,13 @@ async function finishCamp() {
   const camping = game.modules?.get("shadowdark-extras")?.api?.camping;
   let lines = [];
   if (party && typeof camping?.open === "function") {
-    await camping.open({ party, members, mounts: _state.mounts, pushed: _state.pushed, harsh, stormy, rationsEach: each, advanceTime: false })
-      .catch((err) => console.error(`${MODULE_ID} | Shadowdark Extras' camping rest`, err));
+    const reply = await camping.open({ party, members, mounts: _state.mounts, pushed: _state.pushed, harsh, stormy, rationsEach: each, advanceTime: false })
+      .catch((err) => { console.error(`${MODULE_ID} | Shadowdark Extras' camping rest`, err); return null; });
+    if (!reply?.completed) {
+      await commit(setPending(_state, { until: game.time.worldTime, reason: "camp" }).state);
+      ui.notifications?.warn(t("SDE.overland.notify.campUnfinished"));
+      return false;
+    }
   } else {
     ({ lines } = await eatRations(members, each));
   }
@@ -671,6 +687,7 @@ async function finishCamp() {
   }).catch((err) => console.error(`${MODULE_ID} | camp chat line`, err));
   await commit(closeDay(_state).state);
   await rollWeatherHere(false);
+  return true;
 }
 
 // ── The underground season check (#233, §5.6) ─────────────────────────────────
@@ -766,8 +783,9 @@ export function applyAction(data, user) {
         if (!pending) return { ok: false, error: t("SDE.overland.notify.nothingPending") };
         await commit(setPending(_state, null).state);
         const { stopped } = await advanceTravel(pending.until, pending.reason);
-        if (!stopped && pending.reason === "camp") await finishCamp();
-        return { ok: true, stopped };
+        if (pending.reason !== "camp") return { ok: true, stopped };
+        const finished = !stopped && await finishCamp();
+        return { ok: true, stopped: !finished };
       }
       case "forage": {
         const auth = authorizeActorFor(data.actorId, user, { type: "Player" });
@@ -783,8 +801,10 @@ export function applyAction(data, user) {
         await commit(recordForage(_state, auth.actor.id).state);
         // The attempt is recorded; the roll waits on the player, so it runs
         // outside the queue rather than holding every travel action up.
-        forageRoll(auth.actor, forageDC(!!s.harsh))
+        const roll = forageRoll(auth.actor, forageDC(!!s.harsh))
           .catch((err) => console.error(`${MODULE_ID} | forage roll`, err));
+        _foraging.add(roll);
+        roll.finally(() => _foraging.delete(roll));
         return { ok: true };
       }
       case "camp": {
@@ -795,8 +815,8 @@ export function applyAction(data, user) {
         // move with no clock of its own (a refusal there warns, and camp goes on).
         await advanceOffDuty(0, { reason: "camp" });
         const { stopped } = await advanceTravel(campEnd(), "camp");
-        if (!stopped) await finishCamp();
-        return { ok: true, stopped };
+        const finished = !stopped && await finishCamp();
+        return { ok: true, stopped: !finished };
       }
       default:
         return { ok: false, error: t("SDE.overland.notify.unknown") };

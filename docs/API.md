@@ -1632,12 +1632,17 @@ nobody is travelling or an encounter is pending. Resolves to
 2. **The night.** The clock runs to the next sunrise, or to the last night
    check if that is later (a summer sunrise at 04:30 comes before a 05:00
    check), through the same advance as moves. A hit stops the night with
-   `pending.reason === "camp"`, and `resume()` finishes it.
-3. **Rations**, at the end of the night:
+   `pending.reason === "camp"`, and `resume()` finishes it. That holds even
+   for a hit at the camp's very last moment: the dawn step is still to come.
+3. **Rations**, at the end of the night. Any forage roll still waiting on a
+   player is settled first, so a ration found tonight is eaten tonight.
    - **With Shadowdark Extras**, when the travel token is its party and its
      API offers `camping.open` (shadowdark-extras#163): that rest is opened
      with `{ party, members, mounts, pushed, harsh, stormy, rationsEach, advanceTime: false }`,
-     and it does the rations. Overland adds nothing.
+     and it does the rations. Overland adds nothing. When that rest is
+     closed, declined or fails (`completed` not true), the camp stays pending
+     with a warning. The day isn't closed, and Continue opens the rest again
+     rather than passing a second night.
    - **Otherwise Overland eats them.** Each member eats 1 ration from their
      own stacks, or 2 when the night was harsh. One who can't cover them all
      eats none (a single ration in a harsh climate counts as none) and takes 1

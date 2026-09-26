@@ -1788,6 +1788,7 @@
   "SDE.overland.forage.rations": "Rations",
   "SDE.overland.makeCamp": "Make camp",
   "SDE.overland.makeCampHint": "Camp for the night. Carried lights go out and keep their time, the clock runs to dawn with the night's encounter checks, the rations are eaten, and the next day's weather is rolled.",
+  "SDE.overland.notify.campUnfinished": "The camping rest wasn't finished, so the camp isn't over. Press Continue on the crawl bar to open it again.",
   "SDE.overland.camp.dawn": "Dawn. The camp breaks. Start the day when you're ready.",
   "SDE.overland.camp.dawnHarsh": "Dawn after a harsh night: two rations each. Start the day when you're ready.",
   "SDE.overland.camp.hungry": "{name} had no ration and takes 1 CON damage.",
