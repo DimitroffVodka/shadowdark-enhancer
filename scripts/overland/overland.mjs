@@ -44,6 +44,7 @@ import { dawnAfter, dateParts, startOfDay } from "../time/time-core.mjs";
 import { advanceOffDuty } from "../time/off-duty.mjs";
 import { StatRiders } from "../stat-damage/stat-riders.mjs";
 import { esc } from "../shared/esc.mjs";
+import { rulesFrom, stormEffects } from "../rules-data/rules-data-core.mjs";
 import {
   defaultOverlandState, normalizeOverlandState, startTravel, setHex, recordForage,
   pickTravelToken, forageRefusal, setWeather, weatherHolds, weatherAdvantage, weatherFormula,
@@ -83,9 +84,9 @@ const RATIONS = /^rations?$/i;
 const UNDERGROUND_DC = 12;
 const UNDERGROUND_MAX = 4;
 
-/** Each weather's name and what it does, for the chat card (literal keys, as above). */
+/** Each weather's name and what it does, for the chat card (literal keys, as above). A storm's line is stormText's. */
 const WEATHER_TEXT = {
-  stormy: ["SDE.overland.weather.stormy", "SDE.overland.weather.stormyEffect"],
+  stormy: ["SDE.overland.weather.stormy", null],
   fair: ["SDE.overland.weather.fair", "SDE.overland.weather.fairEffect"],
   excellent: ["SDE.overland.weather.excellent", "SDE.overland.weather.excellentEffect"],
 };
@@ -244,12 +245,33 @@ export async function rollWeather({ reroll = false } = {}) {
   return isActiveGM() ? applyAction(data, game.user) : queryActiveGM(OVERLAND_QUERY, data, { label: t("SDE.overland.relayLabel") });
 }
 
+/**
+ * A storm's line on the card: only what it does under this world's rules data
+ * (stormEffects). Normal terrain turns difficult only where the terrain costs
+ * say so, and harsh climates stop travel only where the climate table marks
+ * them; with neither, it changes nothing on the map, and the card says so (#264).
+ * @param {number|null} days  the core rule's 1d4, for a storm of several days
+ */
+function stormText(days) {
+  let stored = null;
+  try { stored = game.settings.get(MODULE_ID, "rulesData"); } catch { /* not registered: no rules data */ }
+  const { slows, harsh } = stormEffects(rulesFrom(stored));
+  return [
+    days ? t("SDE.overland.weather.stormDaysLead", { days }) : "",
+    slows ? t("SDE.overland.weather.stormSlows") : "",
+    harsh ? t("SDE.overland.weather.stormHarsh") : "",
+    slows || harsh ? "" : t("SDE.overland.weather.stormNoRules"),
+    days ? t("SDE.overland.weather.stormDaysTail") : "",
+  ].filter(Boolean).join(" ");
+}
+
 /** One chat card for a weather roll: what it is, what it does, until when, and the dice. */
 async function postWeather(weather, rolls, reroll) {
   const [, effect] = WEATHER_TEXT[weather.kind];
+  const what = weather.kind === "stormy" ? stormText(weather.days) : t(effect);
   const lines = [
     `<p><strong>${esc(t("SDE.overland.weather.title", { weather: weatherName(weather.kind) }))}</strong></p>`,
-    `<p>${esc(weather.days ? t("SDE.overland.weather.stormDays", { days: weather.days }) : t(effect))}</p>`,
+    `<p>${esc(what)}</p>`,
     `<p>${esc(t("SDE.overland.weather.until", { date: game.shadowdarkEnhancer?.time?.format?.(weather.until) ?? "" }))}</p>`,
     `<p><em>${esc(t(weather.advantage ? "SDE.overland.weather.rolledAdvantage" : "SDE.overland.weather.rolled", { roll: weather.roll }))}${
       reroll ? ` ${esc(t("SDE.overland.weather.rerolled"))}` : ""}</em></p>`,

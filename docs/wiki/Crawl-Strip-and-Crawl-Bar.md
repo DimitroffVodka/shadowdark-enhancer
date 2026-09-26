@@ -178,7 +178,10 @@ with forage and camp.
   is a storm for 1d4 days, with no roll while it lasts. Pick the rule under
   **Configure Settings → Shadowdark Enhancer → Overland**. A storm makes
   normal terrain difficult, and a storm in a harsh climate stops travel
-  altogether.
+  altogether. Both come from [Rules Data](Rules-Data.md): difficult terrain
+  from the terrain costs, stopped travel from the climate table. The storm
+  card says only what the imported rules give a storm, and says so when they
+  give it nothing.
 - **Start day** opens a travel day, and pressing **Travel** opens it for you
   straight away. Pick walking, mounted or sailing, and a boat actor to sail
   aboard. Tick **Push on** for half as many hexes again, at the same pace. The

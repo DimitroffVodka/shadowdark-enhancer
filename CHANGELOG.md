@@ -32,8 +32,10 @@ it needs.
   and gives the next roll advantage. The core rule, a storm of 1d4 days, is a
   setting in the new **Overland** settings window. A storm makes normal
   terrain difficult, and a storm in a harsh climate makes every hex
-  impassable. Macros and Shadowdark Extras roll it with
-  `game.shadowdarkEnhancer.overland.rollWeather()`. (#230)
+  impassable. The first needs the terrain costs from the GM Guide's rules
+  data and the second its climate table; the storm card says only what the
+  imported rules give a storm. Macros and Shadowdark Extras roll it with
+  `game.shadowdarkEnhancer.overland.rollWeather()`. (#230, #264)
 - **Encounter checks.** **Start day** sets the day's four encounter checks:
   two by day, two at night, each at an hour rolled on a d12 and whispered to
   the GM. The chance is 1 in 6, or 2 in 6 when pushed. A move whose clock
@@ -152,7 +154,12 @@ page walks through it in order.
   tooltip, hex explorer, fog and coordinates work on the print. No two
   touching regions share a zone colour, and the colours come from Extras' own
   palette. Sending again updates the records in place and leaves alone what
-  the players discovered and any dungeon you added in Extras. It needs a
+  the players discovered and any dungeon you added in Extras. A tagged hex's
+  terrain is the tagger's: one whose tags name no ground (coast alone) clears
+  the terrain Extras holds for it, whether an earlier send left it or you
+  typed it there, so give the hex its ground in the tagger. A hex you never
+  tagged, or whose tags you cleared, keeps its terrain (#264).
+  It needs a
   Shadowdark Extras with `hex.adoptHexcrawl`
   ([shadowdark-extras#147](https://github.com/DimitroffVodka/shadowdark-extras/issues/147)),
   and 6.15.0 or later for the zone colours. The painted build moves to **More

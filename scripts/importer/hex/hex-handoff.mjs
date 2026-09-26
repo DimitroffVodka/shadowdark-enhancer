@@ -12,7 +12,7 @@
 import { MODULE_ID } from "../../shared/module-id.mjs";
 import { replaceModuleFlag } from "../../shared/module-flags.mjs";
 import { HEX_FLAG } from "./hex-commit.mjs";
-import { buildHexDataset, mergeFeatures, ZONE_COLOR } from "./hex-dataset.mjs";
+import { buildHexDataset, hexNum, mergeFeatures, ZONE_COLOR } from "./hex-dataset.mjs";
 import { t } from "../importer-hub-shared.mjs";
 
 /**
@@ -142,7 +142,8 @@ export async function importDatasetRecords(sceneId, dataset, opts = {}) {
   for (const hex of dataset?.hexes ?? []) {
     const record = { num: hex.num };
     for (const key of UPSERT_FIELDS) {
-      if (typeof hex[key] !== "string" || !hex[key]) continue;
+      // An empty terrain goes: it clears a stale one (handoffToPrint, #264).
+      if (typeof hex[key] !== "string" || (!hex[key] && key !== "terrain")) continue;
       // One unparseable colour fails the whole batch there; drop just that one.
       if (key === "zoneColor" && !ZONE_COLOR.test(hex[key])) continue;
       record[key] = hex[key];
@@ -288,13 +289,19 @@ export async function extrasFeaturesOn(sceneId, base = 1, { fresh = false } = {}
  * lands on the right one. Reporting the adoption is the caller's job too, so
  * this returns why it stopped; the record write reports its own failures.
  *
+ * On the print a tagged hex's terrain is the tagger's: one whose tags name no
+ * ground (coast alone) sends an empty terrain, which clears whatever Extras
+ * holds for it, a word an earlier send left or one typed there (#264). A hex
+ * with no tag sends none, and keeps it.
+ *
  * @param {string} sceneId  the tagged print
  * @param {object} dataset  from buildHexDataset / datasetFromEntries
+ * @param {{tags?:object}} [opts]  tags: the tagger's, by hex number, as the dataset was built from
  * @returns {Promise<{via:"extras", adopted:boolean, summary:object, featuresUnread?:true}
  *   |{via:"none", reason:"not-gm"|"no-extras"|"no-adopt"|"extras-error"|string, error?:string}>}
  *   featuresUnread: the records went without features, because what Extras holds could not be read
  */
-export async function handoffToPrint(sceneId, dataset) {
+export async function handoffToPrint(sceneId, dataset, { tags } = {}) {
   if (!globalThis.game?.user?.isGM) return { via: "none", reason: "not-gm" };
   const api = extrasHexApi();
   if (!api) return { via: "none", reason: "no-extras" };
@@ -318,6 +325,9 @@ export async function handoffToPrint(sceneId, dataset) {
   // merged with the one Extras holds. Unreadable, no features go at all:
   // sending blind would wipe what the GM and the players put there.
   const current = await extrasFeaturesOn(sceneId, dataset?.grid?.origin ?? 1, { fresh: adopted === true });
+  // A tagged hex that names no ground clears Extras' terrain (see above).
+  const tagged = new Set(Object.keys(tags ?? {}).map(hexNum));
+  dataset = { ...dataset, hexes: (dataset?.hexes ?? []).map((h) => (tagged.has(h.num) && !h.terrain ? { ...h, terrain: "" } : h)) };
   let merged = null;
   if (current) {
     const hexes = (dataset?.hexes ?? []).map((h) => ({ ...h, features: mergeFeatures(current.get(h.num), h.features, { settlements }) ?? undefined }));

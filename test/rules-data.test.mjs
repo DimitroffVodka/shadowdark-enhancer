@@ -5,7 +5,7 @@ import { parseByShape } from "../scripts/importer/tables/table-importer.mjs";
 import { RULES_TABLES } from "../scripts/importer/tables/table-shapes.mjs";
 import { TERRAIN_TAGS } from "../scripts/importer/hex/hex-summary.mjs";
 import {
-  rulesFrom, rulesApi, readReferenceTables, importOverwrites, applyImport, partlyRead, READERS,
+  rulesFrom, rulesApi, stormEffects, readReferenceTables, importOverwrites, applyImport, partlyRead, READERS,
   ruleKey, regionKey, canonicalRegion, cellNumber,
   TERRAIN_TYPES, ELEVATIONS, SEASONS, HARSH, TRAVEL_METHODS, VISIBILITY_KEYS, SETTLEMENT_KINDS, COSTED_TYPES,
 } from "../scripts/rules-data/rules-data-core.mjs";
@@ -190,6 +190,18 @@ test("terrain cost: type fallback, storms, and a harsh climate", () => {
   assert.equal(cost("desert", { boat: true }), 7);
   assert.equal(cost("desert"), Infinity);
   assert.equal(cost("nowhere"), null);
+});
+
+test("what a storm does: only what the terrain costs and the climate table give it (#264)", () => {
+  assert.deepEqual(stormEffects(rulesFrom({})), { slows: false, harsh: false }, "nothing imported: a storm changes nothing");
+  const normal = { mountain: { type: "normal" } };
+  assert.deepEqual(stormEffects(rulesFrom({ terrainTypes: { normal: 1, difficult: 2 }, terrain: normal })), { slows: true, harsh: false });
+  assert.equal(stormEffects(rulesFrom({ terrainTypes: { normal: 1 }, terrain: normal })).slows, false,
+    "no difficult cost to raise normal terrain to");
+  const climate = [{ region: "Bastion Mountains", spring_fall: { label: "Cold", harsh: "storm" } }];
+  assert.deepEqual(stormEffects(rulesFrom({ climate })), { slows: false, harsh: true }, "a harsh climate alone still stops travel");
+  const unlabelled = [{ region: "Bastion Mountains", spring_fall: { label: "", harsh: "storm" } }];
+  assert.equal(stormEffects(rulesFrom({ climate: unlabelled })).harsh, false, "a marker with no climate to it stops nothing");
 });
 
 test("preview: only filled values the import changes; elevation and hand rows survive", () => {
