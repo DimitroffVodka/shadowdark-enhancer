@@ -4,6 +4,7 @@
  * builder always reflects the live installed content.
  */
 
+import { MODULE_ID } from "../shared/module-id.mjs";
 
 /** Enrich Shadowdark description HTML — resolves @UUID links + [[/r]] inline rolls. */
 export async function enrich(html) {
@@ -216,27 +217,67 @@ export async function rollItemFromTables(kind, items) {
   const tables = await configuredTables(kind);
   if (!tables.length) return null;
   const table = tables[Math.floor(Math.random() * tables.length)].doc;
+  return (await drawItem(table, items)).item;
+}
+
+/**
+ * Roll one table and map its result to one of `items`: the linked document
+ * when the row links one, else a (loose, case-blind) name match on the text.
+ * `result` is the row's text, or null when the table gave nothing (empty, or
+ * every row drawn) or the roll failed.
+ * @returns {Promise<{result:string|null, item:object|null}>}
+ */
+export async function drawItem(table, items) {
   try {
     const res = await table.roll();
     const r = res?.results?.[0] ?? res?.results?.contents?.[0];
-    if (!r) return null;
-    if (r.documentUuid) {
-      const byUuid = items.find((i) => i.uuid === r.documentUuid);
-      if (byUuid) return byUuid;
-      const doc = await fromUuid(r.documentUuid).catch(() => null);
-      if (doc) {
-        const byName = items.find((i) => i.name.toLowerCase() === doc.name.toLowerCase());
-        if (byName) return byName;
-      }
-    }
-    const txt = resultText(r).toLowerCase();
-    if (!txt) return null;
-    return items.find((i) => i.name.toLowerCase() === txt)
-      ?? items.find((i) => txt.includes(i.name.toLowerCase()))
-      ?? null;
+    if (!r) return { result: null, item: null };
+    return { result: resultText(r) || null, item: await itemForResult(r, items) };
   } catch (_e) {
+    return { result: null, item: null };
+  }
+}
+
+async function itemForResult(r, items) {
+  if (r.documentUuid) {
+    const byUuid = items.find((i) => i.uuid === r.documentUuid);
+    if (byUuid) return byUuid;
+    const doc = await fromUuid(r.documentUuid).catch(() => null);
+    if (doc) {
+      const byName = items.find((i) => i.name.toLowerCase() === doc.name.toLowerCase());
+      if (byName) return byName;
+    }
+  }
+  const txt = resultText(r).toLowerCase();
+  if (!txt) return null;
+  return items.find((i) => i.name.toLowerCase() === txt)
+    ?? items.find((i) => txt.includes(i.name.toLowerCase()))
+    ?? null;
+}
+
+/**
+ * Random ancestry by the GM's population table (setting
+ * `charBuilderAncestryTable`). Null when no table is set — the caller keeps
+ * its `system.randomWeight` pick — and also when the table is gone, gives
+ * nothing, or names no installed ancestry; the GM is told which.
+ * @param {Array<{name:string, uuid:string}>} items  the installed ancestries
+ * @returns {Promise<object|null>}
+ */
+export async function rollAncestryFromTable(items) {
+  const uuid = game.settings.get(MODULE_ID, "charBuilderAncestryTable");
+  if (!uuid) return null;
+  const table = await fromUuid(uuid).catch(() => null);
+  if (!table) {
+    ui.notifications?.warn(game.i18n.localize("SDE.charBuilder.ancestry.tableMissing"));
     return null;
   }
+  const { result, item } = await drawItem(table, items);
+  if (!item) {
+    ui.notifications?.warn(result
+      ? game.i18n.format("SDE.charBuilder.ancestry.tableNoMatch", { result, table: table.name })
+      : game.i18n.format("SDE.charBuilder.ancestry.tableEmpty", { table: table.name }));
+  }
+  return item;
 }
 
 /**

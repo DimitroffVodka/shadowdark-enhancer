@@ -235,7 +235,7 @@ test("the GM Guide contributes roll tables and no character content", async () =
   };
   const entries = await gatherCharContentEntries(presence);
   const gm = entries.filter((e) => e.src === "GMWR");
-  assert.equal(gm.length, 103, "the GM Guide's table rows");
+  assert.equal(gm.length, 104, "the GM Guide's table rows");
   assert.deepEqual([...new Set(gm.map((e) => e.type))], ["Table"],
     "a GM book ships no classes, talents or spells — only tables");
   assert.ok(gm.every((e) => e.pages), "every GM Guide row carries its page cite");

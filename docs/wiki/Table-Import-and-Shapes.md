@@ -27,7 +27,7 @@ supported books.
 
 ## Shapes
 
-**156 tables** currently carry a recipe. Each recipe specifies a shape kind:
+**158 tables** currently carry a recipe. Each recipe specifies a shape kind:
 
 | Kind | For |
 |---|---|
@@ -112,10 +112,23 @@ pin `\"layout\"`.
 
 Every *Game Master's Guide to the Western Reaches* recipe pins its own
 `extractCols`, because that book's pages are more often wrong than right under
-the default. Its 103 rows cover the fifteen region spreads (rumors, the two
+the default. Its 104 rows cover the fifteen region spreads (rumors, the two
 grids, points of interest), the six two-page `d100` terrain spreads, the 21
 trainer benefit tables, Tal-Yool Jungle, the City of Masks and the trouble
 generator.
+
+*Type of Trouble* (p. 49) prints a second roll inside every row, such as
+"Monster horde. 1d6: 1. … 6. …". When you create it, each of those rolls becomes
+its own table, named after the row (*Type of Trouble: Monster horde*) and
+filed beside it, on the die the row prints: a `d6` for eight types, a `d4`
+for *External faction* and *Power change*. Each row keeps its type and also
+points at its table, so one roll of *Type of Trouble* posts the type and a
+result from its sub-table. The preview shows the rows as printed, and any
+edits you make there carry into the sub-tables. Importing it again asks once,
+about *Type of Trouble* itself, and the ten tables follow your answer:
+**Replace** updates them all in place, **Create as copy** copies them all, and
+**Cancel** leaves everything as it was. A world that imported *Type of
+Trouble* before this change should import it again with **Replace**.
 
 ### Importing the GM Guide's Master Hex Key (pp. 73–83)
 
