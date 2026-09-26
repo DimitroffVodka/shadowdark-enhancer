@@ -156,8 +156,8 @@ under its checkbox in the window.
 | Pulp | **1d4 luck at the start of each session** | off | *Not automated yet.* Starting a session sets each party member's luck tokens to 1d4. |
 | Pulp | **Spend luck to turn a hit into a critical hit** | off | *Not automated yet.* After an attack hits, its owner can spend a luck token to make it a critical hit. |
 | Pulp | **Spend luck to make the GM reroll** | off | *Not automated yet.* A player can spend a luck token to make the GM reroll a roll the player can see. |
-| Hard Luck | **Prevent Luck rerolls on natural 1s** | off | Luck tokens can't reroll a critical failure, a natural 1. Before the Modes of Play window it sat under PC Automation and was on by default. |
-| Hard Luck | **No luck rerolls with luck-granting effects** | off | *Not automated yet.* Luck can't reroll a roll made under an effect that grants luck itself, such as Bless, Trance or a Seer's Omen. |
+| Hard Luck | **Prevent Luck rerolls on natural 1s** | off | Luck tokens can't reroll a critical failure, by the system's own rule, so an effect that widens the failure range counts too. Damage rerolls are never refused. Before the Modes of Play window it sat under PC Automation and was on by default. |
+| Hard Luck | **No luck rerolls with luck-granting effects** | off | Luck can't reroll a roll made with Bless, Trance or a Seer's Omen, whatever the result. Matched by the spell's or ability's name; a spell cast from a scroll or wand counts. Only the chat card's reroll can be checked: luck spent from the crawl strip or Shadowdark Extras isn't tied to a roll. |
 
 ### Movement
 

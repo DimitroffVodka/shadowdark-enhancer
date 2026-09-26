@@ -17,6 +17,12 @@
   maximum is untouched, so its sheet can read "30 of 60 minutes" and turning
   Blitz off leaves no torch short. Shadowdark Extras' camping campfire keeps
   its 8 hours. (#179)
+- **Hard Luck Mode.** Its second rule, *No luck rerolls with luck-granting
+  effects*, refuses a luck reroll of any roll made with Bless, Trance or a
+  Seer's Omen, whatever the result, so luck can't be spent to earn more luck.
+  Its first rule, no luck on a critical failure, now uses the system's own
+  critical failure, so an effect that widens the failure range counts too,
+  and a damage reroll is never refused. (#186)
 - **The hex data goes on the printed map.** The Hex Tagger's **Send to
   Extras** now puts every hex's terrain, region, zone colour, name,
   description and settlement on the map you tagged, instead of building a
