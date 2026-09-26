@@ -142,7 +142,8 @@ export async function importDatasetRecords(sceneId, dataset, opts = {}) {
   for (const hex of dataset?.hexes ?? []) {
     const record = { num: hex.num };
     for (const key of UPSERT_FIELDS) {
-      if (typeof hex[key] !== "string" || !hex[key]) continue;
+      // An empty terrain goes: it clears a stale one (buildHexDataset, #264).
+      if (typeof hex[key] !== "string" || (!hex[key] && key !== "terrain")) continue;
       // One unparseable colour fails the whole batch there; drop just that one.
       if (key === "zoneColor" && !ZONE_COLOR.test(hex[key])) continue;
       record[key] = hex[key];

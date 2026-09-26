@@ -686,6 +686,9 @@ is named, not worked round.
   path and coast are replaced, so a tag you took off goes (even when you
   cleared the hex's tags completely) and nothing is listed twice; every other
   feature on the hex, such as a dungeon you added in Extras, is left alone.
+  A tagged hex whose tags name no ground, such as coast alone, clears the
+  terrain an earlier send left on it; a hex you never tagged keeps the terrain
+  Extras holds, so one you set there yourself stays.
   Settlements go until they have arrived once, then no more, because Extras
   keeps what the players have discovered on them and sending them again would
   reset it.

@@ -255,9 +255,11 @@ test("a river mouth on land is not a river tile, with or without its keyed row, 
   assert.deepEqual(withRow.features.map((f) => f.id), ["settlement-1334", "river-1334", "coast-1334"]);
   assert.equal(tagsOnly.terrain, withRow.terrain, "a send that has not loaded the keyed rows sends the same terrain");
   assert.deepEqual(tagsOnly.features.map((f) => f.id), ["river-1334", "coast-1334"]);
-  // The raw legacy tag, straight into the builder, never goes out as coast terrain either.
+  // The raw legacy tag, straight into the builder, never goes out as coast terrain
+  // either. Tagged and naming no ground, it sends an empty one, which clears a
+  // terrain an earlier send left in Extras (#264); the untagged row above sends none.
   const raw = buildHexDataset({ tags: { 1334: { terrain: "coast", features: ["river"] } } }).hexes[0];
-  assert.equal(raw.terrain, undefined);
+  assert.equal(raw.terrain, "");
   assert.deepEqual(raw.features.map((f) => f.id), ["river-1334", "coast-1334"]);
   assert.equal(validateHexDataset(buildHexDataset({ tags: { 1334: { terrain: "coast", features: [] } } })).ok, true,
     "a hex carrying only features is a valid record");

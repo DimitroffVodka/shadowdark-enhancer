@@ -44,6 +44,7 @@ import { dawnAfter, dateParts, startOfDay } from "../time/time-core.mjs";
 import { advanceOffDuty } from "../time/off-duty.mjs";
 import { StatRiders } from "../stat-damage/stat-riders.mjs";
 import { esc } from "../shared/esc.mjs";
+import { rulesFrom, terrainCost } from "../rules-data/rules-data-core.mjs";
 import {
   defaultOverlandState, normalizeOverlandState, startTravel, setHex, recordForage,
   pickTravelToken, forageRefusal, setWeather, weatherHolds, weatherAdvantage, weatherFormula,
@@ -244,12 +245,28 @@ export async function rollWeather({ reroll = false } = {}) {
   return isActiveGM() ? applyAction(data, game.user) : queryActiveGM(OVERLAND_QUERY, data, { label: t("SDE.overland.relayLabel") });
 }
 
+/**
+ * Does a storm change any terrain's cost under this world's rules data? Not
+ * before the GM Guide's terrain rows are in: then every hex costs 1, storm or
+ * not, and the card must not claim otherwise (#264).
+ */
+function stormSlows() {
+  let stored;
+  try { stored = game.settings.get(MODULE_ID, "rulesData"); } catch { return false; }
+  const rules = rulesFrom(stored);
+  return Object.keys(rules.terrain).some((k) => terrainCost(rules, k, { weather: "stormy" }) !== terrainCost(rules, k));
+}
+
 /** One chat card for a weather roll: what it is, what it does, until when, and the dice. */
 async function postWeather(weather, rolls, reroll) {
   const [, effect] = WEATHER_TEXT[weather.kind];
+  const noCosts = weather.kind === "stormy" && !stormSlows();
+  const what = weather.days
+    ? t(noCosts ? "SDE.overland.weather.stormDaysNoRules" : "SDE.overland.weather.stormDays", { days: weather.days })
+    : t(noCosts ? "SDE.overland.weather.stormyNoRules" : effect);
   const lines = [
     `<p><strong>${esc(t("SDE.overland.weather.title", { weather: weatherName(weather.kind) }))}</strong></p>`,
-    `<p>${esc(weather.days ? t("SDE.overland.weather.stormDays", { days: weather.days }) : t(effect))}</p>`,
+    `<p>${esc(what)}</p>`,
     `<p>${esc(t("SDE.overland.weather.until", { date: game.shadowdarkEnhancer?.time?.format?.(weather.until) ?? "" }))}</p>`,
     `<p><em>${esc(t(weather.advantage ? "SDE.overland.weather.rolledAdvantage" : "SDE.overland.weather.rolled", { roll: weather.roll }))}${
       reroll ? ` ${esc(t("SDE.overland.weather.rerolled"))}` : ""}</em></p>`,
