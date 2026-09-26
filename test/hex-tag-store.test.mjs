@@ -148,7 +148,7 @@ test("rowsFromJson: the tag flag round-trips, a dataset yields regions, keyed te
   const rebuilt = buildHexDataset({ tags: tagsForDataset(t), gridHint: ds.grid });
   assert.equal(rebuilt.terrain.default, "plains");
   assert.deepEqual(new Set(rebuilt.terrain.regions.map((r) => r.biome)), new Set(["hills", "mountains", "plains", "swamp", "water"]));
-  assert.deepEqual(rebuilt.networks, { river: [201, 303], road: [202] });
+  assert.deepEqual(rebuilt.networks, { river: [201, 303], road: [202], spanning: true });
 
   const allDefault = rowsFromJson({ grid: { cols: 2, rows: 2 }, terrain: { default: "water", regions: [] }, hexes: [] });
   assert.equal(allDefault.rows.length, 4, "an all-default dataset is importable");

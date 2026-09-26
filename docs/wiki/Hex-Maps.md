@@ -638,7 +638,7 @@ painted map is back.
           rowsLowered: 74 },// only when the lowered columns end one row short
   terrain: { default: "forest", regions: [ { biome: "mountain", hexes: [1346, ...] } ] },
   hexes:   [ { num: 4546, name, terrain, desc, zone } ],
-  networks: { river: [1251, ...], road: [4654, ...] }
+  networks: { river: [1251, ...], road: [4654, ...], spanning: true }
 }
 ```
 
@@ -654,7 +654,9 @@ transposition instruction. A direct Extras hand-off needs Shadowdark Extras
 with `game.shadowdarkExtras.hex.buildHexcrawl` (6.15 or later, with the
 origin option for maps numbered from 0); without it the dataset downloads as
 JSON. The book's **path** tag
-becomes Extras' **road** network. Terrain goes out as the book's word
+becomes Extras' **road** network. Every hex a river or path is tagged on goes
+into its network, so `networks.spanning: true` asks Extras to drop the links
+that would close a loop between neighbouring tagged hexes. Terrain goes out as the book's word
 (`salt flat`, `deep tunnels`); Extras keeps that label on the hex record and
 chooses the painted biome itself. The summary table's settlement marker has
 no field in Extras' contract, so it stays on the crawl entry in the Journals
