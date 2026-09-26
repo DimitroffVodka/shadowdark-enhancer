@@ -102,6 +102,9 @@ export function overlandState() {
   };
 }
 
+/** Today's weather kind while it holds, else null. Cheap: the crawl bar asks on every clock move. */
+export const weatherNow = () => (weatherHolds(_state.weather, game.time.worldTime) ? _state.weather.kind : null);
+
 /** The weather rule this world plays by: the Western Reaches' (default) or the core book's. */
 const weatherRule = () => {
   const rule = game.settings.get(MODULE_ID, WEATHER_RULE_SETTING);

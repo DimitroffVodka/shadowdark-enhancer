@@ -12,7 +12,7 @@ import { CrawlState }      from "../crawl-strip/crawl-state.mjs";
 import { ICONS }           from "../shared/icons.mjs";
 import { CrawlStrip }      from "../crawl-strip/crawl-strip.mjs";
 import { isHexMapScene }   from "../encounter/encounter-terrain.mjs";
-import { startOverland, endOverland, rollWeather, overlandState, weatherName, OVERLAND_CHANGED } from "../overland/overland.mjs";
+import { startOverland, endOverland, rollWeather, weatherNow, weatherName, OVERLAND_CHANGED } from "../overland/overland.mjs";
 
 const BAR_ID = "shadowdark-enhancer-bar";
 
@@ -29,6 +29,8 @@ export const CrawlBar = {
   _el: null,
   _hookIds: [],
   _renderQueued: false,
+  /** The weather kind the Overland badge shows, or null. */
+  _weatherShown: null,
 
   init() {
     if (!game.user.isGM) return;
@@ -44,8 +46,11 @@ export const CrawlBar = {
     on("updateCombat",  queue);
     // The Travel button is offered only on a hex map, so it follows the scene.
     on("canvasReady",   queue);
-    // The Overland badge shows today's weather.
+    // The Overland badge shows today's weather, which also ends at a dawn with
+    // no write. The clock moves every second under real-time light tracking,
+    // so re-render only when what the badge shows would change.
     on(OVERLAND_CHANGED, queue);
+    on("updateWorldTime", () => { if (this._badgeWeather() !== this._weatherShown) queue(); });
   },
 
   /**
@@ -98,9 +103,15 @@ export const CrawlBar = {
     this._el = null;
   },
 
+  /** The weather kind the Overland badge should show now. */
+  _badgeWeather() {
+    return CrawlState.isOverland ? weatherNow() : null;
+  },
+
   render() {
     if (!this._el) return;
     const state = CrawlState;
+    this._weatherShown = this._badgeWeather();
 
     // The crawl bar is ALWAYS shown (no separate "Start Crawl" screen). When no
     // session is active the last button reads "Start"; starting flips it to
@@ -131,8 +142,7 @@ export const CrawlBar = {
     // Overland travel (#229) is a mode of its own: not a crawl, so the crawl's
     // session actions stay idle; Start still begins a crawl from it (§4.3).
     const overland = state.mode === "overland";
-    const travel = overland ? overlandState() : null;
-    const weather = travel?.weather && travel.weather.until > game.time.worldTime ? weatherName(travel.weather.kind) : null;
+    const weather = this._weatherShown ? weatherName(this._weatherShown) : null;
     const travelButton = overland
       ? `<button class="sde-bar-btn" data-action="rollWeather" title="${game.i18n.localize("SDE.overland.rollWeatherHint")}">${ICONS.weather} ${game.i18n.localize("SDE.overland.rollWeather")}</button>
         <button class="sde-bar-btn sde-bar-danger-btn" data-action="endTravel" title="${game.i18n.localize("SDE.overland.endTravelHint")}">${ICONS.close} ${game.i18n.localize("SDE.overland.endTravel")}</button>`

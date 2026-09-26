@@ -38,7 +38,7 @@ Object.assign(globalThis, {
     modules: { get: () => null },
   },
 });
-const { applyAction, registerOverland } = await import("../scripts/overland/overland.mjs");
+const { applyAction, registerOverland, weatherNow } = await import("../scripts/overland/overland.mjs");
 const { CrawlState } = await import("../scripts/crawl-strip/crawl-state.mjs");
 
 function travelling(members) {
@@ -107,8 +107,12 @@ test("the GM rolls the weather: stored, one card, and it holds until the next da
   assert.deepEqual(again.weather, res.weather);
   assert.equal(cards.length, 1);
 
-  // The next day's roll has advantage.
+  // It shows until the dawn, then it's over.
+  assert.equal(weatherNow(), "excellent");
   globalThis.game.time.worldTime = res.weather.until;
+  assert.equal(weatherNow(), null, "at the dawn it no longer holds");
+
+  // The next day's roll has advantage.
   dice.push(2);
   const next = await applyAction({ action: "weather" }, gm);
   assert.deepEqual(rolled, ["1d6", "2d6kh"]);
