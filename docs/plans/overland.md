@@ -488,8 +488,10 @@ the player-owned PCs, and Overland runs its own camp rations. The only thing mis
   | autumn | Harvest | normal | normal |
   | winter | Long Dark | always true | the night level all day |
 
-- **Neighbours.** When Calendaria's `darknessSync` is on (a world or per-scene setting), Overland
-  leaves darkness alone and says so once in the log. Only one writer ever owns a scene's darkness.
+- **Neighbours.** Overland consults no other module. A scene whose darkness something else should
+  own is set to not follow the sky. (The first build stood down for Calendaria's `darknessSync`;
+  reading another module's flags threw on Foundry 14 whenever Calendaria was off, so the sky never
+  wrote. Removed in #255.)
 
 ## 7. Build plan
 
@@ -522,8 +524,7 @@ wait for #197 without holding up the rest.
   file header and under "Bundled code" in `CREDITS.md:151`. Its ideas are used without code: the
   scene-sync override (`darkness.mjs:383-388`) and animating only small steps (`:351-365`).
   Calendaria is not a dependency.
-- Whether Calendaria is *enabled* in the live world was not checked, since the world is off limits.
-  §6.2's stand-down covers either case.
+- Calendaria is installed but disabled in the live world. Overland reads nothing of it (#255).
 - **Ember's travel HUD** is not installed under `Data/modules`, or anywhere under `Data/`. The bar
   follows #192's description of it, not its code.
 - **SDX's prior-art review** (`docs/architecture/hex-calendar-prior-art.md`) agrees on using core
@@ -537,6 +538,6 @@ wait for #197 without holding up the rest.
 | The torch guard leans on system internals: the cache, the dirty flag and the primary GM | Pinned to 4.0.6 in O2's live check; `_updateLightSources` is feature-checked, with a timed wait as the fallback |
 | Custom `advance` options get dropped on the server round trip | Checked in O1. Nothing depends on them for spending, because Overland only spends on its own actions; only the `offDuty` label would be lost |
 | The real-time light clock fires `updateWorldTime` every tick | `timeAdvanced` is O(1) per call, and darkness writes are gated at 0.02 |
-| Two writers for scene darkness (Calendaria, SmallTime, a GM by hand) | §6.2 stands down for Calendaria, and the per-scene "Follows the sky" off switch covers the rest |
+| Two writers for scene darkness (another module, a GM by hand) | The per-scene "Follows the sky" off switch and the scene's darkness lock; Overland reads no other module |
 | #195's region names differ from `regionOf`'s | Both normalise the same way, as #195 requires; O4 tests a pair such as "Bastion Mtns" and "Bastion Mountains" |
 | `mounts` is a number, not actors | Enough for rations; mount actors (`actors/mount-npc-sheet.mjs`) can replace it later |

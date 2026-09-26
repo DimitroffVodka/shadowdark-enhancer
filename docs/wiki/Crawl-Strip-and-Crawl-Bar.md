@@ -233,8 +233,8 @@ with forage and camp.
   - The tagged hex map counts as outdoors and only darkens to a readable
     tint. Any other scene joins in when you set **Follows the sky** to Yes in
     its Scene Configuration, on the Environment tab; dungeons are left alone.
-  - A scene whose darkness is locked, or that Calendaria already darkens, is
-    left alone, and so is a weather effect you picked yourself.
+  - A scene whose darkness is locked is left alone, and so is a weather effect
+    you picked yourself. No calendar module is needed.
   - On the Isles of Andrik, the summer sun never sets and the winter night
     never lifts.
 - **Deep tunnels.** When a season changes while the party's last hex is deep
