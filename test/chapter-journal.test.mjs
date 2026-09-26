@@ -104,6 +104,12 @@ test("a free range becomes one page per heading, reflowed", () => {
   assert.match(pages[2].html, /&lt;umbrellas&gt;/, "pasted text is escaped, never markup");
 });
 
+test("lead: false drops the preamble before the first heading", () => {
+  const pages = [{ page: 12, lines: ["A preamble about the season.", "FIRST FEAST", "Pies are eaten."] }];
+  assert.deepEqual(buildChapterPages(pages, { name: "Feasts" }).map((p) => p.name), ["Feasts", "First Feast"]);
+  assert.deepEqual(buildChapterPages(pages, { name: "Feasts", lead: false }).map((p) => p.name), ["First Feast"]);
+});
+
 test("a preset section is one page, its headings are sub-headings", () => {
   const [page] = buildChapterPages([{ page: 40, lines: PAGE_40 }, { page: 41, lines: PAGE_41 }],
     { name: "Towns", sections: [{ name: "Gullport", pages: [40] }] });
@@ -127,9 +133,10 @@ test("a link is added once", () => {
 
 test("every preset section lies inside the preset's range, in order, without gaps", () => {
   for (const preset of CHAPTER_PRESETS) {
+    assert.ok(preset.label.startsWith("SDE."), `${preset.id} labels itself through en.json`);
+    if (!preset.sections) continue;   // splits at its headings, like a free range
     const all = parsePageRange(preset.pages);
     const covered = preset.sections.flatMap((s) => parsePageRange(s.pages));
     assert.deepEqual(covered, all, preset.id);
-    assert.ok(preset.label.startsWith("SDE."), `${preset.id} labels itself through en.json`);
   }
 });

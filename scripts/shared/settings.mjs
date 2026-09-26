@@ -525,6 +525,17 @@ export function registerSettings() {
     default: false,
   });
 
+  // The core dying rule's one option (#181), shown in the Deadly box of the
+  // Modes of Play window as an option, not a rule: the Deadly switch leaves it.
+  game.settings.register(MODULE_ID, "dyingHiddenTimer", {
+    name: "SDE.settings.dyingHiddenTimer.name",
+    hint: "SDE.settings.dyingHiddenTimer.hint",
+    scope: "world",
+    config: false,
+    type: Boolean,
+    default: false,
+  });
+
   game.settings.register(MODULE_ID, "modeDeadlyTimer", {
     name: "SDE.settings.modeDeadlyTimer.name",
     hint: "SDE.settings.modeDeadlyTimer.hint",

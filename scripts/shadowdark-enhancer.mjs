@@ -14,6 +14,7 @@ import { init as luckRerollInit } from "./luck-reroll/luck-reroll.mjs";
 import { init as blitzInit } from "./modes-of-play/blitz.mjs";
 import { init as hunterInit } from "./modes-of-play/hunter.mjs";
 import { init as pulpInit } from "./modes-of-play/pulp.mjs";
+import * as Dying from "./dying/dying.mjs";
 import { init as spellMishapInit } from "./spell-mishap/spell-mishap.mjs";
 import { init as prayerRollInit } from "./character-sheet/prayer-roll.mjs";
 import { init as scavengerInit } from "./scavenger/scavenger.mjs";
@@ -93,7 +94,7 @@ import { initRivalClassTable } from "./forge-loot/rival-class-table-adapter.mjs"
 // templates, producing unstyled block-flow UI. Keep the manifest stylesheet as
 // the startup fallback, then layer a content-addressed copy above it. The layout
 // contract test requires this revision to change whenever the CSS file changes.
-const STYLESHEET_REV = "1150537e1c5d";
+const STYLESHEET_REV = "cd7129d5783e";
 
 // The same problem for the SCRIPTS, which cannot be solved the same way: their
 // URLs come from the manifest, which Foundry validates as real package paths,
@@ -108,7 +109,7 @@ const STYLESHEET_REV = "1150537e1c5d";
 // stale); module.json carries the same hash and is fetched fresh at runtime. A
 // mismatch is a stale cache by construction — it cannot be anything else. Both
 // stamps are written by `npm run inventory` and gated by `inventory:check`.
-const BUILD_REV = "325d336706ff";
+const BUILD_REV = "52f56ef1fbe8";
 
 /**
  * Tell the user when their browser is running an old build of this module, and
@@ -413,10 +414,19 @@ Hooks.once("init", () => {
   // game.modules.get(MODULE_ID).api on ready; consumers should listen for
   // the "shadowdarkEnhancer.ready" hook. Reference: docs/API.md.
   game.shadowdarkEnhancer = {
+    // 1.5.0 — additive: hexMaps namespace (hex tagger, dataset, hand-off).
     // 1.6.0 — additive: statDamage namespace (tracked ability damage).
     // 1.7.0 — additive: quests namespace (the Quest Log) and questsChanged.
-    // 1.8.0 — additive: encounter.tableForHex (the table for a hex by region and terrain).
-    apiVersion: "1.8.0",
+    // 1.8.0 — additive: dying namespace and the crawlRound hook (#181).
+    // 1.9.0 — additive: holidays namespace (City of Masks holidays, #191).
+    // 1.10.0 — additive: encounter.tableForHex (the table for a hex by region and terrain).
+    apiVersion: "1.10.0",
+    // Holidays for carousing (Shadowdark Extras reads `today`). Both async and
+    // lazy; a holiday is listed once the GM has imported its journal page.
+    holidays: {
+      list: async () => (await import("./holidays/holidays.mjs")).listHolidays(),
+      today: async (opts) => (await import("./holidays/holidays.mjs")).holidaysToday(opts),
+    },
     // Guided, ordered Character Builder — a replacement for the system's
     // random generator. `open({ level0?, actor? })` renders the wizard.
     charBuilder: {
@@ -709,6 +719,21 @@ Hooks.once("init", () => {
       history: (actor) => Renown.history(actor),
       historyByPlayer: () => Renown.historyByPlayer(),
     },
+    // Dying (core p.89) with Deadly and Fatality (p.111). Reads for anyone;
+    // every write is the active GM's (another GM's call is relayed), except
+    // `stabilize({ by })`, whose INT check the helper's owner rolls and whose
+    // card the active GM reads.
+    dying: {
+      isDying: (actor) => Dying.isDying(actor),
+      timer: (actor) => Dying.timer(actor),
+      state: (actor) => Dying.dyingState(actor),
+      stabilize: (actor, opts) => Dying.stabilize(actor, opts),
+      rise: (actor) => Dying.rise(actor),
+      adjust: (actor, delta) => Dying.adjust(actor, delta),
+      setConscious: (actor, conscious) => Dying.setConscious(actor, conscious),
+      STATUS: Dying.DYING_STATUS,
+      KEYS: { ...Dying.DYING_KEYS },
+    },
     // Pit Fighting — CS2's bouts (pgs 20–24). Mechanics only: the venue, twist,
     // prize and foe text all come from RollTables the GM imports from their own
     // book, and the window names any that are missing instead of inventing them.
@@ -892,6 +917,7 @@ Hooks.once("ready", () => {
   blitzInit();
   hunterInit();
   pulpInit();
+  Dying.init();
   spellMishapInit();
   prayerRollInit();
   scavengerInit();

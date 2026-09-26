@@ -30,6 +30,12 @@ test("a PC listed twice is paid once; defeated PCs are not monsters", () => {
   assert.equal(out.total, 1);
 });
 
+test("a dead PC is paid nothing; a dying one still is (#181)", () => {
+  const out = hunterAward([pc("ana"), { ...pc("bo"), defeated: true, dead: true }, { ...pc("cy"), defeated: true }, npc("Wolf", 2)]);
+  assert.deepEqual(out.pcIds, ["ana", "cy"]);
+  assert.equal(out.total, 1);
+});
+
 test("nothing defeated pays nothing", () => {
   assert.deepEqual(hunterAward([pc("ana"), npc("Troll", 7, false)]), { total: 0, monsters: [], pcIds: ["ana"] });
   assert.deepEqual(hunterAward(), { total: 0, monsters: [], pcIds: [] });

@@ -35,8 +35,16 @@ export const CHAPTER_FLAG = "chapter";
 /**
  * Ready-made ranges, one click each. `label` is an i18n key; `pages` is the
  * whole range and the entry's identity; each section is one journal page.
+ * Without `sections` the range splits at its headings like a free range, and
+ * `lead: false` drops the text before the first heading (a chapter's preamble).
  */
 export const CHAPTER_PRESETS = [
+  // Cursed Scroll 6 pp.46-47: one page per holiday (holidays/holidays.mjs reads
+  // the pages back by key). The two-page spread's preamble is not a holiday.
+  {
+    id: "cs6-holidays", label: "SDE.importer.chapter.presetCs6Holidays",
+    src: "CS6", name: "City of Masks Holidays", pages: "46-47", lead: false,
+  },
   {
     id: "gmwr-city-states", label: "SDE.importer.chapter.presetCityStates",
     src: "GMWR", name: "The City-States", pages: "16-27",
@@ -144,18 +152,19 @@ function splitAtHeadings(lines, leadName) {
  * Pure: extracted pages → journal pages.
  * @param {Array<{page:number, lines:string[]}>} pages  extractPdfText's `pages`,
  *   numbered by PRINTED page
- * @param {{name?:string, sections?:Array<{name:string, pages:number[]}>|null, dropped?:string[]}} [opts]
+ * @param {{name?:string, sections?:Array<{name:string, pages:number[]}>|null, lead?:boolean, dropped?:string[]}} [opts]
  *   `sections` (printed pages) makes each section one page; without it the
- *   text is split at its ALL-CAPS headings. `dropped` collects the lines
- *   removed as page titles, for the preview to show.
+ *   text is split at its ALL-CAPS headings, and `lead: false` drops the text
+ *   before the first one. `dropped` collects the lines removed as page
+ *   titles, for the preview to show.
  * @returns {Array<{key:string, name:string, html:string}>}
  */
-export function buildChapterPages(pages, { name = "", sections = null, dropped = [] } = {}) {
+export function buildChapterPages(pages, { name = "", sections = null, lead = true, dropped = [] } = {}) {
   const linesOf = (nums) => (pages ?? []).filter((p) => !nums || nums.includes(p.page))
     .flatMap((p) => stripPageFurniture(p.lines, p.page, dropped));
   const parts = sections?.length
     ? sections.map((s) => ({ name: s.name, lines: linesOf(s.pages) }))
-    : splitAtHeadings(linesOf(null), name);
+    : splitAtHeadings(linesOf(null), name).slice(lead ? 0 : 1);
   const seen = new Map();
   const out = [];
   for (const part of parts) {
@@ -195,11 +204,11 @@ const t = (key, data) => (data ? game.i18n.format(key, data) : game.i18n.localiz
 /**
  * Read a chapter out of the GM's own PDF. Printed pages are offset to PDF
  * pages the way every grab does it (sourcePdfTarget).
- * @param {{src:string, pages:string, name:string, sections?:Array<{name:string,pages:string}>}} req
+ * @param {{src:string, pages:string, name:string, sections?:Array<{name:string,pages:string}>, lead?:boolean}} req
  * @returns {Promise<{pages:Array<{key,name,html}>, warnings:string[], dropped:string[]}|null>}
  *   null when the book has no PDF; `dropped` = lines removed as page titles
  */
-export async function readChapter({ src, pages, name, sections = null }) {
+export async function readChapter({ src, pages, name, sections = null, lead = true }) {
   const { resolveSourcePdf, sourcePdfTarget } = await import("./source-pdf-registry.mjs");
   const { extractPdfText, parsePageRange, notifyGutterWarnings } = await import("./pdf-text-extract.mjs");
   const file = resolveSourcePdf(src);
@@ -213,7 +222,7 @@ export async function readChapter({ src, pages, name, sections = null }) {
   const printed = (result.pages ?? []).map((p) => ({ ...p, page: p.page - offset }));
   const secs = sections?.map((s) => ({ name: s.name, pages: parsePageRange(s.pages) })) ?? null;
   const dropped = [];
-  return { pages: buildChapterPages(printed, { name, sections: secs, dropped }), warnings: result.warnings, dropped };
+  return { pages: buildChapterPages(printed, { name, sections: secs, lead, dropped }), warnings: result.warnings, dropped };
 }
 
 /** Pure: extractor warnings ("p98: …") renumbered to the printed page ("p94: …"). */

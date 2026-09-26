@@ -1221,7 +1221,7 @@ class HubManageMethods {
 
     const preset = CHAPTER_PRESETS.find((p) => p.id === form.preset);
     const req = preset
-      ? { src: preset.src, pages: preset.pages, name: preset.name, sections: preset.sections, preset: preset.id }
+      ? { src: preset.src, pages: preset.pages, name: preset.name, sections: preset.sections, lead: preset.lead, preset: preset.id }
       // The range is the journal's identity, so "16 - 27" and "16-27" must be one.
       : { src: form.src, pages: String(form.pages ?? "").replace(/\s+/g, ""), name: String(form.name ?? "").trim(), preset: "custom" };
     if (!/\d/.test(req.pages)) { ui.notifications.warn(t("SDE.importer.chapter.noPages")); return; }

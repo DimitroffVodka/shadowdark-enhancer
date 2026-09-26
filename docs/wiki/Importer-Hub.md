@@ -268,6 +268,15 @@ in the Journals pack, in the book's folder.
   Alkesh, Stonehall, the Kyzian Tribes, Lydonia) plus the introduction before
   them. The headings inside each city (Overview, History, Factions…) become
   sub-headings.
+- **The preset** *Cursed Scroll 6: the City of Masks holidays* files pp. 46–47
+  as *City of Masks Holidays*, one page per holiday (Lastmoon, Maytide, the
+  Night of St. Anton, the Duke's Ball). The book's introduction to the spread
+  is left out. Once they're imported, Shadowdark Extras' carousing window can
+  apply each holiday's carousing effects and garb questions on its day in the
+  City of Masks (the module's `holidays` API; see *API.md*). Maytide falls on
+  May 1, the Duke's Ball on June 21 and the Night of St. Anton on September 22,
+  read from the world calendar. Lastmoon (the year's last full moon) waits for
+  a moon to be tracked, so for now it never falls.
 - **Key locations:** a page whose name matches an imported key location links
   to that hex's page, and the hex page links back. If the crawl has been
   pinned on a scene, the link goes to the world copy of the page, so its

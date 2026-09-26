@@ -37,6 +37,9 @@
  * @property {boolean} isPlayer  The actor is a Shadowdark "Player" (a PC).
  * @property {boolean} defeated  The combatant's tracker defeated flag.
  * @property {number}  hp        Current HP. Defaults to 1 (alive) when unknown.
+ * @property {boolean} [dead]    The actor carries core's `dead` status. Only
+ *                               read for PCs: a dead PC keeps its card (the
+ *                               skull) but has no turn (dying.mjs, #181).
  */
 
 /**
@@ -57,6 +60,7 @@ export function combatantEntry(combatant) {
     isPlayer: actor?.type === "Player",
     defeated: combatant?.defeated === true,
     hp: actor?.system?.attributes?.hp?.value ?? actor?.system?.hp?.value ?? 1,
+    dead: actor?.statuses?.has?.("dead") === true,
   };
 }
 
@@ -64,7 +68,8 @@ export function combatantEntry(combatant) {
  * Does this combatant get NO card on the strip?
  *
  * PCs always keep a card — a downed PC is still a participant (death timers,
- * healing, the skull marker), so their turn is never skipped. Enemies drop off
+ * healing, the skull marker). Only a dead PC's turn is skipped, and that is
+ * `isTurnless`, not this: the skull stays on the strip. Enemies drop off
  * once they are flagged defeated or fall to 0 HP. A combatant whose actor is
  * gone can't be rendered at all.
  *
@@ -79,9 +84,22 @@ export function isHiddenFromStrip(entry) {
 }
 
 /**
+ * Does this combatant have no turn to take? Everyone with no card, plus a dead
+ * PC, whose card stays (skull and all) but whose turn is over for good. The
+ * converse of the strip rule — a card with no turn — leaves no hole: the
+ * pointer simply never rests on it.
+ *
+ * @param {TurnEntry} entry
+ * @returns {boolean}
+ */
+export function isTurnless(entry) {
+  return isHiddenFromStrip(entry) || (entry.isPlayer && entry.dead === true);
+}
+
+/**
  * Should the turn pointer be advanced past `turn`?
  *
- * True only when the current turn renders no card AND some other turn does.
+ * True only when the current turn has no turn to take AND some other turn does.
  * The second half is what keeps a wipe (every combatant dead, or a tracker
  * holding nothing but corpses) from advancing rounds forever — with nowhere
  * to land, the pointer stays put and the GM decides what happens next.
@@ -101,6 +119,6 @@ export function shouldSkipTurn(entries, turn) {
   // out-of-range pointer is a tracker state Foundry repairs itself; moving it
   // from here would fight that repair.
   if (!Number.isInteger(turn) || turn < 0 || turn >= entries.length) return false;
-  if (!isHiddenFromStrip(entries[turn])) return false;
-  return entries.some(e => !isHiddenFromStrip(e));
+  if (!isTurnless(entries[turn])) return false;
+  return entries.some(e => !isTurnless(e));
 }
