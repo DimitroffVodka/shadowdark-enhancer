@@ -2,10 +2,10 @@
 
   <nav class="sde-thub-tabs">
     <button type="button" class="item{{#if tabDashboard}} active{{/if}}" data-thtab="dashboard">
-      <i class="fas fa-table-list"></i> Dashboard
+      <i class="fas fa-table-list"></i> {{localize "SDE.importer.tableHub.tabDashboard"}}
     </button>
     <button type="button" class="item{{#if tabImport}} active{{/if}}" data-thtab="import">
-      <i class="fas fa-file-import"></i> Import
+      <i class="fas fa-file-import"></i> {{localize "SDE.importer.btn.import"}}
     </button>
   </nav>
 
@@ -15,32 +15,32 @@
     <div class="sde-thub-searchbox">
       <i class="fas fa-magnifying-glass"></i>
       <input type="text" name="thubSearch" class="sde-thub-search"
-             placeholder="Search by name, source, category, page…" value="{{search}}">
+             placeholder="{{localize 'SDE.importer.tableHub.searchPlaceholder'}}" value="{{search}}">
     </div>
 
     <div class="sde-thub-summary">
-      <button type="button" class="sde-thub-stat {{#if fAll}}active{{/if}}" data-action="filter" data-state="all" title="Show all">
-        <i class="fas fa-table-list"></i> {{summary.total}} tables</button>
-      <button type="button" class="sde-thub-stat ok {{#if fSystem}}active{{/if}}" data-action="filter" data-state="system" title="Show only in-system">
-        <i class="fas fa-box-archive"></i> {{summary.system}} in system</button>
-      <button type="button" class="sde-thub-stat imp {{#if fImported}}active{{/if}}" data-action="filter" data-state="imported" title="Show only imported">
-        <i class="fas fa-file-import"></i> {{summary.imported}} imported</button>
-      {{#if summary.partial}}<button type="button" class="sde-thub-stat part {{#if fPartial}}active{{/if}}" data-action="filter" data-state="partial" title="Show only partial">
-        <i class="fas fa-circle-half-stroke"></i> {{summary.partial}} partial</button>{{/if}}
-      <button type="button" class="sde-thub-stat miss {{#if fMissing}}active{{/if}}" data-action="filter" data-state="missing" title="Show only missing">
-        <i class="fas fa-circle-exclamation"></i> {{summary.missing}} missing</button>
+      <button type="button" class="sde-thub-stat {{#if fAll}}active{{/if}}" data-action="filter" data-state="all" title="{{localize 'SDE.importer.tableHub.showAllTip'}}">
+        <i class="fas fa-table-list"></i> {{localize "SDE.importer.tableHub.statTotal" n=summary.total}}</button>
+      <button type="button" class="sde-thub-stat ok {{#if fSystem}}active{{/if}}" data-action="filter" data-state="system" title="{{localize 'SDE.importer.tableHub.showSystemTip'}}">
+        <i class="fas fa-box-archive"></i> {{localize "SDE.importer.tableHub.statSystem" n=summary.system}}</button>
+      <button type="button" class="sde-thub-stat imp {{#if fImported}}active{{/if}}" data-action="filter" data-state="imported" title="{{localize 'SDE.importer.tableHub.showImportedTip'}}">
+        <i class="fas fa-file-import"></i> {{localize "SDE.importer.tableHub.statImported" n=summary.imported}}</button>
+      {{#if summary.partial}}<button type="button" class="sde-thub-stat part {{#if fPartial}}active{{/if}}" data-action="filter" data-state="partial" title="{{localize 'SDE.importer.tableHub.showPartialTip'}}">
+        <i class="fas fa-circle-half-stroke"></i> {{localize "SDE.importer.tableHub.statPartial" n=summary.partial}}</button>{{/if}}
+      <button type="button" class="sde-thub-stat miss {{#if fMissing}}active{{/if}}" data-action="filter" data-state="missing" title="{{localize 'SDE.importer.tableHub.showMissingTip'}}">
+        <i class="fas fa-circle-exclamation"></i> {{localize "SDE.importer.tableHub.statMissing" n=summary.missing}}</button>
       <button type="button" class="sde-thub-refresh" data-action="refresh"
-              title="Re-scan the system compendium and force a full re-check. In-world table edits (import, rename, rows) update the dashboard automatically.">
-        <i class="fas fa-rotate"></i> Re-check compendiums
+              title="{{localize 'SDE.importer.tableHub.recheckTip'}}">
+        <i class="fas fa-rotate"></i> {{localize "SDE.importer.tableHub.recheck"}}
       </button>
     </div>
 
     <div class="sde-thub-sources">
-      <span class="sde-thub-srclabel">Source</span>
-      <button type="button" class="sde-thub-src{{#if sourceAll}} active{{/if}}" data-action="filterSource" data-source="all">All</button>
+      <span class="sde-thub-srclabel">{{localize "SDE.importer.source.label"}}</span>
+      <button type="button" class="sde-thub-src{{#if sourceAll}} active{{/if}}" data-action="filterSource" data-source="all">{{localize "SDE.importer.manage.showAll"}}</button>
       {{#each sources as |s|}}
       <button type="button" class="sde-thub-src{{#if s.active}} active{{/if}}{{#unless s.count}} empty{{/unless}}"
-              data-action="filterSource" data-source="{{s.id}}" title="Filter to {{s.label}}">
+              data-action="filterSource" data-source="{{s.id}}" title="{{localize 'SDE.importer.tableHub.filterSourceTip' label=s.label}}">
         {{s.label}} <span class="sde-thub-src-n">{{s.count}}</span>
       </button>
       {{/each}}
@@ -62,52 +62,52 @@
         </summary>
         <ul class="sde-thub-rows">
           {{#each sg.rows as |r|}}
-          <li class="sde-thub-row state-{{r.state}}{{#if r.uuid}} sde-thub-openable{{/if}}" data-search="{{r.searchKey}}"{{#if r.uuid}} data-uuid="{{r.uuid}}" title="Double-click to open this table"{{/if}}>
+          <li class="sde-thub-row state-{{r.state}}{{#if r.uuid}} sde-thub-openable{{/if}}" data-search="{{r.searchKey}}"{{#if r.uuid}} data-uuid="{{r.uuid}}" title="{{localize 'SDE.importer.tableHub.openTip'}}"{{/if}}>
             <span class="sde-thub-name">{{r.name}}</span>
-            <span class="sde-thub-meta">p{{r.page}} &middot; {{r.die}}{{#if r.sourceShort}} &middot; {{r.sourceShort}}{{/if}}</span>
+            <span class="sde-thub-meta">{{localize "SDE.importer.tableHub.page" page=r.page}} &middot; {{r.die}}{{#if r.sourceShort}} &middot; {{r.sourceShort}}{{/if}}</span>
 
             {{#if r.isMatrix}}
-            <span class="sde-thub-matrix-tag" title="One printed grid that splits into {{r.columnsTotal}} per-column tables">{{r.splitLabel}}</span>
+            <span class="sde-thub-matrix-tag" title="{{localize 'SDE.importer.tableHub.matrixTip' n=r.columnsTotal}}">{{r.splitLabel}}</span>
             {{#if r.isImported}}
-              <span class="sde-thub-badge ok"><i class="fas fa-check"></i> All {{r.columnsTotal}} imported</span>
+              <span class="sde-thub-badge ok"><i class="fas fa-check"></i> {{localize "SDE.importer.tableHub.allImported" n=r.columnsTotal}}</span>
             {{/if}}
             {{#if r.isPartial}}
-              <span class="sde-thub-badge warn"><i class="fas fa-circle-half-stroke"></i> {{r.columnsPresent}}/{{r.columnsTotal}} imported</span>
+              <span class="sde-thub-badge warn"><i class="fas fa-circle-half-stroke"></i> {{localize "SDE.importer.tableHub.partialImported" present=r.columnsPresent total=r.columnsTotal}}</span>
               <button type="button" class="sde-thub-import" data-action="importMissing" data-id="{{r.id}}"
-                      title="Re-paste the grid to fill the rest"><i class="fas fa-file-import"></i> Import</button>
+                      title="{{localize 'SDE.importer.tableHub.repasteTip'}}"><i class="fas fa-file-import"></i> {{localize "SDE.importer.btn.import"}}</button>
             {{/if}}
             {{#if r.isMissing}}
-              <span class="sde-thub-badge miss"><i class="fas fa-circle-exclamation"></i> Missing</span>
+              <span class="sde-thub-badge miss"><i class="fas fa-circle-exclamation"></i> {{localize "SDE.importer.tableHub.missing"}}</span>
               <button type="button" class="sde-thub-import" data-action="importMissing" data-id="{{r.id}}"
-                      title="Paste the grid once — it splits into {{r.columnsTotal}} tables"><i class="fas fa-file-import"></i> Import all {{r.columnsTotal}}</button>
+                      title="{{localize 'SDE.importer.tableHub.pasteGridTip' n=r.columnsTotal}}"><i class="fas fa-file-import"></i> {{localize "SDE.importer.tableHub.importAllN" n=r.columnsTotal}}</button>
             {{/if}}
           {{else}}
             {{#if r.isSystem}}
-              <span class="sde-thub-badge ok"><i class="fas fa-box-archive"></i> In system</span>
+              <span class="sde-thub-badge ok"><i class="fas fa-box-archive"></i> {{localize "SDE.importer.tableHub.inSystem"}}</span>
             {{/if}}
             {{#if r.isImported}}
-              <span class="sde-thub-badge imp"><i class="fas fa-check"></i> Imported</span>
+              <span class="sde-thub-badge imp"><i class="fas fa-check"></i> {{localize "SDE.importer.manage.imported"}}</span>
               {{#if r.worldName}}
-              <span class="sde-thub-world" title="Matched world table — confirm it's the right one">&rarr; {{r.worldName}}</span>
+              <span class="sde-thub-world" title="{{localize 'SDE.importer.tableHub.worldTip'}}">&rarr; {{r.worldName}}</span>
               {{/if}}
               {{#if r.rowsExpected}}
               <span class="sde-thub-rows-chk {{#if r.verifyOk}}ok{{else}}warn{{/if}}"
-                    title="Imported table has {{r.rowsActual}} rows; expected {{r.rowsExpected}}">
-                {{r.rowsActual}}/{{r.rowsExpected}} rows
+                    title="{{localize 'SDE.importer.tableHub.rowsTip' actual=r.rowsActual expected=r.rowsExpected}}">
+                {{localize "SDE.importer.tableHub.rowsCount" actual=r.rowsActual expected=r.rowsExpected}}
               </span>
               {{#unless r.verifyOk}}
               <button type="button" class="sde-thub-import" data-action="importMissing" data-id="{{r.id}}"
-                      title="Row count doesn't match the book — re-import from your copy">
-                <i class="fas fa-rotate"></i> Re-import
+                      title="{{localize 'SDE.importer.tableHub.reimportTip'}}">
+                <i class="fas fa-rotate"></i> {{localize "SDE.importer.tableHub.reimport"}}
               </button>
               {{/unless}}
               {{/if}}
             {{/if}}
             {{#if r.isMissing}}
-              <span class="sde-thub-badge miss"><i class="fas fa-circle-exclamation"></i> Missing</span>
+              <span class="sde-thub-badge miss"><i class="fas fa-circle-exclamation"></i> {{localize "SDE.importer.tableHub.missing"}}</span>
               <button type="button" class="sde-thub-import" data-action="importMissing" data-id="{{r.id}}"
-                      title="Open the Importer to paste this table from your book">
-                <i class="fas fa-file-import"></i> Import
+                      title="{{localize 'SDE.importer.tableHub.importTip'}}">
+                <i class="fas fa-file-import"></i> {{localize "SDE.importer.btn.import"}}
               </button>
             {{/if}}
           {{/if}}
@@ -126,36 +126,35 @@
       {{#if importData.seed}}
       <div class="sde-import-seed">
         <i class="fas fa-bullseye"></i>
-        Importing <strong>{{importData.seed.name}}</strong>
+        {{localize "SDE.importer.type.importing"}} <strong>{{importData.seed.name}}</strong>
         {{#if importData.seed.die}}<span class="sde-import-seed-tag">{{importData.seed.die}}</span>{{/if}}
-        {{#if importData.seed.page}}<span class="sde-import-seed-tag">p{{importData.seed.page}}</span>{{/if}}
-        — paste its rows below and Parse. The name, formula, and folder are pre-set for you.
+        {{#if importData.seed.page}}<span class="sde-import-seed-tag">{{localize "SDE.importer.tableHub.page" page=importData.seed.page}}</span>{{/if}}
+        {{localize "SDE.importer.tableHub.seedRest"}}
       </div>
       {{/if}}
       <label class="sde-import-label" for="sde-thub-import-text">
-        Paste a table copied from a Shadowdark book or zine:
+        {{localize "SDE.importer.tableHub.pasteLabel"}}
       </label>
       <textarea id="sde-thub-import-text" data-import-text rows="8"
                 class="sde-import-text"
-                placeholder="d100 Details&#10;01 A frozen corpse...&#10;02-03 A pack of wolves...">{{importData.text}}</textarea>
+                placeholder="{{localize 'SDE.importer.tableHub.pastePlaceholder'}}">{{importData.text}}</textarea>
 
       <div class="sde-import-controls">
         <button type="button" data-action="importParse">
-          <i class="fas fa-wand-magic"></i> Parse
+          <i class="fas fa-wand-magic"></i> {{localize "SDE.importer.btn.parse"}}
         </button>
         <button type="button" data-action="importClear" class="sde-import-secondary">
-          <i class="fas fa-eraser"></i> Clear
+          <i class="fas fa-eraser"></i> {{localize "SDE.importer.btn.clear"}}
         </button>
         {{#if importData.parsed.length}}
         <button type="button" data-action="importCreateAll" class="sde-import-primary">
-          <i class="fas fa-table-list"></i> Create all ({{importData.parsed.length}})
+          <i class="fas fa-table-list"></i> {{localize "SDE.importer.tableHub.createAll" n=importData.parsed.length}}
         </button>
         {{/if}}
       </div>
 
       <p class="sde-import-note">
-        <i class="fas fa-link"></i> Encounter and treasure tables are linked to the
-        compendium automatically when created — no extra step.
+        <i class="fas fa-link"></i> {{localize "SDE.importer.tableHub.autoLinkNote"}}
       </p>
 
       {{#if importData.parsed.length}}
@@ -164,30 +163,30 @@
         <div class="sde-import-table" data-table-idx="{{@index}}">
           <div class="sde-import-table-head">
             <input type="text" data-import-field="name" value="{{tbl.name}}"
-                   aria-label="Table name" placeholder="Table name"
+                   aria-label="{{localize 'SDE.importer.tables.nameAria'}}" placeholder="{{localize 'SDE.importer.tables.nameAria'}}"
                    class="sde-import-name">
             <input type="text" data-import-field="formula" value="{{tbl.formula}}"
-                   aria-label="Formula" class="sde-import-formula">
-            <label class="sde-import-repl" data-tooltip="On: results can repeat on every draw. Off: each result is removed after it's drawn (no repeats) until the table is reset." data-tooltip-direction="UP">
+                   aria-label="{{localize 'SDE.importer.tables.formulaAria'}}" class="sde-import-formula">
+            <label class="sde-import-repl" data-tooltip="{{localize 'SDE.importer.tableHub.replacementTip'}}" data-tooltip-direction="UP">
               <input type="checkbox" data-import-field="replacement" {{#if tbl.replacement}}checked{{/if}}>
-              Replacement
+              {{localize "SDE.importer.tables.replacement"}}
             </label>
-            <select data-import-field="category" class="sde-import-cat" aria-label="Table type" data-tooltip="Folder this table is filed under when created." data-tooltip-direction="UP">
+            <select data-import-field="category" class="sde-import-cat" aria-label="{{localize 'SDE.importer.tableHub.tableTypeAria'}}" data-tooltip="{{localize 'SDE.importer.tableHub.folderTip'}}" data-tooltip-direction="UP">
               {{#each @root.importData.categoryOptions as |opt|}}
               <option value="{{opt.id}}" {{#if (eq opt.id tbl.category)}}selected{{/if}}>{{opt.label}}</option>
               {{/each}}
             </select>
             {{#if (eq tbl.category "custom")}}
             <input type="text" data-import-field="customLabel" value="{{tbl.customLabel}}"
-                   class="sde-import-customcat" aria-label="Custom folder name" placeholder="Folder name">
+                   class="sde-import-customcat" aria-label="{{localize 'SDE.importer.tables.customAria'}}" placeholder="{{localize 'SDE.importer.tables.customPlaceholder'}}">
             {{/if}}
             <button type="button" data-action="importCreate" class="sde-import-primary">
-              <i class="fas fa-plus"></i> Create
+              <i class="fas fa-plus"></i> {{localize "SDE.importer.btn.create"}}
             </button>
           </div>
 
           {{#if tbl.bestEffort}}
-          <p class="sde-import-flag"><i class="fas fa-triangle-exclamation"></i> Best-effort column split — check the cells.</p>
+          <p class="sde-import-flag"><i class="fas fa-triangle-exclamation"></i> {{localize "SDE.importer.tables.bestEffort"}}</p>
           {{/if}}
           {{#if tbl.warnings.length}}
           <ul class="sde-import-warnings">
@@ -198,19 +197,19 @@
           <div class="sde-import-rows">
             {{#each tbl.rows as |row|}}
             <div class="sde-import-row" data-row-idx="{{@index}}">
-              <input type="number" data-import-field="min" value="{{row.min}}" aria-label="Range min" class="sde-import-num">
+              <input type="number" data-import-field="min" value="{{row.min}}" aria-label="{{localize 'SDE.importer.tables.minAria'}}" class="sde-import-num">
               <span class="sde-import-dash">–</span>
-              <input type="number" data-import-field="max" value="{{row.max}}" aria-label="Range max" class="sde-import-num">
-              <input type="text" data-import-field="text" value="{{row.text}}" aria-label="Result text" class="sde-import-rowtext">
+              <input type="number" data-import-field="max" value="{{row.max}}" aria-label="{{localize 'SDE.importer.tables.maxAria'}}" class="sde-import-num">
+              <input type="text" data-import-field="text" value="{{row.text}}" aria-label="{{localize 'SDE.importer.tables.resultAria'}}" class="sde-import-rowtext">
               {{#if row.link}}
-              <span class="sde-import-link" data-tooltip="Draws as a link to this compendium item">
+              <span class="sde-import-link" data-tooltip="{{localize 'SDE.importer.tables.linkTip'}}">
                 <i class="fas fa-link"></i> {{row.link.name}}
               </span>
-              <button type="button" data-action="importUnlinkRow" aria-label="Unlink item" class="sde-import-unlink">
+              <button type="button" data-action="importUnlinkRow" aria-label="{{localize 'SDE.importer.tables.unlinkAria'}}" class="sde-import-unlink">
                 <i class="fas fa-link-slash"></i>
               </button>
               {{/if}}
-              <button type="button" data-action="importDeleteRow" aria-label="Delete row" class="sde-import-del">
+              <button type="button" data-action="importDeleteRow" aria-label="{{localize 'SDE.importer.tables.delRowAria'}}" class="sde-import-del">
                 <i class="fas fa-xmark"></i>
               </button>
             </div>
@@ -218,13 +217,13 @@
           </div>
 
           <button type="button" data-action="importAddRow" class="sde-import-addrow">
-            <i class="fas fa-plus"></i> Add row
+            <i class="fas fa-plus"></i> {{localize "SDE.importer.tables.addRow"}}
           </button>
         </div>
         {{/each}}
       </div>
       {{else}}
-      <p class="sde-import-empty">Paste table text above and click <strong>Parse</strong> to preview it here before creating Roll Tables.</p>
+      <p class="sde-import-empty">{{{localize "SDE.importer.tableHub.empty"}}}</p>
       {{/if}}
     </div>
   </div>

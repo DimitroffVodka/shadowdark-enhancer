@@ -2,6 +2,10 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { extrasHexApi, extrasFeaturesOn, extrasHexRecords, handoffDataset, handoffToPrint, importDatasetRecords, SETTLEMENTS_SENT_FLAG } from "../scripts/importer/hex/hex-handoff.mjs";
 
+/** Echoes the key and its data, so a toast still shows which sentence it is
+ *  and what went into it (the real strings live in languages/en.json). */
+const i18n = { localize: (k) => k, format: (k, d) => k + JSON.stringify(d) };
+
 const clean = () => {
   delete globalThis.game;
   delete globalThis.ui;
@@ -94,7 +98,7 @@ test("a failed repaint still keeps the words that were already written", async (
     buildHexcrawl: async () => {},
     upsertHexRecords: async (id, r) => { wrote = r.length; return { sceneId: id, records: r.length }; },
     repaintHexTiles: async () => { throw new Error("SDX | Hexcrawl: scene not found"); },
-  } } };
+  } }, i18n };
   let shown = "";
   globalThis.ui = { notifications: { error: (m) => { shown = m; }, info: () => {} } };
 
@@ -102,20 +106,20 @@ test("a failed repaint still keeps the words that were already written", async (
   assert.equal(wrote, 1, "words are written before the repaint is attempted");
   assert.equal(result.via, "extras");
   assert.equal(result.reason, "repaint-error");
-  assert.match(shown, /could not be repainted/);
+  assert.match(shown, /^SDE\.importer\.hexHandoff\.notify\.repaintFailed.*scene not found/);
 });
 
 test("an Extras without repaintHexTiles imports the words and says the art is stale", async () => {
   globalThis.game = { user: { isGM: true }, shadowdarkExtras: { hex: {
     buildHexcrawl: async () => {},
     upsertHexRecords: async (id, r) => ({ sceneId: id, records: r.length }),
-  } } };
+  } }, i18n };
   let warned = "";
   globalThis.ui = { notifications: { warn: (m) => { warned = m; }, info: () => {} } };
 
   const result = await importDatasetRecords("scene-1", { hexes: [{ num: 1403, name: "x", terrain: "swamp" }] });
   assert.equal(result.reason, "no-repaint");
-  assert.match(warned, /too old to repaint/);
+  assert.equal(warned, 'SDE.importer.hexHandoff.notify.tooOldOne{"n":1}');
 });
 
 test("import is GM-only and never calls Extras", async () => {
@@ -148,7 +152,7 @@ test("Extras refusing a record surfaces its message instead of throwing", async 
   globalThis.game = { user: { isGM: true }, shadowdarkExtras: { hex: {
     buildHexcrawl: async () => {},
     upsertHexRecords: async () => { throw new Error("SDX | Hexcrawl: hex 9999 is outside the published grid"); },
-  } } };
+  } }, i18n };
   let shown = "";
   globalThis.ui = { notifications: { error: (m) => { shown = m; } } };
   assert.deepEqual(await importDatasetRecords("scene-1", { hexes: [{ num: 9999, name: "x" }] }), { via: "none", reason: "extras-error" });

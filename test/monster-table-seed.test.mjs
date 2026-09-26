@@ -99,12 +99,22 @@ test("valid 4/4 and 3/3 matrices pass the commit gate", () => {
   }
 });
 
+/** Run `fn` with an i18n that echoes the key and its data, so an error still
+ *  shows which sentence was picked and what went into it. */
+function withKeyI18n(fn) {
+  const saved = globalThis.game;
+  globalThis.game = { ...(saved ?? {}), i18n: { localize: (k) => k, format: (k, d) => k + JSON.stringify(d) } };
+  try { return fn(); } finally {
+    if (saved === undefined) delete globalThis.game; else globalThis.game = saved;
+  }
+}
+
 test("a missing child column blocks the whole matrix commit", () => {
   const seed = buildMonsterTableSeed("generator");
   const kids = childrenFor(seed).slice(0, 3); // drop Weakness
-  const res = validateMatrixCommit(seed, kids);
+  const res = withKeyI18n(() => validateMatrixCommit(seed, kids));
   assert.equal(res.ok, false);
-  assert.match(res.errors.join(" "), /Expected 4 child tables.*found 3/);
+  assert.match(res.errors.join(" "), /tableCheck\.childCount\{"want":4,.*"found":3\}/);
 });
 
 test("a wrong id / wrong order blocks the whole matrix commit", () => {
@@ -112,9 +122,9 @@ test("a wrong id / wrong order blocks the whole matrix commit", () => {
   const kids = childrenFor(seed);
   // Swap columns 0 and 1 so the manifestIds no longer line up in order.
   [kids[0], kids[1]] = [kids[1], kids[0]];
-  const res = validateMatrixCommit(seed, kids);
+  const res = withKeyI18n(() => validateMatrixCommit(seed, kids));
   assert.equal(res.ok, false);
-  assert.match(res.errors.join(" "), /expected "core-monster-generator:combat"/);
+  assert.match(res.errors.join(" "), /"expected":"core-monster-generator:combat"/);
 });
 
 test("an invalid child (empty cell) blocks the whole matrix commit", () => {
@@ -122,12 +132,12 @@ test("an invalid child (empty cell) blocks the whole matrix commit", () => {
   const kids = childrenFor(seed);
   // Blank out one result's text so computeBlockers reports an empty row.
   kids[2].rows[4].text = "   ";
-  const res = validateMatrixCommit(seed, kids);
+  const res = withKeyI18n(() => validateMatrixCommit(seed, kids));
   assert.equal(res.ok, false);
   assert.match(res.errors.join(" "), /Mutation 3|empty|no result text/i);
 });
 
 test("a non-matrix seed is rejected as not-a-matrix", () => {
   assert.equal(validateMatrixCommit({ name: "x" }, []).ok, false);
-  assert.match(validateMatrixCommit({ name: "x" }, []).errors[0], /Not a valid matrix seed/);
+  assert.equal(validateMatrixCommit({ name: "x" }, []).errors[0], "SDE.importer.tableCheck.notMatrix");
 });

@@ -20,6 +20,7 @@ import {
 import { suiteMemberNames } from "./table-shapes.mjs";
 import { findSuitePack } from "../../shared/compendium-suite.mjs";
 import { charSourceKey, SOURCE_LABEL } from "../../shared/source-keys.mjs";
+import { t as tr } from "../importer-hub-shared.mjs";
 
 const SYSTEM_PACK = "shadowdark.rollable-tables";
 
@@ -334,7 +335,7 @@ export const TableHub = {
           isMatrix: true,
           // Same row furniture as a matrix — N columns, a partial state, one
           // Import — but it is not a cross-index matrix, so it does not say so.
-          splitLabel: `${ss.total}-table grid`,
+          splitLabel: tr("SDE.importer.tableHub.gridLabel", { n: ss.total }),
           columnsTotal: ss.total,
           columnsPresent: ss.present,
           rowsExpected: entry.rows, rowsActual: null, verifyOk: null, worldName: null,
@@ -359,7 +360,7 @@ export const TableHub = {
           isPartial: ms.state === "partial",
           isMissing: ms.state === "missing",
           isMatrix: true,
-          splitLabel: `${ms.total}-table matrix`,
+          splitLabel: tr("SDE.importer.tableHub.matrixLabel", { n: ms.total }),
           columnsTotal: ms.total,
           columnsPresent: ms.present,
           rowsExpected: entry.rows, rowsActual: null, verifyOk: null, worldName: null, uuid,
@@ -410,7 +411,7 @@ export const TableHub = {
       row.sources = row.cites.map(c => c.src);
       row.sourceShort = [
         sourceShort(entry.source),
-        ...row.cites.slice(1).map(c => `p${c.page} ${c.short}`),
+        ...row.cites.slice(1).map(c => `${tr("SDE.importer.tableHub.page", { page: c.page })} ${c.short}`),
       ].join(" / ");
       // Precomputed lowercase haystack for the hub's client-side search box —
       // every printing's name, book and page, so either book's wording finds it.

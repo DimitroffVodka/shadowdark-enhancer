@@ -62,9 +62,10 @@ async function runBatchForToast(job, result, blocked = []) {
 
 test("a row with no page citation can't run unattended", () => {
   const h = hub();
-  assert.match(
+  // No i18n is mounted here, so the reason comes back as its en.json key.
+  assert.equal(
     h._batchCanRun({ name: "Torch", src: "WR", pages: "" }, ROUTE.HUB),
-    /page citation/i);
+    "SDE.importer.batchNote.noCite");
 });
 
 test("gear only runs where the Item Builder has a verified page cite", () => {
@@ -72,7 +73,7 @@ test("gear only runs where the Item Builder has a verified page cite", () => {
   assert.equal(h._batchCanRun({ type: "Basic", src: "WR" }, ROUTE.GEAR), true);
   // CS4 gear has no verified table/description pages — say so rather than
   // grabbing the wrong pages and minting garbage items.
-  assert.match(h._batchCanRun({ type: "Basic", src: "CS4" }, ROUTE.GEAR), /no verified page cite/i);
+  assert.equal(h._batchCanRun({ type: "Basic", src: "CS4" }, ROUTE.GEAR), "SDE.importer.batchNote.gearNoCite");
 });
 
 test("a downtime row resolves its book through the slug, not its blank src", () => {
@@ -80,14 +81,14 @@ test("a downtime row resolves its book through the slug, not its blank src", () 
   // "pg 26-27" — resolving the PDF off src would block every downtime unlock.
   const h = hub();
   assert.equal(h._batchCanRun({ src: "", pages: "26-27", listKey: "cs6" }, ROUTE.DOWNTIME), true);
-  assert.match(
+  assert.equal(
     h._batchCanRun({ src: "", pages: "26-27", listKey: "nonesuch" }, ROUTE.DOWNTIME),
-    /no source book mapped/i);
+    "SDE.importer.batchNote.noDowntimeBook");
 });
 
 test("a spell list without a list key can't be preset", () => {
   const h = hub();
-  assert.match(h._batchCanRun({ src: "WR", pages: "138" }, ROUTE.SPELLS), /no spell list to preset/i);
+  assert.equal(h._batchCanRun({ src: "WR", pages: "138" }, ROUTE.SPELLS), "SDE.importer.batchNote.noSpellList");
   assert.equal(h._batchCanRun({ src: "WR", pages: "138", listKey: "wr-priest-lawful" }, ROUTE.SPELLS), true);
 });
 
@@ -215,7 +216,7 @@ test("the Mount batch path reports each requested name when parsing is partial",
 
   const result = await h._batchRunMounts(job);
   assert.deepEqual(result.entries, [
-    { name: "Donkey", status: "created", created: 1, note: "created" },
+    { name: "Donkey", status: "created", created: 1, note: "SDE.importer.batchNote.created" },
     { name: "Pony", status: "failed", created: 0, note: "not among the statblocks" },
   ]);
   assert.equal(result.status, "created");
@@ -362,6 +363,17 @@ test("a null element ends the run cleanly instead of failing entries on a DOM er
 // bucket regardless. Measuring "created" as the DROP in bucket size therefore
 // reported the whole book as created — an "Import everything" pass over the GM
 // Guide's 90 statblocks claimed 90 created and created nothing.
+/** Run `fn` with an i18n that echoes the key and its data, so a note still
+ *  shows which sentence was picked and the numbers that went into it. */
+async function withKeyI18n(fn) {
+  const previous = globalThis.game.i18n;
+  globalThis.game.i18n = { localize: (k) => k, format: (k, d) => k + JSON.stringify(d) };
+  try { return await fn(); } finally {
+    if (previous === undefined) delete globalThis.game.i18n;
+    else globalThis.game.i18n = previous;
+  }
+}
+
 function bestiaryHub(drafts, skipped) {
   const h = hub();
   h._onHubClear = () => {};
@@ -383,15 +395,15 @@ const bestiaryJob = {
 };
 
 test("a batch row counts skipped duplicates as skipped, not as created", async () => {
-  const result = await bestiaryHub(["Adept", "Bard", "Scout"], 3)._batchRunHub(bestiaryJob);
+  const result = await withKeyI18n(() => bestiaryHub(["Adept", "Bard", "Scout"], 3)._batchRunHub(bestiaryJob));
   assert.equal(result.created, 0);
   assert.equal(result.status, "nothing");
-  assert.match(result.note, /3 already in your library/);
+  assert.equal(result.note, 'SDE.importer.batchNote.inLibraryN{"n":3}');
 });
 
 test("a partly-reprinted bestiary reports both halves", async () => {
-  const result = await bestiaryHub(["Adept", "Bard", "Scout"], 2)._batchRunHub(bestiaryJob);
+  const result = await withKeyI18n(() => bestiaryHub(["Adept", "Bard", "Scout"], 2)._batchRunHub(bestiaryJob));
   assert.equal(result.created, 1);
   assert.equal(result.status, "created");
-  assert.match(result.note, /1 created; 2 already in your library/);
+  assert.equal(result.note, 'SDE.importer.count.created{"n":1}; SDE.importer.batchNote.inLibraryN{"n":2}');
 });

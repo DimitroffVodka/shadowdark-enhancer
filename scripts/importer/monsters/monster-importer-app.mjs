@@ -15,6 +15,7 @@
 import { parseStatblocks } from "./statblock-parser.mjs";
 import { npcMoveKeys } from "../../monster-creator/npc-moves.mjs";
 import { MonsterImporter } from "./monster-importer.mjs";
+import { t as tr } from "../importer-hub-shared.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
@@ -45,7 +46,7 @@ function warnFields(warnings) {
 export class MonsterImporterApp extends HandlebarsApplicationMixin(ApplicationV2) {
   static DEFAULT_OPTIONS = {
     id: "sde-monster-importer",
-    window: { title: "Monster Importer", icon: "fas fa-dragon", resizable: true },
+    window: { title: "SDE.importer.monsterImporter.title", icon: "fas fa-dragon", resizable: true },
     position: { width: 860, height: 780 },
     actions: {
       mimportParse:          MonsterImporterApp.prototype._onParse,
@@ -114,15 +115,16 @@ export class MonsterImporterApp extends HandlebarsApplicationMixin(ApplicationV2
       alignments: ["L", "N", "C"],
       moveOptions,
       spellAbilities: [
-        { value: "", label: "— none —" },
-        { value: "int", label: "INT" },
-        { value: "wis", label: "WIS" },
-        { value: "cha", label: "CHA" },
+        { value: "", label: tr("SDE.importer.source.noneDash") },
+        { value: "int", label: tr("SDE.importer.abil.int") },
+        { value: "wis", label: tr("SDE.importer.abil.wis") },
+        { value: "cha", label: tr("SDE.importer.abil.cha") },
       ],
       attackTypes: ["NPC Attack", "NPC Special Attack"],
       abilityKeys: [
-        { key: "str", label: "STR" }, { key: "dex", label: "DEX" }, { key: "con", label: "CON" },
-        { key: "int", label: "INT" }, { key: "wis", label: "WIS" }, { key: "cha", label: "CHA" },
+        { key: "str", label: tr("SDE.importer.abil.str") }, { key: "dex", label: tr("SDE.importer.abil.dex") },
+        { key: "con", label: tr("SDE.importer.abil.con") }, { key: "int", label: tr("SDE.importer.abil.int") },
+        { key: "wis", label: tr("SDE.importer.abil.wis") }, { key: "cha", label: tr("SDE.importer.abil.cha") },
       ],
     };
   }
@@ -236,7 +238,7 @@ export class MonsterImporterApp extends HandlebarsApplicationMixin(ApplicationV2
     const { drafts, skipped } = parseStatblocks(this._text);
     this._parsed = drafts;
     this._skipped = skipped;
-    if (!drafts.length) ui.notifications.warn("No monsters found in the pasted text.");
+    if (!drafts.length) ui.notifications.warn(tr("SDE.importer.monsterImporter.notify.noMonsters"));
     this.render();
   }
 
@@ -257,14 +259,14 @@ export class MonsterImporterApp extends HandlebarsApplicationMixin(ApplicationV2
   _onAddAttack(event, target) {
     const draft = this._monsterDraft(target);
     if (!draft) return;
-    draft.actions.push({ name: "New Attack", type: "NPC Attack", num: 1, bonus: 0, damage: "1d6", ranges: ["close"], description: "" });
+    draft.actions.push({ name: tr("SDE.importer.monsterImporter.newAttack"), type: "NPC Attack", num: 1, bonus: 0, damage: "1d6", ranges: ["close"], description: "" });
     this.render();
   }
 
   _onAddSpecial(event, target) {
     const draft = this._monsterDraft(target);
     if (!draft) return;
-    draft.actions.push({ name: "New Special", type: "NPC Special Attack", num: 1, bonus: 0, damage: "", ranges: [], description: "" });
+    draft.actions.push({ name: tr("SDE.importer.monsterImporter.newSpecial"), type: "NPC Special Attack", num: 1, bonus: 0, damage: "", ranges: [], description: "" });
     this.render();
   }
 
@@ -279,7 +281,7 @@ export class MonsterImporterApp extends HandlebarsApplicationMixin(ApplicationV2
   _onAddFeature(event, target) {
     const draft = this._monsterDraft(target);
     if (!draft) return;
-    draft.features.push({ name: "New Feature", description: "" });
+    draft.features.push({ name: tr("SDE.importer.monsterImporter.newFeature"), description: "" });
     this.render();
   }
 
@@ -317,12 +319,12 @@ export class MonsterImporterApp extends HandlebarsApplicationMixin(ApplicationV2
     return async (name) => {
       const safe = foundry.utils.escapeHTML(name);
       const choice = await foundry.applications.api.DialogV2.wait({
-        window: { title: "Monster Already Exists" },
-        content: `<p>A monster named <strong>${safe}</strong> is already in the imported-monsters compendium. What would you like to do?</p>`,
+        window: { title: "SDE.importer.conflict.monsterTitle" },
+        content: `<p>${tr("SDE.importer.conflict.monster", { name: safe })}</p>`,
         buttons: [
-          { action: "rename",  label: "Import as Copy", default: true },
-          { action: "replace", label: "Replace Existing" },
-          { action: "skip",    label: "Skip" },
+          { action: "rename",  label: "SDE.importer.conflict.importCopy", default: true },
+          { action: "replace", label: "SDE.importer.conflict.replace" },
+          { action: "skip",    label: "SDE.importer.conflict.skip" },
         ],
         rejectClose: false,
       }).catch(() => "skip");
@@ -331,7 +333,7 @@ export class MonsterImporterApp extends HandlebarsApplicationMixin(ApplicationV2
   }
 
   async _onCreateAll() {
-    if (!game.user?.isGM) { ui.notifications.warn("Only a GM can import monsters."); return; }
+    if (!game.user?.isGM) { ui.notifications.warn(tr("SDE.importer.gm.monsters")); return; }
     if (!this._parsed.length) return;
 
     const source = (this._source || "").trim();
@@ -339,10 +341,10 @@ export class MonsterImporterApp extends HandlebarsApplicationMixin(ApplicationV2
     const result = await MonsterImporter.createMonsters(drafts, { source, onConflict: this._conflictDialog() });
     if (!result) return;
 
-    const parts = [`${result.created.length} created`];
-    if (result.replaced.length) parts.push(`${result.replaced.length} replaced`);
-    if (result.skipped.length) parts.push(`${result.skipped.length} skipped`);
-    ui.notifications.info(`Monsters: ${parts.join(", ")} → ${MonsterImporter.PACK_LABEL}${source ? ` / ${source}` : ""}.`);
+    const parts = [tr("SDE.importer.bundle.created", { n: result.created.length })];
+    if (result.replaced.length) parts.push(tr("SDE.importer.monsterImporter.replaced", { n: result.replaced.length }));
+    if (result.skipped.length) parts.push(tr("SDE.importer.cull.skipped", { n: result.skipped.length }));
+    ui.notifications.info(tr("SDE.importer.done.monsters", { summary: parts.join(", "), pack: MonsterImporter.PACK_LABEL, source: source ? ` / ${source}` : "" }));
 
     // The batch is done — clear the preview (paste stays for reference). A
     // newly-created monster is linkable immediately (MonsterImporter invalidated

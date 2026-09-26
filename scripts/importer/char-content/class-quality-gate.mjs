@@ -18,6 +18,7 @@
  * they are node-testable; only confirmClassGate() touches the Foundry dialog
  * API, and only when there is actually something to confirm.
  */
+import { t as tr } from "../importer-hub-shared.mjs";
 
 /** Strip a leading "BLOCKER:" tag for display. */
 const stripBlocker = (w) => String(w ?? "").replace(/^BLOCKER:\s*/i, "").trim();
@@ -48,16 +49,12 @@ export function classGateBlockers(warnings = []) {
  * @param {string} [className]        for the message (defaults to "This class")
  * @returns {string[]}
  */
-export function supplementGateBlockers(spellcastingClass, sup, className = "This class") {
+export function supplementGateBlockers(spellcastingClass, sup, className = tr("SDE.importer.charContent.gate.thisClass")) {
   const issues = classGateBlockers(sup?.warnings);
   const hasGrid = (sup?.spellsKnown?.length ?? 0) > 0;
   const nonCaster = String(spellcastingClass ?? "") === "__not_spellcaster__";
   if (hasGrid && nonCaster && !issues.some((w) => /not a spellcaster|SPELLS KNOWN/i.test(w))) {
-    issues.push(
-      `"${className}" is marked NOT a spellcaster, but this paste carries a SPELLS KNOWN grid — ` +
-      `the body import probably lost its Spellcasting feature (it can print after the talents box). ` +
-      `Re-import the class body, or set the casting ability and enabler talent by hand.`
-    );
+    issues.push(tr("SDE.importer.charContent.gate.notCaster", { name: className }));
   }
   return issues;
 }
@@ -75,7 +72,7 @@ export function supplementGateBlockers(spellcastingClass, sup, className = "This
 export function classGateIssues({ warnings = [], hasTalentTable = false, isSupplement = false, titleWarnings = [] } = {}) {
   const issues = [];
   if (!hasTalentTable && !isSupplement)
-    issues.push("No talent table — the class will be created without its level-up rolls.");
+    issues.push(tr("SDE.importer.charContent.gate.noTalentTable"));
   for (const w of classGateBlockers(warnings)) issues.push(w);
   for (const w of (titleWarnings ?? [])) issues.push(String(w));
   return issues;
@@ -97,15 +94,15 @@ export async function confirmClassGate(name, issues) {
   if (!issues?.length) return true;
   const esc = (s) => String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
   const choice = await foundry.applications.api.DialogV2.wait({
-    window: { title: "Class quality check" },
+    window: { title: "SDE.importer.charContent.gate.title" },
     position: { width: 460 },
     content:
-      `<p><strong>${esc(name || "This class")}</strong> has unresolved issues:</p>` +
+      `<p>${tr("SDE.importer.charContent.gate.lead", { name: esc(name || tr("SDE.importer.charContent.gate.thisClass")) })}</p>` +
       `<ul>${issues.map((g) => `<li>${esc(g)}</li>`).join("")}</ul>` +
-      `<p>Create it anyway, or cancel and fix the flagged parts first?</p>`,
+      `<p>${tr("SDE.importer.charContent.gate.question")}</p>`,
     buttons: [
-      { action: "cancel", label: "Cancel and fix", icon: "fa-solid fa-xmark", default: true },
-      { action: "create-anyway", label: "Create anyway", icon: "fa-solid fa-triangle-exclamation" },
+      { action: "cancel", label: "SDE.importer.charContent.gate.cancelFix", icon: "fa-solid fa-xmark", default: true },
+      { action: "create-anyway", label: "SDE.importer.charContent.gate.createAnyway", icon: "fa-solid fa-triangle-exclamation" },
     ],
     rejectClose: false,
   });

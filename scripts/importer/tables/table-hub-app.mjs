@@ -28,7 +28,7 @@ const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 export class RollTablesApp extends HandlebarsApplicationMixin(ApplicationV2) {
   static DEFAULT_OPTIONS = {
     id: "sde-roll-tables",
-    window: { title: "Roll Tables", icon: "fas fa-table-list", resizable: true },
+    window: { title: "SDE.importer.tableHub.title", icon: "fas fa-table-list", resizable: true },
     position: { width: 820, height: 720 },
     actions: {
       refresh:          RollTablesApp.prototype._onRefresh,
@@ -155,7 +155,7 @@ export class RollTablesApp extends HandlebarsApplicationMixin(ApplicationV2) {
         seed: this._importSeed,
         categoryOptions: [
           ...CATEGORIES.map(c => ({ id: c.id, label: c.label })),
-          { id: CUSTOM_ID, label: "Custom…" },
+          { id: CUSTOM_ID, label: game.i18n.localize("SDE.importer.folder.custom") },
         ],
       },
     };
@@ -240,7 +240,7 @@ export class RollTablesApp extends HandlebarsApplicationMixin(ApplicationV2) {
       const openTable = async () => {
         const doc = await fromUuid(li.dataset.uuid).catch(() => null);
         if (doc?.sheet) doc.sheet.render(true);
-        else ui.notifications?.warn("Couldn't open that table — it may have been deleted.");
+        else ui.notifications?.warn(game.i18n.localize("SDE.importer.tableHub.notify.openFailed"));
       };
       li.addEventListener("dblclick", async (ev) => {
         if (ev.target.closest("button")) return; // let action buttons win
@@ -362,14 +362,13 @@ export class RollTablesApp extends HandlebarsApplicationMixin(ApplicationV2) {
     this._applyImportSeed();
     if (this._importMissing.length) {
       const total = this._importMissing.length + this._importParsed.length;
-      ui.notifications.warn(
-        `${this._importMissing.length} of ${total} tables in this grid weren't in the pasted text `
-        + `(${this._importMissing.join(", ")}). Grab the whole cited page range before Create.`,
-      );
+      ui.notifications.warn(game.i18n.format("SDE.importer.tableHub.notify.gridMissing", {
+        n: this._importMissing.length, total, names: this._importMissing.join(", "),
+      }));
     }
     await this._linkLootTables();
     if (!this._importParsed.length) {
-      ui.notifications.warn("No tables found in the pasted text.");
+      ui.notifications.warn(game.i18n.localize("SDE.importer.tableHub.notify.noTables"));
     }
     this.render();
   }
@@ -556,7 +555,7 @@ export class RollTablesApp extends HandlebarsApplicationMixin(ApplicationV2) {
       const made = await this._createImportedTable(tbl, { silent: true });
       if (made) created++;
     }
-    ui.notifications.info(`Created ${created} of ${total} table(s).`);
+    ui.notifications.info(game.i18n.format("SDE.importer.tableHub.notify.createdAll", { created, total }));
     this.render();
   }
 
@@ -570,12 +569,12 @@ export class RollTablesApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const onConflict = async (name) => {
       const safe = foundry.utils.escapeHTML(name);
       const choice = await foundry.applications.api.DialogV2.wait({
-        window: { title: "Table Already Exists" },
-        content: `<p>A table named <strong>${safe}</strong> already exists. What would you like to do?</p>`,
+        window: { title: "SDE.importer.conflict.tableTitle" },
+        content: `<p>${game.i18n.format("SDE.importer.conflict.table", { name: safe })}</p>`,
         buttons: [
-          { action: "rename",  label: "Create as Copy", default: true },
-          { action: "replace", label: "Replace Existing" },
-          { action: "cancel",  label: "Cancel" },
+          { action: "rename",  label: "SDE.importer.conflict.createCopy", default: true },
+          { action: "replace", label: "SDE.importer.conflict.replace" },
+          { action: "cancel",  label: "SDE.importer.btn.cancel" },
         ],
         rejectClose: false,
       }).catch(() => "cancel");
@@ -585,7 +584,7 @@ export class RollTablesApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const table = await TableImporter.createTable(tbl, { onConflict });
     if (!table) return false;
 
-    if (!silent) ui.notifications.info(`Created Roll Table: ${table.name}`);
+    if (!silent) ui.notifications.info(game.i18n.format("SDE.importer.tableHub.notify.created", { name: table.name }));
     this._importParsed = this._importParsed.filter(t => t !== tbl);
     if (tbl.manifestId) this._importSeed = null; // seeded import fulfilled
     // Once the preview is empty, return to the Dashboard to show the new status.

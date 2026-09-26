@@ -1,32 +1,32 @@
 <div class="sde-class-importer">
 
   <div class="sde-ci-head">
-    <div class="sde-ci-title"><i class="fa-solid fa-hat-wizard"></i> Class Importer</div>
+    <div class="sde-ci-title"><i class="fa-solid fa-hat-wizard"></i> {{localize "SDE.importer.classImporter.title"}}</div>
     <div class="sde-ci-headright">
-      <span class="sde-ci-buildlabel">building</span>
+      <span class="sde-ci-buildlabel">{{localize "SDE.importer.classImporter.building"}}</span>
       {{#if created}}
       <span class="sde-ci-chip sde-ci-chip-on">{{className}}</span>
       {{else}}
-      <span class="sde-ci-chip">no class yet</span>
+      <span class="sde-ci-chip">{{localize "SDE.importer.classImporter.noClassYet"}}</span>
       {{/if}}
-      <button type="button" data-action="ciStartOver" class="sde-cu-btn" title="Clear everything and start a new class"><i class="fas fa-rotate-left"></i> Start over</button>
+      <button type="button" data-action="ciStartOver" class="sde-cu-btn" title="{{localize 'SDE.importer.classImporter.startOverTip'}}"><i class="fas fa-rotate-left"></i> {{localize "SDE.importer.classImporter.startOver"}}</button>
     </div>
   </div>
 
   <label class="sde-ci-sourcefield">
-    <span class="sde-ci-fieldname">Source</span>
-    <input type="text" data-ci-source list="sde-ci-sources" value="{{source}}" placeholder="Western Reaches / CS5 …">
+    <span class="sde-ci-fieldname">{{localize "SDE.importer.source.label"}}</span>
+    <input type="text" data-ci-source list="sde-ci-sources" value="{{source}}" placeholder="{{localize 'SDE.importer.classImporter.sourcePlaceholder'}}">
     <datalist id="sde-ci-sources">{{#each sourceList as |s|}}<option value="{{s}}"></option>{{/each}}</datalist>
   </label>
 
   {{!-- ── Imported summary (green checks for what's on the class) ─────────── --}}
   {{#if imported}}
   <div class="sde-ci-imported">
-    <div class="sde-ci-impitem sde-ci-impok"><i class="fas fa-circle-check"></i> Class body — {{className}}</div>
-    <div class="sde-ci-impitem {{#if imported.talentRows}}sde-ci-impok{{else}}sde-ci-imppend{{/if}}"><i class="fas {{#if imported.talentRows}}fa-circle-check{{else}}fa-circle{{/if}}"></i> Talent table{{#if imported.talentRows}} — {{imported.talentRows}} rows{{else}} — not added{{/if}}</div>
-    <div class="sde-ci-impitem {{#if imported.titles}}sde-ci-impok{{else}}sde-ci-imppend{{/if}}"><i class="fas {{#if imported.titles}}fa-circle-check{{else}}fa-circle{{/if}}"></i> Titles{{#if imported.titles}} — {{imported.titles}} bands{{else}} — not added{{/if}}</div>
-    {{#if imported.spells}}<div class="sde-ci-impitem sde-ci-impok"><i class="fas fa-circle-check"></i> Spells known — {{imported.spells}} levels</div>{{/if}}
-    {{#each imported.extras as |name|}}<div class="sde-ci-impitem sde-ci-impok"><i class="fas fa-circle-check"></i> {{name}} table</div>{{/each}}
+    <div class="sde-ci-impitem sde-ci-impok"><i class="fas fa-circle-check"></i> {{localize "SDE.importer.classImporter.impBody" name=className}}</div>
+    <div class="sde-ci-impitem {{#if imported.talentRows}}sde-ci-impok{{else}}sde-ci-imppend{{/if}}"><i class="fas {{#if imported.talentRows}}fa-circle-check{{else}}fa-circle{{/if}}"></i> {{#if imported.talentRows}}{{localize "SDE.importer.classImporter.impTalentRows" n=imported.talentRows}}{{else}}{{localize "SDE.importer.classImporter.impTalentNone"}}{{/if}}</div>
+    <div class="sde-ci-impitem {{#if imported.titles}}sde-ci-impok{{else}}sde-ci-imppend{{/if}}"><i class="fas {{#if imported.titles}}fa-circle-check{{else}}fa-circle{{/if}}"></i> {{#if imported.titles}}{{localize "SDE.importer.classImporter.impTitles" n=imported.titles}}{{else}}{{localize "SDE.importer.classImporter.impTitlesNone"}}{{/if}}</div>
+    {{#if imported.spells}}<div class="sde-ci-impitem sde-ci-impok"><i class="fas fa-circle-check"></i> {{localize "SDE.importer.classImporter.impSpells" n=imported.spells}}</div>{{/if}}
+    {{#each imported.extras as |name|}}<div class="sde-ci-impitem sde-ci-impok"><i class="fas fa-circle-check"></i> {{localize "SDE.importer.classImporter.impExtra" name=name}}</div>{{/each}}
   </div>
   {{/if}}
 
@@ -38,11 +38,11 @@
       <div class="sde-ci-donetext">
         <i class="fas fa-circle-check"></i>
         <div>
-          <div class="sde-ci-donetitle">1 · Class body</div>
-          <div class="sde-ci-donesub">Created in Classes — {{className}}{{#if report}} ({{report.created}} created{{#if report.updated}}, {{report.updated}} updated{{/if}}){{/if}}</div>
+          <div class="sde-ci-donetitle">{{localize "SDE.importer.classImporter.stage1"}}</div>
+          <div class="sde-ci-donesub">{{localize "SDE.importer.classImporter.createdIn" name=className}}{{#if report}} {{#if report.updated}}{{localize "SDE.importer.classImporter.reportCreatedUpdated" created=report.created updated=report.updated}}{{else}}{{localize "SDE.importer.classImporter.reportCreated" created=report.created}}{{/if}}{{/if}}</div>
         </div>
       </div>
-      <button type="button" data-action="ciEditBody" class="sde-cu-btn"><i class="fas fa-pen"></i> Re-paste to update</button>
+      <button type="button" data-action="ciEditBody" class="sde-cu-btn"><i class="fas fa-pen"></i> {{localize "SDE.importer.classImporter.rePaste"}}</button>
     </div>
   </div>
   {{/unless}}
@@ -50,45 +50,45 @@
 
   {{#if showBody}}
   <div class="sde-ci-stage">
-    <div class="sde-ci-stagehead">1 · Class body{{#if created}} — editing{{/if}}</div>
+    <div class="sde-ci-stagehead">{{#if created}}{{localize "SDE.importer.classImporter.stage1Editing"}}{{else}}{{localize "SDE.importer.classImporter.stage1"}}{{/if}}</div>
     {{#if seedClassName}}
     <div class="sde-ci-seedbanner">
-      <i class="fas fa-lock-open"></i> Unlocking <strong>{{seedClassName}}</strong>.
-      {{#if writeupPdf}}Its writeup (p.{{writeupPage}}) opened in the PDF viewer — copy the class and paste it here. Re-open it with the <strong>Open PDF</strong> button below.{{else}}Set the source above (e.g. Western Reaches) to open its PDF pages.{{/if}}
+      <i class="fas fa-lock-open"></i> {{{localize "SDE.importer.classImporter.unlocking" name=seedClassNameHtml}}}
+      {{#if writeupPdf}}{{{localize "SDE.importer.classImporter.writeupOpened" page=writeupPage}}}{{else}}{{localize "SDE.importer.classImporter.setSourceHint"}}{{/if}}
     </div>
     {{/if}}
     <label class="sde-ci-namefield">
-      <span class="sde-ci-fieldname">Class name</span>
-      <input type="text" data-ci-name value="{{bodyName}}" placeholder="e.g. Delver">
+      <span class="sde-ci-fieldname">{{localize "SDE.importer.spells.classAria"}}</span>
+      <input type="text" data-ci-name value="{{bodyName}}" placeholder="{{localize 'SDE.importer.classImporter.namePlaceholder'}}">
     </label>
-    <p class="sde-ci-note">The name comes from the field above — paste the writeup (flavor, weapons, armor, hit points, features) below. Roll tables are added in step 2.</p>
-    <textarea data-ci-body class="sde-ci-paste sde-ci-bodypaste" placeholder="Paste the writeup here — flavor, then:&#10;Weapons: …&#10;Armor: …&#10;Hit Points: 1d6 per level&#10;‹Feature name›. What the feature does…">{{bodyText}}</textarea>
+    <p class="sde-ci-note">{{localize "SDE.importer.classImporter.bodyNote"}}</p>
+    <textarea data-ci-body class="sde-ci-paste sde-ci-bodypaste" placeholder="{{localize 'SDE.importer.classImporter.bodyPlaceholder'}}">{{bodyText}}</textarea>
     <div class="sde-ci-bodybtns">
-      <button type="button" data-action="ciParseBody" class="sde-cu-btn"><i class="fas fa-eye"></i> Preview</button>
+      <button type="button" data-action="ciParseBody" class="sde-cu-btn"><i class="fas fa-eye"></i> {{localize "SDE.importer.chapter.read"}}</button>
       {{#if bodyPreview}}
-      <button type="button" data-action="ciCreateBody" class="sde-import-primary"><i class="fas fa-plus"></i> {{#if created}}Update{{else}}Create{{/if}} class “{{bodyPreview.name}}”{{#if hasStage2}} + tables{{/if}}</button>
+      <button type="button" data-action="ciCreateBody" class="sde-import-primary"><i class="fas fa-plus"></i> {{#if created}}{{#if hasStage2}}{{localize "SDE.importer.classImporter.updateClassTables" name=bodyPreview.name}}{{else}}{{localize "SDE.importer.classImporter.updateClass" name=bodyPreview.name}}{{/if}}{{else}}{{#if hasStage2}}{{localize "SDE.importer.classImporter.createClassTables" name=bodyPreview.name}}{{else}}{{localize "SDE.importer.classImporter.createClass" name=bodyPreview.name}}{{/if}}{{/if}}</button>
       {{/if}}
       {{#if writeupPdf}}
-      <button type="button" data-action="ciOpenPdf" data-href="{{writeupPdf}}" data-title="{{className}} writeup — p.{{writeupPage}}" class="sde-cu-btn"><i class="fas fa-file-pdf"></i> Open PDF · writeup p.{{writeupPage}}</button>
-      <button type="button" data-action="ciGrabPdf" class="sde-cu-btn" title="Pull the writeup page's text straight into the box (no drag-selecting). The class name comes from the unlock, so this fills the body."><i class="fas fa-wand-magic-sparkles"></i> Grab text · p.{{writeupPage}}</button>
+      <button type="button" data-action="ciOpenPdf" data-href="{{writeupPdf}}" data-title="{{localize 'SDE.importer.classImporter.writeupPdfTitle' name=className page=writeupPage}}" class="sde-cu-btn"><i class="fas fa-file-pdf"></i> {{localize "SDE.importer.classImporter.openWriteup" page=writeupPage}}</button>
+      <button type="button" data-action="ciGrabPdf" class="sde-cu-btn" title="{{localize 'SDE.importer.classImporter.grabTip'}}"><i class="fas fa-wand-magic-sparkles"></i> {{localize "SDE.importer.classImporter.grabText" page=writeupPage}}</button>
       {{/if}}
     </div>
     {{#if bodyPreview}}
     <div class="sde-ci-bodypreview">
-      <div class="sde-ci-previewrow"><strong>Hit die:</strong> {{bodyPreview.hp}}{{#if bodyPreview.isCaster}} · spellcaster{{/if}}</div>
-      <div class="sde-ci-previewrow"><strong>Weapons:</strong> {{bodyPreview.weapons}}</div>
-      <div class="sde-ci-previewrow"><strong>Armor:</strong> {{bodyPreview.armor}}</div>
-      <div class="sde-ci-previewrow"><strong>Features ({{bodyPreview.features.length}}):</strong></div>
+      <div class="sde-ci-previewrow"><strong>{{localize "SDE.importer.classImporter.hitDie"}}</strong> {{bodyPreview.hp}}{{#if bodyPreview.isCaster}} · {{localize "SDE.importer.classImporter.spellcaster"}}{{/if}}</div>
+      <div class="sde-ci-previewrow"><strong>{{localize "SDE.importer.classImporter.weaponsLabel"}}</strong> {{bodyPreview.weapons}}</div>
+      <div class="sde-ci-previewrow"><strong>{{localize "SDE.importer.classImporter.armorLabel"}}</strong> {{bodyPreview.armor}}</div>
+      <div class="sde-ci-previewrow"><strong>{{localize "SDE.importer.classImporter.featuresLabel" n=bodyPreview.features.length}}</strong></div>
       <ul class="sde-ci-featlist">
         {{#each bodyPreview.features as |f|}}<li><strong>{{f.name}}.</strong> {{{f.html}}}</li>{{/each}}
       </ul>
       {{#if detectedTables.length}}
       <div class="sde-ci-detected">
-        <div class="sde-ci-previewrow"><strong>Roll tables detected</strong> — review &amp; edit them in step 2 below:</div>
+        <div class="sde-ci-previewrow">{{{localize "SDE.importer.classImporter.tablesDetected"}}}</div>
         <ul class="sde-ci-detectedlist">{{#each detectedTables as |d|}}<li><i class="fas fa-table-list"></i> {{d}}</li>{{/each}}</ul>
       </div>
       {{else}}{{#if bodyPreview.hasTables}}
-      <p class="sde-ci-note sde-ci-note-info"><i class="fas fa-circle-info"></i> This paste also has roll tables — they go in step 2 below.</p>
+      <p class="sde-ci-note sde-ci-note-info"><i class="fas fa-circle-info"></i> {{localize "SDE.importer.classImporter.alsoTables"}}</p>
       {{/if}}{{/if}}
       {{#if bodyPreview.warnings.length}}
       <ul class="sde-import-warnings">{{#each bodyPreview.warnings as |w|}}<li>{{w}}</li>{{/each}}</ul>
@@ -99,137 +99,137 @@
   {{/if}}
 
   {{!-- ── Stage 2 · Roll tables — always visible; Attach enables once the body exists --}}
-  <div class="sde-ci-stagehead">2 · Roll tables</div>
-  {{#unless created}}<p class="sde-ci-note sde-ci-note-info"><i class="fas fa-circle-info"></i> Create the class body above first — then these attach to it. You can paste tables now; they're held until you create.</p>{{/unless}}
-  <p class="sde-ci-note">Paste each part below — it attaches to <strong>{{displayName}}</strong>. Any paste is sorted to the right slot. Titles aren't in the class writeup, so paste that block or add bands by hand.</p>
+  <div class="sde-ci-stagehead">{{localize "SDE.importer.classImporter.stage2"}}</div>
+  {{#unless created}}<p class="sde-ci-note sde-ci-note-info"><i class="fas fa-circle-info"></i> {{localize "SDE.importer.classImporter.createFirst"}}</p>{{/unless}}
+  <p class="sde-ci-note">{{{localize "SDE.importer.classImporter.attachNote" name=displayNameHtml}}}</p>
 
   <div class="sde-ci-parts">
 
     {{!-- Talent table --}}
     <div class="sde-ci-part sde-ci-part-talents">
       <div class="sde-ci-partrow">
-        <span class="sde-ci-partname"><i class="fa-solid fa-dice-d6"></i> Talent table{{#if talent}} ({{talent.rows}} · {{talent.formula}}){{#if talent.rows}} · <span class="sde-ci-wiredcount" title="Rows backed by a real Talent item — the rest import as description-only text needing hand-wiring">{{talent.wiredCount}}/{{talent.rows}} wired</span>{{/if}}{{/if}}</span>
-        {{#if talent}}<button type="button" data-action="ciClearPart" data-ci-part="talent" class="sde-cu-btn sde-cu-btn-del" title="Clear the talent table"><i class="fas fa-trash"></i></button>{{else}}<span class="sde-ci-status">pending</span>{{/if}}
+        <span class="sde-ci-partname"><i class="fa-solid fa-dice-d6"></i> {{localize "SDE.importer.cls.talentTable"}}{{#if talent}} ({{talent.rows}} · {{talent.formula}}){{#if talent.rows}} · <span class="sde-ci-wiredcount" title="{{localize 'SDE.importer.classImporter.wiredTip'}}">{{localize "SDE.importer.classImporter.wiredCount" wired=talent.wiredCount rows=talent.rows}}</span>{{/if}}{{/if}}</span>
+        {{#if talent}}<button type="button" data-action="ciClearPart" data-ci-part="talent" class="sde-cu-btn sde-cu-btn-del" title="{{localize 'SDE.importer.classImporter.clearTalentTip'}}"><i class="fas fa-trash"></i></button>{{else}}<span class="sde-ci-status">{{localize "SDE.importer.classImporter.pending"}}</span>{{/if}}
       </div>
       {{#if talent}}
       <table class="sde-class-preview-table sde-cu-talents">
-        <tr class="sde-cu-titlehead"><th>Roll</th><th>Effect</th><th></th></tr>
+        <tr class="sde-cu-titlehead"><th>{{localize "SDE.importer.classImporter.roll"}}</th><th>{{localize "SDE.charBuilder.class.tableEffect"}}</th><th></th></tr>
         {{#each talent.entries as |r|}}
         <tr data-ci-talent="{{r.idx}}" class="{{#if r.wired}}sde-ci-talent-wired{{else}}sde-ci-talent-unwired{{/if}}">
-          <td class="sde-class-preview-range"><input type="text" data-ci-trfield="range" value="{{r.range}}" class="sde-cu-range" aria-label="Talent roll"></td>
+          <td class="sde-class-preview-range"><input type="text" data-ci-trfield="range" value="{{r.range}}" class="sde-cu-range" aria-label="{{localize 'SDE.importer.classImporter.talentRollAria'}}"></td>
           <td class="sde-ci-talent-effect">
-            <input type="text" data-ci-trfield="text" value="{{r.text}}" class="sde-cu-text" aria-label="Talent effect">
+            <input type="text" data-ci-trfield="text" value="{{r.text}}" class="sde-cu-text" aria-label="{{localize 'SDE.importer.classImporter.talentEffectAria'}}">
             {{#if r.wired}}
-            <span class="sde-ci-wired sde-ci-wired-on" title="Backed by a real Talent item: {{r.wiredMatch}} ({{r.wiredVia}})"><i class="fas fa-link"></i> real talent</span>
+            <span class="sde-ci-wired sde-ci-wired-on" title="{{localize 'SDE.importer.classImporter.realTalentTip' match=r.wiredMatch via=r.wiredVia}}"><i class="fas fa-link"></i> {{localize "SDE.importer.classImporter.realTalent"}}</span>
             {{else}}
-            <span class="sde-ci-wired sde-ci-wired-off" title="{{#if r.wiredMatch}}Imports as “{{r.wiredMatch}}”, but that Talent carries no effect — wire it by hand{{else}}No matching Talent item — imports as description-only text; wire its effect by hand{{/if}}"><i class="fas fa-link-slash"></i> text only</span>
+            <span class="sde-ci-wired sde-ci-wired-off" title="{{#if r.wiredMatch}}{{localize 'SDE.importer.classImporter.noEffectTip' match=r.wiredMatch}}{{else}}{{localize 'SDE.importer.classImporter.noMatchTip'}}{{/if}}"><i class="fas fa-link-slash"></i> {{localize "SDE.importer.classImporter.textOnly"}}</span>
             {{/if}}
           </td>
-          <td class="sde-cu-rowdel"><button type="button" data-action="ciTalentDel" class="sde-cu-btn sde-cu-btn-del" title="Delete row"><i class="fas fa-trash"></i></button></td>
+          <td class="sde-cu-rowdel"><button type="button" data-action="ciTalentDel" class="sde-cu-btn sde-cu-btn-del" title="{{localize 'SDE.importer.tables.delRowAria'}}"><i class="fas fa-trash"></i></button></td>
         </tr>
         {{/each}}
       </table>
-      <button type="button" data-action="ciTalentAdd" class="sde-cu-btn sde-cu-addrow"><i class="fas fa-plus"></i> Add row</button>
+      <button type="button" data-action="ciTalentAdd" class="sde-cu-btn sde-cu-addrow"><i class="fas fa-plus"></i> {{localize "SDE.importer.tables.addRow"}}</button>
       {{else}}
-      <textarea data-ci-paste class="sde-ci-paste" placeholder="Paste the 2d6 Effect talent table…"></textarea>
+      <textarea data-ci-paste class="sde-ci-paste" placeholder="{{localize 'SDE.importer.classImporter.talentPastePlaceholder'}}"></textarea>
       {{/if}}
     </div>
 
     {{!-- Titles --}}
     <div class="sde-ci-part sde-ci-part-titles">
       <div class="sde-ci-partrow">
-        <span class="sde-ci-partname"><i class="fa-solid fa-ranking-star"></i> Titles ({{titlesCount}})</span>
+        <span class="sde-ci-partname"><i class="fa-solid fa-ranking-star"></i> {{localize "SDE.importer.cls.titles" n=titlesCount}}</span>
         {{#if titlesPdf}}
-        <button type="button" data-action="ciOpenPdf" data-href="{{titlesPdf}}" data-title="{{className}} titles — p.{{titlesPage}}" class="sde-cu-btn"><i class="fas fa-file-pdf"></i> Open PDF · titles p.{{titlesPage}}</button>
+        <button type="button" data-action="ciOpenPdf" data-href="{{titlesPdf}}" data-title="{{localize 'SDE.importer.classImporter.titlesPdfTitle' name=className page=titlesPage}}" class="sde-cu-btn"><i class="fas fa-file-pdf"></i> {{localize "SDE.importer.classImporter.openTitles" page=titlesPage}}</button>
         {{else}}
-        <span class="sde-ci-status">paste a block, or add bands</span>
+        <span class="sde-ci-status">{{localize "SDE.importer.classImporter.titlesStatus"}}</span>
         {{/if}}
       </div>
-      <textarea data-ci-paste class="sde-ci-paste" placeholder="Paste a TITLES block (Levels  Lawful  Chaotic  Neutral)…"></textarea>
+      <textarea data-ci-paste class="sde-ci-paste" placeholder="{{localize 'SDE.importer.classImporter.titlesPastePlaceholder'}}"></textarea>
       {{#if titleWarnings.length}}
       <ul class="sde-import-warnings sde-ci-titlewarn">{{#each titleWarnings as |w|}}<li><i class="fas fa-triangle-exclamation"></i> {{w}}</li>{{/each}}</ul>
       {{/if}}
       <table class="sde-class-preview-table sde-cu-titles">
         {{#if titlesCount}}
-        <tr class="sde-cu-titlehead"><th>Levels</th><th>Lawful</th><th>Chaotic</th><th>Neutral</th><th></th></tr>
+        <tr class="sde-cu-titlehead"><th>{{localize "SDE.importer.cls.levels"}}</th><th>{{localize "SDE.importer.cls.lawful"}}</th><th>{{localize "SDE.importer.cls.chaotic"}}</th><th>{{localize "SDE.importer.cls.neutral"}}</th><th></th></tr>
         {{/if}}
         {{#each titles as |t|}}
         <tr data-ci-title="{{t.idx}}"{{#if t.flagged}} class="sde-cu-row-flagged"{{/if}}>
-          <td class="sde-class-preview-range"><input type="text" data-ci-tfield="range" value="{{t.range}}" class="sde-cu-range" aria-label="Level range"></td>
-          <td><input type="text" data-ci-tfield="lawful" value="{{t.lawful}}" class="sde-cu-text" aria-label="Lawful title"></td>
-          <td><input type="text" data-ci-tfield="chaotic" value="{{t.chaotic}}" class="sde-cu-text" aria-label="Chaotic title"></td>
-          <td><input type="text" data-ci-tfield="neutral" value="{{t.neutral}}" class="sde-cu-text" aria-label="Neutral title"></td>
+          <td class="sde-class-preview-range"><input type="text" data-ci-tfield="range" value="{{t.range}}" class="sde-cu-range" aria-label="{{localize 'SDE.importer.cls.levelRangeAria'}}"></td>
+          <td><input type="text" data-ci-tfield="lawful" value="{{t.lawful}}" class="sde-cu-text" aria-label="{{localize 'SDE.importer.cls.lawfulAria'}}"></td>
+          <td><input type="text" data-ci-tfield="chaotic" value="{{t.chaotic}}" class="sde-cu-text" aria-label="{{localize 'SDE.importer.cls.chaoticAria'}}"></td>
+          <td><input type="text" data-ci-tfield="neutral" value="{{t.neutral}}" class="sde-cu-text" aria-label="{{localize 'SDE.importer.cls.neutralAria'}}"></td>
           <td class="sde-cu-rowdel">
             {{#if t.flagged}}<span class="sde-mimport-flagtag" title="{{t.flagReason}}"><i class="fas fa-triangle-exclamation"></i></span>{{/if}}
-            <button type="button" data-action="ciTitleDel" class="sde-cu-btn sde-cu-btn-del" title="Delete band"><i class="fas fa-trash"></i></button>
+            <button type="button" data-action="ciTitleDel" class="sde-cu-btn sde-cu-btn-del" title="{{localize 'SDE.importer.classImporter.deleteBand'}}"><i class="fas fa-trash"></i></button>
           </td>
         </tr>
         {{/each}}
       </table>
-      <button type="button" data-action="ciTitleAdd" class="sde-cu-btn sde-cu-addrow"><i class="fas fa-plus"></i> Add band</button>
+      <button type="button" data-action="ciTitleAdd" class="sde-cu-btn sde-cu-addrow"><i class="fas fa-plus"></i> {{localize "SDE.importer.classImporter.addBand"}}</button>
     </div>
 
     {{!-- Spells known (casters) — reviewable/editable level × tier grid --}}
     <div class="sde-ci-part sde-ci-part-spells">
       <div class="sde-ci-partrow">
-        <span class="sde-ci-partname"><i class="fa-solid fa-wand-sparkles"></i> Spells known{{#if spells}} ({{spells.rows}} levels){{/if}}</span>
-        {{#if spells}}<button type="button" data-action="ciClearPart" data-ci-part="spells" class="sde-cu-btn sde-cu-btn-del" title="Clear spells known"><i class="fas fa-trash"></i></button>{{else}}<span class="sde-ci-status">casters only — paste the level×tier grid</span>{{/if}}
+        <span class="sde-ci-partname"><i class="fa-solid fa-wand-sparkles"></i> {{#if spells}}{{localize "SDE.importer.classImporter.spellsKnownLevels" n=spells.rows}}{{else}}{{localize "SDE.importer.classImporter.spellsKnown"}}{{/if}}</span>
+        {{#if spells}}<button type="button" data-action="ciClearPart" data-ci-part="spells" class="sde-cu-btn sde-cu-btn-del" title="{{localize 'SDE.importer.classImporter.clearSpellsTip'}}"><i class="fas fa-trash"></i></button>{{else}}<span class="sde-ci-status">{{localize "SDE.importer.classImporter.spellsStatus"}}</span>{{/if}}
       </div>
       {{#if spells}}
       <table class="sde-class-preview-table sde-cu-talents">
-        <tr class="sde-cu-titlehead"><th>Lvl</th><th>T1</th><th>T2</th><th>T3</th><th>T4</th><th>T5</th><th></th></tr>
+        <tr class="sde-cu-titlehead"><th>{{localize "SDE.importer.classImporter.lvl"}}</th><th>T1</th><th>T2</th><th>T3</th><th>T4</th><th>T5</th><th></th></tr>
         {{#each spells.entries as |r|}}
         <tr data-ci-sk="{{r.idx}}">
-          <td><input type="text" data-ci-skfield="level" value="{{r.level}}" class="sde-cu-range" aria-label="Level"></td>
-          <td><input type="text" data-ci-skfield="1" value="{{r.t1}}" class="sde-cu-range" aria-label="Tier 1"></td>
-          <td><input type="text" data-ci-skfield="2" value="{{r.t2}}" class="sde-cu-range" aria-label="Tier 2"></td>
-          <td><input type="text" data-ci-skfield="3" value="{{r.t3}}" class="sde-cu-range" aria-label="Tier 3"></td>
-          <td><input type="text" data-ci-skfield="4" value="{{r.t4}}" class="sde-cu-range" aria-label="Tier 4"></td>
-          <td><input type="text" data-ci-skfield="5" value="{{r.t5}}" class="sde-cu-range" aria-label="Tier 5"></td>
-          <td class="sde-cu-rowdel"><button type="button" data-action="ciSpellsRowDel" class="sde-cu-btn sde-cu-btn-del" title="Delete level"><i class="fas fa-trash"></i></button></td>
+          <td><input type="text" data-ci-skfield="level" value="{{r.level}}" class="sde-cu-range" aria-label="{{localize 'SDE.charBuilder.level'}}"></td>
+          <td><input type="text" data-ci-skfield="1" value="{{r.t1}}" class="sde-cu-range" aria-label="{{localize 'SDE.importer.classImporter.tierAria' n=1}}"></td>
+          <td><input type="text" data-ci-skfield="2" value="{{r.t2}}" class="sde-cu-range" aria-label="{{localize 'SDE.importer.classImporter.tierAria' n=2}}"></td>
+          <td><input type="text" data-ci-skfield="3" value="{{r.t3}}" class="sde-cu-range" aria-label="{{localize 'SDE.importer.classImporter.tierAria' n=3}}"></td>
+          <td><input type="text" data-ci-skfield="4" value="{{r.t4}}" class="sde-cu-range" aria-label="{{localize 'SDE.importer.classImporter.tierAria' n=4}}"></td>
+          <td><input type="text" data-ci-skfield="5" value="{{r.t5}}" class="sde-cu-range" aria-label="{{localize 'SDE.importer.classImporter.tierAria' n=5}}"></td>
+          <td class="sde-cu-rowdel"><button type="button" data-action="ciSpellsRowDel" class="sde-cu-btn sde-cu-btn-del" title="{{localize 'SDE.importer.classImporter.deleteLevel'}}"><i class="fas fa-trash"></i></button></td>
         </tr>
         {{/each}}
       </table>
-      <button type="button" data-action="ciSpellsRowAdd" class="sde-cu-btn sde-cu-addrow"><i class="fas fa-plus"></i> Add level</button>
+      <button type="button" data-action="ciSpellsRowAdd" class="sde-cu-btn sde-cu-addrow"><i class="fas fa-plus"></i> {{localize "SDE.importer.classImporter.addLevel"}}</button>
       {{else}}
-      <textarea data-ci-paste class="sde-ci-paste" placeholder="Paste the SPELLS KNOWN grid (Level 1 2 3 …)…"></textarea>
+      <textarea data-ci-paste class="sde-ci-paste" placeholder="{{localize 'SDE.importer.classImporter.spellsPastePlaceholder'}}"></textarea>
       {{/if}}
     </div>
 
     {{!-- Extra tables (Corruption, …) — reviewable/editable, hand-buildable --}}
     <div class="sde-ci-part sde-ci-part-extras">
       <div class="sde-ci-partrow">
-        <span class="sde-ci-partname"><i class="fa-solid fa-table-list"></i> Extra tables</span>
-        <button type="button" data-action="ciExtraAdd" class="sde-cu-btn sde-cu-addrow"><i class="fas fa-plus"></i> Add table</button>
+        <span class="sde-ci-partname"><i class="fa-solid fa-table-list"></i> {{localize "SDE.importer.classImporter.extraTables"}}</span>
+        <button type="button" data-action="ciExtraAdd" class="sde-cu-btn sde-cu-addrow"><i class="fas fa-plus"></i> {{localize "SDE.importer.classImporter.addTable"}}</button>
       </div>
       {{#each extras as |t|}}
       <div class="sde-ci-extratable" data-ci-extra="{{t.idx}}">
         <div class="sde-ci-partrow">
-          <input type="text" data-ci-ename value="{{t.name}}" class="sde-cu-text sde-ci-extraname" aria-label="Table name" placeholder="Table name">
+          <input type="text" data-ci-ename value="{{t.name}}" class="sde-cu-text sde-ci-extraname" aria-label="{{localize 'SDE.importer.tables.nameAria'}}" placeholder="{{localize 'SDE.importer.tables.nameAria'}}">
           <span class="sde-ci-status">{{t.formula}}</span>
-          <button type="button" data-action="ciExtraDelTable" class="sde-cu-btn sde-cu-btn-del" title="Remove this table"><i class="fas fa-xmark"></i></button>
+          <button type="button" data-action="ciExtraDelTable" class="sde-cu-btn sde-cu-btn-del" title="{{localize 'SDE.importer.classImporter.removeTableTip'}}"><i class="fas fa-xmark"></i></button>
         </div>
         <table class="sde-class-preview-table sde-cu-talents">
-          <tr class="sde-cu-titlehead"><th>Roll</th><th>Effect</th><th></th></tr>
+          <tr class="sde-cu-titlehead"><th>{{localize "SDE.importer.classImporter.roll"}}</th><th>{{localize "SDE.charBuilder.class.tableEffect"}}</th><th></th></tr>
           {{#each t.entries as |r|}}
           <tr data-ci-erow="{{r.idx}}">
-            <td class="sde-class-preview-range"><input type="text" data-ci-erfield="range" value="{{r.range}}" class="sde-cu-range" aria-label="Roll"></td>
-            <td><input type="text" data-ci-erfield="text" value="{{r.text}}" class="sde-cu-text" aria-label="Effect"></td>
-            <td class="sde-cu-rowdel"><button type="button" data-action="ciExtraRowDel" class="sde-cu-btn sde-cu-btn-del" title="Delete row"><i class="fas fa-trash"></i></button></td>
+            <td class="sde-class-preview-range"><input type="text" data-ci-erfield="range" value="{{r.range}}" class="sde-cu-range" aria-label="{{localize 'SDE.importer.classImporter.roll'}}"></td>
+            <td><input type="text" data-ci-erfield="text" value="{{r.text}}" class="sde-cu-text" aria-label="{{localize 'SDE.charBuilder.class.tableEffect'}}"></td>
+            <td class="sde-cu-rowdel"><button type="button" data-action="ciExtraRowDel" class="sde-cu-btn sde-cu-btn-del" title="{{localize 'SDE.importer.tables.delRowAria'}}"><i class="fas fa-trash"></i></button></td>
           </tr>
           {{/each}}
         </table>
-        <button type="button" data-action="ciExtraRowAdd" class="sde-cu-btn sde-cu-addrow"><i class="fas fa-plus"></i> Add row</button>
+        <button type="button" data-action="ciExtraRowAdd" class="sde-cu-btn sde-cu-addrow"><i class="fas fa-plus"></i> {{localize "SDE.importer.tables.addRow"}}</button>
       </div>
       {{/each}}
-      <textarea data-ci-paste class="sde-ci-paste" placeholder="Paste a named table (CORRUPTION / d10 Effect / rows)…"></textarea>
+      <textarea data-ci-paste class="sde-ci-paste" placeholder="{{localize 'SDE.importer.classImporter.extraPastePlaceholder'}}"></textarea>
     </div>
 
   </div>
 
   <div class="sde-ci-footer">
-    <span class="sde-ci-pending">{{#if hasStage2}}Ready to add: {{pending}}{{else}}{{pending}}{{/if}}</span>
-    <button type="button" data-action="ciAttach" class="sde-import-primary"{{#unless canAttach}} disabled{{/unless}}><i class="fas fa-circle-plus"></i> {{#if hasStage2}}Add {{pending}} to {{displayName}}{{else}}Add tables to {{displayName}}{{/if}}</button>
+    <span class="sde-ci-pending">{{#if hasStage2}}{{localize "SDE.importer.classImporter.readyToAdd" pending=pending}}{{else}}{{pending}}{{/if}}</span>
+    <button type="button" data-action="ciAttach" class="sde-import-primary"{{#unless canAttach}} disabled{{/unless}}><i class="fas fa-circle-plus"></i> {{#if hasStage2}}{{localize "SDE.importer.classImporter.addPendingTo" pending=pending name=displayName}}{{else}}{{localize "SDE.importer.classImporter.addTablesTo" name=displayName}}{{/if}}</button>
   </div>
 
 </div>

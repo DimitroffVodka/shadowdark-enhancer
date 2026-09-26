@@ -20,6 +20,7 @@ import { charSourceKey } from "../../shared/source-keys.mjs";
 // Shape registry: a grid row's members are the only names its tables ever
 // carry. table-shapes.mjs imports nothing, so this cannot cycle.
 import { suiteMemberNames } from "../tables/table-shapes.mjs";
+import { t as tr } from "../importer-hub-shared.mjs";
 
 export const CHAR_SOURCES = {
   CORE: { label: "Core Rulebook", book: "Shadowdark RPG" },
@@ -1342,14 +1343,9 @@ function _parseClasses(text) {
   // bare Class item.
   const supplement = parseClassSupplement(src);
   if (supplement) {
-    const parts = [];
-    if (supplement.talentTable) parts.push("talent table");
-    if (supplement.titles.length) parts.push(`${supplement.titles.length} title band${supplement.titles.length === 1 ? "" : "s"}`);
-    if (supplement.spellsKnown.length) parts.push("spells known");
-    if (supplement.extraTables?.length) parts.push(`${supplement.extraTables.length} extra table${supplement.extraTables.length === 1 ? "" : "s"}`);
     return [{
       draft: {
-        name: `Class tables — ${parts.join(", ") || "supplement"}`,
+        name: _supplementName(supplement, "SDE.importer.charContent.supplementFallback"),
         type: "ClassSupplement",
         classSupplement: supplement,
       },
@@ -1808,6 +1804,21 @@ export function identifyAncestryTable(text) {
   return null;
 }
 
+/**
+ * Preview name of a stage-2 supplement draft ("Class tables — talent table, 2 title bands").
+ * @param {object} supplement  parseClassSupplement() result
+ * @param {string} emptyKey    en.json key shown when nothing parsed
+ */
+function _supplementName(supplement, emptyKey) {
+  const parts = [];
+  if (supplement.talentTable) parts.push(tr("SDE.importer.charContent.partTalent"));
+  const nt = supplement.titles.length, nx = supplement.extraTables?.length ?? 0;
+  if (nt) parts.push(tr(nt === 1 ? "SDE.importer.charContent.partTitleBand" : "SDE.importer.charContent.partTitleBands", { n: nt }));
+  if (supplement.spellsKnown.length) parts.push(tr("SDE.importer.charContent.partSpells"));
+  if (nx) parts.push(tr(nx === 1 ? "SDE.importer.charContent.partExtraTable" : "SDE.importer.charContent.partExtraTables", { n: nx }));
+  return tr("SDE.importer.charContent.supplementName", { parts: parts.join(", ") || tr(emptyKey) });
+}
+
 /** @param {"backgrounds"|"talents"|"classes"|"ancestries"} kind */
 /** Stage 2 (Class · Roll Tables): parse a paste as a class SUPPLEMENT and always
  *  yield one draft for any non-empty text — even when nothing parsed — so the
@@ -1817,14 +1828,9 @@ function _parseClassTables(text) {
   if (!src) return [];
   const supplement = parseClassSupplement(src)
     ?? { titles: [], talentTable: null, spellsKnown: [], extraTables: [], warnings: [] };
-  const parts = [];
-  if (supplement.talentTable) parts.push("talent table");
-  if (supplement.titles.length) parts.push(`${supplement.titles.length} title band${supplement.titles.length === 1 ? "" : "s"}`);
-  if (supplement.spellsKnown.length) parts.push("spells known");
-  if (supplement.extraTables?.length) parts.push(`${supplement.extraTables.length} extra table${supplement.extraTables.length === 1 ? "" : "s"}`);
   return [{
     draft: {
-      name: `Class tables — ${parts.join(", ") || "add titles/tables"}`,
+      name: _supplementName(supplement, "SDE.importer.charContent.supplementAddHint"),
       type: "ClassSupplement",
       classSupplement: supplement,
     },

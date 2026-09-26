@@ -2,6 +2,10 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { parseSiegeTable, SIEGE_MANIFEST } from "../scripts/importer/boats/siege-parser.mjs";
 
+// The GM-facing note comes from en.json. Echo the key plus its data so the
+// assertions still see which diagnosis fired and what it names.
+globalThis.game = { i18n: { localize: (k) => k, format: (k, d) => k + JSON.stringify(d) } };
+
 // Real names (needed for matching) + made-up stats + short property blurbs.
 const SPLIT = `
 Weapon Cost
@@ -230,7 +234,8 @@ test("parseSiegeTable reports the weapons it could not read", () => {
   const report = parseSiegeTable(FOUR.replace("Trebuchet 4,444 gp M C 4d6 B, E\n", ""));
   assert.equal(report.weapons.length, 3);
   assert.deepEqual(report.missing, ["Trebuchet"]);
-  assert.match(report.note, /3 of 4/);
+  assert.match(report.note, /^SDE\.importer\.boatImport\.siegeShort\b/);
+  assert.match(report.note, /"read":3,"total":4/);
   assert.match(report.note, /Trebuchet/);
 });
 
@@ -244,7 +249,7 @@ test("names with no stat rows blame the column split, not the page cite", () => 
   const report = parseSiegeTable("Ballista\nCatapult\nTrebuchet\n");
   assert.deepEqual(report.drafts, []);
   assert.deepEqual(report.mentioned, ["Ballista", "Catapult", "Trebuchet"]);
-  assert.match(report.note, /column split/i);
+  assert.match(report.note, /^SDE\.importer\.boatImport\.siegeNoRowsMany\b/, "blames the column split");
 });
 
 test("a page with none of the names points at the page cite", () => {
@@ -254,7 +259,7 @@ test("a page with none of the names points at the page cite", () => {
   const report = parseSiegeTable("Some other page, all prose, no table.");
   assert.deepEqual(report.drafts, []);
   assert.deepEqual(report.mentioned, []);
-  assert.match(report.note, /printing/i);
+  assert.equal(report.note, "SDE.importer.boatImport.siegeNone", "points at the page cite / printing");
   assert.doesNotMatch(report.note, /sets the page offset/i);
 });
 
@@ -328,7 +333,6 @@ test("a cell the gutter corrupted is reported, never guessed at", () => {
   ]) {
     const r = parseSiegeTable(text);
     assert.deepEqual(r.drafts, [], `${what} must not produce a guessed row`);
-    assert.match(r.note, /no complete stat row/, what);
-    assert.match(r.note, /Open PDF/, `${what}: the note must say how to fix it`);
+    assert.match(r.note, /^SDE\.importer\.boatImport\.siegeNoRows(One|Many)\b/, `${what}: the no-complete-stat-row note, which says to re-grab with Open PDF`);
   }
 });

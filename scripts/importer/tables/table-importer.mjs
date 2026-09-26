@@ -32,6 +32,7 @@ import { splitRawBlocks } from "../pdf-text-utils.mjs";
 import { columnManifestId, findById, isSharedTableName } from "./table-manifest.mjs";
 import { sourceKey as _sourceKey, sourceLabel as _sourceLabel } from "../../shared/source-keys.mjs";
 import { ensurePatronItem, patronBlurbFromPage, patronNameFromTable } from "./patron-items.mjs";
+import { t as loc } from "../importer-hub-shared.mjs";
 
 // Trailing "+" (e.g. "14+" = the top row of a d14 table) is accepted and
 // treated as the plain number — the shape's size caps the die, so "14+" is row 14.
@@ -2980,7 +2981,7 @@ export function computeBlockers(pt) {
   // `columns`, not `rows` — validate those instead of the single-die checks.
   if (pt?.compound || (pt?.isCompound && pt?.columns?.length)) {
     const cols = pt.columns ?? [];
-    if (!cols.length) { B("no-columns", "Compound generator has no columns."); return blockers; }
+    if (!cols.length) { B("no-columns", loc("SDE.importer.tableCheck.noColumns")); return blockers; }
     cols.forEach((c, i) => {
       const crows = c.rows ?? c ?? [];
       const blank = crows.filter((r) => !String(r.text ?? r ?? "").trim()).length;
@@ -2989,15 +2990,17 @@ export function computeBlockers(pt) {
       // the parser's own "N/M columns filled" warning already flags them, so
       // they stay a review warning, not a hard block.
       if (!crows.length || blank === crows.length)
-        B("empty-column", `Column ${i + 1}${c.label ? ` (${c.label})` : ""} is empty — the generator would roll blanks.`);
+        B("empty-column", c.label
+          ? loc("SDE.importer.tableCheck.emptyColumnLabel", { n: i + 1, label: c.label })
+          : loc("SDE.importer.tableCheck.emptyColumn", { n: i + 1 }));
     });
     for (const w of (pt.warnings ?? [])) if (/^BLOCKER:/i.test(String(w))) B("parser-blocker", String(w).replace(/^BLOCKER:\s*/i, "").slice(0, 180));
     return blockers;
   }
   const rows = pt?.rows ?? [];
-  if (!rows.length) { B("no-rows", "No rows parsed."); return blockers; }
+  if (!rows.length) { B("no-rows", loc("SDE.importer.tableCheck.noRows")); return blockers; }
   const m = /^(\d+)d(\d+)$/.exec(String(pt.formula ?? "").trim());
-  if (!m) B("bad-formula", `Formula "${pt.formula}" is not a plain NdM die.`);
+  if (!m) B("bad-formula", loc("SDE.importer.tableCheck.badFormula", { formula: pt.formula }));
   const lo = m ? Number(m[1]) : null;
   const hi = m ? Number(m[1]) * Number(m[2]) : null;
   // An NdM table cannot roll below N, but books routinely print its first BAND
@@ -3013,8 +3016,14 @@ export function computeBlockers(pt) {
     if (r.max < r.min) reversed.push(`${r.min}-${r.max}`);
     else if (m && (r.min < lo || r.max > hi)) oob.push(r.min === r.max ? String(r.min) : `${r.min}-${r.max}`);
   }
-  if (reversed.length) B("reversed-range", `${reversed.length} reversed range(s): ${reversed.slice(0, 4).join(", ")}.`);
-  if (oob.length) B("out-of-bounds", `${oob.length} row(s) outside ${lo}..${hi}: ${oob.slice(0, 4).join(", ")}${oob.length > 4 ? ", …" : ""}.`);
+  if (reversed.length) {
+    B("reversed-range", loc("SDE.importer.tableCheck.reversed", { n: reversed.length, list: reversed.slice(0, 4).join(", ") }));
+  }
+  if (oob.length) {
+    B("out-of-bounds", loc("SDE.importer.tableCheck.outOfBounds", {
+      n: oob.length, lo, hi, list: `${oob.slice(0, 4).join(", ")}${oob.length > 4 ? ", …" : ""}`,
+    }));
+  }
   if (m) {
     const inb = checked.filter((r) => r.min >= lo && r.max <= hi && r.max >= r.min).sort((a, b) => a.min - b.min);
     let cursor = lo, uncovered = 0, overs = 0;
@@ -3024,14 +3033,14 @@ export function computeBlockers(pt) {
       cursor = Math.max(cursor, r.max + 1);
     }
     if (cursor <= hi) uncovered += hi - cursor + 1;
-    if (overs) B("overlap", `${overs} overlapping row range(s) — a roll matches more than one result.`);
+    if (overs) B("overlap", loc("SDE.importer.tableCheck.overlap", { n: overs }));
     const faces = hi - lo + 1;
-    if (uncovered / faces > 0.2) B("coverage-gap", `${uncovered} of ${faces} faces have no result.`);
+    if (uncovered / faces > 0.2) B("coverage-gap", loc("SDE.importer.tableCheck.coverageGap", { n: uncovered, faces }));
   }
   const empty = rows.filter((r) => !String(r.text ?? "").trim() && !r.documentUuid).length;
-  if (empty) B("empty-row", `${empty} row(s) with no result text.`);
+  if (empty) B("empty-row", loc("SDE.importer.tableCheck.emptyRow", { n: empty }));
   const dieRows = rows.filter((r) => /^\d*d\d+$/i.test(String(r.text ?? "").trim())).length;
-  if (dieRows) B("die-as-row", `${dieRows} row(s) whose text is just die notation — parse garbage.`);
+  if (dieRows) B("die-as-row", loc("SDE.importer.tableCheck.dieAsRow", { n: dieRows }));
   for (const w of (pt.warnings ?? [])) {
     if (/^BLOCKER:/i.test(String(w))) B("parser-blocker", String(w).replace(/^BLOCKER:\s*/i, "").slice(0, 180));
   }
@@ -3058,21 +3067,23 @@ export function validateMatrixCommit(seed, tables) {
   const cols = Array.isArray(seed?.columns) ? seed.columns : [];
   const list = Array.isArray(tables) ? tables : [];
   if (!seed?.manifestId || !cols.length) {
-    return { ok: false, errors: ["Not a valid matrix seed."] };
+    return { ok: false, errors: [loc("SDE.importer.tableCheck.notMatrix")] };
   }
   if (list.length !== cols.length) {
-    errors.push(`Expected ${cols.length} child tables for “${seed.name ?? seed.manifestId}”, found ${list.length}.`);
+    errors.push(loc("SDE.importer.tableCheck.childCount", { want: cols.length, name: seed.name ?? seed.manifestId, found: list.length }));
   }
   cols.forEach((col, i) => {
     const expected = columnManifestId(seed.manifestId, col);
     const t = list[i];
-    if (!t) { errors.push(`Missing child table for column ${i + 1} (${col}).`); return; }
+    if (!t) { errors.push(loc("SDE.importer.tableCheck.missingChild", { n: i + 1, col })); return; }
     if (t.manifestId !== expected) {
-      errors.push(`Child ${i + 1} carries id "${t.manifestId ?? "(none)"}", expected "${expected}" (${col}).`);
+      errors.push(loc("SDE.importer.tableCheck.wrongId", {
+        n: i + 1, id: t.manifestId ?? loc("SDE.importer.tableCheck.noId"), expected, col,
+      }));
     }
     const blockers = computeBlockers(t);
     if (blockers.length) {
-      errors.push(`Column “${col}”: ${blockers.map((b) => b.message).join(" ")}`);
+      errors.push(loc("SDE.importer.tableCheck.columnBlocked", { col, messages: blockers.map((b) => b.message).join(" ") }));
     }
   });
   return { ok: errors.length === 0, errors };
@@ -3080,7 +3091,7 @@ export function validateMatrixCommit(seed, tables) {
 
 export async function createTable(pt, { onConflict, allowInvalid = false } = {}) {
   if (!game.user?.isGM) {
-    ui.notifications?.warn("Only a GM can create roll tables.");
+    ui.notifications?.warn(loc("SDE.importer.tableImport.notify.gmOnly"));
     return null;
   }
   // Foundry-bound choke point (Codex review): a broken structure never
@@ -3098,7 +3109,7 @@ export async function createTable(pt, { onConflict, allowInvalid = false } = {})
     await import("../../shared/compendium-suite.mjs");
   const suite = await ensureSuite();
   if (!suite?.tables) {
-    ui.notifications?.error("Could not access the sde-tables compendium.");
+    ui.notifications?.error(loc("SDE.importer.tableImport.notify.noPack"));
     return null;
   }
   const pack = suite.tables;
@@ -3751,7 +3762,7 @@ export async function commitBundleAtomic(items, persist) {
  * @returns {Promise<{ok:boolean, reason?:string, created:object[], replaced:object[], blocked?:object[]}>}
  */
 export async function commitTableBundle(drafts, { onConflict } = {}) {
-  if (!game.user?.isGM) { ui.notifications?.warn("Only a GM can create roll tables."); return { ok: false, reason: "not-gm", created: [], replaced: [] }; }
+  if (!game.user?.isGM) { ui.notifications?.warn(loc("SDE.importer.tableImport.notify.gmOnly")); return { ok: false, reason: "not-gm", created: [], replaced: [] }; }
   const list = Array.isArray(drafts) ? drafts : [];
   if (!list.length) return { ok: false, reason: "empty", created: [], replaced: [] };
 
@@ -3762,7 +3773,7 @@ export async function commitTableBundle(drafts, { onConflict } = {}) {
   const { ensureSuite } = await import("../../shared/compendium-suite.mjs");
   const suite = await ensureSuite();
   const pack = suite?.tables;
-  if (!pack) { ui.notifications?.error("Could not access the sde-tables compendium."); return { ok: false, reason: "no-pack", created: [], replaced: [] }; }
+  if (!pack) { ui.notifications?.error(loc("SDE.importer.tableImport.notify.noPack")); return { ok: false, reason: "no-pack", created: [], replaced: [] }; }
 
   // Index must carry the manifestId flag so a GM-renamed owned table is matched
   // by identity (not left to duplicate under a fresh name).

@@ -324,6 +324,8 @@ function bundleWorld() {
     packs,
     folders: [{ id: "suite-folder", name: "Shadowdark Enhancer", type: "Compendium", folder: null }],
     modules: new Map(),
+    // Echoes the key and its data: the report says which sentence and with what.
+    i18n: { localize: (k) => k, format: (k, d) => k + JSON.stringify(d) },
   };
   globalThis.Folder = { create: async data => ({ id: `folder-${data.name}`, ...data }) };
   globalThis.Item = {
@@ -415,7 +417,7 @@ test("applyBundle reports ok:false when legacy documents could not be restored",
 
     assert.equal(report.ok, false, "a restore that lost data must not report success");
     assert.equal(report.packs[LEGACY_BUNDLE_PACK_KEY].failures, 1);
-    assert.match(report.errors.join(" "), /legacy Monster Spell document\(s\) could not be restored/);
+    assert.match(report.errors.join(" "), /SDE\.importer\.bundleIo\.err\.legacyLost\{"n":1,"examined":1,/);
   } finally {
     world.restore();
   }

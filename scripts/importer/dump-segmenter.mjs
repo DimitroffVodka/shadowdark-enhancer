@@ -35,6 +35,7 @@ import { itemRecognizer, RIDER_KW as ITEM_RIDER_RE, COST_RE as ITEM_COST_RE } fr
 import { spellRecognizer } from "./spells/spell-parser.mjs";
 import { hexcrawlRecognizer } from "./tables/hex-parser.mjs";
 import { splitRawBlocks } from "./pdf-text-utils.mjs";
+import { t as tr } from "./importer-hub-shared.mjs";
 
 // ─── Recognizer: monsters ─────────────────────────────────────────────────────
 
@@ -208,7 +209,7 @@ const tableRecognizer = {
         // Dice header present but no parseable rows.
         const firstLine = block.split("\n")[0].trim();
         if (firstLine) {
-          skipped.push({ name: firstLine, reason: "dice header present but no parseable rows" });
+          skipped.push({ name: firstLine, reason: tr("SDE.importer.skipReason.noRows") });
         }
       }
     }
@@ -281,7 +282,7 @@ export function segmentDump(rawText) {
   for (const block of leftoverBlocks) {
     const firstLine = block.split("\n")[0].trim();
     if (firstLine) {
-      result.skipped.push({ name: firstLine, reason: "not claimed by any recognizer" });
+      result.skipped.push({ name: firstLine, reason: tr("SDE.importer.skipReason.unclaimed") });
     }
   }
 

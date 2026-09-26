@@ -7,6 +7,7 @@
  */
 import { MODULE_ID } from "../../shared/module-id.mjs";
 import { CORE_TABLE_GROUPS } from "./table-seed-map.mjs";
+import { t as tr } from "../importer-hub-shared.mjs";
 
 // Codex's 12 groups -> numbered folder names (numbered for sidebar order).
 export const GROUP_FOLDERS = {
@@ -161,7 +162,7 @@ export const TableRegistry = {
    * Idempotent. GM-only. dryRun returns the plan without writing.
    */
   async organize({ dryRun = false } = {}) {
-    if (!game.user.isGM) { ui.notifications?.warn("Only a GM can organize tables."); return null; }
+    if (!game.user.isGM) { ui.notifications?.warn(tr("SDE.importer.tableRegistry.notify.gmOnly")); return null; }
     const plan = [];
     for (const e of this.build()) {
       const t = game.tables.get(e.id);
@@ -200,7 +201,9 @@ export const TableRegistry = {
     });
     if (updates.length) await RollTable.updateDocuments(updates);
     this.invalidate();
-    ui.notifications?.info(`Organized ${summary.moved} tables into ${Object.keys(folderIds).length} folders.`);
+    ui.notifications?.info(tr("SDE.importer.tableRegistry.notify.organized", {
+      moved: summary.moved, folders: Object.keys(folderIds).length,
+    }));
     return summary;
   },
 };

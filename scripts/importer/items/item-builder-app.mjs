@@ -43,12 +43,19 @@ const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 /** Source labels offered as datalist suggestions (mirrors the hub/class builder). */
 const SOURCE_SUGGESTIONS = ["CS1", "CS2", "CS3", "CS4", "CS5", "CS6", "Western Reaches"];
 
-/** Gear types this builder handles, with a friendly label. */
+/** Gear types this builder handles, with a friendly label (an en.json key,
+ *  localized at use time). */
 const GEAR_TYPES = [
-  { value: "Basic",  label: "Basic Gear" },
-  { value: "Weapon", label: "Weapons" },
-  { value: "Armor",  label: "Armor" },
+  { value: "Basic",  label: "SDE.charBuilder.gear.catBasic" },
+  { value: "Weapon", label: "SDE.charBuilder.gear.catWeapon" },
+  { value: "Armor",  label: "SDE.charBuilder.gear.catArmor" },
 ];
+
+/** The localized label of a gear type, or null for an unknown one. */
+const gearTypeLabel = (value) => {
+  const key = GEAR_TYPES.find((g) => g.value === value)?.label;
+  return key ? game.i18n.localize(key) : null;
+};
 
 /**
  * Per-source, per-type page cites: the TABLE page range (single-column, rows
@@ -71,7 +78,7 @@ const _strip = (h) => String(h ?? "").replace(/<[^>]+>/g, " ").replace(/\s+/g, "
 export class ItemBuilderApp extends HandlebarsApplicationMixin(ApplicationV2) {
   static DEFAULT_OPTIONS = {
     id: "sde-item-builder",
-    window: { title: "Item Builder", icon: "fa-solid fa-boxes-stacked", resizable: true },
+    window: { title: "SDE.importer.itemBuilder.title", icon: "fa-solid fa-boxes-stacked", resizable: true },
     position: { width: 760, height: 820 },
     actions: {
       ibGrabTable:  ItemBuilderApp.prototype._onGrabTable,
@@ -153,8 +160,8 @@ export class ItemBuilderApp extends HandlebarsApplicationMixin(ApplicationV2) {
       source: this._source,
       sourceList: SOURCE_SUGGESTIONS,
       gearType: this._gearType,
-      gearTypes: GEAR_TYPES.map((g) => ({ ...g, selected: g.value === this._gearType })),
-      typeLabel: GEAR_TYPES.find((g) => g.value === this._gearType)?.label ?? "Items",
+      gearTypes: GEAR_TYPES.map((g) => ({ ...g, label: game.i18n.localize(g.label), selected: g.value === this._gearType })),
+      typeLabel: gearTypeLabel(this._gearType) ?? game.i18n.localize("SDE.importer.type.items"),
       tableText: this._tableText,
       descText: this._descText,
       tablePage: pages?.table ?? null,
@@ -229,7 +236,7 @@ export class ItemBuilderApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const key = this._sourceKey();
     const pages = this._pages();
     const target = (key && pages?.table) ? sourcePdfTarget(key, pages.table) : null;
-    if (!target) { ui.notifications?.warn("No source PDF / table page for this source + type — paste the table below."); return; }
+    if (!target) { ui.notifications?.warn(game.i18n.localize("SDE.importer.itemBuilder.notify.noTablePage")); return; }
     const text = await this._grab(key, target.file, pages.table, "1");   // table is single-column
     if (text == null) return;
     this._tableText = this._append(this._tableText, text);
@@ -241,7 +248,7 @@ export class ItemBuilderApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const dropped = [];
     let rows = parseGearTable(this._tableText, this._gearType,
       { onDrop: (text, reason) => dropped.push({ text, reason }) });
-    if (!rows.length) { ui.notifications?.warn("No priced item rows found — is this the price table (Name cost qty slot)?"); return; }
+    if (!rows.length) { ui.notifications?.warn(game.i18n.localize("SDE.importer.itemBuilder.notify.noRows")); return; }
     // Weapon/Armor: resolve property NAMES → shadowdark.properties UUIDs now,
     // so unresolved names surface as review flags on the rows below.
     if (this._gearType !== "Basic") await ItemImporter.resolveGearPropertiesAll(rows);
@@ -265,9 +272,11 @@ export class ItemBuilderApp extends HandlebarsApplicationMixin(ApplicationV2) {
     // refresh ALL mechanics but KEEP the edited name + matched description.
     this._items = mergeGearRows(this._items, rows);
     this._dropped = dropped;
-    const dupNote = this._systemDupes.length ? ` (${this._systemDupes.length} already in the system — skipped)` : "";
-    const dropNote = dropped.length ? ` · ${dropped.length} stray line(s) skipped` : "";
-    ui.notifications?.info(`Table parsed — ${this._items.length} new item(s)${dupNote}${dropNote}. Now add descriptions in step 2.`);
+    const dupNote = this._systemDupes.length
+      ? game.i18n.format("SDE.importer.itemBuilder.notify.parsedDupes", { n: this._systemDupes.length }) : "";
+    const dropNote = dropped.length
+      ? game.i18n.format("SDE.importer.itemBuilder.notify.parsedDropped", { n: dropped.length }) : "";
+    ui.notifications?.info(game.i18n.format("SDE.importer.itemBuilder.notify.parsed", { n: this._items.length, dupNote, dropNote }));
     this.render();
   }
 
@@ -276,7 +285,7 @@ export class ItemBuilderApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const key = this._sourceKey();
     const pages = this._pages();
     const target = (key && pages?.desc) ? sourcePdfTarget(key, pages.desc) : null;
-    if (!target) { ui.notifications?.warn("No description page for this source + type — paste the descriptions below."); return; }
+    if (!target) { ui.notifications?.warn(game.i18n.localize("SDE.importer.itemBuilder.notify.noDescPage")); return; }
     // Two-column, with the shared page's leading price-table block cropped out
     // (it drags the column split off-centre and beheads the first entries).
     const raw = await this._grab(key, target.file, pages.desc, "2", { cropTablePrefix: true });
@@ -296,7 +305,7 @@ export class ItemBuilderApp extends HandlebarsApplicationMixin(ApplicationV2) {
   }
 
   _onMatchDesc() {
-    if (!this._items.length) { ui.notifications?.warn("Parse the table first (step 1) — descriptions match to those items by name."); return; }
+    if (!this._items.length) { ui.notifications?.warn(game.i18n.localize("SDE.importer.itemBuilder.notify.parseFirst")); return; }
     const { assignments } = matchGearDescriptions(this._items, this._descText, {
       // The explicit aliases are Basic Gear source spellings. Weapon/Armor
       // matching keeps the historical exact/variant behavior only.
@@ -308,7 +317,8 @@ export class ItemBuilderApp extends HandlebarsApplicationMixin(ApplicationV2) {
       matched++;
     }
     const missing = this._items.length - this._items.filter((i) => _strip(i.description)).length;
-    ui.notifications?.info(`Matched ${matched} description(s).${missing ? ` ${missing} still need one — edit them below.` : ""}`);
+    const missingNote = missing ? game.i18n.format("SDE.importer.itemBuilder.notify.matchedMissing", { n: missing }) : "";
+    ui.notifications?.info(game.i18n.format("SDE.importer.itemBuilder.notify.matched", { n: matched, missing: missingNote }));
     this.render();
   }
 
@@ -323,13 +333,13 @@ export class ItemBuilderApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const href = target?.dataset?.href;
     if (!href) return;
     const { SourcePdfViewer } = await import("../source-pdf-viewer.mjs");
-    SourcePdfViewer.show(href, target.dataset.title || "Source PDF");
+    SourcePdfViewer.show(href, target.dataset.title || game.i18n.localize("SDE.importer.pdf.sourcePdf"));
   }
 
   // ── Stage ③ · Combine & create ────────────────────────────────────────────────
   async _onCreate() {
-    if (!game.user?.isGM) { ui.notifications?.warn("Only a GM can create items."); return; }
-    if (!this._items.length) { ui.notifications?.warn("Nothing to create — parse the table first."); return; }
+    if (!game.user?.isGM) { ui.notifications?.warn(game.i18n.localize("SDE.importer.itemBuilder.notify.gmOnly")); return; }
+    if (!this._items.length) { ui.notifications?.warn(game.i18n.localize("SDE.importer.itemBuilder.notify.nothing")); return; }
     const source = this._source.trim();
     // Full pass-through: the mechanics parsed in stage ① (damage/AC/range/
     // type/properties) ride the drafts into creation — never rebuilt narrow
@@ -344,7 +354,12 @@ export class ItemBuilderApp extends HandlebarsApplicationMixin(ApplicationV2) {
     if (!result) return;
     this._lastReport = { created: result.created.length, replaced: (result.replaced ?? []).length, skipped: (result.skipped ?? []).length };
     Hooks.callAll(`${MODULE_ID}.contentUnlocked`);
-    ui.notifications?.info(`Created ${this._lastReport.created}${this._lastReport.replaced ? `, updated ${this._lastReport.replaced}` : ""} ${GEAR_TYPES.find((g) => g.value === this._gearType)?.label ?? "item"}(s) in your items compendium.`);
+    const updated = this._lastReport.replaced
+      ? game.i18n.format("SDE.importer.itemBuilder.reportUpdated", { n: this._lastReport.replaced }) : "";
+    ui.notifications?.info(game.i18n.format("SDE.importer.itemBuilder.notify.created", {
+      created: this._lastReport.created, updated,
+      type: gearTypeLabel(this._gearType) ?? game.i18n.localize("SDE.importer.itemBuilder.itemFallback"),
+    }));
     this.render();
   }
 
@@ -356,15 +371,15 @@ export class ItemBuilderApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const pdfPages = parsePageRange(spec)
       .map((p) => sourcePdfTarget(srcKey, String(p))?.page)
       .filter((p) => p != null);
-    if (!pdfPages.length) { ui.notifications?.warn("Couldn't resolve those pages in the source PDF."); return null; }
+    if (!pdfPages.length) { ui.notifications?.warn(game.i18n.localize("SDE.importer.itemBuilder.notify.noPages")); return null; }
     try {
       const result = await extractPdfText(file, { pages: pdfPages, columns, ...extractOpts });
-      if (!result.text) { ui.notifications?.warn("That page has no selectable text."); return null; }
+      if (!result.text) { ui.notifications?.warn(game.i18n.localize("SDE.importer.itemBuilder.notify.noText")); return null; }
       notifyGutterWarnings(result);
       return result.text;
     } catch (err) {
       console.error(`${MODULE_ID} | Item Builder — PDF grab failed`, err);
-      ui.notifications?.error(`Couldn't read text from that PDF page — ${err?.message || err} (details in the console).`);
+      ui.notifications?.error(game.i18n.format("SDE.importer.pdf.readPageFailed", { error: err?.message || err }));
       return null;
     }
   }

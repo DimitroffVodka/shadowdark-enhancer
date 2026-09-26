@@ -18,6 +18,7 @@
  */
 
 import { collapse, normalizeText } from "../pdf-text-utils.mjs";
+import { t as tr } from "../importer-hub-shared.mjs";
 
 // Movement words → Shadowdark NPC move keys (system.move).
 const MOVE_KEYS = {
@@ -166,7 +167,7 @@ export function splitStatblocks(rawText) {
       monsters[monsters.length - 1] += `\n${blockText}`;
       // prevWasMonster stays true — a monster may have several caption blocks.
     } else {
-      skipped.push({ name: b.name, reason: "no stat line — section header or lore block" });
+      skipped.push({ name: b.name, reason: tr("SDE.importer.monsterImporter.skipReason") });
       prevWasMonster = false;
     }
   }

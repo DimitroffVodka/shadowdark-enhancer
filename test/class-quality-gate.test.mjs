@@ -15,6 +15,11 @@ import {
   classGateIssues,
 } from "../scripts/importer/char-content/class-quality-gate.mjs";
 
+// The gate's own messages come from en.json. Echo the key plus its data so the
+// assertions still see which message fired and what name went into it.
+globalThis.game = { i18n: { localize: (k) => k, format: (k, d) => k + JSON.stringify(d) } };
+const NO_TALENT_TABLE = "SDE.importer.charContent.gate.noTalentTable";
+
 test("classGateBlockers extracts only BLOCKER-tagged warnings, tag stripped", () => {
   const warnings = [
     "Spellcaster: the class's spell list must be imported separately.",
@@ -39,8 +44,7 @@ test("supplementGateBlockers: SPELLS KNOWN grid onto a NON-caster is a blocker",
   const issues = supplementGateBlockers("__not_spellcaster__", sup, "Green Knight");
   assert.equal(issues.length, 1);
   assert.match(issues[0], /Green Knight/);
-  assert.match(issues[0], /NOT a spellcaster/);
-  assert.match(issues[0], /SPELLS KNOWN/);
+  assert.match(issues[0], /^SDE\.importer\.charContent\.gate\.notCaster\b/, "the NOT-a-spellcaster / SPELLS KNOWN message");
 });
 
 test("supplementGateBlockers: caster class with a grid is NOT blocked", () => {
@@ -71,7 +75,7 @@ test("supplementGateBlockers carries through supplement BLOCKER warnings and de-
 test("classGateIssues: missing talent table flagged unless it's a supplement", () => {
   assert.deepEqual(
     classGateIssues({ warnings: [], hasTalentTable: false, isSupplement: false }),
-    ["No talent table — the class will be created without its level-up rolls."]
+    [NO_TALENT_TABLE]
   );
   assert.deepEqual(classGateIssues({ hasTalentTable: true }), []);
   assert.deepEqual(classGateIssues({ hasTalentTable: false, isSupplement: true }), []);
@@ -92,7 +96,7 @@ test("report dedupe: a supplement blocker already in warnings is not re-listed o
   // not-a-caster blocker is added once — total 2, no duplicate.
   assert.equal(report.warnings.length, 2);
   assert.equal(report.warnings.filter((w) => /don't tile/.test(w)).length, 1, "existing blocker not duplicated");
-  assert.equal(report.warnings.filter((w) => /NOT a spellcaster/.test(w)).length, 1, "generated blocker added once");
+  assert.equal(report.warnings.filter((w) => /gate\.notCaster/.test(w)).length, 1, "generated blocker added once");
 });
 
 test("classGateIssues aggregates table, BLOCKER, and title-split issues in order", () => {
@@ -103,7 +107,7 @@ test("classGateIssues aggregates table, BLOCKER, and title-split issues in order
     titleWarnings: ["Titles row 9-10: couldn't split into Lawful/Chaotic/Neutral"],
   });
   assert.deepEqual(issues, [
-    "No talent table — the class will be created without its level-up rolls.",
+    NO_TALENT_TABLE,
     "talent bands don't tile 2..12",
     "Titles row 9-10: couldn't split into Lawful/Chaotic/Neutral",
   ]);

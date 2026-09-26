@@ -25,6 +25,7 @@
  *   SIEGE_SOURCE / SIEGE_MANIFEST  — names + WR p119 cite
  *   parseSiegeTable(text)          — the same parse + why it came up short
  */
+import { t as tr } from "../importer-hub-shared.mjs";
 
 export const SIEGE_SOURCE = { key: "WR", page: "119", label: "Western Reaches" };
 
@@ -393,11 +394,12 @@ function namesMentioned(lines) {
 function diagnose(parsed, missing, mentioned) {
   if (!parsed.length) {
     return mentioned.length
-      ? `Siege weapons: found ${mentioned.length} name${mentioned.length === 1 ? "" : "s"} (${mentioned.join("; ")}) but no complete stat row, so the column split most likely ran through the table. Re-grab p119 with Open PDF (cites assume the V1 printing — another printing's front matter shifts every page), or paste its rows (Weapon · Cost · Type · Range · Damage · Properties).`
-      : "No siege weapons found — paste the Western Reaches p119 SIEGE WEAPONS table. If you grabbed it from your PDF, open the page (Open PDF) and check it really is the SIEGE WEAPONS page: cites assume the V1 printing, and another printing's front matter shifts every page.";
+      ? tr(mentioned.length === 1 ? "SDE.importer.boatImport.siegeNoRowsOne" : "SDE.importer.boatImport.siegeNoRowsMany",
+        { n: mentioned.length, names: mentioned.join("; ") })
+      : tr("SDE.importer.boatImport.siegeNone");
   }
   return missing.length
-    ? `Siege weapons: read ${parsed.length} of ${NAMES.length} — no stat row for ${missing.join("; ")}. Check that row against the page before Create.`
+    ? tr("SDE.importer.boatImport.siegeShort", { read: parsed.length, total: NAMES.length, missing: missing.join("; ") })
     : null;
 }
 

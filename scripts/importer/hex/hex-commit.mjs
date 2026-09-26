@@ -123,17 +123,17 @@ async function ensureCrawlEntry(pack, { title, source, folder }) {
  */
 export async function commitHexDrafts(drafts, { source = "", crawlTitle = "", keyed = [] } = {}) {
   const report = { entryUuid: null, title: "", pages: new Map(), created: [], updated: [], collisions: [], keyed: 0 };
-  if (!game.user?.isGM) { ui.notifications?.warn("Only a GM can create hex pages."); return report; }
+  if (!game.user?.isGM) { ui.notifications?.warn(game.i18n.localize("SDE.importer.gm.hexes")); return report; }
   drafts = drafts ?? [];
   if (!drafts.length && !keyed?.length) return report;
 
   const packs = await ensureSuite();
   const pack = packs?.journal;
-  if (!pack) { ui.notifications?.error("Hex pages: the Journals pack could not be created."); return report; }
+  if (!pack) { ui.notifications?.error(game.i18n.localize("SDE.importer.hexCommit.notify.noPack")); return report; }
   const folder = await ensureSourceFolder(pack, source);
   const title = String(crawlTitle ?? "").trim() || defaultCrawlTitle(source);
   const entry = await ensureCrawlEntry(pack, { title, source, folder });
-  if (!entry) { ui.notifications?.error("Hex pages: the journal entry could not be created."); return report; }
+  if (!entry) { ui.notifications?.error(game.i18n.localize("SDE.importer.hexCommit.notify.noEntry")); return report; }
   report.title = title;
 
   // Keyed summary rows ride on the entry flag, merged by number, so a later
