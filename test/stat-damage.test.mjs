@@ -9,13 +9,18 @@
  *
  * The Foundry-bound half runs against a fake actor that keeps effects in a Map
  * and throws when asked to delete one that is already gone, as the server does.
+ *
+ * #183: monster attacks apply their riders on a hit, a save first when the
+ * rider has one. Rider wording in the fixtures is invented.
  */
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
-  ABILITIES, abilityKey, afterHeal, damageOf, effectAmount, statDamageEffect,
+  ABILITIES, abilityKey, afterHeal, attackRiders, damageOf, effectAmount, parseStatRiders,
+  statDamageEffect,
 } from "../scripts/stat-damage/stat-damage-core.mjs";
 import { StatDamage } from "../scripts/stat-damage/stat-damage.mjs";
+import { StatRiders } from "../scripts/stat-damage/stat-riders.mjs";
 
 const FLAG = (ability) => ({ "shadowdark-enhancer": { statDamage: { ability } } });
 
@@ -174,4 +179,156 @@ test("only the active GM kills, so every client seeing the effect does not race"
     globalThis.game.user = { id: "gm", isGM: true };
   }
   assert.ok(!actor.statuses.has("dead"));
+});
+
+// ─── #183: reading riders out of monster text ──────────────────────────────
+
+const rider = (ability, amount, save = null) => ({ ability, amount, save });
+
+test("a plain rider, fixed or rolled", () => {
+  assert.deepEqual(parseStatRiders("1 STR damage"), [rider("str", "1")]);
+  assert.deepEqual(parseStatRiders("Target takes 1d4 Constitution damage."), [rider("con", "1d4")]);
+});
+
+test("a rider behind a save carries the save", () => {
+  assert.deepEqual(parseStatRiders("DC 12 CON or 1d4 STR damage"),
+    [rider("str", "1d4", { ability: "con", dc: 12 })]);
+  assert.deepEqual(parseStatRiders("DC 15 WIS check or takes 2 CHA damage"),
+    [rider("cha", "2", { ability: "wis", dc: 15 })]);
+});
+
+test("the importer's enriched markup and HTML read the same as the prose", () => {
+  assert.deepEqual(parseStatRiders("[[request 12 con]] or [[/r 1d4]] STR damage"),
+    parseStatRiders("DC 12 CON or 1d4 STR damage"));
+  assert.deepEqual(parseStatRiders("<p><strong>Wither.</strong> 1&nbsp;DEX damage.</p>"),
+    [rider("dex", "1")]);
+});
+
+test("hit-point damage and saves against anything else are not stat damage", () => {
+  assert.deepEqual(parseStatRiders("1d6 damage"), []);
+  assert.deepEqual(parseStatRiders("DC 12 CON or be poisoned"), []);
+  assert.deepEqual(parseStatRiders(""), []);
+});
+
+test("a rider can live in the NPC feature the attack names", () => {
+  const attack = { name: "Touch", system: { damage: { special: "wither" }, description: "wither" } };
+  const items = [
+    { type: "NPC Feature", name: "Wither", system: { description: "<p>1 STR damage.</p>" } },
+    { type: "NPC Feature", name: "Aura", system: { description: "<p>1 WIS damage.</p>" } },
+  ];
+  assert.deepEqual(attackRiders(attack, items), [rider("str", "1")], "only the named feature");
+});
+
+test("a rider mirrored into the description, enriched or not, counts once", () => {
+  const attack = { system: { damage: { special: "[[/r 1d4]] STR damage" }, description: "1d4 STR damage" } };
+  assert.deepEqual(attackRiders(attack, []), [rider("str", "1d4")]);
+});
+
+// ─── #183: the hit ─────────────────────────────────────────────────────────
+
+const docs = new Map();
+globalThis.fromUuid = async (uuid) => docs.get(uuid) ?? null;
+globalThis.ChatMessage = { getSpeaker: ({ actor }) => ({ alias: actor.name }) };
+const chat = [];
+globalThis.Roll = class {
+  constructor(formula) { this.formula = formula; }
+  async evaluate() { this.total = /d/.test(this.formula) ? 3 : Number(this.formula); return this; }
+  async toMessage(data) { chat.push({ ...data, total: this.total }); }
+};
+
+/** A character to hit, whose own client would roll `save` as the check's success. */
+function hitTarget(save) {
+  const target = fakeActor();
+  Object.assign(target, {
+    uuid: "Actor.pc", name: "Brin", isOwner: true,
+    testUserPermission: () => true,
+    checks: [],
+  });
+  target.system.rollStatCheck = async (ability, config) => {
+    target.checks.push({ ability, ...config });
+    return { success: save };
+  };
+  docs.set("Actor.pc", target);
+  return target;
+}
+
+function monsterCard({ special, hit = true, attackerType = "NPC", features = [] }) {
+  docs.set("Actor.npc", { documentName: "Actor", type: attackerType, name: "Barrow Wight", items: features });
+  docs.set("Item.atk", { name: "Touch", system: { damage: { special } } });
+  return {
+    flags: { shadowdark: { rollConfig: {
+      type: "attack", targetUuid: "Actor.pc", actorUuid: "Actor.npc", itemUuid: "Item.atk",
+    } } },
+    rolls: [{ success: hit }],
+  };
+}
+
+/** Every connected player, as `globalThis.game.users.filter` sees them. None unless a test adds one. */
+const withPlayers = async (players, fn) => {
+  globalThis.game.users.filter = (pred) => players.filter(pred);
+  try { await fn(); } finally { globalThis.game.users.filter = () => []; }
+};
+globalThis.game.users.filter = () => [];
+
+test("a hit from an attack that says 1 STR damage lowers STR by 1", async () => {
+  chat.length = 0;
+  const target = hitTarget(false);
+  await StatRiders._onAttackCard(monsterCard({ special: "1 STR damage" }));
+  assert.equal(StatDamage.of(target).str, 1);
+  assert.equal(chat.length, 1, "the amount is rolled in chat");
+});
+
+test("a miss applies nothing", async () => {
+  const target = hitTarget(false);
+  await StatRiders._onAttackCard(monsterCard({ special: "1 STR damage", hit: false }));
+  assert.equal(StatDamage.of(target).str, 0);
+});
+
+test("a character's own weapon is not a monster attack", async () => {
+  const target = hitTarget(false);
+  await StatRiders._onAttackCard(monsterCard({ special: "1 STR damage", attackerType: "Player" }));
+  assert.equal(StatDamage.of(target).str, 0);
+});
+
+test("the target's player makes the save; the damage lands only when it fails", async () => {
+  for (const saved of [true, false]) {
+    const target = hitTarget(null);
+    const asked = [];
+    await withPlayers([{
+      active: true, isGM: false, character: { id: target.id },
+      query: async (name, data) => { asked.push({ name, data }); return { ok: true, saved }; },
+    }], () => StatRiders._onAttackCard(monsterCard({ special: "DC 12 CON or 1d4 STR damage" })));
+    assert.equal(asked.length, 1);
+    assert.deepEqual(asked[0].data, { actorUuid: "Actor.pc", ability: "con", dc: 12, source: "Touch" });
+    assert.equal(target.checks.length, 0, "the GM did not roll it too");
+    assert.equal(StatDamage.of(target).str, saved ? 0 : 3);
+  }
+});
+
+test("with no player to ask, or one who does not answer, the GM rolls the save", async () => {
+  const passes = hitTarget(true);
+  await StatRiders._onAttackCard(monsterCard({ special: "DC 12 CON or 1d4 STR damage" }));
+  assert.deepEqual(passes.checks.map((c) => [c.ability, c.mainRoll.dc, c.skipPrompt]), [["con", 12, true]]);
+  assert.equal(StatDamage.of(passes).str, 0);
+
+  const fails = hitTarget(false);
+  await withPlayers([{
+    active: true, isGM: false, character: null,
+    query: async () => { throw new Error("timed out"); },
+  }], () => StatRiders._onAttackCard(monsterCard({ special: "DC 12 CON or 1d4 STR damage" })));
+  assert.equal(fails.checks.length, 1);
+  assert.equal(StatDamage.of(fails).str, 3);
+});
+
+test("the player's client rolls the save only when a GM asks, for a character it owns", async () => {
+  const target = hitTarget(false);
+  const ask = { actorUuid: "Actor.pc", ability: "con", dc: 12, source: "Touch" };
+  assert.deepEqual(await StatRiders.handleSaveQuery(ask, { isGM: false }), { ok: false });
+  assert.equal(target.checks.length, 0);
+
+  assert.deepEqual(await StatRiders.handleSaveQuery(ask, { isGM: true }), { ok: true, saved: false });
+  assert.deepEqual(target.checks.map((c) => [c.ability, c.mainRoll.dc, c.skipPrompt]), [["con", 12, false]]);
+
+  target.isOwner = false;
+  assert.deepEqual(await StatRiders.handleSaveQuery(ask, { isGM: true }), { ok: false });
 });

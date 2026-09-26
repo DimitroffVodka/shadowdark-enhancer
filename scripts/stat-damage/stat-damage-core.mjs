@@ -101,6 +101,73 @@ export function statDamageEffect(ability, amount, name) {
   };
 }
 
+// ─── Monster riders (#183) ─────────────────────────────────────────────────
+
+const ABILITY_WORD = "str|dex|con|int|wis|cha|strength|dexterity|constitution|intelligence|wisdom|charisma";
+
+/**
+ * "1 STR damage", "1d4 CON damage", and the same behind a save:
+ * "DC 12 CON or 1d4 STR damage" (also "... CON check or takes ...").
+ * Groups: 1 save DC, 2 save ability, 3 amount, 4 damaged ability.
+ */
+const RIDER_RE = new RegExp(
+  `(?:\\bDC\\s*(\\d+)\\s+(${ABILITY_WORD})\\b(?:\\s+(?:check|save))?[\\s,;:]+or\\s+(?:takes?\\s+)?)?`
+  + `\\b(\\d+d\\d+|\\d+)\\s+(${ABILITY_WORD})\\s+damage\\b`,
+  "gi",
+);
+
+/**
+ * Imported monster text back to prose. The importer's enricher turns a
+ * monster's "DC 12 CON" into `[[request 12 con]]` and "1d4" into
+ * `[[/r 1d4]]` (contextual-enricher.mjs), and features are HTML; the rider
+ * reads the same either way.
+ */
+export function plainRiderText(text) {
+  return String(text ?? "")
+    .replace(/\[\[(?:check|request)\s+(\d+)\s+(\w+)\]\]/gi, "DC $1 $2")
+    .replace(/\[\[\/r(?:oll)?\s+([^\]]+)\]\]/gi, "$1")
+    .replace(/<[^>]*>/g, " ")
+    .replace(/&nbsp;/g, " ");
+}
+
+/**
+ * Every stat-damage rider in a piece of text.
+ * @returns {{ability: string, amount: string, save: ?{ability: string, dc: number}}[]}
+ *   `amount` is a roll formula ("1", "1d4").
+ */
+export function parseStatRiders(text) {
+  return [...plainRiderText(text).matchAll(RIDER_RE)].map((m) => ({
+    ability: abilityKey(m[4]),
+    amount: m[3],
+    save: m[1] ? { ability: abilityKey(m[2]), dc: Number(m[1]) } : null,
+  }));
+}
+
+/**
+ * The riders an NPC attack carries. They live in the attack's own rider
+ * (`system.damage.special`, which the importer also mirrors into its
+ * description) or in an NPC Feature that rider names: "1d6 + drain" points at
+ * the monster's *Drain* feature, the way the system's own attack card links
+ * them (NpcAttackSD.render). A rider found in two of those places counts once.
+ *
+ * @param {object} attack      The attack item.
+ * @param {Iterable<object>} actorItems  The attacker's items.
+ */
+export function attackRiders(attack, actorItems = []) {
+  const special = String(attack?.system?.damage?.special ?? "");
+  const named = special.split(/[,+]/).map((s) => s.trim().toLowerCase()).filter(Boolean);
+  const features = [...actorItems].filter((i) =>
+    i?.type === "NPC Feature" && named.includes(String(i.name ?? "").trim().toLowerCase()));
+  const texts = [special, attack?.system?.description, ...features.map((f) => f.system?.description)];
+  const seen = new Set();
+  return texts.flatMap(parseStatRiders).filter((r) => {
+    const key = JSON.stringify(r);
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
 /**
  * Does reaching CON 0 kill this character? Always, today.
  *

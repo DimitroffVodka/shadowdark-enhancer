@@ -16,6 +16,34 @@ to the same ability updates that line rather than adding another.
 
 When the damage is healed, the line disappears.
 
+## Monster attacks
+
+When a monster's attack hits a character and the attack's text carries a
+stat-damage rider, the character takes it automatically. The rider can be in
+the attack itself (*1d6 + 1 STR damage*) or in the monster feature the attack
+names (*1d6 + drain*, with a *Drain* feature that says *1 STR damage*).
+
+- **A plain rider** such as *1 STR damage* or *1d4 CON damage* applies on the
+  hit. The amount is rolled in chat.
+- **A rider behind a save** such as *DC 12 CON or 1d4 STR damage* asks the
+  character's player to roll the save first, and the damage applies only if it
+  fails. If no player is connected, or the player closes the roll dialog or
+  does not answer within two minutes, the GM's client rolls the save.
+- **A miss applies nothing.** Only monster attacks count, and only against
+  characters; this needs the system's targeting setting, so the attack card
+  knows who was hit.
+
+This reads the attack text the Importer Hub and Monster Creator write, so it
+works without Shadowdark Extras.
+
+The rider lands as soon as the hit card appears, so a Duelist who then
+**Parries** that hit keeps the stat damage: edit or delete the line in the Effects
+tab by hand.
+
+> **Don't double up.** If you also put a Shadowdark Extras Effects-library
+> stat-damage entry into the same attack's on-hit slot, the damage applies
+> twice.
+
 ## Healing
 
 Shadowdark Extras' camping rest heals stat damage when Enhancer is installed,
