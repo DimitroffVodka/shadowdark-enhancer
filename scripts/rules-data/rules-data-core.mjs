@@ -56,11 +56,13 @@ export const ruleKey = (s) => String(s ?? "").trim().toLowerCase().replace(/[^a-
  * A region name folded for matching. The climate table prints "Bastion Mtns"
  * and "Gloaming, The" where the chapter headings, and so the module's own
  * spelling (hex-region.mjs knownRegions), say "Bastion Mountains" and "The
- * Gloaming". Both fold to one key.
+ * Gloaming". Both fold to one key, and so does a bare "Gloaming": the article
+ * is dropped wherever it stands.
  */
 export function regionKey(name) {
   return String(name ?? "").trim().toLowerCase()
-    .replace(/^(.+?),\s*the$/, "the $1")
+    .replace(/,\s*the$/, "")
+    .replace(/^the\s+/, "")
     .replace(/\bmtns\b\.?/g, "mountains")
     .replace(/[^a-z0-9]+/g, " ").trim();
 }
@@ -138,7 +140,8 @@ export function rulesFrom(stored) {
 export function terrainCost(rules, terrain, { boat = false, weather = "", harsh = false } = {}) {
   const row = rules?.terrain?.[ruleKey(terrain)];
   if (!row) return null;
-  const stormy = ruleKey(weather) === "stormy";
+  // "stormy" or the table's own wording, "Stormy weather", in any case.
+  const stormy = /^\s*stormy\b/i.test(String(weather ?? ""));
   if (stormy && harsh) return Infinity;
   if (boat && row.boat !== null) return row.boat;
   if (row.type === "impassable") return Infinity;
@@ -159,10 +162,16 @@ export function climate(rules, region, season) {
   return { region: row.region, season: col, ...row[col] };
 }
 
-/** A settlement limit: the number, Infinity for no limit, null for a kind the table does not know. */
+/**
+ * A settlement limit: the number, or Infinity for no limit. null when the
+ * table has never been filled in (every settlement empty), so a caller with a
+ * fallback of its own (Shadowdark Extras' carousing) can tell "not set up"
+ * from "no limit"; also null for a kind the table does not know. Once any
+ * settlement has a number, an empty one is the book's "no limit".
+ */
 function limitOf(table, kind) {
   const k = ruleKey(kind);
-  if (!table || !(k in table)) return null;
+  if (!table || !(k in table) || Object.values(table).every((v) => v === null)) return null;
   return table[k] ?? Infinity;
 }
 
@@ -265,6 +274,20 @@ export function readReferenceTables(found, { canonical = (r) => String(r ?? "").
     if (READERS[id] && rows?.length) data[id] = READERS[id](rows, skipped, { canonical });
   }
   return { data, skipped };
+}
+
+/**
+ * Tables that were read, but not whole: fewer (or more) rows than the page
+ * prints. The reference parser stops at the first line that is not a row, so a
+ * short table is one whose later rows never arrived; the GM has to hear which.
+ * @param {Object<string, string[][]>} found  RULES_TABLES id → rows as cut
+ * @param {Array<{id:string, shape:{rows?:number}}>} recipes  RULES_TABLES
+ * @returns {Array<{id:string, got:number, want:number}>}
+ */
+export function partlyRead(found, recipes) {
+  return (recipes ?? [])
+    .filter((t) => found?.[t.id]?.length && t.shape?.rows && found[t.id].length !== t.shape.rows)
+    .map((t) => ({ id: t.id, got: found[t.id].length, want: t.shape.rows }));
 }
 
 /** A climate cell the way the book prints it, for the preview. */

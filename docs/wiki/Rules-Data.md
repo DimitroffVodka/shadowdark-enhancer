@@ -40,6 +40,11 @@ other Western Reaches table (see [Table Import & Shapes](Table-Import-and-Shapes
 - **A table it can't find is named.** Without a linked Player's Guide, for
   example, it fills everything else and tells you the recruiting limits were
   not imported.
+- **So is a table it read only part of.** If a table comes out with fewer rows
+  than the page prints (a different printing can wrap a cell, which ends the
+  table early), the warning names it with how many rows it got, for example
+  "Terrain (10 of 16 rows)". Check that table against the book and fill in the
+  rest.
 - **Nothing is kept until you press Save.** The import fills the window;
   **Cancel** throws it away with any other change.
 
@@ -65,7 +70,9 @@ setting, fills the tables in directly.
   name in the empty row at the bottom to add a region; clear a region's name to
   remove its row.
 - **Carousing limits** and **Recruiting limits**: leave a settlement empty for
-  no limit.
+  no limit. A table with *every* settlement empty counts as not filled in, not
+  as "no limits anywhere", so Shadowdark Extras' carousing keeps its own
+  limits until you give this one a number.
 
 ## What reads it
 

@@ -5,7 +5,7 @@ import { parseByShape } from "../scripts/importer/tables/table-importer.mjs";
 import { RULES_TABLES } from "../scripts/importer/tables/table-shapes.mjs";
 import { TERRAIN_TAGS } from "../scripts/importer/hex/hex-summary.mjs";
 import {
-  rulesFrom, rulesApi, readReferenceTables, importOverwrites, applyImport, READERS,
+  rulesFrom, rulesApi, readReferenceTables, importOverwrites, applyImport, partlyRead, READERS,
   ruleKey, regionKey, canonicalRegion, cellNumber,
   TERRAIN_TYPES, ELEVATIONS, SEASONS, HARSH, TRAVEL_METHODS, VISIBILITY_KEYS, SETTLEMENT_KINDS, COSTED_TYPES,
 } from "../scripts/rules-data/rules-data-core.mjs";
@@ -118,7 +118,8 @@ test("reference shape: footnote lines are stripped, the wrong caption finds noth
 test("every recipe is structure only and has a reader", () => {
   assert.equal(new Set(RULES_TABLES.map((t) => t.id)).size, RULES_TABLES.length);
   for (const t of RULES_TABLES) {
-    assert.deepEqual(Object.keys(t.shape).sort(), ["caption", "cells", "extractCols", "kind"], t.id);
+    assert.deepEqual(Object.keys(t.shape).sort(), ["caption", "cells", "extractCols", "kind", "rows"], t.id);
+    assert.ok(Number.isInteger(t.shape.rows) && t.shape.rows > 0, `${t.id} says how many rows it prints`);
     assert.equal(t.shape.kind, "reference");
     assert.ok(["layout", "2layout"].includes(t.shape.extractCols), `${t.id} pins a padded extraction`);
     assert.ok(Number.isInteger(t.page) && ["GMWR", "WR"].includes(t.src), t.id);
@@ -126,14 +127,16 @@ test("every recipe is structure only and has a reader", () => {
   }
 });
 
-test("an untouched world: nothing filled, mountain high, no limits", () => {
+test("an untouched world: nothing filled, mountain high, limits not set up", () => {
   const api = rulesApi(() => ({}));
   assert.equal(api.terrainCost("forest"), null);
   assert.equal(api.terrainCost("ocean", { boat: true }), null);
   assert.equal(api.hexesPerDay("walking"), null);
   assert.equal(api.climate("Varn Mountains", "summer"), null);
-  assert.equal(api.carousingLimit("village"), Infinity);
-  assert.equal(api.recruitingLimit("city_state"), Infinity);
+  // null, not Infinity: "never filled in" must not read as "no limit", or a
+  // caller's own fallback (Shadowdark Extras' carousing) never runs.
+  assert.equal(api.carousingLimit("village"), null);
+  assert.equal(api.recruitingLimit("city_state"), null);
   assert.equal(api.carousingLimit("hamlet"), null, "a kind the table does not know");
   const vis = api.visibility();
   assert.deepEqual(vis.elevation, { mountain: "high" }, "mountain is high, nothing is slight");
@@ -160,6 +163,8 @@ test("import: every made-up table reads through to the API", () => {
   assert.equal(api.climate("Varn Mtns", "winter").harsh, "storm");
   assert.equal(api.climate("The Grey Reach", "autumn").label, "Mild");
   assert.equal(api.climate("grey reach, the", "spring").harsh, "storm");
+  assert.equal(api.climate("Grey Reach", "summer").label, "Balmy", "the article is optional");
+  assert.equal(api.climate("the varn mtns", "summer").label, "Baking");
   assert.equal(api.carousingLimit("village"), 250);
   assert.equal(api.carousingLimit("city"), 2500);
   assert.equal(api.carousingLimit("city_state"), Infinity, "a dash is no limit");
@@ -257,4 +262,40 @@ test("every string the window and its preview can ask for is in en.json", () => 
   }
   const missing = [...new Set(want)].filter((k) => !(k in en));
   assert.deepEqual(missing, []);
+});
+
+test("limits: a filled table's empty settlement is no limit; an all-empty table is not set up", () => {
+  const limits = (carousing) => rulesApi(() => ({ carousing }));
+  assert.equal(limits({ village: 40 }).carousingLimit("village"), 40);
+  assert.equal(limits({ village: 40 }).carousingLimit("city_state"), Infinity, "filled table, empty settlement");
+  assert.equal(limits({ village: "", town: null }).carousingLimit("town"), null, "every settlement empty");
+  assert.equal(limits({ village: 40 }).recruitingLimit("village"), null, "recruiting is its own table");
+  const { data } = importAll();
+  const api = rulesApi(() => applyImport({}, data));
+  assert.equal(api.carousingLimit("city_state"), Infinity, "the page's dash is an explicit no limit");
+  assert.equal(api.recruitingLimit("city_state"), 12);
+});
+
+test("terrain cost: the printed weather wording counts as stormy, in any case", () => {
+  const rules = rulesFrom({ terrainTypes: { normal: 3, difficult: 5 }, terrain: { mountain: { type: "normal" } } });
+  const api = rulesApi(() => rules);
+  for (const weather of ["stormy", "Stormy", "Stormy weather", "  STORMY WEATHER "]) {
+    assert.equal(api.terrainCost("mountain", { weather }), 5, weather);
+    assert.equal(api.terrainCost("mountain", { weather, harsh: true }), Infinity, weather);
+  }
+  assert.equal(api.terrainCost("mountain", { weather: "Excellent weather" }), 3);
+  assert.equal(api.terrainCost("mountain", { weather: "not stormy" }), 3, "only a word that starts stormy");
+});
+
+test("partial import: a table cut short is named with what it read", () => {
+  const cut = PAGES.terrain.slice(0, 5).concat(["a wrapped cell that", "breaks the run", ...PAGES.terrain.slice(5)]);
+  const rows = (id, page) => parseByShape(page.join("\n"), recipe(id).shape).reference.rows;
+  const found = { terrain: rows("terrain", cut), climate: rows("climate", PAGES.climate) };
+  const fake = [
+    { id: "terrain", shape: { ...recipe("terrain").shape, rows: 6 } },
+    { id: "climate", shape: { ...recipe("climate").shape, rows: 2 } },
+    { id: "travel", shape: recipe("travel").shape },
+  ];
+  assert.deepEqual(partlyRead(found, fake), [{ id: "terrain", got: 3, want: 6 }], "whole and missing tables are not partial");
+  assert.deepEqual(partlyRead({ terrain: rows("terrain", PAGES.terrain) }, fake), []);
 });

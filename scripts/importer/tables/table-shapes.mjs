@@ -814,22 +814,26 @@ export function resolveShape({ contentId, name, src } = {}) {
 // Rules data window (scripts/rules-data), never filed as RollTables, so they
 // sit outside CONTENT_ENTRIES: no catalogue row, no Manage-tree unlock.
 //
-// A recipe is the caption, the number of cells per row and the extraction mode
-// its page needs — structure only; every value comes from the GM's own PDF.
+// A recipe is the caption, the number of cells per row, the number of rows the
+// page prints and the extraction mode its page needs — structure only, like
+// the sizes on the recipes above; every value comes from the GM's own PDF.
+// `rows` is how a table that was only PARTLY read gets named: the parser stops
+// at the first line that is not a row, so a cell that wraps in another
+// printing ends the table early rather than reading wrong.
 // `id` is the rules-data table it fills (rules-data-core.mjs READERS).
 // Modes, verified offline against the real pages: "2layout" where the table
 // sits in one column beside prose (the gutter split keeps the prose out, the
 // padding keeps the cells apart); "layout" for the two full-width grids, which
 // the gutter would cut in half.
-const REFERENCE = (caption, cells, extractCols) => ({ kind: "reference", caption, cells, extractCols });
+const REFERENCE = (caption, cells, rows, extractCols) => ({ kind: "reference", caption, cells, rows, extractCols });
 
 export const RULES_TABLES = [
-  { id: "travel", src: "GMWR", page: 40, shape: REFERENCE("ENTERING HEXES", 2, "2layout") },
-  { id: "terrainTypes", src: "GMWR", page: 40, shape: REFERENCE("TERRAIN TYPES", 2, "2layout") },
-  { id: "visibility", src: "GMWR", page: 41, shape: REFERENCE("HEX VISIBILITY", 2, "2layout") },
-  { id: "terrain", src: "GMWR", page: 41, shape: REFERENCE("TERRAIN IN THE REACHES", 3, "layout") },
-  { id: "climate", src: "GMWR", page: 43, shape: REFERENCE("CLIMATE IN THE REACHES", 4, "layout") },
-  { id: "carousing", src: "GMWR", page: 30, shape: REFERENCE("CAROUSING LIMITS", 2, "2layout") },
+  { id: "travel", src: "GMWR", page: 40, shape: REFERENCE("ENTERING HEXES", 2, 3, "2layout") },
+  { id: "terrainTypes", src: "GMWR", page: 40, shape: REFERENCE("TERRAIN TYPES", 2, 3, "2layout") },
+  { id: "visibility", src: "GMWR", page: 41, shape: REFERENCE("HEX VISIBILITY", 2, 5, "2layout") },
+  { id: "terrain", src: "GMWR", page: 41, shape: REFERENCE("TERRAIN IN THE REACHES", 3, 16, "layout") },
+  { id: "climate", src: "GMWR", page: 43, shape: REFERENCE("CLIMATE IN THE REACHES", 4, 15, "layout") },
+  { id: "carousing", src: "GMWR", page: 30, shape: REFERENCE("CAROUSING LIMITS", 2, 4, "2layout") },
   // The Player's Guide, not the GM Guide: warbands are a player-facing rule.
-  { id: "recruiting", src: "WR", page: 249, shape: REFERENCE("RECRUITING LIMITS", 2, "2layout") },
+  { id: "recruiting", src: "WR", page: 249, shape: REFERENCE("RECRUITING LIMITS", 2, 4, "2layout") },
 ];

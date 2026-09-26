@@ -1149,21 +1149,28 @@ time (so an edit is seen at once) and works for players too.
 | `rules.hexesPerDay(method)` | Hexes a day for `"walking"`, `"mounted"` or `"sailing"`, or `null`. |
 | `rules.visibility()` | `{ darkness, stormy, excellent, slight, high, elevation }`: the hex visibility modifiers (numbers or `null`), and `elevation`, `{ terrain: "slight" \| "high" }` for every terrain that has one. |
 | `rules.climate(region, season)` | `{ region, season, label, harsh }` or `null`. `harsh` is `"always"`, `"storm"` (harsh in stormy weather only) or `""`. |
-| `rules.carousingLimit(kind)` | The largest carousing event, in gp, a settlement can host. `Infinity` for no limit (and while the table is empty), `null` for a kind the table does not have. |
+| `rules.carousingLimit(kind)` | The largest carousing event, in gp, a settlement can host. `Infinity` for no limit; `null` while the table is not filled in, and for a kind the table does not have. |
 | `rules.recruitingLimit(kind)` | The highest warband level a settlement can supply, with the same `Infinity` and `null`. |
 
 - **Terrain** words are the Hex Tagger's (`scripts/importer/hex/hex-summary.mjs`
   `TERRAIN_TAGS`): `forest`, `salt_flat`, `arctic_sea` and so on. A printed
   spelling (`"Salt Flat"`) works too.
 - **`terrainCost` options.** `boat: true` uses the terrain's cost with a boat
-  where it has one. `weather: "stormy"` makes normal terrain cost what
-  difficult terrain does, and with `harsh: true` (a harsh climate, from
-  `climate()`) makes every terrain impassable for the day. A terrain with a
-  type and no cost of its own costs what its type does.
+  where it has one. `weather: "stormy"` (or the table's own wording,
+  `"Stormy weather"`, in any case) makes normal terrain cost what difficult
+  terrain does, and with `harsh: true` (a harsh climate, from `climate()`)
+  makes every terrain impassable for the day. A terrain with a type and no
+  cost of its own costs what its type does.
+- **Limits: "not set up" is not "no limit".** `carousingLimit` and
+  `recruitingLimit` return `null` while every settlement in that table is empty
+  (never imported or typed in), so a caller with a fallback of its own uses it.
+  Once any settlement has a number, an empty one is the book's "no limit" and
+  returns `Infinity`.
 - **Elevation.** Mountain counts as high elevation until the GM changes it, and
   no terrain counts as slight. Both are editable in the window.
-- **`region`** is matched either way the book spells it: `"Bastion Mtns"` and
-  `"Bastion Mountains"`, `"Gloaming, The"` and `"The Gloaming"`.
+- **`region`** is matched any way the book spells it, with or without the
+  article: `"Bastion Mtns"` and `"Bastion Mountains"`; `"Gloaming, The"`,
+  `"The Gloaming"` and `"Gloaming"`.
 - **`season`** is `"spring"`, `"summer"`, `"fall"` (or `"autumn"`) or
   `"winter"`. Spring and fall share one column, as the book prints them.
 - **`kind`** is a settlement kind as the hex data names it: `"village"`,

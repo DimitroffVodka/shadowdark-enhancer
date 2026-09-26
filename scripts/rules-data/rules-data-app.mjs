@@ -13,7 +13,7 @@
 import { MODULE_ID } from "../shared/module-id.mjs";
 import { esc } from "../shared/esc.mjs";
 import {
-  rulesFrom, readReferenceTables, importOverwrites, applyImport, canonicalRegion,
+  rulesFrom, readReferenceTables, importOverwrites, applyImport, canonicalRegion, partlyRead,
   TERRAIN_TYPES, COSTED_TYPES, ELEVATIONS, SEASONS, HARSH, TRAVEL_METHODS, VISIBILITY_KEYS, SETTLEMENT_KINDS,
 } from "./rules-data-core.mjs";
 
@@ -29,8 +29,10 @@ const choices = (keys, prefix) => Object.fromEntries(keys.map((k) => [k, `${pref
 /**
  * Run every RULES_TABLES recipe over the GM's own PDFs. Each page is read once
  * per extraction mode, however many tables it prints.
- * @returns {Promise<{data:object, skipped:string[], missing:string[], total:number}>}
- *   `missing` lists the table ids no linked book gave back.
+ * @returns {Promise<{data:object, skipped:string[], missing:string[],
+ *   partial:Array<{id:string, got:number, want:number}>, total:number}>}
+ *   `missing` lists the table ids no linked book gave back, `partial` the ones
+ *   it gave back only some rows of.
  */
 async function readBooks() {
   const [{ RULES_TABLES }, { parseByShape }, { sourcePdfTarget }, { extractPdfText, notifyGutterWarnings }, { knownRegions }] =
@@ -56,16 +58,20 @@ async function readBooks() {
       }
       const res = await pages.get(key);
       rows = res?.text ? parseByShape(res.text, t.shape)?.reference?.rows : null;
-      // A column warning is shown where it could explain a missing table. On a
-      // page whose tables all read it is noise: GMWR p.40's footnote crosses
-      // the gutter on every import and costs nothing.
-      if (!rows?.length && res && !warned.has(key)) { warned.add(key); notifyGutterWarnings(res); }
+      // A column warning is shown where it could explain a missing or short
+      // table. On a page whose tables all read whole it is noise: GMWR p.40's
+      // footnote crosses the gutter on every import and costs nothing.
+      const whole = rows?.length && (!t.shape.rows || rows.length === t.shape.rows);
+      if (!whole && res && !warned.has(key)) { warned.add(key); notifyGutterWarnings(res); }
     }
     if (rows?.length) found[t.id] = rows;
     else missing.push(t.id);
   }
   const known = [...knownRegions()];
-  return { ...readReferenceTables(found, { canonical: (r) => canonicalRegion(r, known) }), missing, total: RULES_TABLES.length };
+  return {
+    ...readReferenceTables(found, { canonical: (r) => canonicalRegion(r, known) }),
+    missing, partial: partlyRead(found, RULES_TABLES), total: RULES_TABLES.length,
+  };
 }
 
 /** A preview row's label: the terrain word, region or table row it changes. */
@@ -158,8 +164,10 @@ export class RulesDataApp extends HandlebarsApplicationMixin(ApplicationV2) {
     } finally {
       button.disabled = false;
     }
-    const { data, skipped, missing, total } = result;
+    const { data, skipped, missing, partial, total } = result;
     const tables = (ids) => ids.map((id) => L(`SDE.rulesData.table.${id}`)).join(", ");
+    const short = partial.map(({ id, got, want }) =>
+      F("SDE.rulesData.notify.partialTable", { table: L(`SDE.rulesData.table.${id}`), got, want })).join(", ");
     if (!Object.keys(data).length) {
       ui.notifications.warn(L("SDE.rulesData.notify.nothing"));
       return;
@@ -170,6 +178,7 @@ export class RulesDataApp extends HandlebarsApplicationMixin(ApplicationV2) {
     await this.render();
     ui.notifications.info(F("SDE.rulesData.notify.imported", { n: Object.keys(data).length, total }));
     if (missing.length) ui.notifications.warn(F("SDE.rulesData.notify.missing", { tables: tables(missing) }));
+    if (partial.length) ui.notifications.warn(F("SDE.rulesData.notify.partial", { tables: short }));
     if (skipped.length) ui.notifications.warn(F("SDE.rulesData.notify.skipped", { rows: skipped.join(", ") }));
   }
 
