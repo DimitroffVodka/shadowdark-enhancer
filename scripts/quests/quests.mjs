@@ -455,7 +455,9 @@ export function registerQuests() {
   game.keybindings.register(MODULE_ID, "openQuestLog", {
     name: "SDE.quests.keybinding.name",
     hint: "SDE.quests.keybinding.hint",
-    editable: [{ key: "KeyQ", modifiers: ["Control"] }],
+    // Alt, not Control: Firefox and Chrome on Linux quit on Ctrl+Q before a page
+    // sees it, and core's "descend" owns Q and Shift+Q.
+    editable: [{ key: "KeyQ", modifiers: ["Alt"] }],
     onDown: () => { openQuestLog(); return true; },
   });
   Hooks.on("renderJournalDirectory", addDirectoryButton);

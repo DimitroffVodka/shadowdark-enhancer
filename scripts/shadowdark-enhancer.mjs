@@ -111,7 +111,7 @@ const STYLESHEET_REV = "cd7129d5783e";
 // stale); module.json carries the same hash and is fetched fresh at runtime. A
 // mismatch is a stale cache by construction — it cannot be anything else. Both
 // stamps are written by `npm run inventory` and gated by `inventory:check`.
-const BUILD_REV = "36eed0c5f706";
+const BUILD_REV = "c9d654b16c66";
 
 /**
  * Tell the user when their browser is running an old build of this module, and
@@ -282,7 +282,7 @@ Hooks.once("init", () => {
   ItemDrops.registerSettings();
   Renown.registerSettings();
   MonsterTokenArt.register();
-  // Quest Log: its Ctrl+Q keybinding can only be registered during init.
+  // Quest Log: its keybinding can only be registered during init.
   registerQuests();
   // Out-of-combat tracker as a sidebar tab, beside Combat. Must run in init:
   // Game#initializeUI constructs CONFIG.ui entries during setup, and anything
