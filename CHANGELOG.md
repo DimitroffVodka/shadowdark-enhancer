@@ -9,7 +9,9 @@
   now also creates one table per row, on the die the row prints (a d6, or a
   d4 for External faction and Power change), named "Type of Trouble: <type>"
   and filed beside it. One roll of Type of Trouble posts the type and a result
-  from its table. (#188)
+  from its table. If your world already has Type of Trouble, import it again
+  and choose **Replace**: the table is updated in place and its ten tables
+  are made, following that one answer. (#188)
 - **Stat damage is tracked.** Damage to STR, DEX, CON, INT, WIS or CHA is one
   line per ability in the character sheet's Effects tab, such as *2 STR
   damage*: the score and its modifier drop, and the line is gone when healed.

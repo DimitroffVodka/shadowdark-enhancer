@@ -2785,7 +2785,11 @@ export function buildTableData(pt) {
     // gains a RollTable result on the same range. Foundry draws that result
     // recursively, so one roll posts the label and the nested answer.
     if (!r.subtable?.uuid) return [text];
-    return [text, { type: "document", name: r.subtable.name ?? "", documentUuid: r.subtable.uuid, weight: 1, range: [r.min, r.max] }];
+    return [text, {
+      type: "document", name: r.subtable.name ?? "", documentUuid: r.subtable.uuid, weight: 1, range: [r.min, r.max],
+      // Marked so the row count (tableRowCount) sees one row, not two.
+      flags: { "shadowdark-enhancer": { nestedRoll: true } },
+    }];
   });
   // displayRoll:false keeps the roll formula out of the chat card, which is
   // what Dice So Nice's "Enable 3D dice on Roll Tables" feature requires to
@@ -2830,12 +2834,26 @@ export function splitNestedRoll(text) {
 }
 
 /**
+ * What a nested row's sub-table does when its name is taken: whatever the GM
+ * chose for the parent. Replace → replace; "create as copy" → copies too. A
+ * parent with no conflict is a fresh import, so a sub-table already there is
+ * a leftover of an earlier one and is replaced in place, never duplicated.
+ * Pure.
+ * @param {{existing:boolean, replace:boolean}} parent
+ * @returns {"replace"|"rename"}
+ */
+export function nestedConflictChoice({ existing, replace }) {
+  return existing && !replace ? "rename" : "replace";
+}
+
+/**
  * Give every row that prints its own follow-up roll a table of its own (#188).
  * `create` commits one sub-table draft and returns the document (createTable in
- * production). Sub-tables go FIRST so the row can point at a real uuid, and are
+ * production, once the parent's own conflict is settled). Sub-tables are made
+ * before the parent is written so the row can point at a real uuid, and are
  * named "<parent>: <label>" — the grid convention, so they file beside the
- * parent. A sub-table that did not commit (cancelled, blocked) leaves its row
- * exactly as printed, so nothing the GM imported is lost.
+ * parent. A sub-table that did not commit (blocked) leaves its row exactly as
+ * printed, so nothing the GM imported is lost.
  *
  * @param {object} pt  a parsed table draft
  * @param {(draft: object) => Promise<object|null>} create
@@ -3042,9 +3060,6 @@ export async function createTable(pt, { onConflict, allowInvalid = false } = {})
   }
   const pack = suite.tables;
 
-  // Rows that print their own follow-up roll get their tables first (#188).
-  if (pt.nestedRolls) pt = await createNestedTables(pt, (sub) => createTable(sub, { onConflict, allowInvalid }));
-
   const data = buildTableData(pt);
   // Commit choke point: sanitize persisted HTML (review #1).
   if (data.description) {
@@ -3095,6 +3110,15 @@ export async function createTable(pt, { onConflict, allowInvalid = false } = {})
     } else {
       data.name = _uniqueNameAgainstIndex(data.name, [...packIndex]);
     }
+  }
+
+  // Rows that print their own follow-up roll get their tables now (#188):
+  // after the parent's own answer, so cancelling it leaves nothing behind,
+  // and the sub-tables take that answer instead of asking ten more times.
+  if (pt.nestedRolls) {
+    const follow = nestedConflictChoice({ existing: !!existing, replace: !!replaceTarget });
+    pt = await createNestedTables(pt, (sub) => createTable(sub, { onConflict: async () => follow, allowInvalid }));
+    data.results = buildTableData(pt).results;
   }
 
   // File into the category-first folder tree that mirrors the Manage strip

@@ -8,7 +8,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
-  parseByShape, parseTables, computeBlockers, splitNestedRoll, createNestedTables, buildTableData,
+  parseByShape, parseTables, computeBlockers, splitNestedRoll, createNestedTables, buildTableData, nestedConflictChoice,
 } from "../scripts/importer/tables/table-importer.mjs";
 import { CONTENT_ENTRIES, resolveShape, contentIdForName } from "../scripts/importer/tables/table-shapes.mjs";
 import {
@@ -17,7 +17,7 @@ import {
 import {
   GAMEPLAY_TABLES, MISHAP_TABLES, PATRON_TABLES, PIT_FIGHTING_TABLES,
 } from "../scripts/importer/tables/table-folders.mjs";
-import { TABLE_MANIFEST, bySource, sources } from "../scripts/importer/tables/table-manifest.mjs";
+import { TABLE_MANIFEST, bySource, sources, tableRowCount, verify } from "../scripts/importer/tables/table-manifest.mjs";
 
 const _norm = (s) => String(s).toLowerCase().replace(/\s+/g, " ").trim();
 const EMPTY_PRESENCE = {
@@ -419,4 +419,29 @@ test("each nested roll is committed first, and the row draws it", async () => {
     [0, "Gremlins", undefined],
     ["document", "Type of Trouble: Gremlins", "Compendium.x.y.RollTable.1"],
   ]);
+
+  // …and it still counts as the rows the book prints: the Roll Tables hub read
+  // a ten-row Type of Trouble as twenty and called it broken.
+  const all = buildTableData(parent).results;
+  assert.equal(all.length, pt.rows.length + 1);
+  assert.equal(tableRowCount(all), pt.rows.length);
+  assert.equal(verify({ rows: pt.rows.length }, { rows: tableRowCount(all) }).ok, true);
+});
+
+test("a nested row's table counts once; other document results still count", () => {
+  const text = (n) => ({ type: "text", range: [n, n] });
+  const nested = (n) => ({ type: "document", range: [n, n], flags: { "shadowdark-enhancer": { nestedRoll: true } } });
+  const doc = (n) => ({ type: "document", range: [n, n] });
+  const tenNested = Array.from({ length: 10 }, (_, i) => [text(i + 1), nested(i + 1)]).flat();
+  assert.equal(tableRowCount(tenNested), 10);
+  // A boon table's "Choose 1" band: a text row plus its options, all counted as before.
+  assert.equal(tableRowCount([text(12), doc(12), doc(12)]), 3);
+  assert.equal(tableRowCount(undefined), 0);
+});
+
+test("the sub-tables follow the parent's answer instead of asking again", () => {
+  assert.equal(nestedConflictChoice({ existing: true, replace: true }), "replace");
+  assert.equal(nestedConflictChoice({ existing: true, replace: false }), "rename", "a copy of the parent gets copies");
+  assert.equal(nestedConflictChoice({ existing: false, replace: false }), "replace",
+    "a fresh parent replaces leftovers of an earlier import rather than duplicating them");
 });
