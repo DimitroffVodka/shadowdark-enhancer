@@ -1093,8 +1093,9 @@ quest with `create({ source: { kind: "rumor", uuid } })` and find it again with
 `list({ sourceUuid })`. Nothing here acts on a source when its quest ends;
 the source listens to `questsChanged` and reads the status.
 
-**Parties** are Shadowdark Extras' party actors (an NPC flagged
-`shadowdark-extras.isParty`). `list({ party })` matches quests *assigned* to
+**Parties** are Shadowdark Extras' party actors, read through its
+`api.party.list()` and `api.party.members()` (on an Extras from before those,
+the NPCs flagged `shadowdark-extras.isParty`, with the same result). `list({ party })` matches quests *assigned* to
 that party only; the personal quests of its members come from
 `list({ character })` for each member. A quest can carry both, so deduplicate
 by `id`. Without Extras the log works the same and a quest simply has no
