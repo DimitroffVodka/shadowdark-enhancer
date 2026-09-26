@@ -115,14 +115,19 @@ export function whenMatches(rule, dateInfo) {
 
 /**
  * Is `place` this holiday's place? Pure. Takes a settlement name (any case,
- * a footnote marker is fine), a hex number, or Extras' feature id
- * ("settlement-1334"). No place matches every place.
+ * a leading "The" and a footnote marker are fine), a hex number (compared as
+ * a number, so "01334" is 1334), or Extras' feature id ("settlement-1334").
+ * No place matches every place.
  */
 export function placeMatches(holidayPlace, place) {
   if (place == null || place === "") return true;
   const s = String(place).trim();
-  const num = /^(?:settlement-)?(\d{3,4})$/.exec(s)?.[1];
-  return num ? String(holidayPlace?.hex ?? "") === num : nameKey(s) === nameKey(holidayPlace?.name);
+  // Hex numbers compare as numbers: "01334", "1334" and 1334 are one hex.
+  const num = /^(?:settlement-)?(\d+)$/.exec(s)?.[1];
+  if (num) return holidayPlace?.hex != null && Number(num) === Number(holidayPlace.hex);
+  // "The City of Masks" is the City of Masks.
+  const bare = (x) => nameKey(x).replace(/^the /, "");
+  return bare(s) === bare(holidayPlace?.name);
 }
 
 // ── Foundry-bound ─────────────────────────────────────────────────────────────
@@ -166,13 +171,16 @@ async function importedPages() {
 /** A recipe as the API returns it: labels localised, the imported page's uuid added. */
 function present(h, pageUuid) {
   const t = (k) => game.i18n.localize(k);
-  return {
-    ...h,
-    place: { ...h.place },
-    carousing: { ...h.carousing, chances: (h.carousing.chances ?? []).map((c) => ({ ...c, label: t(c.label) })) },
-    garb: h.garb.map((g) => ({ ...g, label: t(g.label), ...(g.note ? { note: t(g.note) } : {}) })),
-    pageUuid,
-  };
+  // A deep copy: a caller that edits what it got back must not edit the recipe.
+  const out = structuredClone(h);
+  out.carousing.chances ??= [];
+  for (const c of out.carousing.chances) c.label = t(c.label);
+  for (const g of out.garb) {
+    g.label = t(g.label);
+    if (g.note) g.note = t(g.note);
+  }
+  out.pageUuid = pageUuid;
+  return out;
 }
 
 /**

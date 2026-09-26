@@ -1103,10 +1103,11 @@ Both calls are **async**. A holiday is listed only once the GM has imported
 its page: Importer Hub → Tools → **Chapter to journal** → preset *Cursed
 Scroll 6: the City of Masks holidays*. Before that, both return `[]`.
 
-`place` takes a settlement name (case and a footnote `*` are ignored), a hex
-number (`1334` or `"1334"`), or Extras' settlement feature id
-(`"settlement-1334"`). With no `place`, `today()` returns every holiday falling
-today, wherever it is.
+`place` takes a settlement name (case, a leading "The" and a footnote `*` are
+ignored), a hex number (`1334`, `"1334"` or `"01334"`, compared as numbers), or
+Extras' settlement feature id (`"settlement-1334"`). With no `place`, `today()`
+returns every holiday falling today, wherever it is. Each call returns fresh
+copies, so a caller may change what it gets back.
 
 Each holiday:
 

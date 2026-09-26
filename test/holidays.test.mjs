@@ -66,6 +66,16 @@ test("a place is a name, a hex number or Extras' settlement id", () => {
   for (const p of ["Alkesh", 5063, "settlement-5063"]) assert.equal(placeMatches(place, p), false, String(p));
 });
 
+test("a leading \"The\" and a zero-padded hex number still name the place", () => {
+  const place = byKey.maytide.place;
+  for (const p of ["The City of Masks", "the city of masks", "01334", "settlement-01334"]) {
+    assert.equal(placeMatches(place, p), true, String(p));
+  }
+  assert.equal(placeMatches(place, "The Alkesh"), false);
+  assert.equal(placeMatches(place, "13340"), false, "a different number is a different hex");
+  assert.equal(placeMatches({ name: "Nowhere" }, 1334), false, "a place with no hex matches no number");
+});
+
 // ── the API, against a stubbed world ─────────────────────────────────────────
 
 const preset = CHAPTER_PRESETS.find((p) => p.id === HOLIDAY_PRESET);
@@ -106,6 +116,20 @@ test("list() returns the imported holidays, labels localised and pages linked", 
   assert.match(maytide.pageUuid, /JournalEntryPage\.maytide$/);
   assert.equal(maytide.garb[0].label, "<SDE.holidays.garb.maytideNoFloral>");
   assert.equal(HOLIDAYS[1].garb[0].label, "SDE.holidays.garb.maytideNoFloral", "the recipe itself is untouched");
+});
+
+test("what list() returns is the caller's own copy, all the way down", async () => {
+  const before = JSON.stringify(HOLIDAYS);
+  const [first] = await listHolidays();
+  first.when.anchor = "winterSolstice";
+  first.place.hex = "9999";
+  first.carousing.extraBenefit = false;
+  first.carousing.chances.push({ key: "x" });
+  first.garb[0].modifier = 5;
+  assert.equal(JSON.stringify(HOLIDAYS), before, "the recipes are untouched");
+  const [again] = await listHolidays();
+  assert.equal(again.when.anchor, "lastFullMoonOfYear");
+  assert.equal(again.place.hex, "1334");
 });
 
 test("nothing is listed until the journal is imported", async () => {
