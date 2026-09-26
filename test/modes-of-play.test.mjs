@@ -52,4 +52,9 @@ test("the system's and Extras' own settings render in place and stay theirs", ()
   for (const key of foreign) assert.ok(!GROUPED_SETTING_KEYS.includes(key), `${key} is not registered by this module`);
   const grinder = modes.sections.find((s) => s.label.endsWith(".grinder"));
   assert.ok(grinder.entries[0].missing, "without Extras the Grinder box says what is needed");
+  assert.equal(grinder.entries[1].showIf, "shadowdark-extras.grinderMode", "hit dice only while Grinder is on (shadowdark-extras#149)");
+  for (const key of ["shadowdark.useMomentumMode", "shadowdark.usePulpMode"]) {
+    const entry = modes.sections.flatMap((s) => s.entries).find((e) => e?.setting === key);
+    assert.ok(entry.missing, `${key} says so when the installed system lacks it`);
+  }
 });

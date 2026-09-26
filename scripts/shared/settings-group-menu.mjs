@@ -64,7 +64,7 @@ export class SettingsGroupMenu extends HandlebarsApplicationMixin(ApplicationV2)
       // Another package's setting, shown in place. Absent package or setting:
       // say so when the group gave the words, otherwise leave the row out.
       const setting = game.settings.settings.get(e.setting);
-      if (setting) return this._settingEntry(setting);
+      if (setting) return { ...this._settingEntry(setting), showIf: e.showIf ?? null };
       return e.missing ? { note: e.missing } : null;
     }
     return null;
@@ -77,6 +77,15 @@ export class SettingsGroupMenu extends HandlebarsApplicationMixin(ApplicationV2)
    */
   _onRender(context, options) {
     super._onRender?.(context, options);
+    // A row that only makes sense while another checkbox is ticked (Grinder's
+    // hit dice while Grinder is on) follows it live; its value still submits.
+    for (const row of this.element.querySelectorAll("[data-show-if]")) {
+      const lead = this.element.querySelector(`input[type=checkbox][name="${CSS.escape(row.dataset.showIf)}"]`);
+      if (!lead) continue;
+      const follow = () => { row.hidden = !lead.checked; };
+      lead.addEventListener("change", follow);
+      follow();
+    }
     for (const box of this.element.querySelectorAll("fieldset[data-mode]")) {
       const toggle = box.querySelector("input[data-mode-switch]");
       const rules = [...box.querySelectorAll("input[type=checkbox][name]")];

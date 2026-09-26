@@ -7,10 +7,11 @@
  *     so it leaves the main list; or `{ key, pending: true }` for one whose
  *     automation is not built yet, which renders with a note saying so;
  *   - `{ menu, icon }` for a nested editor window;
- *   - `{ setting: "namespace.key", missing }` for ANOTHER package's setting,
- *     rendered in place so it keeps one source of truth (the system's Pulp
- *     and Momentum switches, Extras' Grinder); `missing` is the note shown
- *     when that package or setting is absent;
+ *   - `{ setting: "namespace.key", missing, showIf }` for ANOTHER package's
+ *     setting, rendered in place so it keeps one source of truth (the
+ *     system's Pulp and Momentum switches, Extras' Grinder); `missing` is the
+ *     note shown when that package or setting is absent, and `showIf` names a
+ *     checkbox in the same window the row only shows while ticked;
  *   - `{ note }` for a rule nothing can automate: a line of text.
  * Order here is display order. A section with a `label` renders as a titled
  * block: collapsible by default, or an always-open fieldset with `mode: true`,
@@ -76,16 +77,20 @@ export const SETTING_GROUPS = [
         entries: [{ key: "modeFatality", pending: true }] },
       { label: "SDE.settings.modesOfPlayMenu.grinder", hint: "SDE.settings.modesOfPlayMenu.grinderHint", mode: true,
         entries: [
+          // The keys are the contract with Extras (DimitroffVodka/shadowdark-extras#149).
           { setting: "shadowdark-extras.grinderMode", missing: "SDE.settings.modesOfPlayMenu.grinderNeedsExtras" },
-          { setting: "shadowdark-extras.grinderHitDice" },
+          { setting: "shadowdark-extras.grinderHitDice", showIf: "shadowdark-extras.grinderMode" },
         ] },
       { label: "SDE.settings.modesOfPlayMenu.hunter", hint: "SDE.settings.modesOfPlayMenu.hunterHint", mode: true,
         entries: [{ key: "modeHunterXp", pending: true }] },
       { label: "SDE.settings.modesOfPlayMenu.momentum", hint: "SDE.settings.modesOfPlayMenu.momentumHint", mode: true,
-        entries: [{ setting: "shadowdark.useMomentumMode" }, { note: "SDE.settings.modesOfPlayMenu.momentumRepeat" }] },
+        entries: [
+          { setting: "shadowdark.useMomentumMode", missing: "SDE.settings.modesOfPlayMenu.systemMissing" },
+          { note: "SDE.settings.modesOfPlayMenu.momentumRepeat" },
+        ] },
       { label: "SDE.settings.modesOfPlayMenu.pulp", hint: "SDE.settings.modesOfPlayMenu.pulpHint", mode: true,
         entries: [
-          { setting: "shadowdark.usePulpMode" },
+          { setting: "shadowdark.usePulpMode", missing: "SDE.settings.modesOfPlayMenu.systemMissing" },
           { key: "modePulpSessionLuck", pending: true },
           { key: "modePulpLuckCrit", pending: true },
           { key: "modePulpForceReroll", pending: true },

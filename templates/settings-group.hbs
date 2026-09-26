@@ -97,6 +97,8 @@
     </button>
   </div>
 </div>
+{{else if entry.showIf}}
+<div data-show-if="{{entry.showIf}}">{{formGroup entry.field value=entry.value input=entry.input rootId=@root.rootId localize=true}}</div>
 {{else}}
 {{formGroup entry.field value=entry.value input=entry.input rootId=@root.rootId localize=true}}
 {{#if entry.pending}}<p class="sde-sg-pending">{{localize "SDE.settingsGroup.pending"}}</p>{{/if}}

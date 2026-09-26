@@ -139,24 +139,25 @@ are. There is no switch for every mode together. Players are not told which
 modes are on.
 
 A rule marked **Not automated yet** can already be switched on and is saved,
-but nothing acts on it until the update that builds it.
+but nothing acts on it until the update that builds it. The same words show
+under its checkbox in the window.
 
 | Mode | Setting | Default | What it does |
 |---|---|---|---|
-| Blitz | **Light sources last 30 minutes** | off | A torch, a lantern or a light spell lasts 30 minutes instead of an hour. |
-| Chaos | **Reroll initiative every round** | off | Everyone rolls initiative again at the start of every round after the first. |
-| Deadly | **Death timers are always 1** | off | A dying character has 1 round to live, whatever their Constitution. |
-| Deadly | **Stabilizing is DC 18** | off | Stabilizing a dying character is an Intelligence check at DC 18 instead of 15. |
-| Fatality | **Characters die at 0 HP** | off | There is no dying: a character reduced to 0 HP is dead. |
-| Grinder | Shadowdark Extras' Grinder settings | off | Shown here when Shadowdark Extras has them; its camping rest is where Grinder takes effect. Without them, the box says what is needed. |
-| Hunter | **XP for defeated monsters** | off | At the end of a combat, every character in it gets XP for each defeated monster: half its level, rounded down, and 1 for level 1. |
+| Blitz | **Light sources last 30 minutes** | off | *Not automated yet.* A torch, a lantern or a light spell lasts 30 minutes instead of an hour. |
+| Chaos | **Reroll initiative every round** | off | *Not automated yet.* Everyone rolls initiative again at the start of every round after the first. |
+| Deadly | **Death timers are always 1** | off | *Not automated yet.* A dying character has 1 round to live, whatever their Constitution. |
+| Deadly | **Stabilizing is DC 18** | off | *Not automated yet.* Stabilizing a dying character is an Intelligence check at DC 18 instead of 15. |
+| Fatality | **Characters die at 0 HP** | off | *Not automated yet.* There is no dying: a character reduced to 0 HP is dead. |
+| Grinder | Shadowdark Extras' Grinder settings | off | Shown here when Shadowdark Extras has them (`shadowdark-extras.grinderMode`, and `grinderHitDice`, shown only while Grinder is on); its camping rest is where Grinder takes effect. Without them, the box says what is needed. |
+| Hunter | **XP for defeated monsters** | off | *Not automated yet.* At the end of a combat, every character in it gets XP for each defeated monster: half its level, rounded down, and 1 for level 1. |
 | Momentum | the system's exploding damage setting | off | Shown here; it is the Shadowdark system's own setting. Advantage on repeating a failed action is granted at the table. |
 | Pulp | the system's Pulp Mode setting | off | Shown here; it is the Shadowdark system's own setting (no maximum on luck tokens). |
-| Pulp | **1d4 luck at the start of each session** | off | Starting a session sets each party member's luck tokens to 1d4. |
-| Pulp | **Spend luck to turn a hit into a critical hit** | off | After an attack hits, its owner can spend a luck token to make it a critical hit. |
-| Pulp | **Spend luck to make the GM reroll** | off | A player can spend a luck token to make the GM reroll a roll the player can see. |
+| Pulp | **1d4 luck at the start of each session** | off | *Not automated yet.* Starting a session sets each party member's luck tokens to 1d4. |
+| Pulp | **Spend luck to turn a hit into a critical hit** | off | *Not automated yet.* After an attack hits, its owner can spend a luck token to make it a critical hit. |
+| Pulp | **Spend luck to make the GM reroll** | off | *Not automated yet.* A player can spend a luck token to make the GM reroll a roll the player can see. |
 | Hard Luck | **Prevent Luck rerolls on natural 1s** | off | Luck tokens can't reroll a critical failure, a natural 1. Before the Modes of Play window it sat under PC Automation and was on by default. |
-| Hard Luck | **No luck rerolls with luck-granting effects** | off | Luck can't reroll a roll made under an effect that grants luck itself, such as Bless, Trance or a Seer's Omen. |
+| Hard Luck | **No luck rerolls with luck-granting effects** | off | *Not automated yet.* Luck can't reroll a roll made under an effect that grants luck itself, such as Bless, Trance or a Seer's Omen. |
 
 ### Movement
 
