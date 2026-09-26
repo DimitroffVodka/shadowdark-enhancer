@@ -620,3 +620,22 @@ test("camp waits for a forage roll still with its player before anyone eats (#24
   assert.deepEqual(damage, [], "nobody went hungry");
   assert.equal(stored.overlandState.day, null);
 });
+
+test("Start day takes the day's hexes typed in its dialog, so travel works before any rules data is imported", async () => {
+  travellingDay();
+  globalThis.game.shadowdarkEnhancer = { rules: { hexesPerDay: () => null } };   // an empty rules table
+  dice.push(3);
+  const refused = await applyAction({ action: "startDay", method: "walking" }, gm);
+  assert.equal(refused.ok, false, "nothing typed and nothing in the rules: refused");
+  assert.equal(refused.error, "SDE.overland.notify.noBase");
+  dice.push(3);
+  const res = await applyAction({ action: "startDay", method: "walking", hexes: 4 }, gm);
+  assert.equal(res.ok, true);
+  assert.equal(stored.overlandState.budget, 4);
+  assert.equal(stored.overlandState.pointSeconds, 2 * 3600, "8 hours over the 4 typed");
+
+  // Typed hexes win over the rules data too.
+  globalThis.game.shadowdarkEnhancer = { rules: { hexesPerDay: () => 5 } };
+  await applyAction({ action: "startDay", method: "walking", hexes: 3, pushed: true }, gm);
+  assert.equal(stored.overlandState.budget, 4, "3 typed, pushed: floor(4.5)");
+});

@@ -272,11 +272,21 @@ export const CrawlBar = {
         game.shadowdarkEnhancer.encounter.openRoller("tables");
         break;
 
-      case "startTravel":
-        await startOverland();
+      case "startTravel": {
+        const started = await startOverland();
         this.render();
         CrawlStrip.render();
+        // The day comes next: open Start day at once, unless a day is already open.
+        if (started && !Number.isFinite(overlandState().day)) {
+          const options = await askDay();
+          if (options) {
+            const reply = await startDay(options);
+            if (!reply?.ok && reply?.error) ui.notifications.warn(reply.error);
+          }
+          this.render();
+        }
         break;
+      }
 
       case "rollWeather": {
         const reply = await rollWeather();

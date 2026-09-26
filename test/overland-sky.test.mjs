@@ -73,6 +73,9 @@ const deep = new Proxy(function () {}, {
 const { gregorian, at } = await import("./gregorian-calendar.mjs");
 const stored = {};
 const settings = {};
+// Foundry 14's forced-deletion operator, a global in the client.
+const DEL = Symbol("_del");
+globalThis._del = DEL;
 const gm = { id: "gm", isGM: true };
 Object.assign(globalThis, {
   foundry: deep, CONFIG: { queries: {} }, Hooks: { on() {}, once() {}, callAll() {} }, ui: { notifications: { warn() {} } },
@@ -103,8 +106,8 @@ function scene({ hex = true, follows, darkness = 0, locked = false, weather = ""
       writes.push({ changes, options });
       if ("weather" in changes) doc.weather = changes.weather;
       if ("environment.darknessLevel" in changes) doc.environment.darknessLevel = changes["environment.darknessLevel"];
-      if ("flags.shadowdark-enhancer.skyWeather" in changes) flags.skyWeather = changes["flags.shadowdark-enhancer.skyWeather"];
-      if ("flags.shadowdark-enhancer.-=skyWeather" in changes) delete flags.skyWeather;
+      else if ("flags.shadowdark-enhancer.skyWeather" in changes) flags.skyWeather = changes["flags.shadowdark-enhancer.skyWeather"];
+      if (changes["flags.shadowdark-enhancer.skyWeather"] === DEL) delete flags.skyWeather;
     },
   };
   return doc;
@@ -171,7 +174,7 @@ test("Overland's own storm: it takes an empty slot, records it, changes it with 
   assert.deepEqual(s.writes[1].changes, { weather: "blizzard", "flags.shadowdark-enhancer.skyWeather": "blizzard" });
   sky();
   await applySky(s);
-  assert.deepEqual(s.writes[2].changes, { weather: "", "flags.shadowdark-enhancer.-=skyWeather": null }, "the storm passed");
+  assert.deepEqual(s.writes[2].changes, { weather: "", "flags.shadowdark-enhancer.skyWeather": DEL }, "the storm passed");
   assert.equal(s.flags.skyWeather, undefined);
 });
 
@@ -179,7 +182,7 @@ test("the record survives a reload: a fresh load still clears Overland's own sto
   sky();
   const reloaded = scene({ darkness: 0.6, weather: "rainStorm", owned: "rainStorm" });
   await applySky(reloaded);
-  assert.deepEqual(reloaded.writes[0].changes, { weather: "", "flags.shadowdark-enhancer.-=skyWeather": null });
+  assert.deepEqual(reloaded.writes[0].changes, { weather: "", "flags.shadowdark-enhancer.skyWeather": DEL });
 });
 
 test("a GM's own rain storm, blizzard or fog is never touched, on load or during Overland's storm (#251 review)", async () => {
@@ -199,7 +202,7 @@ test("when someone else changes Overland's effect, Overland lets it go and leave
   sky({ weather: STORMY, climate: "Temperate" });
   const s = scene({ darkness: 0.6, weather: "fog", owned: "rainStorm" });
   await applySky(s);
-  assert.deepEqual(s.writes[0].changes, { "flags.shadowdark-enhancer.-=skyWeather": null });
+  assert.deepEqual(s.writes[0].changes, { "flags.shadowdark-enhancer.skyWeather": DEL });
   assert.equal(s.weather, "fog");
   sky();
   await applySky(s);

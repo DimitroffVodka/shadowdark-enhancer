@@ -23,7 +23,7 @@ and Forge & Loot features.
 [`time`](#time--season-day-and-night-sun-moon-and-anchors) ·
 [`overland`](#overland--the-travel-state)
 
-**API version:** `1.19.0` (semver — additive changes bump the minor version,
+**API version:** `1.20.0` (semver — additive changes bump the minor version,
 breaking changes the major; check `apiVersion` before relying on newer keys).
 
 ## Discovery
@@ -1472,7 +1472,7 @@ o.state();      // a copy of the travel state, plus derived fields:
 
 await o.rollWeather();                 // GM: roll today's weather (1.15.0)
 await o.rollWeather({ reroll: true }); // replace today's roll (Predict)
-await o.startDay({ method: "walking", pushed: false, boatUuid: null });   // GM (1.16.0)
+await o.startDay({ method: "walking", pushed: false, boatUuid: null, hexes: null });   // GM (1.16.0; hexes 1.20.0)
 await o.resume();   // GM: finish an advance an encounter stopped (1.17.0)
 await o.forage(actorId);   // the owner or a GM: forage for a travelling character (1.18.0)
 await o.makeCamp();        // GM: camp for the night (1.18.0)
@@ -1522,9 +1522,10 @@ to `{ ok: true }` or `{ ok: false, error }`.
 
 1. **The weather** is rolled first, unless today's still holds.
 2. **The budget**:
-   - The base is `rules.hexesPerDay(method)`. When sailing aboard a boat actor
-     (`boatUuid`), it is the boat's `system.speed` instead. With no base the
-     day is refused.
+   - The base is `hexes` when given (since 1.20.0: Start day's **Hexes
+     today**, so travel works before the rules data is imported), else the
+     boat's `system.speed` when sailing aboard a boat actor (`boatUuid`), else
+     `rules.hexesPerDay(method)`. With no base the day is refused.
    - A pushed day has `floor(base × 1.5)` points; otherwise the base. `spent`
      starts at 0.
 3. **The clock rate** is 8 hours over the base, so walking at 4 a day takes 2
@@ -1741,6 +1742,7 @@ scene's choice changes, and once on load.
   clock.
 - `1.19.0` adds `time.isNight`'s `{ region }`, and the sky on scenes (the
   `followsSky` scene flag).
+- `1.20.0` adds `overland.startDay`'s `hexes`.
 - `1.4.0` adds the shared `forgeLoot.open()` preview shell. Generator rules and
   document writes remain behind the later NPC/Rival adapter implementations.
   The version policy is additive: new namespaces bump the minor version; breaking
