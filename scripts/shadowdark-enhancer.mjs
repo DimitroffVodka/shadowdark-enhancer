@@ -17,6 +17,7 @@ import { init as prayerRollInit } from "./character-sheet/prayer-roll.mjs";
 import { init as scavengerInit } from "./scavenger/scavenger.mjs";
 import { Parry } from "./parry/parry.mjs";
 import { Taunt } from "./taunt/taunt.mjs";
+import { StatDamage } from "./stat-damage/stat-damage.mjs";
 import { CrawlBar }      from "./crawl-bar/crawl-bar.mjs";
 import { registerHiddenSync } from "./crawl-strip/hidden-sync.mjs";
 import { registerTurnSkip } from "./crawl-strip/turn-skip.mjs";
@@ -102,7 +103,7 @@ const STYLESHEET_REV = "000935629eaf";
 // stale); module.json carries the same hash and is fetched fresh at runtime. A
 // mismatch is a stale cache by construction — it cannot be anything else. Both
 // stamps are written by `npm run inventory` and gated by `inventory:check`.
-const BUILD_REV = "fa327b47ded2";
+const BUILD_REV = "78c3e0a8762c";
 
 /**
  * Tell the user when their browser is running an old build of this module, and
@@ -405,8 +406,8 @@ Hooks.once("init", () => {
   // game.modules.get(MODULE_ID).api on ready; consumers should listen for
   // the "shadowdarkEnhancer.ready" hook. Reference: docs/API.md.
   game.shadowdarkEnhancer = {
-    // 1.5.0 — additive: hexMaps namespace (hex tagger, dataset, hand-off).
-    apiVersion: "1.5.0",
+    // 1.6.0 — additive: statDamage namespace (tracked ability damage).
+    apiVersion: "1.6.0",
     // Guided, ordered Character Builder — a replacement for the system's
     // random generator. `open({ level0?, actor? })` renders the wizard.
     charBuilder: {
@@ -792,6 +793,14 @@ Hooks.once("init", () => {
         return h.importDatasetRecords(target, ds, opts);
       },
     },
+    // 1.6.0 — additive: stat damage. One Active Effect per damaged ability,
+    // nothing on the sheet until it happens. Shadowdark Extras' rests heal it
+    // (all on a normal rest, { perAbility: 1 } in Grinder Mode).
+    statDamage: {
+      apply: (actor, ability, amount) => StatDamage.apply(actor, ability, amount),
+      heal: (actor, opts) => StatDamage.heal(actor, opts),
+      of: (actor) => StatDamage.of(actor),
+    },
   };
 });
 
@@ -862,6 +871,7 @@ Hooks.once("ready", () => {
   scavengerInit();
   Parry.init();
   Taunt.init();
+  StatDamage.init();
   CrawlBar.init();
   // If the GM enabled the monster compendium-art overlay, inject it now so every
   // monster drag carries the referenced art (all clients; GM-only settings write).

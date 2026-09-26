@@ -3,6 +3,15 @@
 ## [Unreleased]
 
 ### Added
+- **Stat damage is tracked.** Damage to STR, DEX, CON, INT, WIS or CHA is one
+  line per ability in the character sheet's Effects tab, such as *2 STR
+  damage*: the score and its modifier drop, and the line is gone when healed.
+  There is no setting and nothing on the sheet until it happens. A character
+  whose CON reaches 0 from it dies. Other modules drive it through
+  `game.shadowdarkEnhancer.statDamage.{apply, heal, of}` (API 1.6.0).
+  From the Shadowdark Extras release that adds it
+  ([shadowdark-extras#149](https://github.com/DimitroffVodka/shadowdark-extras/issues/149)),
+  Extras' rest heals it all, or 1 per ability in Grinder Mode. (#182)
 - **Modes of Play.** A new window under Configure Settings holds the optional
   rules from the core rulebook (p.111) and Hard Luck from the Game Master's
   Guide to the Western Reaches (p.30). Every rule is its own switch, so one
