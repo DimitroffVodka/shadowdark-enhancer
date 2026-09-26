@@ -232,12 +232,20 @@ describe("A7 adapter — failure shapes are reported, never swallowed", () => {
 
   test("refusals and failures are surfaced to the GM in one notice", async () => {
     const notices = [];
-    await reconcileGeneratedItems(pack(), defs, {
-      source: "CS1",
-      adapter: { createItem: async () => null, notify: (m) => notices.push(m) },
-    });
+    const savedGame = globalThis.game;
+    // The notice comes from en.json; echo the key and its data.
+    globalThis.game = { i18n: { format: (k, d) => `${k} ${JSON.stringify(d)}` } };
+    try {
+      await reconcileGeneratedItems(pack(), defs, {
+        source: "CS1",
+        adapter: { createItem: async () => null, notify: (m) => notices.push(m) },
+      });
+    } finally {
+      globalThis.game = savedGame;
+    }
     assert.equal(notices.length, 1);
-    assert.match(notices[0], /3 generated item\(s\) were not written/);
+    assert.match(notices[0], /SDE\.shared\.generatedItems\.notWritten/);
+    assert.match(notices[0], /"count":3/);
     assert.match(notices[0], /create-failed/);
   });
 

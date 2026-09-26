@@ -19,13 +19,17 @@ export function fromCopper(total) {
   return { gp: Math.floor(total / 100), sp: Math.floor((total % 100) / 10), cp: total % 10 };
 }
 
-/** Format a cost object as a short string like "2 gp 5 sp" or "10 cp". */
+/**
+ * Format a cost object as a short string like "2 gp 5 sp" or "10 cp". A zero
+ * cost reads "Free" from en.json, or its key when no i18n is mounted (node tests).
+ */
 export function formatPrice(c) {
   const parts = [];
   if (c?.gp) parts.push(`${c.gp} gp`);
   if (c?.sp) parts.push(`${c.sp} sp`);
   if (c?.cp) parts.push(`${c.cp} cp`);
-  return parts.length ? parts.join(" ") : "Free";
+  if (parts.length) return parts.join(" ");
+  return globalThis.game?.i18n?.localize("SDE.shared.coins.free") ?? "SDE.shared.coins.free";
 }
 
 /** True when a purse holds at least `cost`. */

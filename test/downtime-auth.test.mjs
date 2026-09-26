@@ -79,13 +79,13 @@ describe("authorizeActorRequest", () => {
   test("a non-owner, non-GM requester is refused", () => {
     const out = authorizeActorRequest({ actorExists: true, requesterIsGM: false, requesterOwnsActor: false });
     assert.equal(out.ok, false);
-    assert.match(out.error, /don't own that character/);
+    assert.match(out.error, /SDE\.shared\.relay\.notOwner/);
   });
 
   test("a missing character is refused before ownership is even asked", () => {
     const out = authorizeActorRequest({ actorExists: false, requesterIsGM: true, requesterOwnsActor: true });
     assert.equal(out.ok, false);
-    assert.match(out.error, /no longer exists/);
+    assert.match(out.error, /SDE\.shared\.relay\.actorGone/);
   });
 
   test("an absent facts object fails closed", () => {
@@ -106,7 +106,7 @@ describe("validateRollClaim", () => {
     // player, really high — and nothing whatsoever to do with downtime.
     const out = validateRollClaim(goodClaim({ rollFlag: null }));
     assert.equal(out.ok, false);
-    assert.match(out.error, /isn't a downtime roll/);
+    assert.match(out.error, /SDE\.downtime\.claim\.notDowntimeRoll/);
   });
 
   test("REPLAY: a flag for a different character is refused", () => {
@@ -114,7 +114,7 @@ describe("validateRollClaim", () => {
       rollFlag: { actorId: "someoneElse", slotKey: SLOT, nonce: NONCE },
     }));
     assert.equal(out.ok, false);
-    assert.match(out.error, /different character/);
+    assert.match(out.error, /SDE\.downtime\.claim\.otherCharacter/);
   });
 
   test("REPLAY: a flag for a different slot is refused", () => {
@@ -122,7 +122,7 @@ describe("validateRollClaim", () => {
       rollFlag: { actorId: ACTOR, slotKey: "minor-crime", nonce: NONCE },
     }));
     assert.equal(out.ok, false);
-    assert.match(out.error, /different activity/);
+    assert.match(out.error, /SDE\.downtime\.claim\.otherActivity/);
   });
 
   test("REPLAY: a downtime roll from an EARLIER attempt is refused", () => {
@@ -131,55 +131,55 @@ describe("validateRollClaim", () => {
       rollFlag: { actorId: ACTOR, slotKey: SLOT, nonce: "staleNonce000001" },
     }));
     assert.equal(out.ok, false);
-    assert.match(out.error, /doesn't belong to this attempt/);
+    assert.match(out.error, /SDE\.downtime\.claim\.otherAttempt/);
   });
 
   test("REPLAY: a nonce already spent this session is refused", () => {
     const out = validateRollClaim(goodClaim({ consumedNonces: [NONCE] }));
     assert.equal(out.ok, false);
-    assert.match(out.error, /already been used/);
+    assert.match(out.error, /SDE\.downtime\.claim\.used/);
   });
 
   test("REPLAY: a message id already settled this session is refused", () => {
     const out = validateRollClaim(goodClaim({ settledMessageIds: [MSG] }));
     assert.equal(out.ok, false);
-    assert.match(out.error, /already been used/);
+    assert.match(out.error, /SDE\.downtime\.claim\.used/);
   });
 
   test("a message authored by somebody else is refused", () => {
     const out = validateRollClaim(goodClaim({ messageAuthorId: "otherUser" }));
     assert.equal(out.ok, false);
-    assert.match(out.error, /isn't yours/);
+    assert.match(out.error, /SDE\.downtime\.claim\.notYours/);
   });
 
   test("a message spoken by a different character is refused", () => {
     const out = validateRollClaim(goodClaim({ messageActorId: "otherActor" }));
     assert.equal(out.ok, false);
-    assert.match(out.error, /different character/);
+    assert.match(out.error, /SDE\.downtime\.claim\.otherSpeaker/);
   });
 
   test("a claim against a slot the pick doesn't name is refused", () => {
     const out = validateRollClaim(goodClaim({ slotKey: "minor-crime" }));
     assert.equal(out.ok, false);
-    assert.match(out.error, /locked pick/);
+    assert.match(out.error, /SDE\.downtime\.claim\.notLockedPick/);
   });
 
   test("no pick at all is refused", () => {
     const out = validateRollClaim(goodClaim({ pick: null }));
     assert.equal(out.ok, false);
-    assert.match(out.error, /haven't chosen/);
+    assert.match(out.error, /SDE\.downtime\.error\.noPick/);
   });
 
   test("a message with no evaluated roll is refused", () => {
     const out = validateRollClaim(goodClaim({ hasRoll: false }));
     assert.equal(out.ok, false);
-    assert.match(out.error, /Couldn't find that roll/);
+    assert.match(out.error, /SDE\.downtime\.claim\.noRoll/);
   });
 
   test("a pick minted before nonces existed fails closed, with the way out", () => {
     const out = validateRollClaim(goodClaim({ pick: { slotKey: SLOT } }));
     assert.equal(out.ok, false);
-    assert.match(out.error, /reopen picks/);
+    assert.match(out.error, /SDE\.downtime\.claim\.pickPredates/);
   });
 
   test("nonce equality is exact — a prefix does not pass", () => {

@@ -33,7 +33,7 @@ export class BoatSheet extends VehicleSheet {
     body: { template: `modules/${MODULE_ID}/templates/actors/boat-sheet.hbs` },
   };
 
-  get occupantLabel() { return "Passengers & Crew"; }
+  get occupantLabel() { return "SDE.boat.passengersCrew"; }
 
   /**
    * Surface the actor header buttons (Prototype Token, Configure Sheet) inline in
@@ -64,8 +64,8 @@ export class BoatSheet extends VehicleSheet {
     // Labelled (icon + text) like the system's ApplicationV1 sheet header, in the
     // same left-to-right order the Mount shows.
     for (const b of [
-      make("configureSheet", "fa-gear", "Sheet"),
-      make("configurePrototypeToken", "fa-circle-user", "Prototype Token"),
+      make("configureSheet", "fa-gear", game.i18n.localize("SDE.boat.header.sheet")),
+      make("configurePrototypeToken", "fa-circle-user", game.i18n.localize("SDE.boat.header.prototypeToken")),
     ]) header.insertBefore(b, anchor);
   }
 
@@ -80,7 +80,7 @@ export class BoatSheet extends VehicleSheet {
     const sys = this.document.system;
     // Passengers don't use cargo slots — capacity is HP; report headroom.
     context.passengerRoom = (context.derived.capacity ?? 0) - context.occupantCount;
-    context.slotInfo = { used: context.slotsUsed, max: sys.gearSlots?.max ?? null, note: "cargo" };
+    context.slotInfo = { used: context.slotsUsed, max: sys.gearSlots?.max ?? null, note: game.i18n.localize("SDE.boat.cargoNote") };
     // Command roster (from the occupant role map) for the Overview.
     context.captain = context.occupants.find((o) => o.isCaptain) ?? null;
     context.gunners = context.occupants.filter((o) => o.isGunner);
@@ -98,7 +98,8 @@ export class BoatSheet extends VehicleSheet {
     const roll = await new Roll("1d4").evaluate();
     await roll.toMessage({
       speaker: ChatMessage.getSpeaker({ actor: this.document }),
-      flavor: `<strong>${this.document.name} begins to sink</strong><br>Fully sinks in ${roll.total} round(s).`,
+      flavor: `<strong>${game.i18n.format("SDE.boat.chat.beginsToSink", { name: this.document.name })}</strong><br>`
+        + game.i18n.format("SDE.boat.chat.sinksIn", { rounds: roll.total }),
       flags: { [MODULE_ID]: { vehicleRoll: true } },
     });
     await this.document.update({
@@ -115,7 +116,7 @@ export class BoatSheet extends VehicleSheet {
     if (left <= 0) {
       ChatMessage.create({
         speaker: ChatMessage.getSpeaker({ actor: this.document }),
-        content: `<p><strong>${this.document.name} has fully sunk.</strong></p>`,
+        content: `<p><strong>${game.i18n.format("SDE.boat.chat.fullySunk", { name: this.document.name })}</strong></p>`,
       });
     }
   }
@@ -132,7 +133,8 @@ export class BoatSheet extends VehicleSheet {
     const sinks = roll.total === 1;
     await roll.toMessage({
       speaker: ChatMessage.getSpeaker({ actor: this.document }),
-      flavor: `<strong>Sink chance (1:6)</strong><br>${sinks ? "The vessel sinks!" : "Holds together."}`,
+      flavor: `<strong>${game.i18n.localize("SDE.boat.chat.sinkChance")}</strong><br>`
+        + game.i18n.localize(sinks ? "SDE.boat.chat.sinks" : "SDE.boat.chat.holds"),
       flags: { [MODULE_ID]: { vehicleRoll: true } },
     });
   }
@@ -151,7 +153,7 @@ export class BoatSheet extends VehicleSheet {
     const capUuid = roles.find((r) => r.role === "captain")?.uuid;
     const captain = capUuid ? await fromUuid(capUuid).catch(() => null) : null;
     if (!captain) {
-      ui.notifications?.warn("Assign a Captain on the Passengers tab to right the ship.");
+      ui.notifications?.warn(game.i18n.localize("SDE.boat.notify.needCaptain"));
       return;
     }
     const str = Number(captain.system?.abilities?.str?.mod ?? 0) || 0;
@@ -165,9 +167,12 @@ export class BoatSheet extends VehicleSheet {
     const esc = foundry.utils.escapeHTML;
     await roll.toMessage({
       speaker: ChatMessage.getSpeaker({ actor: captain }),
-      flavor: `<strong>Right the ${esc(this.document.name)} — DC 20 STR</strong> <em>(Cursed Scroll 3 optional rule)</em><br>`
-        + `${esc(captain.name)} (STR ${sign}${str}${seafarer ? ", Seafarer advantage" : ""}) — `
-        + `${success ? "✅ righted!" : "❌ still capsized"}`,
+      flavor: `<strong>${game.i18n.format("SDE.boat.chat.rightTitle", { name: esc(this.document.name) })}</strong> `
+        + `<em>${game.i18n.localize("SDE.boat.chat.rightRule")}</em><br>`
+        + game.i18n.format(seafarer ? "SDE.boat.chat.rightRollSeafarer" : "SDE.boat.chat.rightRoll",
+          { name: esc(captain.name), bonus: `${sign}${str}` })
+        + " — "
+        + game.i18n.localize(success ? "SDE.boat.chat.righted" : "SDE.boat.chat.stillCapsized"),
       flags: { [MODULE_ID]: { vehicleRoll: true } },
     });
   }

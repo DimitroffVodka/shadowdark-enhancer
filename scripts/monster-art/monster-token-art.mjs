@@ -136,7 +136,8 @@ export class MonsterTokenArt {
     const result = await FP.upload("data", this.MAPPING_DIR, file, {}, { notify: false });
     // upload() resolves `false`/undefined on a server-side failure — the red
     // toast it raises is the only other signal, so treat a falsy path as fatal.
-    if (!result?.path) throw new Error(`Could not write ${this.MAPPING_PATH} — the server rejected the upload.`);
+    // The message reaches the GM through the callers' "Could not apply…" toasts.
+    if (!result?.path) throw new Error(game.i18n.format("SDE.tokenArt.notify.uploadRejected", { path: this.MAPPING_PATH }));
   }
 
   /**
@@ -212,7 +213,7 @@ export class MonsterTokenArt {
    * @param {object} mapping
    */
   static async applyResolvedMapping(mapping) {
-    if (!game.user.isGM) { ui.notifications.warn("Only the GM can do that."); return null; }
+    if (!game.user.isGM) { ui.notifications.warn(game.i18n.localize("SDE.tokenArt.notify.gmOnly")); return null; }
     // A per-pack mapping's top-level keys are pack collection ids (present in
     // game.packs); a legacy flat table's keys are document ids. Wrap the latter.
     const keys = Object.keys(mapping ?? {});
@@ -288,15 +289,15 @@ export class MonsterTokenArt {
    * matched art. Returns { mapped, total, missing }.
    */
   static async generateCompendiumMapping() {
-    if (!game.user.isGM) { ui.notifications.warn("Only the GM can do that."); return null; }
+    if (!game.user.isGM) { ui.notifications.warn(game.i18n.localize("SDE.tokenArt.notify.gmOnly")); return null; }
     const source = this.SOURCE;
     const sets = await this.buildFileSets(source);
     if (!sets) {
-      ui.notifications.error(`Token art source "${source.id}" not found under Data/modules/${source.id}.`);
+      ui.notifications.error(game.i18n.format("SDE.tokenArt.notify.sourceNotFound", { id: source.id }));
       return { mapped: 0, total: 0, missing: true };
     }
     const packIds = this.presentPacks();
-    if (!packIds.length) { ui.notifications.error("shadowdark.monsters compendium not found."); return null; }
+    if (!packIds.length) { ui.notifications.error(game.i18n.localize("SDE.tokenArt.notify.noMonsterPack")); return null; }
 
     const mapping = {};
     let mapped = 0, total = 0;
@@ -522,11 +523,11 @@ export class MonsterTokenArt {
    * @param {number}  [opts.minScore=0.5]    fuzzy threshold below which to skip
    */
   static async apply({ scene = true, actors = true, portraits = true, dryRun = false, minScore = 0.5 } = {}) {
-    if (!game.user.isGM) { ui.notifications.warn("Only the GM can apply monster token art."); return null; }
+    if (!game.user.isGM) { ui.notifications.warn(game.i18n.localize("SDE.tokenArt.notify.gmOnlyApply")); return null; }
     const source = this.SOURCE;
     const sets = await this.buildFileSets(source);
     if (!sets) {
-      ui.notifications.error(`Token art source "${source.id}" not found. Install its module under Data/modules/${source.id} (it does not need to be enabled).`);
+      ui.notifications.error(game.i18n.format("SDE.tokenArt.notify.sourceNotInstalled", { id: source.id }));
       return { tokens: 0, portraits: 0, kept: 0, skipped: [], missing: true };
     }
 
@@ -562,7 +563,7 @@ export class MonsterTokenArt {
    *   a regression (e.g. a "Skeleton Warrior" world actor still gets skeleton art).
    */
   static async applyResolvedToPlaced(byName, { scene = true, actors = true, portraits = true, dryRun = false, extraPrefixes = [], extraPaths = [], fuzzyFallback = true } = {}) {
-    if (!game.user.isGM) { ui.notifications.warn("Only the GM can apply monster token art."); return null; }
+    if (!game.user.isGM) { ui.notifications.warn(game.i18n.localize("SDE.tokenArt.notify.gmOnlyApply")); return null; }
     if (!byName || !byName.size) return { tokens: 0, portraits: 0, kept: 0, skipped: [], missing: true };
 
     // Name lookup with a normalized fallback for whitespace/case-renamed actors.
@@ -656,23 +657,22 @@ export class MonsterTokenArt {
     const DialogV2 = foundry.applications.api.DialogV2;
     const source = this.SOURCE;
     const on = game.settings.get(MODULE_ID, "tokenArtCompendium");
+    const L = (key) => game.i18n.localize(key);
+    // The dialog's words hold their own <code>/<em> markup (static strings, no
+    // user data), so they are inserted unescaped.
     const content = `
       <div style="padding:6px 4px; display:flex; flex-direction:column; gap:10px;">
-        <p style="margin:0;">Skin Shadowdark monsters with art from <code>${source.id}</code>
-          — <em>referenced from disk, no files are copied</em>. Unmatched monsters keep their current art
-          (listed in the console, F12).</p>
+        <p style="margin:0;">${game.i18n.format("SDE.tokenArt.dialog.intro", { source: `<code>${source.id}</code>` })}</p>
         <div style="border:1px solid var(--color-border-light-2,#666); border-radius:4px; padding:6px 8px;">
-          <strong><i class="fa-solid fa-book-open"></i> Whole compendium ${on ? "— <span style='color:var(--color-text-hyperlink,#88f)'>on</span>" : ""}</strong>
-          <p style="margin:4px 0 0; opacity:.85;">Overlays the art on <code>shadowdark.monsters</code> so
-            <em>every</em> monster you drag out is skinned automatically — no re-running needed. Non-destructive
-            (the pack is never modified) and reversible.</p>
+          <strong><i class="fa-solid fa-book-open"></i> ${L("SDE.tokenArt.dialog.wholeCompendium")} ${on ? `— <span style='color:var(--color-text-hyperlink,#88f)'>${L("SDE.tokenArt.dialog.on")}</span>` : ""}</strong>
+          <p style="margin:4px 0 0; opacity:.85;">${L("SDE.tokenArt.dialog.wholeCompendiumHint")}</p>
         </div>
         <div style="border:1px solid var(--color-border-light-2,#666); border-radius:4px; padding:6px 8px;">
-          <strong><i class="fa-solid fa-wand-magic-sparkles"></i> Already-placed monsters</strong>
-          <p style="margin:4px 0 6px; opacity:.85;">Re-skin monsters that are already on scenes or in the Actors tab.</p>
-          <label><input type="checkbox" name="scene" checked> Active scene's NPC tokens</label><br>
-          <label><input type="checkbox" name="actors" checked> NPC actors in the Actors tab</label><br>
-          <label><input type="checkbox" name="portraits" checked> Also set portraits (sheet image)</label>
+          <strong><i class="fa-solid fa-wand-magic-sparkles"></i> ${L("SDE.tokenArt.dialog.placed")}</strong>
+          <p style="margin:4px 0 6px; opacity:.85;">${L("SDE.tokenArt.dialog.placedHint")}</p>
+          <label><input type="checkbox" name="scene" checked> ${L("SDE.tokenArt.dialog.sceneTokens")}</label><br>
+          <label><input type="checkbox" name="actors" checked> ${L("SDE.tokenArt.dialog.worldActors")}</label><br>
+          <label><input type="checkbox" name="portraits" checked> ${L("SDE.tokenArt.dialog.portraits")}</label>
         </div>
       </div>`;
 
@@ -682,11 +682,11 @@ export class MonsterTokenArt {
         r = await this.generateCompendiumMapping();
       } catch (e) {
         console.error(`${MODULE_ID} | generateCompendiumMapping failed:`, e);
-        ui.notifications.error(`Could not apply compendium art: ${e.message}`);
+        ui.notifications.error(game.i18n.format("SDE.tokenArt.notify.compendiumFailed", { error: e.message }));
         return true;
       }
       if (r && !r.missing) {
-        ui.notifications.info(`Compendium art on: ${r.mapped}/${r.total} monsters skinned automatically on every drag. ${r.missing} kept their art.`);
+        ui.notifications.info(game.i18n.format("SDE.tokenArt.notify.compendiumOn", { mapped: r.mapped, total: r.total, missing: r.missing }));
       }
       return true;
     };
@@ -698,25 +698,26 @@ export class MonsterTokenArt {
         portraits: el.querySelector('input[name="portraits"]').checked,
       });
       if (r && !r.missing) {
-        ui.notifications.info(`Re-skinned ${r.tokens} tokens, ${r.portraits} portraits. ${r.kept} kept (custom), ${r.skipped.length} unmatched (see console).`);
+        ui.notifications.info(game.i18n.format("SDE.tokenArt.notify.reskinned",
+          { tokens: r.tokens, portraits: r.portraits, kept: r.kept, unmatched: r.skipped.length }));
       }
       return true;
     };
     const runRestore = async () => {
       await this.disableCompendiumMapping();
-      ui.notifications.info("Compendium art turned off — monsters show their default art again.");
+      ui.notifications.info(game.i18n.localize("SDE.tokenArt.notify.compendiumOff"));
       return true;
     };
 
     const buttons = [
-      { action: "compendium", label: "Apply to compendium", icon: "fa-solid fa-book-open", default: true, callback: () => runCompendium() },
-      { action: "placed", label: "Re-skin placed", icon: "fa-solid fa-wand-magic-sparkles", callback: (_e, _b, dlg) => runPlaced(dlg) },
+      { action: "compendium", label: "SDE.tokenArt.dialog.applyCompendium", icon: "fa-solid fa-book-open", default: true, callback: () => runCompendium() },
+      { action: "placed", label: "SDE.tokenArt.dialog.reskinPlaced", icon: "fa-solid fa-wand-magic-sparkles", callback: (_e, _b, dlg) => runPlaced(dlg) },
     ];
-    if (on) buttons.push({ action: "restore", label: "Turn off", icon: "fa-solid fa-rotate-left", callback: () => runRestore() });
-    buttons.push({ action: "cancel", label: "Close" });
+    if (on) buttons.push({ action: "restore", label: "SDE.tokenArt.dialog.turnOff", icon: "fa-solid fa-rotate-left", callback: () => runRestore() });
+    buttons.push({ action: "cancel", label: "SDE.tokenArt.dialog.close" });
 
     await DialogV2.wait({
-      window: { title: "Monster Token Art", icon: "fa-solid fa-dragon" },
+      window: { title: "SDE.tokenArt.dialog.title", icon: "fa-solid fa-dragon" },
       content,
       buttons,
       rejectClose: false,

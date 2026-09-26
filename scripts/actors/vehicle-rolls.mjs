@@ -28,7 +28,7 @@ export async function promptNumber({ title, label, initial = 0 }) {
         <input type="number" name="n" value="${initial}" step="1" autofocus />
       </div>`,
     ok: {
-      label: "Roll",
+      label: "SDE.vehicle.rollButton",
       callback: (_ev, button) => Number(button.form.elements.n.value),
     },
     rejectClose: false,
@@ -54,19 +54,20 @@ export async function promptSiegeAttack({ title, operators, preselect }) {
   const operatorControl = operators.length === 1
     ? `<input type="hidden" name="operator" value="${esc(operators[0].value)}" /><span class="sde-veh-operator">${esc(operators[0].label)}</span>`
     : `<select name="operator" autofocus>${operators.map((o) => `<option value="${esc(o.value)}"${sel(o.value)}>${esc(o.label)}</option>`).join("")}</select>`;
+  const L = (key) => game.i18n.localize(key);
   const result = await DialogV2.prompt({
     window: { title },
-    content: `<div class="form-group"><label>Operator</label>${operatorControl}</div>
+    content: `<div class="form-group"><label>${L("SDE.vehicle.siege.operator")}</label>${operatorControl}</div>
       <div class="form-group">
-        <label>Roll</label>
+        <label>${L("SDE.vehicle.siege.roll")}</label>
         <select name="mode">
-          <option value="normal" selected>Normal</option>
-          <option value="advantage">Advantage</option>
-          <option value="disadvantage">Disadvantage (untrained)</option>
+          <option value="normal" selected>${L("SDE.vehicle.siege.normal")}</option>
+          <option value="advantage">${L("SDE.vehicle.siege.advantage")}</option>
+          <option value="disadvantage">${L("SDE.vehicle.siege.disadvantage")}</option>
         </select>
       </div>`,
     ok: {
-      label: "Attack",
+      label: "SDE.vehicle.siege.attack",
       callback: (_ev, button) => ({
         operator: button.form.elements.operator.value,
         mode: button.form.elements.mode.value,

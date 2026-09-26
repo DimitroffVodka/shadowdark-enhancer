@@ -1,11 +1,11 @@
 <div class="sde-cb-roll-step">
   {{#if step.fixed}}
   <p class="sde-cb-method-label">
-    <i class="fa-solid fa-lock"></i> {{localize "SDE.charBuilder.gold.fixed"}}: <b>{{step.fixed}} gp</b>
+    <i class="fa-solid fa-lock"></i> {{localize "SDE.charBuilder.gold.fixed"}}: <b>{{step.fixed}} {{localize "SDE.charBuilder.gold.unit"}}</b>
     <span class="gm">({{localize "SDE.charBuilder.stats.methodGm"}})</span>
   </p>
   {{else}}
-  <p class="sde-cb-method-label">{{localize "SDE.charBuilder.gold.formula"}}: <b>2d6 × 5 gp</b></p>
+  <p class="sde-cb-method-label">{{localize "SDE.charBuilder.gold.formula"}}: <b>2d6 × 5 {{localize "SDE.charBuilder.gold.unit"}}</b></p>
   <div class="sde-cb-stats-btns">
     {{#if step.rollLocked}}
     <span class="sde-cb-hint"><i class="fa-solid fa-lock"></i> {{localize "SDE.charBuilder.lockedRoll"}}</span>

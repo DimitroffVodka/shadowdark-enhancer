@@ -47,7 +47,7 @@ export function buildMountNpcSheet(BaseNpcSheet) {
       const sys = this.actor.system;
       const mount = this.actor.getFlag(MODULE_ID, "mount") ?? {};
       context.mount = mount;
-      context.occupantLabel = "Riders";
+      context.occupantLabel = game.i18n.localize("SDE.mount.riders");
 
       // Riders
       context.occupants = await this._prepareOccupants();
@@ -86,14 +86,20 @@ export function buildMountNpcSheet(BaseNpcSheet) {
       };
 
       const opt = (vals, cur, labels) => vals.map((v) => ({
-        value: v, selected: v === cur,
-        label: labels?.[v] ?? (v.charAt(0).toUpperCase() + v.slice(1)),
+        value: v, selected: v === cur, label: game.i18n.localize(labels[v]),
       }));
       context.choices = {
-        rarities: opt(RARITIES, mount.rarity ?? "common"),
-        personalities: opt(PERSONALITIES, mount.personality ?? "neutral"),
+        rarities: opt(RARITIES, mount.rarity ?? "common", {
+          common: "SDE.mount.rarity.common", uncommon: "SDE.mount.rarity.uncommon",
+          rare: "SDE.mount.rarity.rare", legendary: "SDE.mount.rarity.legendary",
+        }),
+        personalities: opt(PERSONALITIES, mount.personality ?? "neutral", {
+          horrid: "SDE.mount.personality.horrid", bad: "SDE.mount.personality.bad",
+          neutral: "SDE.mount.personality.neutral", good: "SDE.mount.personality.good",
+          lovely: "SDE.mount.personality.lovely",
+        }),
         bloodTypes: opt(["warm", "cold"], mount.bloodType ?? "warm",
-          { warm: "Warm-blooded", cold: "Cold-blooded / camel" }),
+          { warm: "SDE.mount.blood.warm", cold: "SDE.mount.blood.cold" }),
       };
       // World NPCs available as a stat base (compendium NPCs via drag-drop).
       context.npcChoices = game.actors
@@ -109,7 +115,7 @@ export function buildMountNpcSheet(BaseNpcSheet) {
       for (const uuid of uuids) {
         let actor = null;
         try { actor = await fromUuid(uuid); } catch { /* unresolved */ }
-        if (!actor) { cards.push({ uuid, broken: true, name: "(missing actor)" }); continue; }
+        if (!actor) { cards.push({ uuid, broken: true, name: game.i18n.localize("SDE.vehicle.missingActor") }); continue; }
         const s = actor.system ?? {};
         const ab = s.abilities ?? {};
         const fmt = (k) => { const n = ab[k]?.mod ?? ab[k]?.value ?? 0; return (n >= 0 ? "+" : "") + n; };
@@ -185,27 +191,27 @@ export function buildMountNpcSheet(BaseNpcSheet) {
     _onApplyBaseFromSelect() {
       const sel = (this.element[0] ?? this.element)?.querySelector("[data-sde-base-select]");
       const uuid = sel?.value;
-      if (!uuid) { ui.notifications?.warn("Choose an NPC to copy stats from."); return; }
+      if (!uuid) { ui.notifications?.warn(game.i18n.localize("SDE.mount.notify.chooseNpc")); return; }
       return this._applyBaseFromUuid(uuid);
     }
 
     async _applyBaseFromUuid(uuid) {
       const source = await fromUuid(uuid).catch(() => null);
-      if (!source) { ui.notifications?.warn("Could not load that actor."); return; }
+      if (!source) { ui.notifications?.warn(game.i18n.localize("SDE.mount.notify.loadFailed")); return; }
       if (source.id === this.actor.id) return;
       if (source.type !== "NPC") {
-        ui.notifications?.warn("Pick an NPC statblock to use as a base.");
+        ui.notifications?.warn(game.i18n.localize("SDE.mount.notify.pickNpc"));
         return;
       }
       const ok = await foundry.applications.api.DialogV2.confirm({
-        window: { title: "Copy NPC Stats" },
-        content: `<p>Copy abilities, HP, AC, level, movement, alignment, and Attacks/Features/Spells from <strong>${source.name}</strong> onto this mount?</p>`
-          + `<p>This overwrites the mount's current stats and stat items. Riders, gear, and mount settings are kept.</p>`,
+        window: { title: "SDE.mount.copyStats.title" },
+        content: `<p>${game.i18n.format("SDE.mount.copyStats.question", { name: `<strong>${source.name}</strong>` })}</p>`
+          + `<p>${game.i18n.localize("SDE.mount.copyStats.warning")}</p>`,
         rejectClose: false,
       });
       if (!ok) return;
       await this._applyBaseNpc(source);
-      ui.notifications?.info(`Copied ${source.name}'s statblock onto ${this.actor.name}.`);
+      ui.notifications?.info(game.i18n.format("SDE.mount.notify.copied", { source: source.name, mount: this.actor.name }));
     }
 
     /** Copy an NPC's system data, image, and stat items onto this mount. */
@@ -229,7 +235,7 @@ export function buildMountNpcSheet(BaseNpcSheet) {
       const actor = await fromUuid(data.uuid).catch(() => null);
       if (!actor) return;
       if (!["Player", "NPC"].includes(actor.type)) {
-        ui.notifications?.warn("Only Player or NPC actors can ride.");
+        ui.notifications?.warn(game.i18n.localize("SDE.mount.notify.onlyActorsRide"));
         return;
       }
       const current = this.actor.getFlag(MODULE_ID, "occupants") ?? [];
@@ -263,7 +269,7 @@ export function buildMountNpcSheet(BaseNpcSheet) {
     // ── Helper rolls ─────────────────────────────────────────────────────────
 
     async _onLevelUp() {
-      const roll = await rollToChat("1d8", { actor: this.actor, flavor: `${this.actor.name} levels up (+1d8 HP)` });
+      const roll = await rollToChat("1d8", { actor: this.actor, flavor: game.i18n.format("SDE.mount.chat.levelUp", { name: this.actor.name }) });
       const gain = roll.total;
       const sys = this.actor.system;
       await this.actor.update({
@@ -280,22 +286,29 @@ export function buildMountNpcSheet(BaseNpcSheet) {
       const roll = await new Roll(`1d20 + ${conMod}`).evaluate();
       await roll.toMessage({
         speaker: ChatMessage.getSpeaker({ actor: this.actor }),
-        flavor: `<strong>Push check — CON vs DC ${dc}</strong><br>${
-          roll.total >= dc ? "Holds up — can travel tomorrow." : "Cannot travel the following day."}`,
+        flavor: `<strong>${game.i18n.format("SDE.mount.chat.pushCheck", { dc })}</strong><br>${
+          game.i18n.localize(roll.total >= dc ? "SDE.mount.chat.pushHolds" : "SDE.mount.chat.pushFails")}`,
         flags: { [MODULE_ID]: { vehicleRoll: true } },
       });
     }
 
     async _onMoraleCheck() {
-      const cha = await promptNumber({ title: "Morale Check", label: "Rider's Charisma modifier:", initial: 0 });
+      const cha = await promptNumber({
+        title: "SDE.mount.moraleCheck", label: game.i18n.localize("SDE.mount.moraleChaLabel"), initial: 0,
+      });
       if (cha === null) return;
-      await rollToChat(`1d20 + ${cha}`, { actor: this.actor, flavor: `Morale check — rider CHA (${cha >= 0 ? "+" : ""}${cha})` });
+      await rollToChat(`1d20 + ${cha}`, {
+        actor: this.actor, flavor: game.i18n.format("SDE.mount.chat.morale", { bonus: `${cha >= 0 ? "+" : ""}${cha}` }),
+      });
     }
 
     async _onPersonalityRoll() {
       const mount = this.actor.getFlag(MODULE_ID, "mount") ?? {};
       const bonus = mount.properties?.goodTempered ? 2 : 0;
-      const roll = await rollToChat(`1d20 + ${bonus}`, { actor: this.actor, flavor: `Personality roll${bonus ? " (Good-Tempered +2)" : ""}` });
+      const roll = await rollToChat(`1d20 + ${bonus}`, {
+        actor: this.actor,
+        flavor: game.i18n.localize(bonus ? "SDE.mount.chat.personalityGoodTempered" : "SDE.mount.chat.personality"),
+      });
       const t = roll.total;
       const band = t <= 4 ? "horrid" : t <= 8 ? "bad" : t <= 12 ? "neutral" : t <= 16 ? "good" : "lovely";
       await this.actor.setFlag(MODULE_ID, "mount", { ...mount, personality: band });
@@ -304,10 +317,10 @@ export function buildMountNpcSheet(BaseNpcSheet) {
     /** Place tokens for occupants not already on the canvas. */
     async _onPlaceTokens() {
       const scene = canvas?.scene;
-      if (!scene) { ui.notifications?.warn("No active scene to place tokens on."); return; }
+      if (!scene) { ui.notifications?.warn(game.i18n.localize("SDE.vehicle.notify.noScene")); return; }
       const uuids = this.actor.getFlag(MODULE_ID, "occupants") ?? [];
       const actors = (await Promise.all(uuids.map((u) => fromUuid(u).catch(() => null)))).filter(Boolean);
-      if (!actors.length) { ui.notifications?.warn("No riders to place."); return; }
+      if (!actors.length) { ui.notifications?.warn(game.i18n.localize("SDE.mount.notify.noRiders")); return; }
       const gs = scene.grid?.size ?? 100;
       const base = this.actor.getActiveTokens?.()[0];
       let ox, oy;
@@ -321,9 +334,9 @@ export function buildMountNpcSheet(BaseNpcSheet) {
         toCreate.push(td.toObject());
         col++;
       }
-      if (!toCreate.length) { ui.notifications?.info("All riders already have tokens on the scene."); return; }
+      if (!toCreate.length) { ui.notifications?.info(game.i18n.localize("SDE.mount.notify.allPlaced")); return; }
       await scene.createEmbeddedDocuments("Token", toCreate);
-      ui.notifications?.info(`Placed ${toCreate.length} token(s).`);
+      ui.notifications?.info(game.i18n.format("SDE.vehicle.notify.placed", { count: toCreate.length }));
     }
   };
 }

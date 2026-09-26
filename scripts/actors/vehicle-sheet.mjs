@@ -41,8 +41,8 @@ export class VehicleSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   /** Active tab id; preserved across re-renders. */
   _activeTab = "overview";
 
-  /** Occupant label, e.g. "Riders" / "Passengers & Crew". Override. */
-  get occupantLabel() { return "Occupants"; }
+  /** i18n key of the occupant label, e.g. "Passengers & Crew". Override. */
+  get occupantLabel() { return "SDE.vehicle.occupants"; }
 
   // ── Context ────────────────────────────────────────────────────────────────
 
@@ -52,7 +52,7 @@ export class VehicleSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     context.system = sys;
     context.derived = sys.derived ?? {};
     context.editable = this.isEditable;
-    context.occupantLabel = this.occupantLabel;
+    context.occupantLabel = game.i18n.localize(this.occupantLabel);
 
     context.tab = {
       overview: this._activeTab === "overview",
@@ -99,7 +99,7 @@ export class VehicleSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       const role = roleFor(uuid);
       let actor = null;
       try { actor = await fromUuid(uuid); } catch { /* unresolved */ }
-      if (!actor) { cards.push({ uuid, broken: true, name: "(missing actor)" }); continue; }
+      if (!actor) { cards.push({ uuid, broken: true, name: game.i18n.localize("SDE.vehicle.missingActor") }); continue; }
       const s = actor.system ?? {};
       const ab = s.abilities ?? {};
       const fmt = (k) => {
@@ -221,7 +221,7 @@ export class VehicleSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const actor = await fromUuid(data.uuid).catch(() => null);
     if (!actor) return;
     if (!["Player", "NPC"].includes(actor.type)) {
-      ui.notifications?.warn("Only Player or NPC actors can ride/board.");
+      ui.notifications?.warn(game.i18n.localize("SDE.vehicle.notify.onlyActorsBoard"));
       return;
     }
     const uuid = actor.uuid;
@@ -241,7 +241,8 @@ export class VehicleSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
     if (zone === "weapon") {
       if (item.type !== "Weapon") {
-        ui.notifications?.warn(`Only weapons can be mounted — drop ${item.name} under ${this.occupantLabel === "Occupants" ? "Inventory" : "Cargo"}.`);
+        ui.notifications?.warn(game.i18n.format(this.occupantLabel === "SDE.vehicle.occupants"
+          ? "SDE.vehicle.notify.onlyWeaponsInventory" : "SDE.vehicle.notify.onlyWeaponsCargo", { item: item.name }));
         return;
       }
       // Soft WR checks (the module adjudicates rather than hard-blocks): up to two
@@ -249,11 +250,12 @@ export class VehicleSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       const sys = this.document.system;
       const mounted = this.document.items.filter((i) => this._isSiegeWeapon(i)).length;
       if (!sys.properties?.weapons)
-        ui.notifications?.warn(`${this.document.name} has no Weapons property — mounting anyway.`);
+        ui.notifications?.warn(game.i18n.format("SDE.vehicle.notify.noWeaponsProperty", { name: this.document.name }));
       if (mounted >= 2)
-        ui.notifications?.warn(`WR allows up to two siege weapons — this makes ${mounted + 1}. Mounting anyway.`);
+        ui.notifications?.warn(game.i18n.format("SDE.vehicle.notify.tooManySiege", { count: mounted + 1 }));
       if (/trebuchet/i.test(item.name ?? "") && sys.boatType !== "Galleon")
-        ui.notifications?.warn(`WR: trebuchets are galleon-only — mounting on this ${sys.boatType || "vessel"} anyway.`);
+        ui.notifications?.warn(game.i18n.format("SDE.vehicle.notify.trebuchetGalleonOnly",
+          { type: sys.boatType || game.i18n.localize("SDE.vehicle.vessel") }));
       // Stamp the siege flag so it's classified onto the Weapons tab (supports
       // home-brew weapons dropped here, not just imported ones).
       const obj = item.toObject();
@@ -321,7 +323,8 @@ export class VehicleSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const uuids = this.document.system.occupants ?? [];
     const crew = (await Promise.all(uuids.map((u) => fromUuid(u).catch(() => null)))).filter(Boolean);
     if (!crew.length) {
-      ui.notifications?.warn(`Add a crew member under ${this.occupantLabel} to operate ${item.name}.`);
+      ui.notifications?.warn(game.i18n.format("SDE.vehicle.notify.needCrew",
+        { occupants: game.i18n.localize(this.occupantLabel), item: item.name }));
       return;
     }
 
@@ -330,10 +333,10 @@ export class VehicleSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const roleOf = (a) => roles.find((r) => r.uuid === a.uuid)?.role || "";
     const gunner = crew.find((a) => roleOf(a) === "gunner");
     const picked = await promptSiegeAttack({
-      title: `${item.name} — Attack`,
+      title: game.i18n.format("SDE.vehicle.attackTitle", { item: item.name }),
       operators: crew.map((a) => ({
         value: a.uuid,
-        label: roleOf(a) === "gunner" ? `${a.name} (Gunner)` : a.name,
+        label: roleOf(a) === "gunner" ? game.i18n.format("SDE.vehicle.gunnerOption", { name: a.name }) : a.name,
       })),
       preselect: gunner?.uuid,
     });
@@ -352,13 +355,16 @@ export class VehicleSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     // Shadowdark advantage/disadvantage: keep highest / lowest of two d20.
     const d20 = picked.mode === "advantage" ? "2d20kh1"
       : picked.mode === "disadvantage" ? "2d20kl1" : "1d20";
-    const modeLabel = picked.mode === "advantage" ? " with advantage"
-      : picked.mode === "disadvantage" ? " with disadvantage (untrained)" : "";
+    const flavorKey = picked.mode === "advantage" ? "SDE.vehicle.attackFlavorAdvantage"
+      : picked.mode === "disadvantage" ? "SDE.vehicle.attackFlavorDisadvantage" : "SDE.vehicle.attackFlavor";
     const sign = total >= 0 ? "+" : "";
     const esc = foundry.utils.escapeHTML;
     await rollToChat(`${d20} + ${total}`, {
       actor: operator,
-      flavor: `${esc(item.name)} attack — ${esc(operator.name)} operating ${esc(this.document.name)} (${abl.toUpperCase()} ${sign}${total})${modeLabel}`,
+      flavor: game.i18n.format(flavorKey, {
+        item: esc(item.name), operator: esc(operator.name), vehicle: esc(this.document.name),
+        ability: abl.toUpperCase(), bonus: `${sign}${total}`,
+      }),
     });
   }
 
@@ -370,19 +376,26 @@ export class VehicleSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     // weapons carry a single die in system.damage.
     const die = item.getFlag("shadowdark-enhancer", "siegeDamage")
       || item.system?.damage?.oneHanded || item.system?.damage?.twoHanded || "";
-    if (!die) { ui.notifications?.warn(`${item.name} has no damage die set.`); return; }
+    if (!die) { ui.notifications?.warn(game.i18n.format("SDE.vehicle.notify.noDamageDie", { item: item.name })); return; }
     const formula = /^\d/.test(die) ? die : `1${die}`;   // "d8" → "1d8"; "3d6" stays
-    await rollToChat(formula, { actor: this.document, flavor: `${foundry.utils.escapeHTML(item.name)} damage (${formula})` });
+    await rollToChat(formula, {
+      actor: this.document,
+      flavor: game.i18n.format("SDE.vehicle.damageFlavor", { item: foundry.utils.escapeHTML(item.name), formula }),
+    });
   }
 
   /** Place tokens for every occupant that isn't already on the canvas. */
   async _onPlaceTokens() {
     const scene = canvas?.scene;
-    if (!scene) { ui.notifications?.warn("No active scene to place tokens on."); return; }
+    if (!scene) { ui.notifications?.warn(game.i18n.localize("SDE.vehicle.notify.noScene")); return; }
 
     const uuids = this.document.system.occupants ?? [];
     const actors = (await Promise.all(uuids.map((u) => fromUuid(u).catch(() => null)))).filter(Boolean);
-    if (!actors.length) { ui.notifications?.warn(`No ${this.occupantLabel.toLowerCase()} to place.`); return; }
+    if (!actors.length) {
+      ui.notifications?.warn(game.i18n.format("SDE.vehicle.notify.noneToPlace",
+        { occupants: game.i18n.localize(this.occupantLabel).toLowerCase() }));
+      return;
+    }
 
     const gs = scene.grid?.size ?? 100;
     const base = this.document.getActiveTokens?.()[0];
@@ -404,8 +417,8 @@ export class VehicleSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       toCreate.push(td.toObject());
       col++;
     }
-    if (!toCreate.length) { ui.notifications?.info("All occupants already have tokens on the scene."); return; }
+    if (!toCreate.length) { ui.notifications?.info(game.i18n.localize("SDE.vehicle.notify.allPlaced")); return; }
     await scene.createEmbeddedDocuments("Token", toCreate);
-    ui.notifications?.info(`Placed ${toCreate.length} token(s).`);
+    ui.notifications?.info(game.i18n.format("SDE.vehicle.notify.placed", { count: toCreate.length }));
   }
 }

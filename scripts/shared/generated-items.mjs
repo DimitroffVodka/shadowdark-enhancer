@@ -635,7 +635,10 @@ export async function reconcileGeneratedItems(pack, desired, { source = "", adap
     ...failures.map((f) => `"${f.name}" (${f.reason})`),
   ];
   if (problems.length) {
-    notify(`Shadowdark Enhancer: ${problems.length} generated item(s) were not written — ${problems.join(", ")}.`);
+    // The key when no i18n is mounted: node tests run this without Foundry.
+    const data = { count: problems.length, list: problems.join(", ") };
+    notify(globalThis.game?.i18n?.format("SDE.shared.generatedItems.notWritten", data)
+      ?? "SDE.shared.generatedItems.notWritten");
   }
 
   return {

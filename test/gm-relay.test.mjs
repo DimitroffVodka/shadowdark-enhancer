@@ -35,6 +35,11 @@ import {
 
 const MY_VERSION = "0.13.1";
 
+// The relay's words come from en.json. Echo the key and its data, so the
+// assertions below check which message was picked and what it names.
+const I18N = { localize: (k) => k, format: (k, d) => `${k} ${JSON.stringify(d ?? {})}` };
+globalThis.game = { i18n: I18N };
+
 // ─── Pure decision logic ────────────────────────────────────────────────────
 
 test("evaluateHandshake: nobody to relay to", () => {
@@ -88,13 +93,13 @@ test("authorizeActorRequest: a GM may act for anyone — they roll for absent pl
 test("authorizeActorRequest: a non-owner is refused, and told why", () => {
   const out = authorizeActorRequest({ actorExists: true, requesterIsGM: false, requesterOwnsActor: false });
   assert.equal(out.ok, false);
-  assert.match(out.error, /don't own that character/);
+  assert.match(out.error, /SDE\.shared\.relay\.notOwner/);
 });
 
 test("authorizeActorRequest: a missing actor is refused before ownership is considered", () => {
   const out = authorizeActorRequest({ actorExists: false, requesterIsGM: true, requesterOwnsActor: true });
   assert.equal(out.ok, false);
-  assert.match(out.error, /no longer exists/);
+  assert.match(out.error, /SDE\.shared\.relay\.actorGone/);
 });
 
 test("authorizeActorRequest: it fails closed on no facts at all", () => {
@@ -122,7 +127,7 @@ test("handshakeWarning: the version case names both versions", () => {
 
 test("handshakeWarning: no GM online reads differently from a stale GM", () => {
   const none = handshakeWarning({ ok: false, reason: "no-gm" }, "loot claims");
-  assert.match(none, /No GM is connected/);
+  assert.match(none, /SDE\.shared\.relay\.noGm/);
   assert.doesNotMatch(none, /reload/i);
 });
 
@@ -130,7 +135,7 @@ test("handshakeWarning: a revoked QUERY_USER permission names the permission", (
   // Blaming the GM's build for a permission the GM turned off sends the table
   // off reloading the wrong thing.
   const msg = handshakeWarning({ ok: false, reason: "no-query-permission" }, "shop transactions");
-  assert.match(msg, /Query User/);
+  assert.match(msg, /SDE\.shared\.relay\.noQueryPermission/);
   assert.doesNotMatch(msg, /reload/i);
 });
 
@@ -150,6 +155,7 @@ const saved = { game: globalThis.game, ui: globalThis.ui };
 
 globalThis.ui = { notifications: { warn: (m) => warnings.push(m) } };
 globalThis.game = {
+  i18n: I18N,
   user: PLAYER,
   users: { activeGM: null },
   modules: { get: (id) => (id === MODULE_ID ? { version: MY_VERSION } : null) },
@@ -183,7 +189,7 @@ test("refuseQuery: a client that isn't a GM refuses rather than half-running", (
   actAs(PLAYER);
   const out = refuseQuery(PLAYER, "Loot claims");
   assert.equal(out.ok, false);
-  assert.match(out.error, /primary GM/);
+  assert.match(out.error, /SDE\.shared\.relay\.primaryGm/);
 });
 
 test("refuseQuery: no authenticated sender means no handler runs", () => {
@@ -206,7 +212,7 @@ test("refuseQuery: a GM that is NOT the designated one refuses", () => {
 
   const out = refuseQuery(PLAYER, "Luck token gifts");
   assert.equal(out.ok, false, "being a GM is not enough — it must be THE GM");
-  assert.match(out.error, /primary GM/);
+  assert.match(out.error, /SDE\.shared\.relay\.primaryGm/);
 });
 
 test("refuseQuery: the designated GM proceeds", () => {
@@ -231,7 +237,7 @@ test("relay: no GM online is reported separately from a stale one", async () => 
   actAs(PLAYER, null);
   const ok = await quietly(() => relayToGM("q", { action: "shop:buy" }, { label: "shop transactions" }));
   assert.equal(ok, false);
-  assert.match(warnings[0], /No GM is connected/);
+  assert.match(warnings[0], /SDE\.shared\.relay\.noGm/);
   assert.equal(sent.length, 0);
 });
 
@@ -260,7 +266,7 @@ test("relay: a revoked QUERY_USER permission is reported, not disguised as a sta
 
   assert.equal(ok, false);
   assert.equal(sent.length, 0, "User#query throws on a missing permission — don't call it");
-  assert.match(warnings[0], /Query User/);
+  assert.match(warnings[0], /SDE\.shared\.relay\.noQueryPermission/);
 });
 
 test("relay: the GM's refusal is shown to the player verbatim", async () => {

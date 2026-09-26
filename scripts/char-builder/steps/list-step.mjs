@@ -110,7 +110,7 @@ export class ListStep extends BaseStep {
     const inst = ImporterHubApp.open();
     inst._onCharSeedPaste(null, { dataset: { name, type, src, pages } });
     const { CHAR_SOURCES } = await import("../../importer/char-content/char-content-manifest.mjs");
-    ui.notifications.info(`Unlock "${name}": paste its section from ${CHAR_SOURCES[src]?.book ?? src} into the Importer and Parse.`);
+    ui.notifications.info(game.i18n.format("SDE.charBuilder.notify.unlockPaste", { name, book: CHAR_SOURCES[src]?.book ?? src }));
     // Force fresh lists once the import lands and the builder re-renders.
     this._items = null;
     this.app._lockedCensus = null;
