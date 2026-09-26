@@ -117,6 +117,16 @@ grids, points of interest), the six two-page `d100` terrain spreads, the 21
 trainer benefit tables, Tal-Yool Jungle, the City of Masks and the trouble
 generator.
 
+*Type of Trouble* (p. 49) prints a second roll inside every row, such as
+"Monster horde. 1d6: 1. … 6. …". When you create it, each of those rolls becomes
+its own table, named after the row (*Type of Trouble: Monster horde*) and
+filed beside it, on the die the row prints: a `d6` for eight types, a `d4`
+for *External faction* and *Power change*. Each row keeps its type and also
+points at its table, so one roll of *Type of Trouble* posts the type and a
+result from its sub-table. The preview shows the rows as printed, and any
+edits you make there carry into the sub-tables. Importing it again asks about
+each table by name, and **Replace** updates it in place.
+
 ### Importing the GM Guide's Master Hex Key (pp. 73–83)
 
 The Master Hex Key is **not** a roll table and has no manifest row. It is 270

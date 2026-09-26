@@ -3,6 +3,13 @@
 ## [Unreleased]
 
 ### Added
+- **Type of Trouble rolls its nested table.** Every row of the GM Guide's
+  Type of Trouble (p. 49) prints a second roll ("Monster horde. 1d6: 1. …
+  6. …"), and rolling the table used to hand you that whole list. Importing it
+  now also creates one table per row, on the die the row prints (a d6, or a
+  d4 for External faction and Power change), named "Type of Trouble: <type>"
+  and filed beside it. One roll of Type of Trouble posts the type and a result
+  from its table. (#188)
 - **The hex data goes on the printed map.** The Hex Tagger's **Send to
   Extras** now puts every hex's terrain, region, zone colour, name,
   description and settlement on the map you tagged, instead of building a
