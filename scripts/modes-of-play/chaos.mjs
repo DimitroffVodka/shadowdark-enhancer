@@ -90,20 +90,41 @@ let _clockwiseWarned = false;
  * Reroll every combatant's initiative for the round that just started.
  * The caller (turn-skip.mjs) holds the combat's lock and checks the setting.
  * @param {Combat} combat
- * @param {{previous: object}|null} [held]  a round holdChaosRound held back,
- *   with `combat.previous` as its update left it: its turn events are
- *   replayed around the reroll
+ * @param {{previous: object, round: number, turn: number|null}|null} [held]
+ *   a round holdChaosRound held back: where the old round ended (`previous`
+ *   as the round's update left it) and the round and turn it went to. Its turn
+ *   events are replayed around the reroll.
  * @param {{reroll?: boolean}} [opts]  reroll: false replays a held round's events only
- * @returns {Promise<boolean>}  true when it rerolled
+ * @returns {Promise<object|boolean>}  held: where the replay left the round,
+ *   for a round held meanwhile to start from; otherwise true when it rerolled
  */
 export async function chaosReroll(combat, held = null, { reroll = true } = {}) {
-  const from = held ? await passOwedTurns(combat, held.previous) : null;
-  try {
-    return reroll ? await rerollOrder(combat, { turnEvents: !held }) : false;
-  } finally {
-    if (from) await startRound(combat, from);
+  if (!held) {
+    const rolled = reroll ? await rerollOrder(combat, { turnEvents: true }) : null;
+    if (rolled) await postOrder(rolled, combat.round);
+    return !!rolled;
   }
+  const count = combat.turns.length;
+  const from = await passOwedTurns(combat, held.previous).catch((error) => {
+    console.error(`${MODULE_ID} | Chaos Mode: the old round's last turns failed`, error);
+    return ended(held.previous.round, count);
+  });
+  const rolled = !reroll ? null : await rerollOrder(combat, { turnEvents: false }).catch((error) => {
+    console.error(`${MODULE_ID} | Chaos Mode could not reroll initiative`, error);
+    return null;
+  });
+  // The round's own events, whatever became of the reroll: the round and turn
+  // it was held at (a later round may have been held since), the new top's
+  // turn when it rerolled.
+  const turn = rolled ? 0 : held.turn;
+  const to = { round: held.round, turn, combatantId: combat.turns[turn]?.id ?? null, tokenId: combat.turns[turn]?.tokenId ?? null };
+  await dispatch(combat, from, to, held.previous);
+  if (rolled) await postOrder(rolled, held.round);
+  return to;
 }
+
+/** Every turn of `round`, out of `count`, has ended: nobody's turn is left to end. */
+const ended = (round, count) => ({ round, turn: count - 1, combatantId: null, tokenId: null });
 
 /**
  * The turns the old round still owed when it ended, passed in the old order
@@ -118,37 +139,42 @@ export async function chaosReroll(combat, held = null, { reroll = true } = {}) {
 async function passOwedTurns(combat, previous) {
   const count = combat.turns.length;
   if (!(previous.round > 0 && Number.isInteger(previous.turn) && previous.turn < count - 1)) return previous;
-  Object.assign(combat.previous, previous);
-  combat.current = { round: previous.round, turn: count, combatantId: null, tokenId: null };
-  try {
-    await combat._manageTurnEvents();
-  } finally {
-    combat.current = combat._getCurrentState();
-  }
-  // Every turn of the old round has ended now; none is left to end.
-  return { round: previous.round, turn: count - 1, combatantId: null, tokenId: null };
+  await dispatch(combat, previous, { round: previous.round, turn: count, combatantId: null, tokenId: null }, previous);
+  return ended(previous.round, count);
 }
 
 /**
- * The held round's own events: the old round's last turn ends, the round
- * changes, and the top of the order, new or not, starts its turn.
+ * Foundry's own dispatcher (Combat#_manageTurnEvents) run from `from` to `to`.
+ * It reads both, and the order, before its first await, so the real state goes
+ * back at once: an update that lands while the events run compares against
+ * the real state, never the made-up one, and `previous` is left as Foundry
+ * leaves it after a round change, at the old round's last turn (`last`). Fresh
+ * objects, because Foundry records a later change into `previous` in place.
  */
-async function startRound(combat, from) {
-  Object.assign(combat.previous, from);
+async function dispatch(combat, from, to, last) {
+  combat.previous = { ...from };
+  combat.current = { ...to };
+  const events = combat._manageTurnEvents();
+  combat.previous = { ...last };
   combat.current = combat._getCurrentState();
-  await combat._manageTurnEvents();
+  await events;
 }
 
+/**
+ * Every combatant's initiative rolled again and the order rebuilt, in one
+ * update that gives the turn to the new top. Null when Chaos stands down.
+ * @returns {Promise<object[]|null>}  the rolls, for postOrder
+ */
 async function rerollOrder(combat, { turnEvents }) {
   if (game.settings.get("shadowdark", "useClockwiseInitiative") === true) {
     if (!_clockwiseWarned) {
       _clockwiseWarned = true;
       ui.notifications?.warn(game.i18n.localize("SDE.chaos.clockwise"));
     }
-    return false;
+    return null;
   }
   const combatants = combat.combatants.contents;
-  if (!combatants.length) return false;
+  if (!combatants.length) return null;
 
   const rolled = [];
   for (const c of combatants) {
@@ -158,18 +184,21 @@ async function rerollOrder(combat, { turnEvents }) {
   }
   await combat.updateEmbeddedDocuments("Combatant",
     rolled.map((r) => ({ _id: r.id, initiative: r.total })), { combatTurn: 0, turnEvents });
+  return rolled;
+}
 
+/** The round's card: the new order, hidden combatants left off. */
+async function postOrder(rolled, round) {
   const rows = chaosOrder(rolled);
-  if (!rows.length) return true;
+  if (!rows.length) return;
   const animate = game.settings.get(MODULE_ID, "modeChaosDiceSoNice") === true;
   const visible = new Set(rows.map((r) => r.name));
   const list = rows.map((r) =>
     `<li><strong>${esc(r.name)}</strong> <span class="sde-chaos-roll">${esc(r.total)}</span> <span class="sde-chaos-formula">${esc(r.formula)}</span></li>`).join("");
   await ChatMessage.create({
     speaker: { alias: game.i18n.localize("SDE.chaos.speaker") },
-    content: `<div class="sde-chaos-card"><header>${esc(game.i18n.format("SDE.chaos.header", { round: combat.round }))}</header><ol>${list}</ol></div>`,
+    content: `<div class="sde-chaos-card"><header>${esc(game.i18n.format("SDE.chaos.header", { round }))}</header><ol>${list}</ol></div>`,
     rolls: animate ? rolled.filter((r) => !r.hidden && visible.has(r.name)).map((r) => r.roll) : [],
-    flags: { [MODULE_ID]: { chaosRound: combat.round } },
+    flags: { [MODULE_ID]: { chaosRound: round } },
   });
-  return true;
 }

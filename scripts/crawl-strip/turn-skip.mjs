@@ -30,8 +30,9 @@ import { isChaosRound, isHeldRound, holdChaosRound, chaosReroll } from "../modes
 // the re-check, so the nested call must be a no-op rather than a second walker.
 const _walking = new Set();
 
-// Chaos rounds whose turn events were held back (chaos.mjs, #259), by combat
-// id: `previous` as the round's update left it, taken before anything moves.
+// Chaos rounds whose turn events were held back (chaos.mjs, #259), in order,
+// by combat id: where the old round ended (`previous` as the round's update
+// left it) and the round and turn it went to, taken before anything moves.
 // Whoever holds the lock replays them (drainHeld).
 const _held = new Map();
 
@@ -44,7 +45,10 @@ export function registerTurnSkip() {
   // A new round under Chaos Mode rerolls initiative first, then skips.
   Hooks.on("updateCombat", (combat, changes, options) => {
     if (isHeldRound(options)) {
-      if (isActiveGM()) _held.set(combat.id, { previous: { ...combat.previous } });
+      if (isActiveGM()) {
+        if (!_held.has(combat.id)) _held.set(combat.id, []);
+        _held.get(combat.id).push({ previous: { ...combat.previous }, round: combat.round, turn: combat.turn });
+      }
       void chaosThenSkip(combat);
     } else if (isChaosRound(changes, options) && game.settings.get(MODULE_ID, "modeChaosInitiative") === true) {
       void chaosThenSkip(combat);
@@ -94,11 +98,20 @@ async function chaosThenSkip(combat) {
  * @param {object} combat
  */
 async function drainHeld(combat) {
-  while (_held.has(combat.id)) {
-    const held = _held.get(combat.id);
-    _held.delete(combat.id);
-    await chaosReroll(combat, held, { reroll: combat.id === game.combat?.id });
+  const queue = _held.get(combat.id) ?? [];
+  // A round held while the one before it was replayed starts where that
+  // replay left off: what was taken for it then was mid-replay.
+  let from = null;
+  while (queue.length) {
+    const held = queue.shift();
+    try {
+      from = await chaosReroll(combat, from ? { ...held, previous: from } : held, { reroll: combat.id === game.combat?.id });
+    } catch (error) {
+      console.error(`${MODULE_ID} | Chaos Mode could not replay a round's turn events`, error);
+      from = null;
+    }
   }
+  _held.delete(combat.id);
 }
 
 /**

@@ -69,9 +69,13 @@ Things to know:
   turns move. That is the rule itself.
 - The round's turn events wait for the new order: the old round's last turn
   ends, the round changes, and the new top's turn is the first to start. Every
-  combatant starts one turn a round, so round-start and turn-start effects,
-  death timers and region events land on the right one. A turn that *Skip
-  Defeated* jumps over at the end of a round still passes, in the old order.
+  combatant starts one turn a round, so Foundry's round and turn events
+  (effect durations, region behaviours) and death timers land on the right
+  one. A turn that *Skip Defeated* jumps over at the end of a round still
+  passes, in the old order.
+- Shadowdark Extras' aura and template triggers still read the round's first
+  update, from before the reroll, so at the start of a round they act on
+  whoever was on top before it.
 - A round started without the tracker's or the strip's round buttons (a macro
   that sets the round itself) rerolls after its events have fired, and there
   whoever was on top before the reroll starts and ends a turn once as the

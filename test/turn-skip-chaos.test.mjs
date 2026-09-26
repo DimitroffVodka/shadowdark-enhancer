@@ -26,13 +26,15 @@ registerTurnSkip();
  * A combat as Foundry runs it on the active GM, as far as Chaos needs: a round
  * change goes through the combatRound hook, then the update, whose turn
  * events fire unless held, then updateCombat. Every dispatch is recorded with
- * the `previous`, `current` and order Foundry's dispatcher would read.
+ * the `previous`, `current` and order Foundry's dispatcher reads before its
+ * first await, and the `current` an update landing after that await would see.
+ * An initiative given as a list is one roll after another.
  */
-function fakeCombat(people, { round = 2, turn = people.length - 1 } = {}) {
+function fakeCombat(people, { round = 2, turn = people.length - 1, onReorder = null } = {}) {
   const who = ([id, type, hp, init]) => ({
     id, name: id, hidden: false, defeated: false, initiative: 0,
     actor: { type, system: { attributes: { hp: { value: hp } } } },
-    getInitiativeRoll: () => ({ total: init, formula: "1d20", evaluate: async () => {} }),
+    getInitiativeRoll: () => ({ total: Array.isArray(init) ? init.shift() : init, formula: "1d20", evaluate: async () => {} }),
   });
   const all = people.map(who);
   const combat = {
@@ -43,7 +45,10 @@ function fakeCombat(people, { round = 2, turn = people.length - 1 } = {}) {
       return { round: this.round, turn: this.turn, combatantId: this.turns[this.turn]?.id ?? null, tokenId: null };
     },
     async _manageTurnEvents() {
-      this.events.push({ previous: { ...this.previous }, current: { ...this.current }, order: this.turns.map((c) => c.id) });
+      const event = { previous: { ...this.previous }, current: { ...this.current }, order: this.turns.map((c) => c.id) };
+      this.events.push(event);
+      await null;
+      event.meanwhile = { ...this.current };
     },
     async update(data, options) {
       const prior = this._getCurrentState();
@@ -61,6 +66,7 @@ function fakeCombat(people, { round = 2, turn = people.length - 1 } = {}) {
       return this.update(data, options);
     },
     async updateEmbeddedDocuments(type, updates, { combatTurn, turnEvents }) {
+      await onReorder?.(this);
       this.rerolls += 1;
       this.reorderEvents = turnEvents;
       for (const u of updates) all.find((c) => c.id === u._id).initiative = u.initiative;
@@ -110,13 +116,14 @@ test("a Chaos round starts one turn, the new top's, never the old top's first (#
     previous: { round: 2, turn: 2, combatantId: "Bo", tokenId: null },
     current: { round: 3, turn: 0, combatantId: "Cy", tokenId: null },
     order: ["Cy", "Bo", "Ana"],
+    meanwhile: { round: 3, turn: 0, combatantId: "Cy", tokenId: null },
   }], "one dispatch: Bo's turn ends, round 2 ends, round 3 starts, Cy's turn starts");
 });
 
 test("turns the old round still owed pass in the old order, skipped, before the reroll", async () => {
   // Skip Defeated: Bo acted last in round 2, so Foundry jumps from turn 1 straight
-  // to round 3, over the dying Cy sorted after him.
-  const combat = fakeCombat([["Ana", "Player", 5, 18], ["Bo", "Player", 5, 2], ["Cy", "Player", 0, 1]], { turn: 1 });
+  // to round 3, over the dying Cy sorted after him. Cy then rolls to the top.
+  const combat = fakeCombat([["Ana", "Player", 5, 1], ["Bo", "Player", 5, 2], ["Cy", "Player", 0, 18]], { turn: 1 });
   globalThis.game.combat = combat;
   const options = { direction: 1 };
   hooks.combatRound(combat, { round: 3, turn: 0 }, options);
@@ -127,8 +134,66 @@ test("turns the old round still owed pass in the old order, skipped, before the 
     // The owed turn: Bo's ends, Cy's starts and ends, all in round 2 and the old order.
     [{ round: 2, turn: 1, combatantId: "Bo", tokenId: null }, { round: 2, turn: 3, combatantId: null, tokenId: null }, ["Ana", "Bo", "Cy"]],
     // Then the round: nobody's turn is left to end; round 3 starts on the new top.
-    [{ round: 2, turn: 2, combatantId: null, tokenId: null }, { round: 3, turn: 0, combatantId: "Ana", tokenId: null }, ["Ana", "Bo", "Cy"]],
+    [{ round: 2, turn: 2, combatantId: null, tokenId: null }, { round: 3, turn: 0, combatantId: "Cy", tokenId: null }, ["Cy", "Bo", "Ana"]],
   ]);
+  // An update landing while the events run sees the real state, never the made-up one.
+  assert.deepEqual(combat.events.map((e) => e.meanwhile), [
+    { round: 3, turn: 0, combatantId: "Ana", tokenId: null },
+    { round: 3, turn: 0, combatantId: "Cy", tokenId: null },
+  ]);
+  assert.deepEqual(combat.previous, { round: 2, turn: 1, combatantId: "Bo", tokenId: null },
+    "and `previous` is left where Foundry leaves it after a round, at the old round's last turn");
+});
+
+test("a round held again while the first is replayed is replayed once, from where the first left off", async () => {
+  // The GM double-clicks Next Round: round 4 is held while round 3's reroll is
+  // still going out. Round 3 rolls Cy, Bo, Ana; round 4 rolls Bo, Ana, Cy.
+  const combat = fakeCombat([["Ana", "Player", 5, [1, 10]], ["Bo", "Player", 5, [2, 20]], ["Cy", "Player", 5, [18, 1]]], {
+    onReorder: async (c) => {
+      if (c.round !== 3) return;
+      const options = { direction: 1 };
+      hooks.combatRound(c, { round: 4, turn: 0 }, options);
+      await c.update({ round: 4, turn: 0 }, options);
+    },
+  });
+  globalThis.game.combat = combat;
+  cards.length = 0;
+  await combat.nextTurn();
+  await settle(); await settle();
+  assert.equal(combat.round, 4);
+  assert.deepEqual(combat.events.map((e) => [e.previous.round, e.previous.turn, e.previous.combatantId, e.current.round, e.current.turn, e.current.combatantId, e.order.join()]), [
+    [2, 2, "Cy", 3, 0, "Cy", "Cy,Bo,Ana"],      // round 3 starts on its new top, Cy
+    [3, 0, "Cy", 3, 3, null, "Cy,Bo,Ana"],      // round 3's other turns pass, skipped, in its order
+    [3, 2, null, 4, 0, "Bo", "Bo,Ana,Cy"],      // round 4 starts on its new top, Bo
+  ], "each round's events once, in order");
+  assert.deepEqual(cards.map((c) => c.flags["shadowdark-enhancer"].chaosRound), [3, 4], "one card per round, each naming its own");
+});
+
+test("a held round's events go out even when nothing rerolls it", async () => {
+  // Not the combat on screen: its round is replayed as it stands, no reroll.
+  const combat = fakeCombat([["Ana", "Player", 5, 1], ["Bo", "Player", 5, 2]]);
+  globalThis.game.combat = { id: "elsewhere" };
+  await combat.nextTurn();
+  await settle();
+  assert.equal(combat.rerolls, 0);
+  assert.deepEqual(combat.events.map((e) => [e.previous.combatantId, e.current.round, e.current.combatantId]), [["Bo", 3, "Ana"]]);
+});
+
+test("a reroll that fails still lets the round start", async () => {
+  const combat = fakeCombat([["Ana", "Player", 5, 1], ["Bo", "Player", 5, 2]], {
+    onReorder: async () => { throw new Error("the server said no"); },
+  });
+  globalThis.game.combat = combat;
+  const error = console.error;
+  console.error = () => {};
+  try {
+    await combat.nextTurn();
+    await settle();
+  } finally {
+    console.error = error;
+  }
+  assert.deepEqual(combat.events.map((e) => [e.previous.combatantId, e.current.round, e.current.combatantId]), [["Bo", 3, "Ana"]],
+    "the old order's top starts round 3");
 });
 
 test("only a Chaos round is held, and only while the active GM can replay it", () => {
