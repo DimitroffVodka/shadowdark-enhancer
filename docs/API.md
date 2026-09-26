@@ -18,9 +18,10 @@ and Forge & Loot features.
 [`statDamage`](#statdamage--tracked-ability-damage) · [`quests`](#quests--the-quest-log) ·
 [`dying`](#dying--death-timers-and-stabilizing) ·
 [`hexMaps`](#hexmaps--hex-map-tagging-and-the-extras-dataset) ·
-[`rules`](#rules--western-reaches-rules-data)
+[`rules`](#rules--western-reaches-rules-data) ·
+[`holidays`](#holidays--when-a-holiday-falls-and-what-it-does-to-carousing)
 
-**API version:** `1.9.0` (semver — additive changes bump the minor version,
+**API version:** `1.10.0` (semver — additive changes bump the minor version,
 breaking changes the major; check `apiVersion` before relying on newer keys).
 
 ## Discovery
@@ -1130,9 +1131,80 @@ the modifiers. None of it runs while Shadowdark Crawl Helper is active.
 
 ---
 
+## `holidays` — when a holiday falls, and what it does to carousing
+
+Added in 1.9.0. Holidays today are the four City of Masks holidays from Cursed
+Scroll 6 (pp. 46–47). Shadowdark Extras' carousing window reads them
+(shadowdark-extras#151). The shape is generic, so another book's holidays can
+join later.
+
+```js
+const api = game.shadowdarkEnhancer;
+
+await api.holidays.list();                          // every imported holiday
+await api.holidays.today({ place: "City of Masks" }); // falling today, there
+await api.holidays.today({ place: "settlement-1334" }); // Extras' feature id works too
+```
+
+Both calls are **async**. A holiday is listed only once the GM has imported
+its page: Importer Hub → Tools → **Chapter to journal** → preset *Cursed
+Scroll 6: the City of Masks holidays*. Before that, both return `[]`.
+
+`place` takes a settlement name (case, a leading "The" and a footnote `*` are
+ignored), a hex number (`1334`, `"1334"` or `"01334"`, compared as numbers), or
+Extras' settlement feature id (`"settlement-1334"`). With no `place`, `today()`
+returns every holiday falling today, wherever it is. Each call returns fresh
+copies, so a caller may change what it gets back.
+
+Each holiday:
+
+```js
+{
+  key: "maytide", name: "Maytide", source: "CS6", page: 46,
+  pageKey: "maytide",                 // the imported journal page's key
+  pageUuid: "Compendium.…JournalEntryPage.…", // that page, for its text
+  place: { name: "City of Masks", hex: "1334" },
+  when: { anchor: "springCrossQuarter" },
+  carousing: {
+    eventBonus: 1,            // added to carousing event rolls
+    benefitBonus: 15,         // added to benefit rolls (d100)
+    // also, where they apply: extraBenefit, extraMishap (booleans),
+    // benefitAdvantage (boolean), chances: [{ key, oneIn: 20, label }]
+  },
+  garb: [                     // questions for the table; "yes" applies `modifier`
+    { key: "maytideNoFloral", modifier: -1, label: "…" },
+    { key: "maytideGems", modifier: 1, label: "…" },
+    { key: "maytideDarkTones", modifier: -1, label: "…" },
+  ],
+}
+```
+
+A garb question with `required: true` (the Duke's Ball's 500 gp costume) gates
+entry: a "no" keeps the character out of the ball. A question with a `note`
+(red at the Duke's Ball) should post that note when answered "yes". Labels
+come back already localised. Mechanics only: the book's wording is the
+imported page, at `pageUuid`.
+
+### When a holiday falls
+
+`when.anchor` is one of `springEquinox`, `springCrossQuarter`,
+`summerSolstice`, `autumnEquinox`, `winterSolstice` or `lastFullMoonOfYear`.
+Today's date comes from the core calendar (`game.time.components`) as
+`{ year, month (1–12), day (1–31), dayOfYear (1-based) }`.
+
+- **Solar anchors** are fixed Gregorian dates: March 20, May 1 (the
+  traditional cross-quarter day, not the astronomical midpoint of about
+  May 5), June 21, September 22 and December 21. Real solstices and equinoxes
+  drift a day either side. A world on a non-Gregorian calendar gets the same
+  month and day numbers in its own months.
+- **Lastmoon** needs the moon, which nothing tracks yet, so it never falls
+  until the Overland time feature (#192) supplies `isLastFullMoonOfYear`.
+
+---
+
 ## `rules` — Western Reaches rules data
 
-Added in 1.9.0. The tables the Western Reaches books consult rather than roll:
+Added in 1.10.0. The tables the Western Reaches books consult rather than roll:
 terrain costs, hexes per day, hex visibility, climate, and the carousing and
 warband-recruiting limits of a settlement. Overland travel, carousing and hex
 visibility read them from here.
@@ -1200,7 +1272,8 @@ const cost = rules.terrainCost("forest", { weather: stormy ? "stormy" : "", hars
   `shadowdark-enhancer.questsChanged` hook.
 - `1.8.0` adds the `dying` namespace (death timers, stabilize) and the
   `shadowdark-enhancer.crawlRound` hook.
-- `1.9.0` adds the `rules` namespace (Western Reaches rules data).
+- `1.9.0` adds the `holidays` namespace (`list`, `today`).
+- `1.10.0` adds the `rules` namespace (Western Reaches rules data).
 - `1.4.0` adds the shared `forgeLoot.open()` preview shell. Generator rules and
   document writes remain behind the later NPC/Rival adapter implementations.
   The version policy is additive: new namespaces bump the minor version; breaking

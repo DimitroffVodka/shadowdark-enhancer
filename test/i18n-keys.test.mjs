@@ -18,6 +18,7 @@ const FEATURES = {
   "SDE.importer.": [...dir("scripts/importer", /^importer-hub.*\.mjs$/), ...dir("scripts/importer/hex"),
     "scripts/importer/chapter-journal.mjs",
     "templates/importer-hub.hbs", "templates/partials/tree-node.hbs"],
+  "SDE.holidays.": ["scripts/holidays/holidays.mjs"],
   "SDE.quests.": [...dir("scripts/quests"), "templates/quest-log.hbs"],
   "SDE.dying.": dir("scripts/dying"),
 };
