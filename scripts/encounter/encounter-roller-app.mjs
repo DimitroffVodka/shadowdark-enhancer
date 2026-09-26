@@ -35,15 +35,15 @@ const CHA_MOD_MAX = 5;
 // User flag where we persist this window's position between sessions.
 const POSITION_FLAG = "encounterRollerPosition";
 
-function _multiFilterLabel(selectedIds, options, noun) {
+function _multiFilterLabel(selectedIds, options) {
   const optionIds = new Set(options.map(o => o.id));
   const visibleSelected = (selectedIds ?? []).filter(id => optionIds.has(id));
-  if (!visibleSelected.length) return `No ${noun}s`;
-  if (visibleSelected.length === options.length) return `All ${noun}s`;
+  if (!visibleSelected.length) return game.i18n.localize("SDE.encounter.browse.sources.none");
+  if (visibleSelected.length === options.length) return game.i18n.localize("SDE.encounter.browse.sources.all");
   if (visibleSelected.length === 1) {
     return options.find(o => o.id === visibleSelected[0])?.label ?? visibleSelected[0];
   }
-  return `${visibleSelected.length} ${noun}s`;
+  return game.i18n.format("SDE.encounter.browse.sources.count", { count: visibleSelected.length });
 }
 
 export class EncounterRollerApp extends HandlebarsApplicationMixin(ApplicationV2) {
@@ -52,7 +52,7 @@ export class EncounterRollerApp extends HandlebarsApplicationMixin(ApplicationV2
     id: "sde-encounter-roller",
     tag: "form",
     window: {
-      title: "Random Encounter",
+      title: "SDE.encounter.roller.title",
       icon: "fas fa-dice-d20",
       resizable: true,
     },
@@ -206,7 +206,7 @@ export class EncounterRollerApp extends HandlebarsApplicationMixin(ApplicationV2
     const rootTables = worldTables.filter(t => !t.folder);
     if (rootTables.length) {
       tableGroups.push({
-        name: "No Folder",
+        name: game.i18n.localize("SDE.encounter.roller.noFolder"),
         tables: rootTables.map(t => ({
           id: t.id,
           uuid: t.uuid,
@@ -245,8 +245,9 @@ export class EncounterRollerApp extends HandlebarsApplicationMixin(ApplicationV2
           for (const f of (tablesPack.folders ?? [])) folderMap.set(f.id, f.name);
 
           const byFolder = new Map(); // folderName → entries[]
+          const unfoldered = game.i18n.localize("SDE.encounter.roller.packTables");
           for (const entry of packIndex) {
-            const folderName = entry.folder ? (folderMap.get(entry.folder) ?? "Compendium Tables") : "Compendium Tables";
+            const folderName = entry.folder ? (folderMap.get(entry.folder) ?? unfoldered) : unfoldered;
             if (!byFolder.has(folderName)) byFolder.set(folderName, []);
             const packUuid = `Compendium.${tablesPack.collection}.RollTable.${entry._id}`;
             byFolder.get(folderName).push({
@@ -258,7 +259,7 @@ export class EncounterRollerApp extends HandlebarsApplicationMixin(ApplicationV2
           }
           for (const [groupName, entries] of byFolder) {
             if (entries.length) {
-              tableGroups.push({ name: `[Pack] ${groupName}`, tables: entries });
+              tableGroups.push({ name: game.i18n.format("SDE.encounter.roller.packGroup", { name: groupName }), tables: entries });
             }
           }
         }
@@ -326,8 +327,8 @@ export class EncounterRollerApp extends HandlebarsApplicationMixin(ApplicationV2
         sortCol:          this._browseSortCol,
         sortAsc:          this._browseSortAsc,
         moveOptions:      npcMoveKeys(),
-        sourcesLabel:     _multiFilterLabel(this._browseSources, availableSources, "source"),
-        moveLabel:        this._browseMoves[0] || "All movement",
+        sourcesLabel:     _multiFilterLabel(this._browseSources, availableSources),
+        moveLabel:        this._browseMoves[0] || game.i18n.localize("SDE.encounter.browse.allMovement"),
       };
     }
 
@@ -400,7 +401,7 @@ export class EncounterRollerApp extends HandlebarsApplicationMixin(ApplicationV2
       // as _parseMonsterFromResult so previews match what would actually roll.
       // If nothing resolves, this row is a flavor entry — show the raw text.
       const body = _resultBody(r);
-      let name = r.name || body || "(empty)";
+      let name = r.name || body || game.i18n.localize("SDE.encounter.roller.emptyEntry");
       let flavor = true;
       try {
         // v13 canonical: TableResult.uuid is the linked document reference.
@@ -696,7 +697,7 @@ export class EncounterRollerApp extends HandlebarsApplicationMixin(ApplicationV2
         if (data?.type !== "Actor" || !data?.uuid) return;
         const actor = await fromUuid(data.uuid);
         if (!actor || actor.type !== "NPC") {
-          ui.notifications.warn("Only NPC actors can be dropped into encounter slots.");
+          ui.notifications.warn(game.i18n.localize("SDE.encounter.notify.npcOnly"));
           return;
         }
         EncounterBuild.fillSlotFromActor(this._buildSlots[idx], actor);
@@ -724,7 +725,7 @@ export class EncounterRollerApp extends HandlebarsApplicationMixin(ApplicationV2
 
     // table.uuid is authoritative for both world and pack docs.
     await game.settings.set(MODULE_ID, "encounterTableUuid", table.uuid);
-    ui.notifications.info(`Active encounter table set to: ${table.name}`);
+    ui.notifications.info(game.i18n.format("SDE.encounter.notify.activeTableSet", { name: table.name }));
     this.render();
   }
 
@@ -739,7 +740,7 @@ export class EncounterRollerApp extends HandlebarsApplicationMixin(ApplicationV2
     // the fallback for bare ids passed from legacy callers.
     const uuid = tableUuid || game.settings.get(MODULE_ID, "encounterTableUuid") || "";
     if (!uuid) {
-      ui.notifications.warn("No active table selected.");
+      ui.notifications.warn(game.i18n.localize("SDE.encounter.notify.noActiveTable"));
       return;
     }
 
@@ -831,7 +832,7 @@ export class EncounterRollerApp extends HandlebarsApplicationMixin(ApplicationV2
     await this._buildResultFrom(result);
     // Flavor entries can't be placed (no monster).
     if (this._lastResult.kind !== "monster") {
-      ui.notifications.warn("This entry has no monster to place.");
+      ui.notifications.warn(game.i18n.localize("SDE.encounter.notify.entryNoMonster"));
       return;
     }
     await this._onPlaceTokens();
@@ -1003,7 +1004,7 @@ export class EncounterRollerApp extends HandlebarsApplicationMixin(ApplicationV2
   async _onPlaceTokens() {
     if (!this._lastResult) return;
     if (!canvas.ready || !canvas.scene) {
-      ui.notifications.warn("No active scene.");
+      ui.notifications.warn(game.i18n.localize("SDE.encounter.notify.noScene"));
       return;
     }
 
@@ -1014,7 +1015,7 @@ export class EncounterRollerApp extends HandlebarsApplicationMixin(ApplicationV2
     // need to look it up explicitly.
     const compendiumActor = await fromUuid(this._lastResult.uuid);
     if (!compendiumActor) {
-      ui.notifications.error("Monster actor not found.");
+      ui.notifications.error(game.i18n.localize("SDE.encounter.notify.monsterNotFound"));
       return;
     }
     const compendiumArt = _getCompendiumArtFor(compendiumActor);
@@ -1112,9 +1113,9 @@ export class EncounterRollerApp extends HandlebarsApplicationMixin(ApplicationV2
     let active = true;
 
     const updateNotif = () => {
-      ui.notifications.info(
-        `Click canvas to place token ${total - remaining + 1} of ${total} — ${actor.name} (Esc to cancel).`
-      );
+      ui.notifications.info(game.i18n.format("SDE.encounter.notify.placePrompt", {
+        n: total - remaining + 1, total, name: actor.name,
+      }));
     };
 
     const cleanup = () => {
@@ -1155,7 +1156,7 @@ export class EncounterRollerApp extends HandlebarsApplicationMixin(ApplicationV2
         updateNotif();
       } else {
         cleanup();
-        ui.notifications.info(`Placed all ${total} × ${actor.name}.`);
+        ui.notifications.info(game.i18n.format("SDE.encounter.notify.placedAll", { total, name: actor.name }));
       }
     };
 
@@ -1165,8 +1166,8 @@ export class EncounterRollerApp extends HandlebarsApplicationMixin(ApplicationV2
       const placed = total - remaining;
       ui.notifications.info(
         placed > 0
-          ? `Cancelled — placed ${placed} of ${total} × ${actor.name}.`
-          : `Cancelled — no tokens placed.`
+          ? game.i18n.format("SDE.encounter.notify.placeCancelledSome", { placed, total, name: actor.name })
+          : game.i18n.localize("SDE.encounter.notify.placeCancelledNone")
       );
     };
 
@@ -1253,13 +1254,13 @@ export class EncounterRollerApp extends HandlebarsApplicationMixin(ApplicationV2
     if (!uuid) return;
     const actor = await fromUuid(uuid).catch(() => null);
     if (!actor) {
-      ui.notifications.error("Couldn't resolve NPC.");
+      ui.notifications.error(game.i18n.localize("SDE.encounter.notify.npcUnresolved"));
       return;
     }
     // Find first empty slot (no name set).
     const idx = this._buildSlots.findIndex(s => !s.name);
     if (idx === -1) {
-      ui.notifications.warn("No empty Build Table slots — click + Slot to add one.");
+      ui.notifications.warn(game.i18n.localize("SDE.encounter.notify.noEmptySlot"));
       return;
     }
     EncounterBuild.fillSlotFromActor(this._buildSlots[idx], actor);
@@ -1271,7 +1272,7 @@ export class EncounterRollerApp extends HandlebarsApplicationMixin(ApplicationV2
     if (!uuid) return;
     const actor = await fromUuid(uuid).catch(() => null);
     if (!actor) {
-      ui.notifications.error("Couldn't resolve NPC.");
+      ui.notifications.error(game.i18n.localize("SDE.encounter.notify.npcUnresolved"));
       return;
     }
     actor.sheet?.render(true);
@@ -1315,7 +1316,7 @@ export class EncounterRollerApp extends HandlebarsApplicationMixin(ApplicationV2
     if (!slot) return;
     await this._buildResultFromSlot(slot);
     if (this._lastResult.kind !== "monster") {
-      ui.notifications.warn("This slot has no monster to place.");
+      ui.notifications.warn(game.i18n.localize("SDE.encounter.notify.slotNoMonster"));
       return;
     }
     await this._onPlaceTokens();
@@ -1323,13 +1324,13 @@ export class EncounterRollerApp extends HandlebarsApplicationMixin(ApplicationV2
 
   async _onBuildSave() {
     if (!this._buildSlots.some(s => s.name)) {
-      ui.notifications.warn("Add at least one entry before saving.");
+      ui.notifications.warn(game.i18n.localize("SDE.encounter.notify.buildEmpty"));
       return;
     }
     const errors = EncounterBuild.validateSlots(this._buildSlots, this._buildDieKey)
       .filter(v => v.severity === "error");
     if (errors.length) {
-      ui.notifications.error(`Cannot save — ${errors[0].message}`);
+      ui.notifications.error(game.i18n.format("SDE.encounter.notify.cannotSave", { error: errors[0].message }));
       return;
     }
     try {
@@ -1338,7 +1339,7 @@ export class EncounterRollerApp extends HandlebarsApplicationMixin(ApplicationV2
         dieKey:  this._buildDieKey,
         slots:   this._buildSlots,
       });
-      ui.notifications.info(`Created Roll Table: ${table.name}`);
+      ui.notifications.info(game.i18n.format("SDE.encounter.notify.tableCreated", { name: table.name }));
       // Per design: don't auto-set as active. Hop to the Roll Tables
       // tab and select the new table so the GM can preview it.
       // _selectedTableId is a full UUID everywhere else (the picker options
@@ -1349,7 +1350,7 @@ export class EncounterRollerApp extends HandlebarsApplicationMixin(ApplicationV2
       this.render();
     } catch (err) {
       console.error(MODULE_ID, "Build save failed:", err);
-      ui.notifications.error(`Failed to save Roll Table: ${err.message}`);
+      ui.notifications.error(game.i18n.format("SDE.encounter.notify.saveFailed", { error: err.message }));
     }
   }
 

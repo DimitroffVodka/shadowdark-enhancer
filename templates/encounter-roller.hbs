@@ -6,16 +6,16 @@
        a duplicate click binding. --}}
   <nav class="sde-tabs" data-group="primary">
     <button type="button" class="item {{#if (eq activeTab 'tables')}}active{{/if}}" data-tab="tables" aria-pressed="{{#if (eq activeTab 'tables')}}true{{else}}false{{/if}}">
-      <i class="fas fa-table-list"></i> Roll Tables
+      <i class="fas fa-table-list"></i> {{localize "SDE.encounter.roller.tab.tables"}}
     </button>
     <button type="button" class="item {{#if (eq activeTab 'build')}}active{{/if}}" data-tab="build" aria-pressed="{{#if (eq activeTab 'build')}}true{{else}}false{{/if}}">
-      <i class="fas fa-hammer"></i> Build Table
+      <i class="fas fa-hammer"></i> {{localize "SDE.encounter.roller.tab.build"}}
     </button>
     <button type="button" class="item {{#if (eq activeTab 'browse')}}active{{/if}}" data-tab="browse" aria-pressed="{{#if (eq activeTab 'browse')}}true{{else}}false{{/if}}">
-      <i class="fas fa-user-group"></i> Browse NPCs
+      <i class="fas fa-user-group"></i> {{localize "SDE.encounter.roller.tab.browse"}}
     </button>
     <button type="button" class="item {{#if (eq activeTab 'creator')}}active{{/if}}" data-tab="creator" aria-pressed="{{#if (eq activeTab 'creator')}}true{{else}}false{{/if}}">
-      <i class="fas fa-wand-magic-sparkles"></i> Monster Creator
+      <i class="fas fa-wand-magic-sparkles"></i> {{localize "SDE.encounter.roller.tab.creator"}}
     </button>
   </nav>
 
@@ -28,7 +28,7 @@
       <div class="sde-control-row">
         <select name="selectedTable">
           {{#select selectedTableId}}
-            <option value="">-- Select Table --</option>
+            <option value="">{{localize "SDE.encounter.roller.selectTable"}}</option>
             {{#each tableGroups}}
               <optgroup label="{{this.name}}">
                 {{#each this.tables}}
@@ -39,10 +39,10 @@
           {{/select}}
         </select>
         <button type="button" data-action="setAsActive" {{#unless selectedTableId}}disabled{{/unless}}>
-          Set as Active
+          {{localize "SDE.encounter.roller.setActive"}}
         </button>
         <button type="button" class="sde-roll-btn" data-action="rollTable" {{#unless selectedTableId}}disabled{{/unless}}>
-          <i class="fas fa-dice-d20"></i> Roll
+          <i class="fas fa-dice-d20"></i> {{localize "SDE.encounter.roller.roll"}}
         </button>
       </div>
 
@@ -61,9 +61,9 @@
                 <span class="sde-preview-entry">{{this.name}}</span>
                 <span class="sde-preview-appearing">{{#if this.appearing}}{{this.appearing}}{{/if}}</span>
                 <span class="sde-preview-actions">
-                  <button type="button" data-action="previewPost" title="Post this entry to chat"><i class="fas fa-clipboard-list"></i></button>
+                  <button type="button" data-action="previewPost" title="{{localize 'SDE.encounter.roller.postEntryTip'}}"><i class="fas fa-clipboard-list"></i></button>
                   {{#unless this.flavor}}
-                    <button type="button" data-action="previewPlace" title="Place tokens for this entry"><i class="fas fa-bullseye"></i></button>
+                    <button type="button" data-action="previewPlace" title="{{localize 'SDE.encounter.roller.placeEntryTip'}}"><i class="fas fa-bullseye"></i></button>
                   {{/unless}}
                 </span>
               </div>
@@ -76,16 +76,16 @@
         {{#if lastResult}}
 
           {{#if (eq lastResult.kind 'empty')}}
-            <div class="sde-empty-state">Table draw produced no usable result — check the table contents</div>
+            <div class="sde-empty-state">{{localize "SDE.encounter.roller.drawEmpty"}}</div>
 
           {{else if (eq lastResult.kind 'flavor')}}
             {{!-- Flavor card: pure text (e.g. environmental events). No
                  monster, no count, no facets — just the text + Post. --}}
             <div class="sde-result-card sde-result-flavor">
               <header class="sde-card-header">
-                <h3>Environmental Result</h3>
+                <h3>{{localize "SDE.encounter.roller.flavorHeading"}}</h3>
                 <div class="sde-header-actions">
-                  <button type="button" data-action="postToChat" title="Post to Chat"><i class="fas fa-clipboard-list"></i> Post</button>
+                  <button type="button" data-action="postToChat" title="{{localize 'SDE.encounter.roller.postTip'}}"><i class="fas fa-clipboard-list"></i> {{localize "SDE.encounter.roller.post"}}</button>
                 </div>
               </header>
               <div class="sde-flavor-text">{{lastResult.text}}</div>
@@ -95,10 +95,10 @@
             {{!-- Monster card: full facets + Place button. --}}
             <div class="sde-result-card">
               <header class="sde-card-header">
-                <h3>Encounter Result</h3>
+                <h3>{{localize "SDE.encounter.roller.resultHeading"}}</h3>
                 <div class="sde-header-actions">
-                  <button type="button" data-action="postToChat" title="Post to Chat"><i class="fas fa-clipboard-list"></i> Post</button>
-                  <button type="button" data-action="placeTokens" title="Place Tokens"><i class="fas fa-bullseye"></i> Place</button>
+                  <button type="button" data-action="postToChat" title="{{localize 'SDE.encounter.roller.postTip'}}"><i class="fas fa-clipboard-list"></i> {{localize "SDE.encounter.roller.post"}}</button>
+                  <button type="button" data-action="placeTokens" title="{{localize 'SDE.encounter.roller.placeTip'}}"><i class="fas fa-bullseye"></i> {{localize "SDE.encounter.roller.place"}}</button>
                 </div>
               </header>
 
@@ -112,50 +112,50 @@
 
               <div class="sde-facets">
                 <div class="sde-facet-row">
-                  <span class="sde-facet-label"><i class="fas fa-ruler-horizontal"></i> Distance</span>
+                  <span class="sde-facet-label"><i class="fas fa-ruler-horizontal"></i> {{localize "SDE.encounter.facet.distance"}}</span>
                   <span class="sde-facet-roll">1d6 = {{lastResult.distanceRoll}}</span>
                   <span class="sde-facet-arrow">→</span>
                   <span class="sde-facet-result">{{lastResult.distanceText}}</span>
-                  <button type="button" class="sde-reroll-btn" data-action="reroll" data-facet="distance" title="Reroll distance" aria-label="Reroll distance"><i class="fas fa-sync"></i></button>
+                  <button type="button" class="sde-reroll-btn" data-action="reroll" data-facet="distance" title="{{localize 'SDE.encounter.roller.rerollDistance'}}" aria-label="{{localize 'SDE.encounter.roller.rerollDistance'}}"><i class="fas fa-sync"></i></button>
                 </div>
 
                 <div class="sde-facet-row">
-                  <span class="sde-facet-label"><i class="fas fa-masks-theater"></i> Activity</span>
+                  <span class="sde-facet-label"><i class="fas fa-masks-theater"></i> {{localize "SDE.encounter.facet.activity"}}</span>
                   <span class="sde-facet-roll">2d6 = {{lastResult.activityRoll}}</span>
                   <span class="sde-facet-arrow">→</span>
                   <span class="sde-facet-result">{{lastResult.activityText}}</span>
-                  <button type="button" class="sde-reroll-btn" data-action="reroll" data-facet="activity" title="Reroll activity" aria-label="Reroll activity"><i class="fas fa-sync"></i></button>
+                  <button type="button" class="sde-reroll-btn" data-action="reroll" data-facet="activity" title="{{localize 'SDE.encounter.roller.rerollActivity'}}" aria-label="{{localize 'SDE.encounter.roller.rerollActivity'}}"><i class="fas fa-sync"></i></button>
                 </div>
 
                 <div class="sde-facet-row">
-                  <span class="sde-facet-label"><i class="fas fa-comment"></i> Reaction</span>
+                  <span class="sde-facet-label"><i class="fas fa-comment"></i> {{localize "SDE.encounter.facet.reaction"}}</span>
                   <span class="sde-facet-roll">2d6+CHA = {{lastResult.reactionRoll}} + ({{lastResult.chaMod}}){{#if lastResult.renownApplied}} + {{lastResult.renownBonus}}{{/if}}</span>
                   <span class="sde-facet-arrow">→</span>
                   <span class="sde-facet-result {{lastResult.reactionBand}}">{{lastResult.reactionBand}}</span>
-                  <button type="button" class="sde-reroll-btn" data-action="reroll" data-facet="reaction" title="Reroll reaction" aria-label="Reroll reaction"><i class="fas fa-sync"></i></button>
+                  <button type="button" class="sde-reroll-btn" data-action="reroll" data-facet="reaction" title="{{localize 'SDE.encounter.roller.rerollReaction'}}" aria-label="{{localize 'SDE.encounter.roller.rerollReaction'}}"><i class="fas fa-sync"></i></button>
                 </div>
 
                 {{#if lastResult.renownApplied}}
                 <div class="sde-facet-note sde-facet-renown">
                   <i class="fas fa-crown"></i>
-                  Renown {{lastResult.renownBonusText}} — {{lastResult.renownName}} is {{lastResult.renownBandLabel}} here ({{lastResult.renownValue}} renown)
+                  {{localize "SDE.encounter.roller.renownNote" bonus=lastResult.renownBonusText name=lastResult.renownName band=lastResult.renownBandLabel value=lastResult.renownValue}}
                 </div>
                 {{/if}}
 
                 {{#if lastResult.reactionDoubleOnes}}
                 <div class="sde-facet-note sde-facet-warn">
                   <i class="fas fa-triangle-exclamation"></i>
-                  Double 1s — hostile whatever the modifiers add up to.
+                  {{localize "SDE.encounter.roller.doubleOnes"}}
                 </div>
                 {{/if}}
               </div>
 
               <div class="sde-stepper-row">
-                <label for="sde-cha-mod">Apply CHA mod:</label>
+                <label for="sde-cha-mod">{{localize "SDE.encounter.roller.chaLabel"}}</label>
                 <div class="sde-stepper">
-                  <button type="button" data-action="chaDec" aria-label="Decrease CHA mod"><i class="fas fa-caret-down"></i></button>
-                  <input id="sde-cha-mod" type="number" name="chaMod" value="{{lastResult.chaMod}}" readonly aria-label="CHA modifier" />
-                  <button type="button" data-action="chaInc" aria-label="Increase CHA mod"><i class="fas fa-caret-up"></i></button>
+                  <button type="button" data-action="chaDec" aria-label="{{localize 'SDE.encounter.roller.chaDec'}}"><i class="fas fa-caret-down"></i></button>
+                  <input id="sde-cha-mod" type="number" name="chaMod" value="{{lastResult.chaMod}}" readonly aria-label="{{localize 'SDE.encounter.roller.chaModifier'}}" />
+                  <button type="button" data-action="chaInc" aria-label="{{localize 'SDE.encounter.roller.chaInc'}}"><i class="fas fa-caret-up"></i></button>
                 </div>
               </div>
 
@@ -163,10 +163,10 @@
               <div class="sde-renown-row">
                 <button type="button" class="sde-renown-btn {{#if lastResult.renownOn}}active{{/if}}"
                         data-action="renownToggle" aria-pressed="{{#if lastResult.renownOn}}true{{else}}false{{/if}}"
-                        title="Add the renown bonus — only where the party would be recognised">
-                  <i class="fas fa-crown"></i> Recognised here
+                        title="{{localize 'SDE.encounter.roller.renownTip'}}">
+                  <i class="fas fa-crown"></i> {{localize "SDE.encounter.roller.renownToggle"}}
                 </button>
-                <select name="renownActor" aria-label="Whose renown applies">
+                <select name="renownActor" aria-label="{{localize 'SDE.encounter.roller.renownActor'}}">
                   {{#each renown.party}}
                   <option value="{{this.actorId}}" {{#if this.selected}}selected{{/if}}>{{this.name}} — {{this.renown}} · {{this.band.label}}{{#if this.bonus}} (+{{this.bonus}}){{/if}}</option>
                   {{/each}}
@@ -182,7 +182,7 @@
           {{/if}}
 
         {{else}}
-          <div class="sde-empty-state">Roll a table to see the result.</div>
+          <div class="sde-empty-state">{{localize "SDE.encounter.roller.noResult"}}</div>
         {{/if}}
       </div>
     </div>
@@ -194,23 +194,23 @@
 
         <div class="sde-build-header">
           <div class="sde-build-header-row">
-            <label class="sde-build-label" for="sde-build-die">Die:</label>
+            <label class="sde-build-label" for="sde-build-die">{{localize "SDE.encounter.build.die"}}</label>
             <select id="sde-build-die" name="buildDie" class="sde-build-die-select">
               {{#each buildData.dice}}
                 <option value="{{this.key}}" {{#if (eq this.key ../buildData.dieKey)}}selected{{/if}}>{{this.label}}</option>
               {{/each}}
             </select>
 
-            <label class="sde-build-label" for="sde-build-name">Name:</label>
+            <label class="sde-build-label" for="sde-build-name">{{localize "SDE.encounter.build.name"}}</label>
             <input id="sde-build-name"
                    type="text"
                    name="buildTableName"
                    class="sde-build-name-input"
-                   placeholder="e.g. Forest Encounters"
+                   placeholder="{{localize 'SDE.encounter.build.namePlaceholder'}}"
                    value="{{buildData.tableName}}">
 
-            <button type="button" class="sde-build-add-btn" data-action="buildAddSlot" title="Append a new slot">
-              <i class="fas fa-plus"></i> Slot
+            <button type="button" class="sde-build-add-btn" data-action="buildAddSlot" title="{{localize 'SDE.encounter.build.addSlotTip'}}">
+              <i class="fas fa-plus"></i> {{localize "SDE.encounter.build.addSlot"}}
             </button>
           </div>
         </div>
@@ -221,9 +221,9 @@
 
               {{!-- Range inputs (min / max) --}}
               <div class="sde-build-slot-range">
-                <input type="number" data-slot-field="min" value="{{this.min}}" min="{{../buildData.die.min}}" max="{{../buildData.die.max}}" title="Lower bound" />
+                <input type="number" data-slot-field="min" value="{{this.min}}" min="{{../buildData.die.min}}" max="{{../buildData.die.max}}" title="{{localize 'SDE.encounter.build.lowerTip'}}" />
                 <span class="sde-build-slot-range-sep">–</span>
-                <input type="number" data-slot-field="max" value="{{this.max}}" min="{{../buildData.die.min}}" max="{{../buildData.die.max}}" title="Upper bound" />
+                <input type="number" data-slot-field="max" value="{{this.max}}" min="{{../buildData.die.min}}" max="{{../buildData.die.max}}" title="{{localize 'SDE.encounter.build.upperTip'}}" />
               </div>
 
               {{!-- Entry body — switches on slot state --}}
@@ -231,7 +231,7 @@
                 {{#if this.isEmpty}}
                   <input type="text"
                          class="sde-build-slot-text"
-                         placeholder="Drop NPC here, or type entry text + Enter…">
+                         placeholder="{{localize 'SDE.encounter.build.slotTextPlaceholder'}}">
                 {{else if this.isFlavor}}
                   <span class="sde-build-slot-flavor-icon"><i class="fas fa-scroll"></i></span>
                   <span class="sde-build-slot-name">{{this.name}}</span>
@@ -240,31 +240,31 @@
                   <input type="text"
                          data-slot-field="appearing"
                          class="sde-build-slot-appearing"
-                         placeholder="appearing (e.g. 1d4)"
+                         placeholder="{{localize 'SDE.encounter.build.appearingPlaceholder'}}"
                          value="{{this.appearing}}"
-                         title="Roll formula for how many appear (e.g. 1d4)">
+                         title="{{localize 'SDE.encounter.build.appearingTip'}}">
                 {{/if}}
               </div>
 
               {{!-- Per-slot actions --}}
               <div class="sde-build-slot-actions">
                 {{#if this.isMonster}}
-                  <button type="button" data-action="buildPostSlot" title="Post this entry to chat"><i class="fas fa-clipboard-list"></i></button>
-                  <button type="button" data-action="buildPlaceSlot" title="Place tokens for this entry"><i class="fas fa-bullseye"></i></button>
+                  <button type="button" data-action="buildPostSlot" title="{{localize 'SDE.encounter.roller.postEntryTip'}}"><i class="fas fa-clipboard-list"></i></button>
+                  <button type="button" data-action="buildPlaceSlot" title="{{localize 'SDE.encounter.roller.placeEntryTip'}}"><i class="fas fa-bullseye"></i></button>
                 {{else if this.isFlavor}}
-                  <button type="button" data-action="buildPostSlot" title="Post this flavor entry to chat"><i class="fas fa-clipboard-list"></i></button>
+                  <button type="button" data-action="buildPostSlot" title="{{localize 'SDE.encounter.build.postFlavorTip'}}"><i class="fas fa-clipboard-list"></i></button>
                 {{/if}}
                 {{#unless this.isEmpty}}
-                  <button type="button" data-action="buildClearSlot" title="Clear this slot's content"><i class="fas fa-eraser"></i></button>
+                  <button type="button" data-action="buildClearSlot" title="{{localize 'SDE.encounter.build.clearTip'}}"><i class="fas fa-eraser"></i></button>
                 {{/unless}}
-                <button type="button" data-action="buildRemoveSlot" title="Remove this slot entirely"><i class="fas fa-times"></i></button>
+                <button type="button" data-action="buildRemoveSlot" title="{{localize 'SDE.encounter.build.removeTip'}}"><i class="fas fa-times"></i></button>
               </div>
 
             </div>
           {{/each}}
 
           {{#if (eq buildData.slots.length 0)}}
-            <div class="sde-empty-state">No slots — click "+ Slot" or drag an NPC onto an empty slot row to start.</div>
+            <div class="sde-empty-state">{{localize "SDE.encounter.build.noSlots"}}</div>
           {{/if}}
         </div>
 
@@ -285,7 +285,7 @@
 
         <div class="sde-build-footer">
           <button type="button" class="sde-build-save-btn" data-action="buildSave" {{#unless buildData.canSave}}disabled{{/unless}}>
-            <i class="fas fa-floppy-disk"></i> Save as Roll Table
+            <i class="fas fa-floppy-disk"></i> {{localize "SDE.encounter.build.save"}}
           </button>
         </div>
 
@@ -300,11 +300,11 @@
 
           {{!-- ═══ Left Sidebar: Filters ═══ --}}
           <aside class="sde-browse-sidebar">
-            <h3 class="sde-browse-sidebar-title">Filters</h3>
+            <h3 class="sde-browse-sidebar-title">{{localize "SDE.encounter.browse.filters"}}</h3>
 
             {{!-- Sources (dropdown checkbox list) --}}
             <div class="sde-browse-filter">
-              <label class="sde-browse-filter-label">Sources</label>
+              <label class="sde-browse-filter-label">{{localize "SDE.encounter.browse.filter.sources"}}</label>
               <details class="sde-browse-dropdown">
                 <summary>{{browseData.sourcesLabel}}</summary>
                 <div class="sde-browse-dropdown-menu">
@@ -323,7 +323,7 @@
 
             {{!-- Search --}}
             <div class="sde-browse-filter">
-              <label class="sde-browse-filter-label" for="sde-br-search">Search</label>
+              <label class="sde-browse-filter-label" for="sde-br-search">{{localize "SDE.encounter.browse.filter.search"}}</label>
               <input id="sde-br-search"
                      type="text"
                      name="browseSearch"
@@ -334,7 +334,7 @@
 
             {{!-- Alignment --}}
             <div class="sde-browse-filter">
-              <label class="sde-browse-filter-label">Alignment</label>
+              <label class="sde-browse-filter-label">{{localize "SDE.encounter.browse.filter.alignment"}}</label>
               <div class="sde-browse-align-group">
                 {{#each (array "L" "N" "C")}}
                   <button type="button"
@@ -348,38 +348,38 @@
 
             {{!-- Level range --}}
             <div class="sde-browse-filter">
-              <label class="sde-browse-filter-label">Level</label>
+              <label class="sde-browse-filter-label">{{localize "SDE.encounter.browse.filter.level"}}</label>
               <div class="sde-browse-level-group">
-                <input type="number" name="browseLevelMin" class="sde-browse-level-input" placeholder="min" aria-label="Minimum level" value="{{#unless (eq browseData.levelMin null)}}{{browseData.levelMin}}{{/unless}}">
+                <input type="number" name="browseLevelMin" class="sde-browse-level-input" placeholder="{{localize 'SDE.encounter.browse.filter.min'}}" aria-label="{{localize 'SDE.encounter.browse.filter.levelMin'}}" value="{{#unless (eq browseData.levelMin null)}}{{browseData.levelMin}}{{/unless}}">
                 <span class="sde-browse-level-sep">–</span>
-                <input type="number" name="browseLevelMax" class="sde-browse-level-input" placeholder="max" aria-label="Maximum level" value="{{#unless (eq browseData.levelMax null)}}{{browseData.levelMax}}{{/unless}}">
+                <input type="number" name="browseLevelMax" class="sde-browse-level-input" placeholder="{{localize 'SDE.encounter.browse.filter.max'}}" aria-label="{{localize 'SDE.encounter.browse.filter.levelMax'}}" value="{{#unless (eq browseData.levelMax null)}}{{browseData.levelMax}}{{/unless}}">
               </div>
             </div>
 
             <div class="sde-browse-filter-pair">
               <div class="sde-browse-filter">
-                <label class="sde-browse-filter-label">HP</label>
+                <label class="sde-browse-filter-label">{{localize "SDE.encounter.browse.filter.hp"}}</label>
                 <div class="sde-browse-level-group">
-                  <input type="number" name="browseHpMin" class="sde-browse-level-input" placeholder="min" aria-label="Minimum HP" value="{{#unless (eq browseData.hpMin null)}}{{browseData.hpMin}}{{/unless}}">
+                  <input type="number" name="browseHpMin" class="sde-browse-level-input" placeholder="{{localize 'SDE.encounter.browse.filter.min'}}" aria-label="{{localize 'SDE.encounter.browse.filter.hpMin'}}" value="{{#unless (eq browseData.hpMin null)}}{{browseData.hpMin}}{{/unless}}">
                   <span class="sde-browse-level-sep">–</span>
-                  <input type="number" name="browseHpMax" class="sde-browse-level-input" placeholder="max" aria-label="Maximum HP" value="{{#unless (eq browseData.hpMax null)}}{{browseData.hpMax}}{{/unless}}">
+                  <input type="number" name="browseHpMax" class="sde-browse-level-input" placeholder="{{localize 'SDE.encounter.browse.filter.max'}}" aria-label="{{localize 'SDE.encounter.browse.filter.hpMax'}}" value="{{#unless (eq browseData.hpMax null)}}{{browseData.hpMax}}{{/unless}}">
                 </div>
               </div>
               <div class="sde-browse-filter">
-                <label class="sde-browse-filter-label">AC</label>
+                <label class="sde-browse-filter-label">{{localize "SDE.encounter.browse.filter.ac"}}</label>
                 <div class="sde-browse-level-group">
-                  <input type="number" name="browseAcMin" class="sde-browse-level-input" placeholder="min" aria-label="Minimum AC" value="{{#unless (eq browseData.acMin null)}}{{browseData.acMin}}{{/unless}}">
+                  <input type="number" name="browseAcMin" class="sde-browse-level-input" placeholder="{{localize 'SDE.encounter.browse.filter.min'}}" aria-label="{{localize 'SDE.encounter.browse.filter.acMin'}}" value="{{#unless (eq browseData.acMin null)}}{{browseData.acMin}}{{/unless}}">
                   <span class="sde-browse-level-sep">–</span>
-                  <input type="number" name="browseAcMax" class="sde-browse-level-input" placeholder="max" aria-label="Maximum AC" value="{{#unless (eq browseData.acMax null)}}{{browseData.acMax}}{{/unless}}">
+                  <input type="number" name="browseAcMax" class="sde-browse-level-input" placeholder="{{localize 'SDE.encounter.browse.filter.max'}}" aria-label="{{localize 'SDE.encounter.browse.filter.acMax'}}" value="{{#unless (eq browseData.acMax null)}}{{browseData.acMax}}{{/unless}}">
                 </div>
               </div>
             </div>
 
             {{!-- Move filter --}}
             <div class="sde-browse-filter">
-              <label class="sde-browse-filter-label" for="sde-br-move">Movement</label>
+              <label class="sde-browse-filter-label" for="sde-br-move">{{localize "SDE.encounter.browse.filter.movement"}}</label>
               <select id="sde-br-move" name="browseMove" class="sde-browse-select">
-                <option value="" {{#unless browseData.moves.length}}selected{{/unless}}>All movement</option>
+                <option value="" {{#unless browseData.moves.length}}selected{{/unless}}>{{localize "SDE.encounter.browse.allMovement"}}</option>
                 {{#each browseData.moveOptions}}
                   <option value="{{this}}" {{#if (includes ../browseData.moves this)}}selected{{/if}}>{{this}}</option>
                 {{/each}}
@@ -392,24 +392,24 @@
                 <input type="checkbox"
                        {{#if browseData.darkAdapted}}checked{{/if}}
                        data-action="browseToggleDark">
-                <span>Dark-Adapted</span>
+                <span>{{localize "SDE.encounter.browse.filter.darkAdapted"}}</span>
               </label>
               <label class="sde-browse-check">
                 <input type="checkbox"
                        {{#if browseData.hasSpellcasting}}checked{{/if}}
                        data-action="browseToggleSpellcaster">
-                <span>Spellcaster</span>
+                <span>{{localize "SDE.encounter.browse.filter.spellcaster"}}</span>
               </label>
             </div>
 
             {{!-- Abilities (text-search NPC Feature names) --}}
             <div class="sde-browse-filter">
-              <label class="sde-browse-filter-label" for="sde-br-ability">Abilities</label>
+              <label class="sde-browse-filter-label" for="sde-br-ability">{{localize "SDE.encounter.browse.filter.abilities"}}</label>
               <input id="sde-br-ability"
                      type="text"
                      name="browseAbilitySearch"
                      class="sde-browse-search"
-                     placeholder="e.g. petrify, magic resistance"
+                     placeholder="{{localize 'SDE.encounter.browse.filter.abilitiesPlaceholder'}}"
                      value="{{browseData.abilitySearch}}">
             </div>
           </aside>
@@ -417,7 +417,7 @@
           {{!-- ═══ Right pane: Results table ═══ --}}
           <div class="sde-browse-results">
             <div class="sde-browse-count">
-              {{browseData.filteredCount}} of {{browseData.totalCount}}
+              {{localize "SDE.encounter.browse.countOf" filtered=browseData.filteredCount total=browseData.totalCount}}
             </div>
 
             {{#if (eq browseData.selectedSources.length 0)}}
@@ -430,20 +430,20 @@
                   <tr>
                     <th></th>
                     <th></th>
-                    <th aria-sort="{{#if (eq browseData.sortCol "name")}}{{#if browseData.sortAsc}}ascending{{else}}descending{{/if}}{{else}}none{{/if}}"><button type="button" data-action="browseSort" data-column="name">Name {{#if (eq browseData.sortCol "name")}}{{#if browseData.sortAsc}}▲{{else}}▼{{/if}}{{/if}}</button></th>
-                    <th aria-sort="{{#if (eq browseData.sortCol "level")}}{{#if browseData.sortAsc}}ascending{{else}}descending{{/if}}{{else}}none{{/if}}"><button type="button" data-action="browseSort" data-column="level">LV {{#if (eq browseData.sortCol "level")}}{{#if browseData.sortAsc}}▲{{else}}▼{{/if}}{{/if}}</button></th>
-                    <th aria-sort="{{#if (eq browseData.sortCol "alignment")}}{{#if browseData.sortAsc}}ascending{{else}}descending{{/if}}{{else}}none{{/if}}"><button type="button" data-action="browseSort" data-column="alignment">Al {{#if (eq browseData.sortCol "alignment")}}{{#if browseData.sortAsc}}▲{{else}}▼{{/if}}{{/if}}</button></th>
-                    <th aria-sort="{{#if (eq browseData.sortCol "hp")}}{{#if browseData.sortAsc}}ascending{{else}}descending{{/if}}{{else}}none{{/if}}"><button type="button" data-action="browseSort" data-column="hp">HP {{#if (eq browseData.sortCol "hp")}}{{#if browseData.sortAsc}}▲{{else}}▼{{/if}}{{/if}}</button></th>
-                    <th aria-sort="{{#if (eq browseData.sortCol "ac")}}{{#if browseData.sortAsc}}ascending{{else}}descending{{/if}}{{else}}none{{/if}}"><button type="button" data-action="browseSort" data-column="ac">AC {{#if (eq browseData.sortCol "ac")}}{{#if browseData.sortAsc}}▲{{else}}▼{{/if}}{{/if}}</button></th>
-                    <th aria-sort="{{#if (eq browseData.sortCol "dpr")}}{{#if browseData.sortAsc}}ascending{{else}}descending{{/if}}{{else}}none{{/if}}"><button type="button" data-action="browseSort" data-column="dpr">DPR {{#if (eq browseData.sortCol "dpr")}}{{#if browseData.sortAsc}}▲{{else}}▼{{/if}}{{/if}}</button></th>
-                    <th aria-sort="{{#if (eq browseData.sortCol "attackCount")}}{{#if browseData.sortAsc}}ascending{{else}}descending{{/if}}{{else}}none{{/if}}"><button type="button" data-action="browseSort" data-column="attackCount">Attack {{#if (eq browseData.sortCol "attackCount")}}{{#if browseData.sortAsc}}▲{{else}}▼{{/if}}{{/if}}</button></th>
+                    <th aria-sort="{{#if (eq browseData.sortCol "name")}}{{#if browseData.sortAsc}}ascending{{else}}descending{{/if}}{{else}}none{{/if}}"><button type="button" data-action="browseSort" data-column="name">{{localize "SDE.encounter.browse.col.name"}} {{#if (eq browseData.sortCol "name")}}{{#if browseData.sortAsc}}▲{{else}}▼{{/if}}{{/if}}</button></th>
+                    <th aria-sort="{{#if (eq browseData.sortCol "level")}}{{#if browseData.sortAsc}}ascending{{else}}descending{{/if}}{{else}}none{{/if}}"><button type="button" data-action="browseSort" data-column="level">{{localize "SDE.encounter.browse.col.level"}} {{#if (eq browseData.sortCol "level")}}{{#if browseData.sortAsc}}▲{{else}}▼{{/if}}{{/if}}</button></th>
+                    <th aria-sort="{{#if (eq browseData.sortCol "alignment")}}{{#if browseData.sortAsc}}ascending{{else}}descending{{/if}}{{else}}none{{/if}}"><button type="button" data-action="browseSort" data-column="alignment">{{localize "SDE.encounter.browse.col.alignment"}} {{#if (eq browseData.sortCol "alignment")}}{{#if browseData.sortAsc}}▲{{else}}▼{{/if}}{{/if}}</button></th>
+                    <th aria-sort="{{#if (eq browseData.sortCol "hp")}}{{#if browseData.sortAsc}}ascending{{else}}descending{{/if}}{{else}}none{{/if}}"><button type="button" data-action="browseSort" data-column="hp">{{localize "SDE.encounter.browse.col.hp"}} {{#if (eq browseData.sortCol "hp")}}{{#if browseData.sortAsc}}▲{{else}}▼{{/if}}{{/if}}</button></th>
+                    <th aria-sort="{{#if (eq browseData.sortCol "ac")}}{{#if browseData.sortAsc}}ascending{{else}}descending{{/if}}{{else}}none{{/if}}"><button type="button" data-action="browseSort" data-column="ac">{{localize "SDE.encounter.browse.col.ac"}} {{#if (eq browseData.sortCol "ac")}}{{#if browseData.sortAsc}}▲{{else}}▼{{/if}}{{/if}}</button></th>
+                    <th aria-sort="{{#if (eq browseData.sortCol "dpr")}}{{#if browseData.sortAsc}}ascending{{else}}descending{{/if}}{{else}}none{{/if}}"><button type="button" data-action="browseSort" data-column="dpr">{{localize "SDE.encounter.browse.col.dpr"}} {{#if (eq browseData.sortCol "dpr")}}{{#if browseData.sortAsc}}▲{{else}}▼{{/if}}{{/if}}</button></th>
+                    <th aria-sort="{{#if (eq browseData.sortCol "attackCount")}}{{#if browseData.sortAsc}}ascending{{else}}descending{{/if}}{{else}}none{{/if}}"><button type="button" data-action="browseSort" data-column="attackCount">{{localize "SDE.encounter.browse.col.attack"}} {{#if (eq browseData.sortCol "attackCount")}}{{#if browseData.sortAsc}}▲{{else}}▼{{/if}}{{/if}}</button></th>
                   </tr>
                 </thead>
                 <tbody>
                   {{#each browseData.rows}}
                     <tr class="sde-browse-row" draggable="true" data-uuid="{{this.uuid}}">
                       <td class="sde-browse-action-cell">
-                        <button type="button" class="sde-browse-add-btn" data-action="browseAddToBuild" title="Add to next empty Build Table slot">
+                        <button type="button" class="sde-browse-add-btn" data-action="browseAddToBuild" title="{{localize 'SDE.encounter.browse.addToBuildTip'}}">
                           <i class="fas fa-plus"></i>
                         </button>
                       </td>
@@ -451,23 +451,23 @@
                       <td class="sde-browse-name" title="{{this.name}}">{{this.name}}</td>
                       <td>{{this.levelLabel}}</td>
                       <td title="{{this.alignmentLabel}}">{{#if this.alignment}}{{this.alignment}}{{else}}—{{/if}}</td>
-                      <td title="HP">{{this.hpLabel}}</td>
+                      <td title="{{localize 'SDE.encounter.browse.col.hp'}}">{{this.hpLabel}}</td>
                       <td>{{this.acLabel}}</td>
                       <td>{{this.dprLabel}}</td>
                       <td class="sde-browse-atk-cell">
                         {{#if this.attackCount}}
                           <span class="sde-browse-atk-count" title="{{this.primaryAttack}}">{{this.attackSummary}}</span>
-                          {{#if this.attackKinds.melee}}<i class="fas fa-swords sde-browse-atk-melee" title="Melee"></i>{{/if}}
-                          {{#if this.attackKinds.ranged}}<i class="fas fa-crosshairs sde-browse-atk-ranged" title="Ranged"></i>{{/if}}
-                          {{#if this.attackKinds.special}}<i class="fas fa-bolt sde-browse-atk-special" title="Special attack"></i>{{/if}}
+                          {{#if this.attackKinds.melee}}<i class="fas fa-swords sde-browse-atk-melee" title="{{localize 'SDE.encounter.browse.meleeTip'}}"></i>{{/if}}
+                          {{#if this.attackKinds.ranged}}<i class="fas fa-crosshairs sde-browse-atk-ranged" title="{{localize 'SDE.encounter.browse.rangedTip'}}"></i>{{/if}}
+                          {{#if this.attackKinds.special}}<i class="fas fa-bolt sde-browse-atk-special" title="{{localize 'SDE.encounter.browse.specialTip'}}"></i>{{/if}}
                         {{else}}
                           <span class="sde-browse-atk-none">—</span>
                         {{/if}}
                         {{#if this.hasSpellcasting}}
-                          <i class="fas fa-wand-sparkles sde-browse-atk-spell" title="Spellcaster (+{{this.spellcastingBonus}})"></i>
+                          <i class="fas fa-wand-sparkles sde-browse-atk-spell" title="{{localize 'SDE.encounter.browse.spellcasterTip' bonus=this.spellcastingBonus}}"></i>
                         {{/if}}
                         {{#if this.darkAdapted}}
-                          <i class="fas fa-moon sde-browse-atk-dark" title="Dark-Adapted"></i>
+                          <i class="fas fa-moon sde-browse-atk-dark" title="{{localize 'SDE.encounter.browse.filter.darkAdapted'}}"></i>
                         {{/if}}
                       </td>
                     </tr>

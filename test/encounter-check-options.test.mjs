@@ -23,7 +23,7 @@ Object.assign(globalThis, {
   },
   game: {
     settings: { get: (ns, key) => ({ encounterThreshold: 3, encounterRollGMOnly: false })[key] ?? null, set: async () => {} },
-    i18n: { localize: (k) => k, format: (k) => k },
+    i18n: { localize: (k) => k, format: (k, d) => k + JSON.stringify(d) },
     user: { id: "gm", isGM: true }, users: {}, socket: { on() {}, emit() {} },
   },
 });
@@ -49,7 +49,7 @@ test("a travel check rolls against its own chance, on the travel hex, with its l
   const res = await EncounterCheck.check({ threshold: 1, hex, label: "Night check, 21:00", clockLabel: "Night check, 21:00" });
   assert.deepEqual(res, { total: 2, hit: false });
   assert.equal(cards[0].threshold, 1);
-  assert.equal(cards[0].where, "Night check, 21:00 · Hex 3139 · mountain");
+  assert.equal(cards[0].where, 'Night check, 21:00 · SDE.encounter.check.hex{"num":3139} · mountain');
   assert.equal(logged[0].clockLabel, "Night check, 21:00");
   assert.equal(logged[0].threshold, 1);
 });
