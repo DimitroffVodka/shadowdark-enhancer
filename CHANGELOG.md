@@ -3,6 +3,19 @@
 ## [Unreleased]
 
 ### Added
+- **Move the clock off duty without burning torches.** Advancing Foundry's
+  clock three days for downtime burns every lit torch for those three days,
+  and the system deletes a torch that runs out. A new macro call,
+  `game.shadowdarkEnhancer.time.advanceOffDuty(seconds, { reason })`, puts
+  out every torch, lantern and candle the PCs have lit first, posts one chat
+  line naming them, and then moves the clock. Each light keeps the time it had
+  left, and the players light them again when play resumes. Light spells and
+  lights dropped on the map still burn. It works from any GM's tab, including
+  a second GM's, and with light tracking turned off it simply moves the clock.
+  If two GM tabs are both burning light sources, it refuses and names them
+  rather than let one of them burn the torches anyway.
+  Downtime durations and Shadowdark Extras' carousing will move the clock this
+  way. See *Downtime → Moving the clock for downtime*. (API 1.13.0, #228)
 - **Time: seasons, sunrise and the moon.** The module now reads Foundry's
   world clock for the season, sunrise and sunset, and the moon's phase. There
   is no calendar window: you keep advancing time with Foundry's controls or

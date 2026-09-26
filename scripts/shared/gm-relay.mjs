@@ -234,13 +234,18 @@ export function refuseQuery(user, what = "these actions") {
  * @param {object} [options]
  * @param {string} [options.label]    Plural noun phrase, e.g. "loot claims".
  * @param {number} [options.queryTimeoutMs] Override the GM's answer window.
+ * @param {User} [options.targetUser] Send to this user instead of the active
+ *   GM: a GM→GM hand-off, e.g. to the system's primary light GM (#228). It
+ *   changes only who is asked; the receiver still decides for itself whether
+ *   it should act, from the server-stamped sender (trust rules 2 and 3).
  * @returns {Promise<object>} The GM's reply, or `{ok:false, error}` when the
- *   query could not be delivered. Never throws.
+ *   query could not be delivered, with `answered: false` when it was sent and
+ *   no answer came back. Never throws.
  */
 export async function queryActiveGM(queryName, data, {
-  label = "that action", queryTimeoutMs = QUERY_TIMEOUT_MS,
+  label = "that action", queryTimeoutMs = QUERY_TIMEOUT_MS, targetUser = null,
 } = {}) {
-  const gm = game.users?.activeGM;
+  const gm = targetUser ?? game.users?.activeGM;
   if (!gm) return { ok: false, error: handshakeWarning({ reason: "no-gm" }, label) };
 
   // QUERY_USER is a Player-role permission by default, but a world can revoke
@@ -261,7 +266,9 @@ export async function queryActiveGM(queryName, data, {
     // ack timeout. All of them mean the same thing to the player.
     console.warn(`${MODULE_ID} | query ${queryName} failed:`, err);
     const verdict = evaluateHandshake({ gmPresent: true, answered: false, myVersion: moduleVersion() });
-    return { ok: false, error: handshakeWarning(verdict, label) };
+    // `answered: false`: the GM may still have acted (a slow tab past the timeout), so a caller whose
+    // action is not idempotent must not read this as "nothing happened".
+    return { ok: false, error: handshakeWarning(verdict, label), answered: false };
   }
 }
 
