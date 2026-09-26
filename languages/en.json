@@ -1694,5 +1694,19 @@
   "SDE.dying.notDying": "{name} is not dying.",
   "SDE.dying.relayLabel": "dying actions",
   "SDE.dying.gmOnly": "Only a GM can do that.",
-  "SDE.dying.unknown": "That isn't a dying action this module knows."
+  "SDE.dying.unknown": "That isn't a dying action this module knows.",
+  "SDE.overland.relayLabel": "Overland travel actions",
+  "SDE.overland.startTravel": "Travel",
+  "SDE.overland.startTravelHint": "Start overland travel on this hex map. The Shadowdark Extras party token travels, or the one token you have selected.",
+  "SDE.overland.endTravel": "End travel",
+  "SDE.overland.endTravelHint": "End overland travel. Where the party is and the day's progress are kept for next time.",
+  "SDE.overland.badge": "Overland",
+  "SDE.overland.notify.notHexMap": "Overland travel runs on a tagged hex map. Open one first.",
+  "SDE.overland.notify.pickToken": "Select the one token that travels, or put the Shadowdark Extras party token on this map.",
+  "SDE.overland.notify.gmOnly": "Only a GM can start or end travel.",
+  "SDE.overland.notify.busy": "End the crawl or the combat first.",
+  "SDE.overland.notify.notTravelling": "Nobody is travelling right now.",
+  "SDE.overland.notify.notMember": "{name} isn't travelling with the party.",
+  "SDE.overland.notify.alreadyForaged": "{name} has already foraged today.",
+  "SDE.overland.notify.unknown": "That isn't an overland action this module knows."
 }

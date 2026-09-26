@@ -4,6 +4,7 @@ import { LevelGuidelinesEditor } from "../monster-creator/level-guidelines-app.m
 import { registerSettingGroups } from "./settings-group-menu.mjs";
 import { MonsterLootReviewApp } from "../loot/monster-loot-review-app.mjs";
 import { defaultCrawlState } from "../crawl-strip/crawl-state-core.mjs";
+import { defaultOverlandState } from "../overland/overland-state-core.mjs";
 import { DEFAULT_ENCOUNTER_SOURCES } from "../encounter/encounter-sources.mjs";
 import { RulesDataApp } from "../rules-data/rules-data-app.mjs";
 
@@ -249,6 +250,16 @@ export function registerSettings() {
     config: false,
     type: Object,
     default: defaultCrawlState(),
+  });
+
+  // Internal world setting: the one Overland travel state (#229), handled like
+  // crawlState: the setting is the truth, written only by the active GM, and
+  // every client re-reads it on a payload-free nudge (overland/overland.mjs).
+  game.settings.register(MODULE_ID, "overlandState", {
+    scope: "world",
+    config: false,
+    type: Object,
+    default: defaultOverlandState(),
   });
 
   // Internal world setting: a worldTime at which the moon was new; the time

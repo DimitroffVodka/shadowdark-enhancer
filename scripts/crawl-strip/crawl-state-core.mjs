@@ -8,12 +8,25 @@
  * the same split as party-xp-core.mjs / loot-value.mjs.
  */
 
-export const STATE_VERSION = 2;
+// v3 (#229) adds the "overland" mode. The shape is unchanged, so a v2 state
+// normalizes as it is; the bump is what makes a v2 client refuse to write a
+// state that may say "overland" (isFutureState, crawl-state.mjs).
+export const STATE_VERSION = 3;
 
-const VALID_MODES = new Set(["off", "crawl", "combat"]);
+const VALID_MODES = new Set(["off", "crawl", "combat", "overland"]);
 // priorMode only ever needs to hold what to restore ON EXIT FROM COMBAT, so
 // "combat" itself is never a valid value here.
-const VALID_PRIOR_MODES = new Set(["off", "crawl"]);
+const VALID_PRIOR_MODES = new Set(["off", "crawl", "overland"]);
+
+/**
+ * Was this persisted value written by a newer client than this one? Such a
+ * state is read best-effort and never written back (crawl-state.mjs).
+ * @param {object} raw  the setting as stored
+ * @returns {boolean}
+ */
+export function isFutureState(raw) {
+  return Number(raw?._v) > STATE_VERSION;
+}
 
 /**
  * Versioned default state. `members` has been part of the shape since v1; it
@@ -159,10 +172,28 @@ export function startCrawl(state) {
   return { state: { ...state, mode: "crawl", oocInitiative: {}, oocTurn: null }, changed: true };
 }
 
-/** End a crawl: resets turn/members/OoC initiative. No-op during combat. */
+/**
+ * End a crawl: resets turn/members/OoC initiative. A no-op outside a crawl,
+ * so ending a crawl never ends overland travel or a combat.
+ */
 export function endCrawl(state) {
-  if (state.mode === "combat") return { state, changed: false };
+  if (state.mode !== "crawl") return { state, changed: false };
   return { state: { ...state, mode: "off", crawlTurn: 0, members: [], oocInitiative: {}, oocTurn: null }, changed: true };
+}
+
+/**
+ * Start overland travel (#229): only from "off". A crawl is ended first and a
+ * combat finished first, so neither is swallowed by travel.
+ */
+export function startOverland(state) {
+  if (state.mode !== "off") return { state, changed: false };
+  return { state: { ...state, mode: "overland" }, changed: true };
+}
+
+/** End overland travel. The travel state itself is kept (overland-state-core.mjs). */
+export function endOverland(state) {
+  if (state.mode !== "overland") return { state, changed: false };
+  return { state: { ...state, mode: "off" }, changed: true };
 }
 
 /** Add actor IDs to the crawl roster, deduplicated. No-op if none are new. */

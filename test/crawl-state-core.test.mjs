@@ -21,6 +21,9 @@ import {
   clearOocInitiative,
   hasOocRoll,
   oocOrderComplete,
+  startOverland,
+  endOverland,
+  isFutureState,
 } from "../scripts/crawl-strip/crawl-state-core.mjs";
 
 // ── defaults / normalization ────────────────────────────────────────────────
@@ -632,4 +635,43 @@ test("startCrawl clears a leftover OoC order AND its pointer", () => {
   assert.equal(r.state.mode, "crawl");
   assert.deepEqual(r.state.oocInitiative, {});
   assert.equal(r.state.oocTurn, null);
+});
+
+// ── Overland travel (#229) ─────────────────────────────────────────────────
+
+test("overland starts only from off, and ends back to off", () => {
+  const off = normalizeCrawlState({});
+  const on = startOverland(off);
+  assert.equal(on.changed, true);
+  assert.equal(on.state.mode, "overland");
+  for (const mode of ["crawl", "combat", "overland"]) {
+    assert.equal(startOverland({ ...off, mode }).changed, false, `not from ${mode}`);
+  }
+  assert.equal(endOverland(on.state).state.mode, "off");
+  assert.equal(endOverland(off).changed, false);
+});
+
+test("a combat from overland returns to overland", () => {
+  const travel = startOverland(normalizeCrawlState({})).state;
+  const fight = enterCombatMode(travel).state;
+  assert.equal(fight.priorMode, "overland");
+  assert.equal(exitCombatMode(fight).state.mode, "overland");
+  assert.equal(normalizeCrawlState(fight).priorMode, "overland", "overland survives a reload mid-combat");
+});
+
+test("End crawl does nothing in overland or off", () => {
+  const travel = startOverland(normalizeCrawlState({})).state;
+  assert.equal(endCrawl(travel).changed, false);
+  assert.equal(endCrawl(normalizeCrawlState({})).changed, false);
+});
+
+test("a v2 state reads as v3, and a newer one is marked future so it is never written back", () => {
+  const v2 = { _v: 2, mode: "crawl", crawlTurn: 3, members: ["a"], oocInitiative: {}, oocTurn: null, priorMode: "off" };
+  const read = normalizeCrawlState(v2);
+  assert.equal(read._v, STATE_VERSION);
+  assert.equal(read.mode, "crawl");
+  assert.equal(read.crawlTurn, 3);
+  assert.equal(isFutureState(v2), false);
+  assert.equal(isFutureState({ ...v2, _v: STATE_VERSION + 1 }), true);
+  assert.equal(isFutureState({}), false);
 });

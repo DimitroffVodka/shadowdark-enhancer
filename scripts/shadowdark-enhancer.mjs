@@ -9,6 +9,7 @@ import { ICONS } from "./shared/icons.mjs";
 import { registerSettings } from "./shared/settings.mjs";
 import { rulesApi } from "./rules-data/rules-data-core.mjs";
 import { timeApi, registerTimeHooks } from "./time/time.mjs";
+import { overlandState, isOverland, registerOverland } from "./overland/overland.mjs";
 import { CrawlState } from "./crawl-strip/crawl-state.mjs";
 import { CrawlStrip } from "./crawl-strip/crawl-strip.mjs";
 import { registerCrawlTracker, refreshTracker } from "./crawl-strip/crawl-tracker.mjs";
@@ -111,7 +112,7 @@ const STYLESHEET_REV = "cd7129d5783e";
 // stale); module.json carries the same hash and is fetched fresh at runtime. A
 // mismatch is a stale cache by construction — it cannot be anything else. Both
 // stamps are written by `npm run inventory` and gated by `inventory:check`.
-const BUILD_REV = "36eed0c5f706";
+const BUILD_REV = "9946bda5e2ea";
 
 /**
  * Tell the user when their browser is running an old build of this module, and
@@ -426,7 +427,14 @@ Hooks.once("init", () => {
     // 1.10.0 — additive: rules namespace (rules data: terrain costs, climate, limits).
     // 1.11.0 — additive: encounter.tableForHex (the table for a hex by region and terrain).
     // 1.12.0 — additive: time namespace and the timeAdvanced hook (Overland O1, #227).
-    apiVersion: "1.12.0",
+    // 1.14.0 — additive: overland namespace and the overland* hooks (Overland O3, #229).
+    apiVersion: "1.14.0",
+    // The one travel state per world (scripts/overland/overland.mjs): a copy
+    // with hexes left, climate and night derived; and whether travel is on.
+    overland: {
+      state: () => overlandState(),
+      isActive: () => isOverland(),
+    },
     // Readings on Foundry's world clock: season, day and night, sun, moon,
     // anchors, the date string. Synchronous, any user (scripts/time/time.mjs).
     time: timeApi,
@@ -916,6 +924,7 @@ Hooks.once("ready", () => {
     }
   })();
   CrawlState.init();
+  registerOverland();
   // The sidebar rendered during setup, before the line above read the saved
   // crawl state, so the tracker tab's rail button is still hidden on a world
   // reloaded mid-crawl. Re-evaluate it now that the state is real.

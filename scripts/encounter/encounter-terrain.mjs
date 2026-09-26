@@ -296,6 +296,16 @@ function partyPoints(canvasRef) {
 }
 
 /**
+ * Is the viewed scene a tagged hex map, one partyHex() can read? (Overland's
+ * Travel button is offered only there, docs/plans/overland.md §4.3.)
+ * @returns {boolean}
+ */
+export function isHexMapScene(canvasRef = globalThis.canvas) {
+  const grid = canvasRef?.grid;
+  return !!(canvasRef?.scene?.getFlag?.(MODULE_ID, TAGS_FLAG)?.origin && grid?.isHexagonal && grid.columns);
+}
+
+/**
  * The hex the party is in on the active scene.
  * @returns {{num:number, terrain:string|null, features:string[]}|null} null when the
  *   scene is not a numbered hex map or no party token is on it

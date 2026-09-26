@@ -2,12 +2,15 @@ import { MODULE_ID } from "../shared/module-id.mjs";
 import { MovementTracker } from "./movement-tracker.mjs";
 import {
   STATE_VERSION,
+  isFutureState,
   defaultCrawlState,
   normalizeCrawlState,
   enterCombatMode as _enterCombatMode,
   exitCombatMode  as _exitCombatMode,
   startCrawl      as _startCrawl,
   endCrawl        as _endCrawl,
+  startOverland   as _startOverland,
+  endOverland     as _endOverland,
   addMembers      as _addMembers,
   removeMember    as _removeMember,
   clearMembers    as _clearMembers,
@@ -62,13 +65,16 @@ export const CrawlState = {
   get oocInitiative()  { return this._state.oocInitiative ?? {}; },
   get oocTurn()        { return this._state.oocTurn ?? null; },  // actor id of the current OoC turn-holder
   get members()        { return this._state.members ?? []; },   // actor IDs added to the crawl (world-scoped)
-  get isActive()       { return this._state.mode !== "off"; },
+  // A crawl or a combat. Overland travel is not a crawl: the strip stays off and
+  // movement tracking idle while travelling (docs/plans/overland.md §4.3).
+  get isActive()       { return this._state.mode === "crawl" || this._state.mode === "combat"; },
+  get isOverland()     { return this._state.mode === "overland"; },
 
   // ── Bootstrap ──────────────────────────────────────────────────────────
   init() {
     const raw = game.settings.get(MODULE_ID, SETTING_KEY);
     const rawVersion = Number(raw?._v);
-    const isFutureVersion = Number.isFinite(rawVersion) && rawVersion > STATE_VERSION;
+    const isFutureVersion = isFutureState(raw);
 
     this._state = normalizeCrawlState(raw);
 
@@ -240,6 +246,23 @@ export const CrawlState = {
     Hooks.callAll(`${MODULE_ID}.crawlEnd`, this._state);
     if (!await this._commit(state)) return;
     await MovementTracker.clearCrawlAnchors();
+  },
+
+  // Overland travel (#229). The overland module owns the travel state and the
+  // overlandStart/overlandEnd hooks; this only switches the mode. Any GM, like
+  // startCrawl: a click, not an event every GM reacts to.
+  async startOverland() {
+    if (!game.user.isGM) return false;
+    const { state, changed } = _startOverland(this._state);
+    if (!changed) return false;
+    return this._commit(state);
+  },
+
+  async endOverland() {
+    if (!game.user.isGM) return false;
+    const { state, changed } = _endOverland(this._state);
+    if (!changed) return false;
+    return this._commit(state);
   },
 
   // Add actor IDs to the crawl member list (idempotent — no duplicates).
@@ -433,7 +456,7 @@ export const CrawlState = {
 
   _hasFutureWorldState() {
     const authoritative = game.settings.get(MODULE_ID, SETTING_KEY);
-    if (!(Number(authoritative?._v) > STATE_VERSION)) return false;
+    if (!isFutureState(authoritative)) return false;
     console.warn(
       `${MODULE_ID} | refusing crawl state write: world setting _v=${authoritative._v} is newer than supported _v=${STATE_VERSION}`,
     );
