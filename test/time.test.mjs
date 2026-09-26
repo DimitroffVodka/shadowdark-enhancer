@@ -4,7 +4,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
-  SYNODIC_DAYS, ANCHORS, anchor, crossings, dateParts, isNight, moonPhase, season, sun, startOfDay,
+  SYNODIC_DAYS, ANCHORS, anchor, crossings, dateParts, dawnAfter, isNight, moonPhase, season, sun, startOfDay,
 } from "../scripts/time/time-core.mjs";
 import { gregorian, quirkyGregorian, at, clockAt } from "./gregorian-calendar.mjs";
 
@@ -35,6 +35,16 @@ test("night is before sunrise and from sunset on", () => {
   assert.equal(isNight(gregorian, at(1301, 6, 21, 19, 29)), false);
   assert.equal(isNight(gregorian, at(1301, 6, 21, 19, 30)), true);
   assert.equal(isNight(gregorian, at(1301, 12, 21, 17)), true, "a winter evening");
+});
+
+test("dawnAfter: the next sunrise, and the nth; a sunrise at that very moment is not after it", () => {
+  const riseOn = (y, m, d) => Math.round(at(y, m, d) + sun(gregorian, at(y, m, d)).sunrise * 3600);
+  const rise21 = at(1301, 6, 21, 4, 30), rise22 = riseOn(1301, 6, 22);
+  assert.equal(dawnAfter(gregorian, at(1301, 6, 21, 3)), rise21, "before today's sunrise: today's");
+  assert.equal(dawnAfter(gregorian, at(1301, 6, 21, 12)), rise22, "after it: tomorrow's");
+  assert.equal(dawnAfter(gregorian, rise21), rise22, "at it: tomorrow's");
+  assert.equal(dawnAfter(gregorian, at(1301, 12, 30, 20), 3), riseOn(1302, 1, 2), "three dawns on, across the year's end");
+  assert.ok(Number.isInteger(dawnAfter(gregorian, at(1301, 12, 30, 20))), "to the second");
 });
 
 // ── Moon ─────────────────────────────────────────────────────────────────────

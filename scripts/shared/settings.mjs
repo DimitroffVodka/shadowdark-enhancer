@@ -262,6 +262,21 @@ export function registerSettings() {
     default: defaultOverlandState(),
   });
 
+  // Overland's weather rule (#230): the Western Reaches' daily roll, or the
+  // core book's storm of 1d4 days.
+  game.settings.register(MODULE_ID, "overlandWeatherRule", {
+    name: "SDE.settings.overlandWeatherRule.name",
+    hint: "SDE.settings.overlandWeatherRule.hint",
+    scope: "world",
+    config: false,
+    type: String,
+    choices: {
+      western: "SDE.settings.overlandWeatherRule.western",
+      core: "SDE.settings.overlandWeatherRule.core",
+    },
+    default: "western",
+  });
+
   // Internal world setting: a worldTime at which the moon was new; the time
   // API's moon phases count from it (scripts/time/time.mjs, MOON_EPOCH). The
   // default, worldTime 0, puts a new moon at the start of the calendar.

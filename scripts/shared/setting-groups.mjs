@@ -125,6 +125,11 @@ export const SETTING_GROUPS = [
     sections: [{ entries: ["gmAvatarImage", "warnIfCrawlHelperEnabled"] }],
   },
   {
+    key: "overlandMenu",
+    icon: "fa-solid fa-person-walking",
+    sections: [{ entries: ["overlandWeatherRule"] }],
+  },
+  {
     key: "encountersMenu",
     icon: "fa-solid fa-dice-d20",
     sections: [{ entries: ["encounterRollGMOnly", "pauseOnEncounter", "autoRollActiveTable"] }],
