@@ -31,6 +31,7 @@ Tools you run during an active game session.
 |---|---|
 | [Crawl Strip & Crawl Bar](Crawl-Strip-and-Crawl-Bar.md) | Party HP, movement, and Luck at a glance, marching order, crawl rounds, combat HUD |
 | [Dying and Death Timers](Dying-and-Death-Timers.md) | 0 HP, the death timer and the rise roll, stabilizing, Deadly and Fatality, class and training modifiers |
+| [Modes of Play](Modes-of-Play.md) | The core rulebook's optional modes and Hard Luck, one switch per rule: Blitz, Chaos, Hunter, Pulp and the rest |
 | [Movement Budgets](Movement-Budgets.md) | Turn movement allowances, over-budget warnings or enforcement, rollback to turn start |
 | [Random Encounters](Random-Encounters.md) | The `1d6` encounter check, the Encounter Roller, placing results directly on the map |
 | [Loot & Treasure](Loot-and-Treasure.md) | Hoard rolls, claimable chat cards, opt-in loot drops on combat end, coin piles |
@@ -38,6 +39,7 @@ Tools you run during an active game session.
 | [Party XP](Party-XP.md) | Whole-party XP awards and Shadowdark treasure-XP rules |
 | [Quest Log](Quest-Log.md) | Quests from rumors, troubles, trainer tasks and the GM: statuses, objectives, rewards paid once, readable by players |
 | [Downtime](Downtime.md) | Between-crawl activities, the DC step-down ladder, per-attempt costs from your books |
+| [Regional Training](Regional-Training.md) | The Western Reaches' 21 trainers: tasks, the d4 benefit roll, each benefit once, landed on the sheet as a Talent |
 | [Renown](Renown.md) | The fame track, its four bands, reaction-roll bonuses, awarding and docking points |
 | [Pit Fighting](Pit-Fighting.md) | Cursed Scroll 2 bouts: venues, stakes scaled to party level, danger calls, twists |
 | [Session Recap](Session-Recap.md) | Automatic session log (loot, XP, combats, rolls, kills) with Discord export |

@@ -117,7 +117,7 @@ When you import or re-import items, art is managed using explicit provenance fla
 | `sde-actors` | Actor | Shadowdark Enhancer — Actors | Imported monsters and mounts |
 | `sde-items` | Item | Shadowdark Enhancer — Items | Imported items, spells, gear, generated Monster Spells, and treasure |
 | `sde-tables` | RollTable | Shadowdark Enhancer — Roll Tables | Imported tables and managed roll tables |
-| `sde-journal` | JournalEntry | Shadowdark Enhancer — Journals | Imported hex keys: one journal entry per crawl, one page per hex, filed by source |
+| `sde-journal` | JournalEntry | Shadowdark Enhancer — Journals | Imported hex keys (one journal entry per crawl, one page per hex, filed by source), **Chapter to journal** imports, and the [Regional Training](Regional-Training.md) trainer journals |
 | `sde-scenes` | Scene | Shadowdark Enhancer — Scenes | *(structural)* |
 
 > **Monster Spells consolidation:** Generated monster spells are stored inside

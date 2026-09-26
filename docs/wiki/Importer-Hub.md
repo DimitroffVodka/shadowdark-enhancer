@@ -44,7 +44,10 @@ icons, and files documents into organized world compendiums.
   book you have linked, and counts as imported no matter which one you used.
   A table you imported from *Cursed Scroll 1* already satisfies the GM Guide's
   row for it, and a monster imported from either book satisfies both
-  bestiaries.
+  bestiaries. A monster the GM Guide reprints also keeps the creature type
+  already reviewed under the *Cursed Scroll* that printed it first, and its
+  token art (see [Monster Token Art](Monster-Token-Art.md)), when every book
+  agrees.
 - **Only genuine reprints are linked, and only after checking.** Where two
   books print the same table under the same name but changed the text, they
   stay separate rows: the *Cursed Scroll 6* and *Western Reaches* carousing
