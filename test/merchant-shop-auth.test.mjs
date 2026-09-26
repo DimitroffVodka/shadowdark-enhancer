@@ -88,7 +88,8 @@ async function harness({ settings = {}, actors = {} } = {}) {
     },
     socket: { on: () => {}, emit: (event, payload) => emitted.push({ event, payload }) },
     modules: { get: () => ({ version: "0.13.1" }) },
-    i18n: { localize: (s) => s, format: (s) => s },
+    // Keys stand in for en.json strings; `format` keeps its data visible.
+    i18n: { localize: (k) => k, format: (k, d) => k + JSON.stringify(d) },
   };
   // Capture GM→player pushes without a real socket.
   for (const u of USERS) u.query = async (queryName, data) => { notified.push({ to: u.name, queryName, data }); return { ok: true }; };
@@ -137,7 +138,7 @@ test("F4: selling into a shop that was never opened is refused", async () => {
   );
 
   assert.equal(reply.ok, false);
-  assert.match(reply.error, /isn't available/);
+  assert.match(reply.error, /^SDE\.merchant\.notify\.unavailable$/);
   assert.equal(sword.deleted, false, "the item must not leave the seller's sheet");
 });
 
@@ -189,7 +190,7 @@ test("F6: the same notice from the authenticated GM is shown", async () => {
   assert.equal(reply.ok, true);
   assert.equal(toasts.length, 1);
   assert.equal(toasts[0][0], "info");
-  assert.match(toasts[0][1], /Vella bought Longsword/);
+  assert.match(toasts[0][1], /^SDE\.merchant\.notify\.bought\{"player":"Vella","item":"Longsword"/);
 });
 
 test("F6: an unknown notice kind is refused rather than rendered", async () => {

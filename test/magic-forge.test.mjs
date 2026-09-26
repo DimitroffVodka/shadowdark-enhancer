@@ -81,9 +81,10 @@ test("parseBonusValue accepts only unambiguous whole-result +N in 0..3", () => {
 test("resolveSelectedBonus returns +N or throws (fail-closed for a picked bonus)", () => {
   assert.equal(resolveSelectedBonus("+2"), 2);
   assert.equal(resolveSelectedBonus("0"), 0);
-  assert.throws(() => resolveSelectedBonus("1-3"), /usable \+N/);
-  assert.throws(() => resolveSelectedBonus("Cursed to shatter"), /usable \+N/);
-  assert.throws(() => resolveSelectedBonus("+4"), /usable \+N/);
+  // No i18n under node: the message is its en.json key.
+  assert.throws(() => resolveSelectedBonus("1-3"), /SDE\.magicForge\.error\.bonusNotUsable/);
+  assert.throws(() => resolveSelectedBonus("Cursed to shatter"), /SDE\.magicForge\.error\.bonusNotUsable/);
+  assert.throws(() => resolveSelectedBonus("+4"), /SDE\.magicForge\.error\.bonusNotUsable/);
 });
 
 /* -- weapon +N mechanics --------------------------------------------------- */
@@ -166,8 +167,9 @@ test("descriptive riders are escaped and carry a visible non-automated marker", 
     ],
   });
   const desc = data.system.description;
-  assert.match(desc, /Feature:/);
-  assert.match(desc, /Curse:/);
+  // No i18n under node: labels render as their en.json keys.
+  assert.match(desc, /SDE\.magicForge\.descriptor\.feature:/);
+  assert.match(desc, /SDE\.magicForge\.descriptor\.curse:/);
   assert.ok(!/<script>/i.test(desc), "hostile markup must be escaped");
   assert.match(desc, /&lt;script&gt;/);
   assert.match(desc, /sde-forge-nonauto/, "non-automated marker present");

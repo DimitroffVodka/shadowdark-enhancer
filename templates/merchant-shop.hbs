@@ -7,7 +7,7 @@
     {{#if hasActor}}
     <span class="sdems-wallet"><i class="fas fa-coins"></i> {{actorName}}: {{walletDetail}}</span>
     {{else}}
-    <span class="sdems-wallet sdems-no-actor"><i class="fas fa-user-slash"></i> No character</span>
+    <span class="sdems-wallet sdems-no-actor"><i class="fas fa-user-slash"></i> {{localize "SDE.merchant.noCharacter"}}</span>
     {{/if}}
   </div>
 
@@ -29,9 +29,9 @@
 
       {{!-- Filters --}}
       <div class="sdems-filters">
-        <input type="text" class="sdems-search-input" placeholder="Search items…" value="{{searchFilter}}">
+        <input type="text" class="sdems-search-input" placeholder="{{localize 'SDE.merchant.searchItems'}}" value="{{searchFilter}}">
         <select class="sdems-category-select">
-          <option value="all">All Categories</option>
+          <option value="all">{{localize "SDE.merchant.allCategories"}}</option>
           {{#each categories}}
           <option value="{{this}}" {{#if (eq this ../categoryFilter)}}selected{{/if}}>{{this}}</option>
           {{/each}}
@@ -60,14 +60,14 @@
                 <span class="sdems-item-cat">{{category}}</span>
               </div>
               <span class="sdems-item-price">{{priceDisplay}}</span>
-              <span class="sdems-item-stock" title="{{#if outOfStock}}Out of stock{{else}}{{#if (eq stockDisplay "
-                ∞")}}Unlimited{{else}}{{stockDisplay}} remaining{{/if}}{{/if}}">
+              <span class="sdems-item-stock" title="{{#if outOfStock}}{{localize 'SDE.merchant.stockOut'}}{{else}}{{#if (eq stockDisplay "
+                ∞")}}{{localize 'SDE.merchant.stockUnlimited'}}{{else}}{{localize 'SDE.merchant.stockRemaining' n=stockDisplay}}{{/if}}{{/if}}">
                 {{stockDisplay}}
               </span>
               <div class="sdems-item-actions">
                 <input type="number" class="sdems-qty-input" value="1" min="1" max="99">
                 <button class="sdems-buy-btn" type="button" {{#unless canAfford}}disabled{{/unless}}>
-                  <i class="fas fa-cart-plus"></i> Buy
+                  <i class="fas fa-cart-plus"></i> {{localize "SDE.merchant.btn.buy"}}
                 </button>
               </div>
             </div>
@@ -78,7 +78,7 @@
         {{else}}
         <div class="sdems-empty">
           <i class="fas fa-shop-slash"></i>
-          <p>No items available.</p>
+          <p>{{localize "SDE.merchant.noItems"}}</p>
         </div>
         {{/if}}
       </div>
@@ -92,7 +92,7 @@
       {{!-- Filters --}}
       <div class="sdems-catalog-filters">
         <select class="sdems-catalog-pack">
-          <option value="all" {{#if (eq catalogPack "all" )}}selected{{/if}}>All Packs</option>
+          <option value="all" {{#if (eq catalogPack "all" )}}selected{{/if}}>{{localize "SDE.merchant.allPacks"}}</option>
           {{#each catalogPacks}}
           <option value="{{id}}" {{#if selected}}selected{{/if}}>{{label}}</option>
           {{/each}}
@@ -100,19 +100,19 @@
 
         {{#if showFolderFilter}}
         <select class="sdems-catalog-folder">
-          <option value="all" {{#if (eq catalogFolder "all" )}}selected{{/if}}>All Folders</option>
+          <option value="all" {{#if (eq catalogFolder "all" )}}selected{{/if}}>{{localize "SDE.merchant.allFolders"}}</option>
           {{#each catalogFolders}}
           <option value="{{id}}" {{#if selected}}selected{{/if}}>{{name}}</option>
           {{/each}}
         </select>
         {{/if}}
 
-        <input type="text" class="sdems-catalog-search" placeholder="Search items…" value="{{catalogSearch}}">
+        <input type="text" class="sdems-catalog-search" placeholder="{{localize 'SDE.merchant.searchItems'}}" value="{{catalogSearch}}">
 
         <select class="sdems-catalog-sort">
-          <option value="name" {{#if (eq catalogSort "name" )}}selected{{/if}}>Name</option>
-          <option value="value-asc" {{#if (eq catalogSort "value-asc" )}}selected{{/if}}>Value ↑</option>
-          <option value="value-desc" {{#if (eq catalogSort "value-desc" )}}selected{{/if}}>Value ↓</option>
+          <option value="name" {{#if (eq catalogSort "name" )}}selected{{/if}}>{{localize "SDE.merchant.sort.name"}}</option>
+          <option value="value-asc" {{#if (eq catalogSort "value-asc" )}}selected{{/if}}>{{localize "SDE.merchant.sort.valueAsc"}}</option>
+          <option value="value-desc" {{#if (eq catalogSort "value-desc" )}}selected{{/if}}>{{localize "SDE.merchant.sort.valueDesc"}}</option>
         </select>
       </div>
 
@@ -133,7 +133,7 @@
           <div class="sdems-item-actions">
             <input type="number" class="sdems-qty-input" value="1" min="1" max="99">
             <button class="sdems-catalog-buy-btn" type="button" {{#unless canAfford}}disabled{{/unless}}>
-              <i class="fas fa-cart-plus"></i> Buy
+              <i class="fas fa-cart-plus"></i> {{localize "SDE.merchant.btn.buy"}}
             </button>
           </div>
         </div>
@@ -141,7 +141,7 @@
         {{else}}
         <div class="sdems-empty">
           <i class="fas fa-book-open"></i>
-          <p>No items match your filters.</p>
+          <p>{{localize "SDE.merchant.noMatches"}}</p>
         </div>
         {{/if}}
       </div>
@@ -152,8 +152,7 @@
     {{#if (eq tab "gamble")}}
     <div class="sdems-tab-content sdems-gamble-tab">
       <div class="sdems-gamble-header">
-        <i class="fas fa-dice"></i> Pay gold to roll on a loot table. You might get treasure, weapons, armor, or
-        alchemy!
+        <i class="fas fa-dice"></i> {{localize "SDE.merchant.gambleIntro"}}
       </div>
       <div class="sdems-item-list">
         {{#if gambleOptions.length}}
@@ -165,7 +164,7 @@
           <span class="sdems-item-price">{{costDisplay}}</span>
           <div class="sdems-item-actions">
             <button class="sdems-gamble-btn" type="button" {{#unless canAfford}}disabled{{/unless}}>
-              <i class="fas fa-dice"></i> Gamble
+              <i class="fas fa-dice"></i> {{localize "SDE.merchant.btn.gamble"}}
             </button>
           </div>
         </div>
@@ -173,7 +172,7 @@
         {{else}}
         <div class="sdems-empty">
           <i class="fas fa-dice"></i>
-          <p>No gamble options configured. The GM can set them up on the Manage tab.</p>
+          <p>{{localize "SDE.merchant.noGamble"}}</p>
         </div>
         {{/if}}
       </div>
@@ -185,11 +184,11 @@
     <div class="sdems-tab-content sdems-sell-tab">
 
       <div class="sdems-sell-header">
-        <span>Your Equipment</span>
-        <span class="sdems-sell-ratio">Sell Ratio: <strong>{{sellRatio}}%</strong></span>
+        <span>{{localize "SDE.merchant.yourEquipment"}}</span>
+        <span class="sdems-sell-ratio">{{localize "SDE.merchant.sellRatioLabel"}} <strong>{{sellRatio}}%</strong></span>
         {{#if hasJunk}}
         <button class="sdems-sell-all-junk" type="button">
-          <i class="fas fa-trash-can"></i> Sell All Junk
+          <i class="fas fa-trash-can"></i> {{localize "SDE.merchant.btn.sellAllJunk"}}
         </button>
         {{/if}}
       </div>
@@ -203,13 +202,13 @@
             <span class="sdems-item-name">{{#if isJunk}}<i class="fas fa-trash-can"
                 style="color:#e74c3c;margin-right:4px;"></i>{{/if}}{{name}}{{#if (gt quantity 1)}}
               ×{{quantity}}{{/if}}</span>
-            <span class="sdems-item-cat">Value: {{costDisplay}}</span>
+            <span class="sdems-item-cat">{{localize "SDE.merchant.valueLabel" cost=costDisplay}}</span>
           </div>
           <span class="sdems-item-price sdems-sell-price">{{sellPriceDisplay}}</span>
           <div class="sdems-item-actions">
             <input type="number" class="sdems-qty-input" value="1" min="1" max="{{quantity}}">
             <button class="sdems-sell-btn" type="button">
-              <i class="fas fa-coins"></i> Sell
+              <i class="fas fa-coins"></i> {{localize "SDE.merchant.btn.sell"}}
             </button>
           </div>
         </div>
@@ -217,7 +216,7 @@
         {{else}}
         <div class="sdems-empty">
           <i class="fas fa-box-open"></i>
-          <p>Nothing to sell.</p>
+          <p>{{localize "SDE.merchant.nothingToSell"}}</p>
         </div>
         {{/if}}
       </div>
@@ -230,14 +229,14 @@
 
       <div class="sdems-log-toolbar">
         <button class="sdems-copy-discord" type="button">
-          <i class="fab fa-discord"></i> Shop Log
+          <i class="fab fa-discord"></i> {{localize "SDE.merchant.btn.shopLog"}}
         </button>
         <button class="sdems-copy-session" type="button">
-          <i class="fab fa-discord"></i> Session Summary
+          <i class="fab fa-discord"></i> {{localize "SDE.merchant.btn.sessionSummary"}}
         </button>
         {{#if isGM}}
         <button class="sdems-clear-log" type="button">
-          <i class="fas fa-trash"></i> Clear Log
+          <i class="fas fa-trash"></i> {{localize "SDE.merchant.btn.clearLog"}}
         </button>
         {{/if}}
       </div>
@@ -251,7 +250,7 @@
             <i class="fas {{#if isGamble}}fa-dice{{else}}{{#if isBuy}}fa-cart-shopping{{else}}fa-coins{{/if}}{{/if}}"></i>
           </span>
           <span class="sdems-log-player">{{player}}</span>
-          <span class="sdems-log-action">{{#if isBuy}}bought{{else}}sold{{/if}}</span>
+          <span class="sdems-log-action">{{#if isBuy}}{{localize "SDE.merchant.log.bought"}}{{else}}{{localize "SDE.merchant.log.sold"}}{{/if}}</span>
           <span class="sdems-log-detail">{{item}}{{qtyStr}}</span>
           <span class="sdems-log-price">{{priceDisplay}}</span>
         </div>
@@ -259,7 +258,7 @@
         {{else}}
         <div class="sdems-empty">
           <i class="fas fa-clipboard-list"></i>
-          <p>No transactions recorded.</p>
+          <p>{{localize "SDE.merchant.noTransactions"}}</p>
         </div>
         {{/if}}
       </div>
@@ -273,54 +272,53 @@
       {{!-- Shop config --}}
       <div class="sdems-manage-section">
         <div class="sdems-manage-row">
-          <label>Shop Name</label>
+          <label>{{localize "SDE.merchant.manage.shopName"}}</label>
           <input type="text" class="sdems-shop-name-input" value="{{shopName}}">
         </div>
         <div class="sdems-manage-row">
-          <label>Buy Markup (%)</label>
+          <label>{{localize "SDE.merchant.manage.buyMarkup"}}</label>
           <input type="number" class="sdems-markup-input" value="{{buyMultiplier}}" min="10" max="500" step="10">
-          <span style="font-size:0.85em;color:var(--vcb-text-muted,#666);">100 = normal, 150 = markup, 80 =
-            discount</span>
+          <span style="font-size:0.85em;color:var(--vcb-text-muted,#666);">{{localize "SDE.merchant.manage.markupHint"}}</span>
         </div>
         <div class="sdems-manage-row">
-          <label>Sell Ratio (%)</label>
+          <label>{{localize "SDE.merchant.manage.sellRatio"}}</label>
           <input type="number" class="sdems-ratio-input" value="{{sellRatio}}" min="0" max="100" step="5">
         </div>
         <div class="sdems-manage-row">
-          <label>Player Catalog</label>
+          <label>{{localize "SDE.merchant.manage.playerCatalog"}}</label>
           <label class="sdems-toggle-label">
             <input type="checkbox" class="sdems-catalog-toggle" {{#if catalogEnabled}}checked{{/if}}>
-            Allow players to browse the full compendium catalog
+            {{localize "SDE.merchant.manage.catalogToggle"}}
           </label>
         </div>
         <div class="sdems-manage-row">
-          <label>Gamble Table</label>
+          <label>{{localize "SDE.merchant.manage.gambleTable"}}</label>
           <label class="sdems-toggle-label">
             <input type="checkbox" class="sdems-gamble-toggle" {{#if gambleEnabled}}checked{{/if}}>
-            Allow players to gamble on loot tables
+            {{localize "SDE.merchant.manage.gambleToggle"}}
           </label>
         </div>
       </div>
 
       {{!-- Mode selector --}}
       <div class="sdems-manage-section">
-        <h3>Inventory Source</h3>
+        <h3>{{localize "SDE.merchant.manage.inventorySource"}}</h3>
         <div class="sdems-mode-selector">
           <label>
             <input type="radio" class="sdems-mode-radio" name="sdems-mode" value="compendium" {{#if (eq mode "compendium"
               )}}checked{{/if}}>
-            Compendium Inventory
+            {{localize "SDE.merchant.manage.modeCompendium"}}
           </label>
           <label>
             <input type="radio" class="sdems-mode-radio" name="sdems-mode" value="actor" {{#if (eq mode "actor"
               )}}checked{{/if}}>
-            NPC Actor Inventory
+            {{localize "SDE.merchant.manage.modeActor"}}
           </label>
         </div>
 
         {{#if (eq mode "actor")}}
         <select class="sdems-actor-select">
-          <option value="">— Select Actor —</option>
+          <option value="">{{localize "SDE.merchant.manage.selectActor"}}</option>
           {{#each npcActors}}
           <option value="{{id}}" {{#if selected}}selected{{/if}}>{{name}} ({{type}})</option>
           {{/each}}
@@ -331,19 +329,19 @@
       {{#if (eq mode "compendium")}}
       {{!-- Saved merchants --}}
       <div class="sdems-manage-section">
-        <h3>Saved Merchants</h3>
+        <h3>{{localize "SDE.merchant.manage.savedMerchants"}}</h3>
         <div class="sdems-saved-configs-row">
           <select class="sdems-load-config-select">
-            <option value="">— Select merchant —</option>
+            <option value="">{{localize "SDE.merchant.manage.selectMerchant"}}</option>
             {{#each savedConfigs}}
             <option value="{{@key}}">{{this.name}}</option>
             {{/each}}
           </select>
           <button class="sdems-load-merchant-btn" type="button">
-            <i class="fas fa-upload"></i> Load
+            <i class="fas fa-upload"></i> {{localize "SDE.merchant.manage.load"}}
           </button>
           <button class="sdems-delete-merchant-btn" type="button">
-            <i class="fas fa-trash"></i> Delete
+            <i class="fas fa-trash"></i> {{localize "SDE.merchant.manage.delete"}}
           </button>
         </div>
       </div>
@@ -352,24 +350,24 @@
       {{!-- Broadcast controls --}}
       <div class="sdems-manage-section sdems-broadcast-controls">
         <button class="sdems-open-for-all" type="button">
-          <i class="fas fa-bullhorn"></i>Make Shop Available
+          <i class="fas fa-bullhorn"></i>{{localize "SDE.merchant.manage.makeAvailable"}}
         </button>
         <button class="sdems-close-for-all" type="button">
-          <i class="fas fa-door-closed"></i>Close Shop
+          <i class="fas fa-door-closed"></i>{{localize "SDE.merchant.manage.closeShop"}}
         </button>
         <button class="sdems-save-config-btn" type="button">
-          <i class="fas fa-book"></i>Save
+          <i class="fas fa-book"></i>{{localize "SDE.merchant.manage.save"}}
         </button>
       </div>
 
       {{!-- Compendium mode: inventory editor --}}
       {{#if (eq mode "compendium")}}
       <div class="sdems-manage-section">
-        <h3>Shop Inventory</h3>
+        <h3>{{localize "SDE.merchant.manage.shopInventory"}}</h3>
 
         {{!-- Drop zone --}}
         <div class="sdems-drop-zone">
-          <i class="fas fa-cloud-arrow-down"></i> Drag items from compendium here
+          <i class="fas fa-cloud-arrow-down"></i> {{localize "SDE.merchant.manage.dropZone"}}
         </div>
 
         {{!-- Current inventory --}}
@@ -379,21 +377,21 @@
             <img src="{{img}}" alt="{{name}}" width="24" height="24">
             <span class="sdems-manage-item-name">{{name}}</span>
             <div class="sdems-manage-price">
-              <input type="number" class="sdems-price-gold" value="{{cost.gp}}" min="0" title="Gold"
-                placeholder="gp">
-              <span>gp</span>
-              <input type="number" class="sdems-price-silver" value="{{cost.sp}}" min="0" title="Silver"
-                placeholder="sp">
-              <span>sp</span>
-              <input type="number" class="sdems-price-copper" value="{{cost.cp}}" min="0" title="Copper"
-                placeholder="cp">
-              <span>cp</span>
+              <input type="number" class="sdems-price-gold" value="{{cost.gp}}" min="0" title="{{localize 'SDE.merchant.manage.gold'}}"
+                placeholder="{{localize 'SDE.merchant.manage.gp'}}">
+              <span>{{localize "SDE.merchant.manage.gp"}}</span>
+              <input type="number" class="sdems-price-silver" value="{{cost.sp}}" min="0" title="{{localize 'SDE.merchant.manage.silver'}}"
+                placeholder="{{localize 'SDE.merchant.manage.sp'}}">
+              <span>{{localize "SDE.merchant.manage.sp"}}</span>
+              <input type="number" class="sdems-price-copper" value="{{cost.cp}}" min="0" title="{{localize 'SDE.merchant.manage.copper'}}"
+                placeholder="{{localize 'SDE.merchant.manage.cp'}}">
+              <span>{{localize "SDE.merchant.manage.cp"}}</span>
             </div>
             <div class="sdems-manage-stock">
-              <input type="number" class="sdems-stock-input" value="{{stock}}" min="-1" title="Stock (-1 = unlimited)">
+              <input type="number" class="sdems-stock-input" value="{{stock}}" min="-1" title="{{localize 'SDE.merchant.manage.stockTip'}}">
               <span class="sdems-stock-hint">(-1 = ∞)</span>
             </div>
-            <button class="sdems-remove-item-btn" type="button" title="Remove from shop">
+            <button class="sdems-remove-item-btn" type="button" title="{{localize 'SDE.merchant.manage.removeFromShop'}}">
               <i class="fas fa-xmark"></i>
             </button>
           </div>
@@ -401,7 +399,7 @@
         </div>
 
         {{!-- Compendium browser --}}
-        <h3>Add from Compendium</h3>
+        <h3>{{localize "SDE.merchant.manage.addFromCompendium"}}</h3>
         <div class="sdems-comp-browser">
           <div class="sdems-comp-controls">
             <select class="sdems-pack-select">
@@ -409,14 +407,14 @@
               <option value="{{id}}" {{#if selected}}selected{{/if}}>{{label}}</option>
               {{/each}}
             </select>
-            <input type="text" class="sdems-comp-search" placeholder="Filter…" value="{{compendiumFilter}}">
+            <input type="text" class="sdems-comp-search" placeholder="{{localize 'SDE.merchant.manage.filter'}}" value="{{compendiumFilter}}">
           </div>
           <div class="sdems-comp-list">
             {{#each compendiumItems}}
             <div class="sdems-comp-item">
               <img src="{{img}}" alt="{{name}}" width="20" height="20">
               <span>{{name}}</span>
-              <button class="sdems-add-item-btn" type="button" data-uuid="{{uuid}}" title="Add to shop">
+              <button class="sdems-add-item-btn" type="button" data-uuid="{{uuid}}" title="{{localize 'SDE.merchant.manage.addToShop'}}">
                 <i class="fas fa-plus"></i>
               </button>
             </div>
@@ -428,7 +426,7 @@
 
       {{!-- Gamble options config --}}
       <div class="sdems-manage-section">
-        <h3>Gamble Options</h3>
+        <h3>{{localize "SDE.merchant.manage.gambleOptions"}}</h3>
 
         {{!-- Existing options --}}
         <div class="sdems-manage-inventory">
@@ -436,14 +434,14 @@
           <div class="sdems-manage-item-row" data-gamble-config-id="{{id}}">
             <span class="sdems-manage-item-name">{{name}}</span>
             <div class="sdems-manage-price">
-              <input type="number" class="sdems-gamble-cost-gold" value="{{cost.gp}}" min="0" title="Gold"
-                placeholder="gp">
-              <span>gp</span>
-              <input type="number" class="sdems-gamble-cost-silver" value="{{cost.sp}}" min="0" title="Silver"
-                placeholder="sp">
-              <span>sp</span>
+              <input type="number" class="sdems-gamble-cost-gold" value="{{cost.gp}}" min="0" title="{{localize 'SDE.merchant.manage.gold'}}"
+                placeholder="{{localize 'SDE.merchant.manage.gp'}}">
+              <span>{{localize "SDE.merchant.manage.gp"}}</span>
+              <input type="number" class="sdems-gamble-cost-silver" value="{{cost.sp}}" min="0" title="{{localize 'SDE.merchant.manage.silver'}}"
+                placeholder="{{localize 'SDE.merchant.manage.sp'}}">
+              <span>{{localize "SDE.merchant.manage.sp"}}</span>
             </div>
-            <button class="sdems-gamble-remove-btn" type="button" title="Remove">
+            <button class="sdems-gamble-remove-btn" type="button" title="{{localize 'SDE.merchant.manage.remove'}}">
               <i class="fas fa-xmark"></i>
             </button>
           </div>
@@ -452,7 +450,7 @@
 
         {{!-- Add new option --}}
         <div class="sdems-gamble-add-row">
-          <input type="text" class="sdems-gamble-new-name" placeholder="Display name…">
+          <input type="text" class="sdems-gamble-new-name" placeholder="{{localize 'SDE.merchant.manage.displayName'}}">
           <select class="sdems-gamble-new-source">
             {{#each gambleSources}}
             <optgroup label="{{label}}">
@@ -462,9 +460,9 @@
             </optgroup>
             {{/each}}
           </select>
-          <input type="number" class="sdems-gamble-new-gold" value="5" min="0" placeholder="gp cost">
+          <input type="number" class="sdems-gamble-new-gold" value="5" min="0" placeholder="{{localize 'SDE.merchant.manage.gpCost'}}">
           <button class="sdems-gamble-add-btn" type="button">
-            <i class="fas fa-plus"></i> Add
+            <i class="fas fa-plus"></i> {{localize "SDE.merchant.manage.add"}}
           </button>
         </div>
       </div>

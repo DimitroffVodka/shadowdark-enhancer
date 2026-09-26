@@ -13,16 +13,23 @@
  * create flow. Public API (`open({seed, onCreate})`) and the forged-flag contract
  * are preserved for the loot generator / loot delivery integrations.
  */
-import { assembleItemData, composeName, parseBonusValue, resolveSelectedBonus, resolveForgeType, WORKING_TYPES, TYPE_LABELS } from "./magic-forge.mjs";
+import { assembleItemData, composeName, parseBonusValue, resolveSelectedBonus, resolveForgeType, WORKING_TYPES } from "./magic-forge.mjs";
 import {
   MAGIC_SET_DEFS, catalog, resolveResultRefs, buildForgeProvenance,
-  buildChildSeed, buildSetSeed, roleIsMechanical, roleIsHint, toPlainText,
+  buildChildSeed, buildSetSeed, roleIsMechanical, roleIsHint, toPlainText, pageLabel,
 } from "./magic-table-runtime.mjs";
 import { esc } from "../shared/esc.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
 const TYPE_ICON = { weapon: "fa-gavel", armor: "fa-shield-halved", scroll: "fa-scroll", wand: "fa-wand-sparkles" };
+
+/** On-screen type names. `TYPE_LABELS` (magic-forge.mjs) stays English: it names items. */
+const TYPE_LABEL_KEYS = {
+  weapon: "SDE.magicForge.type.weapon", armor: "SDE.magicForge.type.armor",
+  scroll: "SDE.magicForge.type.scroll", wand: "SDE.magicForge.type.wand",
+};
+const typeLabel = (type) => game.i18n.localize(TYPE_LABEL_KEYS[type]);
 
 /** Applicable Core set keys per gear type (Phase 1 = weapon + armor only). */
 const CORE_SETS_BY_TYPE = {
@@ -32,18 +39,18 @@ const CORE_SETS_BY_TYPE = {
 
 /** State → readiness badge presentation. */
 const STATE_BADGE = {
-  ready:     { label: "Ready", cls: "ready", icon: "fa-circle-check" },
-  locked:    { label: "Not imported", cls: "locked", icon: "fa-lock" },
-  partial:   { label: "Incomplete", cls: "partial", icon: "fa-circle-half-stroke" },
-  ambiguous: { label: "Ambiguous", cls: "bad", icon: "fa-clone" },
-  invalid:   { label: "Invalid", cls: "bad", icon: "fa-triangle-exclamation" },
+  ready:     { label: "SDE.magicForge.badge.ready", cls: "ready", icon: "fa-circle-check" },
+  locked:    { label: "SDE.magicForge.badge.locked", cls: "locked", icon: "fa-lock" },
+  partial:   { label: "SDE.magicForge.badge.partial", cls: "partial", icon: "fa-circle-half-stroke" },
+  ambiguous: { label: "SDE.magicForge.badge.ambiguous", cls: "bad", icon: "fa-clone" },
+  invalid:   { label: "SDE.magicForge.badge.invalid", cls: "bad", icon: "fa-triangle-exclamation" },
 };
 
 export class MagicForgeApp extends HandlebarsApplicationMixin(ApplicationV2) {
   static DEFAULT_OPTIONS = {
     id: "sde-magic-forge",
     tag: "form",
-    window: { title: "Magic Item Forge", icon: "fas fa-hammer", resizable: true },
+    window: { title: "SDE.magicForge.title", icon: "fas fa-hammer", resizable: true },
     position: { width: 720, height: "auto" },
     actions: {
       setType:     MagicForgeApp.prototype._onSetType,
@@ -181,7 +188,7 @@ export class MagicForgeApp extends HandlebarsApplicationMixin(ApplicationV2) {
    * Within a group, spells keep the cache's tier→name order.
    */
   _buildSpellGroups() {
-    const OTHER = "Other";
+    const OTHER = game.i18n.localize("SDE.magicForge.spellGroupOther");
     const groups = new Map();
     for (const s of this._spellList) {
       const row = {
@@ -213,7 +220,7 @@ export class MagicForgeApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const coreSets = isCore ? this._buildCoreSets() : [];
 
     const types = WORKING_TYPES.map(id => ({
-      id, label: TYPE_LABELS[id], icon: TYPE_ICON[id], active: id === this._type,
+      id, label: typeLabel(id), icon: TYPE_ICON[id], active: id === this._type,
     }));
 
     const baseList = isGear ? (this._baseLists[this._type] ?? []) : [];
@@ -222,15 +229,15 @@ export class MagicForgeApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const spellGroups = isSpellItem ? this._buildSpellGroups() : [];
     const tiers = isSpellItem ? [...new Set(this._spellList.map(s => s.tier))].sort((a, b) => a - b) : [];
     const tierChips = isSpellItem
-      ? [{ label: "All", tier: "all", active: this._tierFilter == null },
-         ...tiers.map(t => ({ label: `T${t}`, tier: t, active: this._tierFilter === t }))]
+      ? [{ label: game.i18n.localize("SDE.magicForge.tierAll"), tier: "all", active: this._tierFilter == null },
+         ...tiers.map(t => ({ label: game.i18n.format("SDE.magicForge.tierChip", { tier: t }), tier: t, active: this._tierFilter === t }))]
       : [];
 
     return {
       types,
       isGear, isSpellItem,
       isWand: this._type === "wand",
-      typeLabel: TYPE_LABELS[this._type],
+      typeLabel: typeLabel(this._type),
       mode: this._mode,
       isCore,
       coreAvailable,
@@ -289,11 +296,13 @@ export class MagicForgeApp extends HandlebarsApplicationMixin(ApplicationV2) {
     return this._coreSetKeys().map(key => {
       const def = MAGIC_SET_DEFS[key];
       const st = this._coreStates[key];
-      const badge = STATE_BADGE[st.state] ?? STATE_BADGE.locked;
+      const badgeDef = STATE_BADGE[st.state] ?? STATE_BADGE.locked;
+      const badge = { ...badgeDef, label: game.i18n.localize(badgeDef.label) };
       const fields = st.requirements.map(req => {
         const sel = this._coreSelections.get(req.manifestId) ?? null;
         const roleClass = roleIsMechanical(req.role) ? "mechanical" : roleIsHint(req.role) ? "hint" : "descriptive";
-        const roleLabel = roleIsMechanical(req.role) ? "mechanical +N" : roleIsHint(req.role) ? "base hint" : "descriptive";
+        const roleLabel = game.i18n.localize(roleIsMechanical(req.role) ? "SDE.magicForge.role.mechanical"
+          : roleIsHint(req.role) ? "SDE.magicForge.role.hint" : "SDE.magicForge.role.descriptive");
         return {
           manifestId: req.manifestId,
           label: req.label,
@@ -316,7 +325,7 @@ export class MagicForgeApp extends HandlebarsApplicationMixin(ApplicationV2) {
         key, label: def.label, role: def.role, perTable: def.perTable,
         state: st.state, ready: st.ready, badge,
         diagnostics: st.diagnostics,
-        pageLabel: st.pages.length > 1 ? `pp.${st.pages.join("/")}` : `p.${st.page}`,
+        pageLabel: pageLabel(st),
         fields,
       };
     });
@@ -357,21 +366,28 @@ export class MagicForgeApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const name = this._deriveName();
     const lines = [];
     if (this._type === "weapon" || this._type === "armor") {
-      lines.push(this._baseData ? `Base: ${this._baseData.name}` : "Pick a base item");
+      lines.push(this._baseData
+        ? game.i18n.format("SDE.magicForge.preview.base", { name: this._baseData.name })
+        : game.i18n.localize("SDE.magicForge.preview.pickBase"));
       const eb = this._effectiveBonus();
-      if (eb > 0) lines.push(`Magic bonus: +${eb}${this._mode === "core" && this._coreBonusValue() != null ? " (from Core table)" : ""}`);
+      if (eb > 0) {
+        const fromCore = this._mode === "core" && this._coreBonusValue() != null;
+        lines.push(game.i18n.format(fromCore ? "SDE.magicForge.preview.bonusCore" : "SDE.magicForge.preview.bonus", { n: eb }));
+      }
       if (this._mode === "core") {
         const riders = [...this._coreSelections.values()].filter(s => this._coreSetKeys().some(k => MAGIC_SET_DEFS[k].children.some(c => c.manifestId === s.manifestId)) && s.role !== "bonus" && s.role !== "type");
-        if (riders.length) lines.push(`${riders.length} descriptive rider(s) selected`);
+        if (riders.length) lines.push(game.i18n.format("SDE.magicForge.preview.riders", { n: riders.length }));
         const hint = this._coreTypeHint();
-        if (hint) lines.push(`Type hint: ${hint}`);
+        if (hint) lines.push(game.i18n.format("SDE.magicForge.preview.typeHint", { hint }));
       }
     } else {
       const spells = this._spellUuids.map(u => this._spellByUuid.get(u)).filter(Boolean);
-      if (!spells.length) lines.push("Pick a spell");
-      for (const s of spells) lines.push(`${s.name} — cast DC ${s.tier + 10} (tier ${s.tier})`);
+      if (!spells.length) lines.push(game.i18n.localize("SDE.magicForge.preview.pickSpell"));
+      for (const s of spells) {
+        lines.push(game.i18n.format("SDE.magicForge.preview.spell", { name: s.name, dc: s.tier + 10, tier: s.tier }));
+      }
     }
-    return { name, typeLabel: TYPE_LABELS[this._type], icon: TYPE_ICON[this._type], lines };
+    return { name, typeLabel: typeLabel(this._type), icon: TYPE_ICON[this._type], lines };
   }
 
   // ─── Render / wiring ───
@@ -517,7 +533,7 @@ export class MagicForgeApp extends HandlebarsApplicationMixin(ApplicationV2) {
     if (!this._coreStates) this._coreStates = await catalog();
     const manifestId = target.dataset.manifestId;
     const req = this._findReq(manifestId);
-    if (!req || !req.results?.length) { ui.notifications.warn("Import this table first."); return; }
+    if (!req || !req.results?.length) { ui.notifications.warn(game.i18n.localize("SDE.magicForge.notify.importFirst")); return; }
     const roll = await (new Roll(req.formula)).evaluate();
     const total = roll.total;
     const hit = req.results.find(r => total >= r.range[0] && total <= r.range[1]) ?? req.results[req.results.length - 1];
@@ -528,12 +544,12 @@ export class MagicForgeApp extends HandlebarsApplicationMixin(ApplicationV2) {
     if (req.role === "bonus") {
       const parsed = parseBonusValue(hit.text);
       mech = parsed != null
-        ? ` <strong>[applies +${parsed}]</strong>`
-        : ` <strong>[not a usable +N — pick again]</strong>`;
+        ? ` <strong>${game.i18n.format("SDE.magicForge.roll.applies", { n: parsed })}</strong>`
+        : ` <strong>${game.i18n.localize("SDE.magicForge.roll.notUsable")}</strong>`;
     }
     await roll.toMessage({
       speaker: ChatMessage.getSpeaker(),
-      flavor: `<strong>Magic Item Forge — ${esc(req.label)}</strong> (${esc(req.formula)})<br>${esc(hit.text)}${mech}`,
+      flavor: `<strong>${game.i18n.format("SDE.magicForge.roll.flavor", { label: esc(req.label) })}</strong> (${esc(req.formula)})<br>${esc(hit.text)}${mech}`,
     });
     this.render();
   }
@@ -562,7 +578,7 @@ export class MagicForgeApp extends HandlebarsApplicationMixin(ApplicationV2) {
   async _onPickBase(event, target) {
     const uuid = target.dataset.uuid;
     const item = await fromUuid(uuid);
-    if (!item) { ui.notifications.warn("Could not load that base item."); return; }
+    if (!item) { ui.notifications.warn(game.i18n.localize("SDE.magicForge.notify.baseLoadFailed")); return; }
     this._baseUuid = uuid;
     this._baseData = item.toObject();
     this.render();
@@ -601,7 +617,7 @@ export class MagicForgeApp extends HandlebarsApplicationMixin(ApplicationV2) {
   async _onOpenSpell(event, target) {
     const item = await fromUuid(target.dataset.uuid);
     if (item?.sheet) item.sheet.render(true);
-    else ui.notifications.warn("Could not open that spell.");
+    else ui.notifications.warn(game.i18n.localize("SDE.magicForge.notify.spellOpenFailed"));
   }
 
   /** The applicable set key owning a child manifestId (for provenance recipe). */
@@ -638,7 +654,7 @@ export class MagicForgeApp extends HandlebarsApplicationMixin(ApplicationV2) {
     for (const sel of selections) {
       const hit = live.find(r => r.manifestId === sel.manifestId && r.tableUuid === sel.tableUuid && r.resultId === sel.resultId);
       if (hit && toPlainText(hit.text) !== toPlainText(sel.text)) {
-        throw new Error(`A selected “${hit.label ?? sel.manifestId}” result changed since you picked it — re-roll or re-select it. Nothing was created.`);
+        throw new Error(game.i18n.format("SDE.magicForge.error.resultChanged", { label: hit.label ?? sel.manifestId }));
       }
     }
 
@@ -658,11 +674,11 @@ export class MagicForgeApp extends HandlebarsApplicationMixin(ApplicationV2) {
   }
 
   async _onCreateItem() {
-    if (!game.user.isGM) { ui.notifications.warn("GM only."); return; }
+    if (!game.user.isGM) { ui.notifications.warn(game.i18n.localize("SDE.magicForge.notify.gmOnly")); return; }
     if (!this._canForge()) {
       const need = (this._type === "weapon" || this._type === "armor")
-        ? "Pick a base item first." : "Pick a spell first.";
-      ui.notifications.warn(need);
+        ? "SDE.magicForge.notify.pickBase" : "SDE.magicForge.notify.pickSpell";
+      ui.notifications.warn(game.i18n.localize(need));
       return;
     }
 
@@ -673,7 +689,7 @@ export class MagicForgeApp extends HandlebarsApplicationMixin(ApplicationV2) {
     } catch (err) {
       // Fail-closed: a stale/invalid/changed Core selection blocks creation and
       // leaves all state intact (nothing persisted).
-      ui.notifications.error(`Forge blocked: ${err.message}`);
+      ui.notifications.error(game.i18n.format("SDE.magicForge.notify.blocked", { error: err.message }));
       this._coreStates = null;
       this.render();
       return;
@@ -685,12 +701,12 @@ export class MagicForgeApp extends HandlebarsApplicationMixin(ApplicationV2) {
     data.folder = folder.id;
 
     const item = await Item.create(data);
-    if (!item) { ui.notifications.error("Forge failed — see console."); return; }
+    if (!item) { ui.notifications.error(game.i18n.localize("SDE.magicForge.notify.failed")); return; }
 
     await this._onCreate?.(item);
     this._onCreate = null;
     await this._postChatCard(item);
-    ui.notifications.info(`Forged "${item.name}".`);
+    ui.notifications.info(game.i18n.format("SDE.magicForge.notify.forged", { name: item.name }));
   }
 
   // ─── Helpers ───
@@ -701,7 +717,7 @@ export class MagicForgeApp extends HandlebarsApplicationMixin(ApplicationV2) {
       speaker: ChatMessage.getSpeaker(),
       content: `<div class="shadowdark-enhancer sde-forge-card" style="display:flex;align-items:center;gap:8px;">
         <img src="${esc(item.img)}" alt="" width="36" height="36" style="border:none;flex:0 0 auto;">
-        <div><strong>Forged:</strong> ${esc(item.name)}<br><span style="opacity:0.8;">${esc(sub)}</span></div>
+        <div><strong>${game.i18n.localize("SDE.magicForge.card.forged")}</strong> ${esc(item.name)}<br><span style="opacity:0.8;">${esc(sub)}</span></div>
       </div>`,
     });
   }
@@ -709,10 +725,13 @@ export class MagicForgeApp extends HandlebarsApplicationMixin(ApplicationV2) {
   _previewSubtitle(_item) {
     if (this._type === "weapon" || this._type === "armor") {
       const eb = this._effectiveBonus(); // the +N that was actually forged (Core wins)
-      return eb > 0 ? `Magic ${TYPE_LABELS[this._type]} +${eb}` : `Magic ${TYPE_LABELS[this._type]}`;
+      const type = typeLabel(this._type);
+      return eb > 0
+        ? game.i18n.format("SDE.magicForge.card.subtitleBonus", { type, bonus: eb })
+        : game.i18n.format("SDE.magicForge.card.subtitle", { type });
     }
     const spells = this._spellUuids.map(u => this._spellByUuid.get(u)).filter(Boolean);
-    return spells.map(s => `${s.name} (DC ${s.tier + 10})`).join(", ");
+    return spells.map(s => game.i18n.format("SDE.magicForge.card.spellDc", { name: s.name, dc: s.tier + 10 })).join(", ");
   }
 
   async _ensureForgedFolder() {
