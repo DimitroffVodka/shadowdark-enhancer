@@ -9,7 +9,8 @@ import { ICONS } from "./shared/icons.mjs";
 import { registerSettings } from "./shared/settings.mjs";
 import { rulesApi } from "./rules-data/rules-data-core.mjs";
 import { timeApi, registerTimeHooks } from "./time/time.mjs";
-import { overlandState, isOverland, rollWeather, startDay, registerOverland } from "./overland/overland.mjs";
+import { overlandState, isOverland, rollWeather, startDay, resume, forage, makeCamp, registerOverland } from "./overland/overland.mjs";
+import { TravelBar } from "./overland/overland-bar.mjs";
 import { CrawlState } from "./crawl-strip/crawl-state.mjs";
 import { CrawlStrip } from "./crawl-strip/crawl-strip.mjs";
 import { registerCrawlTracker, refreshTracker } from "./crawl-strip/crawl-tracker.mjs";
@@ -97,7 +98,7 @@ import { initRivalClassTable } from "./forge-loot/rival-class-table-adapter.mjs"
 // templates, producing unstyled block-flow UI. Keep the manifest stylesheet as
 // the startup fallback, then layer a content-addressed copy above it. The layout
 // contract test requires this revision to change whenever the CSS file changes.
-const STYLESHEET_REV = "04c122556d8d";
+const STYLESHEET_REV = "d56c20d355c9";
 
 // The same problem for the SCRIPTS, which cannot be solved the same way: their
 // URLs come from the manifest, which Foundry validates as real package paths,
@@ -112,7 +113,7 @@ const STYLESHEET_REV = "04c122556d8d";
 // stale); module.json carries the same hash and is fetched fresh at runtime. A
 // mismatch is a stale cache by construction — it cannot be anything else. Both
 // stamps are written by `npm run inventory` and gated by `inventory:check`.
-const BUILD_REV = "ee8cfce740d0";
+const BUILD_REV = "adbe7ab26c5f";
 
 /**
  * Tell the user when their browser is running an old build of this module, and
@@ -431,15 +432,21 @@ Hooks.once("init", () => {
     // 1.14.0 — additive: overland namespace and the overland* hooks (Overland O3, #229).
     // 1.15.0 — additive: overland.rollWeather (Overland O4, #230).
     // 1.16.0 — additive: overland.startDay, and moves spend the day's budget (Overland O5, #231).
-    apiVersion: "1.16.0",
+    // 1.17.0 — additive: overland.resume, encounter.check options, travel checks (Overland O6, #232).
+    // 1.18.0 — additive: overland.forage and makeCamp, time.advanceOffDuty(0) (Overland O7, #233).
+    apiVersion: "1.18.0",
     // The one travel state per world (scripts/overland/overland.mjs): a copy
     // with hexes left, climate, storm, harshness and night derived; whether
-    // travel is on; today's weather roll and the travel day's start (GM).
+    // travel is on; today's weather roll, the travel day's start, Continue
+    // after an encounter stopped the clock, and camp (GM); forage (any owner).
     overland: {
       state: () => overlandState(),
       isActive: () => isOverland(),
       rollWeather: (options) => rollWeather(options),
       startDay: (options) => startDay(options),
+      resume: () => resume(),
+      forage: (actorId) => forage(actorId),
+      makeCamp: () => makeCamp(),
     },
     // Readings on Foundry's world clock: season, day and night, sun, moon,
     // anchors, the date string. Synchronous, any user (scripts/time/time.mjs).
@@ -509,7 +516,8 @@ Hooks.once("init", () => {
       apply: (b) => applyBundle(b),
     },
     encounter: {
-      check: () => EncounterCheck.check(),
+      // Options (1.17.0): { threshold, hex, label, clockLabel }; none is the crawl's check.
+      check: (options) => EncounterCheck.check(options),
       openRoller: async (tab, seed) =>
         (await import("./encounter/encounter-roller-app.mjs")).EncounterRollerApp.open(tab, seed),
       setActiveTable: (uuid) => game.settings.set(MODULE_ID, "encounterTableUuid", uuid || ""),
@@ -956,6 +964,8 @@ Hooks.once("ready", () => {
   StatDamage.init();
   StatRiders.init();
   CrawlBar.init();
+  // The travel bar, for everyone, while travelling on a hex map (#234).
+  TravelBar.init();
   // If the GM enabled the monster compendium-art overlay, inject it now so every
   // monster drag carries the referenced art (all clients; GM-only settings write).
   MonsterTokenArt.initCompendiumArt();
