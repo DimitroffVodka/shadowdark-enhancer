@@ -1,8 +1,3 @@
-| **Monster loot overrides** *(menu)* | — | GM-only list (**Review Monsters**) of every world NPC with its loot table and drop chance, editable inline. |
-| **Lock HP rolls** | on | Hides Roll Again, Take Max and Random for players once Level-1 HP is rolled. GMs are never locked. |
-| **Lock gold rolls** | on | Hides Roll Again and Random for players once starting gold is rolled. GMs are never locked and keep the manual gp box. |
-| **Lock ability rolls** | on | Hides Roll Again, Reset and Random for players once abilities are rolled. The 3d6 under-14 reroll stays. GMs are never locked. |
-| **Lock talent rolls** | on | Hides Reroll for players once a class or bonus talent is rolled. Duplicates the rules say to reroll stay rerollable. GMs are never locked. |
 # Settings Reference
 
 [← Wiki home](index.md)
@@ -18,13 +13,18 @@ All settings are **world-scoped**. They are configured by the GM for the whole w
 Go to **Configure Settings → Shadowdark Enhancer**. Every setting lives in one of eight
 pop-out windows, one per feature, each opened by its own **Configure** button:
 Character Builder, Monsters, PC Automation, Modes of Play, Movement, Crawl Strip,
-Encounters, and Loot & XP.
+Encounters, and Loot & XP. One more button, **Edit Rules Data**, opens the
+Western Reaches rules tables (see [Rules data](#rules-data) below).
 
 ### Character Builder
 
 | Setting | Default | What it does |
 |---|---|---|
 | **Ability roll method** | `3d6, Reroll if None ≥ 14` | GM-dictated method (3d6 down/assign/reroll, 4d6k3 down/assign, Standard Array, Point Buy). |
+| **Lock ability rolls** | on | Hides Roll Again, Reset and Random for players once abilities are rolled. The 3d6 under-14 reroll stays. GMs are never locked. |
+| **Lock talent rolls** | on | Hides Reroll for players once a class or bonus talent is rolled. Duplicates the rules say to reroll stay rerollable. GMs are never locked. |
+| **Lock gold rolls** | on | Hides Roll Again and Random for players once starting gold is rolled. GMs are never locked and keep the manual gp box. |
+| **Lock HP rolls** | on | Hides Roll Again, Take Max and Random for players once Level-1 HP is rolled. GMs are never locked. |
 | **Portrait/token art folders** | `assets/portraits, assets/ancestries` | Folders offered as the Preview gallery, picked with Foundry's folder browser. Browsed through the GM; discovers datasheet manifests. |
 | **Animate dice (Dice So Nice)** | off | Plays 3D dice roll animations for builder rolls. Chat audit card posts either way. |
 | **Max Level-1 HP** | off | Sets HP to maximum hit die + CON instead of rolling. Above level 1, every level's die is maxed. |
@@ -188,6 +188,7 @@ See [Movement Budgets](Movement-Budgets.md).
 | **Loot drops on combat end** | off | Defeated NPCs roll loot tables and post shared claim cards to chat. Overridden via NPC sheet header. |
 | **Loot drop mode** | `Per defeated NPC` | **Per defeated NPC**: each rolls separately. **Per encounter**: one pooled roll at highest NPC level. |
 | **Loot drop chance (%)** | `50` | Drop percentage chance on combat end (mode-dependent). |
+| **Monster loot overrides** *(menu)* | — | GM-only list (**Review Monsters**) of every world NPC with its loot table and drop chance, editable inline. |
 | **Item Drops** | on | Allows dragging items from sheets onto the canvas as pickup tokens. |
 | **Treasure XP threshold — normal (gp)** | `10` | Loot worth at least this much is suggested as 1 XP when dragged into Party XP. Nothing is awarded automatically. |
 | **Treasure XP threshold — fabulous (gp)** | `150` | Loot worth at least this much is suggested as 3 XP in Party XP. Magic items count as fabulous regardless of value. |
@@ -204,6 +205,14 @@ See [Movement Budgets](Movement-Budgets.md).
 > **The encounter threshold and check frequency are set on the Crawl Bar.**
 > Right-click **Encounter** on the bar to adjust either. See
 > [Random Encounters](Random-Encounters.md).
+
+### Rules data
+
+| Setting | Default | What it does |
+|---|---|---|
+| **Rules data** *(menu)* | *(empty)* | GM-only window (**Edit Rules Data**) with the tables the Western Reaches books consult rather than roll: terrain costs and elevation, terrain types, hexes per day, hex visibility, climate by region and season, and carousing and recruiting limits. **Import from GM Guide** fills them from your own linked PDFs and shows anything it would replace first; every value can also be typed in. Nothing from the books ships, so every table starts empty, except that mountain counts as high elevation. Stored as the `rulesData` world setting and read by `game.shadowdarkEnhancer.rules`. |
+
+See [Rules Data](Rules-Data.md).
 
 ## Settings edited elsewhere
 

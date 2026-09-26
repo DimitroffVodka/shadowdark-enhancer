@@ -2503,6 +2503,42 @@ function parseLongTable(text, { name = "", caption, size = 100 } = {}) {
   return pt.rows.length ? pt : null;
 }
 
+/**
+ * A captioned REFERENCE table: one the book consults rather than rolls (the GM
+ * Guide's terrain costs, climate, carousing limits; #195). No die: the block is
+ * the caption, a header line, then one line per row, and every one of those
+ * splits into exactly `cells` cells on the layout padding. The run ends at the
+ * first line that does not, so the prose, footnote or page number after the
+ * table never joins it.
+ *
+ * A page can print the caption twice — GMWR p.41 heads both its prose section
+ * and its table "HEX VISIBILITY" — so the occurrence followed by a header of
+ * the right width wins.
+ *
+ * @param {string} text  a "layout"/"2layout" extraction (cells padded apart)
+ * @param {{caption:string, cells:number}} opts
+ * @returns {{columns:string[], rows:string[][]}|null} cells as printed
+ */
+function parseReferenceTable(text, { caption, cells }) {
+  const lines = String(text).split(/\r?\n/).filter((l) => l.trim());
+  const split = (l) => l.trim().split(/\t+|\s{2,}/);
+  const norm = (l) => captionCore(l).toUpperCase().replace(/\s+/g, " ");
+  const want = norm(caption ?? "");
+  for (let i = 0; i < lines.length - 1; i++) {
+    if (!want || !isSectionCaption(lines[i]) || norm(lines[i]) !== want) continue;
+    const columns = split(lines[i + 1]);
+    if (columns.length !== cells) continue;
+    const rows = [];
+    for (let j = i + 2; j < lines.length; j++) {
+      const row = split(lines[j]);
+      if (row.length !== cells) break;
+      rows.push(row);
+    }
+    if (rows.length) return { columns, rows };
+  }
+  return null;
+}
+
 export function parseByShape(text, shape, { name = "" } = {}) {
   if (!shape) return null;
   // Footnotes are page furniture for EVERY recipe, not just the grid compounds
@@ -2654,6 +2690,12 @@ export function parseByShape(text, shape, { name = "" } = {}) {
       }
     }
     return pt ? { tables: [pt] } : null;
+  }
+  if (shape.kind === "reference") {
+    // Its own bucket, never `tables`: these rows are cells, not a RollTable
+    // draft, and only the rules-data import (scripts/rules-data) asks for them.
+    const reference = parseReferenceTable(text, { caption: shape.caption, cells: shape.cells });
+    return reference ? { reference } : null;
   }
   return null;
 }

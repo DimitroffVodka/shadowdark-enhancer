@@ -3,6 +3,17 @@
 ## [Unreleased]
 
 ### Added
+- **Rules data.** A new **Rules data** window under Configure Settings holds
+  the Western Reaches tables you look up rather than roll: what each terrain
+  costs to enter (on foot and by boat), terrain types, hexes per day, hex
+  visibility, the climate of each region by season, and each settlement's
+  carousing and warband-recruiting limits. **Import from GM Guide** fills them
+  from your own GM Guide and Player's Guide PDFs; if that would change
+  something you already entered, you see the changes first and choose. A world
+  without the books can fill in every table by hand. Mountain counts as high
+  elevation for hex visibility until you change it. Nothing from the books
+  ships with the module. Macros and other modules read the tables through
+  `game.shadowdarkEnhancer.rules` (API 1.10.0). (#195)
 - **The City of Masks holidays.** Chapter to journal has a new preset,
   *Cursed Scroll 6: the City of Masks holidays* (pp. 46–47), that files a
   journal with one page per holiday from your own PDF. A new `holidays` API

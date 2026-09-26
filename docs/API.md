@@ -17,9 +17,11 @@ and Forge & Loot features.
 [`actors`](#actors--western-reaches-boats) ·
 [`statDamage`](#statdamage--tracked-ability-damage) · [`quests`](#quests--the-quest-log) ·
 [`dying`](#dying--death-timers-and-stabilizing) ·
+[`hexMaps`](#hexmaps--hex-map-tagging-and-the-extras-dataset) ·
+[`rules`](#rules--western-reaches-rules-data) ·
 [`holidays`](#holidays--when-a-holiday-falls-and-what-it-does-to-carousing)
 
-**API version:** `1.9.0` (semver — additive changes bump the minor version,
+**API version:** `1.10.0` (semver — additive changes bump the minor version,
 breaking changes the major; check `apiVersion` before relying on newer keys).
 
 ## Discovery
@@ -1198,6 +1200,61 @@ Today's date comes from the core calendar (`game.time.components`) as
 - **Lastmoon** needs the moon, which nothing tracks yet, so it never falls
   until the Overland time feature (#192) supplies `isLastFullMoonOfYear`.
 
+---
+
+## `rules` — Western Reaches rules data
+
+Added in 1.10.0. The tables the Western Reaches books consult rather than roll:
+terrain costs, hexes per day, hex visibility, climate, and the carousing and
+warband-recruiting limits of a settlement. Overland travel, carousing and hex
+visibility read them from here.
+
+**Nothing from the books ships.** Every table starts empty. The GM fills it in
+**Configure Settings → Shadowdark Enhancer → Rules data**, with **Import from
+GM Guide** (reads the GM's own linked PDFs) or by hand. The data is the
+`rulesData` world setting. Every call is synchronous, reads the setting each
+time (so an edit is seen at once) and works for players too.
+
+| Call | Returns |
+|---|---|
+| `rules.terrainCost(terrain, { boat, weather, harsh })` | Hexes of movement to enter a terrain. `Infinity` when impassable, `null` for a terrain it has no value for. |
+| `rules.hexesPerDay(method)` | Hexes a day for `"walking"`, `"mounted"` or `"sailing"`, or `null`. |
+| `rules.visibility()` | `{ darkness, stormy, excellent, slight, high, elevation }`: the hex visibility modifiers (numbers or `null`), and `elevation`, `{ terrain: "slight" \| "high" }` for every terrain that has one. |
+| `rules.climate(region, season)` | `{ region, season, label, harsh }` or `null`. `harsh` is `"always"`, `"storm"` (harsh in stormy weather only) or `""`. |
+| `rules.carousingLimit(kind)` | The largest carousing event, in gp, a settlement can host. `Infinity` for no limit; `null` while the table is not filled in, and for a kind the table does not have. |
+| `rules.recruitingLimit(kind)` | The highest warband level a settlement can supply, with the same `Infinity` and `null`. |
+
+- **Terrain** words are the Hex Tagger's (`scripts/importer/hex/hex-summary.mjs`
+  `TERRAIN_TAGS`): `forest`, `salt_flat`, `arctic_sea` and so on. A printed
+  spelling (`"Salt Flat"`) works too.
+- **`terrainCost` options.** `boat: true` uses the terrain's cost with a boat
+  where it has one. `weather: "stormy"` (or the table's own wording,
+  `"Stormy weather"`, in any case) makes normal terrain cost what difficult
+  terrain does, and with `harsh: true` (a harsh climate, from `climate()`)
+  makes every terrain impassable for the day. A terrain with a type and no
+  cost of its own costs what its type does.
+- **Limits: "not set up" is not "no limit".** `carousingLimit` and
+  `recruitingLimit` return `null` while every settlement in that table is empty
+  (never imported or typed in), so a caller with a fallback of its own uses it.
+  Once any settlement has a number, an empty one is the book's "no limit" and
+  returns `Infinity`.
+- **Elevation.** Mountain counts as high elevation until the GM changes it, and
+  no terrain counts as slight. Both are editable in the window.
+- **`region`** is matched any way the book spells it, with or without the
+  article: `"Bastion Mtns"` and `"Bastion Mountains"`; `"Gloaming, The"`,
+  `"The Gloaming"` and `"Gloaming"`.
+- **`season`** is `"spring"`, `"summer"`, `"fall"` (or `"autumn"`) or
+  `"winter"`. Spring and fall share one column, as the book prints them.
+- **`kind`** is a settlement kind as the hex data names it: `"village"`,
+  `"town"`, `"city"`, `"city_state"` (`"City-State"` works too).
+
+```js
+const rules = game.shadowdarkEnhancer.rules;
+const today = rules.climate("Djurum Desert", "summer");            // null until filled in
+const harsh = today?.harsh === "always" || (today?.harsh === "storm" && stormy);
+const cost = rules.terrainCost("forest", { weather: stormy ? "stormy" : "", harsh });
+```
+
 ## Stability notes
 
 - Everything documented here is public surface; undocumented internals
@@ -1216,6 +1273,7 @@ Today's date comes from the core calendar (`game.time.components`) as
 - `1.8.0` adds the `dying` namespace (death timers, stabilize) and the
   `shadowdark-enhancer.crawlRound` hook.
 - `1.9.0` adds the `holidays` namespace (`list`, `today`).
+- `1.10.0` adds the `rules` namespace (Western Reaches rules data).
 - `1.4.0` adds the shared `forgeLoot.open()` preview shell. Generator rules and
   document writes remain behind the later NPC/Rival adapter implementations.
   The version policy is additive: new namespaces bump the minor version; breaking
