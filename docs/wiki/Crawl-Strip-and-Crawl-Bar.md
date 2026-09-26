@@ -49,7 +49,7 @@ itself when there are no active members to show.
 | **Add Tokens** | Adds selected tokens to crawl roster | **Reset Initiative** (clears roll order) |
 | **Combat** | Starts a combat encounter from current state | — |
 | **Encounter** | Opens [Encounter Roller](Random-Encounters.md) | Encounter menu (check, threshold, frequency, table) |
-| **Forge & Loot** | Opens tools menu ([Forge & Loot](Forge-and-Loot.md), [Shop](Merchant-Shop.md), [XP](Party-XP.md), [Downtime](Downtime.md), [Renown](Renown.md)) | Same menu |
+| **Forge & Loot** | Opens the tools menu: [Loot Generator](Loot-and-Treasure.md), [Magic Item Forge](Magic-Item-Forge.md), [Merchant Shop](Merchant-Shop.md), [Party XP](Party-XP.md), [Downtime](Downtime.md), [Pit Fighting](Pit-Fighting.md), [Regional Training](Regional-Training.md), [Renown](Renown.md), [Session Recap](Session-Recap.md) | Same menu |
 | **Importer** | Opens [Importer Hub](Importer-Hub.md) | — |
 | **Start / End** | Starts or ends the crawl session | — |
 

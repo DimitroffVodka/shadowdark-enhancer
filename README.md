@@ -60,23 +60,30 @@ Each row links to its full manual page.
 | | |
 |---|---|
 | **[Crawl Strip & Crawl Bar](docs/wiki/Crawl-Strip-and-Crawl-Bar.md)** | Live HP, movement, Luck, AC and active effects for the whole party. Marching order out of combat, initiative order in it. Per-actor action menus so players can attack and cast without a sheet. |
+| **[Dying & Death Timers](docs/wiki/Dying-and-Death-Timers.md)** | A character at 0 HP is dying: a death timer of 1d4 + CON modifier, a d20 each turn that rises at 1 HP on a natural 20, and a DC 15 Intelligence check for a friend to stabilize them. |
+| **[Modes of Play](docs/wiki/Modes-of-Play.md)** | The core rulebook's optional modes and the Western Reaches' Hard Luck, every rule its own switch: 30-minute torches, initiative rerolled each round, XP for defeated monsters, luck crits and forced GM rerolls. |
 |  **[Movement Budgets](docs/wiki/Movement-Budgets.md)** | A coloured ruler while you drag, per-turn allowances, optional refusal of over-budget moves, and one-click rollback to where a token started its turn. |
 |  **[Random Encounters](docs/wiki/Random-Encounters.md)** | The `1d6` check, a four-tab roller, and result cards that roll appearing count, distance, activity and a `2d6+CHA` reaction, then place the tokens on the map. |
 | **[Loot & Treasure](docs/wiki/Loot-and-Treasure.md)** | Generate a hoard, then post it as a chat card players race to claim or drop it on the ground as pickup-able tokens, with no need to pick a recipient. First claim wins, coins land in the right purse. Opt-in loot drops when combat ends. |
 |  **[Merchant Shop](docs/wiki/Merchant-Shop.md)** | A shop that opens for every player at once, backed by a catalog or an NPC's own inventory. Buying and selling against `system.coins`, serialised so nobody double-spends. |
 |  **[Party XP](docs/wiki/Party-XP.md)** | Award XP to the whole party at once: full amount to each character, per Shadowdark RAW. Flags who's ready to level, and never levels anyone itself. |
+| **[Quest Log](docs/wiki/Quest-Log.md)** | Quests from rumors, troubles, trainers and you, kept as journal entries your players can read, with objectives to tick off and XP, renown and items paid once on completion. |
 |  **[Downtime](docs/wiki/Downtime.md)** | The between-crawl activities from *Cursed Scroll 6* or the *Western Reaches*: spiritualism, skulduggery, martial training, magical research. It knows the DCs, the costs and the step-down ladder. The outcomes come from your own book, through the Importer. A book you haven't imported shows its title and nothing else. |
+| **[Regional Training](docs/wiki/Regional-Training.md)** | The Western Reaches' 21 trainers: once a task is done, roll the trainer's d4 and the benefit lands on the sheet as a Talent, each one learnable once. |
 |  **[Renown](docs/wiki/Renown.md)** | The fame track, with the four bands and what each one means. Award or dock it with a reason, or let a level-up do it. Its bonus folds into a reaction roll only when you say the party would be recognised, and double 1s stay hostile regardless. |
 |  **[Session Recap](docs/wiki/Session-Recap.md)** | A session log that fills itself in (loot, XP, combats, rolls, kills, merchant activity, and carousing if you run Shadowdark Extras) with a **Copy for Discord** export. Tied to the crawl, so there's no extra button to remember. |
 |  **[Pit Fighting](docs/wiki/Pit-Fighting.md)** | Cursed Scroll 2 bouts, set up in the book's order: venue, stakes off the fighters' average level, and a danger level the book leaves to you. The twist is rolled up front and stays hidden — including when it's nothing — until you reveal it. Prize and fame at the end; the descriptions come from your own imported tables. Twelve bundled battle maps open as scenes, offered by the venue you rolled — including a two-level tavern cellar you can walk between floors of. |
+| **[Stat Damage](docs/wiki/Stat-Damage.md)** | Ability damage from drains and monster attacks, one line per ability in the Effects tab, lowering the score and its modifier until it is healed. |
 
 ### Building content
 
 | | |
 |---|---|
 |  **[Importer Hub](docs/wiki/Importer-Hub.md)** | Paste a section from your own PDF. It's recognised, parsed, previewed editably, and committed into managed packs. Never overwriting, never deleting, idempotent on re-import. |
+| **[Hex Maps](docs/wiki/Hex-Maps.md)** | Turn a printed hex map into a scene: the grid found from the image, keyed locations pinned, terrain and regions tagged, and the whole map handed to Shadowdark Extras. |
 |  **[Class & Spell Importers](docs/wiki/Class-and-Spell-Importers.md)** | Dedicated workspaces for the two hardest types: per-part paste zones for a class's writeup, talent table and titles, plus spells organised by Class → Tier → Alignment. |
-|  **[Table Import & Shapes](docs/wiki/Table-Import-and-Shapes.md)** | 119 tables carry a parsing recipe, so messy PDF copies parse deterministically: prayer generators, wrapped-cell lookups, mix-and-match grids, reflowed pastes. |
+|  **[Table Import & Shapes](docs/wiki/Table-Import-and-Shapes.md)** | 158 tables carry a parsing recipe, so messy PDF copies parse deterministically: prayer generators, wrapped-cell lookups, mix-and-match grids, reflowed pastes. |
+| **[Rules Data](docs/wiki/Rules-Data.md)** | The Western Reaches lookup tables (terrain costs, hexes per day, visibility, climate, carousing and recruiting limits), filled from your own PDFs or typed in. |
 |  **[Monster Creator](docs/wiki/Monster-Creator.md)** | Author a Shadowdark creature from scratch or remix an existing one. Quick-pick catalogs, compendium spell search, and a Generator/Mutator driven by your own imported Core tables. |
 |  **[Monster Level Guidelines](docs/wiki/Monster-Level-Guidelines.md)** | What a level-N monster should look like, derived from the bestiary instead of guessed. Re-level any creature from its token with a preview, per-stat checkboxes and a full undo. |
 |  **[Monster Token Art](docs/wiki/Monster-Token-Art.md)** | Re-skin the bestiary with art you already own, **referenced by path and never copied or bundled**. Sources auto-discovered, drag to prioritise, browse 2,000+ tokens by hand. |
@@ -126,13 +133,15 @@ A versioned public API at `game.shadowdarkEnhancer`, mirrored at
 
 ```js
 Hooks.once("shadowdarkEnhancer.ready", (api) => {
-  console.log("SDE API", api.apiVersion); // "1.0.0"
+  console.log("SDE API", api.apiVersion); // e.g. "1.16.0"
 });
 ```
 
-Namespaces: `import` · `items` · `monsters` · `linker` · `encounter` · `loot` ·
-`tables` · `bundle` · `mutator` · `monsterCreator` · `tokenArt` · `forge` ·
-`forgeLoot` · `charBuilder` · `merchant` · `partyXp` · `recap` · `downtime`
+Namespaces: `import` · `items` · `actors` · `monsters` · `linker` · `encounter` ·
+`loot` · `tables` · `bundle` · `mutator` · `monsterCreator` · `monsterSpells` ·
+`tokenArt` · `forge` · `forgeLoot` · `charBuilder` · `merchant` · `partyXp` ·
+`recap` · `downtime` · `renown` · `pitFighting` · `training` · `quests` · `dying` ·
+`statDamage` · `hexMaps` · `rules` · `time` · `holidays` · `overland`
 
 Full reference: **[docs/API.md](docs/API.md)**.
 
