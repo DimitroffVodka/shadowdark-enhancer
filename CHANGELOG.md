@@ -18,8 +18,9 @@
   Blitz off leaves no torch short. Shadowdark Extras' camping campfire keeps
   its 8 hours. (#179)
 - **Hard Luck Mode.** Its second rule, *No luck rerolls with luck-granting
-  effects*, refuses a luck reroll of any roll made with Bless, Trance or a
-  Seer's Omen, whatever the result, so luck can't be spent to earn more luck.
+  effects*, refuses a luck reroll of any roll made with Bless, a Bard's
+  Inspire, Trance or a Seer's Omen, whatever the result, so luck can't be
+  spent to earn more luck.
   Its first rule, no luck on a critical failure, now uses the system's own
   critical failure, so an effect that widens the failure range counts too,
   and a damage reroll is never refused. (#186)
@@ -580,7 +581,7 @@
 
 ### Changed
 - **Preventing luck rerolls on natural 1s is now off by default, and lives in
-  Modes of Play.** It is Hard Luck's first rule. A world that ever saved this
+  Modes of Play** as *No luck rerolls on critical failures*. It is Hard Luck's first rule. A world that ever saved this
   setting keeps its choice; a world that never did stops blocking luck
   rerolls of natural 1s until a GM switches it on under **Modes of Play →
   Hard Luck**. (#178)
