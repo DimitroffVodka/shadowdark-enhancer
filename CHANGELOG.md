@@ -54,8 +54,8 @@
   its option in the Chaos box. While the system's clockwise initiative is on,
   Chaos does nothing and says so once. (#180)
 - **Pulp Mode: session luck, luck crits and forced rerolls.** Three rules,
-  each its own checkbox in the Pulp box. Pressing **Start session** in Session
-  Recap sets every player's character to 1d4 luck tokens and posts one card
+  each its own checkbox in the Pulp box. Choosing **Start New Session** when a
+  crawl starts sets every player's character to 1d4 luck tokens and posts one card
   with the rolls. Once an attack hits, its owner gets a **Luck: critical hit**
   button on the card: damage already rolled keeps its dice and gains what a
   critical hit adds (a 1d8 weapon gets one more d8), and damage not rolled yet

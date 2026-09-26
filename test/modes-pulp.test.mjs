@@ -1,6 +1,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { critExtraFormula, showLuckCrit, showForceReroll } from "../scripts/modes-of-play/pulp-core.mjs";
+import {
+  critExtraFormula, showLuckCrit, showForceReroll, forceShape, uncritFormula, forcedDamage,
+} from "../scripts/modes-of-play/pulp-core.mjs";
 
 test("a luck crit adds only what a critical hit adds to the damage dice", () => {
   assert.equal(critExtraFormula("1d8 + 2"), "1d8", "a 1d8 weapon gets one more d8");
@@ -26,7 +28,7 @@ test("the crit button shows on a hit or an untargeted attack, never on a miss, a
 });
 
 test("the force button shows to a player with luck on a GM's roll they can see, once", () => {
-  const base = { enabled: true, isGM: false, gmAuthored: true, hasRoll: true, blind: false, whisper: [], userId: "u1", done: false, hasLuck: true };
+  const base = { enabled: true, isGM: false, gmAuthored: true, shape: "system", blind: false, whisper: [], userId: "u1", done: false, hasLuck: true };
   assert.equal(showForceReroll(base), true);
   assert.equal(showForceReroll({ ...base, whisper: ["u1", "gm"] }), true, "whispered to this player");
   assert.equal(showForceReroll({ ...base, whisper: ["gm"] }), false, "whispered away");
@@ -35,5 +37,30 @@ test("the force button shows to a player with luck on a GM's roll they can see, 
   assert.equal(showForceReroll({ ...base, gmAuthored: false }), false, "a player's own roll");
   assert.equal(showForceReroll({ ...base, done: true }), false);
   assert.equal(showForceReroll({ ...base, hasLuck: false }), false);
-  assert.equal(showForceReroll({ ...base, hasRoll: false }), false);
+  assert.equal(showForceReroll({ ...base, shape: null }), false, "a card a reroll can't change");
+});
+
+test("only a system roll card or a bare total can be forced", () => {
+  assert.equal(forceShape({ systemCard: true, rollCount: 2, content: "<div>…</div>", total: 14 }), "system");
+  assert.equal(forceShape({ systemCard: false, rollCount: 1, content: " 57 ", total: 57 }), "bare");
+  assert.equal(forceShape({ systemCard: false, rollCount: 1, content: "57", total: 57, initiative: true }), null, "the tracker keeps its number");
+  assert.equal(forceShape({ systemCard: false, rollCount: 2, content: "<ul>…</ul>", total: 3 }), null, "session luck or Chaos card");
+  assert.equal(forceShape({ systemCard: false, rollCount: 1, content: "<table-draw>", total: 4 }), null, "a table draw");
+  assert.equal(forceShape({ systemCard: false, rollCount: 0, content: "hi", total: undefined }), null);
+});
+
+test("a crit formula goes back to the one it doubled", () => {
+  assert.equal(uncritFormula("2d8 + 3"), "1d8 + 3");
+  assert.equal(uncritFormula("2d8x"), "1d8x", "Momentum's explode stays");
+  assert.equal(uncritFormula("4d6 + 2d4", 2), "2d6 + 1d4");
+  assert.equal(uncritFormula("3d10", 3), "1d10", "a raised multiplier");
+  assert.equal(uncritFormula("1d8 + @abilities.str.mod"), "1d8 + @abilities.str.mod", "an odd count was not doubled");
+});
+
+test("a forced attack's damage follows the new roll", () => {
+  assert.equal(forcedDamage({ hadDamage: true, needed: true, oldCrit: false, newCrit: false }), "keep", "hit stays a hit");
+  assert.equal(forcedDamage({ hadDamage: true, needed: true, oldCrit: true, newCrit: false }), "reroll", "crit forced down to a hit");
+  assert.equal(forcedDamage({ hadDamage: true, needed: true, oldCrit: false, newCrit: true }), "reroll", "hit rerolled into a crit");
+  assert.equal(forcedDamage({ hadDamage: false, needed: true, oldCrit: false, newCrit: false }), "reroll", "miss became a hit");
+  assert.equal(forcedDamage({ hadDamage: true, needed: false, oldCrit: false, newCrit: false }), "drop", "hit became a miss");
 });

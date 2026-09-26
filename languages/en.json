@@ -1469,5 +1469,6 @@
   "SDE.pulp.noLuck": "No luck token left.",
   "SDE.pulp.noDamage": "This attack has no damage to roll.",
   "SDE.pulp.unknown": "That isn't a Pulp action this module knows.",
-  "SDE.hunter.count": "{name} ×{count}"
+  "SDE.hunter.count": "{name} ×{count}",
+  "SDE.pulp.busy": "Someone is already spending luck on that card. Try again in a moment."
 }
