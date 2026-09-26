@@ -97,6 +97,9 @@ const METHOD_NAME = {
   sailing: "SDE.overland.method.sailing",
 };
 
+/** A travel method's name, localised. */
+export const methodName = (method) => (METHOD_NAME[method] ? t(METHOD_NAME[method]) : "");
+
 /** A weather kind's name, localised. */
 export const weatherName = (kind) => (WEATHER_TEXT[kind] ? t(WEATHER_TEXT[kind][0]) : "");
 

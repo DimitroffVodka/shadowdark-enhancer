@@ -10,6 +10,7 @@ import { registerSettings } from "./shared/settings.mjs";
 import { rulesApi } from "./rules-data/rules-data-core.mjs";
 import { timeApi, registerTimeHooks } from "./time/time.mjs";
 import { overlandState, isOverland, rollWeather, startDay, resume, forage, makeCamp, registerOverland } from "./overland/overland.mjs";
+import { TravelBar } from "./overland/overland-bar.mjs";
 import { CrawlState } from "./crawl-strip/crawl-state.mjs";
 import { CrawlStrip } from "./crawl-strip/crawl-strip.mjs";
 import { registerCrawlTracker, refreshTracker } from "./crawl-strip/crawl-tracker.mjs";
@@ -97,7 +98,7 @@ import { initRivalClassTable } from "./forge-loot/rival-class-table-adapter.mjs"
 // templates, producing unstyled block-flow UI. Keep the manifest stylesheet as
 // the startup fallback, then layer a content-addressed copy above it. The layout
 // contract test requires this revision to change whenever the CSS file changes.
-const STYLESHEET_REV = "04c122556d8d";
+const STYLESHEET_REV = "d56c20d355c9";
 
 // The same problem for the SCRIPTS, which cannot be solved the same way: their
 // URLs come from the manifest, which Foundry validates as real package paths,
@@ -112,7 +113,7 @@ const STYLESHEET_REV = "04c122556d8d";
 // stale); module.json carries the same hash and is fetched fresh at runtime. A
 // mismatch is a stale cache by construction — it cannot be anything else. Both
 // stamps are written by `npm run inventory` and gated by `inventory:check`.
-const BUILD_REV = "02289ff74ee2";
+const BUILD_REV = "adbe7ab26c5f";
 
 /**
  * Tell the user when their browser is running an old build of this module, and
@@ -963,6 +964,8 @@ Hooks.once("ready", () => {
   StatDamage.init();
   StatRiders.init();
   CrawlBar.init();
+  // The travel bar, for everyone, while travelling on a hex map (#234).
+  TravelBar.init();
   // If the GM enabled the monster compendium-art overlay, inject it now so every
   // monster drag carries the referenced art (all clients; GM-only settings write).
   MonsterTokenArt.initCompendiumArt();
