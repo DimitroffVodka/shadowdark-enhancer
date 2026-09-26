@@ -2,919 +2,380 @@
 
 ## [Unreleased]
 
+The Western Reaches release: overland travel across the map that came with
+your book, with its keyed locations and encounter tables on every hex, plus
+the core rulebook's Modes of Play, dying and stat damage, a Quest Log and the
+GM Guide's 21 trainers. **Foundry 14 is now the minimum.** Shadowdark Extras
+stays optional. Where a feature hands data to it, the entry says which Extras
+it needs.
+
 ### Added
-- **Overland travel days.** While travelling, **Start day** on the Crawl Bar
-  opens a day: walking, mounted or sailing (aboard a boat actor if you like),
-  optionally pushed for half as many hexes again. Each move of the travel token
-  costs its hexes' terrain cost from the day and moves the world clock. A day
-  is 8 hours, so walking costs 2 hours a point. Storms and harsh climates
-  raise the cost as the rules say, a path costs 1, and a move the day can't pay
-  for bounces. The Displace movement action repositions the token for free.
-  The bar shows the hexes left. (API 1.16.0, #231)
-- **Overland weather.** While travelling, the Crawl Bar's **Weather** rolls
-  today's weather, posts it to chat and shows it on the bar. It holds until the
-  next dawn. The Western Reaches rule is the default: a 1 is stormy, and a 6 is
-  excellent and gives the next roll advantage. The core rule, a storm of 1d4
-  days, is a setting in the new **Overland** settings window. A storm makes
-  normal terrain difficult, and a storm in a harsh climate makes every hex
-  impassable; the day's movement will charge for it. Macros and Shadowdark
-  Extras can roll it with `game.shadowdarkEnhancer.overland.rollWeather()`.
-  (API 1.15.0, #230)
-- **Overland travel, first piece.** On a tagged hex map the Crawl Bar offers
-  **Travel**: the Shadowdark Extras party token (or the one token you select)
-  travels, the Crawl Strip steps aside and movement isn't tracked, a combat
-  takes over and hands back, and **End travel** keeps where the party is for
-  next time. Weather, the day's movement, encounter checks and rations come
-  with the next pieces. (#229)
-- **Move the clock off duty without burning torches.** Advancing Foundry's
-  clock three days for downtime burns every lit torch for those three days,
-  and the system deletes a torch that runs out. A new macro call,
-  `game.shadowdarkEnhancer.time.advanceOffDuty(seconds, { reason })`, puts
-  out every torch, lantern and candle the PCs have lit first, posts one chat
-  line naming them, and then moves the clock. Each light keeps the time it had
-  left, and the players light them again when play resumes. Light spells and
-  lights dropped on the map still burn. It works from any GM's tab, including
-  a second GM's, and with light tracking turned off it simply moves the clock.
-  If two GM tabs are both burning light sources, it refuses and names them
-  rather than let one of them burn the torches anyway.
-  Downtime durations and Shadowdark Extras' carousing will move the clock this
-  way. See *Downtime → Moving the clock for downtime*. (API 1.13.0, #228)
-- **Time: seasons, sunrise and the moon.** The module now reads Foundry's
-  world clock for the season, sunrise and sunset, and the moon's phase. There
-  is no calendar window: you keep advancing time with Foundry's controls or
-  your calendar module. A Myre Swamp hex on a new-moon night now rolls the
-  book's *New Moon* column, the City of Masks' Lastmoon falls on the year's
-  last full moon, and Session Recap entries record the in-game date and time.
-  Macros and other modules read it through `game.shadowdarkEnhancer.time`
-  and a `timeAdvanced` hook (API 1.12.0). See *Random Encounters → Time*.
-  (#227)
-- **Enhancer reads Shadowdark Extras through its own calls.** **Send to
-  Extras** reads what Extras already holds for a map through Extras'
-  `getHexRecords`, and the Quest Log lists parties and their members through
-  Extras' `api.party`, instead of reading Extras' stored data directly. An
-  older Extras still works as before. (#226)
+
+#### Overland travel
+
+- **Travel on a tagged hex map.** On a hex map tagged by the Hex Tagger, the
+  Crawl Bar offers **Travel**. The Shadowdark Extras party token travels, or
+  the one token you select. The Crawl Strip steps aside and movement isn't
+  tracked. A combat takes over and hands back. **End travel** keeps where the
+  party is for next time. (#229)
+- **Travel days.** **Start day** opens a day of walking, riding or sailing
+  (aboard a boat actor if you like), optionally pushed for half as many hexes
+  again. Each move of the travel token takes the terrain cost of the hexes it
+  enters from the day and moves the world clock. A day is 8 hours, so walking
+  costs 2 hours a point. Storms and harsh climates raise the cost as the rules
+  say, and a path costs 1. A move the day can't pay for bounces back to the
+  last hex that was paid for. The Displace movement action repositions the
+  token for free. The bar shows the hexes left. (#231)
+- **Weather.** While travelling, the Crawl Bar's **Weather** rolls today's
+  weather, posts it to chat and shows it on the bar until the next dawn. The
+  Western Reaches rule is the default: a 1 is stormy, and a 6 is excellent
+  and gives the next roll advantage. The core rule, a storm of 1d4 days, is a
+  setting in the new **Overland** settings window. A storm makes normal
+  terrain difficult, and a storm in a harsh climate makes every hex
+  impassable. Macros and Shadowdark Extras roll it with
+  `game.shadowdarkEnhancer.overland.rollWeather()`. (#230)
 - **Rules data.** A new **Rules data** window under Configure Settings holds
-  the Western Reaches tables you look up rather than roll: what each terrain
-  costs to enter (on foot and by boat), terrain types, hexes per day, hex
-  visibility, the climate of each region by season, and each settlement's
-  carousing and warband-recruiting limits. **Import from GM Guide** fills them
-  from your own GM Guide and Player's Guide PDFs; if that would change
-  something you already entered, you see the changes first and choose. A world
-  without the books can fill in every table by hand. Mountain counts as high
-  elevation for hex visibility until you change it. Nothing from the books
-  ships with the module. Macros and other modules read the tables through
-  `game.shadowdarkEnhancer.rules` (API 1.10.0). (#195)
-- **The City of Masks holidays.** Chapter to journal has a new preset,
-  *Cursed Scroll 6: the City of Masks holidays* (pp. 46–47), that files a
-  journal with one page per holiday from your own PDF. A new `holidays` API
-  (`list()`, `today({ place })`, API 1.9.0) gives each imported holiday's
-  place, the day it falls, its carousing effects and its garb questions, for
-  Shadowdark Extras' carousing window to apply. Maytide, the Duke's Ball and
-  the Night of St. Anton fall on May 1, June 21 and September 22 of the world
-  calendar, and Lastmoon on the year's last full moon. (#191)
-- **A Quest Log.** Press Alt+Q, or **Quest Log** at the foot of the Journal
-  sidebar. Each quest is a journal entry in a *Quests* folder, with a page
-  your players can read and a GM notes page they can't. Quests are Hidden
-  (yours alone until you change that), Available, Active, Completed or Failed,
-  and come from you, a rumor, a trouble or a trainer. Give one objectives to
-  tick off and rewards: XP, renown, items dragged onto it, a training benefit.
-  Marking it Completed asks you to confirm who gets what, then pays it once:
-  XP through Party XP, renown through the ledger, items onto the sheets you
-  pick. A quest can be personal to characters, assigned to a Shadowdark Extras
-  party, and jump to its hex's map pin. In Regional Training, **Take this
-  task** turns a trainer's task into a quest for the chosen character, and
-  completing it offers to open Training on that trainer for the benefit roll.
-  Players get the log read-only. See the wiki page *Quest Log*. (#189)
-- **Chapter to journal.** Importer Hub → Tools → **Chapter to journal**
-  turns any range of printed pages from a linked PDF into one readable
-  journal. It's split into pages at the book's headings, its paragraphs are
-  rejoined, and page numbers are dropped. You get a preview of the pages
-  before anything is written. A preset does the Western Reaches City-States
-  (GM Guide pp. 16–27) in one click, with a page per city-state. Each city
-  links to its key-location hex page, and the hex page links back. Running
-  it again updates the journal in place and keeps pages you added. (#194)
-- **Type of Trouble rolls its nested table.** Every row of the GM Guide's
-  Type of Trouble (p. 49) prints a second roll ("Monster horde. 1d6: 1. …
-  6. …"), and rolling the table used to hand you that whole list. Importing it
-  now also creates one table per row, on the die the row prints (a d6, or a
-  d4 for External faction and Power change), named "Type of Trouble: <type>"
-  and filed beside it. One roll of Type of Trouble posts the type and a result
-  from its table. If your world already has Type of Trouble, import it again
-  and choose **Replace**: the table is updated in place and its ten tables
-  are made, following that one answer. (#188)
-- **Two more Western Reaches tables, and Random ancestry by population.** The
-  importer now knows the GM Guide's *Caught in Danger!* (p. 33, d6: what
-  befalls a PC still in an adventuring site when the session ends) and the
-  Player's Guide's *Ancestry (Population)* d100 (p. 14). Both are read from
-  your own PDF. A new Character Builder setting, **Random ancestry table**,
-  takes a roll table. When one is set, the Ancestry step's Random rolls it and
-  picks the ancestry the result names or links to, so random characters follow
-  the setting's population odds. If a result matches no ancestry in the world,
-  or the table gives nothing, you're told and Random falls back to each
-  ancestry's weight. Left empty, Random works as before. (#187)
+  the Western Reaches tables you look up rather than roll: terrain costs on
+  foot and by boat, terrain types, hexes per day, hex visibility, each
+  region's climate by season, and each settlement's carousing and
+  warband-recruiting limits. **Import from GM Guide** fills them from your own
+  GM Guide and Player's Guide PDFs and shows you any change to what you
+  already entered before it writes it. Without the books you can fill every
+  table in by hand; nothing from the books ships with the module. Macros read
+  the tables through `game.shadowdarkEnhancer.rules`. (#195)
+
+#### Time
+
+- **Seasons, sunrise and the moon.** The module reads Foundry's world clock
+  for the season, sunrise and sunset, and the moon's phase. There is no
+  calendar window: you keep advancing time with Foundry's controls or your
+  calendar module. A Myre Swamp hex on a new-moon night rolls the book's
+  *New Moon* column, and Session Recap entries record the in-game date and
+  time. Macros and other modules read it through
+  `game.shadowdarkEnhancer.time` and a `timeAdvanced` hook. See
+  *Random Encounters → Time*. (#227)
+- **Move the clock off duty without burning torches.** Advancing the clock
+  three days for downtime used to burn every lit torch for those three days,
+  and the system deletes a torch that runs out.
+  `game.shadowdarkEnhancer.time.advanceOffDuty(seconds, { reason })` puts out
+  every torch, lantern and candle the PCs have lit, posts one chat line naming
+  them, then moves the clock. Each light keeps the time it had left, and the
+  players light them again when play resumes. Light spells and lights dropped
+  on the map still burn. It works from any GM's tab, and with light tracking
+  off it simply moves the clock. If two GM tabs are both burning light
+  sources it refuses and names them. See *Downtime → Moving the clock for
+  downtime*. (#228)
+
+#### Hex maps from your own print
+
+Everything here reads your own book and your own map image in your browser.
+No map, region shape or book text ships with the module. The *Hex Maps* wiki
+page walks through it in order.
+
+- **Hex map from image.** Importer Hub → Tools → **Hex map from image**: pick
+  the map file and the module finds the printed hex grid on its own. It shows
+  the grid over the print to confirm (and checks the four corners itself),
+  copies the image into the world's `hex-maps` folder, and creates a scene
+  whose grid sits on the print. It also reads the print's thick region
+  borders, so once the book's key locations are in, every hex knows its
+  region, not just the keyed ones. The half cells under the print's frame are
+  left out. (#169)
+- **A book's key locations in one press.** Importer Hub → Tools → **Key
+  locations** reads a whole hex key out of your own PDF. For each region it
+  takes the keyed-location table and the write-ups that follow it, and files
+  the region as a journal entry with a page per keyed hex: the book's full
+  entry, rejoined into paragraphs. The Game Master's Guide to the Western
+  Reaches files 270 keyed hexes across 15 regions. A second run updates the
+  pages in place, matched by hex number. For a book without a page map, or
+  your own crawl, paste the hex key into the Importer Hub and press **Create
+  hex pages**; references to other hexes become links. (#169)
+- **Keyed locations on the map.** **Pin on [scene]** in the Importer Hub, or
+  **Pin keyed hexes** in the Hex Tagger, puts one map note on each keyed hex's
+  printed hex that opens its journal page. Settlements get a house, city or
+  castle icon. **(every crawl)** in the hex-key picker pins a whole book at
+  once. Pinning again moves the notes instead of adding more. (#169)
+- **The Hex Tagger: terrain for every hex.** Importer Hub → Tools → **Hex
+  tagger**. **Legend** groups every hex by its printed glyph into cards,
+  biggest first. Name the ones you recognise and **Apply legend** tags them
+  and classifies the rest: on the Western Reaches print that is 32 cards
+  instead of 120 sheets of hand tagging. Coasts are worked out from touching
+  water. The hexes the classifier is least sure of wait on a review sheet,
+  least sure first, and are ringed on the map. **Show tags** draws the tags on
+  the scene, and clicking a hex edits it. **Brush** retags whole patches with
+  a drag, and **Undo last stroke** puts them back. **Regions** and **Encounter
+  zones** show each hex's region, and whether a wandering check there would
+  find a table. Clicking a hex on the region view corrects its region, one hex
+  or a whole enclosure. **More → Start from a map you have done** carries your
+  hand tags to another scene of the same print. **Import** takes tags as CSV
+  or JSON, and **Export** saves them as JSON. Macros can ask
+  `game.shadowdarkEnhancer.hexMaps.regionOf(1403)`. (#169)
+- **Play on the publisher's print, with the Extras hex tools on top.** The Hex
+  Tagger's **Send to Extras** puts each hex's terrain, region, zone colour,
+  name, description and settlement on the map you tagged, with its river, path
+  and coast as features. Shadowdark Extras takes the print on as a hexcrawl
+  and paints nothing. The publisher's art and your pins stay, and Extras'
+  tooltip, hex explorer, fog and coordinates work on the print. No two
+  touching regions share a zone colour, and the colours come from Extras' own
+  palette. Sending again updates the records in place and leaves alone what
+  the players discovered and any dungeon you added in Extras. It needs a
+  Shadowdark Extras with `hex.adoptHexcrawl`
+  ([shadowdark-extras#147](https://github.com/DimitroffVodka/shadowdark-extras/issues/147)),
+  and 6.15.0 or later for the zone colours. The painted build moves to **More
+  → Build painted map**. There, the reference tile's **Use the print as the
+  map** lays the print over the painted hexes, so one scene holds both.
+  **Download dataset** saves the same data as JSON. (#169, #175, #196)
+- **Encounter checks roll for the party's hex.** On a tagged hex map the
+  check reads the hex the party's tokens stand in. With the region's
+  *Encounter Zone* tables imported, a hit rolls the region's column for that
+  terrain. A forest with a river through it rolls Forest, a hex that is all
+  river rolls River, and a coastal hex rolls Coast where the region prints
+  one. Day and night columns follow the world clock (night is 18:00 to
+  06:00). N./S. columns split the region's rows in half. A *New Moon* or *Full
+  Moon* column takes over on its night. Without those tables, **Tables by
+  terrain** in the Encounter right-click menu gives each terrain a roll table
+  of your own. The chat card names the hex and the column it rolled. A hex
+  with no table, or a party off the map, falls back to the active table.
+  `encounter.tableForHex()` gives other modules the same table. (#169, #197)
+
+#### Modes of Play
+
+- **A Modes of Play window.** A new window under Configure Settings holds the
+  optional rules from the core rulebook (p. 111) and Hard Luck from the Game
+  Master's Guide to the Western Reaches (p. 30). Every rule is its own
+  switch, so one rule of a mode can run without the rest, and each mode has a
+  switch for all of its rules. The system's Pulp and Momentum settings and
+  Shadowdark Extras' Grinder settings show in the same window. Rules marked
+  *Not automated yet* are saved but do nothing until the update that builds
+  them. (#178)
+- **Blitz: light timers last 30 minutes.** Lighting a torch or lantern sets
+  it to 30 minutes left (less if it already had less), however it is lit, and
+  a light spell lasts 30 minutes. A torch's own maximum is untouched, so its
+  sheet can read "30 of 60 minutes", and turning Blitz off leaves no torch
+  short. Shadowdark Extras' camping campfire keeps its 8 hours. (#179)
+- **Hard Luck.** *No luck rerolls with luck-granting effects* refuses a luck
+  reroll of any roll made with Bless, a Bard's Inspire, Trance or a Seer's
+  Omen, so luck can't be spent to earn more luck. *No luck rerolls on
+  critical failures* uses the system's own critical failure, so an effect that
+  widens the failure range counts too, and never refuses a damage reroll.
+  (#186)
+- **Hunter: XP for defeated monsters.** Ending a combat pays every character
+  who was in it XP for each monster still marked defeated: half its level,
+  rounded down, and 1 for a level 1 monster. It is one Party XP card per
+  combat, with the usual "ready to level up" marker and a Session Recap entry.
+  Monsters killed outside a combat aren't counted. (#184)
+- **Chaos: initiative is rerolled every round.** Every combatant rolls
+  initiative again at the start of each round after the first, with the
+  system's own roll and any advantage, and the turn goes to whoever is now on
+  top. One chat card per round lists the new order, leaving hidden combatants
+  off. Dice So Nice stays quiet for these rerolls unless you tick its option.
+  While the system's clockwise initiative is on, Chaos does nothing and says so
+  once. (#180)
+- **Pulp: session luck, luck crits and forced rerolls.** Three rules, each its
+  own checkbox. **Start New Session** when a crawl starts gives every player's
+  character 1d4 luck tokens and posts one card with the rolls. Once an attack
+  hits, its owner gets a **Luck: critical hit** button on the card. A player
+  who can see a GM's roll gets **Luck: force a reroll**, and the card says who
+  forced it. Both spend one luck token, and the GM's client checks and spends
+  it, so a token is never spent without the effect. (#185)
+
+#### Dying and stat damage
+
+- **Dying and death timers, with Deadly and Fatality.** A character at 0 HP,
+  from damage or a sheet edit, is dying. It gets the Dying status and a death
+  timer of 1d4 + CON modifier (minimum 1), rolled by its player. It rolls a d20
+  at the start of each of its turns and rises at 1 HP on a natural 20. When
+  the timer runs out it is dead, and its turn is skipped. Out of combat the
+  timer runs on crawl rounds. Another character stabilizes it with a DC 15
+  Intelligence check from the Dying badge on the Crawl Strip, and healing above
+  0 HP clears it all. Deadly (a timer of 1, stabilizing at DC 18) and Fatality
+  (0 HP is death) now work, and an option hides the timer from players. Class
+  features, training and monsters change the rule through a small set of
+  Active Effect keys, already on the Gladiator, the Heath Witch and the
+  Ancient Ritual. It is off while Shadowdark Crawl Helper is active. See
+  *Dying and Death Timers*. (#181)
 - **Stat damage is tracked.** Damage to STR, DEX, CON, INT, WIS or CHA is one
   line per ability in the character sheet's Effects tab, such as *2 STR
-  damage*: the score and its modifier drop, and the line is gone when healed.
-  There is no setting and nothing on the sheet until it happens. A character
-  whose CON reaches 0 from it dies. Other modules drive it through
-  `game.shadowdarkEnhancer.statDamage.{apply, heal, of}` (API 1.6.0).
-  From the Shadowdark Extras release that adds it
+  damage*. The score and its modifier drop, and the line is gone when healed.
+  A character whose CON reaches 0 from it dies. Other modules drive it through
+  `game.shadowdarkEnhancer.statDamage.{apply, heal, of}`. From the Shadowdark
+  Extras release that adds it
   ([shadowdark-extras#149](https://github.com/DimitroffVodka/shadowdark-extras/issues/149)),
   Extras' rest heals it all, or 1 per ability in Grinder Mode. (#182)
 - **Monster attacks apply their stat-damage riders.** A monster hit whose
   attack text, or the feature it names, says *1 STR damage* lowers the
-  target's STR automatically, with the amount rolled in chat. A rider behind
-  a save (*DC 12 CON or 1d4 STR damage*) asks the character's player to roll
-  the save and applies only on a failure; the GM's client rolls it when no
-  player can. Works without Shadowdark Extras. (#183)
-- **Modes of Play.** A new window under Configure Settings holds the optional
-  rules from the core rulebook (p.111) and Hard Luck from the Game Master's
-  Guide to the Western Reaches (p.30). Every rule is its own switch, so one
-  rule of a mode can run without the rest, and each mode has a switch that
-  turns all of its rules on or off. The system's Pulp and Momentum settings
-  and Shadowdark Extras' Grinder settings show in the same window, so each
-  still has one home. Rules marked *Not automated yet* are saved but do
-  nothing until the update that builds them. (#178)
-- **Blitz Mode: light timers last 30 minutes.** With Blitz on, lighting a
-  torch or lantern sets it to 30 minutes left (less if it already had less),
-  however it is lit, and a light spell lasts 30 minutes. A torch's own
-  maximum is untouched, so its sheet can read "30 of 60 minutes" and turning
-  Blitz off leaves no torch short. Shadowdark Extras' camping campfire keeps
-  its 8 hours. (#179)
-- **Hard Luck Mode.** Its second rule, *No luck rerolls with luck-granting
-  effects*, refuses a luck reroll of any roll made with Bless, a Bard's
-  Inspire, Trance or a Seer's Omen, whatever the result, so luck can't be
-  spent to earn more luck.
-  Its first rule, no luck on a critical failure, now uses the system's own
-  critical failure, so an effect that widens the failure range counts too,
-  and a damage reroll is never refused. (#186)
-- **Hunter Mode: XP for defeated monsters.** With Hunter on, ending a
-  combat pays every character who was in it XP for each monster still marked
-  defeated: half its level, rounded down, and 1 for a level 1 monster (level 0
-  pays nothing). It is one Party XP card per combat, with the usual "ready to
-  level up" marker and a Session Recap entry. Monsters killed outside a
-  combat aren't counted. (#184)
-- **Chaos Mode: initiative is rerolled every round.** With Chaos on, every
-  combatant rolls initiative again at the start of each round after the
-  first, with the system's own roll and any advantage, and the turn goes to
-  whoever is now on top; a defeated monster that rolls to the top is skipped
-  as usual. One chat card per round lists the new order, leaving hidden
-  combatants off. Dice So Nice stays quiet for these rerolls unless you tick
-  its option in the Chaos box. While the system's clockwise initiative is on,
-  Chaos does nothing and says so once. (#180)
-- **Pulp Mode: session luck, luck crits and forced rerolls.** Three rules,
-  each its own checkbox in the Pulp box. Choosing **Start New Session** when a
-  crawl starts sets every player's character to 1d4 luck tokens and posts one card
-  with the rolls. Once an attack hits, its owner gets a **Luck: critical hit**
-  button on the card: damage already rolled keeps its dice and gains what a
-  critical hit adds (a 1d8 weapon gets one more d8), and damage not rolled yet
-  is rolled once as a critical hit. A player who can see a GM's roll gets a
-  **Luck: force a reroll** button; the roll is redone on the same card, which
-  says who forced it. Both spend one luck token, and the GM's client checks
-  and spends it, so a token is never spent without the effect. (#185)
-- **Dying and death timers, with Deadly and Fatality.** A character at 0 HP,
-  from damage or a sheet edit, is now dying: the Dying status, a death timer of
-  1d4 + CON modifier (minimum 1) rolled by its player, and a d20 at the start
-  of each of its turns, rising at 1 HP on a natural 20. When the timer runs out
-  it is dead: its turn is skipped, and Hunter Mode pays it no XP. Out of combat
-  the timer runs on crawl rounds, and stepping a round back and forward again
-  never costs a round twice. Another character stabilizes it with a DC 15
-  Intelligence check from the Dying badge on the crawl strip, and a Luck
-  reroll of that check counts; healing above 0 HP clears it all. Deadly's two
-  rules (a timer of 1, stabilizing at DC 18) and Fatality (0 HP is death) now
-  work, and a new option hides the timer from players. Class features, training
-  and monsters change the rule through a small set of Active Effect keys; the
-  Gladiator's +1 to death timer rolls, the Heath Witch's stabilize DC 12 and
-  the Ancient Ritual's *Survive 0 CON* now carry them, and stat damage's death
-  at CON 0 goes through the same rule. The GM gets buttons for the situational
-  rules. Off while Shadowdark Crawl Helper is active, which its warning now
-  says. See the new wiki page *Dying and Death Timers*. (#181)
-- **The hex data goes on the printed map.** The Hex Tagger's **Send to
-  Extras** now puts every hex's terrain, region, zone colour, name,
-  description and settlement on the map you tagged, instead of building a
-  new scene: Shadowdark Extras takes the print on as a hexcrawl and paints
-  nothing, so the publisher's art and your pins stay, and Extras' tooltip,
-  hex explorer, fog and coordinates work on the print. Sending again updates
-  the records in place and leaves what the players discovered alone. It needs
-  a Shadowdark Extras with `hex.adoptHexcrawl`
-  ([shadowdark-extras#147](https://github.com/DimitroffVodka/shadowdark-extras/issues/147));
-  the painted build moves to **More → Build painted map**. (#175)
-- **Every hex reaches Shadowdark Extras with its region and zone colour.** The
-  hand-off used to name a zone only on the book's keyed hexes, so Extras filled
-  the rest with the map's name: 4,466 of the Western Reaches' 4,736 hexes read
-  "Western Reaches" and no zone had a colour. With the print's region borders
-  scanned, the Hex Tagger's build and `hexMaps.importDetails` now send every
-  hex's region (the book's own spelling, "Rimespire Mountains" rather than the
-  key table's "Rimespire Mtns") and a zone colour from Extras' palette, with no
-  two touching regions sharing one. Needs Shadowdark Extras 6.15.0 or later for
-  the colours.
-- **Rivers, paths and coasts reach Shadowdark Extras.** The Hex Tagger's
-  **Send to Extras** now puts each hex's river, path and coast on its Extras
-  record as features beside its terrain, so Extras' tooltip shows River, Path
-  and Coast pills on the print. A forest with a river through it goes as
-  forest with a river feature; a hex that is all river goes as river terrain
-  with no river feature; a keyed hex the book lists only as "Coast" (or as
-  "Coast, river", a city at a river mouth) no longer goes with coast or river
-  as its terrain but with the land around it, and the same for an older tag
-  that holds coast or path where the terrain goes. Sending again replaces those three and
-  nothing else, so a dungeon you added in Extras and what the players
-  discovered stay; if the tagger cannot read what Extras holds, it sends no
-  features and says so. Extras' Hex Editor turns them into "dungeon" on save
-  until shadowdark-extras#157; the next send puts them back. The tagger and
-  the brush call river, path and coast **features** now, and the warning that
-  coasts stay behind is gone. (#196)
-- **Encounter checks roll the book's table for the party's hex.** On a tagged
-  hex map with the region grids imported (*Encounter Zone* tables) and the
-  regions read, a hit rolls the region's column for the hex's terrain, ahead of
-  your Tables by terrain. A forest with a river through it rolls Forest, a hex
-  that is all river rolls River, and a coastal hex rolls Coast where the region
-  prints one. Day and night columns follow the world clock at the moment of the
-  roll (night is 18:00 to 06:00), N./S. columns split the region's rows in
-  half, and a *New Moon* or *Full Moon* column takes over on its night (see
-  Time, above). The chat card names the column it rolled, and
-  `encounter.tableForHex()` gives other modules the same table. (#197)
-- **You're told when an update gives you something new to import.** A release
-  that adds a book, a bestiary or another hundred table rows used to be
-  invisible to anyone who had already imported what they own. The importer now
-  remembers the library each module version shipped: when the version changes,
-  the active GM is asked whether they want to see what's new, and **Show me**
-  opens the Importer Hub with the new rows already filtered. The Manage tree
-  gains a **New (N)** filter and each new row carries a **new** tag, so **Not
-  now** just leaves them there for later — you're asked once per update, not
-  once per login. Only rows you haven't imported are counted, and they drop off as you
-  import them. A world importing for the first time is told nothing — with no
-  earlier library to compare against, everything would be "new".
-- **A book's key locations in one press.** Importer Hub → Tools → **Key
-  locations** reads a whole hex key out of your own PDF: for each region it
-  takes the keyed-location table and the pages of write-ups that follow it, and
-  files the region as its own journal entry with a page per keyed hex. You get
-  the book's **full entry** for each location, not the one-line blurb from the
-  table. The Game Master's Guide to the Western Reaches files **270 keyed hexes
-  across 15 regions**; every one of its summary rows has a write-up and every
-  write-up has a row. Pages are matched by hex number, so a second run updates
-  what you have instead of duplicating it.
-- **Pin every region at once.** A book imported per region files more than one
-  crawl, so the Hex Tagger's hex-key picker now offers **(every crawl)**: one
-  press pins the whole book on the scene, and the keyed sheet, the book's
-  terrain answers and the Extras hand-off read every region together instead of
-  whichever one happened to be chosen.
-- **Play on the publisher's own print, with the Extras hex tools on top.**
-  Shadowdark Extras only lends its hex records, tooltips and explorer to a
-  scene it built itself, which used to mean choosing between its painted map
-  and the map that came with your book. The reference tile now has a second
-  job: tick **Use the print as the map** and it is placed visible and opaque
-  over the painted hexes, aligned so the print's hex field lands exactly on the
-  scene's cells. The table looks at the publisher's map; Extras still sees its
-  own grid underneath. Hide the tile again and the painted map comes back, so
-  one scene holds both.
-- **Key-location write-ups read like prose again.** A PDF column gives one line
-  per printed line, and each of those was becoming its own paragraph — so a
-  five-sentence entry arrived as fourteen stubby lines with the book's ragged
-  column edge baked in. The lines are now re-joined into paragraphs, words the
-  column broke in half are put back together, headings and bullets keep their
-  own line, and the printed page number that the extraction picks up at the
-  foot of the page is dropped. Re-run **Key locations** to reformat entries you
-  have already imported — pages are matched by hex number and updated in place.
-- **Coasts are worked out, not looked for.** A coastline is a line *shared*
-  between two hexes, which is exactly what the scanner reads worst — but sea,
-  lake and river it reads well. So tagging now marks every land hex touching
-  water as coast, as part of the same pass that decides terrain, with no button
-  to press. A river *crossing* a hex doesn't count: that's a line through it
-  like a path, not a shore. Checked against the Game Master's Guide's own 270
-  keyed locations, where the book prints the terrain itself, this finds **all
-  13** of the coasts it names. Hexes you tagged by hand are left alone — you
-  were asked about their overlays and you answered.
-- **You can correct a region by clicking it.** Clicking a hex on the region
-  overlay now edits its **region** rather than its terrain — pick one already
-  on the map or type your own — and when a whole enclosure has the wrong name
-  there is a box to move all of it in one go. Corrections are kept beside the
-  scan, not inside it, so re-reading the map's borders replaces the shapes and
-  leaves your corrections standing.
-- **Region colours come from Shadowdark Extras itself when it is installed.**
-  The palette used to be a copy of Extras' zone colours, which meant a restyle
-  there drifted silently apart from the map here. Extras now offers the list
-  directly and the overlay reads it, falling back to the built-in copy only
-  when Extras is absent or its hex feature is off.
-- **Regions are coloured like a map, not by name.** The region overlay takes
-  Shadowdark Extras' own zone palette, so a region here and the same region
-  given a zone colour in an Extras hex record look alike, and it assigns those
-  colours the way an atlas does: **no two regions that touch can share one**.
-  Colours are spread across the palette rather than reused as sparingly as
-  possible, so fifteen regions get fifteen colours instead of the four a
-  textbook map-colouring would settle for.
-- **Two more ways to look at a tagged map.** The Hex Tagger's header now offers
-  **Regions** and **Encounter zones** beside Show tags, and they switch between
-  each other rather than making you close one to open the next. Regions paints
-  every hex in its region's colour — the fastest way to check the border scan,
-  since a region that leaked into its neighbour shows up as a stain at the
-  whole-map zoom. Encounter zones answers a different question: would a
-  wandering check on this hex find a table? Green rolls, amber is stuck between
-  two of the book's columns because it split that terrain by a time of day, a
-  moon phase or a compass half that the map cannot say, and grey has no
-  encounter grid imported for that region. Hovering an amber hex names the two
-  columns it is torn between. It reads the tables you actually imported and
-  matches their printed column labels to your hexes' terrain, so nothing needs
-  setting up per map and it improves as you import more of the book.
-- **The map scan now reads the region borders too.** A hexcrawl map draws its
-  region borders as a thick line along hex edges, against the thin line every
-  other edge gets — so **Hex map from image** now reads the edges as well as
-  the cells, and the enclosures those borders make are the regions. It happens
-  without being asked, while the map is being set up, and costs nothing: the
-  cell pictures it needs were already read for the terrain legend, and the
-  whole pass takes well under a second. Your hex key then names each enclosure,
-  so once a book's key locations are imported **every hex on the map knows its
-  region**, not just the keyed ones. On the Game Master's Guide to the Western
-  Reaches it finds 84 enclosures and not one of them holds keyed hexes from two
-  different regions, which is the check that says no border was missed. Pieces
-  the borders carve off with no keyed hex in them — the ring a coastline or a
-  lake draws — fall back to the nearest keyed hex. If two regions do run
-  together you are told, with the count, rather than quietly given a wrong
-  answer.
-- **Which region is a hex in?** A keyed-location table names a region on every
-  row, so once a book's key locations are filed the module knows the region of
-  every keyed hex — and now answers for the hexes between them as well, by
-  taking the region of the nearest keyed hex:
-  `game.shadowdarkEnhancer.hexMaps.regionOf(1403)`. Every answer says which
-  kind it is: `exact` is the book's own word, anything else is the guess with
-  the distance it was made from. On the Game Master's Guide to the Western
-  Reaches it gets about 84% of them right, measured by holding out each of the
-  book's 270 keyed locations in turn and answering it from the other 269. The
-  misses are border hexes and the open sea, which is 984 hexes with only 14
-  keyed locations in it. Near a border, trust the printed map. No region shapes
-  ship with the module — they are the publisher's map.
-- **The Game Master's Guide to the Western Reaches.** The book is now its own
-  source (Tools → Source PDFs), with **103 rows** covering its roll tables:
-  every region's rumors, encounter-zone and encounter grids and points of
-  interest, the six terrain d100s, Rumors in the Reaches, the Trouble in…
-  tables, Tal-Yool and the City of Masks, all 21 trainer benefit tables, and
-  Wendel Types. A grid row imports as one table per printed column, so one
-  press gives you the whole page — 198 tables from the 103 rows. Its bestiary
-  (pp. 284–309, 90 statblocks) imports as its own Monsters row.
-- **Reprints import from whichever book you own.** Content printed in two books
-  is one row carrying both citations: it grabs from whichever PDF is linked and
-  counts as imported whichever book it came from. A dual-source class no longer
-  demands the Western Reaches PDF when you only own the zine. Verified pair by
-  pair against the books — tables that merely look alike (the two carousing
-  sets, Pit Fighter's talents) stay separate, because their text differs.
-- **Curated token art now follows a reprint.** The two Western Reaches volumes
-  inherit the reviewed art of the Cursed Scroll that first printed a creature,
-  when every reviewed row for that name agrees on the image: 56 of the GM
-  Guide's 90 monsters, plus the Player's Guide's donkey, silver camel and the
-  two scrags, which had none.
-- **Token art for the GM Guide's own monsters.** Twelve creatures that print in
-  the Game Master's Guide first — nothing to inherit — now ship reviewed art:
-  Badgerling, Crabling, Elder Sister, Hag Swamp, Hell Toad, Knight of St. Ydris,
-  Kyzian, Little Sister, Marsh Fog, Sister Marjory, Swashbuckler and
-  Thunderbird. Each was picked from the statblock rather than the name, which is
-  why automatic matching had left them blank: a Badgerling is a halfling in a
-  badger-skin cloak, a Kyzian a horse-riding steppe archer, a Crabling an
-  amphibious humanoid. Stone Shaman, Death Slug and Wendel stay deliberately
-  unpicked — no installed pack has art that is honestly theirs.
+  target's STR, with the amount rolled in chat. A rider behind a save (*DC 12
+  CON or 1d4 STR damage*) asks the character's player to roll the save and
+  applies only on a failure. Works without Shadowdark Extras. (#183)
 
-- **Reviewed creature types follow a reprint too.** A creature the GM Guide
-  reprints takes the type already reviewed under the Cursed Scroll that printed
-  it first, as long as every book recording that name agrees; where two books
-  disagreed it stays unset and you decide. Only the 33 creatures the GM Guide
-  introduces needed a type of their own.
+#### Quests and training
+
+- **A Quest Log.** Press **Alt+Q**, or **Quest Log** at the foot of the
+  Journal sidebar. Each quest is a journal entry in a *Quests* folder, with a
+  page your players can read and a GM notes page they can't. Quests are
+  Hidden, Available, Active, Completed or Failed, and come from you, a rumor,
+  a trouble or a trainer. Give one objectives to tick off and rewards: XP,
+  renown, items dragged onto it, a training benefit. Marking it Completed asks
+  you to confirm who gets what, then pays it once: XP through Party XP, renown
+  through the ledger, items onto the sheets you pick. A quest can be personal
+  to characters, assigned to a Shadowdark Extras party, and jump to its hex's
+  map pin. Players get the log read-only. See *Quest Log*. (#189)
+- **Regional Training.** The Crawl Bar's **Forge & Loot** menu → **Regional
+  Training** opens the Western Reaches' 21 trainers, grouped by region. Pick a
+  character and a trainer, see the four benefits with those already taught
+  struck through, and roll the trainer's d4. The benefit lands on the
+  character as a Talent. Effects and one-time actions (permanent HP, renown
+  through the ledger, an ability reroll, a granted item) are applied where the
+  module can; otherwise the Talent carries the book's own line. "Once each" is
+  enforced from the character's Talents. **Add to Quest Log** turns a
+  trainer's task into a quest, and completing it offers to open Training on
+  that trainer for the roll. The trainers import as journal entries from your
+  own GM Guide PDF.
+
+#### Importing from your books
+
+- **The Game Master's Guide to the Western Reaches.** The book is now its own
+  source (Tools → Source PDFs), with 103 rows covering its roll tables: every
+  region's rumors, encounter-zone and encounter grids and points of interest,
+  the six terrain d100s, Rumors in the Reaches, the Trouble in… tables,
+  Tal-Yool and the City of Masks, all 21 trainer benefit tables, and Wendel
+  Types. A grid row imports as one table per printed column, so one press
+  gives you the whole page: 198 tables from the 103 rows. Its bestiary
+  (pp. 284–309, 90 statblocks) imports as its own Monsters row.
+- **Reprints import from whichever book you own.** Content printed in two
+  books is one row carrying both citations. It grabs from whichever PDF is
+  linked and counts as imported whichever book it came from, so a dual-source
+  class no longer demands the Western Reaches PDF when you only own the zine.
+  A reprinted creature also takes the token art and creature type already
+  reviewed under the Cursed Scroll that printed it first, where every book
+  agrees: 56 of the GM Guide's 90 monsters get their art that way. Twelve that
+  print in the GM Guide first now ship reviewed art of their own, from
+  Badgerling to Thunderbird.
+- **Chapter to journal.** Importer Hub → Tools → **Chapter to journal** turns
+  any range of printed pages from a linked PDF into one readable journal,
+  split into pages at the book's headings, with its paragraphs rejoined and
+  page numbers dropped. You see the pages before anything is written. Running
+  it again updates the journal in place and keeps pages you added. Presets do
+  the Western Reaches City-States (GM Guide pp. 16–27, each city linked both
+  ways with its key-location hex page) and the City of Masks holidays
+  (Cursed Scroll 6, pp. 46–47). A `holidays` API gives each holiday's place,
+  the day it falls, its carousing effects and its garb questions, for
+  Shadowdark Extras' carousing window. Maytide, the Duke's Ball and the Night
+  of St. Anton fall on May 1, June 21 and September 22 of the world calendar,
+  and Lastmoon on the year's last full moon. (#191, #194)
+- **Type of Trouble rolls its nested table.** Every row of the GM Guide's
+  Type of Trouble (p. 49) prints a second roll, and rolling the table used to
+  hand you that whole list. Importing it now also creates one table per row,
+  on the die the row prints, named after it ("Type of Trouble: Monster
+  horde") and filed beside it. One roll posts the type and a result from its
+  table. If your world already has Type of Trouble, import it again and
+  choose **Replace**. (#188)
+- **Caught in Danger!, and Random ancestry by population.** The importer knows
+  the GM Guide's *Caught in Danger!* (p. 33) and the Player's Guide's
+  *Ancestry (Population)* d100 (p. 14). A new Character Builder setting,
+  **Random ancestry table**, takes a roll table. When one is set, the Ancestry
+  step's Random rolls it and picks the ancestry the result names, so random
+  characters follow the setting's population odds. If the result matches no
+  ancestry in the world you're told, and Random falls back to each ancestry's
+  weight. (#187)
+- **You're told when an update gives you something new to import.** When the
+  module version changes, the active GM is asked once whether they want to
+  see what's new. **Show me** opens the Importer Hub with the new rows
+  filtered. The Manage tree gains a **New (N)** filter and a **new** tag on
+  each row you haven't imported, so **Not now** leaves them there for later. A
+  world importing for the first time is told nothing.
+
+#### And the rest
+
+- **Encounter check frequency.** Right-click the Crawl Bar's **Encounter**
+  button: **Check Frequency** runs from **1** (every crawl round, the default)
+  to **10**. The count runs from the last check, automatic or manual, so a
+  change mid-crawl takes effect from where you stand. The manual **Encounter
+  Check** still rolls whenever you click it and restarts the count. API:
+  `api.encounter.getCheckFrequency()` / `setCheckFrequency(n)`. (#171)
+- **The module notices when your browser is running an old build.** After an
+  update a browser can keep running the previous version's code with no sign
+  of it. When a GM loads a world on a stale build, the module says so and
+  offers **Reload now**, which replaces every cached script of the module,
+  including the lazily loaded ones a plain reload would leave stale.
+
 ### Changed
+
 - **Foundry 14 is now the minimum.** The module no longer lists Foundry 13 as
   supported, matching Shadowdark Extras, which already needs 14.
+- **Preventing luck rerolls on natural 1s is now off by default, and lives in
+  Modes of Play** as Hard Luck's *No luck rerolls on critical failures*. A
+  world that ever saved this setting keeps its choice. A world that never did
+  stops blocking luck rerolls of natural 1s until a GM switches it on under
+  **Modes of Play → Hard Luck**. (#178)
+- **Imported roll tables file by the book's own sections, not one pile per
+  book.** The pack folders now follow the list you picked the tables from:
+  `Roll Tables → Western Reaches GM Guide → Bastion Mountains` holds that
+  region's encounters, encounter zone, rumors and points of interest, and
+  `→ Training` holds all 21 trainer benefit tables. The same holds for every
+  region across the seven books. A section heading no longer makes a
+  top-level folder of its own, every book's `Rumors` and `Random Encounters`
+  no longer file under **Core Rulebook**, and the pit-fighting suite is one
+  folder again. Tables already in your pack keep their folder; re-import a
+  book to re-file it.
+- **Enhancer reads Shadowdark Extras through Extras' own calls.** **Send to
+  Extras** reads what Extras already holds for a map through `getHexRecords`,
+  and the Quest Log lists parties through `api.party`, instead of reading
+  Extras' stored data directly. An older Extras still works as before. (#226)
+
 ### Fixed
-- **Adding a training task to the Quest Log is easier to find.** The button
-  now reads **Add to Quest Log** and shows before a character is chosen,
-  greyed out with a hint to pick the character first. It used to appear only
-  once a character was chosen. The Quest Log also opens with **Alt+Q**, not
-  Ctrl+Q, which quits the browser on Linux.
-- **Hex journal pages imported earlier now read as paragraphs.** The fix that
-  joins a PDF column's lines back into paragraphs only ran on import, so pages
-  filed before it kept one paragraph per printed line, and some still ended in
-  a page footer such as "pg. 245)". On a GM's next load they are rewritten in
-  place: the Journals compendium and the crawl journals placed in the world
-  alike, links kept. A page you have formatted yourself is left alone. One limit:
-  where the old import dropped a blank line between two paragraphs, they come
-  back as one; importing the key locations again restores the break. Text
-  already sent to Shadowdark Extras updates the next time you send it.
+
 - **A book your host won't let you upload can now be linked where it lies.**
   A PDF refused as "too large" is stopped by the web server or proxy in front
-  of Foundry, not by Foundry — and the importer took the refusal as a success:
-  it linked the book to a file that was never written, so the library showed it
-  as linked and every Grab failed later for no visible reason. A refused upload
-  now says so and links nothing, and Tools → Source PDFs has a second button,
-  **Link a file on the server**: put the PDF in your Foundry data folder by any
-  route you like and point at it — no upload, same link. The library also
-  checks the file behind every linked book now instead of trusting the
-  registration, so a bad link from an older version corrects itself; a book in
-  a host's asset library (The Forge, S3) is still taken on trust, since the
-  browser cannot check it.
-- **The god prayer generators refused every hand-typed paste.** The eight
-  Western Reaches prayer tables were reconstructed from the column positions on
-  the page, which only survive a **Grab text** pull from a linked PDF — text
-  copied out of a PDF viewer arrives with each row glued onto one line, so the
-  shape found nothing and the generic parser shredded the page into six
-  single-word tables. A paste with no column spacing left is now rebuilt from
-  the rows themselves (Detail 1 ends at the first comma, Detail 3 after the last
-  "shall"/"will"), and a `|` typed between the cells works too. The rebuilt
-  table carries a warning to check it against the book, and a paste that genuinely
-  cannot be split — every Detail 1, then every Detail 2, then every Detail 3 —
-  is still refused rather than committed half-read.
-- **A shape that didn't match the paste failed in silence.** The Hub only showed
-  its "verify this before Create" blocker when the fallback parse still produced
-  a table to hang it on, so a total miss looked like nothing happening. It now
-  says so, and says what to do: pull the page with **Grab text**, or paste the
-  rows with their spacing intact.
-- **A hex key printed without blank lines lost all but its first entry.** Books
-  run their keyed locations together — a heading, its prose, then the next
-  heading — and the parser split hexes on blank lines only, so a page grabbed
-  from a PDF arrived as one hex whose body held every other entry's text. Each
-  block is now split at every `643. ROCK EATERS` heading first. The rule is
-  deliberately narrow (three or four digits, a period, an ALL-CAPS title), so
-  summary-table rows, prose opening on a page cite and short numbered lists are
-  untouched. On a real book this took one region's three pages from 3 parsed
-  hexes to 11.
-- **A keyed hex lost its river or coast when the book printed it first.** The
-  keyed-location table names the terrain and then whatever runs through it
-  ("Jungle, path"), but a hex with nothing else to say about the ground is
-  printed as just "Coast" or "River" — and only the words after the first were
-  read as overlays. 10 of the Game Master's Guide's 270 keyed hexes lost their
-  overlay outright (4 rivers, 6 coasts); the tagger now reads all of them,
-  taking the book's keyed hexes from 21 overlays to 33.
-- **The Hex Tagger's own tile art never reached the dataset** when a hex key
-  was chosen. The tagger passed its art manifest on every hand-off, but the
-  crawl-entry path dropped the argument on the floor, so the painted scene came
-  out with art only when no crawl was selected.
-- **A book's own row numbers no longer sit in front of every result.** The GM
-  Guide's *d40 NPCs in the City of Masks* (p281) keys its forty rows 10-49,
-  because the book has you roll d4 for the tens and d10 for the ones. Foundry
-  rolls the table's own d40 and shows rows 1-40, so that key could never match
-  what you rolled — it read as a number attached to nothing. It is now dropped
-  at import, and only where the numbers prove they are a key column: at least
-  four rows, every one prefixed, and the numbers running consecutively. A
-  result that merely starts with a digit ("15 years in donjon") cannot satisfy
-  that, so nothing real is trimmed.
-- **Imported roll tables now file by region, not in one pile per book.** A
-  book's own sub-heading is what the Roll Tables catalog has always grouped its
-  browse list by — a region through the hexcrawl chapters, a topic elsewhere —
-  and the pack folders were the only surface ignoring it, so everything you
-  imported from a book landed in a single folder together. They now follow the
-  list you picked them from: `Roll Tables → Western Reaches GM Guide → Bastion
-  Mountains` holds that region's encounters, encounter zone, rumors and points
-  of interest side by side, and `→ Training` holds all 21 trainer benefit
-  tables. The same for `Djurum Desert`, `Tal-Yool Jungle`, `The Black River`
-  and every other region across the seven books. Grid columns land with the
-  region they were split from even though only the grid itself carries a
-  manifest id.
-  Two folder bugs fell out of it and are fixed too: a section heading no longer
-  claims a **top-level** folder of its own (the import stamped each one as if
-  you had typed a Custom… folder name, so "Djurum Desert" and "Training" sat
-  beside "Roll Tables" itself — a folder you actually type still wins), and
-  every book's `Rumors` and `Random Encounters` no longer file under **Core
-  Rulebook** because their bare names matched a Core group. The pit-fighting
-  suite is also whole again: its 18 grid columns had peeled off into Cursed
-  Scroll #2's own section while the other 12 tables sat under Gameplay.
-  The six terrain encounter tables the GM Guide prints over pp.54-65 — Arctic
-  Sea, Canyon, Lake, Lava, Path, Salt Flat — share one `Encounters` folder
-  instead of a folder apiece. The book heads each with its terrain, but they
-  are a list you pick a terrain from, not places, and a single-table folder per
-  terrain sat oddly among the eighteen real regions. Cursed Scroll #4's eight
-  keyed locations deliberately keep a folder each: every one of those tables is
-  named just "Random Encounters", so the location is the only label they have.
-  A table whose name simply begins with one of its book's section headings now
-  files under that section as a last resort. The suite recipes do not always
-  spell a table the way its manifest row does — the GM Guide's terrain grid is
-  "Tal-Yool Jungle Encounter Type **by Terrain**" in the manifest but
-  "Tal-Yool Jungle Encounter Type: Coast" on the imported document — which left
-  four of Tal-Yool's fifteen tables loose in the book folder while the other
-  eleven grouped. The match needs a word boundary, so a heading like "Lake"
-  cannot claim "Lakeside Ruins".
-  Tables already in your pack keep the folder and name they were imported
-  with — re-import a book to re-file it.
+  of Foundry, and the importer took the refusal as a success: it linked the
+  book to a file that was never written, and every Grab failed later. A
+  refused upload now says so and links nothing, and Tools → Source PDFs has a
+  second button, **Link a file on the server**: put the PDF in your Foundry
+  data folder by any route and point at it. The library also checks the file
+  behind every linked book, so a bad link from an older version corrects
+  itself. A book in a host's asset library (The Forge, S3) is still taken on
+  trust.
+- **Sideways pages import correctly.** 39 pages of the GM Guide draw their
+  text rotated, and the grab read them as stacked gibberish. It now reads them
+  upright. This also repairs about 25 pages in books you already own, most of
+  them in Cursed Scroll 4.
 - **Grid cells no longer borrow their neighbour's text.** Where a printed grid
-  set two cells barely more than a word-space apart, the grab read the boundary
-  as an ordinary space and the two cells came through welded — the Djurum
-  Desert's `Purple worm` / `The Scourge*` and Morzomotha's `People + Beast` /
-  `People + horror` both split in the wrong place. The row still covered every
-  die face and raised no warning, so nothing that counts rows could see it.
-  Boundaries are now read from the PDF's own item positions. This repairs the
-  same two rows in Cursed Scroll 2 and Cursed Scroll 5, which print them too.
-- **Footnote markers no longer end up inside a result.** The region encounter
-  grids key cells to a footnote, and the marker was read as part of the text —
-  54 cells across 48 tables imported as `Aquatic1`, `Beast1`, `Land1`, which is
-  neither the printed result nor the name of a routed encounter category. The
-  Master Hex Key's settlement sizes, which look identical, are kept.
-- **The Roll Tables catalogue can see what the Manage tree imported.** Manage
-  names every table `<Book> - <Name>`, and the catalogue's name matching never
-  knew that convention: a Western Reaches table kept its prefix and missed its
-  row, and a Cursed Scroll one normalized to nothing at all. Every Manage
-  import read "missing" there no matter how often it had been run.
-- **A grid row in the catalogue is judged by its columns.** A grid imports as
-  one table per printed column, so nothing is ever named after the row itself.
-  The catalogue listed all 35 GM Guide grids (and Cursed Scroll 3's Nord Names)
-  as missing forever, and importing one from there renamed its first column to
-  the grid and left the rest with no book and no folder, filed under Custom.
-  They now read imported when every column is present, partial when some are,
-  and an import from either surface produces the same tables.
-- **Sideways pages import correctly.** 39 pages of the GM Guide — every
-  region's encounter grids and points of interest, Tal-Yool and the City of
-  Masks — draw their text rotated, and the grab read them as stacked
-  gibberish. It now reads them upright, in either printing of the book. This
-  also repairs about 25 pages in the books you already own, most of them in
-  Cursed Scroll 4.
+  set two cells barely more than a word-space apart, they came through welded.
+  Cell boundaries are now read from the PDF's own item positions. This also
+  repairs rows in Cursed Scroll 2 and Cursed Scroll 5.
+- **An imported statblock keeps the book's own "or".** A creature that
+  attacks "1 shortsword +1 (1d6) **or** 1 spell +4" imported with an "and":
+  two attacks where the book offers a choice of one. It hit 35 of the GM
+  Guide's 90 monsters and every earlier import from a book that offers a
+  choice. A statblock re-saved from the Monster Creator still flattens to
+  "and", because the Shadowdark NPC schema has nowhere to keep the connector.
 - **A group heading no longer welds onto the monster beneath it.** Imports
-  produced "Sisters of St. Sofia Little Sister" and, in books that already
-  shipped, "Basilisk Cultists Stone Shaman" (CS4) and welded names in the Core
-  bestiary. The heading is skipped and the monster keeps its own name.
-- **An imported statblock keeps the book's own "or".** A creature that attacks
-  "1 shortsword +1 (1d6) **or** 1 spell +4" imported with an "and" — two attacks
-  where the book offers a choice of one, which is a rules error rather than a
-  wording one. It hit 35 of the GM Guide's 90 monsters and every earlier import
-  from a book that offers a choice. A statblock re-saved from the Monster
-  Creator still flattens to "and"; the Shadowdark NPC schema has nowhere to keep
-  the connector.
+  produced names like "Basilisk Cultists Stone Shaman" (Cursed Scroll 4) and
+  welded names in the Core bestiary. The monster keeps its own name.
+- **The god prayer generators accept a hand-typed paste.** The eight Western
+  Reaches prayer tables only parsed from a **Grab text** pull. A paste copied
+  out of a PDF viewer is now rebuilt from the rows themselves, and a `|` typed
+  between the cells works too. The rebuilt table carries a warning to check it
+  against the book.
+- **A shape that didn't match the paste no longer fails in silence.** The Hub
+  now says so, and says what to do: pull the page with **Grab text**, or paste
+  the rows with their spacing intact.
+- **The Roll Tables catalogue sees what the Manage tree imported.** Every
+  Manage import read "missing" there, however often it had been run. A grid
+  row is now judged by its columns, too: imported when every column is
+  present, partial when some are. Importing a grid from the catalogue no
+  longer renames its first column after the grid.
 - **A bestiary row no longer re-runs forever.** Whether a book's monsters are
-  present is now judged by name across every source, so a creature imported
-  from one book satisfies the other book's row instead of leaving it
-  permanently short and re-importing every time.
+  present is judged by name across every source, so a creature imported from
+  one book satisfies the other book's row.
 - **The batch no longer reports skipped documents as created.** A run over a
-  full library said "90 created" while creating nothing; it now says what it
+  full library said "90 created" while creating nothing. It now says what it
   skipped, on monsters, mounts, items, spells and boats alike.
-- **A page footnote or page number no longer becomes a table row.** Lines such
-  as `54 *New monsters, pg. 283` collided with a real face and broke the
-  two-page d100 encounter tables.
-- **Hex key pages.** A pasted hex key (numbered entries such as `1403 Thornmere`,
-  three or more in a run) now shows a **Hex key** strip in the Importer Hub.
-  **Create hex pages** files one journal page per hex into the Journals pack
-  under your source, in a journal entry named after the crawl. References to
-  other hexes in the same paste become links; re-pasting the same crawl updates
-  its pages in place. Phase 0 of the hex-map plan (#169).
-- **Keyed summary rows and the Extras hand-off.** A pasted keyed-location
-  table (number, region, terrain, name) is recognised alongside the hex
-  entries, kept out of the page parser, and filed on the crawl's journal
-  entry at commit. After a commit the hub offers **Download dataset** (or
-  **Send to Extras** once Shadowdark Extras exposes its hexcrawl builder):
-  the crawl's keyed hexes, terrain regions and river/road networks as one JSON
-  dataset, built from your own book text. Phase 1 of the hex-map plan (#169).
-- **Hex Tagger.** Importer Hub → Tools → **Hex tagger** (or
-  `game.shadowdarkEnhancer.hexMaps.openTagger()`) opens a contact sheet over
-  the active hex scene's background: 40 cells at a time with a terrain select
-  and river/path/coast boxes. One anchor cell whose printed number you read off
-  its thumbnail numbers the whole map, so the scene's grid parity never has to
-  match the print. Tags are stored on the scene and fold into the dataset with
-  the filed crawl's keyed hexes. Flat-top column grids only for now. Phase 2 of
-  the hex-map plan (#169); API 1.5.0 adds the `hexMaps` namespace.
-- **A table per terrain for encounter checks.** With a hex map tagged by the
-  Hex Tagger, the Encounter right-click menu gains **Tables by terrain**: one
-  roll table per terrain on the scene. The check reads the hex the party's
-  tokens stand in, rolls that terrain's table, and names the hex and terrain on
-  the chat card. Terrain with no table of its own, a scene with no tags and a
-  party off the map all fall back to the single active table, so nothing
-  changes for a game that does not use hex maps. Phase 6 of the hex-map plan
-  (#169).
-- **The Hex Tagger is the size of what it is showing.** It opened as a fixed
-  780-pixel box that was mostly empty black on any scene without a sheet up;
-  its height follows its content now (a numbered but unsampled scene is a
-  header and one line), and a full sheet scrolls inside the window rather than
-  making it taller than the screen. **More** is a proper panel under its button
-  instead of a row of buttons that broke the header apart.
-- **"Sample scene" is now "Read the map".** The word sampling was doing two
-  jobs — reading the image, and the examples the classifier learns from — and
-  only one of them is a button. The tooltips and messages say which of the
-  three steps each control is: reading the map takes a picture of every hex and
-  decides nothing, the Legend names groups of look-alikes, and Classify spreads
-  your own hand tags over everything you have not touched.
-- **Classify is where you left it.** The sampled cells are kept per scene for
-  as long as the page is open, so closing the Hex Tagger and opening it again
-  no longer hides **Legend**, **Next sheet** and **Classify** behind another
-  read of the image. **Classify** also samples the scene itself when it has to,
-  so it works from a cold open.
-- **The initial scan is kept and scored.** The first classification of a map is
-  written down as it was — only the hexes the module guessed, not the ones your
-  legend cards named — and never overwritten. As you review, the tagger reports
-  how much of it was right: what that map would have been worth to somebody who
-  corrected nothing.
-- **The Legend checks its own names.** A card that looks far more like the
-  cards you gave a different name to is questioned before Apply writes
-  anything — a card named jungle should look like your other jungle cards. The
-  bar is set where false alarms stopped on a correctly named map, and the slip
-  it was built for showed at 53 times over.
-- **A run-off when two terrains are tied.** When the nearest-example match and
-  the runner-up are within 1.3× of each other, those two alone are compared
-  again on a feature that ignores where the ink sits — which is what tells
-  ocean from arctic sea. Worth a third of a point on a verified map; wider
-  thresholds measured worse, because a second opinion is only useful where the
-  first one was a coin toss.
-- **A better first run, measured.** The Legend's card count and core size were
-  calibrated against a hand-verified map by simulating a whole first run — no
-  tags of the user's, just the module and its 48 answers — which took that map
-  from 92.3% to 93.9%. The new `hexMaps.benchmark()` (developer tools) is that
-  measurement, so any future change to the clustering, the feature or the
-  thresholds can be judged on what a first-time user would actually get.
-- **Classify ends with a neighbour pass.** Terrain comes in regions and the
-  classifier judges each hex alone, so its mistakes are lone cells inside
-  patches that disagree with them. A hex whose five of six neighbours agree on
-  something else now takes their answer; hand tags are never overruled. Worth
-  about two points on every map, including one nobody has ever tagged.
-- **Your corrections carry to the next attempt.** **More → Start from a map you
-  have done** brings every hand tag from another scene of the same print into
-  this one as hand tags, leaving anything you have already tagged here alone.
-  They then become Classify's examples, so a second go at a map starts from
-  everything you decided the first time instead of from nothing.
-- **Legend and Classify are always reachable.** Both read the map themselves
-  when they need to, so they no longer vanish from the header after a reload,
-  when the in-page pictures are gone. Only the controls that work on those
-  pictures — the sheet and the sensitivity — wait for them.
-- **The review sheet says what it wants.** Its button is **Confirm these N**
-  now, not "Apply sheet": it accepts every hex on the sheet, the ones you
-  changed and the ones you left, which is how you tell the module it got one
-  right. **Show me others** confirms nothing.
-- **The things the book keys are in the terrain list**: village, town, city,
-  city state and keyed location, on the Legend's cards and on every hex. They
-  had to be typed as free text before.
-- **A Legend card can be told it is wrong.** "These are not all the same"
-  breaks that one card into smaller ones to name, keeping every other answer.
-  The river, path and coast boxes are gone from the cards — the classifier
-  finds those cell by cell, and ticking them only stamped a dozen cells with
-  whatever the pictures happened to show.
-- **The grid-found screen says what its marks mean.** The dots on the overview
-  are hex centres the detector found, one per fortieth cell — they were red,
-  which reads as a fault. They are the same blue as the corner outlines now,
-  the screen leads with what to do, and it says that clicking the overview
-  opens the print on its own with no marks on it.
-- **The Legend says what to name.** A card whose pictures differ — a mountain,
-  a mountain with a river, a mountain with a road — is named for what they have
-  in common, and the river/path/coast boxes are only for a card where every
-  picture has one.
-- **A Legend card that holds two things now shows both.** Its pictures were the
-  members nearest the card's centre, so a card whose cells were two different
-  terrains looked like one — on a real map a card of 147 cells was 70% arctic
-  sea with every picture drawn from its ocean third, and naming it cost 111
-  wrong hexes. The pictures are now one per group *within* the card, so the
-  minority is visible and a stray cell never takes more than one of them.
-- **`hexMaps.score()`** (developer tools) measures the model against the hexes
-  you tagged yourself: leave-one-out accuracy for the classifier, and how pure
-  the Legend's cards are, naming every mixed card and the terrains its core
-  misses. It reads only your own tags and ships no data.
-- **The brush confirms as well as corrects.** A hex that already says what the
-  brush says now takes the stroke when the classifier is the one who said it:
-  it leaves the review queue and is recorded as a confirmation, so a patch the
-  classifier got right is cleared by the same drag that fixes one it got wrong.
-  **Undo last stroke** shows how many hexes it would put back (it was disabled
-  after the first render and never re-enabled, so it did nothing when pressed),
-  and the one-hex editor moves to the hex you click instead of stacking.
-- **The hex brush.** **Brush** in the Hex Tagger's header (or
-  `game.shadowdarkEnhancer.hexMaps.brush()`) sets one terrain plus river, path
-  and coast, and then clicking or dragging across the tag overlay retags whole
-  patches at once. A stroke is one change to the scene however many hexes it
-  covers, **Undo last stroke** puts them all back as they were, and every hex
-  painted over a classifier tag counts as a correction. Phase 6 of the hex-map
-  plan (#169).
-- **The print's frame is no longer tagged.** The columns that sit higher have
-  their first row cut in half by the map's frame — on prints like the Western
-  Reaches that half cell holds the column label and no terrain, and the
-  classifier was guessing at it and queueing all 32 of them for review. Those
-  cells are not numbered now: **Hex map from image** sets it, and the tagger's
-  **More** has a **top row is frame** box for a map already tagged or a print
-  whose first row really is map. Phase 6 of the hex-map plan (#169).
-- **Corrections are kept as evidence.** Every time you judge a cell the
-  classifier tagged — on a review sheet or by clicking it on the map — what it
-  guessed, its margin and whether it had been flagged are recorded on the
-  scene, and so is leaving a guess alone. The tagger reports what your own
-  corrections say: how many were wrong, what share of them the review queue
-  actually catches, and the margin that would catch 90%, with a button to take
-  it. The review margin is now a per-map setting rather than a fixed 1.3.
-- **Fixed: writing one of this module's flags could delete its others.**
-  `recursive: false` on a flag path is not scoped to that path — Foundry
-  replaces the whole namespace — so a second flag beside the hex tags destroyed
-  them. Every flag write goes through a delete-then-set helper now
-  (`scripts/shared/module-flags.mjs`).
-- **Review the tags on the map.** **Show tags** in the Hex Tagger's header (or
-  `game.shadowdarkEnhancer.hexMaps.showTags()`) draws every numbered hex on the
-  scene in its terrain's colour, a dot for river, path and coast, and an amber
-  ring inside the cells the classifier was unsure of. Hovering names a hex and
-  says how it was tagged; clicking one edits its terrain and overlays in place.
-  Tokens and notes keep their clicks and the map still pans. Phase 6 of the
-  hex-map plan (#169).
-- **Classify.** With a sheet or two tagged by hand, the Hex Tagger classifies
-  every other cell on a stamped map: terrain from the nearest tagged example,
-  river or path from the ink left after subtracting that terrain's stamp.
-  Unsure cells go to the Review queue, keyed hexes are left to the book's text,
-  and hand-drawn maps get a warning. Phase 3 of the hex-map plan (#169).
-- **Hex tag side doors and the reference tile.** The Hex Tagger gains
-  **Import** (a CSV with `hex_id` and `tags` columns, or a JSON exported by the
-  tagger or a hexcrawl dataset), **Export** (the scene's tags as JSON) and
-  **Reference tile**, which puts the map image on another hex-columns scene as
-  a hidden, locked, half-transparent tile scaled so the print's hex field
-  covers that scene's first columns × rows cells, for tracing rivers and roads
-  over painted terrain. **Send to Extras** places the tile on the built scene
-  by itself once Extras exposes its builder. Phase 4 of the hex-map plan
-  (#169).
-
-- **Hex map from image.** Importer Hub → Tools → **Hex map from image**: pick
-  the map file and the module finds the printed hex grid on its own (pitch,
-  origin, lowered columns, columns × rows), shows it over a thumbnail to
-  confirm, copies the image into the world's `hex-maps` folder, creates a
-  scene whose grid sits on the print, and opens the Hex Tagger with the
-  anchor and map size set. Replaces the hand alignment, anchor and map-size
-  steps for printed maps. (#169)
-- **The legend.** The Hex Tagger's **Legend** button (pressed for you after
-  **Hex map from image**) groups every cell by its glyph and shows one card
-  per group, biggest first, with a few member pictures and a terrain select.
-  Name the pictures you recognise, skip the rest, and **Apply legend** tags
-  the core of each named group by hand and classifies everything else from
-  those, so the first sheets of hand tagging are gone: on the Western Reaches
-  print, 32 cards instead of 120 sheets. The detector also reports when a
-  print's lowered columns end one row short (the Western Reaches does), so
-  the half cells under the frame that hold the column labels are no longer
-  served for tagging. The **Hex grid found** window is resizable, keeps the
-  print at full height beside the fields, checks the four corners itself by
-  the detector's rules and says whether the grid landed (naming the corner
-  when it did not), shows those corners at print resolution with the detected
-  hex outlined as the proof, and opens the full image in a new tab on a
-  click. Legend cards carry river, path and coast boxes for a
-  card whose every picture shows one. Once the map is tagged the tagger says
-  so and that review is optional; the rarely used buttons sit under
-  **More**. (#169)
-- **Keyed locations on the map.** After **Create hex pages**, the Importer
-  Hub offers **Pin on [scene]** for the hex scene you are viewing, and the
-  Hex Tagger's header has **Pin keyed hexes**: one map note per keyed hex on
-  its printed hex, labelled with the page name, a house, city or castle for
-  settlements from the keyed table, opening the hex's journal page. The
-  crawl's journal is copied into the world for that (Foundry notes cannot
-  point at compendium pages), ids kept and cross-links rewritten; pinning
-  again moves the notes instead of adding more. The Hex Maps page now leads
-  with this three-step flow: the print as the scene, the keyed locations on
-  it, and the terrain as the optional third step. (#169)
-- **Maps numbered from 0 reach Extras.** The dataset carries `grid.origin: 0`
-  when the map's own first column and row are 0 (the Western Reaches: hex
-  0000 exists) and `grid.rowsLowered` when the lowered columns end a row
-  short, per Extras' updated contract (shadowdark-extras#145); a compact
-  dataset imported through the tagger's side door is expanded under the same
-  numbering. Grid counts for an entry-only dataset now count from the
-  contract's origin instead of one column and row too many. (#169)
-- **Encounter check frequency.** How often the crawl round rolls its automatic
-  encounter check is now yours to set. Right-click the **Encounter** button on
-  the Crawl Bar: **Check Frequency** offers **1** (every crawl round — the
-  default, unchanged) through **10**, and a check then lands that many rounds
-  after the previous one. The count is from the last check, automatic or
-  manual, so a mid-crawl change takes effect from where you stand (switch 3 to
-  5 three rounds after the last check and the next lands on round 8, not 5).
-  The header reads the current setting back (`every 3 rounds`) and each
-  number's tooltip says the same; the round counter itself advances either
-  way. The manual **Encounter Check** in the same menu still rolls whenever you
-  click it, and restarts the count. API:
-  `api.encounter.getCheckFrequency()` / `setCheckFrequency(n)`. (#171)
-
-### Changed
-- **Preventing luck rerolls on natural 1s is now off by default, and lives in
-  Modes of Play** as *No luck rerolls on critical failures*. It is Hard Luck's first rule. A world that ever saved this
-  setting keeps its choice; a world that never did stops blocking luck
-  rerolls of natural 1s until a GM switches it on under **Modes of Play →
-  Hard Luck**. (#178)
-- **Water is read the way the map's legend draws it.** The legend key printed on
-  the Western Reaches map states the symbols outright: river is one wave stroke,
-  lake two, ocean three, arctic sea three with a small mark above them. Block
-  means cannot see that — two waves and three differ by a few percent of a
-  cell's ink and agree everywhere else — which is why lake, ocean and arctic sea
-  were the worst confusion on the map through eight passes. Once the classifier
-  has decided a hex is water, the strokes now decide which water. Nothing about
-  this map is hard-coded: each terrain's stroke count and mark are learned from
-  your own examples, and if they do not separate, the arbiter stands aside.
-  Measured on a 4768-hex verified map two ways: re-deciding a real run offline,
-  178 errors to 94 and water 89.6% to 98.1%, 126 hexes moved with 84 fixed and
-  none broken; and through the module's own first-run benchmark, where turning
-  it off costs **35 errors** and drops water from **96.7% to 93.7%**. It is the
-  largest single gain in the classifier. (#169)
-
-- **A hex is classified by the seven nearest examples, not the single nearest.**
-  The examples come from the legend: the members of each card nearest its
-  centre, all given the one name you chose for that card. A card is not pure,
-  so some of those names are wrong — measured on a hand-verified map, **180 of
-  1678 (10.7%)**, and **135 of the 225 errors on the remaining hexes, 60% of
-  them, were hexes whose single nearest example was one of the mislabelled
-  ones**. Nothing at runtime can tell which examples are wrong; there is no
-  answer key. But a wrong example is outnumbered by the correct ones around it,
-  so a vote survives what one nearest neighbour cannot: errors fall from
-  167/144/149 to 143/131/143 across three clusterings in an offline harness.
-  Measured through the module's own first-run benchmark, however, it changes
-  nothing at all — 263 errors either way — so it is kept as insurance against
-  mislabelled examples rather than for a gain anyone should quote. Each terrain
-  is judged on the share of the votes it could have cast, so a terrain with two
-  examples is not buried by one with forty. The confidence figure behind the
-  review queue is unchanged. (#169)
-
-- **The neighbour pass no longer drowns the coast.** Smoothing lets a hex be
-  overruled by its neighbours, which is right almost everywhere and wrong at a
-  shoreline: a sea hex has five or six sea neighbours, so the coastal forest
-  facing it loses a vote decided by the shape of the coast rather than by
-  anything about the hex. It now refuses to move land into water, one direction
-  only — sea surrounded by land is still corrected. Measured on a 4768-hex
-  verified map: the same 13 fixes, five fewer breakages, and land wrongly left
-  sitting in the sea stops rising. Water accuracy is unchanged either way; the
-  whole effect is on land. (#169)
-
-- **A river with nothing wet beside it is flagged for review.** Rivers are
-  chains — a real one touches another river, a lake, a coast or the sea. A lone
-  river hex is the classifier reading desert stipple and a printed hex number as
-  a watercourse. Those hexes now ring on the map and go to the head of the review
-  queue ahead of every thin margin, and the hover says why. On the verified map
-  this catches **19 of 19** such hexes, every one of them desert, and rings no
-  correct river. It only ever asks: on a map where a river chain really is one
-  hex long, the ring costs a glance and a wrong demotion would cost the hex. (#169)
-
-- **The review queue is ranked, not cut off.** It used to take every hex whose
-  margin fell under a threshold and shuffle them, so a hex four times likelier
-  to be wrong than its neighbour turned up in no particular order — and the
-  mistakes the classifier was confident about were never shown at all. Now every
-  hex it tagged is in the queue, least sure first, and the sheet says roughly how
-  many of its 40 to expect to be wrong so you know when to stop. Measured on a
-  4768-hex verified map: 200 reviewed hexes find 66 mistakes where the old
-  shuffled queue found about 40, and carrying on to 1000 finds 77% of them
-  against a hard ceiling of 46% before. The margin setting now does only what it
-  always visibly did — decide which hexes get a ring on the map. (#169)
-
-- **Every tagged hex now travels to Shadowdark Extras with its own terrain
-  word.** The dataset only ever carried a record for a hex that had a *name*,
-  so a map tagged by the Hex Tagger and never keyed sent none at all — terrain
-  reached Extras only as region lists, and those are painted from a much coarser
-  vocabulary. Measured on a real hand-off, Extras paints arctic sea, lake and
-  river all as ocean, salt flat as desert, jungle as forest and canyon as hills.
-  Extras' own hex record has a per-hex `terrain` field and never required a
-  name; we now fill it, so the hex you open in Extras says **arctic sea**
-  whatever the art under it turns out to be. (#169)
-
-- **The Hex Tagger only offers what you can actually use.** Every control was
-  on screen from the first moment, including the ones that had nothing to work
-  on — a fresh map showed **Send to Extras** with nothing to send, **Brush** and
-  **Show tags** with nothing tagged, and a **Hex key** picker with no book text
-  imported. On a newly numbered map the toolbar is now three things: **Legend**,
-  the sheet picker, and **More**. Each of the rest appears when it can do
-  something: Classify once you have tagged a hex by hand, the sheet picker while
-  there are hexes to tag or automatic ones to check, tags/brush/send once
-  anything is tagged, the hex key once you have imported one. Sensitivity was a
-  tuning knob standing among the steps, and has moved behind More. (#169)
-
-- **What you answered on the legend is written down.** Everything the module
-  recorded was an output — what the classifier guessed, what you corrected. The
-  input was never kept, so when a run came out badly there was no way to tell a
-  bad classifier from a card you had called the wrong thing, and finding one
-  meant forensics on a run that was already dead. Applying a legend now records
-  each card's size, the name you gave it and whether you opened it up, beside
-  the corrections on the scene, and the tagger says so on screen. The last five
-  passes are kept; older ones fall away so the record cannot grow without
-  bound.
-
-  Each card's own example hexes are kept with it, so a correction can be traced
-  back to the card that named it. A card whose examples you keep correcting is a
-  card named wrong — its name was written straight onto those hexes and onto
-  everything classified from them — and the tagger now says which one, instead
-  of leaving you to find it by hand after the run is over. (#169)
-
-- **"These are not all the same" now lets you answer the hexes there and then.**
-  It used to break the card into four smaller cards and ask again, so nothing
-  was applied and you went round once more. Choosing it opens that card the
-  moment you pick it — no Apply, no second pass. It opens up
-  in place, showing eight of its hexes spread across the card — not the eight
-  nearest its centre, which all look alike — each with its own answer. What you
-  tag becomes a hand tag on that hex alone, and the rest of the card is left to
-  the classifier, which is what a genuinely mixed card should get. Every other
-  card's answer is kept. (#169)
-
-- **The pictures you name a card from show the hex and nothing else.** They were
-  square crops drawn with a 20% margin of the surrounding map, so every picture
-  carried the neighbours' glyphs and their printed numbers — measured across 20
-  cells, **42% of the ink in a card picture was other hexes**. They are now
-  clipped to the same hexagon the classifier reads, so what you judge and what
-  it groups by are the same thing. A card named from a neighbour's tree is
-  exactly how a legend core ends up mislabelled. (#169)
-
-- **A hex is read as the inside of its hexagon, not the square around it.** The terrain
-  feature block-averaged each cell's bounding box, and a hexagon fills only 75%
-  of its box — so a quarter of every cell's description was its six
-  neighbours' ink: their glyphs, their printed numbers. The mask to cut that
-  out was already in the file and only the overlay path had ever used it.
-  Measured on a 4768-hex verified map, simulating a first run both ways: whole
-  map 91.4% to 92.6%, and the water 81.8% to 84.7%. Measured again through the
-  module's own first-run benchmark and averaged over four clusterings, the mask
-  is drawn a little INSIDE the hexagon rather than on its edge — 446 errors with
-  no mask, 347 at the full hexagon, **229 at 0.88** — because the printed
-  outline is shared with the six neighbours and at the vertices their glyphs
-  reach inside it. (#169)
-
-- **The module notices when your browser is running an old build.** Foundry
-  serves module scripts from unchanging URLs, so after an update a browser can
-  keep running the previous version's code indefinitely — no error, nothing in
-  the UI, just fixes that appear not to have worked. Each build now carries a
-  content hash of its scripts in two places: inside the bundle (cacheable) and
-  in `module.json` (fetched fresh). When a GM loads a world and the two differ,
-  the module says so and offers **Reload now**, which replaces the cached copy
-  of every installed script — including the lazily-loaded ones a plain reload
-  would leave stale — before reloading. `npm run inventory` stamps the hash and
-  `npm run inventory:check` fails a commit that forgot to. (#169)
-
-- **The hex dataset follows Extras' stable contract.** Terrain goes out as the
-  book's word (`salt flat`, not a biome key: Extras maps it to a painted biome
-  and keeps the label), hexes carry only `num`, `name`, `terrain`, `desc` and
-  `zone`, and the grid block has no extra keys. The settlement marker from a
-  summary table stays on the crawl entry. (#169)
+- **Page furniture no longer becomes table rows or result text.** A page
+  footnote or page number such as `54 *New monsters, pg. 283` no longer lands
+  as a row, and a footnote marker no longer ends up inside a result
+  (`Aquatic1`, `Beast1`). A book's printed row key is dropped where it can
+  never match what Foundry rolls: the d40 NPCs in the City of Masks key their
+  rows 10–49.
 
 ## [0.17.3] — 2026-09-16
 
