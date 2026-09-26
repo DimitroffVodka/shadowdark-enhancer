@@ -211,7 +211,7 @@ test("the world clock reads Foundry's hour and the time API's moon (#227)", () =
 
 const hooks = new Map();
 globalThis.Hooks = { on: (name, fn) => { if (!hooks.has(name)) hooks.set(name, []); hooks.get(name).push(fn); } };
-const fire = (name) => { for (const fn of hooks.get(name) ?? []) fn(); };
+const fire = (name, ...args) => { for (const fn of hooks.get(name) ?? []) fn(...args); };
 
 function world({ journalFails = false } = {}) {
   forgetHexZones();
@@ -267,7 +267,7 @@ test("a Myre Swamp hex on a new-moon night rolls the New Moon column (#227)", as
   assert.equal(await roll(NEW_MOON_NIGHT - 10 * 3600), "Compendium.world.sde-tables.MyreSwampSwampDay", "by day, no moon");
 });
 
-test("the regions are read once, and again after a crawl entry or scene changes", async () => {
+test("the regions are read once, and again after a crawl entry or the scene's own flags change", async () => {
   const w = world();
   await resolveHexTable({ num: 1510, terrain: "forest" }, { scene: w.scene });
   await resolveHexTable({ num: 3012, terrain: "ocean" }, { scene: w.scene });
@@ -275,9 +275,12 @@ test("the regions are read once, and again after a crawl entry or scene changes"
   fire("updateJournalEntry");
   await resolveHexTable({ num: 1510, terrain: "forest" }, { scene: w.scene });
   assert.equal(w.reads, 2);
-  fire("updateScene");
+  fire("updateScene", w.scene, { environment: { darknessLevel: 0.6 } });
   await resolveHexTable({ num: 1510, terrain: "forest" }, { scene: w.scene });
-  assert.equal(w.reads, 3);
+  assert.equal(w.reads, 2, "fog, darkness and weather writes keep the regions (#260)");
+  fire("updateScene", w.scene, { flags: { "shadowdark-enhancer": { hexRegionFixes: {} } } });
+  await resolveHexTable({ num: 1510, terrain: "forest" }, { scene: w.scene });
+  assert.equal(w.reads, 3, "a change to the module's scene flags reads them again");
 });
 
 test("tableForHex resolves to the table document", async () => {

@@ -395,9 +395,12 @@ export async function hexZonesFor(scene) {
   if (!hexZonesWatched && globalThis.Hooks?.on) {
     hexZonesWatched = true;
     // Crawl entries name the regions; a scene carries the scan, its fixes and its column shift.
-    for (const hook of ["createJournalEntry", "updateJournalEntry", "deleteJournalEntry", "createScene", "updateScene", "deleteScene"]) {
+    for (const hook of ["createJournalEntry", "updateJournalEntry", "deleteJournalEntry", "createScene", "deleteScene"]) {
       globalThis.Hooks.on(hook, forgetHexZones);
     }
+    // All three are this module's scene flags. Fog, darkness and weather writes, which
+    // Extras' hex fog and the sky make on most moves, leave the regions alone (#260).
+    globalThis.Hooks.on("updateScene", (scene, changed) => { if (changed?.flags?.[MODULE_ID]) forgetHexZones(); });
   }
   const { sceneZones, scanSceneFor } = await import("../hex-map/hex-region.mjs");
   const scan = scanSceneFor(scene);
