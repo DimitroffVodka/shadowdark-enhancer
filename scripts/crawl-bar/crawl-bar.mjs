@@ -134,7 +134,7 @@ export const CrawlBar = {
           <button class="sde-bar-btn" data-action="addSelectedTokens" title="Add selected tokens to the combat tracker">
             ${ICONS.addTokens} Add Tokens
           </button>
-          <button class="sde-bar-btn sde-bar-danger-btn" data-action="deleteEncounter" title="Delete the combat encounter without ending it">
+          <button class="sde-bar-btn sde-bar-danger-btn" data-action="deleteEncounter" title="${game.i18n.localize("SDE.crawlBar.deleteEncounterTip")}">
             ${ICONS.close} Delete Encounter
           </button>
         </div>`;

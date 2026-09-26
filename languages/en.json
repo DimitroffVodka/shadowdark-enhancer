@@ -85,6 +85,7 @@
   "SDE.crawlBar.nextRound": "Next Round",
   "SDE.crawlBar.deleteEncounterTitle": "Delete Encounter",
   "SDE.crawlBar.deleteEncounterConfirm": "Delete this combat encounter? The fight is thrown away: no Hunter XP, no loot drops and no Session Recap entry.",
+  "SDE.crawlBar.deleteEncounterTip": "End the encounter and throw the fight away: no Hunter XP, loot drops or Session Recap entry. End Encounter keeps them.",
   "SDE.crawlStrip.unknownAction": "Unknown action.",
   "SDE.crawlStrip.unknownCombatAction": "Unknown combat action.",
   "SDE.crawlStrip.luckTokenRegained": "{name} regained a luck token",
