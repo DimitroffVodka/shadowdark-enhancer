@@ -152,8 +152,10 @@
   record as features beside its terrain, so Extras' tooltip shows River, Path
   and Coast pills on the print. A forest with a river through it goes as
   forest with a river feature; a hex that is all river goes as river terrain
-  with no river feature; a keyed hex the book lists only as "Coast" no longer
-  goes with coast as its terrain. Sending again replaces those three and
+  with no river feature; a keyed hex the book lists only as "Coast" (or as
+  "Coast, river", a city at a river mouth) no longer goes with coast or river
+  as its terrain but with the land around it, and the same for an older tag
+  that holds coast or path where the terrain goes. Sending again replaces those three and
   nothing else, so a dungeon you added in Extras and what the players
   discovered stay; if the tagger cannot read what Extras holds, it sends no
   features and says so. Extras' Hex Editor turns them into "dungeon" on save

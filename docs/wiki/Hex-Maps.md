@@ -38,6 +38,16 @@ never mixed up. The word *river* is both, which is why this matters:
   encounter check listens to: in a region whose table prints a Coast column, a
   coastal hex rolls on it.
 - **Only terrain chooses an encounter column**, apart from that coast rule.
+- **A hex that names no ground.** An older tag, or an imported row of
+  features only, can hold *coast* or *path* where the terrain goes, and a
+  book's keyed row can say only "Coast, river" for a city at a river mouth.
+  Your tags are never rewritten; they are read this way each time: *river*
+  on its own is a river tile, but *river* beside *coast* or *path* is a river
+  running through land to the shore, so it is a feature, and the ground is
+  unknown. An unknown ground takes the land terrain most of the hex's six
+  neighbours have (water, settlements and keyed locations do not count; a tie
+  goes to the alphabetically first), so the same tags always give the same
+  answer. With no land neighbour, no terrain is sent at all.
 
 So a forest with a river through it is terrain *forest* with a *river*
 feature, and a hex that is all river is terrain *river* with no river

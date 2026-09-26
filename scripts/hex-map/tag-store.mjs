@@ -33,6 +33,7 @@
  */
 
 import { neighbours, onMap } from "./geometry.mjs";
+import { SETTLEMENTS } from "../importer/hex/hex-summary.mjs";
 
 export const STORE_VERSION = 1;
 export const FEATURES = ["river", "path", "coast"];
@@ -309,6 +310,10 @@ export function applySheet(state, answers) {
  * built scene and refuses a record outside it ("hex N is outside the published
  * grid"), which would surface as a failed hand-off AFTER the scene was built.
  * Dropping them here keeps that from ever leaving.
+ *
+ * Each cell goes out as readCell reads it, so a legacy "coast" terrain never
+ * leaves as a terrain; a cell whose ground nothing names goes with its
+ * features alone.
  */
 export function tagsForDataset(state) {
   const shifted = state?.origin?.shifted ?? "odd";
@@ -318,9 +323,63 @@ export function tagsForDataset(state) {
     if (!c?.terrain) continue;
     const n = parseInt(num, 10);
     if (!Number.isInteger(n) || !onMap(Math.floor(n / 100), n % 100, bounds, shifted)) continue;
-    out[String(num).padStart(3, "0")] = { terrain: c.terrain, features: [...new Set(c.features ?? [])] };
+    const { terrain, features } = readCell(state, n, c);
+    out[String(num).padStart(3, "0")] = terrain ? { terrain, features } : { features };
   }
   return out;
+}
+
+/**
+ * What a list of tags says about a hex, read the #196 way.
+ *
+ * The persisted store can hold a feature word where the terrain goes, and so
+ * can a book's Terrain column: an imported row of features only ("coast;river")
+ * keeps its first tag as the terrain (importTags), and the keyed row of a city
+ * at a river mouth prints "Coast, river". Read here, never migrated:
+ *   - the first land word is the terrain;
+ *   - failing that, sea, ocean, lake or arctic sea is, a water tile;
+ *   - "river" is a river tile only when nothing else says land: beside coast
+ *     or path it is a river running through land to the shore, a feature;
+ *   - coast and path are never terrain; with no land word the ground is
+ *     unknown (null), and readCell asks the neighbours.
+ * Order does not matter, so "coast;river" and "river;coast" read the same.
+ * @param {string[]} words  tags or a keyed row's terrain words
+ * @returns {{terrain:string|null, features:string[]}}  features in FEATURES order
+ */
+export function readTags(words) {
+  const w = (words ?? []).filter(Boolean);
+  const land = w.find((t) => !COASTAL_WATER.has(t) && !FEATURES.includes(t));
+  const ashore = w.includes("coast") || w.includes("path");
+  const tile = w.find((t) => COASTAL_WATER.has(t) && t !== "river") ?? (!ashore && w.includes("river") ? "river" : null);
+  const terrain = land ?? tile ?? null;
+  return { terrain, features: FEATURES.filter((f) => f !== terrain && w.includes(f)) };
+}
+
+/** What sits on a hex rather than the ground under it: never a neighbour's terrain. */
+const NOT_GROUND = new Set([...Object.values(SETTLEMENTS), "keyed_location"]);
+
+/**
+ * One stored cell read by readTags, the ground filled in from the hex's
+ * neighbours when nothing names it: the land terrain most of the six have
+ * (water, settlements and keyed locations do not count), ties to the
+ * alphabetically first, null when none has one. Only the neighbours' own
+ * words are read, so the answer depends on nothing but the tags and is the
+ * same on every send.
+ * @returns {{terrain:string|null, features:string[]}|null} null for an untagged cell
+ */
+export function readCell(state, num, cell = state?.cells?.get(String(num))) {
+  // `cell` is passed when the caller holds it under a key of its own ("001").
+  if (!cell?.terrain) return null;
+  const read = readTags([cell.terrain, ...(cell.features ?? [])]);
+  if (read.terrain) return read;
+  const n = Number(num), votes = new Map();
+  for (const { col, row } of neighbours(Math.floor(n / 100), n % 100, state.origin?.shifted ?? "odd")) {
+    const other = state.cells.get(String(col * 100 + row));
+    const t = other?.terrain ? readTags([other.terrain, ...(other.features ?? [])]).terrain : null;
+    if (t && !COASTAL_WATER.has(t) && !NOT_GROUND.has(t)) votes.set(t, (votes.get(t) ?? 0) + 1);
+  }
+  const ground = [...votes].sort((a, b) => (b[1] - a[1]) || a[0].localeCompare(b[0]))[0]?.[0] ?? null;
+  return { terrain: ground, features: read.features };
 }
 
 /** Counts for the header. */
