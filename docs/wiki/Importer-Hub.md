@@ -251,6 +251,35 @@ Game Master's Guide to the Western Reaches files 270 keyed hexes across 15
 regions this way. Run it again whenever you like: pages are matched by their
 hex number and updated in place, never duplicated.
 
+**Chapter to journal** turns a range of pages from a linked PDF into one
+journal you can read at the table. Pick the book, type the printed pages
+(`16-27`) and a name, then press **Preview**. You'll see the page names and a
+sample of each before anything is written. Press **Create** to file the journal
+in the Journals pack, in the book's folder.
+
+- **Pages** are split at the book's ALL-CAPS headings. Lines are rejoined into
+  paragraphs, words broken across lines are mended, and page numbers and page
+  titles are dropped.
+- **The preset** *Western Reaches GM Guide: the City-States* does it in one
+  click. That chapter prints a city's name as a large title rather than a
+  heading, so the preset gives each city-state its own page (City of Masks,
+  Alkesh, Stonehall, the Kyzian Tribes, Lydonia) plus the introduction before
+  them. The headings inside each city (Overview, History, Factions…) become
+  sub-headings.
+- **Key locations:** a page whose name matches an imported key location links
+  to that hex's page, and the hex page links back. If the crawl has been
+  pinned on a scene, the link goes to the world copy of the page, so its
+  **Jump to Pin** works. Import the key locations first to get these links.
+- **Running it again** on the same book and range updates the journal in
+  place. Pages you added yourself are left alone.
+- **Column warnings:** if the column split was uncertain on a page, the
+  preview lists it, so you know which pages to check against the book.
+- **What it can't see:** paragraph breaks are worked out from the text, since
+  a PDF doesn't mark them. A paragraph whose last line runs almost the full
+  column width can merge into the next one. A table inside the range comes
+  out as running text.
+- Who can read the journal is up to you, through normal journal ownership.
+
 Open the **Tools** dropdown to manage PDFs and world backups:
 
 ### Source PDFs

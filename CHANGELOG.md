@@ -3,6 +3,14 @@
 ## [Unreleased]
 
 ### Added
+- **Chapter to journal.** Importer Hub → Tools → **Chapter to journal**
+  turns any range of printed pages from a linked PDF into one readable
+  journal. It's split into pages at the book's headings, its paragraphs are
+  rejoined, and page numbers are dropped. You get a preview of the pages
+  before anything is written. A preset does the Western Reaches City-States
+  (GM Guide pp. 16–27) in one click, with a page per city-state. Each city
+  links to its key-location hex page, and the hex page links back. Running
+  it again updates the journal in place and keeps pages you added. (#194)
 - **The hex data goes on the printed map.** The Hex Tagger's **Send to
   Extras** now puts every hex's terrain, region, zone colour, name,
   description and settlement on the map you tagged, instead of building a

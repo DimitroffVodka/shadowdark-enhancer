@@ -329,7 +329,7 @@ export function linkifyHexText(text, hexKeySet) {
  * extraction picks up at the foot of the page, bare ("164") or as the tail of
  * a citation the two-column split cut in half ("pg. 167)").
  */
-const PAGE_FURNITURE_RE = /^\(?\s*(?:pg\.?|p\.?)?\s*\d{1,4}\s*\)?$/i;
+export const PAGE_FURNITURE_RE = /^\(?\s*(?:pg\.?|p\.?)?\s*\d{1,4}\s*\)?$/i;
 
 /**
  * A line that is its own thing: a printed heading, or an item in a list.
@@ -339,7 +339,7 @@ const PAGE_FURNITURE_RE = /^\(?\s*(?:pg\.?|p\.?)?\s*\d{1,4}\s*\)?$/i;
  * "1334" on its own line reads as a heading and is cut out of the sentence it
  * belongs to, and a bare number in a hex body is usually a cross-reference.
  */
-const isHeading = (line) => !/[a-z]/.test(line) && (line.match(/[A-Z]/g) ?? []).length >= 2;
+export const isHeading = (line) => !/[a-z]/.test(line) && (line.match(/[A-Z]/g) ?? []).length >= 2;
 const BULLET_RE = /^[-–—•*·]\s+/;
 
 /**
