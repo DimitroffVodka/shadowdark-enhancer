@@ -516,18 +516,18 @@ function resultPayload(result, { clearDocumentUuid = false } = {}) {
   delete out.id;
   if (out.weight == null) out.weight = 1;
   out.drawn = false;
-  // A DOCUMENT → TEXT retry must remove the old link.  Foundry's update
-  // convention for deleting a field is the `-=field` marker; keep it out of
+  // A DOCUMENT → TEXT retry must remove the old link. Foundry 14 deletes a
+  // field with `_del` (the legacy `-=field` marker warns, #261); keep it out of
   // create payloads below, where there is no old field to clear.
   if (clearDocumentUuid && out.type !== 1 && !Object.hasOwn(out, "documentUuid")) {
-    out["-=documentUuid"] = null;
+    out.documentUuid = _del;
   }
   return out;
 }
 
 function resultCreatePayload(result) {
   const out = resultPayload(result);
-  delete out["-=documentUuid"];
+  if (out.documentUuid === _del) delete out.documentUuid;
   return out;
 }
 
@@ -540,7 +540,7 @@ function resultRestorePayload(result) {
 
 function resultRestoreUpdatePayload(result) {
   const out = resultRestorePayload(result);
-  if (!Object.hasOwn(out, "documentUuid")) out["-=documentUuid"] = null;
+  if (!Object.hasOwn(out, "documentUuid")) out.documentUuid = _del;
   return out;
 }
 
