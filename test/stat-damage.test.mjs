@@ -41,6 +41,13 @@ test("ability keys: abbreviation, any case, or the full name", () => {
   assert.equal(abilityKey(undefined), null);
 });
 
+test("a word that merely starts like an ability is not one", () => {
+  for (const word of ["strike", "control", "charm", "intent", "wise", "dexter", "st"]) {
+    assert.equal(abilityKey(word), null, word);
+  }
+  assert.equal(abilityKey(" Dexterity "), "dex");
+});
+
 test("a character never damaged reads zero in all six", () => {
   assert.deepEqual(damageOf([]), Object.fromEntries(ABILITIES.map((a) => [a, 0])));
   // An unrelated effect is not stat damage, even one that lowers a score.
@@ -84,7 +91,7 @@ function fakeActor({ type = "Player", con = 10 } = {}) {
   const store = new Map();
   let next = 0;
   const actor = {
-    type, id: "a1", isToken: false, documentName: "Actor",
+    type, id: "a1", uuid: "Actor.a1", isToken: false, documentName: "Actor",
     statuses: new Set(),
     system: { abilities: { con: { value: con } } },
     get effects() { return [...store.values()]; },
@@ -168,6 +175,19 @@ test("CON reaching 0 kills; above 0, or another ability, does not", async () => 
   const weak = fakeActor({ con: 0 });
   await StatDamage._checkCon({ ...statDamageEffect("str", 10, ""), parent: weak });
   assert.ok(!weak.statuses.has("dead"));
+});
+
+test("two CON effects created in one batch mark the character dead once", async () => {
+  const actor = fakeActor({ con: 0 });
+  let toggles = 0;
+  actor.toggleStatusEffect = async (id) => {
+    toggles++;
+    await null; // the status lands after a server round trip, not at once
+    actor.statuses.add(id);
+  };
+  const effect = { ...statDamageEffect("con", 5, ""), parent: actor };
+  await Promise.all([StatDamage._checkCon(effect), StatDamage._checkCon(effect)]);
+  assert.equal(toggles, 1);
 });
 
 test("only the active GM kills, so every client seeing the effect does not race", async () => {

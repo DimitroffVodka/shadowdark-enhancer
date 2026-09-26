@@ -31,6 +31,9 @@ const canTake = (actor) => actor?.type === "Player";
 let _queue = Promise.resolve();
 const serial = (fn) => (_queue = _queue.then(fn, fn));
 
+/** Actors this client is marking dead right now. */
+const _dying = new Set();
+
 /** "STR", from the system's own ability name. */
 export const abilityLabel = (ability) => game.i18n.localize(`SHADOWDARK.ability_${ability}`).toUpperCase();
 
@@ -82,8 +85,15 @@ export const StatDamage = {
     const actor = effect.parent;
     if (actor?.documentName !== "Actor" || !canTake(actor)) return;
     if ((actor.system?.abilities?.con?.value ?? 1) > 0) return;
-    if (actor.statuses?.has("dead") || !diesAtZeroCon(actor)) return;
-    await die(actor);
+    // A batched create fires this once per effect, before the first death
+    // has set the status: the in-flight set stops the second toggle.
+    if (actor.statuses?.has("dead") || _dying.has(actor.uuid) || !diesAtZeroCon(actor)) return;
+    _dying.add(actor.uuid);
+    try {
+      await die(actor);
+    } finally {
+      _dying.delete(actor.uuid);
+    }
   },
 
   /** Damage per ability: `{ str, dex, con, int, wis, cha }`, zero when clean. */

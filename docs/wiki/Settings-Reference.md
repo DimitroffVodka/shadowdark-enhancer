@@ -15,10 +15,10 @@ All settings are **world-scoped**. They are configured by the GM for the whole w
 
 ## Settings you can see
 
-Go to **Configure Settings → Shadowdark Enhancer**. Every setting lives in one of seven
+Go to **Configure Settings → Shadowdark Enhancer**. Every setting lives in one of eight
 pop-out windows, one per feature, each opened by its own **Configure** button:
-Character Builder, Monsters, PC Automation, Movement, Crawl Strip, Encounters,
-and Loot & XP.
+Character Builder, Monsters, PC Automation, Modes of Play, Movement, Crawl Strip,
+Encounters, and Loot & XP.
 
 ### Character Builder
 
@@ -55,12 +55,6 @@ list stays short as classes are added.
 | Setting | Default | What it does |
 |---|---|---|
 | **Auto-roll spell mishap tables** | on | Automatically rolls mishap tables on natural 1 spell fumbles (Wizard or Diabolical). Divine casters lose the spell per RAW. |
-
-#### Luck Reroll
-
-| Setting | Default | What it does |
-|---|---|---|
-| **Prevent Luck rerolls on natural 1s** | on | Prevents spending Luck tokens to reroll natural 1 attack rolls, checks, or saves. |
 
 #### Duelist — Taunt
 
@@ -133,6 +127,37 @@ or by name fallback for existing characters.
 |---|---|---|
 | **Starting renown from CHA** | on | Seeds new PC renown from CHA modifier once; never touches non-zero or logged renown. See [Renown](Renown.md). |
 | **Renown on level-up** | on | Awards 1 renown on level-up (levels 2+). Manual awards stay on the Renown dialog. See [Renown](Renown.md). |
+
+### Modes of Play
+
+The optional rules from the core rulebook (p.111), and Hard Luck from the Game
+Master's Guide to the Western Reaches (p.30). Each mode is a box of its own
+rules, and every rule switches on by itself: Deadly's death timer of 1 can run
+without its DC 18 stabilize, for example. Each box has a switch that turns all
+of that mode's rules on or off at once; it shows as on only when all of them
+are. There is no switch for every mode together. Players are not told which
+modes are on.
+
+A rule marked **Not automated yet** can already be switched on and is saved,
+but nothing acts on it until the update that builds it. The same words show
+under its checkbox in the window.
+
+| Mode | Setting | Default | What it does |
+|---|---|---|---|
+| Blitz | **Light sources last 30 minutes** | off | Lighting a torch or lantern sets it to 30 minutes left (less if it already had less), and a light spell lasts 30 minutes. The item's own maximum is untouched, so its sheet can read "30 of 60 minutes". Shadowdark Extras' camping campfire keeps its 8 hours. |
+| Chaos | **Reroll initiative every round** | off | *Not automated yet.* Everyone rolls initiative again at the start of every round after the first. |
+| Deadly | **Death timers are always 1** | off | *Not automated yet.* A dying character has 1 round to live, whatever their Constitution. |
+| Deadly | **Stabilizing is DC 18** | off | *Not automated yet.* Stabilizing a dying character is an Intelligence check at DC 18 instead of 15. |
+| Fatality | **Characters die at 0 HP** | off | *Not automated yet.* There is no dying: a character reduced to 0 HP is dead. |
+| Grinder | Shadowdark Extras' Grinder settings | off | Shown here when Shadowdark Extras has them (`shadowdark-extras.grinderMode`, and `grinderHitDice`, shown only while Grinder is on); its camping rest is where Grinder takes effect. Without them, the box says what is needed. |
+| Hunter | **XP for defeated monsters** | off | *Not automated yet.* At the end of a combat, every character in it gets XP for each defeated monster: half its level, rounded down, and 1 for level 1. |
+| Momentum | the system's exploding damage setting | off | Shown here; it is the Shadowdark system's own setting. Advantage on repeating a failed action is granted at the table. |
+| Pulp | the system's Pulp Mode setting | off | Shown here; it is the Shadowdark system's own setting (no maximum on luck tokens). |
+| Pulp | **1d4 luck at the start of each session** | off | *Not automated yet.* Starting a session sets each party member's luck tokens to 1d4. |
+| Pulp | **Spend luck to turn a hit into a critical hit** | off | *Not automated yet.* After an attack hits, its owner can spend a luck token to make it a critical hit. |
+| Pulp | **Spend luck to make the GM reroll** | off | *Not automated yet.* A player can spend a luck token to make the GM reroll a roll the player can see. |
+| Hard Luck | **Prevent Luck rerolls on natural 1s** | off | Luck tokens can't reroll a critical failure, a natural 1. Before the Modes of Play window it sat under PC Automation and was on by default. |
+| Hard Luck | **No luck rerolls with luck-granting effects** | off | *Not automated yet.* Luck can't reroll a roll made under an effect that grants luck itself, such as Bless, Trance or a Seer's Omen. |
 
 ### Movement
 

@@ -8,14 +8,30 @@
   damage*: the score and its modifier drop, and the line is gone when healed.
   There is no setting and nothing on the sheet until it happens. A character
   whose CON reaches 0 from it dies. Other modules drive it through
-  `game.shadowdarkEnhancer.statDamage.{apply, heal, of}` (API 1.6.0);
-  Shadowdark Extras' rest heals it all, or 1 per ability in Grinder Mode. (#182)
+  `game.shadowdarkEnhancer.statDamage.{apply, heal, of}` (API 1.6.0).
+  From the Shadowdark Extras release that adds it
+  ([shadowdark-extras#149](https://github.com/DimitroffVodka/shadowdark-extras/issues/149)),
+  Extras' rest heals it all, or 1 per ability in Grinder Mode. (#182)
 - **Monster attacks apply their stat-damage riders.** A monster hit whose
   attack text, or the feature it names, says *1 STR damage* lowers the
   target's STR automatically, with the amount rolled in chat. A rider behind
   a save (*DC 12 CON or 1d4 STR damage*) asks the character's player to roll
   the save and applies only on a failure; the GM's client rolls it when no
   player can. Works without Shadowdark Extras. (#183)
+- **Modes of Play.** A new window under Configure Settings holds the optional
+  rules from the core rulebook (p.111) and Hard Luck from the Game Master's
+  Guide to the Western Reaches (p.30). Every rule is its own switch, so one
+  rule of a mode can run without the rest, and each mode has a switch that
+  turns all of its rules on or off. The system's Pulp and Momentum settings
+  and Shadowdark Extras' Grinder settings show in the same window, so each
+  still has one home. Rules marked *Not automated yet* are saved but do
+  nothing until the update that builds them. (#178)
+- **Blitz Mode: light timers last 30 minutes.** With Blitz on, lighting a
+  torch or lantern sets it to 30 minutes left (less if it already had less),
+  however it is lit, and a light spell lasts 30 minutes. A torch's own
+  maximum is untouched, so its sheet can read "30 of 60 minutes" and turning
+  Blitz off leaves no torch short. Shadowdark Extras' camping campfire keeps
+  its 8 hours. (#179)
 - **The hex data goes on the printed map.** The Hex Tagger's **Send to
   Extras** now puts every hex's terrain, region, zone colour, name,
   description and settlement on the map you tagged, instead of building a
@@ -558,6 +574,11 @@
   `api.encounter.getCheckFrequency()` / `setCheckFrequency(n)`. (#171)
 
 ### Changed
+- **Preventing luck rerolls on natural 1s is now off by default, and lives in
+  Modes of Play.** It is Hard Luck's first rule. A world that ever saved this
+  setting keeps its choice; a world that never did stops blocking luck
+  rerolls of natural 1s until a GM switches it on under **Modes of Play →
+  Hard Luck**. (#178)
 - **Water is read the way the map's legend draws it.** The legend key printed on
   the Western Reaches map states the symbols outright: river is one wave stroke,
   lake two, ocean three, arctic sea three with a small mark above them. Block

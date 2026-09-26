@@ -22,7 +22,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import {
-  GROUPED_MENU_KEYS, GROUPED_SETTING_KEYS, SETTING_GROUPS,
+  GROUPED_MENU_KEYS, GROUPED_SETTING_KEYS, GROUP_STRING_KEYS, SETTING_GROUPS,
 } from "../scripts/shared/setting-groups.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -291,10 +291,9 @@ describe("docs contract — settings", () => {
     assert.equal(new Set(GROUPED_SETTING_KEYS).size, GROUPED_SETTING_KEYS.length, "a setting sits in two groups");
     const missing = [];
     const need = (k) => { if (!i18n[k]) missing.push(k); };
-    for (const g of SETTING_GROUPS) {
-      for (const part of ["name", "hint", "label"]) need(`SDE.settings.${g.key}.${part}`);
-      for (const s of g.sections) if (s.label) need(s.label);
-    }
+    // Group names, section labels and hints, mode switches, notes and the
+    // "not installed" lines all render from en.json.
+    for (const k of GROUP_STRING_KEYS) need(k);
     for (const m of GROUPED_MENU_KEYS) {
       for (const part of ["name", "hint", "label"]) need(`SDE.settings.${m}.${part}`);
     }
