@@ -20,11 +20,8 @@ turns it off).
 
 A player character that reaches 0 HP by any path (damage from a chat card, an
 edit on the sheet, an effect) gets the **Dying** status and **unconscious**.
-Its death timer is rolled straight away: **1d4 + CON modifier, minimum 1**. The
-owning player's client rolls the die, so the dice are theirs, and the GM's
-client adds the modifiers; if the player is not connected, the GM's client
-rolls. The timer shows on the character's crawl strip card as **Dying: 3**, and
-a chat line says how many rounds are left.
+Its strip card shows **Dying** with no count yet: the death timer is rolled on
+the character's turn, as the book reads.
 
 The system also marks the character defeated in the combat tracker. On the
 strip, a dying or stable character shows the dying badge instead of the skull;
@@ -32,7 +29,13 @@ the skull is for the dead, in combat or out of it.
 
 ## Each turn
 
-At the start of a dying character's turn, its owner rolls a d20:
+**Its first turn** rolls the death timer: **1d4 + CON modifier, minimum 1**,
+and nothing else that turn. The owning player's client rolls the die, so the
+dice are theirs, and the GM's client adds the modifiers; if the player is not
+connected, the GM's client rolls. The strip card then shows **Dying: 3**, and a
+chat line says how many rounds are left.
+
+At the start of **every turn after that**, its owner rolls a d20:
 
 - a **natural 20** and the character rises with 1 HP, and all of this clears;
 - anything else takes one round off the timer;

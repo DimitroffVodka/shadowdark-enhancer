@@ -12,15 +12,17 @@
  * its buttons and crawl ticks relayed (`gmDo`).
  *
  * - 0 HP, by any path (damage or a sheet edit): the `updateActor` hook. The PC
- *   gets the Dying status and unconscious, and its death timer is rolled on the
- *   spot: the owning player's client rolls the die (a user query, so the dice
- *   are theirs) and the GM adds the modifiers; with the hidden timer on, the
- *   GM's client rolls blind. Fatality skips all of it: 0 HP is death.
+ *   gets the Dying status and unconscious. Fatality skips all of it: 0 HP is
+ *   death.
  * - Turn start: `Combat#_onStartTurn`, wrapped. Foundry calls it on the active
  *   GM only, once per turn passed, including turns skipped by "Skip Defeated"
  *   (the system marks a 0 HP PC defeated), which `combatTurnChange` would miss.
- *   The owner rolls a d20; a natural 20 (or a rise-range modifier) rises at
- *   1 HP, anything else takes a round off; at 0 the PC is dead.
+ *   The PC's first turn only rolls its death timer, as the book reads (p.89,
+ *   #263): the owning player's client rolls the die (a user query, so the dice
+ *   are theirs) and the GM adds the modifiers; with the hidden timer on, the
+ *   GM's client rolls blind. Every turn after, the owner rolls a d20; a natural
+ *   20 (or a rise-range modifier) rises at 1 HP, anything else takes a round
+ *   off; at 0 the PC is dead.
  * - Out of combat: the crawl round (`shadowdark-enhancer.crawlRound`, fired by
  *   CrawlState.nextCrawlTurn on the GM that advanced it), for crawl members.
  * - A round counts once per scope and only moving forward (`shouldTick`), so a
@@ -182,28 +184,36 @@ async function startDying(actor) {
   const tick = currentTick(actor);
   await actor.toggleStatusEffect(DYING_STATUS, { active: true });
   await actor.toggleStatusEffect("unconscious", { active: true });
+  // No timer yet: it is rolled on the PC's first turn (#263).
+  await replaceModuleFlag(actor, FLAG, { timer: null, stable: false, conscious: false, tick });
+  await say(actor, "SDE.dying.start");
+}
+
+/** The death timer, rolled on the dying PC's first turn. */
+async function rollTimer(actor) {
   const r = timerRoll({
     deadly: on("modeDeadlyTimer"),
     die: modifier(actor, "timerDie"),
     bonus: modifier(actor, "timerBonus"),
     con: actor.system?.abilities?.con?.mod ?? 0,
   });
-  let rounds = 1; // Deadly: no roll, 1 whatever the die and bonuses
-  if (r) {
-    const flavor = fmt("SDE.dying.timerFlavor");
-    const natural = on("dyingHiddenTimer")
-      ? await rollHere(actor, r.formula, flavor, { secret: true })
-      : await ownerRoll(actor, r.formula, flavor, r.faces);
-    rounds = deathTimer(natural + r.mod);
-  }
-  await replaceModuleFlag(actor, FLAG, { timer: rounds, stable: false, conscious: false, tick });
-  await say(actor, "SDE.dying.start");
-  await sayRounds(actor, rounds);
+  if (!r) return 1; // Deadly: no roll, 1 whatever the die and bonuses
+  const flavor = fmt("SDE.dying.timerFlavor");
+  const natural = on("dyingHiddenTimer")
+    ? await rollHere(actor, r.formula, flavor, { secret: true })
+    : await ownerRoll(actor, r.formula, flavor, r.faces);
+  return deathTimer(natural + r.mod);
 }
 
 async function tick(actor, scope, round) {
   const s = dyingState(actor);
-  if (!s || s.stable || !Number.isInteger(s.timer) || !shouldTick(s.tick, scope, round)) return;
+  if (!s || s.stable || !shouldTick(s.tick, scope, round)) return;
+  if (!Number.isInteger(s.timer)) {
+    // The first turn only rolls the timer; the d20s start on the next one.
+    const rounds = await rollTimer(actor);
+    await replaceModuleFlag(actor, FLAG, { ...s, timer: rounds, tick: { scope, round } });
+    return sayRounds(actor, rounds);
+  }
   // Checked at the moment of the roll: an ally's aura counts if it is near now.
   const min = riseMin({
     own: modifier(actor, "riseMin"),

@@ -216,9 +216,10 @@ page walks through it in order.
 #### Dying and stat damage
 
 - **Dying and death timers, with Deadly and Fatality.** A character at 0 HP,
-  from damage or a sheet edit, is dying. It gets the Dying status and a death
-  timer of 1d4 + CON modifier (minimum 1), rolled by its player. It rolls a d20
-  at the start of each of its turns and rises at 1 HP on a natural 20. When
+  from damage or a sheet edit, is dying. It gets the Dying status, and on its
+  first turn a death timer of 1d4 + CON modifier (minimum 1), rolled by its
+  player. It rolls a d20 at the start of each turn after that and rises at 1 HP
+  on a natural 20. When
   the timer runs out it is dead, and its turn is skipped. Out of combat the
   timer runs on crawl rounds. Another character stabilizes it with a DC 15
   Intelligence check from the Dying badge on the Crawl Strip, and healing above
