@@ -3,7 +3,7 @@
  *
  * One tab per status (Hidden is the GM's only), filters by character, party
  * and source, a list on the left and the chosen quest on the right. The GM
- * edits in place; a player sees the same quest read-only. Ctrl+Q, or the
+ * edits in place; a player sees the same quest read-only. Alt+Q, or the
  * button at the foot of the Journal sidebar.
  *
  * The UX borrows from Forien's Quest Log (MIT): status tabs, a details pane,

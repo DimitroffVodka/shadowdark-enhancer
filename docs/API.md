@@ -1043,7 +1043,7 @@ page, so it reads fine without the window. Its state is one flag on the entry,
 ```js
 const api = game.shadowdarkEnhancer;
 
-await api.quests.open();                          // the Quest Log window (Ctrl+Q)
+await api.quests.open();                          // the Quest Log window (Alt+Q)
 
 api.quests.list({ status: "active" });            // what this user may see
 api.quests.list({ party: partyActor });           // assigned to that party
