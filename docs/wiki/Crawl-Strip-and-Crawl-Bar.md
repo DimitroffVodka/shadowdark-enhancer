@@ -68,7 +68,7 @@ button** to set it as your active random encounter table.
 |---|---|
 | **Begin / End Encounter** | Starts or ends combat round structure |
 | **Add Tokens** | Adds selected tokens to combat tracker |
-| **Delete Encounter** | Deletes combat encounter without running end-of-combat flow |
+| **Delete Encounter** | Deletes the combat and throws the fight away: no Hunter XP, no loot drops, no Session Recap entry |
 
 In combat, the strip displays one card per combatant in initiative order:
 

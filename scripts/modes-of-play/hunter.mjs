@@ -13,7 +13,8 @@
  * who was in the fight the full total, through PartyXP.award: one card per
  * combat, the "ready to level up" marker, and Session Recap's log via the
  * partyXpAwarded hook, all as for any other award. Full XP to each mirrors
- * treasure XP (core p.116). Monsters killed outside a combat are not counted.
+ * treasure XP (core p.116). Monsters killed outside a combat are not counted,
+ * nor is a combat thrown away with the Crawl Bar's Delete Encounter.
  */
 
 import { MODULE_ID } from "../shared/module-id.mjs";
@@ -89,7 +90,9 @@ export async function payHunterXp(combat) {
 }
 
 export function init() {
-  Hooks.on("deleteCombat", (combat) => {
+  Hooks.on("deleteCombat", (combat, options) => {
+    // The Crawl Bar's Delete Encounter throws the fight away; End Encounter pays.
+    if (options?.[MODULE_ID]?.discard) return;
     if (!isActiveGM() || game.settings.get(MODULE_ID, "modeHunterXp") !== true) return;
     payHunterXp(combat).catch((err) => console.error(`${MODULE_ID} | Hunter XP`, err));
   });

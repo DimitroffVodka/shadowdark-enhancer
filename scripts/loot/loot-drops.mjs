@@ -14,7 +14,10 @@ import { esc } from "../shared/esc.mjs";
 
 export const LootDrops = {
   init() {
-    Hooks.on("deleteCombat", (combat) => this._onCombatEnd(combat));
+    // A fight thrown away with the Crawl Bar's Delete Encounter drops nothing.
+    Hooks.on("deleteCombat", (combat, options) => {
+      if (!options?.[MODULE_ID]?.discard) this._onCombatEnd(combat);
+    });
 
     // Per-NPC drop config: a GM-only Loot button in the NPC sheet header. Shown
     // whether or not drops are enabled, so a bestiary can be set up first; the
