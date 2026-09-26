@@ -2,7 +2,7 @@
  * Shadowdark Enhancer — Luck Reroll hooks
  *
  * Wraps the Shadowdark system's built-in chat-card reroll (`_onReroll`)
- * to add nat-1 prevention and session-recap tracking.
+ * to add Hard Luck's refusals (hard-luck.mjs) and session-recap tracking.
  *
  * The system already handles Luck spending and dice re-rolling — we just
  * gate it and log the results.
@@ -21,6 +21,7 @@
 
 import { MODULE_ID } from "../shared/module-id.mjs";
 import { SessionRecap } from "../session-recap/session-recap.mjs";
+import { isCriticalFailure, luckGrantingSource } from "./hard-luck.mjs";
 
 /** Relay action for recap writes made by a client that can't write settings. */
 const SOCKET_ACTION = "luck:logSpent";
@@ -33,17 +34,6 @@ const PENDING_TTL_MS = 60000;
 
 let _originalOnReroll = null;
 let _installed = false;
-
-/**
- * Check whether a roll resulted in a natural 1 on a d20.
- */
-function isNatural1(roll) {
-  if (!roll?.dice?.length) return false;
-  return roll.dice.some(die =>
-    die.faces === 20 &&
-    die.results.some(r => r.active !== false && r.result === 1)
-  );
-}
 
 /** A message's main or damage roll, preferring the system's own accessor. */
 function rollOf(message, rollType) {
@@ -128,11 +118,26 @@ export function init() {
   proto._onReroll = function (event, btn) {
     const rollType = btn?.dataset?.rollType === "damage" ? "damage" : "main";
 
-    if (game.settings.get(MODULE_ID, "luckRerollPreventNat1") === true) {
-      const roll = rollOf(this, rollType);
-      if (roll && isNatural1(roll)) {
+    // Hard Luck (GMWR p.30). Returning before the system runs means no luck
+    // is spent. Both rules judge the MAIN roll: a damage reroll is neither a
+    // critical failure nor the check that granted luck. A GM's reroll spends
+    // no luck (the system only charges players), so Hard Luck leaves it be.
+    if (rollType === "main" && !game.user?.isGM) {
+      if (game.settings.get(MODULE_ID, "luckRerollPreventNat1") === true
+        && isCriticalFailure(rollOf(this, "main"))) {
         ui.notifications?.warn(game.i18n.localize("SDE.luckReroll.nat1Blocked"));
-        return; // returning before the system runs means no Luck is spent
+        return;
+      }
+      if (game.settings.get(MODULE_ID, "modeHardLuckEffects") === true) {
+        const source = luckGrantingSource(this.flags?.shadowdark?.rollConfig,
+          // strict:false: a roll made on a compendium actor's sheet names an
+          // embedded compendium item, which a strict lookup throws on, and a
+          // throw here would leave the reroll button silently dead.
+          (uuid) => (foundry.utils.fromUuidSync ?? globalThis.fromUuidSync)?.(uuid, { strict: false })?.name ?? null);
+        if (source) {
+          ui.notifications?.warn(game.i18n.format("SDE.luckReroll.luckEffectBlocked", { name: source }));
+          return;
+        }
       }
     }
 
