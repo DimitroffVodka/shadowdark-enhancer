@@ -466,13 +466,109 @@ export function registerSettings() {
     default: true,
   });
 
+  // Hard Luck's first rule (GMWR p.30), shown in the Modes of Play window.
+  // Default OFF since #178: a Mode of Play is opt-in. A world that saved a
+  // value keeps it; one that never did loses the natural-1 block until a GM
+  // ticks it (the changelog says so). Key unchanged, so no migration.
   game.settings.register(MODULE_ID, "luckRerollPreventNat1", {
     name: "SDE.settings.luckRerollPreventNat1.name",
     hint: "SDE.settings.luckRerollPreventNat1.hint",
     scope: "world",
     config: false,
     type: Boolean,
-    default: true,
+    default: false,
+  });
+
+  // Modes of Play (core rulebook p.111; Hard Luck GMWR p.30): one switch per
+  // rule, all off by default, all shown in the Modes of Play window.
+  game.settings.register(MODULE_ID, "modeBlitzLights", {
+    name: "SDE.settings.modeBlitzLights.name",
+    hint: "SDE.settings.modeBlitzLights.hint",
+    scope: "world",
+    config: false,
+    type: Boolean,
+    default: false,
+  });
+
+  game.settings.register(MODULE_ID, "modeChaosInitiative", {
+    name: "SDE.settings.modeChaosInitiative.name",
+    hint: "SDE.settings.modeChaosInitiative.hint",
+    scope: "world",
+    config: false,
+    type: Boolean,
+    default: false,
+  });
+
+  game.settings.register(MODULE_ID, "modeDeadlyTimer", {
+    name: "SDE.settings.modeDeadlyTimer.name",
+    hint: "SDE.settings.modeDeadlyTimer.hint",
+    scope: "world",
+    config: false,
+    type: Boolean,
+    default: false,
+  });
+
+  game.settings.register(MODULE_ID, "modeDeadlyStabilize", {
+    name: "SDE.settings.modeDeadlyStabilize.name",
+    hint: "SDE.settings.modeDeadlyStabilize.hint",
+    scope: "world",
+    config: false,
+    type: Boolean,
+    default: false,
+  });
+
+  game.settings.register(MODULE_ID, "modeFatality", {
+    name: "SDE.settings.modeFatality.name",
+    hint: "SDE.settings.modeFatality.hint",
+    scope: "world",
+    config: false,
+    type: Boolean,
+    default: false,
+  });
+
+  game.settings.register(MODULE_ID, "modeHunterXp", {
+    name: "SDE.settings.modeHunterXp.name",
+    hint: "SDE.settings.modeHunterXp.hint",
+    scope: "world",
+    config: false,
+    type: Boolean,
+    default: false,
+  });
+
+  game.settings.register(MODULE_ID, "modePulpSessionLuck", {
+    name: "SDE.settings.modePulpSessionLuck.name",
+    hint: "SDE.settings.modePulpSessionLuck.hint",
+    scope: "world",
+    config: false,
+    type: Boolean,
+    default: false,
+  });
+
+  game.settings.register(MODULE_ID, "modePulpLuckCrit", {
+    name: "SDE.settings.modePulpLuckCrit.name",
+    hint: "SDE.settings.modePulpLuckCrit.hint",
+    scope: "world",
+    config: false,
+    type: Boolean,
+    default: false,
+  });
+
+  game.settings.register(MODULE_ID, "modePulpForceReroll", {
+    name: "SDE.settings.modePulpForceReroll.name",
+    hint: "SDE.settings.modePulpForceReroll.hint",
+    scope: "world",
+    config: false,
+    type: Boolean,
+    default: false,
+  });
+
+  game.settings.register(MODULE_ID, "modeHardLuckEffects", {
+    name: "SDE.settings.modeHardLuckEffects.name",
+    hint: "SDE.settings.modeHardLuckEffects.hint",
+    scope: "world",
+    config: false,
+    type: Boolean,
+    default: false,
   });
 
   game.settings.register(MODULE_ID, "spellMishapAutoRoll", {
