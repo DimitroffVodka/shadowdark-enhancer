@@ -262,6 +262,16 @@ test("the API reads Foundry's clock: now, season, sun, moon, anchor, format", as
   assert.equal(timeApi.moonPhase(0).key, "new");
 });
 
+test("isNight with the party's region: the Isles of Andrik's Midnight Sun and Long Dark (#235)", async () => {
+  const { timeApi } = await import("../scripts/time/time.mjs");
+  stubGame(at(1301, 6, 21, 23));
+  assert.equal(timeApi.isNight(), true);
+  assert.equal(timeApi.isNight(undefined, { region: "Isles of Andrik" }), false, "summer: the Midnight Sun");
+  assert.equal(timeApi.isNight(at(1301, 12, 21, 12), { region: "The Isles of Andrik" }), true, "winter noon: the Long Dark");
+  assert.equal(timeApi.isNight(at(1301, 10, 1, 12), { region: "Isles of Andrik" }), false, "autumn is ordinary");
+  assert.equal(timeApi.isNight(undefined, { region: "Lowland Moor" }), true, "anywhere else is ordinary");
+});
+
 test("timeAdvanced fires on the active GM only, with what the move crossed and the off-duty reason", async () => {
   const { registerTimeHooks } = await import("../scripts/time/time.mjs");
   const from = at(1301, 2, 28, 20), to = at(1301, 3, 1, 8);
