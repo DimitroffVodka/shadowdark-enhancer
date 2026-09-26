@@ -13,11 +13,16 @@ import { CrawlStrip } from "./crawl-strip/crawl-strip.mjs";
 import { registerCrawlTracker, refreshTracker } from "./crawl-strip/crawl-tracker.mjs";
 import { init as luckRerollInit } from "./luck-reroll/luck-reroll.mjs";
 import { init as blitzInit } from "./modes-of-play/blitz.mjs";
+import { init as hunterInit } from "./modes-of-play/hunter.mjs";
+import { init as pulpInit } from "./modes-of-play/pulp.mjs";
+import * as Dying from "./dying/dying.mjs";
 import { init as spellMishapInit } from "./spell-mishap/spell-mishap.mjs";
 import { init as prayerRollInit } from "./character-sheet/prayer-roll.mjs";
 import { init as scavengerInit } from "./scavenger/scavenger.mjs";
 import { Parry } from "./parry/parry.mjs";
 import { Taunt } from "./taunt/taunt.mjs";
+import { StatDamage } from "./stat-damage/stat-damage.mjs";
+import { StatRiders } from "./stat-damage/stat-riders.mjs";
 import { CrawlBar }      from "./crawl-bar/crawl-bar.mjs";
 import { registerHiddenSync } from "./crawl-strip/hidden-sync.mjs";
 import { registerTurnSkip } from "./crawl-strip/turn-skip.mjs";
@@ -70,6 +75,7 @@ import { PartyXP } from "./party-xp/party-xp.mjs";
 import { SessionRecap } from "./session-recap/session-recap.mjs";
 import { DowntimeSession } from "./downtime/downtime-session.mjs";
 import { Renown } from "./renown/renown.mjs";
+import { Quests, openQuestLog, registerQuests } from "./quests/quests.mjs";
 import { registerActorTypes } from "./actors/register-actors.mjs";
 // Imported for its top-level createChatMessage hook: the out-of-combat
 // initiative sync must be live on the GM from load, not only after the GM
@@ -88,7 +94,7 @@ import { initRivalClassTable } from "./forge-loot/rival-class-table-adapter.mjs"
 // templates, producing unstyled block-flow UI. Keep the manifest stylesheet as
 // the startup fallback, then layer a content-addressed copy above it. The layout
 // contract test requires this revision to change whenever the CSS file changes.
-const STYLESHEET_REV = "000935629eaf";
+const STYLESHEET_REV = "43e7806e11f6";
 
 // The same problem for the SCRIPTS, which cannot be solved the same way: their
 // URLs come from the manifest, which Foundry validates as real package paths,
@@ -103,7 +109,7 @@ const STYLESHEET_REV = "000935629eaf";
 // stale); module.json carries the same hash and is fetched fresh at runtime. A
 // mismatch is a stale cache by construction — it cannot be anything else. Both
 // stamps are written by `npm run inventory` and gated by `inventory:check`.
-const BUILD_REV = "3529ad299dc4";
+const BUILD_REV = "d8e7bf049a40";
 
 /**
  * Tell the user when their browser is running an old build of this module, and
@@ -272,6 +278,8 @@ Hooks.once("init", () => {
   ItemDrops.registerSettings();
   Renown.registerSettings();
   MonsterTokenArt.register();
+  // Quest Log: its Ctrl+Q keybinding can only be registered during init.
+  registerQuests();
   // Out-of-combat tracker as a sidebar tab, beside Combat. Must run in init:
   // Game#initializeUI constructs CONFIG.ui entries during setup, and anything
   // registered after that pass never gets an instance.
@@ -406,8 +414,11 @@ Hooks.once("init", () => {
   // game.modules.get(MODULE_ID).api on ready; consumers should listen for
   // the "shadowdarkEnhancer.ready" hook. Reference: docs/API.md.
   game.shadowdarkEnhancer = {
-    // 1.6.0 — additive: rules namespace (rules data: terrain costs, climate, limits).
-    apiVersion: "1.6.0",
+    // 1.6.0 — additive: statDamage namespace (tracked ability damage).
+    // 1.7.0 — additive: quests namespace (the Quest Log) and questsChanged.
+    // 1.8.0 — additive: dying namespace and the crawlRound hook (#181).
+    // 1.9.0 — additive: rules namespace (rules data: terrain costs, climate, limits).
+    apiVersion: "1.9.0",
     // Guided, ordered Character Builder — a replacement for the system's
     // random generator. `open({ level0?, actor? })` renders the wizard.
     charBuilder: {
@@ -695,6 +706,21 @@ Hooks.once("init", () => {
       history: (actor) => Renown.history(actor),
       historyByPlayer: () => Renown.historyByPlayer(),
     },
+    // Dying (core p.89) with Deadly and Fatality (p.111). Reads for anyone;
+    // every write is the active GM's (another GM's call is relayed), except
+    // `stabilize({ by })`, whose INT check the helper's owner rolls and whose
+    // card the active GM reads.
+    dying: {
+      isDying: (actor) => Dying.isDying(actor),
+      timer: (actor) => Dying.timer(actor),
+      state: (actor) => Dying.dyingState(actor),
+      stabilize: (actor, opts) => Dying.stabilize(actor, opts),
+      rise: (actor) => Dying.rise(actor),
+      adjust: (actor, delta) => Dying.adjust(actor, delta),
+      setConscious: (actor, conscious) => Dying.setConscious(actor, conscious),
+      STATUS: Dying.DYING_STATUS,
+      KEYS: { ...Dying.DYING_KEYS },
+    },
     // Pit Fighting — CS2's bouts (pgs 20–24). Mechanics only: the venue, twist,
     // prize and foe text all come from RollTables the GM imports from their own
     // book, and the window names any that are missing instead of inventing them.
@@ -793,10 +819,28 @@ Hooks.once("init", () => {
         return h.importDatasetRecords(target, ds, opts);
       },
     },
-    // 1.6.0 — additive: rules data (#195). The tables the Western Reaches books
+    // 1.6.0 — additive: stat damage. One Active Effect per damaged ability,
+    // nothing on the sheet until it happens. Shadowdark Extras' rests heal it
+    // (all on a normal rest, { perAbility: 1 } in Grinder Mode).
+    statDamage: {
+      apply: (actor, ability, amount) => StatDamage.apply(actor, ability, amount),
+      heal: (actor, opts) => StatDamage.heal(actor, opts),
+      of: (actor) => StatDamage.of(actor),
+    },
+    // 1.7.0 — additive: the Quest Log. One world journal per quest; reads are
+    // filtered to what the calling user may see, writes are the GM's.
+    // `shadowdark-enhancer.questsChanged` fires on every client after a change.
+    quests: {
+      open: () => openQuestLog(),
+      list: (filter) => Quests.list(filter),
+      get: (id) => Quests.get(id),
+      create: (data) => Quests.create(data),
+      setStatus: (id, status) => Quests.setStatus(id, status),
+    },
+    // 1.9.0 — additive: rules data (#195). The tables the Western Reaches books
     // consult rather than roll, from the `rulesData` world setting the Rules
     // data window fills (import from the GM's own PDF, or by hand). Synchronous;
-    // nothing ships, so an unfilled value is null and an unfilled limit none.
+    // nothing ships, so an unfilled value is null.
     rules: rulesApi(() => game.settings.get(MODULE_ID, "rulesData")),
   };
 });
@@ -863,11 +907,16 @@ Hooks.once("ready", () => {
   CrawlStrip.init();
   luckRerollInit();
   blitzInit();
+  hunterInit();
+  pulpInit();
+  Dying.init();
   spellMishapInit();
   prayerRollInit();
   scavengerInit();
   Parry.init();
   Taunt.init();
+  StatDamage.init();
+  StatRiders.init();
   CrawlBar.init();
   // If the GM enabled the monster compendium-art overlay, inject it now so every
   // monster drag carries the referenced art (all clients; GM-only settings write).

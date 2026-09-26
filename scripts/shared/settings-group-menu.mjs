@@ -58,7 +58,7 @@ export class SettingsGroupMenu extends HandlebarsApplicationMixin(ApplicationV2)
     if (e.note) return { note: e.note };
     if (e.key) {
       const entry = this._settingEntry(game.settings.settings.get(`${MODULE_ID}.${e.key}`));
-      return e.pending ? { ...entry, pending: true } : entry;
+      return { ...entry, pending: !!e.pending, option: !!e.option };
     }
     if (e.setting) {
       // Another package's setting, shown in place. Absent package or setting:
@@ -88,7 +88,7 @@ export class SettingsGroupMenu extends HandlebarsApplicationMixin(ApplicationV2)
     }
     for (const box of this.element.querySelectorAll("fieldset[data-mode]")) {
       const toggle = box.querySelector("input[data-mode-switch]");
-      const rules = [...box.querySelectorAll("input[type=checkbox][name]")];
+      const rules = [...box.querySelectorAll("input[type=checkbox][name]")].filter((r) => !r.closest("[data-mode-option]"));
       if (!toggle) continue;
       if (!rules.length) { toggle.disabled = true; continue; }
       const sync = () => {

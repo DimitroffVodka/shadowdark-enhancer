@@ -103,8 +103,12 @@ export function reversalPlan(snapshot = {}, now = {}) {
   };
 }
 
-/** Statuses the system puts on a downed actor, by actor type (ActorSD._setDefeated). */
-export const DEFEAT_STATUSES = { Player: ["prone", "unconscious"], other: ["dead"] };
+/**
+ * Statuses a downing blow puts on an actor, by actor type: the system's
+ * (ActorSD._setDefeated), plus `dead` on a PC that Fatality kills at 0 HP
+ * (dying.mjs), so a parry that undoes the blow undoes the death too.
+ */
+export const DEFEAT_STATUSES = { Player: ["prone", "unconscious", "dead"], other: ["dead"] };
 
 /** The statuses a defeat would have added for this actor type. */
 export function defeatStatusesFor(actorType) {

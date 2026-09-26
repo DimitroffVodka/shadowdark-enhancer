@@ -1,0 +1,215 @@
+{{!--
+  Quest Log — the Regional Training window's design language: panel cards on a
+  black page, blackletter titles over a hairline rule. One tab per status, a
+  list on the left, the chosen quest on the right. The GM gets inputs; a player
+  gets the same quest as text. Every visible string is a localisation key
+  (#169); quest names, objectives and descriptions are data.
+--}}
+<div class="sde-quest-log-root">
+
+  <nav class="sde-ql-tabs">
+    {{#each tabs}}
+      <button type="button" class="sde-ql-tab {{#if active}}active{{/if}}" data-action="qlTab" data-status="{{status}}">
+        {{label}} <span class="sde-ql-count">{{count}}</span>
+      </button>
+    {{/each}}
+  </nav>
+
+  <header class="sde-ql-filters">
+    <select name="ql-filter-character" data-ql-filter="character" aria-label="{{localize "SDE.quests.characters"}}">
+      <option value="">{{localize "SDE.quests.filter.anyCharacter"}}</option>
+      {{#each filterCharacters}}<option value="{{uuid}}" {{#if selected}}selected{{/if}}>{{name}}</option>{{/each}}
+    </select>
+    {{#if hasParties}}
+      <select name="ql-filter-party" data-ql-filter="party" aria-label="{{localize "SDE.quests.party"}}">
+        <option value="">{{localize "SDE.quests.filter.anyParty"}}</option>
+        {{#each filterParties}}<option value="{{uuid}}" {{#if selected}}selected{{/if}}>{{name}}</option>{{/each}}
+      </select>
+    {{/if}}
+    <select name="ql-filter-source" data-ql-filter="source" aria-label="{{localize "SDE.quests.sourceLabel"}}">
+      <option value="">{{localize "SDE.quests.filter.anySource"}}</option>
+      {{#each filterSources}}<option value="{{kind}}" {{#if selected}}selected{{/if}}>{{label}}</option>{{/each}}
+    </select>
+    {{#if isGM}}
+      <button type="button" class="sde-ql-btn sde-ql-primary" data-action="qlNew">
+        <i class="fa-solid fa-plus"></i> {{localize "SDE.quests.new"}}
+      </button>
+    {{/if}}
+  </header>
+
+  <div class="sde-ql-body">
+    <ol class="sde-ql-list">
+      {{#each quests}}
+        <li class="sde-ql-item {{#if selected}}active{{/if}}" data-action="qlSelect" data-id="{{id}}">
+          <span class="sde-ql-item-name">{{name}}</span>
+          <span class="sde-ql-item-meta">
+            {{sourceLabel}}{{#if progress.total}} · {{progress.done}}/{{progress.total}}{{/if}}
+          </span>
+        </li>
+      {{else}}
+        <li class="sde-ql-empty">{{localize "SDE.quests.empty"}}</li>
+      {{/each}}
+    </ol>
+
+    <section class="sde-ql-detail">
+    {{#with quest}}
+
+      {{!-- Name, status, where it came from. --}}
+      <div class="sde-ql-card">
+        {{#if ../isGM}}
+          <div class="sde-ql-titlerow">
+            <input type="text" class="sde-ql-name-input" name="ql-name" data-ql-field="name" value="{{name}}"
+              aria-label="{{localize "SDE.quests.name"}}">
+            <select name="ql-status" data-ql-field="status" aria-label="{{localize "SDE.quests.statusLabel"}}">
+              {{#each statusOptions}}<option value="{{value}}" {{#if selected}}selected{{/if}}>{{label}}</option>{{/each}}
+            </select>
+          </div>
+        {{else}}
+          <h2 class="sde-ql-name">{{name}}</h2>
+        {{/if}}
+        <p class="sde-ql-sub">
+          {{statusLabel}} · {{sourceLabel}}
+          {{#if source.uuid}}· <a data-action="qlOpenSource">{{localize "SDE.quests.openSource"}}</a>{{/if}}
+        </p>
+        <div class="sde-ql-links">
+          <button type="button" class="sde-ql-btn" data-action="qlOpenJournal">
+            <i class="fa-solid fa-book-open"></i> {{localize "SDE.quests.openJournal"}}
+          </button>
+          {{#if hasPin}}
+            <button type="button" class="sde-ql-btn" data-action="qlJump">
+              <i class="fa-solid fa-location-dot"></i> {{localize "SDE.quests.jump"}}
+            </button>
+          {{/if}}
+        </div>
+      </div>
+
+      {{!-- Who it is for. --}}
+      <div class="sde-ql-card">
+        <h3 class="sde-ql-head">{{localize "SDE.quests.characters"}}</h3>
+        <ul class="sde-ql-chips">
+          {{#each characterList}}
+            <li class="sde-ql-chip">{{name}}
+              {{#if ../../isGM}}<a data-action="qlRemoveCharacter" data-uuid="{{uuid}}" aria-label="{{localize "SDE.quests.remove"}}"><i class="fa-solid fa-xmark"></i></a>{{/if}}
+            </li>
+          {{else}}
+            <li class="sde-ql-empty">{{localize "SDE.quests.noCharacters"}}</li>
+          {{/each}}
+        </ul>
+        {{#if ../isGM}}
+          <select name="ql-add-character" data-ql-field="addCharacter" aria-label="{{localize "SDE.quests.addCharacter"}}">
+            <option value="">{{localize "SDE.quests.addCharacter"}}</option>
+            {{#each addableCharacters}}<option value="{{uuid}}">{{name}}</option>{{/each}}
+          </select>
+        {{/if}}
+        {{#if ../hasParties}}
+          <h3 class="sde-ql-head">{{localize "SDE.quests.party"}}</h3>
+          {{#if ../isGM}}
+            <select name="ql-party" data-ql-field="party" aria-label="{{localize "SDE.quests.party"}}">
+              <option value="">{{localize "SDE.quests.noParty"}}</option>
+              {{#each partyOptions}}<option value="{{uuid}}" {{#if selected}}selected{{/if}}>{{name}}</option>{{/each}}
+            </select>
+          {{else}}
+            <p>{{#if partyName}}{{partyName}}{{else}}{{localize "SDE.quests.noParty"}}{{/if}}</p>
+          {{/if}}
+        {{/if}}
+      </div>
+
+      {{!-- What it is. --}}
+      <div class="sde-ql-card">
+        <h3 class="sde-ql-head">{{localize "SDE.quests.description"}}</h3>
+        {{#if ../isGM}}
+          <textarea name="ql-description" data-ql-field="description" rows="4" aria-label="{{localize "SDE.quests.description"}}">{{description}}</textarea>
+        {{else}}
+          <div class="sde-ql-desc">{{{descriptionHtml}}}</div>
+        {{/if}}
+      </div>
+
+      {{!-- What has to be done. Only the GM ticks. --}}
+      <div class="sde-ql-card">
+        <h3 class="sde-ql-head">
+          {{localize "SDE.quests.objectives"}}
+          {{#if progress.total}}<span class="sde-ql-headnote">{{progress.done}}/{{progress.total}}</span>{{/if}}
+        </h3>
+        <ul class="sde-ql-objectives">
+          {{#each objectives}}
+            <li class="sde-ql-objective {{#if done}}sde-ql-done{{/if}}">
+              <input type="checkbox" name="ql-obj-done-{{id}}" data-ql-field="objectiveDone" data-objective="{{id}}" {{#if done}}checked{{/if}}
+                {{#unless ../../isGM}}disabled{{/unless}} aria-label="{{text}}">
+              {{#if ../../isGM}}
+                <input type="text" name="ql-obj-{{id}}" data-ql-field="objectiveText" data-objective="{{id}}" value="{{text}}" aria-label="{{text}}">
+                <a data-action="qlRemoveObjective" data-objective="{{id}}" aria-label="{{localize "SDE.quests.remove"}}"><i class="fa-solid fa-trash"></i></a>
+              {{else}}
+                <span>{{text}}</span>
+              {{/if}}
+            </li>
+          {{else}}
+            <li class="sde-ql-empty">{{localize "SDE.quests.noObjectives"}}</li>
+          {{/each}}
+        </ul>
+        {{#if ../isGM}}
+          <div class="sde-ql-addrow">
+            <input type="text" name="ql-new-objective" data-ql-new-objective placeholder="{{localize "SDE.quests.newObjective"}}"
+              aria-label="{{localize "SDE.quests.newObjective"}}">
+            <button type="button" class="sde-ql-btn" data-action="qlAddObjective"><i class="fa-solid fa-plus"></i></button>
+          </div>
+        {{/if}}
+      </div>
+
+      {{!-- What it pays, once, when the GM marks it Completed. --}}
+      <div class="sde-ql-card">
+        <h3 class="sde-ql-head">
+          {{localize "SDE.quests.rewards"}}
+          {{#if paid}}<span class="sde-ql-headnote">{{localize "SDE.quests.paid"}}</span>{{/if}}
+        </h3>
+        {{#if ../isGM}}
+          <div class="sde-ql-grid">
+            <label>{{localize "SDE.quests.xp"}}
+              <input type="number" min="0" step="1" name="ql-xp" data-ql-field="xp" value="{{rewards.xp}}"></label>
+            <label>{{localize "SDE.quests.renown"}}
+              <input type="number" step="1" name="ql-renown" data-ql-field="renown" value="{{rewards.renown}}"></label>
+            <label>{{localize "SDE.quests.training"}}
+              <select name="ql-training" data-ql-field="training">
+                <option value="">{{localize "SDE.quests.noTraining"}}</option>
+                {{#each trainerOptions}}<option value="{{key}}" {{#if selected}}selected{{/if}}>{{label}}</option>{{/each}}
+              </select></label>
+          </div>
+          <div class="sde-ql-drop">
+            {{#each rewards.items}}
+              <div class="sde-ql-reward-item">
+                <img src="{{img}}" alt="" width="24" height="24"> <span>{{name}}</span>
+                <a data-action="qlRemoveItem" data-index="{{@index}}" aria-label="{{localize "SDE.quests.remove"}}"><i class="fa-solid fa-xmark"></i></a>
+              </div>
+            {{/each}}
+            <p class="sde-ql-empty">{{localize "SDE.quests.dropItems"}}</p>
+          </div>
+        {{else}}
+          {{#if hasRewards}}
+            <ul class="sde-ql-rewards">
+              {{#if rewards.xp}}<li>{{localize "SDE.quests.reward.xp" n=rewards.xp}}</li>{{/if}}
+              {{#if rewards.renown}}<li>{{localize "SDE.quests.reward.renown" n=renownSigned}}</li>{{/if}}
+              {{#each rewards.items}}<li><img src="{{img}}" alt="" width="20" height="20"> {{name}}</li>{{/each}}
+              {{#if trainerName}}<li>{{localize "SDE.quests.reward.training" trainer=trainerName}}</li>{{/if}}
+            </ul>
+          {{else}}
+            <p class="sde-ql-empty">{{localize "SDE.quests.noRewards"}}</p>
+          {{/if}}
+        {{/if}}
+      </div>
+
+      {{!-- Where it is: a hex whose map pin the quest jumps to. --}}
+      {{#if ../isGM}}
+        <div class="sde-ql-card">
+          <h3 class="sde-ql-head">{{localize "SDE.quests.location"}}</h3>
+          <label class="sde-ql-hex">{{localize "SDE.quests.hex"}}
+            <input type="number" min="1" step="1" name="ql-hex" data-ql-field="hex" value="{{hex}}"></label>
+          <p class="sde-ql-hint">{{localize "SDE.quests.locationHint"}}</p>
+        </div>
+      {{/if}}
+
+    {{else}}
+      <p class="sde-ql-empty">{{localize "SDE.quests.pickOne"}}</p>
+    {{/with}}
+    </section>
+  </div>
+
+</div>

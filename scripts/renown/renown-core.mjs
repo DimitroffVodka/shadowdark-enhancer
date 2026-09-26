@@ -205,6 +205,7 @@ export const RENOWN_SOURCE_LABELS = {
   downtime: "Downtime",
   carousing: "Carousing",
   training: "Regional training",
+  quest: "Quest reward",
   external: "Changed outside the module",
 };
 

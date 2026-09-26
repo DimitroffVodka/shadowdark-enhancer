@@ -15,10 +15,12 @@ and Forge & Loot features.
 [`partyXp`](#partyxp--party-xp-awards) · [`recap`](#recap--session-recap) ·
 [`charBuilder`](#charbuilder--guided-character-creation) ·
 [`actors`](#actors--western-reaches-boats) ·
+[`statDamage`](#statdamage--tracked-ability-damage) · [`quests`](#quests--the-quest-log) ·
+[`dying`](#dying--death-timers-and-stabilizing) ·
 [`hexMaps`](#hexmaps--hex-map-tagging-and-the-extras-dataset) ·
 [`rules`](#rules--western-reaches-rules-data)
 
-**API version:** `1.6.0` (semver — additive changes bump the minor version,
+**API version:** `1.9.0` (semver — additive changes bump the minor version,
 breaking changes the major; check `apiVersion` before relying on newer keys).
 
 ## Discovery
@@ -880,6 +882,7 @@ const api = game.shadowdarkEnhancer;
 
 await api.training.open();                  // the trainer window
 await api.training.open({ actor });         // …on a particular character
+await api.training.open({ actor, trainer: "gladiator" });   // …and trainer (1.6.0)
 
 // Headless grant: teaches one d4 face. `choice` names a branch for the four
 // either/or benefits ("+2 CHA or +4 renown"); omit it elsewhere.
@@ -895,7 +898,7 @@ await api.training.taught(actor, "gladiator");   // → [2]
 module can compute grants a Talent carrying Active Effect changes; one it
 cannot grants a Talent carrying the trainer's name, the book's line and a
 plain sentence saying what the table still does by hand. Of the 84 benefits,
-**24 compute something today and 60 are recorded as prose** — 13 carry effect
+**27 compute something today and 57 are recorded as prose** — 16 carry effect
 changes, 10 run a one-time write, 4 offer an either/or.
 
 Roughly half the prose is automatable and simply is not automated yet: the
@@ -937,9 +940,199 @@ works on the GM's own scene image and book text.
 The dataset carries published hex numbers only (`num`, column-major: 1403 is
 column 14, row 03); never a column and row pair.
 
+---
+
+## `statDamage` — tracked ability damage
+
+Added in 1.6.0. Stat damage has no setting and no control: a character who has
+never taken any carries nothing. When it happens it is one Active Effect per
+damaged ability, shown in the sheet's Effects tab, and it is gone when healed.
+
+| Call | What |
+|---|---|
+| `statDamage.apply(actor, ability, amount)` | Add `amount` points to one ability (`"str"` … `"cha"`, any case, or the full name). Characters only. Resolves to that ability's new total, or `null` when nothing was applied (an NPC, an unknown ability, an amount below 1). |
+| `statDamage.heal(actor)` | Clear all of it: a normal rest. `heal(actor, { all: true })` is the same. |
+| `statDamage.heal(actor, { perAbility: n })` | Take `n` off each damaged ability: Grinder Mode passes 1. Resolves to what is left, as `of` reads it. |
+| `statDamage.of(actor)` | `{ str, dex, con, int, wis, cha }`, the points of damage on each, zero when clean. Several effects on one ability are summed. |
+
+`apply` and `heal` write Active Effects, so the caller needs owner permission
+on the actor: the GM, or the character's own player.
+
+**The effect is a contract.** Anything that creates stat damage without calling
+`apply` (Shadowdark Extras' Effects library) must use exactly this shape, and
+`of`, `heal` and the CON check then treat it like any other:
+
+```js
+{
+  name: "STR damage",
+  changes: [{ key: "system.abilities.str.value", mode: CONST.ACTIVE_EFFECT_MODES.ADD, value: "-1" }],
+  flags: { "shadowdark-enhancer": { statDamage: { ability: "str" } } },
+}
+```
+
+The system's ability modifier is computed from `value`, so the modifier drops
+with the score. `apply` and `heal` replace an ability's effects with one effect
+holding the new total, so two library drops become one line the next time that
+ability changes.
+
+**CON 0 is death.** When a stat-damage effect takes a character's CON to 0 or
+below, the active GM's client marks them dead the way dying does (the `dead`
+status, defeated in any combat they are in, and any dying state cleared). A
+character carrying the `noDeathAtZeroCon` dying modifier (River of Death, or
+the Ancient Ritual training) survives it; see `dying` below.
+
+**Monster hits use it too.** A monster attack card that hits a character is
+read for riders like `1 STR damage` or `DC 12 CON or 1d4 STR damage`; a saved
+rider asks the character's player to roll through the user query
+`shadowdark-enhancer.statDamageSave` (GM sender only, answered by the owner's
+client), and the GM's client rolls it when no player answers.
+
+---
+
+## `quests` — the Quest Log
+
+Added in 1.7.0. One place for "what are we doing", whether it came from a
+rumor, a trouble, a trainer or the GM. Each quest is a **world JournalEntry**
+in a *Quests* folder of the Journal sidebar, with a player page and a GM notes
+page, so it reads fine without the window. Its state is one flag on the entry,
+`flags["shadowdark-enhancer"].quest`; identity is that flag, never the name.
+
+```js
+const api = game.shadowdarkEnhancer;
+
+await api.quests.open();                          // the Quest Log window (Ctrl+Q)
+
+api.quests.list({ status: "active" });            // what this user may see
+api.quests.list({ party: partyActor });           // assigned to that party
+api.quests.list({ character: actor });            // personal to that character
+api.quests.get(id);                               // one, or null
+
+// GM only.
+const q = await api.quests.create({
+  name: "The drowned bell",
+  status: "available",                            // default "hidden"
+  source: { kind: "rumor", uuid: rumorEntry.uuid },
+  description: "The fishers of Low Town hear a bell under the water.",
+  objectives: ["Find the bell", "Silence it"],
+  rewards: { xp: 3, renown: 1, items: [{ uuid: item.uuid, name: item.name }] },
+  characters: [actor],                            // Actor, uuid or id
+  party: partyActor,                              // Shadowdark Extras party, or omit
+  hex: 353,                                       // pin to jump to, or omit
+});
+await api.quests.setStatus(q.id, "completed");    // asks the GM to confirm the payout
+```
+
+| Call | Who | What |
+|---|---|---|
+| `quests.open()` | anyone | Open the Quest Log. Players get it read-only. |
+| `quests.list({ status, party, character, sourceKind, sourceUuid })` | anyone | Quests this user may see, newest first. Every filter is optional. `status` is one status or an array. `party` and `character` take an Actor, a UUID or a world actor id. |
+| `quests.get(idOrUuid)` | anyone | One quest, or `null` when it does not exist or this user may not see it. |
+| `quests.create(data)` | GM | Make a quest and return it. Every field is optional; a bare call makes a Hidden *New quest* from the GM. |
+| `quests.setStatus(idOrUuid, status)` | GM | Move a quest. Returns it, or `null` when refused or cancelled. |
+
+**The shape** every read returns:
+
+```js
+{
+  id, uuid, name,
+  status,        // "hidden" | "available" | "active" | "completed" | "failed"
+  source: { kind, uuid },   // kind: "gm" | "rumor" | "trouble" | "trainer"; a trainer
+                            // task also carries { trainer, task } (key and task index)
+  party,         // party actor UUID or null
+  characters,    // actor UUIDs; non-empty means the quest is personal to them
+  objectives: [{ id, text, done }],
+  description,   // the GM's player-facing text
+  rewards: { xp, renown, items: [{ uuid, name, img }], training },   // training: a trainer key or null
+  hex,           // published hex number or null
+  paid,          // true once the rewards were handed out
+  created,       // the entry's creation time, ms
+}
+```
+
+**What players see.** A Hidden quest is the GM's alone: its entry's default
+ownership is None, and `list`/`get` leave it out for a player whatever its
+ownership says. Any other status sets the default ownership to Observer:
+players read the entry, never edit it. The GM notes page is None for players
+at every status.
+
+**Sources.** `source.kind` says where a quest came from and `source.uuid`
+points back at it, so a rumor ledger or a trouble tracker can create its
+quest with `create({ source: { kind: "rumor", uuid } })` and find it again with
+`list({ sourceUuid })`. Nothing here acts on a source when its quest ends;
+the source listens to `questsChanged` and reads the status.
+
+**Parties** are Shadowdark Extras' party actors (an NPC flagged
+`shadowdark-extras.isParty`). `list({ party })` matches quests *assigned* to
+that party only; the personal quests of its members come from
+`list({ character })` for each member. A quest can carry both, so deduplicate
+by `id`. Without Extras the log works the same and a quest simply has no
+party.
+
+**Completing a quest pays its rewards once.** Moving a quest into Completed
+with rewards not yet paid opens a confirmation listing them, where the GM
+picks who gets the XP and renown (each in full), who gets each item, and
+whether to open Regional Training for the benefit roll. XP goes through
+`partyXp.award`, renown through `renown.award` (source `quest`), and items
+are copied onto the chosen character. Cancelling leaves the quest where it
+was. `paid` is written with the status before anything is handed out, so
+Completed → Active → Completed never pays twice. Unticking everyone completes
+a quest without paying it.
+
+**Jump to pin** (the window's button) goes to a Note placed for the quest
+itself (its journal entry dragged onto a scene), else to the Hex Tagger's pin
+for `hex`.
+
+The hook `shadowdark-enhancer.questsChanged` fires on every client, once per
+burst of writes, after any quest is created, changed or deleted.
+
+## `dying` — death timers and stabilizing
+
+Added in 1.8.0. The core dying rule (p.89) with Deadly and Fatality (p.111);
+the table-facing description is the wiki page *Dying and Death Timers*.
+
+```js
+const d = game.shadowdarkEnhancer.dying;
+
+d.isDying(actor);                  // → true while dying (not stable, not dead)
+d.timer(actor);                    // → rounds left, or null
+d.state(actor);                    // → { timer, stable, conscious, tick } or null
+
+await d.stabilize(actor, { by: helper }); // helper's INT check on THIS client; → did it succeed
+await d.stabilize(actor);                 // GM: no roll (a potion, an automatic success)
+await d.rise(actor);                      // GM: up at 1 HP, everything cleared
+await d.adjust(actor, +1);                // GM: rounds added (or removed), never below 1
+await d.setConscious(actor, true);        // GM: acting while dying; the timer still runs
+
+d.STATUS;                          // "sde-dying", the status this module registers
+d.KEYS.timerDie;                   // "flags.shadowdark-enhancer.dyingTimerDie", …
+```
+
+| Call | Who | Notes |
+|---|---|---|
+| `isDying`, `timer`, `state` | anyone | Read the actor's `flags["shadowdark-enhancer"].dying`. The hidden timer hides the count in the UI only. |
+| `stabilize(actor, { by })` | owner of `by`, or GM | Runs the system's `rollStatCheck("int")` for `by`. The DC comes from the active GM (query `shadowdark-enhancer.dying`): 15, 18 under Deadly or near a `stabilizeDCNear` creature, and `by`'s own `stabilizeDC` beats both. The check's roll config carries `flags.shadowdark.rollConfig["shadowdark-enhancer"].stabilizeTarget`, so a Luck reroll of the card carries it too. The active GM reads every such card as it lands and stabilizes only when the card's author is a GM or owns `by`, and the roll's total meets the DC it works out itself. Resolves to whether this roll succeeded. |
+| `stabilize(actor)` | GM | No roll. |
+| `rise`, `adjust`, `setConscious` | GM | Run on the active GM, in the actor's queue with the automatic steps; another GM's call is relayed to it. |
+
+`KEYS` is the modifier vocabulary, set on Active Effects (`override`, except
+`timerBonus`, which is `add`): `timerDie`, `timerBonus`, `riseMin`,
+`riseMinNear`, `stabilizeDC`, `stabilizeDCNear`, `noDeathAtZeroCon`. Values are
+read from the actor's derived flags at the moment they are needed.
+`noDeathAtZeroCon` also decides stat damage's death at CON 0 (`statDamage`
+above).
+
+Every write runs on the active GM, in one queue per actor: 0 HP in
+`updateActor`, the turn start in a wrapped `Combat#_onStartTurn`, stabilize
+cards in `createChatMessage`, and crawl rounds from the
+`shadowdark-enhancer.crawlRound` hook, relayed there from whichever GM advanced
+the round. The owning player's client only rolls the natural die; the GM adds
+the modifiers. None of it runs while Shadowdark Crawl Helper is active.
+
+---
+
 ## `rules` — Western Reaches rules data
 
-Added in 1.6.0. The tables the Western Reaches books consult rather than roll:
+Added in 1.9.0. The tables the Western Reaches books consult rather than roll:
 terrain costs, hexes per day, hex visibility, climate, and the carousing and
 warband-recruiting limits of a settlement. Overland travel, carousing and hex
 visibility read them from here.
@@ -995,7 +1188,12 @@ const cost = rules.terrainCost("forest", { weather: stormy ? "stormy" : "", hars
   not bump `apiVersion`.
 - `1.3.0` adds `loot.resolve` and `loot.generated.{identity,plan,reconcile}`.
 - `1.5.0` adds the `hexMaps` namespace (Hex Tagger, dataset builder, hand-off).
-- `1.6.0` adds the `rules` namespace (Western Reaches rules data).
+- `1.6.0` adds the `statDamage` namespace (tracked ability damage).
+- `1.7.0` adds the `quests` namespace (the Quest Log) and the
+  `shadowdark-enhancer.questsChanged` hook.
+- `1.8.0` adds the `dying` namespace (death timers, stabilize) and the
+  `shadowdark-enhancer.crawlRound` hook.
+- `1.9.0` adds the `rules` namespace (Western Reaches rules data).
 - `1.4.0` adds the shared `forgeLoot.open()` preview shell. Generator rules and
   document writes remain behind the later NPC/Rival adapter implementations.
   The version policy is additive: new namespaces bump the minor version; breaking
@@ -1089,8 +1287,10 @@ plus `authorizeActorFor(actorId, user)` on the GM side, and
 | `shadowdark-enhancer.contentUnlocked` | Imported content becomes available — an open Character Builder re-reads its content | *(none)* |
 | `shadowdark-enhancer.partyXpAwarded` | A party XP award commits | `{ amount, label, results }` |
 | `shadowdark-enhancer.lootScored` | A claimable loot card is posted | `{ totalGp, totalXp, items, source, messageId }` |
+| `shadowdark-enhancer.questsChanged` | A quest was created, changed or deleted; fires on every client, once per burst of writes | `{ ids }` — the quest entry ids that changed |
 | `shadowdark-enhancer.crawlStart` | A crawl session starts | the crawl state |
 | `shadowdark-enhancer.crawlEnd` | A crawl session ends | the crawl state |
+| `shadowdark-enhancer.crawlRound` | The crawl round advances, on the one GM client that advanced it (the death timers tick on it) | the crawl state |
 | `sde.stateChanged` | Any crawl-state change (mode, turn, roster, out-of-combat initiative) — this is the high-frequency one the strip and bar re-render on | the crawl state |
 
 > **Three prefixes are in play, deliberately.** The ready signal uses camelCase

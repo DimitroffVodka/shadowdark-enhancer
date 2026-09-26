@@ -281,6 +281,9 @@ export const CrawlState = {
     if (!changed) return;
     if (!await this._commit(state)) return;
     await MovementTracker.captureCrawlAnchors();
+    // A new crawl round, on this one client (a user's click or the relayed
+    // OoC advance): out of combat, the death timers tick on it (dying.mjs).
+    Hooks.callAll(`${MODULE_ID}.crawlRound`, this._state);
     // Advancing the clock is unconditional; whether it also rolls the
     // wandering-monster check depends on the GM's `encounterCheckFrequency`
     // setting — 1 (every round, the default) or N, which checks N rounds after

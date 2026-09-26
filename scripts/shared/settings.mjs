@@ -199,6 +199,20 @@ export function registerSettings() {
     default: false,
   });
 
+  // A population table for the builder's Random ancestry (e.g. the Western
+  // Reaches d100): its result is matched to an ancestry by name. Empty keeps
+  // each ancestry's system.randomWeight. A uuid field renders as a drop target
+  // for a RollTable from the sidebar or a compendium.
+  game.settings.register(MODULE_ID, "charBuilderAncestryTable", {
+    name: "SDE.settings.charBuilderAncestryTable.name",
+    hint: "SDE.settings.charBuilderAncestryTable.hint",
+    scope: "world",
+    config: false,
+    // blank: clearing the drop target submits "", which must save as "unset".
+    type: new foundry.data.fields.DocumentUUIDField({ type: "RollTable", blank: true, nullable: true, initial: null }),
+    default: null,
+  });
+
   // Fixed starting gold (gp). 0 = roll the standard 2d6×5 gp in the builder.
   game.settings.register(MODULE_ID, "charBuilderStartingGold", {
     name: "SDE.settings.charBuilderStartingGold.name",
@@ -494,6 +508,29 @@ export function registerSettings() {
   game.settings.register(MODULE_ID, "modeChaosInitiative", {
     name: "SDE.settings.modeChaosInitiative.name",
     hint: "SDE.settings.modeChaosInitiative.hint",
+    scope: "world",
+    config: false,
+    type: Boolean,
+    default: false,
+  });
+
+  // Chaos Mode's reroll shows Dice So Nice only when asked: 3D dice for the
+  // whole tracker every round get tiresome. An option, not a rule, so the
+  // Chaos box's switch leaves it alone.
+  game.settings.register(MODULE_ID, "modeChaosDiceSoNice", {
+    name: "SDE.settings.modeChaosDiceSoNice.name",
+    hint: "SDE.settings.modeChaosDiceSoNice.hint",
+    scope: "world",
+    config: false,
+    type: Boolean,
+    default: false,
+  });
+
+  // The core dying rule's one option (#181), shown in the Deadly box of the
+  // Modes of Play window as an option, not a rule: the Deadly switch leaves it.
+  game.settings.register(MODULE_ID, "dyingHiddenTimer", {
+    name: "SDE.settings.dyingHiddenTimer.name",
+    hint: "SDE.settings.dyingHiddenTimer.hint",
     scope: "world",
     config: false,
     type: Boolean,
