@@ -38,12 +38,13 @@ test("night is before sunrise and from sunset on", () => {
 });
 
 test("dawnAfter: the next sunrise, and the nth; a sunrise at that very moment is not after it", () => {
-  const rise21 = at(1301, 6, 21, 4, 30), rise22 = at(1301, 6, 22) + sun(gregorian, at(1301, 6, 22)).sunrise * 3600;
+  const riseOn = (y, m, d) => Math.round(at(y, m, d) + sun(gregorian, at(y, m, d)).sunrise * 3600);
+  const rise21 = at(1301, 6, 21, 4, 30), rise22 = riseOn(1301, 6, 22);
   assert.equal(dawnAfter(gregorian, at(1301, 6, 21, 3)), rise21, "before today's sunrise: today's");
   assert.equal(dawnAfter(gregorian, at(1301, 6, 21, 12)), rise22, "after it: tomorrow's");
   assert.equal(dawnAfter(gregorian, rise21), rise22, "at it: tomorrow's");
-  assert.equal(dawnAfter(gregorian, at(1301, 12, 30, 20), 3), at(1302, 1, 2) + sun(gregorian, at(1302, 1, 2)).sunrise * 3600,
-    "three dawns on, across the year's end");
+  assert.equal(dawnAfter(gregorian, at(1301, 12, 30, 20), 3), riseOn(1302, 1, 2), "three dawns on, across the year's end");
+  assert.ok(Number.isInteger(dawnAfter(gregorian, at(1301, 12, 30, 20))), "to the second");
 });
 
 // ── Moon ─────────────────────────────────────────────────────────────────────

@@ -238,13 +238,13 @@ export function isNight(cal, t) {
 
 /**
  * The worldTime of the `n`th sunrise after `t` (a sunrise at exactly `t` is
- * not after it). Overland's weather holds until a dawn (#230).
+ * not after it), to the second. Overland's weather holds until a dawn (#230).
  */
 export function dawnAfter(cal, t, n = 1) {
   const spd = secondsPerDay(cal), perHour = spd / hoursPerDay(cal);
   let found = 0;
   for (let d = absDay(cal, t); ; d++) {
-    const rise = d * spd + sun(cal, d * spd).sunrise * perHour;
+    const rise = Math.round(d * spd + sun(cal, d * spd).sunrise * perHour);
     if (rise > t && ++found >= n) return rise;
   }
 }
