@@ -9,10 +9,10 @@
   Player's Guide's *Ancestry (Population)* d100 (p. 14). Both are read from
   your own PDF. A new Character Builder setting, **Random ancestry table**,
   takes a roll table. When one is set, the Ancestry step's Random rolls it and
-  picks the ancestry whose name matches the result, so with the Western
-  Reaches table about half of all random characters are human. If a result
-  matches no ancestry in the world, you're told which result and Random falls
-  back to each ancestry's weight. Left empty, Random works as before. (#187)
+  picks the ancestry the result names or links to, so random characters follow
+  the setting's population odds. If a result matches no ancestry in the world,
+  or the table gives nothing, you're told and Random falls back to each
+  ancestry's weight. Left empty, Random works as before. (#187)
 - **Stat damage is tracked.** Damage to STR, DEX, CON, INT, WIS or CHA is one
   line per ability in the character sheet's Effects tab, such as *2 STR
   damage*: the score and its modifier drop, and the line is gone when healed.

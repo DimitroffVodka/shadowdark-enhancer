@@ -222,6 +222,7 @@
   "SDE.charBuilder.ancestry.talentChoices": "Talent choices",
   "SDE.charBuilder.ancestry.languages": "Languages",
   "SDE.charBuilder.ancestry.tableMissing": "The Random ancestry table set in the Character Builder settings no longer exists, so Random used each ancestry's own weight.",
+  "SDE.charBuilder.ancestry.tableEmpty": "{table} gave no result (it may be empty, or every row already drawn), so Random used each ancestry's own weight.",
   "SDE.charBuilder.ancestry.tableNoMatch": "{table} rolled \"{result}\", which matches no ancestry in this world, so Random used each ancestry's own weight.",
   "SDE.charBuilder.class.details": "Class",
   "SDE.charBuilder.class.hitDie": "Hit die",

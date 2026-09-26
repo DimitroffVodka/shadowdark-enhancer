@@ -100,11 +100,11 @@ Browse ancestries live from all installed compendiums, complete with portrait ar
   setting's population instead, drop a roll table on **Random ancestry table**
   in the Character Builder settings. The Western Reaches *Ancestry
   (Population)* d100 (Player's Guide p. 14, imported from the Importer Hub)
-  makes about half of all random characters human. Random then rolls that
-  table and picks the ancestry whose name matches the result, ignoring case
-  and punctuation, so "Half-elf" finds *Half-Elf*. If a result matches no
-  ancestry in your world, you're told which result it was and Random falls
-  back to the weighted pick.
+  picks ancestries at that book's population odds. Random then rolls that
+  table and picks the ancestry the result links to, or whose name matches it
+  (ignoring case, so "Half-elf" finds *Half-Elf*). If a result matches no
+  ancestry in your world, or the table gives nothing at all, you're told and
+  Random falls back to the weighted pick.
 
 | Setting | Effect |
 |---|---|

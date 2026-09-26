@@ -1,25 +1,25 @@
 // The Character Builder's Random ancestry from a population table (#187).
 // Foundry is stubbed: game.settings, fromUuid and a RollTable whose roll walks
 // every d100 face in turn, so the counts are exact rather than statistical.
+// Every ancestry and band here is INVENTED; no book's table is in this repo.
 import { test, beforeEach } from "node:test";
 import assert from "node:assert/strict";
-import { itemNamedBy, rollAncestryFromTable } from "../scripts/char-builder/data.mjs";
+import { rollAncestryFromTable } from "../scripts/char-builder/data.mjs";
 
-const ANCESTRIES = ["Dwarf", "Elf", "Goblin", "Half-Elf", "Half-Orc", "Halfling", "Human", "Kobold"]
-  .map((name) => ({ name, uuid: `Compendium.shadowdark.ancestries.Item.${name}` }));
+const ANCESTRIES = ["Ashling", "Brine-Folk", "Cragborn", "Dunewalker", "Folk"]
+  .map((name) => ({ name, uuid: `Compendium.world.ancestries.Item.${name}` }));
 
-// The Western Reaches odds (PGWR p.14), spelled the way the book spells them.
-const BANDS = [[1, 54, "Human"], [55, 64, "Elf"], [65, 74, "Dwarf"], [75, 84, "Halfling"],
-  [85, 89, "Goblin"], [90, 94, "Half-elf"], [95, 99, "Half-orc"], [100, 100, "Kobold"]];
+// Invented odds, with a result spelled differently from the item it names.
+const BANDS = [[1, 50, "Ashling"], [51, 80, "brine-folk"], [81, 99, "CRAGBORN"], [100, 100, "Dunewalker"]];
 
 function populationTable(bands = BANDS) {
   let face = 0;
   return {
-    name: "Ancestry (Population)",
+    name: "Invented Population",
     async roll() {
       face = (face % 100) + 1;
-      const [, , text] = bands.find(([lo, hi]) => face >= lo && face <= hi);
-      return { results: [{ name: text, description: "" }] };
+      const [, , text, documentUuid] = bands.find(([lo, hi]) => face >= lo && face <= hi);
+      return { results: text === null ? [] : [{ name: text, description: "", documentUuid }] };
     },
   };
 }
@@ -35,20 +35,12 @@ beforeEach(() => {
   globalThis.fromUuid = async (uuid) => tables.get(uuid) ?? null;
 });
 
-test("a result finds its ancestry whatever its case and punctuation", () => {
-  assert.equal(itemNamedBy("Half-elf", ANCESTRIES)?.name, "Half-Elf");
-  assert.equal(itemNamedBy("  HUMAN ", ANCESTRIES)?.name, "Human");
-  assert.equal(itemNamedBy("Elf", ANCESTRIES)?.name, "Elf", "Elf is not Half-Elf");
-  assert.equal(itemNamedBy("Dragonborn", ANCESTRIES), null);
-  assert.equal(itemNamedBy("", ANCESTRIES), null);
-});
-
 test("with no table set, Random keeps the weighted pick", async () => {
   assert.equal(await rollAncestryFromTable(ANCESTRIES), null);
   assert.deepEqual(warnings, []);
 });
 
-test("1,000 Randoms follow the table: 54% human, 1% kobold", async () => {
+test("1,000 Randoms follow the table's odds, whatever case the results are in", async () => {
   setting = "Compendium.world.tables.RollTable.pop";
   tables.set(setting, populationTable());
   const counts = new Map();
@@ -56,19 +48,36 @@ test("1,000 Randoms follow the table: 54% human, 1% kobold", async () => {
     const pick = await rollAncestryFromTable(ANCESTRIES);
     counts.set(pick.name, (counts.get(pick.name) ?? 0) + 1);
   }
-  assert.equal(counts.get("Human"), 540);
-  assert.equal(counts.get("Kobold"), 10);
-  assert.equal(counts.get("Half-Elf"), 50, "the book's Half-elf lands on Half-Elf");
+  assert.equal(counts.get("Ashling"), 500);
+  assert.equal(counts.get("Brine-Folk"), 300, "\"brine-folk\" lands on Brine-Folk");
+  assert.equal(counts.get("Cragborn"), 190);
+  assert.equal(counts.get("Dunewalker"), 10);
+  assert.equal(counts.get("Folk"), undefined, "a longer name is never read as the shorter one");
+  assert.deepEqual(warnings, []);
+});
+
+test("a row that links an ancestry picks it through the link", async () => {
+  setting = "Compendium.world.tables.RollTable.linked";
+  tables.set(setting, populationTable([[1, 100, "Someone odd", "Compendium.world.ancestries.Item.Cragborn"]]));
+  assert.equal((await rollAncestryFromTable(ANCESTRIES))?.name, "Cragborn");
   assert.deepEqual(warnings, []);
 });
 
 test("a result naming no installed ancestry falls back and says which", async () => {
   setting = "Compendium.world.tables.RollTable.odd";
-  tables.set(setting, populationTable([[1, 100, "Dragonborn"]]));
+  tables.set(setting, populationTable([[1, 100, "Moonkin"]]));
   assert.equal(await rollAncestryFromTable(ANCESTRIES), null);
   assert.equal(warnings.length, 1);
   assert.match(warnings[0], /tableNoMatch/);
-  assert.match(warnings[0], /Dragonborn/);
+  assert.match(warnings[0], /Moonkin/);
+});
+
+test("a table that gives nothing says so, not that it rolled \"\"", async () => {
+  setting = "Compendium.world.tables.RollTable.empty";
+  tables.set(setting, populationTable([[1, 100, null]]));
+  assert.equal(await rollAncestryFromTable(ANCESTRIES), null);
+  assert.match(warnings[0] ?? "", /tableEmpty/);
+  assert.doesNotMatch(warnings[0] ?? "", /tableNoMatch/);
 });
 
 test("a table that no longer exists falls back and says so", async () => {
