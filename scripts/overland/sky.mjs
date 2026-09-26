@@ -12,8 +12,9 @@
  *   Nothing is written when the scene's darkness is locked, or when
  *   Calendaria drives that scene's darkness: one writer per scene.
  * - Weather: Foundry's rainStorm when stormy, its blizzard when stormy in a
- *   cold climate, else none. A weather effect the GM chose (fog, snow...) is
- *   left alone.
+ *   cold climate, else none. Overland records the effect it put on a scene
+ *   (the skyWeather flag) and only ever changes or clears that one; a weather
+ *   effect the GM chose, a rain storm included, is left alone (weatherPlan).
  * - The Isles of Andrik keep their own skies, by the party's region.
  */
 
@@ -21,13 +22,14 @@ import { MODULE_ID } from "../shared/module-id.mjs";
 import { isActiveGM } from "../shared/gm-relay.mjs";
 import { esc } from "../shared/esc.mjs";
 import { overlandState, OVERLAND_CHANGED } from "./overland.mjs";
+import { hourOfDay } from "../time/time-core.mjs";
 import {
-  HEX_MAP_CAP, calendariaDrives, darknessAt, darknessMoved, followsSky, skyOverride, weatherEffect,
+  HEX_MAP_CAP, calendariaDrives, darknessAt, darknessMoved, followsSky, skyOverride, weatherEffect, weatherPlan,
 } from "./sky-core.mjs";
 
 export const FOLLOWS_SKY = "followsSky";
-/** The weather effects Overland sets; any other is the GM's and stays. */
-const OURS = new Set(["", "rainStorm", "blizzard"]);
+/** The weather effect Overland put on this scene, while it is still the one there. */
+export const SKY_WEATHER = "skyWeather";
 /** A darkness step under this many seconds of clock is animated. */
 const ANIMATE_BELOW = 3600;
 const ANIMATE_MS = 2000;
@@ -78,9 +80,8 @@ export async function applySky(scene = game.scenes?.active, { dt = null } = {}) 
     if (!_calendariaNoted) console.log(`${MODULE_ID} | Calendaria drives scene darkness here; Overland leaves it alone`);
     _calendariaNoted = true;
   } else if (!scene.environment?.darknessLock) {
-    const c = game.time.calendar.timeToComponents(now);
     const next = darknessAt({
-      hour: c.hour + c.minute / 60, ...api.sun(now), illumination: api.moonPhase(now).illumination,
+      hour: hourOfDay(game.time.calendar, now), ...api.sun(now), illumination: api.moonPhase(now).illumination,
       cap: hex ? HEX_MAP_CAP : 1, override,
     });
     if (darknessMoved(scene.environment?.darknessLevel, next)) {
@@ -89,9 +90,17 @@ export async function applySky(scene = game.scenes?.active, { dt = null } = {}) 
     }
   }
 
-  const current = scene.weather ?? "";
-  const effect = weatherEffect({ stormy: state.stormy, climate: state.climate?.label });
-  if (effect !== current && OURS.has(current)) updates.weather = effect;
+  const plan = weatherPlan({
+    current: scene.weather ?? "",
+    owned: scene.getFlag(MODULE_ID, SKY_WEATHER) ?? null,
+    effect: weatherEffect({ stormy: state.stormy, climate: state.climate?.label }),
+  });
+  if ("weather" in plan) updates.weather = plan.weather;
+  // The record goes in the same update as the effect it records, so the two
+  // never disagree. A string flag in an ordinary (recursive) update; nothing
+  // here uses recursive: false, so our other flags on the scene are untouched.
+  if (plan.own) updates[`flags.${MODULE_ID}.${SKY_WEATHER}`] = plan.own;
+  else if ("own" in plan) updates[`flags.${MODULE_ID}.-=${SKY_WEATHER}`] = null;
 
   if (!Object.keys(updates).length) return null;
   await scene.update(updates, options);

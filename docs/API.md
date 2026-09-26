@@ -1689,7 +1689,13 @@ untouched unless marked.
 - `scene.weather` is Foundry's `rainStorm` while today's weather is stormy,
   or its `blizzard` when the region's climate is cold or freezing, and
   nothing otherwise.
-- A weather effect the GM chose (fog, snow, leaves...) is left alone.
+- Overland takes only an empty weather slot. It records the effect it put
+  there as the scene flag `shadowdark-enhancer.skyWeather`, in the same
+  update, and only ever changes or clears an effect it recorded that is
+  still there. The record survives a reload.
+- Any other effect is left alone, including a rain storm or blizzard the GM
+  picked. When someone else changes Overland's effect, Overland drops its
+  record and doesn't touch that scene's weather again.
 
 **When it runs.** On every clock move (at most one write in flight), when
 Overland's weather or hex changes, when a scene is activated, when the

@@ -75,6 +75,22 @@ export function weatherEffect({ stormy, climate = null }) {
 }
 
 /**
+ * What to do with a scene's weather effect (#251 review). Overland changes or
+ * clears only an effect it put there itself and that is still there
+ * (`owned`, the scene's record of it); it takes an empty slot for a storm; and
+ * any other effect, a GM's rain storm included, is left alone. When another
+ * writer has changed an effect Overland put there, Overland lets it go.
+ * @param {{current:string, owned:string|null, effect:string}} w
+ *   `current`: the scene's weather; `owned`: what Overland last set, if recorded; `effect`: what it wants now
+ * @returns {{weather?:string, own?:string|null}} the changes: the weather to write, and the record (null drops it)
+ */
+export function weatherPlan({ current, owned, effect }) {
+  if (owned && owned !== current) return { own: null };
+  if (owned) return effect === current ? {} : { weather: effect, own: effect || null };
+  return !current && effect ? { weather: effect, own: effect } : {};
+}
+
+/**
  * Does this scene follow the sky? The scene's own choice, else yes for a
  * tagged hex map and no everywhere else, so a dungeon stays as it is.
  * @param {"on"|"off"|"default"|undefined} choice  the scene's followsSky flag
