@@ -36,7 +36,8 @@ three steps, the third optional:
    *Keyed locations on the map*).
 3. **The terrain**, optional: the tagger's **Legend** names the terrain of
    every hex from one card per glyph (see *The legend*), for encounters and
-   for a painted Shadowdark Extras crawl if you want one.
+   for Shadowdark Extras' hex records on this same map (see *Playing on the
+   print itself*).
 
 ## Hex map from image
 
@@ -202,8 +203,8 @@ legend** then
 When it is done the tagger says so: the map is tagged, the dataset is ready,
 and the cells the classifier was unsure about are listed below for as much
 checking as you care to do. Review is optional; **Send to Extras** works at
-any point. The rarely used buttons (re-sample, import, export, the reference
-tile, Clear) sit under **More**.
+any point. The rarely used buttons (re-sample, import, export, a painted
+map, the reference tile, Clear) sit under **More**.
 
 Choose the crawl entry first if you have one: keyed hexes then stay out of
 the legend and out of the classifier, and take their terrain from the book.
@@ -524,9 +525,10 @@ Then:
    hexes named in the chosen crawl entry, which doubles as an alignment check
    (they should show a keyed marker); **Review queue** is for the classifier's
    uncertain cells (a later phase).
-5. **Download dataset** or **Send to Extras.** Choose the crawl entry filed by
-   the importer to include the keyed hexes and their descriptions; without one
-   the dataset carries only the terrain and networks you tagged.
+5. **Send to Extras**, or **Download dataset** without Shadowdark Extras.
+   Choose the crawl entry filed by the importer to include the keyed hexes and
+   their descriptions; without one only the terrain you tagged goes. **Send to
+   Extras** puts the details on this map (see *Playing on the print itself*).
 
 Tags live on the scene under the module's flags and survive reloads;
 **Clear** removes them and the anchor. Re-sampling never touches tags.
@@ -599,18 +601,32 @@ the image's URL.
 
 ## Playing on the print itself
 
-Shadowdark Extras lends its hex records, tooltips and explorer only to a scene
-it built. That does not mean giving up the map from your book.
+**Send to Extras** puts the hex details on the map you tagged. Shadowdark
+Extras takes the scene on as a hexcrawl, and every tagged hex gets its record:
+terrain, region and zone colour, and for keyed hexes the name, the
+description and the settlement. Nothing is painted, so the publisher's art,
+your pins and your notes stay exactly as they are, and Extras' hover tooltip,
+hex explorer, fog and coordinates work on the print itself. It needs a
+Shadowdark Extras new enough to adopt a map (`hex.adoptHexcrawl`); an older one
+is named, not worked round.
 
-Hand the dataset over as usual so Extras builds its scene — that is what gives
-the scene the layout Extras needs — then use **Reference tile** from the
-tagger's More menu, pick that scene, and tick **Use the print as the map**. The
-print goes on visible and opaque, stretched so its hex field lands exactly on
-the scene's cells (a print whose hexes are taller than regular is squared up in
-the process). Your table looks at the publisher's map; Extras still sees its
-own hexes underneath, so every hex keeps its record.
+- Send again after retagging and the records update in place. Settlements go
+  until they have arrived once, then no more, because Extras keeps what the
+  players have discovered on them and sending them again would reset it.
+- Extras numbers a map from the scene's top-left cell, so the map's first hex
+  (`0000`, or `0101` on a map numbered from 1) has to be that cell. A map set
+  up through *Hex map from image* already is. If yours is not, the tagger says
+  so before anything is written, instead of putting the details on the wrong
+  hexes.
+- Rivers, roads and coasts are not sent: the print already shows them.
 
-Hide that tile again and the painted map is back. One scene, both maps.
+**Build painted map**, under **More**, is the other way: Extras builds a new
+scene painted from your tags, with its own rivers and roads. You can still lay
+the print over that scene: **Reference tile**, pick the painted scene, and tick
+**Use the print as the map**. The print goes on visible and opaque, stretched
+so its hex field lands exactly on the scene's cells (a print whose hexes are
+taller than regular is squared up in the process). Hide the tile and the
+painted map is back.
 
 ## The dataset
 

@@ -112,6 +112,35 @@ export function foundryOffsetToCube({ i, j }, even) {
   return { q, r };
 }
 
+/**
+ * Does Shadowdark Extras number this scene's cells the way the tagger does?
+ *
+ * Extras adopts a scene (adoptHexcrawl, shadowdark-extras#147) on a fixed rule:
+ * printed (col, row) is Foundry offset {i: row - base, j: col - base} on a
+ * HEXODDQ grid, so the map's first hex has to be the scene's top-left cell and
+ * the columns the print lowers have to be the ones Foundry lowers. The tagger
+ * numbers from wherever the GM anchored, so the two can disagree, and Extras
+ * cannot tell: every record would land on a real cell, the wrong one. The first
+ * hex fixes the position and its neighbours in the next column and row fix the
+ * parity, so three cells decide the whole lattice.
+ * @param {{cube:{q:number,r:number}, num:string|number, shifted?:"odd"|"even"}} origin  the tagger's anchor
+ * @param {0|1} base  the map's numbering origin (grid.origin; 1 when absent)
+ * @returns {boolean}
+ */
+export function extrasNumbersAlike(origin, base) {
+  const a = originOffset(origin);
+  if (!a || !origin?.cube) return false;
+  const shifted = origin.shifted ?? "odd";
+  const at = offsetToCube(a.col, a.row, shifted);
+  return [[base, base], [base + 1, base], [base, base + 1]].every(([col, row]) => {
+    const c = offsetToCube(col, row, shifted);
+    // The tagger's cubes are Foundry's (foundryOffsetToCube, odd parity on a
+    // HEXODDQ scene), so the odd rule turns one back into its Foundry offset.
+    const f = cubeToOffset({ q: c.q - at.q + origin.cube.q, r: c.r - at.r + origin.cube.r }, "odd");
+    return f.col === col - base && f.row === row - base;
+  });
+}
+
 /** Hexes between two cubes — the usual cube distance. */
 export const hexDistance = (a, b) =>
   (Math.abs(a.q - b.q) + Math.abs(a.q + a.r - b.q - b.r) + Math.abs(a.r - b.r)) / 2;

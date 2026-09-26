@@ -22,7 +22,7 @@ import { MODULE_ID } from "../shared/module-id.mjs";
 import { replaceModuleFlag } from "../shared/module-flags.mjs";
 import { findSuitePack } from "../shared/compendium-suite.mjs";
 import { sceneCells, sourceImage, CellSampler } from "./sampler.mjs";
-import { cellNumber, neighbours, framesTopRow } from "./geometry.mjs";
+import { cellNumber, neighbours, framesTopRow, extrasNumbersAlike } from "./geometry.mjs";
 import { decodeTags, encodeTags, nextSheet, applySheet, tagsForDataset, summarize, importTags, rowsFromJson, sheetRisk, deriveCoasts, OVERLAYS } from "./tag-store.mjs";
 import { FIXES_FLAG, BASELINE_FLAG, emptyLog, decodeFixes, encodeFixes, recordEdits, recordLegend, legendReport, accuracyReport, encodeBaseline, decodeBaseline, baselineReport } from "./tag-corrections.mjs";
 import { cellBoxOf, referenceTilePlacement, gridCellBox, loweredColumns, placeReferenceTile } from "./reference-tile.mjs";
@@ -32,7 +32,7 @@ import { scanRegions, encodeRegions, decodeRegions, REGIONS_FLAG } from "./regio
 import { regionSeeds, nameComponents } from "./hex-region.mjs";
 import { TERRAIN_TAGS, SETTLEMENTS, rowTag } from "../importer/hex/hex-summary.mjs";
 import { HEX_FLAG } from "../importer/hex/hex-commit.mjs";
-import { datasetFromEntries, handoffDataset, extrasHexApi } from "../importer/hex/hex-handoff.mjs";
+import { datasetFromEntries, handoffDataset, handoffToPrint, extrasHexApi } from "../importer/hex/hex-handoff.mjs";
 import { buildHexDataset, validateHexDataset, hexNum, assignmentsFromManifest } from "../importer/hex/hex-dataset.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
@@ -208,6 +208,7 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
       hxtSetNumber:    function (...a) { return this._onSetNumber(...a); },
       hxtSetBounds:    function (...a) { return this._onSetBounds(...a); },
       hxtBuildDataset: function (...a) { return this._onBuildDataset(...a); },
+      hxtBuildPainted: function (...a) { return this._onBuildPainted(...a); },
       hxtClearTags:    function (...a) { return this._onClearTags(...a); },
       hxtClassify:     function (...a) { return this._onClassify(...a); },
       hxtImport:       function (...a) { return this._onImport(...a); },
@@ -1219,10 +1220,20 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
     this.render();
   }
 
-  async _onBuildDataset() {
-    if (!this._requireCurrentScene()) return;
+  /**
+   * The hand-off dataset for this map: its tags, the chosen crawl's keyed
+   * pages, the GM's tile art and every hex's region. Null after telling the GM
+   * why there is none.
+   * The scene and anchor come back with it, taken before the awaits below: a GM
+   * who switches scenes meanwhile must not have this map's data sent to the next.
+   * @returns {Promise<{dataset:object, tags:object, chosen:JournalEntry[], sceneId:string, origin:object}|null>}
+   */
+  async _handoffDataset() {
+    if (!this._requireCurrentScene()) return null;
     this._readHeader();
-    if (!this._state.origin) { ui.notifications?.warn(t("SDE.hexMap.notify.setAnchor")); return; }
+    if (!this._state.origin) { ui.notifications?.warn(t("SDE.hexMap.notify.setAnchor")); return null; }
+    const sceneId = this._stateSceneId;
+    const origin = this._originForGeometry();
     const tags = tagsForDataset(this._state);
     const b = this._state.origin.bounds;
     // The numbering origin is NOT taken from the in-memory sample. It used to
@@ -1243,7 +1254,48 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const dataset = chosen.length ? datasetFromEntries(chosen, { tags, gridHint, assignments, zones })
       : buildHexDataset({ name: this._scene()?.name ?? t("SDE.hexMap.app.defaultName"), source: "", tags, assignments, zones, gridHint });
     const check = validateHexDataset(dataset);
-    if (!check.ok) { ui.notifications?.error(t("SDE.hexMap.notify.datasetInvalid", { error: check.errors[0] })); console.warn(`${MODULE_ID} | hex dataset`, check.errors); return; }
+    if (!check.ok) { ui.notifications?.error(t("SDE.hexMap.notify.datasetInvalid", { error: check.errors[0] })); console.warn(`${MODULE_ID} | hex dataset`, check.errors); return null; }
+    return { dataset, tags, chosen, sceneId, origin };
+  }
+
+  /**
+   * Send to Extras: put the hex details on THIS map (shadowdark-enhancer#175).
+   * Extras adopts the print and takes every hex's record; nothing is painted,
+   * so the publisher's art and the pins stay. Without Extras the dataset
+   * downloads, as before. Building a separate painted scene is under More.
+   */
+  async _onBuildDataset() {
+    const built = await this._handoffDataset();
+    if (!built) return;
+    const { dataset, tags, sceneId, origin } = built;
+    const cells = Object.keys(tags).length;
+    if (!extrasHexApi()) {
+      const res = await handoffDataset(dataset);
+      if (res.via === "download") ui.notifications?.info(t("SDE.hexMap.notify.downloaded", { file: res.filename, hexes: dataset.hexes.length, cells, art: "" }));
+      return;
+    }
+    // Building the dataset awaited the region scan and the journal pack; if the
+    // GM changed scenes meanwhile, the data is the old map's and must not land
+    // on the new one. From here on only the scene captured with the data is used.
+    if (!this._requireCurrentScene() || this._stateSceneId !== sceneId) return;
+    const base = dataset.grid.origin ?? 1;
+    if (!extrasNumbersAlike(origin, base)) {
+      ui.notifications?.warn(t("SDE.hexMap.notify.notTopLeft", { first: base ? "0101" : "0000" }));
+      return;
+    }
+    const res = await handoffToPrint(sceneId, dataset);
+    if (res.via === "extras") {
+      const hexes = res.summary?.records ?? dataset.hexes.length;
+      ui.notifications?.info(t(res.adopted ? "SDE.hexMap.notify.onPrintFirst" : "SDE.hexMap.notify.onPrint", { hexes }));
+    } else if (res.reason === "no-adopt") ui.notifications?.warn(t("SDE.hexMap.notify.needsAdopt"));
+    else if (res.reason === "extras-error" && res.error) ui.notifications?.error(t("SDE.hexMap.notify.adoptFailed", { error: res.error }));
+  }
+
+  /** Build painted map (More): a new Extras scene painted from the tags, the hand-off before #175. */
+  async _onBuildPainted() {
+    const built = await this._handoffDataset();
+    if (!built) return;
+    const { dataset, tags, chosen } = built;
     if (Object.values(tags).some((tag) => tag.overlays?.includes("coast"))) {
       ui.notifications?.warn(t("SDE.hexMap.notify.coastStays"));
     }

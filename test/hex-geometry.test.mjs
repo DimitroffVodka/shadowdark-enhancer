@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { offsetToCube, cubeToOffset, numberFor, cellNumber, neighbours, foundryOffsetToCube } from "../scripts/hex-map/geometry.mjs";
+import { offsetToCube, cubeToOffset, numberFor, cellNumber, neighbours, foundryOffsetToCube, extrasNumbersAlike } from "../scripts/hex-map/geometry.mjs";
 
 test("cube round trip under both shift rules", () => {
   for (const shifted of ["odd", "even"]) for (let col = 0; col < 5; col++) for (let row = 0; row < 5; row++) {
@@ -84,4 +84,18 @@ test("cellNumber: firstRow defaults to 0, so a print without a cut row is unchan
   const origin = { cube: { q: 0, r: 0 }, num: "0000", shifted: "odd", bounds: { cols: 4, rows: 4 } };
   assert.equal(cellNumber(offsetToCube(0, 0, "odd"), origin).num, 0);
   assert.equal(cellNumber(offsetToCube(2, 0, "odd"), origin).num, 200);
+});
+
+test("extrasNumbersAlike: a print whose first hex is the top-left cell numbers like Extras", () => {
+  // The Western Reaches on a HEXODDQ scene: odd columns lowered, numbered from
+  // 0000, anchored on 2849, which Extras puts at Foundry offset {i: 49, j: 28}.
+  const at = (i, j) => foundryOffsetToCube({ i, j }, false);
+  assert.equal(extrasNumbersAlike({ cube: at(49, 28), num: "2849", shifted: "odd" }, 0), true);
+  assert.equal(extrasNumbersAlike({ cube: at(49, 29), num: "2849", shifted: "odd" }, 0), false, "anchored a column over");
+  assert.equal(extrasNumbersAlike({ cube: at(50, 28), num: "2849", shifted: "odd" }, 0), false, "anchored a row down");
+  assert.equal(extrasNumbersAlike({ cube: at(0, 0), num: "0000", shifted: "even" }, 0), false, "the print lowers the other columns");
+  assert.equal(extrasNumbersAlike({ cube: at(0, 0), num: "0101", shifted: "even" }, 1), true, "numbered from 0101: printed column 1 is Foundry's even column 0");
+  assert.equal(extrasNumbersAlike({ cube: at(0, 0), num: "0101", shifted: "odd" }, 1), false);
+  assert.equal(extrasNumbersAlike(null, 0), false);
+  assert.equal(extrasNumbersAlike({ num: "0000" }, 0), false, "no anchor cell");
 });

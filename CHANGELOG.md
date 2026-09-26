@@ -3,6 +3,16 @@
 ## [Unreleased]
 
 ### Added
+- **The hex data goes on the printed map.** The Hex Tagger's **Send to
+  Extras** now puts every hex's terrain, region, zone colour, name,
+  description and settlement on the map you tagged, instead of building a
+  new scene: Shadowdark Extras takes the print on as a hexcrawl and paints
+  nothing, so the publisher's art and your pins stay, and Extras' tooltip,
+  hex explorer, fog and coordinates work on the print. Sending again updates
+  the records in place and leaves what the players discovered alone. It needs
+  a Shadowdark Extras with `hex.adoptHexcrawl`
+  ([shadowdark-extras#147](https://github.com/DimitroffVodka/shadowdark-extras/issues/147));
+  the painted build moves to **More → Build painted map**. (#175)
 - **Every hex reaches Shadowdark Extras with its region and zone colour.** The
   hand-off used to name a zone only on the book's keyed hexes, so Extras filled
   the rest with the map's name: 4,466 of the Western Reaches' 4,736 hexes read

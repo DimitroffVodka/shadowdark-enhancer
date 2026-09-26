@@ -39,7 +39,7 @@
       {{#if hasTags}}
       <button type="button" data-action="hxtShowTags" data-mode="terrain" class="sde-import-secondary" title="{{localize 'SDE.hexMap.tip.showTags'}}"><i class="fas fa-eye"></i> {{#if (eq overlayMode "terrain")}}{{localize "SDE.hexMap.btn.hideTags"}}{{else}}{{localize "SDE.hexMap.btn.showTags"}}{{/if}}</button>
       <button type="button" data-action="hxtBrush" class="sde-import-secondary" title="{{localize 'SDE.hexMap.tip.brush'}}"><i class="fas fa-paintbrush"></i> {{localize "SDE.hexMap.btn.brush"}}</button>
-      <button type="button" data-action="hxtBuildDataset" class="{{#if primaryBuild}}sde-import-primary{{else}}sde-import-secondary{{/if}}">{{#if viaExtras}}<i class="fas fa-paper-plane"></i> {{localize "SDE.hexMap.btn.sendExtras"}}{{else}}<i class="fas fa-download"></i> {{localize "SDE.hexMap.btn.download"}}{{/if}}</button>
+      <button type="button" data-action="hxtBuildDataset" class="{{#if primaryBuild}}sde-import-primary{{else}}sde-import-secondary{{/if}}"{{#if viaExtras}} title="{{localize 'SDE.hexMap.tip.sendExtras'}}"{{/if}}>{{#if viaExtras}}<i class="fas fa-paper-plane"></i> {{localize "SDE.hexMap.btn.sendExtras"}}{{else}}<i class="fas fa-download"></i> {{localize "SDE.hexMap.btn.download"}}{{/if}}</button>
       {{/if}}
       {{/if}}
       {{#if showMore}}
@@ -58,6 +58,9 @@
         <button type="button" data-action="hxtExport" class="sde-import-secondary" title="{{localize 'SDE.hexMap.tip.export'}}"><i class="fas fa-file-export"></i> {{localize "SDE.hexMap.btn.export"}}</button>
         <button type="button" data-action="hxtArt" class="sde-import-secondary" title="{{localize 'SDE.hexMap.tip.art'}}"><i class="fas fa-palette"></i> {{localize "SDE.hexMap.btn.art"}}{{#if artCount}} ({{artCount}}){{/if}}</button>
         {{#if origin}}
+        {{#if viaExtras}}{{#if hasTags}}
+        <button type="button" data-action="hxtBuildPainted" class="sde-import-secondary" title="{{localize 'SDE.hexMap.tip.buildPainted'}}"><i class="fas fa-paint-roller"></i> {{localize "SDE.hexMap.btn.buildPainted"}}</button>
+        {{/if}}{{/if}}
         <button type="button" data-action="hxtReference" class="sde-import-secondary" title="{{localize 'SDE.hexMap.tip.reference'}}"><i class="fas fa-layer-group"></i> {{localize "SDE.hexMap.btn.reference"}}</button>
         <button type="button" data-action="hxtClearTags" class="sde-import-secondary" title="{{localize 'SDE.hexMap.tip.clear'}}"><i class="fas fa-eraser"></i> {{localize "SDE.hexMap.btn.clear"}}</button>
         {{/if}}

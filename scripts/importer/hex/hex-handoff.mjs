@@ -10,6 +10,7 @@
  */
 
 import { MODULE_ID } from "../../shared/module-id.mjs";
+import { replaceModuleFlag } from "../../shared/module-flags.mjs";
 import { HEX_FLAG } from "./hex-commit.mjs";
 import { buildHexDataset, ZONE_COLOR } from "./hex-dataset.mjs";
 
@@ -111,9 +112,13 @@ export async function detailsDataset(entries, scene) {
  * the GM is left with correct text over stale art, which is recoverable, rather
  * than new art over stale text, which reads as correct and is not.
  *
- * @param {string} sceneId  an Extras hexcrawl scene (built by buildHexcrawl)
+ * @param {string} sceneId  an Extras hexcrawl scene (built by buildHexcrawl or adopted)
  * @param {object} dataset  from buildHexDataset / datasetFromEntries
- * @param {{repaint?:boolean}} [opts]  repaint defaults to true
+ * @param {{repaint?:boolean, features?:boolean, quiet?:boolean}} [opts]  repaint defaults to true.
+ *   features sends the settlement entries too; Extras REPLACES a record's whole
+ *   features list, discovery flags included, so only a hand-off that has not yet
+ *   delivered them asks for it (handoffToPrint).
+ *   quiet leaves the success toast to the caller.
  * @returns {Promise<{via:"extras", summary:object}|{via:"none", reason:string}>}
  */
 export async function importDatasetRecords(sceneId, dataset, opts = {}) {
@@ -140,6 +145,7 @@ export async function importDatasetRecords(sceneId, dataset, opts = {}) {
       if (key === "zoneColor" && !ZONE_COLOR.test(hex[key])) continue;
       record[key] = hex[key];
     }
+    if (opts.features && Array.isArray(hex.features) && hex.features.length) record.features = hex.features;
     // num alone would be a no-op write; skip it rather than send it.
     if (Object.keys(record).length > 1) records.push(record);
   }
@@ -185,8 +191,68 @@ export async function importDatasetRecords(sceneId, dataset, opts = {}) {
   }
 
   const painted = repaint ? `, repainted ${repaint.repainted}` : "";
-  globalThis.ui?.notifications?.info(`Updated ${records.length} hex${records.length === 1 ? "" : "es"}${painted}.`);
+  if (!opts.quiet) globalThis.ui?.notifications?.info(`Updated ${records.length} hex${records.length === 1 ? "" : "es"}${painted}.`);
   return { via: "extras", summary, repaint };
+}
+
+/**
+ * Scene flag on a print: its settlements have reached Extras in a record write
+ * that succeeded. Kept apart from Extras' own layout flag, because adoption and
+ * the record write are two calls and the first can land while the second fails.
+ */
+export const SETTLEMENTS_SENT_FLAG = "extrasSettlementsSent";
+
+/**
+ * Put a dataset's hex details on the print the GM tagged, instead of building
+ * a new scene: Extras adopts the scene (adoptHexcrawl, shadowdark-extras#147),
+ * then every hex's record is written onto it. Nothing is painted, so the
+ * publisher's art, the pins and the notes stay as they are. Running it again
+ * updates the records in place.
+ *
+ * The caller has already checked the numbering (extrasNumbersAlike): Extras
+ * can only tell whether each published cell lands on the scene, not whether it
+ * lands on the right one. Reporting the adoption is the caller's job too, so
+ * this returns why it stopped; the record write reports its own failures.
+ *
+ * @param {string} sceneId  the tagged print
+ * @param {object} dataset  from buildHexDataset / datasetFromEntries
+ * @returns {Promise<{via:"extras", adopted:boolean, summary:object}
+ *   |{via:"none", reason:"not-gm"|"no-extras"|"no-adopt"|"extras-error"|string, error?:string}>}
+ */
+export async function handoffToPrint(sceneId, dataset) {
+  if (!globalThis.game?.user?.isGM) return { via: "none", reason: "not-gm" };
+  const api = extrasHexApi();
+  if (!api) return { via: "none", reason: "no-extras" };
+  if (typeof api.adoptHexcrawl !== "function" || typeof api.upsertHexRecords !== "function") return { via: "none", reason: "no-adopt" };
+  let adopted;
+  try {
+    ({ adopted } = await api.adoptHexcrawl(sceneId, { grid: dataset.grid }));
+  } catch (err) {
+    console.error(`${MODULE_ID} | adopting the print for Extras failed`, err);
+    return { via: "none", reason: "extras-error", error: err.message };
+  }
+  // Settlements go until a write carrying them has succeeded, then never again:
+  // from then on the players' discoveries live in Extras' features, and sending
+  // them again would reset those. Not tied to `adopted` alone, which is false on
+  // every retry once the layout is in, including after a first record write that
+  // failed and delivered nothing. A fresh adoption has fresh records, so it sends.
+  const scene = globalThis.game?.scenes?.get?.(sceneId);
+  const sent = scene?.getFlag?.(MODULE_ID, SETTLEMENTS_SENT_FLAG) === true;
+  const features = adopted || !sent;
+  const res = await importDatasetRecords(sceneId, dataset, { repaint: false, features, quiet: true });
+  if (res.via !== "extras") return res;
+  // Only once some hex carried one: a dataset without the crawl's keyed pages
+  // has no settlements yet, and marking it sent would keep them out for good.
+  const carried = features && (dataset?.hexes ?? []).some((h) => Array.isArray(h.features) && h.features.length);
+  if (carried && !sent && scene) {
+    try {
+      await replaceModuleFlag(scene, SETTLEMENTS_SENT_FLAG, true);
+    } catch (err) {
+      // The records are in; a missing mark only means the next send repeats them.
+      console.warn(`${MODULE_ID} | could not mark the settlements as sent`, err);
+    }
+  }
+  return { ...res, adopted };
 }
 
 /**
