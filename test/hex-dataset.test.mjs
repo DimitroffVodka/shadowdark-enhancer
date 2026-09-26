@@ -85,7 +85,7 @@ test("terrain regions, networks and grid come out in numbers only", () => {
     { biome: "swamp", hexes: [203] },
   ], "the book's words, not biome keys: Extras maps them");
   assert.equal(ds.terrain.default, "forest");
-  assert.deepEqual(ds.networks, { river: [102], road: [304] });   // row overlay + tag overlay, path → road
+  assert.deepEqual(ds.networks, { river: [102], road: [304], spanning: true });   // row overlay + tag overlay, path → road; area-derived, so Extras prunes loops
   assert.deepEqual([ds.grid.cols, ds.grid.rows], [3, 4], "columns 1..3 and rows 1..4 under the contract's default origin");
   assert.equal("numbering" in ds.grid, false, "only the contract's grid keys");
   assert.equal("origin" in ds.grid, false, "the default origin is not sent");

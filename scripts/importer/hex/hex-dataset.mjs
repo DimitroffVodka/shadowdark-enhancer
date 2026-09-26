@@ -231,7 +231,10 @@ export function buildHexDataset({ name = "", source = "", drafts = [], summaryRo
       regions: counts.map(([biome, nums]) => ({ biome, hexes: nums.sort((a, b) => a - b) })),
     },
     hexes,
-    networks: { river: networks.river.sort((a, b) => a - b), road: networks.road.sort((a, b) => a - b) },
+    // Every hex an overlay marks goes out, so neighbouring marked hexes mesh
+    // and three mutually adjacent ones close a triangle; a watercourse is a
+    // tree. Extras prunes such loops only when asked (shadowdark-extras#153).
+    networks: { river: networks.river.sort((a, b) => a - b), road: networks.road.sort((a, b) => a - b), spanning: true },
   };
 }
 
