@@ -12,6 +12,12 @@
   From the Shadowdark Extras release that adds it
   ([shadowdark-extras#149](https://github.com/DimitroffVodka/shadowdark-extras/issues/149)),
   Extras' rest heals it all, or 1 per ability in Grinder Mode. (#182)
+- **Monster attacks apply their stat-damage riders.** A monster hit whose
+  attack text, or the feature it names, says *1 STR damage* lowers the
+  target's STR automatically, with the amount rolled in chat. A rider behind
+  a save (*DC 12 CON or 1d4 STR damage*) asks the character's player to roll
+  the save and applies only on a failure; the GM's client rolls it when no
+  player can. Works without Shadowdark Extras. (#183)
 - **Modes of Play.** A new window under Configure Settings holds the optional
   rules from the core rulebook (p.111) and Hard Luck from the Game Master's
   Guide to the Western Reaches (p.30). Every rule is its own switch, so one

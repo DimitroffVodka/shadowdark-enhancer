@@ -519,6 +519,8 @@
   "SDE.taunt.applied": "Taunt: advantage against {enemy}.",
   "SDE.taunt.cancelled": "Taunt: advantage against {enemy}, cancelled by disadvantage.",
   "SDE.statDamage.effect": "{amount} {ability} damage",
+  "SDE.statDamage.rider": "{target} takes {ability} damage from {source}.",
+  "SDE.statDamage.saveTitle": "Save against {source}",
   "SDE.settings.renownOnCreate.name": "Starting renown from CHA",
   "SDE.settings.renownOnCreate.hint": "New characters start with renown equal to their Charisma modifier.",
   "SDE.settings.renownOnLevelUp.name": "Renown on level-up",

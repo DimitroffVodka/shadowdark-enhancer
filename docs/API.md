@@ -974,6 +974,12 @@ below, the active GM's client marks them dead (the `dead` status, and defeated
 in any combat they are in). The dying modifiers of #181 will let a character
 with River of Death survive it.
 
+**Monster hits use it too.** A monster attack card that hits a character is
+read for riders like `1 STR damage` or `DC 12 CON or 1d4 STR damage`; a saved
+rider asks the character's player to roll through the user query
+`shadowdark-enhancer.statDamageSave` (GM sender only, answered by the owner's
+client), and the GM's client rolls it when no player answers.
+
 ## Stability notes
 
 - Everything documented here is public surface; undocumented internals

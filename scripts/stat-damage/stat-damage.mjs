@@ -34,9 +34,11 @@ const serial = (fn) => (_queue = _queue.then(fn, fn));
 /** Actors this client is marking dead right now. */
 const _dying = new Set();
 
+/** "STR", from the system's own ability name. */
+export const abilityLabel = (ability) => game.i18n.localize(`SHADOWDARK.ability_${ability}`).toUpperCase();
+
 function effectName(ability, amount) {
-  const label = game.i18n.localize(`SHADOWDARK.ability_${ability}`).toUpperCase();
-  return game.i18n.format("SDE.statDamage.effect", { amount, ability: label });
+  return game.i18n.format("SDE.statDamage.effect", { amount, ability: abilityLabel(ability) });
 }
 
 /** Set one ability's damage to `total`: delete its effects, create one if any is left. */
