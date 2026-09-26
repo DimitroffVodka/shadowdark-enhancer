@@ -1,7 +1,7 @@
 # Shadowdark Enhancer — File Inventory
 
 <!-- inventory:stats:start -->
-1024 tracked files · ~178,300 lines of code/markup across scripts+templates+styles+test.
+1028 tracked files · ~179,000 lines of code/markup across scripts+templates+styles+test.
 `v0.17.3` in both `module.json` and `package.json`.
 <!-- inventory:stats:end -->
 **Layout reflects the 2026-07-21 feature-folder reorganization (v0.11.0 cycle).**
@@ -46,7 +46,7 @@
 
 | File | Lines | Description |
 |---|---:|---|
-| `shadowdark-enhancer.mjs` | 1181 | **Entry point** (module.json esmodules). Registers hooks, settings, sheets, actor sub-types, the public `game.shadowdarkEnhancer` API, and wires every sub-system. |
+| `shadowdark-enhancer.mjs` | 1188 | **Entry point** (module.json esmodules). Registers hooks, settings, sheets, actor sub-types, the public `game.shadowdarkEnhancer` API, and wires every sub-system. |
 | `luck-reroll/luck-reroll.mjs` | 176 | Wraps the system's `_onReroll` to enforce nat-1 prevention and log Luck rerolls to the session recap. |
 | `spell-mishap/spell-mishap.mjs` | 270 | Nat-1 spellcasting failures auto-roll the class's mishap table (wizard / witch / necromancer sets); divine casters are exempt. |
 | `scavenger/scavenger-core.mjs` | 171 | Pure Delver Scavenger rules: the 5-6 success range and Master Scavenger's widening (floored at 3-6), what counts as expending a consumable's last use (a 1→0 decrement or a delete at quantity 1 — never a stack deleted whole), and which single client rolls. |
@@ -75,9 +75,9 @@
 | `hex-map/region-scan.mjs` | 238 | Region borders read off the print: the thick line a hexcrawl map draws along a hex edge, measured across the whole edge so a river crossing it is not mistaken for one, then flood-filled into enclosures. Reuses the cell bitmaps the tagger already built, so it costs no extra image reads (45 ms for 4768 hexes). Pure. |
 | `hex-map/sampler.mjs` | 146 | Reads the active scene's background per hex cell (one drawImage each) for bitmaps and thumbnails; scene→image transform from the drawn sprite. |
 | `hex-map/tag-corrections.mjs` | 337 | What the GM judged about the classifier, kept on the scene: per-cell corrections (was, now, margin, whether it was flagged) and wrong/judged counts per margin band, plus the scene's review margin and the report that says what it catches. Pure. |
-| `hex-map/tag-overlay.mjs` | 772 | The tag overlay: every numbered hex drawn on the map in its terrain colour, dots for river/path/coast, an amber ring on unsure automatic cells; hover names a hex, a click edits it through the same scene-flag write. |
+| `hex-map/tag-overlay.mjs` | 773 | The tag overlay: every numbered hex drawn on the map in its terrain colour, dots for river/path/coast, an amber ring on unsure automatic cells; hover names a hex, a click edits it through the same scene-flag write. |
 | `hex-map/tag-store.mjs` | 453 | The tagger's scene-flag store: compact `terrain;feature\|source` strings (terrain is what a hex is, features what runs through it), coast derivation, sheet selection (random/keyed/review), dataset tags. Pure. |
-| `holidays/holidays.mjs` | 205 | Holidays for carousing (#191): the four City of Masks holidays (CS6 pp.46-47) as recipes (name, page, place, `when` anchor, carousing mechanics, garb questions with modifiers), no book wording; pure `whenMatches(rule, dateInfo)` / `placeMatches`, and `holidays.list()` / `today({place})`, which list a holiday once its page is imported by the Chapter-to-journal preset. `currentDateInfo()` reads the core calendar and is the seam the Overland time feature replaces (moon). |
+| `holidays/holidays.mjs` | 211 | Holidays for carousing (#191): the four City of Masks holidays (CS6 pp.46-47) as recipes (name, page, place, `when` anchor, carousing mechanics, garb questions with modifiers), no book wording; pure `whenMatches(rule, dateInfo)` / `placeMatches`, and `holidays.list()` / `today({place})`, which list a holiday once its page is imported by the Chapter-to-journal preset. `currentDateInfo()` reads the core calendar, with `isLastFullMoonOfYear` from the time API's `anchor("lastFullMoon")` (#227), so Lastmoon falls. |
 | `luck-reroll/hard-luck.mjs` | 57 | Hard Luck Mode (GMWR p.30, #186), pure: the system's criticalFailure test with a plain-d20 fallback, and the luck-granting spell/ability (Bless, Trance, Omen) a roll came from, by name. |
 | `modes-of-play/blitz.mjs` | 100 | Blitz Mode (#179): lighting a Basic light source clamps its remaining time to 30 min (and marks it used); a light spell's Effect is created with 30 min. Pure patch helpers + preUpdateItem/preCreateItem hooks. |
 | `modes-of-play/chaos.mjs` | 103 | Chaos Mode (#180): reroll every combatant's initiative (Combatant#getInitiativeRoll) at the start of rounds 2+, one combatant update with combatTurn 0, one card per round without hidden combatants; off under clockwise initiative. Called from turn-skip.mjs under its lock. |
@@ -86,6 +86,8 @@
 | `modes-of-play/pulp.mjs` | 294 | Pulp Mode (#185): session luck on the sessionStart hook (1d4, set), and the Luck: critical hit / force a reroll chat buttons. Both relay to the active GM (PULP_QUERY), which checks the requester, spends the token and edits the card. |
 | `rules-data/rules-data-app.mjs` | 207 | The GM-only Rules data window (AppV2, Configure Settings menu): shows and edits every rules table, staged until Save. Import from GM Guide runs table-shapes RULES_TABLES over the GM's own linked GM Guide and Player's Guide PDFs (lazy-loaded), canonicalises region names through hex-region knownRegions, and previews every filled value it would replace. |
 | `rules-data/rules-data-core.mjs` | 344 | Rules data (#195), pure: the Western Reaches lookup tables (terrain cost and elevation, terrain types, hexes per day, hex visibility, climate by region and season, carousing and recruiting limits) as one sparse world setting laid over an empty structure, the game.shadowdarkEnhancer.rules lookups over it, the readers that turn the importer's `reference` rows into those tables, and the overwrite preview and merge for an import. Ships structure only (tagger terrain words, travel methods, conditions, seasons, settlement kinds), never a value. |
+| `time/time-core.mjs` | 239 | Time (#227, Overland O1), pure: readings on the core world calendar (a CalendarData) and a worldTime. Season from core's components (Fall = autumn), sunrise/sunset on a solstice-to-solstice cosine (9 to 15 hours, ported from Calendaria, MIT), isNight, the moon's phase from an epoch on the synodic month, anchors (equinoxes, solstices, cross-quarters read back as the date the calendar shows, lastFullMoon), what a clock move crosses (days, weeks, seasons, dawns, dusks) and the date's parts. Only calendar calls Foundry 13 and 14 both have. |
+| `time/time.mjs` | 69 | game.shadowdarkEnhancer.time (#227): now, season, isNight, sun, moonPhase, anchor, format over game.time.calendar and the moonEpoch world setting, and the shadowdark-enhancer.timeAdvanced hook, fired on the active GM once per world-time change with what it crossed and the offDuty reason from the advance options. |
 | `training/training-app.mjs` | 293 | The Regional Training window (AppV2): pick a character, pick a trainer grouped by region, see all four benefits with the ones already taught struck through, and roll the trainer's d4. Each task can be taken as a Quest Log quest for the character (GM) and shows Taken or Done. Names a benefits table that has not been imported instead of inventing its contents. |
 | `training/training-art.mjs` | 61 | One game-icons.net emblem per regional trainer, pre-tinted gold in the SVG the way the Character Builder's class art is. Fifteen reuse a vendored class emblem (often the honest pick — the assassin trainer leads the Ras-Godai); six are vendored under icons/game-icons/trainers/. Returns null rather than a placeholder path. |
 | `training/training-core.mjs` | 573 | Pure metadata for the Game Master's Guide's 21 regional trainers: trainer and region names, page numbers, the benefits table each one imports as, and a recipe per d4 face — Active Effect changes, one-time actions, either/or branches, or a stated reason the table must handle it. Ships no rules text; the book's wording is read from the GM's own imported table. Also the "once each" helpers and the roll walk. |
@@ -108,7 +110,7 @@
 | `curated-icon-maps/sea-wolf-plunder-icons.mjs` | 38 | The N3 §5.1/D4 Sea Wolf Plunder map: exactly 20 CS3 p68 source-qualified item phrases and reviewed native Foundry `icons/**.webp` paths, keyed without each row's terminal gp price. |
 | `curated-icon-maps/weapon-icons.mjs` | 47 | N3's 37 reviewed Foundry-native weapon icons, keyed by source-agnostic normalized final Item name and registered through the A4 discovery seam. |
 | `attack-card.mjs` | 107 | Reading a Shadowdark attack card — was it an attack at all (a targeted spell is not), did it land, who was it aimed at, who swung. Shared by Parry and Taunt so the two can never disagree about the target (they once did, silently). |
-| `settings.mjs` | 736 | All `game.settings.register` calls + migration-safe defaults. |
+| `settings.mjs` | 746 | All `game.settings.register` calls + migration-safe defaults. |
 | `icons.mjs` | 87 | Centralized icon registry — FontAwesome snippets and vendored SVG references. |
 | `compendium-suite.mjs` | 459 | Find-or-create layer for managed world packs, ownership, sidebar folders, and source folders. |
 | `loading-dialog-guard.mjs` | 112 | Guards the system's leaked `LoadingSD` spinner when `ItemSheetSD.getData` throws. |
@@ -166,7 +168,7 @@
 | `encounter-browse.mjs` | 217 | Browse-NPCs data layer (sources, loading, cache, filter/sort). |
 | `npc-index.mjs` | 260 | NPC actors → compact browse row model. |
 | `encounter-sources.mjs` | 56 | Pure, node-testable core for the Encounter Roller's source list (which tables/monsters feed a roll). |
-| `encounter-terrain.mjs` | 461 | The table for the party's hex: the region's printed Encounter Zone column for its terrain (coast the one feature that counts), day/night from the world clock (worldClock, the seam Overland replaces), N./S. halves from the region's rows (the regions cached until a crawl entry or scene changes); else the terrain→RollTable mapping and its dialog, else the single active table, which is also where a failing lookup lands. Backs encounter.tableForHex. |
+| `encounter-terrain.mjs` | 468 | The table for the party's hex: the region's printed Encounter Zone column for its terrain (coast the one feature that counts), day/night from the world clock's hour (fixed 18:00-06:00 check halves) and the moon from the time API (worldClock, so New Moon / Full Moon columns resolve), N./S. halves from the region's rows (the regions cached until a crawl entry or scene changes); else the terrain→RollTable mapping and its dialog, else the single active table, which is also where a failing lookup lands. Backs encounter.tableForHex. |
 
 ### 3.6 `scripts/monster-creator/`
 
@@ -241,7 +243,7 @@
 
 | File | Lines | Description |
 |---|---:|---|
-| `session-recap.mjs` | 749 | Session event tracker singleton (loot, sales, XP, combats, per-PC stats). |
+| `session-recap.mjs` | 752 | Session event tracker singleton (loot, sales, XP, combats, per-PC stats). |
 | `session-recap-core.mjs` | 402 | Pure data shape, currency math, duration format, Discord-markdown export. |
 | `session-recap-app.mjs` | 338 | Recap window: Overview / Combat / Loot / XP / History. |
 | `carousing-feed.mjs` | 141 | Mirrors Shadowdark Extras' carousing into the session log. SDX emits no carousing hook and exposes none of it on `module.api`, but it keeps the whole live carouse in one journal flag on the hidden `__sdx_carousing_sync__` entry — so this watches that document rather than calling anything. Each carouse is COPIED into our own `carousing` array keyed on SDX's `logId`, because SDX's overlay holds only one live carouse and resetting it for the next round erases the last. Self-gates on SDX being active with carousing enabled, on an active session, and on the primary GM. |
