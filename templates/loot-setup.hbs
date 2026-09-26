@@ -1,12 +1,9 @@
 <div class="sde-loot-setup">
   <p class="sde-loot-setup-intro">
-    Browse the loot &amp; treasure tables below. These are <strong>The Arcane Library's</strong> content, so the
-    module can't ship them — <em>Unlock</em> pulls one from your own PDF through the Importer (it files into the
-    tables compendium). <em>Bind</em> a Core band to its level tier so the Loot Generator can roll level-scaled
-    drops automatically.
+    {{{localize "SDE.loot.setup.intro"}}}
   </p>
 
-  <div class="sde-loot-setup-progress"><i class="fas fa-list-check"></i> {{done}} of {{total}} treasure tiers bound</div>
+  <div class="sde-loot-setup-progress"><i class="fas fa-list-check"></i> {{localize "SDE.loot.setup.progress" done=done total=total}}</div>
 
   <div class="sde-loot-setup-library">
     {{#each library as |g|}}
@@ -16,26 +13,26 @@
         {{#each g.entries as |e|}}
         <li class="sde-loot-lib-entry {{#if e.present}}is-present{{/if}}">
           <span class="sde-loot-lib-name">
-            {{e.displayName}}{{#if e.page}} <span class="sde-loot-lib-page">p.{{e.page}}</span>{{/if}}
-            {{#if e.isTier}}<span class="sde-loot-lib-tier">Tier {{e.tier}}</span>{{/if}}
+            {{e.displayName}}{{#if e.page}} <span class="sde-loot-lib-page">{{localize "SDE.loot.setup.page" page=e.page}}</span>{{/if}}
+            {{#if e.isTier}}<span class="sde-loot-lib-tier">{{localize "SDE.loot.setup.tierBadge" tier=e.tier}}</span>{{/if}}
           </span>
           <span class="sde-loot-lib-ctrl">
             {{#if e.present}}
               {{#if e.isTier}}
                 {{#if e.boundHere}}
-                <span class="sde-loot-setup-badge ok"><i class="fas fa-check"></i> Bound</span>
+                <span class="sde-loot-setup-badge ok"><i class="fas fa-check"></i> {{localize "SDE.loot.setup.bound"}}</span>
                 {{else}}
                 <button type="button" class="sde-loot-setup-bind" data-action="bindLibrary" data-tier="{{e.tier}}" data-uuid="{{e.uuid}}"
-                        title="Bind this table to the Levels {{e.tier}} tier">
-                  <i class="fas fa-link"></i> Bind
+                        title="{{localize 'SDE.loot.setup.bindTip' tier=e.tier}}">
+                  <i class="fas fa-link"></i> {{localize "SDE.loot.setup.bind"}}
                 </button>
                 {{/if}}
               {{else}}
-                <span class="sde-loot-setup-badge ok"><i class="fas fa-check"></i> In library</span>
+                <span class="sde-loot-setup-badge ok"><i class="fas fa-check"></i> {{localize "SDE.loot.setup.inLibrary"}}</span>
               {{/if}}
             {{else}}
             <button type="button" class="sde-loot-setup-unlock" data-action="unlockLibrary" data-name="{{e.name}}" data-src="{{e.src}}">
-              <i class="fas fa-unlock"></i> Unlock
+              <i class="fas fa-unlock"></i> {{localize "SDE.loot.setup.unlock"}}
             </button>
             {{/if}}
           </span>
@@ -48,50 +45,50 @@
 
   {{! ── Add any table to the Loot Generator dropdown (no tier) ── }}
   <section class="sde-loot-custom">
-    <h4 class="sde-loot-lib-group-title">Loot Generator tables</h4>
-    <p class="sde-loot-custom-hint">Tables you can pick and roll directly in the Loot Generator — no level tier needed.</p>
+    <h4 class="sde-loot-lib-group-title">{{localize "SDE.loot.setup.pickerHeading"}}</h4>
+    <p class="sde-loot-custom-hint">{{localize "SDE.loot.setup.pickerHint"}}</p>
     {{#if managed.length}}
     <ul class="sde-loot-picker-list">
       {{#each managed as |m|}}
       <li class="sde-loot-picker-item">
         <span class="sde-loot-lib-name">{{m.name}} <span class="sde-loot-lib-page">{{m.group}}</span></span>
-        <button type="button" class="sde-loot-setup-unlock" data-action="removePicker" data-uuid="{{m.uuid}}" title="Remove from the Loot Generator">
-          <i class="fas fa-xmark"></i> Remove
+        <button type="button" class="sde-loot-setup-unlock" data-action="removePicker" data-uuid="{{m.uuid}}" title="{{localize 'SDE.loot.setup.removeTip'}}">
+          <i class="fas fa-xmark"></i> {{localize "SDE.loot.setup.remove"}}
         </button>
       </li>
       {{/each}}
     </ul>
     {{else}}
-    <p class="sde-loot-custom-hint">None added yet.</p>
+    <p class="sde-loot-custom-hint">{{localize "SDE.loot.setup.noneAdded"}}</p>
     {{/if}}
     {{#if hasAddable}}
     <div class="sde-loot-custom-row">
-      <select data-picker-add aria-label="Add a table to the Loot Generator">
-        <option value="">Choose a table to add…</option>
+      <select data-picker-add aria-label="{{localize 'SDE.loot.setup.addAria'}}">
+        <option value="">{{localize "SDE.loot.setup.addPlaceholder"}}</option>
         {{#each addable as |t|}}<option value="{{t.uuid}}">{{t.name}} ({{t.group}})</option>{{/each}}
       </select>
-      <button type="button" class="sde-loot-setup-bind" data-action="addPicker"><i class="fas fa-plus"></i> Add</button>
+      <button type="button" class="sde-loot-setup-bind" data-action="addPicker"><i class="fas fa-plus"></i> {{localize "SDE.loot.setup.add"}}</button>
     </div>
     {{/if}}
   </section>
 
   {{! ── Bind any other loot table to a tier (homebrew / other books) ── }}
   <section class="sde-loot-custom">
-    <h4 class="sde-loot-lib-group-title">Bind another table</h4>
+    <h4 class="sde-loot-lib-group-title">{{localize "SDE.loot.setup.customHeading"}}</h4>
     {{#if hasLootTables}}
     <div class="sde-loot-custom-row">
-      <select data-custom-tier aria-label="Tier">
+      <select data-custom-tier aria-label="{{localize 'SDE.loot.setup.tierAria'}}">
         {{#each tierOptions as |t|}}<option value="{{t.tier}}">{{t.label}}{{#if t.boundName}} — {{t.boundName}}{{/if}}</option>{{/each}}
       </select>
-      <select data-custom-table aria-label="Loot table">
-        <option value="">Choose a loot table…</option>
+      <select data-custom-table aria-label="{{localize 'SDE.monsterLoot.colTable'}}">
+        <option value="">{{localize "SDE.loot.setup.tablePlaceholder"}}</option>
         {{#each lootTables as |t|}}<option value="{{t.uuid}}">{{t.name}} ({{t.group}})</option>{{/each}}
       </select>
-      <button type="button" class="sde-loot-setup-bind" data-action="bindCustom"><i class="fas fa-link"></i> Bind</button>
+      <button type="button" class="sde-loot-setup-bind" data-action="bindCustom"><i class="fas fa-link"></i> {{localize "SDE.loot.setup.bind"}}</button>
     </div>
     {{else}}
-    <p class="sde-loot-custom-hint">No loot tables yet — unlock one above first.</p>
+    <p class="sde-loot-custom-hint">{{localize "SDE.loot.setup.noTables"}}</p>
     {{/if}}
-    <p class="sde-loot-custom-hint">Don't see your table? Right-click it in the sidebar → <strong>Mark as Loot Table</strong>, then it'll appear here.</p>
+    <p class="sde-loot-custom-hint">{{{localize "SDE.loot.setup.markHint"}}}</p>
   </section>
 </div>

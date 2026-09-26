@@ -16,6 +16,16 @@ import { ensureFolderPath } from "../shared/compendium-suite.mjs";
 import { fabricateTreasureItem, isCoinEntry, parseValue, ensureLootPack } from "./loot-pack.mjs";
 import { SEA_WOLF_PLUNDER_ROWS } from "../shared/curated-icon-maps/sea-wolf-plunder-icons.mjs";
 
+/** One string from `languages/en.json`; the key when no i18n is mounted (node tests). */
+const L = (key, data) => {
+  const i18n = globalThis.game?.i18n;
+  if (!i18n) return key;
+  return data ? i18n.format(key, data) : i18n.localize(key);
+};
+
+/** The book table's own name, filled into this file's GM warnings. */
+const NOTIFY_TABLE = "Sea Wolf Plunder";
+
 export const SEA_WOLF_PLUNDER_SOURCE = "cs3";
 export const SEA_WOLF_PLUNDER_CONTENT_ID = "cs3/sea-wolf-plunder";
 export const SEA_WOLF_PLUNDER_MANIFEST_ID = "cs3-sea-wolf-plunder-from-distant-lands";
@@ -417,7 +427,7 @@ export async function materializeSeaWolfPlunder(table, {
     summary.failures.push({ reason: "pack-failed", error: String(error?.message ?? error) });
     for (const entry of definitions.resolved) summary.unresolvedRows.push(unresolvedRecord(entry, "pack-failed"));
     summary.unresolved += definitions.resolved.length;
-    notify(`Sea Wolf Plunder: ${summary.failures[0].reason}; rows remain unresolved.`);
+    notify(L("SDE.loot.materialize.failedReason", { table: NOTIFY_TABLE, reason: summary.failures[0].reason }));
     return summary;
   }
   if (!pack || pack.collection !== MANAGED_ITEMS_PACK) {
@@ -425,7 +435,7 @@ export async function materializeSeaWolfPlunder(table, {
     for (const entry of definitions.resolved) summary.unresolvedRows.push(unresolvedRecord(entry, reason));
     summary.unresolved += definitions.resolved.length;
     summary.failures.push({ reason, error: null });
-    notify("Sea Wolf Plunder: generated Items require the managed sde-items pack; rows remain unresolved.");
+    notify(L("SDE.loot.materialize.packRequired", { table: NOTIFY_TABLE }));
     return summary;
   }
 
@@ -451,7 +461,7 @@ export async function materializeSeaWolfPlunder(table, {
     summary.failures.push({ reason: "reconcile-failed", error: String(error?.message ?? error) });
     for (const entry of definitions.resolved) summary.unresolvedRows.push(unresolvedRecord(entry, "reconcile-failed"));
     summary.unresolved += definitions.resolved.length;
-    notify("Sea Wolf Plunder: generated Item reconciliation failed; rows remain unresolved.");
+    notify(L("SDE.loot.materialize.reconcileFailed", { table: NOTIFY_TABLE }));
     return summary;
   }
 
@@ -472,7 +482,7 @@ export async function materializeSeaWolfPlunder(table, {
     summary.failures.push({ reason: "documents-failed", error: String(error?.message ?? error) });
     for (const entry of definitions.resolved) summary.unresolvedRows.push(unresolvedRecord(entry, "documents-failed"));
     summary.unresolved += definitions.resolved.length;
-    notify("Sea Wolf Plunder: generated Item documents could not be read; rows remain unresolved.");
+    notify(L("SDE.loot.materialize.documentsUnreadable", { table: NOTIFY_TABLE }));
     return summary;
   }
   const byIdentity = new Map();
@@ -539,7 +549,7 @@ export async function materializeSeaWolfPlunder(table, {
     for (const entry of linkedEntries) summary.unresolvedRows.push(unresolvedRecord(entry, reason));
     summary.unresolved += linkedEntries.length;
     summary.linked = 0;
-    notify("Sea Wolf Plunder: no safe RollTable writer was available; no write was attempted and source text remains available for retry.");
+    notify(L("SDE.loot.materialize.noWriterSourceText", { table: NOTIFY_TABLE }));
     return summary;
   }
   try {
@@ -557,9 +567,9 @@ export async function materializeSeaWolfPlunder(table, {
     summary.unresolved += linkedEntries.length;
     summary.linked = 0;
     if (restored) {
-      notify("Sea Wolf Plunder: RollTable write failed; original source rows were restored and remain available for retry.");
+      notify(L("SDE.loot.materialize.writeFailedRestored", { table: NOTIFY_TABLE }));
     } else {
-      notify("Sea Wolf Plunder: RollTable write and automatic restoration failed; source rows may require recovery before retry.");
+      notify(L("SDE.loot.materialize.writeRestoreFailed", { table: NOTIFY_TABLE }));
     }
   }
   return summary;

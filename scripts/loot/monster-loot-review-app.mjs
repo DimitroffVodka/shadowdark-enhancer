@@ -45,10 +45,12 @@ export class MonsterLootReviewApp extends HandlebarsApplicationMixin(Application
           table,
           chance: chance ?? "",
           overridden: !!table || chance !== undefined,
-          defaultLabel: tierName ? `Default — ${tierName}` : "Default — no tier table for this level",
+          defaultLabel: tierName
+            ? game.i18n.format("SDE.monsterLoot.defaultTier", { name: tierName })
+            : game.i18n.localize("SDE.monsterLoot.defaultNone"),
           // A flagged table the picker no longer lists (deleted, or never a
           // curated loot table) still has to show as the selection.
-          missingTable: table && !known.has(table) ? (fromUuidSync(table)?.name ?? "(missing table)") : null,
+          missingTable: table && !known.has(table) ? (fromUuidSync(table)?.name ?? game.i18n.localize("SDE.loot.missingTable")) : null,
         };
       });
     return {

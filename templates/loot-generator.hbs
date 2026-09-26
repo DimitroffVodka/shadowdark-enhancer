@@ -1,21 +1,21 @@
 <div class="sde-lootgen">
   {{#if hasTables}}
   <div class="sde-lootgen-controls">
-    <select data-loot-table aria-label="Loot table">
+    <select data-loot-table aria-label="{{localize 'SDE.monsterLoot.colTable'}}">
       {{#each tables as |t|}}
       <option value="{{t.uuid}}" {{#if t.isSelected}}selected{{/if}}>{{t.name}}</option>
       {{/each}}
     </select>
-    <button type="button" class="sde-lootgen-roll" data-action="rollLoot"><i class="fas fa-dice-d20"></i> Roll Loot</button>
-    <button type="button" class="sde-lootgen-rolltoken" data-action="rollForToken"><i class="fas fa-crosshairs"></i> Roll for Selected Token</button>
-    <button type="button" class="sde-lootgen-setup {{#if needsSetup}}needs-setup{{/if}}" data-action="openSetup"><i class="fas fa-gear"></i> Set up loot tables</button>
-    <button type="button" class="sde-lootgen-dropcoins-manual" data-action="dropCoinsPrompt"><i class="fas fa-coins"></i> Drop Coins…</button>
+    <button type="button" class="sde-lootgen-roll" data-action="rollLoot"><i class="fas fa-dice-d20"></i> {{localize "SDE.loot.generator.roll"}}</button>
+    <button type="button" class="sde-lootgen-rolltoken" data-action="rollForToken"><i class="fas fa-crosshairs"></i> {{localize "SDE.loot.generator.rollForToken"}}</button>
+    <button type="button" class="sde-lootgen-setup {{#if needsSetup}}needs-setup{{/if}}" data-action="openSetup"><i class="fas fa-gear"></i> {{localize "SDE.loot.generator.setup"}}</button>
+    <button type="button" class="sde-lootgen-dropcoins-manual" data-action="dropCoinsPrompt"><i class="fas fa-coins"></i> {{localize "SDE.loot.generator.dropCoins"}}</button>
   </div>
-  <p class="notes">Roll Loot adds to the history below. Roll for Selected Token whispers a claimable card to that token's owner.</p>
-  <p class="notes"><i class="fa-solid fa-circle-info"></i> Showing curated loot/treasure tables (world + compendium). Right-click any table in the sidebar → <strong>Mark as Loot Table</strong> to add another.</p>
+  <p class="notes">{{localize "SDE.loot.generator.rollHint"}}</p>
+  <p class="notes"><i class="fa-solid fa-circle-info"></i> {{{localize "SDE.loot.generator.curatedHint"}}}</p>
   {{else}}
-  <p class="notes">No loot tables yet. Open <strong>Set up loot tables</strong> to unlock treasure tables from your books and bind them.</p>
-  <button type="button" class="sde-lootgen-setup needs-setup" data-action="openSetup"><i class="fas fa-gear"></i> Set up loot tables</button>
+  <p class="notes">{{{localize "SDE.loot.generator.emptyHint"}}}</p>
+  <button type="button" class="sde-lootgen-setup needs-setup" data-action="openSetup"><i class="fas fa-gear"></i> {{localize "SDE.loot.generator.setup"}}</button>
   {{/if}}
 
   {{#if hasHistory}}
@@ -26,27 +26,27 @@
       {{#if e.items.length}}
       <ul class="sde-lootgen-items">
         {{#each e.items as |it|}}
-        <li><img src="{{it.img}}" width="22" height="22" alt=""> <span>{{it.name}}</span>{{#if it.forgeable}}<button type="button" class="sde-lootgen-forge" data-action="forgeEntryItem" data-entry-id="{{e.id}}" data-item-index="{{it.idx}}"><i class="fas fa-hammer"></i> Forge</button>{{/if}}</li>
+        <li><img src="{{it.img}}" width="22" height="22" alt=""> <span>{{it.name}}</span>{{#if it.forgeable}}<button type="button" class="sde-lootgen-forge" data-action="forgeEntryItem" data-entry-id="{{e.id}}" data-item-index="{{it.idx}}"><i class="fas fa-hammer"></i> {{localize "SDE.loot.btn.forge"}}</button>{{/if}}</li>
         {{/each}}
       </ul>
       {{/if}}
       {{#if e.hasCoins}}<div class="sde-lootgen-coins"><i class="fas fa-coins"></i> {{e.coinsLabel}}</div>{{/if}}
       {{#each e.notes as |n|}}<div class="sde-lootgen-note">{{n}}</div>{{/each}}
-      {{#if e.isEmpty}}<div class="sde-lootgen-note">(nothing)</div>{{/if}}
+      {{#if e.isEmpty}}<div class="sde-lootgen-note">{{localize "SDE.loot.generator.nothing"}}</div>{{/if}}
       <div class="sde-lootgen-entry-actions">
-        <button type="button" class="sde-lootgen-post" data-action="postEntry" data-entry-id="{{e.id}}"><i class="fas fa-comment"></i> Post to Chat</button>
-        <button type="button" class="sde-lootgen-drop" data-action="dropEntry" data-entry-id="{{e.id}}"><i class="fas fa-box-open"></i> Drop on Ground</button>
-        <select class="sde-lootgen-recipient" data-entry-id="{{e.id}}" aria-label="Give recipient">
-          <option value="party">Party (claim in chat)</option>
+        <button type="button" class="sde-lootgen-post" data-action="postEntry" data-entry-id="{{e.id}}"><i class="fas fa-comment"></i> {{localize "SDE.loot.generator.post"}}</button>
+        <button type="button" class="sde-lootgen-drop" data-action="dropEntry" data-entry-id="{{e.id}}"><i class="fas fa-box-open"></i> {{localize "SDE.loot.generator.dropGround"}}</button>
+        <select class="sde-lootgen-recipient" data-entry-id="{{e.id}}" aria-label="{{localize 'SDE.loot.generator.recipientAria'}}">
+          <option value="party">{{localize "SDE.loot.generator.partyOption"}}</option>
           {{#each e.party as |p|}}<option value="{{p.id}}">{{p.name}}</option>{{/each}}
         </select>
-        <button type="button" class="sde-lootgen-give" data-action="giveEntry" data-entry-id="{{e.id}}"><i class="fas fa-gift"></i> Give</button>
+        <button type="button" class="sde-lootgen-give" data-action="giveEntry" data-entry-id="{{e.id}}"><i class="fas fa-gift"></i> {{localize "SDE.loot.btn.give"}}</button>
       </div>
     </li>
     {{/each}}
   </ul>
   <div class="sde-lootgen-footer">
-    <button type="button" class="sde-lootgen-clear" data-action="clearHistory"><i class="fas fa-trash"></i> Clear History</button>
+    <button type="button" class="sde-lootgen-clear" data-action="clearHistory"><i class="fas fa-trash"></i> {{localize "SDE.loot.generator.clearHistory"}}</button>
   </div>
   {{/if}}
 </div>

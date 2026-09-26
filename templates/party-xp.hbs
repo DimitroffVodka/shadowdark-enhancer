@@ -1,44 +1,44 @@
 <div class="sde-party-xp">
 
-  <p class="notes">Awards the full amount to <strong>each</strong> selected character (Shadowdark RAW — treasure XP isn't split). Drop an item to use its XP, or type an amount.</p>
+  <p class="notes">{{{localize "SDE.partyXp.intro"}}}</p>
 
   <div class="sde-pxp-source">
     {{#if hasItem}}
-    <div class="sde-pxp-item" data-action="clearItem" title="Click to clear">
+    <div class="sde-pxp-item" data-action="clearItem" title="{{localize 'SDE.partyXp.clearTip'}}">
       <img src="{{item.img}}" width="32" height="32" alt="">
       <span class="sde-pxp-item-name">{{item.name}}</span>
-      <span class="sde-pxp-item-xp">{{item.xp}} XP <em>({{itemSourceLabel}})</em></span>
+      <span class="sde-pxp-item-xp">{{localize "SDE.partyXp.xpValue" xp=item.xp}} <em>({{itemSourceLabel}})</em></span>
       <i class="fas fa-times sde-pxp-item-clear"></i>
     </div>
     <label class="sde-pxp-save">
       <input type="checkbox" name="saveToItem" {{#if saveToItem}}checked{{/if}}>
-      Save this XP value onto the item
+      {{localize "SDE.partyXp.saveToItem"}}
     </label>
     {{else}}
     <div class="sde-pxp-drop">
       <i class="fas fa-hand-holding-magic"></i>
-      <span>Drag an item here to use its XP value</span>
+      <span>{{localize "SDE.partyXp.dropHint"}}</span>
     </div>
     {{/if}}
   </div>
 
   <div class="sde-pxp-fields">
     <label class="sde-pxp-amount-field">
-      XP amount
-      <input type="number" name="amount" min="0" step="1" value="{{amount}}" aria-label="XP amount">
+      {{localize "SDE.partyXp.amountLabel"}}
+      <input type="number" name="amount" min="0" step="1" value="{{amount}}" aria-label="{{localize 'SDE.partyXp.amountLabel'}}">
     </label>
     <label class="sde-pxp-label-field">
-      Label
-      <input type="text" name="label" value="{{label}}" placeholder="e.g. Golden idol, Quest reward" aria-label="Award label">
+      {{localize "SDE.partyXp.labelLabel"}}
+      <input type="text" name="label" value="{{label}}" placeholder="{{localize 'SDE.partyXp.labelPlaceholder'}}" aria-label="{{localize 'SDE.partyXp.labelAria'}}">
     </label>
   </div>
 
   <div class="sde-pxp-party">
     <div class="sde-pxp-party-head">
-      <span>Award to ({{xpPerLevel}} XP = one level)</span>
+      <span>{{localize "SDE.partyXp.awardTo" xp=xpPerLevel}}</span>
       <span class="sde-pxp-party-tools">
-        <button type="button" class="sde-pxp-mini" data-action="selectAll">All</button>
-        <button type="button" class="sde-pxp-mini" data-action="selectNone">None</button>
+        <button type="button" class="sde-pxp-mini" data-action="selectAll">{{localize "SDE.partyXp.selectAll"}}</button>
+        <button type="button" class="sde-pxp-mini" data-action="selectNone">{{localize "SDE.partyXp.selectNone"}}</button>
       </span>
     </div>
 
@@ -51,20 +51,20 @@
           <span class="sde-pxp-member-name">{{p.name}}</span>
         </label>
         <span class="sde-pxp-member-xp">
-          {{#if p.level}}<span class="sde-pxp-lvl">L{{p.level}}</span>{{/if}}
-          {{p.xp}} XP
+          {{#if p.level}}<span class="sde-pxp-lvl">{{localize "SDE.partyXp.levelShort" level=p.level}}</span>{{/if}}
+          {{localize "SDE.partyXp.xpValue" xp=p.xp}}
         </span>
       </li>
       {{/each}}
     </ul>
     {{else}}
-    <p class="notes"><i class="fa-solid fa-circle-info"></i> No player characters found. Assign a Player-type actor to a player first.</p>
+    <p class="notes"><i class="fa-solid fa-circle-info"></i> {{localize "SDE.partyXp.noParty"}}</p>
     {{/if}}
   </div>
 
   <div class="sde-pxp-footer">
     <button type="button" class="sde-pxp-award" data-action="award" {{#unless hasParty}}disabled{{/unless}}>
-      <i class="fas fa-star"></i> Award XP
+      <i class="fas fa-star"></i> {{localize "SDE.partyXp.award"}}
     </button>
   </div>
 

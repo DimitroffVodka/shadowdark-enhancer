@@ -54,6 +54,20 @@ function fieldContext(field, input) {
   };
 }
 
+/** The phase badge's text; the phase id itself stays the `data-phase` hook. */
+const PHASE_LABELS = {
+  [FORGE_LOOT_PHASES.IDLE]: "SDE.forgeLoot.phase.idle",
+  [FORGE_LOOT_PHASES.INPUT]: "SDE.forgeLoot.phase.input",
+  [FORGE_LOOT_PHASES.PLANNING]: "SDE.forgeLoot.phase.planning",
+  [FORGE_LOOT_PHASES.PREVIEW]: "SDE.forgeLoot.phase.preview",
+  [FORGE_LOOT_PHASES.BLOCKED]: "SDE.forgeLoot.phase.blocked",
+  [FORGE_LOOT_PHASES.DISABLED]: "SDE.forgeLoot.phase.disabled",
+  [FORGE_LOOT_PHASES.COMMITTING]: "SDE.forgeLoot.phase.committing",
+  [FORGE_LOOT_PHASES.COMMITTED]: "SDE.forgeLoot.phase.committed",
+  [FORGE_LOOT_PHASES.CANCELLED]: "SDE.forgeLoot.phase.cancelled",
+  [FORGE_LOOT_PHASES.ERROR]: "SDE.forgeLoot.phase.error",
+};
+
 function diagnosticContext(values) {
   return (values ?? []).map((entry) => ({
     code: entry.code,
@@ -66,7 +80,7 @@ export class ForgeLootApp extends HandlebarsApplicationMixin(ApplicationV2) {
   static DEFAULT_OPTIONS = {
     id: "sde-forge-loot",
     tag: "form",
-    window: { title: "Forge & Loot", icon: "fas fa-hammer", resizable: true },
+    window: { title: "SDE.forgeLoot.title", icon: "fas fa-hammer", resizable: true },
     position: { width: 760, height: "auto" },
     actions: {
       selectGenerator: ForgeLootApp.prototype._onSelectGenerator,
@@ -88,7 +102,7 @@ export class ForgeLootApp extends HandlebarsApplicationMixin(ApplicationV2) {
   /** Open the one shared preview-first Forge & Loot tool (GM only). */
   static open({ generator = null, seed = null, input = {}, controller = null } = {}) {
     if (!game.user?.isGM) {
-      ui.notifications?.warn("Only a GM can use Forge & Loot.");
+      ui.notifications?.warn(game.i18n.localize("SDE.forgeLoot.notify.gmOnly"));
       return null;
     }
     // A class import can change eligibility without opening the tool.  Refresh
@@ -148,18 +162,19 @@ export class ForgeLootApp extends HandlebarsApplicationMixin(ApplicationV2) {
     };
     return {
       phase: state.phase,
+      phaseLabel: PHASE_LABELS[state.phase] ? game.i18n.localize(PHASE_LABELS[state.phase]) : state.phase,
       seed: state.seed,
       rerollCount: state.rerollCount,
       generator: state.generator,
       generators: adapters.map((entry) => ({
         id: entry.id,
-        label: entry.label ?? GENERATOR_LABELS[entry.id] ?? entry.id,
+        label: game.i18n.localize(entry.label ?? GENERATOR_LABELS[entry.id] ?? entry.id),
         description: entry.description ?? "",
         icon: entry.id === "rival" ? "fa-users" : "fa-user",
         selected: entry.id === state.generator,
       })),
       hasGenerator: !!state.generator,
-      generatorLabel: adapter?.label ?? GENERATOR_LABELS[state.generator] ?? "Forge & Loot",
+      generatorLabel: game.i18n.localize(adapter?.label ?? GENERATOR_LABELS[state.generator] ?? "SDE.forgeLoot.title"),
       generatorDescription: adapter?.description ?? "",
       fields: (adapter?.fields ?? []).map((field) => fieldContext(field, state.input)),
       preview: previewView,
@@ -198,7 +213,7 @@ export class ForgeLootApp extends HandlebarsApplicationMixin(ApplicationV2) {
 
   _onSelectGenerator(_event, target) {
     const result = this._controller.selectGenerator(target.dataset.generator);
-    if (!result.ok) ui.notifications?.warn("That generator is not available.");
+    if (!result.ok) ui.notifications?.warn(game.i18n.localize("SDE.forgeLoot.notify.unavailable"));
     this.render();
   }
 
@@ -227,10 +242,9 @@ export class ForgeLootApp extends HandlebarsApplicationMixin(ApplicationV2) {
   _onCancel() {
     const result = this._controller.cancel();
     if (!result.ok) {
-      const message = result.reason === "commit-in-progress"
-        ? "An approval is already in progress."
-        : "That preview was already consumed; start over for a new proposal.";
-      ui.notifications?.warn(message);
+      ui.notifications?.warn(game.i18n.localize(result.reason === "commit-in-progress"
+        ? "SDE.forgeLoot.notify.commitInProgress"
+        : "SDE.forgeLoot.notify.previewConsumed"));
       this.render();
       return;
     }
@@ -242,8 +256,8 @@ export class ForgeLootApp extends HandlebarsApplicationMixin(ApplicationV2) {
     this.render();
     return work
       .then((result) => {
-        if (result.ok) ui.notifications?.info("Created from the approved Forge & Loot preview.");
-        else if (result.error?.message) ui.notifications?.error(`Forge & Loot blocked: ${result.error.message}`);
+        if (result.ok) ui.notifications?.info(game.i18n.localize("SDE.forgeLoot.notify.created"));
+        else if (result.error?.message) ui.notifications?.error(game.i18n.format("SDE.forgeLoot.notify.blocked", { message: result.error.message }));
         return result;
       })
       .finally(() => this.render());
@@ -251,7 +265,7 @@ export class ForgeLootApp extends HandlebarsApplicationMixin(ApplicationV2) {
 
   _onReset() {
     if (this.state.commit?.inFlight) {
-      ui.notifications?.warn("An approval is already in progress.");
+      ui.notifications?.warn(game.i18n.localize("SDE.forgeLoot.notify.commitInProgress"));
       return;
     }
     this._controller.dispatch({ type: "reset", seed: randomSeed() });

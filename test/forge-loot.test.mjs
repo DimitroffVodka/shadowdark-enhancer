@@ -460,7 +460,8 @@ test("generic display projection keeps generator rules out of the UI", () => {
     generator: GENERATOR_IDS.NPC,
     seed: "x",
   });
-  assert.equal(display.title, "Ordinary NPC");
+  // No i18n is mounted in node, so the generator label comes back as its en.json key.
+  assert.equal(display.title, "SDE.forgeLoot.generator.npc");
   assert.ok(display.sections[0].rows.some((row) => row.label === "name" && row.value === "Lysa"));
 });
 
