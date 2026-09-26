@@ -7,20 +7,22 @@ columns), and in Extras [SDX#151](https://github.com/DimitroffVodka/shadowdark-e
 (carousing) and [SDX#152](https://github.com/DimitroffVodka/shadowdark-extras/issues/152) (hex fog).
 Reads the rules data of #195.
 
-Status: proposal, written 2026-09-26. Nothing is built. The "Decided so far" list in #192 is taken
-as settled and not reopened here.
+Status: decided 2026-09-26. Patrick answered every open question below with the recommendation and
+confirmed every rules reading in §5.7. Nothing is built yet. The "Decided so far" list in #192 is
+taken as settled and not reopened here.
 
 Ground truth, read rather than guessed: SDE `origin/master` at a17e740; SDX `main` at 5573faf
 (line numbers below are from that checkout, not from `feat/road-river-network-authoring`); Foundry
 14.368 client at `FoundryV14/app/client`; the Shadowdark system 4.0.6
 (`systems/shadowdark/shadowdark-compiled.mjs`). Unmerged Enhancer work that this doc builds on is
-named by PR: stat damage #213, stat-damage riders #215.
+named by PR: stat damage #213, stat-damage riders #215 (both merged since).
 
 ---
 
-## Open questions for Patrick
+## Decisions (Patrick, 2026-09-26)
 
-Answer as "1: yes, 2: B …". "Yes" takes the recommendation.
+All nine were answered with the recommendation, the first option in each. The alternative (*B*) is
+kept for the record of what was weighed and turned down.
 
 1. **One travel state per world.** A world setting, like `crawlState`. Multiple parties are out of
    scope. *B:* one state per party, stored on each Extras party actor. That needs Extras to run, and
@@ -420,7 +422,7 @@ already use, and the GM rolls when that player is offline (PR #215, `stat-damage
 One check is made per season crossed. The check runs in every mode, because the party may be
 crawling below that hex.
 
-### 5.7 Rules readings (flag if wrong)
+### 5.7 Rules readings (confirmed by Patrick, 2026-09-26)
 
 | Reading | Where it bites |
 |---|---|
@@ -502,10 +504,10 @@ and SDX#151's duration start. Neither needs the bar.
 | O4 | **Weather and climate** | O3, #195 | O5, SDX#152, O9 | A 6 sets `advantageNext` and the next roll is 2d6kh1. A stormy day prices grassland at 2. A harsh region in a storm is impassable. Under the core rule a storm lasts 1d4 dawns with no roll. `rules.climate` shows on the state. |
 | O5 | **Movement budget and clock** | O3, O4, #195 | O6, O7 | Walking into forest spends 2 of 4 and moves the clock 4 hours. A pushed walking day has 6. A move worth more than what's left bounces. Displace is free. Aboard a speed-3 boat the budget is 3. Path to path costs 1. |
 | O6 | **Encounter checks** | O5; #197 (with `pickTable` as fallback) | — | A full day posts four checks with hours. A pushed day checks at 2-in-6. A hit at 20:00 during camp stops the clock at 20:00, and Continue finishes to dawn. With #197, a Myre Swamp night check rolls the Night column. |
-| O7 | **Forage, rations, camp, underground** | O5, PR #213, PR #215 | X1 | Forage works once per PC per day, is refused on a pushed day, is DC 18 when harsh, and is impossible when stormy and harsh. Camp without Extras: 1 ration each (2 when harsh), and a PC without one takes 1 CON. A season change with the party on deep tunnels prompts DC 12 CHA, and a failure costs 1d4 CHA. |
+| O7 | **Forage, rations, camp, underground** | O5, stat damage (#213, #215, merged) | X1 | Forage works once per PC per day, is refused on a pushed day, is DC 18 when harsh, and is impossible when stormy and harsh. Camp without Extras: 1 ration each (2 when harsh), and a PC without one takes 1 CON. A season change with the party on deep tunnels prompts DC 12 CHA, and a failure costs 1d4 CHA. |
 | O8 | **The bar** (§4) | O3; O4–O7 for its controls | — | The slim bar shows date, time, weather and hexes left; the expanded view shows the dome and travel details. It appears only in overland on a hex map, hides during combat and returns after. Players see no check hours. Every string is in `en.json`. |
 | O9 | **Sky on scenes** (§6.2) | O1, O4 | — | An outdoor scene darkens over the twilight hour after sunset; an indoor one is untouched; the hex map stops at the cap. Stormy sets `rainStorm`, or `blizzard` in the cold. The Isles in summer never go dark and in winter never get light. With Calendaria's darkness sync on, nothing is written. |
-| X1 | **One SDX issue**: weather hand-off, `camping.open` with the WR food rules, the party-sheet travel view (§6.1), with an acceptance check and a not-needed list | O3's API names, and Patrick's answers | — | Filed complete in one go, the way SDX#151 and SDX#152 were. |
+| X1 | **One SDX issue**: weather hand-off, `camping.open` with the WR food rules, the party-sheet travel view (§6.1), with an acceptance check and a not-needed list | O3's API names | — | Filed complete in one go, the way SDX#151 and SDX#152 were. |
 
 O4 to O7 can land in one PR if they come out small. The split is there so the encounter work can
 wait for #197 without holding up the rest.
