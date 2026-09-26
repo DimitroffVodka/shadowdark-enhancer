@@ -169,8 +169,10 @@ const printDataset = {
     { num: 202, terrain: "forest", zone: "Vale" },
   ],
 };
+// Foundry 14's forced-deletion operator, a global in the client.
+globalThis._del ??= Symbol("_del");
 // The print as a Foundry scene: getFlag, and update() understanding the
-// `-=key` deletion replaceModuleFlag writes before the new value.
+// `_del` deletion replaceModuleFlag writes before the new value.
 function printScene(flags = {}) {
   const scene = {
     id: "print-1", flags: { "shadowdark-enhancer": { ...flags } },
@@ -179,7 +181,7 @@ function printScene(flags = {}) {
       for (const [path, value] of Object.entries(diff)) {
         const [, scope, key] = path.split(".");
         scene.flags[scope] ??= {};
-        if (key.startsWith("-=")) delete scene.flags[scope][key.slice(2)];
+        if (value === globalThis._del) delete scene.flags[scope][key];
         else scene.flags[scope][key] = value;
       }
     },
