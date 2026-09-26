@@ -1,7 +1,7 @@
 # Shadowdark Enhancer — File Inventory
 
 <!-- inventory:stats:start -->
-1034 tracked files · ~180,900 lines of code/markup across scripts+templates+styles+test.
+1034 tracked files · ~181,400 lines of code/markup across scripts+templates+styles+test.
 `v0.17.3` in both `module.json` and `package.json`.
 <!-- inventory:stats:end -->
 **Layout reflects the 2026-07-21 feature-folder reorganization (v0.11.0 cycle).**
@@ -46,7 +46,7 @@
 
 | File | Lines | Description |
 |---|---:|---|
-| `shadowdark-enhancer.mjs` | 1202 | **Entry point** (module.json esmodules). Registers hooks, settings, sheets, actor sub-types, the public `game.shadowdarkEnhancer` API, and wires every sub-system. |
+| `shadowdark-enhancer.mjs` | 1204 | **Entry point** (module.json esmodules). Registers hooks, settings, sheets, actor sub-types, the public `game.shadowdarkEnhancer` API, and wires every sub-system. |
 | `luck-reroll/luck-reroll.mjs` | 176 | Wraps the system's `_onReroll` to enforce nat-1 prevention and log Luck rerolls to the session recap. |
 | `spell-mishap/spell-mishap.mjs` | 270 | Nat-1 spellcasting failures auto-roll the class's mishap table (wizard / witch / necromancer sets); divine casters are exempt. |
 | `scavenger/scavenger-core.mjs` | 171 | Pure Delver Scavenger rules: the 5-6 success range and Master Scavenger's widening (floored at 3-6), what counts as expending a consumable's last use (a 1→0 decrement or a delete at quantity 1 — never a stack deleted whole), and which single client rolls. |
@@ -84,8 +84,8 @@
 | `modes-of-play/hunter.mjs` | 96 | Hunter Mode (#184): on deleteCombat the active GM pays every PC in the fight XP for each NPC still defeated (half its level, level 1 → 1) through PartyXP.award, one card. Pure hunterXp/hunterAward + payHunterXp. |
 | `modes-of-play/pulp-core.mjs` | 127 | Pulp Mode pure half: critExtraFormula (the dice a crit adds to rolled damage, per applyCriticalHit), showLuckCrit, showForceReroll. |
 | `modes-of-play/pulp.mjs` | 294 | Pulp Mode (#185): session luck on the sessionStart hook (1d4, set), and the Luck: critical hit / force a reroll chat buttons. Both relay to the active GM (PULP_QUERY), which checks the requester, spends the token and edits the card. |
-| `overland/overland-state-core.mjs` | 220 | Overland travel state (#229, O3), pure: the one travel state's shape (token, members, method, the open day and its budget, weather, checks, forage, the travel token's hex), its normalization, the startTravel / setHex / recordForage reducers, the travel-token choice (the one Extras party token, else the one selected token), the forage refusal rules, and the weather (#230, O4): the setWeather reducer, whether a weather holds, the advantage a roll has (a Western Reaches 6 gives the next roll 2d6kh; a reroll keeps the replaced roll's), the weather from a d6 under the Western Reaches or core rule, whether today is harsh, and a hex's cost with the weather. |
-| `overland/overland.mjs` | 294 | Overland travel (#229): the overlandState world setting (active-GM writes in one queue, payload-free re-read nudge), Start and End travel (another GM's forwarded to the active GM), the players' relayed Forage with the sender checked from the query context, overland.state() with hexes left, climate, storm, harshness and night derived, rollWeather (GM; dice rolled on the active GM, one chat card, the overlandWeatherRule setting), and the overlandChanged / overlandStart / overlandEnd hooks. |
+| `overland/overland-state-core.mjs` | 288 | Overland travel state (#229, O3), pure: the one travel state's shape (token, members, method, the open day and its budget, weather, checks, forage, the travel token's hex), its normalization, the startTravel / setHex / recordForage reducers, the travel-token choice (the one Extras party token, else the one selected token), the forage refusal rules, and the weather (#230, O4): the setWeather reducer, whether a weather holds, the advantage a roll has (a Western Reaches 6 gives the next roll 2d6kh; a reroll keeps the replaced roll's), the weather from a d6 under the Western Reaches or core rule, whether today is harsh, and a hex's cost with the weather; and the travel day (#231, O5): openDay (budget, push, clock rate fixed at the day's start), spendMove, priceMove (displaced legs free, unknown terrain 1) and moveVerdict (no day, impassable, bounce). |
+| `overland/overland.mjs` | 494 | Overland travel (#229): the overlandState world setting (active-GM writes in one queue, payload-free re-read nudge), Start and End travel (another GM's forwarded to the active GM), the players' relayed Forage with the sender checked from the query context, overland.state() with hexes left, climate, storm, harshness and night derived, rollWeather (GM; dice rolled on the active GM, one chat card, the overlandWeatherRule setting), startDay and its dialog (the weather first, then the budget; a boat actor's speed when sailing aboard one), the travel token's moves (preMoveToken refuses on the mover's client; moveToken on the active GM spends, records the hex and advances the clock, or sends an overdrawn move back with a displace), and the overlandChanged / overlandStart / overlandEnd hooks. |
 | `rules-data/rules-data-app.mjs` | 207 | The GM-only Rules data window (AppV2, Configure Settings menu): shows and edits every rules table, staged until Save. Import from GM Guide runs table-shapes RULES_TABLES over the GM's own linked GM Guide and Player's Guide PDFs (lazy-loaded), canonicalises region names through hex-region knownRegions, and previews every filled value it would replace. |
 | `rules-data/rules-data-core.mjs` | 344 | Rules data (#195), pure: the Western Reaches lookup tables (terrain cost and elevation, terrain types, hexes per day, hex visibility, climate by region and season, carousing and recruiting limits) as one sparse world setting laid over an empty structure, the game.shadowdarkEnhancer.rules lookups over it, the readers that turn the importer's `reference` rows into those tables, and the overwrite preview and merge for an import. Ships structure only (tagger terrain words, travel methods, conditions, seasons, settlement kinds), never a value. |
 | `time/off-duty.mjs` | 229 | time.advanceOffDuty (#228, Overland O2): the off-duty clock move. GM only; runs on the Shadowdark system's primary light GM (a GM-to-GM query when that is another GM), refuses when two GM tabs hold the flag, stops the system's real-time light clock for the move, puts out every lit Basic light the player-owned PCs carry with the sheet toggle's steps minus its per-light card (remainingSecs kept, one chat line saying whether the clock moved), rebuilds the tracker's cache and waits until it holds no PC's Basic light, re-checks the flag, then advances with the offDuty reason. A refusal or a throw never advances and reports what was put out. Pure decisions (who, which lights, where it runs, the last flag check) are exported for tests. |
@@ -114,7 +114,7 @@
 | `curated-icon-maps/weapon-icons.mjs` | 47 | N3's 37 reviewed Foundry-native weapon icons, keyed by source-agnostic normalized final Item name and registered through the A4 discovery seam. |
 | `attack-card.mjs` | 107 | Reading a Shadowdark attack card — was it an attack at all (a targeted spell is not), did it land, who was it aimed at, who swung. Shared by Parry and Taunt so the two can never disagree about the target (they once did, silently). |
 | `settings.mjs` | 772 | All `game.settings.register` calls + migration-safe defaults. |
-| `icons.mjs` | 88 | Centralized icon registry — FontAwesome snippets and vendored SVG references. |
+| `icons.mjs` | 89 | Centralized icon registry — FontAwesome snippets and vendored SVG references. |
 | `compendium-suite.mjs` | 459 | Find-or-create layer for managed world packs, ownership, sidebar folders, and source folders. |
 | `loading-dialog-guard.mjs` | 112 | Guards the system's leaked `LoadingSD` spinner when `ItemSheetSD.getData` throws. |
 | `art-utils.mjs` | 164 | Portrait/token image resolution across world + compendium sources. |
@@ -158,7 +158,7 @@
 
 | File | Lines | Description |
 |---|---:|---|
-| `crawl-bar.mjs` | 726 | GM-only persistent bottom bar above the macro bar (mode toggles, tools, launchers). |
+| `crawl-bar.mjs` | 742 | GM-only persistent bottom bar above the macro bar (mode toggles, tools, launchers). |
 
 ### 3.5 `scripts/encounter/` — the Encounter Roller
 
@@ -171,7 +171,7 @@
 | `encounter-browse.mjs` | 217 | Browse-NPCs data layer (sources, loading, cache, filter/sort). |
 | `npc-index.mjs` | 260 | NPC actors → compact browse row model. |
 | `encounter-sources.mjs` | 56 | Pure, node-testable core for the Encounter Roller's source list (which tables/monsters feed a roll). |
-| `encounter-terrain.mjs` | 478 | The table for the party's hex: the region's printed Encounter Zone column for its terrain (coast the one feature that counts), day/night from the world clock's hour (fixed 18:00-06:00 check halves) and the moon from the time API (worldClock, so New Moon / Full Moon columns resolve), N./S. halves from the region's rows (the regions cached until a crawl entry or scene changes); else the terrain→RollTable mapping and its dialog, else the single active table, which is also where a failing lookup lands. Backs encounter.tableForHex. |
+| `encounter-terrain.mjs` | 494 | The table for the party's hex: the region's printed Encounter Zone column for its terrain (coast the one feature that counts), day/night from the world clock's hour (fixed 18:00-06:00 check halves) and the moon from the time API (worldClock, so New Moon / Full Moon columns resolve), N./S. halves from the region's rows (the regions cached until a crawl entry or scene changes); else the terrain→RollTable mapping and its dialog, else the single active table, which is also where a failing lookup lands. Backs encounter.tableForHex. Also reads the tagged hexes: partyHex, isHexMapScene, and hexReader (a grid offset to {num, terrain, features}, tags decoded once) for Overland's move pricing. |
 
 ### 3.6 `scripts/monster-creator/`
 

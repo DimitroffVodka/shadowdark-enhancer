@@ -23,7 +23,7 @@ and Forge & Loot features.
 [`time`](#time--season-day-and-night-sun-moon-and-anchors) ·
 [`overland`](#overland--the-travel-state)
 
-**API version:** `1.15.0` (semver — additive changes bump the minor version,
+**API version:** `1.16.0` (semver — additive changes bump the minor version,
 breaking changes the major; check `apiVersion` before relying on newer keys).
 
 ## Discovery
@@ -1446,7 +1446,8 @@ o.state();      // a copy of the travel state, plus derived fields:
 // {
 //   tokenUuid, members,            // the travel token; who travels (actor ids)
 //   method, mounts, boatUuid, pushed,
-//   day, budget, spent,            // the open day's dawn (worldTime) and points
+//   day, budget, spent,            // when the open day started (worldTime), and its points
+//   pointSeconds,                  // clock seconds per point of cost, fixed at the day's start
 //   weather, checks, pending, foraged,
 //   hex: { num, terrain, region, features },  // the travel token's last hex
 //   hexesLeft, climate, stormy, harsh, isNight,  // derived, never stored
@@ -1454,6 +1455,7 @@ o.state();      // a copy of the travel state, plus derived fields:
 
 await o.rollWeather();                 // GM: roll today's weather (1.15.0)
 await o.rollWeather({ reroll: true }); // replace today's roll (Predict)
+await o.startDay({ method: "walking", pushed: false, boatUuid: null });   // GM (1.16.0)
 // { ok: true, rolled: true, weather }   rolled, stored, one chat card
 // { ok: true, rolled: false, weather }  today's still holds: nothing rolled or posted
 // { ok: false, error }                  a player, or the roll failed
@@ -1490,8 +1492,47 @@ card with the roll.
   a reroll is not the next roll.
 
 A storm makes normal terrain difficult, and a storm in a harsh climate makes
-every hex impassable. The day's movement (#231) prices hexes that way, from
-`rules.terrainCost(terrain, { weather, harsh })`.
+every hex impassable. The day's movement prices hexes that way (below).
+
+### `overland.startDay({ method?, pushed?, boatUuid? })` and moving
+
+Added in 1.16.0 (Overland O5, #231; design §5.1, §5.2). GM only, forwarded to
+the active GM like `rollWeather`. Refused when nobody is travelling. Resolves
+to `{ ok: true }` or `{ ok: false, error }`.
+
+1. **The weather** is rolled first, unless today's still holds.
+2. **The budget**:
+   - The base is `rules.hexesPerDay(method)`. When sailing aboard a boat actor
+     (`boatUuid`), it is the boat's `system.speed` instead. With no base the
+     day is refused.
+   - A pushed day has `floor(base × 1.5)` points; otherwise the base. `spent`
+     starts at 0.
+3. **The clock rate** is 8 hours over the base, so walking at 4 a day takes 2
+   hours per point and mounted at 6 takes 80 minutes. A pushed day keeps that
+   rate for its extra points. The rate is stored as `pointSeconds`, so editing
+   the rules mid-day changes nothing.
+4. The day's forage, checks and any stopped advance start over, and one chat
+   line announces the day.
+
+**Moving the travel token** spends the day. Nothing else prices a move: other
+tokens, a combat, and moves while not travelling are left alone.
+
+- A hex's cost is `rules.terrainCost(terrain, { weather, harsh, boat })`:
+  - a storm makes normal terrain difficult;
+  - a storm in a harsh climate makes every hex impassable;
+  - from one path hex to another costs 1;
+  - a hex the rules data doesn't know costs 1.
+- A **displace** move (Foundry's movement action) is free. That is how a GM
+  repositions the token without travelling.
+- **The mover's client refuses** a move before it happens (`preMoveToken`)
+  when no day is open, a hex on the way can't be entered today, or the move
+  costs more than the hexes left. The budget is hard: the token bounces, with
+  a message saying why.
+- **The active GM re-prices** what was moved (`moveToken`). It adds the cost to
+  `spent`, records the hex the token stands in with its region, and advances
+  the world clock by `cost × pointSeconds`. Lit torches burn as usual. If two
+  quick moves together overdrew the day, the second is sent back to where it
+  started with a displace, and nothing is spent.
 
 - **Starting and ending travel** is the GM's, from the crawl bar's **Travel**
   and **End travel** (offered on a tagged hex map). Another GM's click is
@@ -1540,6 +1581,9 @@ every hex impassable. The day's movement (#231) prices hexes that way, from
   an `overland` mode.
 - `1.15.0` adds `overland.rollWeather` and the derived `overland.state().stormy`.
   `harsh` is now a boolean (or `null`) rather than the climate's marker.
+- `1.16.0` adds `overland.startDay` and the travel state's `pointSeconds`.
+  While travelling, moving the travel token spends the day's budget and moves
+  the clock.
 - `1.4.0` adds the shared `forgeLoot.open()` preview shell. Generator rules and
   document writes remain behind the later NPC/Rival adapter implementations.
   The version policy is additive: new namespaces bump the minor version; breaking

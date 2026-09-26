@@ -4,6 +4,7 @@ import {
   defaultOverlandState, normalizeOverlandState, startTravel, setHex, recordForage,
   pickTravelToken, forageRefusal, OVERLAND_VERSION,
   setWeather, weatherHolds, weatherAdvantage, weatherFormula, weatherFromRoll, harshToday, hexCost,
+  dayBudget, pointSeconds, openDay, spendMove, priceMove, moveVerdict,
 } from "../scripts/overland/overland-state-core.mjs";
 import { rulesApi } from "../scripts/rules-data/rules-data-core.mjs";
 
@@ -160,4 +161,59 @@ test("a hex's cost today: storms make normal terrain difficult, and a harsh stor
   assert.equal(hexCost(rules.terrainCost, { ...grass, features: ["river"] }), 3, "a river feature changes nothing");
   assert.equal(hexCost(rules.terrainCost, { num: 4, terrain: null }), 1, "an untagged hex costs 1");
   assert.equal(hexCost(rules.terrainCost, { num: 5, terrain: "tundra" }), null, "terrain the rules data doesn't know");
+});
+
+// ── The day's budget and the clock (#231) ────────────────────────────────────
+
+test("the day's budget: the base, or half again rounded down when pushed; 8 hours over the base per point", () => {
+  assert.equal(dayBudget(5, false), 5);
+  assert.equal(dayBudget(5, true), 7, "a pushed day has half again, rounded down");
+  assert.equal(dayBudget(3, true), 4);
+  assert.equal(pointSeconds(4), 2 * HOUR, "8 hours over 4 points: 2 hours a point");
+  assert.equal(pointSeconds(6), 80 * 60, "over 6: 80 minutes");
+  assert.equal(pointSeconds(0), 0);
+});
+
+test("opening a day fixes the method, the push, the budget and the rate, and starts forage and checks over", () => {
+  const before = { ...defaultOverlandState(), foraged: ["a"], spent: 3, checks: [{ at: 1 }], pending: { until: 2 } };
+  const { state } = openDay(before, { now: 5000, method: "walking", pushed: true, base: 5 });
+  assert.equal(state.day, 5000);
+  assert.equal(state.pushed, true);
+  assert.equal(state.budget, 7);
+  assert.equal(state.spent, 0);
+  assert.equal(state.pointSeconds, pointSeconds(5), "the pushed day runs at the base's rate");
+  assert.deepEqual([state.foraged, state.checks, state.pending], [[], [], null]);
+  assert.equal(openDay(before, { now: 0, method: "walking", pushed: false, base: 5, boatUuid: "Actor.b" }).state.boatUuid, null,
+    "a boat only when sailing");
+  assert.equal(openDay(before, { now: 0, method: "sailing", pushed: false, base: 3, boatUuid: "Actor.b" }).state.budget, 3,
+    "aboard a speed-3 boat the budget is 3");
+});
+
+test("a move is priced hex by hex; displaced legs are free; a hex that can't be entered stops it", () => {
+  // Made-up costs: forest 3, anything else 1.
+  const costOf = (hex) => (hex.terrain === "forest" ? 3 : hex.terrain === "wall" ? Infinity : hex.terrain === "odd" ? null : 1);
+  const forest = { num: 2, terrain: "forest" }, plain = { num: 1, terrain: "grassland" };
+  assert.deepEqual(priceMove([{ hex: forest, from: plain }], costOf), { cost: 3, blocked: null });
+  assert.deepEqual(priceMove([{ hex: forest, from: plain, displace: true }], costOf), { cost: 0, blocked: null });
+  assert.deepEqual(priceMove([{ hex: forest, from: plain }, { hex: { num: 3, terrain: "wall" }, from: forest }], costOf),
+    { cost: Infinity, blocked: { num: 3, terrain: "wall" } });
+  assert.equal(priceMove([{ hex: { num: 4, terrain: "odd" }, from: plain }], costOf).cost, 1, "unknown to the rules data: 1");
+});
+
+test("the budget is hard: no day, an impassable hex, or more than is left is refused", () => {
+  const day = { ...defaultOverlandState(), day: 0, budget: 5, spent: 2 };
+  assert.equal(moveVerdict(day, { cost: 3, blocked: null }), null, "exactly what's left");
+  assert.equal(moveVerdict(day, { cost: 4, blocked: null }), "bounce");
+  assert.equal(moveVerdict(day, { cost: Infinity, blocked: { num: 1 } }), "impassable");
+  assert.equal(moveVerdict(defaultOverlandState(), { cost: 1, blocked: null }), "noDay");
+  assert.equal(moveVerdict(defaultOverlandState(), { cost: 0, blocked: null }), null, "a displace needs no day");
+});
+
+test("a move spends its cost and records the hex", () => {
+  const day = { ...defaultOverlandState(), day: 0, budget: 5, spent: 2 };
+  const hex = { num: 7, terrain: "forest", region: "Somewhere", features: [] };
+  const { state, changed } = spendMove(day, { cost: 3, hex });
+  assert.equal(changed, true);
+  assert.equal(state.spent, 5);
+  assert.deepEqual(state.hex, hex);
 });

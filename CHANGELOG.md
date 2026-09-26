@@ -3,6 +3,14 @@
 ## [Unreleased]
 
 ### Added
+- **Overland travel days.** While travelling, **Start day** on the Crawl Bar
+  opens a day: walking, mounted or sailing (aboard a boat actor if you like),
+  optionally pushed for half as many hexes again. Each move of the travel token
+  costs its hexes' terrain cost from the day and moves the world clock. A day
+  is 8 hours, so walking costs 2 hours a point. Storms and harsh climates
+  raise the cost as the rules say, a path costs 1, and a move the day can't pay
+  for bounces. The Displace movement action repositions the token for free.
+  The bar shows the hexes left. (API 1.16.0, #231)
 - **Overland weather.** While travelling, the Crawl Bar's **Weather** rolls
   today's weather, posts it to chat and shows it on the bar. It holds until the
   next dawn. The Western Reaches rule is the default: a 1 is stormy, and a 6 is
