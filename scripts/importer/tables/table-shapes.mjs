@@ -260,9 +260,10 @@ const GMWR_ENTRIES = [
   _entry("gmwr/trouble-settlement", "GMWR", "Trouble in the Reaches: Settlement",
     gmwr("2layout", SECTION("LOCATION", "1", 4))),
   // Each entry wraps around its own face AND embeds a nested "1d6: 1. … 6. …",
-  // which a section slice shreds into ten scrambled rows.
+  // which a section slice shreds into ten scrambled rows. `nested`: at commit
+  // each embedded roll becomes its own table that the row draws (#188).
   _entry("gmwr/type-of-trouble", "GMWR", "Type of Trouble",
-    gmwr("layout", BANDED("TYPE OF TROUBLE", 10))),
+    gmwr("layout", { ...BANDED("TYPE OF TROUBLE", 10), nested: true })),
   // Printed as bands on a 2d6 starting at "1-6" — see the NdM first-band
   // tolerance in computeBlockers (table-importer.mjs).
   _entry("gmwr/trouble-urgency-level", "GMWR", "Trouble Urgency Level",

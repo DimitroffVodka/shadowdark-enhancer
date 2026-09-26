@@ -3,6 +3,15 @@
 ## [Unreleased]
 
 ### Added
+- **Type of Trouble rolls its nested table.** Every row of the GM Guide's
+  Type of Trouble (p. 49) prints a second roll ("Monster horde. 1d6: 1. …
+  6. …"), and rolling the table used to hand you that whole list. Importing it
+  now also creates one table per row, on the die the row prints (a d6, or a
+  d4 for External faction and Power change), named "Type of Trouble: <type>"
+  and filed beside it. One roll of Type of Trouble posts the type and a result
+  from its table. If your world already has Type of Trouble, import it again
+  and choose **Replace**: the table is updated in place and its ten tables
+  are made, following that one answer. (#188)
 - **Two more Western Reaches tables, and Random ancestry by population.** The
   importer now knows the GM Guide's *Caught in Danger!* (p. 33, d6: what
   befalls a PC still in an adventuring site when the session ends) and the

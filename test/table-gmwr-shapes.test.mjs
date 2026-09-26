@@ -7,7 +7,9 @@
 // pinned here is the structure that harness run depends on.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { parseByShape, parseTables, computeBlockers } from "../scripts/importer/tables/table-importer.mjs";
+import {
+  parseByShape, parseTables, computeBlockers, splitNestedRoll, createNestedTables, buildTableData, nestedConflictChoice,
+} from "../scripts/importer/tables/table-importer.mjs";
 import { CONTENT_ENTRIES, resolveShape, contentIdForName } from "../scripts/importer/tables/table-shapes.mjs";
 import {
   CHAR_SOURCES, citesForTable, gatherCharContentEntries, tableNameMatches, tablePagesFor,
@@ -15,7 +17,7 @@ import {
 import {
   GAMEPLAY_TABLES, MISHAP_TABLES, PATRON_TABLES, PIT_FIGHTING_TABLES,
 } from "../scripts/importer/tables/table-folders.mjs";
-import { TABLE_MANIFEST, bySource, sources } from "../scripts/importer/tables/table-manifest.mjs";
+import { TABLE_MANIFEST, bySource, sources, tableRowCount, verify } from "../scripts/importer/tables/table-manifest.mjs";
 
 const _norm = (s) => String(s).toLowerCase().replace(/\s+/g, " ").trim();
 const EMPTY_PRESENCE = {
@@ -350,6 +352,98 @@ test("page furniture never becomes a row in a generic parse", () => {
   // the paste's first line is.
   const dupe = parseTables("MY TABLE\nd4 Result\n1 rats\n2 rats\n3 bats\n4 rats")[0];
   assert.equal(dupe.rows.length, 4);
+});
+
+// ── Type of Trouble: the roll inside each row (#188) ─────────────────────────
+
+// The page's typography: every cell wraps around its own face, and every cell
+// prints a second numbered roll after its label.
+const TROUBLE_TEXT = [
+  "TYPE OF TROUBLE",
+  "1d10 It's a...",
+  "Gremlins. 1d6: 1. Alpha (3 of them) 2. Beta",
+  "1",
+  "3. Gamma 4. Delta 5. Epsilon 6. Zeta",
+  "Weather. 1d4: 1. Hail 2. Fog",
+  "2",
+  "3. Drizzle 4. Gale",
+].join("\n");
+
+test("a row's own roll splits into its label and a table on the die the row prints", () => {
+  assert.deepEqual(splitNestedRoll("Gremlins. 1d6: 1. Alpha (3 of them) 2. Beta 3. Gamma 4. Delta 5. Epsilon 6. Zeta"), {
+    label: "Gremlins", formula: "1d6",
+    rows: ["Alpha (3 of them)", "Beta", "Gamma", "Delta", "Epsilon", "Zeta"]
+      .map((text, i) => ({ min: i + 1, max: i + 1, text })),
+  });
+  const d4 = splitNestedRoll("Weather front. 1d4: 1. Hail 2. Fog 3. Drizzle 4. Gale");
+  assert.equal(d4.label, "Weather front");
+  assert.equal(d4.formula, "1d4", "the die is read from the row, not assumed");
+  assert.equal(d4.rows.length, 4);
+  // Anything short of a whole numbered list stays one row.
+  assert.equal(splitNestedRoll("Gremlins. 1d6: 1. Alpha 2. Beta 3. Gamma"), null, "faces 4-6 missing");
+  assert.equal(splitNestedRoll("Gremlins. 1d4: before 1. Alpha 2. Beta 3. Gamma 4. Delta"), null, "text before face 1");
+  assert.equal(splitNestedRoll("Gremlins in the cellar"), null, "no roll at all");
+});
+
+test("the Type of Trouble recipe marks its rows for splitting", () => {
+  const shape = resolveShape({ contentId: "gmwr/type-of-trouble", name: "Type of Trouble", src: "GMWR" });
+  const pt = parseByShape(TROUBLE_TEXT, shape, { name: "Type of Trouble" }).tables[0];
+  assert.equal(pt.nestedRolls, true);
+  // The preview keeps the rows as printed; only the commit splits them.
+  assert.deepEqual(pt.rows.map((r) => splitNestedRoll(r.text)?.formula), ["1d6", "1d4"]);
+});
+
+test("each nested roll is committed first, and the row draws it", async () => {
+  const made = [];
+  const create = async (draft) => {
+    made.push(draft);
+    if (draft.name.endsWith("Weather")) return null;   // the GM cancelled this one
+    return { uuid: `Compendium.x.y.RollTable.${made.length}`, name: draft.name };
+  };
+  const shape = resolveShape({ contentId: "gmwr/type-of-trouble", name: "Type of Trouble", src: "GMWR" });
+  const pt = { ...parseByShape(TROUBLE_TEXT, shape, { name: "Type of Trouble" }).tables[0], source: "GMWR" };
+  const parent = await createNestedTables(pt, create);
+
+  assert.deepEqual(made.map((d) => [d.name, d.formula, d.rows.length, d.source]), [
+    ["Type of Trouble: Gremlins", "1d6", 6, "GMWR"],
+    ["Type of Trouble: Weather", "1d4", 4, "GMWR"],
+  ]);
+  assert.equal(parent.nestedRolls, false);
+  assert.equal(parent.rows[0].text, "Gremlins");
+  assert.equal(parent.rows[1].text, pt.rows[1].text, "a sub-table that did not commit leaves its row as printed");
+
+  // One label and one RollTable result on the same face: Foundry rolls the
+  // table result recursively, so the chat card shows both.
+  const results = buildTableData(parent).results.filter((r) => r.range[0] === 1);
+  assert.deepEqual(results.map((r) => [r.type, r.name, r.documentUuid]), [
+    [0, "Gremlins", undefined],
+    ["document", "Type of Trouble: Gremlins", "Compendium.x.y.RollTable.1"],
+  ]);
+
+  // …and it still counts as the rows the book prints: the Roll Tables hub read
+  // a ten-row Type of Trouble as twenty and called it broken.
+  const all = buildTableData(parent).results;
+  assert.equal(all.length, pt.rows.length + 1);
+  assert.equal(tableRowCount(all), pt.rows.length);
+  assert.equal(verify({ rows: pt.rows.length }, { rows: tableRowCount(all) }).ok, true);
+});
+
+test("a nested row's table counts once; other document results still count", () => {
+  const text = (n) => ({ type: "text", range: [n, n] });
+  const nested = (n) => ({ type: "document", range: [n, n], flags: { "shadowdark-enhancer": { nestedRoll: true } } });
+  const doc = (n) => ({ type: "document", range: [n, n] });
+  const tenNested = Array.from({ length: 10 }, (_, i) => [text(i + 1), nested(i + 1)]).flat();
+  assert.equal(tableRowCount(tenNested), 10);
+  // A boon table's "Choose 1" band: a text row plus its options, all counted as before.
+  assert.equal(tableRowCount([text(12), doc(12), doc(12)]), 3);
+  assert.equal(tableRowCount(undefined), 0);
+});
+
+test("the sub-tables follow the parent's answer instead of asking again", () => {
+  assert.equal(nestedConflictChoice({ existing: true, replace: true }), "replace");
+  assert.equal(nestedConflictChoice({ existing: true, replace: false }), "rename", "a copy of the parent gets copies");
+  assert.equal(nestedConflictChoice({ existing: false, replace: false }), "replace",
+    "a fresh parent replaces leftovers of an earlier import rather than duplicating them");
 });
 
 test("Caught in Danger! is read under its shouting caption, each detail around its face", () => {
