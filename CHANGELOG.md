@@ -12,6 +12,11 @@
   Macros and other modules read it through `game.shadowdarkEnhancer.time`
   and a `timeAdvanced` hook (API 1.12.0). See *Random Encounters → Time*.
   (#227)
+- **Enhancer reads Shadowdark Extras through its own calls.** **Send to
+  Extras** reads what Extras already holds for a map through Extras'
+  `getHexRecords`, and the Quest Log lists parties and their members through
+  Extras' `api.party`, instead of reading Extras' stored data directly. An
+  older Extras still works as before. (#226)
 - **Rules data.** A new **Rules data** window under Configure Settings holds
   the Western Reaches tables you look up rather than roll: what each terrain
   costs to enter (on foot and by boat), terrain types, hexes per day, hex
@@ -335,6 +340,9 @@
   it first, as long as every book recording that name agrees; where two books
   disagreed it stays unset and you decide. Only the 33 creatures the GM Guide
   introduces needed a type of their own.
+### Changed
+- **Foundry 14 is now the minimum.** The module no longer lists Foundry 13 as
+  supported, matching Shadowdark Extras, which already needs 14.
 ### Fixed
 - **Hex journal pages imported earlier now read as paragraphs.** The fix that
   joins a PDF column's lines back into paragraphs only ran on import, so pages

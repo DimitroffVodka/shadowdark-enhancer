@@ -4,7 +4,7 @@
 
 **A GM companion suite for [Shadowdark RPG](https://www.thearcanelibrary.com/pages/shadowdark) on Foundry VTT.**
 
-[![Foundry](https://img.shields.io/badge/Foundry-v13%2B-informational)](https://foundryvtt.com)
+[![Foundry](https://img.shields.io/badge/Foundry-v14%2B-informational)](https://foundryvtt.com)
 [![System](https://img.shields.io/badge/Shadowdark-v3.6.2%2B-brightgreen)](https://foundryvtt.com/packages/shadowdark)
 [![License](https://img.shields.io/badge/License-MIT-blue)](LICENSE)
 
@@ -38,7 +38,7 @@ Then enable **Shadowdark Enhancer** in your world's module settings.
 
 | | Minimum | Verified |
 |---|---|---|
-| Foundry VTT | v13 | **v14.365** |
+| Foundry VTT | v14 | **v14.365** |
 | Shadowdark RPG system | v3.6.2 | **v4.0.6** |
 
 > **Replacing `shadowdark-crawl-helper`?** Disable it. Both draw a party strip

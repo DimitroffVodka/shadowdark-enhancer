@@ -267,18 +267,35 @@ test("a send without the crawl's settlements does not mark them delivered", asyn
   assert.equal(calls.scene.getFlag("shadowdark-enhancer", SETTLEMENTS_SENT_FLAG), undefined, "a later send with the keyed pages must still carry them");
 });
 
-test("extrasHexRecords reads Extras' store back by published number; extrasFeaturesOn trusts an empty one only when fresh", () => {
+test("an Extras without getHexRecords: its store is read back by published number, and an empty one is trusted only when fresh", async () => {
   const calls = printExtras();
   calls.hexData["print-1"] = { "1_1": { features: [{ id: "a" }] }, "3_2": { features: [] }, "0_0": { name: "no features" } };
-  assert.deepEqual(Object.keys(extrasHexRecords("print-1", 0)), ["0", "101", "203"]);
-  assert.deepEqual([...extrasFeaturesOn("print-1", 0)], [[101, [{ id: "a" }]], [203, []]]);
-  assert.deepEqual([...extrasFeaturesOn("print-1", 1)].map(([num]) => num), [202, 304], "a map numbered from 1 shifts by one");
+  assert.deepEqual(Object.keys(await extrasHexRecords("print-1", 0)), ["0", "101", "203"]);
+  assert.deepEqual([...await extrasFeaturesOn("print-1", 0)], [[101, [{ id: "a" }]], [203, []]]);
+  assert.deepEqual([...await extrasFeaturesOn("print-1", 1)].map(([num]) => num), [202, 304], "a map numbered from 1 shifts by one");
   delete calls.hexData["print-1"];
-  assert.equal(extrasHexRecords("print-1", 0), null, "no records for the scene");
-  assert.equal(extrasFeaturesOn("print-1", 0), null, "which could mean the store moved: send no features");
-  assert.deepEqual([...extrasFeaturesOn("print-1", 0, { fresh: true })], [], "right after a fresh adoption it can only mean none yet");
+  assert.equal(await extrasHexRecords("print-1", 0), null, "no records for the scene");
+  assert.equal(await extrasFeaturesOn("print-1", 0), null, "which could mean the store moved: send no features");
+  assert.deepEqual([...await extrasFeaturesOn("print-1", 0, { fresh: true })], [], "right after a fresh adoption it can only mean none yet");
   globalThis.game.journal = undefined;
-  assert.equal(extrasFeaturesOn("print-1", 0), null, "no journal at all: the same");
+  assert.equal(await extrasFeaturesOn("print-1", 0), null, "no journal at all: the same");
+});
+
+test("Extras' getHexRecords is used when it exists: its {} means none, its null means no layout (#226)", async () => {
+  printExtras();
+  const asked = [];
+  let answer = { 101: { features: [{ id: "a" }] }, 203: { name: "no features" } };
+  globalThis.game.shadowdarkExtras.hex.getHexRecords = async (sceneId) => { asked.push(sceneId); return answer; };
+  globalThis.game.journal = undefined; // the private store is never touched
+  assert.deepEqual(Object.keys(await extrasHexRecords("print-1", 1)), ["101", "203"], "already keyed by published number; base plays no part");
+  assert.deepEqual([...await extrasFeaturesOn("print-1", 1)], [[101, [{ id: "a" }]]]);
+  answer = {};
+  assert.deepEqual([...await extrasFeaturesOn("print-1", 1)], [], "a layout with no records: none, trusted without a fresh adoption");
+  answer = null;
+  assert.equal(await extrasFeaturesOn("print-1", 1), null, "no layout: send no features");
+  globalThis.game.shadowdarkExtras.hex.getHexRecords = async () => { throw new Error("requires GM permission"); };
+  assert.equal(await extrasFeaturesOn("print-1", 1), null, "a failed read sends no features either");
+  assert.deepEqual(asked, ["print-1", "print-1", "print-1", "print-1"]);
 });
 
 test("a re-send merges river, path and coast into what Extras holds, and keeps the rest (#196)", async () => {

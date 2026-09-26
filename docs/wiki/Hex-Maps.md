@@ -669,10 +669,12 @@ is named, not worked round.
   yet), the details still go but no features do, and the tagger says so:
   replacing the lists blind would erase discoveries. Send again once the
   records are in.
-- Extras' **Hex Editor** does not know river, path and coast yet: saving a hex
-  there turns them into *dungeon*
-  ([shadowdark-extras#157](https://github.com/DimitroffVodka/shadowdark-extras/issues/157)).
-  The next **Send to Extras** puts them back.
+- The tagger reads through Extras' own `getHexRecords` call. An older Extras
+  has none, and the tagger reads its stored records directly instead.
+- An older Extras' **Hex Editor** turned river, path and coast into *dungeon*
+  when a hex was saved there
+  ([shadowdark-extras#157](https://github.com/DimitroffVodka/shadowdark-extras/issues/157),
+  fixed). The next **Send to Extras** puts them back.
 - Extras numbers a map from the scene's top-left cell, so the map's first hex
   (`0000`, or `0101` on a map numbered from 1) has to be that cell. A map set
   up through *Hex map from image* already is. If yours is not, the tagger says
