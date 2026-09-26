@@ -16,6 +16,21 @@
   task** turns a trainer's task into a quest for the chosen character, and
   completing it offers to open Training on that trainer for the benefit roll.
   Players get the log read-only. See the wiki page *Quest Log*. (#189)
+- **Stat damage is tracked.** Damage to STR, DEX, CON, INT, WIS or CHA is one
+  line per ability in the character sheet's Effects tab, such as *2 STR
+  damage*: the score and its modifier drop, and the line is gone when healed.
+  There is no setting and nothing on the sheet until it happens. A character
+  whose CON reaches 0 from it dies. Other modules drive it through
+  `game.shadowdarkEnhancer.statDamage.{apply, heal, of}` (API 1.6.0).
+  From the Shadowdark Extras release that adds it
+  ([shadowdark-extras#149](https://github.com/DimitroffVodka/shadowdark-extras/issues/149)),
+  Extras' rest heals it all, or 1 per ability in Grinder Mode. (#182)
+- **Monster attacks apply their stat-damage riders.** A monster hit whose
+  attack text, or the feature it names, says *1 STR damage* lowers the
+  target's STR automatically, with the amount rolled in chat. A rider behind
+  a save (*DC 12 CON or 1d4 STR damage*) asks the character's player to roll
+  the save and applies only on a failure; the GM's client rolls it when no
+  player can. Works without Shadowdark Extras. (#183)
 - **Modes of Play.** A new window under Configure Settings holds the optional
   rules from the core rulebook (p.111) and Hard Luck from the Game Master's
   Guide to the Western Reaches (p.30). Every rule is its own switch, so one
@@ -37,6 +52,30 @@
   Its first rule, no luck on a critical failure, now uses the system's own
   critical failure, so an effect that widens the failure range counts too,
   and a damage reroll is never refused. (#186)
+- **Hunter Mode: XP for defeated monsters.** With Hunter on, ending a
+  combat pays every character who was in it XP for each monster still marked
+  defeated: half its level, rounded down, and 1 for a level 1 monster (level 0
+  pays nothing). It is one Party XP card per combat, with the usual "ready to
+  level up" marker and a Session Recap entry. Monsters killed outside a
+  combat aren't counted. (#184)
+- **Chaos Mode: initiative is rerolled every round.** With Chaos on, every
+  combatant rolls initiative again at the start of each round after the
+  first, with the system's own roll and any advantage, and the turn goes to
+  whoever is now on top; a defeated monster that rolls to the top is skipped
+  as usual. One chat card per round lists the new order, leaving hidden
+  combatants off. Dice So Nice stays quiet for these rerolls unless you tick
+  its option in the Chaos box. While the system's clockwise initiative is on,
+  Chaos does nothing and says so once. (#180)
+- **Pulp Mode: session luck, luck crits and forced rerolls.** Three rules,
+  each its own checkbox in the Pulp box. Choosing **Start New Session** when a
+  crawl starts sets every player's character to 1d4 luck tokens and posts one card
+  with the rolls. Once an attack hits, its owner gets a **Luck: critical hit**
+  button on the card: damage already rolled keeps its dice and gains what a
+  critical hit adds (a 1d8 weapon gets one more d8), and damage not rolled yet
+  is rolled once as a critical hit. A player who can see a GM's roll gets a
+  **Luck: force a reroll** button; the roll is redone on the same card, which
+  says who forced it. Both spend one luck token, and the GM's client checks
+  and spends it, so a token is never spent without the effect. (#185)
 - **The hex data goes on the printed map.** The Hex Tagger's **Send to
   Extras** now puts every hex's terrain, region, zone colour, name,
   description and settlement on the map you tagged, instead of building a

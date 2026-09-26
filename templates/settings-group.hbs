@@ -97,6 +97,8 @@
     </button>
   </div>
 </div>
+{{else if entry.option}}
+<div data-mode-option>{{formGroup entry.field value=entry.value input=entry.input rootId=@root.rootId localize=true}}</div>
 {{else if entry.showIf}}
 <div data-show-if="{{entry.showIf}}">{{formGroup entry.field value=entry.value input=entry.input rootId=@root.rootId localize=true}}</div>
 {{else}}

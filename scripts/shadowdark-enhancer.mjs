@@ -12,11 +12,15 @@ import { CrawlStrip } from "./crawl-strip/crawl-strip.mjs";
 import { registerCrawlTracker, refreshTracker } from "./crawl-strip/crawl-tracker.mjs";
 import { init as luckRerollInit } from "./luck-reroll/luck-reroll.mjs";
 import { init as blitzInit } from "./modes-of-play/blitz.mjs";
+import { init as hunterInit } from "./modes-of-play/hunter.mjs";
+import { init as pulpInit } from "./modes-of-play/pulp.mjs";
 import { init as spellMishapInit } from "./spell-mishap/spell-mishap.mjs";
 import { init as prayerRollInit } from "./character-sheet/prayer-roll.mjs";
 import { init as scavengerInit } from "./scavenger/scavenger.mjs";
 import { Parry } from "./parry/parry.mjs";
 import { Taunt } from "./taunt/taunt.mjs";
+import { StatDamage } from "./stat-damage/stat-damage.mjs";
+import { StatRiders } from "./stat-damage/stat-riders.mjs";
 import { CrawlBar }      from "./crawl-bar/crawl-bar.mjs";
 import { registerHiddenSync } from "./crawl-strip/hidden-sync.mjs";
 import { registerTurnSkip } from "./crawl-strip/turn-skip.mjs";
@@ -103,7 +107,7 @@ const STYLESHEET_REV = "aacb2a84e9d6";
 // stale); module.json carries the same hash and is fetched fresh at runtime. A
 // mismatch is a stale cache by construction — it cannot be anything else. Both
 // stamps are written by `npm run inventory` and gated by `inventory:check`.
-const BUILD_REV = "2a0cb1541352";
+const BUILD_REV = "c013aca14f86";
 
 /**
  * Tell the user when their browser is running an old build of this module, and
@@ -408,9 +412,9 @@ Hooks.once("init", () => {
   // game.modules.get(MODULE_ID).api on ready; consumers should listen for
   // the "shadowdarkEnhancer.ready" hook. Reference: docs/API.md.
   game.shadowdarkEnhancer = {
-    // 1.5.0 — additive: hexMaps namespace (hex tagger, dataset, hand-off).
-    // 1.6.0 — additive: quests namespace (the Quest Log) and questsChanged.
-    apiVersion: "1.6.0",
+    // 1.6.0 — additive: statDamage namespace (tracked ability damage).
+    // 1.7.0 — additive: quests namespace (the Quest Log) and questsChanged.
+    apiVersion: "1.7.0",
     // Guided, ordered Character Builder — a replacement for the system's
     // random generator. `open({ level0?, actor? })` renders the wizard.
     charBuilder: {
@@ -796,7 +800,15 @@ Hooks.once("init", () => {
         return h.importDatasetRecords(target, ds, opts);
       },
     },
-    // 1.6.0 — additive: the Quest Log. One world journal per quest; reads are
+    // 1.6.0 — additive: stat damage. One Active Effect per damaged ability,
+    // nothing on the sheet until it happens. Shadowdark Extras' rests heal it
+    // (all on a normal rest, { perAbility: 1 } in Grinder Mode).
+    statDamage: {
+      apply: (actor, ability, amount) => StatDamage.apply(actor, ability, amount),
+      heal: (actor, opts) => StatDamage.heal(actor, opts),
+      of: (actor) => StatDamage.of(actor),
+    },
+    // 1.7.0 — additive: the Quest Log. One world journal per quest; reads are
     // filtered to what the calling user may see, writes are the GM's.
     // `shadowdark-enhancer.questsChanged` fires on every client after a change.
     quests: {
@@ -871,11 +883,15 @@ Hooks.once("ready", () => {
   CrawlStrip.init();
   luckRerollInit();
   blitzInit();
+  hunterInit();
+  pulpInit();
   spellMishapInit();
   prayerRollInit();
   scavengerInit();
   Parry.init();
   Taunt.init();
+  StatDamage.init();
+  StatRiders.init();
   CrawlBar.init();
   // If the GM enabled the monster compendium-art overlay, inject it now so every
   // monster drag carries the referenced art (all clients; GM-only settings write).
