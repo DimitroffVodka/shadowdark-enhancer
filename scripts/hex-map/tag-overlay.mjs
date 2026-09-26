@@ -418,14 +418,15 @@ export class HexTagOverlay {
       this.draw();
     })]);
     this._hooks.push(["canvasTearDown", Hooks.on("canvasTearDown", () => this.hide())]);
-    // Dusk and dawn change which column a hex rolls on, and nothing else the
-    // clock does: a clock module ticking every second must not redraw ~4,800
-    // hexes a second, so only a flip between day and night redraws.
-    let night = isNight(worldClock().hour);
+    // Dusk, dawn and the moon's phase change which column a hex rolls on, and
+    // nothing else the clock does: a clock module ticking every second must not
+    // redraw ~4,800 hexes a second, so only a change in one of those redraws.
+    const sky = () => { const { hour, moon } = worldClock(); return `${isNight(hour)}|${moon}`; };
+    let was = sky();
     this._hooks.push(["updateWorldTime", Hooks.on("updateWorldTime", () => {
-      const now = isNight(worldClock().hour);
-      if (now === night) return;
-      night = now;
+      const now = sky();
+      if (now === was) return;
+      was = now;
       if (this.mode === "encounter") this.draw();
     })]);
     ui.notifications?.info(t("SDE.hexMap.notify.overlayShown"));

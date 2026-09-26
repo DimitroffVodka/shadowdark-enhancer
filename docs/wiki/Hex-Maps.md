@@ -444,12 +444,12 @@ Pressing the one that is up hides it; pressing another switches to it.
   [Random Encounters](Random-Encounters.md)). **Green** rolls: that region
   prints a column for this terrain, with day or night read off the world clock
   and the northern or southern half off the region's rows; hovering names the
-  column. **Amber** is waiting on the moon: at night, in a region whose grid
-  prints a *New Moon* or *Full Moon* column, the world clock cannot say the
-  phase yet, so hovering names the column a check rolls meanwhile and the moon
-  column it would switch to. **Grey** means that region has no column for this
-  terrain, or no encounter grid imported at all. The picture redraws itself at
-  dusk and dawn.
+  column. A region whose grid prints a *New Moon* or *Full Moon* column shows
+  that column on its nights, since the world clock gives the moon (see
+  [Time](Random-Encounters.md#time)). **Amber** means a check could not decide
+  between two columns, and hovering names them. **Grey** means that region has
+  no column for this terrain, or no encounter grid imported at all. The
+  picture redraws itself at dusk, at dawn and when the moon changes phase.
 
 Coasts come free with tagging: once the terrain is decided, every land hex
 touching sea, lake or a river tile is marked coast in the same pass. A

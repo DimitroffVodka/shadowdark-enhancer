@@ -8,6 +8,7 @@ import { ICONS } from "./shared/icons.mjs";
 
 import { registerSettings } from "./shared/settings.mjs";
 import { rulesApi } from "./rules-data/rules-data-core.mjs";
+import { timeApi, registerTimeHooks } from "./time/time.mjs";
 import { CrawlState } from "./crawl-strip/crawl-state.mjs";
 import { CrawlStrip } from "./crawl-strip/crawl-strip.mjs";
 import { registerCrawlTracker, refreshTracker } from "./crawl-strip/crawl-tracker.mjs";
@@ -268,6 +269,8 @@ Hooks.once("init", () => {
   // synchronous cache operation with a fire-and-forget notification.
   initRivalClassTable({ game });
   registerSettings();
+  // timeAdvanced: the active GM reports what each world-time change crossed (#227).
+  registerTimeHooks();
   // Register Western Reaches as an official source tag for items, so it appears
   // in the Source dropdown alongside the system's built-in books.
   const sd = game.shadowdark;
@@ -422,7 +425,11 @@ Hooks.once("init", () => {
     // 1.9.0 — additive: holidays namespace (City of Masks holidays, #191).
     // 1.10.0 — additive: rules namespace (rules data: terrain costs, climate, limits).
     // 1.11.0 — additive: encounter.tableForHex (the table for a hex by region and terrain).
-    apiVersion: "1.11.0",
+    // 1.12.0 — additive: time namespace and the timeAdvanced hook (Overland O1, #227).
+    apiVersion: "1.12.0",
+    // Readings on Foundry's world clock: season, day and night, sun, moon,
+    // anchors, the date string. Synchronous, any user (scripts/time/time.mjs).
+    time: timeApi,
     // Holidays for carousing (Shadowdark Extras reads `today`). Both async and
     // lazy; a holiday is listed once the GM has imported its journal page.
     holidays: {

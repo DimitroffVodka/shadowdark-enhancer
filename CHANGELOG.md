@@ -3,6 +3,15 @@
 ## [Unreleased]
 
 ### Added
+- **Time: seasons, sunrise and the moon.** The module now reads Foundry's
+  world clock for the season, sunrise and sunset, and the moon's phase. There
+  is no calendar window: you keep advancing time with Foundry's controls or
+  your calendar module. A Myre Swamp hex on a new-moon night now rolls the
+  book's *New Moon* column, the City of Masks' Lastmoon falls on the year's
+  last full moon, and Session Recap entries record the in-game date and time.
+  Macros and other modules read it through `game.shadowdarkEnhancer.time`
+  and a `timeAdvanced` hook (API 1.12.0). See *Random Encounters → Time*.
+  (#227)
 - **Rules data.** A new **Rules data** window under Configure Settings holds
   the Western Reaches tables you look up rather than roll: what each terrain
   costs to enter (on foot and by boat), terrain types, hexes per day, hex
@@ -21,7 +30,7 @@
   place, the day it falls, its carousing effects and its garb questions, for
   Shadowdark Extras' carousing window to apply. Maytide, the Duke's Ball and
   the Night of St. Anton fall on May 1, June 21 and September 22 of the world
-  calendar. Lastmoon needs the moon, which isn't tracked yet. (#191)
+  calendar, and Lastmoon on the year's last full moon. (#191)
 - **A Quest Log.** Press Ctrl+Q, or **Quest Log** at the foot of the Journal
   sidebar. Each quest is a journal entry in a *Quests* folder, with a page
   your players can read and a GM notes page they can't. Quests are Hidden
@@ -179,10 +188,9 @@
   your Tables by terrain. A forest with a river through it rolls Forest, a hex
   that is all river rolls River, and a coastal hex rolls Coast where the region
   prints one. Day and night columns follow the world clock at the moment of the
-  roll (night is 18:00 to 06:00), and N./S. columns split the region's rows in
-  half, so the Encounter zones picture is amber only where a moon column waits
-  on a moon phase the clock does not give yet; until it does, those nights roll
-  the ordinary night column. The chat card names the column it rolled, and
+  roll (night is 18:00 to 06:00), N./S. columns split the region's rows in
+  half, and a *New Moon* or *Full Moon* column takes over on its night (see
+  Time, above). The chat card names the column it rolled, and
   `encounter.tableForHex()` gives other modules the same table. (#197)
 - **You're told when an update gives you something new to import.** A release
   that adds a book, a bestiary or another hundred table rows used to be

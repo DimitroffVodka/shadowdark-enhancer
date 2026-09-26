@@ -1143,6 +1143,7 @@
   "SDE.holidays.garb.dukesBallCostume1000": "Outfit priced at 1,000 gp and up?",
   "SDE.holidays.garb.dukesBallRed": "Wearing red?",
   "SDE.holidays.garb.arrestRisk": "No red is allowed at this ball; anyone wearing it may be arrested.",
+  "SDE.time.format": "{weekday}, {day} {month} {year}, {time}",
   "SDE.importer.chapter.pages": "Pages",
   "SDE.importer.chapter.pagesHint": "Printed pages, like 16-27",
   "SDE.importer.chapter.name": "Journal name",

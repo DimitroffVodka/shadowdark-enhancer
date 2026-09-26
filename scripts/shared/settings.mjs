@@ -251,6 +251,16 @@ export function registerSettings() {
     default: defaultCrawlState(),
   });
 
+  // Internal world setting: a worldTime at which the moon was new; the time
+  // API's moon phases count from it (scripts/time/time.mjs, MOON_EPOCH). The
+  // default, worldTime 0, puts a new moon at the start of the calendar.
+  game.settings.register(MODULE_ID, "moonEpoch", {
+    scope: "world",
+    config: false,
+    type: Number,
+    default: 0,
+  });
+
   // Monster level guidelines — "what should a level-N monster look like?".
   // Drives the Monster Creator's Level Baseline section and the token-HUD
   // quick-adjust. Stored as a SPARSE diff over the shipped defaults (see

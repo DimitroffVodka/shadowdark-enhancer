@@ -26,6 +26,7 @@ import {
   formatForDiscordFromData,
 } from "./session-recap-core.mjs";
 import { CarousingFeed } from "./carousing-feed.mjs";
+import { format as formatGameTime } from "../time/time.mjs";
 
 const SETTING_KEY = "sessionRecap";
 const HISTORY_KEY = "sessionHistory";
@@ -118,6 +119,8 @@ export const SessionRecap = {
     return {
       timestamp: Date.now(),
       time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+      // In-game time too (#227): the world clock, and its date as the time API writes it.
+      ...(game.time?.calendar ? { worldTime: game.time.worldTime, gameTime: formatGameTime(game.time.worldTime) } : {}),
     };
   },
 

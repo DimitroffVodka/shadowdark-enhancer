@@ -22,13 +22,15 @@
  * Solar anchors are fixed Gregorian dates, read off the core calendar's month
  * and day (currentDateInfo). That is an approximation twice over: the real
  * solstices and equinoxes drift a day either side year to year, and a world
- * running a non-Gregorian calendar gets "the 21st day of the 6th month". The
- * moon is not known at all yet, so Lastmoon never matches until the Overland
- * time feature (#192) supplies it — see currentDateInfo, the one seam it replaces.
+ * running a non-Gregorian calendar gets "the 21st day of the 6th month".
+ * Lastmoon is the day of the year's last full moon, from the time API's
+ * `anchor("lastFullMoon")` (#227), through currentDateInfo.
  */
 
 import { MODULE_ID } from "../shared/module-id.mjs";
 import { CHAPTER_FLAG, CHAPTER_PRESETS, isSameChapter, nameKey } from "../importer/chapter-journal.mjs";
+import { timeApi } from "../time/time.mjs";
+import { startOfDay } from "../time/time-core.mjs";
 
 /** The chapter preset that imports the holiday pages (its src + pages are the journal's identity). */
 export const HOLIDAY_PRESET = "cs6-holidays";
@@ -133,14 +135,18 @@ export function placeMatches(holidayPlace, place) {
 // ── Foundry-bound ─────────────────────────────────────────────────────────────
 
 /**
- * Today's date for whenMatches, from the core calendar. THE SEAM: the Overland
- * time feature (#192) replaces this with its own date, which adds the moon
- * (`isLastFullMoonOfYear`); until then Lastmoon cannot match.
- * @returns {{year:number, month:number, day:number, dayOfYear:number}}
+ * Today's date for whenMatches, from the core calendar, with the moon from the
+ * time API (#227): today is Lastmoon's day when the year's last full moon
+ * falls on it.
+ * @returns {{year:number, month:number, day:number, dayOfYear:number, isLastFullMoonOfYear:boolean}}
  */
 export function currentDateInfo() {
   const c = game.time.components;
-  return { year: c.year, month: c.month + 1, day: c.dayOfMonth + 1, dayOfYear: c.day + 1 };
+  const today = startOfDay(game.time.calendar, game.time.worldTime);
+  return {
+    year: c.year, month: c.month + 1, day: c.dayOfMonth + 1, dayOfYear: c.day + 1,
+    isLastFullMoonOfYear: timeApi.anchor("lastFullMoon", c.year) === today,
+  };
 }
 
 /**
