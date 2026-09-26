@@ -115,12 +115,19 @@ export const SessionRecap = {
     if (!data.sessionStart) data.sessionStart = Date.now();
   },
 
+  /**
+   * When an entry happened. Every key is always present (null when there is no
+   * world clock), because logCarousing keeps the first capture's stamp by
+   * copying exactly these keys.
+   */
   _stamp() {
+    const clock = game.time?.calendar ? game.time.worldTime : null;
     return {
       timestamp: Date.now(),
       time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
       // In-game time too (#227): the world clock, and its date as the time API writes it.
-      ...(game.time?.calendar ? { worldTime: game.time.worldTime, gameTime: formatGameTime(game.time.worldTime) } : {}),
+      worldTime: clock,
+      gameTime: clock === null ? null : formatGameTime(clock),
     };
   },
 
@@ -291,14 +298,18 @@ export const SessionRecap = {
         data.carousing.push({ ...carouse, ...this._stamp() });
         return;
       }
-      // Keep the ORIGINAL stamp: the row should stay where it happened in the
-      // evening rather than jumping to the front each time an outcome is applied.
+      // Keep the ORIGINAL stamp, all of it: the row should stay where it happened
+      // in the evening, in real and in-game time, rather than jumping to the
+      // front each time an outcome is applied. The keys are _stamp()'s own, so a
+      // stamp field added later is kept too. A row captured before a field
+      // existed keeps not having it.
       const prev = data.carousing[idx];
-      data.carousing[idx] = {
-        ...carouse,
-        entries: this._mergeCarousingEntries(prev.entries, carouse.entries),
-        timestamp: prev.timestamp, time: prev.time,
-      };
+      const row = { ...carouse, entries: this._mergeCarousingEntries(prev.entries, carouse.entries) };
+      for (const key of Object.keys(this._stamp())) {
+        if (key in prev) row[key] = prev[key];
+        else delete row[key];
+      }
+      data.carousing[idx] = row;
     });
   },
 
