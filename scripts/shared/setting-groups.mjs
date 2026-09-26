@@ -93,9 +93,9 @@ export const SETTING_GROUPS = [
       { label: "SDE.settings.modesOfPlayMenu.pulp", hint: "SDE.settings.modesOfPlayMenu.pulpHint", mode: true,
         entries: [
           { setting: "shadowdark.usePulpMode", missing: "SDE.settings.modesOfPlayMenu.systemMissing" },
-          { key: "modePulpSessionLuck", pending: true },
-          { key: "modePulpLuckCrit", pending: true },
-          { key: "modePulpForceReroll", pending: true },
+          "modePulpSessionLuck",
+          "modePulpLuckCrit",
+          "modePulpForceReroll",
           { note: "SDE.settings.modesOfPlayMenu.pulpExtraAction" },
         ] },
       { label: "SDE.settings.modesOfPlayMenu.hardLuck", hint: "SDE.settings.modesOfPlayMenu.hardLuckHint", mode: true,
