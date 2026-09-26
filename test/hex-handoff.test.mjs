@@ -383,10 +383,22 @@ test("a tagged hex that names no ground clears the terrain an earlier send left 
   // holds the "coast" terrain a send from before #196 wrote.
   const calls = printExtras({ adopted: false, scene: printScene({ [SETTLEMENTS_SENT_FLAG]: true }) });
   calls.hexData["print-1"] = { "2_2": { terrain: "coast", features: [] }, "1_1": { terrain: "swamp", features: [] } };
-  await handoffToPrint("print-1", buildHexDataset({ tags: { "0202": { features: ["coast"] } }, gridHint: printDataset.grid }));
+  // Hex 101 is keyed in the book but never tagged: it goes, with no terrain.
+  const tags = { "0202": { features: ["coast"] } };
+  const row = { num: "0101", key: "1,1", zone: "Vale", terrain: [], name: "Hut", feature: "keyed_location" };
+  const dataset = buildHexDataset({ summaryRows: [row], tags, gridHint: printDataset.grid });
+  assert.equal("terrain" in dataset.hexes.find((h) => h.num === 202), false, "the dataset itself says nothing about the ground");
+  await handoffToPrint("print-1", dataset, { tags });
+  const sent = Object.fromEntries(calls.upsert[0].records.map((r) => [r.num, r]));
+  assert.equal(sent[202].terrain, "");
+  assert.equal("terrain" in sent[101], false, "an untagged hex sends no terrain");
   assert.equal(calls.hexData["print-1"]["2_2"].terrain, "");
   assert.deepEqual(calls.hexData["print-1"]["2_2"].features.map((f) => f.id), ["coast-202"]);
-  assert.equal(calls.hexData["print-1"]["1_1"].terrain, "swamp", "a hex with no tag keeps the terrain Extras holds");
+  assert.equal(calls.hexData["print-1"]["1_1"].terrain, "swamp", "and keeps the terrain Extras holds");
+  // Without the tags (a macro's send) nothing is cleared.
+  calls.hexData["print-1"]["2_2"].terrain = "coast";
+  await handoffToPrint("print-1", dataset);
+  assert.equal(calls.hexData["print-1"]["2_2"].terrain, "coast");
 });
 
 test("an unreadable Extras store sends no features at all rather than wiping them", async () => {

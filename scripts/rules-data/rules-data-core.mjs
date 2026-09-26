@@ -150,6 +150,23 @@ export function terrainCost(rules, terrain, { boat = false, weather = "", harsh 
 }
 
 /**
+ * What a storm does under these rules: `slows`, some terrain costs more
+ * (normal becomes difficult); `harsh`, some region is harsh in some season,
+ * where a storm stops travel. Both false until the GM Guide's tables are in,
+ * and then a storm changes nothing on the map (#264).
+ * @param {object} rules  from rulesFrom()
+ * @returns {{slows:boolean, harsh:boolean}}
+ */
+export function stormEffects(rules) {
+  // Travel counts a cost the rules don't know as 1 (overland-state-core).
+  const cost = (k, weather) => terrainCost(rules, k, { weather }) ?? 1;
+  return {
+    slows: Object.keys(rules?.terrain ?? {}).some((k) => cost(k, "stormy") !== cost(k, "")),
+    harsh: (rules?.climate ?? []).some((row) => SEASONS.some((s) => row?.[s]?.harsh)),
+  };
+}
+
+/**
  * Climate of a region in a season. `season` is spring, summer, fall (or
  * autumn) or winter; the region may be spelled either way the book does.
  * @returns {{region:string, season:string, label:string, harsh:""|"storm"|"always"}|null}

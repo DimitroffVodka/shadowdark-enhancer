@@ -1287,7 +1287,7 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
       ui.notifications?.warn(t("SDE.hexMap.notify.notTopLeft", { first: base ? "0101" : "0000" }));
       return;
     }
-    const res = await handoffToPrint(sceneId, dataset);
+    const res = await handoffToPrint(sceneId, dataset, { tags });
     if (res.via === "extras") {
       const hexes = res.summary?.records ?? dataset.hexes.length;
       ui.notifications?.info(t(res.adopted ? "SDE.hexMap.notify.onPrintFirst" : "SDE.hexMap.notify.onPrint", { hexes }));

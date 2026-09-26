@@ -188,7 +188,6 @@ export function buildHexDataset({ name = "", source = "", drafts = [], summaryRo
     const h = slot(num);
     // Read like a keyed row, so a legacy "coast" terrain never goes out as one.
     const read = readTags([t.terrain, ...(t.features ?? t.overlays ?? [])]);
-    h.tagged = true;
     if (read.terrain) h.terrain = h.terrain || read.terrain;   // a keyed row's terrain wins over a tag
     for (const f of read.features) (h.marks ??= new Set()).add(f);
   }
@@ -250,10 +249,7 @@ export function buildHexDataset({ name = "", source = "", drafts = [], summaryRo
       const out = { num: h.num };
       if (h.name) out.name = h.name;
       const word = terrainWord(h.terrain);
-      // A tagged hex whose tags name no ground sends an empty terrain, which
-      // clears one an earlier send left in Extras (#264). An untagged hex
-      // sends none, so a terrain the GM set there is left alone.
-      if (word || h.tagged) out.terrain = word;
+      if (word) out.terrain = word;
       if (h.desc) out.desc = h.desc;
       if (h.zone) out.zone = h.zone;
       if (h.zoneColor) out.zoneColor = h.zoneColor;
