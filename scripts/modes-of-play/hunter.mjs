@@ -2,9 +2,14 @@
  * Shadowdark Enhancer — Hunter Mode (core rulebook p.111): defeated monsters
  * give XP. Setting `modeHunterXp`, in the Modes of Play window (#178).
  *
- * When a combat ends, the active GM counts every NPC combatant still marked
- * defeated (the state at the end, so a monster that got back up does not
- * count and toggling it during the fight cannot pay twice) and pays every PC
+ * When a combat ends, the active GM counts every NPC combatant still down:
+ * marked defeated, or at 0 HP, which is how a monster killed from its sheet
+ * or HP bar ends up without Shadowdark Extras (the system only marks defeated
+ * through applyDamage; the crawl strip reads 0 HP the same way). It is the
+ * state at the end, so a monster that got back up does not count and toggling
+ * it during the fight cannot pay twice. Friendly combatants (summons,
+ * hirelings) and hidden ones pay nothing, as Chaos leaves hidden ones off its
+ * card. It pays every PC
  * who was in the fight the full total, through PartyXP.award: one card per
  * combat, the "ready to level up" marker, and Session Recap's log via the
  * partyXpAwarded hook, all as for any other award. Full XP to each mirrors
@@ -12,6 +17,7 @@
  */
 
 import { MODULE_ID } from "../shared/module-id.mjs";
+import { combatantEntry, isHiddenFromStrip } from "../crawl-strip/turn-skip-core.mjs";
 
 /**
  * XP one defeated monster is worth: half its level, rounded down, except that
@@ -28,7 +34,7 @@ export function hunterXp(level) {
 
 /**
  * What a finished combat pays. Pure over plain combatant records.
- * @param {Array<{type:string, name:string, level:number, defeated:boolean, actorId:string}>} combatants
+ * @param {Array<{type:string, name:string, level:number, defeated:boolean, actorId:string, friendly?:boolean, hidden?:boolean}>} combatants
  * @returns {{ total:number, monsters:Array<{name:string, count:number, xp:number}>, pcIds:string[] }}
  */
 export function hunterAward(combatants = []) {
@@ -37,7 +43,7 @@ export function hunterAward(combatants = []) {
   const pcIds = new Set();
   for (const c of combatants) {
     if (c?.type === "Player" && c.actorId) { pcIds.add(c.actorId); continue; }
-    if (c?.type !== "NPC" || !c.defeated) continue;
+    if (c?.type !== "NPC" || !c.defeated || c.friendly || c.hidden) continue;
     const xp = hunterXp(c.level);
     if (!xp) continue;
     total += xp;
@@ -55,7 +61,9 @@ function record(combatant) {
     type: actor?.type ?? null,
     name: combatant.name ?? actor?.name ?? "",
     level: actor?.system?.level?.value,
-    defeated: !!(combatant.isDefeated ?? combatant.defeated),
+    defeated: !!(combatant.isDefeated ?? combatant.defeated) || isHiddenFromStrip(combatantEntry(combatant)),
+    friendly: (combatant.token?.disposition ?? actor?.prototypeToken?.disposition) === CONST.TOKEN_DISPOSITIONS.FRIENDLY,
+    hidden: !!combatant.hidden,
     actorId: actor?.isToken ? (actor.baseActor?.id ?? combatant.actorId) : (actor?.id ?? combatant.actorId),
   };
 }
@@ -70,7 +78,8 @@ const isActiveGM = () => !!game.user?.isGM && game.users.activeGM?.id === game.u
 export async function payHunterXp(combat) {
   const { total, monsters, pcIds } = hunterAward(combat.combatants.contents.map(record));
   if (!total || !pcIds.length) return null;
-  const list = monsters.map((m) => (m.count > 1 ? `${m.name} ×${m.count}` : m.name)).join(", ");
+  const list = new Intl.ListFormat(game.i18n.lang, { type: "unit" }).format(monsters.map((m) =>
+    (m.count > 1 ? game.i18n.format("SDE.hunter.count", { name: m.name, count: m.count }) : m.name)));
   // Loaded here, not at the top: party-xp.mjs builds an ApplicationV2 at load,
   // and the pure half of this file is tested under node.
   const { PartyXP } = await import("../party-xp/party-xp.mjs");

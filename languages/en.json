@@ -520,6 +520,9 @@
   "SDE.taunt.armed": "{name} has advantage against {enemy} until the end of their next turn.",
   "SDE.taunt.applied": "Taunt: advantage against {enemy}.",
   "SDE.taunt.cancelled": "Taunt: advantage against {enemy}, cancelled by disadvantage.",
+  "SDE.statDamage.effect": "{amount} {ability} damage",
+  "SDE.statDamage.rider": "{target} takes {ability} damage from {source}.",
+  "SDE.statDamage.saveTitle": "Save against {source}",
   "SDE.settings.renownOnCreate.name": "Starting renown from CHA",
   "SDE.settings.renownOnCreate.hint": "New characters start with renown equal to their Charisma modifier.",
   "SDE.settings.renownOnLevelUp.name": "Renown on level-up",
@@ -1465,5 +1468,6 @@
   "SDE.pulp.cantForce": "That roll can't be forced: it isn't a GM's roll you can see, it was already forced, or your character has no luck token.",
   "SDE.pulp.noLuck": "No luck token left.",
   "SDE.pulp.noDamage": "This attack has no damage to roll.",
-  "SDE.pulp.unknown": "That isn't a Pulp action this module knows."
+  "SDE.pulp.unknown": "That isn't a Pulp action this module knows.",
+  "SDE.hunter.count": "{name} ×{count}"
 }
