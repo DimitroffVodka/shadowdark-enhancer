@@ -41,7 +41,7 @@ test("a GM sees the checks, Continue, and every member's forage state", () => {
   assert.equal(m.pending, true);
   assert.deepEqual(m.members.map((p) => [p.name, p.rations, p.foraged, p.canForage]),
     [["Mine", 2, false, true], ["Theirs", 0, true, false]], "a member with no actor is left out");
-  assert.equal(m.spentShare, 0.25);
+  assert.equal(m.leftShare, 0.75, "the bar fills to the hexes left");
   assert.equal(m.climate, "Scorching");
 });
 

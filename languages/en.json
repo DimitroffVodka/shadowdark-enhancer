@@ -1795,6 +1795,7 @@
   "SDE.overland.bar.rations": "{n} rations",
   "SDE.overland.bar.foraged": "foraged today",
   "SDE.overland.bar.mounts": "Mounts: {n}",
+  "SDE.overland.bar.roll": "Roll",
   "SDE.overland.bar.reroll": "Reroll",
   "SDE.overland.bar.rerollHint": "Replace today's weather with a new roll, as Predict does.",
   "SDE.overland.bar.checkDue": "to come",

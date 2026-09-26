@@ -150,7 +150,7 @@ export const TravelBar = {
       ? `<circle class="sde-dome-sun" cx="${x}" cy="${y}" r="${r}"/>`
       : `<clipPath id="sde-dome-moon-clip"><circle cx="${x}" cy="${y}" r="${r}"/></clipPath>
          <circle class="sde-dome-moon" cx="${x}" cy="${y}" r="${r}"/>
-         <circle class="sde-dome-shadow" cx="${+(x + moonShadow(moon) * r).toFixed(2)}" cy="${y}" r="${r}" clip-path="url(#sde-dome-moon-clip)"/>`;
+         <circle class="sde-dome-shadow" cx="${+(x + moonShadow(moon) * r).toFixed(2)}" cy="${y}" r="${r + 0.6}" clip-path="url(#sde-dome-moon-clip)"/>`;
     const { cx, cy, r: R } = DOME;
     return `<svg class="sde-travel-dome" viewBox="0 0 120 60" role="img" aria-label="${esc(t(sky.isDay ? "SDE.overland.bar.domeDay" : "SDE.overland.bar.domeNight"))}">
       <path class="sde-dome-arc" d="M${cx - R},${cy} A${R},${R} 0 0 1 ${cx + R},${cy}"/>
@@ -177,11 +177,11 @@ export const TravelBar = {
       <div class="sde-travel-rows">
         ${row(t("SDE.overland.bar.season"), esc(climate))}
         ${row(t("SDE.overland.bar.weather"), `${esc(weatherNow() ? weatherName(weatherNow()) : t("SDE.overland.bar.noWeather"))}${
-          gm ? ` ${button("rollWeather", t("SDE.overland.rollWeather"), { hint: t("SDE.overland.rollWeatherHint") })} ${
+          gm ? ` ${button("rollWeather", t("SDE.overland.bar.roll"), { hint: t("SDE.overland.rollWeatherHint") })} ${
             button("reroll", t("SDE.overland.bar.reroll"), { hint: t("SDE.overland.bar.rerollHint") })}` : ""}`)}
         ${row(t("SDE.overland.bar.method"), esc(m.dayOpen ? method : t("SDE.overland.bar.noDay")))}
         ${m.dayOpen ? row(t("SDE.overland.bar.budget"), `<span class="sde-travel-budget" role="img" aria-label="${
-          esc(t("SDE.overland.bar.hexes", { left: m.hexesLeft, budget: m.budget }))}"><span style="width:${Math.round(m.spentShare * 100)}%"></span></span> ${
+          esc(t("SDE.overland.bar.hexes", { left: m.hexesLeft, budget: m.budget }))}"><span style="width:${Math.round(m.leftShare * 100)}%"></span></span> ${
           esc(t("SDE.overland.bar.hexes", { left: m.hexesLeft, budget: m.budget }))}`) : ""}
         ${row(t("SDE.overland.bar.party"), `<ul class="sde-travel-list">${members}</ul>${
           m.mounts ? esc(t("SDE.overland.bar.mounts", { n: m.mounts })) : ""}`)}

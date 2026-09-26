@@ -58,7 +58,7 @@ export function barModel({ state, isGM, owns, actors }) {
     dayOpen,
     hexesLeft: state.hexesLeft,
     budget: state.budget,
-    spentShare: state.budget > 0 ? Math.min(1, state.spent / state.budget) : 0,
+    leftShare: state.budget > 0 ? Math.max(0, Math.min(1, state.hexesLeft / state.budget)) : 0,
     method: state.method,
     pushed: state.pushed,
     weather: state.weather?.kind ?? null,
