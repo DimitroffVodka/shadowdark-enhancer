@@ -1766,5 +1766,12 @@
   "SDE.overland.notify.noBase": "There's no hexes-per-day figure for {method}. Fill in Hexes per day under Edit Rules Data, or sail aboard a boat actor.",
   "SDE.overland.notify.noDay": "Start the travel day first, from the crawl bar. To reposition the token without travelling, move it with the Displace movement action.",
   "SDE.overland.notify.impassable": "Bounced: hex {num} ({terrain}) can't be entered in today's storm.",
-  "SDE.overland.notify.bounce": "Bounced: that move costs {cost}, and {left} of today's {budget} are left."
+  "SDE.overland.notify.bounce": "Bounced: that move costs {cost}, and {left} of today's {budget} are left.",
+  "SDE.overland.notify.pending": "An encounter stopped the clock. Run it, then press Continue on the crawl bar before moving on.",
+  "SDE.overland.notify.nothingPending": "Nothing is waiting to continue.",
+  "SDE.overland.resume": "Continue",
+  "SDE.overland.resumeHint": "An encounter stopped the clock at its hour. Once it's run, finish the rest of the move: the clock catches up, and any later check on the way is rolled.",
+  "SDE.overland.check.day": "Day check, {time}",
+  "SDE.overland.check.night": "Night check, {time}",
+  "SDE.overland.check.hours": "Today's encounter checks, {chance}-in-6 each: {times}."
 }

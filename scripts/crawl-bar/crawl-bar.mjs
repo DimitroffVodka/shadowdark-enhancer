@@ -13,7 +13,7 @@ import { ICONS }           from "../shared/icons.mjs";
 import { CrawlStrip }      from "../crawl-strip/crawl-strip.mjs";
 import { isHexMapScene }   from "../encounter/encounter-terrain.mjs";
 import {
-  startOverland, endOverland, rollWeather, weatherNow, weatherName, askDay, startDay, overlandState, OVERLAND_CHANGED,
+  startOverland, endOverland, rollWeather, weatherNow, weatherName, askDay, startDay, resume, overlandState, OVERLAND_CHANGED,
 } from "../overland/overland.mjs";
 
 const BAR_ID = "shadowdark-enhancer-bar";
@@ -150,8 +150,11 @@ export const CrawlBar = {
       weather ? game.i18n.format("SDE.overland.badgeWeather", { weather }) : game.i18n.localize("SDE.overland.badge"),
       Number.isFinite(day?.day) ? game.i18n.format("SDE.overland.badgeHexes", { left: day.hexesLeft, budget: day.budget }) : null,
     ].filter(Boolean).join(" · ");
+    const continueButton = day?.pending
+      ? `<button class="sde-bar-btn sde-bar-start-btn" data-action="resumeTravel" title="${game.i18n.localize("SDE.overland.resumeHint")}">${ICONS.play} ${game.i18n.localize("SDE.overland.resume")}</button>`
+      : "";
     const travelButton = overland
-      ? `<button class="sde-bar-btn" data-action="startDay" title="${game.i18n.localize("SDE.overland.startDayHint")}">${ICONS.sunrise} ${game.i18n.localize("SDE.overland.startDay")}</button>
+      ? `${continueButton}<button class="sde-bar-btn" data-action="startDay" title="${game.i18n.localize("SDE.overland.startDayHint")}">${ICONS.sunrise} ${game.i18n.localize("SDE.overland.startDay")}</button>
         <button class="sde-bar-btn" data-action="rollWeather" title="${game.i18n.localize("SDE.overland.rollWeatherHint")}">${ICONS.weather} ${game.i18n.localize("SDE.overland.rollWeather")}</button>
         <button class="sde-bar-btn sde-bar-danger-btn" data-action="endTravel" title="${game.i18n.localize("SDE.overland.endTravelHint")}">${ICONS.close} ${game.i18n.localize("SDE.overland.endTravel")}</button>`
       : (state.mode === "off" && isHexMapScene()
@@ -277,6 +280,13 @@ export const CrawlBar = {
           ui.notifications.info(game.i18n.format("SDE.overland.notify.weatherHolds",
             { date: game.shadowdarkEnhancer.time.format(reply.weather.until) }));
         }
+        this.render();
+        break;
+      }
+
+      case "resumeTravel": {
+        const reply = await resume();
+        if (!reply?.ok && reply?.error) ui.notifications.warn(reply.error);
         this.render();
         break;
       }

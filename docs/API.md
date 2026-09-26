@@ -23,7 +23,7 @@ and Forge & Loot features.
 [`time`](#time--season-day-and-night-sun-moon-and-anchors) ·
 [`overland`](#overland--the-travel-state)
 
-**API version:** `1.16.0` (semver — additive changes bump the minor version,
+**API version:** `1.17.0` (semver — additive changes bump the minor version,
 breaking changes the major; check `apiVersion` before relying on newer keys).
 
 ## Discovery
@@ -117,12 +117,27 @@ api.linker.invalidate(); // drop both caches after bulk content changes
 
 ```js
 await api.encounter.check();          // run an encounter check
+await api.encounter.check({ threshold: 2, hex, scene, label, clockLabel }); // 1.17.0: the chance, hex, map and labels given
 api.encounter.openRoller();           // roller window
 api.encounter.setActiveTable(uuid);   // bind the active encounter table
 api.encounter.getThreshold(); api.encounter.setThreshold(3);
 api.encounter.getCheckFrequency(); api.encounter.setCheckFrequency(3); // automatic crawl-round check: every 3 rounds, counted from the last check
 await api.encounter.tableForHex({ num: 2849, terrain: "forest", features: ["river", "coast"] }); // → RollTable | null
 ```
+
+`check(options?)` resolves to `{ total, hit }`. With no options it is the
+crawl's check: the threshold setting, and the party's hex on a tagged map.
+Since 1.17.0 it also takes:
+
+- `threshold`: the chance to use, in 6.
+- `hex`: `{ num, terrain, features, region }`, used instead of the party's
+  hex. The region names the table's zone.
+- `scene`: the map the hex is on. Its region scan decides a table's north or
+  south half, whatever map the GM is viewing.
+- `label`: shown first on the card.
+- `clockLabel`: the Session Recap's clock label.
+
+Overland's travel checks use these.
 
 ### `encounter.tableForHex(hex, { hour?, moon?, scene? })`
 
@@ -1456,6 +1471,7 @@ o.state();      // a copy of the travel state, plus derived fields:
 await o.rollWeather();                 // GM: roll today's weather (1.15.0)
 await o.rollWeather({ reroll: true }); // replace today's roll (Predict)
 await o.startDay({ method: "walking", pushed: false, boatUuid: null });   // GM (1.16.0)
+await o.resume();   // GM: finish an advance an encounter stopped (1.17.0)
 // { ok: true, rolled: true, weather }   rolled, stored, one chat card
 // { ok: true, rolled: false, weather }  today's still holds: nothing rolled or posted
 // { ok: false, error }                  a player, or the roll failed
@@ -1536,6 +1552,36 @@ tokens, a combat, and moves while not travelling are left alone.
   is any queued move that starts where a refused one ended, even an
   affordable one.
 
+### Encounter checks and `overland.resume()`
+
+Added in 1.17.0 (Overland O6, #232; design §5.1 step 4, §5.3, Q4, §5.7).
+
+- **The day's checks.** Start day rolls four d12s for their hours: two day
+  checks at 06:00 + (d12 − 1) h, and two night checks at 18:00 + (d12 − 1) h,
+  so up to 05:00 the next morning.
+  - The chance is 1-in-6, or 2-in-6 for all four on a pushed day.
+  - They are stored as `checks: [{ half, at, chance, rolled, hit }]`.
+  - The GM alone gets a chat line with the hours; players never see them.
+  - A check whose hour went by before the day was started falls due at once.
+- **Rolling them.** Every Overland clock advance (a move, and later the
+  night's camp) runs from now to its target. Each unrolled check whose hour
+  falls inside is rolled in time order at its hour, through
+  `encounter.check({ threshold, hex, scene, label, clockLabel })` on the travel
+  hex and the travel token's scene.
+  The table resolves at that hour, including the night columns and the moon,
+  and a hit behaves as any encounter check: the pause setting, the roller, and
+  the auto-rolled table.
+- **A hit stops the clock** at its hour and stores
+  `pending: { until, reason }`. The move itself stands and is paid for; only
+  the clock waits. When no clock is left but more checks are due at that
+  moment (a second check at the same hour, or a late Start day's overdue
+  checks), `pending` holds them for Continue too. While something is pending, the travel token can't move
+  on, except by displace.
+- **`overland.resume()`** (GM, forwarded to the active GM; the crawl bar's
+  **Continue**) clears `pending` and finishes the advance, rolling any later
+  check on the way. It resolves to `{ ok: true, stopped }` (`stopped` when
+  another check hit), or `{ ok: false, error }` when nothing is pending.
+
 - **Starting and ending travel** is the GM's, from the crawl bar's **Travel**
   and **End travel** (offered on a tagged hex map). Another GM's click is
   forwarded to the active GM. The travel token is the Shadowdark Extras party
@@ -1586,6 +1632,9 @@ tokens, a combat, and moves while not travelling are left alone.
 - `1.16.0` adds `overland.startDay` and the travel state's `pointSeconds`.
   While travelling, moving the travel token spends the day's budget and moves
   the clock.
+- `1.17.0` adds `overland.resume`, the options of `encounter.check`, and the
+  travel day's encounter checks. The travel state's `checks` and `pending` are
+  now filled in.
 - `1.4.0` adds the shared `forgeLoot.open()` preview shell. Generator rules and
   document writes remain behind the later NPC/Rival adapter implementations.
   The version policy is additive: new namespaces bump the minor version; breaking

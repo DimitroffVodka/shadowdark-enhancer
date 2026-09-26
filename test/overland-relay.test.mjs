@@ -13,7 +13,17 @@ const dice = [];
 const rolled = [];
 class Roll {
   constructor(formula) { this.formula = formula; }
-  async evaluate() { rolled.push(this.formula); this.total = dice.shift(); return this; }
+  async evaluate() {
+    rolled.push(this.formula);
+    // "4d12": the check hours, one queued value per die (none queued: no dice).
+    const n = Number(/^(\d+)d12$/.exec(this.formula)?.[1] ?? 0);
+    if (n) {
+      const results = dice.splice(0, n).map((result) => ({ result }));
+      this.dice = [{ results }];
+      this.total = results.reduce((sum, r) => sum + r.result, 0);
+    } else this.total = dice.shift();
+    return this;
+  }
 }
 const cards = [];
 const owner = (userId) => ({ testUserPermission: (u) => u.id === userId });
@@ -23,7 +33,7 @@ const actors = {
 };
 Object.assign(globalThis, {
   foundry: deep, CONFIG: { queries: {} }, Hooks: { on() {}, once() {}, callAll() {} }, ui: { notifications: { warn() {} } },
-  Roll, ChatMessage: { create: async (data) => { cards.push(data); } },
+  Roll, ChatMessage: { create: async (data) => { cards.push(data); }, getWhisperRecipients: () => [{ id: "gm" }] },
   game: {
     user: { id: "gm", isGM: true },
     users: { activeGM: { id: "gm" } },
@@ -41,7 +51,7 @@ Object.assign(globalThis, {
     modules: { get: () => null },
   },
 });
-const { applyAction, registerOverland, weatherNow, recordMove } = await import("../scripts/overland/overland.mjs");
+const { applyAction, registerOverland, weatherNow, recordMove, advanceTravel } = await import("../scripts/overland/overland.mjs");
 const { BOAT_TYPE } = await import("../scripts/actors/register-actors.mjs");
 const { CrawlState } = await import("../scripts/crawl-strip/crawl-state.mjs");
 
@@ -176,11 +186,11 @@ test("the GM starts a travel day: the weather first, then the budget and the rat
   assert.equal(cards.length, 2, "the weather card and the day's line");
 
   // A second day the same morning keeps the weather, which still holds.
-  dice.push(6);
   await applyAction({ action: "startDay", method: "walking", pushed: true }, gm);
   assert.equal(stored.overlandState.weather.kind, "fair");
+  assert.equal(rolled.filter((f) => f === "1d6").length, 1, "no second weather roll");
   assert.equal(stored.overlandState.budget, 7, "pushed: half again, rounded down");
-  assert.equal(cards.length, 3);
+  assert.equal(cards.length, 3, "only the day's line");
 });
 
 test("a travel day aboard a boat actor takes the boat's speed", async () => {
@@ -260,4 +270,107 @@ test("moves queued behind a refused one go back to the last paid position, not t
   // Paid for later, the spot is clean again.
   assert.equal(await recordMove(doc, P(200), P(300), step(3)), true);
   assert.equal(await recordMove(doc, P(300), P(400), step(4)), true);
+});
+
+// ── Encounter checks (#232) ───────────────────────────────────────────────────
+
+/** A travelling day with its check hours from these d12s, and encounter.check recording its calls. */
+async function dayWithChecks(d12s, hits = []) {
+  travellingDay();
+  const calls = [];
+  globalThis.game.shadowdarkEnhancer.encounter = {
+    check: async (opts) => { calls.push({ ...opts, at: globalThis.game.time.worldTime }); return { hit: hits.shift() ?? false }; },
+  };
+  globalThis.game.time.worldTime = at(1301, 6, 21, 8);
+  dice.push(3, ...d12s);                 // the weather, then the four check hours
+  await applyAction({ action: "startDay", method: "walking" }, gm);
+  globalThis.game.time.advanced.length = 0;
+  return calls;
+}
+
+test("Start day rolls four check hours and tells the GM alone; a check already past falls due at once", async () => {
+  const calls = await dayWithChecks([2, 9, 1, 12]);  // day 07:00 and 14:00, night 18:00 and 05:00
+  const hours = stored.overlandState.checks.map((c) => [c.half, c.at, c.chance]);
+  assert.deepEqual(hours, [
+    ["day", at(1301, 6, 21, 7), 1], ["day", at(1301, 6, 21, 14), 1],
+    ["night", at(1301, 6, 21, 18), 1], ["night", at(1301, 6, 22, 5), 1],
+  ]);
+  const gmLine = cards.at(-1);
+  assert.deepEqual(gmLine.whisper, [{ id: "gm" }], "the check hours are whispered to the GM");
+  assert.equal(calls.length, 1, "07:00 had gone by when the day started at 08:00");
+  assert.equal(calls[0].threshold, 1);
+  assert.deepEqual(stored.overlandState.checks.map((c) => c.rolled), [true, false, false, false]);
+});
+
+test("a pushed day checks at 2-in-6, all four", async () => {
+  travellingDay();
+  globalThis.game.time.worldTime = at(1301, 6, 21, 5);
+  dice.push(3, 2, 9, 1, 12);
+  await applyAction({ action: "startDay", method: "walking", pushed: true }, gm);
+  assert.deepEqual(stored.overlandState.checks.map((c) => c.chance), [2, 2, 2, 2]);
+});
+
+test("a move across a check hour rolls it at its hour; a hit stops the clock there, and Continue finishes the move", async () => {
+  const calls = await dayWithChecks([2, 9, 1, 12], [false, true]);   // 07:00 misses at the start, 14:00 hits
+  // 5 points at 8 h over 5: 8 hours, 08:00 to 16:00, through the 14:00 check.
+  const ok = await recordMove({ parent: null }, { x: 0, y: 0 }, { x: 100, y: 0 }, { cost: 5, blocked: null, steps: [{ hex: { num: 9 } }] });
+  assert.equal(ok, true);
+  const target = at(1301, 6, 21, 8) + 5 * 8 * 3600 / 5;          // 16:00
+  assert.equal(globalThis.game.time.worldTime, at(1301, 6, 21, 14), "the clock stopped at the hit");
+  assert.deepEqual(stored.overlandState.pending, { until: target, reason: "move" });
+  assert.equal(calls.at(-1).at, at(1301, 6, 21, 14), "rolled at its hour");
+  assert.equal(stored.overlandState.spent, 5, "the move itself is paid");
+
+  // Moving on before Continue is refused, and the clock stays put.
+  const refused = await recordMove({ id: "t", parent: null, update: async () => {} }, { x: 100, y: 0 }, { x: 200, y: 0 },
+    { cost: 1, blocked: null, steps: [{ hex: { num: 10 } }] });
+  assert.equal(refused, false);
+  assert.equal(globalThis.game.time.worldTime, at(1301, 6, 21, 14));
+  assert.equal((await applyAction({ action: "resume" }, { id: "player1", isGM: false })).ok, false, "a player can't continue");
+
+  const res = await applyAction({ action: "resume" }, gm);
+  assert.equal(res.ok, true);
+  assert.equal(globalThis.game.time.worldTime, target, "Continue finishes the move");
+  assert.equal(stored.overlandState.pending, null);
+  assert.equal(calls.length, 2, "18:00 is still ahead");
+  assert.equal((await applyAction({ action: "resume" }, gm)).ok, false, "nothing left to continue");
+});
+
+test("an advance through the night rolls the night checks in time order, and stops for none that miss", async () => {
+  const calls = await dayWithChecks([2, 9, 1, 12]);
+  const dawn = at(1301, 6, 22, 6);
+  const { stopped } = await advanceTravel(dawn, "camp");
+  assert.equal(stopped, false);
+  assert.deepEqual(calls.slice(1).map((c) => c.at), [at(1301, 6, 21, 14), at(1301, 6, 21, 18), at(1301, 6, 22, 5)]);
+  assert.equal(globalThis.game.time.worldTime, dawn);
+  assert.ok(stored.overlandState.checks.every((c) => c.rolled));
+});
+
+test("a hit with checks still due at the same moment leaves them for Continue, not the next move (#246 review)", async () => {
+  // A late Start day at 08:00: 06:00 and 07:00 are both overdue, and the first hits.
+  const calls = await dayWithChecks([1, 2, 1, 12], [true]);
+  assert.equal(calls.length, 1);
+  assert.deepEqual(stored.overlandState.pending, { until: at(1301, 6, 21, 8), reason: "day" }, "no clock left, but a check is");
+  assert.equal(stored.overlandState.checks[1].rolled, false);
+  const res = await applyAction({ action: "resume" }, gm);
+  assert.deepEqual(res, { ok: true, stopped: false });
+  assert.equal(calls.length, 2, "Continue rolls the 07:00 check");
+  assert.equal(calls[1].label, "SDE.overland.check.day");
+  assert.equal(stored.overlandState.pending, null);
+  assert.equal(globalThis.game.time.worldTime, at(1301, 6, 21, 8), "and moves no clock");
+});
+
+test("a travel check resolves its table on the travel token's scene, not the one being viewed (#246 review)", async () => {
+  travellingDay();
+  const travelScene = { id: "travel-scene" };
+  stored.overlandState = { ...stored.overlandState, tokenUuid: "Scene.travel-scene.Token.t" };
+  registerOverland();
+  globalThis.fromUuidSync = (uuid) => (uuid === "Scene.travel-scene.Token.t" ? { parent: travelScene } : null);
+  const calls = [];
+  globalThis.game.shadowdarkEnhancer.encounter = { check: async (opts) => { calls.push(opts); return { hit: false }; } };
+  globalThis.game.time.worldTime = at(1301, 6, 21, 8);
+  dice.push(3, 1, 12, 1, 12);            // 06:00 is overdue
+  await applyAction({ action: "startDay", method: "walking" }, gm);
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0].scene, travelScene);
 });

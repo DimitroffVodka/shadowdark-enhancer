@@ -17,6 +17,9 @@
  *   client refuses a move the day can't pay for (preMoveToken); the active GM
  *   re-prices what was moved (moveToken), spends it, records the hex and moves
  *   the clock, and sends the token back if two quick moves overdrew the day.
+ * - Every Overland clock advance rolls the day's encounter checks it passes
+ *   (#232, §5.3). A hit stops the clock at the check's hour and waits for
+ *   Continue (resume), which finishes the advance.
  *
  * The mode itself is CrawlState's `overland` (crawl-state-core.mjs). In it the
  * Crawl Strip is off and movement tracking idle; a combat hides it and
@@ -33,12 +36,13 @@ import { authorizeActorFor, isActiveGM, queryActiveGM, refuseQuery, relayToGM } 
 import { makeQueue } from "../quests/quest-core.mjs";
 import { hexReader, isHexMapScene, partyHex } from "../encounter/encounter-terrain.mjs";
 import { BOAT_TYPE } from "../actors/register-actors.mjs";
-import { dawnAfter } from "../time/time-core.mjs";
+import { dawnAfter, dateParts, startOfDay } from "../time/time-core.mjs";
 import { esc } from "../shared/esc.mjs";
 import {
   defaultOverlandState, normalizeOverlandState, startTravel, setHex, recordForage,
   pickTravelToken, forageRefusal, setWeather, weatherHolds, weatherAdvantage, weatherFormula,
   weatherFromRoll, harshToday, WEATHER_RULES, METHODS, openDay, spendMove, priceMove, moveVerdict, hexCost,
+  dayChecks, dueChecks, markCheck, setPending,
 } from "./overland-state-core.mjs";
 
 export const OVERLAND_SETTING = "overlandState";
@@ -277,6 +281,73 @@ async function postDay(boat) {
     .catch((err) => console.error(`${MODULE_ID} | travel day chat line`, err));
 }
 
+/** The travel token's scene: its region scan decides a table's north or south half. */
+function travelScene() {
+  try { return _state.tokenUuid ? fromUuidSync(_state.tokenUuid)?.parent ?? null : null; } catch { return null; }
+}
+
+/** A check's label on its card and in the recap: "Night check, 21:00". */
+function checkLabel(check) {
+  const time = dateParts(game.time.calendar, check.at).time;
+  return t(check.half === "night" ? "SDE.overland.check.night" : "SDE.overland.check.day", { time });
+}
+
+/** One line for the GM only: today's check hours. Players never see them (§4). */
+async function postCheckHours() {
+  const checks = _state.checks;
+  if (!checks.length) return;
+  const times = new Intl.ListFormat(game.i18n.lang, { type: "conjunction" }).format(checks.map(checkLabel));
+  await ChatMessage.create({
+    content: `<p>${esc(t("SDE.overland.check.hours", { chance: checks[0].chance, times }))}</p>`,
+    whisper: ChatMessage.getWhisperRecipients("GM"),
+  }).catch((err) => console.error(`${MODULE_ID} | check hours chat line`, err));
+}
+
+/**
+ * Advance the clock to `target` as Overland does, on the active GM inside the
+ * queue: each check due on the way, in time order, is rolled at its hour
+ * through encounter.check, on the travel hex. A hit stops the clock there and
+ * stores what is left as `pending`, for Continue (§5.3, Q4).
+ * @param {number} target  worldTime to reach
+ * @param {string} reason  what the advance was for: "move", "day", later "camp"
+ * @returns {Promise<{stopped:boolean}>}
+ */
+export async function advanceTravel(target, reason) {
+  const check = game.shadowdarkEnhancer?.encounter?.check;
+  const scene = travelScene();
+  for (const i of dueChecks(_state.checks, target)) {
+    const c = _state.checks[i];
+    if (c.at > game.time.worldTime) await game.time.advance(c.at - game.time.worldTime);
+    const label = checkLabel(c);
+    const { hit } = typeof check === "function"
+      ? await check({ threshold: c.chance, hex: _state.hex, scene, label, clockLabel: label })
+      : { hit: false };
+    await commit(markCheck(_state, i, hit).state);
+    if (hit) {
+      // Something is left for Continue when there's clock to run, or checks
+      // still due at this very moment (a second check at the same hour, or the
+      // overdue checks of a late Start day): they wait, not the next move.
+      if (target > game.time.worldTime || dueChecks(_state.checks, target).length) {
+        await commit(setPending(_state, { until: Math.max(target, game.time.worldTime), reason }).state);
+      }
+      return { stopped: true };
+    }
+  }
+  if (target > game.time.worldTime) await game.time.advance(target - game.time.worldTime);
+  return { stopped: false };
+}
+
+/**
+ * Finish an advance an encounter stopped (GM): the rest of the move, or later
+ * the night. A GM who isn't the active GM is forwarded there.
+ * @returns {Promise<{ok:true, stopped:boolean}|{ok:false, error:string}>}
+ */
+export async function resume() {
+  if (!game.user?.isGM) return { ok: false, error: t("SDE.overland.notify.dayGmOnly") };
+  const data = { action: "resume" };
+  return isActiveGM() ? applyAction(data, game.user) : queryActiveGM(OVERLAND_QUERY, data, { label: t("SDE.overland.relayLabel") });
+}
+
 /**
  * Start a travel day now (GM), with its method and push, and a boat actor when
  * sailing aboard one. The weather is rolled first unless today's still holds.
@@ -366,6 +437,7 @@ function priceTravelMove(doc, origin, waypoints) {
 /** Why a move is refused, for the mover. */
 function refusalText(why, { cost, blocked }) {
   if (why === "noDay") return t("SDE.overland.notify.noDay");
+  if (why === "pending") return t("SDE.overland.notify.pending");
   if (why === "impassable") return t("SDE.overland.notify.impassable", { num: blocked?.num ?? "", terrain: blocked?.terrain ?? "" });
   return t("SDE.overland.notify.bounce", { cost, left: Math.max(0, _state.budget - _state.spent), budget: _state.budget });
 }
@@ -429,7 +501,7 @@ export function recordMove(doc, origin, dest, priced) {
     if (!priced.steps.length) return true;
     const hex = await withRegion(priced.steps.at(-1).hex, doc.parent);
     await commit(spendMove(_state, { cost: priced.cost, hex }).state);
-    if (priced.cost > 0) await game.time.advance(priced.cost * _state.pointSeconds);
+    if (priced.cost > 0) await advanceTravel(game.time.worldTime + priced.cost * _state.pointSeconds, "move");
     return true;
   });
 }
@@ -485,12 +557,29 @@ export function applyAction(data, user) {
         // §5.1: the weather first, unless today's still holds; then the budget.
         _unpaid.clear();
         await rollWeatherHere(false);
+        const now = game.time.worldTime;
+        const pushed = data.pushed === true;
+        const hours = await new Roll("4d12").evaluate();
+        const checks = dayChecks({
+          midnight: startOfDay(game.time.calendar, now), pushed, hourSeconds: hourSeconds(),
+          d12s: hours.dice[0]?.results.map((r) => r.result) ?? [],
+        });
         await commit(openDay(_state, {
-          now: game.time.worldTime, method: data.method, pushed: data.pushed === true, base,
-          boatUuid: boat?.uuid ?? null, hourSeconds: hourSeconds(),
+          now, method: data.method, pushed, base, boatUuid: boat?.uuid ?? null, hourSeconds: hourSeconds(), checks,
         }).state);
         await postDay(boat);
+        await postCheckHours();
+        // A check whose hour went by before the day started falls due at once (§5.1).
+        await advanceTravel(now, "day");
         return { ok: true };
+      }
+      case "resume": {
+        if (!user.isGM) return { ok: false, error: t("SDE.overland.notify.dayGmOnly") };
+        const pending = _state.pending;
+        if (!pending) return { ok: false, error: t("SDE.overland.notify.nothingPending") };
+        await commit(setPending(_state, null).state);
+        const { stopped } = await advanceTravel(pending.until, pending.reason);
+        return { ok: true, stopped };
       }
       case "forage": {
         const auth = authorizeActorFor(data.actorId, user, { type: "Player" });

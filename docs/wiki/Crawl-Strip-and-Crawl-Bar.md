@@ -144,8 +144,9 @@ Differences from combat:
 
 On a tagged hex map the Crawl Bar also offers **Travel**. It starts overland
 travel instead of a crawl. Overland is being built in pieces (#192). So far it
-switches the mode, keeps the travel state, rolls the weather, and charges each
-move of the travel token against the day's hexes, moving the clock with it.
+switches the mode, keeps the travel state, rolls the weather, charges each
+move of the travel token against the day's hexes, moving the clock with it,
+and rolls the day's encounter checks as the clock reaches them.
 
 - **Which token travels.** The Shadowdark Extras party token, when exactly one
   is on the map. Otherwise select the one token that travels before pressing
@@ -178,7 +179,17 @@ move of the travel token against the day's hexes, moving the clock with it.
 - **Start** still begins a crawl, for example when the party reaches a dungeon.
   To travel again after a crawl, end the crawl first.
 
-Encounter checks, foraging, rations and camp come with the next pieces.
+- **Encounter checks.** Start day sets four check hours, whispered to you
+  alone: two by day between 06:00 and 17:00, and two at night between 18:00
+  and 05:00. The chance is 1 in 6, or 2 in 6 on a pushed day. When a move's
+  clock passes a check's hour, it's rolled at that hour on the table for the
+  party's hex, day or night columns and the moon included. A hit stops the
+  clock at that hour: run the encounter, then press **Continue** on the bar to
+  finish the rest of the move. The token can't move on until you do, except by
+  **Displace**. A check whose hour had passed before you started the day is
+  rolled at once.
+
+Foraging, rations and camp, with the night's checks, come with the next piece.
 
 ## The party cards
 
