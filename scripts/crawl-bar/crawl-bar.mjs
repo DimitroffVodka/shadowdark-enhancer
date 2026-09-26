@@ -343,7 +343,8 @@ export const CrawlBar = {
 
       case "deleteEncounter":
         if (game.combat) {
-          const ok = await this._confirm("Delete Encounter", "Delete this combat encounter? The fight is thrown away: no Hunter XP, no loot drops and no Session Recap entry.");
+          const ok = await this._confirm(game.i18n.localize("SDE.crawlBar.deleteEncounterTitle"),
+            game.i18n.localize("SDE.crawlBar.deleteEncounterConfirm"));
           if (ok) {
             // Hunter, Loot drops and Session Recap skip a combat deleted with this.
             await game.combat.delete({ [MODULE_ID]: { discard: true } });

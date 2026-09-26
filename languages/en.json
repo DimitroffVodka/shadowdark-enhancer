@@ -83,6 +83,8 @@
   "SDE.crawlStrip.nextCrawlRound": "Next Round",
   "SDE.crawlBar.roundBadge": "Crawl · Round {turn}",
   "SDE.crawlBar.nextRound": "Next Round",
+  "SDE.crawlBar.deleteEncounterTitle": "Delete Encounter",
+  "SDE.crawlBar.deleteEncounterConfirm": "Delete this combat encounter? The fight is thrown away: no Hunter XP, no loot drops and no Session Recap entry.",
   "SDE.crawlStrip.unknownAction": "Unknown action.",
   "SDE.crawlStrip.unknownCombatAction": "Unknown combat action.",
   "SDE.crawlStrip.luckTokenRegained": "{name} regained a luck token",
