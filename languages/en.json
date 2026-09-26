@@ -1445,5 +1445,6 @@
   "SDE.training.tagTaught": "Taught",
   "SDE.training.tagAuto": "Applied for you",
   "SDE.training.tagTable": "At the table",
-  "SDE.training.spent": "This trainer has nothing left to teach."
+  "SDE.training.spent": "This trainer has nothing left to teach.",
+  "SDE.hunter.label": "Hunter: {monsters}"
 }

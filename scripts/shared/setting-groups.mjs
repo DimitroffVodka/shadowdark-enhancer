@@ -82,7 +82,7 @@ export const SETTING_GROUPS = [
           { setting: "shadowdark-extras.grinderHitDice", showIf: "shadowdark-extras.grinderMode" },
         ] },
       { label: "SDE.settings.modesOfPlayMenu.hunter", hint: "SDE.settings.modesOfPlayMenu.hunterHint", mode: true,
-        entries: [{ key: "modeHunterXp", pending: true }] },
+        entries: ["modeHunterXp"] },
       { label: "SDE.settings.modesOfPlayMenu.momentum", hint: "SDE.settings.modesOfPlayMenu.momentumHint", mode: true,
         entries: [
           { setting: "shadowdark.useMomentumMode", missing: "SDE.settings.modesOfPlayMenu.systemMissing" },

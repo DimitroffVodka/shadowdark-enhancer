@@ -12,6 +12,7 @@ import { CrawlStrip } from "./crawl-strip/crawl-strip.mjs";
 import { registerCrawlTracker, refreshTracker } from "./crawl-strip/crawl-tracker.mjs";
 import { init as luckRerollInit } from "./luck-reroll/luck-reroll.mjs";
 import { init as blitzInit } from "./modes-of-play/blitz.mjs";
+import { init as hunterInit } from "./modes-of-play/hunter.mjs";
 import { init as spellMishapInit } from "./spell-mishap/spell-mishap.mjs";
 import { init as prayerRollInit } from "./character-sheet/prayer-roll.mjs";
 import { init as scavengerInit } from "./scavenger/scavenger.mjs";
@@ -102,7 +103,7 @@ const STYLESHEET_REV = "000935629eaf";
 // stale); module.json carries the same hash and is fetched fresh at runtime. A
 // mismatch is a stale cache by construction — it cannot be anything else. Both
 // stamps are written by `npm run inventory` and gated by `inventory:check`.
-const BUILD_REV = "d8eded638139";
+const BUILD_REV = "d10383821e4c";
 
 /**
  * Tell the user when their browser is running an old build of this module, and
@@ -857,6 +858,7 @@ Hooks.once("ready", () => {
   CrawlStrip.init();
   luckRerollInit();
   blitzInit();
+  hunterInit();
   spellMishapInit();
   prayerRollInit();
   scavengerInit();

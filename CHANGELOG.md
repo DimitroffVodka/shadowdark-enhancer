@@ -23,6 +23,12 @@
   Its first rule, no luck on a critical failure, now uses the system's own
   critical failure, so an effect that widens the failure range counts too,
   and a damage reroll is never refused. (#186)
+- **Hunter Mode: XP for defeated monsters.** With Hunter on, ending a
+  combat pays every character who was in it XP for each monster still marked
+  defeated: half its level, rounded down, and 1 for a level 1 monster (level 0
+  pays nothing). It is one Party XP card per combat, with the usual "ready to
+  level up" marker and a Session Recap entry. Monsters killed outside a
+  combat aren't counted. (#184)
 - **The hex data goes on the printed map.** The Hex Tagger's **Send to
   Extras** now puts every hex's terrain, region, zone colour, name,
   description and settlement on the map you tagged, instead of building a

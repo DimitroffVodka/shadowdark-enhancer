@@ -150,7 +150,7 @@ under its checkbox in the window.
 | Deadly | **Stabilizing is DC 18** | off | *Not automated yet.* Stabilizing a dying character is an Intelligence check at DC 18 instead of 15. |
 | Fatality | **Characters die at 0 HP** | off | *Not automated yet.* There is no dying: a character reduced to 0 HP is dead. |
 | Grinder | Shadowdark Extras' Grinder settings | off | Shown here when Shadowdark Extras has them (`shadowdark-extras.grinderMode`, and `grinderHitDice`, shown only while Grinder is on); its camping rest is where Grinder takes effect. Without them, the box says what is needed. |
-| Hunter | **XP for defeated monsters** | off | *Not automated yet.* At the end of a combat, every character in it gets XP for each defeated monster: half its level, rounded down, and 1 for level 1. |
+| Hunter | **XP for defeated monsters** | off | When a combat ends, every character in it gets XP for each monster still marked defeated: half its level, rounded down, 1 for a level 1 monster, nothing for level 0. One Party XP card per combat, logged in Session Recap. Monsters killed outside a combat aren't counted. |
 | Momentum | the system's exploding damage setting | off | Shown here; it is the Shadowdark system's own setting. Advantage on repeating a failed action is granted at the table. |
 | Pulp | the system's Pulp Mode setting | off | Shown here; it is the Shadowdark system's own setting (no maximum on luck tokens). |
 | Pulp | **1d4 luck at the start of each session** | off | *Not automated yet.* Starting a session sets each party member's luck tokens to 1d4. |
