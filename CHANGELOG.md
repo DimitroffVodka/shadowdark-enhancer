@@ -3,6 +3,16 @@
 ## [Unreleased]
 
 ### Added
+- **Two more Western Reaches tables, and Random ancestry by population.** The
+  importer now knows the GM Guide's *Caught in Danger!* (p. 33, d6: what
+  befalls a PC still in an adventuring site when the session ends) and the
+  Player's Guide's *Ancestry (Population)* d100 (p. 14). Both are read from
+  your own PDF. A new Character Builder setting, **Random ancestry table**,
+  takes a roll table. When one is set, the Ancestry step's Random rolls it and
+  picks the ancestry whose name matches the result, so with the Western
+  Reaches table about half of all random characters are human. If a result
+  matches no ancestry in the world, you're told which result and Random falls
+  back to each ancestry's weight. Left empty, Random works as before. (#187)
 - **Modes of Play.** A new window under Configure Settings holds the optional
   rules from the core rulebook (p.111) and Hard Luck from the Game Master's
   Guide to the Western Reaches (p.30). Every rule is its own switch, so one

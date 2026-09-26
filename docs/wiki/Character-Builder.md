@@ -96,6 +96,19 @@ Browse ancestries live from all installed compendiums, complete with portrait ar
 - Multi-talent ancestries (like Elf) let you pick your talent directly here.
 - **Name** and **Trinket** fields let you pick from roll tables, roll
   randomly, or type custom entries.
+- **Random** picks an ancestry by each ancestry's own random weight. To use a
+  setting's population instead, drop a roll table on **Random ancestry table**
+  in the Character Builder settings. The Western Reaches *Ancestry
+  (Population)* d100 (Player's Guide p. 14, imported from the Importer Hub)
+  makes about half of all random characters human. Random then rolls that
+  table and picks the ancestry whose name matches the result, ignoring case
+  and punctuation, so "Half-elf" finds *Half-Elf*. If a result matches no
+  ancestry in your world, you're told which result it was and Random falls
+  back to the weighted pick.
+
+| Setting | Effect |
+|---|---|
+| Random ancestry table | A roll table Random rolls to pick the ancestry. Empty keeps each ancestry's random weight. |
 
 ### 3. Origins
 

@@ -1,5 +1,5 @@
 // The Game Master's Guide to the Western Reaches: the manifest/recipe contract
-// for its 103 table rows, and the five parser rules that book forced.
+// for its 104 table rows, and the five parser rules that book forced.
 //
 // Pure — no Foundry globals, and every fixture is SYNTHETIC placeholder text.
 // No book content ships in this repo; the real pages are proven against the
@@ -28,7 +28,7 @@ const gmEntries = CONTENT_ENTRIES.filter((e) => e.src === "GMWR");
 // ── the manifest ⇄ recipe contract ──────────────────────────────────────────
 
 test("every GM Guide row carries a page and the book's printed page is its PDF page", () => {
-  assert.equal(gmRows.length, 103);
+  assert.equal(gmRows.length, 104);
   for (const r of gmRows) {
     assert.match(String(r.pages), /^\d{2,3}(-\d{2,3})?$/, `${r.name} has no usable page cite`);
     assert.equal(tablePagesFor("GMWR", r.name), r.pages);
@@ -76,7 +76,7 @@ test("no registered GM Guide recipe is an orphan", () => {
     assert.ok(rowNames.has(e.names[0]),
       `${e.id} has a recipe but no manifest row — nothing can ever reach it`);
   }
-  assert.equal(gmEntries.length, 102);
+  assert.equal(gmEntries.length, 103);
 });
 
 test("GM Guide names stay clear of the routing sets that would file them elsewhere", () => {
@@ -131,7 +131,7 @@ test("a Cursed Scroll copy satisfies the GM Guide row that reprints it", () => {
 
 test("the GM Guide is a catalogue source in its own right", () => {
   assert.ok(sources().includes("gmgwr"));
-  assert.equal(TABLE_MANIFEST.filter((e) => e.source === "gmgwr").length, 103);
+  assert.equal(TABLE_MANIFEST.filter((e) => e.source === "gmgwr").length, 104);
   assert.ok(bySource("gmgwr").length > 0, "its filter chip lists rows");
   for (const e of TABLE_MANIFEST.filter((x) => x.source === "gmgwr")) {
     assert.match(e.die, /^\d?d\d+$/, `${e.id} has no measured die`);
@@ -350,4 +350,31 @@ test("page furniture never becomes a row in a generic parse", () => {
   // the paste's first line is.
   const dupe = parseTables("MY TABLE\nd4 Result\n1 rats\n2 rats\n3 bats\n4 rats")[0];
   assert.equal(dupe.rows.length, 4);
+});
+
+test("Caught in Danger! is read under its shouting caption, each detail around its face", () => {
+  // Invented rows in the page's typography: the caption ends in "!", and a
+  // two-line detail prints its face between its lines.
+  const text = [
+    "CAUGHT IN DANGER!",
+    "d6 Details",
+    "Placeholder alpha, DC 12 or",
+    "1",
+    "something happens",
+    "Placeholder beta wraps",
+    "2",
+    "onto a second line",
+    "3 Placeholder gamma",
+    "4 Placeholder delta",
+    "5 Placeholder epsilon",
+    "6 Placeholder zeta",
+  ].join("\n");
+  const name = "Caught in Danger!";
+  const shape = resolveShape({ contentId: contentIdForName(name, "GMWR"), name, src: "GMWR" });
+  assert.equal(shape?.kind, "banded");
+  const pt = parseByShape(text, shape, { name }).tables[0];
+  assert.equal(pt.formula, "1d6");
+  assert.deepEqual(pt.rows.map((r) => r.min), [1, 2, 3, 4, 5, 6]);
+  assert.equal(pt.rows[1].text, "Placeholder beta wraps onto a second line");
+  assert.deepEqual(computeBlockers(pt), []);
 });

@@ -36,6 +36,7 @@ export const SETTING_GROUPS = [
         "charBuilderDiceSoNice",
         "charBuilderMaxLevel1HP",
         "charBuilderStartingGold",
+        "charBuilderAncestryTable",
         { menu: "charBuilderExtraGear", icon: "fa-solid fa-toolbox" },
       ],
     }],

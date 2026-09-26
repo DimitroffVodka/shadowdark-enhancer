@@ -4,6 +4,7 @@
  * builder always reflects the live installed content.
  */
 
+import { MODULE_ID } from "../shared/module-id.mjs";
 
 /** Enrich Shadowdark description HTML — resolves @UUID links + [[/r]] inline rolls. */
 export async function enrich(html) {
@@ -237,6 +238,42 @@ export async function rollItemFromTables(kind, items) {
   } catch (_e) {
     return null;
   }
+}
+
+/**
+ * The item a rolled result names, ignoring case and punctuation, so a book's
+ * "Half-elf" finds the system's "Half-Elf". Pure.
+ * @param {string} text
+ * @param {Array<{name:string}>} items
+ * @returns {object|null}
+ */
+export function itemNamedBy(text, items) {
+  const key = (s) => String(s ?? "").toLowerCase().replace(/[^a-z0-9]+/g, "");
+  const want = key(text);
+  return want ? (items ?? []).find((i) => key(i.name) === want) ?? null : null;
+}
+
+/**
+ * Random ancestry by the GM's population table (setting
+ * `charBuilderAncestryTable`), e.g. the Western Reaches d100 where most people
+ * are human. Null when no table is set — the caller keeps its
+ * `system.randomWeight` pick — and also when the table is gone or its result
+ * names no installed ancestry, which the GM is told, naming the result.
+ * @param {Array<{name:string, uuid:string}>} items  the installed ancestries
+ * @returns {Promise<object|null>}
+ */
+export async function rollAncestryFromTable(items) {
+  const uuid = game.settings.get(MODULE_ID, "charBuilderAncestryTable");
+  if (!uuid) return null;
+  const table = await fromUuid(uuid).catch(() => null);
+  if (!table) {
+    ui.notifications?.warn(game.i18n.localize("SDE.charBuilder.ancestry.tableMissing"));
+    return null;
+  }
+  const result = await rollTableDoc(table);
+  const hit = itemNamedBy(result, items);
+  if (!hit) ui.notifications?.warn(game.i18n.format("SDE.charBuilder.ancestry.tableNoMatch", { result: result ?? "", table: table.name }));
+  return hit;
 }
 
 /**
