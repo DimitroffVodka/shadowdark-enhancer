@@ -7,6 +7,7 @@ import { MODULE_ID } from "./shared/module-id.mjs";
 import { ICONS } from "./shared/icons.mjs";
 
 import { registerSettings } from "./shared/settings.mjs";
+import { rulesApi } from "./rules-data/rules-data-core.mjs";
 import { CrawlState } from "./crawl-strip/crawl-state.mjs";
 import { CrawlStrip } from "./crawl-strip/crawl-strip.mjs";
 import { registerCrawlTracker, refreshTracker } from "./crawl-strip/crawl-tracker.mjs";
@@ -102,7 +103,7 @@ const STYLESHEET_REV = "000935629eaf";
 // stale); module.json carries the same hash and is fetched fresh at runtime. A
 // mismatch is a stale cache by construction — it cannot be anything else. Both
 // stamps are written by `npm run inventory` and gated by `inventory:check`.
-const BUILD_REV = "fa327b47ded2";
+const BUILD_REV = "3529ad299dc4";
 
 /**
  * Tell the user when their browser is running an old build of this module, and
@@ -405,8 +406,8 @@ Hooks.once("init", () => {
   // game.modules.get(MODULE_ID).api on ready; consumers should listen for
   // the "shadowdarkEnhancer.ready" hook. Reference: docs/API.md.
   game.shadowdarkEnhancer = {
-    // 1.5.0 — additive: hexMaps namespace (hex tagger, dataset, hand-off).
-    apiVersion: "1.5.0",
+    // 1.6.0 — additive: rules namespace (rules data: terrain costs, climate, limits).
+    apiVersion: "1.6.0",
     // Guided, ordered Character Builder — a replacement for the system's
     // random generator. `open({ level0?, actor? })` renders the wizard.
     charBuilder: {
@@ -792,6 +793,11 @@ Hooks.once("init", () => {
         return h.importDatasetRecords(target, ds, opts);
       },
     },
+    // 1.6.0 — additive: rules data (#195). The tables the Western Reaches books
+    // consult rather than roll, from the `rulesData` world setting the Rules
+    // data window fills (import from the GM's own PDF, or by hand). Synchronous;
+    // nothing ships, so an unfilled value is null and an unfilled limit none.
+    rules: rulesApi(() => game.settings.get(MODULE_ID, "rulesData")),
   };
 });
 

@@ -18,7 +18,8 @@ All settings are **world-scoped**. They are configured by the GM for the whole w
 Go to **Configure Settings → Shadowdark Enhancer**. Every setting lives in one of eight
 pop-out windows, one per feature, each opened by its own **Configure** button:
 Character Builder, Monsters, PC Automation, Modes of Play, Movement, Crawl Strip,
-Encounters, and Loot & XP.
+Encounters, and Loot & XP. One more button, **Edit Rules Data**, opens the
+Western Reaches rules tables (see [Rules data](#rules-data) below).
 
 ### Character Builder
 
@@ -201,6 +202,14 @@ See [Movement Budgets](Movement-Budgets.md).
 > **The encounter threshold and check frequency are set on the Crawl Bar.**
 > Right-click **Encounter** on the bar to adjust either. See
 > [Random Encounters](Random-Encounters.md).
+
+### Rules data
+
+| Setting | Default | What it does |
+|---|---|---|
+| **Rules data** *(menu)* | *(empty)* | GM-only window (**Edit Rules Data**) with the tables the Western Reaches books consult rather than roll: terrain costs and elevation, terrain types, hexes per day, hex visibility, climate by region and season, and carousing and recruiting limits. **Import from GM Guide** fills them from your own linked PDFs and shows anything it would replace first; every value can also be typed in. Nothing from the books ships, so every table starts empty, except that mountain counts as high elevation. Stored as the `rulesData` world setting and read by `game.shadowdarkEnhancer.rules`. |
+
+See [Rules Data](Rules-Data.md).
 
 ## Settings edited elsewhere
 

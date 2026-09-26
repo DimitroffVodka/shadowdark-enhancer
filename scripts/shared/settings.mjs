@@ -5,6 +5,7 @@ import { registerSettingGroups } from "./settings-group-menu.mjs";
 import { MonsterLootReviewApp } from "../loot/monster-loot-review-app.mjs";
 import { defaultCrawlState } from "../crawl-strip/crawl-state-core.mjs";
 import { DEFAULT_ENCOUNTER_SOURCES } from "../encounter/encounter-sources.mjs";
+import { RulesDataApp } from "../rules-data/rules-data-app.mjs";
 
 /**
  * Settings-menu entry for Build / Refresh Monster Spells.
@@ -679,5 +680,20 @@ export function registerSettings() {
     monsterSpellLibrary: MonsterSpellLibraryMenu,
     levelGuidelines: LevelGuidelinesEditor,
     monsterLoot: MonsterLootReviewApp,
+  });
+
+  // Rules data (#195): the tables the Western Reaches books consult rather
+  // than roll, read by game.shadowdarkEnhancer.rules. Starts empty; nothing
+  // from a book ships. One GM-only window shows, edits and imports them.
+  game.settings.register(MODULE_ID, "rulesData", {
+    scope: "world", config: false, type: Object, default: {},
+  });
+  game.settings.registerMenu(MODULE_ID, "rulesData", {
+    name: "SDE.settings.rulesData.name",
+    hint: "SDE.settings.rulesData.hint",
+    label: "SDE.settings.rulesData.label",
+    icon: "fa-solid fa-scroll",
+    type: RulesDataApp,
+    restricted: true,
   });
 }

@@ -134,6 +134,23 @@ numbered grid and do not come through; the page headers can parse as a small
 stray table, so check the preview before committing. Each region's own *local
 hexes* page is a subset of this same key — import the master key, not those.
 
+### Rules data tables
+
+The Western Reaches tables you look things up in rather than roll on (terrain
+costs, hexes per day, hex visibility, climate, carousing and recruiting limits)
+are **not** roll tables either, and have no manifest row or Manage-tree entry.
+They go to [Rules Data](Rules-Data.md), and its **Import from GM Guide** reads
+them with seven `reference` recipes (`RULES_TABLES` in `table-shapes.mjs`).
+
+A `reference` recipe is a caption, the number of cells in a row, and a pinned
+`extractCols`: `2layout` where the table sits in one column beside prose,
+`layout` for the two full-width tables. The parser takes the header line under
+the caption, then every following line that splits into exactly that many
+cells, and stops at the first that doesn't, so the prose or page number after a
+table never joins it. When a page prints the caption twice (a prose heading and
+the table), the one with a header under it wins. These recipes are not counted
+in the total above.
+
 ---
 
 ## Captions on shared pages

@@ -798,3 +798,29 @@ export function resolveShape({ contentId, name, src } = {}) {
   }
   return shapeForName(name);
 }
+
+// ── Rules data (#195): the tables the books CONSULT rather than roll ─────────
+// Terrain costs, travel, visibility, climate, and the carousing and warband
+// recruiting limits. They are read into the `rulesData` world setting by the
+// Rules data window (scripts/rules-data), never filed as RollTables, so they
+// sit outside CONTENT_ENTRIES: no catalogue row, no Manage-tree unlock.
+//
+// A recipe is the caption, the number of cells per row and the extraction mode
+// its page needs — structure only; every value comes from the GM's own PDF.
+// `id` is the rules-data table it fills (rules-data-core.mjs READERS).
+// Modes, verified offline against the real pages: "2layout" where the table
+// sits in one column beside prose (the gutter split keeps the prose out, the
+// padding keeps the cells apart); "layout" for the two full-width grids, which
+// the gutter would cut in half.
+const REFERENCE = (caption, cells, extractCols) => ({ kind: "reference", caption, cells, extractCols });
+
+export const RULES_TABLES = [
+  { id: "travel", src: "GMWR", page: 40, shape: REFERENCE("ENTERING HEXES", 2, "2layout") },
+  { id: "terrainTypes", src: "GMWR", page: 40, shape: REFERENCE("TERRAIN TYPES", 2, "2layout") },
+  { id: "visibility", src: "GMWR", page: 41, shape: REFERENCE("HEX VISIBILITY", 2, "2layout") },
+  { id: "terrain", src: "GMWR", page: 41, shape: REFERENCE("TERRAIN IN THE REACHES", 3, "layout") },
+  { id: "climate", src: "GMWR", page: 43, shape: REFERENCE("CLIMATE IN THE REACHES", 4, "layout") },
+  { id: "carousing", src: "GMWR", page: 30, shape: REFERENCE("CAROUSING LIMITS", 2, "2layout") },
+  // The Player's Guide, not the GM Guide: warbands are a player-facing rule.
+  { id: "recruiting", src: "WR", page: 249, shape: REFERENCE("RECRUITING LIMITS", 2, "2layout") },
+];

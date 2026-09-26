@@ -3,6 +3,17 @@
 ## [Unreleased]
 
 ### Added
+- **Rules data.** A new **Rules data** window under Configure Settings holds
+  the Western Reaches tables you look up rather than roll: what each terrain
+  costs to enter (on foot and by boat), terrain types, hexes per day, hex
+  visibility, the climate of each region by season, and each settlement's
+  carousing and warband-recruiting limits. **Import from GM Guide** fills them
+  from your own GM Guide and Player's Guide PDFs; if that would change
+  something you already entered, you see the changes first and choose. A world
+  without the books can fill in every table by hand. Mountain counts as high
+  elevation for hex visibility until you change it. Nothing from the books
+  ships with the module. Macros and other modules read the tables through
+  `game.shadowdarkEnhancer.rules` (API 1.6.0). (#195)
 - **Modes of Play.** A new window under Configure Settings holds the optional
   rules from the core rulebook (p.111) and Hard Luck from the Game Master's
   Guide to the Western Reaches (p.30). Every rule is its own switch, so one
