@@ -248,6 +248,10 @@ test("relay: a GM tab with no such query registered reads as the stale tab", asy
   assert.equal(warnings.length, 1);
   assert.match(warnings[0], /reload/i);
   assert.match(warnings[0], /downtime actions/);
+
+  // Sent and never answered is not "refused": a slow GM may still have acted.
+  const reply = await quietly(() => queryActiveGM("q", { action: "x" }));
+  assert.equal(reply.answered, false);
 });
 
 test("relay: a revoked QUERY_USER permission is reported, not disguised as a stale GM", async () => {

@@ -348,8 +348,13 @@ game.shadowdarkEnhancer.time.advanceOffDuty(3 * 86400, { reason: "downtime" });
   duration is real time in the world, and a light left behind burns out.
 - Nothing relights on its own afterwards. Players light their torches again
   when play resumes.
-- It works from any GM's tab. If a second GM (an assistant, or the Bridge
-  user) runs it, it is carried out on the tab that tracks light sources.
+- It works from any GM's tab. If an assistant GM runs it, it is carried out
+  on the tab that tracks light sources.
+- If it says more than one GM tab burns light sources, reload every GM tab but
+  one and run it again. Nothing has moved; any lights it already put out keep
+  their time.
+- If it says a GM's tab didn't answer in time, check the world time before you
+  run it again: that tab may still have moved the clock.
 - With the system's light tracking turned off, it simply moves the clock.
 
 Use `reason: "carousing"` or `reason: "rest"` for those. Macros and modules

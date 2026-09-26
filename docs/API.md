@@ -1385,7 +1385,8 @@ async.
 
 ```js
 await game.shadowdarkEnhancer.time.advanceOffDuty(3 * 86400, { reason: "downtime" });
-// { ok: true, worldTime, doused: [{ actorId, itemId }] }, or { ok: false, error }
+// { ok: true, worldTime, doused: [{ actorId, itemId }] }
+// or { ok: false, error, doused? }: the clock did not move; doused lists what was already put out
 ```
 
 The Shadowdark system burns every lit light for the whole of a clock move, and
@@ -1397,15 +1398,27 @@ destroys every torch left lit. This call instead:
    other GM it is handed there as a GM-to-GM query, and that tab refuses it if
    yet another GM holds the flag. With nobody online holding it, the calling
    GM takes the flag first, which is what the system would do on the next
-   clock move.
-2. Puts out every lit **Basic** light (torch, lantern, candle) carried by a
+   clock move. **Two GM tabs holding the flag** (each clears only its own when
+   it loads) would both burn, each from its own cached list, so the move is
+   refused, naming them; reloading all but one fixes it.
+2. Stops the system's real-time light clock on that tab for the move (a tick
+   sent after the jump would set the clock back), and starts it again after.
+3. Puts out every lit **Basic** light (torch, lantern, candle) carried by a
    player-owned PC, the same actors the system's tracker burns. Each keeps its
-   `remainingSecs`, and its token's light goes out. One chat line names them.
-3. Waits until the tracker's cached list no longer holds them (it only rebuilds
-   that list once a second, and not on an item update), and refuses to move the
-   clock if it never lets go.
-4. Calls `game.time.advance(seconds, { "shadowdark-enhancer": { offDuty: reason } })`,
+   `remainingSecs`, and its token's light goes out (on a tab in core's
+   no-canvas mode, only the prototype token's).
+4. Rebuilds the tracker's cached list and waits until it holds no PC's Basic
+   light (it otherwise rebuilds only once a second, and not on an item
+   update). It refuses to move the clock if the list never lets go, or if
+   another tab has taken the flag meanwhile.
+5. Calls `game.time.advance(seconds, { "shadowdark-enhancer": { offDuty: reason } })`,
    so `timeAdvanced` reports `offDuty`.
+
+One chat line names the lights put out and says whether the clock moved. A
+refusal, or an error part-way, never moves the clock and returns what was put
+out in `doused`. When the calling GM hands the move off and gets no answer in
+60 seconds, the reply says the outcome is unknown: the other tab may still have
+moved the clock, so check it before calling again.
 
 With the system's light tracking off it only advances. A Light spell and a
 Light actor dropped on the scene are left to the clock: a spell's duration is

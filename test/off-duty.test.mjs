@@ -1,12 +1,13 @@
 // The off-duty clock move (#228, Overland O2): which lights are put out, where
 // the move runs, and what timeAdvanced hears; then the whole move against a
 // stand-in world whose light tracker behaves like Shadowdark 4.0.6's (a cached
-// list, rebuilt only when dirty, burnt from on the primary GM).
+// list per GM tab, rebuilt only when dirty, burnt from on every tab holding
+// the primaryGM flag).
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
-  OFF_DUTY_QUERY, advanceOffDuty, advanceOptions, handleOffDutyQuery, litCarried, offDutyMembers,
-  offDutyRoute, primaryLightGM, settle, stillTracked,
+  HANDOFF_TIMEOUT_MS, OFF_DUTY_QUERY, advanceOffDuty, advanceOptions, burnCheck, handleOffDutyQuery, lightGMs,
+  litCarried, offDutyMembers, offDutyRoute, settle, stillTracked,
 } from "../scripts/time/off-duty.mjs";
 import { registerTimeHooks } from "../scripts/time/time.mjs";
 import { at, clockAt } from "./gregorian-calendar.mjs";
@@ -37,24 +38,32 @@ test("only lit Basic lights are put out: not an unlit torch, a Light spell, or g
 
 // ── Where it runs ────────────────────────────────────────────────────────────
 
-const me = { id: "bridge", isGM: true, active: true, flags: {} };
-const gm = { id: "gm", isGM: true, active: true, flags: { shadowdark: { primaryGM: true } } };
+const me = { id: "bridge", name: "Bridge", isGM: true, active: true, flags: {} };
+const gm = { id: "gm", name: "Gamemaster", isGM: true, active: true, flags: { shadowdark: { primaryGM: true } } };
+const flag = (u) => ({ ...u, flags: { shadowdark: { primaryGM: true } } });
 
-test("the primary light GM is the user flag, not Foundry's active GM", () => {
-  const flaggedMe = { ...me, flags: { shadowdark: { primaryGM: true } } };
-  assert.equal(primaryLightGM(flaggedMe, [flaggedMe, gm]), flaggedMe, "this user's own flag wins, as isPrimaryGM reads it");
-  assert.equal(primaryLightGM(me, [me, gm]), gm);
-  assert.equal(primaryLightGM(me, [me, { ...gm, active: false }]), null, "an offline GM burns nothing");
-  assert.equal(primaryLightGM(me, [me, { ...gm, isGM: false }]), null, "a player never holds it");
+test("the GMs that burn are the online ones holding the flag, not Foundry's active GM", () => {
+  assert.deepEqual(lightGMs([me, gm]), [gm]);
+  assert.deepEqual(lightGMs([me, { ...gm, active: false }]), [], "an offline GM burns nothing");
+  assert.deepEqual(lightGMs([me, { ...gm, isGM: false }]), [], "a player never holds it");
+  assert.equal(lightGMs([flag(me), gm]).length, 2, "two tabs can hold it at once");
 });
 
-test("tracking off only advances; another primary GM gets the move; otherwise it runs here", () => {
-  assert.equal(offDutyRoute({ tracking: false, primary: gm, self: me }), "advance");
-  assert.equal(offDutyRoute({ tracking: false, primary: null, self: me }), "advance");
-  assert.equal(offDutyRoute({ tracking: true, primary: gm, self: me }), "handoff");
-  assert.equal(offDutyRoute({ tracking: true, primary: gm, self: gm }), "douse");
-  assert.equal(offDutyRoute({ tracking: true, primary: null, self: me }), "douse",
+test("tracking off only advances; two flags refuse; another primary gets the move; otherwise it runs here", () => {
+  assert.equal(offDutyRoute({ tracking: false, flagged: [gm], selfId: me.id }), "advance");
+  assert.equal(offDutyRoute({ tracking: false, flagged: [], selfId: me.id }), "advance");
+  assert.equal(offDutyRoute({ tracking: true, flagged: [gm, flag(me)], selfId: me.id }), "twoPrimaries");
+  assert.equal(offDutyRoute({ tracking: true, flagged: [gm], selfId: me.id }), "handoff");
+  assert.equal(offDutyRoute({ tracking: true, flagged: [gm], selfId: gm.id }), "douse");
+  assert.equal(offDutyRoute({ tracking: true, flagged: [], selfId: me.id }), "douse",
     "nobody holds the flag: the system would give it to the first GM that sees the clock move, and burn there");
+});
+
+test("just before advancing, this GM must be the only one holding the flag", () => {
+  assert.equal(burnCheck([gm], gm.id), null);
+  assert.equal(burnCheck([gm, flag(me)], gm.id), "twoPrimaries");
+  assert.equal(burnCheck([flag(me)], gm.id), "notPrimary");
+  assert.equal(burnCheck([], gm.id), "notPrimary");
 });
 
 test("the reason reaches timeAdvanced as offDuty", () => {
@@ -64,16 +73,21 @@ test("the reason reaches timeAdvanced as offDuty", () => {
   assert.equal(calls[0].payload.crossed.days, 3);
 });
 
-test("a cached light is found by its id, and a list that isn't one holds nothing", () => {
-  const cache = [{ _id: "a", lightSources: [{ _id: "t1" }] }, { _id: "b", lightSources: [] }];
-  assert.equal(stillTracked(cache, new Set(["t1"])), true);
-  assert.equal(stillTracked(cache, new Set(["t2"])), false);
-  assert.equal(stillTracked({}, new Set(["t1"])), false);
+test("the cache is clear when it holds no Basic light of a member; a Light spell or a stranger's torch doesn't count", () => {
+  const cache = [
+    { _id: "a", lightSources: [{ _id: "t1", type: "Basic" }] },
+    { _id: "b", lightSources: [{ _id: "s1", type: "Effect" }] },
+    { _id: "lightActor", lightSources: [{ _id: "l1", type: "Basic" }] },
+  ];
+  assert.equal(stillTracked(cache, new Set(["a"])), true);
+  assert.equal(stillTracked(cache, new Set(["b"])), false);
+  assert.equal(stillTracked({}, new Set(["a"])), false);
 });
 
-test("settle gives up when the tracker never lets go, so the clock is not moved", async () => {
-  const stuck = { monitoredLightSources: [{ _id: "a", lightSources: [{ _id: "t1" }] }], async _updateLightSources() {} };
-  assert.equal(await settle(stuck, new Set(["t1"]), { tries: 2, ms: 1 }), false);
+test("settle forces a rebuild, and gives up when the tracker never lets go", async () => {
+  const stuck = { monitoredLightSources: [{ _id: "a", lightSources: [{ _id: "t1", type: "Basic" }] }], async _updateLightSources() {} };
+  assert.equal(await settle(stuck, new Set(["a"]), { tries: 2, ms: 1 }), false);
+  assert.equal(stuck.dirty, true, "marked dirty even with nothing put out");
   const busy = { monitoredLightSources: [], performingTick: true, async _updateLightSources() {} };
   assert.equal(await settle(busy, new Set(), { tries: 2, ms: 1 }), false, "a burn in progress is waited out");
 });
@@ -94,14 +108,14 @@ function hookWorld(t) {
 /**
  * A world with one PC carrying a lit torch (40 minutes left) and an unlit
  * lantern, a PC's Light spell, and a light tracker like 4.0.6's: it burns
- * from `monitoredLightSources`, which only `_updateLightSources` rebuilds and
- * only once `toggleLightSource` has made it dirty.
+ * from `monitoredLightSources`, which only `_updateLightSources` rebuilds, and
+ * only once it is dirty. Its real-time clock is running.
  */
-function world({ tracking = true, self = { ...gm }, users = null, query = null } = {}) {
+function world({ tracking = true, self = { ...gm }, users = null, query = null, noCanvas = false } = {}) {
   const torch = light("torch", "Basic", true);
   const lantern = light("lantern", "Basic", false, { name: "Lantern" });
   const spell = light("spell", "Effect", true, { name: "Light" });
-  const log = { updates: [], tokenLight: [], chats: [], advanced: [], warnings: [], flags: [], queries: [] };
+  const log = { updates: [], tokenLight: [], protoLight: [], chats: [], advanced: [], warnings: [], flags: [], queries: [], clock: [] };
   const pc = {
     id: "aria", name: "Aria", type: "Player", hasPlayerOwner: true, items: [torch, lantern],
     async updateEmbeddedDocuments(_type, updates) {
@@ -111,12 +125,20 @@ function world({ tracking = true, self = { ...gm }, users = null, query = null }
       }
     },
     async toggleLight(active, id) { log.tokenLight.push({ active, id }); },
+    async update(data) { log.protoLight.push(data); },
   };
   const caster = { id: "bram", name: "Bram", type: "Player", hasPlayerOwner: true, items: [spell], async updateEmbeddedDocuments() {} };
   const actors = [pc, caster];
-  const gather = () => actors.map((a) => ({ _id: a.id, lightSources: a.items.filter((i) => i.system.light.active).map((i) => ({ _id: i.id })) }));
+  const gather = () => actors.map((a) => ({
+    _id: a.id, lightSources: a.items.filter((i) => i.system.light.active).map((i) => ({ _id: i.id, type: i.type })),
+  }));
   const tracker = {
     dirty: false, performingTick: false, monitoredLightSources: gather(),
+    realTime: {
+      updateIntervalId: 7,
+      stop() { log.clock.push("stop"); this.updateIntervalId = undefined; },
+      start() { log.clock.push("start"); this.updateIntervalId = 8; },
+    },
     toggleLightSource() { this.dirty = true; },
     async _updateLightSources() { if (this.dirty) { this.dirty = false; this.monitoredLightSources = gather(); } },
   };
@@ -124,6 +146,7 @@ function world({ tracking = true, self = { ...gm }, users = null, query = null }
   self.hasPermission = () => true;
   const allUsers = users ?? [self];
   const start = at(1301, 6, 1, 20);
+  globalThis.canvas = noCanvas ? {} : { tokens: {} };
   globalThis.game = {
     user: self,
     users: allUsers,
@@ -135,7 +158,7 @@ function world({ tracking = true, self = { ...gm }, users = null, query = null }
     time: {
       worldTime: start,
       async advance(s, options) {
-        log.advanced.push({ s, options, burns: stillTracked(tracker.monitoredLightSources, new Set(["torch"])) });
+        log.advanced.push({ s, options, burns: stillTracked(tracker.monitoredLightSources, new Set(["aria"])), clock: [...log.clock] });
         this.worldTime += s;
       },
     },
@@ -143,12 +166,12 @@ function world({ tracking = true, self = { ...gm }, users = null, query = null }
   globalThis.ChatMessage = { create: async (data) => log.chats.push(data) };
   globalThis.ui = { notifications: { warn: (m) => log.warnings.push(m) } };
   for (const u of allUsers) {
-    u.query ??= async (name, data, opts) => { log.queries.push({ to: u.id, name, data, opts }); return query?.(name, data) ?? { ok: true }; };
+    u.query ??= async (name, data, opts) => { log.queries.push({ to: u.id, name, data, opts }); return query ? query(name, data) : { ok: true }; };
   }
-  return { log, torch, spell, start };
+  return { log, torch, spell, start, pc, tracker };
 }
 
-test("on the primary GM: the torch goes out with its 40 minutes, one line names it, the cache lets go, then 3 days pass", async () => {
+test("on the primary GM: the torch goes out with its 40 minutes, the cache lets go, 3 days pass, one line names it", async () => {
   const { log, torch, spell, start } = world();
   const reply = await advanceOffDuty(3 * DAY, { reason: "downtime" });
 
@@ -160,20 +183,30 @@ test("on the primary GM: the torch goes out with its 40 minutes, one line names 
   assert.deepEqual(log.tokenLight, [{ active: false, id: "torch" }], "the token's light goes out");
   assert.equal(log.chats.length, 1);
   assert.match(log.chats[0].content, /SDE\.time\.offDuty\.chat\(SDE\.time\.offDuty\.light\(Aria\|Torch\)\)/);
-  assert.deepEqual(log.advanced, [{ s: 3 * DAY, options: { "shadowdark-enhancer": { offDuty: "downtime" } }, burns: false }],
-    "advanced once, exactly 3 days, after the tracker's cache stopped holding the torch");
+  assert.deepEqual(log.advanced, [{ s: 3 * DAY, options: { "shadowdark-enhancer": { offDuty: "downtime" } }, burns: false, clock: ["stop"] }],
+    "advanced once, exactly 3 days, with the real-time clock stopped and the cache clear of the torch");
+  assert.deepEqual(log.clock, ["stop", "start"], "the real-time clock runs again afterwards");
   assert.equal(reply.worldTime, start + 3 * DAY);
   assert.deepEqual(log.flags, [], "already the primary GM");
 });
 
 test("nothing lit: no chat line, and the clock still moves", async () => {
-  const { log } = world();
-  globalThis.game.actors[0].items[0].system.light.active = false;
-  globalThis.game.shadowdark.lightSourceTracker.monitoredLightSources = [];
+  const { log, pc, tracker } = world();
+  pc.items[0].system.light.active = false;
+  tracker.monitoredLightSources = [];
   const reply = await advanceOffDuty(3600, { reason: "rest" });
   assert.equal(reply.ok, true);
   assert.deepEqual(log.chats, []);
   assert.deepEqual(log.advanced.map((a) => a.options), [{ "shadowdark-enhancer": { offDuty: "rest" } }]);
+});
+
+test("a torch put out elsewhere but still in a stale cache is cleared before the jump, though nothing was put out here", async () => {
+  const { log, pc } = world();
+  pc.items[0].system.light.active = false;   // put out by a path that didn't mark the tracker dirty
+  const reply = await advanceOffDuty(3 * DAY);
+  assert.equal(reply.ok, true);
+  assert.deepEqual(reply.doused, []);
+  assert.equal(log.advanced[0].burns, false, "rebuilt before advancing");
 });
 
 test("light tracking off: it only advances", async () => {
@@ -181,21 +214,20 @@ test("light tracking off: it only advances", async () => {
   const reply = await advanceOffDuty(3 * DAY, { reason: "downtime" });
   assert.equal(reply.ok, true);
   assert.equal(torch.system.light.active, true);
-  assert.deepEqual([log.updates, log.chats, log.queries], [[], [], []]);
+  assert.deepEqual([log.updates, log.chats, log.queries, log.clock], [[], [], [], []]);
   assert.equal(log.advanced.length, 1);
 });
 
 test("from a GM that isn't the primary: the move is handed to the primary GM, and nothing happens here", async () => {
   const bridge = { ...me };
-  const primary = { ...gm };
-  const { log, torch } = world({ self: bridge, users: [bridge, primary], query: () => ({ ok: true, worldTime: 1, doused: [] }) });
+  const { log, torch } = world({ self: bridge, users: [bridge, { ...gm }], query: () => ({ ok: true, worldTime: 1, doused: [] }) });
   const reply = await advanceOffDuty(3 * DAY, { reason: "downtime" });
   assert.equal(reply.ok, true);
   assert.equal(log.queries.length, 1);
   assert.equal(log.queries[0].to, "gm", "the primary light GM, not whoever is Foundry's active GM");
   assert.equal(log.queries[0].name, OFF_DUTY_QUERY);
   assert.deepEqual(log.queries[0].data, { seconds: 3 * DAY, reason: "downtime" });
-  assert.ok(Number.isFinite(log.queries[0].opts.timeout));
+  assert.equal(log.queries[0].opts.timeout, HANDOFF_TIMEOUT_MS, "longer than the relay's 20 s");
   assert.equal(torch.system.light.active, true);
   assert.deepEqual([log.updates, log.advanced], [[], []]);
 });
@@ -209,6 +241,45 @@ test("the primary GM's refusal is shown to the GM who asked, and the clock stays
   assert.deepEqual(log.advanced, []);
 });
 
+test("a primary GM that never answers: the outcome is unknown, not refused", async () => {
+  const bridge = { ...me };
+  const { log } = world({ self: bridge, users: [bridge, { ...gm }], query: () => { throw new Error("operation has timed out"); } });
+  const warn = console.warn;
+  console.warn = () => {};
+  try {
+    const reply = await advanceOffDuty(DAY);
+    assert.equal(reply.ok, false);
+    assert.deepEqual(log.warnings, ["SDE.time.offDuty.unknown(Gamemaster)"]);
+  } finally { console.warn = warn; }
+});
+
+test("two GMs holding the flag: refused before anything is put out, naming both", async () => {
+  const bridge = flag(me);
+  const { log, torch } = world({ self: bridge, users: [bridge, { ...gm }] });
+  const reply = await advanceOffDuty(3 * DAY);
+  assert.equal(reply.ok, false);
+  assert.deepEqual(log.warnings, ["SDE.time.offDuty.twoPrimaries(Bridge, Gamemaster)"]);
+  assert.equal(torch.system.light.active, true);
+  assert.deepEqual([log.updates, log.advanced, log.queries, log.chats], [[], [], [], []]);
+});
+
+test("a second GM takes the flag while the lights go out: no jump, the reply names what was put out, the line says so", async () => {
+  const other = { ...me };
+  const { log, torch, tracker } = world({ users: null });
+  globalThis.game.users.push(other);
+  const rebuild = tracker._updateLightSources.bind(tracker);
+  tracker._updateLightSources = async () => { other.flags = { shadowdark: { primaryGM: true } }; await rebuild(); };
+  const reply = await advanceOffDuty(3 * DAY);
+  assert.equal(reply.ok, false);
+  assert.match(reply.error, /twoPrimaries/);
+  assert.deepEqual(reply.doused, [{ actorId: "aria", itemId: "torch" }]);
+  assert.equal(torch.system.light.remainingSecs, 2400);
+  assert.deepEqual(log.advanced, [], "the other tab would burn its stale list by the whole jump");
+  assert.equal(log.chats.length, 1);
+  assert.match(log.chats[0].content, /chatRefused/);
+  assert.deepEqual(log.clock, ["stop", "start"]);
+});
+
 test("no primary GM online: this GM takes the flag the way the system would, and puts the torch out first", async () => {
   const bridge = { ...me };
   const { log, torch } = world({ self: bridge, users: [bridge, { ...gm, active: false }] });
@@ -220,14 +291,44 @@ test("no primary GM online: this GM takes the flag the way the system would, and
   assert.deepEqual(log.queries, []);
 });
 
-test("the cache never lets go: the clock is not moved and the GM is told", async () => {
-  const { log } = world();
-  globalThis.game.shadowdark.lightSourceTracker._updateLightSources = undefined;   // and nothing else rebuilds it
-  globalThis.game.shadowdark.lightSourceTracker.performingTick = true;
+test("the cache never lets go: the clock is not moved, and the reply and the line say what was put out", async () => {
+  const { log, tracker } = world();
+  tracker._updateLightSources = undefined;   // and nothing else rebuilds it
+  tracker.performingTick = true;
   const reply = await advanceOffDuty(3 * DAY);
   assert.equal(reply.ok, false);
+  assert.deepEqual(reply.doused, [{ actorId: "aria", itemId: "torch" }]);
   assert.deepEqual(log.warnings, ["SDE.time.offDuty.unsettled"]);
   assert.deepEqual(log.advanced, []);
+  assert.match(log.chats[0].content, /chatRefused/);
+});
+
+test("a throw part-way: no jump, a refusal instead of a rejection, and what was put out is reported", async () => {
+  const { log, pc } = world();
+  const second = light("lantern2", "Basic", true, { name: "Lantern" });
+  const broken = { id: "cora", name: "Cora", type: "Player", hasPlayerOwner: true, items: [second],
+    async updateEmbeddedDocuments() { throw new Error("server said no"); } };
+  globalThis.game.actors.push(broken);
+  const error = console.error;
+  console.error = () => {};
+  try {
+    const reply = await advanceOffDuty(3 * DAY);
+    assert.equal(reply.ok, false);
+    assert.equal(reply.error, "SDE.time.offDuty.failed");
+    assert.deepEqual(reply.doused, [{ actorId: "aria", itemId: "torch" }]);
+    assert.equal(pc.items[0].system.light.active, false);
+    assert.deepEqual(log.advanced, []);
+    assert.deepEqual(log.clock, ["stop", "start"], "the real-time clock is restarted after a throw too");
+    assert.match(log.chats[0].content, /chatRefused/);
+  } finally { console.error = error; }
+});
+
+test("a tab without a canvas: the prototype token goes dark instead of reading the canvas's tokens", async () => {
+  const { log } = world({ noCanvas: true });
+  const reply = await advanceOffDuty(DAY);
+  assert.equal(reply.ok, true);
+  assert.deepEqual(log.tokenLight, []);
+  assert.deepEqual(log.protoLight, [{ "prototypeToken.light": { dim: 0, bright: 0 } }]);
 });
 
 test("refused for players, and for a move that goes nowhere", async () => {
@@ -235,10 +336,10 @@ test("refused for players, and for a move that goes nowhere", async () => {
   assert.equal((await advanceOffDuty(DAY)).ok, false);
   assert.deepEqual(player.log.warnings, ["SDE.time.offDuty.gmOnly"]);
   assert.deepEqual(player.log.advanced, []);
-  const { log } = world();
+  const { log, pc } = world();
   for (const s of [0, -60, NaN, "soon"]) assert.equal((await advanceOffDuty(s)).ok, false, String(s));
   assert.deepEqual(log.advanced, []);
-  assert.equal(globalThis.game.actors[0].items[0].system.light.active, true, "and no torch was touched");
+  assert.equal(pc.items[0].system.light.active, true, "and no torch was touched");
 });
 
 test("the hand-off receiver: a GM sender only, and it never passes the move on", async () => {
