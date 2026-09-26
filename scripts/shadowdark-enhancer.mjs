@@ -9,7 +9,7 @@ import { ICONS } from "./shared/icons.mjs";
 import { registerSettings } from "./shared/settings.mjs";
 import { rulesApi } from "./rules-data/rules-data-core.mjs";
 import { timeApi, registerTimeHooks } from "./time/time.mjs";
-import { overlandState, isOverland, rollWeather, startDay, resume, registerOverland } from "./overland/overland.mjs";
+import { overlandState, isOverland, rollWeather, startDay, resume, forage, makeCamp, registerOverland } from "./overland/overland.mjs";
 import { CrawlState } from "./crawl-strip/crawl-state.mjs";
 import { CrawlStrip } from "./crawl-strip/crawl-strip.mjs";
 import { registerCrawlTracker, refreshTracker } from "./crawl-strip/crawl-tracker.mjs";
@@ -112,7 +112,7 @@ const STYLESHEET_REV = "04c122556d8d";
 // stale); module.json carries the same hash and is fetched fresh at runtime. A
 // mismatch is a stale cache by construction — it cannot be anything else. Both
 // stamps are written by `npm run inventory` and gated by `inventory:check`.
-const BUILD_REV = "522efbdf9d73";
+const BUILD_REV = "02289ff74ee2";
 
 /**
  * Tell the user when their browser is running an old build of this module, and
@@ -432,17 +432,20 @@ Hooks.once("init", () => {
     // 1.15.0 — additive: overland.rollWeather (Overland O4, #230).
     // 1.16.0 — additive: overland.startDay, and moves spend the day's budget (Overland O5, #231).
     // 1.17.0 — additive: overland.resume, encounter.check options, travel checks (Overland O6, #232).
-    apiVersion: "1.17.0",
+    // 1.18.0 — additive: overland.forage and makeCamp, time.advanceOffDuty(0) (Overland O7, #233).
+    apiVersion: "1.18.0",
     // The one travel state per world (scripts/overland/overland.mjs): a copy
     // with hexes left, climate, storm, harshness and night derived; whether
-    // travel is on; today's weather roll, the travel day's start, and Continue
-    // after an encounter stopped the clock (GM).
+    // travel is on; today's weather roll, the travel day's start, Continue
+    // after an encounter stopped the clock, and camp (GM); forage (any owner).
     overland: {
       state: () => overlandState(),
       isActive: () => isOverland(),
       rollWeather: (options) => rollWeather(options),
       startDay: (options) => startDay(options),
       resume: () => resume(),
+      forage: (actorId) => forage(actorId),
+      makeCamp: () => makeCamp(),
     },
     // Readings on Foundry's world clock: season, day and night, sun, moon,
     // anchors, the date string. Synchronous, any user (scripts/time/time.mjs).

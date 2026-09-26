@@ -164,6 +164,17 @@ export function openDay(state, { now, method, pushed, base, boatUuid = null, hou
   return { state: next, changed: true };
 }
 
+/**
+ * The night is over (§5.5 step 4): no day is open until the GM starts the
+ * next one, the push is reset, and the day's forage and checks are done with.
+ */
+export function closeDay(state) {
+  const next = normalizeOverlandState({
+    ...state, day: null, pushed: false, budget: 0, spent: 0, checks: [], foraged: [], pending: null,
+  });
+  return { state: next, changed: true };
+}
+
 /** Check `index` was rolled, and hit or not. */
 export function markCheck(state, index, hit) {
   const checks = state.checks.map((c, i) => (i === index ? { ...c, rolled: true, hit: !!hit } : c));
@@ -197,18 +208,26 @@ export function pickTravelToken({ partyTokens = [], controlled = [] } = {}) {
 }
 
 /**
- * May this forage be recorded? Ownership is checked before this, from the
+ * May this forage be made (§5.4)? Ownership is checked before this, from the
  * query's authenticated user (gm-relay.mjs authorizeActorFor); this is the
- * travel side of it.
- * @param {{travelling:boolean, member:boolean, foraged:boolean}} s
- * @returns {null|"notTravelling"|"notMember"|"alreadyForaged"} null: allowed
+ * travel side of it. Once a day, during a travel day, never on a pushed day,
+ * and not at all when the day is both stormy and harsh.
+ * @param {{travelling:boolean, member:boolean, foraged:boolean, dayOpen?:boolean,
+ *   pushed?:boolean, stormy?:boolean, harsh?:boolean}} s
+ * @returns {null|"notTravelling"|"notMember"|"noDay"|"pushed"|"impossible"|"alreadyForaged"} null: allowed
  */
-export function forageRefusal({ travelling, member, foraged }) {
+export function forageRefusal({ travelling, member, foraged, dayOpen = true, pushed = false, stormy = false, harsh = false }) {
   if (!travelling) return "notTravelling";
   if (!member) return "notMember";
+  if (!dayOpen) return "noDay";
+  if (pushed) return "pushed";
+  if (stormy && harsh) return "impossible";
   if (foraged) return "alreadyForaged";
   return null;
 }
+
+/** Forage's INT check: DC 12, the book's default for camping tasks (§5.7), or 18 in a harsh climate. */
+export const forageDC = (harsh) => (harsh ? 18 : 12);
 
 // ── Weather and climate (#230, design §5.1) ────────────────────────────────
 
@@ -347,3 +366,37 @@ export const dueChecks = (checks, target) => checks
   .filter(({ c }) => !c.rolled && c.at <= target)
   .sort((a, b) => a.c.at - b.c.at)
   .map(({ i }) => i);
+
+// ── Camp: rations (#233, design §5.5, §5.7) ────────────────────────────────
+
+/**
+ * Who eats tonight, without Shadowdark Extras (§5.5 step 3). Each member eats
+ * `each` rations from their own stock (2 in a harsh climate, 1 otherwise); one
+ * who can't cover all of them eats none and goes without (in a harsh climate
+ * a single ration counts as none, §5.7). Then each mount eats `each` from
+ * whatever the members have left.
+ * @param {{members:Array<{id:string, have:number}>, mounts?:number, each:number}} night
+ * @returns {{eat:Object<string,number>, fed:Object<string,boolean>, mountsFed:number}}
+ *   `eat`: rations taken from each member's stock, for them and for the mounts
+ */
+export function planRations({ members, mounts = 0, each }) {
+  const left = Object.fromEntries(members.map((m) => [m.id, Math.max(0, Math.trunc(m.have) || 0)]));
+  const eat = Object.fromEntries(members.map((m) => [m.id, 0]));
+  const fed = {};
+  for (const { id } of members) {
+    fed[id] = left[id] >= each;
+    if (fed[id]) { left[id] -= each; eat[id] += each; }
+  }
+  let mountsFed = 0;
+  for (let n = 0; n < mounts; n++) {
+    if (Object.values(left).reduce((a, b) => a + b, 0) < each) break;
+    let need = each;
+    for (const { id } of members) {
+      const take = Math.min(need, left[id]);
+      left[id] -= take; eat[id] += take; need -= take;
+      if (!need) break;
+    }
+    mountsFed++;
+  }
+  return { eat, fed, mountsFed };
+}

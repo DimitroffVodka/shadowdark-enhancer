@@ -158,7 +158,7 @@ async function douseAndAdvance(tracker, seconds, reason, { tookFlag }) {
       const verdict = burnCheck(flagged, game.user.id);
       if (verdict) failure = burnRefusal(verdict, flagged);
     }
-    if (!failure) await game.time.advance(seconds, advanceOptions(reason));
+    if (!failure && seconds > 0) await game.time.advance(seconds, advanceOptions(reason));
   } catch (err) {
     console.error(`${MODULE_ID} | off-duty move stopped`, err);
     failure = refusal("SDE.time.offDuty.failed");
@@ -179,14 +179,16 @@ async function douseAndAdvance(tracker, seconds, reason, { tookFlag }) {
 
 /** Run the move on this client, or hand it to the primary GM. `handedOff`: it came from another GM, so never pass it on. */
 async function perform(seconds, reason, { handedOff = false } = {}) {
-  if (!(Number.isFinite(seconds) && seconds > 0)) return refusal("SDE.time.offDuty.badSeconds");
+  // 0 seconds puts the lights out and moves no clock: Overland's camp (#233)
+  // does that, then moves the clock itself with its encounter checks.
+  if (!(Number.isFinite(seconds) && seconds >= 0)) return refusal("SDE.time.offDuty.badSeconds");
   const tracker = game.shadowdark?.lightSourceTracker;
   const tracking = !!tracker && game.settings.get("shadowdark", "trackLightSources") === true;
   const flagged = lightGMs(Array.from(game.users ?? []));
   const route = offDutyRoute({ tracking, flagged, selfId: game.user.id });
 
   if (route === "advance") {
-    await game.time.advance(seconds, advanceOptions(reason));
+    if (seconds > 0) await game.time.advance(seconds, advanceOptions(reason));
     return { ok: true, worldTime: game.time.worldTime, doused: [] };
   }
   if (route === "twoPrimaries") return burnRefusal(route, flagged);
@@ -203,7 +205,7 @@ async function perform(seconds, reason, { handedOff = false } = {}) {
 
 /**
  * `game.shadowdarkEnhancer.time.advanceOffDuty(seconds, { reason })`, GM only.
- * @param {number} seconds  how far to move the clock, more than 0
+ * @param {number} seconds  how far to move the clock: 0 or more; 0 only puts the lights out
  * @param {{reason?: string}} [options]  what `timeAdvanced` reports as `offDuty`
  * @returns {Promise<{ok: true, worldTime: number, doused: {actorId: string, itemId: string}[]}
  *   |{ok: false, error: string, doused?: {actorId: string, itemId: string}[]}>}
