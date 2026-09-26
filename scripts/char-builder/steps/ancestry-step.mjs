@@ -2,7 +2,7 @@ import { ListStep } from "./list-step.mjs";
 import {
   loadAncestries, enrich, tableOptions, rollTableDoc,
   configuredTables, tableMatchesAncestry, coreNameTable, findTableByName,
-  talentDescription,
+  talentDescription, rollAncestryFromTable,
 } from "../data.mjs";
 import { ancestryArt } from "../art.mjs";
 
@@ -177,7 +177,11 @@ export class AncestryStep extends ListStep {
   }
 
   async randomize() {
-    await super.randomize();        // pick a (weighted) random ancestry (sets ancestryTalents to the first N)
+    // The GM's population table picks the ancestry when one is set; otherwise
+    // (or when its result names no installed ancestry) the weighted pick.
+    const rolled = await rollAncestryFromTable(await this.items());
+    if (rolled) await this.select(rolled.uuid);
+    else await super.randomize();   // pick a (weighted) random ancestry (sets ancestryTalents to the first N)
     const item = this.selected?.item;
     if (item && this._needsTalentChoice(item)) {
       const count = item.system.talentChoiceCount || 0;
