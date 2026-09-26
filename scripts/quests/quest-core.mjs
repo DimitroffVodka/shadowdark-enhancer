@@ -175,6 +175,22 @@ export function planStatusChange(quest, to) {
   return { ok: true, changed: true, quest: { ...q, status: to }, pay: shouldPay(q, to), ownership: ownershipFor(to) };
 }
 
+/**
+ * A one-at-a-time queue: each job starts when the one before it has settled,
+ * whether it succeeded or threw. A check-then-write inside one job therefore
+ * cannot interleave with another, which is what stops a double-clicked "Take
+ * this task" from filing two quests. A job must never wait on the queue that
+ * runs it: that job would wait for itself.
+ */
+export function makeQueue() {
+  let tail = Promise.resolve();
+  return (job) => {
+    const run = tail.then(job);
+    tail = run.catch(() => {});
+    return run;
+  };
+}
+
 // ── Objectives ──────────────────────────────────────────────────────────────
 
 export function addObjective(quest, text, newId = defaultId) {

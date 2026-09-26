@@ -28,7 +28,7 @@ import { Renown } from "../renown/renown.mjs";
 import { trainerByKey } from "../training/training-core.mjs";
 import {
   FOLDER_FLAG, OWNERSHIP, PAGE_FLAG, QUEST_FLAG,
-  canSee, defaultRecipients, matchesFilter, mergeQuest, normalizeQuest, ownershipFor, payoutPlan,
+  canSee, defaultRecipients, makeQueue, matchesFilter, mergeQuest, normalizeQuest, ownershipFor, payoutPlan,
   pickPin, planStatusChange, playerPageHtml, rewardLines, summarize, trainerLabel, trainerTaskQuests,
 } from "./quest-core.mjs";
 
@@ -104,14 +104,10 @@ export function partyMembers(partyUuid) {
 
 // ── Writing (GM only) ───────────────────────────────────────────────────────
 
-// ponytail: one queue per client, so rapid edits in one window never read a
-// stale flag. Two GMs editing the same quest at the same moment can still race.
-let tail = Promise.resolve();
-function serialize(fn) {
-  const run = tail.then(fn);
-  tail = run.catch(() => {});
-  return run;
-}
+// ponytail: one queue per client for every quest write (create, edit, status),
+// so rapid edits never read a stale flag and a double click never files twice.
+// Two GMs writing the same quest at the same moment can still race.
+const serialize = makeQueue();
 
 function gmOnly() {
   if (game.user?.isGM) return false;
@@ -151,6 +147,33 @@ async function writeQuest(entry, quest, { name } = {}) {
   const page = entry.pages.find((p) => p.flags?.[MODULE_ID]?.[PAGE_FLAG] === "player");
   if (page) await page.update({ "text.content": playerPageHtml(quest, t) });
   else await entry.createEmbeddedDocuments("JournalEntryPage", [playerPageData(quest)]);
+}
+
+/**
+ * Make the entry. Unqueued: callers run it inside `serialize`, and it must
+ * never call the queued `Quests.create` itself.
+ */
+async function createNow(data) {
+  const quest = normalizeQuest(withActorUuids(data), { newId });
+  const name = String(data.name ?? "").trim() || t("SDE.quests.newName");
+  const folder = await questFolder();
+  const entry = await JournalEntry.create({
+    name,
+    folder: folder?.id ?? null,
+    ownership: { default: ownershipFor(quest.status) },
+    flags: { [MODULE_ID]: { [QUEST_FLAG]: quest } },
+    pages: [
+      playerPageData(quest),
+      {
+        name: t("SDE.quests.page.gmNotes"),
+        type: "text",
+        text: { content: `<p><em>${esc(t("SDE.quests.page.gmHint"))}</em></p>`, format: CONST.JOURNAL_ENTRY_PAGE_FORMATS.HTML },
+        ownership: { default: OWNERSHIP.NONE },
+        flags: { [MODULE_ID]: { [PAGE_FLAG]: "gm" } },
+      },
+    ],
+  });
+  return entry ? toSummary(entry) : null;
 }
 
 /** Resolve the actor references a caller may pass (Actor, uuid, id) to uuids. */
@@ -279,26 +302,7 @@ export const Quests = {
    */
   async create(data = {}) {
     if (gmOnly()) return null;
-    const quest = normalizeQuest(withActorUuids(data), { newId });
-    const name = String(data.name ?? "").trim() || t("SDE.quests.newName");
-    const folder = await questFolder();
-    const entry = await JournalEntry.create({
-      name,
-      folder: folder?.id ?? null,
-      ownership: { default: ownershipFor(quest.status) },
-      flags: { [MODULE_ID]: { [QUEST_FLAG]: quest } },
-      pages: [
-        playerPageData(quest),
-        {
-          name: t("SDE.quests.page.gmNotes"),
-          type: "text",
-          text: { content: `<p><em>${esc(t("SDE.quests.page.gmHint"))}</em></p>`, format: CONST.JOURNAL_ENTRY_PAGE_FORMATS.HTML },
-          ownership: { default: OWNERSHIP.NONE },
-          flags: { [MODULE_ID]: { [PAGE_FLAG]: "gm" } },
-        },
-      ],
-    });
-    return entry ? toSummary(entry) : null;
+    return serialize(() => createNow(data));
   },
 
   /**
@@ -365,15 +369,19 @@ export const Quests = {
     if (gmOnly()) return null;
     const tr = trainerByKey(trainer);
     if (!tr || !actor || !Number.isInteger(task)) return null;
-    const taken = trainerTaskQuests(this.list({ sourceKind: "trainer" }), { actorUuid: actor.uuid, trainer }).get(task);
-    if (taken) return taken;
-    return this.create({
-      name: t("SDE.quests.trainerQuestName", { topic: tr.topic, trainer: tr.trainer, n: task + 1 }),
-      status: "available",
-      source: { kind: "trainer", uuid: journalUuid, trainer, task },
-      characters: [actor.uuid],
-      objectives: [text],
-      rewards: { training: trainer },
+    // The check and the create are one job, so a second click waits for the
+    // first quest to exist and then finds it.
+    return serialize(() => {
+      const taken = trainerTaskQuests(this.list({ sourceKind: "trainer" }), { actorUuid: actor.uuid, trainer }).get(task);
+      if (taken) return taken;
+      return createNow({
+        name: t("SDE.quests.trainerQuestName", { topic: tr.topic, trainer: tr.trainer, n: task + 1 }),
+        status: "available",
+        source: { kind: "trainer", uuid: journalUuid, trainer, task },
+        characters: [actor.uuid],
+        objectives: [text],
+        rewards: { training: trainer },
+      });
     });
   },
 
@@ -448,7 +456,8 @@ export function registerQuests() {
   const note = (entry) => { changed.add(entry.id); flush(); };
   Hooks.on("createJournalEntry", (entry) => { if (flagOf(entry)) note(entry); });
   Hooks.on("deleteJournalEntry", (entry) => { if (flagOf(entry)) note(entry); });
-  // The flag's own delete step leaves an update with no quest flag on it, so
-  // any change to this module's flags counts as well.
-  Hooks.on("updateJournalEntry", (entry, changes) => { if (flagOf(entry) || changes?.flags?.[MODULE_ID]) note(entry); });
+  // Only while the entry still carries the flag. replaceModuleFlag deletes it
+  // and then sets it; reporting the delete step would show listeners a quest
+  // that has vanished, and the set step reports the change anyway.
+  Hooks.on("updateJournalEntry", (entry) => { if (flagOf(entry)) note(entry); });
 }

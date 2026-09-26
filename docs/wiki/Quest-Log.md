@@ -17,9 +17,10 @@ trouble, a trainer or you. You run it; your players read it.
 
 Everyone can open it. Players get it read-only; only the GM edits.
 
-> Firefox on Linux quits the browser on Ctrl+Q before Foundry sees the key.
-> If someone at your table plays that way, give the Quest Log another key
-> under *Configure Controls*.
+> Firefox on Linux quits the browser on Ctrl+Q before Foundry sees the key,
+> and no web page can stop it. To use another key: **Game Settings →
+> Configure Controls → Shadowdark Enhancer → Open the Quest Log**, then set
+> the key you want. Each player sets their own.
 
 ---
 

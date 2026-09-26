@@ -20,6 +20,9 @@ import { QUESTS_CHANGED, Quests, actorName, partiesAvailable, partyActors, party
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
+/** Fields a GM types into; a redraw waits while one of them has focus. */
+const TEXT_FIELDS = "textarea, input:not([type]), input[type='text'], input[type='number']";
+
 /** One string from `languages/en.json`; the key when no i18n is mounted. */
 const t = (key, data) => {
   const i18n = globalThis.game?.i18n;
@@ -72,7 +75,24 @@ export class QuestLogApp extends HandlebarsApplicationMixin(ApplicationV2) {
 
   async _onFirstRender(context, options) {
     await super._onFirstRender(context, options);
-    this._hook = Hooks.on(QUESTS_CHANGED, () => this.render());
+    this._hook = Hooks.on(QUESTS_CHANGED, () => this._onQuestsChanged());
+  }
+
+  /**
+   * Redraw for a change, but never under the GM's typing: a render rebuilds
+   * every field from the stored quest, so text not yet saved would be lost.
+   * While a text field here has focus the redraw waits for it to lose focus.
+   * Not for its change event: Enter fires change with focus still in the
+   * field, before the write lands, and a redraw then would put the old value
+   * back under the cursor.
+   */
+  _onQuestsChanged() {
+    const field = document.activeElement;
+    const typing = !!field && !!this.element?.contains(field) && field.matches(TEXT_FIELDS);
+    if (!typing) { this.render(); return; }
+    if (this._heldFor === field) return;
+    this._heldFor = field;
+    field.addEventListener("blur", () => { this._heldFor = null; this.render(); }, { once: true });
   }
 
   _onClose(options) {
@@ -195,6 +215,9 @@ export class QuestLogApp extends HandlebarsApplicationMixin(ApplicationV2) {
     if (!text.trim()) return;
     input.value = "";
     await this._edit((q) => addObjective(q, text, () => foundry.utils.randomID()));
+    // Show it now: the box is empty again, so this redraw loses nothing, and
+    // its name puts the cursor back for the next objective.
+    this.render();
   }
 
   async _onNew() {

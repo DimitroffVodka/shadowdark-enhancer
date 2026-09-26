@@ -2,7 +2,7 @@ import { describe, test } from "node:test";
 import assert from "node:assert/strict";
 import {
   OWNERSHIP, STATUSES,
-  addObjective, canSee, defaultRecipients, matchesFilter, mergeQuest, normalizeQuest, objectiveProgress,
+  addObjective, canSee, defaultRecipients, makeQueue, matchesFilter, mergeQuest, normalizeQuest, objectiveProgress,
   ownershipFor, payoutPlan, pickPin, planStatusChange, playerPageHtml, removeObjective, setObjectiveDone,
   setObjectiveText, shouldPay, summarize, trainerTaskQuests, visibleStatuses,
 } from "../scripts/quests/quest-core.mjs";
@@ -240,6 +240,50 @@ describe("trainer tasks", () => {
   test("a failed task can be taken again", () => {
     const map = trainerTaskQuests([task("a", { status: "failed" })], { actorUuid: "Actor.hero", trainer: "gladiator" });
     assert.equal(map.size, 0);
+  });
+});
+
+describe("the write queue", () => {
+  const tick = () => new Promise((resolve) => setTimeout(resolve, 5));
+
+  test("a double click files one quest: the second check waits for the first create", async () => {
+    const queue = makeQueue();
+    const store = new Map();
+    let creates = 0;
+    // The shape of takeTrainerTask: look for the quest, else make it, in one job.
+    const take = (key) => queue(async () => {
+      if (store.has(key)) return store.get(key);
+      await tick();                     // the server round trip
+      creates++;
+      store.set(key, { id: `q${creates}` });
+      return store.get(key);
+    });
+    const [a, b] = await Promise.all([take("gladiator:0"), take("gladiator:0")]);
+    assert.equal(creates, 1);
+    assert.equal(a, b);
+  });
+
+  test("jobs run in order, and one that throws does not stop the next", async () => {
+    const queue = makeQueue();
+    const order = [];
+    const failed = queue(async () => { await tick(); order.push(1); throw new Error("boom"); });
+    const next = queue(async () => { order.push(2); return "ran"; });
+    await assert.rejects(failed, /boom/);
+    assert.equal(await next, "ran");
+    assert.deepEqual(order, [1, 2]);
+  });
+
+  test("without the queue the same double click files two (why it exists)", async () => {
+    const store = new Map();
+    let creates = 0;
+    const take = async (key) => {
+      if (store.has(key)) return store.get(key);
+      await tick();
+      creates++;
+      store.set(key, {});
+    };
+    await Promise.all([take("k"), take("k")]);
+    assert.equal(creates, 2);
   });
 });
 
