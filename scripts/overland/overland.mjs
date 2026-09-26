@@ -38,7 +38,7 @@ import { MODULE_ID } from "../shared/module-id.mjs";
 import { CrawlState } from "../crawl-strip/crawl-state.mjs";
 import { authorizeActorFor, isActiveGM, queryActiveGM, refuseQuery } from "../shared/gm-relay.mjs";
 import { makeQueue } from "../quests/quest-core.mjs";
-import { hexReader, isHexMapScene, partyHex } from "../encounter/encounter-terrain.mjs";
+import { hexReader, hexZonesFor, isHexMapScene, partyHex } from "../encounter/encounter-terrain.mjs";
 import { BOAT_TYPE } from "../actors/register-actors.mjs";
 import { dawnAfter, dateParts, startOfDay } from "../time/time-core.mjs";
 import { advanceOffDuty } from "../time/off-duty.mjs";
@@ -191,12 +191,11 @@ function membersFor(actorId) {
   return game.actors.filter((a) => a.type === "Player" && a.hasPlayerOwner).map((a) => a.id);
 }
 
-/** The hex's region, from the print's region scan (lazy: hex-region is large). */
+/** The hex's region, from the print's region scan, cached with the encounter check's (#260). */
 async function withRegion(hex, scene = canvas.scene) {
   if (!hex) return null;
   try {
-    const { sceneZones } = await import("../hex-map/hex-region.mjs");
-    return { ...hex, region: (await sceneZones(scene)).byNum.get(hex.num)?.zone ?? null };
+    return { ...hex, region: (await hexZonesFor(scene)).byNum.get(hex.num)?.zone ?? null };
   } catch {
     return { ...hex, region: null };
   }
