@@ -18,8 +18,9 @@
  */
 
 import { isActiveGM } from "../shared/gm-relay.mjs";
+import { onConZero } from "../dying/dying.mjs";
 import {
-  ABILITIES, abilityKey, afterHeal, damageOf, damagedAbility, diesAtZeroCon, statDamageEffect,
+  ABILITIES, abilityKey, afterHeal, damageOf, damagedAbility, statDamageEffect,
 } from "./stat-damage-core.mjs";
 
 /** Only characters have scores; an NPC's abilities are bare modifiers (NpcSD). */
@@ -51,20 +52,6 @@ async function setDamage(actor, ability, total) {
   }
 }
 
-/**
- * The dead status and a defeated combatant: what #181 calls dead. The dying
- * rules themselves (timers, stabilizing) are #181's.
- */
-async function die(actor) {
-  await actor.toggleStatusEffect("dead", { active: true, overlay: true });
-  for (const combat of game.combats ?? []) {
-    for (const c of combat.combatants) {
-      const isThem = actor.isToken ? c.tokenId === actor.token?.id : c.actorId === actor.id;
-      if (isThem && !c.defeated) await c.update({ defeated: true });
-    }
-  }
-}
-
 export const StatDamage = {
 
   /**
@@ -87,10 +74,12 @@ export const StatDamage = {
     if ((actor.system?.abilities?.con?.value ?? 1) > 0) return;
     // A batched create fires this once per effect, before the first death
     // has set the status: the in-flight set stops the second toggle.
-    if (actor.statuses?.has("dead") || _dying.has(actor.uuid) || !diesAtZeroCon(actor)) return;
+    if (actor.statuses?.has("dead") || _dying.has(actor.uuid)) return;
     _dying.add(actor.uuid);
     try {
-      await die(actor);
+      // Dying's own death (#181): its flag and status go too, and a character
+      // carrying noDeathAtZeroCon (River of Death) survives.
+      await onConZero(actor);
     } finally {
       _dying.delete(actor.uuid);
     }

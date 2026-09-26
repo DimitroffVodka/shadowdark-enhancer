@@ -15,9 +15,10 @@ and Forge & Loot features.
 [`partyXp`](#partyxp--party-xp-awards) · [`recap`](#recap--session-recap) ·
 [`charBuilder`](#charbuilder--guided-character-creation) ·
 [`actors`](#actors--western-reaches-boats) ·
-[`statDamage`](#statdamage--tracked-ability-damage) · [`quests`](#quests--the-quest-log)
+[`statDamage`](#statdamage--tracked-ability-damage) · [`quests`](#quests--the-quest-log) ·
+[`dying`](#dying--death-timers-and-stabilizing)
 
-**API version:** `1.7.0` (semver — additive changes bump the minor version,
+**API version:** `1.8.0` (semver — additive changes bump the minor version,
 breaking changes the major; check `apiVersion` before relying on newer keys).
 
 ## Discovery
@@ -895,7 +896,7 @@ await api.training.taught(actor, "gladiator");   // → [2]
 module can compute grants a Talent carrying Active Effect changes; one it
 cannot grants a Talent carrying the trainer's name, the book's line and a
 plain sentence saying what the table still does by hand. Of the 84 benefits,
-**24 compute something today and 60 are recorded as prose** — 13 carry effect
+**27 compute something today and 57 are recorded as prose** — 16 carry effect
 changes, 10 run a one-time write, 4 offer an either/or.
 
 Roughly half the prose is automatable and simply is not automated yet: the
@@ -973,9 +974,10 @@ holding the new total, so two library drops become one line the next time that
 ability changes.
 
 **CON 0 is death.** When a stat-damage effect takes a character's CON to 0 or
-below, the active GM's client marks them dead (the `dead` status, and defeated
-in any combat they are in). The dying modifiers of #181 will let a character
-with River of Death survive it.
+below, the active GM's client marks them dead the way dying does (the `dead`
+status, defeated in any combat they are in, and any dying state cleared). A
+character carrying the `noDeathAtZeroCon` dying modifier (River of Death, or
+the Ancient Ritual training) survives it; see `dying` below.
 
 **Monster hits use it too.** A monster attack card that hits a character is
 read for riders like `1 STR damage` or `DC 12 CON or 1d4 STR damage`; a saved
@@ -1081,6 +1083,49 @@ for `hex`.
 The hook `shadowdark-enhancer.questsChanged` fires on every client, once per
 burst of writes, after any quest is created, changed or deleted.
 
+## `dying` — death timers and stabilizing
+
+Added in 1.8.0. The core dying rule (p.89) with Deadly and Fatality (p.111);
+the table-facing description is the wiki page *Dying and Death Timers*.
+
+```js
+const d = game.shadowdarkEnhancer.dying;
+
+d.isDying(actor);                  // → true while dying (not stable, not dead)
+d.timer(actor);                    // → rounds left, or null
+d.state(actor);                    // → { timer, stable, conscious, tick } or null
+
+await d.stabilize(actor, { by: helper }); // helper's INT check on THIS client; → did it succeed
+await d.stabilize(actor);                 // GM: no roll (a potion, an automatic success)
+await d.rise(actor);                      // GM: up at 1 HP, everything cleared
+await d.adjust(actor, +1);                // GM: rounds added (or removed), never below 1
+await d.setConscious(actor, true);        // GM: acting while dying; the timer still runs
+
+d.STATUS;                          // "sde-dying", the status this module registers
+d.KEYS.timerDie;                   // "flags.shadowdark-enhancer.dyingTimerDie", …
+```
+
+| Call | Who | Notes |
+|---|---|---|
+| `isDying`, `timer`, `state` | anyone | Read the actor's `flags["shadowdark-enhancer"].dying`. The hidden timer hides the count in the UI only. |
+| `stabilize(actor, { by })` | owner of `by`, or GM | Runs the system's `rollStatCheck("int")` for `by`. The DC comes from the active GM (query `shadowdark-enhancer.dying`): 15, 18 under Deadly or near a `stabilizeDCNear` creature, and `by`'s own `stabilizeDC` beats both. The check's roll config carries `flags.shadowdark.rollConfig["shadowdark-enhancer"].stabilizeTarget`, so a Luck reroll of the card carries it too. The active GM reads every such card as it lands and stabilizes only when the card's author is a GM or owns `by`, and the roll's total meets the DC it works out itself. Resolves to whether this roll succeeded. |
+| `stabilize(actor)` | GM | No roll. |
+| `rise`, `adjust`, `setConscious` | GM | Run on the active GM, in the actor's queue with the automatic steps; another GM's call is relayed to it. |
+
+`KEYS` is the modifier vocabulary, set on Active Effects (`override`, except
+`timerBonus`, which is `add`): `timerDie`, `timerBonus`, `riseMin`,
+`riseMinNear`, `stabilizeDC`, `stabilizeDCNear`, `noDeathAtZeroCon`. Values are
+read from the actor's derived flags at the moment they are needed.
+`noDeathAtZeroCon` also decides stat damage's death at CON 0 (`statDamage`
+above).
+
+Every write runs on the active GM, in one queue per actor: 0 HP in
+`updateActor`, the turn start in a wrapped `Combat#_onStartTurn`, stabilize
+cards in `createChatMessage`, and crawl rounds from the
+`shadowdark-enhancer.crawlRound` hook, relayed there from whichever GM advanced
+the round. The owning player's client only rolls the natural die; the GM adds
+the modifiers. None of it runs while Shadowdark Crawl Helper is active.
+
 ## Stability notes
 
 - Everything documented here is public surface; undocumented internals
@@ -1096,6 +1141,8 @@ burst of writes, after any quest is created, changed or deleted.
 - `1.6.0` adds the `statDamage` namespace (tracked ability damage).
 - `1.7.0` adds the `quests` namespace (the Quest Log) and the
   `shadowdark-enhancer.questsChanged` hook.
+- `1.8.0` adds the `dying` namespace (death timers, stabilize) and the
+  `shadowdark-enhancer.crawlRound` hook.
 - `1.4.0` adds the shared `forgeLoot.open()` preview shell. Generator rules and
   document writes remain behind the later NPC/Rival adapter implementations.
   The version policy is additive: new namespaces bump the minor version; breaking
@@ -1192,6 +1239,7 @@ plus `authorizeActorFor(actorId, user)` on the GM side, and
 | `shadowdark-enhancer.questsChanged` | A quest was created, changed or deleted; fires on every client, once per burst of writes | `{ ids }` — the quest entry ids that changed |
 | `shadowdark-enhancer.crawlStart` | A crawl session starts | the crawl state |
 | `shadowdark-enhancer.crawlEnd` | A crawl session ends | the crawl state |
+| `shadowdark-enhancer.crawlRound` | The crawl round advances, on the one GM client that advanced it (the death timers tick on it) | the crawl state |
 | `sde.stateChanged` | Any crawl-state change (mode, turn, roster, out-of-combat initiative) — this is the high-frequency one the strip and bar re-render on | the crawl state |
 
 > **Three prefixes are in play, deliberately.** The ready signal uses camelCase
