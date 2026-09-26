@@ -68,7 +68,6 @@ const deep = new Proxy(function () {}, {
 });
 const { gregorian, at } = await import("./gregorian-calendar.mjs");
 const stored = {};
-const settings = {};
 // Foundry 14's forced-deletion operator, a global in the client.
 const DEL = Symbol("_del");
 globalThis._del = DEL;
@@ -77,7 +76,14 @@ Object.assign(globalThis, {
   foundry: deep, CONFIG: { queries: {} }, Hooks: { on() {}, once() {}, callAll() {} }, ui: { notifications: { warn() {} } },
   game: {
     user: gm, users: { activeGM: gm },
-    settings: { get: (ns, key) => (ns === "shadowdark-enhancer" ? stored[key] : settings[`${ns}.${key}`]), set: async () => {} },
+    // Foundry throws for a setting nobody registered; so does this stub (#255).
+    settings: {
+      get: (ns, key) => {
+        if (ns !== "shadowdark-enhancer") throw new Error(`"${ns}.${key}" is not a registered game setting`);
+        return stored[key];
+      },
+      set: async () => {},
+    },
     socket: { emit() {}, on() {} },
     time: { worldTime: at(1301, 6, 21, 21), calendar: gregorian },
     i18n: { localize: (k) => k, format: (k) => k },
@@ -144,17 +150,20 @@ test("a dungeon, a locked scene and another GM are left alone; no other module i
   const locked = scene({ locked: true });
   await applySky(locked);
   assert.deepEqual(locked.writes, []);
-  globalThis.game.modules = { get: (id) => (id === "calendaria" ? { active: true } : null) };
-  settings["calendaria.darknessSync"] = true;
-  const other = scene();
-  await applySky(other);
-  assert.equal(other.writes.length, 1, "another calendar module, on or off, changes nothing");
-  globalThis.game.modules = { get: () => null };
-  globalThis.game.users.activeGM = { id: "other" };
-  const notMine = scene();
-  await applySky(notMine);
-  assert.deepEqual(notMine.writes, []);
-  globalThis.game.users.activeGM = gm;
+  try {
+    globalThis.game.modules = { get: (id) => (id === "calendaria" ? { active: true } : null) };
+    const other = scene();
+    await applySky(other);
+    assert.equal(other.writes.length, 1, "another calendar module, on or off, changes nothing");
+    globalThis.game.modules = { get: () => null };
+    globalThis.game.users.activeGM = { id: "other" };
+    const notMine = scene();
+    await applySky(notMine);
+    assert.deepEqual(notMine.writes, []);
+  } finally {
+    globalThis.game.modules = { get: () => null };
+    globalThis.game.users.activeGM = gm;
+  }
 });
 
 const STORMY = { kind: "stormy", roll: 1, rule: "western", until: at(1301, 6, 22, 5), advantageNext: false, advantage: false, days: null };
