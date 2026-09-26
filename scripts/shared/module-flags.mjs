@@ -49,14 +49,15 @@ const isObject = (value) => !!value && typeof value === "object" && !Array.isArr
  * Deleting the key first and setting it after is the pattern that both replaces
  * the object (no merged-in leftovers from the old value) and leaves siblings
  * alone. It has to be two updates: a delete and a set of the same key in ONE
- * update merge instead of replacing.
+ * update merge instead of replacing. The delete is Foundry 14's `_del`
+ * (ForcedDeletion); the legacy `-=key` form logs a deprecation warning (#261).
  *
  * @param {object} document  any Foundry document
  * @param {string} key       the flag key inside this module's namespace
  * @param {object} value     the new value, written whole
  */
 export async function replaceModuleFlag(document, key, value) {
-  await document.update({ [`flags.${MODULE_ID}.-=${key}`]: null });
+  await document.update({ [`flags.${MODULE_ID}.${key}`]: _del });
   return document.update({ [`flags.${MODULE_ID}.${key}`]: value });
 }
 

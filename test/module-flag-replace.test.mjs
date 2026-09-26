@@ -3,26 +3,40 @@ import assert from "node:assert/strict";
 import { replaceModuleFlag } from "../scripts/shared/module-flags.mjs";
 
 const MOD = "shadowdark-enhancer";
+// Foundry 14's forced-deletion operator, a global in the client.
+const DEL = Symbol("_del");
+globalThis._del = DEL;
+
+/** Foundry's update merge is recursive (mergeObject); a shallow one would hide a missing delete. */
+function deepMerge(target, source) {
+  for (const [k, v] of Object.entries(source)) {
+    if (v && typeof v === "object" && !Array.isArray(v) && target[k] && typeof target[k] === "object") deepMerge(target[k], v);
+    else target[k] = structuredClone(v);
+  }
+  return target;
+}
 
 /**
  * A document standing in for Foundry's update semantics, to the extent this
- * helper depends on them: a dotted path writes into nested objects, a `-=key`
+ * helper depends on them: a dotted path writes into nested objects, `_del`
  * deletes, and a plain object value MERGES into what is there. That merge is
  * why a flag has to be deleted before it is set, and the sibling flag here is
  * the 4768 hex tags that a `recursive: false` write destroyed on 2026-09-18.
  */
 function fakeDoc(flags = {}) {
-  const doc = { flags: structuredClone(flags), updates: 0 };
+  const doc = { flags: structuredClone(flags), updates: 0, paths: [], writes: [] };
   doc.update = async (data) => {
     doc.updates++;
     for (const [path, value] of Object.entries(data)) {
+      doc.paths.push(path);
+      doc.writes.push(value);
       const parts = path.split(".");
       const leaf = parts.pop();
       let node = doc.flags;
       for (const p of parts.slice(1)) node = node[p] ??= {};   // parts[0] is "flags"
-      if (leaf.startsWith("-=")) delete node[leaf.slice(2)];
+      if (value === DEL) delete node[leaf];
       else if (value && typeof value === "object" && node[leaf] && typeof node[leaf] === "object") {
-        node[leaf] = { ...node[leaf], ...value };
+        node[leaf] = deepMerge(node[leaf], value);
       } else node[leaf] = value;
     }
     return doc;
@@ -53,4 +67,13 @@ test("replaceModuleFlag: it takes two updates — a delete and a set in one woul
   const doc = fakeDoc({ [MOD]: { hexTags: { cells: { 1: "forest" } } } });
   await replaceModuleFlag(doc, "hexTags", { cells: { 2: "swamp" } });
   assert.equal(doc.updates, 2);
+});
+
+test("replaceModuleFlag: deletes with _del, never the legacy -=key Foundry 14 warns about (#261)", async () => {
+  const doc = fakeDoc({ [MOD]: { quest: { status: "active" } } });
+  await replaceModuleFlag(doc, "quest", { status: "completed" });
+  assert.deepEqual(doc.paths, [`flags.${MOD}.quest`, `flags.${MOD}.quest`]);
+  assert.ok(doc.paths.every((p) => !p.includes("-=")));
+  assert.equal(doc.writes[0], DEL, "the first write deletes with _del");
+  assert.deepEqual(doc.flags[MOD].quest, { status: "completed" });
 });

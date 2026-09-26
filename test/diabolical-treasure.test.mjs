@@ -36,6 +36,8 @@ import {
   parseDiabolicalTreasureResult,
   diabolicalTreasureSource,
 } from "../scripts/loot/diabolical-treasure.mjs";
+// Foundry 14's forced-deletion operator, a global in the client.
+globalThis._del ??= Symbol("_del");
 
 const LOCAL_FOUNDRY_ICON_ROOT = "/home/patricks/FoundryV14/public/icons";
 const configuredIconRoot = String(process.env.SHADOWDARK_ENHANCER_FOUNDRY_ICON_ROOT ?? "").trim();
@@ -196,10 +198,7 @@ function makeTable(
         if (!update) return row;
         const next = { ...row, ...update, id: row.id };
         delete next._id;
-        if (Object.hasOwn(next, "-=documentUuid")) {
-          delete next.documentUuid;
-          delete next["-=documentUuid"];
-        }
+        if (next.documentUuid === globalThis._del) delete next.documentUuid;
         return tableResult(next);
       });
     };
