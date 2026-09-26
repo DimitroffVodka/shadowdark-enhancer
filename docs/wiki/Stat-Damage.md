@@ -20,8 +20,10 @@ When the damage is healed, the line disappears.
 
 When a monster's attack hits a character and the attack's text carries a
 stat-damage rider, the character takes it automatically. The rider can be in
-the attack itself (*1d6 + 1 STR damage*) or in the monster feature the attack
-names (*1d6 + drain*, with a *Drain* feature that says *1 STR damage*).
+the attack itself (*1d6 + 1 STR damage*), in the monster feature the attack
+names (*1d6 + drain*, with a *Drain* feature that says *1 STR damage*), or,
+for an attack that names nothing, in the feature with the attack's own name
+(the bestiary Wight's *Life Drain* attack and *Life Drain* feature).
 
 - **A plain rider** such as *1 STR damage* or *1d4 CON damage* applies on the
   hit. The amount is rolled in chat.
@@ -38,7 +40,8 @@ works without Shadowdark Extras.
 
 The rider lands as soon as the hit card appears, so a Duelist who then
 **Parries** that hit keeps the stat damage: edit or delete the line in the Effects
-tab by hand.
+tab by hand. The same goes for rerolling a hit that stays a hit: the reroll is
+a new card, and its rider applies again.
 
 > **Don't double up.** If you also put a Shadowdark Extras Effects-library
 > stat-damage entry into the same attack's on-hit slot, the damage applies

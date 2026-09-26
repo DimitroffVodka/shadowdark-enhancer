@@ -158,14 +158,18 @@ export function parseStatRiders(text) {
  * (`system.damage.special`, which the importer also mirrors into its
  * description) or in an NPC Feature that rider names: "1d6 + drain" points at
  * the monster's *Drain* feature, the way the system's own attack card links
- * them (NpcAttackSD.render). A rider found in two of those places counts once.
+ * them (NpcAttackSD.render). An attack with no rider of its own takes the
+ * feature that shares its name: the system bestiary's Wight and Will-o'-Wisp
+ * roll a bare "Life Drain" attack whose rider lives only in a "Life Drain"
+ * feature. A rider found in two of those places counts once.
  *
  * @param {object} attack      The attack item.
  * @param {Iterable<object>} actorItems  The attacker's items.
  */
 export function attackRiders(attack, actorItems = []) {
   const special = String(attack?.system?.damage?.special ?? "");
-  const named = special.split(/[,+]/).map((s) => s.trim().toLowerCase()).filter(Boolean);
+  const named = (special.trim() ? special.split(/[,+]/) : [String(attack?.name ?? "")])
+    .map((s) => s.trim().toLowerCase()).filter(Boolean);
   const features = [...actorItems].filter((i) =>
     i?.type === "NPC Feature" && named.includes(String(i.name ?? "").trim().toLowerCase()));
   const texts = [special, attack?.system?.description, ...features.map((f) => f.system?.description)];
@@ -176,6 +180,17 @@ export function attackRiders(attack, actorItems = []) {
     seen.add(key);
     return true;
   });
+}
+
+/**
+ * May this attack card deal stat damage? Anyone can post a chat card, and its
+ * rollConfig is whatever the poster wrote. So the author must be a GM or own
+ * the attacking actor (a player's allied NPC), and the attack must be that
+ * actor's own item, not another monster's attack borrowed by uuid.
+ */
+export function cardMayApply({ authorIsGM, authorOwnsAttacker, attackOwnerUuid, attackerUuid } = {}) {
+  if (!attackerUuid || attackOwnerUuid !== attackerUuid) return false;
+  return !!(authorIsGM || authorOwnsAttacker);
 }
 
 /**

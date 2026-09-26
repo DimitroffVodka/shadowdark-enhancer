@@ -12,6 +12,11 @@
  * Do not ALSO drop an Effects-library stat-damage entry into the same
  * attack's Extras on-hit slot: both would apply.
  *
+ * WHO MAY POST THE CARD. Any user can create a chat message, and a player
+ * macro can write a rollConfig naming a Ghost's Death Touch and another
+ * character's token. The card's author must be a GM or own the attacker, and
+ * the attack must be the attacker's own item (cardMayApply).
+ *
  * THE SAVE PROMPT. The active GM handles the card, so the player is reached
  * with a user query in the GM→player direction: the server stamps the sender,
  * and the player's client refuses anyone but a GM (the same trust rule as the
@@ -27,7 +32,7 @@ import { esc } from "../shared/esc.mjs";
 import {
   actorFromUuid, attackerActorOf, cardHit, isAttackCard, rollHit, targetActorOf,
 } from "../shared/attack-card.mjs";
-import { abilityKey, attackRiders } from "./stat-damage-core.mjs";
+import { abilityKey, attackRiders, cardMayApply } from "./stat-damage-core.mjs";
 import { StatDamage, abilityLabel } from "./stat-damage.mjs";
 
 /** GM → owning player: "roll this save". */
@@ -68,7 +73,13 @@ export const StatRiders = {
     const target = await targetActorOf(message);
     if (attacker?.type !== "NPC" || target?.type !== "Player") return;
     const attack = await fromUuid(itemUuid).catch(() => null);
-    if (!attack) return;
+    const author = message.author;
+    if (!cardMayApply({
+      authorIsGM: !!author?.isGM,
+      authorOwnsAttacker: !!author && attacker.testUserPermission(author, "OWNER"),
+      attackOwnerUuid: attack?.parent?.uuid,
+      attackerUuid: attacker.uuid,
+    })) return;
 
     for (const rider of attackRiders(attack, attacker.items)) {
       if (rider.save && await StatRiders.save(target, rider.save, attack.name)) continue;

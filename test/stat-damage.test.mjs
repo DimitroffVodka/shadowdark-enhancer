@@ -16,8 +16,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
-  ABILITIES, abilityKey, afterHeal, attackRiders, damageOf, effectAmount, parseStatRiders,
-  statDamageEffect,
+  ABILITIES, abilityKey, afterHeal, attackRiders, cardMayApply, damageOf, effectAmount,
+  parseStatRiders, statDamageEffect,
 } from "../scripts/stat-damage/stat-damage-core.mjs";
 import { StatDamage } from "../scripts/stat-damage/stat-damage.mjs";
 import { StatRiders } from "../scripts/stat-damage/stat-riders.mjs";
@@ -239,6 +239,16 @@ test("a rider can live in the NPC feature the attack names", () => {
   assert.deepEqual(attackRiders(attack, items), [rider("str", "1")], "only the named feature");
 });
 
+test("an attack with no rider of its own takes the feature of the same name", () => {
+  // The system bestiary's Wight: a bare "Life Drain" attack, the rider on a feature.
+  const lifeDrain = { type: "NPC Feature", name: "Life Drain", system: { description: "<p>1d4 CON damage.</p>" } };
+  const bare = { name: "Life Drain", system: { damage: { special: "" }, description: "" } };
+  assert.deepEqual(attackRiders(bare, [lifeDrain]), [rider("con", "1d4")]);
+  // An attack that names its own rider does not also pick up a namesake.
+  const named = { name: "Life Drain", system: { damage: { special: "chill" }, description: "" } };
+  assert.deepEqual(attackRiders(named, [lifeDrain]), []);
+});
+
 test("a rider mirrored into the description, enriched or not, counts once", () => {
   const attack = { system: { damage: { special: "[[/r 1d4]] STR damage" }, description: "1d4 STR damage" } };
   assert.deepEqual(attackRiders(attack, []), [rider("str", "1d4")]);
@@ -272,10 +282,23 @@ function hitTarget(save) {
   return target;
 }
 
-function monsterCard({ special, hit = true, attackerType = "NPC", features = [] }) {
-  docs.set("Actor.npc", { documentName: "Actor", type: attackerType, name: "Barrow Wight", items: features });
-  docs.set("Item.atk", { name: "Touch", system: { damage: { special } } });
+/** A GM, and a player who owns nothing but what `owns` lists. */
+const GM = { isGM: true };
+const player = (owns = []) => ({ isGM: false, owns });
+
+function monsterCard({
+  special, hit = true, attackerType = "NPC", features = [], author = GM, borrowed = false,
+}) {
+  const attacker = {
+    documentName: "Actor", uuid: "Actor.npc", type: attackerType, name: "Barrow Wight", items: features,
+    testUserPermission: (user, level) => level === "OWNER" && !!user.owns?.includes("Actor.npc"),
+  };
+  docs.set("Actor.npc", attacker);
+  // `borrowed`: a Ghost's attack named by uuid on a card that says the wight swung.
+  const parent = borrowed ? { uuid: "Actor.ghost" } : attacker;
+  docs.set("Item.atk", { name: "Touch", parent, system: { damage: { special } } });
   return {
+    author,
     flags: { shadowdark: { rollConfig: {
       type: "attack", targetUuid: "Actor.pc", actorUuid: "Actor.npc", itemUuid: "Item.atk",
     } } },
@@ -296,6 +319,26 @@ test("a hit from an attack that says 1 STR damage lowers STR by 1", async () => 
   await StatRiders._onAttackCard(monsterCard({ special: "1 STR damage" }));
   assert.equal(StatDamage.of(target).str, 1);
   assert.equal(chat.length, 1, "the amount is rolled in chat");
+});
+
+test("only a GM's card, or one from the attacker's owner, naming the attacker's own attack", async () => {
+  const cases = [
+    [{ authorIsGM: true, attackOwnerUuid: "Actor.npc", attackerUuid: "Actor.npc" }, true],
+    [{ authorOwnsAttacker: true, attackOwnerUuid: "Actor.npc", attackerUuid: "Actor.npc" }, true],
+    [{ attackOwnerUuid: "Actor.npc", attackerUuid: "Actor.npc" }, false],
+    [{ authorIsGM: true, attackOwnerUuid: "Actor.ghost", attackerUuid: "Actor.npc" }, false],
+    [{ authorIsGM: true, attackOwnerUuid: undefined, attackerUuid: undefined }, false],
+  ];
+  for (const [facts, verdict] of cases) assert.equal(cardMayApply(facts), verdict, JSON.stringify(facts));
+
+  const forged = hitTarget(false);
+  await StatRiders._onAttackCard(monsterCard({ special: "1 STR damage", author: player() }));
+  await StatRiders._onAttackCard(monsterCard({ special: "1 STR damage", borrowed: true }));
+  assert.equal(StatDamage.of(forged).str, 0, "a player's forged card, or a borrowed attack");
+
+  const ally = hitTarget(false);
+  await StatRiders._onAttackCard(monsterCard({ special: "1 STR damage", author: player(["Actor.npc"]) }));
+  assert.equal(StatDamage.of(ally).str, 1, "the player who owns the attacker");
 });
 
 test("a miss applies nothing", async () => {
