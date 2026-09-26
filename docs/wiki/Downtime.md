@@ -261,6 +261,9 @@ Tiered by class hit die (**d4**, **d6**, **d8+**). All checks roll
 Anyone can change the **Training tier** dropdown to view other tiers. Players
 cannot attempt tiers outside their class.
 
+The Western Reaches' 21 regional trainers, who teach a technique for a
+completed task, are a separate window: see [Regional Training](Regional-Training.md).
+
 ### Magical Research
 
 Visible only to characters recognized as spellcasters.

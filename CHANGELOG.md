@@ -144,9 +144,8 @@ page walks through it in order.
   Master's Guide to the Western Reaches (p. 30). Every rule is its own
   switch, so one rule of a mode can run without the rest, and each mode has a
   switch for all of its rules. The system's Pulp and Momentum settings and
-  Shadowdark Extras' Grinder settings show in the same window. Rules marked
-  *Not automated yet* are saved but do nothing until the update that builds
-  them. (#178)
+  Shadowdark Extras' Grinder settings show in the same window. See the new
+  *Modes of Play* wiki page. (#178)
 - **Blitz: light timers last 30 minutes.** Lighting a torch or lantern sets
   it to 30 minutes left (less if it already had less), however it is lit, and
   a light spell lasts 30 minutes. A torch's own maximum is untouched, so its
@@ -159,8 +158,9 @@ page walks through it in order.
   widens the failure range counts too, and never refuses a damage reroll.
   (#186)
 - **Hunter: XP for defeated monsters.** Ending a combat pays every character
-  who was in it XP for each monster still marked defeated: half its level,
-  rounded down, and 1 for a level 1 monster. It is one Party XP card per
+  who was in it XP for each monster still down (marked defeated, or at 0 HP;
+  friendly and hidden ones don't count): half its level, rounded down, and 1
+  for a level 1 monster. It is one Party XP card per
   combat, with the usual "ready to level up" marker and a Session Recap entry.
   Monsters killed outside a combat aren't counted. (#184)
 - **Chaos: initiative is rerolled every round.** Every combatant rolls
