@@ -49,6 +49,8 @@ export default [
         Macro: "readonly",
         fromUuid: "readonly",
         fromUuidSync: "readonly",
+        // Foundry 14's forced-deletion operator: `{ key: _del }` replaces the legacy `-=key`.
+        _del: "readonly",
         renderTemplate: "readonly",
         FormDataExtended: "readonly",
         // Foundry ships PIXI as a global; the canvas overlays draw with it.

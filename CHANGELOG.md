@@ -57,6 +57,10 @@ it needs.
   forage. Players get a Forage button on their own characters. The GM also
   sees the check hours and the day's buttons, which players never do. It
   hides during combat. (#234)
+- **Travel works before the rules data is imported.** Pressing **Travel**
+  opens **Start day** at once, and its **Hexes today** takes the day's hexes
+  when the Rules Data has no hexes per day yet (it lists the ones it has).
+  Before, Start day refused, and every move of the token then bounced. (#231)
 - **The sky on outdoor scenes.** The hex map, and any scene set to **Follows
   the sky** in Scene Configuration's Environment tab, darkens with the clock.
   It is 0 by day, deepens over an hour of twilight to a night the moon

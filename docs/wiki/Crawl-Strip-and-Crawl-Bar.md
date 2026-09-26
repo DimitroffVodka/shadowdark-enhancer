@@ -179,10 +179,14 @@ with forage and camp.
   **Configure Settings → Shadowdark Enhancer → Overland**. A storm makes
   normal terrain difficult, and a storm in a harsh climate stops travel
   altogether.
-- **Start day** opens a travel day. Pick walking, mounted or sailing, and a
-  boat actor to sail aboard. Tick **Push on** for half as many hexes again,
-  at the same pace. The weather is rolled first if today's hasn't been. The
-  hexes per day come from **Edit Rules Data**, or from the boat's speed.
+- **Start day** opens a travel day, and pressing **Travel** opens it for you
+  straight away. Pick walking, mounted or sailing, and a boat actor to sail
+  aboard. Tick **Push on** for half as many hexes again, at the same pace. The
+  weather is rolled first if today's hasn't been.
+- **Hexes today** sets the day's hexes. Leave it empty to use **Edit Rules
+  Data**'s hexes per day (the dialog lists them), or a boat's speed when you
+  sail aboard one. Until you've imported those rules from your GM Guide, type
+  the number in.
 - **Moving the travel token** costs each hex's terrain cost from the day's
   hexes, and moves the world clock: a travel day is 8 hours, so walking costs
   2 hours per point. Following a path from one path hex to the next costs 1.

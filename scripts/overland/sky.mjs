@@ -100,7 +100,7 @@ export async function applySky(scene = game.scenes?.active, { dt = null } = {}) 
   // never disagree. A string flag in an ordinary (recursive) update; nothing
   // here uses recursive: false, so our other flags on the scene are untouched.
   if (plan.own) updates[`flags.${MODULE_ID}.${SKY_WEATHER}`] = plan.own;
-  else if ("own" in plan) updates[`flags.${MODULE_ID}.-=${SKY_WEATHER}`] = null;
+  else if ("own" in plan) updates[`flags.${MODULE_ID}.${SKY_WEATHER}`] = _del;
 
   if (!Object.keys(updates).length) return null;
   await scene.update(updates, options);

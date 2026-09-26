@@ -114,7 +114,7 @@ const STYLESHEET_REV = "d56c20d355c9";
 // stale); module.json carries the same hash and is fetched fresh at runtime. A
 // mismatch is a stale cache by construction — it cannot be anything else. Both
 // stamps are written by `npm run inventory` and gated by `inventory:check`.
-const BUILD_REV = "3857dc88a488";
+const BUILD_REV = "8c180a5cdb25";
 
 /**
  * Tell the user when their browser is running an old build of this module, and
@@ -436,7 +436,8 @@ Hooks.once("init", () => {
     // 1.17.0 — additive: overland.resume, encounter.check options, travel checks (Overland O6, #232).
     // 1.18.0 — additive: overland.forage and makeCamp, time.advanceOffDuty(0) (Overland O7, #233).
     // 1.19.0 — additive: time.isNight(t, { region }), the sky on scenes (Overland O9, #235).
-    apiVersion: "1.19.0",
+    // 1.20.0 — additive: overland.startDay({ hexes }), the day's hexes typed in Start day.
+    apiVersion: "1.20.0",
     // The one travel state per world (scripts/overland/overland.mjs): a copy
     // with hexes left, climate, storm, harshness and night derived; whether
     // travel is on; today's weather roll, the travel day's start, Continue

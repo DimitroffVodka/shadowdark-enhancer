@@ -797,8 +797,8 @@ export const MovementTracker = {
       // One update deleting both flags (the turnStart snapshot now lives
       // document-side too) — same round-trip count as the old unsetFlag.
       await t.update({
-        [`flags.${MODULE_ID}.-=moveRemaining`]: null,
-        [`flags.${MODULE_ID}.-=turnStart`]: null,
+        [`flags.${MODULE_ID}.moveRemaining`]: _del,
+        [`flags.${MODULE_ID}.turnStart`]: _del,
       }).catch(() => {});
     }
     this._turnStartPos = {};

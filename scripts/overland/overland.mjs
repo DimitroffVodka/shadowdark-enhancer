@@ -377,13 +377,14 @@ export async function resume() {
 /**
  * Start a travel day now (GM), with its method and push, and a boat actor when
  * sailing aboard one. The weather is rolled first unless today's still holds.
- * A GM who isn't the active GM is forwarded there.
- * @param {{method?:string, pushed?:boolean, boatUuid?:string|null}} [options]
+ * The day's hexes are `hexes` when given, else the boat's speed, else the
+ * rules data's hexes per day. A GM who isn't the active GM is forwarded there.
+ * @param {{method?:string, pushed?:boolean, boatUuid?:string|null, hexes?:number|null}} [options]
  * @returns {Promise<{ok:true}|{ok:false, error:string}>}
  */
-export async function startDay({ method = "walking", pushed = false, boatUuid = null } = {}) {
+export async function startDay({ method = "walking", pushed = false, boatUuid = null, hexes = null } = {}) {
   if (!game.user?.isGM) return { ok: false, error: t("SDE.overland.notify.dayGmOnly") };
-  const data = { action: "startDay", method, pushed: pushed === true, boatUuid: boatUuid || null };
+  const data = { action: "startDay", method, pushed: pushed === true, boatUuid: boatUuid || null, hexes: Number(hexes) || null };
   return isActiveGM() ? applyAction(data, game.user) : queryActiveGM(OVERLAND_QUERY, data, { label: t("SDE.overland.relayLabel") });
 }
 
@@ -393,10 +394,16 @@ export async function startDay({ method = "walking", pushed = false, boatUuid = 
  */
 export async function askDay() {
   const boats = game.actors.filter((a) => a.type === BOAT_TYPE);
+  const perDay = game.shadowdarkEnhancer?.rules?.hexesPerDay;
+  const known = METHODS.map((m) => [m, Number(perDay?.(m))]).filter(([, n]) => n > 0)
+    .map(([m, n]) => `${t(METHOD_NAME[m])} ${n}`);
   const option = (value, label, selected) => `<option value="${esc(value)}"${selected ? " selected" : ""}>${esc(label)}</option>`;
   const content = `
     <div class="form-group"><label>${esc(t("SDE.overland.day.method"))}</label>
       <select name="method">${METHODS.map((m) => option(m, t(METHOD_NAME[m]), m === _state.method)).join("")}</select></div>
+    <div class="form-group"><label>${esc(t("SDE.overland.day.hexes"))}</label>
+      <input type="number" name="hexes" min="1" step="1" placeholder="${esc(t("SDE.overland.day.hexesFromRules"))}"></div>
+    <p class="hint">${esc(known.length ? t("SDE.overland.day.hexesKnown", { list: known.join(", ") }) : t("SDE.overland.day.hexesUnknown"))}</p>
     <div class="form-group"><label>${esc(t("SDE.overland.day.pushed"))}</label><input type="checkbox" name="pushed"></div>
     <p class="hint">${esc(t("SDE.overland.day.pushedHint"))}</p>
     ${boats.length ? `<div class="form-group"><label>${esc(t("SDE.overland.day.boat"))}</label>
@@ -409,7 +416,7 @@ export async function askDay() {
       label: t("SDE.overland.startDay"),
       callback: (event, button) => {
         const f = button.form.elements;
-        return { method: f.method.value, pushed: f.pushed.checked, boatUuid: f.boatUuid?.value || null };
+        return { method: f.method.value, pushed: f.pushed.checked, boatUuid: f.boatUuid?.value || null, hexes: Number(f.hexes.value) || null };
       },
     },
     rejectClose: false,
@@ -759,7 +766,10 @@ export function applyAction(data, user) {
         if (!CrawlState.isOverland) return { ok: false, error: t("SDE.overland.notify.notTravelling") };
         if (!METHODS.includes(data.method)) return { ok: false, error: t("SDE.overland.notify.unknown") };
         const boat = data.method === "sailing" ? boatActor(data.boatUuid) : null;
-        const base = boat ? Number(boat.system?.speed) : Number(game.shadowdarkEnhancer?.rules?.hexesPerDay?.(data.method));
+        // The day's hexes: typed in Start day, else the boat's speed, else the rules data (#195).
+        const typed = Math.trunc(Number(data.hexes));
+        const base = typed > 0 ? typed
+          : boat ? Number(boat.system?.speed) : Number(game.shadowdarkEnhancer?.rules?.hexesPerDay?.(data.method));
         if (!(base > 0)) return { ok: false, error: t("SDE.overland.notify.noBase", { method: t(METHOD_NAME[data.method]) }) };
         // §5.1: the weather first, unless today's still holds; then the budget.
         _unpaid.clear();
