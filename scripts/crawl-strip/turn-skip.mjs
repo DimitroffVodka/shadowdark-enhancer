@@ -1,7 +1,7 @@
 import { MODULE_ID } from "../shared/module-id.mjs";
 import { isActiveGM } from "./crawl-state.mjs";
 import { combatantEntry, shouldSkipTurn } from "./turn-skip-core.mjs";
-import { isChaosRound, chaosReroll } from "../modes-of-play/chaos.mjs";
+import { isChaosRound, isHeldRound, holdChaosRound, chaosReroll } from "../modes-of-play/chaos.mjs";
 
 /**
  * Auto-skip the turns of combatants the crawl strip doesn't render.
@@ -30,13 +30,27 @@ import { isChaosRound, chaosReroll } from "../modes-of-play/chaos.mjs";
 // the re-check, so the nested call must be a no-op rather than a second walker.
 const _walking = new Set();
 
+// Chaos rounds whose turn events were held back (chaos.mjs, #259), in order,
+// by combat id: where the old round ended (`previous` as the round's update
+// left it) and the round and turn it went to, taken before anything moves.
+// Whoever holds the lock replays them (drainHeld).
+const _held = new Map();
+
 export function registerTurnSkip() {
   const check = () => { void maybeSkipDeadTurn(game.combat); };
 
+  // A Chaos round's turn events wait for the new order.
+  Hooks.on("combatRound", holdChaosRound);
   // Turn/round moved (including the strip's and the tracker's own buttons).
   // A new round under Chaos Mode rerolls initiative first, then skips.
   Hooks.on("updateCombat", (combat, changes, options) => {
-    if (isChaosRound(changes, options) && game.settings.get(MODULE_ID, "modeChaosInitiative") === true) {
+    if (isHeldRound(options)) {
+      if (isActiveGM()) {
+        if (!_held.has(combat.id)) _held.set(combat.id, []);
+        _held.get(combat.id).push({ previous: { ...combat.previous }, round: combat.round, turn: combat.turn });
+      }
+      void chaosThenSkip(combat);
+    } else if (isChaosRound(changes, options) && game.settings.get(MODULE_ID, "modeChaosInitiative") === true) {
       void chaosThenSkip(combat);
     } else check();
   });
@@ -57,21 +71,50 @@ export function registerTurnSkip() {
 /**
  * Chaos Mode's reroll (modes-of-play/chaos.mjs) under this file's lock, then
  * the dead-turn skip on the new order. The reroll's own combatant update
- * re-fires the hooks above; the lock turns those into no-ops.
+ * re-fires the hooks above; the lock turns those into no-ops. A held round's
+ * events are replayed even for a combat that is not on screen, which is not
+ * rerolled.
  * @param {object|null} combat
  */
 async function chaosThenSkip(combat) {
-  if (!isActiveGM() || !combat?.started || combat.id !== game.combat?.id) return;
+  if (!isActiveGM() || !combat?.started) return;
+  if (combat.id !== game.combat?.id && !_held.has(combat.id)) return;
   if (_walking.has(combat.id)) return;
   _walking.add(combat.id);
   try {
-    await chaosReroll(combat);
+    // A round changed without Combat#nextRound was not held: its events have
+    // fired, so it rerolls after them. Then every held round, including any
+    // held while that reroll ran.
+    if (!_held.has(combat.id)) await chaosReroll(combat);
+    await drainHeld(combat);
   } catch (error) {
     console.error(`${MODULE_ID} | Chaos Mode could not reroll initiative`, error);
   } finally {
     _walking.delete(combat.id);
   }
   await maybeSkipDeadTurn(combat);
+}
+
+/**
+ * Replay every held Chaos round of this combat, rerolling the one on screen.
+ * Under the lock.
+ * @param {object} combat
+ */
+async function drainHeld(combat) {
+  const queue = _held.get(combat.id) ?? [];
+  // A round held while the one before it was replayed starts where that
+  // replay left off: what was taken for it then was mid-replay.
+  let from = null;
+  while (queue.length) {
+    const held = queue.shift();
+    try {
+      from = await chaosReroll(combat, from ? { ...held, previous: from } : held, { reroll: combat.id === game.combat?.id });
+    } catch (error) {
+      console.error(`${MODULE_ID} | Chaos Mode could not replay a round's turn events`, error);
+      from = null;
+    }
+  }
+  _held.delete(combat.id);
 }
 
 /**
@@ -95,17 +138,14 @@ export async function maybeSkipDeadTurn(combat) {
     // underneath the loop; one full lap is more than any legitimate skip needs.
     let guard = combat.turns.length + 1;
     while (guard-- > 0) {
+      // A Chaos round held while this lock was held stood down in
+      // chaosThenSkip: skipping past the last corpse starts one, and so can
+      // anyone else. Reroll and replay it here, still under the lock; the skip
+      // then reads the new order.
+      await drainHeld(combat);
       const entries = combat.turns.map(combatantEntry);
       if (!shouldSkipTurn(entries, combat.turn)) break;
-      const round = combat.round;
       await combat.nextTurn();
-      // Skipping past the last corpse starts a new round, and its updateCombat
-      // reached chaosThenSkip while this lock was held, so it stood down.
-      // Reroll here, still under the lock; the loop then skips on the new order.
-      if (combat.round > round && game.settings.get(MODULE_ID, "modeChaosInitiative") === true) {
-        await chaosReroll(combat).catch((error) =>
-          console.error(`${MODULE_ID} | Chaos Mode could not reroll initiative`, error));
-      }
     }
   } catch (error) {
     console.error(`${MODULE_ID} | failed to skip a defeated combatant's turn`, error);

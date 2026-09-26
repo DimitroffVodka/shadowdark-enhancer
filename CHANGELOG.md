@@ -214,7 +214,8 @@ page walks through it in order.
   top. One chat card per round lists the new order, leaving hidden combatants
   off. Dice So Nice stays quiet for these rerolls unless you tick its option.
   While the system's clockwise initiative is on, Chaos does nothing and says so
-  once. (#180)
+  once. The round's turn events wait for the new order, so every combatant
+  starts one turn a round and the new top's is the first. (#180, #259)
 - **Pulp: session luck, luck crits and forced rerolls.** Three rules, each its
   own checkbox. **Start New Session** when a crawl starts gives every player's
   character 1d4 luck tokens and posts one card with the rolls. Once an attack
