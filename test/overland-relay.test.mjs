@@ -206,7 +206,7 @@ test("the active GM spends a move, records the hex and moves the clock at the da
   dice.push(3);
   await applyAction({ action: "startDay", method: "walking" }, gm);
   const hex = { num: 7, terrain: "forest", features: [] };
-  const ok = await recordMove({ parent: null }, { x: 0, y: 0 }, { cost: 3, blocked: null, steps: [{ hex }] });
+  const ok = await recordMove({ parent: null }, { x: 0, y: 0 }, { x: 100, y: 0 }, { cost: 3, blocked: null, steps: [{ hex }] });
   assert.equal(ok, true);
   assert.equal(stored.overlandState.spent, 3);
   assert.equal(stored.overlandState.hex.num, 7);
@@ -219,7 +219,7 @@ test("a move the day can no longer pay for sends the token back, spends nothing 
   await applyAction({ action: "startDay", method: "walking" }, gm);
   const updates = [];
   const doc = { id: "t", parent: null, update: async (...args) => { updates.push(args); } };
-  const ok = await recordMove(doc, { x: 10, y: 20 }, { cost: 6, blocked: null, steps: [{ hex: { num: 7 } }] });
+  const ok = await recordMove(doc, { x: 10, y: 20 }, { x: 90, y: 20 }, { cost: 6, blocked: null, steps: [{ hex: { num: 7 } }] });
   assert.equal(ok, false);
   assert.equal(stored.overlandState.spent, 0);
   assert.deepEqual(globalThis.game.time.advanced, []);
@@ -228,4 +228,36 @@ test("a move the day can no longer pay for sends the token back, spends nothing 
   assert.deepEqual(changes, { x: 10, y: 20 });
   assert.equal(options.movement.t.waypoints[0].action, "displace");
   assert.equal(options["shadowdark-enhancer"].overlandRollback, true);
+});
+
+test("moves queued behind a refused one go back to the last paid position, not to where they started (#245 review)", async () => {
+  travellingDay();
+  dice.push(3);
+  await applyAction({ action: "startDay", method: "walking" }, gm);        // 5 points
+  const updates = [];
+  const doc = { id: "t", parent: null, update: async (changes) => { updates.push(changes); } };
+  const P = (x) => ({ x, y: 0, elevation: 0 });
+  const step = (num) => ({ cost: 1, blocked: null, steps: [{ hex: { num } }] });
+  await recordMove(doc, P(0), P(100), { cost: 4, blocked: null, steps: [{ hex: { num: 1 } }] });   // 1 point left
+  // A→B→C→D, cost 1 each, all applied by the server before the queue reaches them.
+  const results = await Promise.all([
+    recordMove(doc, P(100), P(200), step(2)),   // A→B: paid, the last point
+    recordMove(doc, P(200), P(300), step(3)),   // B→C: over budget
+    recordMove(doc, P(300), P(400), step(4)),   // C→D: starts where a refused move ended
+  ]);
+  assert.deepEqual(results, [true, false, false]);
+  assert.deepEqual(updates, [{ x: 200, y: 0 }, { x: 200, y: 0 }], "both rollbacks land on B");
+  assert.equal(stored.overlandState.hex.num, 2, "the recorded hex is B");
+  assert.equal(stored.overlandState.spent, 5, "one point charged for the chain");
+
+  // Even an affordable move is refused when it starts from an unpaid spot.
+  await applyAction({ action: "startDay", method: "walking" }, gm);        // a new day clears the chain
+  updates.length = 0;
+  await recordMove(doc, P(200), P(300), { cost: 9, blocked: null, steps: [{ hex: { num: 3 } }] });   // refused: 9 > 5
+  assert.equal(await recordMove(doc, P(300), P(400), step(4)), false, "affordable, but it starts at the refused spot");
+  assert.deepEqual(updates, [{ x: 200, y: 0 }, { x: 200, y: 0 }]);
+  assert.equal(stored.overlandState.spent, 0);
+  // Paid for later, the spot is clean again.
+  assert.equal(await recordMove(doc, P(200), P(300), step(3)), true);
+  assert.equal(await recordMove(doc, P(300), P(400), step(4)), true);
 });

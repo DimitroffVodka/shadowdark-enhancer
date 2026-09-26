@@ -383,28 +383,50 @@ function onPreMoveToken(doc, move, options) {
 /** The active GM: spend what was moved. */
 function onMoveToken(doc, movement, operation) {
   if (!isActiveGM() || !isTravelMove(doc, operation)) return;
-  const priced = priceTravelMove(doc, movement.origin, movement.passed.waypoints);
-  if (priced?.steps.length) recordMove(doc, movement.origin, priced);
+  const dest = movement.passed.waypoints.at(-1);
+  const priced = dest && priceTravelMove(doc, movement.origin, movement.passed.waypoints);
+  // Even a move within one hex goes through: it may start from an unpaid spot.
+  if (priced) recordMove(doc, movement.origin, dest, priced);
 }
+
+/**
+ * Where the token was sent back from, and to (#245 review). The server has
+ * already applied every move by the time the queue reaches it, so a queued
+ * move can start where a rejected one ended. Each rejected move's destination
+ * maps to the last paid position, so a move starting there is rejected too,
+ * and every rollback of the chain lands on that one position.
+ * ponytail: keyed by position and kept in memory on the active GM; a new day,
+ * or starting or ending travel, clears it.
+ */
+const _unpaid = new Map();
+const posKey = (p) => `${Math.round(p.x)}:${Math.round(p.y)}:${p.elevation ?? 0}`;
 
 /**
  * On the active GM, in the queue: spend the move's cost, record the hex the
  * token stands in, and move the clock by the cost at today's rate. A move the
- * day can no longer pay for (two quick moves both passed the mover's check)
- * sends the token back where it started, displaced.
+ * day can no longer pay for (two quick moves both passed the mover's check),
+ * or one that starts where a refused move ended, sends the token back to the
+ * last position that was paid for, displaced.
+ * @param {{x:number, y:number, elevation?:number}} origin  where this move started
+ * @param {{x:number, y:number, elevation?:number}} dest    where it ended
  */
-export function recordMove(doc, origin, priced) {
+export function recordMove(doc, origin, dest, priced) {
   return serialize(async () => {
-    const why = moveVerdict(_state, priced);
+    const back = _unpaid.get(posKey(origin));
+    const why = back ? "dependent" : moveVerdict(_state, priced);
     if (why) {
-      ui.notifications?.warn(refusalText(why, priced));
-      await doc.update({ x: origin.x, y: origin.y }, {
-        movement: { [doc.id]: { waypoints: [{ x: origin.x, y: origin.y, elevation: origin.elevation,
+      const to = back ?? origin;
+      _unpaid.set(posKey(dest), to);
+      if (why !== "dependent") ui.notifications?.warn(refusalText(why, priced));
+      await doc.update({ x: to.x, y: to.y }, {
+        movement: { [doc.id]: { waypoints: [{ x: to.x, y: to.y, elevation: to.elevation,
           action: "displace", snapped: false, explicit: false, checkpoint: true }] } },
         animate: false, [MODULE_ID]: { overlandRollback: true },
       });
       return false;
     }
+    _unpaid.delete(posKey(dest));
+    if (!priced.steps.length) return true;
     const hex = await withRegion(priced.steps.at(-1).hex, doc.parent);
     await commit(spendMove(_state, { cost: priced.cost, hex }).state);
     if (priced.cost > 0) await game.time.advance(priced.cost * _state.pointSeconds);
@@ -436,6 +458,7 @@ export function applyAction(data, user) {
       case "start": {
         if (!user.isGM) return { ok: false, error: t("SDE.overland.notify.gmOnly") };
         if (CrawlState.mode !== "off" && !CrawlState.isOverland) return { ok: false, error: t("SDE.overland.notify.busy") };
+        _unpaid.clear();
         let { state } = startTravel(_state, { tokenUuid: data.tokenUuid, members: membersFor(data.actorId) });
         if (data.hex) state = setHex(state, data.hex).state;
         await commit(state);
@@ -444,6 +467,7 @@ export function applyAction(data, user) {
       }
       case "end": {
         if (!user.isGM) return { ok: false, error: t("SDE.overland.notify.gmOnly") };
+        _unpaid.clear();
         await CrawlState.endOverland();
         return { ok: true };
       }
@@ -459,6 +483,7 @@ export function applyAction(data, user) {
         const base = boat ? Number(boat.system?.speed) : Number(game.shadowdarkEnhancer?.rules?.hexesPerDay?.(data.method));
         if (!(base > 0)) return { ok: false, error: t("SDE.overland.notify.noBase", { method: t(METHOD_NAME[data.method]) }) };
         // §5.1: the weather first, unless today's still holds; then the budget.
+        _unpaid.clear();
         await rollWeatherHere(false);
         await commit(openDay(_state, {
           now: game.time.worldTime, method: data.method, pushed: data.pushed === true, base,

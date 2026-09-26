@@ -1530,9 +1530,11 @@ tokens, a combat, and moves while not travelling are left alone.
   a message saying why.
 - **The active GM re-prices** what was moved (`moveToken`). It adds the cost to
   `spent`, records the hex the token stands in with its region, and advances
-  the world clock by `cost × pointSeconds`. Lit torches burn as usual. If two
-  quick moves together overdrew the day, the second is sent back to where it
-  started with a displace, and nothing is spent.
+  the world clock by `cost × pointSeconds`. Lit torches burn as usual. If
+  quick moves together overdrew the day, the refused one is sent back with a
+  displace to the last position that was paid for, and nothing is spent. So
+  is any queued move that starts where a refused one ended, even an
+  affordable one.
 
 - **Starting and ending travel** is the GM's, from the crawl bar's **Travel**
   and **End travel** (offered on a tagged hex map). Another GM's click is
