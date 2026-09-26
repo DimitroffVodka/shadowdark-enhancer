@@ -15,9 +15,10 @@ and Forge & Loot features.
 [`partyXp`](#partyxp--party-xp-awards) · [`recap`](#recap--session-recap) ·
 [`charBuilder`](#charbuilder--guided-character-creation) ·
 [`actors`](#actors--western-reaches-boats) ·
+[`statDamage`](#statdamage--tracked-ability-damage) ·
 [`holidays`](#holidays--when-a-holiday-falls-and-what-it-does-to-carousing)
 
-**API version:** `1.6.0` (semver — additive changes bump the minor version,
+**API version:** `1.7.0` (semver — additive changes bump the minor version,
 breaking changes the major; check `apiVersion` before relying on newer keys).
 
 ## Discovery
@@ -936,11 +937,55 @@ works on the GM's own scene image and book text.
 The dataset carries published hex numbers only (`num`, column-major: 1403 is
 column 14, row 03); never a column and row pair.
 
+## `statDamage` — tracked ability damage
+
+Added in 1.6.0. Stat damage has no setting and no control: a character who has
+never taken any carries nothing. When it happens it is one Active Effect per
+damaged ability, shown in the sheet's Effects tab, and it is gone when healed.
+
+| Call | What |
+|---|---|
+| `statDamage.apply(actor, ability, amount)` | Add `amount` points to one ability (`"str"` … `"cha"`, any case, or the full name). Characters only. Resolves to that ability's new total, or `null` when nothing was applied (an NPC, an unknown ability, an amount below 1). |
+| `statDamage.heal(actor)` | Clear all of it: a normal rest. `heal(actor, { all: true })` is the same. |
+| `statDamage.heal(actor, { perAbility: n })` | Take `n` off each damaged ability: Grinder Mode passes 1. Resolves to what is left, as `of` reads it. |
+| `statDamage.of(actor)` | `{ str, dex, con, int, wis, cha }`, the points of damage on each, zero when clean. Several effects on one ability are summed. |
+
+`apply` and `heal` write Active Effects, so the caller needs owner permission
+on the actor: the GM, or the character's own player.
+
+**The effect is a contract.** Anything that creates stat damage without calling
+`apply` (Shadowdark Extras' Effects library) must use exactly this shape, and
+`of`, `heal` and the CON check then treat it like any other:
+
+```js
+{
+  name: "STR damage",
+  changes: [{ key: "system.abilities.str.value", mode: CONST.ACTIVE_EFFECT_MODES.ADD, value: "-1" }],
+  flags: { "shadowdark-enhancer": { statDamage: { ability: "str" } } },
+}
+```
+
+The system's ability modifier is computed from `value`, so the modifier drops
+with the score. `apply` and `heal` replace an ability's effects with one effect
+holding the new total, so two library drops become one line the next time that
+ability changes.
+
+**CON 0 is death.** When a stat-damage effect takes a character's CON to 0 or
+below, the active GM's client marks them dead (the `dead` status, and defeated
+in any combat they are in). The dying modifiers of #181 will let a character
+with River of Death survive it.
+
+**Monster hits use it too.** A monster attack card that hits a character is
+read for riders like `1 STR damage` or `DC 12 CON or 1d4 STR damage`; a saved
+rider asks the character's player to roll through the user query
+`shadowdark-enhancer.statDamageSave` (GM sender only, answered by the owner's
+client), and the GM's client rolls it when no player answers.
+
 ---
 
 ## `holidays` — when a holiday falls, and what it does to carousing
 
-Added in 1.6.0. Holidays today are the four City of Masks holidays from Cursed
+Added in 1.7.0. Holidays today are the four City of Masks holidays from Cursed
 Scroll 6 (pp. 46–47). Shadowdark Extras' carousing window reads them
 (shadowdark-extras#151). The shape is generic, so another book's holidays can
 join later.
@@ -1018,7 +1063,8 @@ Today's date comes from the core calendar (`game.time.components`) as
   not bump `apiVersion`.
 - `1.3.0` adds `loot.resolve` and `loot.generated.{identity,plan,reconcile}`.
 - `1.5.0` adds the `hexMaps` namespace (Hex Tagger, dataset builder, hand-off).
-- `1.6.0` adds the `holidays` namespace (`list`, `today`).
+- `1.6.0` adds the `statDamage` namespace (tracked ability damage).
+- `1.7.0` adds the `holidays` namespace (`list`, `today`).
 - `1.4.0` adds the shared `forgeLoot.open()` preview shell. Generator rules and
   document writes remain behind the later NPC/Rival adapter implementations.
   The version policy is additive: new namespaces bump the minor version; breaking

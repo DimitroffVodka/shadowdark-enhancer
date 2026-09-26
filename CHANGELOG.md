@@ -6,7 +6,7 @@
 - **The City of Masks holidays.** Chapter to journal has a new preset,
   *Cursed Scroll 6: the City of Masks holidays* (pp. 46–47), that files a
   journal with one page per holiday from your own PDF. A new `holidays` API
-  (`list()`, `today({ place })`, API 1.6.0) gives each imported holiday's
+  (`list()`, `today({ place })`, API 1.7.0) gives each imported holiday's
   place, the day it falls, its carousing effects and its garb questions, for
   Shadowdark Extras' carousing window to apply. Maytide, the Duke's Ball and
   the Night of St. Anton fall on May 1, June 21 and September 22 of the world
@@ -19,6 +19,21 @@
   (GM Guide pp. 16–27) in one click, with a page per city-state. Each city
   links to its key-location hex page, and the hex page links back. Running
   it again updates the journal in place and keeps pages you added. (#194)
+- **Stat damage is tracked.** Damage to STR, DEX, CON, INT, WIS or CHA is one
+  line per ability in the character sheet's Effects tab, such as *2 STR
+  damage*: the score and its modifier drop, and the line is gone when healed.
+  There is no setting and nothing on the sheet until it happens. A character
+  whose CON reaches 0 from it dies. Other modules drive it through
+  `game.shadowdarkEnhancer.statDamage.{apply, heal, of}` (API 1.6.0).
+  From the Shadowdark Extras release that adds it
+  ([shadowdark-extras#149](https://github.com/DimitroffVodka/shadowdark-extras/issues/149)),
+  Extras' rest heals it all, or 1 per ability in Grinder Mode. (#182)
+- **Monster attacks apply their stat-damage riders.** A monster hit whose
+  attack text, or the feature it names, says *1 STR damage* lowers the
+  target's STR automatically, with the amount rolled in chat. A rider behind
+  a save (*DC 12 CON or 1d4 STR damage*) asks the character's player to roll
+  the save and applies only on a failure; the GM's client rolls it when no
+  player can. Works without Shadowdark Extras. (#183)
 - **Modes of Play.** A new window under Configure Settings holds the optional
   rules from the core rulebook (p.111) and Hard Luck from the Game Master's
   Guide to the Western Reaches (p.30). Every rule is its own switch, so one

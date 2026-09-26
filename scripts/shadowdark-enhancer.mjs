@@ -17,6 +17,8 @@ import { init as prayerRollInit } from "./character-sheet/prayer-roll.mjs";
 import { init as scavengerInit } from "./scavenger/scavenger.mjs";
 import { Parry } from "./parry/parry.mjs";
 import { Taunt } from "./taunt/taunt.mjs";
+import { StatDamage } from "./stat-damage/stat-damage.mjs";
+import { StatRiders } from "./stat-damage/stat-riders.mjs";
 import { CrawlBar }      from "./crawl-bar/crawl-bar.mjs";
 import { registerHiddenSync } from "./crawl-strip/hidden-sync.mjs";
 import { registerTurnSkip } from "./crawl-strip/turn-skip.mjs";
@@ -102,7 +104,7 @@ const STYLESHEET_REV = "000935629eaf";
 // stale); module.json carries the same hash and is fetched fresh at runtime. A
 // mismatch is a stale cache by construction — it cannot be anything else. Both
 // stamps are written by `npm run inventory` and gated by `inventory:check`.
-const BUILD_REV = "30f3da7c6dff";
+const BUILD_REV = "c77ae66d3c84";
 
 /**
  * Tell the user when their browser is running an old build of this module, and
@@ -406,8 +408,9 @@ Hooks.once("init", () => {
   // the "shadowdarkEnhancer.ready" hook. Reference: docs/API.md.
   game.shadowdarkEnhancer = {
     // 1.5.0 — additive: hexMaps namespace (hex tagger, dataset, hand-off).
-    // 1.6.0 — additive: holidays namespace (City of Masks holidays, #191).
-    apiVersion: "1.6.0",
+    // 1.6.0 — additive: statDamage namespace (tracked ability damage).
+    // 1.7.0 — additive: holidays namespace (City of Masks holidays, #191).
+    apiVersion: "1.7.0",
     // Holidays for carousing (Shadowdark Extras reads `today`). Both async and
     // lazy; a holiday is listed once the GM has imported its journal page.
     holidays: {
@@ -799,6 +802,14 @@ Hooks.once("init", () => {
         return h.importDatasetRecords(target, ds, opts);
       },
     },
+    // 1.6.0 — additive: stat damage. One Active Effect per damaged ability,
+    // nothing on the sheet until it happens. Shadowdark Extras' rests heal it
+    // (all on a normal rest, { perAbility: 1 } in Grinder Mode).
+    statDamage: {
+      apply: (actor, ability, amount) => StatDamage.apply(actor, ability, amount),
+      heal: (actor, opts) => StatDamage.heal(actor, opts),
+      of: (actor) => StatDamage.of(actor),
+    },
   };
 });
 
@@ -869,6 +880,8 @@ Hooks.once("ready", () => {
   scavengerInit();
   Parry.init();
   Taunt.init();
+  StatDamage.init();
+  StatRiders.init();
   CrawlBar.init();
   // If the GM enabled the monster compendium-art overlay, inject it now so every
   // monster drag carries the referenced art (all clients; GM-only settings write).
