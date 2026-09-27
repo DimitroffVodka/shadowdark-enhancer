@@ -462,8 +462,8 @@ export function registerQuests() {
   });
   Hooks.on("renderJournalDirectory", addDirectoryButton);
 
-  // One hook per burst: a quest write is several document updates (the flag's
-  // delete-then-set, ownership, the page), and a listener should redraw once.
+  // One hook per burst: a quest write is several document updates (the flag,
+  // ownership, the page), and a listener should redraw once.
   const changed = new Set();
   const flush = foundry.utils.debounce(() => {
     const ids = [...changed];
@@ -473,8 +473,6 @@ export function registerQuests() {
   const note = (entry) => { changed.add(entry.id); flush(); };
   Hooks.on("createJournalEntry", (entry) => { if (flagOf(entry)) note(entry); });
   Hooks.on("deleteJournalEntry", (entry) => { if (flagOf(entry)) note(entry); });
-  // Only while the entry still carries the flag. replaceModuleFlag deletes it
-  // and then sets it; reporting the delete step would show listeners a quest
-  // that has vanished, and the set step reports the change anyway.
+  // Only quest entries, the ones carrying the flag.
   Hooks.on("updateJournalEntry", (entry) => { if (flagOf(entry)) note(entry); });
 }

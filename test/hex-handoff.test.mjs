@@ -172,7 +172,7 @@ const printDataset = {
 };
 // Foundry 14's forced-replacement operator, a global in the client.
 class Replacement { constructor(value) { this.value = value; } }
-globalThis._replace ??= (value) => new Replacement(value);
+globalThis._replace = (value) => new Replacement(value);
 // The print as a Foundry scene: getFlag, and update() understanding the
 // `_replace` that replaceModuleFlag writes.
 function printScene(flags = {}) {
