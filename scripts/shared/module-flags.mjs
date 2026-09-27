@@ -53,6 +53,10 @@ const isObject = (value) => !!value && typeof value === "object" && !Array.isArr
  * update, so no client ever sees the flag missing and a failed write loses
  * nothing. Until #274 this took two updates, a `_del` and then a set.
  *
+ * Update hooks see the operator under the key, not the value: a proxy that
+ * reads through to it but is truthy even for `_replace(null)`. Read the
+ * document, as the module's hooks do.
+ *
  * @param {object} document  any Foundry document
  * @param {string} key       the flag key inside this module's namespace
  * @param {*}      value     the new value, written whole
