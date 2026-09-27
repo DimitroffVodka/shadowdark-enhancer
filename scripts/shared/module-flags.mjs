@@ -38,27 +38,27 @@ const isObject = (value) => !!value && typeof value === "object" && !Array.isArr
  * Replace ONE of this module's flag objects on a document, wholesale, without
  * touching our other flags on it.
  *
- * `document.update({ "flags.<module>.<key>": value }, { recursive: false })` is
- * the obvious way and it is a data-loss bug: `recursive: false` is not scoped to
- * the path, so the non-recursive merge replaces the whole
- * `flags.<module>` OBJECT with `{ <key>: value }` and every sibling flag is
- * deleted. That is how the hex tagger's 4768 tags were destroyed on 2026-09-18
- * by a write to a second flag beside them — it had been safe only for as long as
- * `hexTags` was the module's single flag on a scene.
+ * A plain `document.update({ "flags.<module>.<key>": value })` MERGES the value
+ * into the stored one, so a key dropped from it survives in the database.
  *
- * Deleting the key first and setting it after is the pattern that both replaces
- * the object (no merged-in leftovers from the old value) and leaves siblings
- * alone. It has to be two updates: a delete and a set of the same key in ONE
- * update merge instead of replacing. The delete is Foundry 14's `_del`
- * (ForcedDeletion); the legacy `-=key` form logs a deprecation warning (#261).
+ * `{ recursive: false }` is the obvious fix and it is a data-loss bug: it is not
+ * scoped to the path. Foundry 14 applies it as a forced replacement of every
+ * ROOT key in the update, so the whole `flags` field becomes
+ * `{ <module>: { <key>: value } }`: our other flags and every other package's
+ * are deleted. That is how the hex tagger's 4768 tags were destroyed on
+ * 2026-09-18 by a write to a second flag beside them.
+ *
+ * Foundry 14's `_replace` (ForcedReplacement) is the operator scoped to one
+ * key. It replaces that key whole and leaves everything beside it alone, in ONE
+ * update, so no client ever sees the flag missing and a failed write loses
+ * nothing. Until #274 this took two updates, a `_del` and then a set.
  *
  * @param {object} document  any Foundry document
  * @param {string} key       the flag key inside this module's namespace
- * @param {object} value     the new value, written whole
+ * @param {*}      value     the new value, written whole
  */
 export async function replaceModuleFlag(document, key, value) {
-  await document.update({ [`flags.${MODULE_ID}.${key}`]: _del });
-  return document.update({ [`flags.${MODULE_ID}.${key}`]: value });
+  return document.update({ [`flags.${MODULE_ID}.${key}`]: _replace(value) });
 }
 
 /**

@@ -3,11 +3,11 @@ import assert from "node:assert/strict";
 import { replaceModuleFlag } from "../scripts/shared/module-flags.mjs";
 
 const MOD = "shadowdark-enhancer";
-// Foundry 14's forced-deletion operator, a global in the client.
-const DEL = Symbol("_del");
-globalThis._del = DEL;
+// Foundry 14's forced-replacement operator, a global in the client.
+class Replacement { constructor(value) { this.value = value; } }
+globalThis._replace = (value) => new Replacement(value);
 
-/** Foundry's update merge is recursive (mergeObject); a shallow one would hide a missing delete. */
+/** Foundry's update merge is recursive (mergeObject); a shallow one would hide a plain set. */
 function deepMerge(target, source) {
   for (const [k, v] of Object.entries(source)) {
     if (v && typeof v === "object" && !Array.isArray(v) && target[k] && typeof target[k] === "object") deepMerge(target[k], v);
@@ -18,9 +18,9 @@ function deepMerge(target, source) {
 
 /**
  * A document standing in for Foundry's update semantics, to the extent this
- * helper depends on them: a dotted path writes into nested objects, `_del`
- * deletes, and a plain object value MERGES into what is there. That merge is
- * why a flag has to be deleted before it is set, and the sibling flag here is
+ * helper depends on them: a dotted path writes into nested objects, `_replace`
+ * replaces the key whole, and a plain object value MERGES into what is there.
+ * That merge is why a flag can't simply be set, and the sibling flag here is
  * the 4768 hex tags that a `recursive: false` write destroyed on 2026-09-18.
  */
 function fakeDoc(flags = {}) {
@@ -34,7 +34,7 @@ function fakeDoc(flags = {}) {
       const leaf = parts.pop();
       let node = doc.flags;
       for (const p of parts.slice(1)) node = node[p] ??= {};   // parts[0] is "flags"
-      if (value === DEL) delete node[leaf];
+      if (value instanceof Replacement) node[leaf] = structuredClone(value.value);
       else if (value && typeof value === "object" && node[leaf] && typeof node[leaf] === "object") {
         node[leaf] = deepMerge(node[leaf], value);
       } else node[leaf] = value;
@@ -63,17 +63,16 @@ test("replaceModuleFlag: other packages' flags are never touched", async () => {
   assert.deepEqual(doc.flags["shadowdark-extras"], { hexData: { ours: true } });
 });
 
-test("replaceModuleFlag: it takes two updates — a delete and a set in one would merge", async () => {
+test("replaceModuleFlag: one update, a _replace, so no client ever sees the flag missing (#274)", async () => {
   const doc = fakeDoc({ [MOD]: { hexTags: { cells: { 1: "forest" } } } });
   await replaceModuleFlag(doc, "hexTags", { cells: { 2: "swamp" } });
-  assert.equal(doc.updates, 2);
+  assert.equal(doc.updates, 1);
+  assert.ok(doc.writes[0] instanceof Replacement, "a plain set would merge into the old value");
 });
 
-test("replaceModuleFlag: deletes with _del, never the legacy -=key Foundry 14 warns about (#261)", async () => {
+test("replaceModuleFlag: writes the key's own path, never a legacy -=key or ==key (#261)", async () => {
   const doc = fakeDoc({ [MOD]: { quest: { status: "active" } } });
   await replaceModuleFlag(doc, "quest", { status: "completed" });
-  assert.deepEqual(doc.paths, [`flags.${MOD}.quest`, `flags.${MOD}.quest`]);
-  assert.ok(doc.paths.every((p) => !p.includes("-=")));
-  assert.equal(doc.writes[0], DEL, "the first write deletes with _del");
+  assert.deepEqual(doc.paths, [`flags.${MOD}.quest`]);
   assert.deepEqual(doc.flags[MOD].quest, { status: "completed" });
 });

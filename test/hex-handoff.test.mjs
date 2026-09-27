@@ -170,10 +170,11 @@ const printDataset = {
     { num: 202, terrain: "forest", zone: "Vale" },
   ],
 };
-// Foundry 14's forced-deletion operator, a global in the client.
-globalThis._del ??= Symbol("_del");
+// Foundry 14's forced-replacement operator, a global in the client.
+class Replacement { constructor(value) { this.value = value; } }
+globalThis._replace ??= (value) => new Replacement(value);
 // The print as a Foundry scene: getFlag, and update() understanding the
-// `_del` deletion replaceModuleFlag writes before the new value.
+// `_replace` that replaceModuleFlag writes.
 function printScene(flags = {}) {
   const scene = {
     id: "print-1", flags: { "shadowdark-enhancer": { ...flags } },
@@ -182,8 +183,7 @@ function printScene(flags = {}) {
       for (const [path, value] of Object.entries(diff)) {
         const [, scope, key] = path.split(".");
         scene.flags[scope] ??= {};
-        if (value === globalThis._del) delete scene.flags[scope][key];
-        else scene.flags[scope][key] = value;
+        scene.flags[scope][key] = value instanceof Replacement ? value.value : value;
       }
     },
   };
