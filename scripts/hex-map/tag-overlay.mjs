@@ -518,9 +518,11 @@ export class HexTagOverlay {
   /**
    * Write the tags, and the verdicts they imply, in one go.
    *
-   * `_writing` holds off this overlay's own updateScene hook: the flag is
-   * briefly absent between replaceModuleFlag's delete and its set, and adopting
-   * that empty state as the in-memory one is how a map got wiped once already.
+   * `_writing` holds off this overlay's own updateScene hook: the in-memory
+   * state is what is being written, so re-reading it would only redraw the map
+   * once per write. It dates from when replaceModuleFlag deleted the flag
+   * before setting it (until #274), and adopting that briefly empty state as
+   * the in-memory one is how a map got wiped once already.
    */
   async _save(verdicts, { withdraw = null } = {}) {
     this._writing = true;

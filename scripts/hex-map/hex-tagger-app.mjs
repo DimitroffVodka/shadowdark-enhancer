@@ -372,9 +372,9 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
   /**
    * Replace the stored flag wholesale. setFlag would MERGE the object, so a
    * cell cleared in the app (or a dropped bounds block) would survive in the
-   * database — found on the 2026-09-17 live check. replaceModuleFlag deletes
-   * the key and sets it, which replaces it without deleting the module's OTHER
-   * flags on the scene the way `recursive: false` does (module-flags.mjs).
+   * database — found on the 2026-09-17 live check. replaceModuleFlag replaces
+   * that one key whole, without deleting the module's OTHER flags on the scene
+   * the way `recursive: false` does (module-flags.mjs).
    */
   async _saveState() {
     const scene = this._scene();
