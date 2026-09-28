@@ -108,5 +108,5 @@ bastions.
 - **Area attacks.** A warband's attack card notes that it fills a near-sized
   area around its target and can split its damage dice among what it hits
   there. The splitting is yours to do.
-- **Retraining.** A warband retraining its upgrades that attacks gets a
-  warning: it can't fight until the week is up.
+- **Retraining.** A warband retraining its upgrades can't fight until the
+  week is up: its attack is stopped, with a warning.

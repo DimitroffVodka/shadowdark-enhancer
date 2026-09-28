@@ -117,13 +117,15 @@ export function registerWarbandCombat(type) {
 
   Hooks.on("renderChatMessageHTML", noteAttackCard);
 
-  // A warband retraining its upgrades can't fight yet (#204): say so when it attacks.
+  // A warband retraining its upgrades can't fight yet (#204): its attack is stopped, and the GM told why.
   Hooks.on("SD-NPC-Attack", (config) => {
     const actor = actorFromUuidSync(config?.actorUuid);
     if (actor?.type !== type) return true;
+    // Retraining, it can't fight until the week is up (#204): the attack is stopped (false cancels it), with a warning.
     const until = warbandState(actor).retrainingUntil;
-    if (until > game.time.worldTime) ui.notifications.warn(t("SDE.warband.notify.retraining", { warband: actor.name }));
-    return true;
+    if (!(until > game.time.worldTime)) return true;
+    ui.notifications.warn(t("SDE.warband.notify.retraining", { warband: actor.name }));
+    return false;
   });
 }
 

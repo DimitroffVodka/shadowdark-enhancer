@@ -387,7 +387,8 @@ page walks through it in order.
   failure rolls a rout, 3-in-6 (Withdraw 1-in-6), and a rout destroys it:
   no more upkeep, healing, or place in the commander's allowance, until
   Return to Service. With its commander dead it rolls and takes its own
-  turn. Its attack cards note the area it fills. (#203)
+  turn. Its attack cards note the area it fills; splitting its damage is the
+  GM's. A warband still retraining its upgrades can't attack. (#203)
 - **Encounter check frequency.** Right-click the Crawl Bar's **Encounter**
   button: **Check Frequency** runs from **1** (every crawl round, the default)
   to **10**. The count runs from the last check, automatic or manual, so a
