@@ -101,6 +101,13 @@ is otherwise unchanged.
   `visored-helm.svg`, `dragon-head.svg` — **Lorc**
 - `open-treasure-chest.svg` — **Skoll**
 
+## Party token (`icons/party-hex.svg`)
+
+The flag inside the party's hex token is **flying-flag** by **Lorc**, from
+[game-icons.net](https://game-icons.net/), licensed under
+[CC BY 3.0](https://creativecommons.org/licenses/by/3.0/). The hex around it is
+this module's own.
+
 ## Class icons (`icons/game-icons/classes/`)
 
 One icon per class, chosen to match each class's description. Also from

@@ -2,11 +2,11 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   defaultOverlandState, normalizeOverlandState, startTravel, setHex, recordForage,
-  pickTravelToken, forageRefusal, OVERLAND_VERSION,
+  pickTravelToken, forageRefusal, OVERLAND_VERSION, cheapestRoute,
   setWeather, weatherHolds, weatherAdvantage, weatherFormula, weatherFromRoll, harshToday, hexCost,
   dayBudget, pointSeconds, openDay, spendMove, priceMove, moveVerdict,
-  dayChecks, dueChecks, markCheck, setPending,
-  forageDC, closeDay, planRations,
+  dayChecks, dueChecks, markCheck, setPending, setEncounter, partyMethod, setPace,
+  forageDC, closeDay, planRations, BOOK_CHECKS, checkSettings, encounterChance, checkHalf,
 } from "../scripts/overland/overland-state-core.mjs";
 import { rulesApi } from "../scripts/rules-data/rules-data-core.mjs";
 
@@ -74,8 +74,15 @@ test("the travel token: the one party token, else the one selected token, else t
   assert.deepEqual(pickTravelToken({ partyTokens: ["p"], controlled: ["x", "y"] }), { uuid: "p", reason: "party" });
   assert.deepEqual(pickTravelToken({ partyTokens: ["p", "q"], controlled: ["x"] }), { uuid: "x", reason: "selected" });
   assert.deepEqual(pickTravelToken({ partyTokens: [], controlled: ["x"] }), { uuid: "x", reason: "selected" });
-  assert.deepEqual(pickTravelToken({ partyTokens: [], controlled: [] }), { uuid: null, reason: "pick" });
+  assert.deepEqual(pickTravelToken({ partyTokens: [], controlled: [] }), { uuid: null, reason: "none" }, "nothing to go on: the party comes onto the map");
+  assert.deepEqual(pickTravelToken({ partyTokens: ["p", "q"], controlled: [] }), { uuid: null, reason: "pick" }, "two parties: pick one");
   assert.deepEqual(pickTravelToken({ partyTokens: [], controlled: ["x", "y"] }), { uuid: null, reason: "pick" });
+});
+
+test("a player's own token never travels on a hex map (#257)", () => {
+  assert.deepEqual(pickTravelToken({ controlled: ["pc"], players: ["pc"] }), { uuid: null, reason: "player" });
+  assert.deepEqual(pickTravelToken({ controlled: ["pc", "npc"], players: ["pc"] }), { uuid: "npc", reason: "selected" });
+  assert.deepEqual(pickTravelToken({ partyTokens: ["p"], controlled: ["pc"], players: ["pc"] }), { uuid: "p", reason: "party" }, "the party token wins");
 });
 
 test("a forage is refused when nobody travels, for a non-member, and a second time today", () => {
@@ -223,21 +230,43 @@ test("a move spends its cost and records the hex", () => {
 // ── Encounter checks (#232) ──────────────────────────────────────────────────
 
 test("the day's checks: two by day from 06:00 to 17:00, two at night from 18:00 to 05:00, in time order", () => {
-  const checks = dayChecks({ midnight: 0, d12s: [12, 1, 12, 1], pushed: false });
+  const checks = dayChecks({ midnight: 0, d12s: [12, 1, 12, 1] });
   assert.deepEqual(checks.map((c) => [c.half, c.at / HOUR, c.chance]),
-    [["day", 6, 1], ["day", 17, 1], ["night", 18, 1], ["night", 29, 1]]);
+    [["day", 6, null], ["day", 17, null], ["night", 18, null], ["night", 29, null]], "the book's two and two; no chance until rolled");
   assert.ok(checks.every((c) => !c.rolled && c.hit === null));
-  assert.deepEqual(dayChecks({ midnight: 0, d12s: [1, 1, 1, 1], pushed: true }).map((c) => c.chance), [2, 2, 2, 2],
-    "a pushed day, night checks too");
+});
+
+test("the day's checks in the GM's numbers: the first d12s by day, the rest by night (#257)", () => {
+  const hours = (o) => dayChecks({ midnight: 0, ...o }).map((c) => [c.half, c.at / HOUR]);
+  assert.deepEqual(hours({ d12s: [1, 5, 12, 2], day: 3, night: 1 }), [["day", 6], ["day", 10], ["day", 17], ["night", 19]]);
+  assert.deepEqual(hours({ d12s: [4, 7], day: 0, night: 2 }), [["night", 21], ["night", 24]], "none by day");
+  assert.deepEqual(hours({ d12s: [], day: 0, night: 0 }), [], "no checks at all");
+  assert.deepEqual(hours({ d12s: [12, 12, 12, 12, 1, 1, 1, 1], day: 4, night: 4 }),
+    [["day", 17], ["day", 17], ["day", 17], ["day", 17], ["night", 18], ["night", 18], ["night", 18], ["night", 18]], "the most: four and four");
+});
+
+test("the encounter settings keep to their ranges; the chance at roll time is the setting, one more pushed, never past 6 (#257)", () => {
+  assert.deepEqual(checkSettings({}), BOOK_CHECKS, "unset: the book's");
+  assert.deepEqual(BOOK_CHECKS, { chance: 1, day: 2, night: 2 });
+  assert.deepEqual(checkSettings({ chance: 3, day: 0, night: 4 }), { chance: 3, day: 0, night: 4 });
+  assert.deepEqual(checkSettings({ chance: 9, day: -1, night: 2.7 }), { chance: 5, day: 0, night: 2 }, "clamped and whole");
+  assert.deepEqual(checkSettings({ chance: "3", day: null, night: NaN }), BOOK_CHECKS, "not numbers: the book's");
+  assert.equal(encounterChance(1, false), 1);
+  assert.equal(encounterChance(1, true), 2, "the book's push: 2 in 6");
+  assert.equal(encounterChance(3, true), 4);
+  assert.equal(encounterChance(5, true), 6);
+  assert.equal(encounterChance(6, true), 6, "never past 6 in 6");
+  assert.deepEqual([5.99, 6, 17.5, 18, 23, 0, 5].map(checkHalf), ["night", "day", "day", "night", "night", "night", "night"]);
 });
 
 test("the checks an advance passes: unrolled, at or before the target, in time order", () => {
-  const checks = dayChecks({ midnight: 0, d12s: [3, 1, 5, 2], pushed: false });   // 06, 08, 19, 22
+  const checks = dayChecks({ midnight: 0, d12s: [3, 1, 5, 2] });   // 06, 08, 19, 22
   assert.deepEqual(dueChecks(checks, 7 * HOUR).map((i) => checks[i].at / HOUR), [6]);
   assert.deepEqual(dueChecks(checks, 22 * HOUR).map((i) => checks[i].at / HOUR), [6, 8, 19, 22]);
-  const { state } = markCheck({ ...defaultOverlandState(), checks }, 0, false);
+  const { state } = markCheck({ ...defaultOverlandState(), checks }, 0, false, 3);
   assert.deepEqual(dueChecks(state.checks, 7 * HOUR), [], "a rolled check isn't rolled again");
-  assert.equal(state.checks[0].hit, false);
+  assert.deepEqual([state.checks[0].hit, state.checks[0].chance], [false, 3], "marked with the chance it rolled at");
+  assert.equal(state.checks[1].chance, null);
 });
 
 test("a stopped advance waits, and nothing but Continue moves the token on", () => {
@@ -248,8 +277,67 @@ test("a stopped advance waits, and nothing but Continue moves the token on", () 
   assert.equal(moveVerdict(state, { cost: 0, blocked: null }), null, "a displace is still free");
   assert.equal(setPending(state, null).state.pending, null);
   assert.equal(normalizeOverlandState({ pending: { until: "x" } }).pending, null);
-  assert.deepEqual(normalizeOverlandState({ checks: [{ at: 5, half: "odd", chance: 9 }, { at: "x" }] }).checks,
-    [{ half: "day", at: 5, chance: 6, rolled: false, hit: null }]);
+  assert.deepEqual(normalizeOverlandState({ checks: [{ at: 5, half: "odd", chance: 9 }, { at: "x" }, { at: 6, chance: 9, rolled: true, hit: true }] }).checks,
+    [{ half: "day", at: 5, chance: null, rolled: false, hit: null }, { half: "day", at: 6, chance: 6, rolled: true, hit: true }],
+    "an unrolled check has no chance yet; a rolled one keeps its own, at most 6");
+});
+
+test("the method is read from the party: mounted only when every member rides, sailing when all are aboard one boat (#257)", () => {
+  const members = ["Actor.a", "Actor.b"];
+  const horse = { name: "Bessie", riders: ["Actor.a"] }, pony = { name: "Nib", riders: ["Actor.b", "Actor.stranger"] };
+  assert.deepEqual(partyMethod({ members }), { method: "walking", boatUuid: null, mounts: 0, ride: {} });
+  assert.deepEqual(partyMethod({ members, mounts: [horse] }), { method: "walking", boatUuid: null, mounts: 1, ride: { "Actor.a": "Bessie" } },
+    "one on foot keeps the party walking; the horse still eats");
+  assert.equal(partyMethod({ members, mounts: [horse, pony] }).method, "mounted");
+  assert.equal(partyMethod({ members, mounts: [{ name: "Mule", riders: [] }] }).mounts, 0, "a mount carrying no member isn't the party's");
+  const boat = { uuid: "Actor.ship", name: "Gull", aboard: ["Actor.a", "Actor.b", "Actor.crew"] };
+  assert.deepEqual(partyMethod({ members, mounts: [horse, pony], boats: [boat] }).boatUuid, "Actor.ship");
+  assert.equal(partyMethod({ members, boats: [{ ...boat, aboard: ["Actor.a"] }] }).method, "walking", "half aboard isn't sailing");
+  assert.equal(partyMethod({ members: [] }).method, "walking");
+});
+
+test("the standing pace: today's too until the party moves or forages, the next dawn's after (#257)", () => {
+  const day = openDay({ ...defaultOverlandState(), mounts: 0 }, { now: 0, method: "walking", pushed: false, base: 4, mounts: 2 }).state;
+  assert.deepEqual([day.base, day.budget, day.mounts, day.pace], [4, 4, 2, "normal"]);
+  const pushNow = setPace(day, "push");
+  assert.equal(pushNow.today, true);
+  assert.deepEqual([pushNow.state.pace, pushNow.state.pushed, pushNow.state.budget], ["push", true, 6]);
+  const withChecks = openDay(defaultOverlandState(), { now: 0, method: "walking", pushed: false, base: 4,
+    checks: [{ half: "day", at: 1, chance: 1, rolled: true, hit: false }, { half: "day", at: 2, chance: 1, rolled: false, hit: null }] }).state;
+  assert.deepEqual(setPace(withChecks, "push").state.checks.map((c) => c.chance), [1, null], "a rolled check keeps its chance; the next reads the push as it rolls");
+  const back = setPace(pushNow.state, "normal");
+  assert.deepEqual([back.today, back.state.pushed, back.state.budget], [true, false, 4]);
+  const moved = setPace({ ...day, spent: 1 }, "push");
+  assert.deepEqual([moved.today, moved.state.pace, moved.state.pushed, moved.state.budget], [false, "push", false, 4], "waits for the next dawn");
+  assert.equal(setPace({ ...day, foraged: ["x"] }, "push").today, false);
+  const noDay = setPace(defaultOverlandState(), "push");
+  assert.deepEqual([noDay.today, noDay.state.pace, noDay.state.pushed], [false, "push", false]);
+  assert.equal(setPace(day, "normal").changed, false);
+  assert.equal(closeDay(pushNow.state).state.base, 0);
+  assert.equal(closeDay(pushNow.state).state.pace, "push", "the standing pace outlives the day");
+  assert.equal(normalizeOverlandState({ pace: "sprint" }).pace, "normal");
+});
+
+test("a quiet check's encounter is held as plain data until Continue or a new day (#257)", () => {
+  const drawn = {
+    at: 36000, half: "day", chance: 1, kind: "monster", uuid: "Actor.wolf", name: "Wolf", img: "wolf.webp",
+    count: 3, countFormula: "1d6", distanceRoll: 4, activityRoll: 7, reactionRoll: 9, via: null,
+    chain: [{ name: "Sablewood Encounter Zone: Forest", formula: "1d8", roll: 5 }, { category: "Beast" }, { name: "Sablewood Beasts", formula: "1d12", roll: 7 }],
+    also: [{ name: "Sablewood Horrors", formula: "1d8", roll: 2, text: "A lone ghoul" }],
+    extra: "dropped",
+  };
+  const { state, changed } = setEncounter({ ...defaultOverlandState(), day: 0 }, drawn);
+  assert.equal(changed, true);
+  const kept = { ...drawn, poi: false, noTable: false, text: null };
+  delete kept.extra;
+  assert.deepEqual(state.encounter, kept, "the draw survives, unknown fields don't");
+  assert.deepEqual(normalizeOverlandState(state), state, "normalizing is idempotent");
+  assert.equal(normalizeOverlandState({ encounter: { kind: "monster" } }).encounter, null, "no hour, no encounter");
+  assert.equal(normalizeOverlandState({ encounter: { at: 1, kind: "dragon", chain: "x" } }).encounter.kind, "empty");
+  assert.equal(moveVerdict({ ...state, budget: 5 }, { cost: 1, blocked: null }), "pending", "a held encounter stops the party until Continue");
+  assert.equal(setEncounter(state, null).state.encounter, null);
+  assert.equal(closeDay(state).state.encounter, null);
+  assert.equal(openDay(state, { now: 0, method: "walking", pushed: false, base: 4 }).state.encounter, null);
 });
 
 // ── Forage, camp (#233) ──────────────────────────────────────────────────────
@@ -280,4 +368,42 @@ test("closing the day: no day open, no push, and the day's forage and checks don
     checks: [{ half: "day", at: 1, chance: 1, rolled: true, hit: false }], pending: { until: 9, reason: "camp" } });
   assert.deepEqual([state.day, state.pushed, state.budget, state.spent, state.foraged, state.checks, state.pending],
     [null, false, 0, 0, [], [], null]);
+});
+
+test("the cheapest route goes round dear hexes and never through closed ones (#257)", () => {
+  // A 5x5 square grid of letters: "." costs 1, "#" can't be entered, "~" costs 3.
+  const map = [
+    ".....",
+    ".###.",
+    "..~..",
+    ".###.",
+    ".....",
+  ];
+  const at = (c) => map[c.j]?.[c.i];
+  const neighbours = (c) => [[1, 0], [-1, 0], [0, 1], [0, -1]].map(([di, dj]) => ({ i: c.i + di, j: c.j + dj })).filter((n) => at(n));
+  const cost = (_f, to) => ({ ".": 1, "~": 3, "#": Infinity })[at(to)];
+  const distance = (a, b) => Math.abs(a.i - b.i) + Math.abs(a.j - b.j);
+  const r = cheapestRoute({ start: { i: 0, j: 2 }, goal: { i: 4, j: 2 }, neighbours, cost, distance });
+  assert.equal(r.cost, 6, "across the water: 1 + 3 + 1 + 1");
+  assert.deepEqual(r.path.at(0), { i: 0, j: 2 });
+  assert.deepEqual(r.path.at(-1), { i: 4, j: 2 });
+  assert.ok(r.path.every((c) => at(c) !== "#"));
+  const walled = cheapestRoute({ start: { i: 2, j: 2 }, goal: { i: 2, j: 0 }, neighbours, cost: (_f, to) => (at(to) === "." && to.j !== 1 ? 1 : Infinity), distance });
+  assert.equal(walled, null, "no way through");
+  assert.deepEqual(cheapestRoute({ start: { i: 1, j: 1 }, goal: { i: 1, j: 1 }, neighbours, cost, distance }), { path: [{ i: 1, j: 1 }], cost: 0 });
+});
+
+test("a long route over dear terrain is found, and a negative cost doesn't loop the search (#281 review)", () => {
+  // 70x70 = 4,900 cells, every step costing 2: a 4,000-cell cap gave up on this and it read as no way.
+  const N = 70;
+  const neighbours = (c) => [[1, 0], [-1, 0], [0, 1], [0, -1]].map(([di, dj]) => ({ i: c.i + di, j: c.j + dj }))
+    .filter((n) => n.i >= 0 && n.j >= 0 && n.i < N && n.j < N);
+  const distance = (a, b) => Math.abs(a.i - b.i) + Math.abs(a.j - b.j);
+  const far = cheapestRoute({ start: { i: 0, j: 0 }, goal: { i: N - 1, j: N - 1 }, neighbours, cost: () => 2, distance });
+  assert.equal(far?.cost, 4 * (N - 1));
+  assert.equal(far.path.length, 2 * (N - 1) + 1);
+  // Two neighbours priced -1 each (a mistyped rules row) would lower each other forever.
+  const odd = (c) => c.j === 0 && (c.i === 1 || c.i === 2);
+  const r = cheapestRoute({ start: { i: 0, j: 0 }, goal: { i: 5, j: 0 }, neighbours, cost: (_f, to) => (odd(to) ? -1 : 1), distance });
+  assert.deepEqual(r.path.at(-1), { i: 5, j: 0 });
 });

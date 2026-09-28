@@ -11,6 +11,76 @@ it needs.
 
 ### Added
 
+- **Travel reads the party and keeps a standing pace.** Start day asks nothing:
+  the method is read from the party (mounted when every member rides a mount,
+  sailing when every member is aboard one boat, else walking), and the pace is
+  the Travel panel's standing **Normal | Push**, which holds every dawn until
+  it's changed (and counts today too before the party has moved or foraged).
+  The Start day dialog appears only when nothing says how many hexes a day the
+  party makes. Every mount carrying the party now eats at camp.
+- **Make this map playable.** The Western Reaches A0 map is recognised on any
+  scene. The first time you view it you're asked once, and the Hex Tagger has a
+  button for it any time. It:
+  - numbers every hex with no setup, fitting the scene to the print when its
+    grid doesn't match (asking first if things are placed on it);
+  - fills the hexes it lacks, and region borders, from another scene of the
+    same map, keeping your own tags;
+  - writes and pins the book's keyed hexes;
+  - hands the map to Shadowdark Extras once every hex has terrain;
+  - opens the Legend when there's no terrain to copy.
+
+  It runs only what is missing, then shows a checklist of what the map has.
+  **Hex map from image** with the A0 file skips finding the grid. A re-scan of
+  the region borders now keeps your corrections to it.
+- **The Encounter panel.** Travel's encounter checks now roll quietly: no chat
+  card, no pause, no window. A hit drops an Encounter panel from the clock bar
+  for the GMs. It shows the check, each table the roll went through with its
+  die (the zone, the category, the region's table), how many turned up, and
+  the distance, activity and reaction. **Post to chat** shows the players,
+  **Encounter Roller** opens the roller, and **Continue** runs the rest of the
+  clock. The day's check hours are no longer whispered; they are listed in the
+  Travel panel.
+- **Travel encounters as often as you want them, and a panel that folds
+  away.** The Travel panel's Encounters step has **Adjust** for the GM: the
+  chance (1 to 5 in 6, one more on a pushed day) and the checks by day and by
+  night (0 to 4 each), the book's marked; they're under **Settings →
+  Overland** too. A new chance counts from the next check, a new number of
+  checks from the next Start day. **Roll a check now** rolls one more at this
+  hour, quietly. The Encounter panel's chevron folds it into a strip under
+  the bar with the hour, what turned up and **Continue**. (#257)
+- **Click a hex to travel there.** With the party token selected while
+  travelling on the hex map, the cheapest route to the hex under the cursor is
+  drawn with each hex's cost, and a tooltip gives the hexes, the miles, the
+  points and the hours (and says when today hasn't enough left). A click walks
+  the party there one hex at a time, the clock moving with each hex; the walk
+  stops at an encounter, a bounce, or the end of the day's points. (#257)
+- **The Travel panel follows the book's travel procedure.** Its eight steps
+  (weather, sight, method, speed, traveling, encounters, resting, night) are the
+  day's record: the step the day is at is marked, and any step opens to what
+  happened in it. Sight counts the hexes the party sees by the book's rules,
+  the same sum as Shadowdark Extras' hex fog. (#257)
+- **Hex maps follow hex rules.** On a tagged print or a Shadowdark Extras hex
+  map, no token gives light and no token sees, so a torch no longer reveals
+  miles of map; the same characters keep their light and sight on a dungeon
+  map. The party travels as one black hex token that fills its hex: Extras'
+  party, or the module's own **Party**, put on the map when travel starts with
+  no party token there and nothing selected. A player's own token never
+  travels. (#257)
+
+- **The clock bar.** The date with its year, the time and the sky now sit at
+  the top of the screen for everyone, on every scene, in the look of the
+  Overland demo: black, the engraved frame, the book's blackletter. Under it,
+  the season and a sky dial that turns with the day, with the weather, the
+  next sunrise or sunset and the moon's phase. A GM steps the clock back or
+  on (a day, 8 hours, an hour, 10 minutes, a round), jumps to the next dawn,
+  noon, dusk or midnight, sets any date and year, and switches the real-time
+  clock. The month view shows the moon's quarters, today and the City of
+  Masks holidays, and a GM clicks a day to go there. While travelling, a step
+  rolls the day's encounter checks it passes, and the bar carries the hexes
+  left and the Travel panel. Settings → Overland → Clock bar: everyone, GM
+  only, or off. It hides during a combat, and the Crawl Strip no longer shows
+  on a hex map outside a combat. See *Clock and Calendar*. (#253, #257)
+
 #### Overland travel
 
 - **Travel on a tagged hex map.** On a hex map tagged by the Hex Tagger, the
@@ -52,13 +122,11 @@ it needs.
   weather. A Shadowdark Extras party hands the rations to Extras' camping rest
   once Extras offers it. When a season turns with the party on a deep-tunnels
   hex, each member makes a DC 12 CHA check or takes 1d4 CHA damage. (#233)
-- **The travel bar.** While travelling, everyone sees a slim bar at the top
-  centre: the date and time, the sun or the moon's phase, the weather and the
-  hexes left. Opened, it shows a small sky with the sun or moon in its place,
-  the season and climate, the day's budget, and each member's rations and
-  forage. Players get a Forage button on their own characters. The GM also
-  sees the check hours and the day's buttons, which players never do. It
-  hides during combat. (#234)
+- **The Travel panel.** While travelling, the clock bar's travel plate shows
+  the hexes left, and its Travel panel the season and climate, the day's
+  budget, and each member's rations and forage. Players get a Forage button on
+  their own characters. The GM also sees the check hours and the day's
+  buttons, which players never do. (#234, #253)
 - **Travel works before the rules data is imported.** Pressing **Travel**
   opens **Start day** at once, and its **Hexes today** takes the day's hexes
   when the Rules Data has no hexes per day yet (it lists the ones it has).

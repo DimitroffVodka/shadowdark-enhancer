@@ -286,13 +286,39 @@ export function sceneTerrains(flag) {
   return [...byKey.values()].sort((a, b) => b.count - a.count || a.key.localeCompare(b.key));
 }
 
-/** Scene points of the tokens that stand for the party right now. */
+/**
+ * Scene points of the tokens that stand for the party right now: the selected
+ * ones, else the party token (Extras' or the module's own, #257), else the
+ * players' characters.
+ */
 function partyPoints(canvasRef) {
   const controlled = canvasRef?.tokens?.controlled ?? [];
-  const tokens = controlled.length
-    ? controlled
-    : (canvasRef?.tokens?.placeables ?? []).filter((t) => t.actor?.type === "Player" && t.actor?.hasPlayerOwner);
+  const placed = canvasRef?.tokens?.placeables ?? [];
+  let extras = [];
+  try { extras = game.modules?.get("shadowdark-extras")?.active ? game.modules.get("shadowdark-extras").api?.party?.list?.() ?? [] : []; } catch { /* no party API */ }
+  const parties = new Set(extras.map((a) => a.id));
+  const party = placed.filter((t) => parties.has(t.actor?.id) || t.actor?.flags?.[MODULE_ID]?.party === true);
+  const tokens = controlled.length ? controlled
+    : party.length ? party
+    : placed.filter((t) => t.actor?.type === "Player" && t.actor?.hasPlayerOwner);
   return tokens.map((t) => t.center).filter((c) => Number.isFinite(c?.x) && Number.isFinite(c?.y));
+}
+
+/**
+ * Does this scene follow hex rules rather than Foundry's light and sight
+ * (#257)? A hex grid that is a map of hexes: a print tagged by the Hex Tagger,
+ * or a Shadowdark Extras hex map (a built or adopted hexcrawl, or a scene its
+ * hex painter formatted). There no token lights anything or sees
+ * anything; what the party sees comes from the hex rules (time, weather,
+ * height). A hex grid alone is not enough: 5 ft hex battle maps keep their
+ * torches.
+ * @param {Scene|null} scene  the scene document
+ * @returns {boolean}
+ */
+export function isHexRulesScene(scene) {
+  if (!scene?.grid?.isHexagonal) return false;
+  const sdx = scene.flags?.["shadowdark-extras"];
+  return !!(scene.getFlag?.(MODULE_ID, TAGS_FLAG)?.origin || sdx?.hexcrawl || sdx?.hexScene);
 }
 
 /**
