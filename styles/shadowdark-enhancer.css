@@ -11177,3 +11177,16 @@ body.theme-light .sde-parry-note { color: #2e6b2e; }
   justify-content: flex-end;
   gap: 6px;
 }
+
+/* The Trouble tracker's status bar on a trouble's page (#193), GM only. */
+.sde-trouble-status {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+.sde-trouble-status button {
+  flex: 0 0 auto;
+  width: auto;
+}

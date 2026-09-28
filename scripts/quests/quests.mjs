@@ -282,13 +282,31 @@ function findPin(quest) {
   const candidates = [];
   for (const scene of game.scenes?.contents ?? []) {
     for (const note of scene.notes?.contents ?? []) {
-      const own = note.entryId === quest.id;
+      const own = !!quest.id && note.entryId === quest.id;
       const hexPin = quest.hex !== null && note.flags?.[MODULE_ID]?.hexPin?.num === quest.hex;
       if (own || hexPin) candidates.push({ sceneId: scene.id, noteId: note.id, own });
     }
   }
   return pickPin(candidates, globalThis.canvas?.scene?.id ?? null);
 }
+
+/** Pan to a pin from findPin, viewing its scene first (GM); warns with `missingKey` when there is none. */
+async function panToPin(pin, missingKey) {
+  if (!pin) { ui.notifications?.warn(t(missingKey)); return false; }
+  const scene = game.scenes.get(pin.sceneId);
+  if (scene.id !== canvas?.scene?.id) {
+    if (!game.user.isGM) { ui.notifications?.warn(t("SDE.quests.notify.pinElsewhere")); return false; }
+    await scene.view();
+  }
+  const note = scene.notes.get(pin.noteId);
+  // Pan only. canvas.ping broadcasts to every client, which would show the
+  // players where a Hidden quest leads.
+  await canvas.animatePan({ x: note.x, y: note.y, scale: Math.max(canvas.stage?.scale?.x ?? 1, 1) });
+  return true;
+}
+
+/** Pan to the Hex Tagger's pin for a hex number (the Trouble tracker's settlements, #193). */
+export const jumpToHex = (num) => panToPin(findPin({ id: null, hex: Number(num) }), "SDE.troubles.notify.noPin");
 
 // ── The API ─────────────────────────────────────────────────────────────────
 
@@ -411,18 +429,7 @@ export const Quests = {
    */
   async jumpToPin(idOrUuid) {
     const quest = this.get(idOrUuid);
-    const pin = quest ? findPin(quest) : null;
-    if (!pin) { ui.notifications?.warn(t("SDE.quests.notify.noPin")); return false; }
-    const scene = game.scenes.get(pin.sceneId);
-    if (scene.id !== canvas?.scene?.id) {
-      if (!game.user.isGM) { ui.notifications?.warn(t("SDE.quests.notify.pinElsewhere")); return false; }
-      await scene.view();
-    }
-    const note = scene.notes.get(pin.noteId);
-    // Pan only. canvas.ping broadcasts to every client, which would show the
-    // players where a Hidden quest leads.
-    await canvas.animatePan({ x: note.x, y: note.y, scale: Math.max(canvas.stage?.scale?.x ?? 1, 1) });
-    return true;
+    return panToPin(quest ? findPin(quest) : null, "SDE.quests.notify.noPin");
   },
 };
 
