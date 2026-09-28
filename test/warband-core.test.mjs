@@ -129,9 +129,14 @@ test("Armor Upgrade and Tough change the actor; unticking Tough never hurts it",
   assert.deepEqual(upgradeActorChanges("tough", true, { ac: 13, hpMax: 25, hpValue: 0 }),
     { "system.attributes.hp.max": 40, "system.attributes.hp.value": 0 }, "a fallen warband isn't raised");
   assert.deepEqual(upgradeActorChanges("tough", false, { ac: 13, hpMax: 40, hpValue: 30 }),
-    { "system.attributes.hp.max": 25, "system.attributes.hp.value": 25 }, "current is capped at the new max");
+    { "system.attributes.hp.max": 25, "system.attributes.hp.value": 15 }, "the damage taken stays");
   assert.deepEqual(upgradeActorChanges("tough", false, { ac: 13, hpMax: 40, hpValue: 12 }),
-    { "system.attributes.hp.max": 25, "system.attributes.hp.value": 12 }, "a hurt warband loses nothing more");
+    { "system.attributes.hp.max": 25, "system.attributes.hp.value": 1 }, "a standing warband stays standing");
+  assert.deepEqual(upgradeActorChanges("tough", false, { ac: 13, hpMax: 40, hpValue: 0 }),
+    { "system.attributes.hp.max": 25, "system.attributes.hp.value": 0 });
+  const on = upgradeActorChanges("tough", true, { ac: 13, hpMax: 25, hpValue: 10 });
+  const off = upgradeActorChanges("tough", false, { ac: 13, hpMax: on["system.attributes.hp.max"], hpValue: on["system.attributes.hp.value"] });
+  assert.deepEqual([off["system.attributes.hp.max"], off["system.attributes.hp.value"]], [25, 10], "ticked and unticked, no HP gained or lost");
   assert.deepEqual(upgradeActorChanges("loyal", true, { ac: 13, hpMax: 25, hpValue: 25 }), {});
   assert.equal(toughHp(["tough"]), 15);
   assert.equal(toughHp(["loyal"]), 0);

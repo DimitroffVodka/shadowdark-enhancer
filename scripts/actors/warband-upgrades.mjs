@@ -26,12 +26,13 @@ export function upgradeText() {
   try { return game.settings.get(MODULE_ID, UPGRADE_TEXT_SETTING) ?? {}; } catch { return {}; }
 }
 
-/** Save what a p.250 read found; a short read keeps what it found and says so. Returns the count. */
+/** Save what a p.250 read found over what's stored; a short read says so. Returns the count stored. */
 export async function saveUpgradeText(text) {
   const found = parseUpgradeLines(text);
-  const n = Object.keys(found).length;
-  if (!n) return 0;
-  await game.settings.set(MODULE_ID, UPGRADE_TEXT_SETTING, found);
+  if (!Object.keys(found).length) return 0;
+  const merged = { ...upgradeText(), ...found };
+  const n = Object.keys(merged).length;
+  await game.settings.set(MODULE_ID, UPGRADE_TEXT_SETTING, merged);
   if (n < UPGRADES.length) ui.notifications?.warn(t("SDE.warband.notify.textPartial", { n, of: UPGRADES.length }));
   else ui.notifications?.info(t("SDE.warband.notify.textRead"));
   return n;
@@ -47,7 +48,14 @@ export async function readUpgradeText() {
     return 0;
   }
   const { extractPdfText, notifyGutterWarnings } = await import("../importer/pdf-text-extract.mjs");
-  const result = await extractPdfText(target.file, { pages: [target.page], columns: "topband" });
+  let result;
+  try {
+    result = await extractPdfText(target.file, { pages: [target.page], columns: "topband" });
+  } catch (err) {
+    console.error(`${MODULE_ID} | warband upgrade text`, err);
+    ui.notifications?.error(t("SDE.importer.pdf.readPageFailed", { error: err?.message || err }));
+    return 0;
+  }
   notifyGutterWarnings(result);
   const n = await saveUpgradeText(result.text);
   if (!n) ui.notifications?.warn(t("SDE.warband.notify.textNotFound"));
@@ -72,6 +80,7 @@ export function upgradeWrites(actor, key, on) {
       const src = item._source.system;
       const changes = upgradeAttackChanges(key, on, { attackBonus: src.bonuses?.attackBonus, damage: src.damage?.value });
       if (changes === null) return;
+      if (on && !Object.keys(changes).length) continue;
       updates.push({ _id: item.id, ...changes, [`flags.${MODULE_ID}.${ATTACK_FLAG}.${key}`]: on });
     }
     if (updates.length) await actor.updateEmbeddedDocuments("Item", updates);
@@ -81,5 +90,9 @@ export function upgradeWrites(actor, key, on) {
 
 /** The setting. Must run in `init`. */
 export function registerWarbandUpgrades() {
-  game.settings.register(MODULE_ID, UPGRADE_TEXT_SETTING, { scope: "world", config: false, type: Object, default: {} });
+  game.settings.register(MODULE_ID, UPGRADE_TEXT_SETTING, {
+    scope: "world", config: false, type: Object, default: {},
+    // Every open warband sheet shows the new hovers.
+    onChange: () => { for (const app of Object.values(ui.windows)) if (app.actor?.type === `${MODULE_ID}.warband`) app.render(false); },
+  });
 }

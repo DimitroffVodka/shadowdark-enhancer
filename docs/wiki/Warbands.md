@@ -59,7 +59,7 @@ and unticking takes the same amount off again:
 | Upgrade | On the sheet |
 |---|---|
 | **Armor Upgrade** | AC +1. |
-| **Tough** | Max HP +15, and current HP with it. Unticking lowers max and keeps current no higher, so it never costs HP it didn't give. |
+| **Tough** | Max HP +15, and current HP with it. Unticking takes 15 off both, keeping any damage taken, but never drops a standing warband below 1. |
 | **Training** | Every attack's bonus +1. |
 | **Weapons Upgrade** | Every attack gets one more damage die of the same kind: 3d8 becomes 4d8. |
 

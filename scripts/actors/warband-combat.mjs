@@ -109,6 +109,8 @@ export function registerWarbandCombat(type) {
     const before = seen.get(actor.uuid) ?? Number(actor.system.attributes.hp.max ?? 0);
     const after = hpOf(actor);
     seen.set(actor.uuid, after);
+    // A change to max as well is the sheet's (Tough ticked, fixed HP set), not a hit.
+    if (changes.system.attributes.hp.max !== undefined) return;
     if (!isActiveGM() || !core.moraleTriggered(before, after, actor.system.attributes.hp.max)) return;
     // Only in a fight: morale is a battle rule, not a sheet edit's.
     const fighting = game.combats.some((c) => c.active && c.combatants.some((cb) => cb.actorId === actor.id));

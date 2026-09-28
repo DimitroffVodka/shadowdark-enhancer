@@ -182,8 +182,8 @@ export function addDie(formula, by) {
 /**
  * The actor's field changes for ticking (`on`) or unticking an upgrade, from
  * its stored values. Tough raises max and current HP together; unticking it
- * lowers max and caps current there, so taking it off never hurts the warband
- * (or sets off a morale check). AC never drops below 0.
+ * takes 15 off both, keeping the damage taken, but never drops a standing
+ * warband below 1. AC never drops below 0.
  * @param {{ac:number, hpMax:number, hpValue:number}} stored
  * @returns {object} dotted update paths, empty for an upgrade with no number here
  */
@@ -194,7 +194,8 @@ export function upgradeActorChanges(key, on, { ac, hpMax, hpValue }) {
   if (s.hp) {
     const max = Math.max(0, hpMax + (on ? s.hp : -s.hp));
     out["system.attributes.hp.max"] = max;
-    out["system.attributes.hp.value"] = on ? (hpValue > 0 ? hpValue + s.hp : hpValue) : Math.min(hpValue, max);
+    out["system.attributes.hp.value"] = on ? (hpValue > 0 ? hpValue + s.hp : hpValue)
+      : (hpValue > 0 ? Math.min(max, Math.max(1, hpValue - s.hp)) : 0);
   }
   return out;
 }

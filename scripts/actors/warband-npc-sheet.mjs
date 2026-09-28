@@ -198,9 +198,17 @@ export function buildWarbandNpcSheet(BaseNpcSheet, type) {
 
     /**
      * Tick or untick one upgrade; refused (with a message) over the allowance
-     * or twice. Its numbers go on or off in the same update (#201).
+     * or twice. Its numbers go on or off in the same update (#201). One at a
+     * time: each reads the list and the stored numbers only after the last
+     * one's writes have landed, so two quick clicks can't part them.
      */
-    async _toggleUpgrade(key, on) {
+    _toggleUpgrade(key, on) {
+      const run = (this._upgradeChain ?? Promise.resolve()).then(() => this._toggleUpgradeNow(key, on));
+      this._upgradeChain = run.catch(() => false);
+      return run;
+    }
+
+    async _toggleUpgradeNow(key, on) {
       const state = warbandState(this.actor);
       if (on === state.upgrades.includes(key)) return true;
       if (on) {
