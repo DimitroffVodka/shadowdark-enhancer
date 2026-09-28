@@ -27,7 +27,7 @@ import { MODULE_ID } from "../shared/module-id.mjs";
 import { SessionRecap } from "../session-recap/session-recap.mjs";
 import { esc } from "../shared/esc.mjs";
 import { addToPurse } from "../shared/coins.mjs";
-import { relayToGM, authorizeActorFor, refuseQuery } from "../shared/gm-relay.mjs";
+import { relayToGM, authorizeActorFor, refuseQuery, registerQuery } from "../shared/gm-relay.mjs";
 
 /** One string from `languages/en.json`; the key when no i18n is mounted (node tests). */
 const L = (key, data) => {
@@ -114,7 +114,7 @@ export const ItemDrops = {
     // queries. Registered on every client; only the one a query is addressed to
     // runs the handler, so a second GM or the always-on Bridge client can't
     // create a duplicate token or double-credit a pickup.
-    CONFIG.queries[DROP_QUERY] = (data, { user } = {}) => ItemDrops.handleQuery(data, user);
+    registerQuery(DROP_QUERY, (data, { user } = {}) => ItemDrops.handleQuery(data, user));
 
     console.log(`${MODULE_ID} | Item Drops initialized.`);
   },

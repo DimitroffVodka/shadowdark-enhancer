@@ -21,6 +21,8 @@
  */
 import test from "node:test";
 import assert from "node:assert/strict";
+import { execSync } from "node:child_process";
+import { readFileSync } from "node:fs";
 import { MODULE_ID } from "../scripts/shared/module-id.mjs";
 import {
   QUERY_TIMEOUT_MS,
@@ -322,4 +324,189 @@ test("relay: targetUser sends to that GM instead of the active one (a GM-to-GM h
   assert.deepEqual(sent, [], "the active GM was not asked");
   assert.equal(asked.length, 1);
   assert.equal(asked[0].opts.timeout, QUERY_TIMEOUT_MS, "the timeout still goes with it");
+});
+
+// ─── One tab of a GM signed in twice (#288) ─────────────────────────────────
+
+/**
+ * A browser's Web Lock manager, shared by the tabs of one browser: exclusive
+ * locks granted a moment later as the browser does, `ifAvailable` answered at
+ * once, a waiting request dropped when its signal aborts, and a closed tab's
+ * locks and waiting requests dropped. A page kept for the back/forward cache is
+ * not closed: it holds what it holds until it lets go.
+ */
+function browserLocks() {
+  const held = new Map();    // name → tab
+  const waiting = new Map(); // name → [{ tab, grant }]
+  const grantNext = (name) => { waiting.get(name)?.shift()?.grant(); };
+  return {
+    forTab: (tab) => ({
+      request(name, options, callback) {
+        if (typeof options === "function") [callback, options] = [options, {}];
+        return new Promise((resolve, reject) => setImmediate(() => {
+          if (tab.closed) return;
+          const run = (lock) => Promise.resolve(callback(lock)).then((v) => {
+            if (lock && held.get(name) === tab) { held.delete(name); grantNext(name); }
+            resolve(v);
+          }, reject);
+          if (!held.has(name)) { held.set(name, tab); run({ name }); return; }
+          if (options?.ifAvailable) { run(null); return; }
+          const entry = { tab, grant: () => { held.set(name, tab); run({ name }); } };
+          (waiting.get(name) ?? waiting.set(name, []).get(name)).push(entry);
+          options?.signal?.addEventListener("abort", () => {
+            waiting.set(name, waiting.get(name).filter((w) => w !== entry));
+            reject(new DOMException("aborted", "AbortError"));
+          });
+        }));
+      },
+    }),
+    close(tab) {
+      tab.closed = true;
+      for (const [name, list] of waiting) waiting.set(name, list.filter((w) => w.tab !== tab));
+      for (const [name, t] of [...held]) if (t === tab) { held.delete(name); grantNext(name); }
+    },
+  };
+}
+
+let tabCount = 0;
+/** A tab signed in as `user`: its own copy of the relay, its own `game` and `CONFIG`. */
+async function openTab(browser, user, { build = "b1", activeGM = GM } = {}) {
+  const tab = { closed: false, CONFIG: { queries: {} }, page: new EventTarget() };
+  tab.game = { i18n: I18N, user, userId: user.id, users: { activeGM } };
+  tab.relay = await import(`../scripts/shared/gm-relay.mjs?tab=${++tabCount}`);
+  tab.run = (fn) => {
+    const was = [globalThis.game, globalThis.CONFIG];
+    globalThis.game = tab.game;
+    globalThis.CONFIG = tab.CONFIG;
+    try { return fn(tab.relay); } finally { [globalThis.game, globalThis.CONFIG] = was; }
+  };
+  if (browser) tab.run((r) => r.claimGmTab(user.id, build, browser.forTab(tab), tab.page));
+  return tab;
+}
+const settle = async () => { for (let i = 0; i < 5; i++) await new Promise(setImmediate); };
+const working = (...tabs) => tabs.map((t) => t.run((r) => r.isActiveGM()));
+
+test("a GM signed in twice in one browser: the first tab works, and the other takes over the moment it closes (#288)", async () => {
+  const browser = browserLocks();
+  const a = await openTab(browser, GM);
+  await settle();
+  const b = await openTab(browser, GM);
+  await settle();
+  assert.deepEqual(working(a, b), [true, false]);
+  browser.close(a);
+  await settle();
+  assert.equal(working(b)[0], true, "no timeout to wait out");
+});
+
+test("a reload hands the work to the tab that stayed, and the reloaded tab waits (#288)", async () => {
+  const browser = browserLocks();
+  const a = await openTab(browser, GM);
+  await settle();
+  const b = await openTab(browser, GM);
+  await settle();
+  browser.close(a);
+  const a2 = await openTab(browser, GM);
+  await settle();
+  assert.deepEqual(working(a2, b), [false, true]);
+});
+
+test("leaving the page lets the lock go at once, though the browser keeps the page for its back/forward cache (#288)", async () => {
+  const browser = browserLocks();
+  const a = await openTab(browser, GM);
+  await settle();
+  const b = await openTab(browser, GM);
+  await settle();
+  a.page.dispatchEvent(new Event("pagehide"));   // another page in A's tab; A's document is kept, not closed
+  await settle();
+  assert.equal(working(b)[0], true);
+});
+
+test("a waiting page that's left gives up its place, so the lock can't go to a page that's gone (#288)", async () => {
+  const browser = browserLocks();
+  const a = await openTab(browser, GM);
+  await settle();
+  const b = await openTab(browser, GM);
+  await settle();
+  b.page.dispatchEvent(new Event("pagehide"));
+  await settle();
+  browser.close(a);
+  const c = await openTab(browser, GM);
+  await settle();
+  assert.equal(working(c)[0], true, "the lock was free for the new tab, not given to B's kept page");
+});
+
+test("a page brought back from the back/forward cache asks again, and waits for the tab working now (#288)", async () => {
+  const browser = browserLocks();
+  const a = await openTab(browser, GM);
+  await settle();
+  const b = await openTab(browser, GM);
+  await settle();
+  a.page.dispatchEvent(new Event("pagehide"));
+  await settle();
+  a.page.dispatchEvent(Object.assign(new Event("pageshow"), { persisted: true }));
+  await settle();
+  assert.deepEqual(working(a, b), [false, true]);
+});
+
+test("a GM with one tab who signs in again in it gets the lock back at once (#288)", async () => {
+  const browser = browserLocks();
+  const a = await openTab(browser, GM);
+  await settle();
+  a.page.dispatchEvent(new Event("pagehide"));   // to /join, the old page kept in the cache
+  const again = await openTab(browser, GM);
+  await settle();
+  assert.equal(working(again)[0], true);
+});
+
+test("every tab works, as before, until the browser answers, without Web Locks, and on another build (#288)", async () => {
+  const browser = browserLocks();
+  const a = await openTab(browser, GM);
+  assert.equal(working(a)[0], true, "before the answer: a lone tab must not skip early work");
+  await settle();
+  const noLocks = await openTab(null, GM);
+  assert.equal(working(noLocks)[0], true, "no Web Locks (plain http): per user, as before");
+  const newer = await openTab(browser, GM, { build: "b2" });
+  await settle();
+  assert.deepEqual(working(a, newer), [true, true], "a tab left on an older build keeps no work from a new one");
+});
+
+test("a waiting tab of the active GM leaves a query unanswered, so the working tab's answer is the one the caller gets (#288)", async () => {
+  const browser = browserLocks();
+  const a = await openTab(browser, GM);
+  await settle();
+  const b = await openTab(browser, GM);
+  await settle();
+  const ran = [];
+  for (const [name, t] of [["A", a], ["B", b]]) t.run((r) => r.registerQuery("sde.test", () => { ran.push(name); return { ok: true, from: name }; }));
+  const ask = (t) => t.run(() => t.CONFIG.queries["sde.test"]({}, { user: PLAYER }));
+  const fromB = ask(b);
+  const timer = new Promise((resolve) => setTimeout(() => resolve("still waiting"), 50));
+  assert.equal(await Promise.race([fromB, timer]), "still waiting", "B never answers");
+  assert.deepEqual(await ask(a), { ok: true, from: "A" });
+  assert.deepEqual(ran, ["A"], "B's handler never ran, so no queue of B's waits on it");
+});
+
+test("only the active GM's waiting tab stays silent: another GM's tabs and a player's still answer (#288)", async () => {
+  const browser = browserLocks();
+  const b1 = await openTab(browser, BRIDGE_GM);
+  await settle();
+  const b2 = await openTab(browser, BRIDGE_GM);
+  await settle();
+  b2.run((r) => r.registerQuery("sde.test", (data, { user }) => r.refuseQuery(user, "Tests") ?? { ok: true }));
+  const reply = await b2.run(() => b2.CONFIG.queries["sde.test"]({}, { user: PLAYER }));
+  assert.equal(reply.ok, false, "a GM that isn't the active one refuses, as before");
+  const p1 = await openTab(browser, PLAYER);
+  await settle();
+  const p2 = await openTab(browser, PLAYER);
+  await settle();
+  p2.run((r) => r.registerQuery("sde.save", () => ({ ok: true })));
+  assert.deepEqual(await p2.run(() => p2.CONFIG.queries["sde.save"]({}, { user: GM })), { ok: true });
+  void [b1, p1];
+});
+
+test("every module query registers through registerQuery (#288)", () => {
+  const files = execSync("git ls-files scripts", { encoding: "utf8" }).trim().split("\n").filter((f) => f.endsWith(".mjs"));
+  const direct = files.filter((f) => f !== "scripts/shared/gm-relay.mjs"
+    && /CONFIG\.queries\[[^\]]+\]\s*=/.test(readFileSync(new URL(`../${f}`, import.meta.url), "utf8")));
+  assert.deepEqual(direct, [], "a handler registered straight on CONFIG.queries would answer from a waiting tab");
 });

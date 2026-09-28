@@ -23,6 +23,7 @@
  */
 
 import { MODULE_ID } from "../shared/module-id.mjs";
+import { isActiveGM } from "../shared/gm-relay.mjs";
 import { esc } from "../shared/esc.mjs";
 import {
   classifyExpenditure,
@@ -74,11 +75,14 @@ function _isResponsible(actor) {
   const ownerIds = game.users
     .filter((u) => !u.isGM && actor.testUserPermission(u, "OWNER"))
     .map((u) => u.id);
+  const activeGmId = game.users.activeGM?.id ?? null;
   const chosen = responsibleUserId({
     ownerIds,
     activeUserIds: game.users.filter((u) => u.active).map((u) => u.id),
-    activeGmId: game.users.activeGM?.id ?? null,
+    activeGmId,
   });
+  // The active GM elected: of its tabs, the one doing its work (#288).
+  if (chosen !== null && chosen === activeGmId) return isActiveGM();
   return chosen !== null && chosen === game.user.id;
 }
 

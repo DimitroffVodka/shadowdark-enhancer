@@ -178,15 +178,90 @@ export function authorizeActorFor(actorId, user, { type = null } = {}) {
   return verdict.ok ? { ok: true, actor } : verdict;
 }
 
+// ─── One tab of a GM signed in twice (#288) ─────────────────────────────────
+
+/**
+ * A GM signed in twice gets each query in both tabs and runs each hook in both,
+ * and the server can't say which tabs a user has open: it tracks activity per
+ * user. The browser can. A Web Lock is held by one tab at a time and passes to
+ * the next the moment that tab closes, reloads or crashes. Each tab asks for its
+ * user's lock at init and holds it for the life of the page, and only the tab
+ * holding it does the active GM's work. No timers, nothing on the network, so
+ * nothing a player sends can move it. (A heartbeat election on the module
+ * socket was tried and taken out in the #283 review.)
+ *
+ * Every tab works, as before, where this can't apply: outside a secure context
+ * (plain http over a LAN has no Web Locks), across two browsers or devices
+ * (each holds its own lock), and until the browser first answers. The lock is
+ * per build, so a tab left open on an older build can't keep the work, and the
+ * new build's startup migrations, from a new one. Chrome won't freeze a tab
+ * while it holds a lock another tab is waiting for.
+ */
+let _tab = null;   // true: this tab holds its user's lock; false: another tab does; null: not known
+let _asked = false;
+
+/**
+ * Ask for this user's lock, and keep it while the page lasts. Call once, at
+ * init; `build` keeps builds apart. Chrome can keep a page it may bring back
+ * (the back/forward cache) with its locks held, so leaving the page (another
+ * page in this tab, or signing in again in it) lets the lock go at once and
+ * drops a request still waiting, and a page brought back asks again.
+ */
+export function claimGmTab(userId, build, locks = globalThis.navigator?.locks, page = globalThis.window) {
+  if (_asked || !locks || !userId) return;
+  _asked = true;
+  const name = `${MODULE_ID}.gm.${userId}.${build}`;
+  let leave = null;
+  const claim = () => {
+    const stop = new AbortController();
+    const held = new Promise((resolve) => { leave = () => { stop.abort(); resolve(); }; });
+    const hold = () => { _tab = true; return held; };
+    const unknown = () => { _tab = null; };
+    locks.request(name, { ifAvailable: true }, (lock) => {
+      if (lock) return hold();
+      _tab = false;   // another tab has it: wait in line, and take over when that tab goes
+      locks.request(name, { signal: stop.signal }, hold).catch(unknown);
+    }).catch(unknown);
+  };
+  claim();
+  page?.addEventListener?.("pagehide", () => { _tab = null; leave(); });
+  page?.addEventListener?.("pageshow", (event) => { if (event.persisted) claim(); });
+}
+
+/** Whether this tab does its user's work: it holds the lock, or nothing says another tab does. */
+export function isWorkingTab() {
+  return _tab !== false;
+}
+
+/**
+ * Is this user the active GM, in whichever of its tabs this is? For a GM's own
+ * click, which happens in the one tab clicked; automatic work asks isActiveGM().
+ */
+export function isActiveGMUser() {
+  return !!game.user?.isGM && game.users?.activeGM?.id === game.user?.id;
+}
+
 /**
  * Is this client the ONE GM that does relayed work?
  *
  * `getDesignatedUser` picks the highest role and breaks ties on user id
  * (foundry.mjs:46503-46512), so every client computes the same answer from the
- * same collection. That makes it safe to decide on the receiving side.
+ * same collection. That makes it safe to decide on the receiving side. Of that
+ * user's tabs, the one holding the lock (above).
  */
 export function isActiveGM() {
-  return !!game.user?.isGM && game.users?.activeGM?.id === game.user?.id;
+  return isActiveGMUser() && isWorkingTab();
+}
+
+/**
+ * Register a `CONFIG.queries` handler. Core hands a query to every tab of the
+ * user it's sent to and answers with the first reply, so a tab of the active GM
+ * that isn't the working one stays silent: a promise that never settles, before
+ * the handler runs, so none of the module's queues waits on it. Every module
+ * query registers here (test/gm-relay.test.mjs checks).
+ */
+export function registerQuery(name, handler) {
+  CONFIG.queries[name] = (data, context) => (_tab === false && isActiveGMUser() ? new Promise(() => {}) : handler(data, context));
 }
 
 /**

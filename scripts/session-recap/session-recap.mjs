@@ -26,6 +26,7 @@ import {
   formatForDiscordFromData,
 } from "./session-recap-core.mjs";
 import { CarousingFeed } from "./carousing-feed.mjs";
+import { isActiveGM } from "../shared/gm-relay.mjs";
 import { format as formatGameTime } from "../time/time.mjs";
 
 /** One string from `languages/en.json`; the key when no i18n is mounted. */
@@ -87,7 +88,7 @@ export const SessionRecap = {
    * processes them — mirrors the merchant-shop activeGM guard.
    */
   _isPrimaryGM() {
-    return !!game.user?.isGM && game.users.activeGM?.id === game.user.id;
+    return isActiveGM();
   },
 
   async _save(data) {

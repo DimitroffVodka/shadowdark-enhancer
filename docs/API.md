@@ -1974,6 +1974,20 @@ primary GM, which need not be `game.users.activeGM`. It is sent there with
 `queryActiveGM(name, data, { targetUser })`, and the receiving tab checks the
 server-stamped sender is a GM and refuses if another GM holds the flag.
 
+**One GM, several tabs.** Foundry delivers a query to every tab its recipient
+has open, answers with the first reply, and runs hooks in every tab. So "the
+active GM" is also one tab (#288). Each tab asks the browser for its user's Web
+Lock at `init` and holds it for the life of the page. `isActiveGM()` is true
+only in the tab holding it, and the other tabs of the active GM stay silent on
+every module query (they're registered through `registerQuery`), so the caller
+gets the working tab's answer. When that tab closes, reloads or crashes, the
+browser hands the lock to the next tab at once. Every tab works, as before,
+where the browser can't tell them apart: without Web Locks (plain http over a
+LAN), across two browsers or devices, on different builds of the module, and in
+the moment before the browser answers. A GM's own click still works in any of
+its tabs: work that must run on the active GM is forwarded to the working tab,
+and Forge Loot's Approve checks the user, not the tab.
+
 Two consequences worth knowing:
 
 - **`QUERY_USER` must stay enabled for the player role.** It is on by default.

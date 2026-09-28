@@ -481,7 +481,7 @@ test("G4 app/template expose only shared boundary actions and no generator rules
   assert.doesNotMatch(template, /Actor\.create|Folder\.create/);
   assert.match(entry, /forgeLoot:\s*\{[\s\S]*?open:\s*async/);
   assert.match(entry, /apiVersion:\s*["']1\.25\.0["']/);
-  assert.match(app, /import\s*\{\s*isActiveGM\s*\}\s*from\s*["']\.\.\/shared\/gm-relay\.mjs/);
+  assert.match(app, /import\s*\{\s*isActiveGMUser\s*\}\s*from\s*["']\.\.\/shared\/gm-relay\.mjs/);
   const executableCore = core.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/.*$/gm, "");
   assert.doesNotMatch(executableCore, /new\s+Roll\b|\.draw\s*\(/, "seeded planners cannot invoke Foundry table rolls");
 });

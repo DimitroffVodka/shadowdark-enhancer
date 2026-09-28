@@ -33,7 +33,7 @@
 
 import { MODULE_ID } from "../shared/module-id.mjs";
 import { SessionRecap } from "../session-recap/session-recap.mjs";
-import { isActiveGM, queryActiveGM, refuseQuery } from "../shared/gm-relay.mjs";
+import { isActiveGM, queryActiveGM, refuseQuery, registerQuery } from "../shared/gm-relay.mjs";
 import {
   RENOWN_BANDS,
   RENOWN_HISTORY_CAP,
@@ -509,7 +509,7 @@ export const Renown = {
   async maybeSeedFromCha(actor, { force = false, chat = false } = {}) {
     if (actor?.type !== "Player") return null;
     if (!force) {
-      if (!_isPrimaryGM()) return null;
+      if (!isActiveGM()) return null;
       if (!game.settings.get(MODULE_ID, ON_CREATE_SETTING)) return null;
       const eligible = shouldSeedStartingRenown({
         seeded: !!actor.getFlag?.(MODULE_ID, SEEDED_FLAG),
@@ -560,7 +560,7 @@ export const Renown = {
 
     // Every GM registers the handler; the handler decides for itself whether
     // this client is the active GM, so a forwarded award still runs exactly once.
-    CONFIG.queries[RENOWN_QUERY] = (data, { user } = {}) => Renown.handleQuery(data, user);
+    registerQuery(RENOWN_QUERY, (data, { user } = {}) => Renown.handleQuery(data, user));
 
     for (const actor of game.actors) {
       if (actor.type !== "Player") continue;
@@ -597,7 +597,7 @@ export const Renown = {
         // `_awardNow` writes the number and its ledger row in ONE update, so an
         // update carrying the ledger flag is ours and is already recorded.
         const ours = foundry.utils.getProperty(changed, `flags.${MODULE_ID}.${HISTORY_FLAG}`) !== undefined;
-        if (!ours && _isPrimaryGM() && prev !== undefined && next !== prev) {
+        if (!ours && isActiveGM() && prev !== undefined && next !== prev) {
           const hint = _renownHint(options, userId);
           if (!hint.silent) {
             await this._recordExternalChange(actor, prev, next, hint);
@@ -622,7 +622,7 @@ export const Renown = {
       const prev = _levelSeen.get(actor.id);
       _levelSeen.set(actor.id, next);
 
-      if (!_isPrimaryGM()) return;
+      if (!isActiveGM()) return;
       if (!game.settings.get(MODULE_ID, LEVEL_UP_SETTING)) return;
       if (prev === undefined || next <= prev || next < 2) return;
 
@@ -701,11 +701,6 @@ function _renownHint(options, userId) {
     source: String(hint.source ?? "") || "external",
     silent: !!hint.silent,
   };
-}
-
-/** True only on the single active GM — the multi-GM guard used module-wide. */
-function _isPrimaryGM() {
-  return !!game.user?.isGM && game.users.activeGM?.id === game.user.id;
 }
 
 /** The name of the player who owns this PC, for the recap's per-player grouping. */

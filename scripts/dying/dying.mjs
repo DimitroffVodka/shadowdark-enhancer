@@ -43,7 +43,7 @@
 import { MODULE_ID } from "../shared/module-id.mjs";
 import { replaceModuleFlag } from "../shared/module-flags.mjs";
 import { esc } from "../shared/esc.mjs";
-import { isActiveGM, refuseQuery, queryActiveGM } from "../shared/gm-relay.mjs";
+import { isActiveGM, refuseQuery, queryActiveGM, registerQuery } from "../shared/gm-relay.mjs";
 import {
   DYING_STATUS, DEAD_STATUS, DYING_KEYS, NEAR_FEET, modifier, timerRoll, deathTimer, stabilizeDC,
   riseMin, turnOutcome, hpAction, shouldTick, cardStabilizes, badge, checkedNatural,
@@ -495,7 +495,7 @@ export function init() {
   if (!CONFIG.statusEffects.some((e) => e.id === DYING_STATUS)) {
     CONFIG.statusEffects.push({ id: DYING_STATUS, name: "SDE.dying.status", img: "icons/svg/degen.svg" });
   }
-  CONFIG.queries[DYING_QUERY] = (data, { user } = {}) => handleQuery(data, user);
+  registerQuery(DYING_QUERY, (data, { user } = {}) => handleQuery(data, user));
   // Crawl Helper runs its own timers. The module's one Crawl Helper warning
   // (checkCoexistence, with its opt-out) says dying is off.
   if (game.modules.get(CRAWL_HELPER)?.active) return;

@@ -13,7 +13,7 @@ import { CrawlStrip } from "../crawl-strip/crawl-strip.mjs";
 import { SessionRecap } from "../session-recap/session-recap.mjs";
 import { esc } from "../shared/esc.mjs";
 import { copyText } from "../shared/clipboard.mjs";
-import { relayToGM, notifyPlayers, authorizeActorFor, refuseQuery } from "../shared/gm-relay.mjs";
+import { relayToGM, notifyPlayers, authorizeActorFor, refuseQuery, registerQuery } from "../shared/gm-relay.mjs";
 import {
   toCopper, fromCopper, formatPrice, canAfford, applySellRatio,
   addToPurse, spendFromPurse, parseCoinsFromText,
@@ -201,11 +201,11 @@ export const MerchantShop = {
     // every client; only the client a query is addressed to runs the handler,
     // and the sender it receives comes from the server, not the payload
     // (gm-relay.mjs). Mirrors the downtime query (downtime-session.mjs:89).
-    CONFIG.queries[MERCHANT_QUERY] = (data, { user } = {}) => MerchantShop.handleQuery(data, user);
+    registerQuery(MERCHANT_QUERY, (data, { user } = {}) => MerchantShop.handleQuery(data, user));
 
     // Transaction notices travel GM→players as queries too, so the receiving
     // client can check the sender really is a GM (gm-relay.mjs `notifyPlayers`).
-    CONFIG.queries[SHOP_NOTICE_QUERY] = (data, { user } = {}) => MerchantShop.handleNotice(data, user);
+    registerQuery(SHOP_NOTICE_QUERY, (data, { user } = {}) => MerchantShop.handleNotice(data, user));
 
     // Availability changes arrive as a PAYLOAD-FREE nudge: "the setting moved,
     // go re-read it". The snapshot is already persisted in `shopAvailabilityData`
