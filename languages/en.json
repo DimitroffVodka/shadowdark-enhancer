@@ -754,7 +754,7 @@
   "SDE.settings.charBuilderStartingGold.name": "Fixed starting gold (gp)",
   "SDE.settings.charBuilderStartingGold.hint": "Every new character starts with this much gold. 0 rolls 2d6 × 5.",
   "SDE.settings.charBuilderAncestryTable.name": "Random ancestry table",
-  "SDE.settings.charBuilderAncestryTable.hint": "Drop a roll table here, such as the Western Reaches Ancestry (Population) d100 (importing that table sets it here when this is empty), and the Ancestry step's Random rolls it and picks the ancestry whose name matches the result. Leave it empty to use each ancestry's own random weight.",
+  "SDE.settings.charBuilderAncestryTable.hint": "Drop a roll table here, such as the Western Reaches Ancestry (Population) d100 (importing that table sets it here if this was never set), and the Ancestry step's Random rolls it and picks the ancestry whose name matches the result. Leave it empty to use each ancestry's own random weight.",
   "SDE.settings.charBuilderExtraGear.name": "Extra gear",
   "SDE.settings.charBuilderExtraGear.label": "Manage Extra Gear",
   "SDE.settings.charBuilderExtraGear.hint": "Add items to the builder's shop beyond the starting stock.",

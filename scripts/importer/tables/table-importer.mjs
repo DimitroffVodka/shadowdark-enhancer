@@ -3218,7 +3218,7 @@ export async function createTable(pt, { onConflict, allowInvalid = false } = {})
   // enriching would rewrite that hint with @UUID links.
   if (!pt.isCompound) await _autoEnrich(table, pt);
   await applyTableStructureSeed(table);
-  await adoptAncestryTable(table);
+  await adoptAncestryTable([table]);
   // A WR patron boon table also gets its Patron Item, described by the blurb
   // parseByShape read off the page (#167). Never fails the table import — the
   // backfill at ready retries the link.
@@ -3290,6 +3290,64 @@ export async function applyTableStructureSeed(table) {
 }
 
 /**
+ * The Western Reaches population d100 among these tables (#187): the one the
+ * Roll Tables hub stamped with its id, which a rename keeps, else one under the
+ * name the Character Content hub gives it, which stamps no id. A table merely
+ * named like it ("Homebrew Ancestry (Population)") is never it.
+ */
+function populationTable(tables) {
+  const list = [...(tables ?? [])];
+  return list.find((t) => t?.flags?.["shadowdark-enhancer"]?.manifestId === "pgwr-ancestry-population")
+    ?? list.find((t) => /^(western reaches - )?ancestry \(population\)$/i.test(t?.name ?? ""));
+}
+
+/**
+ * Was the builder's Random ancestry table ever stored in this world, by the GM
+ * or by adoptAncestryTable? Its value can't say: a table never set and one the
+ * GM cleared both read null.
+ */
+const ancestryTableStored = () =>
+  !!game.settings.get("shadowdark-enhancer", "charBuilderAncestryTable", { document: true })?._id;
+
+/**
+ * The population d100 becomes the Character Builder's Random ancestry table
+ * when that setting was never stored (#187), so importing it is enough. The
+ * stored setting is the once-per-world record: a table the GM set or cleared,
+ * or the one adopted here, is never replaced, not even by a reimport. Every
+ * path passes the tables it has: an import its table, a bundle its tables, the
+ * ready backfill the pack index.
+ */
+export async function adoptAncestryTable(tables) {
+  const table = populationTable(tables);
+  if (!table) return;
+  try {
+    if (ancestryTableStored()) return;
+    await game.settings.set("shadowdark-enhancer", "charBuilderAncestryTable", table.uuid);
+    ui.notifications?.info(loc("SDE.importer.notify.ancestryTableSet", { table: table.name }));
+  } catch (err) {
+    console.warn("shadowdark-enhancer | adoptAncestryTable:", err);
+  }
+}
+
+/** A bundle's tables are adopted only once the whole bundle is in: a rolled-back one leaves the setting alone (#187). */
+export async function adoptFromBundle(result) {
+  if (result?.ok) await adoptAncestryTable([...(result.created ?? []), ...(result.replaced ?? [])]);
+}
+
+/**
+ * A world that imported the ancestry d100 before this adopts it at ready. With
+ * no such table yet nothing is stored, so a later import still adopts it.
+ * Active GM only.
+ */
+export async function adoptImportedAncestryTable() {
+  if (ancestryTableStored()) return;
+  const { findSuitePack } = await import("../../shared/compendium-suite.mjs");
+  const pack = findSuitePack("sde-tables");
+  // The import id is a flag, and an index carries flags only when asked for.
+  if (pack) await adoptAncestryTable(await pack.getIndex({ fields: MANIFEST_INDEX_FIELDS }));
+}
+
+/**
  * Auto-link a freshly imported table to the compendium so the GM never has to
  * press a "Link" button: encounter tables get monster @UUID links + inline-roll
  * counts; treasure/loot tables get real compendium items. Kind is inferred from
@@ -3300,51 +3358,6 @@ export async function applyTableStructureSeed(table) {
  * Uses a dynamic import so this parser module stays free of a static Foundry
  * dependency (keeps the pure parse path node-testable).
  */
-/**
- * The Western Reaches population d100 becomes the Character Builder's Random
- * ancestry table when the GM hasn't set one (#187), so importing it is enough.
- * This is decided once per world: the first time it is met, a table the GM
- * already set stays, and from then on their choice stands, an emptied one
- * included (`charBuilderAncestryAdopted`).
- */
-export async function adoptAncestryTable(table) {
-  // By the id the importer stamps on it, which a rename keeps; by name for one imported by hand.
-  const isPopulation = table?.flags?.["shadowdark-enhancer"]?.manifestId === "pgwr-ancestry-population"
-    || /ancestry \(population\)$/i.test(table?.name ?? "");
-  if (!isPopulation) return;
-  try {
-    if (game.settings.get("shadowdark-enhancer", "charBuilderAncestryAdopted")) return;
-    // Only a setting never touched (null): an emptied one ("") is the GM's choice already.
-    const current = game.settings.get("shadowdark-enhancer", "charBuilderAncestryTable");
-    if (current === null || current === undefined) {
-      await game.settings.set("shadowdark-enhancer", "charBuilderAncestryTable", table.uuid);
-      ui.notifications?.info(loc("SDE.importer.notify.ancestryTableSet", { table: table.name }));
-    }
-    await game.settings.set("shadowdark-enhancer", "charBuilderAncestryAdopted", true);
-  } catch (err) {
-    console.warn("shadowdark-enhancer | adoptAncestryTable:", err);
-  }
-}
-
-/** A bundle's tables are adopted only once the whole bundle is in: a rolled-back one leaves the setting alone (#187). */
-export async function adoptFromBundle(result) {
-  if (!result?.ok) return;
-  for (const doc of [...(result.created ?? []), ...(result.replaced ?? [])]) await adoptAncestryTable(doc);
-}
-
-/**
- * A world that imported the ancestry d100 before this: decide it once, at
- * ready (adoptAncestryTable). With no such table yet, nothing is decided, so
- * a later import still adopts it. Active GM only.
- */
-export async function adoptImportedAncestryTable() {
-  if (game.settings.get("shadowdark-enhancer", "charBuilderAncestryAdopted")) return;
-  const { findSuitePack } = await import("../../shared/compendium-suite.mjs");
-  const pack = findSuitePack("sde-tables");
-  const entry = pack ? [...(await pack.getIndex())].find((e) => /ancestry \(population\)$/i.test(e.name ?? "")) : null;
-  if (entry) await adoptAncestryTable(entry);
-}
-
 async function _autoEnrich(table, pt) {
   if (!table) return;
   try {

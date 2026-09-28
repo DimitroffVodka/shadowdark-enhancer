@@ -209,16 +209,11 @@ export function registerSettings() {
     hint: "SDE.settings.charBuilderAncestryTable.hint",
     scope: "world",
     config: false,
-    // blank: clearing the drop target submits "", which must save as "unset".
-    type: new foundry.data.fields.DocumentUUIDField({ type: "RollTable", blank: true, nullable: true, initial: null }),
+    // Not required: a required blank field starts as "", and saving the menu
+    // with the drop target untouched (it submits null) would then store null,
+    // as clearing it does. A stored value is the GM's choice (#187).
+    type: new foundry.data.fields.DocumentUUIDField({ type: "RollTable", blank: true, nullable: true, required: false, initial: null }),
     default: null,
-  });
-
-  // Set once the builder's Random ancestry table is decided for this world
-  // (#187): the ancestry d100 adopted, or a table the GM had already set. From
-  // then on the GM's choice stands, an emptied one included.
-  game.settings.register(MODULE_ID, "charBuilderAncestryAdopted", {
-    scope: "world", config: false, type: Boolean, default: false,
   });
 
   // Fixed starting gold (gp). 0 = roll the standard 2d6×5 gp in the builder.
