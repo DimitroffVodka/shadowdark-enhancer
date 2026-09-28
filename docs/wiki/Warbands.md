@@ -29,8 +29,9 @@ makes a new warband from a copy. The creature itself stays as it is.
 - Its level doubles.
 - Its HP is 8 per level plus its CON modifier.
 - It makes one attack a round: it keeps every attack but uses one.
-- Its attack bonus goes up by 1 for each level gained. The book says only
-  "in proportion", so change it on the sheet if you read it otherwise.
+- Its attack bonus goes up by 1 for each level gained, and so does a
+  caster's spell bonus. The book says only "in proportion", so change them on
+  the sheet if you read it otherwise.
 - Its damage dice are tripled: 1d6 becomes 3d6.
 - Its talents stay, and don't count as upgrades.
 

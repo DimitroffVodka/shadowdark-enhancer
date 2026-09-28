@@ -2783,7 +2783,7 @@
   "SDE.warband.make.after": "As a warband",
   "SDE.warband.make.attackLine": "{num} × {bonus} ({damage})",
   "SDE.warband.make.specialLine": "{num} × {bonus}",
-  "SDE.warband.make.hint": "One attack a round, whichever it chooses; its talents stay and don't count as upgrades. The attack bonus goes up by 1 for each level gained, which you can change on its sheet.",
+  "SDE.warband.make.hint": "One attack a round, whichever it chooses; its talents stay and don't count as upgrades. The attack and spell bonuses go up by 1 for each level gained, which you can change on its sheet.",
   "SDE.rumors.title": "Rumors",
   "SDE.rumors.ledgerName": "Rumors Heard",
   "SDE.rumors.ledger.general": "General",

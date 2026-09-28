@@ -436,11 +436,11 @@ page walks through it in order.
   commander's allowance by hit die across all their warbands (2/2, 4/3 or
   6/4), the 18 upgrades once each, and the commander's CHA for morale.
   **Make a Warband** on a level 1–5 NPC's sheet makes one from a copy: level
-  doubled, 8 HP a level plus CON, one attack a round, +1 attack a level
-  gained, damage dice tripled. Its HP is fixed: placing one of its tokens,
-  with Shadowdark's HP roll on placement on, sets the max but never heals it.
-  Quick upgrade ticks all stick, and two warbands can't both take their
-  commander's last slot: every warband change is made by one writer, the
+  doubled, 8 HP a level plus CON, one attack a round, +1 attack and spell
+  bonus a level gained, damage dice tripled. Its HP is fixed: placing one of
+  its tokens, with Shadowdark's HP roll on placement on, sets the max but never
+  heals it. Quick upgrade ticks all stick, and two warbands can't both take
+  their commander's last slot: every warband change is made by one writer, the
   active GM. See *Warbands*. (#200, #202)
 - **Encounter check frequency.** Right-click the Crawl Bar's **Encounter**
   button: **Check Frequency** runs from **1** (every crawl round, the default)
