@@ -407,3 +407,45 @@ export function planRations({ members, mounts = 0, each }) {
   }
   return { eat, fed, mountsFed };
 }
+
+// ── Routes on the hex map (#257, the demo's click-to-travel) ───────────────
+
+/**
+ * The cheapest route between two hexes: A* over the grid's neighbours, each
+ * step priced as a move of the travel token is (the day's hexCost), a hex
+ * that can't be entered (Infinity) never used. `distance` is the hex count
+ * between two cells, the heuristic (every step costs at least 1). Cells are
+ * whatever the caller's grid uses; `key` names one.
+ * @param {{start:object, goal:object, neighbours:(cell:object) => object[],
+ *   cost:(from:object, to:object) => number, distance:(a:object, b:object) => number,
+ *   key?:(cell:object) => string, maxNodes?:number}} q
+ * @returns {{path:object[], cost:number}|null}  the path from start to goal, both included
+ */
+export function cheapestRoute({ start, goal, neighbours, cost, distance, key = (c) => `${c.i},${c.j}`, maxNodes = 4000 }) {
+  const goalKey = key(goal), startKey = key(start);
+  if (goalKey === startKey) return { path: [start], cost: 0 };
+  const best = new Map([[startKey, 0]]), prev = new Map(), cells = new Map([[startKey, start]]);
+  const open = [[distance(start, goal), startKey]];
+  for (let seen = 0; open.length && seen < maxNodes; seen++) {
+    // ponytail: a linear pick of the lowest estimate; A* keeps the open list short. A heap if it isn't.
+    let low = 0;
+    for (let i = 1; i < open.length; i++) if (open[i][0] < open[low][0]) low = i;
+    const [, k] = open.splice(low, 1)[0];
+    if (k === goalKey) break;
+    const here = cells.get(k), spent = best.get(k);
+    for (const next of neighbours(here)) {
+      const c = cost(here, next);
+      if (!Number.isFinite(c)) continue;
+      const nk = key(next), total = spent + c;
+      if (total >= (best.get(nk) ?? Infinity)) continue;
+      best.set(nk, total);
+      prev.set(nk, k);
+      cells.set(nk, next);
+      open.push([total + distance(next, goal), nk]);
+    }
+  }
+  if (!best.has(goalKey)) return null;
+  const path = [];
+  for (let k = goalKey; k !== undefined; k = prev.get(k)) path.unshift(cells.get(k));
+  return { path, cost: best.get(goalKey) };
+}

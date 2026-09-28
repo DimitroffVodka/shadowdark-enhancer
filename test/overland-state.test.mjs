@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   defaultOverlandState, normalizeOverlandState, startTravel, setHex, recordForage,
-  pickTravelToken, forageRefusal, OVERLAND_VERSION,
+  pickTravelToken, forageRefusal, OVERLAND_VERSION, cheapestRoute,
   setWeather, weatherHolds, weatherAdvantage, weatherFormula, weatherFromRoll, harshToday, hexCost,
   dayBudget, pointSeconds, openDay, spendMove, priceMove, moveVerdict,
   dayChecks, dueChecks, markCheck, setPending,
@@ -287,4 +287,27 @@ test("closing the day: no day open, no push, and the day's forage and checks don
     checks: [{ half: "day", at: 1, chance: 1, rolled: true, hit: false }], pending: { until: 9, reason: "camp" } });
   assert.deepEqual([state.day, state.pushed, state.budget, state.spent, state.foraged, state.checks, state.pending],
     [null, false, 0, 0, [], [], null]);
+});
+
+test("the cheapest route goes round dear hexes and never through closed ones (#257)", () => {
+  // A 5x5 square grid of letters: "." costs 1, "#" can't be entered, "~" costs 3.
+  const map = [
+    ".....",
+    ".###.",
+    "..~..",
+    ".###.",
+    ".....",
+  ];
+  const at = (c) => map[c.j]?.[c.i];
+  const neighbours = (c) => [[1, 0], [-1, 0], [0, 1], [0, -1]].map(([di, dj]) => ({ i: c.i + di, j: c.j + dj })).filter((n) => at(n));
+  const cost = (_f, to) => ({ ".": 1, "~": 3, "#": Infinity })[at(to)];
+  const distance = (a, b) => Math.abs(a.i - b.i) + Math.abs(a.j - b.j);
+  const r = cheapestRoute({ start: { i: 0, j: 2 }, goal: { i: 4, j: 2 }, neighbours, cost, distance });
+  assert.equal(r.cost, 6, "across the water: 1 + 3 + 1 + 1");
+  assert.deepEqual(r.path.at(0), { i: 0, j: 2 });
+  assert.deepEqual(r.path.at(-1), { i: 4, j: 2 });
+  assert.ok(r.path.every((c) => at(c) !== "#"));
+  const walled = cheapestRoute({ start: { i: 2, j: 2 }, goal: { i: 2, j: 0 }, neighbours, cost: (_f, to) => (at(to) === "." && to.j !== 1 ? 1 : Infinity), distance });
+  assert.equal(walled, null, "no way through");
+  assert.deepEqual(cheapestRoute({ start: { i: 1, j: 1 }, goal: { i: 1, j: 1 }, neighbours, cost, distance }), { path: [{ i: 1, j: 1 }], cost: 0 });
 });
