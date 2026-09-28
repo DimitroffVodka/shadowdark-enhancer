@@ -249,6 +249,7 @@ test("a primary GM that never answers: the outcome is unknown, not refused", asy
   try {
     const reply = await advanceOffDuty(DAY);
     assert.equal(reply.ok, false);
+    assert.equal(reply.unknown, true, "so a caller doesn't retry (#198)");
     assert.deepEqual(log.warnings, ["SDE.time.offDuty.unknown(Gamemaster)"]);
   } finally { console.warn = warn; }
 });

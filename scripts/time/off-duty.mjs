@@ -198,7 +198,10 @@ async function perform(seconds, reason, { handedOff = false } = {}) {
       label: game.i18n.localize("SDE.time.offDuty.relayLabel"), targetUser: flagged[0], queryTimeoutMs: HANDOFF_TIMEOUT_MS,
     });
     // No answer is not a refusal: a slow tab can still move the clock, and a retry would move it twice.
-    return reply?.answered === false ? refusal("SDE.time.offDuty.unknown", { name: flagged[0].name }) : reply;
+    // `unknown` says so to a caller that would otherwise retry (#198).
+    return reply?.answered === false
+      ? { ...refusal("SDE.time.offDuty.unknown", { name: flagged[0].name }), unknown: true }
+      : reply;
   }
   return douseAndAdvance(tracker, seconds, reason, { tookFlag: !flagged.length });
 }
@@ -208,8 +211,9 @@ async function perform(seconds, reason, { handedOff = false } = {}) {
  * @param {number} seconds  how far to move the clock: 0 or more; 0 only puts the lights out
  * @param {{reason?: string}} [options]  what `timeAdvanced` reports as `offDuty`
  * @returns {Promise<{ok: true, worldTime: number, doused: {actorId: string, itemId: string}[]}
- *   |{ok: false, error: string, doused?: {actorId: string, itemId: string}[]}>}
- *   `doused` on a refusal: what was put out before the move stopped.
+ *   |{ok: false, error: string, unknown?: true, doused?: {actorId: string, itemId: string}[]}>}
+ *   `doused` on a refusal: what was put out before the move stopped. `unknown`: the
+ *   tab it was handed to didn't answer, so the clock may still move; don't retry.
  */
 export async function advanceOffDuty(seconds, { reason = "downtime" } = {}) {
   const reply = game.user?.isGM

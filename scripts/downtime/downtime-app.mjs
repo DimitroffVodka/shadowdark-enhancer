@@ -409,6 +409,7 @@ export class DowntimeApp extends HandlebarsApplicationMixin(ApplicationV2) {
         phase: sess.phase,
         locked: sess.phase === "roll",
         sourceLabel: SOURCES?.[sess.source]?.label ?? sess.source,
+        days: sess.days,
         pickCount: Object.keys(sess.picks).length,
         resultCount: Object.keys(sess.results).length,
       } : null,
