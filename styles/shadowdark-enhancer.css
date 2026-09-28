@@ -11241,10 +11241,9 @@ body:has(.sdx-scene-nav-bar) #shadowdark-enhancer-travel { top: 72px; }
 .sde-hud-word { font-family: "JSL Blackletter", serif; font-size: 19px; fill: #ffffff; }
 .sde-hud-region { font-family: "Montserrat-Bold", sans-serif; font-size: 9.5px; letter-spacing: 1.6px; }
 .sde-hud-sunline { font-family: "Old Newspaper Font", serif; font-style: italic; font-size: 11.5px; }
-.sde-hud-ink-day .sde-hud-region { fill: #111111; }
-.sde-hud-ink-day .sde-hud-sunline { fill: #222222; }
-.sde-hud-ink-night .sde-hud-region { fill: #dddddd; }
-.sde-hud-ink-night .sde-hud-sunline { fill: #cccccc; }
+.sde-hud-lineplate { fill: rgba(0, 0, 0, 0.82); stroke: rgba(201, 201, 201, 0.35); stroke-width: 1; }
+.sde-hud-region { fill: #e8e8e8; }
+.sde-hud-sunline { fill: #d6d6d6; }
 
 /* Panels. */
 .sde-hud-panel {

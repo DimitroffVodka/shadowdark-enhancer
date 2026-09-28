@@ -262,11 +262,14 @@ export const TravelBar = {
       : t("SDE.clock.sunRises", { time: hhmm(d.next.hour ?? tomorrow.sunrise) });
     const state = overlandState();
     const region = CrawlState.isOverland && isHexMapScene() ? [state.hex?.region, state.hex?.terrain].filter(Boolean).join(" · ") : "";
-    const ink = d.isDay ? "sde-hud-ink-day" : "sde-hud-ink-night";
     const { cx, cy } = DIAL;
     const stars = DIAL_STARS.map((s) => { const [x, y] = starPoint(s, hoursPerDay); return `<circle cx="${x}" cy="${y}" r="1.1" class="sde-hud-star"/>`; }).join("");
     const label = t("SDE.clock.dialLabel", { weather: word, sun: sunLine, moon: t(MOON_NAME[moon.key]) });
-    return `<svg class="sde-hud-dial ${ink}" width="260" height="140" viewBox="0 0 260 140" role="img" aria-label="${esc(label)}">
+    // The lines under the weather sit on their own black plate: near sunrise or
+    // sunset the dial's day edge runs right under them, so no one ink reads on both sides.
+    const lineW = Math.max(region ? 132 : 0, Math.round(sunLine.length * 6.2) + 18);
+    const lineTop = region ? 58 : 61, lineH = region ? 29 : 16;
+    return `<svg class="sde-hud-dial" width="260" height="140" viewBox="0 0 260 140" role="img" aria-label="${esc(label)}">
       <defs>
         <pattern id="sde-hud-hatch" width="5" height="5" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="5" height="5" fill="#0b0b0b"/><line x1="0" y1="0" x2="0" y2="5" stroke="#c9c9c9" stroke-width="1"/></pattern>
         <linearGradient id="sde-hud-dayg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ececec"/><stop offset="1" stop-color="#b8b8b8"/></linearGradient>
@@ -285,10 +288,11 @@ export const TravelBar = {
       <rect x="${cx - plateW / 2}" y="27" width="${plateW}" height="27" rx="3" fill="#000" stroke="#c9c9c9" stroke-width="1.5"/>
       <rect x="${cx + 3 - plateW / 2}" y="30" width="${plateW - 6}" height="21" rx="2" fill="none" stroke="rgba(201,201,201,.25)"/>
       <text x="${cx}" y="47" text-anchor="middle" class="sde-hud-word">${esc(word)}</text>
+      <rect x="${cx - lineW / 2}" y="${lineTop}" width="${lineW}" height="${lineH}" rx="3" class="sde-hud-lineplate"/>
       ${region ? `<text x="${cx}" y="68" text-anchor="middle" class="sde-hud-region"${
         // A long region and terrain are squeezed to the disc rather than spilling over its rim.
         region.length > 18 ? ` textLength="120" lengthAdjust="spacingAndGlyphs"` : ""}>${esc(region.toUpperCase())}</text>` : ""}
-      <text x="${cx}" y="${region ? 82 : 72}" text-anchor="middle" class="sde-hud-sunline">${esc(sunLine)}</text>
+      <text x="${cx}" y="${region ? 82 : 73}" text-anchor="middle" class="sde-hud-sunline">${esc(sunLine)}</text>
       <path transform="translate(${cx} 105)" d="M0 -9 L2.2 -2.2 L9 0 L2.2 2.2 L0 9 L-2.2 2.2 L-9 0 L-2.2 -2.2 Z" fill="#ffffff" stroke="#000" stroke-width="1"/>
       <g clip-path="url(#sde-hud-moonc)"><circle cx="${d.moon.x}" cy="${d.moon.y}" r="${d.moon.r}" fill="#f0f0f0"/><circle cx="${+(d.moon.x + d.moon.shadow).toFixed(1)}" cy="${d.moon.y}" r="${d.moon.r}" fill="#000"/></g>
       <circle cx="${d.moon.x}" cy="${d.moon.y}" r="${d.moon.r}" fill="none" stroke="#000" stroke-width="1"/>
