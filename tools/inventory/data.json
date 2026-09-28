@@ -566,7 +566,7 @@
     "scripts/importer/items/item-builder-gear.mjs": "Pure stage-①/③ logic for the Item Builder.",
     "scripts/importer/items/item-census-live.mjs": "Items census adapter (same shape as monsters).",
     "scripts/importer/items/shikashi-icons.mjs": "Item name → bundled Shikashi icon matcher (284 icons).",
-    "scripts/actors/register-actors.mjs": "Registers `shadowdark-enhancer.mount` / `.boat` (models + sheets, in `i18nInit`).",
+    "scripts/actors/register-actors.mjs": "Registers `shadowdark-enhancer.mount` / `.warband` / `.boat` (models + sheets, in `i18nInit`): the warband's NpcSD subclass with fixed HP, its linked-token and commander-cleared create hook, and Make a Warband.",
     "scripts/actors/boat-data-model.mjs": "Boat data model — WR vessel rules.",
     "scripts/actors/boat-sheet.mjs": "Boat sheet: Overview / Passengers & Crew / Cargo / Description.",
     "scripts/actors/warband-core.mjs": "Warband rules, pure (#200, #202): the 18 upgrades, a commander's allowance by hit die tier (2/2, 4/3, 6/4), the command and upgrade refusals, and a creature made into a warband (level doubled, 8 HP a level plus CON, one attack, +1 attack a level gained, damage dice tripled).",

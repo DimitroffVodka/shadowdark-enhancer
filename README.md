@@ -95,7 +95,8 @@ Each row links to its full manual page.
 |---|---|
 |  **[Character Builder](docs/wiki/Character-Builder.md)** | A guided, ordered replacement for the system's all-random generator. Seven steps, a complete level-1 character, every roll posted to chat as an audit trail. Players can use it without any file permissions. |
 |  **[Export to PDF](docs/wiki/Export-to-PDF.md)** | Fill a real form-fillable Shadowdark sheet from an actor. Entirely local. Nothing is uploaded anywhere. |
-| **[Mounts & Boats](docs/wiki/Mounts-and-Boats.md)** | Two Actor sub-types with dedicated sheets for Western Reaches mounts, warbands, boats and siege vehicles. |
+| **[Mounts & Boats](docs/wiki/Mounts-and-Boats.md)** | Two Actor sub-types with dedicated sheets for Western Reaches mounts, boats and siege vehicles. |
+| **[Warbands](docs/wiki/Warbands.md)** | The warband unit actor type: a commander's allowance by hit die, the upgrades, and Make a Warband from a level 1-5 creature. |
 
 ---
 

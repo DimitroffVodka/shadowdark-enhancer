@@ -71,7 +71,8 @@ export const StatRiders = {
     if (!itemUuid) return;
     const attacker = await attackerActorOf(message);
     const target = await targetActorOf(message);
-    if (attacker?.type !== "NPC" || target?.type !== "Player") return;
+    // An NPC model: a mount's or a warband's attacks carry their riders too.
+    if (!attacker?.system?.isNPC || target?.type !== "Player") return;
     const attack = await fromUuid(itemUuid).catch(() => null);
     const author = message.author;
     if (!cardMayApply({

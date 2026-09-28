@@ -90,8 +90,8 @@ function _getBaseSpeed(actor, _tokenDoc = null) {
     return game.settings.get(MODULE_ID, "oocMovementBudget");
   }
 
-  // Combat — NPCs use their per-statblock move
-  if (actor.type === "NPC") {
+  // Combat — NPCs use their per-statblock move (a mount's or a warband's too: the NPC model)
+  if (actor.system?.isNPC) {
     const ft = _npcMoveToFt(actor.system?.move);
     if (typeof ft === "number") return ft;
     // Special / unknown / missing → combat default

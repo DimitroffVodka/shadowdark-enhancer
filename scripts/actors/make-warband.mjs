@@ -44,6 +44,8 @@ function planWarband(source, type) {
   delete data.flags?.[MODULE_ID]?.quickAdjustBackup;   // the creature's own stats, not the warband's
   data.type = type;
   data.name = game.i18n.format("SDE.warband.make.name", { name: source.name });
+  // Its tokens carry its name, unless the creature's had a name of its own.
+  if (!data.prototypeToken?.name || data.prototypeToken.name === source.name) data.prototypeToken.name = data.name;
   data.system.level.value = stats.level;
   data.system.attributes.hp.max = stats.hp;
   data.system.attributes.hp.value = stats.hp;
@@ -76,7 +78,11 @@ export async function makeWarband(source, type) {
   try {
     const { actorToDraft } = await import("../monster-creator/encounter-creator.mjs");
     const { buildNpcNotes } = await import("../monster-creator/npc-statblock.mjs");
-    await actor.update({ "system.notes": buildNpcNotes(await actorToDraft(actor)) });
+    const draft = await actorToDraft(actor);
+    // One attack a round, whichever it chooses; and the creature's AC note, which the draft doesn't read back.
+    for (const a of draft.actions ?? []) a.join = "or";
+    draft.acNote ||= /<strong>AC<\/strong>\s*\d+\s*\(([^)]*)\)/.exec(source.system.notes ?? "")?.[1] ?? "";
+    await actor.update({ "system.notes": buildNpcNotes(draft) });
   } catch (err) {
     console.warn(`${MODULE_ID} | make a warband: the stat block wasn't rebuilt`, err);
   }

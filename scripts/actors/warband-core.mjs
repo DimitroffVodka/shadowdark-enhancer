@@ -73,8 +73,11 @@ export const tripleDice = (formula) => String(formula ?? "")
  */
 export function warbandStats({ level, conMod }) {
   const newLevel = level * 2;
-  return { level: newLevel, gained: newLevel - level, hp: Math.max(1, 8 * newLevel + (Number(conMod) || 0)) };
+  return { level: newLevel, gained: newLevel - level, hp: warbandHp(newLevel, conMod) };
 }
+
+/** A warband's HP: 8 per level plus CON, fixed, never rolled (PGWR p.248). */
+export const warbandHp = (level, conMod) => Math.max(1, 8 * (Number(level) || 0) + (Number(conMod) || 0));
 
 /** One attack's numbers as a warband's: `damage` is null for a special attack, which has none. */
 export function warbandAttack({ attackBonus = 0, damage = null }, gained) {

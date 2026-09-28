@@ -1,7 +1,7 @@
 # Shadowdark Enhancer — File Inventory
 
 <!-- inventory:stats:start -->
-1060 tracked files · ~187,200 lines of code/markup across scripts+templates+styles+test.
+1060 tracked files · ~187,300 lines of code/markup across scripts+templates+styles+test.
 `v0.17.3` in both `module.json` and `package.json`.
 <!-- inventory:stats:end -->
 **Layout reflects the 2026-07-21 feature-folder reorganization (v0.11.0 cycle).**
@@ -57,7 +57,7 @@
 | `taunt/taunt.mjs` | 249 | Arms Taunt when an enemy misses its holder, sets `mainRoll.advantage` on attacks back at that enemy via `SD-Player-Attack` (with the reason printed on the roll card), and expires it when the holder's next turn ends. |
 | `stat-damage/stat-damage-core.mjs` | 194 | Pure stat-damage rules and the effect contract Shadowdark Extras' Effects library follows: a negative ADD on `system.abilities.<key>.value` flagged `statDamage: { ability }`, summed across effects, healed whole or N per ability, and the parser for monster riders ("DC 12 CON or 1d4 STR damage", enriched or not). |
 | `stat-damage/stat-damage.mjs` | 126 | `statDamage.{apply, heal, of}`: writes replace an ability's effects with one holding the new total (serialized per client), and a stat-damage effect taking CON to 0 hands the character to dying's onConZero on the active GM (dead, unless noDeathAtZeroCon). |
-| `stat-damage/stat-riders.mjs` | 126 | Applies a monster attack's stat-damage riders when its card HIT a character, reading the attack's rider and the NPC feature it names (or shares its name with). Only a card posted by a GM or the attacker's owner, naming the attacker's own item, counts. A rider behind a save asks the owning player to roll it (GM→player user query, GM sender required) and falls back to the GM's client. StatRiders.save also takes a title, for Overland's forage and underground checks (#233). |
+| `stat-damage/stat-riders.mjs` | 127 | Applies a monster attack's stat-damage riders when its card HIT a character, reading the attack's rider and the NPC feature it names (or shares its name with). Only a card posted by a GM or the attacker's owner, naming the attacker's own item, counts. A rider behind a save asks the owning player to roll it (GM→player user query, GM sender required) and falls back to the GM's client. StatRiders.save also takes a title, for Overland's forage and underground checks (#233). |
 | `dying/dying-core.mjs` | 212 | Dying rules (#181), pure: the dying-modifier vocabulary (Active Effect flag keys: timer die and bonus, rise range, own and near stabilize DC, no death at CON 0), the 1d4 + CON timer (minimum 1; none under Deadly, whose 1 beats every die and bonus), stabilize DC resolution (15, Deadly 18, raised near a Draugr, the helper's own DC beats both), shouldTick (once per round of a scope, forward only), the turn-start outcome, what an HP change means (Fatality: 0 HP kills), which stabilize cards count, and the strip badge with the hidden timer. |
 | `dying/dying.mjs` | 543 | Dying on the active GM (#181), one queue per actor: 0 HP from updateActor gives the Dying status; a wrapped Combat#_onStartTurn and the crawlRound hook, once per round and forward only, roll the death timer on the first turn (the owner's client rolls the natural die by user query and the GM adds the modifiers; blind on the GM's under the hidden timer, #263) and the d20 on every turn after (rise, tick, dead + defeated). Stabilize cards, first roll or Luck reroll, are read in createChatMessage against the GM's own DC; another GM's buttons and crawl ticks are relayed (gmDo). onConZero is stat damage's death. The strip badge and its menu. Off while Crawl Helper is active. |
 | `hex-map/bitmap.mjs` | 145 | 0/1 cell bitmaps: dilate, 8-connected components, majority stamps, hex masks, residual features, label zone. Pure. |
@@ -346,13 +346,13 @@
 
 | File | Lines | Description |
 |---|---:|---|
-| `register-actors.mjs` | 90 | Registers `shadowdark-enhancer.mount` / `.boat` (models + sheets, in `i18nInit`). |
+| `register-actors.mjs` | 107 | Registers `shadowdark-enhancer.mount` / `.warband` / `.boat` (models + sheets, in `i18nInit`): the warband's NpcSD subclass with fixed HP, its linked-token and commander-cleared create hook, and Make a Warband. |
 | `boat-data-model.mjs` | 115 | Boat data model — WR vessel rules. |
 | `boat-sheet.mjs` | 179 | Boat sheet: Overview / Passengers & Crew / Cargo / Description. |
 | `mount-npc-sheet.mjs` | 342 | Mount sheet — subclass of the system's `NpcSheetSD`. |
-| `warband-core.mjs` | 82 | Warband rules, pure (#200, #202): the 18 upgrades, a commander's allowance by hit die tier (2/2, 4/3, 6/4), the command and upgrade refusals, and a creature made into a warband (level doubled, 8 HP a level plus CON, one attack, +1 attack a level gained, damage dice tripled). |
+| `warband-core.mjs` | 85 | Warband rules, pure (#200, #202): the 18 upgrades, a commander's allowance by hit die tier (2/2, 4/3, 6/4), the command and upgrade refusals, and a creature made into a warband (level doubled, 8 HP a level plus CON, one attack, +1 attack a level gained, damage dice tripled). |
 | `warband-npc-sheet.mjs` | 168 | The Warband unit sheet (#200): an NpcSheetSD subclass (AppV1) with a Warband tab for the commander (a PC dropped on it), the allowance across that commander's warbands, the upgrade checklist written whole to the `warband` flag, and the commander's CHA for morale. |
-| `make-warband.mjs` | 102 | Make a Warband (#202): the GM's header button on a level 1-5 NPC's sheet, a before/after preview, and a new warband actor from a copy (the stat block in its notes rebuilt as Quick Adjust does). |
+| `make-warband.mjs` | 108 | Make a Warband (#202): the GM's header button on a level 1-5 NPC's sheet, a before/after preview, and a new warband actor from a copy (the stat block in its notes rebuilt as Quick Adjust does). |
 | `vehicle-sheet.mjs` | 424 | Shared party-like container base (ApplicationV2). |
 | `vehicle-rolls.mjs` | 79 | Shared helper-roll button handlers. |
 

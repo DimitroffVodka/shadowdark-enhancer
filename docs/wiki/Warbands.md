@@ -45,8 +45,14 @@ A level 2 goblin with a +1 attack for 1d6 becomes a level 4 warband with
 |---|---|
 | **Commander** | Drop a player character here. The warband is theirs. |
 | **Allowance** | By the commander's hit die: a d4 commands 2 warbands with 2 upgrades between them, a d6 4 and 3, a d8 or larger 6 and 4. It counts all of that commander's warbands, and a commander over it is refused with a message. |
-| **Upgrades** | The 18 upgrades, each once per warband. One over the commander's allowance is refused. A warband without a commander can have up to 4. |
+| **Upgrades** | The 18 upgrades, each once per warband. One over the commander's allowance is refused. A warband without a commander (or with one whose hit die can't be read) can have up to 4. |
 | **Morale** | Shows the commander's CHA modifier, which the warband's morale checks use. |
+
+A warband is one unit: its tokens are linked to the actor, and its HP is
+fixed at 8 per level plus CON (the HP dice on its sheet sets that rather
+than rolling). A copy of a warband (Duplicate, or one imported from a
+compendium) starts without a commander, so taking it goes through the
+commander's allowance.
 
 Up to 20 similar combatants act as one creature, on its commander's turn.
 Player characters and creatures of level 6 or more always act as

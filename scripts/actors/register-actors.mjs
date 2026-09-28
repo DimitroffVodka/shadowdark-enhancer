@@ -28,6 +28,7 @@ import { BoatSheet } from "./boat-sheet.mjs";
 import { buildMountNpcSheet } from "./mount-npc-sheet.mjs";
 import { buildWarbandNpcSheet } from "./warband-npc-sheet.mjs";
 import { registerMakeWarband } from "./make-warband.mjs";
+import { warbandHp } from "./warband-core.mjs";
 
 export const MOUNT_TYPE = `${MODULE_ID}.mount`;
 export const BOAT_TYPE = `${MODULE_ID}.boat`;
@@ -60,8 +61,24 @@ export function registerActorTypes() {
       makeDefault: true,
       label: "SDE.sheet.mount",
     });
-    // ── Warband: the same NPC model, its own tab (#200) ─────────────────────
-    CONFIG.Actor.dataModels[WARBAND_TYPE] = NpcModel;
+    // ── Warband: the NPC model with fixed HP, its own tab (#200) ────────────
+    // A warband's HP is 8 a level plus CON, never rolled: the sheet's HP dice
+    // and the system's roll-on-placement both call rollHP.
+    CONFIG.Actor.dataModels[WARBAND_TYPE] = class WarbandModel extends NpcModel {
+      async rollHP() {
+        const hp = warbandHp(this.level?.value, this.abilities?.con?.mod);
+        await this.parent.update({ "system.attributes.hp.max": hp, "system.attributes.hp.value": hp });
+      }
+    };
+    // One unit, one actor: its tokens are linked, so every warband is a world
+    // actor the commander's allowance counts. A copy (Duplicate, an import)
+    // starts without a commander, so taking one goes through the allowance.
+    Hooks.on("preCreateActor", (doc, data) => {
+      if (doc.type !== WARBAND_TYPE) return;
+      const update = { "prototypeToken.actorLink": true };
+      if (data?.flags?.[MODULE_ID]?.warband?.commander) update[`flags.${MODULE_ID}.warband.commander`] = null;
+      doc.updateSource(update);
+    });
     DSC.registerSheet(Actor, MODULE_ID, buildWarbandNpcSheet(BaseNpcSheet, WARBAND_TYPE), {
       types: [WARBAND_TYPE],
       makeDefault: true,

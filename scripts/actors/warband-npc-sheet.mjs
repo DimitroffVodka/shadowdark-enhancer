@@ -89,7 +89,7 @@ export function buildWarbandNpcSheet(BaseNpcSheet, type) {
           warbands: game.i18n.format("SDE.warband.allowance.warbands", { used: otherWarbands + 1, max: allowance.warbands }),
           upgrades: game.i18n.format("SDE.warband.allowance.upgrades", { used: otherUpgrades + state.upgrades.length, max: allowance.upgrades }),
         } : null,
-        noCommanderCap: !pc ? game.i18n.format("SDE.warband.allowance.noCommander", { max: MOST_UPGRADES }) : null,
+        noCommanderCap: !allowance ? game.i18n.format("SDE.warband.allowance.noCommander", { max: MOST_UPGRADES }) : null,
         morale: cha === null ? null : game.i18n.format("SDE.warband.moraleBonus", { bonus: `${cha >= 0 ? "+" : ""}${cha}` }),
         upgrades: UPGRADES.map((key) => ({ key, label: game.i18n.localize(UPGRADE_KEYS[key]), checked: state.upgrades.includes(key) })),
       };
@@ -155,7 +155,7 @@ export function buildWarbandNpcSheet(BaseNpcSheet, type) {
         const { otherUpgrades } = pc ? commandedBy(pc.uuid, { except: this.actor.id, type }) : { otherUpgrades: 0 };
         const refusal = upgradeRefusal(key, state.upgrades, { allowance, otherUpgrades });
         if (refusal) {
-          const key = refusal === "upgrades" && !allowance ? "SDE.warband.notify.tooManyUpgradesNoCommander" : REFUSAL_KEYS[refusal];
+          const key = refusal === "upgrades" && !allowance ? "SDE.warband.notify.tooManyUpgradesNoAllowance" : REFUSAL_KEYS[refusal];
           ui.notifications?.warn(game.i18n.format(key, { name: pc?.name ?? "", max: allowance ? allowance.upgrades : MOST_UPGRADES }));
           return false;
         }

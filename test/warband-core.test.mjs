@@ -5,7 +5,7 @@ import assert from "node:assert/strict";
 
 import {
   UPGRADES, MOST_UPGRADES, allowanceFor, canMakeWarband, cleanUpgrades, commandRefusal, upgradeRefusal,
-  tripleDice, warbandStats, warbandAttack,
+  tripleDice, warbandStats, warbandAttack, warbandHp,
 } from "../scripts/actors/warband-core.mjs";
 
 test("eighteen upgrades, and a commander's allowance by hit die", () => {
@@ -52,4 +52,10 @@ test("damage dice are tripled wherever they are; a flat number stays", () => {
   assert.equal(tripleDice("d8"), "3d8");
   assert.equal(tripleDice("1d6+1d4"), "3d6+3d4");
   assert.equal(tripleDice("1"), "1");
+});
+
+test("a warband's HP is fixed: 8 per level plus CON, at least 1", () => {
+  assert.equal(warbandHp(4, 1), 33);
+  assert.equal(warbandHp(2, -3), 13);
+  assert.equal(warbandHp(0, -2), 1);
 });
