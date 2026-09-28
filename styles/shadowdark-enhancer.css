@@ -11583,6 +11583,10 @@ button.sde-hud-day:hover { border-color: var(--sd-frame); }
   background: var(--sd-panel);
 }
 .sde-hud-v { font-family: "JSL Blackletter", serif; font-size: 20px; color: var(--sd-text); }
+.sde-hud-v.sde-reaction-Hostile { color: var(--sde-bar-hit); }
+.sde-hud-v.sde-reaction-Suspicious { color: #d08030; }
+.sde-hud-v.sde-reaction-Curious { color: var(--sde-bar-accent); }
+.sde-hud-v.sde-reaction-Friendly { color: var(--sde-bar-miss); }
 
 /* The Trouble tracker's status bar on a trouble's page (#193), GM only. */
 .sde-trouble-status {
