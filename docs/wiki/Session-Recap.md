@@ -42,6 +42,7 @@ Saved sessions are stored in the **History** tab for future reference.
 | **Downtime attempts** | [Downtime](Downtime.md) | Activities attempted, checks, fees, and outcomes |
 | **Carousing** | Shadowdark Extras (optional) | Night outcomes, XP, benefits, mishaps, and renown |
 | **Encounter checks** | [Encounter Roller](Random-Encounters.md) | Round, die roll, threshold, and hit/miss |
+| **Rumors** | [Rumors](Rumors.md) | Each rumor given, its region, and the time |
 | **Combat statistics** | Combat Tracker | Rounds, participants, damage dealt, and kills |
 | **Dice rolls** | Chat Log | Per-character d20 and damage roll stats |
 
@@ -68,6 +69,8 @@ The window is organized into six tabs:
   (such as `2/3 · 30 gp`).
 - **Permanent log:** Downtime attempts also write permanently to the world
   `Downtime Log` journal. See [Downtime](Downtime.md#the-downtime-log).
+- **Rumors:** The rumors given this session, in order, with their region.
+  They also stay in the players' `Rumors Heard` journal. See [Rumors](Rumors.md).
 
 #### Carousing integration
 
@@ -97,6 +100,7 @@ The export includes:
 - Item claims and gold expenditure.
 - XP awards and Renown changes per player.
 - Downtime and Carousing breakdowns.
+- The rumors given.
 
 ---
 

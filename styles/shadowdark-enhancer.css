@@ -11663,3 +11663,14 @@ button.sde-hud-day:hover { border-color: var(--sd-frame); }
   flex: 0 0 auto;
   width: auto;
 }
+
+/* The Rumors Heard ledger (#190): each rumor's date line, and the GM's Promote button. */
+.sde-rumor-list .sde-rumor-meta {
+  margin-top: -0.25rem;
+  font-size: var(--font-size-12);
+  opacity: 0.75;
+}
+.sde-rumor-list .sde-rumor-promote {
+  width: auto;
+  font-size: var(--font-size-12);
+}

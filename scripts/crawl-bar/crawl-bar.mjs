@@ -609,6 +609,9 @@ export const CrawlBar = {
       <div class="sde-menu-item sde-menu-btn" data-loot-action="renown" role="menuitem" tabindex="0">
         <i class="fas fa-crown"></i> ${game.i18n.localize("SDE.crawlBar.lootMenu.renown")}
       </div>
+      <div class="sde-menu-item sde-menu-btn" data-loot-action="rumors" role="menuitem" tabindex="0">
+        <i class="fas fa-comments"></i> ${game.i18n.localize("SDE.crawlBar.lootMenu.rumors")}
+      </div>
       <div class="sde-menu-item sde-menu-btn" data-loot-action="recap" role="menuitem" tabindex="0">
         <i class="fas fa-scroll"></i> ${game.i18n.localize("SDE.crawlBar.lootMenu.recap")}
       </div>
@@ -651,6 +654,11 @@ export const CrawlBar = {
       if (target.dataset.lootAction === "renown") game.shadowdarkEnhancer.renown.open();
       if (target.dataset.lootAction === "recap") game.shadowdarkEnhancer.recap.open();
       menu.remove();
+      // A dialog: the menu goes first, or it stays open behind it.
+      if (target.dataset.lootAction === "rumors") {
+        import("../rumors/rumors.mjs").then(({ askAndGive }) => askAndGive())
+          .catch((err) => console.error("shadowdark-enhancer | give rumors", err));
+      }
     });
 
     const close = () => {

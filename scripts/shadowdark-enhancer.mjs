@@ -85,6 +85,7 @@ import { DowntimeSession } from "./downtime/downtime-session.mjs";
 import { Renown } from "./renown/renown.mjs";
 import { Quests, openQuestLog, registerQuests } from "./quests/quests.mjs";
 import { Troubles, registerTroubles } from "./troubles/troubles.mjs";
+import { Rumors, registerRumors } from "./rumors/rumors.mjs";
 import { registerActorTypes } from "./actors/register-actors.mjs";
 // Imported for its top-level createChatMessage hook: the out-of-combat
 // initiative sync must be live on the GM from load, not only after the GM
@@ -103,7 +104,7 @@ import { initRivalClassTable } from "./forge-loot/rival-class-table-adapter.mjs"
 // templates, producing unstyled block-flow UI. Keep the manifest stylesheet as
 // the startup fallback, then layer a content-addressed copy above it. The layout
 // contract test requires this revision to change whenever the CSS file changes.
-const STYLESHEET_REV = "413b257e985d";
+const STYLESHEET_REV = "39a661c3cacf";
 
 // The same problem for the SCRIPTS, which cannot be solved the same way: their
 // URLs come from the manifest, which Foundry validates as real package paths,
@@ -118,7 +119,7 @@ const STYLESHEET_REV = "413b257e985d";
 // stale); module.json carries the same hash and is fetched fresh at runtime. A
 // mismatch is a stale cache by construction — it cannot be anything else. Both
 // stamps are written by `npm run inventory` and gated by `inventory:check`.
-const BUILD_REV = "6f9113c48928";
+const BUILD_REV = "f499f18efd3a";
 
 /**
  * Tell the user when their browser is running an old build of this module, and
@@ -313,6 +314,8 @@ Hooks.once("init", () => {
   // Compound generators: wrap RollTable.draw so flagged tables roll every
   // column and post one combined card (sidebar sheet Roll + our hub button).
   installCompoundRollTable();
+  // After the compound wrap: a GM's hand-rolled rumor is marked drawn (#190).
+  registerRumors();
 
   // Handlebars helpers
   Handlebars.registerHelper("includes", (arr, val) => {
@@ -451,9 +454,10 @@ Hooks.once("init", () => {
     // 1.21.0 — additive: encounter.check({ travel }), a travel draw's points of interest (#273).
     // 1.22.0 — additive: downtime.isOpen(), and a session's 2d6 days move the clock off duty (#198).
     // 1.23.0 — additive: troubles namespace, the Trouble tracker (#193).
-    // 1.24.0 — additive: encounter.check({ quiet }), hexMaps.makePlayable, overland.partyMethod and
+    // 1.24.0 — additive: rumors namespace and the rumorsChanged hook, the Rumors Heard ledger (#190).
+    // 1.25.0 — additive: encounter.check({ quiet }), hexMaps.makePlayable, overland.partyMethod and
     //   setPace; overland.startDay reads the method and the pace when they're left out (#257).
-    apiVersion: "1.24.0",
+    apiVersion: "1.25.0",
     // The one travel state per world (scripts/overland/overland.mjs): a copy
     // with hexes left, climate, storm, harshness and night derived; whether
     // travel is on; today's weather roll, the travel day's start, Continue
@@ -905,6 +909,12 @@ Hooks.once("init", () => {
       undiscovered: () => Troubles.undiscovered(),
       discover: (idOrUuid, discovered) => Troubles.discover(idOrUuid, discovered),
       promote: (idOrUuid) => Troubles.promote(idOrUuid),
+    },
+    // 1.24.0 — additive: rumors (#190). Give rumors (GM) and read the Rumors
+    // Heard ledger (anyone; Shadowdark Extras' party sheet calls heard() bare).
+    rumors: {
+      give: (opts) => Rumors.give(opts),
+      heard: (opts) => Rumors.heard(opts),
     },
     // 1.7.0 — additive: the Quest Log. One world journal per quest; reads are
     // filtered to what the calling user may see, writes are the GM's.
