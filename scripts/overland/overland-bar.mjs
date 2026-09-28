@@ -24,7 +24,7 @@
  */
 
 import { CrawlState } from "../crawl-strip/crawl-state.mjs";
-import { isHexMapScene } from "../encounter/encounter-terrain.mjs";
+import { isHexMapScene, isHexRulesScene } from "../encounter/encounter-terrain.mjs";
 import { esc } from "../shared/esc.mjs";
 import { MODULE_ID } from "../shared/module-id.mjs";
 import {
@@ -115,7 +115,7 @@ export const TravelBar = {
     Hooks.on("pauseGame", () => { if (this._open === "time") this.render(); });
     Hooks.on("canvasReady", () => {
       // A new kind of scene starts the view afresh: the sky shows on a hex map, not in a dungeon.
-      const kind = isHexMapScene() ? "hex" : "other";
+      const kind = isHexMapScene() || isHexRulesScene(canvas?.scene) ? "hex" : "other";
       if (kind !== this._sceneKind) {
         this._sceneKind = kind;
         this._sky = kind === "hex";
@@ -151,7 +151,7 @@ export const TravelBar = {
       if (this._stamp() !== this._drawn) this.render();
     });
     this._el = el;
-    this._sceneKind = isHexMapScene() ? "hex" : "other";
+    this._sceneKind = isHexMapScene() || isHexRulesScene(canvas?.scene) ? "hex" : "other";
     this._sky = this._sceneKind === "hex";
     this.render();
     // Centred over the canvas (#ui-middle), and no wider than the room between
