@@ -40,6 +40,13 @@ function planWarband(source, type) {
     if (hasDamage) system.damage = { ...system.damage, value: after.damage };
     return { ...item, system };
   });
+  // A spell is one of its attacks too: a spell count (the NPC's Spells tab) of one, at the same bonus.
+  const spells = data.system.spellcasting;
+  if (spells?.attacks > 0) {
+    const show = (num) => game.i18n.format("SDE.warband.make.specialLine", { num, bonus: `+${spells.bonus ?? 0}` });
+    rows.push({ label: game.i18n.localize("SDE.warband.make.spells"), before: show(spells.attacks), after: show(1) });
+    spells.attacks = 1;
+  }
   delete data._id;
   delete data.flags?.[MODULE_ID]?.quickAdjustBackup;   // the creature's own stats, not the warband's
   data.type = type;
@@ -79,8 +86,9 @@ export async function makeWarband(source, type) {
     const { actorToDraft } = await import("../monster-creator/encounter-creator.mjs");
     const { buildNpcNotes } = await import("../monster-creator/npc-statblock.mjs");
     const draft = await actorToDraft(actor);
-    // One attack a round, whichever it chooses; and the creature's AC note, which the draft doesn't read back.
-    for (const a of draft.actions ?? []) a.join = "or";
+    // One attack a round, whichever it chooses: every ATK clause, its attacks and its spells, is an "or".
+    // And the creature's AC note, which the draft doesn't read back.
+    for (const clause of [...(draft.actions ?? []), draft.spellcasting ?? {}]) clause.join = "or";
     draft.acNote ||= /<strong>AC<\/strong>\s*\d+\s*\(([^)]*)\)/.exec(source.system.notes ?? "")?.[1] ?? "";
     await actor.update({ "system.notes": buildNpcNotes(draft) });
   } catch (err) {

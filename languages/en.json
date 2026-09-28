@@ -2833,6 +2833,7 @@
   "SDE.warband.make.name": "{name} Warband",
   "SDE.warband.make.level": "Level",
   "SDE.warband.make.hp": "HP",
+  "SDE.warband.make.spells": "Spells",
   "SDE.warband.make.before": "Now",
   "SDE.warband.make.after": "As a warband",
   "SDE.warband.make.attackLine": "{num} × {bonus} ({damage})",
