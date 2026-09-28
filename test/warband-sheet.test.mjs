@@ -93,3 +93,35 @@ test("a query sent straight to a GM that isn't the active one is refused, and no
     globalThis.game.user = { ...activeGM, hasPermission: () => true };
   }
 });
+
+test("the active GM signed in twice: each change reaches both tabs, and lands once (#283 review)", async () => {
+  // Foundry hands a query to every tab its user has open. The second tab is its own copy of the module, with its own queue.
+  const tab1 = globalThis.CONFIG.queries[WARBAND_QUERY];
+  (await import("../scripts/actors/warband-npc-sheet.mjs?tab=2")).registerWarbandWrites(TYPE);
+  const tab2 = globalThis.CONFIG.queries[WARBAND_QUERY];
+  globalThis.CONFIG.queries[WARBAND_QUERY] = tab1;
+  const d6 = pc.uuid;   // 3 upgrades in all
+  const cases = [
+    ["a commander", { commander: null, upgrades: [] }, { action: "commander", pcUuid: d6 }, { commander: d6, upgrades: [] }],
+    ["no commander", { commander: d6, upgrades: ["fast"] }, { action: "commander", pcUuid: null }, { commander: null, upgrades: ["fast"] }],
+    ["an upgrade ticked", { commander: d6, upgrades: ["fast"] }, { action: "upgrade", key: "scout", on: true }, { commander: d6, upgrades: ["fast", "scout"] }],
+    ["an upgrade unticked", { commander: d6, upgrades: ["fast", "scout"] }, { action: "upgrade", key: "fast", on: false }, { commander: d6, upgrades: ["scout"] }],
+    ["one over the allowance", { commander: d6, upgrades: ["fast"] }, { action: "upgrade", key: "scout", on: true }, { commander: d6, upgrades: ["fast"] }, ["tough", "hardy"]],
+  ];
+  for (const [what, before, change, after, others] of cases) {
+    for (const together of [true, false]) {
+      actors.length = 0;
+      const a = warband("a", structuredClone(before));
+      if (others) warband("b", { commander: d6, upgrades: others });
+      const data = { ...change, actorId: "a" };
+      const ctx = { user: { id: "owner", isGM: false } };
+      const replies = together ? await Promise.all([tab1(data, ctx), tab2(data, ctx)]) : [await tab1(data, ctx), await tab2(data, ctx)];
+      const how = `${what}, ${together ? "both tabs at once" : "the second tab after the first"}`;
+      // The commander and upgrades: the flag also carries the upkeep's fields (#204).
+      const { commander, upgrades } = a.flags[MOD].warband;
+      assert.deepEqual({ commander, upgrades }, after, how);
+      assert.deepEqual(replies[1], replies[0], `${how}: both tabs answer the same`);
+      assert.equal(replies[0].ok, !others, how);
+    }
+  }
+});

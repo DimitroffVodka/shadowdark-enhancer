@@ -374,10 +374,6 @@ page walks through it in order.
   Quick upgrade ticks all stick, and two warbands can't both take their
   commander's last slot: every warband change is made by one writer, the
   active GM. See *Warbands*. (#200, #202)
-- **A GM signed in in two tabs.** Foundry sends a request meant for the
-  active GM to every tab that GM has open, and runs the module's hooks in
-  each. Now one tab does the work: the one signed in longest, until it
-  closes. (#200)
 - **Warband upkeep and healing on the world clock.** Each month start takes
   10 gp a level per warband from its commander's coins, in one card; a
   commander who can't pay leaves it in arrears, and each week after it checks
