@@ -3218,6 +3218,7 @@ export async function createTable(pt, { onConflict, allowInvalid = false } = {})
   // enriching would rewrite that hint with @UUID links.
   if (!pt.isCompound) await _autoEnrich(table, pt);
   await applyTableStructureSeed(table);
+  await adoptAncestryTable(table);
   // A WR patron boon table also gets its Patron Item, described by the blurb
   // parseByShape read off the page (#167). Never fails the table import — the
   // backfill at ready retries the link.
@@ -3299,6 +3300,22 @@ export async function applyTableStructureSeed(table) {
  * Uses a dynamic import so this parser module stays free of a static Foundry
  * dependency (keeps the pure parse path node-testable).
  */
+/**
+ * The Western Reaches population d100 becomes the Character Builder's Random
+ * ancestry table when the GM hasn't set one (#187), so importing it is enough.
+ * A table already set, even another one, is left alone.
+ */
+async function adoptAncestryTable(table) {
+  if (!/ancestry \(population\)$/i.test(table?.name ?? "")) return;
+  try {
+    if (game.settings.get("shadowdark-enhancer", "charBuilderAncestryTable")) return;
+    await game.settings.set("shadowdark-enhancer", "charBuilderAncestryTable", table.uuid);
+    ui.notifications?.info(loc("SDE.importer.notify.ancestryTableSet", { table: table.name }));
+  } catch (err) {
+    console.warn("shadowdark-enhancer | adoptAncestryTable:", err);
+  }
+}
+
 async function _autoEnrich(table, pt) {
   if (!table) return;
   try {
@@ -3794,6 +3811,7 @@ export async function commitTableBundle(drafts, { onConflict } = {}) {
     try {
       if (!pt.isCompound) await _autoEnrich(doc, pt);
       await applyTableStructureSeed(doc);
+      await adoptAncestryTable(doc);
     } catch (e) { console.warn(`Shadowdark Enhancer | bundle enrich failed for "${doc?.name}"`, e); }
   };
 

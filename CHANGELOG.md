@@ -370,6 +370,11 @@ page walks through it in order.
 
 ### Changed
 
+- **Importing the Western Reaches ancestry d100 switches the builder to it.**
+  When the Character Builder's Random ancestry table is empty, importing
+  "Ancestry (Population)" sets it, and a notification says so. A table already
+  set is left alone. (#187)
+
 - **Foundry 14 is now the minimum.** The module no longer lists Foundry 13 as
   supported, matching Shadowdark Extras, which already needs 14.
 - **Preventing luck rerolls on natural 1s is now off by default, and lives in
