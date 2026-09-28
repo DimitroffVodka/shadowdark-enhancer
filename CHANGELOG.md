@@ -385,9 +385,10 @@ page walks through it in order.
   deleted. Every day heals 1d4 (Hardy 2d6), downtime days included, and a
   warband that deserts part way through a long move still heals the days
   before. A charge that fails to save is tried again at the next clock move,
-  for that warband only, and never taken twice; if even that can't be
-  confirmed, the GM is told to settle it by hand. Changing a commanded warband's upgrades means a
-  week of retraining. (#204)
+  for that warband only, and never taken twice; a Pay Arrears that fails
+  takes nothing, so it can simply be pressed again. A payment that can't be
+  confirmed either way is whispered to the GMs to settle by hand. Changing a
+  commanded warband's upgrades means a week of retraining. (#204)
 - **Warbands in mass combat.** A warband with its commander in the fight takes
   the commander's initiative and turn: its card rides after the commander's
   on the Crawl Strip, and the turn passes it by. Morale is automatic: falling
