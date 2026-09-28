@@ -8,7 +8,7 @@ import {
   clockShown, clockSteps, dialModel, seasonHatch, monthGrid, dateToTime,
 } from "../scripts/overland/hud-core.mjs";
 import { nextTimeOfDay, sun, dateParts } from "../scripts/time/time-core.mjs";
-import { gregorian, at } from "./gregorian-calendar.mjs";
+import { gregorian, quirkyGregorian, at } from "./gregorian-calendar.mjs";
 
 test("the bar shows by the setting, and to nobody during a combat", () => {
   assert.equal(clockShown({ setting: "all", isGM: false, combat: false }), true);
@@ -97,4 +97,20 @@ test("a typed date lands on that day and time, or on nothing", () => {
   assert.equal(dateParts(gregorian, t).time, "09:30");
   assert.equal(dateToTime(gregorian, { year: 1301, month: 13, day: 1 }), null);
   assert.equal(dateToTime(gregorian, { year: 1301, month: 2, day: 30 }), null, "no 30 February");
+});
+
+test("core's leap-year quirk: January shows 1 January twice, and the month before is December", () => {
+  const leap = gregorian.componentsToTime({ year: 1304 });                    // 1304 is 366 days long
+  const jan = monthGrid(quirkyGregorian, leap);
+  assert.equal(jan.month, "CALENDAR.GREGORIAN.January");
+  assert.equal(jan.cells.filter((c) => !c.out).length, 32, "every day core shows as January");
+  const back = monthGrid(quirkyGregorian, leap + 15 * 86400, { offset: -1 });
+  assert.equal(back.month, "CALENDAR.GREGORIAN.December");
+  assert.equal(back.year, 1303);
+});
+
+test("a typed time the calendar's day doesn't have is refused", () => {
+  const short = { ...gregorian, days: { ...gregorian.days, hoursPerDay: 20 } };
+  assert.equal(dateToTime(short, { year: 1301, month: 5, day: 14, hour: 22 }), null);
+  assert.equal(dateToTime(gregorian, { year: 1301, month: 5, day: 14, hour: 9, minute: 60 }), null);
 });

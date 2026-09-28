@@ -34,7 +34,7 @@ import {
   overlandState, weatherNow, weatherName, methodName, rollWeather, askDay, startDay, makeCamp,
   endOverland, resume, forage, startOverland, advanceClock, OVERLAND_CHANGED,
 } from "./overland.mjs";
-import { barModel, itemTouchesBar } from "./overland-bar-core.mjs";
+import { barModel, itemTouchesBar, redrawStamp } from "./overland-bar-core.mjs";
 import { DIAL, DIAL_STARS, clockShown, clockSteps, dateToTime, dialModel, monthGrid, seasonHatch, starPoint } from "./hud-core.mjs";
 
 const BAR_ID = "shadowdark-enhancer-travel";
@@ -83,6 +83,10 @@ export const TravelBar = {
   _holidays: [],
   _drawn: "",
   _sceneKind: null,
+  /** The Time panel's date, as the GM is typing it: kept across redraws. */
+  _when: null,
+  /** A move in flight: a second click waits for it rather than stacking on a stale clock. */
+  _moving: false,
 
   init() {
     this.mount();
@@ -91,6 +95,7 @@ export const TravelBar = {
     Hooks.on(CrawlState.HOOK_CHANGED, queue);
     Hooks.on(`${MODULE_ID}.clockBarChanged`, queue);
     for (const hook of ["createCombat", "updateCombat", "deleteCombat"]) Hooks.on(hook, queue);
+    Hooks.on("pauseGame", () => { if (this._open === "time") this.render(); });
     Hooks.on("canvasReady", () => {
       // A new kind of scene starts the view afresh: the sky shows on a hex map, not in a dungeon.
       const kind = isHexMapScene() ? "hex" : "other";
@@ -102,8 +107,12 @@ export const TravelBar = {
       }
       this.render();
     });
-    // Real-time light tracking moves the clock every second: redraw on the minute.
-    Hooks.on("updateWorldTime", () => { if (this._stamp() !== this._drawn) this.render(); });
+    // Real-time light tracking moves the clock every second: redraw on the
+    // minute, but not under a GM typing a date (it catches up after).
+    Hooks.on("updateWorldTime", () => {
+      if (document.activeElement?.id === "sde-hud-when") return;
+      if (this._stamp() !== this._drawn) this.render();
+    });
     // A member's rations change when they forage, buy, trade or eat.
     const onItem = (item) => {
       if (this._open === "travel" && itemTouchesBar(item, overlandState().members)) this.render();
@@ -118,6 +127,7 @@ export const TravelBar = {
     (document.getElementById("interface") ?? document.body).prepend(el);
     el.addEventListener("click", (event) => this._onClick(event));
     el.addEventListener("change", (event) => this._onChange(event));
+    el.addEventListener("input", (event) => { if (event.target.id === "sde-hud-when") this._when = event.target.value; });
     this._el = el;
     this._sceneKind = isHexMapScene() ? "hex" : "other";
     this._sky = this._sceneKind === "hex";
@@ -138,8 +148,8 @@ export const TravelBar = {
 
   /** What a redraw on the clock depends on: the minute, the weather, and the pending encounter. */
   _stamp() {
-    const spm = game.time.calendar?.days?.secondsPerMinute || 60;
-    return `${Math.floor(game.time.worldTime / spm)}|${weatherNow() ?? ""}|${overlandState().pending ? 1 : 0}`;
+    return redrawStamp(game.time.worldTime, game.time.calendar?.days?.secondsPerMinute, weatherNow(),
+      CrawlState.isOverland ? overlandState().pending : null);
   },
 
   _shown() {
@@ -182,12 +192,12 @@ export const TravelBar = {
     const { parts } = this._now();
     const state = overlandState();
     const date = t("SDE.clock.date", { weekday: t(parts.weekday), day: parts.day, month: t(parts.month), year: parts.year });
-    const stopped = gm && state.pending ? `<span class="sde-hud-stopped">${esc(t("SDE.clock.stopped"))}</span>` : "";
+    const stopped = gm && state.pending && CrawlState.isOverland ? `<span class="sde-hud-stopped">${esc(t("SDE.clock.stopped"))}</span>` : "";
     let travel = "";
     if (isHexMapScene()) {
       const cell = CrawlState.isOverland
         ? `<button type="button" class="sde-hud-plate" data-action="open" data-id="travel"><i class="fa-solid fa-hexagon"></i> ${this._plateText(state)}</button>`
-        : gm ? `<button type="button" class="sde-hud-go" data-action="startTravel"><i class="fa-solid fa-hexagon"></i> ${esc(t("SDE.overland.startTravel"))}</button>` : "";
+        : gm && CrawlState.mode === "off" ? `<button type="button" class="sde-hud-go" data-action="startTravel"><i class="fa-solid fa-hexagon"></i> ${esc(t("SDE.overland.startTravel"))}</button>` : "";
       travel = `<span class="sde-hud-sep"></span>${cell}${CrawlState.isOverland
         ? ib("open", "fa-users", t("SDE.clock.travel"), { id: "travel", pressed: this._open === "travel" }) : ""}`;
     }
@@ -206,7 +216,7 @@ export const TravelBar = {
   /** The travel plate's words, by where the day stands. */
   _plateText(state) {
     const m = this._model();
-    if (state.pending) return esc(t("SDE.clock.plate.encounter"));
+    if (state.pending) return esc(t("SDE.clock.plate.encounter"));   // only drawn while travelling
     if (!m.dayOpen) return esc(t("SDE.clock.plate.noDay"));
     return t("SDE.clock.plate.hexes", { left: `<b>${m.hexesLeft}</b>`, budget: `<b>${m.budget}</b>` })
       + (m.pushed ? esc(t("SDE.clock.plate.pushed")) : "");
@@ -293,7 +303,8 @@ export const TravelBar = {
     let realtime = false, tracking = true;
     try { realtime = !!game.settings.get("shadowdark", "realtimeLightTracking"); } catch { /* not the Shadowdark system */ }
     try { tracking = game.settings.get("shadowdark", "trackLightSources") !== false; } catch { /* idem */ }
-    const paused = realtime && game.paused;
+    // The system's own test: Foundry's pause stops its clock when pauseLightTrackingWithGame says so.
+    const paused = realtime && (game.shadowdark?.lightSourceTracker?.realTime?.isPaused?.() ?? game.paused);
     const jumps = Object.entries(JUMPS).map(([id, k]) => key("jump", t(k), { id, cls: "sde-hud-sm" })).join("");
     return `<div class="sde-hud-panel sde-hud-narrow">
       <div class="sde-hud-ph"><span class="sde-hud-ttl">${esc(t("SDE.clock.time"))}</span>
@@ -302,7 +313,8 @@ export const TravelBar = {
         <span class="sde-hud-cap">${esc(t("SDE.clock.jumpTo"))}</span>
         <div class="sde-hud-grid4">${jumps}</div>
         <label class="sde-hud-cap" for="sde-hud-when">${esc(t("SDE.clock.setDate"))}</label>
-        <div class="sde-hud-row"><input class="sde-hud-field" id="sde-hud-when" type="datetime-local" value="${esc(value)}">${key("setTime", t("SDE.clock.set"), { cls: "sde-hud-sm" })}</div>
+        <div class="sde-hud-row"><input class="sde-hud-field" id="sde-hud-when" type="text" spellcheck="false"
+          placeholder="YYYY-MM-DDTHH:MM" value="${esc(this._when ?? value)}" data-tooltip="${esc(t("SDE.clock.dateFormat"))}">${key("setTime", t("SDE.clock.set"), { cls: "sde-hud-sm" })}</div>
         <label class="sde-hud-check"><input type="checkbox" data-action="realtime" ${realtime ? "checked" : ""} ${tracking ? "" : "disabled"}>
           <span>${esc(t("SDE.clock.realtime"))}</span><span class="sde-hud-cap">${esc(t(paused ? "SDE.clock.paused" : "SDE.clock.lightTracking"))}</span></label>
         <span class="sde-hud-fl">${esc(t("SDE.clock.timeNote"))}</span>
@@ -395,15 +407,28 @@ export const TravelBar = {
     </div>`;
   },
 
-  /** Move the clock by `seconds`: forward off duty for a calendar jump, else through Overland's clock action. */
-  async _move(seconds, { calendar = false } = {}) {
-    if (!seconds) return;
-    const warn = (reply) => { if (!reply?.ok && reply?.error) ui.notifications.warn(reply.error); };
-    if (calendar && seconds > 0 && !CrawlState.isOverland) {
-      const reply = await game.shadowdarkEnhancer.time.advanceOffDuty(seconds, { reason: "calendar" });
-      return warn(reply);
+  /**
+   * Move the clock: a step by `seconds`, or a jump `to` a worldTime, through
+   * Overland's clock action. A calendar jump forward goes off duty: all of it
+   * when not travelling (off duty warns for itself); while travelling the
+   * lights go out first, and the day's checks still roll on the way.
+   */
+  async _move(seconds, { to = null, calendar = false } = {}) {
+    if (this._moving) return;
+    this._moving = true;
+    try {
+      const ahead = to !== null ? to - game.time.worldTime : seconds;
+      if (!ahead) return;
+      if (calendar && ahead > 0) {
+        const offDuty = game.shadowdarkEnhancer.time.advanceOffDuty;
+        if (!CrawlState.isOverland) { await offDuty(ahead, { reason: "calendar" }); return; }
+        if (!(await offDuty(0, { reason: "calendar" }))?.ok) return;
+      }
+      const reply = to !== null ? await advanceClock(null, { to }) : await advanceClock(seconds);
+      if (!reply?.ok && reply?.error) ui.notifications.warn(reply.error);
+    } finally {
+      this._moving = false;
     }
-    return warn(await advanceClock(seconds));
   },
 
   async _onClick(event) {
@@ -414,6 +439,7 @@ export const TravelBar = {
     switch (el.dataset.action) {
       case "open":
         this._open = this._open === id ? null : id;
+        this._when = null;
         if (this._open === "month") {
           this._monthOffset = 0;
           await this._loadHolidays();
@@ -423,20 +449,16 @@ export const TravelBar = {
       case "sky": this._sky = !this._sky; this._open = null; return this.render();
       case "month": this._monthOffset += Number(id) || 0; return this.render();
       case "step": return this._move(Number(id));
-      case "jump": {
-        const now = game.time.worldTime;
-        return this._move(nextTimeOfDay(game.time.calendar, now, id) - now);
-      }
+      case "jump": return this._move(null, { to: nextTimeOfDay(game.time.calendar, game.time.worldTime, id) });
       case "goto": {
         const cal = game.time.calendar, now = game.time.worldTime;
-        const target = Number(id) + (now - startOfDay(cal, now));
-        return this._move(target - now, { calendar: true });
+        return this._move(null, { to: Number(id) + (now - startOfDay(cal, now)), calendar: true });
       }
       case "setTime": {
-        const value = this._el.querySelector("#sde-hud-when")?.value;
-        const target = this._parseWhen(value);
+        const target = this._parseWhen(this._el.querySelector("#sde-hud-when")?.value);
         if (target === null) return ui.notifications.warn(t("SDE.clock.badDate"));
-        return this._move(target - game.time.worldTime, { calendar: true });
+        this._when = null;
+        return this._move(null, { to: target, calendar: true });
       }
       case "startTravel": {
         const started = await startOverland();
@@ -468,9 +490,9 @@ export const TravelBar = {
     this.render();
   },
 
-  /** "YYYY-MM-DDTHH:MM" (the year as shown) to a worldTime, or null. */
+  /** "YYYY-MM-DDTHH:MM" (the year as shown; a space for the T is fine) to a worldTime, or null. */
   _parseWhen(value) {
-    const m = /^(-?\d{1,6})-(\d{2})-(\d{2})T(\d{2}):(\d{2})$/.exec(value ?? "");
+    const m = /^(-?\d{1,6})-(\d{1,2})-(\d{1,2})[T ](\d{1,2}):(\d{2})$/.exec(String(value ?? "").trim());
     if (!m) return null;
     const [, y, mo, d, h, mi] = m.map(Number);
     return dateToTime(game.time.calendar, { year: y, month: mo, day: d, hour: h, minute: mi });

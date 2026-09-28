@@ -11056,6 +11056,9 @@ body.theme-light .sde-parry-note { color: #2e6b2e; }
 }
 #shadowdark-enhancer-travel.sde-hud-visible { display: flex; }
 body.sde-clock-on #shadowdark-enhancer-strip { top: 48px; }
+/* Shadowdark Extras' Theatre-of-the-Mind scene bar sits fixed at the top
+   centre while a scene is broadcast; the clock hangs under it then. */
+body:has(.sdx-scene-nav-bar) #shadowdark-enhancer-travel { top: 72px; }
 
 .sde-hud-col {
   position: relative;

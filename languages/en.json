@@ -2917,6 +2917,7 @@
   "SDE.clock.setDate": "Set date and time",
   "SDE.clock.set": "Set",
   "SDE.clock.badDate": "That date isn't on the calendar.",
+  "SDE.clock.dateFormat": "Year-month-day, then T and the time: 1301-05-21T14:20.",
   "SDE.clock.realtime": "Clock runs in real time",
   "SDE.clock.lightTracking": "Light tracking",
   "SDE.clock.paused": "Paused with the game",

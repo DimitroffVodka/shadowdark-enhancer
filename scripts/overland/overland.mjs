@@ -403,15 +403,17 @@ export async function holdClock(fn) {
 /**
  * Move the clock from the top bar (GM, #253). While travelling, a move forward
  * goes through advanceTravel, so the day's checks it passes roll at their
- * hours and a hit stops it there; refused while an encounter holds the clock.
- * Otherwise, and backwards, the clock just moves. A GM who isn't the active
- * GM is forwarded there.
- * @param {number} seconds  negative to go back
+ * hours and a hit stops it there; refused while an encounter holds the travel
+ * clock. Otherwise, and backwards, the clock just moves. A GM who isn't the
+ * active GM is forwarded there.
+ * @param {number|null} seconds  a step; negative to go back
+ * @param {{to?:number}} [opts]  a jump's target worldTime instead, read against
+ *   the clock inside the queue, so a second click can't overshoot from a stale one
  * @returns {Promise<{ok:true, stopped?:boolean}|{ok:false, error:string}>}
  */
-export async function advanceClock(seconds) {
+export async function advanceClock(seconds, { to = null } = {}) {
   if (!game.user?.isGM) return { ok: false, error: t("SDE.clock.gmOnly") };
-  const data = { action: "clock", seconds };
+  const data = { action: "clock", seconds, to };
   return isActiveGM() ? applyAction(data, game.user) : queryActiveGM(OVERLAND_QUERY, data, { label: t("SDE.overland.relayLabel") });
 }
 
@@ -844,9 +846,12 @@ export function applyAction(data, user) {
       }
       case "clock": {
         if (!user.isGM) return { ok: false, error: t("SDE.clock.gmOnly") };
-        const seconds = Math.trunc(Number(data.seconds));
-        if (!Number.isFinite(seconds) || !seconds) return { ok: false, error: t("SDE.overland.notify.unknown") };
-        if (_state.pending) return { ok: false, error: t("SDE.clock.continueFirst") };
+        const seconds = data.to != null ? Math.trunc(Number(data.to)) - game.time.worldTime : Math.trunc(Number(data.seconds));
+        if (!Number.isFinite(seconds)) return { ok: false, error: t("SDE.overland.notify.unknown") };
+        if (!seconds) return { ok: true };
+        // An encounter holds the clock only while travelling: after End travel
+        // (or a crawl started from it) the entry waits for travel to resume.
+        if (_state.pending && CrawlState.isOverland) return { ok: false, error: t("SDE.clock.continueFirst") };
         if (CrawlState.isOverland && seconds > 0) {
           const { stopped } = await holdClock(() => advanceTravel(game.time.worldTime + seconds, "clock"));
           return { ok: true, stopped };

@@ -85,11 +85,20 @@ export const starPoint = ([hour, radius], hoursPerDay = 24) => point(90 - (360 /
  */
 export const seasonHatch = (daysLeft) => +(Math.max(0, Math.min(1, (30 - daysLeft) / 30)) * 30).toFixed(1);
 
-/** The 00:00 of the first day of `t`'s month, read back from the calendar. */
+/**
+ * The 00:00 of the first day of `t`'s month, read back from the calendar: the
+ * earliest day with the same year and month. Not "day of month 0": core v14
+ * shows 1 January twice in a 366-day year.
+ */
 function firstOfMonth(cal, t) {
   const spd = secondsPerDay(cal);
   let at = startOfDay(cal, t);
-  for (let i = 0; i < 64 && cal.timeToComponents(at).dayOfMonth > 0; i++) at -= spd;
+  const { year, month } = cal.timeToComponents(at);
+  for (let i = 0; i < 64; i++) {
+    const before = cal.timeToComponents(at - spd);
+    if (before.year !== year || before.month !== month) break;
+    at -= spd;
+  }
   return at;
 }
 
@@ -125,7 +134,7 @@ export function monthGrid(cal, t, { offset = 0, epoch = 0, holidaysOn = () => []
   const days = [];
   for (let at = first, i = 0; i < 64; at += spd, i++) {
     const c = cal.timeToComponents(at);
-    if (c.month !== head.month || (i > 0 && c.dayOfMonth === 0)) break;
+    if (c.month !== head.month || c.year !== head.year) break;
     const a = moonPhase(cal, at, epoch).fraction, b = moonPhase(cal, at + spd, epoch).fraction;
     const moon = b < a ? "new" : MOON_MARKS.find(([q]) => a <= q && b > q)?.[1] ?? null;
     const date = { year: c.year, month: c.month + 1, day: c.dayOfMonth + 1, isLastFullMoonOfYear: lastFull === at };
@@ -154,10 +163,12 @@ export function dateToTime(cal, { year, month, day, hour = 0, minute = 0 }) {
   const y = year - (cal.years?.yearZero ?? 0);
   const spd = secondsPerDay(cal);
   const months = cal.months?.values ?? [];
+  const hoursPerDay = cal.days?.hoursPerDay ?? 24, minutesPerHour = cal.days?.minutesPerHour ?? 60;
   if (month < 1 || month > months.length || day < 1) return null;
+  if (hour < 0 || hour >= hoursPerDay || minute < 0 || minute >= minutesPerHour) return null;
   const start = cal.componentsToTime({ year: y });
   const guess = months.slice(0, month - 1).reduce((s, x) => s + x.days, 0) + day - 1;
-  const perMinute = cal.days?.secondsPerMinute ?? 60, perHour = (cal.days?.minutesPerHour ?? 60) * perMinute;
+  const perMinute = cal.days?.secondsPerMinute ?? 60, perHour = minutesPerHour * perMinute;
   for (const off of [0, 1, -1, 2, -2]) {
     const at = start + (guess + off) * spd;
     const c = cal.timeToComponents(at);

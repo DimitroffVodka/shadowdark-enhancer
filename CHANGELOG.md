@@ -66,13 +66,11 @@ it needs.
   weather. A Shadowdark Extras party hands the rations to Extras' camping rest
   once Extras offers it. When a season turns with the party on a deep-tunnels
   hex, each member makes a DC 12 CHA check or takes 1d4 CHA damage. (#233)
-- **The travel bar.** While travelling, everyone sees a slim bar at the top
-  centre: the date and time, the sun or the moon's phase, the weather and the
-  hexes left. Opened, it shows a small sky with the sun or moon in its place,
-  the season and climate, the day's budget, and each member's rations and
-  forage. Players get a Forage button on their own characters. The GM also
-  sees the check hours and the day's buttons, which players never do. It
-  hides during combat. (#234)
+- **The Travel panel.** While travelling, the clock bar's travel plate shows
+  the hexes left, and its Travel panel the season and climate, the day's
+  budget, and each member's rations and forage. Players get a Forage button on
+  their own characters. The GM also sees the check hours and the day's
+  buttons, which players never do. (#234, #253)
 - **Travel works before the rules data is imported.** Pressing **Travel**
   opens **Start day** at once, and its **Hexes today** takes the day's hexes
   when the Rules Data has no hexes per day yet (it lists the ones it has).
