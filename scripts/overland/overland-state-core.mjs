@@ -31,13 +31,16 @@ export function defaultOverlandState() {
     day: null,            // worldTime of the open travel day's dawn; null: no day open
     method: "walking",    // rules.hexesPerDay(method)
     boatUuid: null,       // aboard a boat actor, its speed is the budget
-    pushed: false,        // chosen at dawn only
+    pushed: false,        // today's pace: pushing or not, fixed at dawn from `pace`
+    pace: "normal",       // the standing pace, "normal" or "push": holds every dawn until changed (#257)
+    base: 0,              // today's hexes at a normal pace (the method's, or the boat's speed)
     budget: 0,            // the day's points, fixed at dawn
     spent: 0,             // points spent; hexes left = budget - spent
     pointSeconds: 0,      // clock seconds per point, fixed at dawn (#231)
     weather: null,        // {kind, roll, rule, until, advantageNext, advantage, days} (#230)
     checks: [],           // the day's encounter checks, {half, at, chance, rolled, hit} (#232)
     pending: null,        // {until, reason}: an advance stopped by a hit, waiting for Continue (#232)
+    encounter: null,      // what a quiet check that hit drew, for the GMs' panel until Continue (#257)
     foraged: [],          // actor ids that foraged today (#233)
     hex: null,            // {num, terrain, region, features}: the travel token's last hex
   };
@@ -48,13 +51,13 @@ const int = (v, min = 0) => (Number.isFinite(Number(v)) ? Math.max(min, Math.tru
 const ids = (v) => [...new Set((Array.isArray(v) ? v : []).filter((id) => typeof id === "string" && id))];
 const obj = (v) => (v && typeof v === "object" && !Array.isArray(v) ? { ...v } : null);
 
-/** A stored encounter check, or null when it isn't one. */
+/** A stored encounter check, or null when it isn't one. Its chance is the one it rolled at: none until rolled (#257). */
 function checkOf(v) {
   if (!obj(v) || !Number.isFinite(v.at)) return null;
   return {
     half: v.half === "night" ? "night" : "day",
     at: v.at,
-    chance: Math.min(6, int(v.chance, 1)),
+    chance: v.rolled === true ? Math.min(6, int(v.chance, 1)) : null,
     rolled: v.rolled === true,
     hit: typeof v.hit === "boolean" ? v.hit : null,
   };
@@ -62,6 +65,35 @@ function checkOf(v) {
 
 /** A stored stopped advance, or null. */
 const pendingOf = (v) => (obj(v) && Number.isFinite(v.until) ? { until: v.until, reason: str(v.reason) } : null);
+
+const num = (v) => (Number.isFinite(v) ? v : null);
+/** A table the encounter's chain went through ({name, formula, roll}), or the category between ({category}). */
+const linkOf = (v) => {
+  if (!obj(v)) return null;
+  return typeof v.category === "string" ? { category: v.category } : { name: str(v.name), formula: str(v.formula), roll: num(v.roll) };
+};
+
+/**
+ * A held encounter (encounter-draw.mjs drawEncounter, with the check that hit:
+ * its hour, half and chance), or null.
+ */
+function encounterOf(v) {
+  if (!obj(v) || !Number.isFinite(v.at)) return null;
+  return {
+    at: v.at,
+    half: v.half === "night" ? "night" : "day",
+    chance: Math.min(6, int(v.chance, 1)),
+    kind: ["monster", "flavor"].includes(v.kind) ? v.kind : "empty",
+    poi: v.poi === true,
+    noTable: v.noTable === true,
+    uuid: str(v.uuid), name: str(v.name), img: str(v.img), text: str(v.text), via: str(v.via),
+    count: num(v.count), countFormula: str(v.countFormula),
+    distanceRoll: num(v.distanceRoll), activityRoll: num(v.activityRoll), reactionRoll: num(v.reactionRoll),
+    chain: Array.isArray(v.chain) ? v.chain.map(linkOf).filter(Boolean) : [],
+    also: Array.isArray(v.also)
+      ? v.also.filter(obj).map((a) => ({ name: str(a.name), formula: str(a.formula), roll: num(a.roll), text: str(a.text) })) : [],
+  };
+}
 
 /** A stored weather, or null when it isn't one. */
 function weatherOf(v) {
@@ -96,12 +128,15 @@ export function normalizeOverlandState(value) {
     method: METHODS.includes(value.method) ? value.method : base.method,
     boatUuid: str(value.boatUuid),
     pushed: value.pushed === true,
+    pace: value.pace === "push" ? "push" : "normal",
+    base: int(value.base),
     budget: int(value.budget),
     spent: int(value.spent),
     pointSeconds: int(value.pointSeconds),
     weather: weatherOf(value.weather),
     checks: Array.isArray(value.checks) ? value.checks.map(checkOf).filter(Boolean) : [],
     pending: pendingOf(value.pending),
+    encounter: encounterOf(value.encounter),
     foraged: ids(value.foraged),
     hex: hex && Number.isInteger(hex.num)
       ? { num: hex.num, terrain: str(hex.terrain), region: str(hex.region), features: ids(hex.features) }
@@ -150,16 +185,17 @@ export function setWeather(state, weather) {
  * budget are fixed here, and so is the clock rate, so a rules edit mid-day
  * changes nothing. The day's forage starts over, its encounter checks are
  * `checks` (dayChecks), and any stopped advance is dropped. `base` is
- * rules.hexesPerDay(method), or the boat's speed.
+ * rules.hexesPerDay(method), or the boat's speed; `mounts`, the mounts that
+ * eat at camp (partyMethod).
  * @param {{now:number, method:string, pushed:boolean, base:number, boatUuid?:string|null,
- *   hourSeconds?:number, checks?:object[]}} day
+ *   hourSeconds?:number, checks?:object[], mounts?:number}} day
  */
-export function openDay(state, { now, method, pushed, base, boatUuid = null, hourSeconds = 3600, checks = [] }) {
+export function openDay(state, { now, method, pushed, base, boatUuid = null, hourSeconds = 3600, checks = [], mounts = state.mounts }) {
   const next = normalizeOverlandState({
-    ...state,
+    ...state, mounts,
     day: now, method, pushed: !!pushed, boatUuid: method === "sailing" ? boatUuid : null,
-    budget: dayBudget(base, pushed), spent: 0, pointSeconds: pointSeconds(base, hourSeconds),
-    foraged: [], checks, pending: null,
+    base, budget: dayBudget(base, pushed), spent: 0, pointSeconds: pointSeconds(base, hourSeconds),
+    foraged: [], checks, pending: null, encounter: null,
   });
   return { state: next, changed: true };
 }
@@ -170,14 +206,14 @@ export function openDay(state, { now, method, pushed, base, boatUuid = null, hou
  */
 export function closeDay(state) {
   const next = normalizeOverlandState({
-    ...state, day: null, pushed: false, budget: 0, spent: 0, checks: [], foraged: [], pending: null,
+    ...state, day: null, pushed: false, base: 0, budget: 0, spent: 0, checks: [], foraged: [], pending: null, encounter: null,
   });
   return { state: next, changed: true };
 }
 
-/** Check `index` was rolled, and hit or not. */
-export function markCheck(state, index, hit) {
-  const checks = state.checks.map((c, i) => (i === index ? { ...c, rolled: true, hit: !!hit } : c));
+/** Check `index` was rolled at `chance` in 6, and hit or not. */
+export function markCheck(state, index, hit, chance) {
+  const checks = state.checks.map((c, i) => (i === index ? { ...c, rolled: true, hit: !!hit, chance } : c));
   return { state: normalizeOverlandState({ ...state, checks }), changed: true };
 }
 
@@ -185,6 +221,12 @@ export function markCheck(state, index, hit) {
 export function setPending(state, pending) {
   const next = normalizeOverlandState({ ...state, pending });
   return { state: next, changed: JSON.stringify(next.pending) !== JSON.stringify(state.pending) };
+}
+
+/** What a quiet check that hit drew waits here for the GMs; null clears it (Continue, a new day). */
+export function setEncounter(state, encounter) {
+  const next = normalizeOverlandState({ ...state, encounter });
+  return { state: next, changed: JSON.stringify(next.encounter) !== JSON.stringify(state.encounter) };
 }
 
 /** The travel token moved: `cost` points spent, and it stands in `hex` now. */
@@ -196,14 +238,21 @@ export function spendMove(state, { cost, hex }) {
 // ── Decisions ──────────────────────────────────────────────────────────────
 
 /**
- * Which token travels (decided, Q5): the Extras party token when exactly one
- * is on the scene; otherwise the one token the GM has selected.
- * @param {{partyTokens:string[], controlled:string[]}} tokens  token uuids
- * @returns {{uuid:string|null, reason:"party"|"selected"|"pick"}}
+ * Which token travels (decided, Q5; #257): the party token when exactly one
+ * is on the scene; otherwise the one non-player token the GM has selected. A
+ * player's own token never travels ("player"); with no party token and nothing
+ * selected, "none": the party is put on the map.
+ * @param {{partyTokens:string[], controlled:string[], players?:string[]}} tokens  token uuids
+ * @returns {{uuid:string|null, reason:"party"|"selected"|"player"|"none"|"pick"}}
  */
-export function pickTravelToken({ partyTokens = [], controlled = [] } = {}) {
+export function pickTravelToken({ partyTokens = [], controlled = [], players = [] } = {}) {
   if (partyTokens.length === 1) return { uuid: partyTokens[0], reason: "party" };
-  if (controlled.length === 1) return { uuid: controlled[0], reason: "selected" };
+  // A player's own token never travels on a hex map (#257): the party does.
+  const others = controlled.filter((uuid) => !players.includes(uuid));
+  if (others.length === 1) return { uuid: others[0], reason: "selected" };
+  if (controlled.length && !others.length) return { uuid: null, reason: "player" };
+  // Nothing to go on: no party token and nothing selected. The party comes onto the map.
+  if (!partyTokens.length && !controlled.length) return { uuid: null, reason: "none" };
   return { uuid: null, reason: "pick" };
 }
 
@@ -298,6 +347,43 @@ export function hexCost(terrainCost, hex, { from = null, stormy = false, harsh =
 
 // ── The day's budget and the clock (#231, design §5.1, §5.2) ───────────────
 
+/**
+ * The standing pace (#257, the Speed step): it holds every dawn until changed.
+ * Changed before the party has moved or foraged today, it is today's pace at
+ * once (the budget follows, at the same rate); after, it starts at the next dawn.
+ * @param {object} state
+ * @param {"normal"|"push"} pace
+ * @returns {{state:object, changed:boolean, today:boolean}}  today: the day's pace changed now
+ */
+export function setPace(state, pace) {
+  const push = pace === "push";
+  const today = state.day !== null && state.spent === 0 && !state.foraged.length && push !== state.pushed && state.base > 0;
+  const next = normalizeOverlandState({
+    ...state, pace: push ? "push" : "normal",
+    // Today's checks still to roll read the chance as they roll: `pushed` gives them one more in 6.
+    ...(today ? { pushed: push, budget: dayBudget(state.base, push) } : {}),
+  });
+  return { state: next, changed: JSON.stringify(next) !== JSON.stringify(state), today };
+}
+
+/**
+ * The day's travel method, read from the party, never asked (#257, the Method
+ * step): sailing when every member is aboard one boat; mounted when every
+ * member rides a mount; else walking. Every mount carrying a member eats at camp.
+ * @param {{members:string[], mounts?:Array<{name:string, riders:string[]}>, boats?:Array<{uuid:string, name:string, aboard:string[]}>}} party
+ *   members, riders and those aboard as actor uuids
+ * @returns {{method:string, boatUuid:string|null, mounts:number, ride:Object<string,string>}}  ride: member uuid → mount name
+ */
+export function partyMethod({ members, mounts = [], boats = [] }) {
+  const ride = {};
+  for (const m of mounts) for (const r of m.riders) if (members.includes(r) && !ride[r]) ride[r] = m.name;
+  const carrying = mounts.filter((m) => m.riders.some((r) => members.includes(r))).length;
+  const boat = members.length ? boats.find((b) => members.every((m) => b.aboard.includes(m))) : null;
+  if (boat) return { method: "sailing", boatUuid: boat.uuid, mounts: carrying, ride };
+  const mounted = members.length > 0 && members.every((m) => ride[m]);
+  return { method: mounted ? "mounted" : "walking", boatUuid: null, mounts: carrying, ride };
+}
+
 /** The day's points: the base, or half as many again rounded down when pushed. */
 export const dayBudget = (base, pushed) => (pushed ? Math.floor(base * PUSH) : base);
 
@@ -331,28 +417,45 @@ export function priceMove(steps, costOf) {
 export function moveVerdict(state, { cost, blocked }) {
   if (cost === 0 && !blocked) return null;   // displaced, or within one hex
   if (state.day === null) return "noDay";
-  if (state.pending) return "pending";        // an encounter stopped the clock: Continue first
+  // An encounter stopped the clock, or hit just as it reached its target: Continue first.
+  if (state.pending || state.encounter) return "pending";
   if (blocked) return "impassable";
   return cost > state.budget - state.spent ? "bounce" : null;
 }
 
 // ── Encounter checks (#232, design §5.1 step 4, §5.3, §5.7) ────────────────
 
+/** The book's encounter checks (GMWR p.40): 1 in 6, twice by day and twice by night. */
+export const BOOK_CHECKS = Object.freeze({ chance: 1, day: 2, night: 2 });
+
 /**
- * The day's four checks from four d12s: two by day at 06:00 + (d12 − 1) h
- * (06:00 to 17:00) and two at night at 18:00 + (d12 − 1) h (18:00 to 05:00
- * the next morning), in time order. The chance is 1-in-6, or 2-in-6 on a
- * pushed day for all four, the night ones included (§5.7).
- * @param {{midnight:number, d12s:number[], pushed:boolean, hourSeconds?:number}} day
- *   `midnight`: the worldTime of the day's 00:00
+ * The encounter settings within their ranges (#257): the chance 1 to 5 in 6,
+ * and 0 to 4 checks by day and by night; the book's for one that isn't a number.
+ * @param {{chance?:*, day?:*, night?:*}} settings
  */
-export function dayChecks({ midnight, d12s, pushed, hourSeconds = 3600 }) {
-  const chance = pushed ? 2 : 1;
-  return d12s.slice(0, 4)
-    .map((d, i) => {
-      const half = i < 2 ? "day" : "night";
-      return { half, at: midnight + ((half === "day" ? 6 : 18) + d - 1) * hourSeconds, chance, rolled: false, hit: null };
-    })
+export function checkSettings({ chance, day, night } = {}) {
+  const within = (v, lo, hi, book) => (Number.isFinite(v) ? Math.min(hi, Math.max(lo, Math.trunc(v))) : book);
+  return { chance: within(chance, 1, 5, BOOK_CHECKS.chance), day: within(day, 0, 4, BOOK_CHECKS.day), night: within(night, 0, 4, BOOK_CHECKS.night) };
+}
+
+/** The chance a check rolls at: the setting, one more on a pushed day (§5.7), never past 6 in 6. */
+export const encounterChance = (chance, pushed) => Math.min(6, chance + (pushed ? 1 : 0));
+
+/** A check's half by its hour, as dayChecks places them: by day from 06:00 to 17:59, else at night. */
+export const checkHalf = (hour) => (hour >= 6 && hour < 18 ? "day" : "night");
+
+/**
+ * The day's checks from its d12s, `day` of them by day at 06:00 + (d12 − 1) h
+ * (06:00 to 17:00) and then `night` at night at 18:00 + (d12 − 1) h (18:00 to
+ * 05:00 the next morning), in time order. The chance isn't set here: each
+ * rolls at the chance of its moment (encounterChance), recorded by markCheck.
+ * @param {{midnight:number, d12s:number[], day?:number, night?:number, hourSeconds?:number}} dawn
+ *   `midnight`: the worldTime of the day's 00:00; `day`, `night`: the counts, the book's 2 and 2
+ */
+export function dayChecks({ midnight, d12s, day = BOOK_CHECKS.day, night = BOOK_CHECKS.night, hourSeconds = 3600 }) {
+  const halves = [...Array(day).fill("day"), ...Array(night).fill("night")];
+  return d12s.slice(0, halves.length)
+    .map((d, i) => ({ half: halves[i], at: midnight + ((halves[i] === "day" ? 6 : 18) + d - 1) * hourSeconds, chance: null, rolled: false, hit: null }))
     .sort((a, b) => a.at - b.at);
 }
 
@@ -399,4 +502,54 @@ export function planRations({ members, mounts = 0, each }) {
     mountsFed++;
   }
   return { eat, fed, mountsFed };
+}
+
+// ── Routes on the hex map (#257, the demo's click-to-travel) ───────────────
+
+/**
+ * The cheapest route between two hexes: A* over the grid's neighbours, each
+ * step priced as a move of the travel token is (the day's hexCost), a hex
+ * that can't be entered (Infinity) never used. `distance` is the hex count
+ * between two cells, the heuristic (every step costs at least 1). Cells are
+ * whatever the caller's grid uses; `key` names one. Each cell is expanded
+ * once, so the search ends with the map (even on a mistyped negative cost);
+ * no cap, which cut off long routes over dear terrain (#281 review).
+ * @param {{start:object, goal:object, neighbours:(cell:object) => object[],
+ *   cost:(from:object, to:object) => number, distance:(a:object, b:object) => number,
+ *   key?:(cell:object) => string}} q
+ * @returns {{path:object[], cost:number}|null}  the path from start to goal, both included; null when there is none
+ */
+export function cheapestRoute({ start, goal, neighbours, cost, distance, key = (c) => `${c.i},${c.j}` }) {
+  const goalKey = key(goal), startKey = key(start);
+  if (goalKey === startKey) return { path: [start], cost: 0 };
+  const best = new Map([[startKey, 0]]), prev = new Map(), cells = new Map([[startKey, start]]);
+  const open = [[distance(start, goal), startKey]];
+  const done = new Set();
+  while (open.length) {
+    // ponytail: a linear pick of the lowest estimate; A* keeps the open list short. A heap if it isn't.
+    let low = 0;
+    for (let i = 1; i < open.length; i++) if (open[i][0] < open[low][0]) low = i;
+    const [, k] = open.splice(low, 1)[0];
+    if (k === goalKey) break;
+    if (done.has(k)) continue;
+    done.add(k);
+    const here = cells.get(k), spent = best.get(k);
+    for (const next of neighbours(here)) {
+      const nk = key(next);
+      // An expanded cell is settled: reopening it could loop the way back.
+      if (done.has(nk)) continue;
+      const c = cost(here, next);
+      if (!Number.isFinite(c)) continue;
+      const total = spent + c;
+      if (total >= (best.get(nk) ?? Infinity)) continue;
+      best.set(nk, total);
+      prev.set(nk, k);
+      cells.set(nk, next);
+      open.push([total + distance(next, goal), nk]);
+    }
+  }
+  if (!best.has(goalKey)) return null;
+  const path = [];
+  for (let k = goalKey; k !== undefined; k = prev.get(k)) path.unshift(cells.get(k));
+  return { path, cost: best.get(goalKey) };
 }

@@ -8,9 +8,9 @@
  */
 
 import { MODULE_ID } from "../shared/module-id.mjs";
-import { DISTANCE, ACTIVITY, reactionBand } from "./encounter-result.mjs";
+import { facetWords } from "./encounter-result.mjs";
 import { Renown } from "../renown/renown.mjs";
-import { isDoubleOnes, signedRenown } from "../renown/renown-core.mjs";
+import { signedRenown } from "../renown/renown-core.mjs";
 import { EncounterBrowse } from "./encounter-browse.mjs";
 import { DEFAULT_ENCOUNTER_SOURCES } from "./encounter-sources.mjs";
 import { npcMoveKeys } from "../monster-creator/npc-moves.mjs";
@@ -22,15 +22,10 @@ import {
 } from "../shared/art-utils.mjs";
 import { MonsterCreator } from "../monster-creator/encounter-creator.mjs";
 import { findSuitePack } from "../shared/compendium-suite.mjs";
-import {
-  categoryTables, isEncounterZoneTable, travelPointOfInterest, zoneCategories,
-} from "../importer/tables/table-enrich.mjs";
-import { isNight, worldClock } from "./encounter-terrain.mjs";
 import { EncounterCheck } from "./encounter-check.mjs";
+import { drawEncounter, postEncounter, resultBody as _resultBody, rollEntry } from "./encounter-draw.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
-// v13/v14 namespaced renderTemplate (the global emits deprecation warnings).
-const { renderTemplate } = foundry.applications.handlebars;
 
 // CHA modifiers in practice fall within ±5 — clamp the stepper to that
 // range to keep the UI sane.
@@ -403,7 +398,7 @@ export class EncounterRollerApp extends HandlebarsApplicationMixin(ApplicationV2
       const range = (min === max) ? `${min}` : `${min}-${max}`;
 
       // Try to resolve a friendly monster name. Use the same priority order
-      // as _parseMonsterFromResult so previews match what would actually roll.
+      // as rollEntry (encounter-draw.mjs) so previews match what would actually roll.
       // If nothing resolves, this row is a flavor entry — show the raw text.
       const body = _resultBody(r);
       let name = r.name || body || game.i18n.localize("SDE.encounter.roller.emptyEntry");
@@ -752,95 +747,10 @@ export class EncounterRollerApp extends HandlebarsApplicationMixin(ApplicationV2
     const table = await fromUuid(uuid).catch(() => null) ?? game.tables.get(uuid);
     if (!table) return;
 
-    const draw = await table.draw({ displayChat: false });
-    const result = draw.results[0];
-    const travel = EncounterCheck.takeTravelDraw(table.uuid);
-
-    if (!result) {
-      this._lastResult = { kind: "empty" };
-      this.render();
-      return;
-    }
-
-    // A zone table only names a category: roll the region's table for it (#262).
+    // A zone table only names a category: the region's table is rolled for it (#262).
     // On the travel draw, a row the book marks is a point of interest instead (#273).
-    // If that fails, the zone's own row still shows.
-    const chained = await this._rollZoneRow(table, result, { travel }).catch((err) => {
-      console.warn(`${MODULE_ID} | rolling the category's table failed`, err);
-      return null;
-    });
-    // A point of interest is found instead of an encounter: its row's text, even
-    // where it names a creature, never an encounter card with counts and reactions.
-    if (chained?.poi) {
-      this._lastResult = { kind: "flavor", text: chained.missing ?? _resultBody(chained.result).trim(), via: chained.via ?? null };
-      this.render();
-      return;
-    }
-    await this._buildResultFrom(chained?.result ?? result, { via: chained?.via ?? null });
-  }
-
-  /**
-   * What a zone table's row goes on to. On the travel draw, a row the GM Guide
-   * marks "Point of Interest if during hex travel" rolls the region's Points of
-   * Interest table, and when that isn't imported the card says which table to
-   * import: the book gives no encounter there (#273). Every other row, and every
-   * other draw, rolls its category (_rollCategory).
-   * @private
-   */
-  async _rollZoneRow(table, result, { travel = false } = {}) {
-    if (!isEncounterZoneTable(table?.name)) return null;
-    const pack = table.pack ? game.packs.get(table.pack) : null;
-    const names = pack ? [...(pack.index ?? [])].map((e) => e.name) : game.tables.map((t) => t.name);
-    const row = _resultBody(result).replace(/<[^>]*>/g, "");
-    const poi = travelPointOfInterest(table.name, row, names, { travel });
-    if (!poi) return this._rollCategory(table, result);
-    const category = zoneCategories(row).join(" + ");
-    const missing = { poi: true, missing: game.i18n.format("SDE.encounter.roller.poiMissing", { category, table: poi.name }) };
-    if (!poi.found) return missing;
-    const doc = pack
-      ? await pack.getDocument(pack.index.find((e) => e.name === poi.found)?._id)
-      : game.tables.getName(poi.found);
-    const drawn = doc ? (await doc.draw({ displayChat: false })).results[0] : null;
-    if (!drawn) return missing;
-    return { poi: true, result: drawn, via: game.i18n.format("SDE.encounter.roller.viaPoi", { category, table: poi.name }) };
-  }
-
-  /**
-   * An Encounter Zone (or Type) table's row is a category ("Beast"), and the
-   * book sends the GM to that region's table for it: draw it, by day or night
-   * where the region splits it by time (Tal-Yool Jungle), on the zone columns'
-   * fixed 18:00 to 06:00 night. A second category in the same row ("Beast +
-   * Horror") is drawn to the GMs' chat on its own, and a "Special" row in the
-   * category's table (Tal-Yool's give one on a 1) goes on to the region's
-   * Special Encounters table. Null when this isn't a zone table or the
-   * category's table isn't imported (#262).
-   * @private
-   */
-  async _rollCategory(table, result) {
-    if (!isEncounterZoneTable(table?.name)) return null;
-    const pack = table.pack ? game.packs.get(table.pack) : null;
-    const names = pack ? [...(pack.index ?? [])].map((e) => e.name) : game.tables.map((t) => t.name);
-    const category = zoneCategories(_resultBody(result).replace(/<[^>]*>/g, "")).join(" + ");
-    const [first, ...more] = categoryTables(table.name, category, names, { night: isNight(worldClock().hour) });
-    if (!first) return null;
-    const get = (name) => (pack
-      ? pack.getDocument(pack.index.find((e) => e.name === name)?._id)
-      : game.tables.getName(name));
-    // To the GMs only, whatever the chat mode: the GM posts the encounter, and
-    // its second half must not reach the players before the first.
-    for (const name of more) await (await get(name))?.draw({ messageMode: "gm" });
-    const drawFrom = async (name) => {
-      const next = await get(name);
-      const drawn = next ? (await next.draw({ displayChat: false })).results[0] : null;
-      return drawn ? { drawn, table: next.name.replace(/^.*?\s-\s/, "") } : null;
-    };
-    const hit = await drawFrom(first);
-    if (!hit) return null;
-    const isSpecial = /^special$/i.test(zoneCategories(_resultBody(hit.drawn).replace(/<[^>]*>/g, "")).join(" + "));
-    const [special] = isSpecial ? categoryTables(table.name, "Special", names) : [];
-    const then = special ? await drawFrom(special) : null;
-    if (!then) return { result: hit.drawn, via: game.i18n.format("SDE.encounter.roller.via", { category, table: hit.table }) };
-    return { result: then.drawn, via: game.i18n.format("SDE.encounter.roller.viaSpecial", { category, table: hit.table, special: then.table }) };
+    const res = await drawEncounter(table, { travel: EncounterCheck.takeTravelDraw(table.uuid) });
+    this._setResult(res, { via: res.via ?? null });
   }
 
   /**
@@ -855,33 +765,15 @@ export class EncounterRollerApp extends HandlebarsApplicationMixin(ApplicationV2
    * @private
    */
   async _buildResultFrom(result, { via = null } = {}) {
-    const monster = await this._parseMonsterFromResult(result);
-    if (monster) {
-      // Resolve best art: if the actor is a world copy of a compendium
-      // entry whose img is a placeholder, fall through to the
-      // compendium source's mapped art.
-      const art = await _bestArtForActor(monster);
-      this._lastResult = {
-        kind: "monster",
-        uuid: monster.uuid,
-        name: monster.name,
-        img: art.img || "icons/svg/mystery-man.svg",
-        count: await this._rollCount(result),
-        distanceRoll: await this._roll("1d6"),
-        activityRoll: await this._roll("2d6"),
-        reactionRoll: await this._roll("2d6"),
-        chaMod: 0,
-        ...this._freshRenownState(),
-      };
-      this._updateResultStrings();
-    } else {
-      const body = _resultBody(result).trim();
-      if (body) {
-        this._lastResult = { kind: "flavor", text: body };
-      } else {
-        this._lastResult = { kind: "empty" };
-      }
-    }
+    this._setResult(await rollEntry(result), { via });
+  }
+
+  /** Show an entry (encounter-draw.mjs): a creature gets CHA, renown and its facets in words. */
+  _setResult(entry, { via = null } = {}) {
+    this._lastResult = entry.kind === "monster"
+      ? { ...entry, chaMod: 0, ...this._freshRenownState() }
+      : { kind: entry.kind, text: entry.text };
+    if (entry.kind === "monster") this._updateResultStrings();
     // Which table a category sent the roll to, shown on the card and in chat (#262).
     this._lastResult.via = via;
     this.render();
@@ -924,38 +816,6 @@ export class EncounterRollerApp extends HandlebarsApplicationMixin(ApplicationV2
     await this._onPlaceTokens();
   }
 
-  async _parseMonsterFromResult(result) {
-    // v13 canonical: TableResult.uuid is the linked document reference.
-    // If it resolves to an NPC Actor, this is a monster row.
-    if (result.uuid) {
-      const doc = await fromUuid(result.uuid).catch(() => null);
-      if (doc instanceof Actor && doc.type === "NPC") return doc;
-    }
-
-    // Fallback: scan body text for embedded @UUID[…] references.
-    const body = _resultBody(result);
-    const uuidMatch = body.match(/@UUID\[([^\]]+)\]/);
-    if (uuidMatch) {
-      const doc = await fromUuid(uuidMatch[1]).catch(() => null);
-      if (doc instanceof Actor) return doc;
-    }
-
-    return null;
-  }
-
-  async _rollCount(result) {
-    // Priority 1: SDE flag (set by Build Table save)
-    const flagCount = result.getFlag(MODULE_ID, "appearing");
-    if (flagCount) return (await new Roll(flagCount.toString()).evaluate()).total;
-
-    // Priority 2: Inline formula [[/r N]] anywhere in the body text.
-    const formulaMatch = _resultBody(result).match(/\[\[\/r\s+([^\]]+)\]\]/);
-    if (formulaMatch) return (await new Roll(formulaMatch[1]).evaluate()).total;
-
-    // Default
-    return 1;
-  }
-
   async _roll(formula) {
     const r = await new Roll(formula).evaluate();
     return r.total;
@@ -991,8 +851,6 @@ export class EncounterRollerApp extends HandlebarsApplicationMixin(ApplicationV2
   _updateResultStrings() {
     if (!this._lastResult) return;
     const res = this._lastResult;
-    res.distanceText = DISTANCE[res.distanceRoll];
-    res.activityText = ACTIVITY[res.activityRoll];
 
     // Renown bonus — only when the GM says the party is somewhere it would be
     // recognised, and only from the one character they picked.
@@ -1005,11 +863,9 @@ export class EncounterRollerApp extends HandlebarsApplicationMixin(ApplicationV2
     res.renownBonusText = signedRenown(res.renownBonus);
     res.renownApplied = res.renownOn && res.renownBonus !== 0;
 
-    // Double 1s are always hostile, whatever the modifiers total (p233). The
-    // raw 2d6 total of 2 can only be 1+1.
-    res.reactionDoubleOnes = isDoubleOnes(res.reactionRoll);
+    // Double 1s are always hostile, whatever the modifiers total (p233).
     res.reactionTotal = res.reactionRoll + res.chaMod + res.renownBonus;
-    res.reactionBand = reactionBand(res.reactionTotal, { doubleOnes: res.reactionDoubleOnes });
+    Object.assign(res, facetWords(res));
   }
 
   async _onReroll(event, target) {
@@ -1046,22 +902,7 @@ export class EncounterRollerApp extends HandlebarsApplicationMixin(ApplicationV2
   }
 
   async _onPostToChat() {
-    if (!this._lastResult || this._lastResult.kind === "empty") return;
-
-    // Pick the chat template based on result shape. Flavor entries get
-    // a simple text card; monster encounters get the full facet recap.
-    const template = this._lastResult.kind === "flavor"
-      ? "modules/shadowdark-enhancer/templates/chat/encounter-flavor.hbs"
-      : "modules/shadowdark-enhancer/templates/chat/encounter-result.hbs";
-
-    const content = await renderTemplate(template, this._lastResult);
-    const gmOnly = game.settings.get(MODULE_ID, "encounterRollGMOnly");
-
-    await ChatMessage.create({
-      user: game.user.id,
-      content,
-      whisper: gmOnly ? ChatMessage.getWhisperRecipients("GM") : [],
-    });
+    await postEncounter(this._lastResult);
   }
 
   /**
@@ -1487,32 +1328,4 @@ export class EncounterRollerApp extends HandlebarsApplicationMixin(ApplicationV2
     this._lastResult = { kind: "empty" };
     this.render();
   }
-}
-
-// ───── Helpers ─────────────────────────────────────────────────────
-
-/**
- * Extract the body text of a TableResult across Foundry v12 → v13.
- *
- * Foundry v13 deprecated `TableResult.text` and split it into:
- *   - `name`        — human-readable title (typically auto-set from a
- *                     referenced document, or the user-entered title
- *                     for text-only results)
- *   - `description` — longer body text (rich text, may contain inline
- *                     rolls and document references)
- *
- * We read body text in `description → name → text` order so:
- *   - v13 tables with proper description fields work first
- *   - v13 text-only entries that put everything in `name` still resolve
- *   - v12 tables still using `text` keep working (until v15 removes it)
- *
- * @param {TableResult} r
- * @returns {string}
- */
-function _resultBody(r) {
-  // Read each field directly; `??` skips empty strings (use `||` to
-  // fall through "" → next field). The `text` access still triggers
-  // the deprecation warning on v13 but only if the first two are
-  // empty, which is the case for old tables we haven't migrated.
-  return r?.description || r?.name || r?.text || "";
 }

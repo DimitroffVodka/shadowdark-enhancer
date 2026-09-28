@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { terrainKey, pickTable, sceneTerrains } from "../scripts/encounter/encounter-terrain.mjs";
+import { terrainKey, pickTable, sceneTerrains, isHexRulesScene } from "../scripts/encounter/encounter-terrain.mjs";
 
 const TABLES = { forest: "RollTable.forest1", salt_flat: "Compendium.world.sde-tables.RollTable.salt1" };
 
@@ -30,4 +30,17 @@ test("sceneTerrains: one row per terrain, most cells first, keyed and labelled",
   assert.deepEqual(rows.map((r) => [r.key, r.count]), [["forest", 3], ["salt_flat", 2], ["swamp", 1]]);
   assert.equal(rows[1].label, "Salt Flat", "the label keeps the word as the GM typed it");
   assert.deepEqual(sceneTerrains(undefined), [], "an untagged scene has no terrain to map");
+});
+
+test("hex rules (no token light or sight) on a tagged print or an Extras hexcrawl, never a hex battle map (#257)", () => {
+  const scene = (hex, flags = {}) => ({
+    grid: { isHexagonal: hex }, flags,
+    getFlag(mod, key) { return flags[mod]?.[key]; },
+  });
+  assert.equal(isHexRulesScene(scene(true, { "shadowdark-enhancer": { hexTags: { origin: { i: 0, j: 0 } } } })), true, "a tagged print");
+  assert.equal(isHexRulesScene(scene(true, { "shadowdark-extras": { hexcrawl: { cols: 64 } } })), true, "an Extras hexcrawl");
+  assert.equal(isHexRulesScene(scene(true, { "shadowdark-extras": { hexScene: true } })), true, "an Extras painter hex map");
+  assert.equal(isHexRulesScene(scene(true)), false, "a 5 ft hex battle map keeps its torches");
+  assert.equal(isHexRulesScene(scene(false, { "shadowdark-extras": { hexcrawl: {} } })), false, "not a hex grid");
+  assert.equal(isHexRulesScene(null), false);
 });

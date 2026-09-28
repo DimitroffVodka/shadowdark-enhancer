@@ -149,23 +149,35 @@ move of the travel token against the day's hexes, moving the clock with it,
 rolls the day's encounter checks as the clock reaches them, and ends the day
 with forage and camp.
 
-- **The travel bar.** While travelling on the hex map, everyone gets a slim
-  bar at the top centre, where the Crawl Strip sits during a crawl. It shows
-  the date and time, the sun (and when it sets) or the moon's phase, the
-  weather and the hexes left. Click it to open the details:
-  - a small sky with the sun or moon in its place;
-  - the season and climate, and the travel method;
+- **The travel plate.** While travelling, the [clock bar](Clock-and-Calendar.md)
+  at the top shows the hexes left today, and its party icon opens the
+  **Travel** panel:
+  - the season and climate, the weather, and the travel method;
   - the day's budget;
   - each member's rations, and who has foraged today, with a **Forage** button
     on each character you own.
 
   The GM also sees the day's check hours and results, and the Start day,
-  Weather, Make camp and End travel buttons. Players never see the check
-  hours. The bar hides during a combat, and on any scene that isn't a tagged
-  hex map.
-- **Which token travels.** The Shadowdark Extras party token, when exactly one
-  is on the map. Otherwise select the one token that travels before pressing
-  **Travel**.
+  Weather, Make camp, Continue and End travel buttons. Players never see the
+  check hours.
+- **No Crawl Strip on a hex map** outside a combat: the party travels there as
+  one token, and the clock bar holds the top of the screen.
+- **Which token travels.** The party token: the Shadowdark Extras party's, when
+  exactly one is on the map, or the module's own **Party**. With no party token
+  on the map, Start travel puts the Party in the hex at the centre of your view.
+  A player's own token never travels. The travel token wears the black party
+  hex on the hex map (only there: its actor keeps its portrait).
+- **Click to travel.** Select the party token: hovering a hex draws the
+  cheapest route there, each hex with what it costs, and a tooltip gives the
+  hexes, miles, points and hours. Click to walk the party there, one hex at a
+  time, the clock moving with each. It stops at an encounter, a bounce, or the
+  end of the day's points. Dragging the token still works as before.
+- **Hex rules, not light and sight.** On a hex map (a tagged print, or a
+  Shadowdark Extras hexcrawl) no token gives light and no token sees: a torch
+  carried there reveals nothing, and players see the map as a map, with
+  Extras' hex fog hiding what the party hasn't seen. The same character keeps
+  its torch and its sight on a dungeon map. A 5 ft hex battle map is not a hex
+  map in this sense.
 - **Who travels.** That party's members, or every player-owned character.
 - **While travelling** the Crawl Strip is off and the crawl's movement isn't
   tracked. The bar shows **Overland**, today's weather once it's rolled, and the
@@ -183,13 +195,19 @@ with forage and camp.
   card says only what the imported rules give a storm, and says so when they
   give it nothing.
 - **Start day** opens a travel day, and pressing **Travel** opens it for you
-  straight away. Pick walking, mounted or sailing, and a boat actor to sail
-  aboard. Tick **Push on** for half as many hexes again, at the same pace. The
-  weather is rolled first if today's hasn't been.
-- **Hexes today** sets the day's hexes. Leave it empty to use **Edit Rules
-  Data**'s hexes per day (the dialog lists them), or a boat's speed when you
-  sail aboard one. Until you've imported those rules from your GM Guide, type
-  the number in.
+  straight away. Nothing is asked: the method is read from the party (mounted
+  when every member rides a mount, from the riders on each mount's sheet;
+  sailing when every member is aboard one boat; else walking), and the pace is
+  the standing one from the Travel panel's **Speed** step, **Normal** or
+  **Push** (half as many hexes again, at the same rate). It holds every dawn
+  until it's changed; changed before the party has moved or foraged, it counts
+  today as well. The weather is rolled first if today's hasn't been. Every
+  mount carrying the party eats a ration at camp.
+- **Hexes today**: only when nothing says how many hexes a day the party
+  makes (no rules data imported, and no boat), Start day asks, with the method
+  and the push to confirm. Once you've imported the rules from your GM Guide
+  (**Edit Rules Data**), or when sailing aboard a boat actor with a speed, it
+  doesn't.
 - **Moving the travel token** costs each hex's terrain cost from the day's
   hexes, and moves the world clock: a travel day is 8 hours, so walking costs
   2 hours per point. Following a path from one path hex to the next costs 1.
@@ -201,15 +219,19 @@ with forage and camp.
 - **Start** still begins a crawl, for example when the party reaches a dungeon.
   To travel again after a crawl, end the crawl first.
 
-- **Encounter checks.** Start day sets four check hours, whispered to you
-  alone: two by day between 06:00 and 17:00, and two at night between 18:00
-  and 05:00. The chance is 1 in 6, or 2 in 6 on a pushed day. When a move's
-  clock passes a check's hour, it's rolled at that hour on the table for the
-  party's hex, day or night columns and the moon included. A hit stops the
-  clock at that hour: run the encounter, then press **Continue** on the bar to
-  finish the rest of the move. The token can't move on until you do, except by
-  **Displace**. A check whose hour had passed before you started the day is
-  rolled at once.
+- **Encounter checks.** Start day sets the day's check hours, listed for you
+  alone in the Travel panel's Encounters step: by the book two by day between
+  06:00 and 17:00, and two at night between 18:00 and 05:00, at 1 in 6, one
+  more on a pushed day. **Adjust** there (or **Settings → Overland**) changes
+  the chance and how many checks by day and by night; see
+  [Clock and Calendar](Clock-and-Calendar.md#encounters-while-travelling-gm).
+  When a move's clock passes a check's hour, it's rolled quietly
+  at that hour on the table for the party's hex, day or night columns and the
+  moon included. A hit stops the clock at that hour and opens the clock bar's
+  [Encounter panel](Clock-and-Calendar.md#encounters-while-travelling-gm):
+  run the encounter, then press **Continue** to finish the rest of the move.
+  The token can't move on until you do, except by **Displace**. A check whose
+  hour had passed before you started the day is rolled at once.
 
 - **Forage** lets travelling characters look for food: tick who forages.
   - Each character's player rolls INT: DC 12, or 18 in a harsh climate. When

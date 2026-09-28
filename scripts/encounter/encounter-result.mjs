@@ -3,19 +3,30 @@
  * Lookups and helpers for Distance, Activity, and Reaction RAW results.
  */
 
+import { isDoubleOnes } from "../renown/renown-core.mjs";
+
+/** The distance d6, by roll: its word's key. */
 export const DISTANCE = {
-  1: "Close",
-  2: "Near", 3: "Near", 4: "Near",
-  5: "Far",  6: "Far",
+  1: "SDE.encounter.distance.close",
+  2: "SDE.encounter.distance.near", 3: "SDE.encounter.distance.near", 4: "SDE.encounter.distance.near",
+  5: "SDE.encounter.distance.far", 6: "SDE.encounter.distance.far",
 };
 
+/** The activity 2d6, by roll: its word's key. */
 export const ACTIVITY = {
-  2: "Hunting", 3: "Hunting", 4: "Hunting",
-  5: "Eating", 6: "Eating",
-  7: "Building/nesting", 8: "Building/nesting",
-  9: "Socializing/playing", 10: "Socializing/playing",
-  11: "Guarding",
-  12: "Sleeping",
+  2: "SDE.encounter.activity.hunting", 3: "SDE.encounter.activity.hunting", 4: "SDE.encounter.activity.hunting",
+  5: "SDE.encounter.activity.eating", 6: "SDE.encounter.activity.eating",
+  7: "SDE.encounter.activity.building", 8: "SDE.encounter.activity.building",
+  9: "SDE.encounter.activity.socializing", 10: "SDE.encounter.activity.socializing",
+  11: "SDE.encounter.activity.guarding",
+  12: "SDE.encounter.activity.sleeping",
+};
+
+/** A reaction band (reactionBand's answer, also a CSS class suffix): its word's key. */
+export const REACTION = {
+  Hostile: "SDE.encounter.reaction.hostile", Suspicious: "SDE.encounter.reaction.suspicious",
+  Neutral: "SDE.encounter.reaction.neutral", Curious: "SDE.encounter.reaction.curious",
+  Friendly: "SDE.encounter.reaction.friendly",
 };
 
 /**
@@ -38,4 +49,21 @@ export function reactionBand(total, { doubleOnes = false } = {}) {
   if (total === 9) return "Neutral";
   if (total <= 11) return "Curious";
   return "Friendly";
+}
+
+/**
+ * An encounter's facets in words, for its card and panel: the distance and the
+ * activity by their rolls, and the reaction band for `reactionTotal` (double
+ * 1s on the raw roll are hostile whatever the total).
+ * @param {{distanceRoll:number, activityRoll:number, reactionRoll:number, reactionTotal:number}} res
+ * @returns {{distanceText:string, activityText:string, reactionDoubleOnes:boolean, reactionBand:string, reactionText:string}}
+ */
+export function facetWords({ distanceRoll, activityRoll, reactionRoll, reactionTotal }) {
+  const loc = (key) => (key ? game.i18n.localize(key) : "");
+  const reactionDoubleOnes = isDoubleOnes(reactionRoll);
+  const band = reactionBand(reactionTotal, { doubleOnes: reactionDoubleOnes });
+  return {
+    distanceText: loc(DISTANCE[distanceRoll]), activityText: loc(ACTIVITY[activityRoll]),
+    reactionDoubleOnes, reactionBand: band, reactionText: loc(REACTION[band]),
+  };
 }

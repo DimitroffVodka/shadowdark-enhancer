@@ -124,7 +124,7 @@ export function season(cal, t) {
  * the season never ends (or `t` has none). Counted from the season's months or
  * days, then read back like the anchors, so it is the day the calendar shows.
  */
-function nextSeasonChange(cal, t) {
+export function nextSeasonChange(cal, t) {
   const c = cal.timeToComponents(t);
   const s = cal.seasons?.values?.[c.season];
   if (!s) return null;
@@ -246,6 +246,23 @@ export function dawnAfter(cal, t, n = 1) {
   for (let d = absDay(cal, t); ; d++) {
     const rise = Math.round(d * spd + sun(cal, d * spd).sunrise * perHour);
     if (rise > t && ++found >= n) return rise;
+  }
+}
+
+/**
+ * The worldTime of the next dawn, noon, dusk or midnight after `t` (one at
+ * exactly `t` is not after it), to the second: the clock bar's jumps (#253).
+ * Noon is the middle of the day; midnight the next 00:00.
+ * @param {"dawn"|"noon"|"dusk"|"midnight"} which
+ */
+export function nextTimeOfDay(cal, t, which) {
+  if (which === "dawn") return dawnAfter(cal, t);
+  const spd = secondsPerDay(cal), perHour = spd / hoursPerDay(cal);
+  if (which === "midnight") return (absDay(cal, t) + 1) * spd;
+  for (let d = absDay(cal, t); ; d++) {
+    const hour = which === "noon" ? hoursPerDay(cal) / 2 : sun(cal, d * spd).sunset;
+    const at = Math.round(d * spd + hour * perHour);
+    if (at > t) return at;
   }
 }
 

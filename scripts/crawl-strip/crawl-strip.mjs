@@ -12,6 +12,7 @@
 import { MODULE_ID }        from "../shared/module-id.mjs";
 import { esc }              from "../shared/esc.mjs";
 import { CrawlState }       from "./crawl-state.mjs";
+import { isHexMapScene, isHexRulesScene } from "../encounter/encounter-terrain.mjs";
 import { MovementTracker }  from "./movement-tracker.mjs";
 import { ICONS }            from "../shared/icons.mjs";
 import { relayToGM, authorizeActorFor, refuseQuery } from "../shared/gm-relay.mjs";
@@ -629,7 +630,10 @@ export const CrawlStrip = {
     if (!this._el) return;
     const state = CrawlState;
 
-    if (!state.isActive) {
+    // No Crawl Strip on a hex map outside a combat (#257): the party travels
+    // there as one token, and the clock HUD holds the top of the screen.
+    // Any hex map, the tagged print or an Extras hexcrawl: the clock bar holds the top there.
+    if (!state.isActive || (state.mode !== "combat" && (isHexMapScene() || isHexRulesScene(canvas?.scene)))) {
       this._el.innerHTML = "";
       this._el.classList.remove("sde-strip-visible");
       document.body.classList.remove("sde-strip-active");
