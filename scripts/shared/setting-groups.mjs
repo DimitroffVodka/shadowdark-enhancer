@@ -127,7 +127,7 @@ export const SETTING_GROUPS = [
   {
     key: "overlandMenu",
     icon: "fa-solid fa-person-walking",
-    sections: [{ entries: ["overlandWeatherRule"] }],
+    sections: [{ entries: ["clockBar", "overlandWeatherRule", "overlandEncounterChance", "overlandEncounterDay", "overlandEncounterNight"] }],
   },
   {
     key: "encountersMenu",

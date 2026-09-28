@@ -13,7 +13,7 @@ import { ICONS }           from "../shared/icons.mjs";
 import { CrawlStrip }      from "../crawl-strip/crawl-strip.mjs";
 import { isHexMapScene }   from "../encounter/encounter-terrain.mjs";
 import {
-  startOverland, endOverland, rollWeather, weatherNow, weatherName, askDay, startDay, resume, overlandState, OVERLAND_CHANGED,
+  startOverland, endOverland, rollWeather, weatherNow, weatherName, startDayFromParty, resume, overlandState, OVERLAND_CHANGED,
   askForage, forage, makeCamp,
 } from "../overland/overland.mjs";
 
@@ -278,11 +278,8 @@ export const CrawlBar = {
         CrawlStrip.render();
         // The day comes next: open Start day at once, unless a day is already open.
         if (started && !Number.isFinite(overlandState().day)) {
-          const options = await askDay();
-          if (options) {
-            const reply = await startDay(options);
-            if (!reply?.ok && reply?.error) ui.notifications.warn(reply.error);
-          }
+          const reply = await startDayFromParty();
+          if (!reply?.ok && reply?.error) ui.notifications.warn(reply.error);
           this.render();
         }
         break;
@@ -320,9 +317,7 @@ export const CrawlBar = {
       }
 
       case "startDay": {
-        const options = await askDay();
-        if (!options) break;
-        const reply = await startDay(options);
+        const reply = await startDayFromParty();
         if (!reply?.ok && reply?.error) ui.notifications.warn(reply.error);
         this.render();
         break;

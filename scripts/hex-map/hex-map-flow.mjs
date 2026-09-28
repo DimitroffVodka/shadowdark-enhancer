@@ -26,6 +26,7 @@ import { imageInk } from "./ink.mjs";
 import { detectLattice, latticeCentre, cornerSupport } from "./lattice.mjs";
 import { foundryOffsetToCube, framesTopRow } from "./geometry.mjs";
 import { emptyState, encodeTags } from "./tag-store.mjs";
+import { A0_PRINT, isA0 } from "./a0-print.mjs";
 
 const TAGS_FLAG = "hexTags";
 /** Working width for detection: enough for sub-pixel pitches, small enough for a tab. */
@@ -216,6 +217,23 @@ export function alignedSceneData({ name, src, imageW, imageH, lat, firstNum = "0
   return data;
 }
 
+/**
+ * The Western Reaches A0: its lattice is known (a0-print.mjs), so there is
+ * nothing to detect or confirm. The scene is made to fit the print, then Make
+ * this map playable does the rest.
+ * @returns {Promise<Scene>}
+ */
+async function a0Scene(file, name) {
+  const src = await uploadMap(file);
+  const { width, height, lat, firstNum, bounds } = A0_PRINT;
+  const data = alignedSceneData({ name, src, imageW: width, imageH: height, lat, firstNum, cols: bounds.cols, rows: bounds.rows, rowsLowered: bounds.rowsLowered });
+  const scene = await Scene.create(data);
+  ui.notifications?.info(t("SDE.hexMap.notify.sceneCreated", { name: scene.name, cols: bounds.cols, rows: bounds.rows, size: data.grid.size }));
+  await scene.view();
+  await (await import("./hex-tagger-app.mjs")).HexTaggerApp.makePlayable();
+  return scene;
+}
+
 /** The whole flow, GM only. @returns {Promise<Scene|null>} */
 export async function startHexMapFlow() {
   if (!game.user?.isGM) { ui.notifications?.warn(t("SDE.hexMap.notify.gmOnlySetup")); return null; }
@@ -232,6 +250,7 @@ export async function startHexMapFlow() {
   const scale = Math.min(1, WORK_WIDTH / imageW);
   ui.notifications?.info(t("SDE.hexMap.notify.readingImage", { file: file.name, w: imageW, h: imageH }));
   try {
+    if (isA0(imageW, imageH)) return await a0Scene(file, name);
     working = scale < 1 ? await createImageBitmap(full, { resizeWidth: Math.round(imageW * scale), resizeHeight: Math.round(imageH * scale), resizeQuality: "medium" }) : full;
     const { ink, w, h } = await imageInk(working, { scale: 1, onProgress: () => new Promise((r) => setTimeout(r, 0)) });
     const det = detectLattice(ink, w, h);
