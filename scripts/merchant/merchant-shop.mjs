@@ -205,7 +205,8 @@ export const MerchantShop = {
 
     // Transaction notices travel GM→players as queries too, so the receiving
     // client can check the sender really is a GM (gm-relay.mjs `notifyPlayers`).
-    registerQuery(SHOP_NOTICE_QUERY, (data, { user } = {}) => MerchantShop.handleNotice(data, user));
+    // Every tab: a notice closes or refreshes that tab's own shop window.
+    registerQuery(SHOP_NOTICE_QUERY, (data, { user } = {}) => MerchantShop.handleNotice(data, user), { everyTab: true });
 
     // Availability changes arrive as a PAYLOAD-FREE nudge: "the setting moved,
     // go re-read it". The snapshot is already persisted in `shopAvailabilityData`

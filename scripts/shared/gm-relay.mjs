@@ -186,7 +186,8 @@ export function authorizeActorFor(actorId, user, { type = null } = {}) {
  * user. The browser can. A Web Lock is held by one tab at a time and passes to
  * the next the moment that tab closes, reloads or crashes. Each tab asks for its
  * user's lock at init and holds it for the life of the page, and only the tab
- * holding it does the active GM's work. No timers, nothing on the network, so
+ * holding it does that user's work: the active GM's hooks, and the answer to
+ * any query sent to that user (registerQuery). No timers, nothing on the network, so
  * nothing a player sends can move it. (A heartbeat election on the module
  * socket was tried and taken out in the #283 review.)
  *
@@ -255,13 +256,18 @@ export function isActiveGM() {
 
 /**
  * Register a `CONFIG.queries` handler. Core hands a query to every tab of the
- * user it's sent to and answers with the first reply, so a tab of the active GM
- * that isn't the working one stays silent: a promise that never settles, before
- * the handler runs, so none of the module's queues waits on it. Every module
- * query registers here (test/gm-relay.test.mjs checks).
+ * user it's sent to and answers with the first reply, so only the tab holding
+ * that user's lock answers. The others stay silent: a promise that never
+ * settles, before the handler runs, so none of the module's queues waits on it.
+ * That holds whoever the query is sent to: the active GM, the GM a hand-off
+ * names (the light-primary, #228), or a player asked to roll. The working tab
+ * still refuses at once what isn't its to do. `everyTab` is for a notice that
+ * only changes the receiving tab's window (the shop's): every tab shows it, and
+ * nobody reads the reply. Every module query registers here
+ * (test/gm-relay.test.mjs checks).
  */
-export function registerQuery(name, handler) {
-  CONFIG.queries[name] = (data, context) => (_tab === false && isActiveGMUser() ? new Promise(() => {}) : handler(data, context));
+export function registerQuery(name, handler, { everyTab = false } = {}) {
+  CONFIG.queries[name] = (data, context) => (_tab === false && !everyTab ? new Promise(() => {}) : handler(data, context));
 }
 
 /**

@@ -482,8 +482,11 @@ page walks through it in order.
   module's hooks in each. With two tabs open, a monster's stat rider rolled and
   applied twice and combat loot dropped twice. Now the browser picks one tab to
   do the work, and when that tab closes or reloads, the other takes over at
-  once. This needs https or localhost: over plain http on a LAN, and for the
-  same GM on two devices, both tabs still work. (#288)
+  once. The same goes for every user a request names: the GM an off-duty clock
+  move is handed to moves it once, not once per tab, and a player asked to roll
+  a save or a death timer rolls it in one tab. A dying character's timer ticks
+  once per turn. This needs https or localhost: over plain http on a LAN, and
+  for the same user on two devices, both tabs still work. (#288)
 - **A book your host won't let you upload can now be linked where it lies.**
   A PDF refused as "too large" is stopped by the web server or proxy in front
   of Foundry, and the importer took the refusal as a success: it linked the

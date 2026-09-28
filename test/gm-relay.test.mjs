@@ -34,6 +34,7 @@ import {
   refuseQuery,
   relayToGM,
 } from "../scripts/shared/gm-relay.mjs";
+import { OFF_DUTY_QUERY, handleOffDutyQuery } from "../scripts/time/off-duty.mjs";
 
 const MY_VERSION = "0.13.1";
 
@@ -385,6 +386,8 @@ async function openTab(browser, user, { build = "b1", activeGM = GM } = {}) {
 }
 const settle = async () => { for (let i = 0; i < 5; i++) await new Promise(setImmediate); };
 const working = (...tabs) => tabs.map((t) => t.run((r) => r.isActiveGM()));
+/** Resolves after `ms` unless the promise it races settles first: a tab that never answers. */
+const waited = (ms = 50) => new Promise((resolve) => setTimeout(() => resolve("still waiting"), ms));
 
 test("a GM signed in twice in one browser: the first tab works, and the other takes over the moment it closes (#288)", async () => {
   const browser = browserLocks();
@@ -486,27 +489,105 @@ test("a waiting tab of the active GM leaves a query unanswered, so the working t
   assert.deepEqual(ran, ["A"], "B's handler never ran, so no queue of B's waits on it");
 });
 
-test("only the active GM's waiting tab stays silent: another GM's tabs and a player's still answer (#288)", async () => {
+test("any user's waiting tab stays silent and its working tab answers: another GM refuses at once, a player rolls once (#288)", async () => {
   const browser = browserLocks();
   const b1 = await openTab(browser, BRIDGE_GM);
   await settle();
   const b2 = await openTab(browser, BRIDGE_GM);
   await settle();
-  b2.run((r) => r.registerQuery("sde.test", (data, { user }) => r.refuseQuery(user, "Tests") ?? { ok: true }));
-  const reply = await b2.run(() => b2.CONFIG.queries["sde.test"]({}, { user: PLAYER }));
-  assert.equal(reply.ok, false, "a GM that isn't the active one refuses, as before");
+  for (const t of [b1, b2]) t.run((r) => r.registerQuery("sde.test", (data, { user }) => r.refuseQuery(user, "Tests") ?? { ok: true }));
+  const ask = (t, name, user) => t.run(() => t.CONFIG.queries[name]({}, { user }));
+  const refused = await Promise.race([ask(b1, "sde.test", PLAYER), ask(b2, "sde.test", PLAYER), waited()]);
+  assert.equal(refused.ok, false, "a GM that isn't the active one refuses, as before, from its working tab");
+  assert.equal(await Promise.race([ask(b2, "sde.test", PLAYER), waited()]), "still waiting");
   const p1 = await openTab(browser, PLAYER);
   await settle();
   const p2 = await openTab(browser, PLAYER);
   await settle();
-  p2.run((r) => r.registerQuery("sde.save", () => ({ ok: true })));
-  assert.deepEqual(await p2.run(() => p2.CONFIG.queries["sde.save"]({}, { user: GM })), { ok: true });
-  void [b1, p1];
+  const rolled = [];
+  for (const [name, t] of [["P1", p1], ["P2", p2]]) t.run((r) => r.registerQuery("sde.save", () => { rolled.push(name); return { ok: true }; }));
+  assert.equal(await Promise.race([ask(p2, "sde.save", GM), waited()]), "still waiting");
+  assert.deepEqual(await ask(p1, "sde.save", GM), { ok: true });
+  assert.deepEqual(rolled, ["P1"], "a save or a death roll the GM asks for is rolled in one of the player's tabs");
 });
 
-test("every module query registers through registerQuery (#288)", () => {
+test("a notice registered for every tab reaches the waiting tab too: it changes only that tab's window (#288)", async () => {
+  const browser = browserLocks();
+  const p1 = await openTab(browser, PLAYER);
+  await settle();
+  const p2 = await openTab(browser, PLAYER);
+  await settle();
+  const shown = [];
+  for (const [name, t] of [["P1", p1], ["P2", p2]]) {
+    t.run((r) => r.registerQuery("sde.notice", () => { shown.push(name); return { ok: true }; }, { everyTab: true }));
+  }
+  await Promise.all([p1, p2].map((t) => t.run(() => t.CONFIG.queries["sde.notice"]({}, { user: GM }))));
+  assert.deepEqual(shown, ["P1", "P2"]);
+});
+
+/** The world both tabs of `self` see: a clock at 100, light tracking on, and nothing lit to put out. */
+function offDutyWorld(self, users, activeGM) {
+  return {
+    i18n: I18N, user: self, userId: self.id, users: Object.assign([...users], { activeGM }), actors: [],
+    settings: { get: (scope, key) => scope === "shadowdark" && key === "trackLightSources" },
+    shadowdark: { lightSourceTracker: { monitoredLightSources: [], async _updateLightSources() {} } },
+    time: { worldTime: 100, advance(s) { this.worldTime += s; } },
+  };
+}
+
+/** `self` signed in twice in one browser, with the real off-duty handler in both tabs; asks both, as core does. */
+async function offDutyTabs(self, world, activeGM) {
+  const browser = browserLocks();
+  const tabs = [];
+  for (let i = 0; i < 2; i++) {
+    const t = await openTab(browser, self, { activeGM });
+    await settle();
+    t.game = world;
+    t.run((r) => r.registerQuery(OFF_DUTY_QUERY, (data, { user } = {}) => handleOffDutyQuery(data, user)));
+    tabs.push(t);
+  }
+  return tabs.map((t) => t.run(() => t.CONFIG.queries[OFF_DUTY_QUERY]({ seconds: 3600, reason: "rest" }, { user: activeGM })));
+}
+
+test("a hand-off to the light-primary GM, who isn't the active GM, runs in one of its two tabs: the clock moves once (#288)", async () => {
+  const A = { ...GM, active: true, flags: {} };
+  const B = { ...BRIDGE_GM, active: true, flags: { shadowdark: { primaryGM: true } } };
+  const world = offDutyWorld(B, [A, B], A);
+  const was = globalThis.game;
+  globalThis.game = world;   // the handler reads it after its first await, outside run()
+  try {
+    const [one, two] = await offDutyTabs(B, world, A);
+    const reply = await one;
+    const other = await Promise.race([two, waited()]);
+    assert.equal(world.time.worldTime, 3700, "moved once: not 100 → 3700 → 7300");
+    assert.equal(reply.ok, true);
+    assert.equal(other, "still waiting", "B's other tab never answers");
+  } finally { globalThis.game = was; }
+});
+
+test("a GM that doesn't hold the light flag refuses the hand-off at once, from its working tab (#288)", async () => {
+  const A = { ...GM, active: true, flags: {} };
+  const B = { ...BRIDGE_GM, active: true, flags: { shadowdark: { primaryGM: true } } };
+  const C = { id: "gm3", isGM: true, name: "Assistant", active: true, flags: {}, hasPermission: () => true };
+  const world = offDutyWorld(C, [A, B, C], A);
+  const was = globalThis.game;
+  globalThis.game = world;
+  try {
+    const [one, two] = await offDutyTabs(C, world, A);
+    const reply = await Promise.race([one, two, waited()]);
+    assert.equal(reply.ok, false, "a refusal, not a silent timeout");
+    assert.match(reply.error, /notPrimary/);
+    assert.equal(await Promise.race([two, waited()]), "still waiting", "C's other tab stays silent");
+    assert.equal(world.time.worldTime, 100);
+  } finally { globalThis.game = was; }
+});
+
+test("every module query registers through registerQuery, and only the shop's notice runs in every tab (#288)", () => {
   const files = execSync("git ls-files scripts", { encoding: "utf8" }).trim().split("\n").filter((f) => f.endsWith(".mjs"));
-  const direct = files.filter((f) => f !== "scripts/shared/gm-relay.mjs"
-    && /CONFIG\.queries\[[^\]]+\]\s*=/.test(readFileSync(new URL(`../${f}`, import.meta.url), "utf8")));
+  const read = (f) => readFileSync(new URL(`../${f}`, import.meta.url), "utf8");
+  const direct = files.filter((f) => f !== "scripts/shared/gm-relay.mjs" && /CONFIG\.queries\[[^\]]+\]\s*=/.test(read(f)));
   assert.deepEqual(direct, [], "a handler registered straight on CONFIG.queries would answer from a waiting tab");
+  const everyTab = files.flatMap((f) => read(f).match(/registerQuery\((\w+)[^;]*everyTab:\s*true/g) ?? []);
+  assert.deepEqual(everyTab.map((m) => m.match(/registerQuery\((\w+)/)[1]), ["SHOP_NOTICE_QUERY"],
+    "only a notice that changes the receiving tab's window may run in every tab");
 });

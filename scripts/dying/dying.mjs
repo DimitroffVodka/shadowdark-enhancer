@@ -514,8 +514,9 @@ export function init() {
     const actor = combatant?.actor;
     // Queued for every PC, not only the dying: a drop still in flight is
     // written before this runs, and tick re-reads. Not awaited: the owner's
-    // roll must not hold up Foundry's turn events.
-    if (actor?.type === "Player") {
+    // roll must not hold up Foundry's turn events. Foundry runs this in every
+    // tab of the active GM (it checks the user), so only the working tab ticks (#288).
+    if (actor?.type === "Player" && isActiveGM()) {
       void serial(actor, () => tick(actor, this.id, context?.round ?? this.round));
     }
   };

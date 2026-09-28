@@ -1974,19 +1974,28 @@ primary GM, which need not be `game.users.activeGM`. It is sent there with
 `queryActiveGM(name, data, { targetUser })`, and the receiving tab checks the
 server-stamped sender is a GM and refuses if another GM holds the flag.
 
-**One GM, several tabs.** Foundry delivers a query to every tab its recipient
-has open, answers with the first reply, and runs hooks in every tab. So "the
-active GM" is also one tab (#288). Each tab asks the browser for its user's Web
-Lock at `init` and holds it for the life of the page. `isActiveGM()` is true
-only in the tab holding it, and the other tabs of the active GM stay silent on
-every module query (they're registered through `registerQuery`), so the caller
-gets the working tab's answer. When that tab closes, reloads or crashes, the
-browser hands the lock to the next tab at once. Every tab works, as before,
-where the browser can't tell them apart: without Web Locks (plain http over a
-LAN), across two browsers or devices, on different builds of the module, and in
-the moment before the browser answers. A GM's own click still works in any of
-its tabs: work that must run on the active GM is forwarded to the working tab,
-and Forge Loot's Approve checks the user, not the tab.
+**One user, several tabs.** Foundry delivers a query to every tab its
+recipient has open, answers with the first reply, and runs hooks in every tab.
+So the user who does a piece of work is also one tab (#288). Each tab asks the
+browser for its user's Web Lock at `init` and holds it for the life of the page.
+Only the tab holding it answers a module query (they're all registered through
+`registerQuery`), whoever the query is sent to: the active GM, the light-primary
+GM an off-duty move is handed to, or a player asked to roll a save or a death
+timer. The other tabs stay silent, so the caller gets the working tab's answer,
+and a GM that isn't the right writer still refuses at once. `isActiveGM()` is
+true only in the active GM's working tab, and the hooks it gates run there, as
+does dying's turn start, which Foundry runs in every tab of the active GM. When
+the working tab closes, reloads or crashes, the browser hands the lock to the
+next tab at once. The shop's notices to players (`registerQuery` with
+`everyTab`) are the exception: they only close or refresh the receiving tab's
+window, so every tab shows them. Every tab works, as before, where the browser
+can't tell them apart: without Web Locks (plain http over a LAN), across two
+browsers or devices, on different builds of the module, and in the moment
+before the browser answers. A GM's own click still works in any of its tabs:
+work that must run on the active GM is forwarded to the working tab, and Forge
+Loot's Approve checks the user, not the tab. A save the GM asks a player for
+opens in that player's working tab, the first they opened, and if nobody rolls
+it within two minutes the GM's client rolls it, as when no player is online.
 
 Two consequences worth knowing:
 
