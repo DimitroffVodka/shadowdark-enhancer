@@ -11,6 +11,20 @@ it needs.
 
 ### Added
 
+- **The clock bar.** The date with its year, the time and the sky now sit at
+  the top of the screen for everyone, on every scene, in the look of the
+  Overland demo: black, the engraved frame, the book's blackletter. Under it,
+  the season and a sky dial that turns with the day, with the weather, the
+  next sunrise or sunset and the moon's phase. A GM steps the clock back or
+  on (a day, 8 hours, an hour, 10 minutes, a round), jumps to the next dawn,
+  noon, dusk or midnight, sets any date and year, and switches the real-time
+  clock. The month view shows the moon's quarters, today and the City of
+  Masks holidays, and a GM clicks a day to go there. While travelling, a step
+  rolls the day's encounter checks it passes, and the bar carries the hexes
+  left and the Travel panel. Settings → Overland → Clock bar: everyone, GM
+  only, or off. It hides during a combat, and the Crawl Strip no longer shows
+  on a hex map outside a combat. See *Clock and Calendar*. (#253, #257)
+
 #### Overland travel
 
 - **Travel on a tagged hex map.** On a hex map tagged by the Hex Tagger, the

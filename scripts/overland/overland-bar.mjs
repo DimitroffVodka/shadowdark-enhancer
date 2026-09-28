@@ -1,28 +1,41 @@
 /**
- * Shadowdark Enhancer — the travel bar (#234, Overland O8, docs/plans/overland.md §4).
+ * Shadowdark Enhancer — the clock HUD at the top of the screen (#253, #257,
+ * Overland O8; the look is the demo Patrick signed up for, docs/plans/overland.md §4).
  *
- * Top centre, for everyone, while travelling on a tagged hex map; hidden
- * during a combat and on any other scene, where the Crawl Strip or nothing
- * shows instead. The slim bar is the date and time, the sun or the moon, the
- * weather and the hexes left. A click opens the expanded view: the sky dome,
- * the season and climate, the day's method and budget, the members' rations,
- * who foraged (with a Forage button on each character the viewer owns), and
- * for a GM the day's checks with their hours and the day's buttons. Players
- * never see the check hours (overland-bar-core.mjs leaves them out).
+ * Always on (the `clockBar` setting says for whom; nobody during a combat):
+ * the date with its year, the time, and a chevron for the sky, which hangs
+ * the season band and the dial under the bar: a disc turning a 24th of a turn
+ * an hour, with now at the bottom, the day's light, the twilight hatched, the
+ * weather on its plate and the moon on the outer track. A GM also gets the
+ * rewind and advance columns (a day, 8 hours, an hour, 10 minutes, a round),
+ * the Time panel (jump to the next dawn, noon, dusk or midnight; set a date;
+ * the real-time clock) and every day of the Month view as a jump. On a tagged
+ * hex map the bar carries the travel plate: the hexes left while travelling,
+ * or Start travel for a GM, and the Travel panel.
  *
- * Mounted like the Crawl Strip (crawl-strip.mjs mount): a click-transparent
- * wrapper in #interface with a bar that takes clicks.
+ * Moves: a step or a jump goes through Overland's clock action, so while
+ * travelling the day's checks it passes roll at their hours; a date set or
+ * picked in the month view goes forward off duty (torches don't burn through a
+ * calendar jump), and any move backwards just sets the clock back.
+ *
+ * Mounted like the Crawl Strip: a click-transparent wrapper in #interface
+ * whose column takes clicks. The Crawl Strip moves down under the bar while it
+ * shows (body.sde-clock-on).
  */
 
 import { CrawlState } from "../crawl-strip/crawl-state.mjs";
 import { isHexMapScene } from "../encounter/encounter-terrain.mjs";
 import { esc } from "../shared/esc.mjs";
-import { dateParts } from "../time/time-core.mjs";
+import { MODULE_ID } from "../shared/module-id.mjs";
+import {
+  dateParts, hourOfDay, nextSeasonChange, nextTimeOfDay, secondsPerDay, season as seasonAt, startOfDay, sun as sunAt,
+} from "../time/time-core.mjs";
 import {
   overlandState, weatherNow, weatherName, methodName, rollWeather, askDay, startDay, makeCamp,
-  endOverland, resume, forage, OVERLAND_CHANGED,
+  endOverland, resume, forage, startOverland, advanceClock, OVERLAND_CHANGED,
 } from "./overland.mjs";
-import { DOME, barModel, domePoint, itemTouchesBar, moonShadow, redrawStamp, skyPosition } from "./overland-bar-core.mjs";
+import { barModel, itemTouchesBar } from "./overland-bar-core.mjs";
+import { DIAL, DIAL_STARS, clockShown, clockSteps, dateToTime, dialModel, monthGrid, seasonHatch, starPoint } from "./hud-core.mjs";
 
 const BAR_ID = "shadowdark-enhancer-travel";
 const t = (key, data) => (data ? game.i18n.format(key, data) : game.i18n.localize(key));
@@ -38,6 +51,8 @@ const MOON_NAME = {
   lastQuarter: "SDE.overland.bar.moon.lastQuarter",
   waningCrescent: "SDE.overland.bar.moon.waningCrescent",
 };
+const MOON_MARK = { new: "SDE.clock.moon.new", q1: "SDE.clock.moon.firstQuarter", full: "SDE.clock.moon.full", q3: "SDE.clock.moon.lastQuarter" };
+const JUMPS = { dawn: "SDE.clock.jump.dawn", noon: "SDE.clock.jump.noon", dusk: "SDE.clock.jump.dusk", midnight: "SDE.clock.jump.midnight" };
 
 /** "19:10" from hours with a fraction. */
 const hhmm = (hours) => {
@@ -45,28 +60,53 @@ const hhmm = (hours) => {
   return `${String(Math.floor(minutes / 60) % 24).padStart(2, "0")}:${String(minutes % 60).padStart(2, "0")}`;
 };
 
-/** A button: every label from en.json, every value escaped. */
-const button = (action, label, { id = "", hint = "", cls = "" } = {}) =>
-  `<button type="button" class="sde-bar-btn sde-travel-btn ${cls}" data-action="${action}"${id ? ` data-id="${esc(id)}"` : ""}${
+/** An icon button on the bar; `pressed` marks the panel or column it opened. */
+const ib = (action, icon, label, { id = "", pressed = null } = {}) =>
+  `<button type="button" class="sde-hud-ib" data-action="${action}"${id ? ` data-id="${id}"` : ""} aria-label="${esc(label)}" data-tooltip="${esc(label)}"${
+    pressed === null ? "" : ` aria-pressed="${pressed}"`}><i class="fa-solid ${icon}"></i></button>`;
+
+/** A key: the framed button of the panels. */
+const key = (action, label, { id = "", hint = "", cls = "" } = {}) =>
+  `<button type="button" class="sde-hud-key ${cls}" data-action="${action}"${id ? ` data-id="${esc(id)}"` : ""}${
     hint ? ` data-tooltip="${esc(hint)}"` : ""}>${esc(label)}</button>`;
 
 export const TravelBar = {
   _el: null,
-  _open: false,
-  /** The date, time and weather last drawn: a clock tick redraws only when one changes. */
+  /** The open panel: "time", "month", "travel" or null. */
+  _open: null,
+  /** The rewind or advance column: "rew", "adv" or null. */
+  _stack: null,
+  /** Whether the season band and the dial hang under the bar. */
+  _sky: true,
+  _monthOffset: 0,
+  /** The imported holidays, read when the month view opens. */
+  _holidays: [],
   _drawn: "",
+  _sceneKind: null,
 
   init() {
     this.mount();
     const queue = () => this.render();
     Hooks.on(OVERLAND_CHANGED, queue);
     Hooks.on(CrawlState.HOOK_CHANGED, queue);
-    Hooks.on("canvasReady", queue);
+    Hooks.on(`${MODULE_ID}.clockBarChanged`, queue);
+    for (const hook of ["createCombat", "updateCombat", "deleteCombat"]) Hooks.on(hook, queue);
+    Hooks.on("canvasReady", () => {
+      // A new kind of scene starts the view afresh: the sky shows on a hex map, not in a dungeon.
+      const kind = isHexMapScene() ? "hex" : "other";
+      if (kind !== this._sceneKind) {
+        this._sceneKind = kind;
+        this._sky = kind === "hex";
+        this._open = null;
+        this._stack = null;
+      }
+      this.render();
+    });
     // Real-time light tracking moves the clock every second: redraw on the minute.
     Hooks.on("updateWorldTime", () => { if (this._stamp() !== this._drawn) this.render(); });
     // A member's rations change when they forage, buy, trade or eat.
     const onItem = (item) => {
-      if (this._el?.classList.contains("sde-travel-visible") && itemTouchesBar(item, overlandState().members)) this.render();
+      if (this._open === "travel" && itemTouchesBar(item, overlandState().members)) this.render();
     };
     for (const hook of ["createItem", "updateItem", "deleteItem"]) Hooks.on(hook, onItem);
   },
@@ -77,38 +117,231 @@ export const TravelBar = {
     el.id = BAR_ID;
     (document.getElementById("interface") ?? document.body).prepend(el);
     el.addEventListener("click", (event) => this._onClick(event));
+    el.addEventListener("change", (event) => this._onChange(event));
     this._el = el;
+    this._sceneKind = isHexMapScene() ? "hex" : "other";
+    this._sky = this._sceneKind === "hex";
     this.render();
+    // Centred over #ui-middle, the canvas between the left and right UI columns.
+    const bounds = () => {
+      const iface = document.getElementById("interface");
+      const middle = document.getElementById("ui-middle");
+      if (!iface || !middle || !this._el) return;
+      const box = iface.getBoundingClientRect(), mid = middle.getBoundingClientRect();
+      this._el.style.left = `${mid.left - box.left}px`;
+      this._el.style.width = `${mid.width}px`;
+    };
+    window.addEventListener("resize", bounds);
+    for (const hook of ["collapseSidebar", "renderSidebar", "renderSceneNavigation"]) Hooks.on(hook, () => setTimeout(bounds, 350));
+    bounds();
   },
 
-  /** What a redraw on the clock depends on: the absolute minute, and the weather that holds. */
+  /** What a redraw on the clock depends on: the minute, the weather, and the pending encounter. */
   _stamp() {
-    return redrawStamp(game.time.worldTime, game.time.calendar?.days?.secondsPerMinute, CrawlState.isOverland ? weatherNow() : "");
+    const spm = game.time.calendar?.days?.secondsPerMinute || 60;
+    return `${Math.floor(game.time.worldTime / spm)}|${weatherNow() ?? ""}|${overlandState().pending ? 1 : 0}`;
+  },
+
+  _shown() {
+    let setting = "all";
+    try { setting = game.settings.get(MODULE_ID, "clockBar"); } catch { /* not registered yet */ }
+    const combat = CrawlState.mode === "combat" || !!game.combat?.started;
+    return clockShown({ setting, isGM: !!game.user?.isGM, combat });
   },
 
   render() {
     if (!this._el) return;
-    const shown = CrawlState.isOverland && isHexMapScene();
-    this._el.classList.toggle("sde-travel-visible", shown);
+    const shown = this._shown();
+    this._el.classList.toggle("sde-hud-visible", shown);
+    document.body.classList.toggle("sde-clock-on", shown);
     if (!shown) { this._el.innerHTML = ""; return; }
     this._drawn = this._stamp();
-    this._el.innerHTML = `<div class="sde-travel-bar">${this._slim()}${this._open ? this._panel() : ""}</div>`;
+    const gm = !!game.user.isGM;
+    if (!gm) this._stack = null;
+    if ((this._open === "time" && !gm) || (this._open === "travel" && !CrawlState.isOverland)) this._open = null;
+    this._el.innerHTML = `<div class="sde-hud-col">${this._bar()}${this._stacks()}<div class="sde-hud-drop">${this._drop()}</div></div>`;
   },
 
-  /** The time, sky and day as the bar reads them. */
+  /** The time and sky as the HUD reads them. */
   _now() {
     const now = game.time.worldTime;
     const cal = game.time.calendar;
     const api = game.shadowdarkEnhancer?.time;
-    const c = cal.timeToComponents(now);
-    const sun = api.sun(now);
     return {
+      now, cal,
       parts: dateParts(cal, now),
-      sun,
-      sky: skyPosition({ hour: c.hour + c.minute / 60, ...sun, hoursPerDay: cal.days?.hoursPerDay ?? 24 }),
+      hour: hourOfDay(cal, now),
+      sun: sunAt(cal, now),
       moon: api.moonPhase(now),
-      season: api.season(now)?.name ?? "",
+      hoursPerDay: cal.days?.hoursPerDay ?? 24,
     };
+  },
+
+  _bar() {
+    const gm = game.user.isGM;
+    const { parts } = this._now();
+    const state = overlandState();
+    const date = t("SDE.clock.date", { weekday: t(parts.weekday), day: parts.day, month: t(parts.month), year: parts.year });
+    const stopped = gm && state.pending ? `<span class="sde-hud-stopped">${esc(t("SDE.clock.stopped"))}</span>` : "";
+    let travel = "";
+    if (isHexMapScene()) {
+      const cell = CrawlState.isOverland
+        ? `<button type="button" class="sde-hud-plate" data-action="open" data-id="travel"><i class="fa-solid fa-hexagon"></i> ${this._plateText(state)}</button>`
+        : gm ? `<button type="button" class="sde-hud-go" data-action="startTravel"><i class="fa-solid fa-hexagon"></i> ${esc(t("SDE.overland.startTravel"))}</button>` : "";
+      travel = `<span class="sde-hud-sep"></span>${cell}${CrawlState.isOverland
+        ? ib("open", "fa-users", t("SDE.clock.travel"), { id: "travel", pressed: this._open === "travel" }) : ""}`;
+    }
+    return `<div class="sde-hud-bar">
+      ${gm ? ib("stack", "fa-backward", t("SDE.clock.rewind"), { id: "rew", pressed: this._stack === "rew" }) : ""}
+      ${ib("open", "fa-calendar-days", t("SDE.clock.month"), { id: "month", pressed: this._open === "month" })}
+      ${gm ? ib("open", "fa-sliders", t("SDE.clock.time"), { id: "time", pressed: this._open === "time" }) : ""}
+      <span class="sde-hud-sep"></span>
+      <span class="sde-hud-date"><span class="sde-hud-d">${esc(date)}</span><span class="sde-hud-t">${esc(parts.time)}</span>${stopped}</span>
+      ${ib("sky", this._sky ? "fa-chevron-up" : "fa-chevron-down", t(this._sky ? "SDE.clock.skyHide" : "SDE.clock.skyShow"), { pressed: this._sky })}
+      ${travel}
+      ${gm ? ib("stack", "fa-forward", t("SDE.clock.advance"), { id: "adv", pressed: this._stack === "adv" }) : ""}
+    </div>`;
+  },
+
+  /** The travel plate's words, by where the day stands. */
+  _plateText(state) {
+    const m = this._model();
+    if (state.pending) return esc(t("SDE.clock.plate.encounter"));
+    if (!m.dayOpen) return esc(t("SDE.clock.plate.noDay"));
+    return t("SDE.clock.plate.hexes", { left: `<b>${m.hexesLeft}</b>`, budget: `<b>${m.budget}</b>` })
+      + (m.pushed ? esc(t("SDE.clock.plate.pushed")) : "");
+  },
+
+  _stacks() {
+    if (!game.user.isGM || !this._stack) return "";
+    const back = this._stack === "rew";
+    const buttons = clockSteps(game.time.calendar, CONFIG.time?.roundTime || 6)
+      .map((s) => `<button type="button" data-action="step" data-id="${back ? -s.seconds : s.seconds}">${esc(t(back ? "SDE.clock.back" : "SDE.clock.forward", { step: t(s.key) }))}</button>`);
+    return `<div class="sde-hud-stack ${back ? "sde-hud-left" : "sde-hud-right"}">${buttons.join("")}</div>`;
+  },
+
+  _drop() {
+    if (this._open === "time") return this._timePanel();
+    if (this._open === "month") return this._monthPanel();
+    if (this._open === "travel") return this._travelPanel();
+    return this._sky ? `${this._seasonBand()}${this._dial()}` : "";
+  },
+
+  _seasonBand() {
+    const { now, cal } = this._now();
+    const here = seasonAt(cal, now);
+    const change = nextSeasonChange(cal, now);
+    const name = here.name ? t(here.name) : "";
+    if (change === null) return `<div class="sde-hud-season">${esc(name)}</div>`;
+    const daysLeft = Math.max(0, Math.ceil((change - now) / secondsPerDay(cal)));
+    const hatch = seasonHatch(daysLeft);
+    const tip = t(daysLeft === 1 ? "SDE.clock.seasonNextOne" : "SDE.clock.seasonNext", { season: t(seasonAt(cal, change).name ?? ""), n: daysLeft });
+    return `<div class="sde-hud-season" data-tooltip="${esc(tip)}">${esc(name)}${hatch ? `<span class="sde-hud-next" style="width:${hatch}%"></span>` : ""}</div>`;
+  },
+
+  /** The sky dial: the mockup's, driven by the time API. */
+  _dial() {
+    const { now, cal, hour, sun, moon, hoursPerDay } = this._now();
+    const d = dialModel({ hour, sunrise: sun.sunrise, sunset: sun.sunset, moonFraction: moon.fraction, hoursPerDay });
+    const w = weatherNow();
+    const word = w ? weatherName(w) : t("SDE.clock.unrolled");
+    const plateW = Math.max(70, word.length * 11 + 22);
+    const tomorrow = sunAt(cal, startOfDay(cal, now) + secondsPerDay(cal));
+    const sunLine = d.next.kind === "sets"
+      ? t("SDE.clock.sunSets", { time: hhmm(d.next.hour) })
+      : t("SDE.clock.sunRises", { time: hhmm(d.next.hour ?? tomorrow.sunrise) });
+    const state = overlandState();
+    const region = CrawlState.isOverland && isHexMapScene() ? [state.hex?.region, state.hex?.terrain].filter(Boolean).join(" · ") : "";
+    const ink = d.isDay ? "sde-hud-ink-day" : "sde-hud-ink-night";
+    const { cx, cy } = DIAL;
+    const stars = DIAL_STARS.map((s) => { const [x, y] = starPoint(s, hoursPerDay); return `<circle cx="${x}" cy="${y}" r="1.1" class="sde-hud-star"/>`; }).join("");
+    const label = t("SDE.clock.dialLabel", { weather: word, sun: sunLine, moon: t(MOON_NAME[moon.key]) });
+    return `<svg class="sde-hud-dial ${ink}" width="260" height="140" viewBox="0 0 260 140" role="img" aria-label="${esc(label)}">
+      <defs>
+        <pattern id="sde-hud-hatch" width="5" height="5" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="5" height="5" fill="#0b0b0b"/><line x1="0" y1="0" x2="0" y2="5" stroke="#c9c9c9" stroke-width="1"/></pattern>
+        <linearGradient id="sde-hud-dayg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ececec"/><stop offset="1" stop-color="#b8b8b8"/></linearGradient>
+        <clipPath id="sde-hud-disc"><circle cx="${cx}" cy="${cy}" r="${DIAL.disc}"/></clipPath>
+        <clipPath id="sde-hud-moonc"><circle cx="${d.moon.x}" cy="${d.moon.y}" r="${d.moon.r}"/></clipPath>
+      </defs>
+      <circle cx="${cx}" cy="${cy}" r="${DIAL.moonTrack}" class="sde-hud-track"/>
+      <g clip-path="url(#sde-hud-disc)"><g transform="rotate(${d.rotate} ${cx} ${cy})">
+        <circle cx="${cx}" cy="${cy}" r="${DIAL.disc}" fill="#0b0b0b"/>${stars}
+        <path d="${d.day}" fill="url(#sde-hud-dayg)"/><path d="${d.dusk}" fill="url(#sde-hud-hatch)"/><path d="${d.dawn}" fill="url(#sde-hud-hatch)"/>
+      </g></g>
+      <circle cx="${cx}" cy="${cy}" r="${DIAL.disc}" fill="none" stroke="#c9c9c9" stroke-width="1"/>
+      <circle cx="${cx}" cy="${cy}" r="91" fill="none" stroke="#000" stroke-width="9"/>
+      <circle cx="${cx}" cy="${cy}" r="96" fill="none" stroke="#c9c9c9" stroke-width="2"/>
+      <circle cx="${cx}" cy="${cy}" r="99" fill="none" stroke="#555555" stroke-width="1"/>
+      <rect x="${cx - plateW / 2}" y="27" width="${plateW}" height="27" rx="3" fill="#000" stroke="#c9c9c9" stroke-width="1.5"/>
+      <rect x="${cx + 3 - plateW / 2}" y="30" width="${plateW - 6}" height="21" rx="2" fill="none" stroke="rgba(201,201,201,.25)"/>
+      <text x="${cx}" y="47" text-anchor="middle" class="sde-hud-word">${esc(word)}</text>
+      ${region ? `<text x="${cx}" y="68" text-anchor="middle" class="sde-hud-region"${
+        // A long region and terrain are squeezed to the disc rather than spilling over its rim.
+        region.length > 18 ? ` textLength="120" lengthAdjust="spacingAndGlyphs"` : ""}>${esc(region.toUpperCase())}</text>` : ""}
+      <text x="${cx}" y="${region ? 82 : 72}" text-anchor="middle" class="sde-hud-sunline">${esc(sunLine)}</text>
+      <path transform="translate(${cx} 105)" d="M0 -9 L2.2 -2.2 L9 0 L2.2 2.2 L0 9 L-2.2 2.2 L-9 0 L-2.2 -2.2 Z" fill="#ffffff" stroke="#000" stroke-width="1"/>
+      <g clip-path="url(#sde-hud-moonc)"><circle cx="${d.moon.x}" cy="${d.moon.y}" r="${d.moon.r}" fill="#f0f0f0"/><circle cx="${+(d.moon.x + d.moon.shadow).toFixed(1)}" cy="${d.moon.y}" r="${d.moon.r}" fill="#000"/></g>
+      <circle cx="${d.moon.x}" cy="${d.moon.y}" r="${d.moon.r}" fill="none" stroke="#000" stroke-width="1"/>
+    </svg>`;
+  },
+
+  _timePanel() {
+    const { now, cal, parts } = this._now();
+    const c = cal.timeToComponents(now);
+    const pad = (n) => String(n).padStart(2, "0");
+    const value = `${String(parts.year).padStart(4, "0")}-${pad(c.month + 1)}-${pad(parts.day)}T${parts.time}`;
+    let realtime = false, tracking = true;
+    try { realtime = !!game.settings.get("shadowdark", "realtimeLightTracking"); } catch { /* not the Shadowdark system */ }
+    try { tracking = game.settings.get("shadowdark", "trackLightSources") !== false; } catch { /* idem */ }
+    const paused = realtime && game.paused;
+    const jumps = Object.entries(JUMPS).map(([id, k]) => key("jump", t(k), { id, cls: "sde-hud-sm" })).join("");
+    return `<div class="sde-hud-panel sde-hud-narrow">
+      <div class="sde-hud-ph"><span class="sde-hud-ttl">${esc(t("SDE.clock.time"))}</span>
+        <span class="sde-hud-cap">${esc(t("SDE.clock.date", { weekday: t(parts.weekday), day: parts.day, month: t(parts.month), year: parts.year }))} · <b>${esc(parts.time)}</b></span></div>
+      <div class="sde-hud-pb">
+        <span class="sde-hud-cap">${esc(t("SDE.clock.jumpTo"))}</span>
+        <div class="sde-hud-grid4">${jumps}</div>
+        <label class="sde-hud-cap" for="sde-hud-when">${esc(t("SDE.clock.setDate"))}</label>
+        <div class="sde-hud-row"><input class="sde-hud-field" id="sde-hud-when" type="datetime-local" value="${esc(value)}">${key("setTime", t("SDE.clock.set"), { cls: "sde-hud-sm" })}</div>
+        <label class="sde-hud-check"><input type="checkbox" data-action="realtime" ${realtime ? "checked" : ""} ${tracking ? "" : "disabled"}>
+          <span>${esc(t("SDE.clock.realtime"))}</span><span class="sde-hud-cap">${esc(t(paused ? "SDE.clock.paused" : "SDE.clock.lightTracking"))}</span></label>
+        <span class="sde-hud-fl">${esc(t("SDE.clock.timeNote"))}</span>
+      </div>
+    </div>`;
+  },
+
+  _monthPanel() {
+    const { now, cal } = this._now();
+    const gm = game.user.isGM;
+    let epoch = 0;
+    try { epoch = Number(game.settings.get(MODULE_ID, "moonEpoch")) || 0; } catch { /* default */ }
+    const holidaysOn = (date) => this._holidays.filter((h) => this._whenMatches?.(h.when, date)).map((h) => h.name);
+    const g = monthGrid(cal, now, { offset: this._monthOffset, epoch, holidaysOn });
+    const heads = g.weekdays.map((w) => `<div class="sde-hud-dow">${esc(t(w))}</div>`).join("");
+    const cells = g.cells.map((cell) => {
+      if (cell.out) return `<div class="sde-hud-day sde-hud-out">${cell.day}</div>`;
+      const mark = cell.moon ? `<span class="sde-hud-m sde-hud-m-${cell.moon}" data-tooltip="${esc(t(MOON_MARK[cell.moon]))}"></span>` : "";
+      const hol = cell.holidays.length ? `<span class="sde-hud-h">${esc(cell.holidays.join(", "))}</span>` : "";
+      const cls = `sde-hud-day${cell.today ? " sde-hud-today" : ""}`;
+      return gm
+        ? `<button type="button" class="${cls}" data-action="goto" data-id="${cell.at}" aria-label="${esc(t("SDE.clock.goTo", { day: cell.day, month: t(g.month) }))}">${cell.day}${mark}${hol}</button>`
+        : `<div class="${cls}">${cell.day}${mark}${hol}</div>`;
+    }).join("");
+    const season = cal.seasons?.values?.[g.season]?.name;
+    const notes = [
+      g.fullMoon ? t("SDE.clock.fullMoonOn", { day: g.fullMoon }) : "",
+      gm ? t("SDE.clock.clickDay") : "",
+      this._holidays.length ? "" : t("SDE.clock.noHolidays"),
+    ].filter(Boolean).join(" ");
+    return `<div class="sde-hud-panel sde-hud-wide">
+      <div class="sde-hud-ph sde-hud-ph-row">
+        ${key("month", "‹", { id: "-1", cls: "sde-hud-sm", hint: t("SDE.clock.prevMonth") })}
+        <span class="sde-hud-ttl">${esc(`${t(g.month)} ${g.year}`)}</span>${season ? `<span class="sde-hud-cap">${esc(t(season))}</span>` : ""}
+        ${key("month", "›", { id: "1", cls: "sde-hud-sm", hint: t("SDE.clock.nextMonth") })}
+      </div>
+      <div class="sde-hud-pb"><div class="sde-hud-mgrid" style="grid-template-columns:repeat(${g.weekdays.length || 7},minmax(0,1fr))">${heads}${cells}</div>
+        <span class="sde-hud-fl">${esc(notes)}</span></div>
+    </div>`;
   },
 
   _model() {
@@ -118,101 +351,139 @@ export const TravelBar = {
       const a = game.actors.get(id);
       if (a) actors[id] = { name: a.name, rations: a.items.filter((i) => /^rations?$/i.test(i.name)).reduce((n, i) => n + (Number(i.system?.quantity) || 0), 0) };
     }
-    return barModel({
-      state, actors, isGM: !!game.user.isGM,
-      owns: (id) => !!game.actors.get(id)?.isOwner,
-    });
+    return barModel({ state, actors, isGM: !!game.user.isGM, owns: (id) => !!game.actors.get(id)?.isOwner });
   },
 
-  _slim() {
-    const { parts, sun, sky, moon } = this._now();
-    const m = this._model();
-    const date = t("SDE.overland.bar.date", { weekday: t(parts.weekday), day: parts.day, month: t(parts.month) });
-    const skyText = sky.isDay
-      ? t("SDE.overland.bar.sunSets", { time: hhmm(sun.sunset) })
-      : t("SDE.overland.bar.moonUp", { phase: t(MOON_NAME[moon.key]), time: hhmm(sun.sunrise) });
-    const weather = weatherNow();
-    const cells = [
-      `<span class="sde-travel-cell"><strong>${esc(date)}</strong> ${esc(parts.time)}</span>`,
-      `<span class="sde-travel-cell"><i class="fas ${sky.isDay ? "fa-sun" : "fa-moon"}"></i> ${esc(skyText)}</span>`,
-      `<span class="sde-travel-cell${m.stormy ? " sde-travel-stormy" : ""}">${esc(weather ? weatherName(weather) : t("SDE.overland.bar.noWeather"))}</span>`,
-      `<span class="sde-travel-cell">${esc(m.dayOpen ? t("SDE.overland.bar.hexes", { left: m.hexesLeft, budget: m.budget }) : t("SDE.overland.bar.noDay"))}</span>`,
-    ];
-    return `<div class="sde-travel-slim">
-      <button type="button" class="sde-travel-toggle" data-action="toggle" aria-expanded="${this._open}"
-        data-tooltip="${esc(t(this._open ? "SDE.overland.bar.collapse" : "SDE.overland.bar.expand"))}">${cells.join("")}
-        <i class="fas ${this._open ? "fa-chevron-up" : "fa-chevron-down"}"></i></button>
-      ${m.pending ? button("resume", t("SDE.overland.resume"), { hint: t("SDE.overland.resumeHint"), cls: "sde-travel-go" }) : ""}
-    </div>`;
-  },
-
-  /** The sky dome: the sun on its arc by day, the moon by its phase at night. */
-  _dome({ sky, moon }) {
-    const { x, y } = domePoint(sky.progress);
-    const r = 6;
-    const body = sky.isDay
-      ? `<circle class="sde-dome-sun" cx="${x}" cy="${y}" r="${r}"/>`
-      : `<clipPath id="sde-dome-moon-clip"><circle cx="${x}" cy="${y}" r="${r}"/></clipPath>
-         <circle class="sde-dome-moon" cx="${x}" cy="${y}" r="${r}"/>
-         <circle class="sde-dome-shadow" cx="${+(x + moonShadow(moon) * r).toFixed(2)}" cy="${y}" r="${r + 0.6}" clip-path="url(#sde-dome-moon-clip)"/>`;
-    const { cx, cy, r: R } = DOME;
-    return `<svg class="sde-travel-dome" viewBox="0 0 120 60" role="img" aria-label="${esc(t(sky.isDay ? "SDE.overland.bar.domeDay" : "SDE.overland.bar.domeNight"))}">
-      <path class="sde-dome-arc" d="M${cx - R},${cy} A${R},${R} 0 0 1 ${cx + R},${cy}"/>
-      <line class="sde-dome-horizon" x1="4" y1="${cy}" x2="116" y2="${cy}"/>${body}</svg>`;
-  },
-
-  _panel() {
-    const now = this._now();
+  /** The day as it stands. The eight steps of the book's procedure come next (#257). */
+  _travelPanel() {
+    const { now, cal } = this._now();
     const m = this._model();
     const gm = game.user.isGM;
-    const row = (label, value) => `<div class="sde-travel-row"><span>${esc(label)}</span><span>${value}</span></div>`;
-    const climate = [now.season, m.climate, m.harsh ? t("SDE.overland.bar.harsh") : ""].filter(Boolean).join(" · ");
+    const row = (label, value) => `<div class="sde-hud-trow"><span class="sde-hud-cap">${esc(label)}</span><span>${value}</span></div>`;
+    const climate = [t(seasonAt(cal, now).name ?? ""), m.climate, m.harsh ? t("SDE.overland.bar.harsh") : ""].filter(Boolean).join(" · ");
     const method = [methodName(m.method), m.pushed ? t("SDE.overland.bar.pushed") : ""].filter(Boolean).join(", ");
-    const members = m.members.map((p) => `<li>${esc(p.name)}: ${esc(t("SDE.overland.bar.rations", { n: p.rations }))}${
-      p.foraged ? ` <em>${esc(t("SDE.overland.bar.foraged"))}</em>` : ""}${
-      p.canForage ? ` ${button("forage", t("SDE.overland.forage.button"), { id: p.id, hint: t("SDE.overland.forage.buttonHint") })}` : ""}</li>`).join("");
+    const members = m.members.map((p) => `<div class="sde-hud-member"><span class="sde-hud-n">${esc(p.name)}</span>
+      <span>${esc(t("SDE.overland.bar.rations", { n: p.rations }))}</span>${p.foraged ? `<span class="sde-hud-chip">${esc(t("SDE.overland.bar.foraged"))}</span>` : ""}
+      ${p.canForage ? key("forage", t("SDE.overland.forage.button"), { id: p.id, hint: t("SDE.overland.forage.buttonHint"), cls: "sde-hud-sm" }) : ""}</div>`).join("");
     const checks = m.checks.map((c) => {
       const result = !c.rolled ? t("SDE.overland.bar.checkDue") : c.hit ? t("SDE.overland.bar.checkHit") : t("SDE.overland.bar.checkMiss");
-      const label = t(c.half === "night" ? "SDE.overland.check.night" : "SDE.overland.check.day", { time: dateParts(game.time.calendar, c.at).time });
-      return `<li>${esc(label)}: ${esc(result)}</li>`;
+      const label = t(c.half === "night" ? "SDE.overland.check.night" : "SDE.overland.check.day", { time: dateParts(cal, c.at).time });
+      return `<div class="sde-hud-checkrow"><span class="sde-hud-dot ${c.rolled ? (c.hit ? "sde-hud-hit" : "sde-hud-miss") : ""}"></span>${esc(label)}: ${esc(result)}</div>`;
     }).join("");
-    return `<div class="sde-travel-panel">
-      ${this._dome(now)}
-      <div class="sde-travel-rows">
-        ${row(t("SDE.overland.bar.season"), esc(climate))}
-        ${row(t("SDE.overland.bar.weather"), `${esc(weatherNow() ? weatherName(weatherNow()) : t("SDE.overland.bar.noWeather"))}${
-          gm ? ` ${button("rollWeather", t("SDE.overland.bar.roll"), { hint: t("SDE.overland.rollWeatherHint") })} ${
-            button("reroll", t("SDE.overland.bar.reroll"), { hint: t("SDE.overland.bar.rerollHint") })}` : ""}`)}
+    const weather = weatherNow();
+    return `<div class="sde-hud-panel sde-hud-travel">
+      <div class="sde-hud-ph"><span class="sde-hud-ttl">${esc(t("SDE.clock.travel"))}</span>
+        <span class="sde-hud-cap">${esc([overlandState().hex?.region, climate].filter(Boolean).join(" · "))}</span></div>
+      <div class="sde-hud-pb">
+        ${row(t("SDE.overland.bar.weather"), `${esc(weather ? weatherName(weather) : t("SDE.overland.bar.noWeather"))}${gm
+          ? ` ${key("rollWeather", t("SDE.overland.bar.roll"), { hint: t("SDE.overland.rollWeatherHint"), cls: "sde-hud-sm" })} ${
+            key("reroll", t("SDE.overland.bar.reroll"), { hint: t("SDE.overland.bar.rerollHint"), cls: "sde-hud-sm" })}` : ""}`)}
         ${row(t("SDE.overland.bar.method"), esc(m.dayOpen ? method : t("SDE.overland.bar.noDay")))}
-        ${m.dayOpen ? row(t("SDE.overland.bar.budget"), `<span class="sde-travel-budget" role="img" aria-label="${
+        ${m.dayOpen ? row(t("SDE.overland.bar.budget"), `<span class="sde-hud-meter" role="img" aria-label="${
           esc(t("SDE.overland.bar.hexes", { left: m.hexesLeft, budget: m.budget }))}"><span style="width:${Math.round(m.leftShare * 100)}%"></span></span> ${
           esc(t("SDE.overland.bar.hexes", { left: m.hexesLeft, budget: m.budget }))}`) : ""}
-        ${row(t("SDE.overland.bar.party"), `<ul class="sde-travel-list">${members}</ul>${
-          m.mounts ? esc(t("SDE.overland.bar.mounts", { n: m.mounts })) : ""}`)}
-        ${gm && checks ? row(t("SDE.overland.bar.checks"), `<ul class="sde-travel-list">${checks}</ul>`) : ""}
+        <span class="sde-hud-cap">${esc(t("SDE.overland.bar.party"))}${m.mounts ? ` · ${esc(t("SDE.overland.bar.mounts", { n: m.mounts }))}` : ""}</span>
+        ${members}
+        ${gm && checks ? `<span class="sde-hud-cap">${esc(t("SDE.overland.bar.checks"))}</span>${checks}` : ""}
       </div>
-      ${gm ? `<div class="sde-travel-actions">${[
-        button("startDay", t("SDE.overland.startDay"), { hint: t("SDE.overland.startDayHint") }),
-        button("makeCamp", t("SDE.overland.makeCamp"), { hint: t("SDE.overland.makeCampHint") }),
-        button("endTravel", t("SDE.overland.endTravel"), { hint: t("SDE.overland.endTravelHint") }),
+      ${gm ? `<div class="sde-hud-pf">${m.pending ? key("resume", t("SDE.overland.resume"), { hint: t("SDE.overland.resumeHint"), cls: "sde-hud-primary" }) : ""}${[
+        key("startDay", t("SDE.overland.startDay"), { hint: t("SDE.overland.startDayHint") }),
+        key("makeCamp", t("SDE.overland.makeCamp"), { hint: t("SDE.overland.makeCampHint") }),
+        `<span class="sde-hud-grow"></span>`,
+        key("endTravel", t("SDE.overland.endTravel"), { hint: t("SDE.overland.endTravelHint"), cls: "sde-hud-ghost" }),
       ].join("")}</div>` : ""}
     </div>`;
   },
 
+  /** Move the clock by `seconds`: forward off duty for a calendar jump, else through Overland's clock action. */
+  async _move(seconds, { calendar = false } = {}) {
+    if (!seconds) return;
+    const warn = (reply) => { if (!reply?.ok && reply?.error) ui.notifications.warn(reply.error); };
+    if (calendar && seconds > 0 && !CrawlState.isOverland) {
+      const reply = await game.shadowdarkEnhancer.time.advanceOffDuty(seconds, { reason: "calendar" });
+      return warn(reply);
+    }
+    return warn(await advanceClock(seconds));
+  },
+
   async _onClick(event) {
     const el = event.target.closest("[data-action]");
-    if (!el || !this._el.contains(el)) return;
+    if (!el || !this._el.contains(el) || el.matches("input")) return;
+    const id = el.dataset.id;
     const warn = (reply) => { if (!reply?.ok && reply?.error) ui.notifications.warn(reply.error); };
     switch (el.dataset.action) {
-      case "toggle": this._open = !this._open; return this.render();
-      case "forage": return forage(el.dataset.id);
+      case "open":
+        this._open = this._open === id ? null : id;
+        if (this._open === "month") {
+          this._monthOffset = 0;
+          await this._loadHolidays();
+        }
+        return this.render();
+      case "stack": this._stack = this._stack === id ? null : id; return this.render();
+      case "sky": this._sky = !this._sky; this._open = null; return this.render();
+      case "month": this._monthOffset += Number(id) || 0; return this.render();
+      case "step": return this._move(Number(id));
+      case "jump": {
+        const now = game.time.worldTime;
+        return this._move(nextTimeOfDay(game.time.calendar, now, id) - now);
+      }
+      case "goto": {
+        const cal = game.time.calendar, now = game.time.worldTime;
+        const target = Number(id) + (now - startOfDay(cal, now));
+        return this._move(target - now, { calendar: true });
+      }
+      case "setTime": {
+        const value = this._el.querySelector("#sde-hud-when")?.value;
+        const target = this._parseWhen(value);
+        if (target === null) return ui.notifications.warn(t("SDE.clock.badDate"));
+        return this._move(target - game.time.worldTime, { calendar: true });
+      }
+      case "startTravel": {
+        const started = await startOverland();
+        if (started) this._open = "travel";
+        if (started && !Number.isFinite(overlandState().day)) {
+          const options = await askDay();
+          if (options) warn(await startDay(options));
+        }
+        return this.render();
+      }
+      case "forage": return forage(id);
       case "resume": return warn(await resume());
       case "rollWeather": return warn(await rollWeather());
       case "reroll": return warn(await rollWeather({ reroll: true }));
       case "startDay": { const options = await askDay(); if (options) warn(await startDay(options)); return; }
       case "makeCamp": return warn(await makeCamp());
-      case "endTravel": return endOverland();
+      case "endTravel": this._open = null; return endOverland();
       default: return undefined;
+    }
+  },
+
+  async _onChange(event) {
+    const el = event.target;
+    if (el?.dataset?.action !== "realtime" || !game.user.isGM) return;
+    await game.settings.set("shadowdark", "realtimeLightTracking", !!el.checked).catch((err) => {
+      console.error(`${MODULE_ID} | real-time clock`, err);
+      el.checked = !el.checked;
+    });
+    this.render();
+  },
+
+  /** "YYYY-MM-DDTHH:MM" (the year as shown) to a worldTime, or null. */
+  _parseWhen(value) {
+    const m = /^(-?\d{1,6})-(\d{2})-(\d{2})T(\d{2}):(\d{2})$/.exec(value ?? "");
+    if (!m) return null;
+    const [, y, mo, d, h, mi] = m.map(Number);
+    return dateToTime(game.time.calendar, { year: y, month: mo, day: d, hour: h, minute: mi });
+  },
+
+  async _loadHolidays() {
+    try {
+      const mod = await import("../holidays/holidays.mjs");
+      this._whenMatches = mod.whenMatches;
+      this._holidays = await mod.listHolidays();
+    } catch (err) {
+      console.warn(`${MODULE_ID} | clock: holidays not read`, err);
+      this._holidays = [];
     }
   },
 };

@@ -182,6 +182,7 @@ See [Movement Budgets](Movement-Budgets.md).
 
 | Setting | Default | What it does |
 |---|---|---|
+| **Clock bar** | Everyone | Who sees the date, time and sky at the top of the screen: *Everyone*, *GM only* or *Off*. It hides during a combat whatever this says. See [Clock and Calendar](Clock-and-Calendar.md). |
 | **Weather rule** | Western Reaches | How the crawl bar's **Weather** rolls during overland travel. *Western Reaches*: a d6 each day, where 1 is stormy until the next dawn and 6 is excellent and gives the next roll advantage. *Core rules*: a 1 is a storm lasting 1d4 days, with no roll while it lasts. |
 
 See [Crawl Strip and Crawl Bar](Crawl-Strip-and-Crawl-Bar.md#overland-travel).

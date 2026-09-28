@@ -277,6 +277,23 @@ export function registerSettings() {
     default: "western",
   });
 
+  // The clock bar at the top (#253): who sees it. Everyone by default; nobody
+  // during a combat whatever this says.
+  game.settings.register(MODULE_ID, "clockBar", {
+    name: "SDE.settings.clockBar.name",
+    hint: "SDE.settings.clockBar.hint",
+    scope: "world",
+    config: false,
+    type: String,
+    choices: {
+      all: "SDE.settings.clockBar.all",
+      gm: "SDE.settings.clockBar.gm",
+      off: "SDE.settings.clockBar.off",
+    },
+    default: "all",
+    onChange: () => Hooks.callAll(`${MODULE_ID}.clockBarChanged`),
+  });
+
   // Internal world setting: a worldTime at which the moon was new; the time
   // API's moon phases count from it (scripts/time/time.mjs, MOON_EPOCH). The
   // default, worldTime 0, puts a new moon at the start of the calendar.

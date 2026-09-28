@@ -386,6 +386,36 @@ export async function advanceTravel(target, reason) {
 }
 
 /**
+ * Run `fn` with the system's real-time clock stopped, so a tick sent while a
+ * move is in flight can't set the clock back to where it was: core's
+ * advance writes an absolute time from this tab's cached one.
+ * ponytail: stops the ticker on this tab only, which holds it when this GM is
+ * the light tracker's primary GM; a ticker on another GM's tab can still race.
+ * Off-duty's hand-off (offDutyRoute) is the upgrade path.
+ */
+export async function holdClock(fn) {
+  const clock = game.shadowdark?.lightSourceTracker?.realTime;
+  const ticking = clock?.updateIntervalId != null;
+  if (ticking) clock.stop();
+  try { return await fn(); } finally { if (ticking) clock.start(); }
+}
+
+/**
+ * Move the clock from the top bar (GM, #253). While travelling, a move forward
+ * goes through advanceTravel, so the day's checks it passes roll at their
+ * hours and a hit stops it there; refused while an encounter holds the clock.
+ * Otherwise, and backwards, the clock just moves. A GM who isn't the active
+ * GM is forwarded there.
+ * @param {number} seconds  negative to go back
+ * @returns {Promise<{ok:true, stopped?:boolean}|{ok:false, error:string}>}
+ */
+export async function advanceClock(seconds) {
+  if (!game.user?.isGM) return { ok: false, error: t("SDE.clock.gmOnly") };
+  const data = { action: "clock", seconds };
+  return isActiveGM() ? applyAction(data, game.user) : queryActiveGM(OVERLAND_QUERY, data, { label: t("SDE.overland.relayLabel") });
+}
+
+/**
  * Finish an advance an encounter stopped (GM): the rest of the move, or later
  * the night. A GM who isn't the active GM is forwarded there.
  * @returns {Promise<{ok:true, stopped:boolean}|{ok:false, error:string}>}
@@ -810,6 +840,18 @@ export function applyAction(data, user) {
         await postCheckHours();
         // A check whose hour went by before the day started falls due at once (§5.1).
         await advanceTravel(now, "day");
+        return { ok: true };
+      }
+      case "clock": {
+        if (!user.isGM) return { ok: false, error: t("SDE.clock.gmOnly") };
+        const seconds = Math.trunc(Number(data.seconds));
+        if (!Number.isFinite(seconds) || !seconds) return { ok: false, error: t("SDE.overland.notify.unknown") };
+        if (_state.pending) return { ok: false, error: t("SDE.clock.continueFirst") };
+        if (CrawlState.isOverland && seconds > 0) {
+          const { stopped } = await holdClock(() => advanceTravel(game.time.worldTime + seconds, "clock"));
+          return { ok: true, stopped };
+        }
+        await holdClock(() => game.time.advance(seconds));
         return { ok: true };
       }
       case "resume": {

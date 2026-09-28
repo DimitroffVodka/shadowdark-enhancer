@@ -29,6 +29,7 @@ Tools you run during an active game session.
 
 | Page | What it covers |
 |---|---|
+| [Clock and Calendar](Clock-and-Calendar.md) | The date, time and sky at the top of the screen; steps, jumps and dates for the GM; the month with its moons and holidays |
 | [Crawl Strip & Crawl Bar](Crawl-Strip-and-Crawl-Bar.md) | Party HP, movement, and Luck at a glance, marching order, crawl rounds, combat HUD |
 | [Dying and Death Timers](Dying-and-Death-Timers.md) | 0 HP, the death timer and the rise roll, stabilizing, Deadly and Fatality, class and training modifiers |
 | [Modes of Play](Modes-of-Play.md) | The core rulebook's optional modes and Hard Luck, one switch per rule: Blitz, Chaos, Hunter, Pulp and the rest |
