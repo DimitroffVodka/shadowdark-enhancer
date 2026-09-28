@@ -93,15 +93,18 @@ bastions.
   the commander's initiative, so nothing rolls for it (Chaos Mode's rerolls
   included), and it has no turn of its own: its card sits right after the
   commander's on the Crawl Strip, and the turn passes it by. It acts on the
-  commander's turn, in any order. Without its commander in the fight it takes
-  its own turn.
+  commander's turn, in any order. Without its commander in the fight, or
+  with the commander dead (or skipped by Skip Defeated), it rolls and takes
+  its own turn. Stepping back with Previous Turn passes it by the same way.
 - **Morale, by itself.** When damage takes a warband to half its HP, and each
   time it's hit while below half, it checks morale: d20 plus its commander's
   CHA against DC 15 (9 if Loyal). **Its commander is leading it**, on the
   Warband tab, gives that check advantage (the commander moves with it but
-  acts on their own). A failure rolls to rout: 3-in-6 (1-in-6 with
+  acts on their own); changing the commander turns it off. A failure rolls to rout: 3-in-6 (1-in-6 with
   Withdraw). A routed warband is destroyed: marked defeated, with a chat
-  card. It stays in the combat tracker, so the recap still counts it.
+  card. It stays in the combat tracker, so the recap still counts it, but it
+  no longer pays upkeep, heals, or counts against its commander's allowance.
+  **Return to Service** undoes a rout; clear its dead status yourself.
 - **Area attacks.** A warband's attack card notes that it fills a near-sized
   area around its target and can split its damage dice among what it hits
   there. The splitting is yours to do.

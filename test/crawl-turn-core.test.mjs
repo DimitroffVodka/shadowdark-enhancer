@@ -206,7 +206,7 @@ function combatWith(combatant, {
     turn,
     round,
     settings,
-    turns: turns ?? [combatant, { id: "next" }, { id: "next2" }],
+    turns: turns ?? [combatant, { id: "next", actor: makeActor({ id: "npcN" }) }, { id: "next2", actor: makeActor({ id: "npcN2" }) }],
     nextTurn: async () => { advanced.push(combatant?.id ?? "?"); },
   };
   return { combat, advanced };
@@ -466,6 +466,29 @@ test("skipDefeated: trailing defeated combatants roll from a NON-last index — 
   assert.equal(reply.ok, false);
   assert.match(reply.error, /turnAdvanceRoundBoundary/);
   assert.deepEqual(advanced, [], "no round roll-over through the player channel");
+});
+
+test("the turns left are nobody's (a corpse, a warband following its commander): refused for a player", async () => {
+  // turn-skip walks every turnless combatant, so the advance lands in the next
+  // round even with Skip Defeated off and nothing flagged defeated (#203).
+  const mine = makeActor({ id: "pc1", ownerId: PLAYER.id });
+  const corpse = { ...makeActor({ id: "npcDead" }), system: { attributes: { hp: { value: 0 } } } };
+  const warband = {
+    ...makeActor({ id: "wb" }), type: "shadowdark-enhancer.warband",
+    flags: { "shadowdark-enhancer": { warband: { commander: "Actor.pc1" } } },
+  };
+  mine.uuid = "Actor.pc1";
+  mine.type = "Player";
+  const turns = [{ id: "c1", actor: mine }, { id: "c2", actor: warband }, { id: "c3", actor: corpse }];
+  const combat0 = { combatants: turns };
+  for (const t of turns) t.parent = combat0;
+  const { combat, advanced } = combatWith(turns[0], { turns });
+  const { handle } = await gmClientHarness({ combat, advanced });
+
+  const reply = await handle({ action: "combat:nextTurn" }, PLAYER);
+  assert.equal(reply.ok, false);
+  assert.match(reply.error, /turnAdvanceRoundBoundary/);
+  assert.deepEqual(advanced, []);
 });
 
 test("round 0: nextTurn rolls unconditionally (foundry.mjs:51030) — refused for a player", async () => {

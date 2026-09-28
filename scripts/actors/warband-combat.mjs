@@ -3,7 +3,8 @@
  *
  * A warband acts on its commander's turn: its combatant takes the
  * commander's initiative (so nothing rolls for it, Chaos Mode included) and
- * has no turn of its own (turn-skip-core's `follows`). Morale is automatic:
+ * has no turn of its own (turn-skip-core's `follows`). With the commander
+ * dead, or skipped as defeated, it rolls and takes its own. Morale is automatic:
  * when damage takes it to half HP, and each time it's hit while below half,
  * it checks d20 plus its commander's CHA against 15 (Loyal 9), with advantage
  * while the commander leads it; a failure rolls a rout, 3-in-6 (Withdraw
@@ -15,7 +16,7 @@ import { MODULE_ID } from "../shared/module-id.mjs";
 import { isActiveGM } from "../shared/gm-relay.mjs";
 import { replaceModuleFlag } from "../shared/module-flags.mjs";
 import { isAttackCard, actorFromUuidSync } from "../shared/attack-card.mjs";
-import { commanderCombatant } from "../crawl-strip/turn-skip-core.mjs";
+import { leaderCombatant } from "../crawl-strip/turn-skip-core.mjs";
 import * as core from "./warband-core.mjs";
 import { WARBAND_FLAG, warbandState } from "./warband-npc-sheet.mjs";
 
@@ -31,9 +32,9 @@ const enqueue = (fn) => {
 
 const hpOf = (actor) => Number(actor?.system?.attributes?.hp?.value ?? 0);
 
-/** Give a warband's combatant its commander's initiative, when it has one and they differ. */
+/** Give a warband's combatant its commander's initiative, when it follows them and they differ. */
 async function followInitiative(combatant) {
-  const commander = commanderCombatant(combatant);
+  const commander = leaderCombatant(combatant);
   const init = commander?.initiative;
   if (init === null || init === undefined || combatant.initiative === init) return;
   await combatant.update({ initiative: init });
@@ -43,7 +44,7 @@ async function followInitiative(combatant) {
 async function syncInitiative(combatant) {
   await followInitiative(combatant);
   for (const other of combatant.parent?.combatants ?? []) {
-    if (other !== combatant && commanderCombatant(other) === combatant) await followInitiative(other);
+    if (other !== combatant && leaderCombatant(other) === combatant) await followInitiative(other);
   }
 }
 
@@ -53,12 +54,13 @@ async function moraleCheck(actor) {
   if (st.routed || st.deserted) return;
   const pc = st.commander ? await fromUuid(st.commander).catch(() => null) : null;
   const cha = Number(pc?.system?.abilities?.cha?.mod) || 0;
+  const leading = st.leading && !!pc;
   const dc = core.moraleDC(st.upgrades);
-  const roll = await new Roll(core.moraleFormula(cha, st.leading)).evaluate();
+  const roll = await new Roll(core.moraleFormula(cha, leading)).evaluate();
   const held = roll.total >= dc;
   await roll.toMessage({
     speaker: ChatMessage.getSpeaker({ actor }),
-    flavor: t(held ? "SDE.warband.morale.held" : "SDE.warband.morale.failed", { warband: actor.name, dc, lead: st.leading ? t("SDE.warband.morale.leading") : "" }),
+    flavor: t(held ? "SDE.warband.morale.held" : "SDE.warband.morale.failed", { warband: actor.name, dc, lead: leading ? t("SDE.warband.morale.leading") : "" }),
   });
   if (held) return;
   const chance = core.routChance(st.upgrades);
@@ -101,6 +103,7 @@ export function registerWarbandCombat(type) {
   // whether a change was a hit and from where; it alone rolls.
   const seen = new Map();
   Hooks.once("ready", () => { for (const a of game.actors) if (a.type === type) seen.set(a.uuid, hpOf(a)); });
+  Hooks.on("createActor", (a) => { if (a.type === type) seen.set(a.uuid, hpOf(a)); });
   Hooks.on("updateActor", (actor, changes) => {
     if (actor.type !== type || changes?.system?.attributes?.hp?.value === undefined) return;
     const before = seen.get(actor.uuid) ?? Number(actor.system.attributes.hp.max ?? 0);

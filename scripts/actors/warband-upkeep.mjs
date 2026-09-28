@@ -71,7 +71,7 @@ async function runMonth(type, at = game.time.worldTime) {
   const lines = [];
   await eachWarband(type, async (wb) => {
     const st = warbandState(wb);
-    if (st.deserted) return;
+    if (st.deserted || st.routed) return;
     const pc = await commanderOf(wb);
     const gp = core.upkeepGp(wb.system.level?.value);
     if (!pc || !gp) return;
@@ -100,7 +100,7 @@ async function arrearsMorale(type) {
   let rolled = 0;
   await eachWarband(type, async (wb) => {
     const st = warbandState(wb);
-    if (!st.arrears || st.deserted) return;
+    if (!st.arrears || st.deserted || st.routed) return;
     const pc = await commanderOf(wb);
     if (!pc) return;
     rolled++;
@@ -122,7 +122,7 @@ async function healDays(type, days) {
   const lines = [];
   await eachWarband(type, async (wb) => {
     const st = warbandState(wb);
-    if (st.deserted) return;
+    if (st.deserted || st.routed) return;
     const hp = wb.system.attributes?.hp ?? {};
     const missing = (Number(hp.max) || 0) - (Number(hp.value) || 0);
     const plan = core.healPlan(days, missing, st.upgrades);
@@ -187,10 +187,10 @@ export const WarbandUpkeep = {
     });
   },
 
-  /** Bring a deserted warband back (GM): its arrears stay until paid. */
+  /** Bring a deserted or routed warband back (GM): its arrears stay until paid. */
   returnToService(wb) {
     if (!game.user.isGM) return Promise.resolve(false);
-    return enqueue(async () => replaceModuleFlag(wb, WARBAND_FLAG, { ...warbandState(wb), deserted: false }));
+    return enqueue(async () => replaceModuleFlag(wb, WARBAND_FLAG, { ...warbandState(wb), deserted: false, routed: false }));
   },
 };
 

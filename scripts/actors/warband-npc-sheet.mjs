@@ -66,7 +66,9 @@ export async function commanderTier(pc) {
 
 /** The world's other warbands under this commander, and the upgrades they carry. */
 export function commandedBy(commanderUuid, { except, type }) {
-  const others = game.actors.filter((a) => a.type === type && a.id !== except && warbandState(a).commander === commanderUuid);
+  // A routed warband is destroyed (#203): it no longer counts.
+  const others = game.actors.filter((a) => a.type === type && a.id !== except && !warbandState(a).routed
+    && warbandState(a).commander === commanderUuid);
   return { otherWarbands: others.length, otherUpgrades: others.reduce((n, a) => n + warbandState(a).upgrades.length, 0) };
 }
 
@@ -116,6 +118,7 @@ export function buildWarbandNpcSheet(BaseNpcSheet, type) {
         isGM: game.user.isGM,
         leading: state.leading,
         routed: state.routed,
+        outOfService: state.deserted || state.routed,
       };
       return context;
     }
@@ -181,7 +184,9 @@ export function buildWarbandNpcSheet(BaseNpcSheet, type) {
         }
         if (!allowance) ui.notifications?.warn(game.i18n.format("SDE.warband.notify.noHitDie", { name: pc.name }));
       }
-      await replaceModuleFlag(this.actor, WARBAND_FLAG, { ...state, commander: pc?.uuid ?? null });
+      // Leading is the commander's choice: a new commander (or none) starts without it.
+      const leading = state.leading && (pc?.uuid ?? null) === state.commander;
+      await replaceModuleFlag(this.actor, WARBAND_FLAG, { ...state, commander: pc?.uuid ?? null, leading });
       return true;
     }
 

@@ -18,7 +18,7 @@ import { relayToGM, authorizeActorFor, refuseQuery } from "../shared/gm-relay.mj
 import { computeLightState, isLightItem } from "./crawl-lights-core.mjs";
 import { canAdvanceTurn, canAdvanceOocTurn, nextTurnWouldRollRound } from "./crawl-turn-core.mjs";
 import { oocOrderComplete } from "./crawl-state-core.mjs";
-import { combatantEntry, isHiddenFromStrip, commanderCombatant } from "./turn-skip-core.mjs";
+import { combatantEntry, isHiddenFromStrip, isTurnless, commanderCombatant } from "./turn-skip-core.mjs";
 import { showOocReset } from "./crawl-tracker-core.mjs";
 import { dyingState, badgeHTML as dyingBadgeHTML, openMenu as openDyingMenu } from "../dying/dying.mjs";
 import {
@@ -368,12 +368,16 @@ export const CrawlStrip = {
       requesterIsGM: !!user?.isGM,
       requesterOwnsCurrentCombatant: !!(combatant?.actor && user
         && combatant.actor.testUserPermission(user, "OWNER")),
+      // Every later turn that nobody takes counts as passed: core skips the
+      // defeated under Skip Defeated, and turn-skip walks the turnless (a
+      // corpse, a warband following its commander) straight into the next round.
       advanceWouldRollRound: nextTurnWouldRollRound({
         round: combat?.round ?? 0,
         turn: turnIndex,
         turnCount: turns.length,
-        skipDefeated: combat?.settings?.skipDefeated ?? false,
-        defeated: turns.map(t => !!t?.isDefeated),
+        skipDefeated: true,
+        defeated: turns.map(t => isTurnless(combatantEntry(t))
+          || (!!combat?.settings?.skipDefeated && !!t?.isDefeated)),
       }),
     });
     if (!verdict.ok) {

@@ -41,8 +41,10 @@
  *                               read for PCs: a dead PC keeps its card (the
  *                               skull) but has no turn (dying.mjs, #181).
  * @property {boolean} [follows] A warband unit whose commander is in the same
- *                               combat: it acts on the commander's turn, so it
- *                               keeps its card but has no turn of its own (#203).
+ *                               combat with a turn to take: it acts on the
+ *                               commander's turn, so it keeps its card but has
+ *                               no turn of its own (#203). With the commander
+ *                               dead, or skipped as defeated, it takes its own.
  */
 
 /**
@@ -64,7 +66,7 @@ export function combatantEntry(combatant) {
     defeated: combatant?.defeated === true,
     hp: actor?.system?.attributes?.hp?.value ?? actor?.system?.hp?.value ?? 1,
     dead: actor?.statuses?.has?.("dead") === true,
-    follows: commanderInCombat(combatant),
+    follows: !!leaderCombatant(combatant),
   };
 }
 
@@ -85,7 +87,20 @@ export function commanderCombatant(combatant) {
   return [...all].find((c) => c !== combatant && c.actor?.uuid === commander) ?? null;
 }
 
-const commanderInCombat = (combatant) => !!commanderCombatant(combatant);
+/**
+ * The commander's combatant when the warband acts on the commander's turn:
+ * the commander has a turn to take (not dead, not skipped by core's Skip
+ * Defeated). Otherwise null, and the warband takes its own turns. The
+ * commander is a PC, so reading its entry never comes back here.
+ * @param {object} combatant
+ * @returns {object|null}
+ */
+export function leaderCombatant(combatant) {
+  const cmd = commanderCombatant(combatant);
+  if (!cmd || isTurnless(combatantEntry(cmd))) return null;
+  if (cmd.isDefeated === true && cmd.parent?.settings?.skipDefeated === true) return null;
+  return cmd;
+}
 
 /**
  * Does this combatant get NO card on the strip?

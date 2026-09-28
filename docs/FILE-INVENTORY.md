@@ -1,7 +1,7 @@
 # Shadowdark Enhancer — File Inventory
 
 <!-- inventory:stats:start -->
-1062 tracked files · ~187,800 lines of code/markup across scripts+templates+styles+test.
+1062 tracked files · ~187,900 lines of code/markup across scripts+templates+styles+test.
 `v0.17.3` in both `module.json` and `package.json`.
 <!-- inventory:stats:end -->
 **Layout reflects the 2026-07-21 feature-folder reorganization (v0.11.0 cycle).**
@@ -80,7 +80,7 @@
 | `holidays/holidays.mjs` | 211 | Holidays for carousing (#191): the four City of Masks holidays (CS6 pp.46-47) as recipes (name, page, place, `when` anchor, carousing mechanics, garb questions with modifiers), no book wording; pure `whenMatches(rule, dateInfo)` / `placeMatches`, and `holidays.list()` / `today({place})`, which list a holiday once its page is imported by the Chapter-to-journal preset. `currentDateInfo()` reads the core calendar, with `isLastFullMoonOfYear` from the time API's `anchor("lastFullMoon")` (#227), so Lastmoon falls. |
 | `luck-reroll/hard-luck.mjs` | 57 | Hard Luck Mode (GMWR p.30, #186), pure: the system's criticalFailure test with a plain-d20 fallback, and the luck-granting spell/ability (Bless, Trance, Omen) a roll came from, by name. |
 | `modes-of-play/blitz.mjs` | 100 | Blitz Mode (#179): lighting a Basic light source clamps its remaining time to 30 min (and marks it used); a light spell's Effect is created with 30 min. Pure patch helpers + preUpdateItem/preCreateItem hooks. |
-| `modes-of-play/chaos.mjs` | 211 | Chaos Mode (#180): reroll every combatant's initiative (Combatant#getInitiativeRoll) at the start of rounds 2+, one combatant update with combatTurn 0, one card per round without hidden combatants; off under clockwise initiative. The round's turn events are held (combatRound hook) and replayed through Combat#_manageTurnEvents around the reroll, so the new top starts first (#259). Called from turn-skip.mjs under its lock. |
+| `modes-of-play/chaos.mjs` | 223 | Chaos Mode (#180): reroll every combatant's initiative (Combatant#getInitiativeRoll) at the start of rounds 2+, one combatant update with combatTurn 0, one card per round without hidden combatants; off under clockwise initiative. The round's turn events are held (combatRound hook) and replayed through Combat#_manageTurnEvents around the reroll, so the new top starts first (#259). Called from turn-skip.mjs under its lock. |
 | `modes-of-play/hunter.mjs` | 99 | Hunter Mode (#184): on deleteCombat (not a Delete Encounter discard) the active GM pays every PC in the fight XP for each NPC still defeated (half its level, level 1 → 1) through PartyXP.award, one card. Pure hunterXp/hunterAward + payHunterXp. |
 | `modes-of-play/pulp-core.mjs` | 127 | Pulp Mode pure half: critExtraFormula (the dice a crit adds to rolled damage, per applyCriticalHit), showLuckCrit, showForceReroll. |
 | `modes-of-play/pulp.mjs` | 294 | Pulp Mode (#185): session luck on the sessionStart hook (1d4, set), and the Luck: critical hit / force a reroll chat buttons. Both relay to the active GM (PULP_QUERY), which checks the requester, spends the token and edits the card. |
@@ -146,7 +146,7 @@
 
 | File | Lines | Description |
 |---|---:|---|
-| `crawl-strip.mjs` | 1689 | The core feature: the top strip. Plain DOM (`#shadowdark-enhancer-strip`), not ApplicationV2. |
+| `crawl-strip.mjs` | 1693 | The core feature: the top strip. Plain DOM (`#shadowdark-enhancer-strip`), not ApplicationV2. |
 | `crawl-state.mjs` | 482 | Foundry-coupled state singleton — persistence, sockets, hook emission. |
 | `crawl-state-core.mjs` | 378 | Pure reducer/normalizer behind crawl-state. Node-testable. |
 | `crawl-lights-core.mjs` | 93 | Pure light-source logic for the strip's flame badges. |
@@ -154,8 +154,8 @@
 | `crawl-tracker-core.mjs` | 138 | Pure view model for the tracker tab: `buildTrackerRows()` (rolled first, unrolled last, holder flagged), `showOocReset()`, and `parseInitiativeInput()` — which treats a blanked box as "no change" rather than the initiative of 0 that `Number("")` yields. Node-testable. |
 | `initiative-manager.mjs` | 134 | Combat/initiative state machine glue for the strip. |
 | `hidden-sync.mjs` | 66 | Bidirectional `token.hidden` ↔ `combatant.hidden` sync, GM-only. |
-| `turn-skip.mjs` | 155 | Auto-advances past combatants the strip renders no card for (dead enemies). Active-GM gated. Also drives Chaos Mode: queues each held Chaos round (updateCombat) and replays it under the same lock (#259). |
-| `turn-skip-core.mjs` | 147 | Pure strip-visibility test shared by the strip and the auto-skip, so the two can't drift. |
+| `turn-skip.mjs` | 163 | Auto-advances past combatants the strip renders no card for (dead enemies). Active-GM gated. Also drives Chaos Mode: queues each held Chaos round (updateCombat) and replays it under the same lock (#259). |
+| `turn-skip-core.mjs` | 162 | Pure strip-visibility test shared by the strip and the auto-skip, so the two can't drift. |
 | `movement-tracker.mjs` | 806 | Crawl-mode movement budget enforcement + turn-start rollback (`displace` waypoints). |
 | `movement-calc.mjs` | 88 | Pure per-segment feet-moved math. |
 | `npc-action-menu.mjs` | 633 | Per-combatant hover action HUD. |
@@ -351,10 +351,10 @@
 | `boat-sheet.mjs` | 179 | Boat sheet: Overview / Passengers & Crew / Cargo / Description. |
 | `mount-npc-sheet.mjs` | 342 | Mount sheet — subclass of the system's `NpcSheetSD`. |
 | `warband-core.mjs` | 154 | Warband rules, pure (#200, #202, #204): the 18 upgrades, a commander's allowance by hit die tier (2/2, 4/3, 6/4), the command and upgrade refusals, and a creature made into a warband (level doubled, 8 HP a level plus CON, one attack, +1 attack a level gained, damage dice tripled). |
-| `warband-npc-sheet.mjs` | 209 | The Warband unit sheet (#200): an NpcSheetSD subclass (AppV1) with a Warband tab for the commander (a PC dropped on it), the allowance across that commander's warbands, the upgrade checklist written whole to the `warband` flag, and the commander's CHA for morale, and (#204) upkeep, arrears, desertion and retraining with their GM buttons. |
+| `warband-npc-sheet.mjs` | 214 | The Warband unit sheet (#200): an NpcSheetSD subclass (AppV1) with a Warband tab for the commander (a PC dropped on it), the allowance across that commander's warbands, the upgrade checklist written whole to the `warband` flag, and the commander's CHA for morale, and (#204) upkeep, arrears, desertion and retraining with their GM buttons. |
 | `make-warband.mjs` | 108 | Make a Warband (#202): the GM's header button on a level 1-5 NPC's sheet, a before/after preview, and a new warband actor from a copy (the stat block in its notes rebuilt as Quick Adjust does). |
 | `warband-upkeep.mjs` | 203 | Warband upkeep and healing on the world clock (#204): on timeAdvanced (active GM, queued), month and week starts in order over a move's last 366 days (clockEvents, last-month and last-week markers against rewinds): each month start charges 10 gp a level per commanded warband from the commander's coins, in one card; arrears check morale each week start (at most 8 rolling weeks a move) and desert on a failure (marked, never deleted); every day heals 1d4 (Hardy 2d6); the GM's Charge a Month, Pay Arrears and Return to Service. |
-| `warband-combat.mjs` | 126 | Warbands in mass combat (#203): a warband's combatant takes its commander's initiative (on join and whenever either changes, Chaos rerolls included); automatic morale on the active GM from a per-client HP cache (falling to half, every hit below it; d20 + commander CHA vs 15/Loyal 9, advantage when leading), a 3-in-6 (Withdraw 1-in-6) rout that marks it defeated; the attack card's area note; the retraining warning on attack. |
+| `warband-combat.mjs` | 129 | Warbands in mass combat (#203): a warband's combatant takes its commander's initiative (on join and whenever either changes, Chaos rerolls included); automatic morale on the active GM from a per-client HP cache (falling to half, every hit below it; d20 + commander CHA vs 15/Loyal 9, advantage when leading), a 3-in-6 (Withdraw 1-in-6) rout that marks it defeated; the attack card's area note; the retraining warning on attack. |
 | `vehicle-sheet.mjs` | 424 | Shared party-like container base (ApplicationV2). |
 | `vehicle-rolls.mjs` | 79 | Shared helper-roll button handlers. |
 

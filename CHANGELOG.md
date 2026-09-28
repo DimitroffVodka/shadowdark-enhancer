@@ -381,8 +381,10 @@ page walks through it in order.
   on the Crawl Strip, and the turn passes it by. Morale is automatic: falling
   to half HP, and every hit below it, checks d20 plus the commander's CHA
   against 15 (Loyal 9), with advantage while the commander leads it; a
-  failure rolls a rout, 3-in-6 (Withdraw 1-in-6), and a rout destroys it.
-  Its attack cards note the area it fills. (#203)
+  failure rolls a rout, 3-in-6 (Withdraw 1-in-6), and a rout destroys it:
+  no more upkeep, healing, or place in the commander's allowance, until
+  Return to Service. With its commander dead it rolls and takes its own
+  turn. Its attack cards note the area it fills. (#203)
 - **Encounter check frequency.** Right-click the Crawl Bar's **Encounter**
   button: **Check Frequency** runs from **1** (every crawl round, the default)
   to **10**. The count runs from the last check, automatic or manual, so a
@@ -428,6 +430,12 @@ page walks through it in order.
   they are. (#169)
 
 ### Fixed
+
+- **Stepping back past a corpse.** Previous Turn onto a dead enemy (or a
+  warband following its commander) bounced forward again, so the GM couldn't
+  step back past it. It now keeps stepping back. And a player's Next Turn
+  that would only reach corpses before the round ends is refused as a round
+  change, as it is at the last turn. (#203)
 
 - **A book your host won't let you upload can now be linked where it lies.**
   A PDF refused as "too large" is stopped by the web server or proxy in front

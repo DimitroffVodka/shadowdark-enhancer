@@ -58,7 +58,7 @@
 					<div class="sde-veh-occ-actions">
 						<button type="button" class="sde-veh-btn" data-sde-action="run-month" title="{{localize 'SDE.warband.runMonthTip'}}"><i class="fa-solid fa-coins"></i> {{localize "SDE.warband.runMonth"}}</button>
 						{{#if warband.arrears}}<button type="button" class="sde-veh-btn" data-sde-action="pay-arrears"><i class="fa-solid fa-hand-holding-dollar"></i> {{localize "SDE.warband.payArrears"}}</button>{{/if}}
-						{{#if warband.deserted}}<button type="button" class="sde-veh-btn" data-sde-action="return-to-service"><i class="fa-solid fa-flag"></i> {{localize "SDE.warband.returnToService"}}</button>{{/if}}
+						{{#if warband.outOfService}}<button type="button" class="sde-veh-btn" data-sde-action="return-to-service" title="{{localize 'SDE.warband.returnToServiceTip'}}"><i class="fa-solid fa-flag"></i> {{localize "SDE.warband.returnToService"}}</button>{{/if}}
 					</div>
 				{{/if}}
 			{{/ui/sd-box}}
