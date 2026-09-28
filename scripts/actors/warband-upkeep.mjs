@@ -32,10 +32,16 @@ import { WARBAND_FLAG, warbandState, warbandWrites } from "./warband-npc-sheet.m
 export const LAST_MONTH_SETTING = "warbandLastMonth";
 /** World setting: the last week start whose arrears morale was checked. */
 export const LAST_WEEK_SETTING = "warbandLastWeek";
-/** World setting: a month whose charges didn't all go through, tried again at the next clock move; null when none. */
-export const PENDING_MONTH_SETTING = "warbandPendingMonth";
-/** World setting: a week start whose arrears checks didn't all go through, likewise. */
-export const PENDING_WEEK_SETTING = "warbandPendingWeek";
+/** World setting: the months whose charges didn't all go through, each tried again at the next clock move. */
+export const PENDING_MONTHS_SETTING = "warbandPendingMonths";
+/** World setting: the week starts whose arrears checks didn't all go through, likewise. */
+export const PENDING_WEEKS_SETTING = "warbandPendingWeeks";
+/** How many settled months and checked weeks each warband keeps: far more than a retry ever reaches back. */
+const KEEP_MONTHS = 36;
+const KEEP_WEEKS = 16;
+
+/** `list` with `key` in it, in order, the last `keep` of them. */
+const withMark = (list, key, keep) => [...new Set([...list, key])].sort((a, b) => a - b).slice(-keep);
 /**
  * One clock move settles at most its last year of days, and at most 8 weeks'
  * arrears checks. ponytail: a calendar set years on would otherwise empty
@@ -53,13 +59,17 @@ const commanderOf = async (wb) => {
   return pc && !pc.pack ? pc : null;
 };
 
-/** Each warband of the type, one at a time; one that fails is logged and the rest go on. True when none failed. */
-async function eachWarband(type, fn) {
-  let ok = true;
-  for (const wb of game.actors.filter((a) => a.type === type)) {
-    try { await fn(wb); } catch (err) { ok = false; console.error(`${MODULE_ID} | warband upkeep: ${wb.name}`, err); }
+/**
+ * Each warband of the type (or only those whose ids are in `ids`), one at a
+ * time; one that fails is logged and the rest go on.
+ * @returns {Promise<string[]>} the ids of those that failed
+ */
+async function eachWarband(type, fn, ids = null) {
+  const failed = [];
+  for (const wb of game.actors.filter((a) => a.type === type && (!ids || ids.has(a.id)))) {
+    try { await fn(wb); } catch (err) { failed.push(wb.id); console.error(`${MODULE_ID} | warband upkeep: ${wb.name}`, err); }
   }
-  return ok;
+  return failed;
 }
 
 const card = (title, lines, { whisper = false } = {}) => ChatMessage.create({
@@ -70,27 +80,33 @@ const card = (title, lines, { whisper = false } = {}) => ChatMessage.create({
 
 /**
  * Charge a month's upkeep for every warband in service, in one card dated `at`.
- * With a month key, each warband is charged for it once (`settledMonth`), so a
- * run tried again after a failed write charges only the ones left. Without
- * one (Charge a Month on the sheet), every warband is charged now.
- * @returns {Promise<boolean>} true when every warband was settled
+ * With a month key, each warband is charged for it once (`settledMonths`): the
+ * month is marked before the purse is touched, and unmarked only if the purse
+ * write fails, so a run tried again never takes the money twice (#284 review).
+ * Without one (Charge a Month on the sheet), every warband is charged now.
+ * `ids`: only these warbands (a retry).
+ * @returns {Promise<string[]>} the ids of the warbands whose charge failed
  */
-async function runMonth(type, at = game.time.worldTime, month = null) {
+async function runMonth(type, at = game.time.worldTime, month = null, ids = null) {
   const lines = [];
-  const ok = await eachWarband(type, async (wb) => {
+  const failed = await eachWarband(type, async (wb) => {
     const st = warbandState(wb);
     if (st.deserted || st.routed) return;
-    if (month !== null && st.settledMonth !== null && st.settledMonth >= month) return;
+    if (month !== null && st.settledMonths.includes(month)) return;
     const pc = await commanderOf(wb);
     const gp = core.upkeepGp(wb.system.level?.value);
     if (!pc || !gp) return;
-    const settled = month === null ? {} : { settledMonth: month };
+    const settled = month === null ? {} : { settledMonths: withMark(st.settledMonths, month, KEEP_MONTHS) };
     const coins = pc.system.coins ?? {};
     if (canAfford(coins, { gp })) {
       const left = spendFromPurse(coins, toCopper({ gp }));
-      await pc.update({ "system.coins.gp": left.gp, "system.coins.sp": left.sp, "system.coins.cp": left.cp });
-      // ponytail: were the purse written and this marker not, the retry would charge this warband again.
-      if (month !== null) await replaceModuleFlag(wb, WARBAND_FLAG, { ...warbandState(wb), ...settled });
+      if (month !== null) await replaceModuleFlag(wb, WARBAND_FLAG, { ...st, ...settled });
+      try {
+        await pc.update({ "system.coins.gp": left.gp, "system.coins.sp": left.sp, "system.coins.cp": left.cp });
+      } catch (err) {
+        if (month !== null) await unmarkMonth(wb, pc, gp, month);
+        throw err;
+      }
       lines.push(t("SDE.warband.upkeep.paid", { warband: wb.name, commander: pc.name, gp }));
       await Promise.resolve(SessionRecap.logPurchase({ player: pc.name, item: t("SDE.warband.upkeep.item", { warband: wb.name }), qty: 1, price: { gp, sp: 0, cp: 0 } }))
         .catch((err) => console.warn(`${MODULE_ID} | warband upkeep: recap`, err));
@@ -98,23 +114,40 @@ async function runMonth(type, at = game.time.worldTime, month = null) {
       await replaceModuleFlag(wb, WARBAND_FLAG, { ...st, arrears: st.arrears + gp, ...settled });
       lines.push(t("SDE.warband.upkeep.unpaid", { warband: wb.name, commander: pc.name, gp, owed: st.arrears + gp }));
     }
-  });
+  }, ids);
   if (lines.length) await card(t("SDE.warband.upkeep.titleAt", { date: formatTime(at) }), lines);
-  return ok;
+  return failed;
+}
+
+/**
+ * A purse write that failed: the month's mark comes off so it's tried again.
+ * Should that fail too, the month stands marked and unpaid, and the GM is
+ * told to settle it by hand rather than the purse being charged twice.
+ */
+async function unmarkMonth(wb, pc, gp, month) {
+  try {
+    const st = warbandState(wb);
+    await replaceModuleFlag(wb, WARBAND_FLAG, { ...st, settledMonths: st.settledMonths.filter((m) => m !== month) });
+  } catch (err) {
+    console.error(`${MODULE_ID} | warband upkeep: ${wb.name}`, err);
+    await card(t("SDE.warband.upkeep.title"), [t("SDE.warband.upkeep.unconfirmed", { warband: wb.name, commander: pc.name, gp })], { whisper: true })
+      .catch((cardErr) => console.error(`${MODULE_ID} | warband upkeep`, cardErr));
+  }
 }
 
 /**
  * Each warband in arrears under a commander checks morale for the week start
- * `week`, once (`moraleWeek`): d20 + the commander's CHA against 15 (Loyal
+ * `week`, once (`moraleWeeks`): d20 + the commander's CHA against 15 (Loyal
  * 9); a failure deserts it. One with no commander isn't in anyone's service
  * to leave.
- * @returns {Promise<{rolled:number, ok:boolean}>}  ok: none failed
+ * `ids`: only these warbands (a retry).
+ * @returns {Promise<{rolled:number, failed:string[]}>}
  */
-async function arrearsMorale(type, week) {
+async function arrearsMorale(type, week, ids = null) {
   let rolled = 0;
-  const ok = await eachWarband(type, async (wb) => {
+  const failed = await eachWarband(type, async (wb) => {
     const st = warbandState(wb);
-    if (!st.arrears || st.deserted || st.routed || (st.moraleWeek !== null && st.moraleWeek >= week)) return;
+    if (!st.arrears || st.deserted || st.routed || st.moraleWeeks.includes(week)) return;
     const pc = await commanderOf(wb);
     if (!pc) return;
     rolled++;
@@ -126,9 +159,10 @@ async function arrearsMorale(type, week) {
       speaker: ChatMessage.getSpeaker({ actor: wb }),
       flavor: t(held ? "SDE.warband.upkeep.moraleHeld" : "SDE.warband.upkeep.deserted", { warband: wb.name, dc, owed: st.arrears }),
     });
-    await replaceModuleFlag(wb, WARBAND_FLAG, { ...warbandState(wb), moraleWeek: week, ...(held ? {} : { deserted: true }) });
-  });
-  return { rolled, ok };
+    const now = warbandState(wb);
+    await replaceModuleFlag(wb, WARBAND_FLAG, { ...now, moraleWeeks: withMark(now.moraleWeeks, week, KEEP_WEEKS), ...(held ? {} : { deserted: true }) });
+  }, ids);
+  return { rolled, failed };
 }
 
 /** `days` of healing for every warband in service that is hurt, added to `healed` for the move's one card. */
@@ -147,12 +181,41 @@ async function healDays(type, days, healed) {
   });
 }
 
-/** A month or a week start whose writes didn't all go through, tried again; each warband's marker keeps it once. */
+/** A pending list from its setting, cleaned: `{ at, id }`, a month key or week start and the warband it's owed by. */
+const pendingOf = (key) => {
+  const v = game.settings.get(MODULE_ID, key);
+  return Array.isArray(v) ? v.filter((e) => Number.isFinite(e?.at) && typeof e?.id === "string") : [];
+};
+
+/** The warbands in `ids` owe `at` a retry. */
+async function addPending(key, at, ids) {
+  if (!ids.length) return;
+  const list = pendingOf(key);
+  for (const id of ids) if (!list.some((e) => e.at === at && e.id === id)) list.push({ at, id });
+  await game.settings.set(MODULE_ID, key, list.sort((a, b) => a.at - b.at));
+}
+
+/**
+ * Every month and week start a warband's writes failed for, oldest first,
+ * tried again for that warband only: its marks keep each to once, one settled
+ * later never hides one still owed, and a warband that joined since isn't
+ * charged for it (#284 review). A warband since deleted is dropped.
+ */
 async function retryPending(type) {
-  const month = game.settings.get(MODULE_ID, PENDING_MONTH_SETTING);
-  if (month !== null && await runMonth(type, game.time.worldTime, month)) await game.settings.set(MODULE_ID, PENDING_MONTH_SETTING, null);
-  const week = game.settings.get(MODULE_ID, PENDING_WEEK_SETTING);
-  if (week !== null && (await arrearsMorale(type, week)).ok) await game.settings.set(MODULE_ID, PENDING_WEEK_SETTING, null);
+  const runs = [
+    [PENDING_MONTHS_SETTING, (at, ids) => runMonth(type, game.time.worldTime, at, ids)],
+    [PENDING_WEEKS_SETTING, async (at, ids) => (await arrearsMorale(type, at, ids)).failed],
+  ];
+  for (const [key, run] of runs) {
+    const list = pendingOf(key);
+    if (!list.length) continue;
+    const left = [];
+    for (const at of [...new Set(list.map((e) => e.at))]) {
+      const failed = await run(at, new Set(list.filter((e) => e.at === at).map((e) => e.id)));
+      for (const id of failed) left.push({ at, id });
+    }
+    await game.settings.set(MODULE_ID, key, left);
+  }
 }
 
 /**
@@ -190,15 +253,15 @@ async function onTimeAdvanced(type, { from, to, crossed }) {
   for (const e of events) {
     await healTo(e.at);
     if (e.month !== undefined) {
-      const ok = await runMonth(type, e.at, e.month);
+      const failed = await runMonth(type, e.at, e.month);
       await game.settings.set(MODULE_ID, LAST_MONTH_SETTING, e.month);
-      if (!ok) await game.settings.set(MODULE_ID, PENDING_MONTH_SETTING, e.month);
+      await addPending(PENDING_MONTHS_SETTING, e.month, failed);
     } else {
       // The cap counts only weeks that rolled: arrears that start late in a long move are still tested.
       if (weeks < MAX_WEEKS) {
-        const { rolled, ok } = await arrearsMorale(type, e.at);
+        const { rolled, failed } = await arrearsMorale(type, e.at);
         if (rolled) weeks++;
-        if (!ok) await game.settings.set(MODULE_ID, PENDING_WEEK_SETTING, e.at);
+        await addPending(PENDING_WEEKS_SETTING, e.at, failed);
       }
       await game.settings.set(MODULE_ID, LAST_WEEK_SETTING, e.at);
     }
@@ -219,8 +282,8 @@ async function onTimeAdvanced(type, { from, to, crossed }) {
  */
 export async function upkeepWrite(action, wb, type) {
   if (action === "runMonth") {
-    await runMonth(type);
-    return { ok: true };
+    const failed = await runMonth(type);
+    return failed.length ? { ok: false, warn: { key: "SDE.warband.notify.chargeFailed", data: { n: failed.length } } } : { ok: true };
   }
   const st = warbandState(wb);
   if (action === "returnToService") {
@@ -244,8 +307,11 @@ export async function upkeepWrite(action, wb, type) {
 /** Settings and the clock hook. Must run in `init`. */
 export function registerWarbandUpkeep(type) {
   const nullable = () => new foundry.data.fields.NumberField({ nullable: true, initial: null });
-  for (const key of [LAST_MONTH_SETTING, LAST_WEEK_SETTING, PENDING_MONTH_SETTING, PENDING_WEEK_SETTING]) {
+  for (const key of [LAST_MONTH_SETTING, LAST_WEEK_SETTING]) {
     game.settings.register(MODULE_ID, key, { scope: "world", config: false, type: nullable(), default: null });
+  }
+  for (const key of [PENDING_MONTHS_SETTING, PENDING_WEEKS_SETTING]) {
+    game.settings.register(MODULE_ID, key, { scope: "world", config: false, type: Array, default: [] });
   }
   // On the one warband queue: the sheet's writes and these never interleave.
   Hooks.on(`${MODULE_ID}.timeAdvanced`, (e) => {
