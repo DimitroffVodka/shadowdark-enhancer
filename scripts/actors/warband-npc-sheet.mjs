@@ -43,7 +43,8 @@ export { warbandWrites };
 
 /** Register the writer the other clients' sheets call. Call at init. */
 export function registerWarbandWrites(type) {
-  // Only the one writer answers: a query sent straight to another GM, or to another tab of this one, is refused.
+  // Only the active GM answers: a query sent straight to another GM is refused. Foundry hands the query to every
+  // tab the active GM has open, and each change sets a value, so a second tab's run changes nothing (#288).
   CONFIG.queries[WARBAND_QUERY] = (data, { user } = {}) => refuseQuery(user, game.i18n.localize("SDE.warband.relayLabel"))
     ?? warbandWrites(() => applyWarbandWrite(data, user, type));
 }
@@ -56,8 +57,10 @@ function sendWarbandWrite(data, type) {
 
 /**
  * Make one change, on the active GM: `commander` gives the warband to a PC
- * (or none), `upgrade` ticks or unticks one. Refused over the allowance, or
- * twice; the warning goes back to the sheet that asked.
+ * (or none), `upgrade` ticks or unticks one. Refused over the allowance; the
+ * warning goes back to the sheet that asked. Each change sets a value, so
+ * making it again (another tab of the active GM got it too) changes nothing
+ * and answers the same: an upgrade already ticked is a success.
  * @returns {Promise<{ok:boolean, warn?:{key:string, data:object}, error?:string}>}
  */
 async function applyWarbandWrite({ action, actorId, pcUuid = null, key, on }, user, type) {
