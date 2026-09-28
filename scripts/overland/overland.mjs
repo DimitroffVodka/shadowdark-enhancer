@@ -225,6 +225,11 @@ export async function startOverland() {
     if (extras.length <= 1 && await placePartyToken(extras[0] ?? null)) chosen = chooseToken();
   }
   if (!chosen.tokenUuid) { ui.notifications?.warn(t("SDE.overland.notify.pickToken")); return false; }
+  // A print with no terrain tagged still travels, but every hex costs 1 and
+  // encounters use the active table: say so rather than let it look right.
+  if (!Object.keys(canvas.scene.getFlag(MODULE_ID, "hexTags")?.cells ?? {}).length) {
+    ui.notifications?.warn(t("SDE.overland.notify.noTerrain"));
+  }
   // A party token wears the party's hex; a selected NPC travels in its own art.
   if (chosen.isParty) {
     await wearPartyHex(fromUuidSync(chosen.tokenUuid)).catch((err) => console.error(`${MODULE_ID} | party hex token`, err));
