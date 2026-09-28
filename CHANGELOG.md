@@ -40,6 +40,14 @@ it needs.
   **Encounter Roller** opens the roller, and **Continue** runs the rest of the
   clock. The day's check hours are no longer whispered; they are listed in the
   Travel panel.
+- **Camp in the book's order.** Make camp runs the camp before the night.
+  With a Shadowdark Extras party, Extras' camp window opens for the tasks:
+  Firewood first, and without a fire the GM is asked about burning 3 torches
+  before the starred tasks. Then the rations are eaten. A creature in the
+  night interrupts the rest. The Encounter panel and the Night step say so.
+  At dawn, anyone who ate rolls CON (DC 12) to still benefit from the rest,
+  unless their Bed Down succeeded. This needs Shadowdark Extras with
+  shadowdark-extras#186. (#257)
 - **Travel encounters as often as you want them, and a panel that folds
   away.** The Travel panel's Encounters step has **Adjust** for the GM: the
   chance (1 to 5 in 6, one more on a pushed day) and the checks by day and by

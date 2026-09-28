@@ -41,6 +41,7 @@ export function defaultOverlandState() {
     checks: [],           // the day's encounter checks, {half, at, chance, rolled, hit} (#232)
     pending: null,        // {until, reason}: an advance stopped by a hit, waiting for Continue (#232)
     encounter: null,      // what a quiet check that hit drew, for the GMs' panel until Continue (#257)
+    camp: null,           // tonight's camp (#257): {extras, interrupted}, whether Extras holds its rest for the dawn, and when a creature woke it
     foraged: [],          // actor ids that foraged today (#233)
     hex: null,            // {num, terrain, region, features}: the travel token's last hex
   };
@@ -86,6 +87,7 @@ function encounterOf(v) {
     kind: ["monster", "flavor"].includes(v.kind) ? v.kind : "empty",
     poi: v.poi === true,
     noTable: v.noTable === true,
+    interrupts: v.interrupts === true,
     uuid: str(v.uuid), name: str(v.name), img: str(v.img), text: str(v.text), via: str(v.via),
     count: num(v.count), countFormula: str(v.countFormula),
     distanceRoll: num(v.distanceRoll), activityRoll: num(v.activityRoll), reactionRoll: num(v.reactionRoll),
@@ -94,6 +96,9 @@ function encounterOf(v) {
       ? v.also.filter(obj).map((a) => ({ name: str(a.name), formula: str(a.formula), roll: num(a.roll), text: str(a.text) })) : [],
   };
 }
+
+/** Tonight's camp, or null: whether Extras holds its rest for the dawn, and the hour a creature interrupted it. */
+const campOf = (v) => (obj(v) ? { extras: v.extras === true, interrupted: Number.isFinite(v.interrupted) ? v.interrupted : null } : null);
 
 /** A stored weather, or null when it isn't one. */
 function weatherOf(v) {
@@ -137,6 +142,7 @@ export function normalizeOverlandState(value) {
     checks: Array.isArray(value.checks) ? value.checks.map(checkOf).filter(Boolean) : [],
     pending: pendingOf(value.pending),
     encounter: encounterOf(value.encounter),
+    camp: campOf(value.camp),
     foraged: ids(value.foraged),
     hex: hex && Number.isInteger(hex.num)
       ? { num: hex.num, terrain: str(hex.terrain), region: str(hex.region), features: ids(hex.features) }
@@ -195,7 +201,7 @@ export function openDay(state, { now, method, pushed, base, boatUuid = null, hou
     ...state, mounts,
     day: now, method, pushed: !!pushed, boatUuid: method === "sailing" ? boatUuid : null,
     base, budget: dayBudget(base, pushed), spent: 0, pointSeconds: pointSeconds(base, hourSeconds),
-    foraged: [], checks, pending: null, encounter: null,
+    foraged: [], checks, pending: null, encounter: null, camp: null,
   });
   return { state: next, changed: true };
 }
@@ -206,7 +212,7 @@ export function openDay(state, { now, method, pushed, base, boatUuid = null, hou
  */
 export function closeDay(state) {
   const next = normalizeOverlandState({
-    ...state, day: null, pushed: false, base: 0, budget: 0, spent: 0, checks: [], foraged: [], pending: null, encounter: null,
+    ...state, day: null, pushed: false, base: 0, budget: 0, spent: 0, checks: [], foraged: [], pending: null, encounter: null, camp: null,
   });
   return { state: next, changed: true };
 }
@@ -221,6 +227,17 @@ export function markCheck(state, index, hit, chance) {
 export function setPending(state, pending) {
   const next = normalizeOverlandState({ ...state, pending });
   return { state: next, changed: JSON.stringify(next.pending) !== JSON.stringify(state.pending) };
+}
+
+/** Camp is made (#257, §5.5 step 3): the tasks and rations are done, the night to come. `extras`: Extras holds the rest for the dawn. */
+export function makeCampState(state, extras) {
+  return { state: normalizeOverlandState({ ...state, camp: { extras: !!extras, interrupted: null } }), changed: true };
+}
+
+/** A creature in the camp's night interrupts the rest (GMWR p.44): the first one's hour is kept. */
+export function interruptRest(state, at) {
+  if (!state.camp || state.camp.interrupted !== null) return { state, changed: false };
+  return { state: normalizeOverlandState({ ...state, camp: { ...state.camp, interrupted: at } }), changed: true };
 }
 
 /** What a quiet check that hit drew waits here for the GMs; null clears it (Continue, a new day). */

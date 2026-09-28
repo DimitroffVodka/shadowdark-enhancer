@@ -601,7 +601,7 @@ test("camp in a harsh climate: 2 rations each, and one ration counts as none", a
   assert.deepEqual(damage, [["mine", "con", 1]]);
 });
 
-test("a hit during the night stops camp; Continue finishes to dawn and then the rations are eaten", async () => {
+test("the rations are eaten at camp; a hit during the night stops it, and Continue finishes to dawn", async () => {
   const damage = campWorld();
   dice.push(3, 2, 9, 1, 12);
   globalThis.game.time.worldTime = at(1301, 6, 21, 8);
@@ -612,20 +612,45 @@ test("a hit during the night stops camp; Continue finishes to dawn and then the 
   assert.deepEqual(res, { ok: true, stopped: true });
   assert.equal(globalThis.game.time.worldTime, at(1301, 6, 21, 18));
   assert.equal(stored.overlandState.pending.reason, "camp");
-  assert.deepEqual(damage, [], "no rations until the night is over");
+  assert.equal(damage.length, 2, "both went without, at camp");
+  assert.equal(stored.overlandState.camp.interrupted, null, "nothing that turned up was a creature");
   dice.push(4);
   await applyAction({ action: "resume" }, gm);
   assert.equal(stored.overlandState.day, null);
-  assert.equal(damage.length, 2, "both went without");
+  assert.equal(damage.length, 2, "nobody eats twice");
 });
 
-test("camp hands the rations to Shadowdark Extras' camping rest when the travel token is its party", async () => {
+test("a creature in the camp's night interrupts the rest; the dawn's chat says when (#257)", async () => {
+  campWorld();
+  dice.push(3, 2, 9, 1, 12);
+  globalThis.game.time.worldTime = at(1301, 6, 21, 8);
+  await applyAction({ action: "startDay", method: "walking" }, gm);
+  const draws = [{ hit: false }, { hit: true, encounter: { kind: "flavor", text: "A rockslide" } }, { hit: true, encounter: { kind: "monster", name: "Wolf" } }];
+  globalThis.game.shadowdarkEnhancer.encounter.check = async () => draws.shift() ?? { hit: false };
+  await applyAction({ action: "camp" }, gm);
+  assert.equal(stored.overlandState.encounter.interrupts, false, "a rockslide wakes nobody");
+  await applyAction({ action: "resume" }, gm);
+  const { encounter, camp } = stored.overlandState;
+  assert.deepEqual([encounter.name, encounter.interrupts, camp.interrupted], ["Wolf", true, encounter.at]);
+  const posted = [];
+  globalThis.ChatMessage.create = async (m) => { posted.push(m.content); };
+  dice.push(4);
+  await applyAction({ action: "resume" }, gm);
+  assert.equal(stored.overlandState.day, null);
+  assert.ok(posted.some((c) => c.includes("SDE.overland.camp.interruptedCon")), "without Extras, the CON check is the GM's");
+});
+
+test("camp opens Shadowdark Extras' camp before the night and finishes its rest at dawn, when the travel token is its party (#257)", async () => {
   const damage = campWorld();
   const party = { id: "party" };
   const opened = [];
+  const dawns = [];
   globalThis.game.modules = { get: (id) => (id === "shadowdark-extras" ? {
     active: true,
-    api: { party: { list: () => [party] }, camping: { open: async (opts) => { opened.push(opts); return { completed: true, fed: {} }; } } },
+    api: { party: { list: () => [party] }, camping: {
+      open: async (opts) => { opened.push({ ...opts, at: globalThis.game.time.worldTime }); return { completed: true, pending: true, fed: {} }; },
+      dawn: async (opts) => { dawns.push({ ...opts, at: globalThis.game.time.worldTime }); return { completed: true, rested: {} }; },
+    } },
   } : null) };
   stored.overlandState = { ...stored.overlandState, tokenUuid: "Scene.s.Token.party" };
   registerOverland();
@@ -639,7 +664,9 @@ test("camp hands the rations to Shadowdark Extras' camping rest when the travel 
   assert.equal(opened[0].party, party);
   assert.deepEqual(opened[0].members.map((a) => a.id), ["mine", "theirs"]);
   assert.equal(opened[0].rationsEach, 1);
-  assert.equal(opened[0].advanceTime, false);
+  assert.deepEqual([opened[0].advanceTime, opened[0].deferRest], [false, true]);
+  assert.deepEqual(dawns.map((d) => [d.party, d.interrupted]), [[party, false]]);
+  assert.ok(dawns[0].at > opened[0].at, "the tasks before the night, the rest after it");
   assert.deepEqual(damage, [], "Overland eats nothing on top");
 });
 
@@ -687,22 +714,26 @@ test("camp's last check hitting at its very end still leaves the camp for Contin
   assert.equal(damage.length, 2);
 });
 
-test("an Extras rest that is closed or fails leaves the camp pending, and Continue opens it again (#247 review)", async () => {
+test("an Extras camp window closed makes no camp; a dawn that's canceled or fails leaves the camp pending, and Continue tries it again (#247 review)", async () => {
   const damage = campWorld();
   const party = { id: "party" };
-  const replies = [{ completed: false, fed: {} }, Promise.reject(new Error("boom")), { completed: true, fed: {} }];
+  const opens = [{ completed: false, fed: {} }, { completed: true, pending: true, fed: {} }];
+  const replies = [{ completed: false }, Promise.reject(new Error("boom")), { completed: true, rested: {} }];
   let opened = 0;
   globalThis.game.modules = { get: (id) => (id === "shadowdark-extras" ? {
     active: true,
-    api: { party: { list: () => [party] }, camping: { open: async () => { opened++; return replies.shift(); } } },
+    api: { party: { list: () => [party] }, camping: { open: async () => opens.shift(), dawn: async () => { opened++; return replies.shift(); } } },
   } : null) };
   stored.overlandState = { ...stored.overlandState, tokenUuid: "Scene.s.Token.party" };
   registerOverland();
   globalThis.fromUuidSync = (uuid) => (uuid === "Scene.s.Token.party" ? { actor: party } : null);
   dice.push(3);
   await applyAction({ action: "startDay", method: "walking" }, gm);
+  const before = globalThis.game.time.worldTime;
+  assert.deepEqual(await applyAction({ action: "camp" }, gm), { ok: false, error: "SDE.overland.notify.campNotMade" });
+  assert.deepEqual([globalThis.game.time.worldTime, stored.overlandState.camp], [before, null], "no camp, no night");
   const res = await applyAction({ action: "camp" }, gm);
-  assert.deepEqual(res, { ok: true, stopped: true }, "closed: not finished");
+  assert.deepEqual(res, { ok: true, stopped: true }, "the dawn was canceled: not finished");
   const dawn = globalThis.game.time.worldTime;
   assert.deepEqual(stored.overlandState.pending, { until: dawn, reason: "camp" });
   assert.notEqual(stored.overlandState.day, null, "the day isn't closed");
