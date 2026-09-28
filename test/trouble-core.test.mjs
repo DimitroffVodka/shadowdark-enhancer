@@ -1,18 +1,12 @@
 // The Trouble tracker's rules (#193). Table rows here are invented in the
-// book's shape; the region names are the ones the key-location import records.
+// book's shape.
 import test from "node:test";
 import assert from "node:assert/strict";
 
 import {
-  checkChance, weeklyCheck, weekStarts, matchRegion, settlementKind, inlineDetail,
+  checkChance, weeklyCheck, weekStarts, settlementKind, inlineDetail,
   urgencyRow, schedule, stageAt, nextChange,
 } from "../scripts/troubles/trouble-core.mjs";
-
-const REGIONS = [
-  "Bastion Mountains", "Dhalpurna Mountains", "Djurum Desert", "Duchy of Montmar", "Gilzai Mountains",
-  "The Gloaming", "Isles of Andrik", "Kyzian Steppes", "The Last Sea", "Lowland Moor", "Myre Swamp",
-  "Rimespire Mountains", "Sablewood", "Silent Mountains", "Tal-Yool Jungle",
-];
 
 test("the chance grows one in six per quiet week, and a stir starts it again", () => {
   assert.deepEqual([0, 1, 2, 5, 9].map(checkChance), [1, 2, 3, 6, 6]);
@@ -26,15 +20,6 @@ test("week starts: weekday 0 at 00:00, each one inside the jump", () => {
   assert.deepEqual(weekStarts(cal, 0, 20 * 86400), [7 * 86400, 14 * 86400], "a jump of 20 days crosses two");
   assert.deepEqual(weekStarts(cal, 7 * 86400, 8 * 86400), [], "starting on one doesn't count it again");
   assert.deepEqual(weekStarts({ ...cal, offset: 3 }, 0, 7 * 86400), [4 * 86400]);
-});
-
-test("region rows as the table prints them name the imported regions", () => {
-  const printed = { "Bastion Mtns": "Bastion Mountains", "Gloaming, The": "The Gloaming", "Last Sea, The": "The Last Sea",
-    "Silent Mtns": "Silent Mountains", "Lowland Moor": "Lowland Moor", "tal-yool jungle": "Tal-Yool Jungle" };
-  for (const [row, region] of Object.entries(printed)) assert.equal(matchRegion(row, REGIONS), region, row);
-  assert.equal(matchRegion("Nowhere", REGIONS), null);
-  assert.equal(matchRegion("", REGIONS), null);
-  assert.equal(matchRegion("B Mtns", ["Bastion Mountains", "Barren Mountains"]), null, "two fit: none");
 });
 
 test("settlement rows give a kind; city-state is not a city", () => {

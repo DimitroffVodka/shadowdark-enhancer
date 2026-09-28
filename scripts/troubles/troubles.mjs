@@ -9,7 +9,9 @@
  * its state in the page's `trouble` flag; the page's text is written once, so
  * the GM's notes on it stay. The rules are trouble-core.mjs.
  *
- * Runs on the active GM: `timeAdvanced` fires there only (time.mjs).
+ * Runs on the active GM: `timeAdvanced` fires there only (time.mjs). Every
+ * write goes through one queue on this client, the automatic checks and the
+ * GM's own calls alike.
  */
 
 import { MODULE_ID } from "../shared/module-id.mjs";
@@ -17,15 +19,24 @@ import { esc } from "../shared/esc.mjs";
 import { isActiveGM } from "../shared/gm-relay.mjs";
 import { findSuitePack } from "../shared/compendium-suite.mjs";
 import { replaceModuleFlag } from "../shared/module-flags.mjs";
-import { crawlEntries } from "../hex-map/hex-region.mjs";
+import { crawlEntries, knownRegions } from "../hex-map/hex-region.mjs";
 import { HEX_FLAG } from "../importer/hex/hex-commit.mjs";
+import { regionKey } from "../rules-data/rules-data-core.mjs";
 import { format as formatTime } from "../time/time.mjs";
 import { secondsPerDay } from "../time/time-core.mjs";
-import { Quests } from "../quests/quests.mjs";
+import { Quests, openQuestLog, jumpToHex } from "../quests/quests.mjs";
 import * as core from "./trouble-core.mjs";
 
 /** World setting: the quiet weeks since trouble last stirred. */
 export const QUIET_SETTING = "troubleQuietWeeks";
+/** World setting: the last week start checked, so a clock set back and moved on again doesn't check it twice. */
+export const LAST_WEEK_SETTING = "troubleLastWeek";
+/**
+ * The most week starts one clock move checks: the last ones.
+ * ponytail: a year's jump would otherwise stir a dozen troubles at once (and a
+ * calendar set to year 1300, tens of thousands); a GM wanting more runs Check.
+ */
+const MAX_CATCH_UP = 4;
 const LOG_FLAG = "troubleLog";
 const TROUBLE_FLAG = "trouble";
 /** The GM Guide's four tables, as the importer names them (table-shapes.mjs, gmwr/trouble-*). */
@@ -40,6 +51,14 @@ const t = (key, data) => (data ? game.i18n.format(key, data) : game.i18n.localiz
 const resultText = (r) => String(r?.name || r?.description || "").replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
 const rollDie = async (formula) => (await new Roll(formula).evaluate()).total;
 
+/** One write at a time on this client. */
+let queue = Promise.resolve();
+const enqueue = (fn) => {
+  const run = queue.then(fn, fn);
+  queue = run.catch((err) => console.error(`${MODULE_ID} | trouble tracker`, err));
+  return run;
+};
+
 /** A table by name: the module's pack first, then the world's; a "<book> - " prefix is allowed. */
 async function findTable(name) {
   const matches = (n) => { const s = String(n ?? "").toLowerCase(); const w = name.toLowerCase(); return s === w || s.endsWith(` - ${w}`); };
@@ -52,39 +71,55 @@ async function findTable(name) {
   return game.tables?.find((tb) => matches(tb.name)) ?? null;
 }
 
-/** One row of a table, or null with a warning naming the table to import. */
-async function drawRow(name) {
+/** One roll's results (a nested row gives a label and its sub-table), or null with a warning naming the table to import. */
+async function drawResults(name) {
   const table = await findTable(name);
   if (!table) { ui.notifications.warn(t("SDE.troubles.notify.noTable", { table: name })); return null; }
-  return (await table.roll({ recursive: false })).results[0] ?? null;
+  return (await table.roll({ recursive: false })).results;
 }
 
-/** Region name → its settlements, from the imported key locations. */
+/**
+ * Region name → its settlements, from the imported key locations. The region
+ * is the crawl's title when the module knows it, else the row's own zone:
+ * the rule regionSeeds follows (hex-region.mjs).
+ */
 async function settlementsByRegion() {
+  const known = knownRegions();
   const out = new Map();
   for (const entry of await crawlEntries()) {
     const flag = entry.getFlag(MODULE_ID, HEX_FLAG);
+    const crawl = String(flag.crawl ?? "").trim();
     const pages = new Map(entry.pages.map((p) => [String(p.getFlag(MODULE_ID, HEX_FLAG)?.num ?? ""), p.uuid]));
-    out.set(flag.crawl, (flag.keyed ?? [])
-      .filter((k) => core.SETTLEMENT_KINDS.includes(k.feature))
-      .map((k) => ({ name: k.name, num: Number(k.num), kind: k.feature, uuid: pages.get(String(k.num)) ?? null })));
+    for (const k of flag.keyed ?? []) {
+      if (!core.SETTLEMENT_KINDS.includes(k.feature)) continue;
+      const region = (known.has(crawl) ? crawl : String(k.zone ?? "").trim()) || crawl;
+      if (!out.has(region)) out.set(region, []);
+      out.get(region).push({ name: k.name, num: Number(k.num), kind: k.feature, uuid: pages.get(String(k.num)) ?? null });
+    }
   }
   return out;
 }
 
-/** The type and its detail: a nested sub-table (#188) is drawn, an inline "1d6: 1. … 2. …" list is rolled. */
+/** The type and its detail: a nested row's sub-table is drawn (#188), an inline "1d6: 1. … 2. …" list is rolled. */
 async function rollType() {
-  const row = await drawRow(TABLES.type);
-  if (!row) return null;
-  if (row.type === "document" && foundry.utils.parseUuid(row.documentUuid)?.type === "RollTable") {
-    const inner = await fromUuid(row.documentUuid);
-    const results = inner ? (await inner.roll()).results : [];
-    return { type: resultText(row) || String(inner?.name ?? "").replace(/^.*?:\s*/, ""), detail: results.map(resultText).filter(Boolean).join("; ") };
+  const results = await drawResults(TABLES.type);
+  if (!results?.length) return null;
+  const label = resultText(results.find((r) => r.type !== "document") ?? results[0]);
+  const nested = results.find((r) => r.type === "document" && foundry.utils.parseUuid(r.documentUuid)?.type === "RollTable");
+  if (nested) {
+    const inner = await fromUuid(nested.documentUuid);
+    const drawn = inner ? (await inner.roll()).results : [];
+    return { type: label || String(inner?.name ?? "").replace(/^.*?:\s*/, ""), detail: drawn.map(resultText).filter(Boolean).join("; ") };
   }
-  const text = resultText(row);
-  const inline = core.inlineDetail(text);
-  if (!inline) return { type: text, detail: "" };
+  const inline = core.inlineDetail(label);
+  if (!inline) return { type: label, detail: "" };
   return { type: inline.type, detail: inline.options[(await rollDie(inline.formula)) - 1] ?? "" };
+}
+
+/** Whether this world can track trouble: the four tables and the key locations imported. */
+async function ready() {
+  for (const name of Object.values(TABLES)) if (!(await findTable(name))) return false;
+  return (await crawlEntries()).length > 0;
 }
 
 /** Seconds in an hour, a day and a week on the world's calendar. */
@@ -111,19 +146,24 @@ const STAGE_KEYS = {
 };
 const kindLabel = (kind) => t(KIND_KEYS[kind] ?? kind);
 const stageLabel = (stage) => t(STAGE_KEYS[stage] ?? stage);
+/** "Monster horde: Orcs", or the type alone when it has no detail. */
+const what = (tr) => (tr.detail ? t("SDE.troubles.typeDetail", { type: tr.type, detail: tr.detail }) : tr.type);
 
 /** The page's text, written once when the trouble stirs. */
 function pageContent(tr) {
   const s = tr.settlement;
   const line = (key, data) => `<p>${t(key, data)}</p>`;
-  // From the stage the urgency roll gave: a trouble days away never was weeks away.
-  const stages = core.STAGES.slice(core.STAGES.indexOf(tr.urgency)).map((stage) => {
-    const at = { weeks: tr.stirredAt, days: tr.daysAt, hours: tr.hoursAt, happened: tr.arriveAt }[stage];
-    return `<li><strong>${esc(stageLabel(stage))}</strong> (${esc(formatTime(at))}): ${esc(tr.symptoms[stage] ?? "")}</li>`;
-  }).join("");
+  const starts = { weeks: tr.stirredAt, days: tr.daysAt, hours: tr.hoursAt, happened: tr.arriveAt };
+  // From the stage the urgency roll gave (a trouble days away never was weeks
+  // away), leaving out a stage the next one begins with.
+  const shown = core.STAGES.slice(core.STAGES.indexOf(tr.urgency))
+    .filter((stage, i, list) => i === list.length - 1 || starts[stage] < starts[list[i + 1]]);
+  const stages = shown.map((stage) => `<li>${t("SDE.troubles.page.stage", {
+    stage: esc(stageLabel(stage)), date: esc(formatTime(starts[stage])), symptoms: esc(tr.symptoms[stage] ?? ""),
+  })}</li>`).join("");
   return [
     line("SDE.troubles.page.where", { settlement: link(s.uuid, s.name), kind: esc(kindLabel(s.kind)), hex: s.num, region: esc(tr.region) }),
-    line("SDE.troubles.page.what", { type: esc(tr.type), detail: esc(tr.detail || "—") }),
+    line("SDE.troubles.page.what", { what: esc(what(tr)) }),
     line("SDE.troubles.page.when", { stirred: esc(formatTime(tr.stirredAt)), arrives: esc(formatTime(tr.arriveAt)) }),
     `<ul>${stages}</ul>`,
   ].join("");
@@ -167,88 +207,130 @@ async function advance(now) {
   }
 }
 
+/**
+ * Stir a trouble: where (the region, then a settlement kind it has, then one
+ * of those settlements), what, and how soon. Null, with a warning, when a
+ * table or the key locations aren't imported or the region matches none.
+ */
+async function runStir({ region, kind, at } = {}) {
+  const now = Number.isFinite(at) ? at : game.time.worldTime;
+  const byRegion = await settlementsByRegion();
+  if (!byRegion.size) { ui.notifications.warn(t("SDE.troubles.notify.noKeyLocations")); return null; }
+
+  const printed = region ?? resultText((await drawResults(TABLES.region))?.[0]);
+  if (!printed) return null;
+  const place = [...byRegion.keys()].find((r) => regionKey(r) === regionKey(printed));
+  const inRegion = byRegion.get(place) ?? [];
+  if (!inRegion.length) { ui.notifications.warn(t("SDE.troubles.notify.noSettlement", { region: printed })); return null; }
+
+  // A kind the region has none of is rerolled, as the book says. Every region
+  // has a village, so the rerolls end; the cap only guards a broken table.
+  let want = kind ? (core.settlementKind(kind) ?? kind) : null;
+  for (let tries = 0; !inRegion.some((s) => s.kind === want); tries++) {
+    if (tries > 50) { ui.notifications.warn(t("SDE.troubles.notify.noSettlement", { region: place })); return null; }
+    const row = (await drawResults(TABLES.settlement))?.[0];
+    if (!row) return null;
+    want = core.settlementKind(resultText(row));
+  }
+  const choices = inRegion.filter((s) => s.kind === want);
+  const settlement = choices[(await rollDie(`1d${choices.length}`)) - 1];
+
+  const typed = await rollType();
+  const urgency = await findTable(TABLES.urgency);
+  if (!typed || !urgency) {
+    if (!urgency) ui.notifications.warn(t("SDE.troubles.notify.noTable", { table: TABLES.urgency }));
+    return null;
+  }
+  const rows = Object.fromEntries(urgency.results.contents
+    .map((r) => core.urgencyRow(resultText(r))).filter(Boolean).map((r) => [r.stage, r]));
+  const drawn = core.urgencyRow(resultText((await urgency.roll()).results[0]));
+  if (!drawn) { ui.notifications.warn(t("SDE.troubles.notify.noTable", { table: TABLES.urgency })); return null; }
+  const rolled = {};
+  for (const stage of ["weeks", "days", "hours"]) if (rows[stage]?.formula) rolled[stage] = await rollDie(rows[stage].formula);
+  const times = core.schedule(drawn.stage, now, rolled, calendarSecs());
+
+  const trouble = {
+    region: place, settlement, type: typed.type, detail: typed.detail,
+    urgency: drawn.stage, rolled, stirredAt: now, ...times,
+    // A trouble stirred at a week start earlier in a long clock move is
+    // already further on; advance() then has nothing to say about it.
+    stage: core.stageAt(Math.max(now, game.time.worldTime), times),
+    symptoms: Object.fromEntries(core.STAGES.map((s) => [s, rows[s]?.symptoms ?? ""])),
+    discovered: false, resolved: false, questUuid: null,
+  };
+  const log = await troubleLog({ create: true });
+  const [page] = await log.createEmbeddedDocuments("JournalEntryPage", [{
+    name: t("SDE.troubles.pageName", { settlement: settlement.name, type: typed.type }),
+    type: "text",
+    text: { content: pageContent(trouble) },
+    flags: { [MODULE_ID]: { [TROUBLE_FLAG]: trouble } },
+  }]);
+  nextAt = null;
+  await whisper(t("SDE.troubles.chat.stirred", {
+    settlement: link(page.uuid, settlement.name), region: esc(place), what: esc(what(trouble)),
+    stage: esc(stageLabel(trouble.stage)), symptoms: esc(trouble.symptoms[trouble.stage]),
+  }));
+  return view(page);
+}
+
+/**
+ * One weekly check. A hit stirs a trouble and starts the count again; one
+ * that couldn't be placed (the warning says why) keeps the count.
+ */
+async function runCheck({ at } = {}) {
+  const now = Number.isFinite(at) ? at : game.time.worldTime;
+  const quiet = game.settings.get(MODULE_ID, QUIET_SETTING);
+  const d6 = await rollDie("1d6");
+  const out = core.weeklyCheck(quiet, d6);
+  await whisper(t(out.stirs ? "SDE.troubles.chat.stirs" : "SDE.troubles.chat.quiet",
+    { date: esc(formatTime(now)), roll: d6, chance: out.chance, next: core.checkChance(out.quiet) }));
+  const trouble = out.stirs ? await runStir({ at: now }) : null;
+  const next = out.stirs && !trouble ? quiet : out.quiet;
+  await game.settings.set(MODULE_ID, QUIET_SETTING, next);
+  if (out.stirs && !trouble) await whisper(t("SDE.troubles.chat.unplaced", { chance: core.checkChance(next) }));
+  return { roll: d6, chance: out.chance, stirs: out.stirs, trouble };
+}
+
+/**
+ * A clock move: one check per week start it passed that hasn't been checked
+ * (the last MAX_CATCH_UP of them), in a world that has what the tracker
+ * needs; then any trouble whose stage time has come moves on.
+ */
+async function onTimeAdvanced({ from, to, crossed }) {
+  if (crossed?.weeks) {
+    const cal = game.time.calendar;
+    const last = game.settings.get(MODULE_ID, LAST_WEEK_SETTING);
+    const starts = core.weekStarts({ secondsPerDay: secondsPerDay(cal), week: cal?.days?.values?.length || 7, offset: cal?.years?.firstWeekday ?? 0 }, from, to)
+      .filter((at) => !Number.isFinite(last) || at > last);
+    if (starts.length) {
+      if (await ready()) {
+        if (starts.length > MAX_CATCH_UP) await whisper(t("SDE.troubles.chat.catchUp", { weeks: starts.length, checked: MAX_CATCH_UP }));
+        for (const at of starts.slice(-MAX_CATCH_UP)) await runCheck({ at });
+      }
+      await game.settings.set(MODULE_ID, LAST_WEEK_SETTING, starts.at(-1));
+    }
+  }
+  nextAt ??= Math.min(Infinity, ...troublePages(await troubleLog()).map((p) => core.nextChange(from, p.getFlag(MODULE_ID, TROUBLE_FLAG))));
+  if (to >= nextAt) { await advance(to); nextAt = null; }
+}
+
 export const Troubles = {
   /**
-   * The weekly check (GM): a d6 against 1-in-6 plus one per quiet week. A hit
-   * stirs a trouble and starts the count again. `at` is the week start it
-   * stands for; now by default.
+   * The weekly check (GM), by hand: a d6 against 1-in-6 plus one per quiet week.
    * @returns {Promise<{roll:number, chance:number, stirs:boolean, trouble:object|null}|null>}
    */
-  async check({ at } = {}) {
-    if (!game.user.isGM) return null;
-    const d6 = await rollDie("1d6");
-    const out = core.weeklyCheck(game.settings.get(MODULE_ID, QUIET_SETTING), d6);
-    await game.settings.set(MODULE_ID, QUIET_SETTING, out.quiet);
-    await whisper(t(out.stirs ? "SDE.troubles.chat.stirs" : "SDE.troubles.chat.quiet",
-      { roll: d6, chance: out.chance, next: core.checkChance(out.quiet) }));
-    const trouble = out.stirs ? await this.stir({ at }) : null;
-    return { roll: d6, chance: out.chance, stirs: out.stirs, trouble };
+  check({ at } = {}) {
+    return game.user.isGM ? enqueue(() => runCheck({ at })) : Promise.resolve(null);
   },
 
   /**
    * Stir a trouble (GM), as a hit on the check does. `region` and `kind`
    * force the first rolls; a kind the region has none of is rerolled on the
-   * Settlement table, as the book says. Null, with a warning, when a table or
-   * the key locations aren't imported.
+   * Settlement table, as the book says.
    * @param {{region?:string, kind?:string, at?:number}} [opts]
    */
-  async stir({ region, kind, at } = {}) {
-    if (!game.user.isGM) return null;
-    const now = Number.isFinite(at) ? at : game.time.worldTime;
-    const byRegion = await settlementsByRegion();
-    if (!byRegion.size) { ui.notifications.warn(t("SDE.troubles.notify.noKeyLocations")); return null; }
-
-    const printed = region ?? resultText(await drawRow(TABLES.region));
-    if (!printed) return null;
-    const place = core.matchRegion(printed, [...byRegion.keys()]);
-    const inRegion = byRegion.get(place) ?? [];
-    if (!inRegion.length) { ui.notifications.warn(t("SDE.troubles.notify.noSettlement", { region: printed })); return null; }
-
-    // Every region has a village, so the rerolls end; the cap only guards a broken table.
-    let want = kind ? (core.settlementKind(kind) ?? kind) : null;
-    for (let tries = 0; !inRegion.some((s) => s.kind === want); tries++) {
-      if (tries > 50) { ui.notifications.warn(t("SDE.troubles.notify.noSettlement", { region: place })); return null; }
-      const row = await drawRow(TABLES.settlement);
-      if (!row) return null;
-      want = core.settlementKind(resultText(row));
-    }
-    const choices = inRegion.filter((s) => s.kind === want);
-    const settlement = choices[(await rollDie(`1d${choices.length}`)) - 1];
-
-    const typed = await rollType();
-    const urgency = await findTable(TABLES.urgency);
-    if (!typed || !urgency) {
-      if (!urgency) ui.notifications.warn(t("SDE.troubles.notify.noTable", { table: TABLES.urgency }));
-      return null;
-    }
-    const rows = Object.fromEntries(urgency.results.contents
-      .map((r) => core.urgencyRow(resultText(r))).filter(Boolean).map((r) => [r.stage, r]));
-    const drawn = core.urgencyRow(resultText((await urgency.roll()).results[0]));
-    if (!drawn) { ui.notifications.warn(t("SDE.troubles.notify.noTable", { table: TABLES.urgency })); return null; }
-    const rolled = {};
-    for (const stage of ["weeks", "days", "hours"]) if (rows[stage]?.formula) rolled[stage] = await rollDie(rows[stage].formula);
-    const times = core.schedule(drawn.stage, now, rolled, calendarSecs());
-
-    const trouble = {
-      region: place, settlement, type: typed.type, detail: typed.detail,
-      urgency: drawn.stage, rolled, stirredAt: now, ...times,
-      stage: core.stageAt(Math.max(now, game.time.worldTime), times),
-      symptoms: Object.fromEntries(core.STAGES.map((s) => [s, rows[s]?.symptoms ?? ""])),
-      discovered: false, resolved: false, questUuid: null,
-    };
-    const log = await troubleLog({ create: true });
-    const [page] = await log.createEmbeddedDocuments("JournalEntryPage", [{
-      name: t("SDE.troubles.pageName", { settlement: settlement.name, type: typed.type }),
-      type: "text",
-      text: { content: pageContent(trouble) },
-      flags: { [MODULE_ID]: { [TROUBLE_FLAG]: trouble } },
-    }]);
-    nextAt = null;
-    await whisper(t("SDE.troubles.chat.stirred", {
-      settlement: link(page.uuid, settlement.name), region: esc(place), type: esc(typed.type),
-      detail: esc(typed.detail || "—"), stage: esc(stageLabel(trouble.stage)), symptoms: esc(trouble.symptoms[trouble.stage]),
-    }));
-    return view(page);
+  stir(opts = {}) {
+    return game.user.isGM ? enqueue(() => runStir(opts)) : Promise.resolve(null);
   },
 
   /** Every trouble, newest first (GM). */
@@ -263,30 +345,36 @@ export const Troubles = {
   },
 
   /** Mark a trouble heard of (GM). */
-  async discover(idOrUuid, discovered = true) {
-    const page = game.user.isGM ? await pageOf(idOrUuid) : null;
-    const tr = page?.getFlag(MODULE_ID, TROUBLE_FLAG);
-    if (!tr) return null;
-    await replaceModuleFlag(page, TROUBLE_FLAG, { ...tr, discovered: !!discovered });
-    return view(page);
+  discover(idOrUuid, discovered = true) {
+    if (!game.user.isGM) return Promise.resolve(null);
+    return enqueue(async () => {
+      const page = await pageOf(idOrUuid);
+      const tr = page?.getFlag(MODULE_ID, TROUBLE_FLAG);
+      if (!tr) return null;
+      await replaceModuleFlag(page, TROUBLE_FLAG, { ...tr, discovered: !!discovered });
+      return view(page);
+    });
   },
 
   /** An Available quest for the trouble (GM), linked back to its page; its quest when it has one. */
-  async promote(idOrUuid) {
-    const page = game.user.isGM ? await pageOf(idOrUuid) : null;
-    const tr = page?.getFlag(MODULE_ID, TROUBLE_FLAG);
-    if (!tr) return null;
-    const existing = tr.questUuid ? Quests.get(tr.questUuid) : null;
-    if (existing) return existing;
-    const quest = await Quests.create({
-      name: page.name,
-      status: "available",
-      source: { kind: "trouble", uuid: page.uuid },
-      description: t("SDE.troubles.questText", { settlement: tr.settlement.name, region: tr.region, type: tr.type }),
-      hex: tr.settlement.num,
+  promote(idOrUuid) {
+    if (!game.user.isGM) return Promise.resolve(null);
+    return enqueue(async () => {
+      const page = await pageOf(idOrUuid);
+      const tr = page?.getFlag(MODULE_ID, TROUBLE_FLAG);
+      if (!tr) return null;
+      const existing = tr.questUuid ? Quests.get(tr.questUuid) : null;
+      if (existing) return existing;
+      const quest = await Quests.create({
+        name: page.name,
+        status: "available",
+        source: { kind: "trouble", uuid: page.uuid },
+        description: t("SDE.troubles.questText", { settlement: tr.settlement.name, region: tr.region, type: tr.type }),
+        hex: tr.settlement.num,
+      });
+      if (quest) await replaceModuleFlag(page, TROUBLE_FLAG, { ...tr, questUuid: quest.uuid, discovered: true });
+      return quest;
     });
-    if (quest) await replaceModuleFlag(page, TROUBLE_FLAG, { ...tr, questUuid: quest.uuid, discovered: true });
-    return quest;
   },
 };
 
@@ -303,16 +391,15 @@ function decoratePage(sheet, html) {
     const b = document.createElement("button");
     b.type = "button";
     b.textContent = label;
-    b.addEventListener("click", async () => { await action(); sheet.render(); });
+    b.addEventListener("click", () => action().then(() => sheet.render()).catch((err) => console.error(`${MODULE_ID} | trouble page`, err)));
     bar.append(b);
   };
   if (!tr.resolved) {
     button(t(tr.discovered ? "SDE.troubles.button.unheard" : "SDE.troubles.button.heard"), () => Troubles.discover(page.id, !tr.discovered));
-    button(t(tr.questUuid ? "SDE.troubles.button.openQuest" : "SDE.troubles.button.promote"), async () => {
-      const quest = await Troubles.promote(page.id);
-      if (quest && tr.questUuid) (await fromUuid(quest.uuid))?.sheet?.render(true);
-    });
+    button(t(tr.questUuid ? "SDE.troubles.button.openQuest" : "SDE.troubles.button.promote"),
+      async () => { if (tr.questUuid) await openQuestLog(); else await Troubles.promote(page.id); });
   }
+  button(t("SDE.troubles.button.pin"), () => jumpToHex(tr.settlement.num));
   html.prepend(bar);
 }
 
@@ -322,9 +409,11 @@ async function onQuestsChanged({ ids } = {}) {
   for (const id of ids ?? []) {
     const quest = Quests.get(id);
     if (quest?.source?.kind !== "trouble" || quest.status !== "completed") continue;
-    const page = await fromUuid(quest.source.uuid).catch(() => null);
-    const tr = page?.getFlag(MODULE_ID, TROUBLE_FLAG);
-    if (tr && !tr.resolved) await replaceModuleFlag(page, TROUBLE_FLAG, { ...tr, resolved: true });
+    await enqueue(async () => {
+      const page = await fromUuid(quest.source.uuid).catch(() => null);
+      const tr = page?.getFlag(MODULE_ID, TROUBLE_FLAG);
+      if (tr && !tr.resolved) await replaceModuleFlag(page, TROUBLE_FLAG, { ...tr, resolved: true });
+    });
   }
 }
 
@@ -338,32 +427,23 @@ function addDirectoryButton(_app, html) {
   btn.type = "button";
   btn.className = "sde-trouble-check";
   btn.innerHTML = `<i class="fa-solid fa-triangle-exclamation" inert></i> <span>${esc(t("SDE.troubles.button.check"))}</span>`;
-  btn.addEventListener("click", () => Troubles.check());
+  btn.addEventListener("click", () => { Troubles.check().catch((err) => console.error(`${MODULE_ID} | trouble check`, err)); });
   footer.append(btn);
 }
 
-/** Setting, hooks and buttons. Must run in `init`, after registerQuests (it adds the footer). */
+/** Settings, hooks and buttons. Must run in `init`, after registerQuests (it adds the footer). */
 export function registerTroubles() {
   game.settings.register(MODULE_ID, QUIET_SETTING, { scope: "world", config: false, type: Number, default: 0 });
+  game.settings.register(MODULE_ID, LAST_WEEK_SETTING, {
+    scope: "world", config: false, type: new foundry.data.fields.NumberField({ nullable: true, initial: null }), default: null,
+  });
   Hooks.on("renderJournalDirectory", addDirectoryButton);
   Hooks.on("renderJournalEntryPageSheet", decoratePage);
   Hooks.on(`${MODULE_ID}.questsChanged`, (e) => { onQuestsChanged(e).catch((err) => console.error(`${MODULE_ID} | trouble resolve`, err)); });
   for (const hook of ["createJournalEntryPage", "updateJournalEntryPage", "deleteJournalEntryPage"]) {
     Hooks.on(hook, (page) => { if (page.getFlag?.(MODULE_ID, TROUBLE_FLAG)) nextAt = null; });
   }
-
-  // One jump at a time: the real-time clock ticks every second, and a check
-  // that stirs a trouble takes several awaits.
-  let queue = Promise.resolve();
-  Hooks.on(`${MODULE_ID}.timeAdvanced`, ({ from, to, crossed }) => {
-    queue = queue.then(async () => {
-      if (crossed?.weeks) {
-        const cal = game.time.calendar;
-        const starts = core.weekStarts({ secondsPerDay: secondsPerDay(cal), week: cal?.days?.values?.length || 7, offset: cal?.years?.firstWeekday ?? 0 }, from, to);
-        for (const at of starts) await Troubles.check({ at });
-      }
-      nextAt ??= Math.min(Infinity, ...troublePages(await troubleLog()).map((p) => core.nextChange(from, p.getFlag(MODULE_ID, TROUBLE_FLAG))));
-      if (to >= nextAt) { await advance(to); nextAt = null; }
-    }).catch((err) => console.error(`${MODULE_ID} | trouble tracker`, err));
-  });
+  // Queued: the real-time clock ticks every second, and a check that stirs a
+  // trouble takes several awaits.
+  Hooks.on(`${MODULE_ID}.timeAdvanced`, (e) => { enqueue(() => onTimeAdvanced(e)); });
 }

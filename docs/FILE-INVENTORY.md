@@ -1,7 +1,7 @@
 # Shadowdark Enhancer — File Inventory
 
 <!-- inventory:stats:start -->
-1050 tracked files · ~185,900 lines of code/markup across scripts+templates+styles+test.
+1050 tracked files · ~186,000 lines of code/markup across scripts+templates+styles+test.
 `v0.17.3` in both `module.json` and `package.json`.
 <!-- inventory:stats:end -->
 **Layout reflects the 2026-07-21 feature-folder reorganization (v0.11.0 cycle).**
@@ -101,8 +101,8 @@
 | `training/training-grant.mjs` | 311 | Grants one training benefit for real: finds the GM's imported benefits table by name, reads the book's line for that d4 face, writes the Talent with its effects and provenance flag, and runs the one-time actions (permanent HP, a renown award through the ledger, an ability reroll, a granted weapon or item). Enforces "once each" off the character's own Talents. |
 | `training/training-journal.mjs` | 213 | Files the 21 trainer spreads as journal entries in the managed sde-journal pack, one entry per trainer foldered by region, read from the GM's own registered GM Guide PDF. Identity is a flag, so re-running updates in place and adopts a page whose flag went missing rather than adding a second. |
 | `training/training-parser.mjs` | 109 | Reads one trainer spread out of column-split PDF text: the trainer's description and the four numbered TASKS. Knows the page's shape only — the display title sorting after the tasks, a bare page number landing inside the task block, tasks wrapping across lines — and never the benefits, which import as a RollTable. Pure; ships no book text. |
-| `troubles/trouble-core.mjs` | 148 | The Trouble tracker's rules, pure (#193): the weekly check's growing chance, the week starts a clock jump crosses, the Region table's printed names matched to the imported regions (", The" moved, abbreviated words), the settlement kind a row names, an inline Type of Trouble list, Urgency Level rows, and the countdown's stage times. |
-| `troubles/troubles.mjs` | 369 | The Trouble tracker (#193): the weekly check on every week start the world clock passes (timeAdvanced, active GM, queued), stirring a trouble in a settlement picked from the imported key locations, one GM-only page per trouble in a flagged Troubles journal entry with its state in the page's trouble flag, stage whispers as the clock passes each stage, the page's status bar and buttons (heard, promote to quest), resolving on its quest's completion, the Journal sidebar's Check for trouble button, and the troubles API. |
+| `troubles/trouble-core.mjs` | 117 | The Trouble tracker's rules, pure (#193): the weekly check's growing chance, the week starts a clock jump crosses, the Region table's printed names matched to the imported regions (", The" moved, abbreviated words), the settlement kind a row names, an inline Type of Trouble list, Urgency Level rows, and the countdown's stage times. |
+| `troubles/troubles.mjs` | 449 | The Trouble tracker (#193): the weekly check on every week start the world clock passes (timeAdvanced, active GM, queued), stirring a trouble in a settlement picked from the imported key locations, one GM-only page per trouble in a flagged Troubles journal entry with its state in the page's trouble flag, stage whispers as the clock passes each stage, the page's status bar and buttons (heard, promote to quest), resolving on its quest's completion, the Journal sidebar's Check for trouble button, and the troubles API. |
 
 ### 3.2 `scripts/shared/` — cross-feature infrastructure
 
@@ -463,7 +463,7 @@ The report and idiom seams are pure data policy. Foundry adapters must translate
 | File | Lines | Description |
 |---|---:|---|
 | `quest-core.mjs` | 357 | The Quest Log's rules, pure: the quest flag's one shape, status changes and the ownership each status gives, who a player may see, objectives, when rewards are paid (once, on the way into Completed) and to whom, list filters, which trainer tasks a character has taken, which map pin to jump to, and the player page's HTML. |
-| `quests.mjs` | 478 | The Quest Log's data and public API: one world JournalEntry per quest in a flagged Quests folder, with a player page rewritten from the flag and a GM notes page left alone. GM-only writes serialized per client through replaceModuleFlag; the payout confirmation and payout through Party XP, the renown ledger and item copies; Shadowdark Extras parties read from its flags behind a feature check; jump to pin; the Ctrl+Q keybinding, the Journal sidebar button and the debounced questsChanged hook. |
+| `quests.mjs` | 485 | The Quest Log's data and public API: one world JournalEntry per quest in a flagged Quests folder, with a player page rewritten from the flag and a GM notes page left alone. GM-only writes serialized per client through replaceModuleFlag; the payout confirmation and payout through Party XP, the renown ledger and item copies; Shadowdark Extras parties read from its flags behind a feature check; jump to pin; the Ctrl+Q keybinding, the Journal sidebar button and the debounced questsChanged hook. |
 | `quest-log-app.mjs` | 241 | The Quest Log window (AppV2): a tab per status (Hidden for the GM only), filters by character, party and source, the quest list and the chosen quest. The GM edits in place (objectives, rewards with items dropped on, characters, party, hex); players get the same quest read-only. |
 
 One world JournalEntry per quest, its state one flag on the entry. World journals rather than the managed journal pack, because a compendium has one ownership for the whole pack and a quest's visibility is per quest. Every write is the GM's.

@@ -1192,7 +1192,11 @@ await api.troubles.promote(id);                               // an Available qu
   week, stored in the `troubleQuietWeeks` world setting) and resolves
   `{ roll, chance, stirs, trouble }`. The tracker runs it by itself on every
   week start (weekday 0 at 00:00) a `timeAdvanced` jump crosses, with `at` set
-  to that week start.
+  to that week start, once each: the last one checked is kept in
+  `troubleLastWeek`, so a clock set back and moved on again doesn't check a
+  week twice. One jump checks at most its last 4 week starts, and only in a
+  world that has the four tables and the key locations. A hit that can't be
+  placed keeps the quiet weeks.
 - `stir({ region, kind, at })` rolls where, what and how soon, and returns
   the trouble. `region` is a region name as the Region table prints it or as
   the key locations record it; `kind` is `village`, `town`, `city` or
@@ -1214,7 +1218,8 @@ await api.troubles.promote(id);                               // an Available qu
 ```
 
 - The state is the page's `flags["shadowdark-enhancer"].trouble`; the entry is
-  found by its `troubleLog` flag, never its name.
+  found by its `troubleLog` flag, never its name. Every write runs through one
+  queue on the calling GM's client.
 - A promoted trouble's quest has `source: { kind: "trouble", uuid }` (the
   page). When it moves to Completed, the trouble is resolved.
 

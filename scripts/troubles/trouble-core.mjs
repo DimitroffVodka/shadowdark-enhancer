@@ -39,37 +39,6 @@ export function weekStarts({ secondsPerDay, week, offset }, from, to) {
   return out;
 }
 
-const words = (s) => String(s ?? "").toLowerCase().replace(/[^a-z0-9\s-]/g, " ").split(/\s+/).filter(Boolean);
-/** "mtns" in "mountains": same first letter, the rest in order. */
-const abbreviates = (a, b) => {
-  if (a[0] !== b[0]) return false;
-  let i = 0;
-  for (const c of b) if (c === a[i]) i++;
-  return i === a.length;
-};
-
-/**
- * The imported region a Region table row names. The table prints "Bastion
- * Mtns" and "Gloaming, The" where the key locations say "Bastion Mountains" and
- * "The Gloaming": a trailing ", The" moves to the front, and each word may be
- * an abbreviation of the region's. Null when no region, or more than one, fits.
- * @param {string} printed
- * @param {string[]} regions
- * @returns {string|null}
- */
-export function matchRegion(printed, regions) {
-  const text = String(printed ?? "").trim().replace(/^(.*?),\s*the$/i, "The $1");
-  const want = words(text);
-  if (!want.length) return null;
-  const exact = regions.find((r) => words(r).join(" ") === want.join(" "));
-  if (exact) return exact;
-  const fits = regions.filter((r) => {
-    const w = words(r);
-    return w.length === want.length && w.every((word, i) => abbreviates(want[i], word));
-  });
-  return fits.length === 1 ? fits[0] : null;
-}
-
 /** The settlement kind a Settlement table row names: "A city-state (reroll if none)" → "city_state". */
 export function settlementKind(text) {
   const t = String(text ?? "").toLowerCase();

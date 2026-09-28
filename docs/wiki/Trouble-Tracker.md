@@ -27,6 +27,13 @@ Every time the world clock passes the start of a week, one check runs,
 whatever moved the clock: travel, camp, downtime, or you setting the date. A
 jump of three weeks runs three checks, each at its own week start.
 
+- A bigger jump checks only its last four weeks, and says so, so setting the
+  calendar a year on doesn't stir a dozen troubles at once. **Check for
+  trouble** runs more.
+- Each week is checked once: setting the clock back and moving it on again
+  doesn't check the same weeks twice.
+- The checks run only once the tables and key locations below are imported.
+
 - The chance starts at **1-in-6** and grows by one each quiet week: 2-in-6,
   3-in-6, and so on. When trouble stirs, it starts again at 1-in-6.
 - Each check is whispered to the GMs, with the roll and next week's chance.
@@ -67,7 +74,8 @@ Opened by a GM, each trouble's page shows its stage and two buttons:
 | Button | What it does |
 |---|---|
 | **Mark heard** / **Mark not heard** | Whether the party has heard of it. |
-| **Promote to quest** | Makes an Available quest in the [Quest Log](Quest-Log.md), linked back to the trouble, and marks it heard. Once it has one, **Open quest**. |
+| **Promote to quest** | Makes an Available quest in the [Quest Log](Quest-Log.md), linked back to the trouble, and marks it heard. Once it has one, **Quest Log** opens the log. |
+| **Jump to pin** | Pans to the settlement's Hex Tagger pin. |
 
 Completing that quest resolves the trouble and stops its countdown.
 
