@@ -11201,3 +11201,20 @@ body.theme-light .sde-parry-note { color: #2e6b2e; }
   width: auto;
   font-size: var(--font-size-12);
 }
+
+/* Warband units (#200): the upgrade checklist, the allowance line and Make a Warband's preview. */
+.sde-warband-npc .sde-warband-upgrades {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.25rem 0.75rem;
+}
+.sde-warband-npc .sde-warband-allowance {
+  margin: 0.4rem 0 0;
+  font-size: var(--font-size-12);
+  opacity: 0.8;
+}
+.sde-warband-preview td,
+.sde-warband-preview th {
+  padding: 0.15rem 0.4rem;
+  text-align: left;
+}

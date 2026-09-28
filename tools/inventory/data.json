@@ -76,7 +76,7 @@
     {
       "id": "3.13",
       "dir": "scripts/actors",
-      "title": "`scripts/actors/` — Mount & Boat sub-types",
+      "title": "`scripts/actors/` — Mount, Warband & Boat sub-types",
       "note": ""
     },
     {
@@ -335,6 +335,9 @@
       "scripts/actors/boat-data-model.mjs",
       "scripts/actors/boat-sheet.mjs",
       "scripts/actors/mount-npc-sheet.mjs",
+      "scripts/actors/warband-core.mjs",
+      "scripts/actors/warband-npc-sheet.mjs",
+      "scripts/actors/make-warband.mjs",
       "scripts/actors/vehicle-sheet.mjs",
       "scripts/actors/vehicle-rolls.mjs"
     ],
@@ -566,6 +569,9 @@
     "scripts/actors/register-actors.mjs": "Registers `shadowdark-enhancer.mount` / `.boat` (models + sheets, in `i18nInit`).",
     "scripts/actors/boat-data-model.mjs": "Boat data model — WR vessel rules.",
     "scripts/actors/boat-sheet.mjs": "Boat sheet: Overview / Passengers & Crew / Cargo / Description.",
+    "scripts/actors/warband-core.mjs": "Warband rules, pure (#200, #202): the 18 upgrades, a commander's allowance by hit die tier (2/2, 4/3, 6/4), the command and upgrade refusals, and a creature made into a warband (level doubled, 8 HP a level plus CON, one attack, +1 attack a level gained, damage dice tripled).",
+    "scripts/actors/warband-npc-sheet.mjs": "The Warband unit sheet (#200): an NpcSheetSD subclass (AppV1) with a Warband tab for the commander (a PC dropped on it), the allowance across that commander's warbands, the upgrade checklist written whole to the `warband` flag, and the commander's CHA for morale.",
+    "scripts/actors/make-warband.mjs": "Make a Warband (#202): the GM's header button on a level 1-5 NPC's sheet, a before/after preview, and a new warband actor from a copy (the stat block in its notes rebuilt as Quick Adjust does).",
     "scripts/actors/mount-npc-sheet.mjs": "Mount sheet — subclass of the system's `NpcSheetSD`.",
     "scripts/actors/vehicle-sheet.mjs": "Shared party-like container base (ApplicationV2).",
     "scripts/actors/vehicle-rolls.mjs": "Shared helper-roll button handlers.",
