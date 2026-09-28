@@ -11056,6 +11056,7 @@ body.theme-light .sde-parry-note { color: #2e6b2e; }
 }
 #shadowdark-enhancer-travel.sde-hud-visible { display: flex; }
 body.sde-clock-on #shadowdark-enhancer-strip { top: 48px; }
+body.sde-clock-on:has(.sdx-scene-nav-bar) #shadowdark-enhancer-strip { top: 120px; }
 /* Shadowdark Extras' Theatre-of-the-Mind scene bar sits fixed at the top
    centre while a scene is broadcast; the clock hangs under it then. */
 body:has(.sdx-scene-nav-bar) #shadowdark-enhancer-travel { top: 72px; }
@@ -11065,8 +11066,15 @@ body:has(.sdx-scene-nav-bar) #shadowdark-enhancer-travel { top: 72px; }
   display: flex;
   flex-direction: column;
   align-items: center;
-  pointer-events: auto;
+  max-width: 100%;
+  min-width: 0;
+  pointer-events: none;
 }
+/* Only what shows takes clicks: the empty column beside the dial is canvas. */
+.sde-hud-bar,
+.sde-hud-stack,
+.sde-hud-season,
+.sde-hud-panel { pointer-events: auto; }
 .sde-hud-col button { font-family: inherit; color: inherit; }
 .sde-hud-col :focus-visible { outline: 2px solid var(--sd-text); outline-offset: 2px; }
 
@@ -11100,6 +11108,8 @@ body:has(.sdx-scene-nav-bar) #shadowdark-enhancer-travel { top: 72px; }
   align-items: center;
   height: 40px;
   padding: 0 10px;
+  max-width: 100%;
+  min-width: 0;
 }
 .sde-hud-ib {
   position: relative;
@@ -11127,8 +11137,8 @@ body:has(.sdx-scene-nav-bar) #shadowdark-enhancer-travel { top: 72px; }
   box-shadow: inset 0 -2px 0 var(--sd-text);
 }
 .sde-hud-sep { width: 1px; height: 20px; margin: 0 6px; background: var(--sd-hairline); flex: none; }
-.sde-hud-date { display: flex; align-items: baseline; gap: 10px; padding: 0 6px 0 12px; white-space: nowrap; }
-.sde-hud-d { font-family: "JSL Blackletter", serif; font-size: 21px; color: var(--sd-text); }
+.sde-hud-date { display: flex; align-items: baseline; gap: 10px; padding: 0 6px 0 12px; white-space: nowrap; min-width: 0; overflow: hidden; }
+.sde-hud-d { font-family: "JSL Blackletter", serif; font-size: 21px; color: var(--sd-text); overflow: hidden; text-overflow: ellipsis; }
 .sde-hud-t {
   font-family: "Montserrat-Bold", sans-serif;
   font-size: 14px;
@@ -11249,7 +11259,7 @@ body:has(.sdx-scene-nav-bar) #shadowdark-enhancer-travel { top: 72px; }
 .sde-hud-panel {
   z-index: 2;
   width: 600px;
-  max-width: calc(100vw - 380px);
+  max-width: 100%;
   max-height: calc(100vh - 120px);
   overflow-y: auto;
   margin-top: -2px;

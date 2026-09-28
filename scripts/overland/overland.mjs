@@ -389,8 +389,8 @@ export async function advanceTravel(target, reason) {
  * Run `fn` with the system's real-time clock stopped, so a tick sent while a
  * move is in flight can't set the clock back to where it was: core's
  * advance writes an absolute time from this tab's cached one.
- * ponytail: stops the ticker on this tab only, which holds it when this GM is
- * the light tracker's primary GM; a ticker on another GM's tab can still race.
+ * ponytail: stops the ticker on the active GM's tab and on a relaying GM's
+ * (advanceClock); a third GM holding the light tracker can still race.
  * Off-duty's hand-off (offDutyRoute) is the upgrade path.
  */
 export async function holdClock(fn) {
@@ -411,10 +411,12 @@ export async function holdClock(fn) {
  *   the clock inside the queue, so a second click can't overshoot from a stale one
  * @returns {Promise<{ok:true, stopped?:boolean}|{ok:false, error:string}>}
  */
-export async function advanceClock(seconds, { to = null } = {}) {
+export async function advanceClock(seconds, { to = null, calendar = false } = {}) {
   if (!game.user?.isGM) return { ok: false, error: t("SDE.clock.gmOnly") };
-  const data = { action: "clock", seconds, to };
-  return isActiveGM() ? applyAction(data, game.user) : queryActiveGM(OVERLAND_QUERY, data, { label: t("SDE.overland.relayLabel") });
+  const data = { action: "clock", seconds, to, calendar: calendar === true };
+  // A relaying GM's own ticker is held too: it may be the light tracker's.
+  return isActiveGM() ? applyAction(data, game.user)
+    : holdClock(() => queryActiveGM(OVERLAND_QUERY, data, { label: t("SDE.overland.relayLabel") }));
 }
 
 /**
@@ -853,6 +855,8 @@ export function applyAction(data, user) {
         // (or a crawl started from it) the entry waits for travel to resume.
         if (_state.pending && CrawlState.isOverland) return { ok: false, error: t("SDE.clock.continueFirst") };
         if (CrawlState.isOverland && seconds > 0) {
+          // A calendar jump puts the lights out first (off duty), once nothing holds the clock.
+          if (data.calendar === true && !(await game.shadowdarkEnhancer.time.advanceOffDuty(0, { reason: "calendar" }))?.ok) return { ok: false };
           const { stopped } = await holdClock(() => advanceTravel(game.time.worldTime + seconds, "clock"));
           return { ok: true, stopped };
         }

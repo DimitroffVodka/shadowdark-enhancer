@@ -66,9 +66,9 @@ const ib = (action, icon, label, { id = "", pressed = null } = {}) =>
     pressed === null ? "" : ` aria-pressed="${pressed}"`}><i class="fa-solid ${icon}"></i></button>`;
 
 /** A key: the framed button of the panels. */
-const key = (action, label, { id = "", hint = "", cls = "" } = {}) =>
+const key = (action, label, { id = "", hint = "", cls = "", aria = "" } = {}) =>
   `<button type="button" class="sde-hud-key ${cls}" data-action="${action}"${id ? ` data-id="${esc(id)}"` : ""}${
-    hint ? ` data-tooltip="${esc(hint)}"` : ""}>${esc(label)}</button>`;
+    aria ? ` aria-label="${esc(aria)}"` : ""}${hint ? ` data-tooltip="${esc(hint)}"` : ""}>${esc(label)}</button>`;
 
 export const TravelBar = {
   _el: null,
@@ -108,7 +108,7 @@ export const TravelBar = {
       this.render();
     });
     // Real-time light tracking moves the clock every second: redraw on the
-    // minute, but not under a GM typing a date (it catches up after).
+    // minute, but not under a GM typing a date (focusout catches up).
     Hooks.on("updateWorldTime", () => {
       if (document.activeElement?.id === "sde-hud-when") return;
       if (this._stamp() !== this._drawn) this.render();
@@ -128,18 +128,29 @@ export const TravelBar = {
     el.addEventListener("click", (event) => this._onClick(event));
     el.addEventListener("change", (event) => this._onChange(event));
     el.addEventListener("input", (event) => { if (event.target.id === "sde-hud-when") this._when = event.target.value; });
+    // Leaving the date field redraws what the minute skipped; not when moving onto Set, mid-click.
+    el.addEventListener("focusout", (event) => {
+      if (event.target.id !== "sde-hud-when" || this._el.contains(event.relatedTarget)) return;
+      if (this._stamp() !== this._drawn) this.render();
+    });
     this._el = el;
     this._sceneKind = isHexMapScene() ? "hex" : "other";
     this._sky = this._sceneKind === "hex";
     this.render();
-    // Centred over #ui-middle, the canvas between the left and right UI columns.
+    // Centred over the canvas (#ui-middle), and no wider than the room between
+    // the scene list and the sidebar either side of that centre, so on a narrow
+    // screen it neither covers them nor runs under them (the bar shrinks).
     const bounds = () => {
       const iface = document.getElementById("interface");
-      const middle = document.getElementById("ui-middle");
-      if (!iface || !middle || !this._el) return;
-      const box = iface.getBoundingClientRect(), mid = middle.getBoundingClientRect();
-      this._el.style.left = `${mid.left - box.left}px`;
-      this._el.style.width = `${mid.width}px`;
+      if (!iface || !this._el) return;
+      const box = iface.getBoundingClientRect();
+      const mid = document.getElementById("ui-middle")?.getBoundingClientRect();
+      const centre = (mid ? (mid.left + mid.right) / 2 : (box.left + box.right) / 2) - box.left;
+      const lo = (document.getElementById("scene-navigation")?.getBoundingClientRect().right ?? box.left) - box.left;
+      const hi = (document.getElementById("sidebar")?.getBoundingClientRect().left ?? box.right) - box.left;
+      const half = Math.max(0, Math.min(centre - lo, hi - centre));
+      this._el.style.left = `${centre - half}px`;
+      this._el.style.width = `${2 * half}px`;
     };
     window.addEventListener("resize", bounds);
     for (const hook of ["collapseSidebar", "renderSidebar", "renderSceneNavigation"]) Hooks.on(hook, () => setTimeout(bounds, 350));
@@ -196,7 +207,7 @@ export const TravelBar = {
     let travel = "";
     if (isHexMapScene()) {
       const cell = CrawlState.isOverland
-        ? `<button type="button" class="sde-hud-plate" data-action="open" data-id="travel"><i class="fa-solid fa-hexagon"></i> ${this._plateText(state)}</button>`
+        ? `<button type="button" class="sde-hud-plate" data-action="open" data-id="travel"><i class="fa-solid fa-hexagon"></i> ${this._plateText()}</button>`
         : gm && CrawlState.mode === "off" ? `<button type="button" class="sde-hud-go" data-action="startTravel"><i class="fa-solid fa-hexagon"></i> ${esc(t("SDE.overland.startTravel"))}</button>` : "";
       travel = `<span class="sde-hud-sep"></span>${cell}${CrawlState.isOverland
         ? ib("open", "fa-users", t("SDE.clock.travel"), { id: "travel", pressed: this._open === "travel" }) : ""}`;
@@ -214,9 +225,10 @@ export const TravelBar = {
   },
 
   /** The travel plate's words, by where the day stands. */
-  _plateText(state) {
+  _plateText() {
     const m = this._model();
-    if (state.pending) return esc(t("SDE.clock.plate.encounter"));   // only drawn while travelling
+    // A GM's only (the model's `pending`): a quiet check that hit is the GM's until posted.
+    if (m.pending) return esc(t("SDE.clock.plate.encounter"));
     if (!m.dayOpen) return esc(t("SDE.clock.plate.noDay"));
     return t("SDE.clock.plate.hexes", { left: `<b>${m.hexesLeft}</b>`, budget: `<b>${m.budget}</b>` })
       + (m.pushed ? esc(t("SDE.clock.plate.pushed")) : "");
@@ -261,7 +273,7 @@ export const TravelBar = {
       ? t("SDE.clock.sunSets", { time: hhmm(d.next.hour) })
       : t("SDE.clock.sunRises", { time: hhmm(d.next.hour ?? tomorrow.sunrise) });
     const state = overlandState();
-    const region = CrawlState.isOverland && isHexMapScene() ? [state.hex?.region, state.hex?.terrain].filter(Boolean).join(" · ") : "";
+    const region = CrawlState.isOverland && isHexMapScene() ? [state.hex?.region, state.hex?.terrain?.replace(/_/g, " ")].filter(Boolean).join(" · ") : "";
     const { cx, cy } = DIAL;
     const stars = DIAL_STARS.map((s) => { const [x, y] = starPoint(s, hoursPerDay); return `<circle cx="${x}" cy="${y}" r="1.1" class="sde-hud-star"/>`; }).join("");
     const label = t("SDE.clock.dialLabel", { weather: word, sun: sunLine, moon: t(MOON_NAME[moon.key]) });
@@ -318,7 +330,7 @@ export const TravelBar = {
         <div class="sde-hud-grid4">${jumps}</div>
         <label class="sde-hud-cap" for="sde-hud-when">${esc(t("SDE.clock.setDate"))}</label>
         <div class="sde-hud-row"><input class="sde-hud-field" id="sde-hud-when" type="text" spellcheck="false"
-          placeholder="YYYY-MM-DDTHH:MM" value="${esc(this._when ?? value)}" data-tooltip="${esc(t("SDE.clock.dateFormat"))}">${key("setTime", t("SDE.clock.set"), { cls: "sde-hud-sm" })}</div>
+          placeholder="${esc(t("SDE.clock.datePlaceholder"))}" value="${esc(this._when ?? value)}" data-tooltip="${esc(t("SDE.clock.dateFormat"))}">${key("setTime", t("SDE.clock.set"), { cls: "sde-hud-sm" })}</div>
         <label class="sde-hud-check"><input type="checkbox" data-action="realtime" ${realtime ? "checked" : ""} ${tracking ? "" : "disabled"}>
           <span>${esc(t("SDE.clock.realtime"))}</span><span class="sde-hud-cap">${esc(t(paused ? "SDE.clock.paused" : "SDE.clock.lightTracking"))}</span></label>
         <span class="sde-hud-fl">${esc(t("SDE.clock.timeNote"))}</span>
@@ -351,9 +363,9 @@ export const TravelBar = {
     ].filter(Boolean).join(" ");
     return `<div class="sde-hud-panel sde-hud-wide">
       <div class="sde-hud-ph sde-hud-ph-row">
-        ${key("month", "‹", { id: "-1", cls: "sde-hud-sm", hint: t("SDE.clock.prevMonth") })}
+        ${key("month", "‹", { id: "-1", cls: "sde-hud-sm", hint: t("SDE.clock.prevMonth"), aria: t("SDE.clock.prevMonth") })}
         <span class="sde-hud-ttl">${esc(`${t(g.month)} ${g.year}`)}</span>${season ? `<span class="sde-hud-cap">${esc(t(season))}</span>` : ""}
-        ${key("month", "›", { id: "1", cls: "sde-hud-sm", hint: t("SDE.clock.nextMonth") })}
+        ${key("month", "›", { id: "1", cls: "sde-hud-sm", hint: t("SDE.clock.nextMonth"), aria: t("SDE.clock.nextMonth") })}
       </div>
       <div class="sde-hud-pb"><div class="sde-hud-mgrid" style="grid-template-columns:repeat(${g.weekdays.length || 7},minmax(0,1fr))">${heads}${cells}</div>
         <span class="sde-hud-fl">${esc(notes)}</span></div>
@@ -423,12 +435,11 @@ export const TravelBar = {
     try {
       const ahead = to !== null ? to - game.time.worldTime : seconds;
       if (!ahead) return;
-      if (calendar && ahead > 0) {
-        const offDuty = game.shadowdarkEnhancer.time.advanceOffDuty;
-        if (!CrawlState.isOverland) { await offDuty(ahead, { reason: "calendar" }); return; }
-        if (!(await offDuty(0, { reason: "calendar" }))?.ok) return;
+      if (calendar && ahead > 0 && !CrawlState.isOverland) {
+        await game.shadowdarkEnhancer.time.advanceOffDuty(ahead, { reason: "calendar" });   // it warns for itself
+        return;
       }
-      const reply = to !== null ? await advanceClock(null, { to }) : await advanceClock(seconds);
+      const reply = to !== null ? await advanceClock(null, { to, calendar }) : await advanceClock(seconds);
       if (!reply?.ok && reply?.error) ui.notifications.warn(reply.error);
     } finally {
       this._moving = false;
