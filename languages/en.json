@@ -2721,7 +2721,7 @@
   "SDE.warband.upkeep.deserted": "{warband}, {owed} gp in arrears, checks morale (DC {dc}): it deserts.",
   "SDE.warband.upkeep.healTitle": "Warbands heal ({days} days)",
   "SDE.warband.upkeep.healed": "{warband} heals {hp} HP ({value}/{max}).",
-  "SDE.warband.upkeep.catchUp": "The clock passed {months} month starts at once; the last {charged} were charged.",
+  "SDE.warband.upkeep.catchUp": "The clock moved more than a year at once: upkeep and arrears were settled for the last year only ({days} days before it were skipped).",
   "SDE.warband.notify.commanderPc": "Only a player character can command a warband.",
   "SDE.warband.notify.tooManyWarbands": "{name} already commands {max} warbands, the most their hit die allows.",
   "SDE.warband.notify.tooManyUpgrades": "{name}'s warbands can have {max} upgrades between them, and that would be more.",

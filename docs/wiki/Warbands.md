@@ -80,7 +80,7 @@ you setting the date.
 - **Retraining.** Changing a commanded warband's upgrades takes a week; the tab
   says until when, and it can't fight until then.
 - A clock set back and moved on again never charges a month twice, and one
-  move charges at most its last 12 months.
+  move settles at most its last year of days.
 
 A bastion's Granary (10 gp less upkeep) and Barracks (+1d6 healing) come with
 bastions.

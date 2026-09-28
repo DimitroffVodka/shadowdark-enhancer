@@ -21,7 +21,6 @@ import { canAfford, spendFromPurse, toCopper } from "../shared/coins.mjs";
 import { SessionRecap } from "../session-recap/session-recap.mjs";
 import { secondsPerDay } from "../time/time-core.mjs";
 import { format as formatTime } from "../time/time.mjs";
-import { weekStarts } from "../troubles/trouble-core.mjs";
 import * as core from "./warband-core.mjs";
 import { WARBAND_FLAG, warbandState } from "./warband-npc-sheet.mjs";
 
@@ -30,10 +29,11 @@ export const LAST_MONTH_SETTING = "warbandLastMonth";
 /** World setting: the last week start whose arrears morale was checked. */
 export const LAST_WEEK_SETTING = "warbandLastWeek";
 /**
- * The most months, and weeks, one clock move settles: the last ones.
- * ponytail: a calendar set years on would otherwise empty every purse at once.
+ * One clock move settles at most its last year of days, and at most 8 weeks'
+ * arrears checks. ponytail: a calendar set years on would otherwise empty
+ * every purse and roll a card a week; a GM wanting more runs Charge a Month.
  */
-const MAX_MONTHS = 12;
+const MAX_DAYS = 366;
 const MAX_WEEKS = 8;
 
 const t = (key, data) => (data ? game.i18n.format(key, data) : game.i18n.localize(key));
@@ -117,27 +117,29 @@ async function healDays(type, days) {
   if (lines.length) await card(t("SDE.warband.upkeep.healTitle", { days }), lines, { whisper: true });
 }
 
-/** A clock move: its months charged, its weeks' arrears checked, its days healed. */
+/** A clock move: its month and week starts in order (upkeep, then arrears), then its days healed. */
 async function onTimeAdvanced(type, { from, to, crossed }) {
   if (!(crossed?.days > 0)) return;   // month and week starts are at 00:00, and healing is by the day
   const cal = game.time.calendar;
   const months = cal?.months?.values?.length || 12;
-  const fromKey = core.monthKey(cal.timeToComponents(from), months);
-  const toKey = core.monthKey(cal.timeToComponents(to), months);
-  if (toKey > fromKey) {
-    const { keys, skipped } = core.monthsDue(fromKey, toKey, game.settings.get(MODULE_ID, LAST_MONTH_SETTING), MAX_MONTHS);
-    if (skipped) await card(t("SDE.warband.upkeep.title"), [t("SDE.warband.upkeep.catchUp", { months: keys.length + skipped, charged: keys.length })], { whisper: true });
-    for (let i = 0; i < keys.length; i++) await runMonth(type);
-    if (keys.length) await game.settings.set(MODULE_ID, LAST_MONTH_SETTING, keys.at(-1));
+  const { events, skippedDays } = core.clockEvents({
+    from, to, secondsPerDay: secondsPerDay(cal), week: cal?.days?.values?.length || 7, offset: cal?.years?.firstWeekday ?? 0,
+    monthOf: (at) => core.monthKey(cal.timeToComponents(at), months),
+    lastMonth: game.settings.get(MODULE_ID, LAST_MONTH_SETTING), lastWeek: game.settings.get(MODULE_ID, LAST_WEEK_SETTING),
+    maxDays: MAX_DAYS,
+  });
+  if (skippedDays) await card(t("SDE.warband.upkeep.title"), [t("SDE.warband.upkeep.catchUp", { days: skippedDays })], { whisper: true });
+  let weeks = 0;
+  for (const e of events) {
+    if (e.month !== undefined) {
+      await runMonth(type);
+      await game.settings.set(MODULE_ID, LAST_MONTH_SETTING, e.month);
+    } else {
+      if (weeks++ < MAX_WEEKS) await arrearsMorale(type);
+      await game.settings.set(MODULE_ID, LAST_WEEK_SETTING, e.at);
+    }
   }
-  if (crossed.weeks) {
-    const last = game.settings.get(MODULE_ID, LAST_WEEK_SETTING);
-    const starts = weekStarts({ secondsPerDay: secondsPerDay(cal), week: cal?.days?.values?.length || 7, offset: cal?.years?.firstWeekday ?? 0 }, from, to)
-      .filter((at) => !Number.isFinite(last) || at > last);
-    for (let i = 0; i < Math.min(starts.length, MAX_WEEKS); i++) await arrearsMorale(type);
-    if (starts.length) await game.settings.set(MODULE_ID, LAST_WEEK_SETTING, starts.at(-1));
-  }
-  await healDays(type, Math.min(crossed.days, 366));
+  await healDays(type, Math.min(crossed.days, MAX_DAYS));
 }
 
 export const WarbandUpkeep = {

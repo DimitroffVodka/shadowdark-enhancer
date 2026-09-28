@@ -115,14 +115,27 @@ export function healPlan(days, missing, upgrades) {
 export const monthKey = ({ year, month }, monthsPerYear) => (Number(year) || 0) * monthsPerYear + (Number(month) || 0);
 
 /**
- * The months to charge for a clock move from `fromKey` to `toKey`: each month
- * started after both `fromKey` and the last one charged, the last `cap` of them.
- * @param {number|null} last  the last month key charged, null before the first
- * @returns {{keys:number[], skipped:number}}
+ * What a clock move brings, in order: each month start (to charge upkeep) and
+ * each week start (to check arrears) after the last one handled, day by day
+ * over the move's last `maxDays` days, so a warband falls into arrears before
+ * the weeks that test it.
+ * @param {{from:number, to:number, secondsPerDay:number, week:number, offset:number,
+ *   monthOf:(t:number) => number, lastMonth?:number|null, lastWeek?:number|null, maxDays?:number}} move
+ *   `monthOf`: the month key at a worldTime; `lastMonth`/`lastWeek`: the last handled, null before any
+ * @returns {{events:Array<{at:number, month?:number, week?:true}>, skippedDays:number}}
  */
-export function monthsDue(fromKey, toKey, last, cap) {
-  const first = Math.max(fromKey, Number.isFinite(last) ? last : -Infinity) + 1;
-  const count = Math.max(0, toKey - first + 1);
-  const n = Math.min(count, cap);
-  return { keys: Array.from({ length: n }, (_, i) => toKey - n + 1 + i), skipped: count - n };
+export function clockEvents({ from, to, secondsPerDay, week, offset, monthOf, lastMonth = null, lastWeek = null, maxDays = 366 }) {
+  const first = Math.floor(from / secondsPerDay) + 1;
+  const last = Math.floor(to / secondsPerDay);
+  const start = Math.max(first, last - maxDays + 1);
+  const events = [];
+  let prev = monthOf((start - 1) * secondsPerDay);
+  for (let d = start; d <= last; d++) {
+    const at = d * secondsPerDay;
+    const key = monthOf(at);
+    if (key > prev && !(Number.isFinite(lastMonth) && key <= lastMonth)) events.push({ at, month: key });
+    prev = key;
+    if ((((d + offset) % week) + week) % week === 0 && !(Number.isFinite(lastWeek) && at <= lastWeek)) events.push({ at, week: true });
+  }
+  return { events, skippedDays: Math.max(0, start - first) };
 }

@@ -6,7 +6,7 @@ import assert from "node:assert/strict";
 import {
   UPGRADES, MOST_UPGRADES, allowanceFor, canMakeWarband, cleanUpgrades, commandRefusal, upgradeRefusal,
   tripleDice, warbandStats, warbandAttack, warbandHp,
-  upkeepGp, moraleDC, routChance, healPlan, monthKey, monthsDue,
+  upkeepGp, moraleDC, routChance, healPlan, monthKey, clockEvents,
 } from "../scripts/actors/warband-core.mjs";
 
 test("eighteen upgrades, and a commander's allowance by hit die", () => {
@@ -78,10 +78,17 @@ test("a day heals 1d4 (Hardy 2d6); a long rest that must fill it needs no roll",
   assert.deepEqual(healPlan(0, 5, []), { full: false, formula: null });
 });
 
-test("months: each month start once, after the last charged, the last few of a long move", () => {
-  assert.equal(monthKey({ year: 1300, month: 2 }, 12), 15602);
-  assert.deepEqual(monthsDue(100, 101, null, 12), { keys: [101], skipped: 0 });
-  assert.deepEqual(monthsDue(100, 103, 101, 12), { keys: [102, 103], skipped: 0 }, "101 was charged");
-  assert.deepEqual(monthsDue(100, 101, 101, 12), { keys: [], skipped: 0 }, "a clock set back and moved on again");
-  assert.deepEqual(monthsDue(0, 40, null, 12), { keys: [29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40], skipped: 28 });
+test("a clock move's month and week starts come in order, each once, over its last year", () => {
+  // 30-day months, 7-day weeks starting on day 0, one second a day for readability.
+  const move = { secondsPerDay: 1, week: 7, offset: 0, monthOf: (at) => Math.floor(at / 30) };
+  const { events } = clockEvents({ ...move, from: 20, to: 45 });
+  assert.deepEqual(events, [{ at: 21, week: true }, { at: 28, week: true }, { at: 30, month: 1 }, { at: 35, week: true }, { at: 42, week: true }],
+    "the arrears weeks after the month start follow it");
+  assert.deepEqual(clockEvents({ ...move, from: 20, to: 45, lastMonth: 1, lastWeek: 35 }).events, [{ at: 42, week: true }],
+    "a clock set back and moved on again handles nothing twice");
+  const long = clockEvents({ ...move, from: 0, to: 1000, maxDays: 100 });
+  assert.equal(long.skippedDays, 900);
+  assert.equal(long.events.filter((e) => e.month !== undefined).length, 3, "days 901-1000 hold the month starts 930, 960 and 990");
+  assert.deepEqual(clockEvents({ ...move, from: 5, to: 5 }).events, []);
+  assert.equal(monthKey({ year: 1300, month: 2 }, 12), 15602, "a month's key: year x 12 + month");
 });
