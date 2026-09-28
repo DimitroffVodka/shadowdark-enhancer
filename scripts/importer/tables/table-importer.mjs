@@ -3308,10 +3308,15 @@ export async function applyTableStructureSeed(table) {
  * included (`charBuilderAncestryAdopted`).
  */
 export async function adoptAncestryTable(table) {
-  if (!/ancestry \(population\)$/i.test(table?.name ?? "")) return;
+  // By the id the importer stamps on it, which a rename keeps; by name for one imported by hand.
+  const isPopulation = table?.flags?.["shadowdark-enhancer"]?.manifestId === "pgwr-ancestry-population"
+    || /ancestry \(population\)$/i.test(table?.name ?? "");
+  if (!isPopulation) return;
   try {
     if (game.settings.get("shadowdark-enhancer", "charBuilderAncestryAdopted")) return;
-    if (!game.settings.get("shadowdark-enhancer", "charBuilderAncestryTable")) {
+    // Only a setting never touched (null): an emptied one ("") is the GM's choice already.
+    const current = game.settings.get("shadowdark-enhancer", "charBuilderAncestryTable");
+    if (current === null || current === undefined) {
       await game.settings.set("shadowdark-enhancer", "charBuilderAncestryTable", table.uuid);
       ui.notifications?.info(loc("SDE.importer.notify.ancestryTableSet", { table: table.name }));
     }

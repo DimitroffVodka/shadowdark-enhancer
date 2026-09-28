@@ -10,7 +10,9 @@ globalThis.game = {
 };
 globalThis.ui = { notifications: { info() {} } };
 const TABLE = "charBuilderAncestryTable";
-const d100 = (id) => ({ uuid: `Compendium.x.sde-tables.RollTable.${id}`, name: "Western Reaches: Ancestry (population)" });
+// The name the Importer Hub gives it, and the id it stamps on it.
+const d100 = (id, name = "Ancestry (Population)") => ({ uuid: `Compendium.x.sde-tables.RollTable.${id}`, name,
+  flags: { "shadowdark-enhancer": { manifestId: "pgwr-ancestry-population" } } });
 const fresh = (table = null, adopted = false) => { settings.clear(); settings.set(TABLE, table); settings.set("charBuilderAncestryAdopted", adopted); };
 
 test("a world with no table adopts the d100; a GM who then clears it isn't overruled by a reimport", async () => {
@@ -50,4 +52,13 @@ test("a bundle whose later table fails adopts nothing; a whole one adopts its d1
   const whole = await commitBundleAtomic(items, persist);
   await adoptFromBundle(whole);
   assert.deepEqual([whole.ok, settings.get(TABLE), settings.get("charBuilderAncestryAdopted")], [true, d100("a").uuid, true]);
+});
+
+test("a table emptied before this build stays empty; a renamed d100 is still known by its import id (#287 review)", async () => {
+  fresh("");                                                // cleared by the GM: "" is a choice, null is untouched
+  await adoptAncestryTable(d100("a"));
+  assert.deepEqual([settings.get(TABLE), settings.get("charBuilderAncestryAdopted")], ["", true]);
+  fresh();
+  await adoptAncestryTable(d100("b", "Ancestry (Population) 2"));   // renamed on a name conflict
+  assert.equal(settings.get(TABLE), d100("b").uuid);
 });
