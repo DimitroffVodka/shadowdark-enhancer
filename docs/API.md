@@ -23,7 +23,7 @@ and Forge & Loot features.
 [`time`](#time--season-day-and-night-sun-moon-and-anchors) ·
 [`overland`](#overland--the-travel-state)
 
-**API version:** `1.23.0` (semver — additive changes bump the minor version,
+**API version:** `1.25.0` (semver — additive changes bump the minor version,
 breaking changes the major; check `apiVersion` before relying on newer keys).
 
 ## Discovery
@@ -1171,6 +1171,56 @@ for `hex`.
 The hook `shadowdark-enhancer.questsChanged` fires on every client, once per
 burst of writes, after any quest is created, changed or deleted.
 
+## `rumors` — the rumor generator and the Rumors Heard ledger
+
+Added in 1.24.0 (#190). The table-facing description is the wiki page
+*Rumors*.
+
+```js
+const api = game.shadowdarkEnhancer;
+
+await api.rumors.give({ count: 3 });                       // GM: the party's region, the characters present
+await api.rumors.give({ count: 2, region: "Sablewood", heardBy: ["Aria", "Bram"] });
+await api.rumors.give({ count: 1, region: null });         // Rumors in the Reaches only
+api.rumors.heard();                                        // everything heard, newest first
+api.rumors.heard({ region: "Sablewood" });                 // one region's; null: the general page's
+```
+
+- `give({ count, region, heardBy })` is the GM's; a player gets a warning and
+  `null`. It resolves to the rumors given, in `heard()`'s shape, or `[]` when
+  none were left (with a warning), or `null` when a rumor table's compendium
+  is locked.
+  - `count`: 1 to 20 (default 1).
+  - `region`: left out, the party's (the travel hex's while travelling, else
+    the party token's hex on a scanned map, else the last travel hex); a name
+    as the rumor tables spell it (case and a leading "The" don't matter);
+    `null`, the general table only.
+  - `heardBy`: character names; left out, the players' online characters,
+    else the player characters on the active scene, else every one. An empty
+    list is kept.
+  - Troubles the party hasn't heard of (`troubles.undiscovered()`) come first
+    and are marked heard; then rows of the region's table and Rumors in the
+    Reaches in turn.
+  - A row given is marked `drawn` on its table, which the generator skips.
+    Core Foundry marks nothing drawn on a compendium table; a GM's own draw of
+    a rumor table in the module's pack is marked too.
+- `heard({ region })` is anyone's and never throws: `[]` without a ledger. It
+  returns, synchronously (awaiting it is harmless),
+
+```js
+[{ text, region, heardAt: { world, real }, heardBy }]
+// text: plain text; region: null for the general table's
+// heardAt.world: the worldTime (a number, or null); heardAt.real: ms since the epoch
+// heardBy: character names
+```
+
+- The ledger is a world JournalEntry found by its `rumorLedger` flag
+  (default ownership Observer). Each page holds its rumors in
+  `flags["shadowdark-enhancer"].rumorPage = { region, rumors }` and its text is
+  written from that flag.
+- A promoted rumor's quest has `source: { kind: "rumor", uuid }` (its ledger
+  page); a trouble's goes through `troubles.promote`.
+
 ## `troubles` — the Trouble tracker
 
 Added in 1.23.0 (#193). The GM Guide's weekly trouble check and its countdown
@@ -1600,17 +1650,17 @@ Added in 1.16.0 (Overland O5, #231; design §5.1, §5.2). GM only, forwarded to
 the active GM like `rollWeather`. Refused when nobody is travelling. Resolves
 to `{ ok: true }` or `{ ok: false, error }`.
 
-Since 1.24.0 (#257), a `method` left out is read from the party
+Since 1.25.0 (#257), a `method` left out is read from the party
 (`overland.partyMethod()`), with its boat; a `pushed` left out is the standing
 pace (`overland.setPace`); and a `pushed` given becomes the standing pace.
 
-`overland.partyMethod()` (1.24.0) returns `{ method, boatUuid, mounts, ride }`:
+`overland.partyMethod()` (1.25.0) returns `{ method, boatUuid, mounts, ride }`:
 sailing when every member is aboard one Boat actor (its `occupants`), mounted
 when every member rides a Mount actor (its `occupants` flag), else walking;
 `mounts` counts the Mounts carrying members, which eat at camp; `ride` maps a
 member's actor uuid to its mount's name.
 
-`overland.setPace("normal" | "push")` (1.24.0, GM) sets the standing pace. It
+`overland.setPace("normal" | "push")` (1.25.0, GM) sets the standing pace. It
 holds every dawn; when the party hasn't moved or foraged today, today's pace
 and budget change too. Resolves to `{ ok, today, changed }`.
 
@@ -1659,10 +1709,10 @@ Added in 1.17.0 (Overland O6, #232; design §5.1 step 4, §5.3, Q4, §5.7).
   checks at 06:00 + (d12 − 1) h, and night checks at 18:00 + (d12 − 1) h,
   so up to 05:00 the next morning. How many of each is the world's
   `overlandEncounterDay` and `overlandEncounterNight` settings at that Start
-  day, 0 to 4 (since 1.24.0; the book's two and two).
+  day, 0 to 4 (since 1.25.0; the book's two and two).
   - The chance is the `overlandEncounterChance` setting, 1 to 5 in 6 (the
     book's 1), one more on a pushed day for every check, the night's
-    included. Since 1.24.0 it is read as each check rolls.
+    included. Since 1.25.0 it is read as each check rolls.
   - They are stored as `checks: [{ half, at, chance, rolled, hit }]`, where
     `chance` is the one the check rolled at, `null` until it rolls.
   - The GMs see the hours in the Travel panel's Encounters step; players never see them.
@@ -1844,6 +1894,9 @@ scene's choice changes, and once on load.
 - `1.21.0` adds `encounter.check`'s `travel`.
 - `1.22.0` adds `downtime.isOpen`, and a session's `days`, moved off duty when it ends.
 - `1.23.0` adds the `troubles` namespace (the Trouble tracker).
+- `1.24.0` adds the `rumors` namespace and the `shadowdark-enhancer.rumorsChanged` hook.
+- `1.25.0` adds `encounter.check`'s `quiet`, `hexMaps.makePlayable`, `overland.partyMethod` and
+  `overland.setPace`; `overland.startDay` reads the method and the pace when they're left out.
 - `1.4.0` adds the shared `forgeLoot.open()` preview shell. Generator rules and
   document writes remain behind the later NPC/Rival adapter implementations.
   The version policy is additive: new namespaces bump the minor version; breaking
@@ -1943,6 +1996,7 @@ plus `authorizeActorFor(actorId, user)` on the GM side, and
 | `shadowdark-enhancer.contentUnlocked` | Imported content becomes available — an open Character Builder re-reads its content | *(none)* |
 | `shadowdark-enhancer.partyXpAwarded` | A party XP award commits | `{ amount, label, results }` |
 | `shadowdark-enhancer.lootScored` | A claimable loot card is posted | `{ totalGp, totalXp, items, source, messageId }` |
+| `shadowdark-enhancer.rumorsChanged` | A Rumors Heard page was written or deleted; fires on every client, once per burst of writes | `{ ids }` — the page (or entry) ids that changed |
 | `shadowdark-enhancer.questsChanged` | A quest was created, changed or deleted; fires on every client, once per burst of writes | `{ ids }` — the quest entry ids that changed |
 | `shadowdark-enhancer.crawlStart` | A crawl session starts | the crawl state |
 | `shadowdark-enhancer.crawlEnd` | A crawl session ends | the crawl state |

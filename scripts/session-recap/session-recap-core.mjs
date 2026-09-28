@@ -46,6 +46,7 @@ export const DEFAULT_DATA = {
   downtime: [],
   renown: [],
   carousing: [],
+  rumors: [],
   playerStats: {},
 };
 
@@ -394,6 +395,15 @@ export function formatForDiscordFromData(data, startTime, endTime) {
       }
       lines.push("");
     }
+  }
+
+  // ── Rumors ──────────────────────────────────────────────────
+  // What the party heard this session (#190), in the order given; the region
+  // in brackets, the general table's none.
+  if (Array.isArray(data.rumors) && data.rumors.length > 0) {
+    lines.push(`## ${L("SDE.sessionRecap.discord.rumors")}`);
+    for (const r of data.rumors) lines.push(`- ${r.region ? L("SDE.sessionRecap.discord.rumorIn", { text: r.text, region: r.region }) : r.text}`);
+    lines.push("");
   }
 
   // ── Luck Spent ──────────────────────────────────────────────

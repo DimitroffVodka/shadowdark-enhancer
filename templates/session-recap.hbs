@@ -208,6 +208,15 @@
       </div>
       {{/each}}
       {{/if}}
+
+      {{#if hasRumors}}
+      <h3 class="sr-subhead"><i class="fas fa-comments"></i> {{localize "SDE.sessionRecap.discord.rumors"}}</h3>
+      <div class="sr-merchant-block">
+        {{#each rumors}}
+        <div class="sr-merchant-item">{{text}}{{#if region}} <span class="sr-xp-time">({{region}})</span>{{/if}} <span class="sr-xp-time">{{time}}</span></div>
+        {{/each}}
+      </div>
+      {{/if}}
     </section>
     {{/if}}
 

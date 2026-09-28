@@ -1,7 +1,7 @@
 # Shadowdark Enhancer — File Inventory
 
 <!-- inventory:stats:start -->
-1064 tracked files · ~189,400 lines of code/markup across scripts+templates+styles+test.
+1068 tracked files · ~190,100 lines of code/markup across scripts+templates+styles+test.
 `v0.17.3` in both `module.json` and `package.json`.
 <!-- inventory:stats:end -->
 **Layout reflects the 2026-07-21 feature-folder reorganization (v0.11.0 cycle).**
@@ -46,7 +46,7 @@
 
 | File | Lines | Description |
 |---|---:|---|
-| `shadowdark-enhancer.mjs` | 1252 | **Entry point** (module.json esmodules). Registers hooks, settings, sheets, actor sub-types, the public `game.shadowdarkEnhancer` API, and wires every sub-system. |
+| `shadowdark-enhancer.mjs` | 1262 | **Entry point** (module.json esmodules). Registers hooks, settings, sheets, actor sub-types, the public `game.shadowdarkEnhancer` API, and wires every sub-system. |
 | `luck-reroll/luck-reroll.mjs` | 176 | Wraps the system's `_onReroll` to enforce nat-1 prevention and log Luck rerolls to the session recap. |
 | `spell-mishap/spell-mishap.mjs` | 270 | Nat-1 spellcasting failures auto-roll the class's mishap table (wizard / witch / necromancer sets); divine casters are exempt. |
 | `scavenger/scavenger-core.mjs` | 171 | Pure Delver Scavenger rules: the 5-6 success range and Master Scavenger's widening (floored at 3-6), what counts as expending a consumable's last use (a 1→0 decrement or a delete at quantity 1 — never a stack deleted whole), and which single client rolls. |
@@ -99,6 +99,8 @@
 | `overland/travel-panel.mjs` | 213 | The clock HUD's Travel panel (#257): the day as the book's travel procedure in eight steps (weather, sight, method, speed, traveling, encounters, resting, night), the step list as the day's record with the current step marked; step bodies read Overland's state (the weather and its roll, sight in hexes by hex rules, the budget meter, forage by member with INT and DC, the checks by half for a GM) and carry the day's buttons. |
 | `rules-data/rules-data-app.mjs` | 207 | The GM-only Rules data window (AppV2, Configure Settings menu): shows and edits every rules table, staged until Save. Import from GM Guide runs table-shapes RULES_TABLES over the GM's own linked GM Guide and Player's Guide PDFs (lazy-loaded), canonicalises region names through hex-region knownRegions, and previews every filled value it would replace. |
 | `rules-data/rules-data-core.mjs` | 362 | Rules data (#195), pure: the Western Reaches lookup tables (terrain cost and elevation, terrain types, hexes per day, hex visibility, climate by region and season, carousing and recruiting limits) as one sparse world setting laid over an empty structure, the game.shadowdarkEnhancer.rules lookups over it, the readers that turn the importer's `reference` rows into those tables, and the overwrite preview and merge for an import. Ships structure only (tagger terrain words, travel methods, conditions, seasons, settlement kinds), never a value. |
+| `rumors/rumor-core.mjs` | 179 | The rumor generator's rules, pure (#190): which names are rumor tables and for which region, how N rumors split between the region's table and the general one, picking rows still there to give (weighted by range, no repeats) and the rows a re-import recreated, a trouble as rumor text, the ledger page body, heard()'s shape, and a quest name from a rumor. |
+| `rumors/rumors.mjs` | 392 | The rumor generator and the Rumors Heard ledger (#190): give (troubles first, then the tables in turn; rows marked drawn by the module, since core marks nothing drawn on a pack table), the Give Rumors dialog, the player-readable ledger (a page per region, rumors in the page flag, text written from it), heard() for anyone and Extras' party sheet, Promote to quest per rumor, the RollTable.draw wrap that marks a GM's hand-rolled rumor drawn, and the debounced rumorsChanged hook. |
 | `time/off-duty.mjs` | 235 | time.advanceOffDuty (#228, Overland O2): the off-duty clock move. GM only; runs on the Shadowdark system's primary light GM (a GM-to-GM query when that is another GM), refuses when two GM tabs hold the flag, stops the system's real-time light clock for the move, puts out every lit Basic light the player-owned PCs carry with the sheet toggle's steps minus its per-light card (remainingSecs kept, one chat line saying whether the clock moved), rebuilds the tracker's cache and waits until it holds no PC's Basic light, re-checks the flag, then advances with the offDuty reason. A refusal or a throw never advances and reports what was put out. Pure decisions (who, which lights, where it runs, the last flag check) are exported for tests. 0 seconds only puts the lights out (Overland's camp, #233). |
 | `time/time-core.mjs` | 342 | Time (#227, Overland O1), pure: readings on the core world calendar (a CalendarData) and a worldTime. Season from core's components, keyed by where its months fall in the year, sunrise/sunset on a solstice-to-solstice cosine (9 to 15 hours, ported from Calendaria, MIT), isNight, the moon's phase from an epoch on the synodic month, anchors (equinoxes, solstices, cross-quarters read back as the date the calendar shows, lastFullMoon), what a clock move crosses (days, weeks, dawns and dusks by arithmetic; season changes by jumping from one to the next, the list capped at one per season), the date's parts, and the nth dawn after a time (dawnAfter, for Overland's weather). |
 | `time/time.mjs` | 81 | game.shadowdarkEnhancer.time (#227): now, season, isNight, sun, moonPhase, anchor, format over game.time.calendar and the moonEpoch world setting, and the shadowdark-enhancer.timeAdvanced hook, fired on the active GM once per world-time change with what it crossed and the offDuty reason from the advance options. Also carries advanceOffDuty and registers its GM-to-GM query. isNight takes { region } for the Isles of Andrik's skies (#235). |
@@ -171,7 +173,7 @@
 
 | File | Lines | Description |
 |---|---:|---|
-| `crawl-bar.mjs` | 765 | GM-only persistent bottom bar above the macro bar (mode toggles, tools, launchers). |
+| `crawl-bar.mjs` | 773 | GM-only persistent bottom bar above the macro bar (mode toggles, tools, launchers). |
 
 ### 3.5 `scripts/encounter/` — the Encounter Roller
 
@@ -260,9 +262,9 @@
 
 | File | Lines | Description |
 |---|---:|---|
-| `session-recap.mjs` | 774 | Session event tracker singleton (loot, sales, XP, combats, per-PC stats). |
-| `session-recap-core.mjs` | 420 | Pure data shape, currency math, duration format, Discord-markdown export. |
-| `session-recap-app.mjs` | 344 | Recap window: Overview / Combat / Loot / XP / History. |
+| `session-recap.mjs` | 789 | Session event tracker singleton (loot, sales, XP, combats, per-PC stats). |
+| `session-recap-core.mjs` | 430 | Pure data shape, currency math, duration format, Discord-markdown export. |
+| `session-recap-app.mjs` | 348 | Recap window: Overview / Combat / Loot / XP / History. |
 | `carousing-feed.mjs` | 148 | Mirrors Shadowdark Extras' carousing into the session log. SDX emits no carousing hook and exposes none of it on `module.api`, but it keeps the whole live carouse in one journal flag on the hidden `__sdx_carousing_sync__` entry — so this watches that document rather than calling anything. Each carouse is COPIED into our own `carousing` array keyed on SDX's `logId`, because SDX's overlay holds only one live carouse and resetting it for the next round erases the last. Self-gates on SDX being active with carousing enabled, on an active session, and on the primary GM. |
 | `carousing-feed-core.mjs` | 239 | Pure normalizer for both SDX carousing result shapes — original (d8 outcome + one benefit, GM applies) and expanded (d8 → XP + d100 benefit/mishap arrays, self-applying) — detected off the payload, not off SDX's mode setting, so a carouse rolled before the GM flipped it still reads. Also the shared `recapRow`, `carousingSubtotal` and `tierLine` wording the recap window and the Discord export both use. Foundry-free, node-tested. |
 
@@ -472,7 +474,7 @@ The report and idiom seams are pure data policy. Foundry adapters must translate
 |---|---:|---|
 | `quest-core.mjs` | 357 | The Quest Log's rules, pure: the quest flag's one shape, status changes and the ownership each status gives, who a player may see, objectives, when rewards are paid (once, on the way into Completed) and to whom, list filters, which trainer tasks a character has taken, which map pin to jump to, and the player page's HTML. |
 | `quests.mjs` | 485 | The Quest Log's data and public API: one world JournalEntry per quest in a flagged Quests folder, with a player page rewritten from the flag and a GM notes page left alone. GM-only writes serialized per client through replaceModuleFlag; the payout confirmation and payout through Party XP, the renown ledger and item copies; Shadowdark Extras parties read from its flags behind a feature check; jump to pin; the Ctrl+Q keybinding, the Journal sidebar button and the debounced questsChanged hook. |
-| `quest-log-app.mjs` | 241 | The Quest Log window (AppV2): a tab per status (Hidden for the GM only), filters by character, party and source, the quest list and the chosen quest. The GM edits in place (objectives, rewards with items dropped on, characters, party, hex); players get the same quest read-only. |
+| `quest-log-app.mjs` | 244 | The Quest Log window (AppV2): a tab per status (Hidden for the GM only), filters by character, party and source, the quest list and the chosen quest. The GM edits in place (objectives, rewards with items dropped on, characters, party, hex); players get the same quest read-only. |
 
 One world JournalEntry per quest, its state one flag on the entry. World journals rather than the managed journal pack, because a compendium has one ownership for the whole pack and a quest's visibility is per quest. Every write is the GM's.
 <!-- inventory:scripts:end -->
