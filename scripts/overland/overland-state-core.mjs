@@ -511,28 +511,36 @@ export function planRations({ members, mounts = 0, each }) {
  * step priced as a move of the travel token is (the day's hexCost), a hex
  * that can't be entered (Infinity) never used. `distance` is the hex count
  * between two cells, the heuristic (every step costs at least 1). Cells are
- * whatever the caller's grid uses; `key` names one.
+ * whatever the caller's grid uses; `key` names one. Each cell is expanded
+ * once, so the search ends with the map (even on a mistyped negative cost);
+ * no cap, which cut off long routes over dear terrain (#281 review).
  * @param {{start:object, goal:object, neighbours:(cell:object) => object[],
  *   cost:(from:object, to:object) => number, distance:(a:object, b:object) => number,
- *   key?:(cell:object) => string, maxNodes?:number}} q
- * @returns {{path:object[], cost:number}|null}  the path from start to goal, both included
+ *   key?:(cell:object) => string}} q
+ * @returns {{path:object[], cost:number}|null}  the path from start to goal, both included; null when there is none
  */
-export function cheapestRoute({ start, goal, neighbours, cost, distance, key = (c) => `${c.i},${c.j}`, maxNodes = 4000 }) {
+export function cheapestRoute({ start, goal, neighbours, cost, distance, key = (c) => `${c.i},${c.j}` }) {
   const goalKey = key(goal), startKey = key(start);
   if (goalKey === startKey) return { path: [start], cost: 0 };
   const best = new Map([[startKey, 0]]), prev = new Map(), cells = new Map([[startKey, start]]);
   const open = [[distance(start, goal), startKey]];
-  for (let seen = 0; open.length && seen < maxNodes; seen++) {
+  const done = new Set();
+  while (open.length) {
     // ponytail: a linear pick of the lowest estimate; A* keeps the open list short. A heap if it isn't.
     let low = 0;
     for (let i = 1; i < open.length; i++) if (open[i][0] < open[low][0]) low = i;
     const [, k] = open.splice(low, 1)[0];
     if (k === goalKey) break;
+    if (done.has(k)) continue;
+    done.add(k);
     const here = cells.get(k), spent = best.get(k);
     for (const next of neighbours(here)) {
+      const nk = key(next);
+      // An expanded cell is settled: reopening it could loop the way back.
+      if (done.has(nk)) continue;
       const c = cost(here, next);
       if (!Number.isFinite(c)) continue;
-      const nk = key(next), total = spent + c;
+      const total = spent + c;
       if (total >= (best.get(nk) ?? Infinity)) continue;
       best.set(nk, total);
       prev.set(nk, k);

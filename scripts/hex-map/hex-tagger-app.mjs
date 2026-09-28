@@ -244,7 +244,8 @@ async function playableFacts(scene, app, tf) {
       hex: !!api,
       // As isHexRulesScene reads it: Extras marks a map it has taken as a hexcrawl.
       adopted: !!scene.flags?.["shadowdark-extras"]?.hexcrawl,
-      fogApi: typeof api?.setFogEnabled === "function",
+      // Extras' fog switch, used only with its reading (Extras #185), so a press never re-sets it blind.
+      fogApi: typeof api?.setFogEnabled === "function" && typeof api?.isFogEnabled === "function",
       fogOn: !!api?.isFogEnabled?.(scene.id),
     },
   };
