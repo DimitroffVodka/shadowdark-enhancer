@@ -35,31 +35,39 @@ const key = (action, label, { id = "", cls = "", hint = "" } = {}) =>
 const signed = (n) => `${n >= 0 ? "+" : "−"}${Math.abs(n)}`;
 const gold = (v) => `<span class="sde-hud-gold">${esc(v)}</span>`;
 
-/** "80 minutes" or "2 hours": a travel point in the clock's units. */
-function pointTime(seconds) {
-  const minutes = Math.round((Number(seconds) || 0) / 60);
-  return minutes % 60 ? t("SDE.travel.minutes", { n: minutes }) : t(minutes === 60 ? "SDE.travel.hour" : "SDE.travel.hours", { n: minutes / 60 });
+/** "80 minutes" or "2 hours": a travel point in the calendar's minutes and hours. */
+function pointTime(seconds, cal) {
+  const perMinute = cal?.days?.secondsPerMinute ?? 60, perHour = cal?.days?.minutesPerHour ?? 60;
+  const minutes = Math.round((Number(seconds) || 0) / perMinute);
+  return (minutes % perHour || !minutes) ? t("SDE.travel.minutes", { n: minutes })
+    : t(minutes === perHour ? "SDE.travel.hour" : "SDE.travel.hours", { n: minutes / perHour });
 }
 
 /**
  * The panel. `see` is the step the viewer opened, or null for the day's own.
+ * `weather` is the weather that holds now (null once it has run out); `extras`
+ * is whether Shadowdark Extras, whose hex fog shows what the party sees, is on.
  * @param {{state:object, model:object, gm:boolean, see:number|null, cal:object,
- *   night:boolean, rules:object|null, season:string, weatherName:Function, methodName:Function}} v
+ *   night:boolean, rules:object|null, season:string, weather:string|null, extras:boolean,
+ *   weatherName:Function, methodName:Function}} v
  */
 export function travelPanel(v) {
   const { state, model: m, gm } = v;
-  const now = currentStep({ dayOpen: m.dayOpen, pending: state.pending });
+  // Only the GM hears of an encounter before it's posted: players' panels don't move for one.
+  const pending = gm ? state.pending : null;
+  const held = pending ? state.checks.findLast((c) => c.rolled && c.hit) : null;
+  const now = currentStep({ dayOpen: m.dayOpen, pending, heldHalf: held?.half ?? null });
   const shown = v.see ?? now;
-  const sight = sightParts(v.rules, { terrain: state.hex?.terrain, night: v.night, weather: state.weather?.kind ?? null });
+  const sight = sightParts(v.rules, { terrain: state.hex?.terrain, night: v.night, weather: v.weather ?? null });
   const climate = [m.climate, m.harsh ? t("SDE.overland.bar.harsh") : ""].filter(Boolean).join(", ");
-  const subtitle = [state.hex?.region, state.hex?.terrain, climate || v.season,
+  const subtitle = [state.hex?.region, state.hex?.terrain?.replace(/_/g, " "), climate || v.season,
     sight ? t("SDE.travel.sees", { n: sight.radius }) : ""].filter(Boolean).join(" · ");
   const list = TRAVEL_STEPS.map((step, i) => {
     const n = i + 1;
     let cls = n < now ? "sde-hud-done" : n === now ? "sde-hud-now" : "";
     if (now === 5 && n === 6) cls = "sde-hud-now";     // the checks roll while the party travels
     if (n === shown) cls += " sde-hud-shown";
-    return `<li class="${cls}"><button type="button" data-action="see" data-id="${n}"${n === shown ? " aria-current=\"step\"" : ""}><span class="sde-hud-num">${n}</span>${esc(t(STEP_NAME[step]))}</button></li>`;
+    return `<li class="${cls}"><button type="button" data-action="see" data-id="${n}"${n === now ? " data-now=\"1\"" : ""}${n === shown ? " aria-current=\"step\"" : ""}><span class="sde-hud-num">${n}</span>${esc(t(STEP_NAME[step]))}</button></li>`;
   }).join("");
   const foot = gm ? `<div class="sde-hud-pf">
       ${state.pending ? key("resume", t("SDE.overland.resume"), { cls: "sde-hud-primary", hint: t("SDE.overland.resumeHint") }) : ""}
@@ -80,7 +88,7 @@ function stepBody(n, v, sight) {
   const h3 = `<h3>${n} · ${esc(t(STEP_NAME[TRAVEL_STEPS[n - 1]]))}</h3>`;
   const fl = (key, data) => `<p class="sde-hud-fl">${esc(t(key, data))}</p>`;
   const res = (text) => `<p class="sde-hud-res">${esc(text)}</p>`;
-  const w = state.weather?.kind ?? null;
+  const w = v.weather ?? null;
   switch (n) {
     case 1: {
       let body = h3 + fl("SDE.travel.weather.about");
@@ -99,7 +107,7 @@ function stepBody(n, v, sight) {
       const parts = sight.parts.map(([k, val]) => `${t(SIGHT_PART[k])} ${signed(val)}`).join(" · ");
       return h3 + fl("SDE.travel.sight.about")
         + `<div class="sde-hud-trow"><span class="sde-hud-bl">${esc(t(sight.radius === 1 ? "SDE.travel.sight.hex" : "SDE.travel.sight.hexes", { n: sight.radius }))}</span><span class="sde-hud-cap">${esc(parts)}</span></div>`
-        + fl("SDE.travel.sight.fog");
+        + fl("SDE.travel.sight.noTokenSight") + (v.extras && v.weather ? fl("SDE.travel.sight.fog") : "");
     }
     case 3: {
       if (!m.dayOpen) return h3 + fl("SDE.travel.method.about") + res(t("SDE.travel.noDay"));
@@ -121,10 +129,10 @@ function stepBody(n, v, sight) {
       const dc = forageDC(m.harsh);
       const why = state.pushed ? "SDE.travel.forage.pushed" : (m.stormy && m.harsh) ? "SDE.travel.forage.storm" : "SDE.travel.forage.about";
       const rows = m.members.map((p) => `<div class="sde-hud-member"><span class="sde-hud-n">${esc(p.name)}</span>
-        <span class="sde-hud-need"><b>${esc(t("SDE.travel.forage.int", { mod: signed(p.int ?? 0) }))}</b> · DC <b>${dc}</b></span>
+        <span class="sde-hud-need"><b>${esc(t("SDE.travel.forage.int", { mod: signed(p.int ?? 0) }))}</b> · ${t("SDE.travel.forage.dc", { dc: `<b>${dc}</b>` })}</span>
         ${p.foraged ? `<span class="sde-hud-chip">${esc(t("SDE.overland.bar.foraged"))}</span>` : p.canForage ? key("forage", t("SDE.overland.forage.button"), { id: p.id, cls: "sde-hud-sm" }) : ""}
         <span class="sde-hud-r sde-hud-cap"><b>${p.rations}</b> ${esc(t(p.rations === 1 ? "SDE.travel.ration" : "SDE.travel.rations"))}</span></div>`).join("");
-      return h3 + `<div class="sde-hud-trow"><span class="sde-hud-cap"><b>${esc(v.methodName(m.method))}</b>${m.pushed ? esc(t("SDE.clock.plate.pushed")) : ""} · ${esc(t("SDE.travel.perPoint", { time: pointTime(state.pointSeconds) }))}</span>
+      return h3 + `<div class="sde-hud-trow"><span class="sde-hud-cap"><b>${esc(v.methodName(m.method))}</b>${m.pushed ? esc(t("SDE.clock.plate.pushed")) : ""} · ${esc(t("SDE.travel.perPoint", { time: pointTime(state.pointSeconds, v.cal) }))}</span>
           <span class="sde-hud-meter"><span style="width:${Math.round(m.leftShare * 100)}%"></span></span>
           <span class="sde-hud-cap"><b>${esc(t("SDE.travel.left", { left: m.hexesLeft, budget: m.budget }))}</b></span></div>`
         + fl("SDE.travel.move") + fl(why) + rows
@@ -142,7 +150,7 @@ function stepBody(n, v, sight) {
         + (gm && m.dayOpen ? `<div class="sde-hud-trow">${key("makeCamp", t("SDE.overland.makeCamp"), { cls: "sde-hud-primary", hint: t("SDE.overland.makeCampHint") })}</div>` : "");
     case 8:
       return h3 + fl("SDE.travel.night.about")
-        + (state.pending?.reason === "camp" ? res(t("SDE.travel.night.stopped")) : "") + checks(v, "night");
+        + (gm && state.pending?.reason === "camp" ? res(t("SDE.travel.night.stopped")) : "") + checks(v, "night");
     default:
       return "";
   }

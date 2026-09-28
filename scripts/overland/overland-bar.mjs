@@ -399,6 +399,7 @@ export const TravelBar = {
       state, model: this._model(), gm: !!game.user.isGM, see: this._see, cal,
       night: !!game.shadowdarkEnhancer?.time?.isNight?.(now, { region: state.hex?.region }),
       rules, season: t(seasonAt(cal, now).name ?? ""), weatherName, methodName,
+      weather: weatherNow(), extras: !!game.modules.get("shadowdark-extras")?.active,
     });
   },
 
@@ -441,7 +442,8 @@ export const TravelBar = {
         }
         return this.render();
       case "stack": this._stack = this._stack === id ? null : id; return this.render();
-      case "see": { const n = Number(id); this._see = this._see === n ? null : n; return this.render(); }
+      // The day's own step, or the one already open, goes back to following the day.
+      case "see": { const n = Number(id); this._see = (this._see === n || el.dataset.now) ? null : n; return this.render(); }
       case "sky": this._sky = !this._sky; this._open = null; return this.render();
       case "month": this._monthOffset += Number(id) || 0; return this.render();
       case "step": return this._move(Number(id));
@@ -458,7 +460,7 @@ export const TravelBar = {
       }
       case "startTravel": {
         const started = await startOverland();
-        if (started) this._open = "travel";
+        if (started) { this._open = "travel"; this._see = null; }
         if (started && !Number.isFinite(overlandState().day)) {
           const options = await askDay();
           if (options) warn(await startDay(options));

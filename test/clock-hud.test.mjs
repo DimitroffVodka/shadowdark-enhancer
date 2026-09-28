@@ -122,6 +122,9 @@ test("the travel day's step: weather before a day, traveling during it, 6 or 8 w
   assert.equal(currentStep({ dayOpen: true, pending: null }), 5);
   assert.equal(currentStep({ dayOpen: true, pending: { reason: "move" } }), 6);
   assert.equal(currentStep({ dayOpen: true, pending: { reason: "camp" } }), 8);
+  // By the check that hit, when known: a night check hit by moving the clock, a day one at camp.
+  assert.equal(currentStep({ dayOpen: true, pending: { reason: "clock" }, heldHalf: "night" }), 8);
+  assert.equal(currentStep({ dayOpen: true, pending: { reason: "camp" }, heldHalf: "day" }), 6);
 });
 
 test("sight in hexes: the book's sum, as Extras' hex fog counts it; nothing without the rules data", () => {

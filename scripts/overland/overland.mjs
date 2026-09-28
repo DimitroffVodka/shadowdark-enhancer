@@ -526,18 +526,31 @@ function moveSteps(doc, grid, origin, waypoints, read) {
   return steps;
 }
 
-/** A hex's cost today: hexCost with today's weather, harshness and boat bound. */
 /** A step's cost today, (hex, from) → points, as a move of the travel token is priced. For the route preview. */
 export function travelStepCost() { return costToday(); }
 
-/** Resolves once every travel action queued on this client so far has run (the active GM's moves, checks and clock). */
-export const travelSettled = () => serialize(() => undefined);
+/**
+ * Resolves once the active GM has run every travel action queued so far: the
+ * moves it has heard of, their checks and the clock. Another client asks it (the
+ * "settled" action, a no-op answered from its queue): a move's broadcast reaches
+ * the GM before the question does, so it is priced by the time the answer comes.
+ */
+export const travelSettled = () => (isActiveGM()
+  ? serialize(() => undefined)
+  : queryActiveGM(OVERLAND_QUERY, { action: "settled" }, { label: t("SDE.overland.relayLabel") }));
 
 function costToday() {
   const s = overlandState();
   const terrainCost = game.shadowdarkEnhancer?.rules?.terrainCost;
   if (typeof terrainCost !== "function") return () => 1;
-  return (hex, from) => hexCost(terrainCost, hex, { from, stormy: s.stormy, harsh: !!s.harsh, boat: s.method === "sailing" });
+  // One rules lookup per terrain: rules.terrainCost reads the whole rules setting
+  // each call, and a route prices thousands of steps with the same day's options.
+  const memo = new Map();
+  const byTerrain = (terrain, opts) => {
+    if (!memo.has(terrain)) memo.set(terrain, terrainCost(terrain, opts));
+    return memo.get(terrain);
+  };
+  return (hex, from) => hexCost(byTerrain, hex, { from, stormy: s.stormy, harsh: !!s.harsh, boat: s.method === "sailing" });
 }
 
 /** Price a move of the travel token, or null when its scene isn't a tagged hex map. */
@@ -823,6 +836,8 @@ export function applyAction(data, user) {
     const refused = refuseQuery(user, t("SDE.overland.relayLabel"));
     if (refused) return refused;
     switch (data?.action) {
+      // Answered from the queue, after everything queued before it.
+      case "settled": return { ok: true };
       case "start": {
         if (!user.isGM) return { ok: false, error: t("SDE.overland.notify.gmOnly") };
         if (CrawlState.mode !== "off" && !CrawlState.isOverland) return { ok: false, error: t("SDE.overland.notify.busy") };
