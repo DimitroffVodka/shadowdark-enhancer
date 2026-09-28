@@ -74,7 +74,8 @@ test("the travel token: the one party token, else the one selected token, else t
   assert.deepEqual(pickTravelToken({ partyTokens: ["p"], controlled: ["x", "y"] }), { uuid: "p", reason: "party" });
   assert.deepEqual(pickTravelToken({ partyTokens: ["p", "q"], controlled: ["x"] }), { uuid: "x", reason: "selected" });
   assert.deepEqual(pickTravelToken({ partyTokens: [], controlled: ["x"] }), { uuid: "x", reason: "selected" });
-  assert.deepEqual(pickTravelToken({ partyTokens: [], controlled: [] }), { uuid: null, reason: "pick" });
+  assert.deepEqual(pickTravelToken({ partyTokens: [], controlled: [] }), { uuid: null, reason: "none" }, "nothing to go on: the party comes onto the map");
+  assert.deepEqual(pickTravelToken({ partyTokens: ["p", "q"], controlled: [] }), { uuid: null, reason: "pick" }, "two parties: pick one");
   assert.deepEqual(pickTravelToken({ partyTokens: [], controlled: ["x", "y"] }), { uuid: null, reason: "pick" });
 });
 

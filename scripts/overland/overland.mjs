@@ -176,11 +176,10 @@ function chooseToken() {
     controlled: controlled.map((tok) => tok.document.uuid),
     players: controlled.filter((tok) => tok.actor?.type === "Player").map((tok) => tok.document.uuid),
   });
-  if (pick.reason === "player") return { refused: "player" };
-  if (!pick.uuid) return null;
+  if (!pick.uuid) return { tokenUuid: null, reason: pick.reason };
   const token = tokens.find((tok) => tok.document.uuid === pick.uuid);
   const hex = token ? partyHex({ grid: canvas.grid, scene: canvas.scene, tokens: { controlled: [token], placeables: [] } }) : null;
-  return { tokenUuid: pick.uuid, actorId: token?.actor?.id ?? null, hex };
+  return { tokenUuid: pick.uuid, actorId: token?.actor?.id ?? null, hex, isParty: !!token && isParty(token) };
 }
 
 /**
@@ -218,11 +217,18 @@ export async function startOverland() {
   if (!game.user?.isGM) return false;
   if (!isHexMapScene()) { ui.notifications?.warn(t("SDE.overland.notify.notHexMap")); return false; }
   let chosen = chooseToken();
-  if (chosen?.refused === "player") { ui.notifications?.warn(t("SDE.overland.notify.playerToken")); return false; }
-  // No party token here yet: the party comes onto the map as one (#257).
-  if (!chosen && await placePartyToken()) chosen = chooseToken();
-  if (!chosen?.tokenUuid) { ui.notifications?.warn(t("SDE.overland.notify.pickToken")); return false; }
-  await wearPartyHex(fromUuidSync(chosen.tokenUuid)).catch((err) => console.error(`${MODULE_ID} | party hex token`, err));
+  if (chosen.reason === "player") { ui.notifications?.warn(t("SDE.overland.notify.playerToken")); return false; }
+  // No party token here and nothing selected: the party comes onto the map as
+  // one (#257): the Extras party when there is exactly one, else the module's own.
+  if (chosen.reason === "none") {
+    const extras = extrasParties();
+    if (extras.length <= 1 && await placePartyToken(extras[0] ?? null)) chosen = chooseToken();
+  }
+  if (!chosen.tokenUuid) { ui.notifications?.warn(t("SDE.overland.notify.pickToken")); return false; }
+  // A party token wears the party's hex; a selected NPC travels in its own art.
+  if (chosen.isParty) {
+    await wearPartyHex(fromUuidSync(chosen.tokenUuid)).catch((err) => console.error(`${MODULE_ID} | party hex token`, err));
+  }
   const hex = await withRegion(chosen.hex);
   const data = { action: "start", tokenUuid: chosen.tokenUuid, actorId: chosen.actorId, hex };
   const reply = isActiveGM() ? await applyAction(data, game.user) : await queryActiveGM(OVERLAND_QUERY, data, { label: t("SDE.overland.relayLabel") });

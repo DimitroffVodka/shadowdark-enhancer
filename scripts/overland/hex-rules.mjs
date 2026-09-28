@@ -2,12 +2,15 @@
  * Shadowdark Enhancer — hex rules on hex maps (#257).
  *
  * On a hex map (encounter-terrain isHexRulesScene: a tagged print or a
- * Shadowdark Extras hexcrawl) no token gives light and the scene has no token
+ * Shadowdark Extras hex map) no token gives light and the scene has no token
  * vision, so a torch reveals nothing and every player sees the map as a map;
- * Extras' hex fog, when it's there, hides what the party hasn't seen. What the
- * party sees comes from the hex rules instead (GMWR p.41: time, weather,
- * height). Both are decided at runtime: no token's or scene's data changes,
- * so the same PC keeps its torch and its sight on a dungeon map.
+ * Extras' hex fog, when it's there, hides what the party hasn't seen, and a
+ * token in a hex it hasn't revealed stays hidden from players when Extras can
+ * say so (api.hex.isPositionRevealed). What the party sees comes from the hex
+ * rules instead (GMWR p.41: time, weather, height). All of it is decided at
+ * runtime (the scene's tokenVision is overridden on the document, so every
+ * reader of it agrees): no token's or scene's stored data changes, so the same
+ * PC keeps its torch and its sight on a dungeon map.
  *
  * The party travels as one hex-shaped token: Extras' party token, or without
  * Extras an Enhancer "Party" actor, made the first time a GM starts travel with
@@ -38,21 +41,50 @@ export function registerHexRules() {
     CONFIG.Token.objectClass = class HexRulesToken extends Token {
       /** @override No token lights a hex map (#257). */
       _isLightSource() { return !isHexRulesScene(this.document?.parent) && super._isLightSource(); }
+
+      /**
+       * @override With no token vision, core shows every unhidden token. A
+       * player doesn't see one in a hex Extras' fog hasn't revealed, when
+       * Extras can tell (its api.hex.isPositionRevealed; nothing is read from
+       * its flags).
+       */
+      get isVisible() {
+        const visible = super.isVisible;
+        if (!visible || game.user?.isGM || this.isOwner || this.isPreview) return visible;
+        const scene = this.document?.parent;
+        const revealed = game.modules?.get("shadowdark-extras")?.api?.hex?.isPositionRevealed;
+        if (typeof revealed !== "function" || !isHexRulesScene(scene)) return visible;
+        try { return revealed(scene, this.center) !== false; } catch { return visible; }
+      }
     };
   } else {
     console.error(`${MODULE_ID} | hex rules: Token#_isLightSource is gone; tokens will light hex maps`);
   }
-  const group = CONFIG.Canvas?.groups?.visibility;
-  const Visibility = group?.groupClass;
-  const has = (cls) => { for (let p = cls?.prototype; p; p = Object.getPrototypeOf(p)) if (Object.getOwnPropertyDescriptor(p, "tokenVision")?.get) return true; return false; };
-  if (has(Visibility)) {
-    group.groupClass = class HexRulesVisibility extends Visibility {
-      /** @override A hex map has no token vision (#257). */
-      get tokenVision() { return !isHexRulesScene(globalThis.canvas?.scene) && super.tokenVision; }
+  // No token vision on a hex map, on the Scene document itself, so every
+  // reader of scene.tokenVision agrees (canvas visibility, token control, the
+  // fog, notes). The stored value is untouched: SceneConfig reads _source.
+  const Scene = CONFIG.Scene?.documentClass;
+  if (Scene) {
+    CONFIG.Scene.documentClass = class HexRulesScene extends Scene {
+      /** @override */
+      prepareDerivedData() {
+        super.prepareDerivedData();
+        if (isHexRulesScene(this)) this.tokenVision = false;
+      }
     };
-  } else {
-    console.error(`${MODULE_ID} | hex rules: CanvasVisibility#tokenVision is gone; tokens will see on hex maps`);
   }
+  // A scene that becomes a hex map, or stops being one, mid-session: its
+  // token sources are rebuilt (core only redraws on a grid change).
+  let hexRules = null;
+  Hooks.on("canvasReady", (c) => { hexRules = isHexRulesScene(c.scene); });
+  Hooks.on("updateScene", (scene, changed) => {
+    if (scene !== globalThis.canvas?.scene || !("flags" in (changed ?? {}))) return;
+    const now = isHexRulesScene(scene);
+    if (now === hexRules) return;
+    hexRules = now;
+    for (const token of canvas.tokens.placeables) token.initializeSources();
+    canvas.perception.initialize();
+  });
 }
 
 /** The Enhancer's party actor, made on first use (GM). */
@@ -68,14 +100,15 @@ async function partyActor() {
 }
 
 /**
- * Put the Enhancer's party on the map (GM): its token in the hex at the centre
- * of the view. For a party without Extras, on Start travel with no party
- * token on the scene.
+ * Put the party on the map (GM): its token in the hex at the centre of the
+ * view, on Start travel with no party token on the scene. `actor` is the
+ * Extras party when there is one; else the module's own Party.
+ * @param {Actor|null} [actor]
  * @returns {Promise<TokenDocument|null>}
  */
-export async function placePartyToken(scene = globalThis.canvas?.scene) {
+export async function placePartyToken(actor = null, scene = globalThis.canvas?.scene) {
   if (!game.user?.isGM || !scene || scene !== canvas.scene) return null;
-  const actor = await partyActor();
+  actor ??= await partyActor();
   if (!actor) return null;
   const { x, y } = canvas.grid.getTopLeftPoint(canvas.grid.getOffset(canvas.stage.pivot));
   // Linked on the token itself: the system makes a new NPC's prototype unlinked.
@@ -85,13 +118,16 @@ export async function placePartyToken(scene = globalThis.canvas?.scene) {
 }
 
 /**
- * Make the travel token the party's hex on a hex map (GM): its scene token
- * only, so the actor keeps its portrait everywhere else. Once: a token already
- * wearing the hex is left alone.
+ * Make a party token the party's hex on a hex map (GM): its scene token only,
+ * so the actor keeps its portrait everywhere else. Once: a token already
+ * wearing the hex is left alone. A larger token shrinks onto the hex under
+ * its old centre, the hex travel starts from.
  * @param {TokenDocument} token
  */
 export async function wearPartyHex(token) {
   if (!game.user?.isGM || !token || !isHexRulesScene(token.parent)) return;
   if (token.texture?.src === PARTY_TOKEN_IMG) return;
-  await token.update(PARTY_TOKEN_STYLE);
+  const grid = token.parent.grid;
+  const { x, y } = grid.getTopLeftPoint(grid.getOffset(token.getCenterPoint()));
+  await token.update({ ...PARTY_TOKEN_STYLE, x, y });
 }

@@ -298,7 +298,8 @@ function partyPoints(canvasRef) {
 /**
  * Does this scene follow hex rules rather than Foundry's light and sight
  * (#257)? A hex grid that is a map of hexes: a print tagged by the Hex Tagger,
- * or a Shadowdark Extras hexcrawl. There no token lights anything or sees
+ * or a Shadowdark Extras hex map (a built or adopted hexcrawl, or a scene its
+ * hex painter formatted). There no token lights anything or sees
  * anything; what the party sees comes from the hex rules (time, weather,
  * height). A hex grid alone is not enough: 5 ft hex battle maps keep their
  * torches.
@@ -307,7 +308,8 @@ function partyPoints(canvasRef) {
  */
 export function isHexRulesScene(scene) {
   if (!scene?.grid?.isHexagonal) return false;
-  return !!(scene.getFlag?.(MODULE_ID, TAGS_FLAG)?.origin || scene.flags?.["shadowdark-extras"]?.hexcrawl);
+  const sdx = scene.flags?.["shadowdark-extras"];
+  return !!(scene.getFlag?.(MODULE_ID, TAGS_FLAG)?.origin || sdx?.hexcrawl || sdx?.hexScene);
 }
 
 /**

@@ -39,6 +39,7 @@ test("hex rules (no token light or sight) on a tagged print or an Extras hexcraw
   });
   assert.equal(isHexRulesScene(scene(true, { "shadowdark-enhancer": { hexTags: { origin: { i: 0, j: 0 } } } })), true, "a tagged print");
   assert.equal(isHexRulesScene(scene(true, { "shadowdark-extras": { hexcrawl: { cols: 64 } } })), true, "an Extras hexcrawl");
+  assert.equal(isHexRulesScene(scene(true, { "shadowdark-extras": { hexScene: true } })), true, "an Extras painter hex map");
   assert.equal(isHexRulesScene(scene(true)), false, "a 5 ft hex battle map keeps its torches");
   assert.equal(isHexRulesScene(scene(false, { "shadowdark-extras": { hexcrawl: {} } })), false, "not a hex grid");
   assert.equal(isHexRulesScene(null), false);

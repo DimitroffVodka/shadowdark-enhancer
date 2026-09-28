@@ -196,10 +196,12 @@ export function spendMove(state, { cost, hex }) {
 // ── Decisions ──────────────────────────────────────────────────────────────
 
 /**
- * Which token travels (decided, Q5): the Extras party token when exactly one
- * is on the scene; otherwise the one token the GM has selected.
- * @param {{partyTokens:string[], controlled:string[]}} tokens  token uuids
- * @returns {{uuid:string|null, reason:"party"|"selected"|"pick"}}
+ * Which token travels (decided, Q5; #257): the party token when exactly one
+ * is on the scene; otherwise the one non-player token the GM has selected. A
+ * player's own token never travels ("player"); with no party token and nothing
+ * selected, "none": the party is put on the map.
+ * @param {{partyTokens:string[], controlled:string[], players?:string[]}} tokens  token uuids
+ * @returns {{uuid:string|null, reason:"party"|"selected"|"player"|"none"|"pick"}}
  */
 export function pickTravelToken({ partyTokens = [], controlled = [], players = [] } = {}) {
   if (partyTokens.length === 1) return { uuid: partyTokens[0], reason: "party" };
@@ -207,6 +209,8 @@ export function pickTravelToken({ partyTokens = [], controlled = [], players = [
   const others = controlled.filter((uuid) => !players.includes(uuid));
   if (others.length === 1) return { uuid: others[0], reason: "selected" };
   if (controlled.length && !others.length) return { uuid: null, reason: "player" };
+  // Nothing to go on: no party token and nothing selected. The party comes onto the map.
+  if (!partyTokens.length && !controlled.length) return { uuid: null, reason: "none" };
   return { uuid: null, reason: "pick" };
 }
 
