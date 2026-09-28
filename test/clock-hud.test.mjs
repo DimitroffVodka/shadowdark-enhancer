@@ -6,6 +6,7 @@ import assert from "node:assert/strict";
 
 import {
   clockShown, clockSteps, dialModel, seasonHatch, monthGrid, dateToTime,
+  TRAVEL_STEPS, currentStep, sightParts,
 } from "../scripts/overland/hud-core.mjs";
 import { nextTimeOfDay, sun, dateParts } from "../scripts/time/time-core.mjs";
 import { gregorian, quirkyGregorian, at } from "./gregorian-calendar.mjs";
@@ -113,4 +114,21 @@ test("a typed time the calendar's day doesn't have is refused", () => {
   const short = { ...gregorian, days: { ...gregorian.days, hoursPerDay: 20 } };
   assert.equal(dateToTime(short, { year: 1301, month: 5, day: 14, hour: 22 }), null);
   assert.equal(dateToTime(gregorian, { year: 1301, month: 5, day: 14, hour: 9, minute: 60 }), null);
+});
+
+test("the travel day's step: weather before a day, traveling during it, 6 or 8 while an encounter holds the clock", () => {
+  assert.equal(TRAVEL_STEPS.length, 8);
+  assert.equal(currentStep({ dayOpen: false, pending: null }), 1);
+  assert.equal(currentStep({ dayOpen: true, pending: null }), 5);
+  assert.equal(currentStep({ dayOpen: true, pending: { reason: "move" } }), 6);
+  assert.equal(currentStep({ dayOpen: true, pending: { reason: "camp" } }), 8);
+});
+
+test("sight in hexes: the book's sum, as Extras' hex fog counts it; nothing without the rules data", () => {
+  const rules = { darkness: -1, stormy: -1, excellent: 1, slight: 1, high: 3, elevation: { mountain: "high", hills: "slight" } };
+  assert.equal(sightParts(rules, { terrain: "grassland", night: false, weather: "fair" }).radius, 1);
+  assert.equal(sightParts(rules, { terrain: "Mountain", night: false, weather: "excellent" }).radius, 5);
+  assert.equal(sightParts(rules, { terrain: "grassland", night: true, weather: "stormy" }).radius, 0, "never below 0");
+  assert.deepEqual(sightParts(rules, { terrain: "hills", night: true, weather: null }).parts, [["base", 1], ["darkness", -1], ["slight", 1]]);
+  assert.equal(sightParts({}, { terrain: "hills", night: false, weather: null }), null);
 });

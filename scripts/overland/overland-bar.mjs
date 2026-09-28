@@ -35,6 +35,7 @@ import {
   endOverland, resume, forage, startOverland, advanceClock, OVERLAND_CHANGED,
 } from "./overland.mjs";
 import { barModel, itemTouchesBar, redrawStamp } from "./overland-bar-core.mjs";
+import { travelPanel } from "./travel-panel.mjs";
 import { DIAL, DIAL_STARS, clockShown, clockSteps, dateToTime, dialModel, monthGrid, seasonHatch, starPoint } from "./hud-core.mjs";
 
 const BAR_ID = "shadowdark-enhancer-travel";
@@ -79,6 +80,8 @@ export const TravelBar = {
   /** Whether the season band and the dial hang under the bar. */
   _sky: true,
   _monthOffset: 0,
+  /** The travel step the viewer opened, or null for the day's own. */
+  _see: null,
   /** The imported holidays, read when the month view opens. */
   _holidays: [],
   _drawn: "",
@@ -377,50 +380,26 @@ export const TravelBar = {
     const actors = {};
     for (const id of state.members) {
       const a = game.actors.get(id);
-      if (a) actors[id] = { name: a.name, rations: a.items.filter((i) => /^rations?$/i.test(i.name)).reduce((n, i) => n + (Number(i.system?.quantity) || 0), 0) };
+      if (a) actors[id] = {
+        name: a.name,
+        rations: a.items.filter((i) => /^rations?$/i.test(i.name)).reduce((n, i) => n + (Number(i.system?.quantity) || 0), 0),
+        int: Number(a.system?.abilities?.int?.mod) || 0,
+      };
     }
     return barModel({ state, actors, isGM: !!game.user.isGM, owns: (id) => !!game.actors.get(id)?.isOwner });
   },
 
-  /** The day as it stands. The eight steps of the book's procedure come next (#257). */
+  /** The day as the book's eight travel steps (travel-panel.mjs). */
   _travelPanel() {
     const { now, cal } = this._now();
-    const m = this._model();
-    const gm = game.user.isGM;
-    const row = (label, value) => `<div class="sde-hud-trow"><span class="sde-hud-cap">${esc(label)}</span><span>${value}</span></div>`;
-    const climate = [t(seasonAt(cal, now).name ?? ""), m.climate, m.harsh ? t("SDE.overland.bar.harsh") : ""].filter(Boolean).join(" · ");
-    const method = [methodName(m.method), m.pushed ? t("SDE.overland.bar.pushed") : ""].filter(Boolean).join(", ");
-    const members = m.members.map((p) => `<div class="sde-hud-member"><span class="sde-hud-n">${esc(p.name)}</span>
-      <span>${esc(t("SDE.overland.bar.rations", { n: p.rations }))}</span>${p.foraged ? `<span class="sde-hud-chip">${esc(t("SDE.overland.bar.foraged"))}</span>` : ""}
-      ${p.canForage ? key("forage", t("SDE.overland.forage.button"), { id: p.id, hint: t("SDE.overland.forage.buttonHint"), cls: "sde-hud-sm" }) : ""}</div>`).join("");
-    const checks = m.checks.map((c) => {
-      const result = !c.rolled ? t("SDE.overland.bar.checkDue") : c.hit ? t("SDE.overland.bar.checkHit") : t("SDE.overland.bar.checkMiss");
-      const label = t(c.half === "night" ? "SDE.overland.check.night" : "SDE.overland.check.day", { time: dateParts(cal, c.at).time });
-      return `<div class="sde-hud-checkrow"><span class="sde-hud-dot ${c.rolled ? (c.hit ? "sde-hud-hit" : "sde-hud-miss") : ""}"></span>${esc(label)}: ${esc(result)}</div>`;
-    }).join("");
-    const weather = weatherNow();
-    return `<div class="sde-hud-panel sde-hud-travel">
-      <div class="sde-hud-ph"><span class="sde-hud-ttl">${esc(t("SDE.clock.travel"))}</span>
-        <span class="sde-hud-cap">${esc([overlandState().hex?.region, climate].filter(Boolean).join(" · "))}</span></div>
-      <div class="sde-hud-pb">
-        ${row(t("SDE.overland.bar.weather"), `${esc(weather ? weatherName(weather) : t("SDE.overland.bar.noWeather"))}${gm
-          ? ` ${key("rollWeather", t("SDE.overland.bar.roll"), { hint: t("SDE.overland.rollWeatherHint"), cls: "sde-hud-sm" })} ${
-            key("reroll", t("SDE.overland.bar.reroll"), { hint: t("SDE.overland.bar.rerollHint"), cls: "sde-hud-sm" })}` : ""}`)}
-        ${row(t("SDE.overland.bar.method"), esc(m.dayOpen ? method : t("SDE.overland.bar.noDay")))}
-        ${m.dayOpen ? row(t("SDE.overland.bar.budget"), `<span class="sde-hud-meter" role="img" aria-label="${
-          esc(t("SDE.overland.bar.hexes", { left: m.hexesLeft, budget: m.budget }))}"><span style="width:${Math.round(m.leftShare * 100)}%"></span></span> ${
-          esc(t("SDE.overland.bar.hexes", { left: m.hexesLeft, budget: m.budget }))}`) : ""}
-        <span class="sde-hud-cap">${esc(t("SDE.overland.bar.party"))}${m.mounts ? ` · ${esc(t("SDE.overland.bar.mounts", { n: m.mounts }))}` : ""}</span>
-        ${members}
-        ${gm && checks ? `<span class="sde-hud-cap">${esc(t("SDE.overland.bar.checks"))}</span>${checks}` : ""}
-      </div>
-      ${gm ? `<div class="sde-hud-pf">${m.pending ? key("resume", t("SDE.overland.resume"), { hint: t("SDE.overland.resumeHint"), cls: "sde-hud-primary" }) : ""}${[
-        key("startDay", t("SDE.overland.startDay"), { hint: t("SDE.overland.startDayHint") }),
-        key("makeCamp", t("SDE.overland.makeCamp"), { hint: t("SDE.overland.makeCampHint") }),
-        `<span class="sde-hud-grow"></span>`,
-        key("endTravel", t("SDE.overland.endTravel"), { hint: t("SDE.overland.endTravelHint"), cls: "sde-hud-ghost" }),
-      ].join("")}</div>` : ""}
-    </div>`;
+    const state = overlandState();
+    let rules = null;
+    try { rules = game.shadowdarkEnhancer?.rules?.visibility?.() ?? null; } catch { /* no rules data yet */ }
+    return travelPanel({
+      state, model: this._model(), gm: !!game.user.isGM, see: this._see, cal,
+      night: !!game.shadowdarkEnhancer?.time?.isNight?.(now, { region: state.hex?.region }),
+      rules, season: t(seasonAt(cal, now).name ?? ""), weatherName, methodName,
+    });
   },
 
   /**
@@ -455,12 +434,14 @@ export const TravelBar = {
       case "open":
         this._open = this._open === id ? null : id;
         this._when = null;
+        this._see = null;
         if (this._open === "month") {
           this._monthOffset = 0;
           await this._loadHolidays();
         }
         return this.render();
       case "stack": this._stack = this._stack === id ? null : id; return this.render();
+      case "see": { const n = Number(id); this._see = this._see === n ? null : n; return this.render(); }
       case "sky": this._sky = !this._sky; this._open = null; return this.render();
       case "month": this._monthOffset += Number(id) || 0; return this.render();
       case "step": return this._move(Number(id));

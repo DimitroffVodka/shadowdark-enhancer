@@ -176,3 +176,40 @@ export function dateToTime(cal, { year, month, day, hour = 0, minute = 0 }) {
   }
   return null;
 }
+
+// ── The Travel panel: the book's travel procedure in eight steps (GMWR p.46, #257) ──
+
+/** The steps, in the book's order: the panel's list and its record of the day. */
+export const TRAVEL_STEPS = ["weather", "sight", "method", "speed", "traveling", "encounters", "resting", "night"];
+
+/**
+ * The step the day stands at, 1 to 8: before a day opens, the weather; an
+ * encounter holding the clock, 6 (8 when it stopped the night at camp);
+ * otherwise travelling, 5.
+ * @param {{dayOpen:boolean, pending:{reason:string}|null}} day
+ */
+export function currentStep({ dayOpen, pending }) {
+  if (pending) return pending.reason === "camp" ? 8 : 6;
+  return dayOpen ? 5 : 1;
+}
+
+const terrainWord = (value) => String(value ?? "").trim().toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_|_$/g, "");
+
+/**
+ * How far the party sees, in hexes, and why (GMWR p.41): 1, less in darkness
+ * or a storm, more in excellent weather and from slight or high ground. The
+ * same sum as Shadowdark Extras' hex fog (hexNearRadius), so the panel and the
+ * fog agree. Null when the rules data's visibility numbers aren't imported.
+ * @param {object|null} rules  game.shadowdarkEnhancer.rules.visibility()
+ * @param {{terrain:string|null, night:boolean, weather:string|null}} now
+ * @returns {{parts:Array<[string, number]>, radius:number}|null}
+ */
+export function sightParts(rules, { terrain, night, weather }) {
+  if (!["darkness", "stormy", "excellent", "slight", "high"].every((k) => Number.isFinite(rules?.[k]))) return null;
+  const parts = [["base", 1]];
+  if (night) parts.push(["darkness", rules.darkness]);
+  if (weather === "stormy" || weather === "excellent") parts.push([weather, rules[weather]]);
+  const height = rules.elevation?.[terrainWord(terrain)];
+  if (height === "slight" || height === "high") parts.push([height, rules[height]]);
+  return { parts, radius: Math.max(0, Math.floor(parts.reduce((n, [, v]) => n + v, 0))) };
+}

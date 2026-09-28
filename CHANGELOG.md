@@ -11,6 +11,11 @@ it needs.
 
 ### Added
 
+- **The Travel panel follows the book's travel procedure.** Its eight steps
+  (weather, sight, method, speed, traveling, encounters, resting, night) are the
+  day's record: the step the day is at is marked, and any step opens to what
+  happened in it. Sight counts the hexes the party sees by the book's rules,
+  the same sum as Shadowdark Extras' hex fog. (#257)
 - **Hex maps follow hex rules.** On a tagged print or a Shadowdark Extras hex
   map, no token gives light and no token sees, so a torch no longer reveals
   miles of map; the same characters keep their light and sight on a dungeon

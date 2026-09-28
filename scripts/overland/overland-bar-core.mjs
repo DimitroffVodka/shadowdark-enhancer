@@ -19,6 +19,7 @@ export function barModel({ state, isGM, owns, actors }) {
     id,
     name: actors[id].name,
     rations: actors[id].rations,
+    int: actors[id].int ?? 0,
     foraged: state.foraged.includes(id),
     canForage: dayOpen && !state.pushed && owns(id) && !state.foraged.includes(id),
   }));

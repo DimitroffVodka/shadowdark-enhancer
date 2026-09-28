@@ -11270,7 +11270,6 @@ body:has(.sdx-scene-nav-bar) #shadowdark-enhancer-travel { top: 72px; }
 .sde-hud-panel::after { inset: 4px; border-top: 1px solid rgba(201, 201, 201, 0.18); border-radius: 3px; }
 .sde-hud-narrow { width: 440px; }
 .sde-hud-wide { width: 640px; }
-.sde-hud-travel { width: 600px; }
 .sde-hud-ph {
   display: flex;
   flex-direction: column;
@@ -11422,6 +11421,85 @@ button.sde-hud-day:hover { border-color: var(--sd-frame); }
   overflow: hidden;
   text-overflow: ellipsis;
 }
+
+/* The travel panel: the book's eight steps beside the step's record (#257). */
+.sde-hud-travel { width: 740px; }
+.sde-hud-tp {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: 176px minmax(0, 1fr);
+  min-height: 330px;
+}
+.sde-hud-steps {
+  list-style: none;
+  margin: 0;
+  padding: 8px 0;
+  border-right: 1px solid var(--sd-hairline);
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.sde-hud-steps li { font-family: "JSL Blackletter", serif; font-size: 17px; color: #6f6a64; }
+.sde-hud-steps li button {
+  all: unset;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 6px 12px;
+  cursor: pointer;
+}
+.sde-hud-steps li button:focus-visible { outline: 2px solid var(--sd-text); outline-offset: -2px; }
+.sde-hud-steps li:hover,
+.sde-hud-steps li.sde-hud-shown { background: var(--sd-panel); }
+.sde-hud-num {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 1px solid var(--sd-hairline);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  font-family: "Montserrat-Bold", sans-serif;
+  font-size: 11px;
+  color: #6f6a64;
+}
+.sde-hud-steps li.sde-hud-done { color: var(--sd-text-2); }
+.sde-hud-steps li.sde-hud-done .sde-hud-num { background: var(--sd-text); color: var(--sd-page); border-color: var(--sd-text); }
+.sde-hud-steps li.sde-hud-now { color: var(--sd-text); box-shadow: inset 3px 0 0 var(--sd-text); }
+.sde-hud-steps li.sde-hud-now .sde-hud-num { border-color: var(--sd-text); color: var(--sd-text); }
+.sde-hud-sb { display: flex; flex-direction: column; gap: 9px; padding: 12px 18px; min-width: 0; }
+.sde-hud-sb h3 {
+  margin: 0;
+  border: 0;
+  font-family: "JSL Blackletter", serif;
+  font-weight: normal;
+  font-size: 26px;
+  line-height: 1.1;
+  color: var(--sd-text);
+}
+.sde-hud-sb p { margin: 0; }
+.sde-hud-bl { font-family: "JSL Blackletter", serif; font-size: 24px; color: var(--sd-text); }
+.sde-hud-res { font-size: 12.5px; line-height: 1.4; color: var(--sd-text-2); }
+.sde-hud-gold { color: var(--sd-gold); font-family: "Montserrat-Bold", sans-serif; font-variant-numeric: tabular-nums; }
+.sde-hud-need {
+  font-family: "Montserrat-SemiBold", sans-serif;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--sd-text-muted);
+  white-space: nowrap;
+}
+.sde-hud-need b { font-family: "Montserrat-Bold", sans-serif; font-weight: normal; color: var(--sd-text); }
+.sde-hud-r { margin-left: auto; }
+.sde-hud-w { width: 62px; }
+.sde-hud-tm { width: 44px; font-variant-numeric: tabular-nums; }
+.sde-hud-fl.sde-hud-small { font-size: 12px; }
+.sde-hud-sb .sde-hud-fl { text-align: left; }
+.sde-hud-sb .sde-hud-trow > .sde-hud-cap { width: auto; white-space: nowrap; }
 
 /* The travel panel. */
 .sde-hud-trow { display: flex; align-items: center; gap: 10px; min-height: 26px; flex-wrap: wrap; }
