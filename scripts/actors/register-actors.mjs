@@ -26,7 +26,7 @@ import { MODULE_ID } from "../shared/module-id.mjs";
 import { BoatDataModel } from "./boat-data-model.mjs";
 import { BoatSheet } from "./boat-sheet.mjs";
 import { buildMountNpcSheet } from "./mount-npc-sheet.mjs";
-import { buildWarbandNpcSheet } from "./warband-npc-sheet.mjs";
+import { buildWarbandNpcSheet, registerWarbandWrites } from "./warband-npc-sheet.mjs";
 import { registerMakeWarband } from "./make-warband.mjs";
 import { warbandRolledHp } from "./warband-core.mjs";
 
@@ -88,6 +88,7 @@ export function registerActorTypes() {
       label: "SDE.sheet.warband",
     });
     registerMakeWarband(WARBAND_TYPE);
+    registerWarbandWrites(WARBAND_TYPE);
   } else {
     console.warn(`${MODULE_ID} | Shadowdark NPC model/sheet not found — mount and warband types not registered`);
   }

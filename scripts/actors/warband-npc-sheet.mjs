@@ -17,20 +17,74 @@ import { MODULE_ID } from "../shared/module-id.mjs";
 import { replaceModuleFlag } from "../shared/module-flags.mjs";
 import { martialTierForHitDie } from "../downtime/downtime-core.mjs";
 import { makeQueue } from "../quests/quest-core.mjs";
+import { authorizeActorFor, isActiveGM, queryActiveGM } from "../shared/gm-relay.mjs";
 import {
   UPGRADES, MOST_UPGRADES, allowanceFor, cleanUpgrades, commandRefusal, upgradeRefusal,
 } from "./warband-core.mjs";
 
 export const WARBAND_FLAG = "warband";
 
+/** The active GM's writer for every commander and upgrade change (#283 review). */
+export const WARBAND_QUERY = `${MODULE_ID}.warbandWrite`;
+
 /**
- * Every warband write on this client, one at a time. Each one re-reads its
- * warband and the shared allowance when its turn comes, so quick ticks don't
- * overwrite each other and two warbands can't both take a commander's last
- * slot.
+ * Commander and upgrade changes, one at a time, on one client: the active
+ * GM's. Every GM's sheet sends its change there (sendWarbandWrite), where the
+ * warband and its commander's other warbands are read afresh and the
+ * allowance checked, so neither quick ticks nor two GMs at once get past it.
  */
-// ponytail: one client's queue; two GMs ticking against one commander at the same instant can still both pass.
 const warbandWrites = makeQueue();
+
+/** Register the writer the other clients' sheets call. Call at init. */
+export function registerWarbandWrites(type) {
+  CONFIG.queries[WARBAND_QUERY] = (data, { user } = {}) => warbandWrites(() => applyWarbandWrite(data, user, type));
+}
+
+/** Send a change to the active GM, or make it here when this client is the active GM. */
+function sendWarbandWrite(data, type) {
+  return isActiveGM() ? warbandWrites(() => applyWarbandWrite(data, game.user, type))
+    : queryActiveGM(WARBAND_QUERY, data, { label: game.i18n.localize("SDE.warband.relayLabel") });
+}
+
+/**
+ * Make one change, on the active GM: `commander` gives the warband to a PC
+ * (or none), `upgrade` ticks or unticks one. Refused over the allowance, or
+ * twice; the warning goes back to the sheet that asked.
+ * @returns {Promise<{ok:boolean, warn?:{key:string, data:object}, error?:string}>}
+ */
+async function applyWarbandWrite({ action, actorId, pcUuid = null, key, on }, user, type) {
+  const auth = authorizeActorFor(actorId, user, { type });
+  if (!auth.ok) return auth;
+  const actor = auth.actor;
+  const state = warbandState(actor);
+  if (action === "commander") {
+    const pc = pcUuid ? await fromUuid(pcUuid).catch(() => null) : null;
+    if (pcUuid && pc?.type !== "Player") return { ok: false, warn: { key: "SDE.warband.notify.commanderPc", data: {} } };
+    let warn;
+    if (pc) {
+      const allowance = allowanceFor(await commanderTier(pc));
+      const refusal = commandRefusal(allowance, { ...commandedBy(pc.uuid, { except: actor.id, type }), upgrades: state.upgrades.length });
+      if (refusal) return { ok: false, warn: { key: REFUSAL_KEYS[refusal], data: { name: pc.name, max: allowance[refusal] } } };
+      if (!allowance) warn = { key: "SDE.warband.notify.noHitDie", data: { name: pc.name } };
+    }
+    await replaceModuleFlag(actor, WARBAND_FLAG, { ...state, commander: pc?.uuid ?? null });
+    return { ok: true, warn };
+  }
+  if (action !== "upgrade") return { ok: false };
+  if (on) {
+    const pc = state.commander ? await fromUuid(state.commander).catch(() => null) : null;
+    const allowance = pc ? allowanceFor(await commanderTier(pc)) : null;
+    const { otherUpgrades } = pc ? commandedBy(pc.uuid, { except: actor.id, type }) : { otherUpgrades: 0 };
+    const refusal = upgradeRefusal(key, state.upgrades, { allowance, otherUpgrades });
+    if (refusal) {
+      const warnKey = refusal === "upgrades" && !allowance ? "SDE.warband.notify.tooManyUpgradesNoAllowance" : REFUSAL_KEYS[refusal];
+      return { ok: false, warn: { key: warnKey, data: { name: pc?.name ?? "", max: allowance ? allowance.upgrades : MOST_UPGRADES } } };
+    }
+  }
+  const upgrades = on ? cleanUpgrades([...state.upgrades, key]) : state.upgrades.filter((k) => k !== key);
+  await replaceModuleFlag(actor, WARBAND_FLAG, { ...state, upgrades });
+  return { ok: true };
+}
 
 const UPGRADE_KEYS = {
   accurate: "SDE.warband.upgrade.accurate", ambush: "SDE.warband.upgrade.ambush",
@@ -148,45 +202,20 @@ export function buildWarbandNpcSheet(BaseNpcSheet, type) {
 
     /** Give the warband to a commander (or none), if the allowance holds. */
     _setCommander(pc) {
-      return warbandWrites(() => this._writeCommander(pc));
-    }
-
-    async _writeCommander(pc) {
-      const state = warbandState(this.actor);
-      if (pc) {
-        const allowance = allowanceFor(await commanderTier(pc));
-        const refusal = commandRefusal(allowance, { ...commandedBy(pc.uuid, { except: this.actor.id, type }), upgrades: state.upgrades.length });
-        if (refusal) {
-          ui.notifications?.warn(game.i18n.format(REFUSAL_KEYS[refusal], { name: pc.name, max: allowance[refusal] }));
-          return false;
-        }
-        if (!allowance) ui.notifications?.warn(game.i18n.format("SDE.warband.notify.noHitDie", { name: pc.name }));
-      }
-      await replaceModuleFlag(this.actor, WARBAND_FLAG, { ...state, commander: pc?.uuid ?? null });
-      return true;
+      return this._sendWrite({ action: "commander", pcUuid: pc?.uuid ?? null });
     }
 
     /** Tick or untick one upgrade; refused (with a message) over the allowance or twice. */
     _toggleUpgrade(key, on) {
-      return warbandWrites(() => this._writeUpgrade(key, on));
+      return this._sendWrite({ action: "upgrade", key, on });
     }
 
-    async _writeUpgrade(key, on) {
-      const state = warbandState(this.actor);
-      if (on) {
-        const pc = state.commander ? await fromUuid(state.commander).catch(() => null) : null;
-        const allowance = pc ? allowanceFor(await commanderTier(pc)) : null;
-        const { otherUpgrades } = pc ? commandedBy(pc.uuid, { except: this.actor.id, type }) : { otherUpgrades: 0 };
-        const refusal = upgradeRefusal(key, state.upgrades, { allowance, otherUpgrades });
-        if (refusal) {
-          const key = refusal === "upgrades" && !allowance ? "SDE.warband.notify.tooManyUpgradesNoAllowance" : REFUSAL_KEYS[refusal];
-          ui.notifications?.warn(game.i18n.format(key, { name: pc?.name ?? "", max: allowance ? allowance.upgrades : MOST_UPGRADES }));
-          return false;
-        }
-      }
-      const upgrades = on ? cleanUpgrades([...state.upgrades, key]) : state.upgrades.filter((k) => k !== key);
-      await replaceModuleFlag(this.actor, WARBAND_FLAG, { ...state, upgrades });
-      return true;
+    /** Send a change to the active GM's writer, and show what it answered. */
+    async _sendWrite(data) {
+      const reply = await sendWarbandWrite({ ...data, actorId: this.actor.id }, type);
+      if (reply?.warn) ui.notifications?.warn(game.i18n.format(reply.warn.key, reply.warn.data));
+      else if (!reply?.ok && reply?.error) ui.notifications?.warn(reply.error);
+      return !!reply?.ok;
     }
   };
 }
