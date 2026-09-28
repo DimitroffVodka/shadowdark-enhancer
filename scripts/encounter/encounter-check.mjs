@@ -19,6 +19,13 @@ const { renderTemplate } = foundry.applications.handlebars;
  */
 let travelTableUuid = null;
 
+/**
+ * One spelling per table: tableForCheck can name a pack table the short way
+ * ("Compendium.<pack>.<id>"), while the roller holds its document's uuid
+ * ("Compendium.<pack>.RollTable.<id>").
+ */
+const canonicalUuid = (uuid) => (uuid ? (foundry.utils.parseUuid(uuid)?.uuid ?? uuid) : null);
+
 export const EncounterCheck = {
 
   /**
@@ -29,7 +36,7 @@ export const EncounterCheck = {
    * @returns {boolean}
    */
   takeTravelDraw(uuid) {
-    if (!uuid || (uuid !== travelTableUuid)) return false;
+    if (!uuid || (canonicalUuid(uuid) !== travelTableUuid)) return false;
     travelTableUuid = null;
     return true;
   },
@@ -59,7 +66,7 @@ export const EncounterCheck = {
     // moment of the roll, else the terrain's table, else the active one. A
     // failing lookup falls back to the terrain picker, so the card still posts.
     const table = hit ? await tableForCheck(hex, { scene: scene ?? undefined }) : null;
-    travelTableUuid = (hit && travel) ? (table?.uuid ?? null) : null;
+    travelTableUuid = (hit && travel) ? canonicalUuid(table?.uuid) : null;
 
     await this._postToChat(roll, threshold, hit, hex, table, label);
 

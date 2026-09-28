@@ -168,8 +168,8 @@
 
 | File | Lines | Description |
 |---|---:|---|
-| `encounter-roller-app.mjs` | 1515 | The Encounter Roller shell + tabs (Roll Tables / Build / Browse / Creator). |
-| `encounter-check.mjs` | 137 | The d6 random-encounter check + chat post. Options (#232): a threshold, the travel hex (its region as the zone), a card label and the recap clock label, for Overland's travel checks. |
+| `encounter-roller-app.mjs` | 1518 | The Encounter Roller shell + tabs (Roll Tables / Build / Browse / Creator). |
+| `encounter-check.mjs` | 144 | The d6 random-encounter check + chat post. Options (#232): a threshold, the travel hex (its region as the zone), a card label and the recap clock label, for Overland's travel checks. |
 | `encounter-result.mjs` | 41 | Distance / Activity / Reaction RAW lookups. |
 | `encounter-build.mjs` | 292 | Build-a-table data layer (slots, die formats, save to RollTable). |
 | `encounter-browse.mjs` | 217 | Browse-NPCs data layer (sources, loading, cache, filter/sort). |

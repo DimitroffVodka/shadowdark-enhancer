@@ -769,8 +769,10 @@ export class EncounterRollerApp extends HandlebarsApplicationMixin(ApplicationV2
       console.warn(`${MODULE_ID} | rolling the category's table failed`, err);
       return null;
     });
-    if (chained?.missing) {
-      this._lastResult = { kind: "flavor", text: chained.missing, via: null };
+    // A point of interest is found instead of an encounter: its row's text, even
+    // where it names a creature, never an encounter card with counts and reactions.
+    if (chained?.poi) {
+      this._lastResult = { kind: "flavor", text: chained.missing ?? _resultBody(chained.result).trim(), via: chained.via ?? null };
       this.render();
       return;
     }
@@ -793,13 +795,14 @@ export class EncounterRollerApp extends HandlebarsApplicationMixin(ApplicationV2
     const poi = travelPointOfInterest(table.name, row, names, { travel });
     if (!poi) return this._rollCategory(table, result);
     const category = zoneCategories(row).join(" + ");
-    if (!poi.found) return { missing: game.i18n.format("SDE.encounter.roller.poiMissing", { category, table: poi.name }) };
+    const missing = { poi: true, missing: game.i18n.format("SDE.encounter.roller.poiMissing", { category, table: poi.name }) };
+    if (!poi.found) return missing;
     const doc = pack
       ? await pack.getDocument(pack.index.find((e) => e.name === poi.found)?._id)
       : game.tables.getName(poi.found);
     const drawn = doc ? (await doc.draw({ displayChat: false })).results[0] : null;
-    if (!drawn) return { missing: game.i18n.format("SDE.encounter.roller.poiMissing", { category, table: poi.name }) };
-    return { result: drawn, via: game.i18n.format("SDE.encounter.roller.viaPoi", { category, table: poi.name }) };
+    if (!drawn) return missing;
+    return { poi: true, result: drawn, via: game.i18n.format("SDE.encounter.roller.viaPoi", { category, table: poi.name }) };
   }
 
   /**
