@@ -119,7 +119,7 @@ const STYLESHEET_REV = "39a661c3cacf";
 // stale); module.json carries the same hash and is fetched fresh at runtime. A
 // mismatch is a stale cache by construction — it cannot be anything else. Both
 // stamps are written by `npm run inventory` and gated by `inventory:check`.
-const BUILD_REV = "aaf99e6ae0c9";
+const BUILD_REV = "232fd33c8e1c";
 
 /**
  * Tell the user when their browser is running an old build of this module, and
@@ -1049,6 +1049,9 @@ Hooks.once("ready", () => {
   // returns null, so this costs one settings read per load. Guarded to the single
   // active GM because it writes a world setting.
   if (game.users.activeGM?.id === game.user.id) {
+    // #187: a world with the ancestry d100 imported and no builder table yet.
+    import("./importer/tables/table-importer.mjs").then((m) => m.adoptImportedAncestryTable())
+      .catch((err) => console.error(`${MODULE_ID} | ancestry table adoption failed:`, err));
     try {
       const migrated = migrateEncounterSources(game.settings.get(MODULE_ID, "encounterSources"));
       if (migrated) {
