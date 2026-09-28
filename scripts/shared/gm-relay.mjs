@@ -178,68 +178,21 @@ export function authorizeActorFor(actorId, user, { type = null } = {}) {
   return verdict.ok ? { ok: true, actor } : verdict;
 }
 
-// ─── One session of the active GM ─────────────────────────────────────────────
-
-/**
- * Foundry lets one user be signed in from several tabs at once, delivers a user
- * query to every one of them (the first reply wins), and fires every hook in
- * each: both measured on 14.368 (#283 review). "The active GM" is therefore
- * narrowed to one of its sessions. Each GM session says hello on the module
- * socket when it's ready and every HEARTBEAT_MS after; of the sessions still
- * heard from, the one signed in longest is the one that works. With one tab
- * there is no one to hear from, and it is the one.
- */
-const SESSION_ACTION = "gmSession";
-const HEARTBEAT_MS = 5000;
-/** How long a session that isn't the one waits before refusing a query, so the one's answer arrives first. */
-const SECONDARY_REPLY_MS = 1500;
-/** This user's other sessions, by socket id: `{ since, seen }`. */
-const _sessions = new Map();
-let _since = null;
-
-/**
- * Whether `mine` is the session that works among `others`: the one signed in
- * longest, the socket id breaking a tie, ignoring any not heard from within
- * `timeoutMs`. Pure.
- * @param {{sid:string, since:number}} mine
- * @param {Map<string, {since:number, seen:number}>} others
- */
-export function isPrimarySession(mine, others, now, timeoutMs = 3 * HEARTBEAT_MS) {
-  for (const [sid, s] of others) {
-    if (now - s.seen > timeoutMs) continue;
-    if (s.since < mine.since || (s.since === mine.since && sid < mine.sid)) return false;
-  }
-  return true;
-}
-
-/** Say hello to this user's other sessions, answer theirs, and keep saying it. Call at ready. */
-export function registerGmSessions() {
-  if (!game.user?.isGM || !game.socket) return;
-  _since = Date.now();
-  const channel = `module.${MODULE_ID}`;
-  const hello = (reply = false) => game.socket.emit(channel, { action: SESSION_ACTION, userId: game.user.id, sid: game.socket.id, since: _since, reply });
-  game.socket.on(channel, (msg) => {
-    if (msg?.action !== SESSION_ACTION || msg.userId !== game.user.id || msg.sid === game.socket.id) return;
-    const known = _sessions.has(msg.sid);
-    _sessions.set(msg.sid, { since: msg.since, seen: Date.now() });
-    if (!known && !msg.reply) hello(true);   // a new session hears from this one at once
-  });
-  hello();
-  setInterval(() => hello(), HEARTBEAT_MS);
-}
-
 /**
  * Is this client the ONE GM that does relayed work?
  *
  * `getDesignatedUser` picks the highest role and breaks ties on user id
  * (foundry.mjs:46503-46512), so every client computes the same answer from the
- * same collection. That makes it safe to decide on the receiving side. Of that
- * user's sessions, only one (see above).
+ * same collection. That makes it safe to decide on the receiving side.
+ *
+ * One GM user, not one tab. A GM signed in twice gets each query in both tabs
+ * and runs each hook in both, and the server tells no client which tabs a user
+ * has open (it tracks activity per user). Picking one tab over the module
+ * socket was tried and taken out (#283 review): any player can write to that
+ * socket, and a heartbeat can't tell a closed tab from a throttled one. #288.
  */
 export function isActiveGM() {
-  if (!game.user?.isGM || game.users?.activeGM?.id !== game.user?.id) return false;
-  if (_since === null || !_sessions.size) return true;
-  return isPrimarySession({ sid: game.socket?.id, since: _since }, _sessions, Date.now());
+  return !!game.user?.isGM && game.users?.activeGM?.id === game.user?.id;
 }
 
 /**
@@ -261,17 +214,12 @@ export function isActiveGM() {
  *
  * @param {User} user   From core's query context.
  * @param {string} what Plural noun phrase for the refusal sentence.
- * @returns {null|{ok: false, error: string}|Promise<{ok: false, error: string}>} null when the query may proceed;
- *   a promise of the refusal on another tab of the active GM.
+ * @returns {null|{ok: false, error: string}} null when the query may proceed.
  */
 export function refuseQuery(user, what = null) {
   if (!user?.id) return { ok: false, error: fmt("SDE.shared.relay.unidentified") };
-  if (isActiveGM()) return null;
-  const refusal = { ok: false, error: fmt("SDE.shared.relay.primaryGm", { what: what ?? fmt("SDE.shared.relay.theseActions") }) };
-  // Another tab of the active GM does the work, and the query reached every tab: its answer should
-  // be the one the caller gets, so this one answers late. A handler returns this like any refusal.
-  if (game.users?.activeGM?.id === game.user?.id) return new Promise((resolve) => { setTimeout(() => resolve(refusal), SECONDARY_REPLY_MS); });
-  return refusal;
+  if (!isActiveGM()) return { ok: false, error: fmt("SDE.shared.relay.primaryGm", { what: what ?? fmt("SDE.shared.relay.theseActions") }) };
+  return null;
 }
 
 // ─── Player side ────────────────────────────────────────────────────────────

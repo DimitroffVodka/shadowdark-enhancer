@@ -5,7 +5,6 @@
 export { MODULE_ID } from "./shared/module-id.mjs";
 import { MODULE_ID } from "./shared/module-id.mjs";
 import { ICONS } from "./shared/icons.mjs";
-import { registerGmSessions } from "./shared/gm-relay.mjs";
 
 import { registerSettings } from "./shared/settings.mjs";
 import { rulesApi } from "./rules-data/rules-data-core.mjs";
@@ -117,7 +116,7 @@ const STYLESHEET_REV = "5fc8d49d113a";
 // stale); module.json carries the same hash and is fetched fresh at runtime. A
 // mismatch is a stale cache by construction — it cannot be anything else. Both
 // stamps are written by `npm run inventory` and gated by `inventory:check`.
-const BUILD_REV = "548efc931c41";
+const BUILD_REV = "def0aff2d627";
 
 /**
  * Tell the user when their browser is running an old build of this module, and
@@ -945,8 +944,6 @@ Hooks.on("quenchReady", async (quench) => {
 
 Hooks.once("ready", () => {
   console.log(`${MODULE_ID} | ready`);
-  // Which tab of the active GM does the relayed work, when the GM has more than one open.
-  registerGmSessions();
   // Renown's level-up watcher. GM clients only; the award itself is gated to
   // the single ACTIVE GM inside, so the always-on Bridge client cannot make it
   // fire twice.
