@@ -1972,10 +1972,7 @@ The off-duty clock move has the same shape with a different writer: the
 lights must go out on the GM whose tab burns them, the Shadowdark system's
 primary GM, which need not be `game.users.activeGM`. It is sent there with
 `queryActiveGM(name, data, { targetUser })`, and the receiving tab checks the
-server-stamped sender is a GM and refuses if another GM holds the flag. It
-also refuses when the GM holding it has another tab open in the same browser
-(`otherTabsOpen`): the flag is the user's, so that tab burns too, from a cache
-the move didn't clear.
+server-stamped sender is a GM and refuses if another GM holds the flag.
 
 **One user, several tabs.** Foundry delivers a query to every tab its
 recipient has open, answers with the first reply, and runs hooks in every tab.
