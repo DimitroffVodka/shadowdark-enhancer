@@ -116,7 +116,8 @@ const stageLabel = (stage) => t(STAGE_KEYS[stage] ?? stage);
 function pageContent(tr) {
   const s = tr.settlement;
   const line = (key, data) => `<p>${t(key, data)}</p>`;
-  const stages = core.STAGES.map((stage) => {
+  // From the stage the urgency roll gave: a trouble days away never was weeks away.
+  const stages = core.STAGES.slice(core.STAGES.indexOf(tr.urgency)).map((stage) => {
     const at = { weeks: tr.stirredAt, days: tr.daysAt, hours: tr.hoursAt, happened: tr.arriveAt }[stage];
     return `<li><strong>${esc(stageLabel(stage))}</strong> (${esc(formatTime(at))}): ${esc(tr.symptoms[stage] ?? "")}</li>`;
   }).join("");
@@ -297,7 +298,7 @@ function decoratePage(sheet, html) {
   const bar = document.createElement("div");
   bar.className = "sde-trouble-status";
   const state = tr.resolved ? t("SDE.troubles.status.resolved") : stageLabel(tr.stage);
-  bar.innerHTML = `<p><strong>${esc(state)}</strong> · ${esc(t(tr.discovered ? "SDE.troubles.status.heard" : "SDE.troubles.status.unheard"))}</p>`;
+  bar.innerHTML = `<span><strong>${esc(state)}</strong> · ${esc(t(tr.discovered ? "SDE.troubles.status.heard" : "SDE.troubles.status.unheard"))}</span>`;
   const button = (label, action) => {
     const b = document.createElement("button");
     b.type = "button";
