@@ -44,7 +44,10 @@ export class QuestLogApp extends HandlebarsApplicationMixin(ApplicationV2) {
       qlOpenSource: async function () {
         const uuid = Quests.get(this.selectedId)?.source.uuid;
         const doc = uuid ? await fromUuid(uuid).catch(() => null) : null;
-        doc?.sheet?.render(true);
+        // A page opens inside its journal, in view mode: on its own its sheet is
+        // the editor (a trouble's or a rumor ledger's page, #190).
+        if (doc?.documentName === "JournalEntryPage") doc.parent.sheet.render(true, { pageId: doc.id });
+        else doc?.sheet?.render(true);
       },
       qlJump: function () { return Quests.jumpToPin(this.selectedId); },
       qlAddObjective: function () { return this._onAddObjective(); },

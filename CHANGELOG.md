@@ -270,6 +270,13 @@ page walks through it in order.
 
 #### Quests and training
 
+- **Rumors, never twice.** **Forge & Loot → Give Rumors…** gives rumors from
+  the GM Guide's tables: troubles the party hasn't heard of first, then the
+  region's table and Rumors in the Reaches in turn. A row given once is never
+  given again, a hand-rolled one included; Reset on the table's sheet frees
+  them. Everything heard goes into a **Rumors Heard** journal your players
+  can read, with the in-game and real date and who heard it, and into the
+  Session Recap. Each rumor can be promoted to a quest. See *Rumors*. (#190)
 - **The Trouble tracker.** The GM Guide's "Fragile Civilizations": every week
   start the world clock passes runs one check, at 1-in-6 growing by one each
   quiet week, and **Check for trouble** in the Journal sidebar runs one by
