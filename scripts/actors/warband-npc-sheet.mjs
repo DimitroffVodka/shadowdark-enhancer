@@ -147,7 +147,8 @@ export function buildWarbandNpcSheet(BaseNpcSheet, type) {
       if (data?.type === "Actor") {
         if (!event.target?.closest?.("[data-drop='commander']")) return;
         const pc = await fromUuid(data.uuid).catch(() => null);
-        if (pc?.type !== "Player") { ui.notifications?.warn(game.i18n.localize("SDE.warband.notify.commanderPc")); return; }
+        // A world PC: one in a compendium has no coins to pay upkeep from.
+        if (pc?.type !== "Player" || pc.pack) { ui.notifications?.warn(game.i18n.localize("SDE.warband.notify.commanderPc")); return; }
         return this._setCommander(pc);
       }
       return super._onDrop(event);

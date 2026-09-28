@@ -46,10 +46,19 @@ const enqueue = (fn) => {
   return run;
 };
 
+/** The warband's commander, a world PC, or null: one in a compendium can't pay or be paid from. */
 const commanderOf = async (wb) => {
   const uuid = warbandState(wb).commander;
-  return uuid ? fromUuid(uuid).catch(() => null) : null;
+  const pc = uuid ? await fromUuid(uuid).catch(() => null) : null;
+  return pc && !pc.pack ? pc : null;
 };
+
+/** Each warband of the type, one at a time; one that fails is logged and the rest go on. */
+async function eachWarband(type, fn) {
+  for (const wb of game.actors.filter((a) => a.type === type)) {
+    try { await fn(wb); } catch (err) { console.error(`${MODULE_ID} | warband upkeep: ${wb.name}`, err); }
+  }
+}
 
 const card = (title, lines, { whisper = false } = {}) => ChatMessage.create({
   content: `<div class="sde-warband-card"><header>${esc(title)}</header><ul>${lines.map((l) => `<li>${esc(l)}</li>`).join("")}</ul></div>`,
@@ -60,12 +69,12 @@ const card = (title, lines, { whisper = false } = {}) => ChatMessage.create({
 /** Charge one month's upkeep for every warband in service, in one card dated `at` (the month's start; now by default). */
 async function runMonth(type, at = game.time.worldTime) {
   const lines = [];
-  for (const wb of game.actors.filter((a) => a.type === type)) {
+  await eachWarband(type, async (wb) => {
     const st = warbandState(wb);
-    if (st.deserted) continue;
+    if (st.deserted) return;
     const pc = await commanderOf(wb);
     const gp = core.upkeepGp(wb.system.level?.value);
-    if (!pc || !gp) continue;
+    if (!pc || !gp) return;
     const coins = pc.system.coins ?? {};
     if (canAfford(coins, { gp })) {
       const left = spendFromPurse(coins, toCopper({ gp }));
@@ -77,17 +86,24 @@ async function runMonth(type, at = game.time.worldTime) {
       await replaceModuleFlag(wb, WARBAND_FLAG, { ...st, arrears: st.arrears + gp });
       lines.push(t("SDE.warband.upkeep.unpaid", { warband: wb.name, commander: pc.name, gp, owed: st.arrears + gp }));
     }
-  }
+  });
   if (lines.length) await card(t("SDE.warband.upkeep.titleAt", { date: formatTime(at) }), lines);
   return lines.length;
 }
 
-/** A warband in arrears checks morale: d20 + its commander's CHA against 15 (Loyal 9); a failure deserts it. */
+/**
+ * Each warband in arrears under a commander checks morale: d20 + the
+ * commander's CHA against 15 (Loyal 9); a failure deserts it. One with no
+ * commander isn't in anyone's service to leave. Returns how many rolled.
+ */
 async function arrearsMorale(type) {
-  for (const wb of game.actors.filter((a) => a.type === type)) {
+  let rolled = 0;
+  await eachWarband(type, async (wb) => {
     const st = warbandState(wb);
-    if (!st.arrears || st.deserted) continue;
+    if (!st.arrears || st.deserted) return;
     const pc = await commanderOf(wb);
+    if (!pc) return;
+    rolled++;
     const cha = Number(pc?.system?.abilities?.cha?.mod) || 0;
     const dc = core.moraleDC(st.upgrades);
     const roll = await new Roll(`1d20 + ${cha}`).evaluate();
@@ -97,24 +113,26 @@ async function arrearsMorale(type) {
       flavor: t(held ? "SDE.warband.upkeep.moraleHeld" : "SDE.warband.upkeep.deserted", { warband: wb.name, dc, owed: st.arrears }),
     });
     if (!held) await replaceModuleFlag(wb, WARBAND_FLAG, { ...st, deserted: true });
-  }
+  });
+  return rolled;
 }
 
 /** `days` of healing for every warband in service that is hurt, in one GM card. */
 async function healDays(type, days) {
   const lines = [];
-  for (const wb of game.actors.filter((a) => a.type === type)) {
+  await eachWarband(type, async (wb) => {
     const st = warbandState(wb);
-    if (st.deserted) continue;
+    if (st.deserted) return;
     const hp = wb.system.attributes?.hp ?? {};
     const missing = (Number(hp.max) || 0) - (Number(hp.value) || 0);
     const plan = core.healPlan(days, missing, st.upgrades);
-    if (!plan.full && !plan.formula) continue;
+    if (!plan.full && !plan.formula) return;
     const gain = plan.full ? missing : Math.min(missing, (await new Roll(plan.formula).evaluate()).total);
     await wb.update({ "system.attributes.hp.value": hp.value + gain });
     lines.push(t("SDE.warband.upkeep.healed", { warband: wb.name, hp: gain, value: hp.value + gain, max: hp.max }));
-  }
-  if (lines.length) await card(t("SDE.warband.upkeep.healTitle", { days }), lines, { whisper: true });
+  });
+  const title = days === 1 ? t("SDE.warband.upkeep.healTitleOne") : t("SDE.warband.upkeep.healTitle", { days });
+  if (lines.length) await card(title, lines, { whisper: true });
 }
 
 /** A clock move: its month and week starts in order (upkeep, then arrears), then its days healed. */
@@ -135,7 +153,8 @@ async function onTimeAdvanced(type, { from, to, crossed }) {
       await runMonth(type, e.at);
       await game.settings.set(MODULE_ID, LAST_MONTH_SETTING, e.month);
     } else {
-      if (weeks++ < MAX_WEEKS) await arrearsMorale(type);
+      // The cap counts only weeks that rolled: arrears that start late in a long move are still tested.
+      if (weeks < MAX_WEEKS && await arrearsMorale(type)) weeks++;
       await game.settings.set(MODULE_ID, LAST_WEEK_SETTING, e.at);
     }
   }
@@ -155,8 +174,9 @@ export const WarbandUpkeep = {
       const st = warbandState(wb);
       if (!st.arrears) return true;
       const pc = await commanderOf(wb);
-      if (!pc || !canAfford(pc.system.coins ?? {}, { gp: st.arrears })) {
-        ui.notifications.warn(t("SDE.warband.notify.cantPay", { commander: pc?.name ?? "", gp: st.arrears }));
+      if (!pc) { ui.notifications.warn(t("SDE.warband.notify.noCommanderToPay", { gp: st.arrears })); return false; }
+      if (!canAfford(pc.system.coins ?? {}, { gp: st.arrears })) {
+        ui.notifications.warn(t("SDE.warband.notify.cantPay", { commander: pc.name, gp: st.arrears }));
         return false;
       }
       const left = spendFromPurse(pc.system.coins, toCopper({ gp: st.arrears }));
