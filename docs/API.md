@@ -23,7 +23,7 @@ and Forge & Loot features.
 [`time`](#time--season-day-and-night-sun-moon-and-anchors) ·
 [`overland`](#overland--the-travel-state)
 
-**API version:** `1.24.0` (semver — additive changes bump the minor version,
+**API version:** `1.25.0` (semver — additive changes bump the minor version,
 breaking changes the major; check `apiVersion` before relying on newer keys).
 
 ## Discovery
@@ -1650,6 +1650,20 @@ Added in 1.16.0 (Overland O5, #231; design §5.1, §5.2). GM only, forwarded to
 the active GM like `rollWeather`. Refused when nobody is travelling. Resolves
 to `{ ok: true }` or `{ ok: false, error }`.
 
+Since 1.25.0 (#257), a `method` left out is read from the party
+(`overland.partyMethod()`), with its boat; a `pushed` left out is the standing
+pace (`overland.setPace`); and a `pushed` given becomes the standing pace.
+
+`overland.partyMethod()` (1.25.0) returns `{ method, boatUuid, mounts, ride }`:
+sailing when every member is aboard one Boat actor (its `occupants`), mounted
+when every member rides a Mount actor (its `occupants` flag), else walking;
+`mounts` counts the Mounts carrying members, which eat at camp; `ride` maps a
+member's actor uuid to its mount's name.
+
+`overland.setPace("normal" | "push")` (1.25.0, GM) sets the standing pace. It
+holds every dawn; when the party hasn't moved or foraged today, today's pace
+and budget change too. Resolves to `{ ok, today, changed }`.
+
 1. **The weather** is rolled first, unless today's still holds.
 2. **The budget**:
    - The base is `hexes` when given (since 1.20.0: Start day's **Hexes
@@ -1691,12 +1705,17 @@ tokens, a combat, and moves while not travelling are left alone.
 
 Added in 1.17.0 (Overland O6, #232; design §5.1 step 4, §5.3, Q4, §5.7).
 
-- **The day's checks.** Start day rolls four d12s for their hours: two day
-  checks at 06:00 + (d12 − 1) h, and two night checks at 18:00 + (d12 − 1) h,
-  so up to 05:00 the next morning.
-  - The chance is 1-in-6, or 2-in-6 for all four on a pushed day.
-  - They are stored as `checks: [{ half, at, chance, rolled, hit }]`.
-  - The GM alone gets a chat line with the hours; players never see them.
+- **The day's checks.** Start day rolls a d12 for each check's hour: day
+  checks at 06:00 + (d12 − 1) h, and night checks at 18:00 + (d12 − 1) h,
+  so up to 05:00 the next morning. How many of each is the world's
+  `overlandEncounterDay` and `overlandEncounterNight` settings at that Start
+  day, 0 to 4 (since 1.25.0; the book's two and two).
+  - The chance is the `overlandEncounterChance` setting, 1 to 5 in 6 (the
+    book's 1), one more on a pushed day for every check, the night's
+    included. Since 1.25.0 it is read as each check rolls.
+  - They are stored as `checks: [{ half, at, chance, rolled, hit }]`, where
+    `chance` is the one the check rolled at, `null` until it rolls.
+  - The GMs see the hours in the Travel panel's Encounters step; players never see them.
   - A check whose hour went by before the day was started falls due at once.
 - **Rolling them.** Every Overland clock advance (a move, and later the
   night's camp) runs from now to its target. Each unrolled check whose hour
@@ -1876,6 +1895,8 @@ scene's choice changes, and once on load.
 - `1.22.0` adds `downtime.isOpen`, and a session's `days`, moved off duty when it ends.
 - `1.23.0` adds the `troubles` namespace (the Trouble tracker).
 - `1.24.0` adds the `rumors` namespace and the `shadowdark-enhancer.rumorsChanged` hook.
+- `1.25.0` adds `encounter.check`'s `quiet`, `hexMaps.makePlayable`, `overland.partyMethod` and
+  `overland.setPace`; `overland.startDay` reads the method and the pace when they're left out.
 - `1.4.0` adds the shared `forgeLoot.open()` preview shell. Generator rules and
   document writes remain behind the later NPC/Rival adapter implementations.
   The version policy is additive: new namespaces bump the minor version; breaking

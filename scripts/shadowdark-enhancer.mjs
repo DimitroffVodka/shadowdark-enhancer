@@ -4,13 +4,16 @@
 
 export { MODULE_ID } from "./shared/module-id.mjs";
 import { MODULE_ID } from "./shared/module-id.mjs";
+import { registerA0Prompt } from "./hex-map/a0-prompt.mjs";
 import { ICONS } from "./shared/icons.mjs";
 
 import { registerSettings } from "./shared/settings.mjs";
 import { rulesApi } from "./rules-data/rules-data-core.mjs";
 import { timeApi, registerTimeHooks } from "./time/time.mjs";
-import { overlandState, isOverland, rollWeather, startDay, resume, forage, makeCamp, registerOverland } from "./overland/overland.mjs";
+import { overlandState, isOverland, rollWeather, startDay, resume, forage, makeCamp, registerOverland, partyReading, setTravelPace } from "./overland/overland.mjs";
 import { TravelBar } from "./overland/overland-bar.mjs";
+import { registerHexRules } from "./overland/hex-rules.mjs";
+import { registerRoute } from "./overland/route.mjs";
 import { registerSky } from "./overland/sky.mjs";
 import { CrawlState } from "./crawl-strip/crawl-state.mjs";
 import { CrawlStrip } from "./crawl-strip/crawl-strip.mjs";
@@ -101,7 +104,7 @@ import { initRivalClassTable } from "./forge-loot/rival-class-table-adapter.mjs"
 // templates, producing unstyled block-flow UI. Keep the manifest stylesheet as
 // the startup fallback, then layer a content-addressed copy above it. The layout
 // contract test requires this revision to change whenever the CSS file changes.
-const STYLESHEET_REV = "5fc8d49d113a";
+const STYLESHEET_REV = "301138a3b265";
 
 // The same problem for the SCRIPTS, which cannot be solved the same way: their
 // URLs come from the manifest, which Foundry validates as real package paths,
@@ -116,7 +119,7 @@ const STYLESHEET_REV = "5fc8d49d113a";
 // stale); module.json carries the same hash and is fetched fresh at runtime. A
 // mismatch is a stale cache by construction — it cannot be anything else. Both
 // stamps are written by `npm run inventory` and gated by `inventory:check`.
-const BUILD_REV = "def0aff2d627";
+const BUILD_REV = "3a6b9836d3fe";
 
 /**
  * Tell the user when their browser is running an old build of this module, and
@@ -291,6 +294,11 @@ Hooks.once("init", () => {
   // Quest Log: its keybinding can only be registered during init.
   registerQuests();
   registerTroubles();
+  // Hex rules on hex maps (#257): no token light or token vision there. Must
+  // run in init, before the canvas is built from CONFIG.
+  registerHexRules();
+  // The route and click-to-travel on the hex map (#257).
+  registerRoute();
   // Out-of-combat tracker as a sidebar tab, beside Combat. Must run in init:
   // Game#initializeUI constructs CONFIG.ui entries during setup, and anything
   // registered after that pass never gets an instance.
@@ -447,7 +455,9 @@ Hooks.once("init", () => {
     // 1.22.0 — additive: downtime.isOpen(), and a session's 2d6 days move the clock off duty (#198).
     // 1.23.0 — additive: troubles namespace, the Trouble tracker (#193).
     // 1.24.0 — additive: rumors namespace and the rumorsChanged hook, the Rumors Heard ledger (#190).
-    apiVersion: "1.24.0",
+    // 1.25.0 — additive: encounter.check({ quiet }), hexMaps.makePlayable, overland.partyMethod and
+    //   setPace; overland.startDay reads the method and the pace when they're left out (#257).
+    apiVersion: "1.25.0",
     // The one travel state per world (scripts/overland/overland.mjs): a copy
     // with hexes left, climate, storm, harshness and night derived; whether
     // travel is on; today's weather roll, the travel day's start, Continue
@@ -457,6 +467,8 @@ Hooks.once("init", () => {
       isActive: () => isOverland(),
       rollWeather: (options) => rollWeather(options),
       startDay: (options) => startDay(options),
+      partyMethod: () => partyReading(),
+      setPace: (pace) => setTravelPace(pace),
       resume: () => resume(),
       forage: (actorId) => forage(actorId),
       makeCamp: () => makeCamp(),
@@ -824,6 +836,8 @@ Hooks.once("init", () => {
     hexMaps: {
       // The contact-sheet tagger for the active scene (GM only). Lazy.
       openTagger: async () => (await import("./hex-map/hex-tagger-app.mjs")).HexTaggerApp.open(),
+      // Make the viewed Western Reaches A0 scene playable: numbered, keyed, pinned, handed to Extras (GM only).
+      makePlayable: async () => (await import("./hex-map/hex-tagger-app.mjs")).HexTaggerApp.makePlayable(),
       // The active scene's tags drawn on the map for review; toggles (GM only).
       showTags: async (opts) => (await import("./hex-map/tag-overlay.mjs")).HexTagOverlay.toggle(opts),
       // Pick a terrain once, then paint the hexes that have it wrong (GM only).
@@ -970,6 +984,8 @@ Hooks.once("ready", () => {
   })();
   CrawlState.init();
   registerOverland();
+  // The Western Reaches A0 on a scene not numbered yet: offer to make it playable, once.
+  registerA0Prompt();
   // The sidebar rendered during setup, before the line above read the saved
   // crawl state, so the tracker tab's rail button is still hidden on a world
   // reloaded mid-crawl. Re-evaluate it now that the state is real.
