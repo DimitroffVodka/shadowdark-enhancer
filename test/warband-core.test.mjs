@@ -5,7 +5,7 @@ import assert from "node:assert/strict";
 
 import {
   UPGRADES, MOST_UPGRADES, allowanceFor, canMakeWarband, cleanUpgrades, commandRefusal, upgradeRefusal,
-  tripleDice, warbandStats, warbandAttack, warbandHp,
+  tripleDice, warbandStats, warbandAttack, warbandHp, warbandRolledHp,
   upkeepGp, moraleDC, routChance, healPlan, monthKey, clockEvents,
 } from "../scripts/actors/warband-core.mjs";
 
@@ -91,4 +91,11 @@ test("a clock move's month and week starts come in order, each once, over its la
   assert.equal(long.events.filter((e) => e.month !== undefined).length, 3, "days 901-1000 hold the month starts 930, 960 and 990");
   assert.deepEqual(clockEvents({ ...move, from: 5, to: 5 }).events, []);
   assert.equal(monthKey({ year: 1300, month: 2 }, 12), 15602, "a month's key: year x 12 + month");
+});
+
+test("the system's HP roll keeps a warband's current HP: placing a linked token never heals it (#283 review)", () => {
+  assert.deepEqual(warbandRolledHp({ level: 4, conMod: 1, value: 7, max: 33 }), { max: 33, value: 7 });
+  assert.deepEqual(warbandRolledHp({ level: 3, conMod: 1, value: 33, max: 33 }), { max: 25, value: 25 }, "clamped to a lower max");
+  assert.deepEqual(warbandRolledHp({ level: 4, conMod: 1, value: 0, max: 0 }), { max: 33, value: 33 }, "one never given HP starts full");
+  assert.deepEqual(warbandRolledHp({ level: 4, conMod: 1, value: 0, max: 33 }), { max: 33, value: 0 }, "a fallen warband stays down");
 });

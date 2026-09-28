@@ -28,7 +28,7 @@ import { BoatSheet } from "./boat-sheet.mjs";
 import { buildMountNpcSheet } from "./mount-npc-sheet.mjs";
 import { buildWarbandNpcSheet } from "./warband-npc-sheet.mjs";
 import { registerMakeWarband } from "./make-warband.mjs";
-import { warbandHp } from "./warband-core.mjs";
+import { warbandRolledHp } from "./warband-core.mjs";
 
 export const MOUNT_TYPE = `${MODULE_ID}.mount`;
 export const BOAT_TYPE = `${MODULE_ID}.boat`;
@@ -63,11 +63,14 @@ export function registerActorTypes() {
     });
     // ── Warband: the NPC model with fixed HP, its own tab (#200) ────────────
     // A warband's HP is 8 a level plus CON, never rolled: the sheet's HP dice
-    // and the system's roll-on-placement both call rollHP.
+    // and the system's roll-on-placement both call rollHP, which sets that max
+    // and keeps the current HP. Its tokens are linked, so a placement that
+    // healed it would heal the world actor.
     CONFIG.Actor.dataModels[WARBAND_TYPE] = class WarbandModel extends NpcModel {
       async rollHP() {
-        const hp = warbandHp(this.level?.value, this.abilities?.con?.mod);
-        await this.parent.update({ "system.attributes.hp.max": hp, "system.attributes.hp.value": hp });
+        const { value, max } = this.attributes?.hp ?? {};
+        const hp = warbandRolledHp({ level: this.level?.value, conMod: this.abilities?.con?.mod, value, max });
+        await this.parent.update({ "system.attributes.hp.max": hp.max, "system.attributes.hp.value": hp.value });
       }
     };
     // One unit, one actor: its tokens are linked, so every warband is a world
