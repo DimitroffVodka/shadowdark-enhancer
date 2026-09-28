@@ -439,6 +439,8 @@
   "SDE.encounter.roller.flavorHeading": "Environmental Result",
   "SDE.encounter.roller.via": "{category}: rolled on {table}",
   "SDE.encounter.roller.viaSpecial": "{category}: rolled on {table}, then on {special}",
+  "SDE.encounter.roller.viaPoi": "{category}, marked on the zone table, during hex travel: a point of interest, rolled on {table}",
+  "SDE.encounter.roller.poiMissing": "A point of interest: the zone roll gave {category}, a row the GM Guide marks for hex travel. Import {table} to roll it.",
   "SDE.encounter.roller.postTip": "Post to Chat",
   "SDE.encounter.roller.post": "Post",
   "SDE.encounter.roller.resultHeading": "Encounter Result",
