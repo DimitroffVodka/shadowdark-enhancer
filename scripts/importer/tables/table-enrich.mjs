@@ -132,7 +132,9 @@ export function isPointOfInterestRow(resultText) {
 export function travelPointOfInterest(zoneName, resultText, available, { travel = false } = {}) {
   const name = String(zoneName ?? "");
   if (!travel || !isEncounterZoneTable(name) || !isPointOfInterestRow(resultText)) return null;
-  const wanted = `${name.replace(/\s*Encounter (?:Zone|Type).*$/, "").trim()} Points of Interest`;
+  const base = name.replace(/\s*Encounter (?:Zone|Type).*$/, "").trim();
+  if (!base) return null;
+  const wanted = `${base} Points of Interest`;
   const unprefixed = wanted.replace(/^.*?\s-\s/, "");
   const have = new Map([...available].map((n) => [n.toLowerCase(), n]));
   const hit = [wanted, unprefixed].find((n) => have.has(n.toLowerCase()));

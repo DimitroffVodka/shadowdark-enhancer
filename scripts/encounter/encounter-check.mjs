@@ -15,7 +15,9 @@ const { renderTemplate } = foundry.applications.handlebars;
 /**
  * The zone table the last check resolved when it was a travel check that hit:
  * that table's next draw is the travel draw, where the GM Guide's marked rows
- * give a point of interest (#273). Each check replaces it.
+ * give a point of interest (#273). Each check replaces it. It lives on the
+ * client that ran the check, so after a reload, or on another GM's client, that
+ * table draws as usual.
  */
 let travelTableUuid = null;
 

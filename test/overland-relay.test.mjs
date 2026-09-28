@@ -317,6 +317,7 @@ test("Start day rolls four check hours and tells the GM alone; a check already p
   assert.deepEqual(gmLine.whisper, [{ id: "gm" }], "the check hours are whispered to the GM");
   assert.equal(calls.length, 1, "07:00 had gone by when the day started at 08:00");
   assert.equal(calls[0].threshold, 1);
+  assert.equal(calls[0].travel, false, "Start day's check isn't hex travel (#273)");
   assert.deepEqual(stored.overlandState.checks.map((c) => c.rolled), [true, false, false, false]);
 });
 
@@ -337,6 +338,7 @@ test("a move across a check hour rolls it at its hour; a hit stops the clock the
   assert.equal(globalThis.game.time.worldTime, at(1301, 6, 21, 14), "the clock stopped at the hit");
   assert.deepEqual(stored.overlandState.pending, { until: target, reason: "move" });
   assert.equal(calls.at(-1).at, at(1301, 6, 21, 14), "rolled at its hour");
+  assert.equal(calls.at(-1).travel, true, "a move's check is hex travel (#273)");
   assert.equal(stored.overlandState.spent, 5, "the move itself is paid");
 
   // Moving on before Continue is refused, and the clock stays put.
@@ -360,6 +362,7 @@ test("an advance through the night rolls the night checks in time order, and sto
   const { stopped } = await advanceTravel(dawn, "camp");
   assert.equal(stopped, false);
   assert.deepEqual(calls.slice(1).map((c) => c.at), [at(1301, 6, 21, 14), at(1301, 6, 21, 18), at(1301, 6, 22, 5)]);
+  assert.ok(calls.slice(1).every((c) => c.travel === false), "camp's checks aren't hex travel (#273)");
   assert.equal(globalThis.game.time.worldTime, dawn);
   assert.ok(stored.overlandState.checks.every((c) => c.rolled));
 });
@@ -374,6 +377,7 @@ test("a hit with checks still due at the same moment leaves them for Continue, n
   assert.deepEqual(res, { ok: true, stopped: false });
   assert.equal(calls.length, 2, "Continue rolls the 07:00 check");
   assert.equal(calls[1].label, "SDE.overland.check.day");
+  assert.equal(calls[1].travel, false, "Continue keeps the day's reason (#273)");
   assert.equal(stored.overlandState.pending, null);
   assert.equal(globalThis.game.time.worldTime, at(1301, 6, 21, 8), "and moves no clock");
 });

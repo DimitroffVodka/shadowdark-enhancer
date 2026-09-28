@@ -754,6 +754,7 @@ export class EncounterRollerApp extends HandlebarsApplicationMixin(ApplicationV2
 
     const draw = await table.draw({ displayChat: false });
     const result = draw.results[0];
+    const travel = EncounterCheck.takeTravelDraw(table.uuid);
 
     if (!result) {
       this._lastResult = { kind: "empty" };
@@ -764,7 +765,6 @@ export class EncounterRollerApp extends HandlebarsApplicationMixin(ApplicationV2
     // A zone table only names a category: roll the region's table for it (#262).
     // On the travel draw, a row the book marks is a point of interest instead (#273).
     // If that fails, the zone's own row still shows.
-    const travel = EncounterCheck.takeTravelDraw(table.uuid);
     const chained = await this._rollZoneRow(table, result, { travel }).catch((err) => {
       console.warn(`${MODULE_ID} | rolling the category's table failed`, err);
       return null;
