@@ -40,6 +40,9 @@
  * @property {boolean} [dead]    The actor carries core's `dead` status. Only
  *                               read for PCs: a dead PC keeps its card (the
  *                               skull) but has no turn (dying.mjs, #181).
+ * @property {boolean} [follows] A warband unit whose commander is in the same
+ *                               combat: it acts on the commander's turn, so it
+ *                               keeps its card but has no turn of its own (#203).
  */
 
 /**
@@ -61,8 +64,28 @@ export function combatantEntry(combatant) {
     defeated: combatant?.defeated === true,
     hp: actor?.system?.attributes?.hp?.value ?? actor?.system?.hp?.value ?? 1,
     dead: actor?.statuses?.has?.("dead") === true,
+    follows: commanderInCombat(combatant),
   };
 }
+
+/** The Warbands' unit type (register-actors.mjs WARBAND_TYPE), kept here so this file stays Foundry-free. */
+const WARBAND_TYPE = "shadowdark-enhancer.warband";
+
+/**
+ * The combatant of a warband's commander in the same combat, or null: a
+ * warband acts on its commander's turn (#203). Duck-typed like the rest.
+ * @param {object} combatant
+ * @returns {object|null}
+ */
+export function commanderCombatant(combatant) {
+  const actor = combatant?.actor;
+  const commander = actor?.type === WARBAND_TYPE ? actor.flags?.["shadowdark-enhancer"]?.warband?.commander : null;
+  if (!commander) return null;
+  const all = combatant?.parent?.combatants ?? combatant?.combat?.combatants ?? [];
+  return [...all].find((c) => c !== combatant && c.actor?.uuid === commander) ?? null;
+}
+
+const commanderInCombat = (combatant) => !!commanderCombatant(combatant);
 
 /**
  * Does this combatant get NO card on the strip?
@@ -93,7 +116,7 @@ export function isHiddenFromStrip(entry) {
  * @returns {boolean}
  */
 export function isTurnless(entry) {
-  return isHiddenFromStrip(entry) || (entry.isPlayer && entry.dead === true);
+  return isHiddenFromStrip(entry) || (entry.isPlayer && entry.dead === true) || entry.follows === true;
 }
 
 /**

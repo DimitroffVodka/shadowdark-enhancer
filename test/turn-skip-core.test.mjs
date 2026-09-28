@@ -25,10 +25,10 @@ const combatant = ({ type = "NPC", hp = 5, defeated = false, actor = undefined }
 
 test("combatantEntry: reads type, defeated flag and Shadowdark HP", () => {
   assert.deepEqual(combatantEntry(combatant({ type: "Player", hp: 7 })), {
-    hasActor: true, isPlayer: true, defeated: false, hp: 7, dead: false,
+    hasActor: true, isPlayer: true, defeated: false, hp: 7, dead: false, follows: false,
   });
   assert.deepEqual(combatantEntry(combatant({ type: "NPC", hp: 0, defeated: true })), {
-    hasActor: true, isPlayer: false, defeated: true, hp: 0, dead: false,
+    hasActor: true, isPlayer: false, defeated: true, hp: 0, dead: false, follows: false,
   });
 });
 
@@ -183,4 +183,22 @@ test("shouldSkipTurn: a corpse in the last slot wraps to the top of the order", 
     assert.ok(++steps <= turns.length, "must terminate within one lap");
   }
   assert.equal(turn, 0, "wraps into the next round on the first PC");
+});
+
+// ── warbands (#203) ─────────────────────────────────────────────────────────
+
+test("a warband whose commander is in the combat keeps its card but has no turn", () => {
+  const pcActor = { uuid: "Actor.pc", type: "Player", system: { attributes: { hp: { value: 5 } } } };
+  const wbActor = { uuid: "Actor.wb", type: "shadowdark-enhancer.warband", flags: { "shadowdark-enhancer": { warband: { commander: "Actor.pc" } } }, system: { attributes: { hp: { value: 20 } } } };
+  const combat = { combatants: [] };
+  const pcC = { actor: pcActor, parent: combat };
+  const wbC = { actor: wbActor, parent: combat };
+  combat.combatants.push(pcC, wbC);
+  const entry = combatantEntry(wbC);
+  assert.equal(entry.follows, true);
+  assert.equal(isHiddenFromStrip(entry), false, "its card stays");
+  assert.equal(isTurnless(entry), true, "its turn is the commander's");
+  combat.combatants.splice(0, 1);
+  assert.equal(combatantEntry(wbC).follows, false, "without its commander in the fight it takes its own turn");
+  assert.equal(shouldSkipTurn([combatantEntry(pcC), entry], 1), true);
 });

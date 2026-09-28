@@ -12,8 +12,7 @@ its attacks, AC, HP and damage roll as any NPC's, with a **Warband** tab.
 > without it the attack card doesn't post.
 
 Still to come: the book's stock warbands and the upgrades' effects (#201),
-mass combat with automatic morale and rout (#203), and recruiting as a
-downtime activity (#205).
+and recruiting as a downtime activity (#205).
 
 ---
 
@@ -85,3 +84,26 @@ you setting the date.
 
 A bastion's Granary (10 gp less upkeep) and Barracks (+1d6 healing) come with
 bastions.
+
+---
+
+## Mass combat
+
+- **Its commander's turn.** A warband whose commander is in the fight takes
+  the commander's initiative, so nothing rolls for it (Chaos Mode's rerolls
+  included), and it has no turn of its own: its card sits right after the
+  commander's on the Crawl Strip, and the turn passes it by. It acts on the
+  commander's turn, in any order. Without its commander in the fight it takes
+  its own turn.
+- **Morale, by itself.** When damage takes a warband to half its HP, and each
+  time it's hit while below half, it checks morale: d20 plus its commander's
+  CHA against DC 15 (9 if Loyal). **Its commander is leading it**, on the
+  Warband tab, gives that check advantage (the commander moves with it but
+  acts on their own). A failure rolls to rout: 3-in-6 (1-in-6 with
+  Withdraw). A routed warband is destroyed: marked defeated, with a chat
+  card. It stays in the combat tracker, so the recap still counts it.
+- **Area attacks.** A warband's attack card notes that it fills a near-sized
+  area around its target and can split its damage dice among what it hits
+  there. The splitting is yours to do.
+- **Retraining.** A warband retraining its upgrades that attacks gets a
+  warning: it can't fight until the week is up.

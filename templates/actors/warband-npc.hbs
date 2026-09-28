@@ -43,6 +43,10 @@
 				{{#if warband.allowance}}
 					<p class="sde-warband-allowance">{{warband.allowance.warbands}} · {{warband.allowance.upgrades}}</p>
 				{{/if}}
+				{{#if warband.commander}}
+					<label class="checkbox sde-warband-leading" title="{{localize 'SDE.warband.leadingTip'}}"><input type="checkbox" data-sde-leading {{#if warband.leading}}checked{{/if}} {{#unless editable}}disabled{{/unless}} /> {{localize "SDE.warband.leading"}}</label>
+				{{/if}}
+				{{#if warband.routed}}<p class="sde-warband-alert"><i class="fa-solid fa-skull"></i> {{localize "SDE.warband.routedLine"}}</p>{{/if}}
 			{{/ui/sd-box}}
 
 			{{#> ui/sd-box header-label=(localize "SDE.warband.upkeepHead")}}

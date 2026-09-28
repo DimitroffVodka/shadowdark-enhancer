@@ -376,6 +376,13 @@ page walks through it in order.
   morale (the commander's CHA, DC 15, Loyal 9) and may desert: marked, never
   deleted. Every day heals 1d4 (Hardy 2d6), downtime days included. Changing
   a commanded warband's upgrades means a week of retraining. (#204)
+- **Warbands in mass combat.** A warband with its commander in the fight takes
+  the commander's initiative and turn: its card rides after the commander's
+  on the Crawl Strip, and the turn passes it by. Morale is automatic: falling
+  to half HP, and every hit below it, checks d20 plus the commander's CHA
+  against 15 (Loyal 9), with advantage while the commander leads it; a
+  failure rolls a rout, 3-in-6 (Withdraw 1-in-6), and a rout destroys it.
+  Its attack cards note the area it fills. (#203)
 - **Encounter check frequency.** Right-click the Crawl Bar's **Encounter**
   button: **Check Frequency** runs from **1** (every crawl round, the default)
   to **10**. The count runs from the last check, automatic or manual, so a

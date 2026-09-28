@@ -42,7 +42,8 @@ const REFUSAL_KEYS = {
 /**
  * A warband's state, cleaned, every field kept so a whole-flag write loses
  * none: `{ commander: uuid|null, upgrades: string[], arrears: gp owed,
- * deserted: bool, retrainingUntil: worldTime|null }` (#200, #204).
+ * deserted: bool, retrainingUntil: worldTime|null, leading: bool, routed: bool }`
+ * (#200, #203, #204).
  */
 export function warbandState(actor) {
   const f = actor?.getFlag?.(MODULE_ID, WARBAND_FLAG) ?? {};
@@ -52,6 +53,8 @@ export function warbandState(actor) {
     arrears: Math.max(0, Math.trunc(Number(f.arrears) || 0)),
     deserted: !!f.deserted,
     retrainingUntil: Number.isFinite(f.retrainingUntil) ? f.retrainingUntil : null,
+    leading: !!f.leading,
+    routed: !!f.routed,
   };
 }
 
@@ -111,6 +114,8 @@ export function buildWarbandNpcSheet(BaseNpcSheet, type) {
         retraining: state.retrainingUntil > game.time.worldTime
           ? game.i18n.format("SDE.warband.retrainingLine", { date: formatTime(state.retrainingUntil) }) : null,
         isGM: game.user.isGM,
+        leading: state.leading,
+        routed: state.routed,
       };
       return context;
     }
@@ -125,6 +130,11 @@ export function buildWarbandNpcSheet(BaseNpcSheet, type) {
       // #204: the GM's upkeep controls. Loaded when clicked: the upkeep module isn't needed to draw the sheet.
       const upkeep = (fn) => import("./warband-upkeep.mjs").then(({ WarbandUpkeep }) => fn(WarbandUpkeep))
         .catch((err) => console.error(`${MODULE_ID} | warband upkeep`, err));
+      root.querySelectorAll("input[data-sde-leading]").forEach((el) => el.addEventListener("change", (ev) => {
+        ev.stopPropagation();
+        replaceModuleFlag(this.actor, WARBAND_FLAG, { ...warbandState(this.actor), leading: el.checked })
+          .catch((err) => console.error(`${MODULE_ID} | warband leading`, err));
+      }));
       root.querySelectorAll("[data-sde-action='run-month']").forEach((el) =>
         el.addEventListener("click", () => upkeep((u) => u.runMonth(type))));
       root.querySelectorAll("[data-sde-action='pay-arrears']").forEach((el) =>
