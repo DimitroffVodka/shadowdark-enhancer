@@ -313,27 +313,30 @@ function decoratePage(sheet, html) {
 /**
  * A GM's own roll of a rumor table marks its row drawn too, so the generator
  * never gives it again: one in the module's pack (its sheet's Roll button, a
- * macro) or in the world (also the sidebar's Draw Result). Chained over
- * compound-table.mjs's wrap; it never changes what the draw returns.
+ * macro, drawMany too) or in the world (also the sidebar's Draw Result).
+ * Chained over compound-table.mjs's wrap; it never changes what the draw returns.
  */
 function installRumorDraws() {
   const proto = RollTable.prototype;
   if (proto._sdeRumorInstalled) return;
-  const prev = proto.draw;
-  proto.draw = async function (options = {}) {
-    const out = await prev.call(this, options);
-    try {
-      // The tables rumorTables() gives from: the module's pack, or the world's.
-      const eligible = this.pack ? this.pack === findSuitePack("sde-tables")?.collection && !this.compendium?.locked : true;
-      if (game.user?.isGM && eligible && core.isRumorTable(this.name)) {
-        const rows = out?.roll ? this.getResultsForRoll(out.roll.total) : (out?.results ?? []).filter((r) => r.parent === this);
-        if (rows.length) await this.updateEmbeddedDocuments("TableResult", rows.map((r) => ({ _id: r.id, drawn: true })));
+  // drawMany rolls without draw, so it is wrapped on its own.
+  for (const method of ["draw", "drawMany"]) {
+    const prev = proto[method];
+    proto[method] = async function (...args) {
+      const out = await prev.apply(this, args);
+      try {
+        // The tables rumorTables() gives from: the module's pack, or the world's.
+        const eligible = this.pack ? this.pack === findSuitePack("sde-tables")?.collection && !this.compendium?.locked : true;
+        if (game.user?.isGM && eligible && core.isRumorTable(this.name)) {
+          const rows = core.drawnRows(this, out);
+          if (rows.length) await this.updateEmbeddedDocuments("TableResult", rows.map((r) => ({ _id: r.id, drawn: true })));
+        }
+      } catch (err) {
+        console.warn(`${MODULE_ID} | rumors: marking a hand-rolled rumor drawn`, err);
       }
-    } catch (err) {
-      console.warn(`${MODULE_ID} | rumors: marking a hand-rolled rumor drawn`, err);
-    }
-    return out;
-  };
+      return out;
+    };
+  }
   proto._sdeRumorInstalled = true;
 }
 

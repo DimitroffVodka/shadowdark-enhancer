@@ -4,7 +4,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import {
-  rumorTableRegion, isRumorTable, planDraws, pickRows, rowsLeft, plainRow, troubleRumorText,
+  rumorTableRegion, isRumorTable, planDraws, pickRows, rowsLeft, drawnRows, plainRow, troubleRumorText,
   heardList, ledgerHtml, questName,
 } from "../scripts/rumors/rumor-core.mjs";
 
@@ -46,6 +46,20 @@ test("rows left: drawn rows are out, and a re-import's new rows already given st
   const { available, stale } = rowsLeft(results, given);
   assert.deepEqual(available.map((r) => r.id), ["n1"]);
   assert.deepEqual(stale.map((r) => r.id), ["n2"], "row 2 was given before the re-import");
+});
+
+test("a hand-rolled draw and a macro's drawMany both give the rows they landed on, so Give Rumors skips them", () => {
+  const rows = [1, 2, 3, 4].map((n) => ({ id: `r${n}`, range: [n, n], drawn: false }));
+  const table = { getResultsForRoll: (total) => rows.filter((r) => r.range[0] <= total && total <= r.range[1]) };
+  rows.forEach((r) => { r.parent = table; });
+  assert.deepEqual(drawnRows(table, { roll: { total: 2, terms: [{}] } }).map((r) => r.id), ["r2"], "draw: one roll");
+  // drawMany(3) on a pack table with replacement: core marks nothing; its roll is a pool, the same row twice.
+  const pool = { total: 9, terms: [{ rolls: [{ total: 3 }, { total: 1 }, { total: 3 }] }] };
+  const hit = drawnRows(table, { roll: pool, results: [rows[2], rows[0], rows[2]] });
+  assert.deepEqual(hit.map((r) => r.id), ["r3", "r1"], "each row once, not the pool's total");
+  hit.forEach((r) => { r.drawn = true; });
+  assert.deepEqual(rowsLeft(rows).available.map((r) => r.id), ["r2", "r4"]);
+  assert.deepEqual(drawnRows(table, { results: [rows[3], { id: "x", parent: {} }] }).map((r) => r.id), ["r4"], "no roll: its own results");
 });
 
 test("a row's links and markup become plain text", () => {
