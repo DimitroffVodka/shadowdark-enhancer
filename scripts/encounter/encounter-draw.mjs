@@ -187,16 +187,16 @@ export async function drawEncounter(table, { travel = false, quiet = false } = {
 
 /**
  * Post an encounter to chat: a creature's card with its facets, or a row's
- * text. To the GMs only when the encounter roll is GM-only.
+ * text. To the GMs only when `gmOnly` (default: the encounter roll's GM-only setting).
  * @param {object} res  an entry with its facet words (the roller's result, or the HUD's)
+ * @param {{gmOnly?:boolean}} [opts]
  */
-export async function postEncounter(res) {
+export async function postEncounter(res, { gmOnly = game.settings.get(MODULE_ID, "encounterRollGMOnly") } = {}) {
   if (!res || res.kind === "empty") return;
   const template = res.kind === "flavor"
     ? "modules/shadowdark-enhancer/templates/chat/encounter-flavor.hbs"
     : "modules/shadowdark-enhancer/templates/chat/encounter-result.hbs";
   const content = await renderTemplate(template, res);
-  const gmOnly = game.settings.get(MODULE_ID, "encounterRollGMOnly");
   await ChatMessage.create({
     user: game.user.id,
     content,

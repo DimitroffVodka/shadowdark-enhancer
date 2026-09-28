@@ -491,8 +491,15 @@ export const TravelBar = {
       }
       case "forage": return forage(id);
       case "resume": return warn(await resume());
-      case "postEncounter": return postEncounter(encounterCard(overlandState().encounter));
-      case "openRoller": return game.shadowdarkEnhancer.encounter.openRoller("tables");
+      // The panel's Post is the GM's decision to show it: to everyone, whatever the roller's GM-only setting.
+      case "postEncounter": return postEncounter(encounterCard(overlandState().encounter), { gmOnly: false });
+      case "openRoller": {
+        // The roller opens on the held encounter, for CHA and renown on the reaction, and its tokens.
+        const app = await game.shadowdarkEnhancer.encounter.openRoller("tables");
+        const enc = overlandState().encounter;
+        if (enc && enc.kind !== "empty") app?._setResult?.(enc, { via: enc.via });
+        return;
+      }
       case "rollWeather": return warn(await rollWeather());
       case "reroll": return warn(await rollWeather({ reroll: true }));
       case "startDay": return warn(await startDayFromParty());

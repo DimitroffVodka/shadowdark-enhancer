@@ -2908,6 +2908,7 @@
   "SDE.overland.method.mounted": "mounted",
   "SDE.overland.method.sailing": "sailing",
   "SDE.overland.day.title": "Start the travel day",
+  "SDE.overland.day.restart": "A travel day is already open. Start a new one now? Today's hexes, forage and encounter checks start over.",
   "SDE.overland.day.method": "Travel method",
   "SDE.overland.day.hexes": "Hexes today",
   "SDE.overland.day.hexesFromRules": "from the Rules Data",

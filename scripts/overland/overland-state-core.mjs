@@ -360,7 +360,9 @@ export function setPace(state, pace) {
   const today = state.day !== null && state.spent === 0 && !state.foraged.length && push !== state.pushed && state.base > 0;
   const next = normalizeOverlandState({
     ...state, pace: push ? "push" : "normal",
-    ...(today ? { pushed: push, budget: dayBudget(state.base, push) } : {}),
+    // Today's unrolled checks take the new pace's chance too: one more in 6 when pushing.
+    ...(today ? { pushed: push, budget: dayBudget(state.base, push),
+      checks: state.checks.map((c) => (c.rolled ? c : { ...c, chance: push ? 2 : 1 })) } : {}),
   });
   return { state: next, changed: JSON.stringify(next) !== JSON.stringify(state), today };
 }
@@ -416,7 +418,8 @@ export function priceMove(steps, costOf) {
 export function moveVerdict(state, { cost, blocked }) {
   if (cost === 0 && !blocked) return null;   // displaced, or within one hex
   if (state.day === null) return "noDay";
-  if (state.pending) return "pending";        // an encounter stopped the clock: Continue first
+  // An encounter stopped the clock, or hit just as it reached its target: Continue first.
+  if (state.pending || state.encounter) return "pending";
   if (blocked) return "impassable";
   return cost > state.budget - state.spent ? "bounce" : null;
 }

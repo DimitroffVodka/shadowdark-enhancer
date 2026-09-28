@@ -375,12 +375,15 @@ export async function advanceTravel(target, reason) {
     const c = _state.checks[i];
     if (c.at > game.time.worldTime) await game.time.advance(c.at - game.time.worldTime);
     const label = checkLabel(c);
+    // Quiet when the clock bar can show the hit; with the bar off, the check posts, pauses and opens the roller as it used to.
+    let quiet = true;
+    try { quiet = game.settings.get(MODULE_ID, "clockBar") !== "off"; } catch { /* not registered: quiet */ }
     const { hit, encounter = null } = typeof check === "function"
       // Travel, not a camp's or a late Start day's check: the GM Guide's marked zone rows give a point of interest (#273).
-      ? await check({ threshold: c.chance, hex: _state.hex, scene, label, clockLabel: label, travel: reason === "move", quiet: true })
+      ? await check({ threshold: c.chance, hex: _state.hex, scene, label, clockLabel: label, travel: reason === "move", quiet })
       : { hit: false };
     let next = markCheck(_state, i, hit).state;
-    if (hit) next = setEncounter(next, { ...(encounter ?? { kind: "empty" }), at: c.at, half: c.half, chance: c.chance }).state;
+    if (hit && quiet) next = setEncounter(next, { ...(encounter ?? { kind: "empty" }), at: c.at, half: c.half, chance: c.chance }).state;
     await commit(next);
     if (hit) {
       // Something is left for Continue when there's clock to run, checks
@@ -484,6 +487,10 @@ function baseFor({ method, boatUuid }) {
  * @returns {Promise<{ok:boolean, error?:string}|null>}  null: the dialog was closed
  */
 export async function startDayFromParty() {
+  // A day is open: starting another re-rolls its checks and drops its progress, so ask first.
+  if (_state.day !== null && !(await foundry.applications.api.DialogV2.confirm({
+    window: { title: t("SDE.overland.day.title") }, content: `<p>${esc(t("SDE.overland.day.restart"))}</p>`, rejectClose: false,
+  }))) return null;
   if (baseFor(partyReading()) > 0) return startDay();
   const options = await askDay();
   return options ? startDay(options) : null;
@@ -939,7 +946,7 @@ export function applyAction(data, user) {
         if (!seconds) return { ok: true };
         // An encounter holds the clock only while travelling: after End travel
         // (or a crawl started from it) the entry waits for travel to resume.
-        if (_state.pending && CrawlState.isOverland) return { ok: false, error: t("SDE.clock.continueFirst") };
+        if ((_state.pending || _state.encounter) && CrawlState.isOverland) return { ok: false, error: t("SDE.clock.continueFirst") };
         if (CrawlState.isOverland && seconds > 0) {
           // A calendar jump puts the lights out first (off duty), once nothing holds the clock.
           if (data.calendar === true && !(await game.shadowdarkEnhancer.time.advanceOffDuty(0, { reason: "calendar" }))?.ok) return { ok: false };
@@ -984,7 +991,7 @@ export function applyAction(data, user) {
       case "camp": {
         if (!user.isGM) return { ok: false, error: t("SDE.overland.notify.dayGmOnly") };
         if (!CrawlState.isOverland) return { ok: false, error: t("SDE.overland.notify.notTravelling") };
-        if (_state.pending) return { ok: false, error: t("SDE.overland.notify.pending") };
+        if (_state.pending || _state.encounter) return { ok: false, error: t("SDE.overland.notify.pending") };
         // Q8: carried lights go out and keep their time, through the off-duty
         // move with no clock of its own (a refusal there warns, and camp goes on).
         await advanceOffDuty(0, { reason: "camp" });

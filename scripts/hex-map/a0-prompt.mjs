@@ -15,7 +15,7 @@ const t = (key) => game.i18n.localize(key);
 
 /** Offer it on each scene drawn. Call at ready. */
 export function registerA0Prompt() {
-  Hooks.on("canvasReady", async (c) => {
+  const ask = async (c) => {
     const scene = c?.scene;
     const tex = c?.primary?.background?.texture;
     // Cheap checks first: only the active GM asks, only on the print, only once.
@@ -30,5 +30,8 @@ export function registerA0Prompt() {
       rejectClose: false,
     });
     if (yes && canvas.scene === scene) await (await import("./hex-tagger-app.mjs")).HexTaggerApp.makePlayable();
-  });
+  };
+  Hooks.on("canvasReady", ask);
+  // Registered at ready, after the world's first scene is already drawn.
+  if (canvas?.ready) ask(canvas);
 }

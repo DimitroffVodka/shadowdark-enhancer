@@ -279,6 +279,9 @@ test("the standing pace: today's too until the party moves or forages, the next 
   const pushNow = setPace(day, "push");
   assert.equal(pushNow.today, true);
   assert.deepEqual([pushNow.state.pace, pushNow.state.pushed, pushNow.state.budget], ["push", true, 6]);
+  const withChecks = openDay(defaultOverlandState(), { now: 0, method: "walking", pushed: false, base: 4,
+    checks: [{ half: "day", at: 1, chance: 1, rolled: true, hit: false }, { half: "day", at: 2, chance: 1, rolled: false, hit: null }] }).state;
+  assert.deepEqual(setPace(withChecks, "push").state.checks.map((c) => c.chance), [1, 2], "the unrolled check is 2 in 6 now; a rolled one keeps its chance");
   const back = setPace(pushNow.state, "normal");
   assert.deepEqual([back.today, back.state.pushed, back.state.budget], [true, false, 4]);
   const moved = setPace({ ...day, spent: 1 }, "push");
@@ -308,6 +311,7 @@ test("a quiet check's encounter is held as plain data until Continue or a new da
   assert.deepEqual(normalizeOverlandState(state), state, "normalizing is idempotent");
   assert.equal(normalizeOverlandState({ encounter: { kind: "monster" } }).encounter, null, "no hour, no encounter");
   assert.equal(normalizeOverlandState({ encounter: { at: 1, kind: "dragon", chain: "x" } }).encounter.kind, "empty");
+  assert.equal(moveVerdict({ ...state, budget: 5 }, { cost: 1, blocked: null }), "pending", "a held encounter stops the party until Continue");
   assert.equal(setEncounter(state, null).state.encounter, null);
   assert.equal(closeDay(state).state.encounter, null);
   assert.equal(openDay(state, { now: 0, method: "walking", pushed: false, base: 4 }).state.encounter, null);
