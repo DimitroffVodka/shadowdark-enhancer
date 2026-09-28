@@ -12,7 +12,36 @@ import { partyHex, tableForCheck } from "./encounter-terrain.mjs";
 // works but emits deprecation warnings).
 const { renderTemplate } = foundry.applications.handlebars;
 
+/**
+ * The zone table the last check resolved when it was a travel check that hit:
+ * that table's next draw is the travel draw, where the GM Guide's marked rows
+ * give a point of interest (#273). Each check replaces it. It lives on the
+ * client that ran the check, so after a reload, or on another GM's client, that
+ * table draws as usual.
+ */
+let travelTableUuid = null;
+
+/**
+ * One spelling per table: tableForCheck can name a pack table the short way
+ * ("Compendium.<pack>.<id>"), while the roller holds its document's uuid
+ * ("Compendium.<pack>.RollTable.<id>").
+ */
+const canonicalUuid = (uuid) => (uuid ? (foundry.utils.parseUuid(uuid)?.uuid ?? uuid) : null);
+
 export const EncounterCheck = {
+
+  /**
+   * Whether this draw of `uuid` is the travel draw. True once, for the table
+   * the last check resolved on a travel hit: the auto-roll's draw, or with
+   * auto-roll off the GM's next Roll of that table.
+   * @param {string} uuid  the table being drawn
+   * @returns {boolean}
+   */
+  takeTravelDraw(uuid) {
+    if (!uuid || (canonicalUuid(uuid) !== travelTableUuid)) return false;
+    travelTableUuid = null;
+    return true;
+  },
 
   /**
    * Perform one encounter check (1d6 vs threshold).
@@ -20,12 +49,15 @@ export const EncounterCheck = {
    * Overland's travel checks (#232) pass their own chance, the travel hex
    * (with its region as the zone) and its scene, a label for the card and the
    * recap's clock label. The scene decides the table's north or south half
-   * whatever map the GM is viewing. With no options this is exactly the
-   * crawl's check.
-   * @param {{threshold?:number, hex?:object|null, scene?:Scene|null, label?:string, clockLabel?:string}} [options]
+   * whatever map the GM is viewing. `travel` says the party is travelling
+   * (Overland's "move" checks, not a camp's): a hit's zone draw then gives a
+   * point of interest on the rows the book marks for it (#273). With no options
+   * this is exactly the crawl's check.
+   * @param {{threshold?:number, hex?:object|null, scene?:Scene|null, label?:string, clockLabel?:string,
+   *   travel?:boolean}} [options]
    * @returns {Promise<{total: number, hit: boolean}>}
    */
-  async check({ threshold: chance, hex: travelHex, scene = null, label = "", clockLabel } = {}) {
+  async check({ threshold: chance, hex: travelHex, scene = null, label = "", clockLabel, travel = false } = {}) {
     const threshold = Number.isInteger(chance) ? chance : game.settings.get(MODULE_ID, "encounterThreshold");
     const roll = await new Roll("1d6").evaluate();
     const hit = roll.total <= threshold;
@@ -36,6 +68,7 @@ export const EncounterCheck = {
     // moment of the roll, else the terrain's table, else the active one. A
     // failing lookup falls back to the terrain picker, so the card still posts.
     const table = hit ? await tableForCheck(hex, { scene: scene ?? undefined }) : null;
+    travelTableUuid = (hit && travel) ? canonicalUuid(table?.uuid) : null;
 
     await this._postToChat(roll, threshold, hit, hex, table, label);
 

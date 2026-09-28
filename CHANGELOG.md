@@ -181,6 +181,12 @@ page walks through it in order.
   names the hex and the column it rolled. A hex with no table, or a party off
   the map, falls back to the active table. `encounter.tableForHex()` gives
   other modules the same table. (#169, #197, #262)
+- **Points of interest during hex travel.** The GM Guide marks some rows of
+  each region's zone tables "Point of Interest if during hex travel". When a
+  travel check hits one of them, the roll goes to the region's *Points of
+  Interest* table instead of an encounter, and the card says so. The same row
+  on a camp's check is still the encounter it names. If the Points of
+  Interest table isn't imported, the card names it. (#273)
 
 #### Modes of Play
 

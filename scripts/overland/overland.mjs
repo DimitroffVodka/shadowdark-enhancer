@@ -366,7 +366,8 @@ export async function advanceTravel(target, reason) {
     if (c.at > game.time.worldTime) await game.time.advance(c.at - game.time.worldTime);
     const label = checkLabel(c);
     const { hit } = typeof check === "function"
-      ? await check({ threshold: c.chance, hex: _state.hex, scene, label, clockLabel: label })
+      // Travel, not a camp's or a late Start day's check: the GM Guide's marked zone rows give a point of interest (#273).
+      ? await check({ threshold: c.chance, hex: _state.hex, scene, label, clockLabel: label, travel: reason === "move" })
       : { hit: false };
     await commit(markCheck(_state, i, hit).state);
     if (hit) {

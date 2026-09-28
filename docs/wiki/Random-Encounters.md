@@ -140,6 +140,16 @@ book intends for the party's hex, ahead of your **Tables by terrain**:
   Tal-Yool's tables goes on to its Special Encounters table the same way ("…,
   then on Tal-Yool Jungle Special Encounters"). Any other row that points on
   again (*Land + Cursed*) is shown as printed, for you to follow.
+- **Points of interest while travelling.** The book footnotes some zone cells
+  "Point of Interest if during hex travel" (the import keeps the mark as a
+  trailing *1*, as in *Beast1*). When an Overland move's check hits and the
+  zone roll lands on one, the party finds a point of interest instead: the
+  roll goes to the region's *Points of Interest* table, and the card says so
+  ("Beast while travelling: a point of interest, rolled on Bastion Mountains
+  Points of Interest"). If that table isn't imported, the card names it for you
+  to import. Camp checks, Start day's checks and crawl checks roll the category
+  as usual. With auto-roll off, your next **Roll** of that table after the hit
+  is the travel roll.
 
 The chat card then names the column too — *Hex 2849 · forest, coast · Lowland
 Moor: Coast*. When no grid answers (no region, or a terrain the region does not

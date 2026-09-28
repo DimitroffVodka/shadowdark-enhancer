@@ -23,7 +23,7 @@ and Forge & Loot features.
 [`time`](#time--season-day-and-night-sun-moon-and-anchors) ·
 [`overland`](#overland--the-travel-state)
 
-**API version:** `1.20.0` (semver — additive changes bump the minor version,
+**API version:** `1.21.0` (semver — additive changes bump the minor version,
 breaking changes the major; check `apiVersion` before relying on newer keys).
 
 ## Discovery
@@ -118,6 +118,7 @@ api.linker.invalidate(); // drop both caches after bulk content changes
 ```js
 await api.encounter.check();          // run an encounter check
 await api.encounter.check({ threshold: 2, hex, scene, label, clockLabel }); // 1.17.0: the chance, hex, map and labels given
+await api.encounter.check({ hex, scene, travel: true }); // 1.21.0: the party is travelling
 api.encounter.openRoller();           // roller window
 api.encounter.setActiveTable(uuid);   // bind the active encounter table
 api.encounter.getThreshold(); api.encounter.setThreshold(3);
@@ -137,7 +138,15 @@ Since 1.17.0 it also takes:
 - `label`: shown first on the card.
 - `clockLabel`: the Session Recap's clock label.
 
-Overland's travel checks use these.
+Since 1.21.0 it also takes `travel`: the party is travelling. On a hit, the
+next draw of that check's table (the auto-roll, or the GM's next Roll of it)
+gives a point of interest on the zone rows the GM Guide marks "Point of
+Interest if during hex travel", rolled on the region's Points of Interest
+table. The next check replaces it, and it lives only on the client that ran
+the check. Default `false`.
+
+Overland's travel checks use these; its moves pass `travel: true`, its camps
+and Start day don't.
 
 ### `encounter.tableForHex(hex, { hour?, moon?, scene? })`
 
@@ -1571,7 +1580,7 @@ Added in 1.17.0 (Overland O6, #232; design §5.1 step 4, §5.3, Q4, §5.7).
 - **Rolling them.** Every Overland clock advance (a move, and later the
   night's camp) runs from now to its target. Each unrolled check whose hour
   falls inside is rolled in time order at its hour, through
-  `encounter.check({ threshold, hex, scene, label, clockLabel })` on the travel
+  `encounter.check({ threshold, hex, scene, label, clockLabel, travel })` on the travel
   hex and the travel token's scene.
   The table resolves at that hour, including the night columns and the moon,
   and a hit behaves as any encounter check: the pause setting, the roller, and
@@ -1742,6 +1751,7 @@ scene's choice changes, and once on load.
 - `1.19.0` adds `time.isNight`'s `{ region }`, and the sky on scenes (the
   `followsSky` scene flag).
 - `1.20.0` adds `overland.startDay`'s `hexes`.
+- `1.21.0` adds `encounter.check`'s `travel`.
 - `1.4.0` adds the shared `forgeLoot.open()` preview shell. Generator rules and
   document writes remain behind the later NPC/Rival adapter implementations.
   The version policy is additive: new namespaces bump the minor version; breaking

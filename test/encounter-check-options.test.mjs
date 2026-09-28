@@ -1,7 +1,7 @@
 // encounter.check's options (#232): Overland's travel checks pass their own
 // chance, the travel hex, a label for the card and one for the recap. With no
-// options it stays the crawl's check. Only misses are rolled here, so no
-// table lookup or roller runs.
+// options it stays the crawl's check. A hit resolves the active table (no
+// hex, no region) and opens a stub roller.
 import test from "node:test";
 import assert from "node:assert/strict";
 
@@ -11,9 +11,11 @@ const deep = new Proxy(function () {}, {
   get: (t, k) => (k === Symbol.toPrimitive ? () => "" : k === "prototype" ? {} : k === "renderTemplate" ? renderTemplate : deep),
   construct: () => deep, apply: () => deep,
 });
+// A pack table's short uuid gains its document type, as v14's parseUuid does.
+const parseUuid = (uuid) => ({ uuid: uuid.replace(/^(Compendium\.[^.]+\.[^.]+)\.(?!RollTable\.)/, "$1.RollTable.") });
 const dice = [];
 Object.assign(globalThis, {
-  foundry: deep, CONFIG: {}, CONST: { DICE_ROLL_MODES: { PRIVATE: "gmroll", PUBLIC: "publicroll" } },
+  foundry: new Proxy(deep, { get: (t, k) => (k === "utils" ? new Proxy({ parseUuid }, { get: (u, n) => u[n] ?? deep }) : deep[k]) }), CONFIG: {}, CONST: { DICE_ROLL_MODES: { PRIVATE: "gmroll", PUBLIC: "publicroll" } },
   Hooks: { on() {}, once() {}, callAll() {} }, ui: { notifications: { warn() {} } }, canvas: null,
   ChatMessage: { getWhisperRecipients: () => [] },
   Roll: class {
@@ -22,7 +24,11 @@ Object.assign(globalThis, {
     async toMessage() { return null; }
   },
   game: {
-    settings: { get: (ns, key) => ({ encounterThreshold: 3, encounterRollGMOnly: false })[key] ?? null, set: async () => {} },
+    settings: {
+      get: (ns, key) => ({ encounterThreshold: 3, encounterRollGMOnly: false, encounterTableUuid: "Compendium.sde.tables.abc" })[key] ?? null,
+      set: async () => {},
+    },
+    shadowdarkEnhancer: { encounter: { openRoller: async () => ({ rollActiveTable() {} }) } },
     i18n: { localize: (k) => k, format: (k, d) => k + JSON.stringify(d) },
     user: { id: "gm", isGM: true }, users: {}, socket: { on() {}, emit() {} },
   },
@@ -52,4 +58,23 @@ test("a travel check rolls against its own chance, on the travel hex, with its l
   assert.equal(cards[0].where, 'Night check, 21:00 · SDE.encounter.check.hex{"num":3139} · mountain');
   assert.equal(logged[0].clockLabel, "Night check, 21:00");
   assert.equal(logged[0].threshold, 1);
+});
+
+test("a travel hit makes its table's next draw the travel draw, once; the next check replaces it (#273)", async () => {
+  const long = "Compendium.sde.tables.RollTable.abc";   // the drawn table's uuid; the check resolved the short one
+  dice.push(1);
+  assert.equal((await EncounterCheck.check({ travel: true })).hit, true);
+  assert.equal(EncounterCheck.takeTravelDraw("RollTable.other"), false, "another table's draw");
+  assert.equal(EncounterCheck.takeTravelDraw(long), true, "still armed for its own table");
+  assert.equal(EncounterCheck.takeTravelDraw(long), false, "once");
+
+  dice.push(1, 5);                                      // a travel hit, then a travel miss
+  await EncounterCheck.check({ travel: true });
+  await EncounterCheck.check({ travel: true });
+  assert.equal(EncounterCheck.takeTravelDraw(long), false, "a miss replaces it");
+
+  dice.push(1, 1);                                      // a travel hit, then a camp or crawl hit
+  await EncounterCheck.check({ travel: true });
+  await EncounterCheck.check();
+  assert.equal(EncounterCheck.takeTravelDraw(long), false, "a check without travel replaces it");
 });

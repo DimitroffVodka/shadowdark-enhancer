@@ -22,8 +22,11 @@ import {
 } from "../shared/art-utils.mjs";
 import { MonsterCreator } from "../monster-creator/encounter-creator.mjs";
 import { findSuitePack } from "../shared/compendium-suite.mjs";
-import { categoryTables, isEncounterZoneTable, zoneCategories } from "../importer/tables/table-enrich.mjs";
+import {
+  categoryTables, isEncounterZoneTable, travelPointOfInterest, zoneCategories,
+} from "../importer/tables/table-enrich.mjs";
 import { isNight, worldClock } from "./encounter-terrain.mjs";
+import { EncounterCheck } from "./encounter-check.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 // v13/v14 namespaced renderTemplate (the global emits deprecation warnings).
@@ -751,6 +754,7 @@ export class EncounterRollerApp extends HandlebarsApplicationMixin(ApplicationV2
 
     const draw = await table.draw({ displayChat: false });
     const result = draw.results[0];
+    const travel = EncounterCheck.takeTravelDraw(table.uuid);
 
     if (!result) {
       this._lastResult = { kind: "empty" };
@@ -759,12 +763,46 @@ export class EncounterRollerApp extends HandlebarsApplicationMixin(ApplicationV2
     }
 
     // A zone table only names a category: roll the region's table for it (#262).
+    // On the travel draw, a row the book marks is a point of interest instead (#273).
     // If that fails, the zone's own row still shows.
-    const chained = await this._rollCategory(table, result).catch((err) => {
+    const chained = await this._rollZoneRow(table, result, { travel }).catch((err) => {
       console.warn(`${MODULE_ID} | rolling the category's table failed`, err);
       return null;
     });
+    // A point of interest is found instead of an encounter: its row's text, even
+    // where it names a creature, never an encounter card with counts and reactions.
+    if (chained?.poi) {
+      this._lastResult = { kind: "flavor", text: chained.missing ?? _resultBody(chained.result).trim(), via: chained.via ?? null };
+      this.render();
+      return;
+    }
     await this._buildResultFrom(chained?.result ?? result, { via: chained?.via ?? null });
+  }
+
+  /**
+   * What a zone table's row goes on to. On the travel draw, a row the GM Guide
+   * marks "Point of Interest if during hex travel" rolls the region's Points of
+   * Interest table, and when that isn't imported the card says which table to
+   * import: the book gives no encounter there (#273). Every other row, and every
+   * other draw, rolls its category (_rollCategory).
+   * @private
+   */
+  async _rollZoneRow(table, result, { travel = false } = {}) {
+    if (!isEncounterZoneTable(table?.name)) return null;
+    const pack = table.pack ? game.packs.get(table.pack) : null;
+    const names = pack ? [...(pack.index ?? [])].map((e) => e.name) : game.tables.map((t) => t.name);
+    const row = _resultBody(result).replace(/<[^>]*>/g, "");
+    const poi = travelPointOfInterest(table.name, row, names, { travel });
+    if (!poi) return this._rollCategory(table, result);
+    const category = zoneCategories(row).join(" + ");
+    const missing = { poi: true, missing: game.i18n.format("SDE.encounter.roller.poiMissing", { category, table: poi.name }) };
+    if (!poi.found) return missing;
+    const doc = pack
+      ? await pack.getDocument(pack.index.find((e) => e.name === poi.found)?._id)
+      : game.tables.getName(poi.found);
+    const drawn = doc ? (await doc.draw({ displayChat: false })).results[0] : null;
+    if (!drawn) return missing;
+    return { poi: true, result: drawn, via: game.i18n.format("SDE.encounter.roller.viaPoi", { category, table: poi.name }) };
   }
 
   /**

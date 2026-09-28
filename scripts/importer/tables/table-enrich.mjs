@@ -102,6 +102,46 @@ export function zoneCategories(resultText) {
 }
 
 /**
+ * True for a zone row the GM Guide marks "Point of Interest if during hex
+ * travel": the ¹ footnote, which the import keeps as a trailing "1" or "¹"
+ * ("Beast1"). † and * are other footnotes. The marked rows come from the
+ * import, so no region or row is listed here (#273). Pure.
+ * @param {string} resultText  one row's text
+ * @returns {boolean}
+ */
+export function isPointOfInterestRow(resultText) {
+  return String(resultText ?? "").split(/\s*\+\s*/)
+    .some((part) => /[1¹]/.test(part.trim().match(FOOTNOTE_MARKER)?.[0] ?? ""));
+}
+
+/**
+ * What a zone table's row rolls when the draw is the one a travel check made
+ * (#273): on a marked row, the region's "<region> Points of Interest" table in
+ * place of the category's, found the way categoryTables finds names. `found` is
+ * the name as `available` holds it, or null when that table isn't imported;
+ * `name` is the one to show either way. Null when the row goes on to its
+ * category as usual: not a travel draw, not a zone table, or not a marked row.
+ * Pure.
+ *
+ * @param {string} zoneName            the zone table's name
+ * @param {string} resultText          the row it gave
+ * @param {Iterable<string>} available table names that exist
+ * @param {{travel?:boolean}} [opts]
+ * @returns {{name:string, found:string|null}|null}
+ */
+export function travelPointOfInterest(zoneName, resultText, available, { travel = false } = {}) {
+  const name = String(zoneName ?? "");
+  if (!travel || !isEncounterZoneTable(name) || !isPointOfInterestRow(resultText)) return null;
+  const base = name.replace(/\s*Encounter (?:Zone|Type).*$/, "").trim();
+  if (!base) return null;
+  const wanted = `${base} Points of Interest`;
+  const unprefixed = wanted.replace(/^.*?\s-\s/, "");
+  const have = new Map([...available].map((n) => [n.toLowerCase(), n]));
+  const hit = [wanted, unprefixed].find((n) => have.has(n.toLowerCase()));
+  return { name: unprefixed, found: hit ? have.get(hit.toLowerCase()) : null };
+}
+
+/**
  * The category tables an encounter check rolls after a zone table's row, as the
  * GM actually has them (#262). encounterZoneTargets names "<region> Encounters:
  * <category>"; Tal-Yool Jungle splits that table by the time of day ("<region>
