@@ -1,0 +1,106 @@
+// The Warband sheet's writes (#283, #286 reviews): one at a time, and the attacks always follow the stored upgrades.
+import test from "node:test";
+import assert from "node:assert/strict";
+import { buildWarbandNpcSheet } from "../scripts/actors/warband-npc-sheet.mjs";
+
+const TYPE = "shadowdark-enhancer.warband";
+const MOD = "shadowdark-enhancer";
+const later = () => new Promise((resolve) => setImmediate(resolve));
+const hooks = new Map();
+globalThis.Hooks = { on: (name, fn) => hooks.set(name, fn), once() {}, callAll() {} };
+globalThis._replace = (value) => ({ __replace: value });
+globalThis.ui = { notifications: { warn() {}, error() {}, info() {} } };
+const actors = [];
+globalThis.game = {
+  actors, user: { id: "gm" }, i18n: { format: (k) => k, localize: (k) => k }, time: { worldTime: 0, calendar: null },
+  settings: { register() {}, get: () => ({}) },
+};
+const pc = { uuid: "Actor.pc", name: "Pc", type: "Player", system: { getClass: async () => ({ system: { hitPoints: "1d6" } }) } };
+globalThis.fromUuid = async (uuid) => (uuid === pc.uuid ? pc : null);
+
+const setPath = (obj, path, value) => {
+  const keys = path.split(".");
+  const last = keys.pop();
+  for (const k of keys) obj = obj[k] ??= {};
+  obj[last] = value;
+};
+function attack(id, attackBonus) {
+  return { id, type: "NPC Attack", flags: {}, _source: { system: { bonuses: { attackBonus }, damage: { value: "3d6" } } },
+    getFlag(scope, key) { return this.flags[scope]?.[key]; } };
+}
+function warband(id, flag, items = []) {
+  const a = {
+    id, type: TYPE, items, flags: { [MOD]: { warband: flag } }, failItems: 0,
+    _source: { system: { attributes: { ac: { value: 13 }, hp: { value: 20, max: 20 } } } },
+    getFlag: (scope, key) => a.flags[scope]?.[key],
+    // Each write lands a moment later, as a real update does.
+    update: async (data) => {
+      await later();
+      for (const [k, v] of Object.entries(data)) {
+        if (k.startsWith("flags.")) a.flags[MOD][k.split(".").pop()] = v.__replace;
+        else setPath(a._source, k, v);
+      }
+    },
+    updateEmbeddedDocuments: async (_type, updates) => {
+      await later();
+      if (a.failItems-- > 0) throw new Error("write failed");
+      for (const { _id, ...changes } of updates) {
+        const item = a.items.find((i) => i.id === _id);
+        for (const [k, v] of Object.entries(changes)) {
+          if (k.startsWith("flags.")) setPath(item.flags, k.slice("flags.".length), v);
+          else setPath(item._source, k, v);
+        }
+      }
+    },
+  };
+  actors.push(a);
+  return a;
+}
+const Sheet = buildWarbandNpcSheet(class { activateListeners() {} }, TYPE);
+const sheetOf = (actor) => Object.defineProperty(Object.create(Sheet.prototype), "actor", { value: actor });
+const bonus = (item) => item._source.system.bonuses.attackBonus;
+
+test("two quick ticks on one warband both stay", async () => {
+  actors.length = 0;
+  const a = warband("a", { commander: null, upgrades: [] });
+  const sheet = sheetOf(a);
+  assert.deepEqual(await Promise.all([sheet._toggleUpgrade("fast", true), sheet._toggleUpgrade("tough", true)]), [true, true]);
+  assert.deepEqual(a.flags[MOD].warband.upgrades, ["fast", "tough"]);
+});
+
+test("two warbands can't both take a commander's last upgrade slot", async () => {
+  actors.length = 0;
+  // A d6 commander has 3 upgrades in all: 2 are taken, so one slot is left.
+  const a = warband("a", { commander: pc.uuid, upgrades: ["fast"] });
+  const b = warband("b", { commander: pc.uuid, upgrades: ["tough"] });
+  const replies = await Promise.all([sheetOf(a)._toggleUpgrade("scout", true), sheetOf(b)._toggleUpgrade("hardy", true)]);
+  assert.deepEqual(replies, [true, false]);
+  assert.equal(a.flags[MOD].warband.upgrades.length + b.flags[MOD].warband.upgrades.length, 3);
+});
+
+test("a failed attack write is put right by ticking again: Training's +1 lands once (#286 review)", async () => {
+  actors.length = 0;
+  const spear = attack("spear", 3);
+  const a = warband("a", { commander: null, upgrades: [] }, [spear]);
+  a.failItems = 1;
+  await assert.rejects(sheetOf(a)._toggleUpgrade("training", true), /write failed/);
+  assert.deepEqual([a.flags[MOD].warband.upgrades, bonus(spear)], [["training"], 3], "ticked, the attack not yet raised");
+  assert.equal(await sheetOf(a)._toggleUpgrade("training", true), true, "ticking it again isn't refused");
+  assert.equal(bonus(spear), 4);
+  assert.equal(await sheetOf(a)._toggleUpgrade("training", true), true);
+  assert.equal(bonus(spear), 4, "and never twice");
+  await sheetOf(a)._toggleUpgrade("training", false);
+  assert.equal(bonus(spear), 3);
+});
+
+test("an attack added after Training is ticked takes it (#286 review)", async () => {
+  actors.length = 0;
+  const { registerWarbandUpgrades } = await import("../scripts/actors/warband-upgrades.mjs");
+  registerWarbandUpgrades();
+  const a = warband("a", { commander: null, upgrades: ["training"] });
+  const axe = attack("axe", 2);
+  a.items.push(axe);
+  hooks.get("createItem")({ ...axe, parent: a }, {}, "gm");
+  await sheetOf(a)._toggleUpgrade("fast", true);        // queued behind the new attack's pass
+  assert.equal(bonus(axe), 3);
+});

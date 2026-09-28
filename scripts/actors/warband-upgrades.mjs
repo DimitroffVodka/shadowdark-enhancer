@@ -13,11 +13,23 @@
  */
 
 import { MODULE_ID } from "../shared/module-id.mjs";
-import { UPGRADES, upgradeActorChanges, upgradeAttackChanges, parseUpgradeLines } from "./warband-core.mjs";
+import { makeQueue } from "../quests/quest-core.mjs";
+import { UPGRADES, cleanUpgrades, upgradeActorChanges, upgradeAttackChanges, parseUpgradeLines } from "./warband-core.mjs";
 
 export const UPGRADE_TEXT_SETTING = "warbandUpgradeText";
 const ATTACK_FLAG = "warbandUpgrade";
 const ATTACK_TYPES = new Set(["NPC Attack", "NPC Special Attack"]);
+/** The upgrades that change attacks. */
+const ATTACK_UPGRADES = ["training", "weaponsUpgrade"];
+
+/**
+ * Every warband write on this client, one at a time (#283, #286 reviews):
+ * each re-reads its warband, the shared allowance and the attacks' marks when
+ * its turn comes, so quick ticks, two warbands, and an attack added in between
+ * can't part them.
+ */
+// ponytail: one client's queue; two GMs writing one warband at the same instant can still race.
+export const warbandWrites = makeQueue();
 
 const t = (key, data) => (data ? game.i18n.format(key, data) : game.i18n.localize(key));
 
@@ -88,8 +100,24 @@ export function upgradeWrites(actor, key, on) {
   return { extra, attacks };
 }
 
-/** The setting. Must run in `init`. */
+/**
+ * Bring every attack in line with the ticked upgrades, by each attack's marks
+ * (#286 review): a write that failed part way, or an attack added after the
+ * tick, is put right by the next pass. Changes nothing when all is in line.
+ */
+export async function syncAttacks(actor, upgrades) {
+  for (const key of ATTACK_UPGRADES) await upgradeWrites(actor, key, upgrades.includes(key)).attacks();
+}
+
+/** The setting, and new attacks taking the upgrades. Must run in `init`. */
 export function registerWarbandUpgrades() {
+  // An attack added to a warband takes the upgrades already ticked (#286 review).
+  Hooks.on("createItem", (item, _options, userId) => {
+    const actor = item.parent;
+    if (userId !== game.user.id || actor?.type !== `${MODULE_ID}.warband` || !ATTACK_TYPES.has(item.type)) return;
+    warbandWrites(() => syncAttacks(actor, cleanUpgrades(actor.getFlag(MODULE_ID, "warband")?.upgrades)))
+      .catch((err) => console.error(`${MODULE_ID} | warband attack upgrades`, err));
+  });
   game.settings.register(MODULE_ID, UPGRADE_TEXT_SETTING, {
     scope: "world", config: false, type: Object, default: {},
     // Every open warband sheet shows the new hovers.

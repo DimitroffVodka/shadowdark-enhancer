@@ -79,6 +79,17 @@ export function warbandStats({ level, conMod }) {
 /** A warband's HP: 8 per level plus CON, fixed, never rolled (PGWR p.248). */
 export const warbandHp = (level, conMod) => Math.max(1, 8 * (Number(level) || 0) + (Number(conMod) || 0));
 
+/**
+ * A warband's HP when the system rolls it (the sheet's HP dice, or a token
+ * placed with Shadowdark's roll-on-placement): the max is the fixed HP, and
+ * the current HP stays where it was, clamped to it, so placing a linked token
+ * never heals the unit. One never given HP (max 0) starts full.
+ */
+export function warbandRolledHp({ level, conMod, value, max, extra = 0 }) {
+  const hp = warbandHp(level, conMod) + (Number(extra) || 0);   // extra: Tough's 15 (toughHp)
+  return { max: hp, value: Number(max) > 0 ? Math.min(Math.max(0, Number(value) || 0), hp) : hp };
+}
+
 /** One attack's numbers as a warband's: `damage` is null for a special attack, which has none. */
 export function warbandAttack({ attackBonus = 0, damage = null }, gained) {
   return { num: 1, attackBonus: Math.max(0, (Number(attackBonus) || 0) + gained), damage: damage === null ? null : tripleDice(damage) };

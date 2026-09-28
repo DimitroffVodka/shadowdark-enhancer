@@ -2755,6 +2755,7 @@
   "SDE.warband.notify.tooManyWarbands": "{name} already commands {max} warbands, the most their hit die allows.",
   "SDE.warband.notify.tooManyUpgrades": "{name}'s warbands can have {max} upgrades between them, and that would be more.",
   "SDE.warband.notify.tooManyUpgradesNoAllowance": "Without a commander whose hit die can be read, a warband can have at most {max} upgrades.",
+  "SDE.warband.notify.upgradeFailed": "Not everything the upgrade changes was saved; the console has the error. Untick and tick it again to retry.",
   "SDE.warband.notify.duplicate": "This warband already has that upgrade.",
   "SDE.warband.notify.unknownUpgrade": "That isn't a warband upgrade.",
   "SDE.warband.notify.noHitDie": "{name}'s class has no hit die the module can read, so their warband allowance isn't checked.",

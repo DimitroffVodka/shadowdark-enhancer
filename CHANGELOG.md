@@ -369,7 +369,10 @@ page walks through it in order.
   6/4), the 18 upgrades once each, and the commander's CHA for morale.
   **Make a Warband** on a level 1–5 NPC's sheet makes one from a copy: level
   doubled, 8 HP a level plus CON, one attack a round, +1 attack a level
-  gained, damage dice tripled. See *Warbands*. (#200, #202)
+  gained, damage dice tripled. Its HP is fixed: placing one of its tokens,
+  with Shadowdark's HP roll on placement on, sets the max but never heals it.
+  Quick upgrade ticks all stick, and two warbands can't both take their
+  commander's last slot. See *Warbands*. (#200, #202)
 - **Warband upkeep and healing on the world clock.** Each month start takes
   10 gp a level per warband from its commander's coins, in one card; a
   commander who can't pay leaves it in arrears, and each week after it checks
@@ -384,14 +387,17 @@ page walks through it in order.
   failure rolls a rout, 3-in-6 (Withdraw 1-in-6), and a rout destroys it:
   no more upkeep, healing, or place in the commander's allowance, until
   Return to Service. With its commander dead it rolls and takes its own
-  turn. Its attack cards note the area it fills. (#203)
+  turn. Its attack cards note the area it fills; splitting its damage is the
+  GM's. A warband still retraining its upgrades can't attack. (#203)
 - **The book's warbands and what upgrades do.** Importer Hub → Manage →
   Monsters → **Warbands** imports the Player's Guide's eight stock warbands
   from your PDF as warband units, with their talents, in a Warbands folder.
   Armor Upgrade (+1 AC), Tough (+15 HP), Training (+1 to attacks) and Weapons
   Upgrade (one more damage die) change the sheet when ticked and change back
   when unticked. Each upgrade shows its book text on hover, read once from
-  the PDF. (#201)
+  the PDF. An attack added later takes the upgrades already ticked, and if an
+  attack's change fails to save, the next tick puts it right. An NPC with a
+  stock warband's name doesn't stop that warband's import. (#201)
 - **Encounter check frequency.** Right-click the Crawl Bar's **Encounter**
   button: **Check Frequency** runs from **1** (every crawl round, the default)
   to **10**. The count runs from the last check, automatic or manual, so a

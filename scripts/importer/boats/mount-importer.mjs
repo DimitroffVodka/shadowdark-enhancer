@@ -18,6 +18,7 @@ import {
 } from "../monsters/monster-importer.mjs";
 import { draftToActorData } from "../../monster-creator/encounter-creator.mjs";
 import { cleanImportHtml } from "../../shared/compendium-suite.mjs";
+import { alreadyImported } from "./mount-parser.mjs";
 
 /** Stable top-level folder for every imported Mount Actor. */
 export const MOUNT_FOLDER_NAME = "Mounts";
@@ -138,10 +139,8 @@ export const MountImporter = {
           if (it.system?.description) it.system.description = cleanImportHtml(it.system.description);
         }
 
-        const index = await pack.getIndex();
-        const existing = [...index].find(
-          (e) => (e.name ?? "").toLowerCase() === actorData.name.toLowerCase()
-        );
+        const index = await pack.getIndex({ fields: ["type"] });
+        const existing = [...index].find((e) => alreadyImported(e, actorData, kind));
         if (existing) {
           report.skipped.push(actorData.name);
           continue;

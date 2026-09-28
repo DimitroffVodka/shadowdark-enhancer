@@ -21,7 +21,7 @@ import { format as formatTime } from "../time/time.mjs";
 import {
   UPGRADES, MOST_UPGRADES, allowanceFor, cleanUpgrades, commandRefusal, upgradeRefusal, upkeepGp,
 } from "./warband-core.mjs";
-import { upgradeText, upgradeWrites, readUpgradeText } from "./warband-upgrades.mjs";
+import { upgradeText, upgradeWrites, readUpgradeText, syncAttacks, warbandWrites } from "./warband-upgrades.mjs";
 
 export const WARBAND_FLAG = "warband";
 
@@ -133,7 +133,8 @@ export function buildWarbandNpcSheet(BaseNpcSheet, type) {
         el.addEventListener("click", () => this._openCommander()));
       root.querySelectorAll("[data-sde-action='clear-commander']").forEach((el) =>
         el.addEventListener("click", () => this._setCommander(null)));
-      // #204: the GM's upkeep controls. Loaded when clicked: the upkeep module isn't needed to draw the sheet.
+      // #204: the GM's upkeep controls. A dynamic import because warband-upkeep.mjs imports this module:
+      // a static one both ways would be a cycle, and the module is already loaded at startup anyway.
       const upkeep = (fn) => import("./warband-upkeep.mjs").then(({ WarbandUpkeep }) => fn(WarbandUpkeep))
         .catch((err) => console.error(`${MODULE_ID} | warband upkeep`, err));
       root.querySelectorAll("input[data-sde-leading]").forEach((el) => el.addEventListener("change", (ev) => {
@@ -154,7 +155,14 @@ export function buildWarbandNpcSheet(BaseNpcSheet, type) {
       // allowance and written whole, and a refused one is put back.
       root.querySelectorAll("input[data-sde-upgrade]").forEach((el) => el.addEventListener("change", (ev) => {
         ev.stopPropagation();
-        this._toggleUpgrade(el.dataset.sdeUpgrade, el.checked).then((ok) => { if (!ok) el.checked = !el.checked; });
+        this._toggleUpgrade(el.dataset.sdeUpgrade, el.checked)
+          .then((ok) => { if (!ok) el.checked = !el.checked; })
+          .catch((err) => {
+            console.error(`${MODULE_ID} | warband upgrade`, err);
+            ui.notifications?.error(game.i18n.localize("SDE.warband.notify.upgradeFailed"));
+            // Show what was stored, which may be the tick without all of its numbers.
+            this.render(false);
+          });
       }));
       super.activateListeners(html);
     }
@@ -179,7 +187,11 @@ export function buildWarbandNpcSheet(BaseNpcSheet, type) {
     }
 
     /** Give the warband to a commander (or none), if the allowance holds. */
-    async _setCommander(pc) {
+    _setCommander(pc) {
+      return warbandWrites(() => this._writeCommander(pc));
+    }
+
+    async _writeCommander(pc) {
       const state = warbandState(this.actor);
       if (pc) {
         const allowance = allowanceFor(await commanderTier(pc));
@@ -199,18 +211,20 @@ export function buildWarbandNpcSheet(BaseNpcSheet, type) {
     /**
      * Tick or untick one upgrade; refused (with a message) over the allowance
      * or twice. Its numbers go on or off in the same update (#201). One at a
-     * time: each reads the list and the stored numbers only after the last
-     * one's writes have landed, so two quick clicks can't part them.
+     * time, on the client's warband queue: each reads the list, the allowance
+     * and the stored numbers only after the last one's writes have landed.
      */
     _toggleUpgrade(key, on) {
-      const run = (this._upgradeChain ?? Promise.resolve()).then(() => this._toggleUpgradeNow(key, on));
-      this._upgradeChain = run.catch(() => false);
-      return run;
+      return warbandWrites(() => this._writeUpgrade(key, on));
     }
 
-    async _toggleUpgradeNow(key, on) {
+    async _writeUpgrade(key, on) {
       const state = warbandState(this.actor);
-      if (on === state.upgrades.includes(key)) return true;
+      // Already so (a box drawn stale, or a write that failed part way): only the attacks are put in line.
+      if (on === state.upgrades.includes(key)) {
+        await syncAttacks(this.actor, state.upgrades);
+        return true;
+      }
       if (on) {
         const pc = state.commander ? await fromUuid(state.commander).catch(() => null) : null;
         const allowance = pc ? allowanceFor(await commanderTier(pc)) : null;
@@ -224,10 +238,13 @@ export function buildWarbandNpcSheet(BaseNpcSheet, type) {
       }
       const upgrades = on ? cleanUpgrades([...state.upgrades, key]) : state.upgrades.filter((k) => k !== key);
       // A warband in service retrains for a week after its upgrades change, and can't fight until then (#204).
-      const retrainingUntil = state.commander ? game.time.worldTime + 7 * secondsPerDay(game.time.calendar) : state.retrainingUntil;
-      const { extra, attacks } = upgradeWrites(this.actor, key, on);
+      // A week of the calendar's own, as the arrears weeks count it (warband-upkeep.mjs).
+      const week = game.time.calendar?.days?.values?.length || 7;
+      const retrainingUntil = state.commander ? game.time.worldTime + week * secondsPerDay(game.time.calendar) : state.retrainingUntil;
+      const { extra } = upgradeWrites(this.actor, key, on);
       await replaceModuleFlag(this.actor, WARBAND_FLAG, { ...state, upgrades, retrainingUntil }, extra);
-      await attacks();
+      // The attacks follow the list as stored; if this fails, the next pass puts them right.
+      await syncAttacks(this.actor, upgrades);
       return true;
     }
   };

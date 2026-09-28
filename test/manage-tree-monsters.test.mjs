@@ -122,3 +122,11 @@ test("a mount unlock keeps only its selected draft from the full WR spread", () 
   );
   assert.deepEqual(selectMountDrafts(parsed, "Missing Mount"), []);
 });
+
+test("a stock warband is present only as a warband: an NPC of the same name doesn't count (#286 review)", () => {
+  const rows = [{ label: "CORE", missingNames: [] }];
+  const rabble = (actors) => _testBuildMonsters(rows, actors).children
+    .find((node) => node.id === "monsters/warbands").entries.find((entry) => entry.name === "Rabble");
+  assert.equal(rabble([{ name: "Rabble", source: "Custom", type: "NPC" }]).present, false);
+  assert.equal(rabble([{ name: "Rabble", source: "Western Reaches", type: "shadowdark-enhancer.warband" }]).present, true);
+});

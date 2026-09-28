@@ -27,6 +27,8 @@
  * re-renders, in both worlds.
  */
 
+import { MODULE_ID } from "../shared/module-id.mjs";
+
 /**
  * The plain shape these helpers operate on. `combatantEntry` builds one from a
  * Combatant, but any object with these four fields works (that is the point —
@@ -70,8 +72,8 @@ export function combatantEntry(combatant) {
   };
 }
 
-/** The Warbands' unit type (register-actors.mjs WARBAND_TYPE), kept here so this file stays Foundry-free. */
-const WARBAND_TYPE = "shadowdark-enhancer.warband";
+/** The Warbands' unit type, as register-actors.mjs names it from the package id: this file stays Foundry-free. */
+const WARBAND_TYPE = `${MODULE_ID}.warband`;
 
 /**
  * The combatant of a warband's commander in the same combat, or null: a

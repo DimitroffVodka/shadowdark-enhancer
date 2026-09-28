@@ -1,7 +1,7 @@
 # Shadowdark Enhancer — File Inventory
 
 <!-- inventory:stats:start -->
-1064 tracked files · ~188,400 lines of code/markup across scripts+templates+styles+test.
+1066 tracked files · ~188,700 lines of code/markup across scripts+templates+styles+test.
 `v0.17.3` in both `module.json` and `package.json`.
 <!-- inventory:stats:end -->
 **Layout reflects the 2026-07-21 feature-folder reorganization (v0.11.0 cycle).**
@@ -155,7 +155,7 @@
 | `initiative-manager.mjs` | 134 | Combat/initiative state machine glue for the strip. |
 | `hidden-sync.mjs` | 66 | Bidirectional `token.hidden` ↔ `combatant.hidden` sync, GM-only. |
 | `turn-skip.mjs` | 163 | Auto-advances past combatants the strip renders no card for (dead enemies). Active-GM gated. Also drives Chaos Mode: queues each held Chaos round (updateCombat) and replays it under the same lock (#259). |
-| `turn-skip-core.mjs` | 162 | Pure strip-visibility test shared by the strip and the auto-skip, so the two can't drift. |
+| `turn-skip-core.mjs` | 164 | Pure strip-visibility test shared by the strip and the auto-skip, so the two can't drift. |
 | `movement-tracker.mjs` | 806 | Crawl-mode movement budget enforcement + turn-start rollback (`displace` waypoints). |
 | `movement-calc.mjs` | 88 | Pure per-segment feet-moved math. |
 | `npc-action-menu.mjs` | 633 | Per-combatant hover action HUD. |
@@ -274,7 +274,7 @@
 | `importer-hub-maintenance.mjs` | 282 | Tools-menu bodies (bundle export/import, source-PDF library). |
 | `dump-segmenter.mjs` | 308 | Routes a mixed dump through the recognizer registry: hexcrawl → spell → monster → item → table. |
 | `bundle-io.mjs` | 410 | Whole-suite export/import as one JSON; validates, skips existing, never overwrites. |
-| `manage-tree.mjs` | 701 | Composes the folder/sub-folder unlock-review tree the Manage strip renders. |
+| `manage-tree.mjs` | 703 | Composes the folder/sub-folder unlock-review tree the Manage strip renders. |
 | `batch-import.mjs` | 263 | Pure batch planner: locked tree rows → deduped import jobs, routes, and the run report. |
 | `pdf-text-extract.mjs` | 871 | Clean reading-ordered PDF text via Foundry's bundled PDF.js; column-aware gutter detection. |
 | `pdf-text-utils.mjs` | 157 | Shared PDF-text helpers + the HTML-safety contract. |
@@ -307,7 +307,7 @@
 | `monsters/monster-importer.mjs` | 233 | Drafts → NPC actors in `sde-actors`. |
 | `monsters/monster-importer-app.mjs` | 396 | Paste dump → per-monster preview/edit grid → create. |
 | `monsters/monster-census.mjs` | 241 | Pure have/gap/duplicate helpers. |
-| `monsters/monster-census-live.mjs` | 462 | Foundry-bound adapter reading `sde-actors`/`sde-tables`. |
+| `monsters/monster-census-live.mjs` | 463 | Foundry-bound adapter reading `sde-actors`/`sde-tables`. |
 | `monsters/monster-backfill.mjs` | 512 | Idempotent upgrade of pre-fidelity-fix imports; auto-runs once per module version. |
 | `monsters/managed-actor-backfill.mjs` | 305 | Reusable active-GM, version-gated backfill lifecycle over the managed Actors pack; consumers supply the missing-only transform. |
 | `monsters/monster-text-backfill.mjs` | 187 | E2 missing-only monster-context `[[request]]` and inline-roll backfill over managed NPC Actor text; owns its consumer version gate. |
@@ -327,8 +327,8 @@
 | `items/shikashi-icons.mjs` | 235 | Item name → bundled Shikashi icon matcher (284 icons). |
 | `tables/table-manifest.mjs` | 308 | Table manifest logic — the registry of catalogued tables (id, name, source, page) that drives the Manage-tree census. |
 | `tables/table-manifest-data.mjs` | 500 | The `TABLE_MANIFEST` data array — every catalogued table's metadata (names/sources/pages; no rules text). |
-| `boats/mount-parser.mjs` | 55 | Names-only WR mount manifest + selection of the requested mount from parsed statblock drafts. |
-| `boats/mount-importer.mjs` | 170 | Mount drafts → `shadowdark-enhancer.mount` actors in `sde-actors`, reusing the monster import pipeline. |
+| `boats/mount-parser.mjs` | 65 | Names-only WR mount manifest + selection of the requested mount from parsed statblock drafts. |
+| `boats/mount-importer.mjs` | 169 | Mount drafts → `shadowdark-enhancer.mount` actors in `sde-actors`, reusing the monster import pipeline. |
 | `boats/boat-parser.mjs` | 155 | Parses the WR p118 boats table → boat actor drafts (pure); names-only manifest. |
 | `boats/boat-importer.mjs` | 50 | Boat drafts → `shadowdark-enhancer.boat` actors in `sde-actors`. |
 | `boats/siege-parser.mjs` | 440 | Parses the WR p119 siege-weapons table → Weapon drafts + ammunition (pure). |
@@ -346,16 +346,16 @@
 
 | File | Lines | Description |
 |---|---:|---|
-| `register-actors.mjs` | 107 | Registers `shadowdark-enhancer.mount` / `.warband` / `.boat` (models + sheets, in `i18nInit`): the warband's NpcSD subclass with fixed HP, its linked-token and commander-cleared create hook, and Make a Warband. |
+| `register-actors.mjs` | 112 | Registers `shadowdark-enhancer.mount` / `.warband` / `.boat` (models + sheets, in `i18nInit`): the warband's NpcSD subclass with fixed HP, its linked-token and commander-cleared create hook, and Make a Warband. |
 | `boat-data-model.mjs` | 115 | Boat data model — WR vessel rules. |
 | `boat-sheet.mjs` | 179 | Boat sheet: Overview / Passengers & Crew / Cargo / Description. |
 | `mount-npc-sheet.mjs` | 342 | Mount sheet — subclass of the system's `NpcSheetSD`. |
-| `warband-core.mjs` | 239 | Warband rules, pure (#200, #202, #204): the 18 upgrades, a commander's allowance by hit die tier (2/2, 4/3, 6/4), the command and upgrade refusals, and a creature made into a warband (level doubled, 8 HP a level plus CON, one attack, +1 attack a level gained, damage dice tripled). |
-| `warband-npc-sheet.mjs` | 234 | The Warband unit sheet (#200): an NpcSheetSD subclass (AppV1) with a Warband tab for the commander (a PC dropped on it), the allowance across that commander's warbands, the upgrade checklist written whole to the `warband` flag, and the commander's CHA for morale, and (#204) upkeep, arrears, desertion and retraining with their GM buttons. |
+| `warband-core.mjs` | 250 | Warband rules, pure (#200, #202, #204): the 18 upgrades, a commander's allowance by hit die tier (2/2, 4/3, 6/4), the command and upgrade refusals, and a creature made into a warband (level doubled, 8 HP a level plus CON, one attack, +1 attack a level gained, damage dice tripled). |
+| `warband-npc-sheet.mjs` | 251 | The Warband unit sheet (#200): an NpcSheetSD subclass (AppV1) with a Warband tab for the commander (a PC dropped on it), the allowance across that commander's warbands, the upgrade checklist written whole to the `warband` flag, and the commander's CHA for morale, and (#204) upkeep, arrears, desertion and retraining with their GM buttons. |
 | `make-warband.mjs` | 108 | Make a Warband (#202): the GM's header button on a level 1-5 NPC's sheet, a before/after preview, and a new warband actor from a copy (the stat block in its notes rebuilt as Quick Adjust does). |
 | `warband-upkeep.mjs` | 203 | Warband upkeep and healing on the world clock (#204): on timeAdvanced (active GM, queued), month and week starts in order over a move's last 366 days (clockEvents, last-month and last-week markers against rewinds): each month start charges 10 gp a level per commanded warband from the commander's coins, in one card; arrears check morale each week start (at most 8 rolling weeks a move) and desert on a failure (marked, never deleted); every day heals 1d4 (Hardy 2d6); the GM's Charge a Month, Pay Arrears and Return to Service. |
-| `warband-combat.mjs` | 131 | Warbands in mass combat (#203): a warband's combatant takes its commander's initiative (on join and whenever either changes, Chaos rerolls included); automatic morale on the active GM from a per-client HP cache (falling to half, every hit below it; d20 + commander CHA vs 15/Loyal 9, advantage when leading), a 3-in-6 (Withdraw 1-in-6) rout that marks it defeated; the attack card's area note; the retraining warning on attack. |
-| `warband-upgrades.mjs` | 98 | What a warband's upgrades do (#201): Armor Upgrade, Tough, Training and Weapons Upgrade written into the stored fields they change in the same update as the tick, and taken off by the same amount (marked attacks only); each upgrade's book text read once from the Player's Guide p.250 into the warbandUpgradeText world setting for the sheet's hovers. |
+| `warband-combat.mjs` | 133 | Warbands in mass combat (#203): a warband's combatant takes its commander's initiative (on join and whenever either changes, Chaos rerolls included); automatic morale on the active GM from a per-client HP cache (falling to half, every hit below it; d20 + commander CHA vs 15/Loyal 9, advantage when leading), a 3-in-6 (Withdraw 1-in-6) rout that marks it defeated; the attack card's area note; the retraining warning on attack. |
+| `warband-upgrades.mjs` | 126 | What a warband's upgrades do (#201): Armor Upgrade, Tough, Training and Weapons Upgrade written into the stored fields they change in the same update as the tick, and taken off by the same amount (marked attacks only); each upgrade's book text read once from the Player's Guide p.250 into the warbandUpgradeText world setting for the sheet's hovers. |
 | `vehicle-sheet.mjs` | 424 | Shared party-like container base (ApplicationV2). |
 | `vehicle-rolls.mjs` | 79 | Shared helper-roll button handlers. |
 

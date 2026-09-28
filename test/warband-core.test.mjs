@@ -5,7 +5,7 @@ import assert from "node:assert/strict";
 
 import {
   UPGRADES, MOST_UPGRADES, allowanceFor, canMakeWarband, cleanUpgrades, commandRefusal, upgradeRefusal,
-  tripleDice, warbandStats, warbandAttack, warbandHp,
+  tripleDice, warbandStats, warbandAttack, warbandHp, warbandRolledHp,
   upkeepGp, moraleDC, routChance, healPlan, monthKey, clockEvents, moraleTriggered, moraleFormula,
   STOCK_WARBANDS, addDie, upgradeActorChanges, upgradeAttackChanges, parseUpgradeLines, toughHp,
 } from "../scripts/actors/warband-core.mjs";
@@ -163,4 +163,12 @@ test("upgrade text: one line each after the heading, known names only, stopping 
     accurate: "Placeholder text one.", armorUpgrade: "Placeholder text two.", weaponsUpgrade: "Placeholder text three.",
   });
   assert.deepEqual(parseUpgradeLines("Stealthy. No heading here."), {});
+});
+
+test("the system's HP roll keeps a warband's current HP: placing a linked token never heals it (#283 review)", () => {
+  assert.deepEqual(warbandRolledHp({ level: 4, conMod: 1, value: 7, max: 33 }), { max: 33, value: 7 });
+  assert.deepEqual(warbandRolledHp({ level: 3, conMod: 1, value: 33, max: 33 }), { max: 25, value: 25 }, "clamped to a lower max");
+  assert.deepEqual(warbandRolledHp({ level: 4, conMod: 1, value: 0, max: 0 }), { max: 33, value: 33 }, "one never given HP starts full");
+  assert.deepEqual(warbandRolledHp({ level: 4, conMod: 1, value: 0, max: 33 }), { max: 33, value: 0 }, "a fallen warband stays down");
+  assert.deepEqual(warbandRolledHp({ level: 4, conMod: 1, value: 20, max: 48, extra: 15 }), { max: 48, value: 20 }, "Tough's 15 stays in the max");
 });
