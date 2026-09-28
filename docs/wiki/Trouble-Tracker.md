@@ -79,9 +79,8 @@ Opened by a GM, each trouble's page shows its stage and two buttons:
 
 Completing that quest resolves the trouble and stops its countdown.
 
-Rumors (the book's "the next time they learn new rumors") come with the rumor
-generator, which will give unheard troubles first. Until then, mark them heard
-yourself.
+Giving rumors ([Rumors](Rumors.md)) hands out unheard troubles first, as the
+book's "the next time they learn new rumors" says, and marks them heard.
 
 ---
 

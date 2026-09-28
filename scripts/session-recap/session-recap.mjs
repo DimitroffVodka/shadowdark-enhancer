@@ -281,6 +281,21 @@ export const SessionRecap = {
     });
   },
 
+  // ── Rumor Logging ──────────────────────────────────────────
+
+  /** Log the rumors one give handed out (#190): `{ text, region, heardBy }` each. */
+  async logRumors(entries) {
+    if (!this.isActive() || !entries?.length) return;
+    return this._mutate(data => {
+      this._ensureStart(data);
+      if (!Array.isArray(data.rumors)) data.rumors = [];
+      const stamp = this._stamp();
+      for (const e of entries) {
+        data.rumors.push({ text: String(e?.text ?? ""), region: e?.region ?? null, heardBy: [...(e?.heardBy ?? [])], ...stamp });
+      }
+    });
+  },
+
   // ── Carousing Logging ──────────────────────────────────────
 
   /**
@@ -652,7 +667,7 @@ export const SessionRecap = {
         xp: data.xp, combats: data.combats, luckSpent: data.luckSpent,
         encounterChecks: data.encounterChecks, playerStats: data.playerStats,
         downtime: data.downtime ?? [], renown: data.renown ?? [],
-        carousing: data.carousing ?? [],
+        carousing: data.carousing ?? [], rumors: data.rumors ?? [],
       },
     };
     history.unshift(snapshot);
@@ -716,7 +731,7 @@ export const SessionRecap = {
         || Object.keys(data.playerStats).length > 0 || data.encounterChecks.length > 0
         || data.sales.length > 0 || data.purchases.length > 0
         || (data.downtime?.length ?? 0) > 0 || (data.renown?.length ?? 0) > 0
-        || (data.carousing?.length ?? 0) > 0;
+        || (data.carousing?.length ?? 0) > 0 || (data.rumors?.length ?? 0) > 0;
 
       const buttons = [
         { label: "SDE.sessionRecap.dialog.endSave", icon: "fas fa-save", value: "save" },

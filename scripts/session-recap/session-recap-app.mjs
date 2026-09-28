@@ -70,7 +70,7 @@ export class SessionRecapApp extends HandlebarsApplicationMixin(ApplicationV2) {
     }
     // Defensive defaults for archived payloads missing newer arrays.
     data.sales ??= []; data.purchases ??= []; data.encounterChecks ??= [];
-    data.downtime ??= []; data.renown ??= []; data.carousing ??= [];
+    data.downtime ??= []; data.renown ??= []; data.carousing ??= []; data.rumors ??= [];
 
     const hasDamageLog = game.modules.get("damage-log")?.active ?? false;
     const sessionDuration = viewingSession
@@ -211,6 +211,9 @@ export class SessionRecapApp extends HandlebarsApplicationMixin(ApplicationV2) {
       })),
     }));
 
+    // Rumors heard this session (#190), in the order given.
+    const rumors = data.rumors.map(r => ({ text: r.text, region: r.region || "", time: r.time }));
+
     // Encounter checks
     const checks = data.encounterChecks;
     const encounterChecks = checks.map(c => ({ ...c }));
@@ -258,6 +261,7 @@ export class SessionRecapApp extends HandlebarsApplicationMixin(ApplicationV2) {
       renownPlayers, hasRenown: renownPlayers.length > 0,
       downtimePlayers, hasDowntime: downtimePlayers.length > 0,
       carousing, hasCarousing: carousing.length > 0,
+      rumors, hasRumors: rumors.length > 0,
       encounterChecks, hasEncounterChecks: encounterChecks.length > 0, encounterSummary,
       viewingSession: viewingSession ? { id: viewingSession.id, name: viewingSession.name } : null,
       isViewingHistory: !!this._viewingHistoryId,
