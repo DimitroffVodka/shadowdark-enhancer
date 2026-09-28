@@ -90,6 +90,22 @@ export function rowsLeft(results, given = []) {
   return { available, stale };
 }
 
+/**
+ * The rows of `table` a draw landed on, once each. `draw` gives one roll;
+ * `drawMany` gives a pool of them, one per result. With no roll, the drawn
+ * results that are the table's own.
+ * @param {{getResultsForRoll:(total:number)=>object[]}} table
+ * @param {{roll?:object, results?:object[]}} out  what draw or drawMany returned
+ * @returns {object[]}
+ */
+export function drawnRows(table, out) {
+  const rolls = out?.roll?.terms?.[0]?.rolls ?? (out?.roll ? [out.roll] : []);
+  const rows = rolls.length
+    ? rolls.flatMap((r) => table.getResultsForRoll(r.total))
+    : (out?.results ?? []).filter((r) => r.parent === table);
+  return [...new Map(rows.map((r) => [r.id, r])).values()];
+}
+
 /** Link markup in a row, "@UUID[…]{Label}" or "@Compendium[…]{Label}", as its label. */
 export const plainRow = (text) => String(text ?? "")
   .replace(/@\w+\[[^\]]*\]\{([^}]*)\}/g, "$1")
