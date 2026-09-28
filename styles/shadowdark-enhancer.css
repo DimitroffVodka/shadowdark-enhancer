@@ -11218,3 +11218,19 @@ body.theme-light .sde-parry-note { color: #2e6b2e; }
   padding: 0.15rem 0.4rem;
   text-align: left;
 }
+
+/* Warband upkeep (#204): the month's card in chat, and the arrears and deserted lines on the Warband tab. */
+.sde-warband-card header {
+  font-weight: bold;
+  border-bottom: 1px solid var(--color-border-light-primary, #b5b3a4);
+  margin-bottom: 0.25rem;
+}
+.sde-warband-card ul {
+  margin: 0;
+  padding-left: 1.1rem;
+}
+.sde-warband-npc .sde-warband-alert {
+  margin: 0.4rem 0 0;
+  font-weight: bold;
+  color: var(--color-level-error, #b3261e);
+}

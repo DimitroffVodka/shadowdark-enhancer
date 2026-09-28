@@ -369,7 +369,10 @@ page walks through it in order.
   6/4), the 18 upgrades once each, and the commander's CHA for morale.
   **Make a Warband** on a level 1–5 NPC's sheet makes one from a copy: level
   doubled, 8 HP a level plus CON, one attack a round, +1 attack a level
-  gained, damage dice tripled. See *Warbands*. (#200, #202)
+  gained, damage dice tripled. Its HP is fixed: placing one of its tokens,
+  with Shadowdark's HP roll on placement on, sets the max but never heals it.
+  Quick upgrade ticks all stick, and two warbands can't both take their
+  commander's last slot. See *Warbands*. (#200, #202)
 - **Warband upkeep and healing on the world clock.** Each month start takes
   10 gp a level per warband from its commander's coins, in one card; a
   commander who can't pay leaves it in arrears, and each week after it checks

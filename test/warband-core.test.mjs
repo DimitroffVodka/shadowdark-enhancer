@@ -5,7 +5,7 @@ import assert from "node:assert/strict";
 
 import {
   UPGRADES, MOST_UPGRADES, allowanceFor, canMakeWarband, cleanUpgrades, commandRefusal, upgradeRefusal,
-  tripleDice, warbandStats, warbandAttack, warbandHp,
+  tripleDice, warbandStats, warbandAttack, warbandHp, warbandRolledHp,
   upkeepGp, moraleDC, routChance, healPlan, monthKey, clockEvents, moraleTriggered, moraleFormula,
 } from "../scripts/actors/warband-core.mjs";
 
@@ -102,4 +102,11 @@ test("morale: checked on falling to half and on every hit below it, never while 
   assert.equal(moraleTriggered(17, 8, 17), true, "odd max: 8 is at most half of 17");
   assert.equal(moraleFormula(2, false), "1d20 + 2");
   assert.equal(moraleFormula(-1, true), "2d20kh + -1");
+});
+
+test("the system's HP roll keeps a warband's current HP: placing a linked token never heals it (#283 review)", () => {
+  assert.deepEqual(warbandRolledHp({ level: 4, conMod: 1, value: 7, max: 33 }), { max: 33, value: 7 });
+  assert.deepEqual(warbandRolledHp({ level: 3, conMod: 1, value: 33, max: 33 }), { max: 25, value: 25 }, "clamped to a lower max");
+  assert.deepEqual(warbandRolledHp({ level: 4, conMod: 1, value: 0, max: 0 }), { max: 33, value: 33 }, "one never given HP starts full");
+  assert.deepEqual(warbandRolledHp({ level: 4, conMod: 1, value: 0, max: 33 }), { max: 33, value: 0 }, "a fallen warband stays down");
 });
