@@ -377,8 +377,11 @@ page walks through it in order.
   10 gp a level per warband from its commander's coins, in one card; a
   commander who can't pay leaves it in arrears, and each week after it checks
   morale (the commander's CHA, DC 15, Loyal 9) and may desert: marked, never
-  deleted. Every day heals 1d4 (Hardy 2d6), downtime days included. Changing
-  a commanded warband's upgrades means a week of retraining. (#204)
+  deleted. Every day heals 1d4 (Hardy 2d6), downtime days included, and a
+  warband that deserts part way through a long move still heals the days
+  before. A charge that fails to save is tried again at the next clock move,
+  and never charged twice. Changing a commanded warband's upgrades means a
+  week of retraining. (#204)
 - **Encounter check frequency.** Right-click the Crawl Bar's **Encounter**
   button: **Check Frequency** runs from **1** (every crawl round, the default)
   to **10**. The count runs from the last check, automatic or manual, so a
