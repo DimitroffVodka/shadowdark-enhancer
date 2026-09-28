@@ -7,7 +7,7 @@ import assert from "node:assert/strict";
 globalThis.CONST = { GRID_TYPES: { HEXODDQ: 4, HEXEVENQ: 5 }, GRID_MIN_SIZE: 20 };
 const { alignedSceneData } = await import("../scripts/hex-map/hex-map-flow.mjs");
 const { decodeTags, emptyState } = await import("../scripts/hex-map/tag-store.mjs");
-const { A0_PRINT, A0_TOTAL, isA0, a0Origin, copyTags, copySource, playablePlan } = await import("../scripts/hex-map/a0-print.mjs");
+const { A0_PRINT, A0_TOTAL, isA0, a0Origin, copyTags, copiedTerrain, copySource, playablePlan } = await import("../scripts/hex-map/a0-print.mjs");
 
 const ORIGIN = { i: 0, j: 0, q: 0, r: 0, num: "0000", shifted: "odd", bounds: { cols: 64, rows: 75, rowsLowered: 74, firstRow: 1 } };
 // The image's rect on the canvas, from each real scene's fields (fill: left = sceneRect.x + w/2 + offsetX - anchorX*w_img).
@@ -71,7 +71,7 @@ test("copySource: same print only, most hand tags first", () => {
 });
 
 const plan = (over = {}) => playablePlan({
-  anchored: false, anchor: "rebuild", placed: 0, terrain: 0, total: A0_TOTAL, copyFrom: 0, wrEntries: 15, pins: 0,
+  anchored: false, anchor: "rebuild", placed: 0, terrain: 0, total: A0_TOTAL, copyTerrain: 0, wrEntries: 15, pins: 0,
   ...over, extras: { hex: true, adopted: false, fogApi: false, fogOn: false, ...over.extras },
 });
 
@@ -82,9 +82,21 @@ test("playablePlan: a fresh drop is numbered, pinned, then named in the Legend",
 });
 
 test("playablePlan: a second scene of the same print copies it and hands off to Extras", () => {
-  assert.deepEqual(plan({ copyFrom: A0_TOTAL }).run, ["anchor", "copy", "pins", "handoff"]);
-  assert.deepEqual(plan({ copyFrom: A0_TOTAL, extras: { fogApi: true } }).run, ["anchor", "copy", "pins", "handoff", "fog"]);
-  assert.deepEqual(plan({ copyFrom: 1200 }).run, ["anchor", "copy", "pins", "legend"], "part of the map: the Legend, no hand-off yet");
+  assert.deepEqual(plan({ copyTerrain: A0_TOTAL }).run, ["anchor", "copy", "pins", "handoff"]);
+  assert.deepEqual(plan({ copyTerrain: A0_TOTAL, extras: { fogApi: true } }).run, ["anchor", "copy", "pins", "handoff", "fog"]);
+  assert.deepEqual(plan({ copyTerrain: 1200 }).run, ["anchor", "copy", "pins", "legend"], "part of the map: the Legend, no hand-off yet");
+});
+
+test("playablePlan: a partly tagged scene still copies the rest, keeping its hand tags (#281 review)", () => {
+  assert.deepEqual(plan({ terrain: 1, copyTerrain: A0_TOTAL }).run, ["anchor", "copy", "pins", "handoff"]);
+  assert.deepEqual(plan({ terrain: 300, copyTerrain: 300 }).run, ["anchor", "pins", "legend"], "nothing to add: no copy");
+});
+
+test("copiedTerrain: a dry run of the copy; the hand tag stays and the scene is left alone (#281 review)", () => {
+  const from = decodeTags({ cells: { 1403: "forest|auto", 1404: "hills|gm", 1405: "lake|gm" } });
+  const into = decodeTags({ cells: { 1404: "swamp|gm" } });
+  assert.equal(copiedTerrain(into, from), 3);
+  assert.deepEqual([into.cells.size, into.cells.get("1404").terrain], [1, "swamp"]);
 });
 
 test("playablePlan: a second run runs nothing; without Extras there is no hand-off or fog", () => {

@@ -34,7 +34,7 @@ import { TERRAIN_TAGS, SETTLEMENTS, rowTag } from "../importer/hex/hex-summary.m
 import { HEX_FLAG } from "../importer/hex/hex-commit.mjs";
 import { datasetFromEntries, handoffDataset, handoffToPrint, extrasHexApi } from "../importer/hex/hex-handoff.mjs";
 import { buildHexDataset, validateHexDataset, hexNum, assignmentsFromManifest } from "../importer/hex/hex-dataset.mjs";
-import { A0_PRINT, A0_TOTAL, isA0, a0Origin, copyTags, copySource, playablePlan } from "./a0-print.mjs";
+import { A0_PRINT, A0_TOTAL, isA0, a0Origin, copyTags, copiedTerrain, copySource, playablePlan } from "./a0-print.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
@@ -227,7 +227,7 @@ async function playableFacts(scene, app, tf) {
     fit, anchored: !!app._state.origin, anchor: fit.keep ? "keep" : "rebuild",
     placed: PLACEABLES.reduce((n, k) => n + (scene[k]?.size ?? 0), 0),
     terrain: terrainOf(app._state.cells), total: A0_TOTAL,
-    copyFrom: from ? terrainOf(from.tags.cells) : 0, copyId: from?.id ?? null,
+    copyTerrain: from ? copiedTerrain(app._state, from.tags) : 0, copyId: from?.id ?? null,
     wrEntries: app._entries.length,
     pins: scene.notes.filter((n) => Number.isInteger(n.getFlag(MODULE_ID, "hexPin")?.num)).length,
     regions: new Set(decodeRegions(scene.getFlag(MODULE_ID, REGIONS_FLAG)).values()).size,

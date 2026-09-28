@@ -94,6 +94,16 @@ export function copyTags(into, from, bounds = A0_PRINT.bounds) {
 }
 
 /**
+ * How many hexes would have terrain after copyTags from `from`: a dry run on a
+ * copy of the cells, `into` left as it is.
+ */
+export function copiedTerrain(into, from, bounds = A0_PRINT.bounds) {
+  const trial = { cells: new Map(into.cells) };
+  copyTags(trial, from, bounds);
+  return [...trial.cells.values()].filter((c) => c?.terrain).length;
+}
+
+/**
  * The scene to copy terrain from: another scene showing the same file with
  * the A0's numbering. The most hand tags wins, then the most tags.
  * @param {{id:string, file:string}} here
@@ -125,16 +135,18 @@ export function copySource(here, others) {
  *   it opens the tagger, and a second press after it does the rest)
  *
  * @param {{anchored:boolean, anchor:"keep"|"rebuild", placed:number, terrain:number, total:number,
- *   copyFrom:number, wrEntries:number, pins:number, extras:{hex:boolean, adopted:boolean, fogApi:boolean, fogOn:boolean}}} f
+ *   copyTerrain:number, wrEntries:number, pins:number, extras:{hex:boolean, adopted:boolean, fogApi:boolean, fogOn:boolean}}} f
+ *   copyTerrain: the hexes with terrain after a copy from another scene of the print (copiedTerrain), 0 with none
  * @returns {{run:string[], confirm:boolean}}  confirm: the rebuild moves the map under what is placed on it
  */
 export function playablePlan(f) {
   const run = [];
   if (!f.anchored) run.push("anchor");
-  const copy = f.terrain === 0 && f.copyFrom > 0;
+  // The copy fills what this scene lacks and keeps its hand tags: run whenever it adds terrain.
+  const copy = f.copyTerrain > f.terrain;
   if (copy) run.push("copy");
   if (f.wrEntries > 0 && f.pins === 0) run.push("pins");
-  const terrain = copy ? f.copyFrom : f.terrain;
+  const terrain = copy ? f.copyTerrain : f.terrain;
   if (f.extras.hex && terrain >= f.total && !f.extras.adopted) run.push("handoff");
   if (f.extras.hex && f.extras.fogApi && !f.extras.fogOn) run.push("fog");
   if (terrain < f.total) run.push("legend");

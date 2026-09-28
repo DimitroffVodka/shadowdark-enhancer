@@ -23,7 +23,8 @@ it needs.
   button for it any time. It:
   - numbers every hex with no setup, fitting the scene to the print when its
     grid doesn't match (asking first if things are placed on it);
-  - copies terrain and region borders from another scene of the same map;
+  - fills the hexes it lacks, and region borders, from another scene of the
+    same map, keeping your own tags;
   - writes and pins the book's keyed hexes;
   - hands the map to Shadowdark Extras once every hex has terrain;
   - opens the Legend when there's no terrain to copy.

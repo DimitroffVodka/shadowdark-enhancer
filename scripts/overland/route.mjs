@@ -331,4 +331,3 @@ export function registerRoute() {
     if (!controlled && !_walking && token.document.uuid === overlandState().tokenUuid) { _armed = null; _hovered = null; clear(); }
   });
 }
-
