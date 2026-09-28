@@ -4,7 +4,7 @@
 // Every ancestry and band here is INVENTED; no book's table is in this repo.
 import { test, beforeEach } from "node:test";
 import assert from "node:assert/strict";
-import { rollAncestryFromTable, itemNamed } from "../scripts/char-builder/data.mjs";
+import { rollAncestryFromTable, itemNamed, drawItem } from "../scripts/char-builder/data.mjs";
 
 const ANCESTRIES = ["Ashling", "Brine-Folk", "Cragborn", "Dunewalker", "Folk"]
   .map((name) => ({ name, uuid: `Compendium.world.ancestries.Item.${name}` }));
@@ -119,4 +119,15 @@ test("a result is its ancestry only by the whole name, never a name inside it", 
   assert.equal(itemNamed("Ashling (common)", ANCESTRIES)?.name, "Ashling", "a result may start with the name");
   assert.equal(itemNamed("Folk", ANCESTRIES)?.name, "Folk");
   assert.equal(itemNamed("", ANCESTRIES), null);
+});
+
+test("Background and Deity tables keep the loose match; only the ancestry table is strict (#287 review)", async () => {
+  const backgrounds = [{ name: "Bandit", uuid: "b" }, { name: "Elf", uuid: "e" }];
+  const row = (text) => ({ async roll() { return { results: [{ name: text, description: "" }] }; } });
+  assert.equal((await drawItem(row("You were a Bandit"), backgrounds)).item?.name, "Bandit", "a descriptive row still names its item");
+  assert.equal((await drawItem(row("You were a Bandit"), backgrounds, { strict: true })).item, null);
+  assert.equal((await drawItem(row("Half-Elf"), backgrounds, { strict: true })).item, null, "the ancestry table never reads Half-Elf as Elf");
+  setting = "Compendium.world.tables.RollTable.half";
+  tables.set(setting, populationTable([[1, 100, "Half-Folk"]]));
+  assert.equal(await rollAncestryFromTable(ANCESTRIES), null, "Random ancestry is the strict one");
 });

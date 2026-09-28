@@ -227,18 +227,25 @@ export async function rollItemFromTables(kind, items) {
  * every row drawn) or the roll failed.
  * @returns {Promise<{result:string|null, item:object|null}>}
  */
-export async function drawItem(table, items) {
+export async function drawItem(table, items, { strict = false } = {}) {
   try {
     const res = await table.roll();
     const r = res?.results?.[0] ?? res?.results?.contents?.[0];
     if (!r) return { result: null, item: null };
-    return { result: resultText(r) || null, item: await itemForResult(r, items) };
+    return { result: resultText(r) || null, item: await itemForResult(r, items, strict) };
   } catch (_e) {
     return { result: null, item: null };
   }
 }
 
-async function itemForResult(r, items) {
+/**
+ * The item a drawn row stands for: the one it links, else by its text.
+ * `strict` (the ancestry table, #187): only the whole name or a name the text
+ * starts with (itemNamed), so "Half-elf" is never "Elf". Otherwise, for the
+ * Background and Deity tables, as before: the same name, or a name found
+ * anywhere in the text ("You were a Bandit").
+ */
+async function itemForResult(r, items, strict = false) {
   if (r.documentUuid) {
     const byUuid = items.find((i) => i.uuid === r.documentUuid);
     if (byUuid) return byUuid;
@@ -248,7 +255,13 @@ async function itemForResult(r, items) {
       if (byName) return byName;
     }
   }
-  return itemNamed(resultText(r), items);
+  const text = resultText(r);
+  if (strict) return itemNamed(text, items);
+  const txt = text.toLowerCase();
+  if (!txt) return null;
+  return items.find((i) => i.name.toLowerCase() === txt)
+    ?? items.find((i) => txt.includes(i.name.toLowerCase()))
+    ?? null;
 }
 
 /** Lower case, punctuation as spaces: "Half-Elf" and "half elf" read the same. */
@@ -287,7 +300,7 @@ export async function rollAncestryFromTable(items) {
     ui.notifications?.warn(game.i18n.localize("SDE.charBuilder.ancestry.tableMissing"));
     return null;
   }
-  const { result, item } = await drawItem(table, items);
+  const { result, item } = await drawItem(table, items, { strict: true });
   if (!item) {
     ui.notifications?.warn(result
       ? game.i18n.format("SDE.charBuilder.ancestry.tableNoMatch", { result, table: table.name })
