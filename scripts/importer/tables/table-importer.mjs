@@ -3303,24 +3303,34 @@ export async function applyTableStructureSeed(table) {
 /**
  * The Western Reaches population d100 becomes the Character Builder's Random
  * ancestry table when the GM hasn't set one (#187), so importing it is enough.
- * A table already set, even another one, is left alone.
+ * This is decided once per world: the first time it is met, a table the GM
+ * already set stays, and from then on their choice stands, an emptied one
+ * included (`charBuilderAncestryAdopted`).
  */
-async function adoptAncestryTable(table) {
+export async function adoptAncestryTable(table) {
   if (!/ancestry \(population\)$/i.test(table?.name ?? "")) return;
   try {
-    if (game.settings.get("shadowdark-enhancer", "charBuilderAncestryTable")) return;
-    await game.settings.set("shadowdark-enhancer", "charBuilderAncestryTable", table.uuid);
+    if (game.settings.get("shadowdark-enhancer", "charBuilderAncestryAdopted")) return;
+    if (!game.settings.get("shadowdark-enhancer", "charBuilderAncestryTable")) {
+      await game.settings.set("shadowdark-enhancer", "charBuilderAncestryTable", table.uuid);
+      ui.notifications?.info(loc("SDE.importer.notify.ancestryTableSet", { table: table.name }));
+    }
     await game.settings.set("shadowdark-enhancer", "charBuilderAncestryAdopted", true);
-    ui.notifications?.info(loc("SDE.importer.notify.ancestryTableSet", { table: table.name }));
   } catch (err) {
     console.warn("shadowdark-enhancer | adoptAncestryTable:", err);
   }
 }
 
+/** A bundle's tables are adopted only once the whole bundle is in: a rolled-back one leaves the setting alone (#187). */
+export async function adoptFromBundle(result) {
+  if (!result?.ok) return;
+  for (const doc of [...(result.created ?? []), ...(result.replaced ?? [])]) await adoptAncestryTable(doc);
+}
+
 /**
- * A world that imported the ancestry d100 before this: adopt it once, at
- * ready, if the builder's table is still empty. The marker keeps it from
- * coming back after the GM clears the setting. Active GM only.
+ * A world that imported the ancestry d100 before this: decide it once, at
+ * ready (adoptAncestryTable). With no such table yet, nothing is decided, so
+ * a later import still adopts it. Active GM only.
  */
 export async function adoptImportedAncestryTable() {
   if (game.settings.get("shadowdark-enhancer", "charBuilderAncestryAdopted")) return;
@@ -3825,7 +3835,6 @@ export async function commitTableBundle(drafts, { onConflict } = {}) {
     try {
       if (!pt.isCompound) await _autoEnrich(doc, pt);
       await applyTableStructureSeed(doc);
-      await adoptAncestryTable(doc);
     } catch (e) { console.warn(`Shadowdark Enhancer | bundle enrich failed for "${doc?.name}"`, e); }
   };
 
@@ -3853,7 +3862,9 @@ export async function commitTableBundle(drafts, { onConflict } = {}) {
     },
   };
 
-  return commitBundleAtomic(items, persist);
+  const result = await commitBundleAtomic(items, persist);
+  await adoptFromBundle(result);
+  return result;
 }
 
 export const TableImporter = {

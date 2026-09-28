@@ -214,8 +214,9 @@ export function registerSettings() {
     default: null,
   });
 
-  // Set once the ancestry d100 has been adopted as that table (#187), so a GM
-  // who clears it isn't overruled at the next load.
+  // Set once the builder's Random ancestry table is decided for this world
+  // (#187): the ancestry d100 adopted, or a table the GM had already set. From
+  // then on the GM's choice stands, an emptied one included.
   game.settings.register(MODULE_ID, "charBuilderAncestryAdopted", {
     scope: "world", config: false, type: Boolean, default: false,
   });

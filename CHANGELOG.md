@@ -374,7 +374,9 @@ page walks through it in order.
   When the Character Builder's Random ancestry table is empty, importing
   "Ancestry (Population)" sets it, and a notification says so. A table already
   set is left alone. A world that imported it earlier adopts it once, at the
-  next load. (#187)
+  next load. This is decided once per world, so a table you clear stays
+  cleared, even after a reimport. A table bundle adopts it only once the whole
+  bundle is in. (#187)
 
 - **Foundry 14 is now the minimum.** The module no longer lists Foundry 13 as
   supported, matching Shadowdark Extras, which already needs 14.
