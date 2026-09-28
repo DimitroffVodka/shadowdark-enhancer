@@ -11,6 +11,19 @@ it needs.
 
 ### Added
 
+- **Make this map playable.** The Western Reaches A0 map is recognised on any
+  scene. The first time you view it you're asked once, and the Hex Tagger has a
+  button for it any time. It:
+  - numbers every hex with no setup, fitting the scene to the print when its
+    grid doesn't match (asking first if things are placed on it);
+  - copies terrain and region borders from another scene of the same map;
+  - writes and pins the book's keyed hexes;
+  - hands the map to Shadowdark Extras once every hex has terrain;
+  - opens the Legend when there's no terrain to copy.
+
+  It runs only what is missing, then shows a checklist of what the map has.
+  **Hex map from image** with the A0 file skips finding the grid. A re-scan of
+  the region borders now keeps your corrections to it.
 - **The Encounter panel.** Travel's encounter checks now roll quietly: no chat
   card, no pause, no window. A hit drops an Encounter panel from the clock bar
   for the GMs. It shows the check, each table the roll went through with its

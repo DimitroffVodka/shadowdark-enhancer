@@ -55,6 +55,34 @@ feature. Shadowdark Extras gets them the same way: the terrain as the hex's
 terrain, and river, path and coast as entries in its feature list, which its
 tooltip shows as River, Path and Coast pills.
 
+## The Western Reaches map: Make this map playable
+
+The Western Reaches A0 map that comes with the book is recognised by its size
+(9933 by 14043 pixels). The first time you view a scene showing it, you're
+asked once whether to make it playable; the Hex Tagger's **Make this map
+playable** button does the same thing any time. It needs no settings and runs
+only what the map is missing:
+
+- **Numbering.** Every hex gets its printed number, with no anchor to set.
+  When the scene's grid doesn't fit the print (a map dropped on a square grid,
+  say), the scene is resized to fit it first; if anything is already placed on
+  it, you're asked before.
+- **Terrain and regions from another scene of the same map**, when you have
+  one: the tags and region borders are copied, your own tags on this scene are
+  kept.
+- **The book's keyed hexes**: their terrain, and a pin on each (Importer Hub,
+  Key locations, first).
+- **Shadowdark Extras**, when it's on and every hex has terrain: the hex
+  records go to the map, as **Send to Extras** does.
+- **The Legend**, when there's no terrain to copy: it opens so you can name the
+  print's pictures. Apply it, then press **Make this map playable** again for
+  the rest.
+
+A checklist then says what the map has and what's left, such as the rules data
+or the encounter tables to import. Pressing it again on a finished map changes
+nothing. **Hex map from image** with the A0 file skips finding the grid and
+does all of this in one go.
+
 ## The three steps
 
 Most tables want the map that came with the book as their scene, the book's

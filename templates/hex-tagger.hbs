@@ -5,6 +5,9 @@
       {{#if sampled}}<span class="sde-hxt-stat">{{localize "SDE.hexMap.stat.numbered" numbered=numberedCount cells=cellCount}} · {{localize "SDE.hexMap.stat.tagged" tagged=summary.tagged gm=summary.gm}}{{#if summary.auto}}{{localize "SDE.hexMap.stat.auto" auto=summary.auto}}{{/if}}) · {{localize "SDE.hexMap.stat.toGo" n=summary.untagged}}</span>{{/if}}
     </div>
     <div class="sde-hxt-actions">
+      {{#if a0}}
+      <button type="button" data-action="hxtPlayable" class="{{#if primaryPlayable}}sde-import-primary{{else}}sde-import-secondary{{/if}}" title="{{localize 'SDE.hexMap.tip.playable'}}"><i class="fas fa-map"></i> {{localize "SDE.hexMap.btn.playable"}}</button>
+      {{/if}}
       {{#unless sampled}}
       <button type="button" data-action="hxtSample" class="{{#if primarySample}}sde-import-primary{{else}}sde-import-secondary{{/if}}" title="{{localize 'SDE.hexMap.tip.read'}}"><i class="fas fa-crop-simple"></i> {{localize "SDE.hexMap.btn.read"}}</button>
       {{/unless}}

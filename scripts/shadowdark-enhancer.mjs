@@ -4,6 +4,7 @@
 
 export { MODULE_ID } from "./shared/module-id.mjs";
 import { MODULE_ID } from "./shared/module-id.mjs";
+import { registerA0Prompt } from "./hex-map/a0-prompt.mjs";
 import { ICONS } from "./shared/icons.mjs";
 
 import { registerSettings } from "./shared/settings.mjs";
@@ -102,7 +103,7 @@ import { initRivalClassTable } from "./forge-loot/rival-class-table-adapter.mjs"
 // templates, producing unstyled block-flow UI. Keep the manifest stylesheet as
 // the startup fallback, then layer a content-addressed copy above it. The layout
 // contract test requires this revision to change whenever the CSS file changes.
-const STYLESHEET_REV = "932e69606893";
+const STYLESHEET_REV = "014682723be0";
 
 // The same problem for the SCRIPTS, which cannot be solved the same way: their
 // URLs come from the manifest, which Foundry validates as real package paths,
@@ -117,7 +118,7 @@ const STYLESHEET_REV = "932e69606893";
 // stale); module.json carries the same hash and is fetched fresh at runtime. A
 // mismatch is a stale cache by construction — it cannot be anything else. Both
 // stamps are written by `npm run inventory` and gated by `inventory:check`.
-const BUILD_REV = "b73eeaf49f96";
+const BUILD_REV = "b84c8b848b75";
 
 /**
  * Tell the user when their browser is running an old build of this module, and
@@ -827,6 +828,8 @@ Hooks.once("init", () => {
     hexMaps: {
       // The contact-sheet tagger for the active scene (GM only). Lazy.
       openTagger: async () => (await import("./hex-map/hex-tagger-app.mjs")).HexTaggerApp.open(),
+      // Make the viewed Western Reaches A0 scene playable: numbered, keyed, pinned, handed to Extras (GM only).
+      makePlayable: async () => (await import("./hex-map/hex-tagger-app.mjs")).HexTaggerApp.makePlayable(),
       // The active scene's tags drawn on the map for review; toggles (GM only).
       showTags: async (opts) => (await import("./hex-map/tag-overlay.mjs")).HexTagOverlay.toggle(opts),
       // Pick a terrain once, then paint the hexes that have it wrong (GM only).
@@ -967,6 +970,8 @@ Hooks.once("ready", () => {
   })();
   CrawlState.init();
   registerOverland();
+  // The Western Reaches A0 on a scene not numbered yet: offer to make it playable, once.
+  registerA0Prompt();
   // The sidebar rendered during setup, before the line above read the saved
   // crawl state, so the tracker tab's rail button is still hidden on a world
   // reloaded mid-crawl. Re-evaluate it now that the state is real.

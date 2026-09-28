@@ -20,20 +20,21 @@
 
 import { MODULE_ID } from "../shared/module-id.mjs";
 import { replaceModuleFlag } from "../shared/module-flags.mjs";
-import { findSuitePack } from "../shared/compendium-suite.mjs";
-import { sceneCells, sourceImage, CellSampler } from "./sampler.mjs";
+import { findSuitePack, sourceFolderName } from "../shared/compendium-suite.mjs";
+import { sceneCells, sourceImage, CellSampler, backgroundTransform } from "./sampler.mjs";
 import { cellNumber, neighbours, framesTopRow, extrasNumbersAlike } from "./geometry.mjs";
 import { decodeTags, encodeTags, nextSheet, applySheet, tagsForDataset, summarize, importTags, rowsFromJson, sheetRisk, deriveCoasts, FEATURES } from "./tag-store.mjs";
 import { FIXES_FLAG, BASELINE_FLAG, emptyLog, decodeFixes, encodeFixes, recordEdits, recordLegend, legendReport, accuracyReport, encodeBaseline, decodeBaseline, baselineReport } from "./tag-corrections.mjs";
 import { cellBoxOf, referenceTilePlacement, gridCellBox, loweredColumns, placeReferenceTile } from "./reference-tile.mjs";
 import { createClassifier, compareTags, parseTruthCsv, featureVector, keepMask, scoreClassifier, smoothTerrain } from "./classify.mjs";
 import { buildLegend } from "./legend.mjs";
-import { scanRegions, encodeRegions, decodeRegions, REGIONS_FLAG } from "./region-scan.mjs";
+import { scanRegions, encodeRegions, decodeRegions, decodeRegionFixes, REGIONS_FLAG } from "./region-scan.mjs";
 import { regionSeeds, nameComponents } from "./hex-region.mjs";
 import { TERRAIN_TAGS, SETTLEMENTS, rowTag } from "../importer/hex/hex-summary.mjs";
 import { HEX_FLAG } from "../importer/hex/hex-commit.mjs";
 import { datasetFromEntries, handoffDataset, handoffToPrint, extrasHexApi } from "../importer/hex/hex-handoff.mjs";
 import { buildHexDataset, validateHexDataset, hexNum, assignmentsFromManifest } from "../importer/hex/hex-dataset.mjs";
+import { A0_PRINT, A0_TOTAL, isA0, a0Origin, copyTags, copySource, playablePlan } from "./a0-print.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
@@ -193,6 +194,91 @@ export async function benchmarkFirstRun(opts = {}) {
   return result;
 }
 
+/** Things placed on a scene, which a rebuilt grid would leave where they are while the map moves. */
+const PLACEABLES = ["tokens", "notes", "tiles", "drawings", "walls", "lights", "sounds", "regions", "templates"];
+
+/**
+ * What an A0 scene has, for playablePlan and the checklist. `fit` is how the
+ * print gets numbered: on the grid it has, when the print fits it and numbers
+ * the way Extras does, else on the scene rebuilt to fit the print (the image
+ * flow's alignedSceneData with the print's own lattice).
+ */
+async function playableFacts(scene, app, tf) {
+  const hit = a0Origin(tf.rect, scene.grid);
+  const geo = hit.origin ? { cube: { q: hit.origin.q, r: hit.origin.r }, num: hit.origin.num, shifted: "odd", bounds: hit.origin.bounds } : null;
+  const src = (canvas.level ?? scene.levels?.contents?.[0])?.background?.src ?? "";
+  let fit = { keep: true, origin: hit.origin };
+  if (!(geo && scene.grid.type === CONST.GRID_TYPES.HEXODDQ && extrasNumbersAlike(geo, 0))) {
+    const { alignedSceneData } = await import("./hex-map-flow.mjs");
+    const data = alignedSceneData({ name: scene.name, src, imageW: A0_PRINT.width, imageH: A0_PRINT.height, lat: A0_PRINT.lat,
+      firstNum: A0_PRINT.firstNum, cols: A0_PRINT.bounds.cols, rows: A0_PRINT.bounds.rows, rowsLowered: A0_PRINT.bounds.rowsLowered });
+    fit = { keep: false, data, origin: decodeTags(data.flags[MODULE_ID][TAGS_FLAG]).origin };
+  }
+  const fileOf = (path) => decodeURIComponent(String(path ?? "").split("/").pop());
+  const others = game.scenes.contents.filter((x) => x.id !== scene.id && x.getFlag(MODULE_ID, TAGS_FLAG)?.origin)
+    .map((x) => ({ id: x.id, file: fileOf(x.levels?.contents?.[0]?.background?.src ?? x.background?.src), tags: decodeTags(x.getFlag(MODULE_ID, TAGS_FLAG)) }));
+  const from = copySource({ id: scene.id, file: fileOf(src) }, others);
+  const terrainOf = (cells) => [...cells.values()].filter((c) => c.terrain).length;
+  const api = extrasHexApi();
+  const parties = new Set((game.modules.get("shadowdark-extras")?.api?.party?.list?.() ?? []).map((a) => a?.id));
+  let tables = 0;
+  try { tables = (await (await import("../encounter/encounter-terrain.mjs")).encounterZonesByRegion()).size; } catch { /* no tables pack */ }
+  return {
+    fit, anchored: !!app._state.origin, anchor: fit.keep ? "keep" : "rebuild",
+    placed: PLACEABLES.reduce((n, k) => n + (scene[k]?.size ?? 0), 0),
+    terrain: terrainOf(app._state.cells), total: A0_TOTAL,
+    copyFrom: from ? terrainOf(from.tags.cells) : 0, copyId: from?.id ?? null,
+    wrEntries: app._entries.length,
+    pins: scene.notes.filter((n) => Number.isInteger(n.getFlag(MODULE_ID, "hexPin")?.num)).length,
+    regions: new Set(decodeRegions(scene.getFlag(MODULE_ID, REGIONS_FLAG)).values()).size,
+    rules: Number(game.shadowdarkEnhancer?.rules?.hexesPerDay?.("walking")) > 0,
+    tables,
+    party: scene.tokens.some((tok) => tok.actor && (tok.actor.getFlag(MODULE_ID, "party") || parties.has(tok.actor.id))),
+    extras: {
+      hex: !!api,
+      // As isHexRulesScene reads it: Extras marks a map it has taken as a hexcrawl.
+      adopted: !!scene.flags?.["shadowdark-extras"]?.hexcrawl,
+      fogApi: typeof api?.setFogEnabled === "function",
+      fogOn: !!api?.isFogEnabled?.(scene.id),
+    },
+  };
+}
+
+/** The checklist rows: a read each, with what to do when it isn't done (literal keys, for i18n-keys). */
+const CHECKLIST = [
+  ["numbering", "SDE.hexMap.playable.row.numbering", "", (f) => f.anchored],
+  ["terrain", "SDE.hexMap.playable.row.terrain", "SDE.hexMap.playable.todo.terrain", (f) => f.terrain >= f.total],
+  ["keyed", "SDE.hexMap.playable.row.keyed", "SDE.hexMap.playable.todo.keyed", (f) => f.wrEntries > 0],
+  ["regions", "SDE.hexMap.playable.row.regions", "SDE.hexMap.playable.todo.regions", (f) => f.regions > 0],
+  ["pins", "SDE.hexMap.playable.row.pins", "SDE.hexMap.playable.todo.pins", (f) => f.pins > 0],
+  ["rules", "SDE.hexMap.playable.row.rules", "SDE.hexMap.playable.todo.rules", (f) => f.rules],
+  ["tables", "SDE.hexMap.playable.row.tables", "SDE.hexMap.playable.todo.tables", (f) => f.tables > 0],
+  ["party", "SDE.hexMap.playable.row.party", "SDE.hexMap.playable.todo.party", (f) => f.party],
+  ["extras", "SDE.hexMap.playable.row.extras", "SDE.hexMap.playable.todo.extras", (f) => f.extras.adopted],
+];
+
+/** What the map has now, as a list the GM can act on. */
+async function showPlayableChecklist(scene, f) {
+  const esc = foundry.utils.escapeHTML;
+  const data = { n: f.terrain, total: f.total, keyed: f.wrEntries, regions: f.regions, pins: f.pins, tables: f.tables };
+  const rows = CHECKLIST.map(([id, row, todo, ok]) => {
+    // Without Extras its row says it's optional, and nothing is missing.
+    const done = id === "extras" && !f.extras.hex ? null : ok(f);
+    const icon = done === null ? "fa-circle-minus" : done ? "fa-circle-check" : "fa-circle-xmark";
+    const note = done === null ? t("SDE.hexMap.playable.todo.extrasOptional") : (!done && todo ? t(todo) : "");
+    return `<li class="sde-hxt-check${done === false ? " sde-hxt-missing" : ""}"><i class="fa-solid ${icon}"></i> <span>${esc(t(row, data))}</span>${
+      note ? `<br><span class="hint">${esc(note)}</span>` : ""}</li>`;
+  });
+  if (f.extras.hex && !f.extras.fogApi) rows.push(`<li class="sde-hxt-check"><i class="fa-solid fa-circle-info"></i> <span>${esc(t("SDE.hexMap.playable.todo.fog"))}</span></li>`);
+  await foundry.applications.api.DialogV2.prompt({
+    window: { title: t("SDE.hexMap.playable.checklistTitle", { scene: scene.name }), icon: "fa-solid fa-list-check" },
+    position: { width: 520 },
+    content: `<ul class="sde-hxt-checklist">${rows.join("")}</ul>`,
+    ok: { label: t("SDE.hexMap.playable.ok") },
+    rejectClose: false,
+  });
+}
+
 export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
   static DEFAULT_OPTIONS = {
     id: "sde-hex-tagger",
@@ -224,6 +310,7 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
       hxtLearnFrom:    function (...a) { return this._onLearnFrom(...a); },
       hxtApplyLegend:  function (...a) { return this._onApplyLegend(...a); },
       hxtCancelLegend: function () { this._legend = null; this.render(); },
+      hxtPlayable:     function () { return HexTaggerApp.makePlayable(); },
     },
   };
 
@@ -254,6 +341,89 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
     if (!app) return 0;
     if (!(await app._onSample())) return 0;
     return app._onScanRegions();
+  }
+
+  /**
+   * Make this map playable: the Western Reaches A0 print (a0-print.mjs) on
+   * the viewed scene, GM only. Numbers the print with no input (keeping the
+   * grid when the print already fits it, else fitting the scene to the print),
+   * copies terrain and regions from another scene of the same print, writes the
+   * book's keyed hexes and pins them, and hands every hex to Shadowdark Extras
+   * once each has terrain. With no terrain to copy it ends in the Legend; a
+   * second press after it does the rest. Each step runs only when it is
+   * missing, on a tagger instance that is never shown; then the checklist
+   * says what the map has.
+   * @returns {Promise<boolean>} whether it ran
+   */
+  static async makePlayable() {
+    if (!game.user?.isGM) { ui.notifications?.warn(t("SDE.hexMap.notify.gmOnly")); return false; }
+    const scene = canvas?.scene;
+    const tf = backgroundTransform(canvas);
+    if (!scene || !isA0(tf?.texW, tf?.texH)) { ui.notifications?.warn(t("SDE.hexMap.playable.notA0")); return false; }
+    const app = new HexTaggerApp();
+    app._loadState();
+    await app._loadEntries();
+    // The book's key locations only: another book's crawl has no hexes on this print.
+    app._entries = app._entries.filter((e) => sourceFolderName(e.doc.getFlag(MODULE_ID, HEX_FLAG)?.source) === "Western Reaches");
+    app._entryUuid = app._entries.length ? ALL_CRAWLS : "";
+    const facts = await playableFacts(scene, app, tf);
+    const { run, confirm } = playablePlan(facts);
+    const say = (key, data) => ui.notifications?.info(t(key, data));
+    try {
+      if (run.includes("anchor")) {
+        if (confirm && !(await foundry.applications.api.DialogV2.confirm({
+          window: { title: t("SDE.hexMap.playable.title") }, content: `<p>${t("SDE.hexMap.playable.rebuildBody", { n: facts.placed })}</p>`,
+          rejectClose: false,
+        }))) return false;
+        say("SDE.hexMap.playable.progress.anchor");
+        // The numbering first, through replaceModuleFlag so any tags are kept; then the scene.
+        app._state.origin = facts.fit.origin;
+        await app._saveState();
+        if (facts.fit.keep) {
+          if (scene.grid.distance !== 6 || scene.grid.units !== "mi") await scene.update({ "grid.distance": 6, "grid.units": "mi" });
+        } else {
+          const d = facts.fit.data;
+          await scene.update({ width: d.width, height: d.height, padding: 0, shiftX: 0, shiftY: 0, grid: d.grid });
+          await (canvas.level ?? scene.levels.contents[0])?.update({ textures: { ...d.levels[0].textures, offsetX: 0, offsetY: 0, rotation: 0 } });
+        }
+        // Both redraw the canvas; the pins below need the new grid on it.
+        await canvas.draw(scene);
+      }
+      if (run.includes("copy")) {
+        const from = game.scenes.get(facts.copyId);
+        const n = copyTags(app._state, decodeTags(from.getFlag(MODULE_ID, TAGS_FLAG)));
+        await app._saveState();
+        const regions = from.getFlag(MODULE_ID, REGIONS_FLAG);
+        if (regions && !decodeRegions(scene.getFlag(MODULE_ID, REGIONS_FLAG)).size) await replaceModuleFlag(scene, REGIONS_FLAG, foundry.utils.deepClone(regions));
+        say("SDE.hexMap.playable.copied", { scene: from.name, n });
+      }
+      // The book's own terrain for its keyed hexes, after a copy: it replaces
+      // a copied guess, never a hand tag.
+      if (app._applyBookKey()) await app._saveState();
+      if (run.includes("pins")) {
+        say("SDE.hexMap.playable.progress.pins", { n: app._entries.length });
+        const { pinCrawlOnActiveScene } = await import("./hex-pins.mjs");
+        for (const e of app._entries) await pinCrawlOnActiveScene(e.doc);
+      }
+      if (run.includes("handoff")) {
+        say("SDE.hexMap.playable.progress.extras");
+        await app._onBuildDataset();
+      }
+      // Extras' own switch, when it has one (Extras #185): this module never writes Extras' flags.
+      if (run.includes("fog")) await extrasHexApi()?.setFogEnabled?.(scene.id, true);
+    } catch (err) {
+      console.error(`${MODULE_ID} | make this map playable`, err);
+      ui.notifications?.error(t("SDE.hexMap.playable.failed", { error: err.message }));
+      return false;
+    }
+    // An open tagger shows the new state; the Legend opens in it, or in a new one.
+    const shown = [...foundry.applications.instances.values()].find((a) => a instanceof HexTaggerApp);
+    if (shown) { shown._loadState(); shown._renumber(); }
+    if (run.includes("legend")) {
+      if (shown) { shown._autoLegend = true; shown.render(); } else HexTaggerApp.open({ legend: true });
+    } else shown?.render();
+    await showPlayableChecklist(scene, await playableFacts(scene, app, backgroundTransform(canvas)));
+    return true;
   }
 
   _onRender(context, options) {
@@ -783,10 +953,13 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
     // old header: "so cluttered and I honestly have no clue what it is trying
     // to do" — six primary buttons, five of which could not act yet.
     const done = total > 0 && summary.untagged === 0;
-    const primary = done ? "build" : (sampled && origin ? "legend" : "sample");
+    const tf = backgroundTransform(canvas);
+    const a0 = isA0(tf?.texW, tf?.texH);
+    const primary = done ? "build" : (a0 && !origin ? "playable" : (sampled && origin ? "legend" : "sample"));
     return {
-      legend, hasLegend: !!legend,
+      legend, hasLegend: !!legend, a0,
       primarySample: primary === "sample", primaryLegend: primary === "legend", primaryBuild: primary === "build",
+      primaryPlayable: primary === "playable",
       showMore: sampled || !!origin, moreOpen: !!this._moreOpen,
       // A control appears when it can do something and not before. Patrick, on
       // a scene with nothing tagged yet: "Half this shit I don't even know what
@@ -856,7 +1029,8 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
     });
     this._setProgress("");
     if (!components.size) return 0;
-    await replaceModuleFlag(scene, REGIONS_FLAG, encodeRegions(components));
+    // A re-scan keeps the GM's corrections to it (region-scan.mjs encodeRegions).
+    await replaceModuleFlag(scene, REGIONS_FLAG, encodeRegions(components, decodeRegionFixes(scene.getFlag(MODULE_ID, REGIONS_FLAG))));
     const total = new Set(components.values()).size;
     // Say what it found in the terms the GM can act on: how many of the
     // enclosures the book can name, and whether any of them ran together.

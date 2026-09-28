@@ -10492,6 +10492,11 @@ body.theme-light .sde-parry-note { color: #2e6b2e; }
 .sde-hxt-title { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; }
 .sde-hxt-stat, .sde-hxt-muted { font-size: 0.78rem; opacity: 0.8; }
 .sde-hxt-actions { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+/* Make this map playable's checklist (#257). */
+.sde-hxt-checklist { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.sde-hxt-check i { width: 1.2em; color: var(--sde-bar-miss, #60b050); }
+.sde-hxt-check.sde-hxt-missing i { color: var(--sde-bar-hit, #e05050); }
+.sde-hxt-check .hint { margin-left: 1.6em; }
 .sde-hxt-actions label { display: inline-flex; gap: 4px; align-items: center; font-size: 0.85rem; }
 .sde-hxt-note { margin: 0; font-size: 0.85rem; }
 .sde-hxt-error { margin: 0; padding: 6px 8px; border-left: 3px solid #e08a8a; font-size: 0.85rem; }
