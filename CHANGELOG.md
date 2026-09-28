@@ -39,6 +39,14 @@ it needs.
   **Encounter Roller** opens the roller, and **Continue** runs the rest of the
   clock. The day's check hours are no longer whispered; they are listed in the
   Travel panel.
+- **Travel encounters as often as you want them, and a panel that folds
+  away.** The Travel panel's Encounters step has **Adjust** for the GM: the
+  chance (1 to 5 in 6, one more on a pushed day) and the checks by day and by
+  night (0 to 4 each), the book's marked; they're under **Settings →
+  Overland** too. A new chance counts from the next check, a new number of
+  checks from the next Start day. **Roll a check now** rolls one more at this
+  hour, quietly. The Encounter panel's chevron folds it into a strip under
+  the bar with the hour, what turned up and **Continue**. (#257)
 - **Click a hex to travel there.** With the party token selected while
   travelling on the hex map, the cheapest route to the hex under the cursor is
   drawn with each hex's cost, and a tooltip gives the hexes, the miles, the

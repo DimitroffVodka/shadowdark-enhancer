@@ -69,7 +69,7 @@ Object.assign(globalThis, {
     modules: { get: () => null },
   },
 });
-const { applyAction, registerOverland, weatherNow, recordMove, advanceTravel, undergroundCheck } = await import("../scripts/overland/overland.mjs");
+const { applyAction, registerOverland, weatherNow, recordMove, advanceTravel, undergroundCheck, checkNow } = await import("../scripts/overland/overland.mjs");
 const { BOAT_TYPE } = await import("../scripts/actors/register-actors.mjs");
 const { CrawlState } = await import("../scripts/crawl-strip/crawl-state.mjs");
 
@@ -115,6 +115,8 @@ test("a non-primary GM's client refuses to do the work", async () => {
 function weatherWorld(rule = "western") {
   stored.overlandState = {};
   stored.overlandWeatherRule = rule;
+  // The encounter checks' settings (#257): unset is the book's, 1 in 6, two and two.
+  for (const k of ["overlandEncounterChance", "overlandEncounterDay", "overlandEncounterNight"]) delete stored[k];
   registerOverland();
   globalThis.game.time.worldTime = at(1301, 6, 21, 12);
   dice.length = rolled.length = cards.length = 0;
@@ -308,11 +310,12 @@ async function dayWithChecks(d12s, hits = []) {
 
 test("Start day rolls four check hours and keeps them off chat; a check already past falls due at once, quietly", async () => {
   const calls = await dayWithChecks([2, 9, 1, 12]);  // day 07:00 and 14:00, night 18:00 and 05:00
+  assert.ok(rolled.includes("4d12"), "the book's two and two");
   const hours = stored.overlandState.checks.map((c) => [c.half, c.at, c.chance]);
   assert.deepEqual(hours, [
-    ["day", at(1301, 6, 21, 7), 1], ["day", at(1301, 6, 21, 14), 1],
-    ["night", at(1301, 6, 21, 18), 1], ["night", at(1301, 6, 22, 5), 1],
-  ]);
+    ["day", at(1301, 6, 21, 7), 1], ["day", at(1301, 6, 21, 14), null],
+    ["night", at(1301, 6, 21, 18), null], ["night", at(1301, 6, 22, 5), null],
+  ], "only the rolled check has its chance yet");
   // The Travel panel's Encounters step lists the hours for the GM; chat gets nothing (#257).
   assert.ok(!cards.some((c) => /check\.hours/.test(String(c.content ?? ""))), "no check-hours line");
   assert.equal(calls.length, 1, "07:00 had gone by when the day started at 08:00");
@@ -322,12 +325,46 @@ test("Start day rolls four check hours and keeps them off chat; a check already 
   assert.deepEqual(stored.overlandState.checks.map((c) => c.rolled), [true, false, false, false]);
 });
 
-test("a pushed day checks at 2-in-6, all four", async () => {
+test("each check rolls at the chance of its moment: the setting, a change counting at once (#257)", async () => {
+  const calls = await dayWithChecks([2, 9, 1, 12]);          // 07:00 went at the 08:00 start; 14:00, 18:00, 05:00 ahead
+  assert.equal(calls[0].threshold, 1, "the book's 1 in 6");
+  stored.overlandEncounterChance = 3;                        // the GM's Adjust, mid-day
+  await advanceTravel(at(1301, 6, 21, 15), "clock");
+  assert.equal(calls[1].threshold, 3, "the 14:00 check rolls at the new chance");
+  assert.deepEqual(stored.overlandState.checks.map((c) => c.chance), [1, 3, null, null], "each marked with the chance it rolled at");
+});
+
+test("on a pushed day each check rolls at one more, the night's too, never past 6 in 6 (#257)", async () => {
+  for (const [setting, chance] of [[undefined, 2], [5, 6]]) {
+    travellingDay();
+    if (setting) stored.overlandEncounterChance = setting;
+    const thresholds = [];
+    globalThis.game.shadowdarkEnhancer.encounter = { check: async (opts) => { thresholds.push(opts.threshold); return { hit: false }; } };
+    globalThis.game.time.worldTime = at(1301, 6, 21, 5);
+    dice.push(3, 2, 9, 1, 12);
+    await applyAction({ action: "startDay", method: "walking", pushed: true }, gm);
+    await advanceTravel(at(1301, 6, 22, 6), "camp");
+    assert.deepEqual(thresholds, [chance, chance, chance, chance], `setting ${setting ?? "unset"}`);
+    assert.deepEqual(stored.overlandState.checks.map((c) => c.chance), [chance, chance, chance, chance]);
+  }
+});
+
+test("Start day rolls as many check hours as the settings say; a new number waits for the next Start day (#257)", async () => {
   travellingDay();
+  stored.overlandEncounterDay = 1;
+  stored.overlandEncounterNight = 3;
   globalThis.game.time.worldTime = at(1301, 6, 21, 5);
-  dice.push(3, 2, 9, 1, 12);
-  await applyAction({ action: "startDay", method: "walking", pushed: true }, gm);
-  assert.deepEqual(stored.overlandState.checks.map((c) => c.chance), [2, 2, 2, 2]);
+  dice.push(3, 4, 1, 2, 3);                                  // the weather; 09:00 by day, 18:00, 19:00 and 20:00 by night
+  await applyAction({ action: "startDay", method: "walking" }, gm);
+  assert.deepEqual(stored.overlandState.checks.map((c) => [c.half, c.at]), [
+    ["day", at(1301, 6, 21, 9)], ["night", at(1301, 6, 21, 18)], ["night", at(1301, 6, 21, 19)], ["night", at(1301, 6, 21, 20)],
+  ]);
+  stored.overlandEncounterDay = stored.overlandEncounterNight = 0;
+  assert.equal(stored.overlandState.checks.length, 4, "today's checks stay");
+  rolled.length = 0;
+  await applyAction({ action: "startDay", method: "walking" }, gm);
+  assert.deepEqual(stored.overlandState.checks, [], "the next Start day: none set, none rolled");
+  assert.ok(!rolled.some((f) => f.endsWith("d12")), "and no dice for them");
 });
 
 test("Start day with nothing given reads the party and keeps the standing pace; a push chosen there becomes it (#257)", async () => {
@@ -413,6 +450,64 @@ test("a travel check resolves its table on the travel token's scene, not the one
   await applyAction({ action: "startDay", method: "walking" }, gm);
   assert.equal(calls.length, 1);
   assert.equal(calls[0].scene, travelScene);
+});
+
+// ── Roll a check now (#257, the Encounters step) ──────────────────────────────
+
+test("Roll a check now: one quiet check at this hour on the travel hex, at the chance of the moment; a miss changes nothing", async () => {
+  const calls = await dayWithChecks([12, 12, 12, 12]);      // 17:00 and 05:00: nothing due at 08:00
+  stored.overlandEncounterChance = 2;
+  const before = structuredClone(stored.overlandState);
+  const now = globalThis.game.time.worldTime;
+  assert.deepEqual(await applyAction({ action: "checkNow" }, gm), { ok: true, hit: false, chance: 2 });
+  assert.equal(calls.length, 1);
+  const [c] = calls;
+  assert.deepEqual([c.threshold, c.quiet, c.travel, c.at, c.label], [2, true, false, now, "SDE.overland.check.day"]);
+  assert.deepEqual(stored.overlandState, before, "the day's checks, the encounter and the clock are as they were");
+  assert.equal(globalThis.game.time.worldTime, now);
+});
+
+test("Roll a check now: a hit holds its encounter with no pending; another waits for Continue", async () => {
+  travellingDay();
+  globalThis.game.time.worldTime = at(1301, 6, 21, 5);
+  dice.push(3, 12, 12, 12, 12);
+  await applyAction({ action: "startDay", method: "walking", pushed: true }, gm);
+  const calls = [];
+  globalThis.game.shadowdarkEnhancer.encounter = {
+    check: async (opts) => { calls.push(opts); return { hit: true, encounter: { kind: "flavor", text: "Smoke on the ridge" } }; },
+  };
+  globalThis.game.time.worldTime = at(1301, 6, 21, 21);     // a night hour, the day's own checks left alone
+  assert.deepEqual(await applyAction({ action: "checkNow" }, gm), { ok: true, hit: true, chance: 2 }, "pushed: one more");
+  const enc = stored.overlandState.encounter;
+  assert.deepEqual([enc.at, enc.half, enc.chance, enc.kind, enc.text], [at(1301, 6, 21, 21), "night", 2, "flavor", "Smoke on the ridge"]);
+  assert.equal(calls[0].label, "SDE.overland.check.night");
+  assert.equal(stored.overlandState.pending, null, "no advance was stopped");
+  assert.ok(stored.overlandState.checks.every((ch) => !ch.rolled), "the day's checks are untouched");
+  assert.deepEqual(await applyAction({ action: "checkNow" }, gm), { ok: false, error: "SDE.overland.notify.checkHeld" });
+  assert.equal(calls.length, 1, "a second hit would replace the first: not rolled");
+  assert.deepEqual(await applyAction({ action: "resume" }, gm), { ok: true });
+  assert.equal(stored.overlandState.encounter, null, "Continue clears it");
+});
+
+test("Roll a check now is a GM's, while travelling; a GM who isn't the active GM sends it there", async () => {
+  const calls = await dayWithChecks([12, 12, 12, 12]);
+  assert.deepEqual(await applyAction({ action: "checkNow" }, { id: "player1", isGM: false }), { ok: false, error: "SDE.overland.notify.checkGmOnly" });
+  CrawlState._state = { ...CrawlState._state, mode: "off" };
+  assert.equal((await applyAction({ action: "checkNow" }, gm)).error, "SDE.overland.notify.notTravelling");
+  assert.equal(calls.length, 0);
+  const { user, users } = globalThis.game;
+  const queried = [];
+  try {
+    globalThis.game.user = { id: "player1", isGM: false };
+    assert.equal((await checkNow()).ok, false, "a player's click goes nowhere");
+    globalThis.game.user = { id: "gm2", isGM: true, hasPermission: () => true };
+    globalThis.game.users = { ...users, activeGM: { id: "gm", query: async (name, data) => { queried.push([name, data]); return { ok: true, hit: false, chance: 1 }; } } };
+    assert.deepEqual(await checkNow(), { ok: true, hit: false, chance: 1 });
+  } finally {
+    globalThis.game.user = user;
+    globalThis.game.users = users;
+  }
+  assert.deepEqual(queried, [["shadowdark-enhancer.overland", { action: "checkNow" }]]);
 });
 
 // ── Forage, camp and the underground check (#233) ─────────────────────────────

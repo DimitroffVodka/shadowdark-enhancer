@@ -5,8 +5,10 @@
  * reaches chat, and what it drew is held in Overland's `encounter` for the GMs.
  * This panel shows it: the check, the chain of tables it went through, the
  * creature and how many, and the distance, activity and reaction rolls. Post
- * to chat shows the players; Continue runs the rest of the clock. The buttons
- * are the clock HUD's (overland-bar.mjs handles their data-action).
+ * to chat shows the players; Continue runs the rest of the clock. The chevron
+ * folds the panel into a strip under the bar, which keeps Continue at hand.
+ * The buttons are the clock HUD's (overland-bar.mjs handles their data-action;
+ * the chevrons are its panel toggle, "open" "encounter").
  */
 
 import { esc } from "../shared/esc.mjs";
@@ -17,6 +19,14 @@ const t = (key, data) => (data ? game.i18n.format(key, data) : game.i18n.localiz
 const gold = (v) => `<span class="sde-hud-gold">${esc(v)}</span>`;
 const key = (action, label, { cls = "", hint = "" } = {}) =>
   `<button type="button" class="sde-hud-key ${cls}" data-action="${action}"${hint ? ` data-tooltip="${esc(hint)}"` : ""}>${esc(label)}</button>`;
+/** The chevron that folds the panel (open) or unfolds the strip: the HUD's toggle of the encounter panel. */
+const chevron = (open) => {
+  const label = t(open ? "SDE.clock.enc.fold" : "SDE.clock.enc.unfold");
+  return `<button type="button" class="sde-hud-ib" data-action="open" data-id="encounter" aria-expanded="${open}" aria-label="${esc(label)}" data-tooltip="${
+    esc(label)}"><i class="fa-solid ${open ? "fa-chevron-up" : "fa-chevron-down"}"></i></button>`;
+};
+/** A flavor line cut at a word to about `n` characters, for the strip. */
+const shorten = (s, n = 48) => (s.length <= n ? s : `${s.slice(0, s.lastIndexOf(" ", n) > 0 ? s.lastIndexOf(" ", n) : n)}…`);
 
 /** A table in the chain, as a chip: its name, its dice and their roll (no-break spaces: a flex chip drops plain ones). */
 const tableChip = (l) => `<span class="sde-hud-chip">${esc(l.name ?? "")}${
@@ -60,7 +70,7 @@ export function encounterPanel({ enc, cal }) {
   }
   const also = enc.also.map((a) => `<p class="sde-hud-fl">${esc(t("SDE.clock.enc.also", { table: a.name ?? "", text: a.text ?? "" }))}</p>`).join("");
   return `<div class="sde-hud-panel sde-hud-enc">
-    <div class="sde-hud-ph"><span class="sde-hud-cap">${esc(header)}</span></div>
+    <div class="sde-hud-ph sde-hud-ph-row"><span class="sde-hud-cap sde-hud-grow">${esc(header)}</span>${chevron(true)}</div>
     <div class="sde-hud-pb">
       <span class="sde-hud-bl sde-hud-big">${esc(t("SDE.encounter.chat.heading"))}</span>
       ${chain ? `<div class="sde-hud-chain">${chain}</div>` : ""}
@@ -75,5 +85,24 @@ export function encounterPanel({ enc, cal }) {
       <span class="sde-hud-grow"></span>
       ${key("resume", t("SDE.overland.resume"), { cls: "sde-hud-primary", hint: t("SDE.overland.resumeHint") })}
     </div>
+  </div>`;
+}
+
+/**
+ * The panel folded (#257): a strip under the bar, for a GM, while the
+ * encounter is held. "Encounter · 14:00 · 3 Wolf" (or the point of interest's
+ * text, shortened), the chevron that opens the panel again, and Continue.
+ * @param {{enc:object, cal:object}} v  enc: Overland's `encounter`; cal: the calendar
+ */
+export function encounterStrip({ enc, cal }) {
+  let what;
+  if (enc.kind === "monster") what = `${enc.count !== null && enc.count !== undefined ? `<b>${esc(enc.count)}</b> ` : ""}${esc(enc.name ?? "")}`;
+  else if (enc.kind === "flavor") what = esc(shorten(enc.text ?? ""));
+  else what = esc(t(enc.noTable ? "SDE.clock.enc.stripNoTable" : "SDE.clock.enc.stripEmpty"));
+  return `<div class="sde-hud-strip">
+    <span class="sde-hud-bl">${esc(t("SDE.encounter.chat.heading"))}</span>
+    <span class="sde-hud-cap"${enc.kind === "flavor" ? ` data-tooltip="${esc(enc.text ?? "")}"` : ""}>${esc(dateParts(cal, enc.at).time)} · ${what}</span>
+    ${chevron(false)}
+    ${key("resume", t("SDE.overland.resume"), { cls: "sde-hud-sm", hint: t("SDE.overland.resumeHint") })}
   </div>`;
 }

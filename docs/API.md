@@ -1655,12 +1655,17 @@ tokens, a combat, and moves while not travelling are left alone.
 
 Added in 1.17.0 (Overland O6, #232; design §5.1 step 4, §5.3, Q4, §5.7).
 
-- **The day's checks.** Start day rolls four d12s for their hours: two day
-  checks at 06:00 + (d12 − 1) h, and two night checks at 18:00 + (d12 − 1) h,
-  so up to 05:00 the next morning.
-  - The chance is 1-in-6, or 2-in-6 for all four on a pushed day.
-  - They are stored as `checks: [{ half, at, chance, rolled, hit }]`.
-  - The GM alone gets a chat line with the hours; players never see them.
+- **The day's checks.** Start day rolls a d12 for each check's hour: day
+  checks at 06:00 + (d12 − 1) h, and night checks at 18:00 + (d12 − 1) h,
+  so up to 05:00 the next morning. How many of each is the world's
+  `overlandEncounterDay` and `overlandEncounterNight` settings at that Start
+  day, 0 to 4 (since 1.24.0; the book's two and two).
+  - The chance is the `overlandEncounterChance` setting, 1 to 5 in 6 (the
+    book's 1), one more on a pushed day for every check, the night's
+    included. Since 1.24.0 it is read as each check rolls.
+  - They are stored as `checks: [{ half, at, chance, rolled, hit }]`, where
+    `chance` is the one the check rolled at, `null` until it rolls.
+  - The GMs see the hours in the Travel panel's Encounters step; players never see them.
   - A check whose hour went by before the day was started falls due at once.
 - **Rolling them.** Every Overland clock advance (a move, and later the
   night's camp) runs from now to its target. Each unrolled check whose hour

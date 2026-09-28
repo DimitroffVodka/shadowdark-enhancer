@@ -11,7 +11,7 @@
 
 import { esc } from "../shared/esc.mjs";
 import { dateParts } from "../time/time-core.mjs";
-import { forageDC } from "./overland-state-core.mjs";
+import { BOOK_CHECKS, encounterChance, forageDC } from "./overland-state-core.mjs";
 import { TRAVEL_STEPS, currentStep, sightParts } from "./hud-core.mjs";
 
 const t = (key, data) => (data ? game.i18n.format(key, data) : game.i18n.localize(key));
@@ -49,10 +49,13 @@ function pointTime(seconds, cal) {
  * is whether Shadowdark Extras, whose hex fog shows what the party sees, is on.
  * `party` is the party as the Method step reads it (overland.mjs partyReading):
  * the method it would travel by, and each member's mount; `nextBase`, that
- * method's hexes a day (0 when nothing says).
+ * method's hexes a day (0 when nothing says). `frequency` is the encounter
+ * settings (overland.mjs encounterSettings), and `adjust` whether a GM opened
+ * the Encounters step's Adjust rows.
  * @param {{state:object, model:object, gm:boolean, see:number|null, cal:object,
  *   night:boolean, rules:object|null, season:string, weather:string|null, extras:boolean,
  *   party:{method:string, ride:Object<string,string>}, nextBase:number,
+ *   frequency?:{chance:number, day:number, night:number}, adjust?:boolean,
  *   weatherName:Function, methodName:Function}} v
  */
 export function travelPanel(v) {
@@ -160,10 +163,17 @@ function stepBody(n, v, sight) {
         + (gm ? `<div class="sde-hud-trow">${key("makeCamp", t("SDE.overland.makeCamp"), { cls: "sde-hud-primary", hint: t("SDE.overland.makeCampHint") })}</div>` : "");
     }
     case 6: {
-      const chance = state.checks[0]?.chance ?? (state.pushed ? 2 : 1);
-      const by = (half) => state.checks.filter((c) => c.half === half).length;
+      const f = v.frequency ?? BOOK_CHECKS;
+      // The chance a check rolls at now; today's checks, or the next dawn's before a day is started.
+      const chance = encounterChance(f.chance, state.pushed);
+      const by = (half) => (m.dayOpen ? state.checks.filter((c) => c.half === half).length : f[half]);
+      const keys = gm ? `<button type="button" class="sde-hud-key sde-hud-sm" data-action="adjust" aria-expanded="${!!v.adjust}" data-tooltip="${
+        esc(t("SDE.travel.encounters.adjustHint"))}">${esc(t("SDE.travel.encounters.adjust"))}</button>${
+        key("checkNow", t("SDE.travel.encounters.checkNow"), { cls: "sde-hud-sm", hint: t("SDE.travel.encounters.checkNowHint") })}` : "";
       return h3 + fl("SDE.travel.encounters.about")
-        + `<div class="sde-hud-trow"><span class="sde-hud-cap">${t("SDE.travel.encounters.summary", { chance: `<b>${chance}</b>`, day: `<b>${by("day")}</b>`, night: `<b>${by("night")}</b>` })}</span></div>`
+        + `<div class="sde-hud-trow"><span class="sde-hud-cap">${t("SDE.travel.encounters.summary", { chance: `<b>${chance}</b>`, day: `<b>${by("day")}</b>`, night: `<b>${by("night")}</b>` })}${
+          state.pushed ? esc(t("SDE.travel.encounters.pushed")) : ""}</span>${keys}</div>`
+        + (gm && v.adjust ? adjustRows(f) : "")
         + checks(v, "day");
     }
     case 7:
@@ -177,11 +187,25 @@ function stepBody(n, v, sight) {
   }
 }
 
+/**
+ * The GM's Adjust rows (#257): the chance in 6 and the checks by day and by
+ * night, each a row of numbers, the pressed one the setting's, the book's marked.
+ */
+function adjustRows(f) {
+  const row = (kind, label, values) => `<span class="sde-hud-cap">${esc(t(label))}</span><span class="sde-hud-nums" role="group" aria-label="${esc(t(label))}">${
+    values.map((n) => `<button type="button" data-action="encSet" data-id="${kind}" data-n="${n}" aria-pressed="${f[kind] === n}">${n}${
+      n === BOOK_CHECKS[kind] ? ` <span class="sde-hud-book">${esc(t("SDE.travel.encounters.book"))}</span>` : ""}</button>`).join("")}</span>`;
+  return `<div class="sde-hud-adjust">${row("chance", "SDE.travel.encounters.chanceRow", [1, 2, 3, 4, 5])}${
+    row("day", "SDE.travel.encounters.dayRow", [0, 1, 2, 3, 4])}${row("night", "SDE.travel.encounters.nightRow", [0, 1, 2, 3, 4])}</div>`
+    + `<p class="sde-hud-fl">${esc(t("SDE.travel.encounters.adjustNote"))}</p>`;
+}
+
 /** A half's checks for a GM (dot, hour, what came of it); players hear of one only when something turns up. */
 function checks(v, half) {
   if (!v.gm) return `<p class="sde-hud-fl">${esc(t("SDE.travel.encounters.players"))}</p>`;
   const list = v.state.checks.filter((c) => c.half === half);
-  if (!list.length) return `<p class="sde-hud-fl">${esc(t("SDE.travel.encounters.none"))}</p>`;
+  // A day started with none set for this half (the GM's Adjust) has none, rather than none yet.
+  if (!list.length) return `<p class="sde-hud-fl">${esc(t(v.model.dayOpen ? "SDE.travel.encounters.noneToday" : "SDE.travel.encounters.none"))}</p>`;
   return list.map((c) => `<div class="sde-hud-checkrow"><span class="sde-hud-dot ${c.rolled ? (c.hit ? "sde-hud-hit" : "sde-hud-miss") : ""}"></span>
     <span class="sde-hud-cap sde-hud-w">${esc(t(half === "day" ? "SDE.travel.encounters.travel" : "SDE.travel.encounters.rest"))}</span>
     <span class="sde-hud-tm">${esc(dateParts(v.cal, c.at).time)}</span>

@@ -219,10 +219,13 @@ with forage and camp.
 - **Start** still begins a crawl, for example when the party reaches a dungeon.
   To travel again after a crawl, end the crawl first.
 
-- **Encounter checks.** Start day sets four check hours, listed for you alone
-  in the Travel panel's Encounters step: two by day between 06:00 and 17:00,
-  and two at night between 18:00 and 05:00. The chance is 1 in 6, or 2 in 6 on
-  a pushed day. When a move's clock passes a check's hour, it's rolled quietly
+- **Encounter checks.** Start day sets the day's check hours, listed for you
+  alone in the Travel panel's Encounters step: by the book two by day between
+  06:00 and 17:00, and two at night between 18:00 and 05:00, at 1 in 6, one
+  more on a pushed day. **Adjust** there (or **Settings → Overland**) changes
+  the chance and how many checks by day and by night; see
+  [Clock and Calendar](Clock-and-Calendar.md#encounters-while-travelling-gm).
+  When a move's clock passes a check's hour, it's rolled quietly
   at that hour on the table for the party's hex, day or night columns and the
   moon included. A hit stops the clock at that hour and opens the clock bar's
   [Encounter panel](Clock-and-Calendar.md#encounters-while-travelling-gm):

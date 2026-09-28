@@ -69,6 +69,44 @@ test("the Method step reads the party: each member's mount or on foot, and what 
   assert.ok(travelPanel(v).includes("SDE.travel.method.onFoot") && !travelPanel(v).includes("SDE.travel.method.nextDawn"));
 });
 
+test("the Encounters step: the GM's Adjust rows, the setting pressed and the book's marked; players get neither (#257)", () => {
+  const v = view({ see: 6, gm: true, adjust: true, frequency: { chance: 3, day: 1, night: 2 } });
+  v.state = { ...v.state, pending: null, pushed: true };
+  const html = travelPanel(v);
+  assert.ok(html.includes('data-action="adjust" aria-expanded="true"') && html.includes('data-action="checkNow"'));
+  const pressed = [...html.matchAll(/data-id="(\w+)" data-n="(\d)" aria-pressed="true"/g)].map((m) => `${m[1]}${m[2]}`);
+  assert.deepEqual(pressed, ["chance3", "day1", "night2"], "each row presses the setting's number");
+  assert.equal([...html.matchAll(/data-action="encSet"/g)].length, 15, "chance 1-5, 0-4 by day, 0-4 by night");
+  const book = [...html.matchAll(/data-id="(\w+)" data-n="(\d)" aria-pressed="\w+">\d <span class="sde-hud-book">/g)].map((m) => `${m[1]}${m[2]}`);
+  assert.deepEqual(book, ["chance1", "day2", "night2"], "the book's value in each row");
+  assert.ok(html.includes("SDE.travel.encounters.adjustNote"));
+  assert.ok(html.includes('SDE.travel.encounters.summary{"chance":"<b>4</b>"'), "the chance now: 3, one more pushed");
+  assert.ok(html.includes("SDE.travel.encounters.pushed"));
+
+  // Folded: the Adjust key, no rows.
+  const folded = travelPanel({ ...v, adjust: false });
+  assert.ok(folded.includes('aria-expanded="false"') && !folded.includes('data-action="encSet"'));
+
+  // A player: the summary only, whatever the view says.
+  const player = travelPanel({ ...v, gm: false });
+  assert.ok(player.includes("SDE.travel.encounters.summary"));
+  for (const bit of ['data-action="adjust"', 'data-action="encSet"', 'data-action="checkNow"', "SDE.travel.encounters.adjustNote"]) {
+    assert.ok(!player.includes(bit), `no ${bit} for a player`);
+  }
+});
+
+test("the Encounters step counts today's checks, or the settings' before a day starts, and says when a day has none (#257)", () => {
+  const v = view({ see: 6, gm: true, frequency: { chance: 1, day: 3, night: 0 } });
+  v.state = { ...v.state, pending: null, checks: [] };
+  const summary = (html) => html.match(/SDE\.travel\.encounters\.summary(\{[^}]*\})/)[1];
+  const today = travelPanel(v);
+  assert.deepEqual(JSON.parse(summary(today)), { chance: "<b>1</b>", day: "<b>0</b>", night: "<b>0</b>" }, "a day open: today's, none");
+  assert.ok(today.includes("SDE.travel.encounters.noneToday"));
+  const before = travelPanel({ ...v, model: { ...v.model, dayOpen: false } });
+  assert.deepEqual(JSON.parse(summary(before)), { chance: "<b>1</b>", day: "<b>3</b>", night: "<b>0</b>" }, "no day: the next dawn's");
+  assert.ok(before.includes("SDE.travel.encounters.none") && !before.includes("SDE.travel.encounters.noneToday"));
+});
+
 test("the Speed step: the GM's Normal | Push switch, and a change that waits for the next dawn (#257)", () => {
   const v = view({ see: 4, gm: true, nextBase: 4 });
   v.state = { ...v.state, pending: null, pace: "push", pushed: false, base: 4 };

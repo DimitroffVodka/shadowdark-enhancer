@@ -71,6 +71,19 @@ Only the GMs see it. **Post to chat** shows the players the encounter card.
 reaction, or place the tokens. **Continue** clears it and runs the rest of the
 clock.
 
+The chevron at the panel's top right folds it into a strip under the bar:
+**Encounter**, the check's hour and what turned up (a point of interest's text,
+shortened). The strip stays while the encounter is held, above the sky or
+whichever panel you open meanwhile. Its chevron opens the panel again, and its
+**Continue** is the panel's.
+
+How often the checks come is yours to change: **Adjust** in the Travel panel's
+Encounters step sets the chance (1 to 5 in 6, one more on a pushed day) and the
+checks by day and by night (0 to 4 each; the book's is 1 in 6, two and two). A
+new chance counts from the next check, a new number of checks from the next
+Start day. **Roll a check now** rolls one more at this hour, quietly; a hit
+opens the panel.
+
 The Time panel's **Clock runs in real time** is Shadowdark's own light
 tracking clock: a second a second, paused with the game when the system says so.
 

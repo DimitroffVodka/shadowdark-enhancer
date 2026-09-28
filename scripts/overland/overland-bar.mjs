@@ -32,11 +32,11 @@ import {
 } from "../time/time-core.mjs";
 import {
   overlandState, weatherNow, weatherName, methodName, rollWeather, startDayFromParty, setTravelPace, partyReading, makeCamp,
-  endOverland, resume, forage, startOverland, advanceClock, OVERLAND_CHANGED,
+  endOverland, resume, forage, startOverland, advanceClock, checkNow, encounterSettings, ENCOUNTER_SETTINGS, OVERLAND_CHANGED,
 } from "./overland.mjs";
 import { barModel, itemTouchesBar, redrawStamp } from "./overland-bar-core.mjs";
 import { travelPanel } from "./travel-panel.mjs";
-import { encounterCard, encounterPanel } from "./encounter-panel.mjs";
+import { encounterCard, encounterPanel, encounterStrip } from "./encounter-panel.mjs";
 import { postEncounter } from "../encounter/encounter-draw.mjs";
 import { DIAL, DIAL_STARS, clockShown, clockSteps, dateToTime, dialModel, monthGrid, seasonHatch, starPoint } from "./hud-core.mjs";
 
@@ -86,6 +86,8 @@ export const TravelBar = {
   _monthOffset: 0,
   /** The travel step the viewer opened, or null for the day's own. */
   _see: null,
+  /** Whether a GM opened the Encounters step's Adjust rows. */
+  _adjust: false,
   /** The imported holidays, read when the month view opens. */
   _holidays: [],
   _drawn: "",
@@ -261,11 +263,14 @@ export const TravelBar = {
   },
 
   _drop() {
-    if (this._open === "encounter") return encounterPanel({ enc: overlandState().encounter, cal: game.time.calendar });
-    if (this._open === "time") return this._timePanel();
-    if (this._open === "month") return this._monthPanel();
-    if (this._open === "travel") return this._travelPanel();
-    return this._sky ? `${this._seasonBand()}${this._dial()}` : "";
+    const enc = overlandState().encounter;
+    if (this._open === "encounter") return encounterPanel({ enc, cal: game.time.calendar });
+    // Folded, a held encounter rides under the bar as a strip, above whatever else is open (#257).
+    const strip = game.user.isGM && enc && CrawlState.isOverland ? encounterStrip({ enc, cal: game.time.calendar }) : "";
+    if (this._open === "time") return strip + this._timePanel();
+    if (this._open === "month") return strip + this._monthPanel();
+    if (this._open === "travel") return strip + this._travelPanel();
+    return strip + (this._sky ? `${this._seasonBand()}${this._dial()}` : "");
   },
 
   _seasonBand() {
@@ -416,6 +421,7 @@ export const TravelBar = {
       night: !!game.shadowdarkEnhancer?.time?.isNight?.(now, { region: state.hex?.region }),
       rules, season: t(seasonAt(cal, now).name ?? ""), weatherName, methodName,
       weather: weatherNow(), extras: !!game.modules.get("shadowdark-extras")?.active,
+      frequency: encounterSettings(), adjust: this._adjust,
       ...this._partyFor(),
     });
   },
@@ -461,6 +467,7 @@ export const TravelBar = {
         this._open = this._open === id ? null : id;
         this._when = null;
         this._see = null;
+        this._adjust = false;
         if (this._open === "month") {
           this._monthOffset = 0;
           await this._loadHolidays();
@@ -510,6 +517,25 @@ export const TravelBar = {
         return warn(reply);
       }
       case "makeCamp": return warn(await makeCamp());
+      case "adjust": this._adjust = !this._adjust; return this.render();
+      // A GM's number in the Adjust rows is the world setting: every client redraws on its change.
+      case "encSet": {
+        if (!game.user.isGM || !Object.hasOwn(ENCOUNTER_SETTINGS, id)) return undefined;
+        return game.settings.set(MODULE_ID, ENCOUNTER_SETTINGS[id], Number(el.dataset.n))
+          .catch((err) => console.error(`${MODULE_ID} | encounter checks setting`, err));
+      }
+      case "checkNow": {
+        // A double click rolls one check, not two.
+        if (this._moving) return undefined;
+        this._moving = true;
+        try {
+          const reply = await checkNow();
+          if (reply?.ok && !reply.hit) ui.notifications.info(t("SDE.travel.encounters.checkNothing", { chance: reply.chance }));
+          return warn(reply);
+        } finally {
+          this._moving = false;
+        }
+      }
       case "endTravel": this._open = null; return endOverland();
       default: return undefined;
     }

@@ -51,13 +51,13 @@ const int = (v, min = 0) => (Number.isFinite(Number(v)) ? Math.max(min, Math.tru
 const ids = (v) => [...new Set((Array.isArray(v) ? v : []).filter((id) => typeof id === "string" && id))];
 const obj = (v) => (v && typeof v === "object" && !Array.isArray(v) ? { ...v } : null);
 
-/** A stored encounter check, or null when it isn't one. */
+/** A stored encounter check, or null when it isn't one. Its chance is the one it rolled at: none until rolled (#257). */
 function checkOf(v) {
   if (!obj(v) || !Number.isFinite(v.at)) return null;
   return {
     half: v.half === "night" ? "night" : "day",
     at: v.at,
-    chance: Math.min(6, int(v.chance, 1)),
+    chance: v.rolled === true ? Math.min(6, int(v.chance, 1)) : null,
     rolled: v.rolled === true,
     hit: typeof v.hit === "boolean" ? v.hit : null,
   };
@@ -211,9 +211,9 @@ export function closeDay(state) {
   return { state: next, changed: true };
 }
 
-/** Check `index` was rolled, and hit or not. */
-export function markCheck(state, index, hit) {
-  const checks = state.checks.map((c, i) => (i === index ? { ...c, rolled: true, hit: !!hit } : c));
+/** Check `index` was rolled at `chance` in 6, and hit or not. */
+export function markCheck(state, index, hit, chance) {
+  const checks = state.checks.map((c, i) => (i === index ? { ...c, rolled: true, hit: !!hit, chance } : c));
   return { state: normalizeOverlandState({ ...state, checks }), changed: true };
 }
 
@@ -360,9 +360,8 @@ export function setPace(state, pace) {
   const today = state.day !== null && state.spent === 0 && !state.foraged.length && push !== state.pushed && state.base > 0;
   const next = normalizeOverlandState({
     ...state, pace: push ? "push" : "normal",
-    // Today's unrolled checks take the new pace's chance too: one more in 6 when pushing.
-    ...(today ? { pushed: push, budget: dayBudget(state.base, push),
-      checks: state.checks.map((c) => (c.rolled ? c : { ...c, chance: push ? 2 : 1 })) } : {}),
+    // Today's checks still to roll read the chance as they roll: `pushed` gives them one more in 6.
+    ...(today ? { pushed: push, budget: dayBudget(state.base, push) } : {}),
   });
   return { state: next, changed: JSON.stringify(next) !== JSON.stringify(state), today };
 }
@@ -426,21 +425,37 @@ export function moveVerdict(state, { cost, blocked }) {
 
 // ── Encounter checks (#232, design §5.1 step 4, §5.3, §5.7) ────────────────
 
+/** The book's encounter checks (GMWR p.40): 1 in 6, twice by day and twice by night. */
+export const BOOK_CHECKS = Object.freeze({ chance: 1, day: 2, night: 2 });
+
 /**
- * The day's four checks from four d12s: two by day at 06:00 + (d12 − 1) h
- * (06:00 to 17:00) and two at night at 18:00 + (d12 − 1) h (18:00 to 05:00
- * the next morning), in time order. The chance is 1-in-6, or 2-in-6 on a
- * pushed day for all four, the night ones included (§5.7).
- * @param {{midnight:number, d12s:number[], pushed:boolean, hourSeconds?:number}} day
- *   `midnight`: the worldTime of the day's 00:00
+ * The encounter settings within their ranges (#257): the chance 1 to 5 in 6,
+ * and 0 to 4 checks by day and by night; the book's for one that isn't a number.
+ * @param {{chance?:*, day?:*, night?:*}} settings
  */
-export function dayChecks({ midnight, d12s, pushed, hourSeconds = 3600 }) {
-  const chance = pushed ? 2 : 1;
-  return d12s.slice(0, 4)
-    .map((d, i) => {
-      const half = i < 2 ? "day" : "night";
-      return { half, at: midnight + ((half === "day" ? 6 : 18) + d - 1) * hourSeconds, chance, rolled: false, hit: null };
-    })
+export function checkSettings({ chance, day, night } = {}) {
+  const within = (v, lo, hi, book) => (Number.isFinite(v) ? Math.min(hi, Math.max(lo, Math.trunc(v))) : book);
+  return { chance: within(chance, 1, 5, BOOK_CHECKS.chance), day: within(day, 0, 4, BOOK_CHECKS.day), night: within(night, 0, 4, BOOK_CHECKS.night) };
+}
+
+/** The chance a check rolls at: the setting, one more on a pushed day (§5.7), never past 6 in 6. */
+export const encounterChance = (chance, pushed) => Math.min(6, chance + (pushed ? 1 : 0));
+
+/** A check's half by its hour, as dayChecks places them: by day from 06:00 to 17:59, else at night. */
+export const checkHalf = (hour) => (hour >= 6 && hour < 18 ? "day" : "night");
+
+/**
+ * The day's checks from its d12s, `day` of them by day at 06:00 + (d12 − 1) h
+ * (06:00 to 17:00) and then `night` at night at 18:00 + (d12 − 1) h (18:00 to
+ * 05:00 the next morning), in time order. The chance isn't set here: each
+ * rolls at the chance of its moment (encounterChance), recorded by markCheck.
+ * @param {{midnight:number, d12s:number[], day?:number, night?:number, hourSeconds?:number}} dawn
+ *   `midnight`: the worldTime of the day's 00:00; `day`, `night`: the counts, the book's 2 and 2
+ */
+export function dayChecks({ midnight, d12s, day = BOOK_CHECKS.day, night = BOOK_CHECKS.night, hourSeconds = 3600 }) {
+  const halves = [...Array(day).fill("day"), ...Array(night).fill("night")];
+  return d12s.slice(0, halves.length)
+    .map((d, i) => ({ half: halves[i], at: midnight + ((halves[i] === "day" ? 6 : 18) + d - 1) * hourSeconds, chance: null, rolled: false, hit: null }))
     .sort((a, b) => a.at - b.at);
 }
 

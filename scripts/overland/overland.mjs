@@ -19,7 +19,8 @@
  *   the clock, and sends the token back if two quick moves overdrew the day.
  * - Every Overland clock advance rolls the day's encounter checks it passes
  *   (#232, §5.3). A hit stops the clock at the check's hour and waits for
- *   Continue (resume), which finishes the advance.
+ *   Continue (resume), which finishes the advance. A check rolls at the chance
+ *   of its moment, and a GM's Roll a check now rolls one more, at this hour (#257).
  * - Forage and Make camp end the day (#233, §5.4-5.6). The owner of each
  *   character rolls its checks through the stat-damage save prompt
  *   (StatRiders.save), and the GM rolls when they're offline. The underground
@@ -40,7 +41,7 @@ import { authorizeActorFor, isActiveGM, queryActiveGM, refuseQuery } from "../sh
 import { makeQueue } from "../quests/quest-core.mjs";
 import { hexReader, hexZonesFor, isHexMapScene, partyHex } from "../encounter/encounter-terrain.mjs";
 import { BOAT_TYPE, MOUNT_TYPE } from "../actors/register-actors.mjs";
-import { dawnAfter, dateParts, startOfDay } from "../time/time-core.mjs";
+import { dawnAfter, dateParts, hourOfDay, startOfDay } from "../time/time-core.mjs";
 import { advanceOffDuty } from "../time/off-duty.mjs";
 import { StatRiders } from "../stat-damage/stat-riders.mjs";
 import { esc } from "../shared/esc.mjs";
@@ -50,6 +51,7 @@ import {
   pickTravelToken, forageRefusal, setWeather, weatherHolds, weatherAdvantage, weatherFormula,
   weatherFromRoll, harshToday, WEATHER_RULES, METHODS, openDay, spendMove, priceMove, moveVerdict, hexCost,
   dayChecks, dueChecks, markCheck, setPending, setEncounter, forageDC, closeDay, planRations, partyMethod, setPace,
+  checkSettings, encounterChance, checkHalf,
 } from "./overland-state-core.mjs";
 import { PARTY_FLAG, placePartyToken, wearPartyHex } from "./hex-rules.mjs";
 
@@ -153,6 +155,18 @@ const weatherRule = () => {
   const rule = game.settings.get(MODULE_ID, WEATHER_RULE_SETTING);
   return WEATHER_RULES.includes(rule) ? rule : WEATHER_RULES[0];
 };
+
+/** The encounter checks' world settings (#257, the Encounters step's Adjust), by what each sets. */
+export const ENCOUNTER_SETTINGS = { chance: "overlandEncounterChance", day: "overlandEncounterDay", night: "overlandEncounterNight" };
+
+/** The encounter checks' settings, within their ranges: {chance, day, night}. */
+export function encounterSettings() {
+  const get = (key) => { try { return game.settings.get(MODULE_ID, key); } catch { return undefined; } };
+  return checkSettings({ chance: get(ENCOUNTER_SETTINGS.chance), day: get(ENCOUNTER_SETTINGS.day), night: get(ENCOUNTER_SETTINGS.night) });
+}
+
+/** The chance a check rolls at now: read at the roll, so a new setting counts at once. */
+const chanceNow = () => encounterChance(encounterSettings().chance, _state.pushed);
 
 export const isOverland = () => CrawlState.isOverland;
 
@@ -359,31 +373,44 @@ function checkLabel(check) {
 }
 
 /**
+ * One check for `c`'s hour and half, at `chance` in 6: encounter.check on the
+ * travel hex and the travel token's scene. Quiet when the clock bar can show a
+ * hit: nothing reaches chat, and `held` is what it drew, with the check's hour,
+ * half and chance, for setEncounter. With the bar off, the check posts, pauses
+ * and opens the roller as it used to, and nothing is held. `travel`: the party
+ * is moving through the hex (#273).
+ * @returns {Promise<{hit:boolean, held:object|null}>}
+ */
+async function rollCheck(c, chance, travel) {
+  const check = game.shadowdarkEnhancer?.encounter?.check;
+  if (typeof check !== "function") return { hit: false, held: null };
+  let quiet = true;
+  try { quiet = game.settings.get(MODULE_ID, "clockBar") !== "off"; } catch { /* not registered: quiet */ }
+  const label = checkLabel(c);
+  const { hit, encounter = null } = await check({ threshold: chance, hex: _state.hex, scene: travelScene(), label, clockLabel: label, travel, quiet });
+  return { hit, held: hit && quiet ? { ...(encounter ?? { kind: "empty" }), at: c.at, half: c.half, chance } : null };
+}
+
+/**
  * Advance the clock to `target` as Overland does, on the active GM inside the
  * queue: each check due on the way, in time order, is rolled at its hour
- * through encounter.check, on the travel hex, quietly: nothing reaches chat. A
- * hit stops the clock there, holds what it drew as `encounter` for the GMs'
+ * through encounter.check, on the travel hex, quietly: nothing reaches chat,
+ * at the chance of that moment (the setting, one more on a pushed day). A hit
+ * stops the clock there, holds what it drew as `encounter` for the GMs'
  * panel, and stores what is left as `pending`, for Continue (§5.3, Q4).
  * @param {number} target  worldTime to reach
  * @param {string} reason  what the advance was for: "move", "day", later "camp"
  * @returns {Promise<{stopped:boolean}>}
  */
 export async function advanceTravel(target, reason) {
-  const check = game.shadowdarkEnhancer?.encounter?.check;
-  const scene = travelScene();
   for (const i of dueChecks(_state.checks, target)) {
     const c = _state.checks[i];
     if (c.at > game.time.worldTime) await game.time.advance(c.at - game.time.worldTime);
-    const label = checkLabel(c);
-    // Quiet when the clock bar can show the hit; with the bar off, the check posts, pauses and opens the roller as it used to.
-    let quiet = true;
-    try { quiet = game.settings.get(MODULE_ID, "clockBar") !== "off"; } catch { /* not registered: quiet */ }
-    const { hit, encounter = null } = typeof check === "function"
-      // Travel, not a camp's or a late Start day's check: the GM Guide's marked zone rows give a point of interest (#273).
-      ? await check({ threshold: c.chance, hex: _state.hex, scene, label, clockLabel: label, travel: reason === "move", quiet })
-      : { hit: false };
-    let next = markCheck(_state, i, hit).state;
-    if (hit && quiet) next = setEncounter(next, { ...(encounter ?? { kind: "empty" }), at: c.at, half: c.half, chance: c.chance }).state;
+    const chance = chanceNow();
+    // Travel, not a camp's or a late Start day's check: the GM Guide's marked zone rows give a point of interest (#273).
+    const { hit, held } = await rollCheck(c, chance, reason === "move");
+    let next = markCheck(_state, i, hit, chance).state;
+    if (held) next = setEncounter(next, held).state;
     await commit(next);
     if (hit) {
       // Something is left for Continue when there's clock to run, checks
@@ -442,6 +469,19 @@ export async function advanceClock(seconds, { to = null, calendar = false } = {}
 export async function resume() {
   if (!game.user?.isGM) return { ok: false, error: t("SDE.overland.notify.dayGmOnly") };
   const data = { action: "resume" };
+  return isActiveGM() ? applyAction(data, game.user) : queryActiveGM(OVERLAND_QUERY, data, { label: t("SDE.overland.relayLabel") });
+}
+
+/**
+ * Roll a check now (GM, #257, the Encounters step): one quiet check at this
+ * hour on the travel hex, at the chance of the moment. A hit holds what it
+ * drew for the GMs' panel; there's no advance for it to stop. Refused while an
+ * encounter is held. A GM who isn't the active GM is forwarded there.
+ * @returns {Promise<{ok:true, hit:boolean, chance:number}|{ok:false, error:string}>}
+ */
+export async function checkNow() {
+  if (!game.user?.isGM) return { ok: false, error: t("SDE.overland.notify.checkGmOnly") };
+  const data = { action: "checkNow" };
   return isActiveGM() ? applyAction(data, game.user) : queryActiveGM(OVERLAND_QUERY, data, { label: t("SDE.overland.relayLabel") });
 }
 
@@ -925,10 +965,12 @@ export function applyAction(data, user) {
         await rollWeatherHere(false);
         const now = game.time.worldTime;
         const pushed = typeof data.pushed === "boolean" ? data.pushed : _state.pace === "push";
-        const hours = await new Roll("4d12").evaluate();
+        // As many checks by day and by night as the settings say at this dawn (#257); none: no dice.
+        const { day, night } = encounterSettings();
+        const hours = day + night ? await new Roll(`${day + night}d12`).evaluate() : null;
         const checks = dayChecks({
-          midnight: startOfDay(game.time.calendar, now), pushed, hourSeconds: hourSeconds(),
-          d12s: hours.dice[0]?.results.map((r) => r.result) ?? [],
+          midnight: startOfDay(game.time.calendar, now), day, night, hourSeconds: hourSeconds(),
+          d12s: hours?.dice[0]?.results.map((r) => r.result) ?? [],
         });
         // A push chosen here is the standing pace from now on.
         await commit(openDay({ ..._state, pace: pushed ? "push" : "normal" }, {
@@ -967,6 +1009,18 @@ export function applyAction(data, user) {
         if (pending.reason !== "camp") return { ok: true, stopped };
         const finished = !stopped && await finishCamp();
         return { ok: true, stopped: !finished };
+      }
+      case "checkNow": {
+        if (!user.isGM) return { ok: false, error: t("SDE.overland.notify.checkGmOnly") };
+        if (!CrawlState.isOverland) return { ok: false, error: t("SDE.overland.notify.notTravelling") };
+        // A second hit would replace the encounter waiting on the GMs.
+        if (_state.pending || _state.encounter) return { ok: false, error: t("SDE.overland.notify.checkHeld") };
+        const now = game.time.worldTime;
+        const chance = chanceNow();
+        // Rolled where the party stands, not as it moves through a hex: no travel point of interest (#273).
+        const { hit, held } = await rollCheck({ at: now, half: checkHalf(hourOfDay(game.time.calendar, now)) }, chance, false);
+        if (held) await commit(setEncounter(_state, held).state);
+        return { ok: true, hit, chance };
       }
       case "forage": {
         const auth = authorizeActorFor(data.actorId, user, { type: "Player" });

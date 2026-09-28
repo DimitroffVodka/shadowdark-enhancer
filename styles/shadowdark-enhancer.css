@@ -11079,6 +11079,7 @@ body:has(.sdx-scene-nav-bar) #shadowdark-enhancer-travel { top: 72px; }
 .sde-hud-bar,
 .sde-hud-stack,
 .sde-hud-season,
+.sde-hud-strip,
 .sde-hud-panel { pointer-events: auto; }
 .sde-hud-col button { font-family: inherit; color: inherit; }
 .sde-hud-col :focus-visible { outline: 2px solid var(--sd-text); outline-offset: 2px; }
@@ -11606,6 +11607,49 @@ button.sde-hud-day:hover { border-color: var(--sd-frame); }
 .sde-hud-v.sde-reaction-Suspicious { color: #d08030; }
 .sde-hud-v.sde-reaction-Curious { color: var(--sde-bar-accent); }
 .sde-hud-v.sde-reaction-Friendly { color: var(--sde-bar-miss); }
+/* Its header carries the fold chevron; folded, the encounter is a strip under
+   the bar with Continue (#257). */
+.sde-hud-enc .sde-hud-ph { padding: 8px 10px 6px 20px; }
+.sde-hud-strip {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 460px;
+  max-width: 100%;
+  height: 34px;
+  margin-top: -2px;
+  padding: 0 6px 0 14px;
+  background: var(--sd-page);
+  border: 2px solid var(--sd-frame);
+  border-radius: 0 0 6px 6px;
+}
+.sde-hud-strip .sde-hud-bl { flex: none; font-size: 18px; }
+.sde-hud-strip .sde-hud-cap { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* The Encounters step's Adjust rows: the chance and the checks a day (#257). */
+.sde-hud-key[aria-expanded="true"] { background: var(--sd-text); color: var(--sd-page); }
+.sde-hud-adjust { display: grid; grid-template-columns: max-content minmax(0, 1fr); align-items: center; gap: 6px 12px; }
+.sde-hud-nums { display: flex; gap: 4px; }
+.sde-hud-nums button {
+  flex: 1;
+  height: 26px;
+  margin: 0;
+  padding: 0 6px;
+  border: 1px solid var(--sd-hairline);
+  border-radius: 3px;
+  background: var(--sd-panel);
+  color: var(--sd-text-2);
+  font-family: "Montserrat-Bold", sans-serif;
+  font-size: 12px;
+  line-height: 1;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.sde-hud-nums button:hover { border-color: var(--sd-frame); }
+.sde-hud-nums button[aria-pressed="true"] { background: var(--sd-text); color: var(--sd-page); border-color: var(--sd-text); }
+.sde-hud-book { font-family: "Montserrat-Medium", sans-serif; font-size: 10px; opacity: 0.75; }
 
 /* The Trouble tracker's status bar on a trouble's page (#193), GM only. */
 .sde-trouble-status {

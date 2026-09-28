@@ -6,7 +6,7 @@ import {
   setWeather, weatherHolds, weatherAdvantage, weatherFormula, weatherFromRoll, harshToday, hexCost,
   dayBudget, pointSeconds, openDay, spendMove, priceMove, moveVerdict,
   dayChecks, dueChecks, markCheck, setPending, setEncounter, partyMethod, setPace,
-  forageDC, closeDay, planRations,
+  forageDC, closeDay, planRations, BOOK_CHECKS, checkSettings, encounterChance, checkHalf,
 } from "../scripts/overland/overland-state-core.mjs";
 import { rulesApi } from "../scripts/rules-data/rules-data-core.mjs";
 
@@ -230,21 +230,43 @@ test("a move spends its cost and records the hex", () => {
 // ── Encounter checks (#232) ──────────────────────────────────────────────────
 
 test("the day's checks: two by day from 06:00 to 17:00, two at night from 18:00 to 05:00, in time order", () => {
-  const checks = dayChecks({ midnight: 0, d12s: [12, 1, 12, 1], pushed: false });
+  const checks = dayChecks({ midnight: 0, d12s: [12, 1, 12, 1] });
   assert.deepEqual(checks.map((c) => [c.half, c.at / HOUR, c.chance]),
-    [["day", 6, 1], ["day", 17, 1], ["night", 18, 1], ["night", 29, 1]]);
+    [["day", 6, null], ["day", 17, null], ["night", 18, null], ["night", 29, null]], "the book's two and two; no chance until rolled");
   assert.ok(checks.every((c) => !c.rolled && c.hit === null));
-  assert.deepEqual(dayChecks({ midnight: 0, d12s: [1, 1, 1, 1], pushed: true }).map((c) => c.chance), [2, 2, 2, 2],
-    "a pushed day, night checks too");
+});
+
+test("the day's checks in the GM's numbers: the first d12s by day, the rest by night (#257)", () => {
+  const hours = (o) => dayChecks({ midnight: 0, ...o }).map((c) => [c.half, c.at / HOUR]);
+  assert.deepEqual(hours({ d12s: [1, 5, 12, 2], day: 3, night: 1 }), [["day", 6], ["day", 10], ["day", 17], ["night", 19]]);
+  assert.deepEqual(hours({ d12s: [4, 7], day: 0, night: 2 }), [["night", 21], ["night", 24]], "none by day");
+  assert.deepEqual(hours({ d12s: [], day: 0, night: 0 }), [], "no checks at all");
+  assert.deepEqual(hours({ d12s: [12, 12, 12, 12, 1, 1, 1, 1], day: 4, night: 4 }),
+    [["day", 17], ["day", 17], ["day", 17], ["day", 17], ["night", 18], ["night", 18], ["night", 18], ["night", 18]], "the most: four and four");
+});
+
+test("the encounter settings keep to their ranges; the chance at roll time is the setting, one more pushed, never past 6 (#257)", () => {
+  assert.deepEqual(checkSettings({}), BOOK_CHECKS, "unset: the book's");
+  assert.deepEqual(BOOK_CHECKS, { chance: 1, day: 2, night: 2 });
+  assert.deepEqual(checkSettings({ chance: 3, day: 0, night: 4 }), { chance: 3, day: 0, night: 4 });
+  assert.deepEqual(checkSettings({ chance: 9, day: -1, night: 2.7 }), { chance: 5, day: 0, night: 2 }, "clamped and whole");
+  assert.deepEqual(checkSettings({ chance: "3", day: null, night: NaN }), BOOK_CHECKS, "not numbers: the book's");
+  assert.equal(encounterChance(1, false), 1);
+  assert.equal(encounterChance(1, true), 2, "the book's push: 2 in 6");
+  assert.equal(encounterChance(3, true), 4);
+  assert.equal(encounterChance(5, true), 6);
+  assert.equal(encounterChance(6, true), 6, "never past 6 in 6");
+  assert.deepEqual([5.99, 6, 17.5, 18, 23, 0, 5].map(checkHalf), ["night", "day", "day", "night", "night", "night", "night"]);
 });
 
 test("the checks an advance passes: unrolled, at or before the target, in time order", () => {
-  const checks = dayChecks({ midnight: 0, d12s: [3, 1, 5, 2], pushed: false });   // 06, 08, 19, 22
+  const checks = dayChecks({ midnight: 0, d12s: [3, 1, 5, 2] });   // 06, 08, 19, 22
   assert.deepEqual(dueChecks(checks, 7 * HOUR).map((i) => checks[i].at / HOUR), [6]);
   assert.deepEqual(dueChecks(checks, 22 * HOUR).map((i) => checks[i].at / HOUR), [6, 8, 19, 22]);
-  const { state } = markCheck({ ...defaultOverlandState(), checks }, 0, false);
+  const { state } = markCheck({ ...defaultOverlandState(), checks }, 0, false, 3);
   assert.deepEqual(dueChecks(state.checks, 7 * HOUR), [], "a rolled check isn't rolled again");
-  assert.equal(state.checks[0].hit, false);
+  assert.deepEqual([state.checks[0].hit, state.checks[0].chance], [false, 3], "marked with the chance it rolled at");
+  assert.equal(state.checks[1].chance, null);
 });
 
 test("a stopped advance waits, and nothing but Continue moves the token on", () => {
@@ -255,8 +277,9 @@ test("a stopped advance waits, and nothing but Continue moves the token on", () 
   assert.equal(moveVerdict(state, { cost: 0, blocked: null }), null, "a displace is still free");
   assert.equal(setPending(state, null).state.pending, null);
   assert.equal(normalizeOverlandState({ pending: { until: "x" } }).pending, null);
-  assert.deepEqual(normalizeOverlandState({ checks: [{ at: 5, half: "odd", chance: 9 }, { at: "x" }] }).checks,
-    [{ half: "day", at: 5, chance: 6, rolled: false, hit: null }]);
+  assert.deepEqual(normalizeOverlandState({ checks: [{ at: 5, half: "odd", chance: 9 }, { at: "x" }, { at: 6, chance: 9, rolled: true, hit: true }] }).checks,
+    [{ half: "day", at: 5, chance: null, rolled: false, hit: null }, { half: "day", at: 6, chance: 6, rolled: true, hit: true }],
+    "an unrolled check has no chance yet; a rolled one keeps its own, at most 6");
 });
 
 test("the method is read from the party: mounted only when every member rides, sailing when all are aboard one boat (#257)", () => {
@@ -281,7 +304,7 @@ test("the standing pace: today's too until the party moves or forages, the next 
   assert.deepEqual([pushNow.state.pace, pushNow.state.pushed, pushNow.state.budget], ["push", true, 6]);
   const withChecks = openDay(defaultOverlandState(), { now: 0, method: "walking", pushed: false, base: 4,
     checks: [{ half: "day", at: 1, chance: 1, rolled: true, hit: false }, { half: "day", at: 2, chance: 1, rolled: false, hit: null }] }).state;
-  assert.deepEqual(setPace(withChecks, "push").state.checks.map((c) => c.chance), [1, 2], "the unrolled check is 2 in 6 now; a rolled one keeps its chance");
+  assert.deepEqual(setPace(withChecks, "push").state.checks.map((c) => c.chance), [1, null], "a rolled check keeps its chance; the next reads the push as it rolls");
   const back = setPace(pushNow.state, "normal");
   assert.deepEqual([back.today, back.state.pushed, back.state.budget], [true, false, 4]);
   const moved = setPace({ ...day, spent: 1 }, "push");
