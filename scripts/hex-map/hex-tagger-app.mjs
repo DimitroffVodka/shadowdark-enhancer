@@ -34,7 +34,7 @@ import { TERRAIN_TAGS, SETTLEMENTS, rowTag } from "../importer/hex/hex-summary.m
 import { HEX_FLAG } from "../importer/hex/hex-commit.mjs";
 import { datasetFromEntries, handoffDataset, handoffToPrint, extrasHexApi } from "../importer/hex/hex-handoff.mjs";
 import { buildHexDataset, validateHexDataset, hexNum, assignmentsFromManifest } from "../importer/hex/hex-dataset.mjs";
-import { A0_PRINT, A0_TOTAL, isA0, a0Origin, copyTags, copiedTerrain, copySource, playablePlan } from "./a0-print.mjs";
+import { A0_PRINT, A0_TOTAL, isA0, a0Origin, copyTags, copiedTerrain, copySource, regionSource, playablePlan } from "./a0-print.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
@@ -216,8 +216,13 @@ async function playableFacts(scene, app, tf) {
   }
   const fileOf = (path) => decodeURIComponent(String(path ?? "").split("/").pop());
   const others = game.scenes.contents.filter((x) => x.id !== scene.id && x.getFlag(MODULE_ID, TAGS_FLAG)?.origin)
-    .map((x) => ({ id: x.id, file: fileOf(x.levels?.contents?.[0]?.background?.src ?? x.background?.src), tags: decodeTags(x.getFlag(MODULE_ID, TAGS_FLAG)) }));
-  const from = copySource({ id: scene.id, file: fileOf(src) }, others);
+    .map((x) => ({
+      id: x.id, file: fileOf(x.levels?.contents?.[0]?.background?.src ?? x.background?.src), tags: decodeTags(x.getFlag(MODULE_ID, TAGS_FLAG)),
+      regions: new Set(decodeRegions(x.getFlag(MODULE_ID, REGIONS_FLAG)).values()).size,
+    }));
+  const here = { id: scene.id, file: fileOf(src) };
+  const from = copySource(here, others, app._state);
+  const bordersFrom = regionSource(here, others);
   const terrainOf = (cells) => [...cells.values()].filter((c) => c.terrain).length;
   const api = extrasHexApi();
   const parties = new Set((game.modules.get("shadowdark-extras")?.api?.party?.list?.() ?? []).map((a) => a?.id));
@@ -231,6 +236,7 @@ async function playableFacts(scene, app, tf) {
     wrEntries: app._entries.length,
     pins: scene.notes.filter((n) => Number.isInteger(n.getFlag(MODULE_ID, "hexPin")?.num)).length,
     regions: new Set(decodeRegions(scene.getFlag(MODULE_ID, REGIONS_FLAG)).values()).size,
+    regionsFrom: bordersFrom?.regions ?? 0, regionsId: bordersFrom?.id ?? null,
     rules: Number(game.shadowdarkEnhancer?.rules?.hexesPerDay?.("walking")) > 0,
     tables,
     party: scene.tokens.some((tok) => tok.actor && (tok.actor.getFlag(MODULE_ID, "party") || parties.has(tok.actor.id))),
@@ -393,9 +399,13 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
         const from = game.scenes.get(facts.copyId);
         const n = copyTags(app._state, decodeTags(from.getFlag(MODULE_ID, TAGS_FLAG)));
         await app._saveState();
-        const regions = from.getFlag(MODULE_ID, REGIONS_FLAG);
-        if (regions && !decodeRegions(scene.getFlag(MODULE_ID, REGIONS_FLAG)).size) await replaceModuleFlag(scene, REGIONS_FLAG, foundry.utils.deepClone(regions));
         say("SDE.hexMap.playable.copied", { scene: from.name, n });
+      }
+      // Only when this scene has none: borders a GM drew here stay.
+      if (run.includes("regions")) {
+        const from = game.scenes.get(facts.regionsId);
+        await replaceModuleFlag(scene, REGIONS_FLAG, foundry.utils.deepClone(from.getFlag(MODULE_ID, REGIONS_FLAG)));
+        say("SDE.hexMap.playable.regionsCopied", { scene: from.name });
       }
       // The book's own terrain for its keyed hexes, after a copy: it replaces
       // a copied guess, never a hand tag.

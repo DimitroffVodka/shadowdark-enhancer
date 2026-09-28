@@ -640,6 +640,19 @@ test("a creature in the camp's night interrupts the rest; the dawn's chat says w
   assert.ok(posted.some((c) => c.includes("SDE.overland.camp.interruptedCon")), "without Extras, the CON check is the GM's");
 });
 
+test("a creature on a day check still to roll when camp was made early doesn't interrupt the rest (#282 review)", async () => {
+  campWorld();
+  dice.push(3, 2, 9, 1, 12);
+  globalThis.game.time.worldTime = at(1301, 6, 21, 8);
+  await applyAction({ action: "startDay", method: "walking" }, gm);
+  // The day's 07:00 check is still to roll when camp is made at 08:00: it rolls first, and a wolf turns up.
+  const draws = [{ hit: true, encounter: { kind: "monster", name: "Wolf" } }];
+  globalThis.game.shadowdarkEnhancer.encounter.check = async () => draws.shift() ?? { hit: false };
+  await applyAction({ action: "camp" }, gm);
+  const { encounter, camp } = stored.overlandState;
+  assert.deepEqual([encounter.name, encounter.half, encounter.interrupts, camp.interrupted], ["Wolf", "day", false, null]);
+});
+
 test("camp opens Shadowdark Extras' camp before the night and finishes its rest at dawn, when the travel token is its party (#257)", async () => {
   const damage = campWorld();
   const party = { id: "party" };

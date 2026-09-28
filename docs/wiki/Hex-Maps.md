@@ -68,9 +68,10 @@ only what the map is missing:
   say), the scene is resized to fit it first; if anything is already placed on
   it, you're asked before.
 - **Terrain and regions from another scene of the same map**, when you have
-  one: every hex this scene has no terrain for is filled from it, even after
-  you've tagged some here, and your own tags are kept. Region borders come
-  across when this scene has none.
+  one: every hex this scene has no terrain for is filled from the scene that
+  fills the most, even after you've tagged some here, and your own tags are
+  kept. Region borders come across, from the scene with the most, whenever
+  this scene has none, even when its terrain is already complete.
 - **The book's keyed hexes**: their terrain, and a pin on each (Importer Hub,
   Key locations, first).
 - **Shadowdark Extras**, when it's on and every hex has terrain: the hex

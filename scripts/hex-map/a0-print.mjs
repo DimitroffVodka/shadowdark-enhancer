@@ -103,23 +103,38 @@ export function copiedTerrain(into, from, bounds = A0_PRINT.bounds) {
   return [...trial.cells.values()].filter((c) => c?.terrain).length;
 }
 
+/** Whether another scene shows the same print, numbered as the A0 is. */
+const samePrint = (here, s) => s.id !== here.id && s.tags.origin?.num === A0_PRINT.firstNum && s.file === here.file
+  && JSON.stringify(s.tags.origin?.bounds) === JSON.stringify(A0_PRINT.bounds);
+
 /**
  * The scene to copy terrain from: another scene showing the same file with
- * the A0's numbering. The most hand tags wins, then the most tags.
+ * the A0's numbering. The one that fills the most of this scene's missing
+ * hexes wins (copiedTerrain), then the most hand tags, then the most tags: a
+ * complete scene beats one with a hand tag or two (#281 review).
  * @param {{id:string, file:string}} here
  * @param {Array<{id:string, file:string, tags:{origin:object|null, cells:Map}}>} others
+ * @param {{cells:Map}} [into]  this scene's tags (none: every hex is missing)
  */
-export function copySource(here, others) {
-  const same = (s) => s.tags.origin?.num === A0_PRINT.firstNum && s.file === here.file
-    && JSON.stringify(s.tags.origin?.bounds) === JSON.stringify(A0_PRINT.bounds);
+export function copySource(here, others, into = { cells: new Map() }) {
   const score = (s) => {
     let gm = 0, all = 0;
     for (const c of s.tags.cells.values()) if (c.terrain) { all++; if (c.source !== "auto") gm++; }
-    return [gm, all];
+    return [copiedTerrain(into, s.tags), gm, all];
   };
-  return others.filter((s) => s.id !== here.id && same(s))
-    .map((s) => ({ s, k: score(s) })).filter((x) => x.k[1] > 0)
-    .sort((a, b) => b.k[0] - a.k[0] || b.k[1] - a.k[1])[0]?.s ?? null;
+  return others.filter((s) => samePrint(here, s))
+    .map((s) => ({ s, k: score(s) })).filter((x) => x.k[2] > 0)
+    .sort((a, b) => b.k[0] - a.k[0] || b.k[1] - a.k[1] || b.k[2] - a.k[2])[0]?.s ?? null;
+}
+
+/**
+ * The scene to take region borders from: another scene of the same print with
+ * the most regions, or null (#281 review).
+ * @param {{id:string, file:string}} here
+ * @param {Array<{id:string, file:string, tags:object, regions:number}>} others  regions: how many it has
+ */
+export function regionSource(here, others) {
+  return others.filter((s) => samePrint(here, s) && s.regions > 0).sort((a, b) => b.regions - a.regions)[0] ?? null;
 }
 
 /**
@@ -127,7 +142,8 @@ export function copySource(here, others) {
  * gated on its own "done", so a second run runs nothing.
  *
  * - anchor: number the print (keep the grid, or rebuild it to fit the print)
- * - copy: terrain and regions from another scene of the same print
+ * - copy: terrain from another scene of the same print, where it fills hexes
+ * - regions: region borders from another scene of the print, when this one has none
  * - pins: the book's keyed hexes as map notes
  * - handoff: the hex records to Shadowdark Extras, once every hex has terrain
  * - fog: Extras' hex fog on, when Extras can be asked to
@@ -135,7 +151,8 @@ export function copySource(here, others) {
  *   it opens the tagger, and a second press after it does the rest)
  *
  * @param {{anchored:boolean, anchor:"keep"|"rebuild", placed:number, terrain:number, total:number,
- *   copyTerrain:number, wrEntries:number, pins:number, extras:{hex:boolean, adopted:boolean, fogApi:boolean, fogOn:boolean}}} f
+ *   copyTerrain:number, regions?:number, regionsFrom?:number, wrEntries:number, pins:number,
+ *   extras:{hex:boolean, adopted:boolean, fogApi:boolean, fogOn:boolean}}} f
  *   copyTerrain: the hexes with terrain after a copy from another scene of the print (copiedTerrain), 0 with none
  * @returns {{run:string[], confirm:boolean}}  confirm: the rebuild moves the map under what is placed on it
  */
@@ -145,6 +162,8 @@ export function playablePlan(f) {
   // The copy fills what this scene lacks and keeps its hand tags: run whenever it adds terrain.
   const copy = f.copyTerrain > f.terrain;
   if (copy) run.push("copy");
+  // Borders on their own: a scene whose terrain is complete may still have none (#281 review).
+  if (!f.regions && f.regionsFrom > 0) run.push("regions");
   if (f.wrEntries > 0 && f.pins === 0) run.push("pins");
   const terrain = copy ? f.copyTerrain : f.terrain;
   if (f.extras.hex && terrain >= f.total && !f.extras.adopted) run.push("handoff");

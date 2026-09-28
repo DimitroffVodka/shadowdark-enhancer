@@ -242,16 +242,18 @@ with forage and camp.
   - A player can forage for their own character from a macro:
     `game.shadowdarkEnhancer.overland.forage("<actor id>")`.
 - **Make camp** ends the day:
-  - Carried lights go out, keeping their time, as with the off-duty move.
   - First the camp, in the book's order. When the travel token is a
     Shadowdark Extras party, Extras' camp window opens for the tasks.
     Firewood rolls first. With no fire after it, you're asked whether to burn
     3 torches before the starred tasks. Then everyone eats a ration, or two
     on a harsh night. Anyone without one takes 1 CON damage, and mounts eat
     what's left. Closing Extras' window makes no camp.
+  - Then carried lights go out, keeping their time, as with the off-duty move.
   - The clock runs to dawn, rolling the rest of the day's checks and the
     night's. A hit stops the night until you press **Continue**.
-  - A creature in the night interrupts the rest; a rockslide doesn't. The
+  - A creature met in the night's checks interrupts the rest; a rockslide
+    doesn't, nor does a creature from a day check still to roll when you
+    made camp early. The
     Encounter panel says so. At dawn, anyone who ate rolls CON (DC 12) to
     still benefit from the rest, unless their Bed Down succeeded. Extras
     rolls these checks. Without Extras, the chat reminds you to call for them.

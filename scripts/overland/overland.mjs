@@ -412,7 +412,8 @@ export async function advanceTravel(target, reason) {
     let next = markCheck(_state, i, hit, chance).state;
     // A creature in the camp's night interrupts the rest (GMWR p.44); a land result such as a rockslide doesn't.
     // With the clock bar off nothing is held (the roller shows the draw), so the GM calls it.
-    const wakes = hit && reason === "camp" && held?.kind === "monster";
+    // The rest is the night's: a day check still to roll when camp was made early is travel, not rest (#282 review).
+    const wakes = hit && reason === "camp" && c.half === "night" && held?.kind === "monster";
     if (held) next = setEncounter(next, wakes ? { ...held, interrupts: true } : held).state;
     if (wakes) next = interruptRest(next, c.at).state;
     await commit(next);

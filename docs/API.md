@@ -1805,7 +1805,8 @@ nobody is travelling or an encounter is pending. Resolves to
    check), through the same advance as moves. A hit stops the night with
    `pending.reason === "camp"`, and `resume()` finishes it. That holds even
    for a hit at the camp's very last moment: the dawn step is still to come.
-   A creature (`kind: "monster"`) interrupts the rest. Its hour is kept in
+   A creature (`kind: "monster"`) met in one of the night's checks interrupts the rest; a day
+   check still to roll when camp was made early doesn't. Its hour is kept in
    `camp.interrupted`, the first one only, and the held encounter carries
    `interrupts: true`. A land result such as a rockslide doesn't. With the
    clock bar off nothing is held, so nothing is recorded: the GM calls it. A
@@ -1915,6 +1916,8 @@ scene's choice changes, and once on load.
 - `1.24.0` adds the `rumors` namespace and the `shadowdark-enhancer.rumorsChanged` hook.
 - `1.25.0` adds `encounter.check`'s `quiet`, `hexMaps.makePlayable`, `overland.partyMethod` and
   `overland.setPace`; `overland.startDay` reads the method and the pace when they're left out.
+  `overland.makeCamp` makes the camp before the night (with Shadowdark Extras' `deferRest` and
+  `camping.dawn`), and the state gains `camp` and the held encounter `interrupts`.
 - `1.4.0` adds the shared `forgeLoot.open()` preview shell. Generator rules and
   document writes remain behind the later NPC/Rival adapter implementations.
   The version policy is additive: new namespaces bump the minor version; breaking
