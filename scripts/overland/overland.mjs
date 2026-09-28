@@ -51,6 +51,7 @@ import {
   weatherFromRoll, harshToday, WEATHER_RULES, METHODS, openDay, spendMove, priceMove, moveVerdict, hexCost,
   dayChecks, dueChecks, markCheck, setPending, forageDC, closeDay, planRations,
 } from "./overland-state-core.mjs";
+import { PARTY_FLAG, placePartyToken, wearPartyHex } from "./hex-rules.mjs";
 
 export const OVERLAND_SETTING = "overlandState";
 export const OVERLAND_QUERY = `${MODULE_ID}.overland`;
@@ -168,10 +169,14 @@ function extrasParties() {
 function chooseToken() {
   const parties = new Set(extrasParties().map((a) => a.id));
   const tokens = canvas?.tokens?.placeables ?? [];
+  const controlled = canvas?.tokens?.controlled ?? [];
+  const isParty = (tok) => parties.has(tok.actor?.id) || !!tok.actor?.getFlag?.(MODULE_ID, PARTY_FLAG);
   const pick = pickTravelToken({
-    partyTokens: tokens.filter((tok) => parties.has(tok.actor?.id)).map((tok) => tok.document.uuid),
-    controlled: (canvas?.tokens?.controlled ?? []).map((tok) => tok.document.uuid),
+    partyTokens: tokens.filter(isParty).map((tok) => tok.document.uuid),
+    controlled: controlled.map((tok) => tok.document.uuid),
+    players: controlled.filter((tok) => tok.actor?.type === "Player").map((tok) => tok.document.uuid),
   });
+  if (pick.reason === "player") return { refused: "player" };
   if (!pick.uuid) return null;
   const token = tokens.find((tok) => tok.document.uuid === pick.uuid);
   const hex = token ? partyHex({ grid: canvas.grid, scene: canvas.scene, tokens: { controlled: [token], placeables: [] } }) : null;
@@ -212,8 +217,12 @@ async function withRegion(hex, scene = canvas.scene) {
 export async function startOverland() {
   if (!game.user?.isGM) return false;
   if (!isHexMapScene()) { ui.notifications?.warn(t("SDE.overland.notify.notHexMap")); return false; }
-  const chosen = chooseToken();
-  if (!chosen) { ui.notifications?.warn(t("SDE.overland.notify.pickToken")); return false; }
+  let chosen = chooseToken();
+  if (chosen?.refused === "player") { ui.notifications?.warn(t("SDE.overland.notify.playerToken")); return false; }
+  // No party token here yet: the party comes onto the map as one (#257).
+  if (!chosen && await placePartyToken()) chosen = chooseToken();
+  if (!chosen?.tokenUuid) { ui.notifications?.warn(t("SDE.overland.notify.pickToken")); return false; }
+  await wearPartyHex(fromUuidSync(chosen.tokenUuid)).catch((err) => console.error(`${MODULE_ID} | party hex token`, err));
   const hex = await withRegion(chosen.hex);
   const data = { action: "start", tokenUuid: chosen.tokenUuid, actorId: chosen.actorId, hex };
   const reply = isActiveGM() ? await applyAction(data, game.user) : await queryActiveGM(OVERLAND_QUERY, data, { label: t("SDE.overland.relayLabel") });

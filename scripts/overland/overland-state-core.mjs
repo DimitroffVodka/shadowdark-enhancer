@@ -201,9 +201,12 @@ export function spendMove(state, { cost, hex }) {
  * @param {{partyTokens:string[], controlled:string[]}} tokens  token uuids
  * @returns {{uuid:string|null, reason:"party"|"selected"|"pick"}}
  */
-export function pickTravelToken({ partyTokens = [], controlled = [] } = {}) {
+export function pickTravelToken({ partyTokens = [], controlled = [], players = [] } = {}) {
   if (partyTokens.length === 1) return { uuid: partyTokens[0], reason: "party" };
-  if (controlled.length === 1) return { uuid: controlled[0], reason: "selected" };
+  // A player's own token never travels on a hex map (#257): the party does.
+  const others = controlled.filter((uuid) => !players.includes(uuid));
+  if (others.length === 1) return { uuid: others[0], reason: "selected" };
+  if (controlled.length && !others.length) return { uuid: null, reason: "player" };
   return { uuid: null, reason: "pick" };
 }
 

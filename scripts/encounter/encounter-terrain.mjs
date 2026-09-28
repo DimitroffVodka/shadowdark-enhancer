@@ -296,6 +296,21 @@ function partyPoints(canvasRef) {
 }
 
 /**
+ * Does this scene follow hex rules rather than Foundry's light and sight
+ * (#257)? A hex grid that is a map of hexes: a print tagged by the Hex Tagger,
+ * or a Shadowdark Extras hexcrawl. There no token lights anything or sees
+ * anything; what the party sees comes from the hex rules (time, weather,
+ * height). A hex grid alone is not enough: 5 ft hex battle maps keep their
+ * torches.
+ * @param {Scene|null} scene  the scene document
+ * @returns {boolean}
+ */
+export function isHexRulesScene(scene) {
+  if (!scene?.grid?.isHexagonal) return false;
+  return !!(scene.getFlag?.(MODULE_ID, TAGS_FLAG)?.origin || scene.flags?.["shadowdark-extras"]?.hexcrawl);
+}
+
+/**
  * Is the viewed scene a tagged hex map, one partyHex() can read? (Overland's
  * Travel button is offered only there, docs/plans/overland.md §4.3.)
  * @returns {boolean}

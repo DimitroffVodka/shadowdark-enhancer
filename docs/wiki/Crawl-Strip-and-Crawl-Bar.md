@@ -162,9 +162,17 @@ with forage and camp.
   check hours.
 - **No Crawl Strip on a hex map** outside a combat: the party travels there as
   one token, and the clock bar holds the top of the screen.
-- **Which token travels.** The Shadowdark Extras party token, when exactly one
-  is on the map. Otherwise select the one token that travels before pressing
-  **Travel**.
+- **Which token travels.** The party token: the Shadowdark Extras party's, when
+  exactly one is on the map, or the module's own **Party**. With no party token
+  on the map, Start travel puts the Party in the hex at the centre of your view.
+  A player's own token never travels. The travel token wears the black party
+  hex on the hex map (only there: its actor keeps its portrait).
+- **Hex rules, not light and sight.** On a hex map (a tagged print, or a
+  Shadowdark Extras hexcrawl) no token gives light and no token sees: a torch
+  carried there reveals nothing, and players see the map as a map, with
+  Extras' hex fog hiding what the party hasn't seen. The same character keeps
+  its torch and its sight on a dungeon map. A 5 ft hex battle map is not a hex
+  map in this sense.
 - **Who travels.** That party's members, or every player-owned character.
 - **While travelling** the Crawl Strip is off and the crawl's movement isn't
   tracked. The bar shows **Overland**, today's weather once it's rolled, and the

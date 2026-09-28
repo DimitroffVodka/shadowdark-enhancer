@@ -78,6 +78,12 @@ test("the travel token: the one party token, else the one selected token, else t
   assert.deepEqual(pickTravelToken({ partyTokens: [], controlled: ["x", "y"] }), { uuid: null, reason: "pick" });
 });
 
+test("a player's own token never travels on a hex map (#257)", () => {
+  assert.deepEqual(pickTravelToken({ controlled: ["pc"], players: ["pc"] }), { uuid: null, reason: "player" });
+  assert.deepEqual(pickTravelToken({ controlled: ["pc", "npc"], players: ["pc"] }), { uuid: "npc", reason: "selected" });
+  assert.deepEqual(pickTravelToken({ partyTokens: ["p"], controlled: ["pc"], players: ["pc"] }), { uuid: "p", reason: "party" }, "the party token wins");
+});
+
 test("a forage is refused when nobody travels, for a non-member, and a second time today", () => {
   assert.equal(forageRefusal({ travelling: true, member: true, foraged: false }), null);
   assert.equal(forageRefusal({ travelling: false, member: true, foraged: false }), "notTravelling");

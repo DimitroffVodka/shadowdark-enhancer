@@ -11,6 +11,13 @@ it needs.
 
 ### Added
 
+- **Hex maps follow hex rules.** On a tagged print or a Shadowdark Extras
+  hexcrawl, no token gives light and no token sees, so a torch no longer
+  reveals miles of map; the same characters keep their light and sight on a
+  dungeon map. The party travels as one black hex token that fills its hex,
+  Extras' party or the module's own **Party**, placed when travel starts with
+  none on the map; a player's own token never travels. (#257)
+
 - **The clock bar.** The date with its year, the time and the sky now sit at
   the top of the screen for everyone, on every scene, in the look of the
   Overland demo: black, the engraved frame, the book's blackletter. Under it,

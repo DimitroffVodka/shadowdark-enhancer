@@ -11,6 +11,7 @@ import { rulesApi } from "./rules-data/rules-data-core.mjs";
 import { timeApi, registerTimeHooks } from "./time/time.mjs";
 import { overlandState, isOverland, rollWeather, startDay, resume, forage, makeCamp, registerOverland } from "./overland/overland.mjs";
 import { TravelBar } from "./overland/overland-bar.mjs";
+import { registerHexRules } from "./overland/hex-rules.mjs";
 import { registerSky } from "./overland/sky.mjs";
 import { CrawlState } from "./crawl-strip/crawl-state.mjs";
 import { CrawlStrip } from "./crawl-strip/crawl-strip.mjs";
@@ -115,7 +116,7 @@ const STYLESHEET_REV = "6e5190e4c07a";
 // stale); module.json carries the same hash and is fetched fresh at runtime. A
 // mismatch is a stale cache by construction — it cannot be anything else. Both
 // stamps are written by `npm run inventory` and gated by `inventory:check`.
-const BUILD_REV = "bdcd89997b48";
+const BUILD_REV = "b2f09934abdf";
 
 /**
  * Tell the user when their browser is running an old build of this module, and
@@ -290,6 +291,9 @@ Hooks.once("init", () => {
   // Quest Log: its keybinding can only be registered during init.
   registerQuests();
   registerTroubles();
+  // Hex rules on hex maps (#257): no token light or token vision there. Must
+  // run in init, before the canvas is built from CONFIG.
+  registerHexRules();
   // Out-of-combat tracker as a sidebar tab, beside Combat. Must run in init:
   // Game#initializeUI constructs CONFIG.ui entries during setup, and anything
   // registered after that pass never gets an instance.
