@@ -7,6 +7,10 @@ armies a player character commands. A **warband unit** is its own actor
 type, built like the [Mount](Mounts-and-Boats.md): a real Shadowdark NPC, so
 its attacks, AC, HP and damage roll as any NPC's, with a **Warband** tab.
 
+> With Shadowdark Extras active, a warband's (and a mount's) attacks need
+> Extras' fix for its attack wrapper (DimitroffVodka/shadowdark-extras#184);
+> without it the attack card doesn't post.
+
 Still to come: the book's stock warbands and the upgrades' effects (#201),
 mass combat with automatic morale and rout (#203), upkeep and healing on the
 world clock (#204), and recruiting as a downtime activity (#205).
