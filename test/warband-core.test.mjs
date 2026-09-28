@@ -5,7 +5,7 @@ import assert from "node:assert/strict";
 
 import {
   UPGRADES, MOST_UPGRADES, allowanceFor, canMakeWarband, cleanUpgrades, commandRefusal, upgradeRefusal,
-  tripleDice, warbandStats, warbandAttack, warbandHp,
+  tripleDice, warbandStats, warbandAttack, warbandHp, warbandRolledHp,
 } from "../scripts/actors/warband-core.mjs";
 
 test("eighteen upgrades, and a commander's allowance by hit die", () => {
@@ -58,4 +58,11 @@ test("a warband's HP is fixed: 8 per level plus CON, at least 1", () => {
   assert.equal(warbandHp(4, 1), 33);
   assert.equal(warbandHp(2, -3), 13);
   assert.equal(warbandHp(0, -2), 1);
+});
+
+test("the system's HP roll keeps a warband's current HP: placing a linked token never heals it (#283 review)", () => {
+  assert.deepEqual(warbandRolledHp({ level: 4, conMod: 1, value: 7, max: 33 }), { max: 33, value: 7 });
+  assert.deepEqual(warbandRolledHp({ level: 3, conMod: 1, value: 33, max: 33 }), { max: 25, value: 25 }, "clamped to a lower max");
+  assert.deepEqual(warbandRolledHp({ level: 4, conMod: 1, value: 0, max: 0 }), { max: 33, value: 33 }, "one never given HP starts full");
+  assert.deepEqual(warbandRolledHp({ level: 4, conMod: 1, value: 0, max: 33 }), { max: 33, value: 0 }, "a fallen warband stays down");
 });

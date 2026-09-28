@@ -16,11 +16,21 @@
 import { MODULE_ID } from "../shared/module-id.mjs";
 import { replaceModuleFlag } from "../shared/module-flags.mjs";
 import { martialTierForHitDie } from "../downtime/downtime-core.mjs";
+import { makeQueue } from "../quests/quest-core.mjs";
 import {
   UPGRADES, MOST_UPGRADES, allowanceFor, cleanUpgrades, commandRefusal, upgradeRefusal,
 } from "./warband-core.mjs";
 
 export const WARBAND_FLAG = "warband";
+
+/**
+ * Every warband write on this client, one at a time. Each one re-reads its
+ * warband and the shared allowance when its turn comes, so quick ticks don't
+ * overwrite each other and two warbands can't both take a commander's last
+ * slot.
+ */
+// ponytail: one client's queue; two GMs ticking against one commander at the same instant can still both pass.
+const warbandWrites = makeQueue();
 
 const UPGRADE_KEYS = {
   accurate: "SDE.warband.upgrade.accurate", ambush: "SDE.warband.upgrade.ambush",
@@ -107,7 +117,13 @@ export function buildWarbandNpcSheet(BaseNpcSheet, type) {
       // allowance and written whole, and a refused one is put back.
       root.querySelectorAll("input[data-sde-upgrade]").forEach((el) => el.addEventListener("change", (ev) => {
         ev.stopPropagation();
-        this._toggleUpgrade(el.dataset.sdeUpgrade, el.checked).then((ok) => { if (!ok) el.checked = !el.checked; });
+        this._toggleUpgrade(el.dataset.sdeUpgrade, el.checked)
+          .then((ok) => { if (!ok) el.checked = !el.checked; })
+          .catch((err) => {
+            console.error(`${MODULE_ID} | warband upgrade`, err);
+            ui.notifications?.error(game.i18n.localize("SDE.warband.notify.upgradeFailed"));
+            el.checked = !el.checked;
+          });
       }));
       super.activateListeners(html);
     }
@@ -131,7 +147,11 @@ export function buildWarbandNpcSheet(BaseNpcSheet, type) {
     }
 
     /** Give the warband to a commander (or none), if the allowance holds. */
-    async _setCommander(pc) {
+    _setCommander(pc) {
+      return warbandWrites(() => this._writeCommander(pc));
+    }
+
+    async _writeCommander(pc) {
       const state = warbandState(this.actor);
       if (pc) {
         const allowance = allowanceFor(await commanderTier(pc));
@@ -147,7 +167,11 @@ export function buildWarbandNpcSheet(BaseNpcSheet, type) {
     }
 
     /** Tick or untick one upgrade; refused (with a message) over the allowance or twice. */
-    async _toggleUpgrade(key, on) {
+    _toggleUpgrade(key, on) {
+      return warbandWrites(() => this._writeUpgrade(key, on));
+    }
+
+    async _writeUpgrade(key, on) {
       const state = warbandState(this.actor);
       if (on) {
         const pc = state.commander ? await fromUuid(state.commander).catch(() => null) : null;
