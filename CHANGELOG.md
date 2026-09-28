@@ -388,7 +388,8 @@ page walks through it in order.
   no more upkeep, healing, or place in the commander's allowance, until
   Return to Service. With its commander dead it rolls and takes its own
   turn. Its attack cards note the area it fills; splitting its damage is the
-  GM's. A warband still retraining its upgrades can't attack. (#203)
+  GM's. A warband still retraining its upgrades can't attack. A warband with
+  no commander checks no morale. (#203)
 - **The book's warbands and what upgrades do.** Importer Hub → Manage →
   Monsters → **Warbands** imports the Player's Guide's eight stock warbands
   from your PDF as warband units, with their talents, in a Warbands folder.

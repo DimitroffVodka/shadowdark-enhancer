@@ -126,6 +126,9 @@ bastions.
   Withdraw). A routed warband is destroyed: marked defeated, with a chat
   card. It stays in the combat tracker, so the recap still counts it, but it
   no longer pays upkeep, heals, or counts against its commander's allowance.
+  A warband in no one's service checks no morale: one just made or imported,
+  a copy, or one whose Commander box you emptied. A warband whose commander
+  died still has one.
   **Return to Service** undoes a rout; clear its dead status yourself.
 - **Area attacks.** A warband's attack card notes that it fills a near-sized
   area around its target and can split its damage dice among what it hits
