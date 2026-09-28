@@ -116,7 +116,10 @@ has rolled, it also moves the world clock by the session's days, off duty
 (see [Moving the clock for downtime](#moving-the-clock-for-downtime)), and
 posts that they have passed. A session nobody rolled in is called off, and no
 time passes. If the clock move is refused, the session stays open: the
-warning says why, and you can end it again.
+warning says why, and you can end it again. The one exception is a warning
+that another GM's tab didn't answer in time. That tab may still move the
+clock, so the session closes rather than risk moving it twice. Check the world
+time, and if it didn't move, move it with the macro below.
 
 ---
 

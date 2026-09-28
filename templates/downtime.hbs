@@ -84,7 +84,7 @@
           <button type="button" class="sde-dt-btn sde-dt-primary" data-action="lockRolls">{{localize "SDE.downtime.ui.lockDice"}}</button>
         {{/if}}
         <button type="button" class="sde-dt-mini sde-dt-danger" data-action="endSession"
-                title="{{#if session.days}}{{localize 'SDE.downtime.ui.endSessionTip' days=session.days}}{{/if}}">{{localize "SDE.downtime.ui.endSession"}}</button>
+                {{#if session.days}}title="{{localize 'SDE.downtime.ui.endSessionTip' days=session.days}}"{{/if}}>{{localize "SDE.downtime.ui.endSession"}}</button>
       </header>
       <p class="sde-dt-note">
         {{#if session.locked}}{{localize "SDE.downtime.ui.diceUnlocked"}}

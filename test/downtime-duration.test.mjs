@@ -9,12 +9,14 @@ const settings = new Map();
 const warnings = [];
 const messages = [];
 const dice = [];
+const rolls = [];                 // every Roll made
+const advances = [];              // game.time.advance calls
 let carousing = null;             // SDX's sync journal flags, or null when Extras is off
 Object.assign(globalThis, {
   Hooks: { on() {}, callAll() {} },
   ui: { notifications: { warn: (m) => warnings.push(m) } },
   Roll: class {
-    constructor(formula) { this.formula = formula; }
+    constructor(formula) { this.formula = formula; rolls.push(formula); }
     async evaluate() { this.total = dice.shift(); return this; }
   },
   ChatMessage: { create: async (data) => { messages.push(data); return { id: `m${messages.length}` }; } },
@@ -26,20 +28,25 @@ Object.assign(globalThis, {
     messages: { get: () => null },
     modules: { get: (id) => (id === "shadowdark-extras" && carousing ? { active: true } : null) },
     journal: { find: (fn) => [carousing?.journal].filter(Boolean).find(fn) },
+    time: { worldTime: 0, advance: async (seconds, options) => { advances.push([seconds, options]); } },
   },
 });
 settings.set("shadowdark-extras.enableCarousing", true);
 
 const { DowntimeSession } = await import("../scripts/downtime/downtime-session.mjs");
 DowntimeSession.storedFor = () => ({ ok: true, slots: {} });
+const realPassTime = DowntimeSession._passTime;
 const moves = [];
-let refuse = false;
-DowntimeSession._passTime = async (seconds) => { moves.push(seconds); return refuse ? { ok: false, error: "no" } : { ok: true }; };
+let reply = { ok: true };
+const watchPassTime = () => {
+  DowntimeSession._passTime = async (seconds) => { moves.push(seconds); return reply; };
+};
 
 /** A started session with `rolled` settled results. */
 async function started(days, rolled = 1) {
-  warnings.length = messages.length = moves.length = 0;
-  refuse = false;
+  warnings.length = messages.length = moves.length = rolls.length = advances.length = 0;
+  reply = { ok: true };
+  watchPassTime();
   await DowntimeSession._commit({ active: false });
   dice.push(days);
   await DowntimeSession.start("gmwr");
@@ -50,28 +57,49 @@ async function started(days, rolled = 1) {
 test("start rolls 2d6 once for the group; the card shows it and carries the roll", async () => {
   await started(7);
   assert.equal(DowntimeSession.days, 7);
-  assert.equal(dice.length, 0, "one roll");
+  assert.deepEqual(rolls, ["2d6"], "one roll");
   assert.equal(messages[0].rolls[0].formula, "2d6");
   assert.match(messages[0].content, /SDE\.downtime\.card\.days\{"days":7\}/);
 });
 
+test("a double click on Start rolls one duration and posts one card", async () => {
+  await started(7);
+  await DowntimeSession._commit({ active: false });
+  messages.length = rolls.length = 0;
+  dice.push(4, 9);
+  await Promise.all([DowntimeSession.start("gmwr"), DowntimeSession.start("gmwr")]);
+  assert.deepEqual(rolls, ["2d6"]);
+  assert.equal(messages.length, 1);
+  assert.equal(DowntimeSession.days, 4);
+  dice.length = 0;
+});
+
 test("end moves the clock its days once, off duty, and closes the session", async () => {
   await started(7);
+  DowntimeSession._passTime = realPassTime;                             // the real off-duty move (no light tracker)
   await Promise.all([DowntimeSession.end(), DowntimeSession.end()]);   // a double click
-  assert.deepEqual(moves, [7 * 86400]);
+  assert.deepEqual(advances, [[7 * 86400, { "shadowdark-enhancer": { offDuty: "downtime" } }]]);
   assert.equal(DowntimeSession.active, false);
   assert.match(messages.at(-1).content, /SDE\.downtime\.card\.daysPassed\{"days":7\}/);
 });
 
 test("a refused move leaves the session open to end again", async () => {
   await started(5);
-  refuse = true;
+  reply = { ok: false, error: "no" };
   assert.equal(await DowntimeSession.end(), false);
   assert.equal(DowntimeSession.active, true);
-  refuse = false;
+  reply = { ok: true };
   await DowntimeSession.end();
   assert.deepEqual(moves, [5 * 86400, 5 * 86400], "the second End moves it");
   assert.equal(DowntimeSession.active, false);
+});
+
+test("a move whose outcome is unknown closes the session, so no second End moves it again", async () => {
+  await started(5);
+  reply = { ok: false, error: "no answer", unknown: true };
+  assert.equal(await DowntimeSession.end(), true);
+  assert.equal(DowntimeSession.active, false);
+  assert.ok(!messages.some((m) => /daysPassed/.test(m.content)), "no claim that the days passed");
 });
 
 test("a session nobody rolled in is called off: no time passes", async () => {

@@ -3616,7 +3616,7 @@
   "SDE.downtime.notify.cantCoverFee": "{name} can't cover the {cost} gp fee for \"{slot}\" ({short} short) — add coin to the sheet first.",
   "SDE.downtime.notify.noHub": "The Importer Hub isn't available in this build.",
   "SDE.downtime.notify.bookLocked": "That book isn't unlocked yet — import it first.",
-  "SDE.downtime.notify.carousingOpen": "A carouse is under way in Shadowdark Extras, so downtime can't start. Finish it, or take the characters out of the carousing window, first.",
+  "SDE.downtime.notify.carousingOpen": "A carouse is under way in Shadowdark Extras, so downtime can't start. Finish it in Extras' carousing window, or take the characters out of it, first.",
   "SDE.downtime.notify.sessionEnded": "That downtime session has ended.",
   "SDE.downtime.classError.loadFailed": "the class item could not be loaded",
   "SDE.downtime.classError.noClass": "no class is set on this character",

@@ -697,7 +697,12 @@ Since 1.22.0 (#198) a session takes time:
 - `endSession`, once any result is settled, moves the clock `days * 86400`
   seconds through `time.advanceOffDuty(seconds, { reason: "downtime" })`
   before it closes. If that move is refused, the session stays open and
-  `endSession` resolves `false`. With no results it closes and passes no time.
+  `endSession` resolves `false`, except on a refusal marked `unknown` (the tab
+  it was handed to didn't answer and may still move the clock): the session
+  closes then, so a second End can't move it twice. With no results it closes
+  and passes no time. `startSession` returns `null` while a session is open.
+- `advanceOffDuty`'s refusal carries `unknown: true` in that no-answer case.
+  Don't retry it.
 - `isOpen()` is what Extras' carousing checks before it starts.
 
 **The GM never trusts a number from a player.** A player's message carries ids
@@ -1457,7 +1462,8 @@ One chat line names the lights put out and says whether the clock moved. A
 refusal, or an error part-way, never moves the clock and returns what was put
 out in `doused`. When the calling GM hands the move off and gets no answer in
 60 seconds, the reply says the outcome is unknown: the other tab may still have
-moved the clock, so check it before calling again.
+moved the clock, so check it before calling again. Since 1.22.0 that reply
+carries `unknown: true`, so a caller can tell it from a refusal it may retry.
 
 With the system's light tracking off it only advances. A Light spell and a
 Light actor dropped on the scene are left to the clock: a spell's duration is

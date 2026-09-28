@@ -74,6 +74,7 @@ import {
 import { effectPlanFor, applyDowntimeEffect } from "./downtime-effects.mjs";
 import { refuseQuery } from "../shared/gm-relay.mjs";
 import { advanceOffDuty } from "../time/off-duty.mjs";
+import { secondsPerDay } from "../time/time-core.mjs";
 import { CarousingFeed } from "../session-recap/carousing-feed.mjs";
 
 /** One string from `languages/en.json`; the key when no i18n is mounted. */
@@ -628,20 +629,24 @@ export const DowntimeSession = {
 
   // ── GM mutators (direct clicks — deliberately NOT activeGM-gated) ─────────
 
+  /** Open a session. Queued, and null while one is open, so a double click rolls one duration. */
   async start(sourceSlug) {
     if (!game.user.isGM) return null;
-    const stored = this.storedFor(sourceSlug);
-    if (!stored.ok) { ui.notifications.warn(L("SDE.downtime.notify.bookLocked")); return null; }
-    // Never alongside a carouse in Shadowdark Extras, which refuses the reverse (#198).
-    if (CarousingFeed.isOpen()) { ui.notifications.warn(L("SDE.downtime.notify.carousingOpen")); return null; }
+    return this._enqueue(async () => {
+      if (this._read().active) return null;
+      const stored = this.storedFor(sourceSlug);
+      if (!stored.ok) { ui.notifications.warn(L("SDE.downtime.notify.bookLocked")); return null; }
+      // Never alongside a carouse in Shadowdark Extras, which refuses the reverse (#198).
+      if (CarousingFeed.isOpen()) { ui.notifications.warn(L("SDE.downtime.notify.carousingOpen")); return null; }
 
-    // One duration for the whole group (GMWR p.34): 2d6 days, off the survival clock.
-    const roll = await new Roll("2d6").evaluate();
-    const next = { ...defaultSession(), active: true, source: sourceSlug, phase: "select", days: roll.total };
-    const msg = await this._postAnnouncement(sourceSlug, roll);
-    next.announcementId = msg?.id ?? null;
-    await this._commit(next);
-    return next;
+      // One duration for the whole group (GMWR p.34): 2d6 days, off the survival clock.
+      const roll = await new Roll("2d6").evaluate();
+      const next = { ...defaultSession(), active: true, source: sourceSlug, phase: "select", days: roll.total };
+      const msg = await this._postAnnouncement(sourceSlug, roll);
+      next.announcementId = msg?.id ?? null;
+      await this._commit(next);
+      return next;
+    });
   },
 
   async setPhase(phase) {
@@ -665,9 +670,13 @@ export const DowntimeSession = {
    * Close the session. Once anyone has rolled, the downtime happened: the clock
    * moves its days once, off duty, with the lights put out and no rations,
    * weather or encounter checks (#198). If that move is refused the GM has been
-   * told why, and the session stays open to end again. A session nobody rolled
-   * in is called off and passes no time. Queued, so a double click moves the
-   * clock once.
+   * told why, and the session stays open to end again, unless it isn't known
+   * whether the clock moved: the tab it was handed to may still move it, so
+   * ending again could move it twice. The session closes then, and the warning
+   * has told the GM to check the time. A session nobody rolled in is called off
+   * and passes no time. Queued, so a double click moves the clock once; a
+   * player's roll that lands during a slow hand-off waits behind it, past its
+   * own 20 s reply, and is settled or refused once it runs.
    */
   async end() {
     if (!game.user.isGM) return false;
@@ -675,13 +684,13 @@ export const DowntimeSession = {
       const state = this._read();
       if (!state.active) return false;
       const days = Object.keys(state.results).length ? state.days : null;
-      if (days) {
-        const moved = await this._passTime(days * 86400);
-        if (!moved?.ok) return false;
-        await this._postDaysPassed(days);
-      }
+      const moved = days ? await this._passTime(days * secondsPerDay(game.time.calendar)) : null;
+      if (moved && !moved.ok && !moved.unknown) return false;
+      // Closed before any chat, so a failing post can't leave it open to move again.
+      await this._commit(defaultSession());
+      if (moved?.ok) await this._postDaysPassed(days);
       if (state.announcementId) await this._supersedeCard(state.announcementId);
-      return this._commit(defaultSession());
+      return true;
     });
   },
 
