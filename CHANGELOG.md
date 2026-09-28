@@ -373,7 +373,8 @@ page walks through it in order.
 - **Importing the Western Reaches ancestry d100 switches the builder to it.**
   When the Character Builder's Random ancestry table is empty, importing
   "Ancestry (Population)" sets it, and a notification says so. A table already
-  set is left alone. (#187)
+  set is left alone. A world that imported it earlier adopts it once, at the
+  next load. (#187)
 
 - **Foundry 14 is now the minimum.** The module no longer lists Foundry 13 as
   supported, matching Shadowdark Extras, which already needs 14.
@@ -406,6 +407,12 @@ page walks through it in order.
   they are. (#169)
 
 ### Fixed
+
+- **Random ancestry no longer turns a Half-elf into an Elf.** A table result
+  matched any ancestry whose name it contained, so the population d100's
+  Half-elf rows made Elves in a world without half-elves. A result now names
+  an ancestry only by its whole name, and otherwise falls back and says so.
+  (#187)
 
 - **A book your host won't let you upload can now be linked where it lies.**
   A PDF refused as "too large" is stopped by the web server or proxy in front

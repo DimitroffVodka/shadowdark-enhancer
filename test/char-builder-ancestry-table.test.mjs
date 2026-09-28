@@ -4,7 +4,7 @@
 // Every ancestry and band here is INVENTED; no book's table is in this repo.
 import { test, beforeEach } from "node:test";
 import assert from "node:assert/strict";
-import { rollAncestryFromTable } from "../scripts/char-builder/data.mjs";
+import { rollAncestryFromTable, itemNamed } from "../scripts/char-builder/data.mjs";
 
 const ANCESTRIES = ["Ashling", "Brine-Folk", "Cragborn", "Dunewalker", "Folk"]
   .map((name) => ({ name, uuid: `Compendium.world.ancestries.Item.${name}` }));
@@ -110,4 +110,13 @@ test("the Player's Guide population d100 imports under its ANCESTRY caption", as
   assert.deepEqual(pt.rows.map((r) => [r.min, r.max, r.text]),
     [[1, 60, "Alpha"], [61, 90, "Beta"], [91, 99, "Gamma"], [100, 100, "Delta"]]);
   assert.deepEqual(computeBlockers(pt), []);
+});
+
+test("a result is its ancestry only by the whole name, never a name inside it", () => {
+  // The book's "Half-elf" must not become "Elf" in a world without half-elves.
+  assert.equal(itemNamed("Half-Folk", ANCESTRIES), null, "Folk is inside Half-Folk: no match, so Random falls back");
+  assert.equal(itemNamed("Brine Folk", ANCESTRIES)?.name, "Brine-Folk", "punctuation and case don't matter");
+  assert.equal(itemNamed("Ashling (common)", ANCESTRIES)?.name, "Ashling", "a result may start with the name");
+  assert.equal(itemNamed("Folk", ANCESTRIES)?.name, "Folk");
+  assert.equal(itemNamed("", ANCESTRIES), null);
 });

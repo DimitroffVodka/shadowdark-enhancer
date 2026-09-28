@@ -46,7 +46,7 @@
 
 | File | Lines | Description |
 |---|---:|---|
-| `shadowdark-enhancer.mjs` | 1236 | **Entry point** (module.json esmodules). Registers hooks, settings, sheets, actor sub-types, the public `game.shadowdarkEnhancer` API, and wires every sub-system. |
+| `shadowdark-enhancer.mjs` | 1239 | **Entry point** (module.json esmodules). Registers hooks, settings, sheets, actor sub-types, the public `game.shadowdarkEnhancer` API, and wires every sub-system. |
 | `luck-reroll/luck-reroll.mjs` | 176 | Wraps the system's `_onReroll` to enforce nat-1 prevention and log Luck rerolls to the session recap. |
 | `spell-mishap/spell-mishap.mjs` | 270 | Nat-1 spellcasting failures auto-roll the class's mishap table (wizard / witch / necromancer sets); divine casters are exempt. |
 | `scavenger/scavenger-core.mjs` | 171 | Pure Delver Scavenger rules: the 5-6 success range and Master Scavenger's widening (floored at 3-6), what counts as expending a consumable's last use (a 1→0 decrement or a delete at quantity 1 — never a stack deleted whole), and which single client rolls. |
@@ -119,7 +119,7 @@
 | `curated-icon-maps/sea-wolf-plunder-icons.mjs` | 38 | The N3 §5.1/D4 Sea Wolf Plunder map: exactly 20 CS3 p68 source-qualified item phrases and reviewed native Foundry `icons/**.webp` paths, keyed without each row's terminal gp price. |
 | `curated-icon-maps/weapon-icons.mjs` | 47 | N3's 37 reviewed Foundry-native weapon icons, keyed by source-agnostic normalized final Item name and registered through the A4 discovery seam. |
 | `attack-card.mjs` | 107 | Reading a Shadowdark attack card — was it an attack at all (a targeted spell is not), did it land, who was it aimed at, who swung. Shared by Parry and Taunt so the two can never disagree about the target (they once did, silently). |
-| `settings.mjs` | 772 | All `game.settings.register` calls + migration-safe defaults. |
+| `settings.mjs` | 778 | All `game.settings.register` calls + migration-safe defaults. |
 | `icons.mjs` | 91 | Centralized icon registry — FontAwesome snippets and vendored SVG references. |
 | `compendium-suite.mjs` | 459 | Find-or-create layer for managed world packs, ownership, sidebar folders, and source folders. |
 | `loading-dialog-guard.mjs` | 112 | Guards the system's leaked `LoadingSD` spinner when `ItemSheetSD.getData` throws. |
@@ -288,7 +288,7 @@
 | `char-content/language-resolver.mjs` | 16 | Language names → system UUIDs. |
 | `spells/spell-parser.mjs` | 290 | Spell blocks → Spell drafts. Pure. |
 | `spells/spell-importer-app.mjs` | 475 | Spell workspace organized by class / tier / alignment. |
-| `tables/table-importer.mjs` | 3862 | Roll-table text → structure. The big one; includes `repairSharedStartRanges`. |
+| `tables/table-importer.mjs` | 3876 | Roll-table text → structure. The big one; includes `repairSharedStartRanges`. |
 | `tables/table-shapes.mjs` | 839 | Per-unlock deterministic table SHAPE recipes (prayer/grid/lookup/reflow kinds). |
 | `tables/table-hub.mjs` | 449 | Reconciles the shipped manifest against the live world (system / imported / missing). |
 | `tables/table-hub-app.mjs` | 595 | "Set up ALL tables" window — dashboard + import view. |
@@ -358,7 +358,7 @@
 | `char-builder-app.mjs` | 306 | `ShadowdarkCharBuilder` ApplicationV2 shell; drives the step lifecycle. |
 | `state.mjs` | 148 | `CharBuilderState` — the in-progress character. |
 | `constants.mjs` | 187 | Shared constants; hands off to the system's `CharacterGeneratorSD`. |
-| `data.mjs` | 296 | Thin wrappers over the system's compendium loaders. |
+| `data.mjs` | 312 | Thin wrappers over the system's compendium loaders. |
 | `commit.mjs` | 289 | `commitCharacter` — final actor creation + `coinsAfterGear`. |
 | `art.mjs` | 77 | Ancestry/class NAME → local portrait manifest. |
 | `art-gallery.mjs` | 525 | GM-curated portrait gallery (avoids granting players `FILES_BROWSE`). |

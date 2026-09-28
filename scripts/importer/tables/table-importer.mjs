@@ -3310,10 +3310,24 @@ async function adoptAncestryTable(table) {
   try {
     if (game.settings.get("shadowdark-enhancer", "charBuilderAncestryTable")) return;
     await game.settings.set("shadowdark-enhancer", "charBuilderAncestryTable", table.uuid);
+    await game.settings.set("shadowdark-enhancer", "charBuilderAncestryAdopted", true);
     ui.notifications?.info(loc("SDE.importer.notify.ancestryTableSet", { table: table.name }));
   } catch (err) {
     console.warn("shadowdark-enhancer | adoptAncestryTable:", err);
   }
+}
+
+/**
+ * A world that imported the ancestry d100 before this: adopt it once, at
+ * ready, if the builder's table is still empty. The marker keeps it from
+ * coming back after the GM clears the setting. Active GM only.
+ */
+export async function adoptImportedAncestryTable() {
+  if (game.settings.get("shadowdark-enhancer", "charBuilderAncestryAdopted")) return;
+  const { findSuitePack } = await import("../../shared/compendium-suite.mjs");
+  const pack = findSuitePack("sde-tables");
+  const entry = pack ? [...(await pack.getIndex())].find((e) => /ancestry \(population\)$/i.test(e.name ?? "")) : null;
+  if (entry) await adoptAncestryTable(entry);
 }
 
 async function _autoEnrich(table, pt) {

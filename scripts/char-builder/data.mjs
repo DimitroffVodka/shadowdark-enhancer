@@ -248,10 +248,26 @@ async function itemForResult(r, items) {
       if (byName) return byName;
     }
   }
-  const txt = resultText(r).toLowerCase();
-  if (!txt) return null;
-  return items.find((i) => i.name.toLowerCase() === txt)
-    ?? items.find((i) => txt.includes(i.name.toLowerCase()))
+  return itemNamed(resultText(r), items);
+}
+
+/** Lower case, punctuation as spaces: "Half-Elf" and "half elf" read the same. */
+const nameKey = (s) => String(s ?? "").toLowerCase().replace(/[^\p{L}\p{N}]+/gu, " ").trim();
+
+/**
+ * The item a table result names (#187): the same name, ignoring case and
+ * punctuation, or else the one the result starts with ("Human (common)"),
+ * the longest if several do. Never a name found inside another word run:
+ * "Half-elf" is not "Elf", so a world without half-elves falls back.
+ * @param {string} text
+ * @param {Array<{name:string}>} items
+ */
+export function itemNamed(text, items) {
+  const key = nameKey(text);
+  if (!key) return null;
+  return items.find((i) => nameKey(i.name) === key)
+    ?? items.filter((i) => { const k = nameKey(i.name); return k && key.startsWith(`${k} `); })
+      .sort((a, b) => nameKey(b.name).length - nameKey(a.name).length)[0]
     ?? null;
 }
 

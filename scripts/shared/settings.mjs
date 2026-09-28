@@ -214,6 +214,12 @@ export function registerSettings() {
     default: null,
   });
 
+  // Set once the ancestry d100 has been adopted as that table (#187), so a GM
+  // who clears it isn't overruled at the next load.
+  game.settings.register(MODULE_ID, "charBuilderAncestryAdopted", {
+    scope: "world", config: false, type: Boolean, default: false,
+  });
+
   // Fixed starting gold (gp). 0 = roll the standard 2d6×5 gp in the builder.
   game.settings.register(MODULE_ID, "charBuilderStartingGold", {
     name: "SDE.settings.charBuilderStartingGold.name",
