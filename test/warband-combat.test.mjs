@@ -41,7 +41,7 @@ test("a warband in no one's service checks no morale in battle; a commanded one 
   globalThis.fromUuid = async (uuid) => (uuid === "Actor.pc" ? { system: { abilities: { cha: { mod: 2 } } } } : null);
   const unhired = hurt("unhired", null);
   const hired = hurt("hired", "Actor.pc");
-  game.combats = [{ active: true, combatants: [{ actorId: "unhired" }, { actorId: "hired" }] }];
+  globalThis.game.combats = [{ active: true, combatants: [{ actorId: "unhired" }, { actorId: "hired" }] }];
   const update = hooks.get("updateActor");
   rolled.length = 0;
   update(unhired, { system: { attributes: { hp: { value: 5 } } } });   // from full (the max) to a quarter
