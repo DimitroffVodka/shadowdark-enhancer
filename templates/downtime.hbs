@@ -22,6 +22,7 @@
       {{#if inSession}}
         {{!-- Pinned: the whole table is doing downtime out of one book. --}}
         <span class="sde-dt-pinned"><i class="fas fa-book"></i> {{session.sourceLabel}}</span>
+        {{#if session.days}}<span class="sde-dt-pinned"><i class="fas fa-hourglass-half"></i> {{localize "SDE.downtime.ui.days" days=session.days}}</span>{{/if}}
       {{else}}
         <select id="sde-dt-source" data-field="source">
           {{#each sources}}
@@ -82,7 +83,8 @@
         {{else}}
           <button type="button" class="sde-dt-btn sde-dt-primary" data-action="lockRolls">{{localize "SDE.downtime.ui.lockDice"}}</button>
         {{/if}}
-        <button type="button" class="sde-dt-mini sde-dt-danger" data-action="endSession">{{localize "SDE.downtime.ui.endSession"}}</button>
+        <button type="button" class="sde-dt-mini sde-dt-danger" data-action="endSession"
+                title="{{#if session.days}}{{localize 'SDE.downtime.ui.endSessionTip' days=session.days}}{{/if}}">{{localize "SDE.downtime.ui.endSession"}}</button>
       </header>
       <p class="sde-dt-note">
         {{#if session.locked}}{{localize "SDE.downtime.ui.diceUnlocked"}}

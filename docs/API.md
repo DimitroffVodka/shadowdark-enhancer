@@ -23,7 +23,7 @@ and Forge & Loot features.
 [`time`](#time--season-day-and-night-sun-moon-and-anchors) ·
 [`overland`](#overland--the-travel-state)
 
-**API version:** `1.21.0` (semver — additive changes bump the minor version,
+**API version:** `1.22.0` (semver — additive changes bump the minor version,
 breaking changes the major; check `apiVersion` before relying on newer keys).
 
 ## Discovery
@@ -685,7 +685,20 @@ await api.downtime.releaseRolls();       // phase "roll" → "select": back to c
 await api.downtime.endSession();         // closes it and greys the announcement card
 
 api.downtime.sessionState();             // deep clone of the live session state
+api.downtime.isOpen();                   // 1.22.0: true while a session is open, read fresh
 ```
+
+Since 1.22.0 (#198) a session takes time:
+
+- `startSession` rolls 2d6 once for the group and stores it as the state's
+  `days`. It refuses, with a warning, while a carouse is under way in
+  Shadowdark Extras: its rolls are running, or characters are dropped into its
+  window for an outing it hasn't completed.
+- `endSession`, once any result is settled, moves the clock `days * 86400`
+  seconds through `time.advanceOffDuty(seconds, { reason: "downtime" })`
+  before it closes. If that move is refused, the session stays open and
+  `endSession` resolves `false`. With no results it closes and passes no time.
+- `isOpen()` is what Extras' carousing checks before it starts.
 
 **The GM never trusts a number from a player.** A player's message carries ids
 only. The active GM re-reads the skeleton, the unlock setting, the actor and the
@@ -1752,6 +1765,7 @@ scene's choice changes, and once on load.
   `followsSky` scene flag).
 - `1.20.0` adds `overland.startDay`'s `hexes`.
 - `1.21.0` adds `encounter.check`'s `travel`.
+- `1.22.0` adds `downtime.isOpen`, and a session's `days`, moved off duty when it ends.
 - `1.4.0` adds the shared `forgeLoot.open()` preview shell. Generator rules and
   document writes remain behind the later NPC/Rival adapter implementations.
   The version policy is additive: new namespaces bump the minor version; breaking

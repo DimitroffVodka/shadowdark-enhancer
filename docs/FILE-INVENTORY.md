@@ -1,7 +1,7 @@
 # Shadowdark Enhancer — File Inventory
 
 <!-- inventory:stats:start -->
-1045 tracked files · ~185,100 lines of code/markup across scripts+templates+styles+test.
+1046 tracked files · ~185,300 lines of code/markup across scripts+templates+styles+test.
 `v0.17.3` in both `module.json` and `package.json`.
 <!-- inventory:stats:end -->
 **Layout reflects the 2026-07-21 feature-folder reorganization (v0.11.0 cycle).**
@@ -46,7 +46,7 @@
 
 | File | Lines | Description |
 |---|---:|---|
-| `shadowdark-enhancer.mjs` | 1221 | **Entry point** (module.json esmodules). Registers hooks, settings, sheets, actor sub-types, the public `game.shadowdarkEnhancer` API, and wires every sub-system. |
+| `shadowdark-enhancer.mjs` | 1224 | **Entry point** (module.json esmodules). Registers hooks, settings, sheets, actor sub-types, the public `game.shadowdarkEnhancer` API, and wires every sub-system. |
 | `luck-reroll/luck-reroll.mjs` | 176 | Wraps the system's `_onReroll` to enforce nat-1 prevention and log Luck rerolls to the session recap. |
 | `spell-mishap/spell-mishap.mjs` | 270 | Nat-1 spellcasting failures auto-roll the class's mishap table (wizard / witch / necromancer sets); divine casters are exempt. |
 | `scavenger/scavenger-core.mjs` | 171 | Pure Delver Scavenger rules: the 5-6 success range and Master Scavenger's widening (floored at 3-6), what counts as expending a consumable's last use (a 1→0 decrement or a delete at quantity 1 — never a stack deleted whole), and which single client rolls. |
@@ -253,8 +253,8 @@
 | `session-recap.mjs` | 774 | Session event tracker singleton (loot, sales, XP, combats, per-PC stats). |
 | `session-recap-core.mjs` | 420 | Pure data shape, currency math, duration format, Discord-markdown export. |
 | `session-recap-app.mjs` | 344 | Recap window: Overview / Combat / Loot / XP / History. |
-| `carousing-feed.mjs` | 141 | Mirrors Shadowdark Extras' carousing into the session log. SDX emits no carousing hook and exposes none of it on `module.api`, but it keeps the whole live carouse in one journal flag on the hidden `__sdx_carousing_sync__` entry — so this watches that document rather than calling anything. Each carouse is COPIED into our own `carousing` array keyed on SDX's `logId`, because SDX's overlay holds only one live carouse and resetting it for the next round erases the last. Self-gates on SDX being active with carousing enabled, on an active session, and on the primary GM. |
-| `carousing-feed-core.mjs` | 226 | Pure normalizer for both SDX carousing result shapes — original (d8 outcome + one benefit, GM applies) and expanded (d8 → XP + d100 benefit/mishap arrays, self-applying) — detected off the payload, not off SDX's mode setting, so a carouse rolled before the GM flipped it still reads. Also the shared `recapRow`, `carousingSubtotal` and `tierLine` wording the recap window and the Discord export both use. Foundry-free, node-tested. |
+| `carousing-feed.mjs` | 148 | Mirrors Shadowdark Extras' carousing into the session log. SDX emits no carousing hook and exposes none of it on `module.api`, but it keeps the whole live carouse in one journal flag on the hidden `__sdx_carousing_sync__` entry — so this watches that document rather than calling anything. Each carouse is COPIED into our own `carousing` array keyed on SDX's `logId`, because SDX's overlay holds only one live carouse and resetting it for the next round erases the last. Self-gates on SDX being active with carousing enabled, on an active session, and on the primary GM. |
+| `carousing-feed-core.mjs` | 239 | Pure normalizer for both SDX carousing result shapes — original (d8 outcome + one benefit, GM applies) and expanded (d8 → XP + d100 benefit/mishap arrays, self-applying) — detected off the payload, not off SDX's mode setting, so a carouse rolled before the GM flipped it still reads. Also the shared `recapRow`, `carousingSubtotal` and `tierLine` wording the recap window and the Discord export both use. Foundry-free, node-tested. |
 
 ### 3.12 `scripts/importer/` — hub + cross-type infrastructure
 
@@ -412,8 +412,8 @@
 | `downtime-log-core.mjs` | 206 | Pure downtime-log formatting: the recap headline row, the escaped journal `<li>`, and the newest-first grouping that splices a row under its `data-sde-day` heading. Shared by the recap window, the Discord export and the journal so all three phrase an attempt identically. |
 | `downtime-log.mjs` | 184 | `recordDowntime(entry)` — one call, two sinks: the Session Recap's Downtime section and a persistent flagged "Downtime Log" world JournalEntry appended under a heading per real-world day. Queued read-modify-write; never throws outward. GM-side only. |
 | `downtime-warnings.mjs` | 161 | Shared prose for the downtime parser's warning codes; splits info notes (a two-column paste always emits them) from real problems, so every unlock surface reports a parse identically. |
-| `downtime-app.mjs` | 1378 | The `sde-downtime` ApplicationV2 in three modes: GM solo (pay-before-roll attempts, renown / XP apply buttons), the GM session control panel (picks overview, lock/release, roll-for), and the player view (own actors only, choose then roll). Locked books render as a title-only card; unlocking happens in the Importer Hub. |
-| `downtime-session.mjs` | 1079 | Table-wide downtime session: world-setting state model, the authenticated downtime query protocol (the raw socket carries only the payload-free re-read nudge), and the GM-authoritative handlers that recompute DC, cost and gating from the skeleton, derive the requester from the server-supplied sender, and spend a per-attempt roll token so a roll settles once. Players pick and roll; the GM settles. |
+| `downtime-app.mjs` | 1379 | The `sde-downtime` ApplicationV2 in three modes: GM solo (pay-before-roll attempts, renown / XP apply buttons), the GM session control panel (picks overview, lock/release, roll-for), and the player view (own actors only, choose then roll). Locked books render as a title-only card; unlocking happens in the Importer Hub. |
+| `downtime-session.mjs` | 1120 | Table-wide downtime session: world-setting state model, the authenticated downtime query protocol (the raw socket carries only the payload-free re-read nudge), and the GM-authoritative handlers that recompute DC, cost and gating from the skeleton, derive the requester from the server-supplied sender, and spend a per-attempt roll token so a roll settles once. Players pick and roll; the GM settles. |
 
 Ships the skeleton only (activity names, slot labels, DCs, paid flags, renown/XP deltas). Every outcome sentence is pasted by the GM from their own book and stored in the `downtimeContent` world setting, never in the repo.
 

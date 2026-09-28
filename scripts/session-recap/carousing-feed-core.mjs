@@ -121,6 +121,19 @@ function normalizeResult(participantId, result, resolveParticipant) {
 }
 
 /**
+ * Whether a carouse is under way in SDX (#198): its rolls are running, or
+ * characters are dropped into the overlay for an outing it hasn't completed.
+ * A completed outing's time has passed already, so it no longer counts. Pure.
+ * @param {object|null} session  SDX's `carousingSession` flag
+ * @param {object|null} drops    SDX's `carousingDrops` flag, user id to actor id
+ * @returns {boolean}
+ */
+export function carousingUnderway(session, drops) {
+  if (session?.phase === "rolling") return true;
+  return session?.phase !== "complete" && Object.keys(drops ?? {}).length > 0;
+}
+
+/**
  * Normalize a whole SDX carousing session into one recap-ready carouse, or
  * `null` when there is nothing worth logging yet.
  *

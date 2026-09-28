@@ -73,6 +73,8 @@ import {
 } from "./downtime-core.mjs";
 import { effectPlanFor, applyDowntimeEffect } from "./downtime-effects.mjs";
 import { refuseQuery } from "../shared/gm-relay.mjs";
+import { advanceOffDuty } from "../time/off-duty.mjs";
+import { CarousingFeed } from "../session-recap/carousing-feed.mjs";
 
 /** One string from `languages/en.json`; the key when no i18n is mounted. */
 const L = (key, data) => {
@@ -119,7 +121,7 @@ export const ACTIONS = {
 export { isActiveGM } from "../shared/gm-relay.mjs";
 
 export function defaultSession() {
-  return { active: false, source: null, phase: "select", picks: {}, results: {}, consumed: [], announcementId: null };
+  return { active: false, source: null, phase: "select", days: null, picks: {}, results: {}, consumed: [], announcementId: null };
 }
 
 /** Defensive normalizer — a hand-edited or partial setting can't crash a render. */
@@ -130,6 +132,8 @@ export function normalizeSession(raw) {
     active: !!raw.active,
     source: typeof raw.source === "string" ? raw.source : null,
     phase: raw.phase === "roll" ? "roll" : "select",
+    // The 2d6 days the whole group is busy (#198); null on a session started before it.
+    days: Number.isInteger(raw.days) && raw.days > 0 ? raw.days : null,
     picks: raw.picks && typeof raw.picks === "object" ? { ...raw.picks } : {},
     results: raw.results && typeof raw.results === "object" ? { ...raw.results } : {},
     // Spent roll nonces. A session started before this field existed reads back
@@ -456,6 +460,7 @@ export const DowntimeSession = {
   get active()  { return !!this._state.active; },
   get phase()   { return this._state.phase; },
   get source()  { return this._state.source; },
+  get days()    { return this._state.days; },
   get picks()   { return this._state.picks ?? {}; },
   get results() { return this._state.results ?? {}; },
   get rollsUnlocked() { return this._state.active && this._state.phase === "roll"; },
@@ -627,9 +632,13 @@ export const DowntimeSession = {
     if (!game.user.isGM) return null;
     const stored = this.storedFor(sourceSlug);
     if (!stored.ok) { ui.notifications.warn(L("SDE.downtime.notify.bookLocked")); return null; }
+    // Never alongside a carouse in Shadowdark Extras, which refuses the reverse (#198).
+    if (CarousingFeed.isOpen()) { ui.notifications.warn(L("SDE.downtime.notify.carousingOpen")); return null; }
 
-    const next = { ...defaultSession(), active: true, source: sourceSlug, phase: "select" };
-    const msg = await this._postAnnouncement(sourceSlug);
+    // One duration for the whole group (GMWR p.34): 2d6 days, off the survival clock.
+    const roll = await new Roll("2d6").evaluate();
+    const next = { ...defaultSession(), active: true, source: sourceSlug, phase: "select", days: roll.total };
+    const msg = await this._postAnnouncement(sourceSlug, roll);
     next.announcementId = msg?.id ?? null;
     await this._commit(next);
     return next;
@@ -652,12 +661,32 @@ export const DowntimeSession = {
     return this._commit({ ...state, picks, phase: next });
   },
 
+  /**
+   * Close the session. Once anyone has rolled, the downtime happened: the clock
+   * moves its days once, off duty, with the lights put out and no rations,
+   * weather or encounter checks (#198). If that move is refused the GM has been
+   * told why, and the session stays open to end again. A session nobody rolled
+   * in is called off and passes no time. Queued, so a double click moves the
+   * clock once.
+   */
   async end() {
     if (!game.user.isGM) return false;
-    const state = this._read();
-    if (state.announcementId) await this._supersedeCard(state.announcementId);
-    return this._commit(defaultSession());
+    return this._enqueue(async () => {
+      const state = this._read();
+      if (!state.active) return false;
+      const days = Object.keys(state.results).length ? state.days : null;
+      if (days) {
+        const moved = await this._passTime(days * 86400);
+        if (!moved?.ok) return false;
+        await this._postDaysPassed(days);
+      }
+      if (state.announcementId) await this._supersedeCard(state.announcementId);
+      return this._commit(defaultSession());
+    });
   },
+
+  /** The off-duty clock move; a property so the tests can watch it. */
+  _passTime: (seconds) => advanceOffDuty(seconds, { reason: "downtime" }),
 
   /** GM sets or clears a pick on a player's behalf (absent player). */
   async gmSetPick(actorId, slotKey, opts = {}) {
@@ -979,20 +1008,32 @@ export const DowntimeSession = {
 
   // ── Chat surfaces ─────────────────────────────────────────────────────────
 
-  async _postAnnouncement(sourceSlug) {
+  async _postAnnouncement(sourceSlug, roll) {
     const label = SOURCES?.[sourceSlug]?.label ?? sourceSlug;
     const content = `
       <div class="sde-downtime-card sde-dt-announce">
         <header class="sde-dt-head"><i class="fas fa-mug-hot"></i> ${L("SDE.downtime.title")}</header>
         <p class="sde-dt-line">${L("SDE.downtime.card.announce")}</p>
         <p class="sde-dt-line sde-dt-book">${esc(label)}</p>
+        <p class="sde-dt-line"><i class="fas fa-hourglass-half"></i> ${L("SDE.downtime.card.days", { days: roll.total })}</p>
         <button type="button" class="sde-dt-open-btn"><i class="fas fa-mug-hot"></i> ${L("SDE.downtime.card.open")}</button>
         <footer class="sde-dt-foot">${L("SDE.downtime.card.noLuck")}</footer>
       </div>`;
     return ChatMessage.create({
       content,
       speaker: { alias: L("SDE.downtime.title") },
+      rolls: [roll],
       flags: { [MODULE_ID]: { downtimeAnnounce: true, source: sourceSlug } },
+    });
+  },
+
+  async _postDaysPassed(days) {
+    return ChatMessage.create({
+      content: `<div class="sde-downtime-card">
+        <header class="sde-dt-head"><i class="fas fa-hourglass-end"></i> ${L("SDE.downtime.title")}</header>
+        <p class="sde-dt-line">${L("SDE.downtime.card.daysPassed", { days })}</p>
+      </div>`,
+      speaker: { alias: L("SDE.downtime.title") },
     });
   },
 

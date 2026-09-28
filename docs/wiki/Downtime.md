@@ -48,6 +48,15 @@ Downtime runs in two modes:
 Starting the session pins that book for everyone and posts a **Downtime** card
 to chat with an **Open Downtime** button for your players.
 
+It also rolls **2d6 once for the whole group** (GMWR p.34): everyone is busy
+that many days, fed and lodged in town. The card shows the roll, and every
+window in the session shows the days beside the book.
+
+A session can't start while a carouse is under way in Shadowdark Extras
+(characters are in its carousing window, or its rolls are running). Finish
+the carouse, or take the characters out of that window, first. Extras refuses
+to carouse during downtime in the same way.
+
 ### Phase 1: Choosing
 
 While the session is in the choosing phase:
@@ -102,7 +111,12 @@ example, `2 chosen · 1 rolled`) with a row for each character:
 | **Roll for** | Rolls on behalf of an absent player (marked as `(rolled by the GM)` in chat) |
 | **End session** | Closes the session for everyone and disables the chat card |
 
-Ending a session changes the chat card to **Downtime ended**.
+Ending a session changes the chat card to **Downtime ended**. Once anyone
+has rolled, it also moves the world clock by the session's days, off duty
+(see [Moving the clock for downtime](#moving-the-clock-for-downtime)), and
+posts that they have passed. A session nobody rolled in is called off, and no
+time passes. If the clock move is refused, the session stays open: the
+warning says why, and you can end it again.
 
 ---
 
@@ -336,7 +350,9 @@ system burns every lit torch, lantern and candle for the whole jump and
 deletes any that run out. A torch left lit at the end of the crawl is gone
 after three days of downtime.
 
-The **off-duty move** puts the lights out first. Run it as a GM macro:
+The **off-duty move** puts the lights out first. A table session's
+**End session** runs it for you with the session's days. For solo downtime,
+carousing outside Shadowdark Extras, or a rest, run it as a GM macro:
 
 ```js
 game.shadowdarkEnhancer.time.advanceOffDuty(3 * 86400, { reason: "downtime" });

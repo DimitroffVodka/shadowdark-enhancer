@@ -114,7 +114,7 @@ const STYLESHEET_REV = "ecbc79408101";
 // stale); module.json carries the same hash and is fetched fresh at runtime. A
 // mismatch is a stale cache by construction — it cannot be anything else. Both
 // stamps are written by `npm run inventory` and gated by `inventory:check`.
-const BUILD_REV = "15386ecc62a0";
+const BUILD_REV = "96544513306e";
 
 /**
  * Tell the user when their browser is running an old build of this module, and
@@ -439,7 +439,8 @@ Hooks.once("init", () => {
     // 1.19.0 — additive: time.isNight(t, { region }), the sky on scenes (Overland O9, #235).
     // 1.20.0 — additive: overland.startDay({ hexes }), the day's hexes typed in Start day.
     // 1.21.0 — additive: encounter.check({ travel }), a travel draw's points of interest (#273).
-    apiVersion: "1.21.0",
+    // 1.22.0 — additive: downtime.isOpen(), and a session's 2d6 days move the clock off duty (#198).
+    apiVersion: "1.22.0",
     // The one travel state per world (scripts/overland/overland.mjs): a copy
     // with hexes left, climate, storm, harshness and night derived; whether
     // travel is on; today's weather roll, the travel day's start, Continue
@@ -731,6 +732,8 @@ Hooks.once("init", () => {
       lockRolls: () => DowntimeSession.setPhase("roll"),
       releaseRolls: () => DowntimeSession.setPhase("select"),
       sessionState: () => foundry.utils.deepClone(DowntimeSession.state),
+      // Whether a downtime session is open, read fresh: Extras' carousing waits for it (#198).
+      isOpen: () => DowntimeSession._read().active,
     },
     // Renown — the Western Reaches fame track (p233). The number itself is the
     // SYSTEM's field (`system.renown`); this is the single write path plus the

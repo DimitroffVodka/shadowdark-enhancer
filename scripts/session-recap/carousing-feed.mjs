@@ -24,7 +24,7 @@
  * apply UPDATES the captured row instead of appending a duplicate.
  */
 
-import { normalizeCarousingSession } from "./carousing-feed-core.mjs";
+import { carousingUnderway, normalizeCarousingSession } from "./carousing-feed-core.mjs";
 
 const SDX_ID = "shadowdark-extras";
 /** SDX finds this journal by name, so the name is the reliable identifier. */
@@ -67,6 +67,13 @@ export const CarousingFeed = {
     if (!doc || doc.documentName !== "JournalEntry") return false;
     return doc.name === SYNC_JOURNAL_NAME
       || doc.getFlag?.(SDX_ID, "isCarousingJournal") === true;
+  },
+
+  /** Whether a carouse is under way in SDX, so downtime must wait (#198). */
+  isOpen() {
+    if (!this.isEnabled()) return false;
+    const journal = game.journal.find((doc) => this._isSyncJournal(doc));
+    return !!journal && carousingUnderway(journal.getFlag(SDX_ID, SESSION_FLAG), journal.getFlag(SDX_ID, DROPS_FLAG));
   },
 
   /**

@@ -102,6 +102,14 @@ it needs.
   off it simply moves the clock. If two GM tabs are both burning light
   sources it refuses and names them. See *Downtime → Moving the clock for
   downtime*. (#228)
+- **Downtime takes time.** Starting a downtime session rolls 2d6 once for the
+  whole group: everyone is busy that many days, fed and lodged in town. The
+  card and every player's window show it. Ending the session, once anyone
+  has rolled, moves the clock by those days off duty: lights out, no rations,
+  weather or encounter checks. A session nobody rolled in passes no time.
+  Downtime won't start while a carouse is under way in Shadowdark Extras, and
+  Extras won't carouse during downtime. Extras reads it through
+  `game.shadowdarkEnhancer.downtime.isOpen()`. (#198)
 
 #### Hex maps from your own print
 
