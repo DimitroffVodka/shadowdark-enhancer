@@ -3137,6 +3137,7 @@
   "SDE.overland.makeCamp": "Make camp",
   "SDE.overland.makeCampHint": "Camp for the night. Carried lights go out and keep their time, the clock runs to dawn with the night's encounter checks, the rations are eaten, and the next day's weather is rolled.",
   "SDE.overland.notify.campUnfinished": "The camping rest wasn't finished, so the camp isn't over. Press Continue on the crawl bar to open it again.",
+  "SDE.overland.notify.campRestGone": "Shadowdark Extras had no camp rest waiting, so no rest was applied. The camp breaks anyway.",
   "SDE.overland.notify.campNotMade": "Camp wasn't made: the camping window was closed.",
   "SDE.overland.camp.dawn": "Dawn. The camp breaks. Start the day when you're ready.",
   "SDE.overland.camp.made": "Camp is made: a ration each for the night.",

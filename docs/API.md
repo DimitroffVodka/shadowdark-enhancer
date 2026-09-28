@@ -1728,9 +1728,7 @@ error is also shown as a warning.
 nobody is travelling or an encounter is pending. Resolves to
 `{ ok: true, stopped }` or `{ ok: false, error }`.
 
-1. **Lights.** Carried lights go out and keep their time: `time.advanceOffDuty(0, { reason: "camp" })`.
-   A refusal there is shown, and camp goes on.
-2. **The camp**, before the night (since 1.24.0, GMWR p. 44). Any forage roll
+1. **The camp**, before the night (since 1.24.0, GMWR p. 44). Any forage roll
    still waiting on a player is settled first, so a ration found today is
    eaten tonight.
    - **With Shadowdark Extras**, when the travel token is its party and its
@@ -1747,7 +1745,11 @@ nobody is travelling or an encounter is pending. Resolves to
      eats none (a single ration in a harsh climate counts as none) and takes 1
      CON through `statDamage.apply`. Mounts (`mounts`) eat the same from
      whatever the members have left.
-   - The state's `camp` becomes `{ extras, interrupted: null }`.
+
+   Either way, the state's `camp` becomes `{ extras, interrupted: null, ate: true }`.
+2. **Lights.** Once the camp is made, carried lights go out and keep their
+   time: `time.advanceOffDuty(0, { reason: "camp" })`. A closed camp window
+   leaves them lit. A refusal there is shown, and camp goes on.
 3. **The night.** The clock runs to the next sunrise, or to the last night
    check if that is later (a summer sunrise at 04:30 comes before a 05:00
    check), through the same advance as moves. A hit stops the night with
@@ -1755,7 +1757,10 @@ nobody is travelling or an encounter is pending. Resolves to
    for a hit at the camp's very last moment: the dawn step is still to come.
    A creature (`kind: "monster"`) interrupts the rest. Its hour is kept in
    `camp.interrupted`, the first one only, and the held encounter carries
-   `interrupts: true`. A land result such as a rockslide doesn't.
+   `interrupts: true`. A land result such as a rockslide doesn't. With the
+   clock bar off nothing is held, so nothing is recorded: the GM calls it. A
+   camp from before 1.24.0 gets a `camp` record here with `ate: false`, and
+   its dawn still eats.
 4. **Dawn.** With Extras holding the rest, `camping.dawn({ party, interrupted })`
    finishes it: who ate and didn't succeed at Bed Down rolls CON against DC
    12, and then the rest's benefits apply. When that is canceled or fails, the

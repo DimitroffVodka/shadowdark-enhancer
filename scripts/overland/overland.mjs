@@ -411,8 +411,8 @@ export async function advanceTravel(target, reason) {
     const { hit, held } = await rollCheck(c, chance, reason === "move");
     let next = markCheck(_state, i, hit, chance).state;
     // A creature in the camp's night interrupts the rest (GMWR p.44); a land result such as a rockslide doesn't.
-    // ponytail: with the clock bar off nothing is held, and any hit counts.
-    const wakes = hit && reason === "camp" && (held ? held.kind === "monster" : true);
+    // With the clock bar off nothing is held (the roller shows the draw), so the GM calls it.
+    const wakes = hit && reason === "camp" && held?.kind === "monster";
     if (held) next = setEncounter(next, wakes ? { ...held, interrupts: true } : held).state;
     if (wakes) next = interruptRest(next, c.at).state;
     await commit(next);
@@ -884,7 +884,7 @@ async function pitchCamp() {
   return true;
 }
 
-/** A GM-visible chat post, one paragraph a line. */
+/** A chat post everyone sees, one paragraph a line. */
 const campLine = (lines) => ChatMessage.create({ content: lines.map((l) => `<p>${esc(l)}</p>`).join("") })
   .catch((err) => console.error(`${MODULE_ID} | camp chat line`, err));
 
@@ -903,15 +903,17 @@ async function finishCamp() {
   if (extras) {
     const reply = await extras.camping.dawn({ party: extras.party, interrupted: camp.interrupted !== null })
       .catch((err) => { console.error(`${MODULE_ID} | Shadowdark Extras' camping rest`, err); return null; });
-    if (!reply?.completed) {
+    if (!reply?.completed && !reply?.nothingPending) {
       await commit(setPending(_state, { until: game.time.worldTime, reason: "camp" }).state);
       ui.notifications?.warn(t("SDE.overland.notify.campUnfinished"));
       return false;
     }
+    // Extras has no rest waiting (its record is gone): there's nothing to retry, so the camp breaks.
+    if (reply.nothingPending) ui.notifications?.warn(t("SDE.overland.notify.campRestGone"));
   }
   const lines = [t("SDE.overland.camp.dawn")];
   // A camp made before this build ate nothing yet: it eats now, as it used to.
-  if (!camp) {
+  if (!camp?.ate) {
     const { members, each } = campNeeds();
     lines.push(...(await eatRations(members, each)).lines);
   }
@@ -1094,8 +1096,10 @@ export function applyAction(data, user) {
         if (_state.pending || _state.encounter) return { ok: false, error: t("SDE.overland.notify.pending") };
         // Q8: carried lights go out and keep their time, through the off-duty
         // move with no clock of its own (a refusal there warns, and camp goes on).
-        await advanceOffDuty(0, { reason: "camp" });
         if (!(await pitchCamp())) return { ok: false, error: t("SDE.overland.notify.campNotMade") };
+        // After the camp is made, so a closed camp window leaves the lights as they were; and a lit
+        // torch doesn't count toward Extras' campfire anyway (its unlit torches only).
+        await advanceOffDuty(0, { reason: "camp" });
         const { stopped } = await advanceTravel(campEnd(), "camp");
         const finished = !stopped && await finishCamp();
         return { ok: true, stopped: !finished };

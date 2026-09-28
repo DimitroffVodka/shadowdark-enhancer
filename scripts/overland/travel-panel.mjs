@@ -182,7 +182,7 @@ function stepBody(n, v, sight) {
     case 8:
       return h3 + fl("SDE.travel.night.about")
         + (gm && state.pending?.reason === "camp" ? res(t("SDE.travel.night.stopped")) : "")
-        + (state.camp?.interrupted != null ? res(t("SDE.travel.night.interrupted", { time: dateParts(v.cal, state.camp.interrupted).time })) : "")
+        + (m.interrupted != null ? res(t("SDE.travel.night.interrupted", { time: dateParts(v.cal, m.interrupted).time })) : "")
         + checks(v, "night");
     default:
       return "";

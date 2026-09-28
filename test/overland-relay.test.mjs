@@ -787,3 +787,27 @@ test("Start day takes the day's hexes typed in its dialog, so travel works befor
   await applyAction({ action: "startDay", method: "walking", hexes: 3, pushed: true }, gm);
   assert.equal(stored.overlandState.budget, 4, "3 typed, pushed: floor(4.5)");
 });
+
+test("a dawn Extras has no rest for breaks the camp with a warning instead of retrying forever (#282 review)", async () => {
+  campWorld();
+  const party = { id: "party" };
+  const warned = [];
+  globalThis.ui.notifications.warn = (m) => warned.push(m);
+  globalThis.game.modules = { get: (id) => (id === "shadowdark-extras" ? {
+    active: true,
+    api: { party: { list: () => [party] }, camping: {
+      open: async () => ({ completed: true, pending: true, fed: {} }),
+      dawn: async () => ({ completed: false, nothingPending: true }),
+    } },
+  } : null) };
+  stored.overlandState = { ...stored.overlandState, tokenUuid: "Scene.s.Token.party" };
+  registerOverland();
+  globalThis.fromUuidSync = (uuid) => (uuid === "Scene.s.Token.party" ? { actor: party } : null);
+  dice.push(3);
+  await applyAction({ action: "startDay", method: "walking" }, gm);
+  dice.push(4);
+  assert.deepEqual(await applyAction({ action: "camp" }, gm), { ok: true, stopped: false });
+  globalThis.game.modules = { get: () => null };
+  assert.equal(stored.overlandState.day, null, "the day closed");
+  assert.deepEqual([stored.overlandState.pending, warned], [null, ["SDE.overland.notify.campRestGone"]]);
+});
