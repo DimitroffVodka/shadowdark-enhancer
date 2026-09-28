@@ -90,7 +90,11 @@ function routeTo(token, goal) {
       return Math.max(Math.abs(A.q - B.q), Math.abs(A.r - B.r), Math.abs(A.s - B.s));
     },
   });
-  if (!route) return { blocked: hex(goal) };
+  if (!route) {
+    // The hex itself is closed only when no side of it can be entered; else the way to it is cut off.
+    const closed = grid.getAdjacentOffsets(goal).every((n) => !hex(n) || !Number.isFinite(cost(n, goal)));
+    return { blocked: closed ? hex(goal) : null };
+  }
   const costs = route.path.slice(1).map((o, i) => (hidden.has(offsetKey(o)) ? null : cost(route.path[i], o)));
   return { ...route, costs, unknown: costs.includes(null) };
 }

@@ -406,3 +406,18 @@ test("the cheapest route goes round dear hexes and never through closed ones (#2
   assert.equal(walled, null, "no way through");
   assert.deepEqual(cheapestRoute({ start: { i: 1, j: 1 }, goal: { i: 1, j: 1 }, neighbours, cost, distance }), { path: [{ i: 1, j: 1 }], cost: 0 });
 });
+
+test("a long route over dear terrain is found, and a negative cost doesn't loop the search (#281 review)", () => {
+  // 70x70 = 4,900 cells, every step costing 2: a 4,000-cell cap gave up on this and it read as no way.
+  const N = 70;
+  const neighbours = (c) => [[1, 0], [-1, 0], [0, 1], [0, -1]].map(([di, dj]) => ({ i: c.i + di, j: c.j + dj }))
+    .filter((n) => n.i >= 0 && n.j >= 0 && n.i < N && n.j < N);
+  const distance = (a, b) => Math.abs(a.i - b.i) + Math.abs(a.j - b.j);
+  const far = cheapestRoute({ start: { i: 0, j: 0 }, goal: { i: N - 1, j: N - 1 }, neighbours, cost: () => 2, distance });
+  assert.equal(far?.cost, 4 * (N - 1));
+  assert.equal(far.path.length, 2 * (N - 1) + 1);
+  // Two neighbours priced -1 each (a mistyped rules row) would lower each other forever.
+  const odd = (c) => c.j === 0 && (c.i === 1 || c.i === 2);
+  const r = cheapestRoute({ start: { i: 0, j: 0 }, goal: { i: 5, j: 0 }, neighbours, cost: (_f, to) => (odd(to) ? -1 : 1), distance });
+  assert.deepEqual(r.path.at(-1), { i: 5, j: 0 });
+});
