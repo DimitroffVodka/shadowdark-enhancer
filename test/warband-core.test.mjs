@@ -6,6 +6,7 @@ import assert from "node:assert/strict";
 import {
   UPGRADES, MOST_UPGRADES, allowanceFor, canMakeWarband, cleanUpgrades, commandRefusal, upgradeRefusal,
   tripleDice, warbandStats, warbandAttack, warbandHp,
+  upkeepGp, moraleDC, routChance, healPlan, monthKey, monthsDue,
 } from "../scripts/actors/warband-core.mjs";
 
 test("eighteen upgrades, and a commander's allowance by hit die", () => {
@@ -58,4 +59,29 @@ test("a warband's HP is fixed: 8 per level plus CON, at least 1", () => {
   assert.equal(warbandHp(4, 1), 33);
   assert.equal(warbandHp(2, -3), 13);
   assert.equal(warbandHp(0, -2), 1);
+});
+
+test("upkeep is 10 gp a level; morale is DC 15 (Loyal 9), rout 3-in-6 (Withdraw 1)", () => {
+  assert.equal(upkeepGp(4), 40);
+  assert.equal(upkeepGp(undefined), 0);
+  assert.equal(moraleDC([]), 15);
+  assert.equal(moraleDC(["loyal"]), 9);
+  assert.equal(routChance(["tough"]), 3);
+  assert.equal(routChance(["withdraw"]), 1);
+});
+
+test("a day heals 1d4 (Hardy 2d6); a long rest that must fill it needs no roll", () => {
+  assert.deepEqual(healPlan(1, 10, []), { full: false, formula: "1d4" });
+  assert.deepEqual(healPlan(3, 10, ["hardy"]), { full: false, formula: "6d6" });
+  assert.deepEqual(healPlan(30, 12, []), { full: true, formula: null }, "30 days heal at least 30");
+  assert.deepEqual(healPlan(2, 0, []), { full: false, formula: null }, "not hurt");
+  assert.deepEqual(healPlan(0, 5, []), { full: false, formula: null });
+});
+
+test("months: each month start once, after the last charged, the last few of a long move", () => {
+  assert.equal(monthKey({ year: 1300, month: 2 }, 12), 15602);
+  assert.deepEqual(monthsDue(100, 101, null, 12), { keys: [101], skipped: 0 });
+  assert.deepEqual(monthsDue(100, 103, 101, 12), { keys: [102, 103], skipped: 0 }, "101 was charged");
+  assert.deepEqual(monthsDue(100, 101, 101, 12), { keys: [], skipped: 0 }, "a clock set back and moved on again");
+  assert.deepEqual(monthsDue(0, 40, null, 12), { keys: [29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40], skipped: 28 });
 });

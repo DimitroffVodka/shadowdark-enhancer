@@ -370,6 +370,12 @@ page walks through it in order.
   **Make a Warband** on a level 1–5 NPC's sheet makes one from a copy: level
   doubled, 8 HP a level plus CON, one attack a round, +1 attack a level
   gained, damage dice tripled. See *Warbands*. (#200, #202)
+- **Warband upkeep and healing on the world clock.** Each month start takes
+  10 gp a level per warband from its commander's coins, in one card; a
+  commander who can't pay leaves it in arrears, and each week after it checks
+  morale (the commander's CHA, DC 15, Loyal 9) and may desert: marked, never
+  deleted. Every day heals 1d4 (Hardy 2d6), downtime days included. Changing
+  a commanded warband's upgrades means a week of retraining. (#204)
 - **Encounter check frequency.** Right-click the Crawl Bar's **Encounter**
   button: **Check Frequency** runs from **1** (every crawl round, the default)
   to **10**. The count runs from the last check, automatic or manual, so a

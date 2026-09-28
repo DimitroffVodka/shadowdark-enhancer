@@ -16,8 +16,10 @@
 import { MODULE_ID } from "../shared/module-id.mjs";
 import { replaceModuleFlag } from "../shared/module-flags.mjs";
 import { martialTierForHitDie } from "../downtime/downtime-core.mjs";
+import { secondsPerDay } from "../time/time-core.mjs";
+import { format as formatTime } from "../time/time.mjs";
 import {
-  UPGRADES, MOST_UPGRADES, allowanceFor, cleanUpgrades, commandRefusal, upgradeRefusal,
+  UPGRADES, MOST_UPGRADES, allowanceFor, cleanUpgrades, commandRefusal, upgradeRefusal, upkeepGp,
 } from "./warband-core.mjs";
 
 export const WARBAND_FLAG = "warband";
@@ -37,10 +39,20 @@ const REFUSAL_KEYS = {
   duplicate: "SDE.warband.notify.duplicate", unknown: "SDE.warband.notify.unknownUpgrade",
 };
 
-/** A warband's state, cleaned: `{ commander: uuid|null, upgrades: string[] }`. */
+/**
+ * A warband's state, cleaned, every field kept so a whole-flag write loses
+ * none: `{ commander: uuid|null, upgrades: string[], arrears: gp owed,
+ * deserted: bool, retrainingUntil: worldTime|null }` (#200, #204).
+ */
 export function warbandState(actor) {
   const f = actor?.getFlag?.(MODULE_ID, WARBAND_FLAG) ?? {};
-  return { commander: typeof f.commander === "string" ? f.commander : null, upgrades: cleanUpgrades(f.upgrades) };
+  return {
+    commander: typeof f.commander === "string" ? f.commander : null,
+    upgrades: cleanUpgrades(f.upgrades),
+    arrears: Math.max(0, Math.trunc(Number(f.arrears) || 0)),
+    deserted: !!f.deserted,
+    retrainingUntil: Number.isFinite(f.retrainingUntil) ? f.retrainingUntil : null,
+  };
 }
 
 /** The allowance tier of a PC, from its class's hit die: "d4" | "d6" | "d8plus" | null. */
@@ -92,6 +104,13 @@ export function buildWarbandNpcSheet(BaseNpcSheet, type) {
         noCommanderCap: !allowance ? game.i18n.format("SDE.warband.allowance.noCommander", { max: MOST_UPGRADES }) : null,
         morale: cha === null ? null : game.i18n.format("SDE.warband.moraleBonus", { bonus: `${cha >= 0 ? "+" : ""}${cha}` }),
         upgrades: UPGRADES.map((key) => ({ key, label: game.i18n.localize(UPGRADE_KEYS[key]), checked: state.upgrades.includes(key) })),
+        // #204: upkeep, arrears, desertion and retraining.
+        upkeep: game.i18n.format("SDE.warband.upkeepLine", { gp: upkeepGp(this.actor.system.level?.value) }),
+        arrears: state.arrears ? game.i18n.format("SDE.warband.arrearsLine", { gp: state.arrears }) : null,
+        deserted: state.deserted,
+        retraining: state.retrainingUntil > game.time.worldTime
+          ? game.i18n.format("SDE.warband.retrainingLine", { date: formatTime(state.retrainingUntil) }) : null,
+        isGM: game.user.isGM,
       };
       return context;
     }
@@ -103,6 +122,15 @@ export function buildWarbandNpcSheet(BaseNpcSheet, type) {
         el.addEventListener("click", () => this._openCommander()));
       root.querySelectorAll("[data-sde-action='clear-commander']").forEach((el) =>
         el.addEventListener("click", () => this._setCommander(null)));
+      // #204: the GM's upkeep controls. Loaded when clicked: the upkeep module isn't needed to draw the sheet.
+      const upkeep = (fn) => import("./warband-upkeep.mjs").then(({ WarbandUpkeep }) => fn(WarbandUpkeep))
+        .catch((err) => console.error(`${MODULE_ID} | warband upkeep`, err));
+      root.querySelectorAll("[data-sde-action='run-month']").forEach((el) =>
+        el.addEventListener("click", () => upkeep((u) => u.runMonth(type))));
+      root.querySelectorAll("[data-sde-action='pay-arrears']").forEach((el) =>
+        el.addEventListener("click", () => upkeep((u) => u.payArrears(this.actor))));
+      root.querySelectorAll("[data-sde-action='return-to-service']").forEach((el) =>
+        el.addEventListener("click", () => upkeep((u) => u.returnToService(this.actor))));
       // The checklist isn't a form field: each tick is checked against the
       // allowance and written whole, and a refused one is put back.
       root.querySelectorAll("input[data-sde-upgrade]").forEach((el) => el.addEventListener("change", (ev) => {
@@ -161,7 +189,9 @@ export function buildWarbandNpcSheet(BaseNpcSheet, type) {
         }
       }
       const upgrades = on ? cleanUpgrades([...state.upgrades, key]) : state.upgrades.filter((k) => k !== key);
-      await replaceModuleFlag(this.actor, WARBAND_FLAG, { ...state, upgrades });
+      // A warband in service retrains for a week after its upgrades change, and can't fight until then (#204).
+      const retrainingUntil = state.commander ? game.time.worldTime + 7 * secondsPerDay(game.time.calendar) : state.retrainingUntil;
+      await replaceModuleFlag(this.actor, WARBAND_FLAG, { ...state, upgrades, retrainingUntil });
       return true;
     }
   };

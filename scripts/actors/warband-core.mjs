@@ -83,3 +83,46 @@ export const warbandHp = (level, conMod) => Math.max(1, 8 * (Number(level) || 0)
 export function warbandAttack({ attackBonus = 0, damage = null }, gained) {
   return { num: 1, attackBonus: Math.max(0, (Number(attackBonus) || 0) + gained), damage: damage === null ? null : tripleDice(damage) };
 }
+
+// ── Upkeep, morale and healing (#204, PGWR p.249) ────────────────────────────
+
+/** A month's upkeep: 10 gp a level. */
+export const upkeepGp = (level) => 10 * Math.max(0, Number(level) || 0);
+
+/** The morale check's DC: 15, or 9 for a Loyal warband. */
+export const moraleDC = (upgrades) => ((upgrades ?? []).includes("loyal") ? 9 : 15);
+
+/** The rout chance in 6 after a failed morale check: 3, or 1 for a Withdraw warband (#203). */
+export const routChance = (upgrades) => ((upgrades ?? []).includes("withdraw") ? 1 : 3);
+
+/** A day's healing: 1d4, or 2d6 for a Hardy warband. */
+export const healDie = (upgrades) => ((upgrades ?? []).includes("hardy") ? { n: 2, faces: 6 } : { n: 1, faces: 4 });
+
+/**
+ * `days` of healing on a warband missing `missing` HP: nothing when it isn't
+ * hurt, back to full when even the lowest rolls would get there (a long clock
+ * move needs no hundred-die roll), else the dice to roll.
+ * @returns {{full:boolean, formula:string|null}}
+ */
+export function healPlan(days, missing, upgrades) {
+  if (!(days > 0) || !(missing > 0)) return { full: false, formula: null };
+  const { n, faces } = healDie(upgrades);
+  if (days * n >= missing) return { full: true, formula: null };
+  return { full: false, formula: `${days * n}d${faces}` };
+}
+
+/** A month's place on the calendar, for counting month starts: year × months a year + month. */
+export const monthKey = ({ year, month }, monthsPerYear) => (Number(year) || 0) * monthsPerYear + (Number(month) || 0);
+
+/**
+ * The months to charge for a clock move from `fromKey` to `toKey`: each month
+ * started after both `fromKey` and the last one charged, the last `cap` of them.
+ * @param {number|null} last  the last month key charged, null before the first
+ * @returns {{keys:number[], skipped:number}}
+ */
+export function monthsDue(fromKey, toKey, last, cap) {
+  const first = Math.max(fromKey, Number.isFinite(last) ? last : -Infinity) + 1;
+  const count = Math.max(0, toKey - first + 1);
+  const n = Math.min(count, cap);
+  return { keys: Array.from({ length: n }, (_, i) => toKey - n + 1 + i), skipped: count - n };
+}

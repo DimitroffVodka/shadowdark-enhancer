@@ -12,8 +12,8 @@ its attacks, AC, HP and damage roll as any NPC's, with a **Warband** tab.
 > without it the attack card doesn't post.
 
 Still to come: the book's stock warbands and the upgrades' effects (#201),
-mass combat with automatic morale and rout (#203), upkeep and healing on the
-world clock (#204), and recruiting as a downtime activity (#205).
+mass combat with automatic morale and rout (#203), and recruiting as a
+downtime activity (#205).
 
 ---
 
@@ -57,3 +57,30 @@ commander's allowance.
 Up to 20 similar combatants act as one creature, on its commander's turn.
 Player characters and creatures of level 6 or more always act as
 individuals.
+
+---
+
+## Upkeep and healing
+
+They run off the world clock, whatever moves it: travel, camp, downtime, or
+you setting the date.
+
+- **Upkeep.** At each month start, every warband with a commander costs 10 gp
+  a level, taken from the commander's coins, in one chat card (and the
+  Session Recap's purchases). **Charge a Month** on the Warband tab (GM)
+  charges every warband now.
+- **Arrears.** A commander who can't pay leaves the warband in arrears. At
+  each week start after, it checks morale: d20 plus the commander's CHA
+  against DC 15 (9 if Loyal). On a failure it **deserts**: it's marked
+  deserted, with a chat card, and nothing is deleted. **Pay Arrears** (GM)
+  pays what's owed from the commander; **Return to Service** brings a
+  deserted warband back.
+- **Healing.** Every day it heals 1d4 HP (2d6 if Hardy), downtime days
+  included. The GMs get one card listing who healed.
+- **Retraining.** Changing a commanded warband's upgrades takes a week; the tab
+  says until when, and it can't fight until then.
+- A clock set back and moved on again never charges a month twice, and one
+  move charges at most its last 12 months.
+
+A bastion's Granary (10 gp less upkeep) and Barracks (+1d6 healing) come with
+bastions.

@@ -1,7 +1,7 @@
 # Shadowdark Enhancer — File Inventory
 
 <!-- inventory:stats:start -->
-1060 tracked files · ~187,300 lines of code/markup across scripts+templates+styles+test.
+1061 tracked files · ~187,600 lines of code/markup across scripts+templates+styles+test.
 `v0.17.3` in both `module.json` and `package.json`.
 <!-- inventory:stats:end -->
 **Layout reflects the 2026-07-21 feature-folder reorganization (v0.11.0 cycle).**
@@ -46,7 +46,7 @@
 
 | File | Lines | Description |
 |---|---:|---|
-| `shadowdark-enhancer.mjs` | 1246 | **Entry point** (module.json esmodules). Registers hooks, settings, sheets, actor sub-types, the public `game.shadowdarkEnhancer` API, and wires every sub-system. |
+| `shadowdark-enhancer.mjs` | 1249 | **Entry point** (module.json esmodules). Registers hooks, settings, sheets, actor sub-types, the public `game.shadowdarkEnhancer` API, and wires every sub-system. |
 | `luck-reroll/luck-reroll.mjs` | 176 | Wraps the system's `_onReroll` to enforce nat-1 prevention and log Luck rerolls to the session recap. |
 | `spell-mishap/spell-mishap.mjs` | 270 | Nat-1 spellcasting failures auto-roll the class's mishap table (wizard / witch / necromancer sets); divine casters are exempt. |
 | `scavenger/scavenger-core.mjs` | 171 | Pure Delver Scavenger rules: the 5-6 success range and Master Scavenger's widening (floored at 3-6), what counts as expending a consumable's last use (a 1→0 decrement or a delete at quantity 1 — never a stack deleted whole), and which single client rolls. |
@@ -350,9 +350,10 @@
 | `boat-data-model.mjs` | 115 | Boat data model — WR vessel rules. |
 | `boat-sheet.mjs` | 179 | Boat sheet: Overview / Passengers & Crew / Cargo / Description. |
 | `mount-npc-sheet.mjs` | 342 | Mount sheet — subclass of the system's `NpcSheetSD`. |
-| `warband-core.mjs` | 85 | Warband rules, pure (#200, #202): the 18 upgrades, a commander's allowance by hit die tier (2/2, 4/3, 6/4), the command and upgrade refusals, and a creature made into a warband (level doubled, 8 HP a level plus CON, one attack, +1 attack a level gained, damage dice tripled). |
-| `warband-npc-sheet.mjs` | 168 | The Warband unit sheet (#200): an NpcSheetSD subclass (AppV1) with a Warband tab for the commander (a PC dropped on it), the allowance across that commander's warbands, the upgrade checklist written whole to the `warband` flag, and the commander's CHA for morale. |
+| `warband-core.mjs` | 128 | Warband rules, pure (#200, #202): the 18 upgrades, a commander's allowance by hit die tier (2/2, 4/3, 6/4), the command and upgrade refusals, and a creature made into a warband (level doubled, 8 HP a level plus CON, one attack, +1 attack a level gained, damage dice tripled). |
+| `warband-npc-sheet.mjs` | 198 | The Warband unit sheet (#200): an NpcSheetSD subclass (AppV1) with a Warband tab for the commander (a PC dropped on it), the allowance across that commander's warbands, the upgrade checklist written whole to the `warband` flag, and the commander's CHA for morale. |
 | `make-warband.mjs` | 108 | Make a Warband (#202): the GM's header button on a level 1-5 NPC's sheet, a before/after preview, and a new warband actor from a copy (the stat block in its notes rebuilt as Quick Adjust does). |
+| `warband-upkeep.mjs` | 181 | Warband upkeep and healing on the world clock (#204): on timeAdvanced (active GM, queued), each month start charges 10 gp a level per commanded warband from the commander's coins (one card, capped at 12 months, a last-month marker against rewinds); arrears check morale each week start and desert on a failure (marked, never deleted); every day heals 1d4 (Hardy 2d6); the GM's Charge a Month, Pay Arrears and Return to Service. |
 | `vehicle-sheet.mjs` | 424 | Shared party-like container base (ApplicationV2). |
 | `vehicle-rolls.mjs` | 79 | Shared helper-roll button handlers. |
 
