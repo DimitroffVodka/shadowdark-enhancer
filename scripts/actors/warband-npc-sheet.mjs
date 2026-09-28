@@ -17,7 +17,7 @@ import { MODULE_ID } from "../shared/module-id.mjs";
 import { replaceModuleFlag } from "../shared/module-flags.mjs";
 import { martialTierForHitDie } from "../downtime/downtime-core.mjs";
 import { makeQueue } from "../quests/quest-core.mjs";
-import { authorizeActorFor, isActiveGM, queryActiveGM } from "../shared/gm-relay.mjs";
+import { authorizeActorFor, isActiveGM, queryActiveGM, refuseQuery } from "../shared/gm-relay.mjs";
 import {
   UPGRADES, MOST_UPGRADES, allowanceFor, cleanUpgrades, commandRefusal, upgradeRefusal,
 } from "./warband-core.mjs";
@@ -37,7 +37,9 @@ const warbandWrites = makeQueue();
 
 /** Register the writer the other clients' sheets call. Call at init. */
 export function registerWarbandWrites(type) {
-  CONFIG.queries[WARBAND_QUERY] = (data, { user } = {}) => warbandWrites(() => applyWarbandWrite(data, user, type));
+  // Only the one writer answers: a query sent straight to another GM, or to another tab of this one, is refused.
+  CONFIG.queries[WARBAND_QUERY] = (data, { user } = {}) => refuseQuery(user, game.i18n.localize("SDE.warband.relayLabel"))
+    ?? warbandWrites(() => applyWarbandWrite(data, user, type));
 }
 
 /** Send a change to the active GM, or make it here when this client is the active GM. */

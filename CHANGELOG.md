@@ -372,7 +372,12 @@ page walks through it in order.
   gained, damage dice tripled. Its HP is fixed: placing one of its tokens,
   with Shadowdark's HP roll on placement on, sets the max but never heals it.
   Quick upgrade ticks all stick, and two warbands can't both take their
-  commander's last slot. See *Warbands*. (#200, #202)
+  commander's last slot: every warband change is made by one writer, the
+  active GM. See *Warbands*. (#200, #202)
+- **A GM signed in in two tabs.** Foundry sends a request meant for the
+  active GM to every tab that GM has open, and runs the module's hooks in
+  each. Now one tab does the work: the one signed in longest, until it
+  closes. (#200)
 - **Encounter check frequency.** Right-click the Crawl Bar's **Encounter**
   button: **Check Frequency** runs from **1** (every crawl round, the default)
   to **10**. The count runs from the last check, automatic or manual, so a
