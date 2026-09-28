@@ -21,6 +21,7 @@
  */
 import test from "node:test";
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { MODULE_ID } from "../scripts/shared/module-id.mjs";
 import {
   QUERY_TIMEOUT_MS,
@@ -231,6 +232,21 @@ test("isActiveGM: only the designated GM says yes", () => {
   assert.equal(isActiveGM(), false, "no designated GM at all");
 });
 
+test("isActiveGM: nothing on the module socket decides it, so a player can't unseat the GM (#283 review)", () => {
+  // 8794de5d picked one of the active GM's tabs from hellos on the module socket. Any player can write
+  // there: {action: "gmSession", userId: <the GM's id>, sid: "forged", since: 0} made every tab refuse.
+  const relay = readFileSync(new URL("../scripts/shared/gm-relay.mjs", import.meta.url), "utf8");
+  assert.doesNotMatch(relay, /socket\??\.on\(/, "the relay reads nothing from the module socket");
+  // Core's user state decides, and it is the same in every tab of that GM: each one answers.
+  for (const socket of [{ id: "tab-1" }, { id: "tab-2" }]) {
+    actAs(GM, GM);
+    globalThis.game.socket = socket;
+    assert.equal(isActiveGM(), true);
+    assert.equal(refuseQuery(PLAYER, "Warband changes"), null, "at once, not a refusal held back");
+  }
+  delete globalThis.game.socket;
+});
+
 // ─── The player side ────────────────────────────────────────────────────────
 
 test("relay: no GM online is reported separately from a stale one", async () => {
@@ -322,15 +338,4 @@ test("relay: targetUser sends to that GM instead of the active one (a GM-to-GM h
   assert.deepEqual(sent, [], "the active GM was not asked");
   assert.equal(asked.length, 1);
   assert.equal(asked[0].opts.timeout, QUERY_TIMEOUT_MS, "the timeout still goes with it");
-});
-
-test("of one GM's several tabs, the one signed in longest and still heard from works (#283 review)", async () => {
-  const { isPrimarySession } = await import("../scripts/shared/gm-relay.mjs");
-  const others = new Map([["b", { since: 200, seen: 1000 }]]);
-  assert.equal(isPrimarySession({ sid: "a", since: 100 }, others, 1000), true, "signed in first");
-  assert.equal(isPrimarySession({ sid: "c", since: 300 }, others, 1000), false, "a later tab defers");
-  assert.equal(isPrimarySession({ sid: "c", since: 300 }, others, 1000 + 20000), true, "until the first goes quiet");
-  assert.equal(isPrimarySession({ sid: "a", since: 200 }, others, 1000), true, "the same moment: the lower socket id");
-  assert.equal(isPrimarySession({ sid: "c", since: 200 }, others, 1000), false);
-  assert.equal(isPrimarySession({ sid: "a", since: 100 }, new Map(), 1000), true, "alone");
 });
