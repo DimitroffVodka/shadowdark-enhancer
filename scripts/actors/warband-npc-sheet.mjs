@@ -18,7 +18,7 @@ import { replaceModuleFlag } from "../shared/module-flags.mjs";
 import { martialTierForHitDie } from "../downtime/downtime-core.mjs";
 import { secondsPerDay } from "../time/time-core.mjs";
 import { format as formatTime } from "../time/time.mjs";
-import { authorizeActorFor, isActiveGM, queryActiveGM } from "../shared/gm-relay.mjs";
+import { authorizeActorFor, isActiveGM, queryActiveGM, refuseQuery } from "../shared/gm-relay.mjs";
 import {
   UPGRADES, MOST_UPGRADES, allowanceFor, cleanUpgrades, commandRefusal, upgradeRefusal, upkeepGp,
 } from "./warband-core.mjs";
@@ -43,7 +43,9 @@ export { warbandWrites };
 
 /** Register the writer the other clients' sheets call. Call at init. */
 export function registerWarbandWrites(type) {
-  CONFIG.queries[WARBAND_QUERY] = (data, { user } = {}) => warbandWrites(() => applyWarbandWrite(data, user, type));
+  // Only the one writer answers: a query sent straight to another GM, or to another tab of this one, is refused.
+  CONFIG.queries[WARBAND_QUERY] = (data, { user } = {}) => refuseQuery(user, game.i18n.localize("SDE.warband.relayLabel"))
+    ?? warbandWrites(() => applyWarbandWrite(data, user, type));
 }
 
 /** Send a change to the active GM, or make it here when this client is the active GM. */
@@ -134,11 +136,14 @@ const REFUSAL_KEYS = {
   duplicate: "SDE.warband.notify.duplicate", unknown: "SDE.warband.notify.unknownUpgrade",
 };
 
+/** A list of month keys or week starts, whole numbers once each in order. */
+const marks = (v) => (Array.isArray(v) ? [...new Set(v.filter(Number.isFinite))].sort((a, b) => a - b) : []);
+
 /**
  * A warband's state, cleaned, every field kept so a whole-flag write loses
  * none: `{ commander: uuid|null, upgrades: string[], arrears: gp owed,
- * deserted: bool, retrainingUntil: worldTime|null, leading: bool, routed: bool }`
- * (#200, #203, #204).
+ * deserted: bool, retrainingUntil: worldTime|null, leading: bool, routed: bool,
+ * settledMonths: number[], moraleWeeks: number[] }` (#200, #203, #204).
  */
 export function warbandState(actor) {
   const f = actor?.getFlag?.(MODULE_ID, WARBAND_FLAG) ?? {};
@@ -150,9 +155,10 @@ export function warbandState(actor) {
     retrainingUntil: Number.isFinite(f.retrainingUntil) ? f.retrainingUntil : null,
     leading: !!f.leading,
     routed: !!f.routed,
-    // The month and week start whose upkeep and arrears check are done, so a retry does neither twice (#284 review).
-    settledMonth: Number.isFinite(f.settledMonth) ? f.settledMonth : null,
-    moraleWeek: Number.isFinite(f.moraleWeek) ? f.moraleWeek : null,
+    // The month and week starts whose upkeep and arrears check are done, the last few of each: a retry
+    // does neither twice, and a later month settled never hides an earlier one still owed (#284 review).
+    settledMonths: marks(f.settledMonths),
+    moraleWeeks: marks(f.moraleWeeks),
   };
 }
 

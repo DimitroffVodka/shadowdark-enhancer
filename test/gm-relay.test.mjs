@@ -323,3 +323,14 @@ test("relay: targetUser sends to that GM instead of the active one (a GM-to-GM h
   assert.equal(asked.length, 1);
   assert.equal(asked[0].opts.timeout, QUERY_TIMEOUT_MS, "the timeout still goes with it");
 });
+
+test("of one GM's several tabs, the one signed in longest and still heard from works (#283 review)", async () => {
+  const { isPrimarySession } = await import("../scripts/shared/gm-relay.mjs");
+  const others = new Map([["b", { since: 200, seen: 1000 }]]);
+  assert.equal(isPrimarySession({ sid: "a", since: 100 }, others, 1000), true, "signed in first");
+  assert.equal(isPrimarySession({ sid: "c", since: 300 }, others, 1000), false, "a later tab defers");
+  assert.equal(isPrimarySession({ sid: "c", since: 300 }, others, 1000 + 20000), true, "until the first goes quiet");
+  assert.equal(isPrimarySession({ sid: "a", since: 200 }, others, 1000), true, "the same moment: the lower socket id");
+  assert.equal(isPrimarySession({ sid: "c", since: 200 }, others, 1000), false);
+  assert.equal(isPrimarySession({ sid: "a", since: 100 }, new Map(), 1000), true, "alone");
+});

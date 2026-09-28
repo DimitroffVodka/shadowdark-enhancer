@@ -33,7 +33,7 @@ globalThis.game = {
 const pcs = new Map();
 globalThis.fromUuid = async (uuid) => pcs.get(uuid) ?? null;
 
-const { registerWarbandUpkeep, PENDING_MONTH_SETTING } = await import("../scripts/actors/warband-upkeep.mjs");
+const { registerWarbandUpkeep, PENDING_MONTHS_SETTING } = await import("../scripts/actors/warband-upkeep.mjs");
 const { buildWarbandNpcSheet, registerWarbandWrites } = await import("../scripts/actors/warband-npc-sheet.mjs");
 const core = await import("../scripts/actors/warband-core.mjs");
 registerWarbandWrites(TYPE);
@@ -42,11 +42,11 @@ const tick = hooks.get(`${MOD}.timeAdvanced`);
 
 const at = (day) => gregorian.componentsToTime({ year: 1301, day });   // day of the year, from 0
 function pc(id, gp, { rejectOnce = false, cha = 0, hitDie = "1d6" } = {}) {
-  const p = { uuid: `Actor.${id}`, name: id, type: "Player", pack: null, rejectOnce,
+  const p = { uuid: `Actor.${id}`, name: id, type: "Player", pack: null, rejects: rejectOnce ? 1 : 0,
     system: { coins: { gp, sp: 0, cp: 0 }, abilities: { cha: { mod: cha } }, getClass: async () => ({ system: { hitPoints: hitDie } }) },
     update: async (data) => {
       await later();
-      if (p.rejectOnce) { p.rejectOnce = false; throw new Error("purse write failed"); }
+      if (p.rejects > 0) { p.rejects--; throw new Error("purse write failed"); }
       p.system.coins = { gp: data["system.coins.gp"], sp: data["system.coins.sp"], cp: data["system.coins.cp"] };
     } };
   pcs.set(p.uuid, p);
@@ -54,13 +54,14 @@ function pc(id, gp, { rejectOnce = false, cha = 0, hitDie = "1d6" } = {}) {
 }
 function warband(id, flag, { level = 3, hp = [30, 30] } = {}) {
   const a = {
-    id, type: TYPE, name: id, flags: { [MOD]: { warband: flag } }, items: [],
+    id, type: TYPE, name: id, flags: { [MOD]: { warband: flag } }, items: [], failFlagWrites: 0,
     system: { level: { value: level }, attributes: { hp: { value: hp[0], max: hp[1] } } },
     _source: { system: { attributes: { ac: { value: 13 }, hp: { value: hp[0], max: hp[1] } } } },
     getFlag: (scope, key) => a.flags[scope]?.[key],
     testUserPermission: () => true,
     update: async (data) => {
       await later();
+      if (Object.keys(data).some((k) => k.startsWith("flags.")) && a.failFlagWrites-- > 0) throw new Error("flag write failed");
       for (const [k, v] of Object.entries(data)) {
         if (k.startsWith("flags.")) a.flags[MOD][k.split(".").pop()] = v.__replace;
         else if (k === "system.attributes.hp.value") a.system.attributes.hp = { ...a.system.attributes.hp, value: v };
@@ -82,18 +83,18 @@ test("a charge whose purse write fails is tried at the next move; the one that p
   tick({ from: at(30) + 3600, to: at(31) + 3600, crossed: { days: 1 } });   // over Feb 1
   await settle();
   assert.deepEqual([a.system.coins.gp, b.system.coins.gp], [100, 80], "A's write failed; B paid 20");
-  assert.notEqual(settings.get(PENDING_MONTH_SETTING), null, "the month is left pending");
+  assert.deepEqual(settings.get(PENDING_MONTHS_SETTING).map((e) => e.id), ["wa"], "wa's month is left pending");
   tick({ from: at(31) + 3600, to: at(32) + 3600, crossed: { days: 1 } });
   await settle();
   assert.deepEqual([a.system.coins.gp, b.system.coins.gp], [70, 80], "A charged now, B not again");
-  assert.equal(settings.get(PENDING_MONTH_SETTING), null);
-  assert.equal(wa.flags[MOD].warband.settledMonth, core.monthKey(gregorian.timeToComponents(at(31)), 12));
+  assert.deepEqual(settings.get(PENDING_MONTHS_SETTING), []);
+  assert.deepEqual(wa.flags[MOD].warband.settledMonths, [core.monthKey(gregorian.timeToComponents(at(31)), 12)]);
 });
 
 test("a move heals the days before a warband deserts at a week start, and none after", async () => {
   reset();
   const cmd = pc("C", 0);
-  const wb = warband("wb", { commander: cmd.uuid, upgrades: [], arrears: 30, settledMonth: 99999 }, { level: 3, hp: [1, 100] });
+  const wb = warband("wb", { commander: cmd.uuid, upgrades: [], arrears: 30 }, { level: 3, hp: [1, 100] });
   // A week start mid-month, found the way the upkeep finds it; the move starts a day and a half before it.
   const { events } = core.clockEvents({
     from: at(40), to: at(50), secondsPerDay: 86400, week: 7, offset: 0,
@@ -124,4 +125,38 @@ test("a sheet tick held mid-check and the upkeep run in turn: neither loses the 
   assert.equal(await ticked, true);
   await settle();
   assert.deepEqual([wb.flags[MOD].warband.upgrades, wb.flags[MOD].warband.arrears], [["hardy"], 30]);
+});
+
+test("a settlement mark that fails to save takes nothing; the retry charges once (#284 review)", async () => {
+  reset();
+  const a = pc("A", 100);
+  const wa = warband("wa", { commander: a.uuid, upgrades: [] }, { level: 3 });
+  wa.failFlagWrites = 1;                                                    // the mark before the purse
+  tick({ from: at(30) + 3600, to: at(31) + 3600, crossed: { days: 1 } });   // over Feb 1
+  await settle();
+  assert.equal(a.system.coins.gp, 100, "the purse isn't touched before the mark is saved");
+  tick({ from: at(31) + 3600, to: at(32) + 3600, crossed: { days: 1 } });
+  await settle();
+  tick({ from: at(32) + 3600, to: at(33) + 3600, crossed: { days: 1 } });
+  await settle();
+  assert.equal(a.system.coins.gp, 70, "charged once for February");
+});
+
+test("a month still owed isn't hidden by a later one paid; a warband that joined since isn't charged for it (#284 review)", async () => {
+  reset();
+  const a = pc("A", 100);
+  a.rejects = 2;                                                            // Feb fails, and its retry at Mar 1 too
+  const wa = warband("wa", { commander: a.uuid, upgrades: [] }, { level: 3 });
+  tick({ from: at(30) + 3600, to: at(31) + 3600, crossed: { days: 1 } });   // over Feb 1
+  await settle();
+  const late = pc("L", 100);
+  warband("late", { commander: late.uuid, upgrades: [] }, { level: 3 });  // given a commander after Feb 1
+  tick({ from: at(58) + 3600, to: at(59) + 3600, crossed: { days: 1 } });   // over Mar 1: Feb's retry fails, Mar is paid
+  await settle();
+  assert.deepEqual([a.system.coins.gp, late.system.coins.gp], [70, 70]);
+  tick({ from: at(59) + 3600, to: at(60) + 3600, crossed: { days: 1 } });   // Feb tried again
+  await settle();
+  assert.deepEqual([a.system.coins.gp, late.system.coins.gp], [40, 70], "February collected; the late warband owes only March");
+  assert.equal(wa.flags[MOD].warband.settledMonths.length, 2);
+  assert.deepEqual(settings.get(PENDING_MONTHS_SETTING), []);
 });
