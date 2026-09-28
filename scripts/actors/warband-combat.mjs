@@ -51,8 +51,11 @@ async function syncInitiative(combatant) {
 /** Morale, then perhaps a rout: the whole check, from the warband's state as it stands now. */
 async function moraleCheck(actor) {
   const st = warbandState(actor);
-  if (st.routed || st.deserted) return;
-  const pc = st.commander ? await fromUuid(st.commander).catch(() => null) : null;
+  // A warband in no one's service (just made or imported, a copy, its Commander box emptied) has no
+  // commander's CHA and no morale to break, as the arrears skip it too (Patrick, 2026-09-28). A dead
+  // commander is still its commander.
+  if (st.routed || st.deserted || !st.commander) return;
+  const pc = await fromUuid(st.commander).catch(() => null);
   const cha = Number(pc?.system?.abilities?.cha?.mod) || 0;
   const leading = st.leading && !!pc;
   const dc = core.moraleDC(st.upgrades);
