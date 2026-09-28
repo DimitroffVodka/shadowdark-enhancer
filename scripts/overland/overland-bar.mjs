@@ -96,6 +96,8 @@ export const TravelBar = {
   _moving: false,
 
   init() {
+    // The encounter already held when this client starts isn't new: only a later hit opens the panel.
+    this._encAt = overlandState().encounter?.at ?? null;
     this.mount();
     const queue = () => this.render();
     Hooks.on(OVERLAND_CHANGED, (state) => {
