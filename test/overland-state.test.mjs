@@ -5,7 +5,7 @@ import {
   pickTravelToken, forageRefusal, OVERLAND_VERSION, cheapestRoute,
   setWeather, weatherHolds, weatherAdvantage, weatherFormula, weatherFromRoll, harshToday, hexCost,
   dayBudget, pointSeconds, openDay, spendMove, priceMove, moveVerdict,
-  dayChecks, dueChecks, markCheck, setPending,
+  dayChecks, dueChecks, markCheck, setPending, setEncounter,
   forageDC, closeDay, planRations,
 } from "../scripts/overland/overland-state-core.mjs";
 import { rulesApi } from "../scripts/rules-data/rules-data-core.mjs";
@@ -257,6 +257,27 @@ test("a stopped advance waits, and nothing but Continue moves the token on", () 
   assert.equal(normalizeOverlandState({ pending: { until: "x" } }).pending, null);
   assert.deepEqual(normalizeOverlandState({ checks: [{ at: 5, half: "odd", chance: 9 }, { at: "x" }] }).checks,
     [{ half: "day", at: 5, chance: 6, rolled: false, hit: null }]);
+});
+
+test("a quiet check's encounter is held as plain data until Continue or a new day (#257)", () => {
+  const drawn = {
+    at: 36000, half: "day", chance: 1, kind: "monster", uuid: "Actor.wolf", name: "Wolf", img: "wolf.webp",
+    count: 3, countFormula: "1d6", distanceRoll: 4, activityRoll: 7, reactionRoll: 9, via: null,
+    chain: [{ name: "Sablewood Encounter Zone: Forest", formula: "1d8", roll: 5 }, { category: "Beast" }, { name: "Sablewood Beasts", formula: "1d12", roll: 7 }],
+    also: [{ name: "Sablewood Horrors", formula: "1d8", roll: 2, text: "A lone ghoul" }],
+    extra: "dropped",
+  };
+  const { state, changed } = setEncounter({ ...defaultOverlandState(), day: 0 }, drawn);
+  assert.equal(changed, true);
+  const kept = { ...drawn, poi: false, noTable: false, text: null };
+  delete kept.extra;
+  assert.deepEqual(state.encounter, kept, "the draw survives, unknown fields don't");
+  assert.deepEqual(normalizeOverlandState(state), state, "normalizing is idempotent");
+  assert.equal(normalizeOverlandState({ encounter: { kind: "monster" } }).encounter, null, "no hour, no encounter");
+  assert.equal(normalizeOverlandState({ encounter: { at: 1, kind: "dragon", chain: "x" } }).encounter.kind, "empty");
+  assert.equal(setEncounter(state, null).state.encounter, null);
+  assert.equal(closeDay(state).state.encounter, null);
+  assert.equal(openDay(state, { now: 0, method: "walking", pushed: false, base: 4 }).state.encounter, null);
 });
 
 // ── Forage, camp (#233) ──────────────────────────────────────────────────────

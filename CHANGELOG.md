@@ -11,6 +11,14 @@ it needs.
 
 ### Added
 
+- **The Encounter panel.** Travel's encounter checks now roll quietly: no chat
+  card, no pause, no window. A hit drops an Encounter panel from the clock bar
+  for the GMs. It shows the check, each table the roll went through with its
+  die (the zone, the category, the region's table), how many turned up, and
+  the distance, activity and reaction. **Post to chat** shows the players,
+  **Encounter Roller** opens the roller, and **Continue** runs the rest of the
+  clock. The day's check hours are no longer whispered; they are listed in the
+  Travel panel.
 - **Click a hex to travel there.** With the party token selected while
   travelling on the hex map, the cheapest route to the hex under the cursor is
   drawn with each hex's cost, and a tooltip gives the hexes, the miles, the

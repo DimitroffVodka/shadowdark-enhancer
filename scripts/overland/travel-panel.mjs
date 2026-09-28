@@ -54,9 +54,10 @@ function pointTime(seconds, cal) {
 export function travelPanel(v) {
   const { state, model: m, gm } = v;
   // Only the GM hears of an encounter before it's posted: players' panels don't move for one.
-  const pending = gm ? state.pending : null;
-  const held = pending ? state.checks.findLast((c) => c.rolled && c.hit) : null;
-  const now = currentStep({ dayOpen: m.dayOpen, pending, heldHalf: held?.half ?? null });
+  // One can be held with no clock left to run (it hit as the clock reached its target).
+  const pending = gm ? (state.pending ?? (state.encounter ? { reason: "encounter" } : null)) : null;
+  const held = pending ? (state.encounter?.half ?? state.checks.findLast((c) => c.rolled && c.hit)?.half ?? null) : null;
+  const now = currentStep({ dayOpen: m.dayOpen, pending, heldHalf: held });
   const shown = v.see ?? now;
   const sight = sightParts(v.rules, { terrain: state.hex?.terrain, night: v.night, weather: v.weather ?? null });
   const climate = [m.climate, m.harsh ? t("SDE.overland.bar.harsh") : ""].filter(Boolean).join(", ");
@@ -70,7 +71,7 @@ export function travelPanel(v) {
     return `<li class="${cls}"><button type="button" data-action="see" data-id="${n}"${n === now ? " data-now=\"1\"" : ""}${n === shown ? " aria-current=\"step\"" : ""}><span class="sde-hud-num">${n}</span>${esc(t(STEP_NAME[step]))}</button></li>`;
   }).join("");
   const foot = gm ? `<div class="sde-hud-pf">
-      ${state.pending ? key("resume", t("SDE.overland.resume"), { cls: "sde-hud-primary", hint: t("SDE.overland.resumeHint") }) : ""}
+      ${pending ? key("resume", t("SDE.overland.resume"), { cls: "sde-hud-primary", hint: t("SDE.overland.resumeHint") }) : ""}
       <span class="sde-hud-fl sde-hud-small">${esc(t("SDE.travel.gm"))}</span>
       ${key("startDay", t("SDE.travel.newDay"), { cls: "sde-hud-sm sde-hud-ghost", hint: t("SDE.overland.startDayHint") })}
       <span class="sde-hud-grow"></span>

@@ -37,6 +37,7 @@ export function barModel({ state, isGM, owns, actors }) {
     members,
     mounts: state.mounts,
     pending: isGM && !!state.pending,
+    encounter: isGM && !!state.encounter,
     // Players never see the check hours (§4.1).
     checks: isGM ? state.checks.map((c) => ({ half: c.half, at: c.at, rolled: c.rolled, hit: c.hit })) : [],
   };

@@ -52,6 +52,25 @@ While travelling, every move forward rolls the day's encounter checks it
 passes, at their hours, as a move across the map does; a hit stops the clock
 there, and the steps wait until the encounter is continued.
 
+## Encounters while travelling (GM)
+
+Travel's encounter checks roll quietly: nothing goes to chat, the game isn't
+paused and no window opens. When one hits, the **Encounter** panel drops from
+the bar for every GM, and the travel plate says **Encounter** until it's done.
+The panel shows:
+
+- the check: its step (6 by day, 8 at night), its hour and its chance;
+- the tables it went through, each with its roll: the region's encounter zone,
+  the category it named, and that region's table for the category;
+- what turned up: how many, with their number-appearing dice, or a point of
+  interest's text;
+- the distance, activity and reaction rolls, in words.
+
+Only the GMs see it. **Post to chat** shows the players the encounter card.
+**Encounter Roller** opens the roller to roll again, set CHA or renown for the
+reaction, or place the tokens. **Continue** clears it and runs the rest of the
+clock.
+
 The Time panel's **Clock runs in real time** is Shadowdark's own light
 tracking clock: a second a second, paused with the game when the system says so.
 

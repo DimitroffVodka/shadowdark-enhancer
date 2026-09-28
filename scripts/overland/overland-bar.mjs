@@ -36,6 +36,8 @@ import {
 } from "./overland.mjs";
 import { barModel, itemTouchesBar, redrawStamp } from "./overland-bar-core.mjs";
 import { travelPanel } from "./travel-panel.mjs";
+import { encounterCard, encounterPanel } from "./encounter-panel.mjs";
+import { postEncounter } from "../encounter/encounter-draw.mjs";
 import { DIAL, DIAL_STARS, clockShown, clockSteps, dateToTime, dialModel, monthGrid, seasonHatch, starPoint } from "./hud-core.mjs";
 
 const BAR_ID = "shadowdark-enhancer-travel";
@@ -73,8 +75,10 @@ const key = (action, label, { id = "", hint = "", cls = "", aria = "" } = {}) =>
 
 export const TravelBar = {
   _el: null,
-  /** The open panel: "time", "month", "travel" or null. */
+  /** The open panel: "time", "month", "travel", "encounter" or null. */
   _open: null,
+  /** The hour of the encounter this client last opened the panel for: a new one opens it again. */
+  _encAt: null,
   /** The rewind or advance column: "rew", "adv" or null. */
   _stack: null,
   /** Whether the season band and the dial hang under the bar. */
@@ -94,7 +98,15 @@ export const TravelBar = {
   init() {
     this.mount();
     const queue = () => this.render();
-    Hooks.on(OVERLAND_CHANGED, queue);
+    Hooks.on(OVERLAND_CHANGED, (state) => {
+      // A check that hit opens its panel for the GMs, over whatever was open.
+      const at = state?.encounter?.at ?? null;
+      if (at !== this._encAt) {
+        this._encAt = at;
+        if (at !== null && game.user.isGM) { this._open = "encounter"; this._stack = null; }
+      }
+      this.render();
+    });
     Hooks.on(CrawlState.HOOK_CHANGED, queue);
     Hooks.on(`${MODULE_ID}.clockBarChanged`, queue);
     for (const hook of ["createCombat", "updateCombat", "deleteCombat"]) Hooks.on(hook, queue);
@@ -183,6 +195,7 @@ export const TravelBar = {
     const gm = !!game.user.isGM;
     if (!gm) this._stack = null;
     if ((this._open === "time" && !gm) || (this._open === "travel" && !CrawlState.isOverland)) this._open = null;
+    if (this._open === "encounter" && !(gm && overlandState().encounter)) this._open = null;
     this._el.innerHTML = `<div class="sde-hud-col">${this._bar()}${this._stacks()}<div class="sde-hud-drop">${this._drop()}</div></div>`;
   },
 
@@ -210,7 +223,7 @@ export const TravelBar = {
     let travel = "";
     if (isHexMapScene()) {
       const cell = CrawlState.isOverland
-        ? `<button type="button" class="sde-hud-plate" data-action="open" data-id="travel"><i class="fa-solid fa-hexagon"></i> ${this._plateText()}</button>`
+        ? `<button type="button" class="sde-hud-plate" data-action="open" data-id="${gm && state.encounter ? "encounter" : "travel"}"><i class="fa-solid fa-hexagon"></i> ${this._plateText()}</button>`
         : gm && CrawlState.mode === "off" ? `<button type="button" class="sde-hud-go" data-action="startTravel"><i class="fa-solid fa-hexagon"></i> ${esc(t("SDE.overland.startTravel"))}</button>` : "";
       travel = `<span class="sde-hud-sep"></span>${cell}${CrawlState.isOverland
         ? ib("open", "fa-users", t("SDE.clock.travel"), { id: "travel", pressed: this._open === "travel" }) : ""}`;
@@ -230,8 +243,8 @@ export const TravelBar = {
   /** The travel plate's words, by where the day stands. */
   _plateText() {
     const m = this._model();
-    // A GM's only (the model's `pending`): a quiet check that hit is the GM's until posted.
-    if (m.pending) return esc(t("SDE.clock.plate.encounter"));
+    // A GM's only (the model's `pending` and `encounter`): a quiet check that hit is the GM's until posted.
+    if (m.pending || m.encounter) return esc(t("SDE.clock.plate.encounter"));
     if (!m.dayOpen) return esc(t("SDE.clock.plate.noDay"));
     return t("SDE.clock.plate.hexes", { left: `<b>${m.hexesLeft}</b>`, budget: `<b>${m.budget}</b>` })
       + (m.pushed ? esc(t("SDE.clock.plate.pushed")) : "");
@@ -246,6 +259,7 @@ export const TravelBar = {
   },
 
   _drop() {
+    if (this._open === "encounter") return encounterPanel({ enc: overlandState().encounter, cal: game.time.calendar });
     if (this._open === "time") return this._timePanel();
     if (this._open === "month") return this._monthPanel();
     if (this._open === "travel") return this._travelPanel();
@@ -469,6 +483,8 @@ export const TravelBar = {
       }
       case "forage": return forage(id);
       case "resume": return warn(await resume());
+      case "postEncounter": return postEncounter(encounterCard(overlandState().encounter));
+      case "openRoller": return game.shadowdarkEnhancer.encounter.openRoller("tables");
       case "rollWeather": return warn(await rollWeather());
       case "reroll": return warn(await rollWeather({ reroll: true }));
       case "startDay": { const options = await askDay(); if (options) warn(await startDay(options)); return; }

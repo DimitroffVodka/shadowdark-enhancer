@@ -38,6 +38,7 @@ export function defaultOverlandState() {
     weather: null,        // {kind, roll, rule, until, advantageNext, advantage, days} (#230)
     checks: [],           // the day's encounter checks, {half, at, chance, rolled, hit} (#232)
     pending: null,        // {until, reason}: an advance stopped by a hit, waiting for Continue (#232)
+    encounter: null,      // what a quiet check that hit drew, for the GMs' panel until Continue (#257)
     foraged: [],          // actor ids that foraged today (#233)
     hex: null,            // {num, terrain, region, features}: the travel token's last hex
   };
@@ -62,6 +63,35 @@ function checkOf(v) {
 
 /** A stored stopped advance, or null. */
 const pendingOf = (v) => (obj(v) && Number.isFinite(v.until) ? { until: v.until, reason: str(v.reason) } : null);
+
+const num = (v) => (Number.isFinite(v) ? v : null);
+/** A table the encounter's chain went through ({name, formula, roll}), or the category between ({category}). */
+const linkOf = (v) => {
+  if (!obj(v)) return null;
+  return typeof v.category === "string" ? { category: v.category } : { name: str(v.name), formula: str(v.formula), roll: num(v.roll) };
+};
+
+/**
+ * A held encounter (encounter-draw.mjs drawEncounter, with the check that hit:
+ * its hour, half and chance), or null.
+ */
+function encounterOf(v) {
+  if (!obj(v) || !Number.isFinite(v.at)) return null;
+  return {
+    at: v.at,
+    half: v.half === "night" ? "night" : "day",
+    chance: Math.min(6, int(v.chance, 1)),
+    kind: ["monster", "flavor"].includes(v.kind) ? v.kind : "empty",
+    poi: v.poi === true,
+    noTable: v.noTable === true,
+    uuid: str(v.uuid), name: str(v.name), img: str(v.img), text: str(v.text), via: str(v.via),
+    count: num(v.count), countFormula: str(v.countFormula),
+    distanceRoll: num(v.distanceRoll), activityRoll: num(v.activityRoll), reactionRoll: num(v.reactionRoll),
+    chain: Array.isArray(v.chain) ? v.chain.map(linkOf).filter(Boolean) : [],
+    also: Array.isArray(v.also)
+      ? v.also.filter(obj).map((a) => ({ name: str(a.name), formula: str(a.formula), roll: num(a.roll), text: str(a.text) })) : [],
+  };
+}
 
 /** A stored weather, or null when it isn't one. */
 function weatherOf(v) {
@@ -102,6 +132,7 @@ export function normalizeOverlandState(value) {
     weather: weatherOf(value.weather),
     checks: Array.isArray(value.checks) ? value.checks.map(checkOf).filter(Boolean) : [],
     pending: pendingOf(value.pending),
+    encounter: encounterOf(value.encounter),
     foraged: ids(value.foraged),
     hex: hex && Number.isInteger(hex.num)
       ? { num: hex.num, terrain: str(hex.terrain), region: str(hex.region), features: ids(hex.features) }
@@ -159,7 +190,7 @@ export function openDay(state, { now, method, pushed, base, boatUuid = null, hou
     ...state,
     day: now, method, pushed: !!pushed, boatUuid: method === "sailing" ? boatUuid : null,
     budget: dayBudget(base, pushed), spent: 0, pointSeconds: pointSeconds(base, hourSeconds),
-    foraged: [], checks, pending: null,
+    foraged: [], checks, pending: null, encounter: null,
   });
   return { state: next, changed: true };
 }
@@ -170,7 +201,7 @@ export function openDay(state, { now, method, pushed, base, boatUuid = null, hou
  */
 export function closeDay(state) {
   const next = normalizeOverlandState({
-    ...state, day: null, pushed: false, budget: 0, spent: 0, checks: [], foraged: [], pending: null,
+    ...state, day: null, pushed: false, budget: 0, spent: 0, checks: [], foraged: [], pending: null, encounter: null,
   });
   return { state: next, changed: true };
 }
@@ -185,6 +216,12 @@ export function markCheck(state, index, hit) {
 export function setPending(state, pending) {
   const next = normalizeOverlandState({ ...state, pending });
   return { state: next, changed: JSON.stringify(next.pending) !== JSON.stringify(state.pending) };
+}
+
+/** What a quiet check that hit drew waits here for the GMs; null clears it (Continue, a new day). */
+export function setEncounter(state, encounter) {
+  const next = normalizeOverlandState({ ...state, encounter });
+  return { state: next, changed: JSON.stringify(next.encounter) !== JSON.stringify(state.encounter) };
 }
 
 /** The travel token moved: `cost` points spent, and it stands in `hex` now. */

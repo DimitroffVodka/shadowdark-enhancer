@@ -11555,6 +11555,35 @@ button.sde-hud-day:hover { border-color: var(--sd-frame); }
 .sde-hud-dot.sde-hud-hit { background: var(--sd-text); border-color: var(--sd-text); }
 .sde-hud-dot.sde-hud-miss { background: #555; border-color: #555; }
 
+/* The Encounter panel: a quiet travel check's hit, for the GMs (#257). */
+.sde-hud-enc { width: 620px; }
+.sde-hud-enc .sde-hud-pb { align-items: center; text-align: center; gap: 10px; }
+.sde-hud-enc .sde-hud-pb p { margin: 0; }
+.sde-hud-big { font-size: 36px; line-height: 1; }
+.sde-hud-chain {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  color: var(--sd-text-muted);
+}
+.sde-hud-cat { font-family: "Montserrat-SemiBold", sans-serif; font-size: 12px; color: var(--sd-text); }
+.sde-hud-what { display: flex; align-items: center; gap: 10px; font-size: 30px; }
+.sde-hud-what img { width: 48px; height: 48px; border: 0; border-radius: 4px; object-fit: cover; }
+.sde-hud-what .sde-hud-bl { font-size: 32px; }
+.sde-hud-facets { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; width: 100%; }
+.sde-hud-facet {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px 6px;
+  border: 1px solid var(--sd-hairline);
+  border-radius: 4px;
+  background: var(--sd-panel);
+}
+.sde-hud-v { font-family: "JSL Blackletter", serif; font-size: 20px; color: var(--sd-text); }
+
 /* The Trouble tracker's status bar on a trouble's page (#193), GM only. */
 .sde-trouble-status {
   display: flex;

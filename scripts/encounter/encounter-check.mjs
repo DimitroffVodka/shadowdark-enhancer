@@ -7,6 +7,7 @@ import { MODULE_ID } from "../shared/module-id.mjs";
 import { CrawlState } from "../crawl-strip/crawl-state.mjs";
 import { SessionRecap } from "../session-recap/session-recap.mjs";
 import { partyHex, tableForCheck } from "./encounter-terrain.mjs";
+import { drawEncounter } from "./encounter-draw.mjs";
 
 // v13/v14 namespaced renderTemplate (the global `renderTemplate` still
 // works but emits deprecation warnings).
@@ -53,11 +54,15 @@ export const EncounterCheck = {
    * (Overland's "move" checks, not a camp's): a hit's zone draw then gives a
    * point of interest on the rows the book marks for it (#273). With no options
    * this is exactly the crawl's check.
+   *
+   * `quiet` (Overland's checks, #257): nothing in chat, no pause, no roller. A
+   * hit draws its encounter at once and returns it, for the clock HUD's panel;
+   * the recap still logs the check.
    * @param {{threshold?:number, hex?:object|null, scene?:Scene|null, label?:string, clockLabel?:string,
-   *   travel?:boolean}} [options]
-   * @returns {Promise<{total: number, hit: boolean}>}
+   *   travel?:boolean, quiet?:boolean}} [options]
+   * @returns {Promise<{total: number, hit: boolean, encounter?: object|null}>}
    */
-  async check({ threshold: chance, hex: travelHex, scene = null, label = "", clockLabel, travel = false } = {}) {
+  async check({ threshold: chance, hex: travelHex, scene = null, label = "", clockLabel, travel = false, quiet = false } = {}) {
     const threshold = Number.isInteger(chance) ? chance : game.settings.get(MODULE_ID, "encounterThreshold");
     const roll = await new Roll("1d6").evaluate();
     const hit = roll.total <= threshold;
@@ -68,9 +73,10 @@ export const EncounterCheck = {
     // moment of the roll, else the terrain's table, else the active one. A
     // failing lookup falls back to the terrain picker, so the card still posts.
     const table = hit ? await tableForCheck(hex, { scene: scene ?? undefined }) : null;
-    travelTableUuid = (hit && travel) ? canonicalUuid(table?.uuid) : null;
+    // A quiet check draws its own encounter below, so no later draw is the travel draw.
+    travelTableUuid = (hit && travel && !quiet) ? canonicalUuid(table?.uuid) : null;
 
-    await this._postToChat(roll, threshold, hit, hex, table, label);
+    if (!quiet) await this._postToChat(roll, threshold, hit, hex, table, label);
 
     const crawlRound = CrawlState.mode === "crawl" ? CrawlState.crawlTurn : null;
 
@@ -85,6 +91,16 @@ export const EncounterCheck = {
     // too). Only in crawl mode: outside it there is no round to anchor.
     if (crawlRound !== null) {
       await game.settings.set(MODULE_ID, "encounterLastCheckRound", crawlRound);
+    }
+
+    if (quiet) {
+      const doc = hit && table?.uuid ? await fromUuid(table.uuid).catch(() => null) : null;
+      // A hit with no table for the hex (a keyed location, no active table) still stops the clock.
+      const encounter = !hit ? null : doc ? await drawEncounter(doc, { travel, quiet: true }).catch((err) => {
+        console.error(`${MODULE_ID} | drawing the check's encounter failed`, err);
+        return { kind: "empty" };
+      }) : { kind: "empty", noTable: true };
+      return { total: roll.total, hit, encounter };
     }
 
     if (hit) {

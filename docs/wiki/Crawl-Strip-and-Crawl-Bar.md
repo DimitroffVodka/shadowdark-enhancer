@@ -213,15 +213,16 @@ with forage and camp.
 - **Start** still begins a crawl, for example when the party reaches a dungeon.
   To travel again after a crawl, end the crawl first.
 
-- **Encounter checks.** Start day sets four check hours, whispered to you
-  alone: two by day between 06:00 and 17:00, and two at night between 18:00
-  and 05:00. The chance is 1 in 6, or 2 in 6 on a pushed day. When a move's
-  clock passes a check's hour, it's rolled at that hour on the table for the
-  party's hex, day or night columns and the moon included. A hit stops the
-  clock at that hour: run the encounter, then press **Continue** on the bar to
-  finish the rest of the move. The token can't move on until you do, except by
-  **Displace**. A check whose hour had passed before you started the day is
-  rolled at once.
+- **Encounter checks.** Start day sets four check hours, listed for you alone
+  in the Travel panel's Encounters step: two by day between 06:00 and 17:00,
+  and two at night between 18:00 and 05:00. The chance is 1 in 6, or 2 in 6 on
+  a pushed day. When a move's clock passes a check's hour, it's rolled quietly
+  at that hour on the table for the party's hex, day or night columns and the
+  moon included. A hit stops the clock at that hour and opens the clock bar's
+  [Encounter panel](Clock-and-Calendar.md#encounters-while-travelling-gm):
+  run the encounter, then press **Continue** to finish the rest of the move.
+  The token can't move on until you do, except by **Displace**. A check whose
+  hour had passed before you started the day is rolled at once.
 
 - **Forage** lets travelling characters look for food: tick who forages.
   - Each character's player rolls INT: DC 12, or 18 in a harsh climate. When

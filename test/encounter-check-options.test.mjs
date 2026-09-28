@@ -78,3 +78,35 @@ test("a travel hit makes its table's next draw the travel draw, once; the next c
   await EncounterCheck.check();
   assert.equal(EncounterCheck.takeTravelDraw(long), false, "a check without travel replaces it");
 });
+
+test("a quiet check posts nothing and opens nothing; a hit draws its encounter and the recap still logs it (#257)", async () => {
+  cards.length = logged.length = 0;
+  let opened = 0;
+  const openRoller = globalThis.game.shadowdarkEnhancer.encounter.openRoller;
+  globalThis.game.shadowdarkEnhancer.encounter.openRoller = async () => { opened++; return { rollActiveTable() {} }; };
+  const table = {
+    name: "Wandering Beasts", formula: "1d6", pack: null,
+    draw: async () => ({ roll: { total: 3 }, results: [{ description: "Three wolves howl", getFlag: () => null }] }),
+  };
+  globalThis.fromUuid = async () => table;
+  try {
+    dice.push(1);
+    const hit = await EncounterCheck.check({ threshold: 1, quiet: true, travel: true, label: "Day check, 10:00", clockLabel: "Day check, 10:00" });
+    assert.equal(hit.hit, true);
+    assert.deepEqual(hit.encounter, {
+      kind: "flavor", text: "Three wolves howl", via: null, also: [],
+      chain: [{ name: "Wandering Beasts", formula: "1d6", roll: 3 }],
+    });
+    assert.equal(cards.length, 0, "no check card");
+    assert.equal(opened, 0, "no roller");
+    assert.equal(logged.length, 1, "the recap logs it");
+    assert.equal(EncounterCheck.takeTravelDraw("Compendium.sde.tables.RollTable.abc"), false, "its own draw was the travel draw");
+
+    dice.push(4);
+    assert.deepEqual(await EncounterCheck.check({ threshold: 1, quiet: true }), { total: 4, hit: false, encounter: null });
+    assert.equal(cards.length, 0);
+  } finally {
+    globalThis.game.shadowdarkEnhancer.encounter.openRoller = openRoller;
+    delete globalThis.fromUuid;
+  }
+});

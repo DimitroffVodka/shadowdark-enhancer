@@ -306,16 +306,17 @@ async function dayWithChecks(d12s, hits = []) {
   return calls;
 }
 
-test("Start day rolls four check hours and tells the GM alone; a check already past falls due at once", async () => {
+test("Start day rolls four check hours and keeps them off chat; a check already past falls due at once, quietly", async () => {
   const calls = await dayWithChecks([2, 9, 1, 12]);  // day 07:00 and 14:00, night 18:00 and 05:00
   const hours = stored.overlandState.checks.map((c) => [c.half, c.at, c.chance]);
   assert.deepEqual(hours, [
     ["day", at(1301, 6, 21, 7), 1], ["day", at(1301, 6, 21, 14), 1],
     ["night", at(1301, 6, 21, 18), 1], ["night", at(1301, 6, 22, 5), 1],
   ]);
-  const gmLine = cards.at(-1);
-  assert.deepEqual(gmLine.whisper, [{ id: "gm" }], "the check hours are whispered to the GM");
+  // The Travel panel's Encounters step lists the hours for the GM; chat gets nothing (#257).
+  assert.ok(!cards.some((c) => /check\.hours/.test(String(c.content ?? ""))), "no check-hours line");
   assert.equal(calls.length, 1, "07:00 had gone by when the day started at 08:00");
+  assert.equal(calls[0].quiet, true, "Overland's checks are quiet");
   assert.equal(calls[0].threshold, 1);
   assert.equal(calls[0].travel, false, "Start day's check isn't hex travel (#273)");
   assert.deepEqual(stored.overlandState.checks.map((c) => c.rolled), [true, false, false, false]);

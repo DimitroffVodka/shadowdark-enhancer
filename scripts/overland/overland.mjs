@@ -49,7 +49,7 @@ import {
   defaultOverlandState, normalizeOverlandState, startTravel, setHex, recordForage,
   pickTravelToken, forageRefusal, setWeather, weatherHolds, weatherAdvantage, weatherFormula,
   weatherFromRoll, harshToday, WEATHER_RULES, METHODS, openDay, spendMove, priceMove, moveVerdict, hexCost,
-  dayChecks, dueChecks, markCheck, setPending, forageDC, closeDay, planRations,
+  dayChecks, dueChecks, markCheck, setPending, setEncounter, forageDC, closeDay, planRations,
 } from "./overland-state-core.mjs";
 import { PARTY_FLAG, placePartyToken, wearPartyHex } from "./hex-rules.mjs";
 
@@ -358,22 +358,12 @@ function checkLabel(check) {
   return t(check.half === "night" ? "SDE.overland.check.night" : "SDE.overland.check.day", { time });
 }
 
-/** One line for the GM only: today's check hours. Players never see them (§4). */
-async function postCheckHours() {
-  const checks = _state.checks;
-  if (!checks.length) return;
-  const times = new Intl.ListFormat(game.i18n.lang, { type: "conjunction" }).format(checks.map(checkLabel));
-  await ChatMessage.create({
-    content: `<p>${esc(t("SDE.overland.check.hours", { chance: checks[0].chance, times }))}</p>`,
-    whisper: ChatMessage.getWhisperRecipients("GM"),
-  }).catch((err) => console.error(`${MODULE_ID} | check hours chat line`, err));
-}
-
 /**
  * Advance the clock to `target` as Overland does, on the active GM inside the
  * queue: each check due on the way, in time order, is rolled at its hour
- * through encounter.check, on the travel hex. A hit stops the clock there and
- * stores what is left as `pending`, for Continue (§5.3, Q4).
+ * through encounter.check, on the travel hex, quietly: nothing reaches chat. A
+ * hit stops the clock there, holds what it drew as `encounter` for the GMs'
+ * panel, and stores what is left as `pending`, for Continue (§5.3, Q4).
  * @param {number} target  worldTime to reach
  * @param {string} reason  what the advance was for: "move", "day", later "camp"
  * @returns {Promise<{stopped:boolean}>}
@@ -385,11 +375,13 @@ export async function advanceTravel(target, reason) {
     const c = _state.checks[i];
     if (c.at > game.time.worldTime) await game.time.advance(c.at - game.time.worldTime);
     const label = checkLabel(c);
-    const { hit } = typeof check === "function"
+    const { hit, encounter = null } = typeof check === "function"
       // Travel, not a camp's or a late Start day's check: the GM Guide's marked zone rows give a point of interest (#273).
-      ? await check({ threshold: c.chance, hex: _state.hex, scene, label, clockLabel: label, travel: reason === "move" })
+      ? await check({ threshold: c.chance, hex: _state.hex, scene, label, clockLabel: label, travel: reason === "move", quiet: true })
       : { hit: false };
-    await commit(markCheck(_state, i, hit).state);
+    let next = markCheck(_state, i, hit).state;
+    if (hit) next = setEncounter(next, { ...(encounter ?? { kind: "empty" }), at: c.at, half: c.half, chance: c.chance }).state;
+    await commit(next);
     if (hit) {
       // Something is left for Continue when there's clock to run, checks
       // still due at this very moment (a second check at the same hour, or the
@@ -882,7 +874,6 @@ export function applyAction(data, user) {
           now, method: data.method, pushed, base, boatUuid: boat?.uuid ?? null, hourSeconds: hourSeconds(), checks,
         }).state);
         await postDay(boat);
-        await postCheckHours();
         // A check whose hour went by before the day started falls due at once (§5.1).
         await advanceTravel(now, "day");
         return { ok: true };
@@ -907,8 +898,10 @@ export function applyAction(data, user) {
       case "resume": {
         if (!user.isGM) return { ok: false, error: t("SDE.overland.notify.dayGmOnly") };
         const pending = _state.pending;
-        if (!pending) return { ok: false, error: t("SDE.overland.notify.nothingPending") };
-        await commit(setPending(_state, null).state);
+        // An encounter that hit as the clock reached its target holds nothing but its panel.
+        if (!pending && !_state.encounter) return { ok: false, error: t("SDE.overland.notify.nothingPending") };
+        await commit(setEncounter(setPending(_state, null).state, null).state);
+        if (!pending) return { ok: true };
         const { stopped } = await advanceTravel(pending.until, pending.reason);
         if (pending.reason !== "camp") return { ok: true, stopped };
         const finished = !stopped && await finishCamp();
