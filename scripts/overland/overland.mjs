@@ -852,12 +852,18 @@ function campNeeds() {
   return { stormy, harsh, each: harsh ? 2 : 1, members: _state.members.map((id) => game.actors.get(id)).filter(Boolean) };
 }
 
-/** Extras' camping rest, when the travel token is its party and it can keep the rest for the dawn (shadowdark-extras#186). */
-function extrasCamping() {
+/** Extras' camping API, when it can keep a camp's rest for the dawn and finish it there (shadowdark-extras#186), else null. */
+function extrasCampingApi() {
   const camping = game.modules?.get("shadowdark-extras")?.api?.camping;
-  const party = travelParty();
+  return typeof camping?.open === "function" && typeof camping?.dawn === "function" ? camping : null;
+}
+
+/** Extras' camping rest, when the travel token is its party and it can keep the rest for the dawn. */
+function extrasCamping() {
+  const camping = extrasCampingApi();
   // ponytail: an Extras from before #186 has no camping.dawn; its party eats here, with no tasks, until Extras is updated.
-  return party && typeof camping?.open === "function" && typeof camping?.dawn === "function" ? { camping, party } : null;
+  const party = camping && travelParty();
+  return party ? { camping, party } : null;
 }
 
 /**
@@ -881,7 +887,7 @@ async function pitchCamp() {
     ({ lines } = await eatRations(members, each));
     await campLine([t(harsh ? "SDE.overland.camp.madeHarsh" : "SDE.overland.camp.made"), ...lines]);
   }
-  await commit(makeCampState(_state, !!extras).state);
+  await commit(makeCampState(_state, extras?.party.uuid ?? null).state);
   return true;
 }
 
@@ -890,23 +896,28 @@ const campLine = (lines) => ChatMessage.create({ content: lines.map((l) => `<p>$
   .catch((err) => console.error(`${MODULE_ID} | camp chat line`, err));
 
 /**
- * Dawn after camp (§5.5 step 4): Extras' rest, kept from the camp, finishes
- * with whether a creature interrupted it (shadowdark-extras#186): who ate and
- * didn't succeed at Bed Down rolls CON. Without Extras the chat says when the
- * rest was interrupted. Then the day closes and the new day's weather is
- * rolled. An Extras rest that was canceled or failed leaves the camp pending,
- * so Continue tries it again rather than a second night passing.
+ * Dawn after camp (§5.5 step 4): Extras' rest, kept from the camp on the
+ * party that camped, finishes with whether a creature interrupted it
+ * (shadowdark-extras#186): who ate and didn't succeed at Bed Down rolls CON.
+ * Without Extras the chat says when the rest was interrupted. Then the day
+ * closes and the new day's weather is rolled. An Extras rest that was
+ * canceled or failed, or that no Extras is here to finish (turned off, or one
+ * without camping.dawn), leaves the camp pending, so Continue tries it again
+ * rather than a second night passing or the rest being dropped (#282 review).
  * @returns {Promise<boolean>} true when the camp is done
  */
 async function finishCamp() {
   const camp = _state.camp;
-  const extras = camp?.extras ? extrasCamping() : null;
-  if (extras) {
-    const reply = await extras.camping.dawn({ party: extras.party, interrupted: camp.interrupted !== null })
+  if (camp?.party) {
+    const camping = extrasCampingApi();
+    let party = null;
+    try { party = fromUuidSync(camp.party); } catch { /* not a document */ }
+    // A party actor (or unlinked token) deleted since took its rest with it: Extras answers nothingPending.
+    const reply = camping && await camping.dawn({ party, interrupted: camp.interrupted !== null })
       .catch((err) => { console.error(`${MODULE_ID} | Shadowdark Extras' camping rest`, err); return null; });
     if (!reply?.completed && !reply?.nothingPending) {
       await commit(setPending(_state, { until: game.time.worldTime, reason: "camp" }).state);
-      ui.notifications?.warn(t("SDE.overland.notify.campUnfinished"));
+      ui.notifications?.warn(t(camping ? "SDE.overland.notify.campUnfinished" : "SDE.overland.notify.campNeedsExtras"));
       return false;
     }
     // Extras has no rest waiting (its record is gone): there's nothing to retry, so the camp breaks.
@@ -920,7 +931,7 @@ async function finishCamp() {
   }
   if (camp?.interrupted != null) {
     const time = dateParts(game.time.calendar, camp.interrupted).time;
-    lines.push(t(extras ? "SDE.overland.camp.interrupted" : "SDE.overland.camp.interruptedCon", { time }));
+    lines.push(t(camp.party ? "SDE.overland.camp.interrupted" : "SDE.overland.camp.interruptedCon", { time }));
   }
   await campLine(lines);
   await commit(closeDay(_state).state);

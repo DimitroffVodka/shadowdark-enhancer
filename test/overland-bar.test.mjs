@@ -26,7 +26,7 @@ test("a player sees no check hours, no Continue, and Forage only on a character 
   const m = barModel({ state: STATE, isGM: false, owns: (id) => id === "mine", actors: ACTORS });
   assert.deepEqual(m.checks, []);
   assert.equal(m.pending, false);
-  const woken = { ...STATE, camp: { extras: false, interrupted: 79200, ate: true } };
+  const woken = { ...STATE, camp: { party: null, interrupted: 79200, ate: true } };
   assert.equal(barModel({ state: woken, isGM: false, owns: () => true, actors: ACTORS }).interrupted, null, "nor when a creature woke the camp");
   assert.equal(barModel({ state: woken, isGM: true, owns: () => true, actors: ACTORS }).interrupted, 79200);
   assert.deepEqual(m.members.map((p) => p.canForage), [true, false]);

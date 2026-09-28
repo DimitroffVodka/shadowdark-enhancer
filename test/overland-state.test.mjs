@@ -345,14 +345,16 @@ test("a quiet check's encounter is held as plain data until Continue or a new da
 test("tonight's camp: made with or without Extras holding the rest; the first creature's hour interrupts it; a new day clears it (#257)", () => {
   const day = openDay(defaultOverlandState(), { now: 0, method: "walking", pushed: false, base: 4 }).state;
   assert.equal(day.camp, null);
-  assert.deepEqual(interruptRest(day, 5).state.camp, { extras: false, interrupted: 5, ate: false },
+  assert.deepEqual(interruptRest(day, 5).state.camp, { party: null, interrupted: 5, ate: false },
     "a camp from before this build still records its creature, and hasn't eaten");
-  const camp = makeCampState(day, true).state;
-  assert.deepEqual(camp.camp, { extras: true, interrupted: null, ate: true });
+  assert.deepEqual(makeCampState(day, null).state.camp, { party: null, interrupted: null, ate: true }, "without Extras");
+  const camp = makeCampState(day, "Actor.party").state;
+  assert.deepEqual(camp.camp, { party: "Actor.party", interrupted: null, ate: true }, "the Extras party keeping the rest");
   const woken = interruptRest(camp, 7200).state;
-  assert.equal(woken.camp.interrupted, 7200);
+  assert.deepEqual(woken.camp, { party: "Actor.party", interrupted: 7200, ate: true });
+  assert.deepEqual(normalizeOverlandState(JSON.parse(JSON.stringify(woken))), woken, "a reload keeps the party (#282 review)");
   assert.equal(interruptRest(woken, 9000).changed, false, "the first creature's hour is kept");
-  assert.deepEqual(normalizeOverlandState({ camp: { extras: "yes", interrupted: "x" } }).camp, { extras: false, interrupted: null, ate: false });
+  assert.deepEqual(normalizeOverlandState({ camp: { party: 7, interrupted: "x" } }).camp, { party: null, interrupted: null, ate: false });
   assert.equal(closeDay(woken).state.camp, null);
 });
 

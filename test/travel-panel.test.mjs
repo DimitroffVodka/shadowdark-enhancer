@@ -119,7 +119,7 @@ test("the Speed step: the GM's Normal | Push switch, and a change that waits for
 });
 
 test("the Night step names the hour a creature woke the camp to the GM only (#282 review)", () => {
-  const state = { ...view().state, camp: { extras: false, interrupted: 79200, ate: true } };
+  const state = { ...view().state, camp: { party: null, interrupted: 79200, ate: true } };
   const model = (gm) => ({ ...view().model, interrupted: gm ? 79200 : null });
   const player = travelPanel(view({ state, model: model(false), see: 8 }));
   const gm = travelPanel(view({ state, model: model(true), gm: true, see: 8 }));

@@ -1796,7 +1796,9 @@ nobody is travelling or an encounter is pending. Resolves to
      CON through `statDamage.apply`. Mounts (`mounts`) eat the same from
      whatever the members have left.
 
-   Either way, the state's `camp` becomes `{ extras, interrupted: null, ate: true }`.
+   Either way, the state's `camp` becomes `{ party, interrupted: null, ate: true }`.
+   `party` is the uuid of the Extras party actor keeping the rest (an
+   unlinked token's own actor), or `null` without Extras.
 2. **Lights.** Once the camp is made, carried lights go out and keep their
    time: `time.advanceOffDuty(0, { reason: "camp" })`. A closed camp window
    leaves them lit. A refusal there is shown, and camp goes on.
@@ -1813,13 +1815,19 @@ nobody is travelling or an encounter is pending. Resolves to
    camp from before 1.25.0 gets a `camp` record here with `ate: false`, and
    its dawn still eats.
 4. **Dawn.** With Extras holding the rest, `camping.dawn({ party, interrupted })`
-   finishes it: who ate and didn't succeed at Bed Down rolls CON against DC
+   finishes it on the party actor that camped, even if the travel token has
+   changed since: who ate and didn't succeed at Bed Down rolls CON against DC
    12, and then the rest's benefits apply. When that is canceled or fails, the
    camp stays pending with a warning, and Continue tries the dawn again rather
-   than passing a second night. Without Extras, the chat says when the rest
-   was interrupted, and the CON checks are the GM's. One chat line sums up
-   the dawn. The day is closed (`day: null`, the push reset, `camp: null`),
-   and the new day's weather is rolled. The GM then presses Start day.
+   than passing a second night. The same happens when no Extras can finish it
+   at dawn (turned off, or a version without `camping.dawn`): the rest is
+   still stored on the party, so it isn't dropped. Starting a new day instead
+   goes on without it. When Extras has no rest waiting (`nothingPending`, as
+   when the party actor was deleted), the camp breaks with a warning. Without
+   Extras, the chat says when the rest was interrupted, and the CON checks are
+   the GM's. One chat line sums up the dawn. The day is closed (`day: null`,
+   the push reset, `camp: null`), and the new day's weather is rolled. The GM
+   then presses Start day.
 
 **The underground season check** runs on the active GM, on `timeAdvanced`, in
 any mode (the party may be crawling below the hex).
