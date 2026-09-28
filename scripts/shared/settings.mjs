@@ -4,7 +4,7 @@ import { LevelGuidelinesEditor } from "../monster-creator/level-guidelines-app.m
 import { registerSettingGroups } from "./settings-group-menu.mjs";
 import { MonsterLootReviewApp } from "../loot/monster-loot-review-app.mjs";
 import { defaultCrawlState } from "../crawl-strip/crawl-state-core.mjs";
-import { defaultOverlandState } from "../overland/overland-state-core.mjs";
+import { BOOK_CHECKS, defaultOverlandState } from "../overland/overland-state-core.mjs";
 import { DEFAULT_ENCOUNTER_SOURCES } from "../encounter/encounter-sources.mjs";
 import { RulesDataApp } from "../rules-data/rules-data-app.mjs";
 
@@ -275,6 +275,59 @@ export function registerSettings() {
       core: "SDE.settings.overlandWeatherRule.core",
     },
     default: "western",
+  });
+
+  // Overland's encounter checks (#257), also set from the Travel panel's
+  // Encounters step. The chance is read at each roll, a pushed day adding one;
+  // the counts at Start day. The book's: 1 in 6, twice by day, twice by night.
+  // The clock bar redraws on a change: the Encounters step shows them.
+  const clockBarChanged = () => Hooks.callAll(`${MODULE_ID}.clockBarChanged`);
+  game.settings.register(MODULE_ID, "overlandEncounterChance", {
+    name: "SDE.settings.overlandEncounterChance.name",
+    hint: "SDE.settings.overlandEncounterChance.hint",
+    scope: "world",
+    config: false,
+    type: Number,
+    range: { min: 1, max: 5, step: 1 },
+    default: BOOK_CHECKS.chance,
+    onChange: clockBarChanged,
+  });
+  game.settings.register(MODULE_ID, "overlandEncounterDay", {
+    name: "SDE.settings.overlandEncounterDay.name",
+    hint: "SDE.settings.overlandEncounterDay.hint",
+    scope: "world",
+    config: false,
+    type: Number,
+    range: { min: 0, max: 4, step: 1 },
+    default: BOOK_CHECKS.day,
+    onChange: clockBarChanged,
+  });
+  game.settings.register(MODULE_ID, "overlandEncounterNight", {
+    name: "SDE.settings.overlandEncounterNight.name",
+    hint: "SDE.settings.overlandEncounterNight.hint",
+    scope: "world",
+    config: false,
+    type: Number,
+    range: { min: 0, max: 4, step: 1 },
+    default: BOOK_CHECKS.night,
+    onChange: clockBarChanged,
+  });
+
+  // The clock bar at the top (#253): who sees it. Everyone by default; nobody
+  // during a combat whatever this says.
+  game.settings.register(MODULE_ID, "clockBar", {
+    name: "SDE.settings.clockBar.name",
+    hint: "SDE.settings.clockBar.hint",
+    scope: "world",
+    config: false,
+    type: String,
+    choices: {
+      all: "SDE.settings.clockBar.all",
+      gm: "SDE.settings.clockBar.gm",
+      off: "SDE.settings.clockBar.off",
+    },
+    default: "all",
+    onChange: () => Hooks.callAll(`${MODULE_ID}.clockBarChanged`),
   });
 
   // Internal world setting: a worldTime at which the moon was new; the time

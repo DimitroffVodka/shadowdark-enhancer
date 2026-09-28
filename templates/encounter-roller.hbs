@@ -133,7 +133,7 @@
                   <span class="sde-facet-label"><i class="fas fa-comment"></i> {{localize "SDE.encounter.facet.reaction"}}</span>
                   <span class="sde-facet-roll">2d6+CHA = {{lastResult.reactionRoll}} + ({{lastResult.chaMod}}){{#if lastResult.renownApplied}} + {{lastResult.renownBonus}}{{/if}}</span>
                   <span class="sde-facet-arrow">→</span>
-                  <span class="sde-facet-result {{lastResult.reactionBand}}">{{lastResult.reactionBand}}</span>
+                  <span class="sde-facet-result {{lastResult.reactionBand}}">{{lastResult.reactionText}}</span>
                   <button type="button" class="sde-reroll-btn" data-action="reroll" data-facet="reaction" title="{{localize 'SDE.encounter.roller.rerollReaction'}}" aria-label="{{localize 'SDE.encounter.roller.rerollReaction'}}"><i class="fas fa-sync"></i></button>
                 </div>
 
