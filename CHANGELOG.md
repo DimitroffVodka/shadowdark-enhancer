@@ -270,6 +270,15 @@ page walks through it in order.
 
 #### Quests and training
 
+- **The Trouble tracker.** The GM Guide's "Fragile Civilizations": every week
+  start the world clock passes runs one check, at 1-in-6 growing by one each
+  quiet week, and **Check for trouble** in the Journal sidebar runs one by
+  hand. Trouble stirs in a real settlement picked from the imported key
+  locations (rerolling the kind when the region has none), with its type and
+  urgency rolled on your imported tables. Each trouble is a GM-only page with
+  its countdown, and the GMs get a whisper as it moves from weeks to days to
+  hours to happened. **Promote to quest** puts it in the Quest Log, and
+  completing that quest resolves it. See *Trouble Tracker*. (#193)
 - **A Quest Log.** Press **Alt+Q**, or **Quest Log** at the foot of the
   Journal sidebar. Each quest is a journal entry in a *Quests* folder, with a
   page your players can read and a GM notes page they can't. Quests are

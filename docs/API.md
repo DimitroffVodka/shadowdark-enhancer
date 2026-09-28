@@ -23,7 +23,7 @@ and Forge & Loot features.
 [`time`](#time--season-day-and-night-sun-moon-and-anchors) ·
 [`overland`](#overland--the-travel-state)
 
-**API version:** `1.22.0` (semver — additive changes bump the minor version,
+**API version:** `1.23.0` (semver — additive changes bump the minor version,
 breaking changes the major; check `apiVersion` before relying on newer keys).
 
 ## Discovery
@@ -1171,6 +1171,53 @@ for `hex`.
 The hook `shadowdark-enhancer.questsChanged` fires on every client, once per
 burst of writes, after any quest is created, changed or deleted.
 
+## `troubles` — the Trouble tracker
+
+Added in 1.23.0 (#193). The GM Guide's weekly trouble check and its countdown
+on the world clock; the table-facing description is the wiki page *Trouble
+Tracker*. Every call is the GM's; a player gets `null` or `[]`.
+
+```js
+const api = game.shadowdarkEnhancer;
+
+await api.troubles.check();                                   // one weekly check
+await api.troubles.stir({ region: "Lowland Moor", kind: "city" }); // force one; the kind rerolls if the region has none
+await api.troubles.list();                                    // every trouble, newest first
+await api.troubles.undiscovered();                            // not yet heard of, oldest first
+await api.troubles.discover(id, true);                        // mark heard (false: not heard)
+await api.troubles.promote(id);                               // an Available quest for it, or its quest
+```
+
+- `check({ at })` rolls a d6 against the chance (1-in-6, plus one per quiet
+  week, stored in the `troubleQuietWeeks` world setting) and resolves
+  `{ roll, chance, stirs, trouble }`. The tracker runs it by itself on every
+  week start (weekday 0 at 00:00) a `timeAdvanced` jump crosses, with `at` set
+  to that week start.
+- `stir({ region, kind, at })` rolls where, what and how soon, and returns
+  the trouble. `region` is a region name as the Region table prints it or as
+  the key locations record it; `kind` is `village`, `town`, `city` or
+  `city_state` (or the table's own words). Null, with a warning, when one of
+  the four tables or the key locations isn't imported.
+- A trouble reads as:
+
+```js
+{
+  id, uuid, name,                      // its page in the "Troubles in the Reaches" entry
+  region, settlement: { name, num, kind, uuid },   // uuid: the key-location page
+  type, detail, urgency,               // urgency: the stage the Urgency roll gave
+  rolled: { weeks, days, hours },      // each stage's distance roll
+  stirredAt, daysAt, hoursAt, arriveAt, // worldTimes each stage begins
+  stage,                               // "weeks" | "days" | "hours" | "happened"
+  symptoms: { weeks, days, hours, happened },
+  discovered, resolved, questUuid,
+}
+```
+
+- The state is the page's `flags["shadowdark-enhancer"].trouble`; the entry is
+  found by its `troubleLog` flag, never its name.
+- A promoted trouble's quest has `source: { kind: "trouble", uuid }` (the
+  page). When it moves to Completed, the trouble is resolved.
+
 ## `dying` — death timers and stabilizing
 
 Added in 1.8.0. The core dying rule (p.89) with Deadly and Fatality (p.111);
@@ -1772,6 +1819,7 @@ scene's choice changes, and once on load.
 - `1.20.0` adds `overland.startDay`'s `hexes`.
 - `1.21.0` adds `encounter.check`'s `travel`.
 - `1.22.0` adds `downtime.isOpen`, and a session's `days`, moved off duty when it ends.
+- `1.23.0` adds the `troubles` namespace (the Trouble tracker).
 - `1.4.0` adds the shared `forgeLoot.open()` preview shell. Generator rules and
   document writes remain behind the later NPC/Rival adapter implementations.
   The version policy is additive: new namespaces bump the minor version; breaking

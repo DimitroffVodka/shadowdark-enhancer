@@ -81,6 +81,7 @@ import { SessionRecap } from "./session-recap/session-recap.mjs";
 import { DowntimeSession } from "./downtime/downtime-session.mjs";
 import { Renown } from "./renown/renown.mjs";
 import { Quests, openQuestLog, registerQuests } from "./quests/quests.mjs";
+import { Troubles, registerTroubles } from "./troubles/troubles.mjs";
 import { registerActorTypes } from "./actors/register-actors.mjs";
 // Imported for its top-level createChatMessage hook: the out-of-combat
 // initiative sync must be live on the GM from load, not only after the GM
@@ -114,7 +115,7 @@ const STYLESHEET_REV = "ecbc79408101";
 // stale); module.json carries the same hash and is fetched fresh at runtime. A
 // mismatch is a stale cache by construction — it cannot be anything else. Both
 // stamps are written by `npm run inventory` and gated by `inventory:check`.
-const BUILD_REV = "d6fa7f42a452";
+const BUILD_REV = "ca630df48171";
 
 /**
  * Tell the user when their browser is running an old build of this module, and
@@ -288,6 +289,7 @@ Hooks.once("init", () => {
   MonsterTokenArt.register();
   // Quest Log: its keybinding can only be registered during init.
   registerQuests();
+  registerTroubles();
   // Out-of-combat tracker as a sidebar tab, beside Combat. Must run in init:
   // Game#initializeUI constructs CONFIG.ui entries during setup, and anything
   // registered after that pass never gets an instance.
@@ -440,7 +442,8 @@ Hooks.once("init", () => {
     // 1.20.0 — additive: overland.startDay({ hexes }), the day's hexes typed in Start day.
     // 1.21.0 — additive: encounter.check({ travel }), a travel draw's points of interest (#273).
     // 1.22.0 — additive: downtime.isOpen(), and a session's 2d6 days move the clock off duty (#198).
-    apiVersion: "1.22.0",
+    // 1.23.0 — additive: troubles namespace, the Trouble tracker (#193).
+    apiVersion: "1.23.0",
     // The one travel state per world (scripts/overland/overland.mjs): a copy
     // with hexes left, climate, storm, harshness and night derived; whether
     // travel is on; today's weather roll, the travel day's start, Continue
@@ -879,6 +882,15 @@ Hooks.once("init", () => {
       apply: (actor, ability, amount) => StatDamage.apply(actor, ability, amount),
       heal: (actor, opts) => StatDamage.heal(actor, opts),
       of: (actor) => StatDamage.of(actor),
+    },
+    // 1.23.0 — additive: the Trouble tracker (#193): the weekly check, and troubles counting down on the world clock.
+    troubles: {
+      check: (opts) => Troubles.check(opts),
+      stir: (opts) => Troubles.stir(opts),
+      list: () => Troubles.list(),
+      undiscovered: () => Troubles.undiscovered(),
+      discover: (idOrUuid, discovered) => Troubles.discover(idOrUuid, discovered),
+      promote: (idOrUuid) => Troubles.promote(idOrUuid),
     },
     // 1.7.0 — additive: the Quest Log. One world journal per quest; reads are
     // filtered to what the calling user may see, writes are the GM's.

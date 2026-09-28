@@ -38,6 +38,7 @@ Tools you run during an active game session.
 | [Merchant Shop](Merchant-Shop.md) | A live shop window for the whole party, buying and selling against `system.coins` |
 | [Party XP](Party-XP.md) | Whole-party XP awards and Shadowdark treasure-XP rules |
 | [Quest Log](Quest-Log.md) | Quests from rumors, troubles, trainer tasks and the GM: statuses, objectives, rewards paid once, readable by players |
+| [Trouble Tracker](Trouble-Tracker.md) | The weekly trouble check, a named settlement, and a countdown on the world clock (Western Reaches GM Guide) |
 | [Downtime](Downtime.md) | Between-crawl activities, the DC step-down ladder, per-attempt costs from your books |
 | [Regional Training](Regional-Training.md) | The Western Reaches' 21 trainers: tasks, the d4 benefit roll, each benefit once, landed on the sheet as a Talent |
 | [Renown](Renown.md) | The fame track, its four bands, reaction-roll bonuses, awarding and docking points |
