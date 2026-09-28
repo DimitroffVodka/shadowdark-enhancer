@@ -200,6 +200,7 @@ export function authorizeActorFor(actorId, user, { type = null } = {}) {
  */
 let _tab = null;   // true: this tab holds its user's lock; false: another tab does; null: not known
 let _asked = false;
+let _lock = null;  // { locks, name }: the lock this tab asked for
 
 /**
  * Ask for this user's lock, and keep it while the page lasts. Call once, at
@@ -212,6 +213,7 @@ export function claimGmTab(userId, build, locks = globalThis.navigator?.locks, p
   if (_asked || !locks || !userId) return;
   _asked = true;
   const name = `${MODULE_ID}.gm.${userId}.${build}`;
+  _lock = { locks, name };
   let leave = null;
   const claim = () => {
     const stop = new AbortController();
@@ -232,6 +234,17 @@ export function claimGmTab(userId, build, locks = globalThis.navigator?.locks, p
 /** Whether this tab does its user's work: it holds the lock, or nothing says another tab does. */
 export function isWorkingTab() {
   return _tab !== false;
+}
+
+/**
+ * Whether another tab of this user, on this build, is open in this browser:
+ * one holds the lock and the rest wait for it. False where the browser can't
+ * tell (no Web Locks), as for another browser or device.
+ */
+export async function otherTabsOpen() {
+  if (!_lock?.locks.query) return false;
+  const { held = [], pending = [] } = await _lock.locks.query();
+  return [...held, ...pending].filter((l) => l.name === _lock.name).length > 1;
 }
 
 /**

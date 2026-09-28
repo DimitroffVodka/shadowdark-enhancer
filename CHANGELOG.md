@@ -485,8 +485,12 @@ page walks through it in order.
   once. The same goes for every user a request names: the GM an off-duty clock
   move is handed to moves it once, not once per tab, and a player asked to roll
   a save or a death timer rolls it in one tab. A dying character's timer ticks
-  once per turn. This needs https or localhost: over plain http on a LAN, and
-  for the same user on two devices, both tabs still work. (#288)
+  once per turn. An off-duty move is refused while the GM whose tab burns the
+  light sources is signed in in a second tab of the same browser, since
+  Shadowdark burns them in that tab too and it would burn the lights the move
+  put out; close the other tab and try again. This needs https or localhost:
+  over plain http on a LAN, and for the same user on two devices, both tabs
+  still work. (#288)
 - **A book your host won't let you upload can now be linked where it lies.**
   A PDF refused as "too large" is stopped by the web server or proxy in front
   of Foundry, and the importer took the refusal as a success: it linked the

@@ -10,6 +10,7 @@ import {
   litCarried, offDutyMembers, offDutyRoute, settle, stillTracked,
 } from "../scripts/time/off-duty.mjs";
 import { registerTimeHooks } from "../scripts/time/time.mjs";
+import { claimGmTab } from "../scripts/shared/gm-relay.mjs";
 import { at, clockAt } from "./gregorian-calendar.mjs";
 
 const DAY = 86400;
@@ -262,6 +263,27 @@ test("two GMs holding the flag: refused before anything is put out, naming both"
   assert.deepEqual(log.warnings, ["SDE.time.offDuty.twoPrimaries(Bridge, Gamemaster)"]);
   assert.equal(torch.system.light.active, true);
   assert.deepEqual([log.updates, log.advanced, log.queries, log.chats], [[], [], [], []]);
+});
+
+test("the primary GM signed in on two tabs of one browser: refused before anything is put out, since the other tab burns too (#288)", async () => {
+  // This tab holds the GM's lock; `twoTabs` puts another tab in line for it.
+  let twoTabs = true;
+  let lockName = null;
+  const locks = {
+    request(name, options, callback) { lockName = name; return Promise.resolve(callback({ name })); },
+    query: async () => ({ held: [{ name: lockName }], pending: twoTabs ? [{ name: lockName }] : [] }),
+  };
+  claimGmTab(gm.id, "b1", locks);
+  const { log, torch } = world();
+  const reply = await advanceOffDuty(3 * DAY);
+  assert.equal(reply.ok, false);
+  assert.deepEqual(log.warnings, ["SDE.time.offDuty.twoTabs(Gamemaster)"]);
+  assert.equal(torch.system.light.active, true);
+  assert.deepEqual([log.updates, log.advanced, log.chats], [[], [], []]);
+  twoTabs = false;
+  const alone = world();
+  assert.equal((await advanceOffDuty(3 * DAY)).ok, true, "once the other tab is closed, the move runs");
+  assert.equal(alone.log.advanced.length, 1);
 });
 
 test("a second GM takes the flag while the lights go out: no jump, the reply names what was put out, the line says so", async () => {

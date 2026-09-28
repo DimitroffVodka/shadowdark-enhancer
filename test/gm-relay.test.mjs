@@ -360,6 +360,10 @@ function browserLocks() {
           });
         }));
       },
+      query: async () => ({
+        held: [...held.keys()].map((name) => ({ name })),
+        pending: [...waiting].flatMap(([name, list]) => list.map(() => ({ name }))),
+      }),
     }),
     close(tab) {
       tab.closed = true;
@@ -550,6 +554,9 @@ async function offDutyTabs(self, world, activeGM) {
 }
 
 test("a hand-off to the light-primary GM, who isn't the active GM, runs in one of its two tabs: the clock moves once (#288)", async () => {
+  // Each tab here has its own relay but shares the one off-duty module, whose relay holds no lock, so the
+  // working tab can't see its twin and makes the move: this checks the silence alone. With the twin in
+  // sight the working tab refuses instead (off-duty.test.mjs, and the lane).
   const A = { ...GM, active: true, flags: {} };
   const B = { ...BRIDGE_GM, active: true, flags: { shadowdark: { primaryGM: true } } };
   const world = offDutyWorld(B, [A, B], A);
@@ -563,6 +570,22 @@ test("a hand-off to the light-primary GM, who isn't the active GM, runs in one o
     assert.equal(reply.ok, true);
     assert.equal(other, "still waiting", "B's other tab never answers");
   } finally { globalThis.game = was; }
+});
+
+test("a tab can tell whether another tab of its user is open in this browser (#288)", async () => {
+  const browser = browserLocks();
+  const others = (t) => t.run((r) => r.otherTabsOpen());
+  const a = await openTab(browser, GM);
+  await settle();
+  assert.equal(await others(a), false, "one tab");
+  const b = await openTab(browser, GM);
+  await settle();
+  assert.deepEqual([await others(a), await others(b)], [true, true]);
+  await openTab(browser, BRIDGE_GM);
+  browser.close(b);
+  await settle();
+  assert.equal(await others(a), false, "the other closed, and another GM's tab isn't this GM's");
+  assert.equal(await others(await openTab(null, GM)), false, "no Web Locks: it can't tell");
 });
 
 test("a GM that doesn't hold the light flag refuses the hand-off at once, from its working tab (#288)", async () => {

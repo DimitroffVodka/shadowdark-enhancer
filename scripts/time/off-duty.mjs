@@ -25,11 +25,12 @@
  * clock stopped. It puts the lights out there and waits until that tab's cache
  * holds no PC's Basic light. It refuses if any other tab holds the flag, and
  * only then advances. Light spells and dropped Light actors are left to the
- * clock.
+ * clock. The flag GM's own second tab burns too, so that is refused as well
+ * when the browser can tell (gm-relay.mjs otherTabsOpen, #288).
  */
 
 import { MODULE_ID } from "../shared/module-id.mjs";
-import { queryActiveGM } from "../shared/gm-relay.mjs";
+import { otherTabsOpen, queryActiveGM } from "../shared/gm-relay.mjs";
 import { isLightItem } from "../crawl-strip/crawl-lights-core.mjs";
 import { esc } from "../shared/esc.mjs";
 
@@ -203,6 +204,9 @@ async function perform(seconds, reason, { handedOff = false } = {}) {
       ? { ...refusal("SDE.time.offDuty.unknown", { name: flagged[0].name }), unknown: true }
       : reply;
   }
+  // The flag is the user's, so each of this GM's tabs burns, from its own cache, and a douse clears
+  // only this tab's: another tab of this GM would burn the lights put out here (#288).
+  if (await otherTabsOpen()) return refusal("SDE.time.offDuty.twoTabs", { name: game.user.name });
   return douseAndAdvance(tracker, seconds, reason, { tookFlag: !flagged.length });
 }
 
