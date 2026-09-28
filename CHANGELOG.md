@@ -377,8 +377,11 @@ page walks through it in order.
   10 gp a level per warband from its commander's coins, in one card; a
   commander who can't pay leaves it in arrears, and each week after it checks
   morale (the commander's CHA, DC 15, Loyal 9) and may desert: marked, never
-  deleted. Every day heals 1d4 (Hardy 2d6), downtime days included. Changing
-  a commanded warband's upgrades means a week of retraining. (#204)
+  deleted. Every day heals 1d4 (Hardy 2d6), downtime days included, and a
+  warband that deserts part way through a long move still heals the days
+  before. A charge that fails to save is tried again at the next clock move,
+  and never charged twice. Changing a commanded warband's upgrades means a
+  week of retraining. (#204)
 - **Warbands in mass combat.** A warband with its commander in the fight takes
   the commander's initiative and turn: its card rides after the commander's
   on the Crawl Strip, and the turn passes it by. Morale is automatic: falling
@@ -389,7 +392,7 @@ page walks through it in order.
   Return to Service. With its commander dead it rolls and takes its own
   turn. Its attack cards note the area it fills; splitting its damage is the
   GM's. A warband still retraining its upgrades can't attack. A warband with
-  no commander checks no morale. (#203)
+  no commander, or whose commander was deleted, checks no morale. (#203)
 - **The book's warbands and what upgrades do.** Importer Hub → Manage →
   Monsters → **Warbands** imports the Player's Guide's eight stock warbands
   from your PDF as warband units, with their talents, in a Warbands folder.

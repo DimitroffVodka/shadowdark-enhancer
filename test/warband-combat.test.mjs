@@ -50,4 +50,10 @@ test("a warband in no one's service checks no morale in battle; a commanded one 
   update(hired, { system: { attributes: { hp: { value: 5 } } } });
   await new Promise((resolve) => setTimeout(resolve, 20));
   assert.deepEqual(rolled, ["1d20 + 2"], "the commander's CHA");
+  const orphan = hurt("orphan", "Actor.deleted");                       // its commander was deleted (#285 review)
+  globalThis.game.combats[0].combatants.push({ actorId: "orphan" });
+  rolled.length = 0;
+  update(orphan, { system: { attributes: { hp: { value: 5 } } } });
+  await new Promise((resolve) => setTimeout(resolve, 20));
+  assert.deepEqual(rolled, [], "a deleted commander serves no one: no roll");
 });

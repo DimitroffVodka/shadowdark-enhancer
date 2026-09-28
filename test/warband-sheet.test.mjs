@@ -1,7 +1,8 @@
-// The Warband sheet's writes (#283, #286 reviews): one at a time, and the attacks always follow the stored upgrades.
+// The Warband sheet's writes (#283, #286 reviews): one writer, the active GM, one at a time, and the
+// attacks always following the stored upgrades.
 import test from "node:test";
 import assert from "node:assert/strict";
-import { buildWarbandNpcSheet } from "../scripts/actors/warband-npc-sheet.mjs";
+import { buildWarbandNpcSheet, registerWarbandWrites, WARBAND_QUERY } from "../scripts/actors/warband-npc-sheet.mjs";
 
 const TYPE = "shadowdark-enhancer.warband";
 const MOD = "shadowdark-enhancer";
@@ -10,13 +11,18 @@ const hooks = new Map();
 globalThis.Hooks = { on: (name, fn) => hooks.set(name, fn), once() {}, callAll() {} };
 globalThis._replace = (value) => ({ __replace: value });
 globalThis.ui = { notifications: { warn() {}, error() {}, info() {} } };
+globalThis.CONFIG = { queries: {} };
 const actors = [];
+actors.get = (id) => actors.find((a) => a.id === id);
+const activeGM = { id: "gm", isGM: true };
 globalThis.game = {
-  actors, user: { id: "gm" }, i18n: { format: (k) => k, localize: (k) => k }, time: { worldTime: 0, calendar: null },
+  actors, user: { ...activeGM, hasPermission: () => true }, users: { activeGM },
+  i18n: { format: (k) => k, localize: (k) => k }, time: { worldTime: 0, calendar: null },
   settings: { register() {}, get: () => ({}) },
 };
 const pc = { uuid: "Actor.pc", name: "Pc", type: "Player", system: { getClass: async () => ({ system: { hitPoints: "1d6" } }) } };
 globalThis.fromUuid = async (uuid) => (uuid === pc.uuid ? pc : null);
+registerWarbandWrites(TYPE);
 
 const setPath = (obj, path, value) => {
   const keys = path.split(".");
@@ -33,6 +39,7 @@ function warband(id, flag, items = []) {
     id, type: TYPE, items, flags: { [MOD]: { warband: flag } }, failItems: 0,
     _source: { system: { attributes: { ac: { value: 13 }, hp: { value: 20, max: 20 } } } },
     getFlag: (scope, key) => a.flags[scope]?.[key],
+    testUserPermission: () => true,
     // Each write lands a moment later, as a real update does.
     update: async (data) => {
       await later();
@@ -76,6 +83,27 @@ test("two warbands can't both take a commander's last upgrade slot", async () =>
   const replies = await Promise.all([sheetOf(a)._toggleUpgrade("scout", true), sheetOf(b)._toggleUpgrade("hardy", true)]);
   assert.deepEqual(replies, [true, false]);
   assert.equal(a.flags[MOD].warband.upgrades.length + b.flags[MOD].warband.upgrades.length, 3);
+});
+
+test("two GMs on other clients, at once: both go to the active GM's writer, and the cap holds (#283 review)", async () => {
+  actors.length = 0;
+  const a = warband("a", { commander: pc.uuid, upgrades: ["fast"] });
+  const b = warband("b", { commander: pc.uuid, upgrades: ["tough"] });
+  const sent = [];
+  // This client is a GM but not the active one: its sheets write nothing themselves.
+  globalThis.game.user = { id: "gm2", isGM: true, hasPermission: () => true };
+  globalThis.game.users.activeGM = {
+    id: "gm", query: (name, data) => { sent.push(name); return globalThis.CONFIG.queries[name](data, { user: { id: "gm3", isGM: true } }); },
+  };
+  try {
+    const replies = await Promise.all([sheetOf(a)._toggleUpgrade("scout", true), sheetOf(b)._toggleUpgrade("hardy", true)]);
+    assert.deepEqual(sent, [WARBAND_QUERY, WARBAND_QUERY], "both sent to the active GM");
+    assert.deepEqual(replies.sort(), [false, true]);
+    assert.equal(a.flags[MOD].warband.upgrades.length + b.flags[MOD].warband.upgrades.length, 3);
+  } finally {
+    globalThis.game.user = { ...activeGM, hasPermission: () => true };
+    globalThis.game.users.activeGM = activeGM;
+  }
 });
 
 test("a failed attack write is put right by ticking again: Training's +1 lands once (#286 review)", async () => {

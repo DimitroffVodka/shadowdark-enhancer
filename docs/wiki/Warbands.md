@@ -66,12 +66,14 @@ and unticking takes the same amount off again:
 Hardy, Loyal and Withdraw change a rule instead: healing, the morale DC and
 the rout chance. The rest are for you to apply when they come up. Edit a
 number by hand while an upgrade is on and your number stands: unticking takes
-off only the upgrade's amount. An attack added after Training or Weapons
-Upgrade was ticked isn't changed by unticking it.
+off only the upgrade's amount. An attack added while Training or Weapons
+Upgrade is ticked takes it at once, and loses it when you untick the upgrade
+(an attack with no damage die to add to keeps its damage as it is).
 
 A warband is one unit: its tokens are linked to the actor, and its HP is
 fixed at 8 per level plus CON, plus 15 with Tough (the HP dice on its sheet
-sets that rather than rolling). A copy of a warband (Duplicate, or one imported from a
+sets that maximum rather than rolling, and never heals it; placing a token
+doesn't either). A copy of a warband (Duplicate, or one imported from a
 compendium) starts without a commander, so taking it goes through the
 commander's allowance.
 

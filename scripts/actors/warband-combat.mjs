@@ -18,11 +18,11 @@ import { replaceModuleFlag } from "../shared/module-flags.mjs";
 import { isAttackCard, actorFromUuidSync } from "../shared/attack-card.mjs";
 import { leaderCombatant } from "../crawl-strip/turn-skip-core.mjs";
 import * as core from "./warband-core.mjs";
-import { WARBAND_FLAG, warbandState } from "./warband-npc-sheet.mjs";
+import { WARBAND_FLAG, warbandState, warbandWrites } from "./warband-npc-sheet.mjs";
 
 const t = (key, data) => (data ? game.i18n.format(key, data) : game.i18n.localize(key));
 
-/** One write at a time on this client. */
+/** The combat's own writes (initiative), one at a time; a warband's flag goes on warbandWrites. */
 let queue = Promise.resolve();
 const enqueue = (fn) => {
   const run = queue.then(fn, fn);
@@ -56,6 +56,8 @@ async function moraleCheck(actor) {
   // commander is still its commander.
   if (st.routed || st.deserted || !st.commander) return;
   const pc = await fromUuid(st.commander).catch(() => null);
+  // A commander since deleted serves no one either, as the arrears check skips it too (#285 review).
+  if (!pc) return;
   const cha = Number(pc?.system?.abilities?.cha?.mod) || 0;
   const leading = st.leading && !!pc;
   const dc = core.moraleDC(st.upgrades);
@@ -117,7 +119,8 @@ export function registerWarbandCombat(type) {
     if (!isActiveGM() || !core.moraleTriggered(before, after, actor.system.attributes.hp.max)) return;
     // Only in a fight: morale is a battle rule, not a sheet edit's.
     const fighting = game.combats.some((c) => c.active && c.combatants.some((cb) => cb.actorId === actor.id));
-    if (fighting) enqueue(() => moraleCheck(actor));
+    // On the one warband queue, with the sheet's and the upkeep's writes (#284 review): a rout never overwrites them.
+    if (fighting) warbandWrites(() => moraleCheck(actor)).catch((err) => console.error(`${MODULE_ID} | warband morale`, err));
   });
 
   Hooks.on("renderChatMessageHTML", noteAttackCard);
