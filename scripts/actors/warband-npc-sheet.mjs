@@ -21,6 +21,7 @@ import { format as formatTime } from "../time/time.mjs";
 import {
   UPGRADES, MOST_UPGRADES, allowanceFor, cleanUpgrades, commandRefusal, upgradeRefusal, upkeepGp,
 } from "./warband-core.mjs";
+import { upgradeText, upgradeWrites, readUpgradeText } from "./warband-upgrades.mjs";
 
 export const WARBAND_FLAG = "warband";
 
@@ -98,6 +99,7 @@ export function buildWarbandNpcSheet(BaseNpcSheet, type) {
       const allowance = allowanceFor(tier);
       const { otherWarbands, otherUpgrades } = pc ? commandedBy(pc.uuid, { except: this.actor.id, type }) : { otherWarbands: 0, otherUpgrades: 0 };
       const cha = pc?.system?.abilities?.cha?.mod ?? null;
+      const tips = upgradeText();
       context.warband = {
         commander: pc ? { uuid: pc.uuid, name: pc.name, img: pc.img } : null,
         commanderMissing: !!state.commander && !pc,
@@ -108,7 +110,8 @@ export function buildWarbandNpcSheet(BaseNpcSheet, type) {
         } : null,
         noCommanderCap: !allowance ? game.i18n.format("SDE.warband.allowance.noCommander", { max: MOST_UPGRADES }) : null,
         morale: cha === null ? null : game.i18n.format("SDE.warband.moraleBonus", { bonus: `${cha >= 0 ? "+" : ""}${cha}` }),
-        upgrades: UPGRADES.map((key) => ({ key, label: game.i18n.localize(UPGRADE_KEYS[key]), checked: state.upgrades.includes(key) })),
+        upgrades: UPGRADES.map((key) => ({ key, label: game.i18n.localize(UPGRADE_KEYS[key]), checked: state.upgrades.includes(key), tip: tips[key] ?? "" })),
+        textMissing: game.user.isGM && Object.keys(tips).length < UPGRADES.length,
         // #204: upkeep, arrears, desertion and retraining.
         upkeep: game.i18n.format("SDE.warband.upkeepLine", { gp: upkeepGp(this.actor.system.level?.value) }),
         arrears: state.arrears ? game.i18n.format("SDE.warband.arrearsLine", { gp: state.arrears }) : null,
@@ -138,6 +141,9 @@ export function buildWarbandNpcSheet(BaseNpcSheet, type) {
         replaceModuleFlag(this.actor, WARBAND_FLAG, { ...warbandState(this.actor), leading: el.checked })
           .catch((err) => console.error(`${MODULE_ID} | warband leading`, err));
       }));
+      root.querySelectorAll("[data-sde-action='read-upgrade-text']").forEach((el) =>
+        el.addEventListener("click", () => readUpgradeText().then((n) => { if (n) this.render(false); })
+          .catch((err) => console.error(`${MODULE_ID} | warband upgrade text`, err))));
       root.querySelectorAll("[data-sde-action='run-month']").forEach((el) =>
         el.addEventListener("click", () => upkeep((u) => u.runMonth(type))));
       root.querySelectorAll("[data-sde-action='pay-arrears']").forEach((el) =>
@@ -190,9 +196,13 @@ export function buildWarbandNpcSheet(BaseNpcSheet, type) {
       return true;
     }
 
-    /** Tick or untick one upgrade; refused (with a message) over the allowance or twice. */
+    /**
+     * Tick or untick one upgrade; refused (with a message) over the allowance
+     * or twice. Its numbers go on or off in the same update (#201).
+     */
     async _toggleUpgrade(key, on) {
       const state = warbandState(this.actor);
+      if (on === state.upgrades.includes(key)) return true;
       if (on) {
         const pc = state.commander ? await fromUuid(state.commander).catch(() => null) : null;
         const allowance = pc ? allowanceFor(await commanderTier(pc)) : null;
@@ -207,7 +217,9 @@ export function buildWarbandNpcSheet(BaseNpcSheet, type) {
       const upgrades = on ? cleanUpgrades([...state.upgrades, key]) : state.upgrades.filter((k) => k !== key);
       // A warband in service retrains for a week after its upgrades change, and can't fight until then (#204).
       const retrainingUntil = state.commander ? game.time.worldTime + 7 * secondsPerDay(game.time.calendar) : state.retrainingUntil;
-      await replaceModuleFlag(this.actor, WARBAND_FLAG, { ...state, upgrades, retrainingUntil });
+      const { extra, attacks } = upgradeWrites(this.actor, key, on);
+      await replaceModuleFlag(this.actor, WARBAND_FLAG, { ...state, upgrades, retrainingUntil }, extra);
+      await attacks();
       return true;
     }
   };

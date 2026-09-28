@@ -92,6 +92,16 @@ test("Mount bulk routing stays distinct from Boat and ordinary monster spreads",
   assert.ok(plan.jobs.every((job) => job.route === ROUTE.HUB));
 });
 
+test("the stock warbands batch as one grab of their two pages, apart from the mounts (#201)", () => {
+  const warbands = ["Melee, Light", "Rabble"].map((name) =>
+    entry({ name, type: "Warband", src: "WR", pages: "250-251" }));
+  const mounts = ["Donkey"].map((name) => entry({ name, type: "Mount", src: "WR", pages: "116-117" }));
+  const plan = planBatch([leaf("wr", "Western Reaches", [...warbands, ...mounts])]);
+  assert.deepEqual(plan.jobs.map((job) => job.key), ["warband:WR:250-251", "mount:WR:116-117"]);
+  assert.deepEqual(plan.jobs.map((job) => job.covers.length), [2, 1]);
+  assert.ok(plan.jobs.every((job) => job.route === ROUTE.HUB));
+});
+
 test("same-named entries from different books are different jobs", () => {
   const plan = planBatch([leaf("t", "Tables", [
     entry({ name: "Carousing Event", src: "CS1", pages: "30" }),

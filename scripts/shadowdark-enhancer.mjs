@@ -85,6 +85,7 @@ import { Troubles, registerTroubles } from "./troubles/troubles.mjs";
 import { Rumors, registerRumors } from "./rumors/rumors.mjs";
 import { registerActorTypes, WARBAND_TYPE } from "./actors/register-actors.mjs";
 import { registerWarbandUpkeep } from "./actors/warband-upkeep.mjs";
+import { registerWarbandUpgrades } from "./actors/warband-upgrades.mjs";
 import { registerWarbandCombat } from "./actors/warband-combat.mjs";
 // Imported for its top-level createChatMessage hook: the out-of-combat
 // initiative sync must be live on the GM from load, not only after the GM
@@ -118,7 +119,7 @@ const STYLESHEET_REV = "5fc8d49d113a";
 // stale); module.json carries the same hash and is fetched fresh at runtime. A
 // mismatch is a stale cache by construction — it cannot be anything else. Both
 // stamps are written by `npm run inventory` and gated by `inventory:check`.
-const BUILD_REV = "d6fb9a6d303f";
+const BUILD_REV = "dca4503f9fb7";
 
 /**
  * Tell the user when their browser is running an old build of this module, and
@@ -295,6 +296,7 @@ Hooks.once("init", () => {
   registerTroubles();
   // Warbands' upkeep and healing on the clock (#204): settings and the timeAdvanced subscriber.
   registerWarbandUpkeep(WARBAND_TYPE);
+  registerWarbandUpgrades();
   // Warbands in mass combat (#203): the commander's initiative and automatic morale.
   registerWarbandCombat(WARBAND_TYPE);
   // Out-of-combat tracker as a sidebar tab, beside Combat. Must run in init:

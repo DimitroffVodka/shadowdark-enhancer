@@ -26,8 +26,13 @@ test("Monsters tree keeps curated bestiaries and reconciles mounts across source
   assert.deepEqual(tree.children.map((node) => node.id), [
     "monsters/CS1", "monsters/CS2", "monsters/CS3",
     "monsters/CS4", "monsters/CS5", "monsters/CS6",
-    "monsters/GMWR", "monsters/mounts",
+    "monsters/GMWR", "monsters/warbands", "monsters/mounts",
   ]);
+
+  // The stock warbands (#201): eight rows, none imported here.
+  const warbands = tree.children.find((node) => node.id === "monsters/warbands");
+  assert.equal(warbands.entries.length, 8);
+  assert.ok(warbands.entries.every((entry) => entry.type === "Warband" && entry.pages === "250-251" && !entry.present));
 
   const mounts = tree.children.at(-1);
   assert.equal(mounts.have, 6);

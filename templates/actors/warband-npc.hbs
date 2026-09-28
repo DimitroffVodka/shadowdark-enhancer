@@ -67,9 +67,10 @@
 				{{#if warband.noCommanderCap}}<p class="sde-warband-allowance">{{warband.noCommanderCap}}</p>{{/if}}
 				<div class="sde-warband-upgrades">
 					{{#each warband.upgrades}}
-						<label class="checkbox"><input type="checkbox" data-sde-upgrade="{{key}}" {{#if checked}}checked{{/if}} {{#unless ../editable}}disabled{{/unless}} /> {{label}}</label>
+						<label class="checkbox" {{#if tip}}data-tooltip-text="{{tip}}"{{/if}}><input type="checkbox" data-sde-upgrade="{{key}}" {{#if checked}}checked{{/if}} {{#unless ../editable}}disabled{{/unless}} /> {{label}}</label>
 					{{/each}}
 				</div>
+				{{#if warband.textMissing}}<button type="button" class="sde-veh-btn" data-sde-action="read-upgrade-text" title="{{localize 'SDE.warband.readTextTip'}}"><i class="fa-solid fa-book-open"></i> {{localize "SDE.warband.readText"}}</button>{{/if}}
 			{{/ui/sd-box}}
 
 			{{#> ui/sd-box header-label=(localize "SDE.warband.rules")}}

@@ -48,7 +48,7 @@ export const ROUTE = {
 /** Manage-tree entry types the generic hub paste box parses end-to-end. */
 const HUB_TYPES = new Set([
   "Table", "Talent", "Background", "Ancestry",
-  "Boat", "SiegeWeapon", "Mount", "Actor",
+  "Boat", "SiegeWeapon", "Mount", "Warband", "Actor",
 ]);
 
 /** Item types the Item Builder owns (a price table, not a paste-box unlock). */
@@ -105,7 +105,7 @@ export function jobKeyForEntry(entry, route = routeForEntry(entry)) {
       // their own key: sharing the ordinary Actor key would feed a Mount seed
       // through the monster/bestiary path, while a name key would re-grab the
       // same two pages once per mount.
-      if (type === "Mount") return `mount:${src}:${pages}`;
+      if (type === "Mount" || type === "Warband") return `${type.toLowerCase()}:${src}:${pages}`;
       // A monster/boat/siege grab parses every statblock or row on the page.
       if (type === "Actor" || type === "Boat" || type === "SiegeWeapon") {
         return `${type.toLowerCase()}:${src}:${pages}`;

@@ -226,7 +226,7 @@ class HubBatchMethods {
     // report, but belong only in the separate skipped suffix below.
     const mountBulk = results.some((result) =>
       result?.job?.route === ROUTE.HUB
-      && result.job.entry?.type === "Mount"
+      && (result.job.entry?.type === "Mount" || result.job.entry?.type === "Warband")
       && Array.isArray(result.entries));
     const entryTotal = mountBulk ? summary.entries - summary.blocked : summary.jobs;
     ui.notifications.info(
@@ -350,8 +350,9 @@ class HubBatchMethods {
       : entries.some((entry) => entry.status === "failed") ? "failed" : "nothing";
     return {
       status, created, entries,
-      note: t(names.length === 1 ? "SDE.importer.batchNote.mountsCreatedOne" : "SDE.importer.batchNote.mountsCreatedMany",
-        { created, n: names.length }),
+      note: first.type === "Warband"
+        ? t(names.length === 1 ? "SDE.importer.batchNote.warbandsCreatedOne" : "SDE.importer.batchNote.warbandsCreatedMany", { created, n: names.length })
+        : t(names.length === 1 ? "SDE.importer.batchNote.mountsCreatedOne" : "SDE.importer.batchNote.mountsCreatedMany", { created, n: names.length }),
     };
   }
 
@@ -363,7 +364,7 @@ class HubBatchMethods {
    */
   async _batchRunHub(job) {
     const entry = job.entry;
-    if (entry.type === "Mount") return this._batchRunMounts(job);
+    if (entry.type === "Mount" || entry.type === "Warband") return this._batchRunMounts(job);
     this._onHubClear();
     if (entry.seedAction === "monsterSeedPaste") {
       await this._onMonsterSeedPaste(null, { dataset: {

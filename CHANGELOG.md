@@ -385,6 +385,13 @@ page walks through it in order.
   no more upkeep, healing, or place in the commander's allowance, until
   Return to Service. With its commander dead it rolls and takes its own
   turn. Its attack cards note the area it fills. (#203)
+- **The book's warbands and what upgrades do.** Importer Hub → Manage →
+  Monsters → **Warbands** imports the Player's Guide's eight stock warbands
+  from your PDF as warband units, with their talents, in a Warbands folder.
+  Armor Upgrade (+1 AC), Tough (+15 HP), Training (+1 to attacks) and Weapons
+  Upgrade (one more damage die) change the sheet when ticked and change back
+  when unticked. Each upgrade shows its book text on hover, read once from
+  the PDF. (#201)
 - **Encounter check frequency.** Right-click the Crawl Bar's **Encounter**
   button: **Check Frequency** runs from **1** (every crawl round, the default)
   to **10**. The count runs from the last check, automatic or manual, so a
