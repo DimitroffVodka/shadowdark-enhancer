@@ -372,7 +372,12 @@ page walks through it in order.
   gained, damage dice tripled. Its HP is fixed: placing one of its tokens,
   with Shadowdark's HP roll on placement on, sets the max but never heals it.
   Quick upgrade ticks all stick, and two warbands can't both take their
-  commander's last slot. See *Warbands*. (#200, #202)
+  commander's last slot: every warband change is made by one writer, the
+  active GM. See *Warbands*. (#200, #202)
+- **A GM signed in in two tabs.** Foundry sends a request meant for the
+  active GM to every tab that GM has open, and runs the module's hooks in
+  each. Now one tab does the work: the one signed in longest, until it
+  closes. (#200)
 - **Warband upkeep and healing on the world clock.** Each month start takes
   10 gp a level per warband from its commander's coins, in one card; a
   commander who can't pay leaves it in arrears, and each week after it checks
@@ -380,7 +385,8 @@ page walks through it in order.
   deleted. Every day heals 1d4 (Hardy 2d6), downtime days included, and a
   warband that deserts part way through a long move still heals the days
   before. A charge that fails to save is tried again at the next clock move,
-  and never charged twice. Changing a commanded warband's upgrades means a
+  for that warband only, and never taken twice; if even that can't be
+  confirmed, the GM is told to settle it by hand. Changing a commanded warband's upgrades means a
   week of retraining. (#204)
 - **Encounter check frequency.** Right-click the Crawl Bar's **Encounter**
   button: **Check Frequency** runs from **1** (every crawl round, the default)
