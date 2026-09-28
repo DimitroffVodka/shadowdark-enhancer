@@ -167,6 +167,11 @@ with forage and camp.
   on the map, Start travel puts the Party in the hex at the centre of your view.
   A player's own token never travels. The travel token wears the black party
   hex on the hex map (only there: its actor keeps its portrait).
+- **Click to travel.** Select the party token: hovering a hex draws the
+  cheapest route there, each hex with what it costs, and a tooltip gives the
+  hexes, miles, points and hours. Click to walk the party there, one hex at a
+  time, the clock moving with each. It stops at an encounter, a bounce, or the
+  end of the day's points. Dragging the token still works as before.
 - **Hex rules, not light and sight.** On a hex map (a tagged print, or a
   Shadowdark Extras hexcrawl) no token gives light and no token sees: a torch
   carried there reveals nothing, and players see the map as a map, with

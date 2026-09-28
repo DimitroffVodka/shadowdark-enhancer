@@ -12,6 +12,7 @@ import { timeApi, registerTimeHooks } from "./time/time.mjs";
 import { overlandState, isOverland, rollWeather, startDay, resume, forage, makeCamp, registerOverland } from "./overland/overland.mjs";
 import { TravelBar } from "./overland/overland-bar.mjs";
 import { registerHexRules } from "./overland/hex-rules.mjs";
+import { registerRoute } from "./overland/route.mjs";
 import { registerSky } from "./overland/sky.mjs";
 import { CrawlState } from "./crawl-strip/crawl-state.mjs";
 import { CrawlStrip } from "./crawl-strip/crawl-strip.mjs";
@@ -101,7 +102,7 @@ import { initRivalClassTable } from "./forge-loot/rival-class-table-adapter.mjs"
 // templates, producing unstyled block-flow UI. Keep the manifest stylesheet as
 // the startup fallback, then layer a content-addressed copy above it. The layout
 // contract test requires this revision to change whenever the CSS file changes.
-const STYLESHEET_REV = "390c0beacdce";
+const STYLESHEET_REV = "9266416f01d8";
 
 // The same problem for the SCRIPTS, which cannot be solved the same way: their
 // URLs come from the manifest, which Foundry validates as real package paths,
@@ -116,7 +117,7 @@ const STYLESHEET_REV = "390c0beacdce";
 // stale); module.json carries the same hash and is fetched fresh at runtime. A
 // mismatch is a stale cache by construction — it cannot be anything else. Both
 // stamps are written by `npm run inventory` and gated by `inventory:check`.
-const BUILD_REV = "511b24f27fe7";
+const BUILD_REV = "2b019b1ecc32";
 
 /**
  * Tell the user when their browser is running an old build of this module, and
@@ -294,6 +295,8 @@ Hooks.once("init", () => {
   // Hex rules on hex maps (#257): no token light or token vision there. Must
   // run in init, before the canvas is built from CONFIG.
   registerHexRules();
+  // The route and click-to-travel on the hex map (#257).
+  registerRoute();
   // Out-of-combat tracker as a sidebar tab, beside Combat. Must run in init:
   // Game#initializeUI constructs CONFIG.ui entries during setup, and anything
   // registered after that pass never gets an instance.

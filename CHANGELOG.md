@@ -11,6 +11,12 @@ it needs.
 
 ### Added
 
+- **Click a hex to travel there.** With the party token selected while
+  travelling on the hex map, the cheapest route to the hex under the cursor is
+  drawn with each hex's cost, and a tooltip gives the hexes, the miles, the
+  points and the hours (and says when today hasn't enough left). A click walks
+  the party there one hex at a time, the clock moving with each hex; the walk
+  stops at an encounter, a bounce, or the end of the day's points. (#257)
 - **The Travel panel follows the book's travel procedure.** Its eight steps
   (weather, sight, method, speed, traveling, encounters, resting, night) are the
   day's record: the step the day is at is marked, and any step opens to what

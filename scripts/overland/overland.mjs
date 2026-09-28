@@ -522,6 +522,12 @@ function moveSteps(doc, grid, origin, waypoints, read) {
 }
 
 /** A hex's cost today: hexCost with today's weather, harshness and boat bound. */
+/** A step's cost today, (hex, from) → points, as a move of the travel token is priced. For the route preview. */
+export function travelStepCost() { return costToday(); }
+
+/** Resolves once every travel action queued on this client so far has run (the active GM's moves, checks and clock). */
+export const travelSettled = () => serialize(() => undefined);
+
 function costToday() {
   const s = overlandState();
   const terrainCost = game.shadowdarkEnhancer?.rules?.terrainCost;
