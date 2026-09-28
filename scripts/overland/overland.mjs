@@ -39,7 +39,7 @@ import { CrawlState } from "../crawl-strip/crawl-state.mjs";
 import { authorizeActorFor, isActiveGM, queryActiveGM, refuseQuery } from "../shared/gm-relay.mjs";
 import { makeQueue } from "../quests/quest-core.mjs";
 import { hexReader, hexZonesFor, isHexMapScene, partyHex } from "../encounter/encounter-terrain.mjs";
-import { BOAT_TYPE } from "../actors/register-actors.mjs";
+import { BOAT_TYPE, MOUNT_TYPE } from "../actors/register-actors.mjs";
 import { dawnAfter, dateParts, startOfDay } from "../time/time-core.mjs";
 import { advanceOffDuty } from "../time/off-duty.mjs";
 import { StatRiders } from "../stat-damage/stat-riders.mjs";
@@ -49,7 +49,7 @@ import {
   defaultOverlandState, normalizeOverlandState, startTravel, setHex, recordForage,
   pickTravelToken, forageRefusal, setWeather, weatherHolds, weatherAdvantage, weatherFormula,
   weatherFromRoll, harshToday, WEATHER_RULES, METHODS, openDay, spendMove, priceMove, moveVerdict, hexCost,
-  dayChecks, dueChecks, markCheck, setPending, setEncounter, forageDC, closeDay, planRations,
+  dayChecks, dueChecks, markCheck, setPending, setEncounter, forageDC, closeDay, planRations, partyMethod, setPace,
 } from "./overland-state-core.mjs";
 import { PARTY_FLAG, placePartyToken, wearPartyHex } from "./hex-rules.mjs";
 
@@ -450,9 +450,53 @@ export async function resume() {
  * @param {{method?:string, pushed?:boolean, boatUuid?:string|null, hexes?:number|null}} [options]
  * @returns {Promise<{ok:true}|{ok:false, error:string}>}
  */
-export async function startDay({ method = "walking", pushed = false, boatUuid = null, hexes = null } = {}) {
+export async function startDay({ method = null, pushed = null, boatUuid = null, hexes = null } = {}) {
   if (!game.user?.isGM) return { ok: false, error: t("SDE.overland.notify.dayGmOnly") };
-  const data = { action: "startDay", method, pushed: pushed === true, boatUuid: boatUuid || null, hexes: Number(hexes) || null };
+  const data = { action: "startDay", method, pushed: typeof pushed === "boolean" ? pushed : null, boatUuid: boatUuid || null, hexes: Number(hexes) || null };
+  return isActiveGM() ? applyAction(data, game.user) : queryActiveGM(OVERLAND_QUERY, data, { label: t("SDE.overland.relayLabel") });
+}
+
+/**
+ * The party as the Method step reads it (partyMethod): the members, the
+ * mounts carrying them (a Mount's riders are its `occupants` flag) and the
+ * boats they're aboard (a Boat's `occupants`).
+ * @returns {{method:string, boatUuid:string|null, mounts:number, ride:Object<string,string>}}
+ */
+export function partyReading() {
+  const members = _state.members.map((id) => game.actors.get(id)?.uuid).filter(Boolean);
+  const mounts = game.actors.filter((a) => a.type === MOUNT_TYPE)
+    .map((a) => ({ name: a.name, riders: a.getFlag(MODULE_ID, "occupants") ?? [] }));
+  const boats = game.actors.filter((a) => a.type === BOAT_TYPE)
+    .map((b) => ({ uuid: b.uuid, name: b.name, aboard: b.system?.occupants ?? [] }));
+  return partyMethod({ members, mounts, boats });
+}
+
+/** Today's hexes at a normal pace for the party as it is now, or 0 when nothing says. */
+function baseFor({ method, boatUuid }) {
+  const boat = method === "sailing" ? boatActor(boatUuid) : null;
+  return Number(boat ? boat.system?.speed : game.shadowdarkEnhancer?.rules?.hexesPerDay?.(method)) || 0;
+}
+
+/**
+ * Start day as the demo does (#257): the method read from the party and the
+ * standing pace, nothing asked. Only when neither the rules data nor a boat
+ * says how many hexes a day does the Start day dialog ask.
+ * @returns {Promise<{ok:boolean, error?:string}|null>}  null: the dialog was closed
+ */
+export async function startDayFromParty() {
+  if (baseFor(partyReading()) > 0) return startDay();
+  const options = await askDay();
+  return options ? startDay(options) : null;
+}
+
+/**
+ * The standing pace (GM): "normal" or "push". It holds every dawn; today's
+ * pace changes too when the party hasn't moved or foraged yet.
+ * @returns {Promise<{ok:boolean, today?:boolean, error?:string}>}
+ */
+export async function setTravelPace(pace) {
+  if (!game.user?.isGM) return { ok: false, error: t("SDE.overland.notify.dayGmOnly") };
+  const data = { action: "pace", pace: pace === "push" ? "push" : "normal" };
   return isActiveGM() ? applyAction(data, game.user) : queryActiveGM(OVERLAND_QUERY, data, { label: t("SDE.overland.relayLabel") });
 }
 
@@ -461,6 +505,7 @@ export async function startDay({ method = "walking", pushed = false, boatUuid = 
  * actors. Resolves to startDay's options, or null when closed.
  */
 export async function askDay() {
+  const read = partyReading();
   const boats = game.actors.filter((a) => a.type === BOAT_TYPE);
   const perDay = game.shadowdarkEnhancer?.rules?.hexesPerDay;
   const known = METHODS.map((m) => [m, Number(perDay?.(m))]).filter(([, n]) => n > 0)
@@ -468,15 +513,15 @@ export async function askDay() {
   const option = (value, label, selected) => `<option value="${esc(value)}"${selected ? " selected" : ""}>${esc(label)}</option>`;
   const content = `
     <div class="form-group"><label>${esc(t("SDE.overland.day.method"))}</label>
-      <select name="method">${METHODS.map((m) => option(m, t(METHOD_NAME[m]), m === _state.method)).join("")}</select></div>
+      <select name="method">${METHODS.map((m) => option(m, t(METHOD_NAME[m]), m === read.method)).join("")}</select></div>
     <div class="form-group"><label>${esc(t("SDE.overland.day.hexes"))}</label>
       <input type="number" name="hexes" min="1" step="1" placeholder="${esc(t("SDE.overland.day.hexesFromRules"))}"></div>
     <p class="hint">${esc(known.length ? t("SDE.overland.day.hexesKnown", { list: known.join(", ") }) : t("SDE.overland.day.hexesUnknown"))}</p>
-    <div class="form-group"><label>${esc(t("SDE.overland.day.pushed"))}</label><input type="checkbox" name="pushed"></div>
+    <div class="form-group"><label>${esc(t("SDE.overland.day.pushed"))}</label><input type="checkbox" name="pushed"${_state.pace === "push" ? " checked" : ""}></div>
     <p class="hint">${esc(t("SDE.overland.day.pushedHint"))}</p>
     ${boats.length ? `<div class="form-group"><label>${esc(t("SDE.overland.day.boat"))}</label>
-      <select name="boatUuid">${option("", t("SDE.overland.day.noBoat"), !_state.boatUuid)}${
-  boats.map((b) => option(b.uuid, b.name, b.uuid === _state.boatUuid)).join("")}</select></div>` : ""}`;
+      <select name="boatUuid">${option("", t("SDE.overland.day.noBoat"), !read.boatUuid)}${
+  boats.map((b) => option(b.uuid, b.name, b.uuid === read.boatUuid)).join("")}</select></div>` : ""}`;
   return foundry.applications.api.DialogV2.prompt({
     window: { title: t("SDE.overland.day.title") },
     content,
@@ -830,6 +875,12 @@ export function applyAction(data, user) {
     switch (data?.action) {
       // Answered from the queue, after everything queued before it.
       case "settled": return { ok: true };
+      case "pace": {
+        if (!user.isGM) return { ok: false, error: t("SDE.overland.notify.dayGmOnly") };
+        const { state, changed, today } = setPace(_state, data.pace);
+        if (changed) await commit(state);
+        return { ok: true, today, changed };
+      }
       case "start": {
         if (!user.isGM) return { ok: false, error: t("SDE.overland.notify.gmOnly") };
         if (CrawlState.mode !== "off" && !CrawlState.isOverland) return { ok: false, error: t("SDE.overland.notify.busy") };
@@ -853,25 +904,28 @@ export function applyAction(data, user) {
       case "startDay": {
         if (!user.isGM) return { ok: false, error: t("SDE.overland.notify.dayGmOnly") };
         if (!CrawlState.isOverland) return { ok: false, error: t("SDE.overland.notify.notTravelling") };
-        if (!METHODS.includes(data.method)) return { ok: false, error: t("SDE.overland.notify.unknown") };
-        const boat = data.method === "sailing" ? boatActor(data.boatUuid) : null;
+        // The method and boat as given, else read from the party; the push as given, else the standing pace (#257).
+        const read = partyReading();
+        const method = data.method ?? read.method;
+        if (!METHODS.includes(method)) return { ok: false, error: t("SDE.overland.notify.unknown") };
+        const boat = method === "sailing" ? boatActor(data.boatUuid ?? (data.method ? null : read.boatUuid)) : null;
         // The day's hexes: typed in Start day, else the boat's speed, else the rules data (#195).
         const typed = Math.trunc(Number(data.hexes));
-        const base = typed > 0 ? typed
-          : boat ? Number(boat.system?.speed) : Number(game.shadowdarkEnhancer?.rules?.hexesPerDay?.(data.method));
-        if (!(base > 0)) return { ok: false, error: t("SDE.overland.notify.noBase", { method: t(METHOD_NAME[data.method]) }) };
+        const base = typed > 0 ? typed : baseFor({ method, boatUuid: boat?.uuid ?? null });
+        if (!(base > 0)) return { ok: false, error: t("SDE.overland.notify.noBase", { method: t(METHOD_NAME[method]) }) };
         // §5.1: the weather first, unless today's still holds; then the budget.
         _unpaid.clear();
         await rollWeatherHere(false);
         const now = game.time.worldTime;
-        const pushed = data.pushed === true;
+        const pushed = typeof data.pushed === "boolean" ? data.pushed : _state.pace === "push";
         const hours = await new Roll("4d12").evaluate();
         const checks = dayChecks({
           midnight: startOfDay(game.time.calendar, now), pushed, hourSeconds: hourSeconds(),
           d12s: hours.dice[0]?.results.map((r) => r.result) ?? [],
         });
-        await commit(openDay(_state, {
-          now, method: data.method, pushed, base, boatUuid: boat?.uuid ?? null, hourSeconds: hourSeconds(), checks,
+        // A push chosen here is the standing pace from now on.
+        await commit(openDay({ ..._state, pace: pushed ? "push" : "normal" }, {
+          now, method, pushed, base, boatUuid: boat?.uuid ?? null, hourSeconds: hourSeconds(), checks, mounts: read.mounts,
         }).state);
         await postDay(boat);
         // A check whose hour went by before the day started falls due at once (§5.1).

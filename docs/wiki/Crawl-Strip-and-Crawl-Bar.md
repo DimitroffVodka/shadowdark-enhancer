@@ -195,13 +195,19 @@ with forage and camp.
   card says only what the imported rules give a storm, and says so when they
   give it nothing.
 - **Start day** opens a travel day, and pressing **Travel** opens it for you
-  straight away. Pick walking, mounted or sailing, and a boat actor to sail
-  aboard. Tick **Push on** for half as many hexes again, at the same pace. The
-  weather is rolled first if today's hasn't been.
-- **Hexes today** sets the day's hexes. Leave it empty to use **Edit Rules
-  Data**'s hexes per day (the dialog lists them), or a boat's speed when you
-  sail aboard one. Until you've imported those rules from your GM Guide, type
-  the number in.
+  straight away. Nothing is asked: the method is read from the party (mounted
+  when every member rides a mount, from the riders on each mount's sheet;
+  sailing when every member is aboard one boat; else walking), and the pace is
+  the standing one from the Travel panel's **Speed** step, **Normal** or
+  **Push** (half as many hexes again, at the same rate). It holds every dawn
+  until it's changed; changed before the party has moved or foraged, it counts
+  today as well. The weather is rolled first if today's hasn't been. Every
+  mount carrying the party eats a ration at camp.
+- **Hexes today**: only when nothing says how many hexes a day the party
+  makes (no rules data imported, and no boat), Start day asks, with the method
+  and the push to confirm. Once you've imported the rules from your GM Guide
+  (**Edit Rules Data**), or when sailing aboard a boat actor with a speed, it
+  doesn't.
 - **Moving the travel token** costs each hex's terrain cost from the day's
   hexes, and moves the world clock: a travel day is 8 hours, so walking costs
   2 hours per point. Following a path from one path hex to the next costs 1.

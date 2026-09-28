@@ -330,6 +330,23 @@ test("a pushed day checks at 2-in-6, all four", async () => {
   assert.deepEqual(stored.overlandState.checks.map((c) => c.chance), [2, 2, 2, 2]);
 });
 
+test("Start day with nothing given reads the party and keeps the standing pace; a push chosen there becomes it (#257)", async () => {
+  travellingDay();
+  await applyAction({ action: "pace", pace: "push" }, gm);
+  assert.equal(stored.overlandState.pace, "push", "no day open: the pace waits for Start day");
+  globalThis.game.time.worldTime = at(1301, 6, 21, 5);
+  dice.push(3, 2, 9, 1, 12);
+  assert.equal((await applyAction({ action: "startDay" }, gm)).ok, true);
+  const s = stored.overlandState;
+  assert.deepEqual([s.method, s.pushed, s.base, s.budget], ["walking", true, 5, 7], "on foot, pushed from the standing pace");
+  const back = await applyAction({ action: "pace", pace: "normal" }, gm);
+  assert.deepEqual([back.today, stored.overlandState.budget], [true, 5], "nothing moved yet: today's pace changes too");
+  assert.equal((await applyAction({ action: "pace", pace: "push" }, { id: "player1", isGM: false })).ok, false, "the GM's call");
+  dice.push(3, 2, 9, 1, 12);
+  await applyAction({ action: "startDay", pushed: true }, gm);
+  assert.equal(stored.overlandState.pace, "push", "Start day's push is the standing pace from now on");
+});
+
 test("a move across a check hour rolls it at its hour; a hit stops the clock there, and Continue finishes the move", async () => {
   const calls = await dayWithChecks([2, 9, 1, 12], [false, true]);   // 07:00 misses at the start, 14:00 hits
   // 5 points at 8 h over 5: 8 hours, 08:00 to 16:00, through the 14:00 check.

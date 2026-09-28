@@ -11556,6 +11556,20 @@ button.sde-hud-day:hover { border-color: var(--sd-frame); }
 }
 .sde-hud-meter > span { display: block; height: 100%; background: var(--sd-text); }
 .sde-hud-checkrow { display: flex; align-items: center; gap: 10px; font-size: 13px; }
+/* The Speed step's standing pace: Normal | Push (#257). */
+.sde-hud-seg { display: inline-flex; border: 1px solid var(--sd-frame); border-radius: 4px; overflow: hidden; }
+.sde-hud-seg button {
+  all: unset;
+  cursor: pointer;
+  padding: 5px 14px;
+  font-family: "Montserrat-SemiBold", sans-serif;
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--sd-text-2);
+}
+.sde-hud-seg button[aria-pressed="true"] { background: var(--sd-text); color: var(--sd-page); }
+.sde-hud-seg button:focus-visible { outline: 2px solid var(--sd-text); outline-offset: -2px; }
 .sde-hud-dot { width: 9px; height: 9px; border-radius: 50%; border: 1px solid var(--sd-frame); flex: none; }
 .sde-hud-dot.sde-hud-hit { background: var(--sd-text); border-color: var(--sd-text); }
 .sde-hud-dot.sde-hud-miss { background: #555; border-color: #555; }

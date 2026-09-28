@@ -11,6 +11,13 @@ it needs.
 
 ### Added
 
+- **Travel reads the party and keeps a standing pace.** Start day asks nothing:
+  the method is read from the party (mounted when every member rides a mount,
+  sailing when every member is aboard one boat, else walking), and the pace is
+  the Travel panel's standing **Normal | Push**, which holds every dawn until
+  it's changed (and counts today too before the party has moved or foraged).
+  The Start day dialog appears only when nothing says how many hexes a day the
+  party makes. Every mount carrying the party now eats at camp.
 - **Make this map playable.** The Western Reaches A0 map is recognised on any
   scene. The first time you view it you're asked once, and the Hex Tagger has a
   button for it any time. It:

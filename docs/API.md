@@ -1600,6 +1600,20 @@ Added in 1.16.0 (Overland O5, #231; design §5.1, §5.2). GM only, forwarded to
 the active GM like `rollWeather`. Refused when nobody is travelling. Resolves
 to `{ ok: true }` or `{ ok: false, error }`.
 
+Since 1.24.0 (#257), a `method` left out is read from the party
+(`overland.partyMethod()`), with its boat; a `pushed` left out is the standing
+pace (`overland.setPace`); and a `pushed` given becomes the standing pace.
+
+`overland.partyMethod()` (1.24.0) returns `{ method, boatUuid, mounts, ride }`:
+sailing when every member is aboard one Boat actor (its `occupants`), mounted
+when every member rides a Mount actor (its `occupants` flag), else walking;
+`mounts` counts the Mounts carrying members, which eat at camp; `ride` maps a
+member's actor uuid to its mount's name.
+
+`overland.setPace("normal" | "push")` (1.24.0, GM) sets the standing pace. It
+holds every dawn; when the party hasn't moved or foraged today, today's pace
+and budget change too. Resolves to `{ ok, today, changed }`.
+
 1. **The weather** is rolled first, unless today's still holds.
 2. **The budget**:
    - The base is `hexes` when given (since 1.20.0: Start day's **Hexes

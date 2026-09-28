@@ -18,6 +18,7 @@ export function barModel({ state, isGM, owns, actors }) {
   const members = state.members.filter((id) => actors[id]).map((id) => ({
     id,
     name: actors[id].name,
+    uuid: actors[id].uuid ?? null,
     rations: actors[id].rations,
     int: actors[id].int ?? 0,
     foraged: state.foraged.includes(id),

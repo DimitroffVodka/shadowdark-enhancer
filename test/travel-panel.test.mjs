@@ -56,3 +56,26 @@ test("the subtitle names the terrain in words, and Extras' fog is promised only 
   assert.ok(!sight(false).includes("SDE.travel.sight.fog") && sight(false).includes("SDE.travel.sight.noTokenSight"));
   assert.ok(sight(true).includes("SDE.travel.sight.fog"));
 });
+
+test("the Method step reads the party: each member's mount or on foot, and what the next dawn brings (#257)", () => {
+  const members = [{ id: "a", uuid: "Actor.a", name: "Mira", rations: 2 }, { id: "b", uuid: "Actor.b", name: "Tor", rations: 1 }];
+  const v = view({ see: 3, party: { method: "mounted", ride: { "Actor.a": "Bessie", "Actor.b": "Nib" } }, nextBase: 6 });
+  v.model = { ...v.model, members, method: "walking" };
+  v.state.base = 4;
+  const html = travelPanel(v);
+  assert.ok(html.includes('SDE.travel.method.rides{&quot;mount&quot;:&quot;Bessie&quot;}'));
+  assert.ok(html.includes("SDE.travel.method.nextDawn"), "mounted from the next dawn");
+  v.party = { method: "walking", ride: {} };
+  assert.ok(travelPanel(v).includes("SDE.travel.method.onFoot") && !travelPanel(v).includes("SDE.travel.method.nextDawn"));
+});
+
+test("the Speed step: the GM's Normal | Push switch, and a change that waits for the next dawn (#257)", () => {
+  const v = view({ see: 4, gm: true, nextBase: 4 });
+  v.state = { ...v.state, pending: null, pace: "push", pushed: false, base: 4 };
+  const html = travelPanel(v);
+  assert.ok(html.includes('data-action="pace" data-id="push" aria-pressed="true"'));
+  assert.ok(html.includes("SDE.travel.speed.pushNextDawn"));
+  assert.ok(html.includes('SDE.travel.speed.numbers{&quot;base&quot;:4,&quot;push&quot;:6}'));
+  const player = travelPanel({ ...v, gm: false });
+  assert.ok(!player.includes('data-action="pace"') && player.includes("SDE.travel.speed.pushing"));
+});

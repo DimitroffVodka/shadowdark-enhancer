@@ -31,7 +31,9 @@ export function defaultOverlandState() {
     day: null,            // worldTime of the open travel day's dawn; null: no day open
     method: "walking",    // rules.hexesPerDay(method)
     boatUuid: null,       // aboard a boat actor, its speed is the budget
-    pushed: false,        // chosen at dawn only
+    pushed: false,        // today's pace: pushing or not, fixed at dawn from `pace`
+    pace: "normal",       // the standing pace, "normal" or "push": holds every dawn until changed (#257)
+    base: 0,              // today's hexes at a normal pace (the method's, or the boat's speed)
     budget: 0,            // the day's points, fixed at dawn
     spent: 0,             // points spent; hexes left = budget - spent
     pointSeconds: 0,      // clock seconds per point, fixed at dawn (#231)
@@ -126,6 +128,8 @@ export function normalizeOverlandState(value) {
     method: METHODS.includes(value.method) ? value.method : base.method,
     boatUuid: str(value.boatUuid),
     pushed: value.pushed === true,
+    pace: value.pace === "push" ? "push" : "normal",
+    base: int(value.base),
     budget: int(value.budget),
     spent: int(value.spent),
     pointSeconds: int(value.pointSeconds),
@@ -181,15 +185,16 @@ export function setWeather(state, weather) {
  * budget are fixed here, and so is the clock rate, so a rules edit mid-day
  * changes nothing. The day's forage starts over, its encounter checks are
  * `checks` (dayChecks), and any stopped advance is dropped. `base` is
- * rules.hexesPerDay(method), or the boat's speed.
+ * rules.hexesPerDay(method), or the boat's speed; `mounts`, the mounts that
+ * eat at camp (partyMethod).
  * @param {{now:number, method:string, pushed:boolean, base:number, boatUuid?:string|null,
- *   hourSeconds?:number, checks?:object[]}} day
+ *   hourSeconds?:number, checks?:object[], mounts?:number}} day
  */
-export function openDay(state, { now, method, pushed, base, boatUuid = null, hourSeconds = 3600, checks = [] }) {
+export function openDay(state, { now, method, pushed, base, boatUuid = null, hourSeconds = 3600, checks = [], mounts = state.mounts }) {
   const next = normalizeOverlandState({
-    ...state,
+    ...state, mounts,
     day: now, method, pushed: !!pushed, boatUuid: method === "sailing" ? boatUuid : null,
-    budget: dayBudget(base, pushed), spent: 0, pointSeconds: pointSeconds(base, hourSeconds),
+    base, budget: dayBudget(base, pushed), spent: 0, pointSeconds: pointSeconds(base, hourSeconds),
     foraged: [], checks, pending: null, encounter: null,
   });
   return { state: next, changed: true };
@@ -201,7 +206,7 @@ export function openDay(state, { now, method, pushed, base, boatUuid = null, hou
  */
 export function closeDay(state) {
   const next = normalizeOverlandState({
-    ...state, day: null, pushed: false, budget: 0, spent: 0, checks: [], foraged: [], pending: null, encounter: null,
+    ...state, day: null, pushed: false, base: 0, budget: 0, spent: 0, checks: [], foraged: [], pending: null, encounter: null,
   });
   return { state: next, changed: true };
 }
@@ -341,6 +346,42 @@ export function hexCost(terrainCost, hex, { from = null, stormy = false, harsh =
 }
 
 // ── The day's budget and the clock (#231, design §5.1, §5.2) ───────────────
+
+/**
+ * The standing pace (#257, the Speed step): it holds every dawn until changed.
+ * Changed before the party has moved or foraged today, it is today's pace at
+ * once (the budget follows, at the same rate); after, it starts at the next dawn.
+ * @param {object} state
+ * @param {"normal"|"push"} pace
+ * @returns {{state:object, changed:boolean, today:boolean}}  today: the day's pace changed now
+ */
+export function setPace(state, pace) {
+  const push = pace === "push";
+  const today = state.day !== null && state.spent === 0 && !state.foraged.length && push !== state.pushed && state.base > 0;
+  const next = normalizeOverlandState({
+    ...state, pace: push ? "push" : "normal",
+    ...(today ? { pushed: push, budget: dayBudget(state.base, push) } : {}),
+  });
+  return { state: next, changed: JSON.stringify(next) !== JSON.stringify(state), today };
+}
+
+/**
+ * The day's travel method, read from the party, never asked (#257, the Method
+ * step): sailing when every member is aboard one boat; mounted when every
+ * member rides a mount; else walking. Every mount carrying a member eats at camp.
+ * @param {{members:string[], mounts?:Array<{name:string, riders:string[]}>, boats?:Array<{uuid:string, name:string, aboard:string[]}>}} party
+ *   members, riders and those aboard as actor uuids
+ * @returns {{method:string, boatUuid:string|null, mounts:number, ride:Object<string,string>}}  ride: member uuid → mount name
+ */
+export function partyMethod({ members, mounts = [], boats = [] }) {
+  const ride = {};
+  for (const m of mounts) for (const r of m.riders) if (members.includes(r) && !ride[r]) ride[r] = m.name;
+  const carrying = mounts.filter((m) => m.riders.some((r) => members.includes(r))).length;
+  const boat = members.length ? boats.find((b) => members.every((m) => b.aboard.includes(m))) : null;
+  if (boat) return { method: "sailing", boatUuid: boat.uuid, mounts: carrying, ride };
+  const mounted = members.length > 0 && members.every((m) => ride[m]);
+  return { method: mounted ? "mounted" : "walking", boatUuid: null, mounts: carrying, ride };
+}
 
 /** The day's points: the base, or half as many again rounded down when pushed. */
 export const dayBudget = (base, pushed) => (pushed ? Math.floor(base * PUSH) : base);

@@ -31,7 +31,7 @@ import {
   dateParts, hourOfDay, nextSeasonChange, nextTimeOfDay, secondsPerDay, season as seasonAt, startOfDay, sun as sunAt,
 } from "../time/time-core.mjs";
 import {
-  overlandState, weatherNow, weatherName, methodName, rollWeather, askDay, startDay, makeCamp,
+  overlandState, weatherNow, weatherName, methodName, rollWeather, startDayFromParty, setTravelPace, partyReading, makeCamp,
   endOverland, resume, forage, startOverland, advanceClock, OVERLAND_CHANGED,
 } from "./overland.mjs";
 import { barModel, itemTouchesBar, redrawStamp } from "./overland-bar-core.mjs";
@@ -395,7 +395,7 @@ export const TravelBar = {
     for (const id of state.members) {
       const a = game.actors.get(id);
       if (a) actors[id] = {
-        name: a.name,
+        name: a.name, uuid: a.uuid,
         rations: a.items.filter((i) => /^rations?$/i.test(i.name)).reduce((n, i) => n + (Number(i.system?.quantity) || 0), 0),
         int: Number(a.system?.abilities?.int?.mod) || 0,
       };
@@ -414,7 +414,16 @@ export const TravelBar = {
       night: !!game.shadowdarkEnhancer?.time?.isNight?.(now, { region: state.hex?.region }),
       rules, season: t(seasonAt(cal, now).name ?? ""), weatherName, methodName,
       weather: weatherNow(), extras: !!game.modules.get("shadowdark-extras")?.active,
+      ...this._partyFor(),
     });
+  },
+
+  /** The party as the Method step reads it, and that method's hexes a day. */
+  _partyFor() {
+    const party = partyReading();
+    const boat = party.method === "sailing" && party.boatUuid ? fromUuidSync(party.boatUuid) : null;
+    const nextBase = Number(boat ? boat.system?.speed : game.shadowdarkEnhancer?.rules?.hexesPerDay?.(party.method)) || 0;
+    return { party, nextBase };
   },
 
   /**
@@ -475,10 +484,7 @@ export const TravelBar = {
       case "startTravel": {
         const started = await startOverland();
         if (started) { this._open = "travel"; this._see = null; }
-        if (started && !Number.isFinite(overlandState().day)) {
-          const options = await askDay();
-          if (options) warn(await startDay(options));
-        }
+        if (started && !Number.isFinite(overlandState().day)) warn(await startDayFromParty());
         return this.render();
       }
       case "forage": return forage(id);
@@ -487,7 +493,13 @@ export const TravelBar = {
       case "openRoller": return game.shadowdarkEnhancer.encounter.openRoller("tables");
       case "rollWeather": return warn(await rollWeather());
       case "reroll": return warn(await rollWeather({ reroll: true }));
-      case "startDay": { const options = await askDay(); if (options) warn(await startDay(options)); return; }
+      case "startDay": return warn(await startDayFromParty());
+      case "pace": {
+        const reply = await setTravelPace(id);
+        if (reply?.ok && reply.changed) ui.notifications.info(t(reply.today ? (id === "push" ? "SDE.travel.speed.pushNow" : "SDE.travel.speed.normalNow")
+          : (id === "push" ? "SDE.travel.speed.pushNextDawn" : "SDE.travel.speed.normalNextDawn")));
+        return warn(reply);
+      }
       case "makeCamp": return warn(await makeCamp());
       case "endTravel": this._open = null; return endOverland();
       default: return undefined;

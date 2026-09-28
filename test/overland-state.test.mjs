@@ -5,7 +5,7 @@ import {
   pickTravelToken, forageRefusal, OVERLAND_VERSION, cheapestRoute,
   setWeather, weatherHolds, weatherAdvantage, weatherFormula, weatherFromRoll, harshToday, hexCost,
   dayBudget, pointSeconds, openDay, spendMove, priceMove, moveVerdict,
-  dayChecks, dueChecks, markCheck, setPending, setEncounter,
+  dayChecks, dueChecks, markCheck, setPending, setEncounter, partyMethod, setPace,
   forageDC, closeDay, planRations,
 } from "../scripts/overland/overland-state-core.mjs";
 import { rulesApi } from "../scripts/rules-data/rules-data-core.mjs";
@@ -257,6 +257,39 @@ test("a stopped advance waits, and nothing but Continue moves the token on", () 
   assert.equal(normalizeOverlandState({ pending: { until: "x" } }).pending, null);
   assert.deepEqual(normalizeOverlandState({ checks: [{ at: 5, half: "odd", chance: 9 }, { at: "x" }] }).checks,
     [{ half: "day", at: 5, chance: 6, rolled: false, hit: null }]);
+});
+
+test("the method is read from the party: mounted only when every member rides, sailing when all are aboard one boat (#257)", () => {
+  const members = ["Actor.a", "Actor.b"];
+  const horse = { name: "Bessie", riders: ["Actor.a"] }, pony = { name: "Nib", riders: ["Actor.b", "Actor.stranger"] };
+  assert.deepEqual(partyMethod({ members }), { method: "walking", boatUuid: null, mounts: 0, ride: {} });
+  assert.deepEqual(partyMethod({ members, mounts: [horse] }), { method: "walking", boatUuid: null, mounts: 1, ride: { "Actor.a": "Bessie" } },
+    "one on foot keeps the party walking; the horse still eats");
+  assert.equal(partyMethod({ members, mounts: [horse, pony] }).method, "mounted");
+  assert.equal(partyMethod({ members, mounts: [{ name: "Mule", riders: [] }] }).mounts, 0, "a mount carrying no member isn't the party's");
+  const boat = { uuid: "Actor.ship", name: "Gull", aboard: ["Actor.a", "Actor.b", "Actor.crew"] };
+  assert.deepEqual(partyMethod({ members, mounts: [horse, pony], boats: [boat] }).boatUuid, "Actor.ship");
+  assert.equal(partyMethod({ members, boats: [{ ...boat, aboard: ["Actor.a"] }] }).method, "walking", "half aboard isn't sailing");
+  assert.equal(partyMethod({ members: [] }).method, "walking");
+});
+
+test("the standing pace: today's too until the party moves or forages, the next dawn's after (#257)", () => {
+  const day = openDay({ ...defaultOverlandState(), mounts: 0 }, { now: 0, method: "walking", pushed: false, base: 4, mounts: 2 }).state;
+  assert.deepEqual([day.base, day.budget, day.mounts, day.pace], [4, 4, 2, "normal"]);
+  const pushNow = setPace(day, "push");
+  assert.equal(pushNow.today, true);
+  assert.deepEqual([pushNow.state.pace, pushNow.state.pushed, pushNow.state.budget], ["push", true, 6]);
+  const back = setPace(pushNow.state, "normal");
+  assert.deepEqual([back.today, back.state.pushed, back.state.budget], [true, false, 4]);
+  const moved = setPace({ ...day, spent: 1 }, "push");
+  assert.deepEqual([moved.today, moved.state.pace, moved.state.pushed, moved.state.budget], [false, "push", false, 4], "waits for the next dawn");
+  assert.equal(setPace({ ...day, foraged: ["x"] }, "push").today, false);
+  const noDay = setPace(defaultOverlandState(), "push");
+  assert.deepEqual([noDay.today, noDay.state.pace, noDay.state.pushed], [false, "push", false]);
+  assert.equal(setPace(day, "normal").changed, false);
+  assert.equal(closeDay(pushNow.state).state.base, 0);
+  assert.equal(closeDay(pushNow.state).state.pace, "push", "the standing pace outlives the day");
+  assert.equal(normalizeOverlandState({ pace: "sprint" }).pace, "normal");
 });
 
 test("a quiet check's encounter is held as plain data until Continue or a new day (#257)", () => {

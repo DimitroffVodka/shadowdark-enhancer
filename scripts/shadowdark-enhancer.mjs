@@ -10,7 +10,7 @@ import { ICONS } from "./shared/icons.mjs";
 import { registerSettings } from "./shared/settings.mjs";
 import { rulesApi } from "./rules-data/rules-data-core.mjs";
 import { timeApi, registerTimeHooks } from "./time/time.mjs";
-import { overlandState, isOverland, rollWeather, startDay, resume, forage, makeCamp, registerOverland } from "./overland/overland.mjs";
+import { overlandState, isOverland, rollWeather, startDay, resume, forage, makeCamp, registerOverland, partyReading, setTravelPace } from "./overland/overland.mjs";
 import { TravelBar } from "./overland/overland-bar.mjs";
 import { registerHexRules } from "./overland/hex-rules.mjs";
 import { registerRoute } from "./overland/route.mjs";
@@ -103,7 +103,7 @@ import { initRivalClassTable } from "./forge-loot/rival-class-table-adapter.mjs"
 // templates, producing unstyled block-flow UI. Keep the manifest stylesheet as
 // the startup fallback, then layer a content-addressed copy above it. The layout
 // contract test requires this revision to change whenever the CSS file changes.
-const STYLESHEET_REV = "014682723be0";
+const STYLESHEET_REV = "1dbcb5299d18";
 
 // The same problem for the SCRIPTS, which cannot be solved the same way: their
 // URLs come from the manifest, which Foundry validates as real package paths,
@@ -118,7 +118,7 @@ const STYLESHEET_REV = "014682723be0";
 // stale); module.json carries the same hash and is fetched fresh at runtime. A
 // mismatch is a stale cache by construction — it cannot be anything else. Both
 // stamps are written by `npm run inventory` and gated by `inventory:check`.
-const BUILD_REV = "b84c8b848b75";
+const BUILD_REV = "5a88cf687842";
 
 /**
  * Tell the user when their browser is running an old build of this module, and
@@ -451,7 +451,9 @@ Hooks.once("init", () => {
     // 1.21.0 — additive: encounter.check({ travel }), a travel draw's points of interest (#273).
     // 1.22.0 — additive: downtime.isOpen(), and a session's 2d6 days move the clock off duty (#198).
     // 1.23.0 — additive: troubles namespace, the Trouble tracker (#193).
-    apiVersion: "1.23.0",
+    // 1.24.0 — additive: encounter.check({ quiet }), hexMaps.makePlayable, overland.partyMethod and
+    //   setPace; overland.startDay reads the method and the pace when they're left out (#257).
+    apiVersion: "1.24.0",
     // The one travel state per world (scripts/overland/overland.mjs): a copy
     // with hexes left, climate, storm, harshness and night derived; whether
     // travel is on; today's weather roll, the travel day's start, Continue
@@ -461,6 +463,8 @@ Hooks.once("init", () => {
       isActive: () => isOverland(),
       rollWeather: (options) => rollWeather(options),
       startDay: (options) => startDay(options),
+      partyMethod: () => partyReading(),
+      setPace: (pace) => setTravelPace(pace),
       resume: () => resume(),
       forage: (actorId) => forage(actorId),
       makeCamp: () => makeCamp(),

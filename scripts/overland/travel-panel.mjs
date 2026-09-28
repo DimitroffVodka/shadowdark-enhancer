@@ -47,8 +47,12 @@ function pointTime(seconds, cal) {
  * The panel. `see` is the step the viewer opened, or null for the day's own.
  * `weather` is the weather that holds now (null once it has run out); `extras`
  * is whether Shadowdark Extras, whose hex fog shows what the party sees, is on.
+ * `party` is the party as the Method step reads it (overland.mjs partyReading):
+ * the method it would travel by, and each member's mount; `nextBase`, that
+ * method's hexes a day (0 when nothing says).
  * @param {{state:object, model:object, gm:boolean, see:number|null, cal:object,
  *   night:boolean, rules:object|null, season:string, weather:string|null, extras:boolean,
+ *   party:{method:string, ride:Object<string,string>}, nextBase:number,
  *   weatherName:Function, methodName:Function}} v
  */
 export function travelPanel(v) {
@@ -111,19 +115,35 @@ function stepBody(n, v, sight) {
         + fl("SDE.travel.sight.noTokenSight") + (v.extras && v.weather ? fl("SDE.travel.sight.fog") : "");
     }
     case 3: {
-      if (!m.dayOpen) return h3 + fl("SDE.travel.method.about") + res(t("SDE.travel.noDay"));
-      const base = state.pushed ? Math.round(state.budget / 1.5) : state.budget;
-      const rows = m.members.map((p) => `<div class="sde-hud-member"><span class="sde-hud-n">${esc(p.name)}</span></div>`).join("");
-      return h3 + fl("SDE.travel.method.about")
-        + `<div class="sde-hud-trow"><span class="sde-hud-bl">${esc(v.methodName(m.method))}</span><span class="sde-hud-cap">${esc(t("SDE.travel.method.perDay", { n: base }))}</span></div>`
-        + rows + fl("SDE.travel.method.soon");
+      const party = v.party ?? { method: m.method, ride: {} };
+      const method = m.dayOpen ? m.method : party.method;
+      const base = m.dayOpen ? state.base : v.nextBase;
+      const rows = m.members.map((p) => {
+        const mount = party.ride?.[p.uuid];
+        return `<div class="sde-hud-member"><span class="sde-hud-n">${esc(p.name)}</span><span class="sde-hud-cap">${
+          esc(mount ? t("SDE.travel.method.rides", { mount }) : t("SDE.travel.method.onFoot"))}</span></div>`;
+      }).join("");
+      const next = m.dayOpen && party.method !== m.method
+        ? res(t("SDE.travel.method.nextDawn", { method: v.methodName(party.method), n: v.nextBase })) : "";
+      return h3 + fl("SDE.travel.method.read")
+        + `<div class="sde-hud-trow"><span class="sde-hud-bl">${esc(v.methodName(method))}</span>${
+          base ? `<span class="sde-hud-cap">${esc(t("SDE.travel.method.perDay", { n: base }))}</span>` : ""}</div>`
+        + rows + next + fl("SDE.travel.method.mounts");
     }
     case 4: {
-      if (!m.dayOpen) return h3 + fl("SDE.travel.speed.about") + res(t("SDE.travel.noDay"));
-      const base = state.pushed ? Math.round(state.budget / 1.5) : state.budget;
-      return h3 + fl("SDE.travel.speed.about")
-        + `<div class="sde-hud-trow"><span class="sde-hud-bl">${esc(t(state.pushed ? "SDE.travel.speed.pushing" : "SDE.travel.speed.normal"))}</span></div>`
-        + res(t("SDE.travel.speed.numbers", { base, push: Math.floor(base * 1.5) })) + fl("SDE.travel.speed.soon");
+      const base = m.dayOpen ? state.base : v.nextBase;
+      const push = state.pace === "push";
+      const seg = gm ? `<span class="sde-hud-seg">${
+        [["normal", "SDE.travel.speed.normal"], ["push", "SDE.travel.speed.pushing"]].map(([id, label]) =>
+          `<button type="button" data-action="pace" data-id="${id}" aria-pressed="${(id === "push") === push}">${esc(t(label))}</button>`).join("")}</span>`
+        : `<span class="sde-hud-bl">${esc(t(push ? "SDE.travel.speed.pushing" : "SDE.travel.speed.normal"))}</span>`;
+      const today = m.dayOpen ? `<span class="sde-hud-cap">${esc(t(state.pushed ? "SDE.travel.speed.todayPushing" : "SDE.travel.speed.todayNormal"))}</span>` : "";
+      // The standing pace differs from today's: it waits for the next dawn.
+      const waits = m.dayOpen && push !== state.pushed ? fl(push ? "SDE.travel.speed.pushNextDawn" : "SDE.travel.speed.normalNextDawn") : "";
+      return h3 + fl("SDE.travel.speed.standing")
+        + `<div class="sde-hud-trow">${seg}${today}</div>`
+        + (base ? res(t("SDE.travel.speed.numbers", { base, push: Math.floor(base * 1.5) })) : "")
+        + fl("SDE.travel.speed.about") + waits;
     }
     case 5: {
       if (!m.dayOpen) return h3 + res(t("SDE.travel.noDay"));
