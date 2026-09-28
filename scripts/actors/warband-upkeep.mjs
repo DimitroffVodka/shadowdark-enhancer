@@ -57,8 +57,8 @@ const card = (title, lines, { whisper = false } = {}) => ChatMessage.create({
   ...(whisper ? { whisper: ChatMessage.getWhisperRecipients("GM") } : {}),
 });
 
-/** Charge one month's upkeep for every warband in service, in one card. */
-async function runMonth(type) {
+/** Charge one month's upkeep for every warband in service, in one card dated `at` (the month's start; now by default). */
+async function runMonth(type, at = game.time.worldTime) {
   const lines = [];
   for (const wb of game.actors.filter((a) => a.type === type)) {
     const st = warbandState(wb);
@@ -78,7 +78,7 @@ async function runMonth(type) {
       lines.push(t("SDE.warband.upkeep.unpaid", { warband: wb.name, commander: pc.name, gp, owed: st.arrears + gp }));
     }
   }
-  if (lines.length) await card(t("SDE.warband.upkeep.titleAt", { date: formatTime(game.time.worldTime) }), lines);
+  if (lines.length) await card(t("SDE.warband.upkeep.titleAt", { date: formatTime(at) }), lines);
   return lines.length;
 }
 
@@ -132,7 +132,7 @@ async function onTimeAdvanced(type, { from, to, crossed }) {
   let weeks = 0;
   for (const e of events) {
     if (e.month !== undefined) {
-      await runMonth(type);
+      await runMonth(type, e.at);
       await game.settings.set(MODULE_ID, LAST_MONTH_SETTING, e.month);
     } else {
       if (weeks++ < MAX_WEEKS) await arrearsMorale(type);
