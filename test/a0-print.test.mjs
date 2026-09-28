@@ -7,7 +7,7 @@ import assert from "node:assert/strict";
 globalThis.CONST = { GRID_TYPES: { HEXODDQ: 4, HEXEVENQ: 5 }, GRID_MIN_SIZE: 20 };
 const { alignedSceneData } = await import("../scripts/hex-map/hex-map-flow.mjs");
 const { decodeTags, emptyState } = await import("../scripts/hex-map/tag-store.mjs");
-const { A0_PRINT, A0_TOTAL, isA0, a0Origin, copyTags, copiedTerrain, copySource, playablePlan } = await import("../scripts/hex-map/a0-print.mjs");
+const { A0_PRINT, A0_TOTAL, isA0, a0Origin, copyTags, copiedTerrain, copySource, regionSource, playablePlan } = await import("../scripts/hex-map/a0-print.mjs");
 
 const ORIGIN = { i: 0, j: 0, q: 0, r: 0, num: "0000", shifted: "odd", bounds: { cols: 64, rows: 75, rowsLowered: 74, firstRow: 1 } };
 // The image's rect on the canvas, from each real scene's fields (fill: left = sceneRect.x + w/2 + offsetX - anchorX*w_img).
@@ -61,13 +61,28 @@ test("copyTags: all tags, auto stays auto, hand tags here win, margin kept, idem
   assert.deepEqual({ ...into.cells.get("1403") }, { terrain: "forest", features: ["river"], source: "auto", margin: 0.42, review: true });
 });
 
-test("copySource: same print only, most hand tags first", () => {
+test("copySource: same print only; the one that fills the most hexes first, then hand tags (#281 review)", () => {
   const here = { id: "new", file: "Western Reaches GM Map A0.jpg", tags: emptyState() };
   const t3 = { id: "t3", file: here.file, tags: decodeTags({ origin: ORIGIN, cells: { 1403: "forest|auto", 1405: "hills|auto" } }) };
   const t4 = { id: "t4", file: here.file, tags: decodeTags({ origin: ORIGIN, cells: { 1403: "forest|gm" } }) };
+  const t5 = { id: "t5", file: here.file, tags: decodeTags({ origin: ORIGIN, cells: { 1403: "forest|gm", 1405: "hills|gm" } }) };
   const other = { id: "o", file: "other.jpg", tags: decodeTags({ origin: ORIGIN, cells: { 1403: "forest|gm", 1404: "hills|gm" } }) };
-  assert.equal(copySource(here, [t3, t4, other, here]).id, "t4");
+  assert.equal(copySource(here, [t4, t3, other, here]).id, "t3", "two hexes filled beat one hand-tagged hex");
+  assert.equal(copySource(here, [t3, t5]).id, "t5", "the same fill: the hand tags break the tie");
   assert.equal(copySource(here, [other]), null);
+  // A target that already has 1405: t4's 1403 and t3's 1403 fill the same, so t4's hand tag wins.
+  assert.equal(copySource(here, [t3, t4], decodeTags({ cells: { 1405: "lake|gm" } })).id, "t4");
+});
+
+test("regionSource and the regions step: borders come across when this scene has none (#281 review)", () => {
+  const here = { id: "new", file: "Western Reaches GM Map A0.jpg" };
+  const withBorders = { id: "t4", file: here.file, tags: decodeTags({ origin: ORIGIN, cells: {} }), regions: 12 };
+  const fewer = { id: "t3", file: here.file, tags: decodeTags({ origin: ORIGIN, cells: {} }), regions: 3 };
+  assert.equal(regionSource(here, [fewer, withBorders]).id, "t4");
+  assert.equal(regionSource(here, [{ ...withBorders, file: "other.jpg" }]), null);
+  const done = { anchored: true, terrain: A0_TOTAL, copyTerrain: A0_TOTAL, pins: 270, extras: { adopted: true } };
+  assert.deepEqual(plan({ ...done, regions: 0, regionsFrom: 12 }).run, ["regions"], "complete terrain, no borders: they're copied");
+  assert.deepEqual(plan({ ...done, regions: 5, regionsFrom: 12 }).run, [], "borders drawn here stay");
 });
 
 const plan = (over = {}) => playablePlan({
