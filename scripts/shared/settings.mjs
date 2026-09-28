@@ -209,8 +209,10 @@ export function registerSettings() {
     hint: "SDE.settings.charBuilderAncestryTable.hint",
     scope: "world",
     config: false,
-    // blank: clearing the drop target submits "", which must save as "unset".
-    type: new foundry.data.fields.DocumentUUIDField({ type: "RollTable", blank: true, nullable: true, initial: null }),
+    // Not required: a required blank field starts as "", and saving the menu
+    // with the drop target untouched (it submits null) would then store null,
+    // as clearing it does. A stored value is the GM's choice (#187).
+    type: new foundry.data.fields.DocumentUUIDField({ type: "RollTable", blank: true, nullable: true, required: false, initial: null }),
     default: null,
   });
 
