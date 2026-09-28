@@ -140,12 +140,13 @@ const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<
  * @param {object[]} rumors
  * @param {(key:string, data?:object) => string} fmt  en.json
  * @param {(ms:number) => string} realDate  the real date, as the GM's client shows it
+ * @param {(names:string[]) => string} listNames  "Aria and Bram", in Foundry's language
  */
-export function ledgerHtml(rumors, fmt, realDate) {
+export function ledgerHtml(rumors, fmt, realDate, listNames) {
   const rows = [...rumors].sort((a, b) => (b.real ?? 0) - (a.real ?? 0)).map((r) => {
     const when = r.gameTime ? fmt("SDE.rumors.ledger.when", { game: r.gameTime, real: realDate(r.real) }) : realDate(r.real);
     const meta = r.heardBy?.length
-      ? fmt("SDE.rumors.ledger.meta", { when, names: new Intl.ListFormat(undefined, { type: "conjunction" }).format(r.heardBy) })
+      ? fmt("SDE.rumors.ledger.meta", { when, names: listNames(r.heardBy) })
       : when;
     return `<li data-sde-rumor="${esc(r.id)}"><p>${esc(r.text)}</p><p class="sde-rumor-meta">${esc(meta)}</p></li>`;
   }).join("");

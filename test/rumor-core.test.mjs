@@ -77,7 +77,7 @@ test("the ledger page: newest first, escaped, each row tagged with its id, and t
   const html = ledgerHtml([
     { id: "r1", text: "old <b>", real: 1, gameTime: "Monday", heardBy: [] },
     { id: "r2", text: "new", real: 2, gameTime: null, heardBy: ["Aria", "Bram"] },
-  ], f, (ms) => `day${ms}`);
+  ], f, (ms) => `day${ms}`, (names) => names.join(" and "));
   assert.ok(html.indexOf('data-sde-rumor="r2"') < html.indexOf('data-sde-rumor="r1"'));
   assert.ok(html.includes("old &lt;b&gt;"));
   assert.ok(html.includes('<section class="secret">'));

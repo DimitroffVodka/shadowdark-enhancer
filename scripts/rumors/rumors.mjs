@@ -7,8 +7,8 @@
  * anywhere in the world: it is marked drawn on the imported table, which the
  * GM can reset from its sheet. Core Foundry marks nothing drawn on a table in
  * a compendium pack, and every imported table is in the module's, so the
- * generator marks the rows itself, and a GM's own roll of a rumor table from
- * the sidebar is marked the same way (installRumorDraws).
+ * generator marks the rows itself, and a GM's own roll of a rumor table is
+ * marked the same way (installRumorDraws).
  *
  * The ledger is one journal entry players can read: a page per region and a
  * general page, each holding its rumors in the page's `rumorPage` flag and
@@ -111,6 +111,7 @@ const pageFor = (log, region) => log.pages.find((p) => {
 });
 
 const realDate = (ms) => new Date(ms).toLocaleDateString(game.i18n.lang);
+const listNames = (names) => new Intl.ListFormat(game.i18n.lang, { type: "conjunction" }).format(names);
 
 /** Add rumors to their pages (a region's, or the general page), making the entry and pages first use. */
 async function writeLedger(rumors) {
@@ -126,10 +127,11 @@ async function writeLedger(rumors) {
     groups.get(key).rumors.push(r);
   }
   const create = [], update = [];
+  const top = Math.max(0, ...log.pages.map((p) => p.sort));
   for (const { region, rumors: added } of groups.values()) {
     const page = pageFor(log, region);
     const all = [...(page ? pageFlag(page).rumors ?? [] : []), ...added];
-    const content = core.ledgerHtml(all, t, realDate);
+    const content = core.ledgerHtml(all, t, realDate, listNames);
     if (page) {
       update.push({ _id: page.id, "text.content": content, [`flags.${MODULE_ID}.${PAGE_FLAG}`]: _replace({ region: pageFlag(page).region ?? null, rumors: all }) });
     } else {
@@ -137,7 +139,7 @@ async function writeLedger(rumors) {
         name: region ?? t("SDE.rumors.ledger.general"),
         type: "text",
         // The general page first; regions after it, in the order they are heard of.
-        sort: region ? (log.pages.size + create.length + 1) * CONST.SORT_INTEGER_DENSITY : 0,
+        sort: region ? top + (create.length + 1) * CONST.SORT_INTEGER_DENSITY : 0,
         text: { content },
         flags: { [MODULE_ID]: { [PAGE_FLAG]: { region, rumors: all } } },
       });
@@ -171,8 +173,9 @@ async function runGive({ count = 1, region, heardBy } = {}) {
   const tables = await rumorTables();
   const wanted = region === undefined ? await partyRegion() : (region || null);
   const regionalRef = wanted ? tables.get(regionKey(wanted)) ?? null : null;
-  if (wanted && !regionalRef) ui.notifications.warn(t("SDE.rumors.notify.noRegionTable", { region: wanted }));
   const generalRef = tables.get("") ?? null;
+  if (!tables.size) ui.notifications.warn(t("SDE.rumors.notify.noTables"));
+  else if (wanted && !regionalRef && generalRef) ui.notifications.warn(t("SDE.rumors.notify.noRegionTable", { region: wanted }));
 
   const regional = regionalRef ? await regionalRef.load() : null;
   const general = generalRef ? await generalRef.load() : null;
@@ -208,8 +211,9 @@ async function runGive({ count = 1, region, heardBy } = {}) {
     });
   }
 
-  if (!rumors.length) { ui.notifications.warn(t("SDE.rumors.notify.noneLeft")); return []; }
-  if (rumors.length < n) ui.notifications.warn(t("SDE.rumors.notify.short", { given: rumors.length, count: n }));
+  // With no tables at all, the warning above already said to import them.
+  if (!rumors.length) { if (tables.size) ui.notifications.warn(t("SDE.rumors.notify.noneLeft")); return []; }
+  if (rumors.length < n && tables.size) ui.notifications.warn(t("SDE.rumors.notify.short", { given: rumors.length, count: n }));
 
   await writeLedger(rumors);
   for (const [from, table] of [["regional", regional], ["general", general]]) {
@@ -307,10 +311,10 @@ function decoratePage(sheet, html) {
 // ── Rolls from the sidebar ──────────────────────────────────────────────────
 
 /**
- * A GM's own roll of a rumor table in the module's pack (the sheet's Roll
- * button, the sidebar's Draw Result) marks its row drawn too, so the generator
- * never gives it again. Chained over compound-table.mjs's wrap; it never
- * changes what the draw returns.
+ * A GM's own roll of a rumor table marks its row drawn too, so the generator
+ * never gives it again: one in the module's pack (its sheet's Roll button, a
+ * macro) or in the world (also the sidebar's Draw Result). Chained over
+ * compound-table.mjs's wrap; it never changes what the draw returns.
  */
 function installRumorDraws() {
   const proto = RollTable.prototype;
@@ -319,8 +323,9 @@ function installRumorDraws() {
   proto.draw = async function (options = {}) {
     const out = await prev.call(this, options);
     try {
-      const ours = this.pack && this.pack === findSuitePack("sde-tables")?.collection;
-      if (game.user?.isGM && ours && !this.compendium?.locked && core.isRumorTable(this.name)) {
+      // The tables rumorTables() gives from: the module's pack, or the world's.
+      const eligible = this.pack ? this.pack === findSuitePack("sde-tables")?.collection && !this.compendium?.locked : true;
+      if (game.user?.isGM && eligible && core.isRumorTable(this.name)) {
         const rows = out?.roll ? this.getResultsForRoll(out.roll.total) : (out?.results ?? []).filter((r) => r.parent === this);
         if (rows.length) await this.updateEmbeddedDocuments("TableResult", rows.map((r) => ({ _id: r.id, drawn: true })));
       }
@@ -349,8 +354,9 @@ export const Rumors = {
    * The rumors heard, newest first; `region` filters to one region's (null:
    * the general page's). Anyone may ask; never throws, and [] without a ledger.
    */
-  heard({ region } = {}) {
+  heard(opts) {
     try {
+      const region = opts?.region;
       const log = ledger();
       if (!log?.testUserPermission(game.user, "OBSERVER")) return [];
       const pages = log.pages.contents.filter((p) => p.testUserPermission(game.user, "OBSERVER")).map(pageFlag).filter(Boolean);

@@ -2673,6 +2673,7 @@
   "SDE.rumors.troubleText": "Word from {settlement} ({region}): {what}. {symptoms}.",
   "SDE.rumors.questName": "{start}…",
   "SDE.rumors.chat.title": "Rumors heard",
+  "SDE.rumors.notify.noTables": "There are no rumor tables to give from. Import the GM Guide's rumor tables through the Importer Hub.",
   "SDE.rumors.notify.noRegionTable": "There's no rumor table for {region}, so the rumors come from Rumors in the Reaches.",
   "SDE.rumors.notify.locked": "{table} is in a locked compendium. Unlock it to give rumors from it.",
   "SDE.rumors.notify.noneLeft": "No rumors are left to give. Reset a rumor table from its sheet to give its rumors again.",

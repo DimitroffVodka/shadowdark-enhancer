@@ -1205,7 +1205,7 @@ api.rumors.heard({ region: "Sablewood" });                 // one region's; null
     Core Foundry marks nothing drawn on a compendium table; a GM's own draw of
     a rumor table in the module's pack is marked too.
 - `heard({ region })` is anyone's and never throws: `[]` without a ledger. It
-  resolves synchronously to
+  returns, synchronously (awaiting it is harmless),
 
 ```js
 [{ text, region, heardAt: { world, real }, heardBy }]
