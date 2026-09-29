@@ -32,8 +32,9 @@ globalThis.Roll = class {
 const actors = [];
 actors.get = (id) => actors.find((a) => a.id === id);
 const gm = { id: "gm", isGM: true, hasPermission: () => true };
+const users = Object.assign([], { activeGM: gm });   // the world's users: the GM, and any player a test adds
 globalThis.game = {
-  actors, user: gm, users: { activeGM: gm }, i18n: { format: (k) => k, localize: (k) => k, lang: "en" },
+  actors, user: gm, users, i18n: { format: (k) => k, localize: (k) => k, lang: "en" },
   time: { worldTime: 0, calendar: gregorian },
   settings: {
     register: (_m, key, cfg) => settings.set(key, cfg.default ?? null),
@@ -103,7 +104,7 @@ const settle = async () => { for (let i = 0; i < 40; i++) await later(); };
 /** Every queued warband job done: the clock's moves and the sheet's presses all run on that one queue. */
 const drain = () => warbandWrites(() => {});
 const reset = () => {
-  actors.length = 0; pcs.clear(); chat.length = 0; rolls.length = 0; warns.length = 0; chatRejects = 0; settingRejects.clear();
+  actors.length = 0; users.length = 0; pcs.clear(); chat.length = 0; rolls.length = 0; warns.length = 0; chatRejects = 0; settingRejects.clear();
   for (const k of settings.keys()) settings.set(k, null);
 };
 const Sheet = buildWarbandNpcSheet(class { activateListeners() {} }, TYPE);
@@ -351,4 +352,34 @@ test("a morale result that doesn't save isn't announced; the retry rolls and ann
   await drain();
   assert.deepEqual(chat.filter((m) => "roll" in m).map((m) => m.roll), [20], "rolled again, announced once");
   assert.equal(wb.flags[MOD].warband.deserted, false);
+});
+
+test("a warband's owner who names another player's PC by a direct flag write costs that player nothing (#284 review)", async () => {
+  reset();
+  const alice = { id: "alice", isGM: false }, bob = { id: "bob", isGM: false };
+  users.push(alice, bob);
+  const mine = pc("Mine", 100), theirs = pc("Bob", 100);
+  mine.testUserPermission = (u) => u === alice;
+  theirs.testUserPermission = (u) => u === bob;
+  const wa = warband("wa", { commander: theirs.uuid, upgrades: [] }, { level: 10 });
+  wa.testUserPermission = (u) => u === alice || u.isGM;   // Alice owns it, Bob does not
+  tick({ from: at(30) + 3600, to: at(31) + 3600, crossed: { days: 1 } });   // over Feb 1
+  await settle();
+  assert.equal(theirs.system.coins.gp, 100, "Bob's purse is untouched");
+  wa.flags[MOD].warband = { ...wa.flags[MOD].warband, commander: mine.uuid };
+  tick({ from: at(58) + 3600, to: at(59) + 3600, crossed: { days: 1 } });   // over Mar 1
+  await settle();
+  assert.equal(mine.system.coins.gp, 0, "a PC the warband's owner owns pays 100 gp");
+});
+
+test("a warband no player owns is charged to any PC its GM named", async () => {
+  reset();
+  users.push({ id: "bob", isGM: false });
+  const cmd = pc("Cmd", 100);
+  cmd.testUserPermission = () => false;
+  const wa = warband("wa", { commander: cmd.uuid, upgrades: [] }, { level: 3 });
+  wa.testUserPermission = (u) => u.isGM;
+  tick({ from: at(30) + 3600, to: at(31) + 3600, crossed: { days: 1 } });
+  await settle();
+  assert.equal(cmd.system.coins.gp, 70);
 });

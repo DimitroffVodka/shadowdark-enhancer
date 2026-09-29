@@ -3,9 +3,9 @@
  *
  * A GM header button on a level 1–5 NPC's sheet turns a copy of it into a
  * warband unit: double its level, HP 8 per level plus CON, one attack a
- * round, the attack bonus up by the levels gained, damage dice tripled, its
- * talents kept. A preview shows before and after; the original is untouched.
- * The rules are warband-core.mjs.
+ * round, the attack and spell bonuses up by the levels gained, damage dice
+ * tripled, its talents kept. A preview shows before and after; the original
+ * is untouched. The rules are warband-core.mjs.
  */
 
 import { MODULE_ID } from "../shared/module-id.mjs";
@@ -40,12 +40,14 @@ function planWarband(source, type) {
     if (hasDamage) system.damage = { ...system.damage, value: after.damage };
     return { ...item, system };
   });
-  // A spell is one of its attacks too: a spell count (the NPC's Spells tab) of one, at the same bonus.
+  // A spell is one of its attacks too: a spell count (the NPC's Spells tab) of one, its bonus up as an attack's.
   const spells = data.system.spellcasting;
   if (spells?.attacks > 0) {
-    const show = (num) => game.i18n.format("SDE.warband.make.specialLine", { num, bonus: `+${spells.bonus ?? 0}` });
-    rows.push({ label: game.i18n.localize("SDE.warband.make.spells"), before: show(spells.attacks), after: show(1) });
-    spells.attacks = 1;
+    const after = warbandAttack({ attackBonus: spells.bonus ?? 0 }, stats.gained);
+    const show = (num, bonus) => game.i18n.format("SDE.warband.make.specialLine", { num, bonus: `+${bonus}` });
+    rows.push({ label: game.i18n.localize("SDE.warband.make.spells"), before: show(spells.attacks, spells.bonus ?? 0), after: show(after.num, after.attackBonus) });
+    spells.attacks = after.num;
+    spells.bonus = after.attackBonus;
   }
   delete data._id;
   delete data.flags?.[MODULE_ID]?.quickAdjustBackup;   // the creature's own stats, not the warband's

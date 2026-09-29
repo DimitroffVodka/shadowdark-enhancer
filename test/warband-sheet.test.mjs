@@ -16,8 +16,12 @@ globalThis.game = {
   actors, user: { ...activeGM, hasPermission: () => true }, users: { activeGM },
   i18n: { format: (k) => k, localize: (k) => k }, time: { worldTime: 0, calendar: null },
 };
-const pc = { uuid: "Actor.pc", name: "Pc", type: "Player", system: { getClass: async () => ({ system: { hitPoints: "1d6" } }) } };
-globalThis.fromUuid = async (uuid) => (uuid === pc.uuid ? pc : null);
+const pc = { uuid: "Actor.pc", name: "Pc", type: "Player", testUserPermission: () => true, system: { getClass: async () => ({ system: { hitPoints: "1d6" } }) } };
+// A compendium PC resolves like a world one, with a pack: it has no coins to pay upkeep from.
+const packPc = { uuid: "Compendium.world.pcs.Actor.x", name: "Packed", type: "Player", pack: "world.pcs", system: pc.system };
+// Another player's PC: the requester in these tests does not own it.
+const bobPc = { ...pc, uuid: "Actor.bobPc", name: "BobPc", testUserPermission: () => false };
+globalThis.fromUuid = async (uuid) => (uuid === pc.uuid ? pc : uuid === packPc.uuid ? packPc : uuid === bobPc.uuid ? bobPc : null);
 registerWarbandWrites(TYPE);
 
 function warband(id, flag) {
@@ -123,5 +127,47 @@ test("the active GM signed in twice: each change reaches both tabs, and lands on
       assert.deepEqual(replies[1], replies[0], `${how}: both tabs answer the same`);
       assert.equal(replies[0].ok, !others, how);
     }
+  }
+});
+
+test("the writer refuses a compendium PC as commander, whoever sends it (#284 review)", async () => {
+  actors.length = 0;
+  const a = warband("a", { commander: null, upgrades: [] });
+  const reply = await globalThis.CONFIG.queries[WARBAND_QUERY]({ action: "commander", actorId: "a", pcUuid: packPc.uuid }, { user: { id: "owner", isGM: false } });
+  assert.equal(reply.ok, false);
+  assert.equal(reply.warn.key, "SDE.warband.notify.commanderPc");
+  assert.equal(a.flags[MOD].warband.commander, null);
+});
+
+test("a player can't make another player's PC the commander: the upkeep would take that PC's gold (#284 review)", async () => {
+  actors.length = 0;
+  const a = warband("a", { commander: null, upgrades: [] });
+  const reply = await globalThis.CONFIG.queries[WARBAND_QUERY]({ action: "commander", actorId: "a", pcUuid: bobPc.uuid }, { user: { id: "alice", isGM: false } });
+  assert.equal(reply.ok, false);
+  assert.equal(reply.warn.key, "SDE.warband.notify.commanderPc");
+  assert.equal(a.flags[MOD].warband.commander, null);
+  // A GM may name any PC.
+  assert.equal((await globalThis.CONFIG.queries[WARBAND_QUERY]({ action: "commander", actorId: "a", pcUuid: bobPc.uuid }, { user: { id: "gm3", isGM: true } })).ok, true);
+  assert.equal(a.flags[MOD].warband.commander, bobPc.uuid);
+});
+
+test("the writer takes nothing from the payload on trust: odd types change nothing (#284 review)", async () => {
+  const q = globalThis.CONFIG.queries[WARBAND_QUERY];
+  const owner = { user: { id: "owner", isGM: false } };
+  for (const data of [
+    { action: "commander", actorId: "a", pcUuid: { uuid: pc.uuid } },
+    { action: "commander", actorId: "a", pcUuid: [pc.uuid] },
+    { action: "upgrade", actorId: "a", key: ["fast"], on: true },
+    { action: "upgrade", actorId: "a", key: { toString: () => "fast" }, on: true },
+    { action: "upgrade", actorId: "a", key: "fast", on: "yes" },
+    { action: ["upgrade"], actorId: "a", key: "fast", on: true },
+    { action: "upgrade", actorId: { id: "a" }, key: "fast", on: true },
+    null, "upgrade",
+  ]) {
+    actors.length = 0;
+    const a = warband("a", { commander: null, upgrades: [] });
+    const reply = await q(data, owner);
+    assert.equal(reply?.ok, false, JSON.stringify(data));
+    assert.deepEqual({ commander: a.flags[MOD].warband.commander, upgrades: a.flags[MOD].warband.upgrades }, { commander: null, upgrades: [] }, JSON.stringify(data));
   }
 });
