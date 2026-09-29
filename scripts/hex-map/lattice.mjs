@@ -357,7 +357,7 @@ export function latticeField(ink, w, h, pitchX, pitchY, phase, opts = {}) {
  * count and `rowsLowered` the lowered columns' own (one short on the Western
  * Reaches print: 75 and 74).
  * @param {Uint8Array} ink  0/1 per pixel, row-major
- * @returns {{pitchX:number, pitchY:number, x0:number, y0:number, cols:number, rows:number, rowsLowered:number, lowered:"odd"|"even", score:number}|null}
+ * @returns {{pitchX:number, pitchY:number, x0:number, y0:number, cols:number, rows:number, rowsLowered:number, lowered:"odd"|"even", frameCut:boolean, score:number}|null}
  */
 export function detectLattice(ink, w, h, opts = {}) {
   const rp = rowPitch(ink, w, h, opts.row);
@@ -367,7 +367,21 @@ export function detectLattice(ink, w, h, opts = {}) {
   const phase = latticePhase(ink, w, h, cp.pitchX, rp.pitchY);
   const field = latticeField(ink, w, h, cp.pitchX, rp.pitchY, phase, opts.field);
   if (!field) return null;
-  return { ...field, score: Math.min(rp.score, cp.score) };
+  return { ...field, frameCut: frameCutTop(ink, w, h, field), score: Math.min(rp.score, cp.score) };
+}
+
+/**
+ * Does the print's frame cut the raised columns' first row in half? True on the
+ * Western Reaches, where that half cell holds the column labels; false on a
+ * print of full hexes with a jagged top edge (The Gloaming), whose first raised
+ * hex has its whole outline. The lowered columns ending one row short looks the
+ * same on both, so the counts cannot say; the first raised cell can.
+ * @param {{x0:number,y0:number,pitchX:number,pitchY:number,lowered:"odd"|"even"}} lat  in the ink's pixels
+ * @returns {boolean}
+ */
+export function frameCutTop(ink, w, h, lat, { minSupport = 0.7 } = {}) {
+  const p = latticeCentre(lat, lat.lowered === "odd" ? 0 : 1, 0);   // the first column that sits high
+  return outlineSupport(ink, w, h, p.u, p.v, outlinePoints(lat.pitchX / 1.5, lat.pitchY / 2, 60)) < minSupport;
 }
 
 /**

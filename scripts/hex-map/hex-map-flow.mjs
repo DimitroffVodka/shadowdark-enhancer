@@ -232,9 +232,11 @@ const sceneHasLevels = () => !!globalThis.foundry?.documents?.BaseScene?.schema?
  * pitches become Foundry's by stretching, the anchor lands cell (0, 0). Pure
  * apart from the constants, so it can be checked without a world.
  * @param {number} [opts.rowsLowered]  the lowered columns' row count when it differs from `rows`
+ * @param {boolean} [opts.frameCut]  whether the frame cuts the raised columns' first row in half (the detector's answer):
+ *   false numbers that row, true skips it, absent falls back to the guess from the row counts (framesTopRow)
  * @param {boolean} [opts.levels]  emit the 14+ `levels` form (default: what the running schema has)
  */
-export function alignedSceneData({ name, src, imageW, imageH, lat, firstNum = "0000", cols, rows, rowsLowered, levels = sceneHasLevels() }) {
+export function alignedSceneData({ name, src, imageW, imageH, lat, firstNum = "0000", cols, rows, rowsLowered, frameCut, levels = sceneHasLevels() }) {
   const size = Math.max(CONST?.GRID_MIN_SIZE ?? 20, Math.round(lat.pitchY));
   const sizeX = size * 2 / Math.sqrt(3);
   const kx = (0.75 * sizeX) / lat.pitchX, ky = size / lat.pitchY;
@@ -247,14 +249,20 @@ export function alignedSceneData({ name, src, imageW, imageH, lat, firstNum = "0
   // field at both ends: their bottom half cell, and the RAISED columns' top one,
   // which is where a print like the Western Reaches writes its column labels.
   // That row is margin, so it is not numbered; the tagger's "top row is frame"
-  // box undoes it for a print whose first row really is map.
-  if (framesTopRow(bounds)) bounds.firstRow = 1;
+  // box undoes it for a print whose first row really is map. One row short is
+  // also what a jagged print of full hexes looks like (The Gloaming), so when
+  // the detector has looked at that first row (frameCut) it decides.
+  if (frameCut === false) bounds.firstRow = 0;
+  else if (framesTopRow(bounds)) bounds.firstRow = 1;
   state.origin = { i: 0, j: 0, q: cube.q, r: cube.r, num: firstNum, shifted: lat.lowered, bounds };
   const width = Math.round(imageW * kx), height = Math.round(imageH * ky);
   // The background mesh sits at the scene rect's centre with its anchor at
   // (anchorX, anchorY) of its own size; anchor 0.5 puts the image's corner at
   // the origin, so a shift of (ox, oy) is an anchor of (0.5 - ox/width, 0.5 - oy/height).
-  const ox = sizeX / 2 - lat.x0 * kx, oy = -lat.y0 * ky;
+  // Foundry's cell (0, 0) sits half a row down when its column is the lowered
+  // one (HEXEVENQ lowers column 0), on the top edge when it is not. The print's
+  // first cell has to land on that, whichever parity the print lowers.
+  const ox = sizeX / 2 - lat.x0 * kx, oy = (even ? size / 2 : 0) - lat.y0 * ky;
   const textures = { fit: "fill", scaleX: 1, scaleY: 1, anchorX: 0.5 - ox / width, anchorY: 0.5 - oy / height };
   const data = {
     name,
@@ -306,7 +314,7 @@ export async function startHexMapFlow() {
     const det = detectLattice(ink, w, h);
     // No grid found is not the end: the confirmation window lets the GM set the corners by hand.
     const s = w / imageW;
-    const lat = det && { x0: det.x0 / s, y0: det.y0 / s, pitchX: det.pitchX / s, pitchY: det.pitchY / s, cols: det.cols, rows: det.rows, rowsLowered: det.rowsLowered, lowered: det.lowered };
+    const lat = det && { x0: det.x0 / s, y0: det.y0 / s, pitchX: det.pitchX / s, pitchY: det.pitchY / s, cols: det.cols, rows: det.rows, rowsLowered: det.rowsLowered, lowered: det.lowered, frameCut: det.frameCut };
     // The overview: up to 1200 px on the long side, scaled by CSS to the window; the corners are cut from the full image.
     const long = Math.min(1200, Math.max(imageW, imageH));
     const pw = Math.round(imageW >= imageH ? long : long * imageW / imageH);
@@ -315,7 +323,7 @@ export async function startHexMapFlow() {
     preview.close?.();
     if (!answer) return null;
     const src = await uploadMap(file);
-    const data = alignedSceneData({ name, src, imageW, imageH, lat: { ...answer.lat, lowered: answer.lowered }, firstNum: answer.firstNum, cols: answer.cols, rows: answer.rows, rowsLowered: answer.rowsLowered });
+    const data = alignedSceneData({ name, src, imageW, imageH, lat: { ...answer.lat, lowered: answer.lowered }, firstNum: answer.firstNum, cols: answer.cols, rows: answer.rows, rowsLowered: answer.rowsLowered, frameCut: answer.lat.frameCut ?? false });   // a hand-set lattice says nothing about the frame: its first row is map
     const scene = await Scene.create(data);
     ui.notifications?.info(t("SDE.hexMap.notify.sceneCreated", { name: scene.name, cols: answer.cols, rows: answer.rows, size: data.grid.size }));
     await scene.view();

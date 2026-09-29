@@ -80,6 +80,7 @@ test("detectLattice finds pitch, origin, size and parity, and ignores a legend b
   assert.ok(Math.abs(d.pitchY - 34) < 0.15, `pitchY ${d.pitchY}`);
   assert.ok(Math.abs(d.x0 - 61) < 1 && Math.abs(d.y0 - 52) < 1, `origin ${d.x0}, ${d.y0}`);
   assert.deepEqual([d.cols, d.rows, d.lowered], [12, 9, "odd"]);
+  assert.equal(d.frameCut, false, "full hexes at the top: the frame does not cut the first row");
   const far = latticeCentre(d, 11, 8), truth = latticeCentre(lat, 11, 8);
   assert.ok(Math.abs(far.u - truth.u) < 1.5 && Math.abs(far.v - truth.v) < 1.5, `far corner drift ${far.u - truth.u}, ${far.v - truth.v}`);
 });
@@ -107,6 +108,7 @@ test("a first row cut in half by the frame still counts, a phantom row past it d
   assert.ok(d, "detected");
   assert.deepEqual([d.cols, d.rows, d.rowsLowered, d.lowered], [12, 9, 9, "odd"]);
   assert.ok(Math.abs(d.y0 - 52) < 1, `row 0 is the half cell: y0 ${d.y0}`);
+  assert.equal(d.frameCut, true, "the raised columns' first row is a half cell");
 });
 
 test("cornerSupport: every corner of a detected lattice sits on an outline, a lattice off by one row does not", () => {
@@ -131,6 +133,17 @@ test("the lowered columns end one row short inside a rectangular frame, label in
   assert.ok(d, "detected");
   assert.deepEqual([d.cols, d.rows, d.rowsLowered, d.lowered], [12, 9, 8, "odd"]);
   assert.ok(Math.abs(d.y0 - 52) < 1, `row 0 is the half cell: y0 ${d.y0}`);
+  assert.equal(d.frameCut, true);
+});
+
+test("a print of full hexes with the lowered columns one row short is not a frame cut", () => {
+  // The Gloaming's shape (raised columns 11 rows, lowered 10, even lowered): the same
+  // row counts as the Western Reaches, but nothing is cut, so the top row is map.
+  const lat = { x0: 70, y0: 66, pitchX: 33, pitchY: 36, lowered: "even" };
+  const ink = print({ w: 520, h: 460, lat, cols: 11, rows: 10, shortLowered: true, seed: 9 });
+  const d = detectLattice(ink, 520, 460);
+  assert.ok(d, "detected");
+  assert.deepEqual([d.cols, d.rows, d.rowsLowered, d.lowered, d.frameCut], [11, 10, 9, "even", false]);
 });
 
 test("latticeFromCorners: two hand-placed centres give back the lattice, for every parity and column count", () => {

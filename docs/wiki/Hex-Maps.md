@@ -477,8 +477,11 @@ Western Reaches print that top half-row is where the column labels (000, 200,
 400 …) are printed — margin, with no terrain in it at all.
 
 The module does not number those cells. **Hex map from image** sets it when it
-finds the lowered columns ending exactly one row short, which is that same
-clip seen from the other end. If your print's first row really is map, untick
+finds the lowered columns ending exactly one row short and the raised columns'
+first row cut to a half cell, which is that same clip seen from both ends. A
+print of full hexes with a jagged top and bottom edge has its lowered columns
+one row short too, but nothing is cut, so its first row is numbered. If your
+print's first row really is map and the box is ticked, untick
 **top row is frame** under **More** and press **Apply**; if a map you already
 tagged is asking you to tag its margin, tick it there instead — the cells stop
 being numbered and any tags they picked up are dropped, which the message

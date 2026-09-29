@@ -5,15 +5,16 @@ import assert from "node:assert/strict";
 globalThis.CONST = { GRID_TYPES: { HEXODDQ: 4, HEXEVENQ: 5 }, GRID_MIN_SIZE: 20 };
 const { alignedSceneData } = await import("../scripts/hex-map/hex-map-flow.mjs");
 const { framesTopRow } = await import("../scripts/hex-map/geometry.mjs");
+const { latticeCentre } = await import("../scripts/hex-map/lattice.mjs");
 
 // A stretched print (hexes taller than regular), odd columns lowered, with margins.
 const lat = { x0: 486.66, y0: 196.44, pitchX: 142.87, pitchY: 174.43, lowered: "odd", cols: 64, rows: 75 };
 const image = { imageW: 9933, imageH: 14043 };
 
 /** Where an image pixel lands on the scene: the image fills the scene rect, then slides by the anchor. */
-function toScene(data, textures, u, v) {
+function toScene(data, textures, u, v, img = image) {
   const ox = (0.5 - textures.anchorX) * data.width, oy = (0.5 - textures.anchorY) * data.height;
-  return { x: ox + u * data.width / image.imageW, y: oy + v * data.height / image.imageH };
+  return { x: ox + u * data.width / img.imageW, y: oy + v * data.height / img.imageH };
 }
 /** Foundry's flat-top column grid: column j at j·0.75·sizeX + sizeX/2, row i at i·size (+ size/2 in lowered columns). */
 function foundryCentre(data, col, row) {
@@ -47,6 +48,36 @@ test("alignedSceneData puts every print cell on its Foundry cell, whichever sche
   assert.equal(twoShort.flags["shadowdark-enhancer"].hexTags.origin.bounds.firstRow, undefined, "two rows short is not the both-ends frame cut; leave the top row alone");
   const evenData = alignedSceneData({ name: "Map", src: "x.png", imageW: 1000, imageH: 800, lat: { ...lat, lowered: "even" }, cols: 4, rows: 3, levels: true });
   assert.equal(evenData.grid.type, 5, "even columns lowered → HEXEVENQ");
+});
+
+test("alignedSceneData puts every cell of an even-lowered print on Foundry's cell, too", () => {
+  // Foundry lowers column 0 on a HEXEVENQ grid, so its cell (0, 0) sits half a row
+  // below the top edge; on a HEXODDQ grid it sits on the edge. The anchor has to know.
+  // The Gloaming print (17 x 11, the lowered columns one row short) put every cell
+  // 70 px off before this was checked, because only the odd-lowered print was.
+  const gloaming = { imageW: 2250, imageH: 1674 };
+  for (const lowered of ["even", "odd"]) {
+    const lat = { x0: 144.41, y0: 200.26, pitchX: 122.18, pitchY: 141.09, lowered, cols: 17, rows: 11, rowsLowered: 10 };
+    const data = alignedSceneData({ name: "Map", src: "x.jpg", ...gloaming, lat, cols: 17, rows: 11, rowsLowered: 10, levels: true });
+    const textures = data.levels[0].textures;
+    assert.equal(data.grid.type, lowered === "even" ? 5 : 4);
+    for (const [col, row] of [[0, 0], [1, 0], [2, 3], [16, 9], [15, 10]]) {
+      const p = latticeCentre(lat, col, row), q = toScene(data, textures, p.u, p.v, gloaming), g = foundryCentre(data, col, row);
+      assert.ok(Math.abs(q.x - g.x) < 0.6 && Math.abs(q.y - g.y) < 0.6, `${lowered}: cell ${col},${row} off by ${(q.x - g.x).toFixed(2)}, ${(q.y - g.y).toFixed(2)}`);
+    }
+  }
+});
+
+test("a print whose raised columns start with a full hex is not told its top row is frame", () => {
+  // The lowered columns ending one row short is the Western Reaches' frame cut AND a
+  // jagged full-hex print like The Gloaming; only the detector can tell which.
+  const lat = { x0: 144.41, y0: 200.26, pitchX: 122.18, pitchY: 141.09, lowered: "even" };
+  const args = { name: "Map", src: "x.jpg", imageW: 2250, imageH: 1674, lat, cols: 17, rows: 11, rowsLowered: 10, levels: true };
+  const bounds = (extra) => alignedSceneData({ ...args, ...extra }).flags["shadowdark-enhancer"].hexTags.origin.bounds;
+  assert.deepEqual(bounds({ frameCut: false }), { cols: 17, rows: 11, rowsLowered: 10, firstRow: 0 }, "a full first row is numbered");
+  assert.deepEqual(bounds({ frameCut: true }), { cols: 17, rows: 11, rowsLowered: 10, firstRow: 1 }, "a cut first row is margin");
+  assert.equal(bounds({}).firstRow, 1, "unknown keeps the old guess: one row short means the frame cut");
+  assert.equal(bounds({ frameCut: false, rowsLowered: 11 }).firstRow, 0);
 });
 
 test("the frame box starts ticked when the lowered columns end one row short", () => {

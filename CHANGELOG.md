@@ -713,6 +713,13 @@ page walks through it in order.
 
 ### Fixed
 
+- **Hex map from image lines the grid up on a print whose even columns are the
+  lowered ones.** The scene put Foundry's grid half a hex above the print for
+  those prints (only the Western Reaches, whose odd columns are lowered, had
+  been checked), so the hex tagger cut every picture through the middle of a
+  hex. It also no longer skips the top row of a jagged print of full hexes as
+  if it were label margin: the detector now tells a half-cut first row from a
+  full one.
 - **Stepping back past a corpse.** Previous Turn onto a dead enemy (or a
   warband following its commander) bounced forward again, so the GM couldn't
   step back past it. It now keeps stepping back. And a player's Next Turn
