@@ -72,7 +72,7 @@ Object.assign(globalThis, {
     modules: { get: () => null },
   },
 });
-const { applyAction, registerOverland, overlandState, weatherNow, recordMove, advanceTravel, undergroundCheck, dawnWeather, checkNow } = await import("../scripts/overland/overland.mjs");
+const { applyAction, registerOverland, overlandState, weatherNow, recordMove, advanceTravel, undergroundCheck, dawnWeather, checkNow, askDay } = await import("../scripts/overland/overland.mjs");
 const { BOAT_TYPE } = await import("../scripts/actors/register-actors.mjs");
 const { CrawlState } = await import("../scripts/crawl-strip/crawl-state.mjs");
 
@@ -117,6 +117,8 @@ test("a non-primary GM's client refuses to do the work", async () => {
 
 function weatherWorld(rule = "western") {
   stored.overlandState = {};
+  // Filled, so a storm here posts the weather card and nothing else: the "isn't set" notices are rules-data-step.test.mjs's.
+  stored.rulesData = { terrain: { forest: { type: "normal", cost: 1 } }, climate: [{ region: "X", summer: { label: "Warm" } }] };
   stored.overlandWeatherRule = rule;
   // The encounter checks' settings (#257): unset is the book's, 1 in 6, two and two.
   for (const k of ["overlandEncounterChance", "overlandEncounterDay", "overlandEncounterNight"]) delete stored[k];
@@ -800,6 +802,28 @@ test("Start day takes the day's hexes typed in its dialog, so travel works befor
   globalThis.game.shadowdarkEnhancer = { rules: { hexesPerDay: () => 5 } };
   await applyAction({ action: "startDay", method: "walking", hexes: 3, pushed: true }, gm);
   assert.equal(stored.overlandState.budget, 4, "3 typed, pushed: floor(4.5)");
+});
+
+test("the Start day dialog says what to press when hexes per day isn't set, and its button opens the Rules Data step (#299)", async () => {
+  const EN = JSON.parse((await import("node:fs")).readFileSync("languages/en.json", "utf8"));
+  const dialog = async (rules) => {
+    globalThis.game.shadowdarkEnhancer = { rules };
+    const real = globalThis.foundry;
+    let config;
+    globalThis.foundry = { applications: { api: { DialogV2: { prompt: async (c) => { config = c; return null; } } } } };
+    try { await askDay(); } finally { globalThis.foundry = real; }
+    return config;
+  };
+  const empty = await dialog({ hexesPerDay: () => null });
+  assert.match(EN["SDE.overland.day.hexesUnknown"], /Importer Hub > Rules Data > Import from GM Guide\. Or type today's hexes here\./);
+  assert.match(empty.content, /SDE\.overland\.day\.hexesUnknown/);
+  assert.match(empty.content, /<button type="button" data-sde-rules-open>/);
+  const wired = [];
+  empty.render(null, { element: { querySelector: (sel) => (sel === "[data-sde-rules-open]" ? { addEventListener: (type) => wired.push(type) } : null) } });
+  assert.deepEqual(wired, ["click"]);
+
+  const known = await dialog({ hexesPerDay: (m) => (m === "walking" ? 5 : null) });
+  assert.doesNotMatch(known.content, /data-sde-rules-open/, "with the table filled there is nothing to press");
 });
 
 test("a dawn Extras has no rest for breaks the camp with a warning instead of retrying forever (#282 review)", async () => {

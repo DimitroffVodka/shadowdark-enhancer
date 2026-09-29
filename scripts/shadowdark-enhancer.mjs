@@ -10,6 +10,7 @@ import { claimGmTab, isActiveGM } from "./shared/gm-relay.mjs";
 
 import { registerSettings } from "./shared/settings.mjs";
 import { rulesApi } from "./rules-data/rules-data-core.mjs";
+import { registerRulesNotice } from "./rules-data/rules-data-notice.mjs";
 import { timeApi, registerTimeHooks } from "./time/time.mjs";
 import { overlandState, isOverland, rollWeather, startDay, resume, forage, makeCamp, registerOverland, partyReading, setTravelPace } from "./overland/overland.mjs";
 import { TravelBar } from "./overland/overland-bar.mjs";
@@ -108,7 +109,7 @@ import { initRivalClassTable } from "./forge-loot/rival-class-table-adapter.mjs"
 // templates, producing unstyled block-flow UI. Keep the manifest stylesheet as
 // the startup fallback, then layer a content-addressed copy above it. The layout
 // contract test requires this revision to change whenever the CSS file changes.
-const STYLESHEET_REV = "747a52da0309";
+const STYLESHEET_REV = "59b379754f2a";
 
 // The same problem for the SCRIPTS, which cannot be solved the same way: their
 // URLs come from the manifest, which Foundry validates as real package paths,
@@ -123,7 +124,7 @@ const STYLESHEET_REV = "747a52da0309";
 // stale); module.json carries the same hash and is fetched fresh at runtime. A
 // mismatch is a stale cache by construction — it cannot be anything else. Both
 // stamps are written by `npm run inventory` and gated by `inventory:check`.
-const BUILD_REV = "d6020385aef2";
+const BUILD_REV = "223bd4bbd9db";
 
 /**
  * Tell the user when their browser is running an old build of this module, and
@@ -302,6 +303,8 @@ Hooks.once("init", () => {
   // Quest Log: its keybinding can only be registered during init.
   registerQuests();
   registerTroubles();
+  // The GM-only "Rules Data isn't set" cards get their button (#299).
+  registerRulesNotice();
   // Warbands' upkeep and healing on the clock (#204): settings and the timeAdvanced subscriber.
   registerWarbandUpkeep(WARBAND_TYPE);
   registerWarbandUpgrades();

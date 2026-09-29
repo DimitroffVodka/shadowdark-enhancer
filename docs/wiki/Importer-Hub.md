@@ -71,6 +71,22 @@ icons, and files documents into organized world compendiums.
 Opening the hub is instant; scanning your world compendiums is lazy and only
 runs when you expand the Manage review strip.
 
+### The Rules Data step
+
+Under the paste box, always visible, is the **Rules Data** step: the Western
+Reaches lookup tables that travel, weather and settlements read (hexes per day,
+terrain costs, hex visibility, climate, carousing and recruiting limits). Each
+table is listed with its book and page (GM Guide p.30, 40, 41 and 43, Player's
+Guide p.249), whether it is **Filled** or **Empty**, and what waits on it.
+
+- **Import from GM Guide** reads the tables from your linked PDFs. It is the
+  same import the settings window has, with the same preview before it replaces
+  a value you already filled in, and it saves what it reads.
+- **Edit Rules Data** opens the window to type the tables in or correct them.
+  The window is also under Configure Settings.
+
+See [Rules Data](Rules-Data.md).
+
 ---
 
 ## The Batch Runner (Import Everything)
@@ -79,7 +95,11 @@ Once your source PDFs are registered, click **Import everything** on the Manage
 tree toolbar or **Import all N in <folder>** at the top of any folder.
 
 The batch runner executes the same steps you would by hand: it reads cited
-pages, runs the appropriate parser, validates the draft, and commits it.
+pages, runs the appropriate parser, validates the draft, and commits it. When
+the whole library is run, the last step is the [Rules Data](Rules-Data.md): it
+is imported when a Game Master's Guide or Player's Guide PDF is linked (a value
+it would replace is previewed first, as with the button), and a line says so
+when none is. **Import all** on a single folder does not include it.
 
 ### Batch runner safety rules
 

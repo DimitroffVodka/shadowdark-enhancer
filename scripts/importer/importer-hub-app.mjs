@@ -35,6 +35,7 @@ import { installHubPaste } from "./importer-hub-paste.mjs";
 import { installHubCommit } from "./importer-hub-commit.mjs";
 import { installHubManage } from "./importer-hub-manage.mjs";
 import { installHubBatch } from "./importer-hub-batch.mjs";
+import { installHubRules } from "./importer-hub-rules.mjs";
 import { planBatch } from "./batch-import.mjs";
 import { freshKeys, lockedKeys } from "./importer-hub-news.mjs";
 
@@ -113,6 +114,9 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
       // Batch ("Import everything" / a folder's "Import all") — see importer-hub-batch.mjs
       batchImport:            function (...args) { return this._onBatchImport(...args); },
       batchCancel:            function (...args) { return this._onBatchCancel(...args); },
+      // Rules Data step (#299) — see importer-hub-rules.mjs
+      hubRulesImport:         function (...args) { return this._onHubRulesImport(...args); },
+      hubRulesEdit:           function (...args) { return this._onHubRulesEdit(...args); },
       charSeedPaste:          function (...args) { return this._onCharSeedPaste(...args); },
       downtimeSeedPaste:      function (...args) { return this._onDowntimeSeedPaste(...args); },
       spellListSeed:          function (...args) { return this._onSpellListSeed(...args); },
@@ -849,7 +853,7 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
         ? Math.round((this._batchState.done / this._batchState.total) * 100) : 0,
     } : null;
 
-    return { importData, manageExpanded: this._manageExpanded, manage, batch };
+    return { importData, manageExpanded: this._manageExpanded, manage, batch, rulesStep: this._rulesStep() };
   }
 
   // ── Render wiring ─────────────────────────────────────────────────────────
@@ -958,6 +962,7 @@ installHubPaste(ImporterHubApp);
 installHubCommit(ImporterHubApp);
 installHubManage(ImporterHubApp);
 installHubBatch(ImporterHubApp);
+installHubRules(ImporterHubApp);
 
 /**
  * Back-compat entry-point API for Task 2 / shadowdark-enhancer.mjs wiring.

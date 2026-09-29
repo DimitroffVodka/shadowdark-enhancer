@@ -573,6 +573,22 @@ page walks through it in order.
 
 ### Changed
 
+- **The Rules Data is a step in the Importer Hub, and the messages that need it
+  say exactly what to press.** The Western Reaches lookup tables (hexes per
+  day, terrain costs, hex visibility, climate, carousing and recruiting
+  limits) were only under Configure Settings, so nothing told a GM they were
+  there. The hub now shows a **Rules Data** step under the paste box: each
+  table with its book and page and whether it is filled or empty, what waits on
+  it, **Import from GM Guide** (the settings window's own import, with the same
+  preview before it replaces a value, saved at once) and **Edit Rules Data**.
+  **Import everything** ends with it when a book is linked and says so in one
+  line when none is. The Settings entry stays. The Start day "Hexes today" hint
+  now reads "Hexes per day isn't set. Import it once from your GM Guide:
+  Importer Hub > Rules Data > Import from GM Guide. Or type today's hexes
+  here." with an **Open Rules Data** button, and a GM (never a player) gets one
+  whispered card per empty table per session where travel falls back: terrain
+  costs and climate. The storm card that players see no longer tells them to
+  import anything. (#299)
 - **Importing the Western Reaches ancestry d100 switches the builder to it.**
   When the Character Builder's Random ancestry table has never been set,
   importing "Ancestry (Population)" sets it, and a notification says so. A

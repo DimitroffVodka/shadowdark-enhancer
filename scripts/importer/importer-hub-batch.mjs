@@ -81,6 +81,8 @@ class HubBatchMethods {
           : t("SDE.importer.batch.nothingLeft");
         ui.notifications.info(why);
         if (plan.blocked.length) await this._batchReportDialog(summarizeBatch([], plan.blocked), scopeLabel);
+        // Nothing to run in the library, but the Rules Data is part of "everything".
+        if (!rootId) await this._batchRulesData();
         return;
       }
       if (!(await this._batchConfirmDialog(plan, scopeLabel))) return;
@@ -90,6 +92,8 @@ class HubBatchMethods {
       this._batchState = null;
     }
     await this._runBatch(plan, scopeLabel);
+    // The Rules Data is the last step of the whole library (#299), not of a folder.
+    if (!rootId) await this._batchRulesData();
   }
 
   /** Cancel the running batch after the job in flight finishes. */

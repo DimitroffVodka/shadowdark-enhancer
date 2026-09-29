@@ -1,13 +1,17 @@
 /**
  * Shadowdark Enhancer — the Rules data window (#195).
  *
- * GM-only, opened from Configure Settings → Shadowdark Enhancer → Rules data.
+ * GM-only, opened from Configure Settings → Shadowdark Enhancer → Rules data
+ * and from the Importer Hub's Rules Data step (#299): two doors, one window.
  * Shows and edits every table rules-data-core.mjs keeps; Save writes the
  * `rulesData` world setting. **Import from GM Guide** reads the tables from
  * the GM's own linked PDFs through the table importer's `reference` recipes
  * (table-shapes.mjs RULES_TABLES), and asks before it overwrites a value that
  * is already filled in. Like every editor in these settings, changes are
  * staged in the window until Save; Cancel drops them, import included.
+ *
+ * importFromBooks() is that import, and the hub runs the very same one
+ * (importAndSave) so both doors read the books and preview replacements alike.
  */
 
 import { MODULE_ID } from "../shared/module-id.mjs";
@@ -86,6 +90,76 @@ function rowLabel({ table, row, field }) {
 /** A value as the preview shows it: a type by its name, nothing as a dash. */
 const shown = (field, v) => (v === null || v === "" ? "—" : field === "type" ? L(`SDE.rulesData.type.${v}`) : String(v));
 
+/**
+ * Read the GM's books and lay them over `current`, asking first about every
+ * filled-in value it would replace. Says why on screen when it reads nothing.
+ * @param {object} current  rules data (rulesFrom shape)
+ * @returns {Promise<{rules:object, n:number, total:number, warnings:string[]}|null>}
+ *   null when nothing was read, the read failed, or the GM kept what they had
+ */
+export async function importFromBooks(current) {
+  let result;
+  try {
+    ui.notifications.info(L("SDE.rulesData.notify.reading"));
+    result = await readBooks();
+  } catch (err) {
+    console.error(`${MODULE_ID} | rules data import`, err);
+    ui.notifications.error(F("SDE.rulesData.notify.failed", { error: err.message }));
+    return null;
+  }
+  const { data, skipped, missing, partial, total } = result;
+  const tables = (ids) => ids.map((id) => L(`SDE.rulesData.table.${id}`)).join(", ");
+  const short = partial.map(({ id, got, want }) =>
+    F("SDE.rulesData.notify.partialTable", { table: L(`SDE.rulesData.table.${id}`), got, want })).join(", ");
+  if (!Object.keys(data).length) {
+    ui.notifications.warn(L("SDE.rulesData.notify.nothing"));
+    return null;
+  }
+  const overwrites = importOverwrites(current, data);
+  if (overwrites.length && !(await confirmOverwrites(overwrites))) return null;
+  return {
+    rules: applyImport(current, data), n: Object.keys(data).length, total,
+    warnings: [
+      missing.length ? F("SDE.rulesData.notify.missing", { tables: tables(missing) }) : "",
+      partial.length ? F("SDE.rulesData.notify.partial", { tables: short }) : "",
+      skipped.length ? F("SDE.rulesData.notify.skipped", { rows: skipped.join(", ") }) : "",
+    ].filter(Boolean),
+  };
+}
+
+/**
+ * The same import, saved straight to the world setting: what the Importer Hub's
+ * Rules Data step and Import everything press. Nothing is staged; the GM has
+ * already been shown every value it replaces.
+ * @returns {Promise<boolean>} whether tables were imported
+ */
+export async function importAndSave() {
+  const current = rulesFrom(game.settings.get(MODULE_ID, RULES_SETTING));
+  const out = await importFromBooks(current);
+  if (!out) return false;
+  await game.settings.set(MODULE_ID, RULES_SETTING, out.rules);
+  ui.notifications.info(F("SDE.rulesData.notify.importedSaved", { n: out.n, total: out.total }));
+  for (const warning of out.warnings) ui.notifications.warn(warning);
+  return true;
+}
+
+/** The preview: every filled-in value the import would change. Resolves true to go ahead. */
+async function confirmOverwrites(list) {
+  const rows = list.map((c) => `<tr><td>${esc(L(`SDE.rulesData.table.${c.table}`))}</td><td>${esc(rowLabel(c))}</td>`
+    + `<td>${esc(shown(c.field, c.from))}</td><td>${esc(shown(c.field, c.to))}</td></tr>`).join("");
+  const head = ["table", "row", "now", "imported"].map((k) => `<th>${esc(L(`SDE.rulesData.preview.${k}`))}</th>`).join("");
+  const answer = await DialogV2.confirm({
+    window: { title: L("SDE.rulesData.preview.title") },
+    position: { width: 600 },
+    content: `<p>${esc(F("SDE.rulesData.preview.intro", { n: list.length }))}</p>`
+      + `<div style="max-height: 360px; overflow: auto;"><table><thead><tr>${head}</tr></thead><tbody>${rows}</tbody></table></div>`,
+    yes: { label: L("SDE.rulesData.preview.overwrite"), icon: "fa-solid fa-file-import" },
+    no: { label: L("SDE.rulesData.preview.keep"), icon: "fa-solid fa-xmark", default: true },
+    rejectClose: false,
+  });
+  return answer === true;
+}
+
 export class RulesDataApp extends HandlebarsApplicationMixin(ApplicationV2) {
   static DEFAULT_OPTIONS = {
     id: "sde-rules-data",
@@ -153,50 +227,17 @@ export class RulesDataApp extends HandlebarsApplicationMixin(ApplicationV2) {
   static async _onImport(_event, button) {
     const current = this._harvest();
     button.disabled = true;
-    let result;
+    let out;
     try {
-      ui.notifications.info(L("SDE.rulesData.notify.reading"));
-      result = await readBooks();
-    } catch (err) {
-      console.error(`${MODULE_ID} | rules data import`, err);
-      ui.notifications.error(F("SDE.rulesData.notify.failed", { error: err.message }));
-      return;
+      out = await importFromBooks(current);
     } finally {
       button.disabled = false;
     }
-    const { data, skipped, missing, partial, total } = result;
-    const tables = (ids) => ids.map((id) => L(`SDE.rulesData.table.${id}`)).join(", ");
-    const short = partial.map(({ id, got, want }) =>
-      F("SDE.rulesData.notify.partialTable", { table: L(`SDE.rulesData.table.${id}`), got, want })).join(", ");
-    if (!Object.keys(data).length) {
-      ui.notifications.warn(L("SDE.rulesData.notify.nothing"));
-      return;
-    }
-    const overwrites = importOverwrites(current, data);
-    if (overwrites.length && !(await RulesDataApp._confirmOverwrites(overwrites))) return;
-    this._working = applyImport(current, data);
+    if (!out) return;
+    this._working = out.rules;
     await this.render();
-    ui.notifications.info(F("SDE.rulesData.notify.imported", { n: Object.keys(data).length, total }));
-    if (missing.length) ui.notifications.warn(F("SDE.rulesData.notify.missing", { tables: tables(missing) }));
-    if (partial.length) ui.notifications.warn(F("SDE.rulesData.notify.partial", { tables: short }));
-    if (skipped.length) ui.notifications.warn(F("SDE.rulesData.notify.skipped", { rows: skipped.join(", ") }));
-  }
-
-  /** The preview: every filled-in value the import would change. Resolves true to go ahead. */
-  static async _confirmOverwrites(list) {
-    const rows = list.map((c) => `<tr><td>${esc(L(`SDE.rulesData.table.${c.table}`))}</td><td>${esc(rowLabel(c))}</td>`
-      + `<td>${esc(shown(c.field, c.from))}</td><td>${esc(shown(c.field, c.to))}</td></tr>`).join("");
-    const head = ["table", "row", "now", "imported"].map((k) => `<th>${esc(L(`SDE.rulesData.preview.${k}`))}</th>`).join("");
-    const answer = await DialogV2.confirm({
-      window: { title: L("SDE.rulesData.preview.title") },
-      position: { width: 600 },
-      content: `<p>${esc(F("SDE.rulesData.preview.intro", { n: list.length }))}</p>`
-        + `<div style="max-height: 360px; overflow: auto;"><table><thead><tr>${head}</tr></thead><tbody>${rows}</tbody></table></div>`,
-      yes: { label: L("SDE.rulesData.preview.overwrite"), icon: "fa-solid fa-file-import" },
-      no: { label: L("SDE.rulesData.preview.keep"), icon: "fa-solid fa-xmark", default: true },
-      rejectClose: false,
-    });
-    return answer === true;
+    ui.notifications.info(F("SDE.rulesData.notify.imported", { n: out.n, total: out.total }));
+    for (const warning of out.warnings) ui.notifications.warn(warning);
   }
 
   static async _onSubmit(_event, _form, formData) {
