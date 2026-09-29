@@ -5,6 +5,7 @@
 export { MODULE_ID } from "./shared/module-id.mjs";
 import { MODULE_ID } from "./shared/module-id.mjs";
 import { registerA0Prompt } from "./hex-map/a0-prompt.mjs";
+import { hexNumberAt, hasHexNumbering } from "./hex-map/hex-number-api.mjs";
 import { ICONS } from "./shared/icons.mjs";
 import { claimGmTab, isActiveGM } from "./shared/gm-relay.mjs";
 
@@ -126,7 +127,7 @@ const STYLESHEET_REV = "9d8c3adf530c";
 // stale); module.json carries the same hash and is fetched fresh at runtime. A
 // mismatch is a stale cache by construction — it cannot be anything else. Both
 // stamps are written by `npm run inventory` and gated by `inventory:check`.
-const BUILD_REV = "4fd72c9ee5a1";
+const BUILD_REV = "441fb2e5f06a";
 
 /**
  * Tell the user when their browser is running an old build of this module, and
@@ -474,7 +475,9 @@ Hooks.once("init", () => {
     // 1.24.0 — additive: rumors namespace and the rumorsChanged hook, the Rumors Heard ledger (#190).
     // 1.25.0 — additive: encounter.check({ quiet }), hexMaps.makePlayable, overland.partyMethod and
     //   setPace; overland.startDay reads the method and the pace when they're left out (#257).
-    apiVersion: "1.25.0",
+    // 1.26.0 — additive: hexMaps.numberAt and hexMaps.hasNumbering, the tagger's hex numbers for
+    //   Shadowdark Extras' Map Coordinates.
+    apiVersion: "1.26.0",
     // The one travel state per world (scripts/overland/overland.mjs): a copy
     // with hexes left, climate, storm, harshness and night derived; whether
     // travel is on; today's weather roll, the travel day's start, Continue
@@ -865,6 +868,13 @@ Hooks.once("init", () => {
     // datasets go to Shadowdark Extras' hexcrawl builder or download as JSON.
     // Nothing from a published map ships with the module (docs/plans/hex-map-dataset.md).
     hexMaps: {
+      // The published hex number (1403 = column 14, row 03) of the cell at a Foundry
+      // offset {i, j} on a scene the Hex Tagger has numbered, or null in the frame
+      // around the map. Synchronous: Shadowdark Extras' Map Coordinates asks for
+      // thousands of cells in one pass, so its numbers are the tagger's.
+      numberAt: (offset, scene) => hexNumberAt(offset, scene),
+      // Does the scene carry a numbering at all? Tells "off the map" from "never numbered".
+      hasNumbering: (scene) => hasHexNumbering(scene),
       // The contact-sheet tagger for the active scene (GM only). Lazy.
       openTagger: async () => (await import("./hex-map/hex-tagger-app.mjs")).HexTaggerApp.open(),
       // Make the viewed Western Reaches A0 scene playable: numbered, keyed, pinned, handed to Extras (GM only).

@@ -21,7 +21,7 @@
 import { MODULE_ID } from "../shared/module-id.mjs";
 import { replaceModuleFlag } from "../shared/module-flags.mjs";
 import { sceneCells } from "./sampler.mjs";
-import { cellNumber, foundryOffsetToCube } from "./geometry.mjs";
+import { cellNumber, foundryOffsetToCube, originFromFlag } from "./geometry.mjs";
 import { decodeTags, encodeTags, applySheet, strandedRiver, readCell, paletteTags, FEATURES } from "./tag-store.mjs";
 import { FIXES_FLAG, DEFAULT_REVIEW_MARGIN, decodeFixes, encodeFixes, recordEdits, withdrawEdits, sameTags } from "./tag-corrections.mjs";
 import { SETTLEMENTS } from "../importer/hex/hex-summary.mjs";
@@ -295,7 +295,7 @@ export class HexTagOverlay {
     const extra = await HexTagOverlay._regionContext(mode, scene);
     if (showing) { showing.mode = mode; Object.assign(showing, extra); showing.draw(); return true; }
     const o = flag.origin;
-    const overlay = new HexTagOverlay(scene, geom, { cube: { q: o.q, r: o.r }, num: o.num, shifted: o.shifted ?? "odd", bounds: o.bounds });
+    const overlay = new HexTagOverlay(scene, geom, originFromFlag(o));
     overlay.mode = mode;
     Object.assign(overlay, extra);
     overlay.show();
@@ -423,7 +423,7 @@ export class HexTagOverlay {
     this._hooks.push(["updateScene", Hooks.on("updateScene", (doc) => {
       if (doc.id !== this.scene.id || this._writing) return;
       const o = doc.getFlag(MODULE_ID, TAGS_FLAG)?.origin;
-      if (o) this._number({ cube: { q: o.q, r: o.r }, num: o.num, shifted: o.shifted ?? "odd", bounds: o.bounds });
+      if (o) this._number(originFromFlag(o));
       this.state = decodeTags(doc.getFlag(MODULE_ID, TAGS_FLAG));
       this.reviewMargin = decodeFixes(doc.getFlag(MODULE_ID, FIXES_FLAG)).margin;
       this.draw();
