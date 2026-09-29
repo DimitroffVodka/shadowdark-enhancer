@@ -11,6 +11,7 @@
 import { MODULE_ID } from "../shared/module-id.mjs";
 import { esc } from "../shared/esc.mjs";
 import { filledTables } from "./rules-data-core.mjs";
+import { storedRulesFor, usesOwnRuleset } from "./rules-data-scope.mjs";
 
 const t = (key) => game.i18n.localize(key);
 
@@ -26,14 +27,16 @@ export async function openRulesStep() {
 /**
  * Tell the GM a table is empty, once per session. Does nothing for a player,
  * for a table that has values, or for one already told about.
+ * A map with a ruleset of its own is set up by hand in the Rules data window;
+ * the card's advice (import from the GM Guide) is about the default ruleset,
+ * so it stays quiet there.
  * @param {"terrain"|"climate"} id  a RULES_TABLES id with a notice text
+ * @param {Scene|null} [scene]  the scene whose ruleset is read (default: the one being viewed)
  * @returns {Promise<boolean>} whether a card was posted
  */
-export async function tellMissing(id) {
-  if (!game.user?.isGM || told.has(id)) return false;
-  let stored = null;
-  try { stored = game.settings.get(MODULE_ID, "rulesData"); } catch { /* not registered: nothing is set */ }
-  if (filledTables(stored)[id]) return false;
+export async function tellMissing(id, scene = globalThis.canvas?.scene) {
+  if (!game.user?.isGM || told.has(id) || usesOwnRuleset(scene)) return false;
+  if (filledTables(storedRulesFor(scene))[id]) return false;
   told.add(id);
   await ChatMessage.create({
     content: `<div class="sde-rules-notice"><p>${esc(t(`SDE.rulesData.missing.${id}`))}</p>`

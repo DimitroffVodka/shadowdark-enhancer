@@ -89,7 +89,11 @@ climate table's "Bastion Mtns" becomes **Bastion Mountains**, and
 Every value is an ordinary field, so a world without the book, or a homebrew
 setting, fills the tables in directly.
 
-- **Terrain**: one row per terrain the [Hex Tagger](Hex-Maps.md) knows. Pick a
+- **Terrain**: one row per terrain the [Hex Tagger](Hex-Maps.md) knows, and any
+  you add: type the words for a terrain the list does not have (hills, marsh,
+  salt flat) into the box under the table, separated by commas, and press
+  **Add**. A terrain of your own can be removed with the bin at the end of its
+  row; the printed terrains keep their rows on the default ruleset. Pick a
   type, then give a hex cost, and a cost **with boat** where a boat changes it.
   A terrain with a type and no cost of its own costs what its type does in
   **Terrain types**. Impassable terrain can't be entered, except by boat when
@@ -106,6 +110,37 @@ setting, fills the tables in directly.
   as "no limits anywhere", so Shadowdark Extras' carousing keeps its own
   limits until you give this one a number.
 
+## A ruleset for another map
+
+The tables above are the Western Reaches'. A hexcrawl with rules of its own (a
+Cursed Scroll's map, a homebrew region) should not have to overwrite them, so
+the window keeps **rulesets**: the **Default (Western Reaches)** one, and as
+many others as you add. Each is a full set of the same tables, with its own
+terrains.
+
+- **Ruleset** at the top of the window picks the one you are editing. What you
+  typed in one is kept while you look at another.
+- **New ruleset…** asks for a name, what to start from, and the terrains to
+  begin with. **Nothing** starts a ruleset with only the terrains you list
+  (commas between them), which is right for a map that has no arctic sea or
+  lava; the box is filled in with the terrains ticked for the map you are
+  viewing in the [Hex Tagger](Hex-Maps.md#the-legend) when it has any. **A copy
+  of** another ruleset starts from its numbers instead.
+- **Rename** and **Delete** are for the rulesets you added. Deleting one is
+  only kept when you press Save, and every scene that used it goes back to the
+  default.
+- **The scene "…" uses** appears when you are viewing a hex map. It says which
+  ruleset that scene reads, and is saved with the rest. A scene that names none
+  uses the default, so nothing changes for a map you never touch.
+- **Import from GM Guide** is only on the default ruleset: it fills the Western
+  Reaches' tables.
+
+Travel, hex visibility, carousing and recruiting read the ruleset of **the
+scene the party is travelling on**, or the scene you are viewing when there is
+no trip, so the party's terrain costs do not change because the GM looked at
+another map. The "isn't set" cards only nag about the default ruleset: a ruleset
+you made is yours to fill in.
+
 ## What reads it
 
 - **Stormy weather** makes normal terrain cost what difficult terrain costs,
@@ -115,5 +150,6 @@ setting, fills the tables in directly.
 - Macros and other modules read everything through
   `game.shadowdarkEnhancer.rules`; see the
   [API reference](https://github.com/DimitroffVodka/shadowdark-enhancer/blob/master/docs/API.md#rules--western-reaches-rules-data).
-- The data is the `rulesData` world setting. See the
-  [Settings Reference](Settings-Reference.md).
+- The default ruleset is the `rulesData` world setting; the others are the
+  `rulesSets` world setting, and a scene names its ruleset in its `rulesSet`
+  flag. See the [Settings Reference](Settings-Reference.md).

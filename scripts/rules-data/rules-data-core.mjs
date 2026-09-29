@@ -102,7 +102,12 @@ export function rulesFrom(stored) {
   const s = stored && typeof stored === "object" ? stored : {};
   const rows = Object.fromEntries(Object.entries(s.terrain ?? {}).map(([k, v]) => [ruleKey(k), v]).filter(([k]) => k));
   const terrain = {};
-  for (const k of new Set([...TERRAIN_KEYS, ...Object.keys(rows)])) {
+  // The default ruleset has a row for every printed terrain word, filled or not.
+  // A map's OWN ruleset (own: true) lists only the terrains it was given: the
+  // printed list is the Western Reaches' and a map without arctic sea or lava
+  // has no use for those rows. A row of any name is kept either way.
+  const own = !!s.own;
+  for (const k of new Set([...(own ? [] : TERRAIN_KEYS), ...Object.keys(rows)])) {
     const row = { type: "", cost: null, boat: null, elevation: DEFAULT_ELEVATION[k] ?? "", ...(rows[k] ?? {}) };
     terrain[k] = {
       type: TERRAIN_TYPES.includes(row.type) ? row.type : "",
@@ -114,6 +119,7 @@ export function rulesFrom(stored) {
   // A form posts its rows as { 0: …, 1: … }; the setting stores an array.
   const climate = Array.isArray(s.climate) ? s.climate : Object.values(s.climate ?? {});
   return {
+    ...(own ? { own: true } : {}),
     terrain,
     terrainTypes: flat(COSTED_TYPES, s.terrainTypes),
     travel: flat(TRAVEL_METHODS, s.travel),
@@ -122,6 +128,73 @@ export function rulesFrom(stored) {
     carousing: flat(SETTLEMENT_KINDS, s.carousing),
     recruiting: flat(SETTLEMENT_KINDS, s.recruiting),
   };
+}
+
+// ── Rulesets: one per map ────────────────────────────────────────────────────
+
+/**
+ * The `rulesData` setting is the DEFAULT ruleset: what every map uses, and what
+ * the GM Guide import fills (the Western Reaches'). Another map can have a
+ * ruleset of its own: the `rulesSets` world setting holds them by id, and a
+ * scene names the one it uses in its `rulesSet` flag. A scene that names none,
+ * or one that was deleted, uses the default, so a world that never adds a
+ * ruleset behaves exactly as before.
+ * @param {object} base   the stored default ruleset (`rulesData`)
+ * @param {object} sets   the stored rulesets by id (`rulesSets`)
+ * @param {string} [id]   the scene's `rulesSet` flag
+ * @returns {object} stored rules, for rulesFrom() or rulesApi()
+ */
+export function pickRules(base, sets, id) {
+  const set = id ? sets?.[id] : null;
+  return set && typeof set === "object" ? set : base;
+}
+
+/**
+ * The stored rulesets read into one shape: an id that is a clean key, a name, and
+ * the rules as rulesFrom() reads them. Anything else in the setting is dropped.
+ * @returns {Object<string, {name:string, own?:true}>}
+ */
+export function rulesSetsFrom(raw) {
+  const out = {};
+  const entries = raw && typeof raw === "object" && !Array.isArray(raw) ? Object.entries(raw) : [];
+  for (const [id, value] of entries) {
+    const key = ruleKey(id);
+    if (!key || !value || typeof value !== "object") continue;
+    out[key] = { ...rulesFrom(value), name: String(value.name ?? "").trim() || key.replace(/_/g, " ") };
+  }
+  return out;
+}
+
+/** A fresh id for a ruleset called `name`: its slug, made unique, never the word the default ruleset goes by. */
+export function newRulesetId(name, taken = {}) {
+  const base = ruleKey(name) || "ruleset";
+  let id = base === "default" ? "default_2" : base;
+  for (let n = 2; id in taken; n++) id = `${base}_${n}`;
+  return id;
+}
+
+/** Terrain words typed into a box, separated by commas, semicolons or lines, as the keys the tables use. */
+export const terrainWords = (text) => [...new Set(String(text ?? "").split(/[,;\n]+/).map(ruleKey).filter(Boolean))];
+
+/** These rules with a blank row for each word that has none yet. Rows already there are left as they are. */
+export function addTerrain(rules, words) {
+  const terrain = { ...(rules?.terrain ?? {}) };
+  for (const word of words ?? []) {
+    const k = ruleKey(word);
+    if (k && !(k in terrain)) terrain[k] = {};
+  }
+  return rulesFrom({ ...rules, terrain });
+}
+
+/**
+ * These rules without a terrain's row. On the default ruleset a printed word
+ * keeps its row (it is the structure, and comes back empty); a word of the GM's
+ * own, and any row of a map's own ruleset, is gone.
+ */
+export function removeTerrain(rules, key) {
+  const terrain = { ...(rules?.terrain ?? {}) };
+  delete terrain[ruleKey(key)];
+  return rulesFrom({ ...rules, terrain });
 }
 
 /**
