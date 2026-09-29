@@ -234,6 +234,21 @@ test("isActiveGM: only the designated GM says yes", () => {
   assert.equal(isActiveGM(), false, "no designated GM at all");
 });
 
+test("isActiveGM: nothing on the module socket decides it, so a player can't unseat the GM (#283 review)", () => {
+  // 8794de5d picked one of the active GM's tabs from hellos on the module socket. Any player can write
+  // there: {action: "gmSession", userId: <the GM's id>, sid: "forged", since: 0} made every tab refuse.
+  const relay = readFileSync(new URL("../scripts/shared/gm-relay.mjs", import.meta.url), "utf8");
+  assert.doesNotMatch(relay, /socket\??\.on\(/, "the relay reads nothing from the module socket");
+  // Core's user state decides, and it is the same in every tab of that GM: each one answers.
+  for (const socket of [{ id: "tab-1" }, { id: "tab-2" }]) {
+    actAs(GM, GM);
+    globalThis.game.socket = socket;
+    assert.equal(isActiveGM(), true);
+    assert.equal(refuseQuery(PLAYER, "Warband changes"), null, "at once, not a refusal held back");
+  }
+  delete globalThis.game.socket;
+});
+
 // ─── The player side ────────────────────────────────────────────────────────
 
 test("relay: no GM online is reported separately from a stale one", async () => {

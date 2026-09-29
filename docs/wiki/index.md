@@ -72,6 +72,7 @@ Tools you use in prep between sessions.
 |---|---|
 | [Character Builder](Character-Builder.md) | Guided, ordered level-1 character creation wizard with token art gallery |
 | [Export to PDF](Export-to-PDF.md) | Fill and download official Shadowdark character sheet PDFs directly from an actor |
+| [Warbands](Warbands.md) | The warband unit actor type: a commander's allowance, upgrades, and making a warband from a creature |
 | [Mounts & Boats](Mounts-and-Boats.md) | Dedicated Mount and Boat actor types and sheets for Western Reaches travel |
 
 ## Reference

@@ -300,6 +300,8 @@ function monsterCard({
 }) {
   const attacker = {
     documentName: "Actor", uuid: "Actor.npc", type: attackerType, name: "Barrow Wight", items: features,
+    // NpcSD's getter: true for the system's NPCs and the module's NPC-model sub-types (a mount, a warband).
+    system: { isNPC: attackerType !== "Player" },
     testUserPermission: (user, level) => level === "OWNER" && !!user.owns?.includes("Actor.npc"),
   };
   docs.set("Actor.npc", attacker);
@@ -354,6 +356,12 @@ test("a miss applies nothing", async () => {
   const target = hitTarget(false);
   await StatRiders._onAttackCard(monsterCard({ special: "1 STR damage", hit: false }));
   assert.equal(StatDamage.of(target).str, 0);
+});
+
+test("a warband's attack carries its rider like any NPC's (#200)", async () => {
+  const target = hitTarget(false);
+  await StatRiders._onAttackCard(monsterCard({ special: "1 STR damage", attackerType: "shadowdark-enhancer.warband" }));
+  assert.equal(StatDamage.of(target).str, 1);
 });
 
 test("a character's own weapon is not a monster attack", async () => {

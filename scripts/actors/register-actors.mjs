@@ -11,20 +11,28 @@
  * (Riders / Inventory / Mount). The base classes are read from the live CONFIG
  * so we never hard-import the system bundle.
  *
+ * WARBAND: the same NpcSD model and an NpcSheetSD subclass with a Warband tab
+ * (commander, allowance, upgrades; #200), plus the NPC sheet's "Make a
+ * warband" header button (#202).
+ *
  * BOAT: a self-contained ApplicationV2 container sheet (BoatSheet) on its own
  * BoatDataModel.
  *
- * Called from the init hook (system init runs before module init, so the SD
- * NPC model + sheet are already in CONFIG).
+ * Called from i18nInit (shadowdark-enhancer.mjs): init can run before the
+ * system's, and setup is too late for the world's actors.
  */
 
 import { MODULE_ID } from "../shared/module-id.mjs";
 import { BoatDataModel } from "./boat-data-model.mjs";
 import { BoatSheet } from "./boat-sheet.mjs";
 import { buildMountNpcSheet } from "./mount-npc-sheet.mjs";
+import { buildWarbandNpcSheet, registerWarbandWrites } from "./warband-npc-sheet.mjs";
+import { registerMakeWarband } from "./make-warband.mjs";
+import { warbandRolledHp } from "./warband-core.mjs";
 
 export const MOUNT_TYPE = `${MODULE_ID}.mount`;
 export const BOAT_TYPE = `${MODULE_ID}.boat`;
+export const WARBAND_TYPE = `${MODULE_ID}.warband`;
 
 /**
  * Resolve the system's NPC sheet class. Prefer `game.system.sheets` (merged at
@@ -53,8 +61,36 @@ export function registerActorTypes() {
       makeDefault: true,
       label: "SDE.sheet.mount",
     });
+    // ── Warband: the NPC model with fixed HP, its own tab (#200) ────────────
+    // A warband's HP is 8 a level plus CON, never rolled: the sheet's HP dice
+    // and the system's roll-on-placement both call rollHP, which sets that max
+    // and keeps the current HP. Its tokens are linked, so a placement that
+    // healed it would heal the world actor.
+    CONFIG.Actor.dataModels[WARBAND_TYPE] = class WarbandModel extends NpcModel {
+      async rollHP() {
+        const { value, max } = this.attributes?.hp ?? {};
+        const hp = warbandRolledHp({ level: this.level?.value, conMod: this.abilities?.con?.mod, value, max });
+        await this.parent.update({ "system.attributes.hp.max": hp.max, "system.attributes.hp.value": hp.value });
+      }
+    };
+    // One unit, one actor: its tokens are linked, so every warband is a world
+    // actor the commander's allowance counts. A copy (Duplicate, an import)
+    // starts without a commander, so taking one goes through the allowance.
+    Hooks.on("preCreateActor", (doc, data) => {
+      if (doc.type !== WARBAND_TYPE) return;
+      const update = { "prototypeToken.actorLink": true };
+      if (data?.flags?.[MODULE_ID]?.warband?.commander) update[`flags.${MODULE_ID}.warband.commander`] = null;
+      doc.updateSource(update);
+    });
+    DSC.registerSheet(Actor, MODULE_ID, buildWarbandNpcSheet(BaseNpcSheet, WARBAND_TYPE), {
+      types: [WARBAND_TYPE],
+      makeDefault: true,
+      label: "SDE.sheet.warband",
+    });
+    registerMakeWarband(WARBAND_TYPE);
+    registerWarbandWrites(WARBAND_TYPE);
   } else {
-    console.warn(`${MODULE_ID} | Shadowdark NPC model/sheet not found — mount type not registered`);
+    console.warn(`${MODULE_ID} | Shadowdark NPC model/sheet not found — mount and warband types not registered`);
   }
 
   // ── Boat: self-contained container sheet ──────────────────────────────────
@@ -69,6 +105,7 @@ export function registerActorTypes() {
   CONFIG.Actor.typeIcons ??= {};
   CONFIG.Actor.typeIcons[MOUNT_TYPE] = "fa-solid fa-horse";
   CONFIG.Actor.typeIcons[BOAT_TYPE] = "fa-solid fa-sailboat";
+  CONFIG.Actor.typeIcons[WARBAND_TYPE] = "fa-solid fa-people-group";
 
-  console.log(`${MODULE_ID} | registered actor types: mount (NPC-based), boat`);
+  console.log(`${MODULE_ID} | registered actor types: mount and warband (NPC-based), boat`);
 }
