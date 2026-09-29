@@ -347,14 +347,20 @@ export class HexTagOverlay {
     return { ...ctx, zonesByRegion: await encounterZonesByRegion(), rowRanges };
   }
 
-  constructor(scene, geom, origin) {
-    this.scene = scene;
+  /** Number the scene's cells from `origin`: at first, and again when the anchor's number or the map's size is changed. */
+  _number(origin) {
     this.origin = origin;
     this.cells = new Map();
-    for (const c of geom.cells) {
+    for (const c of this.geom.cells) {
       const n = cellNumber(c.cube, origin);
       if (n.num !== null) this.cells.set(n.num, { x: c.x, y: c.y });
     }
+  }
+
+  constructor(scene, geom, origin) {
+    this.scene = scene;
+    this.geom = geom;
+    this._number(origin);
     this.state = decodeTags(scene.getFlag(MODULE_ID, TAGS_FLAG));
     this.reviewMargin = decodeFixes(scene.getFlag(MODULE_ID, FIXES_FLAG)).margin;
     this._hooks = [];
@@ -416,6 +422,8 @@ export class HexTagOverlay {
     // A sheet applied in the tagger, a hand-off or a cleared flag all arrive here.
     this._hooks.push(["updateScene", Hooks.on("updateScene", (doc) => {
       if (doc.id !== this.scene.id || this._writing) return;
+      const o = doc.getFlag(MODULE_ID, TAGS_FLAG)?.origin;
+      if (o) this._number({ cube: { q: o.q, r: o.r }, num: o.num, shifted: o.shifted ?? "odd", bounds: o.bounds });
       this.state = decodeTags(doc.getFlag(MODULE_ID, TAGS_FLAG));
       this.reviewMargin = decodeFixes(doc.getFlag(MODULE_ID, FIXES_FLAG)).margin;
       this.draw();

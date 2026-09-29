@@ -70,7 +70,7 @@
         </div>
         {{#if origin}}
         <div class="sde-hxt-more-row">
-        <span class="sde-hxt-muted"><i class="fas fa-anchor"></i> {{localize "SDE.hexMap.label.hex"}} <strong>{{originText}}</strong></span>
+        <label title="{{localize 'SDE.hexMap.tip.anchorNumber'}}"><i class="fas fa-anchor"></i> {{localize "SDE.hexMap.label.anchorNumber"}} <input type="text" data-hxt-anchor value="{{anchorNum}}" maxlength="4" class="sde-hxt-num"> <span class="sde-hxt-muted">{{originText}}</span></label>
         <label>{{localize "SDE.hexMap.label.mapSize"}} <input type="number" data-hxt-cols value="{{boundsCols}}" min="1" max="99" placeholder="{{localize 'SDE.hexMap.label.cols'}}" class="sde-hxt-small"></label>
         <label>× <input type="number" data-hxt-rows value="{{boundsRows}}" min="1" max="99" placeholder="{{localize 'SDE.hexMap.label.rows'}}" class="sde-hxt-small"></label>
         <label title="{{localize 'SDE.hexMap.tip.skipTop'}}"><input type="checkbox" data-hxt-skip-top {{#if skipTopRow}}checked{{/if}}> {{localize "SDE.hexMap.label.skipTop"}}</label>

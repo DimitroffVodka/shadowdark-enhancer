@@ -22,7 +22,7 @@ import { MODULE_ID } from "../shared/module-id.mjs";
 import { replaceModuleFlag } from "../shared/module-flags.mjs";
 import { findSuitePack, sourceFolderName } from "../shared/compendium-suite.mjs";
 import { sceneCells, sourceImage, CellSampler, backgroundTransform } from "./sampler.mjs";
-import { cellNumber, neighbours, framesTopRow, extrasNumbersAlike } from "./geometry.mjs";
+import { cellNumber, neighbours, framesTopRow, extrasNumbersAlike, withAnchorNumber, boundsFromRow } from "./geometry.mjs";
 import { decodeTags, encodeTags, nextSheet, applySheet, tagsForDataset, summarize, importTags, rowsFromJson, sheetRisk, deriveCoasts, paletteTags, normalizeTerrainWord, FEATURES } from "./tag-store.mjs";
 import { FIXES_FLAG, BASELINE_FLAG, emptyLog, decodeFixes, encodeFixes, recordEdits, recordLegend, legendReport, accuracyReport, encodeBaseline, decodeBaseline, baselineReport } from "./tag-corrections.mjs";
 import { cellBoxOf, referenceTilePlacement, gridCellBox, loweredColumns, placeReferenceTile } from "./reference-tile.mjs";
@@ -1046,7 +1046,7 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
       sheetExpected: Math.round(sheetRisk(state, this._sheet).expected),
       baseline: baseline?.checked >= 20 ? baseline : null, noCrawl: this._entries.length > 0 && !this._entryUuid,
       sceneName: scene?.name ?? t("SDE.hexMap.label.noScene"), sampled, cellCount: this._cells.length, numberedCount: total,
-      summary, origin, originText: origin ? t("SDE.hexMap.label.originAt", { num: String(origin.num).padStart(4, "0"), i: origin.i, j: origin.j }) : "",
+      summary, origin, anchorNum: origin ? String(origin.num).padStart(4, "0") : "", originText: origin ? t("SDE.hexMap.label.originGrid", { i: origin.i, j: origin.j }) : "",
       boundsCols: origin?.bounds?.cols ?? "", boundsRows: origin?.bounds?.rows ?? "", skipTopRow: framesTopRow(origin?.bounds),
       mode: this._mode, modes: [["random", "SDE.hexMap.mode.random"], ["keyed", "SDE.hexMap.mode.keyed"], ["review", "SDE.hexMap.mode.review"]]
         .map(([v, k]) => ({ value: v, label: t(k), selected: v === this._mode })),
@@ -1429,6 +1429,18 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
     this.render();
   }
 
+  /** Is it safe to renumber? Everything already filed by hex number would land on other hexes, so ask when there is any. */
+  async _confirmRenumber() {
+    const scene = this._scene();
+    const filed = this._state.cells.size || decodeRegions(scene?.getFlag(MODULE_ID, REGIONS_FLAG)).size || this._log().fixes.size;
+    if (!filed) return true;
+    return foundry.applications.api.DialogV2.confirm({
+      window: { title: t("SDE.hexMap.renumber.title") },
+      content: `<p>${t("SDE.hexMap.renumber.confirm")}</p>`,
+      rejectClose: false,
+    }).catch(() => false);
+  }
+
   /** Map size in cells, so cells past the hex field (margins, legend) are skipped. */
   async _onSetBounds() {
     if (!this._requireCurrentScene()) return;
@@ -1436,12 +1448,17 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const cols = parseInt(this.element.querySelector("input[data-hxt-cols]")?.value, 10);
     const rows = parseInt(this.element.querySelector("input[data-hxt-rows]")?.value, 10);
     const skipTop = !!this.element.querySelector("input[data-hxt-skip-top]")?.checked;
-    // The lowered columns keep ending the same number of rows short (the image flow found that).
-    const old = this._state.origin.bounds;
-    const short = old?.rowsLowered && old.rows ? old.rows - old.rowsLowered : 0;
-    this._state.origin.bounds = (cols > 0 && rows > 0)
-      ? { cols, rows, ...(short > 0 && rows > short ? { rowsLowered: rows - short } : {}), ...(skipTop ? { firstRow: 1 } : {}), ...(old?.base ? { base: old.base } : {}) }
-      : null;
+    // The anchor's number rides along: a map made from an image starts as 0000 unless the GM said
+    // otherwise, and this is where they say it later.
+    const typed = String(this.element.querySelector("input[data-hxt-anchor]")?.value ?? "").trim();
+    if (typed && Number(typed) !== Number(this._state.origin.num)) {
+      if (!/^\d{3,4}$/.test(typed)) { ui.notifications?.warn(t("SDE.hexMap.notify.typeNumber")); return; }
+      if (!(await this._confirmRenumber())) return;
+      if (!this._requireCurrentScene()) return;
+      this._state.origin = withAnchorNumber(this._state.origin, typed);
+      this._legend = null;   // its cards list hexes by the old numbers
+    }
+    this._state.origin.bounds = boundsFromRow({ cols, rows, skipTop, old: this._state.origin.bounds });
     this._renumber();
     // Cells that just stopped being on the map keep no tags: they are frame, and
     // leaving them would send margin to Extras and keep serving them for review.
