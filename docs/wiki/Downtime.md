@@ -301,6 +301,51 @@ Charisma casters toggle between **Arcane** and **Divine** lists using the
 
 ---
 
+## Recruit a warband
+
+Recruit a warband (PGWR p.249) sits below the book's activities. It needs no
+book text, so there is nothing to unlock, but the window still shows only once
+a book is unlocked. Pick a
+character and the section lists the [warbands](Warbands.md) they can try:
+
+- **Which warbands.** The stock ones in the Warbands folder of the actors pack
+  (see [Warbands](Warbands.md#making-a-warband)), and any warband in the world
+  that no one commands (a GM-made one; a routed or deserted one isn't offered).
+  Recruiting makes a **copy**, so the original stays on offer for the next
+  recruit.
+- **Level.** A warband of the character's level or lower, and no higher than the
+  settlement supplies. In a town whose limit is 4, a level 3 character is
+  offered warbands up to level 3, and a level 5 character up to level 4.
+- **The check.** CHA against **10 plus the warband's level**, with the same
+  **Roll with** advantage as any attempt. It costs no gold. On a success the copy
+  is made with the character as its commander and owned by whoever owns the
+  character, so the player can open it. On a failure nothing is made, and the
+  same warband can be tried again (a table session allows one activity each).
+- **The allowance.** A character already commanding as many warbands as their
+  hit die allows (2, 4 or 6), or whose warbands would carry more upgrades than
+  it allows, can't recruit: the section says so, in words, and every warband is
+  greyed out. It is checked again when the dice are rolled and when the warband
+  is made, so a place taken in between refuses the roll and nothing is made.
+- **Settlement.** The limit comes from the **Recruiting limits** in
+  [Rules Data](Rules-Data.md): village, town, city and city-state. The section
+  names where the party is, read from the keyed hex the party's
+  token stands in (as carousing in Shadowdark Extras does), and the limit
+  there. The GM can pick a **Settlement** instead: any of the four, or **No
+  settlement**, and back to **The party's hex**. Outside a settlement, and
+  while the recruiting limits aren't filled in, only the character's level
+  limits it.
+- **Retraining.** Changing a warband's upgrades (a week) is on its sheet's
+  Warband tab, as ever. **Warbands this character commands** lists them with an
+  **Open sheet** button, and until when each is retraining.
+
+In a table session a player **Chooses** a warband like any activity and rolls
+their own dice; the GM's client checks the warband, the settlement, the
+allowance and the roll before anything is made. Solo, the GM presses
+**Attempt**. The time it takes is the session's days, and the attempt goes in
+the [downtime log](#the-downtime-log) like any other.
+
+---
+
 ## Unlocking activities from your book
 
 The module provides activity skeletons, DCs, and costs. Full outcome text must
@@ -406,6 +451,7 @@ Downtime records attempts in two locations:
 |---|---|
 | Unlocked text | `downtimeContent` world setting |
 | Active session state | `downtimeSession` world setting |
+| The GM's settlement for recruiting | `downtimeSettlement` world setting |
 | DC ladder progress | `flags["shadowdark-enhancer"].downtime.steps` on actor |
 | Caster list choice | `flags["shadowdark-enhancer"].downtime.casterList` on actor |
 | Extortion price swing | `flags["shadowdark-enhancer"].downtimeExtortion` on actor |

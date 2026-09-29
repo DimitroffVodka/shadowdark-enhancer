@@ -183,7 +183,7 @@ See [Movement Budgets](Movement-Budgets.md).
 
 | Setting | Default | What it does |
 |---|---|---|
-| **Clock bar** | Everyone | Who sees the date, time and sky at the top of the screen: *Everyone*, *GM only* or *Off*. It hides during a combat whatever this says. See [Clock and Calendar](Clock-and-Calendar.md). |
+| **Clock bar** | Everyone | Who sees the date, time and sky at the top of the screen: *Everyone*, *GM only* or *Off*. It shows on hex maps only, and hides during a combat, whatever this says. See [Clock and Calendar](Clock-and-Calendar.md). |
 | **Weather rule** | Western Reaches | How the crawl bar's **Weather** rolls during overland travel. *Western Reaches*: a d6 each day, where 1 is stormy until the next dawn and 6 is excellent and gives the next roll advantage. *Core rules*: a 1 is a storm lasting 1d4 days, with no roll while it lasts. |
 | **Travel encounter chance (in 6)** | `1` (the book's) | A travel encounter check hits on this or less on a d6, 1 to 5; a pushed day adds one. Read at each roll, so a new chance counts from the next check. Also set from the Travel panel's Encounters step (**Adjust**). |
 | **Travel encounter checks by day** | `2` (the book's) | How many checks a travel day rolls between 06:00 and 17:00, 0 to 4. A new number starts at the next Start day. Also set from **Adjust**. |
@@ -277,6 +277,7 @@ Stored as world settings for persistence. **Do not edit these manually.**
 | `monsterSpellSyncVersion` | Version stamp for Monster Spell Library refresh |
 | `downtimeContent` | Unlocked downtime outcome text per book |
 | `downtimeSession` | Live downtime session state |
+| `downtimeSettlement` | The settlement the GM chose for recruiting a warband (empty: the party's hex) |
 | `uniqueFeatureTableUuid` | Bound UUID for unique magic item features |
 
 > **Version stamps (`backfillVersion`, `enricherBackfillVersion`, `creatureTypeBackfillVersion`, `monsterSpellSyncVersion`):**

@@ -81,7 +81,7 @@ async function partyRegion() {
   if (isOverland()) return overlandState().hex?.region ?? null;
   try {
     const hex = partyHex();
-    const zone = hex ? (await hexZonesFor(globalThis.canvas?.scene)).byNum.get(hex.num)?.zone : null;
+    const zone = Number.isInteger(hex?.num) ? (await hexZonesFor(globalThis.canvas?.scene)).byNum.get(hex.num)?.zone : null;
     if (zone) return zone;
   } catch (err) {
     console.warn(`${MODULE_ID} | rumors: the party's region`, err);

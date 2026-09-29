@@ -4,8 +4,8 @@
  * The active GM writes the darkness and weather effect of the active scene
  * and of the party's scene (the one the Overland travel token is on, which
  * can differ: #294) when the clock moves, when Overland's weather, hex or
- * token changes, and when a scene is activated. Only a scene that follows the sky is touched: a tagged hex
- * map by default, and any scene its GM marks in Scene Configuration's
+ * token changes, and when a scene is activated. Only a scene that follows the sky is touched: a hex
+ * map (any hex grid) by default, and any scene its GM marks in Scene Configuration's
  * Environment tab. A dungeon stays as it is unless it is marked.
  *
  * - Darkness (sky-core.mjs darknessAt) is written only when it moves by 0.02
@@ -22,6 +22,7 @@
 
 import { MODULE_ID } from "../shared/module-id.mjs";
 import { isActiveGM } from "../shared/gm-relay.mjs";
+import { isHexRulesScene } from "../encounter/encounter-terrain.mjs";
 import { esc } from "../shared/esc.mjs";
 import { overlandState, travelScene, weatherNow, OVERLAND_CHANGED } from "./overland.mjs";
 import { hourOfDay } from "../time/time-core.mjs";
@@ -43,8 +44,8 @@ const FOLLOWS_LABEL = {
   off: "SDE.overland.sky.followsOff",
 };
 
-/** Is this scene a tagged hex map? (The scene's own, not the viewed canvas.) */
-const isHexMap = (scene) => !!scene?.getFlag?.(MODULE_ID, "hexTags")?.origin && !!scene?.grid?.isHexagonal;
+/** Is this scene a hex map, any hex grid (#298)? (The scene's own, not the viewed canvas.) */
+const isHexMap = isHexRulesScene;
 
 const sceneFollows = (scene) => followsSky(scene.getFlag(MODULE_ID, FOLLOWS_SKY), isHexMap(scene));
 

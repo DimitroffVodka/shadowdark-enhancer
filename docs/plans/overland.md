@@ -321,17 +321,25 @@ and the bar's idle state (`crawl-bar.mjs:102`).
 
 | From → to | Trigger | What happens |
 |---|---|---|
-| off → overland | GM: **Start travel** on the crawl bar, offered only on a hex-map scene | picks the travel token and members; resumes an open day or asks for dawn choices |
+| off → overland | GM: **Start travel** on the crawl bar, offered only on a hex-map scene (any hex grid, #298) | picks the travel token and members; resumes an open day or asks for dawn choices |
 | overland → off | GM: **End travel** | the state is kept, and the day stays paused |
 | overland → crawl | GM: **Start crawl** | the strip shows; the travel state is kept, so its `hex` still feeds the underground check |
 | crawl → overland | GM: End crawl, then Start travel | two clicks; `crawlEnd` fires as today |
 | overland → combat | `createCombat` / `combatStart` (`crawl-state.mjs:120-136`) | `priorMode = overland`; the bar hides and the strip shows the combat. No crawl-member enrolment, since that only happens when `priorMode` is `crawl` (`:392`) |
 | combat → overland | `deleteCombat` with no combat left (`:138-152`) | the bar comes back |
 | reload or GM handoff | `_reconcileCombatMode` (`:198-212`) | unchanged |
-| overland, on a scene that isn't a hex map | — | the bar is hidden on that client; the state is untouched |
+| overland, on a scene that isn't a hex map | — | the clock HUD is hidden on that client (it shows on hex maps only); the state is untouched |
 
-A hex-map scene is one where `partyHex()` would work: an SDE `hexTags` origin on a hexagonal grid
-(`encounter-terrain.mjs:190-193`).
+A hex-map scene is one whose grid is hexagonal, of either orientation (`isHexMapScene` and
+`isHexRulesScene` in `encounter-terrain.mjs`, #298). Neither the SDE `hexTags` flag nor Shadowdark
+Extras' hex records are gates: they are terrain data, read by `hexReader`. A tagged column grid
+reads its printed number and terrain; a scene with Extras records reads their terrain and
+features by place, with no number; any other hex grid reads no terrain and no number, so every hex
+costs 1 and encounters use the active table (Start travel says so once). What needs a number (the
+region scan, the north/south split, the hex's line on the check card) is skipped when there is
+none, never an error. The same rule shows the clock HUD on hex maps only, keeps the Crawl Strip
+to the other maps (a combat's display still takes over on a hex map), and makes the sky follow
+any hex grid unless the scene's `followsSky` says otherwise.
 
 ## 5. The travel day, step by step
 

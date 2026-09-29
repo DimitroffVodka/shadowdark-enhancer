@@ -9,10 +9,13 @@
 
 import { secondsPerDay, startOfDay, moonPhase, anchor } from "../time/time-core.mjs";
 
-/** Who sees the bar: the `clockBar` setting's choices. Nobody while a combat runs. */
+/**
+ * Who sees the bar: the `clockBar` setting's choices, on a hex map only (#298).
+ * Nobody while a combat runs, and nobody on a scene with no hex grid.
+ */
 export const CLOCK_SHOWN = ["all", "gm", "off"];
-export const clockShown = ({ setting, isGM, combat }) =>
-  !combat && (setting === "all" || (setting === "gm" && isGM));
+export const clockShown = ({ setting, isGM, combat, hex }) =>
+  !!hex && !combat && (setting === "all" || (setting === "gm" && isGM));
 
 /**
  * The GM's step buttons, largest first: a day, 8 hours, an hour, 10 minutes

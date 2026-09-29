@@ -11,7 +11,7 @@ its attacks, AC, HP and damage roll as any NPC's, with a **Warband** tab.
 > Extras' fix for its attack wrapper (DimitroffVodka/shadowdark-extras#184);
 > without it the attack card doesn't post.
 
-Still to come: recruiting as a downtime activity (#205).
+Warbands are recruited as a [downtime](Downtime.md#recruit-a-warband) activity.
 
 ---
 
@@ -103,7 +103,9 @@ you setting the date.
 - **Healing.** Every day it heals 1d4 HP (2d6 if Hardy), downtime days
   included. The GMs get one card listing who healed.
 - **Retraining.** Changing a commanded warband's upgrades takes a week; the tab
-  says until when, and it can't fight until then.
+  says until when, and it can't fight until then. The
+  [Downtime](Downtime.md#recruit-a-warband) window lists a character's warbands
+  with a link to each sheet.
 - If a GM's tab closes or disconnects while a payment is half done (the
   month or the arrears marked paid, the commander's coins not yet confirmed),
   the next start of the active GM, clock move, Charge a Month or Pay Arrears
