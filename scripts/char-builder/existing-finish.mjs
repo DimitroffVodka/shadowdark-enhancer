@@ -2,7 +2,7 @@ import { ABILITY_LABELS } from "./constants.mjs";
 import { loadActorSnapshot, hydrateState } from "./hydrate.mjs";
 import { planCommit, planIsEmpty } from "./commit-plan.mjs";
 import { applyPlan, IncompleteError, ApplyInProgressError } from "./commit-apply.mjs";
-import { takeBeforeImage } from "./before-image.mjs";
+import { takeBeforeImage, hasBeforeImage, describeBeforeImage, restoreBeforeImage } from "./before-image.mjs";
 
 /**
  * The Character Builder on an EXISTING character (#168 P4b): opening it (read the
@@ -147,13 +147,59 @@ export async function finishExisting(app, { confirm = defaultConfirm } = {}) {
   }
 
   // Whatever landed, start over from the live actor: a fresh baseline.
+  await reload(app);
+  return outcome;
+}
+
+/** Start the builder over from the live actor (a fresh baseline); close it if that fails. */
+async function reload(app) {
   try {
-    const fresh = await hydrateActor(actor);
+    const fresh = await hydrateActor(app.actor);
     if (fresh) await app.rebase(fresh); else await app.close();
   } catch (err) {
     console.error("shadowdark-enhancer | char-builder could not reload the character:", err);
     await app.close();
   }
+}
+
+/** The undo result line: only the parts that happened, in words. */
+function undoLine(name, r) {
+  const parts = [[r.created, "putBack"], [r.deleted, "removed"], [r.updated, "changed"]]
+    .filter(([c]) => c).map(([c, k]) => F(`${K}undoCount.${k}`, { count: c }));
+  return F(`${K}undoDone`, { name, what: parts.join(", ") || L(`${K}undoNothing`) });
+}
+
+/**
+ * Undo last save: one plain confirm (when the image was taken, how many items
+ * it holds), then restoreBeforeImage and a fresh baseline from the live actor.
+ * @param {{actor: Actor, rebase: Function, close: Function}} app
+ * @param {{confirm?: Function}} [deps]  the confirm dialog (a test seam)
+ * @returns {Promise<"none"|"cancelled"|"restored"|"partial"|"failed">}
+ */
+export async function undoLastSave(app, { confirm = defaultConfirm } = {}) {
+  const actor = app.actor;
+  const notify = ui.notifications;
+  const info = actor?.isOwner && hasBeforeImage(actor) ? describeBeforeImage(actor) : null;
+  if (!info) return "none";
+  const ok = await confirm({
+    title: F(`${K}undoTitle`, { name: actor.name }),
+    content: `<p>${esc(F(`${K}undoConfirm`, { when: new Date(info.at).toLocaleString(), count: info.items }))}</p>`,
+    yes: L(`${K}undoYes`),
+    no: L("SDE.charBuilder.commit.back"),
+  });
+  if (!ok) return "cancelled";
+
+  let outcome = "restored";
+  try {
+    const r = await restoreBeforeImage(actor);
+    if (!r.restored) return "none";
+    notify.info(undoLine(actor.name, r));
+  } catch (err) {
+    outcome = err instanceof IncompleteError ? "partial" : "failed";
+    console.error("shadowdark-enhancer | char-builder undo failed:", err);
+    notify.error(L(err instanceof IncompleteError ? `${K}undoIncomplete` : `${K}undoFailed`));
+  }
+  await reload(app);
   return outcome;
 }
 

@@ -18,11 +18,8 @@ never re-prompts you with level-up popups afterwards. Pick any level from
 |---|---|
 | **Actors sidebar** | Click **Character Builder** in the sidebar header. Visible to all users. |
 | **API** | `game.shadowdarkEnhancer.charBuilder.open()` |
-| **Edit an existing character** | `game.shadowdarkEnhancer.charBuilder.open({ actor })`, from the API or a macro. GM or owner only. See [Editing an existing character](#editing-an-existing-character). |
-| **Undo a build on an existing sheet** | `charBuilder.takeBeforeImage(actor)` saves the sheet's abilities, alignment, background, deity, coins, languages, name, art and every item; `charBuilder.restoreBeforeImage(actor)` puts them back (GM or owner). The image is kept until the next one replaces it. See `charBuilder.hasBeforeImage` and `describeBeforeImage`. |
-
-> There is no button for editing an existing character yet: the only ways in
-> are the API and a macro.
+| **Edit an existing character** | Click **Character Builder** in the header of a player character's sheet, or right-click the character in the Actors sidebar and choose **Edit in Character Builder**. GM or owner only, and only for player characters (never NPCs, mounts, boats, warbands or lights). Or `game.shadowdarkEnhancer.charBuilder.open({ actor })` from the API or a macro. See [Editing an existing character](#editing-an-existing-character). |
+| **Undo a save** | **Undo last save** in the builder's footer (see below). Through the API: `charBuilder.takeBeforeImage(actor)` saves the sheet's abilities, alignment, background, deity, coins, languages, name, art and every item; `charBuilder.restoreBeforeImage(actor)` puts them back (GM or owner). The image is kept until the next one replaces it. See `charBuilder.hasBeforeImage` and `describeBeforeImage`. |
 
 **Players can build characters freely.** If a player lacks actor-creation
 permissions, the builder transparently hands off document creation to the GM
@@ -68,12 +65,17 @@ quantity of something the character already owns costs nothing.
 If a write does not land, the message says which changes did not save. The builder
 has reloaded the character as it is; make those changes again and save.
 
-**Restore.** The backup holds the abilities, alignment, background, deity, coins,
-languages, name, art and every item as they were before the last save (only the
-latest one is kept).
-`game.shadowdarkEnhancer.charBuilder.restoreBeforeImage(actor)` puts them back
-exactly. Anything the builder never writes (hit points, XP, luck, effects) is not
-touched by either. There is no Restore button yet.
+**Undo last save.** Once a character has been saved from the builder, an **Undo
+last save** button appears in the footer (GM or owner). It asks once, telling you
+when the backup was taken and how many items it holds, then puts the character back
+as it was before that save and reloads the builder. A notification says what
+came back: items put back, items removed, other things changed. Only the latest save can be undone: each save replaces the backup.
+
+The limit: it puts back what the builder changed (abilities, alignment,
+background, deity, coins, languages, name, art and items). Anything the builder
+never writes (hit points, XP, luck, effects) is not touched by a save or by an
+undo, so it stays as it is now. For a macro,
+`game.shadowdarkEnhancer.charBuilder.restoreBeforeImage(actor)` does the same.
 
 ---
 

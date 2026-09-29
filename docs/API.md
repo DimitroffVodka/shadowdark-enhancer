@@ -679,8 +679,9 @@ await api.charBuilder.restoreBeforeImage(actor);  // GM or owner only: put the
                              // (call again, it does only what remains).
 ```
 
-Editing an existing actor (`open({ actor })` above; no button yet, so the API
-and macros are the only way in; internal modules under
+Editing an existing actor (`open({ actor })` above, reached from the Player
+sheet's header button, the Actor directory's "Edit in Character Builder" entry
+and the API; the builder's footer has Undo last save; internal modules under
 `scripts/char-builder/`, not on the API object): `hydrateState` reads the actor
 into a builder state with a frozen baseline, `planCommit(existing, state, live)`
 decides what Finish would change, and `applyPlan(actor, plan)` writes it.

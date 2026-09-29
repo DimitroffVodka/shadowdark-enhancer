@@ -3,7 +3,8 @@ import { invalidateConfiguredTables } from "./data.mjs";
 import { CharBuilderState, applyLevelChange } from "./state.mjs";
 import { DEFAULT_STAT_METHOD, MAX_CHAR_LEVEL } from "./constants.mjs";
 import { commitCharacter } from "./commit.mjs";
-import { hydrateActor, finishExisting } from "./existing-finish.mjs";
+import { hasBeforeImage } from "./before-image.mjs";
+import { hydrateActor, finishExisting, undoLastSave } from "./existing-finish.mjs";
 import { StatsStep } from "./steps/stats-step.mjs";
 import { AncestryStep } from "./steps/ancestry-step.mjs";
 import { OriginsStep } from "./steps/origins-step.mjs";
@@ -90,6 +91,7 @@ export class ShadowdarkCharBuilder extends HandlebarsApplicationMixin(Applicatio
       "cb-prev": ShadowdarkCharBuilder._onPrev,
       "cb-next": ShadowdarkCharBuilder._onNext,
       "cb-finish": ShadowdarkCharBuilder._onFinish,
+      "cb-undo": ShadowdarkCharBuilder._onUndo,
       "cb-dismiss": ShadowdarkCharBuilder._onDismiss,
       "cb-random": ShadowdarkCharBuilder._onRandom,
       "cb-full-random": ShadowdarkCharBuilder._onFullRandom,
@@ -178,6 +180,8 @@ export class ShadowdarkCharBuilder extends HandlebarsApplicationMixin(Applicatio
         allComplete: this.steps.every((s) => s.isComplete()),
         existing: !!this.builderState.existing,
         finishing: this._finishing,
+        // Undo last save: only while a before-image exists, for a GM or an owner.
+        canUndo: !!this.builderState.existing && !!this.actor?.isOwner && hasBeforeImage(this.actor),
         // Target level picker — a level-0 funnel build has no level to choose.
         // Level-ups are a later piece: re-scoping the level would drop the hydrated HP and spells.
         level: (this.builderState.level0 || this.builderState.existing) ? null : {
@@ -252,6 +256,11 @@ export class ShadowdarkCharBuilder extends HandlebarsApplicationMixin(Applicatio
   static async _onStepAction(event, target) {
     const changed = await this.activeStep.handleAction(target?.dataset?.action, event, target);
     if (changed !== false) await this.render();
+  }
+
+  static async _onUndo() {
+    if (this._finishing) return;
+    await undoLastSave(this);
   }
 
   static async _onFinish() {
