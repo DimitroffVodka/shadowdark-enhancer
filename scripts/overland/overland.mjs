@@ -39,7 +39,7 @@ import { MODULE_ID } from "../shared/module-id.mjs";
 import { CrawlState } from "../crawl-strip/crawl-state.mjs";
 import { authorizeActorFor, isActiveGM, queryActiveGM, refuseQuery, registerQuery } from "../shared/gm-relay.mjs";
 import { makeQueue } from "../quests/quest-core.mjs";
-import { hexReader, hexZonesFor, isHexMapScene, partyHex } from "../encounter/encounter-terrain.mjs";
+import { hasHexTerrain, hexReader, hexZonesFor, isHexMapScene, partyHex } from "../encounter/encounter-terrain.mjs";
 import { BOAT_TYPE, MOUNT_TYPE } from "../actors/register-actors.mjs";
 import { dawnAfter, dateParts, hourOfDay, startOfDay } from "../time/time-core.mjs";
 import { advanceOffDuty } from "../time/off-duty.mjs";
@@ -213,6 +213,8 @@ function membersFor(actorId) {
 /** The hex's region, from the print's region scan, cached with the encounter check's (#260). */
 async function withRegion(hex, scene = canvas.scene) {
   if (!hex) return null;
+  // A map with no numbering has no region to look up (the region scan names hexes by number).
+  if (!Number.isInteger(hex.num)) return { ...hex, region: null };
   try {
     return { ...hex, region: (await hexZonesFor(scene)).byNum.get(hex.num)?.zone ?? null };
   } catch {
@@ -239,9 +241,10 @@ export async function startOverland() {
     if (extras.length <= 1 && await placePartyToken(extras[0] ?? null)) chosen = chooseToken();
   }
   if (!chosen.tokenUuid) { ui.notifications?.warn(t("SDE.overland.notify.pickToken")); return false; }
-  // A print with no terrain tagged still travels, but every hex costs 1 and
-  // encounters use the active table: say so rather than let it look right.
-  if (!Object.keys(canvas.scene.getFlag(MODULE_ID, "hexTags")?.cells ?? {}).length) {
+  // A hex map that says nothing about its terrain (no tags, no Extras records)
+  // still travels, but every hex costs 1 and encounters use the active table:
+  // say so rather than let it look right.
+  if (!hasHexTerrain(canvas)) {
     ui.notifications?.warn(t("SDE.overland.notify.noTerrain"));
   }
   // A party token wears the party's hex; a selected NPC travels in its own art.
@@ -596,20 +599,23 @@ const isTravelMove = (doc, options) => CrawlState.isOverland && !!_state.tokenUu
   && doc?.uuid === _state.tokenUuid && !options?.[MODULE_ID]?.overlandRollback;
 
 /**
- * The steps of a move over the scene's grid: each tagged hex entered, the hex
- * it was entered from, and whether that leg was a displace (free).
+ * The steps of a move over the scene's grid: each hex entered on the map, the
+ * hex it was entered from, and whether that leg was a displace (free). A hex is
+ * told from the last by its place, for a map with no numbering has no numbers.
  */
-function moveSteps(doc, grid, origin, waypoints, read) {
+export function moveSteps(doc, grid, origin, waypoints, read) {
   const steps = [];
   let at = origin;
-  let from = read(grid.getOffset(doc.getCenterPoint(origin)));
+  let fromAt = grid.getOffset(doc.getCenterPoint(origin));
+  let from = read(fromAt);
   for (const wp of waypoints) {
     const displace = wp.action === "displace";
     for (const offset of grid.getDirectPath([doc.getCenterPoint(at), doc.getCenterPoint(wp)]).slice(1)) {
       const hex = read(offset);
-      if (!hex || hex.num === from?.num) continue;
+      if (!hex || (offset.i === fromAt.i && offset.j === fromAt.j)) continue;
       steps.push({ hex, from, displace });
       from = hex;
+      fromAt = offset;
     }
     at = wp;
   }
@@ -643,7 +649,7 @@ function costToday() {
   return (hex, from) => hexCost(byTerrain, hex, { from, stormy: s.stormy, harsh: !!s.harsh, boat: s.method === "sailing" });
 }
 
-/** Price a move of the travel token, or null when its scene isn't a tagged hex map. */
+/** Price a move of the travel token, or null when its scene isn't a hex map. */
 function priceTravelMove(doc, origin, waypoints) {
   const scene = doc.parent;
   const read = hexReader({ scene, grid: scene?.grid });

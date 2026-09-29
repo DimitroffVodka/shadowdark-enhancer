@@ -12,13 +12,13 @@
 import { MODULE_ID }        from "../shared/module-id.mjs";
 import { esc }              from "../shared/esc.mjs";
 import { CrawlState }       from "./crawl-state.mjs";
-import { isHexMapScene, isHexRulesScene } from "../encounter/encounter-terrain.mjs";
+import { isHexMapScene } from "../encounter/encounter-terrain.mjs";
 import { MovementTracker }  from "./movement-tracker.mjs";
 import { ICONS }            from "../shared/icons.mjs";
 import { relayToGM, authorizeActorFor, refuseQuery, registerQuery } from "../shared/gm-relay.mjs";
 import { computeLightState, isLightItem } from "./crawl-lights-core.mjs";
 import { canAdvanceTurn, canAdvanceOocTurn, nextTurnWouldRollRound } from "./crawl-turn-core.mjs";
-import { oocOrderComplete } from "./crawl-state-core.mjs";
+import { oocOrderComplete, stripShown } from "./crawl-state-core.mjs";
 import { combatantEntry, isHiddenFromStrip, isTurnless, commanderCombatant } from "./turn-skip-core.mjs";
 import { showOocReset } from "./crawl-tracker-core.mjs";
 import { dyingState, badgeHTML as dyingBadgeHTML, openMenu as openDyingMenu } from "../dying/dying.mjs";
@@ -643,10 +643,10 @@ export const CrawlStrip = {
     if (!this._el) return;
     const state = CrawlState;
 
-    // No Crawl Strip on a hex map outside a combat (#257): the party travels
-    // there as one token, and the clock HUD holds the top of the screen.
-    // Any hex map, the tagged print or an Extras hexcrawl: the clock bar holds the top there.
-    if (!state.isActive || (state.mode !== "combat" && (isHexMapScene() || isHexRulesScene(canvas?.scene)))) {
+    // No Crawl Strip on a hex map outside a combat (#257, #298): the party
+    // travels there as one token, and the clock HUD holds the top of the
+    // screen. Any hex grid is a hex map; the strip belongs to the other maps.
+    if (!stripShown({ active: state.isActive, mode: state.mode, hex: isHexMapScene() })) {
       this._el.innerHTML = "";
       this._el.classList.remove("sde-strip-visible");
       document.body.classList.remove("sde-strip-active");

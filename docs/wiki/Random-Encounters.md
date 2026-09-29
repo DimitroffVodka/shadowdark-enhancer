@@ -109,7 +109,7 @@ A hexcrawl book like the Western Reaches GM Guide prints an *Encounter Zone*
 grid for every region: one column per terrain, sometimes split by the time of
 day, the moon or the northern and southern half of the region. Once you have
 imported those grids (Importer Hub → Tables) and the map's regions are read
-(see [Hex Maps](Hex-Maps.md)), a hit on a tagged hex map rolls the column the
+(see [Hex Maps](Hex-Maps.md)), a hit on a tagged hex map (or one built with Extras' hex creator) rolls the column the
 book intends for the party's hex, ahead of your **Tables by terrain**:
 
 - **The region comes from the map**, the same answer the map's region picture

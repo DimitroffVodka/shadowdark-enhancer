@@ -151,8 +151,9 @@ export function normalizeOverlandState(value) {
     encounter: encounterOf(value.encounter),
     camp: campOf(value.camp),
     foraged: ids(value.foraged),
-    hex: hex && Number.isInteger(hex.num)
-      ? { num: hex.num, terrain: str(hex.terrain), region: str(hex.region), features: ids(hex.features) }
+    // A map with no numbering (Extras' records, #298) has a hex with a terrain and no number.
+    hex: hex && (Number.isInteger(hex.num) || str(hex.terrain))
+      ? { num: Number.isInteger(hex.num) ? hex.num : null, terrain: str(hex.terrain), region: str(hex.region), features: ids(hex.features) }
       : null,
   };
 }

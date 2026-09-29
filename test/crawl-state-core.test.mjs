@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
+  stripShown,
   STATE_VERSION,
   defaultCrawlState,
   normalizeCrawlState,
@@ -674,4 +675,13 @@ test("a v2 state reads as v3, and a newer one is marked future so it is never wr
   assert.equal(isFutureState(v2), false);
   assert.equal(isFutureState({ ...v2, _v: STATE_VERSION + 1 }), true);
   assert.equal(isFutureState({}), false);
+});
+
+test("the Crawl Strip shows on a map that is not a hex map, and on a hex map only in a combat (#298)", () => {
+  assert.equal(stripShown({ active: true, mode: "crawl", hex: false }), true, "a square scene in crawl mode");
+  assert.equal(stripShown({ active: true, mode: "combat", hex: false }), true);
+  assert.equal(stripShown({ active: true, mode: "crawl", hex: true }), false, "a hex map outside a combat");
+  assert.equal(stripShown({ active: true, mode: "combat", hex: true }), true, "a combat's own display takes over there");
+  assert.equal(stripShown({ active: false, mode: "off", hex: false }), false, "nothing running");
+  assert.equal(stripShown({ active: false, mode: "overland", hex: true }), false);
 });

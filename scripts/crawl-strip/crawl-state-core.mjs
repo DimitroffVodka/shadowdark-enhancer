@@ -19,6 +19,16 @@ const VALID_MODES = new Set(["off", "crawl", "combat", "overland"]);
 const VALID_PRIOR_MODES = new Set(["off", "crawl", "overland"]);
 
 /**
+ * Does the Crawl Strip show (#257, #298)? While a crawl or a combat runs, on a
+ * map that is not a hex map: the party travels a hex map as one token and the
+ * clock HUD holds the top of the screen there. A combat's own display takes
+ * over on any map.
+ * @param {{active:boolean, mode:string, hex:boolean}} q  active: a crawl or a combat; hex: the viewed scene is a hex map
+ * @returns {boolean}
+ */
+export const stripShown = ({ active, mode, hex }) => !!active && (mode === "combat" || !hex);
+
+/**
  * Was this persisted value written by a newer client than this one? Such a
  * state is read best-effort and never written back (crawl-state.mjs).
  * @param {object} raw  the setting as stored

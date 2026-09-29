@@ -2,15 +2,16 @@
  * Shadowdark Enhancer — the clock HUD at the top of the screen (#253, #257,
  * Overland O8; the look is the demo Patrick signed up for, docs/plans/overland.md §4).
  *
- * Always on (the `clockBar` setting says for whom; nobody during a combat):
- * the date with its year, the time, and a chevron for the sky, which hangs
+ * On a hex map only (#298), whatever the scene's tags: the `clockBar` setting
+ * says for whom, and nobody sees it during a combat or on a scene with no hex
+ * grid. The date with its year, the time, and a chevron for the sky, which hangs
  * the season band and the dial under the bar: a disc turning a 24th of a turn
  * an hour, with now at the bottom, the day's light, the twilight hatched, the
  * weather on its plate and the moon on the outer track. A GM also gets the
  * rewind and advance columns (a day, 8 hours, an hour, 10 minutes, a round),
  * the Time panel (jump to the next dawn, noon, dusk or midnight; set a date;
- * the real-time clock) and every day of the Month view as a jump. On a tagged
- * hex map the bar carries the travel plate: the hexes left while travelling,
+ * the real-time clock) and every day of the Month view as a jump. The bar
+ * carries the travel plate: the hexes left while travelling,
  * or Start travel for a GM, and the Travel panel.
  *
  * Moves: a step or a jump goes through Overland's clock action, so while
@@ -24,7 +25,7 @@
  */
 
 import { CrawlState } from "../crawl-strip/crawl-state.mjs";
-import { isHexMapScene, isHexRulesScene } from "../encounter/encounter-terrain.mjs";
+import { isHexMapScene } from "../encounter/encounter-terrain.mjs";
 import { esc } from "../shared/esc.mjs";
 import { MODULE_ID } from "../shared/module-id.mjs";
 import {
@@ -117,7 +118,7 @@ export const TravelBar = {
     Hooks.on("pauseGame", () => { if (this._open === "time") this.render(); });
     Hooks.on("canvasReady", () => {
       // A new kind of scene starts the view afresh: the sky shows on a hex map, not in a dungeon.
-      const kind = isHexMapScene() || isHexRulesScene(canvas?.scene) ? "hex" : "other";
+      const kind = isHexMapScene() ? "hex" : "other";
       if (kind !== this._sceneKind) {
         this._sceneKind = kind;
         this._sky = kind === "hex";
@@ -153,7 +154,7 @@ export const TravelBar = {
       if (this._stamp() !== this._drawn) this.render();
     });
     this._el = el;
-    this._sceneKind = isHexMapScene() || isHexRulesScene(canvas?.scene) ? "hex" : "other";
+    this._sceneKind = isHexMapScene() ? "hex" : "other";
     this._sky = this._sceneKind === "hex";
     this.render();
     // Centred over the canvas (#ui-middle), and no wider than the room between
@@ -186,7 +187,7 @@ export const TravelBar = {
     let setting = "all";
     try { setting = game.settings.get(MODULE_ID, "clockBar"); } catch { /* not registered yet */ }
     const combat = CrawlState.mode === "combat" || !!game.combat?.started;
-    return clockShown({ setting, isGM: !!game.user?.isGM, combat });
+    return clockShown({ setting, isGM: !!game.user?.isGM, combat, hex: isHexMapScene() });
   },
 
   render() {
