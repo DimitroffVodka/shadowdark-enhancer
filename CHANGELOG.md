@@ -485,6 +485,17 @@ page walks through it in order.
 
 ### Fixed
 
+- **Imported gear shows up in the Merchant Shop, and things with no price
+  leave it.** The Catalog tab only read the system's two gear packs, so the
+  Basic Gear, weapons and armor the importers wrote never appeared. It now
+  lists the imported items pack as well, and the Manage tab's compendium
+  browser can add from it. Items with no list price (the three Light Spell
+  stand-ins, the Basilisk Egg, most magic items) are no longer sold there for
+  free, and neither are the spells and talents in the imported pack or props
+  from treasure tables; a catalog buy of any of them is refused. Already
+  imported worlds need nothing: the shop reads what is there. To sell an
+  unpriced item, add it on the Manage tab with a price. (#291)
+
 - **Random ancestry no longer turns a Half-elf into an Elf.** A table result
   matched any ancestry whose name it contained, so the population d100's
   Half-elf rows made Elves in a world without half-elves. A result now names

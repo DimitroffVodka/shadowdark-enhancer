@@ -26,6 +26,7 @@ import {
   isCoinEntry, parseValue, stripPrice, isDeferredType, fabricateTreasureItem,
 } from "../loot/loot-pack.mjs";
 import { resolveInlineSubroll } from "../loot/subroll.mjs";
+import { IMPORTED_ITEMS_PACK, isShopType, isCatalogStock } from "./catalog-stock.mjs";
 // Downtime's "extortion" outcome arms a ONE-SHOT ±25% swing on a single
 // character. It is deliberately per-actor (an actor flag) rather than a tweak
 // to `ctx.buyMultiplier`, which is shop-wide and GM-authored: one character's
@@ -1020,6 +1021,11 @@ export const MerchantShop = {
     // Load the item from compendium
     const doc = await fromUuid(itemUuid);
     if (!doc) return this._broadcastError(game.i18n.localize("SDE.merchant.notify.itemNotInCompendium"), userId);
+    // The pack is not the whole rule: an unpriced item, or a spell or talent from
+    // the imported pack, is not for sale even under a real catalog uuid.
+    if (!isCatalogStock(doc)) {
+      return this._broadcastError(game.i18n.localize("SDE.merchant.notify.notInCatalog"), userId);
+    }
 
     const cost = doc.system.cost ?? { gp: 0, sp: 0, cp: 0 };
     const catMult = ctx.buyMultiplier / 100;
@@ -1656,16 +1662,23 @@ export const MerchantShop = {
 
 // ── ApplicationV2: MerchantShopApp ──────────────────────────────────────────
 
+// The imported-items pack is where every importer (Western Reaches, the GM
+// Guide, the Player's Guide, City of Masks, the Cursed Scrolls) writes its gear.
 const ITEM_PACKS = [
   "shadowdark.gear",
   "shadowdark.magic-items",
+  IMPORTED_ITEMS_PACK,
 ];
 
 /** Packs available in the Catalog tab. */
 const CATALOG_PACKS = [
   "shadowdark.gear",
   "shadowdark.magic-items",
+  IMPORTED_ITEMS_PACK,
 ];
+
+/** The listed packs that exist in this world (the imported one appears with the first import). */
+const _presentPacks = (ids) => ids.filter(id => game.packs.has(id));
 
 class MerchantShopApp extends HandlebarsApplicationMixin(ApplicationV2) {
   static DEFAULT_OPTIONS = {
@@ -1890,20 +1903,21 @@ class MerchantShopApp extends HandlebarsApplicationMixin(ApplicationV2) {
       });
 
       // Pack list for filter
-      catalogPacks = CATALOG_PACKS.map(p => ({
+      catalogPacks = _presentPacks(CATALOG_PACKS).map(p => ({
         id: p,
         label: game.packs.get(p)?.metadata?.label ?? p,
         selected: p === this._catalogPack,
       }));
 
-      // Folder list (only for the selected pack, or all gear folders if "all")
+      // Folder list (only for the selected pack, or the gear pack's if "all"),
+      // limited to folders that hold something for sale: the imported pack also
+      // has spell and talent folders.
       const folderPack = this._catalogPack !== "all" ? this._catalogPack : "shadowdark.gear";
-      const pack = game.packs.get(folderPack);
-      if (pack?.folders?.size) {
-        catalogFolders = [...pack.folders]
-          .map(f => ({ id: f.id, name: f.name, selected: f.id === this._catalogFolder }))
-          .sort((a, b) => a.name.localeCompare(b.name));
-      }
+      const seen = new Map();
+      for (const e of catalog) if (e.packId === folderPack && e.folder) seen.set(e.folder, e.folderName);
+      catalogFolders = [...seen]
+        .map(([id, name]) => ({ id, name, selected: id === this._catalogFolder }))
+        .sort((a, b) => a.name.localeCompare(b.name));
     }
 
     return {
@@ -1929,7 +1943,7 @@ class MerchantShopApp extends HandlebarsApplicationMixin(ApplicationV2) {
       actorId: this._actorId,
       npcActors,
       compendiumItems,
-      compendiumPacks: ITEM_PACKS.map(p => ({
+      compendiumPacks: _presentPacks(ITEM_PACKS).map(p => ({
         id: p,
         label: game.packs.get(p)?.metadata?.label ?? p,
         selected: p === this._compendiumPack,
@@ -2031,6 +2045,7 @@ class MerchantShopApp extends HandlebarsApplicationMixin(ApplicationV2) {
       if (!pack) return [];
       const index = await pack.getIndex();
       this._compendiumCache = index.contents
+        .filter(isShopType)
         .map(e => ({ name: e.name, uuid: e.uuid, img: e.img }))
         .sort((a, b) => a.name.localeCompare(b.name));
       this._compendiumCache._packId = packId;
@@ -2048,14 +2063,16 @@ class MerchantShopApp extends HandlebarsApplicationMixin(ApplicationV2) {
   }
 
   async _loadCatalog() {
-    if (this._catalogCache) return this._catalogCache;
-
+    // Rebuilt on every render (Foundry caches the index): the shop window lives
+    // as long as the page, and an import made meanwhile must show up.
     const items = [];
     for (const packId of CATALOG_PACKS) {
       const pack = game.packs.get(packId);
       if (!pack) continue;
 
-      const index = await pack.getIndex({ fields: ["system.cost"] });
+      const index = await pack.getIndex({
+        fields: ["system.cost", `flags.${MODULE_ID}.fromTreasureTable`, `flags.${MODULE_ID}.generated`],
+      });
       const packLabel = pack.metadata.label;
 
       // Build folder name map
@@ -2065,6 +2082,7 @@ class MerchantShopApp extends HandlebarsApplicationMixin(ApplicationV2) {
       }
 
       for (const entry of index.contents) {
+        if (!isCatalogStock(entry)) continue;
         const cost = entry.system?.cost ?? { gp: 0, sp: 0, cp: 0 };
         items.push({
           name: entry.name,

@@ -37,6 +37,16 @@ or chat cards until you close the shop.
 Use **NPC inventory mode** for wandering merchants and peddlers: selling goods
 depletes the NPC's actual stock.
 
+### What the Catalog tab lists
+
+The Catalog tab sells at list price from the Shadowdark gear and magic-item
+packs and from your imported items (Western Reaches, the GM Guide, the
+Player's Guide, City of Masks). It lists gear that has a price. An item with no
+price (the Light Spell stand-ins, the Basilisk Egg, most magic items) is not
+for sale there, and neither are the spells and talents the importers keep in the
+same pack or the props that come out of treasure tables. To sell one anyway,
+add it on the **Manage** tab and give it a price of your own.
+
 ---
 
 ## The buy list
