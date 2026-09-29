@@ -119,7 +119,7 @@ export function skyScenes({ active = null, travel = null, follows }) {
 
 /**
  * Does this scene follow the sky? The scene's own choice, else yes for a
- * tagged hex map and no everywhere else, so a dungeon stays as it is.
+ * hex map (any hex grid) and no everywhere else, so a dungeon stays as it is.
  * @param {"on"|"off"|"default"|undefined} choice  the scene's followsSky flag
  */
 export const followsSky = (choice, isHexMap) => (choice === "on" ? true : choice === "off" ? false : !!isHexMap);

@@ -122,9 +122,9 @@ const { applySky, applySkies, applyWeatherVisuals, onDrawWeatherEffects, registe
 const { registerOverland, OVERLAND_CHANGED } = await import("../scripts/overland/overland.mjs");
 
 /** A stubbed Scene that keeps its flags and applies its updates, so a reload is a fresh stub with the same data. */
-function scene({ hex = true, follows, darkness = 0, locked = false, weather = "", owned, id = "s" } = {}) {
+function scene({ hex = true, tagged = true, follows, darkness = 0, locked = false, weather = "", owned, id = "s" } = {}) {
   const writes = [];
-  const flags = { hexTags: hex ? { origin: {} } : null, followsSky: follows, skyWeather: owned };
+  const flags = { hexTags: hex && tagged ? { origin: {} } : null, followsSky: follows, skyWeather: owned };
   const doc = {
     writes, weather, flags, id,
     grid: { isHexagonal: hex },
@@ -164,6 +164,20 @@ test("the active GM darkens a hex map at night to its cap, animated for a short 
   const jump = scene();
   await applySky(jump, { dt: 86400 });
   assert.deepEqual(jump.writes[0].options, {}, "a long jump isn't animated");
+});
+
+test("any hex grid follows the sky, tagged or not; the scene's own choice still wins (#298)", async () => {
+  sky();
+  const untagged = scene({ tagged: false });
+  await applySky(untagged, { dt: 60 });
+  assert.equal(untagged.writes[0].changes["environment.darknessLevel"], 0.6, "an untagged hex map is darkened to the hex cap");
+  const off = scene({ tagged: false, follows: "off" });
+  await applySky(off);
+  assert.deepEqual(off.writes, [], "marked not to follow");
+  const rows = scene({ tagged: false });
+  rows.grid.columns = false;
+  await applySky(rows);
+  assert.equal(rows.writes.length, 1, "a row-oriented hex grid too");
 });
 
 test("a dungeon, a locked scene and another GM are left alone; no other module is consulted", async () => {

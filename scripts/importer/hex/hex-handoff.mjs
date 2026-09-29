@@ -14,6 +14,7 @@ import { replaceModuleFlag } from "../../shared/module-flags.mjs";
 import { HEX_FLAG } from "./hex-commit.mjs";
 import { buildHexDataset, hexNum, mergeFeatures, ZONE_COLOR } from "./hex-dataset.mjs";
 import { t } from "../importer-hub-shared.mjs";
+import { extrasRecordsByOffset } from "../../hex-map/extras-records.mjs";
 
 /**
  * Extras' compatible hex API when it mounts the agreed namespace, else null.
@@ -209,10 +210,6 @@ export async function importDatasetRecords(sceneId, dataset, opts = {}) {
  */
 export const SETTLEMENTS_SENT_FLAG = "extrasSettlementsSent";
 
-/** Where Shadowdark Extras keeps every hex record: one flag on one journal entry. */
-const EXTRAS_ID = "shadowdark-extras";
-const EXTRAS_HEX_JOURNAL = "__sdx_hex_data__";
-
 /**
  * Every record Extras holds for a scene, keyed by published number, or null
  * when there is nothing to read.
@@ -240,10 +237,10 @@ export async function extrasHexRecords(sceneId, base = 1) {
 
 /** An Extras without getHexRecords: its private store, read directly. */
 function storedHexRecords(sceneId, base) {
-  const stored = globalThis.game?.journal?.getName?.(EXTRAS_HEX_JOURNAL)?.getFlag?.(EXTRAS_ID, "hexData")?.[sceneId];
+  const stored = extrasRecordsByOffset(sceneId);
   if (!stored) return null;
   const out = {};
-  for (const [key, record] of Object.entries(stored)) {
+  for (const [key, record] of stored) {
     const [i, j] = key.split("_").map(Number);
     if (Number.isInteger(i) && Number.isInteger(j)) out[(j + base) * 100 + i + base] = record;
   }

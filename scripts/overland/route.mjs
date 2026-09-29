@@ -1,7 +1,7 @@
 /**
  * Shadowdark Enhancer — the route on the hex map (#257, the demo's click-to-travel).
  *
- * While travelling on a tagged hex map with the travel token selected, the
+ * While travelling on a hex map with the travel token selected, the
  * cheapest route from it to the hex under the cursor is drawn: a line through
  * the hexes, each outlined with what it costs, and a tooltip with the hexes,
  * the miles, the points and the hours, or why there's no way. A click on a
@@ -32,7 +32,7 @@ let _walking = false;
 /** Held at least this long, a press is core's ping, not a click. */
 const LONG_PRESS = foundry.canvas?.interaction?.MouseInteractionManager?.LONG_PRESS_DURATION_MS ?? 500;
 
-/** The travel token, when this user has it selected on a tagged hex map while travelling. */
+/** The travel token, when this user has it selected on a hex map while travelling. */
 function travelToken() {
   const s = overlandState();
   if (!CrawlState.isOverland || !isHexMapScene() || !s.tokenUuid) return null;

@@ -573,6 +573,17 @@ page walks through it in order.
 
 ### Changed
 
+- **Any scene with a hex grid is a hex map.** Overland travel, the Travel
+  button, the route preview, the travel clock, weather, camp and the sky no
+  longer need the Hex Tagger's tags: a map you drew yourself, or one built
+  with Shadowdark Extras' hex creator, is recognised. A tag, or the terrain
+  Extras records on its hex maps, still gives each hex its move cost and its
+  encounter table; with neither, every hex costs 1 point and encounters use
+  the active table, which Start travel says once. The clock bar now shows on
+  hex maps only, and the Crawl Strip on the other maps only (a combat's own
+  display still takes over on a hex map). A 5 ft hex battle map is a hex map
+  too, so it has no token light or sight. Square-grid scenes and tagged maps
+  work as before. (#298)
 - **Importing the Western Reaches ancestry d100 switches the builder to it.**
   When the Character Builder's Random ancestry table has never been set,
   importing "Ancestry (Population)" sets it, and a notification says so. A

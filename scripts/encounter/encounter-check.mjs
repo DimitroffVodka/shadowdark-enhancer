@@ -66,7 +66,7 @@ export const EncounterCheck = {
     const threshold = Number.isInteger(chance) ? chance : game.settings.get(MODULE_ID, "encounterThreshold");
     const roll = await new Roll("1d6").evaluate();
     const hit = roll.total <= threshold;
-    // On a tagged hex map the party's hex names itself on the card and picks
+    // On a hex map the party's hex names itself on the card and picks
     // the table; everywhere else this is null and nothing below changes.
     const hex = travelHex ? { ...travelHex, zone: travelHex.zone ?? travelHex.region ?? undefined } : partyHex();
     // The table for a hit: the region's column for this hex, resolved at the
@@ -138,10 +138,10 @@ export const EncounterCheck = {
       ? game.i18n.format("SDE.encounter.check.flavorHit", { threshold })
       : game.i18n.format("SDE.encounter.check.flavorMiss", { threshold });
     // "Hex 3723 · forest, river · Lowland Moor: Forest" when the party stands
-    // on a tagged hex map, the last part naming the column a hit rolls.
+    // on a numbered hex map, the last part naming the column a hit rolls.
     const column = table?.verdict?.column?.column;
     const where = [label, ...(hex
-      ? [game.i18n.format("SDE.encounter.check.hex", { num: hex.num }), [hex.terrain, ...(hex.features ?? [])].filter(Boolean).join(", ").replace(/_/g, " "),
+      ? [Number.isInteger(hex.num) ? game.i18n.format("SDE.encounter.check.hex", { num: hex.num }) : "", [hex.terrain, ...(hex.features ?? [])].filter(Boolean).join(", ").replace(/_/g, " "),
         column ? `${table.zone}: ${column}` : ""]
       : [])].filter(Boolean).join(" · ");
 
