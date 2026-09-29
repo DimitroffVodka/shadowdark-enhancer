@@ -90,6 +90,16 @@ it needs.
   no party token there and nothing selected. A player's own token never
   travels. (#257)
 
+- **Fair days show the season.** On the map, a fair day now shows falling snow
+  in winter and falling leaves in autumn, and nothing in spring and summer; a
+  storm is still a rain storm (a blizzard in the cold) and an excellent day
+  shows nothing. It is cosmetic: the weather and its rules are unchanged. A
+  weather effect you picked yourself is left alone. (#294)
+- **Show weather effects, per device.** A client setting (on by default) that
+  turns the scene's weather drawing off on a slow device such as a Steam Deck.
+  The scene keeps its weather and other screens still show it. It applies at
+  once, with no scene redraw, and holds through the redraw a weather change
+  causes. (#294)
 - **The clock bar.** The date with its year, the time and the sky now sit at
   the top of the screen for everyone, on every scene, in the look of the
   Overland demo: black, the engraved frame, the book's blackletter. Under it,
@@ -508,6 +518,12 @@ page walks through it in order.
 
 ### Fixed
 
+- **The sky follows the party's map.** Darkness and weather were written only
+  to the world's active scene, so with a dungeon active while the party token
+  stood on the hex map, the map never darkened and never showed a storm. The
+  sky now covers the active scene and the scene the travel token is on, and
+  is set again whenever Overland's state changes. A write that fails on one
+  scene no longer stops the other. (#294)
 - **Imported gear shows up in the Merchant Shop, and things with no price
   leave it.** The Catalog tab only read the system's two gear packs, so the
   Basic Gear, weapons and armor the importers wrote never appeared. It now

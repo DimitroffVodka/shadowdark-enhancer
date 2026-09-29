@@ -262,10 +262,28 @@ with forage and camp.
 - **The sky.** Outdoor scenes darken with the clock:
   - Darkness is 0 by day. It deepens over the hour after sunset, to a night
     that a full moon lightens, and lifts over the hour before sunrise.
-  - A storm shows as rain, or as a blizzard in a cold climate.
+  - A storm shows as rain, or as a blizzard in a cold climate. A fair day
+    shows the season, and the rules for a fair day are unchanged:
+
+    | Today's weather | Winter | Autumn | Spring | Summer |
+    |---|---|---|---|---|
+    | Stormy | rain storm (blizzard in a cold climate) | same | same | same |
+    | Fair | snow | falling leaves | nothing | nothing |
+    | Excellent | nothing | nothing | nothing | nothing |
+
+    Overland only ever changes or clears an effect it put there; one you
+    picked on the scene yourself is left alone.
   - The tagged hex map counts as outdoors and only darkens to a readable
     tint. Any other scene joins in when you set **Follows the sky** to Yes in
     its Scene Configuration, on the Environment tab; dungeons are left alone.
+  - The sky is written to the active scene and to the scene the travel token
+    is on, so the map darkens and shows the weather even while a dungeon is the
+    world's active scene. Each of the two must follow the sky.
+  - Weather changes redraw the whole scene on every screen that shows it,
+    which is slow on a very large map or a weak device. Each device has a
+    **Show weather effects** setting (see [Settings Reference](Settings-Reference.md));
+    turned off, that device draws no weather while the scene keeps it for
+    everyone else.
   - A scene whose darkness is locked is left alone, and so is a weather effect
     you picked yourself. No calendar module is needed.
   - On the Isles of Andrik, the summer sun never sets and the winter night
