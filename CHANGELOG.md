@@ -11,6 +11,16 @@ it needs.
 
 ### Added
 
+- **Terrains on this map, and hex numbers on the legend.** The Hex Tagger's
+  terrain choices came from one list written for the Western Reaches, so a map
+  with a forest, a lake and a river was asked about arctic sea and lava on every
+  card. A new **Terrains on this map** box above the cards lets the GM tick what
+  the map has (and add a word of their own, like hills); the legend, the review
+  sheets and the brush then offer only those, plus settlements and keyed
+  locations. The ticks are saved with the map, and a hex already tagged with an
+  unticked terrain stays selectable. Every legend picture is now labelled with
+  its hex number, and clicking one takes the map to that hex and marks it for
+  the GM alone.
 - **Set the hex grid's corners by hand in Hex map from image.** When the
   detector puts the grid on the wrong hexes, or finds none, the confirmation
   window has a **Set the corners by hand** button: click the middle of the

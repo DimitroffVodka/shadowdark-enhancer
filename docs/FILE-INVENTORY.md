@@ -1,7 +1,7 @@
 # Shadowdark Enhancer — File Inventory
 
 <!-- inventory:stats:start -->
-1120 tracked files · ~202,600 lines of code/markup across scripts+templates+styles+test.
+1120 tracked files · ~202,800 lines of code/markup across scripts+templates+styles+test.
 `v0.17.3` in both `module.json` and `package.json`.
 <!-- inventory:stats:end -->
 **Layout reflects the 2026-07-21 feature-folder reorganization (v0.11.0 cycle).**
@@ -70,7 +70,7 @@
 | `hex-map/hex-map-flow.mjs` | 351 | Hex map from an image: file dialog, lattice detection, confirmation preview with corners set by hand, upload into the world folder, an aligned scene (stretch to Foundry's pitches, offset to cell 0,0), tagger opened on its legend. |
 | `hex-map/hex-pins.mjs` | 126 | Keyed hexes as map notes: deploys the crawl journal into the world with stable ids (links rewritten), plans one Note per keyed page at its hex centre (pure planner), moves existing pins on re-run. |
 | `hex-map/hex-region.mjs` | 289 | Which region is a hex in: the book's own word for a keyed hex, the nearest keyed hex's region for any other (84.8% on the Western Reaches, leave-one-out over the book's own keyed rows). Seeds come from the filed crawls; nothing is stored. |
-| `hex-map/hex-tagger-app.mjs` | 1654 | Hex Tagger AppV2: contact sheet over the active hex scene, anchor numbering, tags on the scene flag, dataset hand-off. |
+| `hex-map/hex-tagger-app.mjs` | 1709 | Hex Tagger AppV2: contact sheet over the active hex scene, anchor numbering, tags on the scene flag, dataset hand-off. |
 | `hex-map/ink.mjs` | 62 | Whole-image 0/1 ink bitmap at a working scale, one browser resize then strip reads; ink threshold from the paper's brightness. Browser-bound. |
 | `hex-map/lattice.mjs` | 448 | Hex lattice detection from a map's ink: row and column pitch by autocorrelation, phase by folding long horizontal runs, the hex field by outline support with frame-cut half cells, edge-band pitch refinement, and a lattice hung on two hand-placed corner cells. Pure. |
 | `hex-map/legend.mjs` | 250 | The legend: cells grouped by glyph with k-means++ over masked cell features (restarts, lowest inertia kept), one card per group with sample members and a core that becomes the hand tags. Pure. |
@@ -78,8 +78,8 @@
 | `hex-map/region-scan.mjs` | 238 | Region borders read off the print: the thick line a hexcrawl map draws along a hex edge, measured across the whole edge so a river crossing it is not mistaken for one, then flood-filled into enclosures. Reuses the cell bitmaps the tagger already built, so it costs no extra image reads (45 ms for 4768 hexes). Pure. |
 | `hex-map/sampler.mjs` | 153 | Reads the active scene's background per hex cell (one drawImage each) for bitmaps and thumbnails; scene→image transform from the drawn sprite. |
 | `hex-map/tag-corrections.mjs` | 337 | What the GM judged about the classifier, kept on the scene: per-cell corrections (was, now, margin, whether it was flagged) and wrong/judged counts per margin band, plus the scene's review margin and the report that says what it catches. Pure. |
-| `hex-map/tag-overlay.mjs` | 777 | The tag overlay: every numbered hex drawn on the map in its terrain colour, dots for river/path/coast, an amber ring on unsure automatic cells; hover names a hex, a click edits it through the same scene-flag write. |
-| `hex-map/tag-store.mjs` | 453 | The tagger's scene-flag store: compact `terrain;feature\|source` strings (terrain is what a hex is, features what runs through it), coast derivation, sheet selection (random/keyed/review), dataset tags. Pure. |
+| `hex-map/tag-overlay.mjs` | 780 | The tag overlay: every numbered hex drawn on the map in its terrain colour, dots for river/path/coast, an amber ring on unsure automatic cells; hover names a hex, a click edits it through the same scene-flag write. |
+| `hex-map/tag-store.mjs` | 475 | The tagger's scene-flag store: compact `terrain;feature\|source` strings (terrain is what a hex is, features what runs through it), coast derivation, sheet selection (random/keyed/review), dataset tags. Pure. |
 | `holidays/holidays.mjs` | 211 | Holidays for carousing (#191): the four City of Masks holidays (CS6 pp.46-47) as recipes (name, page, place, `when` anchor, carousing mechanics, garb questions with modifiers), no book wording; pure `whenMatches(rule, dateInfo)` / `placeMatches`, and `holidays.list()` / `today({place})`, which list a holiday once its page is imported by the Chapter-to-journal preset. `currentDateInfo()` reads the core calendar, with `isLastFullMoonOfYear` from the time API's `anchor("lastFullMoon")` (#227), so Lastmoon falls. |
 | `luck-reroll/hard-luck.mjs` | 57 | Hard Luck Mode (GMWR p.30, #186), pure: the system's criticalFailure test with a plain-d20 fallback, and the luck-granting spell/ability (Bless, Trance, Omen) a roll came from, by name. |
 | `modes-of-play/blitz.mjs` | 100 | Blitz Mode (#179): lighting a Basic light source clamps its remaining time to 30 min (and marks it used); a light spell's Effect is created with 30 min. Pure patch helpers + preUpdateItem/preCreateItem hooks. |

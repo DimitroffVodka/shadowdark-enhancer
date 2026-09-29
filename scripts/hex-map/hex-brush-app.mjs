@@ -112,7 +112,7 @@ export class HexBrushApp extends HandlebarsApplicationMixin(ApplicationV2) {
     return {
       sceneName: scene?.name ?? t("SDE.hexMap.label.noScene"),
       features: FEATURES.map((o) => ({ value: o, label: t(FEATURE_LABELS[o]), checked: !!brush?.features?.includes(o) })),
-      terrainOptions: terrainOptions(state.cells).map((o) => ({ ...o, selected: o.value === brush?.terrain })),
+      terrainOptions: terrainOptions(state.cells, state.palette).map((o) => ({ ...o, selected: o.value === brush?.terrain })),
       other: OTHER,
       painted: HexTagOverlay.current?.lastStroke?.size ?? 0,
     };
