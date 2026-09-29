@@ -75,11 +75,16 @@ export function registerActorTypes() {
     };
     // One unit, one actor: its tokens are linked, so every warband is a world
     // actor the commander's allowance counts. A copy (Duplicate, an import)
-    // starts without a commander, so taking one goes through the allowance.
+    // starts without a commander, so taking one goes through the allowance,
+    // and without the original's arrears, desertion or upkeep marks (its
+    // upgrades stay).
     Hooks.on("preCreateActor", (doc, data) => {
       if (doc.type !== WARBAND_TYPE) return;
       const update = { "prototypeToken.actorLink": true };
-      if (data?.flags?.[MODULE_ID]?.warband?.commander) update[`flags.${MODULE_ID}.warband.commander`] = null;
+      if (data?.flags?.[MODULE_ID]?.warband) {
+        const start = { commander: null, arrears: 0, deserted: false, settledMonths: [], moraleWeeks: [], retrainingUntil: null };
+        for (const [key, value] of Object.entries(start)) update[`flags.${MODULE_ID}.warband.${key}`] = value;
+      }
       doc.updateSource(update);
     });
     DSC.registerSheet(Actor, MODULE_ID, buildWarbandNpcSheet(BaseNpcSheet, WARBAND_TYPE), {
