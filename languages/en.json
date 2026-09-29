@@ -589,7 +589,7 @@
   "SDE.charBuilder.existing.incomplete": "Some changes to {name} did not save: {undone}. The builder has reloaded the character as it is now. Make those changes again and save.",
   "SDE.charBuilder.existing.undo": "Undo last save",
   "SDE.charBuilder.existing.undoTitle": "Undo last save on {name}",
-  "SDE.charBuilder.existing.undoConfirm": "Put the character back as it was before the last save (backup taken {when})? The backup holds {count} item(s). Only what the builder changed is put back; anything changed since, such as hit points or XP, stays.",
+  "SDE.charBuilder.existing.undoConfirm": "Put the character back as it was before the last save (backup taken {when})? The backup holds {count} item(s). Abilities, coins, languages and items go back to how they were at the backup, so gold or gear picked up since is lost. Hit points, XP and luck stay.",
   "SDE.charBuilder.existing.undoYes": "Undo last save",
   "SDE.charBuilder.existing.undoDone": "Put {name} back as it was before the last save: {what}.",
   "SDE.charBuilder.existing.undoNothing": "nothing needed changing",

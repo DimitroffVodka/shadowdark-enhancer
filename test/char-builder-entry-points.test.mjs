@@ -77,3 +77,9 @@ test("the directory context entry has the same visibility and opens the builder 
     assert.equal(contextEntry(actors, id).item.visible(contextEntry(actors, id).li), false, id);
   }
 });
+
+test("the directory context entry is not offered on an actor in a compendium", () => {
+  const actors = { packed: { ...actorOf("Player"), pack: "world.heroes" } };
+  const { item, li } = contextEntry(actors, "packed");
+  assert.equal(item.visible(li), false);
+});

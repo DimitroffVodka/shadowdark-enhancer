@@ -29,7 +29,7 @@ export function registerBuilderEntryPoints() {
     menuItems.push({
       label: "SDE.charBuilder.editExisting",
       icon: "fa-solid fa-user-plus",
-      visible: (li) => canEdit(actorOf(li)),
+      visible: (li) => { const actor = actorOf(li); return canEdit(actor) && !actor.pack; }, // world actors only
       onClick: (_event, li) => open(actorOf(li)),
     });
   });
