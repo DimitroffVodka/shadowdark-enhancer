@@ -254,7 +254,17 @@ with forage and camp.
 - **The sky.** Outdoor scenes darken with the clock:
   - Darkness is 0 by day. It deepens over the hour after sunset, to a night
     that a full moon lightens, and lifts over the hour before sunrise.
-  - A storm shows as rain, or as a blizzard in a cold climate.
+  - A storm shows as rain, or as a blizzard in a cold climate. A fair day
+    shows the season, and the rules for a fair day are unchanged:
+
+    | Today's weather | Winter | Autumn | Spring | Summer |
+    |---|---|---|---|---|
+    | Stormy | rain storm (blizzard in a cold climate) | same | same | same |
+    | Fair | snow | falling leaves | nothing | nothing |
+    | Excellent | nothing | nothing | nothing | nothing |
+
+    Overland only ever changes or clears an effect it put there; one you
+    picked on the scene yourself is left alone.
   - The tagged hex map counts as outdoors and only darkens to a readable
     tint. Any other scene joins in when you set **Follows the sky** to Yes in
     its Scene Configuration, on the Environment tab; dungeons are left alone.

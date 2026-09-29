@@ -67,6 +67,11 @@ it needs.
   no party token there and nothing selected. A player's own token never
   travels. (#257)
 
+- **Fair days show the season.** On the map, a fair day now shows falling snow
+  in winter and falling leaves in autumn, and nothing in spring and summer; a
+  storm is still a rain storm (a blizzard in the cold) and an excellent day
+  shows nothing. It is cosmetic: the weather and its rules are unchanged. A
+  weather effect you picked yourself is left alone. (#294)
 - **Show weather effects, per device.** A client setting (on by default) that
   turns the scene's weather drawing off on a slow device such as a Steam Deck.
   The scene keeps its weather and other screens still show it. It applies at

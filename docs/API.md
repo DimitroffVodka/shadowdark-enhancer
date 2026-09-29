@@ -1813,10 +1813,12 @@ any mode (the party may be crawling below the hex).
 ### The sky on scenes
 
 Added in 1.19.0 (Overland O9, #235; design §6.2, Q7). This isn't a call: the
-active GM keeps the active scene's darkness and weather effect in step with
-the clock, whether or not anyone is travelling.
+active GM keeps the darkness and weather effect of the active scene, and of
+the scene the Overland travel token is on (#294), in step with the clock,
+whether or not anyone is travelling.
 
-**Which scenes.** A scene follows the sky when Scene Configuration's
+**Which scenes.** Each of those two scenes is written once, if it follows
+the sky. A scene follows the sky when Scene Configuration's
 Environment tab says so. The choice is stored as the scene flag
 `shadowdark-enhancer.followsSky`: `"on"`, `"off"`, or `"default"`, which is
 yes for a tagged hex map and no everywhere else. Dungeons and interiors are
@@ -1836,8 +1838,10 @@ untouched unless marked.
 
 **Weather.**
 - `scene.weather` is Foundry's `rainStorm` while today's weather is stormy,
-  or its `blizzard` when the region's climate is cold or freezing, and
-  nothing otherwise.
+  or its `blizzard` when the region's climate is cold or freezing. On a fair
+  day it is the season's effect (#294): `snow` in winter, `leaves` in autumn,
+  nothing in spring and summer. Nothing on an excellent day or when no
+  weather holds. The table is `FAIR_DAY_EFFECT` in `sky-core.mjs`.
 - Overland takes only an empty weather slot. It records the effect it put
   there as the scene flag `shadowdark-enhancer.skyWeather`, in the same
   update, and only ever changes or clears an effect it recorded that is

@@ -3,7 +3,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
-  HEX_MAP_CAP, darknessAt, darknessMoved, followsSky, nightWithOverride, skyOverride, skyScenes, weatherEffect, weatherPlan,
+  FAIR_DAY_EFFECT, HEX_MAP_CAP, darknessAt, darknessMoved, followsSky, nightWithOverride, skyOverride, skyScenes, weatherEffect, weatherPlan,
 } from "../scripts/overland/sky-core.mjs";
 
 const SUN = { sunrise: 6, sunset: 18 };
@@ -32,11 +32,26 @@ test("the Isles of Andrik: the Midnight Sun in spring and summer, the Long Dark 
 });
 
 test("the weather effect: a rain storm, a blizzard in the cold, else none", () => {
-  assert.equal(weatherEffect({ stormy: true, climate: "Scorching" }), "rainStorm");
-  assert.equal(weatherEffect({ stormy: true, climate: "Freezing" }), "blizzard");
-  assert.equal(weatherEffect({ stormy: true, climate: "Cold" }), "blizzard");
-  assert.equal(weatherEffect({ stormy: true }), "rainStorm", "no climate known");
-  assert.equal(weatherEffect({ stormy: false, climate: "Freezing" }), "");
+  assert.equal(weatherEffect({ kind: "stormy", climate: "Scorching" }), "rainStorm");
+  assert.equal(weatherEffect({ kind: "stormy", climate: "Freezing" }), "blizzard");
+  assert.equal(weatherEffect({ kind: "stormy", climate: "Cold" }), "blizzard");
+  assert.equal(weatherEffect({ kind: "stormy" }), "rainStorm", "no climate known");
+  assert.equal(weatherEffect({ kind: null, climate: "Freezing" }), "", "no weather today");
+  assert.equal(weatherEffect({ climate: "Freezing" }), "");
+});
+
+test("fair days show the season: snow in winter, leaves in autumn, nothing else (#294)", () => {
+  assert.deepEqual(FAIR_DAY_EFFECT, { winter: "snow", autumn: "leaves", spring: "", summer: "" }, "the table, one line per season");
+  for (const [season, effect] of Object.entries(FAIR_DAY_EFFECT)) {
+    assert.equal(weatherEffect({ kind: "fair", season }), effect, `fair ${season}`);
+    assert.equal(weatherEffect({ kind: "excellent", season }), "", `excellent ${season} shows nothing`);
+  }
+  assert.equal(weatherEffect({ kind: "fair", season: null }), "", "no season known");
+  assert.equal(weatherEffect({ kind: "fair", season: "monsoon" }), "", "a season the table lacks");
+  assert.equal(weatherEffect({ kind: "fair", season: "toString" }), "", "nothing inherited from Object");
+  assert.equal(weatherEffect({ kind: "fair", season: "winter", climate: "Freezing" }), "snow", "a fair day is never a blizzard");
+  assert.equal(weatherEffect({ kind: "stormy", season: "summer", climate: "Cold" }), "blizzard", "a storm ignores the season");
+  assert.equal(weatherEffect({ kind: "stormy", season: "winter" }), "rainStorm");
 });
 
 test("weather ownership: Overland changes only what it put there, takes an empty slot, and lets go when someone else changes it (#251 review)", () => {
@@ -306,6 +321,44 @@ test("Show weather effects is a client setting, on by default, and hooks drawWea
   assert.deepEqual([ns, key, data.scope, data.config, data.type, data.default], ["shadowdark-enhancer", "weatherVisuals", "client", true, Boolean, true]);
   assert.equal(data.onChange, applyWeatherVisuals);
   assert.deepEqual(hooks.map(([name, fn]) => [name, fn]), [["drawWeatherEffects", onDrawWeatherEffects]]);
+});
+
+const FAIR = { ...STORMY, kind: "fair", roll: 3 };
+const EXCELLENT = { ...STORMY, kind: "excellent", roll: 6 };
+
+test("a fair day writes the season's effect and its record; a change of season is one write (#294)", async () => {
+  sky({ season: "winter", weather: FAIR });
+  const s = scene({ darkness: 0.6 });
+  await applySky(s);
+  assert.deepEqual(s.writes[0].changes, { weather: "snow", "flags.shadowdark-enhancer.skyWeather": "snow" });
+  sky({ season: "autumn", weather: FAIR });
+  await applySky(s);
+  assert.equal(s.writes.length, 2, "snow to leaves is one write");
+  assert.deepEqual(s.writes[1].changes, { weather: "leaves", "flags.shadowdark-enhancer.skyWeather": "leaves" });
+  sky({ season: "autumn", weather: STORMY, climate: "Temperate" });
+  await applySky(s);
+  assert.deepEqual(s.writes[2].changes, { weather: "rainStorm", "flags.shadowdark-enhancer.skyWeather": "rainStorm" }, "leaves to a storm, one write");
+  sky({ season: "autumn", weather: EXCELLENT });
+  await applySky(s);
+  assert.deepEqual(s.writes[3].changes, { weather: "", "flags.shadowdark-enhancer.skyWeather": DEL }, "an excellent day clears Overland's effect");
+  sky({ season: "summer", weather: FAIR });
+  const summer = scene({ darkness: 0.6 });
+  await applySky(summer);
+  assert.deepEqual(summer.writes, [], "a fair summer day shows nothing");
+});
+
+test("a GM's own effect is left alone on a fair day, and Overland's fair-day effect is cleared when the day ends (#294)", async () => {
+  sky({ season: "winter", weather: FAIR });
+  const gmRain = scene({ darkness: 0.6, weather: "rainStorm" });
+  await applySky(gmRain);
+  assert.deepEqual(gmRain.writes, [], "a GM's rain storm stays through Overland's snow");
+  const gmSnow = scene({ darkness: 0.6, weather: "snow" });
+  await applySky(gmSnow);
+  assert.deepEqual(gmSnow.writes, [], "a GM's snow is not taken over or recorded");
+  sky({ season: "winter" });
+  const ours = scene({ darkness: 0.6, weather: "snow", owned: "snow" });
+  await applySky(ours);
+  assert.deepEqual(ours.writes[0].changes, { weather: "", "flags.shadowdark-enhancer.skyWeather": DEL }, "the day's weather is over");
 });
 
 test("the sky follows the party's scene: a storm on the hex map with a dungeon active (#294)", async () => {

@@ -13,7 +13,8 @@
  *   Nothing is written when the scene's darkness is locked. No other module
  *   is consulted: a scene set to not follow the sky is the way out.
  * - Weather: Foundry's rainStorm when stormy, its blizzard when stormy in a
- *   cold climate, else none. Overland records the effect it put on a scene
+ *   cold climate, on a fair day the season's effect (FAIR_DAY_EFFECT: snow in
+ *   winter, leaves in autumn), else none. Overland records the effect it put on a scene
  *   (the skyWeather flag) and only ever changes or clears that one; a weather
  *   effect the GM chose, a rain storm included, is left alone (weatherPlan).
  * - The Isles of Andrik keep their own skies, by the party's region.
@@ -22,7 +23,7 @@
 import { MODULE_ID } from "../shared/module-id.mjs";
 import { isActiveGM } from "../shared/gm-relay.mjs";
 import { esc } from "../shared/esc.mjs";
-import { overlandState, travelScene, OVERLAND_CHANGED } from "./overland.mjs";
+import { overlandState, travelScene, weatherNow, OVERLAND_CHANGED } from "./overland.mjs";
 import { hourOfDay } from "../time/time-core.mjs";
 import {
   HEX_MAP_CAP, darknessAt, darknessMoved, followsSky, skyOverride, skyScenes, weatherEffect, weatherPlan,
@@ -82,7 +83,7 @@ export async function applySky(scene = game.scenes?.active, { dt = null } = {}) 
   const plan = weatherPlan({
     current: scene.weather ?? "",
     owned: scene.getFlag(MODULE_ID, SKY_WEATHER) ?? null,
-    effect: weatherEffect({ stormy: state.stormy, climate: state.climate?.label }),
+    effect: weatherEffect({ kind: weatherNow(), climate: state.climate?.label, season: api.season(now)?.key ?? null }),
   });
   if ("weather" in plan) updates.weather = plan.weather;
   // The record goes in the same update as the effect it records, so the two
