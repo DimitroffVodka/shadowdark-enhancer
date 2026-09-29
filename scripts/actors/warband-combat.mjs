@@ -138,4 +138,3 @@ export function registerWarbandCombat(type) {
     return false;
   });
 }
-

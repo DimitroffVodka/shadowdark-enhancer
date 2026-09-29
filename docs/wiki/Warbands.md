@@ -133,7 +133,10 @@ bastions.
   A warband in no one's service checks no morale: one just made or imported,
   a copy, or one whose Commander box you emptied. A warband whose commander
   died still has one.
-  **Return to Service** undoes a rout; clear its dead status yourself.
+  **Return to Service** undoes a rout: it clears the routed mark, takes the
+  defeated mark off its combatants in every combat, and removes the dead
+  status from its token. A warband at 0 HP is dead, not just routed, and
+  stays defeated.
 - **Area attacks.** A warband's attack card notes that it fills a near-sized
   area around its target and can split its damage dice among what it hits
   there. The splitting is yours to do.
