@@ -151,3 +151,16 @@ export function clockEvents({ from, to, secondsPerDay, week, offset, monthOf, la
   }
   return { events, skippedDays: Math.max(0, start - first) };
 }
+
+/**
+ * Whether a payment that was marked before its gold was taken went through, from the purse now (copper):
+ * `landed` (before less the cost), `not-landed` (before), or `unclear` (anything else: the purse moved
+ * by other means, or the commander is gone). Recovery reads this and never takes gold itself (#284 review).
+ * @param {{before:number, cost:number}} intent
+ * @param {number|null} purseNow  null: the purse can't be read
+ * @returns {"landed"|"not-landed"|"unclear"}
+ */
+export function decidePayment({ before, cost }, purseNow) {
+  if (purseNow === before - cost) return "landed";
+  return purseNow === before ? "not-landed" : "unclear";
+}

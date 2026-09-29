@@ -138,7 +138,7 @@ const marks = (v) => (Array.isArray(v) ? [...new Set(v.filter(Number.isFinite))]
  * A warband's state, cleaned, every field kept so a whole-flag write loses
  * none: `{ commander: uuid|null, upgrades: string[], arrears: gp owed,
  * deserted: bool, retrainingUntil: worldTime|null, settledMonths: number[],
- * moraleWeeks: number[] }` (#200, #204).
+ * moraleWeeks: number[], payment: object|null }` (#200, #204).
  */
 export function warbandState(actor) {
   const f = actor?.getFlag?.(MODULE_ID, WARBAND_FLAG) ?? {};
@@ -152,8 +152,17 @@ export function warbandState(actor) {
     // does neither twice, and a later month settled never hides an earlier one still owed (#284 review).
     settledMonths: marks(f.settledMonths),
     moraleWeeks: marks(f.moraleWeeks),
+    payment: cleanPayment(f.payment),
   };
 }
+
+/**
+ * The payment in flight, marked before its gold is taken: `{ id, pc: uuid, before, cost, month }`, `before`
+ * the commander's purse and `cost` the price in copper, `month` the month key it settles (null: the arrears).
+ * Whole with the mark in one write, so a client lost between the mark and the purse leaves both (#284 review).
+ */
+const cleanPayment = (p) => (typeof p?.id === "string" && typeof p.pc === "string" && Number.isFinite(p.before) && Number.isFinite(p.cost)
+  ? { id: p.id, pc: p.pc, before: p.before, cost: p.cost, month: Number.isFinite(p.month) ? p.month : null } : null);
 
 /** The allowance tier of a PC, from its class's hit die: "d4" | "d6" | "d8plus" | null. */
 export async function commanderTier(pc) {

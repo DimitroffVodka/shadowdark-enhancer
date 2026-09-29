@@ -2780,6 +2780,7 @@
   "SDE.warband.upkeep.item": "Upkeep: {warband}",
   "SDE.warband.upkeep.paid": "{commander} paid {gp} gp for {warband}.",
   "SDE.warband.upkeep.unconfirmed": "{warband}'s {gp} gp upkeep is marked paid, but taking it from {commander}'s purse couldn't be confirmed: check the purse and settle it by hand.",
+  "SDE.warband.upkeep.paymentUnclear": "{warband}'s {gp} gp payment from {commander}'s purse was interrupted, and the purse now matches neither outcome: nothing was taken or given back, so check the coins and settle it by hand.",
   "SDE.warband.upkeep.chargeLost": "{warband}'s upkeep due {date} didn't go through and couldn't be kept to try again (the console has the error): settle it by hand.",
   "SDE.warband.upkeep.checkLost": "{warband}'s morale check due {date} didn't go through and couldn't be kept to try again (the console has the error): roll it by hand.",
   "SDE.warband.upkeep.unpaid": "{commander} couldn't pay {gp} gp for {warband}: {owed} gp owed, and it checks morale each week.",

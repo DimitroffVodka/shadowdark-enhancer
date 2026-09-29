@@ -451,7 +451,12 @@ page walks through it in order.
   before. A charge that fails to save is tried again at the next clock move,
   for that warband only, and never taken twice; a Pay Arrears that fails
   takes nothing, so it can simply be pressed again. A payment that can't be
-  confirmed either way is whispered to the GMs to settle by hand. Changing a
+  confirmed either way is whispered to the GMs to settle by hand. A payment
+  a GM's client was lost in the middle of (marked paid, its coins never
+  confirmed) is checked against the commander's purse when the GM starts up
+  and before the next clock move, Charge a Month or Pay Arrears: taken, it
+  stands; not taken, it is owed again and charged once; anything else is
+  whispered to the GMs, and no gold is taken by the check itself. Changing a
   commanded warband's upgrades means a week of retraining. A copy of a
   warband starts with no arrears, desertion or upkeep record, and the warband
   writer itself refuses a compendium PC as commander, a PC the sender
