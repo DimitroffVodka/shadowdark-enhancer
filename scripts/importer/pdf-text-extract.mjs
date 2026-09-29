@@ -828,6 +828,7 @@ export function notifyGutterWarnings(result) {
 
 // Node-testable internals (no Foundry globals at module level).
 export const _internals = {
+  extractPageLines,
   detectGutter,
   _rowSplit,
   gutterRisks,
