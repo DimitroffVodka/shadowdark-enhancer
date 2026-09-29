@@ -471,7 +471,9 @@ page walks through it in order.
   GM's. A warband still retraining its upgrades can't attack. A warband with
   no commander, or whose commander was deleted, checks no morale. A rout is
   never left half done: the warband is marked destroyed even if Foundry
-  reports its routed flag failed to save. (#203)
+  reports its routed flag failed to save. Return to Service takes a routed
+  warband back into the fight: its combatants stop being defeated and its
+  token loses the dead status, unless it is at 0 HP. (#203)
 - **Encounter check frequency.** Right-click the Crawl Bar's **Encounter**
   button: **Check Frequency** runs from **1** (every crawl round, the default)
   to **10**. The count runs from the last check, automatic or manual, so a

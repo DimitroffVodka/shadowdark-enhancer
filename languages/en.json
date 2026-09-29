@@ -2770,7 +2770,7 @@
   "SDE.warband.runMonthTip": "Charge every warband's monthly upkeep now, as the clock does at each month start.",
   "SDE.warband.payArrears": "Pay Arrears",
   "SDE.warband.returnToService": "Return to Service",
-  "SDE.warband.returnToServiceTip": "Bring back a warband that deserted or routed. Its arrears stay until paid; a routed one keeps its dead status until you clear it.",
+  "SDE.warband.returnToServiceTip": "Bring back a warband that deserted or routed. Its arrears stay until paid; a routed one is put back in the fight unless it is at 0 HP.",
   "SDE.warband.notify.noCommanderToPay": "This warband has no commander to pay its {gp} gp arrears.",
   "SDE.warband.notify.cantPay": "{commander} can't pay the {gp} gp owed.",
   "SDE.warband.notify.payFailed": "Paying the {gp} gp arrears didn't go through: nothing was taken, and it's still owed. The console may say why.",

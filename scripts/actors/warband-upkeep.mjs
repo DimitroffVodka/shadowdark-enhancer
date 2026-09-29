@@ -331,6 +331,21 @@ async function onTimeAdvanced(type, { from, to, crossed }) {
 }
 
 /**
+ * Take a routed warband back into combat, as ActorSD._setDefeated took it out (the system has no
+ * inverse): its combatants in every combat lose `defeated` and its token loses `dead`. A unit at 0 HP
+ * is dead, not routed, and stays as it is. Each step reads the state it changes, so it is safe to repeat.
+ */
+async function undoDefeat(wb) {
+  if (!(Number(wb.system?.attributes?.hp?.value) > 0)) return;
+  const own = (c) => (wb.isToken ? c.tokenId === wb.token?.id : c.actorId === wb.id);
+  const mine = [...(game.combats ?? [])].flatMap((combat) => [...combat.combatants].filter(own));
+  for (const c of mine) if (c.defeated) await c.update({ defeated: false });
+  for (const a of new Set([wb, ...mine.map((c) => c.token?.actor)])) {
+    if (a?.statuses?.has("dead")) await a.toggleStatusEffect("dead", { active: false });
+  }
+}
+
+/**
  * The Warband tab's upkeep controls, on the active GM inside the warband
  * queue (warband-npc-sheet.mjs applyWarbandWrite): `runMonth` charges every
  * warband now, `payArrears` pays this one's from its commander, and
@@ -344,6 +359,8 @@ export async function upkeepWrite(action, wb, type) {
   }
   const st = warbandState(wb);
   if (action === "returnToService") {
+    // The rout's defeat comes off first: a restore that fails leaves the flag set, so pressing again finishes it.
+    if (st.routed) await undoDefeat(wb);
     await replaceModuleFlag(wb, WARBAND_FLAG, { ...st, deserted: false, routed: false });
     return { ok: true };
   }
