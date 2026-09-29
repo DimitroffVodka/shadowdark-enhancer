@@ -187,7 +187,6 @@ See [Movement Budgets](Movement-Budgets.md).
 | **Travel encounter chance (in 6)** | `1` (the book's) | A travel encounter check hits on this or less on a d6, 1 to 5; a pushed day adds one. Read at each roll, so a new chance counts from the next check. Also set from the Travel panel's Encounters step (**Adjust**). |
 | **Travel encounter checks by day** | `2` (the book's) | How many checks a travel day rolls between 06:00 and 17:00, 0 to 4. A new number starts at the next Start day. Also set from **Adjust**. |
 | **Travel encounter checks by night** | `2` (the book's) | How many checks a travel day rolls between 18:00 and 05:00, 0 to 4. A new number starts at the next Start day. Also set from **Adjust**. |
-
 | **Show weather effects** (`weatherVisuals`, per client) | on | Draws the scene's weather (rain storm, blizzard, snow, falling leaves) on this device. Turn it off on a slow device such as a Steam Deck: nothing is drawn there, the scene's weather is unchanged and every other client still sees it. It is in Configure Settings under Shadowdark Enhancer for every player, not only the GM, and takes effect at once with no scene redraw. |
 
 See [Crawl Strip and Crawl Bar](Crawl-Strip-and-Crawl-Bar.md#overland-travel).
