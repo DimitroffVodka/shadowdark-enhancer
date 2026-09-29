@@ -4,6 +4,7 @@ import { CharBuilderState, applyLevelChange } from "./state.mjs";
 import { DEFAULT_STAT_METHOD, MAX_CHAR_LEVEL } from "./constants.mjs";
 import { commitCharacter } from "./commit.mjs";
 import { hasBeforeImage } from "./before-image.mjs";
+import { canLevelUp, startLevelUp, cancelLevelUp } from "./level-up.mjs";
 import { hydrateActor, finishExisting, undoLastSave } from "./existing-finish.mjs";
 import { StatsStep } from "./steps/stats-step.mjs";
 import { AncestryStep } from "./steps/ancestry-step.mjs";
@@ -92,6 +93,8 @@ export class ShadowdarkCharBuilder extends HandlebarsApplicationMixin(Applicatio
       "cb-next": ShadowdarkCharBuilder._onNext,
       "cb-finish": ShadowdarkCharBuilder._onFinish,
       "cb-undo": ShadowdarkCharBuilder._onUndo,
+      "cb-level-up": ShadowdarkCharBuilder._onLevelUp,
+      "cb-level-up-cancel": ShadowdarkCharBuilder._onLevelUpCancel,
       "cb-dismiss": ShadowdarkCharBuilder._onDismiss,
       "cb-random": ShadowdarkCharBuilder._onRandom,
       "cb-full-random": ShadowdarkCharBuilder._onFullRandom,
@@ -182,8 +185,13 @@ export class ShadowdarkCharBuilder extends HandlebarsApplicationMixin(Applicatio
         finishing: this._finishing,
         // Undo last save: only while a before-image exists, for a GM or an owner.
         canUndo: !!this.builderState.existing && !!this.actor?.isOwner && hasBeforeImage(this.actor),
-        // Target level picker — a level-0 funnel build has no level to choose.
-        // Level-ups are a later piece: re-scoping the level would drop the hydrated HP and spells.
+        // Level up an existing character, one level (#168 P7): offered with the XP, or always to a GM.
+        levelUpOffer: !this._finishing && canLevelUp(this.builderState, { isGM: !!game.user?.isGM })
+          ? { to: this.builderState.existing.baseline.level + 1 } : null,
+        levelUpActive: this.builderState.existing && this.builderState.levelUp
+          ? { from: this.builderState.levelUp.from, to: this.builderState.levelUp.to } : null,
+        // Target level picker — a level-0 funnel build has no level to choose. An existing
+        // character levels up with the button instead: a picker would drop the hydrated HP and spells.
         level: (this.builderState.level0 || this.builderState.existing) ? null : {
           value: this.builderState.level,
           options: Array.from({ length: MAX_CHAR_LEVEL }, (_, i) => ({
@@ -263,7 +271,34 @@ export class ShadowdarkCharBuilder extends HandlebarsApplicationMixin(Applicatio
     await undoLastSave(this);
   }
 
+  /** Start levelling up: the next level, on the class step where its talent and spells are picked. */
+  static async _onLevelUp() {
+    const st = this.builderState;
+    if (this._finishing || !canLevelUp(st, { isGM: !!game.user?.isGM })) return;
+    startLevelUp(st);
+    const at = this.steps.findIndex((s) => s.id === "class");
+    if (at >= 0) this.stepIndex = at;
+    await this.render();
+  }
+
+  /** Drop the level-up and everything it picked; other edits stay. */
+  static async _onLevelUpCancel() {
+    if (this._finishing) return;
+    cancelLevelUp(this.builderState);
+    await this.render();
+  }
+
   static async _onFinish() {
+    // A level-up is only saved whole: the hit die, the talent and the spells it grants are picked first.
+    if (this.builderState.existing?.baseline && this.builderState.levelUp) {
+      const missing = this.steps.filter((s) => ["class", "hp"].includes(s.id) && !s.isComplete());
+      if (missing.length) {
+        ui.notifications.warn(game.i18n.format("SDE.charBuilder.commit.incomplete", {
+          steps: missing.map((s) => game.i18n.localize(s.label)).join(", "),
+        }));
+        return;
+      }
+    }
     // An existing character is never rebuilt: Finish shows the diff and saves only that.
     if (this.builderState.existing) {
       if (this._finishing) return;

@@ -1,6 +1,6 @@
 import { MODULE_ID } from "../shared/module-id.mjs";
 import { stampSource } from "./item-source.mjs";
-import { CRAWLING_KIT } from "./commit.mjs";
+import { CRAWLING_KIT, applyTalentChoice } from "./commit.mjs";
 import { newSessionId } from "./hydrate.mjs";
 
 /**
@@ -103,11 +103,28 @@ export async function resolveCreate(c) {
     }
     return out;
   }
+  if (c.kind === "talent") return resolveTalent(c);
   const doc = await fromUuid(c.uuid).catch(() => null);
   if (!doc) return [];
   const obj = stampSource(doc.toObject(), doc.uuid);
   if (c.kind === "gear" && c.qty > 1) obj.system.quantity = c.qty;
   return [obj];
+}
+
+/**
+ * A level-up talent as the system's own Level Up embeds it: a choice made in the
+ * builder pre-fills the REPLACEME effect (else the system builds the item, asking
+ * only when it must), and the talent records the level it was gained at.
+ */
+async function resolveTalent(c) {
+  const doc = await fromUuid(c.uuid).catch(() => null);
+  if (!doc || doc.documentName !== "Item") return [];
+  const obj = c.choice?.slug
+    ? applyTalentChoice(doc.toObject(), c.choice)
+    : await shadowdark.effects.createItemWithEffect(doc).catch(() => doc.toObject());
+  if (!obj) return [];
+  obj.system.level = c.level;
+  return [stampSource(obj, doc.uuid)];
 }
 
 /**

@@ -1,6 +1,7 @@
 import { ABILITY_ORDER } from "./constants.mjs";
 import { coinsAfterGear } from "./commit.mjs";
 import { MODULE_ID } from "../shared/module-id.mjs";
+import { levelUpTalent } from "./level-up.mjs";
 
 /** An item's quantity; a stack at 0 is 0, only a missing value reads 1. */
 const qtyOf = (item) => (Number.isFinite(Number(item.system?.quantity)) ? Number(item.system.quantity) : 1);
@@ -83,6 +84,39 @@ export function planCommit(existing, state, live) {
   // ancestry, class and patron are locked in v1: never written, an unresolved
   // uuid stays verbatim.
 
+  // Level up, ONE level (#168 P7): the level, the base hit point maximum and the XP
+  // left, measured from the LIVE actor. If the live level is no longer the one the
+  // builder opened at, the whole level-up is dropped and reported as drift: the new
+  // level's talent and spells would otherwise land on the wrong level.
+  const lu = state.levelUp;
+  let levelUpOn = false;
+  const talentCreates = [];
+  if (lu) {
+    const liveLevel = Number(Ls.level?.value) || 0;
+    if (liveLevel !== lu.from) {
+      drift.push({ key: "level", baseline: lu.from, live: liveLevel, intended: lu.to });
+    } else {
+      levelUpOn = true;
+      system["system.level.value"] = lu.to;
+      lines.push({ kind: "set", key: "level", from: lu.from, to: lu.to });
+      // Never lowers: a missing or negative die adds nothing.
+      const gain = Math.max(0, hpLevelUpGain(lu.dice));
+      const liveMax = Number(Ls.attributes?.hp?.max) || 0;
+      if (gain > 0) {
+        system["system.attributes.hp.max"] = liveMax + gain;
+        lines.push({ kind: "set", key: "hpMax", from: liveMax, to: liveMax + gain });
+      }
+      const liveXp = Number(Ls.level?.xp) || 0;
+      const xp = xpAfterLevelUp(liveXp, lu.from, lu.to);
+      if (xp !== liveXp) {
+        system["system.level.xp"] = xp;
+        lines.push({ kind: "set", key: "xp", from: liveXp, to: xp });
+      }
+      const t = levelUpTalent(state);
+      if (t) talentCreates.push({ rowId: `${state.existing.sessionId ?? ""}:levelup-talent`, kind: "talent", uuid: t.uuid, name: t.name, choice: t.choice, level: lu.to });
+    }
+  }
+
   // Coins: copper, and only on a real change (25 sp must not become 2 gp 5 sp).
   const c = coinsAfterGear(state);
   const dCp = c.gp * 100 + c.sp * 10 + c.cp;
@@ -130,7 +164,8 @@ export function planCommit(existing, state, live) {
   const liveMarkers = new Set(live.items.map((i) => i.flags?.[MODULE_ID]?.builderRow).filter(Boolean));
 
   const dGear = state.gear ?? [];
-  const dSpells = state.spells ?? [];
+  // A dropped level-up (drift) creates none of its new spells either.
+  const dSpells = (state.spells ?? []).filter((s) => s.itemId || !lu || levelUpOn);
   // A row the builder still shows is held, whatever its quantity (a stack spent
   // to 0 on the sheet is still an owned row); the cart drops a row taken to 0.
   const stillHeld = new Set([...dGear, ...dSpells].map((r) => r.itemId).filter(Boolean));
@@ -171,6 +206,7 @@ export function planCommit(existing, state, live) {
   for (const s of dSpells) {
     if (!s.itemId && s.uuid) wanted.push({ rowId: `${sid}:spell:${s.uuid}`, kind: "spell", uuid: s.uuid, name: s.name });
   }
+  wanted.push(...talentCreates);
   const trinket = String(state.trinket ?? "").trim();
   if (trinket && trinket !== (B.trinket ?? "")) wanted.push({ rowId: `${sid}:trinket:${trinket}`, kind: "trinket", name: trinket });
   const creates = wanted.filter((w) => !liveMarkers.has(w.rowId));

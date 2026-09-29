@@ -8,11 +8,13 @@
   {{else}}
   {{#if step.hasClass}}
   <p class="sde-cb-method-label">
-    {{localize "SDE.charBuilder.hp.formula"}}: <b>{{step.hitDie}}{{#if step.multiLevel}} × {{step.level}}{{/if}} + CON ({{step.conModLabel}}){{#if step.hpBonus}} + {{step.hpBonus}}{{/if}}</b>
+    {{localize "SDE.charBuilder.hp.formula"}}: <b>{{step.hitDie}}{{#if step.multiLevel}} × {{step.level}}{{/if}}{{#if step.conModLabel}} + CON ({{step.conModLabel}}){{/if}}{{#if step.hpBonus}} + {{step.hpBonus}}{{/if}}</b>
     {{#if step.multiLevel}} · <span class="gm">{{localize "SDE.charBuilder.hp.perLevel"}}</span>{{/if}}
     {{#if step.advantage}} · <span class="gm">{{localize "SDE.charBuilder.hp.advTag"}}</span>{{/if}}
     {{#if step.maxSetting}} · <span class="gm">{{localize "SDE.charBuilder.hp.maxOn"}}</span>{{/if}}
   </p>
+
+  {{#if step.levelUpHint}}<p class="sde-cb-hint">{{step.levelUpHint}}</p>{{/if}}
 
   <div class="sde-cb-stats-btns">
     {{#if step.rollLocked}}

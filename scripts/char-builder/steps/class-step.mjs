@@ -4,6 +4,7 @@ import { classArt } from "../art.mjs";
 import { enrich, resultText, findTableByName, talentDescription } from "../data.mjs";
 import { builderDiceAnimation, EXTRA_CLASS_TALENT_ROLL_UUIDS } from "../constants.mjs";
 import { extraTalentLevels, levelTalentKey } from "../state.mjs";
+import { spellsDue, talentDue } from "../level-up.mjs";
 
 /** Rulebook-style description: enrich, then unwrap ONLY the first paragraph so
  *  its text flows after the bold name, leaving any further paragraphs as real
@@ -177,10 +178,37 @@ export class ClassStep extends ListStep {
     if (!item) return true;
     if (item.system.patron?.required && !this.state.patron?.uuid) return false;
     if (this._isCaster(item)) {
-      const need = Object.values(this._spellsKnown(item)).reduce((a, b) => a + (Number(b) || 0), 0);
-      if ((this.state.spells?.length || 0) < need) return false;
+      const need = Object.values(this._spellsDue(item)).reduce((a, b) => a + (Number(b) || 0), 0);
+      if (this._spellsHeld() < need) return false;
     }
-    return true;
+    return !this.levelUp || this._levelUpTalentDone(item);
+  }
+
+  /** The level-up in progress on an existing character (#168 P7), or null. */
+  get levelUp() { return this.state.existing ? (this.state.levelUp ?? null) : null; }
+
+  /**
+   * Spells still to pick, per tier. A new build picks up to the cumulative
+   * spells-known count; a level-up picks only what the new level adds (the
+   * system's Level Up: the table at the new level minus at the old one).
+   */
+  _spellsDue(item) {
+    const lu = this.levelUp;
+    return lu ? spellsDue(item, lu.from, lu.to) : this._spellsKnown(item);
+  }
+
+  /** Spells counted against `_spellsDue`, in one tier or all: a level-up counts only the new picks. */
+  _spellsHeld(tier = null) {
+    const lu = this.levelUp;
+    return (this.state.spells ?? []).filter((s) => (tier == null || s.tier === tier) && !(lu && s.itemId)).length;
+  }
+
+  /** The level's talent roll is settled (rolled and, if it offered a choice, chosen), or none is due. */
+  _levelUpTalentDone(item) {
+    const lu = this.levelUp;
+    if (!item.system.classTalentTable || !talentDue(lu.to)) return true;
+    const e = this._bonusEntry(levelTalentKey(lu.to));
+    return !!e && !!(e.chosenUuid || e.textResult || e.options.length === 0) && this._choicesComplete();
   }
 
   /** Complete once patron / spells-known / bonus-roll / language requirements are met. */
@@ -291,7 +319,7 @@ export class ClassStep extends ListStep {
   // ---- Extra: info lines + talent + spells + patron -------------------------
   async extraContext(item) {
     if (!item) return {};
-    if (this.state.existing) {
+    if (this.state.existing && !this.levelUp) {
       // Talents, bonus rolls and language choices are on the sheet: no rolls here.
       return {
         infoLines: await this._infoLines(item),
@@ -308,7 +336,8 @@ export class ClassStep extends ListStep {
     return {
       infoLines: await this._infoLines(item),
       traits: await this._traits(item),
-      talent: await this._talentContext(item),
+      // A level-up rolls only the new level's talent, as a bonus roll below.
+      talent: this.levelUp ? { hasTable: false } : await this._talentContext(item),
       choices: pending.map((p) => ({
         key: p.key,
         talentName: p.talentName,
@@ -450,7 +479,7 @@ export class ClassStep extends ListStep {
   async _spellContext(item) {
     if (!this._isCaster(item)) return { caster: false };
     const sc = item.system.spellcasting;
-    const known = this._spellsKnown(item);
+    const known = this._spellsDue(item);
     // Casters with NO spells due yet (Green Knight, Knight of St. Ydris — their
     // spells arrive at a later level) get no picker at all.
     const due = Object.values(known).reduce((a, b) => a + (Number(b) || 0), 0);
@@ -461,10 +490,12 @@ export class ClassStep extends ListStep {
     for (const tier of [1, 2, 3, 4, 5]) {
       const count = known[tier];
       if (!count) continue;
-      const chosen = this.state.spells.filter((s) => s.tier === tier).length;
+      const chosen = this._spellsHeld(tier);
+      // A level-up never offers a spell the character already holds.
+      const held = new Set(this.levelUp ? this.state.spells.filter((s) => s.itemId).map((s) => s.uuid) : []);
       tiers.push({
         tier, count, chosen, full: chosen >= count,
-        options: all.filter((s) => s.system.tier === tier)
+        options: all.filter((s) => s.system.tier === tier && !held.has(s.uuid))
           .map((s) => ({
             uuid: s.uuid, name: s.name,
             selected: this.state.spells.some((x) => x.uuid === s.uuid),
@@ -597,6 +628,8 @@ export class ClassStep extends ListStep {
     const item = this.selected?.item;
     if (!item) return;
     const existing = this.state.spells.find((s) => s.uuid === uuid);
+    // A level-up only adds: a spell the character already holds is never taken back here.
+    if (existing?.itemId && this.levelUp) return;
     if (existing) { this.state.spells = this.state.spells.filter((s) => s.uuid !== uuid); return; }
     const classUuid = this._spellClassUuid(item);
     // Cache is keyed classUuid|align (see _loadSpells) — match that here or the
@@ -605,8 +638,8 @@ export class ClassStep extends ListStep {
     const spell = (this._spellCache[`${classUuid}|${align}`] || []).find((s) => s.uuid === uuid);
     if (!spell) return;
     const tier = spell.system.tier;
-    const count = Number(this._spellsKnown(item)[tier]) || 0;
-    if (this.state.spells.filter((s) => s.tier === tier).length >= count) return; // tier full
+    const count = Number(this._spellsDue(item)[tier]) || 0;
+    if (this._spellsHeld(tier) >= count) return; // tier full
     this.state.spells.push({ uuid, name: spell.name, tier });
   }
 
@@ -640,6 +673,8 @@ export class ClassStep extends ListStep {
 
   /** The bonus-roll sources for the current class/ancestry/patron/talent combo. */
   async _bonusSources(item) {
+    // An existing character: only the new level's talent roll, and only while levelling up.
+    if (this.state.existing) return this._levelUpSources(item);
     const comboKey = [
       item.uuid,
       (this.state.ancestryTalents || []).join(","),
@@ -734,11 +769,25 @@ export class ClassStep extends ListStep {
     return sources;
   }
 
+  /** A level-up's one bonus roll: the class talent table, at odd target levels only. */
+  _levelUpSources(item) {
+    const lu = this.levelUp;
+    const sources = lu && item.system.classTalentTable && talentDue(lu.to)
+      ? [{
+        key: levelTalentKey(lu.to),
+        label: game.i18n.format("SDE.charBuilder.class.levelTalent", { level: lu.to }),
+        tableUuid: item.system.classTalentTable,
+        tableName: null,
+      }] : [];
+    this._bonusCache = { key: `levelup-${lu?.to ?? ""}`, sources };
+    return sources;
+  }
+
   _bonusEntry(key) { return this.state.bonusRolls.find((b) => b.key === key) ?? null; }
 
   async rollBonus(key, { silent = false } = {}) {
     const item = this.selected?.item;
-    if (!item || this.readOnly) return;
+    if (!item || (this.readOnly && !this.levelUp)) return;
     const sources = await this._bonusSources(item);
     const src = sources.find((s) => s.key === key);
     if (!src) return;
@@ -783,10 +832,12 @@ export class ClassStep extends ListStep {
   /** Every talent INSTANCE headed to the actor that needs a supported choice:
    *  fixed class talents, the rolled class talent, and bonus-roll picks. */
   async _pendingChoices(item) {
-    const instances = [
+    const bonus = this.state.bonusRolls.filter((b) => b.chosenUuid).map((b) => ({ key: `bonus:${b.key}`, uuid: b.chosenUuid }));
+    // An existing character's fixed and level-1 talents are already on the sheet.
+    const instances = this.state.existing ? bonus : [
       ...(item.system.talents || []).map((u) => ({ key: `fixed:${u}`, uuid: u })),
       ...this.state.classTalents.map((t) => ({ key: `rolled:${t.uuid}`, uuid: t.uuid })),
-      ...this.state.bonusRolls.filter((b) => b.chosenUuid).map((b) => ({ key: `bonus:${b.key}`, uuid: b.chosenUuid })),
+      ...bonus,
     ];
     const pending = [];
     for (const inst of instances) {

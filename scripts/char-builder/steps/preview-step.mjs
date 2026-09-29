@@ -1,6 +1,7 @@
 import { BaseStep } from "./base-step.mjs";
 import { ABILITY_ORDER, abilityMod } from "../constants.mjs";
 import { coinsAfterGear } from "../commit.mjs";
+import { hpLevelUpGain } from "../commit-plan.mjs";
 import { ancestryArt, classArt } from "../art.mjs";
 import { emptyArt } from "../state.mjs";
 import { galleryEnabled, pickGalleryArt } from "../art-gallery.mjs";
@@ -83,8 +84,9 @@ export class PreviewStep extends BaseStep {
       trinket: st.trinket || null,
       patron: st.patron?.name ?? null,
       abilities,
-      level: st.level0 ? 0 : (st.level || 1),
-      hp: st.hp.max || null,
+      // A level-up shows the level it is going to and the maximum it will have.
+      level: st.levelUp ? st.levelUp.to : (st.level0 ? 0 : (st.level || 1)),
+      hp: st.levelUp ? (st.hp.max + hpLevelUpGain(st.levelUp.dice)) : (st.hp.max || null),
       goldRolled: st.goldRolled ? `${st.coins.gp} gp` : null,
       coinsAfter: fmtCoins(coins),
       languages: await this._names(st.languages),

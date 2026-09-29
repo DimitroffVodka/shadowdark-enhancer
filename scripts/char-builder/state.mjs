@@ -36,6 +36,9 @@ export class CharBuilderState {
      */
     this.existing = null;
 
+    /** Set while an existing character levels up one level (level-up.mjs): `{ from, to, dice }`. */
+    this.levelUp = null;
+
     this.name = "";
     this.trinket = "";
     this.alignment = "neutral";

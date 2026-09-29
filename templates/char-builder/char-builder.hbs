@@ -27,6 +27,16 @@
         <i class="fa-solid fa-rotate-left"></i> {{localize "SDE.charBuilder.existing.undo"}}
       </button>
       {{/if}}
+      {{#if nav.levelUpOffer}}
+      <button type="button" class="sde-cb-btn dice" data-action="cb-level-up">
+        <i class="fa-solid fa-arrow-up"></i> {{localize "SDE.charBuilder.levelUp.button"}} ({{nav.levelUpOffer.to}})
+      </button>
+      {{/if}}
+      {{#if nav.levelUpActive}}
+      <button type="button" class="sde-cb-btn ghost" data-action="cb-level-up-cancel" {{#if nav.finishing}}disabled{{/if}}>
+        <i class="fa-solid fa-xmark"></i> {{localize "SDE.charBuilder.levelUp.cancel"}} ({{nav.levelUpActive.from}} → {{nav.levelUpActive.to}})
+      </button>
+      {{/if}}
       {{#if nav.level}}
       <label class="sde-cb-level" title="{{localize 'SDE.charBuilder.levelHint'}}">
         <span>{{localize "SDE.charBuilder.level"}}</span>

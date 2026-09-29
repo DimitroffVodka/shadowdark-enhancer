@@ -43,6 +43,9 @@ async function nameOfUuid(uuid) {
 /** `[label, from, to]` for a "set" line, in words. */
 async function setRow({ key, from, to }) {
   if (key.startsWith("abilities.")) return [ABILITY_LABELS[key.split(".")[1]], from, to];
+  if (key === "level") return [L("SDE.charBuilder.level"), from, to];
+  if (key === "hpMax") return [L(`${K}hpMax`), from, `${to} (+${to - from})`];
+  if (key === "xp") return [L(`${K}xp`), from, to];
   if (key === "coins") return [L("SDE.charBuilder.step.gold"), coinsText(from), coinsText(to)];
   if (key === "alignment") {
     const name = (a) => L(globalThis.CONFIG?.SHADOWDARK?.ALIGNMENTS?.[a] ?? a);

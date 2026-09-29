@@ -658,13 +658,17 @@ await api.charBuilder.open({ actor });  // edit an EXISTING character: GM or own
                              // takes a before-image, writes only what changed,
                              // then reloads the builder from the actor (a fresh
                              // baseline). A blank actor starts a fresh build.
+                             // The builder can also level the character up one
+                             // level (level, base HP maximum, XP, the level's
+                             // talent and new spells); see the wiki page.
 await api.charBuilder.appClass();  // the ShadowdarkCharBuilder Application class
 await api.charBuilder.describeActor(actor);  // read-only: logs what the builder
                              // would load from an existing actor and what it
                              // would keep as-is; returns the summary (null for
                              // a blank actor). Writes nothing.
 await api.charBuilder.takeBeforeImage(actor);   // save the character's builder-
-                             // writable fields and every item's source as ONE
+                             // writable fields (incl. level, base HP maximum and
+                             // XP) and every item's source as ONE
                              // actor flag (`builderBefore`, latest only);
                              // returns describeBeforeImage
 await api.charBuilder.hasBeforeImage(actor);    // boolean
