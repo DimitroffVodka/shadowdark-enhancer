@@ -162,14 +162,24 @@ async function _handle(item, { deleted }) {
   }, boosts);
 }
 
+/**
+ * The Character Builder edits a sheet through embedded writes tagged with
+ * `{ "shadowdark-enhancer": { builder } }`. Removing a Torch there is an edit,
+ * not an expenditure, so no snapshot is taken and `_handle` exits at "no
+ * pre-hook ran".
+ */
+const _isBuilderWrite = (options) => !!options?.[MODULE_ID]?.builder;
+
 export function init() {
   // Snapshot BEFORE the change — see trap 1 in the file header.
-  Hooks.on("preUpdateItem", (item, changes) => {
+  Hooks.on("preUpdateItem", (item, changes, options) => {
+    if (_isBuilderWrite(options)) return;
     if (foundry.utils.getProperty(changes, "system.quantity") === undefined) return;
     if (_playerActor(item)) _remember(item);
   });
 
-  Hooks.on("preDeleteItem", (item) => {
+  Hooks.on("preDeleteItem", (item, options) => {
+    if (_isBuilderWrite(options)) return;
     if (_playerActor(item)) _remember(item, { snapshot: item.toObject() });
   });
 

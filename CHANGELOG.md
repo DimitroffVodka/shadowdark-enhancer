@@ -457,6 +457,9 @@ page walks through it in order.
   character it opened: only what you touched, checked against the character as
   it is now, deleting only items you removed and never a talent, class ability
   or effect. Nothing uses it yet, so nothing changes on any sheet. (#168)
+- **Scavenger ignores the Character Builder's edits.** Removing a torch or
+  potion through the builder is an edit, not a used item, so it no longer rolls
+  Scavenger or hands the item back. Nothing calls the builder that way yet. (#168)
 
 ### Changed
 
