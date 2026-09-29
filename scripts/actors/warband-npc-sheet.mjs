@@ -82,8 +82,9 @@ async function applyWarbandWrite(data, user, type) {
   const state = warbandState(actor);
   if (action === "commander") {
     const pc = pcUuid ? await fromUuid(pcUuid).catch(() => null) : null;
-    // A world PC: one in a compendium has no coins to pay upkeep from (the sheet's drop checks the same, sooner).
-    if (pcUuid && (pc?.type !== "Player" || pc.pack)) return { ok: false, warn: { key: "SDE.warband.notify.commanderPc", data: {} } };
+    // A world PC the requester owns (a GM: any): one in a compendium has no coins to pay upkeep from, and the upkeep
+    // takes the commander's gold, so a player can't name another player's PC (the sheet's drop checks the same, sooner).
+    if (pcUuid && (pc?.type !== "Player" || pc.pack || (!user?.isGM && !pc.testUserPermission(user, "OWNER")))) return { ok: false, warn: { key: "SDE.warband.notify.commanderPc", data: {} } };
     let warn;
     if (pc) {
       const allowance = allowanceFor(await commanderTier(pc));
@@ -247,7 +248,7 @@ export function buildWarbandNpcSheet(BaseNpcSheet, type) {
       if (data?.type === "Actor") {
         if (!event.target?.closest?.("[data-drop='commander']")) return;
         const pc = await fromUuid(data.uuid).catch(() => null);
-        if (pc?.type !== "Player" || pc.pack) { ui.notifications?.warn(game.i18n.localize("SDE.warband.notify.commanderPc")); return; }
+        if (pc?.type !== "Player" || pc.pack || !(game.user.isGM || pc.isOwner)) { ui.notifications?.warn(game.i18n.localize("SDE.warband.notify.commanderPc")); return; }
         return this._setCommander(pc);
       }
       return super._onDrop(event);

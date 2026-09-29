@@ -44,7 +44,7 @@ A level 2 goblin with a +1 attack for 1d6 becomes a level 4 warband with
 
 | Part | What it does |
 |---|---|
-| **Commander** | Drop a player character here. The warband is theirs. |
+| **Commander** | Drop a player character here. The warband is theirs. A player can only name a character they own; a GM can name any, since the upkeep is paid from the commander's coins. |
 | **Allowance** | By the commander's hit die: a d4 commands 2 warbands with 2 upgrades between them, a d6 4 and 3, a d8 or larger 6 and 4. It counts all of that commander's warbands, and a commander over it is refused with a message. |
 | **Upgrades** | The 18 upgrades, each once per warband. One over the commander's allowance is refused. A warband without a commander (or with one whose hit die can't be read) can have up to 4. |
 | **Morale** | Shows the commander's CHA modifier, which the warband's morale checks use. |
