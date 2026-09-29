@@ -94,6 +94,9 @@ while Shadowdark Crawl Helper is active. These two modes change it:
 The Deadly box also holds **Hidden death timers**, an option of the dying rule
 that works with or without Deadly: the GM's client rolls each timer out of
 sight, and players see that a character is dying but not how long it has left.
+**Silent death timers** goes one step further: the timer is rolled with no
+chat message, so nobody reads it there, the GM included. Turn on both to
+keep the count off the crawl strip for players as well.
 
 See [Dying and Death Timers](Dying-and-Death-Timers.md#deadly-and-fatality) for
 how each one plays.

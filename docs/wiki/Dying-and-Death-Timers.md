@@ -102,6 +102,7 @@ carried out by the active GM's client, in order with everything else.
 | **Death timers are always 1** | Nothing is rolled. This beats every die and bonus below. |
 | **Stabilizing is DC 18** | Unless the helper has a stabilize DC of their own, which wins (Heath Witch training keeps 12). |
 | **Hidden death timers** | An option, not a Deadly rule. The GM's client rolls the timer blind and the rounds left are whispered to the GM; players see **Dying** with no count. |
+| **Silent death timers** | An option, not a Deadly rule. The GM's client rolls the timer and posts nothing: no roll card and no rounds-left line, so nobody reads it in chat. It beats **Hidden death timers** for the chat. The crawl strip is not chat: it still shows the count to players unless **Hidden death timers** is on too. |
 | **Characters die at 0 HP** (Fatality) | No dying at all: 0 HP is dead. |
 
 Each works on its own.
