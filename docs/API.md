@@ -652,6 +652,10 @@ transactions, XP awards, encounter checks, combat) — there are no public
 api.charBuilder.open();      // Character Builder window (singleton — an already-
                              // open builder is brought to front, not replaced)
 await api.charBuilder.appClass();  // the ShadowdarkCharBuilder Application class
+await api.charBuilder.describeActor(actor);  // read-only: logs what the builder
+                             // would load from an existing actor and what it
+                             // would keep as-is; returns the summary (null for
+                             // a blank actor). Writes nothing.
 ```
 
 > Since the lazy-load pass, heavy feature UIs (builder, importer hub, forge,

@@ -447,6 +447,11 @@ page walks through it in order.
   carries its compendium link, which the builder did not record before. Nothing
   changes on the sheet; it lets a later feature recognise the items of a
   character built from now on. (#168)
+- **A dry run for editing an existing character.** In the console,
+  `game.shadowdarkEnhancer.charBuilder.describeActor(actor)` lists what the
+  Character Builder would load from a character (abilities, gear, spells, what
+  it can't identify) and what it would leave alone. It only reads. The builder
+  can't edit an existing character yet. (#168)
 
 ### Changed
 

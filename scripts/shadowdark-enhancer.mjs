@@ -119,7 +119,7 @@ const STYLESHEET_REV = "39a661c3cacf";
 // stale); module.json carries the same hash and is fetched fresh at runtime. A
 // mismatch is a stale cache by construction — it cannot be anything else. Both
 // stamps are written by `npm run inventory` and gated by `inventory:check`.
-const BUILD_REV = "c50990344ca7";
+const BUILD_REV = "d88519ddc958";
 
 /**
  * Tell the user when their browser is running an old build of this module, and
@@ -493,6 +493,10 @@ Hooks.once("init", () => {
       // (docs/API.md) — a sync class handle would force the whole tree eager.
       appClass: async () =>
         (await import("./char-builder/char-builder-app.mjs")).ShadowdarkCharBuilder,
+      // Read-only dry run of editing an existing character: logs what the
+      // builder would load from `actor` and what it would keep as-is.
+      describeActor: async (actor) =>
+        (await import("./char-builder/hydrate.mjs")).describeActor(actor),
     },
     // Vehicles. `importBoats()` is the macro-friendly entry for the Western
     // Reaches boats (p118) — the Importer Hub Manage tree exposes the same per
