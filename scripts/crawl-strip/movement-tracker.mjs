@@ -38,7 +38,7 @@ import { CrawlStrip } from "./crawl-strip.mjs";
 import { ICONS }      from "../shared/icons.mjs";
 import { segmentFeet } from "./movement-calc.mjs";
 import { shouldBlockMovement } from "./movement-lock-core.mjs";
-import { relayToGM, authorizeActorFor, refuseQuery } from "../shared/gm-relay.mjs";
+import { relayToGM, authorizeActorFor, refuseQuery, registerQuery } from "../shared/gm-relay.mjs";
 
 // ── Shared speed helpers ────────────────────────────────────────────────────
 
@@ -330,7 +330,7 @@ export const MovementTracker = {
     // one request would both teleport the token, both refund the budget flag and
     // both post the notification, and a query does not prevent that on its own —
     // the SENDER picks the recipient and can pick every GM.
-    CONFIG.queries[MOVEMENT_QUERY] = (data, { user } = {}) => MovementTracker.handleQuery(data, user);
+    registerQuery(MOVEMENT_QUERY, (data, { user } = {}) => MovementTracker.handleQuery(data, user));
   },
 
   /**

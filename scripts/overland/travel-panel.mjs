@@ -177,11 +177,13 @@ function stepBody(n, v, sight) {
         + checks(v, "day");
     }
     case 7:
-      return h3 + fl("SDE.travel.resting.about") + fl("SDE.travel.resting.soon")
+      return h3 + fl("SDE.travel.resting.about")
         + (gm && m.dayOpen ? `<div class="sde-hud-trow">${key("makeCamp", t("SDE.overland.makeCamp"), { cls: "sde-hud-primary", hint: t("SDE.overland.makeCampHint") })}</div>` : "");
     case 8:
       return h3 + fl("SDE.travel.night.about")
-        + (gm && state.pending?.reason === "camp" ? res(t("SDE.travel.night.stopped")) : "") + checks(v, "night");
+        + (gm && state.pending?.reason === "camp" ? res(t("SDE.travel.night.stopped")) : "")
+        + (m.interrupted != null ? res(t("SDE.travel.night.interrupted", { time: dateParts(v.cal, m.interrupted).time })) : "")
+        + checks(v, "night");
     default:
       return "";
   }

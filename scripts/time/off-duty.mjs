@@ -23,9 +23,10 @@
  *
  * So the move runs on the one tab that holds the flag, with its real-time
  * clock stopped. It puts the lights out there and waits until that tab's cache
- * holds no PC's Basic light. It refuses if any other tab holds the flag, and
+ * holds no PC's Basic light. It refuses if another GM's tab holds the flag, and
  * only then advances. Light spells and dropped Light actors are left to the
- * clock.
+ * clock. A second tab of the flag GM burns too, from its own cache, and can
+ * burn a light put out here: an accepted edge case, not refused (#288).
  */
 
 import { MODULE_ID } from "../shared/module-id.mjs";

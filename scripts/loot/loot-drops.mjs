@@ -11,6 +11,7 @@ import { MODULE_ID } from "../shared/module-id.mjs";
 import { LootGenerator } from "./loot-generator.mjs";
 import { LootDelivery } from "./loot-delivery.mjs";
 import { esc } from "../shared/esc.mjs";
+import { isActiveGM } from "../shared/gm-relay.mjs";
 
 export const LootDrops = {
   init() {
@@ -40,7 +41,7 @@ export const LootDrops = {
     // the always-on "Bridge" user), so each GM-level client used to roll and
     // post its own cards. Mirror the activeGM guard used by loot-delivery,
     // merchant-shop, and session-recap.
-    if (!game.user.isGM || game.users.activeGM?.id !== game.user.id) return;
+    if (!isActiveGM()) return;
     if (!game.settings.get(MODULE_ID, "lootDropEnabled")) return;
 
     const defeated = combat.combatants.filter(c => {

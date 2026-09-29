@@ -628,6 +628,16 @@ export function registerSettings() {
     default: false,
   });
 
+  // The other half of who sees the timer (#290): no chat message at all.
+  game.settings.register(MODULE_ID, "dyingSilentTimer", {
+    name: "SDE.settings.dyingSilentTimer.name",
+    hint: "SDE.settings.dyingSilentTimer.hint",
+    scope: "world",
+    config: false,
+    type: Boolean,
+    default: false,
+  });
+
   game.settings.register(MODULE_ID, "modeDeadlyTimer", {
     name: "SDE.settings.modeDeadlyTimer.name",
     hint: "SDE.settings.modeDeadlyTimer.hint",

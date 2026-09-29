@@ -37,7 +37,7 @@
 
 import { MODULE_ID } from "../shared/module-id.mjs";
 import { CrawlState } from "../crawl-strip/crawl-state.mjs";
-import { authorizeActorFor, isActiveGM, queryActiveGM, refuseQuery } from "../shared/gm-relay.mjs";
+import { authorizeActorFor, isActiveGM, queryActiveGM, refuseQuery, registerQuery } from "../shared/gm-relay.mjs";
 import { makeQueue } from "../quests/quest-core.mjs";
 import { hexReader, hexZonesFor, isHexMapScene, partyHex } from "../encounter/encounter-terrain.mjs";
 import { BOAT_TYPE, MOUNT_TYPE } from "../actors/register-actors.mjs";
@@ -51,7 +51,7 @@ import {
   pickTravelToken, forageRefusal, setWeather, weatherHolds, weatherAdvantage, weatherFormula,
   weatherFromRoll, harshToday, WEATHER_RULES, METHODS, openDay, spendMove, priceMove, moveVerdict, hexCost,
   dayChecks, dueChecks, markCheck, setPending, setEncounter, forageDC, closeDay, planRations, partyMethod, setPace,
-  checkSettings, encounterChance, checkHalf,
+  checkSettings, encounterChance, checkHalf, makeCampState, campLightsOut, interruptRest,
 } from "./overland-state-core.mjs";
 import { PARTY_FLAG, placePartyToken, wearPartyHex } from "./hex-rules.mjs";
 
@@ -362,7 +362,7 @@ async function postDay(boat) {
 }
 
 /** The travel token's scene: its region scan decides a table's north or south half. */
-function travelScene() {
+export function travelScene() {
   try { return _state.tokenUuid ? fromUuidSync(_state.tokenUuid)?.parent ?? null : null; } catch { return null; }
 }
 
@@ -410,7 +410,13 @@ export async function advanceTravel(target, reason) {
     // Travel, not a camp's or a late Start day's check: the GM Guide's marked zone rows give a point of interest (#273).
     const { hit, held } = await rollCheck(c, chance, reason === "move");
     let next = markCheck(_state, i, hit, chance).state;
-    if (held) next = setEncounter(next, held).state;
+    // A creature in the camp's night interrupts the rest (GMWR p.44); a land result such as a rockslide doesn't.
+    // With the clock bar off nothing is held (the roller shows the draw), so the GM calls it.
+    // The rest is the night's: a day check still to roll when camp was made early is travel, not rest (#282 review).
+    // A camp made is resting whatever moves the clock: a GM's clock move after the night failed too (#282 review).
+    const wakes = hit && (reason === "camp" || _state.camp !== null) && c.half === "night" && held?.kind === "monster";
+    if (held) next = setEncounter(next, wakes ? { ...held, interrupts: true } : held).state;
+    if (wakes) next = interruptRest(next, c.at).state;
     await commit(next);
     if (hit) {
       // Something is left for Continue when there's clock to run, checks
@@ -777,11 +783,12 @@ export async function askForage() {
 // ── Camp (#233, §5.5) ─────────────────────────────────────────────────────────
 
 /**
- * Make camp (GM): put the carried lights out (they keep their time), then run
- * the clock to the next sunrise, rolling the day's remaining checks and the
- * night's as they fall due. A hit stops the night there, and Continue
- * finishes it. At dawn the rations are eaten and the next day's weather is
- * rolled; the GM then starts the day.
+ * Make camp (GM), on an open travel day: the tasks and rations, the carried
+ * lights out (they keep their time), then the clock to when camp breaks,
+ * rolling the day's remaining checks and the night's as they fall due. A hit
+ * stops the night there, and Continue finishes it. At dawn the rest is
+ * finished and the next day's weather is rolled; the GM then starts the day.
+ * On a camp already made it goes on from the step the camp reached.
  * @returns {Promise<{ok:true, stopped:boolean}|{ok:false, error:string}>}
  */
 export async function makeCamp() {
@@ -840,41 +847,108 @@ async function eatRations(members, each) {
   return { plan, lines };
 }
 
-/**
- * Dawn after camp (§5.5 steps 3-4): the rations, handed to Extras' camping
- * rest when the travel token is its party and it offers camping.open
- * (shadowdark-extras#163), else eaten here; then the day closes and the new
- * day's weather is rolled. Any forage still being rolled is settled first.
- * An Extras rest that was closed, declined or failed leaves the camp pending,
- * so Continue opens it again rather than a second night passing.
- * @returns {Promise<boolean>} true when the camp is done
- */
-async function finishCamp() {
-  await Promise.allSettled([..._foraging]);
-  const s = overlandState();
-  const stormy = _state.weather?.kind === "stormy";   // the night's weather, rolled for the day just ended
-  const harsh = !!harshToday(s.climate, stormy);
-  const each = harsh ? 2 : 1;
-  const members = _state.members.map((id) => game.actors.get(id)).filter(Boolean);
-  const party = travelParty();
+/** Tonight's rations and weather: two each in a harsh climate (§5.5 step 3), and who camps. */
+function campNeeds() {
+  const stormy = _state.weather?.kind === "stormy";   // the weather rolled for the day now ending
+  const harsh = !!harshToday(overlandState().climate, stormy);
+  return { stormy, harsh, each: harsh ? 2 : 1, members: _state.members.map((id) => game.actors.get(id)).filter(Boolean) };
+}
+
+/** Extras' camping API, when it can keep a camp's rest for the dawn and finish it there (shadowdark-extras#186), else null. */
+function extrasCampingApi() {
   const camping = game.modules?.get("shadowdark-extras")?.api?.camping;
-  let lines = [];
-  if (party && typeof camping?.open === "function") {
-    const reply = await camping.open({ party, members, mounts: _state.mounts, pushed: _state.pushed, harsh, stormy, rationsEach: each, advanceTime: false })
-      .catch((err) => { console.error(`${MODULE_ID} | Shadowdark Extras' camping rest`, err); return null; });
+  return typeof camping?.open === "function" && typeof camping?.dawn === "function" ? camping : null;
+}
+
+/** Extras' camping rest, when the travel token is its party and it can keep the rest for the dawn. */
+function extrasCamping() {
+  const camping = extrasCampingApi();
+  // ponytail: an Extras from before #186 has no camping.dawn; its party eats here, with no tasks, until Extras is updated.
+  const party = camping && travelParty();
+  return party ? { camping, party } : null;
+}
+
+/**
+ * Make camp (§5.5 step 3, GMWR p.44): before the night, the tasks and the
+ * rations. With an Extras party (extrasCamping), its window runs the tasks,
+ * Firewood first, and the rations, and keeps the rest for the dawn; else the
+ * rations are eaten here. Any forage still being rolled is settled first.
+ * The camp is recorded, with when it breaks, before the window opens or
+ * anyone eats, and a closed window takes it back: Make camp pressed again,
+ * after a failure or a reload, never does them twice. The worst a failure can
+ * do is leave a ration uneaten (#282 review).
+ * @returns {Promise<boolean>} false when Extras' window was closed or declined: no camp
+ */
+async function pitchCamp() {
+  await Promise.allSettled([..._foraging]);
+  const { stormy, harsh, each, members } = campNeeds();
+  const extras = extrasCamping();
+  // Nothing is spent yet: a rejected save may or may not have landed, so this tab takes what the server holds.
+  await commit(makeCampState(_state, extras?.party.uuid ?? null, campEnd()).state).catch((err) => { reread(); throw err; });
+  if (extras) {
+    const reply = await extras.camping.open({
+      party: extras.party, members, mounts: _state.mounts, pushed: _state.pushed, harsh, stormy, rationsEach: each, advanceTime: false, deferRest: true,
+    }).catch((err) => { console.error(`${MODULE_ID} | Shadowdark Extras' camping rest`, err); return null; });
     if (!reply?.completed) {
-      await commit(setPending(_state, { until: game.time.worldTime, reason: "camp" }).state);
-      ui.notifications?.warn(t("SDE.overland.notify.campUnfinished"));
+      await commit({ ..._state, camp: null });
       return false;
     }
   } else {
-    ({ lines } = await eatRations(members, each));
+    const { lines } = await eatRations(members, each);
+    await campLine([t(harsh ? "SDE.overland.camp.madeHarsh" : "SDE.overland.camp.made"), ...lines]);
   }
-  await ChatMessage.create({
-    content: `<p>${esc(t(harsh ? "SDE.overland.camp.dawnHarsh" : "SDE.overland.camp.dawn"))}</p>${
-      lines.map((l) => `<p>${esc(l)}</p>`).join("")}`,
-  }).catch((err) => console.error(`${MODULE_ID} | camp chat line`, err));
+  return true;
+}
+
+/** A chat post everyone sees, one paragraph a line. */
+const campLine = (lines) => ChatMessage.create({ content: lines.map((l) => `<p>${esc(l)}</p>`).join("") })
+  .catch((err) => console.error(`${MODULE_ID} | camp chat line`, err));
+
+/**
+ * Dawn after camp (§5.5 step 4): Extras' rest, kept from the camp on the
+ * party that camped, finishes with whether a creature interrupted it
+ * (shadowdark-extras#186): who ate and didn't succeed at Bed Down rolls CON.
+ * Without Extras the chat says when the rest was interrupted. Then the day
+ * closes and the new day's weather is rolled. An Extras rest that was
+ * canceled or failed, or that no Extras is here to finish (turned off, or one
+ * without camping.dawn), leaves the camp pending, so Continue tries it again
+ * rather than a second night passing or the rest being dropped (#282 review).
+ * The day closes as soon as the rest is done, before the chat line, so a
+ * retry finds the camp over (#282 review).
+ * @returns {Promise<boolean>} true when the camp is done
+ */
+async function finishCamp() {
+  const camp = _state.camp;
+  let rested = false;   // Extras finished a rest, so its CON rolls were made
+  if (camp?.party) {
+    const camping = extrasCampingApi();
+    let party = null;
+    try { party = fromUuidSync(camp.party); } catch { /* not a document */ }
+    // A party actor (or unlinked token) deleted since took its rest with it: Extras answers nothingPending.
+    const reply = camping && await camping.dawn({ party, interrupted: camp.interrupted !== null })
+      .catch((err) => { console.error(`${MODULE_ID} | Shadowdark Extras' camping rest`, err); return null; });
+    if (!reply?.completed && !reply?.nothingPending) {
+      await commit(setPending(_state, { until: game.time.worldTime, reason: "camp" }).state);
+      ui.notifications?.warn(t(camping ? "SDE.overland.notify.campUnfinished" : "SDE.overland.notify.campNeedsExtras"));
+      return false;
+    }
+    // Extras has no rest waiting (its record is gone): there's nothing to retry, so the camp breaks.
+    if (reply.nothingPending) ui.notifications?.warn(t("SDE.overland.notify.campRestGone"));
+    rested = !reply.nothingPending;
+  }
+  const lines = [t("SDE.overland.camp.dawn")];
+  // A camp made before this build ate nothing yet: it eats now, as it used to.
+  if (!camp?.ate) {
+    const { members, each } = campNeeds();
+    lines.push(...(await eatRations(members, each)).lines);
+  }
+  if (camp?.interrupted != null) {
+    const time = dateParts(game.time.calendar, camp.interrupted).time;
+    const said = !camp.party ? "SDE.overland.camp.interruptedCon" : rested ? "SDE.overland.camp.interrupted" : "SDE.travel.night.interrupted";
+    lines.push(t(said, { time }));
+  }
   await commit(closeDay(_state).state);
+  await campLine(lines);
   await rollWeatherHere(false);
   return true;
 }
@@ -1046,10 +1120,21 @@ export function applyAction(data, user) {
         if (!user.isGM) return { ok: false, error: t("SDE.overland.notify.dayGmOnly") };
         if (!CrawlState.isOverland) return { ok: false, error: t("SDE.overland.notify.notTravelling") };
         if (_state.pending || _state.encounter) return { ok: false, error: t("SDE.overland.notify.pending") };
-        // Q8: carried lights go out and keep their time, through the off-duty
-        // move with no clock of its own (a refusal there warns, and camp goes on).
-        await advanceOffDuty(0, { reason: "camp" });
-        const { stopped } = await advanceTravel(campEnd(), "camp");
+        // The dawn closes the day: pressed again after it, Make camp makes no second camp (#282 review).
+        if (_state.day === null) return { ok: false, error: t("SDE.overland.notify.campNoDay") };
+        // Each step is kept in the camp as it's done, so a camp already made (pressed again after
+        // something failed, in this tab or after a reload) goes on from the next step (#282 review).
+        if (!_state.camp && !(await pitchCamp())) return { ok: false, error: t("SDE.overland.notify.campNotMade") };
+        if (!_state.camp.lightsOut) {
+          // Q8: carried lights go out and keep their time, through the off-duty
+          // move with no clock of its own (a refusal there warns, and camp goes on).
+          // After the camp is made, so a closed camp window leaves the lights as they were; and a lit
+          // torch doesn't count toward Extras' campfire anyway (its unlit torches only).
+          await advanceOffDuty(0, { reason: "camp" });
+          await commit(campLightsOut(_state).state);
+        }
+        // The night runs to when camp breaks, fixed at camp; a camp an older build recorded without it breaks at the next dawn.
+        const { stopped } = await advanceTravel(_state.camp.until ?? campEnd(), "camp");
         const finished = !stopped && await finishCamp();
         return { ok: true, stopped: !finished };
       }
@@ -1061,7 +1146,7 @@ export function applyAction(data, user) {
 
 export function registerOverland() {
   _state = normalizeOverlandState(game.settings.get(MODULE_ID, OVERLAND_SETTING));
-  CONFIG.queries[OVERLAND_QUERY] = (data, { user } = {}) => applyAction(data, user);
+  registerQuery(OVERLAND_QUERY, (data, { user } = {}) => applyAction(data, user));
   game.socket.on(SOCKET, (msg) => { if (msg?.type === "overland") reread(); });
   Hooks.on("preMoveToken", onPreMoveToken);
   Hooks.on("moveToken", onMoveToken);

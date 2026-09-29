@@ -22,6 +22,7 @@
 import { MODULE_ID } from "../shared/module-id.mjs";
 import { findSuitePack } from "../shared/compendium-suite.mjs";
 import { esc } from "../shared/esc.mjs";
+import { isActiveGM } from "../shared/gm-relay.mjs";
 
 /**
  * Class slugs as they appear in `actor.system.spellcasting.classes` — the
@@ -260,7 +261,7 @@ export function init() {
     if (!game.settings.get(MODULE_ID, SETTING)) return;
     // createChatMessage fires on every client — only the one GM that owns
     // world writes may draw, or each connected GM posts its own mishap.
-    if (!(game.user.isGM && game.users.activeGM?.id === game.user.id)) return;
+    if (!isActiveGM()) return;
 
     const mishap = await detectMishap(message);
     if (!mishap) return;
