@@ -448,6 +448,7 @@ export class DowntimeApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const base = {
       name: activity.name,
       checkLabel: this._checkLabel(activity, { actor, facts: {}, activeCasterList: null }),
+      statChip: abilityChipFor(activity, null),
       warbands: commandedWarbands(actor),
     };
     const view = game.user.isGM ? await recruitView(actor) : this._offersFor(actor);
@@ -468,7 +469,7 @@ export class DowntimeApp extends HandlebarsApplicationMixin(ApplicationV2) {
       offers: view.offers.map(o => {
         const key = recruitKey(o.id);
         return {
-          ...o, key, inSession, chosen: !!myPick && myPick.slotKey === key,
+          ...o, key, inSession, statChip: base.statChip, chosen: !!myPick && myPick.slotKey === key,
           // The allowance is said once, above the list; a row says only what is its own.
           showReason: !!o.reason && !view.blocked,
           disabled: !!o.reason,

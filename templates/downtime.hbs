@@ -473,7 +473,7 @@
             <li class="sde-dt-slot-row {{#if this.chosen}}sde-dt-slot-chosen{{/if}}">
               <div class="sde-dt-slot-main">
                 <span class="sde-dt-slot-label">{{this.name}} <em>{{localize "SDE.downtime.ui.levelShort" level=this.level}}</em></span>
-                <span class="sde-dt-slot-dc"><span class="sde-dt-stat">CHA</span> {{localize "SDE.downtime.log.dc" dc=this.dc}}</span>
+                <span class="sde-dt-slot-dc"><span class="sde-dt-stat">{{this.statChip}}</span> {{localize "SDE.downtime.log.dc" dc=this.dc}}</span>
                 {{#if this.inSession}}
                   <button type="button" class="sde-dt-btn {{#if this.chosen}}sde-dt-primary{{/if}}"
                           data-action="pickSlot" data-slot-key="{{this.key}}"
