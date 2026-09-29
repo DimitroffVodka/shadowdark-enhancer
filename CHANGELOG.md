@@ -499,7 +499,8 @@ page walks through it in order.
   to the world's active scene, so with a dungeon active while the party token
   stood on the hex map, the map never darkened and never showed a storm. The
   sky now covers the active scene and the scene the travel token is on, and
-  updates when the token's scene changes. (#294)
+  is set again whenever Overland's state changes. A write that fails on one
+  scene no longer stops the other. (#294)
 - **Random ancestry no longer turns a Half-elf into an Elf.** A table result
   matched any ancestry whose name it contained, so the population d100's
   Half-elf rows made Elves in a world without half-elves. A result now names

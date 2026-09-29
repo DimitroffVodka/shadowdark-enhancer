@@ -138,7 +138,7 @@ function scene({ hex = true, follows, darkness = 0, locked = false, weather = ""
       writes.push({ changes, options });
       if ("weather" in changes) doc.weather = changes.weather;
       if ("environment.darknessLevel" in changes) doc.environment.darknessLevel = changes["environment.darknessLevel"];
-      else if ("flags.shadowdark-enhancer.skyWeather" in changes) flags.skyWeather = changes["flags.shadowdark-enhancer.skyWeather"];
+      if ("flags.shadowdark-enhancer.skyWeather" in changes) flags.skyWeather = changes["flags.shadowdark-enhancer.skyWeather"];
       if (changes["flags.shadowdark-enhancer.skyWeather"] === DEL) delete flags.skyWeather;
     },
   };
@@ -387,6 +387,42 @@ test("the sky follows the party's scene: a storm on the hex map with a dungeon a
     await applySkies();
     assert.equal(hexMap.writes.length, 1, "a token that cannot be found gives no travel scene");
   } finally {
+    delete globalThis.game.scenes;
+    delete globalThis.fromUuidSync;
+  }
+});
+
+test("a scene whose update rejects does not stop the party's scene; the next pass converges (#295 review)", async () => {
+  sky({ weather: STORMY, climate: "Temperate" });
+  stored.overlandState.tokenUuid = "Scene.hex.Token.t";
+  registerOverland();
+  const log = console.error;
+  console.error = () => {};
+  try {
+    for (const applied of [false, true]) {                       // rejected before saving, and after saving
+      const hexMap = scene({ id: "hex" });
+      globalThis.fromUuidSync = (uuid) => (uuid === "Scene.hex.Token.t" ? { parent: hexMap } : null);
+      const active = scene({ id: "active" });
+      const update = active.update;
+      let failing = true;
+      active.update = async (changes, options) => {
+        if (!failing) return update(changes, options);
+        if (applied) await update(changes, options);
+        else active.writes.push({ changes, options });
+        throw new Error("update rejected");
+      };
+      globalThis.game.scenes = { active };
+      const first = await applySkies();
+      assert.equal(active.writes.length, 1, "the active scene was tried once");
+      assert.equal(first[0], null, "and reported nothing written");
+      assert.equal(hexMap.writes.length, 1, "the party's scene was still written");
+      failing = false;
+      await applySkies();
+      assert.equal(active.writes.length, applied ? 1 : 2, applied ? "already saved: nothing written again" : "the retry writes it once");
+      assert.equal(hexMap.writes.length, 1, "the party's scene is not written twice");
+    }
+  } finally {
+    console.error = log;
     delete globalThis.game.scenes;
     delete globalThis.fromUuidSync;
   }

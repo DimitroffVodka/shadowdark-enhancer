@@ -105,7 +105,13 @@ export async function applySky(scene = game.scenes?.active, { dt = null } = {}) 
 export async function applySkies(options) {
   const scenes = skyScenes({ active: game.scenes?.active, travel: travelScene(), follows: sceneFollows });
   const written = [];
-  for (const scene of scenes) written.push(await applySky(scene, options));
+  // One scene's failed write must not skip the party's scene; the next trigger retries it.
+  for (const scene of scenes) {
+    written.push(await applySky(scene, options).catch((err) => {
+      console.error(`${MODULE_ID} | the sky on scene ${scene?.id}`, err);
+      return null;
+    }));
+  }
   return written;
 }
 
