@@ -505,7 +505,7 @@ test("startup leaves backfillVersion open on failed legacy results and releases 
   assert.match(block, /resolve\(false\);/);
   assert.ok(source.indexOf("resolve(false)", call) < stamp);
   assert.match(source, /let legacyBackfillDone = Promise\.resolve\(true\);/);
-  assert.match(source, /if \(game\.users\.activeGM\?\.id !== game\.user\.id\)/);
+  assert.match(source, /if \(!isActiveGM\(\)\)/);
 
   let calls = 0;
   const deferred = await runMonsterTextBackfillAfterLegacy({

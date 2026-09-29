@@ -469,7 +469,8 @@ the player-owned PCs, and Overland runs its own camp rations. The only thing mis
   sunrise, up to a night level of `1 − 0.2 × moon illumination`, so a full-moon night sits at 0.8.
   Hex maps are capped (Q7).
 - **Writes.** The active GM writes `environment.darknessLevel` (`common/documents/scene.mjs:116-117`)
-  on the active scene when time changes and when a scene is activated:
+  on the active scene and on the party's scene (the one the travel token is on, #294) when time
+  changes, when Overland's state changes and when a scene is activated:
   - only when the value moves by 0.02 or more;
   - animated for steps under an hour.
   - This is the batch-and-animate pattern of Calendaria's `updateDarknessFromWorldTime` and its
@@ -477,7 +478,10 @@ the player-owned PCs, and Overland runs its own camp rations. The only thing mis
 - **Weather effects** set `scene.weather` (`common/documents/scene.mjs:160`) on outdoor scenes:
   - `rainStorm` when stormy;
   - `blizzard` when stormy and the climate is Cold or Freezing;
-  - empty otherwise.
+  - on a fair day, the season's effect (#294, `FAIR_DAY_EFFECT` in `sky-core.mjs`): `snow` in
+    winter, `leaves` in autumn, none in spring and summer. Cosmetic only, the weather kind and its
+    rules are unchanged;
+  - empty otherwise (an excellent day included).
   - The effects are core's (`config.mjs:1437-1548`). The value is written only when it changes.
 - **The Isles of Andrik**, keyed by region name as a shipped recipe, like `training-core.mjs`, with
   the source page and no book text. The region is the party's, `state.hex.region`.

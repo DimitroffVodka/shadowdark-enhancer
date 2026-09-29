@@ -19,7 +19,7 @@ import { martialTierForHitDie } from "../downtime/downtime-core.mjs";
 import { secondsPerDay } from "../time/time-core.mjs";
 import { format as formatTime } from "../time/time.mjs";
 import { makeQueue } from "../quests/quest-core.mjs";
-import { authorizeActorFor, isActiveGM, queryActiveGM, refuseQuery } from "../shared/gm-relay.mjs";
+import { authorizeActorFor, isActiveGM, queryActiveGM, refuseQuery, registerQuery } from "../shared/gm-relay.mjs";
 import {
   UPGRADES, MOST_UPGRADES, allowanceFor, cleanUpgrades, commandRefusal, upgradeRefusal, upkeepGp,
 } from "./warband-core.mjs";
@@ -42,10 +42,10 @@ export const warbandWrites = makeQueue();
 
 /** Register the writer the other clients' sheets call. Call at init. */
 export function registerWarbandWrites(type) {
-  // Only the active GM answers: a query sent straight to another GM is refused. Foundry hands the query to every
-  // tab the active GM has open, and each change sets a value, so a second tab's run changes nothing (#288).
-  CONFIG.queries[WARBAND_QUERY] = (data, { user } = {}) => refuseQuery(user, game.i18n.localize("SDE.warband.relayLabel"))
-    ?? warbandWrites(() => applyWarbandWrite(data, user, type));
+  // registerQuery: of the tabs the user has open, only the one holding its lock answers (#288). The handler still
+  // refuses at once a query sent straight to a GM who isn't the active one.
+  registerQuery(WARBAND_QUERY, (data, { user } = {}) => refuseQuery(user, game.i18n.localize("SDE.warband.relayLabel"))
+    ?? warbandWrites(() => applyWarbandWrite(data, user, type)));
 }
 
 /** Send a change to the active GM, or make it here when this client is the active GM. */
@@ -58,8 +58,7 @@ function sendWarbandWrite(data, type) {
  * Make one change, on the active GM: `commander` gives the warband to a PC
  * (or none), `upgrade` ticks or unticks one. Refused over the allowance; the
  * warning goes back to the sheet that asked. Each change sets a value, so
- * making it again (another tab of the active GM got it too) changes nothing
- * and answers the same: an upgrade already ticked is a success.
+ * making it again changes nothing and answers the same: an upgrade already ticked is a success.
  * @returns {Promise<{ok:boolean, warn?:{key:string, data:object}, error?:string}>}
  */
 async function applyWarbandWrite(data, user, type) {

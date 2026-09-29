@@ -77,6 +77,7 @@ export function encounterPanel({ enc, cal }) {
       ${body}
       ${c.via ? `<span class="sde-hud-fl">${esc(c.via)}</span>` : ""}
       ${also}
+      ${enc.interrupts ? `<span class="sde-hud-res">${esc(t("SDE.clock.enc.interrupts"))}</span>` : ""}
       <span class="sde-hud-fl">${esc(t("SDE.clock.enc.secret"))}</span>
     </div>
     <div class="sde-hud-pf">

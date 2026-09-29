@@ -64,14 +64,26 @@ export function darknessAt({ hour, sunrise, sunset, illumination, cap = 1, overr
 export const darknessMoved = (current, next) => Math.abs((Number(current) || 0) - next) >= MIN_STEP - 1e-9;
 
 /**
- * The weather on an outdoor scene: Foundry's rain storm when stormy, its
- * blizzard when stormy in a cold or freezing climate, else none.
- * @param {{stormy:boolean, climate?:string|null}} w  `climate`: the climate's label
- * @returns {""|"rainStorm"|"blizzard"}
+ * What a fair day shows, by season (#294): Foundry's snow in winter and
+ * falling leaves in autumn, nothing in spring and summer. Cosmetic only: the
+ * weather kind, and the rules that read it, are unchanged. Stormy and
+ * excellent days are not in this table (a storm is a rain storm, or a
+ * blizzard in the cold; an excellent day shows nothing). Change a row here.
  */
-export function weatherEffect({ stormy, climate = null }) {
-  if (!stormy) return "";
-  return /cold|freez/i.test(String(climate ?? "")) ? "blizzard" : "rainStorm";
+export const FAIR_DAY_EFFECT = { winter: "snow", autumn: "leaves", spring: "", summer: "" };
+
+/**
+ * The weather on an outdoor scene: Foundry's rain storm when stormy, its
+ * blizzard when stormy in a cold or freezing climate, the season's effect on
+ * a fair day (FAIR_DAY_EFFECT), else none.
+ * @param {{kind?:string|null, climate?:string|null, season?:string|null}} w
+ *   `kind`: today's weather, stormy | fair | excellent (null when none holds);
+ *   `climate`: the climate's label; `season`: time.season().key
+ * @returns {string} a CONFIG.weatherEffects key, or "" for none
+ */
+export function weatherEffect({ kind = null, climate = null, season = null }) {
+  if (kind === "stormy") return /cold|freez/i.test(String(climate ?? "")) ? "blizzard" : "rainStorm";
+  return kind === "fair" && Object.hasOwn(FAIR_DAY_EFFECT, season) ? FAIR_DAY_EFFECT[season] : "";
 }
 
 /**
@@ -88,6 +100,21 @@ export function weatherPlan({ current, owned, effect }) {
   if (owned && owned !== current) return { own: null };
   if (owned) return effect === current ? {} : { weather: effect, own: effect || null };
   return !current && effect ? { weather: effect, own: effect } : {};
+}
+
+/**
+ * The scenes the sky writes to: the active scene and the party's (the scene
+ * of the Overland travel token), once each, those that follow the sky (#294).
+ * A GM can have a dungeon active while the party is on the hex map.
+ * @param {{active?:object|null, travel?:object|null, follows:(scene:object)=>boolean}} w
+ */
+export function skyScenes({ active = null, travel = null, follows }) {
+  const seen = new Set();
+  return [active, travel].filter((scene) => {
+    if (!scene || seen.has(scene.id) || !follows(scene)) return false;
+    seen.add(scene.id);
+    return true;
+  });
 }
 
 /**

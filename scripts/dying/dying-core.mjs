@@ -97,6 +97,16 @@ export function timerRoll({ deadly = false, die, bonus = 0, con = 0 } = {}) {
 export const deathTimer = (total) => Math.max(1, Math.floor(Number(total) || 0));
 
 /**
+ * Who sees the death timer roll and the rounds-left lines that give its
+ * result: "everyone" (the default), "gm" (the hidden timer: a GM-only roll,
+ * whispered rounds) or "none" (rolled with no chat message at all). Silent
+ * beats hidden.
+ * @param {{hidden?: boolean, silent?: boolean}} p
+ * @returns {"everyone"|"gm"|"none"}
+ */
+export const timerChat = ({ hidden = false, silent = false } = {}) => (silent ? "none" : hidden ? "gm" : "everyone");
+
+/**
  * The stabilize DC. The helper's own DC (Heath Witch, 12) beats everything,
  * Deadly's 18 included. Otherwise 15, or 18 under Deadly, raised by any
  * creature within near that sets a higher one (Draugr).

@@ -6,7 +6,7 @@ import {
   setWeather, weatherHolds, weatherAdvantage, weatherFormula, weatherFromRoll, harshToday, hexCost,
   dayBudget, pointSeconds, openDay, spendMove, priceMove, moveVerdict,
   dayChecks, dueChecks, markCheck, setPending, setEncounter, partyMethod, setPace,
-  forageDC, closeDay, planRations, BOOK_CHECKS, checkSettings, encounterChance, checkHalf,
+  forageDC, closeDay, planRations, BOOK_CHECKS, checkSettings, encounterChance, checkHalf, makeCampState, campLightsOut, interruptRest,
 } from "../scripts/overland/overland-state-core.mjs";
 import { rulesApi } from "../scripts/rules-data/rules-data-core.mjs";
 
@@ -328,7 +328,7 @@ test("a quiet check's encounter is held as plain data until Continue or a new da
   };
   const { state, changed } = setEncounter({ ...defaultOverlandState(), day: 0 }, drawn);
   assert.equal(changed, true);
-  const kept = { ...drawn, poi: false, noTable: false, text: null };
+  const kept = { ...drawn, poi: false, noTable: false, interrupts: false, text: null };
   delete kept.extra;
   assert.deepEqual(state.encounter, kept, "the draw survives, unknown fields don't");
   assert.deepEqual(normalizeOverlandState(state), state, "normalizing is idempotent");
@@ -341,6 +341,27 @@ test("a quiet check's encounter is held as plain data until Continue or a new da
 });
 
 // ── Forage, camp (#233) ──────────────────────────────────────────────────────
+
+test("tonight's camp: made with or without Extras holding the rest, with when it breaks; its lights go out; the first creature's hour interrupts it; a new day clears it (#257)", () => {
+  const day = openDay(defaultOverlandState(), { now: 0, method: "walking", pushed: false, base: 4 }).state;
+  assert.equal(day.camp, null);
+  assert.deepEqual(interruptRest(day, 5).state.camp, { party: null, interrupted: 5, ate: false, until: null, lightsOut: false },
+    "a camp from before this build still records its creature, and hasn't eaten");
+  assert.deepEqual(makeCampState(day, null, 80000).state.camp,
+    { party: null, interrupted: null, ate: true, until: 80000, lightsOut: false }, "without Extras");
+  const camp = makeCampState(day, "Actor.party", 80000).state;
+  assert.deepEqual(camp.camp, { party: "Actor.party", interrupted: null, ate: true, until: 80000, lightsOut: false }, "the Extras party keeping the rest");
+  const dark = campLightsOut(camp);
+  assert.deepEqual([dark.changed, dark.state.camp.lightsOut, campLightsOut(dark.state).changed, campLightsOut(day).changed],
+    [true, true, false, false], "the lights go out once, and only at a camp (#282 review)");
+  const woken = interruptRest(dark.state, 7200).state;
+  assert.deepEqual(woken.camp, { party: "Actor.party", interrupted: 7200, ate: true, until: 80000, lightsOut: true });
+  assert.deepEqual(normalizeOverlandState(JSON.parse(JSON.stringify(woken))), woken, "a reload keeps the party, the end and the lights (#282 review)");
+  assert.equal(interruptRest(woken, 9000).changed, false, "the first creature's hour is kept");
+  assert.deepEqual(normalizeOverlandState({ camp: { party: 7, interrupted: "x", until: "y", lightsOut: 1 } }).camp,
+    { party: null, interrupted: null, ate: false, until: null, lightsOut: false });
+  assert.equal(closeDay(woken).state.camp, null);
+});
 
 test("forage: once a day, only during a travel day, never pushed, never in a harsh storm; DC 12 or 18", () => {
   const ok = { travelling: true, member: true, foraged: false };

@@ -18,6 +18,7 @@
  */
 import { MODULE_ID } from "../shared/module-id.mjs";
 import { installHoverPeek } from "../shared/hover-peek.mjs";
+import { registerQuery } from "../shared/gm-relay.mjs";
 
 /** Query name, namespaced per Foundry's convention. */
 export const ART_QUERY = `${MODULE_ID}.browseArt`;
@@ -86,7 +87,7 @@ async function browseLocal(folders) {
  * executes on whichever client is queried (the active GM).
  */
 export function registerArtGalleryQuery() {
-  CONFIG.queries[ART_QUERY] = async () => {
+  registerQuery(ART_QUERY, async () => {
     // Deliberately ignores the caller's payload — see the security note above.
     const folders = galleryFolders();
     if (!folders.length) return { files: [], folders: [] };
@@ -96,7 +97,7 @@ export function registerArtGalleryQuery() {
       console.error(`${MODULE_ID} | art gallery browse failed for [${folders.join(", ")}]:`, err);
       return { files: [], folders, error: String(err?.message ?? err) };
     }
-  };
+  });
 }
 
 /**

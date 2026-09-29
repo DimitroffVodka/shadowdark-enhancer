@@ -1,4 +1,5 @@
 import { MODULE_ID } from "../shared/module-id.mjs";
+import { isActiveGM } from "../shared/gm-relay.mjs";
 import { MovementTracker } from "./movement-tracker.mjs";
 import {
   STATE_VERSION,
@@ -50,11 +51,10 @@ const SOCKET = `module.${MODULE_ID}`;
  * elsewhere in the module (merchant-shop.mjs, session-recap.mjs,
  * item-drops.mjs). NOT used to gate direct, user-initiated mutators below —
  * those are a single physical click by whichever GM made it, so any GM is
- * allowed (see the "Public mutators" section for why).
+ * allowed (see the "Public mutators" section for why). The relay's check:
+ * one tab of a GM signed in twice (#288).
  */
-export function isActiveGM() {
-  return !!game.user?.isGM && game.users?.activeGM?.id === game.user?.id;
-}
+export { isActiveGM };
 
 export const CrawlState = {
   _state: defaultCrawlState(),
