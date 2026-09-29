@@ -7,6 +7,19 @@ import { stampSource } from "./item-source.mjs";
 export const CRAWLING_KIT = [["Backpack", 1], ["Flint and Steel", 1], ["Torch", 2], ["Rations", 3], ["Iron Spikes", 10], ["Grappling Hook", 1], ["Rope, 60'", 1]];
 
 /**
+ * Pre-fill a talent's REPLACEME effect keys with a choice made in the builder,
+ * exactly like the system's modifyEffectChangesWithInput (no dialog). Mutates and
+ * returns `obj`, a talent's source data.
+ */
+export function applyTalentChoice(obj, choice) {
+  obj.name += ` (${choice.label})`;
+  for (const eff of (obj.effects ?? [])) {
+    for (const c of (eff.changes ?? [])) c.key = c.key.replace("REPLACEME", choice.slug);
+  }
+  return obj;
+}
+
+/**
  * Turn a completed builder state into a Shadowdark PlayerSD actor.
  *
  * Mirrors the system generator's data shape — `system.ancestry/class/background/
@@ -225,11 +238,7 @@ async function gatherItems(state, classSys) {
     // A choice made in the builder pre-fills the REPLACEME effect keys exactly
     // like the system's modifyEffectChangesWithInput would — no dialog.
     if (choice?.slug) {
-      const obj = doc.toObject();
-      obj.name += ` (${choice.label})`;
-      for (const eff of (obj.effects ?? [])) {
-        for (const c of (eff.changes ?? [])) c.key = c.key.replace("REPLACEME", choice.slug);
-      }
+      const obj = applyTalentChoice(doc.toObject(), choice);
       items.push(applyFix(obj));
       return;
     }

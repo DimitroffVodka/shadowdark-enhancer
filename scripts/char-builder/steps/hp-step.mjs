@@ -1,6 +1,7 @@
 import { BaseStep } from "./base-step.mjs";
 import { MODULE_ID } from "../../shared/module-id.mjs";
 import { abilityMod, builderDiceAnimation, hpFromDice } from "../constants.mjs";
+import { hpLevelUpGain } from "../commit-plan.mjs";
 
 /**
  * Step — Hit Points. One hit die per character level: the first die takes the
@@ -18,13 +19,19 @@ export class HpStep extends BaseStep {
   get icon() { return "fa-solid fa-heart"; }
   get partial() { return "sde-cb-hp"; }
 
-  /** An existing actor's HP is its stored base max: no dice, and it never blocks (#168). */
-  get readOnly() { return !!this.state.existing; }
+  /** The level-up in progress on an existing character (#168 P7): one hit die, no CON. */
+  get levelUp() { return this.state.existing ? (this.state.levelUp ?? null) : null; }
 
-  isComplete() { return this.readOnly || this.state.hp.max > 0; }
+  /** An existing actor's HP is its stored base max: no dice, and it never blocks (#168), until it levels up. */
+  get readOnly() { return !!this.state.existing && !this.levelUp; }
+
+  /** Settled = the new die is rolled (a level-up) or the max is set (a new build). */
+  get settled() { return this.levelUp ? this.levelUp.dice.length > 0 : this.state.hp.max > 0; }
+
+  isComplete() { return this.readOnly || this.settled; }
 
   /** GM lock: a player whose HP is settled (rolled or maxed) rolls no more. */
-  get rollLocked() { return this.state.hp.max > 0 && this.lockedBy("charBuilderLockHpRolls"); }
+  get rollLocked() { return this.settled && this.lockedBy("charBuilderLockHpRolls"); }
 
   /** Class hit die string — system classes use "d8", third-party ones "1d8". */
   get hitDie() { return this.state.class?.item?.system?.hitPoints || null; }
@@ -36,12 +43,17 @@ export class HpStep extends BaseStep {
   }
   get conMod() { return abilityMod(this.state.stats.values.con) ?? 0; }
   /** Hit dice to roll = character level (a level-0 funnel build rolls one). */
-  get level() { return this.state.level0 ? 1 : (this.state.level || 1); }
+  get level() { return this.levelUp || this.state.level0 ? 1 : (this.state.level || 1); }
 
   /** HP modifiers granted by the chosen ancestry talents, read structurally
    *  from their ActiveEffects (Dwarf "Stout": +2 max HP and advantage on HP
    *  rolls via system.roll.hp.advantage). Cached per talent set. */
   async _hpModifiers() {
+    // A level-up reads advantage off the character's own effects, as the system's Level Up does.
+    if (this.levelUp) {
+      const adv = this.app.actor?.system?._getActiveEffectKeys?.("system.roll.hp.advantage", 0)?.value;
+      return { bonus: 0, advantage: Number(adv) > 0 };
+    }
     const key = (this.state.ancestryTalents || []).join(",");
     if (this._modsCache?.key === key) return this._modsCache.mods;
     const mods = { bonus: 0, advantage: false };
@@ -66,20 +78,23 @@ export class HpStep extends BaseStep {
     if (this.readOnly) return { existing: true, hp: this.state.hp.max || null, complete: true };
     const cm = this.conMod;
     const mods = await this._hpModifiers();
+    const lu = this.levelUp;
     return {
       hasClass: !!this.hitDie,
       hitDie: this.hitDie,
-      conModLabel: cm >= 0 ? `+${cm}` : `${cm}`,
+      // A level-up adds the die alone: the CON modifier is not added again.
+      conModLabel: lu ? null : (cm >= 0 ? `+${cm}` : `${cm}`),
+      levelUpHint: lu ? game.i18n.format("SDE.charBuilder.hp.levelUpHint", { from: lu.from, to: lu.to, max: this.state.existing.baseline.hp.max }) : null,
       hpBonus: mods.bonus || null,
       advantage: mods.advantage,
       maxSetting: this.maxSetting,
       rollLocked: this.rollLocked,
-      hp: this.state.hp.max || null,
-      rolled: this.state.hp.rolled,
+      hp: lu ? (hpLevelUpGain(lu.dice) || null) : (this.state.hp.max || null),
+      rolled: lu ? (hpLevelUpGain(lu.dice) || null) : this.state.hp.rolled,
       level: this.level,
       multiLevel: this.level > 1,
       // "5, 3, 7" — the individual hit dice behind the total (Handlebars can't join).
-      diceLabel: (this.state.hp.dice?.length ?? 0) > 1 ? this.state.hp.dice.join(", ") : null,
+      diceLabel: !lu && (this.state.hp.dice?.length ?? 0) > 1 ? this.state.hp.dice.join(", ") : null,
       complete: this.isComplete(),
     };
   }
@@ -119,6 +134,12 @@ export class HpStep extends BaseStep {
 
   /** Fold the per-level dice into max HP, store them, and post the chat card. */
   async _settle(dice, mods, roll, kind) {
+    const lu = this.levelUp;
+    if (lu) {
+      // The gain is the die alone, written to the BASE maximum on Save (never lowered).
+      lu.dice = dice;
+      return this._card(dice, hpLevelUpGain(dice), kind, roll);
+    }
     const total = hpFromDice(dice, this.conMod) + mods.bonus;
     // `bonus` is granted by a talent effect that re-applies on the actor — the
     // commit writes base HP without it to avoid double-counting. `rolled` stays
@@ -128,12 +149,14 @@ export class HpStep extends BaseStep {
   }
 
   async _card(dice, total, kind, roll) {
+    const lu = this.levelUp;
     const cm = this.conMod;
     const tag = kind === "max" ? ` (${game.i18n.localize("SDE.charBuilder.hp.maxTag")})`
       : kind === "adv" ? ` (${game.i18n.localize("SDE.charBuilder.hp.advTag")})` : "";
     const dieLine = dice.length > 1 ? `${this.hitDie}: ${dice.join(", ")}` : `${this.hitDie}`;
+    const con = lu ? "" : ` + CON ${cm >= 0 ? `+${cm}` : cm}`;
     const content = `<div class="sde-cb-rollcard"><h4>${game.i18n.localize("SDE.charBuilder.hp.card")}</h4>`
-      + `<div class="method">${dieLine} + CON ${cm >= 0 ? `+${cm}` : cm} → <b>${total} HP</b>${tag}</div></div>`;
+      + `<div class="method">${dieLine}${con} → <b>${lu ? "+" : ""}${total} HP</b>${tag}</div></div>`;
     const animate = builderDiceAnimation();
     try {
       await ChatMessage.create({

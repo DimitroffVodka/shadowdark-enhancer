@@ -18,7 +18,15 @@ it needs.
   mounts, boats, warbands or lights). After **Save changes**, an **Undo last
   save** button in the builder's footer asks once and puts back what the builder
   changed: abilities, alignment, background, deity, coins, languages, name, art
-  and items. Hit points, XP and luck are left as they are. (#168)
+  and items. Current hit points and luck are left as they are. (#168)
+- **Level up an existing character in the Character Builder, one level at a
+  time.** With the XP for it (level x 10, the sheet's own rule; a GM always),
+  **Level up** in the builder's footer asks for the same choices a new
+  higher-level character gets, for the one new level: a hit die added to the
+  maximum hit points, the odd level's talent roll, and the spells the class adds.
+  The save shows the level, maximum hit points and XP as old to new and creates
+  only the talent and spells, like the system's own Level Up. **Undo last save**
+  now also puts back the level, maximum hit points and XP, and says so. (#168)
 - **Silent death timers.** A new option beside Hidden death timers, in the
   Deadly box of Modes of Play: a dying character posts no roll
   card at all: not the death timer roll, not the rounds left, not the d20 turn

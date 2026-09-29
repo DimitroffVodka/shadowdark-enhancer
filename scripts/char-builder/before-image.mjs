@@ -13,7 +13,8 @@ import { newSessionId } from "./hydrate.mjs";
  *   - `at` (ms), `sessionId` (the builder session) and `version` (this module)
  *   - `actor`: the SOURCE values of the fields the builder can write (ability
  *     values, alignment, background, deity, coins, languages, name, portrait,
- *     token image). Source, never derived: a talent or Effect bonus is not baked in.
+ *     token image, and the level, base hit point maximum and XP a level-up
+ *     writes). Source, never derived: a talent or Effect bonus is not baked in.
  *   - `items`: the source data of every embedded item, with its id.
  * Nothing else: no other module's actor flags and no derived values. Item
  * source dominates the size (measured 17-35 KB for the nine pregens).
@@ -35,6 +36,8 @@ export const ACTOR_KEYS = [
   ...ABILITIES.map((k) => `system.abilities.${k}.value`),
   "system.alignment", "system.background", "system.deity",
   "system.coins.gp", "system.coins.sp", "system.coins.cp", "system.languages",
+  // a level-up writes these three (#168 P7); current hit points and luck are never written
+  "system.level.value", "system.level.xp", "system.attributes.hp.max",
 ];
 
 const getPath = (obj, path) => path.split(".").reduce((a, k) => a?.[k], obj);

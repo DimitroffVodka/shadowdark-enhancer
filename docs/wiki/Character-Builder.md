@@ -19,7 +19,7 @@ never re-prompts you with level-up popups afterwards. Pick any level from
 | **Actors sidebar** | Click **Character Builder** in the sidebar header. Visible to all users. |
 | **API** | `game.shadowdarkEnhancer.charBuilder.open()` |
 | **Edit an existing character** | Click **Character Builder** in the header of a player character's sheet, or right-click the character in the Actors sidebar and choose **Edit in Character Builder**. GM or owner only, and only for player characters (never NPCs, mounts, boats, warbands or lights). Or `game.shadowdarkEnhancer.charBuilder.open({ actor })` from the API or a macro. See [Editing an existing character](#editing-an-existing-character). |
-| **Undo a save** | **Undo last save** in the builder's footer (see below). Through the API: `charBuilder.takeBeforeImage(actor)` saves the sheet's abilities, alignment, background, deity, coins, languages, name, art and every item; `charBuilder.restoreBeforeImage(actor)` puts them back (GM or owner). The image is kept until the next one replaces it. See `charBuilder.hasBeforeImage` and `describeBeforeImage`. |
+| **Undo a save** | **Undo last save** in the builder's footer (see below). Through the API: `charBuilder.takeBeforeImage(actor)` saves the sheet's abilities, alignment, background, deity, coins, languages, name, art, level, maximum hit points, XP and every item; `charBuilder.restoreBeforeImage(actor)` puts them back (GM or owner). The image is kept until the next one replaces it. See `charBuilder.hasBeforeImage` and `describeBeforeImage`. |
 
 **Players can build characters freely.** If a player lacks actor-creation
 permissions, the builder transparently hands off document creation to the GM
@@ -42,6 +42,8 @@ boons, effects and any other item the builder does not model are **kept as-is**
 and never written. You can change abilities, alignment, background, deity, name
 and art, add gear from the shop, change the quantity of gear you own, and remove
 gear or spells.
+
+To gain a level, see [Levelling up an existing character](#levelling-up-an-existing-character).
 
 New gear you add is paid for from the character's coins (never below zero, with
 the usual over-budget warning). Removed items refund nothing, and changing the
@@ -72,10 +74,47 @@ as it was before that save and reloads the builder. A notification says what
 came back: items put back, items removed, other things changed. Only the latest save can be undone: each save replaces the backup.
 
 The limit: it puts back what the builder changed (abilities, alignment,
-background, deity, coins, languages, name, art and items). Anything the builder
-never writes (hit points, XP, luck, effects) is not touched by a save or by an
-undo, so it stays as it is now. For a macro,
+background, deity, coins, languages, name, art and items) and, from a level-up,
+the **level, the maximum hit points and the XP**. The confirmation says so: a level
+or XP the character gained after that save is lost too. Anything the builder never
+writes (current hit points, luck, effects) is not touched by a save or by an undo,
+so it stays as it is now. For a macro,
 `game.shadowdarkEnhancer.charBuilder.restoreBeforeImage(actor)` does the same.
+
+---
+
+## Levelling up an existing character
+
+An existing character below level 10 can gain **one level at a time** in the
+builder, with the same choices the builder offers a new higher-level character,
+for that one new level only. It follows the Shadowdark system's own Level Up:
+**Level up** appears in the footer once the character has the XP (level x 10, the
+same test as the arrow on the sheet), and a GM always sees it. A level 0 (Funnel)
+character has none.
+
+Press **Level up (N)**. The builder moves to the Class tab, and the level's
+choices are the ones a new build makes:
+
+| At the new level | What you do |
+|---|---|
+| Hit points | On the HP tab, roll one hit die (or take the maximum if the GM option is on, or roll with advantage if the character has it). It is added to the **maximum** hit points; the CON modifier is not added again. |
+| Talent | At every odd level (3, 5, 7, 9): roll on the class talent table on the Class tab and choose if the roll offers a choice, as for a new build. |
+| Spells | A caster picks only the spells the class's spells-known table adds at this level, in each tier. Spells already held are not offered again and are not touched. |
+
+**Save changes** is blocked until the die is rolled, the level's talent is rolled
+(and chosen), and the new spells are picked. **Cancel level up** in the footer drops
+the level-up and what it picked; your other edits stay. Ancestry and class stay
+read-only.
+
+The diff shows the level (old to new), the maximum hit points (old to new, with the
+gain), the XP (the XP above the level's cost carries over, never below 0), and the
+talent and spells added. Saving writes those and nothing else: the level, the
+maximum hit points, the XP, and the new talent and spells as new items.
+**Current hit points, luck and everything the builder does not edit are left as
+they are** (the system's own Level Up also raises current hit points by the roll;
+the builder does not). Like the system's Level Up it adds no Class Abilities, and
+it does not roll patron boons. **Undo last save** puts back the level, the maximum
+hit points and the XP, and removes the talent and spells the save added.
 
 ---
 
