@@ -983,6 +983,20 @@ export async function undergroundCheck({ crossed } = {}) {
 }
 
 /**
+ * On the active GM (timeAdvanced fires there only), in Overland mode: a clock move over a dawn rolls the new
+ * day's weather, once however many dawns it crossed, unless it already holds. A camp, held or on its way, owns
+ * its dawn (finishCamp rolls it), and outside Overland nothing rolls (#294).
+ * @returns {Promise<void>} once the roll has run in the queue
+ */
+export function dawnWeather({ crossed } = {}) {
+  if (!(crossed?.dawns > 0)) return Promise.resolve();
+  return serialize(async () => {
+    if (!CrawlState.isOverland || _state.camp) return;
+    await rollWeatherHere(false);
+  });
+}
+
+/**
  * The active GM's side of every action. `user` comes from the query context
  * (or is this GM), never from the payload.
  * @param {{action:string, tokenUuid?:string, actorId?:string, hex?:object, reroll?:boolean,
@@ -1152,5 +1166,6 @@ export function registerOverland() {
   Hooks.on("moveToken", onMoveToken);
   Hooks.on(`${MODULE_ID}.timeAdvanced`, (payload) => {
     undergroundCheck(payload).catch((err) => console.error(`${MODULE_ID} | underground season check`, err));
+    dawnWeather(payload).catch((err) => console.error(`${MODULE_ID} | dawn weather`, err));
   });
 }

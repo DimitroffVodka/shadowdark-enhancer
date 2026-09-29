@@ -483,6 +483,12 @@ the player-owned PCs, and Overland runs its own camp rations. The only thing mis
     rules are unchanged;
   - empty otherwise (an excellent day included).
   - The effects are core's (`config.mjs:1437-1548`). The value is written only when it changes.
+- **The weather rolls by itself at a dawn (#294).** On the active GM's `timeAdvanced`, in Overland mode,
+  a move that crossed a dawn (`crossed.dawns > 0`) runs `rollWeatherHere(false)` in the queue, once
+  however many dawns it crossed, and only when the weather no longer holds. Start day and the camp's
+  dawn already skip a roll while it holds, so nothing rolls twice. A camp record (held or on its way)
+  owns its dawn, and outside Overland nothing rolls. The sky then writes darkness and weather in one
+  update.
 - **The Isles of Andrik**, keyed by region name as a shipped recipe, like `training-core.mjs`, with
   the source page and no book text. The region is the party's, `state.hex.region`.
 

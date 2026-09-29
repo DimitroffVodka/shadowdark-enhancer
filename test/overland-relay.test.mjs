@@ -72,7 +72,7 @@ Object.assign(globalThis, {
     modules: { get: () => null },
   },
 });
-const { applyAction, registerOverland, overlandState, weatherNow, recordMove, advanceTravel, undergroundCheck, checkNow } = await import("../scripts/overland/overland.mjs");
+const { applyAction, registerOverland, overlandState, weatherNow, recordMove, advanceTravel, undergroundCheck, dawnWeather, checkNow } = await import("../scripts/overland/overland.mjs");
 const { BOAT_TYPE } = await import("../scripts/actors/register-actors.mjs");
 const { CrawlState } = await import("../scripts/crawl-strip/crawl-state.mjs");
 
@@ -1173,4 +1173,71 @@ test("a dawn Extras has no rest for after a creature woke the camp claims no CON
   globalThis.game.modules = { get: () => null };
   assert.ok(posted.some((c) => c.includes("SDE.travel.night.interrupted")), "the dawn says when the rest was interrupted");
   assert.ok(!posted.some((c) => c.includes("SDE.overland.camp.interrupted")), "and claims no CON roll");
+});
+
+// ── The weather rolls at a dawn the clock crosses (#294) ─────────────────────
+
+const { crossings } = await import("../scripts/time/time-core.mjs");
+/** Move the clock like a plain step, then let the module's time hook see what it crossed. */
+async function step(to) {
+  const from = globalThis.game.time.worldTime;
+  globalThis.game.time.worldTime = to;
+  await dawnWeather({ from, to, crossed: crossings(gregorian, from, to) });
+}
+const weatherRolls = () => rolled.filter((f) => f === "1d6" || f === "2d6kh").length;
+const weatherCards = () => cards.filter((c) => c.content?.includes("sde-weather-card")).length;
+
+test("a plain clock step over a dawn rolls the weather once; Start day and Make camp add none for that day (#294)", async () => {
+  campWorld();
+  dice.length = rolled.length = cards.length = 0;
+  globalThis.ChatMessage.create = async (data) => { cards.push(data); };
+  globalThis.game.time.worldTime = at(1301, 6, 21, 20);
+  CrawlState._state = { ...CrawlState._state, mode: "overland" };
+  dice.push(3);
+  await step(at(1301, 6, 22, 8));
+  assert.equal(weatherCards(), 1, "one weather card");
+  assert.equal(weatherRolls(), 1);
+  assert.equal(stored.overlandState.weather.roll, 3, "one roll stored");
+  assert.equal(weatherNow(), "fair");
+
+  dice.push(2, 9, 1, 12);                          // the day's check hours; no weather die is queued
+  await applyAction({ action: "startDay", method: "walking" }, gm);
+  assert.equal(weatherRolls(), 1, "Start day found the weather holding");
+  dice.push(5);                                    // tomorrow's weather, at the camp's own dawn
+  await applyAction({ action: "camp" }, gm);
+  assert.equal(weatherRolls(), 2, "Make camp rolls its own dawn once, nothing more");
+  assert.equal(weatherCards(), 2);
+});
+
+test("a step inside one day rolls nothing; across several dawns it rolls once; outside Overland nothing (#294)", async () => {
+  campWorld();
+  dice.length = rolled.length = cards.length = 0;
+  globalThis.ChatMessage.create = async (data) => { cards.push(data); };
+  CrawlState._state = { ...CrawlState._state, mode: "overland" };
+  globalThis.game.time.worldTime = at(1301, 6, 21, 8);
+  await step(at(1301, 6, 21, 20));
+  assert.equal(weatherRolls(), 0, "no dawn inside the day");
+
+  dice.push(4);
+  await step(at(1301, 6, 25, 9));
+  assert.equal(weatherRolls(), 1, "four dawns, one roll");
+  assert.equal(weatherCards(), 1);
+
+  CrawlState._state = { ...CrawlState._state, mode: "off" };
+  await step(at(1301, 6, 27, 9));
+  assert.equal(weatherRolls(), 1, "not in Overland mode: nothing");
+});
+
+test("a camp held or on its way keeps its dawn to itself (#294)", async () => {
+  campWorld();
+  dice.length = rolled.length = cards.length = 0;
+  globalThis.ChatMessage.create = async (data) => { cards.push(data); };
+  CrawlState._state = { ...CrawlState._state, mode: "overland" };
+  stored.overlandState = { ...stored.overlandState, weather: null, camp: { party: null, interrupted: null, ate: true, until: at(1301, 6, 22, 5), lightsOut: true } };
+  registerOverland();
+  globalThis.game.time.worldTime = at(1301, 6, 21, 20);
+  await step(at(1301, 6, 22, 8));
+  assert.equal(weatherRolls(), 0);
+  assert.equal(weatherCards(), 0);
+  assert.ok(stored.overlandState.camp, "the camp is left as it was");
 });
