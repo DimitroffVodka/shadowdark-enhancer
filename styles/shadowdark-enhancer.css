@@ -2311,6 +2311,26 @@ body.theme-light .sde-mtree-chip.locked.has { color: #9c5210; }
   font-family: var(--sde-bar-font);
 }
 
+/* Rules Data step (#299): one row per table, its state, book and what waits on it */
+.sde-hub-rules-list {
+  list-style: none;
+  margin: 2px 10px 6px;
+  padding: 0;
+  font-size: 11px;
+  font-family: var(--sde-bar-font);
+}
+.sde-hub-rules-list li {
+  display: grid;
+  grid-template-columns: 7em 14em 10em 1fr;
+  gap: 6px;
+  align-items: baseline;
+  padding: 1px 0;
+}
+.sde-hub-rules-list .sde-thub-stat { font-size: 11px; padding: 0; cursor: default; }
+.sde-hub-rules-list .sde-thub-stat:hover { background: none; }
+.sde-hub-rules-cite,
+.sde-hub-rules-needs { color: var(--sde-bar-text-muted); }
+
 /* Skipped section */
 .sde-hub-import-skipped-section {
   border-color: var(--sde-bar-border);

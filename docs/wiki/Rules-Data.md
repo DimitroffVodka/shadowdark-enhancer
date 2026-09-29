@@ -9,18 +9,45 @@ how big a carousing event or warband a settlement can offer. **Rules data** is
 where the module keeps those tables, so overland travel, carousing and hex
 visibility all read the same numbers.
 
-Open it from **Configure Settings → Shadowdark Enhancer → Rules data**
-(GM only).
+There are two doors to the one window, both GM only:
+
+- **The [Importer Hub](Importer-Hub.md)'s Rules Data step**, which sits just
+  under the paste box. It lists every table with its book and page and
+  whether it is **Filled** or **Empty**, says what waits on each, and has the
+  **Import from GM Guide** button and an **Edit Rules Data** button.
+- **Configure Settings → Shadowdark Enhancer → Rules data**.
 
 **Nothing from the books ships with the module.** Every table starts empty. You
 fill them from your own PDFs with one button, or type them in yourself.
+
+## What waits on each table
+
+Until a table is filled, the feature that reads it falls back to a plain
+default instead of stopping.
+
+| Table | What waits on it | Without it |
+|---|---|---|
+| Hexes per day | Travel: how many hexes the party covers in a day | Start day asks you to type the day's hexes |
+| Terrain types, Terrain | Travel: what each hex costs to enter | Every hex costs 1, and a storm can't make normal terrain difficult |
+| Hex visibility | How far the party can see | The travel panel doesn't show how far the party sees |
+| Climate | Cold storms: which regions turn harsh in a storm | A storm never stops travel |
+| Carousing limits | Carousing: the biggest event a settlement can host | No limit from this module |
+| Recruiting limits | Recruiting: the highest warband level a settlement supplies | No limit from this module |
+
+**You are told, once.** When travel needs a table that is empty, you (the GM,
+never a player) get one whispered card per table per session: for example
+"Terrain costs aren't set ... Import them once from your GM Guide: Importer Hub
+> Rules Data > Import from GM Guide." Its **Open Rules Data** button opens the
+hub at the step. The Start day dialog's **Hexes today** hint says the same for
+hexes per day, with the same button.
 
 ---
 
 ## Import from GM Guide
 
 Link your books first, in the [Importer Hub](Importer-Hub.md) under
-**Tools → Source PDFs**. Then press **Import from GM Guide**. It reads:
+**Tools → Source PDFs**. Then press **Import from GM Guide**, in the hub's
+Rules Data step or in the window. Both run the same import. It reads:
 
 | Table | Book | Page |
 |---|---|---|
@@ -45,8 +72,13 @@ other Western Reaches table (see [Table Import & Shapes](Table-Import-and-Shapes
   table early), the warning names it with how many rows it got, for example
   "Terrain (10 of 16 rows)". Check that table against the book and fill in the
   rest.
-- **Nothing is kept until you press Save.** The import fills the window;
-  **Cancel** throws it away with any other change.
+- **From the window, nothing is kept until you press Save.** The import fills
+  the window; **Cancel** throws it away with any other change. **From the hub,
+  it is saved at once**, after the same preview of anything it replaces.
+- **Import everything** in the hub imports the Rules Data as its last step when
+  a source PDF is linked, on the same terms: empty values are filled without
+  asking and a value it would replace is previewed first. With no book linked it
+  says so in one line and imports nothing.
 
 Region names are stored the way the rest of the module spells them: the
 climate table's "Bastion Mtns" becomes **Bastion Mountains**, and

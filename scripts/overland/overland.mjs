@@ -46,6 +46,7 @@ import { advanceOffDuty } from "../time/off-duty.mjs";
 import { StatRiders } from "../stat-damage/stat-riders.mjs";
 import { esc } from "../shared/esc.mjs";
 import { rulesFrom, stormEffects } from "../rules-data/rules-data-core.mjs";
+import { tellMissing, openRulesStep } from "../rules-data/rules-data-notice.mjs";
 import {
   defaultOverlandState, normalizeOverlandState, startTravel, setHex, recordForage,
   pickTravelToken, forageRefusal, setWeather, weatherHolds, weatherAdvantage, weatherFormula,
@@ -305,6 +306,8 @@ function stormText(days) {
 /** One chat card for a weather roll: what it is, what it does, until when, and the dice. */
 async function postWeather(weather, rolls, reroll) {
   const [, effect] = WEATHER_TEXT[weather.kind];
+  // A storm reads both tables; the card below is for the table, so what to press goes to the GM alone (#299).
+  if (weather.kind === "stormy") { void tellMissing("terrain"); void tellMissing("climate"); }
   const what = weather.kind === "stormy" ? stormText(weather.days) : t(effect);
   const lines = [
     `<p><strong>${esc(t("SDE.overland.weather.title", { weather: weatherName(weather.kind) }))}</strong></p>`,
@@ -573,6 +576,7 @@ export async function askDay() {
     <div class="form-group"><label>${esc(t("SDE.overland.day.hexes"))}</label>
       <input type="number" name="hexes" min="1" step="1" placeholder="${esc(t("SDE.overland.day.hexesFromRules"))}"></div>
     <p class="hint">${esc(known.length ? t("SDE.overland.day.hexesKnown", { list: known.join(", ") }) : t("SDE.overland.day.hexesUnknown"))}</p>
+    ${known.length ? "" : `<p><button type="button" data-sde-rules-open><i class="fa-solid fa-scroll"></i> ${esc(t("SDE.rulesData.openStep"))}</button></p>`}
     <div class="form-group"><label>${esc(t("SDE.overland.day.pushed"))}</label><input type="checkbox" name="pushed"${_state.pace === "push" ? " checked" : ""}></div>
     <p class="hint">${esc(t("SDE.overland.day.pushedHint"))}</p>
     ${boats.length ? `<div class="form-group"><label>${esc(t("SDE.overland.day.boat"))}</label>
@@ -588,6 +592,7 @@ export async function askDay() {
         return { method: f.method.value, pushed: f.pushed.checked, boatUuid: f.boatUuid?.value || null, hexes: Number(f.hexes.value) || null };
       },
     },
+    render: (_event, dialog) => dialog.element.querySelector("[data-sde-rules-open]")?.addEventListener("click", () => openRulesStep()),
     rejectClose: false,
   });
 }
@@ -639,6 +644,7 @@ function costToday() {
   const s = overlandState();
   const terrainCost = game.shadowdarkEnhancer?.rules?.terrainCost;
   if (typeof terrainCost !== "function") return () => 1;
+  void tellMissing("terrain");
   // One rules lookup per terrain: rules.terrainCost reads the whole rules setting
   // each call, and a route prices thousands of steps with the same day's options.
   const memo = new Map();

@@ -206,7 +206,8 @@ with forage and camp.
   altogether. Both come from [Rules Data](Rules-Data.md): difficult terrain
   from the terrain costs, stopped travel from the climate table. The storm
   card says only what the imported rules give a storm, and says so when they
-  give it nothing.
+  give it nothing; the GM alone also gets a whispered card, once per table per
+  session, saying which table to import and where.
 - **Start day** opens a travel day, and pressing **Travel** opens it for you
   straight away. Nothing is asked: the method is read from the party (mounted
   when every member rides a mount, from the riders on each mount's sheet;
@@ -217,10 +218,12 @@ with forage and camp.
   today as well. The weather is rolled first if today's hasn't been. Every
   mount carrying the party eats a ration at camp.
 - **Hexes today**: only when nothing says how many hexes a day the party
-  makes (no rules data imported, and no boat), Start day asks, with the method
-  and the push to confirm. Once you've imported the rules from your GM Guide
-  (**Edit Rules Data**), or when sailing aboard a boat actor with a speed, it
-  doesn't.
+  makes (Hexes per day isn't in the [Rules Data](Rules-Data.md) yet, and no
+  boat), Start day asks, with the method and the push to confirm. Its hint says
+  what to press: import it once from your GM Guide (**Importer Hub > Rules Data
+  > Import from GM Guide**), or type today's hexes there. The **Open Rules Data**
+  button under the hint opens that step. Once the table is filled, or when
+  sailing aboard a boat actor with a speed, Start day doesn't ask.
 - **Moving the travel token** costs each hex's terrain cost from the day's
   hexes, and moves the world clock: a travel day is 8 hours, so walking costs
   2 hours per point. Following a path from one path hex to the next costs 1.
