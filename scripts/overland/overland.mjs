@@ -321,6 +321,22 @@ async function postWeather(weather, rolls, reroll) {
 }
 
 /**
+ * The day's weather has changed: have Extras' hex fog reveal around the party token where it stands, so a
+ * clearer or worse day shows at once, not at the first step (#307). GM's client, the party's own scene (not the
+ * viewed one), fog on; every call feature-checked. A storm adds and removes nothing on Extras' side.
+ */
+async function revealAroundParty() {
+  try {
+    if (!game.user?.isGM || !_state.tokenUuid) return;
+    const token = fromUuidSync(_state.tokenUuid);
+    const scene = token?.parent;
+    const hex = game.modules?.get("shadowdark-extras")?.api?.hex;
+    if (!scene || !isHexMapScene({ scene }) || typeof hex?.revealFrom !== "function" || typeof hex.isFogEnabled !== "function") return;
+    if (hex.isFogEnabled(scene.id) === true) await hex.revealFrom(scene.id, token.id);
+  } catch (err) { console.debug(`${MODULE_ID} | dawn reveal`, err); }
+}
+
+/**
  * Roll today's weather here, on the active GM inside the queue, unless today's
  * still holds and this isn't a reroll.
  * @returns {Promise<{rolled:boolean, weather:object}>}
@@ -337,6 +353,7 @@ async function rollWeatherHere(reroll) {
     rule, roll: roll.total, advantage, stormDays: days?.total ?? null, dawnAfter: (n) => dawnAfter(cal, now, n),
   });
   await commit(setWeather(_state, weather).state);
+  void revealAroundParty();   // not awaited: the queue must not wait on Extras' reveal
   await postWeather(weather, [roll, days].filter(Boolean), reroll);
   return { rolled: true, weather: structuredClone(weather) };
 }

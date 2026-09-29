@@ -105,6 +105,13 @@ it needs.
   The scene keeps its weather and other screens still show it. It applies at
   once, with no scene redraw, and holds through the redraw a weather change
   causes. (#294)
+- **A new day's weather reveals around the party.** When the weather changes
+  (the dawn roll, the Weather button, a reroll) and the party token is on a hex
+  map whose Hex Fog is on, the hexes around it are revealed at once for the
+  day's conditions, without a move: an excellent day shows its extra ring. A
+  storm adds nothing and hides nothing already seen. Needs Shadowdark Extras
+  with the hex fog reveal (shadowdark-extras#185); without it nothing happens.
+  (#307)
 - **The clock bar.** The date with its year, the time and the sky now sit at
   the top of the screen for everyone, on every scene, in the look of the
   Overland demo: black, the engraved frame, the book's blackletter. Under it,

@@ -198,6 +198,8 @@ with forage and camp.
   While you travel the weather rolls at each dawn the clock crosses, by
   itself: one roll and one card, however many days a jump skips (a camp rolls
   its own dawn). You only press it to roll early or to reroll.
+  When the weather changes and the party token is on a hex map whose Shadowdark Extras Hex Fog is on, the
+  hexes around the party are revealed at once for the new day, without a move.
   With the Western Reaches rule (the default) a 1 is stormy and a 6 is
   excellent, which gives the next day's roll advantage. With the core rule a 1
   is a storm for 1d4 days, with no roll while it lasts. Pick the rule under
