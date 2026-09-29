@@ -81,6 +81,7 @@ async function attempt(write) {
  * Resolve a create descriptor to item source data (compendium lookups; the
  * Foundry-bound part, injectable for tests).
  * @returns {Promise<object[]>} empty when the compendium entry cannot be read
+ * @throws {IncompleteError} a Crawling Kit component cannot be resolved
  */
 export async function resolveCreate(c) {
   if (c.kind === "trinket") {
@@ -93,7 +94,8 @@ export async function resolveCreate(c) {
       for (const [name, qty] of CRAWLING_KIT) {
         const found = basics.find((i) => i.name.toLowerCase() === name.toLowerCase());
         const doc = found ? await fromUuid(found.uuid).catch(() => null) : null;
-        if (!doc) continue;
+        // A kit is all or nothing: a short one would satisfy `expected` in runPlan.
+        if (!doc) throw new IncompleteError("creates", [`${c.name}: ${name}`]);
         const obj = stampSource(doc.toObject(), doc.uuid);
         if (qty > 1) obj.system.quantity = qty;
         out.push(obj);
@@ -122,12 +124,14 @@ export async function applyPlan(actor, plan, { commitId = newSessionId(), resolv
   if (inFlight.has(key)) throw new ApplyInProgressError();
   inFlight.add(key);
   try {
-    await runPlan(actor, plan, { op: { [MODULE_ID]: { builder: commitId } }, resolve });
+    await runPlan(actor, plan, { op: () => ({ [MODULE_ID]: { builder: commitId } }), resolve });
   } finally {
     inFlight.delete(key);
   }
 }
 
+// `op` builds a NEW options object for every write: Foundry mutates the one it is
+// handed (parentUuid), and a reused one makes a later actor.update reject.
 async function runPlan(actor, plan, { op, resolve }) {
   // (1) creates: rows whose marker is not on the actor yet
   const have = markerCounts(actor);
@@ -143,7 +147,7 @@ async function runPlan(actor, plan, { op, resolve }) {
     }
   }
   let err = null;
-  if (data.length) err = await attempt(() => actor.createEmbeddedDocuments("Item", data, op));
+  if (data.length) err = await attempt(() => actor.createEmbeddedDocuments("Item", data, op()));
   // A row is done when all the items it unpacks to are on the actor; a kit that
   // landed short is reported, and so is a row whose compendium entry is gone.
   const now = markerCounts(actor);
@@ -158,7 +162,7 @@ async function runPlan(actor, plan, { op, resolve }) {
   };
   const updates = pending();
   if (updates.length) {
-    const err2 = await attempt(() => actor.updateEmbeddedDocuments("Item", updates, op));
+    const err2 = await attempt(() => actor.updateEmbeddedDocuments("Item", updates, op()));
     const left = pending();
     if (left.length) throw new IncompleteError("updates", left.map((u) => u._id), err2);
   }
@@ -172,7 +176,7 @@ async function runPlan(actor, plan, { op, resolve }) {
   const todoKeys = stale();
   if (todoKeys.length) {
     const send = Object.fromEntries(todoKeys.map((k) => [k, changes[k]]));
-    const err3 = await attempt(() => actor.update(send, op));
+    const err3 = await attempt(() => actor.update(send, op()));
     const left = stale();
     if (left.length) throw new IncompleteError("actor", left, err3);
   }
@@ -181,7 +185,7 @@ async function runPlan(actor, plan, { op, resolve }) {
   const doomed = () => plan.deletes.filter((id) => liveItems(actor).has(id));
   const ids = doomed();
   if (ids.length) {
-    const err4 = await attempt(() => actor.deleteEmbeddedDocuments("Item", ids, op));
+    const err4 = await attempt(() => actor.deleteEmbeddedDocuments("Item", ids, op()));
     const left = doomed();
     if (left.length) throw new IncompleteError("deletes", left, err4);
   }

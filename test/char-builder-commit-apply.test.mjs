@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { applyPlan, IncompleteError, ApplyInProgressError } from "../scripts/char-builder/commit-apply.mjs";
+import { applyPlan, resolveCreate, IncompleteError, ApplyInProgressError } from "../scripts/char-builder/commit-apply.mjs";
+import { CRAWLING_KIT } from "../scripts/char-builder/commit.mjs";
 import { hydrateState } from "../scripts/char-builder/hydrate.mjs";
 import { planCommit, planIsEmpty } from "../scripts/char-builder/commit-plan.mjs";
 
@@ -27,14 +28,28 @@ function setPath(o, p, v) {
 const UUID_KEYS = ["system.background", "system.deity", "system.patron"];
 const clean = (k, v) => (UUID_KEYS.includes(k) ? (v || null) : typeof v === "string" ? v.trim() : v);
 
+// What Foundry 14.368 does to the operation object it is handed (ClientDatabaseBackend
+// #buildRequest): an embedded write gets parent = the actor, then parentUuid is assigned
+// from it and parent deleted, ON THE CALLER'S OBJECT. A later actor.update given that
+// same object resolves the stale parentUuid and rejects. Recorded calls keep a copy of
+// the options as they were handed in.
+function embeddedWrite(actor, method, extra, options) {
+  actor.calls.push({ method, ...extra, options: options && structuredClone(options) });
+  if (options) { options.parent = actor; options.parentUuid = actor.uuid; delete options.parent; }
+}
+function actorWrite(actor, changes, options) {
+  actor.calls.push({ method: "update", changes, options: options && structuredClone(options) });
+  if (options?.parentUuid) throw new Error("Actor is not a valid embedded Document within the Actor Document");
+}
+
 function makeActor({ items = [], source = {} } = {}) {
   let n = 0;
   const actor = {
-    faults: {}, calls: [], before: {}, clean: true,
+    uuid: "Actor.hero", faults: {}, calls: [], before: {}, clean: true,
     _source: { name: "Hero", img: "a.webp", system: { coins: { gp: 10, sp: 0, cp: 0 }, languages: [] }, ...source },
     items: new Coll(),
     async createEmbeddedDocuments(type, data, options) {
-      actor.calls.push({ method: "create", data, options });
+      embeddedWrite(actor, "create", { data }, options);
       actor.before.create?.();
       if (actor.faults.create === "before") throw new Error("boom");
       let made = data.map((d) => ({ ...structuredClone(d), _id: `n${++n}` }));
@@ -44,7 +59,7 @@ function makeActor({ items = [], source = {} } = {}) {
       return made;
     },
     async updateEmbeddedDocuments(type, updates, options) {
-      actor.calls.push({ method: "updateItems", updates, options });
+      embeddedWrite(actor, "updateItems", { updates }, options);
       actor.before.updateItems?.();
       if (updates.some((u) => !actor.items.has(u._id))) throw new Error("does not exist");
       if (actor.faults.updateItems === "before") throw new Error("boom");
@@ -55,7 +70,7 @@ function makeActor({ items = [], source = {} } = {}) {
       if (actor.faults.updateItems === "after") throw new Error("_onUpdate threw");
     },
     async deleteEmbeddedDocuments(type, ids, options) {
-      actor.calls.push({ method: "delete", ids, options });
+      embeddedWrite(actor, "delete", { ids }, options);
       actor.before.delete?.();
       if (ids.some((id) => !actor.items.has(id))) throw new Error("does not exist");
       if (actor.faults.delete === "before") throw new Error("boom");
@@ -64,7 +79,7 @@ function makeActor({ items = [], source = {} } = {}) {
       if (actor.faults.delete === "after") throw new Error("_onDelete threw");
     },
     async update(changes, options) {
-      actor.calls.push({ method: "update", changes, options });
+      actorWrite(actor, changes, options);
       if (actor.faults.update === "before") throw new Error("boom");
       if (actor.faults.update !== "veto") for (const [k, v] of Object.entries(changes)) setPath(actor._source, k, actor.clean ? clean(k, v) : v);
       if (actor.faults.update === "after") throw new Error("_onUpdate threw");
@@ -399,3 +414,80 @@ test("a kit that lands short is reported incomplete", async () => {
     applyPlan(actor, planCommit(st.existing, st, live()), { commitId: "c1", resolve: kitResolve }),
     (e) => e instanceof IncompleteError && e.step === "creates" && e.missing.join() === "Crawling Kit");
 });
+
+// ---------------------------------------------------------------------------
+// Foundry 14.368 mutates the operation object of every write (parentUuid). One shared
+// object made the actor update fail on the FIRST attempt after any embedded write.
+// ---------------------------------------------------------------------------
+
+test("first attempt: an embedded create, then the actor update, then the deletes all land", async () => {
+  const actor = makeActor({ items: BASE_ITEMS() });
+  const plan = { ...PLAN(), updates: [] };
+  await run(actor, plan);
+  assert.deepEqual(actor.calls.map((c) => c.method), ["create", "update", "delete"]);
+  assert.equal(actor._source.system.coins.gp, 77);
+  assert.ok(!actor.items.has("gone1") && !actor.items.has("gone2"));
+});
+
+test("first attempt: a quantity update, then the actor update, then the deletes all land", async () => {
+  const actor = makeActor({ items: BASE_ITEMS() });
+  const plan = { ...PLAN(), creates: [] };
+  await run(actor, plan);
+  assert.deepEqual(actor.calls.map((c) => c.method), ["updateItems", "update", "delete"]);
+  assert.equal(actor.items.get("torch").system.quantity, 5);
+  assert.equal(actor._source.system.coins.gp, 77);
+  assert.ok(!actor.items.has("gone1") && !actor.items.has("gone2"));
+});
+
+test("no two writes are handed the same options object", async () => {
+  const actor = makeActor({ items: BASE_ITEMS() });
+  const seen = [];
+  for (const m of ["createEmbeddedDocuments", "updateEmbeddedDocuments", "deleteEmbeddedDocuments", "update"]) {
+    const orig = actor[m];
+    actor[m] = function (...a) { seen.push(a.at(-1)); return orig.apply(this, a); };
+  }
+  await run(actor);
+  assert.equal(seen.length, 4);
+  assert.equal(new Set(seen).size, 4);
+});
+
+// ---------------------------------------------------------------------------
+// The DEFAULT resolver for a Crawling Kit: every declared component must resolve.
+// ---------------------------------------------------------------------------
+
+/** Globals the default resolver reads; `lacking` names a component to drop, `how` how it fails. */
+function withKitCompendium(lacking, how, fn) {
+  const basics = CRAWLING_KIT.map(([name]) => ({ name, uuid: `Compendium.x.${name}` }))
+    .filter((b) => !(how === "absent" && b.name === lacking));
+  globalThis.shadowdark = { compendiums: { basicItems: async () => basics } };
+  globalThis.fromUuid = async (uuid) => {
+    const name = uuid.replace("Compendium.x.", "");
+    if (name === lacking && how === "null") return null;
+    if (name === lacking && how === "reject") throw new Error("gone");
+    return { uuid, toObject: () => ({ name, type: "Basic", system: { quantity: 1 } }) };
+  };
+  return fn().finally(() => { delete globalThis.shadowdark; delete globalThis.fromUuid; });
+}
+const KIT = { rowId: "k1", kind: "gear", name: "Crawling Kit", qty: 1 };
+
+test("the default resolver unpacks a whole Crawling Kit", async () => {
+  const out = await withKitCompendium(null, null, () => resolveCreate(KIT));
+  assert.equal(out.length, CRAWLING_KIT.length);
+});
+
+for (const how of ["absent", "null", "reject"]) {
+  test(`a kit component that is ${how} is reported as incomplete by name, never a short kit`, async () => {
+    const actor = makeActor({ items: BASE_ITEMS() });
+    const plan = { ...PLAN(), creates: [KIT], updates: [], deletes: [] };
+    await withKitCompendium("Rope, 60'", how, async () => {
+      await assert.rejects(applyPlan(actor, plan, { commitId: "c1" }), (e) => {
+        assert.ok(e instanceof IncompleteError);
+        assert.equal(e.step, "creates");
+        assert.deepEqual(e.missing, ["Crawling Kit: Rope, 60'"]);
+        return true;
+      });
+    });
+    assert.equal(actor.items.size, BASE_ITEMS().length, "nothing was created");
+    assert.equal(actor._source.system.coins.gp, 10, "no coins charged");
+  });
+}
