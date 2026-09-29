@@ -3,6 +3,7 @@ import { invalidateConfiguredTables } from "./data.mjs";
 import { CharBuilderState, applyLevelChange } from "./state.mjs";
 import { DEFAULT_STAT_METHOD, MAX_CHAR_LEVEL } from "./constants.mjs";
 import { commitCharacter } from "./commit.mjs";
+import { hydrateActor, finishExisting } from "./existing-finish.mjs";
 import { StatsStep } from "./steps/stats-step.mjs";
 import { AncestryStep } from "./steps/ancestry-step.mjs";
 import { OriginsStep } from "./steps/origins-step.mjs";
@@ -30,11 +31,23 @@ export class ShadowdarkCharBuilder extends HandlebarsApplicationMixin(Applicatio
 
     // NB: `state` is getter-only on ApplicationV2 (render lifecycle) — the
     // builder's own state lives on `builderState`.
-    this.builderState = new CharBuilderState({ level0: !!options.level0, statMethod });
+    // `options.state` is an existing character read by hydration (open({ actor })).
+    this.builderState = options.state ?? new CharBuilderState({ level0: !!options.level0, statMethod });
     this.actor = options.actor ?? null;
-    this._seedArtFromActor(this.actor);
+    if (!options.state) this._seedArtFromActor(this.actor);
     this.stepIndex = 0;
-    this.steps = [
+    this.steps = this._makeSteps();
+    /** True while Finish is on an existing character: the button is disabled. */
+    this._finishing = false;
+
+    // Live refresh: when the importer unlocks content (ancestries, tables,
+    // backgrounds, classes…), re-read and re-render so the new content shows
+    // up without a close/reopen. Listener is torn down in close().
+    this._contentHookId = Hooks.on(`${MODULE_ID}.contentUnlocked`, () => this._onContentUnlocked());
+  }
+
+  _makeSteps() {
+    return [
       new StatsStep(this),
       new AncestryStep(this),
       new OriginsStep(this),
@@ -43,11 +56,14 @@ export class ShadowdarkCharBuilder extends HandlebarsApplicationMixin(Applicatio
       new GearStep(this),
       new PreviewStep(this),
     ];
+  }
 
-    // Live refresh: when the importer unlocks content (ancestries, tables,
-    // backgrounds, classes…), re-read and re-render so the new content shows
-    // up without a close/reopen. Listener is torn down in close().
-    this._contentHookId = Hooks.on(`${MODULE_ID}.contentUnlocked`, () => this._onContentUnlocked());
+  /** Start over on a state hydrated from the live actor (a fresh baseline). */
+  async rebase(state) {
+    this.builderState = state;
+    this.steps = this._makeSteps();
+    this._lockedCensus = null;
+    if (this.rendered) await this.render();
   }
 
   /** Handle a content-unlock: drop stale caches (module-level table docs, the
@@ -160,6 +176,8 @@ export class ShadowdarkCharBuilder extends HandlebarsApplicationMixin(Applicatio
         supportsRandom: !this.builderState.existing && (step.supportsRandom?.() ?? false),
         showFullRandom: this.stepIndex === 0 && !this.builderState.existing,
         allComplete: this.steps.every((s) => s.isComplete()),
+        existing: !!this.builderState.existing,
+        finishing: this._finishing,
         // Target level picker — a level-0 funnel build has no level to choose.
         // Level-ups are a later piece: re-scoping the level would drop the hydrated HP and spells.
         level: (this.builderState.level0 || this.builderState.existing) ? null : {
@@ -237,6 +255,19 @@ export class ShadowdarkCharBuilder extends HandlebarsApplicationMixin(Applicatio
   }
 
   static async _onFinish() {
+    // An existing character is never rebuilt: Finish shows the diff and saves only that.
+    if (this.builderState.existing) {
+      if (this._finishing) return;
+      this._finishing = true;
+      await this.render();
+      try {
+        await finishExisting(this);
+      } finally {
+        this._finishing = false;
+        if (this.rendered) await this.render();
+      }
+      return;
+    }
     // Require the essentials before committing.
     // The gate is for new builds: an existing character already has all of these.
     const requiredIds = ["stats", "ancestry", "class", "hp"];
@@ -300,12 +331,31 @@ export class ShadowdarkCharBuilder extends HandlebarsApplicationMixin(Applicatio
 
   /** Entry point — open the builder (singleton; brings an open one to front). */
   static open(options = {}) {
+    // Only a GM or an owner may edit a character; checked before anything is shown.
+    if (options.actor && !options.actor.isOwner) {
+      ui.notifications.error(game.i18n.localize("SDE.charBuilder.commit.notOwner"));
+      return null;
+    }
     const existing = ShadowdarkCharBuilder._instance;
     if (existing?.rendered) {
       existing.bringToFront?.();
       return existing;
     }
+    if (options.actor) return ShadowdarkCharBuilder._openOnActor(options);
     ShadowdarkCharBuilder._instance = new ShadowdarkCharBuilder(options);
+    return ShadowdarkCharBuilder._instance.render(true);
+  }
+
+  /**
+   * Open on an existing actor (`open` has checked the owner). A character with a
+   * class, an ancestry or items is hydrated with a frozen baseline; a blank one
+   * starts the fresh build onto that actor, as before.
+   */
+  static async _openOnActor(options) {
+    const state = await hydrateActor(options.actor);
+    const open = ShadowdarkCharBuilder._instance;
+    if (open?.rendered) { open.bringToFront?.(); return open; }
+    ShadowdarkCharBuilder._instance = new ShadowdarkCharBuilder({ ...options, state });
     return ShadowdarkCharBuilder._instance.render(true);
   }
 }

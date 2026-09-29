@@ -589,6 +589,16 @@ page walks through it in order.
   http connection (the console dry run `describeActor` threw there), and an
   item stack spent down to 0 stays a stack of 0 instead of reading as 1.
   Nothing else uses it yet, so nothing changes on any sheet. (#168)
+- **The Character Builder can edit an existing character.**
+  `game.shadowdarkEnhancer.charBuilder.open({ actor })` (API or a macro; no
+  button yet) opens it on a character a GM or owner picks. **Save Changes**
+  shows what will change in plain words (old and new values, items added and
+  removed, quantities, coins, and how many things are kept as-is), saves a
+  backup of the character, writes only what you changed and reloads the
+  builder from the character. Talents, class abilities, effects, luck, XP and
+  hit points are never touched. New gear is paid from the character's coins.
+  `charBuilder.restoreBeforeImage(actor)` puts the character back as it was
+  before the last save. (#168)
 - **Groundwork for the Character Builder's steps on an existing character.**
   Opened on a character it already knows, the builder's steps now behave for
   one: abilities are typed as stored (never reset by point buy or the standard
