@@ -19,6 +19,7 @@ never re-prompts you with level-up popups afterwards. Pick any level from
 | **Actors sidebar** | Click **Character Builder** in the sidebar header. Visible to all users. |
 | **API** | `game.shadowdarkEnhancer.charBuilder.open()` |
 | **Build onto existing sheet** | `game.shadowdarkEnhancer.charBuilder.open({ actor })` |
+| **Undo a build on an existing sheet** | `charBuilder.takeBeforeImage(actor)` saves the sheet's abilities, alignment, background, deity, coins, languages, name, art and every item; `charBuilder.restoreBeforeImage(actor)` puts them back (GM or owner). The image is kept until the next one replaces it. See `charBuilder.hasBeforeImage` and `describeBeforeImage`. |
 
 **Players can build characters freely.** If a player lacks actor-creation
 permissions, the builder transparently hands off document creation to the GM

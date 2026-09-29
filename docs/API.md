@@ -656,6 +656,20 @@ await api.charBuilder.describeActor(actor);  // read-only: logs what the builder
                              // would load from an existing actor and what it
                              // would keep as-is; returns the summary (null for
                              // a blank actor). Writes nothing.
+await api.charBuilder.takeBeforeImage(actor);   // save the character's builder-
+                             // writable fields and every item's source as ONE
+                             // actor flag (`builderBefore`, latest only);
+                             // returns describeBeforeImage
+await api.charBuilder.hasBeforeImage(actor);    // boolean
+await api.charBuilder.describeBeforeImage(actor); // { at, items, sessionId,
+                             // version } or null
+await api.charBuilder.restoreBeforeImage(actor);  // GM or owner only: put the
+                             // character back to the image. Returns
+                             // { restored: true, created, deleted, updated },
+                             // or { restored: false, reason: "none" | "notOwner" }.
+                             // The image is kept, so a restore can be repeated;
+                             // throws IncompleteError if a step did not land
+                             // (call again, it does only what remains).
 ```
 
 Editing an existing actor (not wired to any button yet; internal modules under
