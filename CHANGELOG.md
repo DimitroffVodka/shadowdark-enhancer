@@ -452,6 +452,11 @@ page walks through it in order.
   Character Builder would load from a character (abilities, gear, spells, what
   it can't identify) and what it would leave alone. It only reads. The builder
   can't edit an existing character yet. (#168)
+- **Groundwork for editing an existing character safely.** The Character
+  Builder now has the planner that will decide what Finish changes on a
+  character it opened: only what you touched, checked against the character as
+  it is now, deleting only items you removed and never a talent, class ability
+  or effect. Nothing uses it yet, so nothing changes on any sheet. (#168)
 
 ### Changed
 
