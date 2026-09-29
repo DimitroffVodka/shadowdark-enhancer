@@ -19,7 +19,9 @@ it needs.
   or bottom-right corner picture to nudge it; changing a count re-fits it. A
   new box says whether the lowered columns end one row short, which prints with
   a jagged top and bottom edge do. No grid found no longer stops with a message;
-  it opens the same window.
+  it opens the same window. The grid finder also stopped mistaking a print's tree
+  and hatch rows for the hex height, which had read The Gloaming's grid at a
+  third of its real size; that print is now found on its own.
 - **Edit a character in the Character Builder, and undo the save.** A
   **Character Builder** button in the header of a player character's sheet, and
   **Edit in Character Builder** when you right-click a character in the Actors

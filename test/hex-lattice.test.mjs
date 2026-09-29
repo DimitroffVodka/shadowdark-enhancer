@@ -59,6 +59,18 @@ test("rowPitch and columnPitch recover the pitches of a stretched print", () => 
   assert.ok(cp && Math.abs(cp.pitchX - 30) < 0.3, `pitchX ${cp?.pitchX}`);
 });
 
+test("rowPitch skips a glyph-texture peak that comes before the hex height's own", () => {
+  // Grid rows every 71 px (half a 142 px hex) and, weaker, texture strokes every 21 px.
+  // The texture's peak is over half the grid's, so taking the first peak above half the
+  // strongest read this at 42 px: The Gloaming print's tree rows did exactly that.
+  const w = 300, h = 1200, ink = new Uint8Array(w * h);
+  const run = (y, len) => { for (let x = 20; x < 20 + len; x++) ink[y * w + x] = 1; };
+  for (let y = 10; y < h; y += 71) run(y, 200);
+  for (let y = 3; y < h; y += 21) run(y, 80);
+  const rp = rowPitch(ink, w, h);
+  assert.ok(rp && Math.abs(rp.pitchY - 142) < 1, `pitchY ${rp?.pitchY}`);
+});
+
 test("detectLattice finds pitch, origin, size and parity, and ignores a legend block", () => {
   const lat = { x0: 61, y0: 52, pitchX: 30, pitchY: 34, lowered: "odd" };
   const ink = print({ w: 480, h: 420, lat, cols: 12, rows: 9, legend: true });

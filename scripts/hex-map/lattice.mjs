@@ -113,10 +113,14 @@ export function rowPitch(ink, w, h, { minRun = 5, minLag = 6, maxLag = Math.floo
   for (let lag = minLag; lag <= maxLag; lag++) { let s = 0; for (let y = 0; y + lag < h; y++) s += P[y] * P[y + lag]; A[lag] = s / (h - lag); }
   let max = -Infinity; for (let lag = minLag; lag <= maxLag; lag++) max = Math.max(max, A[lag]);
   if (!(max > 0)) return null;
-  // First prominent local maximum = h/2 (both column parities pooled).
+  // First local maximum within 10% of the strongest = h/2 (both column parities
+  // pooled). The first one above half the strongest was too loose: glyph texture
+  // (tree rows, hatching) peaks at its own short spacing, and on The Gloaming
+  // print that peak (21 px, 0.62 of the strongest) came before the real h/2 (71
+  // px, the strongest), so the grid was read at a 41 px pitch, 3.5 times too fine.
   let first = -1;
   for (let lag = minLag + 1; lag < maxLag; lag++) {
-    if (A[lag] >= 0.5 * max && A[lag] >= A[lag - 1] && A[lag] >= A[lag + 1]) { first = lag; break; }
+    if (A[lag] >= 0.9 * max && A[lag] >= A[lag - 1] && A[lag] >= A[lag + 1]) { first = lag; break; }
   }
   if (first < 0) return null;
   // Refine on a long multiple of the half pitch: the phase error shrinks by k.
