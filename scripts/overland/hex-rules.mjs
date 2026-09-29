@@ -12,9 +12,10 @@
  * reader of it agrees): no token's or scene's stored data changes, so the same
  * PC keeps its torch and its sight on a dungeon map.
  *
- * The party travels as one hex-shaped token: Extras' party token, or without
- * Extras an Enhancer "Party" actor, made the first time a GM starts travel with
- * no party token on the map.
+ * The party travels as one hex-shaped token: Extras' party token, or else an
+ * Enhancer "Party" actor, made the first time a GM starts travel with no party
+ * token on the map. With Extras there and no party of its own, that actor is an
+ * Extras party too (joinExtras), so it opens Extras' Party sheet.
  */
 
 import { MODULE_ID } from "../shared/module-id.mjs";
@@ -87,15 +88,55 @@ export function registerHexRules() {
   });
 }
 
-/** The Enhancer's party actor, made on first use (GM). */
-async function partyActor() {
+const EXTRAS_ID = "shadowdark-extras";
+
+/** Extras' party API, when Extras is there and switched on to answer. */
+const extrasPartyApi = () => {
+  const extras = game.modules?.get(EXTRAS_ID);
+  return extras?.active && typeof extras.api?.party?.list === "function" ? extras.api.party : null;
+};
+
+/** Extras' party actors, when Extras is there to say. */
+export function extrasParties() {
+  try { return extrasPartyApi()?.list() ?? []; } catch { return []; }
+}
+
+/**
+ * Should this actor be an Extras party too? When Extras is there and has no party but this one. With a
+ * party of its own Extras keeps that one (Start travel uses it and never makes ours); two would leave
+ * the travel token ambiguous.
+ */
+const joinsExtras = (actor) => !!extrasPartyApi() && extrasParties().every((a) => a.id === actor?.id);
+
+/** The player characters, as the members an Extras party starts with: who travelled before Extras' sheet came into it. */
+const playerIds = () => game.actors.filter((a) => a.type === "Player" && a.hasPlayerOwner).map((a) => a.id);
+
+/**
+ * Make the Enhancer's party an Extras party (GM): an NPC flagged `isParty`, which is Extras' own definition
+ * of one (its Developer API). Extras then gives it its Party sheet, members and light tracker where the
+ * plain actor got the NPC sheet and was never listed. Members it already has are kept; with none, the
+ * player characters, so the same people travel as before. Once, and only ever the Enhancer's own party.
+ * @param {Actor|null} actor
+ */
+export async function joinExtras(actor) {
+  if (!actor?.getFlag(MODULE_ID, PARTY_FLAG) || actor.getFlag(EXTRAS_ID, "isParty") === true || !joinsExtras(actor)) return;
+  if (!actor.getFlag(EXTRAS_ID, "members")?.length) await actor.setFlag(EXTRAS_ID, "members", playerIds());
+  await actor.setFlag(EXTRAS_ID, "isParty", true);
+}
+
+/** The Enhancer's party actor, made on first use (GM); with Extras there, an Extras party. */
+export async function partyActor() {
   const found = game.actors.find((a) => a.getFlag(MODULE_ID, PARTY_FLAG));
-  if (found) return found;
+  if (found) { await joinExtras(found); return found; }
   const name = game.i18n.localize("SDE.overland.party.name");
   return Actor.create({
     name, type: "NPC", img: PARTY_TOKEN_IMG,
     prototypeToken: { name, actorLink: true, disposition: CONST.TOKEN_DISPOSITIONS.FRIENDLY, ...PARTY_TOKEN_STYLE },
-    flags: { [MODULE_ID]: { [PARTY_FLAG]: true } },
+    flags: {
+      [MODULE_ID]: { [PARTY_FLAG]: true },
+      // Flagged at creation, so Extras' own creation hooks set its sheet and its token.
+      ...(joinsExtras(null) ? { [EXTRAS_ID]: { isParty: true, members: playerIds() } } : {}),
+    },
   });
 }
 

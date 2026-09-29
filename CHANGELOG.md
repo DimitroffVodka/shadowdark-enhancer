@@ -762,6 +762,15 @@ page walks through it in order.
 
 ### Fixed
 
+- **The party token the module makes opens Extras' Party sheet when Extras is on.**
+  Start travel with no party token made a plain NPC named Party, which got the NPC
+  sheet: it was not an Extras party (an NPC flagged `isParty`, Extras' own
+  definition), so Extras neither showed its Party sheet nor listed it, and the
+  light tracker and party travel never saw it. With Extras on and no party of its
+  own, the module's Party is now made an Extras party, starting with your player
+  characters as members; one made before is joined the next time you Start travel
+  with it. An Extras party you made yourself still wins and is never joined by the
+  module's. Extras' own party sheet keeps its members if it already has some.
 - **Pressing Apply twice on Map size no longer drops the top row.** On a print
   like The Gloaming, whose first row is full hexes, the first Apply stored the
   "top row is frame" box as "nothing"; the next render guessed it back on from
