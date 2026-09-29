@@ -465,17 +465,15 @@ page walks through it in order.
   opened: it adds new items first, then changes quantities, then the sheet, and
   removes items last, checking the character after every write. A write that
   errors after it already saved is not repeated, so a retry never doubles an
-  item, and a change another module blocks is reported instead of lost. Nothing
-  uses it yet, so nothing changes on any sheet. (#168)
+  item, a change another module blocks is reported instead of lost, and a
+  Crawling Kit that lands short is reported. Two Finishes running on the same
+  character at once are refused. Each Finish is measured from the character as
+  the builder opened it, so the builder re-opens from the character after every
+  Finish. Nothing uses it yet, so nothing changes on any sheet. (#168)
 - **The builder's existing-character check works for players on a LAN address.**
   Reading a character into the Character Builder no longer fails on a plain
-  http connection (the console dry run `describeActor` threw there), and items
-  added through the builder can be raised, lowered, removed and added again
-  across several Finishes without being skipped or charged twice, including
-  Crawling Kits (each kit is granted and removed whole), an item spent on the
-  sheet and bought again, and a purchase removed after it was saved (its coins
-  come back). Anything else changed and then changed back across Finishes
-  (alignment, name, abilities, languages, art, coins) is written each time.
+  http connection (the console dry run `describeActor` threw there), and an
+  item stack spent down to 0 stays a stack of 0 instead of reading as 1.
   Nothing else uses it yet, so nothing changes on any sheet. (#168)
 
 ### Changed

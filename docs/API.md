@@ -658,6 +658,21 @@ await api.charBuilder.describeActor(actor);  // read-only: logs what the builder
                              // a blank actor). Writes nothing.
 ```
 
+Editing an existing actor (not wired to any button yet; internal modules under
+`scripts/char-builder/`, not on the API object): `hydrateState` reads the actor
+into a builder state with a frozen baseline, `planCommit(existing, state, live)`
+decides what Finish would change, and `applyPlan(actor, plan)` writes it.
+**One Finish per baseline:** a plan is measured from the baseline the builder
+opened with, so after `applyPlan` returns (complete, or after an
+`IncompleteError` the caller gives up on) the caller discards `existing` and the
+builder state and re-hydrates from the live actor (fresh baseline and
+sessionId). Only inside one attempt is a retry safe: re-plan from the live
+actor with the same builder state and apply again; a created item carries a
+`builderRow` marker, and one that is already on the actor counts as created. A
+quantity edit on a row an earlier Finish created is out of contract. Two
+overlapping `applyPlan` calls on one actor are refused with
+`ApplyInProgressError`.
+
 > Since the lazy-load pass, heavy feature UIs (builder, importer hub, forge,
 > loot apps, encounter roller, token-art manager) parse on first open instead
 > of at `init`. Their `open()` API calls are now async (they were already

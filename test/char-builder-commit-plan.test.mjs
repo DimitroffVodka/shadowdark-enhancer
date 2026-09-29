@@ -96,12 +96,15 @@ test("a quantity edit is one absolute update, no create, no delete", () => {
   assert.deepEqual(plan.drift, []);
 });
 
-test("a quantity taken to 0 removes the row", () => {
+test("0 is a real quantity: an edit to 0 is an update, an untouched 0 stack is neither updated nor deleted", () => {
   const { st, existing, live } = open();
   st.gear.find((g) => g.itemId === "rope").qty = 0;
   const plan = planCommit(existing, st, live);
-  assert.deepEqual(plan.deletes, ["rope"]);
-  assert.deepEqual(plan.updates, []);
+  assert.deepEqual(plan.updates, [{ _id: "rope", "system.quantity": 0 }]);
+  assert.deepEqual(plan.deletes, []);
+  const spent = open(sysOf(), [gear("rope", "Rope", 0)]);
+  assert.equal(spent.st.gear[0].qty, 0);
+  assert.ok(planIsEmpty(planCommit(spent.existing, spent.st, spent.live)));
 });
 
 test("a quantity edit over a concurrent quantity change writes and shows drift", () => {
@@ -141,20 +144,6 @@ test("a create already on the live actor (its builderRow marker) is done, not re
   assert.deepEqual(planCommit(existing, st, live).creates, []);
 });
 
-test("a row created in an earlier attempt and removed since is deleted by its marker", () => {
-  const { st, existing, live } = open();
-  existing.createdRowIds = ["sess1:new1"];
-  live.items.push(item("made", "Basic", "Torch", {}, { [MARK]: { builderRow: "sess1:new1" } }));
-  assert.deepEqual(planCommit(existing, st, live).deletes, ["made"]);
-});
-
-test("a row made by an earlier session is never deleted by this one, even if listed", () => {
-  const { st, existing, live } = open();
-  existing.createdRowIds = ["old:new1"];
-  live.items.push(item("made", "Basic", "Torch", {}, { [MARK]: { builderRow: "old:new1" } }));
-  assert.deepEqual(planCommit(existing, st, live).deletes, []);
-});
-
 test("a typed name is planned trimmed, and a blank one writes nothing", () => {
   const { st, existing, live } = open();
   st.name = "Bob ";
@@ -172,19 +161,6 @@ test("created spell, trinket and gear rows are all session-scoped markers", () =
   assert.deepEqual(ids, [
     "sess1:Compendium.x.Item.torch#1", "sess1:spell:Compendium.x.Item.light", "sess1:trinket:Lucky coin",
   ]);
-});
-
-test("a created row already listed as made is not created again, and a wanted one is not deleted", () => {
-  const { st, existing, live } = open();
-  st.spells.push({ itemId: null, uuid: "Compendium.x.Item.light", name: "Light", tier: 1 });
-  existing.createdRowIds = ["sess1:spell:Compendium.x.Item.light"];
-  let plan = planCommit(existing, st, live);
-  assert.deepEqual([plan.creates, plan.deletes], [[], []], "spent on the sheet: not granted again");
-  live.items.push(item("made", "Spell", "Light", {}, { [MARK]: { builderRow: "sess1:spell:Compendium.x.Item.light" } }));
-  plan = planCommit(existing, st, live);
-  assert.deepEqual([plan.creates, plan.deletes], [[], []], "still wanted: kept");
-  st.spells.pop();
-  assert.deepEqual(planCommit(existing, st, live).deletes, ["made"]);
 });
 
 test("coins compare in copper: 25 sp untouched writes nothing; a change writes all three normalized", () => {
@@ -358,7 +334,6 @@ test("property: deletes are only hydrated-and-removed ids, never kept; updates n
       if (roll < 0.3) { st.gear = st.gear.filter((x) => x !== g); removedByUser.add(g.itemId); }
       else if (roll < 0.6) {
         g.qty = Math.floor(r() * 6);
-        if (g.qty < 1) removedByUser.add(g.itemId);
       }
     }
     for (const s of [...st.spells]) {
@@ -390,26 +365,16 @@ test("property: deletes are only hydrated-and-removed ids, never kept; updates n
   }
 });
 
-test("a key measured from what an earlier Finish wrote: a change back is planned, an untouched one is not", () => {
-  const { st, existing, live } = open();
-  existing.written = { alignment: "chaotic", coins: 900 };
-  live.source.system.alignment = "chaotic";
-  st.alignment = "lawful";
-  const plan = planCommit(existing, st, live);
-  assert.equal(plan.system["system.alignment"], "lawful");
-  assert.deepEqual(plan.record.find((r) => r.key === "alignment"), { step: "actor", key: "alignment", value: "lawful" });
-  st.alignment = "chaotic";
-  assert.equal(planCommit(existing, st, live).system["system.alignment"], undefined);
-});
-
-test("a Crawling Kit row plans one create per kit, and a lowered one deletes the last kit by marker", () => {
+test("a Crawling Kit is one create with one marker and the kit count", () => {
   const { st, existing, live } = open();
   st.gear.push({ rowId: "kit", itemId: null, uuid: "u", name: "Crawling Kit", qty: 2, costCp: 0 });
   const plan = planCommit(existing, st, live);
-  assert.deepEqual(plan.creates.map((c) => [c.rowId, c.qty]), [["sess1:kit#1", 1], ["sess1:kit#2", 1]]);
-  existing.createdRowIds = ["sess1:kit#1", "sess1:kit#2"];
-  live.items.push(item("k1", "Basic", "Backpack", {}, { [MARK]: { builderRow: "sess1:kit#1" } }), item("k2", "Basic", "Backpack", {}, { [MARK]: { builderRow: "sess1:kit#2" } }));
-  st.gear.find((g) => g.name === "Crawling Kit").qty = 1;
-  const p2 = planCommit(existing, st, live);
-  assert.deepEqual([p2.creates, p2.deletes, p2.release], [[], ["k2"], ["sess1:kit#2"]]);
+  assert.deepEqual(plan.creates, [{ rowId: "sess1:kit", kind: "gear", uuid: "u", name: "Crawling Kit", qty: 2 }]);
+});
+
+test("the plan carries no cross-Finish state", () => {
+  const { st, existing, live } = open();
+  st.alignment = "chaotic";
+  const plan = planCommit(existing, st, live);
+  assert.ok(!("release" in plan) && !("record" in plan));
 });

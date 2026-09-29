@@ -1,8 +1,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { applyPlan, IncompleteError } from "../scripts/char-builder/commit-apply.mjs";
+import { applyPlan, IncompleteError, ApplyInProgressError } from "../scripts/char-builder/commit-apply.mjs";
 import { hydrateState } from "../scripts/char-builder/hydrate.mjs";
-import { planCommit } from "../scripts/char-builder/commit-plan.mjs";
+import { planCommit, planIsEmpty } from "../scripts/char-builder/commit-plan.mjs";
 
 const MOD = "shadowdark-enhancer";
 const OP = { [MOD]: { builder: "c1" } };
@@ -48,6 +48,7 @@ function makeActor({ items = [], source = {} } = {}) {
       actor.before.updateItems?.();
       if (updates.some((u) => !actor.items.has(u._id))) throw new Error("does not exist");
       if (actor.faults.updateItems === "before") throw new Error("boom");
+      if (actor.faults.updateItems === "veto") return;
       for (const u of updates) {
         for (const [k, v] of Object.entries(u)) if (k !== "_id") setPath(actor.items.get(u._id), k, v);
       }
@@ -58,6 +59,7 @@ function makeActor({ items = [], source = {} } = {}) {
       actor.before.delete?.();
       if (ids.some((id) => !actor.items.has(id))) throw new Error("does not exist");
       if (actor.faults.delete === "before") throw new Error("boom");
+      if (actor.faults.delete === "veto") return;
       for (const id of ids) actor.items.delete(id);
       if (actor.faults.delete === "after") throw new Error("_onDelete threw");
     },
@@ -105,10 +107,9 @@ const run = (actor, plan = PLAN()) => applyPlan(actor, plan, { commitId: "c1", r
 
 test("a clean run applies the whole plan in order: creates, item updates, actor, deletes", async () => {
   const actor = makeActor({ items: BASE_ITEMS() });
-  const res = await run(actor);
+  await run(actor);
   assertConverged(actor);
   assert.deepEqual(actor.calls.map((c) => c.method), ["create", "updateItems", "update", "delete"]);
-  assert.deepEqual(res.createdRowIds, ["r1", "r2", "r3"]);
 });
 
 test("created items carry the compendium link and the row marker", async () => {
@@ -233,59 +234,54 @@ test("a quantity already at the target is not written again", async () => {
   assert.ok(!actor.calls.some((c) => c.method === "updateItems"));
 });
 
+test("applyPlan generates a commitId when the caller passes none, so the builder option is never missing", async () => {
+  const actor = makeActor({ items: BASE_ITEMS() });
+  await applyPlan(actor, PLAN(), { resolve });
+  assert.equal(actor.calls.length, 4);
+  for (const c of actor.calls) assert.ok(c.options[MOD].builder, c.method);
+});
+
+test("two overlapping applyPlan calls on one actor: the second is refused, nothing is created twice", async () => {
+  const actor = makeActor({ items: BASE_ITEMS() });
+  const [a, b] = await Promise.allSettled([run(actor), run(actor)]);
+  assert.equal(a.status, "fulfilled");
+  assert.equal(b.status, "rejected");
+  assert.ok(b.reason instanceof ApplyInProgressError);
+  assertConverged(actor);
+  await run(actor); // the guard is released afterwards
+});
+
+test("the guard is released when a run fails", async () => {
+  const actor = makeActor({ items: BASE_ITEMS() });
+  actor.faults.create = "before";
+  await assert.rejects(run(actor), IncompleteError);
+  actor.faults = {};
+  await run(actor);
+  assertConverged(actor);
+});
+
 // ---------------------------------------------------------------------------
-// With the real planner: open, edit, Finish, then the user removes the created row.
+// With the real planner: open, edit, Finish. One Finish per baseline: a failed or
+// partial attempt is re-planned from the LIVE actor with the same builder state.
 // ---------------------------------------------------------------------------
 const CLASS_UUID = "Compendium.shadowdark.classes.Item.fighter";
-const SYS = () => ({
+const SYS = (over = {}) => ({
   abilities: { str: { value: 15 }, dex: { value: 10 }, con: { value: 14 }, int: { value: 8 }, wis: { value: 12 }, cha: { value: 9 } },
   level: { value: 1, xp: 0 }, alignment: "lawful", ancestry: null, class: CLASS_UUID, background: null, deity: null, patron: null,
-  attributes: { hp: { max: 9, value: 9 } }, coins: { gp: 10, sp: 0, cp: 0 }, languages: [],
+  attributes: { hp: { max: 9, value: 9 } }, coins: { gp: 10, sp: 0, cp: 0 }, languages: [], ...over,
 });
-const GEAR = () => ({ ...mk("t1", "Torch", 1), system: { quantity: 1, slots: { slots_used: 1, free_carry: 0, per_slot: 1 } } });
-
-test("with the planner: a created row the user then removes is deleted on the next Finish, by marker", async () => {
-  const items = [GEAR(), { _id: "tal", type: "Talent", name: "Stout", system: {}, flags: {} }];
-  const actor = makeActor({ items, source: { name: "Hero", img: "a.webp", system: SYS() } });
-  const snap = { actorId: "a", sessionId: "s", name: "Hero", img: "a.webp", tokenImg: null, defaultArt: [], system: SYS(), items: structuredClone(items) };
-  const st = hydrateState(snap, { class: { uuid: CLASS_UUID, name: "Fighter", system: {} }, ancestry: null, spellPool: [] });
-  const live = () => ({ source: actor._source, items: [...actor.items].map((i) => i._source) });
-
-  const M = "s:row1";
-  st.existing.sessionId = "s";
-  st.gear.push({ rowId: "row1", itemId: null, uuid: "Compendium.x.Item.rope", name: "Rope", qty: 1, costCp: 0 });
-  const p1 = planCommit(st.existing, st, live());
-  const res = await applyPlan(actor, p1, { commitId: "c1", resolve });
-  assert.equal(marked(actor, M).length, 1);
-
-  // Nothing left to do on a repeat with the same state.
-  st.existing.createdRowIds = res.createdRowIds;
-  assert.deepEqual(planCommit(st.existing, st, live()).creates, []);
-
-  st.gear = st.gear.filter((g) => g.rowId !== "row1");
-  const p2 = planCommit(st.existing, st, live());
-  const madeId = marked(actor, M)[0]._id;
-  assert.deepEqual(p2.deletes, [madeId]);
-  await applyPlan(actor, p2, { commitId: "c1", resolve });
-  assert.equal(marked(actor, M).length, 0);
-  assert.ok(actor.items.has("t1") && actor.items.has("tal"));
+const RESOLVED = { class: { uuid: CLASS_UUID, name: "Fighter", system: {} }, ancestry: null, spellPool: [] };
+const TALENT = () => ({ _id: "tal", type: "Talent", name: "Stout", system: {}, flags: {} });
+const snapOf = (actor) => ({
+  actorId: "a", name: actor._source.name, img: "a.webp", tokenImg: null, defaultArt: [],
+  system: structuredClone(actor._source.system), items: [...actor.items].map((i) => structuredClone(i._source)),
 });
 
-// ---------------------------------------------------------------------------
-// Review round 1
-// ---------------------------------------------------------------------------
-function openActor(over = {}, items = [GEAR(), { _id: "tal", type: "Talent", name: "Stout", system: {}, flags: {} }]) {
+function openActor(over = {}, items = [mk("torch", "Torch", 3), mk("gone1", "Rope"), mk("gone2", "Flask"), mk("other", "Lantern"), TALENT()]) {
   const actor = makeActor({ items, source: { name: "Hero", img: "a.webp", system: SYS(over) } });
-  const snap = { actorId: "a", name: "Hero", img: "a.webp", tokenImg: null, defaultArt: [], system: SYS(over), items: structuredClone(items) };
-  const st = hydrateState(snap, { class: { uuid: CLASS_UUID, name: "Fighter", system: {} }, ancestry: null, spellPool: [] });
+  const st = hydrateState(snapOf(actor), RESOLVED);
   const live = () => ({ source: actor._source, items: [...actor.items].map((i) => i._source) });
-  const finish = async () => {
-    const plan = planCommit(st.existing, st, live());
-    st.existing.createdRowIds ??= [];
-    st.existing.written ??= {};
-    await applyPlan(actor, plan, { commitId: "c1", resolve, createdRowIds: st.existing.createdRowIds, written: st.existing.written });
-    return plan;
-  };
+  const finish = () => applyPlan(actor, planCommit(st.existing, st, live()), { commitId: "c1", resolve });
   return { actor, st, live, finish };
 }
 const names = (actor) => [...actor.items].map((i) => i.name).sort();
@@ -315,375 +311,91 @@ test("the read-back accepts a stored value the field cleaned, even if a plan car
   assert.equal(actor._source.system.deity, null);
 });
 
-test("a spell and a trinket created by Finish survive a second no-edit Finish, and a third", async () => {
-  const { actor, st, finish } = openActor();
-  st.spells.push({ itemId: null, uuid: "Compendium.x.Item.light", name: "Light", tier: 1 });
-  st.trinket = "Lucky coin";
-  st.gear.push({ rowId: "row1", itemId: null, uuid: "Compendium.x.Item.torch", name: "Torch", qty: 1, costCp: 0 });
-  await finish();
-  assert.deepEqual(names(actor), ["Light", "Lucky coin", "Stout", "Torch", "Torch"]);
-  const ids = [...actor.items.keys()].sort();
-  for (let n = 0; n < 2; n++) {
-    const before = actor.calls.length;
-    const plan = planCommit(st.existing, st, { source: actor._source, items: [...actor.items].map((i) => i._source) });
-    assert.deepEqual([plan.deletes, plan.creates], [[], []]);
-    await applyPlan(actor, plan, { commitId: "c1", resolve, createdRowIds: st.existing.createdRowIds });
-    assert.equal(actor.calls.length, before, "nothing written");
-  }
-  assert.deepEqual([...actor.items.keys()].sort(), ids);
-});
-
-test("a created row the user removes in the builder is deleted, a spell or trinket included", async () => {
-  const { actor, st, finish } = openActor();
-  st.spells.push({ itemId: null, uuid: "Compendium.x.Item.light", name: "Light", tier: 1 });
-  st.trinket = "Lucky coin";
-  await finish();
-  st.spells = [];
-  const plan = planCommit(st.existing, st, { source: actor._source, items: [...actor.items].map((i) => i._source) });
-  assert.equal(plan.deletes.length, 1);
-  await applyPlan(actor, plan, { commitId: "c1", resolve, createdRowIds: st.existing.createdRowIds });
-  assert.deepEqual(names(actor), ["Lucky coin", "Stout", "Torch"]);
-});
-
-test("a created item spent on the sheet is not granted a second time by the next Finish", async () => {
-  const { actor, st, finish } = openActor();
-  st.gear.push({ rowId: "row1", itemId: null, uuid: "Compendium.x.Item.rope", name: "Rope", qty: 1, costCp: 100 });
-  await finish();
-  const made = [...actor.items].find((i) => i.name === "Rope");
-  actor.items.delete(made._id);
-  const gp = actor._source.system.coins.gp;
-  await finish();
-  assert.deepEqual(names(actor), ["Stout", "Torch"]);
-  assert.equal(actor._source.system.coins.gp, gp, "and not charged again");
-});
-
-test("a repeat purchase in a later session is a new row, granted once for the coins it costs", async () => {
-  const { actor, st, finish } = openActor();
-  st.gear.push({ rowId: "row1", itemId: null, uuid: "Compendium.x.Item.torch", name: "Torch", qty: 1, costCp: 100 });
-  await finish();
-  // A fresh open of the same actor: the earlier Torch is an owned row now.
-  const items = [...actor.items].map((i) => i._source);
-  const snap = { actorId: "a", name: "Hero", img: "a.webp", tokenImg: null, defaultArt: [], system: structuredClone(actor._source.system), items: structuredClone(items) };
-  const st2 = hydrateState(snap, { class: { uuid: CLASS_UUID, name: "Fighter", system: {} }, ancestry: null, spellPool: [] });
-  assert.notEqual(st2.existing.sessionId, st.existing.sessionId);
-  st2.gear.push({ rowId: "row1", itemId: null, uuid: "Compendium.x.Item.torch", name: "Torch", qty: 1, costCp: 100 });
-  st2.coins = { gp: 8, sp: 0, cp: 0 };
-  const plan = planCommit(st2.existing, st2, { source: actor._source, items });
-  assert.equal(plan.creates.length, 1, "the new purchase is created");
-  await applyPlan(actor, plan, { commitId: "c2", resolve, createdRowIds: (st2.existing.createdRowIds = []) });
-  assert.equal(names(actor).filter((n) => n === "Torch").length, 3);
-});
-
-test("created row ids are recorded as soon as they land, even when a later step fails", async () => {
-  const { actor, st, live } = openActor();
-  st.gear.push({ rowId: "row1", itemId: null, uuid: "Compendium.x.Item.rope", name: "Rope", qty: 1, costCp: 100 });
-  st.existing.createdRowIds = [];
-  actor.faults.update = "before";
-  await assert.rejects(applyPlan(actor, planCommit(st.existing, st, live()), { commitId: "c1", resolve, createdRowIds: st.existing.createdRowIds }), IncompleteError);
-  assert.equal(st.existing.createdRowIds.length, 1);
-  actor.faults = {};
-  actor.items.delete([...actor.items].find((i) => i.name === "Rope")._id);
-  const plan = planCommit(st.existing, st, live());
-  assert.deepEqual(plan.creates, [], "spent, so not granted again");
-});
-
-// ---------------------------------------------------------------------------
-// Review round 2: a created row is an owned row once it lands
-// ---------------------------------------------------------------------------
-// Cart rows are what GearStep.addToCart makes: no rowId, same uuid merges into qty += 1.
 const ROPE = "Compendium.x.Item.rope";
-const cartRow = (qty = 1) => ({ itemId: null, uuid: ROPE, name: "Rope", qty, costCp: 100 });
-const ropes = (actor) => [...actor.items].filter((i) => i.name === "Rope");
-
-test("a created row taken from qty 1 to 2 is one item at quantity 2, charged for 2", async () => {
-  const { actor, st, finish } = openActor();
-  st.gear.push(cartRow(1));
-  await finish();
-  st.gear.find((g) => g.uuid === ROPE).qty = 2;
-  await finish();
-  assert.equal(ropes(actor).length, 1);
-  assert.equal(ropes(actor)[0].system.quantity, 2);
-  assert.equal(actor._source.system.coins.gp, 8);
-  const calls = actor.calls.length;
-  await finish();
-  assert.equal(actor.calls.length, calls, "then a no-op");
-});
-
-test("a created row of 3 cut to 1 is one item at quantity 1, charged for 1", async () => {
-  const { actor, st, finish } = openActor();
-  st.gear.push(cartRow(3));
-  await finish();
-  assert.equal(ropes(actor)[0].system.quantity, 3);
-  st.gear.find((g) => g.uuid === ROPE).qty = 1;
-  await finish();
-  assert.equal(ropes(actor).length, 1);
-  assert.equal(ropes(actor)[0].system.quantity, 1);
-  assert.equal(actor._source.system.coins.gp, 9);
-});
-
-test("a created row spent down on the sheet is not written back when the user did not touch it", async () => {
-  const { actor, st, finish } = openActor();
-  st.gear.push(cartRow(3));
-  await finish();
-  ropes(actor)[0].system.quantity = 1;
-  const plan = await finish();
-  assert.deepEqual(plan.updates, []);
-  assert.equal(ropes(actor)[0].system.quantity, 1);
-});
-
-test("a created gear row removed and bought again is a new item", async () => {
-  const { actor, st, finish } = openActor();
-  st.gear.push(cartRow(1));
-  await finish();
-  st.gear = st.gear.filter((g) => g.uuid !== ROPE);
-  await finish();
-  assert.equal(ropes(actor).length, 0);
-  st.gear.push(cartRow(1));
-  await finish();
-  assert.equal(ropes(actor).length, 1);
-  assert.equal(actor._source.system.coins.gp, 9);
-});
-
-test("a created gear row removed after it was spent on the sheet, then bought again, is granted", async () => {
-  const { actor, st, finish } = openActor();
-  st.gear.push(cartRow(1));
-  await finish();
-  actor.items.delete(ropes(actor)[0]._id);
-  st.gear = st.gear.filter((g) => g.uuid !== ROPE);
-  await finish();
-  st.gear.push(cartRow(1));
-  await finish();
-  assert.equal(ropes(actor).length, 1);
-});
-
-test("a spell unchecked and checked again is created again", async () => {
-  const { actor, st, finish } = openActor();
-  const light = { itemId: null, uuid: "Compendium.x.Item.light", name: "Light", tier: 1 };
-  st.spells.push({ ...light });
-  await finish();
-  st.spells = [];
-  await finish();
-  assert.deepEqual(names(actor), ["Stout", "Torch"]);
-  st.spells.push({ ...light });
-  await finish();
-  assert.deepEqual(names(actor), ["Light", "Stout", "Torch"]);
-});
-
-test("a trinket cleared and set again is created again", async () => {
-  const { actor, st, finish } = openActor();
+/** The same edit every scenario makes: a quantity, two removals, a purchase, a spell, a trinket, name, alignment. */
+function edit(st) {
+  st.gear.find((g) => g.itemId === "torch").qty = 5;
+  st.gear = st.gear.filter((g) => !["gone1", "gone2"].includes(g.itemId));
+  st.gear.push({ rowId: "row1", itemId: null, uuid: ROPE, name: "Rope", qty: 2, costCp: 100 });
+  st.spells.push({ itemId: null, uuid: "Compendium.x.Item.light", name: "Light", tier: 1 });
   st.trinket = "Lucky coin";
-  await finish();
-  st.trinket = "";
-  await finish();
-  assert.deepEqual(names(actor), ["Stout", "Torch"]);
-  st.trinket = "Lucky coin";
-  await finish();
-  assert.deepEqual(names(actor), ["Lucky coin", "Stout", "Torch"]);
-});
-
-test("an owned row taken up and then back to its opened quantity is written both times", async () => {
-  const items = [{ ...GEAR(), system: { quantity: 2, slots: { slots_used: 1, free_carry: 0, per_slot: 1 } } }];
-  const { actor, st, finish } = openActor({}, items);
-  const row = st.gear.find((g) => g.itemId === "t1");
-  row.qty = 4;
-  await finish();
-  assert.equal(actor.items.get("t1").system.quantity, 4);
-  row.qty = 2;
-  await finish();
-  assert.equal(actor.items.get("t1").system.quantity, 2);
-});
-
-test("a quantity update that rejects after saving is remembered, so the next edit is measured from it", async () => {
-  const { actor, st, finish } = openActor();
-  st.gear.push(cartRow(1));
-  await finish();
-  actor.faults.updateItems = "after";
-  st.gear.find((g) => g.uuid === ROPE).qty = 2;
-  await finish(); // a throw with an agreeing read-back counts as saved
-  actor.faults = {};
-  assert.equal(ropes(actor)[0].system.quantity, 2);
-  st.gear.find((g) => g.uuid === ROPE).qty = 1;
-  await finish();
-  assert.equal(ropes(actor)[0].system.quantity, 1);
-});
-
-// ---------------------------------------------------------------------------
-// Review round 3: quantity edits on rows with no single live item, and system
-// keys measured from what an earlier Finish wrote
-// ---------------------------------------------------------------------------
-const KIT = () => ({ itemId: null, uuid: "Compendium.x.Item.kit", name: "Crawling Kit", qty: 1, costCp: 500 });
-// The kit unpacks to several items; the fake resolver makes 2 per kit unit.
-const kitResolve = async (c) => (c.name === "Crawling Kit"
-  ? Array.from({ length: 2 * (c.qty || 1) }, (_, k) => ({ name: `Kit part ${k}`, type: "Basic", system: { quantity: 1 } }))
-  : resolve(c));
-function openWith(resolver, ...args) {
-  const o = openActor(...args);
-  o.finish = async () => {
-    const plan = planCommit(o.st.existing, o.st, o.live());
-    o.st.existing.createdRowIds ??= [];
-    o.st.existing.written ??= {};
-    await applyPlan(o.actor, plan, { commitId: "c1", resolve: resolver, createdRowIds: o.st.existing.createdRowIds, written: o.st.existing.written });
-    return plan;
-  };
-  return o;
-}
-const kitParts = (actor) => [...actor.items].filter((i) => i.name.startsWith("Kit part"));
-const kitRow = (st) => st.gear.find((g) => g.name === "Crawling Kit");
-
-test("a Crawling Kit raised from 1 to 2 grants the second kit, and lowered back removes it", async () => {
-  const { actor, st, finish } = openWith(kitResolve);
-  st.gear.push(KIT());
-  await finish();
-  assert.equal(kitParts(actor).length, 2);
-  assert.equal(actor._source.system.coins.gp, 5);
-  kitRow(st).qty = 2;
-  await finish();
-  assert.equal(kitParts(actor).length, 4);
-  assert.equal(actor._source.system.coins.gp, 0);
-  kitRow(st).qty = 1;
-  await finish();
-  assert.equal(kitParts(actor).length, 2);
-  assert.equal(actor._source.system.coins.gp, 5);
-  const calls = actor.calls.length;
-  await finish();
-  assert.equal(actor.calls.length, calls, "then a no-op");
-});
-
-test("a Crawling Kit bought x2 and lowered to x1 refunds and removes one kit", async () => {
-  const { actor, st, finish } = openWith(kitResolve);
-  st.gear.push({ ...KIT(), qty: 2, costCp: 300 });
-  await finish();
-  assert.equal(kitParts(actor).length, 4);
-  kitRow(st).qty = 1;
-  await finish();
-  assert.equal(kitParts(actor).length, 2);
-  assert.equal(actor._source.system.coins.gp, 7);
-});
-
-test("a rope spent on the sheet and bought again is granted once more, charged once more", async () => {
-  const { actor, st, finish } = openWith(resolve);
-  st.gear.push(cartRow(1));
-  await finish();
-  actor.items.delete(ropes(actor)[0]._id);
-  st.gear.find((g) => g.uuid === ROPE).qty = 2;
-  await finish();
-  assert.equal(ropes(actor).length, 1);
-  assert.equal(actor._source.system.coins.gp, 8);
-  const calls = actor.calls.length;
-  await finish();
-  assert.equal(actor.calls.length, calls, "then a no-op");
-  // and raising again stacks on the regranted item
-  st.gear.find((g) => g.uuid === ROPE).qty = 3;
-  await finish();
-  assert.equal(ropes(actor).length, 1);
-  assert.equal(ropes(actor)[0].system.quantity, 2);
-  assert.equal(actor._source.system.coins.gp, 7);
-});
-
-test("a purchase removed after it landed is deleted and refunded", async () => {
-  const { actor, st, finish } = openWith(resolve);
-  st.gear.push(cartRow(1));
-  await finish();
-  assert.equal(actor._source.system.coins.gp, 9);
-  st.gear = st.gear.filter((g) => g.uuid !== ROPE);
-  const plan = await finish();
-  assert.equal(ropes(actor).length, 0);
-  assert.equal(actor._source.system.coins.gp, 10);
-  assert.equal(plan.deletes.length, 1);
-});
-
-test("a system key changed back after a Finish is written back", async () => {
-  const { actor, st, finish } = openWith(resolve);
+  st.name = "Bob ";
   st.alignment = "chaotic";
-  st.name = "Robert";
-  st.stats.values.str = 16;
-  await finish();
+}
+function assertEdited(actor) {
+  const rope = [...actor.items].filter((i) => i.name === "Rope");
+  assert.equal(rope.length, 1, "the purchase exactly once");
+  assert.equal(rope[0].system.quantity, 2);
+  assert.equal(actor.items.get("torch").system.quantity, 5);
+  assert.deepEqual(names(actor), ["Lantern", "Light", "Lucky coin", "Rope", "Stout", "Torch"]);
+  assert.equal(actor._source.name, "Bob");
   assert.equal(actor._source.system.alignment, "chaotic");
-  st.alignment = "lawful";
-  st.name = "Hero";
-  st.stats.values.str = 15;
-  await finish();
-  assert.equal(actor._source.system.alignment, "lawful");
-  assert.equal(actor._source.name, "Hero");
-  assert.equal(actor._source.system.abilities.str.value, 15);
-  const calls = actor.calls.length;
-  await finish();
-  assert.equal(actor.calls.length, calls, "then a no-op");
-});
-
-test("a language added and removed across Finishes ends where it began", async () => {
-  const { actor, st, finish } = openWith(resolve);
-  st.languages = ["Compendium.x.Item.elvish"];
-  await finish();
-  assert.deepEqual(actor._source.system.languages, ["Compendium.x.Item.elvish"]);
-  st.languages = [];
-  await finish();
-  assert.deepEqual(actor._source.system.languages, []);
-});
-
-test("an owned quantity another user already set, then changed back, is written", async () => {
-  const items = [{ ...GEAR(), system: { quantity: 1, slots: { slots_used: 1, free_carry: 0, per_slot: 1 } } }];
-  const { actor, st, finish } = openWith(resolve, {}, items);
-  const row = st.gear.find((g) => g.itemId === "t1");
-  row.qty = 3;
-  actor.items.get("t1").system.quantity = 3;
-  await finish();
-  row.qty = 1;
-  await finish();
-  assert.equal(actor.items.get("t1").system.quantity, 1);
-});
-
-test("a key an earlier Finish wrote is not rewritten when the user did not touch it again", async () => {
-  const { actor, st, finish } = openWith(resolve);
-  st.alignment = "chaotic";
-  await finish();
-  actor._source.system.alignment = "neutral";
-  const plan = await finish();
-  assert.deepEqual(plan.system, {});
-  assert.equal(actor._source.system.alignment, "neutral");
-});
-
-test("a regranted rope cut below what is left removes the item, and a rise grants again", async () => {
-  const { actor, st, finish } = openWith(resolve);
-  const row = () => st.gear.find((g) => g.uuid === ROPE);
-  st.gear.push(cartRow(3));
-  await finish();
-  actor.items.delete(ropes(actor)[0]._id);
-  row().qty = 5;
-  await finish();
-  assert.equal(ropes(actor)[0].system.quantity, 2);
-  row().qty = 1;
-  await finish();
-  assert.equal(ropes(actor).length, 0);
-  assert.equal(actor._source.system.coins.gp, 9);
-  row().qty = 2;
-  await finish();
-  assert.equal(ropes(actor)[0].system.quantity, 1);
   assert.equal(actor._source.system.coins.gp, 8);
+}
+
+test("with the planner: one Finish applies the whole edit, and a re-hydrate plans nothing", async () => {
+  const { actor, st, finish } = openActor();
+  edit(st);
+  await finish();
+  assertEdited(actor);
+  // One Finish per baseline: the caller re-hydrates from the live actor.
+  const again = hydrateState(snapOf(actor), RESOLVED);
+  const plan = planCommit(again.existing, again, { source: actor._source, items: [...actor.items].map((i) => i._source) });
+  assert.ok(planIsEmpty(plan), "nothing to do on a fresh baseline");
+  const n = actor.calls.length;
+  await applyPlan(actor, plan, { commitId: "c2", resolve });
+  assert.equal(actor.calls.length, n);
 });
 
-for (const step of ["create", "updateItems", "update", "delete"]) {
-  test(`a ${step} that rejects after saving during a multi-Finish session is counted once, never twice`, async () => {
-    const { actor, st, finish } = openWith(resolve);
-    st.gear.push(cartRow(2));
-    st.gear.push({ ...cartRow(1), uuid: "Compendium.x.Item.flask", name: "Flask" });
-    await finish();
-    actor.items.delete(ropes(actor)[0]._id);
-    st.gear.find((g) => g.uuid === ROPE).qty = 4; // spent rope: regrant 2
-    st.gear = st.gear.filter((g) => g.name !== "Flask"); // and remove the flask
-    actor.faults[step] = "after";
-    await finish().catch(() => {});
-    actor.faults = {};
-    await finish();
-    assert.equal(ropes(actor).length, 1);
-    assert.equal(ropes(actor)[0].system.quantity, 2);
-    assert.equal([...actor.items].filter((i) => i.name === "Flask").length, 0);
-    // raising the regranted rope lands on the regranted item exactly once
-    st.gear.find((g) => g.uuid === ROPE).qty = 5;
-    actor.faults.updateItems = "after";
-    await finish();
-    actor.faults = {};
-    await finish();
-    assert.equal(ropes(actor)[0].system.quantity, 3);
-  });
+// Each write step, saved-then-rejected, rejected-before-saving, and silently vetoed. Then re-plan
+// from the LIVE actor with the same builder state and apply again.
+const FAULT_STEPS = ["create", "updateItems", "update", "delete"];
+for (const step of FAULT_STEPS) {
+  for (const when of ["after", "before", "veto"]) {
+    test(`with the planner: ${step} ${when}, then a re-plan from the live actor converges to one copy of everything`, async () => {
+      const { actor, st, finish } = openActor();
+      edit(st);
+      actor.faults[step] = when;
+      await finish().catch((e) => assert.ok(e instanceof IncompleteError, String(e)));
+      actor.faults = {};
+      await finish();
+      assertEdited(actor);
+      const n = actor.calls.length;
+      await finish();
+      assert.equal(actor.calls.length, n, "a further run is a no-op");
+    });
+  }
 }
+
+test("with the planner: an item deleted by someone else before the write is dropped, the rest converges", async () => {
+  const { actor, st, finish } = openActor();
+  edit(st);
+  actor.before.updateItems = () => { actor.before.updateItems = null; actor.items.delete("torch"); };
+  await finish();
+  assert.ok(!actor.items.has("torch"));
+  assert.ok(!actor.items.has("gone1") && [...actor.items].filter((i) => i.name === "Rope").length === 1);
+});
+
+// A kit unpacks to several items under one marker; the fake resolver makes 2 per kit.
+const kitResolve = async (c) => (c.name === "Crawling Kit"
+  ? Array.from({ length: 2 * c.qty }, (_v, k) => ({ name: `Kit item ${k}`, type: "Basic", system: {}, _stats: {} }))
+  : resolve(c));
+const kitRow = (qty) => ({ rowId: "kit", itemId: null, uuid: "u", name: "Crawling Kit", qty, costCp: 0 });
+
+test("a Crawling Kit x2 is granted whole under one marker", async () => {
+  const { actor, st, live } = openActor();
+  st.gear.push(kitRow(2));
+  await applyPlan(actor, planCommit(st.existing, st, live()), { commitId: "c1", resolve: kitResolve });
+  assert.equal([...actor.items].filter((i) => i.name.startsWith("Kit item")).length, 4);
+  const plan = planCommit(st.existing, st, live());
+  assert.deepEqual(plan.creates, [], "the marker is on the actor: done");
+});
+
+test("a kit that lands short is reported incomplete", async () => {
+  const { actor, st, live } = openActor();
+  st.gear.push(kitRow(1));
+  actor.faults.create = "veto";
+  await assert.rejects(
+    applyPlan(actor, planCommit(st.existing, st, live()), { commitId: "c1", resolve: kitResolve }),
+    (e) => e instanceof IncompleteError && e.step === "creates" && e.missing.join() === "Crawling Kit");
+});

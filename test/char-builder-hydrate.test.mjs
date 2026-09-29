@@ -102,6 +102,13 @@ test("Potion, Scroll, Wand and Gem are gear rows", () => {
   for (const t of ["Armor", "Basic", "Gem", "Potion", "Scroll", "Wand", "Weapon"]) assert.ok(PHYSICAL_TYPES.has(t));
 });
 
+test("a stack at quantity 0 hydrates as 0, not 1", () => {
+  const st = hydrateState(snap({}, [gear("s0", "Basic", "Torch", 0, { slots_used: 1, free_carry: 0, per_slot: 1 })]), RESOLVED);
+  assert.equal(st.gear[0].qty, 0);
+  assert.equal(st.gear[0].slots, 0);
+  assert.equal(st.existing.gearRows[0].qty, 0);
+});
+
 test("gear rows carry the item's quantity and slots", () => {
   const st = hydrateState(snap({}, [
     gear("r1", "Basic", "Rations", 3, { slots_used: 1, free_carry: 0, per_slot: 5 }),

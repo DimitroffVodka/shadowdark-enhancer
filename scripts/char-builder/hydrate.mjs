@@ -92,7 +92,7 @@ export async function loadActorSnapshot(actor, deps = {}) {
  * over plain http. The Math.random fallback is for Node tests; it only has to
  * differ between opens, not be unguessable.
  */
-const newSessionId = () => globalThis.foundry?.utils?.randomID?.() ?? Math.random().toString(36).slice(2, 10);
+export const newSessionId = () => globalThis.foundry?.utils?.randomID?.() ?? Math.random().toString(36).slice(2, 10);
 
 /** Match a held spell to a compendium entry; null when nothing fits. */
 function matchSpell(item, spellPool, classUuids) {
@@ -167,7 +167,9 @@ export function hydrateState(snapshot, resolved = {}) {
     const id = item._id;
     if (!id) { kept.push({ id: null, type: item.type, name: item.name }); continue; }
     if (PHYSICAL_TYPES.has(item.type)) {
-      const qty = Number(item.system?.quantity) || 1;
+      // a stack spent to 0 is 0: only a missing quantity reads 1
+      const q = Number(item.system?.quantity);
+      const qty = Number.isFinite(q) ? q : 1;
       gearRows.push({
         rowId: id, itemId: id, owned: true,
         uuid: sourceUuidOf(item), name: item.name, img: item.img, type: item.type,
