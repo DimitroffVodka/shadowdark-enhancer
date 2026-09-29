@@ -12,9 +12,12 @@ it needs.
 ### Added
 
 - **Silent death timers.** A new option beside Hidden death timers, in the
-  Deadly box of Modes of Play: the death timer is rolled with no chat message,
-  neither the roll nor the rounds left. With both options off nothing changes,
-  and Hidden death timers still makes the roll GM-only. (#290)
+  Deadly box of Modes of Play: a dying character posts no roll
+  card at all: not the death timer roll, not the rounds left, not the d20 turn
+  roll. The dice are still rolled and still count. With both options off
+  nothing changes, and Hidden death timers still makes the timer roll and the
+  rounds left GM-only, while the character's own d20 rise check stays in
+  chat. (#290)
 - **Travel reads the party and keeps a standing pace.** Start day asks nothing:
   the method is read from the party (mounted when every member rides a mount,
   sailing when every member is aboard one boat, else walking), and the pace is

@@ -20,7 +20,9 @@
  *   The PC's first turn only rolls its death timer, as the book reads (p.89,
  *   #263): the owning player's client rolls the die (a user query, so the dice
  *   are theirs) and the GM adds the modifiers; with the hidden timer on, the
- *   GM's client rolls blind, and with the silent one it posts no message. Every turn after, the owner rolls a d20; a natural
+ *   GM's client rolls blind, and with the silent one it posts no message.
+ *   Every turn after, the owner rolls a d20 (the silent timer asks that
+ *   roll to post nothing too; the hidden one leaves it public); a natural
  *   20 (or a rise-range modifier) rises at 1 HP, anything else takes a round
  *   off; at 0 the PC is dead.
  * - Out of combat: the crawl round (`shadowdark-enhancer.crawlRound`, fired by
@@ -103,18 +105,18 @@ async function rollHere(actor, formula, flavor, { secret = false, silent = false
 }
 
 /** The natural die, rolled on the owning player's client; on the GM's when none answers usably. */
-async function ownerRoll(actor, formula, flavor, faces) {
+async function ownerRoll(actor, formula, flavor, faces, silent = false) {
   const user = rollerFor(actor);
   if (user) {
     try {
-      const reply = await user.query(DYING_QUERY, { action: "roll", uuid: actor.uuid, formula, flavor }, { timeout: ROLL_TIMEOUT_MS });
+      const reply = await user.query(DYING_QUERY, { action: "roll", uuid: actor.uuid, formula, flavor, silent }, { timeout: ROLL_TIMEOUT_MS });
       const natural = checkedNatural(reply, faces);
       if (natural !== null) return natural;
     } catch (err) {
       console.warn(`${MODULE_ID} | ${user.name} could not roll for ${actor.name}; the GM rolls instead`, err);
     }
   }
-  return rollHere(actor, formula, flavor);
+  return rollHere(actor, formula, flavor, { silent });
 }
 
 // ── Chat ────────────────────────────────────────────────────────────────────
@@ -228,7 +230,7 @@ async function tick(actor, scope, round) {
     own: modifier(actor, "riseMin"),
     near: nearby(actor, { allies: true }).map((a) => modifier(a, "riseMinNear")),
   });
-  const natural = await ownerRoll(actor, "1d20", fmt("SDE.dying.riseFlavor", { min }), 20);
+  const natural = await ownerRoll(actor, "1d20", fmt("SDE.dying.riseFlavor", { min }), 20, chatMode() === "none");
   const out = turnOutcome({ natural, timer: s.timer, riseMin: min });
   if (out.result === "rise") return doRise(actor);
   if (out.result === "dead") return die(actor);
@@ -420,7 +422,8 @@ async function handleQuery(data, user) {
     if (!user?.isGM) return { ok: false };
     const actor = fromUuidSync(data.uuid);
     if (!actor?.isOwner) return { ok: false };
-    return { ok: true, natural: await rollHere(actor, String(data.formula), String(data.flavor ?? "")) };
+    // `silent` only ever hides the roll this client makes for its own character.
+    return { ok: true, natural: await rollHere(actor, String(data.formula), String(data.flavor ?? ""), { silent: data.silent === true }) };
   }
   const refused = refuseQuery(user, fmt("SDE.dying.relayLabel"));
   if (refused) return refused;
