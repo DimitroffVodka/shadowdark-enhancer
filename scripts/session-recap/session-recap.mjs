@@ -26,6 +26,7 @@ import {
   formatForDiscordFromData,
 } from "./session-recap-core.mjs";
 import { CarousingFeed } from "./carousing-feed.mjs";
+import { isActiveGM } from "../shared/gm-relay.mjs";
 import { format as formatGameTime } from "../time/time.mjs";
 
 /** One string from `languages/en.json`; the key when no i18n is mounted. */
@@ -87,7 +88,7 @@ export const SessionRecap = {
    * processes them — mirrors the merchant-shop activeGM guard.
    */
   _isPrimaryGM() {
-    return !!game.user?.isGM && game.users.activeGM?.id === game.user.id;
+    return isActiveGM();
   },
 
   async _save(data) {
@@ -425,6 +426,22 @@ export const SessionRecap = {
     return enemies;
   },
 
+  /** Start tracking a fight: its player participants and enemy roster. */
+  _openCombat(combat) {
+    const participants = [];
+    for (const c of combat.combatants) {
+      if (!c.actor || !c.token) continue;
+      const disp = c.token.disposition ?? c.token.document?.disposition;
+      if (disp === CONST.TOKEN_DISPOSITIONS.FRIENDLY && c.actor.hasPlayerOwner) {
+        participants.push({ name: c.actor.name, actorId: c.actor.id });
+      }
+    }
+    this._activeCombats.set(combat.id, {
+      startTime: Date.now(), participants, rounds: combat.round ?? 1,
+      enemies: this._snapshotEnemies(combat), lastSnapshotAt: Date.now(),
+    });
+  },
+
   _initCombatHooks() {
     if (!game.user.isGM) return;
     this._hasDamageLog = game.modules.get("damage-log")?.active ?? false;
@@ -447,25 +464,21 @@ export const SessionRecap = {
     // ── Combat start ───────────────────────────────────────
     Hooks.on("combatStart", (combat) => {
       if (!this.isActive() || !this._isPrimaryGM()) return;
-      const participants = [];
-      for (const c of combat.combatants) {
-        if (!c.actor || !c.token) continue;
-        const disp = c.token.disposition ?? c.token.document?.disposition;
-        if (disp === CONST.TOKEN_DISPOSITIONS.FRIENDLY && c.actor.hasPlayerOwner) {
-          participants.push({ name: c.actor.name, actorId: c.actor.id });
-        }
-      }
-      this._activeCombats.set(combat.id, {
-        startTime: Date.now(), participants, rounds: combat.round ?? 1,
-        enemies: this._snapshotEnemies(combat), lastSnapshotAt: Date.now(),
-      });
+      this._openCombat(combat);
     });
 
     // ── Combat round / state change — refresh snapshot ─────
-    Hooks.on("updateCombat", (combat) => {
+    Hooks.on("updateCombat", (combat, changes) => {
       if (!this.isActive() || !this._isPrimaryGM()) return;
       const active = this._activeCombats.get(combat.id);
-      if (!active) return;
+      if (!active) {
+        // combatStart fires only in the tab that began the fight, and a GM
+        // signed in twice often begins it in the waiting tab. The start's own
+        // update (round 1, turn 0) reaches every tab, so the working tab opens
+        // the record here (#288).
+        if (changes?.round === 1 && changes?.turn === 0) this._openCombat(combat);
+        return;
+      }
       active.rounds = combat.round ?? active.rounds;
       active.enemies = this._snapshotEnemies(combat);
       active.lastSnapshotAt = Date.now();

@@ -1,4 +1,5 @@
 import { findMonsterPack } from "../importer/monsters/monster-pack.mjs";
+import { isWorkingTab } from "../shared/gm-relay.mjs";
 import {
   listMonsterSpellSources,
   syncMonsterSpellLibrary,
@@ -175,7 +176,8 @@ export async function runMonsterSpellUpdateGate({
 } = {}) {
   if (!game?.user?.isGM) return { status: "skipped", reason: "not-gm" };
   const activeGm = game?.users?.activeGM;
-  if (activeGm && activeGm.id !== game.user.id) {
+  // Of a GM's tabs, only the working one (#288).
+  if ((activeGm && activeGm.id !== game.user.id) || !isWorkingTab()) {
     return { status: "skipped", reason: "not-active-gm" };
   }
 

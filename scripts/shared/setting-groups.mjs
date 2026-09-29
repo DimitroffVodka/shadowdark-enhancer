@@ -74,11 +74,12 @@ export const SETTING_GROUPS = [
         entries: ["modeBlitzLights"] },
       { label: "SDE.settings.modesOfPlayMenu.chaos", hint: "SDE.settings.modesOfPlayMenu.chaosHint", mode: true,
         entries: ["modeChaosInitiative", { key: "modeChaosDiceSoNice", option: true }] },
-      // The hidden death timer is an option of the dying rule, not one of
-      // Deadly's: it rides the box of the mode that changes dying, as Chaos's
-      // Dice So Nice does, so the Deadly switch leaves it alone.
+      // The hidden and silent death timers are options of the dying rule, not
+      // Deadly's: they ride the box of the mode that changes dying, as Chaos's
+      // Dice So Nice does, so the Deadly switch leaves them alone.
       { label: "SDE.settings.modesOfPlayMenu.deadly", hint: "SDE.settings.modesOfPlayMenu.deadlyHint", mode: true,
-        entries: ["modeDeadlyTimer", "modeDeadlyStabilize", { key: "dyingHiddenTimer", option: true }] },
+        entries: ["modeDeadlyTimer", "modeDeadlyStabilize", { key: "dyingHiddenTimer", option: true },
+          { key: "dyingSilentTimer", option: true }] },
       { label: "SDE.settings.modesOfPlayMenu.fatality", hint: "SDE.settings.modesOfPlayMenu.fatalityHint", mode: true,
         entries: ["modeFatality"] },
       { label: "SDE.settings.modesOfPlayMenu.grinder", hint: "SDE.settings.modesOfPlayMenu.grinderHint", mode: true,
