@@ -20,9 +20,15 @@ export class LanguagesStep extends BaseStep {
   get icon() { return "fa-solid fa-language"; }
   get partial() { return "sde-cb-languages"; }
 
+  /** An existing actor's languages are shown as stored: the fixed / common / rare split is not (#168). */
+  get readOnly() { return !!this.state.existing; }
+
   _combo() { return `${this.state.ancestry?.uuid || ""}|${this.state.class?.uuid || ""}`; }
 
   async _data() {
+    // Nothing below may run for an existing actor: it resets languageChoices
+    // and _sync() overwrites state.languages with the (empty) choice lists.
+    if (this.readOnly) return { fixed: [], slots: { common: 0, rare: 0, select: 0 }, pools: { common: [], rare: [], select: [] } };
     const key = this._combo();
     if (this._cache && this._comboKey === key) return this._cache;
 
@@ -69,13 +75,21 @@ export class LanguagesStep extends BaseStep {
   }
 
   isComplete() {
-    if (!this._cache) return true;
+    if (this.readOnly || !this._cache) return true;
     const ch = this.state.languageChoices;
     const s = this._cache.slots;
     return ch.common.length >= s.common && ch.rare.length >= s.rare && ch.select.length >= s.select;
   }
 
   async prepareContext() {
+    if (this.readOnly) {
+      const known = [];
+      for (const uuid of this.state.languages ?? []) {
+        const doc = await fromUuid(uuid).catch(() => null);
+        known.push({ uuid, name: doc?.name ?? String(uuid).split(".").pop() });
+      }
+      return { readOnly: true, known, fixed: [], categories: [], noChoices: false };
+    }
     const d = await this._data();
     const ch = this.state.languageChoices;
     const cat = (key, labelKey) => {
@@ -102,9 +116,10 @@ export class LanguagesStep extends BaseStep {
     };
   }
 
-  supportsRandom() { return true; }
+  supportsRandom() { return !this.readOnly; }
 
   async randomize() {
+    if (this.readOnly) return;
     const d = await this._data();
     this.state.languageChoices = { common: [], rare: [], select: [] };
     for (const key of ["common", "rare", "select"]) {
@@ -115,6 +130,7 @@ export class LanguagesStep extends BaseStep {
   }
 
   toggle(key, uuid) {
+    if (this.readOnly) return;
     const ch = this.state.languageChoices[key];
     const idx = ch.indexOf(uuid);
     if (idx >= 0) ch.splice(idx, 1);

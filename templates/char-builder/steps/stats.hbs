@@ -8,11 +8,13 @@
 
     <div class="sde-cb-method-label sd-band sd-band--tight">
       {{localize "SDE.charBuilder.stats.method.label"}}: <b>{{step.methodLabel}}</b>
-      <span class="gm">({{localize "SDE.charBuilder.stats.methodGm"}})</span>
+      {{#unless step.isManual}}<span class="gm">({{localize "SDE.charBuilder.stats.methodGm"}})</span>{{/unless}}
     </div>
 
     <p class="sde-cb-stats-desc">
-      {{#if step.isPointBuy}}
+      {{#if step.isManual}}
+      {{localize "SDE.charBuilder.stats.manualHint"}}
+      {{else if step.isPointBuy}}
       {{localize "SDE.charBuilder.stats.pointBuyHint"}}
       {{else if step.isFixed}}
       {{localize "SDE.charBuilder.stats.standardArrayHint"}}
@@ -21,6 +23,7 @@
       {{/if}}
     </p>
 
+    {{#unless step.isManual}}
     <div class="sde-cb-stats-bar">
       {{#unless step.isFixed}}{{#unless step.isPointBuy}}{{#unless step.rollLocked}}
       <button type="button" class="sde-cb-btn dice" data-action="cb-roll-stats">
@@ -41,6 +44,7 @@
       </button>
       {{/if}}
     </div>
+    {{/unless}}
 
     {{#if step.canReroll}}
     <p class="sde-cb-hint warn"><i class="fa-solid fa-triangle-exclamation"></i> {{localize "SDE.charBuilder.stats.rerollEligible"}}</p>
@@ -72,7 +76,12 @@
     <div class="sde-cb-abil-col">
       <div class="sde-cb-abil-tile{{#unless empty}} filled{{/unless}}{{#if empty}} empty{{/if}}{{#if isAssign}} assignable{{/if}}{{#if pointBuy}} point-buy{{/if}}"
         {{#if isAssign}}data-cb-tile="{{key}}"{{/if}}>
+        {{#if manual}}
+        <input type="number" class="tile-val" min="0" step="1" data-cb-manual="{{key}}" value="{{value}}"
+          aria-label="{{label}}">
+        {{else}}
         <div class="tile-val">{{#if value}}{{value}}{{else}}<span class="ph">–</span>{{/if}}</div>
+        {{/if}}
         <div class="tile-name">{{label}}</div>
         <div class="tile-mod">{{mod}}</div>
         {{#if pointBuy}}

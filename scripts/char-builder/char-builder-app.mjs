@@ -156,11 +156,13 @@ export class ShadowdarkCharBuilder extends HandlebarsApplicationMixin(Applicatio
       nav: {
         canPrev: this.stepIndex > 0,
         isLast: this.stepIndex === this.steps.length - 1,
-        supportsRandom: step.supportsRandom?.() ?? false,
-        showFullRandom: this.stepIndex === 0,
+        // An existing character is edited, never re-rolled.
+        supportsRandom: !this.builderState.existing && (step.supportsRandom?.() ?? false),
+        showFullRandom: this.stepIndex === 0 && !this.builderState.existing,
         allComplete: this.steps.every((s) => s.isComplete()),
         // Target level picker — a level-0 funnel build has no level to choose.
-        level: this.builderState.level0 ? null : {
+        // Level-ups are a later piece: re-scoping the level would drop the hydrated HP and spells.
+        level: (this.builderState.level0 || this.builderState.existing) ? null : {
           value: this.builderState.level,
           options: Array.from({ length: MAX_CHAR_LEVEL }, (_, i) => ({
             value: i + 1, selected: i + 1 === this.builderState.level,
@@ -185,7 +187,7 @@ export class ShadowdarkCharBuilder extends HandlebarsApplicationMixin(Applicatio
    */
   async _setLevel(level) {
     const st = this.builderState;
-    if (st.level0) return;
+    if (st.level0 || st.existing) return;
     if (!Number.isInteger(level) || level < 1 || level > MAX_CHAR_LEVEL || level === st.level) return;
     const known = st.class?.item?.system?.spellcasting?.spellsknown?.[level] ?? null;
     applyLevelChange(st, level, known);
@@ -214,11 +216,13 @@ export class ShadowdarkCharBuilder extends HandlebarsApplicationMixin(Applicatio
   static async _onDismiss() { await this.close(); }
 
   static async _onRandom() {
+    if (this.builderState.existing) return;
     await this.activeStep.randomize?.();
     await this.render();
   }
 
   static async _onFullRandom() {
+    if (this.builderState.existing) return;
     for (const step of this.steps) {
        
       if (step.supportsRandom?.()) await step.randomize?.();
@@ -234,8 +238,9 @@ export class ShadowdarkCharBuilder extends HandlebarsApplicationMixin(Applicatio
 
   static async _onFinish() {
     // Require the essentials before committing.
+    // The gate is for new builds: an existing character already has all of these.
     const requiredIds = ["stats", "ancestry", "class", "hp"];
-    const missing = this.steps.filter((s) => requiredIds.includes(s.id) && !s.isComplete());
+    const missing = this.builderState.existing ? [] : this.steps.filter((s) => requiredIds.includes(s.id) && !s.isComplete());
     if (missing.length) {
       ui.notifications.warn(game.i18n.format("SDE.charBuilder.commit.incomplete", {
         steps: missing.map((s) => game.i18n.localize(s.label)).join(", "),

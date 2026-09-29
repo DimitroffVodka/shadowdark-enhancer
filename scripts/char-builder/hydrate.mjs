@@ -174,6 +174,7 @@ export function hydrateState(snapshot, resolved = {}) {
         rowId: id, itemId: id, owned: true,
         uuid: sourceUuidOf(item), name: item.name, img: item.img, type: item.type,
         qty, costCp: 0, magic: !!item.system?.magicItem, slots: slotsFor(item.system, qty),
+        slotSpec: item.system?.slots ?? null,
       });
     } else if (item.type === "Spell") {
       spellRows.push({

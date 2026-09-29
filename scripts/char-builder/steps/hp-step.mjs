@@ -18,7 +18,10 @@ export class HpStep extends BaseStep {
   get icon() { return "fa-solid fa-heart"; }
   get partial() { return "sde-cb-hp"; }
 
-  isComplete() { return this.state.hp.max > 0; }
+  /** An existing actor's HP is its stored base max: no dice, and it never blocks (#168). */
+  get readOnly() { return !!this.state.existing; }
+
+  isComplete() { return this.readOnly || this.state.hp.max > 0; }
 
   /** GM lock: a player whose HP is settled (rolled or maxed) rolls no more. */
   get rollLocked() { return this.state.hp.max > 0 && this.lockedBy("charBuilderLockHpRolls"); }
@@ -60,6 +63,7 @@ export class HpStep extends BaseStep {
   }
 
   async prepareContext() {
+    if (this.readOnly) return { existing: true, hp: this.state.hp.max || null, complete: true };
     const cm = this.conMod;
     const mods = await this._hpModifiers();
     return {
@@ -80,10 +84,11 @@ export class HpStep extends BaseStep {
     };
   }
 
-  supportsRandom() { return !!this.hitDie && !this.rollLocked; }
+  supportsRandom() { return !this.readOnly && !!this.hitDie && !this.rollLocked; }
   async randomize() { if (!this.rollLocked) await this._roll(); }
 
   async handleAction(action) {
+    if (this.readOnly) return false;
     switch (action) {
       case "cb-roll-hp": if (this.rollLocked) return false; await this._roll(); return true;
       case "cb-max-hp": if (!this.maxSetting || this.rollLocked) return false; await this._max(); return true;
@@ -92,7 +97,7 @@ export class HpStep extends BaseStep {
   }
 
   async _roll() {
-    if (!this.hitDie) return;
+    if (this.readOnly || !this.hitDie) return;
     if (this.maxSetting) return this._max();
     const mods = await this._hpModifiers();
     // Advantage (Dwarf Stout): roll the hit die twice, keep the highest — for
@@ -107,7 +112,7 @@ export class HpStep extends BaseStep {
   }
 
   async _max() {
-    if (!this.hitDie) return;
+    if (this.readOnly || !this.hitDie) return;
     const mods = await this._hpModifiers();
     await this._settle(Array(this.level).fill(this.dieMax), mods, null, "max");
   }

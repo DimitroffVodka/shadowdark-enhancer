@@ -54,8 +54,8 @@
       <li class="sde-cb-cart-row">
         <span class="qty">{{qty}}×</span>
         <span class="name">{{name}}{{#if magic}} <i class="fa-solid fa-wand-sparkles" title="{{localize 'SDE.charBuilder.gear.magicTip'}}"></i>{{/if}}</span>
-        <button type="button" class="sde-cb-cart-btn" data-cb-add-one="{{uuid}}" title="{{localize 'SDE.charBuilder.gear.addTip'}}">+</button>
-        <button type="button" class="sde-cb-cart-btn" data-cb-remove-gear="{{uuid}}" title="{{localize 'SDE.charBuilder.gear.removeTip'}}">−</button>
+        <button type="button" class="sde-cb-cart-btn" data-cb-add-one="{{key}}" title="{{localize 'SDE.charBuilder.gear.addTip'}}">+</button>
+        <button type="button" class="sde-cb-cart-btn" data-cb-remove-gear="{{key}}" title="{{localize 'SDE.charBuilder.gear.removeTip'}}">−</button>
       </li>
       {{/each}}
     </ul>

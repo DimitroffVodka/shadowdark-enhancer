@@ -35,7 +35,13 @@ export class StatsStep extends BaseStep {
     }
     return ABILITY_ORDER.every((k) => this.state.stats.values[k] > 0);
   }
-  get method() { return STAT_METHODS[this.state.stats.method] ?? STAT_METHODS["3d6-reroll"]; }
+  // An existing actor's scores are typed as stored, whatever the GM's method is:
+  // point buy or the standard array would replace hydrated 17s with a fresh spread.
+  get method() {
+    if (this.state.existing) return STAT_METHODS.manual;
+    return STAT_METHODS[this.state.stats.method] ?? STAT_METHODS["3d6-reroll"];
+  }
+  get isManual() { return !!this.method.manual; }
   get isAssign() { return !!this.method.assign; }
   get isFixed() { return Array.isArray(this.method.fixed); }
   get isPointBuy() { return !!this.method.pointBuy; }
@@ -70,6 +76,7 @@ export class StatsStep extends BaseStep {
       empty: !(st.values[k] > 0),
       isAssign: assign,
       pointBuy: this.isPointBuy,
+      manual: this.isManual,
       pointBuyCost: this.isPointBuy ? pointBuyCost(st.values[k]) : null,
       canIncrease: this._canAdjustPointBuy(k, 1),
       canDecrease: this._canAdjustPointBuy(k, -1),
@@ -85,6 +92,7 @@ export class StatsStep extends BaseStep {
       isAssign: assign,
       isFixed: this.isFixed,
       isPointBuy: this.isPointBuy,
+      isManual: this.isManual,
       rolled,
       total: rolled ? pool.reduce((a, b) => a + b, 0) : 0,
       spent,
@@ -96,16 +104,16 @@ export class StatsStep extends BaseStep {
       poolChips,
       showReroll: !!m.rerollUnder14,
       canReroll: !!m.rerollUnder14 && rolled && maxRoll < 14,
-      showReset: (this.isFixed || this.isPointBuy || rolled) && !this.rollLocked,
+      showReset: !this.isManual && (this.isFixed || this.isPointBuy || rolled) && !this.rollLocked,
       rollLocked: this.rollLocked,
       complete: this.isComplete(),
     };
   }
 
-  supportsRandom() { return !this.isPointBuy && !this.rollLocked; }
+  supportsRandom() { return !this.isManual && !this.isPointBuy && !this.rollLocked; }
 
   async randomize() {
-    if (this.rollLocked) return;
+    if (this.isManual || this.rollLocked) return;
     if (this.isPointBuy) {
       this._resetRoll();
       return;
@@ -120,6 +128,7 @@ export class StatsStep extends BaseStep {
   }
 
   async handleAction(action, _event, target) {
+    if (this.isManual) return false;
     switch (action) {
       case "cb-roll-stats":
         if (this.rollLocked) return false;
@@ -139,6 +148,12 @@ export class StatsStep extends BaseStep {
       default:
         return false;
     }
+  }
+
+  /** Set one typed ability: an integer of 0 or more, the way Foundry stores it. */
+  setManual(abil, value) {
+    if (!ABILITY_ORDER.includes(abil)) return;
+    this.state.stats.values[abil] = Math.max(0, Math.round(Number(value) || 0));
   }
 
   /** Put the configured fixed array into the existing assignment pool. */
@@ -184,6 +199,11 @@ export class StatsStep extends BaseStep {
 
   onRender(root) {
     const st = this.state.stats;
+
+    root.querySelectorAll("[data-cb-manual]").forEach((el) => el.addEventListener("change", async (ev) => {
+      this.setManual(el.dataset.cbManual, ev.target.value);
+      await this.app.render();
+    }));
 
     // --- Rolled dice: drag to place, or click as a fallback. ----------------
     root.querySelectorAll("[data-cb-pool]").forEach((el) => {
@@ -287,7 +307,7 @@ export class StatsStep extends BaseStep {
   }
 
   async _roll(actionKey = "roll") {
-    if (this.isFixed || this.isPointBuy) return;
+    if (this.isFixed || this.isPointBuy || this.isManual) return;
     const m = this.method;
     const rolls = [];
     for (let i = 0; i < ABILITY_ORDER.length; i++) {
@@ -344,6 +364,7 @@ export class StatsStep extends BaseStep {
   }
 
   _resetRoll() {
+    if (this.isManual) return;
     const st = this.state.stats;
     this._picked = null;
     if (this.isFixed) {

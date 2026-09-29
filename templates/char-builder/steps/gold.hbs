@@ -1,4 +1,10 @@
 <div class="sde-cb-roll-step">
+  {{#if step.existing}}
+  <p class="sde-cb-hint"><i class="fa-solid fa-lock"></i> {{localize "SDE.charBuilder.gold.existingHint"}}</p>
+  <div class="sde-cb-big-number">
+    <span class="val">{{step.coinsText}}</span>
+  </div>
+  {{else}}
   {{#if step.fixed}}
   <p class="sde-cb-method-label">
     <i class="fa-solid fa-lock"></i> {{localize "SDE.charBuilder.gold.fixed"}}: <b>{{step.fixed}} {{localize "SDE.charBuilder.gold.unit"}}</b>
@@ -27,4 +33,5 @@
     <span class="val">{{step.gp}}</span>
     <span class="unit">{{localize "SDE.charBuilder.gold.unit"}}</span>
   </div>
+  {{/if}}
 </div>

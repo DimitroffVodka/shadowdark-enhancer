@@ -1,4 +1,13 @@
 <div class="sde-cb-languages">
+  {{#if step.readOnly}}
+  <div class="sde-cb-lang-block">
+    <span class="sde-cb-panel-title">{{localize "SDE.charBuilder.languages.known"}}</span>
+    <div class="sde-cb-chip-row">
+      {{#each step.known}}<span class="sde-cb-chip fixed">{{name}}</span>{{else}}<span class="sde-cb-hint">—</span>{{/each}}
+    </div>
+    <p class="sde-cb-hint"><i class="fa-solid fa-lock"></i> {{localize "SDE.charBuilder.existing.languagesHint"}}</p>
+  </div>
+  {{/if}}
   {{#if step.fixed.length}}
   <div class="sde-cb-lang-block">
     <span class="sde-cb-panel-title">{{localize "SDE.charBuilder.languages.known"}}</span>
