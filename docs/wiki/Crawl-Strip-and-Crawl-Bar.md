@@ -185,6 +185,9 @@ with forage and camp.
   hands back to travel when it ends.
 - **Weather** rolls today's weather and posts it to chat. It holds until the
   next dawn, so pressing it again the same day only reminds you what it is.
+  While you travel the weather rolls at each dawn the clock crosses, by
+  itself: one roll and one card, however many days a jump skips (a camp rolls
+  its own dawn). You only press it to roll early or to reroll.
   With the Western Reaches rule (the default) a 1 is stormy and a 6 is
   excellent, which gives the next day's roll advantage. With the core rule a 1
   is a storm for 1d4 days, with no roll while it lasts. Pick the rule under

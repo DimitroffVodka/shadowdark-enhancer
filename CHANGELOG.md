@@ -95,6 +95,11 @@ it needs.
   storm is still a rain storm (a blizzard in the cold) and an excellent day
   shows nothing. It is cosmetic: the weather and its rules are unchanged. A
   weather effect you picked yourself is left alone. (#294)
+- **The weather rolls at each dawn.** While you travel, a clock step over a
+  dawn now rolls the new day's weather and posts its card by itself, once even
+  when the jump skips several days, so the bar no longer reads "none" for days.
+  Start day and Make camp roll nothing more when it is already rolled, a camp
+  keeps its own dawn, and outside Overland travel nothing rolls. (#294)
 - **Show weather effects, per device.** A client setting (on by default) that
   turns the scene's weather drawing off on a slow device such as a Steam Deck.
   The scene keeps its weather and other screens still show it. It applies at
