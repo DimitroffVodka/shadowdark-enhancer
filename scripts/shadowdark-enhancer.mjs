@@ -124,7 +124,7 @@ const STYLESHEET_REV = "92c41f6c74f8";
 // stale); module.json carries the same hash and is fetched fresh at runtime. A
 // mismatch is a stale cache by construction — it cannot be anything else. Both
 // stamps are written by `npm run inventory` and gated by `inventory:check`.
-const BUILD_REV = "10d4dba6c3b0";
+const BUILD_REV = "72ec329602b0";
 
 /**
  * Tell the user when their browser is running an old build of this module, and
@@ -513,6 +513,16 @@ Hooks.once("init", () => {
       // builder would load from `actor` and what it would keep as-is.
       describeActor: async (actor) =>
         (await import("./char-builder/hydrate.mjs")).describeActor(actor),
+      // The safety net for editing an existing character: the builder takes a
+      // before-image, and a GM or an owner can put the character back.
+      takeBeforeImage: async (actor, opts) =>
+        (await import("./char-builder/before-image.mjs")).takeBeforeImage(actor, opts),
+      hasBeforeImage: async (actor) =>
+        (await import("./char-builder/before-image.mjs")).hasBeforeImage(actor),
+      describeBeforeImage: async (actor) =>
+        (await import("./char-builder/before-image.mjs")).describeBeforeImage(actor),
+      restoreBeforeImage: async (actor) =>
+        (await import("./char-builder/before-image.mjs")).restoreBeforeImage(actor),
     },
     // Vehicles. `importBoats()` is the macro-friendly entry for the Western
     // Reaches boats (p118) — the Importer Hub Manage tree exposes the same per
