@@ -27,13 +27,14 @@ function created(warband) {
 const at = (update, key) => update[`flags.${MOD}.warband.${key}`];
 
 test("a copy of a warband in debt and deserted starts clean, and keeps its upgrades", () => {
-  const update = created({ commander: "Actor.pc", upgrades: ["fast"], arrears: 30, deserted: true, settledMonths: [1, 2], moraleWeeks: [5], retrainingUntil: 900 });
+  const update = created({ commander: "Actor.pc", upgrades: ["fast"], arrears: 30, deserted: true, settledMonths: [1, 2], moraleWeeks: [5], retrainingUntil: 900, payment: { id: "x" } });
   assert.equal(at(update, "commander"), null);
   assert.equal(at(update, "arrears"), 0);
   assert.equal(at(update, "deserted"), false);
   assert.deepEqual(at(update, "settledMonths"), []);
   assert.deepEqual(at(update, "moraleWeeks"), []);
   assert.equal(at(update, "retrainingUntil"), null);
+  assert.equal(at(update, "payment"), null);
   assert.equal(`flags.${MOD}.warband.upgrades` in update, false);
   assert.equal(update["prototypeToken.actorLink"], true);
 });

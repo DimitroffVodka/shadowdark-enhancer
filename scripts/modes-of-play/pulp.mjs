@@ -27,7 +27,7 @@
 
 import { MODULE_ID } from "../shared/module-id.mjs";
 import { esc } from "../shared/esc.mjs";
-import { relayToGM, refuseQuery } from "../shared/gm-relay.mjs";
+import { relayToGM, refuseQuery, registerQuery } from "../shared/gm-relay.mjs";
 import { SessionRecap } from "../session-recap/session-recap.mjs";
 import {
   critExtraFormula, showLuckCrit, showForceReroll, forceShape, uncritFormula, forcedDamage,
@@ -284,7 +284,7 @@ async function decorate(msg, html) {
 }
 
 export function init() {
-  CONFIG.queries[PULP_QUERY] = (data, { user } = {}) => handlePulpQuery(data, user);
+  registerQuery(PULP_QUERY, (data, { user } = {}) => handlePulpQuery(data, user));
   Hooks.on("renderChatMessageHTML", (msg, html) => { void decorate(msg, html); });
   // Fired on the client of the GM who pressed Start session, and only there.
   Hooks.on(`${MODULE_ID}.sessionStart`, () => {

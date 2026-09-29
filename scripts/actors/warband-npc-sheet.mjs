@@ -19,7 +19,7 @@ import { martialTierForHitDie } from "../downtime/downtime-core.mjs";
 import { secondsPerDay } from "../time/time-core.mjs";
 import { format as formatTime } from "../time/time.mjs";
 import { makeQueue } from "../quests/quest-core.mjs";
-import { authorizeActorFor, isActiveGM, queryActiveGM, refuseQuery } from "../shared/gm-relay.mjs";
+import { authorizeActorFor, isActiveGM, queryActiveGM, refuseQuery, registerQuery } from "../shared/gm-relay.mjs";
 import {
   UPGRADES, MOST_UPGRADES, allowanceFor, cleanUpgrades, commandRefusal, upgradeRefusal, upkeepGp,
 } from "./warband-core.mjs";
@@ -42,10 +42,10 @@ export const warbandWrites = makeQueue();
 
 /** Register the writer the other clients' sheets call. Call at init. */
 export function registerWarbandWrites(type) {
-  // Only the active GM answers: a query sent straight to another GM is refused. Foundry hands the query to every
-  // tab the active GM has open, and each change sets a value, so a second tab's run changes nothing (#288).
-  CONFIG.queries[WARBAND_QUERY] = (data, { user } = {}) => refuseQuery(user, game.i18n.localize("SDE.warband.relayLabel"))
-    ?? warbandWrites(() => applyWarbandWrite(data, user, type));
+  // registerQuery: of the tabs the user has open, only the one holding its lock answers (#288). The handler still
+  // refuses at once a query sent straight to a GM who isn't the active one.
+  registerQuery(WARBAND_QUERY, (data, { user } = {}) => refuseQuery(user, game.i18n.localize("SDE.warband.relayLabel"))
+    ?? warbandWrites(() => applyWarbandWrite(data, user, type)));
 }
 
 /** Send a change to the active GM, or make it here when this client is the active GM. */
@@ -58,8 +58,7 @@ function sendWarbandWrite(data, type) {
  * Make one change, on the active GM: `commander` gives the warband to a PC
  * (or none), `upgrade` ticks or unticks one. Refused over the allowance; the
  * warning goes back to the sheet that asked. Each change sets a value, so
- * making it again (another tab of the active GM got it too) changes nothing
- * and answers the same: an upgrade already ticked is a success.
+ * making it again changes nothing and answers the same: an upgrade already ticked is a success.
  * @returns {Promise<{ok:boolean, warn?:{key:string, data:object}, error?:string}>}
  */
 async function applyWarbandWrite(data, user, type) {
@@ -144,7 +143,7 @@ const marks = (v) => (Array.isArray(v) ? [...new Set(v.filter(Number.isFinite))]
  * A warband's state, cleaned, every field kept so a whole-flag write loses
  * none: `{ commander: uuid|null, upgrades: string[], arrears: gp owed,
  * deserted: bool, retrainingUntil: worldTime|null, leading: bool, routed: bool,
- * settledMonths: number[], moraleWeeks: number[] }` (#200, #203, #204).
+ * settledMonths: number[], moraleWeeks: number[], payment: object|null }` (#200, #203, #204).
  */
 export function warbandState(actor) {
   const f = actor?.getFlag?.(MODULE_ID, WARBAND_FLAG) ?? {};
@@ -160,8 +159,17 @@ export function warbandState(actor) {
     // does neither twice, and a later month settled never hides an earlier one still owed (#284 review).
     settledMonths: marks(f.settledMonths),
     moraleWeeks: marks(f.moraleWeeks),
+    payment: cleanPayment(f.payment),
   };
 }
+
+/**
+ * The payment in flight, marked before its gold is taken: `{ id, pc: uuid, before, cost, month }`, `before`
+ * the commander's purse and `cost` the price in copper, `month` the month key it settles (null: the arrears).
+ * Whole with the mark in one write, so a client lost between the mark and the purse leaves both (#284 review).
+ */
+const cleanPayment = (p) => (typeof p?.id === "string" && typeof p.pc === "string" && Number.isFinite(p.before) && Number.isFinite(p.cost)
+  ? { id: p.id, pc: p.pc, before: p.before, cost: p.cost, month: Number.isFinite(p.month) ? p.month : null } : null);
 
 /** The allowance tier of a PC, from its class's hit die: "d4" | "d6" | "d8plus" | null. */
 export async function commanderTier(pc) {

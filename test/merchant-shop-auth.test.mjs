@@ -266,3 +266,106 @@ test("F6: closing every window is an authenticated push, not a broadcast", async
   assert.equal(notified[0].to, "Vella", "GMs are skipped; players are pushed to");
   assert.deepEqual(notified[0].data, { kind: "close" });
 });
+
+// ─── #291: what the Catalog tab may sell ────────────────────────────────────
+
+const IMPORTED = "world.shadowdark-enhancer--items";
+const PUBLISHED = {
+  shopAvailableToPlayers: true,
+  shopAvailabilityData: {
+    mode: "compendium", actorId: null, sellRatio: 50,
+    buyMultiplier: 100, catalogEnabled: true, gambleEnabled: false,
+  },
+};
+
+/** A compendium item as an index row / document carries it. */
+function packItem({ id, name, type = "Basic", cost = { gp: 1, sp: 0, cp: 0 }, flags = {}, folder = null, pack = IMPORTED }) {
+  return {
+    _id: id, id, name, type, folder, img: "x.webp", flags,
+    uuid: `Compendium.${pack}.Item.${id}`,
+    system: { cost },
+    toObject() { return { _id: id, name, type, system: { cost } }; },
+  };
+}
+
+/** Stub game.packs over `packs` ({ packId: [item, ...] }) and fromUuid over the same items. */
+function stubPacks(packs) {
+  const all = Object.values(packs).flat();
+  globalThis.fromUuid = async (uuid) => all.find((i) => i.uuid === uuid) ?? null;
+  globalThis.game.packs = {
+    has: (id) => id in packs,
+    get: (id) => (id in packs ? {
+      metadata: { label: id },
+      folders: [],
+      getIndex: async () => ({ contents: packs[id] }),
+    } : undefined),
+  };
+}
+
+const NO_PRICE = { gp: 0, sp: 0, cp: 0 };
+const gearPack = "shadowdark.gear";
+
+test("#291: the catalog lists imported gear and leaves out what is not for sale", async () => {
+  const { MerchantShop } = await harness();
+  stubPacks({
+    [gearPack]: [
+      packItem({ id: "rope", name: "Rope, 60'", pack: gearPack }),
+      // The system's own dummies and the egg: gear type, but no list price.
+      packItem({ id: "egg", name: "Basilisk Egg", cost: NO_PRICE, pack: gearPack }),
+      packItem({ id: "light", name: "Light Spell", cost: NO_PRICE, pack: gearPack }),
+    ],
+    "shadowdark.magic-items": [],
+    [IMPORTED]: [
+      packItem({ id: "paste", name: "Glow paste, jar", cost: { gp: 2, sp: 0, cp: 0 }, flags: { [MODULE_ID]: { imported: true } } }),
+      packItem({ id: "boat", name: "Longboat", cost: { gp: 500, sp: 0, cp: 0 }, flags: { [MODULE_ID]: { imported: true } } }),
+      packItem({ id: "spell", name: "Consecrate", type: "Spell", cost: { gp: 3, sp: 0, cp: 0 } }),
+      packItem({ id: "emerald", name: "Cracked emerald", cost: { gp: 60, sp: 0, cp: 0 }, flags: { [MODULE_ID]: { fromTreasureTable: true } } }),
+    ],
+  });
+  MerchantShop._ensureApp();
+
+  const catalog = await MerchantShop._app._loadCatalog();
+
+  assert.deepEqual(catalog.map((e) => e.name).sort(), ["Glow paste, jar", "Longboat", "Rope, 60'"]);
+  assert.equal(catalog.find((e) => e.name === "Longboat").packId, IMPORTED);
+});
+
+test("#291: the catalog picks up an import made after it was first read", async () => {
+  const { MerchantShop } = await harness();
+  const imported = [];
+  stubPacks({ [gearPack]: [], "shadowdark.magic-items": [], [IMPORTED]: imported });
+  MerchantShop._ensureApp();
+  assert.equal((await MerchantShop._app._loadCatalog()).length, 0);
+
+  imported.push(packItem({ id: "net", name: "Net", cost: { gp: 4, sp: 0, cp: 0 } }));
+
+  assert.deepEqual((await MerchantShop._app._loadCatalog()).map((e) => e.name), ["Net"]);
+});
+
+test("#291: a catalog buy of imported gear works; a forged buy of an unpriced item or a spell does not", async () => {
+  const buyer = makeActor({ id: "pc1", name: "Vella's PC", ownerId: PLAYER.id, coins: { gp: 100, sp: 0, cp: 0 } });
+  const { MerchantShop } = await harness({ actors: { pc1: buyer }, settings: PUBLISHED });
+  stubPacks({
+    [gearPack]: [packItem({ id: "egg", name: "Basilisk Egg", cost: NO_PRICE, pack: gearPack })],
+    "shadowdark.magic-items": [],
+    [IMPORTED]: [
+      packItem({ id: "paste", name: "Glow paste, jar", cost: { gp: 2, sp: 0, cp: 0 } }),
+      packItem({ id: "spell", name: "Consecrate", type: "Spell", cost: { gp: 3, sp: 0, cp: 0 } }),
+    ],
+  });
+  const created = [];
+  globalThis.Item.create = async (data) => { created.push(data.name); return {}; };
+  const buy = (pack, id) => MerchantShop._handleCatalogBuy(
+    { buyerActorId: "pc1", itemUuid: `Compendium.${pack}.Item.${id}`, quantity: 1 }, PLAYER);
+
+  const egg = await buy(gearPack, "egg");
+  const spell = await buy(IMPORTED, "spell");
+  assert.equal(egg?.ok, false);
+  assert.match(egg.error, /notInCatalog$/);
+  assert.equal(spell?.ok, false);
+  assert.deepEqual(created, [], "nothing unpriced or off-type may reach the buyer's sheet");
+
+  const paste = await buy(IMPORTED, "paste");
+  assert.notEqual(paste?.ok, false, `expected the imported gear to sell, got ${JSON.stringify(paste)}`);
+  assert.deepEqual(created, ["Glow paste, jar"]);
+});

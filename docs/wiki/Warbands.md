@@ -80,6 +80,13 @@ you setting the date.
   included. The GMs get one card listing who healed.
 - **Retraining.** Changing a commanded warband's upgrades takes a week; the tab
   says until when, and it can't fight until then.
+- If a GM's tab closes or disconnects while a payment is half done (the
+  month or the arrears marked paid, the commander's coins not yet confirmed),
+  the next start of the active GM, clock move, Charge a Month or Pay Arrears
+  checks the commander's purse. Coins taken: the payment stands. Coins not
+  taken: the month or the arrears is owed again and is charged once. Anything
+  else, such as a purchase in between: the GMs get a whispered card to check
+  the coins by hand. The check never takes gold itself.
 - A clock set back and moved on again never charges a month twice, and one
   move settles at most its last year of days, and at most 8 weeks of arrears
   checks.

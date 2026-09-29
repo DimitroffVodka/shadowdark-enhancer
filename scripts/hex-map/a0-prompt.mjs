@@ -8,6 +8,7 @@
 
 import { MODULE_ID } from "../shared/module-id.mjs";
 import { replaceModuleFlag } from "../shared/module-flags.mjs";
+import { isActiveGM } from "../shared/gm-relay.mjs";
 import { isA0 } from "./a0-print.mjs";
 
 const ASKED_FLAG = "hexPlayableAsked";
@@ -19,7 +20,7 @@ export function registerA0Prompt() {
     const scene = c?.scene;
     const tex = c?.primary?.background?.texture;
     // Cheap checks first: only the active GM asks, only on the print, only once.
-    if (!game.users.activeGM?.isSelf || !scene || !isA0(tex?.width, tex?.height)) return;
+    if (!isActiveGM() || !scene || !isA0(tex?.width, tex?.height)) return;
     if (scene.getFlag(MODULE_ID, "hexTags")?.origin || scene.getFlag(MODULE_ID, ASKED_FLAG)) return;
     await replaceModuleFlag(scene, ASKED_FLAG, true);
     const yes = await foundry.applications.api.DialogV2.confirm({

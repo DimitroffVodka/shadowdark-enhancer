@@ -82,7 +82,7 @@ export function registerActorTypes() {
       if (doc.type !== WARBAND_TYPE) return;
       const update = { "prototypeToken.actorLink": true };
       if (data?.flags?.[MODULE_ID]?.warband) {
-        const start = { commander: null, arrears: 0, deserted: false, settledMonths: [], moraleWeeks: [], retrainingUntil: null };
+        const start = { commander: null, arrears: 0, deserted: false, settledMonths: [], moraleWeeks: [], retrainingUntil: null, payment: null };
         for (const [key, value] of Object.entries(start)) update[`flags.${MODULE_ID}.warband.${key}`] = value;
       }
       doc.updateSource(update);

@@ -652,7 +652,26 @@ transactions, XP awards, encounter checks, combat) — there are no public
 api.charBuilder.open();      // Character Builder window (singleton — an already-
                              // open builder is brought to front, not replaced)
 await api.charBuilder.appClass();  // the ShadowdarkCharBuilder Application class
+await api.charBuilder.describeActor(actor);  // read-only: logs what the builder
+                             // would load from an existing actor and what it
+                             // would keep as-is; returns the summary (null for
+                             // a blank actor). Writes nothing.
 ```
+
+Editing an existing actor (not wired to any button yet; internal modules under
+`scripts/char-builder/`, not on the API object): `hydrateState` reads the actor
+into a builder state with a frozen baseline, `planCommit(existing, state, live)`
+decides what Finish would change, and `applyPlan(actor, plan)` writes it.
+**One Finish per baseline:** a plan is measured from the baseline the builder
+opened with, so after `applyPlan` returns (complete, or after an
+`IncompleteError` the caller gives up on) the caller discards `existing` and the
+builder state and re-hydrates from the live actor (fresh baseline and
+sessionId). Only inside one attempt is a retry safe: re-plan from the live
+actor with the same builder state and apply again; a created item carries a
+`builderRow` marker, and one that is already on the actor counts as created. A
+quantity edit on a row an earlier Finish created is out of contract. Two
+overlapping `applyPlan` calls on one actor are refused with
+`ApplyInProgressError`.
 
 > Since the lazy-load pass, heavy feature UIs (builder, importer hub, forge,
 > loot apps, encounter roller, token-art manager) parse on first open instead
@@ -1775,32 +1794,77 @@ error is also shown as a warning.
   pack. One chat line says what was found. Foraging takes no clock time.
 
 **`overland.makeCamp()`**, GM only, forwarded to the active GM. Refused when
-nobody is travelling or an encounter is pending. Resolves to
-`{ ok: true, stopped }` or `{ ok: false, error }`.
+nobody is travelling, an encounter is pending, or no travel day is open. A
+camp's dawn closes the day, so a second press after it makes no second camp.
+Resolves to `{ ok: true, stopped }` or `{ ok: false, error }`.
 
-1. **Lights.** Carried lights go out and keep their time: `time.advanceOffDuty(0, { reason: "camp" })`.
-   A refusal there is shown, and camp goes on.
-2. **The night.** The clock runs to the next sunrise, or to the last night
-   check if that is later (a summer sunrise at 04:30 comes before a 05:00
-   check), through the same advance as moves. A hit stops the night with
-   `pending.reason === "camp"`, and `resume()` finishes it. That holds even
-   for a hit at the camp's very last moment: the dawn step is still to come.
-3. **Rations**, at the end of the night. Any forage roll still waiting on a
-   player is settled first, so a ration found tonight is eaten tonight.
+Each step below is kept in the state's `camp`. The camp itself is saved
+before its tasks and rations, and the lights as soon as they're out. On a camp
+already made, Make camp goes on from the next step: after something failed, in
+the same tab or after a reload. The tasks, the rations and the lights aren't
+done again; a failure partway through the rations leaves the rest of them
+uneaten, never eaten twice. The night runs only to the `camp.until` fixed at camp, so it's
+never longer, and a creature already recorded still counts (#282 review).
+
+1. **The camp**, before the night (since 1.25.0, GMWR p. 44). Any forage roll
+   still waiting on a player is settled first, so a ration found today is
+   eaten tonight.
    - **With Shadowdark Extras**, when the travel token is its party and its
-     API offers `camping.open` (shadowdark-extras#163): that rest is opened
-     with `{ party, members, mounts, pushed, harsh, stormy, rationsEach, advanceTime: false }`,
-     and it does the rations. Overland adds nothing. When that rest is
-     closed, declined or fails (`completed` not true), the camp stays pending
-     with a warning. The day isn't closed, and Continue opens the rest again
-     rather than passing a second night.
+     API offers `camping.open` and `camping.dawn` (shadowdark-extras#186):
+     the camp window opens with `{ party, members, mounts, pushed, harsh,
+     stormy, rationsEach, advanceTime: false, deferRest: true }`. It runs the
+     tasks, Firewood first, and asks about torches when no fire was lit. It
+     also does the rations, and keeps the rest for the dawn. When that window
+     is closed or declined (`completed` not true), the saved camp is taken
+     back: `camp: null`, `{ ok: false, error }`, and no clock passes. A camp
+     found saved (the tab was lost while the window was open) goes straight
+     to the lights and the night. An Extras without
+     `camping.dawn` is treated as no Extras.
    - **Otherwise Overland eats them.** Each member eats 1 ration from their
-     own stacks, or 2 when the night was harsh. One who can't cover them all
+     own stacks, or 2 when the night is harsh. One who can't cover them all
      eats none (a single ration in a harsh climate counts as none) and takes 1
      CON through `statDamage.apply`. Mounts (`mounts`) eat the same from
      whatever the members have left.
-4. **Dawn.** One chat line sums it up. The day is closed (`day: null`, the push
-   reset), and the new day's weather is rolled. The GM then presses Start day.
+
+   Either way, the state's `camp` becomes
+   `{ party, interrupted: null, ate: true, until, lightsOut: false }` first,
+   before the window opens or anyone eats.
+   `party` is the uuid of the Extras party actor keeping the rest (an
+   unlinked token's own actor), or `null` without Extras. `until` is when
+   camp breaks: the next sunrise, or the last night check if that is later (a
+   summer sunrise at 04:30 comes before a 05:00 check).
+2. **Lights.** Once the camp is made, carried lights go out and keep their
+   time: `time.advanceOffDuty(0, { reason: "camp" })`. A closed camp window
+   leaves them lit. A refusal there is shown, and camp goes on. Then
+   `camp.lightsOut` is true.
+3. **The night.** The clock runs to `camp.until`, through the same advance as
+   moves. A hit stops the night with
+   `pending.reason === "camp"`, and `resume()` finishes it. That holds even
+   for a hit at the camp's very last moment: the dawn step is still to come.
+   A creature (`kind: "monster"`) met in one of the night's checks interrupts the rest; a day
+   check still to roll when camp was made early doesn't. Its hour is kept in
+   `camp.interrupted`, the first one only, and the held encounter carries
+   `interrupts: true`. A land result such as a rockslide doesn't. With the
+   clock bar off nothing is held, so nothing is recorded: the GM calls it.
+   While a camp is made, a night check that some other clock move rolls
+   (a GM's, after the night failed) counts the same. A camp from before
+   1.25.0 gets a `camp` record here with `ate: false`, and its dawn still
+   eats.
+4. **Dawn.** With Extras holding the rest, `camping.dawn({ party, interrupted })`
+   finishes it on the party actor that camped, even if the travel token has
+   changed since: who ate and didn't succeed at Bed Down rolls CON against DC
+   12, and then the rest's benefits apply. When that is canceled or fails, the
+   camp stays pending with a warning, and Continue tries the dawn again rather
+   than passing a second night. The same happens when no Extras can finish it
+   at dawn (turned off, or a version without `camping.dawn`): the rest is
+   still stored on the party, so it isn't dropped. Starting a new day instead
+   goes on without it. When Extras has no rest waiting (`nothingPending`, as
+   when the party actor was deleted), the camp breaks with a warning, and
+   the chat says only when the rest was interrupted, with no CON roll. Without
+   Extras, the chat says when the rest was interrupted, and the CON checks are
+   the GM's. The day is closed as soon as the rest is done (`day: null`, the
+   push reset, `camp: null`). Then one chat line sums up the dawn, and the new
+   day's weather is rolled. The GM then presses Start day.
 
 **The underground season check** runs on the active GM, on `timeAdvanced`, in
 any mode (the party may be crawling below the hex).
@@ -1813,10 +1877,12 @@ any mode (the party may be crawling below the hex).
 ### The sky on scenes
 
 Added in 1.19.0 (Overland O9, #235; design §6.2, Q7). This isn't a call: the
-active GM keeps the active scene's darkness and weather effect in step with
-the clock, whether or not anyone is travelling.
+active GM keeps the darkness and weather effect of the active scene, and of
+the scene the Overland travel token is on (#294), in step with the clock,
+whether or not anyone is travelling.
 
-**Which scenes.** A scene follows the sky when Scene Configuration's
+**Which scenes.** Each of those two scenes is written once, if it follows
+the sky. A scene follows the sky when Scene Configuration's
 Environment tab says so. The choice is stored as the scene flag
 `shadowdark-enhancer.followsSky`: `"on"`, `"off"`, or `"default"`, which is
 yes for a tagged hex map and no everywhere else. Dungeons and interiors are
@@ -1836,8 +1902,10 @@ untouched unless marked.
 
 **Weather.**
 - `scene.weather` is Foundry's `rainStorm` while today's weather is stormy,
-  or its `blizzard` when the region's climate is cold or freezing, and
-  nothing otherwise.
+  or its `blizzard` when the region's climate is cold or freezing. On a fair
+  day it is the season's effect (#294): `snow` in winter, `leaves` in autumn,
+  nothing in spring and summer. Nothing on an excellent day or when no
+  weather holds. The table is `FAIR_DAY_EFFECT` in `sky-core.mjs`.
 - Overland takes only an empty weather slot. It records the effect it put
   there as the scene flag `shadowdark-enhancer.skyWeather`, in the same
   update, and only ever changes or clears an effect it recorded that is
@@ -1897,6 +1965,8 @@ scene's choice changes, and once on load.
 - `1.24.0` adds the `rumors` namespace and the `shadowdark-enhancer.rumorsChanged` hook.
 - `1.25.0` adds `encounter.check`'s `quiet`, `hexMaps.makePlayable`, `overland.partyMethod` and
   `overland.setPace`; `overland.startDay` reads the method and the pace when they're left out.
+  `overland.makeCamp` makes the camp before the night (with Shadowdark Extras' `deferRest` and
+  `camping.dawn`) and needs an open travel day, and the state gains `camp` and the held encounter `interrupts`.
 - `1.4.0` adds the shared `forgeLoot.open()` preview shell. Generator rules and
   document writes remain behind the later NPC/Rival adapter implementations.
   The version policy is additive: new namespaces bump the minor version; breaking
@@ -1973,6 +2043,34 @@ lights must go out on the GM whose tab burns them, the Shadowdark system's
 primary GM, which need not be `game.users.activeGM`. It is sent there with
 `queryActiveGM(name, data, { targetUser })`, and the receiving tab checks the
 server-stamped sender is a GM and refuses if another GM holds the flag.
+
+**One user, several tabs.** Foundry delivers a query to every tab its
+recipient has open, answers with the first reply, and runs hooks in every tab.
+So the user who does a piece of work is also one tab (#288). Each tab asks the
+browser for its user's Web Lock at `init` and holds it for the life of the page.
+Only the tab holding it answers a module query (they're all registered through
+`registerQuery`), whoever the query is sent to: the active GM, the light-primary
+GM an off-duty move is handed to, or a player asked to roll a save or a death
+timer. The other tabs stay silent, so the caller gets the working tab's answer,
+and a GM that isn't the right writer still refuses at once. `isActiveGM()` is
+true only in the active GM's working tab, and the hooks it gates run there, as
+does dying's turn start, which Foundry runs in every tab of the active GM. A
+hook Foundry fires only in the tab that acted (`combatStart`, and the
+`preUpdateItem`/`preDeleteItem` the scavenger snapshots in) has no tab check,
+or work begun in the waiting tab would be dropped: the scavenger elects per
+user, and the session recap's working tab opens a fight another tab began from
+the start's own `updateCombat` (round 1, turn 0). When
+the working tab closes, reloads or crashes, the browser hands the lock to the
+next tab at once. The shop's notices to players (`registerQuery` with
+`everyTab`) are the exception: they only close or refresh the receiving tab's
+window, so every tab shows them. Every tab works, as before, where the browser
+can't tell them apart: without Web Locks (plain http over a LAN), across two
+browsers or devices, on different builds of the module, and in the moment
+before the browser answers. A GM's own click still works in any of its tabs:
+work that must run on the active GM is forwarded to the working tab, and Forge
+Loot's Approve checks the user, not the tab. A save the GM asks a player for
+opens in that player's working tab, the first they opened, and if nobody rolls
+it within two minutes the GM's client rolls it, as when no player is online.
 
 Two consequences worth knowing:
 

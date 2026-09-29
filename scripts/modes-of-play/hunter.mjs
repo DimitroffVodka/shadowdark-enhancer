@@ -18,6 +18,7 @@
  */
 
 import { MODULE_ID } from "../shared/module-id.mjs";
+import { isActiveGM } from "../shared/gm-relay.mjs";
 import { combatantEntry, isHiddenFromStrip } from "../crawl-strip/turn-skip-core.mjs";
 
 /**
@@ -70,8 +71,6 @@ function record(combatant) {
     actorId: actor?.isToken ? (actor.baseActor?.id ?? combatant.actorId) : (actor?.id ?? combatant.actorId),
   };
 }
-
-const isActiveGM = () => !!game.user?.isGM && game.users.activeGM?.id === game.user.id;
 
 /**
  * Pay a finished combat's Hunter XP. GM-side; the hook below decides when.

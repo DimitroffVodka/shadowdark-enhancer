@@ -8,6 +8,7 @@
  */
 
 import { MODULE_ID } from "../shared/module-id.mjs";
+import { isWorkingTab } from "../shared/gm-relay.mjs";
 import {
   ensureFolderPath,
   ensureSuite,
@@ -66,8 +67,9 @@ function activeGm(gameRef) {
   if (!user?.isGM) return false;
   const active = gameRef?.users?.activeGM;
   // Small pure/adapter fakes often omit activeGM.  In a real world the
-  // collection is present and this is the single-writer gate.
-  return !active || !user.id || !active.id || active.id === user.id;
+  // collection is present and this is the single-writer gate; of a GM's tabs,
+  // the working one (#288).
+  return (!active || !user.id || !active.id || active.id === user.id) && isWorkingTab();
 }
 
 function markerFrom(document) {
