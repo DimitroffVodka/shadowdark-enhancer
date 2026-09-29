@@ -494,7 +494,11 @@ page walks through it in order.
   free, and neither are the spells and talents in the imported pack or props
   from treasure tables; a catalog buy of any of them is refused. Already
   imported worlds need nothing: the shop reads what is there. To sell an
-  unpriced item, add it on the Manage tab with a price. (#291)
+  unpriced item, add it on the Manage tab with a price. The shipped **The
+  Merchant - Western Reaches** now stocks every priced Western Reaches gear
+  item in the imported pack instead of matching names, so items the importer
+  spells differently (Glow Paste, Jar; Rope, Morzo Silk) are no longer missing
+  from its Buy tab. (#291)
 
 - **Random ancestry no longer turns a Half-elf into an Elf.** A table result
   matched any ancestry whose name it contained, so the population d100's

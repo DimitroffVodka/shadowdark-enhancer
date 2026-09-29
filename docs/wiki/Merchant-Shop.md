@@ -99,7 +99,7 @@ The module includes two pre-configured merchant stock templates:
 | Preset | Inventory |
 |---|---|
 | **The Merchant - Base** | Standard Shadowdark core rulebook gear |
-| **The Merchant - Western Reaches** | Core gear plus Western Reaches expanded items |
+| **The Merchant - Western Reaches** | Core gear plus every priced Western Reaches gear item you have imported (it picks up new imports by itself, until you save over it) |
 
 New worlds load **The Merchant - Base** by default. You can switch presets or
 save your own custom merchant inventories under **Manage → Saved Merchants**.
