@@ -124,6 +124,14 @@ file, and the module does the setup itself:
    itself and says so: when all four sit on a printed hex there is nothing
    to do but **Create scene**, and when one does not it names the corner so
    you can compare the crop and fix a count that is off by one.
+   When the blue is on the wrong hexes, or no grid was found at all,
+   press **Set the corners by hand**. Fill in the boxes (columns × rows,
+   which columns sit lower, and whether the lowered columns end one row
+   short), click the middle of the top-left hex on the print, then the middle
+   of the bottom-right hex (the last column, its last row). The pitches follow
+   from those two points and the counts. Click the middle of the hex in the
+   top-left or bottom-right corner picture to nudge it; the other two pictures
+   are the check. Changing a box re-fits the grid.
 3. It copies the image into the world's `hex-maps` folder, creates a scene
    whose hex grid sits on the print (the image is stretched to Foundry's hex
    proportions, so a print with tall hexes lands on a regular grid), stores
@@ -136,8 +144,10 @@ hand-calibrated geometry in about five seconds on a laptop. Its lowered
 columns end one row short of the others (the frame cuts the first row of the
 raised columns in half, and the last half cells of the lowered ones hold the
 printed column labels); the detector reports that and the tagger skips those
-cells. Prints with a faint or hand-drawn grid get a message instead; those
-are set up the old way below.
+cells. A print whose grid the detector gets wrong or cannot find (a faint or
+hand-drawn grid, or heavy glyph texture that drowns the outlines) is set up
+in the same window with **Set the corners by hand**; the old way below still
+works for anything else.
 
 ## A whole book's key locations
 

@@ -395,6 +395,29 @@ export function cornerSupport(ink, w, h, lat, { minSupport = 0.7, halfSupport = 
 }
 
 /**
+ * A lattice from two hand-placed cell centres, for a print the detector cannot
+ * read: the top-left cell (column 0, row 0) and the bottom-right one (the last
+ * column's last row). The counts and the lowered parity say how many pitches
+ * lie between them, so both pitches follow.
+ * @param {{u:number,v:number}} tl  centre of column 0, row 0, in image px
+ * @param {{u:number,v:number}} br  centre of the last column's last row
+ * @returns {{x0:number,y0:number,pitchX:number,pitchY:number,cols:number,rows:number,rowsLowered:number,lowered:"odd"|"even"}|null}
+ *   null when the two points and counts do not span a lattice
+ */
+export function latticeFromCorners({ tl, br, cols, rows, rowsLowered = rows, lowered }) {
+  if (!(cols >= 2 && rows >= 1)) return null;
+  const last = cols - 1, odd = last % 2 === 1;
+  // The last column's own row count, and how far its first cell sits from column 0's.
+  const rowsLast = odd === (lowered === "odd") ? rowsLowered : rows;
+  const off = odd ? (lowered === "odd" ? 0.5 : -0.5) : 0;
+  const span = rowsLast - 1 + off;
+  if (!(span > 0)) return null;
+  const pitchX = (br.u - tl.u) / last, pitchY = (br.v - tl.v) / span;
+  if (!(pitchX > 0 && pitchY > 0)) return null;
+  return { x0: tl.u, y0: tl.v, pitchX, pitchY, cols, rows, rowsLowered, lowered };
+}
+
+/**
  * Cell centre in image pixels for a detected lattice. (x0, y0) is the centre
  * of column 0, row 0; odd columns sit half a row lower when the odd columns
  * are the lowered ones, half a row higher when the even ones are.

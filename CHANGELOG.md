@@ -11,6 +11,15 @@ it needs.
 
 ### Added
 
+- **Set the hex grid's corners by hand in Hex map from image.** When the
+  detector puts the grid on the wrong hexes, or finds none, the confirmation
+  window has a **Set the corners by hand** button: click the middle of the
+  top-left hex and of the bottom-right hex on the print, and the grid hangs on
+  those two points and the counts. Click the middle of the hex in the top-left
+  or bottom-right corner picture to nudge it; changing a count re-fits it. A
+  new box says whether the lowered columns end one row short, which prints with
+  a jagged top and bottom edge do. No grid found no longer stops with a message;
+  it opens the same window.
 - **Edit a character in the Character Builder, and undo the save.** A
   **Character Builder** button in the header of a player character's sheet, and
   **Edit in Character Builder** when you right-click a character in the Actors

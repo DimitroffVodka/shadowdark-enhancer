@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { detectLattice, latticeCentre, rowPitch, columnPitch, cornerSupport } from "../scripts/hex-map/lattice.mjs";
+import { detectLattice, latticeCentre, latticeFromCorners, rowPitch, columnPitch, cornerSupport } from "../scripts/hex-map/lattice.mjs";
 
 // Invented prints: a field of flat-top hex outlines drawn 1 px wide into an
 // ink bitmap, with margins, per-cell glyph noise, and (in one case) a legend
@@ -119,4 +119,27 @@ test("the lowered columns end one row short inside a rectangular frame, label in
   assert.ok(d, "detected");
   assert.deepEqual([d.cols, d.rows, d.rowsLowered, d.lowered], [12, 9, 8, "odd"]);
   assert.ok(Math.abs(d.y0 - 52) < 1, `row 0 is the half cell: y0 ${d.y0}`);
+});
+
+test("latticeFromCorners: two hand-placed centres give back the lattice, for every parity and column count", () => {
+  for (const lowered of ["odd", "even"]) for (const cols of [17, 12]) for (const rowsLowered of [11, 10]) {
+    const lat = { x0: 132.5, y0: 88.25, pitchX: 124.4, pitchY: 143.1, lowered, cols, rows: 11, rowsLowered };
+    const last = cols - 1;
+    const rowsLast = (last % 2 === 1) === (lowered === "odd") ? rowsLowered : 11;
+    const got = latticeFromCorners({ tl: latticeCentre(lat, 0, 0), br: latticeCentre(lat, last, rowsLast - 1), cols, rows: 11, rowsLowered, lowered });
+    assert.ok(got, `${lowered} ${cols} ${rowsLowered}`);
+    for (const key of ["x0", "y0", "pitchX", "pitchY"]) assert.ok(Math.abs(got[key] - lat[key]) < 1e-9, `${lowered} ${cols} ${rowsLowered}: ${key} ${got[key]}`);
+    assert.deepEqual([got.cols, got.rows, got.rowsLowered, got.lowered], [cols, 11, rowsLowered, lowered]);
+  }
+});
+
+test("latticeFromCorners: corners that do not span a lattice give null, not a broken one", () => {
+  const tl = { u: 100, v: 100 }, br = { u: 900, v: 700 };
+  assert.ok(latticeFromCorners({ tl, br, cols: 8, rows: 5, lowered: "odd" }));
+  assert.equal(latticeFromCorners({ tl, br, cols: 1, rows: 5, lowered: "odd" }), null, "one column has no width to measure");
+  assert.equal(latticeFromCorners({ tl, br: { u: 50, v: 700 }, cols: 8, rows: 5, lowered: "odd" }), null, "bottom-right left of top-left");
+  assert.equal(latticeFromCorners({ tl, br: { u: 900, v: 50 }, cols: 8, rows: 5, lowered: "odd" }), null, "bottom-right above top-left");
+  assert.equal(latticeFromCorners({ tl, br, cols: 2, rows: 1, lowered: "even" }), null, "one row, the last column half a row higher: no height between the two");
+  assert.equal(latticeFromCorners({ tl, br, cols: 3, rows: 1, lowered: "odd" }), null, "one row, an even last column: both corners share a row, so there is no height to measure");
+  assert.equal(latticeFromCorners({ tl, br, cols: 2, rows: 1, lowered: "odd" }).pitchY, 1200, "one row, the last column half a row lower: 600 px is half a pitch");
 });
