@@ -475,6 +475,39 @@ page walks through it in order.
   of it. When a GM loads a world on a stale build, the module says so and
   offers **Reload now**, which replaces every cached script of the module,
   including the lazily loaded ones a plain reload would leave stale.
+- **Characters the Character Builder makes remember where each item came
+  from.** Every talent, spell, class ability and gear item it creates now
+  carries its compendium link, which the builder did not record before. Nothing
+  changes on the sheet; it lets a later feature recognise the items of a
+  character built from now on. (#168)
+- **A dry run for editing an existing character.** In the console,
+  `game.shadowdarkEnhancer.charBuilder.describeActor(actor)` lists what the
+  Character Builder would load from a character (abilities, gear, spells, what
+  it can't identify) and what it would leave alone. It only reads. The builder
+  can't edit an existing character yet. (#168)
+- **Groundwork for editing an existing character safely.** The Character
+  Builder now has the planner that will decide what Finish changes on a
+  character it opened: only what you touched, checked against the character as
+  it is now, deleting only items you removed and never a talent, class ability
+  or effect. Nothing uses it yet, so nothing changes on any sheet. (#168)
+- **Scavenger ignores the Character Builder's edits.** Removing a torch or
+  potion through the builder is an edit, not a used item, so it no longer rolls
+  Scavenger or hands the item back. Nothing calls the builder that way yet. (#168)
+- **Groundwork for saving edits to an existing character safely.** The
+  Character Builder now has the step that will apply a Finish to a character it
+  opened: it adds new items first, then changes quantities, then the sheet, and
+  removes items last, checking the character after every write. A write that
+  errors after it already saved is not repeated, so a retry never doubles an
+  item, a change another module blocks is reported instead of lost, and a
+  Crawling Kit that lands short is reported. Two Finishes running on the same
+  character at once are refused. Each Finish is measured from the character as
+  the builder opened it, so the builder re-opens from the character after every
+  Finish. Nothing uses it yet, so nothing changes on any sheet. (#168)
+- **The builder's existing-character check works for players on a LAN address.**
+  Reading a character into the Character Builder no longer fails on a plain
+  http connection (the console dry run `describeActor` threw there), and an
+  item stack spent down to 0 stays a stack of 0 instead of reading as 1.
+  Nothing else uses it yet, so nothing changes on any sheet. (#168)
 
 ### Changed
 

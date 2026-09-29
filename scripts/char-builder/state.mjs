@@ -29,6 +29,13 @@ export class CharBuilderState {
     /** Target character level (1–MAX_CHAR_LEVEL). Ignored for level-0 builds. */
     this.level = 1;
 
+    /**
+     * Set only when the builder edits an EXISTING actor (hydrate.mjs): the
+     * baseline frozen at open, the hydrated gear/spell rows and the kept item
+     * ids. Null for a fresh build.
+     */
+    this.existing = null;
+
     this.name = "";
     this.trinket = "";
     this.alignment = "neutral";
