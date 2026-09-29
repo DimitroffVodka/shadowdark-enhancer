@@ -471,8 +471,12 @@ page walks through it in order.
   Reading a character into the Character Builder no longer fails on a plain
   http connection (the console dry run `describeActor` threw there), and items
   added through the builder can be raised, lowered, removed and added again
-  across several Finishes without being skipped or charged twice. Nothing else
-  uses it yet, so nothing changes on any sheet. (#168)
+  across several Finishes without being skipped or charged twice, including
+  Crawling Kits (each kit is granted and removed whole), an item spent on the
+  sheet and bought again, and a purchase removed after it was saved (its coins
+  come back). Anything else changed and then changed back across Finishes
+  (alignment, name, abilities, languages, art, coins) is written each time.
+  Nothing else uses it yet, so nothing changes on any sheet. (#168)
 
 ### Changed
 

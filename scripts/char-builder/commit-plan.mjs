@@ -11,7 +11,10 @@ import { MODULE_ID } from "../shared/module-id.mjs";
  *   B = `existing.baseline` and its row lists, frozen when the builder opened
  *   D = the builder state at Finish
  *   L = the LIVE actor at Finish: `{ source: actor._source, items: [item source] }`
- * INTENT = D against B (what the user changed). The plan is INTENT against L:
+ * INTENT = D against B (what the user changed), where B for a key is what an
+ * earlier Finish of this session wrote for it (`existing.written`) when there is
+ * one, so a change back after a Finish is written and a landed purchase can be
+ * refunded. The plan is INTENT against L:
  * nothing is written for a key or row the user did not touch, even when L has
  * drifted since open. Where the user did touch a key and L moved off B, a drift
  * line is returned so the dry-run dialog can say so; the user's change wins.
@@ -38,11 +41,17 @@ export function planCommit(existing, state, live) {
   const system = {};
   const drift = [];
   const lines = [];
+  // What each Finish leaves behind for the next one (`existing.written`): the
+  // executor applies these entries once the write they belong to has landed.
+  const W = existing.written ?? {};
+  const record = [];
 
   const uuid = (v) => v || null;
   /** True when the user changed `key`; records drift when live also moved. */
   const changed = (key, b, d, l) => {
+    if (key in W) b = W[key];
     if (b === d) return false;
+    record.push({ step: "actor", key, value: d });
     if (l !== b) drift.push({ key, baseline: b, live: l, intended: d });
     lines.push({ kind: "set", key, from: b, to: d });
     return true;
@@ -79,7 +88,7 @@ export function planCommit(existing, state, live) {
 
   // Languages: a uuid set diff applied to the LIVE list.
   const dLang = new Set(state.languages ?? []);
-  const bLang = new Set(B.languages ?? []);
+  const bLang = new Set(W.languages ?? B.languages ?? []);
   const add = [...dLang].filter((u) => !bLang.has(u));
   const remove = [...bLang].filter((u) => !dLang.has(u));
   if (add.length || remove.length) {
@@ -89,6 +98,7 @@ export function planCommit(existing, state, live) {
       system["system.languages"] = next;
       lines.push({ kind: "languages", add, remove });
     }
+    record.push({ step: "actor", key: "languages", value: [...dLang] });
   }
 
   // Name (blank never clears) and art (only a set slot that differs).
@@ -99,7 +109,11 @@ export function planCommit(existing, state, live) {
   const art = {};
   for (const slot of ["portrait", "token"]) {
     const d = state.art?.[slot];
-    if (d && d !== B.art?.[slot]) { art[slot] = d; lines.push({ kind: "art", slot }); }
+    if (d && d !== (W[`art.${slot}`] ?? B.art?.[slot])) {
+      art[slot] = d;
+      lines.push({ kind: "art", slot });
+      record.push({ step: "actor", key: `art.${slot}`, value: d });
+    }
   }
 
   // --- item rows, by embedded id ---
@@ -135,7 +149,15 @@ export function planCommit(existing, state, live) {
     if (g.itemId) continue;
     const n = (nth.get(g.uuid) ?? 0) + 1;
     nth.set(g.uuid, n);
-    wanted.push({ rowId: `${sid}:${g.rowId || `${g.uuid}#${n}`}`, kind: "gear", uuid: g.uuid, name: g.name, qty: Number(g.qty) || 1, row: g });
+    const rowId = `${sid}:${g.rowId || `${g.uuid}#${n}`}`;
+    const qty = Number(g.qty) || 1;
+    if (g.name === "Crawling Kit") {
+      // a kit is several items: every kit is its own marker, so a quantity change
+      // grants or removes whole kits (`#1`, `#2`, ...)
+      for (let k = 1; k <= qty; k++) wanted.push({ rowId: `${rowId}#${k}`, kind: "gear", uuid: g.uuid, name: g.name, qty: 1 });
+    } else {
+      wanted.push({ rowId, kind: "gear", uuid: g.uuid, name: g.name, qty, row: g });
+    }
   }
   for (const s of dSpells) {
     if (!s.itemId && s.uuid) wanted.push({ rowId: `${sid}:spell:${s.uuid}`, kind: "spell", uuid: s.uuid, name: s.name });
@@ -144,39 +166,70 @@ export function planCommit(existing, state, live) {
   if (trinket && trinket !== (B.trinket ?? "")) wanted.push({ rowId: `${sid}:trinket:${trinket}`, kind: "trinket", name: trinket });
   const wantedIds = new Set(wanted.map((w) => w.rowId));
 
-  // Quantity edits, by embedded id. A row whose item landed (hydrated, or made by
-  // an earlier Finish of this session and found by its marker) is measured from
-  // the quantity last written for it (`existing.rowQty`), else from the opened
-  // quantity, so an edit after a Finish still counts, and so does a change back.
-  const rowQty = existing.rowQty ?? {};
+  // Quantity edits, by embedded id. What a Finish last wrote is remembered in
+  // `existing.written` (`qty:<item id>` = the item's quantity, `units:<marker>` =
+  // the quantity the row was last accounted for), so an edit after a Finish is
+  // measured from it, and so is a change back.
   const byMarker = new Map();
   for (const i of live.items) if (markerOf(i)) byMarker.set(markerOf(i), [...(byMarker.get(markerOf(i)) ?? []), i]);
-  const qtyRows = dGear.filter((g) => g.itemId).map((g) => ({ id: g.itemId, g, base: rowQty[g.itemId] ?? bGear.get(g.itemId)?.qty }));
-  for (const w of wanted) {
-    const made = w.kind === "gear" && mine.has(w.rowId) ? byMarker.get(w.rowId) : null;
-    // a kit is several items under one marker: no single quantity to edit
-    if (made?.length === 1) qtyRows.push({ id: made[0]._id, g: w.row, base: rowQty[made[0]._id] });
-  }
   const updates = [];
-  for (const { id, g, base } of qtyRows) {
+  const regrants = [];
+  const madeThisSession = new Set();
+  for (const g of dGear) {
+    if (!g.itemId) continue;
+    const id = g.itemId;
+    const base = W[`qty:${id}`] ?? bGear.get(id)?.qty;
     const q = Number(g.qty);
-    if (base == null || !(q >= 1) || q === base) continue;
     const l = liveItems.get(id);
-    if (!l) continue;
+    if (base == null || !(q >= 1) || q === base || !l) continue;
+    record.push({ step: "updates", id, key: `qty:${id}`, value: q });
     const lq = Number(l.system?.quantity) || 1;
     if (lq === q) continue;
     if (lq !== base) drift.push({ key: `quantity:${id}`, baseline: base, live: lq, intended: q });
     updates.push({ _id: id, "system.quantity": q });
     lines.push({ kind: "quantity", id, name: g.name, from: base, to: q });
   }
+  // A created single-item row moves by the number of units the user added or
+  // took away since it was last accounted for; the target is absolute (from the
+  // remembered item quantity), so a retry lands on the same number.
+  for (const w of wanted) {
+    if (!w.row || !mine.has(w.rowId)) continue;
+    const units = W[`units:${w.rowId}`];
+    if (units == null || w.qty === units) continue;
+    const d = w.qty - units;
+    const made = byMarker.get(w.rowId) ?? [];
+    if (!made.length) {
+      // spent on the sheet: more units are granted again, fewer only update the count
+      if (d > 0) regrants.push({ rowId: w.rowId, kind: "gear", uuid: w.uuid, name: w.name, qty: d, units: w.qty });
+      else record.push({ step: "creates", key: `units:${w.rowId}`, value: w.qty });
+    } else if (made.length === 1) {
+      const id = made[0]._id;
+      const baseQ = W[`qty:${id}`];
+      if (baseQ == null) continue;
+      const tgt = baseQ + d;
+      const lq = Number(made[0].system?.quantity) || 1;
+      if (tgt >= 1) {
+        record.push({ step: "updates", id, key: `qty:${id}`, value: tgt }, { step: "updates", id, key: `units:${w.rowId}`, value: w.qty });
+        if (lq === tgt) continue;
+        if (lq !== baseQ) drift.push({ key: `quantity:${id}`, baseline: baseQ, live: lq, intended: tgt });
+        updates.push({ _id: id, "system.quantity": tgt });
+        lines.push({ kind: "quantity", id, name: w.name, from: baseQ, to: tgt });
+      } else {
+        // the user took away more than is left: the item goes, the row stays accounted for
+        deletes.push(id);
+        madeThisSession.add(id);
+        record.push({ step: "deletes", id, key: `units:${w.rowId}`, value: w.qty });
+        lines.push({ kind: "delete", id, name: made[0].name });
+      }
+    }
+  }
 
   // A row this session already made is owned: never granted again (even if it
   // was spent on the sheet since), and deleted only when the user removed it.
   // Once the user has removed it the row is forgotten (`release`, applied by the
   // executor after the delete lands), so adding it again is a new purchase.
-  const creates = wanted.filter((w) => !liveMarkers.has(w.rowId) && !mine.has(w.rowId)).map(({ row: _row, ...c }) => c);
+  const creates = wanted.filter((w) => !liveMarkers.has(w.rowId) && !mine.has(w.rowId)).map(({ row: _row, ...c }) => c).concat(regrants);
   const release = [...mine].filter((m) => m.startsWith(`${sid}:`) && !wantedIds.has(m));
-  const madeThisSession = new Set();
   for (const i of live.items) {
     const m = markerOf(i);
     if (m && mine.has(m) && m.startsWith(`${sid}:`) && !wantedIds.has(m)) {
@@ -202,7 +255,7 @@ export function planCommit(existing, state, live) {
 
   const kept = (existing.kept ?? []).map((k) => ({ ...k }));
   return {
-    system, name, art, creates, updates, deletes, release, kept, drift,
+    system, name, art, creates, updates, deletes, release, record, kept, drift,
     summary: {
       counts: {
         system: Object.keys(system).length + (name ? 1 : 0) + Object.keys(art).length,
@@ -217,7 +270,8 @@ export function planCommit(existing, state, live) {
 /** True when the plan would write nothing and forget nothing: skip applyPlan only then. */
 export function planIsEmpty(plan) {
   return !Object.keys(plan.system).length && !plan.name && !Object.keys(plan.art).length
-    && !plan.creates.length && !plan.updates.length && !plan.deletes.length && !plan.release?.length;
+    && !plan.creates.length && !plan.updates.length && !plan.deletes.length && !plan.release?.length
+    && !plan.record?.length;
 }
 
 /** HP a level-up adds to the BASE max: the dice summed, no CON (the system's rule). */

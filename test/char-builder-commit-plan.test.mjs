@@ -389,3 +389,27 @@ test("property: deletes are only hydrated-and-removed ids, never kept; updates n
     assert.ok(!plan.deletes.includes(`x${seed}`) && !plan.updates.some((u) => u._id === `x${seed}`));
   }
 });
+
+test("a key measured from what an earlier Finish wrote: a change back is planned, an untouched one is not", () => {
+  const { st, existing, live } = open();
+  existing.written = { alignment: "chaotic", coins: 900 };
+  live.source.system.alignment = "chaotic";
+  st.alignment = "lawful";
+  const plan = planCommit(existing, st, live);
+  assert.equal(plan.system["system.alignment"], "lawful");
+  assert.deepEqual(plan.record.find((r) => r.key === "alignment"), { step: "actor", key: "alignment", value: "lawful" });
+  st.alignment = "chaotic";
+  assert.equal(planCommit(existing, st, live).system["system.alignment"], undefined);
+});
+
+test("a Crawling Kit row plans one create per kit, and a lowered one deletes the last kit by marker", () => {
+  const { st, existing, live } = open();
+  st.gear.push({ rowId: "kit", itemId: null, uuid: "u", name: "Crawling Kit", qty: 2, costCp: 0 });
+  const plan = planCommit(existing, st, live);
+  assert.deepEqual(plan.creates.map((c) => [c.rowId, c.qty]), [["sess1:kit#1", 1], ["sess1:kit#2", 1]]);
+  existing.createdRowIds = ["sess1:kit#1", "sess1:kit#2"];
+  live.items.push(item("k1", "Basic", "Backpack", {}, { [MARK]: { builderRow: "sess1:kit#1" } }), item("k2", "Basic", "Backpack", {}, { [MARK]: { builderRow: "sess1:kit#2" } }));
+  st.gear.find((g) => g.name === "Crawling Kit").qty = 1;
+  const p2 = planCommit(existing, st, live);
+  assert.deepEqual([p2.creates, p2.deletes, p2.release], [[], ["k2"], ["sess1:kit#2"]]);
+});

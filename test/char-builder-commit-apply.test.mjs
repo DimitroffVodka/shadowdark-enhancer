@@ -282,8 +282,8 @@ function openActor(over = {}, items = [GEAR(), { _id: "tal", type: "Talent", nam
   const finish = async () => {
     const plan = planCommit(st.existing, st, live());
     st.existing.createdRowIds ??= [];
-    st.existing.rowQty ??= {};
-    await applyPlan(actor, plan, { commitId: "c1", resolve, createdRowIds: st.existing.createdRowIds, rowQty: st.existing.rowQty });
+    st.existing.written ??= {};
+    await applyPlan(actor, plan, { commitId: "c1", resolve, createdRowIds: st.existing.createdRowIds, written: st.existing.written });
     return plan;
   };
   return { actor, st, live, finish };
@@ -506,3 +506,184 @@ test("a quantity update that rejects after saving is remembered, so the next edi
   await finish();
   assert.equal(ropes(actor)[0].system.quantity, 1);
 });
+
+// ---------------------------------------------------------------------------
+// Review round 3: quantity edits on rows with no single live item, and system
+// keys measured from what an earlier Finish wrote
+// ---------------------------------------------------------------------------
+const KIT = () => ({ itemId: null, uuid: "Compendium.x.Item.kit", name: "Crawling Kit", qty: 1, costCp: 500 });
+// The kit unpacks to several items; the fake resolver makes 2 per kit unit.
+const kitResolve = async (c) => (c.name === "Crawling Kit"
+  ? Array.from({ length: 2 * (c.qty || 1) }, (_, k) => ({ name: `Kit part ${k}`, type: "Basic", system: { quantity: 1 } }))
+  : resolve(c));
+function openWith(resolver, ...args) {
+  const o = openActor(...args);
+  o.finish = async () => {
+    const plan = planCommit(o.st.existing, o.st, o.live());
+    o.st.existing.createdRowIds ??= [];
+    o.st.existing.written ??= {};
+    await applyPlan(o.actor, plan, { commitId: "c1", resolve: resolver, createdRowIds: o.st.existing.createdRowIds, written: o.st.existing.written });
+    return plan;
+  };
+  return o;
+}
+const kitParts = (actor) => [...actor.items].filter((i) => i.name.startsWith("Kit part"));
+const kitRow = (st) => st.gear.find((g) => g.name === "Crawling Kit");
+
+test("a Crawling Kit raised from 1 to 2 grants the second kit, and lowered back removes it", async () => {
+  const { actor, st, finish } = openWith(kitResolve);
+  st.gear.push(KIT());
+  await finish();
+  assert.equal(kitParts(actor).length, 2);
+  assert.equal(actor._source.system.coins.gp, 5);
+  kitRow(st).qty = 2;
+  await finish();
+  assert.equal(kitParts(actor).length, 4);
+  assert.equal(actor._source.system.coins.gp, 0);
+  kitRow(st).qty = 1;
+  await finish();
+  assert.equal(kitParts(actor).length, 2);
+  assert.equal(actor._source.system.coins.gp, 5);
+  const calls = actor.calls.length;
+  await finish();
+  assert.equal(actor.calls.length, calls, "then a no-op");
+});
+
+test("a Crawling Kit bought x2 and lowered to x1 refunds and removes one kit", async () => {
+  const { actor, st, finish } = openWith(kitResolve);
+  st.gear.push({ ...KIT(), qty: 2, costCp: 300 });
+  await finish();
+  assert.equal(kitParts(actor).length, 4);
+  kitRow(st).qty = 1;
+  await finish();
+  assert.equal(kitParts(actor).length, 2);
+  assert.equal(actor._source.system.coins.gp, 7);
+});
+
+test("a rope spent on the sheet and bought again is granted once more, charged once more", async () => {
+  const { actor, st, finish } = openWith(resolve);
+  st.gear.push(cartRow(1));
+  await finish();
+  actor.items.delete(ropes(actor)[0]._id);
+  st.gear.find((g) => g.uuid === ROPE).qty = 2;
+  await finish();
+  assert.equal(ropes(actor).length, 1);
+  assert.equal(actor._source.system.coins.gp, 8);
+  const calls = actor.calls.length;
+  await finish();
+  assert.equal(actor.calls.length, calls, "then a no-op");
+  // and raising again stacks on the regranted item
+  st.gear.find((g) => g.uuid === ROPE).qty = 3;
+  await finish();
+  assert.equal(ropes(actor).length, 1);
+  assert.equal(ropes(actor)[0].system.quantity, 2);
+  assert.equal(actor._source.system.coins.gp, 7);
+});
+
+test("a purchase removed after it landed is deleted and refunded", async () => {
+  const { actor, st, finish } = openWith(resolve);
+  st.gear.push(cartRow(1));
+  await finish();
+  assert.equal(actor._source.system.coins.gp, 9);
+  st.gear = st.gear.filter((g) => g.uuid !== ROPE);
+  const plan = await finish();
+  assert.equal(ropes(actor).length, 0);
+  assert.equal(actor._source.system.coins.gp, 10);
+  assert.equal(plan.deletes.length, 1);
+});
+
+test("a system key changed back after a Finish is written back", async () => {
+  const { actor, st, finish } = openWith(resolve);
+  st.alignment = "chaotic";
+  st.name = "Robert";
+  st.stats.values.str = 16;
+  await finish();
+  assert.equal(actor._source.system.alignment, "chaotic");
+  st.alignment = "lawful";
+  st.name = "Hero";
+  st.stats.values.str = 15;
+  await finish();
+  assert.equal(actor._source.system.alignment, "lawful");
+  assert.equal(actor._source.name, "Hero");
+  assert.equal(actor._source.system.abilities.str.value, 15);
+  const calls = actor.calls.length;
+  await finish();
+  assert.equal(actor.calls.length, calls, "then a no-op");
+});
+
+test("a language added and removed across Finishes ends where it began", async () => {
+  const { actor, st, finish } = openWith(resolve);
+  st.languages = ["Compendium.x.Item.elvish"];
+  await finish();
+  assert.deepEqual(actor._source.system.languages, ["Compendium.x.Item.elvish"]);
+  st.languages = [];
+  await finish();
+  assert.deepEqual(actor._source.system.languages, []);
+});
+
+test("an owned quantity another user already set, then changed back, is written", async () => {
+  const items = [{ ...GEAR(), system: { quantity: 1, slots: { slots_used: 1, free_carry: 0, per_slot: 1 } } }];
+  const { actor, st, finish } = openWith(resolve, {}, items);
+  const row = st.gear.find((g) => g.itemId === "t1");
+  row.qty = 3;
+  actor.items.get("t1").system.quantity = 3;
+  await finish();
+  row.qty = 1;
+  await finish();
+  assert.equal(actor.items.get("t1").system.quantity, 1);
+});
+
+test("a key an earlier Finish wrote is not rewritten when the user did not touch it again", async () => {
+  const { actor, st, finish } = openWith(resolve);
+  st.alignment = "chaotic";
+  await finish();
+  actor._source.system.alignment = "neutral";
+  const plan = await finish();
+  assert.deepEqual(plan.system, {});
+  assert.equal(actor._source.system.alignment, "neutral");
+});
+
+test("a regranted rope cut below what is left removes the item, and a rise grants again", async () => {
+  const { actor, st, finish } = openWith(resolve);
+  const row = () => st.gear.find((g) => g.uuid === ROPE);
+  st.gear.push(cartRow(3));
+  await finish();
+  actor.items.delete(ropes(actor)[0]._id);
+  row().qty = 5;
+  await finish();
+  assert.equal(ropes(actor)[0].system.quantity, 2);
+  row().qty = 1;
+  await finish();
+  assert.equal(ropes(actor).length, 0);
+  assert.equal(actor._source.system.coins.gp, 9);
+  row().qty = 2;
+  await finish();
+  assert.equal(ropes(actor)[0].system.quantity, 1);
+  assert.equal(actor._source.system.coins.gp, 8);
+});
+
+for (const step of ["create", "updateItems", "update", "delete"]) {
+  test(`a ${step} that rejects after saving during a multi-Finish session is counted once, never twice`, async () => {
+    const { actor, st, finish } = openWith(resolve);
+    st.gear.push(cartRow(2));
+    st.gear.push({ ...cartRow(1), uuid: "Compendium.x.Item.flask", name: "Flask" });
+    await finish();
+    actor.items.delete(ropes(actor)[0]._id);
+    st.gear.find((g) => g.uuid === ROPE).qty = 4; // spent rope: regrant 2
+    st.gear = st.gear.filter((g) => g.name !== "Flask"); // and remove the flask
+    actor.faults[step] = "after";
+    await finish().catch(() => {});
+    actor.faults = {};
+    await finish();
+    assert.equal(ropes(actor).length, 1);
+    assert.equal(ropes(actor)[0].system.quantity, 2);
+    assert.equal([...actor.items].filter((i) => i.name === "Flask").length, 0);
+    // raising the regranted rope lands on the regranted item exactly once
+    st.gear.find((g) => g.uuid === ROPE).qty = 5;
+    actor.faults.updateItems = "after";
+    await finish();
+    actor.faults = {};
+    await finish();
+    assert.equal(ropes(actor)[0].system.quantity, 3);
+  });
+}
