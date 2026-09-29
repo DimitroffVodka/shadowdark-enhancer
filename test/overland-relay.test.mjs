@@ -72,7 +72,7 @@ Object.assign(globalThis, {
     modules: { get: () => null },
   },
 });
-const { applyAction, registerOverland, weatherNow, recordMove, advanceTravel, undergroundCheck, checkNow } = await import("../scripts/overland/overland.mjs");
+const { applyAction, registerOverland, overlandState, weatherNow, recordMove, advanceTravel, undergroundCheck, checkNow } = await import("../scripts/overland/overland.mjs");
 const { BOAT_TYPE } = await import("../scripts/actors/register-actors.mjs");
 const { CrawlState } = await import("../scripts/crawl-strip/crawl-state.mjs");
 
@@ -1101,6 +1101,51 @@ test("with Extras the camp is saved before its window opens: a lost save, or a t
   globalThis.game.modules = { get: () => null };
   assert.deepEqual([opened.length, granted], [1, [false]], "one window, one rest");
   assert.deepEqual([globalThis.game.time.worldTime, stored.overlandState.day], [at(1301, 6, 22, 5), null], "one night, to its 05:00 check");
+});
+
+test("the camp's save lost and no reload: Make camp again in the same tab eats once (#282 pre-review)", async () => {
+  campWorld();
+  dice.push(3);
+  await applyAction({ action: "startDay", method: "walking" }, gm);
+  const stacks = [rations(actors.mine, 3), rations(actors.theirs, 3)];
+  loseCampWrite();
+  await assert.rejects(applyAction({ action: "camp" }, gm));
+  assert.equal(overlandState().camp, null, "this tab holds what the server holds");
+  dice.push(4);
+  assert.deepEqual(await applyAction({ action: "camp" }, gm), { ok: true, stopped: false });
+  assert.deepEqual(stacks.map((s) => s.system.quantity), [2, 2], "a ration each, once");
+});
+
+test("with Extras a camp save lost in the same tab opens its window once, on the retry (#282 pre-review)", async () => {
+  campWorld();
+  const { opened, granted } = extrasKeepingOneRest();
+  dice.push(3, 2, 9, 1, 12);
+  globalThis.game.time.worldTime = at(1301, 6, 21, 8);
+  await applyAction({ action: "startDay", method: "walking" }, gm);
+  loseCampWrite();
+  await assert.rejects(applyAction({ action: "camp" }, gm));
+  assert.equal(opened.length, 0);
+  dice.push(4);
+  assert.deepEqual(await applyAction({ action: "camp" }, gm), { ok: true, stopped: false });
+  globalThis.game.modules = { get: () => null };
+  assert.deepEqual([opened.length, granted], [1, [false]], "one window, one rest");
+});
+
+test("a camp save that landed and then rejected: this tab holds the saved camp, and nobody eats twice (#282 pre-review)", async () => {
+  campWorld();
+  dice.push(3);
+  await applyAction({ action: "startDay", method: "walking" }, gm);
+  const stacks = [rations(actors.mine, 3), rations(actors.theirs, 3)];
+  const { set } = globalThis.game.settings;
+  globalThis.game.settings.set = async (ns, key, value) => {
+    await set(ns, key, value);
+    if (key === "overlandState" && value.camp) { globalThis.game.settings.set = set; throw new Error("rejected after the write landed"); }
+  };
+  await assert.rejects(applyAction({ action: "camp" }, gm));
+  assert.deepEqual(overlandState().camp, stored.overlandState.camp, "this tab holds what the server holds");
+  dice.push(4);
+  await applyAction({ action: "camp" }, gm);
+  assert.ok(stacks.every((s) => s.system.quantity >= 2), "no ration is eaten twice");
 });
 
 test("a dawn Extras has no rest for after a creature woke the camp claims no CON roll (#282 pre-review)", async () => {

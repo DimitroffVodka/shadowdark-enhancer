@@ -883,7 +883,8 @@ async function pitchCamp() {
   await Promise.allSettled([..._foraging]);
   const { stormy, harsh, each, members } = campNeeds();
   const extras = extrasCamping();
-  await commit(makeCampState(_state, extras?.party.uuid ?? null, campEnd()).state);
+  // Nothing is spent yet: a rejected save may or may not have landed, so this tab takes what the server holds.
+  await commit(makeCampState(_state, extras?.party.uuid ?? null, campEnd()).state).catch((err) => { reread(); throw err; });
   if (extras) {
     const reply = await extras.camping.open({
       party: extras.party, members, mounts: _state.mounts, pushed: _state.pushed, harsh, stormy, rationsEach: each, advanceTime: false, deferRest: true,

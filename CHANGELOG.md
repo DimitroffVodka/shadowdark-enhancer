@@ -50,8 +50,8 @@ it needs.
   camp waits for it with a warning, so the rest it keeps isn't lost. The
   camp is saved before anyone eats or Extras' window opens. If something
   fails partway, pressing Make camp again goes on from where the camp got,
-  even after a reload. Nobody eats twice (at worst a ration goes uneaten),
-  the night isn't longer, and a creature that interrupted the rest still
+  even after a reload or a lost save. Nobody eats twice (at worst a ration
+  goes uneaten), the night isn't longer, and a creature that interrupted the rest still
   counts. Once the dawn has closed the day, Make
   camp waits for the next Start day. The tasks need a Shadowdark Extras with
   shadowdark-extras#186. With an older Extras, no camp window opens, there
