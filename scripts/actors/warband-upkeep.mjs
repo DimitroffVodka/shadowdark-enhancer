@@ -52,11 +52,18 @@ const MAX_WEEKS = 8;
 
 const t = (key, data) => (data ? game.i18n.format(key, data) : game.i18n.localize(key));
 
-/** The warband's commander, a world PC, or null: one in a compendium can't pay or be paid from. */
+/**
+ * The warband's commander, a world PC, or null: one in a compendium can't pay or be paid from.
+ * Upkeep takes the commander's gold, and the commander flag sits on a document every owner of the
+ * warband can write, so it is checked here, where the gold is taken: with players owning the warband,
+ * the PC must be owned by one of them. A warband only GMs own takes any PC its GM named (#284 review).
+ */
 const commanderOf = async (wb) => {
   const uuid = warbandState(wb).commander;
   const pc = uuid ? await fromUuid(uuid).catch(() => null) : null;
-  return pc && !pc.pack ? pc : null;
+  if (!pc || pc.pack) return null;
+  const owners = game.users.filter((u) => !u.isGM && wb.testUserPermission(u, "OWNER"));
+  return owners.length && !owners.some((u) => pc.testUserPermission(u, "OWNER")) ? null : pc;
 };
 
 /**

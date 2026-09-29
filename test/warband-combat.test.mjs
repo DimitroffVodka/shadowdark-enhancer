@@ -11,7 +11,9 @@ globalThis.game = {
   user: { id: "gm", isGM: true }, users: { activeGM: { id: "gm" } },
 };
 const rolled = [];
-globalThis.Roll = class { constructor(formula) { this.formula = formula; rolled.push(formula); } async evaluate() { this.total = 20; return this; } async toMessage() {} };
+let rollTotal = 20;
+globalThis._replace = (value) => ({ value });
+globalThis.Roll = class { constructor(formula) { this.formula = formula; rolled.push(formula); } async evaluate() { this.total = rollTotal; return this; } async toMessage() {} };
 globalThis.ChatMessage = { getSpeaker: () => ({}) };
 globalThis.ui = { notifications: { warn: (m) => warned.push(m) } };
 const actor = (type, retrainingUntil) => ({
@@ -56,4 +58,39 @@ test("a warband in no one's service checks no morale in battle; a commanded one 
   update(orphan, { system: { attributes: { hp: { value: 5 } } } });
   await new Promise((resolve) => setTimeout(resolve, 20));
   assert.deepEqual(rolled, [], "a deleted commander serves no one: no roll");
+});
+
+/** A commanded warband at a quarter HP whose flag write rejects: it never landed, or it landed and then rejected (v14 runs _onUpdate after applying). */
+async function routWithRejectedWrite(landed) {
+  const id = landed ? "landed" : "never";           // the hook keeps each uuid's last HP
+  const stored = { commander: "Actor.pc", upgrades: [] };
+  const band = {
+    id, uuid: `Actor.${id}`, type: TYPE, name: id, system: { attributes: { hp: { value: 5, max: 20 } } },
+    flags: { "shadowdark-enhancer": { warband: stored } }, defeated: 0,
+    getFlag(scope, key) { return this.flags[scope]?.[key]; },
+    async update(data) {
+      if (landed) this.flags["shadowdark-enhancer"].warband = Object.values(data)[0].value;
+      throw new Error("vetoed after save");
+    },
+    async _setDefeated() { this.defeated++; },
+  };
+  globalThis.fromUuid = async () => ({ system: { abilities: { cha: { mod: 0 } } } });
+  globalThis.game.combats = [{ active: true, combatants: [{ actorId: id }] }];
+  const logged = console.error;
+  console.error = () => {};
+  rollTotal = 1;                                   // morale fails, and so does the rout stand
+  try {
+    hooks.get("updateActor")(band, { system: { attributes: { hp: { value: 5 } } } });
+    await new Promise((resolve) => setTimeout(resolve, 20));
+  } finally { console.error = logged; rollTotal = 20; }
+  return band;
+}
+
+test("a rout whose flag write is rejected still marks the warband defeated (#285 review)", async () => {
+  const landed = await routWithRejectedWrite(true);
+  assert.equal(landed.flags["shadowdark-enhancer"].warband.routed, true, "landed then rejected: the flag is stored");
+  assert.equal(landed.defeated, 1, "and the warband is defeated, not left on the strip");
+  const never = await routWithRejectedWrite(false);
+  assert.equal(never.flags["shadowdark-enhancer"].warband.routed, undefined, "never landed: nothing stored");
+  assert.equal(never.defeated, 1, "defeated all the same; a later hit re-checks and writes the flag again");
 });

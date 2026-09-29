@@ -63,7 +63,12 @@ function sendWarbandWrite(data, type) {
  * and answers the same: an upgrade already ticked is a success.
  * @returns {Promise<{ok:boolean, warn?:{key:string, data:object}, error?:string}>}
  */
-async function applyWarbandWrite({ action, actorId, pcUuid = null, key, on }, user, type) {
+async function applyWarbandWrite(data, user, type) {
+  // The payload comes off the wire from any player who owns a warband: every field is checked for its type first.
+  const { action, actorId, pcUuid = null, key, on } = data && typeof data === "object" ? data : {};
+  if (typeof action !== "string" || typeof actorId !== "string") return { ok: false };
+  if (pcUuid !== null && typeof pcUuid !== "string") return { ok: false };
+  if (action === "upgrade" && (typeof key !== "string" || typeof on !== "boolean")) return { ok: false };
   // The Warband tab's upkeep controls, a GM's (#204): on this same queue, so they and the ticks never interleave.
   if (UPKEEP_ACTIONS.has(action)) {
     if (!user?.isGM) return { ok: false };
@@ -78,7 +83,9 @@ async function applyWarbandWrite({ action, actorId, pcUuid = null, key, on }, us
   const state = warbandState(actor);
   if (action === "commander") {
     const pc = pcUuid ? await fromUuid(pcUuid).catch(() => null) : null;
-    if (pcUuid && pc?.type !== "Player") return { ok: false, warn: { key: "SDE.warband.notify.commanderPc", data: {} } };
+    // A world PC the requester owns (a GM: any): one in a compendium has no coins to pay upkeep from, and the upkeep
+    // takes the commander's gold, so a player can't name another player's PC (the sheet's drop checks the same, sooner).
+    if (pcUuid && (pc?.type !== "Player" || pc.pack || (!user?.isGM && !pc.testUserPermission(user, "OWNER")))) return { ok: false, warn: { key: "SDE.warband.notify.commanderPc", data: {} } };
     let warn;
     if (pc) {
       const allowance = allowanceFor(await commanderTier(pc));
@@ -276,8 +283,7 @@ export function buildWarbandNpcSheet(BaseNpcSheet, type) {
       if (data?.type === "Actor") {
         if (!event.target?.closest?.("[data-drop='commander']")) return;
         const pc = await fromUuid(data.uuid).catch(() => null);
-        // A world PC: one in a compendium has no coins to pay upkeep from.
-        if (pc?.type !== "Player" || pc.pack) { ui.notifications?.warn(game.i18n.localize("SDE.warband.notify.commanderPc")); return; }
+        if (pc?.type !== "Player" || pc.pack || !(game.user.isGM || pc.isOwner)) { ui.notifications?.warn(game.i18n.localize("SDE.warband.notify.commanderPc")); return; }
         return this._setCommander(pc);
       }
       return super._onDrop(event);

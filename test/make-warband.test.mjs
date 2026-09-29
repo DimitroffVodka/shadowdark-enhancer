@@ -1,4 +1,5 @@
-// Make a Warband, through the creation path: one attack a round, its spells included (#202, #283 review).
+// Make a Warband, through the creation path: one attack a round, its spells included (#202, #283 review),
+// and a caster's spell bonus up by the levels gained, as its attacks' (Patrick, 2026-09-28).
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
@@ -30,8 +31,8 @@ globalThis.Actor = {
   },
 };
 
-/** A level 2 NPC with a staff that attacks `staffAttacks` times and a spell count of `spells`. */
-function npc({ spells, staffAttacks }) {
+/** A level 2 NPC with a staff that attacks `staffAttacks` times, and a spell count of `spells` at `spellBonus`. */
+function npc({ spells, staffAttacks, spellBonus = 4 }) {
   const data = {
     _id: "npc", name: "Hedge Mage", type: "NPC", img: "worlds/test/mage.webp", flags: {},
     prototypeToken: { name: "Hedge Mage", texture: { src: "worlds/test/mage.webp" } },
@@ -39,7 +40,7 @@ function npc({ spells, staffAttacks }) {
       level: { value: 2 }, alignment: "N", move: "near", notes: "",
       abilities: { str: { mod: 0 }, dex: { mod: 1 }, con: { mod: 0 }, int: { mod: 2 }, wis: { mod: 0 }, cha: { mod: 0 } },
       attributes: { ac: { value: 11 }, hp: { value: 9, max: 9 } },
-      spellcasting: { ability: "int", bonus: 4, attacks: spells },
+      spellcasting: { ability: "int", bonus: spellBonus, attacks: spells },
     },
     items: [{
       _id: "staff", name: "Staff", type: "NPC Attack",
@@ -57,10 +58,18 @@ test("a caster made into a warband has one attack a round: its spells are one ch
   const staff = warband.items.find((i) => i.name === "Staff").system;
   assert.deepEqual([staff.attack.num, staff.bonuses.attackBonus, staff.damage.value], [1, 3, "3d6"]);
   assert.equal(warband.system.spellcasting.attacks, 1, "the NPC Spells tab's spell count");
+  assert.equal(warband.system.spellcasting.bonus, 6);
+  assert.equal(atkLine(warband), "1 staff +3 (3d6) or 1 spell +6");
+  assert.deepEqual(previewRow("Staff"), ["2 × +1 (1d6)", "1 × +3 (3d6)"]);
+  assert.deepEqual(previewRow("Spells"), ["2 × +4", "1 × +6"], "the preview shows what's made");
+});
+
+test("a level 2 caster with spell +2 becomes a level 4 warband with spell +4", async () => {
+  const warband = await makeWarband(npc({ spells: 1, staffAttacks: 1, spellBonus: 2 }), "shadowdark-enhancer.warband");
+  assert.equal(warband.system.level.value, 4);
   assert.equal(warband.system.spellcasting.bonus, 4);
   assert.equal(atkLine(warband), "1 staff +3 (3d6) or 1 spell +4");
-  assert.deepEqual(previewRow("Staff"), ["2 × +1 (1d6)", "1 × +3 (3d6)"]);
-  assert.deepEqual(previewRow("Spells"), ["2 × +4", "1 × +4"], "the preview shows what's made");
+  assert.deepEqual(previewRow("Spells"), ["1 × +2", "1 × +4"]);
 });
 
 test("a creature with no spell count gets none", async () => {

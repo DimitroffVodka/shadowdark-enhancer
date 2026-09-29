@@ -34,8 +34,9 @@ makes a new warband from a copy. The creature itself stays as it is.
 - Its level doubles.
 - Its HP is 8 per level plus its CON modifier.
 - It makes one attack a round: it keeps every attack but uses one.
-- Its attack bonus goes up by 1 for each level gained. The book says only
-  "in proportion", so change it on the sheet if you read it otherwise.
+- Its attack bonus goes up by 1 for each level gained, and so does a
+  caster's spell bonus. The book says only "in proportion", so change them on
+  the sheet if you read it otherwise.
 - Its damage dice are tripled: 1d6 becomes 3d6.
 - Its talents stay, and don't count as upgrades.
 
@@ -48,7 +49,7 @@ A level 2 goblin with a +1 attack for 1d6 becomes a level 4 warband with
 
 | Part | What it does |
 |---|---|
-| **Commander** | Drop a player character here. The warband is theirs. |
+| **Commander** | Drop a player character here. The warband is theirs. A player can only name a character they own; a GM can name any, since the upkeep is paid from the commander's coins. Upkeep and Pay Arrears only take gold from a commander that one of the warband's player owners also owns, so a GM who names another player's character for a player's warband should give that player ownership of it. |
 | **Allowance** | By the commander's hit die: a d4 commands 2 warbands with 2 upgrades between them, a d6 4 and 3, a d8 or larger 6 and 4. It counts all of that commander's warbands, and a commander over it is refused with a message. |
 | **Upgrades** | The 18 upgrades, each once per warband. One over the commander's allowance is refused. A warband without a commander (or with one whose hit die can't be read) can have up to 4. Hover one for its book text; **Read Upgrade Text** (GM) reads it from your Player's Guide PDF, p.250, for everyone. |
 | **Morale** | Shows the commander's CHA modifier, which the warband's morale checks use. |
@@ -75,7 +76,8 @@ fixed at 8 per level plus CON, plus 15 with Tough (the HP dice on its sheet
 sets that maximum rather than rolling, and never heals it; placing a token
 doesn't either). A copy of a warband (Duplicate, or one imported from a
 compendium) starts without a commander, so taking it goes through the
-commander's allowance.
+commander's allowance, and without the original's arrears, desertion or
+upkeep record (its upgrades stay).
 
 Up to 20 similar combatants act as one creature, on its commander's turn.
 Player characters and creatures of level 6 or more always act as
