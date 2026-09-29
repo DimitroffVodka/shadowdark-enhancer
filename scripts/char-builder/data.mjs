@@ -227,18 +227,25 @@ export async function rollItemFromTables(kind, items) {
  * every row drawn) or the roll failed.
  * @returns {Promise<{result:string|null, item:object|null}>}
  */
-export async function drawItem(table, items) {
+export async function drawItem(table, items, { strict = false } = {}) {
   try {
     const res = await table.roll();
     const r = res?.results?.[0] ?? res?.results?.contents?.[0];
     if (!r) return { result: null, item: null };
-    return { result: resultText(r) || null, item: await itemForResult(r, items) };
+    return { result: resultText(r) || null, item: await itemForResult(r, items, strict) };
   } catch (_e) {
     return { result: null, item: null };
   }
 }
 
-async function itemForResult(r, items) {
+/**
+ * The item a drawn row stands for: the one it links, else by its text.
+ * `strict` (the ancestry table, #187): only the whole name or a name the text
+ * starts with (itemNamed), so "Half-elf" is never "Elf". Otherwise, for the
+ * Background and Deity tables, as before: the same name, or a name found
+ * anywhere in the text ("You were a Bandit").
+ */
+async function itemForResult(r, items, strict = false) {
   if (r.documentUuid) {
     const byUuid = items.find((i) => i.uuid === r.documentUuid);
     if (byUuid) return byUuid;
@@ -248,10 +255,32 @@ async function itemForResult(r, items) {
       if (byName) return byName;
     }
   }
-  const txt = resultText(r).toLowerCase();
+  const text = resultText(r);
+  if (strict) return itemNamed(text, items);
+  const txt = text.toLowerCase();
   if (!txt) return null;
   return items.find((i) => i.name.toLowerCase() === txt)
     ?? items.find((i) => txt.includes(i.name.toLowerCase()))
+    ?? null;
+}
+
+/** Lower case, punctuation as spaces: "Half-Elf" and "half elf" read the same. */
+const nameKey = (s) => String(s ?? "").toLowerCase().replace(/[^\p{L}\p{N}]+/gu, " ").trim();
+
+/**
+ * The item a table result names (#187): the same name, ignoring case and
+ * punctuation, or else the one the result starts with ("Human (common)"),
+ * the longest if several do. Never a name found inside another word run:
+ * "Half-elf" is not "Elf", so a world without half-elves falls back.
+ * @param {string} text
+ * @param {Array<{name:string}>} items
+ */
+export function itemNamed(text, items) {
+  const key = nameKey(text);
+  if (!key) return null;
+  return items.find((i) => nameKey(i.name) === key)
+    ?? items.filter((i) => { const k = nameKey(i.name); return k && key.startsWith(`${k} `); })
+      .sort((a, b) => nameKey(b.name).length - nameKey(a.name).length)[0]
     ?? null;
 }
 
@@ -271,7 +300,7 @@ export async function rollAncestryFromTable(items) {
     ui.notifications?.warn(game.i18n.localize("SDE.charBuilder.ancestry.tableMissing"));
     return null;
   }
-  const { result, item } = await drawItem(table, items);
+  const { result, item } = await drawItem(table, items, { strict: true });
   if (!item) {
     ui.notifications?.warn(result
       ? game.i18n.format("SDE.charBuilder.ancestry.tableNoMatch", { result, table: table.name })

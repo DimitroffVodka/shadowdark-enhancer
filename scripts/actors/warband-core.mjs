@@ -66,9 +66,10 @@ export const tripleDice = (formula) => String(formula ?? "")
 
 /**
  * A creature made into a warband (PGWR p.248): double the level; HP = 8 per
- * level plus CON; one attack a round, whatever its options; the attack bonus up
- * by the levels gained (the book says "in proportion"; +1 a level, which the GM
- * can edit); damage dice tripled. Talents stay and aren't upgrades.
+ * level plus CON; one attack a round, whatever its options; the attack bonus, a
+ * spell's too, up by the levels gained (the book says "in proportion"; +1 a
+ * level, which the GM can edit); damage dice tripled. Talents stay and aren't
+ * upgrades.
  * @param {{level:number, conMod:number}} npc
  */
 export function warbandStats({ level, conMod }) {

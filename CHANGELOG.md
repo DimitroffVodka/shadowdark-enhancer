@@ -436,11 +436,11 @@ page walks through it in order.
   commander's allowance by hit die across all their warbands (2/2, 4/3 or
   6/4), the 18 upgrades once each, and the commander's CHA for morale.
   **Make a Warband** on a level 1–5 NPC's sheet makes one from a copy: level
-  doubled, 8 HP a level plus CON, one attack a round, +1 attack a level
-  gained, damage dice tripled. Its HP is fixed: placing one of its tokens,
-  with Shadowdark's HP roll on placement on, sets the max but never heals it.
-  Quick upgrade ticks all stick, and two warbands can't both take their
-  commander's last slot: every warband change is made by one writer, the
+  doubled, 8 HP a level plus CON, one attack a round, +1 attack and spell
+  bonus a level gained, damage dice tripled. Its HP is fixed: placing one of
+  its tokens, with Shadowdark's HP roll on placement on, sets the max but never
+  heals it. Quick upgrade ticks all stick, and two warbands can't both take
+  their commander's last slot: every warband change is made by one writer, the
   active GM. See *Warbands*. (#200, #202)
 - **Warband upkeep and healing on the world clock.** Each month start takes
   10 gp a level per warband from its commander's coins, in one card; a
@@ -466,6 +466,14 @@ page walks through it in order.
   including the lazily loaded ones a plain reload would leave stale.
 
 ### Changed
+
+- **Importing the Western Reaches ancestry d100 switches the builder to it.**
+  When the Character Builder's Random ancestry table has never been set,
+  importing "Ancestry (Population)" sets it, and a notification says so. A
+  table already set is left alone. A world that imported it earlier adopts it
+  once, at the next load, even a copy renamed on import. This is decided once
+  per world, so a table you clear stays cleared, even after a reimport. A table
+  bundle adopts it only once the whole bundle is in. (#187)
 
 - **Foundry 14 is now the minimum.** The module no longer lists Foundry 13 as
   supported, matching Shadowdark Extras, which already needs 14.
@@ -498,6 +506,12 @@ page walks through it in order.
   they are. (#169)
 
 ### Fixed
+
+- **Random ancestry no longer turns a Half-elf into an Elf.** A table result
+  matched any ancestry whose name it contained, so the population d100's
+  Half-elf rows made Elves in a world without half-elves. A result now names
+  an ancestry only by its whole name, and otherwise falls back and says so.
+  (#187)
 
 - **A book your host won't let you upload can now be linked where it lies.**
   A PDF refused as "too large" is stopped by the web server or proxy in front
