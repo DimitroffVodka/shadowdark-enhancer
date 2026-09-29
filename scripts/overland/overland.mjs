@@ -37,7 +37,7 @@
 
 import { MODULE_ID } from "../shared/module-id.mjs";
 import { CrawlState } from "../crawl-strip/crawl-state.mjs";
-import { authorizeActorFor, isActiveGM, queryActiveGM, refuseQuery } from "../shared/gm-relay.mjs";
+import { authorizeActorFor, isActiveGM, queryActiveGM, refuseQuery, registerQuery } from "../shared/gm-relay.mjs";
 import { makeQueue } from "../quests/quest-core.mjs";
 import { hexReader, hexZonesFor, isHexMapScene, partyHex } from "../encounter/encounter-terrain.mjs";
 import { BOAT_TYPE, MOUNT_TYPE } from "../actors/register-actors.mjs";
@@ -1146,7 +1146,7 @@ export function applyAction(data, user) {
 
 export function registerOverland() {
   _state = normalizeOverlandState(game.settings.get(MODULE_ID, OVERLAND_SETTING));
-  CONFIG.queries[OVERLAND_QUERY] = (data, { user } = {}) => applyAction(data, user);
+  registerQuery(OVERLAND_QUERY, (data, { user } = {}) => applyAction(data, user));
   game.socket.on(SOCKET, (msg) => { if (msg?.type === "overland") reread(); });
   Hooks.on("preMoveToken", onPreMoveToken);
   Hooks.on("moveToken", onMoveToken);

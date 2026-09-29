@@ -1,4 +1,5 @@
 import { MODULE_ID } from "../shared/module-id.mjs";
+import { isActiveGM } from "../shared/gm-relay.mjs";
 
 /**
  * Pure recompute of a Class Ability's use pool from its rule. Returns the new
@@ -65,7 +66,7 @@ export const ClassAbilityUses = {
 
   /** Only the active GM writes the embedded updates, so N clients don't race. */
   _isWriter() {
-    return game.users?.activeGM === game.user;
+    return isActiveGM();
   },
 
   _onItem(item) {

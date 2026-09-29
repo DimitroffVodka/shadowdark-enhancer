@@ -79,6 +79,8 @@ function _isResponsible(actor) {
     activeUserIds: game.users.filter((u) => u.active).map((u) => u.id),
     activeGmId: game.users.activeGM?.id ?? null,
   });
+  // Per user, not per tab (#288): only the tab that made the change has the
+  // pre-hook's snapshot, so a GM signed in twice rolls in that tab alone.
   return chosen !== null && chosen === game.user.id;
 }
 

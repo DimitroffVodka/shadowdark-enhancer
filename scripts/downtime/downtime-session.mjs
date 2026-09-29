@@ -72,7 +72,7 @@ import {
   sanitizeFreeTextName,
 } from "./downtime-core.mjs";
 import { effectPlanFor, applyDowntimeEffect } from "./downtime-effects.mjs";
-import { refuseQuery } from "../shared/gm-relay.mjs";
+import { refuseQuery, registerQuery } from "../shared/gm-relay.mjs";
 import { advanceOffDuty } from "../time/off-duty.mjs";
 import { secondsPerDay } from "../time/time-core.mjs";
 import { CarousingFeed } from "../session-recap/carousing-feed.mjs";
@@ -487,7 +487,7 @@ export const DowntimeSession = {
 
     // The authenticated player→GM channel. `user` is supplied by core from the
     // sender's socket session, so it cannot be forged in the payload.
-    CONFIG.queries[DOWNTIME_QUERY] = (data, { user } = {}) => DowntimeSession.handleQuery(data, user);
+    registerQuery(DOWNTIME_QUERY, (data, { user } = {}) => DowntimeSession.handleQuery(data, user));
 
     // Announcement-card buttons, wired per client (loot-delivery.mjs:150).
     Hooks.on("renderChatMessageHTML", (message, html) => this._wireCard(message, html));

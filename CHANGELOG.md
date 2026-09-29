@@ -530,7 +530,16 @@ page walks through it in order.
   once even when two of its entries resolve to it. The saved preset updates on
   the next GM load; a shop already loaded from it keeps its old stock until
   Manage > Load. (#291)
-
+- **A GM signed in in two tabs no longer does everything twice.** Foundry sends
+  a request meant for the active GM to every tab that GM has open, and runs the
+  module's hooks in each. With two tabs open, a monster's stat rider rolled and
+  applied twice and combat loot dropped twice. Now the browser picks one tab to
+  do the work, and when that tab closes or reloads, the other takes over at
+  once. The same goes for every user a request names: the GM an off-duty clock
+  move is handed to moves it once, not once per tab, and a player asked to roll
+  a save or a death timer rolls it in one tab. A dying character's timer ticks
+  once per turn. This needs https or localhost: over plain http on a LAN, and
+  for the same user on two devices, both tabs still work. (#288)
 - **Random ancestry no longer turns a Half-elf into an Elf.** A table result
   matched any ancestry whose name it contained, so the population d100's
   Half-elf rows made Elves in a world without half-elves. A result now names

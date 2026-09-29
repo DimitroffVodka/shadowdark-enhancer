@@ -29,7 +29,7 @@
  */
 
 import { MODULE_ID } from "../shared/module-id.mjs";
-import { relayToGM, authorizeActorFor, refuseQuery, isActiveGM } from "../shared/gm-relay.mjs";
+import { relayToGM, authorizeActorFor, refuseQuery, isActiveGM, registerQuery } from "../shared/gm-relay.mjs";
 import { esc } from "../shared/esc.mjs";
 import { canParry, reversalPlan, defeatStatusesFor } from "./parry-core.mjs";
 import { cardHit, isAttackCard, targetActorOf, attackerActorOf } from "../shared/attack-card.mjs";
@@ -111,7 +111,7 @@ export const Parry = {
   /** Register the relay query, the card wiring and the damage-snapshot wrap. */
   init() {
     if (_installed) return;
-    CONFIG.queries[PARRY_QUERY] = (data, { user } = {}) => Parry.handleQuery(data, user);
+    registerQuery(PARRY_QUERY, (data, { user } = {}) => Parry.handleQuery(data, user));
     Hooks.on("renderChatMessageHTML", (message, html) => Parry._wireCard(message, html));
 
     // Snapshot HP as damage is applied. The apply buttons are GM-only

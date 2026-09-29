@@ -27,7 +27,7 @@
  */
 
 import { MODULE_ID } from "../shared/module-id.mjs";
-import { isActiveGM } from "../shared/gm-relay.mjs";
+import { isActiveGM, registerQuery } from "../shared/gm-relay.mjs";
 import { esc } from "../shared/esc.mjs";
 import {
   actorFromUuid, attackerActorOf, cardHit, isAttackCard, rollHit, targetActorOf,
@@ -56,7 +56,7 @@ export const StatRiders = {
 
   init() {
     if (_installed) return;
-    CONFIG.queries[SAVE_QUERY] = (data, { user } = {}) => StatRiders.handleSaveQuery(data, user);
+    registerQuery(SAVE_QUERY, (data, { user } = {}) => StatRiders.handleSaveQuery(data, user));
     Hooks.on("createChatMessage", (message) => {
       StatRiders._onAttackCard(message).catch((err) =>
         console.warn(`${MODULE_ID} | stat damage: could not apply an attack's rider`, err));
