@@ -1775,32 +1775,77 @@ error is also shown as a warning.
   pack. One chat line says what was found. Foraging takes no clock time.
 
 **`overland.makeCamp()`**, GM only, forwarded to the active GM. Refused when
-nobody is travelling or an encounter is pending. Resolves to
-`{ ok: true, stopped }` or `{ ok: false, error }`.
+nobody is travelling, an encounter is pending, or no travel day is open. A
+camp's dawn closes the day, so a second press after it makes no second camp.
+Resolves to `{ ok: true, stopped }` or `{ ok: false, error }`.
 
-1. **Lights.** Carried lights go out and keep their time: `time.advanceOffDuty(0, { reason: "camp" })`.
-   A refusal there is shown, and camp goes on.
-2. **The night.** The clock runs to the next sunrise, or to the last night
-   check if that is later (a summer sunrise at 04:30 comes before a 05:00
-   check), through the same advance as moves. A hit stops the night with
-   `pending.reason === "camp"`, and `resume()` finishes it. That holds even
-   for a hit at the camp's very last moment: the dawn step is still to come.
-3. **Rations**, at the end of the night. Any forage roll still waiting on a
-   player is settled first, so a ration found tonight is eaten tonight.
+Each step below is kept in the state's `camp`. The camp itself is saved
+before its tasks and rations, and the lights as soon as they're out. On a camp
+already made, Make camp goes on from the next step: after something failed, in
+the same tab or after a reload. The tasks, the rations and the lights aren't
+done again; a failure partway through the rations leaves the rest of them
+uneaten, never eaten twice. The night runs only to the `camp.until` fixed at camp, so it's
+never longer, and a creature already recorded still counts (#282 review).
+
+1. **The camp**, before the night (since 1.25.0, GMWR p. 44). Any forage roll
+   still waiting on a player is settled first, so a ration found today is
+   eaten tonight.
    - **With Shadowdark Extras**, when the travel token is its party and its
-     API offers `camping.open` (shadowdark-extras#163): that rest is opened
-     with `{ party, members, mounts, pushed, harsh, stormy, rationsEach, advanceTime: false }`,
-     and it does the rations. Overland adds nothing. When that rest is
-     closed, declined or fails (`completed` not true), the camp stays pending
-     with a warning. The day isn't closed, and Continue opens the rest again
-     rather than passing a second night.
+     API offers `camping.open` and `camping.dawn` (shadowdark-extras#186):
+     the camp window opens with `{ party, members, mounts, pushed, harsh,
+     stormy, rationsEach, advanceTime: false, deferRest: true }`. It runs the
+     tasks, Firewood first, and asks about torches when no fire was lit. It
+     also does the rations, and keeps the rest for the dawn. When that window
+     is closed or declined (`completed` not true), the saved camp is taken
+     back: `camp: null`, `{ ok: false, error }`, and no clock passes. A camp
+     found saved (the tab was lost while the window was open) goes straight
+     to the lights and the night. An Extras without
+     `camping.dawn` is treated as no Extras.
    - **Otherwise Overland eats them.** Each member eats 1 ration from their
-     own stacks, or 2 when the night was harsh. One who can't cover them all
+     own stacks, or 2 when the night is harsh. One who can't cover them all
      eats none (a single ration in a harsh climate counts as none) and takes 1
      CON through `statDamage.apply`. Mounts (`mounts`) eat the same from
      whatever the members have left.
-4. **Dawn.** One chat line sums it up. The day is closed (`day: null`, the push
-   reset), and the new day's weather is rolled. The GM then presses Start day.
+
+   Either way, the state's `camp` becomes
+   `{ party, interrupted: null, ate: true, until, lightsOut: false }` first,
+   before the window opens or anyone eats.
+   `party` is the uuid of the Extras party actor keeping the rest (an
+   unlinked token's own actor), or `null` without Extras. `until` is when
+   camp breaks: the next sunrise, or the last night check if that is later (a
+   summer sunrise at 04:30 comes before a 05:00 check).
+2. **Lights.** Once the camp is made, carried lights go out and keep their
+   time: `time.advanceOffDuty(0, { reason: "camp" })`. A closed camp window
+   leaves them lit. A refusal there is shown, and camp goes on. Then
+   `camp.lightsOut` is true.
+3. **The night.** The clock runs to `camp.until`, through the same advance as
+   moves. A hit stops the night with
+   `pending.reason === "camp"`, and `resume()` finishes it. That holds even
+   for a hit at the camp's very last moment: the dawn step is still to come.
+   A creature (`kind: "monster"`) met in one of the night's checks interrupts the rest; a day
+   check still to roll when camp was made early doesn't. Its hour is kept in
+   `camp.interrupted`, the first one only, and the held encounter carries
+   `interrupts: true`. A land result such as a rockslide doesn't. With the
+   clock bar off nothing is held, so nothing is recorded: the GM calls it.
+   While a camp is made, a night check that some other clock move rolls
+   (a GM's, after the night failed) counts the same. A camp from before
+   1.25.0 gets a `camp` record here with `ate: false`, and its dawn still
+   eats.
+4. **Dawn.** With Extras holding the rest, `camping.dawn({ party, interrupted })`
+   finishes it on the party actor that camped, even if the travel token has
+   changed since: who ate and didn't succeed at Bed Down rolls CON against DC
+   12, and then the rest's benefits apply. When that is canceled or fails, the
+   camp stays pending with a warning, and Continue tries the dawn again rather
+   than passing a second night. The same happens when no Extras can finish it
+   at dawn (turned off, or a version without `camping.dawn`): the rest is
+   still stored on the party, so it isn't dropped. Starting a new day instead
+   goes on without it. When Extras has no rest waiting (`nothingPending`, as
+   when the party actor was deleted), the camp breaks with a warning, and
+   the chat says only when the rest was interrupted, with no CON roll. Without
+   Extras, the chat says when the rest was interrupted, and the CON checks are
+   the GM's. The day is closed as soon as the rest is done (`day: null`, the
+   push reset, `camp: null`). Then one chat line sums up the dawn, and the new
+   day's weather is rolled. The GM then presses Start day.
 
 **The underground season check** runs on the active GM, on `timeAdvanced`, in
 any mode (the party may be crawling below the hex).
@@ -1897,6 +1942,8 @@ scene's choice changes, and once on load.
 - `1.24.0` adds the `rumors` namespace and the `shadowdark-enhancer.rumorsChanged` hook.
 - `1.25.0` adds `encounter.check`'s `quiet`, `hexMaps.makePlayable`, `overland.partyMethod` and
   `overland.setPace`; `overland.startDay` reads the method and the pace when they're left out.
+  `overland.makeCamp` makes the camp before the night (with Shadowdark Extras' `deferRest` and
+  `camping.dawn`) and needs an open travel day, and the state gains `camp` and the held encounter `interrupts`.
 - `1.4.0` adds the shared `forgeLoot.open()` preview shell. Generator rules and
   document writes remain behind the later NPC/Rival adapter implementations.
   The version policy is additive: new namespaces bump the minor version; breaking
