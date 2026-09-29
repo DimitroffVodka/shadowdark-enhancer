@@ -1301,3 +1301,100 @@ test("a move to a hex Extras describes records its terrain with no number; a pla
   assert.equal(stored.overlandState.hex, null, "and names no hex to check against: the check falls back to the party's own");
   assert.deepEqual(globalThis.game.time.advanced, [2 * 8 * 3600 / 5, 8 * 3600 / 5]);
 });
+
+// ── A changed day's weather reveals around the party through Extras' hex fog (#307) ──
+
+const tick = () => new Promise((resolve) => setImmediate(resolve));
+/** A world whose party token sits on `scene`, with a stubbed Extras hex API; returns the calls it saw. */
+function revealWorld({ hex = true, fog = true, api = {}, token = true } = {}) {
+  weatherWorld();
+  const scene = { id: "scene1", grid: { isHexagonal: hex } };
+  stored.overlandState = token ? { tokenUuid: "Scene.scene1.Token.tok1" } : {};
+  registerOverland();
+  globalThis.fromUuidSync = (uuid) => (uuid === "Scene.scene1.Token.tok1" ? { id: "tok1", parent: scene } : null);
+  const calls = [];
+  const hexApi = {
+    isFogEnabled: (id) => { calls.push(["fog", id]); return fog; },
+    revealFrom: async (sceneId, tokenId) => { calls.push(["reveal", sceneId, tokenId]); return { radius: 2, near: [], distant: [] }; },
+    ...api,
+  };
+  globalThis.game.modules = { get: (id) => (id === "shadowdark-extras" ? { active: true, api: { hex: hexApi } } : null) };
+  return calls;
+}
+const reveals = (calls) => calls.filter((c) => c[0] === "reveal");
+test.afterEach(() => { globalThis.game.modules = { get: () => null }; globalThis.game.user.isGM = true; });
+
+test("a manual weather roll reveals once, for the party token's own scene (#307)", async () => {
+  const calls = revealWorld();
+  dice.push(6);
+  await applyAction({ action: "weather" }, gm);
+  await tick();
+  assert.deepEqual(reveals(calls), [["reveal", "scene1", "tok1"]]);
+  assert.deepEqual(calls[0], ["fog", "scene1"], "the fog is asked about the token's scene");
+  // Pressed again while today's holds: no change, no reveal.
+  await applyAction({ action: "weather" }, gm);
+  await tick();
+  assert.equal(reveals(calls).length, 1);
+  // A reroll is a change.
+  dice.push(1);
+  await applyAction({ action: "weather", reroll: true }, gm);
+  await tick();
+  assert.equal(reveals(calls).length, 2, "a storm reroll asks too: Extras adds and removes nothing then");
+});
+
+test("the dawn roll reveals once, however many dawns the step crossed (#307)", async () => {
+  const calls = revealWorld();
+  CrawlState._state = { ...CrawlState._state, mode: "overland" };
+  globalThis.game.time.worldTime = at(1301, 6, 21, 20);
+  dice.push(3);
+  await step(at(1301, 6, 25, 9));
+  await tick();
+  assert.deepEqual(reveals(calls), [["reveal", "scene1", "tok1"]]);
+});
+
+test("no reveal on a player's client, with fog off, without Extras' functions, without a party token, or off a hex map (#307)", async () => {
+  let calls = revealWorld();
+  globalThis.game.user.isGM = false;
+  dice.push(6);
+  await applyAction({ action: "weather" }, gm);
+  await tick();
+  assert.equal(calls.length, 0, "a player's client asks nothing");
+  globalThis.game.user.isGM = true;
+
+  for (const [label, opts] of [
+    ["fog off", { fog: false }],
+    ["no revealFrom", { api: { revealFrom: undefined } }],
+    ["no isFogEnabled", { api: { isFogEnabled: undefined } }],
+    ["no party token", { token: false }],
+    ["not a hex map", { hex: false }],
+  ]) {
+    calls = revealWorld(opts);
+    dice.push(6);
+    const res = await applyAction({ action: "weather" }, gm);
+    await tick();
+    assert.equal(res.ok, true, label);
+    assert.equal(reveals(calls).length, 0, label);
+  }
+
+  revealWorld();
+  globalThis.game.modules = { get: () => null };   // Extras absent
+  dice.push(6);
+  assert.equal((await applyAction({ action: "weather" }, gm)).ok, true);
+  await tick();
+});
+
+test("a throwing Extras never breaks the weather write (#307)", async () => {
+  for (const api of [
+    { revealFrom: () => { throw new Error("sync"); } },
+    { revealFrom: async () => { throw new Error("async"); } },
+    { isFogEnabled: () => { throw new Error("fog"); } },
+  ]) {
+    revealWorld({ api });
+    dice.push(6);
+    const res = await applyAction({ action: "weather" }, gm);
+    await tick();
+    assert.equal(res.ok, true);
+    assert.equal(stored.overlandState.weather.kind, "excellent");
+    assert.equal(cards.length, 1, "the card is still posted");
+  }
+});
