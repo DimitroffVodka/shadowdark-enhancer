@@ -134,7 +134,10 @@ file, and the module does the setup itself:
    are the check. Changing a box re-fits the grid.
 3. It copies the image into the world's `hex-maps` folder, creates a scene
    whose hex grid sits on the print (the image is stretched to Foundry's hex
-   proportions, so a print with tall hexes lands on a regular grid), stores
+   proportions, so a print with tall hexes lands on a regular grid; a print
+   whose first row is full hexes starts one row of cells below the scene's top
+   edge, because Foundry cuts every other column's first row in half there),
+   stores
    the anchor and map size, then opens the Hex Tagger on it, samples the
    cells and shows the **legend** (next section). Name the pictures and the
    map is tagged.

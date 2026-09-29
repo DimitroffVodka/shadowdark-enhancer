@@ -719,7 +719,9 @@ page walks through it in order.
   been checked), so the hex tagger cut every picture through the middle of a
   hex. It also no longer skips the top row of a jagged print of full hexes as
   if it were label margin: the detector now tells a half-cut first row from a
-  full one.
+  full one. And Foundry's own grid centres every other column's first row on
+  the scene's top edge, which cut the top row of such a print in half: its
+  scene now starts one row of cells above the print, so nothing is cut.
 - **Stepping back past a corpse.** Previous Turn onto a dead enemy (or a
   warband following its commander) bounced forward again, so the GM couldn't
   step back past it. It now keeps stepping back. And a player's Next Turn

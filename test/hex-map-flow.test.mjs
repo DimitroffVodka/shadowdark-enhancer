@@ -13,9 +13,17 @@ const image = { imageW: 9933, imageH: 14043 };
 
 /** Where an image pixel lands on the scene: the image fills the scene rect, then slides by the anchor. */
 function toScene(data, textures, u, v, img = image) {
-  const ox = (0.5 - textures.anchorX) * data.width, oy = (0.5 - textures.anchorY) * data.height;
-  return { x: ox + u * data.width / img.imageW, y: oy + v * data.height / img.imageH };
+  // Foundry's PrimarySpriteMesh: sized scene x fit(fill) x scale, positioned at the scene centre, its top-left
+  // that centre minus anchor x its own size.
+  const mw = data.width * (textures.scaleX ?? 1), mh = data.height * (textures.scaleY ?? 1);
+  const left = data.width / 2 - textures.anchorX * mw, top = data.height / 2 - textures.anchorY * mh;
+  return { x: left + u * mw / img.imageW, y: top + v * mh / img.imageH };
 }
+/** Where the mesh's top edge and bottom edge land in scene y. */
+const meshTopBottom = (data, textures) => {
+  const mh = data.height * (textures.scaleY ?? 1), top = data.height / 2 - textures.anchorY * mh;
+  return { top, bottom: top + mh };
+};
 /** Foundry's flat-top column grid: column j at j·0.75·sizeX + sizeX/2, row i at i·size (+ size/2 in lowered columns). */
 function foundryCentre(data, col, row) {
   const size = data.grid.size, sizeX = size * 2 / Math.sqrt(3);
@@ -66,6 +74,39 @@ test("alignedSceneData puts every cell of an even-lowered print on Foundry's cel
       assert.ok(Math.abs(q.x - g.x) < 0.6 && Math.abs(q.y - g.y) < 0.6, `${lowered}: cell ${col},${row} off by ${(q.x - g.x).toFixed(2)}, ${(q.y - g.y).toFixed(2)}`);
     }
   }
+});
+
+test("topRows: the raised columns' first row sits fully inside the scene, and nothing of the print is cut", () => {
+  // Foundry centres the unshifted columns' first row on the scene's top edge, so half of it is
+  // outside the scene. The Gloaming lost the top half of every raised hex that way. One whole
+  // row of Foundry cells above the print puts that row inside; the print's first cell moves to
+  // Foundry row 1, and the scene grows by the strip the shifted image leaves at the bottom.
+  const gloaming = { imageW: 2250, imageH: 1674 };
+  for (const lowered of ["even", "odd"]) {
+    const lat = { x0: 144.41, y0: 200.26, pitchX: 122.18, pitchY: 141.09, lowered, cols: 17, rows: 11, rowsLowered: 10 };
+    const data = alignedSceneData({ name: "Map", src: "x.jpg", ...gloaming, lat, cols: 17, rows: 11, rowsLowered: 10, topRows: 1, levels: true });
+    const textures = data.levels[0].textures, size = data.grid.size;
+    const origin = data.flags["shadowdark-enhancer"].hexTags.origin;
+    assert.deepEqual([origin.i, origin.j], [1, 0], `${lowered}: the first printed cell is Foundry row 1, column 0`);
+    for (const [col, row] of [[0, 0], [1, 0], [2, 3], [16, 9], [15, 10]]) {
+      const p = latticeCentre(lat, col, row), q = toScene(data, textures, p.u, p.v, gloaming), g = foundryCentre(data, col, row + 1);
+      assert.ok(Math.abs(q.x - g.x) < 0.6 && Math.abs(q.y - g.y) < 0.6, `${lowered}: cell ${col},${row} off by ${(q.x - g.x).toFixed(2)}, ${(q.y - g.y).toFixed(2)}`);
+    }
+    // The raised columns are the ones Foundry centres on a row boundary: their first printed hex is now a whole one.
+    const raisedCol = lowered === "even" ? 1 : 0;
+    const raised = latticeCentre(lat, raisedCol, 0), top = toScene(data, textures, raised.u, raised.v, gloaming).y - size / 2;
+    assert.ok(top >= -0.6, `${lowered}: the first raised hex starts at ${top.toFixed(1)}, inside the scene`);
+    // Nothing of the image is lost at the bottom: the scene is tall enough for the shifted image.
+    const { bottom } = meshTopBottom(data, textures);
+    assert.ok(bottom <= data.height + 0.6, `${lowered}: image bottom ${bottom.toFixed(1)} within scene ${data.height}`);
+    assert.ok(Math.abs(bottom - data.height) < 1 || meshTopBottom(data, textures).top < 0, `${lowered}: no needless blank strip below`);
+  }
+});
+
+test("topRows defaults to none, so the A0 print's scene is exactly what it was", () => {
+  const data = alignedSceneData({ name: "Map", src: "x.jpg", ...image, lat, cols: 64, rows: 75, rowsLowered: 74, levels: true });
+  assert.deepEqual([data.flags["shadowdark-enhancer"].hexTags.origin.i, data.levels[0].textures.scaleY], [0, 1]);
+  assert.equal(data.height, Math.round(image.imageH * data.grid.size / lat.pitchY));
 });
 
 test("a print whose raised columns start with a full hex is not told its top row is frame", () => {

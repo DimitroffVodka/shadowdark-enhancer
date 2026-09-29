@@ -234,14 +234,17 @@ const sceneHasLevels = () => !!globalThis.foundry?.documents?.BaseScene?.schema?
  * @param {number} [opts.rowsLowered]  the lowered columns' row count when it differs from `rows`
  * @param {boolean} [opts.frameCut]  whether the frame cuts the raised columns' first row in half (the detector's answer):
  *   false numbers that row, true skips it, absent falls back to the guess from the row counts (framesTopRow)
+ * @param {number} [opts.topRows]  whole rows of Foundry cells left above the print's first row (default 0). Foundry
+ *   centres the unshifted columns' first row on the scene's top edge, so half of it falls outside the scene; one row
+ *   above the print puts that whole row inside. The print's first cell then sits at Foundry row `topRows`.
  * @param {boolean} [opts.levels]  emit the 14+ `levels` form (default: what the running schema has)
  */
-export function alignedSceneData({ name, src, imageW, imageH, lat, firstNum = "0000", cols, rows, rowsLowered, frameCut, levels = sceneHasLevels() }) {
+export function alignedSceneData({ name, src, imageW, imageH, lat, firstNum = "0000", cols, rows, rowsLowered, frameCut, topRows = 0, levels = sceneHasLevels() }) {
   const size = Math.max(CONST?.GRID_MIN_SIZE ?? 20, Math.round(lat.pitchY));
   const sizeX = size * 2 / Math.sqrt(3);
   const kx = (0.75 * sizeX) / lat.pitchX, ky = size / lat.pitchY;
   const even = lat.lowered === "even";
-  const cube = foundryOffsetToCube({ i: 0, j: 0 }, even);
+  const cube = foundryOffsetToCube({ i: topRows, j: 0 }, even);
   const state = emptyState();
   const bounds = { cols, rows };
   if (rowsLowered && rowsLowered !== rows) bounds.rowsLowered = rowsLowered;
@@ -254,16 +257,21 @@ export function alignedSceneData({ name, src, imageW, imageH, lat, firstNum = "0
   // the detector has looked at that first row (frameCut) it decides.
   if (frameCut === false) bounds.firstRow = 0;
   else if (framesTopRow(bounds)) bounds.firstRow = 1;
-  state.origin = { i: 0, j: 0, q: cube.q, r: cube.r, num: firstNum, shifted: lat.lowered, bounds };
-  const width = Math.round(imageW * kx), height = Math.round(imageH * ky);
-  // The background mesh sits at the scene rect's centre with its anchor at
-  // (anchorX, anchorY) of its own size; anchor 0.5 puts the image's corner at
-  // the origin, so a shift of (ox, oy) is an anchor of (0.5 - ox/width, 0.5 - oy/height).
+  state.origin = { i: topRows, j: 0, q: cube.q, r: cube.r, num: firstNum, shifted: lat.lowered, bounds };
   // Foundry's cell (0, 0) sits half a row down when its column is the lowered
-  // one (HEXEVENQ lowers column 0), on the top edge when it is not. The print's
-  // first cell has to land on that, whichever parity the print lowers.
-  const ox = sizeX / 2 - lat.x0 * kx, oy = (even ? size / 2 : 0) - lat.y0 * ky;
-  const textures = { fit: "fill", scaleX: 1, scaleY: 1, anchorX: 0.5 - ox / width, anchorY: 0.5 - oy / height };
+  // one (HEXEVENQ lowers column 0), on the top edge when it is not; the print's
+  // first cell has to land on its Foundry cell, whichever parity the print
+  // lowers, `topRows` whole rows further down. (ox, oy) is where the stretched
+  // image's top-left corner then falls in the scene.
+  const imgW = imageW * kx, imgH = imageH * ky;
+  const ox = sizeX / 2 - lat.x0 * kx, oy = (even ? size / 2 : 0) + topRows * size - lat.y0 * ky;
+  // The scene is the image's size, or taller by the strip the shifted image leaves at the top, so
+  // nothing of the image is cut at the bottom. The mesh is sized scene x scale and drawn at the
+  // scene's centre with its anchor at (anchorX, anchorY) of its own size (PrimarySpriteMesh), so a
+  // taller scene needs scaleY to give the image back its size, and the anchor follows.
+  const width = Math.round(imgW), height = Math.round(imgH + Math.max(0, oy));
+  const scaleY = height === Math.round(imgH) ? 1 : imgH / height;
+  const textures = { fit: "fill", scaleX: 1, scaleY, anchorX: 0.5 - ox / width, anchorY: (height / 2 - oy) / (height * scaleY) };
   const data = {
     name,
     width, height, padding: 0,
@@ -323,7 +331,11 @@ export async function startHexMapFlow() {
     preview.close?.();
     if (!answer) return null;
     const src = await uploadMap(file);
-    const data = alignedSceneData({ name, src, imageW, imageH, lat: { ...answer.lat, lowered: answer.lowered }, firstNum: answer.firstNum, cols: answer.cols, rows: answer.rows, rowsLowered: answer.rowsLowered, frameCut: answer.lat.frameCut ?? false });   // a hand-set lattice says nothing about the frame: its first row is map
+    // A hand-set lattice says nothing about the frame: its first row is map. A full first row keeps one row of
+    // Foundry cells above it, so the raised columns' first row is not the half Foundry centres on the scene's
+    // edge; a cut one is margin anyway and stays where the first hex is the scene's top-left cell.
+    const frameCut = answer.lat.frameCut ?? false;
+    const data = alignedSceneData({ name, src, imageW, imageH, lat: { ...answer.lat, lowered: answer.lowered }, firstNum: answer.firstNum, cols: answer.cols, rows: answer.rows, rowsLowered: answer.rowsLowered, frameCut, topRows: frameCut ? 0 : 1 });
     const scene = await Scene.create(data);
     ui.notifications?.info(t("SDE.hexMap.notify.sceneCreated", { name: scene.name, cols: answer.cols, rows: answer.rows, size: data.grid.size }));
     await scene.view();
