@@ -592,6 +592,13 @@ page walks through it in order.
   lists what stays as-is. Typed abilities are rounded to a whole number of 0 or
   more. Nothing opens the builder that way yet, so nothing changes on any
   sheet, and a new build looks exactly as before. (#168)
+- **A safety net for editing an existing character.** Before the Character
+  Builder writes to a character it can save a before-image of it (abilities,
+  alignment, background, deity, coins, languages, name, art and every item), and
+  `game.shadowdarkEnhancer.charBuilder.restoreBeforeImage(actor)` puts the
+  character back: deleted items return with their ids, changed fields go back,
+  items added since are removed, and Scavenger does not roll. GM or owner only;
+  no button and nothing calls it yet. (#168)
 
 ### Changed
 
