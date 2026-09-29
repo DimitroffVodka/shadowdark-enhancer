@@ -186,6 +186,14 @@ test("someone who does not own the character is refused with the existing messag
   assert.equal(ShadowdarkCharBuilder._instance, null);
 });
 
+test("a non-owner is refused even while a builder is already open", async () => {
+  const open = await openOn(makeActor({ items: ITEMS() }));
+  notes.error.length = 0;
+  assert.equal(await ShadowdarkCharBuilder.open({ actor: makeActor({ owner: false }) }), null);
+  assert.deepEqual(notes.error, [en["SDE.charBuilder.commit.notOwner"]]);
+  assert.equal(ShadowdarkCharBuilder._instance, open);
+});
+
 test("open() with no actor is the fresh build, unchanged: no baseline, the required-steps gate still applies", async () => {
   reset();
   const app = await ShadowdarkCharBuilder.open();

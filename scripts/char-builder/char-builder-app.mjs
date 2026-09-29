@@ -331,6 +331,11 @@ export class ShadowdarkCharBuilder extends HandlebarsApplicationMixin(Applicatio
 
   /** Entry point — open the builder (singleton; brings an open one to front). */
   static open(options = {}) {
+    // Only a GM or an owner may edit a character; checked before anything is shown.
+    if (options.actor && !options.actor.isOwner) {
+      ui.notifications.error(game.i18n.localize("SDE.charBuilder.commit.notOwner"));
+      return null;
+    }
     const existing = ShadowdarkCharBuilder._instance;
     if (existing?.rendered) {
       existing.bringToFront?.();
@@ -342,17 +347,12 @@ export class ShadowdarkCharBuilder extends HandlebarsApplicationMixin(Applicatio
   }
 
   /**
-   * Open on an existing actor: only a GM or an owner may. A character with a class,
-   * an ancestry or items is hydrated with a frozen baseline; a blank one starts the
-   * fresh build onto that actor, as before.
+   * Open on an existing actor (`open` has checked the owner). A character with a
+   * class, an ancestry or items is hydrated with a frozen baseline; a blank one
+   * starts the fresh build onto that actor, as before.
    */
   static async _openOnActor(options) {
-    const actor = options.actor;
-    if (!actor.isOwner) {
-      ui.notifications.error(game.i18n.localize("SDE.charBuilder.commit.notOwner"));
-      return null;
-    }
-    const state = await hydrateActor(actor);
+    const state = await hydrateActor(options.actor);
     const open = ShadowdarkCharBuilder._instance;
     if (open?.rendered) { open.bringToFront?.(); return open; }
     ShadowdarkCharBuilder._instance = new ShadowdarkCharBuilder({ ...options, state });
