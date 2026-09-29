@@ -72,7 +72,7 @@ Object.assign(globalThis, {
     modules: { get: () => null },
   },
 });
-const { applyAction, registerOverland, overlandState, weatherNow, recordMove, advanceTravel, undergroundCheck, dawnWeather, checkNow, askDay } = await import("../scripts/overland/overland.mjs");
+const { moveSteps, applyAction, registerOverland, overlandState, weatherNow, recordMove, advanceTravel, undergroundCheck, dawnWeather, checkNow, askDay } = await import("../scripts/overland/overland.mjs");
 const { BOAT_TYPE } = await import("../scripts/actors/register-actors.mjs");
 const { CrawlState } = await import("../scripts/crawl-strip/crawl-state.mjs");
 
@@ -1264,4 +1264,40 @@ test("a camp held or on its way keeps its dawn to itself (#294)", async () => {
   assert.equal(weatherRolls(), 0);
   assert.equal(weatherCards(), 0);
   assert.ok(stored.overlandState.camp, "the camp is left as it was");
+});
+
+// ── Hex maps with no numbering (#298) ─────────────────────────────────────────
+
+test("a move over a hex map with no numbering counts each hex entered, told apart by place", () => {
+  const cell = 100;
+  const grid = {
+    getOffset: ({ x }) => ({ i: 0, j: Math.floor(x / cell) }),
+    getDirectPath: ([a, b]) => {
+      const from = Math.floor(a.x / cell), to = Math.floor(b.x / cell);
+      const out = [];
+      for (let j = from; j <= to; j++) out.push({ i: 0, j });
+      return out;
+    },
+  };
+  const doc = { getCenterPoint: ({ x }) => ({ x, y: 0 }) };
+  const read = () => ({ num: null, terrain: null, features: [] });
+  const steps = moveSteps(doc, grid, { x: 50 }, [{ x: 350, action: "move" }], read);
+  assert.equal(steps.length, 3, "three hexes entered, though every hex reads the same and has no number");
+  assert.equal(moveSteps(doc, grid, { x: 50 }, [{ x: 90, action: "move" }], read).length, 0, "a move within one hex enters none");
+  const off = (o) => (o.j > 1 ? null : read());
+  assert.equal(moveSteps(doc, grid, { x: 50 }, [{ x: 350, action: "move" }], off).length, 1, "the padding is not entered");
+});
+
+test("a move to a hex Extras describes records its terrain with no number; a plain hex records none, and both spend and clock", async () => {
+  travellingDay();
+  dice.push(3);
+  await applyAction({ action: "startDay", method: "walking" }, gm);
+  const forest = { num: null, terrain: "forest", features: [] };
+  assert.equal(await recordMove({ parent: null }, { x: 0, y: 0 }, { x: 100, y: 0 }, { cost: 2, blocked: null, steps: [{ hex: forest }] }), true);
+  assert.equal(stored.overlandState.spent, 2);
+  assert.deepEqual(stored.overlandState.hex, { num: null, terrain: "forest", region: null, features: [] });
+  assert.equal(await recordMove({ parent: null }, { x: 100, y: 0 }, { x: 200, y: 0 }, { cost: 1, blocked: null, steps: [{ hex: { num: null, terrain: null, features: [] } }] }), true);
+  assert.equal(stored.overlandState.spent, 3, "a plain hex costs the default point");
+  assert.equal(stored.overlandState.hex, null, "and names no hex to check against: the check falls back to the party's own");
+  assert.deepEqual(globalThis.game.time.advanced, [2 * 8 * 3600 / 5, 8 * 3600 / 5]);
 });

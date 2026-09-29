@@ -3,8 +3,11 @@
 [← Wiki home](index.md)
 
 The date, the time and the sky sit at the top of the screen for everyone,
-on every scene. No calendar module is needed: this is the world's own clock,
-on Foundry's calendar.
+on every hex map. On any other scene the bar is hidden and the
+[Crawl Strip](Crawl-Strip-and-Crawl-Bar.md) takes the top instead. A hex map is
+any scene with a hex grid; it does not have to be tagged. Viewing another
+scene shows or hides the bar at once. No calendar module is needed: this is
+the world's own clock, on Foundry's calendar.
 
 ---
 
@@ -19,11 +22,12 @@ Left to right:
 | **Time** | GM | Opens the Time panel (below). |
 | **The date** | everyone | Weekday, day, month and year, then the time. **Stopped** follows the time while an encounter holds the travel clock. |
 | **⌃ / ⌄** | everyone | Shows or hides the sky. |
-| **Travel** | on a tagged hex map | The hexes left today while travelling, or **Start travel** for a GM. The party icon opens the Travel panel. |
+| **Travel** | on a hex map | The hexes left today while travelling, or **Start travel** for a GM. The party icon opens the Travel panel. |
 | **⏩** | GM | Opens a column of steps forward, the same five. |
 
-It hides during a combat. **Settings → Overland → Clock bar** chooses who sees
-it: everyone, the GM only, or nobody.
+It hides during a combat and on any scene without a hex grid. **Settings →
+Overland → Clock bar** chooses who sees it on a hex map: everyone, the GM only,
+or nobody.
 
 ## The sky
 

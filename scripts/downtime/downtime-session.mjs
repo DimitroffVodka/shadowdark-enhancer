@@ -66,12 +66,14 @@ import {
   martialTierForHitDie,
   casterListForAbility,
   readStored,
+  slotByKey,
   ladderIndex,
   authorizeActorRequest,
   validateRollClaim,
   sanitizeFreeTextName,
 } from "./downtime-core.mjs";
 import { effectPlanFor, applyDowntimeEffect } from "./downtime-effects.mjs";
+import { recruitActivity, recruitIdOf, recruitSlot } from "./downtime-recruit-core.mjs";
 import { refuseQuery, registerQuery } from "../shared/gm-relay.mjs";
 import { advanceOffDuty } from "../time/off-duty.mjs";
 import { secondsPerDay } from "../time/time-core.mjs";
@@ -112,6 +114,7 @@ export const ACTIONS = {
   PICK:   "downtime:pick",          // player → GM query   { action, actorId, slotKey, ability, advantage }
   ROLLED: "downtime:rolled",        // player → GM query   { action, actorId, slotKey, messageId }
   CHOICE: "downtime:effectChoice",  // player → GM query   { action, actorId, slotKey, choice }
+  OFFERS: "downtime:recruitOffers", // player → GM query   { action, actorId }   (read only: the warbands on offer, #205)
 };
 
 /**
@@ -206,6 +209,17 @@ export function downtimeFlag(actor) {
     steps: { ...(raw?.steps ?? {}) },
     ...(raw?.casterList ? { casterList: raw.casterList } : {}),
   };
+}
+
+/**
+ * {activity, slot} for a pick or a result. A book slot is looked up in the
+ * skeleton; a recruit (#205) is no slot of a book, so the GM writes what it
+ * needs to show it (the warband's id, name and level) into the pick and the
+ * result, and every window draws it from that.
+ */
+export function foundFor(entry) {
+  if (recruitIdOf(entry?.slotKey) && entry.recruit) return { activity: recruitActivity(), slot: recruitSlot(entry.recruit) };
+  return slotByKey(entry?.slotKey);
 }
 
 /** Step count for one slot out of the per-actor steps map (core takes a scalar). */
@@ -518,6 +532,7 @@ export const DowntimeSession = {
     if (action === ACTIONS.PICK)   return this._enqueue(() => this._handlePick(data, user));
     if (action === ACTIONS.ROLLED) return this._enqueue(() => this._handleRolled(data, user));
     if (action === ACTIONS.CHOICE) return this._enqueue(() => this._handleEffectChoice(data, user));
+    if (action === ACTIONS.OFFERS) return this._handleOffers(data, user);
     return { ok: false, error: L("SDE.downtime.error.unknownAction") };
   },
 
@@ -566,6 +581,18 @@ export const DowntimeSession = {
     return verdict.ok ? { ok: true, actor } : verdict;
   },
 
+  /**
+   * The warbands on offer to a character (#205): a read, so it is not queued.
+   * The world's warbands and the pack are the GM's to see, so a player's window
+   * asks here rather than working the list out itself.
+   */
+  async _handleOffers(data, user) {
+    const auth = this._authorizeActor(data?.actorId, user);
+    if (!auth.ok) return auth;
+    const { recruitView } = await import("./downtime-recruit.mjs");
+    return { ok: true, ...(await recruitView(auth.actor)) };
+  },
+
   // ── Content access ────────────────────────────────────────────────────────
 
   /** Unlocked outcome text for the session's book. */
@@ -599,6 +626,8 @@ export const DowntimeSession = {
     const actor = game.actors.get(actorId);
     if (!actor || actor.type !== "Player") return { ok: false, error: L("SDE.downtime.error.noCharacter") };
 
+    if (recruitIdOf(slotKey)) return this._recruitContext(state, actor, slotKey);
+
     const found = this.findSlot(slotKey);
     if (!found) return { ok: false, error: L("SDE.downtime.error.notInSkeleton") };
     const { activity, slot } = found;
@@ -624,6 +653,27 @@ export const DowntimeSession = {
       dc: effDC(slot, flag.steps),
       cost: costFor(state.source, slot, level),
       check: modForCheck(activity, slot, actor, { facts, choiceAbility }),
+    };
+  },
+
+  /**
+   * The context of a recruit (#205): no book text, no fee, and the DC of the
+   * warband as it is now. The warband, the settlement's limit and the
+   * character's allowance are all re-read here; the payload only names the
+   * warband by id.
+   */
+  async _recruitContext(state, actor, slotKey) {
+    const { checkRecruit } = await import("./downtime-recruit.mjs");
+    const check = await checkRecruit(actor, recruitIdOf(slotKey));
+    if (!check.ok) return { ok: false, error: check.error };
+    const activity = recruitActivity();
+    const slot = recruitSlot(check.offer);
+    return {
+      ok: true, state, actor, activity, slot, facts: {}, flag: downtimeFlag(actor), casterList: null,
+      level: Number(actor.system?.level?.value ?? 0),
+      outcomeText: "", dc: slot.dc, cost: 0,
+      check: modForCheck(activity, slot, actor),
+      recruit: check.offer,
     };
   },
 
@@ -751,6 +801,8 @@ export const DowntimeSession = {
         slotKey,
         ...(legalAbility ? { ability: legalAbility } : {}),
         ...(ctx.casterList ? { casterList: ctx.casterList } : {}),
+        // What every window needs to draw a recruit (#205); the GM's own reading, never the payload's.
+        ...(ctx.recruit ? { recruit: { id: ctx.recruit.id, name: ctx.recruit.name, level: ctx.recruit.level } } : {}),
         advantage: advMode(advantage).key,
         // The attempt's one-shot capability. Minted GM-side, so the player can
         // read it (world setting) but never choose it; re-picking mints a fresh
@@ -860,24 +912,31 @@ export const DowntimeSession = {
 
     const success = total >= dc;
 
-    // Success clears the ladder; failure walks it one rung down.
+    // Success clears the ladder; failure walks it one rung down. A recruit has no ladder: its DC is the
+    // warband's level, so a failed one asks the same again (#205).
     const steps = { ...flag.steps };
-    if (success) steps[slot.key] = 0;
-    else {
-      try { steps[slot.key] = Number(nextStepsOnFailure(slot, stepsFor(slot, flag.steps))) || 0; }
-      catch { steps[slot.key] = stepsFor(slot, flag.steps); }
+    let nextDC = null;
+    if (!ctx.recruit) {
+      if (success) steps[slot.key] = 0;
+      else {
+        try { steps[slot.key] = Number(nextStepsOnFailure(slot, stepsFor(slot, flag.steps))) || 0; }
+        catch { steps[slot.key] = stepsFor(slot, flag.steps); }
+      }
+      await actor.setFlag(MODULE_ID, DOWNTIME_FLAG, { ...flag, steps });
+      nextDC = success ? slot.dc : effDC(slot, steps);
     }
-    await actor.setFlag(MODULE_ID, DOWNTIME_FLAG, { ...flag, steps });
-    const nextDC = success ? slot.dc : effDC(slot, steps);
 
     const result = {
       slotKey: slot.key, activityKey: activity.key, total, dc,
       success, cost: paid, messageId: messageId ?? null, nextDC,
+      ...(ctx.recruit ? { recruit: { id: ctx.recruit.id, name: ctx.recruit.name, level: ctx.recruit.level } } : {}),
     };
 
     // Effect planning. A missing/misbehaving effects module degrades to a
     // GM-adjudication note rather than breaking the roll.
-    if (success) {
+    if (success && ctx.recruit) {
+      result.effect = await this._applyRecruit(ctx);
+    } else if (success) {
       let plan = null;
       try { plan = await effectPlanFor(slot.key, actor); }
       catch (err) {
@@ -950,6 +1009,18 @@ export const DowntimeSession = {
       return { summary: out?.error ?? L("SDE.downtime.effect.couldNotApply"), narrative: true };
     } catch (err) {
       console.warn(`${MODULE_ID} | downtime: applyDowntimeEffect failed for "${slot.key}"`, err);
+      return { summary: L("SDE.downtime.effect.couldNotApply"), narrative: true };
+    }
+  },
+
+  /** A successful recruit: the warband is made under the character's command (#205). */
+  async _applyRecruit(ctx) {
+    try {
+      const { recruitWarband } = await import("./downtime-recruit.mjs");
+      const out = await recruitWarband(ctx.actor, ctx.recruit.id);
+      return out.ok ? { summary: out.summary } : { summary: out.error, narrative: true };
+    } catch (err) {
+      console.warn(`${MODULE_ID} | downtime: recruiting "${ctx.recruit.name}" failed`, err);
       return { summary: L("SDE.downtime.effect.couldNotApply"), narrative: true };
     }
   },
@@ -1065,8 +1136,8 @@ export const DowntimeSession = {
       ? `<div class="sde-dt-line"><i class="fas fa-hourglass-half"></i> ${L("SDE.downtime.card.waiting")}</div>`
       : (result.effect?.summary ? `<div class="sde-dt-line"><i class="fas fa-wand-sparkles"></i> ${esc(result.effect.summary)}</div>` : "");
     const body = result.success
-      ? `<div class="sde-dt-outcome">${esc(outcomeText)}</div>${effectLine}`
-      : `<div class="sde-dt-line">${L("SDE.downtime.card.nextAttempt", { dc: result.nextDC })}</div>`;
+      ? `${outcomeText ? `<div class="sde-dt-outcome">${esc(outcomeText)}</div>` : ""}${effectLine}`
+      : (result.nextDC ? `<div class="sde-dt-line">${L("SDE.downtime.card.nextAttempt", { dc: result.nextDC })}</div>` : "");
     const content = `
       <div class="sde-downtime-card ${result.success ? "sde-dt-success" : "sde-dt-failure"}">
         <header class="sde-dt-head">

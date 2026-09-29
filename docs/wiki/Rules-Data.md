@@ -110,6 +110,8 @@ setting, fills the tables in directly.
 
 - **Stormy weather** makes normal terrain cost what difficult terrain costs,
   and in a harsh climate makes all terrain impassable for the day.
+- **Recruit a warband** ([Downtime](Downtime.md#recruit-a-warband)) offers only
+  warbands up to the party's settlement's **Recruiting limit**.
 - Macros and other modules read everything through
   `game.shadowdarkEnhancer.rules`; see the
   [API reference](https://github.com/DimitroffVodka/shadowdark-enhancer/blob/master/docs/API.md#rules--western-reaches-rules-data).

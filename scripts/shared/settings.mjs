@@ -782,6 +782,16 @@ export function registerSettings() {
     default: {},
   });
 
+  // The settlement the party is recruiting in (#205), when the GM says so: a settlement
+  // kind ("village", "town", "city", "city_state"), "none", or "" for the party's hex.
+  // Set from the Recruit a warband section of the Downtime window.
+  game.settings.register(MODULE_ID, "downtimeSettlement", {
+    scope: "world",
+    config: false,
+    type: String,
+    default: "",
+  });
+
   // The pit fight currently on. Internal — the Pit Fighting window owns it.
   //
   // Persisted rather than held on the app instance because a bout OUTLIVES the
