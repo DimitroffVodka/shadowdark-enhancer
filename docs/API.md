@@ -1984,7 +1984,12 @@ GM an off-duty move is handed to, or a player asked to roll a save or a death
 timer. The other tabs stay silent, so the caller gets the working tab's answer,
 and a GM that isn't the right writer still refuses at once. `isActiveGM()` is
 true only in the active GM's working tab, and the hooks it gates run there, as
-does dying's turn start, which Foundry runs in every tab of the active GM. When
+does dying's turn start, which Foundry runs in every tab of the active GM. A
+hook Foundry fires only in the tab that acted (`combatStart`, and the
+`preUpdateItem`/`preDeleteItem` the scavenger snapshots in) has no tab check,
+or work begun in the waiting tab would be dropped: the scavenger elects per
+user, and the session recap's working tab opens a fight another tab began from
+the start's own `updateCombat` (round 1, turn 0). When
 the working tab closes, reloads or crashes, the browser hands the lock to the
 next tab at once. The shop's notices to players (`registerQuery` with
 `everyTab`) are the exception: they only close or refresh the receiving tab's

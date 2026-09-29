@@ -23,7 +23,6 @@
  */
 
 import { MODULE_ID } from "../shared/module-id.mjs";
-import { isActiveGM } from "../shared/gm-relay.mjs";
 import { esc } from "../shared/esc.mjs";
 import {
   classifyExpenditure,
@@ -75,14 +74,13 @@ function _isResponsible(actor) {
   const ownerIds = game.users
     .filter((u) => !u.isGM && actor.testUserPermission(u, "OWNER"))
     .map((u) => u.id);
-  const activeGmId = game.users.activeGM?.id ?? null;
   const chosen = responsibleUserId({
     ownerIds,
     activeUserIds: game.users.filter((u) => u.active).map((u) => u.id),
-    activeGmId,
+    activeGmId: game.users.activeGM?.id ?? null,
   });
-  // The active GM elected: of its tabs, the one doing its work (#288).
-  if (chosen !== null && chosen === activeGmId) return isActiveGM();
+  // Per user, not per tab (#288): only the tab that made the change has the
+  // pre-hook's snapshot, so a GM signed in twice rolls in that tab alone.
   return chosen !== null && chosen === game.user.id;
 }
 
