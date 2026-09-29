@@ -98,7 +98,7 @@ test("a bundle whose later table fails adopts nothing; a whole one adopts its d1
 test("the ready hook adopts an imported ancestry table on the active GM only", async () => {
   const { readFileSync } = await import("node:fs");
   const src = readFileSync(new URL("../scripts/shadowdark-enhancer.mjs", import.meta.url), "utf8");
-  const gate = src.indexOf("if (game.users.activeGM?.id === game.user.id) {");
+  const gate = src.indexOf("if (isActiveGM()) {");
   const call = src.indexOf("m.adoptImportedAncestryTable()");
   assert.ok(call > -1, "the ready hook no longer calls adoptImportedAncestryTable");
   assert.ok(gate > -1 && gate < call && call - gate < 300, "the call must sit at the top of the active-GM block");
