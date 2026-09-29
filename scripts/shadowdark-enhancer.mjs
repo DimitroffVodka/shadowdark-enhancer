@@ -100,6 +100,7 @@ import { registerWarbandCombat } from "./actors/warband-combat.mjs";
 import "./crawl-strip/initiative-manager.mjs";
 import { registerArtGalleryQuery } from "./char-builder/art-gallery.mjs";
 import { ClassAbilityUses } from "./char-builder/class-ability-uses.mjs";
+import { registerBuilderEntryPoints } from "./char-builder/entry-points.mjs";
 import { MonsterTokenArt } from "./monster-art/monster-token-art.mjs";
 import { TokenArtCatalog } from "./monster-art/token-art-catalog.mjs";
 import { PdfSheetExport } from "./pdf-export/pdf-sheet-export.mjs";
@@ -124,7 +125,7 @@ const STYLESHEET_REV = "92c41f6c74f8";
 // stale); module.json carries the same hash and is fetched fresh at runtime. A
 // mismatch is a stale cache by construction — it cannot be anything else. Both
 // stamps are written by `npm run inventory` and gated by `inventory:check`.
-const BUILD_REV = "2407962a24a6";
+const BUILD_REV = "c79112d83e0c";
 
 /**
  * Tell the user when their browser is running an old build of this module, and
@@ -395,17 +396,16 @@ Hooks.once("init", () => {
       .catch((err) => console.error(`${MODULE_ID} | failed to register ${name} partial:`, err));
   }
 
+  // Editing an existing character (#168 P6): a header button on a Player sheet
+  // and an "Edit in Character Builder" entry in the Actor directory's context menu.
+  registerBuilderEntryPoints();
+
   // "Character Builder" launch button in the Actors sidebar header — the single
-  // entry point. It opens the builder with no actor (it creates a fresh one on
+  // entry point for a fresh build. It opens the builder with no actor (it creates a fresh one on
   // finish), so players don't need an existing sheet to start. Shown to every
   // user regardless of the ACTOR_CREATE permission (deliberate: players may not
   // hold that perm in every world but should still be able to launch the
   // builder). Sits alongside the core Create Actor / Create Folder buttons.
-  //
-  // The actor-sheet header button was removed in favour of this one. The
-  // edit-in-place path it fed (builder writes back onto the launching actor
-  // rather than spawning a duplicate) is still supported by commit.mjs and
-  // reachable via `game.shadowdarkEnhancer.charBuilder.open({ actor })`.
   Hooks.on("renderActorDirectory", (_app, html) => {
     const root = html instanceof HTMLElement ? html : html?.[0];
     const header = root?.querySelector(".directory-header");

@@ -11,6 +11,14 @@ it needs.
 
 ### Added
 
+- **Edit a character in the Character Builder, and undo the save.** A
+  **Character Builder** button in the header of a player character's sheet, and
+  **Edit in Character Builder** when you right-click a character in the Actors
+  sidebar, open the builder on that character (GM or owner; never on NPCs,
+  mounts, boats, warbands or lights). After **Save changes**, an **Undo last
+  save** button in the builder's footer asks once and puts back what the builder
+  changed: abilities, alignment, background, deity, coins, languages, name, art
+  and items. Hit points, XP and luck are left as they are. (#168)
 - **Silent death timers.** A new option beside Hidden death timers, in the
   Deadly box of Modes of Play: a dying character posts no roll
   card at all: not the death timer roll, not the rounds left, not the d20 turn

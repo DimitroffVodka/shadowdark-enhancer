@@ -263,7 +263,7 @@ test("Finish shows the diff in words, saves a before-image, writes exactly the c
   // the result line, then a fresh baseline from the live actor
   assert.equal(notes.info.length, 1);
   assert.match(notes.info[0], /Saved changes to Hero: 2 field\(s\) changed, 1 item\(s\) added, 1 item\(s\) removed/);
-  assert.match(notes.info[0], /Restore/);
+  assert.match(notes.info[0], /Undo last save/);
   assert.notEqual(app.builderState, oldState);
   assert.equal(app.builderState.existing.baseline.abilities.str, 15);
   assert.notEqual(app.builderState.existing.sessionId, oldState.existing.sessionId);
@@ -380,4 +380,77 @@ test("every actor field the planner can write is in the before-image's ACTOR_KEY
   assert.ok(written.length > 12);
   for (const k of written) assert.ok(ACTOR_KEYS.includes(k), `${k} is written by Finish but not in the before-image`);
   assert.ok(await hydrateActor(actor));
+});
+
+// --- Undo last save (#168 P6) --------------------------------------------------------------------
+const undo = (app) => ShadowdarkCharBuilder._onUndo.call(app);
+const snapOf = (actor) => JSON.stringify([[...actor.items].map((i) => i._source).sort((a, b) => a._id.localeCompare(b._id)), actor._source.system, actor._source.name]);
+
+test("Undo last save shows only while a before-image exists, and only for a GM or an owner", async () => {
+  const actor = makeActor({ items: ITEMS() });
+  const app = await openOn(actor);
+  assert.equal((await app._prepareContext()).nav.canUndo, false, "no image yet");
+  edit(app);
+  await finish(app);
+  assert.equal((await app._prepareContext()).nav.canUndo, true);
+  actor.isOwner = false;
+  assert.equal((await app._prepareContext()).nav.canUndo, false, "not an owner");
+  const fresh = await ShadowdarkCharBuilder.open({ actor: makeActor({ items: ITEMS() }) });
+  assert.equal((await fresh._prepareContext()).nav.canUndo, false);
+  const hbs = readFileSync(new URL("../templates/char-builder/char-builder.hbs", import.meta.url), "utf8");
+  assert.match(hbs, /\{\{#if nav\.canUndo\}\}[\s\S]*?data-action="cb-undo"[\s\S]*?existing\.undo"/);
+  assert.equal(en["SDE.charBuilder.existing.undo"], "Undo last save");
+});
+
+test("Undo last save asks once (when, how many items), restores exactly, reloads the builder and says what came back", async () => {
+  const actor = makeActor({ items: ITEMS() });
+  const before = snapOf(actor);
+  const app = await openOn(actor);
+  edit(app);
+  await finish(app);
+  const image = actor.flags[MOD].builderBefore;
+  dialogs.length = 0; notes.info.length = 0;
+  const oldState = app.builderState;
+  await undo(app);
+
+  assert.equal(dialogs.length, 1);
+  assert.ok(dialogs[0].content.includes(new Date(image.at).toLocaleString()));
+  assert.ok(dialogs[0].content.includes(`${image.items.length} item(s)`));
+  assert.equal(snapOf(actor), before, "the character is back exactly");
+  assert.notEqual(app.builderState, oldState, "the builder was rehydrated from the live actor");
+  assert.equal(app.builderState.stats.values.str, 7);
+  assert.equal(notes.info.length, 1);
+  assert.match(notes.info[0], /^Put Hero back as it was before the last save: 1 item\(s\) put back, 1 item\(s\) removed, 1 thing\(s\) changed\.$/);
+  assert.equal(notes.error.length, 0);
+});
+
+test("cancelling the undo confirm writes nothing and keeps the builder", async () => {
+  const actor = makeActor({ items: ITEMS() });
+  const app = await openOn(actor);
+  edit(app);
+  await finish(app);
+  const after = snapOf(actor);
+  const state = app.builderState;
+  dialogs.length = 0; notes.info.length = 0; actor.calls.length = 0;
+  answer = false;
+  await undo(app);
+  assert.equal(dialogs.length, 1);
+  assert.deepEqual(actor.calls, []);
+  assert.equal(snapOf(actor), after);
+  assert.equal(app.builderState, state);
+  assert.deepEqual(notes.info, []);
+});
+
+test("Undo last save does nothing without an image or for a non-owner: no dialog, no write", async () => {
+  const actor = makeActor({ items: ITEMS() });
+  const app = await openOn(actor);
+  await undo(app);
+  assert.equal(dialogs.length, 0);
+  edit(app);
+  await finish(app);
+  dialogs.length = 0; actor.calls.length = 0;
+  actor.isOwner = false;
+  await undo(app);
+  assert.equal(dialogs.length, 0);
+  assert.deepEqual(actor.calls, []);
 });
