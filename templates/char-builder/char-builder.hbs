@@ -50,8 +50,8 @@
       <button type="button" class="sde-cb-btn nav" data-action="cb-next" {{#if nav.isLast}}disabled{{/if}}>
         {{localize "SDE.charBuilder.nav.next"}} <i class="fa-solid fa-caret-right"></i>
       </button>
-      <button type="button" class="sde-cb-btn nav finish{{#if nav.allComplete}} ready{{/if}}" data-action="cb-finish">
-        <i class="fa-solid fa-check"></i> {{localize "SDE.charBuilder.nav.finish"}}
+      <button type="button" class="sde-cb-btn nav finish{{#if nav.allComplete}} ready{{/if}}" data-action="cb-finish" {{#if nav.finishing}}disabled{{/if}}>
+        <i class="fa-solid fa-check"></i> {{#if nav.existing}}{{localize "SDE.charBuilder.existing.finish"}}{{else}}{{localize "SDE.charBuilder.nav.finish"}}{{/if}}
       </button>
     </div>
   </footer>

@@ -651,6 +651,13 @@ transactions, XP awards, encounter checks, combat) — there are no public
 ```js
 api.charBuilder.open();      // Character Builder window (singleton — an already-
                              // open builder is brought to front, not replaced)
+await api.charBuilder.open({ actor });  // edit an EXISTING character: GM or owner
+                             // only (others get the not-permitted message and
+                             // null). Loads the character with a frozen baseline;
+                             // Finish reads the live actor again, shows the diff,
+                             // takes a before-image, writes only what changed,
+                             // then reloads the builder from the actor (a fresh
+                             // baseline). A blank actor starts a fresh build.
 await api.charBuilder.appClass();  // the ShadowdarkCharBuilder Application class
 await api.charBuilder.describeActor(actor);  // read-only: logs what the builder
                              // would load from an existing actor and what it
@@ -672,7 +679,8 @@ await api.charBuilder.restoreBeforeImage(actor);  // GM or owner only: put the
                              // (call again, it does only what remains).
 ```
 
-Editing an existing actor (not wired to any button yet; internal modules under
+Editing an existing actor (`open({ actor })` above; no button yet, so the API
+and macros are the only way in; internal modules under
 `scripts/char-builder/`, not on the API object): `hydrateState` reads the actor
 into a builder state with a frozen baseline, `planCommit(existing, state, live)`
 decides what Finish would change, and `applyPlan(actor, plan)` writes it.
@@ -685,7 +693,11 @@ actor with the same builder state and apply again; a created item carries a
 `builderRow` marker, and one that is already on the actor counts as created. A
 quantity edit on a row an earlier Finish created is out of contract. Two
 overlapping `applyPlan` calls on one actor are refused with
-`ApplyInProgressError`.
+`ApplyInProgressError`. The builder's Finish does exactly this: it takes the
+before-image, applies the plan, and re-hydrates from the live actor whether the
+plan completed or threw `IncompleteError` (the message then names what did not
+land). Every field Finish can write is in the before-image's `ACTOR_KEYS`, so
+`restoreBeforeImage` covers it; add any new actor field there too.
 
 > Since the lazy-load pass, heavy feature UIs (builder, importer hub, forge,
 > loot apps, encounter roller, token-art manager) parse on first open instead
