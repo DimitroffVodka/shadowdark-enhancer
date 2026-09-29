@@ -490,15 +490,23 @@ page walks through it in order.
   Basic Gear, weapons and armor the importers wrote never appeared. It now
   lists the imported items pack as well, and the Manage tab's compendium
   browser can add from it. Items with no list price (the three Light Spell
-  stand-ins, the Basilisk Egg, most magic items) are no longer sold there for
-  free, and neither are the spells and talents in the imported pack or props
-  from treasure tables; a catalog buy of any of them is refused. Already
-  imported worlds need nothing: the shop reads what is there. To sell an
-  unpriced item, add it on the Manage tab with a price. The shipped **The
-  Merchant - Western Reaches** now stocks every priced Western Reaches gear
-  item in the imported pack instead of matching names, so items the importer
-  spells differently (Glow Paste, Jar; Rope, Morzo Silk) are no longer missing
-  from its Buy tab. (#291)
+  stand-ins, the Basilisk Egg, Thieves' Tools, the Holy Symbol, the five herbal
+  remedies and most magic items) are no longer sold there for free, and
+  neither are the spells and talents in the imported pack or props from
+  treasure tables; a catalog buy of any of them is refused. Already imported
+  worlds need nothing: the shop reads what is there. To sell an unpriced item,
+  add it on the Manage tab with a price. The Catalog is the player-facing tab,
+  and the imported items pack is GM-only in the compendium list but a player's
+  client can still read its index, so the Catalog lists every priced gear item
+  of every book the GM has imported, including books the table has not
+  reached; a GM who wants to hold a book's gear back stocks the Buy tab by
+  hand instead. The shipped **The Merchant - Western Reaches** now stocks every
+  priced Western Reaches gear item in the imported pack instead of matching
+  names, so items the importer spells differently (Glow Paste, Jar; Rope,
+  Morzo Silk) are no longer missing from its Buy tab, and it lists a document
+  once even when two of its entries resolve to it. The saved preset updates on
+  the next GM load; a shop already loaded from it keeps its old stock until
+  Manage > Load. (#291)
 
 - **Random ancestry no longer turns a Half-elf into an Elf.** A table result
   matched any ancestry whose name it contained, so the population d100's

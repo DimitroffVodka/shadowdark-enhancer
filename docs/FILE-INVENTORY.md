@@ -249,7 +249,7 @@
 | File | Lines | Description |
 |---|---:|---|
 | `merchant-shop.mjs` | 2731 | Two-mode shop system (compendium global or actor NPC inventory); GM opens for all players. |
-| `merchant-defaults.mjs` | 208 | The two shipped merchant configs (Base, Western Reaches). |
+| `merchant-defaults.mjs` | 209 | The two shipped merchant configs (Base, Western Reaches). |
 | `catalog-stock.mjs` | 37 | What the Catalog tab may sell: gear types with a list price, not loot-table props. |
 
 ### 3.10 `scripts/party-xp/`

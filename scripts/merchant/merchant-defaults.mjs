@@ -184,12 +184,13 @@ export async function buildDefaultMerchantConfigs() {
   const out = {};
   for (const def of DEFAULT_MERCHANTS) {
     const inventory = [];
+    const seen = new Set();
     for (const spec of DEFAULT_MERCHANT_ITEMS.filter(def.filter)) {
-       
+      // Two specs can resolve to one document (the name+type fallback); list it once, first spec wins.
       const entry = await _resolveEntry(spec);
-      if (entry) inventory.push(entry);
+      if (entry && !seen.has(entry.uuid)) { seen.add(entry.uuid); inventory.push(entry); }
     }
-    if (def.book) inventory.push(...await _bookStock(def.book, new Set(inventory.map((e) => e.uuid))));
+    if (def.book) inventory.push(...await _bookStock(def.book, seen));
     out[def.key] = {
       name: def.key,
       mode: "compendium",

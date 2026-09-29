@@ -15,7 +15,7 @@ const row = (id, name, type, gp, source, flags = {}) => ({
   system: { cost: { gp, sp: 0, cp: 0 }, source: { title: source } }, flags: { [MODULE_ID]: flags },
 });
 
-const ROWS = [
+const BASE_ROWS = [
   row("glow", "Glow Paste, Jar", "Basic", 2, "western-reaches", { imported: true }),
   row("rope", "Rope, Morzo Silk", "Basic", 50, "western-reaches", { imported: true }),
   row("mrs", "Mithral Round shield", "Armor", 60, "western-reaches", { imported: true }),
@@ -26,7 +26,7 @@ const ROWS = [
   row("cs", "Dried rose", "Basic", 1, "cursed-scroll-1", { imported: true }),
 ];
 
-async function build() {
+async function build(ROWS = BASE_ROWS) {
   const asDoc = (r) => ({ ...r, id: r._id, toObject: () => ({ name: r.name, type: r.type }) });
   const pack = {
     documentName: "Item",
@@ -53,4 +53,15 @@ test("the Western Reaches merchant stocks priced Western Reaches gear whatever t
 test("the Base merchant stocks none of it", async () => {
   const cfg = await build();
   assert.equal(cfg["The Merchant - Base"].inventory.length, 0);
+});
+
+test("two specs that resolve to one document list it once, in the first spec's place, the same on every build", async () => {
+  // The system Stave uuid is not in this world, so its name+type fallback lands on the world Stave the second spec names.
+  const stave = row("bsE1NB9e67PiroPt", "Stave", "Weapon", 1, "core");
+  const rows = [...BASE_ROWS, stave];
+  const a = (await build(rows))["The Merchant - Western Reaches"].inventory.map((e) => e.uuid);
+  const b = (await build(rows))["The Merchant - Western Reaches"].inventory.map((e) => e.uuid);
+  assert.equal(a.filter((u) => u === stave.uuid).length, 1);
+  assert.equal(new Set(a).size, a.length);
+  assert.deepEqual(a, b);
 });

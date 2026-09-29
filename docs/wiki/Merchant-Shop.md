@@ -42,10 +42,17 @@ depletes the NPC's actual stock.
 The Catalog tab sells at list price from the Shadowdark gear and magic-item
 packs and from your imported items (Western Reaches, the GM Guide, the
 Player's Guide, City of Masks). It lists gear that has a price. An item with no
-price (the Light Spell stand-ins, the Basilisk Egg, most magic items) is not
-for sale there, and neither are the spells and talents the importers keep in the
-same pack or the props that come out of treasure tables. To sell one anyway,
-add it on the **Manage** tab and give it a price of your own.
+price (the three Light Spell stand-ins, the Basilisk Egg, Thieves' Tools, the
+Holy Symbol, the five herbal remedies and most magic items) is not for sale
+there, and neither are the spells and talents the importers keep in the same
+pack or the props that come out of treasure tables. To sell one anyway, add it
+on the **Manage** tab and give it a price of your own.
+
+The Catalog is the tab your players see. Your imported items pack is GM-only in
+the compendium list, but a player's client can still read its contents, so the
+Catalog lists every priced gear item of every book you have imported, including
+books the table has not reached yet. To hold a book's gear back, stock the Buy
+tab by hand instead of relying on the Catalog.
 
 ---
 
@@ -99,7 +106,7 @@ The module includes two pre-configured merchant stock templates:
 | Preset | Inventory |
 |---|---|
 | **The Merchant - Base** | Standard Shadowdark core rulebook gear |
-| **The Merchant - Western Reaches** | Core gear plus every priced Western Reaches gear item you have imported (it picks up new imports by itself, until you save over it) |
+| **The Merchant - Western Reaches** | Core gear plus every priced Western Reaches gear item you have imported (the saved preset picks up new imports on the next GM load, until you save over it; a shop already loaded from it keeps its old stock until you press **Manage → Load** again) |
 
 New worlds load **The Merchant - Base** by default. You can switch presets or
 save your own custom merchant inventories under **Manage → Saved Merchants**.
