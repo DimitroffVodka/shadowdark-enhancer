@@ -695,6 +695,10 @@ page walks through it in order.
 
 ### Changed
 
+- **The Character Builder button on a character sheet is just its icon.** The
+  words took up room in a header that already holds several buttons, which made
+  the sheet hard to use. The person-plus icon stays, and hovering it still says
+  **Character Builder**.
 - **The Rules Data is a step in the Importer Hub, and the messages that need it
   say exactly what to press.** The Western Reaches lookup tables (hexes per
   day, terrain costs, hex visibility, climate, carousing and recruiting

@@ -18,7 +18,9 @@ export function registerBuilderEntryPoints() {
     buttons.unshift({
       class: "sde-char-builder-launch",
       icon: "fa-solid fa-user-plus",
-      label: "SDE.charBuilder.title",
+      // Icon only: the sheet header is tight, so the name is the hover tooltip.
+      label: "",
+      tooltip: "SDE.charBuilder.title",
       onclick: () => open(actor),
     });
   });

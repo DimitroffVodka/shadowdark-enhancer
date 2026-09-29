@@ -40,8 +40,10 @@ test("the sheet header control is added for a Player the user owns (a GM owns ev
     const actor = actorOf("Player");
     const found = sheetButtons(actor);
     assert.equal(found.length, 1);
-    assert.equal(found[0].label, "SDE.charBuilder.title");
-    assert.ok(en[found[0].label]);
+    // Icon only, so the sheet header stays short; the name shows as the tooltip.
+    assert.equal(found[0].label, "");
+    assert.equal(found[0].tooltip, "SDE.charBuilder.title");
+    assert.ok(en[found[0].tooltip]);
     opened.length = 0;
     found[0].onclick();
     assert.deepEqual(opened, [{ actor }]);
