@@ -26,8 +26,13 @@ test("Monsters tree keeps curated bestiaries and reconciles mounts across source
   assert.deepEqual(tree.children.map((node) => node.id), [
     "monsters/CS1", "monsters/CS2", "monsters/CS3",
     "monsters/CS4", "monsters/CS5", "monsters/CS6",
-    "monsters/GMWR", "monsters/mounts",
+    "monsters/GMWR", "monsters/warbands", "monsters/mounts",
   ]);
+
+  // The stock warbands (#201): eight rows, none imported here.
+  const warbands = tree.children.find((node) => node.id === "monsters/warbands");
+  assert.equal(warbands.entries.length, 8);
+  assert.ok(warbands.entries.every((entry) => entry.type === "Warband" && entry.pages === "250-251" && !entry.present));
 
   const mounts = tree.children.at(-1);
   assert.equal(mounts.have, 6);
@@ -116,4 +121,12 @@ test("a mount unlock keeps only its selected draft from the full WR spread", () 
     ["Horse, Prized"],
   );
   assert.deepEqual(selectMountDrafts(parsed, "Missing Mount"), []);
+});
+
+test("a stock warband is present only as a warband: an NPC of the same name doesn't count (#286 review)", () => {
+  const rows = [{ label: "CORE", missingNames: [] }];
+  const rabble = (actors) => _testBuildMonsters(rows, actors).children
+    .find((node) => node.id === "monsters/warbands").entries.find((entry) => entry.name === "Rabble");
+  assert.equal(rabble([{ name: "Rabble", source: "Custom", type: "NPC" }]).present, false);
+  assert.equal(rabble([{ name: "Rabble", source: "Western Reaches", type: "shadowdark-enhancer.warband" }]).present, true);
 });

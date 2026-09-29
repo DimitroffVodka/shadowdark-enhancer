@@ -646,8 +646,44 @@ function _findFullWidthLowerBand(its, W) {
   return null;
 }
 
+/**
+ * Find a full-width upper band above two columns: the mirror of
+ * _findFullWidthLowerBand. PGWR p.250 prints the 18 warband upgrades one per
+ * full-width line above the two Melee stat blocks. "auto" finds no gutter
+ * there and welds the blocks; "2" cuts the upgrade lines and glues their right
+ * halves onto a talent, with no warning. The first row boundary whose lower
+ * part reads as clean columns decides: the part above must cross that gutter
+ * at least three times and have no gutter of its own. Opt-in ("topband") only:
+ * applied everywhere it would re-read 33 pages across the books, several of
+ * them tables that pin their own mode.
+ * @returns {{boundaryY:number, gutter:number}|null}
+ */
+function _findFullWidthUpperBand(its, W) {
+  if (its.length < 12) return null;
+  const rows = _yLineGroups(its);
+  for (let k = 1; k < rows.length; k++) {
+    const boundaryY = (rows[k - 1].y + rows[k].y) / 2;
+    const lower = its.filter((i) => i.transform[5] < boundaryY);
+    const gutter = detectGutter(lower, W, "auto");
+    if (gutter == null) continue;
+    const crosses = (i) => i.transform[4] < gutter && i.transform[4] + i.width > gutter;
+    if (lower.some(crosses)) continue;
+    const upper = its.filter((i) => i.transform[5] >= boundaryY);
+    if (upper.filter(crosses).length >= 3 && detectGutter(upper, W, "auto") == null) return { boundaryY, gutter };
+    return null;
+  }
+  return null;
+}
+
 /** Reconstruct reading-order lines from positioned PDF.js text items. */
 function layoutPageItems(its, W, mode) {
+  if (mode === "topband") {
+    const band = _findFullWidthUpperBand(its, W);
+    if (!band) return layoutPageItems(its, W, "auto");
+    const upper = its.filter((i) => i.transform[5] >= band.boundaryY);
+    const lower = its.filter((i) => i.transform[5] < band.boundaryY);
+    return { gutter: band.gutter, lines: [...columnLines(upper), ...layoutPageItems(lower, W, "auto").lines] };
+  }
   if (mode === "auto") {
     const band = _findFullWidthLowerBand(its, W);
     if (band) {
@@ -744,9 +780,10 @@ async function extractPageLines(page, mode, { cropTablePrefix = false } = {}) {
  * @param {string} filePath  served path to the user's PDF (data-relative)
  * @param {object} [opts]
  * @param {number[]} [opts.pages]     1-based PDF page numbers (default: [1])
- * @param {"auto"|"1"|"2"|"2mid"|"layout"|"2layout"} [opts.columns="auto"]
+ * @param {"auto"|"1"|"2"|"2mid"|"layout"|"2layout"|"topband"} [opts.columns="auto"]
  *        column handling. "2layout" splits like "auto" AND pads like "layout",
- *        for a page printing two grids side by side.
+ *        for a page printing two grids side by side. "topband" reads a
+ *        full-width band above two columns (PGWR p.250), else as "auto".
  * @param {boolean} [opts.cropTablePrefix=false]  drop a leading full-width
  *        price-table block before column detection (shared gear pages)
  * @returns {Promise<{text:string, numPages:number, warnings:string[],
@@ -798,6 +835,7 @@ export const _internals = {
   columnLines,
   layoutPageItems,
   _findFullWidthLowerBand,
+  _findFullWidthUpperBand,
   _gutterRiskItems,
   _yLineGroups,
   _cropTablePrefix,

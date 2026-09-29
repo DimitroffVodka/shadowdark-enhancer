@@ -27,6 +27,8 @@
  * re-renders, in both worlds.
  */
 
+import { MODULE_ID } from "../shared/module-id.mjs";
+
 /**
  * The plain shape these helpers operate on. `combatantEntry` builds one from a
  * Combatant, but any object with these four fields works (that is the point —
@@ -40,6 +42,11 @@
  * @property {boolean} [dead]    The actor carries core's `dead` status. Only
  *                               read for PCs: a dead PC keeps its card (the
  *                               skull) but has no turn (dying.mjs, #181).
+ * @property {boolean} [follows] A warband unit whose commander is in the same
+ *                               combat with a turn to take: it acts on the
+ *                               commander's turn, so it keeps its card but has
+ *                               no turn of its own (#203). With the commander
+ *                               dead, or skipped as defeated, it takes its own.
  */
 
 /**
@@ -61,7 +68,40 @@ export function combatantEntry(combatant) {
     defeated: combatant?.defeated === true,
     hp: actor?.system?.attributes?.hp?.value ?? actor?.system?.hp?.value ?? 1,
     dead: actor?.statuses?.has?.("dead") === true,
+    follows: !!leaderCombatant(combatant),
   };
+}
+
+/** The Warbands' unit type, as register-actors.mjs names it from the package id: this file stays Foundry-free. */
+const WARBAND_TYPE = `${MODULE_ID}.warband`;
+
+/**
+ * The combatant of a warband's commander in the same combat, or null: a
+ * warband acts on its commander's turn (#203). Duck-typed like the rest.
+ * @param {object} combatant
+ * @returns {object|null}
+ */
+export function commanderCombatant(combatant) {
+  const actor = combatant?.actor;
+  const commander = actor?.type === WARBAND_TYPE ? actor.flags?.["shadowdark-enhancer"]?.warband?.commander : null;
+  if (!commander) return null;
+  const all = combatant?.parent?.combatants ?? combatant?.combat?.combatants ?? [];
+  return [...all].find((c) => c !== combatant && c.actor?.uuid === commander) ?? null;
+}
+
+/**
+ * The commander's combatant when the warband acts on the commander's turn:
+ * the commander has a turn to take (not dead, not skipped by core's Skip
+ * Defeated). Otherwise null, and the warband takes its own turns. The
+ * commander is a PC, so reading its entry never comes back here.
+ * @param {object} combatant
+ * @returns {object|null}
+ */
+export function leaderCombatant(combatant) {
+  const cmd = commanderCombatant(combatant);
+  if (!cmd || isTurnless(combatantEntry(cmd))) return null;
+  if (cmd.isDefeated === true && cmd.parent?.settings?.skipDefeated === true) return null;
+  return cmd;
 }
 
 /**
@@ -93,7 +133,7 @@ export function isHiddenFromStrip(entry) {
  * @returns {boolean}
  */
 export function isTurnless(entry) {
-  return isHiddenFromStrip(entry) || (entry.isPlayer && entry.dead === true);
+  return isHiddenFromStrip(entry) || (entry.isPlayer && entry.dead === true) || entry.follows === true;
 }
 
 /**

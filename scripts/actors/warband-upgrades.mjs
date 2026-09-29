@@ -1,0 +1,126 @@
+/**
+ * Shadowdark Enhancer — what a warband's upgrades do (#201, PGWR p.250).
+ *
+ * Armor Upgrade, Tough, Training and Weapons Upgrade change numbers on the
+ * sheet. Each is written into the stored field it changes, in the same update
+ * that ticks the box, and taken off by the same amount when it's unticked.
+ * Not an Active Effect: an NPC's attack reads only its item's own fields, and
+ * the NPC sheet drops an edit to a field an effect overrides. The attacks it
+ * raised are marked (`warbandUpgrade` flag), so unticking lowers only those.
+ *
+ * Every upgrade's book text is read once from the GM's PDF into a world
+ * setting, which every client reads for the sheet's hovers.
+ */
+
+import { MODULE_ID } from "../shared/module-id.mjs";
+import { makeQueue } from "../quests/quest-core.mjs";
+import { UPGRADES, cleanUpgrades, upgradeActorChanges, upgradeAttackChanges, parseUpgradeLines } from "./warband-core.mjs";
+
+export const UPGRADE_TEXT_SETTING = "warbandUpgradeText";
+const ATTACK_FLAG = "warbandUpgrade";
+const ATTACK_TYPES = new Set(["NPC Attack", "NPC Special Attack"]);
+/** The upgrades that change attacks. */
+const ATTACK_UPGRADES = ["training", "weaponsUpgrade"];
+
+/**
+ * Every warband write on this client, one at a time (#283, #286 reviews):
+ * each re-reads its warband, the shared allowance and the attacks' marks when
+ * its turn comes, so quick ticks, two warbands, and an attack added in between
+ * can't part them.
+ */
+// ponytail: one client's queue; two GMs writing one warband at the same instant can still race.
+export const warbandWrites = makeQueue();
+
+const t = (key, data) => (data ? game.i18n.format(key, data) : game.i18n.localize(key));
+
+/** The book text for each upgrade the GM has read in: key → text. */
+export function upgradeText() {
+  try { return game.settings.get(MODULE_ID, UPGRADE_TEXT_SETTING) ?? {}; } catch { return {}; }
+}
+
+/** Save what a p.250 read found over what's stored; a short read says so. Returns the count stored. */
+export async function saveUpgradeText(text) {
+  const found = parseUpgradeLines(text);
+  if (!Object.keys(found).length) return 0;
+  const merged = { ...upgradeText(), ...found };
+  const n = Object.keys(merged).length;
+  await game.settings.set(MODULE_ID, UPGRADE_TEXT_SETTING, merged);
+  if (n < UPGRADES.length) ui.notifications?.warn(t("SDE.warband.notify.textPartial", { n, of: UPGRADES.length }));
+  else ui.notifications?.info(t("SDE.warband.notify.textRead"));
+  return n;
+}
+
+/** Read the upgrades' text from the Player's Guide p.250 (GM). */
+export async function readUpgradeText() {
+  if (!game.user.isGM) return 0;
+  const { sourcePdfTarget } = await import("../importer/source-pdf-registry.mjs");
+  const target = sourcePdfTarget("WR", "250");
+  if (!target) {
+    ui.notifications?.warn(t("SDE.warband.notify.noPdf"));
+    return 0;
+  }
+  const { extractPdfText, notifyGutterWarnings } = await import("../importer/pdf-text-extract.mjs");
+  let result;
+  try {
+    result = await extractPdfText(target.file, { pages: [target.page], columns: "topband" });
+  } catch (err) {
+    console.error(`${MODULE_ID} | warband upgrade text`, err);
+    ui.notifications?.error(t("SDE.importer.pdf.readPageFailed", { error: err?.message || err }));
+    return 0;
+  }
+  notifyGutterWarnings(result);
+  const n = await saveUpgradeText(result.text);
+  if (!n) ui.notifications?.warn(t("SDE.warband.notify.textNotFound"));
+  return n;
+}
+
+/**
+ * The upgrade's numbers onto (`on`) or off the warband: the actor's own fields
+ * in `extra`, for the caller to write with the flag in one update, then its
+ * attacks. Reads stored values, so no effect's change is written in.
+ * @returns {{extra: object, attacks: () => Promise<void>}}
+ */
+export function upgradeWrites(actor, key, on) {
+  const a = actor._source.system.attributes;
+  const extra = upgradeActorChanges(key, on, { ac: Number(a.ac?.value) || 0, hpMax: Number(a.hp?.max) || 0, hpValue: Number(a.hp?.value) || 0 });
+  const attacks = async () => {
+    const updates = [];
+    for (const item of actor.items) {
+      if (!ATTACK_TYPES.has(item.type)) continue;
+      const marked = !!item.getFlag(MODULE_ID, ATTACK_FLAG)?.[key];
+      if (marked === on) continue;
+      const src = item._source.system;
+      const changes = upgradeAttackChanges(key, on, { attackBonus: src.bonuses?.attackBonus, damage: src.damage?.value });
+      if (changes === null) return;
+      if (on && !Object.keys(changes).length) continue;
+      updates.push({ _id: item.id, ...changes, [`flags.${MODULE_ID}.${ATTACK_FLAG}.${key}`]: on });
+    }
+    if (updates.length) await actor.updateEmbeddedDocuments("Item", updates);
+  };
+  return { extra, attacks };
+}
+
+/**
+ * Bring every attack in line with the ticked upgrades, by each attack's marks
+ * (#286 review): a write that failed part way, or an attack added after the
+ * tick, is put right by the next pass. Changes nothing when all is in line.
+ */
+export async function syncAttacks(actor, upgrades) {
+  for (const key of ATTACK_UPGRADES) await upgradeWrites(actor, key, upgrades.includes(key)).attacks();
+}
+
+/** The setting, and new attacks taking the upgrades. Must run in `init`. */
+export function registerWarbandUpgrades() {
+  // An attack added to a warband takes the upgrades already ticked (#286 review).
+  Hooks.on("createItem", (item, _options, userId) => {
+    const actor = item.parent;
+    if (userId !== game.user.id || actor?.type !== `${MODULE_ID}.warband` || !ATTACK_TYPES.has(item.type)) return;
+    warbandWrites(() => syncAttacks(actor, cleanUpgrades(actor.getFlag(MODULE_ID, "warband")?.upgrades)))
+      .catch((err) => console.error(`${MODULE_ID} | warband attack upgrades`, err));
+  });
+  game.settings.register(MODULE_ID, UPGRADE_TEXT_SETTING, {
+    scope: "world", config: false, type: Object, default: {},
+    // Every open warband sheet shows the new hovers.
+    onChange: () => { for (const app of Object.values(ui.windows)) if (app.actor?.type === `${MODULE_ID}.warband`) app.render(false); },
+  });
+}

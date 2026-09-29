@@ -13,6 +13,7 @@
  * `enrichEncounterText`) are Foundry-free and unit-tested.
  */
 
+import { MODULE_ID } from "../../shared/module-id.mjs";
 import { findMonsterPack } from "./monster-pack.mjs";
 import { findSuitePack } from "../../shared/compendium-suite.mjs";
 import { enrichContextualText, enrichDice } from "../../shared/contextual-enricher.mjs";
@@ -137,6 +138,9 @@ export const MonsterLinker = {
     const idx = await pack.getIndex();
     for (const e of idx.contents) {
       if (!e?.name) continue;
+      // A stock warband (#201) is a mass-combat unit, not an encounter monster:
+      // "2d6 berserkers" must link core Berserker, not the Berserkers warband.
+      if (e.type === `${MODULE_ID}.warband`) continue;
       const key = e.name.toLowerCase();
       if (!byName.has(key)) byName.set(key, { name: e.name, uuid: e.uuid });
     }

@@ -43,15 +43,34 @@
 				{{#if warband.allowance}}
 					<p class="sde-warband-allowance">{{warband.allowance.warbands}} · {{warband.allowance.upgrades}}</p>
 				{{/if}}
+				{{#if warband.commander}}
+					<label class="checkbox sde-warband-leading" title="{{localize 'SDE.warband.leadingTip'}}"><input type="checkbox" data-sde-leading {{#if warband.leading}}checked{{/if}} {{#unless editable}}disabled{{/unless}} /> {{localize "SDE.warband.leading"}}</label>
+				{{/if}}
+				{{#if warband.routed}}<p class="sde-warband-alert"><i class="fa-solid fa-skull"></i> {{localize "SDE.warband.routedLine"}}</p>{{/if}}
+			{{/ui/sd-box}}
+
+			{{#> ui/sd-box header-label=(localize "SDE.warband.upkeepHead")}}
+				{{#if warband.deserted}}<p class="sde-warband-alert"><i class="fa-solid fa-person-running"></i> {{localize "SDE.warband.desertedLine"}}</p>{{/if}}
+				<p>{{warband.upkeep}}</p>
+				{{#if warband.arrears}}<p class="sde-warband-alert">{{warband.arrears}}</p>{{/if}}
+				{{#if warband.retraining}}<p>{{warband.retraining}}</p>{{/if}}
+				{{#if warband.isGM}}
+					<div class="sde-veh-occ-actions">
+						<button type="button" class="sde-veh-btn" data-sde-action="run-month" title="{{localize 'SDE.warband.runMonthTip'}}"><i class="fa-solid fa-coins"></i> {{localize "SDE.warband.runMonth"}}</button>
+						{{#if warband.arrears}}<button type="button" class="sde-veh-btn" data-sde-action="pay-arrears"><i class="fa-solid fa-hand-holding-dollar"></i> {{localize "SDE.warband.payArrears"}}</button>{{/if}}
+						{{#if warband.outOfService}}<button type="button" class="sde-veh-btn" data-sde-action="return-to-service" title="{{localize 'SDE.warband.returnToServiceTip'}}"><i class="fa-solid fa-flag"></i> {{localize "SDE.warband.returnToService"}}</button>{{/if}}
+					</div>
+				{{/if}}
 			{{/ui/sd-box}}
 
 			{{#> ui/sd-box header-label=(localize "SDE.warband.upgrades")}}
 				{{#if warband.noCommanderCap}}<p class="sde-warband-allowance">{{warband.noCommanderCap}}</p>{{/if}}
 				<div class="sde-warband-upgrades">
 					{{#each warband.upgrades}}
-						<label class="checkbox"><input type="checkbox" data-sde-upgrade="{{key}}" {{#if checked}}checked{{/if}} {{#unless ../editable}}disabled{{/unless}} /> {{label}}</label>
+						<label class="checkbox" {{#if tip}}data-tooltip-text="{{tip}}"{{/if}}><input type="checkbox" data-sde-upgrade="{{key}}" {{#if checked}}checked{{/if}} {{#unless ../editable}}disabled{{/unless}} /> {{label}}</label>
 					{{/each}}
 				</div>
+				{{#if warband.textMissing}}<button type="button" class="sde-veh-btn" data-sde-action="read-upgrade-text" title="{{localize 'SDE.warband.readTextTip'}}"><i class="fa-solid fa-book-open"></i> {{localize "SDE.warband.readText"}}</button>{{/if}}
 			{{/ui/sd-box}}
 
 			{{#> ui/sd-box header-label=(localize "SDE.warband.rules")}}

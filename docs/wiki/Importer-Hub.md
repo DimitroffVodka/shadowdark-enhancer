@@ -195,8 +195,9 @@ tables in sequence).
   automatically when new maps ship.
 - **Curated item icons:** Mapped weapons, armor, basic gear, and treasure
   receive reviewed Foundry-native icons.
-- **Mount & property folders:** Mount actors are organized into a `Mounts`
-  folder in `sde-actors`. Canonical Western Reaches weapon properties (*Blast*,
+- **Mount, warband & property folders:** Mount actors are organized into a
+  `Mounts` folder in `sde-actors`, and the stock [warbands](Warbands.md) into
+  `Warbands`. Canonical Western Reaches weapon properties (*Blast*,
   *Exploding*, and the Lance *Charge*/*Devastating*/*Mounted* triple) are filed
   in `Western Reaches / Weapon Properties`.
 

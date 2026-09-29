@@ -53,3 +53,13 @@ export function selectMountDrafts(parsed, selectedName) {
   return (parsed ?? []).filter((entry) =>
     [...mountNameKeys(entry?.draft?.name)].some((key) => wanted.has(key)));
 }
+
+/**
+ * Whether a pack entry already holds this creature: the same name, and for a
+ * stock warband the warband type too, since an NPC of the same name is another
+ * actor (#286 review). A mount still counts an NPC of its name, as the Manage
+ * tree does.
+ */
+export function alreadyImported(entry, { name, type }, kind) {
+  return (entry?.name ?? "").toLowerCase() === String(name ?? "").toLowerCase() && (kind !== "Warband" || entry?.type === type);
+}

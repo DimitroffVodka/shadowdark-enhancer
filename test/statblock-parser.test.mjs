@@ -252,3 +252,16 @@ test("ATK keeps the book's 'or' / 'and' through the notes builder", () => {
   ].join("\n");
   assert.equal(buildAtkText(parseStatblock(BRUTE).draft), "2 claw +3 (1d6) and 1 bite +3 (1d8)");
 });
+
+test("AL * (a stock warband's: its creatures' own) keeps N without a warning", () => {
+  const block = [
+    "RABBLE",
+    "A placeholder crowd.",
+    "AC 10, HP 16, ATK 1 club +0 (3d4), MV near,",
+    "S +0, D +0, C +0, I +0, W +0, Ch +0, AL *, LV 2",
+  ].join("\n");
+  const { monsters } = splitStatblocks(block);
+  const { draft, warnings } = parseStatblock(monsters[0]);
+  assert.equal(draft.alignment, "N");
+  assert.deepEqual(warnings.filter((w) => /alignment/.test(w)), []);
+});

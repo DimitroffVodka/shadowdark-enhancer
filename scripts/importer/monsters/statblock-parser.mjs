@@ -494,7 +494,9 @@ export function parseStatblock(chunk) {
   // leading initial and consuming the optional remainder — the old trailing \b
   // after a single letter failed on "AL Lawful" and silently defaulted to N.
   const al = /\bAL\s+([LNC])(?:awful|eutral|haotic)?\b/i.exec(statLine);
-  if (al) draft.alignment = al[1].toUpperCase(); else warnings.push("alignment not found");
+  // "AL *" (PGWR's stock warbands) is the creatures' own, so it varies: keep N, no warning.
+  if (al) draft.alignment = al[1].toUpperCase();
+  else if (!/\bAL\s+\*/i.test(statLine)) warnings.push("alignment not found");
 
   const lv = /\bLV\s+(\d+)(?:\s*\/\s*(\d+))?/i.exec(statLine);
   if (lv) {

@@ -95,13 +95,14 @@ async function _liveActorRecords() {
   const docs = await pack.getDocuments();
   return docs.map((actor) => ({
     name:   actor.name ?? "",
+    type:   actor.type ?? "",
     source: effectiveSource(actor),
     uuid:   actor.uuid,
     date:   actor._stats?.modifiedTime ?? null,
   }));
 }
 
-/** Public: live sde-actors records ({name, source, uuid, date}) — used by the
+/** Public: live sde-actors records ({name, type, source, uuid, date}) — used by the
  *  Manage tree to enumerate already-imported monsters per source. */
 export async function liveActorRecords() {
   return _liveActorRecords();

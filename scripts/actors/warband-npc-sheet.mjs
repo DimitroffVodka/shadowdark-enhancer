@@ -16,24 +16,30 @@
 import { MODULE_ID } from "../shared/module-id.mjs";
 import { replaceModuleFlag } from "../shared/module-flags.mjs";
 import { martialTierForHitDie } from "../downtime/downtime-core.mjs";
-import { makeQueue } from "../quests/quest-core.mjs";
+import { secondsPerDay } from "../time/time-core.mjs";
+import { format as formatTime } from "../time/time.mjs";
 import { authorizeActorFor, isActiveGM, queryActiveGM, refuseQuery, registerQuery } from "../shared/gm-relay.mjs";
 import {
-  UPGRADES, MOST_UPGRADES, allowanceFor, cleanUpgrades, commandRefusal, upgradeRefusal,
+  UPGRADES, MOST_UPGRADES, allowanceFor, cleanUpgrades, commandRefusal, upgradeRefusal, upkeepGp,
 } from "./warband-core.mjs";
+import { upgradeText, upgradeWrites, readUpgradeText, syncAttacks, warbandWrites } from "./warband-upgrades.mjs";
 
 export const WARBAND_FLAG = "warband";
+
+/** The upkeep controls the writer runs (warband-upkeep.mjs upkeepWrite). */
+const UPKEEP_ACTIONS = new Set(["runMonth", "payArrears", "returnToService"]);
 
 /** The active GM's writer for every commander and upgrade change (#283 review). */
 export const WARBAND_QUERY = `${MODULE_ID}.warbandWrite`;
 
 /**
  * Commander and upgrade changes, one at a time, on one client: the active
- * GM's. Every GM's sheet sends its change there (sendWarbandWrite), where the
- * warband and its commander's other warbands are read afresh and the
- * allowance checked, so neither quick ticks nor two GMs at once get past it.
+ * GM's, on the one warband queue (warband-upgrades.mjs warbandWrites). Every
+ * GM's sheet sends its change there (sendWarbandWrite), where the warband and
+ * its commander's other warbands are read afresh and the allowance checked,
+ * so neither quick ticks nor two GMs at once get past it.
  */
-const warbandWrites = makeQueue();
+export { warbandWrites };
 
 /** Register the writer the other clients' sheets call. Call at init. */
 export function registerWarbandWrites(type) {
@@ -56,14 +62,29 @@ function sendWarbandWrite(data, type) {
  * making it again changes nothing and answers the same: an upgrade already ticked is a success.
  * @returns {Promise<{ok:boolean, warn?:{key:string, data:object}, error?:string}>}
  */
-async function applyWarbandWrite({ action, actorId, pcUuid = null, key, on }, user, type) {
+async function applyWarbandWrite(data, user, type) {
+  // The payload comes off the wire from any player who owns a warband: every field is checked for its type first.
+  const { action, actorId, pcUuid = null, key, on } = data && typeof data === "object" ? data : {};
+  if (typeof action !== "string" || typeof actorId !== "string") return { ok: false };
+  if (pcUuid !== null && typeof pcUuid !== "string") return { ok: false };
+  if (action === "upgrade" && (typeof key !== "string" || typeof on !== "boolean")) return { ok: false };
+  // The Warband tab's upkeep controls, a GM's (#204): on this same queue, so they and the ticks never interleave.
+  if (UPKEEP_ACTIONS.has(action)) {
+    if (!user?.isGM) return { ok: false };
+    const wb = action === "runMonth" ? null : authorizeActorFor(actorId, user, { type });
+    if (wb && !wb.ok) return wb;
+    const { upkeepWrite } = await import("./warband-upkeep.mjs");
+    return upkeepWrite(action, wb?.actor ?? null, type);
+  }
   const auth = authorizeActorFor(actorId, user, { type });
   if (!auth.ok) return auth;
   const actor = auth.actor;
   const state = warbandState(actor);
   if (action === "commander") {
     const pc = pcUuid ? await fromUuid(pcUuid).catch(() => null) : null;
-    if (pcUuid && pc?.type !== "Player") return { ok: false, warn: { key: "SDE.warband.notify.commanderPc", data: {} } };
+    // A world PC the requester owns (a GM: any): one in a compendium has no coins to pay upkeep from, and the upkeep
+    // takes the commander's gold, so a player can't name another player's PC (the sheet's drop checks the same, sooner).
+    if (pcUuid && (pc?.type !== "Player" || pc.pack || (!user?.isGM && !pc.testUserPermission(user, "OWNER")))) return { ok: false, warn: { key: "SDE.warband.notify.commanderPc", data: {} } };
     let warn;
     if (pc) {
       const allowance = allowanceFor(await commanderTier(pc));
@@ -71,12 +92,22 @@ async function applyWarbandWrite({ action, actorId, pcUuid = null, key, on }, us
       if (refusal) return { ok: false, warn: { key: REFUSAL_KEYS[refusal], data: { name: pc.name, max: allowance[refusal] } } };
       if (!allowance) warn = { key: "SDE.warband.notify.noHitDie", data: { name: pc.name } };
     }
-    await replaceModuleFlag(actor, WARBAND_FLAG, { ...state, commander: pc?.uuid ?? null });
+    // Leading is the commander's choice: a new commander (or none) starts without it.
+    const leading = state.leading && (pc?.uuid ?? null) === state.commander;
+    await replaceModuleFlag(actor, WARBAND_FLAG, { ...state, commander: pc?.uuid ?? null, leading });
     return { ok: true, warn };
   }
+  if (action === "leading") {
+    await replaceModuleFlag(actor, WARBAND_FLAG, { ...state, leading: !!on });
+    return { ok: true };
+  }
   if (action !== "upgrade") return { ok: false };
+  // Already so (a box drawn stale, or a write that failed part way): only the attacks are put in line (#286).
+  if (on === state.upgrades.includes(key)) {
+    await syncAttacks(actor, state.upgrades);
+    return { ok: true };
+  }
   if (on) {
-    if (state.upgrades.includes(key)) return { ok: true };
     const pc = state.commander ? await fromUuid(state.commander).catch(() => null) : null;
     const allowance = pc ? allowanceFor(await commanderTier(pc)) : null;
     const { otherUpgrades } = pc ? commandedBy(pc.uuid, { except: actor.id, type }) : { otherUpgrades: 0 };
@@ -87,7 +118,15 @@ async function applyWarbandWrite({ action, actorId, pcUuid = null, key, on }, us
     }
   }
   const upgrades = on ? cleanUpgrades([...state.upgrades, key]) : state.upgrades.filter((k) => k !== key);
-  await replaceModuleFlag(actor, WARBAND_FLAG, { ...state, upgrades });
+  // A warband in service retrains for a week after its upgrades change, and can't fight until then (#204).
+  // A week of the calendar's own, as the arrears weeks count it (warband-upkeep.mjs).
+  const week = game.time.calendar?.days?.values?.length || 7;
+  const retrainingUntil = state.commander ? game.time.worldTime + week * secondsPerDay(game.time.calendar) : state.retrainingUntil;
+  // Its numbers go on or off in the same update (#201); the attacks follow the list as stored, and if
+  // that fails, the next pass puts them right.
+  const { extra } = upgradeWrites(actor, key, on);
+  await replaceModuleFlag(actor, WARBAND_FLAG, { ...state, upgrades, retrainingUntil }, extra);
+  await syncAttacks(actor, upgrades);
   return { ok: true };
 }
 
@@ -106,11 +145,40 @@ const REFUSAL_KEYS = {
   duplicate: "SDE.warband.notify.duplicate", unknown: "SDE.warband.notify.unknownUpgrade",
 };
 
-/** A warband's state, cleaned: `{ commander: uuid|null, upgrades: string[] }`. */
+/** A list of month keys or week starts, whole numbers once each in order. */
+const marks = (v) => (Array.isArray(v) ? [...new Set(v.filter(Number.isFinite))].sort((a, b) => a - b) : []);
+
+/**
+ * A warband's state, cleaned, every field kept so a whole-flag write loses
+ * none: `{ commander: uuid|null, upgrades: string[], arrears: gp owed,
+ * deserted: bool, retrainingUntil: worldTime|null, leading: bool, routed: bool,
+ * settledMonths: number[], moraleWeeks: number[], payment: object|null }` (#200, #203, #204).
+ */
 export function warbandState(actor) {
   const f = actor?.getFlag?.(MODULE_ID, WARBAND_FLAG) ?? {};
-  return { commander: typeof f.commander === "string" ? f.commander : null, upgrades: cleanUpgrades(f.upgrades) };
+  return {
+    commander: typeof f.commander === "string" ? f.commander : null,
+    upgrades: cleanUpgrades(f.upgrades),
+    arrears: Math.max(0, Math.trunc(Number(f.arrears) || 0)),
+    deserted: !!f.deserted,
+    retrainingUntil: Number.isFinite(f.retrainingUntil) ? f.retrainingUntil : null,
+    leading: !!f.leading,
+    routed: !!f.routed,
+    // The month and week starts whose upkeep and arrears check are done, the last few of each: a retry
+    // does neither twice, and a later month settled never hides an earlier one still owed (#284 review).
+    settledMonths: marks(f.settledMonths),
+    moraleWeeks: marks(f.moraleWeeks),
+    payment: cleanPayment(f.payment),
+  };
 }
+
+/**
+ * The payment in flight, marked before its gold is taken: `{ id, pc: uuid, before, cost, month }`, `before`
+ * the commander's purse and `cost` the price in copper, `month` the month key it settles (null: the arrears).
+ * Whole with the mark in one write, so a client lost between the mark and the purse leaves both (#284 review).
+ */
+const cleanPayment = (p) => (typeof p?.id === "string" && typeof p.pc === "string" && Number.isFinite(p.before) && Number.isFinite(p.cost)
+  ? { id: p.id, pc: p.pc, before: p.before, cost: p.cost, month: Number.isFinite(p.month) ? p.month : null } : null);
 
 /** The allowance tier of a PC, from its class's hit die: "d4" | "d6" | "d8plus" | null. */
 export async function commanderTier(pc) {
@@ -120,7 +188,9 @@ export async function commanderTier(pc) {
 
 /** The world's other warbands under this commander, and the upgrades they carry. */
 export function commandedBy(commanderUuid, { except, type }) {
-  const others = game.actors.filter((a) => a.type === type && a.id !== except && warbandState(a).commander === commanderUuid);
+  // A routed warband is destroyed (#203): it no longer counts.
+  const others = game.actors.filter((a) => a.type === type && a.id !== except && !warbandState(a).routed
+    && warbandState(a).commander === commanderUuid);
   return { otherWarbands: others.length, otherUpgrades: others.reduce((n, a) => n + warbandState(a).upgrades.length, 0) };
 }
 
@@ -150,17 +220,32 @@ export function buildWarbandNpcSheet(BaseNpcSheet, type) {
       const allowance = allowanceFor(tier);
       const { otherWarbands, otherUpgrades } = pc ? commandedBy(pc.uuid, { except: this.actor.id, type }) : { otherWarbands: 0, otherUpgrades: 0 };
       const cha = pc?.system?.abilities?.cha?.mod ?? null;
+      const tips = upgradeText();
       context.warband = {
         commander: pc ? { uuid: pc.uuid, name: pc.name, img: pc.img } : null,
         commanderMissing: !!state.commander && !pc,
         tier: tier ? game.i18n.localize(TIER_KEYS[tier]) : null,
         allowance: allowance ? {
-          warbands: game.i18n.format("SDE.warband.allowance.warbands", { used: otherWarbands + 1, max: allowance.warbands }),
-          upgrades: game.i18n.format("SDE.warband.allowance.upgrades", { used: otherUpgrades + state.upgrades.length, max: allowance.upgrades }),
+          // A routed warband counts against no one's allowance, its own sheet's included (#285 review).
+          warbands: game.i18n.format("SDE.warband.allowance.warbands", { used: otherWarbands + (state.routed ? 0 : 1), max: allowance.warbands }),
+          upgrades: game.i18n.format("SDE.warband.allowance.upgrades", {
+            used: otherUpgrades + (state.routed ? 0 : state.upgrades.length), max: allowance.upgrades,
+          }),
         } : null,
         noCommanderCap: !allowance ? game.i18n.format("SDE.warband.allowance.noCommander", { max: MOST_UPGRADES }) : null,
         morale: cha === null ? null : game.i18n.format("SDE.warband.moraleBonus", { bonus: `${cha >= 0 ? "+" : ""}${cha}` }),
-        upgrades: UPGRADES.map((key) => ({ key, label: game.i18n.localize(UPGRADE_KEYS[key]), checked: state.upgrades.includes(key) })),
+        upgrades: UPGRADES.map((key) => ({ key, label: game.i18n.localize(UPGRADE_KEYS[key]), checked: state.upgrades.includes(key), tip: tips[key] ?? "" })),
+        textMissing: game.user.isGM && Object.keys(tips).length < UPGRADES.length,
+        // #204: upkeep, arrears, desertion and retraining.
+        upkeep: game.i18n.format("SDE.warband.upkeepLine", { gp: upkeepGp(this.actor.system.level?.value) }),
+        arrears: state.arrears ? game.i18n.format("SDE.warband.arrearsLine", { gp: state.arrears }) : null,
+        deserted: state.deserted,
+        retraining: state.retrainingUntil > game.time.worldTime
+          ? game.i18n.format("SDE.warband.retrainingLine", { date: formatTime(state.retrainingUntil) }) : null,
+        isGM: game.user.isGM,
+        leading: state.leading,
+        routed: state.routed,
+        outOfService: state.deserted || state.routed,
       };
       return context;
     }
@@ -172,6 +257,17 @@ export function buildWarbandNpcSheet(BaseNpcSheet, type) {
         el.addEventListener("click", () => this._openCommander()));
       root.querySelectorAll("[data-sde-action='clear-commander']").forEach((el) =>
         el.addEventListener("click", () => this._setCommander(null)));
+      // #204: the GM's upkeep controls, sent to the active GM's warband writer like every other change.
+      for (const [selector, action] of [["run-month", "runMonth"], ["pay-arrears", "payArrears"], ["return-to-service", "returnToService"]]) {
+        root.querySelectorAll(`[data-sde-action='${selector}']`).forEach((el) => el.addEventListener("click", () => this._sendWrite({ action })));
+      }
+      root.querySelectorAll("input[data-sde-leading]").forEach((el) => el.addEventListener("change", (ev) => {
+        ev.stopPropagation();
+        this._sendWrite({ action: "leading", on: el.checked });
+      }));
+      root.querySelectorAll("[data-sde-action='read-upgrade-text']").forEach((el) =>
+        el.addEventListener("click", () => readUpgradeText().then((n) => { if (n) this.render(false); })
+          .catch((err) => console.error(`${MODULE_ID} | warband upgrade text`, err))));
       // The checklist isn't a form field: each tick is checked against the
       // allowance and written whole, and a refused one is put back.
       root.querySelectorAll("input[data-sde-upgrade]").forEach((el) => el.addEventListener("change", (ev) => {
@@ -181,7 +277,8 @@ export function buildWarbandNpcSheet(BaseNpcSheet, type) {
           .catch((err) => {
             console.error(`${MODULE_ID} | warband upgrade`, err);
             ui.notifications?.error(game.i18n.localize("SDE.warband.notify.upgradeFailed"));
-            el.checked = !el.checked;
+            // Show what was stored, which may be the tick without all of its numbers.
+            this.render(false);
           });
       }));
       super.activateListeners(html);
@@ -194,7 +291,7 @@ export function buildWarbandNpcSheet(BaseNpcSheet, type) {
       if (data?.type === "Actor") {
         if (!event.target?.closest?.("[data-drop='commander']")) return;
         const pc = await fromUuid(data.uuid).catch(() => null);
-        if (pc?.type !== "Player") { ui.notifications?.warn(game.i18n.localize("SDE.warband.notify.commanderPc")); return; }
+        if (pc?.type !== "Player" || pc.pack || !(game.user.isGM || pc.isOwner)) { ui.notifications?.warn(game.i18n.localize("SDE.warband.notify.commanderPc")); return; }
         return this._setCommander(pc);
       }
       return super._onDrop(event);
@@ -210,7 +307,12 @@ export function buildWarbandNpcSheet(BaseNpcSheet, type) {
       return this._sendWrite({ action: "commander", pcUuid: pc?.uuid ?? null });
     }
 
-    /** Tick or untick one upgrade; refused (with a message) over the allowance or twice. */
+    /**
+     * Tick or untick one upgrade; refused (with a message) over the allowance
+     * or twice. Its numbers go on or off in the same update (#201). One at a
+     * time, on the client's warband queue: each reads the list, the allowance
+     * and the stored numbers only after the last one's writes have landed.
+     */
     _toggleUpgrade(key, on) {
       return this._sendWrite({ action: "upgrade", key, on });
     }

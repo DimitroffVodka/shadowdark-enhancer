@@ -87,7 +87,10 @@ import { Renown } from "./renown/renown.mjs";
 import { Quests, openQuestLog, registerQuests } from "./quests/quests.mjs";
 import { Troubles, registerTroubles } from "./troubles/troubles.mjs";
 import { Rumors, registerRumors } from "./rumors/rumors.mjs";
-import { registerActorTypes } from "./actors/register-actors.mjs";
+import { registerActorTypes, WARBAND_TYPE } from "./actors/register-actors.mjs";
+import { registerWarbandUpkeep } from "./actors/warband-upkeep.mjs";
+import { registerWarbandUpgrades } from "./actors/warband-upgrades.mjs";
+import { registerWarbandCombat } from "./actors/warband-combat.mjs";
 // Imported for its top-level createChatMessage hook: the out-of-combat
 // initiative sync must be live on the GM from load, not only after the GM
 // personally triggers the lazy import in crawl-strip. Otherwise a player who
@@ -105,7 +108,7 @@ import { initRivalClassTable } from "./forge-loot/rival-class-table-adapter.mjs"
 // templates, producing unstyled block-flow UI. Keep the manifest stylesheet as
 // the startup fallback, then layer a content-addressed copy above it. The layout
 // contract test requires this revision to change whenever the CSS file changes.
-const STYLESHEET_REV = "301138a3b265";
+const STYLESHEET_REV = "747a52da0309";
 
 // The same problem for the SCRIPTS, which cannot be solved the same way: their
 // URLs come from the manifest, which Foundry validates as real package paths,
@@ -120,7 +123,7 @@ const STYLESHEET_REV = "301138a3b265";
 // stale); module.json carries the same hash and is fetched fresh at runtime. A
 // mismatch is a stale cache by construction — it cannot be anything else. Both
 // stamps are written by `npm run inventory` and gated by `inventory:check`.
-const BUILD_REV = "ac51a950d643";
+const BUILD_REV = "d6020385aef2";
 
 /**
  * Tell the user when their browser is running an old build of this module, and
@@ -299,6 +302,11 @@ Hooks.once("init", () => {
   // Quest Log: its keybinding can only be registered during init.
   registerQuests();
   registerTroubles();
+  // Warbands' upkeep and healing on the clock (#204): settings and the timeAdvanced subscriber.
+  registerWarbandUpkeep(WARBAND_TYPE);
+  registerWarbandUpgrades();
+  // Warbands in mass combat (#203): the commander's initiative and automatic morale.
+  registerWarbandCombat(WARBAND_TYPE);
   // Hex rules on hex maps (#257): no token light or token vision there. Must
   // run in init, before the canvas is built from CONFIG.
   registerHexRules();

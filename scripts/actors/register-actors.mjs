@@ -26,9 +26,9 @@ import { MODULE_ID } from "../shared/module-id.mjs";
 import { BoatDataModel } from "./boat-data-model.mjs";
 import { BoatSheet } from "./boat-sheet.mjs";
 import { buildMountNpcSheet } from "./mount-npc-sheet.mjs";
-import { buildWarbandNpcSheet, registerWarbandWrites } from "./warband-npc-sheet.mjs";
+import { buildWarbandNpcSheet, registerWarbandWrites, warbandState } from "./warband-npc-sheet.mjs";
 import { registerMakeWarband } from "./make-warband.mjs";
-import { warbandRolledHp } from "./warband-core.mjs";
+import { warbandRolledHp, toughHp } from "./warband-core.mjs";
 
 export const MOUNT_TYPE = `${MODULE_ID}.mount`;
 export const BOAT_TYPE = `${MODULE_ID}.boat`;
@@ -62,24 +62,31 @@ export function registerActorTypes() {
       label: "SDE.sheet.mount",
     });
     // ── Warband: the NPC model with fixed HP, its own tab (#200) ────────────
-    // A warband's HP is 8 a level plus CON, never rolled: the sheet's HP dice
-    // and the system's roll-on-placement both call rollHP, which sets that max
-    // and keeps the current HP. Its tokens are linked, so a placement that
-    // healed it would heal the world actor.
+    // A warband's HP is 8 a level plus CON (and Tough's 15), never rolled: the
+    // sheet's HP dice and the system's roll-on-placement both call rollHP,
+    // which sets that max and keeps the current HP. Its tokens are linked, so
+    // a placement that healed it would heal the world actor.
     CONFIG.Actor.dataModels[WARBAND_TYPE] = class WarbandModel extends NpcModel {
       async rollHP() {
         const { value, max } = this.attributes?.hp ?? {};
-        const hp = warbandRolledHp({ level: this.level?.value, conMod: this.abilities?.con?.mod, value, max });
+        const hp = warbandRolledHp({
+          level: this.level?.value, conMod: this.abilities?.con?.mod, value, max, extra: toughHp(warbandState(this.parent).upgrades),
+        });
         await this.parent.update({ "system.attributes.hp.max": hp.max, "system.attributes.hp.value": hp.value });
       }
     };
     // One unit, one actor: its tokens are linked, so every warband is a world
     // actor the commander's allowance counts. A copy (Duplicate, an import)
-    // starts without a commander, so taking one goes through the allowance.
+    // starts without a commander, so taking one goes through the allowance,
+    // and without the original's arrears, desertion or upkeep marks (its
+    // upgrades stay).
     Hooks.on("preCreateActor", (doc, data) => {
       if (doc.type !== WARBAND_TYPE) return;
       const update = { "prototypeToken.actorLink": true };
-      if (data?.flags?.[MODULE_ID]?.warband?.commander) update[`flags.${MODULE_ID}.warband.commander`] = null;
+      if (data?.flags?.[MODULE_ID]?.warband) {
+        const start = { commander: null, arrears: 0, deserted: false, settledMonths: [], moraleWeeks: [], retrainingUntil: null, payment: null };
+        for (const [key, value] of Object.entries(start)) update[`flags.${MODULE_ID}.warband.${key}`] = value;
+      }
       doc.updateSource(update);
     });
     DSC.registerSheet(Actor, MODULE_ID, buildWarbandNpcSheet(BaseNpcSheet, WARBAND_TYPE), {

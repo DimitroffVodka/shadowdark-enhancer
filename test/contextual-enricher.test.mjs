@@ -519,3 +519,14 @@ test("categoryTables finds the table a zone row sends you to, by day or night", 
   assert.deepEqual(categoryTables(`${P}Djurum Desert Encounter Zone: Salt Flat`, "Walker", have), []);
   assert.deepEqual(categoryTables(`${P}Djurum Desert Encounters: Digger`, "Goblin", have), []);
 });
+
+test("the monster link index leaves out warband units (#201): 'berserkers' links the monster", async () => {
+  const pack = { getIndex: async () => ({ contents: [
+    { name: "Berserkers", type: "shadowdark-enhancer.warband", uuid: "Compendium.x.Actor.wb" },
+    { name: "Berserker", type: "NPC", uuid: "Compendium.x.Actor.npc" },
+    { name: "War Horse", type: "shadowdark-enhancer.mount", uuid: "Compendium.x.Actor.mount" },
+  ] }) };
+  const byName = new Map();
+  await MonsterLinker._indexPack(pack, byName);
+  assert.deepEqual([...byName.keys()].sort(), ["berserker", "war horse"]);
+});

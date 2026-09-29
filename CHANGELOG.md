@@ -480,6 +480,52 @@ page walks through it in order.
   heals it. Quick upgrade ticks all stick, and two warbands can't both take
   their commander's last slot: every warband change is made by one writer, the
   active GM. See *Warbands*. (#200, #202)
+- **Warband upkeep and healing on the world clock.** Each month start takes
+  10 gp a level per warband from its commander's coins, in one card; a
+  commander who can't pay leaves it in arrears, and each week after it checks
+  morale (the commander's CHA, DC 15, Loyal 9) and may desert: marked, never
+  deleted. Every day heals 1d4 (Hardy 2d6), downtime days included, and a
+  warband that deserts part way through a long move still heals the days
+  before. A charge that fails to save is tried again at the next clock move,
+  for that warband only, and never taken twice; a Pay Arrears that fails
+  takes nothing, so it can simply be pressed again. A payment that can't be
+  confirmed either way is whispered to the GMs to settle by hand. A payment
+  a GM's client was lost in the middle of (marked paid, its coins never
+  confirmed) is checked against the commander's purse when the GM starts up
+  and before the next clock move, Charge a Month or Pay Arrears: taken, it
+  stands; not taken, it is owed again and charged once; anything else is
+  whispered to the GMs, and no gold is taken by the check itself. Changing a
+  commanded warband's upgrades means a week of retraining. A copy of a
+  warband starts with no arrears, desertion or upkeep record, and the warband
+  writer itself refuses a compendium PC as commander, a PC the sender
+  does not own (only a GM may name another player's), and any odd payload. The
+  upkeep and Pay Arrears themselves take gold only from a commander one of the
+  warband's player owners also owns, so a commander written straight onto the
+  warband by its owner costs another player nothing. (#204)
+- **Warbands in mass combat.** A warband with its commander in the fight takes
+  the commander's initiative and turn: its card rides after the commander's
+  on the Crawl Strip, and the turn passes it by. Morale is automatic: falling
+  to half HP, and every hit below it, checks d20 plus the commander's CHA
+  against 15 (Loyal 9), with advantage while the commander leads it; a
+  failure rolls a rout, 3-in-6 (Withdraw 1-in-6), and a rout destroys it:
+  no more upkeep, healing, or place in the commander's allowance, until
+  Return to Service. With its commander dead it rolls and takes its own
+  turn. Its attack cards note the area it fills; splitting its damage is the
+  GM's. A warband still retraining its upgrades can't attack. A warband with
+  no commander, or whose commander was deleted, checks no morale. A rout is
+  never left half done: the warband is marked destroyed even if Foundry
+  reports its routed flag failed to save. Return to Service takes a routed
+  warband back into the fight: its combatants stop being defeated and its
+  token loses the dead status, unless it is at 0 HP. (#203)
+- **The book's warbands and what upgrades do.** Importer Hub → Manage →
+  Monsters → **Warbands** imports the Player's Guide's eight stock warbands
+  from your PDF as warband units, with their talents, in a Warbands folder.
+  Armor Upgrade (+1 AC), Tough (+15 HP), Training (+1 to attacks) and Weapons
+  Upgrade (one more damage die) change the sheet when ticked and change back
+  when unticked. Each upgrade shows its book text on hover, read once from
+  the PDF. An attack added later takes the upgrades already ticked, and if an
+  attack's change fails to save, the next tick puts it right. An NPC with a
+  stock warband's name doesn't stop that warband's import. (#201)
 - **Encounter check frequency.** Right-click the Crawl Bar's **Encounter**
   button: **Check Frequency** runs from **1** (every crawl round, the default)
   to **10**. The count runs from the last check, automatic or manual, so a
@@ -567,6 +613,11 @@ page walks through it in order.
 
 ### Fixed
 
+- **Stepping back past a corpse.** Previous Turn onto a dead enemy (or a
+  warband following its commander) bounced forward again, so the GM couldn't
+  step back past it. It now keeps stepping back. And a player's Next Turn
+  that would only reach corpses before the round ends is refused as a round
+  change, as it is at the last turn. (#203)
 - **The sky follows the party's map.** Darkness and weather were written only
   to the world's active scene, so with a dungeon active while the party token
   stood on the hex map, the map never darkened and never showed a storm. The
