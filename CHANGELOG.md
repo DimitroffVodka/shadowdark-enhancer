@@ -455,7 +455,10 @@ page walks through it in order.
   commanded warband's upgrades means a week of retraining. A copy of a
   warband starts with no arrears, desertion or upkeep record, and the warband
   writer itself refuses a compendium PC as commander, a PC the sender
-  does not own (only a GM may name another player's), and any odd payload. (#204)
+  does not own (only a GM may name another player's), and any odd payload. The
+  upkeep and Pay Arrears themselves take gold only from a commander one of the
+  warband's player owners also owns, so a commander written straight onto the
+  warband by its owner costs another player nothing. (#204)
 - **Encounter check frequency.** Right-click the Crawl Bar's **Encounter**
   button: **Check Frequency** runs from **1** (every crawl round, the default)
   to **10**. The count runs from the last check, automatic or manual, so a
