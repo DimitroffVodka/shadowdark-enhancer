@@ -20,7 +20,9 @@
  *   The PC's first turn only rolls its death timer, as the book reads (p.89,
  *   #263): the owning player's client rolls the die (a user query, so the dice
  *   are theirs) and the GM adds the modifiers; with the hidden timer on, the
- *   GM's client rolls blind. Every turn after, the owner rolls a d20; a natural
+ *   GM's client rolls blind, and with the silent one it posts no message.
+ *   Every turn after, the owner rolls a d20 (the silent timer asks that
+ *   roll to post nothing too; the hidden one leaves it public); a natural
  *   20 (or a rise-range modifier) rises at 1 HP, anything else takes a round
  *   off; at 0 the PC is dead.
  * - Out of combat: the crawl round (`shadowdark-enhancer.crawlRound`, fired by
@@ -46,7 +48,7 @@ import { esc } from "../shared/esc.mjs";
 import { isActiveGM, refuseQuery, queryActiveGM } from "../shared/gm-relay.mjs";
 import {
   DYING_STATUS, DEAD_STATUS, DYING_KEYS, NEAR_FEET, modifier, timerRoll, deathTimer, stabilizeDC,
-  riseMin, turnOutcome, hpAction, shouldTick, cardStabilizes, badge, checkedNatural,
+  riseMin, turnOutcome, hpAction, shouldTick, cardStabilizes, badge, checkedNatural, timerChat,
 } from "./dying-core.mjs";
 
 export { DYING_STATUS, DYING_KEYS };
@@ -93,27 +95,28 @@ function rollerFor(actor) {
   return players.find((u) => u.character?.id === actor.id) ?? players[0] ?? null;
 }
 
-/** Roll here and post it. `secret`: GMs only. Returns the natural die. */
-async function rollHere(actor, formula, flavor, { secret = false } = {}) {
+/** Roll here and post it. `secret`: GMs only. `silent`: post nothing. Returns the natural die. */
+async function rollHere(actor, formula, flavor, { secret = false, silent = false } = {}) {
   const roll = await new Roll(formula).evaluate();
+  if (silent) return roll.dice[0]?.total;
   const mode = !secret ? {} : game.release?.generation >= 14 ? { messageMode: "gm" } : { rollMode: "gmroll" };
   await roll.toMessage({ speaker: ChatMessage.getSpeaker({ actor }), flavor }, mode);
   return roll.dice[0]?.total;
 }
 
 /** The natural die, rolled on the owning player's client; on the GM's when none answers usably. */
-async function ownerRoll(actor, formula, flavor, faces) {
+async function ownerRoll(actor, formula, flavor, faces, silent = false) {
   const user = rollerFor(actor);
   if (user) {
     try {
-      const reply = await user.query(DYING_QUERY, { action: "roll", uuid: actor.uuid, formula, flavor }, { timeout: ROLL_TIMEOUT_MS });
+      const reply = await user.query(DYING_QUERY, { action: "roll", uuid: actor.uuid, formula, flavor, silent }, { timeout: ROLL_TIMEOUT_MS });
       const natural = checkedNatural(reply, faces);
       if (natural !== null) return natural;
     } catch (err) {
       console.warn(`${MODULE_ID} | ${user.name} could not roll for ${actor.name}; the GM rolls instead`, err);
     }
   }
-  return rollHere(actor, formula, flavor);
+  return rollHere(actor, formula, flavor, { silent });
 }
 
 // ── Chat ────────────────────────────────────────────────────────────────────
@@ -126,8 +129,14 @@ function say(actor, key, { gm = false, ...data } = {}) {
   });
 }
 
-/** Rounds left: to the GMs alone while the hidden timer is on. */
-const sayRounds = (actor, rounds) => say(actor, "SDE.dying.rounds", { rounds, gm: on("dyingHiddenTimer") });
+/** Who sees the death timer roll and the rounds left, by the two timer options. */
+const chatMode = () => timerChat({ hidden: on("dyingHiddenTimer"), silent: on("dyingSilentTimer") });
+
+/** Rounds left: to the GMs alone while the hidden timer is on, to nobody while the silent one is. */
+const sayRounds = (actor, rounds) => {
+  const mode = chatMode();
+  return mode === "none" ? null : say(actor, "SDE.dying.rounds", { rounds, gm: mode === "gm" });
+};
 
 // ── Steps (active GM, inside serial) ───────────────────────────────────────
 
@@ -199,9 +208,10 @@ async function rollTimer(actor) {
   });
   if (!r) return 1; // Deadly: no roll, 1 whatever the die and bonuses
   const flavor = fmt("SDE.dying.timerFlavor");
-  const natural = on("dyingHiddenTimer")
-    ? await rollHere(actor, r.formula, flavor, { secret: true })
-    : await ownerRoll(actor, r.formula, flavor, r.faces);
+  const mode = chatMode();
+  const natural = mode === "everyone"
+    ? await ownerRoll(actor, r.formula, flavor, r.faces)
+    : await rollHere(actor, r.formula, flavor, { secret: mode === "gm", silent: mode === "none" });
   return deathTimer(natural + r.mod);
 }
 
@@ -220,7 +230,7 @@ async function tick(actor, scope, round) {
     own: modifier(actor, "riseMin"),
     near: nearby(actor, { allies: true }).map((a) => modifier(a, "riseMinNear")),
   });
-  const natural = await ownerRoll(actor, "1d20", fmt("SDE.dying.riseFlavor", { min }), 20);
+  const natural = await ownerRoll(actor, "1d20", fmt("SDE.dying.riseFlavor", { min }), 20, chatMode() === "none");
   const out = turnOutcome({ natural, timer: s.timer, riseMin: min });
   if (out.result === "rise") return doRise(actor);
   if (out.result === "dead") return die(actor);
@@ -412,7 +422,8 @@ async function handleQuery(data, user) {
     if (!user?.isGM) return { ok: false };
     const actor = fromUuidSync(data.uuid);
     if (!actor?.isOwner) return { ok: false };
-    return { ok: true, natural: await rollHere(actor, String(data.formula), String(data.flavor ?? "")) };
+    // `silent` only ever hides the roll this client makes for its own character.
+    return { ok: true, natural: await rollHere(actor, String(data.formula), String(data.flavor ?? ""), { silent: data.silent === true }) };
   }
   const refused = refuseQuery(user, fmt("SDE.dying.relayLabel"));
   if (refused) return refused;

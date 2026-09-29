@@ -11,6 +11,13 @@ it needs.
 
 ### Added
 
+- **Silent death timers.** A new option beside Hidden death timers, in the
+  Deadly box of Modes of Play: a dying character posts no roll
+  card at all: not the death timer roll, not the rounds left, not the d20 turn
+  roll. The dice are still rolled and still count. With both options off
+  nothing changes, and Hidden death timers still makes the timer roll and the
+  rounds left GM-only, while the character's own d20 rise check stays in
+  chat. (#290)
 - **Travel reads the party and keeps a standing pace.** Start day asks nothing:
   the method is read from the party (mounted when every member rides a mount,
   sailing when every member is aboard one boat, else walking), and the pace is
@@ -40,6 +47,22 @@ it needs.
   **Encounter Roller** opens the roller, and **Continue** runs the rest of the
   clock. The day's check hours are no longer whispered; they are listed in the
   Travel panel.
+- **Camp in the book's order.** Make camp runs the camp before the night.
+  With a Shadowdark Extras party, Extras' camp window opens for the tasks:
+  Firewood first, and without a fire the GM is asked about burning 3 torches
+  before the starred tasks. Then the rations are eaten. A creature in the
+  night interrupts the rest. The Encounter panel and the Night step say so.
+  At dawn, anyone who ate rolls CON (DC 12) to still benefit from the rest,
+  unless their Bed Down succeeded. If Extras is turned off before dawn, the
+  camp waits for it with a warning, so the rest it keeps isn't lost. The
+  camp is saved before anyone eats or Extras' window opens. If something
+  fails partway, pressing Make camp again goes on from where the camp got,
+  even after a reload or a lost save. Nobody eats twice (at worst a ration
+  goes uneaten), the night isn't longer, and a creature that interrupted the rest still
+  counts. Once the dawn has closed the day, Make
+  camp waits for the next Start day. The tasks need a Shadowdark Extras with
+  shadowdark-extras#186. With an older Extras, no camp window opens, there
+  are no tasks or campfire, and the rations are eaten here. (#257)
 - **Travel encounters as often as you want them, and a panel that folds
   away.** The Travel panel's Encounters step has **Adjust** for the GM: the
   chance (1 to 5 in 6, one more on a pushed day) and the checks by day and by
