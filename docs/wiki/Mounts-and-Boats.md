@@ -3,7 +3,8 @@
 [← Wiki home](index.md)
 
 Two Actor sub-types with dedicated sheets, for *Western Reaches* mounts,
-warband units, boats, and siege vehicles.
+boats, and siege vehicles. Warband units have their own: see
+[Warbands](Warbands.md).
 
 ![The Boat sheet](images/boat-sheet.png)
 

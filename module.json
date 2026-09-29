@@ -4,7 +4,10 @@
   "description": "<p>GM companion suite for Shadowdark RPG. Crawl Strip &amp; Crawl Bar: marching order, initiative, HP/Movement/Luck readouts, movement-budget enforcement with turn-start rollback, and a per-combatant action HUD. Plus random encounters, a monster creator, an importer hub for content from your own PDFs, a character builder, loot &amp; magic-item tools, merchant shops, party XP &amp; session recap, monster token art, character PDF export, and mounts &amp; boats.</p>",
   "version": "0.17.3",
   "authors": [
-    { "name": "DimitroffVodka", "flags": {} }
+    {
+      "name": "DimitroffVodka",
+      "flags": {}
+    }
   ],
   "persistentStorage": true,
   "compatibility": {
@@ -16,25 +19,54 @@
       {
         "id": "shadowdark",
         "type": "system",
-        "compatibility": { "minimum": "3.6.2", "verified": "4.0.6" }
+        "compatibility": {
+          "minimum": "3.6.2",
+          "verified": "4.0.6"
+        }
       }
     ]
   },
   "documentTypes": {
     "Actor": {
-      "mount": { "htmlFields": ["notes"] },
-      "boat": { "htmlFields": ["notes"] }
+      "mount": {
+        "htmlFields": [
+          "notes"
+        ]
+      },
+      "boat": {
+        "htmlFields": [
+          "notes"
+        ]
+      },
+      "warband": {
+        "htmlFields": [
+          "notes"
+        ]
+      }
     }
   },
-  "scripts": ["scripts/pdf-export/lib/FileSaver.min.js"],
-  "esmodules": ["scripts/shadowdark-enhancer.mjs"],
-  "styles": [{ "src": "styles/shadowdark-enhancer.css" }],
+  "scripts": [
+    "scripts/pdf-export/lib/FileSaver.min.js"
+  ],
+  "esmodules": [
+    "scripts/shadowdark-enhancer.mjs"
+  ],
+  "styles": [
+    {
+      "src": "styles/shadowdark-enhancer.css"
+    }
+  ],
   "languages": [
-    { "lang": "en", "name": "English", "path": "languages/en.json", "flags": {} }
+    {
+      "lang": "en",
+      "name": "English",
+      "path": "languages/en.json",
+      "flags": {}
+    }
   ],
   "socket": true,
   "url": "https://github.com/DimitroffVodka/shadowdark-enhancer",
   "manifest": "https://github.com/DimitroffVodka/shadowdark-enhancer/releases/latest/download/module.json",
   "download": "https://github.com/DimitroffVodka/shadowdark-enhancer/releases/latest/download/module.zip",
-  "flags": { "buildRev": "65a8bd399fca" }
+  "flags": { "buildRev": "0c975b662cd1" }
 }

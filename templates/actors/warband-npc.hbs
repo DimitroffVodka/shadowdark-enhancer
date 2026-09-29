@@ -1,0 +1,69 @@
+<form class="{{cssClass}} flexcol sde-warband-npc-form" autocomplete="off">
+	<header class="SD-header flex0">
+		<img class="portrait" src="{{ actor.img }}" data-edit="img" data-tooltip="{{ actor.name }}" height="110" width="110" />
+		<div class="shadowdark-logo"><span>ShadowDark</span></div>
+		<div class="SD-title">
+			<input name="name" type="text" value="{{ actor.name }}" placeholder="{{localize 'SHADOWDARK.sheet.actor.placeholder.name'}}" />
+		</div>
+	</header>
+
+	<nav class="SD-nav flex0" data-group="primary">
+		<a class="navigation-tab active" data-tab="tab-abilities">{{localize "SHADOWDARK.sheet.npc.tab.abilities"}}</a>
+		<a class="navigation-tab" data-tab="tab-warband">{{localize "SDE.warband.tab"}}</a>
+		<a class="navigation-tab" data-tab="tab-spells">{{localize "SHADOWDARK.sheet.npc.tab.spells"}}</a>
+		<a class="navigation-tab" data-tab="tab-description">{{localize "SHADOWDARK.sheet.npc.tab.description"}}</a>
+		<a class="navigation-tab" data-tab="tab-effects">{{localize "SHADOWDARK.sheet.item.tab.effects"}}</a>
+	</nav>
+
+	<section class="SD-content-body flex1">
+
+		{{!-- Native NPC abilities tab (system partial) --}}
+		{{> actors/npc/abilities }}
+
+		{{!-- Warband: commander, allowance, upgrades --}}
+		<section class="tab sde-warband-tab" data-group="primary" data-tab="tab-warband">
+			{{#> ui/sd-box header-label=(localize "SDE.warband.commander")}}
+				<div class="sde-veh-droplist sde-warband-commander" data-drop="commander">
+					{{#if warband.commander}}
+						<div class="sde-veh-member" data-uuid="{{warband.commander.uuid}}">
+							<img class="sde-veh-member-img" src="{{warband.commander.img}}" data-sde-action="open-commander" title="{{localize 'SDE.vehicle.openSheet'}}" />
+							<div class="sde-veh-member-main">
+								<div class="sde-veh-member-name">{{warband.commander.name}}{{#if warband.tier}} <span class="sde-veh-member-sub">{{warband.tier}}</span>{{/if}}</div>
+								{{#if warband.morale}}<div class="sde-veh-member-stats"><span>{{warband.morale}}</span></div>{{/if}}
+							</div>
+							<button type="button" class="sde-veh-member-remove" data-sde-action="clear-commander" title="{{localize 'SDE.warband.clearCommander'}}"><i class="fa-solid fa-xmark"></i></button>
+						</div>
+					{{else}}
+						{{#if warband.commanderMissing}}
+							<p class="sde-veh-empty"><i class="fa-solid fa-triangle-exclamation"></i> {{localize "SDE.warband.commanderMissing"}}</p>
+						{{/if}}
+						<p class="sde-veh-empty">{{localize "SDE.warband.commanderEmpty"}}</p>
+					{{/if}}
+				</div>
+				{{#if warband.allowance}}
+					<p class="sde-warband-allowance">{{warband.allowance.warbands}} · {{warband.allowance.upgrades}}</p>
+				{{/if}}
+			{{/ui/sd-box}}
+
+			{{#> ui/sd-box header-label=(localize "SDE.warband.upgrades")}}
+				{{#if warband.noCommanderCap}}<p class="sde-warband-allowance">{{warband.noCommanderCap}}</p>{{/if}}
+				<div class="sde-warband-upgrades">
+					{{#each warband.upgrades}}
+						<label class="checkbox"><input type="checkbox" data-sde-upgrade="{{key}}" {{#if checked}}checked{{/if}} {{#unless ../editable}}disabled{{/unless}} /> {{label}}</label>
+					{{/each}}
+				</div>
+			{{/ui/sd-box}}
+
+			{{#> ui/sd-box header-label=(localize "SDE.warband.rules")}}
+				<p>{{localize "SDE.warband.size"}}</p>
+				<p>{{localize "SDE.warband.unique"}}</p>
+			{{/ui/sd-box}}
+		</section>
+
+		{{!-- Native NPC tabs (system partials) --}}
+		{{> actors/npc/spells }}
+		{{> actors/_partials/effects-tab }}
+		{{> actors/npc/description }}
+
+	</section>
+</form>
