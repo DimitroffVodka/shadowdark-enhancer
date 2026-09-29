@@ -3,6 +3,9 @@ import { TALENT_DESCRIPTION_FIXES } from "./data.mjs";
 import { MODULE_ID } from "../shared/module-id.mjs";
 import { stampSource } from "./item-source.mjs";
 
+/** What one Crawling Kit unpacks to: [item name, quantity] (core rules pg 36). */
+export const CRAWLING_KIT = [["Backpack", 1], ["Flint and Steel", 1], ["Torch", 2], ["Rations", 3], ["Iron Spikes", 10], ["Grappling Hook", 1], ["Rope, 60'", 1]];
+
 /**
  * Turn a completed builder state into a Shadowdark PlayerSD actor.
  *
@@ -259,7 +262,6 @@ async function gatherItems(state, classSys) {
 
   // A Crawling Kit is a bundle, not an item — the sheet gets its contents
   // (core rules pg 36), once per kit purchased.
-  const CRAWLING_KIT = [["Backpack", 1], ["Flint and Steel", 1], ["Torch", 2], ["Rations", 3], ["Iron Spikes", 10], ["Grappling Hook", 1], ["Rope, 60'", 1]];
   const addGearByName = async (name, qty) => {
     const found = Array.from(await shadowdark.compendiums.basicItems()).find((i) => i.name.toLowerCase() === name.toLowerCase());
     const doc = found ? await fromUuid(found.uuid).catch(() => null) : null;

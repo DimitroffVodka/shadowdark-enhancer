@@ -460,6 +460,13 @@ page walks through it in order.
 - **Scavenger ignores the Character Builder's edits.** Removing a torch or
   potion through the builder is an edit, not a used item, so it no longer rolls
   Scavenger or hands the item back. Nothing calls the builder that way yet. (#168)
+- **Groundwork for saving edits to an existing character safely.** The
+  Character Builder now has the step that will apply a Finish to a character it
+  opened: it adds new items first, then changes quantities, then the sheet, and
+  removes items last, checking the character after every write. A write that
+  errors after it already saved is not repeated, so a retry never doubles an
+  item, and a change another module blocks is reported instead of lost. Nothing
+  uses it yet, so nothing changes on any sheet. (#168)
 
 ### Changed
 

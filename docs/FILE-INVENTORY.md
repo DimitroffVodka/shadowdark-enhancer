@@ -1,7 +1,7 @@
 # Shadowdark Enhancer — File Inventory
 
 <!-- inventory:stats:start -->
-1076 tracked files · ~191,600 lines of code/markup across scripts+templates+styles+test.
+1078 tracked files · ~192,000 lines of code/markup across scripts+templates+styles+test.
 `v0.17.3` in both `module.json` and `package.json`.
 <!-- inventory:stats:end -->
 **Layout reflects the 2026-07-21 feature-folder reorganization (v0.11.0 cycle).**
@@ -369,10 +369,11 @@
 | `state.mjs` | 155 | `CharBuilderState` — the in-progress character. |
 | `constants.mjs` | 187 | Shared constants; hands off to the system's `CharacterGeneratorSD`. |
 | `data.mjs` | 325 | Thin wrappers over the system's compendium loaders. |
-| `commit.mjs` | 293 | `commitCharacter` — final actor creation + `coinsAfterGear`. |
+| `commit.mjs` | 295 | `commitCharacter` — final actor creation + `coinsAfterGear`. |
 | `item-source.mjs` | 19 | `stampSource` — records the compendium link on items the builder creates. |
 | `hydrate.mjs` | 248 | Existing actor -> builder state (reads `_source` only); `describeActor` console dry run. |
 | `commit-plan.mjs` | 212 | `planCommit` — pure three-way plan (baseline, builder, live) of what Finish changes on an existing actor. |
+| `commit-apply.mjs` | 151 | `applyPlan` — resumable executor for a merge-aware plan: creates, item updates, one actor update, deletes last, each read back so a write rejected after saving is not repeated. |
 | `art.mjs` | 77 | Ancestry/class NAME → local portrait manifest. |
 | `art-gallery.mjs` | 525 | GM-curated portrait gallery (avoids granting players `FILES_BROWSE`). |
 | `class-ability-uses.mjs` | 112 | Per-day/roll uses for Class Ability items. |
