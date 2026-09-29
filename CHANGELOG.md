@@ -452,7 +452,9 @@ page walks through it in order.
   for that warband only, and never taken twice; a Pay Arrears that fails
   takes nothing, so it can simply be pressed again. A payment that can't be
   confirmed either way is whispered to the GMs to settle by hand. Changing a
-  commanded warband's upgrades means a week of retraining. (#204)
+  commanded warband's upgrades means a week of retraining. A copy of a
+  warband starts with no arrears, desertion or upkeep record, and the warband
+  writer itself refuses a compendium PC as commander and any odd payload. (#204)
 - **Encounter check frequency.** Right-click the Crawl Bar's **Encounter**
   button: **Check Frequency** runs from **1** (every crawl round, the default)
   to **10**. The count runs from the last check, automatic or manual, so a

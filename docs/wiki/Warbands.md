@@ -53,7 +53,8 @@ A warband is one unit: its tokens are linked to the actor, and its HP is
 fixed at 8 per level plus CON (the HP dice on its sheet sets that rather
 than rolling). A copy of a warband (Duplicate, or one imported from a
 compendium) starts without a commander, so taking it goes through the
-commander's allowance.
+commander's allowance, and without the original's arrears, desertion or
+upkeep record (its upgrades stay).
 
 Up to 20 similar combatants act as one creature, on its commander's turn.
 Player characters and creatures of level 6 or more always act as

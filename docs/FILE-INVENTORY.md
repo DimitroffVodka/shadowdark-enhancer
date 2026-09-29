@@ -1,7 +1,7 @@
 # Shadowdark Enhancer — File Inventory
 
 <!-- inventory:stats:start -->
-1079 tracked files · ~192,200 lines of code/markup across scripts+templates+styles+test.
+1080 tracked files · ~192,300 lines of code/markup across scripts+templates+styles+test.
 `v0.17.3` in both `module.json` and `package.json`.
 <!-- inventory:stats:end -->
 **Layout reflects the 2026-07-21 feature-folder reorganization (v0.11.0 cycle).**
@@ -354,12 +354,12 @@
 
 | File | Lines | Description |
 |---|---:|---|
-| `register-actors.mjs` | 111 | Registers `shadowdark-enhancer.mount` / `.warband` / `.boat` (models + sheets, in `i18nInit`): the warband's NpcSD subclass with fixed HP, its linked-token and commander-cleared create hook, and Make a Warband. |
+| `register-actors.mjs` | 116 | Registers `shadowdark-enhancer.mount` / `.warband` / `.boat` (models + sheets, in `i18nInit`): the warband's NpcSD subclass with fixed HP, its linked-token and commander-cleared create hook, and Make a Warband. |
 | `boat-data-model.mjs` | 115 | Boat data model — WR vessel rules. |
 | `boat-sheet.mjs` | 179 | Boat sheet: Overview / Passengers & Crew / Cargo / Description. |
 | `mount-npc-sheet.mjs` | 342 | Mount sheet — subclass of the system's `NpcSheetSD`. |
 | `warband-core.mjs` | 153 | Warband rules, pure (#200, #202, #204): the 18 upgrades, a commander's allowance by hit die tier (2/2, 4/3, 6/4), the command and upgrade refusals, and a creature made into a warband (level doubled, 8 HP a level plus CON, one attack, +1 attack a level gained, damage dice tripled). |
-| `warband-npc-sheet.mjs` | 274 | The Warband unit sheet (#200): an NpcSheetSD subclass (AppV1) with a Warband tab for the commander (a PC dropped on it), the allowance across that commander's warbands, the upgrade checklist written whole to the `warband` flag, and the commander's CHA for morale, and (#204) upkeep, arrears, desertion and retraining with their GM buttons. |
+| `warband-npc-sheet.mjs` | 279 | The Warband unit sheet (#200): an NpcSheetSD subclass (AppV1) with a Warband tab for the commander (a PC dropped on it), the allowance across that commander's warbands, the upgrade checklist written whole to the `warband` flag, and the commander's CHA for morale, and (#204) upkeep, arrears, desertion and retraining with their GM buttons. |
 | `make-warband.mjs` | 118 | Make a Warband (#202): the GM's header button on a level 1-5 NPC's sheet, a before/after preview, and a new warband actor from a copy (the stat block in its notes rebuilt as Quick Adjust does). |
 | `warband-upkeep.mjs` | 378 | Warband upkeep and healing on the world clock (#204): on timeAdvanced (active GM, queued), month and week starts in order over a move's last 366 days (clockEvents, last-month and last-week markers against rewinds): each month start charges 10 gp a level per commanded warband from the commander's coins, in one card; arrears check morale each week start (at most 8 rolling weeks a move) and desert on a failure (marked, never deleted); every day heals 1d4 (Hardy 2d6); the GM's Charge a Month, Pay Arrears and Return to Service. |
 | `vehicle-sheet.mjs` | 424 | Shared party-like container base (ApplicationV2). |
