@@ -41,6 +41,7 @@ export function defaultOverlandState() {
     checks: [],           // the day's encounter checks, {half, at, chance, rolled, hit} (#232)
     pending: null,        // {until, reason}: an advance stopped by a hit, waiting for Continue (#232)
     encounter: null,      // what a quiet check that hit drew, for the GMs' panel until Continue (#257)
+    camp: null,           // tonight's camp (#257): {party, interrupted, ate, until, lightsOut}: the uuid of the Extras party actor keeping its rest for the dawn, or null; when a creature woke it; the rations were eaten at camp; when it breaks; its lights are out
     foraged: [],          // actor ids that foraged today (#233)
     hex: null,            // {num, terrain, region, features}: the travel token's last hex
   };
@@ -86,6 +87,7 @@ function encounterOf(v) {
     kind: ["monster", "flavor"].includes(v.kind) ? v.kind : "empty",
     poi: v.poi === true,
     noTable: v.noTable === true,
+    interrupts: v.interrupts === true,
     uuid: str(v.uuid), name: str(v.name), img: str(v.img), text: str(v.text), via: str(v.via),
     count: num(v.count), countFormula: str(v.countFormula),
     distanceRoll: num(v.distanceRoll), activityRoll: num(v.activityRoll), reactionRoll: num(v.reactionRoll),
@@ -94,6 +96,16 @@ function encounterOf(v) {
       ? v.also.filter(obj).map((a) => ({ name: str(a.name), formula: str(a.formula), roll: num(a.roll), text: str(a.text) })) : [],
   };
 }
+
+/**
+ * Tonight's camp, or null: the uuid of the Extras party actor keeping its rest for the dawn, the hour a creature
+ * interrupted it, whether it ate at camp, when it breaks (null for a camp from before its end was kept), and whether
+ * its lights are out.
+ */
+const campOf = (v) => (obj(v) ? {
+  party: str(v.party), interrupted: Number.isFinite(v.interrupted) ? v.interrupted : null, ate: v.ate === true,
+  until: Number.isFinite(v.until) ? v.until : null, lightsOut: v.lightsOut === true,
+} : null);
 
 /** A stored weather, or null when it isn't one. */
 function weatherOf(v) {
@@ -137,6 +149,7 @@ export function normalizeOverlandState(value) {
     checks: Array.isArray(value.checks) ? value.checks.map(checkOf).filter(Boolean) : [],
     pending: pendingOf(value.pending),
     encounter: encounterOf(value.encounter),
+    camp: campOf(value.camp),
     foraged: ids(value.foraged),
     hex: hex && Number.isInteger(hex.num)
       ? { num: hex.num, terrain: str(hex.terrain), region: str(hex.region), features: ids(hex.features) }
@@ -195,7 +208,7 @@ export function openDay(state, { now, method, pushed, base, boatUuid = null, hou
     ...state, mounts,
     day: now, method, pushed: !!pushed, boatUuid: method === "sailing" ? boatUuid : null,
     base, budget: dayBudget(base, pushed), spent: 0, pointSeconds: pointSeconds(base, hourSeconds),
-    foraged: [], checks, pending: null, encounter: null,
+    foraged: [], checks, pending: null, encounter: null, camp: null,
   });
   return { state: next, changed: true };
 }
@@ -206,7 +219,7 @@ export function openDay(state, { now, method, pushed, base, boatUuid = null, hou
  */
 export function closeDay(state) {
   const next = normalizeOverlandState({
-    ...state, day: null, pushed: false, base: 0, budget: 0, spent: 0, checks: [], foraged: [], pending: null, encounter: null,
+    ...state, day: null, pushed: false, base: 0, budget: 0, spent: 0, checks: [], foraged: [], pending: null, encounter: null, camp: null,
   });
   return { state: next, changed: true };
 }
@@ -221,6 +234,34 @@ export function markCheck(state, index, hit, chance) {
 export function setPending(state, pending) {
   const next = normalizeOverlandState({ ...state, pending });
   return { state: next, changed: JSON.stringify(next.pending) !== JSON.stringify(state.pending) };
+}
+
+/**
+ * Camp is made (#257, §5.5 step 3), written just before its tasks and rations, so a retry never does them
+ * twice (#282 review); a closed Extras window takes it back. `party`: the uuid
+ * of the Extras party actor keeping the rest for the dawn (an unlinked token's own actor), or null. The
+ * rest is on that actor, so the dawn finishes it there, whatever the travel token is by then (#282 review).
+ * `until`: when camp breaks, fixed now, so a night picked up again after a failure is never a longer one.
+ */
+export function makeCampState(state, party, until) {
+  return { state: normalizeOverlandState({ ...state, camp: { party, interrupted: null, ate: true, until, lightsOut: false } }), changed: true };
+}
+
+/** The camp's carried lights are out: Make camp pressed again goes on to the night (#282 review). */
+export function campLightsOut(state) {
+  if (!state.camp || state.camp.lightsOut) return { state, changed: false };
+  return { state: normalizeOverlandState({ ...state, camp: { ...state.camp, lightsOut: true } }), changed: true };
+}
+
+/**
+ * A creature in the camp's night interrupts the rest (GMWR p.44): the first
+ * one's hour is kept. A camp from before this build has no record yet: it
+ * gets one that hasn't eaten, so its dawn still feeds it.
+ */
+export function interruptRest(state, at) {
+  const camp = state.camp ?? { party: null, interrupted: null, ate: false };
+  if (camp.interrupted !== null) return { state, changed: false };
+  return { state: normalizeOverlandState({ ...state, camp: { ...camp, interrupted: at } }), changed: true };
 }
 
 /** What a quiet check that hit drew waits here for the GMs; null clears it (Continue, a new day). */
