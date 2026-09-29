@@ -167,29 +167,40 @@ async function _handle(item, { deleted }) {
  * `{ "shadowdark-enhancer": { builder } }`. Removing a Torch there is an edit,
  * not an expenditure, so no snapshot is taken and `_handle` exits at "no
  * pre-hook ran".
+ *
+ * All four hooks check the option, and a builder change also discards any
+ * snapshot already held for that item: an ordinary pre-hook can have remembered
+ * it before a later hook vetoed that change, and the builder's own post hook
+ * would otherwise consume the stale entry and roll.
  */
-const _isBuilderWrite = (options) => !!options?.[MODULE_ID]?.builder;
+function _isBuilderWrite(item, options) {
+  if (!options?.[MODULE_ID]?.builder) return false;
+  _before.delete(item.uuid);
+  return true;
+}
 
 export function init() {
   // Snapshot BEFORE the change — see trap 1 in the file header.
   Hooks.on("preUpdateItem", (item, changes, options) => {
-    if (_isBuilderWrite(options)) return;
+    if (_isBuilderWrite(item, options)) return;
     if (foundry.utils.getProperty(changes, "system.quantity") === undefined) return;
     if (_playerActor(item)) _remember(item);
   });
 
   Hooks.on("preDeleteItem", (item, options) => {
-    if (_isBuilderWrite(options)) return;
+    if (_isBuilderWrite(item, options)) return;
     if (_playerActor(item)) _remember(item, { snapshot: item.toObject() });
   });
 
-  Hooks.on("updateItem", (item, changes) => {
+  Hooks.on("updateItem", (item, changes, options) => {
+    if (_isBuilderWrite(item, options)) return;
     if (foundry.utils.getProperty(changes, "system.quantity") === undefined) return;
     _handle(item, { deleted: false }).catch((err) =>
       console.error(`${MODULE_ID} | Scavenger (update)`, err));
   });
 
-  Hooks.on("deleteItem", (item) => {
+  Hooks.on("deleteItem", (item, options) => {
+    if (_isBuilderWrite(item, options)) return;
     _handle(item, { deleted: true }).catch((err) =>
       console.error(`${MODULE_ID} | Scavenger (delete)`, err));
   });
