@@ -22,7 +22,7 @@ import { MODULE_ID } from "../shared/module-id.mjs";
  *
  * @returns {{
  *   system: object, name: string|null, art: {portrait?: string, token?: string},
- *   creates: object[], updates: object[], deletes: string[], kept: object[],
+ *   creates: object[], updates: object[], deletes: string[], release: string[], kept: object[],
  *   drift: object[], summary: {counts: object, lines: object[]}
  * }}  `system` holds dotted paths ready for one `actor.update`. `creates` are
  *   descriptors `{ rowId, kind: "gear"|"spell"|"trinket", uuid?, name, qty? }`
@@ -124,20 +124,6 @@ export function planCommit(existing, state, live) {
     lines.push({ kind: "delete", id, name: row.name });
   }
 
-  const updates = [];
-  for (const g of dGear) {
-    const b = g.itemId && bGear.get(g.itemId);
-    const q = Number(g.qty);
-    if (!b || !(q >= 1) || q === b.qty) continue;
-    const l = liveItems.get(g.itemId);
-    if (!l) continue;
-    const lq = Number(l.system?.quantity) || 1;
-    if (lq === q) continue;
-    if (lq !== b.qty) drift.push({ key: `quantity:${g.itemId}`, baseline: b.qty, live: lq, intended: q });
-    updates.push({ _id: g.itemId, "system.quantity": q });
-    lines.push({ kind: "quantity", id: g.itemId, name: b.name, from: b.qty, to: q });
-  }
-
   // Created rows. Every marker is namespaced by this builder session, so a
   // marker left by an earlier session can never be mistaken for this one's, and
   // every row this session made (gear, spell, trinket) is tracked the same way.
@@ -149,7 +135,7 @@ export function planCommit(existing, state, live) {
     if (g.itemId) continue;
     const n = (nth.get(g.uuid) ?? 0) + 1;
     nth.set(g.uuid, n);
-    wanted.push({ rowId: `${sid}:${g.rowId || `${g.uuid}#${n}`}`, kind: "gear", uuid: g.uuid, name: g.name, qty: Number(g.qty) || 1 });
+    wanted.push({ rowId: `${sid}:${g.rowId || `${g.uuid}#${n}`}`, kind: "gear", uuid: g.uuid, name: g.name, qty: Number(g.qty) || 1, row: g });
   }
   for (const s of dSpells) {
     if (!s.itemId && s.uuid) wanted.push({ rowId: `${sid}:spell:${s.uuid}`, kind: "spell", uuid: s.uuid, name: s.name });
@@ -158,9 +144,38 @@ export function planCommit(existing, state, live) {
   if (trinket && trinket !== (B.trinket ?? "")) wanted.push({ rowId: `${sid}:trinket:${trinket}`, kind: "trinket", name: trinket });
   const wantedIds = new Set(wanted.map((w) => w.rowId));
 
+  // Quantity edits, by embedded id. A row whose item landed (hydrated, or made by
+  // an earlier Finish of this session and found by its marker) is measured from
+  // the quantity last written for it (`existing.rowQty`), else from the opened
+  // quantity, so an edit after a Finish still counts, and so does a change back.
+  const rowQty = existing.rowQty ?? {};
+  const byMarker = new Map();
+  for (const i of live.items) if (markerOf(i)) byMarker.set(markerOf(i), [...(byMarker.get(markerOf(i)) ?? []), i]);
+  const qtyRows = dGear.filter((g) => g.itemId).map((g) => ({ id: g.itemId, g, base: rowQty[g.itemId] ?? bGear.get(g.itemId)?.qty }));
+  for (const w of wanted) {
+    const made = w.kind === "gear" && mine.has(w.rowId) ? byMarker.get(w.rowId) : null;
+    // a kit is several items under one marker: no single quantity to edit
+    if (made?.length === 1) qtyRows.push({ id: made[0]._id, g: w.row, base: rowQty[made[0]._id] });
+  }
+  const updates = [];
+  for (const { id, g, base } of qtyRows) {
+    const q = Number(g.qty);
+    if (base == null || !(q >= 1) || q === base) continue;
+    const l = liveItems.get(id);
+    if (!l) continue;
+    const lq = Number(l.system?.quantity) || 1;
+    if (lq === q) continue;
+    if (lq !== base) drift.push({ key: `quantity:${id}`, baseline: base, live: lq, intended: q });
+    updates.push({ _id: id, "system.quantity": q });
+    lines.push({ kind: "quantity", id, name: g.name, from: base, to: q });
+  }
+
   // A row this session already made is owned: never granted again (even if it
   // was spent on the sheet since), and deleted only when the user removed it.
-  const creates = wanted.filter((w) => !liveMarkers.has(w.rowId) && !mine.has(w.rowId));
+  // Once the user has removed it the row is forgotten (`release`, applied by the
+  // executor after the delete lands), so adding it again is a new purchase.
+  const creates = wanted.filter((w) => !liveMarkers.has(w.rowId) && !mine.has(w.rowId)).map(({ row: _row, ...c }) => c);
+  const release = [...mine].filter((m) => m.startsWith(`${sid}:`) && !wantedIds.has(m));
   const madeThisSession = new Set();
   for (const i of live.items) {
     const m = markerOf(i);
@@ -187,7 +202,7 @@ export function planCommit(existing, state, live) {
 
   const kept = (existing.kept ?? []).map((k) => ({ ...k }));
   return {
-    system, name, art, creates, updates, deletes, kept, drift,
+    system, name, art, creates, updates, deletes, release, kept, drift,
     summary: {
       counts: {
         system: Object.keys(system).length + (name ? 1 : 0) + Object.keys(art).length,
@@ -199,10 +214,10 @@ export function planCommit(existing, state, live) {
   };
 }
 
-/** True when the plan would write nothing at all. */
+/** True when the plan would write nothing and forget nothing: skip applyPlan only then. */
 export function planIsEmpty(plan) {
   return !Object.keys(plan.system).length && !plan.name && !Object.keys(plan.art).length
-    && !plan.creates.length && !plan.updates.length && !plan.deletes.length;
+    && !plan.creates.length && !plan.updates.length && !plan.deletes.length && !plan.release?.length;
 }
 
 /** HP a level-up adds to the BASE max: the dice summed, no CON (the system's rule). */

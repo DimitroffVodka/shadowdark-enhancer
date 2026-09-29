@@ -237,3 +237,21 @@ test("loadActorSnapshot reads only _source and toObject, never actor.system", as
   snapshot.system.abilities.str.value = 1;
   assert.equal(real._source.system.abilities.str.value, 15);
 });
+
+test("hydration needs no crypto.randomUUID (it does not exist on http LAN clients)", () => {
+  const noId = snap();
+  delete noId.sessionId;
+  const proto = Object.getPrototypeOf(globalThis.crypto);
+  const saved = Object.getOwnPropertyDescriptor(proto, "randomUUID");
+  Object.defineProperty(proto, "randomUUID", { value: undefined, configurable: true });
+  try {
+    const a = hydrateState(noId, RESOLVED).existing.sessionId;
+    const b = hydrateState(noId, RESOLVED).existing.sessionId;
+    assert.ok(a && b && a !== b, "a fresh non-empty id per open");
+    globalThis.foundry = { utils: { randomID: () => "fid12345" } };
+    assert.equal(hydrateState(noId, RESOLVED).existing.sessionId, "fid12345", "the house helper wins when present");
+  } finally {
+    delete globalThis.foundry;
+    Object.defineProperty(proto, "randomUUID", saved);
+  }
+});

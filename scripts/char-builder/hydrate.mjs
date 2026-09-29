@@ -86,6 +86,14 @@ export async function loadActorSnapshot(actor, deps = {}) {
   };
 }
 
+/**
+ * A fresh id for one builder session. Foundry's own randomID, never
+ * crypto.randomUUID: that only exists in secure contexts and this world is served
+ * over plain http. The Math.random fallback is for Node tests; it only has to
+ * differ between opens, not be unguessable.
+ */
+const newSessionId = () => globalThis.foundry?.utils?.randomID?.() ?? Math.random().toString(36).slice(2, 10);
+
 /** Match a held spell to a compendium entry; null when nothing fits. */
 function matchSpell(item, spellPool, classUuids) {
   const linked = sourceUuidOf(item);
@@ -179,7 +187,7 @@ export function hydrateState(snapshot, resolved = {}) {
 
   st.existing = {
     actorId: snapshot.actorId,
-    sessionId: snapshot.sessionId ?? globalThis.crypto.randomUUID(),
+    sessionId: snapshot.sessionId ?? newSessionId(),
     baseline: {
       name: st.name,
       alignment: st.alignment,

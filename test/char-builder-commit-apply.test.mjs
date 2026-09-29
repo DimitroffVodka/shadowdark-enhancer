@@ -282,7 +282,8 @@ function openActor(over = {}, items = [GEAR(), { _id: "tal", type: "Talent", nam
   const finish = async () => {
     const plan = planCommit(st.existing, st, live());
     st.existing.createdRowIds ??= [];
-    await applyPlan(actor, plan, { commitId: "c1", resolve, createdRowIds: st.existing.createdRowIds });
+    st.existing.rowQty ??= {};
+    await applyPlan(actor, plan, { commitId: "c1", resolve, createdRowIds: st.existing.createdRowIds, rowQty: st.existing.rowQty });
     return plan;
   };
   return { actor, st, live, finish };
@@ -384,4 +385,124 @@ test("created row ids are recorded as soon as they land, even when a later step 
   actor.items.delete([...actor.items].find((i) => i.name === "Rope")._id);
   const plan = planCommit(st.existing, st, live());
   assert.deepEqual(plan.creates, [], "spent, so not granted again");
+});
+
+// ---------------------------------------------------------------------------
+// Review round 2: a created row is an owned row once it lands
+// ---------------------------------------------------------------------------
+// Cart rows are what GearStep.addToCart makes: no rowId, same uuid merges into qty += 1.
+const ROPE = "Compendium.x.Item.rope";
+const cartRow = (qty = 1) => ({ itemId: null, uuid: ROPE, name: "Rope", qty, costCp: 100 });
+const ropes = (actor) => [...actor.items].filter((i) => i.name === "Rope");
+
+test("a created row taken from qty 1 to 2 is one item at quantity 2, charged for 2", async () => {
+  const { actor, st, finish } = openActor();
+  st.gear.push(cartRow(1));
+  await finish();
+  st.gear.find((g) => g.uuid === ROPE).qty = 2;
+  await finish();
+  assert.equal(ropes(actor).length, 1);
+  assert.equal(ropes(actor)[0].system.quantity, 2);
+  assert.equal(actor._source.system.coins.gp, 8);
+  const calls = actor.calls.length;
+  await finish();
+  assert.equal(actor.calls.length, calls, "then a no-op");
+});
+
+test("a created row of 3 cut to 1 is one item at quantity 1, charged for 1", async () => {
+  const { actor, st, finish } = openActor();
+  st.gear.push(cartRow(3));
+  await finish();
+  assert.equal(ropes(actor)[0].system.quantity, 3);
+  st.gear.find((g) => g.uuid === ROPE).qty = 1;
+  await finish();
+  assert.equal(ropes(actor).length, 1);
+  assert.equal(ropes(actor)[0].system.quantity, 1);
+  assert.equal(actor._source.system.coins.gp, 9);
+});
+
+test("a created row spent down on the sheet is not written back when the user did not touch it", async () => {
+  const { actor, st, finish } = openActor();
+  st.gear.push(cartRow(3));
+  await finish();
+  ropes(actor)[0].system.quantity = 1;
+  const plan = await finish();
+  assert.deepEqual(plan.updates, []);
+  assert.equal(ropes(actor)[0].system.quantity, 1);
+});
+
+test("a created gear row removed and bought again is a new item", async () => {
+  const { actor, st, finish } = openActor();
+  st.gear.push(cartRow(1));
+  await finish();
+  st.gear = st.gear.filter((g) => g.uuid !== ROPE);
+  await finish();
+  assert.equal(ropes(actor).length, 0);
+  st.gear.push(cartRow(1));
+  await finish();
+  assert.equal(ropes(actor).length, 1);
+  assert.equal(actor._source.system.coins.gp, 9);
+});
+
+test("a created gear row removed after it was spent on the sheet, then bought again, is granted", async () => {
+  const { actor, st, finish } = openActor();
+  st.gear.push(cartRow(1));
+  await finish();
+  actor.items.delete(ropes(actor)[0]._id);
+  st.gear = st.gear.filter((g) => g.uuid !== ROPE);
+  await finish();
+  st.gear.push(cartRow(1));
+  await finish();
+  assert.equal(ropes(actor).length, 1);
+});
+
+test("a spell unchecked and checked again is created again", async () => {
+  const { actor, st, finish } = openActor();
+  const light = { itemId: null, uuid: "Compendium.x.Item.light", name: "Light", tier: 1 };
+  st.spells.push({ ...light });
+  await finish();
+  st.spells = [];
+  await finish();
+  assert.deepEqual(names(actor), ["Stout", "Torch"]);
+  st.spells.push({ ...light });
+  await finish();
+  assert.deepEqual(names(actor), ["Light", "Stout", "Torch"]);
+});
+
+test("a trinket cleared and set again is created again", async () => {
+  const { actor, st, finish } = openActor();
+  st.trinket = "Lucky coin";
+  await finish();
+  st.trinket = "";
+  await finish();
+  assert.deepEqual(names(actor), ["Stout", "Torch"]);
+  st.trinket = "Lucky coin";
+  await finish();
+  assert.deepEqual(names(actor), ["Lucky coin", "Stout", "Torch"]);
+});
+
+test("an owned row taken up and then back to its opened quantity is written both times", async () => {
+  const items = [{ ...GEAR(), system: { quantity: 2, slots: { slots_used: 1, free_carry: 0, per_slot: 1 } } }];
+  const { actor, st, finish } = openActor({}, items);
+  const row = st.gear.find((g) => g.itemId === "t1");
+  row.qty = 4;
+  await finish();
+  assert.equal(actor.items.get("t1").system.quantity, 4);
+  row.qty = 2;
+  await finish();
+  assert.equal(actor.items.get("t1").system.quantity, 2);
+});
+
+test("a quantity update that rejects after saving is remembered, so the next edit is measured from it", async () => {
+  const { actor, st, finish } = openActor();
+  st.gear.push(cartRow(1));
+  await finish();
+  actor.faults.updateItems = "after";
+  st.gear.find((g) => g.uuid === ROPE).qty = 2;
+  await finish(); // a throw with an agreeing read-back counts as saved
+  actor.faults = {};
+  assert.equal(ropes(actor)[0].system.quantity, 2);
+  st.gear.find((g) => g.uuid === ROPE).qty = 1;
+  await finish();
+  assert.equal(ropes(actor)[0].system.quantity, 1);
 });

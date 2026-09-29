@@ -90,15 +90,26 @@ export async function resolveCreate(c) {
  *   the moment a created row is seen on the actor, so it is right even when a
  *   later step throws. Rows already listed stay listed (owned, never granted
  *   again); a row the user removes is deleted by the planner, by its marker.
- * @returns {Promise<{createdRowIds: string[]}>} that same list
+ *   `rowQty` is the caller's `existing.rowQty`: embedded item id -> the quantity
+ *   last created or written for it, filled in place from the read-back, so a later
+ *   quantity edit is measured from what this session did. A row the user removed
+ *   is forgotten (`plan.release`) only once its item is really gone, so adding it
+ *   again is a new purchase, while an item spent on the sheet is never re-granted.
+ * @returns {Promise<{createdRowIds: string[], rowQty: object}>} those same objects
  * @throws {IncompleteError}
  */
-export async function applyPlan(actor, plan, { commitId, resolve = resolveCreate, createdRowIds = [] } = {}) {
+export async function applyPlan(actor, plan, { commitId, resolve = resolveCreate, createdRowIds = [], rowQty = {} } = {}) {
   const op = { [MODULE_ID]: { builder: commitId } };
 
   const record = () => {
     const now = markersOn(actor);
-    for (const c of plan.creates) if (now.has(c.rowId) && !createdRowIds.includes(c.rowId)) createdRowIds.push(c.rowId);
+    for (const c of plan.creates) {
+      if (!now.has(c.rowId) || createdRowIds.includes(c.rowId)) continue;
+      createdRowIds.push(c.rowId);
+      // one item under the marker = an editable quantity (a kit is several)
+      const made = [...liveItems(actor).values()].filter((i) => markerOf(i) === c.rowId);
+      if (c.kind === "gear" && made.length === 1) rowQty[made[0]._id] = c.qty ?? 1;
+    }
   };
 
   // (1) creates: rows whose marker is not on the actor yet
@@ -132,6 +143,7 @@ export async function applyPlan(actor, plan, { commitId, resolve = resolveCreate
   if (updates.length) {
     const err = await attempt(() => actor.updateEmbeddedDocuments("Item", updates, op));
     const left = pending();
+    for (const u of updates) if (!left.includes(u)) rowQty[u._id] = u["system.quantity"];
     if (left.length) throw new IncompleteError("updates", left.map((u) => u._id), err);
   }
 
@@ -158,5 +170,12 @@ export async function applyPlan(actor, plan, { commitId, resolve = resolveCreate
     if (left.length) throw new IncompleteError("deletes", left, err);
   }
 
-  return { createdRowIds };
+  // forget the rows the user removed, but only those really gone from the actor
+  const stillThere = markersOn(actor);
+  for (const m of plan.release ?? []) {
+    const at = createdRowIds.indexOf(m);
+    if (at >= 0 && !stillThere.has(m)) createdRowIds.splice(at, 1);
+  }
+
+  return { createdRowIds, rowQty };
 }

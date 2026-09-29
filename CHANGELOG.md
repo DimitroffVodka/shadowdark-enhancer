@@ -467,6 +467,12 @@ page walks through it in order.
   errors after it already saved is not repeated, so a retry never doubles an
   item, and a change another module blocks is reported instead of lost. Nothing
   uses it yet, so nothing changes on any sheet. (#168)
+- **The builder's existing-character check works for players on a LAN address.**
+  Reading a character into the Character Builder no longer fails on a plain
+  http connection (the console dry run `describeActor` threw there), and items
+  added through the builder can be raised, lowered, removed and added again
+  across several Finishes without being skipped or charged twice. Nothing else
+  uses it yet, so nothing changes on any sheet. (#168)
 
 ### Changed
 
