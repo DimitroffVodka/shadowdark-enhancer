@@ -276,10 +276,40 @@ export const GMWR_KEY_LOCATIONS = {
 };
 
 /**
+ * The Cursed Scrolls that ship a miniature hexcrawl, CS1 to CS5: one hex key each,
+ * printed as write-ups only ("102. SHATTERED TOWER", two columns, three or four
+ * digits: the layout the GM Guide prints after its tables) with no summary table,
+ * so `hexes` is empty and the importer reads no rows for them. CS6 (City of Masks)
+ * numbers the locations of a city, not hexes, and has no row.
+ *
+ * A key runs from the contents page's page to the page before the next section
+ * ("Monsters", or the next adventure). Printed pages are PDF pages for these
+ * books (no offset in source-pdf-registry). Verified page by page against the PDFs
+ * with the module's own extractor and parser: 25, 22, 15, 36 and 23 keyed hexes.
+ *
+ * The title carries the book, for two reasons. The tagger's hex-key picker lists
+ * crawls by name, so a second "The Gloaming" would be indistinguishable from the
+ * GM Guide's. And knownRegions() (hex-region.mjs) treats a crawl titled with a
+ * name in this map as that region, which would put a Cursed Scroll's crawl under
+ * the GM Guide's region and its tables; a title no GM Guide table is named for
+ * does not.
+ *
+ * The books do not agree on where their numbering starts (columns or rows from 0
+ * or 1), so the map's "Top-left hex is number" is the GM's to give: docs/wiki/Hex-Maps.md.
+ */
+export const CURSED_SCROLL_KEY_LOCATIONS = {
+  CS1: { "The Gloaming (Cursed Scroll 1)":      { hexes: "", keys: "40-44" } },
+  CS2: { "The Djurum (Cursed Scroll 2)":        { hexes: "", keys: "33-38" } },
+  CS3: { "Isles of Andrik (Cursed Scroll 3)":   { hexes: "", keys: "39-42" } },
+  CS4: { "The Black River (Cursed Scroll 4)":   { hexes: "", keys: "30-39" } },
+  CS5: { "Morzomotha (Cursed Scroll 5)":        { hexes: "", keys: "27-32" } },
+};
+
+/**
  * Books whose key locations can be imported in one pass, by source key.
  * A book earns a row here only once its page map is verified against the PDF.
  */
-export const KEY_LOCATION_PAGES = { GMWR: GMWR_KEY_LOCATIONS };
+export const KEY_LOCATION_PAGES = { GMWR: GMWR_KEY_LOCATIONS, ...CURSED_SCROLL_KEY_LOCATIONS };
 
 /**
  * Every GM Guide table row as [name, printed page], in page order: the four

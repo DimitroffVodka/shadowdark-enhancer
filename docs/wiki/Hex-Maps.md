@@ -172,6 +172,36 @@ The **Game Master's Guide to the Western Reaches** files 270 keyed hexes across
 M010, M1004 and so on, which are not coordinates on the surface map, so there
 is nowhere to pin them — paste that chapter by hand if you want its pages.
 
+**The Cursed Scrolls** are offered in the same list. Cursed Scrolls 1 to 5 each
+come with a miniature hexcrawl, and picking one files it as one journal entry
+named for its map and book, with a page per keyed hex, exactly as above:
+
+| Book | Filed as | Keyed hexes | Key pages |
+|---|---|---|---|
+| Cursed Scroll 1: Diablerie | The Gloaming (Cursed Scroll 1) | 25 | 40-44 |
+| Cursed Scroll 2: Red Sands | The Djurum (Cursed Scroll 2) | 22 | 33-38 |
+| Cursed Scroll 3: Midnight Sun | Isles of Andrik (Cursed Scroll 3) | 15 | 39-42 |
+| Cursed Scroll 4: River of Night | The Black River (Cursed Scroll 4) | 36 | 30-39 |
+| Cursed Scroll 5: Dwellers in the Deep | Morzomotha (Cursed Scroll 5) | 23 | 27-32 |
+
+A Cursed Scroll prints only the write-ups, no summary table, so its entry has
+pages and no terrain rows. The book is in the title on purpose: the GM Guide
+has a "The Gloaming" too, and the [Hex Tagger](#keyed-locations-on-the-map)'s
+hex-key picker lists crawls by name. Cursed Scroll 6 (City of Masks) numbers the
+locations of a city, not hexes, so it is not offered.
+
+**Numbering the map to match.** Their hex numbers are the map's: three or four
+digits, column then row. When you make the scene with **Hex map from image**, set
+**Top-left hex is number** so the numbers agree. For The Gloaming, The Djurum and
+the Isles of Andrik it is **0001** (columns count from 0, rows from 1); on all 62
+keyed hexes of those three books, each number lands on the hex the map outlines.
+The Black River and Morzomotha work the same way, but their maps are filled with
+black and the grid finder can't read them: use **Set the corners by hand**, and
+choose the top-left number so a keyed hex you can recognise carries its own page's
+number (the Black River's key starts at column 0 and row 1; Morzomotha's at row 0).
+The Black River map comes in a north and a south half; the south half's rows
+continue from the north's (row 12 on).
+
 Running it again is safe and is how you pick up a parser improvement: pages are
 matched by the hex number on their flag and updated where they sit, so your own
 edits to a page's name are kept and nothing is duplicated. Cross-references

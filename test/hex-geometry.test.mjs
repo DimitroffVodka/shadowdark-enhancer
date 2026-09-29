@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { offsetToCube, cubeToOffset, numberFor, cellNumber, neighbours, foundryOffsetToCube, extrasNumbersAlike } from "../scripts/hex-map/geometry.mjs";
+import { offsetToCube, cubeToOffset, numberFor, cellNumber, onMap, neighbours, foundryOffsetToCube, extrasNumbersAlike } from "../scripts/hex-map/geometry.mjs";
 
 test("cube round trip under both shift rules", () => {
   for (const shifted of ["odd", "even"]) for (let col = 0; col < 5; col++) for (let row = 0; row < 5; row++) {
@@ -84,6 +84,45 @@ test("cellNumber: firstRow defaults to 0, so a print without a cut row is unchan
   const origin = { cube: { q: 0, r: 0 }, num: "0000", shifted: "odd", bounds: { cols: 4, rows: 4 } };
   assert.equal(cellNumber(offsetToCube(0, 0, "odd"), origin).num, 0);
   assert.equal(cellNumber(offsetToCube(2, 0, "odd"), origin).num, 200);
+});
+
+test("cellNumber: a map numbered from 0001 keeps its last printed row — bounds count from the first number, not from zero", () => {
+  // The Gloaming (Cursed Scroll 1): 17 columns, even ones lowered and one row short, printed rows 1 to 11
+  // with the first hex 0001. Comparing the printed row with `rows` as if numbering began at 0 dropped row 11
+  // and the lowered columns' row 10: 170 numbered cells of 178.
+  const bounds = { cols: 17, rows: 11, rowsLowered: 10, firstRow: 0, base: { col: 0, row: 1 } };
+  const origin = { cube: offsetToCube(0, 1, "even"), num: "0001", shifted: "even", bounds };
+  let numbered = 0;
+  for (let col = -1; col < 19; col++) for (let row = -1; row < 14; row++) {
+    if (cellNumber(offsetToCube(col, row, "even"), origin).num !== null) numbered++;
+  }
+  assert.equal(numbered, 178, "9 lowered columns of 10 and 8 raised ones of 11");
+  const at = (col, row) => cellNumber(offsetToCube(col, row, "even"), origin).num;
+  assert.equal(at(12, 10), 1210, "a lowered column's last row");
+  assert.equal(at(1, 11), 111, "a raised column's last row");
+  assert.equal(at(12, 11), null, "a lowered column has no row 11");
+  assert.equal(at(1, 0), null, "row 0 is above the first number");
+  assert.equal(at(17, 1), null, "column 17 is past the 17 columns");
+});
+
+test("cellNumber: a map numbered from 0000, or with no base, is unchanged", () => {
+  const plain = { cube: { q: 0, r: 0 }, num: "0000", shifted: "odd", bounds: { cols: 2, rows: 2 } };
+  const based = { ...plain, bounds: { cols: 2, rows: 2, base: { col: 0, row: 0 } } };
+  for (const origin of [plain, based]) {
+    assert.equal(cellNumber({ q: 1, r: 1 }, origin).num, 101);
+    assert.equal(cellNumber({ q: 1, r: 2 }, origin).num, null);
+    assert.equal(cellNumber({ q: 2, r: 0 }, origin).num, null);
+  }
+});
+
+test("onMap: the base moves every bound, and cells left of it are frame", () => {
+  const bounds = { cols: 3, rows: 2, base: { col: 2, row: 5 } };
+  assert.equal(onMap(2, 5, bounds), true);
+  assert.equal(onMap(4, 6, bounds), true);
+  assert.equal(onMap(1, 5, bounds), false, "left of the first column");
+  assert.equal(onMap(2, 4, bounds), false, "above the first row");
+  assert.equal(onMap(5, 5, bounds), false, "three columns from column 2 ends at column 4");
+  assert.equal(onMap(2, 7, bounds), false);
 });
 
 test("extrasNumbersAlike: a print whose first hex is the top-left cell numbers like Extras", () => {

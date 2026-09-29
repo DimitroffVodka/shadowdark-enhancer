@@ -121,6 +121,31 @@ test("a print whose raised columns start with a full hex is not told its top row
   assert.equal(bounds({ frameCut: false, rowsLowered: 11 }).firstRow, 0);
 });
 
+test("a print numbered from 0001 records where its counts start, and 0000 records nothing", () => {
+  // The bounds are counts from the first printed number. The Gloaming's first hex is 0001, so without the
+  // base its row 11 and the lowered columns' row 10 were read as past the end of the map.
+  const lat = { x0: 144.41, y0: 200.26, pitchX: 122.18, pitchY: 141.09, lowered: "even" };
+  const args = { name: "Map", src: "x.jpg", imageW: 2250, imageH: 1674, lat, cols: 17, rows: 11, rowsLowered: 10, frameCut: false, levels: true };
+  const origin = (firstNum) => alignedSceneData({ ...args, firstNum }).flags["shadowdark-enhancer"].hexTags.origin;
+  assert.deepEqual(origin("0001").bounds.base, { col: 0, row: 1 });
+  assert.equal("base" in origin("0000").bounds, false, "so the A0 print's stored bounds stay exactly what they were");
+  assert.equal("base" in origin("000").bounds, false, "the three-digit form of 0000, too");
+});
+
+test("a print whose first column is odd names its lowered columns by the printed parity", () => {
+  // Numbered from 0100 the first column is printed column 1. The detector says which columns of the IMAGE
+  // sit lower (even here: image columns 0, 2, ...), and printed column 1 is image column 0, so the print
+  // lowers the printed odd ones. Left as detected, every cell would be numbered one row off.
+  const lat = { x0: 144.41, y0: 200.26, pitchX: 122.18, pitchY: 141.09, lowered: "even" };
+  const args = { name: "Map", src: "x.jpg", imageW: 2250, imageH: 1674, lat, cols: 17, rows: 11, rowsLowered: 10, frameCut: false, levels: true };
+  const shifted = (firstNum) => alignedSceneData({ ...args, firstNum }).flags["shadowdark-enhancer"].hexTags.origin.shifted;
+  assert.equal(shifted("0000"), "even");
+  assert.equal(shifted("0001"), "even", "the first column is 0: parity unchanged");
+  assert.equal(shifted("0100"), "odd");
+  assert.equal(shifted("0101"), "odd");
+  assert.equal(alignedSceneData({ ...args, firstNum: "0101" }).grid.type, 5, "the scene's own grid is still HEXEVENQ");
+});
+
 test("the frame box starts ticked when the lowered columns end one row short", () => {
   // That shape means the frame clips both ends: the other parity's top row is
   // the print's label margin, which must not be numbered.
