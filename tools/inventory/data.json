@@ -246,7 +246,8 @@
     ],
     "3.9": [
       "scripts/merchant/merchant-shop.mjs",
-      "scripts/merchant/merchant-defaults.mjs"
+      "scripts/merchant/merchant-defaults.mjs",
+      "scripts/merchant/catalog-stock.mjs"
     ],
     "3.10": [
       "scripts/party-xp/party-xp.mjs",
@@ -499,6 +500,7 @@
     "scripts/magic-forge/magic-table-runtime.mjs": "Drives forge recipes off the GM's own imported magic-item tables.",
     "scripts/merchant/merchant-shop.mjs": "Two-mode shop system (compendium global or actor NPC inventory); GM opens for all players.",
     "scripts/merchant/merchant-defaults.mjs": "The two shipped merchant configs (Base, Western Reaches).",
+    "scripts/merchant/catalog-stock.mjs": "What the Catalog tab may sell: gear types with a list price, not loot-table props.",
     "scripts/party-xp/party-xp.mjs": "Award XP to the whole party in one click (ApplicationV2 GM tool).",
     "scripts/party-xp/party-xp-core.mjs": "Pure XP math + item-XP resolution.",
     "scripts/session-recap/session-recap.mjs": "Session event tracker singleton (loot, sales, XP, combats, per-PC stats).",

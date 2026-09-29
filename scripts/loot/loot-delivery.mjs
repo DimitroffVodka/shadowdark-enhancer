@@ -20,7 +20,7 @@ import { inferSeedFromName } from "../magic-forge/magic-forge.mjs";
 import { esc } from "../shared/esc.mjs";
 import { addToPurse } from "../shared/coins.mjs";
 import { SessionRecap } from "../session-recap/session-recap.mjs";
-import { relayToGM, authorizeActorFor, refuseQuery } from "../shared/gm-relay.mjs";
+import { relayToGM, authorizeActorFor, refuseQuery, registerQuery } from "../shared/gm-relay.mjs";
 
 const { renderTemplate } = foundry.applications.handlebars;
 const CARD_TEMPLATE = "modules/shadowdark-enhancer/templates/chat/loot-card.hbs";
@@ -45,7 +45,7 @@ export const LootDelivery = {
 
   /** Register the claim query + chat-card wiring. Call once at init. */
   init() {
-    CONFIG.queries[LOOT_QUERY] = (data, { user } = {}) => LootDelivery.handleQuery(data, user);
+    registerQuery(LOOT_QUERY, (data, { user } = {}) => LootDelivery.handleQuery(data, user));
     Hooks.on("renderChatMessageHTML", (message, html) => this._wireCard(message, html));
   },
 

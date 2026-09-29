@@ -6,6 +6,7 @@ export { MODULE_ID } from "./shared/module-id.mjs";
 import { MODULE_ID } from "./shared/module-id.mjs";
 import { registerA0Prompt } from "./hex-map/a0-prompt.mjs";
 import { ICONS } from "./shared/icons.mjs";
+import { claimGmTab, isActiveGM } from "./shared/gm-relay.mjs";
 
 import { registerSettings } from "./shared/settings.mjs";
 import { rulesApi } from "./rules-data/rules-data-core.mjs";
@@ -119,7 +120,7 @@ const STYLESHEET_REV = "39a661c3cacf";
 // stale); module.json carries the same hash and is fetched fresh at runtime. A
 // mismatch is a stale cache by construction — it cannot be anything else. Both
 // stamps are written by `npm run inventory` and gated by `inventory:check`.
-const BUILD_REV = "f570b87a0c47";
+const BUILD_REV = "50ba770c1cbf";
 
 /**
  * Tell the user when their browser is running an old build of this module, and
@@ -270,6 +271,8 @@ Hooks.once("i18nInit", () => {
 
 Hooks.once("init", () => {
   ensureFreshStylesheet();
+  // Of a GM signed in in several tabs of one browser, one does the GM's work (#288).
+  claimGmTab(game.userId, BUILD_REV);
   // After `ready`, so the warning lands on a built UI rather than the load screen.
   Hooks.once("ready", () => { if (game.user?.isGM) checkBuildRev(); });
   console.log(`${MODULE_ID} | init`);
@@ -1050,7 +1053,7 @@ Hooks.once("ready", () => {
   // Idempotent and silent — after the first repair migrateEncounterSources
   // returns null, so this costs one settings read per load. Guarded to the single
   // active GM because it writes a world setting.
-  if (game.users.activeGM?.id === game.user.id) {
+  if (isActiveGM()) {
     // #187: a world with the ancestry d100 imported and no builder table yet.
     import("./importer/tables/table-importer.mjs").then((m) => m.adoptImportedAncestryTable())
       .catch((err) => console.error(`${MODULE_ID} | ancestry table adoption failed:`, err));
@@ -1082,7 +1085,7 @@ Hooks.once("ready", () => {
     // system's "Patron Boons: <God>" and create the Items. Idempotent and cheap
     // (one index read when nothing is imported), so no version stamp.
     setTimeout(async () => {
-      if (game.users.activeGM?.id !== game.user.id) return;
+      if (!isActiveGM()) return;
       try {
         const { backfillPatronItems } = await import("./importer/tables/patron-items.mjs");
         const r = await backfillPatronItems();
@@ -1096,7 +1099,7 @@ Hooks.once("ready", () => {
     // printed line. Rewrite them in place, once per world (hexReflowDone): a
     // fresh import has the same shape and must never be merged.
     setTimeout(async () => {
-      if (game.users.activeGM?.id !== game.user.id) return;
+      if (!isActiveGM()) return;
       try {
         const { reflowLegacyHexPages } = await import("./importer/hex/hex-commit.mjs");
         await reflowLegacyHexPages();
@@ -1113,7 +1116,7 @@ Hooks.once("ready", () => {
     // active GM because it stamps a world setting; every other GM reads the
     // badges it leaves in the Manage tree.
     setTimeout(async () => {
-      if (game.users.activeGM?.id !== game.user.id) return;
+      if (!isActiveGM()) return;
       try {
         const { checkImporterNews, CATALOG_SETTING } = await import("./importer/importer-hub-news.mjs");
         await checkImporterNews({
@@ -1142,7 +1145,7 @@ Hooks.once("ready", () => {
           // stamps a world setting, so several GMs online would otherwise run it
           // concurrently. Checked at fire time, not at `ready` — activeGM can
           // differ five seconds later.
-          if (game.users.activeGM?.id !== game.user.id) {
+          if (!isActiveGM()) {
             // Nothing was attempted on this client. That is a legitimate no-op;
             // E2 has its own active-GM gate and may make the same decision.
             resolve(true);
@@ -1213,7 +1216,7 @@ Hooks.once("ready", () => {
     // several GMs online doesn't run the pack-write sweep concurrently — the
     // same pattern used by the merchant/loot/session-recap workers.
     setTimeout(async () => {
-      if (game.users.activeGM?.id !== game.user.id) return;
+      if (!isActiveGM()) return;
       try {
         const { relinkSpellsToClasses } = await import("./importer/items/item-importer.mjs");
         const n = await relinkSpellsToClasses();
@@ -1231,7 +1234,7 @@ Hooks.once("ready", () => {
     // SINGLE active GM like the sweep above — it writes spell items, so several
     // GMs online would otherwise run it concurrently.
     setTimeout(async () => {
-      if (game.users.activeGM?.id !== game.user.id) return;
+      if (!isActiveGM()) return;
       try {
         const { tagBorrowedSpellLists } = await import("./importer/char-content/class-unit-importer.mjs");
         const n = await tagBorrowedSpellLists();
@@ -1247,7 +1250,7 @@ Hooks.once("ready", () => {
     // existing worlds don't need a re-import. Same single-active-GM guard as the
     // sweeps above — it writes Class items.
     setTimeout(async () => {
-      if (game.users.activeGM?.id !== game.user.id) return;
+      if (!isActiveGM()) return;
       try {
         const { pruneBoughtGearGrants } = await import("./importer/char-content/class-unit-importer.mjs");
         const n = await pruneBoughtGearGrants();

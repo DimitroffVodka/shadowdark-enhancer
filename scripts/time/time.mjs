@@ -9,7 +9,7 @@
  */
 
 import { MODULE_ID } from "../shared/module-id.mjs";
-import { isActiveGM } from "../shared/gm-relay.mjs";
+import { isActiveGM, registerQuery } from "../shared/gm-relay.mjs";
 import * as core from "./time-core.mjs";
 import { nightWithOverride, skyOverride } from "../overland/sky-core.mjs";
 import { advanceOffDuty, handleOffDutyQuery, OFF_DUTY_QUERY } from "./off-duty.mjs";
@@ -68,7 +68,7 @@ export const timeApi = {
  * Cheap on purpose: the system's real-time light clock advances every tick.
  */
 export function registerTimeHooks() {
-  CONFIG.queries[OFF_DUTY_QUERY] = (data, { user } = {}) => handleOffDutyQuery(data, user);
+  registerQuery(OFF_DUTY_QUERY, (data, { user } = {}) => handleOffDutyQuery(data, user));
   Hooks.on("updateWorldTime", (worldTime, dt, options) => {
     if (!isActiveGM()) return;
     const from = worldTime - dt;

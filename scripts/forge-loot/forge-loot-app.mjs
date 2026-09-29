@@ -6,7 +6,7 @@
  * forge-loot-core.mjs; this file only selects a generator, collects its
  * declared inputs, and presents the immutable preview/approve boundary.
  */
-import { isActiveGM } from "../shared/gm-relay.mjs";
+import { isActiveGMUser } from "../shared/gm-relay.mjs";
 import {
   FORGE_LOOT_PHASES,
   GENERATOR_LABELS,
@@ -115,7 +115,8 @@ export class ForgeLootApp extends HandlebarsApplicationMixin(ApplicationV2) {
         controller: controller ?? new ForgeLootController({
           registry: ForgeLootGenerators,
           seed: seed ?? randomSeed(),
-          isActiveGM,
+          // Approve is a click: the active GM may commit from whichever of its tabs it's in (#288).
+          isActiveGM: isActiveGMUser,
         }),
       });
     }
@@ -130,7 +131,7 @@ export class ForgeLootApp extends HandlebarsApplicationMixin(ApplicationV2) {
 
   constructor({ controller = null, ...options } = {}) {
     super(options);
-    this._controller = controller ?? new ForgeLootController({ registry: ForgeLootGenerators, seed: randomSeed(), isActiveGM });
+    this._controller = controller ?? new ForgeLootController({ registry: ForgeLootGenerators, seed: randomSeed(), isActiveGM: isActiveGMUser });
     this._renderAbort = null;
   }
 

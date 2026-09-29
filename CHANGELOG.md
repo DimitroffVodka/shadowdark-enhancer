@@ -11,6 +11,13 @@ it needs.
 
 ### Added
 
+- **Silent death timers.** A new option beside Hidden death timers, in the
+  Deadly box of Modes of Play: a dying character posts no roll
+  card at all: not the death timer roll, not the rounds left, not the d20 turn
+  roll. The dice are still rolled and still count. With both options off
+  nothing changes, and Hidden death timers still makes the timer roll and the
+  rounds left GM-only, while the character's own d20 rise check stays in
+  chat. (#290)
 - **Travel reads the party and keeps a standing pace.** Start day asks nothing:
   the method is read from the party (mounted when every member rides a mount,
   sailing when every member is aboard one boat, else walking), and the pace is
@@ -40,6 +47,22 @@ it needs.
   **Encounter Roller** opens the roller, and **Continue** runs the rest of the
   clock. The day's check hours are no longer whispered; they are listed in the
   Travel panel.
+- **Camp in the book's order.** Make camp runs the camp before the night.
+  With a Shadowdark Extras party, Extras' camp window opens for the tasks:
+  Firewood first, and without a fire the GM is asked about burning 3 torches
+  before the starred tasks. Then the rations are eaten. A creature in the
+  night interrupts the rest. The Encounter panel and the Night step say so.
+  At dawn, anyone who ate rolls CON (DC 12) to still benefit from the rest,
+  unless their Bed Down succeeded. If Extras is turned off before dawn, the
+  camp waits for it with a warning, so the rest it keeps isn't lost. The
+  camp is saved before anyone eats or Extras' window opens. If something
+  fails partway, pressing Make camp again goes on from where the camp got,
+  even after a reload or a lost save. Nobody eats twice (at worst a ration
+  goes uneaten), the night isn't longer, and a creature that interrupted the rest still
+  counts. Once the dawn has closed the day, Make
+  camp waits for the next Start day. The tasks need a Shadowdark Extras with
+  shadowdark-extras#186. With an older Extras, no camp window opens, there
+  are no tasks or campfire, and the rations are eaten here. (#257)
 - **Travel encounters as often as you want them, and a panel that folds
   away.** The Travel panel's Encounters step has **Adjust** for the GM: the
   chance (1 to 5 in 6, one more on a pushed day) and the checks by day and by
@@ -501,6 +524,38 @@ page walks through it in order.
   sky now covers the active scene and the scene the travel token is on, and
   is set again whenever Overland's state changes. A write that fails on one
   scene no longer stops the other. (#294)
+- **Imported gear shows up in the Merchant Shop, and things with no price
+  leave it.** The Catalog tab only read the system's two gear packs, so the
+  Basic Gear, weapons and armor the importers wrote never appeared. It now
+  lists the imported items pack as well, and the Manage tab's compendium
+  browser can add from it. Items with no list price (the three Light Spell
+  stand-ins, the Basilisk Egg, Thieves' Tools, the Holy Symbol, the five herbal
+  remedies and most magic items) are no longer sold there for free, and
+  neither are the spells and talents in the imported pack or props from
+  treasure tables; a catalog buy of any of them is refused. Already imported
+  worlds need nothing: the shop reads what is there. To sell an unpriced item,
+  add it on the Manage tab with a price. The Catalog is the player-facing tab,
+  and the imported items pack is GM-only in the compendium list but a player's
+  client can still read its index, so the Catalog lists every priced gear item
+  of every book the GM has imported, including books the table has not
+  reached; a GM who wants to hold a book's gear back stocks the Buy tab by
+  hand instead. The shipped **The Merchant - Western Reaches** now stocks every
+  priced Western Reaches gear item in the imported pack instead of matching
+  names, so items the importer spells differently (Glow Paste, Jar; Rope,
+  Morzo Silk) are no longer missing from its Buy tab, and it lists a document
+  once even when two of its entries resolve to it. The saved preset updates on
+  the next GM load; a shop already loaded from it keeps its old stock until
+  Manage > Load. (#291)
+- **A GM signed in in two tabs no longer does everything twice.** Foundry sends
+  a request meant for the active GM to every tab that GM has open, and runs the
+  module's hooks in each. With two tabs open, a monster's stat rider rolled and
+  applied twice and combat loot dropped twice. Now the browser picks one tab to
+  do the work, and when that tab closes or reloads, the other takes over at
+  once. The same goes for every user a request names: the GM an off-duty clock
+  move is handed to moves it once, not once per tab, and a player asked to roll
+  a save or a death timer rolls it in one tab. A dying character's timer ticks
+  once per turn. This needs https or localhost: over plain http on a LAN, and
+  for the same user on two devices, both tabs still work. (#288)
 - **Random ancestry no longer turns a Half-elf into an Elf.** A table result
   matched any ancestry whose name it contained, so the population d100's
   Half-elf rows made Elves in a world without half-elves. A result now names
