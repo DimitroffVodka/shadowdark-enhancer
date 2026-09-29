@@ -3,7 +3,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
-  HEX_MAP_CAP, darknessAt, darknessMoved, followsSky, nightWithOverride, skyOverride, weatherEffect, weatherPlan,
+  HEX_MAP_CAP, darknessAt, darknessMoved, followsSky, nightWithOverride, skyOverride, skyScenes, weatherEffect, weatherPlan,
 } from "../scripts/overland/sky-core.mjs";
 
 const SUN = { sunrise: 6, sunset: 18 };
@@ -60,6 +60,18 @@ test("which scenes follow the sky", () => {
   assert.equal(darknessMoved(0.4, 0.42), true);
 });
 
+test("skyScenes: the active scene and the party's scene, once each, only those that follow the sky", () => {
+  const dungeon = { id: "d", follows: false };
+  const hexMap = { id: "h", follows: true };
+  const follows = (s) => s.follows;
+  assert.deepEqual(skyScenes({ active: dungeon, travel: hexMap, follows }), [hexMap], "the party's map, not the dungeon");
+  assert.deepEqual(skyScenes({ active: hexMap, travel: hexMap, follows }), [hexMap], "the same scene once");
+  assert.equal(skyScenes({ active: hexMap, travel: { id: "h", follows: true }, follows }).length, 1, "the same id once");
+  assert.deepEqual(skyScenes({ active: hexMap, travel: dungeon, follows }), [hexMap], "a travel scene that does not follow is left out");
+  assert.deepEqual(skyScenes({ active: null, travel: null, follows }), [], "no scenes");
+  assert.deepEqual(skyScenes({ active: null, travel: hexMap, follows }), [hexMap], "nothing active");
+});
+
 // ── The writes, against a stubbed scene ───────────────────────────────────────
 
 const deep = new Proxy(function () {}, {
@@ -91,15 +103,15 @@ Object.assign(globalThis, {
     actors: { get: () => null, filter: () => [] },
   },
 });
-const { applySky } = await import("../scripts/overland/sky.mjs");
+const { applySky, applySkies } = await import("../scripts/overland/sky.mjs");
 const { registerOverland } = await import("../scripts/overland/overland.mjs");
 
 /** A stubbed Scene that keeps its flags and applies its updates, so a reload is a fresh stub with the same data. */
-function scene({ hex = true, follows, darkness = 0, locked = false, weather = "", owned } = {}) {
+function scene({ hex = true, follows, darkness = 0, locked = false, weather = "", owned, id = "s" } = {}) {
   const writes = [];
   const flags = { hexTags: hex ? { origin: {} } : null, followsSky: follows, skyWeather: owned };
   const doc = {
-    writes, weather, flags,
+    writes, weather, flags, id,
     grid: { isHexagonal: hex },
     environment: { darknessLevel: darkness, darknessLock: locked },
     // Foundry 14 throws for a scope that isn't an active module; so does this stub (#255).
@@ -236,4 +248,35 @@ test("on the Isles of Andrik the winter noon is night, and the summer night stay
   const night = scene({ hex: false, follows: "on" });
   await applySky(night);
   assert.equal(night.writes[0].changes["environment.darknessLevel"], 0.3, "the Midnight Sun");
+});
+
+test("the sky follows the party's scene: a storm on the hex map with a dungeon active (#294)", async () => {
+  sky({ weather: STORMY, climate: "Temperate" });
+  stored.overlandState.tokenUuid = "Scene.hex.Token.t";
+  registerOverland();                                            // reads the state again, token included
+  const dungeon = scene({ hex: false, id: "dungeon" });
+  const hexMap = scene({ id: "hex" });
+  globalThis.game.scenes = { active: dungeon };
+  globalThis.fromUuidSync = (uuid) => (uuid === "Scene.hex.Token.t" ? { parent: hexMap } : null);
+  try {
+    await applySkies();
+    assert.deepEqual(dungeon.writes, [], "the dungeon is untouched");
+    assert.deepEqual(hexMap.writes.map((w) => w.changes), [{
+      "environment.darknessLevel": 0.6, weather: "rainStorm", "flags.shadowdark-enhancer.skyWeather": "rainStorm",
+    }], "darkness, the storm and its record in one write");
+    globalThis.game.scenes = { active: hexMap };
+    await applySkies();
+    assert.equal(hexMap.writes.length, 1, "a travel scene that is also active is not written twice");
+    const marked = scene({ hex: false, follows: "off", id: "off" });
+    globalThis.fromUuidSync = () => ({ parent: marked });
+    await applySkies();
+    assert.deepEqual(marked.writes, [], "a travel scene that does not follow the sky is untouched");
+    globalThis.fromUuidSync = () => null;
+    globalThis.game.scenes = { active: dungeon };
+    await applySkies();
+    assert.equal(hexMap.writes.length, 1, "a token that cannot be found gives no travel scene");
+  } finally {
+    delete globalThis.game.scenes;
+    delete globalThis.fromUuidSync;
+  }
 });

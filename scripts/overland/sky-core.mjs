@@ -91,6 +91,21 @@ export function weatherPlan({ current, owned, effect }) {
 }
 
 /**
+ * The scenes the sky writes to: the active scene and the party's (the scene
+ * of the Overland travel token), once each, those that follow the sky (#294).
+ * A GM can have a dungeon active while the party is on the hex map.
+ * @param {{active?:object|null, travel?:object|null, follows:(scene:object)=>boolean}} w
+ */
+export function skyScenes({ active = null, travel = null, follows }) {
+  const seen = new Set();
+  return [active, travel].filter((scene) => {
+    if (!scene || seen.has(scene.id) || !follows(scene)) return false;
+    seen.add(scene.id);
+    return true;
+  });
+}
+
+/**
  * Does this scene follow the sky? The scene's own choice, else yes for a
  * tagged hex map and no everywhere else, so a dungeon stays as it is.
  * @param {"on"|"off"|"default"|undefined} choice  the scene's followsSky flag

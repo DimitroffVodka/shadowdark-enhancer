@@ -362,7 +362,7 @@ async function postDay(boat) {
 }
 
 /** The travel token's scene: its region scan decides a table's north or south half. */
-function travelScene() {
+export function travelScene() {
   try { return _state.tokenUuid ? fromUuidSync(_state.tokenUuid)?.parent ?? null : null; } catch { return null; }
 }
 

@@ -469,7 +469,8 @@ the player-owned PCs, and Overland runs its own camp rations. The only thing mis
   sunrise, up to a night level of `1 − 0.2 × moon illumination`, so a full-moon night sits at 0.8.
   Hex maps are capped (Q7).
 - **Writes.** The active GM writes `environment.darknessLevel` (`common/documents/scene.mjs:116-117`)
-  on the active scene when time changes and when a scene is activated:
+  on the active scene and on the party's scene (the one the travel token is on, #294) when time
+  changes, when Overland's state changes and when a scene is activated:
   - only when the value moves by 0.02 or more;
   - animated for steps under an hour.
   - This is the batch-and-animate pattern of Calendaria's `updateDarknessFromWorldTime` and its

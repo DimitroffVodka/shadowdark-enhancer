@@ -258,6 +258,9 @@ with forage and camp.
   - The tagged hex map counts as outdoors and only darkens to a readable
     tint. Any other scene joins in when you set **Follows the sky** to Yes in
     its Scene Configuration, on the Environment tab; dungeons are left alone.
+  - The sky is written to the active scene and to the scene the travel token
+    is on, so the map darkens and shows the weather even while a dungeon is the
+    world's active scene. Each of the two must follow the sky.
   - A scene whose darkness is locked is left alone, and so is a weather effect
     you picked yourself. No calendar module is needed.
   - On the Isles of Andrik, the summer sun never sets and the winter night

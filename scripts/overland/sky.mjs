@@ -1,9 +1,10 @@
 /**
  * Shadowdark Enhancer — the sky on scenes (#235, Overland O9, docs/plans/overland.md §6.2).
  *
- * The active GM writes the active scene's darkness and weather effect when
- * the clock moves, when Overland's weather or hex changes, and when a scene
- * is activated. Only a scene that follows the sky is touched: a tagged hex
+ * The active GM writes the darkness and weather effect of the active scene
+ * and of the party's scene (the one the Overland travel token is on, which
+ * can differ: #294) when the clock moves, when Overland's weather, hex or
+ * token changes, and when a scene is activated. Only a scene that follows the sky is touched: a tagged hex
  * map by default, and any scene its GM marks in Scene Configuration's
  * Environment tab. A dungeon stays as it is unless it is marked.
  *
@@ -21,10 +22,10 @@
 import { MODULE_ID } from "../shared/module-id.mjs";
 import { isActiveGM } from "../shared/gm-relay.mjs";
 import { esc } from "../shared/esc.mjs";
-import { overlandState, OVERLAND_CHANGED } from "./overland.mjs";
+import { overlandState, travelScene, OVERLAND_CHANGED } from "./overland.mjs";
 import { hourOfDay } from "../time/time-core.mjs";
 import {
-  HEX_MAP_CAP, darknessAt, darknessMoved, followsSky, skyOverride, weatherEffect, weatherPlan,
+  HEX_MAP_CAP, darknessAt, darknessMoved, followsSky, skyOverride, skyScenes, weatherEffect, weatherPlan,
 } from "./sky-core.mjs";
 
 export const FOLLOWS_SKY = "followsSky";
@@ -43,6 +44,8 @@ const FOLLOWS_LABEL = {
 
 /** Is this scene a tagged hex map? (The scene's own, not the viewed canvas.) */
 const isHexMap = (scene) => !!scene?.getFlag?.(MODULE_ID, "hexTags")?.origin && !!scene?.grid?.isHexagonal;
+
+const sceneFollows = (scene) => followsSky(scene.getFlag(MODULE_ID, FOLLOWS_SKY), isHexMap(scene));
 
 let _running = null;
 let _again = null;
@@ -94,16 +97,29 @@ export async function applySky(scene = game.scenes?.active, { dt = null } = {}) 
 }
 
 /**
+ * The sky for every scene that follows it and matters now: the active scene
+ * and the party's, which is where the map is when a dungeon is active (#294).
+ * @returns {Promise<Array<object|null>>} what was written to each
+ */
+export async function applySkies(options) {
+  const scenes = skyScenes({ active: game.scenes?.active, travel: travelScene(), follows: sceneFollows });
+  const written = [];
+  for (const scene of scenes) written.push(await applySky(scene, options));
+  return written;
+}
+
+/**
  * One sky pass at a time: real-time light tracking moves the clock every
  * second, and a pass that finds more to do runs once more afterwards.
+ * A pass covers the active scene and the party's.
  */
-function queueSky(scene, options) {
-  if (_running) { _again = [scene, options]; return _running; }
-  _running = applySky(scene, options)
+function queueSky(options) {
+  if (_running) { _again = options; return _running; }
+  _running = applySkies(options)
     .catch((err) => console.error(`${MODULE_ID} | the sky on the scene`, err))
     .finally(() => {
       _running = null;
-      if (_again) { const [s, o] = _again; _again = null; queueSky(s, o); }
+      if (_again) { const o = _again; _again = null; queueSky(o); }
     });
   return _running;
 }
@@ -127,13 +143,13 @@ function onRenderSceneConfig(app, element) {
 
 export function registerSky() {
   Hooks.on("renderSceneConfig", onRenderSceneConfig);
-  Hooks.on("updateWorldTime", (worldTime, dt) => { if (isActiveGM()) queueSky(undefined, { dt }); });
+  Hooks.on("updateWorldTime", (worldTime, dt) => { if (isActiveGM()) queueSky({ dt }); });
   Hooks.on(OVERLAND_CHANGED, () => { if (isActiveGM()) queueSky(); });
   Hooks.on("updateScene", (scene, changed) => {
     if (!isActiveGM()) return;
     const flagChanged = changed.flags?.[MODULE_ID] && FOLLOWS_SKY in changed.flags[MODULE_ID];
-    if (changed.active === true || (flagChanged && scene.active)) queueSky(scene);
+    if (changed.active === true || (flagChanged && (scene.active || scene.id === travelScene()?.id))) queueSky();
   });
-  // Called from the module's ready hook: set the active scene's sky now.
+  // Called from the module's ready hook: set the sky now, on the active scene and the party's.
   if (isActiveGM()) queueSky();
 }
