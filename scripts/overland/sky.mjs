@@ -141,6 +141,45 @@ function onRenderSceneConfig(app, element) {
   tab.prepend(group);
 }
 
+// ── Weather visuals, per client (#294) ─────────────────────────────────────
+
+/** This client's switch: off draws no weather effect here, whatever the scene says. */
+export const WEATHER_VISUALS = "weatherVisuals";
+const visualsOn = () => {
+  try { return game.settings.get(MODULE_ID, WEATHER_VISUALS) !== false; } catch { return true; }
+};
+
+/** drawWeatherEffects: the layer was just drawn with the scene's effect; with the switch off, drop it. */
+export function onDrawWeatherEffects(layer) {
+  if (!visualsOn()) layer.clearEffects();
+}
+
+/** The switch changed: put this client's effect back or take it away, with no redraw of the scene. */
+export function applyWeatherVisuals() {
+  const layer = canvas?.weather;
+  if (!canvas?.ready || !layer) return;
+  if (visualsOn()) layer.initializeEffects(CONFIG.weatherEffects?.[canvas.scene?.weather]);
+  else layer.clearEffects();
+}
+
+/**
+ * Register the client's "Show weather effects" switch and the hook that
+ * honours it. Runs at init on every client: the first canvas draw comes
+ * before `ready`, and a weather change redraws the scene.
+ */
+export function registerWeatherVisuals() {
+  game.settings.register(MODULE_ID, "weatherVisuals", {
+    name: "SDE.settings.weatherVisuals.name",
+    hint: "SDE.settings.weatherVisuals.hint",
+    scope: "client",
+    config: true,
+    type: Boolean,
+    default: true,
+    onChange: applyWeatherVisuals,
+  });
+  Hooks.on("drawWeatherEffects", onDrawWeatherEffects);
+}
+
 export function registerSky() {
   Hooks.on("renderSceneConfig", onRenderSceneConfig);
   Hooks.on("updateWorldTime", (worldTime, dt) => { if (isActiveGM()) queueSky({ dt }); });

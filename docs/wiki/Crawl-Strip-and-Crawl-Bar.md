@@ -261,6 +261,11 @@ with forage and camp.
   - The sky is written to the active scene and to the scene the travel token
     is on, so the map darkens and shows the weather even while a dungeon is the
     world's active scene. Each of the two must follow the sky.
+  - Weather changes redraw the whole scene on every screen that shows it,
+    which is slow on a very large map or a weak device. Each device has a
+    **Show weather effects** setting (see [Settings Reference](Settings-Reference.md));
+    turned off, that device draws no weather while the scene keeps it for
+    everyone else.
   - A scene whose darkness is locked is left alone, and so is a weather effect
     you picked yourself. No calendar module is needed.
   - On the Isles of Andrik, the summer sun never sets and the winter night

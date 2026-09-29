@@ -67,6 +67,11 @@ it needs.
   no party token there and nothing selected. A player's own token never
   travels. (#257)
 
+- **Show weather effects, per device.** A client setting (on by default) that
+  turns the scene's weather drawing off on a slow device such as a Steam Deck.
+  The scene keeps its weather and other screens still show it. It applies at
+  once, with no scene redraw, and holds through the redraw a weather change
+  causes. (#294)
 - **The clock bar.** The date with its year, the time and the sky now sit at
   the top of the screen for everyone, on every scene, in the look of the
   Overland demo: black, the engraved frame, the book's blackletter. Under it,

@@ -103,7 +103,7 @@ Object.assign(globalThis, {
     actors: { get: () => null, filter: () => [] },
   },
 });
-const { applySky, applySkies } = await import("../scripts/overland/sky.mjs");
+const { applySky, applySkies, applyWeatherVisuals, onDrawWeatherEffects, registerWeatherVisuals } = await import("../scripts/overland/sky.mjs");
 const { registerOverland } = await import("../scripts/overland/overland.mjs");
 
 /** A stubbed Scene that keeps its flags and applies its updates, so a reload is a fresh stub with the same data. */
@@ -248,6 +248,64 @@ test("on the Isles of Andrik the winter noon is night, and the summer night stay
   const night = scene({ hex: false, follows: "on" });
   await applySky(night);
   assert.equal(night.writes[0].changes["environment.darknessLevel"], 0.3, "the Midnight Sun");
+});
+
+test("Show weather effects: off clears this client's effects, also after a redraw; on puts them back with no redraw (#294)", () => {
+  const RAIN = { id: "rainStorm" };
+  const calls = [];
+  const layer = {
+    initializeEffects: (config) => calls.push(["init", config]),
+    clearEffects: () => calls.push(["clear"]),
+  };
+  const savedEffects = globalThis.CONFIG.weatherEffects;
+  globalThis.CONFIG.weatherEffects = { rainStorm: RAIN };
+  globalThis.canvas = { ready: true, scene: { weather: "rainStorm" }, weather: layer, draw: () => calls.push(["draw"]) };
+  try {
+    stored.weatherVisuals = false;
+    applyWeatherVisuals();
+    assert.deepEqual(calls.splice(0), [["clear"]], "turned off: cleared, no redraw");
+    onDrawWeatherEffects(layer);                                  // a weather change redrew the scene
+    assert.deepEqual(calls.splice(0), [["clear"]], "still cleared after the redraw");
+    assert.equal(globalThis.canvas.scene.weather, "rainStorm", "the scene's own weather is untouched");
+    stored.weatherVisuals = true;
+    onDrawWeatherEffects(layer);
+    assert.deepEqual(calls.splice(0), [], "on: the drawn effect stays");
+    applyWeatherVisuals();
+    assert.deepEqual(calls.splice(0), [["init", RAIN]], "turned on: the scene's effect returns, no redraw");
+    globalThis.canvas.scene.weather = "";
+    applyWeatherVisuals();
+    assert.deepEqual(calls.splice(0), [["init", undefined]], "no weather on the scene: nothing to draw");
+    globalThis.canvas.ready = false;
+    applyWeatherVisuals();
+    assert.deepEqual(calls, [], "no canvas yet: nothing to do");
+    delete stored.weatherVisuals;
+    onDrawWeatherEffects(layer);
+    assert.deepEqual(calls, [], "never set: on");
+  } finally {
+    globalThis.CONFIG.weatherEffects = savedEffects;
+    delete globalThis.canvas;
+    delete stored.weatherVisuals;
+  }
+});
+
+test("Show weather effects is a client setting, on by default, and hooks drawWeatherEffects (#294)", () => {
+  const registered = [];
+  const hooks = [];
+  const { settings, } = globalThis.game;
+  const { on } = globalThis.Hooks;
+  globalThis.game.settings = { ...settings, register: (ns, key, data) => registered.push([ns, key, data]) };
+  globalThis.Hooks.on = (name, fn) => hooks.push([name, fn]);
+  try {
+    registerWeatherVisuals();
+  } finally {
+    globalThis.game.settings = settings;
+    globalThis.Hooks.on = on;
+  }
+  assert.equal(registered.length, 1);
+  const [ns, key, data] = registered[0];
+  assert.deepEqual([ns, key, data.scope, data.config, data.type, data.default], ["shadowdark-enhancer", "weatherVisuals", "client", true, Boolean, true]);
+  assert.equal(data.onChange, applyWeatherVisuals);
+  assert.deepEqual(hooks.map(([name, fn]) => [name, fn]), [["drawWeatherEffects", onDrawWeatherEffects]]);
 });
 
 test("the sky follows the party's scene: a storm on the hex map with a dungeon active (#294)", async () => {

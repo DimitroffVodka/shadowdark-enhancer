@@ -23,6 +23,8 @@
   "SDE.settings.clockBar.all": "Everyone",
   "SDE.settings.clockBar.gm": "GM only",
   "SDE.settings.clockBar.off": "Off",
+  "SDE.settings.weatherVisuals.name": "Show weather effects",
+  "SDE.settings.weatherVisuals.hint": "Draw the scene's weather (rain, snow, leaves) on this device. Turn it off on a slow device: the scene's weather stays as it is and everyone else still sees it.",
   "SDE.settings.overlandMenu.name": "Overland",
   "SDE.settings.overlandMenu.hint": "The clock bar at the top, and Overland travel on a hex map: who sees the bar, the weather rule, how often encounters are checked.",
   "SDE.settings.overlandMenu.label": "Configure",

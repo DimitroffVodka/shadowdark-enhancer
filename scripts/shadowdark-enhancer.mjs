@@ -14,7 +14,7 @@ import { overlandState, isOverland, rollWeather, startDay, resume, forage, makeC
 import { TravelBar } from "./overland/overland-bar.mjs";
 import { registerHexRules } from "./overland/hex-rules.mjs";
 import { registerRoute } from "./overland/route.mjs";
-import { registerSky } from "./overland/sky.mjs";
+import { registerSky, registerWeatherVisuals } from "./overland/sky.mjs";
 import { CrawlState } from "./crawl-strip/crawl-state.mjs";
 import { CrawlStrip } from "./crawl-strip/crawl-strip.mjs";
 import { registerCrawlTracker, refreshTracker } from "./crawl-strip/crawl-tracker.mjs";
@@ -119,7 +119,7 @@ const STYLESHEET_REV = "39a661c3cacf";
 // stale); module.json carries the same hash and is fetched fresh at runtime. A
 // mismatch is a stale cache by construction — it cannot be anything else. Both
 // stamps are written by `npm run inventory` and gated by `inventory:check`.
-const BUILD_REV = "496bb4f9347f";
+const BUILD_REV = "635475e54ab7";
 
 /**
  * Tell the user when their browser is running an old build of this module, and
@@ -278,6 +278,8 @@ Hooks.once("init", () => {
   // synchronous cache operation with a fire-and-forget notification.
   initRivalClassTable({ game });
   registerSettings();
+  // This client's Show weather effects switch (#294), before the first canvas draw.
+  registerWeatherVisuals();
   // timeAdvanced: the active GM reports what each world-time change crossed (#227).
   registerTimeHooks();
   // Register Western Reaches as an official source tag for items, so it appears
