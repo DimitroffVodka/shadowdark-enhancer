@@ -91,8 +91,14 @@ async function applyWarbandWrite(data, user, type) {
       if (refusal) return { ok: false, warn: { key: REFUSAL_KEYS[refusal], data: { name: pc.name, max: allowance[refusal] } } };
       if (!allowance) warn = { key: "SDE.warband.notify.noHitDie", data: { name: pc.name } };
     }
-    await replaceModuleFlag(actor, WARBAND_FLAG, { ...state, commander: pc?.uuid ?? null });
+    // Leading is the commander's choice: a new commander (or none) starts without it.
+    const leading = state.leading && (pc?.uuid ?? null) === state.commander;
+    await replaceModuleFlag(actor, WARBAND_FLAG, { ...state, commander: pc?.uuid ?? null, leading });
     return { ok: true, warn };
+  }
+  if (action === "leading") {
+    await replaceModuleFlag(actor, WARBAND_FLAG, { ...state, leading: !!on });
+    return { ok: true };
   }
   if (action !== "upgrade") return { ok: false };
   if (on) {
@@ -136,8 +142,8 @@ const marks = (v) => (Array.isArray(v) ? [...new Set(v.filter(Number.isFinite))]
 /**
  * A warband's state, cleaned, every field kept so a whole-flag write loses
  * none: `{ commander: uuid|null, upgrades: string[], arrears: gp owed,
- * deserted: bool, retrainingUntil: worldTime|null, settledMonths: number[],
- * moraleWeeks: number[], payment: object|null }` (#200, #204).
+ * deserted: bool, retrainingUntil: worldTime|null, leading: bool, routed: bool,
+ * settledMonths: number[], moraleWeeks: number[], payment: object|null }` (#200, #203, #204).
  */
 export function warbandState(actor) {
   const f = actor?.getFlag?.(MODULE_ID, WARBAND_FLAG) ?? {};
@@ -147,6 +153,8 @@ export function warbandState(actor) {
     arrears: Math.max(0, Math.trunc(Number(f.arrears) || 0)),
     deserted: !!f.deserted,
     retrainingUntil: Number.isFinite(f.retrainingUntil) ? f.retrainingUntil : null,
+    leading: !!f.leading,
+    routed: !!f.routed,
     // The month and week starts whose upkeep and arrears check are done, the last few of each: a retry
     // does neither twice, and a later month settled never hides an earlier one still owed (#284 review).
     settledMonths: marks(f.settledMonths),
@@ -171,7 +179,9 @@ export async function commanderTier(pc) {
 
 /** The world's other warbands under this commander, and the upgrades they carry. */
 export function commandedBy(commanderUuid, { except, type }) {
-  const others = game.actors.filter((a) => a.type === type && a.id !== except && warbandState(a).commander === commanderUuid);
+  // A routed warband is destroyed (#203): it no longer counts.
+  const others = game.actors.filter((a) => a.type === type && a.id !== except && !warbandState(a).routed
+    && warbandState(a).commander === commanderUuid);
   return { otherWarbands: others.length, otherUpgrades: others.reduce((n, a) => n + warbandState(a).upgrades.length, 0) };
 }
 
@@ -206,8 +216,11 @@ export function buildWarbandNpcSheet(BaseNpcSheet, type) {
         commanderMissing: !!state.commander && !pc,
         tier: tier ? game.i18n.localize(TIER_KEYS[tier]) : null,
         allowance: allowance ? {
-          warbands: game.i18n.format("SDE.warband.allowance.warbands", { used: otherWarbands + 1, max: allowance.warbands }),
-          upgrades: game.i18n.format("SDE.warband.allowance.upgrades", { used: otherUpgrades + state.upgrades.length, max: allowance.upgrades }),
+          // A routed warband counts against no one's allowance, its own sheet's included (#285 review).
+          warbands: game.i18n.format("SDE.warband.allowance.warbands", { used: otherWarbands + (state.routed ? 0 : 1), max: allowance.warbands }),
+          upgrades: game.i18n.format("SDE.warband.allowance.upgrades", {
+            used: otherUpgrades + (state.routed ? 0 : state.upgrades.length), max: allowance.upgrades,
+          }),
         } : null,
         noCommanderCap: !allowance ? game.i18n.format("SDE.warband.allowance.noCommander", { max: MOST_UPGRADES }) : null,
         morale: cha === null ? null : game.i18n.format("SDE.warband.moraleBonus", { bonus: `${cha >= 0 ? "+" : ""}${cha}` }),
@@ -219,6 +232,9 @@ export function buildWarbandNpcSheet(BaseNpcSheet, type) {
         retraining: state.retrainingUntil > game.time.worldTime
           ? game.i18n.format("SDE.warband.retrainingLine", { date: formatTime(state.retrainingUntil) }) : null,
         isGM: game.user.isGM,
+        leading: state.leading,
+        routed: state.routed,
+        outOfService: state.deserted || state.routed,
       };
       return context;
     }
@@ -234,6 +250,10 @@ export function buildWarbandNpcSheet(BaseNpcSheet, type) {
       for (const [selector, action] of [["run-month", "runMonth"], ["pay-arrears", "payArrears"], ["return-to-service", "returnToService"]]) {
         root.querySelectorAll(`[data-sde-action='${selector}']`).forEach((el) => el.addEventListener("click", () => this._sendWrite({ action })));
       }
+      root.querySelectorAll("input[data-sde-leading]").forEach((el) => el.addEventListener("change", (ev) => {
+        ev.stopPropagation();
+        this._sendWrite({ action: "leading", on: el.checked });
+      }));
       // The checklist isn't a form field: each tick is checked against the
       // allowance and written whole, and a refused one is put back.
       root.querySelectorAll("input[data-sde-upgrade]").forEach((el) => el.addEventListener("change", (ev) => {

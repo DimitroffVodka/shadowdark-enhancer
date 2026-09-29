@@ -52,7 +52,7 @@ export function registerTurnSkip() {
       void chaosThenSkip(combat);
     } else if (isChaosRound(changes, options) && game.settings.get(MODULE_ID, "modeChaosInitiative") === true) {
       void chaosThenSkip(combat);
-    } else check();
+    } else void maybeSkipDeadTurn(game.combat, options?.direction);
   });
   // The current combatant died in place: HP hit 0 (updateActor) or the tracker
   // flag was set (updateCombatant). Neither moves the turn pointer on its own,
@@ -119,11 +119,14 @@ async function drainHeld(combat) {
 
 /**
  * Advance past the current combatant for as long as it renders no card.
+ * A step back (Previous Turn) keeps stepping back, so the GM can reach the
+ * turn before a corpse or a warband instead of bouncing forward.
  *
  * @param {object|null} combat  The active combat, or null.
+ * @param {number} [direction]  -1 when the move that got here was backwards.
  * @returns {Promise<void>}
  */
-export async function maybeSkipDeadTurn(combat) {
+export async function maybeSkipDeadTurn(combat, direction = 1) {
   if (!isActiveGM()) return;
   if (!combat?.started) return;
   // Only ever drive the combat the strip is actually showing. A second,
@@ -145,7 +148,12 @@ export async function maybeSkipDeadTurn(combat) {
       await drainHeld(combat);
       const entries = combat.turns.map(combatantEntry);
       if (!shouldSkipTurn(entries, combat.turn)) break;
-      await combat.nextTurn();
+      if (direction !== -1) await combat.nextTurn();
+      else {
+        const at = `${combat.round}:${combat.turn}`;
+        await combat.previousTurn();
+        if (`${combat.round}:${combat.turn}` === at) break;
+      }
     }
   } catch (error) {
     console.error(`${MODULE_ID} | failed to skip a defeated combatant's turn`, error);

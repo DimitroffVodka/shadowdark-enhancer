@@ -6,7 +6,7 @@ import assert from "node:assert/strict";
 import {
   UPGRADES, MOST_UPGRADES, allowanceFor, canMakeWarband, cleanUpgrades, commandRefusal, upgradeRefusal,
   tripleDice, warbandStats, warbandAttack, warbandHp, warbandRolledHp,
-  upkeepGp, moraleDC, routChance, healPlan, monthKey, clockEvents, decidePayment,
+  upkeepGp, moraleDC, routChance, healPlan, monthKey, clockEvents, moraleTriggered, moraleFormula, decidePayment,
 } from "../scripts/actors/warband-core.mjs";
 
 test("eighteen upgrades, and a commander's allowance by hit die", () => {
@@ -91,6 +91,17 @@ test("a clock move's month and week starts come in order, each once, over its la
   assert.equal(long.events.filter((e) => e.month !== undefined).length, 3, "days 901-1000 hold the month starts 930, 960 and 990");
   assert.deepEqual(clockEvents({ ...move, from: 5, to: 5 }).events, []);
   assert.equal(monthKey({ year: 1300, month: 2 }, 12), 15602, "a month's key: year x 12 + month");
+});
+
+test("morale: checked on falling to half and on every hit below it, never while standing firm or at 0", () => {
+  assert.equal(moraleTriggered(20, 10, 20), true, "falls to half");
+  assert.equal(moraleTriggered(10, 7, 20), true, "hit again below half");
+  assert.equal(moraleTriggered(20, 11, 20), false, "still above half");
+  assert.equal(moraleTriggered(10, 0, 20), false, "at 0 it is down, not wavering");
+  assert.equal(moraleTriggered(8, 12, 20), false, "healing");
+  assert.equal(moraleTriggered(17, 8, 17), true, "odd max: 8 is at most half of 17");
+  assert.equal(moraleFormula(2, false), "1d20 + 2");
+  assert.equal(moraleFormula(-1, true), "2d20kh + -1");
 });
 
 test("the system's HP roll keeps a warband's current HP: placing a linked token never heals it (#283 review)", () => {

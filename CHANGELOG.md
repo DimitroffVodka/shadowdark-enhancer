@@ -497,6 +497,21 @@ page walks through it in order.
   upkeep and Pay Arrears themselves take gold only from a commander one of the
   warband's player owners also owns, so a commander written straight onto the
   warband by its owner costs another player nothing. (#204)
+- **Warbands in mass combat.** A warband with its commander in the fight takes
+  the commander's initiative and turn: its card rides after the commander's
+  on the Crawl Strip, and the turn passes it by. Morale is automatic: falling
+  to half HP, and every hit below it, checks d20 plus the commander's CHA
+  against 15 (Loyal 9), with advantage while the commander leads it; a
+  failure rolls a rout, 3-in-6 (Withdraw 1-in-6), and a rout destroys it:
+  no more upkeep, healing, or place in the commander's allowance, until
+  Return to Service. With its commander dead it rolls and takes its own
+  turn. Its attack cards note the area it fills; splitting its damage is the
+  GM's. A warband still retraining its upgrades can't attack. A warband with
+  no commander, or whose commander was deleted, checks no morale. A rout is
+  never left half done: the warband is marked destroyed even if Foundry
+  reports its routed flag failed to save. Return to Service takes a routed
+  warband back into the fight: its combatants stop being defeated and its
+  token loses the dead status, unless it is at 0 HP. (#203)
 - **Encounter check frequency.** Right-click the Crawl Bar's **Encounter**
   button: **Check Frequency** runs from **1** (every crawl round, the default)
   to **10**. The count runs from the last check, automatic or manual, so a
@@ -584,6 +599,11 @@ page walks through it in order.
 
 ### Fixed
 
+- **Stepping back past a corpse.** Previous Turn onto a dead enemy (or a
+  warband following its commander) bounced forward again, so the GM couldn't
+  step back past it. It now keeps stepping back. And a player's Next Turn
+  that would only reach corpses before the round ends is refused as a round
+  change, as it is at the last turn. (#203)
 - **The sky follows the party's map.** Darkness and weather were written only
   to the world's active scene, so with a dungeon active while the party token
   stood on the hex map, the map never darkened and never showed a storm. The

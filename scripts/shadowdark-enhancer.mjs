@@ -89,6 +89,7 @@ import { Troubles, registerTroubles } from "./troubles/troubles.mjs";
 import { Rumors, registerRumors } from "./rumors/rumors.mjs";
 import { registerActorTypes, WARBAND_TYPE } from "./actors/register-actors.mjs";
 import { registerWarbandUpkeep } from "./actors/warband-upkeep.mjs";
+import { registerWarbandCombat } from "./actors/warband-combat.mjs";
 // Imported for its top-level createChatMessage hook: the out-of-combat
 // initiative sync must be live on the GM from load, not only after the GM
 // personally triggers the lazy import in crawl-strip. Otherwise a player who
@@ -121,7 +122,7 @@ const STYLESHEET_REV = "6c2ef37c018d";
 // stale); module.json carries the same hash and is fetched fresh at runtime. A
 // mismatch is a stale cache by construction — it cannot be anything else. Both
 // stamps are written by `npm run inventory` and gated by `inventory:check`.
-const BUILD_REV = "3f2f120a6063";
+const BUILD_REV = "cdde576167e8";
 
 /**
  * Tell the user when their browser is running an old build of this module, and
@@ -302,6 +303,8 @@ Hooks.once("init", () => {
   registerTroubles();
   // Warbands' upkeep and healing on the clock (#204): settings and the timeAdvanced subscriber.
   registerWarbandUpkeep(WARBAND_TYPE);
+  // Warbands in mass combat (#203): the commander's initiative and automatic morale.
+  registerWarbandCombat(WARBAND_TYPE);
   // Hex rules on hex maps (#257): no token light or token vision there. Must
   // run in init, before the canvas is built from CONFIG.
   registerHexRules();

@@ -19,7 +19,7 @@ import { relayToGM, authorizeActorFor, refuseQuery, registerQuery } from "../sha
 import { computeLightState, isLightItem } from "./crawl-lights-core.mjs";
 import { canAdvanceTurn, canAdvanceOocTurn, nextTurnWouldRollRound } from "./crawl-turn-core.mjs";
 import { oocOrderComplete } from "./crawl-state-core.mjs";
-import { combatantEntry, isHiddenFromStrip } from "./turn-skip-core.mjs";
+import { combatantEntry, isHiddenFromStrip, isTurnless, commanderCombatant } from "./turn-skip-core.mjs";
 import { showOocReset } from "./crawl-tracker-core.mjs";
 import { dyingState, badgeHTML as dyingBadgeHTML, openMenu as openDyingMenu } from "../dying/dying.mjs";
 import {
@@ -369,12 +369,16 @@ export const CrawlStrip = {
       requesterIsGM: !!user?.isGM,
       requesterOwnsCurrentCombatant: !!(combatant?.actor && user
         && combatant.actor.testUserPermission(user, "OWNER")),
+      // Every later turn that nobody takes counts as passed: core skips the
+      // defeated under Skip Defeated, and turn-skip walks the turnless (a
+      // corpse, a warband following its commander) straight into the next round.
       advanceWouldRollRound: nextTurnWouldRollRound({
         round: combat?.round ?? 0,
         turn: turnIndex,
         turnCount: turns.length,
-        skipDefeated: combat?.settings?.skipDefeated ?? false,
-        defeated: turns.map(t => !!t?.isDefeated),
+        skipDefeated: true,
+        defeated: turns.map(t => isTurnless(combatantEntry(t))
+          || (!!combat?.settings?.skipDefeated && !!t?.isDefeated)),
       }),
     });
     if (!verdict.ok) {
@@ -600,8 +604,10 @@ export const CrawlStrip = {
     }
 
     // Combat — single flat list in initiative order. No heroes/NPC split.
+    // A warband whose commander is in the fight rides right after them (#203).
     const turns = game.combat.turns ?? [];
     const heroes = [];
+    const followers = [];
     for (const c of turns) {
       const actor = c.actor;
       if (!actor) continue;
@@ -613,7 +619,7 @@ export const CrawlStrip = {
       // the auto-skip in turn-skip.mjs drops exactly the turns dropped here: a
       // combatant with no card must never be able to hold the turn pointer.
       if (isHiddenFromStrip(combatantEntry(c))) continue;
-      heroes.push({
+      const card = {
         id:        `combatant-${c.id}`,
         name:      tokenDoc?.name ?? actor.name,
         img:       tokenDoc?.texture?.src ?? actor.img,
@@ -621,7 +627,14 @@ export const CrawlStrip = {
         actorId:   actor.id,
         tokenId:   tokenDoc?.id ?? c.tokenId,
         combatantId: c.id,
-      });
+      };
+      const commander = commanderCombatant(c);
+      if (commander) followers.push({ card, after: commander.id });
+      else heroes.push(card);
+    }
+    for (const { card, after } of followers) {
+      const at = heroes.findLastIndex((h) => h.combatantId === after || h.followsCombatant === after);
+      heroes.splice(at < 0 ? heroes.length : at + 1, 0, { ...card, followsCombatant: after });
     }
     return { heroes, npcs: [], inCombat: true };
   },

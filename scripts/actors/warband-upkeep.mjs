@@ -188,7 +188,7 @@ async function runMonth(type, at = game.time.worldTime, month = null, ids = null
   const lines = [];
   const failed = await eachWarband(type, async (wb) => {
     const st = warbandState(wb);
-    if (st.deserted) return;
+    if (st.deserted || st.routed) return;
     if (month !== null && st.settledMonths.includes(month)) return;
     const pc = await commanderOf(wb);
     const gp = core.upkeepGp(wb.system.level?.value);
@@ -222,7 +222,7 @@ async function arrearsMorale(type, week, ids = null) {
   let rolled = 0;
   const failed = await eachWarband(type, async (wb) => {
     const st = warbandState(wb);
-    if (!st.arrears || st.deserted || st.moraleWeeks.includes(week)) return;
+    if (!st.arrears || st.deserted || st.routed || st.moraleWeeks.includes(week)) return;
     const pc = await commanderOf(wb);
     if (!pc) return;
     rolled++;
@@ -247,7 +247,7 @@ async function healDays(type, days, healed) {
   if (!(days > 0)) return;
   await eachWarband(type, async (wb) => {
     const st = warbandState(wb);
-    if (st.deserted) return;
+    if (st.deserted || st.routed) return;
     const hp = wb.system.attributes?.hp ?? {};
     const missing = (Number(hp.max) || 0) - (Number(hp.value) || 0);
     const plan = core.healPlan(days, missing, st.upgrades);
@@ -368,10 +368,25 @@ async function onTimeAdvanced(type, { from, to, crossed }) {
 }
 
 /**
+ * Take a routed warband back into combat, as ActorSD._setDefeated took it out (the system has no
+ * inverse): its combatants in every combat lose `defeated` and its token loses `dead`. A unit at 0 HP
+ * is dead, not routed, and stays as it is. Each step reads the state it changes, so it is safe to repeat.
+ */
+async function undoDefeat(wb) {
+  if (!(Number(wb.system?.attributes?.hp?.value) > 0)) return;
+  const own = (c) => (wb.isToken ? c.tokenId === wb.token?.id : c.actorId === wb.id);
+  const mine = [...(game.combats ?? [])].flatMap((combat) => [...combat.combatants].filter(own));
+  for (const c of mine) if (c.defeated) await c.update({ defeated: false });
+  for (const a of new Set([wb, ...mine.map((c) => c.token?.actor)])) {
+    if (a?.statuses?.has("dead")) await a.toggleStatusEffect("dead", { active: false });
+  }
+}
+
+/**
  * The Warband tab's upkeep controls, on the active GM inside the warband
  * queue (warband-npc-sheet.mjs applyWarbandWrite): `runMonth` charges every
  * warband now, `payArrears` pays this one's from its commander, and
- * `returnToService` brings a deserted one back (its arrears stay until paid).
+ * `returnToService` brings a deserted or routed one back (its arrears stay until paid).
  * @returns {Promise<{ok:boolean, warn?:{key:string, data:object}}>}
  */
 export async function upkeepWrite(action, wb, type) {
@@ -382,7 +397,9 @@ export async function upkeepWrite(action, wb, type) {
   }
   const st = warbandState(wb);
   if (action === "returnToService") {
-    await replaceModuleFlag(wb, WARBAND_FLAG, { ...st, deserted: false });
+    // The rout's defeat comes off first: a restore that fails leaves the flag set, so pressing again finishes it.
+    if (st.routed) await undoDefeat(wb);
+    await replaceModuleFlag(wb, WARBAND_FLAG, { ...st, deserted: false, routed: false });
     return { ok: true };
   }
   if (action !== "payArrears") return { ok: false };

@@ -37,6 +37,7 @@
 
 import { MODULE_ID } from "../shared/module-id.mjs";
 import { esc } from "../shared/esc.mjs";
+import { leaderCombatant } from "../crawl-strip/turn-skip-core.mjs";
 
 /**
  * Does this combat update start a round Chaos rerolls? Round 2 or later,
@@ -168,7 +169,7 @@ async function dispatch(combat, from, to, last) {
 }
 
 /**
- * Every combatant's initiative rolled again and the order rebuilt, in one
+ * Every combatant's initiative rolled again (a following warband's copied) and the order rebuilt, in one
  * update that gives the turn to the new top. Null when Chaos stands down.
  * @returns {Promise<object[]|null>}  the rolls, for postOrder
  */
@@ -183,14 +184,25 @@ async function rerollOrder(combat, { turnEvents }) {
   const combatants = combat.combatants.contents;
   if (!combatants.length) return null;
 
+  // A warband following its commander (#203) isn't rolled or listed: it takes
+  // the commander's new total in the same update, so nothing moves after it.
+  const leaders = new Map();
+  for (const c of combatants) {
+    const leader = leaderCombatant(c);
+    if (leader) leaders.set(c.id, leader.id);
+  }
   const rolled = [];
   for (const c of combatants) {
+    if (leaders.has(c.id)) continue;
     const roll = c.getInitiativeRoll();
     await roll.evaluate({ allowInteractive: false });
     rolled.push({ id: c.id, name: c.name, hidden: !!c.hidden, total: roll.total, formula: roll.formula, roll });
   }
-  await combat.updateEmbeddedDocuments("Combatant",
-    rolled.map((r) => ({ _id: r.id, initiative: r.total })), { combatTurn: 0, turnEvents });
+  const totals = new Map(rolled.map((r) => [r.id, r.total]));
+  await combat.updateEmbeddedDocuments("Combatant", [
+    ...rolled.map((r) => ({ _id: r.id, initiative: r.total })),
+    ...[...leaders].map(([id, leader]) => ({ _id: id, initiative: totals.get(leader) })),
+  ], { combatTurn: 0, turnEvents });
   return rolled;
 }
 

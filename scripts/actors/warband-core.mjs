@@ -152,6 +152,19 @@ export function clockEvents({ from, to, secondsPerDay, week, offset, monthOf, la
   return { events, skippedDays: Math.max(0, start - first) };
 }
 
+// ── Mass combat (#203, PGWR p.249) ───────────────────────────────────────────
+
+/**
+ * Whether damage calls for a morale check: HP went down, the warband still
+ * stands, and it is at half or below. That is falling to half, and every hit
+ * taken while below it.
+ */
+export const moraleTriggered = (before, after, max) =>
+  Number(after) < Number(before) && Number(after) > 0 && Number(after) * 2 <= Number(max);
+
+/** The morale roll: d20 plus the commander's CHA, with advantage when the commander leads it. */
+export const moraleFormula = (cha, leading) => `${leading ? "2d20kh" : "1d20"} + ${Number(cha) || 0}`;
+
 /**
  * Whether a payment that was marked before its gold was taken went through, from the purse now (copper):
  * `landed` (before less the cost), `not-landed` (before), or `unclear` (anything else: the purse moved
