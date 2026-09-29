@@ -145,7 +145,7 @@
           <p class="sde-dt-note">{{myResult.effectSummary}}</p>
         {{/if}}
         {{#unless myResult.success}}
-          <p class="sde-dt-note">{{localize "SDE.downtime.ui.nextAttempt" dc=myResult.nextDC}}</p>
+          {{#if myResult.nextDC}}<p class="sde-dt-note">{{localize "SDE.downtime.ui.nextAttempt" dc=myResult.nextDC}}</p>{{/if}}
         {{/unless}}
         {{#if myResult.pendingChoice}}
           <div class="sde-dt-choice-box">
@@ -312,7 +312,7 @@
           </div>
         {{/if}}
       {{else}}
-        <p class="sde-dt-note">{{localize "SDE.downtime.ui.failedNext" dc=result.nextDC}}</p>
+        {{#if result.nextDC}}<p class="sde-dt-note">{{localize "SDE.downtime.ui.failedNext" dc=result.nextDC}}</p>{{/if}}
       {{/if}}
     </section>
   {{/if}}
@@ -429,6 +429,92 @@
       {{/each}}
     </section>
   {{/each}}
+
+  {{!--
+    Recruit a warband (#205). Not a slot of a book: it carries no book text, so
+    there is nothing here to keep locked. Retraining is the warband sheet's; the
+    list of warbands the character commands links to it.
+  --}}
+  {{#if recruit}}
+    <section class="sde-dt-activity" data-activity="recruitWarband">
+      <header class="sde-dt-activity-head">
+        <span class="sde-dt-activity-name">{{recruit.name}}</span>
+        <span class="sde-dt-check-label">{{recruit.checkLabel}}</span>
+      </header>
+
+      {{#if recruit.loading}}
+        <p class="sde-dt-note">{{localize "SDE.downtime.recruit.loading"}}</p>
+      {{else if recruit.error}}
+        <p class="sde-dt-note sde-dt-opt-reason">{{recruit.error}}</p>
+      {{else}}
+        <p class="sde-dt-note">{{recruit.settlementLine}}</p>
+
+        {{#if recruit.settlementOptions}}
+          <div class="sde-dt-field sde-dt-choice">
+            <label for="sde-dt-settlement">{{localize "SDE.downtime.recruit.settlement"}}</label>
+            <select id="sde-dt-settlement" data-field="settlement">
+              {{#each recruit.settlementOptions}}
+                <option value="{{this.value}}" {{#if this.selected}}selected{{/if}}>{{this.label}}</option>
+              {{/each}}
+            </select>
+          </div>
+        {{/if}}
+
+        {{#if recruit.blocked}}
+          <p class="sde-dt-opt-reason sde-dt-row-block"><i class="fas fa-people-group"></i> {{recruit.blocked}}</p>
+        {{/if}}
+
+        {{#if recruit.none}}
+          <p class="sde-dt-note">{{localize "SDE.downtime.recruit.none"}}</p>
+        {{/if}}
+
+        <ul class="sde-dt-slots">
+          {{#each recruit.offers}}
+            <li class="sde-dt-slot-row {{#if this.chosen}}sde-dt-slot-chosen{{/if}}">
+              <div class="sde-dt-slot-main">
+                <span class="sde-dt-slot-label">{{this.name}} <em>{{localize "SDE.downtime.ui.levelShort" level=this.level}}</em></span>
+                <span class="sde-dt-slot-dc"><span class="sde-dt-stat">{{this.statChip}}</span> {{localize "SDE.downtime.log.dc" dc=this.dc}}</span>
+                {{#if this.inSession}}
+                  <button type="button" class="sde-dt-btn {{#if this.chosen}}sde-dt-primary{{/if}}"
+                          data-action="pickSlot" data-slot-key="{{this.key}}"
+                          {{#if this.pickDisabled}}disabled{{/if}}
+                          {{#if this.reason}}title="{{this.reason}}"{{/if}}>
+                    {{#if this.chosen}}<i class="fas fa-check"></i> {{localize "SDE.downtime.ui.chosen"}}{{else}}{{localize "SDE.downtime.ui.choose"}}{{/if}}
+                  </button>
+                {{else}}
+                  <button type="button" class="sde-dt-btn" data-action="recruit"
+                          data-warband-id="{{this.id}}"
+                          {{#if this.disabled}}disabled{{/if}}
+                          {{#if this.reason}}title="{{this.reason}}"{{/if}}>{{localize "SDE.downtime.ui.attempt"}}</button>
+                {{/if}}
+              </div>
+              {{#if this.showReason}}<p class="sde-dt-opt-reason sde-dt-row-block">{{this.reason}}</p>{{/if}}
+            </li>
+          {{/each}}
+        </ul>
+      {{/if}}
+
+      {{#if recruit.warbands.length}}
+        <div class="sde-dt-subhead">
+          <span class="sde-dt-subhead-label">{{localize "SDE.downtime.recruit.yours"}}</span>
+        </div>
+        <p class="sde-dt-note">{{localize "SDE.downtime.recruit.retrainNote"}}</p>
+        <ul class="sde-dt-slots">
+          {{#each recruit.warbands}}
+            <li class="sde-dt-slot-row">
+              <div class="sde-dt-slot-main">
+                <span class="sde-dt-slot-label">{{this.name}} <em>{{localize "SDE.downtime.ui.levelShort" level=this.level}}</em></span>
+                {{#if this.retraining}}<span class="sde-dt-slot-dc">{{this.retraining}}</span>{{/if}}
+                <button type="button" class="sde-dt-btn" data-action="openWarband" data-warband-id="{{this.id}}">
+                  {{localize "SDE.downtime.recruit.openSheet"}}
+                </button>
+              </div>
+            </li>
+          {{/each}}
+        </ul>
+      {{/if}}
+    </section>
+  {{/if}}
 
   {{!-- Partial unlock: how many are missing, never which ones. --}}
   {{#if isPartial}}

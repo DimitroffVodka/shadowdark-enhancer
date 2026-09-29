@@ -277,6 +277,7 @@ Stored as world settings for persistence. **Do not edit these manually.**
 | `monsterSpellSyncVersion` | Version stamp for Monster Spell Library refresh |
 | `downtimeContent` | Unlocked downtime outcome text per book |
 | `downtimeSession` | Live downtime session state |
+| `downtimeSettlement` | The settlement the GM chose for recruiting a warband (empty: the party's hex) |
 | `uniqueFeatureTableUuid` | Bound UUID for unique magic item features |
 
 > **Version stamps (`backfillVersion`, `enricherBackfillVersion`, `creatureTypeBackfillVersion`, `monsterSpellSyncVersion`):**

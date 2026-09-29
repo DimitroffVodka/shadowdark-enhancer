@@ -1,7 +1,7 @@
 # Shadowdark Enhancer — File Inventory
 
 <!-- inventory:stats:start -->
-1102 tracked files · ~198,000 lines of code/markup across scripts+templates+styles+test.
+1106 tracked files · ~199,000 lines of code/markup across scripts+templates+styles+test.
 `v0.17.3` in both `module.json` and `package.json`.
 <!-- inventory:stats:end -->
 **Layout reflects the 2026-07-21 feature-folder reorganization (v0.11.0 cycle).**
@@ -129,7 +129,7 @@
 | `curated-icon-maps/sea-wolf-plunder-icons.mjs` | 38 | The N3 §5.1/D4 Sea Wolf Plunder map: exactly 20 CS3 p68 source-qualified item phrases and reviewed native Foundry `icons/**.webp` paths, keyed without each row's terminal gp price. |
 | `curated-icon-maps/weapon-icons.mjs` | 47 | N3's 37 reviewed Foundry-native weapon icons, keyed by source-agnostic normalized final Item name and registered through the A4 discovery seam. |
 | `attack-card.mjs` | 107 | Reading a Shadowdark attack card — was it an attack at all (a targeted spell is not), did it land, who was it aimed at, who swung. Shared by Parry and Taunt so the two can never disagree about the target (they once did, silently). |
-| `settings.mjs` | 837 | All `game.settings.register` calls + migration-safe defaults. |
+| `settings.mjs` | 847 | All `game.settings.register` calls + migration-safe defaults. |
 | `icons.mjs` | 91 | Centralized icon registry — FontAwesome snippets and vendored SVG references. |
 | `compendium-suite.mjs` | 459 | Find-or-create layer for managed world packs, ownership, sidebar folders, and source folders. |
 | `loading-dialog-guard.mjs` | 112 | Guards the system's leaked `LoadingSD` spinner when `ItemSheetSD.getData` throws. |
@@ -436,8 +436,10 @@
 | `downtime-log-core.mjs` | 206 | Pure downtime-log formatting: the recap headline row, the escaped journal `<li>`, and the newest-first grouping that splices a row under its `data-sde-day` heading. Shared by the recap window, the Discord export and the journal so all three phrase an attempt identically. |
 | `downtime-log.mjs` | 184 | `recordDowntime(entry)` — one call, two sinks: the Session Recap's Downtime section and a persistent flagged "Downtime Log" world JournalEntry appended under a heading per real-world day. Queued read-modify-write; never throws outward. GM-side only. |
 | `downtime-warnings.mjs` | 161 | Shared prose for the downtime parser's warning codes; splits info notes (a two-column paste always emits them) from real problems, so every unlock surface reports a parse identically. |
-| `downtime-app.mjs` | 1379 | The `sde-downtime` ApplicationV2 in three modes: GM solo (pay-before-roll attempts, renown / XP apply buttons), the GM session control panel (picks overview, lock/release, roll-for), and the player view (own actors only, choose then roll). Locked books render as a title-only card; unlocking happens in the Importer Hub. |
-| `downtime-session.mjs` | 1129 | Table-wide downtime session: world-setting state model, the authenticated downtime query protocol (the raw socket carries only the payload-free re-read nudge), and the GM-authoritative handlers that recompute DC, cost and gating from the skeleton, derive the requester from the server-supplied sender, and spend a per-attempt roll token so a roll settles once. Players pick and roll; the GM settles. |
+| `downtime-recruit-core.mjs` | 120 | Pure rules of Recruit a warband (#205): the `recruit:<id>` slot key, DC 10 plus the warband's level, the party's settlement (the GM's choice, else the keyed hex's), what a settlement supplies from the recruiting limits, and which warbands a character is offered. |
+| `downtime-recruit.mjs` | 184 | Recruit a warband in the world (#205): reads the party's hex, the actors pack and the world's uncommanded warbands, checks the commander's allowance with the warband unit's own checks, and makes a copy under the character's command on the warband queue. GM-side; a player's window asks the session for the offers. |
+| `downtime-app.mjs` | 1526 | The `sde-downtime` ApplicationV2 in three modes: GM solo (pay-before-roll attempts, renown / XP apply buttons), the GM session control panel (picks overview, lock/release, roll-for), and the player view (own actors only, choose then roll). Locked books render as a title-only card; unlocking happens in the Importer Hub. |
+| `downtime-session.mjs` | 1200 | Table-wide downtime session: world-setting state model, the authenticated downtime query protocol (the raw socket carries only the payload-free re-read nudge), and the GM-authoritative handlers that recompute DC, cost and gating from the skeleton, derive the requester from the server-supplied sender, and spend a per-attempt roll token so a roll settles once. Players pick and roll; the GM settles. |
 
 Ships the skeleton only (activity names, slot labels, DCs, paid flags, renown/XP deltas). Every outcome sentence is pasted by the GM from their own book and stored in the `downtimeContent` world setting, never in the repo.
 

@@ -526,6 +526,18 @@ page walks through it in order.
   the PDF. An attack added later takes the upgrades already ticked, and if an
   attack's change fails to save, the next tick puts it right. An NPC with a
   stock warband's name doesn't stop that warband's import. (#201)
+- **Recruit a warband, a downtime activity.** In the Downtime window, pick a
+  warband of your character's level or lower (the stock ones or any warband
+  the GM made that no one commands) and roll CHA against 10 plus its level.
+  On a success a copy of it is made under your character's command, owned as
+  your character is; on a failure nothing is made. The settlement caps the
+  level, from the Recruiting limits in Rules data (village, town, city,
+  city-state): it is read from the keyed hex the party stands in, and the GM
+  can choose another settlement, or none, in the window. A character already
+  at their warband allowance can't recruit, and is told so. Works in a table
+  session (players pick, then roll their own dice) and in the GM's solo mode,
+  and is logged like any downtime attempt. The window lists the warbands a
+  character commands, with a link to each sheet, where retraining is. (#205)
 - **Encounter check frequency.** Right-click the Crawl Bar's **Encounter**
   button: **Check Frequency** runs from **1** (every crawl round, the default)
   to **10**. The count runs from the last check, automatic or manual, so a

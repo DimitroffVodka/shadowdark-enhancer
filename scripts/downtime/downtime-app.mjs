@@ -34,6 +34,7 @@ import { SessionRecap } from "../session-recap/session-recap.mjs";
 import { queryActiveGM } from "../shared/gm-relay.mjs";
 import { Renown } from "../renown/renown.mjs";
 import { renownBand, renownValue } from "../renown/renown-core.mjs";
+import { SETTLEMENT_KINDS } from "../rules-data/rules-data-core.mjs";
 import {
   SOURCES,
   DOWNTIME_SKELETON,
@@ -68,7 +69,12 @@ import {
   recordDowntimeSafe,
   CASTER_LIST_LABELS,
   martialTierBuckets,
+  foundFor,
 } from "./downtime-session.mjs";
+import { recruitActivity, recruitKey, recruitSlot } from "./downtime-recruit-core.mjs";
+import {
+  SETTLEMENT_SETTING, checkRecruit, commandedWarbands, recruitView, recruitWarband,
+} from "./downtime-recruit.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
@@ -114,6 +120,9 @@ export class DowntimeApp extends HandlebarsApplicationMixin(ApplicationV2) {
       applyXp:         DowntimeApp.prototype._onApplyXp,
       setCasterList:   DowntimeApp.prototype._onSetCasterList,
       dismissResult:   DowntimeApp.prototype._onDismissResult,
+      // Recruit a warband (#205): the GM's solo attempt, and the link to a warband's sheet (retraining is there).
+      recruit:         DowntimeApp.prototype._onRecruit,
+      openWarband:     DowntimeApp.prototype._onOpenWarband,
       // Session flow — players
       pickSlot:        DowntimeApp.prototype._onPickSlot,
       rollPick:        DowntimeApp.prototype._onRollPick,
@@ -172,6 +181,12 @@ export class DowntimeApp extends HandlebarsApplicationMixin(ApplicationV2) {
   _martialTier = null;
   /** Last attempt outcome rendered in the result area, or null. */
   _result = null;
+
+  /**
+   * A player's view of the warbands on offer, asked of the GM (they can't see the world's or the pack's
+   * warbands): `{actorId, view, stale}`. Kept while it is asked again, so the list doesn't flicker.
+   */
+  _offers = null;
 
   /**
    * Casting ability resolved by the last _classFacts() pass. getClass() is
@@ -401,6 +416,9 @@ export class DowntimeApp extends HandlebarsApplicationMixin(ApplicationV2) {
         selected: m.key === (myPick?.advantage ?? this._advantage),
       })),
       activities,
+      recruit: actor && sources.some(s => s.unlocked)
+        ? await this._recruitContext(actor, { inSession, sess, myPick, myResult })
+        : null,
       hasSteps: Object.values(flag.steps).some(v => Number(v) > 0),
       result: this._result,
 
@@ -421,6 +439,73 @@ export class DowntimeApp extends HandlebarsApplicationMixin(ApplicationV2) {
   }
 
   /**
+   * The Recruit a warband section (#205): the settlement and what it supplies, the warbands this character
+   * may try, and the ones they already command (their sheets are where retraining is). The GM works the
+   * list out here; a player's is asked of the GM (see _offersFor).
+   */
+  async _recruitContext(actor, { inSession, sess, myPick, myResult }) {
+    const activity = recruitActivity();
+    const base = {
+      name: activity.name,
+      checkLabel: this._checkLabel(activity, { actor, facts: {}, activeCasterList: null }),
+      statChip: abilityChipFor(activity, null),
+      warbands: commandedWarbands(actor),
+    };
+    const view = game.user.isGM ? await recruitView(actor) : this._offersFor(actor);
+    if (!view) return { ...base, loading: true };
+    if (view.error) return { ...base, error: view.error };
+    const { settlement } = view;
+    return {
+      ...base,
+      settlementLine: settlement.line,
+      // The GM's override: the party's hex, a settlement kind, or none.
+      settlementOptions: game.user.isGM ? [
+        { value: "", label: L("SDE.downtime.recruit.fromMap"), selected: !settlement.chosen },
+        ...SETTLEMENT_KINDS.map(k => ({ value: k, label: L(`SDE.rulesData.settlement.${k}`), selected: settlement.chosen && settlement.kind === k })),
+        { value: "none", label: L("SDE.downtime.recruit.noSettlement"), selected: settlement.chosen && settlement.kind === "none" },
+      ] : null,
+      blocked: view.blocked,
+      none: !view.offers.length,
+      offers: view.offers.map(o => {
+        const key = recruitKey(o.id);
+        return {
+          ...o, key, inSession, statChip: base.statChip, chosen: !!myPick && myPick.slotKey === key,
+          // The allowance is said once, above the list; a row says only what is its own.
+          showReason: !!o.reason && !view.blocked,
+          disabled: !!o.reason,
+          pickDisabled: !!o.reason || sess.phase !== "select" || !!myResult,
+        };
+      }),
+    };
+  }
+
+  /**
+   * A player's offers: what was last asked of the GM, or nothing while the first answer is on its way.
+   * Asking again when the character changes or something the list depends on does; the answer
+   * re-renders the window, and the old list stays up until it comes.
+   */
+  _offersFor(actor) {
+    const held = this._offers?.actorId === actor.id ? this._offers : null;
+    if (!held || held.stale) this._askOffers(actor.id);
+    return held?.view ?? null;
+  }
+
+  async _askOffers(actorId) {
+    // Marked fresh at once, so the render that follows the answer doesn't ask again.
+    const view = this._offers?.actorId === actorId ? this._offers.view : null;
+    this._offers = { actorId, view, stale: false };
+    const reply = await queryActiveGM(DOWNTIME_QUERY, { action: ACTIONS.OFFERS, actorId }, { label: L(DOWNTIME_RELAY_LABEL) });
+    if (this._offers?.actorId !== actorId) return;
+    this._offers = { actorId, view: reply?.ok ? reply : { error: reply?.error ?? "" }, stale: false };
+    if (this.rendered) this.render();
+  }
+
+  /** What the list depends on has changed: ask again at the next render. */
+  _staleOffers() {
+    if (this._offers) this._offers.stale = true;
+  }
+
+  /**
    * Whether the Roll button is live, and if not, why.
    *
    * An unaffordable fee disables the button and states the shortfall, rather
@@ -430,7 +515,7 @@ export class DowntimeApp extends HandlebarsApplicationMixin(ApplicationV2) {
   _rollState({ actor, inSession, phase, myPick, myResult, level, source }) {
     const base = !!(inSession && phase === "roll" && myPick && !myResult);
     if (!base || !actor) return { canRoll: base, rollBlockedReason: null };
-    const found = slotByKey(myPick.slotKey);
+    const found = foundFor(myPick);
     if (!found) return { canRoll: false, rollBlockedReason: L("SDE.downtime.error.activityGone") };
     const money = affordability(actor, source, found.slot, level);
     if (money.affordable) return { canRoll: true, rollBlockedReason: null };
@@ -443,7 +528,7 @@ export class DowntimeApp extends HandlebarsApplicationMixin(ApplicationV2) {
 
   /** A pick rendered for the "you chose X" strip. */
   _pickView(pick) {
-    const found = slotByKey(pick.slotKey);
+    const found = foundFor(pick);
     return {
       slotKey: pick.slotKey,
       label: found?.slot?.label ?? pick.slotKey,
@@ -455,7 +540,7 @@ export class DowntimeApp extends HandlebarsApplicationMixin(ApplicationV2) {
 
   /** A settled result, plus the pending-choice picker when one is owed. */
   _resultView(result) {
-    const found = slotByKey(result.slotKey);
+    const found = foundFor(result);
     return {
       slotKey: result.slotKey,
       label: found?.slot?.label ?? result.slotKey,
@@ -487,7 +572,7 @@ export class DowntimeApp extends HandlebarsApplicationMixin(ApplicationV2) {
         actorId: a.id,
         name: a.name,
         picked: !!pick,
-        pickLabel: pick ? (slotByKey(pick.slotKey)?.slot?.label ?? pick.slotKey) : null,
+        pickLabel: pick ? (foundFor(pick)?.slot?.label ?? pick.slotKey) : null,
         advantage: pick ? L(advMode(pick.advantage).label) : null,
         rolled: !!res,
         total: res?.total ?? null,
@@ -726,12 +811,16 @@ export class DowntimeApp extends HandlebarsApplicationMixin(ApplicationV2) {
   _onFirstRender(context, options) {
     super._onFirstRender?.(context, options);
     this._updateHookId = Hooks.on("updateSetting", (setting) => {
-      if (setting?.key === `${MODULE_ID}.downtimeContent` && this.rendered) this.render();
+      if (setting?.key === `${MODULE_ID}.${SETTLEMENT_SETTING}`) this._staleOffers();
+      const ours = [`${MODULE_ID}.downtimeContent`, `${MODULE_ID}.${SETTLEMENT_SETTING}`, `${MODULE_ID}.rulesData`];
+      if (ours.includes(setting?.key) && this.rendered) this.render();
     });
     // Session changes arrive as a payload-free nudge → DowntimeSession re-reads
     // the setting and fires this hook. Every open window (GM's and each
     // player's) re-renders off the same authoritative state.
     this._sessionHookId = Hooks.on(DowntimeSession.HOOK_CHANGED, () => {
+      // A recruit made under the session changes what a character may take next.
+      this._staleOffers();
       if (this.rendered) this.render();
     });
     // Coins decide whether Roll is live, so a purse change has to refresh the
@@ -779,6 +868,7 @@ export class DowntimeApp extends HandlebarsApplicationMixin(ApplicationV2) {
       this._actorId = e.target.value;
       this._choiceAbility = null;
       this._result = null;
+      this._offers = null;
       this.render();
     });
     on("[data-field='advantage']", "change", (e) => {
@@ -791,6 +881,10 @@ export class DowntimeApp extends HandlebarsApplicationMixin(ApplicationV2) {
     on("[data-field='martialTier']", "change", (e) => {
       this._martialTier = e.target.value;
       this.render();
+    });
+    on("[data-field='settlement']", "change", (e) => {
+      game.settings.set(MODULE_ID, SETTLEMENT_SETTING, e.target.value)
+        .catch((err) => console.warn(`${MODULE_ID} | downtime: settlement`, err));
     });
     on("[data-field='renownTarget']", "change", (e) => {
       if (this._result) this._result.targetActorId = e.target.value;
@@ -932,6 +1026,59 @@ export class DowntimeApp extends HandlebarsApplicationMixin(ApplicationV2) {
     this.render();
   }
 
+  /**
+   * The GM's solo recruit (#205): the same check a session pick goes through, then the die, then the
+   * warband on a success, logged like any attempt. A session's players recruit through their picks.
+   */
+  async _onRecruit(event, target) {
+    if (!game.user.isGM) return;
+    const actor = this._actor();
+    if (!actor) return ui.notifications.warn(L("SDE.downtime.notify.pickCharacter"));
+    const check = await checkRecruit(actor, target?.dataset?.warbandId);
+    if (!check.ok) return ui.notifications.warn(check.error);
+    const activity = recruitActivity();
+    const slot = recruitSlot(check.offer);
+    const { ability, mod } = this._modFor(activity, slot, actor);
+    const modeDef = ADV_MODES.find(m => m.key === this._advantage) ?? ADV_MODES[1];
+    const mode = { ...modeDef, label: L(modeDef.label) };
+    const roll = await new Roll(`${mode.dice} ${mod < 0 ? "-" : "+"} ${Math.abs(mod)}`).evaluate();
+    const { total } = roll;
+    const dc = slot.dc;
+    const success = total >= dc;
+    let summary = "";
+    if (success) {
+      try {
+        const out = await recruitWarband(actor, check.offer.id);
+        summary = out.ok ? out.summary : out.error;
+      } catch (err) {
+        console.warn(`${MODULE_ID} | downtime: recruiting "${check.offer.name}" failed`, err);
+        summary = L("SDE.downtime.effect.couldNotApply");
+      }
+    }
+    await roll.toMessage({
+      speaker: ChatMessage.getSpeaker({ actor }),
+      flavor: `<strong>${L("SDE.downtime.card.flavor", { activity: esc(activity.name), slot: esc(slot.label), dc })}</strong>`,
+      content: this._cardHtml({
+        activity, slot, actor, ability, mod, mode, total, dc, success, cost: 0, outcomeText: summary, nextDC: null,
+      }),
+      flags: { [MODULE_ID]: { downtimeCard: true, slotKey: slot.key } },
+    });
+    this._result = { slotKey: slot.key, activityName: activity.name, label: slot.label, total, dc, success, outcome: summary, applied: true };
+    await recordDowntimeSafe({
+      actorId: actor.id, actorName: actor.name, player: game.user.name,
+      sourceSlug: this._sourceSlug, slotKey: slot.key, slotLabel: slot.label,
+      activityKey: activity.key, activityName: activity.name,
+      total, dc, success, costGp: 0, effectSummary: summary || null,
+      gmRolled: true, timestamp: new Date().toISOString(),
+    });
+    this.render();
+  }
+
+  /** Open a warband's sheet: its Warband tab is where its upgrades are changed, which is retraining. */
+  _onOpenWarband(event, target) {
+    game.actors.get(target?.dataset?.warbandId)?.sheet?.render(true);
+  }
+
   /** Find {activity, slot} without trusting the DOM's activity key alone. */
   _lookupSlot(activityKey, slotKey) {
     const activity = (DOWNTIME_SKELETON?.activities ?? []).find(a => a.key === activityKey);
@@ -1003,7 +1150,7 @@ export class DowntimeApp extends HandlebarsApplicationMixin(ApplicationV2) {
       : "";
     const body = success
       ? `<div class="sde-dt-outcome">${esc(outcomeText)}</div>`
-      : `<div class="sde-dt-line">${L("SDE.downtime.card.nextAttempt", { dc: nextDC })}</div>`;
+      : (nextDC ? `<div class="sde-dt-line">${L("SDE.downtime.card.nextAttempt", { dc: nextDC })}</div>` : "");
     return `
       <div class="sde-downtime-card ${success ? "sde-dt-success" : "sde-dt-failure"}">
         <header class="sde-dt-head">
@@ -1187,7 +1334,7 @@ export class DowntimeApp extends HandlebarsApplicationMixin(ApplicationV2) {
       return ui.notifications.warn(L("SDE.downtime.notify.pickPredates"));
     }
 
-    const found = slotByKey(pick.slotKey);
+    const found = foundFor(pick);
     if (!found) return ui.notifications.warn(L("SDE.downtime.error.activityGone"));
 
     // PAY BEFORE YOU ROLL. RAW charges per attempt, so an unaffordable attempt
@@ -1324,7 +1471,7 @@ export class DowntimeApp extends HandlebarsApplicationMixin(ApplicationV2) {
       return ui.notifications.warn(L("SDE.downtime.notify.pickPredatesGm", { name: actor.name }));
     }
 
-    const found = slotByKey(pick.slotKey);
+    const found = foundFor(pick);
     if (!found) return;
 
     // Same pay-before-you-roll gate as the player path — rolling for an absent
