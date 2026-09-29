@@ -30,7 +30,7 @@ const FLAG = "builderBefore";
 
 const ABILITIES = ["str", "dex", "con", "int", "wis", "cha"];
 /** The actor fields the builder writes (dotted paths into the actor source). */
-const ACTOR_KEYS = [
+export const ACTOR_KEYS = [
   "name", "img", "prototypeToken.texture.src",
   ...ABILITIES.map((k) => `system.abilities.${k}.value`),
   "system.alignment", "system.background", "system.deity",

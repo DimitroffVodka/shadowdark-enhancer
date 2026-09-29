@@ -1,7 +1,7 @@
 # Shadowdark Enhancer — File Inventory
 
 <!-- inventory:stats:start -->
-1112 tracked files · ~200,400 lines of code/markup across scripts+templates+styles+test.
+1114 tracked files · ~201,000 lines of code/markup across scripts+templates+styles+test.
 `v0.17.3` in both `module.json` and `package.json`.
 <!-- inventory:stats:end -->
 **Layout reflects the 2026-07-21 feature-folder reorganization (v0.11.0 cycle).**
@@ -375,7 +375,7 @@
 
 | File | Lines | Description |
 |---|---:|---|
-| `char-builder-app.mjs` | 311 | `ShadowdarkCharBuilder` ApplicationV2 shell; drives the step lifecycle. |
+| `char-builder-app.mjs` | 361 | `ShadowdarkCharBuilder` ApplicationV2 shell; drives the step lifecycle. |
 | `state.mjs` | 155 | `CharBuilderState` — the in-progress character. |
 | `constants.mjs` | 193 | Shared constants; hands off to the system's `CharacterGeneratorSD`. |
 | `data.mjs` | 325 | Thin wrappers over the system's compendium loaders. |
@@ -385,6 +385,7 @@
 | `commit-plan.mjs` | 224 | `planCommit` — pure three-way plan (baseline, builder, live) of what Finish changes on an existing actor. |
 | `commit-apply.mjs` | 192 | `applyPlan` — resumable executor for a merge-aware plan: creates, item updates, one actor update, deletes last, each read back so a write rejected after saving is not repeated. |
 | `before-image.mjs` | 175 | `takeBeforeImage` / `restoreBeforeImage` — one actor flag holding the builder-writable fields and every item's source, and a restore that puts the character back with the executor's write discipline. |
+| `existing-finish.mjs` | 167 | The builder on an existing character: `hydrateActor`, and `finishExisting` (diff dialog, before-image, `applyPlan`, then re-hydrate from the live actor). |
 | `art.mjs` | 77 | Ancestry/class NAME → local portrait manifest. |
 | `art-gallery.mjs` | 526 | GM-curated portrait gallery (avoids granting players `FILES_BROWSE`). |
 | `class-ability-uses.mjs` | 113 | Per-day/roll uses for Class Ability items. |

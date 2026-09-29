@@ -18,12 +18,62 @@ never re-prompts you with level-up popups afterwards. Pick any level from
 |---|---|
 | **Actors sidebar** | Click **Character Builder** in the sidebar header. Visible to all users. |
 | **API** | `game.shadowdarkEnhancer.charBuilder.open()` |
-| **Build onto existing sheet** | `game.shadowdarkEnhancer.charBuilder.open({ actor })` |
+| **Edit an existing character** | `game.shadowdarkEnhancer.charBuilder.open({ actor })`, from the API or a macro. GM or owner only. See [Editing an existing character](#editing-an-existing-character). |
 | **Undo a build on an existing sheet** | `charBuilder.takeBeforeImage(actor)` saves the sheet's abilities, alignment, background, deity, coins, languages, name, art and every item; `charBuilder.restoreBeforeImage(actor)` puts them back (GM or owner). The image is kept until the next one replaces it. See `charBuilder.hasBeforeImage` and `describeBeforeImage`. |
+
+> There is no button for editing an existing character yet: the only ways in
+> are the API and a macro.
 
 **Players can build characters freely.** If a player lacks actor-creation
 permissions, the builder transparently hands off document creation to the GM
 over system sockets.
+
+---
+
+## Editing an existing character
+
+`game.shadowdarkEnhancer.charBuilder.open({ actor })` opens the builder on a
+character that already exists. Only a GM or an owner of the character can; anyone
+else gets "You don't have permission to edit this actor." A blank actor (no class,
+no ancestry, no items) starts a fresh build onto it, as before.
+
+The builder loads what the character has now: abilities as stored (not the
+value after talent and effect bonuses), alignment, background, deity, coins,
+name, art, and every gear item and spell. Ancestry, class, hit points and
+languages show as they are and can't be changed here. Talents, class abilities,
+boons, effects and any other item the builder does not model are **kept as-is**
+and never written. You can change abilities, alignment, background, deity, name
+and art, add gear from the shop, change the quantity of gear you own, and remove
+gear or spells.
+
+New gear you add is paid for from the character's coins (never below zero, with
+the usual over-budget warning). Removed items refund nothing, and changing the
+quantity of something the character already owns costs nothing.
+
+**Save Changes** replaces Create Character on the last button:
+
+1. It reads the character again as it is right now. If nothing changed it says
+   so and stays open.
+2. It shows what will change in plain words: each field with its old and new
+   value, items added, items removed, quantities changed, the coins, and how
+   many things are kept as-is. **Save changes** confirms; **Keep Editing** goes
+   back.
+3. It saves a backup of the character first, then writes only what you changed,
+   and only what the character does not already have, so a change someone else
+   made in the meantime is not overwritten.
+4. It reloads the builder from the character as it is now. Each Finish starts a
+   fresh baseline, so a second Save Changes only saves what you changed after the
+   first.
+
+If a write does not land, the message says which changes did not save. The builder
+has reloaded the character as it is; make those changes again and save.
+
+**Restore.** The backup holds the abilities, alignment, background, deity, coins,
+languages, name, art and every item as they were before the last save (only the
+latest one is kept).
+`game.shadowdarkEnhancer.charBuilder.restoreBeforeImage(actor)` puts them back
+exactly. Anything the builder never writes (hit points, XP, luck, effects) is not
+touched by either. There is no Restore button yet.
 
 ---
 
