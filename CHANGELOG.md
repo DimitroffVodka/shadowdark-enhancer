@@ -442,6 +442,11 @@ page walks through it in order.
   of it. When a GM loads a world on a stale build, the module says so and
   offers **Reload now**, which replaces every cached script of the module,
   including the lazily loaded ones a plain reload would leave stale.
+- **Characters the Character Builder makes remember where each item came
+  from.** Every talent, spell, class ability and gear item it creates now
+  carries its compendium link, which the builder did not record before. Nothing
+  changes on the sheet; it lets a later feature recognise the items of a
+  character built from now on. (#168)
 
 ### Changed
 

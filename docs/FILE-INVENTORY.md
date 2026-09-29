@@ -1,7 +1,7 @@
 # Shadowdark Enhancer — File Inventory
 
 <!-- inventory:stats:start -->
-1069 tracked files · ~190,400 lines of code/markup across scripts+templates+styles+test.
+1071 tracked files · ~190,500 lines of code/markup across scripts+templates+styles+test.
 `v0.17.3` in both `module.json` and `package.json`.
 <!-- inventory:stats:end -->
 **Layout reflects the 2026-07-21 feature-folder reorganization (v0.11.0 cycle).**
@@ -369,7 +369,8 @@
 | `state.mjs` | 148 | `CharBuilderState` — the in-progress character. |
 | `constants.mjs` | 187 | Shared constants; hands off to the system's `CharacterGeneratorSD`. |
 | `data.mjs` | 325 | Thin wrappers over the system's compendium loaders. |
-| `commit.mjs` | 289 | `commitCharacter` — final actor creation + `coinsAfterGear`. |
+| `commit.mjs` | 293 | `commitCharacter` — final actor creation + `coinsAfterGear`. |
+| `item-source.mjs` | 19 | `stampSource` — records the compendium link on items the builder creates. |
 | `art.mjs` | 77 | Ancestry/class NAME → local portrait manifest. |
 | `art-gallery.mjs` | 525 | GM-curated portrait gallery (avoids granting players `FILES_BROWSE`). |
 | `class-ability-uses.mjs` | 112 | Per-day/roll uses for Class Ability items. |
