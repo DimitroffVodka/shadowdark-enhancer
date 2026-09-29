@@ -41,7 +41,7 @@ export function defaultOverlandState() {
     checks: [],           // the day's encounter checks, {half, at, chance, rolled, hit} (#232)
     pending: null,        // {until, reason}: an advance stopped by a hit, waiting for Continue (#232)
     encounter: null,      // what a quiet check that hit drew, for the GMs' panel until Continue (#257)
-    camp: null,           // tonight's camp (#257): {party, interrupted, ate}: the uuid of the Extras party actor keeping its rest for the dawn, or null; when a creature woke it; the rations were eaten at camp
+    camp: null,           // tonight's camp (#257): {party, interrupted, ate, until, lightsOut}: the uuid of the Extras party actor keeping its rest for the dawn, or null; when a creature woke it; the rations were eaten at camp; when it breaks; its lights are out
     foraged: [],          // actor ids that foraged today (#233)
     hex: null,            // {num, terrain, region, features}: the travel token's last hex
   };
@@ -97,9 +97,15 @@ function encounterOf(v) {
   };
 }
 
-/** Tonight's camp, or null: the uuid of the Extras party actor keeping its rest for the dawn, the hour a creature interrupted it, and whether it ate at camp. */
-const campOf = (v) => (obj(v)
-  ? { party: str(v.party), interrupted: Number.isFinite(v.interrupted) ? v.interrupted : null, ate: v.ate === true } : null);
+/**
+ * Tonight's camp, or null: the uuid of the Extras party actor keeping its rest for the dawn, the hour a creature
+ * interrupted it, whether it ate at camp, when it breaks (null for a camp from before its end was kept), and whether
+ * its lights are out.
+ */
+const campOf = (v) => (obj(v) ? {
+  party: str(v.party), interrupted: Number.isFinite(v.interrupted) ? v.interrupted : null, ate: v.ate === true,
+  until: Number.isFinite(v.until) ? v.until : null, lightsOut: v.lightsOut === true,
+} : null);
 
 /** A stored weather, or null when it isn't one. */
 function weatherOf(v) {
@@ -234,9 +240,16 @@ export function setPending(state, pending) {
  * Camp is made (#257, §5.5 step 3): the tasks and rations are done, the night to come. `party`: the uuid
  * of the Extras party actor keeping the rest for the dawn (an unlinked token's own actor), or null. The
  * rest is on that actor, so the dawn finishes it there, whatever the travel token is by then (#282 review).
+ * `until`: when camp breaks, fixed now, so a night picked up again after a failure is never a longer one.
  */
-export function makeCampState(state, party) {
-  return { state: normalizeOverlandState({ ...state, camp: { party, interrupted: null, ate: true } }), changed: true };
+export function makeCampState(state, party, until) {
+  return { state: normalizeOverlandState({ ...state, camp: { party, interrupted: null, ate: true, until, lightsOut: false } }), changed: true };
+}
+
+/** The camp's carried lights are out: Make camp pressed again goes on to the night (#282 review). */
+export function campLightsOut(state) {
+  if (!state.camp || state.camp.lightsOut) return { state, changed: false };
+  return { state: normalizeOverlandState({ ...state, camp: { ...state.camp, lightsOut: true } }), changed: true };
 }
 
 /**

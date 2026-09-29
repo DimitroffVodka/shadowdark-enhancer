@@ -3167,6 +3167,7 @@
   "SDE.overland.notify.campRestGone": "Shadowdark Extras had no camp rest waiting, so no rest was applied. The camp breaks anyway.",
   "SDE.overland.notify.campNeedsExtras": "Shadowdark Extras keeps this camp's rest but can't finish it now: it's turned off, or too old. The camp isn't over. Turn Extras back on and press Continue on the crawl bar, or start a new day to go on without the rest.",
   "SDE.overland.notify.campNotMade": "Camp wasn't made: the camping window was closed.",
+  "SDE.overland.notify.campNoDay": "Camp can be made once the travel day has started.",
   "SDE.overland.camp.dawn": "Dawn. The camp breaks. Start the day when you're ready.",
   "SDE.overland.camp.made": "Camp is made: a ration each for the night.",
   "SDE.overland.camp.madeHarsh": "Camp is made on a harsh night: two rations each.",

@@ -47,10 +47,13 @@ it needs.
   night interrupts the rest. The Encounter panel and the Night step say so.
   At dawn, anyone who ate rolls CON (DC 12) to still benefit from the rest,
   unless their Bed Down succeeded. If Extras is turned off before dawn, the
-  camp waits for it with a warning, so the rest it keeps isn't lost. The
-  tasks need a Shadowdark Extras with shadowdark-extras#186. With an older
-  Extras, no camp window opens, there are no tasks or campfire, and the
-  rations are eaten here. (#257)
+  camp waits for it with a warning, so the rest it keeps isn't lost. If
+  something fails partway, pressing Make camp again goes on from where the
+  camp got. Nobody eats twice, the night isn't longer, and a creature that
+  interrupted the rest still counts. Once the dawn has closed the day, Make
+  camp waits for the next Start day. The tasks need a Shadowdark Extras with
+  shadowdark-extras#186. With an older Extras, no camp window opens, there
+  are no tasks or campfire, and the rations are eaten here. (#257)
 - **Travel encounters as often as you want them, and a panel that folds
   away.** The Travel panel's Encounters step has **Adjust** for the GM: the
   chance (1 to 5 in 6, one more on a pushed day) and the checks by day and by
