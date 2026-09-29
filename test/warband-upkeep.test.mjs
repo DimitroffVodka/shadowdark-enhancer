@@ -80,10 +80,11 @@ function pc(id, gp, { outcomes = [], cha = 0, hitDie = "1d6" } = {}) {
 }
 function warband(id, flag, { level = 3, hp = [30, 30] } = {}) {
   const a = {
-    id, type: TYPE, name: id, flags: { [MOD]: { warband: flag } },
+    id, type: TYPE, name: id, flags: { [MOD]: { warband: flag } }, items: [],
     flagOutcomes: [],        // how its next flag writes go
     duringFlagWrite: null,   // something else that happens while its next flag write is on its way
     system: { level: { value: level }, attributes: { hp: { value: hp[0], max: hp[1] } } },
+    _source: { system: { attributes: { ac: { value: 13 }, hp: { value: hp[0], max: hp[1] } } } },
     getFlag: (scope, key) => a.flags[scope]?.[key],
     testUserPermission: () => true,
     update: (data) => {

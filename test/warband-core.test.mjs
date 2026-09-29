@@ -7,6 +7,7 @@ import {
   UPGRADES, MOST_UPGRADES, allowanceFor, canMakeWarband, cleanUpgrades, commandRefusal, upgradeRefusal,
   tripleDice, warbandStats, warbandAttack, warbandHp, warbandRolledHp,
   upkeepGp, moraleDC, routChance, healPlan, monthKey, clockEvents, moraleTriggered, moraleFormula, decidePayment,
+  STOCK_WARBANDS, addDie, upgradeActorChanges, upgradeAttackChanges, parseUpgradeLines, toughHp,
 } from "../scripts/actors/warband-core.mjs";
 
 test("eighteen upgrades, and a commander's allowance by hit die", () => {
@@ -104,11 +105,72 @@ test("morale: checked on falling to half and on every hit below it, never while 
   assert.equal(moraleFormula(-1, true), "2d20kh + -1");
 });
 
+// ── #201 ─────────────────────────────────────────────────────────────────────
+
+test("eight stock warbands, by the importer's names", () => {
+  assert.equal(STOCK_WARBANDS.length, 8);
+  assert.ok(STOCK_WARBANDS.includes("Melee, Light") && STOCK_WARBANDS.includes("Rabble"));
+});
+
+test("Weapons Upgrade adds one die of the same kind; taking it off removes one", () => {
+  assert.equal(addDie("3d8", 1), "4d8");
+  assert.equal(addDie("4d8", -1), "3d8");
+  assert.equal(addDie("2d6+1", 1), "3d6+1");
+  assert.equal(addDie("d6", 1), "2d6");
+  assert.equal(addDie("1d6", -1), null, "never below one die");
+  assert.equal(addDie("5", 1), null, "no die to add to");
+});
+
+test("Armor Upgrade and Tough change the actor; unticking Tough never hurts it", () => {
+  assert.deepEqual(upgradeActorChanges("armorUpgrade", true, { ac: 13, hpMax: 25, hpValue: 25 }), { "system.attributes.ac.value": 14 });
+  assert.deepEqual(upgradeActorChanges("armorUpgrade", false, { ac: 0, hpMax: 25, hpValue: 25 }), { "system.attributes.ac.value": 0 });
+  assert.deepEqual(upgradeActorChanges("tough", true, { ac: 13, hpMax: 25, hpValue: 20 }),
+    { "system.attributes.hp.max": 40, "system.attributes.hp.value": 35 });
+  assert.deepEqual(upgradeActorChanges("tough", true, { ac: 13, hpMax: 25, hpValue: 0 }),
+    { "system.attributes.hp.max": 40, "system.attributes.hp.value": 0 }, "a fallen warband isn't raised");
+  assert.deepEqual(upgradeActorChanges("tough", false, { ac: 13, hpMax: 40, hpValue: 30 }),
+    { "system.attributes.hp.max": 25, "system.attributes.hp.value": 15 }, "the damage taken stays");
+  assert.deepEqual(upgradeActorChanges("tough", false, { ac: 13, hpMax: 40, hpValue: 12 }),
+    { "system.attributes.hp.max": 25, "system.attributes.hp.value": 1 }, "a standing warband stays standing");
+  assert.deepEqual(upgradeActorChanges("tough", false, { ac: 13, hpMax: 40, hpValue: 0 }),
+    { "system.attributes.hp.max": 25, "system.attributes.hp.value": 0 });
+  const on = upgradeActorChanges("tough", true, { ac: 13, hpMax: 25, hpValue: 10 });
+  const off = upgradeActorChanges("tough", false, { ac: 13, hpMax: on["system.attributes.hp.max"], hpValue: on["system.attributes.hp.value"] });
+  assert.deepEqual([off["system.attributes.hp.max"], off["system.attributes.hp.value"]], [25, 10], "ticked and unticked, no HP gained or lost");
+  assert.deepEqual(upgradeActorChanges("loyal", true, { ac: 13, hpMax: 25, hpValue: 25 }), {});
+  assert.equal(toughHp(["tough"]), 15);
+  assert.equal(toughHp(["loyal"]), 0);
+});
+
+test("Training and Weapons Upgrade change each attack; others don't touch attacks", () => {
+  assert.deepEqual(upgradeAttackChanges("training", true, { attackBonus: 3, damage: "3d6" }), { "system.bonuses.attackBonus": 4 });
+  assert.deepEqual(upgradeAttackChanges("training", false, { attackBonus: 0, damage: "3d4" }), { "system.bonuses.attackBonus": 0 });
+  assert.deepEqual(upgradeAttackChanges("weaponsUpgrade", true, { attackBonus: 3, damage: "3d6" }), { "system.damage.value": "4d6" });
+  assert.deepEqual(upgradeAttackChanges("weaponsUpgrade", true, { attackBonus: 3, damage: undefined }), {}, "a special attack has no die");
+  assert.equal(upgradeAttackChanges("tough", true, { attackBonus: 3, damage: "3d6" }), null);
+});
+
+test("upgrade text: one line each after the heading, known names only, stopping at the stat blocks", () => {
+  const page = [
+    "WARBAND UPGRADES",
+    "Accurate. Placeholder text one.",
+    "Armor Upgrade. Placeholder text two.",
+    "Weapons Upgrade. Placeholder text three.",
+    "MELEE, LIGHT MELEE, HEAVY",
+    "Stealthy. A talent, not an upgrade.",
+  ].join("\n");
+  assert.deepEqual(parseUpgradeLines(page), {
+    accurate: "Placeholder text one.", armorUpgrade: "Placeholder text two.", weaponsUpgrade: "Placeholder text three.",
+  });
+  assert.deepEqual(parseUpgradeLines("Stealthy. No heading here."), {});
+});
+
 test("the system's HP roll keeps a warband's current HP: placing a linked token never heals it (#283 review)", () => {
   assert.deepEqual(warbandRolledHp({ level: 4, conMod: 1, value: 7, max: 33 }), { max: 33, value: 7 });
   assert.deepEqual(warbandRolledHp({ level: 3, conMod: 1, value: 33, max: 33 }), { max: 25, value: 25 }, "clamped to a lower max");
   assert.deepEqual(warbandRolledHp({ level: 4, conMod: 1, value: 0, max: 0 }), { max: 33, value: 33 }, "one never given HP starts full");
   assert.deepEqual(warbandRolledHp({ level: 4, conMod: 1, value: 0, max: 33 }), { max: 33, value: 0 }, "a fallen warband stays down");
+  assert.deepEqual(warbandRolledHp({ level: 4, conMod: 1, value: 20, max: 48, extra: 15 }), { max: 48, value: 20 }, "Tough's 15 stays in the max");
 });
 
 test("a payment marked before its gold was taken: landed, not landed, or unclear, from the purse now (#284 review)", () => {

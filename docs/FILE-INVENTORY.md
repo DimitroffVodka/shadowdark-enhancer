@@ -1,7 +1,7 @@
 # Shadowdark Enhancer — File Inventory
 
 <!-- inventory:stats:start -->
-1099 tracked files · ~197,000 lines of code/markup across scripts+templates+styles+test.
+1101 tracked files · ~197,700 lines of code/markup across scripts+templates+styles+test.
 `v0.17.3` in both `module.json` and `package.json`.
 <!-- inventory:stats:end -->
 **Layout reflects the 2026-07-21 feature-folder reorganization (v0.11.0 cycle).**
@@ -46,7 +46,7 @@
 
 | File | Lines | Description |
 |---|---:|---|
-| `shadowdark-enhancer.mjs` | 1280 | **Entry point** (module.json esmodules). Registers hooks, settings, sheets, actor sub-types, the public `game.shadowdarkEnhancer` API, and wires every sub-system. |
+| `shadowdark-enhancer.mjs` | 1282 | **Entry point** (module.json esmodules). Registers hooks, settings, sheets, actor sub-types, the public `game.shadowdarkEnhancer` API, and wires every sub-system. |
 | `luck-reroll/luck-reroll.mjs` | 172 | Wraps the system's `_onReroll` to enforce nat-1 prevention and log Luck rerolls to the session recap. |
 | `spell-mishap/spell-mishap.mjs` | 271 | Nat-1 spellcasting failures auto-roll the class's mishap table (wizard / witch / necromancer sets); divine casters are exempt. |
 | `scavenger/scavenger-core.mjs` | 171 | Pure Delver Scavenger rules: the 5-6 success range and Master Scavenger's widening (floored at 3-6), what counts as expending a consumable's last use (a 1→0 decrement or a delete at quantity 1 — never a stack deleted whole), and which single client rolls. |
@@ -144,7 +144,7 @@
 | `curated-icon-maps/spell-icons.mjs` | 102 | Reviewed Foundry-native icons for the 77 imported spells that all shared one generic casting hand, keyed by spell name and chosen from each spell's description. Defined, not registered: resolved through a spell-only registry so a spell never inherits an item map's art. |
 | `generated-items.mjs` | 650 | Stable identity and replace-always reconciliation for generated managed Items (A7/#57-#59) — the PRODUCER half of the boundary `art-provenance.mjs` defined and left unowned. The invariant is structural and both halves are required: a document is replace-always iff it lives in `world.shadowdark-enhancer--items` AND carries `flags[MODULE_ID].generated === true`. Neither is inferred — not from an image path, a name, a folder, or another pipeline's bookkeeping — and `planGeneratedItems` refuses outright for any other pack rather than reconciling something it has no authority over, which is what stands between an authoritative rerun and editing the system gear compendium. Identity is `flags[MODULE_ID].generatedItem = {id, source, key, fingerprint}` where `id` is FNV-1a/32 over `<canonical source>:<normalized name>`: derived from the definition, so it is identical on every machine and stable across a rerun that changes art, price or prose, and deliberately NOT the world-local document id, the image path (the thing A3 was written to stop reading) or a fuzzy name (the thing #58 was about). Reconciliation indexes on `id` but writes only when the stored canonical `key` also matches; a hash/key mismatch is an `identity-collision` refusal, not a wrong-target update. `name` appears only in the REFUSAL path, where a name already held by a document we do not own — since A1 that can be a generated Monster Spell, whose `monsterSpell.generated` marker means PRESERVE, the opposite thing — is reported, never taken over. Replace-always but not write-always: a rerun is `unchanged` only when the definition has not moved since we last wrote it AND no declared field has been edited since, so hand edits including art are replaced while an idle rerun writes nothing. The two-witness test is what makes a hand edit visible, and the stored document is PROJECTED onto the declared shape recursively — including non-empty ActiveEffects — before comparison so Foundry's own DataModel defaults and embedded ids are not read as an edit. `folder` is excluded — placement is the GM's. Updates carry forward undeclared top-level third-party flag namespaces through both replacement branches. Pure above the divider; the applier below reports create/update/missing-target failures, while a failed recreate deletion remains a visible duplicate requiring GM cleanup (retryable, not transactional). |
 | `hover-peek.mjs` | 94 | Hover-to-enlarge for an image grid: one reusable fixed-position preview that flips away from the viewport edge and never takes the pointer. Shared by the character builder's art gallery and the Token Art Manager's image browser, which cannot scale a tile in place because their grids scroll. |
-| `module-flags.mjs` | 158 | What this module owns on a document's flags, and what survives a wholesale replacement (pure). `replaceDocument` updates with `recursive: false`, which is right for `system` and wrong for `flags`: a creation payload knows only the bookkeeping ITS pipeline stamps, so replacing the object outright deletes every other pipeline's — including `monsterSpell.libraryId`, the only handle the Monster Spell planner has on a generated spell, whose loss makes the next refresh create a duplicate (A8/#93). `preservedModuleFlags` re-merges this module's namespace only: keys the payload declares win, keys it never mentions survive, and other packages' namespaces are left exactly as the payload states them. `replacementFlags` then answers the two replace branches SEPARATELY, because they are not symmetric — an update keeps the document, so a payload declaring no flags correctly omits the key and the stored object is never touched, while a recreate DELETES the original and must therefore carry those blocks itself or lose them (the defect that quietly recreated a Monster Spell without its `libraryId` on any forced fallback or type mismatch). Also carries `isGeneratedMonsterSpell`, read from the library's own `monsterSpell.generated` marker and never from the A7/D6 `flags[MODULE_ID].generated` replace-always marker — the two contracts share the managed Items pack and mean opposite things. Foundry-free, node-tested. |
+| `module-flags.mjs` | 159 | What this module owns on a document's flags, and what survives a wholesale replacement (pure). `replaceDocument` updates with `recursive: false`, which is right for `system` and wrong for `flags`: a creation payload knows only the bookkeeping ITS pipeline stamps, so replacing the object outright deletes every other pipeline's — including `monsterSpell.libraryId`, the only handle the Monster Spell planner has on a generated spell, whose loss makes the next refresh create a duplicate (A8/#93). `preservedModuleFlags` re-merges this module's namespace only: keys the payload declares win, keys it never mentions survive, and other packages' namespaces are left exactly as the payload states them. `replacementFlags` then answers the two replace branches SEPARATELY, because they are not symmetric — an update keeps the document, so a payload declaring no flags correctly omits the key and the stored object is never touched, while a recreate DELETES the original and must therefore carry those blocks itself or lose them (the defect that quietly recreated a Monster Spell without its `libraryId` on any forced fallback or type mismatch). Also carries `isGeneratedMonsterSpell`, read from the library's own `monsterSpell.generated` marker and never from the A7/D6 `flags[MODULE_ID].generated` replace-always marker — the two contracts share the managed Items pack and mean opposite things. Foundry-free, node-tested. |
 | `property-note.mjs` | 194 | Stamps and preserves the "no core Shadowdark property" note on imported gear (pure). Also owns which description survives a REPLACE: the GM's own text beats importer output, and importer output is the empty placeholder, the note alone, or — since A8 — a description that merely echoes the document's name, which is exactly what `buildItemData`'s Spell path writes when a paste brings no prose. |
 | `setting-groups.mjs` | 189 | Feature groups for Configure Settings — which settings, nested editors, other packages' settings and notes each pop-out shows, in display order, incl. the Modes of Play boxes. Pure data; the docs-contract test imports it. |
 | `settings-group-menu.mjs` | 208 | The per-feature settings pop-out (ApplicationV2): builds a DataField per setting the way SettingsConfig does (other packages' settings too), renders nested editor buttons, notes and Modes of Play switches, saves on submit, and mints one registerMenu class per group. |
@@ -274,18 +274,18 @@
 | File | Lines | Description |
 |---|---:|---|
 | `importer-hub-app.mjs` | 969 | **The single front door (shell).** ApplicationV2 lifecycle, singleton, instance fields/caches, `_prepareContext`; installs the three method packs below onto the class (split 2026-07-22). |
-| `importer-hub-paste.mjs` | 1586 | Paste box, type selector, parse dispatch, per-type preview field/row wiring. |
-| `importer-hub-commit.mjs` | 967 | Conflict dialogs, quality gates, magic-bundle plan, all per-type commit flows. |
-| `importer-hub-manage.mjs` | 1275 | Manage strip: censuses + caches, manage tree, gap/seed/cull, source-PDF grab/extract. |
-| `importer-hub-batch.mjs` | 722 | Batch “Import everything” runner: seeds, grabs, parses and commits each planned entry unattended. |
+| `importer-hub-paste.mjs` | 1596 | Paste box, type selector, parse dispatch, per-type preview field/row wiring. |
+| `importer-hub-commit.mjs` | 970 | Conflict dialogs, quality gates, magic-bundle plan, all per-type commit flows. |
+| `importer-hub-manage.mjs` | 1280 | Manage strip: censuses + caches, manage tree, gap/seed/cull, source-PDF grab/extract. |
+| `importer-hub-batch.mjs` | 723 | Batch “Import everything” runner: seeds, grabs, parses and commits each planned entry unattended. |
 | `importer-hub-shared.mjs` | 110 | Hub-shared constants/helpers + `installMethods` (the split's descriptor copier). |
 | `importer-hub-news.mjs` | 123 | What a module update added to the import library: snapshots every Manage-tree row once per module version, diffs the new snapshot against the last, and hands the hub the rows this release added but the GM has not imported (the "New" filter and badge) plus a one-time notice. |
 | `importer-hub-maintenance.mjs` | 282 | Tools-menu bodies (bundle export/import, source-PDF library). |
 | `dump-segmenter.mjs` | 308 | Routes a mixed dump through the recognizer registry: hexcrawl → spell → monster → item → table. |
 | `bundle-io.mjs` | 410 | Whole-suite export/import as one JSON; validates, skips existing, never overwrites. |
-| `manage-tree.mjs` | 692 | Composes the folder/sub-folder unlock-review tree the Manage strip renders. |
+| `manage-tree.mjs` | 703 | Composes the folder/sub-folder unlock-review tree the Manage strip renders. |
 | `batch-import.mjs` | 263 | Pure batch planner: locked tree rows → deduped import jobs, routes, and the run report. |
-| `pdf-text-extract.mjs` | 833 | Clean reading-ordered PDF text via Foundry's bundled PDF.js; column-aware gutter detection. |
+| `pdf-text-extract.mjs` | 871 | Clean reading-ordered PDF text via Foundry's bundled PDF.js; column-aware gutter detection. |
 | `pdf-text-utils.mjs` | 157 | Shared PDF-text helpers + the HTML-safety contract. |
 | `source-pdf-registry.mjs` | 319 | Content source → the user's own uploaded PDF, for page deep-links. |
 | `source-pdf-viewer.mjs` | 66 | Singleton ApplicationV2 embedding Foundry's PDF.js viewer at a given page. |
@@ -312,18 +312,18 @@
 | `tables/core-table-groups.mjs` | 277 | Core Rulebook table groups (`section: "gameplay"` vs roll tables) for the Manage tree. |
 | `tables/compound-table.mjs` | 93 | Mad-libs generator roll behaviour. |
 | `tables/hex-parser.mjs` | 488 | Hex-key dumps → per-hex draft journal pages. Pure. |
-| `monsters/statblock-parser.mjs` | 551 | Monster statblock dump → draft objects. Pure. |
+| `monsters/statblock-parser.mjs` | 553 | Monster statblock dump → draft objects. Pure. |
 | `monsters/monster-importer.mjs` | 233 | Drafts → NPC actors in `sde-actors`. |
 | `monsters/monster-importer-app.mjs` | 396 | Paste dump → per-monster preview/edit grid → create. |
 | `monsters/monster-census.mjs` | 241 | Pure have/gap/duplicate helpers. |
-| `monsters/monster-census-live.mjs` | 462 | Foundry-bound adapter reading `sde-actors`/`sde-tables`. |
+| `monsters/monster-census-live.mjs` | 463 | Foundry-bound adapter reading `sde-actors`/`sde-tables`. |
 | `monsters/monster-backfill.mjs` | 512 | Idempotent upgrade of pre-fidelity-fix imports; auto-runs once per module version. |
 | `monsters/managed-actor-backfill.mjs` | 306 | Reusable active-GM, version-gated backfill lifecycle over the managed Actors pack; consumers supply the missing-only transform. |
 | `monsters/monster-text-backfill.mjs` | 187 | E2 missing-only monster-context `[[request]]` and inline-roll backfill over managed NPC Actor text; owns its consumer version gate. |
 | `monsters/creature-type-map-data.mjs` | 134 | N4 reviewed source/name-scoped creature taxonomy map for managed imported Actors. |
 | `monsters/creature-type-backfill.mjs` | 270 | E3 missing-only N4 creature-type flags over managed NPC/Mount Actors, with optional SDX runtime-map gap mirroring and outcome counts. |
 | `monsters/actor-migration.mjs` | 381 | World-side imported actors → the managed `sde-actors` pack. |
-| `monsters/monster-linker.mjs` | 146 | Table encounter text → clickable `@UUID` monster links. |
+| `monsters/monster-linker.mjs` | 150 | Table encounter text → clickable `@UUID` monster links. |
 | `monsters/monster-pack.mjs` | 48 | Shared pack-identity leaf so importer and linker agree. |
 | `items/item-parser.mjs` | 493 | Generic item recognizer (name/cost/slots). Pure. |
 | `items/gear-parser.mjs` | 577 | Real Weapon/Armor stat parser (WR letter codes, treasure flags). Pure. |
@@ -336,8 +336,8 @@
 | `items/shikashi-icons.mjs` | 235 | Item name → bundled Shikashi icon matcher (284 icons). |
 | `tables/table-manifest.mjs` | 308 | Table manifest logic — the registry of catalogued tables (id, name, source, page) that drives the Manage-tree census. |
 | `tables/table-manifest-data.mjs` | 500 | The `TABLE_MANIFEST` data array — every catalogued table's metadata (names/sources/pages; no rules text). |
-| `boats/mount-parser.mjs` | 55 | Names-only WR mount manifest + selection of the requested mount from parsed statblock drafts. |
-| `boats/mount-importer.mjs` | 150 | Mount drafts → `shadowdark-enhancer.mount` actors in `sde-actors`, reusing the monster import pipeline. |
+| `boats/mount-parser.mjs` | 65 | Names-only WR mount manifest + selection of the requested mount from parsed statblock drafts. |
+| `boats/mount-importer.mjs` | 169 | Mount drafts → `shadowdark-enhancer.mount` actors in `sde-actors`, reusing the monster import pipeline. |
 | `boats/boat-parser.mjs` | 155 | Parses the WR p118 boats table → boat actor drafts (pure); names-only manifest. |
 | `boats/boat-importer.mjs` | 50 | Boat drafts → `shadowdark-enhancer.boat` actors in `sde-actors`. |
 | `boats/siege-parser.mjs` | 440 | Parses the WR p119 siege-weapons table → Weapon drafts + ammunition (pure). |
@@ -355,15 +355,16 @@
 
 | File | Lines | Description |
 |---|---:|---|
-| `register-actors.mjs` | 116 | Registers `shadowdark-enhancer.mount` / `.warband` / `.boat` (models + sheets, in `i18nInit`): the warband's NpcSD subclass with fixed HP, its linked-token and commander-cleared create hook, and Make a Warband. |
+| `register-actors.mjs` | 118 | Registers `shadowdark-enhancer.mount` / `.warband` / `.boat` (models + sheets, in `i18nInit`): the warband's NpcSD subclass with fixed HP, its linked-token and commander-cleared create hook, and Make a Warband. |
 | `boat-data-model.mjs` | 115 | Boat data model — WR vessel rules. |
 | `boat-sheet.mjs` | 179 | Boat sheet: Overview / Passengers & Crew / Cargo / Description. |
 | `mount-npc-sheet.mjs` | 342 | Mount sheet — subclass of the system's `NpcSheetSD`. |
-| `warband-core.mjs` | 179 | Warband rules, pure (#200, #202, #204): the 18 upgrades, a commander's allowance by hit die tier (2/2, 4/3, 6/4), the command and upgrade refusals, and a creature made into a warband (level doubled, 8 HP a level plus CON, one attack, +1 attack a level gained, damage dice tripled). |
-| `warband-npc-sheet.mjs` | 308 | The Warband unit sheet (#200): an NpcSheetSD subclass (AppV1) with a Warband tab for the commander (a PC dropped on it), the allowance across that commander's warbands, the upgrade checklist written whole to the `warband` flag, and the commander's CHA for morale, and (#204) upkeep, arrears, desertion and retraining with their GM buttons. |
+| `warband-core.mjs` | 264 | Warband rules, pure (#200, #202, #204): the 18 upgrades, a commander's allowance by hit die tier (2/2, 4/3, 6/4), the command and upgrade refusals, and a creature made into a warband (level doubled, 8 HP a level plus CON, one attack, +1 attack a level gained, damage dice tripled). |
+| `warband-npc-sheet.mjs` | 328 | The Warband unit sheet (#200): an NpcSheetSD subclass (AppV1) with a Warband tab for the commander (a PC dropped on it), the allowance across that commander's warbands, the upgrade checklist written whole to the `warband` flag, and the commander's CHA for morale, and (#204) upkeep, arrears, desertion and retraining with their GM buttons. |
 | `make-warband.mjs` | 118 | Make a Warband (#202): the GM's header button on a level 1-5 NPC's sheet, a before/after preview, and a new warband actor from a copy (the stat block in its notes rebuilt as Quick Adjust does). |
 | `warband-upkeep.mjs` | 438 | Warband upkeep and healing on the world clock (#204): on timeAdvanced (active GM, queued), month and week starts in order over a move's last 366 days (clockEvents, last-month and last-week markers against rewinds): each month start charges 10 gp a level per commanded warband from the commander's coins, in one card; arrears check morale each week start (at most 8 rolling weeks a move) and desert on a failure (marked, never deleted); every day heals 1d4 (Hardy 2d6); the GM's Charge a Month, Pay Arrears and Return to Service. |
-| `warband-combat.mjs` | 138 | Warbands in mass combat (#203): a warband's combatant takes its commander's initiative (on join and whenever either changes, Chaos rerolls included); automatic morale on the active GM from a per-client HP cache (falling to half, every hit below it; d20 + commander CHA vs 15/Loyal 9, advantage when leading), a 3-in-6 (Withdraw 1-in-6) rout that marks it defeated; the attack card's area note; the retraining warning on attack. |
+| `warband-combat.mjs` | 140 | Warbands in mass combat (#203): a warband's combatant takes its commander's initiative (on join and whenever either changes, Chaos rerolls included); automatic morale on the active GM from a per-client HP cache (falling to half, every hit below it; d20 + commander CHA vs 15/Loyal 9, advantage when leading), a 3-in-6 (Withdraw 1-in-6) rout that marks it defeated; the attack card's area note; the retraining warning on attack. |
+| `warband-upgrades.mjs` | 126 | What a warband's upgrades do (#201): Armor Upgrade, Tough, Training and Weapons Upgrade written into the stored fields they change in the same update as the tick, and taken off by the same amount (marked attacks only); each upgrade's book text read once from the Player's Guide p.250 into the warbandUpgradeText world setting for the sheet's hovers. |
 | `vehicle-sheet.mjs` | 424 | Shared party-like container base (ApplicationV2). |
 | `vehicle-rolls.mjs` | 79 | Shared helper-roll button handlers. |
 

@@ -11681,6 +11681,19 @@ button.sde-hud-day:hover { border-color: var(--sd-frame); }
   grid-template-columns: repeat(3, 1fr);
   gap: 0.25rem 0.75rem;
 }
+/* The system's sheet CSS makes every input 100% wide: a checkbox then fills
+   its column and pushes its label onto the next line. */
+.sde-warband-npc label.checkbox {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+.sde-warband-npc label.checkbox input[type="checkbox"] {
+  flex: none;
+  width: auto;
+  margin: 0;
+  top: 0;
+}
 .sde-warband-npc .sde-warband-allowance {
   margin: 0.4rem 0 0;
   font-size: var(--font-size-12);

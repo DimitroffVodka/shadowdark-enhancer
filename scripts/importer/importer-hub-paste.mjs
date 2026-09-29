@@ -803,10 +803,19 @@ class HubPasteMethods {
     // (every unlock carries `_charSeed`), which renamed whatever the spread's
     // MOUNTS summary table parsed into "Western Reaches - Donkey" and committed
     // a roll table where the GM asked for an actor.
-    if (this._importSeed?.type === "Mount") {
+    //
+    // The stock warbands (PGWR pp.250-251, #201) take this branch too: the same
+    // statblocks, the same catalog names, created as warband units. Their grab
+    // also carries p.250's upgrade list, whose text the upgrade hovers read.
+    if (this._importSeed?.type === "Mount" || this._importSeed?.type === "Warband") {
       const { selectMountDrafts } = await import("./boats/mount-parser.mjs");
+      const warband = this._importSeed.type === "Warband";
       const want = this._importSeed.name;
-      const pages = this._importSeed.page || "116-117";
+      const pages = this._importSeed.page || (warband ? "250-251" : "116-117");
+      if (warband) {
+        const { saveUpgradeText } = await import("../actors/warband-upgrades.mjs");
+        await saveUpgradeText(text).catch((err) => console.error(`${MODULE_ID} | warband upgrade text`, err));
+      }
       const { monsters: chunks, skipped: sk } = splitStatblocks(
         stripPageFooterLines(text, this._importSeed.page));
       const drafts = chunks.map((chunk) => parseStatblock(chunk));
@@ -865,12 +874,13 @@ class HubPasteMethods {
         });
         ui.notifications.warn(drafts.length
           ? t("SDE.importer.parse.mountNotFound", { name: want, n: drafts.length, pages })
-          : t("SDE.importer.parse.noMounts", { pages }));
+          : t(warband ? "SDE.importer.parse.noWarbands" : "SDE.importer.parse.noMounts", { pages }));
       } else if (matchedNames.size < requestedNames.length) {
         const missing = requestedNames.filter((name) => !matchedNames.has(name));
-        ui.notifications.warn(
-          t(missing.length === 1 ? "SDE.importer.parse.mountsMissingOne" : "SDE.importer.parse.mountsMissingMany",
-            { n: missing.length, names: missing.join(", ") }));
+        const key = warband
+          ? (missing.length === 1 ? "SDE.importer.parse.warbandsMissingOne" : "SDE.importer.parse.warbandsMissingMany")
+          : (missing.length === 1 ? "SDE.importer.parse.mountsMissingOne" : "SDE.importer.parse.mountsMissingMany");
+        ui.notifications.warn(t(key, { n: missing.length, names: missing.join(", ") }));
       }
       this.render();
       return;
@@ -1150,7 +1160,7 @@ class HubPasteMethods {
     // exactly how a mount unlock became a roll table. Those types return above;
     // the guard keeps the invariant stated where the rule is applied.
     const seedWantsOneTable = this._importSeed?._charSeed
-      && !["Mount", "Boat", "SiegeWeapon", "Basic", "Weapon", "Armor"].includes(this._importSeed.type);
+      && !["Mount", "Warband", "Boat", "SiegeWeapon", "Basic", "Weapon", "Armor"].includes(this._importSeed.type);
     if (seedWantsOneTable && (type === "tables" || type === "auto") && (nameTables.length || tables.length)) {
       const want = this._importSeed.name;
       let keep;

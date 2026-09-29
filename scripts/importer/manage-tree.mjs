@@ -21,7 +21,7 @@
  *                       traps & hazards, boons, casting mishaps)
  *   Roll Tables       → per source — the remaining manifest Table entries
  *                       (generators, encounters, treasure, names)
- *   Monsters          → CS1…CS6 · GM Guide (fixed skeleton) · Mounts
+ *   Monsters          → CS1…CS6 · GM Guide (fixed skeleton) · Warbands · Mounts
  *   Items             → Basic Gear · Armor · Weapons · Magic Items (Potion+Scroll+Wand)
  *   Downtime          → one row per source book, censused from the
  *                       `downtimeContent` world setting (counts only)
@@ -57,6 +57,7 @@ import { readStored } from "../downtime/downtime-core.mjs";
 import { BOAT_MANIFEST } from "./boats/boat-parser.mjs";
 import { SIEGE_MANIFEST } from "./boats/siege-parser.mjs";
 import { MOUNT_MANIFEST, mountNameKeys } from "./boats/mount-parser.mjs";
+import { STOCK_WARBANDS } from "../actors/warband-core.mjs";
 import { t as tr } from "./importer-hub-shared.mjs";
 
 const _norm = (s) => String(s || "").toLowerCase().replace(/\s+/g, " ").trim();
@@ -515,6 +516,16 @@ function buildMonsters(monsterRows, actorRecords) {
     present: [...mountNameKeys(m.name)].some((key) => actorKeys.has(key)),
     type: "Mount", src: m.src, pages: m.pages,
   }));
+  // The Player's Guide's stock warbands (#201): warband units, imported on the
+  // mount path from pp.250-251. Pushed before Mounts, which stays last.
+  // Present only as a warband: an NPC of the same name is another actor (#286 review).
+  const warbandKeys = new Set(actorRecords.filter((r) => r.type === `${MODULE_ID}.warband`).flatMap((r) => [...mountNameKeys(r.name)]));
+  const warbandRecords = STOCK_WARBANDS.map((name) => ({
+    name,
+    present: [...mountNameKeys(name)].some((key) => warbandKeys.has(key)),
+    type: "Warband", src: "WR", pages: "250-251",
+  }));
+  children.push(leaf("monsters/warbands", tr("SDE.importer.manageTree.warbands"), "fa-people-group", warbandRecords, "charSeedPaste", true));
   children.push(leaf("monsters/mounts", tr("SDE.importer.manageTree.mounts"), "fa-horse", mountRecords, "charSeedPaste", true));
 
   return branch("monsters", tr("SDE.importer.type.monsters"), "fa-dragon", children);

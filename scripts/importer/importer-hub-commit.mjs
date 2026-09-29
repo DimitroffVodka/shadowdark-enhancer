@@ -236,17 +236,19 @@ class HubCommitMethods {
 
     const source = this._importSource.trim();
     const drafts = this._importMonsters.map((p) => p.draft);
-    const isMount = this._importSeed?.type === "Mount";
+    // Mounts and the stock warbands (#201) are created as their own actor types.
+    const kind = this._importSeed?.type === "Mount" ? "Mount" : this._importSeed?.type === "Warband" ? "Warband" : null;
     let result;
-    if (isMount) {
+    if (kind) {
       const { MountImporter } = await import("./boats/mount-importer.mjs");
-      result = await MountImporter.createMounts(drafts, { source });
+      result = await MountImporter.createMounts(drafts, { source, kind });
     } else {
       result = await MonsterImporter.createMonsters(drafts, { source, onConflict: this._monsterConflictDialog() });
     }
     if (!result) return;
 
-    ui.notifications.info(t(isMount ? "SDE.importer.done.mounts" : "SDE.importer.done.monsters", { summary: ImporterHubApp._commitSummary(result), pack: MonsterImporter.PACK_LABEL, source: source ? ` / ${source}` : "" }));
+    const doneKey = kind === "Mount" ? "SDE.importer.done.mounts" : kind === "Warband" ? "SDE.importer.done.warbands" : "SDE.importer.done.monsters";
+    ui.notifications.info(t(doneKey, { summary: ImporterHubApp._commitSummary(result), pack: MonsterImporter.PACK_LABEL, source: source ? ` / ${source}` : "" }));
     this._importMonsters = [];
     this._invalidateMonstersCache();
     this.render();
@@ -670,12 +672,13 @@ class HubCommitMethods {
     // Monsters first
     if (hasMonsters) {
       const drafts = this._importMonsters.map((p) => p.draft);
-      // Mounts: imported as mount-type actors instead of standard NPCs.
-      if (this._importSeed?.type === "Mount") {
+      // Mounts and the stock warbands (#201): their own actor types, not standard NPCs.
+      if (this._importSeed?.type === "Mount" || this._importSeed?.type === "Warband") {
+        const warband = this._importSeed.type === "Warband";
         const { MountImporter } = await import("./boats/mount-importer.mjs");
-        const result = await MountImporter.createMounts(drafts, { source });
+        const result = await MountImporter.createMounts(drafts, { source, kind: warband ? "Warband" : "Mount" });
         if (result) {
-          parts.push(t("SDE.importer.count.mounts", { summary: ImporterHubApp._commitSummary(result) }));
+          parts.push(t(warband ? "SDE.importer.count.warbands" : "SDE.importer.count.mounts", { summary: ImporterHubApp._commitSummary(result) }));
           this._noteCommitSkips(result);
           this._importMonsters = [];
           this._invalidateMonstersCache();

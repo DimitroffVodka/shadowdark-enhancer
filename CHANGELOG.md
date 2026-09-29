@@ -512,6 +512,15 @@ page walks through it in order.
   reports its routed flag failed to save. Return to Service takes a routed
   warband back into the fight: its combatants stop being defeated and its
   token loses the dead status, unless it is at 0 HP. (#203)
+- **The book's warbands and what upgrades do.** Importer Hub → Manage →
+  Monsters → **Warbands** imports the Player's Guide's eight stock warbands
+  from your PDF as warband units, with their talents, in a Warbands folder.
+  Armor Upgrade (+1 AC), Tough (+15 HP), Training (+1 to attacks) and Weapons
+  Upgrade (one more damage die) change the sheet when ticked and change back
+  when unticked. Each upgrade shows its book text on hover, read once from
+  the PDF. An attack added later takes the upgrades already ticked, and if an
+  attack's change fails to save, the next tick puts it right. An NPC with a
+  stock warband's name doesn't stop that warband's import. (#201)
 - **Encounter check frequency.** Right-click the Crawl Bar's **Encounter**
   button: **Check Frequency** runs from **1** (every crawl round, the default)
   to **10**. The count runs from the last check, automatic or manual, so a

@@ -23,7 +23,7 @@ import { splitStatblocks, parseStatblock } from "../scripts/importer/monsters/st
 // runtime, so the routing is pinned by reading the source rather than calling
 // it. They match raw text, so say so when they miss — a reformat of
 // _onHubParse should read as "update this pattern", not "the branch is gone".
-const MOUNT_BRANCH_RE = /if \(this\._importSeed\?\.type === "Mount"\) \{(?<body>[\s\S]*?)\n {4}\}/;
+const MOUNT_BRANCH_RE = /if \(this\._importSeed\?\.type === "Mount" \|\| this\._importSeed\?\.type === "Warband"\) \{(?<body>[\s\S]*?)\n {4}\}/;
 const BRANCH_HINT =
   "mount parse branch not found in _onHubParse — if the branch was reformatted or "
   + "re-indented, update MOUNT_BRANCH_RE rather than assuming the routing is gone";
@@ -121,7 +121,7 @@ describe("mount unlock routing", () => {
   });
 
   test("the mount branch runs before the generic auto/table pipeline", () => {
-    const mountAt = pasteSource.indexOf('if (this._importSeed?.type === "Mount")');
+    const mountAt = pasteSource.indexOf('if (this._importSeed?.type === "Mount" || this._importSeed?.type === "Warband")');
     const keeperAt = pasteSource.indexOf("const seedWantsOneTable");
     const autoAt = pasteSource.indexOf('if (type === "auto") {');
     assert.ok(mountAt > 0 && keeperAt > 0 && autoAt > 0);
@@ -137,4 +137,14 @@ describe("mount unlock routing", () => {
       assert.match(guard, new RegExp(`"${type}"`), `${type} must not expect a table`);
     }
   });
+});
+
+test("an NPC of a stock warband's name doesn't stop its import; a mount still counts one (#286 review)", async () => {
+  const { alreadyImported } = await import("../scripts/importer/boats/mount-parser.mjs");
+  const npc = { name: "Rabble", type: "NPC" };
+  const band = { name: "rabble", type: "shadowdark-enhancer.warband" };
+  const draft = { name: "Rabble", type: "shadowdark-enhancer.warband" };
+  assert.equal(alreadyImported(npc, draft, "Warband"), false);
+  assert.equal(alreadyImported(band, draft, "Warband"), true);
+  assert.equal(alreadyImported({ name: "Horse", type: "NPC" }, { name: "Horse", type: "shadowdark-enhancer.mount" }, "Mount"), true);
 });

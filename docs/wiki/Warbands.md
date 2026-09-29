@@ -11,12 +11,18 @@ its attacks, AC, HP and damage roll as any NPC's, with a **Warband** tab.
 > Extras' fix for its attack wrapper (DimitroffVodka/shadowdark-extras#184);
 > without it the attack card doesn't post.
 
-Still to come: the book's stock warbands and the upgrades' effects (#201),
-and recruiting as a downtime activity (#205).
+Still to come: recruiting as a downtime activity (#205).
 
 ---
 
 ## Making a warband
+
+**The book's eight** (Melee, Mounted and Ranged, each light and heavy;
+Berserkers; Rabble): **Importer Hub → Manage → Monsters → Warbands**, then
+Import, one at a time or all at once. They're read from your own Player's
+Guide PDF (pp.250–251) and created as warband units, with their talents, in
+a **Warbands** folder of the actors pack. Importing again skips any already
+there. The same read picks up the upgrades' text (below).
 
 **Actors sidebar → Create Actor → Warband** makes an empty one to fill in by
 hand.
@@ -45,12 +51,30 @@ A level 2 goblin with a +1 attack for 1d6 becomes a level 4 warband with
 |---|---|
 | **Commander** | Drop a player character here. The warband is theirs. A player can only name a character they own; a GM can name any, since the upkeep is paid from the commander's coins. Upkeep and Pay Arrears only take gold from a commander that one of the warband's player owners also owns, so a GM who names another player's character for a player's warband should give that player ownership of it. |
 | **Allowance** | By the commander's hit die: a d4 commands 2 warbands with 2 upgrades between them, a d6 4 and 3, a d8 or larger 6 and 4. It counts all of that commander's warbands, and a commander over it is refused with a message. |
-| **Upgrades** | The 18 upgrades, each once per warband. One over the commander's allowance is refused. A warband without a commander (or with one whose hit die can't be read) can have up to 4. |
+| **Upgrades** | The 18 upgrades, each once per warband. One over the commander's allowance is refused. A warband without a commander (or with one whose hit die can't be read) can have up to 4. Hover one for its book text; **Read Upgrade Text** (GM) reads it from your Player's Guide PDF, p.250, for everyone. |
 | **Morale** | Shows the commander's CHA modifier, which the warband's morale checks use. |
 
+**What the upgrades change.** Ticking one of these changes the sheet at once,
+and unticking takes the same amount off again:
+
+| Upgrade | On the sheet |
+|---|---|
+| **Armor Upgrade** | AC +1. |
+| **Tough** | Max HP +15, and current HP with it. Unticking takes 15 off both, keeping any damage taken, but never drops a standing warband below 1. |
+| **Training** | Every attack's bonus +1. |
+| **Weapons Upgrade** | Every attack gets one more damage die of the same kind: 3d8 becomes 4d8. |
+
+Hardy, Loyal and Withdraw change a rule instead: healing, the morale DC and
+the rout chance. The rest are for you to apply when they come up. Edit a
+number by hand while an upgrade is on and your number stands: unticking takes
+off only the upgrade's amount. An attack added while Training or Weapons
+Upgrade is ticked takes it at once, and loses it when you untick the upgrade
+(an attack with no damage die to add to keeps its damage as it is).
+
 A warband is one unit: its tokens are linked to the actor, and its HP is
-fixed at 8 per level plus CON (the HP dice on its sheet sets that rather
-than rolling). A copy of a warband (Duplicate, or one imported from a
+fixed at 8 per level plus CON, plus 15 with Tough (the HP dice on its sheet
+sets that maximum rather than rolling, and never heals it; placing a token
+doesn't either). A copy of a warband (Duplicate, or one imported from a
 compendium) starts without a commander, so taking it goes through the
 commander's allowance, and without the original's arrears, desertion or
 upkeep record (its upgrades stay).

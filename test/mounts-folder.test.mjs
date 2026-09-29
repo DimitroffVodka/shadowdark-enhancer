@@ -265,6 +265,31 @@ test("a partial Mount batch continues and a retry creates only the failed actor"
   }
 });
 
+test("the stock warbands import as warband units into their own Warbands folder (#201)", async () => {
+  const world = fakeWorld();
+  try {
+    const [mounts, warbands] = await Promise.all([
+      MountImporter.createMounts([draft("Donkey")], { source: "Western Reaches" }),
+      MountImporter.createMounts([draft("Melee, Light"), draft("Rabble")], { source: "Western Reaches", kind: "Warband" }),
+    ]);
+    assert.deepEqual(mounts.created, ["Donkey"]);
+    assert.deepEqual(warbands.created, ["Melee, Light", "Rabble"]);
+    assert.deepEqual(world.calls.folderCreates.map(({ data }) => data.name).sort(), ["Mounts", "Warbands"],
+      "one folder each, created side by side");
+    const byName = (name) => world.actors.find((actor) => actor.name === name);
+    assert.equal(byName("Donkey").type, "shadowdark-enhancer.mount");
+    assert.equal(byName("Rabble").type, "shadowdark-enhancer.warband");
+    assert.equal(byName("Rabble").folder, byName("Melee, Light").folder);
+    assert.notEqual(byName("Rabble").folder, byName("Donkey").folder);
+
+    const again = await MountImporter.createMounts([draft("Rabble")], { source: "Western Reaches", kind: "Warband" });
+    assert.deepEqual(again, { created: [], skipped: ["Rabble"], replaced: [] }, "a re-import skips, never duplicates");
+    assert.equal(world.calls.folderCreates.length, 2);
+  } finally {
+    world.restore();
+  }
+});
+
 test("Boat and ordinary monster imports retain their existing source-folder seam", () => {
   assert.match(boatSource, /ensureSourceFolder\(pack, source \|\| "Western Reaches"\)/);
   assert.match(monsterSource, /ensureSourceFolder\(pack, source\)/);

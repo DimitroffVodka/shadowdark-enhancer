@@ -133,7 +133,7 @@ class HubManageMethods {
     // arrive with ""), so an unknown type sweeps all three rather than guessing
     // Items and reporting a false miss.
     const order = isTable ? ["RollTable"]
-      : ["Actor", "Boat", "Mount", "SiegeWeapon", "Monster"].includes(type) ? ["Actor", "Item"]
+      : ["Actor", "Boat", "Mount", "Warband", "SiegeWeapon", "Monster"].includes(type) ? ["Actor", "Item"]
       : type ? ["Item", "Actor"]
       : ["Item", "Actor", "RollTable"];
 
@@ -680,6 +680,8 @@ class HubManageMethods {
       // committed the page's summary table as a roll table named after the
       // mount instead of creating the actor (_onHubParse has the mount branch).
       Mount: "monsters",
+      // The stock warbands (#201) are statblocks too, parsed in the mount branch.
+      Warband: "monsters",
       SiegeWeapon: "items",
     })[type] ?? "auto";
     // Background roll tables bundle-unlock: one paste creates both the d100
@@ -905,6 +907,9 @@ class HubManageMethods {
       // books. One code path is worth more here than a pin restating the default.
       // An entry may pin its own extraction mode (Boons: Secrets needs "1" so
       // each grid row stays on one line for the reflow boundary split).
+      // PGWR p.250 prints the upgrade list full width above two stat-block
+      // columns, which only "topband" reads whole (#201); p.251 falls back to auto.
+      : seed?.type === "Warband" ? "topband"
       : shp?.extractCols ? shp.extractCols
       : shp?.split === "prayer" ? "layout"
       : (shp?.kind === "section" || shp?.kind === "gridcol" || shp?.kind === "matrix" || shp?.kind === "longtable") ? (shp.cols || "1")

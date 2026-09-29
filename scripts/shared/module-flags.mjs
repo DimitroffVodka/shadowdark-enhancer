@@ -23,7 +23,7 @@
  * as the payload states them; this module does not speak for them.
  *
  * Exports:
- *   replaceModuleFlag(doc, key, value) — replace ONE of our flags, wholesale
+ *   replaceModuleFlag(doc, key, value, extra) — replace ONE of our flags, wholesale
  *   moduleFlags(document)            — this module's flag block, or {}
  *   preservedModuleFlags(payloadFlags, existingFlags) — the merge rule
  *   replacementFlags(payloadFlags, existingFlags) — what each branch writes
@@ -60,9 +60,10 @@ const isObject = (value) => !!value && typeof value === "object" && !Array.isArr
  * @param {object} document  any Foundry document
  * @param {string} key       the flag key inside this module's namespace
  * @param {*}      value     the new value, written whole
+ * @param {object} [extra]   other fields written in the same update
  */
-export async function replaceModuleFlag(document, key, value) {
-  return document.update({ [`flags.${MODULE_ID}.${key}`]: _replace(value) });
+export async function replaceModuleFlag(document, key, value, extra = {}) {
+  return document.update({ ...extra, [`flags.${MODULE_ID}.${key}`]: _replace(value) });
 }
 
 /**
