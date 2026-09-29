@@ -118,8 +118,8 @@ Object.assign(globalThis, {
     actors: { get: () => null, filter: () => [] },
   },
 });
-const { applySky, applySkies, applyWeatherVisuals, onDrawWeatherEffects, registerWeatherVisuals } = await import("../scripts/overland/sky.mjs");
-const { registerOverland } = await import("../scripts/overland/overland.mjs");
+const { applySky, applySkies, applyWeatherVisuals, onDrawWeatherEffects, registerSky, registerWeatherVisuals } = await import("../scripts/overland/sky.mjs");
+const { registerOverland, OVERLAND_CHANGED } = await import("../scripts/overland/overland.mjs");
 
 /** A stubbed Scene that keeps its flags and applies its updates, so a reload is a fresh stub with the same data. */
 function scene({ hex = true, follows, darkness = 0, locked = false, weather = "", owned, id = "s" } = {}) {
@@ -389,5 +389,34 @@ test("the sky follows the party's scene: a storm on the hex map with a dungeon a
   } finally {
     delete globalThis.game.scenes;
     delete globalThis.fromUuidSync;
+  }
+});
+
+test("a weather roll that lands while a sky pass is writing still reaches the scene (#295 review)", async () => {
+  sky();
+  const s = scene();
+  let release;
+  const gate = new Promise((r) => { release = r; });
+  const update = s.update;
+  s.update = async (changes, options) => { await update(changes, options); await gate; };
+  globalThis.game.scenes = { active: s };
+  const handlers = {};
+  const { on } = globalThis.Hooks;
+  globalThis.Hooks.on = (name, fn) => { handlers[name] = fn; };
+  try {
+    registerSky();                                               // the ready pass writes darkness and waits
+    assert.equal(s.writes.length, 1);
+    stored.overlandState.weather = STORMY;
+    registerOverland();                                          // the committed roll, read again
+    handlers[OVERLAND_CHANGED]();            // OVERLAND_CHANGED, no options
+    release();
+    await new Promise((r) => setTimeout(r, 20));
+    assert.deepEqual(s.writes.map((w) => w.changes), [
+      { "environment.darknessLevel": 0.6 },
+      { weather: "rainStorm", "flags.shadowdark-enhancer.skyWeather": "rainStorm" },
+    ], "the second pass writes the storm");
+  } finally {
+    globalThis.Hooks.on = on;
+    delete globalThis.game.scenes;
   }
 });

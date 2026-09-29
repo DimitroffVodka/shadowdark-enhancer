@@ -115,12 +115,14 @@ export async function applySkies(options) {
  * A pass covers the active scene and the party's.
  */
 function queueSky(options) {
-  if (_running) { _again = options; return _running; }
+  // The slot is an object so a trigger without options still queues a re-run;
+  // it keeps a pending clock step rather than lose it to a later plain one.
+  if (_running) { _again = { options: options ?? _again?.options }; return _running; }
   _running = applySkies(options)
     .catch((err) => console.error(`${MODULE_ID} | the sky on the scene`, err))
     .finally(() => {
       _running = null;
-      if (_again) { const o = _again; _again = null; queueSky(o); }
+      if (_again) { const { options: o } = _again; _again = null; queueSky(o); }
     });
   return _running;
 }
