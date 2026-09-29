@@ -13,6 +13,9 @@
  * simply skipped, so the merchant self-heals as content lands.
  */
 
+import { MODULE_ID } from "../shared/module-id.mjs";
+import { IMPORTED_ITEMS_PACK, isCatalogStock } from "./catalog-stock.mjs";
+
 /** Shared shop settings, captured from the reference merchant. */
 export const DEFAULT_MERCHANT_SETTINGS = {
   sellRatio: 50,
@@ -112,10 +115,12 @@ export const DEFAULT_MERCHANT_ITEMS = [
   { name: "Stave", uuid: "Compendium.world.shadowdark-enhancer--items.Item.bsE1NB9e67PiroPt", type: "Weapon", base: false },
 ];
 
-/** The two shipped merchants. `filter` selects rows from DEFAULT_MERCHANT_ITEMS. */
+/** The two shipped merchants. `filter` selects rows from DEFAULT_MERCHANT_ITEMS;
+ *  `book` also stocks every priced gear item the importer wrote from that book
+ *  (system.source.title), so a spelling change in an import never drops stock. */
 export const DEFAULT_MERCHANTS = [
   { key: "The Merchant - Base", shopName: "The Merchant - Base", filter: (i) => i.base },
-  { key: "The Merchant - Western Reaches", shopName: "The Merchant - Western Reaches", filter: () => true },
+  { key: "The Merchant - Western Reaches", shopName: "The Merchant - Western Reaches", filter: () => true, book: "western-reaches" },
 ];
 
 /** Which shipped merchant a brand-new world loads as its live shop, so the Buy
@@ -138,7 +143,10 @@ async function _resolveEntry(spec) {
       if (hit) { doc = await p.getDocument(hit._id).catch(() => null); if (doc) break; }
     }
   }
-  if (!doc) return null;
+  return doc ? _entryFromDoc(doc) : null;
+}
+
+function _entryFromDoc(doc) {
   return {
     id: doc.id,
     name: doc.name,
@@ -152,6 +160,22 @@ async function _resolveEntry(spec) {
   };
 }
 
+/** Priced gear of `book` in the imported items pack, as shop entries not already in `have`. */
+async function _bookStock(book, have) {
+  const pack = game.packs.get(IMPORTED_ITEMS_PACK);
+  if (!pack) return [];
+  const index = await pack.getIndex({
+    fields: ["system.cost", "system.source.title", `flags.${MODULE_ID}.fromTreasureTable`, `flags.${MODULE_ID}.generated`],
+  });
+  const out = [];
+  for (const row of index.contents) {
+    if (row.system?.source?.title !== book || !isCatalogStock(row)) continue;
+    const doc = await pack.getDocument(row._id).catch(() => null);
+    if (doc && !have.has(doc.uuid)) out.push(_entryFromDoc(doc));
+  }
+  return out;
+}
+
 /**
  * Build the two default merchant configs from live content. Keyed by merchant
  * name; each is a full savedShopConfigs entry (with the DEFAULT_MARKER flag).
@@ -160,11 +184,13 @@ export async function buildDefaultMerchantConfigs() {
   const out = {};
   for (const def of DEFAULT_MERCHANTS) {
     const inventory = [];
+    const seen = new Set();
     for (const spec of DEFAULT_MERCHANT_ITEMS.filter(def.filter)) {
-       
+      // Two specs can resolve to one document (the name+type fallback); list it once, first spec wins.
       const entry = await _resolveEntry(spec);
-      if (entry) inventory.push(entry);
+      if (entry && !seen.has(entry.uuid)) { seen.add(entry.uuid); inventory.push(entry); }
     }
+    if (def.book) inventory.push(...await _bookStock(def.book, seen));
     out[def.key] = {
       name: def.key,
       mode: "compendium",
