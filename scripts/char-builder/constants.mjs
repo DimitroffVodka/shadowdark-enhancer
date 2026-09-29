@@ -126,6 +126,12 @@ export const STAT_METHODS = {
     label: "SDE.charBuilder.stats.method.pointBuy",
     pointBuy: true, assign: false, rerollUnder14: false,
   },
+  // An EXISTING character's stored scores, typed as they are (hydrate.mjs sets
+  // it; the GM setting never offers it). Never rolled, spread or reset.
+  manual: {
+    label: "SDE.charBuilder.stats.method.manual",
+    manual: true, assign: false, rerollUnder14: false,
+  },
 };
 
 export const DEFAULT_STAT_METHOD = "3d6-reroll";

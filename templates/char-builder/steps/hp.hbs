@@ -1,4 +1,11 @@
 <div class="sde-cb-roll-step">
+  {{#if step.existing}}
+  <p class="sde-cb-hint"><i class="fa-solid fa-lock"></i> {{localize "SDE.charBuilder.hp.existingHint"}}</p>
+  <div class="sde-cb-big-number">
+    <span class="val">{{#if step.hp}}{{step.hp}}{{else}}–{{/if}}</span>
+    <span class="unit">{{localize "SDE.charBuilder.hp.unit"}}</span>
+  </div>
+  {{else}}
   {{#if step.hasClass}}
   <p class="sde-cb-method-label">
     {{localize "SDE.charBuilder.hp.formula"}}: <b>{{step.hitDie}}{{#if step.multiLevel}} × {{step.level}}{{/if}} + CON ({{step.conModLabel}}){{#if step.hpBonus}} + {{step.hpBonus}}{{/if}}</b>
@@ -33,5 +40,6 @@
 
   {{else}}
   <div class="sde-cb-empty">{{localize "SDE.charBuilder.hp.needClass"}}</div>
+  {{/if}}
   {{/if}}
 </div>

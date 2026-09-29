@@ -14,6 +14,9 @@ export class GoldStep extends BaseStep {
   get icon() { return "fa-solid fa-coins"; }
   get partial() { return "sde-cb-gold"; }
 
+  /** An existing actor's coins are what it holds: no starting gold, no roll (#168). */
+  get readOnly() { return !!this.state.existing; }
+
   isComplete() { return this.state.goldRolled; }
 
   /** GM lock: a player who has rolled (or been handed a fixed amount) rolls no more. */
@@ -25,6 +28,11 @@ export class GoldStep extends BaseStep {
 
   async prepareContext() {
     const fixed = this.fixed;
+    if (this.readOnly) {
+      const c = this.state.coins;
+      const coinsText = [c.gp && `${c.gp} gp`, c.sp && `${c.sp} sp`, c.cp && `${c.cp} cp`].filter(Boolean).join(" ") || "0 gp";
+      return { existing: true, coinsText, complete: true };
+    }
     // A GM-fixed amount is applied automatically the first time this step renders.
     if (fixed > 0 && !this.state.goldRolled) {
       this.state.coins.gp = fixed;
@@ -40,10 +48,11 @@ export class GoldStep extends BaseStep {
     };
   }
 
-  supportsRandom() { return this.fixed <= 0 && !this.rollLocked; }
+  supportsRandom() { return !this.readOnly && this.fixed <= 0 && !this.rollLocked; }
   async randomize() { if (!this.rollLocked) await this._roll(); }
 
   async handleAction(action) {
+    if (this.readOnly) return false;
     if (action === "cb-roll-gold") {
       if (this.rollLocked) return false;
       await this._roll();
@@ -53,6 +62,7 @@ export class GoldStep extends BaseStep {
   }
 
   async _roll() {
+    if (this.readOnly) return;
     if (this.fixed > 0) {
       this.state.coins.gp = this.fixed;
       this.state.goldRolled = true;
@@ -78,7 +88,7 @@ export class GoldStep extends BaseStep {
   }
 
   onRender(root) {
-    if (!game.user?.isGM) return;
+    if (this.readOnly || !game.user?.isGM) return;
     root.querySelector("[data-cb-gold-input]")?.addEventListener("change", async (ev) => {
       this.state.coins.gp = Math.max(0, Math.floor(Number(ev.target.value) || 0));
       this.state.goldRolled = true;

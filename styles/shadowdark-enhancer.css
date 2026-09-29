@@ -8690,6 +8690,7 @@ body.theme-light .sde-strip-combat-controls { background: #f4f1ec !important; }
   transition: background 0.1s;
 }
 .sde-cb-list-item:hover { background: var(--cb-panel-2); }
+.sde-cb-list.is-readonly .sde-cb-list-item { cursor: default; }
 .sde-cb-list-item.selected { background: var(--cb-panel-2); border-color: var(--cb-accent); box-shadow: inset 3px 0 0 var(--cb-accent); }
 .sde-cb-list-img { width: 34px; height: 34px; object-fit: cover; border-radius: 4px; border: 1px solid var(--cb-border); flex: 0 0 auto; }
 .sde-cb-list-name { font-family: var(--font-header, "JSL Blackletter"), serif; font-size: 15px; }
@@ -9366,6 +9367,10 @@ body.theme-light .sde-strip-combat-controls { background: #f4f1ec !important; }
   font-size:30px; font-weight:700; min-height:34px; color:var(--sd-text);
 }
 .sde-cb-stats .sde-cb-abil-tile .tile-val .ph{ color:#555; }
+.sde-cb-stats .sde-cb-abil-tile input.tile-val{
+  width:100%; box-sizing:border-box; text-align:center;
+  background:transparent; border:0; border-bottom:1px solid #555; border-radius:0; box-shadow:none;
+}
 .sde-cb-stats .sde-cb-abil-tile .tile-name{
   font-family:var(--sd-font-head); font-weight:700; font-size:13px;
   letter-spacing:.06em; text-transform:uppercase; color:var(--sd-text);

@@ -118,6 +118,14 @@
         {{else}}<p>—</p>{{/if}}
       </section>
 
+      {{#if step.kept}}
+      <section class="sde-cb-preview-block sde-cb-kept">
+        <h3>{{localize "SDE.charBuilder.preview.kept"}}</h3>
+        <p class="sde-cb-hint">{{localize "SDE.charBuilder.preview.keptHint"}}</p>
+        {{#each step.kept}}<p>{{name}} <span class="tier">({{type}})</span></p>{{/each}}
+      </section>
+      {{/if}}
+
     </div>
   </div>
 </div>

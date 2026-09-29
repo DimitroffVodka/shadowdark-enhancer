@@ -35,6 +35,9 @@ export class AncestryStep extends ListStep {
   get stateKey() { return "ancestry"; }
   get weightPath() { return "system.randomWeight"; }
 
+  /** An existing actor's ancestry is locked: its talents cannot be traced back, so a swap would guess (#168). */
+  get readOnly() { return !!this.state.existing; }
+
   async loadItems() { return loadAncestries(); }
 
   /** Use a bundled ancestry portrait when one exists, else the system icon. */
@@ -97,7 +100,7 @@ export class AncestryStep extends ListStep {
    *  replaces the oldest pick — no need to deselect first. */
   toggleTalent(uuid) {
     const item = this.selected?.item;
-    if (!item) return;
+    if (!item || this.readOnly) return;
     const count = item.system.talentChoiceCount || 0;
     const chosen = this.state.ancestryTalents;
     const idx = chosen.indexOf(uuid);
@@ -120,7 +123,7 @@ export class AncestryStep extends ListStep {
     }
     return {
       traits,
-      needsTalentChoice: this._needsTalentChoice(item),
+      needsTalentChoice: !this.readOnly && this._needsTalentChoice(item),
       talentChoiceCount: item.system.talentChoiceCount || 0,
       languageText: await this._languageText(item),
     };
@@ -192,6 +195,7 @@ export class AncestryStep extends ListStep {
   }
 
   async randomize() {
+    if (this.readOnly) return;
     // The GM's population table picks the ancestry when one is set; otherwise
     // (or when its result names no installed ancestry) the weighted pick.
     const rolled = await rollAncestryFromTable(await this.items());

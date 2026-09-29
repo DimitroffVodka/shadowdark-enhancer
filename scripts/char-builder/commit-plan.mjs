@@ -65,8 +65,10 @@ export function planCommit(existing, state, live) {
 
   // --- system keys (base values only, dotted paths, changed keys only) ---
   for (const k of ABILITY_ORDER) {
-    const d = Number(state.stats?.values?.[k]);
-    if (Number.isFinite(d) && changed(`abilities.${k}`, B.abilities[k], d, Number(Ls.abilities?.[k]?.value))) {
+    // Foundry stores an integer of 0 or more: anything else would never read back equal.
+    const raw = Number(state.stats?.values?.[k]);
+    const d = Math.max(0, Math.round(raw));
+    if (Number.isFinite(raw) && changed(`abilities.${k}`, B.abilities[k], d, Number(Ls.abilities?.[k]?.value))) {
       system[`system.abilities.${k}.value`] = d;
     }
   }

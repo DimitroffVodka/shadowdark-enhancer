@@ -11,6 +11,12 @@ import { MODULE_ID } from "../../shared/module-id.mjs";
  * gear (e.g. a Paladin's) is not auto-added — the player buys/adds it here.
  */
 const CATEGORIES = ["Armor", "Weapon", "Basic"];
+/**
+ * A cart row's key. Rows an existing actor already owns are keyed by their
+ * embedded item id (`rowId`): the compendium uuid can be null, and two owned
+ * Torches share it. A new row has no rowId and is keyed by its uuid, as ever.
+ */
+export const rowKey = (g) => g.rowId ?? g.uuid;
 export const slug = (name) => String(name || "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
 
 /** The fixed shop stock (user-approved starting-gear list), as name slugs of
@@ -185,7 +191,8 @@ export class GearStep extends ListStep {
 
   cartTotals() {
     let costCp = 0; let slots = 0;
-    for (const g of this.state.gear) { costCp += g.costCp * g.qty; slots += g.slots; }
+    // Owned rows were paid for long ago: only NEW rows cost coins.
+    for (const g of this.state.gear) { if (!g.owned) costCp += g.costCp * g.qty; slots += g.slots; }
     return { costCp, slots, remainingCp: this.goldCp - costCp };
   }
 
@@ -236,10 +243,17 @@ export class GearStep extends ListStep {
     return true;
   }
 
+  /** Slots a cart row takes at `qty`: an owned row from its stored spec, else the shop item. */
+  _rowSlots(g, qty) {
+    const item = g.slotSpec !== undefined ? { system: { slots: g.slotSpec } } : (this._items || []).find((i) => i.uuid === g.uuid);
+    return item ? this._slots(item, qty) : g.slots;
+  }
+
+  /** Shop purchase. Merges into a NEW row of the same item only, never an owned one. */
   addToCart(uuid) {
     const item = (this._items || []).find((i) => i.uuid === uuid);
     if (!item) return;
-    const existing = this.state.gear.find((g) => g.uuid === uuid);
+    const existing = this.state.gear.find((g) => !g.owned && g.uuid === uuid);
     if (existing) {
       existing.qty += 1;
       existing.slots = this._slots(item, existing.qty);
@@ -251,13 +265,21 @@ export class GearStep extends ListStep {
     }
   }
 
-  removeFromCart(uuid) {
-    const g = this.state.gear.find((x) => x.uuid === uuid);
+  /** The cart's plus: an owned row rises for free, a new row is bought again. */
+  addOne(key) {
+    const g = this.state.gear.find((x) => rowKey(x) === key);
+    if (!g) return;
+    if (!g.owned) { this.addToCart(g.uuid); return; }
+    g.qty += 1;
+    g.slots = this._rowSlots(g, g.qty);
+  }
+
+  removeFromCart(key) {
+    const g = this.state.gear.find((x) => rowKey(x) === key);
     if (!g) return;
     g.qty -= 1;
-    if (g.qty <= 0) { this.state.gear = this.state.gear.filter((x) => x.uuid !== uuid); return; }
-    const item = (this._items || []).find((i) => i.uuid === uuid);
-    if (item) g.slots = this._slots(item, g.qty);
+    if (g.qty <= 0) { this.state.gear = this.state.gear.filter((x) => x !== g); return; }
+    g.slots = this._rowSlots(g, g.qty);
   }
 
   async prepareContext() {
@@ -289,10 +311,10 @@ export class GearStep extends ListStep {
         type: this._typeLabel(view), cost: this._fmtCoins(this._costCp(view)),
         stats: await this._statLines(view),
         slots: view.system.slots?.slots_used ?? 0, magic: !!view.system.magicItem,
-        inCart: this.state.gear.find((g) => g.uuid === view.uuid)?.qty || 0,
+        inCart: this.state.gear.filter((g) => g.uuid === view.uuid).reduce((n, g) => n + g.qty, 0),
       } : null,
       hasSelection: !!view,
-      cart: this.state.gear.map((g) => ({ uuid: g.uuid, name: g.name, qty: g.qty, magic: g.magic })),
+      cart: this.state.gear.map((g) => ({ key: rowKey(g), name: g.name, qty: g.qty, magic: g.magic })),
       cartEmpty: this.state.gear.length === 0,
       slotsUsed: totals.slots,
       slotLimit: this.slotLimit,
@@ -315,7 +337,7 @@ export class GearStep extends ListStep {
       this.removeFromCart(el.dataset.cbRemoveGear); await this.app.render();
     }));
     root.querySelectorAll("[data-cb-add-one]").forEach((el) => el.addEventListener("click", async () => {
-      this.addToCart(el.dataset.cbAddOne); await this.app.render();
+      this.addOne(el.dataset.cbAddOne); await this.app.render();
     }));
   }
 }

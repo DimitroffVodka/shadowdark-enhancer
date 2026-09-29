@@ -22,6 +22,7 @@
     {{> sde-cb-list step.list}}
 
     <div class="sde-cb-anc-main">
+      {{#if step.readOnly}}<p class="sde-cb-hint"><i class="fa-solid fa-lock"></i> {{localize "SDE.charBuilder.existing.classHint"}}</p>{{/if}}
       {{#if step.hasSelection}}
 
       <div class="sde-cb-anc-detail">
@@ -225,7 +226,7 @@
       </div>
 
       {{else}}
-      <div class="sde-cb-empty">{{localize "SDE.charBuilder.selectPrompt"}}</div>
+      {{#unless step.readOnly}}<div class="sde-cb-empty">{{localize "SDE.charBuilder.selectPrompt"}}</div>{{/unless}}
       {{/if}}
     </div>
 

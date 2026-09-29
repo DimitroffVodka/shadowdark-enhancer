@@ -167,7 +167,7 @@ function applyArt(actorData, state) {
 export function coinsAfterGear(state) {
   const c = state.coins;
   let cp = (c.gp || 0) * 100 + (c.sp || 0) * 10 + (c.cp || 0);
-  for (const g of (state.gear || [])) cp -= (g.costCp || 0) * (g.qty || 1);
+  for (const g of (state.gear || [])) if (!g.owned) cp -= (g.costCp || 0) * (g.qty || 1);
   cp = Math.max(0, cp);
   return { gp: Math.floor(cp / 100), sp: Math.floor((cp % 100) / 10), cp: cp % 10 };
 }

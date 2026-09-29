@@ -91,6 +91,9 @@ export class ClassStep extends ListStep {
   get lockedTypes() { return ["Class"]; }
   get stateKey() { return "class"; }
 
+  /** An existing actor's class is locked, like its ancestry (#168). */
+  get readOnly() { return !!this.state.existing; }
+
   /** Use a bundled class emblem when one exists, else the system icon. */
   portrait(item) { return classArt(item?.name); }
   /** List rows show the same gold emblem as the header portrait. */
@@ -161,8 +164,28 @@ export class ClassStep extends ListStep {
     if (item) await this._bonusSources(item);
   }
 
+  /**
+   * An existing build: everything the character was already given (the
+   * level-1 and level-up talent rolls, fixed-talent choices, bonus rolls, language
+   * slots) is on the sheet and kept as-is, so none of it can block. Only what the
+   * builder still writes stays required: a patron, and the spells the level
+   * grants (spells already held count). An unresolved class has no requirements
+   * to read, and a level-0 build has no class at all.
+   */
+  _existingComplete() {
+    const item = this.selected?.item;
+    if (!item) return true;
+    if (item.system.patron?.required && !this.state.patron?.uuid) return false;
+    if (this._isCaster(item)) {
+      const need = Object.values(this._spellsKnown(item)).reduce((a, b) => a + (Number(b) || 0), 0);
+      if ((this.state.spells?.length || 0) < need) return false;
+    }
+    return true;
+  }
+
   /** Complete once patron / spells-known / bonus-roll / language requirements are met. */
   isComplete() {
+    if (this.state.existing) return this._existingComplete();
     const item = this.selected?.item;
     if (!this.selected?.uuid || !item) return false;
     if (item.system.patron?.required && !this.state.patron?.uuid) return false;
@@ -268,6 +291,19 @@ export class ClassStep extends ListStep {
   // ---- Extra: info lines + talent + spells + patron -------------------------
   async extraContext(item) {
     if (!item) return {};
+    if (this.state.existing) {
+      // Talents, bonus rolls and language choices are on the sheet: no rolls here.
+      return {
+        infoLines: await this._infoLines(item),
+        traits: await this._traits(item),
+        talent: { hasTable: false },
+        choices: [],
+        bonusRolls: [],
+        spells: await this._spellContext(item),
+        patron: await this._patronContext(item),
+        languages: await this.langStep.prepareContext(),
+      };
+    }
     const pending = await this._pendingChoices(item);
     return {
       infoLines: await this._infoLines(item),
@@ -524,6 +560,7 @@ export class ClassStep extends ListStep {
   }
 
   async rollTalent() {
+    if (this.readOnly) return;
     const item = this.selected?.item;
     const tableUuid = item?.system?.classTalentTable;
     if (!tableUuid) return;
@@ -701,7 +738,7 @@ export class ClassStep extends ListStep {
 
   async rollBonus(key, { silent = false } = {}) {
     const item = this.selected?.item;
-    if (!item) return;
+    if (!item || this.readOnly) return;
     const sources = await this._bonusSources(item);
     const src = sources.find((s) => s.key === key);
     if (!src) return;
@@ -820,6 +857,7 @@ export class ClassStep extends ListStep {
 
   // ---- Random --------------------------------------------------------------
   async randomize() {
+    if (this.readOnly) return;
     await super.randomize();
     const item = this.selected?.item;
     if (!item) return;

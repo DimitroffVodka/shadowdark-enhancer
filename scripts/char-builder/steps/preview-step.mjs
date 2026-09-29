@@ -92,6 +92,9 @@ export class PreviewStep extends BaseStep {
       spells: [...st.spells].sort((a, b) => (a.tier - b.tier) || a.name.localeCompare(b.name))
         .map((s) => ({ name: s.name, tier: s.tier })),
       gear: st.gear.map((g) => ({ name: g.name, qty: g.qty })),
+      // An existing actor's Effects, Boons, Class Abilities, talents and anything else the
+      // builder does not model: listed so it is clear they stay, never written.
+      kept: st.existing ? st.existing.kept.map((k) => ({ name: k.name, type: k.type })) : null,
       art: this._artContext(),
       ready: this.isComplete(),
       missing: this.app.steps

@@ -582,6 +582,16 @@ page walks through it in order.
   http connection (the console dry run `describeActor` threw there), and an
   item stack spent down to 0 stays a stack of 0 instead of reading as 1.
   Nothing else uses it yet, so nothing changes on any sheet. (#168)
+- **Groundwork for the Character Builder's steps on an existing character.**
+  Opened on a character it already knows, the builder's steps now behave for
+  one: abilities are typed as stored (never reset by point buy or the standard
+  array), ancestry and class are shown but locked, talent rolls, bonus rolls and
+  language choices are not asked again, languages, hit points and coins are shown
+  as the character holds them, gear it already owns stays separate from new
+  purchases (two Torches stay two, only new items cost coins), and the Preview
+  lists what stays as-is. Typed abilities are rounded to a whole number of 0 or
+  more. Nothing opens the builder that way yet, so nothing changes on any
+  sheet, and a new build looks exactly as before. (#168)
 
 ### Changed
 

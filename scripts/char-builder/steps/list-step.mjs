@@ -27,6 +27,9 @@ export class ListStep extends BaseStep {
   /** Optional weight property path for weighted random (e.g. "system.randomWeight"). */
   get weightPath() { return null; }
 
+  /** True when the selection is locked (ancestry and class of an existing actor). */
+  get readOnly() { return false; }
+
   get searchPlaceholder() { return game.i18n.localize("SDE.charBuilder.searchPlaceholder"); }
 
   /** Show per-row thumbnails in the list. Override false when every row shares
@@ -49,6 +52,7 @@ export class ListStep extends BaseStep {
   supportsRandom() { return true; }
 
   async select(uuid) {
+    if (this.readOnly) return;
     const items = await this.items();
     const item = items.find((i) => i.uuid === uuid);
     if (!item) return;
@@ -60,6 +64,7 @@ export class ListStep extends BaseStep {
   async _onSelect(_item) {}
 
   async randomize() {
+    if (this.readOnly) return;
     const items = await this.items();
     const pick = weightedRandom(items, this.weightPath);
     if (pick) await this.select(pick.uuid);
@@ -132,8 +137,17 @@ export class ListStep extends BaseStep {
       img: (this.showPortraitInList ? this.portrait(i) : null) ?? i.img,
       selected: i.uuid === selUuid,
     }));
-    if (this.lockedTypes) entries.push(...await this._lockedListEntries(this.lockedTypes));
-    const selItem = items.find((i) => i.uuid === selUuid) ?? null;
+    if (this.lockedTypes && !this.readOnly) entries.push(...await this._lockedListEntries(this.lockedTypes));
+    // A locked pick may sit outside the list (a Legacy class the list hides): its own doc still shows.
+    const selItem = items.find((i) => i.uuid === selUuid) ?? (this.readOnly ? this.selected?.item ?? null : null);
+    if (this.readOnly) {
+      // Only the actor's own pick, and its stored name when the compendium no longer has it.
+      const own = entries.filter((e) => e.selected);
+      if (!own.length && this.selected?.uuid) {
+        own.push({ id: this.selected.uuid, name: this.selected.name, img: "icons/svg/mystery-man.svg", selected: true });
+      }
+      entries.splice(0, entries.length, ...own);
+    }
 
     const portrait = selItem ? this.portrait(selItem) : null;
     const detail = selItem
@@ -146,8 +160,10 @@ export class ListStep extends BaseStep {
         search: this._search,
         placeholder: this.searchPlaceholder,
         noThumbs: !this.showListImages,
-        noSearch: !this.showListSearch,
+        noSearch: !this.showListSearch || this.readOnly,
+        readOnly: this.readOnly,
       },
+      readOnly: this.readOnly,
       detail,
       aside: selItem ? await this.asideContext(selItem) : null,
       hasSelection: !!selItem,
@@ -164,6 +180,7 @@ export class ListStep extends BaseStep {
   onRender(root) {
     // Selection
     root.querySelectorAll("[data-cb-select]").forEach((el) => {
+      if (this.readOnly) return;
       el.addEventListener("click", async (ev) => {
         const id = ev.currentTarget.dataset.cbSelect;
         if (id?.startsWith("locked::")) { await this._unlockViaImporter(id); return; }
