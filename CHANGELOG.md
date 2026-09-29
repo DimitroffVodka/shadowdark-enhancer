@@ -469,7 +469,9 @@ page walks through it in order.
   Return to Service. With its commander dead it rolls and takes its own
   turn. Its attack cards note the area it fills; splitting its damage is the
   GM's. A warband still retraining its upgrades can't attack. A warband with
-  no commander, or whose commander was deleted, checks no morale. (#203)
+  no commander, or whose commander was deleted, checks no morale. A rout is
+  never left half done: the warband is marked destroyed even if Foundry
+  reports its routed flag failed to save. (#203)
 - **Encounter check frequency.** Right-click the Crawl Bar's **Encounter**
   button: **Check Frequency** runs from **1** (every crawl round, the default)
   to **10**. The count runs from the last check, automatic or manual, so a

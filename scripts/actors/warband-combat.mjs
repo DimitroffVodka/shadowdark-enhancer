@@ -76,8 +76,10 @@ async function moraleCheck(actor) {
     flavor: t(routs ? "SDE.warband.morale.routed" : "SDE.warband.morale.stands", { warband: actor.name, chance }),
   });
   if (!routs) return;
-  await replaceModuleFlag(actor, WARBAND_FLAG, { ...warbandState(actor), routed: true });
-  await actor._setDefeated?.();
+  // v14 can reject an update after saving it, so the defeat does not wait on the flag write's reply
+  // (else a stored routed flag with no defeat is skipped by every later hit); _setDefeated is idempotent.
+  try { await replaceModuleFlag(actor, WARBAND_FLAG, { ...warbandState(actor), routed: true }); }
+  finally { await actor._setDefeated?.(); }
 }
 
 /** The note a warband's attack card carries: the area it fills and the dice it may split. */
