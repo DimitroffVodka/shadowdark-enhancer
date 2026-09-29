@@ -1,7 +1,8 @@
 /**
  * Shadowdark Enhancer — terrain for encounter checks.
  *
- * With a hex map tagged (scripts/hex-map), the scene knows what every hex is.
+ * With a hex map tagged (scripts/hex-map), or built with Shadowdark Extras' hex
+ * creator, the scene knows what every hex is (hexReader).
  * This turns that into the one thing a wandering-monster check wants: the
  * table the book intends for the party's hex. Where the book's per-region
  * encounter grids are imported, that is the region's printed column for the
@@ -20,7 +21,8 @@
 import { MODULE_ID } from "../shared/module-id.mjs";
 import { findSuitePack } from "../shared/compendium-suite.mjs";
 import { cellNumber, foundryOffsetToCube } from "../hex-map/geometry.mjs";
-import { decodeTags, readCell } from "../hex-map/tag-store.mjs";
+import { decodeTags, readCell, FEATURES } from "../hex-map/tag-store.mjs";
+import { extrasRecordsByOffset } from "../hex-map/extras-records.mjs";
 import { moonPhase } from "../time/time-core.mjs";
 import { moonEpoch } from "../time/time.mjs";
 
@@ -305,69 +307,113 @@ function partyPoints(canvasRef) {
 }
 
 /**
- * Does this scene follow hex rules rather than Foundry's light and sight
- * (#257)? A hex grid that is a map of hexes: a print tagged by the Hex Tagger,
- * or a Shadowdark Extras hex map (a built or adopted hexcrawl, or a scene its
- * hex painter formatted). There no token lights anything or sees
+ * Is this scene a hex map (#298)? One rule: its grid is hexagonal, of either
+ * orientation. A tag from the Hex Tagger or Shadowdark Extras' hex records add
+ * terrain detail (hexReader) and are never what makes a map a hex map, so a
+ * map built by hand is one too. On a hex map no token lights anything or sees
  * anything; what the party sees comes from the hex rules (time, weather,
- * height). A hex grid alone is not enough: 5 ft hex battle maps keep their
- * torches.
+ * height), Overland offers Travel, the clock HUD shows and the Crawl Strip
+ * stays out of the way. A 5 ft hex battle map is a hex map like any other.
  * @param {Scene|null} scene  the scene document
  * @returns {boolean}
  */
 export function isHexRulesScene(scene) {
-  if (!scene?.grid?.isHexagonal) return false;
-  const sdx = scene.flags?.["shadowdark-extras"];
-  return !!(scene.getFlag?.(MODULE_ID, TAGS_FLAG)?.origin || sdx?.hexcrawl || sdx?.hexScene);
+  return !!scene?.grid?.isHexagonal;
 }
 
 /**
- * Is the viewed scene a tagged hex map, one partyHex() can read? (Overland's
- * Travel button is offered only there, docs/plans/overland.md §4.3.)
+ * Is the viewed scene a hex map? (Overland's Travel button, route and clock
+ * plate, docs/plans/overland.md §4.3.) The same rule as isHexRulesScene, read
+ * from the canvas' own grid when it has one.
  * @returns {boolean}
  */
 export function isHexMapScene(canvasRef = globalThis.canvas) {
-  const grid = canvasRef?.grid;
-  return !!(canvasRef?.scene?.getFlag?.(MODULE_ID, TAGS_FLAG)?.origin && grid?.isHexagonal && grid.columns);
+  return !!(canvasRef?.grid?.isHexagonal ?? canvasRef?.scene?.grid?.isHexagonal);
 }
 
 /**
  * The hex the party is in on the active scene.
- * @returns {{num:number, terrain:string|null, features:string[]}|null} null when the
- *   scene is not a numbered hex map or no party token is on it
+ * @returns {{num:number|null, terrain:string|null, features:string[]}|null} null when the
+ *   scene is not a hex map or no party token is on it; `num` is null on a map with no numbering
  */
 export function partyHex(canvasRef = globalThis.canvas) {
   const read = hexReader(canvasRef);
   if (!read) return null;
   const counts = new Map();
   for (const point of partyPoints(canvasRef)) {
-    const hex = read(canvasRef.grid.getOffset(point));
-    if (hex) counts.set(hex.num, { hex, n: (counts.get(hex.num)?.n ?? 0) + 1 });
+    const offset = canvasRef.grid.getOffset(point);
+    const hex = read(offset);
+    // Keyed by the hex's place: a map with no numbering has no number to tell two hexes apart by.
+    const key = `${offset.i},${offset.j}`;
+    if (hex) counts.set(key, { hex, n: (counts.get(key)?.n ?? 0) + 1 });
   }
   return [...counts.values()].sort((a, b) => b.n - a.n)[0]?.hex ?? null;
 }
 
+/** Extras' records for a scene, or null: none recorded, or Extras isn't active to be asked. */
+function extrasRecords(scene) {
+  try { return extrasRecordsByOffset(scene?.id); } catch { return null; }
+}
+
+/** One Extras record as the module reads a hex: its terrain word and its river, path or coast. */
+function readExtrasRecord(record) {
+  const features = (record?.features ?? []).map((f) => f?.type).filter((type) => FEATURES.includes(type));
+  return { num: null, terrain: terrainKey(record?.terrain) || null, features };
+}
+
 /**
- * A reader for the tagged hexes of the viewed scene: a grid offset in, the
- * printed hex out as `{num, terrain, features}`, or null off the numbered map.
- * The tags are decoded once, so one reader can price a whole move (Overland,
- * #231). null when the scene is not a tagged hex map.
- * @returns {((offset:{i:number, j:number}) => {num:number, terrain:string|null, features:string[]}|null)|null}
+ * A reader for the hexes of the viewed scene: a grid offset in, the hex out as
+ * `{num, terrain, features}`. The tags are decoded once, so one reader can
+ * price a whole move (Overland, #231). It reads any hex grid (#298):
+ *  - tagged by the Hex Tagger (on a column grid, the numbering's own): the
+ *    printed hex, with its number, or null off the numbered map;
+ *  - else with Shadowdark Extras' hex records for the scene: their terrain
+ *    and features, and no number (Extras keys them by place, not by print);
+ *  - else the plain hex: no terrain, no number.
+ * Off the scene's own rectangle (the padding) is null in the last two, so a
+ * route search ends with the map. null only when the grid is not hexagonal.
+ * @returns {((offset:{i:number, j:number}) => {num:number|null, terrain:string|null, features:string[]}|null)|null}
  */
 export function hexReader(canvasRef = globalThis.canvas) {
   const grid = canvasRef?.grid;
-  const flag = canvasRef?.scene?.getFlag?.(MODULE_ID, TAGS_FLAG);
-  if (!flag?.origin || !grid?.isHexagonal || !grid.columns) return null;
-  const o = flag.origin;
-  const origin = { cube: { q: o.q, r: o.r }, num: o.num, shifted: o.shifted ?? "odd", bounds: o.bounds };
-  const tags = decodeTags(flag);
+  if (!grid?.isHexagonal) return null;
+  const scene = canvasRef?.scene;
+  const flag = scene?.getFlag?.(MODULE_ID, TAGS_FLAG);
+  // The numbering's cube maths is the column layout's: a row-oriented grid reads as an untagged one.
+  if (flag?.origin && grid.columns) {
+    const o = flag.origin;
+    const origin = { cube: { q: o.q, r: o.r }, num: o.num, shifted: o.shifted ?? "odd", bounds: o.bounds };
+    const tags = decodeTags(flag);
+    return (offset) => {
+      const { num } = cellNumber(foundryOffsetToCube(offset, !!grid.even), origin);
+      if (num === null) return null;
+      // Read the #196 way, so a legacy "coast" terrain is ground plus a coast feature.
+      const cell = readCell(tags, num);
+      return { num, terrain: cell?.terrain ?? null, features: cell?.features ?? [] };
+    };
+  }
+  const records = extrasRecords(scene);
+  const rect = scene?.dimensions?.sceneRect;
   return (offset) => {
-    const { num } = cellNumber(foundryOffsetToCube(offset, !!grid.even), origin);
-    if (num === null) return null;
-    // Read the #196 way, so a legacy "coast" terrain is ground plus a coast feature.
-    const cell = readCell(tags, num);
-    return { num, terrain: cell?.terrain ?? null, features: cell?.features ?? [] };
+    if (rect) {
+      const at = grid.getCenterPoint(offset);
+      if (!rect.contains(at.x, at.y)) return null;
+    }
+    const record = records?.get(`${offset.i}_${offset.j}`);
+    return record ? readExtrasRecord(record) : { num: null, terrain: null, features: [] };
   };
+}
+
+/**
+ * Does the viewed scene say what any hex is, by a tag or by Extras' records?
+ * Without either, every hex costs the default and encounters use the active
+ * table (Overland says so once per Start travel).
+ * @returns {boolean}
+ */
+export function hasHexTerrain(canvasRef = globalThis.canvas) {
+  const scene = canvasRef?.scene;
+  if (Object.keys(scene?.getFlag?.(MODULE_ID, TAGS_FLAG)?.cells ?? {}).length) return true;
+  return [...(extrasRecords(scene)?.values() ?? [])].some((r) => !!r?.terrain);
 }
 
 /**

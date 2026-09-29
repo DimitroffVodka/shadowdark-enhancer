@@ -11,12 +11,22 @@ import {
 import { nextTimeOfDay, sun, dateParts } from "../scripts/time/time-core.mjs";
 import { gregorian, quirkyGregorian, at } from "./gregorian-calendar.mjs";
 
-test("the bar shows by the setting, and to nobody during a combat", () => {
-  assert.equal(clockShown({ setting: "all", isGM: false, combat: false }), true);
-  assert.equal(clockShown({ setting: "gm", isGM: false, combat: false }), false);
-  assert.equal(clockShown({ setting: "gm", isGM: true, combat: false }), true);
-  assert.equal(clockShown({ setting: "off", isGM: true, combat: false }), false);
-  assert.equal(clockShown({ setting: "all", isGM: true, combat: true }), false);
+test("the bar shows by the setting, on a hex map only, and to nobody during a combat", () => {
+  assert.equal(clockShown({ setting: "all", isGM: false, combat: false, hex: true }), true);
+  assert.equal(clockShown({ setting: "gm", isGM: false, combat: false, hex: true }), false);
+  assert.equal(clockShown({ setting: "gm", isGM: true, combat: false, hex: true }), true);
+  assert.equal(clockShown({ setting: "off", isGM: true, combat: false, hex: true }), false);
+  assert.equal(clockShown({ setting: "all", isGM: true, combat: true, hex: true }), false);
+});
+
+test("the bar never shows on a scene with no hex grid, whoever the setting is for (#298)", () => {
+  for (const setting of ["all", "gm", "off"]) for (const isGM of [true, false]) {
+    assert.equal(clockShown({ setting, isGM, combat: false, hex: false }), false, `${setting}, GM ${isGM}`);
+  }
+  // Viewing another scene flips the answer both ways, with no reload: the caller asks each time.
+  const on = (hex) => clockShown({ setting: "all", isGM: false, combat: false, hex });
+  assert.deepEqual([on(false), on(true), on(false)], [false, true, false]);
+  assert.equal(clockShown({ setting: "all", isGM: false, combat: false }), false, "no answer about the scene is no bar");
 });
 
 test("the GM's steps: a day, 8 hours, an hour, 10 minutes and a round", () => {

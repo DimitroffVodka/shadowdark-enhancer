@@ -142,8 +142,10 @@ Differences from combat:
 
 ## Overland travel
 
-On a tagged hex map the Crawl Bar also offers **Travel**. It starts overland
-travel instead of a crawl. Overland is being built in pieces (#192). So far it
+On a hex map the Crawl Bar also offers **Travel**. A hex map is any scene with
+a hex grid, of either orientation: one you drew by hand, one built with
+Shadowdark Extras' hex creator, or a print tagged with the Hex Tagger. Nothing
+has to be tagged first. It starts overland travel instead of a crawl. Overland is being built in pieces (#192). So far it
 switches the mode, keeps the travel state, rolls the weather, charges each
 move of the travel token against the day's hexes, moving the clock with it,
 rolls the day's encounter checks as the clock reaches them, and ends the day
@@ -160,8 +162,16 @@ with forage and camp.
   The GM also sees the day's check hours and results, and the Start day,
   Weather, Make camp, Continue and End travel buttons. Players never see the
   check hours.
+- **Terrain is optional.** A tag from the Hex Tagger, or the terrain Extras
+  records on its hex maps, gives each hex its move cost and its encounter
+  table. A hex map with neither still travels: every hex costs 1 point and
+  encounters use the active table. **Start travel** says so once, when it
+  starts. Without a printed number the hex's region and the hex fog's
+  numbering are not known, so those parts of the encounter check are skipped.
 - **No Crawl Strip on a hex map** outside a combat: the party travels there as
-  one token, and the clock bar holds the top of the screen.
+  one token, and the clock bar holds the top of the screen. The Crawl Strip is
+  for every other scene. During a combat its combat display still takes over
+  on a hex map, as everywhere.
 - **Which token travels.** The party token: the Shadowdark Extras party's, when
   exactly one is on the map, or the module's own **Party**. With no party token
   on the map, Start travel puts the Party in the hex at the centre of your view.
@@ -172,12 +182,12 @@ with forage and camp.
   hexes, miles, points and hours. Click to walk the party there, one hex at a
   time, the clock moving with each. It stops at an encounter, a bounce, or the
   end of the day's points. Dragging the token still works as before.
-- **Hex rules, not light and sight.** On a hex map (a tagged print, or a
-  Shadowdark Extras hexcrawl) no token gives light and no token sees: a torch
-  carried there reveals nothing, and players see the map as a map, with
-  Extras' hex fog hiding what the party hasn't seen. The same character keeps
-  its torch and its sight on a dungeon map. A 5 ft hex battle map is not a hex
-  map in this sense.
+- **Hex rules, not light and sight.** On a hex map (any scene with a hex grid)
+  no token gives light and no token sees: a torch carried there reveals
+  nothing, and players see the map as a map, with Extras' hex fog hiding what
+  the party hasn't seen. The same character keeps its torch and its sight on a
+  dungeon map. A 5 ft hex battle map is a hex map like any other, so it has no
+  token light or sight either.
 - **Who travels.** That party's members, or every player-owned character.
 - **While travelling** the Crawl Strip is off and the crawl's movement isn't
   tracked. The bar shows **Overland**, today's weather once it's rolled, and the
@@ -276,7 +286,7 @@ with forage and camp.
 
     Overland only ever changes or clears an effect it put there; one you
     picked on the scene yourself is left alone.
-  - The tagged hex map counts as outdoors and only darkens to a readable
+  - A hex map (any hex grid) counts as outdoors and only darkens to a readable
     tint. Any other scene joins in when you set **Follows the sky** to Yes in
     its Scene Configuration, on the Environment tab; dungeons are left alone.
   - The sky is written to the active scene and to the scene the travel token

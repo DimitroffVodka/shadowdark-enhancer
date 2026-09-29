@@ -1,8 +1,8 @@
 /**
  * Shadowdark Enhancer — hex rules on hex maps (#257).
  *
- * On a hex map (encounter-terrain isHexRulesScene: a tagged print or a
- * Shadowdark Extras hex map) no token gives light and the scene has no token
+ * On a hex map (encounter-terrain isHexRulesScene: any scene with a hex grid,
+ * #298) no token gives light and the scene has no token
  * vision, so a torch reveals nothing and every player sees the map as a map;
  * Extras' hex fog, when it's there, hides what the party hasn't seen, and a
  * token in a hex it hasn't revealed stays hidden from players when Extras can
@@ -78,7 +78,7 @@ export function registerHexRules() {
   let hexRules = null;
   Hooks.on("canvasReady", (c) => { hexRules = isHexRulesScene(c.scene); });
   Hooks.on("updateScene", (scene, changed) => {
-    if (scene !== globalThis.canvas?.scene || !("flags" in (changed ?? {}))) return;
+    if (scene !== globalThis.canvas?.scene || !("flags" in (changed ?? {}) || "grid" in (changed ?? {}))) return;
     const now = isHexRulesScene(scene);
     if (now === hexRules) return;
     hexRules = now;
