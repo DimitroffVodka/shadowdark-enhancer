@@ -15,8 +15,8 @@ import { newSessionId } from "./hydrate.mjs";
  *     values, alignment, background, deity, coins, languages, name, portrait,
  *     token image). Source, never derived: a talent or Effect bonus is not baked in.
  *   - `items`: the source data of every embedded item, with its id.
- * Nothing else: no other module's actor flags, no derived values, so the flag is
- * a few KB for a normal character.
+ * Nothing else: no other module's actor flags and no derived values. Item
+ * source dominates the size (measured 17-35 KB for the nine pregens).
  *
  * RESTORE reuses the executor's write discipline (commit-apply.mjs): a FRESH
  * options object per write (Foundry 14.368 mutates it), every step judged by a
