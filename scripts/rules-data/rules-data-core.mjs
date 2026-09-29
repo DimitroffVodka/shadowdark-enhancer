@@ -125,6 +125,28 @@ export function rulesFrom(stored) {
 }
 
 /**
+ * Which tables hold a value, by RULES_TABLES id: what the Importer Hub's Rules
+ * Data step shows as filled or empty, and what the "isn't set" notices check.
+ * A table is filled when any of its cells is (carousing and recruiting follow
+ * the same rule limitOf does: every settlement empty is not filled in).
+ * @param {object} [stored]  the `rulesData` setting
+ * @returns {Object<string, boolean>}
+ */
+export function filledTables(stored) {
+  const r = rulesFrom(stored);
+  const any = (table) => Object.values(table).some((v) => v !== null);
+  return {
+    travel: any(r.travel),
+    terrainTypes: any(r.terrainTypes),
+    visibility: any(r.visibility),
+    terrain: Object.values(r.terrain).some((row) => row.type || row.cost !== null || row.boat !== null),
+    climate: r.climate.length > 0,
+    carousing: any(r.carousing),
+    recruiting: any(r.recruiting),
+  };
+}
+
+/**
  * Hexes of movement a terrain costs to enter, for `rules` from rulesFrom().
  *
  * A row's own cost wins; a row with a type and no cost costs its type's

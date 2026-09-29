@@ -114,6 +114,46 @@
     <i class="fas fa-circle-info"></i> {{{localize "SDE.importer.note.offline"}}}
   </p>
 
+  {{!-- ── Rules Data step (#299) ───────────────────────────────────────────
+        The Western Reaches lookup tables travel, weather and the settlement
+        limits read. Always shown, so a GM who never opens Configure Settings
+        still sees there is something to fill. The Import button is the
+        settings window's own import (rules-data-app importAndSave). --}}
+  {{#with rulesStep}}
+  <section class="sde-hub-import-section sde-hub-rules" data-rules-step>
+    <div class="sde-hub-import-sechead">
+      <span class="sde-hub-import-sectitle">
+        <i class="fas fa-scroll"></i> {{localize "SDE.rulesData.step.title"}}
+        <span class="sde-thub-stat {{#if complete}}ok{{else}}part{{/if}}">{{localize "SDE.rulesData.step.count" n=n total=total}}</span>
+      </span>
+      <button type="button" data-action="hubRulesEdit" class="sde-import-secondary sde-hub-import-secbtn">
+        <i class="fas fa-pen-to-square"></i> {{localize "SDE.settings.rulesData.label"}}
+      </button>
+      <button type="button" data-action="hubRulesImport" class="sde-import-primary sde-hub-import-secbtn"
+              title="{{localize 'SDE.rulesData.importHint'}}">
+        <i class="fas fa-file-import"></i> {{localize "SDE.rulesData.import"}}
+      </button>
+    </div>
+    <p class="sde-hub-import-srcnote">{{localize "SDE.rulesData.step.intro"}}</p>
+    <ul class="sde-hub-rules-list">
+      {{#each rows as |r|}}
+      <li>
+        <span class="sde-thub-stat {{#if r.filled}}ok{{else}}part{{/if}}">
+          <i class="fas {{#if r.filled}}fa-circle-check{{else}}fa-circle-minus{{/if}}"></i>
+          {{#if r.filled}}{{localize "SDE.rulesData.step.filled"}}{{else}}{{localize "SDE.rulesData.step.empty"}}{{/if}}
+        </span>
+        <strong>{{r.name}}</strong>
+        <span class="sde-hub-rules-cite">{{r.cite}}</span>
+        <span class="sde-hub-rules-needs">{{r.needs}}</span>
+      </li>
+      {{/each}}
+    </ul>
+    {{#unless linked}}
+    <p class="sde-hub-import-srcnote"><i class="fas fa-file-pdf"></i> {{localize "SDE.rulesData.step.unlinked"}}</p>
+    {{/unless}}
+  </section>
+  {{/with}}
+
   {{!-- ── Downtime unlock ──────────────────────────────────────────────────
         The one type that unlocks a world SETTING instead of creating
         documents: the pasted outcome text is the GM's own book copy. Slot
