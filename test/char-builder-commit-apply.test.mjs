@@ -23,10 +23,14 @@ function setPath(o, p, v) {
   t[last] = structuredClone(v);
 }
 
+// What v14 does on write: StringField trims, a nullable DocumentUUIDField turns "" into null.
+const UUID_KEYS = ["system.background", "system.deity", "system.patron"];
+const clean = (k, v) => (UUID_KEYS.includes(k) ? (v || null) : typeof v === "string" ? v.trim() : v);
+
 function makeActor({ items = [], source = {} } = {}) {
   let n = 0;
   const actor = {
-    faults: {}, calls: [], before: {},
+    faults: {}, calls: [], before: {}, clean: true,
     _source: { name: "Hero", img: "a.webp", system: { coins: { gp: 10, sp: 0, cp: 0 }, languages: [] }, ...source },
     items: new Coll(),
     async createEmbeddedDocuments(type, data, options) {
@@ -60,7 +64,7 @@ function makeActor({ items = [], source = {} } = {}) {
     async update(changes, options) {
       actor.calls.push({ method: "update", changes, options });
       if (actor.faults.update === "before") throw new Error("boom");
-      if (actor.faults.update !== "veto") for (const [k, v] of Object.entries(changes)) setPath(actor._source, k, v);
+      if (actor.faults.update !== "veto") for (const [k, v] of Object.entries(changes)) setPath(actor._source, k, actor.clean ? clean(k, v) : v);
       if (actor.faults.update === "after") throw new Error("_onUpdate threw");
     },
     _add(d) { d._source = d; actor.items.set(d._id, d); },
@@ -247,10 +251,12 @@ test("with the planner: a created row the user then removes is deleted on the ne
   const st = hydrateState(snap, { class: { uuid: CLASS_UUID, name: "Fighter", system: {} }, ancestry: null, spellPool: [] });
   const live = () => ({ source: actor._source, items: [...actor.items].map((i) => i._source) });
 
+  const M = "s:row1";
+  st.existing.sessionId = "s";
   st.gear.push({ rowId: "row1", itemId: null, uuid: "Compendium.x.Item.rope", name: "Rope", qty: 1, costCp: 0 });
   const p1 = planCommit(st.existing, st, live());
   const res = await applyPlan(actor, p1, { commitId: "c1", resolve });
-  assert.equal(marked(actor, "row1").length, 1);
+  assert.equal(marked(actor, M).length, 1);
 
   // Nothing left to do on a repeat with the same state.
   st.existing.createdRowIds = res.createdRowIds;
@@ -258,9 +264,124 @@ test("with the planner: a created row the user then removes is deleted on the ne
 
   st.gear = st.gear.filter((g) => g.rowId !== "row1");
   const p2 = planCommit(st.existing, st, live());
-  const madeId = marked(actor, "row1")[0]._id;
+  const madeId = marked(actor, M)[0]._id;
   assert.deepEqual(p2.deletes, [madeId]);
   await applyPlan(actor, p2, { commitId: "c1", resolve });
-  assert.equal(marked(actor, "row1").length, 0);
+  assert.equal(marked(actor, M).length, 0);
   assert.ok(actor.items.has("t1") && actor.items.has("tal"));
+});
+
+// ---------------------------------------------------------------------------
+// Review round 1
+// ---------------------------------------------------------------------------
+function openActor(over = {}, items = [GEAR(), { _id: "tal", type: "Talent", name: "Stout", system: {}, flags: {} }]) {
+  const actor = makeActor({ items, source: { name: "Hero", img: "a.webp", system: SYS(over) } });
+  const snap = { actorId: "a", name: "Hero", img: "a.webp", tokenImg: null, defaultArt: [], system: SYS(over), items: structuredClone(items) };
+  const st = hydrateState(snap, { class: { uuid: CLASS_UUID, name: "Fighter", system: {} }, ancestry: null, spellPool: [] });
+  const live = () => ({ source: actor._source, items: [...actor.items].map((i) => i._source) });
+  const finish = async () => {
+    const plan = planCommit(st.existing, st, live());
+    st.existing.createdRowIds ??= [];
+    await applyPlan(actor, plan, { commitId: "c1", resolve, createdRowIds: st.existing.createdRowIds });
+    return plan;
+  };
+  return { actor, st, live, finish };
+}
+const names = (actor) => [...actor.items].map((i) => i.name).sort();
+
+test("a name typed with a trailing space is stored trimmed and Finish converges (v14 cleans on write)", async () => {
+  const { actor, st, finish } = openActor();
+  st.name = "Bob ";
+  for (let n = 0; n < 3; n++) await finish();
+  assert.equal(actor._source.name, "Bob");
+  assert.equal(actor.calls.filter((c) => c.method === "update").length, 1, "written once, then a no-op");
+});
+
+test("a cleared deity or background is stored null and Finish converges", async () => {
+  const uuid = "Compendium.shadowdark.deities.Item.x";
+  const { actor, st, finish } = openActor({ deity: uuid, background: uuid });
+  st.deity = null;
+  st.background = { uuid: "", name: "" };
+  for (let n = 0; n < 3; n++) await finish();
+  assert.equal(actor._source.system.deity, null);
+  assert.equal(actor._source.system.background, null);
+});
+
+test("the read-back accepts a stored value the field cleaned, even if a plan carries the raw one", async () => {
+  const actor = makeActor({ items: BASE_ITEMS(), source: { system: { deity: "Compendium.x.Item.d" } } });
+  await applyPlan(actor, { system: { "system.deity": "" }, name: "Bob ", art: {}, creates: [], updates: [], deletes: [] }, { commitId: "c1", resolve });
+  assert.equal(actor._source.name, "Bob");
+  assert.equal(actor._source.system.deity, null);
+});
+
+test("a spell and a trinket created by Finish survive a second no-edit Finish, and a third", async () => {
+  const { actor, st, finish } = openActor();
+  st.spells.push({ itemId: null, uuid: "Compendium.x.Item.light", name: "Light", tier: 1 });
+  st.trinket = "Lucky coin";
+  st.gear.push({ rowId: "row1", itemId: null, uuid: "Compendium.x.Item.torch", name: "Torch", qty: 1, costCp: 0 });
+  await finish();
+  assert.deepEqual(names(actor), ["Light", "Lucky coin", "Stout", "Torch", "Torch"]);
+  const ids = [...actor.items.keys()].sort();
+  for (let n = 0; n < 2; n++) {
+    const before = actor.calls.length;
+    const plan = planCommit(st.existing, st, { source: actor._source, items: [...actor.items].map((i) => i._source) });
+    assert.deepEqual([plan.deletes, plan.creates], [[], []]);
+    await applyPlan(actor, plan, { commitId: "c1", resolve, createdRowIds: st.existing.createdRowIds });
+    assert.equal(actor.calls.length, before, "nothing written");
+  }
+  assert.deepEqual([...actor.items.keys()].sort(), ids);
+});
+
+test("a created row the user removes in the builder is deleted, a spell or trinket included", async () => {
+  const { actor, st, finish } = openActor();
+  st.spells.push({ itemId: null, uuid: "Compendium.x.Item.light", name: "Light", tier: 1 });
+  st.trinket = "Lucky coin";
+  await finish();
+  st.spells = [];
+  const plan = planCommit(st.existing, st, { source: actor._source, items: [...actor.items].map((i) => i._source) });
+  assert.equal(plan.deletes.length, 1);
+  await applyPlan(actor, plan, { commitId: "c1", resolve, createdRowIds: st.existing.createdRowIds });
+  assert.deepEqual(names(actor), ["Lucky coin", "Stout", "Torch"]);
+});
+
+test("a created item spent on the sheet is not granted a second time by the next Finish", async () => {
+  const { actor, st, finish } = openActor();
+  st.gear.push({ rowId: "row1", itemId: null, uuid: "Compendium.x.Item.rope", name: "Rope", qty: 1, costCp: 100 });
+  await finish();
+  const made = [...actor.items].find((i) => i.name === "Rope");
+  actor.items.delete(made._id);
+  const gp = actor._source.system.coins.gp;
+  await finish();
+  assert.deepEqual(names(actor), ["Stout", "Torch"]);
+  assert.equal(actor._source.system.coins.gp, gp, "and not charged again");
+});
+
+test("a repeat purchase in a later session is a new row, granted once for the coins it costs", async () => {
+  const { actor, st, finish } = openActor();
+  st.gear.push({ rowId: "row1", itemId: null, uuid: "Compendium.x.Item.torch", name: "Torch", qty: 1, costCp: 100 });
+  await finish();
+  // A fresh open of the same actor: the earlier Torch is an owned row now.
+  const items = [...actor.items].map((i) => i._source);
+  const snap = { actorId: "a", name: "Hero", img: "a.webp", tokenImg: null, defaultArt: [], system: structuredClone(actor._source.system), items: structuredClone(items) };
+  const st2 = hydrateState(snap, { class: { uuid: CLASS_UUID, name: "Fighter", system: {} }, ancestry: null, spellPool: [] });
+  assert.notEqual(st2.existing.sessionId, st.existing.sessionId);
+  st2.gear.push({ rowId: "row1", itemId: null, uuid: "Compendium.x.Item.torch", name: "Torch", qty: 1, costCp: 100 });
+  st2.coins = { gp: 8, sp: 0, cp: 0 };
+  const plan = planCommit(st2.existing, st2, { source: actor._source, items });
+  assert.equal(plan.creates.length, 1, "the new purchase is created");
+  await applyPlan(actor, plan, { commitId: "c2", resolve, createdRowIds: (st2.existing.createdRowIds = []) });
+  assert.equal(names(actor).filter((n) => n === "Torch").length, 3);
+});
+
+test("created row ids are recorded as soon as they land, even when a later step fails", async () => {
+  const { actor, st, live } = openActor();
+  st.gear.push({ rowId: "row1", itemId: null, uuid: "Compendium.x.Item.rope", name: "Rope", qty: 1, costCp: 100 });
+  st.existing.createdRowIds = [];
+  actor.faults.update = "before";
+  await assert.rejects(applyPlan(actor, planCommit(st.existing, st, live()), { commitId: "c1", resolve, createdRowIds: st.existing.createdRowIds }), IncompleteError);
+  assert.equal(st.existing.createdRowIds.length, 1);
+  actor.faults = {};
+  actor.items.delete([...actor.items].find((i) => i.name === "Rope")._id);
+  const plan = planCommit(st.existing, st, live());
+  assert.deepEqual(plan.creates, [], "spent, so not granted again");
 });

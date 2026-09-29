@@ -38,7 +38,10 @@ export class IncompleteError extends Error {
 }
 
 const getPath = (obj, path) => path.split(".").reduce((a, k) => a?.[k], obj);
-const same = (a, b) => JSON.stringify(a ?? null) === JSON.stringify(b ?? null);
+// Foundry cleans on write (a name is trimmed, a cleared UUID field stores null), so
+// the read-back compares the way the field stores: trimmed, and "" the same as null.
+const clean = (_k, v) => (typeof v === "string" ? v.trim() || null : v);
+const same = (a, b) => JSON.stringify(a ?? null, clean) === JSON.stringify(b ?? null, clean);
 const liveItems = (actor) => new Map(Array.from(actor.items, (i) => [i._source?._id ?? i._id ?? i.id, i._source ?? i]));
 const markerOf = (i) => i.flags?.[MODULE_ID]?.builderRow;
 const markersOn = (actor) => new Set([...liveItems(actor).values()].map(markerOf).filter(Boolean));
@@ -82,14 +85,21 @@ export async function resolveCreate(c) {
 /**
  * @param {Actor} actor  the LIVE actor document
  * @param {object} plan  from planCommit
- * @param {{commitId: string, resolve?: Function}} opts
- * @returns {Promise<{createdRowIds: string[]}>} every planned row now on the actor;
- *   the caller keeps them as `existing.createdRowIds` so a later Finish can
- *   delete one the user then removed.
+ * @param {{commitId: string, resolve?: Function, createdRowIds?: string[]}} opts
+ *   `createdRowIds` is the caller's `existing.createdRowIds`, appended to in place
+ *   the moment a created row is seen on the actor, so it is right even when a
+ *   later step throws. Rows already listed stay listed (owned, never granted
+ *   again); a row the user removes is deleted by the planner, by its marker.
+ * @returns {Promise<{createdRowIds: string[]}>} that same list
  * @throws {IncompleteError}
  */
-export async function applyPlan(actor, plan, { commitId, resolve = resolveCreate } = {}) {
+export async function applyPlan(actor, plan, { commitId, resolve = resolveCreate, createdRowIds = [] } = {}) {
   const op = { [MODULE_ID]: { builder: commitId } };
+
+  const record = () => {
+    const now = markersOn(actor);
+    for (const c of plan.creates) if (now.has(c.rowId) && !createdRowIds.includes(c.rowId)) createdRowIds.push(c.rowId);
+  };
 
   // (1) creates: rows whose marker is not on the actor yet
   const have = markersOn(actor);
@@ -103,12 +113,14 @@ export async function applyPlan(actor, plan, { commitId, resolve = resolveCreate
   }
   if (data.length) {
     const err = await attempt(() => actor.createEmbeddedDocuments("Item", data, op));
+    record();
     const now = markersOn(actor);
     const missing = todo.filter((c) => !now.has(c.rowId)).map((c) => c.name);
     if (missing.length) throw new IncompleteError("creates", missing, err);
   } else if (todo.length) {
     throw new IncompleteError("creates", todo.map((c) => c.name));
   }
+  record();
 
   // (2) item updates: only ids still on the actor whose value differs
   const pending = () => {
@@ -146,6 +158,5 @@ export async function applyPlan(actor, plan, { commitId, resolve = resolveCreate
     if (left.length) throw new IncompleteError("deletes", left, err);
   }
 
-  const now = markersOn(actor);
-  return { createdRowIds: plan.creates.map((c) => c.rowId).filter((r) => now.has(r)) };
+  return { createdRowIds };
 }

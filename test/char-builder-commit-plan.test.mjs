@@ -127,7 +127,7 @@ test("a new purchase never merges into an owned row", () => {
   st.gear.push({ rowId: "new1", itemId: null, uuid: "Compendium.x.Item.torch", name: "Torch", qty: 1, costCp: 50 });
   const plan = planCommit(existing, st, live);
   assert.equal(plan.creates.length, 1);
-  assert.deepEqual(plan.creates[0], { rowId: "new1", kind: "gear", uuid: "Compendium.x.Item.torch", name: "Torch", qty: 1 });
+  assert.deepEqual(plan.creates[0], { rowId: "sess1:new1", kind: "gear", uuid: "Compendium.x.Item.torch", name: "Torch", qty: 1 });
   assert.deepEqual(plan.updates, []);
   assert.deepEqual(plan.deletes, []);
   // 25 sp - 50 cp = 200 cp -> 2 gp
@@ -137,14 +137,53 @@ test("a new purchase never merges into an owned row", () => {
 test("a create already on the live actor (its builderRow marker) is done, not repeated", () => {
   const { st, existing, live } = open();
   st.gear.push({ rowId: "new1", itemId: null, uuid: "u", name: "Torch", qty: 1, costCp: 0 });
-  live.items.push(item("made", "Basic", "Torch", {}, { [MARK]: { builderRow: "new1" } }));
+  live.items.push(item("made", "Basic", "Torch", {}, { [MARK]: { builderRow: "sess1:new1" } }));
   assert.deepEqual(planCommit(existing, st, live).creates, []);
 });
 
 test("a row created in an earlier attempt and removed since is deleted by its marker", () => {
   const { st, existing, live } = open();
-  existing.createdRowIds = ["new1"];
-  live.items.push(item("made", "Basic", "Torch", {}, { [MARK]: { builderRow: "new1" } }));
+  existing.createdRowIds = ["sess1:new1"];
+  live.items.push(item("made", "Basic", "Torch", {}, { [MARK]: { builderRow: "sess1:new1" } }));
+  assert.deepEqual(planCommit(existing, st, live).deletes, ["made"]);
+});
+
+test("a row made by an earlier session is never deleted by this one, even if listed", () => {
+  const { st, existing, live } = open();
+  existing.createdRowIds = ["old:new1"];
+  live.items.push(item("made", "Basic", "Torch", {}, { [MARK]: { builderRow: "old:new1" } }));
+  assert.deepEqual(planCommit(existing, st, live).deletes, []);
+});
+
+test("a typed name is planned trimmed, and a blank one writes nothing", () => {
+  const { st, existing, live } = open();
+  st.name = "Bob ";
+  assert.equal(planCommit(existing, st, live).name, "Bob");
+  st.name = "  ";
+  assert.equal(planCommit(existing, st, live).name, null);
+});
+
+test("created spell, trinket and gear rows are all session-scoped markers", () => {
+  const { st, existing, live } = open();
+  st.spells.push({ itemId: null, uuid: "Compendium.x.Item.light", name: "Light", tier: 1 });
+  st.trinket = "Lucky coin";
+  st.gear.push({ rowId: null, itemId: null, uuid: "Compendium.x.Item.torch", name: "Torch", qty: 1, costCp: 0 });
+  const ids = planCommit(existing, st, live).creates.map((c) => c.rowId).sort();
+  assert.deepEqual(ids, [
+    "sess1:Compendium.x.Item.torch#1", "sess1:spell:Compendium.x.Item.light", "sess1:trinket:Lucky coin",
+  ]);
+});
+
+test("a created row already listed as made is not created again, and a wanted one is not deleted", () => {
+  const { st, existing, live } = open();
+  st.spells.push({ itemId: null, uuid: "Compendium.x.Item.light", name: "Light", tier: 1 });
+  existing.createdRowIds = ["sess1:spell:Compendium.x.Item.light"];
+  let plan = planCommit(existing, st, live);
+  assert.deepEqual([plan.creates, plan.deletes], [[], []], "spent on the sheet: not granted again");
+  live.items.push(item("made", "Spell", "Light", {}, { [MARK]: { builderRow: "sess1:spell:Compendium.x.Item.light" } }));
+  plan = planCommit(existing, st, live);
+  assert.deepEqual([plan.creates, plan.deletes], [[], []], "still wanted: kept");
+  st.spells.pop();
   assert.deepEqual(planCommit(existing, st, live).deletes, ["made"]);
 });
 
@@ -164,7 +203,7 @@ test("empty and null UUIDs are the same; a changed background is written", () =>
   st.background = { uuid: "Compendium.shadowdark.backgrounds.Item.thief", name: "Thief" };
   assert.deepEqual(planCommit(existing, st, live).system, { "system.background": "Compendium.shadowdark.backgrounds.Item.thief" });
   st.background = null;
-  assert.deepEqual(planCommit(existing, st, live).system, { "system.background": "" });
+  assert.deepEqual(planCommit(existing, st, live).system, { "system.background": null });
 });
 
 test("only changed abilities are written, as the base value", () => {

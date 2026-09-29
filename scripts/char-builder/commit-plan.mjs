@@ -60,7 +60,8 @@ export function planCommit(existing, state, live) {
   }
   for (const k of ["background", "deity"]) {
     const d = uuid(state[k]?.uuid);
-    if (changed(k, uuid(B[k]), d, uuid(Ls[k]))) system[`system.${k}`] = d ?? "";
+    // null, not "": a nullable UUID field stores null for a cleared value, so the read-back agrees.
+    if (changed(k, uuid(B[k]), d, uuid(Ls[k]))) system[`system.${k}`] = d;
   }
   // ancestry, class and patron are locked in v1: never written, an unresolved
   // uuid stays verbatim.
@@ -91,8 +92,10 @@ export function planCommit(existing, state, live) {
   }
 
   // Name (blank never clears) and art (only a set slot that differs).
+  // Trimmed the way the actor's name field stores it, so the read-back agrees.
   let name = null;
-  if (state.name && changed("name", B.name, state.name, live.source.name)) name = state.name;
+  const dName = String(state.name ?? "").trim();
+  if (dName && changed("name", B.name, dName, live.source.name)) name = dName;
   const art = {};
   for (const slot of ["portrait", "token"]) {
     const d = state.art?.[slot];
@@ -121,15 +124,6 @@ export function planCommit(existing, state, live) {
     lines.push({ kind: "delete", id, name: row.name });
   }
 
-  const dNewIds = new Set(dGear.filter((g) => !g.itemId).map((g) => g.rowId).filter(Boolean));
-  for (const i of live.items) {
-    const m = markerOf(i);
-    if (m && (existing.createdRowIds ?? []).includes(m) && !dNewIds.has(m)) {
-      deletes.push(i._id);
-      lines.push({ kind: "delete", id: i._id, name: i.name });
-    }
-  }
-
   const updates = [];
   for (const g of dGear) {
     const b = g.itemId && bGear.get(g.itemId);
@@ -144,29 +138,45 @@ export function planCommit(existing, state, live) {
     lines.push({ kind: "quantity", id: g.itemId, name: b.name, from: b.qty, to: q });
   }
 
-  const creates = [];
+  // Created rows. Every marker is namespaced by this builder session, so a
+  // marker left by an earlier session can never be mistaken for this one's, and
+  // every row this session made (gear, spell, trinket) is tracked the same way.
+  const sid = existing.sessionId ?? "";
+  const mine = new Set(existing.createdRowIds ?? []);
+  const wanted = [];
   const nth = new Map();
   for (const g of dGear) {
     if (g.itemId) continue;
     const n = (nth.get(g.uuid) ?? 0) + 1;
     nth.set(g.uuid, n);
-    const rowId = g.rowId || `${g.uuid}#${n}`;
-    if (liveMarkers.has(rowId)) continue;
-    creates.push({ rowId, kind: "gear", uuid: g.uuid, name: g.name, qty: Number(g.qty) || 1 });
+    wanted.push({ rowId: `${sid}:${g.rowId || `${g.uuid}#${n}`}`, kind: "gear", uuid: g.uuid, name: g.name, qty: Number(g.qty) || 1 });
   }
   for (const s of dSpells) {
-    if (s.itemId || !s.uuid) continue;
-    const rowId = `spell:${s.uuid}`;
-    if (!liveMarkers.has(rowId)) creates.push({ rowId, kind: "spell", uuid: s.uuid, name: s.name });
+    if (!s.itemId && s.uuid) wanted.push({ rowId: `${sid}:spell:${s.uuid}`, kind: "spell", uuid: s.uuid, name: s.name });
   }
   const trinket = String(state.trinket ?? "").trim();
-  if (trinket && trinket !== (B.trinket ?? "") && !liveMarkers.has(`trinket:${trinket}`)) {
-    creates.push({ rowId: `trinket:${trinket}`, kind: "trinket", name: trinket });
+  if (trinket && trinket !== (B.trinket ?? "")) wanted.push({ rowId: `${sid}:trinket:${trinket}`, kind: "trinket", name: trinket });
+  const wantedIds = new Set(wanted.map((w) => w.rowId));
+
+  // A row this session already made is owned: never granted again (even if it
+  // was spent on the sheet since), and deleted only when the user removed it.
+  const creates = wanted.filter((w) => !liveMarkers.has(w.rowId) && !mine.has(w.rowId));
+  const madeThisSession = new Set();
+  for (const i of live.items) {
+    const m = markerOf(i);
+    if (m && mine.has(m) && m.startsWith(`${sid}:`) && !wantedIds.has(m)) {
+      deletes.push(i._id);
+      madeThisSession.add(i._id);
+      lines.push({ kind: "delete", id: i._id, name: i.name });
+    }
   }
   for (const cr of creates) lines.push({ kind: "create", name: cr.name, qty: cr.qty ?? 1 });
 
   // --- invariants: fail loudly rather than delete something we should not ---
   for (const id of deletes) {
+    if (!bGear.has(id) && !bSpells.has(id) && !madeThisSession.has(id)) {
+      throw new Error(`planCommit: delete ${id} was neither hydrated nor made by this session`);
+    }
     if (keptIds.has(id)) throw new Error(`planCommit: kept item ${id} is in the deletes`);
     if (!liveItems.has(id)) throw new Error(`planCommit: delete ${id} is not on the actor`);
   }
