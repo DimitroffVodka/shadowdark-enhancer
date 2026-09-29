@@ -95,3 +95,72 @@ export function warbandRolledHp({ level, conMod, value, max }) {
 export function warbandAttack({ attackBonus = 0, damage = null }, gained) {
   return { num: 1, attackBonus: Math.max(0, (Number(attackBonus) || 0) + gained), damage: damage === null ? null : tripleDice(damage) };
 }
+
+// ── Upkeep, morale and healing (#204, PGWR p.249) ────────────────────────────
+
+/** A month's upkeep: 10 gp a level. */
+export const upkeepGp = (level) => 10 * Math.max(0, Number(level) || 0);
+
+/** The morale check's DC: 15, or 9 for a Loyal warband. */
+export const moraleDC = (upgrades) => ((upgrades ?? []).includes("loyal") ? 9 : 15);
+
+/** The rout chance in 6 after a failed morale check: 3, or 1 for a Withdraw warband (#203). */
+export const routChance = (upgrades) => ((upgrades ?? []).includes("withdraw") ? 1 : 3);
+
+/** A day's healing: 1d4, or 2d6 for a Hardy warband. */
+export const healDie = (upgrades) => ((upgrades ?? []).includes("hardy") ? { n: 2, faces: 6 } : { n: 1, faces: 4 });
+
+/**
+ * `days` of healing on a warband missing `missing` HP: nothing when it isn't
+ * hurt, back to full when even the lowest rolls would get there (a long clock
+ * move needs no hundred-die roll), else the dice to roll.
+ * @returns {{full:boolean, formula:string|null}}
+ */
+export function healPlan(days, missing, upgrades) {
+  if (!(days > 0) || !(missing > 0)) return { full: false, formula: null };
+  const { n, faces } = healDie(upgrades);
+  if (days * n >= missing) return { full: true, formula: null };
+  return { full: false, formula: `${days * n}d${faces}` };
+}
+
+/** A month's place on the calendar, for counting month starts: year × months a year + month. */
+export const monthKey = ({ year, month }, monthsPerYear) => (Number(year) || 0) * monthsPerYear + (Number(month) || 0);
+
+/**
+ * What a clock move brings, in order: each month start (to charge upkeep) and
+ * each week start (to check arrears) after the last one handled, day by day
+ * over the move's last `maxDays` days, so a warband falls into arrears before
+ * the weeks that test it.
+ * @param {{from:number, to:number, secondsPerDay:number, week:number, offset:number,
+ *   monthOf:(t:number) => number, lastMonth?:number|null, lastWeek?:number|null, maxDays?:number}} move
+ *   `monthOf`: the month key at a worldTime; `lastMonth`/`lastWeek`: the last handled, null before any
+ * @returns {{events:Array<{at:number, month?:number, week?:true}>, skippedDays:number}}
+ */
+export function clockEvents({ from, to, secondsPerDay, week, offset, monthOf, lastMonth = null, lastWeek = null, maxDays = 366 }) {
+  const first = Math.floor(from / secondsPerDay) + 1;
+  const last = Math.floor(to / secondsPerDay);
+  const start = Math.max(first, last - maxDays + 1);
+  const events = [];
+  let prev = monthOf((start - 1) * secondsPerDay);
+  for (let d = start; d <= last; d++) {
+    const at = d * secondsPerDay;
+    const key = monthOf(at);
+    if (key > prev && !(Number.isFinite(lastMonth) && key <= lastMonth)) events.push({ at, month: key });
+    prev = key;
+    if ((((d + offset) % week) + week) % week === 0 && !(Number.isFinite(lastWeek) && at <= lastWeek)) events.push({ at, week: true });
+  }
+  return { events, skippedDays: Math.max(0, start - first) };
+}
+
+/**
+ * Whether a payment that was marked before its gold was taken went through, from the purse now (copper):
+ * `landed` (before less the cost), `not-landed` (before), or `unclear` (anything else: the purse moved
+ * by other means, or the commander is gone). Recovery reads this and never takes gold itself (#284 review).
+ * @param {{before:number, cost:number}} intent
+ * @param {number|null} purseNow  null: the purse can't be read
+ * @returns {"landed"|"not-landed"|"unclear"}
+ */
+export function decidePayment({ before, cost }, purseNow) {
+  if (purseNow === before - cost) return "landed";
+  return purseNow === before ? "not-landed" : "unclear";
+}

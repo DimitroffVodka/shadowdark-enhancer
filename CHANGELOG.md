@@ -475,6 +475,28 @@ page walks through it in order.
   heals it. Quick upgrade ticks all stick, and two warbands can't both take
   their commander's last slot: every warband change is made by one writer, the
   active GM. See *Warbands*. (#200, #202)
+- **Warband upkeep and healing on the world clock.** Each month start takes
+  10 gp a level per warband from its commander's coins, in one card; a
+  commander who can't pay leaves it in arrears, and each week after it checks
+  morale (the commander's CHA, DC 15, Loyal 9) and may desert: marked, never
+  deleted. Every day heals 1d4 (Hardy 2d6), downtime days included, and a
+  warband that deserts part way through a long move still heals the days
+  before. A charge that fails to save is tried again at the next clock move,
+  for that warband only, and never taken twice; a Pay Arrears that fails
+  takes nothing, so it can simply be pressed again. A payment that can't be
+  confirmed either way is whispered to the GMs to settle by hand. A payment
+  a GM's client was lost in the middle of (marked paid, its coins never
+  confirmed) is checked against the commander's purse when the GM starts up
+  and before the next clock move, Charge a Month or Pay Arrears: taken, it
+  stands; not taken, it is owed again and charged once; anything else is
+  whispered to the GMs, and no gold is taken by the check itself. Changing a
+  commanded warband's upgrades means a week of retraining. A copy of a
+  warband starts with no arrears, desertion or upkeep record, and the warband
+  writer itself refuses a compendium PC as commander, a PC the sender
+  does not own (only a GM may name another player's), and any odd payload. The
+  upkeep and Pay Arrears themselves take gold only from a commander one of the
+  warband's player owners also owns, so a commander written straight onto the
+  warband by its owner costs another player nothing. (#204)
 - **Encounter check frequency.** Right-click the Crawl Bar's **Encounter**
   button: **Check Frequency** runs from **1** (every crawl round, the default)
   to **10**. The count runs from the last check, automatic or manual, so a

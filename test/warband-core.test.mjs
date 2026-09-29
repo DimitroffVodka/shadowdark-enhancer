@@ -6,6 +6,7 @@ import assert from "node:assert/strict";
 import {
   UPGRADES, MOST_UPGRADES, allowanceFor, canMakeWarband, cleanUpgrades, commandRefusal, upgradeRefusal,
   tripleDice, warbandStats, warbandAttack, warbandHp, warbandRolledHp,
+  upkeepGp, moraleDC, routChance, healPlan, monthKey, clockEvents, decidePayment,
 } from "../scripts/actors/warband-core.mjs";
 
 test("eighteen upgrades, and a commander's allowance by hit die", () => {
@@ -60,9 +61,47 @@ test("a warband's HP is fixed: 8 per level plus CON, at least 1", () => {
   assert.equal(warbandHp(0, -2), 1);
 });
 
+test("upkeep is 10 gp a level; morale is DC 15 (Loyal 9), rout 3-in-6 (Withdraw 1)", () => {
+  assert.equal(upkeepGp(4), 40);
+  assert.equal(upkeepGp(undefined), 0);
+  assert.equal(moraleDC([]), 15);
+  assert.equal(moraleDC(["loyal"]), 9);
+  assert.equal(routChance(["tough"]), 3);
+  assert.equal(routChance(["withdraw"]), 1);
+});
+
+test("a day heals 1d4 (Hardy 2d6); a long rest that must fill it needs no roll", () => {
+  assert.deepEqual(healPlan(1, 10, []), { full: false, formula: "1d4" });
+  assert.deepEqual(healPlan(3, 10, ["hardy"]), { full: false, formula: "6d6" });
+  assert.deepEqual(healPlan(30, 12, []), { full: true, formula: null }, "30 days heal at least 30");
+  assert.deepEqual(healPlan(2, 0, []), { full: false, formula: null }, "not hurt");
+  assert.deepEqual(healPlan(0, 5, []), { full: false, formula: null });
+});
+
+test("a clock move's month and week starts come in order, each once, over its last year", () => {
+  // 30-day months, 7-day weeks starting on day 0, one second a day for readability.
+  const move = { secondsPerDay: 1, week: 7, offset: 0, monthOf: (at) => Math.floor(at / 30) };
+  const { events } = clockEvents({ ...move, from: 20, to: 45 });
+  assert.deepEqual(events, [{ at: 21, week: true }, { at: 28, week: true }, { at: 30, month: 1 }, { at: 35, week: true }, { at: 42, week: true }],
+    "the arrears weeks after the month start follow it");
+  assert.deepEqual(clockEvents({ ...move, from: 20, to: 45, lastMonth: 1, lastWeek: 35 }).events, [{ at: 42, week: true }],
+    "a clock set back and moved on again handles nothing twice");
+  const long = clockEvents({ ...move, from: 0, to: 1000, maxDays: 100 });
+  assert.equal(long.skippedDays, 900);
+  assert.equal(long.events.filter((e) => e.month !== undefined).length, 3, "days 901-1000 hold the month starts 930, 960 and 990");
+  assert.deepEqual(clockEvents({ ...move, from: 5, to: 5 }).events, []);
+  assert.equal(monthKey({ year: 1300, month: 2 }, 12), 15602, "a month's key: year x 12 + month");
+});
+
 test("the system's HP roll keeps a warband's current HP: placing a linked token never heals it (#283 review)", () => {
   assert.deepEqual(warbandRolledHp({ level: 4, conMod: 1, value: 7, max: 33 }), { max: 33, value: 7 });
   assert.deepEqual(warbandRolledHp({ level: 3, conMod: 1, value: 33, max: 33 }), { max: 25, value: 25 }, "clamped to a lower max");
   assert.deepEqual(warbandRolledHp({ level: 4, conMod: 1, value: 0, max: 0 }), { max: 33, value: 33 }, "one never given HP starts full");
   assert.deepEqual(warbandRolledHp({ level: 4, conMod: 1, value: 0, max: 33 }), { max: 33, value: 0 }, "a fallen warband stays down");
+});
+
+test("a payment marked before its gold was taken: landed, not landed, or unclear, from the purse now (#284 review)", () => {
+  const intent = { before: 10000, cost: 3000 };
+  const table = [[7000, "landed"], [10000, "not-landed"], [9500, "unclear"], [0, "unclear"], [13000, "unclear"], [null, "unclear"], [6999, "unclear"], [7001, "unclear"], [10001, "unclear"]];
+  for (const [purse, want] of table) assert.equal(decidePayment(intent, purse), want, `purse ${purse}`);
 });
