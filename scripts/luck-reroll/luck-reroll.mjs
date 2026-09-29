@@ -21,6 +21,7 @@
 
 import { MODULE_ID } from "../shared/module-id.mjs";
 import { SessionRecap } from "../session-recap/session-recap.mjs";
+import { isActiveGM } from "../shared/gm-relay.mjs";
 import { isCriticalFailure, luckGrantingSource } from "./hard-luck.mjs";
 
 /** Relay action for recap writes made by a client that can't write settings. */
@@ -40,11 +41,6 @@ function rollOf(message, rollType) {
   return message.getRoll?.(rollType) ?? message.rolls?.[rollType === "damage" ? 1 : 0];
 }
 
-/** True only on the single GM that owns recap writes. */
-function isPrimaryGM() {
-  return !!game.user?.isGM && game.users.activeGM?.id === game.user.id;
-}
-
 /**
  * Write one Luck-spent entry. The recap lives in a world setting, which players
  * (and second GMs) can't write — they hand it to the primary GM over the module
@@ -59,7 +55,7 @@ function isPrimaryGM() {
  * wait on a socket round trip — or interrupting the moment with a warning toast.
  */
 async function recordLuckSpent(entry) {
-  if (isPrimaryGM()) {
+  if (isActiveGM()) {
     await SessionRecap.logLuckSpent(entry);
     return;
   }
@@ -168,7 +164,7 @@ export function init() {
 
   game.socket.on(`module.${MODULE_ID}`, async (msg) => {
     if (msg?.action !== SOCKET_ACTION || !msg.entry) return;
-    if (!isPrimaryGM()) return;
+    if (!isActiveGM()) return;
     await SessionRecap.logLuckSpent(msg.entry);
   });
 

@@ -33,6 +33,7 @@
  */
 
 import { MODULE_ID } from "../../shared/module-id.mjs";
+import { isWorkingTab } from "../../shared/gm-relay.mjs";
 import { findMonsterPack, MONSTER_PACK_LABEL, SDE_ACTORS_LABEL } from "./monster-pack.mjs";
 
 /**
@@ -59,10 +60,10 @@ export function isManagedActorPack(pack) {
     && MANAGED_ACTOR_PACK_LABELS.has(pack?.metadata?.label);
 }
 
-/** Is this the single active GM — or a GM in a world with none recorded? */
+/** Is this the single active GM — or a GM in a world with none recorded? Of its tabs, the working one (#288). */
 function isActiveGm(game) {
   const activeGm = game?.users?.activeGM;
-  return !activeGm || activeGm.id === game?.user?.id;
+  return (!activeGm || activeGm.id === game?.user?.id) && isWorkingTab();
 }
 
 function outcomeOf(actor) {

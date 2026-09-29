@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   DYING_KEYS, modifier, timerRoll, deathTimer, stabilizeDC, riseMin, turnOutcome, hpAction, shouldTick, badge,
-  checkedNatural, cardStabilizes,
+  checkedNatural, cardStabilizes, timerChat,
 } from "../scripts/dying/dying-core.mjs";
 
 const actorWith = (flags) => ({ flags: { "shadowdark-enhancer": flags } });
@@ -137,4 +137,11 @@ test("a stabilize card counts only from the helper's owner or a GM, on the GM's 
   assert.equal(cardStabilizes({ ...card, helperIsTarget: true }), false, "nobody stabilizes themselves");
   assert.equal(cardStabilizes({ ...card, total: undefined }), false);
   assert.equal(cardStabilizes({ ...card, total: 20, dc: 18 }), true, "Deadly");
+});
+
+test("who sees the death timer roll: everyone, the GM alone, or nobody", () => {
+  assert.equal(timerChat({}), "everyone", "the default is today's behaviour");
+  assert.equal(timerChat({ hidden: true }), "gm", "the hidden timer is the GM-only roll");
+  assert.equal(timerChat({ silent: true }), "none");
+  assert.equal(timerChat({ hidden: true, silent: true }), "none", "silent beats hidden");
 });

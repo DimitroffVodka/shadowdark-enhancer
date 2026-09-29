@@ -15,7 +15,7 @@ import { CrawlState }       from "./crawl-state.mjs";
 import { isHexMapScene, isHexRulesScene } from "../encounter/encounter-terrain.mjs";
 import { MovementTracker }  from "./movement-tracker.mjs";
 import { ICONS }            from "../shared/icons.mjs";
-import { relayToGM, authorizeActorFor, refuseQuery } from "../shared/gm-relay.mjs";
+import { relayToGM, authorizeActorFor, refuseQuery, registerQuery } from "../shared/gm-relay.mjs";
 import { computeLightState, isLightItem } from "./crawl-lights-core.mjs";
 import { canAdvanceTurn, canAdvanceOocTurn, nextTurnWouldRollRound } from "./crawl-turn-core.mjs";
 import { oocOrderComplete } from "./crawl-state-core.mjs";
@@ -278,14 +278,14 @@ export const CrawlStrip = {
     //     on "Bridge" GM) BOTH GM clients ran it and pulp mode debited the
     //     giver twice. `refuseQuery` keeps that gate: a query is point-to-point
     //     but the SENDER chooses the recipient, so it can choose both GMs.
-    CONFIG.queries[LUCK_QUERY] = (data, { user } = {}) => CrawlStrip.handleLuckQuery(data, user);
+    registerQuery(LUCK_QUERY, (data, { user } = {}) => CrawlStrip.handleLuckQuery(data, user));
     // Player combat turn-advance, over the same authenticated channel. The
     // handler re-verifies ownership of the CURRENT combatant against state it
     // reads itself — see handleAdvanceTurnQuery.
-    CONFIG.queries[CRAWL_TURN_QUERY] = (data, { user } = {}) => CrawlStrip.handleAdvanceTurnQuery(data, user);
+    registerQuery(CRAWL_TURN_QUERY, (data, { user } = {}) => CrawlStrip.handleAdvanceTurnQuery(data, user));
     // Player OUT-OF-COMBAT turn-advance, same discipline — see
     // handleOocAdvanceQuery.
-    CONFIG.queries[OOC_TURN_QUERY] = (data, { user } = {}) => CrawlStrip.handleOocAdvanceQuery(data, user);
+    registerQuery(OOC_TURN_QUERY, (data, { user } = {}) => CrawlStrip.handleOocAdvanceQuery(data, user));
   },
 
   /**

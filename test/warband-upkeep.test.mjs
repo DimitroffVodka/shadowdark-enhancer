@@ -15,11 +15,11 @@ const chat = [];                    // the cards, and each morale roll announced
 const rolls = [];          // totals the next Rolls give, in order; 1 when none are queued
 const warns = [];
 let chatRejects = 0;
-globalThis.Hooks = { on: (name, fn) => hooks.set(name, fn), once() {}, callAll() {} };
+globalThis.Hooks = { on: (name, fn) => hooks.set(name, fn), once: (name, fn) => hooks.set(`once:${name}`, fn), callAll() {} };
 globalThis._replace = (value) => ({ __replace: value });
 globalThis.ui = { notifications: { warn: (m) => warns.push(m), error() {}, info() {} } };
 globalThis.CONFIG = { queries: {} };
-globalThis.foundry = { data: { fields: { NumberField: class {} } }, utils: { deepClone: (v) => structuredClone(v) } };
+globalThis.foundry = { data: { fields: { NumberField: class {} } }, utils: { deepClone: (v) => structuredClone(v), randomID: () => Math.random().toString(36).slice(2, 18) } };
 globalThis.ChatMessage = {
   create: async (m) => { if (chatRejects > 0) { chatRejects--; throw new Error("card failed"); } chat.push(m); },
   getWhisperRecipients: () => [], getSpeaker: () => ({}),
@@ -230,8 +230,9 @@ test("Pay Arrears whose purse write and putting the debt back both fail stays pa
   assert.deepEqual([a.system.coins.gp, wa.flags[MOD].warband.arrears], [100, 0]);
   assert.deepEqual(warns, ["SDE.warband.upkeep.unconfirmed"]);
   assert.ok(whispered("SDE.warband.upkeep.unconfirmed"), "the GMs are told to settle it by hand");
-  await pay(wa);
-  assert.equal(a.system.coins.gp, 100, "never taken a second time by itself");
+  assert.equal(a.system.coins.gp, 100, "nothing is taken until the next press");
+  assert.equal(await pay(wa), true);
+  assert.deepEqual([a.system.coins.gp, wa.flags[MOD].warband.arrears], [70, 0], "which finds the purse untouched, owes the debt again, and takes it once");
 });
 
 test("two Pay Arrears presses at once pay once: the second finds nothing owed", async () => {
@@ -384,3 +385,116 @@ test("a warband no player owns is charged to any PC its GM named", async () => {
   await settle();
   assert.equal(cmd.system.coins.gp, 70);
 });
+
+// A client lost between the mark and the purse write (#284 review): the mark alone can't prove the gold was taken.
+const feb = { from: at(30) + 3600, to: at(31) + 3600, crossed: { days: 1 } };
+const next = { from: at(31) + 3600, to: at(32) + 3600, crossed: { days: 1 } };
+const OUTCOMES = [
+  ["landed", 70, 70, false],
+  ["not landed", 100, 70, false],
+  ["unclear", 95, 95, true],
+];
+/** A restarted client: nothing but the persisted flag and world settings carry over, the purse is what it is now. */
+const restartFrom = (flag, kept, gp) => {
+  reset();
+  for (const [k, v] of kept) settings.set(k, v);
+  return [pc("A", gp), warband("wa", flag, { level: 3 })];
+};
+
+for (const [name, gpNow, gpAfter, told] of OUTCOMES) {
+  test(`a client lost after the month's mark and before its purse write, purse ${name}: the next move settles it once (#284 review)`, async () => {
+    reset();
+    const a = pc("A", 100);
+    let lose;
+    a.update = () => new Promise((_, reject) => { lose = () => reject(new Error("client lost")); });   // never reaches the server
+    const wa = warband("wa", { commander: a.uuid, upgrades: [] }, { level: 3 });
+    tick(feb);
+    await settle();
+    const flag = structuredClone(wa.flags[MOD].warband);
+    const kept = structuredClone([...settings]);
+    lose();                                             // the old client's rollback runs on documents nobody reads any more
+    await drain();
+    assert.equal(flag.settledMonths.length, 1, "marked");
+    assert.ok(flag.payment, "and the intent to pay came with the mark, in the same write");
+    const [b, wb] = restartFrom(flag, kept, gpNow);
+    tick(next);
+    await drain();
+    assert.equal(b.system.coins.gp, gpAfter);
+    assert.equal(wb.flags[MOD].warband.payment ?? null, null, "the intent is cleared");
+    assert.equal(wb.flags[MOD].warband.settledMonths.length, 1, "February is paid, or the GM has been told");
+    assert.equal(whispered("SDE.warband.upkeep.paymentUnclear"), told);
+    assert.deepEqual(settings.get(PENDING_MONTHS_SETTING) ?? [], []);
+    tick({ from: next.to, to: next.to + 86400, crossed: { days: 1 } });
+    await drain();
+    assert.equal(b.system.coins.gp, gpAfter, "and never again");
+  });
+
+  test(`a client lost after Pay Arrears' mark and before its purse write, purse ${name}: the next press settles it once (#284 review)`, async () => {
+    reset();
+    const a = pc("A", 100);
+    let lose;
+    a.update = () => new Promise((_, reject) => { lose = () => reject(new Error("client lost")); });
+    const wa = warband("wa", { commander: a.uuid, upgrades: [], arrears: 30 });
+    const pressed = pay(wa);
+    await settle();
+    const flag = structuredClone(wa.flags[MOD].warband);
+    const kept = structuredClone([...settings]);
+    lose();
+    await pressed;
+    assert.equal(flag.arrears, 0);
+    assert.ok(flag.payment, "the intent came with the mark");
+    const [b, wb] = restartFrom(flag, kept, gpNow);
+    assert.equal(await pay(wb), true);
+    assert.equal(b.system.coins.gp, gpAfter);
+    assert.equal(wb.flags[MOD].warband.arrears, 0);
+    assert.equal(wb.flags[MOD].warband.payment ?? null, null);
+    assert.equal(whispered("SDE.warband.upkeep.paymentUnclear"), told);
+    assert.equal(await pay(wb), true);
+    assert.equal(b.system.coins.gp, gpAfter, "and never again");
+  });
+}
+
+test("a GM who starts up with a payment left half done reconciles it before any clock move (#284 review)", async () => {
+  reset();
+  const a = pc("A", 100);
+  let lose;
+  a.update = () => new Promise((_, reject) => { lose = () => reject(new Error("client lost")); });
+  const wa = warband("wa", { commander: a.uuid, upgrades: [] }, { level: 3 });
+  tick(feb);
+  await settle();
+  const flag = structuredClone(wa.flags[MOD].warband);
+  const kept = structuredClone([...settings]);
+  lose();
+  await drain();
+  const [b, wb] = restartFrom(flag, kept, 100);
+  await hooks.get("once:ready")();
+  assert.equal(wb.flags[MOD].warband.payment ?? null, null);
+  assert.deepEqual(wb.flags[MOD].warband.settledMonths, [], "the month is owed again");
+  assert.equal(settings.get(PENDING_MONTHS_SETTING).length, 1, "and the next move collects it");
+  assert.equal(b.system.coins.gp, 100, "recovery takes no gold itself");
+  tick(next);
+  await drain();
+  assert.equal(b.system.coins.gp, 70);
+});
+
+// Every way the two flag writes and the purse write around a payment can go: never charged twice, and a debt
+// marked paid without its gold is always the GM's to hear of.
+const HOW = ["ok", "reject", "veto", "savedThenReject"];
+for (const kind of ["month", "arrears"]) {
+  test(`${kind}: every ok/reject/veto/saved-then-reject of the mark, the purse and the write after it charges once at most and never loses a debt silently (#284 review)`, async () => {
+    for (const w1 of HOW) for (const p of HOW) for (const w2 of HOW) {
+      reset();
+      const a = pc("A", 100, { outcomes: [p] });
+      const wa = warband("wa", { commander: a.uuid, upgrades: [], ...(kind === "arrears" ? { arrears: 30 } : {}) }, { level: 3 });
+      wa.flagOutcomes = [w1, w2];
+      const label = `${w1}/${p}/${w2}`;
+      if (kind === "month") { tick(feb); await drain(); tick(next); await drain(); tick({ from: next.to, to: next.to + 86400, crossed: { days: 1 } }); await drain(); }
+      else { await pay(wa); await pay(wa); await pay(wa); }
+      const st = wa.flags[MOD].warband;
+      assert.ok([70, 100].includes(a.system.coins.gp), `${label}: charged at most once (${a.system.coins.gp})`);
+      const paid = kind === "month" ? st.settledMonths?.length > 0 : !st.arrears;
+      if (paid && a.system.coins.gp === 100) assert.ok(chat.some((m) => m.whisper), `${label}: marked paid with no gold taken, and nobody told`);
+      assert.equal(st.payment ?? null, null, `${label}: no intent left behind`);
+    }
+  });
+}

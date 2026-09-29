@@ -27,6 +27,7 @@ import { secondsPerDay } from "../time/time-core.mjs";
 import { format as formatTime } from "../time/time.mjs";
 import * as core from "./warband-core.mjs";
 import { WARBAND_FLAG, warbandState, warbandWrites } from "./warband-npc-sheet.mjs";
+import { isActiveGM } from "../shared/gm-relay.mjs";
 
 /** World setting: the last month key charged, so a clock set back and moved on again doesn't charge a month twice. */
 export const LAST_MONTH_SETTING = "warbandLastMonth";
@@ -116,23 +117,62 @@ async function takeFromPurse(pc, gp) {
   return now === before - cost ? "taken" : now === before ? "untouched" : "unknown";
 }
 
+/** A payment's mark on the warband: the month settled, or the arrears cleared. */
+const markPaid = (s, p) => (p.month === null ? { ...s, arrears: 0 } : { ...s, settledMonths: withMark(s.settledMonths, p.month, KEEP_MONTHS) });
+/** The mark taken off again: the month unpaid, or the arrears owed. */
+const unmarkPaid = (s, p) => (p.month === null ? { ...s, arrears: s.arrears + p.cost / 100 } : { ...s, settledMonths: s.settledMonths.filter((m) => m !== p.month) });
+/** The payment in flight cleared. */
+const clearPayment = (s) => ({ ...s, payment: null });
+
 /**
  * Take `gp` from the commander's purse for the warband, behind a mark on the
- * warband that says it's paid (`mark` sets it, `marked` reads it). The mark is
- * saved first, so whatever fails after it, a retry finds it and never takes
- * the money twice. A purse left untouched gets the mark taken off (`unmark`)
- * to be tried again. A purse that can't be told from paid, or a mark that
- * won't come off, stays marked, and the GM is told to settle it by hand
- * (#284 review).
+ * warband that says it's paid: the month `month` settled, or (null) the
+ * arrears cleared. The mark is saved first, so whatever fails after it, a
+ * retry finds it and never takes the money twice, and it is saved in ONE write
+ * with the payment's intent (`payment`: the purse before, the cost, what it
+ * settles), so a client lost before the purse write leaves both for
+ * reconcilePayments to read. The intent is cleared once the purse is read back.
+ * A purse left untouched gets the mark taken off to be tried again. A purse
+ * that can't be told from paid, or a mark that won't come off, stays marked,
+ * and the GM is told to settle it by hand (#284 review).
  * @returns {Promise<boolean>} whether the money was taken
  */
-async function payMarked(wb, pc, gp, { mark, unmark, marked }) {
-  if (!(await saveState(wb, mark, marked))) return false;
+async function payMarked(wb, pc, gp, month = null) {
+  const p = { id: foundry.utils.randomID(), pc: pc.uuid, before: toCopper(pc.system.coins), cost: toCopper({ gp }), month };
+  if (!(await saveState(wb, (s) => ({ ...markPaid(s, p), payment: p }), (s) => s.payment?.id === p.id))) return false;
   const taken = await takeFromPurse(pc, gp);
-  if (taken === "taken") return true;
-  if (taken === "untouched" && (await saveState(wb, unmark, (s) => !marked(s)))) return false;
+  if (taken === "taken") {
+    await saveState(wb, clearPayment, (s) => !s.payment);   // unsaved, the next reconcile reads the purse and clears it
+    return true;
+  }
+  if (taken === "untouched" && (await saveState(wb, (s) => clearPayment(unmarkPaid(s, p)), (s) => !s.payment))) return false;
   await card(t("SDE.warband.upkeep.title"), [t("SDE.warband.upkeep.unconfirmed", { warband: wb.name, commander: pc.name, gp })], { whisper: true });
+  if (taken === "unknown") await saveState(wb, clearPayment, (s) => !s.payment);   // the GM has been told: nothing more to reconcile
   return false;
+}
+
+/**
+ * Settle the payments a client was lost in the middle of (a mark saved, the purse write never confirmed), from
+ * the commander's purse now, and take no gold: it landed (the intent goes), it didn't (the mark comes off,
+ * and a month goes back on the retry list, so the ordinary path takes it once), or it can't be told (the
+ * intent goes, the mark stays, the GMs are told). Runs at the active GM's ready, and before each clock move,
+ * month charge and Pay Arrears (#284 review).
+ */
+async function reconcilePayments(type) {
+  await eachWarband(type, async (wb) => {
+    const p = warbandState(wb).payment;
+    if (!p) return;
+    const pc = await fromUuid(p.pc).catch(() => null);
+    const outcome = core.decidePayment(p, pc?.system?.coins ? toCopper(pc.system.coins) : null);
+    const took = (s) => !s.payment;
+    if (outcome === "not-landed") {
+      if (await saveState(wb, (s) => clearPayment(unmarkPaid(s, p)), took) && p.month !== null) {
+        await addPending(PENDING_MONTHS_SETTING, p.month, [wb.id], "SDE.warband.upkeep.chargeLost", game.time.worldTime);
+      }
+    } else if (await saveState(wb, clearPayment, took) && outcome === "unclear") {
+      await card(t("SDE.warband.upkeep.title"), [t("SDE.warband.upkeep.paymentUnclear", { warband: wb.name, commander: pc?.name ?? p.pc, gp: p.cost / 100 })], { whisper: true });
+    }
+  });
 }
 
 /**
@@ -153,13 +193,9 @@ async function runMonth(type, at = game.time.worldTime, month = null, ids = null
     const pc = await commanderOf(wb);
     const gp = core.upkeepGp(wb.system.level?.value);
     if (!pc || !gp) return;
-    const settle = (s) => (month === null ? s : { ...s, settledMonths: withMark(s.settledMonths, month, KEEP_MONTHS) });
+    const settle = (s) => (month === null ? s : markPaid(s, { month }));
     if (canAfford(pc.system.coins ?? {}, { gp })) {
-      const paid = month === null ? (await takeFromPurse(pc, gp)) === "taken" : await payMarked(wb, pc, gp, {
-        mark: settle,
-        unmark: (s) => ({ ...s, settledMonths: s.settledMonths.filter((m) => m !== month) }),
-        marked: (s) => s.settledMonths.includes(month),
-      });
+      const paid = month === null ? (await takeFromPurse(pc, gp)) === "taken" : await payMarked(wb, pc, gp, month);
       if (!paid) throw new Error(`${gp} gp wasn't taken from ${pc.name}`);
       lines.push(t("SDE.warband.upkeep.paid", { warband: wb.name, commander: pc.name, gp }));
       await Promise.resolve(SessionRecap.logPurchase({ player: pc.name, item: t("SDE.warband.upkeep.item", { warband: wb.name }), qty: 1, price: { gp, sp: 0, cp: 0 } }))
@@ -282,6 +318,7 @@ async function retryPending(type) {
  */
 async function onTimeAdvanced(type, { from, to, crossed }) {
   if (!(crossed?.days > 0)) return;   // month and week starts are at 00:00, and healing is by the day
+  await reconcilePayments(type);
   await retryPending(type);
   const cal = game.time.calendar;
   const spd = secondsPerDay(cal);
@@ -353,6 +390,7 @@ async function undoDefeat(wb) {
  * @returns {Promise<{ok:boolean, warn?:{key:string, data:object}}>}
  */
 export async function upkeepWrite(action, wb, type) {
+  await reconcilePayments(type);
   if (action === "runMonth") {
     const failed = await runMonth(type);
     return failed.length ? { ok: false, warn: { key: "SDE.warband.notify.chargeFailed", data: { n: failed.length } } } : { ok: true };
@@ -372,11 +410,7 @@ export async function upkeepWrite(action, wb, type) {
   const cantPay = { ok: false, warn: { key: "SDE.warband.notify.cantPay", data: { commander: pc.name, gp } } };
   if (!canAfford(pc.system.coins ?? {}, { gp })) return cantPay;
   // The arrears come off first, as the mark that they're paid: a press tried again never pays them twice (#284 review).
-  const paid = await payMarked(wb, pc, gp, {
-    mark: (s) => ({ ...s, arrears: 0 }),
-    unmark: (s) => ({ ...s, arrears: s.arrears + gp }),
-    marked: (s) => !s.arrears,
-  });
+  const paid = await payMarked(wb, pc, gp);
   if (paid) {
     await card(t("SDE.warband.upkeep.title"), [t("SDE.warband.upkeep.arrearsPaid", { warband: wb.name, commander: pc.name, gp })]);
     return { ok: true };
@@ -395,6 +429,8 @@ export function registerWarbandUpkeep(type) {
   for (const key of [PENDING_MONTHS_SETTING, PENDING_WEEKS_SETTING]) {
     game.settings.register(MODULE_ID, key, { scope: "world", config: false, type: Array, default: [] });
   }
+  // A payment a client was lost in the middle of is settled when the active GM starts up, on the same queue.
+  Hooks.once("ready", () => (isActiveGM() ? warbandWrites(() => reconcilePayments(type)).catch((err) => console.error(`${MODULE_ID} | warband upkeep`, err)) : undefined));
   // On the one warband queue: the sheet's writes and these never interleave.
   Hooks.on(`${MODULE_ID}.timeAdvanced`, (e) => {
     if (e?.crossed?.days > 0) warbandWrites(() => onTimeAdvanced(type, e)).catch((err) => console.error(`${MODULE_ID} | warband upkeep`, err));

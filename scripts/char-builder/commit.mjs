@@ -1,6 +1,10 @@
 import { ABILITY_ORDER } from "./constants.mjs";
 import { TALENT_DESCRIPTION_FIXES } from "./data.mjs";
 import { MODULE_ID } from "../shared/module-id.mjs";
+import { stampSource } from "./item-source.mjs";
+
+/** What one Crawling Kit unpacks to: [item name, quantity] (core rules pg 36). */
+export const CRAWLING_KIT = [["Backpack", 1], ["Flint and Steel", 1], ["Torch", 2], ["Rations", 3], ["Iron Spikes", 10], ["Grappling Hook", 1], ["Rope, 60'", 1]];
 
 /**
  * Turn a completed builder state into a Shadowdark PlayerSD actor.
@@ -203,7 +207,7 @@ async function gatherItems(state, classSys) {
 
   const addSource = async (uuid) => {
     const doc = await fromUuid(uuid).catch(() => null);
-    if (doc) items.push(doc.toObject());
+    if (doc) items.push(stampSource(doc.toObject(), doc.uuid));
   };
   const addTalent = async (uuid, choice = null) => {
     const doc = await fromUuid(uuid).catch(() => null);
@@ -214,7 +218,10 @@ async function gatherItems(state, classSys) {
     // both variants with the merged "…or…" description). Keyed by source UUID,
     // since toObject() doesn't carry it. Text-only; effects are untouched.
     const fix = TALENT_DESCRIPTION_FIXES[uuid];
-    const applyFix = (obj) => { if (fix && obj?.system) obj.system.description = fix; return obj; };
+    const applyFix = (obj) => {
+      if (fix && obj?.system) obj.system.description = fix;
+      return stampSource(obj, doc.uuid);
+    };
     // A choice made in the builder pre-fills the REPLACEME effect keys exactly
     // like the system's modifyEffectChangesWithInput would — no dialog.
     if (choice?.slug) {
@@ -255,12 +262,11 @@ async function gatherItems(state, classSys) {
 
   // A Crawling Kit is a bundle, not an item — the sheet gets its contents
   // (core rules pg 36), once per kit purchased.
-  const CRAWLING_KIT = [["Backpack", 1], ["Flint and Steel", 1], ["Torch", 2], ["Rations", 3], ["Iron Spikes", 10], ["Grappling Hook", 1], ["Rope, 60'", 1]];
   const addGearByName = async (name, qty) => {
     const found = Array.from(await shadowdark.compendiums.basicItems()).find((i) => i.name.toLowerCase() === name.toLowerCase());
     const doc = found ? await fromUuid(found.uuid).catch(() => null) : null;
     if (!doc) return;
-    const obj = doc.toObject();
+    const obj = stampSource(doc.toObject(), doc.uuid);
     if (qty > 1) obj.system.quantity = qty;
     items.push(obj);
   };
@@ -271,7 +277,7 @@ async function gatherItems(state, classSys) {
     }
     const doc = await fromUuid(g.uuid).catch(() => null);
     if (!doc) continue;
-    const obj = doc.toObject();
+    const obj = stampSource(doc.toObject(), doc.uuid);
     if (g.qty > 1) obj.system.quantity = g.qty;
     items.push(obj);
   }
