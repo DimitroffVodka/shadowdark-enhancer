@@ -873,25 +873,29 @@ function extrasCamping() {
  * rations. With an Extras party (extrasCamping), its window runs the tasks,
  * Firewood first, and the rations, and keeps the rest for the dawn; else the
  * rations are eaten here. Any forage still being rolled is settled first.
- * The camp is recorded, with when it breaks, as soon as they're done, before
- * anything else can fail: Make camp pressed again never does them twice (#282 review).
+ * The camp is recorded, with when it breaks, before the window opens or
+ * anyone eats, and a closed window takes it back: Make camp pressed again,
+ * after a failure or a reload, never does them twice. The worst a failure can
+ * do is leave a ration uneaten (#282 review).
  * @returns {Promise<boolean>} false when Extras' window was closed or declined: no camp
  */
 async function pitchCamp() {
   await Promise.allSettled([..._foraging]);
   const { stormy, harsh, each, members } = campNeeds();
   const extras = extrasCamping();
-  let lines = null;
+  await commit(makeCampState(_state, extras?.party.uuid ?? null, campEnd()).state);
   if (extras) {
     const reply = await extras.camping.open({
       party: extras.party, members, mounts: _state.mounts, pushed: _state.pushed, harsh, stormy, rationsEach: each, advanceTime: false, deferRest: true,
     }).catch((err) => { console.error(`${MODULE_ID} | Shadowdark Extras' camping rest`, err); return null; });
-    if (!reply?.completed) return false;
+    if (!reply?.completed) {
+      await commit({ ..._state, camp: null });
+      return false;
+    }
   } else {
-    ({ lines } = await eatRations(members, each));
+    const { lines } = await eatRations(members, each);
+    await campLine([t(harsh ? "SDE.overland.camp.madeHarsh" : "SDE.overland.camp.made"), ...lines]);
   }
-  await commit(makeCampState(_state, extras?.party.uuid ?? null, campEnd()).state);
-  if (lines) await campLine([t(harsh ? "SDE.overland.camp.madeHarsh" : "SDE.overland.camp.made"), ...lines]);
   return true;
 }
 
@@ -914,6 +918,7 @@ const campLine = (lines) => ChatMessage.create({ content: lines.map((l) => `<p>$
  */
 async function finishCamp() {
   const camp = _state.camp;
+  let rested = false;   // Extras finished a rest, so its CON rolls were made
   if (camp?.party) {
     const camping = extrasCampingApi();
     let party = null;
@@ -928,6 +933,7 @@ async function finishCamp() {
     }
     // Extras has no rest waiting (its record is gone): there's nothing to retry, so the camp breaks.
     if (reply.nothingPending) ui.notifications?.warn(t("SDE.overland.notify.campRestGone"));
+    rested = !reply.nothingPending;
   }
   const lines = [t("SDE.overland.camp.dawn")];
   // A camp made before this build ate nothing yet: it eats now, as it used to.
@@ -937,7 +943,8 @@ async function finishCamp() {
   }
   if (camp?.interrupted != null) {
     const time = dateParts(game.time.calendar, camp.interrupted).time;
-    lines.push(t(camp.party ? "SDE.overland.camp.interrupted" : "SDE.overland.camp.interruptedCon", { time }));
+    const said = !camp.party ? "SDE.overland.camp.interruptedCon" : rested ? "SDE.overland.camp.interrupted" : "SDE.travel.night.interrupted";
+    lines.push(t(said, { time }));
   }
   await commit(closeDay(_state).state);
   await campLine(lines);

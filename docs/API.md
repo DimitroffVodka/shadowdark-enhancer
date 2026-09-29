@@ -1779,10 +1779,12 @@ nobody is travelling, an encounter is pending, or no travel day is open. A
 camp's dawn closes the day, so a second press after it makes no second camp.
 Resolves to `{ ok: true, stopped }` or `{ ok: false, error }`.
 
-Each step below is kept in the state's `camp` as soon as it's done. On a camp
+Each step below is kept in the state's `camp`. The camp itself is saved
+before its tasks and rations, and the lights as soon as they're out. On a camp
 already made, Make camp goes on from the next step: after something failed, in
 the same tab or after a reload. The tasks, the rations and the lights aren't
-done again. The night runs only to the `camp.until` fixed at camp, so it's
+done again; a failure partway through the rations leaves the rest of them
+uneaten, never eaten twice. The night runs only to the `camp.until` fixed at camp, so it's
 never longer, and a creature already recorded still counts (#282 review).
 
 1. **The camp**, before the night (since 1.25.0, GMWR p. 44). Any forage roll
@@ -1794,8 +1796,10 @@ never longer, and a creature already recorded still counts (#282 review).
      stormy, rationsEach, advanceTime: false, deferRest: true }`. It runs the
      tasks, Firewood first, and asks about torches when no fire was lit. It
      also does the rations, and keeps the rest for the dawn. When that window
-     is closed or declined (`completed` not true), no camp is made:
-     `{ ok: false, error }`, and no clock passes. An Extras without
+     is closed or declined (`completed` not true), the saved camp is taken
+     back: `camp: null`, `{ ok: false, error }`, and no clock passes. A camp
+     found saved (the tab was lost while the window was open) goes straight
+     to the lights and the night. An Extras without
      `camping.dawn` is treated as no Extras.
    - **Otherwise Overland eats them.** Each member eats 1 ration from their
      own stacks, or 2 when the night is harsh. One who can't cover them all
@@ -1804,7 +1808,8 @@ never longer, and a creature already recorded still counts (#282 review).
      whatever the members have left.
 
    Either way, the state's `camp` becomes
-   `{ party, interrupted: null, ate: true, until, lightsOut: false }`.
+   `{ party, interrupted: null, ate: true, until, lightsOut: false }` first,
+   before the window opens or anyone eats.
    `party` is the uuid of the Extras party actor keeping the rest (an
    unlinked token's own actor), or `null` without Extras. `until` is when
    camp breaks: the next sunrise, or the last night check if that is later (a
@@ -1835,7 +1840,8 @@ never longer, and a creature already recorded still counts (#282 review).
    at dawn (turned off, or a version without `camping.dawn`): the rest is
    still stored on the party, so it isn't dropped. Starting a new day instead
    goes on without it. When Extras has no rest waiting (`nothingPending`, as
-   when the party actor was deleted), the camp breaks with a warning. Without
+   when the party actor was deleted), the camp breaks with a warning, and
+   the chat says only when the rest was interrupted, with no CON roll. Without
    Extras, the chat says when the rest was interrupted, and the CON checks are
    the GM's. The day is closed as soon as the rest is done (`day: null`, the
    push reset, `camp: null`). Then one chat line sums up the dawn, and the new

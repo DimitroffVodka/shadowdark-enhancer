@@ -237,7 +237,8 @@ export function setPending(state, pending) {
 }
 
 /**
- * Camp is made (#257, §5.5 step 3): the tasks and rations are done, the night to come. `party`: the uuid
+ * Camp is made (#257, §5.5 step 3), written just before its tasks and rations, so a retry never does them
+ * twice (#282 review); a closed Extras window takes it back. `party`: the uuid
  * of the Extras party actor keeping the rest for the dawn (an unlinked token's own actor), or null. The
  * rest is on that actor, so the dawn finishes it there, whatever the travel token is by then (#282 review).
  * `until`: when camp breaks, fixed now, so a night picked up again after a failure is never a longer one.

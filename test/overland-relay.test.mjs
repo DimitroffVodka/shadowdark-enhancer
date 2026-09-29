@@ -1038,3 +1038,94 @@ test("a GM's clock move through the night of a camp that failed still lets a cre
   assert.ok(posted.some((c) => c.includes("SDE.overland.camp.interruptedCon")), "the dawn says the rest was interrupted");
   assert.equal(globalThis.game.time.worldTime, at(1301, 6, 22, 6), "the camp adds no clock of its own");
 });
+
+/** The first write that records a camp is lost, as a dropped setting write would be. */
+function loseCampWrite() {
+  const { set } = globalThis.game.settings;
+  globalThis.game.settings.set = async (ns, key, value) => {
+    if (key === "overlandState" && value.camp) { globalThis.game.settings.set = set; throw new Error("the write was lost"); }
+    return set(ns, key, value);
+  };
+}
+
+test("the camp's save lost and the tab reloaded: Make camp again eats once (#282 pre-review)", async () => {
+  campWorld();
+  dice.push(3);
+  await applyAction({ action: "startDay", method: "walking" }, gm);
+  const stacks = [rations(actors.mine, 3), rations(actors.theirs, 3)];
+  loseCampWrite();
+  await assert.rejects(applyAction({ action: "camp" }, gm));
+  reloadState();
+  dice.push(4);
+  assert.deepEqual(await applyAction({ action: "camp" }, gm), { ok: true, stopped: false });
+  assert.deepEqual(stacks.map((s) => s.system.quantity), [2, 2], "a ration each, once");
+});
+
+test("a ration write that fails partway: Make camp again feeds nobody twice (#282 pre-review)", async () => {
+  const damage = campWorld();
+  dice.push(3);
+  await applyAction({ action: "startDay", method: "walking" }, gm);
+  const stacks = [rations(actors.mine, 3), rations(actors.theirs, 3)];
+  const { update } = stacks[1];
+  stacks[1].update = async function () { this.update = update; throw new Error("the write was lost"); };
+  await assert.rejects(applyAction({ action: "camp" }, gm));
+  reloadState();
+  dice.push(4);
+  assert.deepEqual(await applyAction({ action: "camp" }, gm), { ok: true, stopped: false });
+  assert.deepEqual(stacks.map((s) => s.system.quantity), [2, 3], "Mine ate once; the ration Theirs lost isn't eaten again");
+  assert.deepEqual(damage, []);
+});
+
+test("with Extras the camp is saved before its window opens: a lost save, or a tab lost while it was open, opens no second window (#282 pre-review)", async () => {
+  campWorld();
+  const { opened, granted } = extrasKeepingOneRest();
+  const camping = globalThis.game.modules.get("shadowdark-extras").api.camping;
+  const { open } = camping;
+  let atOpen = null;
+  camping.open = async (opts) => { atOpen = JSON.parse(JSON.stringify(stored.overlandState)); return open(opts); };
+  dice.push(3, 2, 9, 1, 12);
+  globalThis.game.time.worldTime = at(1301, 6, 21, 8);
+  await applyAction({ action: "startDay", method: "walking" }, gm);
+  loseCampWrite();
+  await assert.rejects(applyAction({ action: "camp" }, gm));
+  assert.equal(opened.length, 0, "the window waits for the camp's save");
+  reloadState();
+  failNextAdvance();                               // the night's first advance is lost
+  await assert.rejects(applyAction({ action: "camp" }, gm));
+  assert.equal(opened.length, 1);
+  // The tab went while the window was open: a reload finds the travel state as it was saved then.
+  stored.overlandState = atOpen;
+  reloadState();
+  dice.push(4);
+  assert.deepEqual(await applyAction({ action: "camp" }, gm), { ok: true, stopped: false });
+  globalThis.game.modules = { get: () => null };
+  assert.deepEqual([opened.length, granted], [1, [false]], "one window, one rest");
+  assert.deepEqual([globalThis.game.time.worldTime, stored.overlandState.day], [at(1301, 6, 22, 5), null], "one night, to its 05:00 check");
+});
+
+test("a dawn Extras has no rest for after a creature woke the camp claims no CON roll (#282 pre-review)", async () => {
+  campWorld();
+  globalThis.game.modules = { get: (id) => (id === "shadowdark-extras" ? {
+    active: true,
+    api: { party: { list: () => [party] }, camping: {
+      open: async () => ({ completed: true, pending: true, fed: {} }),
+      dawn: async () => ({ completed: false, nothingPending: true }),
+    } },
+  } : null) };
+  stored.overlandState = { ...stored.overlandState, tokenUuid: "Scene.s.Token.party" };
+  registerOverland();
+  globalThis.fromUuidSync = partyUuids;
+  dice.push(3, 2, 9, 1, 12);
+  globalThis.game.time.worldTime = at(1301, 6, 21, 8);
+  await applyAction({ action: "startDay", method: "walking" }, gm);
+  const draws = [{ hit: false }, { hit: true, encounter: { kind: "monster", name: "Wolf" } }];   // 14:00 misses; a wolf at 18:00
+  globalThis.game.shadowdarkEnhancer.encounter.check = async () => draws.shift() ?? { hit: false };
+  assert.deepEqual(await applyAction({ action: "camp" }, gm), { ok: true, stopped: true });
+  const posted = [];
+  globalThis.ChatMessage.create = async (m) => { posted.push(m.content); };
+  dice.push(4);
+  assert.deepEqual(await applyAction({ action: "resume" }, gm), { ok: true, stopped: false });
+  globalThis.game.modules = { get: () => null };
+  assert.ok(posted.some((c) => c.includes("SDE.travel.night.interrupted")), "the dawn says when the rest was interrupted");
+  assert.ok(!posted.some((c) => c.includes("SDE.overland.camp.interrupted")), "and claims no CON roll");
+});
