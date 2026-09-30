@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { offsetToCube, cubeToOffset, numberFor, cellNumber, onMap, neighbours, foundryOffsetToCube, extrasNumbersAlike } from "../scripts/hex-map/geometry.mjs";
+import { offsetToCube, cubeToOffset, numberFor, cellNumber, onMap, withAnchorNumber, boundsFromRow, framesTopRow, neighbours, foundryOffsetToCube, extrasNumbersAlike } from "../scripts/hex-map/geometry.mjs";
 
 test("cube round trip under both shift rules", () => {
   for (const shifted of ["odd", "even"]) for (let col = 0; col < 5; col++) for (let row = 0; row < 5; row++) {
@@ -123,6 +123,66 @@ test("onMap: the base moves every bound, and cells left of it are frame", () => 
   assert.equal(onMap(2, 4, bounds), false, "above the first row");
   assert.equal(onMap(5, 5, bounds), false, "three columns from column 2 ends at column 4");
   assert.equal(onMap(2, 7, bounds), false);
+});
+
+test("withAnchorNumber: renumbering the first hex moves where the counts start, and keeps the cell", () => {
+  // The Gloaming was made with the dialog's default 0000; its first hex is 0001. The anchor cell
+  // stays the same cell, so every other hex follows it.
+  const cube = offsetToCube(0, 1, "even");
+  const made = { i: 1, j: 0, ...cube, cube, num: "0000", shifted: "even", bounds: { cols: 17, rows: 11, rowsLowered: 10, firstRow: 0 } };
+  const moved = withAnchorNumber(made, "0001");
+  assert.equal(moved.num, "0001");
+  assert.deepEqual(moved.bounds, { cols: 17, rows: 11, rowsLowered: 10, firstRow: 0, base: { col: 0, row: 1 } });
+  assert.equal(moved.shifted, "even", "the first column is still 0: parity unchanged");
+  let numbered = 0;
+  for (let col = -1; col < 19; col++) for (let row = -1; row < 14; row++) {
+    if (cellNumber(offsetToCube(col, row, "even"), moved).num !== null) numbered++;
+  }
+  assert.equal(numbered, 178);
+  assert.equal(cellNumber(offsetToCube(1, 2, "even"), moved).num, 102, "the castle hex of The Gloaming");
+  assert.equal(made.num, "0000", "the origin it was given is left alone");
+  assert.equal("base" in made.bounds, false);
+});
+
+test("withAnchorNumber: back to 0000 drops the base, so the stored bounds are what they were", () => {
+  const cube = { q: 0, r: 0 };
+  const made = { cube, num: "0000", shifted: "odd", bounds: { cols: 64, rows: 75, rowsLowered: 74, firstRow: 1 } };
+  const there = withAnchorNumber(made, "0101");
+  assert.deepEqual(there.bounds.base, { col: 1, row: 1 });
+  assert.deepEqual(withAnchorNumber(there, "0000").bounds, made.bounds);
+});
+
+test("withAnchorNumber: an odd first column swaps which printed columns are lowered", () => {
+  const made = { cube: { q: 0, r: 0 }, num: "0000", shifted: "even", bounds: { cols: 17, rows: 11 } };
+  assert.equal(withAnchorNumber(made, "0100").shifted, "odd");
+  assert.equal(withAnchorNumber(made, "0201").shifted, "even", "two columns over is the same parity");
+  assert.equal(withAnchorNumber(withAnchorNumber(made, "0100"), "0000").shifted, "even", "and back");
+});
+
+test("withAnchorNumber: an anchor that is not the first hex leaves the base alone", () => {
+  // Anchored by hand on 1403 of a map that starts at 0000: the number names that cell, not the map's start.
+  const made = { cube: { q: 0, r: 0 }, num: "1403", shifted: "odd", bounds: { cols: 64, rows: 75 } };
+  assert.equal("base" in withAnchorNumber(made, "1404").bounds, false);
+  assert.equal(withAnchorNumber(made, "1503").shifted, "even", "but the parity still follows the cell's column");
+  assert.equal(withAnchorNumber({ ...made, bounds: null }, "1404").bounds, null, "no map size yet: nothing to move");
+  assert.equal(withAnchorNumber(made, "hex"), null);
+  assert.equal(withAnchorNumber(made, ""), null);
+});
+
+test("boundsFromRow: an unticked frame box is stored, so the next render does not guess it back on", () => {
+  // The Gloaming: lowered columns one row short, but the raised columns' first row is a full hex, so
+  // the box is unticked. Stored as "nothing", the next render guesses from the row counts that the frame
+  // cut the top row, ticks the box, and the second Apply drops eight hexes (170 numbered of 178).
+  const old = { cols: 17, rows: 11, rowsLowered: 10, firstRow: 0, base: { col: 0, row: 1 } };
+  const once = boundsFromRow({ cols: 17, rows: 11, skipTop: false, old });
+  assert.deepEqual(once, old);
+  assert.equal(framesTopRow(once), false, "so a re-render leaves the box unticked");
+  assert.deepEqual(boundsFromRow({ cols: 17, rows: 11, skipTop: false, old: once }), old, "and a second Apply changes nothing");
+  assert.equal(boundsFromRow({ cols: 17, rows: 11, skipTop: true, old }).firstRow, 1);
+  assert.deepEqual(boundsFromRow({ cols: 4, rows: 3, skipTop: false, old: null }), { cols: 4, rows: 3, firstRow: 0 });
+  assert.equal(boundsFromRow({ cols: 17, rows: 11, skipTop: false, old: { cols: 17, rows: 11 } }).base, undefined, "no base to carry");
+  assert.equal(boundsFromRow({ cols: NaN, rows: 11, skipTop: false, old }), null, "a blank size means no bounds");
+  assert.deepEqual(boundsFromRow({ cols: 17, rows: 12, skipTop: false, old }).rowsLowered, 11, "the lowered columns stay one row short");
 });
 
 test("extrasNumbersAlike: a print whose first hex is the top-left cell numbers like Extras", () => {

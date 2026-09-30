@@ -202,6 +202,16 @@ number (the Black River's key starts at column 0 and row 1; Morzomotha's at row 
 The Black River map comes in a north and a south half; the south half's rows
 continue from the north's (row 12 on).
 
+If you left the dialog on 0000 and the numbers are off by a row or a column,
+you do not have to start over: open the scene in the Hex Tagger, **More**, type
+the right number into **Anchor hex** and press **Apply**. Every hex follows it.
+Tags, regions and corrections already made are filed by number, so if there are
+any it asks first. To check, turn on **Show tags** in the tagger and hover a hex:
+its number is the first thing in the label. The **Map Coordinates** toggle of
+Shadowdark Extras is not a check, because it guesses its numbers from the map's
+shape (it counts the left-most column as a cropped edge) instead of reading the
+tagger's, so on a print whose first column is full hexes it reads one column off.
+
 Running it again is safe and is how you pick up a parser improvement: pages are
 matched by the hex number on their flag and updated where they sit, so your own
 edits to a page's name are kept and nothing is duplicated. Cross-references

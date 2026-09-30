@@ -49,6 +49,29 @@ export function originOffset(origin) {
 }
 
 /**
+ * The origin with its anchor cell given a different printed number. The cell stays the cell.
+ *
+ * Two things follow the number. When the anchor was the map's first hex its counts start from
+ * the new number (bounds.base). And the print's lowered columns are physical, so moving the
+ * anchor an odd number of columns swaps which printed parity `shifted` names.
+ * @param {{num:string|number, shifted?:"odd"|"even", bounds?:object|null}} origin  not modified
+ * @param {string} num  the new printed number, 3 or 4 digits
+ * @returns {object|null} null when either number is not a hex number
+ */
+export function withAnchorNumber(origin, num) {
+  const was = originOffset(origin), now = originOffset({ num });
+  if (!was || !now) return null;
+  let bounds = origin.bounds;
+  if (bounds && was.col === (bounds.base?.col ?? 0) && was.row === (bounds.base?.row ?? 0)) {
+    bounds = { ...bounds };
+    delete bounds.base;
+    if (now.col || now.row) bounds.base = now;
+  }
+  const shifted = origin.shifted ?? "odd";
+  return { ...origin, num, bounds, shifted: (now.col - was.col) % 2 ? (shifted === "odd" ? "even" : "odd") : shifted };
+}
+
+/**
  * Number a cell from its Foundry cube and the origin.
  * @param {{q:number, r:number}} cube          Foundry cube of the cell
  * @param {{cube:{q:number,r:number}, num:string|number, shifted?:"odd"|"even", bounds?:{cols:number, rows:number, rowsLowered?:number, firstRow?:number, base?:{col:number,row:number}}}} origin
@@ -168,4 +191,26 @@ export function framesTopRow(bounds) {
   if (!bounds) return false;
   if (bounds.firstRow !== undefined) return bounds.firstRow === 1;
   return Number.isInteger(bounds.rowsLowered) && Number.isInteger(bounds.rows) && bounds.rowsLowered === bounds.rows - 1;
+}
+
+/**
+ * The bounds the tagger's "Map size" row stores when Apply is pressed.
+ *
+ * The frame box is stored either way. Left out when unticked, the next render guesses it back
+ * from the row counts (framesTopRow) and ticks it, and the second Apply drops the whole top row
+ * of a print like The Gloaming, whose first row is full hexes.
+ * @param {{cols:number, rows:number, skipTop:boolean, old?:object|null}} row
+ *   old: the bounds so far. The lowered columns keep ending the same number of rows short, and the base
+ *   (where the numbers start) is not on this row, so both carry over.
+ * @returns {object|null} null when the size is blank
+ */
+export function boundsFromRow({ cols, rows, skipTop, old }) {
+  if (!(cols > 0 && rows > 0)) return null;
+  const short = old?.rowsLowered && old.rows ? old.rows - old.rowsLowered : 0;
+  return {
+    cols, rows,
+    ...(short > 0 && rows > short ? { rowsLowered: rows - short } : {}),
+    firstRow: skipTop ? 1 : 0,
+    ...(old?.base ? { base: old.base } : {}),
+  };
 }

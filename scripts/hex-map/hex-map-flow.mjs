@@ -24,7 +24,7 @@
 import { MODULE_ID } from "../shared/module-id.mjs";
 import { imageInk } from "./ink.mjs";
 import { detectLattice, latticeCentre, latticeFromCorners, cornerSupport } from "./lattice.mjs";
-import { foundryOffsetToCube, framesTopRow, originOffset } from "./geometry.mjs";
+import { foundryOffsetToCube, framesTopRow, withAnchorNumber } from "./geometry.mjs";
 import { emptyState, encodeTags } from "./tag-store.mjs";
 import { A0_PRINT, isA0 } from "./a0-print.mjs";
 
@@ -257,13 +257,10 @@ export function alignedSceneData({ name, src, imageW, imageH, lat, firstNum = "0
   // the detector has looked at that first row (frameCut) it decides.
   if (frameCut === false) bounds.firstRow = 0;
   else if (framesTopRow(bounds)) bounds.firstRow = 1;
-  // The counts start at the first printed number, which is not always 0000 (The Gloaming's is 0001).
-  const first = originOffset({ num: firstNum }) ?? { col: 0, row: 0 };
-  if (first.col || first.row) bounds.base = first;
-  // The detector names the lowered columns of the IMAGE; the origin names them by PRINTED column, and
-  // an odd first column swaps the two.
-  const shifted = first.col % 2 ? (lat.lowered === "even" ? "odd" : "even") : lat.lowered;
-  state.origin = { i: topRows, j: 0, q: cube.q, r: cube.r, num: firstNum, shifted, bounds };
+  // The anchor is the print's first hex. It starts as 0000 with the detector's lowered columns, and
+  // withAnchorNumber gives it the number the print really starts from (The Gloaming's is 0001):
+  // the counts' base, and the lowered columns named by PRINTED column rather than the image's.
+  state.origin = withAnchorNumber({ i: topRows, j: 0, q: cube.q, r: cube.r, num: "0000", shifted: lat.lowered, bounds }, firstNum);
   // Foundry's cell (0, 0) sits half a row down when its column is the lowered
   // one (HEXEVENQ lowers column 0), on the top edge when it is not; the print's
   // first cell has to land on its Foundry cell, whichever parity the print

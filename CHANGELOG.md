@@ -11,6 +11,16 @@ it needs.
 
 ### Added
 
+- **Change a map's first hex number in the Hex Tagger.** A scene made by **Hex
+  map from image** starts as 0000 unless the dialog was told otherwise, and there
+  was no way to fix it afterwards: the header only showed the anchor, and the
+  number boxes come up only on a scene with no anchor at all. **More** now has an
+  **Anchor hex** box; type the right number, press **Apply**, and every hex
+  follows it. The Gloaming, for one, starts at 0001, so its castle hex is 102,
+  not 101. Tags, regions and corrections already made are filed by number, so
+  with any it asks before renumbering. Shadowdark Extras' **Map Coordinates**
+  toggle is not a way to check: it guesses its numbers from the map's shape and
+  reads a print whose first column is full hexes one column off.
 - **Key locations from Cursed Scrolls 1 to 5.** Importer Hub → Tools → **Key
   locations** now offers the five Cursed Scrolls that come with a hexcrawl
   beside the GM Guide. Each files one journal entry named for its map and book
@@ -746,6 +756,13 @@ page walks through it in order.
 
 ### Fixed
 
+- **Pressing Apply twice on Map size no longer drops the top row.** On a print
+  like The Gloaming, whose first row is full hexes, the first Apply stored the
+  "top row is frame" box as "nothing"; the next render guessed it back on from
+  the row counts, and the second Apply took eight hexes off the map (170
+  numbered of 178). The box is stored either way now. The map overlay that shows
+  a hex's number on hover also follows a renumbered map instead of keeping the
+  old numbers until it is toggled.
 - **A map numbered from 0001 keeps its last row.** The hex tagger read a map's
   size as if its numbers began at 0000, so The Gloaming (first hex 0001) lost
   its bottom row of hexes and the last hex of each shorter column: 170 numbered
