@@ -11,6 +11,14 @@ it needs.
 
 ### Added
 
+- **The party token walks a hex in step with the clock.** A hex takes about a second
+  on screen (a difficult hex about a second and a half), and while the token slides
+  the clock moves with it in small steps, so the time on the bar, the sky's
+  darkness and the torches' burning all keep pace instead of jumping when the walk
+  starts. A route across several hexes walks them one after another. An encounter
+  check still rolls at its hour and a hit still stops the clock there. Only a move
+  of the travel token is slowed, and only when its scene is on the GM's screen; a
+  camp, Continue and the clock bar's own steps still move in one step.
 - **The Cursed Scrolls' rumors, encounters and adventure tables import with the rest.**
   The importer always knew these tables existed, and never offered them: Importer
   Hub → Manage → **Roll Tables → Cursed Scroll N** now lists 48 (90 tables once each

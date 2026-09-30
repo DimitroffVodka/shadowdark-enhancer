@@ -72,7 +72,7 @@ Object.assign(globalThis, {
     modules: { get: () => null },
   },
 });
-const { moveSteps, applyAction, registerOverland, overlandState, weatherNow, recordMove, advanceTravel, undergroundCheck, dawnWeather, checkNow, askDay } = await import("../scripts/overland/overland.mjs");
+const { moveSteps, slowWalk, applyAction, registerOverland, overlandState, weatherNow, recordMove, advanceTravel, undergroundCheck, dawnWeather, checkNow, askDay } = await import("../scripts/overland/overland.mjs");
 const { BOAT_TYPE } = await import("../scripts/actors/register-actors.mjs");
 const { CrawlState } = await import("../scripts/crawl-strip/crawl-state.mjs");
 
@@ -246,6 +246,44 @@ test("the active GM spends a move, records the hex and moves the clock at the da
   assert.equal(stored.overlandState.spent, 3);
   assert.equal(stored.overlandState.hex.num, 7);
   assert.deepEqual(globalThis.game.time.advanced, [3 * 8 * 3600 / 5], "3 points at 8 hours over 5");
+});
+
+test("a move of a token drawn on this screen runs the clock in slices over its walk", async () => {
+  travellingDay();
+  dice.push(3);
+  await applyAction({ action: "startDay", method: "walking" }, gm);
+  const started = performance.now();
+  const ok = await recordMove({ parent: null, object: {} }, { x: 0, y: 0 }, { x: 100, y: 0 }, { cost: 1, blocked: null, steps: [{ hex: { num: 7 } }] });
+  const took = performance.now() - started;
+  const { advanced } = globalThis.game.time;
+  assert.equal(ok, true);
+  assert.equal(advanced.length, 6, "one hex is 0.9 s, a slice every 150 ms");
+  assert.equal(advanced.reduce((sum, dt) => sum + dt, 0), 8 * 3600 / 5, "the whole hex, 1.6 hours");
+  assert.ok(took >= 700 && took < 1800, `it took the walk's time, ${Math.round(took)} ms`);
+});
+
+test("the mover's client stretches the walk to the clock's time, and leaves a move that asked for its own animation", () => {
+  const configured = [];
+  const Token = { _configureAnimationMovementSpeed: (...args) => configured.push(args) };
+  const saved = globalThis.foundry;
+  globalThis.foundry = { canvas: { placeables: { Token } } };
+  try {
+    const move = { origin: { x: 0, y: 0 }, passed: { waypoints: [{ x: 1 }] }, pending: { waypoints: [{ x: 2 }] } };
+    const doc = { id: "t" };
+    const options = {};
+    slowWalk(doc, move, options, { cost: 2, steps: [{}] });
+    assert.deepEqual(options.animation, { duration: 1550 });
+    assert.deepEqual(configured[0].slice(0, 3), [options, move.origin, [{ x: 1 }, { x: 2 }]], "core turns the duration into a speed over the whole path");
+    const own = { animation: { duration: 0 } };
+    slowWalk(doc, move, own, { cost: 2, steps: [{}] });
+    assert.deepEqual(own.animation, { duration: 0 }, "a move that asked for none is instant");
+    const free = {};
+    slowWalk(doc, move, free, { cost: 0, steps: [{ displace: true }] });
+    assert.equal(free.animation, undefined, "a free move keeps core's speed");
+    assert.equal(configured.length, 1);
+  } finally {
+    globalThis.foundry = saved;
+  }
 });
 
 test("a move the day can no longer pay for sends the token back, spends nothing and leaves the clock", async () => {

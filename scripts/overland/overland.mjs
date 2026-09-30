@@ -53,7 +53,7 @@ import {
   pickTravelToken, forageRefusal, setWeather, weatherHolds, weatherAdvantage, weatherFormula,
   weatherFromRoll, harshToday, WEATHER_RULES, METHODS, openDay, spendMove, priceMove, moveVerdict, hexCost,
   dayChecks, dueChecks, markCheck, setPending, setEncounter, forageDC, closeDay, planRations, partyMethod, setPace,
-  checkSettings, encounterChance, checkHalf, makeCampState, campLightsOut, interruptRest,
+  checkSettings, encounterChance, checkHalf, makeCampState, campLightsOut, interruptRest, walkMs, walkSlices,
 } from "./overland-state-core.mjs";
 import { PARTY_FLAG, extrasParties, joinExtras, placePartyToken, wearPartyHex } from "./hex-rules.mjs";
 
@@ -424,12 +424,16 @@ async function rollCheck(c, chance, travel) {
  * panel, and stores what is left as `pending`, for Continue (§5.3, Q4).
  * @param {number} target  worldTime to reach
  * @param {string} reason  what the advance was for: "move", "day", later "camp"
+ * @param {number} [ms]  a walk to keep pace with, real ms: the clock runs in slices over it, each check
+ *   hour taking its share, so the bar, the sky and the lights follow the token (0: one jump)
  * @returns {Promise<{stopped:boolean}>}
  */
-export async function advanceTravel(target, reason) {
+export async function advanceTravel(target, reason, ms = 0) {
+  const perSecond = target > game.time.worldTime ? ms / (target - game.time.worldTime) : 0;
   for (const i of dueChecks(_state.checks, target)) {
     const c = _state.checks[i];
-    if (c.at > game.time.worldTime) await game.time.advance(c.at - game.time.worldTime);
+    const gap = c.at - game.time.worldTime;
+    if (gap > 0) await advanceOver(gap, gap * perSecond);
     const chance = chanceNow();
     // Travel, not a camp's or a late Start day's check: the GM Guide's marked zone rows give a point of interest (#273).
     const { hit, held } = await rollCheck(c, chance, reason === "move");
@@ -453,8 +457,28 @@ export async function advanceTravel(target, reason) {
       return { stopped: true };
     }
   }
-  if (target > game.time.worldTime) await game.time.advance(target - game.time.worldTime);
+  const rest = target - game.time.worldTime;
+  if (rest > 0) await advanceOver(rest, rest * perSecond);
   return { stopped: false };
+}
+
+/**
+ * Move the clock `seconds` over `ms` of real time in slices (walkSlices), holding the
+ * real-time ticker so a tick can't set a slice back.
+ * ponytail: one game.time.advance per ~150 ms while a hex is walked, every client's bar redraws each;
+ * a client-side tween of a single write is the upgrade path if that costs a weak device too much.
+ */
+async function advanceOver(seconds, ms) {
+  const slices = walkSlices(seconds, ms);
+  if (slices.length === 1) return game.time.advance(seconds);
+  const t0 = performance.now();
+  await holdClock(async () => {
+    for (const { dt, ms: due } of slices) {
+      const wait = t0 + due - performance.now();
+      if (wait > 0) await new Promise((resolve) => setTimeout(resolve, wait));
+      await game.time.advance(dt);
+    }
+  });
 }
 
 /**
@@ -695,9 +719,25 @@ function onPreMoveToken(doc, move, options) {
   if (!isTravelMove(doc, options)) return;
   const priced = priceTravelMove(doc, move.origin, [...move.passed.waypoints, ...move.pending.waypoints]);
   const why = priced && moveVerdict(_state, priced);
-  if (!why) return;
+  if (!why) {
+    if (priced) slowWalk(doc, move, options, priced);
+    return;
+  }
   ui.notifications?.warn(refusalText(why, priced));
   return false;
+}
+
+/**
+ * Make the token walk as long as the clock takes to move it (walkMs), on every client:
+ * the duration rides the move's own animation option, which core turns into a speed.
+ * The clock's half is recordMove's slices. A move that asked for its own animation keeps it.
+ */
+export function slowWalk(doc, move, options, priced) {
+  const ms = walkMs(priced);
+  const configure = foundry.canvas?.placeables?.Token?._configureAnimationMovementSpeed;
+  if (!ms || typeof configure !== "function" || options.animation?.duration !== undefined) return;
+  options.animation = { ...options.animation, duration: ms };
+  configure.call(foundry.canvas.placeables.Token, options, move.origin, [...move.passed.waypoints, ...move.pending.waypoints], doc);
 }
 
 /** The active GM: spend what was moved. */
@@ -749,7 +789,8 @@ export function recordMove(doc, origin, dest, priced) {
     if (!priced.steps.length) return true;
     const hex = await withRegion(priced.steps.at(-1).hex, doc.parent);
     await commit(spendMove(_state, { cost: priced.cost, hex }).state);
-    if (priced.cost > 0) await advanceTravel(game.time.worldTime + priced.cost * _state.pointSeconds, "move");
+    // The walk is on this screen: the clock keeps pace with it. Nothing to pace against when the token isn't drawn here.
+    if (priced.cost > 0) await advanceTravel(game.time.worldTime + priced.cost * _state.pointSeconds, "move", doc.object ? walkMs(priced) : 0);
     return true;
   });
 }
