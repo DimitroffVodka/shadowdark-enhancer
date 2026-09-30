@@ -24,7 +24,7 @@
 import { MODULE_ID } from "../shared/module-id.mjs";
 import { imageInk } from "./ink.mjs";
 import { detectLattice, latticeCentre, latticeFromCorners, cornerSupport } from "./lattice.mjs";
-import { foundryOffsetToCube, framesTopRow, withAnchorNumber } from "./geometry.mjs";
+import { foundryOffsetToCube, framesTopRow, withAnchorNumber, extrasNumbersAlike } from "./geometry.mjs";
 import { emptyState, encodeTags } from "./tag-store.mjs";
 import { A0_PRINT, isA0 } from "./a0-print.mjs";
 
@@ -72,7 +72,7 @@ async function pickFile() {
  * @returns {Promise<{lat:object, cols:number, rows:number, rowsLowered?:number, lowered:"odd"|"even", firstNum:string}|null>}
  *   `lat` is the lattice shown when Create scene was pressed: the detector's, or the hand-set one
  */
-async function confirmLattice({ preview, full, file, lat: detected, imageW, corners: support = [] }) {
+export async function confirmLattice({ preview, full, file, lat: detected, imageW, corners: support = [] }) {
   const pw = preview.width, ph = preview.height, k = pw / imageW, imageH = ph / k;
   const labels = ["SDE.hexMap.corner.topLeft", "SDE.hexMap.corner.topRight",
     "SDE.hexMap.corner.bottomLeft", "SDE.hexMap.corner.bottomRight"].map((k) => t(k));
@@ -82,6 +82,8 @@ async function confirmLattice({ preview, full, file, lat: detected, imageW, corn
     ? `<p class="sde-hexmap-warn"><i class="fas fa-triangle-exclamation"></i> ${t(missed.length > 1 ? "SDE.hexMap.flow.cornersMissedMany" : "SDE.hexMap.flow.cornersMissedOne", { corners: esc(missed.join(" and ")) })}</p>`
     : `<p><i class="fas fa-circle-check"></i> ${t("SDE.hexMap.flow.cornersOk")}</p>`;
   let lat = detected;       // the lattice on show: the detector's until the corners are set by hand
+  let hand = null;          // the two hexes the GM set by hand ([tl, br]); the lattice is fitted to them and the boxes
+  let unfit = false;        // ...and the last fit failed, so `lat` is only the previous one, kept as a picture
   let pick = null, tap = null, root = null;   // pick: "tl" | "br" while the GM clicks the print; tap: the top-left click, waiting for the second
   const content = `
     <div class="sde-hexmap-confirm">
@@ -104,28 +106,39 @@ async function confirmLattice({ preview, full, file, lat: detected, imageW, corn
   const rowsIn = (col) => ((col % 2 === 1) === (lat.lowered === "odd") ? (lat.rowsLowered || lat.rows) : lat.rows);
   const hexPath = (ctx, x, y, r, h) => { ctx.beginPath(); for (const [dx, dy] of [[r, 0], [r / 2, h], [-r / 2, h], [-r, 0], [-r / 2, -h], [r / 2, -h]]) ctx.lineTo(x + dx, y + dy); ctx.closePath(); };
   const field = (name) => root.querySelector(`[name='${name}']`);
-  /** The two hexes a hand-set lattice hangs on. */
-  const anchors = () => [latticeCentre(lat, 0, 0), latticeCentre(lat, lat.cols - 1, rowsIn(lat.cols - 1) - 1)];
-  /** Hang a lattice on the top-left and bottom-right centres, with the counts as the boxes now read. Keeps the last one when they do not fit. */
-  const place = ([tl, br]) => {
+  /** The two hexes a hand-set lattice hangs on: the GM's clicks, or where the shown lattice has them. */
+  const anchors = () => hand ?? [latticeCentre(lat, 0, 0), latticeCentre(lat, lat.cols - 1, rowsIn(lat.cols - 1) - 1)];
+  /** The lattice for two centres and the counts as the boxes read now, or null when they span none. */
+  const fit = ([tl, br]) => {
     const cols = parseInt(field("cols").value, 10), rows = parseInt(field("rows").value, 10);
-    lat = latticeFromCorners({ tl, br, cols, rows, rowsLowered: Math.max(1, rows - (field("short").checked ? 1 : 0)), lowered: field("lowered").value === "even" ? "even" : "odd" }) ?? lat;
+    return latticeFromCorners({ tl, br, cols, rows, rowsLowered: Math.max(1, rows - (field("short").checked ? 1 : 0)), lowered: field("lowered").value === "even" ? "even" : "odd" });
+  };
+  /**
+   * Hang a lattice on the top-left and bottom-right centres. When the counts do not fit them the last lattice
+   * stays on the picture, but `unfit` holds Create off until the boxes and the corners make a grid again.
+   */
+  const place = (pair) => {
+    hand = pair;
+    const fitted = fit(pair);
+    if (fitted) lat = fitted;
+    unfit = !fitted;
     render();
   };
   const info = () => {
     const status = pick ? `<p><i class="fas fa-crosshairs"></i> ${t(pick === "tl" ? "SDE.hexMap.flow.handTopLeft" : "SDE.hexMap.flow.handBottomRight")}</p>`
-      : lat !== detected ? `<p><i class="fas fa-circle-check"></i> ${t("SDE.hexMap.flow.handDone")}</p>`
+      : unfit ? `<p class="sde-hexmap-warn"><i class="fas fa-triangle-exclamation"></i> ${t("SDE.hexMap.flow.handNoFit")}</p>`
+      : hand ? `<p><i class="fas fa-circle-check"></i> ${t("SDE.hexMap.flow.handDone")}</p>`
       : !lat ? `<p class="sde-hexmap-warn"><i class="fas fa-triangle-exclamation"></i> ${t("SDE.hexMap.flow.noGrid")}</p>`
       : verdict;
-    if (!lat) return status;
+    if (!lat || unfit) return status;
     const short = lat.rowsLowered && lat.rowsLowered !== lat.rows;
     return `<p>${t("SDE.hexMap.flow.found", { cols: lat.cols, rows: lat.rows, px: Math.round(lat.pitchX / 0.75), py: Math.round(lat.pitchY), lowered: esc(lat.lowered) })}${short ? t("SDE.hexMap.flow.foundShort", { rows: lat.rowsLowered }) : ""}.</p>`
-      + (lat === detected ? `<p class="hint">${t("SDE.hexMap.flow.measured")}</p>` : "") + status;
+      + (!hand ? `<p class="hint">${t("SDE.hexMap.flow.measured")}</p>` : "") + status;
   };
   // DialogV2 sanitises its content and drops <canvas>, so the pictures are made here.
   const render = () => {
     root.querySelector("#sde-hexmap-info").innerHTML = info();
-    const create = root.querySelector("[data-action='create']"); if (create) create.disabled = !lat;
+    const create = root.querySelector("[data-action='create']"); if (create) create.disabled = !lat || unfit;
     const c = document.createElement("canvas");
     c.width = pw; c.height = ph;
     root.querySelector("#sde-hexmap-preview").replaceChildren(c);
@@ -153,7 +166,7 @@ async function confirmLattice({ preview, full, file, lat: detected, imageW, corn
       ctx.beginPath(); ctx.arc(p.u * k, p.v * k, Math.max(1.5, pw / 400), 0, Math.PI * 2); ctx.fill();
     }
     ctx.strokeStyle = "rgba(30, 90, 220, 0.9)"; ctx.lineWidth = Math.max(1.5, pw / 500);
-    const byHand = lat !== detected, [tl, br] = anchors();
+    const byHand = !!hand, [tl, br] = anchors();
     const corners = [[0, 0], [last, 0], [0, rowsIn(0) - 1], [last, rowsIn(last) - 1]].map(([c, r], i) => [c, r, byHand ? labels[i] : `${labels[i]} ${found[i] ? "✓" : "✗"}`]);
     for (const [col, row] of corners) { const p = latticeCentre(lat, col, row); hexPath(ctx, p.u * k, p.v * k, R * k, ry * k); ctx.stroke(); }
     // The corners at print resolution: 2.6 cells across, the corner cell outlined, neighbours dotted.
@@ -195,13 +208,14 @@ async function confirmLattice({ preview, full, file, lat: detected, imageW, corn
       root = dialog.element ?? dialog;
       root.querySelector("#sde-hexmap-hand").addEventListener("click", () => { pick = "tl"; tap = null; render(); });
       // Once the corners are set, the counts and the parity say how many pitches lie between them: changing one re-fits the grid.
-      for (const name of ["cols", "rows", "lowered", "short"]) field(name).addEventListener("change", () => { if (lat && lat !== detected) place(anchors()); });
+      for (const name of ["cols", "rows", "lowered", "short"]) field(name).addEventListener("change", () => { if (hand) place(hand); });
       render();
     },
     buttons: [
       { action: "create", label: t("SDE.hexMap.btn.createScene"), default: true, callback: (ev, button, dialog) => {
         const root = dialog.element ?? dialog, q = (n) => root.querySelector?.(`[name='${n}']`)?.value;
-        return { lat, cols: parseInt(q("cols"), 10), rows: parseInt(q("rows"), 10), short: !!root.querySelector?.("[name='short']")?.checked, lowered: q("lowered") === "even" ? "even" : "odd", firstNum: String(q("firstNum") ?? "0000").trim() || "0000" };
+        // A hand-set lattice is fitted to the boxes as they read now, not as they read when last fitted: one answer, coherent.
+        return { lat: hand ? fit(hand) : lat, cols: parseInt(q("cols"), 10), rows: parseInt(q("rows"), 10), short: !!root.querySelector?.("[name='short']")?.checked, lowered: q("lowered") === "even" ? "even" : "odd", firstNum: String(q("firstNum") ?? "0000").trim() || "0000" };
       } },
       { action: "cancel", label: t("SDE.hexMap.btn.cancel") },
     ],
@@ -254,8 +268,10 @@ export function alignedSceneData({ name, src, imageW, imageH, lat, firstNum = "0
   // That row is margin, so it is not numbered; the tagger's "top row is frame"
   // box undoes it for a print whose first row really is map. One row short is
   // also what a jagged print of full hexes looks like (The Gloaming), so when
-  // the detector has looked at that first row (frameCut) it decides.
-  if (frameCut === false) bounds.firstRow = 0;
+  // the detector has looked at that first row (frameCut) it decides, in both
+  // directions and whatever the row counts say: a cut first row is skipped even
+  // when the lowered columns are as long as the raised ones.
+  if (typeof frameCut === "boolean") bounds.firstRow = frameCut ? 1 : 0;
   else if (framesTopRow(bounds)) bounds.firstRow = 1;
   // The anchor is the print's first hex. It starts as 0000 with the detector's lowered columns, and
   // withAnchorNumber gives it the number the print really starts from (The Gloaming's is 0001):
@@ -284,6 +300,43 @@ export function alignedSceneData({ name, src, imageW, imageH, lat, firstNum = "0
   if (levels) data.levels = [{ name: "Map", background: { src }, textures }];   // a Level needs a name
   else data.background = { src, ...textures };
   return data;
+}
+
+/**
+ * How many rows of Foundry cells the scene keeps above a confirmed print's first row.
+ *
+ * One row above a print whose first row is full hexes puts the raised columns' first row whole
+ * inside the scene instead of half of it outside (alignedSceneData `topRows`). But that moves the
+ * print's first hex off Foundry's cell (0, 0), and Shadowdark Extras numbers a scene from exactly
+ * there (adoptHexcrawl: printed (col, row) is Foundry offset {i: row - base, j: col - base}, with no
+ * way to say "one row down"), so Send to Extras would refuse the print (extrasNumbersAlike), or worse
+ * put every record a row off. So a print Extras can adopt as it stands keeps its first hex at
+ * (0, 0), as it always had; the row is added only to a print Extras could not take anyway (an
+ * even-lowered one, which needs a HEXEVENQ grid, or one whose first hex is not 0000 / 0101).
+ * ponytail: a print Extras can adopt keeps its top raised row half outside the scene until Extras
+ * can adopt a scene with a row offset; then this returns 1 whenever the frame does not cut the row.
+ * @param {{lat:{lowered:"odd"|"even"}, firstNum?:string, frameCut?:boolean}} args  the lowered parity as confirmed
+ * @returns {0|1}
+ */
+export function topRowsFor({ lat, firstNum = "0000", frameCut = false }) {
+  if (frameCut) return 0;   // the half cell is margin; the first hex is the scene's top-left cell
+  if (lat.lowered === "odd") {
+    const first = withAnchorNumber({ cube: foundryOffsetToCube({ i: 0, j: 0 }, false), num: "0000", shifted: "odd" }, firstNum);
+    if (first && [0, 1].some((base) => extrasNumbersAlike(first, base))) return 0;
+  }
+  return 1;
+}
+
+/**
+ * The scene for a confirmed lattice: what the flow creates, in one place so it can be checked without a world.
+ * A hand-set lattice says nothing about the frame: its first row is map (no `frameCut`).
+ * @param {{name:string, src:string, imageW:number, imageH:number, answer:object}} args  answer: from confirmLattice
+ */
+export function sceneDataFromAnswer({ name, src, imageW, imageH, answer }) {
+  const frameCut = answer.lat.frameCut ?? false;
+  const lat = { ...answer.lat, lowered: answer.lowered };
+  const { firstNum } = answer;
+  return alignedSceneData({ name, src, imageW, imageH, lat, firstNum, cols: answer.cols, rows: answer.rows, rowsLowered: answer.rowsLowered, frameCut, topRows: topRowsFor({ lat, firstNum, frameCut }) });
 }
 
 /**
@@ -334,11 +387,7 @@ export async function startHexMapFlow() {
     preview.close?.();
     if (!answer) return null;
     const src = await uploadMap(file);
-    // A hand-set lattice says nothing about the frame: its first row is map. A full first row keeps one row of
-    // Foundry cells above it, so the raised columns' first row is not the half Foundry centres on the scene's
-    // edge; a cut one is margin anyway and stays where the first hex is the scene's top-left cell.
-    const frameCut = answer.lat.frameCut ?? false;
-    const data = alignedSceneData({ name, src, imageW, imageH, lat: { ...answer.lat, lowered: answer.lowered }, firstNum: answer.firstNum, cols: answer.cols, rows: answer.rows, rowsLowered: answer.rowsLowered, frameCut, topRows: frameCut ? 0 : 1 });
+    const data = sceneDataFromAnswer({ name, src, imageW, imageH, answer });
     const scene = await Scene.create(data);
     ui.notifications?.info(t("SDE.hexMap.notify.sceneCreated", { name: scene.name, cols: answer.cols, rows: answer.rows, size: data.grid.size }));
     await scene.view();

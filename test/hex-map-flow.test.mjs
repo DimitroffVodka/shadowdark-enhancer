@@ -3,9 +3,11 @@ import assert from "node:assert/strict";
 
 // The flow's scene geometry is pure apart from Foundry's constants.
 globalThis.CONST = { GRID_TYPES: { HEXODDQ: 4, HEXEVENQ: 5 }, GRID_MIN_SIZE: 20 };
-const { alignedSceneData } = await import("../scripts/hex-map/hex-map-flow.mjs");
-const { framesTopRow } = await import("../scripts/hex-map/geometry.mjs");
-const { latticeCentre } = await import("../scripts/hex-map/lattice.mjs");
+const { alignedSceneData, sceneDataFromAnswer, topRowsFor } = await import("../scripts/hex-map/hex-map-flow.mjs");
+const { framesTopRow, extrasNumbersAlike, originFromFlag, cellNumber, foundryOffsetToCube } = await import("../scripts/hex-map/geometry.mjs");
+const { latticeCentre, detectLattice } = await import("../scripts/hex-map/lattice.mjs");
+const { decodeTags } = await import("../scripts/hex-map/tag-store.mjs");
+const { print } = await import("./helpers/lattice-print.mjs");
 
 // A stretched print (hexes taller than regular), odd columns lowered, with margins.
 const lat = { x0: 486.66, y0: 196.44, pitchX: 142.87, pitchY: 174.43, lowered: "odd", cols: 64, rows: 75 };
@@ -159,4 +161,78 @@ test("the frame box starts ticked when the lowered columns end one row short", (
 test("a stored answer beats the guess, in both directions", () => {
   assert.equal(framesTopRow({ rows: 75, rowsLowered: 74, firstRow: 0 }), false);  // the GM unticked it
   assert.equal(framesTopRow({ rows: 75, rowsLowered: 75, firstRow: 1 }), true);   // and ticked it elsewhere
+});
+
+// --- what the flow builds for a confirmed lattice, and whether Send to Extras still takes it ---
+
+/** The origin the tagger reads back from a scene's flag, as its Send to Extras handler sees it. */
+const originOf = (data) => originFromFlag(decodeTags(data.flags["shadowdark-enhancer"].hexTags).origin);
+const answerFor = (lat, extra = {}) => ({ lat, lowered: lat.lowered, firstNum: "0000", cols: lat.cols, rows: lat.rows, ...extra });
+const gloaming = { imageW: 2250, imageH: 1674 };
+const gLat = (lowered, extra = {}) => ({ x0: 144.41, y0: 200.26, pitchX: 122.18, pitchY: 141.09, lowered, cols: 17, rows: 11, rowsLowered: 10, frameCut: false, ...extra });
+const sceneFor = (answer) => sceneDataFromAnswer({ name: "Map", src: "x.jpg", ...gloaming, answer });
+
+test("Send to Extras still takes an odd-lowered print with a full first row, numbered from 0000 or 0101", () => {
+  // Review of #314: the row of cells above the print moved the first hex to Foundry row 1, and the
+  // Send handler's extrasNumbersAlike refused a print the base accepted. Extras numbers a scene from its
+  // top-left cell and cannot be told about a row offset, so such a print keeps its first hex there.
+  for (const [firstNum, base] of [["0000", 0], ["0101", 1]]) {
+    const data = sceneFor(answerFor(gLat("odd"), { firstNum }));
+    const origin = data.flags["shadowdark-enhancer"].hexTags.origin;
+    assert.deepEqual([origin.i, origin.j], [0, 0], `${firstNum}: the first hex is Foundry's cell (0, 0)`);
+    assert.equal(extrasNumbersAlike(originOf(data), base), true, `${firstNum}: Send to Extras accepts it`);
+  }
+});
+
+test("the row of cells above a print is only added where Extras could not adopt the print anyway", () => {
+  // Even-lowered needs a HEXEVENQ grid and a first hex other than 0000 / 0101 is not the scene's top-left:
+  // Extras takes neither, so nothing is lost by the row that keeps their raised first row whole.
+  const rowOf = (answer) => sceneFor(answer).flags["shadowdark-enhancer"].hexTags.origin.i;
+  assert.equal(rowOf(answerFor(gLat("even"))), 1, "even-lowered, numbered from 0000");
+  assert.equal(rowOf(answerFor(gLat("odd"), { firstNum: "0001" })), 1, "odd-lowered, numbered from 0001 (The Gloaming's own)");
+  assert.equal(rowOf(answerFor(gLat("odd"), { firstNum: "0100" })), 1, "first hex is column 1");
+  assert.equal(rowOf(answerFor(gLat("odd"))), 0, "odd-lowered, 0000: Extras can adopt it");
+  assert.equal(rowOf(answerFor(gLat("even"), { firstNum: "0101" })), 1, "even-lowered stays HEXEVENQ, which Extras refuses, whatever it is numbered");
+  // A cut first row is margin: nothing to keep whole, so the first hex stays the top-left cell.
+  assert.equal(rowOf(answerFor(gLat("even", { frameCut: true }))), 0);
+  // A hand-set lattice says nothing of the frame, so it counts as a full first row.
+  assert.equal(rowOf(answerFor({ ...gLat("even"), frameCut: undefined })), 1);
+  assert.equal(topRowsFor({ lat: { lowered: "odd" } }), 0, "firstNum defaults to 0000");
+});
+
+test("the offset is what the Extras guard refuses: adopting an offset print would put every record a row off", () => {
+  // The reason for the gate above, as a contract check: with the row, the print's first hex is Foundry (1, 0).
+  const lat = gLat("odd");
+  const offset = alignedSceneData({ name: "Map", src: "x.jpg", ...gloaming, lat, cols: 17, rows: 11, rowsLowered: 10, frameCut: false, topRows: 1, levels: true });
+  assert.equal(extrasNumbersAlike(originOf(offset), 0), false);
+});
+
+test("a cut first row the detector saw is skipped, whether or not the lowered columns end one short", () => {
+  // Review of #314: frameCut true still went through the row-count guess, which is false when the
+  // lowered columns are as long as the raised ones (12 x 9 here).
+  const lat = { x0: 61, y0: 52, pitchX: 30, pitchY: 34, lowered: "odd" };
+  for (const shortLowered of [false, true]) {
+    const ink = print({ w: 480, h: 420, lat, cols: 12, rows: 9, cutTop: true, shortLowered, seed: shortLowered ? 5 : 11 });
+    const d = detectLattice(ink, 480, 420);
+    assert.equal(d.frameCut, true, `short ${shortLowered}: detected as a frame cut`);
+    assert.equal(d.rowsLowered, shortLowered ? 8 : 9);
+    const answer = answerFor({ ...d }, { rowsLowered: d.rowsLowered < d.rows ? d.rowsLowered : undefined });
+    const data = sceneDataFromAnswer({ name: "Map", src: "x.png", imageW: 480, imageH: 420, answer });
+    const origin = originOf(data);
+    assert.equal(origin.bounds.firstRow, 1, `short ${shortLowered}: the cut row is not numbered`);
+    const at = (i, j) => cellNumber(foundryOffsetToCube({ i, j }, false), origin);
+    assert.equal(at(0, 0).num, null, "the raised column's margin cell has no number");
+    assert.equal(at(1, 0).num, 1, "the first real hex is 0001");
+    assert.equal(at(0, 1).num, 100, "the lowered column starts at row 0");
+  }
+});
+
+test("frameCut decides the first row whatever the counts say, and absent keeps the guess", () => {
+  const lat = { x0: 61, y0: 52, pitchX: 30, pitchY: 34, lowered: "odd" };
+  const bounds = (extra) => alignedSceneData({ name: "Map", src: "x.png", imageW: 480, imageH: 420, lat, cols: 12, rows: 9, levels: true, ...extra }).flags["shadowdark-enhancer"].hexTags.origin.bounds;
+  assert.equal(bounds({ frameCut: true }).firstRow, 1, "equal rows");
+  assert.equal(bounds({ frameCut: true, rowsLowered: 7 }).firstRow, 1, "two short");
+  assert.equal(bounds({ frameCut: false, rowsLowered: 8 }).firstRow, 0);
+  assert.equal(bounds({ rowsLowered: 8 }).firstRow, 1, "absent: one short is the guess");
+  assert.equal(bounds({}).firstRow, undefined, "absent: nothing to assume");
 });

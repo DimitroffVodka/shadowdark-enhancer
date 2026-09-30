@@ -129,8 +129,9 @@ terrains.
 - **Rename** and **Delete** are for the rulesets you added. Deleting one is
   only kept when you press Save, and every scene that used it goes back to the
   default.
-- **The scene "…" uses** appears when you are viewing a hex map. It says which
-  ruleset that scene reads, and is saved with the rest. A scene that names none
+- **The scene "…" uses** appears when you open the window on a hex map. It says which
+  ruleset that scene reads, and is saved with the rest, to that scene, even if
+  you move to another map while the window is open. A scene that names none
   uses the default, so nothing changes for a map you never touch.
 - **Import from GM Guide** is only on the default ruleset: it fills the Western
   Reaches' tables.

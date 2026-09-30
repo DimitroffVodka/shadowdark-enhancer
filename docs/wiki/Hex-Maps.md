@@ -131,13 +131,17 @@ file, and the module does the setup itself:
    of the bottom-right hex (the last column, its last row). The pitches follow
    from those two points and the counts. Click the middle of the hex in the
    top-left or bottom-right corner picture to nudge it; the other two pictures
-   are the check. Changing a box re-fits the grid.
+   are the check. Changing a box re-fits the grid; if the counts cannot make a
+   grid between the two corners, the window says so and **Create scene** stays
+   off until they do.
 3. It copies the image into the world's `hex-maps` folder, creates a scene
    whose hex grid sits on the print (the image is stretched to Foundry's hex
    proportions, so a print with tall hexes lands on a regular grid; a print
    whose first row is full hexes starts one row of cells below the scene's top
-   edge, because Foundry cuts every other column's first row in half there),
-   stores
+   edge, because Foundry cuts every other column's first row in half there;
+   the exception is a print Shadowdark Extras can take as it stands, odd
+   columns lowered and numbered from 0000 or 0101, whose first hex stays on
+   the scene's top-left cell because Extras numbers a map from there), stores
    the anchor and map size, then opens the Hex Tagger on it, samples the
    cells and shows the **legend** (next section). Name the pictures and the
    map is tagged.
@@ -216,7 +220,7 @@ continue from the north's (row 12 on).
 If you left the dialog on 0000 and the numbers are off by a row or a column,
 you do not have to start over: open the scene in the Hex Tagger, **More**, type
 the right number into **Anchor hex** and press **Apply**. Every hex follows it.
-Tags, regions and corrections already made are filed by number, so if there are
+Tags, regions, corrections and tile art already made are filed by number, so if there are
 any it asks first. To check, turn on **Show tags** in the tagger and hover a hex:
 its number is the first thing in the label.
 

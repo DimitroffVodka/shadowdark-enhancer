@@ -2373,7 +2373,7 @@ function parseListPage(text, { name = "", size } = {}) {
   const faces = size || rows.length;
   const pt = parseSingleDieBlock(name, { count: 1, size: faces, columns: [], remainder: "" }, rows.map((r, i) => `${i + 1} ${r}`));
   if (name) pt.name = name;
-  if (rows.length !== faces) pt.warnings = [...(pt.warnings ?? []), `Read ${rows.length} entries for a d${faces}: check the list is whole.`];
+  if (rows.length !== faces) pt.warnings = [...(pt.warnings ?? []), game.i18n.format("SDE.importer.tables.listCount", { read: rows.length, faces })];
   return pt.rows.length ? pt : null;
 }
 

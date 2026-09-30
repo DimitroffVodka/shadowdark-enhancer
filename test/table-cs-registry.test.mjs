@@ -25,7 +25,7 @@ const { contentIdForName, resolveShape } = await import("../scripts/importer/tab
 const { gatherCharContentEntries, CURSED_SCROLL_KEY_LOCATIONS, tablePagesFor } = await import("../scripts/importer/char-content/char-content-manifest.mjs");
 const { _testBuildRollTables } = await import("../scripts/importer/manage-tree.mjs");
 const { planBatch, ROUTE } = await import("../scripts/importer/batch-import.mjs");
-const { parseZoneTableName } = await import("../scripts/encounter/encounter-terrain.mjs");
+const { parseZoneTableName, pickZoneTable, hexTableUuid } = await import("../scripts/encounter/encounter-terrain.mjs");
 const { suiteMembersOf, suiteStatusOf, normalizeName } = await import("../scripts/importer/tables/table-hub.mjs");
 
 const norm = (s) => String(s).toLowerCase().replace(/\s+/g, " ").trim();
@@ -54,7 +54,10 @@ test("a grid names one table per catalogued column, so the per-column manifest i
   for (const t of grids) {
     const row = findById(t.id);
     assert.ok(isMatrix(row), `${t.id} is a grid in the catalogue`);
-    assert.deepEqual(t.shape.members.map((m) => m.name), row.columns.map((c) => `${t.name}: ${c}`), t.id);
+    // The Black River prints "Encounter Type by Terrain" but files its columns "Encounter Type: <col>",
+    // the name zone discovery reads (Tal-Yool's grid does the same).
+    const prefix = t.name.replace(/ Encounter Type by Terrain$/, " Encounter Type");
+    assert.deepEqual(t.shape.members.map((m) => m.name), row.columns.map((c) => `${prefix}: ${c}`), t.id);
     assert.equal(t.rows, row.rows, `${t.id}: rows in each column`);
     assert.deepEqual(row.columns.map((c) => columnManifestId(row.id, c)).length, row.columns.length);
   }
@@ -97,6 +100,28 @@ test("a map's tables carry the region name its key-location entry has, apart fro
   }
   assert.notEqual(parseZoneTableName("Cursed Scroll 1 - The Gloaming (Cursed Scroll 1) Encounter Zone: Forest").region,
     parseZoneTableName("Western Reaches GM Guide - The Gloaming Encounter Zone: Forest").region);
+});
+
+test("every Cursed Scroll grid the travel check reads is found by its region, and each hex terrain reaches its own column", () => {
+  // Zone discovery keeps only "<Region> Encounter Zone: <col>" / "Encounter Type: <col>". The Black River's grid is
+  // printed "Encounter Type by Terrain", so it has to file its columns as "Encounter Type: <col>" like Tal-Yool's does.
+  const zones = new Map();
+  for (const t of CS_TABLES.filter((x) => x.shape.kind === "suite" && /Encounter (Zone|Type)/.test(x.name))) {
+    for (const m of t.shape.members) {
+      const p = parseZoneTableName(`Cursed Scroll ${t.src.slice(2)} - ${m.name}`);
+      assert.ok(p, `${t.src} ${m.name} is recognized by zone discovery`);
+      assert.equal(p.region, CS_REGION[t.src]);
+      zones.set(p.region, [...(zones.get(p.region) ?? []), { ...p, uuid: `uuid-${p.column}` }]);
+    }
+  }
+  assert.deepEqual([...zones.keys()].sort(), Object.values(CS_REGION).sort(), "all five regions are discovered");
+  const black = CS_REGION.CS4;
+  const at = (terrain, features = []) => hexTableUuid({ num: 1, terrain, zone: black, features }, { zonesByRegion: zones, fallback: "none" }).uuid;
+  assert.equal(at("jungle"), "uuid-Jungle");
+  assert.equal(at("river"), "uuid-River");
+  assert.equal(at("mountain"), "uuid-Mountain");
+  assert.equal(at("jungle", ["coast"]), "uuid-Shoreline", "a coastal hex rolls the Shoreline column");
+  assert.equal(pickZoneTable(black, "jungle", [], zones).status, "ok");
 });
 
 test("the Manage tree lists every table in its book's leaf with its catalogue id, page and recipe", async () => {

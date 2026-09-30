@@ -56,6 +56,25 @@ While travelling, every move forward rolls the day's encounter checks it
 passes, at their hours, as a move across the map does; a hit stops the clock
 there, and the steps wait until the encounter is continued.
 
+### Walking a hex takes its time
+
+The party token walks as long as the clock takes to move it. A normal hex is
+about a second on screen, and a difficult hex, which costs two points, is
+about a second and a half. The clock runs alongside, in small steps,
+so the date and time on the bar, the sky's darkness and the burning torches
+all keep pace with the token instead of jumping at the start. A route across
+several hexes walks them one after another.
+
+**Make camp** and **Continue** run the rest of the night, or of a stopped move, as
+a time-lapse: a beat plus a share of the span, never more than about three
+seconds. The bar's time, the sky's darkness (dusk falling, dawn lifting) and the
+torches all run through it, and an encounter check still rolls at its hour and
+stops the clock there.
+
+When the party's scene is not the one on the GM's screen there is nothing to
+keep pace with, and the clock moves in one step as before. So do the clock bar's
+own steps and jumps.
+
 ## Encounters while travelling (GM)
 
 Travel's encounter checks roll quietly: nothing goes to chat, the game isn't

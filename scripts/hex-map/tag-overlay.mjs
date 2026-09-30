@@ -22,7 +22,7 @@ import { MODULE_ID } from "../shared/module-id.mjs";
 import { replaceModuleFlag } from "../shared/module-flags.mjs";
 import { sceneCells } from "./sampler.mjs";
 import { cellNumber, foundryOffsetToCube, originFromFlag } from "./geometry.mjs";
-import { decodeTags, encodeTags, applySheet, strandedRiver, readCell, paletteTags, FEATURES } from "./tag-store.mjs";
+import { decodeTags, encodeTags, applySheet, strandedRiver, readCell, paletteTags, WRITER_OPTION, FEATURES } from "./tag-store.mjs";
 import { FIXES_FLAG, DEFAULT_REVIEW_MARGIN, decodeFixes, encodeFixes, recordEdits, withdrawEdits, sameTags } from "./tag-corrections.mjs";
 import { SETTLEMENTS } from "../importer/hex/hex-summary.mjs";
 import { pickZoneTable, encounterZonesByRegion, worldClock, isNight, regionRowRanges, inNorthHalf } from "../encounter/encounter-terrain.mjs";
@@ -365,7 +365,8 @@ export class HexTagOverlay {
     this.reviewMargin = decodeFixes(scene.getFlag(MODULE_ID, FIXES_FLAG)).margin;
     this._hooks = [];
     this._down = null;
-    this._writing = false;
+    this._writing = 0;
+    this._writerId = foundry.utils.randomID();
     /** @type {{terrain:string, features:string[]}|null} set by the brush window */
     this.brush = null;
     /** Cells this stroke has painted, and what each was before it (for Undo). */
@@ -420,13 +421,10 @@ export class HexTagOverlay {
     this.draw();
     HexTagOverlay.current = this;
     // A sheet applied in the tagger, a hand-off or a cleared flag all arrive here.
-    this._hooks.push(["updateScene", Hooks.on("updateScene", (doc) => {
-      if (doc.id !== this.scene.id || this._writing) return;
-      const o = doc.getFlag(MODULE_ID, TAGS_FLAG)?.origin;
-      if (o) this._number(originFromFlag(o));
-      this.state = decodeTags(doc.getFlag(MODULE_ID, TAGS_FLAG));
-      this.reviewMargin = decodeFixes(doc.getFlag(MODULE_ID, FIXES_FLAG)).margin;
-      this.draw();
+    this._hooks.push(["updateScene", Hooks.on("updateScene", (doc, changed, options) => {
+      if (doc.id !== this.scene.id || options?.[WRITER_OPTION] === this._writerId) return;
+      // Mid-write the scene is about to change again under this overlay's own write: read it when that settles.
+      if (this._writing) this._heard = true; else this._takeInScene();
     })]);
     this._hooks.push(["canvasTearDown", Hooks.on("canvasTearDown", () => this.hide())]);
     // Dusk, dawn and a new or full moon change which column a hex rolls on, and
@@ -526,27 +524,41 @@ export class HexTagOverlay {
     }
   }
 
+  /** Re-read the scene's tags and corrections after someone else wrote them (the tagger window, another GM). */
+  _takeInScene() {
+    this._heard = false;
+    const o = this.scene.getFlag(MODULE_ID, TAGS_FLAG)?.origin;
+    if (o) this._number(originFromFlag(o));
+    this.state = decodeTags(this.scene.getFlag(MODULE_ID, TAGS_FLAG));
+    this.reviewMargin = decodeFixes(this.scene.getFlag(MODULE_ID, FIXES_FLAG)).margin;
+    this.draw();
+  }
+
   /**
-   * Write the tags, and the verdicts they imply, in one go.
-   *
-   * `_writing` holds off this overlay's own updateScene hook: the in-memory
-   * state is what is being written, so re-reading it would only redraw the map
-   * once per write. It dates from when replaceModuleFlag deleted the flag
-   * before setting it (until #274), and adopting that briefly empty state as
-   * the in-memory one is how a map got wiped once already.
+   * Run one of this overlay's own writes. Its updateScene hook knows them by the option they carry, so
+   * the in-memory state being written is not re-read and redrawn once per write (a briefly empty flag
+   * adopted that way is how a map got wiped once, before #274). Anyone else's update that lands while
+   * the write is in flight is read when it settles, or the next save would put this copy back over it.
    */
-  async _save(verdicts, { withdraw = null } = {}) {
-    this._writing = true;
+  async _write(fn) {
+    this._writing++;
     try {
+      await fn({ [WRITER_OPTION]: this._writerId });
+    } finally {
+      if (!--this._writing && this._heard) this._takeInScene();
+    }
+  }
+
+  /** Write the tags, and the verdicts they imply, in one go. */
+  async _save(verdicts, { withdraw = null } = {}) {
+    await this._write(async (options) => {
       const log = decodeFixes(this.scene.getFlag(MODULE_ID, FIXES_FLAG));
       let touched = false;
       if (withdraw) touched = withdrawEdits(log, withdraw) > 0;
       else if (verdicts) touched = recordEdits(log, verdicts).judged > 0;
-      await replaceModuleFlag(this.scene, TAGS_FLAG, encodeTags(this.state));
-      if (touched) await replaceModuleFlag(this.scene, FIXES_FLAG, encodeFixes(log));
-    } finally {
-      this._writing = false;
-    }
+      await replaceModuleFlag(this.scene, TAGS_FLAG, encodeTags(this.state), {}, options);
+      if (touched) await replaceModuleFlag(this.scene, FIXES_FLAG, encodeFixes(log), {}, options);
+    });
   }
 
   /** Hover text for the picture currently drawn. */
@@ -729,12 +741,7 @@ export class HexTagOverlay {
 
   /** Write the corrections back, keeping the scan's own enclosures untouched. */
   async _saveRegions() {
-    this._writing = true;
-    try {
-      await replaceModuleFlag(this.scene, REGIONS_FLAG, encodeRegions(this.componentByNum, this.fixByNum));
-    } finally {
-      this._writing = false;
-    }
+    await this._write((options) => replaceModuleFlag(this.scene, REGIONS_FLAG, encodeRegions(this.componentByNum, this.fixByNum), {}, options));
   }
 
   /** Small dialog on one cell; saves through the tagger's own flag write. */

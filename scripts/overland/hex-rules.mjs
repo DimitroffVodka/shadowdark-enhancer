@@ -104,9 +104,23 @@ export function extrasParties() {
 /**
  * Should this actor be an Extras party too? When Extras is there and has no party but this one. With a
  * party of its own Extras keeps that one (Start travel uses it and never makes ours); two would leave
- * the travel token ambiguous.
+ * the travel token ambiguous. A list that could not be read proves nothing: no enrolling on a failed read.
  */
-const joinsExtras = (actor) => !!extrasPartyApi() && extrasParties().every((a) => a.id === actor?.id);
+const joinsExtras = (actor) => {
+  try {
+    const list = extrasPartyApi()?.list();
+    return Array.isArray(list) && list.every((a) => a.id === actor?.id);
+  } catch { return false; }
+};
+
+/** A member Extras' party keeps (a world actor's id, or a uuid) that travel can use: one that is a world actor. */
+const isWorldActor = (key) => {
+  try {
+    if (game.actors.get(key)) return true;
+    const doc = fromUuidSync(key);
+    return !!doc?.id && game.actors.get(doc.id) === doc;
+  } catch { return false; }
+};
 
 /** The player characters, as the members an Extras party starts with: who travelled before Extras' sheet came into it. */
 const playerIds = () => game.actors.filter((a) => a.type === "Player" && a.hasPlayerOwner).map((a) => a.id);
@@ -114,13 +128,18 @@ const playerIds = () => game.actors.filter((a) => a.type === "Player" && a.hasPl
 /**
  * Make the Enhancer's party an Extras party (GM): an NPC flagged `isParty`, which is Extras' own definition
  * of one (its Developer API). Extras then gives it its Party sheet, members and light tracker where the
- * plain actor got the NPC sheet and was never listed. Members it already has are kept; with none, the
- * player characters, so the same people travel as before. Once, and only ever the Enhancer's own party.
+ * plain actor got the NPC sheet and was never listed. Members it already has are kept when they are all world
+ * characters (else it is not joined); with none, the player characters, so the same people travel as before.
+ * Once, and only ever the Enhancer's own party.
  * @param {Actor|null} actor
  */
 export async function joinExtras(actor) {
   if (!actor?.getFlag(MODULE_ID, PARTY_FLAG) || actor.getFlag(EXTRAS_ID, "isParty") === true || !joinsExtras(actor)) return;
-  if (!actor.getFlag(EXTRAS_ID, "members")?.length) await actor.setFlag(EXTRAS_ID, "members", playerIds());
+  const members = actor.getFlag(EXTRAS_ID, "members");
+  // Members that are not world actors (a compendium uuid) would leave nobody travelling once Extras'
+  // roster is the one used: the party stays as it is, the saved list untouched, the player characters travel.
+  if (members?.length && !members.every(isWorldActor)) return;
+  if (!members?.length) await actor.setFlag(EXTRAS_ID, "members", playerIds());
   await actor.setFlag(EXTRAS_ID, "isParty", true);
 }
 

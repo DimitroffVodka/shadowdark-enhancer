@@ -452,6 +452,46 @@ export function priceMove(steps, costOf) {
   return { cost, blocked: null };
 }
 
+/** How long a hex takes on screen, real ms: a share of the cost and a share flat, so a difficult hex drags. */
+export const WALK_MS_PER_POINT = 650;
+export const WALK_MS_PER_HEX = 250;
+/** The clock moves in slices this long while the token walks or a camp runs, so the bar, the sky and the lights keep pace. */
+export const WALK_SLICE_MS = 150;
+
+/**
+ * A camp's or Continue's time-lapse in real ms: a beat and a share of the span, never long,
+ * so a night takes about 3 s and a few minutes half a second (0: no clock to move).
+ * @param {number} seconds  the clock the advance covers
+ */
+export const lapseMs = (seconds) => (seconds > 0 ? Math.min(3200, Math.round(400 + seconds / 18)) : 0);
+
+/**
+ * How long the travel token takes to walk a priced move on screen, in ms (0: nothing to walk).
+ * @param {{cost:number, steps?:Array<{displace?:boolean}>}} priced  from priceMove, with its steps
+ */
+export function walkMs({ cost, steps = [] }) {
+  const hexes = steps.filter((s) => !s.displace).length;
+  return cost > 0 && Number.isFinite(cost) ? Math.round(WALK_MS_PER_POINT * cost + WALK_MS_PER_HEX * hexes) : 0;
+}
+
+/**
+ * Cut `seconds` of clock into slices spread over `ms` of real time.
+ * @returns {{dt:number, ms:number}[]}  each slice's clock seconds, and the ms since the start it is due at;
+ *   one slice due at 0 when there is no walk to keep pace with or too little clock to cut
+ */
+export function walkSlices(seconds, ms, sliceMs = WALK_SLICE_MS) {
+  const n = Math.min(Math.round(ms / sliceMs), Math.floor(seconds));
+  if (!(n >= 2)) return [{ dt: seconds, ms: 0 }];
+  const out = [];
+  let done = 0;
+  for (let i = 1; i <= n; i++) {
+    const to = Math.round((seconds * i) / n);
+    out.push({ dt: to - done, ms: Math.round((ms * (i - 1)) / n) });
+    done = to;
+  }
+  return out;
+}
+
 /**
  * May the travel token make this move (the budget is hard, decided Q9)?
  * @returns {null|"noDay"|"pending"|"impassable"|"bounce"} null: go

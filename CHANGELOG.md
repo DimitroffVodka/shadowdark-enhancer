@@ -11,6 +11,17 @@ it needs.
 
 ### Added
 
+- **The party token walks a hex in step with the clock.** A hex takes about a second
+  on screen (a difficult hex about a second and a half), and while the token slides
+  the clock moves with it in small steps, so the time on the bar, the sky's
+  darkness and the torches' burning all keep pace instead of jumping when the walk
+  starts. A route across several hexes walks them one after another. An encounter
+  check still rolls at its hour and a hit still stops the clock there. **Make camp**
+  and **Continue** run as a time-lapse: a beat and a share of the span, never more
+  than about three seconds, so a night passes in about three seconds with dusk
+  falling and dawn lifting as it goes. Only a move of the travel token is slowed, and
+  only when its scene is on the GM's screen; the clock bar's own steps still move in
+  one step.
 - **The Cursed Scrolls' rumors, encounters and adventure tables import with the rest.**
   The importer always knew these tables existed, and never offered them: Importer
   Hub → Manage → **Roll Tables → Cursed Scroll N** now lists 48 (90 tables once each
@@ -45,7 +56,7 @@ it needs.
   number boxes come up only on a scene with no anchor at all. **More** now has an
   **Anchor hex** box; type the right number, press **Apply**, and every hex
   follows it. The Gloaming, for one, starts at 0001, so its castle hex is 102,
-  not 101. Tags, regions and corrections already made are filed by number, so
+  not 101. Tags, regions, corrections and tile art already made are filed by number, so
   with any it asks before renumbering. To check a number, turn on **Show tags**
   and hover the hex.
 - **Key locations from Cursed Scrolls 1 to 5.** Importer Hub → Tools → **Key
@@ -806,7 +817,10 @@ page walks through it in order.
   own, the module's Party is now made an Extras party, starting with your player
   characters as members; one made before is joined the next time you Start travel
   with it. An Extras party you made yourself still wins and is never joined by the
-  module's. Extras' own party sheet keeps its members if it already has some.
+  module's. Extras' own party sheet keeps its members if it already has some; a
+  party whose saved members are not characters in your world (a compendium
+  actor, say) is left as it was rather than joined, so your player characters keep
+  travelling, and none is made when Extras' list of parties can't be read.
 - **Pressing Apply twice on Map size no longer drops the top row.** On a print
   like The Gloaming, whose first row is full hexes, the first Apply stored the
   "top row is frame" box as "nothing"; the next render guessed it back on from
@@ -830,7 +844,14 @@ page walks through it in order.
   if it were label margin: the detector now tells a half-cut first row from a
   full one. And Foundry's own grid centres every other column's first row on
   the scene's top edge, which cut the top row of such a print in half: its
-  scene now starts one row of cells above the print, so nothing is cut.
+  scene now starts one row of cells above the print, so nothing is cut. A
+  print Shadowdark Extras can take as it stands (odd columns lowered, first
+  hex 0000 or 0101) keeps its first hex on the scene's top-left cell instead,
+  because Extras numbers a map from there and Send to Extras would refuse it.
+  A first row the detector saw cut in half is now skipped even when the
+  lowered columns are as long as the others. And when the counts you type do
+  not fit the two corners you set by hand, Create stays off and says so,
+  instead of creating the scene with the previous grid.
 - **Stepping back past a corpse.** Previous Turn onto a dead enemy (or a
   warband following its commander) bounced forward again, so the GM couldn't
   step back past it. It now keeps stepping back. And a player's Next Turn

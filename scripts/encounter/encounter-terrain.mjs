@@ -99,7 +99,7 @@ export function zoneColumnKeys(label) {
 }
 
 /** Column labels that name a terrain the tagger spells differently. */
-export const ZONE_COLUMN_ALIASES = { grass: "grassland", fields: "grassland", sea: "ocean", marsh: "swamp", woods: "forest" };
+export const ZONE_COLUMN_ALIASES = { grass: "grassland", fields: "grassland", sea: "ocean", marsh: "swamp", woods: "forest", shoreline: "coast" };
 
 /**
  * Terrain keys that ARE water, for a "Water" or "Land" column. Terrain alone

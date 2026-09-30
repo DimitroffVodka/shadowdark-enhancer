@@ -1,5 +1,12 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+
+const EN = JSON.parse(readFileSync("languages/en.json", "utf8"));
+globalThis.game = {
+  i18n: { format: (key, data) => String(EN[key] ?? key).replace(/\{(\w+)\}/g, (m, k) => (k in data ? String(data[k]) : m)) },
+};
+
 import { parseByShape } from "../scripts/importer/tables/table-importer.mjs";
 
 // Invented text in the layouts the Cursed Scroll pages print. Nothing here is book text.
@@ -113,7 +120,9 @@ test("list: a count that is not the die's size is said, not hidden", () => {
   const page = ["Duergar NPCs", "1. Bolgrim. Jolly.", "2. Borg. Quiet."].join("\n");
   const bucket = parseByShape(page, { kind: "list", size: 20 }, { name: "Duergar NPCs" });
   assert.equal(bucket.tables[0].rows.length, 2);
-  assert.ok(bucket.tables[0].warnings.some((w) => /2 .*20|20 .*2/.test(w)), "a warning names both numbers");
+  const said = EN["SDE.importer.tables.listCount"].replace("{read}", "2").replace("{faces}", "20");
+  assert.ok(bucket.tables[0].warnings.includes(said), "the warning comes from the language file and names both numbers");
+  assert.match(said, /2 entries for a d20/);
 });
 
 test("list: no numbered rows means no table", () => {

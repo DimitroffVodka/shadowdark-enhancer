@@ -65,14 +65,14 @@ Object.assign(globalThis, {
     },
     socket: { emit() {}, on() {} },
     time: {
-      worldTime: at(1301, 6, 21, 12), calendar: gregorian, advanced: [],
-      async advance(dt) { this.advanced.push(dt); this.worldTime += dt; },
+      worldTime: at(1301, 6, 21, 12), calendar: gregorian, advanced: [], options: [],
+      async advance(dt, options) { this.advanced.push(dt); this.options.push(options); this.worldTime += dt; },
     },
     i18n: { localize: (k) => k, format: (k) => k },
     modules: { get: () => null },
   },
 });
-const { moveSteps, applyAction, registerOverland, overlandState, weatherNow, recordMove, advanceTravel, undergroundCheck, dawnWeather, checkNow, askDay } = await import("../scripts/overland/overland.mjs");
+const { moveSteps, slowWalk, applyAction, registerOverland, overlandState, weatherNow, recordMove, advanceTravel, undergroundCheck, dawnWeather, checkNow, askDay } = await import("../scripts/overland/overland.mjs");
 const { BOAT_TYPE } = await import("../scripts/actors/register-actors.mjs");
 const { CrawlState } = await import("../scripts/crawl-strip/crawl-state.mjs");
 
@@ -196,6 +196,7 @@ function travellingDay() {
   CrawlState._state = { ...CrawlState._state, mode: "overland" };
   globalThis.game.shadowdarkEnhancer = { rules: { hexesPerDay: (m) => ({ walking: 5 })[m] ?? null } };
   globalThis.game.time.advanced.length = 0;
+  globalThis.game.time.options.length = 0;
 }
 
 test("the GM starts a travel day: the weather first, then the budget and the rate, and one line each", async () => {
@@ -246,6 +247,45 @@ test("the active GM spends a move, records the hex and moves the clock at the da
   assert.equal(stored.overlandState.spent, 3);
   assert.equal(stored.overlandState.hex.num, 7);
   assert.deepEqual(globalThis.game.time.advanced, [3 * 8 * 3600 / 5], "3 points at 8 hours over 5");
+});
+
+test("a move of a token drawn on this screen runs the clock in slices over its walk", async () => {
+  travellingDay();
+  dice.push(3);
+  await applyAction({ action: "startDay", method: "walking" }, gm);
+  const started = performance.now();
+  const ok = await recordMove({ parent: null, object: {} }, { x: 0, y: 0 }, { x: 100, y: 0 }, { cost: 1, blocked: null, steps: [{ hex: { num: 7 } }] });
+  const took = performance.now() - started;
+  const { advanced } = globalThis.game.time;
+  assert.equal(ok, true);
+  assert.equal(advanced.length, 6, "one hex is 0.9 s, a slice every 150 ms");
+  assert.equal(advanced.reduce((sum, dt) => sum + dt, 0), 8 * 3600 / 5, "the whole hex, 1.6 hours");
+  assert.ok(globalThis.game.time.options.every((o) => o?.["shadowdark-enhancer"]?.paceMs === 150), "each slice tells the sky its pace");
+  assert.ok(took >= 700 && took < 1800, `it took the walk's time, ${Math.round(took)} ms`);
+});
+
+test("the mover's client stretches the walk to the clock's time, and leaves a move that asked for its own animation", () => {
+  const configured = [];
+  const Token = { _configureAnimationMovementSpeed: (...args) => configured.push(args) };
+  const saved = globalThis.foundry;
+  globalThis.foundry = { canvas: { placeables: { Token } } };
+  try {
+    const move = { origin: { x: 0, y: 0 }, passed: { waypoints: [{ x: 1 }] }, pending: { waypoints: [{ x: 2 }] } };
+    const doc = { id: "t" };
+    const options = {};
+    slowWalk(doc, move, options, { cost: 2, steps: [{}] });
+    assert.deepEqual(options.animation, { duration: 1550 });
+    assert.deepEqual(configured[0].slice(0, 3), [options, move.origin, [{ x: 1 }, { x: 2 }]], "core turns the duration into a speed over the whole path");
+    const own = { animation: { duration: 0 } };
+    slowWalk(doc, move, own, { cost: 2, steps: [{}] });
+    assert.deepEqual(own.animation, { duration: 0 }, "a move that asked for none is instant");
+    const free = {};
+    slowWalk(doc, move, free, { cost: 0, steps: [{ displace: true }] });
+    assert.equal(free.animation, undefined, "a free move keeps core's speed");
+    assert.equal(configured.length, 1);
+  } finally {
+    globalThis.foundry = saved;
+  }
 });
 
 test("a move the day can no longer pay for sends the token back, spends nothing and leaves the clock", async () => {
@@ -310,6 +350,7 @@ async function dayWithChecks(d12s, hits = []) {
   dice.push(3, ...d12s);                 // the weather, then the four check hours
   await applyAction({ action: "startDay", method: "walking" }, gm);
   globalThis.game.time.advanced.length = 0;
+  globalThis.game.time.options.length = 0;
   return calls;
 }
 
@@ -414,6 +455,73 @@ test("a move across a check hour rolls it at its hour; a hit stops the clock the
   assert.equal(stored.overlandState.pending, null);
   assert.equal(calls.length, 2, "18:00 is still ahead");
   assert.equal((await applyAction({ action: "resume" }, gm)).ok, false, "nothing left to continue");
+});
+
+test("a walk keeps one deadline across the checks that miss: each is reached at its share of the walk, the walk takes all its time (#324 review)", async () => {
+  const calls = await dayWithChecks([2, 9, 1, 12]);   // day 07:00 (past) and 14:00, night 18:00 and 05:00
+  const t = globalThis.game.time;
+  const start = t.worldTime, span = at(1301, 6, 21, 16) - start;
+  const checkedAt = [];
+  globalThis.game.shadowdarkEnhancer.encounter.check = async () => { checkedAt.push([t.worldTime, performance.now()]); return { hit: false }; };
+  calls.length = 0;
+  const began = performance.now();
+  const { stopped } = await advanceTravel(start + span, "move", 900);
+  const took = performance.now() - began;
+  assert.equal(stopped, false);
+  assert.equal(t.worldTime, start + span);
+  assert.equal(t.advanced.reduce((sum, dt) => sum + dt, 0), span, "the whole clock, once");
+  // 14:00 is 6 of the 8 hours: 675 ms into the walk, not when its slices happen to run out.
+  assert.equal(checkedAt.length, 1);
+  const checkedAfter = checkedAt[0][1] - began;
+  assert.ok(checkedAfter >= 650 && checkedAfter < 800, `the 14:00 check came ${Math.round(checkedAfter)} ms in, at 6/8 of the walk`);
+  assert.ok(took >= 880 && took < 1100, `the walk took all 900 ms, ${Math.round(took)} ms`);
+});
+
+test("a hit still stops a walk at once, without waiting out what is left of it (#324 review)", async () => {
+  await dayWithChecks([2, 9, 1, 12], [false, true]);   // 07:00 misses at the start, 14:00 hits
+  const t = globalThis.game.time;
+  const began = performance.now();
+  const { stopped } = await advanceTravel(at(1301, 6, 21, 16), "move", 900);
+  const took = performance.now() - began;
+  assert.equal(stopped, true);
+  assert.equal(t.worldTime, at(1301, 6, 21, 14));
+  assert.ok(took < 850, `it stopped at the hit, ${Math.round(took)} ms`);
+});
+
+test("Continue runs the rest of a move as a time-lapse when the party's scene is on this screen, and in one step when it is not", async () => {
+  const times = globalThis.game.time, savedLookup = globalThis.fromUuidSync;
+  // A move whose 14:00 check hit: two hours of it are left for Continue.
+  const held = async () => {
+    await dayWithChecks([2, 9, 1, 12], [false, true]);
+    await recordMove({ parent: null }, { x: 0, y: 0 }, { x: 100, y: 0 }, { cost: 5, blocked: null, steps: [{ hex: { num: 9 } }] });
+    assert.deepEqual(stored.overlandState.pending, { until: at(1301, 6, 21, 16), reason: "move" });
+    stored.overlandState = { ...stored.overlandState, tokenUuid: "Scene.travel-scene.Token.t" };
+    registerOverland();
+    times.advanced.length = 0;
+    times.options.length = 0;
+  };
+  globalThis.fromUuidSync = (uuid) => (uuid === "Scene.travel-scene.Token.t" ? { parent: { id: "travel-scene" } } : null);
+  try {
+    await held();
+    globalThis.canvas = { scene: { id: "somewhere-else" } };
+    assert.equal((await applyAction({ action: "resume" }, gm)).ok, true);
+    assert.deepEqual(times.advanced, [2 * 3600], "the party's scene isn't the one on screen: one step");
+    assert.equal(times.options[0], undefined);
+
+    await held();
+    globalThis.canvas = { scene: { id: "travel-scene" } };
+    const started = performance.now();
+    assert.equal((await applyAction({ action: "resume" }, gm)).ok, true);
+    const took = performance.now() - started;
+    assert.equal(times.worldTime, at(1301, 6, 21, 16));
+    assert.equal(times.advanced.length, 5, "2 hours is 800 ms, a slice every 150");
+    assert.equal(times.advanced.reduce((sum, dt) => sum + dt, 0), 2 * 3600);
+    assert.ok(times.options.every((o) => o?.["shadowdark-enhancer"]?.paceMs === 150), "the sky is told the pace");
+    assert.ok(took >= 600 && took < 1800, `it took the time-lapse, ${Math.round(took)} ms`);
+  } finally {
+    delete globalThis.canvas;
+    globalThis.fromUuidSync = savedLookup;
+  }
 });
 
 test("an advance through the night rolls the night checks in time order, and stops for none that miss", async () => {
