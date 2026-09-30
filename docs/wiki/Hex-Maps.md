@@ -515,6 +515,15 @@ time is the wrong shape for that. **Brush** in the tagger's header (or
 terrain once, tick river, path or coast if the hexes have them, then click or
 drag across the wrong hexes on the map. They take what the brush says.
 
+The brush needs a numbered map and nothing else: it is there from the first
+moment, before a single hex is tagged. On a map the classifier reads badly (a
+hand-drawn one, where the hexes are not stamped alike) skip Legend and Classify
+and paint the whole map by hand, a terrain at a time; the terrains it offers are
+the ones ticked in **Terrains on this map**. **Show tags** is there too, and
+hovering a hex with it on gives the hex's number first. What you paint is saved
+as you go, and the tagger takes it in: the counts in its header follow, and
+pressing Apply or answering a sheet does not put an older copy back over it.
+
 The brush also **confirms**. A hex that already says what the brush says still
 takes the stroke when the classifier is the one who said it: it becomes yours,
 leaves the review queue, and is recorded as a confirmation. So a patch the

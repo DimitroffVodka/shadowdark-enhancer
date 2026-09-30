@@ -33,6 +33,7 @@
  * called the features "overlays", so a decoded cell still answers to that.
  */
 
+import { MODULE_ID } from "../shared/module-id.mjs";
 import { neighbours, onMap } from "./geometry.mjs";
 import { SETTLEMENTS, TERRAIN_TAGS } from "../importer/hex/hex-summary.mjs";
 
@@ -60,6 +61,20 @@ export const normalizeTerrainWord = (word) => String(word ?? "").trim().toLowerC
 
 /** `overlays`, the old name, as a read-only alias of `features`. Not enumerable, so it never reaches a write. */
 const OVERLAYS_ALIAS = { get() { return this.features; }, enumerable: false };
+
+/**
+ * Was the tags flag of the scene this window holds a copy of written by someone else? The brush and
+ * the overlay paint straight onto the scene, so a window that never hears of it saves its stale copy
+ * over the painting the next time it saves. `doc` and `changed` are an updateScene hook's arguments
+ * (Foundry hands the operator under a replaced key, so only the key's presence is read).
+ * @param {{id:string}} doc
+ * @param {object} changed
+ * @param {{sceneId?:string, saving:boolean}} window  the scene the window holds, and whether it is mid-save
+ * @returns {boolean}
+ */
+export function tagsWrittenElsewhere(doc, changed, { sceneId, saving }) {
+  return !saving && !!sceneId && doc.id === sceneId && "hexTags" in (changed?.flags?.[MODULE_ID] ?? {});
+}
 
 /** Flag object → state. Tolerates a missing or foreign flag. */
 export function decodeTags(flag) {

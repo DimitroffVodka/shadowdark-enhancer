@@ -23,7 +23,7 @@ import { replaceModuleFlag } from "../shared/module-flags.mjs";
 import { findSuitePack, sourceFolderName } from "../shared/compendium-suite.mjs";
 import { sceneCells, sourceImage, CellSampler, backgroundTransform } from "./sampler.mjs";
 import { cellNumber, neighbours, framesTopRow, extrasNumbersAlike, withAnchorNumber, boundsFromRow, originFromFlag } from "./geometry.mjs";
-import { decodeTags, encodeTags, nextSheet, applySheet, tagsForDataset, summarize, importTags, rowsFromJson, sheetRisk, deriveCoasts, paletteTags, normalizeTerrainWord, FEATURES } from "./tag-store.mjs";
+import { decodeTags, encodeTags, nextSheet, applySheet, tagsForDataset, summarize, importTags, rowsFromJson, sheetRisk, deriveCoasts, paletteTags, normalizeTerrainWord, tagsWrittenElsewhere, FEATURES } from "./tag-store.mjs";
 import { FIXES_FLAG, BASELINE_FLAG, emptyLog, decodeFixes, encodeFixes, recordEdits, recordLegend, legendReport, accuracyReport, encodeBaseline, decodeBaseline, baselineReport } from "./tag-corrections.mjs";
 import { cellBoxOf, referenceTilePlacement, gridCellBox, loweredColumns, placeReferenceTile } from "./reference-tile.mjs";
 import { createClassifier, compareTags, parseTruthCsv, featureVector, keepMask, scoreClassifier, smoothTerrain } from "./classify.mjs";
@@ -439,6 +439,26 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
     return true;
   }
 
+  /**
+   * Tags can be written from outside this window: the brush and the overlay paint straight onto the
+   * scene. Left unheard, this window keeps its own copy and its next save puts that copy back over the
+   * painting (paint a hex, press Apply, the hex is gone). So it takes them in and redraws.
+   */
+  _onFirstRender(context, options) {
+    super._onFirstRender(context, options);
+    this._sceneHook = Hooks.on("updateScene", (doc, changed) => {
+      if (!tagsWrittenElsewhere(doc, changed, { sceneId: this._stateSceneId, saving: !!this._saving })) return;
+      this._loadState();
+      this._renumber();
+      this.render();
+    });
+  }
+
+  _onClose(options) {
+    Hooks.off("updateScene", this._sceneHook);
+    super._onClose(options);
+  }
+
   _onRender(context, options) {
     super._onRender(context, options);
 
@@ -568,7 +588,13 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
    */
   async _saveState() {
     const scene = this._scene();
-    if (scene) await replaceModuleFlag(scene, TAGS_FLAG, encodeTags(this._state));
+    if (!scene) return;
+    this._saving = true;   // the updateScene hook that takes in other writers' tags must not take in ours
+    try {
+      await replaceModuleFlag(scene, TAGS_FLAG, encodeTags(this._state));
+    } finally {
+      this._saving = false;
+    }
   }
 
   /** The words ticked in the palette box, in the order the box lists them. */

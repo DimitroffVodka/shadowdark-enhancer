@@ -766,6 +766,17 @@ page walks through it in order.
 
 ### Fixed
 
+- **Painting a map by hand no longer needs a tag to exist first.** **Brush** and
+  **Show tags** only appeared in the Hex Tagger once at least one hex was tagged,
+  so on a map the classifier reads badly (a hand-drawn one like The Gloaming) the
+  way to paint it by hand was not there. Both are offered as soon as the map is
+  numbered; only **Send to Extras**, which has nothing to send before, still waits
+  for a tag.
+- **Hexes painted with the brush are no longer erased by the tagger's next save.**
+  The brush writes straight onto the scene, and the tagger window kept its own
+  older copy and saved it back over the painting the next time it saved: paint a
+  hex, press Apply, and the hex was gone. The tagger now takes in tags written
+  from outside (its header counts follow the brush too) and keeps them.
 - **The party token the module makes opens Extras' Party sheet when Extras is on.**
   Start travel with no party token made a plain NPC named Party, which got the NPC
   sheet: it was not an Extras party (an NPC flagged `isParty`, Extras' own
