@@ -1,8 +1,9 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { emptyState, decodeTags, encodeTags, nextSheet, applySheet, tagsForDataset, summarize, lcg, importTags, rowsFromJson, errorRate, sheetRisk, strandedRiver, STRANDED_RIVER_RATE, REVIEW_BANDS, readTags, readCell } from "../scripts/hex-map/tag-store.mjs";
+import { emptyState, decodeTags, encodeTags, nextSheet, applySheet, tagsForDataset, summarize, lcg, importTags, rowsFromJson, errorRate, sheetRisk, strandedRiver, STRANDED_RIVER_RATE, REVIEW_BANDS, readTags, readCell, paletteTags, normalizeTerrainWord } from "../scripts/hex-map/tag-store.mjs";
 import { buildHexDataset } from "../scripts/importer/hex/hex-dataset.mjs";
 import { neighbours } from "../scripts/hex-map/geometry.mjs";
+import { TERRAIN_TAGS } from "../scripts/importer/hex/hex-summary.mjs";
 
 test("encode/decode round trip keeps terrain, features, source and margin", () => {
   const s = emptyState();
@@ -271,4 +272,34 @@ test("with no bounds set, every tagged cell still goes", () => {
   state.cells.set("2000", { terrain: "arctic_sea", features: [] });
   state.cells.set("6400", { terrain: "forest", features: [] });
   assert.deepEqual(Object.keys(tagsForDataset(state)).sort(), ["2000", "6400"]);
+});
+
+test("the map's terrain palette survives a save, and a map without one reads as unset", () => {
+  const s = emptyState();
+  assert.equal(s.palette, null, "a new map has not established its terrains yet");
+  assert.equal("palette" in encodeTags(s), false, "nothing is written until one is set");
+  s.palette = ["forest", "lake", "hills"];
+  const flag = encodeTags(s);
+  assert.deepEqual(flag.palette, ["forest", "lake", "hills"]);
+  assert.deepEqual(decodeTags(flag).palette, ["forest", "lake", "hills"]);
+  assert.equal(decodeTags({ version: 1, origin: null, cells: {} }).palette, null, "a map saved before palettes existed");
+  assert.equal(decodeTags({ palette: "forest" }).palette, null, "a foreign value is ignored");
+  assert.deepEqual(decodeTags({ palette: ["forest", "", 7, " lake "] }).palette, ["forest", "7", "lake"], "words are trimmed, blanks dropped");
+  s.palette = [];
+  assert.equal("palette" in encodeTags(s), false, "an emptied palette is the same as none");
+});
+
+test("paletteTags: the whole printed list until the map has its own, then only that", () => {
+  const all = Object.values(TERRAIN_TAGS);
+  assert.deepEqual(paletteTags(null), all);
+  assert.deepEqual(paletteTags([]), all, "nothing ticked means nothing established");
+  assert.deepEqual(paletteTags(["forest", "hills"]), ["forest", "hills"]);
+  assert.ok(all.includes("arctic_sea") && !paletteTags(["forest"]).includes("arctic_sea"), "a map with no arctic sea is not asked about one");
+});
+
+test("normalizeTerrainWord: one spelling per word, so a typed word matches the printed one", () => {
+  assert.equal(normalizeTerrainWord("  Salt Flat "), "salt_flat");
+  assert.equal(normalizeTerrainWord("Hills"), "hills");
+  assert.equal(normalizeTerrainWord("arctic_sea"), "arctic_sea");
+  assert.equal(normalizeTerrainWord("   "), "");
 });

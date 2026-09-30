@@ -23,7 +23,7 @@ import { replaceModuleFlag } from "../shared/module-flags.mjs";
 import { findSuitePack, sourceFolderName } from "../shared/compendium-suite.mjs";
 import { sceneCells, sourceImage, CellSampler, backgroundTransform } from "./sampler.mjs";
 import { cellNumber, neighbours, framesTopRow, extrasNumbersAlike } from "./geometry.mjs";
-import { decodeTags, encodeTags, nextSheet, applySheet, tagsForDataset, summarize, importTags, rowsFromJson, sheetRisk, deriveCoasts, FEATURES } from "./tag-store.mjs";
+import { decodeTags, encodeTags, nextSheet, applySheet, tagsForDataset, summarize, importTags, rowsFromJson, sheetRisk, deriveCoasts, paletteTags, normalizeTerrainWord, FEATURES } from "./tag-store.mjs";
 import { FIXES_FLAG, BASELINE_FLAG, emptyLog, decodeFixes, encodeFixes, recordEdits, recordLegend, legendReport, accuracyReport, encodeBaseline, decodeBaseline, baselineReport } from "./tag-corrections.mjs";
 import { cellBoxOf, referenceTilePlacement, gridCellBox, loweredColumns, placeReferenceTile } from "./reference-tile.mjs";
 import { createClassifier, compareTags, parseTruthCsv, featureVector, keepMask, scoreClassifier, smoothTerrain } from "./classify.mjs";
@@ -317,6 +317,8 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
       hxtLearnFrom:    function (...a) { return this._onLearnFrom(...a); },
       hxtApplyLegend:  function (...a) { return this._onApplyLegend(...a); },
       hxtCancelLegend: function () { this._legend = null; this.render(); },
+      hxtAddTerrain:   function (...a) { return this._onAddTerrain(...a); },
+      hxtPingHex:      function (...a) { return this._onPingHex(...a); },
       hxtPlayable:     function () { return HexTaggerApp.makePlayable(); },
     },
   };
@@ -467,6 +469,11 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
         if (!inp.hidden) inp.focus();
       });
     }
+    // The map's terrain palette: every tick is saved at once and redraws the dropdowns.
+    for (const box of this.element.querySelectorAll("input[data-hxt-palette]")) box.addEventListener("change", () => this._setPalette(this._paletteFromBoxes()));
+    const own = this.element.querySelector("input[data-hxt-palette-own]");
+    own?.addEventListener("keydown", (ev) => { if (ev.key === "Enter") { ev.preventDefault(); this._onAddTerrain(); } });
+    this.element.querySelector("details[data-hxt-palette-box]")?.addEventListener("toggle", (ev) => { this._paletteOpen = ev.currentTarget.open; });
     if (!this._autoLegend) return;
     this._autoLegend = false;
     this._onSample()
@@ -500,6 +507,8 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
   /** @type {Array<{size:number, members:number[], core:number[], samples:number[]}>|null} the legend's cards while they are shown */
   _legend = null;
   _autoLegend = false;
+  /** Whether the palette box is open; undefined until the GM toggles it (it opens itself while no palette is set). */
+  _paletteOpen = undefined;
   /** Which overlay picture is on the map: "", "terrain", "region" or "encounter". */
   _overlayMode = "";
 
@@ -560,6 +569,44 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
   async _saveState() {
     const scene = this._scene();
     if (scene) await replaceModuleFlag(scene, TAGS_FLAG, encodeTags(this._state));
+  }
+
+  /** The words ticked in the palette box, in the order the box lists them. */
+  _paletteFromBoxes() {
+    return [...this.element.querySelectorAll("input[data-hxt-palette]:checked")].map((box) => box.value);
+  }
+
+  /**
+   * Save the terrains this map has and redraw, so every dropdown offers only those. An empty list is the
+   * same as none: every printed terrain is offered until one is ticked.
+   * @param {string[]} words
+   */
+  async _setPalette(words) {
+    if (!this._requireCurrentScene()) return;
+    if (this._legend) this._readLegendAnswers();   // what was chosen on the cards so far survives the redraw
+    this._state.palette = words.length ? words : null;
+    await this._saveState();
+    this.render();
+  }
+
+  /** Add the word typed in the palette box's own-word field. */
+  _onAddTerrain() {
+    const input = this.element.querySelector("input[data-hxt-palette-own]");
+    const word = normalizeTerrainWord(input?.value);
+    if (!word) return;
+    return this._setPalette([...new Set([...this._paletteFromBoxes(), word])]);
+  }
+
+  /**
+   * Take the map to a hex a legend picture shows and mark it, for this client only:
+   * canvas.ping would show the players where the GM is looking.
+   */
+  _onPingHex(event, target) {
+    const cell = this._numbered.get(Number(target.dataset.num));
+    if (!cell) return;
+    const p = canvas.grid.getCenterPoint({ i: cell.i, j: cell.j });
+    canvas.animatePan({ x: p.x, y: p.y, duration: 250 });
+    canvas.controls.drawPing(p, { style: "pulse" });
   }
 
   _originForGeometry() {
@@ -878,8 +925,11 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
     // draws those as their own symbols, so they get their own cards, and having
     // to invent a word for them through "other…" is how "Keyed Location" ended
     // up as a free-text terrain on the first map that met them.
-    const terrainValues = [...Object.values(TERRAIN_TAGS), ...Object.values(SETTLEMENTS), KEYED_TERRAIN];
+    // The map's own terrains once the GM has ticked some (the Palette box), the whole printed list until then.
+    const terrainValues = [...paletteTags(state.palette), ...Object.values(SETTLEMENTS), KEYED_TERRAIN];
     const terrainOptions = terrainValues.map((v) => ({ value: v, label: v.replace(/_/g, " ") }));
+    const paletteTerms = [...new Set([...Object.values(TERRAIN_TAGS), ...(state.palette ?? [])])]
+      .map((v) => ({ value: v, label: v.replace(/_/g, " "), checked: !!state.palette?.includes(v) }));
 
     // The sheet: with no origin, an alignment sheet of the first cells (top-left
     // first) each with a "this hex is number" box; with an origin, the tagging sheet.
@@ -928,10 +978,12 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
         picks: cl.expand ? (cl.picks ?? []).map((num) => {
           const c = this._numbered.get(num);
           const was = cl.picked?.[num] ?? "";
-          return c ? { num, thumb: this._thumb(c), terrainOptions: pickOptions(num),
+          return c ? { num, label: String(num).padStart(4, "0"), thumb: this._thumb(c), terrainOptions: pickOptions(num),
                        other: terrainValues.includes(was) ? "" : was } : null;
         }).filter(Boolean) : [],
-        thumbs: cl.samples.map((n) => { const c = this._numbered.get(n); return c ? this._thumb(c) : ""; }).filter(Boolean),
+        // Each picture says which hex it is, and a click takes the map to it: a card of pictures the GM
+        // cannot place on the map is a card they cannot judge.
+        thumbs: cl.samples.map((n) => { const c = this._numbered.get(n); return c ? { src: this._thumb(c), num: n, label: String(n).padStart(4, "0") } : null; }).filter(Boolean),
         terrainOptions: [...terrainOptions, { value: "__other", label: t("SDE.hexMap.label.otherOption") }, { value: SPLIT, label: t("SDE.hexMap.label.notAllSame") }]
           .map((o) => ({ ...o, selected: o.value === selected })),
       };
@@ -969,6 +1021,9 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const primary = done ? "build" : (a0 && !origin ? "playable" : (sampled && origin ? "legend" : "sample"));
     return {
       legend, hasLegend: !!legend, a0,
+      // Which terrains the map has: ticked once, then every dropdown offers only those. Open until it is
+      // first set, because that is the first thing to say about a map.
+      palette: { terms: paletteTerms, set: !!state.palette?.length, open: this._paletteOpen ?? !state.palette?.length },
       primarySample: primary === "sample", primaryLegend: primary === "legend", primaryBuild: primary === "build",
       primaryPlayable: primary === "playable",
       showMore: sampled || !!origin, moreOpen: !!this._moreOpen,

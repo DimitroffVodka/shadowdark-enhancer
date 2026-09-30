@@ -95,6 +95,22 @@
   {{/if}}
   {{/unless}}
 
+  {{!-- Which terrains the map has. Ticked once, then the legend, the sheets and the
+        brush offer only those; open until it is first set. --}}
+  {{#if origin}}
+  <details class="sde-hxt-palette" data-hxt-palette-box {{#if palette.open}}open{{/if}}>
+    <summary><i class="fas fa-swatchbook"></i> {{localize "SDE.hexMap.palette.title"}} <span class="sde-hxt-muted">{{#if palette.set}}{{localize "SDE.hexMap.palette.set"}}{{else}}{{localize "SDE.hexMap.palette.unset"}}{{/if}}</span></summary>
+    <p class="sde-hxt-note">{{localize "SDE.hexMap.palette.howTo"}}</p>
+    <div class="sde-hxt-palette-terms">
+      {{#each palette.terms as |p|}}<label><input type="checkbox" data-hxt-palette value="{{p.value}}" {{#if p.checked}}checked{{/if}}> {{p.label}}</label>{{/each}}
+    </div>
+    <div class="sde-hxt-palette-own">
+      <input type="text" data-hxt-palette-own placeholder="{{localize 'SDE.hexMap.palette.ownPlaceholder'}}" aria-label="{{localize 'SDE.hexMap.palette.ownAria'}}">
+      <button type="button" data-action="hxtAddTerrain" class="sde-import-secondary sde-hxt-inline">{{localize "SDE.hexMap.palette.add"}}</button>
+    </div>
+  </details>
+  {{/if}}
+
   {{!-- Facts, one line each. The GM reads this window while working in it;
         a paragraph of explanation here is a paragraph they scroll past. --}}
   {{#if baseline}}
@@ -149,8 +165,8 @@
       <div class="sde-hxt-picks">
         {{#each g.picks as |p|}}
         <div class="sde-hxt-pick">
-          <img src="{{p.thumb}}" alt="" width="72" height="72">
-          <span class="sde-hxt-label">{{p.num}}</span>
+          <img src="{{p.thumb}}" alt="" width="72" height="72" data-action="hxtPingHex" data-num="{{p.num}}" title="{{localize 'SDE.hexMap.legend.locate' num=p.label}}">
+          <span class="sde-hxt-label">{{p.label}}</span>
           <select data-hxt-pick data-idx="{{g.idx}}" data-num="{{p.num}}">
             <option value="">{{localize "SDE.hexMap.label.skip"}}</option>
             {{#each p.terrainOptions as |o|}}<option value="{{o.value}}" {{#if o.selected}}selected{{/if}}>{{o.label}}</option>{{/each}}
@@ -162,7 +178,7 @@
     </div>
     {{else}}
     <div class="sde-hxt-cell">
-      <div class="sde-hxt-thumbs">{{#each g.thumbs as |t|}}<img src="{{t}}" alt="" width="72" height="72">{{/each}}</div>
+      <div class="sde-hxt-thumbs">{{#each g.thumbs as |t|}}<figure class="sde-hxt-thumb" data-action="hxtPingHex" data-num="{{t.num}}" title="{{localize 'SDE.hexMap.legend.locate' num=t.label}}"><img src="{{t.src}}" alt="" width="72" height="72"><figcaption>{{t.label}}</figcaption></figure>{{/each}}</div>
       <div class="sde-hxt-fields">
         <span class="sde-hxt-label">{{localize "SDE.hexMap.legend.cardSize" size=g.size}}{{#if g.split}} <span class="sde-hxt-muted">{{localize "SDE.hexMap.legend.fromSplit"}}</span>{{/if}}</span>
         <select data-hxt-legend data-idx="{{g.idx}}">

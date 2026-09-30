@@ -110,7 +110,7 @@ import { initRivalClassTable } from "./forge-loot/rival-class-table-adapter.mjs"
 // templates, producing unstyled block-flow UI. Keep the manifest stylesheet as
 // the startup fallback, then layer a content-addressed copy above it. The layout
 // contract test requires this revision to change whenever the CSS file changes.
-const STYLESHEET_REV = "92c41f6c74f8";
+const STYLESHEET_REV = "9d8c3adf530c";
 
 // The same problem for the SCRIPTS, which cannot be solved the same way: their
 // URLs come from the manifest, which Foundry validates as real package paths,
@@ -125,7 +125,7 @@ const STYLESHEET_REV = "92c41f6c74f8";
 // stale); module.json carries the same hash and is fetched fresh at runtime. A
 // mismatch is a stale cache by construction — it cannot be anything else. Both
 // stamps are written by `npm run inventory` and gated by `inventory:check`.
-const BUILD_REV = "e2bf00797286";
+const BUILD_REV = "e192a60710e7";
 
 /**
  * Tell the user when their browser is running an old build of this module, and

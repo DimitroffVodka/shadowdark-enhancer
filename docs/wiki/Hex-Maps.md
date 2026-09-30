@@ -272,6 +272,22 @@ glyph often gets two or three cards (a slightly different print position);
 name each. Leave a card you can't name on **(skip)**, and it goes to the
 classifier.
 
+Each picture is labelled with its hex number, and clicking one takes the map
+to that hex and marks it, for you alone (a ping would show the players where
+you are looking). A card of pictures you cannot place on the map is a card
+you cannot judge.
+
+**Terrains on this map** sits above the cards, open until you use it. The
+choices in every dropdown come from one printed list written for the Western
+Reaches (arctic sea, volcano, lava, jungle...), which a hand-drawn map with a
+forest, a lake and a river does not need. Tick the terrains this map has and
+the legend, the review sheets and the brush offer only those, plus the
+settlement sizes and *keyed location*. A terrain that is not on the list
+(hills, marsh) goes in through the box below as a word of your own. Nothing is
+ticked to begin with, which means every terrain is offered; a hex already
+tagged with a terrain you then untick stays selectable as an *other…* word,
+so no tag is lost. The ticks are saved with the map.
+
 When a card's pictures show different things, choose **these are not all the
 same**. The card opens there and then with eight of its hexes, spread across
 the card, each with its own answer. What you pick for one of them is a hand

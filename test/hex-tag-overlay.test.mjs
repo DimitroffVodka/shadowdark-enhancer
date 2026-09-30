@@ -64,3 +64,14 @@ test("terrainOptions: every printed terrain plus the scene's own words, alphabet
   assert.equal(terrainOptions().length, Object.values(TERRAIN_TAGS).length + extras.length, "the printed terrain, plus what the book keys");
   for (const e of extras) assert.ok(terrainOptions().some((o) => o.value === e), `${e} must be sayable without inventing a word for it`);
 });
+
+test("terrainOptions with a palette: only the map's own terrains, its settlements, and words already on it", () => {
+  const cells = new Map([["100", { terrain: "swamp" }], ["101", { terrain: "forest" }]]);
+  const opts = terrainOptions(cells, ["forest", "lake", "hills"]);
+  const values = opts.map((o) => o.value);
+  assert.deepEqual(values.filter((v) => !["village", "town", "city", "city_state", "keyed_location"].includes(v)).sort(), ["forest", "hills", "lake", "swamp"],
+    "the palette, plus swamp because a hex is already tagged that: it must stay selectable, not silently vanish");
+  assert.ok(!values.includes("arctic_sea") && !values.includes("volcano"), "a map without them is not asked about them");
+  for (const e of ["village", "town", "city", "city_state", "keyed_location"]) assert.ok(values.includes(e), `${e} stays sayable`);
+  assert.deepEqual(terrainOptions(new Map(), null).map((o) => o.value).sort(), terrainOptions().map((o) => o.value).sort(), "no palette: as before");
+});

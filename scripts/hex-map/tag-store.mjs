@@ -6,7 +6,8 @@
  *
  *   { version: 1,
  *     origin: { i, j, q, r, num: "000", shifted: "odd", bounds: { cols: 64, rows: 75 } } | null,
- *     cells: { "1403": "forest;river|gm", "1404": "forest|auto:1.42" } }
+ *     cells: { "1403": "forest;river|gm", "1404": "forest|auto:1.42" },
+ *     palette: ["forest", "lake", "hills"] }    // optional: the terrains this map has
  *
  * A cell value is `tags|source[:margin][?]`: the first tag is the terrain, the
  * rest are features (river, path, coast); a trailing `?` marks an automatic
@@ -33,14 +34,29 @@
  */
 
 import { neighbours, onMap } from "./geometry.mjs";
-import { SETTLEMENTS } from "../importer/hex/hex-summary.mjs";
+import { SETTLEMENTS, TERRAIN_TAGS } from "../importer/hex/hex-summary.mjs";
 
 export const STORE_VERSION = 1;
 export const FEATURES = ["river", "path", "coast"];
 
 export function emptyState() {
-  return { version: STORE_VERSION, origin: null, cells: new Map() };
+  return { version: STORE_VERSION, origin: null, cells: new Map(), palette: null };
 }
+
+/**
+ * The terrains a map offers: its own palette once the GM has ticked some, the
+ * whole printed vocabulary until then. That vocabulary was written for the
+ * Western Reaches (arctic sea, volcano, lava, jungle...), so a map that has
+ * none of those would otherwise ask about them on every card.
+ * @param {string[]|null|undefined} palette
+ * @returns {string[]}
+ */
+export function paletteTags(palette) {
+  return palette?.length ? palette : Object.values(TERRAIN_TAGS);
+}
+
+/** One spelling per terrain word ("Salt Flat" → "salt_flat"), so a typed word and a printed one are the same tag. */
+export const normalizeTerrainWord = (word) => String(word ?? "").trim().toLowerCase().replace(/\s+/g, "_");
 
 /** `overlays`, the old name, as a read-only alias of `features`. Not enumerable, so it never reaches a write. */
 const OVERLAYS_ALIAS = { get() { return this.features; }, enumerable: false };
@@ -50,6 +66,10 @@ export function decodeTags(flag) {
   const state = emptyState();
   if (!flag || typeof flag !== "object") return state;
   state.origin = flag.origin ?? null;
+  if (Array.isArray(flag.palette)) {
+    const words = flag.palette.map((w) => String(w).trim()).filter(Boolean);
+    state.palette = words.length ? words : null;
+  }
   for (const [num, raw] of Object.entries(flag.cells ?? {})) {
     const [tagPart, srcPart = ""] = String(raw).split("|");
     const tags = tagPart.split(";").map((t) => t.trim()).filter(Boolean);
@@ -73,7 +93,9 @@ export function encodeTags(state) {
     const src = c.margin !== undefined ? `${c.source ?? "gm"}:${Number(c.margin).toFixed(2)}` : (c.source ?? "gm");
     cells[num] = `${tags}|${src}${c.review ? "?" : ""}`;
   }
-  return { version: STORE_VERSION, origin: state.origin ?? null, cells };
+  const flag = { version: STORE_VERSION, origin: state.origin ?? null, cells };
+  if (state.palette?.length) flag.palette = [...state.palette];
+  return flag;
 }
 
 /** Deterministic RNG for tests; the app passes Math.random. */

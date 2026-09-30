@@ -22,9 +22,9 @@ import { MODULE_ID } from "../shared/module-id.mjs";
 import { replaceModuleFlag } from "../shared/module-flags.mjs";
 import { sceneCells } from "./sampler.mjs";
 import { cellNumber, foundryOffsetToCube } from "./geometry.mjs";
-import { decodeTags, encodeTags, applySheet, strandedRiver, readCell, FEATURES } from "./tag-store.mjs";
+import { decodeTags, encodeTags, applySheet, strandedRiver, readCell, paletteTags, FEATURES } from "./tag-store.mjs";
 import { FIXES_FLAG, DEFAULT_REVIEW_MARGIN, decodeFixes, encodeFixes, recordEdits, withdrawEdits, sameTags } from "./tag-corrections.mjs";
-import { TERRAIN_TAGS, SETTLEMENTS } from "../importer/hex/hex-summary.mjs";
+import { SETTLEMENTS } from "../importer/hex/hex-summary.mjs";
 import { pickZoneTable, encounterZonesByRegion, worldClock, isNight, regionRowRanges, inNorthHalf } from "../encounter/encounter-terrain.mjs";
 import { neighbourNumbers, encodeRegions, REGIONS_FLAG } from "./region-scan.mjs";
 
@@ -239,13 +239,16 @@ export const OTHER = "__other";
 
 /**
  * The terrain dropdown's options, alphabetical by label so the browser's own
- * type-ahead lands where you expect ("j" → jungle). Every printed terrain plus
- * every word already used on this scene, so a legend card named "Keyed
- * Location" is one keystroke away instead of retyped.
+ * type-ahead lands where you expect ("j" → jungle). The map's own terrains
+ * (every printed one until it has a palette), the settlement sizes and a keyed
+ * location, plus every word already used on this scene, so a legend card named
+ * "Keyed Location" is one keystroke away instead of retyped and a hex tagged
+ * before the palette was set never drops out of its own dropdown.
  * @param {Map<string, {terrain?:string}>} cells  the store's cells
+ * @param {string[]|null} [palette]  the terrains this map has, once the GM has ticked some
  */
-export function terrainOptions(cells = new Map()) {
-  const used = new Set([...Object.values(TERRAIN_TAGS), ...Object.values(SETTLEMENTS), "keyed_location"]);
+export function terrainOptions(cells = new Map(), palette = null) {
+  const used = new Set([...paletteTags(palette), ...Object.values(SETTLEMENTS), "keyed_location"]);
   for (const c of cells.values()) if (c?.terrain) used.add(c.terrain);
   return [...used]
     .map((tag) => ({ value: tag, label: tag.replace(/_/g, " ") }))
@@ -732,7 +735,7 @@ export class HexTagOverlay {
     // stacking a second one on top.
     await this._editor?.close();
     const cell = this.state.cells.get(String(num));
-    const options = terrainOptions(this.state.cells);
+    const options = terrainOptions(this.state.cells, this.state.palette);
     const esc = foundry.utils.escapeHTML;
     const content = `<form class="standard-form">
       <div class="form-group"><label>${t("SDE.hexMap.brush.terrain")}</label><div class="form-fields">
