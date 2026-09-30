@@ -1507,7 +1507,10 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
   /** Is it safe to renumber? Everything already filed by hex number would land on other hexes, so ask when there is any. */
   async _confirmRenumber() {
     const scene = this._scene();
-    const filed = this._state.cells.size || decodeRegions(scene?.getFlag(MODULE_ID, REGIONS_FLAG)).size || this._log().fixes.size;
+    const regions = scene?.getFlag(MODULE_ID, REGIONS_FLAG);
+    // Scanned regions AND the GM's own assignments (which exist without any scan), the terrain corrections and the tile art.
+    const filed = this._state.cells.size || decodeRegions(regions).size || decodeRegionFixes(regions).size
+      || this._log().fixes.size || Object.keys(this._artAssignments()).length;
     if (!filed) return true;
     return foundry.applications.api.DialogV2.confirm({
       window: { title: t("SDE.hexMap.renumber.title") },

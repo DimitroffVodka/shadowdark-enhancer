@@ -1359,7 +1359,7 @@
   "SDE.hexMap.label.anchorNumber": "Anchor hex",
   "SDE.hexMap.tip.anchorNumber": "The printed number of the anchor hex: the first hex of a map made from an image. If the numbers on the map are off, type the right one and press Apply; every other hex follows it.",
   "SDE.hexMap.renumber.title": "Renumber the map",
-  "SDE.hexMap.renumber.confirm": "Tags, regions and corrections already made are filed by hex number, so after this they sit on different hexes, and any number the map no longer has loses its tags. Renumber anyway?",
+  "SDE.hexMap.renumber.confirm": "Tags, regions, corrections and tile art already made are filed by hex number, so after this they sit on different hexes, and any number the map no longer has loses its tags. Renumber anyway?",
   "SDE.hexMap.label.mapSize": "Map size",
   "SDE.hexMap.label.cols": "cols",
   "SDE.hexMap.label.rows": "rows",

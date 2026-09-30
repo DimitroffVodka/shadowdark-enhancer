@@ -216,7 +216,7 @@ continue from the north's (row 12 on).
 If you left the dialog on 0000 and the numbers are off by a row or a column,
 you do not have to start over: open the scene in the Hex Tagger, **More**, type
 the right number into **Anchor hex** and press **Apply**. Every hex follows it.
-Tags, regions and corrections already made are filed by number, so if there are
+Tags, regions, corrections and tile art already made are filed by number, so if there are
 any it asks first. To check, turn on **Show tags** in the tagger and hover a hex:
 its number is the first thing in the label.
 

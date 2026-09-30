@@ -56,7 +56,7 @@ it needs.
   number boxes come up only on a scene with no anchor at all. **More** now has an
   **Anchor hex** box; type the right number, press **Apply**, and every hex
   follows it. The Gloaming, for one, starts at 0001, so its castle hex is 102,
-  not 101. Tags, regions and corrections already made are filed by number, so
+  not 101. Tags, regions, corrections and tile art already made are filed by number, so
   with any it asks before renumbering. To check a number, turn on **Show tags**
   and hover the hex.
 - **Key locations from Cursed Scrolls 1 to 5.** Importer Hub → Tools → **Key
