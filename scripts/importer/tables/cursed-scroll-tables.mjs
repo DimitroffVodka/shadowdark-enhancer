@@ -161,7 +161,7 @@ export const CS_TABLES = [
     shape: GRID(`${CS_REGION.CS4} Points of Interest`, "POINTS OF INTEREST", ["Descriptor", "Location", "Feature"], "layout") },
   { id: "cs4-special-encounters", src: "CS4", name: `${CS_REGION.CS4} Special Encounters`, pages: "66", rows: 8, shape: BANDED("SPECIAL ENCOUNTERS", 8) },
   { id: "cs4-encounter-type-by-terrain", src: "CS4", name: `${CS_REGION.CS4} Encounter Type by Terrain`, pages: "66", rows: 10, aliases: ["Encounter Type by Terrain"],
-    shape: GRID(`${CS_REGION.CS4} Encounter Type by Terrain`, "ENCOUNTER TYPE BY TERRAIN", ["Jungle", "Shoreline", "River", "Mountain"], "layout") },
+    shape: GRID(`${CS_REGION.CS4} Encounter Type`, "ENCOUNTER TYPE BY TERRAIN", ["Jungle", "Shoreline", "River", "Mountain"], "layout") },
   { id: "cs4-day-encounters", src: "CS4", name: `${CS_REGION.CS4} Day Encounters`, pages: "67", rows: 8, aliases: ["Day Encounters"],
     shape: GRID(`${CS_REGION.CS4} Day Encounters`, "DAY ENCOUNTERS", ["Land", "Aquatic", "People", "Cursed"], "layout") },
   { id: "cs4-night-encounters", src: "CS4", name: `${CS_REGION.CS4} Night Encounters`, pages: "67", rows: 8, aliases: ["Night Encounters"],

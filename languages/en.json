@@ -1899,6 +1899,7 @@
   "SDE.importer.tables.customAria": "Custom folder name",
   "SDE.importer.tables.customPlaceholder": "Folder name",
   "SDE.importer.tables.bestEffort": "Best-effort column split — check the cells.",
+  "SDE.importer.tables.listCount": "Read {read} entries for a d{faces}: check the list is whole.",
   "SDE.importer.tables.minAria": "Range min",
   "SDE.importer.tables.maxAria": "Range max",
   "SDE.importer.tables.resultAria": "Result text",
