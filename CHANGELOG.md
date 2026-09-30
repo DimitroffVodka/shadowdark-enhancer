@@ -11,6 +11,13 @@ it needs.
 
 ### Added
 
+- **The tagger's hex numbers, for Shadowdark Extras' Map Coordinates.** The
+  overlay that writes a number on every hex guessed its numbers from the map's
+  shape, so on The Gloaming it put 001 on the castle hex that the book and the
+  tagger call 102. `hexMaps.numberAt({ i, j })` (API 1.26.0) now gives any other
+  module the number the tagger has for a cell, and `hexMaps.hasNumbering()` says
+  whether a scene has one, so the overlay can show exactly what the tagger shows.
+  Extras has to read it: until it does, its Map Coordinates still guess.
 - **Change a map's first hex number in the Hex Tagger.** A scene made by **Hex
   map from image** starts as 0000 unless the dialog was told otherwise, and there
   was no way to fix it afterwards: the header only showed the anchor, and the
@@ -18,9 +25,8 @@ it needs.
   **Anchor hex** box; type the right number, press **Apply**, and every hex
   follows it. The Gloaming, for one, starts at 0001, so its castle hex is 102,
   not 101. Tags, regions and corrections already made are filed by number, so
-  with any it asks before renumbering. Shadowdark Extras' **Map Coordinates**
-  toggle is not a way to check: it guesses its numbers from the map's shape and
-  reads a print whose first column is full hexes one column off.
+  with any it asks before renumbering. To check a number, turn on **Show tags**
+  and hover the hex.
 - **Key locations from Cursed Scrolls 1 to 5.** Importer Hub → Tools → **Key
   locations** now offers the five Cursed Scrolls that come with a hexcrawl
   beside the GM Guide. Each files one journal entry named for its map and book

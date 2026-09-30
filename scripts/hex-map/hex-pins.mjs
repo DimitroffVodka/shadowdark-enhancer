@@ -16,7 +16,7 @@ import { MODULE_ID } from "../shared/module-id.mjs";
 import { HEX_FLAG } from "../importer/hex/hex-commit.mjs";
 import { hexNum } from "../importer/hex/hex-dataset.mjs";
 import { sceneCells } from "./sampler.mjs";
-import { cellNumber } from "./geometry.mjs";
+import { cellNumber, originFromFlag } from "./geometry.mjs";
 
 /** Flag key on a Note: { num } of the keyed hex it pins. */
 export const PIN_FLAG = "hexPin";
@@ -111,7 +111,7 @@ export async function pinCrawlOnActiveScene(packEntry, { iconSize } = {}) {
   const geom = sceneCells(canvas);
   if (geom.error) { ui.notifications?.warn(t(geom.error)); return null; }
   const numbered = new Map();
-  const o = { cube: { q: origin.q, r: origin.r }, num: origin.num, shifted: origin.shifted ?? "odd", bounds: origin.bounds };
+  const o = originFromFlag(origin);
   for (const c of geom.cells) { const n = cellNumber(c.cube, o); if (n.num !== null) numbered.set(n.num, { x: c.x, y: c.y }); }
   const journal = await deployCrawlJournal(packEntry);
   const keyedRows = new Map((packEntry.getFlag(MODULE_ID, HEX_FLAG)?.keyed ?? []).map((r) => [hexNum(r.num), r]));

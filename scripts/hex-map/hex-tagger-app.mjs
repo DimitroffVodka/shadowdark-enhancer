@@ -22,7 +22,7 @@ import { MODULE_ID } from "../shared/module-id.mjs";
 import { replaceModuleFlag } from "../shared/module-flags.mjs";
 import { findSuitePack, sourceFolderName } from "../shared/compendium-suite.mjs";
 import { sceneCells, sourceImage, CellSampler, backgroundTransform } from "./sampler.mjs";
-import { cellNumber, neighbours, framesTopRow, extrasNumbersAlike, withAnchorNumber, boundsFromRow } from "./geometry.mjs";
+import { cellNumber, neighbours, framesTopRow, extrasNumbersAlike, withAnchorNumber, boundsFromRow, originFromFlag } from "./geometry.mjs";
 import { decodeTags, encodeTags, nextSheet, applySheet, tagsForDataset, summarize, importTags, rowsFromJson, sheetRisk, deriveCoasts, paletteTags, normalizeTerrainWord, FEATURES } from "./tag-store.mjs";
 import { FIXES_FLAG, BASELINE_FLAG, emptyLog, decodeFixes, encodeFixes, recordEdits, recordLegend, legendReport, accuracyReport, encodeBaseline, decodeBaseline, baselineReport } from "./tag-corrections.mjs";
 import { cellBoxOf, referenceTilePlacement, gridCellBox, loweredColumns, placeReferenceTile } from "./reference-tile.mjs";
@@ -611,7 +611,7 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
 
   _originForGeometry() {
     const o = this._state?.origin;
-    return o ? { cube: { q: o.q, r: o.r }, num: o.num, shifted: o.shifted ?? "odd", bounds: o.bounds } : null;
+    return o ? originFromFlag(o) : null;
   }
 
   _renumber() {

@@ -48,6 +48,11 @@ export function originOffset(origin) {
   return { col, row };
 }
 
+/** The origin `cellNumber` takes, from the one stored on a scene (flags.shadowdark-enhancer.hexTags.origin). */
+export function originFromFlag(o) {
+  return { cube: { q: o.q, r: o.r }, num: o.num, shifted: o.shifted ?? "odd", bounds: o.bounds };
+}
+
 /**
  * The origin with its anchor cell given a different printed number. The cell stays the cell.
  *

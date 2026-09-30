@@ -23,7 +23,7 @@ and Forge & Loot features.
 [`time`](#time--season-day-and-night-sun-moon-and-anchors) ·
 [`overland`](#overland--the-travel-state)
 
-**API version:** `1.25.0` (semver — additive changes bump the minor version,
+**API version:** `1.26.0` (semver — additive changes bump the minor version,
 breaking changes the major; check `apiVersion` before relying on newer keys).
 
 ## Discovery
@@ -1066,6 +1066,8 @@ works on the GM's own scene image and book text.
 
 | Call | Who | What |
 |---|---|---|
+| `hexMaps.numberAt({ i, j }, scene?)` | any | Since 1.26.0. The published hex number of the cell at Foundry offset `{ i, j }` on a scene the Hex Tagger has numbered: a plain integer, column then row (`1403` is column 14, row 03), never a column and row pair. `null` in the frame around the map, past its size, on a scene with no numbering, or on a grid that is not flat-top hex columns. `scene` is a Scene or its id; the viewed scene when left out. Synchronous and cheap, so an overlay can ask for every cell. Shadowdark Extras' Map Coordinates reads it, so the overlay and the tagger agree. |
+| `hexMaps.hasNumbering(scene?)` | any | Since 1.26.0. Whether the scene carries a numbering at all, which is what tells `numberAt`'s `null` for "off the map" from "never numbered". |
 | `hexMaps.openTagger()` | GM | Open the Hex Tagger on the active hex scene (see the wiki page *Hex Maps*). Lazy. |
 | `hexMaps.buildDataset({ name, source, drafts, summaryRows, tags, gridHint })` | any | Pure builder for the Shadowdark Extras hexcrawl dataset. `tags` is `{ [num]: { terrain, features } }`, where `features` lists `river`, `path` and `coast` (`overlays`, the old name, is still read). Each hex's river, path and coast come out as entries in its Extras `features` list. |
 | `hexMaps.compare(csvText, { sources })` | GM + `hexMapsDevTools` | Score the active scene's tags against a truth CSV (`hex_id` plus `tags` or `terrain_tags`); returns terrain accuracy and river/path precision and recall. Dev check, ships no data. |
