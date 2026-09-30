@@ -11,6 +11,19 @@ it needs.
 
 ### Added
 
+- **A ruleset for each map, and terrains beyond the printed list, in Rules
+  Data.** The window held one set of tables, the Western Reaches', with a row
+  for each of its printed terrains and no way to add another. A **Ruleset**
+  picker now switches between the default (Western Reaches) and rulesets you
+  add for other maps, each with its own terrain costs, hexes per day, hex
+  visibility, climate and settlement limits. **New ruleset…** starts from
+  nothing, or a copy of another, with the terrains you list (filled in from the
+  map's Hex Tagger terrains when it has them); a box under the terrain table
+  adds hills, marsh or any other terrain to any ruleset. **The scene uses**
+  picks the ruleset for the hex map you are viewing. Travel, hex visibility,
+  carousing and recruiting read the ruleset of the scene the party is
+  travelling on, and the default for a scene that names none, so a world that
+  adds nothing plays exactly as before.
 - **Terrains on this map, and hex numbers on the legend.** The Hex Tagger's
   terrain choices came from one list written for the Western Reaches, so a map
   with a forest, a lake and a river was asked about arctic sea and lava on every

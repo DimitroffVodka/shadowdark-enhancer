@@ -21,6 +21,7 @@ import { MODULE_ID } from "../shared/module-id.mjs";
 import { replaceModuleFlag } from "../shared/module-flags.mjs";
 import { findSuitePack } from "../shared/compendium-suite.mjs";
 import { rulesApi, SETTLEMENT_KINDS } from "../rules-data/rules-data-core.mjs";
+import { storedRulesFor } from "../rules-data/rules-data-scope.mjs";
 import { format as formatTime } from "../time/time.mjs";
 import { allowanceFor, commandRefusal } from "../actors/warband-core.mjs";
 import { WARBAND_FLAG, commandedBy, commanderTier, warbandState } from "../actors/warband-npc-sheet.mjs";
@@ -58,7 +59,8 @@ export async function settlementInfo() {
   const override = game.settings.get(MODULE_ID, SETTLEMENT_SETTING) ?? "";
   const chosen = SETTLEMENT_KINDS.includes(override) || override === "none";
   const here = settlementNow(override, chosen ? null : await settlementFromMap());
-  const rules = rulesApi(() => game.settings.get(MODULE_ID, "rulesData"));
+  // The public rules API answers for the party's travel scene (or the viewed one), whichever ruleset that scene reads.
+  const rules = game.shadowdarkEnhancer?.rules ?? rulesApi(() => storedRulesFor());
   const limit = settlementLimit(here.kind, (k) => rules.recruitingLimit(k));
   const place = here.kind === "none" ? t("SDE.downtime.recruit.noSettlement")
     : [here.name, t(KIND_KEYS[here.kind])].filter(Boolean).join(", ");

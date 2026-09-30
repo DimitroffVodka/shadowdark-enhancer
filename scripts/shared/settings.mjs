@@ -836,6 +836,11 @@ export function registerSettings() {
   game.settings.register(MODULE_ID, "rulesData", {
     scope: "world", config: false, type: Object, default: {},
   });
+  // The rulesets of maps besides the Western Reaches, by id: `rulesData` above is
+  // the default one. A scene names the one it uses in its `rulesSet` flag.
+  game.settings.register(MODULE_ID, "rulesSets", {
+    scope: "world", config: false, type: Object, default: {},
+  });
   game.settings.registerMenu(MODULE_ID, "rulesData", {
     name: "SDE.settings.rulesData.name",
     hint: "SDE.settings.rulesData.hint",

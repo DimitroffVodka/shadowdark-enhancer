@@ -7,6 +7,15 @@
 .sde-rules-data .sde-rd-intro { font-size: 12px; opacity: 0.8; line-height: 1.45; margin: 0; }
 .sde-rules-data .sde-rd-tools { display: flex; gap: 4px; flex: 0 0 auto; }
 .sde-rules-data .sde-rd-tools button { width: auto; flex: 0 0 auto; padding: 2px 10px; line-height: 1.6; font-size: 12px; }
+.sde-rules-data .sde-rd-sets { display: flex; gap: 6px; align-items: center; flex: 0 0 auto; flex-wrap: wrap; }
+.sde-rules-data .sde-rd-sets label { display: flex; gap: 6px; align-items: center; font-weight: 700; }
+.sde-rules-data .sde-rd-sets select { width: auto; min-width: 12rem; }
+.sde-rules-data .sde-rd-sets button { width: auto; flex: 0 0 auto; padding: 2px 10px; line-height: 1.6; font-size: 12px; }
+.sde-rules-data td.sde-rd-remove { width: 2rem; text-align: center; }
+.sde-rules-data td.sde-rd-remove button { width: auto; padding: 0 6px; line-height: 1.5; font-size: 11px; }
+.sde-rules-data .sde-rd-add { display: flex; gap: 6px; margin-top: 4px; }
+.sde-rules-data .sde-rd-add input { flex: 1 1 auto; }
+.sde-rules-data .sde-rd-add button { width: auto; flex: 0 0 auto; padding: 2px 10px; line-height: 1.6; font-size: 12px; }
 .sde-rules-data .sde-rd-body { flex: 1 1 auto; min-height: 0; overflow: auto; display: flex; flex-direction: column; gap: 8px; padding-right: 2px; }
 .sde-rules-data fieldset { margin: 0; padding: 4px 6px 6px; border: 1px solid rgba(127,127,127,0.35); border-radius: 4px; }
 .sde-rules-data legend { font-weight: 700; padding: 0 4px; }
@@ -25,11 +34,35 @@
 
   <p class="sde-rd-intro">{{localize "SDE.rulesData.intro"}}</p>
 
+  <div class="sde-rd-sets">
+    <label>{{localize "SDE.rulesData.set.editing"}}
+      <select name="_ruleset" data-rd-ruleset>
+        {{#each rulesets}}<option value="{{this.id}}" {{#if this.selected}}selected{{/if}}>{{this.label}}</option>{{/each}}
+      </select>
+    </label>
+    <button type="button" data-action="rd-set-new"><i class="fa-solid fa-plus"></i> {{localize "SDE.rulesData.set.new"}}</button>
+    {{#if custom}}
+    <button type="button" data-action="rd-set-rename"><i class="fa-solid fa-pen"></i> {{localize "SDE.rulesData.set.rename"}}</button>
+    <button type="button" data-action="rd-set-delete"><i class="fa-solid fa-trash"></i> {{localize "SDE.rulesData.set.delete"}}</button>
+    {{/if}}
+  </div>
+  {{#if sceneName}}
+  <div class="sde-rd-sets" title="{{localize 'SDE.rulesData.set.sceneHint'}}">
+    <label>{{localize "SDE.rulesData.set.sceneUses" scene=sceneName}}
+      <select name="_scene">
+        {{#each sceneRulesets}}<option value="{{this.id}}" {{#if this.selected}}selected{{/if}}>{{this.label}}</option>{{/each}}
+      </select>
+    </label>
+  </div>
+  {{/if}}
+
+  {{#if canImport}}
   <div class="sde-rd-tools">
     <button type="button" data-action="rd-import" data-tooltip="{{localize 'SDE.rulesData.importHint'}}">
       <i class="fa-solid fa-file-import"></i> {{localize "SDE.rulesData.import"}}
     </button>
   </div>
+  {{/if}}
 
   <div class="sde-rd-body">
     <fieldset>
@@ -42,6 +75,7 @@
           <th>{{localize "SDE.rulesData.col.cost"}}</th>
           <th>{{localize "SDE.rulesData.col.boat"}}</th>
           <th>{{localize "SDE.rulesData.col.elevation"}}</th>
+          <th></th>
         </tr></thead>
         <tbody>
           {{#each terrain}}
@@ -51,10 +85,15 @@
             <td><input type="number" step="1" name="terrain.{{this.key}}.cost" value="{{this.cost}}" aria-label="{{localize 'SDE.rulesData.col.cost'}}"></td>
             <td><input type="number" step="1" name="terrain.{{this.key}}.boat" value="{{this.boat}}" aria-label="{{localize 'SDE.rulesData.col.boat'}}"></td>
             <td><select name="terrain.{{this.key}}.elevation" aria-label="{{localize 'SDE.rulesData.col.elevation'}}">{{selectOptions @root.elevationChoices selected=this.elevation blank="—" localize=true}}</select></td>
+            <td class="sde-rd-remove">{{#if this.removable}}<button type="button" data-action="rd-remove-terrain" data-key="{{this.key}}" data-tooltip="{{localize 'SDE.rulesData.terrain.remove'}}" aria-label="{{localize 'SDE.rulesData.terrain.remove'}}"><i class="fa-solid fa-trash"></i></button>{{/if}}</td>
           </tr>
           {{/each}}
         </tbody>
       </table>
+      <div class="sde-rd-add">
+        <input type="text" name="newTerrain" placeholder="{{localize 'SDE.rulesData.terrain.addPlaceholder'}}" aria-label="{{localize 'SDE.rulesData.terrain.addLabel'}}">
+        <button type="button" data-action="rd-add-terrain"><i class="fa-solid fa-plus"></i> {{localize "SDE.rulesData.terrain.add"}}</button>
+      </div>
     </fieldset>
 
     <div class="sde-rd-flats">

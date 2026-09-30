@@ -6,7 +6,8 @@ import { RULES_TABLES } from "../scripts/importer/tables/table-shapes.mjs";
 import { TERRAIN_TAGS } from "../scripts/importer/hex/hex-summary.mjs";
 import {
   rulesFrom, rulesApi, stormEffects, readReferenceTables, importOverwrites, applyImport, partlyRead, READERS,
-  ruleKey, regionKey, canonicalRegion, cellNumber,
+  ruleKey, regionKey, canonicalRegion, cellNumber, filledTables,
+  pickRules, rulesSetsFrom, newRulesetId, terrainWords, addTerrain, removeTerrain,
   TERRAIN_TYPES, ELEVATIONS, SEASONS, HARSH, TRAVEL_METHODS, VISIBILITY_KEYS, SETTLEMENT_KINDS, COSTED_TYPES,
 } from "../scripts/rules-data/rules-data-core.mjs";
 
@@ -310,4 +311,81 @@ test("partial import: a table cut short is named with what it read", () => {
   ];
   assert.deepEqual(partlyRead(found, fake), [{ id: "terrain", got: 3, want: 6 }], "whole and missing tables are not partial");
   assert.deepEqual(partlyRead({ terrain: rows("terrain", PAGES.terrain) }, fake), []);
+});
+
+test("terrain beyond the printed words: a row of any name is kept, read and priced (hills, marsh)", () => {
+  const rules = rulesFrom({ terrainTypes: { normal: 2, difficult: 4 }, terrain: { Hills: { type: "difficult" }, "Salt Marsh": { cost: 6, elevation: "slight" } } });
+  assert.deepEqual(rules.terrain.hills, { type: "difficult", cost: null, boat: null, elevation: "" });
+  assert.deepEqual(rules.terrain.salt_marsh, { type: "", cost: 6, boat: null, elevation: "slight" });
+  assert.equal(Object.keys(rules.terrain).length, Object.values(TERRAIN_TAGS).length + 2, "the printed words stay, the new ones join them");
+  const api = rulesApi(() => rules);
+  assert.equal(api.terrainCost("hills"), 4, "a typed terrain costs what its type does");
+  assert.equal(api.terrainCost("Salt Marsh"), 6);
+  assert.equal(api.visibility().elevation.salt_marsh, "slight");
+  assert.equal(filledTables({ terrain: { hills: { type: "difficult" } } }).terrain, true);
+});
+
+test("a map's own ruleset lists only its own terrains, and remembers that it is its own", () => {
+  const own = rulesFrom({ own: true, terrain: { forest: { type: "normal" }, hills: { type: "difficult" } } });
+  assert.deepEqual(Object.keys(own.terrain).sort(), ["forest", "hills"], "no arctic sea or lava on a map that has none");
+  assert.equal(own.own, true);
+  assert.equal(rulesFrom(own).own, true, "it survives being read again");
+  assert.equal("own" in rulesFrom({}), false, "the default ruleset is not marked");
+  assert.deepEqual(Object.keys(rulesFrom({ own: true }).terrain), [], "a new one starts with no rows");
+  assert.equal(rulesFrom({ own: true, terrain: { mountain: {} } }).terrain.mountain.elevation, "high", "mountain is still high until said otherwise");
+});
+
+test("a scene picks its ruleset: the default unless it names one that exists", () => {
+  const base = { travel: { walking: 8 }, terrainTypes: { normal: 1 } };
+  const sets = { gloaming: { name: "The Gloaming", own: true, travel: { walking: 5 }, terrain: { hills: { cost: 3 } } } };
+  assert.equal(pickRules(base, sets, ""), base);
+  assert.equal(pickRules(base, sets, undefined), base);
+  assert.equal(pickRules(base, sets, "nowhere"), base, "a ruleset that was deleted falls back to the default");
+  assert.equal(pickRules(base, sets, "gloaming"), sets.gloaming);
+  assert.equal(pickRules(base, null, "gloaming"), base, "no sets at all");
+  const forScene = (id) => rulesApi(() => pickRules(base, sets, id));
+  assert.equal(forScene("").hexesPerDay("walking"), 8);
+  assert.equal(forScene("gloaming").hexesPerDay("walking"), 5, "the scene's own travel table");
+  assert.equal(forScene("gloaming").terrainCost("hills"), 3);
+  assert.equal(forScene("").terrainCost("hills"), null, "the default knows nothing of hills");
+});
+
+test("rulesSetsFrom: sane ids and names, each set read into one shape", () => {
+  const out = rulesSetsFrom({
+    "The Gloaming": { name: "  The Gloaming ", own: true, terrain: { Hills: { type: "difficult" } } },
+    river_night: { terrain: {} },
+    "": { name: "no id" },
+    broken: "nope",
+    nothing: null,
+  });
+  assert.deepEqual(Object.keys(out).sort(), ["river_night", "the_gloaming"]);
+  assert.equal(out.the_gloaming.name, "The Gloaming");
+  assert.equal(out.river_night.name, "river night", "no name: the id, spaced");
+  assert.equal(out.the_gloaming.terrain.hills.type, "difficult");
+  assert.deepEqual(rulesSetsFrom(undefined), {});
+  assert.deepEqual(rulesSetsFrom([1, 2]), {}, "not an object");
+});
+
+test("newRulesetId: a slug of the name, never taken, never the default", () => {
+  assert.equal(newRulesetId("The Gloaming", {}), "the_gloaming");
+  assert.equal(newRulesetId("The Gloaming", { the_gloaming: {} }), "the_gloaming_2");
+  assert.equal(newRulesetId("The Gloaming", { the_gloaming: {}, the_gloaming_2: {} }), "the_gloaming_3");
+  assert.equal(newRulesetId("   ", {}), "ruleset", "a blank name still gets an id");
+  assert.equal(newRulesetId("Default", {}), "default_2", "the word is kept for the Western Reaches ruleset");
+  assert.equal(newRulesetId("???", {}), "ruleset");
+});
+
+test("adding and removing terrain rows: several words at once, blank rows, nothing else touched", () => {
+  assert.deepEqual(terrainWords("forest, Hills; salt flat\nlake ,, forest"), ["forest", "hills", "salt_flat", "lake"]);
+  assert.deepEqual(terrainWords("  "), []);
+  const start = rulesFrom({ own: true, terrain: { forest: { type: "normal", cost: 2 } } });
+  const added = addTerrain(start, ["hills", "forest", "marsh"]);
+  assert.deepEqual(Object.keys(added.terrain), ["forest", "hills", "marsh"]);
+  assert.equal(added.terrain.forest.cost, 2, "an existing row is left as it was");
+  assert.deepEqual(added.terrain.hills, { type: "", cost: null, boat: null, elevation: "" });
+  assert.equal(start.terrain.hills, undefined, "the rules passed in are not changed");
+  const removed = removeTerrain(added, "hills");
+  assert.deepEqual(Object.keys(removed.terrain), ["forest", "marsh"]);
+  assert.equal(removeTerrain(rulesFrom({}), "forest").terrain.forest !== undefined, true, "a printed word on the default ruleset is not removed: its row is the structure");
+  assert.equal(removeTerrain(rulesFrom({ terrain: { hills: {} } }), "hills").terrain.hills, undefined, "a word of the GM's own is");
 });

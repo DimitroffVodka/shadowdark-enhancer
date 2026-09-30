@@ -223,7 +223,10 @@ See [Crawl Strip and Crawl Bar](Crawl-Strip-and-Crawl-Bar.md#overland-travel).
 |---|---|---|
 | **Rules data** *(menu)* | *(empty)* | GM-only window (**Edit Rules Data**) with the tables the Western Reaches books consult rather than roll: terrain costs and elevation, terrain types, hexes per day, hex visibility, climate by region and season, and carousing and recruiting limits. The same tables are a step of the Importer Hub. **Import from GM Guide** fills them from your own linked PDFs and shows anything it would replace first; every value can also be typed in. Nothing from the books ships, so every table starts empty, except that mountain counts as high elevation. Stored as the `rulesData` world setting and read by `game.shadowdarkEnhancer.rules`. |
 
-See [Rules Data](Rules-Data.md).
+The window keeps one **default** ruleset (the Western Reaches', the `rulesData`
+world setting) and any number of others for other maps (the `rulesSets` world
+setting, not shown in the settings menu); a scene picks its ruleset with its
+`rulesSet` flag. See [Rules Data](Rules-Data.md).
 
 ## Settings edited elsewhere
 

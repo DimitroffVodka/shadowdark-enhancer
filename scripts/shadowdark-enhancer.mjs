@@ -10,9 +10,10 @@ import { claimGmTab, isActiveGM } from "./shared/gm-relay.mjs";
 
 import { registerSettings } from "./shared/settings.mjs";
 import { rulesApi } from "./rules-data/rules-data-core.mjs";
+import { storedRulesFor } from "./rules-data/rules-data-scope.mjs";
 import { registerRulesNotice } from "./rules-data/rules-data-notice.mjs";
 import { timeApi, registerTimeHooks } from "./time/time.mjs";
-import { overlandState, isOverland, rollWeather, startDay, resume, forage, makeCamp, registerOverland, partyReading, setTravelPace } from "./overland/overland.mjs";
+import { overlandState, isOverland, rollWeather, startDay, resume, forage, makeCamp, registerOverland, partyReading, setTravelPace, rulesScene } from "./overland/overland.mjs";
 import { TravelBar } from "./overland/overland-bar.mjs";
 import { registerHexRules } from "./overland/hex-rules.mjs";
 import { registerRoute } from "./overland/route.mjs";
@@ -125,7 +126,7 @@ const STYLESHEET_REV = "9d8c3adf530c";
 // stale); module.json carries the same hash and is fetched fresh at runtime. A
 // mismatch is a stale cache by construction — it cannot be anything else. Both
 // stamps are written by `npm run inventory` and gated by `inventory:check`.
-const BUILD_REV = "e192a60710e7";
+const BUILD_REV = "87a6d29e3c2e";
 
 /**
  * Tell the user when their browser is running an old build of this module, and
@@ -959,8 +960,11 @@ Hooks.once("init", () => {
     // 1.10.0 — additive: rules data (#195). The tables the Western Reaches books
     // consult rather than roll, from the `rulesData` world setting the Rules
     // data window fills (import from the GM's own PDF, or by hand). Synchronous;
-    // nothing ships, so an unfilled value is null.
-    rules: rulesApi(() => game.settings.get(MODULE_ID, "rulesData")),
+    // nothing ships, so an unfilled value is null. A map besides the Western
+    // Reaches can have a ruleset of its own; these answer for the party's
+    // travel scene, or the scene being viewed, and read the default ruleset
+    // for a scene that names none.
+    rules: rulesApi(() => storedRulesFor(rulesScene())),
   };
 });
 

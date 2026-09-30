@@ -18,13 +18,16 @@ import { MODULE_ID } from "../shared/module-id.mjs";
 import { esc } from "../shared/esc.mjs";
 import {
   rulesFrom, readReferenceTables, importOverwrites, applyImport, canonicalRegion, partlyRead,
+  rulesSetsFrom, newRulesetId, terrainWords, addTerrain, removeTerrain, TERRAIN_KEYS,
   TERRAIN_TYPES, COSTED_TYPES, ELEVATIONS, SEASONS, HARSH, TRAVEL_METHODS, VISIBILITY_KEYS, SETTLEMENT_KINDS,
 } from "./rules-data-core.mjs";
+import { RULES_SETTING, RULESETS_SETTING, rulesetOf, setSceneRuleset } from "./rules-data-scope.mjs";
+import { decodeTags } from "../hex-map/tag-store.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin, DialogV2 } = foundry.applications.api;
 
-/** The world setting holding the tables. */
-export const RULES_SETTING = "rulesData";
+/** The world setting holding the default ruleset's tables. */
+export { RULES_SETTING };
 
 const L = (key) => game.i18n.localize(key);
 const F = (key, data) => game.i18n.format(key, data);
@@ -171,6 +174,11 @@ export class RulesDataApp extends HandlebarsApplicationMixin(ApplicationV2) {
     actions: {
       "rd-import": RulesDataApp._onImport,
       "rd-cancel": RulesDataApp._onCancel,
+      "rd-add-terrain": RulesDataApp._onAddTerrain,
+      "rd-remove-terrain": RulesDataApp._onRemoveTerrain,
+      "rd-set-new": RulesDataApp._onNewSet,
+      "rd-set-rename": RulesDataApp._onRenameSet,
+      "rd-set-delete": RulesDataApp._onDeleteSet,
     },
   };
 
@@ -178,30 +186,79 @@ export class RulesDataApp extends HandlebarsApplicationMixin(ApplicationV2) {
     body: { template: `modules/${MODULE_ID}/templates/rules-data.hbs`, scrollable: [".sde-rd-body"] },
   };
 
-  /** Staged rules: edits and imports live here until Save. */
-  _working = null;
+  /**
+   * Staged rulesets: edits, imports and new or deleted rulesets live here until
+   * Save. `base` is the default ruleset, `sets` the others by id, `current` the
+   * one showing ("" for the default) and `scene` the one the viewed scene uses.
+   */
+  _all = null;
 
-  _rules() {
-    this._working ??= rulesFrom(game.settings.get(MODULE_ID, RULES_SETTING));
-    return this._working;
+  /** The viewed scene, when it is a hex map: the only kind a ruleset can be chosen for. */
+  _scene() {
+    const scene = globalThis.canvas?.scene;
+    return scene?.grid?.isHexagonal ? scene : null;
   }
 
-  /** The form as rules, so an import or a re-render keeps what the GM typed. */
+  _store() {
+    if (!this._all) {
+      const sets = rulesSetsFrom(game.settings.get(MODULE_ID, RULESETS_SETTING));
+      const used = rulesetOf(this._scene());
+      const own = used in sets ? used : "";
+      this._all = { base: rulesFrom(game.settings.get(MODULE_ID, RULES_SETTING)), sets, current: own, scene: own };
+    }
+    return this._all;
+  }
+
+  /** The rules being edited: the default's, or one ruleset's. */
+  _rules() {
+    const a = this._store();
+    return a.current ? a.sets[a.current] : a.base;
+  }
+
+  /** Stage `rules` as the ruleset being edited. */
+  _put(rules) {
+    const a = this._store();
+    if (a.current) a.sets[a.current] = { ...rules, name: a.sets[a.current].name };
+    else a.base = rules;
+    return rules;
+  }
+
+  /**
+   * The form as rules, so an import or a re-render keeps what the GM typed.
+   * Terrains typed into the Add terrain box join the table, and the scene's
+   * choice of ruleset is read from its box.
+   */
   _harvest() {
-    const data = new foundry.applications.ux.FormDataExtended(this.element).object;
-    this._working = rulesFrom(foundry.utils.expandObject(data));
-    return this._working;
+    const form = foundry.utils.expandObject(new foundry.applications.ux.FormDataExtended(this.element).object);
+    if (form._scene !== undefined) this._store().scene = String(form._scene);
+    let rules = rulesFrom({ ...form, own: this._rules().own });
+    const words = terrainWords(form.newTerrain);
+    if (words.length) rules = addTerrain(rules, words);
+    return this._put(rules);
   }
 
   async _prepareContext() {
+    const a = this._store();
     const r = this._rules();
+    const scene = this._scene();
+    const rulesets = [{ id: "", label: L("SDE.rulesData.set.default") }, ...Object.entries(a.sets).map(([id, s]) => ({ id, label: s.name }))];
     const flat = (table, keys, labelOf, placeholder = "") => ({
       title: `SDE.rulesData.table.${table}`,
       hint: `SDE.rulesData.hint.${table}`,
       rows: keys.map((k) => ({ name: `${table}.${k}`, label: labelOf(k), value: r[table][k] ?? "", placeholder })),
     });
     return {
-      terrain: Object.entries(r.terrain).map(([key, row]) => ({ key, word: key.replace(/_/g, " "), ...row, cost: row.cost ?? "", boat: row.boat ?? "" })),
+      rulesets: rulesets.map((c) => ({ ...c, selected: c.id === a.current })),
+      custom: !!a.current,
+      canImport: !a.current,   // the GM Guide import fills the Western Reaches' ruleset, the default one
+      sceneName: scene?.name ?? "",
+      sceneRulesets: rulesets.map((c) => ({ ...c, selected: c.id === a.scene })),
+      // A word of the GM's own can go; so can any row of a map's own ruleset. A printed word on the default
+      // ruleset is the structure and keeps its row.
+      terrain: Object.entries(r.terrain).map(([key, row]) => ({
+        key, word: key.replace(/_/g, " "), ...row, cost: row.cost ?? "", boat: row.boat ?? "",
+        removable: !!r.own || !TERRAIN_KEYS.includes(key),
+      })),
       typeChoices: choices(TERRAIN_TYPES, "SDE.rulesData.type."),
       elevationChoices: choices(ELEVATIONS, "SDE.rulesData.elevation."),
       harshChoices: choices(HARSH, "SDE.rulesData.harsh."),
@@ -234,15 +291,111 @@ export class RulesDataApp extends HandlebarsApplicationMixin(ApplicationV2) {
       button.disabled = false;
     }
     if (!out) return;
-    this._working = out.rules;
+    this._put(out.rules);
     await this.render();
     ui.notifications.info(F("SDE.rulesData.notify.imported", { n: out.n, total: out.total }));
     for (const warning of out.warnings) ui.notifications.warn(warning);
   }
 
-  static async _onSubmit(_event, _form, formData) {
-    const rules = rulesFrom(foundry.utils.expandObject(formData.object));
-    await game.settings.set(MODULE_ID, RULES_SETTING, rules);
+  _onRender(context, options) {
+    super._onRender(context, options);
+    // Another ruleset: what was typed in this one is staged first, so nothing is lost by looking.
+    this.element.querySelector("select[data-rd-ruleset]")?.addEventListener("change", (event) => {
+      this._harvest();
+      this._store().current = event.currentTarget.value;
+      this.render();
+    });
+    // Enter in the Add terrain box adds; it must not save and close the window.
+    this.element.querySelector("input[name='newTerrain']")?.addEventListener("keydown", (event) => {
+      if (event.key !== "Enter") return;
+      event.preventDefault();
+      RulesDataApp._onAddTerrain.call(this);
+    });
+  }
+
+  /** Add the words typed in the Add terrain box as rows (commas separate several). */
+  static async _onAddTerrain() {
+    this._harvest();   // the typed words join the table on the way
+    await this.render();
+  }
+
+  static async _onRemoveTerrain(_event, button) {
+    this._harvest();
+    this._put(removeTerrain(this._rules(), button.dataset.key));
+    await this.render();
+  }
+
+  /** The dialog behind New ruleset…: a name, what to start from, and the terrains to begin with. */
+  static async _onNewSet() {
+    this._harvest();
+    const a = this._store();
+    // The terrains the hex tagger's palette has ticked for the viewed map are the ones this ruleset is for.
+    const palette = decodeTags(globalThis.canvas?.scene?.getFlag(MODULE_ID, "hexTags")).palette ?? [];
+    const starts = [["", L("SDE.rulesData.set.blank")], ["default", F("SDE.rulesData.set.copyOf", { name: L("SDE.rulesData.set.default") })],
+      ...Object.entries(a.sets).map(([id, s]) => [id, F("SDE.rulesData.set.copyOf", { name: s.name })])];
+    const out = await DialogV2.prompt({
+      window: { title: L("SDE.rulesData.set.newTitle") },
+      content: `<div class="form-group"><label>${esc(L("SDE.rulesData.set.name"))}</label><input type="text" name="name" autofocus></div>`
+        + `<div class="form-group"><label>${esc(L("SDE.rulesData.set.startFrom"))}</label><select name="from">`
+        + starts.map(([v, label]) => `<option value="${esc(v)}">${esc(label)}</option>`).join("") + "</select></div>"
+        + `<div class="form-group"><label>${esc(L("SDE.rulesData.set.terrains"))}</label><input type="text" name="terrains" value="${esc(palette.map((w) => w.replace(/_/g, " ")).join(", "))}">`
+        + `<p class="hint">${esc(L("SDE.rulesData.set.terrainsHint"))}</p></div>`,
+      ok: {
+        label: L("SDE.rulesData.set.create"), icon: "fa-solid fa-plus",
+        callback: (_event, button) => new foundry.applications.ux.FormDataExtended(button.form).object,
+      },
+      rejectClose: false,
+    }).catch(() => null);
+    const name = String(out?.name ?? "").trim();
+    if (!name) return;
+    const id = newRulesetId(name, a.sets);
+    const source = out.from === "" ? { own: true } : out.from === "default" ? a.base : a.sets[out.from];
+    a.sets[id] = { ...addTerrain(rulesFrom(structuredClone(source)), terrainWords(out.terrains)), name };
+    a.current = id;
+    await this.render();
+    ui.notifications.info(F("SDE.rulesData.notify.setCreated", { name }));
+  }
+
+  static async _onRenameSet() {
+    this._harvest();
+    const a = this._store(), set = a.sets[a.current];
+    if (!set) return;
+    const out = await DialogV2.prompt({
+      window: { title: L("SDE.rulesData.set.renameTitle") },
+      content: `<div class="form-group"><label>${esc(L("SDE.rulesData.set.name"))}</label><input type="text" name="name" value="${esc(set.name)}" autofocus></div>`,
+      ok: { label: L("SDE.rulesData.set.rename"), icon: "fa-solid fa-pen", callback: (_event, button) => new foundry.applications.ux.FormDataExtended(button.form).object },
+      rejectClose: false,
+    }).catch(() => null);
+    const name = String(out?.name ?? "").trim();
+    if (!name) return;
+    set.name = name;
+    await this.render();
+  }
+
+  static async _onDeleteSet() {
+    this._harvest();
+    const a = this._store(), set = a.sets[a.current];
+    if (!set) return;
+    const yes = await DialogV2.confirm({
+      window: { title: L("SDE.rulesData.set.deleteTitle") },
+      content: `<p>${esc(F("SDE.rulesData.set.deleteConfirm", { name: set.name }))}</p>`,
+      rejectClose: false,
+    }).catch(() => false);
+    if (yes !== true) return;
+    delete a.sets[a.current];
+    if (a.scene === a.current) a.scene = "";
+    a.current = "";
+    await this.render();
+  }
+
+  static async _onSubmit(_event, _form, _formData) {
+    this._harvest();
+    const a = this._store();
+    await game.settings.set(MODULE_ID, RULES_SETTING, a.base);
+    await game.settings.set(MODULE_ID, RULESETS_SETTING, a.sets);
+    // The viewed hex map's choice of ruleset goes with them.
+    const scene = this._scene();
+    if (scene && a.scene !== rulesetOf(scene)) await setSceneRuleset(scene, a.scene);
     ui.notifications.info(L("SDE.rulesData.notify.saved"));
   }
 }

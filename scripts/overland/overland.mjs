@@ -46,6 +46,7 @@ import { advanceOffDuty } from "../time/off-duty.mjs";
 import { StatRiders } from "../stat-damage/stat-riders.mjs";
 import { esc } from "../shared/esc.mjs";
 import { rulesFrom, stormEffects } from "../rules-data/rules-data-core.mjs";
+import { storedRulesFor } from "../rules-data/rules-data-scope.mjs";
 import { tellMissing, openRulesStep } from "../rules-data/rules-data-notice.mjs";
 import {
   defaultOverlandState, normalizeOverlandState, startTravel, setHex, recordForage,
@@ -291,9 +292,7 @@ export async function rollWeather({ reroll = false } = {}) {
  * @param {number|null} days  the core rule's 1d4, for a storm of several days
  */
 function stormText(days) {
-  let stored = null;
-  try { stored = game.settings.get(MODULE_ID, "rulesData"); } catch { /* not registered: no rules data */ }
-  const { slows, harsh } = stormEffects(rulesFrom(stored));
+  const { slows, harsh } = stormEffects(rulesFrom(storedRulesFor(rulesScene())));
   return [
     days ? t("SDE.overland.weather.stormDaysLead", { days }) : "",
     slows ? t("SDE.overland.weather.stormSlows") : "",
@@ -307,7 +306,7 @@ function stormText(days) {
 async function postWeather(weather, rolls, reroll) {
   const [, effect] = WEATHER_TEXT[weather.kind];
   // A storm reads both tables; the card below is for the table, so what to press goes to the GM alone (#299).
-  if (weather.kind === "stormy") { void tellMissing("terrain"); void tellMissing("climate"); }
+  if (weather.kind === "stormy") { const scene = rulesScene(); void tellMissing("terrain", scene); void tellMissing("climate", scene); }
   const what = weather.kind === "stormy" ? stormText(weather.days) : t(effect);
   const lines = [
     `<p><strong>${esc(t("SDE.overland.weather.title", { weather: weatherName(weather.kind) }))}</strong></p>`,
@@ -388,6 +387,12 @@ async function postDay(boat) {
 export function travelScene() {
   try { return _state.tokenUuid ? fromUuidSync(_state.tokenUuid)?.parent ?? null : null; } catch { return null; }
 }
+
+/**
+ * The scene whose ruleset travel reads: the travel token's, else the one being
+ * viewed. Safe without a canvas (the Node tests have none).
+ */
+export function rulesScene() { return travelScene() ?? globalThis.canvas?.scene ?? null; }
 
 /** A check's label on its card and in the recap: "Night check, 21:00". */
 function checkLabel(check) {
@@ -661,7 +666,7 @@ function costToday() {
   const s = overlandState();
   const terrainCost = game.shadowdarkEnhancer?.rules?.terrainCost;
   if (typeof terrainCost !== "function") return () => 1;
-  void tellMissing("terrain");
+  void tellMissing("terrain", rulesScene());
   // One rules lookup per terrain: rules.terrainCost reads the whole rules setting
   // each call, and a route prices thousands of steps with the same day's options.
   const memo = new Map();

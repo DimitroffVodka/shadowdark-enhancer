@@ -1452,6 +1452,12 @@ GM Guide** (reads the GM's own linked PDFs) or by hand. The data is the
 `rulesData` world setting. Every call is synchronous, reads the setting each
 time (so an edit is seen at once) and works for players too.
 
+A map besides the Western Reaches can have a ruleset of its own (the `rulesSets`
+world setting; a scene names its ruleset in its `rulesSet` flag). Every call
+answers for the scene the party is travelling on, or the scene being viewed when
+there is no trip, and reads the default ruleset for a scene that names none, so
+a world with no other rulesets behaves exactly as before.
+
 | Call | Returns |
 |---|---|
 | `rules.terrainCost(terrain, { boat, weather, harsh })` | Hexes of movement to enter a terrain. `Infinity` when impassable, `null` for a terrain it has no value for. |
