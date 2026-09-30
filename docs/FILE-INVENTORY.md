@@ -1,7 +1,7 @@
 # Shadowdark Enhancer — File Inventory
 
 <!-- inventory:stats:start -->
-1125 tracked files · ~203,800 lines of code/markup across scripts+templates+styles+test.
+1128 tracked files · ~204,400 lines of code/markup across scripts+templates+styles+test.
 `v0.17.3` in both `module.json` and `package.json`.
 <!-- inventory:stats:end -->
 **Layout reflects the 2026-07-21 feature-folder reorganization (v0.11.0 cycle).**
@@ -288,13 +288,13 @@
 | `importer-hub-maintenance.mjs` | 282 | Tools-menu bodies (bundle export/import, source-PDF library). |
 | `dump-segmenter.mjs` | 308 | Routes a mixed dump through the recognizer registry: hexcrawl → spell → monster → item → table. |
 | `bundle-io.mjs` | 410 | Whole-suite export/import as one JSON; validates, skips existing, never overwrites. |
-| `manage-tree.mjs` | 703 | Composes the folder/sub-folder unlock-review tree the Manage strip renders. |
+| `manage-tree.mjs` | 706 | Composes the folder/sub-folder unlock-review tree the Manage strip renders. |
 | `batch-import.mjs` | 263 | Pure batch planner: locked tree rows → deduped import jobs, routes, and the run report. |
 | `pdf-text-extract.mjs` | 872 | Clean reading-ordered PDF text via Foundry's bundled PDF.js; column-aware gutter detection. |
 | `pdf-text-utils.mjs` | 157 | Shared PDF-text helpers + the HTML-safety contract. |
 | `source-pdf-registry.mjs` | 319 | Content source → the user's own uploaded PDF, for page deep-links. |
 | `source-pdf-viewer.mjs` | 66 | Singleton ApplicationV2 embedding Foundry's PDF.js viewer at a given page. |
-| `char-content/char-content-manifest.mjs` | 1877 | Metadata-only manifest of CS4–6 + WR char-builder content (names/types/sources, no rules text) + `parseCharContent` + census. |
+| `char-content/char-content-manifest.mjs` | 1890 | Metadata-only manifest of CS4–6 + WR char-builder content (names/types/sources, no rules text) + `parseCharContent` + census. |
 | `char-content/class-parser.mjs` | 1100 | Class section → structured unit (writeup, talents, tables, spellcasting). Pure. |
 | `char-content/class-importer-app.mjs` | 802 | Purpose-built single-view class workspace. |
 | `char-content/class-unit-importer.mjs` | 1449 | Class unit → real documents in dependency order. |
@@ -304,8 +304,8 @@
 | `char-content/language-resolver.mjs` | 16 | Language names → system UUIDs. |
 | `spells/spell-parser.mjs` | 290 | Spell blocks → Spell drafts. Pure. |
 | `spells/spell-importer-app.mjs` | 475 | Spell workspace organized by class / tier / alignment. |
-| `tables/table-importer.mjs` | 3905 | Roll-table text → structure. The big one; includes `repairSharedStartRanges`. |
-| `tables/table-shapes.mjs` | 839 | Per-unlock deterministic table SHAPE recipes (prayer/grid/lookup/reflow kinds). |
+| `tables/table-importer.mjs` | 3968 | Roll-table text → structure. The big one; includes `repairSharedStartRanges`. |
+| `tables/table-shapes.mjs` | 860 | Per-unlock deterministic table SHAPE recipes (prayer/grid/lookup/reflow kinds). |
 | `tables/table-hub.mjs` | 449 | Reconciles the shipped manifest against the live world (system / imported / missing). |
 | `tables/table-hub-app.mjs` | 595 | "Set up ALL tables" window — dashboard + import view. |
 | `tables/table-registry.mjs` | 209 | Parses live tables into `{source, page, displayName, subCategory}` and groups them. |
@@ -339,8 +339,8 @@
 | `items/item-builder-gear.mjs` | 299 | Pure stage-①/③ logic for the Item Builder. |
 | `items/item-census-live.mjs` | 201 | Items census adapter (same shape as monsters). |
 | `items/shikashi-icons.mjs` | 235 | Item name → bundled Shikashi icon matcher (284 icons). |
-| `tables/table-manifest.mjs` | 308 | Table manifest logic — the registry of catalogued tables (id, name, source, page) that drives the Manage-tree census. |
-| `tables/table-manifest-data.mjs` | 500 | The `TABLE_MANIFEST` data array — every catalogued table's metadata (names/sources/pages; no rules text). |
+| `tables/table-manifest.mjs` | 314 | Table manifest logic — the registry of catalogued tables (id, name, source, page) that drives the Manage-tree census. |
+| `tables/table-manifest-data.mjs` | 506 | The `TABLE_MANIFEST` data array — every catalogued table's metadata (names/sources/pages; no rules text). |
 | `boats/mount-parser.mjs` | 65 | Names-only WR mount manifest + selection of the requested mount from parsed statblock drafts. |
 | `boats/mount-importer.mjs` | 169 | Mount drafts → `shadowdark-enhancer.mount` actors in `sde-actors`, reusing the monster import pipeline. |
 | `boats/boat-parser.mjs` | 155 | Parses the WR p118 boats table → boat actor drafts (pure); names-only manifest. |
@@ -354,6 +354,7 @@
 | `hex/hex-handoff.mjs` | 384 | Crawl entry → dataset; puts it on the tagged print through Extras (adoptHexcrawl), merging each hex's features into the record Extras holds, builds a painted Extras scene, or downloads JSON. |
 | `hex/hex-summary.mjs` | 174 | Keyed hex summary rows (number, region, terrain, name) → structured rows; zone/terrain split decided by the table. Pure. |
 | `items/record-boundary.mjs` | 210 | Where one pasted description record ends and the next begins. Pure. |
+| `tables/cursed-scroll-tables.mjs` | 190 | The Cursed Scrolls' hexcrawl and adventure tables (rumors, region and site encounters, weather, points of interest, NPC rosters, d20 treasure lists): one entry per Manage row with its catalogue id, page cite and recipe, read by the shape registry, the Manage tree and the catalogue's names. The regions are named as the key-location entries are, so a CS hex finds its zone tables. Structure only. |
 | `tables/patron-items.mjs` | 223 | Patron Items for the imported WR boon tables (#167): find-or-create in `patrons-and-deities`, plus the ready-time rename/link backfill. |
 
 ### 3.13 `scripts/actors/` — Mount, Warband & Boat sub-types

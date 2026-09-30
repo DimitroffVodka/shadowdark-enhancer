@@ -118,6 +118,8 @@ function leaf(id, label, icon, records, seedAction, alpha = false) {
     // Stamp the persistent shape id on every shaped entry (prayers, boons,
     // gameplay tables), not just the Core leaf — source-scoped (Codex #1).
     contentId: contentIdForName(r.name, r.src) ?? undefined,
+    // The catalogue row a table answers for: it seeds the import (columns, name) and stamps the result.
+    manifestId: r.manifestId,
   })), alpha);
   const have = entries.filter((e) => e.present).length;
   return { id, label, icon, have, locked: entries.length - have, entries, children: [] };
@@ -225,6 +227,7 @@ function buildCharContent(charEntries, patronsNeedDesc = new Set()) {
 
 /** Pure test seam for the dual-source class rows' book choice. */
 export const _testBuildCharContent = buildCharContent;
+export const _testBuildRollTables = buildRollTables;
 
 /**
  * Spells top-level branch, sub-grouped by source and — the part that matters —

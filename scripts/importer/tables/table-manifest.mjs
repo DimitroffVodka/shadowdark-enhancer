@@ -33,6 +33,7 @@
  */
 
 import { TABLE_MANIFEST } from "./table-manifest-data.mjs";
+import { CS_TABLES } from "./cursed-scroll-tables.mjs";
 
 export { TABLE_MANIFEST };
 
@@ -207,6 +208,11 @@ function _computeImportNames() {
     const fit = levels.find((fmt) => new Set(peers.map(fmt)).size === peers.length);
     for (const e of peers) out.set(e.id, fit ? fit(e) : `${levels[2](e)} [${e.id}]`);
   }
+  // The Cursed Scrolls' hexcrawl and adventure tables are created under the names their recipes are
+  // registered under (cursed-scroll-tables.mjs), which carry the map's region as its key-location
+  // entry does: the travel check finds a hex's zone tables by that name, and a plain "The Gloaming"
+  // would land in the GM Guide's group of the same name.
+  for (const t of CS_TABLES) if (out.has(t.id)) out.set(t.id, t.name);
   return out;
 }
 

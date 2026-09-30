@@ -359,16 +359,18 @@ describe("docs contract — code-derived facts", () => {
     }
   });
 
-  test("table-recipe count in docs matches CONTENT_ENTRIES", () => {
-    const src = read(path.join(ROOT, "scripts", "importer", "tables", "table-shapes.mjs"));
-    const actual = (src.match(/_entry\(/g) || []).length;
+  test("table-recipe count in docs matches CONTENT_ENTRIES", async () => {
+    // The registry itself, not a text count of `_entry(` in the source: whole families of recipes are
+    // generated from a list (the GM Guide's, the Cursed Scrolls'), and one call site stands for dozens.
+    const { CONTENT_ENTRIES } = await import("../scripts/importer/tables/table-shapes.mjs");
+    const actual = CONTENT_ENTRIES.length;
     const doc = read(path.join(WIKI, "Table-Import-and-Shapes.md"));
     const m = doc.match(/\*\*(\d+) tables\*\* currently carry a recipe/);
     assert.ok(m, "Table-Import-and-Shapes.md no longer states the recipe count");
     assert.equal(
       Number(m[1]),
       actual,
-      `docs say ${m[1]} recipes, table-shapes.mjs has ${actual} — update the page`,
+      `docs say ${m[1]} recipes, the registry has ${actual} — update the page`,
     );
   });
 });

@@ -190,6 +190,17 @@ has a "The Gloaming" too, and the [Hex Tagger](#keyed-locations-on-the-map)'s
 hex-key picker lists crawls by name. Cursed Scroll 6 (City of Masks) numbers the
 locations of a city, not hexes, so it is not offered.
 
+**Their rumors and encounter tables** import from the same books, and so do the
+tables of every adventure site in them: the Hideous Halls of Mugdulblub, the
+Fortress of the Burning Brothers' iron fortress and mines, the Sea Wolf King's caves,
+the Black River's eight sites, the Ghoulish Library of Leng, and the City of Masks.
+That is 48 tables (90 once each grid is split into its columns), one row each under
+**Roll Tables → Cursed Scroll N** in the Importer Hub's Manage tree, and **Import all**
+on a book's folder files them. A map's tables carry the same region name as its key
+locations, so a hex on a Cursed Scroll map finds its own encounter zone: the
+Gloaming's is filed as **The Gloaming (Cursed Scroll 1) Encounter Zone: Forest**, apart
+from the GM Guide's **The Gloaming**, which keeps its own tables.
+
 **Numbering the map to match.** Their hex numbers are the map's: three or four
 digits, column then row. When you make the scene with **Hex map from image**, set
 **Top-left hex is number** so the numbers agree. For The Gloaming, The Djurum and

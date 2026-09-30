@@ -11,6 +11,27 @@ it needs.
 
 ### Added
 
+- **The Cursed Scrolls' rumors, encounters and adventure tables import with the rest.**
+  The importer always knew these tables existed, and never offered them: Importer
+  Hub → Manage → **Roll Tables → Cursed Scroll N** now lists 48 (90 tables once each
+  grid is split into its columns), and **Import all** on a book's folder files them
+  from your own PDF. They are the region pages of the Gloaming, the Djurum, the Isles of
+  Andrik and Morzomotha (rumors, Encounter Zone, Encounters, and the Djurum's and Andrik's
+  Temperature and Wind), the Black River's rumors, points of interest, special encounters,
+  terrain and day and night grids, and every adventure site's own rumors and random
+  encounters: the Hideous Halls of Mugdulblub, the Fortress of the Burning Brothers with
+  its Salamander and Duergar rosters, the Sea Wolf King's caves, the Black River's eight
+  sites, the Ghoulish Library of Leng, and the City of Masks, plus the Black River's,
+  Leng's and the City's d20 treasure lists. Every one was read row by row against the
+  real page. A map's tables carry its key-location name, so a hex on a Cursed Scroll map
+  finds its own encounter zone and the Guide's tables of the same region name are left
+  alone. Three recipe options came with them: `list` (a page that is one numbered
+  roster), `nth` (a caption printed twice) and `noise: "map"` (an adventure map's
+  area numbers over a table), and a banded table now reads its faces as one run
+  from the first, so a row that opens with a number is no longer taken for a face.
+  The catalogue's row counts and dice were wrong for nine of these (the four region
+  rumors are ten lines, the fortress encounters are d6s, the Hideous Halls' a d12, the
+  two rosters 22 and 20 entries) and are corrected.
 - **The tagger's hex numbers, for Shadowdark Extras' Map Coordinates.** The
   overlay that writes a number on every hex guessed its numbers from the map's
   shape, so on The Gloaming it put 001 on the castle hex that the book and the
