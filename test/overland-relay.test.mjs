@@ -457,6 +457,37 @@ test("a move across a check hour rolls it at its hour; a hit stops the clock the
   assert.equal((await applyAction({ action: "resume" }, gm)).ok, false, "nothing left to continue");
 });
 
+test("a walk keeps one deadline across the checks that miss: each is reached at its share of the walk, the walk takes all its time (#324 review)", async () => {
+  const calls = await dayWithChecks([2, 9, 1, 12]);   // day 07:00 (past) and 14:00, night 18:00 and 05:00
+  const t = globalThis.game.time;
+  const start = t.worldTime, span = at(1301, 6, 21, 16) - start;
+  const checkedAt = [];
+  globalThis.game.shadowdarkEnhancer.encounter.check = async () => { checkedAt.push([t.worldTime, performance.now()]); return { hit: false }; };
+  calls.length = 0;
+  const began = performance.now();
+  const { stopped } = await advanceTravel(start + span, "move", 900);
+  const took = performance.now() - began;
+  assert.equal(stopped, false);
+  assert.equal(t.worldTime, start + span);
+  assert.equal(t.advanced.reduce((sum, dt) => sum + dt, 0), span, "the whole clock, once");
+  // 14:00 is 6 of the 8 hours: 675 ms into the walk, not when its slices happen to run out.
+  assert.equal(checkedAt.length, 1);
+  const checkedAfter = checkedAt[0][1] - began;
+  assert.ok(checkedAfter >= 650 && checkedAfter < 800, `the 14:00 check came ${Math.round(checkedAfter)} ms in, at 6/8 of the walk`);
+  assert.ok(took >= 880 && took < 1100, `the walk took all 900 ms, ${Math.round(took)} ms`);
+});
+
+test("a hit still stops a walk at once, without waiting out what is left of it (#324 review)", async () => {
+  await dayWithChecks([2, 9, 1, 12], [false, true]);   // 07:00 misses at the start, 14:00 hits
+  const t = globalThis.game.time;
+  const began = performance.now();
+  const { stopped } = await advanceTravel(at(1301, 6, 21, 16), "move", 900);
+  const took = performance.now() - began;
+  assert.equal(stopped, true);
+  assert.equal(t.worldTime, at(1301, 6, 21, 14));
+  assert.ok(took < 850, `it stopped at the hit, ${Math.round(took)} ms`);
+});
+
 test("Continue runs the rest of a move as a time-lapse when the party's scene is on this screen, and in one step when it is not", async () => {
   const times = globalThis.game.time, savedLookup = globalThis.fromUuidSync;
   // A move whose 14:00 check hit: two hours of it are left for Continue.

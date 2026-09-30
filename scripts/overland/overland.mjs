@@ -430,10 +430,13 @@ async function rollCheck(c, chance, travel) {
  */
 export async function advanceTravel(target, reason, ms = 0) {
   const perSecond = target > game.time.worldTime ? ms / (target - game.time.worldTime) : 0;
+  // One deadline for the whole advance: each stretch of clock owns its share of the ms, and what a slice
+  // leaves of it is waited out before the next check, so a check that misses can't shorten the walk (#324 review).
+  const pace = { t0: performance.now(), used: 0 };
   for (const i of dueChecks(_state.checks, target)) {
     const c = _state.checks[i];
     const gap = c.at - game.time.worldTime;
-    if (gap > 0) await advanceOver(gap, gap * perSecond);
+    if (gap > 0) await advanceOver(gap, gap * perSecond, pace);
     const chance = chanceNow();
     // Travel, not a camp's or a late Start day's check: the GM Guide's marked zone rows give a point of interest (#273).
     const { hit, held } = await rollCheck(c, chance, reason === "move");
@@ -458,7 +461,7 @@ export async function advanceTravel(target, reason, ms = 0) {
     }
   }
   const rest = target - game.time.worldTime;
-  if (rest > 0) await advanceOver(rest, rest * perSecond);
+  if (rest > 0) await advanceOver(rest, rest * perSecond, pace);
   return { stopped: false };
 }
 
@@ -477,16 +480,18 @@ function lapseFor(target) {
  * ponytail: one game.time.advance per ~150 ms while a hex is walked, every client's bar redraws each;
  * a client-side tween of a single write is the upgrade path if that costs a weak device too much.
  */
-async function advanceOver(seconds, ms) {
+async function advanceOver(seconds, ms, pace = { t0: performance.now(), used: 0 }) {
   const slices = walkSlices(seconds, ms);
-  if (slices.length === 1) return game.time.advance(seconds);
-  const t0 = performance.now();
+  const from = pace.t0 + pace.used;
+  pace.used += ms;
+  const sleep = (until) => { const wait = until - performance.now(); return wait > 0 ? new Promise((resolve) => setTimeout(resolve, wait)) : null; };
+  if (slices.length === 1 && !(ms > 0)) return game.time.advance(seconds);
   await holdClock(async () => {
     for (const { dt, ms: due } of slices) {
-      const wait = t0 + due - performance.now();
-      if (wait > 0) await new Promise((resolve) => setTimeout(resolve, wait));
-      await game.time.advance(dt, { [MODULE_ID]: { paceMs: WALK_SLICE_MS } });
+      await sleep(from + due);
+      await game.time.advance(dt, slices.length > 1 ? { [MODULE_ID]: { paceMs: WALK_SLICE_MS } } : undefined);
     }
+    await sleep(from + ms);   // the last slice is due a slice before the stretch's end: keep that tail
   });
 }
 
