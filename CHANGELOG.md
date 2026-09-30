@@ -817,7 +817,10 @@ page walks through it in order.
   own, the module's Party is now made an Extras party, starting with your player
   characters as members; one made before is joined the next time you Start travel
   with it. An Extras party you made yourself still wins and is never joined by the
-  module's. Extras' own party sheet keeps its members if it already has some.
+  module's. Extras' own party sheet keeps its members if it already has some; a
+  party whose saved members are not characters in your world (a compendium
+  actor, say) is left as it was rather than joined, so your player characters keep
+  travelling, and none is made when Extras' list of parties can't be read.
 - **Pressing Apply twice on Map size no longer drops the top row.** On a print
   like The Gloaming, whose first row is full hexes, the first Apply stored the
   "top row is frame" box as "nothing"; the next render guessed it back on from

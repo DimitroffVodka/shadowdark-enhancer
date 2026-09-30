@@ -23,17 +23,19 @@ const player = (id, owned = true) => actor(id, {}, { type: "Player", hasPlayerOw
 function world({ actors = [], extras = "absent", parties = [] } = {}) {
   const created = [];
   const extrasModule = extras === "absent" ? undefined
-    : { active: extras !== "off", api: extras === "noApi" ? {} : { party: { list: () => parties } } };
+    : { active: extras !== "off", api: extras === "noApi" ? {} : { party: { list: () => (typeof parties === "function" ? parties() : parties) } } };
   globalThis.game = {
     modules: { get: (id) => (id === EXTRAS ? extrasModule : undefined) },
-    actors: { find: (fn) => actors.find(fn), filter: (fn) => actors.filter(fn), contents: actors },
+    actors: { find: (fn) => actors.find(fn), filter: (fn) => actors.filter(fn), get: (id) => actors.find((a) => a.id === id), contents: actors },
     i18n: { localize: (k) => k },
     user: { isGM: true },
   };
+  // Foundry's synchronous resolver: a world uuid is the actor; a compendium uuid is an unloaded index entry (an _id, no id).
+  globalThis.fromUuidSync = (uuid) => (uuid.startsWith("Actor.") ? actors.find((a) => a.id === uuid.slice(6)) : { _id: "x", uuid });
   globalThis.Actor = { create: async (data) => { created.push(data); const a = actor("new", data.flags); actors.push(a); return a; } };
   return { created, actors };
 }
-test.afterEach(() => { delete globalThis.game; delete globalThis.Actor; });
+test.afterEach(() => { delete globalThis.game; delete globalThis.Actor; delete globalThis.fromUuidSync; });
 
 test("without Extras the party is a plain NPC of the Enhancer's, as it always was", async () => {
   const { created } = world({ actors: [player("p1")] });
@@ -69,11 +71,11 @@ test("the party made before Extras took part is joined to it, once, keeping memb
   assert.equal(mine.flags[EXTRAS].isParty, true);
   assert.deepEqual(mine.flags[EXTRAS].members, ["p1"]);
 
-  const withMembers = actor("kept", { [ENHANCER]: { [PARTY_FLAG]: true }, [EXTRAS]: { members: ["Compendium.a.b.Actor.x"] } });
-  world({ actors: [withMembers, player("p1")], extras: "on", parties: [] });
+  const withMembers = actor("kept", { [ENHANCER]: { [PARTY_FLAG]: true }, [EXTRAS]: { members: ["p1", "Actor.p2"] } });
+  world({ actors: [withMembers, player("p1"), player("p2")], extras: "on", parties: [] });
   await joinExtras(withMembers);
   assert.equal(withMembers.flags[EXTRAS].isParty, true);
-  assert.deepEqual(withMembers.flags[EXTRAS].members, ["Compendium.a.b.Actor.x"], "an Extras sheet's own members are not replaced");
+  assert.deepEqual(withMembers.flags[EXTRAS].members, ["p1", "Actor.p2"], "an Extras sheet's own members are not replaced");
 
   const before = withMembers.updates.length;
   await joinExtras(withMembers);
@@ -104,4 +106,44 @@ test("extrasParties is what Extras lists, and nothing when it is absent, off or 
   world({ extras: "on" });
   globalThis.game.modules.get(EXTRAS).api.party.list = () => { throw new Error("boom"); };
   assert.deepEqual(extrasParties(), []);
+});
+
+/** Extras' own list: every actor flagged isParty. */
+const flagged = (actors) => () => actors.filter((a) => a.flags[EXTRAS]?.isParty === true);
+
+test("a party whose saved members are not world characters is not joined: its travellers stay the player characters (#320 review)", async () => {
+  // Extras keeps a compendium uuid as is; the synchronous lookup gives an index entry with no id, so
+  // travel would take no one. Joining would also swap who travels; the saved list is left as it was.
+  for (const members of [["Compendium.a.b.Actor.x"], ["p1", "Compendium.a.b.Actor.x"], ["gone"]]) {
+    const mine = actor("mine", { [ENHANCER]: { [PARTY_FLAG]: true }, [EXTRAS]: { members } });
+    const actors = [mine, player("p1")];
+    world({ actors, extras: "on", parties: flagged(actors) });
+    assert.equal(await partyActor(), mine);
+    assert.equal(mine.flags[EXTRAS].isParty, undefined, JSON.stringify(members));
+    assert.deepEqual(mine.flags[EXTRAS].members, members, "the saved list is not erased");
+    assert.deepEqual(extrasParties(), [], "Extras does not list it, so Start travel takes the player characters");
+  }
+});
+
+test("a failed list of Extras' parties is not an empty one: nothing is enrolled (#320 review)", async () => {
+  const boom = () => { throw new Error("boom"); };
+  // creating
+  const { created } = world({ actors: [player("p1")], extras: "on", parties: boom });
+  await partyActor();
+  assert.equal(created[0].flags[EXTRAS], undefined, "no second Extras party made on a failed read");
+  // joining
+  const mine = actor("mine", { [ENHANCER]: { [PARTY_FLAG]: true } });
+  world({ actors: [mine, player("p1")], extras: "on", parties: boom });
+  await joinExtras(mine);
+  assert.equal(mine.flags[EXTRAS], undefined);
+  // a list that is not a list
+  const other = actor("other", { [ENHANCER]: { [PARTY_FLAG]: true } });
+  world({ actors: [other], extras: "on", parties: () => undefined });
+  await joinExtras(other);
+  assert.equal(other.flags[EXTRAS], undefined);
+  // control: a list that read fine and is empty enrolls
+  const ok = actor("ok", { [ENHANCER]: { [PARTY_FLAG]: true } });
+  world({ actors: [ok, player("p1")], extras: "on", parties: [] });
+  await joinExtras(ok);
+  assert.equal(ok.flags[EXTRAS].isParty, true);
 });
