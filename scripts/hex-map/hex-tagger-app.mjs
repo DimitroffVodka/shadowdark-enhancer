@@ -644,6 +644,7 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
    */
   async _setPalette(words) {
     if (!this._requireCurrentScene()) return;
+    this._readHeader();   // so does the Show mode chosen in the header
     if (this._legend) this._readLegendAnswers();   // what was chosen on the cards so far survives the redraw
     this._state.palette = words.length ? words : null;
     await this._saveState();

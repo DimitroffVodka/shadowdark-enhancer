@@ -58,6 +58,9 @@ function domFrom(context) {
     box.value = term.value; box.checked = term.checked; els.push(box);
   }
   els.push(el("input", { "data-hxt-palette-own": "" }));
+  const mode = el("select", { "data-hxt-mode": "" });
+  mode.value = context.modes.find((m) => m.selected)?.value ?? "";
+  els.push(mode);
   for (const c of context.sheet) {
     const sel = el("select", { "data-hxt-terrain": "", "data-num": String(c.num) });
     sel.dataset.num = String(c.num);
@@ -219,4 +222,16 @@ test("a tag written from outside the window redraws with the sheet's drafts kept
   sel(app, 102).value = "lake"; sel(app, 102).fire("change");
   await app.render();   // what the updateScene hook does after _loadState and _renumber
   assert.equal(shownTerrain(app, 102), "lake");
+});
+
+test("the header's Show mode is kept across a palette change", async () => {
+  const { app } = newApp({ palette: ["forest", "lake"] });
+  await app.render();
+  assert.equal(app.element.querySelector("select[data-hxt-mode]").value, "review");
+  app.element.querySelector("select[data-hxt-mode]").value = "keyed";   // chosen, not yet acted on
+
+  await app._setPalette(["forest"]);
+  await app.rendered;
+
+  assert.equal(app.element.querySelector("select[data-hxt-mode]").value, "keyed");
 });
