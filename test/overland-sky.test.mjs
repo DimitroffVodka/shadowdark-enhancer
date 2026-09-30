@@ -164,6 +164,9 @@ test("the active GM darkens a hex map at night to its cap, animated for a short 
   const jump = scene();
   await applySky(jump, { dt: 86400 });
   assert.deepEqual(jump.writes[0].options, {}, "a long jump isn't animated");
+  const walked = scene();
+  await applySky(walked, { dt: 5000, paceMs: 150 });
+  assert.deepEqual(walked.writes[0].options, { animateDarkness: 150 }, "a slice of a walk is followed at the walk's pace, even a long one");
 });
 
 test("any hex grid follows the sky, tagged or not; the scene's own choice still wins (#298)", async () => {

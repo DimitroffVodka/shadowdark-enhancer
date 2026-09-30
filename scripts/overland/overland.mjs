@@ -53,7 +53,7 @@ import {
   pickTravelToken, forageRefusal, setWeather, weatherHolds, weatherAdvantage, weatherFormula,
   weatherFromRoll, harshToday, WEATHER_RULES, METHODS, openDay, spendMove, priceMove, moveVerdict, hexCost,
   dayChecks, dueChecks, markCheck, setPending, setEncounter, forageDC, closeDay, planRations, partyMethod, setPace,
-  checkSettings, encounterChance, checkHalf, makeCampState, campLightsOut, interruptRest, walkMs, walkSlices,
+  checkSettings, encounterChance, checkHalf, makeCampState, campLightsOut, interruptRest, walkMs, walkSlices, WALK_SLICE_MS,
 } from "./overland-state-core.mjs";
 import { PARTY_FLAG, extrasParties, joinExtras, placePartyToken, wearPartyHex } from "./hex-rules.mjs";
 
@@ -476,7 +476,7 @@ async function advanceOver(seconds, ms) {
     for (const { dt, ms: due } of slices) {
       const wait = t0 + due - performance.now();
       if (wait > 0) await new Promise((resolve) => setTimeout(resolve, wait));
-      await game.time.advance(dt);
+      await game.time.advance(dt, { [MODULE_ID]: { paceMs: WALK_SLICE_MS } });
     }
   });
 }

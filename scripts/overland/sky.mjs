@@ -55,10 +55,11 @@ let _again = null;
 /**
  * Work out the sky for `scene` and write what changed (active GM only).
  * @param {Scene} [scene]  the active scene by default
- * @param {{dt?:number|null}} [options]  the clock step that caused it, for the animation
+ * @param {{dt?:number|null, paceMs?:number|null}} [options]  the clock step that caused it, for the
+ *   animation; `paceMs`: the step is one slice of a walk, so darkness follows over that long, not 2 s behind
  * @returns {Promise<object|null>} what was written, or null
  */
-export async function applySky(scene = game.scenes?.active, { dt = null } = {}) {
+export async function applySky(scene = game.scenes?.active, { dt = null, paceMs = null } = {}) {
   if (!scene || !isActiveGM()) return null;
   const hex = isHexMap(scene);
   if (!followsSky(scene.getFlag(MODULE_ID, FOLLOWS_SKY), hex)) return null;
@@ -77,7 +78,8 @@ export async function applySky(scene = game.scenes?.active, { dt = null } = {}) 
     });
     if (darknessMoved(scene.environment?.darknessLevel, next)) {
       updates["environment.darknessLevel"] = next;
-      if (Number.isFinite(dt) && Math.abs(dt) < ANIMATE_BELOW) options.animateDarkness = ANIMATE_MS;
+      if (paceMs > 0) options.animateDarkness = paceMs;
+      else if (Number.isFinite(dt) && Math.abs(dt) < ANIMATE_BELOW) options.animateDarkness = ANIMATE_MS;
     }
   }
 
@@ -192,7 +194,7 @@ export function registerWeatherVisuals() {
 
 export function registerSky() {
   Hooks.on("renderSceneConfig", onRenderSceneConfig);
-  Hooks.on("updateWorldTime", (worldTime, dt) => { if (isActiveGM()) queueSky({ dt }); });
+  Hooks.on("updateWorldTime", (worldTime, dt, options) => { if (isActiveGM()) queueSky({ dt, paceMs: options?.[MODULE_ID]?.paceMs }); });
   Hooks.on(OVERLAND_CHANGED, () => { if (isActiveGM()) queueSky(); });
   Hooks.on("updateScene", (scene, changed) => {
     if (!isActiveGM()) return;

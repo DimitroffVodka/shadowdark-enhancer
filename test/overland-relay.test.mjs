@@ -65,8 +65,8 @@ Object.assign(globalThis, {
     },
     socket: { emit() {}, on() {} },
     time: {
-      worldTime: at(1301, 6, 21, 12), calendar: gregorian, advanced: [],
-      async advance(dt) { this.advanced.push(dt); this.worldTime += dt; },
+      worldTime: at(1301, 6, 21, 12), calendar: gregorian, advanced: [], options: [],
+      async advance(dt, options) { this.advanced.push(dt); this.options.push(options); this.worldTime += dt; },
     },
     i18n: { localize: (k) => k, format: (k) => k },
     modules: { get: () => null },
@@ -196,6 +196,7 @@ function travellingDay() {
   CrawlState._state = { ...CrawlState._state, mode: "overland" };
   globalThis.game.shadowdarkEnhancer = { rules: { hexesPerDay: (m) => ({ walking: 5 })[m] ?? null } };
   globalThis.game.time.advanced.length = 0;
+  globalThis.game.time.options.length = 0;
 }
 
 test("the GM starts a travel day: the weather first, then the budget and the rate, and one line each", async () => {
@@ -259,6 +260,7 @@ test("a move of a token drawn on this screen runs the clock in slices over its w
   assert.equal(ok, true);
   assert.equal(advanced.length, 6, "one hex is 0.9 s, a slice every 150 ms");
   assert.equal(advanced.reduce((sum, dt) => sum + dt, 0), 8 * 3600 / 5, "the whole hex, 1.6 hours");
+  assert.ok(globalThis.game.time.options.every((o) => o?.["shadowdark-enhancer"]?.paceMs === 150), "each slice tells the sky its pace");
   assert.ok(took >= 700 && took < 1800, `it took the walk's time, ${Math.round(took)} ms`);
 });
 
@@ -348,6 +350,7 @@ async function dayWithChecks(d12s, hits = []) {
   dice.push(3, ...d12s);                 // the weather, then the four check hours
   await applyAction({ action: "startDay", method: "walking" }, gm);
   globalThis.game.time.advanced.length = 0;
+  globalThis.game.time.options.length = 0;
   return calls;
 }
 
