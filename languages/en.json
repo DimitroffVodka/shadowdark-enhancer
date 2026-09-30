@@ -1542,6 +1542,7 @@
   "SDE.hexMap.flow.lowShort": "Lowered columns end one row short",
   "SDE.hexMap.flow.handBottomRight": "Now click the middle of the <strong>bottom-right</strong> hex: the last column, its last row.",
   "SDE.hexMap.flow.handDone": "Corners set by hand. To fine-tune, click the middle of the hex in the top-left or bottom-right picture below; the other two pictures are the check. Changing the counts re-fits the grid.",
+  "SDE.hexMap.flow.handNoFit": "These counts do not make a grid between the two corners you set. Change the boxes, or set the corners again.",
   "SDE.hexMap.flow.noGrid": "No hex grid was found on this print. Set the corners by hand.",
   "SDE.hexMap.flow.colsRows": "Columns × rows",
   "SDE.hexMap.flow.whichLower": "Which columns sit lower",

@@ -844,7 +844,14 @@ page walks through it in order.
   if it were label margin: the detector now tells a half-cut first row from a
   full one. And Foundry's own grid centres every other column's first row on
   the scene's top edge, which cut the top row of such a print in half: its
-  scene now starts one row of cells above the print, so nothing is cut.
+  scene now starts one row of cells above the print, so nothing is cut. A
+  print Shadowdark Extras can take as it stands (odd columns lowered, first
+  hex 0000 or 0101) keeps its first hex on the scene's top-left cell instead,
+  because Extras numbers a map from there and Send to Extras would refuse it.
+  A first row the detector saw cut in half is now skipped even when the
+  lowered columns are as long as the others. And when the counts you type do
+  not fit the two corners you set by hand, Create stays off and says so,
+  instead of creating the scene with the previous grid.
 - **Stepping back past a corpse.** Previous Turn onto a dead enemy (or a
   warband following its commander) bounced forward again, so the GM couldn't
   step back past it. It now keeps stepping back. And a player's Next Turn
