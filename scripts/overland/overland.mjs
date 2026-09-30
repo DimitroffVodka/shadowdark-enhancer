@@ -53,7 +53,7 @@ import {
   pickTravelToken, forageRefusal, setWeather, weatherHolds, weatherAdvantage, weatherFormula,
   weatherFromRoll, harshToday, WEATHER_RULES, METHODS, openDay, spendMove, priceMove, moveVerdict, hexCost,
   dayChecks, dueChecks, markCheck, setPending, setEncounter, forageDC, closeDay, planRations, partyMethod, setPace,
-  checkSettings, encounterChance, checkHalf, makeCampState, campLightsOut, interruptRest, walkMs, walkSlices, WALK_SLICE_MS,
+  checkSettings, encounterChance, checkHalf, makeCampState, campLightsOut, interruptRest, walkMs, walkSlices, lapseMs, WALK_SLICE_MS,
 } from "./overland-state-core.mjs";
 import { PARTY_FLAG, extrasParties, joinExtras, placePartyToken, wearPartyHex } from "./hex-rules.mjs";
 
@@ -460,6 +460,15 @@ export async function advanceTravel(target, reason, ms = 0) {
   const rest = target - game.time.worldTime;
   if (rest > 0) await advanceOver(rest, rest * perSecond);
   return { stopped: false };
+}
+
+/**
+ * The time-lapse of a camp or Continue up to `target`, real ms (lapseMs), while the party's scene
+ * is the one on this screen; 0 otherwise, and the clock moves in one step as it did.
+ */
+function lapseFor(target) {
+  const scene = globalThis.canvas?.scene;
+  return scene && scene.id === travelScene()?.id ? lapseMs(target - game.time.worldTime) : 0;
 }
 
 /**
@@ -1164,7 +1173,7 @@ export function applyAction(data, user) {
         if (!pending && !_state.encounter) return { ok: false, error: t("SDE.overland.notify.nothingPending") };
         await commit(setEncounter(setPending(_state, null).state, null).state);
         if (!pending) return { ok: true };
-        const { stopped } = await advanceTravel(pending.until, pending.reason);
+        const { stopped } = await advanceTravel(pending.until, pending.reason, lapseFor(pending.until));
         if (pending.reason !== "camp") return { ok: true, stopped };
         const finished = !stopped && await finishCamp();
         return { ok: true, stopped: !finished };
@@ -1219,7 +1228,8 @@ export function applyAction(data, user) {
           await commit(campLightsOut(_state).state);
         }
         // The night runs to when camp breaks, fixed at camp; a camp an older build recorded without it breaks at the next dawn.
-        const { stopped } = await advanceTravel(_state.camp.until ?? campEnd(), "camp");
+        const until = _state.camp.until ?? campEnd();
+        const { stopped } = await advanceTravel(until, "camp", lapseFor(until));
         const finished = !stopped && await finishCamp();
         return { ok: true, stopped: !finished };
       }

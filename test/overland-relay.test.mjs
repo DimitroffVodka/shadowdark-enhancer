@@ -457,6 +457,42 @@ test("a move across a check hour rolls it at its hour; a hit stops the clock the
   assert.equal((await applyAction({ action: "resume" }, gm)).ok, false, "nothing left to continue");
 });
 
+test("Continue runs the rest of a move as a time-lapse when the party's scene is on this screen, and in one step when it is not", async () => {
+  const times = globalThis.game.time, savedLookup = globalThis.fromUuidSync;
+  // A move whose 14:00 check hit: two hours of it are left for Continue.
+  const held = async () => {
+    await dayWithChecks([2, 9, 1, 12], [false, true]);
+    await recordMove({ parent: null }, { x: 0, y: 0 }, { x: 100, y: 0 }, { cost: 5, blocked: null, steps: [{ hex: { num: 9 } }] });
+    assert.deepEqual(stored.overlandState.pending, { until: at(1301, 6, 21, 16), reason: "move" });
+    stored.overlandState = { ...stored.overlandState, tokenUuid: "Scene.travel-scene.Token.t" };
+    registerOverland();
+    times.advanced.length = 0;
+    times.options.length = 0;
+  };
+  globalThis.fromUuidSync = (uuid) => (uuid === "Scene.travel-scene.Token.t" ? { parent: { id: "travel-scene" } } : null);
+  try {
+    await held();
+    globalThis.canvas = { scene: { id: "somewhere-else" } };
+    assert.equal((await applyAction({ action: "resume" }, gm)).ok, true);
+    assert.deepEqual(times.advanced, [2 * 3600], "the party's scene isn't the one on screen: one step");
+    assert.equal(times.options[0], undefined);
+
+    await held();
+    globalThis.canvas = { scene: { id: "travel-scene" } };
+    const started = performance.now();
+    assert.equal((await applyAction({ action: "resume" }, gm)).ok, true);
+    const took = performance.now() - started;
+    assert.equal(times.worldTime, at(1301, 6, 21, 16));
+    assert.equal(times.advanced.length, 5, "2 hours is 800 ms, a slice every 150");
+    assert.equal(times.advanced.reduce((sum, dt) => sum + dt, 0), 2 * 3600);
+    assert.ok(times.options.every((o) => o?.["shadowdark-enhancer"]?.paceMs === 150), "the sky is told the pace");
+    assert.ok(took >= 600 && took < 1800, `it took the time-lapse, ${Math.round(took)} ms`);
+  } finally {
+    delete globalThis.canvas;
+    globalThis.fromUuidSync = savedLookup;
+  }
+});
+
 test("an advance through the night rolls the night checks in time order, and stops for none that miss", async () => {
   const calls = await dayWithChecks([2, 9, 1, 12]);
   const dawn = at(1301, 6, 22, 6);

@@ -6,7 +6,7 @@ import {
   setWeather, weatherHolds, weatherAdvantage, weatherFormula, weatherFromRoll, harshToday, hexCost,
   dayBudget, pointSeconds, openDay, spendMove, priceMove, moveVerdict,
   dayChecks, dueChecks, markCheck, setPending, setEncounter, partyMethod, setPace,
-  forageDC, closeDay, planRations, BOOK_CHECKS, checkSettings, encounterChance, checkHalf, makeCampState, campLightsOut, interruptRest, walkMs, walkSlices,
+  forageDC, closeDay, planRations, BOOK_CHECKS, checkSettings, encounterChance, checkHalf, makeCampState, campLightsOut, interruptRest, walkMs, walkSlices, lapseMs,
 } from "../scripts/overland/overland-state-core.mjs";
 import { rulesApi } from "../scripts/rules-data/rules-data-core.mjs";
 
@@ -447,4 +447,12 @@ test("the clock runs in slices that add up to the move, evenly over the walk", (
   assert.equal(odd.reduce((sum, x) => sum + x.dt, 0), 1001, "an odd total still adds up");
   assert.deepEqual(walkSlices(7200, 0), [{ dt: 7200, ms: 0 }], "no walk to keep pace with: one jump");
   assert.deepEqual(walkSlices(1, 900), [{ dt: 1, ms: 0 }], "too little clock to cut");
+});
+
+test("a camp's or Continue's time-lapse: a beat and a share of the span, a night about 3 seconds, never more than 3.2", () => {
+  assert.equal(lapseMs(1380), 477, "a few minutes is half a second");
+  assert.equal(lapseMs(12 * 3600), 2800, "a 12-hour night");
+  assert.equal(lapseMs(24 * 3600), 3200, "capped");
+  assert.equal(lapseMs(0), 0);
+  assert.equal(lapseMs(-60), 0, "nothing to move");
 });

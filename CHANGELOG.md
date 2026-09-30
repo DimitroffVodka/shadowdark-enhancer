@@ -16,9 +16,12 @@ it needs.
   the clock moves with it in small steps, so the time on the bar, the sky's
   darkness and the torches' burning all keep pace instead of jumping when the walk
   starts. A route across several hexes walks them one after another. An encounter
-  check still rolls at its hour and a hit still stops the clock there. Only a move
-  of the travel token is slowed, and only when its scene is on the GM's screen; a
-  camp, Continue and the clock bar's own steps still move in one step.
+  check still rolls at its hour and a hit still stops the clock there. **Make camp**
+  and **Continue** run as a time-lapse: a beat and a share of the span, never more
+  than about three seconds, so a night passes in about three seconds with dusk
+  falling and dawn lifting as it goes. Only a move of the travel token is slowed, and
+  only when its scene is on the GM's screen; the clock bar's own steps still move in
+  one step.
 - **The Cursed Scrolls' rumors, encounters and adventure tables import with the rest.**
   The importer always knew these tables existed, and never offered them: Importer
   Hub → Manage → **Roll Tables → Cursed Scroll N** now lists 48 (90 tables once each
