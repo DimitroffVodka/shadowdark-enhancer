@@ -55,7 +55,7 @@ import {
   dayChecks, dueChecks, markCheck, setPending, setEncounter, forageDC, closeDay, planRations, partyMethod, setPace,
   checkSettings, encounterChance, checkHalf, makeCampState, campLightsOut, interruptRest,
 } from "./overland-state-core.mjs";
-import { PARTY_FLAG, placePartyToken, wearPartyHex } from "./hex-rules.mjs";
+import { PARTY_FLAG, extrasParties, joinExtras, placePartyToken, wearPartyHex } from "./hex-rules.mjs";
 
 export const OVERLAND_SETTING = "overlandState";
 export const OVERLAND_QUERY = `${MODULE_ID}.overland`;
@@ -174,13 +174,6 @@ export const isOverland = () => CrawlState.isOverland;
 
 // ── The travel token, its members and its hex (on the clicking GM's client) ──
 
-/** Extras' party actors, when Extras is there to say. */
-function extrasParties() {
-  const party = game.modules?.get("shadowdark-extras")?.api?.party;
-  if (!game.modules?.get("shadowdark-extras")?.active || typeof party?.list !== "function") return [];
-  try { return party.list(); } catch { return []; }
-}
-
 /** The travel token and its hex, from this client's canvas. */
 function chooseToken() {
   const parties = new Set(extrasParties().map((a) => a.id));
@@ -251,7 +244,10 @@ export async function startOverland() {
   }
   // A party token wears the party's hex; a selected NPC travels in its own art.
   if (chosen.isParty) {
-    await wearPartyHex(fromUuidSync(chosen.tokenUuid)).catch((err) => console.error(`${MODULE_ID} | party hex token`, err));
+    const token = fromUuidSync(chosen.tokenUuid);
+    // A party made before Extras took part is an Extras party from here on (once).
+    await joinExtras(token?.actor).catch((err) => console.error(`${MODULE_ID} | party joins Extras`, err));
+    await wearPartyHex(token).catch((err) => console.error(`${MODULE_ID} | party hex token`, err));
   }
   const hex = await withRegion(chosen.hex);
   const data = { action: "start", tokenUuid: chosen.tokenUuid, actorId: chosen.actorId, hex };

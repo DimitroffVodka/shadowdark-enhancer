@@ -176,7 +176,13 @@ with forage and camp.
   exactly one is on the map, or the module's own **Party**. With no party token
   on the map, Start travel puts the Party in the hex at the centre of your view.
   A player's own token never travels. The travel token wears the black party
-  hex on the hex map (only there: its actor keeps its portrait).
+  hex on the hex map (only there: its actor keeps its portrait). With
+  Shadowdark Extras on and no Extras party of its own, the module's **Party** is
+  made an Extras party too, so it opens Extras' Party sheet (members, light) rather
+  than an NPC sheet; a Party made before that is joined the next time you Start
+  travel with it. It starts with your player characters as members. An Extras
+  party you made yourself is always the one that travels, and is never joined by
+  the module's.
 - **Click to travel.** Select the party token: hovering a hex draws the
   cheapest route there, each hex with what it costs, and a tooltip gives the
   hexes, miles, points and hours. Click to walk the party there, one hex at a
