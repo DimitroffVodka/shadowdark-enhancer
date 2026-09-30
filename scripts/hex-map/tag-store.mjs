@@ -62,18 +62,24 @@ export const normalizeTerrainWord = (word) => String(word ?? "").trim().toLowerC
 /** `overlays`, the old name, as a read-only alias of `features`. Not enumerable, so it never reaches a write. */
 const OVERLAYS_ALIAS = { get() { return this.features; }, enumerable: false };
 
+/** The update option a window stamps on its own writes, so its updateScene hook can tell its echo from anyone else's. */
+export const WRITER_OPTION = "sdeTagWriter";
+
 /**
  * Was the tags flag of the scene this window holds a copy of written by someone else? The brush and
  * the overlay paint straight onto the scene, so a window that never hears of it saves its stale copy
- * over the painting the next time it saves. `doc` and `changed` are an updateScene hook's arguments
- * (Foundry hands the operator under a replaced key, so only the key's presence is read).
+ * over the painting the next time it saves. `doc`, `changed` and `options` are an updateScene hook's
+ * arguments (Foundry hands the operator under a replaced key, so only the key's presence is read). A
+ * write is this window's own only when it carries this window's `writer` id in its options: an update
+ * that arrives while the window's own save is in flight is still someone else's.
  * @param {{id:string}} doc
  * @param {object} changed
- * @param {{sceneId?:string, saving:boolean}} window  the scene the window holds, and whether it is mid-save
+ * @param {object} options
+ * @param {{sceneId?:string, writer:string}} window  the scene the window holds, and the id it stamps on its writes
  * @returns {boolean}
  */
-export function tagsWrittenElsewhere(doc, changed, { sceneId, saving }) {
-  return !saving && !!sceneId && doc.id === sceneId && "hexTags" in (changed?.flags?.[MODULE_ID] ?? {});
+export function tagsWrittenElsewhere(doc, changed, options, { sceneId, writer }) {
+  return !!sceneId && doc.id === sceneId && "hexTags" in (changed?.flags?.[MODULE_ID] ?? {}) && options?.[WRITER_OPTION] !== writer;
 }
 
 /** Flag object → state. Tolerates a missing or foreign flag. */

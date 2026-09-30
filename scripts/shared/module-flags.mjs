@@ -61,9 +61,10 @@ const isObject = (value) => !!value && typeof value === "object" && !Array.isArr
  * @param {string} key       the flag key inside this module's namespace
  * @param {*}      value     the new value, written whole
  * @param {object} [extra]   other fields written in the same update
+ * @param {object} [options] the update's operation options; update hooks, here and on other clients, see them
  */
-export async function replaceModuleFlag(document, key, value, extra = {}) {
-  return document.update({ ...extra, [`flags.${MODULE_ID}.${key}`]: _replace(value) });
+export async function replaceModuleFlag(document, key, value, extra = {}, options = undefined) {
+  return document.update({ ...extra, [`flags.${MODULE_ID}.${key}`]: _replace(value) }, options);
 }
 
 /**

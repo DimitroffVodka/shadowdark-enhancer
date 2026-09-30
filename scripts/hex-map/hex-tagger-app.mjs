@@ -23,7 +23,7 @@ import { replaceModuleFlag } from "../shared/module-flags.mjs";
 import { findSuitePack, sourceFolderName } from "../shared/compendium-suite.mjs";
 import { sceneCells, sourceImage, CellSampler, backgroundTransform } from "./sampler.mjs";
 import { cellNumber, neighbours, framesTopRow, extrasNumbersAlike, withAnchorNumber, boundsFromRow, originFromFlag } from "./geometry.mjs";
-import { decodeTags, encodeTags, nextSheet, applySheet, tagsForDataset, summarize, importTags, rowsFromJson, sheetRisk, deriveCoasts, paletteTags, normalizeTerrainWord, tagsWrittenElsewhere, FEATURES } from "./tag-store.mjs";
+import { decodeTags, encodeTags, nextSheet, applySheet, tagsForDataset, summarize, importTags, rowsFromJson, sheetRisk, deriveCoasts, paletteTags, normalizeTerrainWord, tagsWrittenElsewhere, WRITER_OPTION, FEATURES } from "./tag-store.mjs";
 import { FIXES_FLAG, BASELINE_FLAG, emptyLog, decodeFixes, encodeFixes, recordEdits, recordLegend, legendReport, accuracyReport, encodeBaseline, decodeBaseline, baselineReport } from "./tag-corrections.mjs";
 import { cellBoxOf, referenceTilePlacement, gridCellBox, loweredColumns, placeReferenceTile } from "./reference-tile.mjs";
 import { createClassifier, compareTags, parseTruthCsv, featureVector, keepMask, scoreClassifier, smoothTerrain } from "./classify.mjs";
@@ -446,12 +446,24 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
    */
   _onFirstRender(context, options) {
     super._onFirstRender(context, options);
-    this._sceneHook = Hooks.on("updateScene", (doc, changed) => {
-      if (!tagsWrittenElsewhere(doc, changed, { sceneId: this._stateSceneId, saving: !!this._saving })) return;
-      this._loadState();
-      this._renumber();
-      this.render();
+    this._sceneHook = Hooks.on("updateScene", (doc, changed, options) => {
+      if (!tagsWrittenElsewhere(doc, changed, options, { sceneId: this._stateSceneId, writer: this._writerId })) return;
+      // Mid-save, the scene is about to change again under this window's own write: read it when that settles.
+      if (this._saving) this._tagsHeard = true; else this._takeInTags();
     });
+  }
+
+  /**
+   * Re-read the tags from the scene after someone else wrote them. Only while the scene this window
+   * holds is still the canvas's: once the canvas has moved on, `_syncScene` does the loading, and drops
+   * the old scene's samples with it.
+   */
+  _takeInTags() {
+    this._tagsHeard = false;
+    if (this._scene()?.id !== this._stateSceneId) return;
+    this._loadState();
+    this._renumber();
+    this.render();
   }
 
   _onClose(options) {
@@ -602,11 +614,14 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
   async _saveState() {
     const scene = this._scene();
     if (!scene) return;
-    this._saving = true;   // the updateScene hook that takes in other writers' tags must not take in ours
+    // The write is stamped, so the updateScene hook that takes in other writers' tags knows ours.
+    this._writerId ??= foundry.utils.randomID();
+    this._saving = (this._saving ?? 0) + 1;
     try {
-      await replaceModuleFlag(scene, TAGS_FLAG, encodeTags(this._state));
+      await replaceModuleFlag(scene, TAGS_FLAG, encodeTags(this._state), {}, { [WRITER_OPTION]: this._writerId });
     } finally {
-      this._saving = false;
+      // Someone else wrote while ours was in flight: the scene, now settled, is the truth to read back.
+      if (!--this._saving && this._tagsHeard) this._takeInTags();
     }
   }
 

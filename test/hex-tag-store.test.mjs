@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { emptyState, decodeTags, encodeTags, nextSheet, applySheet, tagsForDataset, summarize, lcg, importTags, rowsFromJson, errorRate, sheetRisk, strandedRiver, STRANDED_RIVER_RATE, REVIEW_BANDS, readTags, readCell, paletteTags, normalizeTerrainWord, tagsWrittenElsewhere } from "../scripts/hex-map/tag-store.mjs";
+import { emptyState, decodeTags, encodeTags, nextSheet, applySheet, tagsForDataset, summarize, lcg, importTags, rowsFromJson, errorRate, sheetRisk, strandedRiver, STRANDED_RIVER_RATE, REVIEW_BANDS, readTags, readCell, paletteTags, normalizeTerrainWord, tagsWrittenElsewhere, WRITER_OPTION } from "../scripts/hex-map/tag-store.mjs";
 import { buildHexDataset } from "../scripts/importer/hex/hex-dataset.mjs";
 import { neighbours } from "../scripts/hex-map/geometry.mjs";
 import { TERRAIN_TAGS } from "../scripts/importer/hex/hex-summary.mjs";
@@ -9,15 +9,18 @@ test("tagsWrittenElsewhere: a write to the tags flag by anyone but the window th
   // The brush paints straight onto the scene. A tagger window that never hears of it keeps its own copy
   // and its next save puts that copy back over the painting: paint a hex, press Apply, the hex is gone.
   const wrote = { flags: { "shadowdark-enhancer": { hexTags: {} } } };
-  const at = (over = {}) => ({ sceneId: "s1", saving: false, ...over });
-  assert.equal(tagsWrittenElsewhere({ id: "s1" }, wrote, at()), true);
-  assert.equal(tagsWrittenElsewhere({ id: "s1" }, wrote, at({ saving: true })), false, "the window's own save");
-  assert.equal(tagsWrittenElsewhere({ id: "s2" }, wrote, at()), false, "another scene");
-  assert.equal(tagsWrittenElsewhere({ id: "s1" }, wrote, at({ sceneId: undefined })), false, "no scene held yet");
-  assert.equal(tagsWrittenElsewhere({ id: "s1" }, { flags: { "shadowdark-enhancer": { hexRegions: {} } } }, at()), false, "a different flag of ours");
-  assert.equal(tagsWrittenElsewhere({ id: "s1" }, { flags: { "shadowdark-extras": { hexTags: {} } } }, at()), false, "another module's flag of the same name");
-  assert.equal(tagsWrittenElsewhere({ id: "s1" }, { name: "renamed" }, at()), false);
-  assert.equal(tagsWrittenElsewhere({ id: "s1" }, undefined, at()), false);
+  const at = (over = {}) => ({ sceneId: "s1", writer: "me", ...over });
+  const elsewhere = (doc, changed, options, over) => tagsWrittenElsewhere(doc, changed, options, at(over));
+  assert.equal(elsewhere({ id: "s1" }, wrote, {}), true);
+  assert.equal(elsewhere({ id: "s1" }, wrote, undefined), true);
+  assert.equal(elsewhere({ id: "s1" }, wrote, { [WRITER_OPTION]: "me" }), false, "the window's own save, by the id it stamped");
+  assert.equal(elsewhere({ id: "s1" }, wrote, { [WRITER_OPTION]: "another window" }), true, "a second window's save, even mid-save here");
+  assert.equal(elsewhere({ id: "s2" }, wrote, {}), false, "another scene");
+  assert.equal(elsewhere({ id: "s1" }, wrote, {}, { sceneId: undefined }), false, "no scene held yet");
+  assert.equal(elsewhere({ id: "s1" }, { flags: { "shadowdark-enhancer": { hexRegions: {} } } }, {}), false, "a different flag of ours");
+  assert.equal(elsewhere({ id: "s1" }, { flags: { "shadowdark-extras": { hexTags: {} } } }, {}), false, "another module's flag of the same name");
+  assert.equal(elsewhere({ id: "s1" }, { name: "renamed" }, {}), false);
+  assert.equal(elsewhere({ id: "s1" }, undefined, {}), false);
 });
 
 test("encode/decode round trip keeps terrain, features, source and margin", () => {
