@@ -18,7 +18,7 @@ never re-prompts you with level-up popups afterwards. Pick any level from
 |---|---|
 | **Actors sidebar** | Click **Character Builder** in the sidebar header. Visible to all users. |
 | **API** | `game.shadowdarkEnhancer.charBuilder.open()` |
-| **Edit an existing character** | Click **Character Builder** in the header of a player character's sheet, or right-click the character in the Actors sidebar and choose **Edit in Character Builder**. GM or owner only, and only for player characters (never NPCs, mounts, boats, warbands or lights). Or `game.shadowdarkEnhancer.charBuilder.open({ actor })` from the API or a macro. See [Editing an existing character](#editing-an-existing-character). |
+| **Edit an existing character** | Click the **Character Builder** icon (the person with a plus, hover for its name) in the header of a player character's sheet, or right-click the character in the Actors sidebar and choose **Edit in Character Builder**. GM or owner only, and only for player characters (never NPCs, mounts, boats, warbands or lights). Or `game.shadowdarkEnhancer.charBuilder.open({ actor })` from the API or a macro. See [Editing an existing character](#editing-an-existing-character). |
 | **Undo a save** | **Undo last save** in the builder's footer (see below). Through the API: `charBuilder.takeBeforeImage(actor)` saves the sheet's abilities, alignment, background, deity, coins, languages, name, art, level, maximum hit points, XP and every item; `charBuilder.restoreBeforeImage(actor)` puts them back (GM or owner). The image is kept until the next one replaces it. See `charBuilder.hasBeforeImage` and `describeBeforeImage`. |
 
 **Players can build characters freely.** If a player lacks actor-creation
