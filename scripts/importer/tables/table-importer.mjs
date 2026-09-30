@@ -2135,7 +2135,7 @@ function isSectionCaption(line) {
  * body rows (up to the next caption), or null. Shared by parseSectionSlice and
  * parseGridColumn.
  */
-function _sliceSection(text, { name = "", caption, size } = {}) {
+function _sliceSection(text, { name = "", caption, size, nth = 0 } = {}) {
   const lines = String(text).split("\n").map((l) => l.trim());
   const want = String(caption || name).toUpperCase().replace(/\s+/g, " ").trim();
   if (!want) return null;
@@ -2149,12 +2149,16 @@ function _sliceSection(text, { name = "", caption, size } = {}) {
     if (isSectionCaption(lines[i]) && captionCore(lines[i]).toUpperCase().replace(/\s+/g, " ") === want) starts.push(i);
   }
   if (!starts.length) return null;
-  let start = starts.find((s) => {
+  const headed = starts.filter((s) => {
     let h = s + 1;
     while (h < lines.length && !lines[h]) h++;
     return !!parseDieHeader(lines[h]);
   });
-  if (start === undefined) start = starts[0];
+  // `nth` picks among the captions that head a table when a page prints the same
+  // one twice (CS5 p3 captions BOTH its grids "ENCOUNTER ZONE"; the second is the
+  // encounters). Default 0 is the old rule: the first headed one, else the first.
+  const start = (headed.length ? headed : starts)[nth];
+  if (start === undefined) return null;
   // Header line = the "dN Title" right after the caption (skip blanks).
   let h = start + 1;
   while (h < lines.length && !lines[h]) h++;
@@ -2191,8 +2195,8 @@ function _sliceSection(text, { name = "", caption, size } = {}) {
   return body.length ? { die, body } : null;
 }
 
-function parseSectionSlice(text, { name = "", caption, size } = {}) {
-  const s = _sliceSection(text, { name, caption, size });
+function parseSectionSlice(text, { name = "", caption, size, nth } = {}) {
+  const s = _sliceSection(text, { name, caption, size, nth });
   if (!s) return null;
   // A page number printed under the last row is furniture, not a row: the "49"
   // beneath the GM Guide's URGENCY LEVEL block reads as face 49 on a 2d6 and
@@ -2268,27 +2272,42 @@ function _centeredRuns(n, anchors) {
  * outside the die's range are ignored rather than treated as rows, which is
  * what keeps a page number or the next page's prose from opening a phantom row.
  */
-function parseBandedSlice(text, { name = "", caption, size } = {}) {
-  const s = _sliceSection(text, { name, caption, size });
+function parseBandedSlice(text, { name = "", caption, size, nth, noise } = {}) {
+  const s = _sliceSection(text, { name, caption, size, nth });
   if (!s) return null;
   const die = s.die;
   const faces = Math.max(1, (die.count || 1) * (die.size || size || 1));
-  const body = s.body;
+  const body = noise === "map" ? s.body.map(stripMapNoise).filter(Boolean) : s.body;
   const hits = body.map((l) => parseLeadingRange(l));
+  // Faces run from the die's first face to its last with no gap, so try that
+  // first: CS4's Black Ziggurat opens its first row "2 void beings drag a
+  // wayward", above that row's own centred face "1". Taken as face 2 it swallowed
+  // the real row 1 and left three rows of four. Only when the faces do NOT make
+  // one unbroken run does the looser rule below apply.
   const anchors = [];
-  let last = 0;
+  let want = Math.max(1, die.count || 1);
   body.forEach((l, i) => {
     const h = hits[i];
-    if (!h || h.min < 1 || h.max > faces) return;
-    // Faces ascend down a banded table, so a "face" that steps BACKWARDS is a
-    // wrapped line that happens to begin with a number, not a row: the GM
-    // Guide's witch trainer wraps "Your broomstick spell lasts 1 / hour of real
-    // time", and reading that stray 1 as a second row 1 both overlapped the
-    // table and cut the real row 3 in half.
-    if (h.min <= last) return;
-    last = h.max;
+    if (!h || h.min !== want || h.max > faces) return;
     anchors.push(i);
+    want = h.max + 1;
   });
+  if (want !== faces + 1) {
+    anchors.length = 0;
+    let last = 0;
+    body.forEach((l, i) => {
+      const h = hits[i];
+      if (!h || h.min < 1 || h.max > faces) return;
+      // Faces ascend down a banded table, so a "face" that steps BACKWARDS is a
+      // wrapped line that happens to begin with a number, not a row: the GM
+      // Guide's witch trainer wraps "Your broomstick spell lasts 1 / hour of real
+      // time", and reading that stray 1 as a second row 1 both overlapped the
+      // table and cut the real row 3 in half.
+      if (h.min <= last) return;
+      last = h.max;
+      anchors.push(i);
+    });
+  }
   if (!anchors.length) return null;
 
   const runs = _centeredRuns(body.length, anchors);
@@ -2318,9 +2337,49 @@ function parseBandedSlice(text, { name = "", caption, size } = {}) {
   return rows.length ? pt : null;
 }
 
+/**
+ * What an adventure map prints over a table beside it, taken out of one line: area numbers
+ * as doubled digits ("33", "44") and the key's lone capitals ("S", "P"). A lone A or I is
+ * a word, and "1d4" or "Area 12" are not doubled digits, so none of those are touched. Only
+ * a recipe that says its page has a map (`noise: "map"`) runs this: on a 2d6 table "11" is a face.
+ */
+function stripMapNoise(line) {
+  return String(line)
+    .replace(/(^|\s)(\d)\2(?=\s|$)/g, "$1")
+    .replace(/(^|\s)[B-HJ-Z](?=\s|$)/g, "$1")
+    .replace(/\s{2,}/g, " ")
+    .trim();
+}
+
+/**
+ * A page that is ONE numbered list under a plain heading, with no die line: the
+ * Fortress of the Burning Brothers' Salamander and Duergar NPCs ("1. Aliz.
+ * Glittering orange…") and the City of Masks' d40 NPCs. The printed keys are
+ * labels, not faces (the d40 prints 10 to 49), so the rows are taken in order and
+ * numbered 1 to N. A wrapped line joins the row above; a bare number is the page
+ * number. A count other than the die's size is warned about, never hidden.
+ * @param {{name?:string, size?:number}} opts  size: the die the list is rolled on
+ */
+function parseListPage(text, { name = "", size } = {}) {
+  const rows = [];
+  for (const raw of String(text).split("\n")) {
+    const line = raw.trim();
+    if (!line) continue;
+    const m = /^(\d{1,3})[.:]\s+(.+)$/.exec(line);
+    if (m) rows.push(m[2].trim());
+    else if (rows.length && !/^\d{1,4}$/.test(line)) rows[rows.length - 1] += ` ${line}`;
+  }
+  if (!rows.length) return null;
+  const faces = size || rows.length;
+  const pt = parseSingleDieBlock(name, { count: 1, size: faces, columns: [], remainder: "" }, rows.map((r, i) => `${i + 1} ${r}`));
+  if (name) pt.name = name;
+  if (rows.length !== faces) pt.warnings = [...(pt.warnings ?? []), `Read ${rows.length} entries for a d${faces}: check the list is whole.`];
+  return pt.rows.length ? pt : null;
+}
+
 /** Parse a section whose row has several count columns and retain their labels. */
-function parseLabeledSection(text, { name = "", caption, labels = [] } = {}) {
-  const s = _sliceSection(text, { name, caption });
+function parseLabeledSection(text, { name = "", caption, labels = [], nth } = {}) {
+  const s = _sliceSection(text, { name, caption, nth });
   if (!s || !labels.length) return null;
   const dataLines = [];
   for (const line of s.body) {
@@ -2346,8 +2405,8 @@ function parseLabeledSection(text, { name = "", caption, labels = [] } = {}) {
  * Each body row is split into `ncols` cells (capital-word boundaries) and the
  * `col`-th cell becomes the row text. Returns a ParsedTable or null.
  */
-function parseGridColumn(text, { name = "", caption, col = 0, ncols = 3 } = {}) {
-  const s = _sliceSection(text, { name, caption });
+function parseGridColumn(text, { name = "", caption, col = 0, ncols = 3, nth } = {}) {
+  const s = _sliceSection(text, { name, caption, nth });
   if (!s) return null;
   // Consensus column geometry from this grid's own clean rows — without it a
   // row with a blank tier packs left and this column silently receives the
@@ -2574,12 +2633,16 @@ export function parseByShape(text, shape, { name = "" } = {}) {
     const pt = parseLongTable(text, { name, caption: shape.caption, size: shape.size });
     return pt ? { tables: [pt] } : null;
   }
+  if (shape.kind === "list") {
+    const pt = parseListPage(text, { name, size: shape.size });
+    return pt ? { tables: [pt] } : null;
+  }
   if (shape.kind === "matrix") {
     const pt = parseMatrix(text, { name, caption: shape.caption, size: shape.size });
     return pt ? { tables: [pt] } : null;
   }
   if (shape.kind === "section") {
-    const pt = parseSectionSlice(text, { name, caption: shape.caption, size: shape.size });
+    const pt = parseSectionSlice(text, { name, caption: shape.caption, size: shape.size, nth: shape.nth });
     // A WR patron page prints the patron's blurb above the boon table; it
     // becomes the Patron Item's description at commit (#167).
     const patron = pt && patronNameFromTable(name);
@@ -2587,18 +2650,18 @@ export function parseByShape(text, shape, { name = "" } = {}) {
     return pt ? { tables: [pt] } : null;
   }
   if (shape.kind === "banded") {
-    const pt = parseBandedSlice(text, { name, caption: shape.caption, size: shape.size });
+    const pt = parseBandedSlice(text, { name, caption: shape.caption, size: shape.size, nth: shape.nth, noise: shape.noise });
     // Split at commit, not here, so the preview shows the rows as printed and
     // the GM's edits to them reach the sub-tables (createNestedTables).
     if (pt && shape.nested) pt.nestedRolls = true;
     return pt ? { tables: [pt] } : null;
   }
   if (shape.kind === "labeled-section") {
-    const pt = parseLabeledSection(text, { name, caption: shape.caption, labels: shape.labels });
+    const pt = parseLabeledSection(text, { name, caption: shape.caption, labels: shape.labels, nth: shape.nth });
     return pt ? { tables: [pt] } : null;
   }
   if (shape.kind === "gridcol") {
-    const pt = parseGridColumn(text, { name, caption: shape.caption, col: shape.col, ncols: shape.ncols });
+    const pt = parseGridColumn(text, { name, caption: shape.caption, col: shape.col, ncols: shape.ncols, nth: shape.nth });
     return pt ? { tables: [pt] } : null;
   }
   if (shape.kind === "compound" && shape.split === "prayer") {

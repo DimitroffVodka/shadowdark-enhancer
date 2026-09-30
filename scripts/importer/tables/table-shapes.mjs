@@ -28,6 +28,8 @@
  * subset of their declared `labels`, in that order. Without it, every declared
  * column is consumed exactly as before.
  */
+import { CS_TABLES } from "./cursed-scroll-tables.mjs";
+
 const _norm = (s) => String(s || "").toLowerCase().replace(/\s+/g, " ").trim();
 
 /** Slugify a name/source into a contentId component. */
@@ -684,6 +686,8 @@ export const CONTENT_ENTRIES = [
   _entry("core/mixing-potions-2", "CORE", "Mixing Potions - Effect 2", GRIDCOL("MIXING POTIONS", 1, 2, "layout")),
   // The GM's Guide to the Western Reaches — see GMWR_ENTRIES above.
   ...GMWR_ENTRIES,
+  // The Cursed Scrolls' hexcrawl and adventure tables (cursed-scroll-tables.mjs): one recipe per Manage row.
+  ...CS_TABLES.map((t) => ({ ..._entry(`${t.src.toLowerCase()}/${_slug(t.name)}`, t.src, t.name, t.shape), ...(t.aliases ? { scoped: t.aliases } : {}) })),
 ];
 
 export const CONTENT = Object.fromEntries(CONTENT_ENTRIES.map((e) => [e.id, e]));
@@ -704,6 +708,19 @@ for (const e of CONTENT_ENTRIES) {
     const k = _norm(n);
     if (!_NAME_TO_ENTRIES.has(k)) _NAME_TO_ENTRIES.set(k, []);
     _NAME_TO_ENTRIES.get(k).push({ id: e.id, src: e.src });
+  }
+}
+
+// Names a table answers to ONLY inside its own book, keyed the same way. The Roll Tables hub finds a grid's
+// columns by the catalogue row's bare name ("Encounter Zone"), which five books print; with no book named
+// such a name means nothing, and a freeform paste titled "Points of Interest" must not take the Black
+// River's three-column recipe. Kept out of _NAME_TO_ENTRIES and TABLE_SHAPES for that reason.
+const _SCOPED_NAME_TO_ENTRIES = new Map();
+for (const e of CONTENT_ENTRIES) {
+  for (const n of e.scoped ?? []) {
+    const k = _norm(n);
+    if (!_SCOPED_NAME_TO_ENTRIES.has(k)) _SCOPED_NAME_TO_ENTRIES.set(k, []);
+    _SCOPED_NAME_TO_ENTRIES.get(k).push({ id: e.id, src: e.src });
   }
 }
 
@@ -758,6 +775,10 @@ export function contentIdForName(name, src) {
   if (!name) return null;
   const n = _norm(name);
   if (_NAME_TO_ENTRIES.has(n)) return _pick(_NAME_TO_ENTRIES.get(n), src);
+  if (src && _SCOPED_NAME_TO_ENTRIES.has(n)) {
+    const id = _pick(_SCOPED_NAME_TO_ENTRIES.get(n), src);
+    if (id) return id;
+  }
   for (const [kn, entries] of _NAME_TO_ENTRIES) {
     if (n.endsWith(`- ${kn}`) || n.endsWith(`: ${kn}`)) return _pick(entries, src);
   }

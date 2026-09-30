@@ -20,6 +20,7 @@ import { charSourceKey } from "../../shared/source-keys.mjs";
 // Shape registry: a grid row's members are the only names its tables ever
 // carry. table-shapes.mjs imports nothing, so this cannot cycle.
 import { suiteMemberNames } from "../tables/table-shapes.mjs";
+import { CS_TABLES, CS_REGION } from "../tables/cursed-scroll-tables.mjs";
 import { t as tr } from "../importer-hub-shared.mjs";
 
 export const CHAR_SOURCES = {
@@ -298,11 +299,12 @@ export const GMWR_KEY_LOCATIONS = {
  * or 1), so the map's "Top-left hex is number" is the GM's to give: docs/wiki/Hex-Maps.md.
  */
 export const CURSED_SCROLL_KEY_LOCATIONS = {
-  CS1: { "The Gloaming (Cursed Scroll 1)":      { hexes: "", keys: "40-44" } },
-  CS2: { "The Djurum (Cursed Scroll 2)":        { hexes: "", keys: "33-38" } },
-  CS3: { "Isles of Andrik (Cursed Scroll 3)":   { hexes: "", keys: "39-42" } },
-  CS4: { "The Black River (Cursed Scroll 4)":   { hexes: "", keys: "30-39" } },
-  CS5: { "Morzomotha (Cursed Scroll 5)":        { hexes: "", keys: "27-32" } },
+  // Titled as the book's tables are (cursed-scroll-tables.mjs), so a hex's region finds its zone tables.
+  CS1: { [CS_REGION.CS1]: { hexes: "", keys: "40-44" } },
+  CS2: { [CS_REGION.CS2]: { hexes: "", keys: "33-38" } },
+  CS3: { [CS_REGION.CS3]: { hexes: "", keys: "39-42" } },
+  CS4: { [CS_REGION.CS4]: { hexes: "", keys: "30-39" } },
+  CS5: { [CS_REGION.CS5]: { hexes: "", keys: "27-32" } },
 };
 
 /**
@@ -820,6 +822,14 @@ const TABLE_PAGES = {
   },
 };
 
+// The Cursed Scrolls' hexcrawl and adventure tables (rumors, encounters, rosters, the d20 treasure lists):
+// the names and page cites the Manage tree offers, from the one module that also holds their recipes.
+for (const t of CS_TABLES) {
+  ((MANIFEST[t.src] ??= {}).Table ??= []).push(t.name);
+  (TABLE_PAGES[t.src] ??= {})[t.name] = t.pages;
+}
+const CS_TABLE_IDS = new Map(CS_TABLES.map((t) => [`${t.src}|${t.name}`, t.id]));
+
 /**
  * REPRINTS: the other books that print the same table, as `src → name → cites`.
  * A manifest row stays a SINGLE row with a single identity (its own name, page,
@@ -1231,6 +1241,9 @@ export async function gatherCharContentEntries(presence) {
           // Explicit cite first (item/table/type maps), else lift a "…pNNN…"
           // page embedded in the name (CORE/CS1-3 table entries carry it there).
           pages: ITEM_PAGES[src]?.[name] ?? TABLE_PAGES[src]?.[name] ?? TYPE_PAGES[src]?.[type] ?? _pageFromName(name),
+          // The catalogue row it answers for: what stamps the imported table and what the Manage row
+          // seeds the import from (its columns, its name).
+          ...(type === "Table" && CS_TABLE_IDS.has(`${src}|${name}`) ? { manifestId: CS_TABLE_IDS.get(`${src}|${name}`) } : {}),
         });
       }
     }

@@ -27,7 +27,7 @@ supported books.
 
 ## Shapes
 
-**158 tables** currently carry a recipe. Each recipe specifies a shape kind:
+**291 tables** currently carry a recipe. Each recipe specifies a shape kind:
 
 | Kind | For |
 |---|---|
@@ -38,6 +38,7 @@ supported books.
 | `compound` + `split: "grid"` | Mix-and-match generators (Traps, Hazards, Secrets, names). |
 | `lookup` | Wrapped-cell lookups like Core *Carousing* tables, indexed by cost or die result. |
 | `matrix` | A `dN, dN` cross-reference grid (e.g. Interesting Customer, Personality Trait). |
+| `list` | A page that is one numbered list under a plain heading with no die line (the Fortress of the Burning Brothers' Salamander and Duergar NPCs). The printed keys are labels, so the rows are taken in order and numbered 1 to N. |
 | `longtable` | Extended single-column tables (up to ~100 rows). |
 | `suite` | Multi-table features unlocked in a single action across a page range. |
 
@@ -51,6 +52,31 @@ Attaching lines to the nearest number fails when multiple wrapped cells
 sit next to each other. The `banded` parser groups lines so each entry is
 centered on its die roll, matching how the page was typeset. It also parses
 bands (`2-4`, `14+`) accurately.
+
+Two options refine a recipe. `nth` picks the caption when a page prints the same
+one twice (Cursed Scroll 5's page 3 captions both its grids ENCOUNTER ZONE; the
+second is the encounters). `noise: "map"` takes the map's area numbers (`33`) and
+key letters (`S`) out of a banded table on a page with an adventure map printed
+over it, and only on the recipes that say so. A banded table also reads its
+faces as one run from the die's first face, so a row that opens with a number
+("2 void beings drag a wayward explorer") is not taken for face 2.
+
+### The Cursed Scrolls' tables
+
+Each Cursed Scroll prints its map's rumors and encounter grids, and every adventure
+site in it its own rumors and random encounters, plus a few rosters and d20 treasure
+lists. **Import everything** imports all 48 of them from your linked Cursed Scroll
+PDFs, one row each under **Roll Tables → Cursed Scroll N**. A grid (an Encounter Zone,
+an Encounters) comes in as one table per printed column, named
+`<Region>: <Column>`.
+
+A map's tables are named as its key locations are: **The Gloaming (Cursed Scroll 1)**,
+not "The Gloaming". The travel encounter check finds a hex's zone tables by the region
+in their name and groups every imported zone table by it, whatever book it came from;
+a plain "The Gloaming" would land in the GM Guide's group of the same name and give a
+forest hex two Forest columns. Some of these tables are printed again in the Guide,
+which keeps its own rows and names; the Cursed Scroll's copies are separate, so a
+hex on a Cursed Scroll map finds its own.
 
 ### `prayer` — the eight deity generators, and what to paste
 
