@@ -113,10 +113,14 @@ export function rowPitch(ink, w, h, { minRun = 5, minLag = 6, maxLag = Math.floo
   for (let lag = minLag; lag <= maxLag; lag++) { let s = 0; for (let y = 0; y + lag < h; y++) s += P[y] * P[y + lag]; A[lag] = s / (h - lag); }
   let max = -Infinity; for (let lag = minLag; lag <= maxLag; lag++) max = Math.max(max, A[lag]);
   if (!(max > 0)) return null;
-  // First prominent local maximum = h/2 (both column parities pooled).
+  // First local maximum within 10% of the strongest = h/2 (both column parities
+  // pooled). The first one above half the strongest was too loose: glyph texture
+  // (tree rows, hatching) peaks at its own short spacing, and on The Gloaming
+  // print that peak (21 px, 0.62 of the strongest) came before the real h/2 (71
+  // px, the strongest), so the grid was read at a 41 px pitch, 3.5 times too fine.
   let first = -1;
   for (let lag = minLag + 1; lag < maxLag; lag++) {
-    if (A[lag] >= 0.5 * max && A[lag] >= A[lag - 1] && A[lag] >= A[lag + 1]) { first = lag; break; }
+    if (A[lag] >= 0.9 * max && A[lag] >= A[lag - 1] && A[lag] >= A[lag + 1]) { first = lag; break; }
   }
   if (first < 0) return null;
   // Refine on a long multiple of the half pitch: the phase error shrinks by k.
@@ -353,7 +357,7 @@ export function latticeField(ink, w, h, pitchX, pitchY, phase, opts = {}) {
  * count and `rowsLowered` the lowered columns' own (one short on the Western
  * Reaches print: 75 and 74).
  * @param {Uint8Array} ink  0/1 per pixel, row-major
- * @returns {{pitchX:number, pitchY:number, x0:number, y0:number, cols:number, rows:number, rowsLowered:number, lowered:"odd"|"even", score:number}|null}
+ * @returns {{pitchX:number, pitchY:number, x0:number, y0:number, cols:number, rows:number, rowsLowered:number, lowered:"odd"|"even", frameCut:boolean, score:number}|null}
  */
 export function detectLattice(ink, w, h, opts = {}) {
   const rp = rowPitch(ink, w, h, opts.row);
@@ -363,7 +367,21 @@ export function detectLattice(ink, w, h, opts = {}) {
   const phase = latticePhase(ink, w, h, cp.pitchX, rp.pitchY);
   const field = latticeField(ink, w, h, cp.pitchX, rp.pitchY, phase, opts.field);
   if (!field) return null;
-  return { ...field, score: Math.min(rp.score, cp.score) };
+  return { ...field, frameCut: frameCutTop(ink, w, h, field), score: Math.min(rp.score, cp.score) };
+}
+
+/**
+ * Does the print's frame cut the raised columns' first row in half? True on the
+ * Western Reaches, where that half cell holds the column labels; false on a
+ * print of full hexes with a jagged top edge (The Gloaming), whose first raised
+ * hex has its whole outline. The lowered columns ending one row short looks the
+ * same on both, so the counts cannot say; the first raised cell can.
+ * @param {{x0:number,y0:number,pitchX:number,pitchY:number,lowered:"odd"|"even"}} lat  in the ink's pixels
+ * @returns {boolean}
+ */
+export function frameCutTop(ink, w, h, lat, { minSupport = 0.7 } = {}) {
+  const p = latticeCentre(lat, lat.lowered === "odd" ? 0 : 1, 0);   // the first column that sits high
+  return outlineSupport(ink, w, h, p.u, p.v, outlinePoints(lat.pitchX / 1.5, lat.pitchY / 2, 60)) < minSupport;
 }
 
 /**
@@ -392,6 +410,29 @@ export function cornerSupport(ink, w, h, lat, { minSupport = 0.7, halfSupport = 
     const half = top && support >= halfSupport && interiorInk(ink, w, h, p.u, p.v, R, ry, "bottom") >= minInterior;
     return { support, ok: support >= minSupport || half };
   });
+}
+
+/**
+ * A lattice from two hand-placed cell centres, for a print the detector cannot
+ * read: the top-left cell (column 0, row 0) and the bottom-right one (the last
+ * column's last row). The counts and the lowered parity say how many pitches
+ * lie between them, so both pitches follow.
+ * @param {{u:number,v:number}} tl  centre of column 0, row 0, in image px
+ * @param {{u:number,v:number}} br  centre of the last column's last row
+ * @returns {{x0:number,y0:number,pitchX:number,pitchY:number,cols:number,rows:number,rowsLowered:number,lowered:"odd"|"even"}|null}
+ *   null when the two points and counts do not span a lattice
+ */
+export function latticeFromCorners({ tl, br, cols, rows, rowsLowered = rows, lowered }) {
+  if (!(cols >= 2 && rows >= 1)) return null;
+  const last = cols - 1, odd = last % 2 === 1;
+  // The last column's own row count, and how far its first cell sits from column 0's.
+  const rowsLast = odd === (lowered === "odd") ? rowsLowered : rows;
+  const off = odd ? (lowered === "odd" ? 0.5 : -0.5) : 0;
+  const span = rowsLast - 1 + off;
+  if (!(span > 0)) return null;
+  const pitchX = (br.u - tl.u) / last, pitchY = (br.v - tl.v) / span;
+  if (!(pitchX > 0 && pitchY > 0)) return null;
+  return { x0: tl.u, y0: tl.v, pitchX, pitchY, cols, rows, rowsLowered, lowered };
 }
 
 /**

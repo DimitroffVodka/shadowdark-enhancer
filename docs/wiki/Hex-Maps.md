@@ -124,9 +124,20 @@ file, and the module does the setup itself:
    itself and says so: when all four sit on a printed hex there is nothing
    to do but **Create scene**, and when one does not it names the corner so
    you can compare the crop and fix a count that is off by one.
+   When the blue is on the wrong hexes, or no grid was found at all,
+   press **Set the corners by hand**. Fill in the boxes (columns × rows,
+   which columns sit lower, and whether the lowered columns end one row
+   short), click the middle of the top-left hex on the print, then the middle
+   of the bottom-right hex (the last column, its last row). The pitches follow
+   from those two points and the counts. Click the middle of the hex in the
+   top-left or bottom-right corner picture to nudge it; the other two pictures
+   are the check. Changing a box re-fits the grid.
 3. It copies the image into the world's `hex-maps` folder, creates a scene
    whose hex grid sits on the print (the image is stretched to Foundry's hex
-   proportions, so a print with tall hexes lands on a regular grid), stores
+   proportions, so a print with tall hexes lands on a regular grid; a print
+   whose first row is full hexes starts one row of cells below the scene's top
+   edge, because Foundry cuts every other column's first row in half there),
+   stores
    the anchor and map size, then opens the Hex Tagger on it, samples the
    cells and shows the **legend** (next section). Name the pictures and the
    map is tagged.
@@ -136,8 +147,10 @@ hand-calibrated geometry in about five seconds on a laptop. Its lowered
 columns end one row short of the others (the frame cuts the first row of the
 raised columns in half, and the last half cells of the lowered ones hold the
 printed column labels); the detector reports that and the tagger skips those
-cells. Prints with a faint or hand-drawn grid get a message instead; those
-are set up the old way below.
+cells. A print whose grid the detector gets wrong or cannot find (a faint or
+hand-drawn grid, or heavy glyph texture that drowns the outlines) is set up
+in the same window with **Set the corners by hand**; the old way below still
+works for anything else.
 
 ## A whole book's key locations
 
@@ -467,8 +480,11 @@ Western Reaches print that top half-row is where the column labels (000, 200,
 400 …) are printed — margin, with no terrain in it at all.
 
 The module does not number those cells. **Hex map from image** sets it when it
-finds the lowered columns ending exactly one row short, which is that same
-clip seen from the other end. If your print's first row really is map, untick
+finds the lowered columns ending exactly one row short and the raised columns'
+first row cut to a half cell, which is that same clip seen from both ends. A
+print of full hexes with a jagged top and bottom edge has its lowered columns
+one row short too, but nothing is cut, so its first row is numbered. If your
+print's first row really is map and the box is ticked, untick
 **top row is frame** under **More** and press **Apply**; if a map you already
 tagged is asking you to tag its margin, tick it there instead — the cells stop
 being numbered and any tags they picked up are dropped, which the message

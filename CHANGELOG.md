@@ -11,6 +11,17 @@ it needs.
 
 ### Added
 
+- **Set the hex grid's corners by hand in Hex map from image.** When the
+  detector puts the grid on the wrong hexes, or finds none, the confirmation
+  window has a **Set the corners by hand** button: click the middle of the
+  top-left hex and of the bottom-right hex on the print, and the grid hangs on
+  those two points and the counts. Click the middle of the hex in the top-left
+  or bottom-right corner picture to nudge it; changing a count re-fits it. A
+  new box says whether the lowered columns end one row short, which prints with
+  a jagged top and bottom edge do. No grid found no longer stops with a message;
+  it opens the same window. The grid finder also stopped mistaking a print's tree
+  and hatch rows for the hex height, which had read The Gloaming's grid at a
+  third of its real size; that print is now found on its own.
 - **Edit a character in the Character Builder, and undo the save.** A
   **Character Builder** button in the header of a player character's sheet, and
   **Edit in Character Builder** when you right-click a character in the Actors
@@ -702,6 +713,15 @@ page walks through it in order.
 
 ### Fixed
 
+- **Hex map from image lines the grid up on a print whose even columns are the
+  lowered ones.** The scene put Foundry's grid half a hex above the print for
+  those prints (only the Western Reaches, whose odd columns are lowered, had
+  been checked), so the hex tagger cut every picture through the middle of a
+  hex. It also no longer skips the top row of a jagged print of full hexes as
+  if it were label margin: the detector now tells a half-cut first row from a
+  full one. And Foundry's own grid centres every other column's first row on
+  the scene's top edge, which cut the top row of such a print in half: its
+  scene now starts one row of cells above the print, so nothing is cut.
 - **Stepping back past a corpse.** Previous Turn onto a dead enemy (or a
   warband following its commander) bounced forward again, so the GM couldn't
   step back past it. It now keeps stepping back. And a player's Next Turn

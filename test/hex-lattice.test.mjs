@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { detectLattice, latticeCentre, rowPitch, columnPitch, cornerSupport } from "../scripts/hex-map/lattice.mjs";
+import { detectLattice, latticeCentre, latticeFromCorners, rowPitch, columnPitch, cornerSupport } from "../scripts/hex-map/lattice.mjs";
 
 // Invented prints: a field of flat-top hex outlines drawn 1 px wide into an
 // ink bitmap, with margins, per-cell glyph noise, and (in one case) a legend
@@ -59,6 +59,18 @@ test("rowPitch and columnPitch recover the pitches of a stretched print", () => 
   assert.ok(cp && Math.abs(cp.pitchX - 30) < 0.3, `pitchX ${cp?.pitchX}`);
 });
 
+test("rowPitch skips a glyph-texture peak that comes before the hex height's own", () => {
+  // Grid rows every 71 px (half a 142 px hex) and, weaker, texture strokes every 21 px.
+  // The texture's peak is over half the grid's, so taking the first peak above half the
+  // strongest read this at 42 px: The Gloaming print's tree rows did exactly that.
+  const w = 300, h = 1200, ink = new Uint8Array(w * h);
+  const run = (y, len) => { for (let x = 20; x < 20 + len; x++) ink[y * w + x] = 1; };
+  for (let y = 10; y < h; y += 71) run(y, 200);
+  for (let y = 3; y < h; y += 21) run(y, 80);
+  const rp = rowPitch(ink, w, h);
+  assert.ok(rp && Math.abs(rp.pitchY - 142) < 1, `pitchY ${rp?.pitchY}`);
+});
+
 test("detectLattice finds pitch, origin, size and parity, and ignores a legend block", () => {
   const lat = { x0: 61, y0: 52, pitchX: 30, pitchY: 34, lowered: "odd" };
   const ink = print({ w: 480, h: 420, lat, cols: 12, rows: 9, legend: true });
@@ -68,6 +80,7 @@ test("detectLattice finds pitch, origin, size and parity, and ignores a legend b
   assert.ok(Math.abs(d.pitchY - 34) < 0.15, `pitchY ${d.pitchY}`);
   assert.ok(Math.abs(d.x0 - 61) < 1 && Math.abs(d.y0 - 52) < 1, `origin ${d.x0}, ${d.y0}`);
   assert.deepEqual([d.cols, d.rows, d.lowered], [12, 9, "odd"]);
+  assert.equal(d.frameCut, false, "full hexes at the top: the frame does not cut the first row");
   const far = latticeCentre(d, 11, 8), truth = latticeCentre(lat, 11, 8);
   assert.ok(Math.abs(far.u - truth.u) < 1.5 && Math.abs(far.v - truth.v) < 1.5, `far corner drift ${far.u - truth.u}, ${far.v - truth.v}`);
 });
@@ -95,6 +108,7 @@ test("a first row cut in half by the frame still counts, a phantom row past it d
   assert.ok(d, "detected");
   assert.deepEqual([d.cols, d.rows, d.rowsLowered, d.lowered], [12, 9, 9, "odd"]);
   assert.ok(Math.abs(d.y0 - 52) < 1, `row 0 is the half cell: y0 ${d.y0}`);
+  assert.equal(d.frameCut, true, "the raised columns' first row is a half cell");
 });
 
 test("cornerSupport: every corner of a detected lattice sits on an outline, a lattice off by one row does not", () => {
@@ -119,4 +133,38 @@ test("the lowered columns end one row short inside a rectangular frame, label in
   assert.ok(d, "detected");
   assert.deepEqual([d.cols, d.rows, d.rowsLowered, d.lowered], [12, 9, 8, "odd"]);
   assert.ok(Math.abs(d.y0 - 52) < 1, `row 0 is the half cell: y0 ${d.y0}`);
+  assert.equal(d.frameCut, true);
+});
+
+test("a print of full hexes with the lowered columns one row short is not a frame cut", () => {
+  // The Gloaming's shape (raised columns 11 rows, lowered 10, even lowered): the same
+  // row counts as the Western Reaches, but nothing is cut, so the top row is map.
+  const lat = { x0: 70, y0: 66, pitchX: 33, pitchY: 36, lowered: "even" };
+  const ink = print({ w: 520, h: 460, lat, cols: 11, rows: 10, shortLowered: true, seed: 9 });
+  const d = detectLattice(ink, 520, 460);
+  assert.ok(d, "detected");
+  assert.deepEqual([d.cols, d.rows, d.rowsLowered, d.lowered, d.frameCut], [11, 10, 9, "even", false]);
+});
+
+test("latticeFromCorners: two hand-placed centres give back the lattice, for every parity and column count", () => {
+  for (const lowered of ["odd", "even"]) for (const cols of [17, 12]) for (const rowsLowered of [11, 10]) {
+    const lat = { x0: 132.5, y0: 88.25, pitchX: 124.4, pitchY: 143.1, lowered, cols, rows: 11, rowsLowered };
+    const last = cols - 1;
+    const rowsLast = (last % 2 === 1) === (lowered === "odd") ? rowsLowered : 11;
+    const got = latticeFromCorners({ tl: latticeCentre(lat, 0, 0), br: latticeCentre(lat, last, rowsLast - 1), cols, rows: 11, rowsLowered, lowered });
+    assert.ok(got, `${lowered} ${cols} ${rowsLowered}`);
+    for (const key of ["x0", "y0", "pitchX", "pitchY"]) assert.ok(Math.abs(got[key] - lat[key]) < 1e-9, `${lowered} ${cols} ${rowsLowered}: ${key} ${got[key]}`);
+    assert.deepEqual([got.cols, got.rows, got.rowsLowered, got.lowered], [cols, 11, rowsLowered, lowered]);
+  }
+});
+
+test("latticeFromCorners: corners that do not span a lattice give null, not a broken one", () => {
+  const tl = { u: 100, v: 100 }, br = { u: 900, v: 700 };
+  assert.ok(latticeFromCorners({ tl, br, cols: 8, rows: 5, lowered: "odd" }));
+  assert.equal(latticeFromCorners({ tl, br, cols: 1, rows: 5, lowered: "odd" }), null, "one column has no width to measure");
+  assert.equal(latticeFromCorners({ tl, br: { u: 50, v: 700 }, cols: 8, rows: 5, lowered: "odd" }), null, "bottom-right left of top-left");
+  assert.equal(latticeFromCorners({ tl, br: { u: 900, v: 50 }, cols: 8, rows: 5, lowered: "odd" }), null, "bottom-right above top-left");
+  assert.equal(latticeFromCorners({ tl, br, cols: 2, rows: 1, lowered: "even" }), null, "one row, the last column half a row higher: no height between the two");
+  assert.equal(latticeFromCorners({ tl, br, cols: 3, rows: 1, lowered: "odd" }), null, "one row, an even last column: both corners share a row, so there is no height to measure");
+  assert.equal(latticeFromCorners({ tl, br, cols: 2, rows: 1, lowered: "odd" }).pitchY, 1200, "one row, the last column half a row lower: 600 px is half a pitch");
 });
