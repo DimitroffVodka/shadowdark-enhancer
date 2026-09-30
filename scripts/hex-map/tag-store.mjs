@@ -5,7 +5,7 @@
  * one write per sheet:
  *
  *   { version: 1,
- *     origin: { i, j, q, r, num: "000", shifted: "odd", bounds: { cols: 64, rows: 75 } } | null,
+ *     origin: { i, j, q, r, num: "000", shifted: "odd", bounds: { cols: 64, rows: 75, base?: { col, row } } } | null,   // base: first printed number, default 0000
  *     cells: { "1403": "forest;river|gm", "1404": "forest|auto:1.42" },
  *     palette: ["forest", "lake", "hills"] }    // optional: the terrains this map has
  *

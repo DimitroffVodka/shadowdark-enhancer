@@ -11,6 +11,16 @@ it needs.
 
 ### Added
 
+- **Key locations from Cursed Scrolls 1 to 5.** Importer Hub → Tools → **Key
+  locations** now offers the five Cursed Scrolls that come with a hexcrawl
+  beside the GM Guide. Each files one journal entry named for its map and book
+  (The Gloaming (Cursed Scroll 1), The Djurum, Isles of Andrik, The Black River,
+  Morzomotha) with a page per keyed hex: 121 in all, read from your own PDFs with
+  the same reader the GM Guide uses. The books print no summary table, so the
+  entries have pages and no terrain rows. City of Masks has no hex key and is not
+  offered. Set the map's **Top-left hex is number** to **0001** for The Gloaming,
+  The Djurum and Isles of Andrik so the pages land on their hexes; the docs say
+  how for the other two.
 - **A ruleset for each map, and terrains beyond the printed list, in Rules
   Data.** The window held one set of tables, the Western Reaches', with a row
   for each of its printed terrains and no way to add another. A **Ruleset**
@@ -736,6 +746,14 @@ page walks through it in order.
 
 ### Fixed
 
+- **A map numbered from 0001 keeps its last row.** The hex tagger read a map's
+  size as if its numbers began at 0000, so The Gloaming (first hex 0001) lost
+  its bottom row of hexes and the last hex of each shorter column: 170 numbered
+  hexes of 178, with 1210 among the missing. Key-location pins for those hexes
+  came up "off the map", and setting the map size in the tagger would have
+  cleared their tags. The scene now remembers the number it starts from, and a
+  map whose first column is odd (0100, 0101) names its lowered columns by the
+  printed column rather than the image's.
 - **Hex map from image lines the grid up on a print whose even columns are the
   lowered ones.** The scene put Foundry's grid half a hex above the print for
   those prints (only the Western Reaches, whose odd columns are lowered, had

@@ -1440,7 +1440,7 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const old = this._state.origin.bounds;
     const short = old?.rowsLowered && old.rows ? old.rows - old.rowsLowered : 0;
     this._state.origin.bounds = (cols > 0 && rows > 0)
-      ? { cols, rows, ...(short > 0 && rows > short ? { rowsLowered: rows - short } : {}), ...(skipTop ? { firstRow: 1 } : {}) }
+      ? { cols, rows, ...(short > 0 && rows > short ? { rowsLowered: rows - short } : {}), ...(skipTop ? { firstRow: 1 } : {}), ...(old?.base ? { base: old.base } : {}) }
       : null;
     this._renumber();
     // Cells that just stopped being on the map keep no tags: they are frame, and

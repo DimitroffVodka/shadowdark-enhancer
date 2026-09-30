@@ -51,7 +51,7 @@ export function originOffset(origin) {
 /**
  * Number a cell from its Foundry cube and the origin.
  * @param {{q:number, r:number}} cube          Foundry cube of the cell
- * @param {{cube:{q:number,r:number}, num:string|number, shifted?:"odd"|"even", bounds?:{cols:number, rows:number, rowsLowered?:number, firstRow?:number}}} origin
+ * @param {{cube:{q:number,r:number}, num:string|number, shifted?:"odd"|"even", bounds?:{cols:number, rows:number, rowsLowered?:number, firstRow?:number, base?:{col:number,row:number}}}} origin
  *   bounds.rowsLowered: the lowered columns' own row count when it differs (one short on a
  *   print whose frame cuts them off at the bottom, like the Western Reaches)
  *   bounds.firstRow: the first row the RAISED columns actually have. Those columns sit half
@@ -86,16 +86,21 @@ export function cellNumber(cube, origin) {
  * scene's layout and will not take a record outside it, so a margin cell that
  * reaches a hand-off is rejected there rather than here — after the scene has
  * been built.
- * @param {{cols?:number, rows?:number, rowsLowered?:number, firstRow?:number}} [bounds]  no bounds = every cell counts
+ * @param {{cols?:number, rows?:number, rowsLowered?:number, firstRow?:number, base?:{col:number,row:number}}} [bounds]  no bounds = every cell counts.
+ *   base: the printed (col, row) the counts start from — the map's first number (0001 gives {col:0, row:1}). Absent
+ *   is 0000; the Western Reaches and every map anchored by hand keep it that way.
  * @returns {boolean}
  */
 export function onMap(col, row, bounds, shifted = "odd") {
   if (numberFor(col, row) === null) return false;
   if (!bounds) return true;
+  // Counts run from the map's first printed number. Which columns are lowered
+  // is still the PRINTED column's parity, since that is what `shifted` names.
+  const c = col - (bounds.base?.col ?? 0), r = row - (bounds.base?.row ?? 0);
   const lowered = shifted === "odd" ? col % 2 === 1 : col % 2 === 0;
   const rows = (lowered && bounds.rowsLowered) || bounds.rows;
   const first = lowered ? 0 : (bounds.firstRow ?? 0);
-  return !((bounds.cols && col >= bounds.cols) || (rows && row >= rows) || row < first);
+  return !(c < 0 || (bounds.cols && c >= bounds.cols) || (rows && r >= rows) || r < first);
 }
 
 /** The six neighbours of a printed cell, same shift rule. */
