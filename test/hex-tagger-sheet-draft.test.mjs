@@ -15,7 +15,7 @@ globalThis.foundry = {
       DialogV2: {},
     },
   },
-  utils: { escapeHTML: (s) => s },
+  utils: { escapeHTML: (s) => s, randomID: () => "w1" },
 };
 class Replacement { constructor(value) { this.value = value; } }
 globalThis._replace = (value) => new Replacement(value);
