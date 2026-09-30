@@ -489,6 +489,17 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
         if (!inp.hidden) inp.focus();
       });
     }
+    // The review sheet's answers are held in the DOM until Apply, and a redraw from any other direction (the
+    // palette, a tag painted on the map) rebuilds the DOM from the saved tags. So each touched cell's answer is
+    // written down as it is given, and _prepareContext puts it back.
+    for (const sel of this.element.querySelectorAll("select[data-hxt-terrain]")) {
+      const num = sel.dataset.num;
+      const inp = this.element.querySelector(`input[data-hxt-terrain-other][data-num="${num}"]`);
+      if (inp) inp.hidden = sel.value !== "__other";   // an "other…" not typed into yet is still "other…"
+      sel.addEventListener("change", () => this._noteSheetDraft(num));
+      inp?.addEventListener("input", () => this._noteSheetDraft(num));
+    }
+    for (const box of this.element.querySelectorAll("input[data-hxt-feature]")) box.addEventListener("change", () => this._noteSheetDraft(box.dataset.num));
     // The map's terrain palette: every tick is saved at once and redraws the dropdowns.
     for (const box of this.element.querySelectorAll("input[data-hxt-palette]")) box.addEventListener("change", () => this._setPalette(this._paletteFromBoxes()));
     const own = this.element.querySelector("input[data-hxt-palette-own]");
@@ -529,6 +540,8 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
   _autoLegend = false;
   /** Whether the palette box is open; undefined until the GM toggles it (it opens itself while no palette is set). */
   _paletteOpen = undefined;
+  /** @type {{key:string, cells:Object<string,{select:string, other:string, features:string[]}>}|null} unconfirmed sheet answers (_sheetDrafts) */
+  _sheetDraft = null;
   /** Which overlay picture is on the map: "", "terrain", "region" or "encounter". */
   _overlayMode = "";
 
@@ -595,6 +608,28 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
     } finally {
       this._saving = false;
     }
+  }
+
+  /**
+   * The answers on the review sheet that have not been confirmed, by hex number, for the sheet on screen only
+   * (the key is its hex numbers: a different sheet starts with none).
+   */
+  _sheetDrafts() {
+    const key = this._sheet.join(",");
+    if (this._sheetDraft?.key !== key) this._sheetDraft = { key, cells: {} };
+    return this._sheetDraft.cells;
+  }
+
+  /** Write down what one sheet cell's controls say now. Only cells the GM touched are drafted; the rest follow the tags. */
+  _noteSheetDraft(num) {
+    const root = this.element;
+    const select = root?.querySelector(`select[data-hxt-terrain][data-num="${num}"]`);
+    if (!select) return;
+    this._sheetDrafts()[num] = {
+      select: select.value,
+      other: root.querySelector(`input[data-hxt-terrain-other][data-num="${num}"]`)?.value ?? "",
+      features: [...root.querySelectorAll(`input[data-hxt-feature][data-num="${num}"]:checked`)].map((i) => i.value),
+    };
   }
 
   /** The words ticked in the palette box, in the order the box lists them. */
@@ -968,15 +1003,26 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
       const keyed = this._keyedNumbers();
       sheet = this._sheet.map((num) => {
         const c = this._numbered.get(num); const cell = state.cells.get(String(num));
-        const terrainOther = cell?.terrain && !terrainValues.includes(cell.terrain) ? cell.terrain : "";
+        let terrainOther = cell?.terrain && !terrainValues.includes(cell.terrain) ? cell.terrain : "";
+        let selected = terrainOther ? "__other" : (cell?.terrain ?? "");
+        let features = cell?.features ?? [];
+        // What the GM has put on this hex and not confirmed yet wins over the saved tag, so a redraw does not undo it.
+        const draft = this._sheetDrafts()[num];
+        if (draft) {
+          features = draft.features;
+          if (draft.select === "__other") { terrainOther = draft.other; selected = "__other"; }
+          // The palette may have just dropped the word: it stays as typed text instead of falling to the first option.
+          else if (draft.select && !terrainValues.includes(draft.select)) { terrainOther = draft.select; selected = "__other"; }
+          else { terrainOther = ""; selected = draft.select; }
+        }
         return {
           num, label: String(num).padStart(4, "0"), i: c?.i, j: c?.j, thumb: c ? this._thumb(c) : "",
           terrain: cell?.terrain ?? "", source: cell?.source ?? "", keyed: keyed.has(num),
           margin: cell?.margin !== undefined ? Number(cell.margin).toFixed(2) : "", review: !!cell?.review,
-          features: Object.fromEntries(FEATURES.map((o) => [o, !!cell?.features?.includes(o)])),
+          features: Object.fromEntries(FEATURES.map((o) => [o, features.includes(o)])),
           terrainOther,
-          terrainOptions: [...terrainOptions, { value: "__other", label: t("SDE.hexMap.label.otherOption"), selected: !!terrainOther }]
-            .map((o) => ({ ...o, selected: o.value === (terrainOther ? "__other" : (cell?.terrain ?? "")) })),
+          terrainOptions: [...terrainOptions, { value: "__other", label: t("SDE.hexMap.label.otherOption") }]
+            .map((o) => ({ ...o, selected: o.value === selected })),
         };
       });
     }
@@ -1401,6 +1447,7 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
     if (!this._requireCurrentScene()) return;
     this._readHeader();
     if (!this._numbered.size) { ui.notifications?.warn(t("SDE.hexMap.notify.readAndAnchor")); return; }
+    this._sheetDraft = null;   // a fresh look, even when the queue hands back the same hexes
     this._sheet = nextSheet(this._state, { nums: [...this._numbered.keys()], size: SHEET_SIZE, mode: this._mode, keyed: this._keyedNumbers(), reviewMargin: this._log().margin });
     if (!this._sheet.length) ui.notifications?.info(this._mode === "random" ? t("SDE.hexMap.notify.allTagged") : t("SDE.hexMap.notify.noneInMode"));
     this.render();
@@ -1419,6 +1466,7 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
     // Every cell on the sheet was looked at, so every one is a verdict on the
     // classifier — the corrections AND the ones left alone (tag-corrections.mjs).
     const verdicts = applySheet(this._state, answers);
+    this._sheetDraft = null;   // confirmed: the saved tags say it now
     await this._saveState();
     await this._recordVerdicts(verdicts);
     this._sheet = nextSheet(this._state, { nums: [...this._numbered.keys()], size: SHEET_SIZE, mode: this._mode, keyed: this._keyedNumbers(), reviewMargin: this._log().margin });
