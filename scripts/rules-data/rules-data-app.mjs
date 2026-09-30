@@ -189,22 +189,31 @@ export class RulesDataApp extends HandlebarsApplicationMixin(ApplicationV2) {
   /**
    * Staged rulesets: edits, imports and new or deleted rulesets live here until
    * Save. `base` is the default ruleset, `sets` the others by id, `current` the
-   * one showing ("" for the default) and `scene` the one the viewed scene uses.
+   * one showing ("" for the default) and `scene` the one the map uses, `sceneId`
+   * being that map.
    */
   _all = null;
 
-  /** The viewed scene, when it is a hex map: the only kind a ruleset can be chosen for. */
+  /**
+   * The map the window was opened for, when it is a hex map: the only kind a
+   * ruleset can be chosen for. It is fixed at the first render, not read from
+   * the canvas each time, so a canvas that moves on while the window is open
+   * can neither retitle the choice nor receive it (#316).
+   */
   _scene() {
-    const scene = globalThis.canvas?.scene;
-    return scene?.grid?.isHexagonal ? scene : null;
+    const id = this._store().sceneId;
+    return (id && game.scenes.get(id)) || null;
   }
 
   _store() {
     if (!this._all) {
       const sets = rulesSetsFrom(game.settings.get(MODULE_ID, RULESETS_SETTING));
-      const used = rulesetOf(this._scene());
+      const viewed = globalThis.canvas?.scene;
+      const map = viewed?.grid?.isHexagonal ? viewed : null;
+      const used = rulesetOf(map);
       const own = used in sets ? used : "";
-      this._all = { base: rulesFrom(game.settings.get(MODULE_ID, RULES_SETTING)), sets, current: own, scene: own };
+      // `opened` is what the window showed for the map: only a choice changed from it is written on Save.
+      this._all = { base: rulesFrom(game.settings.get(MODULE_ID, RULES_SETTING)), sets, current: own, scene: own, opened: own, sceneId: map?.id ?? "" };
     }
     return this._all;
   }
@@ -330,7 +339,7 @@ export class RulesDataApp extends HandlebarsApplicationMixin(ApplicationV2) {
     this._harvest();
     const a = this._store();
     // The terrains the hex tagger's palette has ticked for the viewed map are the ones this ruleset is for.
-    const palette = decodeTags(globalThis.canvas?.scene?.getFlag(MODULE_ID, "hexTags")).palette ?? [];
+    const palette = decodeTags(this._scene()?.getFlag(MODULE_ID, "hexTags")).palette ?? [];
     const starts = [["", L("SDE.rulesData.set.blank")], ["default", F("SDE.rulesData.set.copyOf", { name: L("SDE.rulesData.set.default") })],
       ...Object.entries(a.sets).map(([id, s]) => [id, F("SDE.rulesData.set.copyOf", { name: s.name })])];
     const out = await DialogV2.prompt({
@@ -393,9 +402,9 @@ export class RulesDataApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const a = this._store();
     await game.settings.set(MODULE_ID, RULES_SETTING, a.base);
     await game.settings.set(MODULE_ID, RULESETS_SETTING, a.sets);
-    // The viewed hex map's choice of ruleset goes with them.
+    // The choice of ruleset for the map the window was opened for goes with them, if it was changed here.
     const scene = this._scene();
-    if (scene && a.scene !== rulesetOf(scene)) await setSceneRuleset(scene, a.scene);
+    if (scene && a.scene !== a.opened) await setSceneRuleset(scene, a.scene);
     ui.notifications.info(L("SDE.rulesData.notify.saved"));
   }
 }
