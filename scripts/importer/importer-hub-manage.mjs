@@ -23,6 +23,9 @@ import { MODULE_ID } from "../shared/module-id.mjs";
 import { charSourceKey } from "../shared/source-keys.mjs";
 import { SOURCES as DOWNTIME_SOURCES, SOURCE_SLUGS as DOWNTIME_SLUGS } from "../downtime/downtime-skeleton.mjs";
 
+/** Manage-tree rows that open one actor subtype, not any same-named actor. */
+const CREATURE_TYPE = { Mount: `${MODULE_ID}.mount`, Warband: `${MODULE_ID}.warband` };
+
 /**
  * Downtime source slug → the CHAR_SOURCES / source-PDF registry key for the
  * same book, so a downtime unlock can drive the shared PDF machinery
@@ -121,7 +124,12 @@ class HubManageMethods {
     const cites = isTable ? citesForTable(src || undefined, name) : [];
     const matches = (d) => {
       const cname = d?.name ?? "";
-      if (!isTable) return nameVariants(cname).some((v) => want.has(v));
+      if (!isTable) {
+        // A Mount or Warband row opens that actor type, never a same-named bestiary NPC.
+        const kindType = CREATURE_TYPE[type];
+        if (kindType && d?.type !== kindType) return false;
+        return nameVariants(cname).some((v) => want.has(v));
+      }
       const flag = flagOf(d);
       return cites.some((cite) => cite.names.some((want) => {
         if (cite.src && flag && charSourceKey(flag) === cite.src && tableNameMatches(cname, want)) return true;
@@ -145,7 +153,7 @@ class HubManageMethods {
       for (const pack of game.packs.filter((p) => p.documentName === docName)) {
         // Ask for the source flag: the cached index carries names only, and the
         // flag is what tells two books' same-named tables apart.
-        const index = await pack.getIndex({ fields: [`flags.${MODULE_ID}.source`] }).catch(() => pack.index);
+        const index = await pack.getIndex({ fields: ["type", `flags.${MODULE_ID}.source`] }).catch(() => pack.index);
         const entry = [...index].find(matches);
         if (!entry) continue;
         const doc = await pack.getDocument(entry._id).catch(() => null);
