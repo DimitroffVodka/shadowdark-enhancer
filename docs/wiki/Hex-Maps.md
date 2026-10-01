@@ -192,7 +192,9 @@ A Cursed Scroll prints only the write-ups, no summary table, so its entry has
 pages and no terrain rows. The book is in the title on purpose: the GM Guide
 has a "The Gloaming" too, and the [Hex Tagger](#keyed-locations-on-the-map)'s
 hex-key picker lists crawls by name. Cursed Scroll 6 (City of Masks) numbers the
-locations of a city, not hexes, so it is not offered.
+locations of a city, not hexes, so it is not offered here; its districts, and the
+dungeons and sites of every Cursed Scroll, come in through
+[Adventures](Importer-Hub.md#tools-menu-source-pdfs) instead.
 
 **Their rumors and encounter tables** import from the same books, and so do the
 tables of every adventure site in them: the Hideous Halls of Mugdulblub, the

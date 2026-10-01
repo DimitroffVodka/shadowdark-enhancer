@@ -69,10 +69,13 @@ export function planPins(pages, numbered, existing = [], { entryId, iconSize = 4
 /**
  * Deploy the crawl's pack entry into the world, ids kept so notes can point
  * at its pages; a re-deploy updates matching pages and adds missing ones.
+ * @param {JournalEntry} packEntry
+ * @param {{flag?:string, idKey?:string}} [opts]  the flag that marks the entry as ours and the key
+ *   in it that names it; the hex importer's by default, the adventure importer's for a dungeon
  * @returns {Promise<JournalEntry>}
  */
-export async function deployCrawlJournal(packEntry) {
-  if (!packEntry?.getFlag?.(MODULE_ID, HEX_FLAG)?.crawl) throw new TypeError("A crawl entry filed by the hex importer is required");
+export async function deployCrawlJournal(packEntry, { flag = HEX_FLAG, idKey = "crawl" } = {}) {
+  if (!packEntry?.getFlag?.(MODULE_ID, flag)?.[idKey]) throw new TypeError("An entry filed by the importer is required");
   const data = packEntry.toObject();
   data.folder = null;
   data.pages = packEntry.pages.contents.map((page) => {
@@ -82,7 +85,7 @@ export async function deployCrawlJournal(packEntry) {
   });
   let world = game.journal.get(packEntry.id);
   if (!world) return JournalEntry.create(data, { keepId: true });
-  if (!world.getFlag(MODULE_ID, HEX_FLAG)?.crawl) throw new Error(t("SDE.hexMap.error.notThisCrawl", { id: packEntry.id }));
+  if (!world.getFlag(MODULE_ID, flag)?.[idKey]) throw new Error(t("SDE.hexMap.error.notThisCrawl", { id: packEntry.id }));
   await world.update({ name: data.name, flags: data.flags });
   const updates = data.pages.filter((p) => world.pages.has(p._id)), creates = data.pages.filter((p) => !world.pages.has(p._id));
   if (updates.length) await world.updateEmbeddedDocuments("JournalEntryPage", updates);
