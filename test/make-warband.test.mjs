@@ -79,13 +79,13 @@ test("a creature with no spell count gets none", async () => {
   assert.equal(previewRow("Spells"), undefined);
 });
 
-test("the Actors directory entry shows for a GM on a level 1-5 NPC only, and clicking makes the warband from it", async () => {
+test("the Actors directory entry shows for a GM on a level 1-5 NPC only, and clicking makes the warband from a copy of it", async () => {
   const hooks = {};
   globalThis.Hooks = { on: (name, fn) => { (hooks[name] ??= []).push(fn); return 1; } };
   const { registerMakeWarband } = await import("../scripts/actors/make-warband.mjs");
   registerMakeWarband("shadowdark-enhancer.warband");
   const actors = {
-    low: { type: "NPC", system: { level: { value: 3 } } },
+    low: npc({ spells: 0, staffAttacks: 1 }),
     high: { type: "NPC", system: { level: { value: 6 } } },
     player: { type: "Player", system: { level: { value: 3 } } },
   };
@@ -95,6 +95,13 @@ test("the Actors directory entry shows for a GM on a level 1-5 NPC only, and cli
   assert.equal(items.length, 1);
   assert.equal(items[0].label, "SDE.warband.make.button");
   assert.deepEqual(["low", "high", "player"].map((id) => items[0].visible(li(id))), [true, false, false]);
+  // Clicking previews, then creates the warband from a copy; the original is untouched.
+  const warband = await items[0].onClick({}, li("low"));
+  assert.equal(warband.system.level.value, 4);
+  assert.equal(actors.low.system.level.value, 2);
+  assert.match(preview, /Hedge Mage/);
+  // A GM's click on a non-NPC makes nothing.
+  assert.equal(await items[0].onClick({}, li("player")), null);
   globalThis.game.user.isGM = false;
   assert.equal(items[0].visible(li("low")), false);
   globalThis.game.user.isGM = true;
