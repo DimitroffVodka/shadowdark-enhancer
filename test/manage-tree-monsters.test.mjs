@@ -6,11 +6,6 @@ import { selectMountDrafts } from "../scripts/importer/boats/mount-parser.mjs";
 const actor = (name, source) => ({ name, source });
 
 test("Monsters tree keeps curated bestiaries and reconciles mounts across sources", () => {
-  const rows = [
-    { label: "CORE", missingNames: ["City Watch"] },
-    { label: "Custom", missingNames: ["Canoe"] },
-    { label: "Western Reaches", missingNames: [] },
-  ];
   const actors = [
     actor("Camel, Silver", "Cursed Scroll 2"),
     actor("Donkey", "Cursed Scroll 2"),
@@ -22,7 +17,7 @@ test("Monsters tree keeps curated bestiaries and reconciles mounts across source
     actor("Moose", "Western Reaches"),
   ];
 
-  const tree = _testBuildMonsters(rows, actors);
+  const tree = _testBuildMonsters(actors);
   assert.deepEqual(tree.children.map((node) => node.id), [
     "monsters/CS1", "monsters/CS2", "monsters/CS3",
     "monsters/CS4", "monsters/CS5", "monsters/CS6",
@@ -52,12 +47,12 @@ const bulkRow = (node) => node.entries.find((entry) => entry.type === "Actor");
 // book's row below its count for good: "Import everything" re-ran that row on
 // every pass and skipped every monster on it as a duplicate.
 test("a reprint imported from either book satisfies both bestiary rows", () => {
-  const fromGuide = _testBuildMonsters([], [actor("Tar Bat", "Western Reaches GM Guide")]);
+  const fromGuide = _testBuildMonsters([actor("Tar Bat", "Western Reaches GM Guide")]);
   assert.equal(leafOf(fromGuide, "monsters/CS1").have, 1);
   assert.equal(leafOf(fromGuide, "monsters/CS1").locked, 13);
   assert.equal(leafOf(fromGuide, "monsters/GMWR").have, 1);
 
-  const fromScroll = _testBuildMonsters([], [actor("Tar Bat", "CS1")]);
+  const fromScroll = _testBuildMonsters([actor("Tar Bat", "CS1")]);
   assert.equal(leafOf(fromScroll, "monsters/GMWR").have, 1);
   assert.equal(leafOf(fromScroll, "monsters/GMWR").locked, 89);
   assert.equal(leafOf(fromScroll, "monsters/CS1").have, 1);
@@ -65,19 +60,19 @@ test("a reprint imported from either book satisfies both bestiary rows", () => {
 
 test("a bestiary row disappears once every name in the book is present", () => {
   const CS5 = ["Bezelak", "Dremir", "Librarian of Leng", "Nuln", "Morzo Moth", "Wendel"];
-  const short = leafOf(_testBuildMonsters([], CS5.slice(1).map((n) => actor(n, "CS5"))), "monsters/CS5");
+  const short = leafOf(_testBuildMonsters(CS5.slice(1).map((n) => actor(n, "CS5"))), "monsters/CS5");
   assert.equal(short.locked, 1);
   assert.match(bulkRow(short).name, /Import the CS5 bestiary — 6 monsters \(34-35\)/);
 
   // Imported from the GM Guide instead — the CS5 row is satisfied all the same.
-  const full = leafOf(_testBuildMonsters([], CS5.map((n) => actor(n, "GMWR"))), "monsters/CS5");
+  const full = leafOf(_testBuildMonsters(CS5.map((n) => actor(n, "GMWR"))), "monsters/CS5");
   assert.equal(full.have, 6);
   assert.equal(full.locked, 0);
   assert.equal(bulkRow(full), undefined, "no Import row left to re-run");
 });
 
 test("the GM Guide row carries GMWR, and Western Reaches mounts/boats don't count for it", () => {
-  const tree = _testBuildMonsters([], [actor("Canoe", "Western Reaches"), actor("Moose", "Western Reaches")]);
+  const tree = _testBuildMonsters([actor("Canoe", "Western Reaches"), actor("Moose", "Western Reaches")]);
   const guide = leafOf(tree, "monsters/GMWR");
   assert.equal(guide.label, "GM Guide");
   assert.equal(guide.have, 0, "a boat filed under Western Reaches is not a bestiary monster");
@@ -92,7 +87,7 @@ test("a mount imported under the book's own heading still reconciles", () => {
   // The books print "WAR HORSE" where the manifest indexes "Horse, War". An
   // exact-name census left such an actor unreconciled: the row stayed locked,
   // kept offering Import, and the retry was skipped as a duplicate.
-  const tree = _testBuildMonsters([], [
+  const tree = _testBuildMonsters([
     actor("War Horse", "Western Reaches"),
     actor("Silver Camel", "Western Reaches"),
   ]);
@@ -105,7 +100,7 @@ test("a mount imported under the book's own heading still reconciles", () => {
 });
 
 test("a same-stem mount doesn't satisfy another mount's row", () => {
-  const tree = _testBuildMonsters([], [actor("Camel", "Core")]);
+  const tree = _testBuildMonsters([actor("Camel", "Core")]);
   const mounts = tree.children.at(-1);
   assert.equal(mounts.entries.find((entry) => entry.name === "Camel, Silver").present, false);
   assert.equal(mounts.locked, 7);
@@ -124,9 +119,23 @@ test("a mount unlock keeps only its selected draft from the full WR spread", () 
 });
 
 test("a stock warband is present only as a warband: an NPC of the same name doesn't count (#286 review)", () => {
-  const rows = [{ label: "CORE", missingNames: [] }];
-  const rabble = (actors) => _testBuildMonsters(rows, actors).children
+  const rabble = (actors) => _testBuildMonsters(actors).children
     .find((node) => node.id === "monsters/warbands").entries.find((entry) => entry.name === "Rabble");
   assert.equal(rabble([{ name: "Rabble", source: "Custom", type: "NPC" }]).present, false);
   assert.equal(rabble([{ name: "Rabble", source: "Western Reaches", type: "shadowdark-enhancer.warband" }]).present, true);
+});
+
+// The monster census reads capitalised phrases out of imported encounter-table
+// text, so rumors and scripted events leak places, factions and event titles into
+// it ("Lord Hedron", "Volcano Erupts", "Thieves' Guild"). A book can only supply
+// the statblocks it prints, so none of them is something Import could ever
+// unlock: they sat at "locked" for good and kept "Import everything" hidden. The
+// Manage tree therefore takes a bestiary's rows from the book's own name list only.
+test("names the census scraped from table prose never lock a bestiary row", () => {
+  const CS4 = ["Anaconda, Giant", "Stone Warrior", "Ant, Giant", "Stone Shaman", "Basilisk Hatchling",
+    "Cobra Statue", "Blue Dart Frog", "Catfish, Giant", "Condor, Dire", "Death Slug", "Jaguar King",
+    "Javelina", "Javelina, Diseased", "Kawitzek", "Skandrill", "Skandrill, Rex", "Void Bat", "Void Being"];
+  const tree = _testBuildMonsters(CS4.map((n) => actor(n, "CS4")));
+  assert.equal(leafOf(tree, "monsters/CS4").locked, 0);
+  assert.equal(leafOf(tree, "monsters/CS6").locked, 0);
 });
