@@ -196,7 +196,7 @@ See [Crawl Strip and Crawl Bar](Crawl-Strip-and-Crawl-Bar.md#overland-travel).
 
 | Setting | Default | What it does |
 |---|---|---|
-| **Loot drops on combat end** | off | Defeated NPCs roll loot tables and post shared claim cards to chat. Overridden via NPC sheet header. |
+| **Loot drops on combat end** | off | Defeated NPCs roll loot tables and post shared claim cards to chat. Overridden per NPC: right-click it in the Actors sidebar and pick Loot. |
 | **Loot drop mode** | `Per defeated NPC` | **Per defeated NPC**: each rolls separately. **Per encounter**: one pooled roll at highest NPC level. |
 | **Loot drop chance (%)** | `50` | Drop percentage chance on combat end (mode-dependent). |
 | **Monster loot overrides** *(menu)* | — | GM-only list (**Review Monsters**) of every world NPC with its loot table and drop chance, editable inline. |

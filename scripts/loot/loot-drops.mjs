@@ -4,7 +4,7 @@
  * tier table for the NPC's level) at a drop chance, posting a hoard card.
  * Opt-in: off by default via the "Loot drops on combat end" setting. The
  * chance is a world setting; both chance and table can be overridden per
- * NPC from the Loot button in the NPC sheet header. "Loot drop mode" picks
+ * NPC from the Loot entry in the Actors directory's right-click menu. "Loot drop mode" picks
  * between one roll per defeated NPC and one roll for the whole encounter.
  */
 import { MODULE_ID } from "../shared/module-id.mjs";
@@ -20,17 +20,16 @@ export const LootDrops = {
       if (!options?.[MODULE_ID]?.discard) this._onCombatEnd(combat);
     });
 
-    // Per-NPC drop config: a GM-only Loot button in the NPC sheet header. Shown
-    // whether or not drops are enabled, so a bestiary can be set up first; the
-    // Monster Loot Overrides window (Loot & XP settings) lists every NPC at once.
-    Hooks.on("getActorSheetHeaderButtons", (sheet, buttons) => {
-      const actor = sheet.actor;
-      if (!game.user.isGM || actor?.type !== "NPC") return;
-      buttons.unshift({
-        class: "sde-loot-drops-config",
-        icon: "fas fa-coins",
+    // Per-NPC drop config: a GM-only Loot entry in the Actors directory's right-click
+    // menu. Shown whether or not drops are enabled, so a bestiary can be set up first;
+    // the Monster Loot Overrides window (Loot & XP settings) lists every NPC at once.
+    Hooks.on("getActorContextOptions", (directory, menuItems) => {
+      const actorOf = (li) => directory.collection.get(li.closest("[data-entry-id]")?.dataset.entryId);
+      menuItems.push({
         label: "SDE.loot.label",
-        onclick: () => this.openConfig(actor),
+        icon: "fa-solid fa-coins",
+        visible: (li) => game.user.isGM && actorOf(li)?.type === "NPC",
+        onClick: (_event, li) => this.openConfig(actorOf(li)),
       });
     });
   },
