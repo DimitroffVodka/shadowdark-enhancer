@@ -166,18 +166,23 @@ export class AdventurePlacer extends HandlebarsApplicationMixin(ApplicationV2) {
    * pending does nothing, and a write that finishes after Stop, right-click,
    * close or another Place leaves the target down. A failed write keeps the
    * location armed so the click can be retried.
+   *
+   * Every write goes to the scene that took the click, held before the first
+   * await: `open()` re-aims this one window at another scene while a write is
+   * pending, and `this.scene` would then name the wrong one.
    */
   async _place(num, point) {
     const token = this._gate.claim();
     if (token === null) return;
+    const scene = this.scene;
     try {
       const row = this._rows().find((r) => r.num === num);
       if (!row) return;
-      const flag = this.scene.getFlag(MODULE_ID, MAP_FLAG);
-      const data = noteData({ entryId: flag.entryId, pageId: row.pageId, num, point, gridSize: this.scene.grid?.size });
-      if (row.noteId) await this.scene.updateEmbeddedDocuments("Note", [{ _id: row.noteId, x: data.x, y: data.y }]);
-      else await this.scene.createEmbeddedDocuments("Note", [data]);
-      if (row.state === "skipped") await setSkipped(this.scene, num, false);
+      const flag = scene.getFlag(MODULE_ID, MAP_FLAG);
+      const data = noteData({ entryId: flag.entryId, pageId: row.pageId, num, point, gridSize: scene.grid?.size });
+      if (row.noteId) await scene.updateEmbeddedDocuments("Note", [{ _id: row.noteId, x: data.x, y: data.y }]);
+      else await scene.createEmbeddedDocuments("Note", [data]);
+      if (row.state === "skipped") await setSkipped(scene, num, false);
     } catch (err) {
       console.error(`${MODULE_ID} | adventure placer: could not place ${num}`, err);
       ui.notifications?.error(t("SDE.adventure.placer.writeFailed", { num }));
@@ -208,19 +213,21 @@ export class AdventurePlacer extends HandlebarsApplicationMixin(ApplicationV2) {
   /** Skip a location, or put a skipped one back on the list. A placed location has nothing to skip. */
   async _onSkip(event, target) {
     const num = Number(target.dataset.num);
+    const scene = this.scene;
     const row = this._rows().find((r) => r.num === num);
     if (!row || row.state === "placed") return;
     if (this.armed === num) this.disarm();
-    await setSkipped(this.scene, num, row.state !== "skipped");
+    await setSkipped(scene, num, row.state !== "skipped");
     this.render();
   }
 
   /** Take a location's pin off the map; it goes back to pending (and off the skipped list). */
   async _onClear(event, target) {
     const num = Number(target.dataset.num);
+    const scene = this.scene;
     const row = this._rows().find((r) => r.num === num);
-    if (row?.noteId) await this.scene.deleteEmbeddedDocuments("Note", [row.noteId]);
-    if (this.scene.getFlag(MODULE_ID, MAP_FLAG)?.skipped?.includes(num)) await setSkipped(this.scene, num, false);
+    if (row?.noteId) await scene.deleteEmbeddedDocuments("Note", [row.noteId]);
+    if (scene.getFlag(MODULE_ID, MAP_FLAG)?.skipped?.includes(num)) await setSkipped(scene, num, false);
     this.render();
   }
 }
