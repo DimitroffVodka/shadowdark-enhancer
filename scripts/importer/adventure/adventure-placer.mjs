@@ -14,7 +14,7 @@
  */
 
 import { MODULE_ID } from "../../shared/module-id.mjs";
-import { MAP_FLAG, entryPages, scenePins, placementRows, nextPending, noteData, setSkipped } from "./adventure-scene.mjs";
+import { MAP_FLAG, entryPages, scenePins, placementRows, nextPending, noteData, setSkipped, placementGate, restoreSiteJournal } from "./adventure-scene.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
@@ -58,6 +58,8 @@ export class AdventurePlacer extends HandlebarsApplicationMixin(ApplicationV2) {
     this.scene = scene;
     /** The number waiting for a click, or null. */
     this.armed = null;
+    /** One Note write at a time, and none revives a target that was put down. */
+    this._gate = placementGate();
   }
 
   /** Open (or re-aim) the one placer over a scene. GM only. */
@@ -65,6 +67,7 @@ export class AdventurePlacer extends HandlebarsApplicationMixin(ApplicationV2) {
     if (!game.user?.isGM) { ui.notifications?.warn(t("SDE.adventure.notify.gmOnly")); return null; }
     if (!scene?.getFlag(MODULE_ID, MAP_FLAG)) { ui.notifications?.warn(t("SDE.adventure.notify.notAdventureScene")); return null; }
     if (canvas?.scene?.id !== scene.id) await scene.view();
+    await restoreSiteJournal(scene);
     const open = foundry.applications.instances?.get?.(ID);
     if (open) { open.disarm(); open.scene = scene; open.render(true); return open; }
     const app = new AdventurePlacer(scene);
@@ -106,6 +109,7 @@ export class AdventurePlacer extends HandlebarsApplicationMixin(ApplicationV2) {
   /** Wait for a click for one location. */
   arm(num) {
     if (canvas?.scene?.id !== this.scene.id) { ui.notifications?.warn(t("SDE.adventure.notify.wrongScene")); return; }
+    this._gate.cancel();
     this.armed = num;
     this._installLayer();
     this._label.text = String(num);
@@ -114,6 +118,7 @@ export class AdventurePlacer extends HandlebarsApplicationMixin(ApplicationV2) {
 
   /** Put the target down. */
   disarm() {
+    this._gate.cancel();
     this.armed = null;
     this._removeLayer();
     if (this.rendered) this.render();
@@ -149,20 +154,38 @@ export class AdventurePlacer extends HandlebarsApplicationMixin(ApplicationV2) {
   }
 
   async _onClose(options) {
+    this._gate.cancel();
     this._removeLayer();
     this.armed = null;
     return super._onClose(options);
   }
 
-  /** Drop (or move) one location's pin, then arm the next one still to do. */
+  /**
+   * Drop (or move) one location's pin, then arm the next one still to do. The
+   * slot is claimed before the first await: a second click while the write is
+   * pending does nothing, and a write that finishes after Stop, right-click,
+   * close or another Place leaves the target down. A failed write keeps the
+   * location armed so the click can be retried.
+   */
   async _place(num, point) {
-    const row = this._rows().find((r) => r.num === num);
-    if (!row) return;
-    const flag = this.scene.getFlag(MODULE_ID, MAP_FLAG);
-    const data = noteData({ entryId: flag.entryId, pageId: row.pageId, num, point, gridSize: this.scene.grid?.size });
-    if (row.noteId) await this.scene.updateEmbeddedDocuments("Note", [{ _id: row.noteId, x: data.x, y: data.y }]);
-    else await this.scene.createEmbeddedDocuments("Note", [data]);
-    if (row.state === "skipped") await setSkipped(this.scene, num, false);
+    const token = this._gate.claim();
+    if (token === null) return;
+    try {
+      const row = this._rows().find((r) => r.num === num);
+      if (!row) return;
+      const flag = this.scene.getFlag(MODULE_ID, MAP_FLAG);
+      const data = noteData({ entryId: flag.entryId, pageId: row.pageId, num, point, gridSize: this.scene.grid?.size });
+      if (row.noteId) await this.scene.updateEmbeddedDocuments("Note", [{ _id: row.noteId, x: data.x, y: data.y }]);
+      else await this.scene.createEmbeddedDocuments("Note", [data]);
+      if (row.state === "skipped") await setSkipped(this.scene, num, false);
+    } catch (err) {
+      console.error(`${MODULE_ID} | adventure placer: could not place ${num}`, err);
+      ui.notifications?.error(t("SDE.adventure.placer.writeFailed", { num }));
+      return;
+    } finally {
+      this._gate.release();
+    }
+    if (!this._gate.alive(token)) return;
     const next = nextPending(this._rows(), num);
     if (next) this.arm(next.num);
     else { this.disarm(); ui.notifications?.info(t("SDE.adventure.placer.allDone")); }
@@ -180,19 +203,22 @@ export class AdventurePlacer extends HandlebarsApplicationMixin(ApplicationV2) {
 
   _onStop() { this.disarm(); }
 
-  /** Skip a location, or put a skipped one back on the list. */
+  /** Skip a location, or put a skipped one back on the list. A placed location has nothing to skip. */
   async _onSkip(event, target) {
     const num = Number(target.dataset.num);
     const row = this._rows().find((r) => r.num === num);
+    if (!row || row.state === "placed") return;
     if (this.armed === num) this.disarm();
-    await setSkipped(this.scene, num, row?.state !== "skipped");
+    await setSkipped(this.scene, num, row.state !== "skipped");
     this.render();
   }
 
-  /** Take a location's pin off the map; it goes back to pending. */
+  /** Take a location's pin off the map; it goes back to pending (and off the skipped list). */
   async _onClear(event, target) {
-    const row = this._rows().find((r) => r.num === Number(target.dataset.num));
+    const num = Number(target.dataset.num);
+    const row = this._rows().find((r) => r.num === num);
     if (row?.noteId) await this.scene.deleteEmbeddedDocuments("Note", [row.noteId]);
+    if (this.scene.getFlag(MODULE_ID, MAP_FLAG)?.skipped?.includes(num)) await setSkipped(this.scene, num, false);
     this.render();
   }
 }

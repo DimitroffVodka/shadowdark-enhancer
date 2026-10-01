@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { sceneSize, placementRows, nextPending, noteData, sceneData, MAP_FLAG, PIN_FLAG, DEFAULT_GRID_SIZE } from "../scripts/importer/adventure/adventure-scene.mjs";
+import { placementGate, sceneSize, placementRows, nextPending, noteData, sceneData, MAP_FLAG, PIN_FLAG, DEFAULT_GRID_SIZE } from "../scripts/importer/adventure/adventure-scene.mjs";
 import { planAdventureCommit, locationPagePayload, pageNum, ADVENTURE_FLAG } from "../scripts/importer/adventure/adventure-commit.mjs";
 
 // Invented data throughout.
@@ -69,4 +69,23 @@ test("locationPagePayload: page name, html, and the number on the flag", () => {
   assert.deepEqual(p.flags["shadowdark-enhancer"][ADVENTURE_FLAG], { num: 4 });
   assert.equal(pageNum({ flags: { "shadowdark-enhancer": { [ADVENTURE_FLAG]: { num: 4 } } } }), 4);
   assert.equal(pageNum({ flags: {} }), null);
+});
+
+test("placementGate: a second click while a write is pending is refused, and the slot frees on release", () => {
+  const gate = placementGate();
+  const first = gate.claim();
+  assert.equal(typeof first, "number");
+  assert.equal(gate.claim(), null);
+  gate.release();
+  assert.equal(typeof gate.claim(), "number");
+});
+
+test("placementGate: a write that finishes after a cancel no longer owns the session", () => {
+  const gate = placementGate();
+  const token = gate.claim();
+  assert.equal(gate.alive(token), true);
+  gate.cancel();   // Stop, right-click, close, or another Place
+  gate.release();
+  assert.equal(gate.alive(token), false);
+  assert.equal(gate.alive(gate.claim()), true);
 });

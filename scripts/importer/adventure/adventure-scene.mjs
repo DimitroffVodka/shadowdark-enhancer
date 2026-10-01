@@ -98,6 +98,24 @@ export function noteData({ entryId, pageId, num, point, gridSize = DEFAULT_GRID_
   };
 }
 
+/**
+ * Pure: the lifecycle of one placement write. A click claims the slot before it
+ * awaits the Note write, so a second click while that write is pending is
+ * ignored instead of dropping a second Note; cancel() (stop, right-click, close,
+ * re-aim) invalidates every claim made so far, so a write that completes after
+ * the GM put the target down does not re-arm it.
+ * @returns {{claim:()=>number|null, release:()=>void, cancel:()=>void, alive:(token:number)=>boolean}}
+ */
+export function placementGate() {
+  let generation = 0, busy = false;
+  return {
+    claim() { if (busy) return null; busy = true; return generation; },
+    release() { busy = false; },
+    cancel() { generation++; },
+    alive(token) { return token === generation; },
+  };
+}
+
 /** Whether this Foundry keeps scene backgrounds on levels (14+). */
 const sceneHasLevels = () => !!globalThis.foundry?.documents?.BaseScene?.schema?.fields?.levels;
 
@@ -148,6 +166,22 @@ export async function buildSiteScene(site, src) {
   if (!imageW || !imageH) { ui.notifications?.error(t("SDE.adventure.notify.badImage")); return null; }
   const scene = await Scene.create(sceneData(site, { src, imageW, imageH, entryId: journal.id }));
   return { scene, skewed: sceneSize(site, imageW, imageH).skewed };
+}
+
+/**
+ * Put a scene's journal back when the world has lost it: the notes point at it
+ * by id, and the deploy keeps ids, so redeploying the filed entry makes every
+ * pin work again. A journal that is there is left alone, never refreshed: the
+ * GM may have edited its pages, and a re-import must not overwrite that.
+ * @returns {Promise<boolean>} whether the journal is in the world afterwards
+ */
+export async function restoreSiteJournal(scene) {
+  const flag = scene.getFlag(MODULE_ID, MAP_FLAG);
+  if (!flag || game.journal.get(flag.entryId)) return !!flag;
+  const packEntry = await findSiteEntry(flag.site);
+  if (!packEntry || packEntry.id !== flag.entryId) return false;
+  await deployCrawlJournal(packEntry, { flag: ADVENTURE_FLAG, idKey: "site" });
+  return true;
 }
 
 /** The numbered pages of a world entry, as placementRows takes them. */

@@ -148,23 +148,31 @@ export function bodyBlocks(lines) {
   return blocks;
 }
 
-/** Same-site cross-references: "Area 32", "Areas 1 and 4", "Room 9", "see Area 12". */
-const REF_RE = /\b(Areas?|Rooms?)\s+(\d{1,3}(?:\s*(?:,|and|&|or)\s*\d{1,3})*)\b/g;
-const NUM_RE = /\d{1,3}/g;
+/** Same-site cross-references: "Area 32", "Areas 1 and 4", "Areas 1, 2, and 3", "Room 9". */
+const REF_RE = /\b(Areas?|Rooms?)\s+(\d{1,3}(?:\s*(?:,\s*(?:and|or|&)?|and|&|or)\s*\d{1,3})*)\b/g;
+const NUM_SPLIT_RE = /(\d{1,3})/;
 
 /**
- * Escape, then link "Area N" references to the site's other locations. A
- * placeholder carries the number; the commit swaps it for a @UUID once every
- * page exists, and an unknown number degrades to the plain text it replaced.
+ * Link "Area N" references to the site's other locations, then escape. The
+ * references are matched on the RAW text and each piece is escaped on its own,
+ * so a separator such as "&" survives to be matched. A placeholder carries the
+ * number; the commit swaps it for a @UUID once every page exists, and an unknown
+ * number degrades to the plain text it replaced.
  * @param {string} text   raw text, not yet escaped
  * @param {Set<number>} known  numbers that have a page
  * @returns {string}
  */
 export function linkRefs(text, known) {
-  return escapeHtml(text).replace(REF_RE, (full, word, nums) => {
-    const body = nums.replace(NUM_RE, (n) => (known.has(Number(n)) ? `@@LOC[${Number(n)}]{${n}}@@` : n));
-    return `${word} ${body}`;
-  });
+  const src = String(text ?? "");
+  let out = "", last = 0;
+  for (const m of src.matchAll(REF_RE)) {
+    out += escapeHtml(src.slice(last, m.index));
+    const body = m[2].split(NUM_SPLIT_RE).map((piece, i) =>
+      (i % 2 === 0 ? escapeHtml(piece) : (known.has(Number(piece)) ? `@@LOC[${Number(piece)}]{${piece}}@@` : piece))).join("");
+    out += `${m[1]} ${body}`;
+    last = m.index + m[0].length;
+  }
+  return out + escapeHtml(src.slice(last));
 }
 
 /**

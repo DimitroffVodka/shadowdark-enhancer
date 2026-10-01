@@ -96,10 +96,10 @@ export async function commitAdventure(site, locations, { source = "" } = {}) {
 
   const packs = await ensureSuite();
   const pack = packs?.journal;
-  if (!pack) { ui.notifications?.error(game.i18n.localize("SDE.importer.hexCommit.notify.noPack")); return report; }
+  if (!pack) { ui.notifications?.error(game.i18n.localize("SDE.importer.adventure.notify.noPack")); return report; }
   const folder = await ensureSourceFolder(pack, source);
   const entry = await ensureSiteEntry(pack, { site, source, folder });
-  if (!entry) { ui.notifications?.error(game.i18n.localize("SDE.importer.hexCommit.notify.noEntry")); return report; }
+  if (!entry) { ui.notifications?.error(game.i18n.localize("SDE.importer.adventure.notify.noEntry")); return report; }
 
   const existing = new Map();
   for (const p of entry.pages) { const n = pageNum(p); if (n !== null) existing.set(n, p.id); }

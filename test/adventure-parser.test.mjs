@@ -101,6 +101,13 @@ test("linkRefs: lists of numbers, Room as well as Area", () => {
     "Areas @@LOC[1]{1}@@, 2 or @@LOC[3]{3}@@ and Room @@LOC[4]{4}@@");
 });
 
+test("linkRefs: an ampersand separator and a ', and' list link every number, and the text is still escaped", () => {
+  assert.equal(linkRefs("Areas 1 & 2", new Set([1, 2])), "Areas @@LOC[1]{1}@@ &amp; @@LOC[2]{2}@@");
+  assert.equal(linkRefs("in Areas 33, 34, 38, 40, and 42.", new Set([33, 34, 38, 40, 42])),
+    "in Areas @@LOC[33]{33}@@, @@LOC[34]{34}@@, @@LOC[38]{38}@@, @@LOC[40]{40}@@, and @@LOC[42]{42}@@.");
+  assert.equal(linkRefs("<b>Room 4</b> & more", new Set([4])), "&lt;b&gt;Room @@LOC[4]{4}@@&lt;/b&gt; &amp; more");
+});
+
 test("rewriteLocPlaceholders: known to a link, unknown to the bare label", () => {
   const out = rewriteLocPlaceholders("Area @@LOC[2]{2}@@ and @@LOC[9]{9}@@", new Map([[2, "JournalEntry.a.JournalEntryPage.b"]]));
   assert.equal(out, "Area @UUID[JournalEntry.a.JournalEntryPage.b]{2} and 9");
