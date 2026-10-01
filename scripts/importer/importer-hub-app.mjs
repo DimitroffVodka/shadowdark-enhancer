@@ -9,8 +9,11 @@
  * item census/duplicate-cull, relink/migrate tables, fold legacy loot,
  * backfill, migrate-suite.
  *
- * The Cursed Scroll adventure pipeline (Journal + Scenes) and the CS1–6/WR
- * content-manifest reconcile live on `preserve/scene-journal-adventure`.
+ * The Cursed Scroll adventures (a journal per adventure, then a map scene with
+ * the keyed locations placed on it) come in through Tools → Adventures and
+ * Adventure map (importer-hub-adventures.mjs). The older Journal and Scenes
+ * tabs and the CS1–6/WR content-manifest reconcile live on
+ * `preserve/scene-journal-adventure`.
  *
  * Export:
  *   ImporterHubApp  — the ApplicationV2 class
@@ -36,6 +39,7 @@ import { installHubCommit } from "./importer-hub-commit.mjs";
 import { installHubManage } from "./importer-hub-manage.mjs";
 import { installHubBatch } from "./importer-hub-batch.mjs";
 import { installHubRules } from "./importer-hub-rules.mjs";
+import { installHubAdventures } from "./importer-hub-adventures.mjs";
 import { planBatch } from "./batch-import.mjs";
 import { freshKeys, lockedKeys } from "./importer-hub-news.mjs";
 
@@ -98,6 +102,9 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
       hubExtractPdf:          function (...args) { return this._onExtractPdf(...args); },
       // Tools → Key locations: a book's whole hex key, region by region (hex-book-import.mjs)
       hubKeyLocations:        function (...args) { return this._onImportKeyLocations(...args); },
+      // Tools → Adventures: a Cursed Scroll's numbered-location adventures as journals, then their maps (importer-hub-adventures.mjs)
+      hubAdventures:          function (...args) { return this._onAdventures(...args); },
+      hubAdventureMap:        function (...args) { return this._onAdventureMap(...args); },
       // Tools → Chapter to journal: any page range as a reflowed journal (chapter-journal.mjs)
       hubChapterJournal:      function (...args) { return this._onChapterToJournal(...args); },
       // Manage strip — census/gap/duplicate + maintenance
@@ -963,6 +970,7 @@ installHubCommit(ImporterHubApp);
 installHubManage(ImporterHubApp);
 installHubBatch(ImporterHubApp);
 installHubRules(ImporterHubApp);
+installHubAdventures(ImporterHubApp);
 
 /**
  * Back-compat entry-point API for Task 2 / shadowdark-enhancer.mjs wiring.

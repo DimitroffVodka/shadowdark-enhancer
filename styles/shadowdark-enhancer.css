@@ -11754,3 +11754,17 @@ button.sde-hud-day:hover { border-color: var(--sd-frame); }
   font-weight: bold;
   color: var(--color-level-error, #b3261e);
 }
+
+/* Adventure placer: the keyed-location list over an adventure map scene. */
+.sde-advp { display: flex; flex-direction: column; gap: 6px; height: 100%; }
+.sde-advp-head { display: flex; flex-direction: column; gap: 4px; }
+.sde-advp-summary { font-size: 0.85rem; opacity: 0.8; }
+.sde-advp-hint { margin: 0; font-size: 0.85rem; opacity: 0.8; min-height: 2.2em; }
+.sde-advp-actions { display: flex; gap: 6px; }
+.sde-advp-rows { list-style: none; margin: 0; padding: 0; overflow-y: auto; flex: 1; }
+.sde-advp-row { display: grid; grid-template-columns: 1fr auto auto auto auto; gap: 4px; align-items: center; padding: 2px 4px; border-bottom: 1px solid rgba(128, 128, 128, 0.25); }
+.sde-advp-row button { width: 26px; height: 26px; padding: 0; line-height: 1; }
+.sde-advp-row.is-placed .sde-advp-name { opacity: 0.6; }
+.sde-advp-row.is-skipped .sde-advp-name { opacity: 0.45; text-decoration: line-through; }
+.sde-advp-row.is-armed { background: rgba(255, 200, 0, 0.18); }
+.sde-advp-state { font-size: 0.75rem; opacity: 0.7; }
