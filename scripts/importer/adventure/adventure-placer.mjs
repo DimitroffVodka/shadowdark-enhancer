@@ -130,7 +130,7 @@ export class AdventurePlacer extends HandlebarsApplicationMixin(ApplicationV2) {
     const { PreciseText } = foundry.canvas.containers;
     this._label = layer.addChild(new PreciseText("", PreciseText.getTextStyle({ fontSize: 28, fill: "#ffffff", stroke: "#000000", strokeThickness: 5 })));
     this._label.anchor.set(0.5, 1.6);
-    layer.on("pointermove", (event) => { this._label.position.copy(event.getLocalPosition(layer)); });
+    layer.on("pointermove", (event) => { this._label.position.copyFrom(event.getLocalPosition(layer)); });
     layer.on("pointerdown", (event) => {
       if (event.button === 2) { this.disarm(); return; }
       if (event.button !== 0 || this.armed === null) return;
