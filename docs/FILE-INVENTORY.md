@@ -288,7 +288,7 @@
 | `importer-hub-maintenance.mjs` | 282 | Tools-menu bodies (bundle export/import, source-PDF library). |
 | `dump-segmenter.mjs` | 308 | Routes a mixed dump through the recognizer registry: hexcrawl → spell → monster → item → table. |
 | `bundle-io.mjs` | 410 | Whole-suite export/import as one JSON; validates, skips existing, never overwrites. |
-| `manage-tree.mjs` | 706 | Composes the folder/sub-folder unlock-review tree the Manage strip renders. |
+| `manage-tree.mjs` | 704 | Composes the folder/sub-folder unlock-review tree the Manage strip renders. |
 | `batch-import.mjs` | 263 | Pure batch planner: locked tree rows → deduped import jobs, routes, and the run report. |
 | `pdf-text-extract.mjs` | 872 | Clean reading-ordered PDF text via Foundry's bundled PDF.js; column-aware gutter detection. |
 | `pdf-text-utils.mjs` | 157 | Shared PDF-text helpers + the HTML-safety contract. |
@@ -351,7 +351,7 @@
 | `adventure/adventure-commit.mjs` | 141 | Parsed locations → one JournalEntry per adventure in sde-journal, one page per location, filed under the adventure flag (not the hex flag, so the tagger never lists a dungeon as a crawl); pure planner plus a two-pass link rewrite, same contract as hex-commit. |
 | `adventure/adventure-manifest.mjs` | 96 | Where each Cursed Scroll adventure's numbered key is: per site (a dungeon, a mini-adventure, a city district) its title, printed pages, the numbers the book prints, the heading style, and the map's printed grid. Page numbers and titles only; no book text, no art. |
 | `adventure/adventure-parser.mjs` | 217 | Numbered-location parser for printed adventures (pure): "12. METEORITE ROOM" and "12. Meteorite Room. Body" headings, a run rule that keeps a numbered list inside a room out of the key, missing-number reports, page HTML with bullets and "Area 12" links. |
-| `adventure/adventure-placer.mjs` | 226 | The keyed-location placer (AppV2): lists a map's locations and turns the canvas into a one-click target, dropping each numbered Note and arming the next; skip and clear per location, resumable. |
+| `adventure/adventure-placer.mjs` | 233 | The keyed-location placer (AppV2): lists a map's locations and turns the canvas into a one-click target, dropping each numbered Note and arming the next; skip and clear per location, resumable. |
 | `adventure/adventure-scene.mjs` | 201 | A filed adventure as a map Scene: scene sized from the GM's image and the book's printed grid, the journal deployed into the world, and the pure rules for which locations are placed, skipped or still to do (remembered on the scene's notes and flag). |
 | `chapter-journal.mjs` | 317 | Chapter to journal (#194): a printed page range of a linked book → one JournalEntry in the journals pack, split at ALL-CAPS headings (or a preset's sections, e.g. the GM Guide's City-States) and reflowed, with page furniture dropped. Identity by flag, so a re-import updates in place and keeps GM pages; pages naming a key location link to its hex page and back. Presets are page numbers only. |
 | `hex/hex-book-import.mjs` | 154 | A book's whole hex key in one pass: per region, the keyed-location table and the pages of write-ups after it → one crawl entry per region. Page map only; no book text. |

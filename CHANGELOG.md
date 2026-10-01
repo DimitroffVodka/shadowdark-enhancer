@@ -811,6 +811,14 @@ page walks through it in order.
 
 ### Fixed
 
+- **The importer's Manage tab no longer lists places and factions as locked monsters.**
+  Monsters showed rows such as Lord Hedron, Volcano Erupts, The Duke and Thieves'
+  Guild as still locked. They were never monsters: the tab read capitalised phrases
+  out of your rumor and encounter tables and treated any it could not match to an
+  actor as a missing statblock. No book prints one, so they could never be
+  imported, and while they stayed the tab hid **Import everything** and told you to
+  link books you had already linked. A bestiary now lists only the monsters its
+  book actually prints.
 - **Painting a map by hand no longer needs a tag to exist first.** **Brush** and
   **Show tags** only appeared in the Hex Tagger once at least one hex was tagged,
   so on a map the classifier reads badly (a hand-drawn one like The Gloaming) the

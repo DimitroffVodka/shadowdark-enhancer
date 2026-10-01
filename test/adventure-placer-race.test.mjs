@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 
 // The placer needs Foundry's ApplicationV2 at import time; a bare base class is enough to drive _place.
 globalThis.foundry = { applications: { api: { ApplicationV2: class {}, HandlebarsApplicationMixin: (Base) => Base } } };
+globalThis._replace = (v) => v;
 globalThis.ui = { notifications: { error() {}, info() {}, warn() {} } };
 const { AdventurePlacer } = await import("../scripts/importer/adventure/adventure-placer.mjs");
 
@@ -77,4 +78,51 @@ test("a failed write keeps the location armed and frees the slot for a retry", a
   assert.equal(writes.length, 2);
   writes[1].resolve([]);
   await retry;
+});
+
+// `open()` re-aims the ONE placer at another scene while a write for the first is
+// still in the air, so anything read from `this.scene` after an await belongs to
+// the wrong scene: a skipped location on A being placed would un-skip it on B.
+function twoScenes() {
+  const mk = (id) => {
+    const scene = {
+      id, grid: { size: 100 }, flags: { skipped: [1] }, updates: [], deletes: [],
+      getFlag: () => ({ entryId: "E", skipped: scene.flags.skipped }),
+      createEmbeddedDocuments: () => scene.hold(),
+      deleteEmbeddedDocuments: () => scene.hold(),
+      update: async (data) => { scene.updates.push(data); },
+    };
+    scene.hold = () => new Promise((resolve) => { scene.release = () => resolve([]); });
+    return scene;
+  };
+  const [A, B] = [mk("A"), mk("B")];
+  const app = new AdventurePlacer(A);
+  app.render = () => {};
+  globalThis.game = { user: { isGM: true }, journal: { get: () => ({}) } };
+  globalThis.canvas = { scene: { id: "B" } };
+  globalThis.foundry.applications.instances = new Map([["sde-adventure-placer", app]]);
+  return { A, B, app };
+}
+
+test("a skipped location placed on A does not un-skip it on B after the placer is reopened for B", async () => {
+  const { A, B, app } = twoScenes();
+  app._rows = () => [{ num: 1, pageId: "p1", noteId: null, state: "skipped" }];
+  const p = app._place(1, { x: 1, y: 1 });
+  await AdventurePlacer.open(B);
+  assert.equal(app.scene, B);
+  A.release();
+  await p;
+  assert.equal(B.updates.length, 0, "B was written to");
+  assert.equal(A.updates.length, 1, "A's skip flag was not cleared");
+});
+
+test("clearing a pin on A does not touch B's skip list after the placer is reopened for B", async () => {
+  const { A, B, app } = twoScenes();
+  app._rows = () => [{ num: 1, pageId: "p1", noteId: "N", state: "placed" }];
+  const p = app._onClear(null, { dataset: { num: "1" } });
+  await AdventurePlacer.open(B);
+  A.release();
+  await p;
+  assert.equal(B.updates.length, 0, "B was written to");
+  assert.equal(A.updates.length, 1, "A's skip flag was not cleared");
 });
