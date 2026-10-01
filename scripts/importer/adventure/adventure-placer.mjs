@@ -185,7 +185,9 @@ export class AdventurePlacer extends HandlebarsApplicationMixin(ApplicationV2) {
     } finally {
       this._gate.release();
     }
-    if (!this._gate.alive(token)) return;
+    // The target was put down while the write was pending: leave it down, but the
+    // window still has to show the Note that landed.
+    if (!this._gate.alive(token)) { if (this.rendered) this.render(); return; }
     const next = nextPending(this._rows(), num);
     if (next) this.arm(next.num);
     else { this.disarm(); ui.notifications?.info(t("SDE.adventure.placer.allDone")); }
