@@ -68,6 +68,12 @@ test("skip drops banner lines from the body", () => {
   assert.deepEqual(locations[0].bodyLines, ["Text."]);
 });
 
+test("the city's skip drops a district's preamble so it never lands in the last room before it", () => {
+  const skip = new RegExp(findSite("cs6-city").skip);
+  const pages = [["1. FIRST", "Text.", "10"], ["Class: Poor.", "Category: Low district.", "City Guard Arrives: 3d6 rounds", "2. SECOND", "More."]];
+  assert.deepEqual(parseAdventurePages(pages, { style: "caps", skip }).locations[0].bodyLines, ["Text."]);
+});
+
 test("the last location is cut where a die table begins", () => {
   assert.deepEqual(trimTrailingTable(["Room text.", "VOID JUNK", "d20 Details", "1 a thing"]), ["Room text."]);
   assert.deepEqual(trimTrailingTable(["Room text.", "NOTE", "More room text."]), ["Room text.", "NOTE", "More room text."]);
@@ -128,7 +134,7 @@ test("the manifest: unique ids, sane ranges, readable pages", () => {
   }
   assert.equal(findSite("cs1-mugdulblub").src, "CS1");
   assert.equal(findSite("nope"), null);
-  assert.equal(allSites("CS6").length, 8);
+  assert.equal(allSites("CS6").length, 9);
 });
 
 test("the two halves of a split dungeon cover one run of numbers", () => {
@@ -138,8 +144,10 @@ test("the two halves of a split dungeon cover one run of numbers", () => {
   assert.equal(lvl1.range[1] + 1, lvl2.range[0]);
 });
 
-test("City of Masks districts run on through the city, 1 to 50", () => {
-  const d = ADVENTURE_SITES.CS6;
+test("City of Masks districts run on through the city, 1 to 50, and the whole city is the same run", () => {
+  const all = ADVENTURE_SITES.CS6;
+  const d = all.slice(0, 8);
+  assert.deepEqual(all[8].range, [1, 50]);
   d.slice(1).forEach((s, i) => assert.equal(s.range[0], d[i].range[1] + 1));
   assert.equal(d[0].range[0], 1);
   assert.equal(d.at(-1).range[1], 50);
