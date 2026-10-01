@@ -798,6 +798,13 @@ page walks through it in order.
 
 ### Fixed
 
+- **A Mount in the importer is a Mount actor, and opens the Mount sheet.** The Mounts
+  row used to count a same-named bestiary NPC (the Cursed Scroll 2 war horse, say) as the
+  imported mount, so the row showed done and opening it gave an NPC sheet, or whichever
+  sheet the world had made the default for NPCs. The row now counts only Mount actors,
+  opens only those, and importing a mount is no longer skipped because an NPC shares its
+  name. Mounts already imported from the Western Reaches guide are unchanged; the NPC
+  horses stay as the bestiary entries they are.
 - **Painting a map by hand no longer needs a tag to exist first.** **Brush** and
   **Show tags** only appeared in the Hex Tagger once at least one hex was tagged,
   so on a map the classifier reads badly (a hand-drawn one like The Gloaming) the

@@ -140,7 +140,7 @@ export const MountImporter = {
         }
 
         const index = await pack.getIndex({ fields: ["type"] });
-        const existing = [...index].find((e) => alreadyImported(e, actorData, kind));
+        const existing = [...index].find((e) => alreadyImported(e, actorData));
         if (existing) {
           report.skipped.push(actorData.name);
           continue;
