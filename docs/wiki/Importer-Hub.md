@@ -275,6 +275,46 @@ Game Master's Guide to the Western Reaches files 270 keyed hexes across 15
 regions this way. Run it again whenever you like: pages are matched by their
 hex number and updated in place, never duplicated.
 
+**Adventures** reads the numbered locations of a Cursed Scroll's adventures out
+of your own PDF. Pick one book, or all six, and each adventure is filed as one
+journal entry with a page per location (`12. Meteorite Room`): the keyed
+description, the bulleted details and the traps, with every "Area 12" reference
+linked to that location's page. Run it again whenever you like: pages are matched
+by number and updated in place, never duplicated. Twenty-five adventure maps are
+covered, 290 locations in all (the City of Masks is filed twice, see below):
+
+| Book | Adventures | Locations |
+|---|---|---:|
+| Cursed Scroll 1 | The Hideous Halls of Mugdulblub | 33 |
+| Cursed Scroll 2 | Fortress of the Burning Brothers: the iron fortress, and the mines | 19 + 16 |
+| Cursed Scroll 3 | Wortwick Monastery; Hoard of the Sea Wolf King | 5 + 29 |
+| Cursed Scroll 4 | The nine mini-adventures: Army Ants, Basilisk Cult, Black Ziggurat, Chanichu, Eclipse Dial, Flooded Ruins, Star Map Temple, The Black Seed, Tsibalba | 9, 9, 9, 9, 8, 9, 8, 3, 10 |
+| Cursed Scroll 5 | The Ghoulish Library of Leng, levels 1 and 2 | 28 + 36 |
+| Cursed Scroll 6 | The City of Masks, one journal per district, and one for the whole city | 6, 6, 6, 6, 6, 6, 7, 7, and all 50 |
+
+The City of Masks is filed as one journal per district and again as one
+journal for the whole city, the same fifty locations in each. Use the whole-city
+journal with the city's overview map to get every pin on a single scene, or a
+district's with that district's map.
+
+The hex crawls of Cursed Scrolls 1 to 5 stay under **Key locations** (they are
+keyed by hex number, not room number). If a read does not give every location
+the book prints, the run says which adventure and which numbers; compare that
+adventure against the book.
+
+**Adventure map** puts those locations on a map. Pick an adventure you have
+imported and the map image that came with the book (the module ships no maps),
+and it builds a scene sized from the image and the book's printed grid, then opens
+the **Place locations** window. The numbers are printed inside your image, so the
+module cannot read where each one sits; you show it once. Press **Place next**,
+click the map where the number is printed, and the pin drops and the next location
+is ready, so a thirty-room dungeon is thirty clicks along the printed numbers.
+Right-click puts the target down. Each row also has **Skip** (a location the map
+does not show) and **Clear** (take its pin off), and a pin can be moved by
+placing it again. Pins and skips are kept on the scene, so you can stop at any
+point and pick the map up later with **Continue placing**. Each pin opens its
+location's journal page.
+
 **Chapter to journal** turns a range of pages from a linked PDF into one
 journal you can read at the table. Pick the book, type the printed pages
 (`16-27`) and a name, then press **Preview**. You'll see the page names and a

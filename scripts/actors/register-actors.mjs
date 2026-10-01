@@ -13,7 +13,7 @@
  *
  * WARBAND: the same NpcSD model and an NpcSheetSD subclass with a Warband tab
  * (commander, allowance, upgrades; #200), plus the NPC sheet's "Make a
- * warband" header button (#202).
+ * warband" context-menu entry (#202).
  *
  * BOAT: a self-contained ApplicationV2 container sheet (BoatSheet) on its own
  * BoatDataModel.

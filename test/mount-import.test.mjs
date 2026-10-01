@@ -139,12 +139,13 @@ describe("mount unlock routing", () => {
   });
 });
 
-test("an NPC of a stock warband's name doesn't stop its import; a mount still counts one (#286 review)", async () => {
+test("an NPC of a mount's or stock warband's name doesn't stop its import", async () => {
   const { alreadyImported } = await import("../scripts/importer/boats/mount-parser.mjs");
   const npc = { name: "Rabble", type: "NPC" };
   const band = { name: "rabble", type: "shadowdark-enhancer.warband" };
   const draft = { name: "Rabble", type: "shadowdark-enhancer.warband" };
-  assert.equal(alreadyImported(npc, draft, "Warband"), false);
-  assert.equal(alreadyImported(band, draft, "Warband"), true);
-  assert.equal(alreadyImported({ name: "Horse", type: "NPC" }, { name: "Horse", type: "shadowdark-enhancer.mount" }, "Mount"), true);
+  assert.equal(alreadyImported(npc, draft), false);
+  assert.equal(alreadyImported(band, draft), true);
+  assert.equal(alreadyImported({ name: "Horse", type: "NPC" }, { name: "Horse", type: "shadowdark-enhancer.mount" }), false);
+  assert.equal(alreadyImported({ name: "Horse", type: "shadowdark-enhancer.mount" }, { name: "Horse", type: "shadowdark-enhancer.mount" }), true);
 });

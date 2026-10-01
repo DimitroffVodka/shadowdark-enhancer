@@ -11,6 +11,19 @@ it needs.
 
 ### Added
 
+- **The Cursed Scrolls' adventures import, and their keyed locations go on the map.**
+  Importer Hub → Tools → **Adventures** reads the numbered locations of every
+  Cursed Scroll adventure out of your own PDF (Cursed Scrolls 1 to 6: the Hideous
+  Halls of Mugdulblub, the Fortress of the Burning Brothers, Wortwick Monastery, the
+  Sea Wolf King's hoard, the nine Black River mini-adventures, the Library of Leng
+  and the City of Masks, by district and as a whole city for its overview map) and files each adventure as a journal with
+  a page per location, 290 in all, "Area 12" references linked. **Adventure map**
+  then builds a scene from your own map image, sized from the book's printed grid,
+  and a **Place locations** window drops a numbered pin for each location with one
+  click apiece: the numbers are printed inside your image, so you show the module
+  where each sits once. Skipped rooms and placed pins are kept on the scene, so you
+  can stop and carry on later. This is the adventure half of the old Journal and
+  Scenes tabs, brought back in a smaller form; it ships no book text and no maps.
 - **The party token walks a hex in step with the clock.** A hex takes about a second
   on screen (a difficult hex about a second and a half), and while the token slides
   the clock moves with it in small steps, so the time on the bar, the sky's
@@ -588,7 +601,7 @@ page walks through it in order.
   Warband tab for its commander (a player character dropped on it), the
   commander's allowance by hit die across all their warbands (2/2, 4/3 or
   6/4), the 18 upgrades once each, and the commander's CHA for morale.
-  **Make a Warband** on a level 1–5 NPC's sheet makes one from a copy: level
+  **Make a Warband**, in the Actors sidebar's right-click menu on a level 1–5 NPC, makes one from a copy: level
   doubled, 8 HP a level plus CON, one attack a round, +1 attack and spell
   bonus a level gained, damage dice tripled. Its HP is fixed: placing one of
   its tokens, with Shadowdark's HP roll on placement on, sets the max but never
@@ -809,6 +822,13 @@ page walks through it in order.
   imported, and while they stayed the tab hid **Import everything** and told you to
   link books you had already linked. A bestiary now lists only the monsters its
   book actually prints.
+- **A Mount in the importer is a Mount actor, and opens the Mount sheet.** The Mounts
+  row used to count a same-named bestiary NPC (the Cursed Scroll 2 war horse, say) as the
+  imported mount, so the row showed done and opening it gave an NPC sheet, or whichever
+  sheet the world had made the default for NPCs. The row now counts only Mount actors,
+  opens only those, and importing a mount is no longer skipped because an NPC shares its
+  name. Mounts already imported from the Western Reaches guide are unchanged; the NPC
+  horses stay as the bestiary entries they are.
 - **Painting a map by hand no longer needs a tag to exist first.** **Brush** and
   **Show tags** only appeared in the Hex Tagger once at least one hex was tagged,
   so on a map the classifier reads badly (a hand-drawn one like The Gloaming) the

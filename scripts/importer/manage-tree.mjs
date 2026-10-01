@@ -508,14 +508,15 @@ function buildMonsters(actorRecords) {
 
   const children = MONSTER_SOURCES.map(makeLeaf);
 
-  // Mounts are content identities, not source identities. A matching actor in
-  // any imported source (and either NPC or custom Mount form) satisfies the row.
-  // Matched on every spelling of the name (mountNameKeys), because the books
-  // print "WAR HORSE" where the manifest indexes "Horse, War" — an exact-name
-  // check leaves such an actor unreconciled and its row locked for good.
+  // Mounts are content identities, not source identities: a Mount actor from
+  // any imported source satisfies the row. A bestiary NPC of the same name does
+  // not, since only the Mount actor opens the Mount sheet. Matched on every
+  // spelling of the name (mountNameKeys), because the books print "WAR HORSE"
+  // where the manifest indexes "Horse, War".
+  const mountKeys = new Set(actorRecords.filter((r) => r.type === `${MODULE_ID}.mount`).flatMap((r) => [...mountNameKeys(r.name)]));
   const mountRecords = MOUNT_MANIFEST.map((m) => ({
     name: m.name,
-    present: [...mountNameKeys(m.name)].some((key) => actorKeys.has(key)),
+    present: [...mountNameKeys(m.name)].some((key) => mountKeys.has(key)),
     type: "Mount", src: m.src, pages: m.pages,
   }));
   // The Player's Guide's stock warbands (#201): warband units, imported on the
