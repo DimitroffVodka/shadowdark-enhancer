@@ -1,0 +1,26 @@
+<div class="sde-advp">
+  <header class="sde-advp-head">
+    <strong>{{sceneName}}</strong>
+    <span class="sde-advp-summary">{{summary}}</span>
+    <p class="sde-advp-hint">{{hint}}</p>
+    <div class="sde-advp-actions">
+      <button type="button" data-action="advNext"><i class="fas fa-location-crosshairs"></i> {{localize "SDE.adventure.placer.placeNext"}}</button>
+      <button type="button" data-action="advStop" class="sde-import-secondary" {{#unless armed}}disabled{{/unless}}><i class="fas fa-xmark"></i> {{localize "SDE.adventure.placer.stop"}}</button>
+    </div>
+  </header>
+  {{#if missing}}
+  <p class="sde-advp-hint">{{localize "SDE.adventure.placer.noJournal"}}</p>
+  {{else}}
+  <ol class="sde-advp-rows">
+    {{#each rows as |r|}}
+    <li class="sde-advp-row {{#if r.placed}}is-placed{{/if}} {{#if r.skipped}}is-skipped{{/if}} {{#if r.armed}}is-armed{{/if}}">
+      <span class="sde-advp-name">{{r.name}}</span>
+      <span class="sde-advp-state">{{r.label}}</span>
+      <button type="button" data-action="advPlace" data-num="{{r.num}}" title="{{localize 'SDE.adventure.placer.placeTip'}}" aria-label="{{localize 'SDE.adventure.placer.placeTip'}}"><i class="fas fa-location-dot"></i></button>
+      <button type="button" data-action="advSkip" data-num="{{r.num}}" title="{{localize 'SDE.adventure.placer.skipTip'}}" aria-label="{{localize 'SDE.adventure.placer.skipTip'}}"><i class="fas {{#if r.skipped}}fa-rotate-left{{else}}fa-forward{{/if}}"></i></button>
+      <button type="button" data-action="advClear" data-num="{{r.num}}" title="{{localize 'SDE.adventure.placer.clearTip'}}" aria-label="{{localize 'SDE.adventure.placer.clearTip'}}" {{#unless r.placed}}disabled{{/unless}}><i class="fas fa-eraser"></i></button>
+    </li>
+    {{/each}}
+  </ol>
+  {{/if}}
+</div>
