@@ -78,3 +78,24 @@ test("a creature with no spell count gets none", async () => {
   assert.equal(atkLine(warband), "1 staff +3 (3d6)");
   assert.equal(previewRow("Spells"), undefined);
 });
+
+test("the Actors directory entry shows for a GM on a level 1-5 NPC only, and clicking makes the warband from it", async () => {
+  const hooks = {};
+  globalThis.Hooks = { on: (name, fn) => { (hooks[name] ??= []).push(fn); return 1; } };
+  const { registerMakeWarband } = await import("../scripts/actors/make-warband.mjs");
+  registerMakeWarband("shadowdark-enhancer.warband");
+  const actors = {
+    low: { type: "NPC", system: { level: { value: 3 } } },
+    high: { type: "NPC", system: { level: { value: 6 } } },
+    player: { type: "Player", system: { level: { value: 3 } } },
+  };
+  const items = [];
+  for (const fn of hooks.getActorContextOptions) fn({ collection: { get: (id) => actors[id] } }, items);
+  const li = (id) => ({ closest: () => ({ dataset: { entryId: id } }) });
+  assert.equal(items.length, 1);
+  assert.equal(items[0].label, "SDE.warband.make.button");
+  assert.deepEqual(["low", "high", "player"].map((id) => items[0].visible(li(id))), [true, false, false]);
+  globalThis.game.user.isGM = false;
+  assert.equal(items[0].visible(li("low")), false);
+  globalThis.game.user.isGM = true;
+});

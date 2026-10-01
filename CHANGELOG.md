@@ -588,7 +588,7 @@ page walks through it in order.
   Warband tab for its commander (a player character dropped on it), the
   commander's allowance by hit die across all their warbands (2/2, 4/3 or
   6/4), the 18 upgrades once each, and the commander's CHA for morale.
-  **Make a Warband** on a level 1–5 NPC's sheet makes one from a copy: level
+  **Make a Warband**, in the Actors sidebar's right-click menu on a level 1–5 NPC, makes one from a copy: level
   doubled, 8 HP a level plus CON, one attack a round, +1 attack and spell
   bonus a level gained, damage dice tripled. Its HP is fixed: placing one of
   its tokens, with Shadowdark's HP roll on placement on, sets the max but never

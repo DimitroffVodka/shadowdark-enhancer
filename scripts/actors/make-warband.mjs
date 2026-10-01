@@ -1,7 +1,7 @@
 /**
  * Shadowdark Enhancer — Make a warband (#202, PGWR p.248).
  *
- * A GM header button on a level 1–5 NPC's sheet turns a copy of it into a
+ * A GM entry in the Actors directory's context menu, on a level 1–5 NPC, turns a copy of it into a
  * warband unit: double its level, HP 8 per level plus CON, one attack a
  * round, the attack and spell bonuses up by the levels gained, damage dice
  * tripled, its talents kept. A preview shows before and after; the original
@@ -101,18 +101,19 @@ export async function makeWarband(source, type) {
   return actor;
 }
 
-/** The GM's "Make a warband" header button on a level 1–5 NPC's sheet (not a warband's or a mount's). */
+/** "Make a Warband" in the Actors directory's right-click menu, on a level 1–5 NPC (not a warband or a mount). */
 export function registerMakeWarband(type) {
-  Hooks.on("getActorSheetHeaderButtons", (sheet, buttons) => {
-    const actor = sheet.actor;
-    if (!game.user.isGM || actor?.type !== "NPC" || !canMakeWarband(levelOf(actor))) return;
-    if (buttons.some((b) => b.class === "sde-make-warband")) return;
-    buttons.unshift({
-      class: "sde-make-warband",
-      icon: "fas fa-people-group",
+  // v14 fires get<Document>ContextOptions from the directory with the menu items.
+  Hooks.on("getActorContextOptions", (directory, menuItems) => {
+    const actorOf = (li) => directory.collection.get(li.closest("[data-entry-id]")?.dataset.entryId);
+    menuItems.push({
       label: "SDE.warband.make.button",
-      // The level is checked again on the click: the header is built once, on first render.
-      onclick: () => makeWarband(actor, type),
+      icon: "fa-solid fa-people-group",
+      visible: (li) => {
+        const actor = actorOf(li);
+        return game.user.isGM && actor?.type === "NPC" && canMakeWarband(levelOf(actor));
+      },
+      onClick: (_event, li) => makeWarband(actorOf(li), type),
     });
   });
 }
