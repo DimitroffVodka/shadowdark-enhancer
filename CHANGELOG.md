@@ -740,6 +740,9 @@ page walks through it in order.
 
 ### Changed
 
+- **Loot for a monster is in the Actors sidebar's right-click menu, not the sheet's title bar.**
+  Right-click an NPC and pick **Loot** to set its drop table and chance, as before.
+  The button no longer takes up room in the NPC sheet's header.
 - **The Character Builder button on a character sheet is just its icon.** The
   words took up room in a header that already holds several buttons, which made
   the sheet hard to use. The person-plus icon stays, and hovering it still says

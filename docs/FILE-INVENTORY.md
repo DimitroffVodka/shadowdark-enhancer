@@ -1,7 +1,7 @@
 # Shadowdark Enhancer — File Inventory
 
 <!-- inventory:stats:start -->
-1145 tracked files · ~207,300 lines of code/markup across scripts+templates+styles+test.
+1146 tracked files · ~207,300 lines of code/markup across scripts+templates+styles+test.
 `v0.17.3` in both `module.json` and `package.json`.
 <!-- inventory:stats:end -->
 **Layout reflects the 2026-07-21 feature-folder reorganization (v0.11.0 cycle).**
@@ -223,7 +223,7 @@
 | `loot-generator-app.mjs` | 265 | Roll a loot table, work a running batch, whisper claimable cards. |
 | `loot-generator.mjs` | 234 | RollTable → structured loot batch (documents, coins, flavor). |
 | `loot-delivery.mjs` | 450 | Shared claimable chat card; first-claim-wins, GM-authoritative over an authenticated relay query. |
-| `loot-drops.mjs` | 195 | Auto-drop loot on NPC defeat at combat end. |
+| `loot-drops.mjs` | 194 | Auto-drop loot on NPC defeat at combat end. |
 | `loot-setup-app.mjs` | 237 | Browsable Loot & Treasure library; rows unlock from the GM's own PDF. |
 | `loot-value.mjs` | 68 | gp value → Shadowdark XP quality tiers. |
 | `loot-table-catalog.mjs` | 312 | Loot/treasure table catalog + classifier across Core, CS1–6, WR (metadata only). |
