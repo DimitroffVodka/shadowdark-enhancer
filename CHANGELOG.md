@@ -16,7 +16,7 @@ it needs.
   Cursed Scroll adventure out of your own PDF (Cursed Scrolls 1 to 6: the Hideous
   Halls of Mugdulblub, the Fortress of the Burning Brothers, Wortwick Monastery, the
   Sea Wolf King's hoard, the nine Black River mini-adventures, the Library of Leng
-  and the City of Masks' eight districts) and files each adventure as a journal with
+  and the City of Masks, by district and as a whole city for its overview map) and files each adventure as a journal with
   a page per location, 290 in all, "Area 12" references linked. **Adventure map**
   then builds a scene from your own map image, sized from the book's printed grid,
   and a **Place locations** window drops a numbered pin for each location with one

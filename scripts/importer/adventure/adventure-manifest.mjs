@@ -24,10 +24,11 @@
  *
  * Verified against the six PDFs with the module's own extractor and parser,
  * page by page: 33, 35 (19 + 16), 34 (5 + 29), 9 x 9 (+ 10 + 3 + 8), 64
- * (28 + 36) and 50 locations.
+ * (28 + 36) and 50 locations, which City of Masks files twice (per district, and whole).
  */
 
-const DISTRICT_BANNER = "District$";
+/** A district's banner line and the three facts printed above its first location. */
+const DISTRICT_BANNER = "District$|^(?:Class|Category|City Guard Arrives):";
 
 /** Cursed Scroll 4's nine mini-adventures: the title page, then the key page. */
 const cs4 = (id, title, intro, last, grid) => ({
@@ -75,6 +76,9 @@ export const ADVENTURE_SITES = {
     district("rilken-row", "Rilken Row", "60-61", [31, 36]),
     district("silvertop", "Silvertop", "62-63", [37, 43]),
     district("the-rooks", "The Rooks", "64-65", [44, 50]),
+    // The whole city on its one overview map: the same fifty locations again, so
+    // one scene carries every pin. A district's journal stays as it is.
+    { id: "cs6-city", title: "City of Masks", pages: "50-65", range: [1, 50], style: "caps", skip: DISTRICT_BANNER },
   ],
 };
 
