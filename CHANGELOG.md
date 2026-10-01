@@ -798,6 +798,14 @@ page walks through it in order.
 
 ### Fixed
 
+- **The importer's Manage tab no longer lists places and factions as locked monsters.**
+  Monsters showed rows such as Lord Hedron, Volcano Erupts, The Duke and Thieves'
+  Guild as still locked. They were never monsters: the tab read capitalised phrases
+  out of your rumor and encounter tables and treated any it could not match to an
+  actor as a missing statblock. No book prints one, so they could never be
+  imported, and while they stayed the tab hid **Import everything** and told you to
+  link books you had already linked. A bestiary now lists only the monsters its
+  book actually prints.
 - **A Mount in the importer is a Mount actor, and opens the Mount sheet.** The Mounts
   row used to count a same-named bestiary NPC (the Cursed Scroll 2 war horse, say) as the
   imported mount, so the row showed done and opening it gave an NPC sheet, or whichever

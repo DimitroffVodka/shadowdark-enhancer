@@ -41,7 +41,7 @@ import { columnManifestId, findById, importNameFor, isMatrix } from "./tables/ta
 import { GAMEPLAY_TABLES, MISHAP_TABLES, PATRON_TABLES, PIT_FIGHTING_TABLES, SYSTEM_PATRON_TABLES } from "./tables/table-folders.mjs";
 import { patronNameFromTable, patronsMissingDescription } from "./tables/patron-items.mjs";
 import { resolveSourcePdf, sourcePdfTarget } from "./source-pdf-registry.mjs";
-import { gatherCensus, liveActorRecords } from "./monsters/monster-census-live.mjs";
+import { liveActorRecords } from "./monsters/monster-census-live.mjs";
 import { liveItemRecords } from "./items/item-census-live.mjs";
 import { isCurrencyName } from "./items/item-parser.mjs";
 import { findMonsterPack } from "./monsters/monster-pack.mjs";
@@ -458,7 +458,7 @@ function buildMishaps(charEntries, _tablesPresent) {
  * do not become generic monster folders. The Player's Guide creatures are the
  * Mounts leaf; the GM's Guide bestiary is its own leaf.
  */
-function buildMonsters(monsterRows, actorRecords) {
+function buildMonsters(actorRecords) {
   // Imported monster names grouped by display source label (deduped).
   const presentByLabel = new Map();
   for (const r of actorRecords) {
@@ -466,7 +466,6 @@ function buildMonsters(monsterRows, actorRecords) {
     if (!presentByLabel.has(label)) presentByLabel.set(label, new Map());
     presentByLabel.get(label).set(_norm(r.name), r.name);
   }
-  const rowByLabel = new Map(monsterRows.map((r) => [r.label, r]));
 
   // Every spelling of every imported actor's name. Mount rows already reconcile
   // through this (see below); a published bestiary's rows use the same set, so
@@ -488,11 +487,11 @@ function buildMonsters(monsterRows, actorRecords) {
     const present = book
       ? book.names.filter(inLibrary).map((name) => ({ name, present: true, src }))
       : [...(presentByLabel.get(label)?.values() ?? [])].map((name) => ({ name, present: true, src }));
-    const listed = new Set(present.map((r) => _norm(r.name)));
-    const missing = (rowByLabel.get(label)?.missingNames ?? [])
-      .filter((name) => !listed.has(_norm(name)))
-      .map((name) => ({ name, present: false, src }));
-    const node = leaf(`monsters/${src}`, label, "fa-dragon", [...present, ...missing], "monsterSeedPaste");
+    // Rows are the book's own names only. The census's "referenced but missing"
+    // names are capitalised phrases scraped from table prose (rumors, scripted
+    // events), so they are places and factions the book has no statblock for —
+    // rows no Import could ever unlock.
+    const node = leaf(`monsters/${src}`, label, "fa-dragon", present, "monsterSeedPaste");
     // Incomplete published bestiary → one direct paste/import row. The book's
     // own names carry no page cite of their own, so they are NOT enumerated as
     // individual Import rows: the whole range comes down in one grab.
@@ -683,9 +682,8 @@ export const _testBuildDowntime = buildDowntime;
 
 export async function buildManageTree() {
   const presence = await gatherPresence();
-  const [charEntries, monsterRows, actorRecords, itemRecords, spellListCensus, boatNames, itemNames, patronsNeedDesc] = await Promise.all([
+  const [charEntries, actorRecords, itemRecords, spellListCensus, boatNames, itemNames, patronsNeedDesc] = await Promise.all([
     gatherCharContentEntries(presence),
-    gatherCensus().catch((err) => { console.error("shadowdark-enhancer | monster census failed:", err); return []; }),
     liveActorRecords().catch((err) => { console.error("shadowdark-enhancer | actor records failed:", err); return []; }),
     liveItemRecords().catch((err) => { console.error("shadowdark-enhancer | item records failed:", err); return []; }),
     gatherSpellListCensus().catch((err) => { console.error("shadowdark-enhancer | spell-list census failed:", err); return new Map(); }),
@@ -699,7 +697,7 @@ export async function buildManageTree() {
     buildSpells(spellListCensus, mishapsNode),
     buildGameplay(charEntries, presence.tablesPresent, presence.tablesByManifestId),
     buildRollTables(charEntries, presence.tablesPresent, presence.tablesByManifestId),
-    buildMonsters(monsterRows, actorRecords),
+    buildMonsters(actorRecords),
     buildItems(charEntries, itemRecords),
     buildVehicles(boatNames, itemNames),
     buildDowntime(),
