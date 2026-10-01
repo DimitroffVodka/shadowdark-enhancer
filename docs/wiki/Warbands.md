@@ -27,8 +27,8 @@ there. The same read picks up the upgrades' text (below).
 **Actors sidebar → Create Actor → Warband** makes an empty one to fill in by
 hand.
 
-Or turn a creature into one (GM): on a **level 1 to 5** NPC's sheet,
-**Make a Warband** in the title bar shows the creature before and after, then
+Or turn a creature into one (GM): right-click a **level 1 to 5** NPC in the
+Actors sidebar and pick **Make a Warband**. It shows the creature before and after, then
 makes a new warband from a copy. The creature itself stays as it is.
 
 - Its level doubles.
