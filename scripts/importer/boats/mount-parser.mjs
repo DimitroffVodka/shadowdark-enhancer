@@ -55,11 +55,11 @@ export function selectMountDrafts(parsed, selectedName) {
 }
 
 /**
- * Whether a pack entry already holds this creature: the same name, and for a
- * stock warband the warband type too, since an NPC of the same name is another
- * actor (#286 review). A mount still counts an NPC of its name, as the Manage
- * tree does.
+ * Whether a pack entry already holds this creature: the same name and the same
+ * actor type. An NPC of the same name is another actor (#286 review), and a
+ * mount imported from a bestiary NPC must not stop the Mount actor (and its
+ * sheet) from being made.
  */
-export function alreadyImported(entry, { name, type }, kind) {
-  return (entry?.name ?? "").toLowerCase() === String(name ?? "").toLowerCase() && (kind !== "Warband" || entry?.type === type);
+export function alreadyImported(entry, { name, type }) {
+  return (entry?.name ?? "").toLowerCase() === String(name ?? "").toLowerCase() && entry?.type === type;
 }
