@@ -49,6 +49,9 @@ export const pinSize = (gridSize = DEFAULT_GRID_SIZE) => Math.max(32, Math.round
  * so it reads at the zoom the chip does. Foundry allows 8 to 128 and defaults to 32, which is a
  * fraction of a chip on a big map.
  */
+/** The label's colour: black, which Foundry outlines in white, so it reads on pale and dark maps alike. */
+export const PIN_LABEL_COLOR = "#000000";
+
 export const pinLabelSize = (gridSize = DEFAULT_GRID_SIZE) => Math.min(128, Math.max(24, Math.round(pinSize(gridSize) / 2)));
 
 const t = (key, data) => {
@@ -116,6 +119,7 @@ export function noteData({ entryId, pageId, num, point, gridSize = DEFAULT_GRID_
     text: "",
     iconSize: pinSize(gridSize),
     fontSize: pinLabelSize(gridSize),
+    textColor: PIN_LABEL_COLOR,
     texture: { src: pinIcon(num) },
     flags: { [MODULE_ID]: { [PIN_FLAG]: { num } } },
   };
@@ -304,7 +308,7 @@ export const entryPages = (journal) =>
 /** The pins on a scene, as placementRows takes them. */
 export const scenePins = (scene) =>
   scene.notes.contents.map((n) => ({
-    id: n.id, num: n.getFlag(MODULE_ID, PIN_FLAG)?.num, x: n.x, y: n.y, src: n.texture?.src ?? "", text: n.text ?? "", iconSize: n.iconSize, fontSize: n.fontSize,
+    id: n.id, num: n.getFlag(MODULE_ID, PIN_FLAG)?.num, x: n.x, y: n.y, src: n.texture?.src ?? "", text: n.text ?? "", iconSize: n.iconSize, fontSize: n.fontSize, textColor: String(n.textColor?.css ?? n.textColor ?? "").toLowerCase(),
   })).filter((n) => Number.isInteger(n.num));
 
 /**
@@ -324,10 +328,12 @@ export function pinArtFixes(pins, gridSize = DEFAULT_GRID_SIZE) {
   for (const p of pins) {
     const src = pinIcon(p.num);
     const fontStale = oldFonts.has(p.fontSize) && p.fontSize !== fontSize;
-    if (p.src === src && !p.text && !fontStale) continue;
+    const whiteLabel = p.textColor === "#ffffff";   // Foundry's default; any other colour was chosen
+    if (p.src === src && !p.text && !fontStale && !whiteLabel) continue;
     const fix = { _id: p.id, text: "", "texture.src": src };
     if (p.iconSize === oldSize || p.iconSize === storedOldSize) fix.iconSize = pinSize(gridSize);
     if (fontStale) fix.fontSize = fontSize;
+    if (whiteLabel) fix.textColor = PIN_LABEL_COLOR;
     fixes.push(fix);
   }
   return fixes;
