@@ -11,6 +11,10 @@ it needs.
 
 ### Added
 
+- **Adventure map is one step.** Pick the map image that came with the book and the module
+  recognises the adventure from the file's name, imports its journal from your PDF if you
+  have not, builds the scene and pins every location it knows the position of. Choose the
+  adventure from the list when the file's name does not say.
 - **The Hideous Halls, the Sea Wolf King's caves and the Library of Leng place their own pins.**
   The module now ships where each of their room numbers sits on the map (positions
   only, as fractions of the map, so any resolution fits). Adventure map places every

@@ -21,6 +21,8 @@
  *          printed size ("68 wide x 44 high"); the scene's grid size is the
  *          image width over it. Absent: a 100 px grid
  *   skip   banner lines to drop (a regexp source)
+ *   mapNames  other names the map's file goes by when it is not the site's title
+ *          ("Ruins of Bittermold Keep"); map-detect.mjs recognises a map by its file name
  *   mapPages  PDF pages that print the site's keyed map, left to right, when the
  *          book prints its room numbers as text over one picture per page (a
  *          two-page spread for the big dungeons). The pins are then placed from
@@ -57,19 +59,20 @@ const mini = (id, title, last, grid) => ({
 /** City of Masks: one district per two-page spread, the numbers run on through the city. */
 const district = (id, title, pages, range) => ({
   id: `cs6-${id}`, title: `City of Masks: ${title} District`, pages, range, style: "caps", skip: DISTRICT_BANNER,
+  mapNames: [`${title} District`],
 });
 
 export const ADVENTURE_SITES = {
   CS1: [
-    { id: "cs1-mugdulblub", title: "The Hideous Halls of Mugdulblub", pages: "53-64", range: [1, 33], style: "caps", grid: [68, 44], mapPages: "66-67" },
+    { id: "cs1-mugdulblub", title: "The Hideous Halls of Mugdulblub", pages: "53-64", range: [1, 33], style: "caps", grid: [68, 44], mapPages: "66-67", mapNames: ["Ruins of Bittermold Keep"] },
   ],
   CS2: [
-    { id: "cs2-iron-fortress", title: "Fortress of the Burning Brothers: The Iron Fortress", pages: "49-55", range: [1, 19], style: "caps", grid: [45, 35] },
-    { id: "cs2-mines", title: "Fortress of the Burning Brothers: The Mines", pages: "56-62", range: [20, 35], style: "caps", grid: [45, 34] },
+    { id: "cs2-iron-fortress", title: "Fortress of the Burning Brothers: The Iron Fortress", pages: "49-55", range: [1, 19], style: "caps", grid: [45, 35], mapNames: ["The Iron Fortress"] },
+    { id: "cs2-mines", title: "Fortress of the Burning Brothers: The Mines", pages: "56-62", range: [20, 35], style: "caps", grid: [45, 34], mapNames: ["The Mines"] },
   ],
   CS3: [
     { id: "cs3-wortwick", title: "Wortwick Monastery", pages: "23-24", range: [1, 5], style: "caps", grid: [28, 28] },
-    { id: "cs3-sea-wolf", title: "Hoard of the Sea Wolf King", pages: "53-64", range: [1, 29], style: "caps", grid: [68, 44], mapPages: "66-67" },
+    { id: "cs3-sea-wolf", title: "Hoard of the Sea Wolf King", pages: "53-64", range: [1, 29], style: "caps", grid: [68, 44], mapPages: "66-67", mapNames: ["Sea Caves and Tombs"] },
   ],
   CS4: [
     cs4("army-ants", "Army Ants", 40, 9, [36, 30]),
@@ -83,8 +86,8 @@ export const ADVENTURE_SITES = {
     cs4("tsibalba", "Tsibalba", 56, 10, [20, 19]),
   ],
   CS5: [
-    { id: "cs5-leng-1", title: "The Ghoulish Library of Leng: Level 1", pages: "41-50", range: [1, 28], style: "caps", grid: [66, 42], mapPages: "64-65" },
-    { id: "cs5-leng-2", title: "The Ghoulish Library of Leng: Level 2", pages: "51-63", range: [29, 64], style: "caps", grid: [66, 42], mapPages: "66-67" },
+    { id: "cs5-leng-1", title: "The Ghoulish Library of Leng: Level 1", pages: "41-50", range: [1, 28], style: "caps", grid: [66, 42], mapPages: "64-65", mapNames: ["Library of Leng Level 1"] },
+    { id: "cs5-leng-2", title: "The Ghoulish Library of Leng: Level 2", pages: "51-63", range: [29, 64], style: "caps", grid: [66, 42], mapPages: "66-67", mapNames: ["Library of Leng Level 2"] },
   ],
   CS6: [
     district("gedgarrin", "Gedgarrin", "50-51", [1, 6]),
@@ -97,7 +100,7 @@ export const ADVENTURE_SITES = {
     district("the-rooks", "The Rooks", "64-65", [44, 50]),
     // The whole city on its one overview map: the same fifty locations again, so
     // one scene carries every pin. A district's journal stays as it is.
-    { id: "cs6-city", title: "City of Masks", pages: "50-65", range: [1, 50], style: "caps", skip: DISTRICT_BANNER },
+    { id: "cs6-city", title: "City of Masks", pages: "50-65", range: [1, 50], style: "caps", skip: DISTRICT_BANNER, mapNames: ["City of Masks Fully Keyed"] },
   ],
   WRMA_HOR: [
     mini("house-of-rogues", "House of Rogues", 9, [30, 18]),

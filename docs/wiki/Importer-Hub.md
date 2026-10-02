@@ -309,10 +309,14 @@ keyed by hex number, not room number). If a read does not give every location
 the book prints, the run says which adventure and which numbers; compare that
 adventure against the book.
 
-**Adventure map** puts those locations on a map. Pick an adventure you have
-imported and the map image that came with the book (the module ships no maps),
-and it builds a scene sized from the image and the book's printed grid, then opens
-the **Place locations** window.
+**Adventure map** is one step from the map image to a playable scene. Pick the map
+image that came with the book (the module ships no maps) and the module recognises the
+adventure from the file's name ("Ruins of Bittermold Keep (68 wide x 44 high).png" is
+the Hideous Halls), imports its journal from your PDF if you have not already, builds a
+scene sized from the image and the book's printed grid, and pins every location. If the
+name does not say which adventure it is, choose it from the list. Choosing an adventure
+that already has a scene picks it up where you left it. A **Place locations** window
+opens over the scene for anything left to place.
 
 For the adventures the module knows the positions of, the pins are placed
 **automatically** as soon as the scene is built, with no clicking: the Hideous Halls
