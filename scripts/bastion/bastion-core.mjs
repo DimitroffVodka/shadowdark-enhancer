@@ -15,6 +15,7 @@
  *   upgrades    [{ id, slot, weeksLeft }]  slot is its place on the plan, -1 for the moat
  *   repair      { hp, weeksLeft }  hp being mended, 0 weeksLeft when none
  *   incomeMonths  the calendar months whose Casino income is paid (month keys, the last few)
+ *   trophies    the names of the trophies placed in the Trophy Room, oldest first, capped
  *   log         [{ week, key, data }]  newest last, capped
  *
  * Every function takes a state and returns a NEW one with the log lines it
@@ -65,7 +66,7 @@ const toInt = (n, fallback = 0) => (Number.isFinite(Number(n)) ? Math.trunc(Numb
 /** A new bastion of a type: unbuilt, full HP, nothing in the treasury. */
 export function newBastion(typeId = "house") {
   const type = typeOf(typeId) ?? BASTION_TYPES[0];
-  return { type: type.id, weeksLeft: type.weeks, hp: { value: type.hp }, treasury: 0, week: 0, upgrades: [], repair: { hp: 0, weeksLeft: 0 }, incomeMonths: [], log: [] };
+  return { type: type.id, weeksLeft: type.weeks, hp: { value: type.hp }, treasury: 0, week: 0, upgrades: [], repair: { hp: 0, weeksLeft: 0 }, incomeMonths: [], trophies: [], log: [] };
 }
 
 /** The numbers a type fixes, with the bastion's current hit points. */
@@ -104,6 +105,11 @@ const KEEP_INCOME_MONTHS = 24;
 export const LIBRARY_BONUS = 1;
 export const LEARNING_ACTIVITIES = ["martialTraining", "magicalResearch"];
 
+/** XP each party member gains for a notable trophy placed in a Trophy Room, and how many names a bastion keeps. */
+export const TROPHY_XP = 1;
+const KEEP_TROPHIES = 100;
+const TROPHY_NAME_MAX = 60;
+
 /**
  * The effects other features apply for a bastion: only a bastion that stands gives any, and
  * only through finished upgrades.
@@ -111,10 +117,28 @@ export const LEARNING_ACTIVITIES = ["martialTraining", "magicalResearch"];
  * barracks: warbands garrisoned here heal BARRACKS_HEAL more each day.
  * casino: it earns CASINO_DICE gp into the treasury each month.
  * library: the party's members get LIBRARY_BONUS on learning downtime checks.
+ * trophyRoom: each notable trophy placed gives the party's members TROPHY_XP.
  */
 export function effects(state) {
   const built = new Set(stats(state).standing ? builtUpgrades(state) : []);
-  return { granary: built.has("granary"), barracks: built.has("barracks"), casino: built.has("casino"), library: built.has("library") };
+  return { granary: built.has("granary"), barracks: built.has("barracks"), casino: built.has("casino"), library: built.has("library"), trophyRoom: built.has("trophy-room") };
+}
+
+/** Place a notable trophy in a finished Trophy Room: its name is kept (the last KEEP_TROPHIES) and logged. `error`: "trophyRoom" | "name". */
+export function placeTrophy(state, name) {
+  if (!effects(state).trophyRoom) return { state, error: "trophyRoom" };
+  const clean = String(name ?? "").replace(/\s+/g, " ").trim().slice(0, TROPHY_NAME_MAX);
+  if (!clean) return { state, error: "name" };
+  const next = { ...state, trophies: [...(state.trophies ?? []), clean].slice(-KEEP_TROPHIES) };
+  next.log = log(next, "SDE.bastion.log.trophy", { name: clean });
+  return { state: next, error: null };
+}
+
+/** Take a trophy off the list (a typo, a trophy lost). The XP it gave stays given. */
+export function removeTrophy(state, index) {
+  const list = state.trophies ?? [];
+  if (!Number.isInteger(index) || index < 0 || index >= list.length) return { state, error: "nothing" };
+  return { state: { ...state, trophies: list.filter((_, i) => i !== index) }, error: null };
 }
 
 /** Is this month's Casino income owed: a finished Casino in a standing bastion, and the month not yet paid? */
@@ -301,6 +325,7 @@ export function stateOf(actor) {
     upgrades: (s.upgrades ?? []).map((u) => ({ id: u.id, slot: u.slot, weeksLeft: u.weeksLeft })),
     repair: { hp: s.repair?.hp ?? 0, weeksLeft: s.repair?.weeksLeft ?? 0 },
     incomeMonths: (s.incomeMonths ?? []).filter(Number.isFinite),
+    trophies: (s.trophies ?? []).filter((n) => typeof n === "string"),
     log: (s.log ?? []).map((e) => ({ week: e.week, key: e.key, data: { ...e.data } })),
   };
 }
@@ -317,6 +342,7 @@ export function updateOf(state) {
     "system.repair.hp": state.repair.hp,
     "system.repair.weeksLeft": state.repair.weeksLeft,
     "system.incomeMonths": state.incomeMonths,
+    "system.trophies": state.trophies,
     "system.log": state.log,
   };
 }

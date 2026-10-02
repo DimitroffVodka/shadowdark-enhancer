@@ -15,6 +15,8 @@ export const WHY = {
   nothing: "SDE.bastion.why.nothing",
   amount: "SDE.bastion.why.amount",
   built: "SDE.bastion.why.built",
+  trophyRoom: "SDE.bastion.why.trophyRoom",
+  name: "SDE.bastion.why.name",
 };
 
 /** A log line, with any i18n key in its data (an upgrade's name) turned into words. */

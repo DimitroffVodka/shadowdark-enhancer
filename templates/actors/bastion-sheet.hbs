@@ -52,6 +52,14 @@
           <button type="button" data-action="withdraw"><i class="fa-solid fa-hand-holding-dollar"></i> {{localize "SDE.bastion.fund.withdraw"}}</button>
         </div>
         {{/if}}
+        {{#if trophyRoom}}
+        <h3>{{localize "SDE.bastion.trophy.heading"}}</h3>
+        <ul class="sde-bast-trophies">
+          {{#each trophies}}<li><span>{{name}}</span>{{#if ../editable}}<button type="button" class="ghost" data-action="removeTrophy" data-index="{{index}}" data-tooltip="{{localize 'SDE.bastion.trophy.remove'}}"><i class="fa-solid fa-xmark"></i></button>{{/if}}</li>
+          {{else}}<li class="hint">{{localize "SDE.bastion.trophy.none"}}</li>{{/each}}
+        </ul>
+        {{#if editable}}<div class="sde-bast-buttons"><button type="button" data-action="placeTrophy"><i class="fa-solid fa-trophy"></i> {{localize "SDE.bastion.trophy.place"}}</button></div>{{/if}}
+        {{/if}}
         <p class="note">{{localize "SDE.bastion.stat.worth" worth=stats.worth}}</p>
         {{#if stats.breached}}<p class="note sde-bast-bad">{{localize "SDE.bastion.breached"}}</p>{{/if}}
         {{#if stats.standing}}

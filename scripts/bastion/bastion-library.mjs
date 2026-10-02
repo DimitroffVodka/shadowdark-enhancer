@@ -9,7 +9,7 @@
 
 import { BASTION_TYPE } from "./bastion-art.mjs";
 import { effects, stateOf, LIBRARY_BONUS, LEARNING_ACTIVITIES } from "./bastion-core.mjs";
-import { fundingActors } from "./bastion-funding.mjs";
+import { membersOf } from "./bastion-members.mjs";
 
 /** The bonus for `actor` on `activity`: LIBRARY_BONUS when any of `bastions` ({ library, people }) covers them, else 0. */
 export function libraryBonus(activity, actor, bastions) {
@@ -19,12 +19,7 @@ export function libraryBonus(activity, actor, bastions) {
 
 /** The bastions in the world that could give a bonus, with who each one covers. */
 function worldBastions() {
-  const players = game.actors.filter((a) => a.type === "Player");
-  return game.actors.filter((a) => a.type === BASTION_TYPE && effects(stateOf(a)).library).map((a) => {
-    const link = a.system.party;
-    const party = link ? fromUuidSync(link, { strict: false }) : null;
-    return { library: true, people: party ? fundingActors({ party, resolve: (id) => game.actors.get(id) ?? fromUuidSync(id, { strict: false }), players }) : [] };
-  });
+  return game.actors.filter((a) => a.type === BASTION_TYPE && effects(stateOf(a)).library).map((a) => ({ library: true, people: membersOf(a) }));
 }
 
 /**

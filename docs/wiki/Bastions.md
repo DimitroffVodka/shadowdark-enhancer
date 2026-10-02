@@ -87,7 +87,7 @@ down** frees the slot and refunds nothing; the other upgrades keep their places.
 | Vault | 200 | Securely store up to 100 gear slots of items |
 | Wizard Tower | 400 | +1 to INT spellcasting checks in the bastion |
 
-Four effects are applied for you while the bastion stands:
+Five effects are applied for you while the bastion stands:
 
 - the **Granary** makes each warband [garrisoned](Warbands.md) there cost 10 gp less a month;
 - the **Barracks** heals each of them 1d6 more a day;
@@ -98,7 +98,12 @@ Four effects are applied for you while the bastion stands:
 - the **Library** gives **+1** to the downtime checks about learning (Martial Training and
   Magical Research) for the members of the party that owns the bastion, on the Downtime
   window's rolls and shown on the chat card as "Library +1". Members are the linked party's
-  (every player character if the party lists none); two Libraries don't stack.
+  (every player character if the party lists none); two Libraries don't stack;
+- the **Trophy Room** gives each member of the party **1 XP** for each notable trophy you place
+  (the Overview tab's Trophies box, GM only: name it and place it). The name is kept on the
+  bastion, the XP goes out through Party XP (the full amount to each member, with its chat card),
+  and a trophy is only placed when the party has a character to give it to. Taking a name off the
+  list doesn't take the XP back.
 
 The rest the sheet records and you rule on at the table.
 

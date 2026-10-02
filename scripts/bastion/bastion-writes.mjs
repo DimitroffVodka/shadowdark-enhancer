@@ -11,6 +11,8 @@ import * as core from "./bastion-core.mjs";
 import { stateOf, updateOf } from "./bastion-core.mjs";
 import { fundingActors, planDeposit, planWithdraw, purseUpdate, purseOf } from "./bastion-funding.mjs";
 import { bastionArt } from "./bastion-art.mjs";
+import { membersOf } from "./bastion-members.mjs";
+import { placeTrophy } from "./bastion-trophies.mjs";
 import { t, format, WHY, logText } from "./bastion-text.mjs";
 
 const samePurse = (a, b) => a.gp === b.gp && a.sp === b.sp && a.cp === b.cp;
@@ -48,6 +50,26 @@ export async function fundBastion(actor, direction) {
   const gp = Number(pick?.gp);   // not rounded: a part of a coin is refused by the plan, not quietly paid as less
   if (!person) return false;
   return direction === "deposit" ? deposit(actor, person, gp) : withdraw(actor, person, gp);
+}
+
+/** Ask for a trophy's name, then place it and give the party its XP. */
+export async function trophyBastion(actor) {
+  if (!game.user.isGM) return false;
+  const pick = await foundry.applications.api.DialogV2.prompt({
+    window: { title: "SDE.bastion.trophy.title" },
+    content: `<div class="form-group"><label>${esc(t("SDE.bastion.trophy.name"))}</label><div class="form-fields"><input type="text" name="name" maxlength="60" autofocus></div></div>
+      <p class="hint">${esc(format("SDE.bastion.trophy.hint", { xp: core.TROPHY_XP }))}</p>`,
+    ok: { label: "SDE.bastion.trophy.place", callback: (_event, button) => new foundry.applications.ux.FormDataExtended(button.form).object },
+    rejectClose: false,
+  });
+  if (!pick) return false;
+  const { PartyXP } = await import("../party-xp/party-xp.mjs");
+  const done = await placeTrophy(actor, pick.name, { write: writeState, award: (xp, opts) => PartyXP.award(xp, opts), people: membersOf(actor) });
+  if (done.ok && !done.error) ui.notifications?.info(format("SDE.bastion.trophy.placed", { name: stateOf(actor).trophies.at(-1), xp: done.xp }));
+  else if (done.ok) ui.notifications?.warn(t("SDE.bastion.trophy.xpUnsure"));
+  else if (done.error === "nobody") ui.notifications?.warn(t("SDE.bastion.trophy.nobody"));
+  else if (done.error !== "write") ui.notifications?.warn(t(WHY[done.error] ?? WHY.unknown));
+  return done.ok;
 }
 
 function promptFunding(direction, people) {

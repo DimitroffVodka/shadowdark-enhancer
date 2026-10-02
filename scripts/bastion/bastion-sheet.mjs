@@ -16,7 +16,7 @@ import { renderPlan } from "./bastion-plan.mjs";
 import { isPartyActor } from "./bastion-funding.mjs";
 import { ensureSprites } from "./bastion-art.mjs";
 import { t, format, WHY, logText } from "./bastion-text.mjs";
-import { writeState, fundBastion } from "./bastion-writes.mjs";
+import { writeState, fundBastion, trophyBastion } from "./bastion-writes.mjs";
 
 const { HandlebarsApplicationMixin } = foundry.applications.api;
 const { ActorSheetV2 } = foundry.applications.sheets;
@@ -38,6 +38,8 @@ export class BastionSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       rollMonth: BastionSheet.prototype._onRollMonth,
       deposit: BastionSheet.prototype._onDeposit,
       withdraw: BastionSheet.prototype._onWithdraw,
+      placeTrophy: BastionSheet.prototype._onPlaceTrophy,
+      removeTrophy: BastionSheet.prototype._onRemoveTrophy,
       exportSvg: BastionSheet.prototype._onExportSvg,
       exportPng: BastionSheet.prototype._onExportPng,
     },
@@ -90,6 +92,9 @@ export class BastionSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
         why: check.reason && check.reason !== "built" ? t(WHY[check.reason]) : "",
       };
     });
+    context.trophyRoom = core.effects(state).trophyRoom;
+    context.trophies = state.trophies.map((name, index) => ({ name, index }));
+    context.trophyXp = core.TROPHY_XP;
     context.log = state.log.map((e) => ({ week: e.week, text: logText(e) })).reverse();
     context.plan = this._plan(state, st);
     context.parties = game.actors.filter(isPartyActor).map((a) => ({ uuid: a.uuid, name: a.name, selected: a.uuid === this.document.system.party }));
@@ -175,6 +180,11 @@ export class BastionSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
   _onDeposit() { return fundBastion(this.document, "deposit"); }
   _onWithdraw() { return fundBastion(this.document, "withdraw"); }
+
+  // ── The Trophy Room (bastion-trophies.mjs) ─────────────────────────────────
+
+  _onPlaceTrophy() { return trophyBastion(this.document); }
+  _onRemoveTrophy(_event, target) { return this._apply((s) => core.removeTrophy(s, Number(target.dataset.index))); }
 
   /** The plan as a standalone SVG: the page's art symbols plus what's drawn. */
   _planSvg() {
