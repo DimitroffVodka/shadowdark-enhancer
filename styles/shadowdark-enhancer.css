@@ -11830,6 +11830,13 @@ button.sde-hud-day:hover { border-color: var(--sd-frame); }
 .sde-bast-stat input { width: 96px; height: 30px; font-size: 18px; text-align: center; }
 .sde-bast-buttons { display: flex; flex-wrap: wrap; gap: 6px; }
 .sde-bast-col h3:not(:first-child) { margin-top: 12px; }
+.sde-bast-slots { font-size: 12px; font-weight: normal; margin-left: 6px; opacity: 0.8; }
+.sde-bast-vault { list-style: none; margin: 0 0 6px; padding: 0; display: flex; flex-direction: column; gap: 2px; max-height: 180px; overflow-y: auto; }
+.sde-bast-vault li { display: flex; align-items: center; gap: 6px; padding: 1px 6px; border-radius: 4px; background: rgba(255, 255, 255, 0.35); }
+.sde-bast-vault li.hint { background: none; }
+.sde-bast-vault img { width: 20px; height: 20px; border: 0; }
+.sde-bast-vault .name { flex: 1; }
+.sde-bast-vault button.ghost { padding: 0 4px; }
 .sde-bast-trophies { list-style: none; margin: 0 0 6px; padding: 0; display: flex; flex-direction: column; gap: 2px; max-height: 120px; overflow-y: auto; }
 .sde-bast-trophies li { display: flex; align-items: center; justify-content: space-between; gap: 6px; padding: 1px 6px; border-radius: 4px; background: rgba(255, 255, 255, 0.35); }
 .sde-bast-trophies li.hint { background: none; }

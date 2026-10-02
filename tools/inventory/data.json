@@ -459,7 +459,9 @@
       "scripts/bastion/bastion-income.mjs",
       "scripts/bastion/bastion-library.mjs",
       "scripts/bastion/bastion-members.mjs",
-      "scripts/bastion/bastion-trophies.mjs"
+      "scripts/bastion/bastion-trophies.mjs",
+      "scripts/bastion/bastion-vault-core.mjs",
+      "scripts/bastion/bastion-vault.mjs"
     ]
   },
   "descriptions": {
@@ -826,6 +828,8 @@
     "scripts/bastion/bastion-income.mjs": "The Casino's income on the world clock: 2d20 gp into the treasury of a standing bastion with a finished Casino at each month start, each month paid once (marked on the bastion), read back, and a payment that did not save told to the GMs.",
     "scripts/bastion/bastion-library.mjs": "The Library's +1 on the learning downtime checks (martial training, magical research) for the members of the party that owns a standing bastion with a finished Library; two don't stack.",
     "scripts/bastion/bastion-members.mjs": "The characters a bastion's party covers: the linked party's members when Extras lists any, otherwise every player character; no link, no one.",
-    "scripts/bastion/bastion-trophies.mjs": "The Trophy Room's XP: a trophy placed is written first, then 1 XP goes to each party member through Party XP; a refused award takes the trophy back out."
+    "scripts/bastion/bastion-trophies.mjs": "The Trophy Room's XP: a trophy placed is written first, then 1 XP goes to each party member through Party XP; a refused award takes the trophy back out.",
+    "scripts/bastion/bastion-vault-core.mjs": "The Vault's slot rules (pure): 100 gear slots, a stack's slots as on a character, which items may be stored.",
+    "scripts/bastion/bastion-vault.mjs": "Moving gear into and out of the Vault: a copy first and a delete second, each read back, a copy whose original stayed is taken out again."
   }
 }

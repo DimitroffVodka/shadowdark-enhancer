@@ -13,6 +13,7 @@ import { fundingActors, planDeposit, planWithdraw, purseUpdate, purseOf } from "
 import { bastionArt } from "./bastion-art.mjs";
 import { membersOf } from "./bastion-members.mjs";
 import { placeTrophy } from "./bastion-trophies.mjs";
+import { storeItem, takeOut } from "./bastion-vault.mjs";
 import { t, format, WHY, logText } from "./bastion-text.mjs";
 
 const samePurse = (a, b) => a.gp === b.gp && a.sp === b.sp && a.cp === b.cp;
@@ -69,6 +70,40 @@ export async function trophyBastion(actor) {
   else if (done.ok) ui.notifications?.warn(t("SDE.bastion.trophy.xpUnsure"));
   else if (done.error === "nobody") ui.notifications?.warn(t("SDE.bastion.trophy.nobody"));
   else if (done.error !== "write") ui.notifications?.warn(t(WHY[done.error] ?? WHY.unknown));
+  return done.ok;
+}
+
+/** Store a dropped item in the Vault and say how it went. */
+export async function storeBastion(actor, item) {
+  const done = await storeItem(actor, item);
+  if (done.ok) ui.notifications?.info(format("SDE.bastion.vault.stored", { name: done.name, slots: done.slots }));
+  else if (done.error === "full") ui.notifications?.warn(format("SDE.bastion.vault.full", { short: done.short }));
+  else if (done.error === "type") ui.notifications?.warn(t("SDE.bastion.vault.type"));
+  else if (done.error === "vault") ui.notifications?.warn(t("SDE.bastion.vault.none"));
+  else if (done.error === "write") ui.notifications?.warn(t("SDE.bastion.vault.notSaved"));
+  return done.ok;
+}
+
+/** Ask which character takes an item out of the Vault, then move it. */
+export async function takeOutBastion(actor, itemId) {
+  if (!game.user.isGM) return false;
+  const people = membersOf(actor);
+  if (!people.length) {
+    ui.notifications?.warn(t("SDE.bastion.fund.nobody"));
+    return false;
+  }
+  const options = people.map((a) => `<option value="${esc(a.uuid)}">${esc(a.name)}</option>`).join("");
+  const pick = await foundry.applications.api.DialogV2.prompt({
+    window: { title: "SDE.bastion.vault.takeTitle" },
+    content: `<div class="form-group"><label>${esc(t("SDE.bastion.fund.who"))}</label><div class="form-fields"><select name="who">${options}</select></div></div>`,
+    ok: { label: "SDE.bastion.vault.takeOut", callback: (_event, button) => new foundry.applications.ux.FormDataExtended(button.form).object },
+    rejectClose: false,
+  });
+  const person = pick && people.find((a) => a.uuid === pick.who);
+  if (!person) return false;
+  const done = await takeOut(actor, itemId, person);
+  if (done.ok) ui.notifications?.info(format("SDE.bastion.vault.tookOut", { name: done.name, who: person.name }));
+  else ui.notifications?.warn(t("SDE.bastion.vault.notSaved"));
   return done.ok;
 }
 

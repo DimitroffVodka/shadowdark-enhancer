@@ -87,7 +87,7 @@ down** frees the slot and refunds nothing; the other upgrades keep their places.
 | Vault | 200 | Securely store up to 100 gear slots of items |
 | Wizard Tower | 400 | +1 to INT spellcasting checks in the bastion |
 
-Five effects are applied for you while the bastion stands:
+Six effects are applied for you while the bastion stands:
 
 - the **Granary** makes each warband [garrisoned](Warbands.md) there cost 10 gp less a month;
 - the **Barracks** heals each of them 1d6 more a day;
@@ -103,7 +103,13 @@ Five effects are applied for you while the bastion stands:
   (the Overview tab's Trophies box, GM only: name it and place it). The name is kept on the
   bastion, the XP goes out through Party XP (the full amount to each member, with its chat card),
   and a trophy is only placed when the party has a character to give it to. Taking a name off the
-  list doesn't take the XP back.
+  list doesn't take the XP back;
+- the **Vault** holds up to **100 gear slots** of items (the Vault box on the Overview tab).
+  Drop gear on the Bastion sheet to store it (GM only): gear a character holds is moved out of
+  their pack, anything else is copied in, and gear that would pass 100 slots is refused. The
+  button on a stored item hands it to a character of the party. A stack takes the slots it
+  takes on a character (per-slot quantity and slots used). Each move is a copy first and a
+  delete second, so an item is never in two places and never lost.
 
 The rest the sheet records and you rule on at the table.
 

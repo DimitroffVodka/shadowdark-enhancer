@@ -16,7 +16,8 @@ import { renderPlan } from "./bastion-plan.mjs";
 import { isPartyActor } from "./bastion-funding.mjs";
 import { ensureSprites } from "./bastion-art.mjs";
 import { t, format, WHY, logText } from "./bastion-text.mjs";
-import { writeState, fundBastion, trophyBastion } from "./bastion-writes.mjs";
+import { writeState, fundBastion, trophyBastion, takeOutBastion, storeBastion } from "./bastion-writes.mjs";
+import { slotsOf, usedSlots, VAULT_SLOTS, VAULT_TYPES } from "./bastion-vault-core.mjs";
 
 const { HandlebarsApplicationMixin } = foundry.applications.api;
 const { ActorSheetV2 } = foundry.applications.sheets;
@@ -40,6 +41,7 @@ export class BastionSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       withdraw: BastionSheet.prototype._onWithdraw,
       placeTrophy: BastionSheet.prototype._onPlaceTrophy,
       removeTrophy: BastionSheet.prototype._onRemoveTrophy,
+      takeOut: BastionSheet.prototype._onTakeOut,
       exportSvg: BastionSheet.prototype._onExportSvg,
       exportPng: BastionSheet.prototype._onExportPng,
     },
@@ -92,7 +94,11 @@ export class BastionSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
         why: check.reason && check.reason !== "built" ? t(WHY[check.reason]) : "",
       };
     });
-    context.trophyRoom = core.effects(state).trophyRoom;
+    const fx = core.effects(state);
+    const stored = this.document.items.filter((i) => VAULT_TYPES.includes(i.type));
+    context.vault = { shown: fx.vault || stored.length > 0, open: fx.vault, used: usedSlots(stored), max: VAULT_SLOTS,
+      items: stored.map((i) => ({ id: i.id, name: i.name, img: i.img, quantity: i.system?.quantity ?? 1, slots: slotsOf(i) })).sort((a, b) => a.name.localeCompare(b.name)) };
+    context.trophyRoom = fx.trophyRoom;
     context.trophies = state.trophies.map((name, index) => ({ name, index }));
     context.trophyXp = core.TROPHY_XP;
     context.log = state.log.map((e) => ({ week: e.week, text: logText(e) })).reverse();
@@ -185,6 +191,13 @@ export class BastionSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
   _onPlaceTrophy() { return trophyBastion(this.document); }
   _onRemoveTrophy(_event, target) { return this._apply((s) => core.removeTrophy(s, Number(target.dataset.index))); }
+
+  // ── The Vault (bastion-vault.mjs): items dropped on the sheet go in, a button takes them out ──
+
+  _onTakeOut(_event, target) { return takeOutBastion(this.document, target.dataset.id); }
+
+  /** An item dropped on the sheet is stored in the Vault (the GM's drop; the base sheet would just copy it in). */
+  async _onDropItem(_event, item) { return storeBastion(this.document, item); }
 
   /** The plan as a standalone SVG: the page's art symbols plus what's drawn. */
   _planSvg() {
