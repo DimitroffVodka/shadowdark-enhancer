@@ -358,6 +358,26 @@ test("a null element ends the run cleanly instead of failing entries on a DOM er
     "a missing element is a clean stop, never a failed entry");
 });
 
+test("a helper workspace already up when the batch starts is closed at the end of the run", async () => {
+  // #312: the routes reset and drive whichever window each singleton hands back
+  // — including one the GM already had open — so "only close what THIS run
+  // opened" left that window up, frozen on the batch's last entry. Every
+  // workspace the run puts to work is closed; one it never touches is not.
+  const closed = [];
+  const alreadyOpen = { rendered: true, close: async () => closed.push("pre-opened") };
+  const freshlyOpened = { rendered: true, close: async () => closed.push("fresh") };
+  const untouched = { rendered: true, close: async () => closed.push("untouched") };
+  class AlreadyOpenApp { static _instance = alreadyOpen; static open() { return alreadyOpen; } }
+  class FreshApp { static _instance = null; static open() { FreshApp._instance = freshlyOpened; return freshlyOpened; } }
+  const h = hub();
+  h._batchOpen(AlreadyOpenApp);
+  h._batchOpen(FreshApp);
+  void untouched;   // up the whole time, never driven by this run
+  await h._batchCloseApps();
+  assert.deepEqual(closed.sort(), ["fresh", "pre-opened"],
+    "the run closes every workspace it drove, a window it found already open included");
+});
+
 // A row re-run over a book the GM already owns: every statblock parses, the
 // importer skips every one as a duplicate, and the commit empties the preview
 // bucket regardless. Measuring "created" as the DROP in bucket size therefore
