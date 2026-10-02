@@ -1925,12 +1925,6 @@ body.theme-light .sde-mimport-warncount { color: #7c5800; }
   padding: 3px 6px;
 }
 
-/* The downtime Book select must fit "Western Reaches Players Guide"
-   (192px of text + arrow); the family's 200px cap clips it. */
-select[data-downtime-source].sde-hub-import-source-input {
-  max-width: 260px;
-}
-
 /* Type selector bar */
 .sde-hub-import-typebar {
   display: flex;

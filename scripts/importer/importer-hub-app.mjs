@@ -545,8 +545,9 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
 
     // Downtime unlock: not a compendium import — the parsed outcome text goes
     // into the `downtimeContent` world setting, per source book. The section is
-    // shown whenever the type is picked (the source select has to be settable
-    // BEFORE a parse); the result block appears once Parse has run.
+    // shown whenever the type is set, which only a Manage → Downtime row (or
+    // the Downtime window's Unlock button) does; the result block appears once
+    // Parse has run.
     const downtime = t === "downtime" ? (() => {
       const src = DOWNTIME_SOURCES[this._downtimeSource];
       const p = this._downtimeParse;
@@ -555,11 +556,6 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
         expected: DOWNTIME_SLOT_COUNT,
         label: src?.label ?? this._downtimeSource,
         pages: src?.pages ?? "",
-        sourceOptions: DOWNTIME_SLUGS.map((slug) => ({
-          value: slug,
-          label: DOWNTIME_SOURCES[slug].label,
-          selected: slug === this._downtimeSource,
-        })),
         result: p ? {
           filledCount,
           complete: filledCount >= DOWNTIME_SLOT_COUNT,
@@ -638,7 +634,10 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
           { value: "ancestries",  label: tr("SDE.importer.type.ancestries") },
           { value: "generators",  label: tr("SDE.importer.type.generators") },
           { value: "cartesian",   label: tr("SDE.importer.type.cartesian") },
-          { value: "downtime",    label: tr("SDE.importer.type.downtime") },
+          // No downtime entry on purpose: the paste workspace is reachable only
+          // through a Manage → Downtime row (or the Downtime window's Unlock
+          // button → openHub("import", { downtimeSource })), which already
+          // names the book. See _seedDowntimeUnlock.
         ] },
         { group: tr("SDE.importer.type.groupGuided"), options: [
           { value: "__spells",  label: tr("SDE.importer.type.spells") },
@@ -872,7 +871,6 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
     this._wireHubType();
     this._wireHubPaste();
     this._wireHubSource();
-    this._wireHubDowntime();
     this._wireHubMonsterFieldEdits();
     this._wireHubItemFieldEdits();
     this._wireHubSpellFieldEdits();
