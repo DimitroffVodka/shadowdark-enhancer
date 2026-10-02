@@ -814,6 +814,12 @@ page walks through it in order.
 
 ### Fixed
 
+- **A batch import leaves no importer windows open behind it, even ones you had up.**
+  The runner closed only the workspaces it had opened itself, so if the Spell Importer,
+  Class Importer or Item Builder was already open when you pressed **Import everything**,
+  the run reset and drove that window entry by entry and then left it where it was, frozen
+  on whichever entry it had just processed. Every workspace the run puts to work is now
+  closed when the run ends; one it never touches stays where you left it. (#312)
 - **The importer's Manage tab no longer lists places and factions as locked monsters.**
   Monsters showed rows such as Lord Hedron, Volcano Erupts, The Duke and Thieves'
   Guild as still locked. They were never monsters: the tab read capitalised phrases
