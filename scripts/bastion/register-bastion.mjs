@@ -32,6 +32,8 @@ export function registerBastion() {
   CONFIG.Actor.typeIcons[BASTION_TYPE] = "fa-solid fa-chess-rook";
   registerBastionEntryPoints();
   registerBastionIncome();
+  // An open sheet follows the world clock: the Aviary's pigeon is ready again on a new day.
+  Hooks.on("updateWorldTime", () => { for (const app of foundry.applications.instances.values()) if (app instanceof BastionSheet) app.render(); });
 
   // A new bastion carries its type's art, and one actor is one place: its token is linked.
   Hooks.on("preCreateActor", (doc, data) => {

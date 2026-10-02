@@ -1,7 +1,7 @@
 # Shadowdark Enhancer — File Inventory
 
 <!-- inventory:stats:start -->
-1267 tracked files · ~210,800 lines of code/markup across scripts+templates+styles+test.
+1267 tracked files · ~210,900 lines of code/markup across scripts+templates+styles+test.
 `v0.17.3` in both `module.json` and `package.json`.
 <!-- inventory:stats:end -->
 **Layout reflects the 2026-07-21 feature-folder reorganization (v0.11.0 cycle).**
@@ -519,7 +519,7 @@ One world JournalEntry per quest, its state one flag on the entry. World journal
 | `bastion-art.mjs` | 33 | The actor type id, where the bastion art files are (assets/bastion/art), and the one-time load of the sprite sheet the plan and the panel draw from. |
 | `bastion-data-model.mjs` | 53 | The Bastion actor's data model: type, build weeks, hit points, treasury, upgrades and their places, repair, log. |
 | `bastion-sheet.mjs` | 308 | The Bastion actor sheet (ApplicationV2): Overview, Upgrades, Plan (exterior and interior, roofs, zoom, room card, SVG and PNG export) and Log. The GM edits. |
-| `register-bastion.mjs` | 84 | Registers the `shadowdark-enhancer.bastion` actor type, its sheet and art defaults, and builds `game.shadowdarkEnhancer.bastion`. |
+| `register-bastion.mjs` | 86 | Registers the `shadowdark-enhancer.bastion` actor type, its sheet and art defaults, and builds `game.shadowdarkEnhancer.bastion`. |
 | `bastion-text.mjs` | 26 | Words the sheet and the panel share: the localizers, why a rules call said no, and a log line turned into words. |
 | `bastion-writes.mjs` | 195 | Writing a bastion and paying into it, the GM's: a state written back as one update (the type's art follows a retype), and gold moved between a character's purse and the treasury with each write read back and the first put back if the second is refused. |
 | `bastion-panel-core.mjs` | 44 | What the panel shows, pure: the bastions a user can see (optionally one party's) and the card for each: art, type, week, hit points, treasury, upgrades built and building. |

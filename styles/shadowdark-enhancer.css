@@ -11829,7 +11829,8 @@ button.sde-hud-day:hover { border-color: var(--sd-frame); }
 .sde-bast-stat .content { display: flex; align-items: center; justify-content: center; gap: 4px; padding: 6px 5px; font-size: 18px; }
 .sde-bast-stat input { width: 96px; height: 30px; font-size: 18px; text-align: center; }
 .sde-bast-buttons { display: flex; flex-wrap: wrap; gap: 6px; }
-.sde-bast-col h3:not(:first-child) { margin-top: 12px; }
+.sde-bast-room { margin-top: 14px; }
+.sde-bast-room h3 { margin-top: 0; }
 .sde-bast-slots { font-size: 12px; font-weight: normal; margin-left: 6px; opacity: 0.8; }
 .sde-bast-vault { list-style: none; margin: 0 0 6px; padding: 0; display: flex; flex-direction: column; gap: 2px; }
 .sde-bast-vault li { display: flex; align-items: center; gap: 6px; padding: 1px 6px; border-radius: 4px; background: rgba(255, 255, 255, 0.35); }
