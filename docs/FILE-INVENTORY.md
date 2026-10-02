@@ -1,7 +1,7 @@
 # Shadowdark Enhancer — File Inventory
 
 <!-- inventory:stats:start -->
-1254 tracked files · ~209,500 lines of code/markup across scripts+templates+styles+test.
+1255 tracked files · ~209,700 lines of code/markup across scripts+templates+styles+test.
 `v0.17.3` in both `module.json` and `package.json`.
 <!-- inventory:stats:end -->
 **Layout reflects the 2026-07-21 feature-folder reorganization (v0.11.0 cycle).**
@@ -372,10 +372,11 @@
 | `boat-data-model.mjs` | 115 | Boat data model — WR vessel rules. |
 | `boat-sheet.mjs` | 179 | Boat sheet: Overview / Passengers & Crew / Cargo / Description. |
 | `mount-npc-sheet.mjs` | 342 | Mount sheet — subclass of the system's `NpcSheetSD`. |
-| `warband-core.mjs` | 264 | Warband rules, pure (#200, #202, #204): the 18 upgrades, a commander's allowance by hit die tier (2/2, 4/3, 6/4), the command and upgrade refusals, and a creature made into a warband (level doubled, 8 HP a level plus CON, one attack, +1 attack a level gained, damage dice tripled). |
-| `warband-npc-sheet.mjs` | 328 | The Warband unit sheet (#200): an NpcSheetSD subclass (AppV1) with a Warband tab for the commander (a PC dropped on it), the allowance across that commander's warbands, the upgrade checklist written whole to the `warband` flag, and the commander's CHA for morale, and (#204) upkeep, arrears, desertion and retraining with their GM buttons. |
+| `warband-core.mjs` | 265 | Warband rules, pure (#200, #202, #204): the 18 upgrades, a commander's allowance by hit die tier (2/2, 4/3, 6/4), the command and upgrade refusals, and a creature made into a warband (level doubled, 8 HP a level plus CON, one attack, +1 attack a level gained, damage dice tripled). |
+| `warband-npc-sheet.mjs` | 356 | The Warband unit sheet (#200): an NpcSheetSD subclass (AppV1) with a Warband tab for the commander (a PC dropped on it), the allowance across that commander's warbands, the upgrade checklist written whole to the `warband` flag, and the commander's CHA for morale, and (#204) upkeep, arrears, desertion and retraining with their GM buttons. |
 | `make-warband.mjs` | 119 | Make a Warband (#202): the GM's Actors-directory context entry on a level 1-5 NPC, a before/after preview, and a new warband actor from a copy (the stat block in its notes rebuilt as Quick Adjust does). |
-| `warband-upkeep.mjs` | 438 | Warband upkeep and healing on the world clock (#204): on timeAdvanced (active GM, queued), month and week starts in order over a move's last 366 days (clockEvents, last-month and last-week markers against rewinds): each month start charges 10 gp a level per commanded warband from the commander's coins, in one card; arrears check morale each week start (at most 8 rolling weeks a move) and desert on a failure (marked, never deleted); every day heals 1d4 (Hardy 2d6); the GM's Charge a Month, Pay Arrears and Return to Service. |
+| `warband-upkeep.mjs` | 454 | Warband upkeep and healing on the world clock (#204): on timeAdvanced (active GM, queued), month and week starts in order over a move's last 366 days (clockEvents, last-month and last-week markers against rewinds): each month start charges 10 gp a level per commanded warband from the commander's coins, in one card; arrears check morale each week start (at most 8 rolling weeks a move) and desert on a failure (marked, never deleted); every day heals 1d4 (Hardy 2d6); the GM's Charge a Month, Pay Arrears and Return to Service. |
+| `warband-garrison.mjs` | 22 | The bastion a warband is garrisoned at: its name and which of the Granary and Barracks it has finished while it stands, for warband upkeep, healing and the Warband tab. |
 | `warband-combat.mjs` | 140 | Warbands in mass combat (#203): a warband's combatant takes its commander's initiative (on join and whenever either changes, Chaos rerolls included); automatic morale on the active GM from a per-client HP cache (falling to half, every hit below it; d20 + commander CHA vs 15/Loyal 9, advantage when leading), a 3-in-6 (Withdraw 1-in-6) rout that marks it defeated; the attack card's area note; the retraining warning on attack. |
 | `warband-upgrades.mjs` | 126 | What a warband's upgrades do (#201): Armor Upgrade, Tough, Training and Weapons Upgrade written into the stored fields they change in the same update as the tick, and taken off by the same amount (marked attacks only); each upgrade's book text read once from the Player's Guide p.250 into the warbandUpgradeText world setting for the sheet's hovers. |
 | `vehicle-sheet.mjs` | 424 | Shared party-like container base (ApplicationV2). |
@@ -512,13 +513,13 @@ One world JournalEntry per quest, its state one flag on the entry. World journal
 
 | File | Lines | Description |
 |---|---:|---|
-| `bastion-core.mjs` | 281 | The rules, pure: the four types and twenty upgrades with their costs and caps, building a week at a time, repairs, the monthly disaster, and the state the actor stores. |
+| `bastion-core.mjs` | 297 | The rules, pure: the four types and twenty upgrades with their costs and caps, building a week at a time, repairs, the monthly disaster, and the state the actor stores. |
 | `bastion-plan.mjs` | 315 | The plan, pure: SVG markup for a bastion from outside (buildings round the main one) or in (one connected compound of rooms, with roofs), each upgrade keeping the place it took. |
 | `bastion-funding.mjs` | 55 | The party link and paying into the treasury, pure: which actors are parties, who can pay, and the purse arithmetic for paying gold in and out. Extras' own party coins are never read or written. |
 | `bastion-art.mjs` | 33 | The actor type id, where the bastion art files are (assets/bastion/art), and the one-time load of the sprite sheet the plan and the panel draw from. |
 | `bastion-data-model.mjs` | 47 | The Bastion actor's data model: type, build weeks, hit points, treasury, upgrades and their places, repair, log. |
 | `bastion-sheet.mjs` | 278 | The Bastion actor sheet (ApplicationV2): Overview, Upgrades, Plan (exterior and interior, roofs, zoom, room card, SVG and PNG export) and Log. The GM edits. |
-| `register-bastion.mjs` | 80 | Registers the `shadowdark-enhancer.bastion` actor type, its sheet and art defaults, and builds `game.shadowdarkEnhancer.bastion`. |
+| `register-bastion.mjs` | 82 | Registers the `shadowdark-enhancer.bastion` actor type, its sheet and art defaults, and builds `game.shadowdarkEnhancer.bastion`. |
 | `bastion-text.mjs` | 22 | Words the sheet and the panel share: the localizers, why a rules call said no, and a log line turned into words. |
 | `bastion-writes.mjs` | 106 | Writing a bastion and paying into it, the GM's: a state written back as one update (the type's art follows a retype), and gold moved between a character's purse and the treasury with each write read back and the first put back if the second is refused. |
 | `bastion-panel-core.mjs` | 44 | What the panel shows, pure: the bastions a user can see (optionally one party's) and the card for each: art, type, week, hit points, treasury, upgrades built and building. |

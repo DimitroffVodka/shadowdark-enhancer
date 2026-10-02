@@ -90,6 +90,22 @@ export function worth(state) {
 /** Upgrades that are finished and so give their effect. */
 export const builtUpgrades = (state) => (state?.upgrades ?? []).filter((u) => toInt(u.weeksLeft) <= 0 && upgradeOf(u.id)).map((u) => u.id);
 
+/** What the Granary saves a warband garrisoned here each month, in gp. */
+export const GRANARY_SAVING_GP = 10;
+/** What the Barracks adds to a garrisoned warband's healing each day. */
+export const BARRACKS_HEAL = { n: 1, faces: 6 };
+
+/**
+ * The effects other features apply for a bastion: only a bastion that stands gives any, and
+ * only through finished upgrades.
+ * granary: warbands garrisoned here each cost GRANARY_SAVING_GP less a month.
+ * barracks: warbands garrisoned here heal BARRACKS_HEAL more each day.
+ */
+export function effects(state) {
+  const built = new Set(stats(state).standing ? builtUpgrades(state) : []);
+  return { granary: built.has("granary"), barracks: built.has("barracks") };
+}
+
 const lowestFree = (upgrades) => {
   const taken = new Set(upgrades.filter((u) => u.id !== MOAT).map((u) => u.slot));
   let slot = 0;

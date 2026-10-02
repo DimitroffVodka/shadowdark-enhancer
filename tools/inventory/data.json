@@ -347,6 +347,7 @@
       "scripts/actors/warband-npc-sheet.mjs",
       "scripts/actors/make-warband.mjs",
       "scripts/actors/warband-upkeep.mjs",
+      "scripts/actors/warband-garrison.mjs",
       "scripts/actors/warband-combat.mjs",
       "scripts/actors/warband-upgrades.mjs",
       "scripts/actors/vehicle-sheet.mjs",
@@ -816,6 +817,7 @@
     "scripts/bastion/bastion-writes.mjs": "Writing a bastion and paying into it, the GM's: a state written back as one update (the type's art follows a retype), and gold moved between a character's purse and the treasury with each write read back and the first put back if the second is refused.",
     "scripts/bastion/bastion-panel-core.mjs": "What the panel shows, pure: the bastions a user can see (optionally one party's) and the card for each: art, type, week, hit points, treasury, upgrades built and building.",
     "scripts/bastion/bastion-panel.mjs": "The Bastion panel window (ApplicationV2): a card per bastion with Open, and for the GM Pay in, Pay out and New bastion. Redraws as bastions change.",
-    "scripts/bastion/bastion-entry-points.mjs": "The ways into the panel: a Bastions entry in the Actors directory's right-click menu on a party actor (the GM always; a player when the party owns a bastion they can see)."
+    "scripts/bastion/bastion-entry-points.mjs": "The ways into the panel: a Bastions entry in the Actors directory's right-click menu on a party actor (the GM always; a player when the party owns a bastion they can see).",
+    "scripts/actors/warband-garrison.mjs": "The bastion a warband is garrisoned at: its name and which of the Granary and Barracks it has finished while it stands, for warband upkeep, healing and the Warband tab."
   }
 }

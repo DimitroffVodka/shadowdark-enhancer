@@ -4,7 +4,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   BASTION_TYPES, BASTION_UPGRADES, newBastion, stats, worth, canBuild, build, takeDown, changeType,
-  damage, startRepair, advanceWeek, rollDisaster, applyDisaster, builtUpgrades, stateOf, updateOf,
+  damage, startRepair, advanceWeek, rollDisaster, applyDisaster, builtUpgrades, stateOf, updateOf, effects, GRANARY_SAVING_GP, BARRACKS_HEAL,
 } from "../scripts/bastion/bastion-core.mjs";
 
 const standing = (type = "keep", treasury = 5000) => ({ ...newBastion(type), weeksLeft: 0, treasury });
@@ -157,4 +157,15 @@ test("a state goes to the actor's fields and back unchanged", () => {
   assert.deepEqual(stateOf({ system: { toObject: () => stored } }), hurt);
   assert.deepEqual(stateOf({ system: stored }), hurt);   // a plain system object reads the same
   assert.equal(stateOf(null).type, "house");
+});
+
+test("a bastion's effects are its finished Granary and Barracks, and only while it stands", () => {
+  assert.equal(GRANARY_SAVING_GP, 10);
+  assert.deepEqual(BARRACKS_HEAL, { n: 1, faces: 6 });
+  const built = advanceWeek(buildAll(standing("keep"), ["granary", "barracks", "stable"]));
+  assert.deepEqual(effects(built), { granary: true, barracks: true });
+  const going = buildAll(standing("keep"), ["granary", "barracks"]);          // a week of building still to go
+  assert.deepEqual(effects(going), { granary: false, barracks: false });
+  assert.deepEqual(effects(advanceWeek(buildAll(standing("keep"), ["stable"]))), { granary: false, barracks: false });
+  assert.deepEqual(effects({ ...built, weeksLeft: 2 }), { granary: false, barracks: false });   // not raised
 });

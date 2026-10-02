@@ -87,8 +87,9 @@ down** frees the slot and refunds nothing; the other upgrades keep their places.
 | Vault | 200 | Securely store up to 100 gear slots of items |
 | Wizard Tower | 400 | +1 to INT spellcasting checks in the bastion |
 
-The sheet records these effects but doesn't apply them yet: you rule on them at
-the table.
+Two effects are applied for you, to warbands [garrisoned](Warbands.md) at the bastion
+while it stands: the **Granary** makes each cost 10 gp less a month, and the **Barracks**
+heals each 1d6 more a day. The rest the sheet records and you rule on at the table.
 
 **Plan.** The bastion drawn two ways:
 

@@ -74,6 +74,8 @@ export function bastionApi() {
     partyOf: (ref) => { const actor = find(ref); const uuid = isBastion(actor) ? actor.system.party : ""; return uuid ? fromUuidSync(uuid, { strict: false }) ?? null : null; },
     // The bastions a party owns (actors).
     forParty: (ref) => { const party = find(ref); return party ? game.actors.filter((a) => isBastion(a) && a.system.party === party.uuid) : []; },
+    // The effects other features apply: { granary, barracks }, true only for a standing bastion's finished upgrade.
+    effects: (ref) => { const actor = find(ref); return isBastion(actor) ? core.effects(core.stateOf(actor)) : { granary: false, barracks: false }; },
     // The upgrades that are finished and so give their effect.
     built: (ref) => { const actor = find(ref); return isBastion(actor) ? core.builtUpgrades(core.stateOf(actor)) : []; },
   };
