@@ -26,7 +26,8 @@ it needs.
   paid once), and the **Library** gives the owning party +1 on Martial Training and Magical
   Research downtime checks, and the **Trophy Room** gives them 1 XP for each notable trophy
   placed on the sheet (through Party XP), and the **Vault** holds up to 100 gear slots of items
-  dropped on the sheet. The first two go through a new Garrison box on the
+  dropped on the sheet, and a mount stabled at a bastion with a **Stable** shows no starvation
+  warning. The first two go through a new Garrison box on the
   Warband tab, and shown on the upkeep and healing cards. A bastion can name the party that owns it, and **Pay in** and
   **Pay out** move whole gold between a member's purse and the treasury (Extras keeps a
   party's own coins in its own data, so those are left alone). A **Bastions** panel lists the

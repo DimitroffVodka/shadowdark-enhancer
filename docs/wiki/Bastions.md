@@ -87,7 +87,7 @@ down** frees the slot and refunds nothing; the other upgrades keep their places.
 | Vault | 200 | Securely store up to 100 gear slots of items |
 | Wizard Tower | 400 | +1 to INT spellcasting checks in the bastion |
 
-Six effects are applied for you while the bastion stands:
+Seven effects are applied for you while the bastion stands:
 
 - the **Granary** makes each warband [garrisoned](Warbands.md) there cost 10 gp less a month;
 - the **Barracks** heals each of them 1d6 more a day;
@@ -109,7 +109,11 @@ Six effects are applied for you while the bastion stands:
   their pack, anything else is copied in, and gear that would pass 100 slots is refused. The
   button on a stored item hands it to a character of the party. A stack takes the slots it
   takes on a character (per-slot quantity and slots used). Each move is a copy first and a
-  delete second, so an item is never in two places and never lost.
+  delete second, so an item is never in two places and never lost;
+- the **Stable** means a mount **stabled** there needs no grazing or rations: pick the bastion
+  in the Care box on the mount's sheet ("Stabled at") and the starvation warning stays off
+  while the Stable stands. The days-since-food counter is still yours to keep, and water is
+  still needed.
 
 The rest the sheet records and you rule on at the table.
 

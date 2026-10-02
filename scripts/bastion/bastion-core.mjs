@@ -119,10 +119,11 @@ const TROPHY_NAME_MAX = 60;
  * library: the party's members get LIBRARY_BONUS on learning downtime checks.
  * trophyRoom: each notable trophy placed gives the party's members TROPHY_XP.
  * vault: the bastion can hold items, up to VAULT_SLOTS gear slots (bastion-vault-core.mjs).
+ * stable: mounts stabled here (a mount's `bastion`) need no grazing or rations.
  */
 export function effects(state) {
   const built = new Set(stats(state).standing ? builtUpgrades(state) : []);
-  return { granary: built.has("granary"), barracks: built.has("barracks"), casino: built.has("casino"), library: built.has("library"), trophyRoom: built.has("trophy-room"), vault: built.has("vault") };
+  return { granary: built.has("granary"), barracks: built.has("barracks"), casino: built.has("casino"), library: built.has("library"), trophyRoom: built.has("trophy-room"), vault: built.has("vault"), stable: built.has("stable") };
 }
 
 /** Place a notable trophy in a finished Trophy Room: its name is kept (the last KEEP_TROPHIES) and logged. `error`: "trophyRoom" | "name". */
