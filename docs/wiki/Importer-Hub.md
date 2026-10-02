@@ -275,13 +275,14 @@ Game Master's Guide to the Western Reaches files 270 keyed hexes across 15
 regions this way. Run it again whenever you like: pages are matched by their
 hex number and updated in place, never duplicated.
 
-**Adventures** reads the numbered locations of a Cursed Scroll's adventures out
-of your own PDF. Pick one book, or all six, and each adventure is filed as one
+**Adventures** reads the numbered locations of the Cursed Scrolls' adventures and
+the six Western Reaches Mini Adventures out of your own PDFs. Pick one book, or all
+of them, and each adventure is filed as one
 journal entry with a page per location (`12. Meteorite Room`): the keyed
 description, the bulleted details and the traps, with every "Area 12" reference
 linked to that location's page. Run it again whenever you like: pages are matched
-by number and updated in place, never duplicated. Twenty-five adventure maps are
-covered, 290 locations in all (the City of Masks is filed twice, see below):
+by number and updated in place, never duplicated. Thirty-one adventure maps are
+covered, 344 locations in all (the City of Masks is filed twice, see below):
 
 | Book | Adventures | Locations |
 |---|---|---:|
@@ -291,11 +292,17 @@ covered, 290 locations in all (the City of Masks is filed twice, see below):
 | Cursed Scroll 4 | The nine mini-adventures: Army Ants, Basilisk Cult, Black Ziggurat, Chanichu, Eclipse Dial, Flooded Ruins, Star Map Temple, The Black Seed, Tsibalba | 9, 9, 9, 9, 8, 9, 8, 3, 10 |
 | Cursed Scroll 5 | The Ghoulish Library of Leng, levels 1 and 2 | 28 + 36 |
 | Cursed Scroll 6 | The City of Masks, one journal per district, and one for the whole city | 6, 6, 6, 6, 6, 6, 7, 7, and all 50 |
+| Western Reaches Mini Adventures | House of Rogues; Grotto of the Golden Swan; Forge of the Metallic Sisters; Fallen Keep of the Emerald Knight; Burial Mound of Kaghan; Chapel of the Plague Priestesses | 9, 8, 8, 11, 8, 10 |
 
 The City of Masks is filed as one journal per district and again as one
 journal for the whole city, the same fifty locations in each. Use the whole-city
 journal with the city's overview map to get every pin on a single scene, or a
 district's with that district's map.
+
+Each Mini Adventure is its own two-page PDF (its intro and map, then its key), so
+each is its own book: link them under Source PDFs, or put them in your `assets`
+folder under their own file names (`House of Rogues V1.pdf` and so on). Only the
+numbered key is filed; the intro page and its random encounters are not.
 
 The hex crawls of Cursed Scrolls 1 to 5 stay under **Key locations** (they are
 keyed by hex number, not room number). If a read does not give every location

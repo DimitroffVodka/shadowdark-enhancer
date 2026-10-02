@@ -29,7 +29,8 @@
  *
  * Verified against the six PDFs with the module's own extractor and parser,
  * page by page: 33, 35 (19 + 16), 34 (5 + 29), 9 x 9 (+ 10 + 3 + 8), 64
- * (28 + 36) and 50 locations, which City of Masks files twice (per district, and whole).
+ * (28 + 36) and 50 locations, which City of Masks files twice (per district, and whole);
+ * and the six Western Reaches Mini Adventures: 9, 8, 8, 11, 8 and 10.
  */
 
 /** A district's banner line and the three facts printed above its first location. */
@@ -42,6 +43,15 @@ const DISTRICT_BANNER = "District$|^(?:Class|Category|City Guard Arrives):";
  */
 const cs4 = (id, title, intro, last, grid) => ({
   id: `cs4-${id}`, title, pages: String(intro + 1), range: [1, last], style: "inline", grid,
+});
+
+/**
+ * A Western Reaches Mini Adventure: a two-page PDF of its own, the intro and map
+ * on page 1 and the key on page 2, in the inline style. Page 1 holds no numbered
+ * location, so only the key page is read.
+ */
+const mini = (id, title, last, grid) => ({
+  id: `wrma-${id}`, title, pages: "2", range: [1, last], style: "inline", grid,
 });
 
 /** City of Masks: one district per two-page spread, the numbers run on through the city. */
@@ -88,6 +98,24 @@ export const ADVENTURE_SITES = {
     // The whole city on its one overview map: the same fifty locations again, so
     // one scene carries every pin. A district's journal stays as it is.
     { id: "cs6-city", title: "City of Masks", pages: "50-65", range: [1, 50], style: "caps", skip: DISTRICT_BANNER },
+  ],
+  WRMA_HOR: [
+    mini("house-of-rogues", "House of Rogues", 9, [30, 18]),
+  ],
+  WRMA_GGS: [
+    mini("grotto-golden-swan", "Grotto of the Golden Swan", 8, [22, 20]),
+  ],
+  WRMA_FMS: [
+    mini("forge-metallic-sisters", "Forge of the Metallic Sisters", 8, [36, 28]),
+  ],
+  WRMA_FKEK: [
+    mini("fallen-keep-emerald-knight", "Fallen Keep of the Emerald Knight", 11, [21, 22]),
+  ],
+  WRMA_BMK: [
+    mini("burial-mound-kaghan", "Burial Mound of Kaghan", 8, [28, 21]),
+  ],
+  WRMA_CPP: [
+    mini("chapel-plague-priestesses", "Chapel of the Plague Priestesses", 10, [27, 20]),
   ],
 };
 

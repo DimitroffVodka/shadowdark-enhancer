@@ -6,6 +6,7 @@ import {
 } from "../scripts/importer/adventure/adventure-parser.mjs";
 import { ADVENTURE_SITES, allSites, adventureBooks, findSite } from "../scripts/importer/adventure/adventure-manifest.mjs";
 import { planSitePages } from "../scripts/importer/adventure/adventure-book-import.mjs";
+import { CHAR_SOURCES, SOURCE_PDFS } from "../scripts/importer/char-content/char-content-manifest.mjs";
 
 // All fixture text is invented: no line here comes from a Shadowdark book.
 
@@ -135,6 +136,24 @@ test("the manifest: unique ids, sane ranges, readable pages", () => {
   assert.equal(findSite("cs1-mugdulblub").src, "CS1");
   assert.equal(findSite("nope"), null);
   assert.equal(allSites("CS6").length, 9);
+});
+
+test("every adventure book is a known source with a PDF to link", () => {
+  for (const src of adventureBooks()) {
+    assert.ok(CHAR_SOURCES[src]?.label, `${src}: no CHAR_SOURCES entry`);
+    assert.match(SOURCE_PDFS[src] ?? "", /^assets\/.+\.pdf$/, `${src}: no default PDF path`);
+  }
+});
+
+test("the Western Reaches Mini Adventures are one site each, read from their key page", () => {
+  const minis = adventureBooks().filter((b) => b.startsWith("WRMA_"));
+  assert.equal(minis.length, 6);
+  for (const src of minis) {
+    const sites = ADVENTURE_SITES[src];
+    assert.equal(sites.length, 1);
+    assert.deepEqual([sites[0].pages, sites[0].style, sites[0].range[0]], ["2", "inline", 1]);
+  }
+  assert.deepEqual(minis.map((b) => ADVENTURE_SITES[b][0].range[1]), [9, 8, 8, 11, 8, 10]);
 });
 
 test("the two halves of a split dungeon cover one run of numbers", () => {
