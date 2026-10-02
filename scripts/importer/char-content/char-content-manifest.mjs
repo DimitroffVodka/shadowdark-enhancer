@@ -39,6 +39,14 @@ export const CHAR_SOURCES = {
   CS4: { label: "Cursed Scroll 4", book: "Cursed Scroll 4 — River of Night" },
   CS5: { label: "Cursed Scroll 5", book: "Cursed Scroll 5 — Dwellers in the Deep" },
   CS6: { label: "Cursed Scroll 6", book: "Cursed Scroll 6 — City of Masks" },
+  // The Western Reaches Mini Adventures are six separate two-page PDFs, one book
+  // each, so each needs its own key to link its own file.
+  WRMA_HOR: { label: "Mini Adventure: House of Rogues", book: "Western Reaches Mini Adventures — House of Rogues" },
+  WRMA_GGS: { label: "Mini Adventure: Grotto of the Golden Swan", book: "Western Reaches Mini Adventures — Grotto of the Golden Swan" },
+  WRMA_FMS: { label: "Mini Adventure: Forge of the Metallic Sisters", book: "Western Reaches Mini Adventures — Forge of the Metallic Sisters" },
+  WRMA_FKEK: { label: "Mini Adventure: Fallen Keep of the Emerald Knight", book: "Western Reaches Mini Adventures — Fallen Keep of the Emerald Knight" },
+  WRMA_BMK: { label: "Mini Adventure: Burial Mound of Kaghan", book: "Western Reaches Mini Adventures — Burial Mound of Kaghan" },
+  WRMA_CPP: { label: "Mini Adventure: Chapel of the Plague Priestesses", book: "Western Reaches Mini Adventures — Chapel of the Plague Priestesses" },
 };
 
 /**
@@ -62,6 +70,12 @@ export const SOURCE_PDFS = {
   CS4:  "assets/Cursed Scroll 4 - River of Night V1-4.pdf",
   CS5:  "assets/Cursed Scroll 5 - Dwellers in the Deep V1.pdf",
   CS6:  "assets/Cursed Scroll 6 - City of Masks V1.pdf",
+  WRMA_HOR: "assets/House of Rogues V1.pdf",
+  WRMA_GGS: "assets/Grotto of the Golden Swan V1.pdf",
+  WRMA_FMS: "assets/Forge of the Metallic Sisters V1.pdf",
+  WRMA_FKEK: "assets/Fallen Keep of the Emerald Knight V1.pdf",
+  WRMA_BMK: "assets/Burial Mound of Kaghan V1.pdf",
+  WRMA_CPP: "assets/Chapel of the Plague Priestesses V1-1.pdf",
 };
 
 /**

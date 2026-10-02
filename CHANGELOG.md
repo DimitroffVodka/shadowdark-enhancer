@@ -11,6 +11,12 @@ it needs.
 
 ### Added
 
+- **The six Western Reaches Mini Adventures import as journals.** Tools → **Adventures**
+  now also reads House of Rogues, Grotto of the Golden Swan, Forge of the Metallic
+  Sisters, Fallen Keep of the Emerald Knight, Burial Mound of Kaghan and Chapel of the
+  Plague Priestesses from your own PDFs (each is its own two-page book): one journal
+  each with a page per numbered room, 54 rooms in all, "Area N" references linked. Their
+  maps are placed with Adventure map by clicking, as the other adventures are.
 - **The Cursed Scrolls' adventures import, and their keyed locations go on the map.**
   Importer Hub → Tools → **Adventures** reads the numbered locations of every
   Cursed Scroll adventure out of your own PDF (Cursed Scrolls 1 to 6: the Hideous
