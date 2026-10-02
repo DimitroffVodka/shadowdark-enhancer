@@ -147,6 +147,26 @@ test("the hub template shows the step and wires both buttons", () => {
   assert.match(app, /rulesStep: this\._rulesStep\(\)/);
 });
 
+test("the step sits inside the Manage strip, out of the paste view (#311)", () => {
+  const tpl = readFileSync("templates/importer-hub.hbs", "utf8");
+  const manageAt = tpl.indexOf('class="sde-hub-manage"');
+  const manageEnd = tpl.indexOf("</details>", manageAt);
+  const stepAt = tpl.indexOf("data-rules-step");
+  assert.ok(manageAt !== -1 && manageEnd !== -1 && stepAt !== -1, "the whole strip and the step are still in the template");
+  assert.ok(stepAt > manageAt && stepAt < manageEnd, "the step is inside the Manage details, not between the paste box and Manage");
+  assert.ok(!tpl.slice(0, manageAt).includes("data-rules-step"), "the paste view no longer carries the step");
+});
+
+test("Open Rules Data expands the Manage strip before scrolling to the step (#311)", () => {
+  const src = readFileSync("scripts/importer/importer-hub-rules.mjs", "utf8");
+  const body = src.slice(src.indexOf("static async openRulesData"));
+  const expand = body.indexOf("_manageExpanded = true");
+  const open = body.indexOf("this.open()");
+  const scroll = body.indexOf("scrollIntoView");
+  assert.ok(expand !== -1, "the strip is expanded");
+  assert.ok(expand < open && open < scroll, "expansion comes before the hub opens, and the scroll comes last");
+});
+
 test("the Settings menu entry stays: two doors to one window", () => {
   const settings = readFileSync("scripts/shared/settings.mjs", "utf8");
   assert.match(settings, /registerMenu\(MODULE_ID, "rulesData"[\s\S]*?type: RulesDataApp/);
