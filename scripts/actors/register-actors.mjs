@@ -5,7 +5,7 @@
  * `documentTypes` key (see module.json). Type ids namespace to
  * `<module-id>.<type>` → `shadowdark-enhancer.mount` / `.boat`.
  *
- * MOUNT: reuses the Shadowdark system's own `NpcSD` data model and a subclass
+ * MOUNT: extends the Shadowdark system's own `NpcSD` data model and a subclass
  * of its `NpcSheetSD` sheet, so a mount IS a Shadowdark NPC (existing stat
  * blocks, NPC Attacks/Features/Spells plug straight in) with three extra tabs
  * (Riders / Inventory / Mount). The base classes are read from the live CONFIG
@@ -26,6 +26,7 @@ import { MODULE_ID } from "../shared/module-id.mjs";
 import { BoatDataModel } from "./boat-data-model.mjs";
 import { BoatSheet } from "./boat-sheet.mjs";
 import { buildMountNpcSheet } from "./mount-npc-sheet.mjs";
+import { buildMountNpcModel, registerMountScores } from "./mount-scores.mjs";
 import { buildWarbandNpcSheet, registerWarbandWrites, warbandState } from "./warband-npc-sheet.mjs";
 import { registerMakeWarband } from "./make-warband.mjs";
 import { warbandRolledHp, toughHp } from "./warband-core.mjs";
@@ -54,7 +55,8 @@ export function registerActorTypes() {
   const NpcModel = CONFIG.Actor.dataModels?.NPC ?? game.system?.models?.NpcSD;
   const BaseNpcSheet = resolveNpcSheetClass();
   if (NpcModel && BaseNpcSheet) {
-    CONFIG.Actor.dataModels[MOUNT_TYPE] = NpcModel;
+    CONFIG.Actor.dataModels[MOUNT_TYPE] = buildMountNpcModel(NpcModel);
+    registerMountScores();
     const MountNpcSheetSD = buildMountNpcSheet(BaseNpcSheet);
     DSC.registerSheet(Actor, MODULE_ID, MountNpcSheetSD, {
       types: [MOUNT_TYPE],

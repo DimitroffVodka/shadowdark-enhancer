@@ -1,0 +1,146 @@
+{{!-- Ported from the existing ApplicationV2 Party sheet, not a replacement design. --}}
+<div class="sde-party-body flexcol" data-tokenizer-skip="true">
+{{#if picker}}<div class="sde-party-picker"><select data-party-choice aria-label="{{localize 'SDE.party.choose'}}"><option value="">{{localize "SDE.party.choose"}}</option>{{#each parties}}<option value="{{uuid}}" {{#if selected}}selected{{/if}}>{{name}}</option>{{/each}}</select>{{#if isGM}}<button type="button" data-action="create">{{localize "SDE.party.create"}}</button>{{/if}}</div>{{/if}}
+{{#if hasParty}}
+	<header class="party-header SD-header">
+		<img class="party-portrait portrait" src="{{ actor.img }}" data-action="editImage" data-edit="img" data-tooltip="{{ actor.name }}"
+			height="50" width="50" />
+		<div class="party-header-content">
+			<div class="party-title">
+				<input name="name" type="text" value="{{ actor.name }}"
+					placeholder="{{localize 'SDE.party.sheet.extras.name_placeholder'}}" />
+
+			</div>
+			<div class="party-summary">
+				<div class="party-stat" data-tooltip="{{localize 'SDE.party.sheet.extras.tab.members'}}">
+					<i class="fas fa-users"></i>
+					<span>{{memberCount}}</span>
+				</div>
+				<div class="party-stat" data-tooltip="{{localize 'SDE.party.sheet.hp'}}">
+					<i class="fas fa-heart"></i>
+					<span>{{partyStats.totalHp}} / {{partyStats.maxHp}}</span>
+				</div>
+				<div class="party-stat" data-tooltip="{{localize 'SDE.party.sheet.ac'}}">
+					<i class="fas fa-shield-alt"></i>
+					<span>{{partyStats.avgAc}}</span>
+				</div>
+				<div class="party-stat" data-tooltip="{{localize 'SHADOWDARK.sheet.player.level.label'}}">
+					<i class="fas fa-star"></i>
+					<span>{{partyStats.avgLevel}}</span>
+				</div>
+			</div>
+		</div>
+	<section class="sde-party-formation" aria-label="{{localize 'SDE.party.movement.formation'}}">
+<h3 class="sde-party-formation-title">{{localize "SDE.party.movement.formation"}}</h3>
+<div class="sde-party-grid">{{#each slots}}<button type="button" data-formation-slot data-row="{{row}}" data-col="{{col}}" data-uuid="{{uuid}}" {{#if uuid}}data-action="leader" draggable="true"{{/if}} {{#if disabled}}disabled{{/if}} class="{{#if leader}}leader{{/if}}" title="{{name}}" aria-label="{{#if name}}{{name}}{{else}}{{localize 'SDE.party.movement.emptySlot'}}{{/if}}">{{#if img}}<img src="{{img}}" alt="">{{/if}}</button>{{/each}}</div>
+<div><p class="sde-party-leader"><span class="sde-party-label">{{localize "SDE.party.movement.leaderLabel"}}:</span> {{#if hasLeader}}{{leaderName}}{{else}}{{localize "SDE.party.movement.noLeader"}}{{/if}}</p><label><input type="checkbox" data-movement-setting="followLeader" {{#if followLeader}}checked{{/if}} {{#unless canEdit}}disabled{{/unless}}> {{localize "SDE.party.movement.follow"}}</label><label><input type="checkbox" data-movement-setting="includeMounts" {{#if includeMounts}}checked{{/if}} {{#unless canEdit}}disabled{{/unless}}> {{localize "SDE.party.movement.includeMounts"}}</label><p class="sde-party-follow-status"><span class="sde-party-label">{{localize "SDE.party.movement.statusLabel"}}:</span> {{followStatus}}</p><div class="party-actions"><button type="button" data-action="placeRecall" {{#if movementDisabled}}disabled{{/if}} title="{{movementReason}}">{{localize "SDE.party.movement.placeRecall"}}</button>{{#if canResume}}<button type="button" data-action="resumeFollow">{{localize "SDE.party.movement.resume"}}</button>{{/if}}</div></div></section>
+</header>
+<nav class="SD-nav tabs flex0">{{#each tabs}}<a class="navigation-tab {{#if active}}active{{/if}}" data-action="partyTab" data-tab="{{key}}" role="button" tabindex="0"><i class="{{icon}}"></i>{{label}}</a>{{/each}}</nav>
+<section class="SD-content-body flex1">
+{{#if unsupported}}<p>{{localize "SDE.party.sdxNotAdopted"}}</p>{{else}}{{#if unknown}}<p>{{localize "SDE.party.unknownRoster"}}</p>{{else}}
+{{#if needsAdoption}}<button type="button" data-action="adopt">{{localize "SDE.party.adopt"}}</button>{{/if}}
+{{#if formationReview}}<p>{{localize "SDE.party.movement.review"}}</p>{{/if}}
+<div class="tab tab-members {{#if membersTab}}active{{/if}}">
+{{#if canEdit}}<div class="party-actions"><button type="button" data-action="camp"><i class="fas fa-campground"></i> {{localize "SDE.party.camp"}}</button><button type="button" data-action="carouse"><i class="fas fa-beer-mug-empty"></i> {{localize "SDE.party.carouse"}}</button></div>{{/if}}
+<div class="members-list">{{#each groups}}{{#if rows.length}}<h3>{{label}}</h3>{{#each rows as |member|}}					<div class="member" data-uuid="{{member.uuid}}" data-member-id="{{member.memberKey}}">
+						<div class="member-portrait">
+							<img src="{{member.img}}" alt="{{member.name}}" data-action="member" data-uuid="{{member.uuid}}" />
+							{{!-- HP Wave Animation Overlay --}}
+							{{#if member.hpWavesEnabled}}
+							<div class="hp-wave-container {{member.hpWaveClass}}"
+								style="--hp-translate: {{member.hpWaveTranslate}}%; --hp-wave-color: {{member.hpWaveColor}};">
+								<svg class="hp-waves" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 100"
+									preserveAspectRatio="none">
+									<path class="wave-path"
+										d="M0 5 C 100 0, 200 10, 300 5 C 400 0, 500 10, 600 5 V 100 H 0 Z" />
+									<path class="wave-path"
+										d="M0 10 C 100 15, 200 5, 300 10 C 400 15, 500 5, 600 10 V 100 H 0 Z" />
+									<path class="wave-path"
+										d="M0 15 C 100 10, 200 20, 300 15 C 400 10, 500 20, 600 15 V 100 H 0 Z" />
+									<path class="wave-path"
+										d="M0 20 C 100 25, 200 15, 300 20 C 400 25, 500 15, 600 20 V 100 H 0 Z" />
+								</svg>
+							</div>
+							{{/if}}
+							{{#if member.canEdit}}
+							<a class="remove-member" data-action="remove" data-uuid="{{member.uuid}}"
+								data-tooltip="{{localize 'SDE.party.sheet.extras.remove_member'}}">
+								<i class="fas fa-times"></i>
+							</a>
+							{{/if}}
+						</div>
+						<div class="member-info">
+							<div class="member-header">
+								<a class="member-name" data-action="member" data-uuid="{{member.uuid}}">{{member.name}}</a>
+								<span class="member-class">{{member.className}}</span>
+							</div>
+							<div class="member-stats">
+								<div class="stat hp">
+									<span class="label">{{localize "SDE.party.sheet.hp"}}</span>
+									<span class="value">{{member.hp.value}} / {{member.hp.max}}</span>
+									<div class="hp-bar">
+										<div class="hp-fill" style="width: {{member.hpPercent}}%"></div>
+									</div>
+								</div>
+								<div class="stat ac">
+									<span class="label">{{localize "SDE.party.sheet.ac"}}</span>
+									<span class="value">{{member.ac}}</span>
+								</div>
+								{{#unless member.isNPC}}
+								<div class="stat level">
+									<span class="label">{{localize "SDE.party.sheet.level"}}</span>
+									<span class="value">{{member.level}}</span>
+								</div>
+								<div class="stat slots" data-tooltip="{{localize 'SHADOWDARK.inventory.slots'}}">
+									<span class="label">{{localize "SDE.party.sheet.slots"}}</span>
+									<span class="value">{{member.slots.used}}/{{member.slots.max}}</span>
+								</div>
+								<div class="stat xp">
+									<span class="label">{{localize "SDE.party.sheet.xp"}}</span>
+									<span class="value">{{member.xp.current}}/{{member.xp.next}}</span>
+								</div>
+								{{/unless}}
+							</div>
+							<div class="member-abilities">
+								<div class="ability" data-tooltip="{{localize 'SHADOWDARK.ability.str.long'}}">
+									<span class="label">{{localize "SDE.party.sheet.str"}}</span>
+									<span class="mod">{{member.abilityLabels.str}}</span>
+								</div>
+								<div class="ability" data-tooltip="{{localize 'SHADOWDARK.ability.dex.long'}}">
+									<span class="label">{{localize "SDE.party.sheet.dex"}}</span>
+									<span class="mod">{{member.abilityLabels.dex}}</span>
+								</div>
+								<div class="ability" data-tooltip="{{localize 'SHADOWDARK.ability.con.long'}}">
+									<span class="label">{{localize "SDE.party.sheet.con"}}</span>
+									<span class="mod">{{member.abilityLabels.con}}</span>
+								</div>
+								<div class="ability" data-tooltip="{{localize 'SHADOWDARK.ability.int.long'}}">
+									<span class="label">{{localize "SDE.party.sheet.int"}}</span>
+									<span class="mod">{{member.abilityLabels.int}}</span>
+								</div>
+								<div class="ability" data-tooltip="{{localize 'SHADOWDARK.ability.wis.long'}}">
+									<span class="label">{{localize "SDE.party.sheet.wis"}}</span>
+									<span class="mod">{{member.abilityLabels.wis}}</span>
+								</div>
+								<div class="ability" data-tooltip="{{localize 'SHADOWDARK.ability.cha.long'}}">
+									<span class="label">{{localize "SDE.party.sheet.cha"}}</span>
+									<span class="mod">{{member.abilityLabels.cha}}</span>
+								</div>
+							</div>
+						</div>
+						<div class="member-effects {{#unless member.effects.length}}empty{{/unless}}">
+							{{#each member.effects as |effect|}}
+							<div class="effect-icon" data-tooltip="{{effect.name}}">
+								<img src="{{effect.img}}" alt="{{effect.name}}" />
+							</div>
+							{{/each}}
+						</div>
+					</div>{{/each}}{{/if}}{{/each}}{{#unless members.length}}<div class="members-empty"><i class="fas fa-users fa-3x"></i><p>{{localize "SDE.party.empty"}}</p><p>{{localize "SDE.party.sheet.dropMembers"}}</p></div>{{/unless}}</div>
+</div>
+<div class="tab tab-inventory {{#if itemsTab}}active{{/if}}"><div class="inventory-grid"><div class="inventory-main"><div class="SD-box"><div class="header"><label>{{#if canEdit}}<a class="fa-solid fa-square-plus" data-action="createItem" title="{{localize 'SDE.party.sheet.newItem'}}"></a>{{/if}}{{localize "SDE.party.items"}}</label><span>{{localize "SDE.party.sheet.slots"}}: {{inventorySlots.used}} / {{inventorySlots.max}}</span></div><div class="content"><ol class="SD-list item-list party-item-list"><li class="header"><div class="item-name">{{localize "SDE.party.sheet.itemName"}}</div><div class="quantity">{{localize "SDE.party.sheet.quantity"}}</div><div class="slots-cost">{{localize "SDE.party.sheet.slots"}}</div><div class="actions"></div></li>
+{{#each items}}<li class="item" data-item-id="{{id}}"><img class="item-image" src="{{img}}" alt=""><a class="item-name" data-action="item" data-id="{{id}}">{{name}}</a><div class="quantity">{{#if ../canEdit}}<a data-action="quantity" data-id="{{id}}" data-delta="-1" aria-label="{{localize 'SDE.party.sheet.decrease'}}"><i class="fas fa-minus"></i></a>{{/if}}{{quantity}}{{#if ../canEdit}}<a data-action="quantity" data-id="{{id}}" data-delta="1" aria-label="{{localize 'SDE.party.sheet.increase'}}"><i class="fas fa-plus"></i></a>{{/if}}</div><div class="slots-cost">{{slots}}</div><div class="actions"></div></li>{{else}}<li class="empty-list">{{localize "SDE.party.empty"}}</li>{{/each}}
+</ol></div></div></div><div class="inventory-sidebar"><div class="SD-box"><div class="header"><label>{{localize "SDE.party.sheet.treasury"}}</label></div><div class="content"><div class="party-coins-grid">{{#each coins as |value key|}}<label>{{key}}</label><input type="number" class="coin-value" data-coin="{{key}}" value="{{value}}" min="0" aria-label="{{key}}" {{#unless ../canEdit}}disabled{{/unless}}>{{/each}}</div></div></div></div></div></div>
+<div class="tab tab-travel {{#if travelTab}}active{{/if}}"><div class="party-actions sde-party-activities"><button type="button" data-action="camp" aria-pressed="{{campingActive}}"><i class="fas fa-campground"></i> {{localize "SDE.camping.title"}}</button><button type="button" data-action="carouse" aria-pressed="{{carousingActive}}"><i class="fas fa-beer-mug-empty"></i> {{localize "SDE.carousing.title"}}</button></div>{{{activityHTML}}}</div>
+<div class="tab tab-quests {{#if questsTab}}active{{/if}}">{{{questHTML}}}</div>
+<div class="tab tab-description {{#if descriptionTab}}active{{/if}}"><div class="SD-box description-box"><div class="header"><label>{{localize "SDE.party.sheet.description"}}</label>{{#if canEdit}}<button type="button" data-action="editDescription" title="{{localize 'SDE.party.sheet.edit'}}"><i class="fas fa-edit"></i> {{localize "SDE.party.sheet.edit"}}</button>{{/if}}</div><div class="content description-content">{{#if editingDescription}}<textarea data-party-description rows="8" aria-label="{{localize 'SDE.party.sheet.description'}}">{{description}}</textarea><div class="party-actions"><button type="button" data-action="saveDescription">{{localize "SDE.party.sheet.save"}}</button><button type="button" data-action="cancelDescription">{{localize "SDE.camping.cancel"}}</button></div>{{else}}{{#if descriptionHTML}}{{{descriptionHTML}}}{{else}}<p class="empty-description">{{localize "SDE.party.sheet.noDescription"}}</p>{{/if}}{{/if}}</div></div></div>
+{{/if}}{{/if}}</section>{{else}}<p>{{localize "SDE.party.choose"}}</p>{{/if}}</div>

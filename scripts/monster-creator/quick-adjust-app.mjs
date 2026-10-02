@@ -1,4 +1,5 @@
 import { MODULE_ID } from "../shared/module-id.mjs";
+import { isParty } from "../party/party.mjs";
 import {
   getGuidelinesTable,
   guidelineFor,
@@ -74,6 +75,7 @@ export class QuickAdjustApp extends HandlebarsApplicationMixin(ApplicationV2) {
   /** Only one panel at a time; clicking a different token retargets it rather
    *  than stacking a second window. */
   static open(actor) {
+    if (!actor || isParty(actor)) return null;
     const live = QuickAdjustApp._instance;
     if (live?.rendered) {
       live.actor = actor;
@@ -256,7 +258,7 @@ export class QuickAdjustApp extends HandlebarsApplicationMixin(ApplicationV2) {
 
   static async _onApply() {
     const actor = this.actor;
-    if (!game.user.isGM) return;
+    if (!game.user.isGM || isParty(actor)) return;
 
     const target = this._targetLevel();
     const plan = this._plan(target);
@@ -443,7 +445,7 @@ export function registerQuickAdjustHUD() {
   Hooks.on("renderTokenHUD", (hud, html, _tokenData) => {
     if (!game.user.isGM) return;
     const actor = hud?.object?.actor;
-    if (!actor || actor.type !== "NPC") return;
+    if (!actor || actor.type !== "NPC" || isParty(actor)) return;
 
     // v14 hands over an HTMLElement; older callers (and some modules) still
     // pass jQuery. Handle both, like the loot HUD button does.

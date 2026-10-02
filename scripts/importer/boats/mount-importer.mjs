@@ -19,6 +19,7 @@ import {
 import { draftToActorData } from "../../monster-creator/encounter-creator.mjs";
 import { cleanImportHtml } from "../../shared/compendium-suite.mjs";
 import { alreadyImported } from "./mount-parser.mjs";
+import { mountScores } from "../../actors/mount-scores-core.mjs";
 
 /** Stable top-level folder for every imported Mount Actor. */
 export const MOUNT_FOLDER_NAME = "Mounts";
@@ -132,6 +133,10 @@ export const MountImporter = {
         const { actorData, items } = draftToActorData(draft);
         // Override to the mount (or warband) type.
         actorData.type = k.type;
+        if (kind === "Mount") {
+          actorData.flags ??= {};
+          actorData.flags[MODULE_ID] = { ...actorData.flags[MODULE_ID], mountScores: mountScores(actorData.system?.abilities) };
+        }
         actorData.folder = folder;
         // Sanitize HTML.
         if (actorData.system?.notes) actorData.system.notes = cleanImportHtml(actorData.system.notes);

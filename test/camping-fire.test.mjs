@@ -1,0 +1,36 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import { handleCamp, refreshCampFires } from "../scripts/camping/camping.mjs";
+const M = "shadowdark-enhancer";
+test("begin anchors the camp at committed coordinates during token animation", async () => {
+  const pc = { id: "pc", uuid: "Actor.pc", type: "Player" };
+  const flags = { [M]: { party: true, partyData: { version: 1, members: [pc.uuid] }, sentinel: true } };
+  globalThis._replace = value => value;
+  const party = { id: "party", type: "NPC", flags, testUserPermission: () => true, update: async data => { flags[M].camping = data[`flags.${M}.camping`]; } };
+  const user = { id: "gm", isGM: true };
+  globalThis.foundry = { utils: { randomID: () => "camp" } };
+  globalThis.game = { user, users: { activeGM: user }, actors: { contents: [party, pc], get: id => id === party.id ? party : pc }, settings: { settings: new Map() } };
+  const token = { actorId: "pc", x: 500, y: 500, width: 1, height: 2, _source: { x: 3000, y: 2500 } };
+  globalThis.canvas = { scene: { id: "scene", grid: { size: 100 }, tokens: { contents: [token] } } };
+  const reply = await handleCamp({ partyId: party.id, action: "begin" }, user);
+  assert.equal(reply.ok, true);
+  assert.deepEqual(flags[M].camping.anchor, { sceneId: "scene", x: 3050, y: 2600 });
+  assert.equal(flags[M].sentinel, true);
+});
+test("fire proximity follows committed movement even while token animation is still near", async () => {
+  const pc = { id: "pc", uuid: "Actor.pc" }, camp = { id: "camp", anchor: { sceneId: "scene", x: 550, y: 550 }, participants: [{ uuid: pc.uuid, participate: true }], fire: { lit: true, started: 0, lightId: "fire" } };
+  const flags = { [M]: { party: true, camping: camp, sentinel: true }, other: { retained: true } };
+  globalThis._replace = value => value;
+  const party = { id: "party", type: "NPC", flags, update: async data => { flags[M].camping = data[`flags.${M}.camping`]; } };
+  let deleted = 0;
+  const light = { flags: { [M]: { campFire: { campId: "camp" } } }, delete: async () => { deleted++; } };
+  const token = { actorId: "pc", x: 500, y: 500, width: 1, height: 1, _source: { x: 3000, y: 3000 } };
+  const scene = { grid: { size: 100, distance: 5 }, tokens: { contents: [token] }, lights: new Map([["fire", light]]) };
+  const user = { id: "gm", isGM: true };
+  globalThis.game = { user, users: { activeGM: user }, time: { worldTime: 1 }, actors: { contents: [party, pc] }, scenes: new Map([["scene", scene]]) };
+  await refreshCampFires();
+  assert.equal(deleted, 1);
+  assert.equal(flags[M].camping.fire.lit, false);
+  assert.equal(flags[M].sentinel, true);
+  assert.equal(flags.other.retained, true);
+});

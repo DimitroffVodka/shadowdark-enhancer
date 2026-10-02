@@ -141,3 +141,12 @@ test("partyHex on a map with no numbering tells hexes apart by place, so the maj
   w.tokens = { controlled: [], placeables: [token(50, 50), token(150, 50), token(160, 60)] };
   assert.equal(partyHex(w).terrain, "swamp", "two tokens in one hex outvote one in another, though no hex has a number");
 });
+test("ambiguous native parties never combine all players or choose the first Party for encounters", () => {
+  const w = world({ records: { "0_0": { terrain: "Forest" } } });
+  globalThis.game.user = { isGM: true };
+  globalThis.game.actors = { contents: ["a", "b"].map(id => ({ id, uuid: `Actor.${id}`, type: "NPC", flags: { [MOD]: { party: true } } })) };
+  w.tokens = { controlled: [], placeables: [{ center: { x: 50, y: 50 }, actor: { type: "Player", hasPlayerOwner: true } }] };
+  assert.equal(partyHex(w), null);
+  w.tokens.controlled = w.tokens.placeables;
+  assert.equal(partyHex(w).terrain, "forest", "explicit controlled location remains valid");
+});

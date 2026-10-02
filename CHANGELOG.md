@@ -1,6 +1,10 @@
 # Changelog
 
 ## [Unreleased]
+### Fixed
+- Make Party Travel actionable in-sheet: camping/carousing choices and results no longer open separate activity windows. Embed Party-scoped quest management and payout confirmation, and edit descriptions inline. Disable Place/Recall without a linked Party token and show Resume only for a deployed group; keep camp rules collapsible and saved results above task setup. Label unavailable carousing tiers and disable commitment until usable tables are selected.
+- Restore the existing ApplicationV2 Party-sheet layout, detailed portrait/stat/ability/effect cards and five tabs instead of the stripped-down replacement. Native flagged Party actors open their Party sheet normally; Create Actor offers Party while preserving the existing flagged-NPC representation. Remove the all-world actor dropdown; members are added explicitly by drag-and-drop.
+- Name the Party header's movement controls: a visible Marching formation heading, an explicit `Leader:` line, and a labelled `Status:` line, instead of one unlabelled leader-plus-status debug string. Restore visibly ticked native checkboxes across the sheet; Foundry 14's dark colour scheme was rendering them as unreadable solid squares.
 
 The Western Reaches release: overland travel across the map that came with
 your book, with its keyed locations and encounter tables on every hex, plus
@@ -11,6 +15,105 @@ it needs.
 
 ### Added
 
+- **Retry-safe shared quest payouts.** Confirmed recipients/effects are saved
+  before payout; per-character XP, coins, items and renown finish once after
+  partial failure or reload. Paid follows successful intended effects, empty
+  recipients are refused and old Paid quests stay paid without back-pay.
+  Failed XP/renown chat cards resume separately from Paid without repeating
+  rewards or successful reports. Gold each is available in the Quest Log;
+  the API also accepts optional gp/sp/cp rewards. Native Party/Camping/Carousing
+  and exploration docs explain optional Extras seams and unguarded-provider
+  limits. No release, publication or deployment is implied.
+- **Native adopted-scene hex fog.** One static overlay separates revealed terrain
+  from visited keyed locations. Tokens, route prices, coordinates, tooltip and
+  pins share disclosure; a visible mountain does not disclose its dungeon.
+  Paid selected-party travel visits cells; dawn only reveals terrain using the
+  native grid and imported visibility rules. Legacy fog and first-entry table
+  history are imported once without changing Extras data. Already-adopted,
+  untouched legacy records retain revealed terrain during the fog upgrade;
+  authored discovery and edited records remain authoritative. GM conceal preserves
+  visits and arrival history. Older Extras without the ownership stand-down
+  guard keeps overlapping native fog off, with one notice and no setting changes.
+- **Native Hexplorer tooltip and GM editor.** Hover a numbered cell for its
+  disclosed terrain, features and public notes; adopted unnumbered maps use
+  their native offsets rather than invented numbers. A short map click keeps a
+  small card with permitted journal/table links and the GM's Edit button.
+  The editor writes terrain and line features to the existing tags and rich
+  features, notes, links and discovery to the native records. Travel pricing
+  and disclosed views update immediately, without export/import or Extras.
+  Pins, token drags and long-press pings retain their existing handlers.
+  Extras' tooltip must be disabled before the native observer runs alongside it.
+- **Native scene-offset hex records and lossless adoption.** A single facade
+  composes existing terrain/feature tags, pinned keyed pages and regions with
+  rich records. Eligible scenes automatically import Extras' legacy records
+  into a GM-only journal compendium, preserving unknown fields, custom links, negative
+  offsets and original conflicts; existing Enhancer edits win. Gameplay on
+  adopted scenes reads native data with Extras disabled. Player projections
+  include only disclosed fields; explicitly hiding a visited location also
+  suppresses its pinned page title and link in the player facade.
+  Extras' original store is unchanged and may
+  already be player-readable; adoption cannot undo past disclosure. The SDX
+  authoring/painter-feature merge remains available. GM-only permissions and
+  filtered player views provide ordinary Foundry spoiler protection, not
+  encryption or confidentiality against deliberate raw document API access.
+- **Native basic carousing and Party history.** Each PC owner confirms their own
+  participation and full tier cost; personal coins only, no subsidies. Imported
+  Core or GM-selected tables gate all spending. Manual settlements, holiday
+  admission/event bonuses, downtime exclusion and 14-real-day cooldowns work
+  without a map or Extras. Saved rolls and actor-local progress protect Resume;
+  only explicit unconditional XP/Luck gains are automated; loss, negated/custom
+  rewards, narrative, expanded holiday and non-coin wealth effects stay visible GM actions.
+  Independent history feeds one stable Session Recap row. Extras' enabled
+  Carousing feature disables the native flow; no hidden SDX journal watcher.
+- **Mount full scores and daily nutrition.** Six editable full ability scores
+  initialize once from NPC modifiers (`10 + 2 × modifier`), with separate
+  ability damage and uncapped native NPC checks. A camel's CON 16 (+3) becomes
+  15 (+2) after one missed daily meal; death is at full CON zero, never modifier
+  zero. Listed mounts eat even when excluded from deployment, using their own
+  inventory before explicitly approved per-mount Party backup. Actor/day
+  receipts prevent repeat food or damage across reloads and party changes.
+  Mounts take no camp tasks; unrelated NPCs and warbands keep their models.
+- **Native PC camp nutrition and Overland nights.** Personal-first daily meals
+  use Party backup only with each PC's current-camp approval and only for the
+  current shortfall. Unfed PCs take one full-score CON damage per day and get
+  no rest recovery; fed PCs rest individually, with saved CON checks after an
+  interruption. Actor/day bookkeeping survives reloads and party changes;
+  item, HP and reward receipts prevent repeat spending or recovery. Overland
+  alone advances the night and weather; existing pending Extras camps keep
+  their executor. Persistent shortages permit an explicit hungry night.
+  Resume retries a missing night summary without repeating any applied effects
+  or time passage.
+
+- **Native camping task setup (internal slice).** One persistent owner-choice
+  window locks eight optional PC tasks, resolves Firewood before explicit
+  three-torch fuel, and saves personal Hunt/Craft rewards, repairs, luck and
+  task results without rerolls. Fire provides near light for eight hours while
+  a PC stays nearby; starting camp during movement uses the committed token
+  destination for both the fire's anchor and proximity. Cook's post-eligible-rest
+  benefit uses current HP above an unchanged maximum, with scoped damage/healing
+  and one-day expiry. Native PC food and eligible rest are now integrated with
+  Overland, including mount nutrition and full-score CON damage.
+- **Party formation and linked member movement.** A fixed 3×3 header widget,
+  remembered leader/follow/mount choices, and one Import/Export Members HUD
+  entry share the compact Place/Recall service. Gather preserves linked Actors
+  and token configuration; wall-safe release reuses tokens and stacks when
+  needed. Native marching pauses visibly on obstruction, combat, scene change
+  or reload. Deployed Party tokens remain selectable without aggregate travel;
+  dungeon light is mirrored without duplicating fuel consumers. Owner actions
+  and marching use the requested scene even when the GM views another map;
+  extinguished member lights stay off through gather/release. Scene navigation
+  pauses the user driving the Party, including a GM, not an unrelated relay GM.
+- **Player-facing hex coordinates.** Each user can enable Show hex coordinates
+  in Configure Settings. Labels use the tagged map's published numbers and native
+  flat-top column geometry, preserve leading zeroes, and follow the current fog.
+  Off-map, unnumbered and unsupported grids stay unlabeled; toggling does not
+  change the anchor or calibration.
+- **Native Party window.** Explicit persistent Characters/Hirelings/Mounts roster,
+  visible missing references, party/member quests and real embedded party items.
+  Open it from the actor directory, Party token HUD or Forge & Loot menu, including
+  without a canvas. Owners may manage characters they own. Legacy flagged NPCs
+  adopt in place; SDX Party actor types and unrelated sheets remain untouched.
+  Camp and Carouse now open the native gameplay workflows described above.
 - **The Cursed Scrolls' adventures import, and their keyed locations go on the map.**
   Importer Hub → Tools → **Adventures** reads the numbered locations of every
   Cursed Scroll adventure out of your own PDF (Cursed Scrolls 1 to 6: the Hideous

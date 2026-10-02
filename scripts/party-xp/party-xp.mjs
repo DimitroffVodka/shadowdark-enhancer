@@ -20,6 +20,7 @@
 
 import { MODULE_ID } from "../shared/module-id.mjs";
 import { esc } from "../shared/esc.mjs";
+import { replaceModuleFlag } from "../shared/module-flags.mjs";
 import { itemValueGp, bonusOf, isMagicItem } from "../loot/loot-value.mjs";
 import { XP_FLAG, XP_PER_LEVEL, normalizeXp, pickItemXp, planAward } from "./party-xp-core.mjs";
 
@@ -80,7 +81,7 @@ export const PartyXP = {
    * GM-only. Posts a summary chat card and fires the public hook. Returns the
    * per-actor results, or null when nothing was awarded.
    */
-  async award(amount, { actorIds = null, label = "" } = {}) {
+  async award(amount, { actorIds = null, label = "", carousingId = null, questUuid = null, chat = true } = {}) {
     if (!game.user?.isGM) { ui.notifications?.warn(game.i18n.localize("SDE.partyXp.notify.gmOnly")); return null; }
     const add = normalizeXp(amount);
     if (add == null || add <= 0) { ui.notifications?.warn(game.i18n.localize("SDE.partyXp.notify.positive")); return null; }
@@ -90,24 +91,33 @@ export const PartyXP = {
       : this.party());
     if (!actors.length) { ui.notifications?.warn(game.i18n.localize("SDE.partyXp.notify.noMembers")); return null; }
 
-    const results = [];
+    const results = [], applied = [];
     for (const a of actors) {
+      const key = questUuid ? "questProgress" : "carousingProgress", id = questUuid ? questUuid.split(".").at(-1) : carousingId;
+      const progress = a.flags?.[MODULE_ID]?.[key] ?? {};
+      if (id && progress[id]?.xp) {
+        if (questUuid && !chat && progress[id].xpResult) results.push(structuredClone(progress[id].xpResult));
+        continue;
+      }
       const plan = planAward(a.system?.level?.xp, add);
-      await a.update({ "system.level.xp": plan.after });
-      results.push({ id: a.id, name: a.name, level: a.system?.level?.value ?? null, ...plan });
+      const result = { id: a.id, name: a.name, level: a.system?.level?.value ?? null, ...plan };
+      if (id) await replaceModuleFlag(a, key, { ...progress, [id]: { ...progress[id], xp: true, ...(questUuid ? { xpResult: result } : {}) } }, { "system.level.xp": plan.after });
+      else await a.update({ "system.level.xp": plan.after });
+      results.push(result);
+      applied.push(result);
     }
 
-    await this._postCard({ added: add, label, results });
-    Hooks.callAll(`${MODULE_ID}.partyXpAwarded`, { amount: add, label, results });
-    ui.notifications?.info(game.i18n.format(
+    if (chat) try { await this._postCard({ added: add, label, results }); } catch (error) { console.warn(`${MODULE_ID} | XP report`, error); }
+    try { if (applied.length) Hooks.callAll(`${MODULE_ID}.partyXpAwarded`, { amount: add, label, results: applied }); } catch (error) { console.warn(`${MODULE_ID} | XP hook`, error); }
+    try { ui.notifications?.info(game.i18n.format(
       results.length === 1 ? "SDE.partyXp.notify.awardedOne" : "SDE.partyXp.notify.awardedMany",
       { amount: add, count: results.length },
-    ));
+    )); } catch (error) { console.warn(`${MODULE_ID} | XP notification`, error); }
     return results;
   },
 
   /** Render + post the summary chat card. */
-  async _postCard({ added, label, results }) {
+  async _postCard({ added, label, results, questReport = null }) {
     const rows = results.map(r => `
       <li class="sde-pxp-row">
         <span class="sde-pxp-who">${esc(r.name)}${r.level != null ? ` <span class="sde-pxp-lvl">${game.i18n.format("SDE.partyXp.levelShort", { level: esc(r.level) })}</span>` : ""}</span>
@@ -125,7 +135,7 @@ export const PartyXP = {
     return ChatMessage.create({
       content,
       speaker: { alias: game.i18n.localize("SDE.partyXp.title") },
-      flags: { [MODULE_ID]: { partyXpCard: true } },
+      flags: { [MODULE_ID]: { partyXpCard: true, ...(questReport ? { questReport } : {}) } },
     });
   },
 
