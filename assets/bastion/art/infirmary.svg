@@ -1,0 +1,167 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512"
+     role="img" aria-labelledby="title desc">
+  <title id="title">Infirmary</title>
+  <desc id="desc">Ward house with red-cross shield, cots, herb bed, bandage line, surgery tray and well.</desc>
+  <!-- Native vector artwork only: no embedded or linked raster content. -->
+
+  <defs>
+    <pattern id="roofHatch" width="12" height="12" patternUnits="userSpaceOnUse">
+      <path d="M2 0 V12 M8 0 V12" fill="none" stroke="#010206" stroke-width="0.75" opacity="0.17"/>
+    </pattern>
+    <pattern id="leanHatch" width="10" height="10" patternUnits="userSpaceOnUse">
+      <path d="M2 0 V10" fill="none" stroke="#010206" stroke-width="0.65" opacity="0.18"/>
+    </pattern>
+    <pattern id="stoneHatch" width="16" height="13" patternUnits="userSpaceOnUse">
+      <path d="M0 6 H16 M5 0 V6 M12 6 V13" fill="none" stroke="#010206" stroke-width="0.55" opacity="0.16"/>
+    </pattern>
+    <pattern id="shingleHatch" width="14" height="9" patternUnits="userSpaceOnUse">
+      <path d="M0 8 H14 M0 4 Q3.5 8 7 4 Q10.5 8 14 4" fill="none" stroke="#010206" stroke-width="0.6" opacity="0.2"/>
+    </pattern>
+    <pattern id="logHatch" width="9" height="9" patternUnits="userSpaceOnUse">
+      <path d="M4.5 0 V9" fill="none" stroke="#010206" stroke-width="0.7" opacity="0.2"/>
+    </pattern>
+    <pattern id="plankHatch" width="64" height="22" patternUnits="userSpaceOnUse">
+      <path d="M0 0.5 H64 M0 11.5 H64 M20 0 V11 M50 11 V22" fill="none" stroke="#010206" stroke-width="0.8" opacity="0.22"/>
+    </pattern>
+    <pattern id="flagHatch" width="48" height="40" patternUnits="userSpaceOnUse">
+      <path d="M0 0.5 H48 M0 20.5 H48 M16 0 V20 M40 20 V40" fill="none" stroke="#010206" stroke-width="0.8" opacity="0.2"/>
+    </pattern>
+    <pattern id="waterHatch" width="22" height="10" patternUnits="userSpaceOnUse">
+      <path d="M2 5 Q7 1 12 5 T22 5" fill="none" stroke="#A3C9CC" stroke-width="1.1" opacity="0.7"/>
+    </pattern>
+  </defs>
+
+  <g id="building" stroke="#010206" stroke-linecap="round" stroke-linejoin="round">
+
+    <!-- Herb bed. -->
+    <path d="M62 372 H186 L192 438 H56 Z" fill="#8A7660" stroke-width="2"/>
+    <path d="M66 388 H184 M62 402 H188 M59 416 H190" fill="none" stroke="#5F4F40" stroke-width="1.1" opacity="0.7"/>
+
+    <path d="M84 408 Q72 398 70 384 Q80 392 84 402 Q88 390 98 382 Q96 398 84 408 Z" fill="#7FA06B" stroke-width="1.3"/>
+    <path d="M84 408 V390" fill="none" stroke-width="0.9" opacity="0.7"/>
+
+    <path d="M112 404 Q100 394 98 380 Q108 388 112 398 Q116 386 126 378 Q124 394 112 404 Z" fill="#6C9A78" stroke-width="1.3"/>
+    <path d="M112 404 V386" fill="none" stroke-width="0.9" opacity="0.7"/>
+
+    <path d="M140 408 Q128 398 126 384 Q136 392 140 402 Q144 390 154 382 Q152 398 140 408 Z" fill="#8FAE6A" stroke-width="1.3"/>
+    <path d="M140 408 V390" fill="none" stroke-width="0.9" opacity="0.7"/>
+
+    <path d="M168 404 Q156 394 154 380 Q164 388 168 398 Q172 386 182 378 Q180 394 168 404 Z" fill="#7FA06B" stroke-width="1.3"/>
+    <path d="M168 404 V386" fill="none" stroke-width="0.9" opacity="0.7"/>
+
+    <path d="M98 430 Q86 420 84 406 Q94 414 98 424 Q102 412 112 404 Q110 420 98 430 Z" fill="#8FAE6A" stroke-width="1.3"/>
+    <path d="M98 430 V412" fill="none" stroke-width="0.9" opacity="0.7"/>
+
+    <path d="M126 430 Q114 420 112 406 Q122 414 126 424 Q130 412 140 404 Q138 420 126 430 Z" fill="#7FA06B" stroke-width="1.3"/>
+    <path d="M126 430 V412" fill="none" stroke-width="0.9" opacity="0.7"/>
+
+    <path d="M154 430 Q142 420 140 406 Q150 414 154 424 Q158 412 168 404 Q166 420 154 430 Z" fill="#6C9A78" stroke-width="1.3"/>
+    <path d="M154 430 V412" fill="none" stroke-width="0.9" opacity="0.7"/>
+
+    <circle cx="72" cy="384" r="3.6" fill="#C98BB0" stroke-width="1.1"/><circle cx="104" cy="378" r="3.6" fill="#E8C65A" stroke-width="1.1"/><circle cx="132" cy="384" r="3.6" fill="#C98BB0" stroke-width="1.1"/><circle cx="160" cy="378" r="3.6" fill="#E8C65A" stroke-width="1.1"/><circle cx="176" cy="392" r="3.6" fill="#F0E6C8" stroke-width="1.1"/>
+    <!-- Bandage line between two poles. -->
+    <path d="M56 232 V352 M122 232 V352" fill="none" stroke="#4B352B" stroke-width="5"/>
+    <path d="M56 232 V352 M122 232 V352" fill="none" stroke="#BD9D86" stroke-width="2.2"/>
+    <path d="M56 246 Q89 262 122 246" fill="none" stroke-width="1.8"/>
+
+    <path d="M62 246 L61 298 L70 295 L74 246 Z" fill="#F0EADA" stroke-width="1.3"/>
+    <path d="M64 275 l8 -1" fill="none" stroke="#B8564A" stroke-width="1.6" opacity="0.75"/>
+    <rect x="65" y="241" width="4" height="9" rx="1" fill="#BD9D86" stroke-width="1"/>
+
+    <path d="M79 246 L78 288 L87 285 L91 246 Z" fill="#F0EADA" stroke-width="1.3"/>
+    <path d="M81 269 l8 -1" fill="none" stroke="#B8564A" stroke-width="1.6" opacity="0.75"/>
+    <rect x="82" y="241" width="4" height="9" rx="1" fill="#BD9D86" stroke-width="1"/>
+
+    <path d="M95 246 L94 304 L103 301 L107 246 Z" fill="#F0EADA" stroke-width="1.3"/>
+    <path d="M97 278 l8 -1" fill="none" stroke="#B8564A" stroke-width="1.6" opacity="0.75"/>
+    <rect x="98" y="241" width="4" height="9" rx="1" fill="#BD9D86" stroke-width="1"/>
+
+    <path d="M110 246 L109 292 L118 289 L122 246 Z" fill="#F0EADA" stroke-width="1.3"/>
+    <path d="M112 271 l8 -1" fill="none" stroke="#B8564A" stroke-width="1.6" opacity="0.75"/>
+    <rect x="113" y="241" width="4" height="9" rx="1" fill="#BD9D86" stroke-width="1"/>
+
+    <!-- Chimney and its herb-smoke stack. -->
+    <path d="M356 92 H388 V160 H356 Z" fill="#8E8B83" stroke="none"/>
+    <path d="M356 92 H388 V160 H356 Z" fill="url(#stoneHatch)" stroke="none"/>
+    <path d="M356 92 H388 V160 H356 Z" fill="none" stroke-width="2.2"/>
+    <path d="M352 84 H392 V96 H352 Z" fill="#A8A59B" stroke-width="2"/>
+    <path d="M360 87 H384 V93 H360 Z" fill="#26211f" stroke="none"/>
+    <!-- Whitewashed wall strip with door, open ward window, shutters and sign. -->
+    <path d="M156 262 H408 L402 336 H162 Z" fill="#E6DCC3" stroke-width="2.2"/>
+    <path d="M172 262 V336 M392 262 V336" fill="none" stroke="#5F4434" stroke-width="3"/>
+    <path d="M178 272 H214 L211 336 H181 Z" fill="#745846" stroke-width="1.9"/>
+    <path d="M184 284 H208 M185 298 H208 M185 312 H209" fill="none" stroke-width="1.05" opacity="0.7"/>
+    <circle cx="205" cy="306" r="1.8" fill="#D7C39A" stroke="none"/>
+    <path d="M174 336 H220 L224 346 H170 Z" fill="#85827A" stroke-width="1.8"/>
+    <path d="M234 276 H384 V326 H234 Z" fill="#2a2420" stroke-width="2"/>
+    <path d="M234 276 H384 V292 H234 Z" fill="#3a322C" stroke="none"/>
+
+    <path d="M244 294 H302 V316 H244 Z" fill="#E9E4D4" stroke-width="1.6"/>
+    <path d="M246 296 H260 V306 H246 Z" fill="#F7F3E6" stroke-width="1.2"/>
+    <path d="M262 298 H302 V316 H262 Z" fill="#6C8F7E" stroke-width="1.4"/>
+    <path d="M248 316 V322 M298 316 V322" fill="none" stroke="#745846" stroke-width="2.2"/>
+
+    <path d="M316 294 H374 V316 H316 Z" fill="#E9E4D4" stroke-width="1.6"/>
+    <path d="M318 296 H332 V306 H318 Z" fill="#F7F3E6" stroke-width="1.2"/>
+    <path d="M334 298 H374 V316 H334 Z" fill="#6C8F7E" stroke-width="1.4"/>
+    <path d="M320 316 V322 M370 316 V322" fill="none" stroke="#745846" stroke-width="2.2"/>
+
+    <path d="M226 272 H234 V330 H226 Z M384 272 H392 V330 H384 Z" fill="#6C8F7E" stroke-width="1.6"/>
+    <path d="M230 276 V326 M388 276 V326" fill="none" stroke-width="0.8" opacity="0.7"/>
+    <path d="M232 326 H386 V334 H232 Z" fill="#BD9D86" stroke-width="1.6"/>
+    <!-- Hung herb bundles under the eave. -->
+    <path d="M186 264 V272 M196 264 V272 M206 264 V272" fill="none" stroke-width="1.2"/>
+    <path d="M181 272 H191 L186 288 Z M191 272 H201 L196 292 Z M201 272 H211 L206 286 Z" fill="#7FA06B" stroke-width="1.2" transform="translate(0 -2)"/>
+    <!-- Shingled roof with a mended patch and the red-cross shield. -->
+
+    <path d="M150 120 H420 V191 H150 Z" fill="#C4A68F" stroke="none"/>
+    <path d="M150 191 H420 V262 H150 Z" fill="#B58F78" stroke="none"/>
+    <path d="M150 120 H420 V262 H150 Z" fill="url(#shingleHatch)" stroke="none"/>
+    <path d="M150 120 H420 V262 H150 Z" fill="none" stroke-width="2.8"/>
+    <path d="M150 191 C217 189, 352 193, 420 191" fill="none" stroke-width="3.1"/>
+
+
+    <g fill="#A9856E" stroke-width="1.6">
+      <rect x="144" y="113" width="14" height="14" rx="2"/>
+      <rect x="412" y="113" width="14" height="14" rx="2"/>
+      <rect x="144" y="255" width="14" height="14" rx="2"/>
+      <rect x="412" y="255" width="14" height="14" rx="2"/>
+    </g>
+
+    <path d="M178 196 H232 V236 H178 Z" fill="#A8856F" stroke-width="1.4"/>
+    <path d="M178 196 H232 V236 H178 Z" fill="url(#shingleHatch)" stroke="none"/>
+    <path d="M178 196 H232 V236 H178 Z" fill="none" stroke="#5F4434" stroke-width="1" stroke-dasharray="3 3" opacity="0.7"/>
+    <path d="M364 206 H402 V234 H364 Z" fill="#5F4F44" stroke-width="1.8"/>
+    <path d="M364 220 H402 M383 206 V234" fill="none" stroke-width="1.1" opacity="0.7"/>
+    <path d="M254 238 Q262 226 276 232 Q292 222 306 236 L300 244 H258 Z" fill="#6F8A5F" stroke="none" opacity="0.55"/>
+    <path d="M278 138 H346 V196 Q346 220 312 232 Q278 220 278 196 Z" fill="#F4F0E4" stroke-width="2.4"/>
+    <path d="M306 150 H318 V172 H340 V184 H318 V214 H306 V184 H284 V172 H306 Z" fill="#B53A34" stroke-width="1.8"/>
+    <!-- Stretcher left on the grass: canvas between two carrying poles. -->
+    <path d="M326 424 H416 M330 408 H412" fill="none" stroke-width="6.5"/>
+    <path d="M326 424 H416 M330 408 H412" fill="none" stroke="#BD9D86" stroke-width="3"/>
+    <path d="M336 410 H404 L408 424 H332 Z" fill="#D8CBA6" stroke-width="1.8"/>
+    <path d="M346 414 H396" fill="none" stroke-width="0.9" opacity="0.5"/>
+    <path d="M370 414 q6 1 8 6 q-6 3 -12 0 q0 -4 4 -6 Z" fill="#B53A34" stroke="none" opacity="0.65"/>
+    <!-- Surgery tray: table with bottles, a bone saw and a roll of bandage. -->
+    <path d="M222 384 H320 L324 392 H218 Z" fill="#BD9D86" stroke-width="1.9"/>
+    <path d="M226 392 V430 M316 392 V430 M226 410 H316" fill="none" stroke="#745846" stroke-width="3"/>
+    <path d="M236 384 V372 H244 V384 Z" fill="#6AA37E" stroke-width="1.4"/><path d="M236 372 L238 366 H242 L244 372" fill="#6AA37E" stroke-width="1.2"/><path d="M238 366 H242 V362 H238 Z" fill="#B8956F" stroke-width="1"/>
+    <path d="M248 384 V366 Q248 362 254 362 Q260 362 260 366 V384 Z" fill="#5B8FB0" stroke-width="1.4"/><path d="M252 362 V357 H256 V362 Z" fill="#B8956F" stroke-width="1"/>
+    <path d="M264 384 V376 H274 V384 Z" fill="#C2884E" stroke-width="1.4"/><path d="M266 376 V372 H272 V376 Z" fill="#B8956F" stroke-width="1"/>
+    <path d="M280 382 L316 376 L316 382 L280 387 Z" fill="#C9CDD1" stroke-width="1.4"/>
+    <path d="M282 387 l3 3 l3 -3 l3 3 l3 -3 l3 3 l3 -3 l3 3 l3 -3 l3 3 l3 -3 l3 3" fill="none" stroke-width="1" transform="translate(0 -2)"/>
+    <path d="M316 374 H328 V384 H316 Z" fill="#745846" stroke-width="1.5"/>
+    <ellipse cx="304" cy="372" rx="7" ry="3" fill="#F0EADA" stroke-width="1.2"/>
+    <!-- Well with bucket. -->
+    <ellipse cx="440" cy="392" rx="30" ry="14" fill="#8E8B83" stroke-width="2"/>
+    <path d="M410 392 V412 Q440 432 470 412 V392 Q440 408 410 392 Z" fill="#8E8B83" stroke-width="2"/>
+    <path d="M410 392 V412 Q440 432 470 412 V392 Q440 408 410 392 Z" fill="url(#stoneHatch)" stroke="none"/>
+    <ellipse cx="440" cy="391" rx="21" ry="9" fill="#4C8699" stroke-width="1.5"/>
+    <path d="M414 392 V348 M466 392 V348 M410 348 H470" fill="none" stroke="#4B352B" stroke-width="3.2"/>
+    <path d="M440 348 V372" fill="none" stroke-width="1.4"/>
+    <path d="M430 372 H450 L447 388 H433 Z" fill="#876A56" stroke-width="1.6"/>
+    <path d="M430 378 H450" fill="none" stroke="#4D4B47" stroke-width="1.4"/>
+
+  </g>
+</svg>

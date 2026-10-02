@@ -1,0 +1,158 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512"
+     role="img" aria-labelledby="title desc">
+  <title id="title">Granary</title>
+  <desc id="desc">Raised thatched grain store on staddle stones with ladder, sacks, spilled wheat and handcart.</desc>
+  <!-- Native vector artwork only: no embedded or linked raster content. -->
+
+  <defs>
+    <pattern id="roofHatch" width="12" height="12" patternUnits="userSpaceOnUse">
+      <path d="M2 0 V12 M8 0 V12" fill="none" stroke="#010206" stroke-width="0.75" opacity="0.17"/>
+    </pattern>
+    <pattern id="leanHatch" width="10" height="10" patternUnits="userSpaceOnUse">
+      <path d="M2 0 V10" fill="none" stroke="#010206" stroke-width="0.65" opacity="0.18"/>
+    </pattern>
+    <pattern id="stoneHatch" width="16" height="13" patternUnits="userSpaceOnUse">
+      <path d="M0 6 H16 M5 0 V6 M12 6 V13" fill="none" stroke="#010206" stroke-width="0.55" opacity="0.16"/>
+    </pattern>
+    <pattern id="shingleHatch" width="14" height="9" patternUnits="userSpaceOnUse">
+      <path d="M0 8 H14 M0 4 Q3.5 8 7 4 Q10.5 8 14 4" fill="none" stroke="#010206" stroke-width="0.6" opacity="0.2"/>
+    </pattern>
+    <pattern id="logHatch" width="9" height="9" patternUnits="userSpaceOnUse">
+      <path d="M4.5 0 V9" fill="none" stroke="#010206" stroke-width="0.7" opacity="0.2"/>
+    </pattern>
+    <pattern id="plankHatch" width="64" height="22" patternUnits="userSpaceOnUse">
+      <path d="M0 0.5 H64 M0 11.5 H64 M20 0 V11 M50 11 V22" fill="none" stroke="#010206" stroke-width="0.8" opacity="0.22"/>
+    </pattern>
+    <pattern id="flagHatch" width="48" height="40" patternUnits="userSpaceOnUse">
+      <path d="M0 0.5 H48 M0 20.5 H48 M16 0 V20 M40 20 V40" fill="none" stroke="#010206" stroke-width="0.8" opacity="0.2"/>
+    </pattern>
+    <pattern id="waterHatch" width="22" height="10" patternUnits="userSpaceOnUse">
+      <path d="M2 5 Q7 1 12 5 T22 5" fill="none" stroke="#A3C9CC" stroke-width="1.1" opacity="0.7"/>
+    </pattern>
+  </defs>
+
+  <g id="building" stroke="#010206" stroke-linecap="round" stroke-linejoin="round">
+
+    <!-- Dark gap under the raised floor, then the staddle stones. -->
+    <path d="M120 312 H392 V356 H120 Z" fill="#4c4234" opacity="0.55" stroke="none"/>
+
+    <path d="M133 324 L130 358 H154 L151 324 Z" fill="#8E8B83" stroke-width="1.8"/>
+    <path d="M145 324 L147 358 H154 L151 324 Z" fill="#6F6D68" stroke="none" opacity="0.6"/>
+    <ellipse cx="142" cy="358" rx="16" ry="4.5" fill="#6F6D68" stroke-width="1.6"/>
+    <path d="M114 327 C114 311 128 311 142 311 C156 311 170 311 170 327 Z" fill="#A8A59B" stroke-width="2"/>
+    <path d="M148 311 C160 312 170 314 170 327 H154 C156 320 154 314 148 311 Z" fill="#6F6D68" stroke="none" opacity="0.5"/>
+    <path d="M124 316 Q134 313 142 313" fill="none" stroke="#D5D2C6" stroke-width="1.6" opacity="0.8"/>
+
+    <path d="M190 324 L187 358 H211 L208 324 Z" fill="#8E8B83" stroke-width="1.8"/>
+    <path d="M202 324 L204 358 H211 L208 324 Z" fill="#6F6D68" stroke="none" opacity="0.6"/>
+    <ellipse cx="199" cy="358" rx="16" ry="4.5" fill="#6F6D68" stroke-width="1.6"/>
+    <path d="M171 327 C171 311 185 311 199 311 C213 311 227 311 227 327 Z" fill="#A8A59B" stroke-width="2"/>
+    <path d="M205 311 C217 312 227 314 227 327 H211 C213 320 211 314 205 311 Z" fill="#6F6D68" stroke="none" opacity="0.5"/>
+    <path d="M181 316 Q191 313 199 313" fill="none" stroke="#D5D2C6" stroke-width="1.6" opacity="0.8"/>
+
+    <path d="M247 324 L244 358 H268 L265 324 Z" fill="#8E8B83" stroke-width="1.8"/>
+    <path d="M259 324 L261 358 H268 L265 324 Z" fill="#6F6D68" stroke="none" opacity="0.6"/>
+    <ellipse cx="256" cy="358" rx="16" ry="4.5" fill="#6F6D68" stroke-width="1.6"/>
+    <path d="M228 327 C228 311 242 311 256 311 C270 311 284 311 284 327 Z" fill="#A8A59B" stroke-width="2"/>
+    <path d="M262 311 C274 312 284 314 284 327 H268 C270 320 268 314 262 311 Z" fill="#6F6D68" stroke="none" opacity="0.5"/>
+    <path d="M238 316 Q248 313 256 313" fill="none" stroke="#D5D2C6" stroke-width="1.6" opacity="0.8"/>
+
+    <path d="M304 324 L301 358 H325 L322 324 Z" fill="#8E8B83" stroke-width="1.8"/>
+    <path d="M316 324 L318 358 H325 L322 324 Z" fill="#6F6D68" stroke="none" opacity="0.6"/>
+    <ellipse cx="313" cy="358" rx="16" ry="4.5" fill="#6F6D68" stroke-width="1.6"/>
+    <path d="M285 327 C285 311 299 311 313 311 C327 311 341 311 341 327 Z" fill="#A8A59B" stroke-width="2"/>
+    <path d="M319 311 C331 312 341 314 341 327 H325 C327 320 325 314 319 311 Z" fill="#6F6D68" stroke="none" opacity="0.5"/>
+    <path d="M295 316 Q305 313 313 313" fill="none" stroke="#D5D2C6" stroke-width="1.6" opacity="0.8"/>
+
+    <path d="M361 324 L358 358 H382 L379 324 Z" fill="#8E8B83" stroke-width="1.8"/>
+    <path d="M373 324 L375 358 H382 L379 324 Z" fill="#6F6D68" stroke="none" opacity="0.6"/>
+    <ellipse cx="370" cy="358" rx="16" ry="4.5" fill="#6F6D68" stroke-width="1.6"/>
+    <path d="M342 327 C342 311 356 311 370 311 C384 311 398 311 398 327 Z" fill="#A8A59B" stroke-width="2"/>
+    <path d="M376 311 C388 312 398 314 398 327 H382 C384 320 382 314 376 311 Z" fill="#6F6D68" stroke="none" opacity="0.5"/>
+    <path d="M352 316 Q362 313 370 313" fill="none" stroke="#D5D2C6" stroke-width="1.6" opacity="0.8"/>
+
+    <!-- Floor beam on top of the caps. -->
+    <path d="M112 300 H400 V314 H112 Z" fill="#745846" stroke-width="2"/>
+    <path d="M112 300 H400 V314 H112 Z" fill="url(#logHatch)" stroke="none"/>
+    <!-- Plank wall strip with raised door and hay-hatch. -->
+    <path d="M118 250 H394 L388 300 H124 Z" fill="#9F7D68" stroke-width="2.1"/>
+    <path d="M118 250 H394 L388 300 H124 Z" fill="url(#logHatch)" stroke="none"/>
+    <path d="M150 250 L148 300 M182 250 L181 300 M330 250 L331 300 M362 250 L363 300" fill="none" stroke-width="1.2" opacity="0.6"/>
+    <path d="M232 258 H282 V300 H232 Z" fill="#745846" stroke-width="2"/>
+    <path d="M257 258 V300 M232 270 H282 M232 288 H282" fill="none" stroke-width="1.2" opacity="0.7"/>
+    <path d="M232 258 L257 270 M282 258 L257 270" fill="none" stroke-width="1.1" opacity="0.55"/>
+    <circle cx="251" cy="282" r="1.9" fill="#D7C39A" stroke="none"/><circle cx="263" cy="282" r="1.9" fill="#D7C39A" stroke="none"/>
+    <path d="M222 300 H292 V308 H222 Z" fill="#BD9D86" stroke-width="1.8"/>
+    <path d="M154 262 H186 V284 H154 Z M326 262 H358 V284 H326 Z" fill="#2c2420" stroke-width="1.8"/>
+    <path d="M154 262 H186 V284 H154 Z M326 262 H358 V284 H326 Z" fill="none" stroke="#745846" stroke-width="3"/>
+    <path d="M162 262 V284 M170 262 V284 M178 262 V284 M334 262 V284 M342 262 V284 M350 262 V284" fill="none" stroke-width="1.1" opacity="0.8"/>
+    <!-- Thatched roof: bulging skep-like silhouette, two slopes, bundle rows, scalloped eave, ridge roll. -->
+    <clipPath id="thatchClip"><path d="M126 112 H386 Q406 114 408 134 Q416 184 406 238 L402 250 Q389.8 264.0 377.7 250 Q365.5 264.0 353.3 250 Q341.2 264.0 329.0 250 Q316.8 264.0 304.7 250 Q292.5 264.0 280.3 250 Q268.2 264.0 256.0 250 Q243.8 264.0 231.7 250 Q219.5 264.0 207.3 250 Q195.2 264.0 183.0 250 Q170.8 264.0 158.7 250 Q146.5 264.0 134.3 250 Q122.2 264.0 110.0 250 L106 238 Q96 184 104 134 Q106 114 126 112 Z"/></clipPath>
+    <g clip-path="url(#thatchClip)">
+      <path d="M96 96 H416 V250 H96 Z" fill="#DCC47F" stroke="none"/>
+      <path d="M96 176 H416 V260 H96 Z" fill="#C7A95E" stroke="none"/>
+      <path d="M96 96 H416 V260 H96 Z" fill="url(#roofHatch)" stroke="none"/>
+      <path d="M96 128 Q109.3 125 122.7 128 Q136.0 131 149.3 128 Q162.7 125 176.0 128 Q189.3 131 202.7 128 Q216.0 125 229.3 128 Q242.7 131 256.0 128 Q269.3 125 282.7 128 Q296.0 131 309.3 128 Q322.7 125 336.0 128 Q349.3 131 362.7 128 Q376.0 125 389.3 128 Q402.7 131 416.0 128" fill="none" stroke-width="1" opacity="0.4"/>
+    <path d="M96 146 Q109.3 149 122.7 146 Q136.0 143 149.3 146 Q162.7 149 176.0 146 Q189.3 143 202.7 146 Q216.0 149 229.3 146 Q242.7 143 256.0 146 Q269.3 149 282.7 146 Q296.0 143 309.3 146 Q322.7 149 336.0 146 Q349.3 143 362.7 146 Q376.0 149 389.3 146 Q402.7 143 416.0 146" fill="none" stroke-width="1" opacity="0.4"/>
+    <path d="M96 162 Q109.3 159 122.7 162 Q136.0 165 149.3 162 Q162.7 159 176.0 162 Q189.3 165 202.7 162 Q216.0 159 229.3 162 Q242.7 165 256.0 162 Q269.3 159 282.7 162 Q296.0 165 309.3 162 Q322.7 159 336.0 162 Q349.3 165 362.7 162 Q376.0 159 389.3 162 Q402.7 165 416.0 162" fill="none" stroke-width="1" opacity="0.4"/>
+    <path d="M96 198 Q109.3 201 122.7 198 Q136.0 195 149.3 198 Q162.7 201 176.0 198 Q189.3 195 202.7 198 Q216.0 201 229.3 198 Q242.7 195 256.0 198 Q269.3 201 282.7 198 Q296.0 195 309.3 198 Q322.7 201 336.0 198 Q349.3 195 362.7 198 Q376.0 201 389.3 198 Q402.7 195 416.0 198" fill="none" stroke-width="1" opacity="0.4"/>
+    <path d="M96 216 Q109.3 213 122.7 216 Q136.0 219 149.3 216 Q162.7 213 176.0 216 Q189.3 219 202.7 216 Q216.0 213 229.3 216 Q242.7 219 256.0 216 Q269.3 213 282.7 216 Q296.0 219 309.3 216 Q322.7 213 336.0 216 Q349.3 219 362.7 216 Q376.0 213 389.3 216 Q402.7 219 416.0 216" fill="none" stroke-width="1" opacity="0.4"/>
+    <path d="M96 234 Q109.3 237 122.7 234 Q136.0 231 149.3 234 Q162.7 237 176.0 234 Q189.3 231 202.7 234 Q216.0 237 229.3 234 Q242.7 231 256.0 234 Q269.3 237 282.7 234 Q296.0 231 309.3 234 Q322.7 237 336.0 234 Q349.3 231 362.7 234 Q376.0 237 389.3 234 Q402.7 231 416.0 234" fill="none" stroke-width="1" opacity="0.4"/>
+      <path d="M96 236 H416" fill="none" stroke="#8B6B30" stroke-width="1" opacity="0.5"/>
+    </g>
+    <path d="M126 112 H386 Q406 114 408 134 Q416 184 406 238 L402 250 Q389.8 264.0 377.7 250 Q365.5 264.0 353.3 250 Q341.2 264.0 329.0 250 Q316.8 264.0 304.7 250 Q292.5 264.0 280.3 250 Q268.2 264.0 256.0 250 Q243.8 264.0 231.7 250 Q219.5 264.0 207.3 250 Q195.2 264.0 183.0 250 Q170.8 264.0 158.7 250 Q146.5 264.0 134.3 250 Q122.2 264.0 110.0 250 L106 238 Q96 184 104 134 Q106 114 126 112 Z" fill="none" stroke-width="2.8"/>
+    <path d="M104 168 H408 L412 186 H100 Z" fill="#B8964A" stroke-width="2.4"/>
+    <path d="M104 168 H408 L410 177 H102 Z" fill="#CFAE5E" stroke="none"/>
+    <path d="M134 168 L140 186 M170 168 L176 186 M206 168 L212 186 M300 168 L306 186 M336 168 L342 186 M372 168 L378 186" fill="none" stroke-width="1.6" opacity="0.75"/>
+    <path d="M98 160 L110 192 M110 160 L98 192 M402 160 L414 192 M414 160 L402 192" fill="none" stroke="#745846" stroke-width="3.6"/>
+    <path d="M110 192 q-6 8 -4 16 M406 192 q6 8 4 16" fill="none" stroke="#B8964A" stroke-width="2" opacity="0.8"/>
+    <path d="M222 168 L234 134 H278 L290 168 Z" fill="#C2A456" stroke-width="2"/>
+    <path d="M222 168 L234 134 H278 L290 168 Z" fill="url(#roofHatch)" stroke="none"/>
+    <path d="M239 148 H273 V164 H239 Z" fill="#2c2420" stroke-width="1.8"/>
+    <path d="M239 153 H273 M239 158.5 H273" fill="none" stroke="#9F7D68" stroke-width="2"/>
+    <path d="M228 134 H284 L280 126 H232 Z" fill="#B8964A" stroke-width="1.6"/>
+    <!-- Ladder from the door landing to the ground. -->
+    <path d="M274 308 L312 380 M290 308 L328 380" fill="none" stroke-width="7.5"/>
+    <path d="M274 308 L312 380 M290 308 L328 380" fill="none" stroke="#BD9D86" stroke-width="3.8"/>
+    <path d="M281 322 L297 322 M286 334 L302 334 M292 346 L308 346 M298 358 L314 358 M304 370 L320 370" fill="none" stroke-width="2.6"/>
+    <!-- Stacked sacks at the ladder foot. -->
+
+    <path d="M346.0 414 Q341.0 395.0 353.9 386.6 L359.3 379.8 Q364 376.8 368.7 379.8 L374.1 386.6 Q387.0 395.0 382.0 414 Q364 421 346.0 414 Z" fill="#D8C9A3" stroke-width="1.7"/>
+    <path d="M359.3 382.8 Q364 385.9 368.7 382.8" fill="none" stroke-width="1.8"/>
+    <path d="M359.7 379.8 L356.8 374.0 L364 377.5 L371.2 374.0 L368.3 379.8" fill="#D8C9A3" stroke-width="1.5"/>
+    <path d="M356.8 399.6 Q364 403.4 371.2 398.8" fill="none" stroke-width="0.9" opacity="0.55"/>
+
+    <path d="M385.0 416 Q380.0 398.0 392.5 390.1 L397.6 383.6 Q402 380.7 406.4 383.6 L411.5 390.1 Q424.0 398.0 419.0 416 Q402 423 385.0 416 Z" fill="#CDBE98" stroke-width="1.7"/>
+    <path d="M397.6 386.5 Q402 389.4 406.4 386.5" fill="none" stroke-width="1.8"/>
+    <path d="M397.9 383.6 L395.2 378.0 L402 381.4 L408.8 378.0 L406.1 383.6" fill="#CDBE98" stroke-width="1.5"/>
+    <path d="M395.2 402.3 Q402 405.9 408.8 401.6" fill="none" stroke-width="0.9" opacity="0.55"/>
+
+    <path d="M367.0 382 Q362.0 364.0 374.5 356.1 L379.6 349.6 Q384 346.7 388.4 349.6 L393.5 356.1 Q406.0 364.0 401.0 382 Q384 389 367.0 382 Z" fill="#E1D3AC" stroke-width="1.7"/>
+    <path d="M379.6 352.5 Q384 355.4 388.4 352.5" fill="none" stroke-width="1.8"/>
+    <path d="M379.9 349.6 L377.2 344.0 L384 347.4 L390.8 344.0 L388.1 349.6" fill="#E1D3AC" stroke-width="1.5"/>
+    <path d="M377.2 368.3 Q384 371.9 390.8 367.6" fill="none" stroke-width="0.9" opacity="0.55"/>
+
+    <!-- Spilled heap of wheat with a few stalks. -->
+    <path d="M186 436 C196 410 214 394 242 392 C270 394 286 414 296 436 Q242 446 186 436 Z" fill="#E6C867" stroke-width="2"/>
+    <path d="M214 400 C224 394 238 392 250 394 C240 402 226 408 214 416 Z" fill="#F2DB8C" stroke="none"/>
+    <g fill="none" stroke="#A98630" stroke-width="1.1" opacity="0.9"><path d="M204 428 l10 -6 M222 420 l11 -3 M240 428 l-9 -7 M258 416 l10 -5 M272 428 l-9 -6 M236 408 l8 -2 M214 412 l8 -4 M252 428 l9 -2"/></g>
+    <g fill="#E6C867" stroke-width="1.2">
+      <path d="M170 438 Q168 418 164 404" fill="none" stroke-width="1.8"/><ellipse cx="163" cy="400" rx="3" ry="7" transform="rotate(-8 163 400)"/>
+      <path d="M180 440 Q182 420 188 404" fill="none" stroke-width="1.8"/><ellipse cx="189" cy="400" rx="3" ry="7" transform="rotate(10 189 400)"/>
+      <path d="M306 440 Q310 424 306 410" fill="none" stroke-width="1.8"/><ellipse cx="306" cy="406" rx="3" ry="7"/>
+    </g>
+    <!-- Handcart loaded with grain. -->
+    <path d="M128 392 L172 404 L176 410" fill="none" stroke="#5F4434" stroke-width="5"/>
+    <path d="M128 392 L172 404" fill="none" stroke="#BD9D86" stroke-width="2.4"/>
+    <path d="M48 372 H134 L128 404 H54 Z" fill="#876A56" stroke-width="2"/>
+    <path d="M58 372 L60 404 M72 372 L72 404 M86 372 L86 404 M100 372 L100 404 M114 372 L114 404 M126 372 L122 404" fill="none" stroke-width="1" opacity="0.6"/>
+    <path d="M50 374 Q66 352 90 356 Q112 352 132 374 Z" fill="#E6C867" stroke-width="1.8"/>
+    <path d="M62 370 Q76 358 92 360" fill="none" stroke="#F2DB8C" stroke-width="2.2"/>
+    <circle cx="94" cy="410" r="19" fill="#745846" stroke-width="2.2"/>
+    <circle cx="94" cy="410" r="12" fill="none" stroke-width="1.6"/>
+    <path d="M94 391 V429 M75 410 H113 M80 396 L108 424 M108 396 L80 424" fill="none" stroke-width="1.2"/>
+    <circle cx="94" cy="410" r="3.4" fill="#4D4B47" stroke-width="1.2"/>
+
+  </g>
+</svg>

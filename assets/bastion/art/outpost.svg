@@ -1,0 +1,187 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512"
+     role="img" aria-labelledby="title desc">
+  <title id="title">Outpost</title>
+  <desc id="desc">Palisaded camp with gate, watch platform, tent and bunkhouse.</desc>
+  <!-- Native vector artwork only: no embedded or linked raster content. -->
+
+  <defs>
+    <pattern id="roofHatch" width="12" height="12" patternUnits="userSpaceOnUse">
+      <path d="M2 0 V12 M8 0 V12" fill="none" stroke="#010206" stroke-width="0.75" opacity="0.17"/>
+    </pattern>
+    <pattern id="leanHatch" width="10" height="10" patternUnits="userSpaceOnUse">
+      <path d="M2 0 V10" fill="none" stroke="#010206" stroke-width="0.65" opacity="0.18"/>
+    </pattern>
+    <pattern id="stoneHatch" width="16" height="13" patternUnits="userSpaceOnUse">
+      <path d="M0 6 H16 M5 0 V6 M12 6 V13" fill="none" stroke="#010206" stroke-width="0.55" opacity="0.16"/>
+    </pattern>
+    <pattern id="shingleHatch" width="14" height="9" patternUnits="userSpaceOnUse">
+      <path d="M0 8 H14 M0 4 Q3.5 8 7 4 Q10.5 8 14 4" fill="none" stroke="#010206" stroke-width="0.6" opacity="0.2"/>
+    </pattern>
+    <pattern id="logHatch" width="9" height="9" patternUnits="userSpaceOnUse">
+      <path d="M4.5 0 V9" fill="none" stroke="#010206" stroke-width="0.7" opacity="0.2"/>
+    </pattern>
+    <pattern id="plankHatch" width="64" height="22" patternUnits="userSpaceOnUse">
+      <path d="M0 0.5 H64 M0 11.5 H64 M20 0 V11 M50 11 V22" fill="none" stroke="#010206" stroke-width="0.8" opacity="0.22"/>
+    </pattern>
+    <pattern id="flagHatch" width="48" height="40" patternUnits="userSpaceOnUse">
+      <path d="M0 0.5 H48 M0 20.5 H48 M16 0 V20 M40 20 V40" fill="none" stroke="#010206" stroke-width="0.8" opacity="0.2"/>
+    </pattern>
+    <pattern id="waterHatch" width="22" height="10" patternUnits="userSpaceOnUse">
+      <path d="M2 5 Q7 1 12 5 T22 5" fill="none" stroke="#A3C9CC" stroke-width="1.1" opacity="0.7"/>
+    </pattern>
+  </defs>
+
+  <g id="building" stroke="#010206" stroke-linecap="round" stroke-linejoin="round">
+
+    <!-- Trampled dirt apron under the whole camp. -->
+    <path d="M60 128 Q258 104 458 128 L474 372 Q258 412 44 372 Z" fill="#B8AB8E" stroke-width="1.6"/>
+    <path d="M60 128 Q258 104 458 128 L474 372 Q258 412 44 372 Z" fill="url(#leanHatch)" stroke="none"/>
+    <!-- Back wall of the palisade: tops of the logs seen over the camp. -->
+    <g fill="#A58562" stroke-width="1.5">
+      <path d="M76.6 136 V105 L82.5 96 L88.5 105 V136 Z"/>
+      <path d="M89.7 136 V105 L95.6 96 L101.5 105 V136 Z"/>
+      <path d="M102.7 136 V105 L108.7 96 L114.6 105 V136 Z"/>
+      <path d="M115.8 136 V105 L121.8 96 L127.7 105 V136 Z"/>
+      <path d="M128.9 136 V105 L134.8 96 L140.8 105 V136 Z"/>
+      <path d="M142.0 136 V105 L147.9 96 L153.8 105 V136 Z"/>
+      <path d="M155.0 136 V105 L161.0 96 L166.9 105 V136 Z"/>
+      <path d="M168.1 136 V105 L174.0 96 L180.0 105 V136 Z"/>
+      <path d="M181.2 136 V105 L187.1 96 L193.0 105 V136 Z"/>
+      <path d="M194.2 136 V105 L200.2 96 L206.1 105 V136 Z"/>
+      <path d="M207.3 136 V105 L213.2 96 L219.2 105 V136 Z"/>
+      <path d="M220.4 136 V105 L226.3 96 L232.3 105 V136 Z"/>
+      <path d="M233.5 136 V105 L239.4 96 L245.3 105 V136 Z"/>
+      <path d="M246.5 136 V105 L252.5 96 L258.4 105 V136 Z"/>
+      <path d="M259.6 136 V105 L265.5 96 L271.5 105 V136 Z"/>
+      <path d="M272.7 136 V105 L278.6 96 L284.5 105 V136 Z"/>
+      <path d="M285.7 136 V105 L291.7 96 L297.6 105 V136 Z"/>
+      <path d="M298.8 136 V105 L304.8 96 L310.7 105 V136 Z"/>
+      <path d="M311.9 136 V105 L317.8 96 L323.8 105 V136 Z"/>
+      <path d="M325.0 136 V105 L330.9 96 L336.8 105 V136 Z"/>
+      <path d="M338.0 136 V105 L344.0 96 L349.9 105 V136 Z"/>
+      <path d="M351.1 136 V105 L357.0 96 L363.0 105 V136 Z"/>
+      <path d="M364.2 136 V105 L370.1 96 L376.0 105 V136 Z"/>
+      <path d="M377.2 136 V105 L383.2 96 L389.1 105 V136 Z"/>
+      <path d="M390.3 136 V105 L396.2 96 L402.2 105 V136 Z"/>
+      <path d="M403.4 136 V105 L409.3 96 L415.3 105 V136 Z"/>
+      <path d="M416.5 136 V105 L422.4 96 L428.3 105 V136 Z"/>
+      <path d="M429.5 136 V105 L435.5 96 L441.4 105 V136 Z"/>
+    </g>
+    <path d="M76 129 H442" fill="none" stroke-width="1.2" opacity="0.55"/>
+
+    <!-- Side walls: log ends marching toward the viewer. -->
+    <g fill="#A58562" stroke-width="1.5">
+      <path d="M58 146 l8 -5 l8 5 v16 h-16 Z"/>
+      <path d="M442 146 l8 -5 l8 5 v16 h-16 Z"/>
+      <path d="M58 166 l8 -5 l8 5 v16 h-16 Z"/>
+      <path d="M442 166 l8 -5 l8 5 v16 h-16 Z"/>
+      <path d="M58 186 l8 -5 l8 5 v16 h-16 Z"/>
+      <path d="M442 186 l8 -5 l8 5 v16 h-16 Z"/>
+      <path d="M58 206 l8 -5 l8 5 v16 h-16 Z"/>
+      <path d="M442 206 l8 -5 l8 5 v16 h-16 Z"/>
+      <path d="M58 226 l8 -5 l8 5 v16 h-16 Z"/>
+      <path d="M442 226 l8 -5 l8 5 v16 h-16 Z"/>
+      <path d="M58 246 l8 -5 l8 5 v16 h-16 Z"/>
+      <path d="M442 246 l8 -5 l8 5 v16 h-16 Z"/>
+      <path d="M58 266 l8 -5 l8 5 v16 h-16 Z"/>
+      <path d="M442 266 l8 -5 l8 5 v16 h-16 Z"/>
+      <path d="M58 286 l8 -5 l8 5 v16 h-16 Z"/>
+      <path d="M442 286 l8 -5 l8 5 v16 h-16 Z"/>
+      <path d="M58 306 l8 -5 l8 5 v16 h-16 Z"/>
+      <path d="M442 306 l8 -5 l8 5 v16 h-16 Z"/>
+      <path d="M58 326 l8 -5 l8 5 v16 h-16 Z"/>
+      <path d="M442 326 l8 -5 l8 5 v16 h-16 Z"/>
+    </g>
+    <!-- Long lean-to bunkhouse against the back wall. -->
+
+    <path d="M112 150 H302 V196 H112 Z" fill="#B69A83" stroke="none"/>
+    <path d="M112 196 H302 V242 H112 Z" fill="#A57F68" stroke="none"/>
+    <path d="M112 150 H302 V242 H112 Z" fill="url(#shingleHatch)" stroke="none"/>
+    <path d="M112 150 H302 V242 H112 Z" fill="none" stroke-width="2.8"/>
+    <path d="M112 196 C159 194, 254 198, 302 196" fill="none" stroke-width="3.1"/>
+    <path d="M118 242 H296 L290 264 H124 Z" fill="#8F715E" stroke-width="2.1"/>
+
+    <path d="M180 243 H210 L207 264 H183 Z" fill="#745846" stroke-width="1.8"/>
+    <path d="M185 252 H205 M186 261 H205" fill="none" stroke-width="1.05" opacity="0.72"/>
+
+    <path d="M132 243 V263 M270 243 V263" fill="none" stroke="#5F4434" stroke-width="2.6"/>
+    <!-- Canvas tent. -->
+    <path d="M338 214 L390 164 L442 214 L430 270 H350 Z" fill="#CFC3A6" stroke-width="2.2"/>
+    <path d="M390 164 L378 270 M390 164 L402 270" fill="none" stroke-width="1.5" opacity="0.7"/>
+    <path d="M390 164 L442 214 L430 270 H402 Z" fill="#B8AB8E" stroke="none"/>
+    <path d="M378 270 L390 214 L402 270 Z" fill="#3A322C" stroke-width="1.8"/>
+    <path d="M390 160 V148" fill="none" stroke-width="2"/>
+    <path d="M390 148 L404 153 L390 158 Z" fill="#9C3F3A" stroke-width="1.2"/>
+    <!-- Campfire ring: stones, crossed logs, flame and spit. -->
+    <g fill="#8E8B83" stroke-width="1.4">
+      <circle cx="230" cy="302" r="6"/><circle cx="248" cy="296" r="6"/><circle cx="266" cy="302" r="6"/><circle cx="270" cy="320" r="6"/>
+      <circle cx="252" cy="328" r="6"/><circle cx="232" cy="322" r="6"/>
+    </g>
+    <path d="M236 316 L264 304 M236 304 L264 318" fill="none" stroke="#5F4434" stroke-width="5"/>
+    <path d="M250 312 C240 306 246 292 252 284 C254 294 266 298 262 308 C260 314 254 316 250 312 Z" fill="#E08A33" stroke-width="1.4"/>
+    <path d="M251 310 C246 306 250 298 253 294 C255 300 259 303 256 309 Z" fill="#F4D36B" stroke="none"/>
+    <path d="M222 292 V330 M276 292 V330 M222 296 H276" fill="none" stroke="#4B352B" stroke-width="2.2"/>
+    <!-- Stores: crates, barrels and a weapon rack. -->
+
+    <path d="M106 296 H150 L153 326 H103 Z" fill="#876A56" stroke-width="1.8"/>
+    <path d="M112 301 L145 321 M145 301 L111 321" fill="none" stroke="#5F4434" stroke-width="1" opacity="0.7"/>
+
+    <path d="M122 330 H162 L165 358 H119 Z" fill="#876A56" stroke-width="1.8"/>
+    <path d="M128 335 L157 353 M157 335 L127 353" fill="none" stroke="#5F4434" stroke-width="1" opacity="0.7"/>
+
+    <ellipse cx="180" cy="336" rx="13" ry="8" fill="#A17A5C" stroke-width="1.7"/>
+    <path d="M167 336 L169 362 Q180 370 191 362 L193 336 Q180 344 167 336 Z" fill="#876449" stroke-width="1.7"/>
+    <path d="M169 346 Q180 352 191 346 M169 357 Q180 363 191 357" fill="none" stroke="#4D4B47" stroke-width="1.3"/>
+
+    <path d="M320 300 H388 L392 310 H316 Z" fill="#745846" stroke-width="1.8"/>
+    <path d="M326 308 V344 M382 308 V344 M338 310 V338 M352 310 V342 M366 310 V336" fill="none" stroke-width="2.6"/>
+    <path d="M334 318 L342 308 M348 320 L356 308 M362 318 L370 308" fill="none" stroke-width="1.7"/>
+    <!-- Front wall, left and right of the gate. -->
+    <g fill="#A58562" stroke-width="1.5">
+      <path d="M60.6 380 V347 L66.6 338 L72.7 347 V380 Z"/>
+      <path d="M73.9 380 V347 L79.9 338 L85.9 347 V380 Z"/>
+      <path d="M87.1 380 V347 L93.2 338 L99.2 347 V380 Z"/>
+      <path d="M100.4 380 V347 L106.5 338 L112.5 347 V380 Z"/>
+      <path d="M113.7 380 V347 L119.7 338 L125.8 347 V380 Z"/>
+      <path d="M127.0 380 V347 L133.0 338 L139.0 347 V380 Z"/>
+      <path d="M140.2 380 V347 L146.3 338 L152.3 347 V380 Z"/>
+      <path d="M153.5 380 V347 L159.5 338 L165.6 347 V380 Z"/>
+      <path d="M166.8 380 V347 L172.8 338 L178.9 347 V380 Z"/>
+      <path d="M180.1 380 V347 L186.1 338 L192.1 347 V380 Z"/>
+      <path d="M193.3 380 V347 L199.4 338 L205.4 347 V380 Z"/>
+    </g>
+    <path d="M60 373 H206" fill="none" stroke-width="1.2" opacity="0.55"/>
+    <g fill="#A58562" stroke-width="1.5">
+      <path d="M306.6 380 V347 L312.9 338 L319.2 347 V380 Z"/>
+      <path d="M320.4 380 V347 L326.7 338 L333.0 347 V380 Z"/>
+      <path d="M334.2 380 V347 L340.5 338 L346.9 347 V380 Z"/>
+      <path d="M348.1 380 V347 L354.4 338 L360.7 347 V380 Z"/>
+      <path d="M361.9 380 V347 L368.2 338 L374.5 347 V380 Z"/>
+      <path d="M375.7 380 V347 L382.0 338 L388.3 347 V380 Z"/>
+      <path d="M389.5 380 V347 L395.8 338 L402.1 347 V380 Z"/>
+      <path d="M403.3 380 V347 L409.6 338 L415.9 347 V380 Z"/>
+      <path d="M417.1 380 V347 L423.5 338 L429.8 347 V380 Z"/>
+      <path d="M431.0 380 V347 L437.3 338 L443.6 347 V380 Z"/>
+      <path d="M444.8 380 V347 L451.1 338 L457.4 347 V380 Z"/>
+    </g>
+    <path d="M306 373 H458" fill="none" stroke-width="1.2" opacity="0.55"/>
+
+    <!-- Gate: two tall posts, lintel, and the leaves swung open. -->
+    <path d="M206 322 H218 V388 H206 Z M294 322 H306 V388 H294 Z" fill="#8F6F52" stroke-width="2"/>
+    <path d="M200 316 H312 V328 H200 Z" fill="#A58562" stroke-width="2.2"/>
+    <path d="M218 346 L240 340 V386 L218 388 Z M294 346 L272 340 V386 L294 388 Z" fill="#745846" stroke-width="1.8"/>
+    <path d="M222 350 L236 346 M222 364 L236 360 M290 350 L276 346 M290 364 L276 360" fill="none" stroke-width="1.1" opacity="0.7"/>
+    <path d="M232 318 H280 V326 H232 Z" fill="#9C3F3A" stroke-width="1.5"/>
+    <!-- Watch platform on stilts at the back-left corner. -->
+    <path d="M64 168 V232 M120 168 V232 M64 200 L120 232 M120 200 L64 232" fill="none" stroke="#5F4434" stroke-width="3"/>
+    <path d="M52 124 H132 L138 172 H46 Z" fill="#A9856E" stroke-width="2.3"/>
+    <path d="M52 124 H132 L138 172 H46 Z" fill="url(#logHatch)" stroke="none"/>
+    <path d="M62 132 H122 V160 H62 Z" fill="#8F715E" stroke-width="1.8"/>
+    <path d="M92 132 V160" fill="none" stroke-width="1.2" opacity="0.7"/>
+
+    <path d="M428 96 V144" fill="none" stroke="#4B352B" stroke-width="2.4"/>
+    <path d="M429 98 H450 L444 107 L450 116 H429 Z" fill="#9C3F3A" stroke-width="1.6"/>
+
+  </g>
+</svg>

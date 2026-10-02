@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512"
+     role="img" aria-labelledby="title desc">
+  <title id="title">Granary shadow</title>
+  <desc id="desc">Separate native-vector cast shadow aligned to the Granary SVG.</desc>
+  <g id="shadow" transform="translate(28 16)" fill="#9699AE" opacity="0.46">
+    <path d="M104 112 H408 V190 H402 V250 H400 V300 H112 V250 H112 V190 H104 Z"/>
+    <path d="M118 300 H394 V358 H118 Z"/>
+    <path d="M274 308 H328 L336 384 H312 Z"/>
+    <path d="M326 346 H420 V420 H326 Z"/>
+    <path d="M186 392 H296 V440 H186 Z"/>
+    <path d="M48 356 H176 V428 H48 Z"/>
+
+  </g>
+</svg>

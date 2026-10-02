@@ -1,0 +1,178 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512"
+     role="img" aria-labelledby="title desc">
+  <title id="title">Tavern</title>
+  <desc id="desc">Two-gable inn around a cobbled yard with lantern sign, outdoor table, cellar hatch, lute and kegs.</desc>
+  <!-- Native vector artwork only: no embedded or linked raster content. -->
+
+  <defs>
+    <pattern id="roofHatch" width="12" height="12" patternUnits="userSpaceOnUse">
+      <path d="M2 0 V12 M8 0 V12" fill="none" stroke="#010206" stroke-width="0.75" opacity="0.17"/>
+    </pattern>
+    <pattern id="leanHatch" width="10" height="10" patternUnits="userSpaceOnUse">
+      <path d="M2 0 V10" fill="none" stroke="#010206" stroke-width="0.65" opacity="0.18"/>
+    </pattern>
+    <pattern id="stoneHatch" width="16" height="13" patternUnits="userSpaceOnUse">
+      <path d="M0 6 H16 M5 0 V6 M12 6 V13" fill="none" stroke="#010206" stroke-width="0.55" opacity="0.16"/>
+    </pattern>
+    <pattern id="shingleHatch" width="14" height="9" patternUnits="userSpaceOnUse">
+      <path d="M0 8 H14 M0 4 Q3.5 8 7 4 Q10.5 8 14 4" fill="none" stroke="#010206" stroke-width="0.6" opacity="0.2"/>
+    </pattern>
+    <pattern id="logHatch" width="9" height="9" patternUnits="userSpaceOnUse">
+      <path d="M4.5 0 V9" fill="none" stroke="#010206" stroke-width="0.7" opacity="0.2"/>
+    </pattern>
+    <pattern id="plankHatch" width="64" height="22" patternUnits="userSpaceOnUse">
+      <path d="M0 0.5 H64 M0 11.5 H64 M20 0 V11 M50 11 V22" fill="none" stroke="#010206" stroke-width="0.8" opacity="0.22"/>
+    </pattern>
+    <pattern id="flagHatch" width="48" height="40" patternUnits="userSpaceOnUse">
+      <path d="M0 0.5 H48 M0 20.5 H48 M16 0 V20 M40 20 V40" fill="none" stroke="#010206" stroke-width="0.8" opacity="0.2"/>
+    </pattern>
+    <pattern id="waterHatch" width="22" height="10" patternUnits="userSpaceOnUse">
+      <path d="M2 5 Q7 1 12 5 T22 5" fill="none" stroke="#A3C9CC" stroke-width="1.1" opacity="0.7"/>
+    </pattern>
+  </defs>
+
+  <g id="building" stroke="#010206" stroke-linecap="round" stroke-linejoin="round">
+
+    <!-- Chimney of the rear hall, with a smoke curl. -->
+    <path d="M372 52 H410 V140 H372 Z" fill="#8E8B83" stroke="none"/>
+    <path d="M372 52 H410 V140 H372 Z" fill="url(#stoneHatch)" stroke="none"/>
+    <path d="M372 52 H410 V140 H372 Z" fill="none" stroke-width="2.2"/>
+    <path d="M367 44 H415 V56 H367 Z" fill="#A8A59B" stroke-width="2"/>
+    <path d="M375 47 H407 V53 H375 Z" fill="#26211f" stroke="none"/>
+    <g fill="#E4E2DE" stroke-width="1.3">
+      <circle cx="392" cy="34" r="7"/><circle cx="400" cy="22" r="9"/><circle cx="415" cy="14" r="9"/><circle cx="433" cy="12" r="7"/>
+    </g>
+    <path d="M390 38 Q384 28 396 26 M404 18 Q400 10 412 9" fill="none" stroke-width="1" opacity="0.55"/>
+    <!-- Rear hall: long roof and the wall strip facing the yard, with the inn door. -->
+
+    <path d="M84 90 H432 V135 H84 Z" fill="#C4A68F" stroke="none"/>
+    <path d="M84 135 H432 V180 H84 Z" fill="#B58F78" stroke="none"/>
+    <path d="M84 90 H432 V180 H84 Z" fill="url(#shingleHatch)" stroke="none"/>
+    <path d="M84 90 H432 V180 H84 Z" fill="none" stroke-width="2.8"/>
+    <path d="M84 135 C171 133, 345 137, 432 135" fill="none" stroke-width="3.1"/>
+
+    <!-- Rear roof: a mended patch and a loft hatch. -->
+    <path d="M232 104 H292 V132 H232 Z" fill="#A8856F" stroke-width="1.4"/>
+    <path d="M232 104 H292 V132 H232 Z" fill="url(#shingleHatch)" stroke="none"/>
+    <path d="M300 146 H336 V170 H300 Z" fill="#5F4F44" stroke-width="1.8"/>
+    <path d="M318 146 V170 M300 158 H336" fill="none" stroke-width="1.1" opacity="0.7"/>
+    <path d="M92 180 H424 L420 214 H96 Z" fill="#D9C9A8" stroke-width="2.1"/>
+    <path d="M122 180 L123 214 M200 180 L201 214 M338 180 L337 214 M400 180 L399 214" fill="none" stroke="#5F4434" stroke-width="2.6"/>
+    <path d="M254 214 V192 Q254 182 268 182 Q282 182 282 192 V214 Z" fill="#745846" stroke-width="2"/>
+    <path d="M268 183 V214 M256 198 H280" fill="none" stroke-width="1.1" opacity="0.7"/>
+    <circle cx="276" cy="202" r="1.6" fill="#D7C39A" stroke="none"/>
+    <path d="M222 188 H242 V206 H222 Z M298 188 H318 V206 H298 Z" fill="#F0CB6A" stroke-width="1.6"/>
+    <path d="M232 188 V206 M222 197 H242 M308 188 V206 M298 197 H318" fill="none" stroke-width="1.1"/>
+    <!-- Cobbled yard between the wings. -->
+    <path d="M214 214 H330 V344 H214 Z" fill="#A8A59B" stroke="none"/>
+    <path d="M214 214 H330 V344 H214 Z" fill="url(#stoneHatch)" stroke="none"/>
+    <path d="M214 214 H330 V344" fill="none" stroke-width="1.6" opacity="0.6"/>
+    <!-- Left wing: tall gable, long roof, timber-framed gable face, lit windows. -->
+
+    <path d="M84 150 H149 V250 H84 Z" fill="#C4A68F" stroke="none"/>
+    <path d="M149 150 H214 V250 H149 Z" fill="#B58F78" stroke="none"/>
+    <path d="M84 150 H214 V250 H84 Z" fill="url(#shingleHatch)" stroke="none"/>
+    <path d="M84 150 H214 V250 H84 Z" fill="none" stroke-width="2.8"/>
+    <path d="M149 150 C147 183, 151 216, 149 250" fill="none" stroke-width="3.1"/>
+
+    <path d="M88 250 L149 192 L210 250 Z" fill="#D9C9A8" stroke-width="2.2"/>
+    <path d="M149 192 V250 M112 250 L149 212 L186 250 M120 238 H178" fill="none" stroke="#5F4434" stroke-width="2.4"/>
+    <circle cx="149" cy="232" r="8.5" fill="#F0CB6A" stroke-width="1.8"/>
+    <path d="M149 223 V241 M140 232 H158" fill="none" stroke-width="1.1"/>
+    <path d="M84 250 L149 188 L214 250" fill="none" stroke="#5F4434" stroke-width="4"/>
+    <path d="M90 250 H208 L204 340 H94 Z" fill="#D9C9A8" stroke-width="2.1"/>
+    <path d="M90 250 H208 V260 H90 Z" fill="#745846" stroke-width="1.6"/>
+    <path d="M94 260 V340 M149 260 V340 M204 260 V340 M94 296 H204" fill="none" stroke="#5F4434" stroke-width="2.6"/>
+    <path d="M104 268 H138 V292 H104 Z M160 268 H194 V292 H160 Z" fill="#F0CB6A" stroke-width="1.7"/>
+    <path d="M121 268 V292 M104 280 H138 M177 268 V292 M160 280 H194" fill="none" stroke-width="1.1"/>
+    <path d="M100 292 H142 V300 H100 Z M156 292 H198 V300 H156 Z" fill="#745846" stroke-width="1.5"/>
+    <g fill="#C94F5C" stroke="none"><circle cx="108" cy="293" r="2.2"/><circle cx="118" cy="292" r="2.2"/><circle cx="130" cy="293" r="2.2"/><circle cx="164" cy="293" r="2.2"/><circle cx="176" cy="292" r="2.2"/><circle cx="188" cy="293" r="2.2"/></g>
+    <path d="M118 306 H180 V340 H118 Z" fill="#745846" stroke-width="1.9"/>
+    <path d="M118 320 H180 M149 306 V340" fill="none" stroke-width="1.1" opacity="0.7"/>
+    <circle cx="144" cy="324" r="1.8" fill="#D7C39A" stroke="none"/><circle cx="154" cy="324" r="1.8" fill="#D7C39A" stroke="none"/>
+    <!-- Right wing: lower gable. -->
+
+    <path d="M336 176 H384 V246 H336 Z" fill="#C4A68F" stroke="none"/>
+    <path d="M384 176 H432 V246 H384 Z" fill="#B58F78" stroke="none"/>
+    <path d="M336 176 H432 V246 H336 Z" fill="url(#shingleHatch)" stroke="none"/>
+    <path d="M336 176 H432 V246 H336 Z" fill="none" stroke-width="2.8"/>
+    <path d="M384 176 C382 199, 386 222, 384 246" fill="none" stroke-width="3.1"/>
+
+    <path d="M340 246 L384 204 L428 246 Z" fill="#D9C9A8" stroke-width="2.2"/>
+    <path d="M384 204 V246 M362 246 L384 224 L406 246" fill="none" stroke="#5F4434" stroke-width="2.2"/>
+    <path d="M336 246 L384 200 L432 246" fill="none" stroke="#5F4434" stroke-width="3.8"/>
+    <path d="M342 246 H426 L422 340 H346 Z" fill="#D9C9A8" stroke-width="2.1"/>
+    <path d="M342 246 H426 V256 H342 Z" fill="#745846" stroke-width="1.6"/>
+    <path d="M346 256 V340 M384 256 V340 M422 256 V340" fill="none" stroke="#5F4434" stroke-width="2.6"/>
+    <path d="M354 266 H376 V290 H354 Z M392 266 H414 V290 H392 Z" fill="#F0CB6A" stroke-width="1.7"/>
+    <path d="M365 266 V290 M354 278 H376 M403 266 V290 M392 278 H414" fill="none" stroke-width="1.1"/>
+    <path d="M360 306 H408 V340 H360 Z" fill="#745846" stroke-width="1.9"/>
+    <path d="M360 318 H408 M360 330 H408" fill="none" stroke-width="1.1" opacity="0.7"/>
+    <path d="M338 340 H430 L436 348 H332 Z" fill="#85827A" stroke-width="1.8"/>
+    <path d="M90 340 H208 L214 348 H84 Z" fill="#85827A" stroke-width="1.8"/>
+    <!-- Yard: round table with mugs, four stools. -->
+    <g fill="#A58562" stroke-width="1.7">
+      <circle cx="238" cy="270" r="9"/><circle cx="306" cy="268" r="9"/><circle cx="246" cy="314" r="9"/><circle cx="298" cy="316" r="9"/>
+    </g>
+    <circle cx="272" cy="292" r="25" fill="#9F7D68" stroke-width="2"/>
+    <circle cx="272" cy="292" r="25" fill="url(#logHatch)" stroke="none"/>
+    <path d="M254 280 H290 M248 292 H296 M254 304 H290" fill="none" stroke-width="0.9" opacity="0.5"/>
+    <g fill="#C7A06E" stroke-width="1.4">
+      <circle cx="259" cy="288" r="5"/><circle cx="285" cy="286" r="5"/><circle cx="272" cy="304" r="5"/>
+    </g>
+    <g fill="none" stroke-width="1.5"><path d="M264 287 q4 0 0 5 M290 285 q4 0 0 5 M277 303 q4 0 0 5"/></g>
+    <g fill="#F3EAD2" stroke="none"><circle cx="259" cy="286" r="2.8"/><circle cx="285" cy="284" r="2.8"/><circle cx="272" cy="302" r="2.8"/></g>
+    <!-- Lute leaning against the right wing porch. -->
+    <g transform="translate(206 6) rotate(-11 222 320)">
+      <path d="M222 318 V270" fill="none" stroke="#4B352B" stroke-width="3.6"/>
+      <path d="M216 270 H228 V262 H216 Z" fill="#745846" stroke-width="1.5"/>
+      <path d="M222 318 C210 318 207 342 216 349 C222 354 232 354 237 347 C242 338 238 318 222 318 Z" fill="#B9884F" stroke-width="1.8"/>
+      <circle cx="223" cy="334" r="4.4" fill="#2c211b" stroke-width="1.2"/>
+      <path d="M220 262 V338 M224 262 V338" fill="none" stroke-width="0.7" opacity="0.7"/>
+    </g>
+    <!-- Cellar hatch (one leaf thrown open onto the steps). -->
+    <path d="M86 364 H176 V410 H86 Z" fill="#8E8B83" stroke-width="2"/>
+    <path d="M86 364 H176 V410 H86 Z" fill="url(#stoneHatch)" stroke="none"/>
+    <path d="M92 370 H126 V404 H92 Z" fill="#745846" stroke-width="1.8"/>
+    <path d="M92 380 H126 M92 392 H126 M109 370 V404" fill="none" stroke-width="1" opacity="0.7"/>
+    <circle cx="109" cy="387" r="3.2" fill="none" stroke-width="1.8"/>
+    <path d="M130 370 H170 V404 H130 Z" fill="#1d1a18" stroke-width="1.5"/>
+    <path d="M132 380 H168 M132 389 H168 M132 398 H168" fill="none" stroke="#6F6D68" stroke-width="2"/>
+    <path d="M170 370 L186 360 V396 L170 404 Z" fill="#8F6F52" stroke-width="1.8"/>
+    <path d="M174 378 L182 373 M174 390 L182 385" fill="none" stroke-width="1" opacity="0.7"/>
+    <!-- Barrels and a stack of kegs. -->
+
+    <ellipse cx="204" cy="366" rx="14" ry="8" fill="#A17A5C" stroke-width="1.7"/>
+    <path d="M190 366 L192 394 Q204 402 216 394 L218 366 Q204 374 190 366 Z" fill="#876449" stroke-width="1.7"/>
+    <path d="M192 376 Q204 382 216 376 M192 387 Q204 393 216 387" fill="none" stroke="#4D4B47" stroke-width="1.3"/>
+
+    <ellipse cx="231" cy="374" rx="14" ry="8" fill="#A17A5C" stroke-width="1.7"/>
+    <path d="M217 374 L219 402 Q231 410 243 402 L245 374 Q231 382 217 374 Z" fill="#876449" stroke-width="1.7"/>
+    <path d="M219 384 Q231 390 243 384 M219 395 Q231 401 243 395" fill="none" stroke="#4D4B47" stroke-width="1.3"/>
+
+    <ellipse cx="218" cy="404" rx="14" ry="8" fill="#A17A5C" stroke-width="1.7"/>
+    <path d="M204 404 L206 426 Q218 434 230 426 L232 404 Q218 412 204 404 Z" fill="#876449" stroke-width="1.7"/>
+    <path d="M206 414 Q218 420 230 414 M206 425 Q218 431 230 425" fill="none" stroke="#4D4B47" stroke-width="1.3"/>
+
+    <!-- Tankard lantern sign on a post and arm. -->
+    <path d="M326 436 V370 H354" fill="none" stroke="#4B352B" stroke-width="3.6"/>
+    <path d="M326 370 L338 370 M326 380 L338 370" fill="none" stroke="#4B352B" stroke-width="2"/>
+    <path d="M346 370 V380" fill="none" stroke-width="1.6"/>
+    <circle cx="346" cy="396" r="24" fill="#FAE9AE" stroke="none" opacity="0.32"/>
+    <path d="M334 380 H358 L362 386 H330 Z" fill="#4D4B47" stroke-width="1.6"/>
+    <path d="M332 386 H360 V412 H332 Z" fill="#F0CB6A" stroke-width="1.8"/>
+    <path d="M342 392 H352 V406 H342 Z" fill="#B9884F" stroke-width="1.3"/>
+    <path d="M352 394 H357 V402 H352" fill="none" stroke-width="1.5"/>
+    <path d="M341 392 Q343 388 346 390 Q349 387 353 392 Z" fill="#F7F1DE" stroke-width="1"/>
+    <path d="M330 412 H362 L358 418 H334 Z" fill="#4D4B47" stroke-width="1.6"/>
+    <ellipse cx="326" cy="438" rx="9" ry="3.5" fill="#85827A" stroke-width="1.5"/>
+    <!-- Front yard: second table, more kegs. -->
+    <circle cx="396" cy="396" r="22" fill="#9F7D68" stroke-width="2"/>
+    <circle cx="396" cy="396" r="22" fill="url(#logHatch)" stroke="none"/>
+    <g fill="#C7A06E" stroke-width="1.4"><circle cx="388" cy="392" r="5"/><circle cx="404" cy="400" r="5"/></g>
+    <g fill="#F3EAD2" stroke="none"><circle cx="388" cy="390" r="2.8"/><circle cx="404" cy="398" r="2.8"/></g>
+    <g fill="#A58562" stroke-width="1.7"><circle cx="368" cy="420" r="9"/><circle cx="426" cy="424" r="9"/></g>
+
+  </g>
+</svg>

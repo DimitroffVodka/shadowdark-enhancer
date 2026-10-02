@@ -74,6 +74,7 @@ Tools you use in prep between sessions.
 | [Export to PDF](Export-to-PDF.md) | Fill and download official Shadowdark character sheet PDFs directly from an actor |
 | [Warbands](Warbands.md) | The warband unit actor type: a commander's allowance, upgrades, and making a warband from a creature |
 | [Mounts & Boats](Mounts-and-Boats.md) | Dedicated Mount and Boat actor types and sheets for Western Reaches travel |
+| [Bastions](Bastions.md) | The Bastion actor type: House, Outpost, Keep or Castle, twenty upgrades built a week at a time, and a plan drawn from outside or in |
 
 ## Reference
 

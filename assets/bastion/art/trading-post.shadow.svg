@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512"
+     role="img" aria-labelledby="title desc">
+  <title id="title">Trading Post shadow</title>
+  <desc id="desc">Separate native-vector cast shadow aligned to the Trading Post SVG.</desc>
+  <g id="shadow" transform="translate(28 16)" fill="#9699AE" opacity="0.46">
+    <path d="M110 100 H340 V250 L336 262 V372 H128 V250 H114 L110 250 Z"/>
+    <path d="M127 68 H173 V100 H127 Z"/>
+    <path d="M299 58 H338 V100 H299 Z"/>
+    <path d="M40 330 H156 V424 H40 Z"/>
+    <path d="M346 292 H398 V340 H360 V418 H346 Z"/>
+    <path d="M376 314 L470 314 L492 330 V374 L482 392 V418 H388 V392 L376 380 Z"/>
+
+  </g>
+</svg>

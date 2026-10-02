@@ -1,0 +1,121 @@
+<div class="sde-bastion-body flexcol">
+
+  {{!-- Header (Shadowdark system chrome) --}}
+  <header class="SD-header flex0">
+    <img class="portrait" src="{{document.img}}" data-edit="img" data-action="editImage" data-tooltip="{{document.name}}" height="110" width="110" />
+    <div class="shadowdark-logo"><span>ShadowDark</span></div>
+    <div class="SD-title">
+      <input type="text" name="name" value="{{document.name}}" placeholder="{{localize 'SDE.bastion.namePlaceholder'}}" {{#unless editable}}disabled{{/unless}} />
+    </div>
+  </header>
+
+  <nav class="SD-nav flex0" data-group="primary">
+    <a class="navigation-tab {{#if tab.overview}}active{{/if}}" data-action="changeTab" data-tab="overview">{{localize "SDE.bastion.tab.overview"}}</a>
+    <a class="navigation-tab {{#if tab.upgrades}}active{{/if}}" data-action="changeTab" data-tab="upgrades">{{localize "SDE.bastion.tab.upgrades"}}</a>
+    <a class="navigation-tab {{#if tab.plan}}active{{/if}}" data-action="changeTab" data-tab="plan">{{localize "SDE.bastion.tab.plan"}}</a>
+    <a class="navigation-tab {{#if tab.log}}active{{/if}}" data-action="changeTab" data-tab="log">{{localize "SDE.bastion.tab.log"}}</a>
+  </nav>
+
+  {{!-- Overview: the type, the numbers, the build clock --}}
+  <section class="sde-bast-tab {{#if tab.overview}}active{{/if}}">
+    <div class="sde-bast-overview">
+      <div class="sde-bast-col">
+        <label class="sde-bast-field">
+          <span>{{localize "SDE.bastion.field.type"}}</span>
+          <select data-bastion-type {{#unless editable}}disabled{{/unless}}>
+            {{#each types}}<option value="{{id}}" {{#if selected}}selected{{/if}}>{{name}}: {{line}}</option>{{/each}}
+          </select>
+        </label>
+        <p class="hint">{{type.blurb}}</p>
+        <div class="sde-bast-stats">
+          <div class="SD-box sde-bast-stat"><div class="header"><label>{{localize "SDE.bastion.stat.ac"}}</label><span></span></div><div class="content">{{stats.ac}}</div></div>
+          <div class="SD-box sde-bast-stat {{#if stats.breached}}sde-bast-bad{{/if}}">
+            <div class="header"><label>{{localize "SDE.bastion.stat.hp"}}</label><span></span></div>
+            <div class="content"><input type="number" name="system.hp.value" value="{{stats.hp}}" min="0" max="{{stats.maxHp}}" {{#unless editable}}disabled{{/unless}} /> / {{stats.maxHp}}</div>
+          </div>
+          <div class="SD-box sde-bast-stat"><div class="header"><label>{{localize "SDE.bastion.stat.upgrades"}}</label><span></span></div><div class="content">{{stats.used}} / {{stats.slots}}</div></div>
+          <div class="SD-box sde-bast-stat">
+            <div class="header"><label>{{localize "SDE.bastion.stat.treasury"}}</label><span></span></div>
+            <div class="content"><input type="number" name="system.treasury" value="{{system.treasury}}" min="0" {{#unless editable}}disabled{{/unless}} /> {{localize "SDE.bastion.gp"}}</div>
+          </div>
+        </div>
+        <p class="note">{{localize "SDE.bastion.stat.worth" worth=stats.worth}}</p>
+        {{#if stats.breached}}<p class="note sde-bast-bad">{{localize "SDE.bastion.breached"}}</p>{{/if}}
+        {{#if stats.standing}}
+          <p class="note">{{localize "SDE.bastion.standing" week=stats.week}}</p>
+        {{else}}
+          <p class="note">{{localize "SDE.bastion.building" weeks=stats.weeksLeft}}</p>
+        {{/if}}
+      </div>
+      <div class="sde-bast-col">
+        {{#if gm}}
+        <h3>{{localize "SDE.bastion.clock"}}</h3>
+        <div class="sde-bast-buttons">
+          <button type="button" data-action="advanceWeek"><i class="fa-solid fa-hourglass-half"></i> {{localize "SDE.bastion.advanceWeek"}}</button>
+          <button type="button" data-action="repair" {{#unless stats.repairCost}}disabled{{/unless}}><i class="fa-solid fa-hammer"></i> {{localize "SDE.bastion.repair" cost=stats.repairCost}}</button>
+          <button type="button" data-action="rollMonth"><i class="fa-solid fa-dice-d6"></i> {{localize "SDE.bastion.rollMonth"}}</button>
+        </div>
+        {{#if stats.repairing}}<p class="note">{{localize "SDE.bastion.repairing"}}</p>{{/if}}
+        <p class="hint">{{localize "SDE.bastion.rules"}}</p>
+        {{/if}}
+        <h3>{{localize "SDE.bastion.tab.notes"}}</h3>
+        {{#if editable}}
+          <textarea name="system.notes" rows="8">{{system.notes}}</textarea>
+        {{else}}
+          <div class="sde-bast-notes">{{{enrichedNotes}}}</div>
+        {{/if}}
+      </div>
+    </div>
+  </section>
+
+  {{!-- Upgrades: pick and build --}}
+  <section class="sde-bast-tab {{#if tab.upgrades}}active{{/if}}">
+    <p class="note">{{localize "SDE.bastion.upgradesNote" used=stats.used slots=stats.slots}}</p>
+    <div class="sde-bast-upgrades">
+      {{#each upgrades}}
+      <div class="sde-bast-up {{#if isBuilt}}built{{/if}} {{#if isBuilding}}building{{/if}}" data-card="{{id}}">
+        <svg viewBox="0 0 512 512" class="art"><rect width="512" height="512" fill="#85A478"/><use href="#b-{{id}}" width="512" height="512"/></svg>
+        <div class="text"><strong>{{name}}</strong><span>{{effect}}</span></div>
+        <div class="act">
+          <span class="cost">{{cost}} {{localize "SDE.bastion.gp"}}</span>
+          {{#if isNone}}
+            <button type="button" data-action="build" data-id="{{id}}" {{#unless ../editable}}disabled{{/unless}} {{#unless canBuild}}disabled{{/unless}} {{#if why}}data-tooltip="{{why}}"{{/if}}>{{localize "SDE.bastion.build"}}</button>
+          {{/if}}
+          {{#if isBuilding}}<em>{{localize "SDE.bastion.weeksLeft" weeks=weeksLeft}}</em>{{/if}}
+          {{#if isBuilt}}<em>{{localize "SDE.bastion.builtLabel"}}</em>{{/if}}
+          {{#unless isNone}}{{#if ../editable}}<button type="button" class="ghost" data-action="takeDown" data-id="{{id}}" data-tooltip="{{localize 'SDE.bastion.takeDown.tip'}}"><i class="fa-solid fa-trash"></i></button>{{/if}}{{/unless}}
+        </div>
+      </div>
+      {{/each}}
+    </div>
+  </section>
+
+  {{!-- Plan: the bastion from outside or in --}}
+  <section class="sde-bast-tab sde-bast-plan {{#if tab.plan}}active{{/if}}">
+    <div class="sde-bast-toolbar">
+      <div class="seg">
+        <button type="button" data-action="setView" data-view="ext" class="{{#if view.ext}}on{{/if}}">{{localize "SDE.bastion.view.exterior"}}</button>
+        <button type="button" data-action="setView" data-view="in" class="{{#if view.in}}on{{/if}}">{{localize "SDE.bastion.view.interior"}}</button>
+      </div>
+      {{#if view.in}}<button type="button" data-action="toggleRoofs" class="{{#if roofs}}on{{/if}}" data-tooltip="{{localize 'SDE.bastion.roofs.tip'}}"><i class="fa-solid fa-house-chimney"></i> {{localize "SDE.bastion.roofs.label"}}</button>{{/if}}
+      <span class="spacer"></span>
+      <button type="button" data-action="exportSvg" class="ghost"><i class="fa-solid fa-file-code"></i> {{localize "SDE.bastion.export.svg"}}</button>
+      <button type="button" data-action="exportPng" class="ghost"><i class="fa-solid fa-file-image"></i> {{localize "SDE.bastion.export.png"}}</button>
+    </div>
+    <div class="sde-bast-planbody">
+      <svg class="sde-bastion-map" viewBox="{{plan.viewBox}}" role="img" aria-label="{{localize 'SDE.bastion.plan.aria'}}">{{{plan.markup}}}</svg>
+      <aside class="sde-bastion-card"></aside>
+    </div>
+    <p class="hint">{{localize "SDE.bastion.plan.hint"}}</p>
+  </section>
+
+  {{!-- Log --}}
+  <section class="sde-bast-tab {{#if tab.log}}active{{/if}}">
+    {{#if log.length}}
+      <ol class="sde-bast-log">{{#each log}}<li><span class="week">{{localize "SDE.bastion.log.week" week=week}}</span> {{text}}</li>{{/each}}</ol>
+    {{else}}
+      <p class="note">{{localize "SDE.bastion.log.empty"}}</p>
+    {{/if}}
+  </section>
+
+</div>

@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512"
+     role="img" aria-labelledby="title desc">
+  <title id="title">Armorer shadow</title>
+  <desc id="desc">Separate native-vector cast shadow aligned to the Armorer SVG.</desc>
+  <g id="shadow" transform="translate(28 16)" fill="#9699AE" opacity="0.46">
+    <g transform="translate(256 256) scale(0.94) translate(-269 -245)">
+    <path d="M64 92 H318 V118 H446 V248 H440 V250 H332 V236 H324 L318 236 H72 Z"/>
+    <path d="M365 66 H411 V118 H365 Z"/>
+    <path d="M72 238 H172 V410 H72 Z"/>
+    <path d="M190 302 H314 V408 H190 Z"/>
+    <path d="M314 352 H392 V424 H314 Z"/>
+    <path d="M400 266 H464 V420 H400 Z"/>
+
+    </g>
+
+  </g>
+</svg>
