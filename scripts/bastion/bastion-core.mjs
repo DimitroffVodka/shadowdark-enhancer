@@ -97,6 +97,15 @@ const lowestFree = (upgrades) => {
   return slot;
 };
 
+/** Kept upgrades keep their place while the new type still has that room; any left off its plan move to the lowest free rooms. */
+const remapSlots = (upgrades, slots) => {
+  const moved = upgrades.filter((u) => u.id !== MOAT && toInt(u.slot) >= slots).sort((a, b) => toInt(a.slot) - toInt(b.slot));
+  if (moved.length === 0) return upgrades;
+  const next = upgrades.map((u) => ({ ...u }));
+  for (const old of moved) next.find((u) => u.id === old.id).slot = lowestFree(next);
+  return next;
+};
+
 const log = (state, key, data = {}) => [...(state.log ?? []), { week: toInt(state.week), key, data }].slice(-LOG_CAP);
 
 /** Can this upgrade be started now? `reason` is one of unknown, built, full, unstanding, broke. */
@@ -134,6 +143,7 @@ export function takeDown(state, id) {
 /**
  * Change the type. A bastion with more upgrades than the new type holds can't shrink. The rest go to full HP,
  * and one already standing stays standing (a GM mending a mistake); one still going up takes the new type's weeks.
+ * Upgrades keep the place they took while the new type still has that room; the rest move to its lowest free rooms.
  */
 export function changeType(state, typeId) {
   const type = typeOf(typeId);
@@ -141,6 +151,7 @@ export function changeType(state, typeId) {
   if (type.id === state.type) return { state, error: null };
   if ((state.upgrades ?? []).length > type.slots) return { state, error: "tooMany" };
   const next = { ...state, type: type.id, hp: { value: type.hp }, weeksLeft: toInt(state.weeksLeft) > 0 ? type.weeks : 0, repair: { hp: 0, weeksLeft: 0 } };
+  next.upgrades = remapSlots(state.upgrades ?? [], type.slots);
   next.log = log(next, "SDE.bastion.log.retyped", { type: type.name });
   return { state: next, error: null };
 }

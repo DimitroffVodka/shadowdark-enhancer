@@ -204,10 +204,14 @@ export class BastionSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   async _onRollMonth() {
     if (!game.user.isGM) return;
     const die = (n) => Math.floor(CONFIG.Dice.randomUniform() * n) + 1;
-    const next = core.applyDisaster(this.state, core.rollDisaster(die));
+    const before = this.state;
+    const next = core.applyDisaster(before, core.rollDisaster(die));
     if (!(await this._write(next))) return;
-    const line = logText(next.log.at(-1));
-    await ChatMessage.create({ content: `<p><strong>${esc(this.document.name)}</strong> ${esc(line)}</p>`, speaker: { alias: this.document.name } });
+    // Every line the roll added goes to chat (a breaching disaster adds two: the damage, then the breach).
+    // The cap can drop old lines, so compare entries — the ones handed in are the same that come back — not indexes.
+    const seen = new Set(before.log);
+    const lines = next.log.filter((e) => !seen.has(e)).map(logText);
+    await ChatMessage.create({ content: `<p><strong>${esc(this.document.name)}</strong> ${lines.map(esc).join(" ")}</p>`, speaker: { alias: this.document.name } });
   }
 
   /** The plan as a standalone SVG: the page's art symbols plus what's drawn. */

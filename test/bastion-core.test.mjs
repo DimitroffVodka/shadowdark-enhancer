@@ -82,6 +82,20 @@ test("a type change keeps the upgrades when they fit and refuses when they don't
   assert.equal(changeType(s, "nonsense").error, "unknown");
 });
 
+test("a type change re-seats upgrades whose rooms the new plan doesn't have, and leaves the rest", () => {
+  const nine = ["aviary", "armorer", "barracks", "blacksmith", "brewery", "casino", "dungeon", "granary", "idol"];
+  // A castle whose low rooms were taken down keeps nine upgrades at slots 10-18.
+  const high = nine.reduce((s, id, i) => ({ ...s, upgrades: [...s.upgrades, { id, slot: 10 + i, weeksLeft: 0 }] }), standing("castle"));
+  const keep = changeType(high, "keep");
+  assert.equal(keep.error, null);
+  assert.deepEqual(keep.state.upgrades.map((u) => u.slot), [0, 1, 2, 3, 4, 5, 6, 7, 8]);
+  // A place the new type still has stays put; the moat keeps -1 and no room; a week of work is kept.
+  const mixed = changeType({ ...standing("castle"), upgrades: [{ id: "vault", slot: 2, weeksLeft: 0 }, { id: "idol", slot: 15, weeksLeft: 1 }] }, "keep").state;
+  assert.deepEqual(mixed.upgrades, [{ id: "vault", slot: 2, weeksLeft: 0 }, { id: "idol", slot: 0, weeksLeft: 1 }]);
+  const moat = changeType({ ...standing("castle"), upgrades: [{ id: "moat", slot: -1, weeksLeft: 0 }, { id: "idol", slot: 12, weeksLeft: 0 }] }, "keep").state;
+  assert.deepEqual(moat.upgrades, [{ id: "moat", slot: -1, weeksLeft: 0 }, { id: "idol", slot: 0, weeksLeft: 0 }]);
+});
+
 test("weeks pass: the bastion rises, then each upgrade finishes", () => {
   let s = { ...newBastion("outpost"), treasury: 1000 };
   s = advanceWeek(s);
