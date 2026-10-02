@@ -14,6 +14,7 @@
  *   week        weeks the bastion has stood, counted by advanceWeek
  *   upgrades    [{ id, slot, weeksLeft }]  slot is its place on the plan, -1 for the moat
  *   repair      { hp, weeksLeft }  hp being mended, 0 weeksLeft when none
+ *   incomeMonths  the calendar months whose Casino income is paid (month keys, the last few)
  *   log         [{ week, key, data }]  newest last, capped
  *
  * Every function takes a state and returns a NEW one with the log lines it
@@ -64,7 +65,7 @@ const toInt = (n, fallback = 0) => (Number.isFinite(Number(n)) ? Math.trunc(Numb
 /** A new bastion of a type: unbuilt, full HP, nothing in the treasury. */
 export function newBastion(typeId = "house") {
   const type = typeOf(typeId) ?? BASTION_TYPES[0];
-  return { type: type.id, weeksLeft: type.weeks, hp: { value: type.hp }, treasury: 0, week: 0, upgrades: [], repair: { hp: 0, weeksLeft: 0 }, log: [] };
+  return { type: type.id, weeksLeft: type.weeks, hp: { value: type.hp }, treasury: 0, week: 0, upgrades: [], repair: { hp: 0, weeksLeft: 0 }, incomeMonths: [], log: [] };
 }
 
 /** The numbers a type fixes, with the bastion's current hit points. */
@@ -94,16 +95,33 @@ export const builtUpgrades = (state) => (state?.upgrades ?? []).filter((u) => to
 export const GRANARY_SAVING_GP = 10;
 /** What the Barracks adds to a garrisoned warband's healing each day. */
 export const BARRACKS_HEAL = { n: 1, faces: 6 };
+/** The Casino's income each month, in gp. */
+export const CASINO_DICE = { n: 2, faces: 20 };
+/** How many paid months a bastion keeps: far more than a clock move reaches back. */
+const KEEP_INCOME_MONTHS = 24;
 
 /**
  * The effects other features apply for a bastion: only a bastion that stands gives any, and
  * only through finished upgrades.
  * granary: warbands garrisoned here each cost GRANARY_SAVING_GP less a month.
  * barracks: warbands garrisoned here heal BARRACKS_HEAL more each day.
+ * casino: it earns CASINO_DICE gp into the treasury each month.
  */
 export function effects(state) {
   const built = new Set(stats(state).standing ? builtUpgrades(state) : []);
-  return { granary: built.has("granary"), barracks: built.has("barracks") };
+  return { granary: built.has("granary"), barracks: built.has("barracks"), casino: built.has("casino") };
+}
+
+/** Is this month's Casino income owed: a finished Casino in a standing bastion, and the month not yet paid? */
+export const owesIncome = (state, month) => effects(state).casino && !(state.incomeMonths ?? []).includes(month);
+
+/** Pay a month's Casino income, `gp` rolled, into the treasury, and mark the month paid. Never twice for one month. */
+export function payIncome(state, month, gp) {
+  if (!owesIncome(state, month)) return { state, error: "none" };
+  if (!Number.isInteger(gp) || gp < 0) return { state, error: "amount" };
+  const next = { ...state, treasury: toInt(state.treasury) + gp, incomeMonths: [...new Set([...(state.incomeMonths ?? []), month])].sort((a, b) => a - b).slice(-KEEP_INCOME_MONTHS) };
+  next.log = log(next, "SDE.bastion.log.income", { gp });
+  return { state: next, error: null };
 }
 
 const lowestFree = (upgrades) => {
@@ -277,6 +295,7 @@ export function stateOf(actor) {
     treasury: s.treasury ?? 0,
     upgrades: (s.upgrades ?? []).map((u) => ({ id: u.id, slot: u.slot, weeksLeft: u.weeksLeft })),
     repair: { hp: s.repair?.hp ?? 0, weeksLeft: s.repair?.weeksLeft ?? 0 },
+    incomeMonths: (s.incomeMonths ?? []).filter(Number.isFinite),
     log: (s.log ?? []).map((e) => ({ week: e.week, key: e.key, data: { ...e.data } })),
   };
 }
@@ -292,6 +311,7 @@ export function updateOf(state) {
     "system.upgrades": state.upgrades,
     "system.repair.hp": state.repair.hp,
     "system.repair.weeksLeft": state.repair.weeksLeft,
+    "system.incomeMonths": state.incomeMonths,
     "system.log": state.log,
   };
 }

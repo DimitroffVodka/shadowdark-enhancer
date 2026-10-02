@@ -16,6 +16,7 @@ import { BastionDataModel } from "./bastion-data-model.mjs";
 import { BastionSheet } from "./bastion-sheet.mjs";
 import { BASTION_TYPE, bastionArt } from "./bastion-art.mjs";
 import { registerBastionEntryPoints } from "./bastion-entry-points.mjs";
+import { registerBastionIncome } from "./bastion-income.mjs";
 
 export { BASTION_TYPE };
 
@@ -30,6 +31,7 @@ export function registerBastion() {
   CONFIG.Actor.typeIcons ??= {};
   CONFIG.Actor.typeIcons[BASTION_TYPE] = "fa-solid fa-chess-rook";
   registerBastionEntryPoints();
+  registerBastionIncome();
 
   // A new bastion carries its type's art, and one actor is one place: its token is linked.
   Hooks.on("preCreateActor", (doc, data) => {
@@ -74,8 +76,8 @@ export function bastionApi() {
     partyOf: (ref) => { const actor = find(ref); const uuid = isBastion(actor) ? actor.system.party : ""; return uuid ? fromUuidSync(uuid, { strict: false }) ?? null : null; },
     // The bastions a party owns (actors).
     forParty: (ref) => { const party = find(ref); return party ? game.actors.filter((a) => isBastion(a) && a.system.party === party.uuid) : []; },
-    // The effects other features apply: { granary, barracks }, true only for a standing bastion's finished upgrade.
-    effects: (ref) => { const actor = find(ref); return isBastion(actor) ? core.effects(core.stateOf(actor)) : { granary: false, barracks: false }; },
+    // The effects other features apply: { granary, barracks, casino }, true only for a standing bastion's finished upgrade.
+    effects: (ref) => { const actor = find(ref); return isBastion(actor) ? core.effects(core.stateOf(actor)) : { granary: false, barracks: false, casino: false }; },
     // The upgrades that are finished and so give their effect.
     built: (ref) => { const actor = find(ref); return isBastion(actor) ? core.builtUpgrades(core.stateOf(actor)) : []; },
   };

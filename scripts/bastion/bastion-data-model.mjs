@@ -31,6 +31,8 @@ export class BastionDataModel extends foundry.abstract.TypeDataModel {
         weeksLeft: int(1, { min: 0 }),
       }), { initial: [] }),
       repair: new fields.SchemaField({ hp: int(0, { min: 0 }), weeksLeft: int(0, { min: 0 }) }),
+      // The calendar months whose Casino income is paid, so the clock paying one month twice is harmless.
+      incomeMonths: new fields.ArrayField(new fields.NumberField({ required: true, nullable: false, integer: true }), { initial: [] }),
       // Newest last. `key` is an i18n key and `data` fills it; an array, never a keyed map.
       log: new fields.ArrayField(new fields.SchemaField({
         week: int(0, { min: 0 }),
