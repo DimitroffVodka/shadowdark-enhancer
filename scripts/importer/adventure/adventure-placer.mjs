@@ -17,6 +17,7 @@ import { MODULE_ID } from "../../shared/module-id.mjs";
 import { MAP_FLAG, entryPages, scenePins, placementRows, nextPending, noteData, setSkipped, placementGate, restoreSiteJournal, planBookPins } from "./adventure-scene.mjs";
 import { findSite } from "./adventure-manifest.mjs";
 import { stitchMapLabels, mapFits } from "./map-labels.mjs";
+import { layoutFor, layoutPoints, layoutFromPins, layoutSnippet } from "./adventure-layouts.mjs";
 import { resolveSourcePdf, sourcePdfTarget } from "../source-pdf-registry.mjs";
 import { parsePageRange } from "../pdf-text-extract.mjs";
 
@@ -47,6 +48,7 @@ export class AdventurePlacer extends HandlebarsApplicationMixin(ApplicationV2) {
       advPlace: function (...a) { return this._onPlace(...a); },
       advNext: function (...a) { return this._onNext(...a); },
       advBook: function (...a) { return this._onBook(...a); },
+      advExport: function (...a) { return this._onExport(...a); },
       advStop: function (...a) { return this._onStop(...a); },
       advSkip: function (...a) { return this._onSkip(...a); },
       advClear: function (...a) { return this._onClear(...a); },
@@ -203,30 +205,45 @@ export class AdventurePlacer extends HandlebarsApplicationMixin(ApplicationV2) {
     else { this.disarm(); ui.notifications?.info(t("SDE.adventure.placer.allDone")); }
   }
 
-  // ─── From the book's own map ───────────────────────────────────────────────
+  // ─── Positions that are already known ──────────────────────────────────────
 
   /**
-   * Place every pending location the book's own keyed map shows. The map is one
-   * picture per PDF page with the room numbers as text over it, so the GM's PDF
-   * says where each number sits; nothing is analysed in the image. Placed and
-   * skipped locations are left alone. The scene's image has to be the same shape
-   * as the book's map (the GM's copy of that map, not a different crop).
-   * @returns {Promise<{placed:number, left:number}|null>} null when nothing could be read or the image does not fit
+   * The positions the module can place without a click, as fractions of the map:
+   * the layout saved with the module for this adventure, else (for a book that
+   * prints its room numbers as text over its map) read from the GM's own PDF.
+   * Nothing is analysed in the image either way.
+   * @returns {Promise<{points:Map<number,{x:number,y:number}>, aspect:number}|null>} null (with a message) when there are none
+   */
+  async _knownPositions(site) {
+    const saved = layoutFor(site.id);
+    if (saved) return { points: layoutPoints(saved), aspect: saved.aspect };
+    if (!site.mapPages) { ui.notifications?.info(t("SDE.adventure.placer.noBookMap")); return null; }
+    const file = resolveSourcePdf(site.src);
+    if (!file) { ui.notifications?.warn(t("SDE.importer.pdf.bookNotLinked")); return null; }
+    const pages = parsePageRange(site.mapPages).map((p) => sourcePdfTarget(site.src, String(p))?.page).filter(Number.isInteger);
+    const { extractMapLabels } = await import("../pdf-text-extract.mjs");
+    const map = stitchMapLabels(await extractMapLabels(file, pages));
+    if (!map) ui.notifications?.warn(t("SDE.adventure.placer.bookMapUnreadable"));
+    return map;
+  }
+
+  /**
+   * Place every pending location whose position is known. Placed and skipped
+   * locations are left alone. The scene's image has to be the same shape as the
+   * map the positions were taken from (the GM's copy of that map, not a different
+   * crop).
+   * @returns {Promise<{placed:number, left:number}|null>} null when nothing could be placed
    */
   async placeFromBook() {
     const flag = this.scene.getFlag(MODULE_ID, MAP_FLAG);
     const site = findSite(flag?.site);
-    if (!site?.mapPages) { ui.notifications?.info(t("SDE.adventure.placer.noBookMap")); return null; }
-    const file = resolveSourcePdf(site.src);
-    if (!file) { ui.notifications?.warn(t("SDE.importer.pdf.bookNotLinked")); return null; }
+    if (!site) return null;
     const token = this._gate.claim();
     if (token === null) return null;
     try {
-      const pages = parsePageRange(site.mapPages).map((p) => sourcePdfTarget(site.src, String(p))?.page).filter(Number.isInteger);
-      const { extractMapLabels } = await import("../pdf-text-extract.mjs");
-      const map = stitchMapLabels(await extractMapLabels(file, pages));
+      const map = await this._knownPositions(site);
+      if (!map) return null;
       const rect = this.scene.dimensions?.sceneRect ?? { x: 0, y: 0, width: this.scene.width, height: this.scene.height };
-      if (!map) { ui.notifications?.warn(t("SDE.adventure.placer.bookMapUnreadable")); return null; }
       if (!mapFits(map.aspect, rect.width, rect.height)) { ui.notifications?.warn(t("SDE.adventure.placer.bookMapMismatch")); return null; }
       const { create, left } = planBookPins({
         rows: this._rows(), points: map.points, rect, entryId: flag.entryId, gridSize: this.scene.grid?.size,
@@ -235,13 +252,27 @@ export class AdventurePlacer extends HandlebarsApplicationMixin(ApplicationV2) {
       ui.notifications?.info(t("SDE.adventure.placer.fromBookDone", { placed: create.length, left: left.length }));
       return { placed: create.length, left: left.length };
     } catch (err) {
-      console.error(`${MODULE_ID} | adventure placer: placing from the book's map failed`, err);
+      console.error(`${MODULE_ID} | adventure placer: placing from known positions failed`, err);
       ui.notifications?.error(t("SDE.adventure.placer.bookMapFailed"));
       return null;
     } finally {
       this._gate.release();
       this.render();
     }
+  }
+
+  /**
+   * Copy this scene's pin positions as the text to paste into adventure-layouts.mjs
+   * (CONTRIBUTING.md), so the next GM never has to place them.
+   */
+  async _onExport() {
+    const flag = this.scene.getFlag(MODULE_ID, MAP_FLAG);
+    const pins = scenePins(this.scene);
+    if (!pins.length) { ui.notifications?.warn(t("SDE.adventure.placer.exportNone")); return; }
+    const rect = this.scene.dimensions?.sceneRect ?? { x: 0, y: 0, width: this.scene.width, height: this.scene.height };
+    const text = layoutSnippet(flag.site, layoutFromPins(pins, rect));
+    try { await game.clipboard.copyPlainText(text); } catch (err) { console.info(text); console.warn(`${MODULE_ID} | adventure placer: clipboard refused`, err); }
+    ui.notifications?.info(t("SDE.adventure.placer.exportDone", { n: pins.length }));
   }
 
   async _onBook() {

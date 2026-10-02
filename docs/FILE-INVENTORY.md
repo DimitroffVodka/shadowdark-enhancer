@@ -1,7 +1,7 @@
 # Shadowdark Enhancer — File Inventory
 
 <!-- inventory:stats:start -->
-1148 tracked files · ~207,600 lines of code/markup across scripts+templates+styles+test.
+1150 tracked files · ~207,800 lines of code/markup across scripts+templates+styles+test.
 `v0.17.3` in both `module.json` and `package.json`.
 <!-- inventory:stats:end -->
 **Layout reflects the 2026-07-21 feature-folder reorganization (v0.11.0 cycle).**
@@ -349,9 +349,10 @@
 | `boats/siege-importer.mjs` | 43 | Materializes Blast/Exploding Property items for the siege weapons in `sde-items`. |
 | `adventure/adventure-book-import.mjs` | 96 | A Cursed Scroll's adventures in one pass: each site's pages out of the linked PDF, parsed and filed, one site failing never costing the rest. Page map only; no book text. |
 | `adventure/adventure-commit.mjs` | 141 | Parsed locations → one JournalEntry per adventure in sde-journal, one page per location, filed under the adventure flag (not the hex flag, so the tagger never lists a dungeon as a crawl); pure planner plus a two-pass link rewrite, same contract as hex-commit. |
+| `adventure/adventure-layouts.mjs` | 119 | Where each adventure's room numbers sit on its map, as fractions of the map (positions only; no art, no book text), so a scene can place its pins without the GM clicking each one; plus the pure helpers that turn a placed scene into a layout to paste here and a layout into placement points. |
 | `adventure/adventure-manifest.mjs` | 101 | Where each Cursed Scroll adventure's numbered key is: per site (a dungeon, a mini-adventure, a city district) its title, printed pages, the numbers the book prints, the heading style, and the map's printed grid. Page numbers and titles only; no book text, no art. |
 | `adventure/adventure-parser.mjs` | 217 | Numbered-location parser for printed adventures (pure): "12. METEORITE ROOM" and "12. Meteorite Room. Body" headings, a run rule that keeps a numbered list inside a room out of the key, missing-number reports, page HTML with bullets and "Area 12" links. |
-| `adventure/adventure-placer.mjs` | 285 | The keyed-location placer (AppV2): lists a map's locations and turns the canvas into a one-click target, dropping each numbered Note and arming the next; skip and clear per location, resumable. |
+| `adventure/adventure-placer.mjs` | 316 | The keyed-location placer (AppV2): lists a map's locations and turns the canvas into a one-click target, dropping each numbered Note and arming the next; skip and clear per location, resumable. |
 | `adventure/adventure-scene.mjs` | 223 | A filed adventure as a map Scene: scene sized from the GM's image and the book's printed grid, the journal deployed into the world, and the pure rules for which locations are placed, skipped or still to do (remembered on the scene's notes and flag). |
 | `adventure/map-labels.mjs` | 48 | Where the book puts each room number on its own map (pure): the page reads of a keyed map (one picture per page, numbers as text over it, two pages for a spread) stitched into one point per number as a fraction of the map, plus the shape check against the GM's image. No coordinates ship; they come from the GM's own PDF. |
 | `chapter-journal.mjs` | 317 | Chapter to journal (#194): a printed page range of a linked book → one JournalEntry in the journals pack, split at ALL-CAPS headings (or a preset's sections, e.g. the GM Guide's City-States) and reflowed, with page furniture dropped. Identity by flag, so a re-import updates in place and keeps GM pages; pages naming a key location link to its hex page and back. Presets are page numbers only. |
@@ -360,7 +361,7 @@
 | `hex/hex-dataset.mjs` | 349 | Drafts + summary rows + tags → the Shadowdark Extras hexcrawl dataset (numbers only at the boundary); river, path and coast as record features, merged by id with what Extras holds. Pure. |
 | `hex/hex-handoff.mjs` | 384 | Crawl entry → dataset; puts it on the tagged print through Extras (adoptHexcrawl), merging each hex's features into the record Extras holds, builds a painted Extras scene, or downloads JSON. |
 | `hex/hex-summary.mjs` | 174 | Keyed hex summary rows (number, region, terrain, name) → structured rows; zone/terrain split decided by the table. Pure. |
-| `importer-hub-adventures.mjs` | 152 | Hub Tools → Adventures (file a Cursed Scroll's adventures as journals) and Adventure map (build the scene from the GM's image and open the placer); installed onto the hub class. |
+| `importer-hub-adventures.mjs` | 154 | Hub Tools → Adventures (file a Cursed Scroll's adventures as journals) and Adventure map (build the scene from the GM's image and open the placer); installed onto the hub class. |
 | `items/record-boundary.mjs` | 210 | Where one pasted description record ends and the next begins. Pure. |
 | `tables/cursed-scroll-tables.mjs` | 190 | The Cursed Scrolls' hexcrawl and adventure tables (rumors, region and site encounters, weather, points of interest, NPC rosters, d20 treasure lists): one entry per Manage row with its catalogue id, page cite and recipe, read by the shape registry, the Manage tree and the catalogue's names. The regions are named as the key-location entries are, so a CS hex finds its zone tables. Structure only. |
 | `tables/patron-items.mjs` | 223 | Patron Items for the imported WR boon tables (#167): find-or-create in `patrons-and-deities`, plus the ready-time rename/link backfill. |

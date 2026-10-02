@@ -18,6 +18,7 @@ import { installMethods, t } from "./importer-hub-shared.mjs";
 import { CHAR_SOURCES } from "./char-content/char-content-manifest.mjs";
 import { resolveSourcePdf } from "./source-pdf-registry.mjs";
 import { adventureBooks, allSites, findSite } from "./adventure/adventure-manifest.mjs";
+import { hasKnownPositions } from "./adventure/adventure-layouts.mjs";
 
 const esc = (s) => foundry.utils.escapeHTML(String(s ?? ""));
 const ALL = "*";
@@ -139,9 +140,10 @@ class HubAdventureMethods {
       if (built.skewed) ui.notifications.warn(t("SDE.adventure.notify.skewed", { title: site.title }));
     }
     const placer = await AdventurePlacer.open(scene);
-    // A map the book prints with its numbers as text is placed from the book; the
-    // rest, and any a map does not show, is the GM's to click.
-    if (answer.mode === "build" && site.mapPages) await placer?.placeFromBook();
+    // A map whose positions are saved with the module, or that the book prints as
+    // text, is placed without a click; the rest, and any room the map does not
+    // show, is the GM's to click.
+    if (answer.mode === "build" && hasKnownPositions(site)) await placer?.placeFromBook();
     placer?._onNext();
   }
 }

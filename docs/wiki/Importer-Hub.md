@@ -307,18 +307,19 @@ imported and the map image that came with the book (the module ships no maps),
 and it builds a scene sized from the image and the book's printed grid, then opens
 the **Place locations** window.
 
-For four adventures the book prints its room numbers as text over its map, so your
-PDF already says where each one goes, and the pins are placed **from the book**
-straight away: the Hideous Halls of Mugdulblub, the Hoard of the Sea Wolf King, and
-both levels of the Ghoulish Library of Leng. Check them against the map and nudge
-any that sit off a room (placing a pin again moves it). The map image has to be the
-same map as the book's, not a different crop; if its shape is more than 3% off, the
-module says so and does not place anything. The **From the book** button does the
-same for a scene you already have, and never touches a pin you placed or a location
-you skipped.
+For the adventures the module knows the positions of, the pins are placed
+**automatically** as soon as the scene is built, with no clicking: the Hideous Halls
+of Mugdulblub, the Hoard of the Sea Wolf King, and both levels of the Ghoulish
+Library of Leng. The module ships where each room number sits on the map, as
+positions only (no map and no book text). Check them against your map and nudge any
+that sit off a room (placing a pin again moves it). The map image has to be the same
+map the positions were taken from, not a different crop; if its shape is more than
+3% off, the module says so and does not place anything. The **Auto-place** button
+does the same for a scene you already have, and never touches a pin you placed or a
+location you skipped.
 
-Every other adventure (and any room the book's map does not show) is placed by
-clicking. The numbers are printed inside your image there, so you show the module
+Every other adventure (and any room the map does not show) is placed by clicking
+for now. The numbers are printed inside your image there, so you show the module
 once: press **Place next**, click the map where the number is printed, and the pin
 drops and the next location is ready, so a thirty-room dungeon is thirty clicks along
 the printed numbers. Right-click puts the target down. Each row also has **Skip** (a

@@ -4931,11 +4931,14 @@
   "SDE.importer.adventure.notify.noPack": "Adventures: the Journals pack could not be created.",
   "SDE.importer.adventure.notify.noEntry": "Adventures: the journal entry could not be created.",
   "SDE.adventure.placer.writeFailed": "Could not place {num}. Click again to retry.",
-  "SDE.adventure.placer.fromBook": "From the book",
-  "SDE.adventure.placer.fromBookTip": "Place every location the book's own map shows, from where your PDF prints its numbers. Locations already placed or skipped are left alone.",
-  "SDE.adventure.placer.fromBookDone": "Placed {placed} from the book's own map. {left} left for you to place.",
-  "SDE.adventure.placer.noBookMap": "This book does not print this map's numbers in a way the module can read. Place the locations by clicking.",
+  "SDE.adventure.placer.fromBook": "Auto-place",
+  "SDE.adventure.placer.fromBookTip": "Place every location whose position is already known: saved with the module for this adventure, or read from the book's own map in your PDF. Locations you placed or skipped are left alone.",
+  "SDE.adventure.placer.fromBookDone": "Placed {placed} automatically. {left} left for you to place.",
+  "SDE.adventure.placer.noBookMap": "No positions are saved for this adventure yet. Place the locations by clicking.",
   "SDE.adventure.placer.bookMapUnreadable": "The book's map pages could not be read. Place the locations by clicking.",
-  "SDE.adventure.placer.bookMapMismatch": "Your map image is not the same shape as the book's map, so the book's positions would land in the wrong places. Place the locations by clicking.",
-  "SDE.adventure.placer.bookMapFailed": "Could not place from the book's map. See the console for details."
+  "SDE.adventure.placer.bookMapMismatch": "Your map image is not the same shape as the map these positions were taken from, so they would land in the wrong places. Place the locations by clicking.",
+  "SDE.adventure.placer.bookMapFailed": "Could not place from the book's map. See the console for details.",
+  "SDE.adventure.placer.exportTip": "Copy this scene's pin positions as data to paste into the module's adventure layouts, so nobody has to place them again.",
+  "SDE.adventure.placer.exportDone": "Copied the positions of {n} pins.",
+  "SDE.adventure.placer.exportNone": "Nothing to copy: no location is placed yet."
 }

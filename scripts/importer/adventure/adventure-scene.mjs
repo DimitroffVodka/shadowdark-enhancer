@@ -212,7 +212,7 @@ export const entryPages = (journal) =>
 
 /** The pins on a scene, as placementRows takes them. */
 export const scenePins = (scene) =>
-  scene.notes.contents.map((n) => ({ id: n.id, num: n.getFlag(MODULE_ID, PIN_FLAG)?.num })).filter((n) => Number.isInteger(n.num));
+  scene.notes.contents.map((n) => ({ id: n.id, num: n.getFlag(MODULE_ID, PIN_FLAG)?.num, x: n.x, y: n.y })).filter((n) => Number.isInteger(n.num));
 
 /** Mark a location skipped (or not) on its scene. Written whole, never merged. */
 export async function setSkipped(scene, num, skip) {
