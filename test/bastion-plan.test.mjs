@@ -4,7 +4,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { renderPlan, interiorSlotCount, exteriorSlots } from "../scripts/bastion/bastion-plan.mjs";
-import { BASTION_TYPES, BASTION_UPGRADES } from "../scripts/bastion/bastion-core.mjs";
+import { BASTION_TYPES, BASTION_UPGRADES, newBastion, changeType } from "../scripts/bastion/bastion-core.mjs";
 
 const sprites = readFileSync(new URL("../assets/bastion/sprites.svg", import.meta.url), "utf8");
 const symbols = new Set([...sprites.matchAll(/<symbol id="([^"]+)"/g)].map((m) => m[1]));
@@ -100,4 +100,14 @@ test("the keep draws three floors, and the name is escaped", () => {
   assert.match(markup, /SDE\.bastion\.plan\.roof/);
   assert.match(markup, /&lt;b&gt;&amp;Hold/);
   assert.doesNotMatch(markup, /<b>&Hold/);
+});
+
+test("after a type change the interior draws every kept upgrade, in the rooms it moved to", () => {
+  // Nine castle rooms kept at slots 10-18 (the low ones taken down) fit a keep only once re-seated.
+  const nine = ["aviary", "armorer", "barracks", "blacksmith", "brewery", "casino", "dungeon", "granary", "idol"];
+  const castle = { ...newBastion("castle"), weeksLeft: 0, upgrades: nine.map((id, i) => ({ id, slot: 10 + i, weeksLeft: 0 })) };
+  const keep = changeType(castle, "keep").state;
+  const { markup } = draw("keep", keep.upgrades, { view: "in" });
+  const placed = [...markup.matchAll(/data-id="([^"]+)"/g)].map((m) => m[1]).sort();
+  assert.deepEqual(placed, [...nine].sort());
 });

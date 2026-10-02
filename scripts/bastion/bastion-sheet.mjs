@@ -187,10 +187,15 @@ export class BastionSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   async _onRollMonth() {
     if (!game.user.isGM) return;
     const die = (n) => Math.floor(CONFIG.Dice.randomUniform() * n) + 1;
-    const next = core.applyDisaster(this.state, core.rollDisaster(die));
+    const before = this.state;
+    const next = core.applyDisaster(before, core.rollDisaster(die));
     if (!(await this._write(next))) return;
-    const line = monthLine(next);
-    await ChatMessage.create({ content: `<p><strong>${esc(this.document.name)}</strong> ${esc(line)}</p>`, speaker: { alias: this.document.name } });
+    // Every line the roll added goes to chat (a breaching disaster adds two: the damage, then the breach;
+    // under a finished Infirmary the pestilence line says the patients have ADV).
+    // The cap can drop old lines, so compare entries — the ones handed in are the same that come back — not indexes.
+    const seen = new Set(before.log);
+    const lines = next.log.filter((e) => !seen.has(e)).map((e) => monthLine(next, e));
+    await ChatMessage.create({ content: `<p><strong>${esc(this.document.name)}</strong> ${lines.map(esc).join(" ")}</p>`, speaker: { alias: this.document.name } });
   }
 
   // ── Paying in and out of the treasury (bastion-writes.mjs) ─────────────────
