@@ -40,15 +40,14 @@ const skipOf = (site) => (site.skip ? new RegExp(site.skip) : undefined);
 
 /**
  * Read one site out of the book.
- * @returns {Promise<{locations:object[], warnings:string[]}>}
+ * @returns {Promise<{locations:object[], warnings:string[], intro:string[]}>}
  */
 async function readSite({ extractPdfText, notifyGutterWarnings }, file, site, pages) {
   const result = await extractPdfText(file, { pages, columns: "auto" });
   notifyGutterWarnings(result);
-  const { locations, warnings } = parseAdventurePages(
+  return parseAdventurePages(
     (result.pages ?? []).map((p) => p.lines ?? []),
-    { style: site.style, range: site.range, skip: skipOf(site) });
-  return { locations, warnings };
+    { style: site.style, range: site.range, skip: skipOf(site), intro: !!site.intro });
 }
 
 /**
@@ -75,8 +74,8 @@ export async function importAdventures(src, { ids, onSite } = {}) {
     onSite?.(site.title, i + 1, sites.length);
     try {
       const pages = planSitePages(site, (p) => sourcePdfTarget(src, String(p))?.page ?? null);
-      const { locations, warnings } = await readSite({ ...pdf, notifyGutterWarnings: collect }, file, site, pages);
-      const res = await commitAdventure(site, locations, { source: label });
+      const { locations, warnings, intro } = await readSite({ ...pdf, notifyGutterWarnings: collect }, file, site, pages);
+      const res = await commitAdventure(site, locations, { source: label, intro });
       report.sites.push({
         id: site.id, title: site.title, locations: locations.length,
         expected: site.range[1] - site.range[0] + 1, missing: warnings, uuid: res.entryUuid,

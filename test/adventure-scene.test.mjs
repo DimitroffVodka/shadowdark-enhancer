@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { pinIcon, pinLabelSize, pinArtFixes, PIN_ICON, placementGate, sceneSize, placementRows, nextPending, noteData, sceneData, MAP_FLAG, PIN_FLAG, DEFAULT_GRID_SIZE } from "../scripts/importer/adventure/adventure-scene.mjs";
-import { planAdventureCommit, locationPagePayload, pageNum, ADVENTURE_FLAG } from "../scripts/importer/adventure/adventure-commit.mjs";
+import { pinIcon, pinLabelSize, pinArtFixes, PIN_ICON, placementGate, sceneSize, placementRows, nextPending, noteData, sceneData, planMarkerTokens, markerTokenData, MAP_FLAG, PIN_FLAG, MARKER_FLAG, DEFAULT_GRID_SIZE } from "../scripts/importer/adventure/adventure-scene.mjs";
+import { planAdventureCommit, locationPagePayload, introPagePayload, isIntroPage, pageNum, ADVENTURE_FLAG } from "../scripts/importer/adventure/adventure-commit.mjs";
 
 // Invented data throughout.
 
@@ -106,6 +106,50 @@ test("locationPagePayload: page name, html, and the number on the flag", () => {
   assert.deepEqual(p.flags["shadowdark-enhancer"][ADVENTURE_FLAG], { num: 4 });
   assert.equal(pageNum({ flags: { "shadowdark-enhancer": { [ADVENTURE_FLAG]: { num: 4 } } } }), 4);
   assert.equal(pageNum({ flags: {} }), null);
+});
+
+test("introPagePayload: a numberless page that sorts first and is found by its flag", () => {
+  const p = introPagePayload(["ABOUT", "Fog rolls in. See Area 2."], new Set([2]));
+  assert.equal(p.name, "SDE.importer.adventure.introPage");
+  assert.ok(p.sort < 0);
+  assert.match(p.text.content, /<strong>About<\/strong>/);
+  assert.match(p.text.content, /@@LOC\[2\]\{2\}@@/);
+  assert.deepEqual(p.flags["shadowdark-enhancer"][ADVENTURE_FLAG], { intro: true });
+  assert.equal(isIntroPage(p), true);
+  assert.equal(pageNum(p), null);
+  assert.equal(isIntroPage({ flags: { "shadowdark-enhancer": { [ADVENTURE_FLAG]: { num: 3 } } } }), false);
+  assert.equal(isIntroPage(null), false);
+});
+
+test("planMarkerTokens: each marker in the grid square it falls in, keyed by letter and order", () => {
+  const rect = { x: 0, y: 0, width: 2800, height: 2800 };   // 28 squares of 100
+  const markers = { A: { monster: "Foo", at: [[0.0149, 0.0001], [0.5, 0.995]] }, P: { monster: "Bar", at: [[0.999, 0.5]] } };
+  assert.deepEqual(planMarkerTokens({ markers, rect, gridSize: 100 }), [
+    { key: "A1", monster: "Foo", x: 0, y: 0 },
+    { key: "A2", monster: "Foo", x: 1400, y: 2700 },
+    { key: "P1", monster: "Bar", x: 2700, y: 1400 },
+  ]);
+  // A scene whose image sits inside padding is measured from the image's corner.
+  assert.deepEqual(planMarkerTokens({ markers: { A: { monster: "Foo", at: [[0.5, 0.5]] } }, rect: { x: 300, y: 200, width: 2800, height: 2800 }, gridSize: 100 }),
+    [{ key: "A1", monster: "Foo", x: 1700, y: 1600 }]);
+  assert.deepEqual(planMarkerTokens({ markers: null, rect }), []);
+});
+
+test("planMarkerTokens: a creature already placed is not placed again, so a second run adds nothing", () => {
+  const rect = { x: 0, y: 0, width: 1000, height: 1000 };
+  const markers = { A: { monster: "Foo", at: [[0.1, 0.1], [0.5, 0.5], [0.9, 0.9]] } };
+  assert.deepEqual(planMarkerTokens({ markers, rect, gridSize: 100, placed: ["A1", "A3"] }).map((p) => p.key), ["A2"]);
+  assert.deepEqual(planMarkerTokens({ markers, rect, gridSize: 100, placed: ["A1", "A2", "A3"] }), []);
+});
+
+test("markerTokenData: hidden, in its square, tied to its actor and marked so a rerun finds it; the source is not changed", () => {
+  const source = { _id: "tmp", name: "Foo", width: 1, flags: { "shadowdark-enhancer": { other: 1 }, elsewhere: { x: 1 } } };
+  const td = markerTokenData(source, { key: "K2", x: 300, y: 600 }, "cs3-wortwick", "ACT1");
+  assert.deepEqual([td.x, td.y, td.actorId, td.hidden, td._id], [300, 600, "ACT1", true, undefined]);
+  assert.deepEqual(td.flags["shadowdark-enhancer"], { other: 1, [MARKER_FLAG]: { site: "cs3-wortwick", key: "K2" } });
+  assert.deepEqual(td.flags.elsewhere, { x: 1 });
+  assert.equal(source._id, "tmp");
+  assert.equal(source.flags["shadowdark-enhancer"][MARKER_FLAG], undefined);
 });
 
 test("placementGate: a second click while a write is pending is refused, and the slot frees on release", () => {

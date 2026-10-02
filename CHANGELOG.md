@@ -11,6 +11,13 @@ it needs.
 
 ### Added
 
+- **Wortwick Monastery imports whole, with its monsters on the map.** The adventure was read
+  from the wrong pages and stopped at room 5, losing the Chapel (with its hidden cache) and the
+  Abbot's Quarters; it now files all seven rooms, plus an **Introduction** page (Raiding, The
+  Monastery, Inhabitants) that sorts first. Its map marks every monk, knight and the abbot with
+  a letter, so the scene now gets a hidden Acolyte, Knight and Priest token for each in the
+  square the book draws it in (12, 4 and 1, the counts the book's text gives), from the core
+  bestiary or your own imported monsters. Pressing Auto-place again never doubles them.
 - **Adventure map pins match the books' GM key.** Pins are now numbered black chips drawn
   for the module (SVG, numerals traced from Montserrat Bold, the font the key uses), not the
   generic book icon, so a map reads like the book's own. Pins you placed earlier take the

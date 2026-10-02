@@ -21,6 +21,9 @@
  *          printed size ("68 wide x 44 high"); the scene's grid size is the
  *          image width over it. Absent: a 100 px grid
  *   skip   banner lines to drop (a regexp source)
+ *   intro  true to keep the text printed before the first location as an
+ *          Introduction page (a site whose book opens with what it is and who
+ *          lives there). Absent: that text is not filed
  *   mapNames  other names the map's file goes by when it is not the site's title
  *          ("Ruins of Bittermold Keep"); map-detect.mjs recognises a map by its file name
  *   mapPages  PDF pages that print the site's keyed map, left to right, when the
@@ -30,13 +33,22 @@
  *          by clicking. Verified against the PDFs: every number in `range` is found
  *
  * Verified against the six PDFs with the module's own extractor and parser,
- * page by page: 33, 35 (19 + 16), 34 (5 + 29), 9 x 9 (+ 10 + 3 + 8), 64
+ * page by page: 33, 35 (19 + 16), 36 (7 + 29), 9 x 9 (+ 10 + 3 + 8), 64
  * (28 + 36) and 50 locations, which City of Masks files twice (per district, and whole);
  * and the six Western Reaches Mini Adventures: 9, 8, 8, 11, 8 and 10.
  */
 
 /** A district's banner line and the three facts printed above its first location. */
 const DISTRICT_BANNER = "District$|^(?:Class|Category|City Guard Arrives):";
+
+/**
+ * Wortwick Monastery's page furniture. The map is printed on the page that holds
+ * rooms 6 and 7, so its room numbers (doubled, where the book draws them with a
+ * shadow), the A / K / P markers, the compass and the scale label come out as lines
+ * of their own and would be filed as the end of room 7. The page's banner and its
+ * number are read between the two columns, so they would land in the Introduction.
+ */
+const WORTWICK_FURNITURE = "^(?:[AKPN](?: [AKPN])*|\\d{1,2}(?: \\d{1,2})*|60\\S? cliffs|Wortwick Monastery)$";
 
 /**
  * Cursed Scroll 4's nine mini-adventures: each is a title page, then its key page.
@@ -71,7 +83,7 @@ export const ADVENTURE_SITES = {
     { id: "cs2-mines", title: "Fortress of the Burning Brothers: The Mines", pages: "56-62", range: [20, 35], style: "caps", grid: [45, 34], mapNames: ["The Mines"] },
   ],
   CS3: [
-    { id: "cs3-wortwick", title: "Wortwick Monastery", pages: "23-24", range: [1, 5], style: "caps", grid: [28, 28] },
+    { id: "cs3-wortwick", title: "Wortwick Monastery", pages: "24-25", range: [1, 7], style: "caps", grid: [28, 28], intro: true, skip: WORTWICK_FURNITURE },
     { id: "cs3-sea-wolf", title: "Hoard of the Sea Wolf King", pages: "53-64", range: [1, 29], style: "caps", grid: [68, 44], mapPages: "66-67", mapNames: ["Sea Caves and Tombs"] },
   ],
   CS4: [

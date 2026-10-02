@@ -75,6 +75,32 @@ test("the city's skip drops a district's preamble so it never lands in the last 
   assert.deepEqual(parseAdventurePages(pages, { style: "caps", skip }).locations[0].bodyLines, ["Text."]);
 });
 
+test("intro keeps what is printed before the first location, only when asked", () => {
+  const pages = [["ABOUT THE KEEP", "Gulls wheel overhead.", "WHO LIVES HERE", "A hermit and two goats.", "1. GATE", "Bars.", "2. YARD", "Mud."]];
+  const on = parseAdventurePages(pages, { style: "caps", intro: true });
+  assert.deepEqual(on.intro, ["ABOUT THE KEEP", "Gulls wheel overhead.", "WHO LIVES HERE", "A hermit and two goats."]);
+  assert.deepEqual(on.locations.map((l) => l.num), [1, 2]);
+  assert.deepEqual(parseAdventurePages(pages, { style: "caps" }).intro, []);
+  assert.deepEqual(parseAdventurePages([["1. ONE", "t"]], { style: "caps", intro: true }).intro, []);
+});
+
+test("Wortwick: both pages, the map's own text never lands in a room, the page furniture never in the intro", () => {
+  const site = findSite("cs3-wortwick");
+  assert.deepEqual([site.pages, site.range, site.intro], ["24-25", [1, 7], true]);
+  const skip = new RegExp(site.skip);
+  // Invented text in the shape the pages read in: page number and banner between the columns, map text after the last room.
+  const pages = [
+    ["ABOUT", "Fog.", "24", "Wortwick Monastery", "1. HALL", "Echoes.", "2. YARD", "Mud."],
+    ["3. SHED", "Tools.", "4. WELL", "Deep.", "A", "33", "22 11", "A A", "N", "K A", "P", "60' cliffs", "25"],
+  ];
+  const { locations, intro } = parseAdventurePages(pages, { style: "caps", range: [1, 4], skip, intro: true });
+  assert.deepEqual(intro, ["ABOUT", "Fog."]);
+  assert.deepEqual(locations.map((l) => l.bodyLines), [["Echoes."], ["Mud."], ["Tools."], ["Deep."]]);
+  // What the pattern drops and what it keeps.
+  for (const line of ["A", "K A", "N", "7", "66", "22 11", "60' cliffs", "60′ cliffs", "Wortwick Monastery"]) assert.ok(skip.test(line), line);
+  for (const line of ["Wortwick Monastery is an", "Three monks dust", "A marble altar", "350 gp and a Shield", "Area 5"]) assert.ok(!skip.test(line), line);
+});
+
 test("the last location is cut where a die table begins", () => {
   assert.deepEqual(trimTrailingTable(["Room text.", "VOID JUNK", "d20 Details", "1 a thing"]), ["Room text."]);
   assert.deepEqual(trimTrailingTable(["Room text.", "NOTE", "More room text."]), ["Room text.", "NOTE", "More room text."]);

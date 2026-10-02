@@ -282,13 +282,13 @@ journal entry with a page per location (`12. Meteorite Room`): the keyed
 description, the bulleted details and the traps, with every "Area 12" reference
 linked to that location's page. Run it again whenever you like: pages are matched
 by number and updated in place, never duplicated. Thirty-one adventure maps are
-covered, 344 locations in all (the City of Masks is filed twice, see below):
+covered, 346 locations in all (the City of Masks is filed twice, see below):
 
 | Book | Adventures | Locations |
 |---|---|---:|
 | Cursed Scroll 1 | The Hideous Halls of Mugdulblub | 33 |
 | Cursed Scroll 2 | Fortress of the Burning Brothers: the iron fortress, and the mines | 19 + 16 |
-| Cursed Scroll 3 | Wortwick Monastery; Hoard of the Sea Wolf King | 5 + 29 |
+| Cursed Scroll 3 | Wortwick Monastery; Hoard of the Sea Wolf King | 7 + 29 |
 | Cursed Scroll 4 | The nine mini-adventures: Army Ants, Basilisk Cult, Black Ziggurat, Chanichu, Eclipse Dial, Flooded Ruins, Star Map Temple, The Black Seed, Tsibalba | 9, 9, 9, 9, 8, 9, 8, 3, 10 |
 | Cursed Scroll 5 | The Ghoulish Library of Leng, levels 1 and 2 | 28 + 36 |
 | Cursed Scroll 6 | The City of Masks, one journal per district, and one for the whole city | 6, 6, 6, 6, 6, 6, 7, 7, and all 50 |
@@ -298,6 +298,12 @@ The City of Masks is filed as one journal per district and again as one
 journal for the whole city, the same fifty locations in each. Use the whole-city
 journal with the city's overview map to get every pin on a single scene, or a
 district's with that district's map.
+
+Wortwick Monastery also gets an **Introduction** page, filed first: the book's Raiding,
+The Monastery and Inhabitants text, which comes before its first room. Running Adventures
+again adds it, and the two rooms the first version missed (the Chapel and the Abbot's
+Quarters), to the module's own journal. A copy already deployed to your world is left as
+it is, because you may have edited it.
 
 Each Mini Adventure is its own two-page PDF (its intro and map, then its key), so
 each is its own book: link them under Source PDFs, or put them in your `assets`
@@ -334,6 +340,15 @@ for a scene you already have, and never touches a pin you placed or a location y
 skipped. A pin sits where the book puts its number: in the room, or on the building
 the number points at (a City of Masks district map shows its numbers beside the
 district, so those pins sit on the numbered discs).
+
+When the book's map marks who is where, they are placed too. Wortwick Monastery's map
+marks its twelve monks (acolytes), four knights and the abbot (priest) with a letter each,
+so building its scene, or pressing **Auto-place**, also puts a **hidden** token for each in
+the square the book draws it in, using the Acolyte, Knight and Priest from the core
+bestiary (or your own imported ones). Reveal them as the party walks in. A creature that
+is already on the map is never placed twice, so pressing it again adds nothing, and one
+you delete comes back the next time. If the world has no monster of a name, the module
+says which.
 
 For a map the module has no positions for (your own, or a new book), press **Place
 next**, click the map where the number is printed, and the pin drops and the next

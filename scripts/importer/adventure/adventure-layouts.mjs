@@ -58,7 +58,7 @@ export const ADVENTURE_LAYOUTS = {
     aspect: 1,
     pins: {
       1: [0.3527, 0.6767], 2: [0.207, 0.6767], 3: [0.2142, 0.2507], 4: [0.534, 0.2884],
-      5: [0.5801, 0.1827],
+      5: [0.5801, 0.1827], 6: [0.752, 0.3852], 7: [0.534, 0.6867],
     },
   },
   "cs3-sea-wolf": {
@@ -288,6 +288,36 @@ export const ADVENTURE_LAYOUTS = {
     },
   },
 };
+
+/**
+ * Creatures the book draws on a map as a letter, where each one stands. A site's
+ * key map can mark who is where ("A" for an acolyte, "K" for a knight, "P" for the
+ * priest, matching the counts its text gives); the letter is the book's, the
+ * monster is the one named in the site's own text, and each point is a fraction
+ * of the map exactly as a pin's is, so the same tokens fit the GM's copy of that
+ * map at any resolution. Positions only: no book text and no art ship, the
+ * stat blocks are the core bestiary's.
+ *
+ * Captured the way the pins are: the markers' text positions on the book's key
+ * map page, carried onto the GM's image (tools/adventure-layouts).
+ */
+export const ADVENTURE_MARKERS = {
+  "cs3-wortwick": {
+    A: {
+      monster: "Acolyte",
+      at: [
+        [0.2699, 0.1919], [0.3039, 0.2669], [0.198, 0.3015], [0.7334, 0.3031],
+        [0.2699, 0.3367], [0.8037, 0.4474], [0.3425, 0.5874], [0.7621, 0.5874],
+        [0.1563, 0.627], [0.1563, 0.6941], [0.231, 0.7241], [0.339, 0.7292],
+      ],
+    },
+    K: { monster: "Knight", at: [[0.6267, 0.1619], [0.6589, 0.3041], [0.5879, 0.3385], [0.6243, 0.3714]] },
+    P: { monster: "Priest", at: [[0.5526, 0.7651]] },
+  },
+};
+
+/** The creature markers saved for a site, or null. */
+export const markersFor = (siteId) => ADVENTURE_MARKERS[siteId] ?? null;
 
 /** Whether this site's pins can be placed without the GM clicking each one. */
 export const hasKnownPositions = (site) => !!(site?.mapPages || ADVENTURE_LAYOUTS[site?.id]);

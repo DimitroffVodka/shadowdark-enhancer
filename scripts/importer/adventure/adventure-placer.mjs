@@ -14,7 +14,7 @@
  */
 
 import { MODULE_ID } from "../../shared/module-id.mjs";
-import { MAP_FLAG, entryPages, scenePins, placementRows, nextPending, noteData, setSkipped, placementGate, restoreSiteJournal, planBookPins, refreshPinArt } from "./adventure-scene.mjs";
+import { MAP_FLAG, entryPages, scenePins, placementRows, nextPending, noteData, setSkipped, placementGate, restoreSiteJournal, planBookPins, refreshPinArt, placeMarkerTokens } from "./adventure-scene.mjs";
 import { findSite } from "./adventure-manifest.mjs";
 import { stitchMapLabels, mapFits } from "./map-labels.mjs";
 import { layoutFor, layoutPoints, layoutFromPins, layoutSnippet } from "./adventure-layouts.mjs";
@@ -251,6 +251,7 @@ export class AdventurePlacer extends HandlebarsApplicationMixin(ApplicationV2) {
       });
       if (create.length) await this.scene.createEmbeddedDocuments("Note", create);
       ui.notifications?.info(t("SDE.adventure.placer.fromBookDone", { placed: create.length, left: left.length }));
+      await this._placeMonsters(site, rect);
       return { placed: create.length, left: left.length };
     } catch (err) {
       console.error(`${MODULE_ID} | adventure placer: placing from known positions failed`, err);
@@ -259,6 +260,21 @@ export class AdventurePlacer extends HandlebarsApplicationMixin(ApplicationV2) {
     } finally {
       this._gate.release();
       this.render();
+    }
+  }
+
+  /**
+   * Put the creatures the book's map marks onto the scene, if this adventure has any.
+   * A failure here never costs the pins that were just placed.
+   */
+  async _placeMonsters(site, rect) {
+    try {
+      const { placed, missing } = await placeMarkerTokens(this.scene, site, rect);
+      if (placed) ui.notifications?.info(t("SDE.adventure.placer.monstersDone", { placed }));
+      if (missing.length) ui.notifications?.warn(t("SDE.adventure.placer.monstersMissing", { names: missing.join(", ") }));
+    } catch (err) {
+      console.error(`${MODULE_ID} | adventure placer: placing the book's creatures failed`, err);
+      ui.notifications?.error(t("SDE.adventure.placer.monstersFailed"));
     }
   }
 

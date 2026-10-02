@@ -16,11 +16,14 @@ import { MODULE_ID } from "../../shared/module-id.mjs";
 import { replaceModuleFlag } from "../../shared/module-flags.mjs";
 import { deployCrawlJournal } from "../../hex-map/hex-pins.mjs";
 import { ADVENTURE_FLAG, findSiteEntry, pageNum } from "./adventure-commit.mjs";
+import { markersFor } from "./adventure-layouts.mjs";
 
 /** Scene flag: { site, entryId, skipped:[numbers] }. */
 export const MAP_FLAG = "adventureMap";
 /** Note flag: { num } of the location it pins. */
 export const PIN_FLAG = "adventurePin";
+/** Token flag: { site, key } of the book marker a creature was placed from ("A3"). */
+export const MARKER_FLAG = "adventureMarker";
 
 /** The grid when a site has no printed size (a city district): 100 px squares. */
 export const DEFAULT_GRID_SIZE = 100;
@@ -138,6 +141,48 @@ export function planBookPins({ rows, points, rect, entryId, gridSize }) {
     }));
   }
   return { create, left };
+}
+
+/**
+ * Pure: the tokens for a site's creature markers, one per marker, each in the grid
+ * square its marker stands in (a marker sits in the middle of its square on the
+ * book's map, so the square it falls in is the one it means). A marker whose key
+ * is already in `placed` is left out, so running this twice never doubles a creature.
+ * @param {{markers:Record<string,{monster:string, at:Array<[number,number]>}>, rect:{x:number,y:number,width:number,height:number}, gridSize?:number, placed?:Iterable<string>}} args
+ *   `at` points are fractions of the map; rect is the scene's image area
+ * @returns {Array<{key:string, monster:string, x:number, y:number}>}  x, y: the square's top left, in scene pixels
+ */
+export function planMarkerTokens({ markers, rect, gridSize = DEFAULT_GRID_SIZE, placed = [] }) {
+  const done = new Set(placed), out = [];
+  for (const [letter, { monster, at }] of Object.entries(markers ?? {})) {
+    for (const [i, [u, v]] of at.entries()) {
+      const key = `${letter}${i + 1}`;
+      if (done.has(key)) continue;
+      out.push({
+        key, monster,
+        x: rect.x + Math.floor((u * rect.width) / gridSize) * gridSize,
+        y: rect.y + Math.floor((v * rect.height) / gridSize) * gridSize,
+      });
+    }
+  }
+  return out;
+}
+
+/**
+ * Pure: the token data for one planned creature. Hidden, so the players meet it by
+ * walking in; the GM sees it, and reveals it when the party does.
+ * @param {object} source  the actor's token source (id dropped)
+ * @param {{key:string, x:number, y:number}} spot
+ * @param {string} siteId
+ * @param {string} actorId
+ */
+export function markerTokenData(source, spot, siteId, actorId) {
+  const data = {
+    ...source, x: spot.x, y: spot.y, actorId, hidden: true,
+    flags: { ...(source.flags ?? {}), [MODULE_ID]: { ...(source.flags?.[MODULE_ID] ?? {}), [MARKER_FLAG]: { site: siteId, key: spot.key } } },
+  };
+  delete data._id;
+  return data;
 }
 
 /**
@@ -293,6 +338,40 @@ export async function refreshPinArt(scene) {
   const fixes = pinArtFixes(scenePins(scene), scene.grid?.size);
   if (fixes.length) await scene.updateEmbeddedDocuments("Note", fixes);
   return fixes.length;
+}
+
+/**
+ * Put the creatures the book's map marks on a site's scene: each marker's monster
+ * from the core bestiary (or the GM's imported monsters), as a hidden token in the
+ * square it stands in. A creature already placed from its marker is left alone, and
+ * a monster the world has no actor for is reported, not guessed.
+ * @param {Scene} scene
+ * @param {{id:string}} site
+ * @param {{x:number,y:number,width:number,height:number}} rect  the scene's image area
+ * @returns {Promise<{placed:number, missing:string[]}>}
+ */
+export async function placeMarkerTokens(scene, site, rect) {
+  const markers = markersFor(site.id);
+  if (!markers) return { placed: 0, missing: [] };
+  const placedKeys = scene.tokens.contents.map((tk) => tk.getFlag(MODULE_ID, MARKER_FLAG)?.key).filter(Boolean);
+  const plan = planMarkerTokens({ markers, rect, gridSize: scene.grid?.size, placed: placedKeys });
+  if (!plan.length) return { placed: 0, missing: [] };
+
+  const { MonsterLinker } = await import("../monsters/monster-linker.mjs");
+  const { worldActorFor, tokenSourceFor } = await import("../../shared/token-placement.mjs");
+  const index = await MonsterLinker.buildIndex();
+  const actors = new Map(), missing = [];
+  for (const monster of new Set(plan.map((p) => p.monster))) {
+    const hit = index.find((e) => e.name.toLowerCase() === monster.toLowerCase());
+    const origin = hit ? await fromUuid(hit.uuid) : null;
+    const world = origin ? await worldActorFor(origin) : null;
+    if (!world) { missing.push(monster); continue; }
+    actors.set(monster, { world, source: await tokenSourceFor(world, origin) });
+  }
+  const tokens = plan.filter((p) => actors.has(p.monster))
+    .map((p) => markerTokenData(actors.get(p.monster).source, p, site.id, actors.get(p.monster).world.id));
+  if (tokens.length) await scene.createEmbeddedDocuments("Token", tokens);
+  return { placed: tokens.length, missing };
 }
 
 /** Mark a location skipped (or not) on its scene. Written whole, never merged. */

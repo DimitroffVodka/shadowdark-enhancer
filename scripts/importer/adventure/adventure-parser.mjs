@@ -67,14 +67,18 @@ export function titleCaseName(name) {
 /**
  * Parse a site's pages.
  * @param {string[][]} pages  one array of lines per page, in page order
- * @param {{style?:"caps"|"inline", range?:[number,number], skip?:RegExp}} [opts]
+ * @param {{style?:"caps"|"inline", range?:[number,number], skip?:RegExp, intro?:boolean}} [opts]
  *   range = the numbers the site is printed to hold, to report what is missing;
- *   skip = lines that are page banners, not text ("Gedgarrin District")
- * @returns {{locations: Array<{num:number, name:string, bodyLines:string[]}>, warnings:string[]}}
+ *   skip = lines that are page banners, not text ("Gedgarrin District");
+ *   intro = keep the text printed before the first location (a site's "The
+ *   Monastery" and "Inhabitants" sections) instead of dropping it. Opt-in: a
+ *   page read from further up a book's page may open with something unrelated.
+ * @returns {{locations: Array<{num:number, name:string, bodyLines:string[]}>, warnings:string[], intro:string[]}}
  */
-export function parseAdventurePages(pages, { style = "caps", range, skip } = {}) {
+export function parseAdventurePages(pages, { style = "caps", range, skip, intro = false } = {}) {
   const locations = [];
   const warnings = [];
+  const introLines = [];
   let cur = null;
   for (const lines of pages ?? []) {
     const page = [...lines];
@@ -92,6 +96,8 @@ export function parseAdventurePages(pages, { style = "caps", range, skip } = {})
         locations.push(cur);
       } else if (cur && line) {
         cur.bodyLines.push(line);
+      } else if (!cur && intro && line) {
+        introLines.push(line);
       }
     }
   }
@@ -102,7 +108,7 @@ export function parseAdventurePages(pages, { style = "caps", range, skip } = {})
     if (end < range[1]) warnings.push(`missing ${end + 1}${range[1] > end + 1 ? `-${range[1]}` : ""}`);
   }
   if (range && !locations.length) warnings.push(`no locations found (expected ${range[0]}-${range[1]})`);
-  return { locations, warnings };
+  return { locations, warnings, intro: introLines };
 }
 
 /**

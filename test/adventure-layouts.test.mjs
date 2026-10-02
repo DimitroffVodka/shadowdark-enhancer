@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { ADVENTURE_LAYOUTS, layoutFor, layoutPoints, layoutFromPins, layoutSnippet, hasKnownPositions } from "../scripts/importer/adventure/adventure-layouts.mjs";
+import { ADVENTURE_LAYOUTS, ADVENTURE_MARKERS, markersFor, layoutFor, layoutPoints, layoutFromPins, layoutSnippet, hasKnownPositions } from "../scripts/importer/adventure/adventure-layouts.mjs";
 import { allSites, findSite } from "../scripts/importer/adventure/adventure-manifest.mjs";
 import { mapFits } from "../scripts/importer/adventure/map-labels.mjs";
 import { planBookPins, placementRows } from "../scripts/importer/adventure/adventure-scene.mjs";
@@ -57,4 +57,22 @@ test("hasKnownPositions: a saved layout or the book's own key map; neither means
   assert.equal(hasKnownPositions(null), false);
   assert.equal(layoutFor("nope"), null);
   assert.ok(allSites().every(hasKnownPositions));
+});
+
+test("every site's creature markers belong to a site with a layout and sit inside the map", () => {
+  for (const [id, markers] of Object.entries(ADVENTURE_MARKERS)) {
+    assert.ok(findSite(id) && ADVENTURE_LAYOUTS[id], `${id}: no such site or no layout`);
+    for (const [letter, { monster, at }] of Object.entries(markers)) {
+      assert.match(letter, /^[A-Z]$/, `${id}: marker letter`);
+      assert.ok(monster && at.length, `${id} ${letter}: a monster and at least one place`);
+      for (const [x, y] of at) assert.ok(x >= 0 && x <= 1 && y >= 0 && y <= 1, `${id} ${letter}: inside the map`);
+    }
+  }
+  assert.equal(markersFor("nope"), null);
+});
+
+test("Wortwick's markers match the head counts its own text gives: 12 acolytes, 4 knights, the priest", () => {
+  const m = markersFor("cs3-wortwick");
+  assert.deepEqual(Object.entries(m).map(([k, v]) => [k, v.monster, v.at.length]), [["A", "Acolyte", 12], ["K", "Knight", 4], ["P", "Priest", 1]]);
+  assert.deepEqual(Object.keys(ADVENTURE_LAYOUTS["cs3-wortwick"].pins).map(Number), [1, 2, 3, 4, 5, 6, 7]);
 });
