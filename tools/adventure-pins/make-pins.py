@@ -16,6 +16,7 @@ from fontTools.pens.boundsPen import BoundsPen
 from fontTools.pens.transformPen import TransformPen
 
 SIZE = 64            # the chip's viewBox
+RASTER = 128         # the size Foundry rasterises it at, so a zoomed-in map stays crisp
 DIGIT_H = 28.0       # a digit's height in the chip
 MAX_W = 42.0         # widest the number may be
 
@@ -39,7 +40,7 @@ def number_path(font, text):
     return pen.getCommands()
 
 def chip(path):
-    return (f'<svg xmlns="http://www.w3.org/2000/svg" width="{SIZE}" height="{SIZE}" viewBox="0 0 {SIZE} {SIZE}">'
+    return (f'<svg xmlns="http://www.w3.org/2000/svg" width="{RASTER}" height="{RASTER}" viewBox="0 0 {SIZE} {SIZE}">'
             f'<rect x="1" y="1" width="62" height="62" rx="9" fill="#ffffff"/>'
             f'<rect x="3.5" y="3.5" width="57" height="57" rx="7" fill="#111111"/>'
             f'<path d="{path}" fill="#ffffff"/></svg>\n')

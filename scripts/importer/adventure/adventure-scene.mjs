@@ -263,12 +263,13 @@ export const scenePins = (scene) =>
  */
 export function pinArtFixes(pins, gridSize = DEFAULT_GRID_SIZE) {
   const oldSize = Math.max(24, Math.round(gridSize * 0.5));
+  const storedOldSize = Math.max(32, oldSize);   // Foundry keeps a Note's iconSize at 32 or more, so a small grid's old default is stored as 32
   const fixes = [];
   for (const p of pins) {
     const src = pinIcon(p.num);
     if (p.src === src && !p.text) continue;
     const fix = { _id: p.id, text: "", "texture.src": src };
-    if (p.iconSize === oldSize) fix.iconSize = pinSize(gridSize);
+    if (p.iconSize === oldSize || p.iconSize === storedOldSize) fix.iconSize = pinSize(gridSize);
     fixes.push(fix);
   }
   return fixes;

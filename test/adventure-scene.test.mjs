@@ -74,6 +74,9 @@ test("pinArtFixes: old book-icon pins get the art; resized pins keep their size;
     { _id: "b", text: "", "texture.src": pinIcon(5) },
   ]);
   assert.deepEqual(pinArtFixes([current], 53), []);
+  // Foundry keeps a Note's iconSize at 32 or more, so on a small grid the old default (27) was stored as 32.
+  const storedMin = { id: "d", num: 7, src: "icons/svg/book.svg", text: "7", iconSize: 32 };
+  assert.deepEqual(pinArtFixes([storedMin], 53), [{ _id: "d", text: "", "texture.src": pinIcon(7), iconSize: pinSize(53) }]);
 });
 
 test("planAdventureCommit: creates, updates by number, reports a collision once", () => {
