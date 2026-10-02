@@ -26,10 +26,10 @@ export async function loadStock(shopId) {
   for (const id of SHOP_PACKS) {
     const pack = game.packs.get(id);
     if (!pack || !shop) continue;
-    const index = await pack.getIndex({ fields: ["system.cost", "system.magicItem", `flags.${MODULE_ID}.fromTreasureTable`, `flags.${MODULE_ID}.generated`] });
+    const index = await pack.getIndex({ fields: ["system.cost", "system.quantity", "system.magicItem", `flags.${MODULE_ID}.fromTreasureTable`, `flags.${MODULE_ID}.generated`] });
     for (const entry of index.contents) {
       if (!inStock(entry, shop)) continue;
-      stock.push({ name: entry.name, uuid: entry.uuid, img: entry.img, list: formatPrice(entry.system.cost), price: formatPrice(fromCopper(unitCopper(toCopper(entry.system.cost)))) });
+      stock.push({ name: entry.name, uuid: entry.uuid, img: entry.img, bundle: Number(entry.system.quantity) > 1 ? Number(entry.system.quantity) : 0, list: formatPrice(entry.system.cost), price: formatPrice(fromCopper(unitCopper(toCopper(entry.system.cost)))) });
     }
   }
   return stock.sort((a, b) => a.name.localeCompare(b.name));
@@ -55,7 +55,7 @@ export async function buyItem({ shopId, buyer, uuid, qty }, { log = () => {} } =
   if (!paid || !samePurse(purseOf(buyer), plan.coins)) return { ok: false, error: "write" };
   const data = doc.toObject();
   delete data._id;
-  if (qty > 1) data.system.quantity = qty;
+  data.system.quantity = (Number(data.system.quantity) || 1) * qty;   // a bundle (20 arrows) comes qty times
   const made = await Item.create(data, { parent: buyer }).catch((err) => { console.error(`${MODULE_ID} | bastion shop: item`, err); return null; });
   if (!made || !buyer.items.get(made.id)) {
     await buyer.update(purseUpdate(was));

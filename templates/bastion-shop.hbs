@@ -13,7 +13,7 @@
     {{#each stock}}
     <li class="sde-bs-row" data-name="{{key}}">
       <img src="{{img}}" alt="" />
-      <span class="name">{{name}}<small>{{localize "SDE.bastion.shop.list"}} {{list}}</small></span>
+      <span class="name">{{name}}{{#if bundle}} <em>({{bundle}})</em>{{/if}}<small>{{localize "SDE.bastion.shop.list"}} {{list}}</small></span>
       <span class="price">{{price}}</span>
       <input type="number" name="qty" value="1" min="1" max="99" />
       <button type="button" data-action="buy" data-uuid="{{uuid}}">{{localize "SDE.bastion.shop.buy"}}</button>

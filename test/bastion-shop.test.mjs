@@ -94,6 +94,15 @@ test("several of an item make one stack, charged per item", async () => {
   assert.deepEqual(a.system.coins, { gp: 0, sp: 8, cp: 2 }, "18 cp taken from 1 gp");
 });
 
+test("an item that comes as a bundle comes qty times: 20 arrows bought twice are 40", async () => {
+  docs.set("Compendium.shadowdark.gear.Item.ar", { ...gear("Arrows", "Basic", { gp: 1 }), toObject: () => ({ name: "Arrows", type: "Basic", system: { cost: { gp: 1 }, quantity: 20 } }) });
+  const a = buyer({ gp: 10, sp: 0, cp: 0 });
+  assert.equal((await buyItem({ shopId: "tradingPost", buyer: a, uuid: "Compendium.shadowdark.gear.Item.ar", qty: 1 })).ok, true);
+  assert.equal(a.made[0].system.quantity, 20);
+  assert.equal((await buyItem({ shopId: "tradingPost", buyer: a, uuid: "Compendium.shadowdark.gear.Item.ar", qty: 2 })).ok, true);
+  assert.equal(a.made[1].system.quantity, 40);
+});
+
 test("nothing is sold to a player, for the wrong shop, an outside uuid, or a purse that can't pay", async () => {
   docs.set("Compendium.shadowdark.gear.Item.a", chainmail());
   docs.set("Item.world", chainmail());

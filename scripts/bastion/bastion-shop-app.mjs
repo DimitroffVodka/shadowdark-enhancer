@@ -34,6 +34,7 @@ export class BastionShopApp extends HandlebarsApplicationMixin(ApplicationV2) {
   bastion = null;
   shopId = null;
   buyerId = null;
+  _hooks = [];
 
   /** Open (or bring forward) the shop window for one of a bastion's shops. GM only. */
   static open(bastion, shopId) {
@@ -66,6 +67,19 @@ export class BastionShopApp extends HandlebarsApplicationMixin(ApplicationV2) {
     return context;
   }
 
+  /** Redraw while open whenever the bastion or a purse changes (a room taken down closes the shop at once). */
+  _onFirstRender(context, options) {
+    super._onFirstRender?.(context, options);
+    const refresh = (doc) => { if (doc === this.bastion || doc?.id === this.buyerId) this.render(); };
+    for (const hook of ["updateActor", "deleteActor"]) this._hooks.push([hook, Hooks.on(hook, refresh)]);
+  }
+
+  _onClose(options) {
+    for (const [hook, id] of this._hooks) Hooks.off(hook, id);
+    this._hooks = [];
+    super._onClose?.(options);
+  }
+
   /** The window's title is only read when it is first drawn, so a reopened window sets it again. */
   _onRender(context, options) {
     super._onRender?.(context, options);
@@ -79,12 +93,12 @@ export class BastionShopApp extends HandlebarsApplicationMixin(ApplicationV2) {
   }
 
   async _onBuy(_event, target) {
-    if (!this.open) return;
+    if (!this.open) { ui.notifications?.warn(t("SDE.bastion.shop.closed")); return this.render(); }
     const buyer = membersOf(this.bastion).find((a) => a.id === this.buyerId);
     if (!buyer) return ui.notifications?.warn(t("SDE.bastion.fund.nobody"));
     const qty = Number(target.closest(".sde-bs-row")?.querySelector("input[name=qty]")?.value);
     const done = await buyItem({ shopId: this.shopId, buyer, uuid: target.dataset.uuid, qty }, { log: (p) => SessionRecap.logPurchase(p) });
-    if (done.ok) ui.notifications?.info(format("SDE.bastion.shop.done", { buyer: buyer.name, item: done.name, price: formatPrice(done.price) }));
+    if (done.ok) ui.notifications?.info(format("SDE.bastion.shop.done", { buyer: buyer.name, item: qty > 1 ? `${done.name} \u00d7${qty}` : done.name, price: formatPrice(done.price) }));
     else ui.notifications?.warn(t({ broke: "SDE.bastion.shop.broke", qty: "SDE.bastion.shop.qty" }[done.error] ?? "SDE.bastion.shop.failed"));
     this.render();
   }
