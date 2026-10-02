@@ -21,6 +21,9 @@
  *          printed size ("68 wide x 44 high"); the scene's grid size is the
  *          image width over it. Absent: a 100 px grid
  *   skip   banner lines to drop (a regexp source)
+ *   creatureAliases  what the book calls a creature the bestiary names otherwise, so
+ *          its bold name is still linked ({ monk: "Acolyte" }): a singular, lower
+ *          case, to the bestiary's name. Absent: only bestiary names link
  *   intro  true to keep the text printed before the first location as an
  *          Introduction page (a site whose book opens with what it is and who
  *          lives there). Absent: that text is not filed
@@ -83,7 +86,7 @@ export const ADVENTURE_SITES = {
     { id: "cs2-mines", title: "Fortress of the Burning Brothers: The Mines", pages: "56-62", range: [20, 35], style: "caps", grid: [45, 34], mapNames: ["The Mines"] },
   ],
   CS3: [
-    { id: "cs3-wortwick", title: "Wortwick Monastery", pages: "24-25", range: [1, 7], style: "caps", grid: [28, 28], intro: true, skip: WORTWICK_FURNITURE },
+    { id: "cs3-wortwick", title: "Wortwick Monastery", pages: "24-25", range: [1, 7], style: "caps", grid: [28, 28], intro: true, skip: WORTWICK_FURNITURE, creatureAliases: { monk: "Acolyte" } },
     { id: "cs3-sea-wolf", title: "Hoard of the Sea Wolf King", pages: "53-64", range: [1, 29], style: "caps", grid: [68, 44], mapPages: "66-67", mapNames: ["Sea Caves and Tombs"] },
   ],
   CS4: [

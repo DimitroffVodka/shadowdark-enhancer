@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { creatureMentions, resolveMentions, bestiaryLookup, phraseKeys, nameKeys } from "../scripts/importer/adventure/adventure-creatures.mjs";
+import { creatureMentions, resolveMentions, bestiaryLookup, phraseKeys, nameKeys, creatureResolver, linkCreatureNames } from "../scripts/importer/adventure/adventure-creatures.mjs";
 import { parseAdventurePages } from "../scripts/importer/adventure/adventure-parser.mjs";
 import { _internals } from "../scripts/importer/pdf-text-extract.mjs";
 import { BOLD_OPEN as O, BOLD_CLOSE as C, stripBold } from "../scripts/importer/pdf-text-utils.mjs";
@@ -90,4 +90,50 @@ test("the extractor brackets bold items only when they are flagged, and joins ne
   assert.equal(lines[0], `12 unruly ${b("Giant ants")} camp.`);
   const plain = _internals.layoutPageItems(row.map((i) => { const c = { ...i }; delete c.bold; return c; }), 600, "auto").lines;
   assert.equal(plain[0], "12 unruly Giant ants camp.", "unflagged items are exactly as before");
+});
+
+// ─── Links in the filed text ─────────────────────────────────────────────────
+
+const INDEX = [
+  { name: "Gribble", uuid: "Compendium.x.Actor.GRIB", type: "NPC" },
+  { name: "Moth, Giant", uuid: "Compendium.x.Actor.MOTH", type: "NPC" },
+  { name: "Wibbet Cart", uuid: "Compendium.x.Actor.CART", type: "Vehicle" },   // not a creature
+];
+
+test("creatureResolver: a bold phrase to the creature's uuid; singular, plural and the system's 'Moth, Giant' all answer; a vehicle never does", () => {
+  const r = creatureResolver(INDEX);
+  assert.equal(r("Gribbles"), "Compendium.x.Actor.GRIB");
+  assert.equal(r("gribble"), "Compendium.x.Actor.GRIB");
+  assert.equal(r("giant moths"), "Compendium.x.Actor.MOTH");
+  assert.equal(r("wibbet carts"), undefined);
+  assert.equal(r("Treasure"), undefined);
+  assert.equal(creatureResolver([])("Gribbles"), undefined);
+});
+
+test("creatureResolver: an alias names a creature the book calls something else, and the bestiary's own name still wins", () => {
+  const r = creatureResolver(INDEX, { Pixie: "Gribble", gribble: "Moth, Giant" });
+  assert.equal(r("pixies"), "Compendium.x.Actor.GRIB");
+  assert.equal(r("Gribbles"), "Compendium.x.Actor.GRIB");
+  assert.equal(creatureResolver(INDEX, { pixie: "Nobody" })("pixies"), undefined, "an alias to a creature the world lacks links nothing");
+});
+
+test("linkCreatureNames: a bold creature becomes a link, a bold word that is not one stays plain, nothing else changes", () => {
+  const r = creatureResolver(INDEX);
+  assert.equal(linkCreatureNames(`Two ${b("Gribbles")} guard the ${b("Treasure")} door.`, r),
+    "Two @UUID[Compendium.x.Actor.GRIB]{Gribbles} guard the Treasure door.");
+  assert.equal(linkCreatureNames("No bold here.", r), "No bold here.");
+  assert.equal(linkCreatureNames(`Two ${b("Gribbles")}.`, null), "Two Gribbles.");
+});
+
+test("linkCreatureNames: a bullet and the full stop stay outside the link; the link keeps the book's own wording", () => {
+  const r = creatureResolver(INDEX);
+  assert.equal(linkCreatureNames(`${b("• Giant Moths.")} Three of them.`, r), "• @UUID[Compendium.x.Actor.MOTH]{Giant Moths}. Three of them.");
+  assert.equal(linkCreatureNames(`Abbot (${b("gribble")}), twelve (${b("gribbles")})`, r),
+    "Abbot (@UUID[Compendium.x.Actor.GRIB]{gribble}), twelve (@UUID[Compendium.x.Actor.GRIB]{gribbles})");
+});
+
+test("linkCreatureNames: an all-caps line is a sub-heading and is left alone; an unclosed marker never reaches the page", () => {
+  const r = creatureResolver(INDEX);
+  assert.equal(linkCreatureNames(b("GRIBBLES"), r), "GRIBBLES");
+  assert.equal(linkCreatureNames(`Two ${O}Gribbles go on`, r), "Two Gribbles go on");
 });

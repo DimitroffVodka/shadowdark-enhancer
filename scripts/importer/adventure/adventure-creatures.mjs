@@ -10,6 +10,10 @@
  * Area's, and a count that is a die roll ("1d4") or a chance ("2:6") is the GM's
  * to roll, so it places nothing either.
  *
+ * The same bold names are linked in the filed text: a bold run the bestiary knows
+ * becomes an `@UUID` link to that creature (linkCreatureNames), so a room's journal
+ * page opens the stat block it names.
+ *
  * Works on the marked lines the parser keeps (`boldLines`); reads the GM's own
  * book at run time, ships no text. Every string in the tests is invented.
  */
@@ -128,4 +132,43 @@ export function bestiaryLookup(names) {
   const map = new Map();
   for (const name of names) for (const key of nameKeys(name)) if (!map.has(key)) map.set(key, name);
   return (key) => map.get(key);
+}
+
+/**
+ * Pure: phrase → creature link target, over a bestiary index.
+ * @param {Array<{name:string, uuid:string, type?:string}>} index  the world's monsters (core first)
+ * @param {Record<string,string>} [aliases]  what a book calls a creature that is not its bestiary name
+ *   ("monk" → "Acolyte"): a singular phrase, lower case, → a bestiary name
+ * @returns {(phrase:string)=>string|undefined}  the creature's uuid, or undefined
+ */
+export function creatureResolver(index, aliases = {}) {
+  const npcs = (index ?? []).filter((e) => e.type === "NPC");
+  const lookup = bestiaryLookup(npcs.map((e) => e.name));
+  const uuidOf = new Map(npcs.map((e) => [e.name, e.uuid]));
+  const alias = Object.fromEntries(Object.entries(aliases ?? {}).map(([k, v]) => [k.toLowerCase(), v]));
+  return (phrase) => {
+    const keys = phraseKeys(phrase);
+    const name = keys.map(lookup).find(Boolean) ?? keys.map((k) => alias[k]).find(Boolean);
+    return name ? uuidOf.get(name) : undefined;
+  };
+}
+
+/**
+ * Pure: one marked line as plain text with a link on every bold run that names a
+ * creature. A run the bestiary does not know stays plain (it is only bold). Bullets
+ * and a trailing full stop stay outside the link ("• Skeletons." → "• @UUID[…]{Skeletons}."),
+ * and a line that is nothing but capitals stays as it is: it is a sub-heading.
+ * @param {string} marked  a line with bold markers
+ * @param {(phrase:string)=>string|undefined} resolve  creatureResolver
+ * @returns {string}
+ */
+export function linkCreatureNames(marked, resolve) {
+  const plain = stripBold(marked);
+  if (!resolve || !/[a-z]/.test(plain)) return plain;
+  const linked = String(marked ?? "").replace(new RegExp(`${BOLD_OPEN}([^${BOLD_CLOSE}]*)${BOLD_CLOSE}`, "g"), (run, inner) => {
+    const [, lead, core, tail] = /^([•▶►\s]*)([\s\S]*?)([.:,;\s]*)$/.exec(inner);
+    const uuid = core && core.length <= 40 ? resolve(core) : undefined;
+    return uuid ? `${lead}@UUID[${uuid}]{${core}}${tail}` : inner;
+  });
+  return stripBold(linked);   // a marker the pairs did not close never reaches the page
 }

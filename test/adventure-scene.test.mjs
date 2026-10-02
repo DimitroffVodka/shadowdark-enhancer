@@ -116,6 +116,18 @@ test("locationPagePayload: page name, html, and the number on the flag", () => {
   assert.equal(pageNum({ flags: {} }), null);
 });
 
+test("page payloads link the bold creature names they are given, and are plain without them", () => {
+  const O = "\u0001", C = "\u0002";
+  const resolve = (phrase) => (/^gribbles?$/i.test(phrase) ? "Compendium.x.Actor.GRIB" : undefined);
+  const loc = { num: 1, name: "PEN", bodyLines: ["Two Gribbles bark."], boldLines: [`Two ${O}Gribbles${C} bark.`] };
+  assert.match(locationPagePayload(loc, new Set([1]), { resolve }).text.content, /Two @UUID\[Compendium\.x\.Actor\.GRIB\]\{Gribbles\} bark\./);
+  assert.match(locationPagePayload(loc, new Set([1])).text.content, /<p>Two Gribbles bark\.<\/p>/);
+  assert.match(locationPagePayload({ ...loc, boldLines: undefined }, new Set([1]), { resolve }).text.content, /<p>Two Gribbles bark\.<\/p>/);
+  const intro = introPagePayload(["A gribble."], new Set(), { boldLines: [`A ${O}gribble${C}.`], resolve });
+  assert.match(intro.text.content, /A @UUID\[Compendium\.x\.Actor\.GRIB\]\{gribble\}\./);
+  assert.match(introPagePayload(["A gribble."], new Set(), { boldLines: [], resolve }).text.content, /<p>A gribble\.<\/p>/, "marked lines that do not match the plain ones are not used");
+});
+
 test("introPagePayload: a numberless page that sorts first and is found by its flag", () => {
   const p = introPagePayload(["ABOUT", "Fog rolls in. See Area 2."], new Set([2]));
   assert.equal(p.name, "SDE.importer.adventure.introPage");

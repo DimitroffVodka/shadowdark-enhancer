@@ -356,6 +356,14 @@ Building a scene, **Auto-place**, or the **skull button** in the Place locations
 them down; a creature already on the map is never placed twice, and one you delete comes
 back the next time. For pins you placed by hand, press the skull button once they are down.
 
+**Monster names are links.** In a room's journal page, every creature name the book sets in
+bold that your bestiary knows (the core bestiary first, then your imported monsters) is a
+link to that monster, so a room opens the stat block it names; a bold word that is not a
+creature stays plain text. Wortwick Monastery's "monks" are linked to the Acolyte, as the
+book's own "monks (acolytes)" says. It is done when the adventure is filed, so run
+**Adventures** again after importing monsters you did not have, and the pages are updated in
+place with the new links.
+
 For a map the module has no positions for (your own, or a new book), press **Place
 next**, click the map where the number is printed, and the pin drops and the next
 location is ready, so a thirty-room dungeon is thirty clicks along the printed numbers.

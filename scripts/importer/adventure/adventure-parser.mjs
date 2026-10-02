@@ -76,12 +76,12 @@ export function titleCaseName(name) {
  *   page read from further up a book's page may open with something unrelated.
  *   Lines may carry bold markers (extractPdfText markBold): every match is made on the plain
  *   text, and each location's `boldLines` keeps the marked copy of its `bodyLines`.
- * @returns {{locations: Array<{num:number, name:string, bodyLines:string[], boldLines:string[]}>, warnings:string[], intro:string[]}}
+ * @returns {{locations: Array<{num:number, name:string, bodyLines:string[], boldLines:string[]}>, warnings:string[], intro:string[], introBold:string[]}}
  */
 export function parseAdventurePages(pages, { style = "caps", range, skip, intro = false } = {}) {
   const locations = [];
   const warnings = [];
-  const introLines = [];
+  const introLines = [], introBold = [];
   let cur = null;
   for (const lines of pages ?? []) {
     const page = [...lines];
@@ -103,6 +103,7 @@ export function parseAdventurePages(pages, { style = "caps", range, skip, intro 
         cur.boldLines.push(marked);
       } else if (!cur && intro && line) {
         introLines.push(line);
+        introBold.push(marked);
       }
     }
   }
@@ -117,7 +118,7 @@ export function parseAdventurePages(pages, { style = "caps", range, skip, intro 
     if (end < range[1]) warnings.push(`missing ${end + 1}${range[1] > end + 1 ? `-${range[1]}` : ""}`);
   }
   if (range && !locations.length) warnings.push(`no locations found (expected ${range[0]}-${range[1]})`);
-  return { locations, warnings, intro: introLines };
+  return { locations, warnings, intro: introLines, introBold };
 }
 
 /**

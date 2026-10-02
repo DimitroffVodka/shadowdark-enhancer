@@ -84,6 +84,18 @@ test("intro keeps what is printed before the first location, only when asked", (
   assert.deepEqual(parseAdventurePages([["1. ONE", "t"]], { style: "caps", intro: true }).intro, []);
 });
 
+test("the intro keeps a marked copy of its lines, in step with the plain ones", () => {
+  const O = "\u0001", C = "\u0002";
+  const pages = [[`ABOUT`, `Two ${O}Gribbles${C} here.`, "1. GATE", "Bars."]];
+  const { intro, introBold } = parseAdventurePages(pages, { style: "caps", intro: true });
+  assert.deepEqual(intro, ["ABOUT", "Two Gribbles here."]);
+  assert.deepEqual(introBold, ["ABOUT", `Two ${O}Gribbles${C} here.`]);
+});
+
+test("Wortwick: the book's 'monks' are the bestiary's acolytes", () => {
+  assert.deepEqual(findSite("cs3-wortwick").creatureAliases, { monk: "Acolyte" });
+});
+
 test("Wortwick: both pages, the map's own text never lands in a room, the page furniture never in the intro", () => {
   const site = findSite("cs3-wortwick");
   assert.deepEqual([site.pages, site.range, site.intro], ["24-25", [1, 7], true]);

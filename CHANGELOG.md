@@ -11,6 +11,11 @@ it needs.
 
 ### Added
 
+- **Monster names in adventure text are links.** In every adventure's room pages (and
+  Wortwick's Introduction), a creature the book sets in bold that your bestiary knows now links
+  to that monster, so a room opens the stat block it names. A bold word that is not a creature
+  stays plain, and Wortwick's "monks" link to the Acolyte, as its own "monks (acolytes)" says.
+  Run Adventures again to add the links to pages you already filed.
 - **Adventure maps come with their monsters.** Every adventure's scene now gets the creatures
   its rooms name, as hidden tokens beside each room's pin: the books set a creature's name in
   bold with its number just before it, and the module reads that from your own PDF, matches the

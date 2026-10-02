@@ -20,6 +20,7 @@
 import { MODULE_ID } from "../../shared/module-id.mjs";
 import { ensureSuite, ensureSourceFolder, cleanImportHtml, sourceFolderName, findSuitePack } from "../../shared/compendium-suite.mjs";
 import { buildLocationHtml, locationPageName, rewriteLocPlaceholders } from "./adventure-parser.mjs";
+import { linkCreatureNames } from "./adventure-creatures.mjs";
 
 /** Flag key under `flags.shadowdark-enhancer` on the entry and its pages. */
 export const ADVENTURE_FLAG = "adventure";
@@ -48,14 +49,21 @@ const t = (key) => globalThis.game?.i18n?.localize?.(key) ?? key;
 /** An Introduction page sorts ahead of the numbered pages, whenever it is filed. */
 const INTRO_SORT = -1;
 
+/**
+ * The lines of a page with the bold creature names the bestiary knows turned into
+ * links; the plain lines when there are no marked lines or no bestiary to look in.
+ */
+const linked = (lines, boldLines, resolve) =>
+  resolve && boldLines?.length === lines.length ? boldLines.map((l) => linkCreatureNames(l, resolve)) : lines;
+
 /** Pass-1 payload for the Introduction page (placeholders still inside). */
-export function introPagePayload(lines, known) {
+export function introPagePayload(lines, known, { boldLines, resolve } = {}) {
   return {
     name: t("SDE.importer.adventure.introPage"),
     type: "text",
     sort: INTRO_SORT,
     text: {
-      content: buildLocationHtml({ bodyLines: lines }, known),
+      content: buildLocationHtml({ bodyLines: linked(lines, boldLines, resolve) }, known),
       format: globalThis.CONST?.JOURNAL_ENTRY_PAGE_FORMATS?.HTML ?? 1,
     },
     flags: { [MODULE_ID]: { [ADVENTURE_FLAG]: { intro: true } } },
@@ -67,12 +75,12 @@ export const isIntroPage = (page) =>
   (page?.getFlag?.(MODULE_ID, ADVENTURE_FLAG)?.intro ?? page?.flags?.[MODULE_ID]?.[ADVENTURE_FLAG]?.intro) === true;
 
 /** Pass-1 page payload for one location (placeholders still inside). */
-export function locationPagePayload(loc, known) {
+export function locationPagePayload(loc, known, { resolve } = {}) {
   return {
     name: locationPageName(loc),
     type: "text",
     text: {
-      content: buildLocationHtml(loc, known),
+      content: buildLocationHtml({ bodyLines: linked(loc.bodyLines ?? [], loc.boldLines, resolve) }, known),
       format: globalThis.CONST?.JOURNAL_ENTRY_PAGE_FORMATS?.HTML ?? 1,
     },
     flags: { [MODULE_ID]: { [ADVENTURE_FLAG]: { num: loc.num } } },
@@ -110,11 +118,14 @@ export async function findSiteEntry(siteId) {
  * File a site's locations as pages. GM-gated like every other commit.
  * @param {{id:string,title:string}} site  manifest row
  * @param {Array<{num:number,name:string,bodyLines:string[]}>} locations
- * @param {{source?:string, intro?:string[]}} [opts]  source label, for the folder;
- *   intro = the lines printed before the first location, filed as an Introduction page
+ * @param {{source?:string, intro?:string[], introBold?:string[], resolve?:(phrase:string)=>string|undefined}} [opts]
+ *   source label, for the folder; intro = the lines printed before the first location, filed
+ *   as an Introduction page (introBold: the same lines with bold markers); resolve = a
+ *   creature link target for a bold name (adventure-creatures.mjs creatureResolver), so the
+ *   bold names the bestiary knows are filed as links
  * @returns {Promise<{entryUuid:string|null, created:string[], updated:string[], collisions:number[]}>}
  */
-export async function commitAdventure(site, locations, { source = "", intro = [] } = {}) {
+export async function commitAdventure(site, locations, { source = "", intro = [], introBold, resolve } = {}) {
   const report = { entryUuid: null, created: [], updated: [], collisions: [] };
   if (!game.user?.isGM) { ui.notifications?.warn(game.i18n.localize("SDE.importer.gm.adventure")); return report; }
   if (!locations?.length) return report;
@@ -132,7 +143,7 @@ export async function commitAdventure(site, locations, { source = "", intro = []
   report.collisions = plan.collisions;
   const known = new Set([...existing.keys(), ...locations.map((l) => l.num)]);
   const payload = (loc) => {
-    const p = locationPagePayload(loc, known);
+    const p = locationPagePayload(loc, known, { resolve });
     p.text.content = cleanImportHtml(p.text.content);
     return p;
   };
@@ -140,7 +151,7 @@ export async function commitAdventure(site, locations, { source = "", intro = []
   // The Introduction is one more page, found by its flag and kept up to date like the rest.
   const introDoc = intro.length ? entry.pages.find(isIntroPage) : null;
   const introPayload = () => {
-    const p = introPagePayload(intro, known);
+    const p = introPagePayload(intro, known, { boldLines: introBold, resolve });
     p.text.content = cleanImportHtml(p.text.content);
     return p;
   };

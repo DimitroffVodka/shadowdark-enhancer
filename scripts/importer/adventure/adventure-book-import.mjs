@@ -15,7 +15,7 @@ import { resolveSourcePdf, sourcePdfTarget } from "../source-pdf-registry.mjs";
 import { parsePageRange } from "../pdf-text-extract.mjs";
 import { allSites } from "./adventure-manifest.mjs";
 import { parseAdventurePages } from "./adventure-parser.mjs";
-import { creatureMentions } from "./adventure-creatures.mjs";
+import { creatureMentions, creatureResolver } from "./adventure-creatures.mjs";
 import { commitAdventure } from "./adventure-commit.mjs";
 import { summariseGutter } from "../hex/hex-book-import.mjs";
 
@@ -41,14 +41,31 @@ const skipOf = (site) => (site.skip ? new RegExp(site.skip) : undefined);
 
 /**
  * Read one site out of the book.
- * @returns {Promise<{locations:object[], warnings:string[], intro:string[]}>}
+ * @returns {Promise<{locations:object[], warnings:string[], intro:string[], introBold:string[]}>}
  */
 async function readSite({ extractPdfText, notifyGutterWarnings }, file, site, pages) {
-  const result = await extractPdfText(file, { pages, columns: "auto" });
+  const result = await extractPdfText(file, { pages, columns: "auto", markBold: true });
   notifyGutterWarnings(result);
   return parseAdventurePages(
     (result.pages ?? []).map((p) => p.lines ?? []),
     { style: site.style, range: site.range, skip: skipOf(site), intro: !!site.intro });
+}
+
+/**
+ * Where a bold creature name in this site's text links to: the world's monsters (core
+ * first, then the GM's imports), plus the names the book gives a creature that the
+ * bestiary calls something else. Undefined when the world has no monsters to look in,
+ * so the text is filed plain rather than failing.
+ * @param {{creatureAliases?:Record<string,string>}} site
+ */
+async function creatureLinks(site) {
+  try {
+    const { MonsterLinker } = await import("../monsters/monster-linker.mjs");
+    return creatureResolver(await MonsterLinker.buildIndex(), site.creatureAliases);
+  } catch (err) {
+    console.warn("Shadowdark Enhancer | adventures: monster names are filed without links", err);
+    return undefined;
+  }
 }
 
 /**
@@ -93,8 +110,8 @@ export async function importAdventures(src, { ids, onSite } = {}) {
     onSite?.(site.title, i + 1, sites.length);
     try {
       const pages = planSitePages(site, (p) => sourcePdfTarget(src, String(p))?.page ?? null);
-      const { locations, warnings, intro } = await readSite({ ...pdf, notifyGutterWarnings: collect }, file, site, pages);
-      const res = await commitAdventure(site, locations, { source: label, intro });
+      const { locations, warnings, intro, introBold } = await readSite({ ...pdf, notifyGutterWarnings: collect }, file, site, pages);
+      const res = await commitAdventure(site, locations, { source: label, intro, introBold, resolve: await creatureLinks(site) });
       report.sites.push({
         id: site.id, title: site.title, locations: locations.length,
         expected: site.range[1] - site.range[0] + 1, missing: warnings, uuid: res.entryUuid,
