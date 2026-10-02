@@ -27,6 +27,13 @@
           </select>
         </label>
         <p class="hint">{{type.blurb}}</p>
+        <label class="sde-bast-field">
+          <span>{{localize "SDE.bastion.field.party"}}</span>
+          <select name="system.party" {{#unless editable}}disabled{{/unless}}>
+            <option value="">{{localize "SDE.bastion.party.none"}}</option>
+            {{#each parties}}<option value="{{uuid}}" {{#if selected}}selected{{/if}}>{{name}}</option>{{/each}}
+          </select>
+        </label>
         <div class="sde-bast-stats">
           <div class="SD-box sde-bast-stat"><div class="header"><label>{{localize "SDE.bastion.stat.ac"}}</label><span></span></div><div class="content">{{stats.ac}}</div></div>
           <div class="SD-box sde-bast-stat {{#if stats.breached}}sde-bast-bad{{/if}}">
@@ -39,6 +46,12 @@
             <div class="content"><input type="number" name="system.treasury" value="{{system.treasury}}" min="0" {{#unless editable}}disabled{{/unless}} /> {{localize "SDE.bastion.gp"}}</div>
           </div>
         </div>
+        {{#if editable}}
+        <div class="sde-bast-buttons">
+          <button type="button" data-action="deposit"><i class="fa-solid fa-coins"></i> {{localize "SDE.bastion.fund.deposit"}}</button>
+          <button type="button" data-action="withdraw"><i class="fa-solid fa-hand-holding-dollar"></i> {{localize "SDE.bastion.fund.withdraw"}}</button>
+        </div>
+        {{/if}}
         <p class="note">{{localize "SDE.bastion.stat.worth" worth=stats.worth}}</p>
         {{#if stats.breached}}<p class="note sde-bast-bad">{{localize "SDE.bastion.breached"}}</p>{{/if}}
         {{#if stats.standing}}

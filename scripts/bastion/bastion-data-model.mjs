@@ -22,6 +22,8 @@ export class BastionDataModel extends foundry.abstract.TypeDataModel {
       week: int(0, { min: 0 }),
       hp: new fields.SchemaField({ value: int(40, { min: 0 }) }),
       treasury: int(0, { min: 0 }),
+      // The party that owns it, an actor UUID, or "" for none. Only a way to find who pays.
+      party: new fields.StringField({ required: true, blank: true, initial: "" }),
       // `slot` is the place on the plan an upgrade took; -1 for the moat, which has none.
       upgrades: new fields.ArrayField(new fields.SchemaField({
         id: new fields.StringField({ required: true, blank: false }),

@@ -445,6 +445,7 @@
     "3.23": [
       "scripts/bastion/bastion-core.mjs",
       "scripts/bastion/bastion-plan.mjs",
+      "scripts/bastion/bastion-funding.mjs",
       "scripts/bastion/bastion-art.mjs",
       "scripts/bastion/bastion-data-model.mjs",
       "scripts/bastion/bastion-sheet.mjs",
@@ -804,6 +805,7 @@
     "scripts/bastion/bastion-art.mjs": "Where the bastion art files are (assets/bastion/art), so an actor and its token carry their type's exterior.",
     "scripts/bastion/bastion-data-model.mjs": "The Bastion actor's data model: type, build weeks, hit points, treasury, upgrades and their places, repair, log.",
     "scripts/bastion/bastion-sheet.mjs": "The Bastion actor sheet (ApplicationV2): Overview, Upgrades, Plan (exterior and interior, roofs, zoom, room card, SVG and PNG export) and Log. The GM edits.",
-    "scripts/bastion/register-bastion.mjs": "Registers the `shadowdark-enhancer.bastion` actor type, its sheet and art defaults, and builds `game.shadowdarkEnhancer.bastion`."
+    "scripts/bastion/register-bastion.mjs": "Registers the `shadowdark-enhancer.bastion` actor type, its sheet and art defaults, and builds `game.shadowdarkEnhancer.bastion`.",
+    "scripts/bastion/bastion-funding.mjs": "The party link and paying into the treasury, pure: which actors are parties, who can pay, and the purse arithmetic for paying gold in and out. Extras' own party coins are never read or written."
   }
 }

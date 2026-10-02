@@ -227,6 +227,26 @@ export function applyDisaster(state, roll) {
   return next;
 }
 
+/** Whole gold only: a deposit or withdrawal of nothing, or of a part of a coin, is not one. */
+const wholeGp = (gp) => Number.isInteger(gp) && gp > 0;
+
+/** Someone pays `gp` into the treasury. `who` is their name, for the log. */
+export function deposit(state, gp, who = "") {
+  if (!wholeGp(gp)) return { state, error: "amount" };
+  const next = { ...state, treasury: toInt(state.treasury) + gp };
+  next.log = log(next, "SDE.bastion.log.deposited", { who, gp });
+  return { state: next, error: null };
+}
+
+/** The treasury pays `gp` out to someone. It can't go below nothing. */
+export function withdraw(state, gp, who = "") {
+  if (!wholeGp(gp)) return { state, error: "amount" };
+  if (toInt(state.treasury) < gp) return { state, error: "broke" };
+  const next = { ...state, treasury: toInt(state.treasury) - gp };
+  next.log = log(next, "SDE.bastion.log.withdrew", { who, gp });
+  return { state: next, error: null };
+}
+
 // ---------------------------------------------------------------- the actor's data
 
 /** The rules' view of an actor: plain data, safe to hand to bastion-core and not to mutate. */

@@ -44,11 +44,20 @@ per HP. A bastion shelters you from weather, climate and random encounters.
 
 ## The sheet
 
-**Overview.** The type, AC, hit points, the treasury (a gold total the GM sets), how
+**Overview.** The type, the party that owns it, AC, hit points, the treasury, how
 many of its upgrade slots are used, and what it is worth. Under the build clock:
 **Advance a week** finishes the bastion and its upgrades as the weeks pass,
 **Repair** pays 1 gp per missing HP and mends them after a week, and **Roll the
 month's disaster** rolls the d6 (and on a 1 the d4) and posts it to chat.
+
+**The party and the treasury.** Pick the **Party** that owns the bastion (Extras'
+party, or the Enhancer's own). **Pay in** moves gold from a character's purse into the
+treasury, and **Pay out** moves it back to a character. The dialog lists the party's
+members, or every player character when the bastion has no party or its party lists
+none. The gold is whole, comes out of silver and copper first, and a payment that
+can't complete on both sides is put back. You can still type the treasury yourself.
+Extras keeps a party's own coins in its own data and offers no way to change them, so
+the party's stash isn't touched: a member pays from their own purse.
 
 **Upgrades.** All twenty, with their art. **Build** takes the cost from the
 treasury and starts a week of work. You can't build one that's already there,
@@ -123,5 +132,6 @@ the GM's to run.
 ## For macros
 
 `game.shadowdarkEnhancer.bastion` creates a bastion, opens its sheet and reads its
-state and finished upgrades, so other features can read a bastion's effects. See
+state, its party (and a party's bastions) and its finished upgrades, so other features
+can read a bastion's effects. See
 the [API reference](https://github.com/DimitroffVodka/shadowdark-enhancer/blob/master/docs/API.md#bastion--bastions).

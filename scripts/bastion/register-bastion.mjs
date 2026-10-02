@@ -63,6 +63,10 @@ export function bastionApi() {
     open: (ref) => { const actor = find(ref); if (isBastion(actor)) actor.sheet?.render(true); return isBastion(actor); },
     // A bastion's rules state: type, hit points, treasury, upgrades with their places and weeks left.
     state: (ref) => { const actor = find(ref); return isBastion(actor) ? core.stateOf(actor) : null; },
+    // The party that owns a bastion (an actor), or null.
+    partyOf: (ref) => { const actor = find(ref); const uuid = isBastion(actor) ? actor.system.party : ""; return uuid ? fromUuidSync(uuid, { strict: false }) ?? null : null; },
+    // The bastions a party owns (actors).
+    forParty: (ref) => { const party = find(ref); return party ? game.actors.filter((a) => isBastion(a) && a.system.party === party.uuid) : []; },
     // The upgrades that are finished and so give their effect.
     built: (ref) => { const actor = find(ref); return isBastion(actor) ? core.builtUpgrades(core.stateOf(actor)) : []; },
   };

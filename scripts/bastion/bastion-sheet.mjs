@@ -13,6 +13,7 @@ import { esc } from "../shared/esc.mjs";
 import * as core from "./bastion-core.mjs";
 import { stateOf, updateOf } from "./bastion-core.mjs";
 import { renderPlan } from "./bastion-plan.mjs";
+import { isPartyActor, fundingActors, planDeposit, planWithdraw, purseUpdate, purseOf } from "./bastion-funding.mjs";
 import { bastionArt } from "./bastion-art.mjs";
 
 const { HandlebarsApplicationMixin } = foundry.applications.api;
@@ -45,8 +46,11 @@ const WHY = {
   broke: "SDE.bastion.why.broke",
   tooMany: "SDE.bastion.why.tooMany",
   nothing: "SDE.bastion.why.nothing",
+  amount: "SDE.bastion.why.amount",
   built: "SDE.bastion.why.built",
 };
+
+const samePurse = (a, b) => a.gp === b.gp && a.sp === b.sp && a.cp === b.cp;
 
 /** A log line, with any i18n key in its data (an upgrade's name) turned into words. */
 const logText = (entry) => format(entry.key, Object.fromEntries(
@@ -67,6 +71,8 @@ export class BastionSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       advanceWeek: BastionSheet.prototype._onAdvanceWeek,
       repair: BastionSheet.prototype._onRepair,
       rollMonth: BastionSheet.prototype._onRollMonth,
+      deposit: BastionSheet.prototype._onDeposit,
+      withdraw: BastionSheet.prototype._onWithdraw,
       exportSvg: BastionSheet.prototype._onExportSvg,
       exportPng: BastionSheet.prototype._onExportPng,
     },
@@ -121,6 +127,7 @@ export class BastionSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     });
     context.log = state.log.map((e) => ({ week: e.week, text: logText(e) })).reverse();
     context.plan = this._plan(state, st);
+    context.parties = game.actors.filter(isPartyActor).map((a) => ({ uuid: a.uuid, name: a.name, selected: a.uuid === this.document.system.party }));
     context.view = { ext: this._view === "ext", in: this._view === "in" };
     context.roofs = this._roofs;
     context.enrichedNotes = await foundry.applications.ux.TextEditor.implementation.enrichHTML(
@@ -208,6 +215,87 @@ export class BastionSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     if (!(await this._write(next))) return;
     const line = logText(next.log.at(-1));
     await ChatMessage.create({ content: `<p><strong>${esc(this.document.name)}</strong> ${esc(line)}</p>`, speaker: { alias: this.document.name } });
+  }
+
+  // ── Paying in and out of the treasury ──────────────────────────────────────
+
+  _onDeposit() { return this._fund("deposit"); }
+  _onWithdraw() { return this._fund("withdraw"); }
+
+  /** Ask who and how much, then move that gold between a character's purse and the treasury. */
+  async _fund(direction) {
+    if (!game.user.isGM) return false;
+    const link = this.document.system.party;
+    const party = link ? await fromUuid(link).catch(() => null) : null;
+    const people = fundingActors({
+      party,
+      resolve: (id) => game.actors.get(id) ?? fromUuidSync(id, { strict: false }),
+      players: game.actors.filter((a) => a.type === "Player"),
+    });
+    if (!people.length) {
+      ui.notifications?.warn(t("SDE.bastion.fund.nobody"));
+      return false;
+    }
+    const pick = await this._promptFunding(direction, people);
+    const person = pick && people.find((a) => a.uuid === pick.who);
+    const gp = Number(pick?.gp);   // not rounded: a part of a coin is refused by the plan, not quietly paid as less
+    if (!person) return false;
+    return direction === "deposit" ? this._deposit(person, gp) : this._withdraw(person, gp);
+  }
+
+  _promptFunding(direction, people) {
+    const options = people.map((a) => `<option value="${esc(a.uuid)}">${esc(a.name)} (${esc(format("SDE.bastion.fund.purse", { gp: a.system.coins.gp ?? 0 }))})</option>`).join("");
+    const paying = direction === "deposit";
+    return foundry.applications.api.DialogV2.prompt({
+      window: { title: paying ? "SDE.bastion.fund.depositTitle" : "SDE.bastion.fund.withdrawTitle" },
+      content: `<div class="form-group"><label>${esc(t("SDE.bastion.fund.who"))}</label><div class="form-fields"><select name="who">${options}</select></div></div>
+        <div class="form-group"><label>${esc(t("SDE.bastion.fund.amount"))}</label><div class="form-fields"><input type="number" name="gp" min="1" step="1" value="10" autofocus></div></div>`,
+      ok: {
+        label: paying ? "SDE.bastion.fund.deposit" : "SDE.bastion.fund.withdraw",
+        callback: (_event, button) => new foundry.applications.ux.FormDataExtended(button.form).object,
+      },
+      rejectClose: false,
+    });
+  }
+
+  /**
+   * A character pays in: their purse first, then the treasury. Each write is read back, and if the
+   * treasury refuses the purse is put back as it was.
+   */
+  async _deposit(person, gp) {
+    const before = this.state, was = purseOf(person), plan = planDeposit(was, gp);
+    if (!plan.ok) {
+      ui.notifications?.warn(plan.error === "broke" ? format("SDE.bastion.fund.noPurse", { name: person.name, gp }) : t(WHY[plan.error]));
+      return false;
+    }
+    const { state: next, error } = core.deposit(before, gp, person.name);
+    if (error) { ui.notifications?.warn(t(WHY[error] ?? WHY.unknown)); return false; }
+    const paid = await person.update(purseUpdate(plan.coins));
+    if (!paid || !samePurse(purseOf(person), plan.coins)) { ui.notifications?.warn(t("SDE.bastion.notify.notSaved")); return false; }
+    if (await this._write(next)) {
+      ui.notifications?.info(logText(next.log.at(-1)));
+      return true;
+    }
+    await person.update(purseUpdate(was));
+    ui.notifications?.warn(t("SDE.bastion.fund.undone"));
+    return false;
+  }
+
+  /** The treasury pays out: it first, then the character's purse; if the purse refuses, the treasury is put back. */
+  async _withdraw(person, gp) {
+    const before = this.state, was = purseOf(person), plan = planWithdraw(was, gp);
+    if (!plan.ok) { ui.notifications?.warn(t(WHY[plan.error])); return false; }
+    const { state: next, error } = core.withdraw(before, gp, person.name);
+    if (error) { ui.notifications?.warn(t(WHY[error] ?? WHY.unknown)); return false; }
+    if (!(await this._write(next))) return false;
+    const paid = await person.update(purseUpdate(plan.coins));
+    if (paid && samePurse(purseOf(person), plan.coins)) {
+      ui.notifications?.info(logText(next.log.at(-1)));
+      return true;
+    }
+    await this._write(before);
+    ui.notifications?.warn(t("SDE.bastion.fund.undone"));
+    return false;
   }
 
   /** The plan as a standalone SVG: the page's art symbols plus what's drawn. */
