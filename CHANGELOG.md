@@ -824,6 +824,17 @@ page walks through it in order.
 
 ### Fixed
 
+- **The Importer Hub's Rules Data step sits in the Manage strip, not under the paste box.**
+  It was a block of its own between the paste box and Manage, taking its space whether or
+  not anything was left to fill. It is the first item under **Manage** now, showing and
+  doing what it did before; the "isn't set" cards and the Start day hint still open the
+  hub straight onto it, expanding Manage first. (#311)
+- **A batch import leaves no importer windows open behind it, even ones you had up.**
+  The runner closed only the workspaces it had opened itself, so if the Spell Importer,
+  Class Importer or Item Builder was already open when you pressed **Import everything**,
+  the run reset and drove that window entry by entry and then left it where it was, frozen
+  on whichever entry it had just processed. Every workspace the run puts to work is now
+  closed when the run ends; one it never touches stays where you left it. (#312)
 - **The importer's Manage tab no longer lists places and factions as locked monsters.**
   Monsters showed rows such as Lord Hedron, Volcano Erupts, The Duke and Thieves'
   Guild as still locked. They were never monsters: the tab read capitalised phrases
