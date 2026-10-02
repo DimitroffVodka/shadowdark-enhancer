@@ -30,6 +30,18 @@ test("a linked party's members pay, or every player does when there are none to 
   assert.deepEqual(fundingActors({ party: none, resolve, players: [ann, npc] }).map((a) => a.id), ["ann"]);   // no purse, no paying
 });
 
+test("the Enhancer's own party roster is read first; Extras' members are the fallback", () => {
+  const ann = actor("ann", { gp: 5, sp: 0, cp: 0 }), bo = actor("bo", { gp: 1, sp: 0, cp: 0 }), cy = actor("cy", { gp: 9, sp: 0, cp: 0 });
+  const world = { "Actor.ann": ann, "Actor.bo": bo, cy };
+  const resolve = (ref) => world[ref] ?? null;
+  const native = actor("party", null, { "shadowdark-enhancer": { party: true, partyData: { members: ["Actor.ann", "Actor.bo"] } }, "shadowdark-extras": { members: ["cy"] } });
+  assert.deepEqual(fundingActors({ party: native, resolve, players: [] }).map((a) => a.id), ["ann", "bo"], "partyData's UUIDs win over Extras' stale ids");
+  const empty = actor("party2", null, { "shadowdark-enhancer": { party: true, partyData: { members: [] } }, "shadowdark-extras": { members: ["cy"] } });
+  assert.deepEqual(fundingActors({ party: empty, resolve, players: [ann] }).map((a) => a.id), ["ann"], "an emptied native roster falls to the players, not Extras");
+  const legacy = actor("party3", null, { "shadowdark-extras": { isParty: true, members: ["cy"] } });
+  assert.deepEqual(fundingActors({ party: legacy, resolve, players: [] }).map((a) => a.id), ["cy"], "no Enhancer roster: Extras' members still pay");
+});
+
 test("a deposit takes gold from the purse, breaking coin only when it must", () => {
   assert.deepEqual(planDeposit({ gp: 12, sp: 3, cp: 4 }, 5), { ok: true, coins: { gp: 7, sp: 3, cp: 4 }, error: null });
   assert.deepEqual(planDeposit({ gp: 4, sp: 90, cp: 0 }, 10).coins, { gp: 3, sp: 0, cp: 0 });   // silver goes first, then one gold coin

@@ -9,8 +9,9 @@ const hooks = new Map();
 const chat = [];                 // chat cards and roll messages, in order
 const formulas = [];             // every formula rolled
 const rolls = [];                // totals the next rolls give; 7 when none are queued
-globalThis.Hooks = { on: (name, fn) => hooks.set(name, fn) };
-globalThis.foundry = { utils: {}, applications: {} };
+let marks = 0;                   // the ids `foundry.utils.randomID` hands out for payment marks
+globalThis.Hooks = { on: (name, fn) => { const list = hooks.get(name) ?? []; list.push(fn); hooks.set(name, list); } };
+globalThis.foundry = { utils: { randomID: () => `mark-${++marks}` }, applications: {} };
 globalThis.ui = { notifications: { warn() {}, info() {}, error() {} } };
 globalThis.Roll = class {
   constructor(formula) { this.formula = formula; }
@@ -29,7 +30,9 @@ const { BASTION_TYPE } = await import("../scripts/bastion/bastion-art.mjs");
 const core = await import("../scripts/bastion/bastion-core.mjs");
 const { registerBastionIncome } = await import("../scripts/bastion/bastion-income.mjs");
 registerBastionIncome();
-const tick = hooks.get(`${MOD}.timeAdvanced`);
+/** Every session's clock handler, in registration order: a second session registers its own copy (#352 review). */
+const handlers = () => hooks.get(`${MOD}.timeAdvanced`) ?? [];
+const tick = (e) => { for (const fn of handlers()) fn(e); };
 const later = () => new Promise((resolve) => setImmediate(resolve));
 const settle = async () => { for (let i = 0; i < 30; i++) await later(); };
 
@@ -188,6 +191,58 @@ test("an update that rejects after it was saved counts as paid: the bastion is r
   assert.ok(chat.some((m) => m.roll === 12), "the roll is shown");
 });
 
+/** The bastion's writes are all applied in call order, then released together: two sessions over one store. */
+function heldBastion(name, state) {
+  const b = bastion(name, state);
+  const apply = (data) => {
+    for (const [path, value] of Object.entries(data)) {
+      if (!path.startsWith("system.")) continue;
+      const keys = path.split(".").slice(1);
+      let o = b.raw;
+      for (const k of keys.slice(0, -1)) o = o[k];
+      o[keys.at(-1)] = structuredClone(value);
+    }
+  };
+  let calls = 0; let release; const gate = new Promise((resolve) => (release = resolve));
+  b.update = (data) => { apply(data); if (++calls === 2) release(); return gate.then(() => b); };
+  return b;
+}
+
+test("two sessions that both see one month post one roll: the card follows the write that kept", async () => {
+  reset();
+  const second = await import("../scripts/bastion/bastion-income.mjs?session-two");
+  second.registerBastionIncome();
+  try {
+    rolls.push(23, 31);
+    const b = heldBastion("Hold", keep(["casino"]));
+    tick(feb1);
+    await settle();
+    const cards = chat.filter((m) => "roll" in m);
+    assert.equal(cards.length, 1, "one card, though both sessions rolled");
+    assert.equal(cards[0].roll, 31, "the kept write's roll, not the overwritten one");
+    assert.equal(b.raw.treasury, 131, "the treasury kept the last write");
+    assert.deepEqual(b.raw.incomeMonths, [keyOf(at(31))], "the month marked once");
+    assert.equal(b.raw.log.filter((e) => e.key === "SDE.bastion.log.income").length, 1, "one income line kept");
+    assert.ok(!chat.some((m) => m.whisper), "no gold to add by hand");
+  } finally {
+    handlers().pop();   // the second session's handler; the tests after stay single-session
+  }
+});
+
+test("a move longer than the settled window says what it skipped", async () => {
+  reset();
+  rolls.push(9);
+  const b = bastion("Hold", keep(["casino"]));
+  const day = (n) => at(30) + n * 86400;
+  tick({ from: day(0), to: day(400), crossed: { days: 400 } });
+  await settle();
+  const card = chat.find((m) => m.whisper && /catchUp/.test(m.content));
+  assert.ok(card, "the skipped days are said out loud");
+  assert.match(card.content, /&quot;days&quot;:34/);
+  assert.deepEqual(card.whisper, ["gm"]);
+  assert.ok(b.raw.incomeMonths.length > 0, "the settled year still pays its months");
+});
+
 test("an income of a month in the state is checked in the pure rules: owed once, a whole non-negative gold", () => {
   const s = keep(["casino"]);
   assert.equal(core.owesIncome(s, 5), true);
@@ -198,6 +253,8 @@ test("an income of a month in the state is checked in the pure rules: owed once,
   assert.equal(core.payIncome(s, 6, 1.5).error, "amount");
   assert.equal(core.payIncome(s, 6, -1).error, "amount");
   assert.equal(core.payIncome(keep(["stable"]), 5, 12).error, "none");
+  assert.equal(core.payIncome(s, 7, 4, "mark-7").state.log.at(-1).data.mark, "mark-7", "the payment's mark rides in the income log line");
+  assert.equal(core.payIncome(s, 7, 4).state.log.at(-1).data.mark, undefined, "an unmarked payment writes no mark");
   let many = s;
   for (let m = 1; m <= 30; m++) many = core.payIncome(many, m, 1).state;
   assert.equal(many.incomeMonths.length, 24, "the last two years are kept");

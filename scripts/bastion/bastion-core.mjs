@@ -159,12 +159,16 @@ export function removeTrophy(state, index) {
 /** Is this month's Casino income owed: a finished Casino in a standing bastion, and the month not yet paid? */
 export const owesIncome = (state, month) => effects(state).casino && !(state.incomeMonths ?? []).includes(month);
 
-/** Pay a month's Casino income, `gp` rolled, into the treasury, and mark the month paid. Never twice for one month. */
-export function payIncome(state, month, gp) {
+/**
+ * Pay a month's Casino income, `gp` rolled, into the treasury, and mark the month paid. Never twice for one month.
+ * `mark`: an opaque id for this payment, kept in the income log line in the same write, so a writer can tell from
+ * a read-back whether ITS write was the one that kept (a second session's write replaces it; #352 review).
+ */
+export function payIncome(state, month, gp, mark = null) {
   if (!owesIncome(state, month)) return { state, error: "none" };
   if (!Number.isInteger(gp) || gp < 0) return { state, error: "amount" };
   const next = { ...state, treasury: toInt(state.treasury) + gp, incomeMonths: [...new Set([...(state.incomeMonths ?? []), month])].sort((a, b) => a - b).slice(-KEEP_INCOME_MONTHS) };
-  next.log = log(next, "SDE.bastion.log.income", { gp });
+  next.log = log(next, "SDE.bastion.log.income", mark === null ? { gp } : { gp, mark });
   return { state: next, error: null };
 }
 

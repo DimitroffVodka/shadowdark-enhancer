@@ -22,12 +22,14 @@ export function isPartyActor(actor) {
 }
 
 /**
- * The people who can pay for a bastion: the linked party's members when Extras lists any,
- * otherwise every player character. `resolve(id)` turns a member id or UUID into an actor, or null.
+ * The people who can pay for a bastion: the linked party's members when it lists any — the Enhancer's own
+ * roster first (`flags.shadowdark-enhancer.partyData.members`, actor UUIDs; #351), then Extras' `members`
+ * (actor ids) — otherwise every player character. `resolve(id or uuid)` turns a member into an actor, or null.
  * Only an actor with a purse can pay.
  */
 export function fundingActors({ party, resolve, players }) {
-  const ids = party?.flags?.[EXTRAS_ID]?.members;
+  const roster = party?.flags?.[MODULE_ID]?.partyData?.members;
+  const ids = Array.isArray(roster) ? roster : party?.flags?.[EXTRAS_ID]?.members;
   const members = Array.isArray(ids) ? ids.map((id) => resolve(id)).filter((a) => a?.system?.coins) : [];
   return members.length ? members : players.filter((a) => a?.system?.coins);
 }

@@ -11,6 +11,7 @@
  */
 
 import { MODULE_ID } from "../shared/module-id.mjs";
+import { absDay } from "../time/time-core.mjs";
 import * as core from "./bastion-core.mjs";
 import { BastionDataModel } from "./bastion-data-model.mjs";
 import { BastionSheet } from "./bastion-sheet.mjs";
@@ -32,8 +33,13 @@ export function registerBastion() {
   CONFIG.Actor.typeIcons[BASTION_TYPE] = "fa-solid fa-chess-rook";
   registerBastionEntryPoints();
   registerBastionIncome();
-  // An open sheet follows the world clock: the Aviary's pigeon is ready again on a new day.
-  Hooks.on("updateWorldTime", () => { for (const app of foundry.applications.instances.values()) if (app instanceof BastionSheet) app.render(); });
+  // An open sheet follows the world clock: the Aviary's pigeon is ready again on a new day. The clock
+  // ticks every second under the system's real-time light tracking, so a sheet is redrawn only when the
+  // day it was rendered for has turned, as the crawl bar guards its weather badge.
+  Hooks.on("updateWorldTime", () => {
+    const day = absDay(game.time.calendar, game.time.worldTime);
+    for (const app of foundry.applications.instances.values()) if (app instanceof BastionSheet && app._shownDay !== day) app.render();
+  });
 
   // A new bastion carries its type's art, and one actor is one place: its token is linked.
   Hooks.on("preCreateActor", (doc, data) => {

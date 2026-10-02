@@ -23,7 +23,8 @@ it needs.
   recorded; the **Granary** (a warband garrisoned there costs 10 gp less a month) and the
   **Barracks** (it heals 1d6 more a day) are applied, and the **Casino** earns 2d20 gp into the
   treasury at each month start the world clock passes (one roll a month in chat, each month
-  paid once), and the **Library** gives the owning party +1 on Martial Training and Magical
+  paid once; a clock move longer than a year says what it skipped), and the **Library**
+  gives the owning party +1 on Martial Training and Magical
   Research downtime checks, and the **Trophy Room** gives them 1 XP for each notable trophy
   placed on the sheet (through Party XP), and the **Vault** holds up to 100 gear slots of items
   dropped on the sheet, and a mount stabled at a bastion with a **Stable** shows no starvation

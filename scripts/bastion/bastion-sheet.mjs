@@ -60,6 +60,8 @@ export class BastionSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   _view = "ext";
   _roofs = false;
   _card = null;
+  /** The world-clock day this sheet's context was built for; the clock hook redraws it only when a new day turns. */
+  _shownDay = null;
   /** The viewBox the GM zoomed or panned to, kept across redraws of the same plan. */
   _zoom = { key: "", viewBox: null };
 
@@ -104,7 +106,9 @@ export class BastionSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     context.vault = { shown: fx.vault || stored.length > 0, open: fx.vault, used: usedSlots(stored), max: VAULT_SLOTS,
       items: stored.map((i) => ({ id: i.id, name: i.name, img: i.img, quantity: i.system?.quantity ?? 1, slots: slotsOf(i) })).sort((a, b) => a.name.localeCompare(b.name)) };
     context.shops = openShops(fx).map((shop) => ({ id: shop.id, name: t(shop.name) }));
-    context.aviary = { open: fx.aviary, flown: state.pigeonDay === absDay(game.time.calendar, game.time.worldTime) };
+    const day = absDay(game.time.calendar, game.time.worldTime);
+    this._shownDay = day;
+    context.aviary = { open: fx.aviary, flown: state.pigeonDay === day };
     context.trophyRoom = fx.trophyRoom;
     context.trophies = state.trophies.map((name, index) => ({ name, index }));
     context.trophyXp = core.TROPHY_XP;
