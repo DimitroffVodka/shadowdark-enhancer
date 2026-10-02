@@ -11,6 +11,10 @@ it needs.
 
 ### Added
 
+- **Adventure map pins match the books' GM key.** Pins are now numbered black chips drawn
+  for the module (SVG, numerals traced from Montserrat Bold, the font the key uses), not the
+  generic book icon, so a map reads like the book's own. Pins you placed earlier take the
+  new look the next time you open the scene's Place locations window.
 - **Adventure map is one step.** Choose the map image that came with the book from your
   computer (it is uploaded to your world for you) and the module
   recognises the adventure from the file's name, imports its journal from your PDF if you

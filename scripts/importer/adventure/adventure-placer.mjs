@@ -14,7 +14,7 @@
  */
 
 import { MODULE_ID } from "../../shared/module-id.mjs";
-import { MAP_FLAG, entryPages, scenePins, placementRows, nextPending, noteData, setSkipped, placementGate, restoreSiteJournal, planBookPins } from "./adventure-scene.mjs";
+import { MAP_FLAG, entryPages, scenePins, placementRows, nextPending, noteData, setSkipped, placementGate, restoreSiteJournal, planBookPins, refreshPinArt } from "./adventure-scene.mjs";
 import { findSite } from "./adventure-manifest.mjs";
 import { stitchMapLabels, mapFits } from "./map-labels.mjs";
 import { layoutFor, layoutPoints, layoutFromPins, layoutSnippet } from "./adventure-layouts.mjs";
@@ -75,6 +75,7 @@ export class AdventurePlacer extends HandlebarsApplicationMixin(ApplicationV2) {
     if (!scene?.getFlag(MODULE_ID, MAP_FLAG)) { ui.notifications?.warn(t("SDE.adventure.notify.notAdventureScene")); return null; }
     if (canvas?.scene?.id !== scene.id) await scene.view();
     await restoreSiteJournal(scene);
+    await refreshPinArt(scene);
     const open = foundry.applications.instances?.get?.(ID);
     if (open) { open.disarm(); open.scene = scene; open.render(true); return open; }
     const app = new AdventurePlacer(scene);

@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { placementGate, sceneSize, placementRows, nextPending, noteData, sceneData, MAP_FLAG, PIN_FLAG, DEFAULT_GRID_SIZE } from "../scripts/importer/adventure/adventure-scene.mjs";
+import { pinIcon, pinSize, pinArtFixes, PIN_ICON, placementGate, sceneSize, placementRows, nextPending, noteData, sceneData, MAP_FLAG, PIN_FLAG, DEFAULT_GRID_SIZE } from "../scripts/importer/adventure/adventure-scene.mjs";
 import { planAdventureCommit, locationPagePayload, pageNum, ADVENTURE_FLAG } from "../scripts/importer/adventure/adventure-commit.mjs";
 
 // Invented data throughout.
@@ -48,11 +48,32 @@ test("nextPending: the next one after, wrapping to the first, null when none is 
   assert.equal(nextPending(placementRows(PAGES, [{ id: "a", num: 1 }, { id: "b", num: 2 }, { id: "c", num: 3 }], [])), null);
 });
 
-test("noteData: a numbered pin at the point, flagged with its number, sized from the grid", () => {
+test("noteData: the pin art for its number, no text of its own, sized from the grid, flagged with its number", () => {
   const n = noteData({ entryId: "E", pageId: "P", num: 12, point: { x: 10.6, y: 20.4 }, gridSize: 100 });
-  assert.deepEqual([n.x, n.y, n.text, n.iconSize], [11, 20, "12", 50]);
+  assert.deepEqual([n.x, n.y, n.text, n.iconSize], [11, 20, "", 90]);
+  assert.equal(n.texture.src, "modules/shadowdark-enhancer/icons/adventure-pins/pin-12.svg");
   assert.deepEqual(n.flags["shadowdark-enhancer"][PIN_FLAG], { num: 12 });
-  assert.equal(noteData({ entryId: "E", pageId: "P", num: 1, point: { x: 0, y: 0 }, gridSize: 20 }).iconSize, 24);
+  assert.equal(noteData({ entryId: "E", pageId: "P", num: 1, point: { x: 0, y: 0 }, gridSize: 20 }).iconSize, 32);
+});
+
+test("pinIcon: art for 1 to 99, the book icon beyond", () => {
+  assert.match(pinIcon(1), /pin-1\.svg$/);
+  assert.match(pinIcon(99), /pin-99\.svg$/);
+  assert.equal(pinIcon(100), PIN_ICON);
+  assert.equal(pinIcon(0), PIN_ICON);
+  assert.equal(pinIcon("x"), PIN_ICON);
+});
+
+test("pinArtFixes: old book-icon pins get the art; resized pins keep their size; current pins are left alone", () => {
+  const old = { id: "a", num: 4, src: "icons/svg/book.svg", text: "4", iconSize: 27 };        // grid 53: the old default was round(26.5) = 27
+  const resized = { id: "b", num: 5, src: "icons/svg/book.svg", text: "5", iconSize: 60 };
+  const current = { id: "c", num: 6, src: pinIcon(6), text: "", iconSize: 37 };
+  const fixes = pinArtFixes([old, resized, current], 53);
+  assert.deepEqual(fixes, [
+    { _id: "a", text: "", "texture.src": pinIcon(4), iconSize: pinSize(53) },
+    { _id: "b", text: "", "texture.src": pinIcon(5) },
+  ]);
+  assert.deepEqual(pinArtFixes([current], 53), []);
 });
 
 test("planAdventureCommit: creates, updates by number, reports a collision once", () => {

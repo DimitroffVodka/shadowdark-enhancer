@@ -321,7 +321,9 @@ name does not say which adventure it is, choose it from the list. Choosing an ad
 that already has a scene picks it up where you left it. A **Place locations** window
 opens over the scene for anything left to place.
 
-The pins are placed **automatically** as soon as the scene is built, with no
+The pins are numbered chips drawn in the style of the books' GM key (black with a white
+number); hovering one shows the room's name, and clicking it opens the room's journal page.
+They are placed **automatically** as soon as the scene is built, with no
 clicking, for every adventure listed above. The module ships where each room number
 sits on its map, as positions only (no map and no book text). Check them against your
 map and nudge any that sit off a room (placing a pin again moves it). The map image has

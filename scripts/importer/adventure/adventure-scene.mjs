@@ -25,8 +25,21 @@ export const PIN_FLAG = "adventurePin";
 /** The grid when a site has no printed size (a city district): 100 px squares. */
 export const DEFAULT_GRID_SIZE = 100;
 
-/** The Note icon: Foundry's own book. */
+/** The Note icon when there is no art for a number: Foundry's own book. */
 export const PIN_ICON = "icons/svg/book.svg";
+
+/** Pin art ships for 1 to this number (tools/adventure-pins/make-pins.py). */
+export const PIN_ART_MAX = 99;
+
+/**
+ * The pin for one location: a black chip with its number in white, drawn in the
+ * style of the books' GM key. The number is in the art, so the Note carries no text.
+ */
+export const pinIcon = (num) =>
+  (Number.isInteger(num) && num >= 1 && num <= PIN_ART_MAX) ? `modules/${MODULE_ID}/icons/adventure-pins/pin-${num}.svg` : PIN_ICON;
+
+/** The size a pin is drawn at: a chip you can read the number on, bigger on a bigger grid. */
+export const pinSize = (gridSize = DEFAULT_GRID_SIZE) => Math.max(32, Math.round(gridSize * 0.9));
 
 const t = (key, data) => {
   const i18n = globalThis.game?.i18n;
@@ -90,10 +103,9 @@ export function noteData({ entryId, pageId, num, point, gridSize = DEFAULT_GRID_
   return {
     entryId, pageId,
     x: Math.round(point.x), y: Math.round(point.y),
-    text: String(num),
-    iconSize: Math.max(24, Math.round(gridSize * 0.5)),
-    fontSize: Math.max(24, Math.round(gridSize * 0.4)),
-    texture: { src: PIN_ICON },
+    text: "",
+    iconSize: pinSize(gridSize),
+    texture: { src: pinIcon(num) },
     flags: { [MODULE_ID]: { [PIN_FLAG]: { num } } },
   };
 }
@@ -238,7 +250,36 @@ export const entryPages = (journal) =>
 
 /** The pins on a scene, as placementRows takes them. */
 export const scenePins = (scene) =>
-  scene.notes.contents.map((n) => ({ id: n.id, num: n.getFlag(MODULE_ID, PIN_FLAG)?.num, x: n.x, y: n.y })).filter((n) => Number.isInteger(n.num));
+  scene.notes.contents.map((n) => ({
+    id: n.id, num: n.getFlag(MODULE_ID, PIN_FLAG)?.num, x: n.x, y: n.y, src: n.texture?.src ?? "", text: n.text ?? "", iconSize: n.iconSize,
+  })).filter((n) => Number.isInteger(n.num));
+
+/**
+ * Pure: the updates that bring pins placed before the pin art existed (the generic
+ * book icon with the number as its label) up to the art. A size is changed only when it is
+ * still the old default, so a pin the GM resized by hand keeps its size.
+ * @param {Array<{id:string, num:number, src:string, text:string, iconSize:number}>} pins
+ * @param {number} gridSize
+ */
+export function pinArtFixes(pins, gridSize = DEFAULT_GRID_SIZE) {
+  const oldSize = Math.max(24, Math.round(gridSize * 0.5));
+  const fixes = [];
+  for (const p of pins) {
+    const src = pinIcon(p.num);
+    if (p.src === src && !p.text) continue;
+    const fix = { _id: p.id, text: "", "texture.src": src };
+    if (p.iconSize === oldSize) fix.iconSize = pinSize(gridSize);
+    fixes.push(fix);
+  }
+  return fixes;
+}
+
+/** Bring a scene's pins up to the current pin art. Only this module's own pins (by flag) are touched. */
+export async function refreshPinArt(scene) {
+  const fixes = pinArtFixes(scenePins(scene), scene.grid?.size);
+  if (fixes.length) await scene.updateEmbeddedDocuments("Note", fixes);
+  return fixes.length;
+}
 
 /** Mark a location skipped (or not) on its scene. Written whole, never merged. */
 export async function setSkipped(scene, num, skip) {
