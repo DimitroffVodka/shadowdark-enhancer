@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { pinIcon, pinLabelSize, pinArtFixes, PIN_ICON, placementGate, sceneSize, placementRows, nextPending, noteData, sceneData, MAP_FLAG, PIN_FLAG, DEFAULT_GRID_SIZE } from "../scripts/importer/adventure/adventure-scene.mjs";
+import { pinIcon, pinLabelSize, PIN_LABEL_COLOR, pinArtFixes, PIN_ICON, placementGate, sceneSize, placementRows, nextPending, noteData, sceneData, MAP_FLAG, PIN_FLAG, DEFAULT_GRID_SIZE } from "../scripts/importer/adventure/adventure-scene.mjs";
 import { planAdventureCommit, locationPagePayload, pageNum, ADVENTURE_FLAG } from "../scripts/importer/adventure/adventure-commit.mjs";
 
 // Invented data throughout.
@@ -69,6 +69,14 @@ test("pinLabelSize: half the chip, within Foundry's 8 to 128 and never tiny", ()
   assert.equal(pinLabelSize(100), 45);                 // chip 90
   assert.equal(pinLabelSize(300), 128);                // chip 270 -> capped at Foundry's maximum
   assert.equal(noteData({ entryId: "E", pageId: "P", num: 3, point: { x: 0, y: 0 }, gridSize: 100 }).fontSize, 45);
+});
+
+test("the label is black, and pinArtFixes turns Foundry's default white black but keeps a colour the GM chose", () => {
+  assert.equal(noteData({ entryId: "E", pageId: "P", num: 3, point: { x: 0, y: 0 } }).textColor, PIN_LABEL_COLOR);
+  const base = { id: "a", num: 3, src: pinIcon(3), text: "", iconSize: 48, fontSize: 24 };
+  assert.deepEqual(pinArtFixes([{ ...base, textColor: "#ffffff" }], 53), [{ _id: "a", text: "", "texture.src": pinIcon(3), textColor: PIN_LABEL_COLOR }]);
+  assert.deepEqual(pinArtFixes([{ ...base, textColor: "#000000" }], 53), []);
+  assert.deepEqual(pinArtFixes([{ ...base, textColor: "#ff0000" }], 53), []);   // chosen by hand: kept
 });
 
 test("pinArtFixes: old pins get the art; hand-set sizes are kept; current pins are left alone", () => {
