@@ -128,7 +128,7 @@ const STYLESHEET_REV = "86a624ae5a5a";
 // stale); module.json carries the same hash and is fetched fresh at runtime. A
 // mismatch is a stale cache by construction — it cannot be anything else. Both
 // stamps are written by `npm run inventory` and gated by `inventory:check`.
-const BUILD_REV = "d79288cf3eb0";
+const BUILD_REV = "67d52f0cfa5d";
 
 /**
  * Tell the user when their browser is running an old build of this module, and

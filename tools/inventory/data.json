@@ -461,7 +461,8 @@
       "scripts/bastion/bastion-members.mjs",
       "scripts/bastion/bastion-trophies.mjs",
       "scripts/bastion/bastion-vault-core.mjs",
-      "scripts/bastion/bastion-vault.mjs"
+      "scripts/bastion/bastion-vault.mjs",
+      "scripts/bastion/bastion-aviary.mjs"
     ]
   },
   "descriptions": {
@@ -830,6 +831,7 @@
     "scripts/bastion/bastion-members.mjs": "The characters a bastion's party covers: the linked party's members when Extras lists any, otherwise every player character; no link, no one.",
     "scripts/bastion/bastion-trophies.mjs": "The Trophy Room's XP: a trophy placed is written first, then 1 XP goes to each party member through Party XP; a refused award takes the trophy back out.",
     "scripts/bastion/bastion-vault-core.mjs": "The Vault's slot rules (pure): 100 gear slots, a stack's slots as on a character, which items may be stored.",
-    "scripts/bastion/bastion-vault.mjs": "Moving gear into and out of the Vault: a copy first and a delete second, each read back, a copy whose original stayed is taken out again."
+    "scripts/bastion/bastion-vault.mjs": "Moving gear into and out of the Vault: a copy first and a delete second, each read back, a copy whose original stayed is taken out again.",
+    "scripts/bastion/bastion-aviary.mjs": "The Aviary's pigeon: one message a world-clock day, the day marked on the bastion before the message is posted and put back if it can't be."
   }
 }

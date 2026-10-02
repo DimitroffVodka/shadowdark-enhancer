@@ -35,6 +35,8 @@ export class BastionDataModel extends foundry.abstract.TypeDataModel {
       incomeMonths: new fields.ArrayField(new fields.NumberField({ required: true, nullable: false, integer: true }), { initial: [] }),
       // The names of the trophies in the Trophy Room, oldest first.
       trophies: new fields.ArrayField(new fields.StringField({ required: true, blank: false }), { initial: [] }),
+      // The world-clock day the Aviary's pigeon last flew (one message a day), or null.
+      pigeonDay: new fields.NumberField({ required: true, nullable: true, integer: true, initial: null }),
       // Newest last. `key` is an i18n key and `data` fills it; an array, never a keyed map.
       log: new fields.ArrayField(new fields.SchemaField({
         week: int(0, { min: 0 }),

@@ -15,8 +15,9 @@ import { stateOf } from "./bastion-core.mjs";
 import { renderPlan } from "./bastion-plan.mjs";
 import { isPartyActor } from "./bastion-funding.mjs";
 import { ensureSprites } from "./bastion-art.mjs";
+import { absDay } from "../time/time-core.mjs";
 import { t, format, WHY, logText } from "./bastion-text.mjs";
-import { writeState, fundBastion, trophyBastion, takeOutBastion, storeBastion } from "./bastion-writes.mjs";
+import { writeState, fundBastion, trophyBastion, takeOutBastion, storeBastion, pigeonBastion } from "./bastion-writes.mjs";
 import { slotsOf, usedSlots, VAULT_SLOTS, VAULT_TYPES } from "./bastion-vault-core.mjs";
 
 const { HandlebarsApplicationMixin } = foundry.applications.api;
@@ -42,6 +43,7 @@ export class BastionSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       placeTrophy: BastionSheet.prototype._onPlaceTrophy,
       removeTrophy: BastionSheet.prototype._onRemoveTrophy,
       takeOut: BastionSheet.prototype._onTakeOut,
+      sendPigeon: BastionSheet.prototype._onSendPigeon,
       exportSvg: BastionSheet.prototype._onExportSvg,
       exportPng: BastionSheet.prototype._onExportPng,
     },
@@ -98,6 +100,7 @@ export class BastionSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const stored = this.document.items.filter((i) => VAULT_TYPES.includes(i.type));
     context.vault = { shown: fx.vault || stored.length > 0, open: fx.vault, used: usedSlots(stored), max: VAULT_SLOTS,
       items: stored.map((i) => ({ id: i.id, name: i.name, img: i.img, quantity: i.system?.quantity ?? 1, slots: slotsOf(i) })).sort((a, b) => a.name.localeCompare(b.name)) };
+    context.aviary = { open: fx.aviary, flown: state.pigeonDay === absDay(game.time.calendar, game.time.worldTime) };
     context.trophyRoom = fx.trophyRoom;
     context.trophies = state.trophies.map((name, index) => ({ name, index }));
     context.trophyXp = core.TROPHY_XP;
@@ -191,6 +194,10 @@ export class BastionSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
   _onPlaceTrophy() { return trophyBastion(this.document); }
   _onRemoveTrophy(_event, target) { return this._apply((s) => core.removeTrophy(s, Number(target.dataset.index))); }
+
+  // ── The Aviary (bastion-aviary.mjs) ────────────────────────────────────────
+
+  _onSendPigeon() { return pigeonBastion(this.document); }
 
   // ── The Vault (bastion-vault.mjs): items dropped on the sheet go in, a button takes them out ──
 

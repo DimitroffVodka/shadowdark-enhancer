@@ -16,6 +16,7 @@
  *   repair      { hp, weeksLeft }  hp being mended, 0 weeksLeft when none
  *   incomeMonths  the calendar months whose Casino income is paid (month keys, the last few)
  *   trophies    the names of the trophies placed in the Trophy Room, oldest first, capped
+ *   pigeonDay   the world-clock day the Aviary's pigeon last flew, or null
  *   log         [{ week, key, data }]  newest last, capped
  *
  * Every function takes a state and returns a NEW one with the log lines it
@@ -66,7 +67,7 @@ const toInt = (n, fallback = 0) => (Number.isFinite(Number(n)) ? Math.trunc(Numb
 /** A new bastion of a type: unbuilt, full HP, nothing in the treasury. */
 export function newBastion(typeId = "house") {
   const type = typeOf(typeId) ?? BASTION_TYPES[0];
-  return { type: type.id, weeksLeft: type.weeks, hp: { value: type.hp }, treasury: 0, week: 0, upgrades: [], repair: { hp: 0, weeksLeft: 0 }, incomeMonths: [], trophies: [], log: [] };
+  return { type: type.id, weeksLeft: type.weeks, hp: { value: type.hp }, treasury: 0, week: 0, upgrades: [], repair: { hp: 0, weeksLeft: 0 }, incomeMonths: [], trophies: [], pigeonDay: null, log: [] };
 }
 
 /** The numbers a type fixes, with the bastion's current hit points. */
@@ -119,11 +120,12 @@ const TROPHY_NAME_MAX = 60;
  * library: the party's members get LIBRARY_BONUS on learning downtime checks.
  * trophyRoom: each notable trophy placed gives the party's members TROPHY_XP.
  * vault: the bastion can hold items, up to VAULT_SLOTS gear slots (bastion-vault-core.mjs).
+ * aviary: one pigeon message can be sent a day.
  * stable: mounts stabled here (a mount's `bastion`) need no grazing or rations.
  */
 export function effects(state) {
   const built = new Set(stats(state).standing ? builtUpgrades(state) : []);
-  return { granary: built.has("granary"), barracks: built.has("barracks"), casino: built.has("casino"), library: built.has("library"), trophyRoom: built.has("trophy-room"), vault: built.has("vault"), stable: built.has("stable") };
+  return { granary: built.has("granary"), barracks: built.has("barracks"), casino: built.has("casino"), library: built.has("library"), trophyRoom: built.has("trophy-room"), vault: built.has("vault"), stable: built.has("stable"), aviary: built.has("aviary") };
 }
 
 /** Place a notable trophy in a finished Trophy Room: its name is kept (the last KEEP_TROPHIES) and logged. `error`: "trophyRoom" | "name". */
@@ -133,6 +135,15 @@ export function placeTrophy(state, name) {
   if (!clean) return { state, error: "name" };
   const next = { ...state, trophies: [...(state.trophies ?? []), clean].slice(-KEEP_TROPHIES) };
   next.log = log(next, "SDE.bastion.log.trophy", { name: clean });
+  return { state: next, error: null };
+}
+
+/** Send the day's pigeon from a finished Aviary: one a world-clock `day`. `error`: "aviary" | "flown". */
+export function sendPigeon(state, day) {
+  if (!effects(state).aviary) return { state, error: "aviary" };
+  if (state.pigeonDay === day) return { state, error: "flown" };
+  const next = { ...state, pigeonDay: day };
+  next.log = log(next, "SDE.bastion.log.pigeon");
   return { state: next, error: null };
 }
 
@@ -328,6 +339,7 @@ export function stateOf(actor) {
     repair: { hp: s.repair?.hp ?? 0, weeksLeft: s.repair?.weeksLeft ?? 0 },
     incomeMonths: (s.incomeMonths ?? []).filter(Number.isFinite),
     trophies: (s.trophies ?? []).filter((n) => typeof n === "string"),
+    pigeonDay: Number.isInteger(s.pigeonDay) ? s.pigeonDay : null,
     log: (s.log ?? []).map((e) => ({ week: e.week, key: e.key, data: { ...e.data } })),
   };
 }
@@ -345,6 +357,7 @@ export function updateOf(state) {
     "system.repair.weeksLeft": state.repair.weeksLeft,
     "system.incomeMonths": state.incomeMonths,
     "system.trophies": state.trophies,
+    "system.pigeonDay": state.pigeonDay,
     "system.log": state.log,
   };
 }

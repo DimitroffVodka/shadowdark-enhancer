@@ -14,6 +14,8 @@ import { bastionArt } from "./bastion-art.mjs";
 import { membersOf } from "./bastion-members.mjs";
 import { placeTrophy } from "./bastion-trophies.mjs";
 import { storeItem, takeOut } from "./bastion-vault.mjs";
+import { sendPigeon } from "./bastion-aviary.mjs";
+import { absDay } from "../time/time-core.mjs";
 import { t, format, WHY, logText } from "./bastion-text.mjs";
 
 const samePurse = (a, b) => a.gp === b.gp && a.sp === b.sp && a.cp === b.cp;
@@ -70,6 +72,36 @@ export async function trophyBastion(actor) {
   else if (done.ok) ui.notifications?.warn(t("SDE.bastion.trophy.xpUnsure"));
   else if (done.error === "nobody") ui.notifications?.warn(t("SDE.bastion.trophy.nobody"));
   else if (done.error !== "write") ui.notifications?.warn(t(WHY[done.error] ?? WHY.unknown));
+  return done.ok;
+}
+
+/** Ask who the pigeon is for and what it says, then send it (one a world-clock day). */
+export async function pigeonBastion(actor) {
+  if (!game.user.isGM) return false;
+  const players = game.users.filter((u) => !u.isGM && u.active);
+  const options = [`<option value="">${esc(t("SDE.bastion.pigeon.everyone"))}</option>`, ...players.map((u) => `<option value="${esc(u.id)}">${esc(u.name)}</option>`)].join("");
+  const pick = await foundry.applications.api.DialogV2.prompt({
+    window: { title: "SDE.bastion.pigeon.title" },
+    content: `<div class="form-group"><label>${esc(t("SDE.bastion.pigeon.to"))}</label><div class="form-fields"><select name="to">${options}</select></div></div>
+      <div class="form-group"><label>${esc(t("SDE.bastion.pigeon.text"))}</label><div class="form-fields"><textarea name="text" rows="4" autofocus></textarea></div></div>`,
+    ok: { label: "SDE.bastion.pigeon.send", callback: (_event, button) => new foundry.applications.ux.FormDataExtended(button.form).object },
+    rejectClose: false,
+  });
+  if (!pick) return false;
+  const text = String(pick.text ?? "").trim();
+  const day = absDay(game.time.calendar, game.time.worldTime);
+  const done = await sendPigeon(actor, day, text, {
+    write: writeState,
+    post: () => ChatMessage.create({
+      speaker: { alias: actor.name },
+      content: `<p><i class="fa-solid fa-dove"></i> <strong>${esc(format("SDE.bastion.pigeon.from", { bastion: actor.name }))}</strong></p><p>${esc(text).replace(/\n/g, "<br>")}</p>`,
+      ...(pick.to ? { whisper: [...new Set([pick.to, ...ChatMessage.getWhisperRecipients("GM").map((u) => u.id)])] } : {}),
+    }),
+  });
+  if (done.ok) ui.notifications?.info(t("SDE.bastion.pigeon.sent"));
+  else if (done.error === "text") ui.notifications?.warn(t("SDE.bastion.pigeon.empty"));
+  else if (done.error === "write") ui.notifications?.warn(t("SDE.bastion.pigeon.notSent"));
+  else ui.notifications?.warn(t(WHY[done.error] ?? WHY.unknown));
   return done.ok;
 }
 

@@ -16,6 +16,8 @@ export const WHY = {
   amount: "SDE.bastion.why.amount",
   built: "SDE.bastion.why.built",
   trophyRoom: "SDE.bastion.why.trophyRoom",
+  aviary: "SDE.bastion.why.aviary",
+  flown: "SDE.bastion.why.flown",
   name: "SDE.bastion.why.name",
 };
 

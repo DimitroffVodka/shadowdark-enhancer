@@ -52,6 +52,11 @@
           <button type="button" data-action="withdraw"><i class="fa-solid fa-hand-holding-dollar"></i> {{localize "SDE.bastion.fund.withdraw"}}</button>
         </div>
         {{/if}}
+        {{#if aviary.open}}
+        <h3>{{localize "SDE.bastion.pigeon.heading"}}</h3>
+        <p class="note">{{#if aviary.flown}}{{localize "SDE.bastion.pigeon.flown"}}{{else}}{{localize "SDE.bastion.pigeon.ready"}}{{/if}}</p>
+        {{#if editable}}<div class="sde-bast-buttons"><button type="button" data-action="sendPigeon" {{#if aviary.flown}}disabled{{/if}}><i class="fa-solid fa-dove"></i> {{localize "SDE.bastion.pigeon.send"}}</button></div>{{/if}}
+        {{/if}}
         {{#if trophyRoom}}
         <h3>{{localize "SDE.bastion.trophy.heading"}}</h3>
         <ul class="sde-bast-trophies">
