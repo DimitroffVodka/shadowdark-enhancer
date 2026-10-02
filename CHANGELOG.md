@@ -11,7 +11,6 @@ it needs.
 
 ### Added
 
-<<<<<<< HEAD
 - **The Hideous Halls, the Sea Wolf King's caves and the Library of Leng place their own pins.**
   The module now ships where each of their room numbers sits on the map (positions
   only, as fractions of the map, so any resolution fits). Adventure map places every
@@ -21,14 +20,12 @@ it needs.
   button turns a map you have placed into data the module can ship, so each one only
   ever needs placing once. The map image has to be the same shape as the map the
   positions came from; if it is more than 3% off, nothing is placed and you are told why.
-=======
 - **The six Western Reaches Mini Adventures import as journals.** Tools → **Adventures**
   now also reads House of Rogues, Grotto of the Golden Swan, Forge of the Metallic
   Sisters, Fallen Keep of the Emerald Knight, Burial Mound of Kaghan and Chapel of the
   Plague Priestesses from your own PDFs (each is its own two-page book): one journal
   each with a page per numbered room, 54 rooms in all, "Area N" references linked. Their
   maps are placed with Adventure map by clicking, as the other adventures are.
->>>>>>> origin/feat/wr-mini-adventures
 - **The Cursed Scrolls' adventures import, and their keyed locations go on the map.**
   Importer Hub → Tools → **Adventures** reads the numbered locations of every
   Cursed Scroll adventure out of your own PDF (Cursed Scrolls 1 to 6: the Hideous
