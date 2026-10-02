@@ -238,9 +238,9 @@ function drawInterior({ type, slots: capacity, upgrades, built, name, label, roo
     out.push(o.join(""));
     if (fl.name) captions.push(`<text x="${ox + W / 2}" y="${oy + H + (moat && fi === 0 ? 260 : 120)}" text-anchor="middle" font-size="64" font-family="Georgia,serif" fill="#2a221b" stroke="#f4eee3" stroke-width="10" paint-order="stroke">${esc(t(fl.name))}</text>`);
   });
-  const top = -pad, vw = totalW + 2 * pad, vh = totalH + 2 * pad;
+  const lift = 90, top = -pad - lift, vw = totalW + 2 * pad, vh = totalH + 2 * pad + lift;   // the name sits clear of the frame
   const ground = `<rect x="${-pad - 50}" y="${top - 50}" width="${vw + 100}" height="${vh + 100}" fill="${GREEN}"/>`;
-  const title = `<text x="${totalW / 2}" y="${top + 60}" text-anchor="middle" font-size="84" font-family="Georgia,serif" fill="#2a221b" stroke="#f4eee3" stroke-width="14" paint-order="stroke">${esc(name)}</text>`;
+  const title = `<text x="${totalW / 2}" y="${top + 150}" text-anchor="middle" font-size="84" font-family="Georgia,serif" fill="#2a221b" stroke="#f4eee3" stroke-width="14" paint-order="stroke">${esc(name)}</text>`;
   return { markup: ground + out.join("") + captions.join("") + title, viewBox: `${-pad} ${top} ${vw} ${vh}`, built };
 }
 

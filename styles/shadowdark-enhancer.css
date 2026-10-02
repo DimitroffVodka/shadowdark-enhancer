@@ -11865,3 +11865,16 @@ button.sde-hud-day:hover { border-color: var(--sd-frame); }
 .sde-bast-log { margin: 0; padding-left: 18px; font-size: 13px; }
 .sde-bast-log li { margin: 3px 0; }
 .sde-bast-log .week { font-weight: bold; margin-right: 4px; }
+
+/* A field the viewer can't edit reads as text, not as a box to type in. */
+.sde-bastion-sheet input[disabled],
+.sde-bastion-sheet select[disabled],
+.sde-bastion-sheet textarea[disabled],
+.sde-bastion-sheet .sde-bast-stat input[disabled],
+.sde-bastion-sheet .sde-bast-field select[disabled] {
+  background: transparent;
+  border-color: transparent;
+  opacity: 1;
+  -webkit-appearance: none;
+  appearance: none;
+}
