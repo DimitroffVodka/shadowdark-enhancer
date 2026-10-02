@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { disclosure, importFog, revealCells, revealRadius, arrivalDue, overlapAllowed } from "../scripts/hex-map/hex-fog-core.mjs";
-import { revealParty } from "../scripts/hex-map/hex-fog.mjs";
+import { revealParty, refreshHexFog } from "../scripts/hex-map/hex-fog.mjs";
 import { cacheHexJournal } from "../scripts/hex-map/hex-records.mjs";
 const grid = { getAdjacentOffsets: ({ i, j }) => [{ i: i - 1, j }, { i: i + 1, j }], getDirectPath: ([a, b]) => Array.from({ length: Math.abs(b.i - a.i) + 1 }, (_, n) => ({ i: a.i + Math.sign(b.i - a.i) * n, j: a.j })) };
 test("one disclosure rule separates terrain, keyed locations and valid exceptions", () => {
@@ -80,6 +80,37 @@ test("a first-entry arrival saves once, before its chat card", async () => {
   } finally {
     Math.random = saved.random;
     for (const [key, value] of [["game", saved.game], ["canvas", saved.canvas], ["CONST", saved.CONST], ["_replace", saved.replace], ["fromUuid", saved.fromUuid], ["RollTable", saved.RollTable]]) {
+      if (value === undefined) delete globalThis[key]; else globalThis[key] = value;
+    }
+  }
+});
+test("a fog refresh reads the store once per pass, not once per hex", () => {
+  const MOD = "shadowdark-enhancer";
+  let flagReads = 0, drawn = 0;
+  const flagsValue = { version: 1, sceneUuid: "Scene.s3", cells: { "0_0": { discovery: { revealed: true } }, "1_1": { discovery: { revealed: true } } } };
+  const journal = { id: "j3", ownership: { default: 0 }, update: async () => {} };
+  const journalFlags = { [MOD]: { hexRecords: flagsValue } };
+  Object.defineProperty(journal, "flags", { get() { flagReads += 1; return journalFlags; } });
+  cacheHexJournal(journal);
+  const scene = { id: "s3", uuid: "Scene.s3", flags: { [MOD]: { hexFog: { enabled: true }, hexRecords: { adopted: true } } },
+    getFlag: (mod, key) => scene.flags[mod]?.[key],
+    grid: { isHexagonal: true, sizeX: 100, sizeY: 100, getOffset: point => ({ i: Math.floor(point.y / 100), j: Math.floor(point.x / 100) }),
+      getCenterPoint: offset => ({ x: offset.j * 100 + 50, y: offset.i * 100 + 50 }), getVertices: () => [{ x: 0, y: 0 }, { x: 100, y: 0 }, { x: 0, y: 100 }] },
+    dimensions: { sceneRect: { x: 0, y: 0, width: 500, height: 500, contains: (x, y) => x >= 0 && y >= 0 && x < 500 && y < 500 } },
+    notes: { contents: [] } };
+  class GraphicsStub { beginFill() {} drawPolygon() { drawn += 1; return this; } endFill() {} destroy() {} }
+  const saved = { game: globalThis.game, canvas: globalThis.canvas, PIXI: globalThis.PIXI, replace: globalThis._replace };
+  globalThis._replace = value => value;
+  globalThis.PIXI = { Graphics: GraphicsStub };
+  globalThis.game = { user: { id: "gm", isGM: true }, actors: { contents: [], get: () => null }, journal: { contents: [] }, packs: { get: () => null },
+    modules: { get: () => undefined }, settings: { get: () => false }, i18n: { localize: k => k, format: k => k } };
+  globalThis.canvas = { scene, ready: true, interface: { addChildAt() {} }, tokens: { placeables: [] }, notes: { placeables: [] } };
+  try {
+    refreshHexFog();
+    assert.ok(drawn > 1, "undisclosed cells draw fog");
+    assert.ok(flagReads <= 3, `the store is read once per refresh, not once per cell (${flagReads} reads)`);
+  } finally {
+    for (const [key, value] of [["game", saved.game], ["canvas", saved.canvas], ["PIXI", saved.PIXI], ["_replace", saved.replace]]) {
       if (value === undefined) delete globalThis[key]; else globalThis[key] = value;
     }
   }

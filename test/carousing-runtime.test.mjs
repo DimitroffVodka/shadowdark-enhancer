@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 const M = "shadowdark-enhancer";
 globalThis.foundry = { applications: { api: { ApplicationV2: class {}, HandlebarsApplicationMixin: base => base } }, utils: { randomID: () => "nativeNight" } };
 globalThis._replace = v => v;
-const { handleCarousing, carousingOf } = await import("../scripts/carousing/carousing.mjs");
+const { handleCarousing, carousingOf, carousingTables, registerCarousing } = await import("../scripts/carousing/carousing.mjs");
 const { PartyXP } = await import("../scripts/party-xp/party-xp.mjs");
 const { Renown } = await import("../scripts/renown/renown.mjs");
 const { SessionRecap } = await import("../scripts/session-recap/session-recap.mjs");
@@ -13,7 +13,7 @@ function doc(id, type, system = {}) {
   return a;
 }
 function fixture() {
-  const gm = { id: "gm", isGM: true, name: "GM" }, a = doc("a", "Player", { coins: { gp: 30 }, level: { xp: 0 }, renown: 0, luck: { available: false } }), b = doc("b", "Player", { coins: { gp: 0 }, level: { xp: 0 }, renown: 0, luck: { available: false } }), party = doc("party", "NPC", { coins: { gp: 500 } });
+  const gm = { id: "gm", isGM: true, name: "GM" }, a = doc("a", "Player", { coins: { gp: 30 }, level: { xp: 0 }, renown: 0, luck: { available: false }, isPC: true }), b = doc("b", "Player", { coins: { gp: 0 }, level: { xp: 0 }, renown: 0, luck: { available: false }, isPC: true }), party = doc("party", "NPC", { coins: { gp: 500 } });
   const actors = [party,a,b]; party.flags[M] = { ...party.flags[M], party: true, partyData: { version: 1, members: [a.uuid,b.uuid] } };
   const tables = [{ uuid: "RollTable.event", results: { contents: [{ id: "tier", description: "10 gp | Test outing | +0" }] } }, { uuid: "RollTable.outcome", results: { contents: [{ range: [1,8], description: "Synthetic result | Gain 2 XP and a luck token and +1 Renown" }] } }];
   let rolls = 0, active = false;
@@ -81,4 +81,37 @@ test("award helpers atomically mark XP/renown with actor effects", async () => {
   const f = fixture(); await PartyXP.award(3,{ actorIds:[f.a.id],carousingId:"direct" }); await PartyXP.award(3,{ actorIds:[f.a.id],carousingId:"direct" });
   await Renown.award({ actor:f.a,delta:2,carousingId:"direct" }); await Renown.award({ actor:f.a,delta:2,carousingId:"direct" });
   assert.equal(f.a.system.level.xp,3); assert.equal(f.a.system.renown,2); assert.equal(f.a.flags[M].carousingProgress.direct.xp,true); assert.equal(f.a.flags[M].carousingProgress.direct.renown,true);
+});
+test("reads share one state copy and the table sweep is memoized until a table changes", async () => {
+  const f = fixture();
+  assert.ok((await f.call("begin")).ok);
+  assert.equal(carousingOf(f.party), carousingOf(f.party), "an untouched store serves the same copy");
+  const before = carousingOf(f.party);
+  await f.call("cancel");
+  assert.notEqual(carousingOf(f.party), before, "a write retires the memo");
+  assert.equal(carousingOf(f.party).current, null);
+  const hooks = new Map(); globalThis.Hooks = { on: (name, fn) => hooks.set(name, fn), callAll() {} };
+  globalThis.CONFIG = { queries: {} };
+  registerCarousing();
+  let indexes = 0;
+  globalThis.game.packs = [{ documentName: "RollTable", collection: "world.pack", metadata: { label: "Pack" }, getIndex: async () => { indexes += 1; return [{ _id: "t1", name: "Event", flags: { [M]: { manifestId: "core-carousing-event" } } }]; } }];
+  hooks.get("updateRollTable")();
+  const one = await carousingTables(); const two = await carousingTables();
+  assert.equal(indexes, 1, "the sweep runs once, not once per render");
+  assert.equal(one, two);
+  hooks.get("updateRollTable")();
+  await carousingTables();
+  assert.equal(indexes, 2, "a table change refreshes the sweep");
+});
+test("a total-wealth loss stays a visible GM action, never an automatic deduction", async () => {
+  const f = fixture();
+  const original = globalThis.fromUuid;
+  globalThis.fromUuid = async uuid => uuid === "RollTable.outcome"
+    ? { results: { contents: [{ range: [1, 8], description: "Lose 5% of your total wealth and +1 Renown" }] } }
+    : original(uuid);
+  await setup(f);
+  assert.equal((await f.call("start")).ok, true);
+  assert.equal(f.a.system.coins.gp, 20, "only the Tier cost is charged; the percentage loss is never deducted");
+  assert.equal(f.a.system.renown, 1, "the explicit renown delta still applies");
+  assert.equal(carousingOf(f.party).current.results[f.a.id].description, "Lose 5% of your total wealth and +1 Renown");
 });

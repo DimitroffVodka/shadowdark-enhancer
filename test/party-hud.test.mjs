@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { isParty } from "../scripts/party/party.mjs";
+import { isParty, Party } from "../scripts/party/party.mjs";
 import { registerPartyHUD } from "../scripts/party/party-hud.mjs";
 import { executeMovement, registerPartyMovement } from "../scripts/party/party-movement.mjs";
 import { registerPartyLight } from "../scripts/party/party-light.mjs";
@@ -222,4 +222,67 @@ test("a second tab of the same GM user cannot pause the driving tab's march", as
     f.hooks.get("canvasTearDown")(); await flush();
     assert.equal(status().pause, "scene", "the driving tab itself still pauses");
   } finally { delete globalThis.sessionStorage; }
+});
+test("a leader drag during a recall queues behind it and the recall lands clean", async () => {
+  const f = fixture(); registerPartyMovement();
+  globalThis.ui = { notifications: { warn() {} } };
+  globalThis.CONFIG.Token = { movement: { actions: {} } };
+  f.party.flags[MOD].partyData = { members: [f.member.uuid], leaderUuid: f.member.uuid, followLeader: true };
+  assert.equal((await executeMovement({ ...f.payload, action: "deploy" }, { id: "owner", isGM: false })).ok, true);
+  // A second roster member with a deployed token of its own.
+  const m2 = { id: "pc2", uuid: "Actor.pc2", type: "Player", name: "PC2", testUserPermission: () => true };
+  globalThis.game.actors.contents.push(m2);
+  const source2 = { _id: "pc2Token", actorId: "pc2", actorLink: true, x: 100, y: 0, width: 1, height: 1, name: "PC2", light: { dim: 0 }, flags: { [MOD]: { partyMovement: { partyUuid: f.party.uuid } } } };
+  const pc2Token = { ...source2, id: "pc2Token", uuid: "Scene.s.Token.pc2Token", actor: m2, parent: f.scene, _source: source2, toObject: () => ({ ...source2 }) };
+  f.scene.tokens.contents.push(pc2Token);
+  f.party.flags[MOD].partyData.members = [f.member.uuid, m2.uuid];
+  const deleteBase = f.scene.deleteEmbeddedDocuments;
+  f.scene.deleteEmbeddedDocuments = async (type, ids) => {
+    const docs = ids.map(id => f.scene.tokens.get(id)).filter(Boolean);
+    const result = await deleteBase(type, ids);
+    for (const doc of docs) f.hooks.get("deleteToken")(doc);
+    return result;
+  };
+  let release; const gate = new Promise(resolve => { release = resolve; });
+  const base = f.pt.update; let first = true;
+  f.pt.update = changes => { if (first) { first = false; return gate.then(() => base(changes)); } return base(changes); };
+  const gather = executeMovement({ ...f.payload, action: "gather" }, { id: "owner", isGM: false });
+  await new Promise(resolve => setImmediate(resolve));
+  const moves = [];
+  for (const token of f.scene.tokens.contents) token.move = async () => { moves.push(token.id); return true; };
+  f.hooks.get("moveToken")(f.scene.tokens.get("pcToken"), { passed: { waypoints: [{ x: 350, y: 300, elevation: 0, action: "walk", checkpoint: true }] }, origin: { x: 300, y: 300 } }, {}, { id: "owner" });
+  release();
+  assert.equal((await gather).ok, true);
+  await new Promise(resolve => setImmediate(resolve));
+  assert.deepEqual(moves, [], "the leader drag must not move followers mid-recall");
+  assert.equal(f.pt.flags[MOD].partyMovement.pause, "gathered", "the recall's own leader deletion cannot pause it as missing");
+  assert.equal(f.pt.flags[MOD].partyMovement.deployed, false);
+});
+test("party light refresh only pays perception updates when a party token's light changed", () => {
+  const f = fixture();
+  const updates = [];
+  globalThis.canvas = { ready: true, scene: f.scene, perception: { update: options => updates.push(options) }, tokens: { placeables: [] } };
+  globalThis.CONFIG.Token = { documentClass: class { prepareDerivedData() {} } };
+  registerPartyLight();
+  f.hooks.get("updateItem")({ parent: { uuid: "Actor.foreign", type: "NPC", flags: {} } });
+  assert.equal(updates.length, 0, "an unrelated actor's item cannot trigger a scene-wide refresh");
+  let sourceLight = { dim: 0, bright: 0 };
+  const doc = { flags: {}, _source: { light: { dim: 0, bright: 0 } }, light: { dim: 0, bright: 0 }, prepareData() { this.light = { ...sourceLight }; } };
+  globalThis.canvas.tokens.placeables = [{ document: doc, actor: f.party, initializeLightSource() {} }];
+  f.hooks.get("updateToken")();
+  assert.equal(updates.length, 0, "an unchanged party light does not pay a perception update");
+  sourceLight = { dim: 30, bright: 10 };
+  f.hooks.get("updateToken")();
+  assert.equal(updates.length, 1, "a changed mirrored light refreshes once");
+  f.hooks.get("updateToken")();
+  assert.equal(updates.length, 1, "unchanged follow-ups stay free");
+  f.hooks.get("updateItem")({ parent: f.party });
+  assert.equal(updates.length, 1, "party item hooks still reach the refresh, which stays gated on change");
+});
+test("character rosters follow the system's isPC getter, not the raw document type", () => {
+  const mislabeled = { uuid: "Actor.mislabeled", type: "Player", system: { isPC: false } };
+  const real = { uuid: "Actor.real", type: "Player", system: { isPC: true } };
+  const party = { id: "p2", uuid: "Actor.p2", type: "NPC", flags: { [MOD]: { party: true, partyData: { members: [mislabeled.uuid, real.uuid] } } }, testUserPermission: () => true };
+  globalThis.game = { user: { id: "gm", isGM: true }, actors: { contents: [party, mislabeled, real], get: id => id === "p2" ? party : null } };
+  assert.deepEqual(Party.members(party, { charactersOnly: true }), [real.uuid]);
 });

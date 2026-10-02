@@ -20,20 +20,30 @@ function mirror(doc) {
   const light = sources.filter(l => l && Math.max(l.dim, l.bright) > 0).sort((a, b) => Math.max(b.dim, b.bright) - Math.max(a.dim, a.bright))[0] ?? doc._source.light;
   if (light) doc.light = new foundry.data.LightData(light.toObject?.() ?? light, { parent: doc });
 }
+/** The mirrored light as a comparable shape: prepareData rebuilds the LightData object every pass, values are the signal. */
+const lightShape = doc => JSON.stringify(doc.light?.toObject?.() ?? doc.light ?? null);
 export function refreshPartyLights() {
+  let changed = false;
   for (const token of globalThis.canvas?.tokens?.placeables ?? []) {
     const doc = token.document, actor = token.actor;
     if (!(isNativeParty(actor) || isLegacyParty(actor))) continue;
+    const before = lightShape(doc);
     doc.prepareData();
     token.initializeLightSource();
+    if (lightShape(doc) !== before) changed = true;
   }
-  canvas.perception.update({ refreshLighting: true, refreshVision: true });
+  // A scene with no party token, or one where nothing the mirror reads changed,
+  // must not pay a whole-scene lighting and vision recompute.
+  if (changed) canvas.perception.update({ refreshLighting: true, refreshVision: true });
 }
+/** A party actor, or any actor on a party roster: an item hook elsewhere cannot move a party light. */
+const touchesParty = actor => isNativeParty(actor) || isLegacyParty(actor) || Party.list().some(party => Party.members(party).includes(actor?.uuid));
 export function registerPartyLight() {
   const TokenDocument = CONFIG.Token.documentClass;
   CONFIG.Token.documentClass = class PartyLightTokenDocument extends TokenDocument {
     prepareDerivedData() { super.prepareDerivedData(); mirror(this); }
   };
   Hooks.on("canvasReady", refreshPartyLights);
-  for (const hook of ["updateActor", "updateItem", "createItem", "deleteItem", "updateToken", "createToken", "deleteToken"]) Hooks.on(hook, () => { if (globalThis.canvas?.ready) refreshPartyLights(); });
+  for (const hook of ["updateActor", "updateToken", "createToken", "deleteToken"]) Hooks.on(hook, () => { if (globalThis.canvas?.ready) refreshPartyLights(); });
+  for (const hook of ["updateItem", "createItem", "deleteItem"]) Hooks.on(hook, item => { if (globalThis.canvas?.ready && touchesParty(item?.parent)) refreshPartyLights(); });
 }

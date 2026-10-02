@@ -1,7 +1,7 @@
 # Shadowdark Enhancer — File Inventory
 
 <!-- inventory:stats:start -->
-1199 tracked files · ~213,200 lines of code/markup across scripts+templates+styles+test.
+1199 tracked files · ~213,500 lines of code/markup across scripts+templates+styles+test.
 `v0.17.3` in both `module.json` and `package.json`.
 <!-- inventory:stats:end -->
 **Layout reflects the 2026-07-21 feature-folder reorganization (v0.11.0 cycle).**
@@ -62,17 +62,17 @@
 | `camping/camping-cook.mjs` | 37 | Post-eligible-rest Cook seam and active-benefit-scoped native damage/healing/expiry compatibility. |
 | `camping/camping-core.mjs` | 100 | Pure PC task choices, lock, exact shared-first torch cost and scoped Cook surplus/expiry rules. |
 | `camping/camping-nutrition.mjs` | 120 | Actor/day whole-meal accounting, explicit personal-first Party backup, per-effect starvation and eligible normal-rest receipts across parties/reloads. |
-| `camping/camping.mjs` | 243 | Authenticated owner-choice camp task relay, persistent results/rewards, nearby-PC fire and deferred native nutrition/rest seams for Overland nights. |
+| `camping/camping.mjs` | 247 | Authenticated owner-choice camp task relay, persistent results/rewards, nearby-PC fire and deferred native nutrition/rest seams for Overland nights. |
 | `carousing/carousing-app.mjs` | 63 | Carousing controller hosted inline in Party Travel, with GM table/manual-place setup, each PC owner's own-spend choices, persistent results and independent history. |
-| `carousing/carousing-core.mjs` | 77 | Pure imported basic table adapters, owner choices/funds/holiday/cooldown preflight, supported effects and stable recap shaping. |
-| `carousing/carousing.mjs` | 166 | Authenticated native per-PC carousing authority, saved rolls/atomic costs and effect progress, off-duty time, independent history and recap upsert. |
+| `carousing/carousing-core.mjs` | 74 | Pure imported basic table adapters, owner choices/funds/holiday/cooldown preflight, supported effects and stable recap shaping. |
+| `carousing/carousing.mjs` | 181 | Authenticated native per-PC carousing authority, saved rolls/atomic costs and effect progress, off-duty time, independent history and recap upsert. |
 | `dying/dying-core.mjs` | 222 | Dying rules (#181), pure: the dying-modifier vocabulary (Active Effect flag keys: timer die and bonus, rise range, own and near stabilize DC, no death at CON 0), the 1d4 + CON timer (minimum 1; none under Deadly, whose 1 beats every die and bonus), stabilize DC resolution (15, Deadly 18, raised near a Draugr, the helper's own DC beats both), shouldTick (once per round of a scope, forward only), the turn-start outcome, what an HP change means (Fatality: 0 HP kills), which stabilize cards count, and the strip badge with the hidden timer. |
 | `dying/dying.mjs` | 555 | Dying on the active GM (#181), one queue per actor: 0 HP from updateActor gives the Dying status; a wrapped Combat#_onStartTurn and the crawlRound hook, once per round and forward only, roll the death timer on the first turn (the owner's client rolls the natural die by user query and the GM adds the modifiers; blind on the GM's under the hidden timer, #263) and the d20 on every turn after (rise, tick, dead + defeated). Stabilize cards, first roll or Luck reroll, are read in createChatMessage against the GM's own DC; another GM's buttons and crawl ticks are relayed (gmDo). onConZero is stat damage's death. The strip badge and its menu. Off while Crawl Helper is active. |
 | `hex-map/a0-print.mjs` | 173 | The Western Reaches A0 print, pure (#257): its lattice as numbers only (D1), isA0 by the image's size, A0_TOTAL (4736 hexes), a0Origin (the printed 0000 on a scene's grid from the image's rect, checked on four corner hexes), copyTags and copySource (another scene of the same print), and playablePlan (which of anchor, copy, pins, handoff, fog and legend Make this map playable runs, each gated on its own done). |
 | `hex-map/a0-prompt.mjs` | 38 | The one-time offer to make a Western Reaches A0 scene playable (#257): on canvasReady the active GM, on a scene showing the print that isn't numbered, is asked once (the scene's hexPlayableAsked flag); yes runs HexTaggerApp.makePlayable. |
 | `hex-map/bitmap.mjs` | 145 | 0/1 cell bitmaps: dilate, 8-connected components, majority stamps, hex masks, residual features, label zone. Pure. |
 | `hex-map/classify.mjs` | 886 | Nearest-exemplar terrain + stamp-subtraction river/path classifier with a review queue; truth-CSV comparison for the dev check. Pure. |
-| `hex-map/coordinate-overlay.mjs` | 106 | Opt-in per-user native published-number labels on flat-top hex maps; reads native geometry and current fog without changing numbering or calibration. |
+| `hex-map/coordinate-overlay.mjs` | 108 | Opt-in per-user native published-number labels on flat-top hex maps; reads native geometry and current fog without changing numbering or calibration. |
 | `hex-map/extras-records.mjs` | 27 | Read-only SDX legacy/authoring record reader, retained for painter-feature merges and unadopted gameplay; native adopted scenes use hex-records instead. |
 | `hex-map/geometry.mjs` | 221 | Hex numbering by cube difference from one anchor cell; printed offset ↔ cube under the map's column-shift rule. Pure. |
 | `hex-map/hex-adoption.mjs` | 145 | Read-once SDX record adoption with negative offset parsing, lossless original archives, existing-native conflict precedence, reports and automatic eligibility hooks. |
@@ -80,11 +80,11 @@
 | `hex-map/hex-explorer-app.mjs` | 73 | Small scene-offset GM Hexplorer editor for terrain, line/structured features, public/private notes, document links and discovery. |
 | `hex-map/hex-explorer.mjs` | 198 | Player-safe Hexplorer canvas hover/select observer and GM writes over authoritative terrain tags and rich offset records; preserves discovery and imported metadata. |
 | `hex-map/hex-fog-core.mjs` | 60 | Pure shared terrain/location disclosure, lossless fog/history migration, native-grid sight and arrival/overlap decisions. |
-| `hex-map/hex-fog.mjs` | 144 | Adopted-scene native static fog overlay, GM disclosure, selected-party committed visits/arrival history and SDX ownership guard. |
+| `hex-map/hex-fog.mjs` | 147 | Adopted-scene native static fog overlay, GM disclosure, selected-party committed visits/arrival history and SDX ownership guard. |
 | `hex-map/hex-map-flow.mjs` | 403 | Hex map from an image: file dialog, lattice detection, confirmation preview with corners set by hand, upload into the world folder, an aligned scene (stretch to Foundry's pitches, offset to cell 0,0), tagger opened on its legend. |
 | `hex-map/hex-number-api.mjs` | 47 | `hexMaps.numberAt` / `hasNumbering`: the tagger's published hex number for a Foundry offset on a numbered scene, synchronous, so Shadowdark Extras' Map Coordinates shows what the tagger shows. |
 | `hex-map/hex-pins.mjs` | 129 | Keyed hexes as map notes: deploys the crawl journal into the world with stable ids (links rewritten), plans one Note per keyed page at its hex centre (pure planner), moves existing pins on re-run. |
-| `hex-map/hex-records.mjs` | 180 | Scene-offset native rich-record facade over existing tags, keyed pins/pages and regions, private compendium records and allowlisted public disclosure projections. |
+| `hex-map/hex-records.mjs` | 205 | Scene-offset native rich-record facade over existing tags, keyed pins/pages and regions, private compendium records and allowlisted public disclosure projections. |
 | `hex-map/hex-region.mjs` | 289 | Which region is a hex in: the book's own word for a keyed hex, the nearest keyed hex's region for any other (84.8% on the Western Reaches, leave-one-out over the book's own keyed rows). Seeds come from the filed crawls; nothing is stored. |
 | `hex-map/hex-tagger-app.mjs` | 1819 | Hex Tagger AppV2: contact sheet over the active hex scene, anchor numbering, tags on the scene flag, dataset hand-off. |
 | `hex-map/ink.mjs` | 62 | Whole-image 0/1 ink bitmap at a working scale, one browser resize then strip reads; ink threshold from the paper's brightness. Browser-bound. |
@@ -114,12 +114,12 @@
 | `overland/sky-core.mjs` | 125 | The sky on scenes (#235, O9), pure: darkness by the sun and moon (0 by day, a one-hour twilight each way, night 1 - 0.2 x illumination, the hex map capped at 0.6), the Isles of Andrik's Midnight Sun and Long Dark by region and season, the weather effect (rainStorm, blizzard in the cold, the season's snow or leaves on a fair day: #294), and which scenes follow the sky and are written (the active scene and the party's). |
 | `overland/sky.mjs` | 206 | The sky on scenes (#235, O9): the active GM writes the darkness of the active scene and of the party's scene, the one the travel token is on (#294; only on a 0.02 change, animated for steps under an hour, never on a locked scene; no other module is consulted) and weather effect (never over one the GM chose) on each clock move, weather change and scene activation; one pass at a time. Also the per-device Show weather effects setting and its drawWeatherEffects hook (#294). Adds the Follows the sky choice to Scene Configuration's Environment tab (the followsSky scene flag). |
 | `overland/travel-panel.mjs` | 215 | The clock HUD's Travel panel (#257): the day as the book's travel procedure in eight steps (weather, sight, method, speed, traveling, encounters, resting, night), the step list as the day's record with the current step marked; step bodies read Overland's state (the weather and its roll, sight in hexes by hex rules, the budget meter, forage by member with INT and DC, the checks by half for a GM) and carry the day's buttons. |
-| `party/party-app.mjs` | 268 | Native ApplicationV2 Party actor sheet and directory/token-HUD entry points, preserving detailed member cards with inline activities, scoped quests/payouts and description editing. |
+| `party/party-app.mjs` | 284 | Native ApplicationV2 Party actor sheet and directory/token-HUD entry points, preserving detailed member cards with inline activities, scoped quests/payouts and description editing. |
 | `party/party-core.mjs` | 32 | Pure versioned roster validation, membership permissions, groups and quest scoping. |
 | `party/party-hud.mjs` | 21 | Single combat-gated Import/Export Members Party token HUD action. |
-| `party/party-light.mjs` | 39 | Runtime-only dungeon Party light mirror without duplicated fuel items; hex lights and stored vision unchanged. |
-| `party/party-movement-core.mjs` | 75 | Fixed formation fill, follow ordering, square/hex footprint-aware wall-safe placement and stack fallback. |
-| `party/party-movement.mjs` | 243 | Authenticated Party-owner gather/deploy relay, linked token configuration preservation and committed native marching with visible pauses. |
+| `party/party-light.mjs` | 49 | Runtime-only dungeon Party light mirror without duplicated fuel items; hex lights and stored vision unchanged. |
+| `party/party-movement-core.mjs` | 79 | Fixed formation fill, follow ordering, square/hex footprint-aware wall-safe placement and stack fallback. |
+| `party/party-movement.mjs` | 247 | Authenticated Party-owner gather/deploy relay, linked token configuration preservation and committed native marching with visible pauses. |
 | `party/party.mjs` | 91 | Explicit native Party provider, safe in-place NPC adoption and owner-scoped membership writes. |
 | `rules-data/rules-data-app.mjs` | 410 | The GM-only Rules data window (AppV2, Configure Settings menu): shows and edits every rules table, staged until Save. Its import (importFromBooks, also the Importer Hub step's importAndSave) runs table-shapes RULES_TABLES over the GM's own linked GM Guide and Player's Guide PDFs (lazy-loaded), canonicalises region names through hex-region knownRegions, and previews every filled value it would replace. |
 | `rules-data/rules-data-core.mjs` | 457 | Rules data (#195), pure: the Western Reaches lookup tables (terrain cost and elevation, terrain types, hexes per day, hex visibility, climate by region and season, carousing and recruiting limits) as one sparse world setting laid over an empty structure, the game.shadowdarkEnhancer.rules lookups over it, the readers that turn the importer's `reference` rows into those tables, and the overwrite preview and merge for an import. Ships structure only (tagger terrain words, travel methods, conditions, seasons, settlement kinds), never a value. |
@@ -393,7 +393,7 @@
 | `register-actors.mjs` | 120 | Registers `shadowdark-enhancer.mount` / `.warband` / `.boat` (models + sheets, in `i18nInit`): the warband's NpcSD subclass with fixed HP, its linked-token and commander-cleared create hook, and Make a Warband. |
 | `boat-data-model.mjs` | 115 | Boat data model — WR vessel rules. |
 | `boat-sheet.mjs` | 179 | Boat sheet: Overview / Passengers & Crew / Cargo / Description. |
-| `mount-npc-sheet.mjs` | 363 | Mount sheet — subclass of the system's `NpcSheetSD`. |
+| `mount-npc-sheet.mjs` | 365 | Mount sheet — subclass of the system's `NpcSheetSD`. |
 | `mount-scores-core.mjs` | 13 | Pure mount full-score defaults, uncapped modifier conversion, separate damage and effective scores. |
 | `mount-scores.mjs` | 40 | Mount-only NPC model extension and once-only creation/adoption of persisted full scores; native checks derive effective modifiers. |
 | `warband-core.mjs` | 264 | Warband rules, pure (#200, #202, #204): the 18 upgrades, a commander's allowance by hit die tier (2/2, 4/3, 6/4), the command and upgrade refusals, and a creature made into a warband (level doubled, 8 HP a level plus CON, one attack, +1 attack a level gained, damage dice tripled). |
@@ -527,7 +527,7 @@ The report and idiom seams are pure data policy. Foundry adapters must translate
 | File | Lines | Description |
 |---|---:|---|
 | `quest-core.mjs` | 363 | The Quest Log's rules, pure: the quest flag's one shape, status changes and the ownership each status gives, who a player may see, objectives, when rewards are paid (once, on the way into Completed) and to whom, list filters, which trainer tasks a character has taken, which map pin to jump to, and the player page's HTML. |
-| `quests.mjs` | 557 | The Quest Log's data and public API: one world JournalEntry per quest in a flagged Quests folder, with a player page rewritten from the flag and a GM notes page left alone. GM-only writes serialized per client through replaceModuleFlag; the payout confirmation and payout through Party XP, the renown ledger and item copies; Shadowdark Extras parties read from its flags behind a feature check; jump to pin; the Ctrl+Q keybinding, the Journal sidebar button and the debounced questsChanged hook. |
+| `quests.mjs` | 572 | The Quest Log's data and public API: one world JournalEntry per quest in a flagged Quests folder, with a player page rewritten from the flag and a GM notes page left alone. GM-only writes serialized per client through replaceModuleFlag; the payout confirmation and payout through Party XP, the renown ledger and item copies; Shadowdark Extras parties read from its flags behind a feature check; jump to pin; the Ctrl+Q keybinding, the Journal sidebar button and the debounced questsChanged hook. |
 | `quest-log-app.mjs` | 277 | The Quest Log window (AppV2): a tab per status (Hidden for the GM only), filters by character, party and source, the quest list and the chosen quest. The GM edits in place (objectives, rewards with items dropped on, characters, party, hex); players get the same quest read-only. |
 
 One world JournalEntry per quest, its state one flag on the entry. World journals rather than the managed journal pack, because a compendium has one ownership for the whole pack and a quest's visibility is per quest. Every write is the GM's.

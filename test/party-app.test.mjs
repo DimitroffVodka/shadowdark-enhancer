@@ -58,7 +58,8 @@ test("SDX Party types and unrelated NPCs are never adopted or given a sheet over
 });
 test("no-canvas context groups only explicit roster; missing refs retained", async () => {
   const p = actor("p", "NPC", { [MOD]: { party: true, partyData: { version: 1, members: ["Actor.pc", "Actor.npc", "Actor.mount", "Actor.deleted"] } } });
-  world([p, actor("pc", "Player"), actor("npc"), actor("mount", "shadowdark-enhancer.mount"), actor("unrelated", "Player")]);
+  const pc = actor("pc", "Player"); pc.system = { isPC: true };
+  world([p, pc, actor("npc"), actor("mount", "shadowdark-enhancer.mount"), actor("unrelated", "Player")]);
   const context = await new PartyApp(p)._prepareContext();
   assert.deepEqual(context.groups.map((g) => g.rows.length), [1,1,1,1]);
   assert.deepEqual(Party.members(p, { charactersOnly: true }), ["Actor.pc"]);

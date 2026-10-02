@@ -2,11 +2,12 @@
 import { MODULE_ID } from "../shared/module-id.mjs";
 import { sceneCells } from "./sampler.mjs";
 import { ownsHexFog, positionDisclosed } from "./hex-fog.mjs";
+import { readPass } from "./hex-records.mjs";
 
 /** Until E4, read SDX's public fog contract (or core sight/exploration), never its private records. */
-export function coordinateVisible(scene, point, { isGM, extras, explored, sight } = {}) {
+export function coordinateVisible(scene, point, { isGM, extras, explored, sight, pass } = {}) {
   if (isGM) return true;
-  if (ownsHexFog(scene)) return positionDisclosed(scene, point);
+  if (ownsHexFog(scene)) return positionDisclosed(scene, point, "terrain", {}, pass);
   if (extras?.active) {
     try { return extras.api?.hex?.isPositionRevealed?.(scene, point) === true; } catch { return false; }
   }
@@ -68,10 +69,11 @@ function draw() {
       return;
     }
   }
+  const pass = readPass(canvas.scene);
   const labels = coordinateLabels({
     scene: canvas.scene, grid: canvas.grid, cells: geometry.cells, numberAt: api.numberAt,
     visible: point => coordinateVisible(canvas.scene, point, {
-      isGM: game.user.isGM, extras,
+      isGM: game.user.isGM, extras, pass,
       explored: p => canvas.fog.isPointExplored(p),
       sight: p => canvas.visibility.testVisibility(p, { tolerance: 0 }),
     }),

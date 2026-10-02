@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { handleCamp, refreshCampFires } from "../scripts/camping/camping.mjs";
 const M = "shadowdark-enhancer";
 test("begin anchors the camp at committed coordinates during token animation", async () => {
-  const pc = { id: "pc", uuid: "Actor.pc", type: "Player" };
+  const pc = { id: "pc", uuid: "Actor.pc", type: "Player", system: { isPC: true } };
   const flags = { [M]: { party: true, partyData: { version: 1, members: [pc.uuid] }, sentinel: true } };
   globalThis._replace = value => value;
   const party = { id: "party", type: "NPC", flags, testUserPermission: () => true, update: async data => { flags[M].camping = data[`flags.${M}.camping`]; } };
@@ -33,4 +33,24 @@ test("fire proximity follows committed movement even while token animation is st
   assert.equal(flags[M].camping.fire.lit, false);
   assert.equal(flags[M].sentinel, true);
   assert.equal(flags.other.retained, true);
+});
+test("resolving a camp without a canvas declines the fire instead of blocking the camp", async () => {
+  const pc = { id: "pc", uuid: "Actor.pc", type: "Player", system: { isPC: true, abilities: { str: { mod: 2 } } }, testUserPermission: () => true, items: { contents: [] } };
+  const flags = { [M]: { party: true, partyData: { version: 1, members: [pc.uuid] }, sentinel: true } };
+  globalThis._replace = value => value;
+  const party = { id: "party", uuid: "Actor.party", type: "NPC", flags, testUserPermission: () => true, items: { contents: [] }, update: async data => { flags[M].camping = data[`flags.${M}.camping`]; } };
+  const user = { id: "gm", isGM: true };
+  globalThis.foundry = { utils: { randomID: () => "camp" } };
+  globalThis.game = { user, users: { activeGM: user }, actors: { contents: [party, pc], get: id => id === party.id ? party : pc }, settings: { settings: new Map() }, scenes: { get: () => null }, i18n: { localize: k => k, format: k => k } };
+  delete globalThis.canvas;
+  globalThis.Roll = class { async evaluate() { this.total = 20; return this; } async toMessage() { return {}; } };
+  globalThis.ChatMessage = { getSpeaker: () => ({}) };
+  const begun = await handleCamp({ partyId: party.id, action: "begin" }, user);
+  assert.equal(begun.ok, true);
+  assert.equal(flags[M].camping.anchor, null);
+  assert.equal((await handleCamp({ partyId: party.id, action: "select", uuid: pc.uuid, patch: { task: "firewood", participate: true } }, user)).ok, true);
+  const resolved = await handleCamp({ partyId: party.id, action: "resolve" }, user);
+  assert.equal(resolved.ok, true, "no canvas must not block the camp");
+  assert.equal(flags[M].camping.phase, "awaitingRest");
+  assert.equal(flags[M].camping.fire, undefined, "the fire is declined, not lit");
 });

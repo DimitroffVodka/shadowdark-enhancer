@@ -53,7 +53,7 @@ export const Party = {
   },
   members(ref, { charactersOnly = false } = {}) {
     const members = this.data(ref).members;
-    return charactersOnly ? members.filter((u) => worldMember(u)?.type === "Player") : members;
+    return charactersOnly ? members.filter((u) => worldMember(u)?.system?.isPC) : members;
   },
   rows(ref) {
     return this.members(ref).map((uuid) => {

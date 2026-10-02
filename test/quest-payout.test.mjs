@@ -13,7 +13,7 @@ function fixture() {
     a.createEmbeddedDocuments = async (_type, rows) => { a.items.contents.push(...structuredClone(rows)); return rows; };
     return a;
   };
-  const actors = ["a", "b"].map(id => doc(id, { level: { xp: 0 }, coins: { gp: 0 }, renown: 0 }));
+  const actors = ["a", "b"].map(id => doc(id, { level: { xp: 0 }, coins: { gp: 0 }, renown: 0, isPC: true }));
   const entry = doc("q"); entry.uuid = "JournalEntry.q"; entry.ownership = { default: 2 }; entry.pages = [{ flags: { [M]: { questPage: "player" } }, update: async () => {} }];
   entry.flags[M].quest = normalizeQuest({ status: "active", rewards: { xp: 3, coins: { gp: 5 }, renown: 2, items: [{ uuid: "Item.reward" }] } });
   const gm = { id: "gm", isGM: true };
@@ -149,4 +149,32 @@ test("Party-scoped payout offers its members without unrelated world PCs", () =>
   assert.ok(inline.includes('value="Actor.a"'));
   assert.ok(!inline.includes('value="Actor.b"'));
   assert.ok(questPayoutContent(quest, "Quest").includes('value="Actor.b"'), "standalone log retains its existing world roster");
+});
+test("a recipient deleted after the freeze is skipped with one warning; the rest pays", async () => {
+  const f = fixture(), [a, b] = f.actors, update = f.entry.update;
+  const warns = []; globalThis.ui.notifications.warn = message => warns.push(message);
+  let removed = false;
+  f.entry.update = async data => {
+    const result = await update(data);
+    if (!removed && data[`flags.${M}.quest`]?.payout?.plan) { removed = true; globalThis.game.actors.contents.pop(); }
+    return result;
+  };
+  const outcome = await f.run();
+  assert.equal(outcome.paid, true);
+  assert.equal(a.system.level.xp, 3);
+  assert.equal(b.system.level.xp, 0, "the vanished recipient is skipped, not wedged");
+  assert.equal(a.system.coins.gp, 5);
+  assert.deepEqual(warns, ["SDE.quests.notify.recipientMissing"]);
+});
+test("a non-Player recipient in a frozen plan is skipped with one warning, never a wedge", async () => {
+  const f = fixture();
+  const npc = { id: "npc", uuid: "Actor.npc", name: "Hireling", type: "NPC", system: {}, flags: {}, items: { contents: [] } };
+  globalThis.game.actors.contents.push(npc);
+  Object.assign(f.entry.flags[M].quest, { payout: { plan: { xp: { amount: 3, to: [npc.uuid, "Actor.a"] }, coins: { amount: {}, to: [] }, renown: { delta: 0, to: [] }, items: [] }, done: {} } });
+  const warns = []; globalThis.ui.notifications.warn = message => warns.push(message);
+  const result = await f.run();
+  assert.equal(result.paid, true, "the Quest completes; the frozen plan is not re-derived");
+  assert.equal(f.actors[0].system.level.xp, 3);
+  assert.equal(f.actors[1].system.level.xp, 0, "the non-Player recipient is skipped, not a wedge");
+  assert.deepEqual(warns, ["SDE.quests.notify.recipientMissing"]);
 });

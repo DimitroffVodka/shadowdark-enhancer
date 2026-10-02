@@ -64,6 +64,10 @@ export function recordJournal(scene, { publicOnly = false } = {}) {
   if (hits.length > 1) throw new Error("SDE.hexRecords.duplicateStore");
   return hits[0] ?? null;
 }
+/** One synchronous pass over many cells: the store journal, the decoded tag store and the pin index are read once. */
+export function readPass(target) {
+  return { scene: sceneRef(target) };
+}
 export const isHexAdopted = scene => sceneRef(scene)?.getFlag?.(MODULE_ID, RECORD_FLAG)?.adopted === true;
 
 /** Compose one cell without copying the tag store. Tag edits, even a removed line, win. */
@@ -99,8 +103,23 @@ export function playerProjection(record) {
   return out;
 }
 /** Only the viewed scene's pins, never every same-numbered page in the world. */
-function keyedPages(scene, num) {
+function pinIndex(scene) {
+  const out = new Map();
+  for (const note of scene?.notes?.contents ?? []) {
+    const num = note.getFlag?.(MODULE_ID, "hexPin")?.num;
+    if (num === null || num === undefined) continue;
+    const entry = game.journal?.get?.(note.entryId), page = entry?.pages?.get?.(note.pageId);
+    if (!page || !entry?.testUserPermission?.(game.user, "OBSERVER") || !page.testUserPermission?.(game.user, "OBSERVER")) continue;
+    const list = out.get(num) ?? []; list.push({ uuid: page.uuid, title: page.name }); out.set(num, list);
+  }
+  return out;
+}
+function keyedPages(scene, num, pass = null) {
   if (num === null) return [];
+  if (pass) {
+    pass.pins ??= pinIndex(scene);
+    return (pass.pins.get(num) ?? []).map(entry => ({ ...entry }));
+  }
   const out = [];
   for (const note of scene?.notes?.contents ?? []) {
     if (note.getFlag?.(MODULE_ID, "hexPin")?.num !== num) continue;
@@ -113,21 +132,27 @@ function keyedPages(scene, num) {
 /** Patch fields a raw cell write may touch; the archive and arrival history stay out of reach. */
 const WRITABLE_CELL_FIELDS = new Set(["title", "features", "notes", "links", "terrain", "rollTable", "rollTableChance", "rollTableFirstOnly"]);
 export const HexRecords = {
-  read(offset, target) {
+  read(offset, target, pass = null) {
     const scene = sceneRef(target), key = offsetKey(offset);
     if (!key || !scene) return null;
+    // A pass memoizes the reads shared by every cell: the store journal, the decoded tag store and the pin index.
+    const reuse = pass?.scene === scene ? pass : null;
     if (!game.user?.isGM) {
-      const data = recordJournal(scene, { publicOnly: true })?.flags?.[MODULE_ID]?.[PUBLIC_FLAG]?.cells?.[key];
+      // Cache the resolved projection, not just the journal: `journal.flags` is a live accessor.
+      const projection = reuse ? (reuse.public ??= recordJournal(scene, { publicOnly: true })?.flags?.[MODULE_ID]?.[PUBLIC_FLAG]) : recordJournal(scene, { publicOnly: true })?.flags?.[MODULE_ID]?.[PUBLIC_FLAG];
+      const data = projection?.cells?.[key];
       if (!data) return null;
       const out = clone(data);
-      if (locationVisible(out.discovery)) out.keyed = keyedPages(scene, out.num);
+      if (locationVisible(out.discovery)) out.keyed = keyedPages(scene, out.num, reuse);
       return out;
     }
-    const cell = recordJournal(scene)?.flags?.[MODULE_ID]?.[RECORD_FLAG]?.cells?.[key] ?? {};
-    const num = hexNumberAt(offset, scene), tags = decodeTags(scene.getFlag?.(MODULE_ID, "hexTags"));
+    const store = reuse ? (reuse.record ??= recordJournal(scene)?.flags?.[MODULE_ID]?.[RECORD_FLAG]) : recordJournal(scene)?.flags?.[MODULE_ID]?.[RECORD_FLAG];
+    const cell = store?.cells?.[key] ?? {};
+    const num = hexNumberAt(offset, scene);
+    const tags = reuse ? (reuse.tags ??= decodeTags(scene.getFlag?.(MODULE_ID, "hexTags"))) : decodeTags(scene.getFlag?.(MODULE_ID, "hexTags"));
     const raw = num === null ? null : tags.cells.get(String(num));
     const tag = raw ? { ...raw, ...readCell(tags, num) } : null;
-    return recordView({ sceneUuid: sceneUuid(scene), offset, num, cell, tag, keyed: keyedPages(scene, num) });
+    return recordView({ sceneUuid: sceneUuid(scene), offset, num, cell, tag, keyed: keyedPages(scene, num, reuse) });
   },
   async get(offset, target) {
     const scene = sceneRef(target), record = this.read(offset, scene);

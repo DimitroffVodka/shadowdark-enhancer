@@ -38,12 +38,9 @@ export function outcomeEffects(description = "", benefit = "") {
   }
   const text = `${description} ${benefit}`;
   const renown = text.match(/([+-]\s*\d+)\s+renown\b/i) ?? text.match(/\b(gain|lose)\s+(\d+)\s+renown\b/i);
-  let wealthPercent = 0;
-  for (const field of [description, benefit]) {
-    const m = field.match(/(\d+)\s*%\s*of\s+(?:your|their|the)\s+total\s+wealth/i);
-    if (m && !/\b(?:gain|earn|win|won|recover|receive|find|found)\w*\b/i.test(field.slice(Math.max(0, m.index - 24), m.index))) wealthPercent = Math.min(100, Number(m[1]));
-  }
-  return { xp, luck, wealthPercent, renown: renown ? (renown[2] ? Number(renown[2]) * (renown[1].toLowerCase() === "lose" ? -1 : 1) : Number(renown[1].replace(/\s/g, ""))) : 0 };
+  // Losses — a percentage of wealth included — stay prose in the saved result:
+  // docs/wiki/Carousing.md keeps them visible GM actions, never automation.
+  return { xp, luck, renown: renown ? (renown[2] ? Number(renown[2]) * (renown[1].toLowerCase() === "lose" ? -1 : 1) : Number(renown[1].replace(/\s/g, ""))) : 0 };
 }
 export function holidayFor(holiday, answers = {}) {
   const garb = holiday?.garb ?? [], yes = garb.filter(g => answers[g.key] === true);

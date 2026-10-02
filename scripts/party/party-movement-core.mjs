@@ -54,7 +54,11 @@ export function safeFootprint(from, to, width, height, bounds, blocked, footprin
 export function planPlacement({ entries, anchor, grid, sizeX, sizeY, bounds, blocked, footprintBlocked, occupied = [] }) {
   const origin = grid.getOffset({ x: anchor.x + sizeX / 2, y: anchor.y + sizeY / 2 });
   const used = [...occupied], out = [];
-  const radius = Math.ceil(Math.max(bounds.width / sizeX, bounds.height / sizeY));
+  // The search window is the formation's own span plus three rings. A member that
+  // cannot fit there stacks near the anchor (the documented fallback); it never
+  // sweeps a whole large map with a walls scan per candidate.
+  const span = entries.reduce((n, e) => Math.max(n, Math.abs(e.row), Math.abs(e.col)), 1);
+  const radius = span + 3;
   for (const entry of entries) {
     const width = entry.width * sizeX, height = entry.height * sizeY;
     const preferred = grid.getTopLeftPoint({ i: origin.i + entry.row, j: origin.j + entry.col });

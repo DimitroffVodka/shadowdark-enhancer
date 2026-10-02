@@ -4,7 +4,7 @@ import { CarousingApp } from "../carousing/carousing-app.mjs";
 import { Party, isNativeParty, isLegacyParty } from "./party.mjs";
 import { scopedQuests } from "./party-core.mjs";
 import { fillFormation } from "./party-movement-core.mjs";
-import { configureMovement, requestMovement, movementStatus, inPartyCombat, MOVEMENT_CHANGED, MOVEMENT_LABELS } from "./party-movement.mjs";
+import { configureMovement, requestMovement, movementStatus, inPartyCombat, MOVEMENT_CHANGED } from "./party-movement.mjs";
 import { Quests, QUESTS_CHANGED } from "../quests/quests.mjs";
 import { QuestLogApp } from "../quests/quest-log-app.mjs";
 import { replaceModuleFlag } from "../shared/module-flags.mjs";
@@ -15,6 +15,22 @@ const t = (key) => game.i18n.localize(key);
 const LABELS = { members: "SDE.party.members", quests: "SDE.party.quests", items: "SDE.party.sheet.inventory", travel: "SDE.party.sheet.travel", description: "SDE.party.sheet.description",
   characters: "SDE.party.characters", hirelings: "SDE.party.hirelings", mounts: "SDE.party.mounts", missing: "SDE.party.missing" };
 const TAB_ICONS = { members: "fas fa-users", items: "fas fa-box", travel: "fas fa-campground", quests: "fas fa-scroll", description: "fas fa-book-open" };
+/** Movement pause reasons name their message with literal keys; a lookup table hides them from the i18n scan. */
+function movementMessage(reason) {
+  switch (reason) {
+    case "noToken": return t("SDE.party.movement.noToken");
+    case "free": return t("SDE.party.movement.free");
+    case "combat": return t("SDE.party.movement.combat");
+    case "scene": return t("SDE.party.movement.scene");
+    case "reload": return t("SDE.party.movement.reload");
+    case "gathered": return t("SDE.party.movement.gathered");
+    case "leader": return t("SDE.party.movement.leader");
+    case "teleport": return t("SDE.party.movement.teleport");
+    case "missing": return t("SDE.party.movement.missing");
+    case "blocked": return t("SDE.party.movement.blocked");
+    default: return t("SDE.party.movement.unknown");
+  }
+}
 // Localized coin labels come from the system's own keys; the sheet draws literal text otherwise.
 const COIN_LABELS = { gp: "SHADOWDARK.coins.gp", sp: "SHADOWDARK.coins.sp", cp: "SHADOWDARK.coins.cp" };
 
@@ -91,7 +107,7 @@ export class PartyApp extends HandlebarsApplicationMixin(ApplicationV2) {
         let className = "";
         if (sys.class && globalThis.fromUuid) { try { className = (await fromUuid(sys.class))?.name ?? ""; } catch { /* An unresolved class must not hide the member. */ } }
         const items = a?.items?.contents ?? [], percent = Math.max(0, Math.min(100, Math.round(hp.value / (hp.max || 1) * 100)));
-        return { ...row, memberKey: row.uuid, name: a?.name ?? t("SDE.party.missing"), img: a?.img ?? "icons/svg/mystery-man.svg", missing: !a, canEdit, isNPC: a?.type !== "Player", className,
+        return { ...row, memberKey: row.uuid, name: a?.name ?? t("SDE.party.missing"), img: a?.img ?? "icons/svg/mystery-man.svg", missing: !a, canEdit, isNPC: !!a?.system?.isNPC, className,
           hp: { value: hp.value ?? 0, max: hp.max ?? 0 }, ac: sys.attributes?.ac?.value ?? 0, level: sys.level?.value ?? 1,
           xp: { current: sys.level?.xp ?? 0, next: (sys.level?.value ?? 1) * 10 }, hpPercent: percent, hpWavesEnabled: true, hpWaveTranslate: Math.max(0, percent - 15), hpWaveColor: "#dc2626", hpWaveClass: percent >= 100 ? "hp-full" : percent <= 0 ? "hp-dead" : "",
           slots: { used: inventorySlots(items, sys.coins), max: sys.slots ?? 10 }, abilities: Object.fromEntries(["str", "dex", "con", "int", "wis", "cha"].map(key => [key, sys.abilities?.[key]?.mod ?? 0])),
@@ -115,7 +131,7 @@ export class PartyApp extends HandlebarsApplicationMixin(ApplicationV2) {
         questHTML = (await renderTemplate(QuestLogApp.PARTS.body.template, await app._prepareContext())).replace(/data-action="([^"]+)"/g, 'data-action="questAction" data-quest-action="$1"');
       }
       const formation = fillFormation(data, rows), status = movementStatus(this.actor);
-      const reason = !status.token ? t("SDE.party.movement.noToken") : status.reason ? t(MOVEMENT_LABELS[status.reason]) : t("SDE.party.movement.marching");
+      const reason = !status.token ? t("SDE.party.movement.noToken") : status.reason ? movementMessage(status.reason) : t("SDE.party.movement.marching");
       const slots = [];
       for (let row = -1; row <= 1; row++) for (let col = -1; col <= 1; col++) {
         const uuid = formation.slots.find(s => s.row === row && s.col === col)?.memberUuid;

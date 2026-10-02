@@ -15,20 +15,37 @@ const own = (a, user) => !!a?.testUserPermission(user, "OWNER");
 const actorOf = uuid => game.actors.contents.find(a => a.uuid === uuid);
 const flag = (a, key) => a?.flags?.[MODULE_ID]?.[key];
 const invalid = (key = "SDE.carousing.invalid") => { throw new Error(key); };
-export const carousingOf = party => structuredClone(flag(party, "carousing") ?? { history: [], current: null });
+/**
+ * Reads share one copy of the stored state until it changes: the clone is memoized on the
+ * stored flag's identity and every local write retires it. Writers mutate synchronously up
+ * to their save (which retires the memo before the write), a failed write leaves the
+ * previous stored state in place, and a fresh clone of it is served again next read.
+ */
+let revision = 0, memo = null;
+export function carousingOf(party) {
+  const raw = flag(party, "carousing");
+  if (!raw) return { history: [], current: null };
+  if (memo?.raw === raw && memo.revision === revision) return memo.state;
+  memo = { raw, revision, state: structuredClone(raw) };
+  return memo.state;
+}
 export function carousingAvailable() {
   if (!game.modules.get("shadowdark-extras")?.active) return true;
   try { return !game.settings.get("shadowdark-extras", "enableCarousing"); } catch { return true; }
 }
 export const carousingOpen = () => game.actors.contents.some(a => isNativeParty(a) && carousingOf(a).current && carousingOf(a).current.phase !== "complete");
-const save = (party, state) => replaceModuleFlag(party, "carousing", state);
+const save = (party, state) => { revision += 1; return replaceModuleFlag(party, "carousing", state); };
+/** One sweep per table set, refreshed by the table hooks — never once per sheet render. */
+let tables = null;
 export async function carousingTables() {
-  const rows = (game.tables?.contents ?? []).map(t => ({ uuid: t.uuid, name: t.name, manifestId: flag(t, "manifestId") }));
-  for (const pack of game.packs ?? []) {
-    if (pack.documentName !== "RollTable") continue;
-    for (const e of await pack.getIndex({ fields: [`flags.${MODULE_ID}.manifestId`] })) rows.push({ uuid: e.uuid ?? `Compendium.${pack.collection}.${e._id}`, name: `${pack.metadata.label}: ${e.name}`, manifestId: flag(e, "manifestId") });
-  }
-  return rows;
+  return tables ??= (async () => {
+    const rows = (game.tables?.contents ?? []).map(t => ({ uuid: t.uuid, name: t.name, manifestId: flag(t, "manifestId") }));
+    for (const pack of game.packs ?? []) {
+      if (pack.documentName !== "RollTable") continue;
+      for (const e of await pack.getIndex({ fields: [`flags.${MODULE_ID}.manifestId`] })) rows.push({ uuid: e.uuid ?? `Compendium.${pack.collection}.${e._id}`, name: `${pack.metadata.label}: ${e.name}`, manifestId: flag(e, "manifestId") });
+    }
+    return rows;
+  })().catch(error => { tables = null; throw error; });
 }
 async function tableData(config) {
   const refs = await carousingTables();
@@ -81,11 +98,6 @@ async function finish(party, state) {
     if (effects.luck && !flag(a, "carousingProgress")?.[night.logId]?.luck) {
       const pulp = game.settings.get("shadowdark", "usePulpMode");
       await markActor(a, night, "luck", pulp ? { "system.luck.remaining": (a.system.luck.remaining ?? 0) + effects.luck } : { "system.luck.available": true });
-    }
-    if (effects.wealthPercent && !flag(a, "carousingProgress")?.[night.logId]?.wealth) {
-      // Coins are concrete; gear/debt/custom effects remain visible GM actions.
-      const loss = Math.round(toCopper(a.system.coins) * effects.wealthPercent / 100);
-      await markActor(a, night, "wealth", { "system.coins": spendFromPurse(a.system.coins, loss) });
     }
     r.applied = true; await save(party, state);
   }
@@ -163,4 +175,7 @@ export function requestCarousing(party, action, data = {}) {
   const payload = { ...data, partyId: party.id, action };
   return isActiveGM() ? handleCarousing(payload, game.user) : queryActiveGM(QUERY, payload);
 }
-export function registerCarousing() { registerQuery(QUERY, (data, { user }) => handleCarousing(data, user)); }
+export function registerCarousing() {
+  registerQuery(QUERY, (data, { user }) => handleCarousing(data, user));
+  for (const hook of ["createRollTable", "updateRollTable", "deleteRollTable", "updateCompendium"]) Hooks.on(hook, () => { tables = null; });
+}

@@ -117,11 +117,13 @@ async function gather({ actor, scene, token }) {
   const saved = new Map((state(token).packed ?? []).map(s => [s.actorId, s]));
   // Keep the actual scene configuration and id, not a snapshot of Actor HP/items.
   for (const d of tokens) if (!saved.has(d.actorId) || state(d).partyUuid === actor.uuid) saved.set(d.actorId, d.toObject());
-  await saveState(token, { ...state(token), packed: [...saved.values()], pause: "gathered" });
+  // The recall clears `deployed` and disarms BEFORE its own deletes: the deleteToken
+  // hook reads the flag mid-delete, the leader's token is among the deletes, and a
+  // leader move arriving late must read the party as already recalled.
+  await saveState(token, { ...state(token), packed: [...saved.values()], pause: "gathered", deployed: false });
+  armed.delete(token.uuid);
   if (tokens.length) await scene.deleteEmbeddedDocuments("Token", tokens.map(d => d.id));
   if (orphans.length) await scene.deleteEmbeddedDocuments("Token", orphans.map(d => d.id));
-  await saveState(token, { ...state(token), deployed: false });
-  armed.delete(token.uuid);
   return { ok: true, gathered: [...tokens, ...orphans].map(d => d.id) };
 }
 async function deploy({ actor, scene, token, user, clientId }) {
@@ -218,7 +220,9 @@ export function registerPartyMovement() {
     if (!isActiveGM() || options?.[MODULE_ID]?.partyFollow) return;
     for (const token of doc.parent.tokens.contents.filter(d => isPartyDeployed(d))) {
       const data = Party.data(token.actor);
-      if (doc.actorLink && doc.actor?.uuid === data.leaderUuid) void serial(token.uuid, () => follow(token, doc, movement, user)).catch(error => { console.error(error); return pause(token, "blocked"); });
+      // The same key every movement action serialises this token on: a leader drag must
+      // queue behind an in-flight recall, never move followers mid-recall.
+      if (doc.actorLink && doc.actor?.uuid === data.leaderUuid) void serial(`Scene.${token.parent.id}.Token.${token.id}`, () => follow(token, doc, movement, user)).catch(error => { console.error(error); return pause(token, "blocked"); });
     }
   });
   Hooks.on("deleteToken", doc => {

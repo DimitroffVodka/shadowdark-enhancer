@@ -36,8 +36,8 @@ test("holiday admission and owner garb bonus apply only when admitted", () => {
 test("clamps extremes to actual rows without fabricating gaps; concrete effects only", () => {
   assert.deepEqual(outcomeAt(-3, outcomes), outcomes[0]); assert.deepEqual(outcomeAt(99, outcomes), outcomes[0]);
   assert.equal(outcomeAt(4, [{ range: [1, 2] }, { range: [6, 8] }]), undefined);
-  assert.deepEqual(outcomeEffects("Lose 5% of your total wealth and +2 Renown", "Gain 4 XP and a luck token"), { xp: 4, luck: 1, wealthPercent: 5, renown: 2 });
-  assert.equal(outcomeEffects("Gain 5% of your total wealth", "Gain 4 XP").wealthPercent, 0);
+  assert.deepEqual(outcomeEffects("Lose 5% of your total wealth and +2 Renown", "Gain 4 XP and a luck token"), { xp: 4, luck: 1, renown: 2 });
+  assert.deepEqual(outcomeEffects("Gain 5% of your total wealth", "Gain 4 XP"), { xp: 4, luck: 0, renown: 0 });
   assert.equal(outcomeEffects("A mysterious friend", "").xp, 0);
 });
 test("XP and Luck automate only explicit unconditional positive rewards", () => {

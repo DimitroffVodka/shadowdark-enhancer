@@ -26,6 +26,8 @@ import { mountScores } from "./mount-scores-core.mjs";
 const PHYSICAL_TYPES = ["Weapon", "Armor", "Basic", "Gem", "Potion", "Scroll", "Wand", "Light"];
 const RARITIES = ["common", "uncommon", "rare", "legendary"];
 const PERSONALITIES = ["horrid", "bad", "neutral", "good", "lovely"];
+/** The six ability labels are the system's own keys, written out literally (CONTRIBUTING § Localization). */
+const ABILITY_LABEL_KEYS = { str: "SHADOWDARK.ability_str", dex: "SHADOWDARK.ability_dex", con: "SHADOWDARK.ability_con", int: "SHADOWDARK.ability_int", wis: "SHADOWDARK.ability_wis", cha: "SHADOWDARK.ability_cha" };
 
 /** Build the Mount sheet class as a subclass of the live NpcSheetSD. */
 export function buildMountNpcSheet(BaseNpcSheet) {
@@ -51,7 +53,7 @@ export function buildMountNpcSheet(BaseNpcSheet) {
       const mount = this.actor.getFlag(MODULE_ID, "mount") ?? {};
       context.mount = mount;
       const scores = scoresOf(this.actor);
-      context.mountAbilities = Object.entries(scores.base).map(([key, base]) => ({ key, base, damage: scores.damage[key], value: sys.abilities[key].value, mod: sys.abilities[key].mod, label: game.i18n.localize(`SHADOWDARK.ability_${key}`) }));
+      context.mountAbilities = Object.entries(scores.base).map(([key, base]) => ({ key, base, damage: scores.damage[key], value: sys.abilities[key].value, mod: sys.abilities[key].mod, label: game.i18n.localize(ABILITY_LABEL_KEYS[key]) }));
       context.occupantLabel = game.i18n.localize("SDE.mount.riders");
 
       // Riders

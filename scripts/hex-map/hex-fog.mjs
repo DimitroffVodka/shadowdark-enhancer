@@ -5,7 +5,7 @@ import { rulesApi } from "../rules-data/rules-data-core.mjs";
 import { storedRulesFor } from "../rules-data/rules-data-scope.mjs";
 import { timeApi } from "../time/time.mjs";
 import { Party } from "../party/party.mjs";
-import { HexRecords, isHexAdopted, sceneRef, recordJournal, offsetKey, RECORD_FLAG, publishHexProjection, assertPrivateJournal } from "./hex-records.mjs";
+import { HexRecords, isHexAdopted, sceneRef, recordJournal, offsetKey, readPass, RECORD_FLAG, publishHexProjection, assertPrivateJournal } from "./hex-records.mjs";
 import { adoptHexScene, withHexLock } from "./hex-adoption.mjs";
 import { disclosure, overlapAllowed, revealRadius, revealCells, arrivalDue } from "./hex-fog-core.mjs";
 
@@ -27,11 +27,11 @@ export function ownsHexFog(target) {
   }
   return allowed;
 }
-export function hexDisclosure(scene, offset, kind = "terrain", exceptions = {}) {
-  return disclosure(HexRecords.read(offset, scene)?.discovery, kind, exceptions);
+export function hexDisclosure(scene, offset, kind = "terrain", exceptions = {}, pass = null) {
+  return disclosure(HexRecords.read(offset, scene, pass)?.discovery, kind, exceptions);
 }
-export function positionDisclosed(scene, point, kind = "terrain", exceptions = {}) {
-  return hexDisclosure(scene, scene.grid.getOffset(point), kind, exceptions);
+export function positionDisclosed(scene, point, kind = "terrain", exceptions = {}, pass = null) {
+  return hexDisclosure(scene, scene.grid.getOffset(point), kind, exceptions, pass);
 }
 /** Exact native scene geometry, including scenes without a background image. */
 export function fogCells(scene) {
@@ -50,7 +50,9 @@ export function refreshHexFog() {
   if (!canvas?.ready || !ownsHexFog(scene)) return;
   overlay = new PIXI.Graphics(); overlay.name = "sde-hex-fog"; overlay.eventMode = "none";
   overlay.beginFill(0x000000, game.user.isGM ? 0.35 : 1);
-  for (const offset of fogCells(scene)) if (!hexDisclosure(scene, offset)) overlay.drawPolygon(scene.grid.getVertices(offset).flatMap(p => [p.x, p.y]));
+  // One pass for every cell: the store journal, decoded tags and pin index are read once.
+  const pass = readPass(scene);
+  for (const offset of fogCells(scene)) if (!hexDisclosure(scene, offset, "terrain", {}, pass)) overlay.drawPolygon(scene.grid.getVertices(offset).flatMap(p => [p.x, p.y]));
   overlay.endFill(); canvas.interface.addChildAt(overlay, 0);
   for (const token of canvas.tokens?.placeables ?? []) token.renderFlags.set({ refreshVisibility: true });
   for (const note of canvas.notes?.placeables ?? []) note.renderFlags.set({ refreshVisibility: true });
@@ -88,7 +90,8 @@ export async function revealParty(token, { path = null, weather = null, committe
   const rules = rulesApi(() => storedRulesFor(scene)).visibility();
   const validRules = ["darkness", "stormy", "excellent", "slight", "high"].every(k => Number.isFinite(rules[k]));
   const validWeather = ["fair", "stormy", "excellent"].includes(weather?.kind) && weather.until > game.time.worldTime;
-  const all = fogCells(scene), records = new Map(all.map(o => [offsetKey(o), HexRecords.read(o, scene)]));
+  const pass = readPass(scene);
+  const all = fogCells(scene), records = new Map(all.map(o => [offsetKey(o), HexRecords.read(o, scene, pass)]));
   const mountain = o => records.get(offsetKey(o))?.terrain === "mountain";
   const draws = [];
   const result = await saveCells(scene, async cells => {

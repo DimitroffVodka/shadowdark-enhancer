@@ -53,3 +53,12 @@ test("stack touching room boundaries survives native integer collision rounding"
   const rounded = (a, b) => [a, b].some(p => [600, 700].includes(Math.round(p.x)) || [400, 500].includes(Math.round(p.y)));
   assert.equal(safeFootprint(point, point, 100, 100, room, rounded), true);
 });
+test("placement bounds its candidate search to the anchor's neighbourhood", () => {
+  let calls = 0;
+  const spy = { getOffset: p => ({ i: Math.floor(p.y / 100), j: Math.floor(p.x / 100) }), getTopLeftPoint: o => { calls += 1; return { x: o.j * 100, y: o.i * 100 }; } };
+  const plan = planPlacement({ grid: spy, anchor: { x: 4000, y: 3000 }, bounds: { x: 0, y: 0, width: 8000, height: 6000 }, sizeX: 100, sizeY: 100, blocked: () => false,
+    entries: [{ memberUuid: "one", col: 1, row: 0, width: 1, height: 1 }] });
+  assert.equal(plan[0].blocked, undefined);
+  assert.equal(plan[0].x, 4100, "the preferred free slot is still found");
+  assert.ok(calls <= 400, `candidate search stays local, not scene-sized (${calls} lookups)`);
+});

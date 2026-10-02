@@ -255,28 +255,38 @@ async function askPayout(quest, name) {
 /** Saved quest-specific progress; actor markers ride with the actual effects. */
 async function pay(entry, quest) {
   const payout = quest.payout, plan = payout.plan;
+  // A recipient that vanished or was converted is skipped with one warning, never a
+  // wedge: the frozen plan cannot be edited, so a throw here would strand every
+  // surviving reward on every retry.
+  const warned = new Set();
   const actorOf = uuid => {
     const actor = game.actors?.contents?.find(a => a.uuid === uuid && a.type === "Player");
-    if (!actor) throw Error(t("SDE.quests.notify.recipientMissing"));
-    return actor;
+    if (!actor && !warned.has(uuid)) {
+      warned.add(uuid);
+      try { ui.notifications?.warn(t("SDE.quests.notify.recipientMissing")); } catch { /* reporting cannot alter progress */ }
+    }
+    return actor ?? null;
   };
   const done = async key => {
     payout.done[key] = true;
     await replaceModuleFlag(entry, QUEST_FLAG, quest);
   };
   for (const uuid of plan.xp?.to ?? []) {
-    const key = `xp:${actorOf(uuid).id}`;
-    if (payout.done[key]) continue;
     const actor = actorOf(uuid);
+    if (!actor) continue;
+    const key = `xp:${actor.id}`;
+    if (payout.done[key]) continue;
     const result = await PartyXP.award(plan.xp.amount, { actorIds: [actor.id], label: entry.name, questUuid: entry.uuid, chat: false });
     if (!result) throw Error(t("SDE.quests.notify.payoutPending"));
     if (result.length) (payout.reports ??= {})[key] = { kind: "xp", added: plan.xp.amount, label: entry.name, results: result, done: false };
     await done(key);
   }
   for (const uuid of plan.coins?.to ?? []) {
-    const key = `coins:${actorOf(uuid).id}`;
+    const actor = actorOf(uuid);
+    if (!actor) continue;
+    const key = `coins:${actor.id}`;
     if (payout.done[key]) continue;
-    const actor = actorOf(uuid), progress = actor.flags?.[MODULE_ID]?.questProgress ?? {};
+    const progress = actor.flags?.[MODULE_ID]?.questProgress ?? {};
     if (!progress[entry.id]?.coins) {
       const extra = {};
       for (const [coin, amount] of Object.entries(plan.coins.amount)) extra[`system.coins.${coin}`] = Number(actor.system.coins?.[coin] ?? 0) + amount;
@@ -288,6 +298,7 @@ async function pay(entry, quest) {
     const key = `item:${i}`, item = plan.items[i];
     if (payout.done[key]) continue;
     const actor = actorOf(item.to);
+    if (!actor) continue;
     if (!actor.items.contents.some(v => v.flags?.[MODULE_ID]?.questReward?.questUuid === entry.uuid && v.flags[MODULE_ID].questReward.index === i)) {
       const source = await fromUuid(item.uuid).catch(() => null);
       if (!source) throw Error(t("SDE.quests.notify.itemMissing", { item: item.name || item.uuid }));
@@ -300,9 +311,11 @@ async function pay(entry, quest) {
     await done(key);
   }
   for (const uuid of plan.renown?.to ?? []) {
-    const key = `renown:${actorOf(uuid).id}`;
+    const actor = actorOf(uuid);
+    if (!actor) continue;
+    const key = `renown:${actor.id}`;
     if (payout.done[key]) continue;
-    const result = await Renown.award({ actor: actorOf(uuid), delta: plan.renown.delta, reason: entry.name, source: "quest", questUuid: entry.uuid, chat: false });
+    const result = await Renown.award({ actor, delta: plan.renown.delta, reason: entry.name, source: "quest", questUuid: entry.uuid, chat: false });
     if (!result?.ok) throw Error(result?.error ?? t("SDE.quests.notify.payoutPending"));
     if (result.delta) (payout.reports ??= {})[key] = { kind: "renown", actorUuid: uuid, delta: result.delta, after: result.after, reason: entry.name, done: false };
     await done(key);
@@ -320,9 +333,11 @@ async function pay(entry, quest) {
         const marker = m.flags?.[MODULE_ID]?.questReport;
         return marker?.questUuid === entry.uuid && marker.key === key;
       });
+      const reportActor = report.kind === "renown" ? actorOf(report.actorUuid) : null;
+      if (report.kind === "renown" && !reportActor && !existing) { pending = true; continue; }
       const message = existing ?? (report.kind === "xp"
         ? await PartyXP._postCard({ ...report, questReport })
-        : await Renown.postQuestCard({ ...report, actor: actorOf(report.actorUuid), questReport }));
+        : await Renown.postQuestCard({ ...report, actor: reportActor, questReport }));
       if (!message) throw Error(t("SDE.quests.notify.payoutPending"));
       report.done = true;
       await replaceModuleFlag(entry, QUEST_FLAG, quest);

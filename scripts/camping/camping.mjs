@@ -46,7 +46,9 @@ function nearFire(party, camp) {
   });
 }
 async function lightFire(party, camp, source) {
-  if (!camp.anchor || !nearFire(party, camp)) invalid();
+  // No canvas: a fire cannot be placed or watched, so it is declined, not an error.
+  if (!camp.anchor) return;
+  if (!nearFire(party, camp)) invalid();
   const scene = game.scenes.get(camp.anchor.sceneId);
   camp.fire = { lit: true, source, started: camp.fire?.started ?? game.time.worldTime, lightId: camp.fire?.lightId ?? foundry.utils.randomID() };
   await save(party, camp);
@@ -101,7 +103,7 @@ async function resolveTasks(party, camp) {
     for (const p of camp.participants.filter(p => p.task === "firewood")) await rollTask(party, camp, p);
     const decision = fireDecision(camp, Object.values(camp.results));
     if (decision === "wood") { await lightFire(party, camp, "wood"); camp.phase = "tasks"; }
-    else camp.phase = decision === "none" ? "tasks" : "fuel";
+    else camp.phase = decision === "none" || !camp.anchor ? "tasks" : "fuel";
     await save(party, camp);
   }
   if (camp.phase === "tasks") {
@@ -148,11 +150,13 @@ async function perform(party, action, data, user) {
   if (action === "dc" && camp.phase === "setup" && user.isGM) { const t = camp.tasks.find(t => t.key === data.task); if (!t || !Number.isFinite(data.dc)) invalid(); t.dc = data.dc; await save(party, camp); return camp; }
   if (action === "resolve") {
     if (camp.phase === "setup") validateChoices(camp);
-    if (camp.phase === "setup") { if ((camp.fuel !== "none" || camp.participants.some(p => p.participate && p.task === "firewood")) && (!camp.anchor || !nearFire(party, camp))) invalid(); camp = lockCamp(camp); await save(party, camp); }
+    if (camp.phase === "setup") { if ((camp.fuel !== "none" || camp.participants.some(p => p.participate && p.task === "firewood")) && camp.anchor && !nearFire(party, camp)) invalid(); camp = lockCamp(camp); await save(party, camp); }
     return resolveTasks(party, camp);
   }
   if (action === "fuel" && camp.phase === "fuel") {
-    if (data.accept) {
+    // Without a canvas the fire cannot be placed, so an accepted fallback is
+    // declined without charging; an already charged plan simply misses its light.
+    if (data.accept && camp.anchor) {
       const plan = campTorchPlan(party, camp); if (!camp.fuelPlan && !plan.ok) return camp;
       if (!camp.fuelPlan && JSON.stringify(data.deductions) !== JSON.stringify(plan.deductions)) invalid();
       if (!camp.anchor || !nearFire(party, camp)) invalid();
@@ -167,7 +171,7 @@ async function perform(party, action, data, user) {
         if (flag(item, "campFuel") !== camp.id) { if (item.system.quantity < d.quantity) invalid(); await replaceModuleFlag(item, "campFuel", camp.id, { "system.quantity": item.system.quantity - d.quantity }); }
       }
       await lightFire(party, camp, "torches");
-    } else if (camp.fuelPlan) invalid();
+    } else if (!data.accept && camp.fuelPlan) invalid();
     camp.phase = "tasks"; await save(party, camp); return resolveTasks(party, camp);
   }
   if (action === "resume") { for (const p of camp.participants) { const a = actorOf(p.uuid); if (a) await expireCook(a); } return resolveTasks(party, camp); }
