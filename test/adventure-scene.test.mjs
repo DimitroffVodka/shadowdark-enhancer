@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { pinIcon, pinSize, pinArtFixes, PIN_ICON, placementGate, sceneSize, placementRows, nextPending, noteData, sceneData, MAP_FLAG, PIN_FLAG, DEFAULT_GRID_SIZE } from "../scripts/importer/adventure/adventure-scene.mjs";
+import { pinIcon, pinLabelSize, pinArtFixes, PIN_ICON, placementGate, sceneSize, placementRows, nextPending, noteData, sceneData, MAP_FLAG, PIN_FLAG, DEFAULT_GRID_SIZE } from "../scripts/importer/adventure/adventure-scene.mjs";
 import { planAdventureCommit, locationPagePayload, pageNum, ADVENTURE_FLAG } from "../scripts/importer/adventure/adventure-commit.mjs";
 
 // Invented data throughout.
@@ -64,19 +64,32 @@ test("pinIcon: art for 1 to 99, the book icon beyond", () => {
   assert.equal(pinIcon("x"), PIN_ICON);
 });
 
-test("pinArtFixes: old book-icon pins get the art; resized pins keep their size; current pins are left alone", () => {
-  const old = { id: "a", num: 4, src: "icons/svg/book.svg", text: "4", iconSize: 27 };        // grid 53: the old default was round(26.5) = 27
-  const resized = { id: "b", num: 5, src: "icons/svg/book.svg", text: "5", iconSize: 60 };
-  const current = { id: "c", num: 6, src: pinIcon(6), text: "", iconSize: 37 };
-  const fixes = pinArtFixes([old, resized, current], 53);
-  assert.deepEqual(fixes, [
-    { _id: "a", text: "", "texture.src": pinIcon(4), iconSize: pinSize(53) },
+test("pinLabelSize: half the chip, within Foundry's 8 to 128 and never tiny", () => {
+  assert.equal(pinLabelSize(53), 24);                  // chip 48 -> 24
+  assert.equal(pinLabelSize(100), 45);                 // chip 90
+  assert.equal(pinLabelSize(300), 128);                // chip 270 -> capped at Foundry's maximum
+  assert.equal(noteData({ entryId: "E", pageId: "P", num: 3, point: { x: 0, y: 0 }, gridSize: 100 }).fontSize, 45);
+});
+
+test("pinArtFixes: old pins get the art; hand-set sizes are kept; current pins are left alone", () => {
+  const oldLabel = { id: "e", num: 8, src: "icons/svg/book.svg", text: "8", iconSize: 27, fontSize: 24 };
+  const resized = { id: "b", num: 5, src: "icons/svg/book.svg", text: "5", iconSize: 60, fontSize: 90 };
+  const current = { id: "c", num: 6, src: pinIcon(6), text: "", iconSize: 48, fontSize: 24 };
+  assert.deepEqual(pinArtFixes([oldLabel, resized, current], 53), [
+    { _id: "e", text: "", "texture.src": pinIcon(8), iconSize: 48 },    // 24 already is the right label for grid 53
     { _id: "b", text: "", "texture.src": pinIcon(5) },
   ]);
   assert.deepEqual(pinArtFixes([current], 53), []);
   // Foundry keeps a Note's iconSize at 32 or more, so on a small grid the old default (27) was stored as 32.
-  const storedMin = { id: "d", num: 7, src: "icons/svg/book.svg", text: "7", iconSize: 32 };
-  assert.deepEqual(pinArtFixes([storedMin], 53), [{ _id: "d", text: "", "texture.src": pinIcon(7), iconSize: pinSize(53) }]);
+  const storedMin = { id: "d", num: 7, src: "icons/svg/book.svg", text: "7", iconSize: 32, fontSize: 24 };
+  assert.deepEqual(pinArtFixes([storedMin], 53), [{ _id: "d", text: "", "texture.src": pinIcon(7), iconSize: 48 }]);
+});
+
+test("pinArtFixes: a chip left at Foundry's default label size gets the sized label (Wortwick on a 300 px grid)", () => {
+  const chip = { id: "w", num: 1, src: pinIcon(1), text: "", iconSize: 270, fontSize: 32 };
+  assert.deepEqual(pinArtFixes([chip], 300), [{ _id: "w", text: "", "texture.src": pinIcon(1), fontSize: 128 }]);
+  assert.deepEqual(pinArtFixes([{ ...chip, fontSize: 128 }], 300), []);
+  assert.deepEqual(pinArtFixes([{ ...chip, fontSize: 90 }], 300), []);   // set by hand: kept
 });
 
 test("planAdventureCommit: creates, updates by number, reports a collision once", () => {

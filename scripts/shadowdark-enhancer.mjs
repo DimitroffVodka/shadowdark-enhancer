@@ -127,7 +127,7 @@ const STYLESHEET_REV = "4a6a3c111927";
 // stale); module.json carries the same hash and is fetched fresh at runtime. A
 // mismatch is a stale cache by construction — it cannot be anything else. Both
 // stamps are written by `npm run inventory` and gated by `inventory:check`.
-const BUILD_REV = "93ca7dc0bea2";
+const BUILD_REV = "5f771bb8902b";
 
 /**
  * Tell the user when their browser is running an old build of this module, and
@@ -274,6 +274,14 @@ function dropStaleModuleStylesheet(cssPath, keepId) {
 // is too late — it fires after the documents are built.
 Hooks.once("i18nInit", () => {
   registerActorTypes();
+});
+
+// Adventure maps built before the pin art, or its label size, existed take the current look when a GM views them.
+Hooks.on("canvasReady", async (cv) => {
+  const scene = cv?.scene;
+  if (!game.user?.isActiveGM || !scene?.getFlag(MODULE_ID, "adventureMap")) return;
+  try { await (await import("./importer/adventure/adventure-scene.mjs")).refreshPinArt(scene); }
+  catch (err) { console.warn(`${MODULE_ID} | adventure pins: could not refresh`, err); }
 });
 
 Hooks.once("init", () => {

@@ -41,6 +41,13 @@ export const pinIcon = (num) =>
 /** The size a pin is drawn at: a chip you can read the number on, bigger on a bigger grid. */
 export const pinSize = (gridSize = DEFAULT_GRID_SIZE) => Math.max(32, Math.round(gridSize * 0.9));
 
+/**
+ * The font size of the label Foundry shows under a pin (the room's name): half the chip's height,
+ * so it reads at the zoom the chip does. Foundry allows 8 to 128 and defaults to 32, which is a
+ * fraction of a chip on a big map.
+ */
+export const pinLabelSize = (gridSize = DEFAULT_GRID_SIZE) => Math.min(128, Math.max(24, Math.round(pinSize(gridSize) / 2)));
+
 const t = (key, data) => {
   const i18n = globalThis.game?.i18n;
   if (!i18n) return key;
@@ -105,6 +112,7 @@ export function noteData({ entryId, pageId, num, point, gridSize = DEFAULT_GRID_
     x: Math.round(point.x), y: Math.round(point.y),
     text: "",
     iconSize: pinSize(gridSize),
+    fontSize: pinLabelSize(gridSize),
     texture: { src: pinIcon(num) },
     flags: { [MODULE_ID]: { [PIN_FLAG]: { num } } },
   };
@@ -251,7 +259,7 @@ export const entryPages = (journal) =>
 /** The pins on a scene, as placementRows takes them. */
 export const scenePins = (scene) =>
   scene.notes.contents.map((n) => ({
-    id: n.id, num: n.getFlag(MODULE_ID, PIN_FLAG)?.num, x: n.x, y: n.y, src: n.texture?.src ?? "", text: n.text ?? "", iconSize: n.iconSize,
+    id: n.id, num: n.getFlag(MODULE_ID, PIN_FLAG)?.num, x: n.x, y: n.y, src: n.texture?.src ?? "", text: n.text ?? "", iconSize: n.iconSize, fontSize: n.fontSize,
   })).filter((n) => Number.isInteger(n.num));
 
 /**
@@ -264,12 +272,17 @@ export const scenePins = (scene) =>
 export function pinArtFixes(pins, gridSize = DEFAULT_GRID_SIZE) {
   const oldSize = Math.max(24, Math.round(gridSize * 0.5));
   const storedOldSize = Math.max(32, oldSize);   // Foundry keeps a Note's iconSize at 32 or more, so a small grid's old default is stored as 32
+  // The label sizes this module (or Foundry's default of 32) gave a pin before it was sized to the chip.
+  const oldFonts = new Set([32, Math.max(24, Math.round(gridSize * 0.4))]);
+  const fontSize = pinLabelSize(gridSize);
   const fixes = [];
   for (const p of pins) {
     const src = pinIcon(p.num);
-    if (p.src === src && !p.text) continue;
+    const fontStale = oldFonts.has(p.fontSize) && p.fontSize !== fontSize;
+    if (p.src === src && !p.text && !fontStale) continue;
     const fix = { _id: p.id, text: "", "texture.src": src };
     if (p.iconSize === oldSize || p.iconSize === storedOldSize) fix.iconSize = pinSize(gridSize);
+    if (fontStale) fix.fontSize = fontSize;
     fixes.push(fix);
   }
   return fixes;
