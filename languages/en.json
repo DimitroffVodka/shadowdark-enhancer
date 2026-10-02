@@ -4930,5 +4930,12 @@
   "SDE.importer.adventure.gutter": "Text crossed the column gutter on {pages} pages, most often {what}. The locations still imported; compare those pages against the book if one reads wrong: p{list}.",
   "SDE.importer.adventure.notify.noPack": "Adventures: the Journals pack could not be created.",
   "SDE.importer.adventure.notify.noEntry": "Adventures: the journal entry could not be created.",
-  "SDE.adventure.placer.writeFailed": "Could not place {num}. Click again to retry."
+  "SDE.adventure.placer.writeFailed": "Could not place {num}. Click again to retry.",
+  "SDE.adventure.placer.fromBook": "From the book",
+  "SDE.adventure.placer.fromBookTip": "Place every location the book's own map shows, from where your PDF prints its numbers. Locations already placed or skipped are left alone.",
+  "SDE.adventure.placer.fromBookDone": "Placed {placed} from the book's own map. {left} left for you to place.",
+  "SDE.adventure.placer.noBookMap": "This book does not print this map's numbers in a way the module can read. Place the locations by clicking.",
+  "SDE.adventure.placer.bookMapUnreadable": "The book's map pages could not be read. Place the locations by clicking.",
+  "SDE.adventure.placer.bookMapMismatch": "Your map image is not the same shape as the book's map, so the book's positions would land in the wrong places. Place the locations by clicking.",
+  "SDE.adventure.placer.bookMapFailed": "Could not place from the book's map. See the console for details."
 }

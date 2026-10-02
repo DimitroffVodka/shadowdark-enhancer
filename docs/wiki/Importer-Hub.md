@@ -305,14 +305,26 @@ adventure against the book.
 **Adventure map** puts those locations on a map. Pick an adventure you have
 imported and the map image that came with the book (the module ships no maps),
 and it builds a scene sized from the image and the book's printed grid, then opens
-the **Place locations** window. The numbers are printed inside your image, so the
-module cannot read where each one sits; you show it once. Press **Place next**,
-click the map where the number is printed, and the pin drops and the next location
-is ready, so a thirty-room dungeon is thirty clicks along the printed numbers.
-Right-click puts the target down. Each row also has **Skip** (a location the map
-does not show) and **Clear** (take its pin off), and a pin can be moved by
-placing it again. Pins and skips are kept on the scene, so you can stop at any
-point and pick the map up later with **Continue placing**. Each pin opens its
+the **Place locations** window.
+
+For four adventures the book prints its room numbers as text over its map, so your
+PDF already says where each one goes, and the pins are placed **from the book**
+straight away: the Hideous Halls of Mugdulblub, the Hoard of the Sea Wolf King, and
+both levels of the Ghoulish Library of Leng. Check them against the map and nudge
+any that sit off a room (placing a pin again moves it). The map image has to be the
+same map as the book's, not a different crop; if its shape is more than 3% off, the
+module says so and does not place anything. The **From the book** button does the
+same for a scene you already have, and never touches a pin you placed or a location
+you skipped.
+
+Every other adventure (and any room the book's map does not show) is placed by
+clicking. The numbers are printed inside your image there, so you show the module
+once: press **Place next**, click the map where the number is printed, and the pin
+drops and the next location is ready, so a thirty-room dungeon is thirty clicks along
+the printed numbers. Right-click puts the target down. Each row also has **Skip** (a
+location the map does not show) and **Clear** (take its pin off), and a pin can be
+moved by placing it again. Pins and skips are kept on the scene, so you can stop at
+any point and pick the map up later with **Continue placing**. Each pin opens its
 location's journal page.
 
 **Chapter to journal** turns a range of pages from a linked PDF into one

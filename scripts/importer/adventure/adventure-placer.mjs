@@ -14,7 +14,11 @@
  */
 
 import { MODULE_ID } from "../../shared/module-id.mjs";
-import { MAP_FLAG, entryPages, scenePins, placementRows, nextPending, noteData, setSkipped, placementGate, restoreSiteJournal } from "./adventure-scene.mjs";
+import { MAP_FLAG, entryPages, scenePins, placementRows, nextPending, noteData, setSkipped, placementGate, restoreSiteJournal, planBookPins } from "./adventure-scene.mjs";
+import { findSite } from "./adventure-manifest.mjs";
+import { stitchMapLabels, mapFits } from "./map-labels.mjs";
+import { resolveSourcePdf, sourcePdfTarget } from "../source-pdf-registry.mjs";
+import { parsePageRange } from "../pdf-text-extract.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
@@ -42,6 +46,7 @@ export class AdventurePlacer extends HandlebarsApplicationMixin(ApplicationV2) {
     actions: {
       advPlace: function (...a) { return this._onPlace(...a); },
       advNext: function (...a) { return this._onNext(...a); },
+      advBook: function (...a) { return this._onBook(...a); },
       advStop: function (...a) { return this._onStop(...a); },
       advSkip: function (...a) { return this._onSkip(...a); },
       advClear: function (...a) { return this._onClear(...a); },
@@ -196,6 +201,53 @@ export class AdventurePlacer extends HandlebarsApplicationMixin(ApplicationV2) {
     const next = nextPending(this._rows(), num);
     if (next) this.arm(next.num);
     else { this.disarm(); ui.notifications?.info(t("SDE.adventure.placer.allDone")); }
+  }
+
+  // ─── From the book's own map ───────────────────────────────────────────────
+
+  /**
+   * Place every pending location the book's own keyed map shows. The map is one
+   * picture per PDF page with the room numbers as text over it, so the GM's PDF
+   * says where each number sits; nothing is analysed in the image. Placed and
+   * skipped locations are left alone. The scene's image has to be the same shape
+   * as the book's map (the GM's copy of that map, not a different crop).
+   * @returns {Promise<{placed:number, left:number}|null>} null when nothing could be read or the image does not fit
+   */
+  async placeFromBook() {
+    const flag = this.scene.getFlag(MODULE_ID, MAP_FLAG);
+    const site = findSite(flag?.site);
+    if (!site?.mapPages) { ui.notifications?.info(t("SDE.adventure.placer.noBookMap")); return null; }
+    const file = resolveSourcePdf(site.src);
+    if (!file) { ui.notifications?.warn(t("SDE.importer.pdf.bookNotLinked")); return null; }
+    const token = this._gate.claim();
+    if (token === null) return null;
+    try {
+      const pages = parsePageRange(site.mapPages).map((p) => sourcePdfTarget(site.src, String(p))?.page).filter(Number.isInteger);
+      const { extractMapLabels } = await import("../pdf-text-extract.mjs");
+      const map = stitchMapLabels(await extractMapLabels(file, pages));
+      const rect = this.scene.dimensions?.sceneRect ?? { x: 0, y: 0, width: this.scene.width, height: this.scene.height };
+      if (!map) { ui.notifications?.warn(t("SDE.adventure.placer.bookMapUnreadable")); return null; }
+      if (!mapFits(map.aspect, rect.width, rect.height)) { ui.notifications?.warn(t("SDE.adventure.placer.bookMapMismatch")); return null; }
+      const { create, left } = planBookPins({
+        rows: this._rows(), points: map.points, rect, entryId: flag.entryId, gridSize: this.scene.grid?.size,
+      });
+      if (create.length) await this.scene.createEmbeddedDocuments("Note", create);
+      ui.notifications?.info(t("SDE.adventure.placer.fromBookDone", { placed: create.length, left: left.length }));
+      return { placed: create.length, left: left.length };
+    } catch (err) {
+      console.error(`${MODULE_ID} | adventure placer: placing from the book's map failed`, err);
+      ui.notifications?.error(t("SDE.adventure.placer.bookMapFailed"));
+      return null;
+    } finally {
+      this._gate.release();
+      this.render();
+    }
+  }
+
+  async _onBook() {
+    this.disarm();
+    await this.placeFromBook();
+    this._onNext();
   }
 
   // ─── Actions ───────────────────────────────────────────────────────────────

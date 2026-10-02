@@ -99,6 +99,28 @@ export function noteData({ entryId, pageId, num, point, gridSize = DEFAULT_GRID_
 }
 
 /**
+ * Pure: the pins for every pending location the book's own map has a point for.
+ * A placed or skipped location is never touched, and one the book's map does
+ * not show is left for the GM to click.
+ * @param {{rows:ReturnType<typeof placementRows>, points:Map<number,{x:number,y:number}>, rect:{x:number,y:number,width:number,height:number}, entryId:string, gridSize?:number}} args
+ *   points are fractions of the map; rect is the scene's image area
+ * @returns {{create:object[], left:number[]}}
+ */
+export function planBookPins({ rows, points, rect, entryId, gridSize }) {
+  const create = [], left = [];
+  for (const row of rows) {
+    if (row.state !== "pending") continue;
+    const at = points.get(row.num);
+    if (!at) { left.push(row.num); continue; }
+    create.push(noteData({
+      entryId, pageId: row.pageId, num: row.num, gridSize,
+      point: { x: rect.x + at.x * rect.width, y: rect.y + at.y * rect.height },
+    }));
+  }
+  return { create, left };
+}
+
+/**
  * Pure: the lifecycle of one placement write. A click claims the slot before it
  * awaits the Note write, so a second click while that write is pending is
  * ignored instead of dropping a second Note; cancel() (stop, right-click, close,

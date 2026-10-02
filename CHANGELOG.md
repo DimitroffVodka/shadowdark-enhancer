@@ -11,6 +11,13 @@ it needs.
 
 ### Added
 
+- **The Hideous Halls, the Sea Wolf King's caves and the Library of Leng place their own pins.**
+  These books print their room numbers as text over the map, so your PDF already says
+  where each number sits. Adventure map now places every location from the book as soon
+  as the scene is built (a **From the book** button does the same for an existing
+  scene), and you nudge any that miss. The other adventures are still placed by
+  clicking. The map image has to be the same shape as the book's map; if it is more than
+  3% off, nothing is placed and you are told why.
 - **The Cursed Scrolls' adventures import, and their keyed locations go on the map.**
   Importer Hub → Tools → **Adventures** reads the numbered locations of every
   Cursed Scroll adventure out of your own PDF (Cursed Scrolls 1 to 6: the Hideous

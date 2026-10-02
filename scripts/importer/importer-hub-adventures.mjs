@@ -139,6 +139,9 @@ class HubAdventureMethods {
       if (built.skewed) ui.notifications.warn(t("SDE.adventure.notify.skewed", { title: site.title }));
     }
     const placer = await AdventurePlacer.open(scene);
+    // A map the book prints with its numbers as text is placed from the book; the
+    // rest, and any a map does not show, is the GM's to click.
+    if (answer.mode === "build" && site.mapPages) await placer?.placeFromBook();
     placer?._onNext();
   }
 }

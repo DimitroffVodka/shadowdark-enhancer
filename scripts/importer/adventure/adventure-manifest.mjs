@@ -21,6 +21,11 @@
  *          printed size ("68 wide x 44 high"); the scene's grid size is the
  *          image width over it. Absent: a 100 px grid
  *   skip   banner lines to drop (a regexp source)
+ *   mapPages  PDF pages that print the site's keyed map, left to right, when the
+ *          book prints its room numbers as text over one picture per page (a
+ *          two-page spread for the big dungeons). The pins are then placed from
+ *          where the book puts them (map-labels.mjs); a site without it is placed
+ *          by clicking. Verified against the PDFs: every number in `range` is found
  *
  * Verified against the six PDFs with the module's own extractor and parser,
  * page by page: 33, 35 (19 + 16), 34 (5 + 29), 9 x 9 (+ 10 + 3 + 8), 64
@@ -42,7 +47,7 @@ const district = (id, title, pages, range) => ({
 
 export const ADVENTURE_SITES = {
   CS1: [
-    { id: "cs1-mugdulblub", title: "The Hideous Halls of Mugdulblub", pages: "53-64", range: [1, 33], style: "caps", grid: [68, 44] },
+    { id: "cs1-mugdulblub", title: "The Hideous Halls of Mugdulblub", pages: "53-64", range: [1, 33], style: "caps", grid: [68, 44], mapPages: "66-67" },
   ],
   CS2: [
     { id: "cs2-iron-fortress", title: "Fortress of the Burning Brothers: The Iron Fortress", pages: "49-55", range: [1, 19], style: "caps", grid: [45, 35] },
@@ -50,7 +55,7 @@ export const ADVENTURE_SITES = {
   ],
   CS3: [
     { id: "cs3-wortwick", title: "Wortwick Monastery", pages: "23-24", range: [1, 5], style: "caps", grid: [28, 28] },
-    { id: "cs3-sea-wolf", title: "Hoard of the Sea Wolf King", pages: "53-64", range: [1, 29], style: "caps", grid: [68, 44] },
+    { id: "cs3-sea-wolf", title: "Hoard of the Sea Wolf King", pages: "53-64", range: [1, 29], style: "caps", grid: [68, 44], mapPages: "66-67" },
   ],
   CS4: [
     cs4("army-ants", "Army Ants", 40, 9, [36, 30]),
@@ -64,8 +69,8 @@ export const ADVENTURE_SITES = {
     cs4("tsibalba", "Tsibalba", 56, 10, [20, 19]),
   ],
   CS5: [
-    { id: "cs5-leng-1", title: "The Ghoulish Library of Leng: Level 1", pages: "41-50", range: [1, 28], style: "caps", grid: [66, 42] },
-    { id: "cs5-leng-2", title: "The Ghoulish Library of Leng: Level 2", pages: "51-63", range: [29, 64], style: "caps", grid: [66, 42] },
+    { id: "cs5-leng-1", title: "The Ghoulish Library of Leng: Level 1", pages: "41-50", range: [1, 28], style: "caps", grid: [66, 42], mapPages: "64-65" },
+    { id: "cs5-leng-2", title: "The Ghoulish Library of Leng: Level 2", pages: "51-63", range: [29, 64], style: "caps", grid: [66, 42], mapPages: "66-67" },
   ],
   CS6: [
     district("gedgarrin", "Gedgarrin", "50-51", [1, 6]),
