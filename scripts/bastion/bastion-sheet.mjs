@@ -11,50 +11,15 @@
 import { MODULE_ID } from "../shared/module-id.mjs";
 import { esc } from "../shared/esc.mjs";
 import * as core from "./bastion-core.mjs";
-import { stateOf, updateOf } from "./bastion-core.mjs";
+import { stateOf } from "./bastion-core.mjs";
 import { renderPlan } from "./bastion-plan.mjs";
-import { isPartyActor, fundingActors, planDeposit, planWithdraw, purseUpdate, purseOf } from "./bastion-funding.mjs";
-import { bastionArt } from "./bastion-art.mjs";
+import { isPartyActor } from "./bastion-funding.mjs";
+import { ensureSprites } from "./bastion-art.mjs";
+import { t, format, WHY, logText } from "./bastion-text.mjs";
+import { writeState, fundBastion } from "./bastion-writes.mjs";
 
 const { HandlebarsApplicationMixin } = foundry.applications.api;
 const { ActorSheetV2 } = foundry.applications.sheets;
-
-const SPRITES_URL = `modules/${MODULE_ID}/assets/bastion/sprites.svg`;
-const t = (key) => game.i18n.localize(key);
-const format = (key, data) => game.i18n.format(key, data);
-
-/** The art as symbols, loaded into the page once so a plan can `<use>` it. */
-let spritesLoaded = null;
-export function ensureSprites() {
-  spritesLoaded ??= (async () => {
-    if (document.getElementById("sde-bastion-sprites")) return;
-    const text = await (await fetch(foundry.utils.getRoute(SPRITES_URL))).text();
-    const holder = document.createElement("div");
-    holder.id = "sde-bastion-sprites";
-    holder.hidden = true;
-    holder.innerHTML = text;
-    document.body.append(holder);
-  })().catch((err) => { spritesLoaded = null; throw err; });
-  return spritesLoaded;
-}
-
-/** Why a rules call said no, in words (written out in full: the i18n test scans for keys). */
-const WHY = {
-  unknown: "SDE.bastion.why.unknown",
-  full: "SDE.bastion.why.full",
-  unstanding: "SDE.bastion.why.unstanding",
-  broke: "SDE.bastion.why.broke",
-  tooMany: "SDE.bastion.why.tooMany",
-  nothing: "SDE.bastion.why.nothing",
-  amount: "SDE.bastion.why.amount",
-  built: "SDE.bastion.why.built",
-};
-
-const samePurse = (a, b) => a.gp === b.gp && a.sp === b.sp && a.cp === b.cp;
-
-/** A log line, with any i18n key in its data (an upgrade's name) turned into words. */
-const logText = (entry) => format(entry.key, Object.fromEntries(
-  Object.entries(entry.data ?? {}).map(([k, v]) => [k, typeof v === "string" && v.startsWith("SDE.") ? t(v) : v])));
 
 export class BastionSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   static DEFAULT_OPTIONS = {
@@ -149,19 +114,8 @@ export class BastionSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
   // ── Writes ─────────────────────────────────────────────────────────────────
 
-  /** Write a state back, and say so when Foundry vetoed it after the fact. */
-  async _write(next) {
-    if (!game.user.isGM) return false;
-    const update = updateOf(next), was = this.document.system.type;
-    // A bastion still wearing its old type's art takes the new type's.
-    if (next.type !== was) {
-      if (this.document.img === bastionArt(was)) update.img = bastionArt(next.type);
-      if (this.document.prototypeToken.texture.src === bastionArt(was)) update["prototypeToken.texture.src"] = bastionArt(next.type);
-    }
-    const saved = await this.document.update(update);
-    if (!saved) ui.notifications?.warn(t("SDE.bastion.notify.notSaved"));
-    return !!saved;
-  }
+  /** Write a state back (the GM's), and say so when Foundry vetoed it after the fact. */
+  _write(next) { return writeState(this.document, next); }
 
   /** Run a rules function on the current state and write its result, or say why not. */
   async _apply(fn) {
@@ -217,86 +171,10 @@ export class BastionSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     await ChatMessage.create({ content: `<p><strong>${esc(this.document.name)}</strong> ${esc(line)}</p>`, speaker: { alias: this.document.name } });
   }
 
-  // ── Paying in and out of the treasury ──────────────────────────────────────
+  // ── Paying in and out of the treasury (bastion-writes.mjs) ─────────────────
 
-  _onDeposit() { return this._fund("deposit"); }
-  _onWithdraw() { return this._fund("withdraw"); }
-
-  /** Ask who and how much, then move that gold between a character's purse and the treasury. */
-  async _fund(direction) {
-    if (!game.user.isGM) return false;
-    const link = this.document.system.party;
-    const party = link ? await fromUuid(link).catch(() => null) : null;
-    const people = fundingActors({
-      party,
-      resolve: (id) => game.actors.get(id) ?? fromUuidSync(id, { strict: false }),
-      players: game.actors.filter((a) => a.type === "Player"),
-    });
-    if (!people.length) {
-      ui.notifications?.warn(t("SDE.bastion.fund.nobody"));
-      return false;
-    }
-    const pick = await this._promptFunding(direction, people);
-    const person = pick && people.find((a) => a.uuid === pick.who);
-    const gp = Number(pick?.gp);   // not rounded: a part of a coin is refused by the plan, not quietly paid as less
-    if (!person) return false;
-    return direction === "deposit" ? this._deposit(person, gp) : this._withdraw(person, gp);
-  }
-
-  _promptFunding(direction, people) {
-    const options = people.map((a) => `<option value="${esc(a.uuid)}">${esc(a.name)} (${esc(format("SDE.bastion.fund.purse", { gp: a.system.coins.gp ?? 0 }))})</option>`).join("");
-    const paying = direction === "deposit";
-    return foundry.applications.api.DialogV2.prompt({
-      window: { title: paying ? "SDE.bastion.fund.depositTitle" : "SDE.bastion.fund.withdrawTitle" },
-      content: `<div class="form-group"><label>${esc(t("SDE.bastion.fund.who"))}</label><div class="form-fields"><select name="who">${options}</select></div></div>
-        <div class="form-group"><label>${esc(t("SDE.bastion.fund.amount"))}</label><div class="form-fields"><input type="number" name="gp" min="1" step="1" value="10" autofocus></div></div>`,
-      ok: {
-        label: paying ? "SDE.bastion.fund.deposit" : "SDE.bastion.fund.withdraw",
-        callback: (_event, button) => new foundry.applications.ux.FormDataExtended(button.form).object,
-      },
-      rejectClose: false,
-    });
-  }
-
-  /**
-   * A character pays in: their purse first, then the treasury. Each write is read back, and if the
-   * treasury refuses the purse is put back as it was.
-   */
-  async _deposit(person, gp) {
-    const before = this.state, was = purseOf(person), plan = planDeposit(was, gp);
-    if (!plan.ok) {
-      ui.notifications?.warn(plan.error === "broke" ? format("SDE.bastion.fund.noPurse", { name: person.name, gp }) : t(WHY[plan.error]));
-      return false;
-    }
-    const { state: next, error } = core.deposit(before, gp, person.name);
-    if (error) { ui.notifications?.warn(t(WHY[error] ?? WHY.unknown)); return false; }
-    const paid = await person.update(purseUpdate(plan.coins));
-    if (!paid || !samePurse(purseOf(person), plan.coins)) { ui.notifications?.warn(t("SDE.bastion.notify.notSaved")); return false; }
-    if (await this._write(next)) {
-      ui.notifications?.info(logText(next.log.at(-1)));
-      return true;
-    }
-    await person.update(purseUpdate(was));
-    ui.notifications?.warn(t("SDE.bastion.fund.undone"));
-    return false;
-  }
-
-  /** The treasury pays out: it first, then the character's purse; if the purse refuses, the treasury is put back. */
-  async _withdraw(person, gp) {
-    const before = this.state, was = purseOf(person), plan = planWithdraw(was, gp);
-    if (!plan.ok) { ui.notifications?.warn(t(WHY[plan.error])); return false; }
-    const { state: next, error } = core.withdraw(before, gp, person.name);
-    if (error) { ui.notifications?.warn(t(WHY[error] ?? WHY.unknown)); return false; }
-    if (!(await this._write(next))) return false;
-    const paid = await person.update(purseUpdate(plan.coins));
-    if (paid && samePurse(purseOf(person), plan.coins)) {
-      ui.notifications?.info(logText(next.log.at(-1)));
-      return true;
-    }
-    await this._write(before);
-    ui.notifications?.warn(t("SDE.bastion.fund.undone"));
-    return false;
-  }
+  _onDeposit() { return fundBastion(this.document, "deposit"); }
+  _onWithdraw() { return fundBastion(this.document, "withdraw"); }
 
   /** The plan as a standalone SVG: the page's art symbols plus what's drawn. */
   _planSvg() {

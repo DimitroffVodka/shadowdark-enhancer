@@ -22,8 +22,10 @@ it needs.
   `tools/bastion-art`). The effects (the Granary's saving, the Barracks' healing) are
   recorded, not yet applied. A bastion can name the party that owns it, and **Pay in** and
   **Pay out** move whole gold between a member's purse and the treasury (Extras keeps a
-  party's own coins in its own data, so those are left alone). API 1.27.0 adds
-  `game.shadowdarkEnhancer.bastion`.
+  party's own coins in its own data, so those are left alone). A **Bastions** panel lists the
+  bastions you can see, or one party's, a card each (art, type, week, hit points, treasury,
+  upgrades), from a crawl bar button (once the world has a bastion) and the Actors directory's
+  right-click menu on a party. API 1.27.0 adds `game.shadowdarkEnhancer.bastion`.
 - **The Cursed Scrolls' adventures import, and their keyed locations go on the map.**
   Importer Hub → Tools → **Adventures** reads the numbered locations of every
   Cursed Scroll adventure out of your own PDF (Cursed Scrolls 1 to 6: the Hideous

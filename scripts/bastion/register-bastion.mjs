@@ -14,9 +14,10 @@ import { MODULE_ID } from "../shared/module-id.mjs";
 import * as core from "./bastion-core.mjs";
 import { BastionDataModel } from "./bastion-data-model.mjs";
 import { BastionSheet } from "./bastion-sheet.mjs";
-import { bastionArt } from "./bastion-art.mjs";
+import { BASTION_TYPE, bastionArt } from "./bastion-art.mjs";
+import { registerBastionEntryPoints } from "./bastion-entry-points.mjs";
 
-export const BASTION_TYPE = `${MODULE_ID}.bastion`;
+export { BASTION_TYPE };
 
 export function registerBastion() {
   const DSC = foundry.applications.apps.DocumentSheetConfig;
@@ -28,6 +29,7 @@ export function registerBastion() {
   });
   CONFIG.Actor.typeIcons ??= {};
   CONFIG.Actor.typeIcons[BASTION_TYPE] = "fa-solid fa-chess-rook";
+  registerBastionEntryPoints();
 
   // A new bastion carries its type's art, and one actor is one place: its token is linked.
   Hooks.on("preCreateActor", (doc, data) => {
@@ -59,6 +61,11 @@ export function bastionApi() {
         type: BASTION_TYPE,
         system: { type: def.id, weeksLeft: def.weeks, hp: { value: def.hp }, treasury: Math.max(0, Math.trunc(Number(treasury) || 0)) },
       });
+    },
+    // The panel: every bastion you can see, or those one party owns.
+    openPanel: async ({ party } = {}) => {
+      const { BastionPanel } = await import("./bastion-panel.mjs");
+      return BastionPanel.open({ party: party ? find(party) : null });
     },
     open: (ref) => { const actor = find(ref); if (isBastion(actor)) actor.sheet?.render(true); return isBastion(actor); },
     // A bastion's rules state: type, hit points, treasury, upgrades with their places and weeks left.

@@ -11878,3 +11878,30 @@ button.sde-hud-day:hover { border-color: var(--sd-frame); }
   -webkit-appearance: none;
   appearance: none;
 }
+
+/* ── Bastion panel ──────────────────────────────────────────────────────────
+ * A window listing bastions as cards, in the sheet's parchment so the two read as one. */
+.sde-bastion-panel .window-content { background: url("/ui/parchment.jpg") repeat; color: #191813; padding: 8px; overflow: auto; }
+.sde-bastion-panel button { background: rgba(0, 0, 0, 0.06); border: 1px solid rgba(0, 0, 0, 0.35); border-radius: 4px; padding: 3px 9px; cursor: pointer; color: #191813; width: auto; }
+.sde-bastion-panel button:hover { background: rgba(0, 0, 0, 0.12); }
+.sde-bastion-panel .window-header .header-control { color: rgba(235, 230, 220, 0.82); }
+.sde-bastion-panel .window-header .header-control:hover { color: #fff; }
+.sde-bp-toolbar { margin-bottom: 8px; }
+.sde-bp-cards { display: flex; flex-direction: column; gap: 8px; }
+.sde-bp-card { display: grid; grid-template-columns: 110px 1fr; gap: 10px; padding: 8px; border: 1px solid rgba(0, 0, 0, 0.35); border-radius: 6px; background: rgba(255, 255, 255, 0.4); }
+.sde-bp-card.breached { border-color: #b22222; }
+.sde-bp-card .art { width: 110px; height: 110px; object-fit: contain; background: #85A478; border-radius: 4px; cursor: pointer; }
+.sde-bp-card header { display: flex; align-items: baseline; gap: 8px; }
+.sde-bp-card header strong { font-size: 17px; cursor: pointer; }
+.sde-bp-card header span { opacity: 0.7; font-size: 12px; }
+.sde-bp-card .line { margin: 2px 0 6px; font-size: 12px; opacity: 0.85; }
+.sde-bp-card .hp { position: relative; height: 18px; border: 1px solid rgba(0, 0, 0, 0.5); border-radius: 4px; background: rgba(0, 0, 0, 0.15); overflow: hidden; }
+.sde-bp-card .hp i { position: absolute; inset: 0 auto 0 0; background: #5f8f5a; }
+.sde-bp-card.breached .hp i { background: #b22222; }
+.sde-bp-card .hp span { position: relative; display: block; text-align: center; font-size: 12px; line-height: 16px; color: #fff; text-shadow: 0 0 2px #000; }
+.sde-bp-card .figs { display: flex; gap: 14px; margin: 6px 0; font-size: 13px; }
+.sde-bp-card .built { display: flex; flex-wrap: wrap; gap: 3px; margin-bottom: 6px; }
+.sde-bp-card .built svg { width: 30px; height: 30px; border-radius: 3px; }
+.sde-bp-card .built svg.faint { opacity: 0.4; }
+.sde-bp-card footer { display: flex; gap: 6px; }
+.sde-bp-empty { margin: 14px 4px; font-style: italic; opacity: 0.8; }

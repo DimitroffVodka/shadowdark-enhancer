@@ -114,6 +114,18 @@ later. Upgrades being built are drawn faint.
 
 ---
 
+## The panel
+
+**Bastions** (a button on the crawl bar once the world has one, and in the Actors
+directory's right-click menu on a party actor) opens a panel with a card for each
+bastion you can see, or just the party's: its art, type and week, hit points,
+treasury, upgrades built and building. **Open** opens the sheet. The GM also gets
+**Pay in** and **Pay out** on each card, and **New bastion**, which makes a House
+owned by the panel's party when it was opened for one. The panel redraws as
+bastions change. Players see the bastions they have at least Observer permission on.
+
+---
+
 ## The monthly disaster
 
 Each month the GM rolls a d6; on a 1 they roll a d4:

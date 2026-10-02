@@ -1,7 +1,7 @@
 # Shadowdark Enhancer — File Inventory
 
 <!-- inventory:stats:start -->
-1247 tracked files · ~209,100 lines of code/markup across scripts+templates+styles+test.
+1254 tracked files · ~209,500 lines of code/markup across scripts+templates+styles+test.
 `v0.17.3` in both `module.json` and `package.json`.
 <!-- inventory:stats:end -->
 **Layout reflects the 2026-07-21 feature-folder reorganization (v0.11.0 cycle).**
@@ -133,7 +133,7 @@
 | `curated-icon-maps/weapon-icons.mjs` | 47 | N3's 37 reviewed Foundry-native weapon icons, keyed by source-agnostic normalized final Item name and registered through the A4 discovery seam. |
 | `attack-card.mjs` | 107 | Reading a Shadowdark attack card — was it an attack at all (a targeted spell is not), did it land, who was it aimed at, who swung. Shared by Parry and Taunt so the two can never disagree about the target (they once did, silently). |
 | `settings.mjs` | 852 | All `game.settings.register` calls + migration-safe defaults. |
-| `icons.mjs` | 91 | Centralized icon registry — FontAwesome snippets and vendored SVG references. |
+| `icons.mjs` | 92 | Centralized icon registry — FontAwesome snippets and vendored SVG references. |
 | `compendium-suite.mjs` | 459 | Find-or-create layer for managed world packs, ownership, sidebar folders, and source folders. |
 | `loading-dialog-guard.mjs` | 112 | Guards the system's leaked `LoadingSD` spinner when `ItemSheetSD.getData` throws. |
 | `art-utils.mjs` | 164 | Portrait/token image resolution across world + compendium sources. |
@@ -177,7 +177,7 @@
 
 | File | Lines | Description |
 |---|---:|---|
-| `crawl-bar.mjs` | 773 | GM-only persistent bottom bar above the macro bar (mode toggles, tools, launchers). |
+| `crawl-bar.mjs` | 787 | GM-only persistent bottom bar above the macro bar (mode toggles, tools, launchers). |
 
 ### 3.5 `scripts/encounter/` — the Encounter Roller
 
@@ -515,10 +515,15 @@ One world JournalEntry per quest, its state one flag on the entry. World journal
 | `bastion-core.mjs` | 281 | The rules, pure: the four types and twenty upgrades with their costs and caps, building a week at a time, repairs, the monthly disaster, and the state the actor stores. |
 | `bastion-plan.mjs` | 315 | The plan, pure: SVG markup for a bastion from outside (buildings round the main one) or in (one connected compound of rooms, with roofs), each upgrade keeping the place it took. |
 | `bastion-funding.mjs` | 55 | The party link and paying into the treasury, pure: which actors are parties, who can pay, and the purse arithmetic for paying gold in and out. Extras' own party coins are never read or written. |
-| `bastion-art.mjs` | 10 | Where the bastion art files are (assets/bastion/art), so an actor and its token carry their type's exterior. |
+| `bastion-art.mjs` | 33 | The actor type id, where the bastion art files are (assets/bastion/art), and the one-time load of the sprite sheet the plan and the panel draw from. |
 | `bastion-data-model.mjs` | 47 | The Bastion actor's data model: type, build weeks, hit points, treasury, upgrades and their places, repair, log. |
-| `bastion-sheet.mjs` | 400 | The Bastion actor sheet (ApplicationV2): Overview, Upgrades, Plan (exterior and interior, roofs, zoom, room card, SVG and PNG export) and Log. The GM edits. |
-| `register-bastion.mjs` | 73 | Registers the `shadowdark-enhancer.bastion` actor type, its sheet and art defaults, and builds `game.shadowdarkEnhancer.bastion`. |
+| `bastion-sheet.mjs` | 278 | The Bastion actor sheet (ApplicationV2): Overview, Upgrades, Plan (exterior and interior, roofs, zoom, room card, SVG and PNG export) and Log. The GM edits. |
+| `register-bastion.mjs` | 80 | Registers the `shadowdark-enhancer.bastion` actor type, its sheet and art defaults, and builds `game.shadowdarkEnhancer.bastion`. |
+| `bastion-text.mjs` | 22 | Words the sheet and the panel share: the localizers, why a rules call said no, and a log line turned into words. |
+| `bastion-writes.mjs` | 106 | Writing a bastion and paying into it, the GM's: a state written back as one update (the type's art follows a retype), and gold moved between a character's purse and the treasury with each write read back and the first put back if the second is refused. |
+| `bastion-panel-core.mjs` | 44 | What the panel shows, pure: the bastions a user can see (optionally one party's) and the card for each: art, type, week, hit points, treasury, upgrades built and building. |
+| `bastion-panel.mjs` | 108 | The Bastion panel window (ApplicationV2): a card per bastion with Open, and for the GM Pay in, Pay out and New bastion. Redraws as bastions change. |
+| `bastion-entry-points.mjs` | 33 | The ways into the panel: a Bastions entry in the Actors directory's right-click menu on a party actor (the GM always; a player when the party owns a bastion they can see). |
 
 A place the party owns: the four types and twenty upgrades, built a week at a time, drawn from outside or in. The art is assets/bastion, generated by tools/bastion-art.
 <!-- inventory:scripts:end -->

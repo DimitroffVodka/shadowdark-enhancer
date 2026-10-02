@@ -92,6 +92,9 @@ api.bastion.open(actor);          // open the sheet; true when it is a bastion
 api.bastion.state(actor);         // { type, weeksLeft, week, hp:{value}, treasury, upgrades:[{id,slot,weeksLeft}], repair, log } or null
 api.bastion.built(actor);         // ids of the upgrades that are finished, so give their effect
 
+api.bastion.openPanel();          // the bastions panel: every bastion you can see
+api.bastion.openPanel({ party }); // ...or just those a party owns
+
 api.bastion.partyOf(actor);       // the party actor that owns it, or null
 api.bastion.forParty(party);      // the bastion actors a party owns, [] for none
 ```
@@ -105,6 +108,7 @@ api.bastion.forParty(party);      // the bastion actors a party owns, [] for non
 | `bastion.open(actorOrIdOrUuid)` | any | Renders the sheet. Returns whether the argument was a bastion. |
 | `bastion.state(actorOrIdOrUuid)` | any | A plain copy of the rules state, or `null`. An upgrade's `slot` is its place on the plan (`-1` for the moat, which has none). |
 | `bastion.built(actorOrIdOrUuid)` | any | The finished upgrades' ids (`weeksLeft` 0), `[]` for anything else. |
+| `bastion.openPanel({ party })` | any | Opens the Bastion panel (one window; a second call brings it forward). `party` is an actor, id or UUID, to show only that party's bastions. Resolves to the panel. A player sees the bastions they have Observer permission on. |
 | `bastion.partyOf(actorOrIdOrUuid)` | any | The party actor a bastion names (`system.party`, set on its sheet by the GM), or `null`. |
 | `bastion.forParty(partyOrIdOrUuid)` | any | The bastion actors whose `system.party` is that party. |
 
