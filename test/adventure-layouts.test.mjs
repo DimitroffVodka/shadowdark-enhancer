@@ -37,7 +37,8 @@ test("layoutSnippet: paste-ready text, four pins to a line, parses back to the l
 });
 
 test("every shipped layout belongs to a site, covers its whole range, and sits inside the map", () => {
-  assert.deepEqual(Object.keys(ADVENTURE_LAYOUTS).sort(), ["cs1-mugdulblub", "cs3-sea-wolf", "cs5-leng-1", "cs5-leng-2"]);
+  // Every adventure has one: a map uploaded for any of them is placed with no clicking.
+  assert.deepEqual(Object.keys(ADVENTURE_LAYOUTS).sort(), allSites().map((s) => s.id).sort());
   for (const [id, layout] of Object.entries(ADVENTURE_LAYOUTS)) {
     const site = findSite(id);
     assert.ok(site, `${id}: no such site`);
@@ -52,8 +53,8 @@ test("every shipped layout belongs to a site, covers its whole range, and sits i
 test("hasKnownPositions: a saved layout or the book's own key map; neither means clicking", () => {
   assert.equal(hasKnownPositions(findSite("cs1-mugdulblub")), true);
   assert.equal(hasKnownPositions({ id: "x", mapPages: "1-2" }), true);
-  assert.equal(hasKnownPositions(findSite("cs4-army-ants")), false);
+  assert.equal(hasKnownPositions({ id: "unknown-site" }), false);
   assert.equal(hasKnownPositions(null), false);
   assert.equal(layoutFor("nope"), null);
-  assert.equal(allSites().filter(hasKnownPositions).length, 4);
+  assert.ok(allSites().every(hasKnownPositions));
 });

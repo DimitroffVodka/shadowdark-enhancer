@@ -318,26 +318,24 @@ name does not say which adventure it is, choose it from the list. Choosing an ad
 that already has a scene picks it up where you left it. A **Place locations** window
 opens over the scene for anything left to place.
 
-For the adventures the module knows the positions of, the pins are placed
-**automatically** as soon as the scene is built, with no clicking: the Hideous Halls
-of Mugdulblub, the Hoard of the Sea Wolf King, and both levels of the Ghoulish
-Library of Leng. The module ships where each room number sits on the map, as
-positions only (no map and no book text). Check them against your map and nudge any
-that sit off a room (placing a pin again moves it). The map image has to be the same
-map the positions were taken from, not a different crop; if its shape is more than
-3% off, the module says so and does not place anything. The **Auto-place** button
-does the same for a scene you already have, and never touches a pin you placed or a
-location you skipped.
+The pins are placed **automatically** as soon as the scene is built, with no
+clicking, for every adventure listed above. The module ships where each room number
+sits on its map, as positions only (no map and no book text). Check them against your
+map and nudge any that sit off a room (placing a pin again moves it). The map image has
+to be the same map the positions were taken from, not a different crop; if its shape is
+more than 3% off, the module says so and does not place anything and the Place
+locations window is there for clicking them in. The **Auto-place** button does the same
+for a scene you already have, and never touches a pin you placed or a location you
+skipped. A pin sits where the book puts its number: in the room, or on the building
+the number points at (a City of Masks district map shows its numbers beside the
+district, so those pins sit on the numbered discs).
 
-Every other adventure (and any room the map does not show) is placed by clicking
-for now. The numbers are printed inside your image there, so you show the module
-once: press **Place next**, click the map where the number is printed, and the pin
-drops and the next location is ready, so a thirty-room dungeon is thirty clicks along
-the printed numbers. Right-click puts the target down. Each row also has **Skip** (a
-location the map does not show) and **Clear** (take its pin off), and a pin can be
-moved by placing it again. Pins and skips are kept on the scene, so you can stop at
-any point and pick the map up later with **Continue placing**. Each pin opens its
-location's journal page.
+For a map the module has no positions for (your own, or a new book), press **Place
+next**, click the map where the number is printed, and the pin drops and the next
+location is ready, so a thirty-room dungeon is thirty clicks along the printed numbers.
+Right-click puts the target down. Each row also has **Skip** and **Clear**, and a pin can
+be moved by placing it again. Pins and skips are kept on the scene, so you can stop at
+any point and pick the map up later. Each pin opens its location's journal page.
 
 **Chapter to journal** turns a range of pages from a linked PDF into one
 journal you can read at the table. Pick the book, type the printed pages

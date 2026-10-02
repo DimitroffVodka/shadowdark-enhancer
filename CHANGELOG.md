@@ -15,15 +15,15 @@ it needs.
   recognises the adventure from the file's name, imports its journal from your PDF if you
   have not, builds the scene and pins every location it knows the position of. Choose the
   adventure from the list when the file's name does not say.
-- **The Hideous Halls, the Sea Wolf King's caves and the Library of Leng place their own pins.**
-  The module now ships where each of their room numbers sits on the map (positions
-  only, as fractions of the map, so any resolution fits). Adventure map places every
-  location as soon as the scene is built, with no clicking, and an **Auto-place**
-  button does the same for an existing scene; you nudge any pin that misses. The
-  other adventures are still placed by clicking, and the placer's **Copy layout**
-  button turns a map you have placed into data the module can ship, so each one only
-  ever needs placing once. The map image has to be the same shape as the map the
-  positions came from; if it is more than 3% off, nothing is placed and you are told why.
+- **Every adventure places its own pins.** The module now ships where each room number
+  sits on its map for every Cursed Scroll adventure and every Western Reaches Mini
+  Adventure, as positions only (fractions of the map, so any resolution fits). Pick the
+  map image, and Adventure map builds the scene and pins every location with no
+  clicking; an **Auto-place** button does the same for an existing scene, and you nudge
+  any pin that misses. The map image has to be the same shape as the map the positions
+  came from; if it is more than 3% off, nothing is placed and you are told why. For a map
+  of your own, the placer's **Copy layout** button turns a map you have placed into data
+  that can ship with the module.
 - **The six Western Reaches Mini Adventures import as journals.** Tools → **Adventures**
   now also reads House of Rogues, Grotto of the Golden Swan, Forge of the Metallic
   Sisters, Fallen Keep of the Emerald Knight, Burial Mound of Kaghan and Chapel of the

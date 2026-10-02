@@ -1,7 +1,7 @@
 # Shadowdark Enhancer — File Inventory
 
 <!-- inventory:stats:start -->
-1152 tracked files · ~208,000 lines of code/markup across scripts+templates+styles+test.
+1157 tracked files · ~208,200 lines of code/markup across scripts+templates+styles+test.
 `v0.17.3` in both `module.json` and `package.json`.
 <!-- inventory:stats:end -->
 **Layout reflects the 2026-07-21 feature-folder reorganization (v0.11.0 cycle).**
@@ -349,7 +349,7 @@
 | `boats/siege-importer.mjs` | 43 | Materializes Blast/Exploding Property items for the siege weapons in `sde-items`. |
 | `adventure/adventure-book-import.mjs` | 96 | A Cursed Scroll's adventures in one pass: each site's pages out of the linked PDF, parsed and filed, one site failing never costing the rest. Page map only; no book text. |
 | `adventure/adventure-commit.mjs` | 141 | Parsed locations → one JournalEntry per adventure in sde-journal, one page per location, filed under the adventure flag (not the hex flag, so the tagger never lists a dungeon as a crawl); pure planner plus a two-pass link rewrite, same contract as hex-commit. |
-| `adventure/adventure-layouts.mjs` | 119 | Where each adventure's room numbers sit on its map, as fractions of the map (positions only; no art, no book text), so a scene can place its pins without the GM clicking each one; plus the pure helpers that turn a placed scene into a layout to paste here and a layout into placement points. |
+| `adventure/adventure-layouts.mjs` | 332 | Where each adventure's room numbers sit on its map, as fractions of the map (positions only; no art, no book text), so a scene can place its pins without the GM clicking each one; plus the pure helpers that turn a placed scene into a layout to paste here and a layout into placement points. |
 | `adventure/adventure-manifest.mjs` | 136 | Where each Cursed Scroll adventure's numbered key is: per site (a dungeon, a mini-adventure, a city district) its title, printed pages, the numbers the book prints, the heading style, and the map's printed grid. Page numbers and titles only; no book text, no art. |
 | `adventure/adventure-parser.mjs` | 217 | Numbered-location parser for printed adventures (pure): "12. METEORITE ROOM" and "12. Meteorite Room. Body" headings, a run rule that keeps a numbered list inside a room out of the key, missing-number reports, page HTML with bullets and "Area 12" links. |
 | `adventure/adventure-placer.mjs` | 316 | The keyed-location placer (AppV2): lists a map's locations and turns the canvas into a one-click target, dropping each numbered Note and arming the next; skip and clear per location, resumable. |

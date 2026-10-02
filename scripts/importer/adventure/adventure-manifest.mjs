@@ -112,7 +112,7 @@ export const ADVENTURE_SITES = {
     mini("forge-metallic-sisters", "Forge of the Metallic Sisters", 8, [36, 28]),
   ],
   WRMA_FKEK: [
-    mini("fallen-keep-emerald-knight", "Fallen Keep of the Emerald Knight", 11, [21, 22]),
+    mini("fallen-keep-emerald-knight", "Fallen Keep of the Emerald Knight", 11, [22, 21]),
   ],
   WRMA_BMK: [
     mini("burial-mound-kaghan", "Burial Mound of Kaghan", 8, [28, 21]),
