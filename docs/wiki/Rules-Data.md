@@ -11,8 +11,8 @@ visibility all read the same numbers.
 
 There are two doors to the one window, both GM only:
 
-- **The [Importer Hub](Importer-Hub.md)'s Rules Data step**, which sits just
-  under the paste box. It lists every table with its book and page and
+- **The [Importer Hub](Importer-Hub.md)'s Rules Data step**, first in the hub's
+  **Manage** strip. It lists every table with its book and page and
   whether it is **Filled** or **Empty**, says what waits on each, and has the
   **Import from GM Guide** button and an **Edit Rules Data** button.
 - **Configure Settings → Shadowdark Enhancer → Rules data**.
