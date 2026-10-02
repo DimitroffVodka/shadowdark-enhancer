@@ -148,3 +148,78 @@ test("Party light uses current then packed state, never extinguished placement d
   f.scene.grid.isHexagonal = true; doc.prepareDerivedData(); assert.equal(doc.light, on);
   assert.equal(f.member.prototypeToken.light, on); assert.equal(f.party.prototypeToken.light, on);
 });
+test("gather checks combat before its first save, so a mid-save combat cannot half-gather", async () => {
+  const f = fixture(), owner = { id: "owner", isGM: false };
+  assert.equal((await executeMovement({ ...f.payload, action: "deploy" }, owner)).ok, true);
+  let release; const gate = new Promise(resolve => { release = resolve; });
+  const base = f.pt.update; let first = true;
+  f.pt.update = changes => { if (first) { first = false; return gate.then(() => base(changes)); } return base(changes); };
+  const started = executeMovement({ ...f.payload, action: "gather" }, owner);
+  await new Promise(resolve => setImmediate(resolve));
+  globalThis.game.combats.contents = [{ started: true, scene: f.scene }];
+  release();
+  const result = await started;
+  assert.equal(result.ok, true, "the guard runs before the first write; combat starting during it cannot abort a persisted gather");
+  assert.equal(f.scene.tokens.get("pcToken"), undefined);
+  assert.equal(f.pt.flags[MOD].partyMovement.deployed, false);
+  assert.equal(f.pt.flags[MOD].partyMovement.pause, "gathered");
+});
+test("a roster edit while deployed is swept when the party is recalled", async () => {
+  const f = fixture(), owner = { id: "owner", isGM: false };
+  assert.equal((await executeMovement({ ...f.payload, action: "deploy" }, owner)).ok, true);
+  assert.equal(f.scene.tokens.contents.length, 2);
+  f.party.flags[MOD].partyData.members = [];
+  assert.equal((await executeMovement({ ...f.payload, action: "gather" }, owner)).ok, true);
+  assert.equal(f.scene.tokens.contents.length, 1, "the removed member's deployed token is recalled too");
+  assert.equal(f.scene.tokens.get("pcToken"), undefined);
+  assert.ok(f.operations.some(op => op.deleted?.includes("pcToken")));
+});
+test("the reload pause queues behind an in-flight movement write on the same token", async () => {
+  const f = fixture(); registerPartyMovement();
+  globalThis.ui = { notifications: { warn() {} } };
+  globalThis.game.scenes.contents = [f.scene];
+  assert.equal((await executeMovement({ ...f.payload, action: "deploy" }, globalThis.game.user)).ok, true);
+  let release; const gate = new Promise(resolve => { release = resolve; });
+  const base = f.pt.update; let first = true;
+  f.pt.update = changes => { if (first) { first = false; return gate.then(() => base(changes)); } return base(changes); };
+  const resume = executeMovement({ ...f.payload, action: "resume" }, globalThis.game.user);
+  await new Promise(resolve => setImmediate(resolve));
+  f.hooks.get("ready")();
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(f.pt.flags[MOD].partyMovement.pause, "", "the reload pause must wait for the in-flight movement write");
+  release();
+  await resume;
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(f.pt.flags[MOD].partyMovement.pause, "reload");
+});
+test("a deleted leader token pauses with the missing member named", async () => {
+  const f = fixture(); registerPartyMovement();
+  f.party.flags[MOD].partyData = { members: [f.member.uuid], leaderUuid: f.member.uuid, followLeader: true };
+  assert.equal((await executeMovement({ ...f.payload, action: "deploy" }, { id: "owner", isGM: false })).ok, true);
+  f.hooks.get("deleteToken")(f.scene.tokens.get("pcToken"));
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(f.pt.flags[MOD].partyMovement.pause, "missing");
+  assert.equal(f.pt.flags[MOD].partyMovement.pausedMemberUuid, f.member.uuid, "the sheet can name the missing member");
+});
+test("a second tab of the same GM user cannot pause the driving tab's march", async () => {
+  const f = fixture(); registerPartyMovement();
+  globalThis.ui = { notifications: { warn() {} } };
+  const store = () => { const m = new Map(); return { getItem: key => m.get(key) ?? null, setItem: (key, value) => m.set(key, String(value)) }; };
+  const tabA = store(), tabB = store();
+  tabA.setItem(`${MOD}.movementDriverClient`, "client-a");
+  tabB.setItem(`${MOD}.movementDriverClient`, "client-b");
+  const flush = () => new Promise(resolve => setImmediate(resolve));
+  const status = () => f.pt.flags[MOD].partyMovement;
+  try {
+    globalThis.sessionStorage = tabA;
+    assert.equal((await executeMovement({ ...f.payload, action: "deploy", clientId: "client-a" }, globalThis.game.user)).ok, true);
+    globalThis.sessionStorage = tabB;
+    f.hooks.get("canvasTearDown")(); await flush();
+    assert.equal(status().pause, "", "a second tab navigating must not pause the driving tab's march");
+    f.hooks.get("canvasReady")(); await flush();
+    assert.equal(status().pause, "");
+    globalThis.sessionStorage = tabA;
+    f.hooks.get("canvasTearDown")(); await flush();
+    assert.equal(status().pause, "scene", "the driving tab itself still pauses");
+  } finally { delete globalThis.sessionStorage; }
+});

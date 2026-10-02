@@ -81,3 +81,10 @@ test("malformed rows are reported, not silently adopted or silently erased", () 
   assert.deepEqual(p.report.skipped[0].input, { terrain: "Forest" });
   assert.throws(() => planHexAdoption({ legacy: [] }), /unreadable/);
 });
+test("a cell's own legacy field is archived whole and reported, not silently overwritten", () => {
+  const legacy = { "0_0": { name: "Old", terrain: "Forest", legacy: "USER" } };
+  const p = planHexAdoption({ sceneUuid: "Scene.a", legacy, numberAt });
+  assert.deepEqual(p.cells["0_0"].legacy, { name: "Old", terrain: "Forest", legacy: "USER" }, "the archive keeps the original field nested");
+  assert.equal(p.cells["0_0"].legacy.legacy, "USER");
+  assert.ok(p.report.conflicts.some(c => c.key === "0_0" && c.field === "legacy"));
+});

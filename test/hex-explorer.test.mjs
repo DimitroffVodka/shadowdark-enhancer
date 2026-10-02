@@ -54,3 +54,15 @@ test("adopted unnumbered cells keep offset terrain/features in their existing na
   assert.deepEqual(plan.patch.features.map(f => f.type), ["dungeon", "path"]);
   assert.deepEqual(r.offset, { i: -2, j: 3 });
 });
+test("pre-filtered player input still drops explicitly hidden markers", () => {
+  const view = explorerView({ sceneUuid: "Scene.a", offset: record.offset, num: 101, terrain: "forest",
+    features: [{ type: "river" }, { type: "dungeon", name: "Lair", discovered: false }],
+    notes: [{ text: "Bridge" }, { text: "GM SECRET", visible: false }],
+    links: [{ uuid: "JournalEntry.a", label: "Clue" }, { uuid: "JournalEntry.b", label: "HIDDEN", visible: false }],
+    discovery: { revealed: true, visited: true }, keyed: record.keyed }, false);
+  assert.deepEqual(view.features, [{ type: "river" }]);
+  assert.deepEqual(view.notes, [{ text: "Bridge" }]);
+  assert.deepEqual(view.links, [{ uuid: "JournalEntry.a", label: "Clue" }, { uuid: "JournalEntry.a.JournalEntryPage.b", label: "Keyed cave" }]);
+  assert.ok(!JSON.stringify(view).includes("SECRET"));
+  assert.ok(!JSON.stringify(view).includes("HIDDEN"));
+});

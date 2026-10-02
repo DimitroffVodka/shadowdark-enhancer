@@ -68,3 +68,16 @@ test("private store reads are GM only; same offset in different scenes never sha
   assert.equal(HexRecords.read(base.offset, scene("a")), null);
   delete globalThis.game;
 });
+test("raw cell writes refuse archive and history fields but keep the editable set", async () => {
+  const scene = { id: "s", uuid: "Scene.s", grid: { isHexagonal: false } };
+  const oldGame = globalThis.game;
+  globalThis.game = { user: { isGM: true }, journal: { contents: [] } };
+  try {
+    for (const patch of [{ legacy: {} }, { arrivalRolled: true }, { discovery: { revealed: false } }, { unknownField: 1 }]) {
+      await assert.rejects(HexRecords.write({ i: 0, j: -1 }, patch, scene), /protectedField/);
+    }
+    await assert.rejects(HexRecords.write({ i: 0, j: -1 }, { title: "New" }, scene), /unreadable/, "an editable patch passes validation and stops where the store is missing");
+  } finally {
+    if (oldGame === undefined) delete globalThis.game; else globalThis.game = oldGame;
+  }
+});

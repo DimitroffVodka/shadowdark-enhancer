@@ -90,7 +90,8 @@ export async function revealParty(token, { path = null, weather = null, committe
   const validWeather = ["fair", "stormy", "excellent"].includes(weather?.kind) && weather.until > game.time.worldTime;
   const all = fogCells(scene), records = new Map(all.map(o => [offsetKey(o), HexRecords.read(o, scene)]));
   const mountain = o => records.get(offsetKey(o))?.terrain === "mountain";
-  return saveCells(scene, async cells => {
+  const draws = [];
+  const result = await saveCells(scene, async cells => {
     const reveal = new Set();
     for (const at of committed ? entered : [origin]) {
       reveal.add(offsetKey(at));
@@ -111,17 +112,14 @@ export async function revealParty(token, { path = null, weather = null, committe
       if (Math.random() * 100 >= (cell.rollTableChance ?? 100)) continue;
       const table = await fromUuid(cell.rollTable);
       if (!(table instanceof RollTable)) continue;
-      // Persist first-entry history before emitting chat, so a reporting failure cannot replay it.
-      if (cell.rollTableFirstOnly) {
-        cell.arrivalRolled = true;
-        const journal = recordJournal(scene), saved = structuredClone(journal.flags[MODULE_ID][RECORD_FLAG]);
-        saved.cells = structuredClone(cells);
-        await replaceModuleFlag(journal, RECORD_FLAG, saved);
-      }
-      try { await table.draw(); } catch (error) { console.error(`${MODULE_ID} | arrival table`, error); }
+      // First-entry history rides the single saveCells write below, before any chat.
+      if (cell.rollTableFirstOnly) cell.arrivalRolled = true;
+      draws.push(table);
     }
     return { revealed: [...reveal], visited: entered.map(offsetKey) };
   });
+  for (const table of draws) try { await table.draw(); } catch (error) { console.error(`${MODULE_ID} | arrival table`, error); }
+  return result;
 }
 export const HexFog = { owns: ownsHexFog, disclosed: hexDisclosure, setDisclosure: setHexDisclosure, revealParty,
   async setEnabled(enabled, target) {

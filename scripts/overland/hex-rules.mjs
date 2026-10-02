@@ -59,6 +59,8 @@ export function registerHexRules() {
         if (ownsHexFog(scene)) return positionDisclosed(scene, this.center, "location");
         const revealed = game.modules?.get("shadowdark-extras")?.api?.hex?.isPositionRevealed;
         if (typeof revealed !== "function" || !isHexRulesScene(scene)) return visible;
+        // A failed Extras read must not hide tokens (fail open); coordinate labels deliberately
+        // fail closed instead — a wrong number is worse than none (coordinate-overlay.mjs).
         try { return revealed(scene, this.center) !== false; } catch { return visible; }
       }
     };

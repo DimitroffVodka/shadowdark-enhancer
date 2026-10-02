@@ -16,9 +16,10 @@ export function explorerView(record, isGM = false) {
   const location = disclosure(r.discovery, "location");
   return { sceneUuid: r.sceneUuid, offset: { ...r.offset }, num: r.num, terrain: r.terrain,
     ...(location && typeof r.title === "string" ? { title: r.title } : {}),
-    features: (r.features ?? []).filter(f => FEATURES.includes(f.type) || location).map(f => pick(f, ["type", "name"])),
-    notes: (r.notes ?? []).map(n => pick(n, ["text"])),
-    links: location ? [...(r.links ?? []).map(l => pick(l, ["uuid", "label"])), ...(record.keyed ?? []).map(k => ({ uuid: k.uuid, label: k.title }))] : [],
+    // Hiding markers are re-checked even on pre-filtered input, not merely trusted.
+    features: (r.features ?? []).filter(f => f?.discovered !== false && (FEATURES.includes(f.type) || location)).map(f => pick(f, ["type", "name"])),
+    notes: (r.notes ?? []).filter(n => n?.visible !== false).map(n => pick(n, ["text"])),
+    links: location ? [...(r.links ?? []).filter(l => l?.visible !== false).map(l => pick(l, ["uuid", "label"])), ...(record.keyed ?? []).map(k => ({ uuid: k.uuid, label: k.title }))] : [],
   };
 }
 /** Row indexes preserve imported rich/unknown metadata; only editable fields are replaced. */

@@ -25,6 +25,24 @@ export const inPartyCombat = scene => (game.combats?.contents ?? []).some(c => c
 const roster = actor => Party.rows(actor).filter(r => r.actor && ["characters", "hirelings", "mounts"].includes(r.group));
 const linked = (scene, uuid, partyUuid) => scene.tokens.contents.filter(d => d.actorLink && d.actor?.uuid === uuid && (!state(d).partyUuid || state(d).partyUuid === partyUuid));
 const serial = (key, work) => { const next = (queues.get(key) ?? Promise.resolve()).catch(() => {}).then(work); queues.set(key, next); return next; };
+// The driving TAB, not the user: two tabs of one GM user are distinct clients, and sessionStorage
+// survives this tab's own reload, so the driver stays identifiable after one.
+const DRIVER_CLIENT_KEY = `${MODULE_ID}.movementDriverClient`;
+function clientDriverId() {
+  try {
+    const store = globalThis.sessionStorage;
+    if (!store) return null;
+    let id = store.getItem(DRIVER_CLIENT_KEY);
+    if (!id) { id = globalThis.foundry?.utils?.randomID?.() ?? `${Date.now().toString(36)}${Math.random().toString(36).slice(2)}`; store.setItem(DRIVER_CLIENT_KEY, id); }
+    return id;
+  } catch { return null; }
+}
+const drivesHere = token => {
+  const saved = state(token);
+  if (saved.driverUserId !== game.user.id) return false;
+  const id = clientDriverId();
+  return saved.driverClientId == null || id == null || saved.driverClientId === id;
+};
 function partyToken(ref, scene = globalThis.canvas?.scene) {
   const actor = Party.get(ref);
   return scene?.tokens?.contents?.find(d => d.actorLink && d.actor?.uuid === actor?.uuid) ?? null;
@@ -62,7 +80,8 @@ export async function requestMovement(ref, action, extra = {}) {
   return requestTokenMovement(actor, token, action, extra);
 }
 async function requestTokenMovement(actor, token, action, extra = {}) {
-  const payload = { ...extra, partyId: actor.id, sceneId: token.parent.id, tokenId: token.id, action };
+  // The requester's client id rides to whoever executes: a relayed deploy is driven by the tab that clicked.
+  const payload = { ...extra, partyId: actor.id, sceneId: token.parent.id, tokenId: token.id, action, clientId: clientDriverId() };
   const reply = isActiveGM() ? await executeMovement(payload, game.user) : await queryActiveGM(MOVEMENT_QUERY, payload);
   if (!reply.ok && reply.error) ui.notifications?.warn(reply.error);
   return reply;
@@ -90,17 +109,22 @@ const dimensions = (scene, token) => ({ grid: scene.grid, sizeX: scene.grid.size
 async function gather({ actor, scene, token }) {
   const eligible = roster(actor);
   const tokens = eligible.flatMap(r => linked(scene, r.uuid, actor.uuid));
+  // A roster edit while deployed orphans that member's flagged token; recall it too.
+  const members = new Set(eligible.map(r => r.uuid));
+  const orphans = scene.tokens.contents.filter(d => state(d).partyUuid === actor.uuid && !members.has(d.actor?.uuid));
+  // Fail before the first write: combat that starts mid-save must not be aborted after persisting.
+  if (inPartyCombat(scene)) throw new Error("SDE.party.movement.combat");
   const saved = new Map((state(token).packed ?? []).map(s => [s.actorId, s]));
   // Keep the actual scene configuration and id, not a snapshot of Actor HP/items.
   for (const d of tokens) if (!saved.has(d.actorId) || state(d).partyUuid === actor.uuid) saved.set(d.actorId, d.toObject());
   await saveState(token, { ...state(token), packed: [...saved.values()], pause: "gathered" });
-  if (inPartyCombat(scene)) throw new Error("SDE.party.movement.combat");
   if (tokens.length) await scene.deleteEmbeddedDocuments("Token", tokens.map(d => d.id));
+  if (orphans.length) await scene.deleteEmbeddedDocuments("Token", orphans.map(d => d.id));
   await saveState(token, { ...state(token), deployed: false });
   armed.delete(token.uuid);
-  return { ok: true, gathered: tokens.map(d => d.id) };
+  return { ok: true, gathered: [...tokens, ...orphans].map(d => d.id) };
 }
-async function deploy({ actor, scene, token, user }) {
+async function deploy({ actor, scene, token, user, clientId }) {
   const data = Party.data(actor), rows = roster(actor), sources = new Map((state(token).packed ?? []).map(s => [s.actorId, s]));
   const entries = [];
   for (const slot of deploymentOrder(data, rows)) {
@@ -137,7 +161,7 @@ async function deploy({ actor, scene, token, user }) {
     if (duplicates.length) await scene.deleteEmbeddedDocuments("Token", duplicates);
   }
   const any = rows.some(r => linked(scene, r.uuid, actor.uuid).length);
-  await saveState(token, { ...state(token), deployed: any, driverUserId: user.id, pause: failed.length ? "blocked" : "" });
+  await saveState(token, { ...state(token), deployed: any, driverUserId: user.id, driverClientId: clientId, pause: failed.length ? "blocked" : "" });
   if (any && !failed.length) armed.add(token.uuid);
   return { ok: !failed.length, failed, error: failed.length ? t("blockedMembers", { names: failed.join(", ") }) : undefined };
 }
@@ -145,12 +169,13 @@ export function executeMovement(payload, user) {
   return serial(`Scene.${payload.sceneId}.Token.${payload.tokenId}`, async () => {
     try {
       const ctx = context(payload, user);
+      ctx.clientId = typeof payload.clientId === "string" ? payload.clientId : null;
       if (["gather", "deploy", "toggle", "resume"].includes(payload.action) && inPartyCombat(ctx.scene)) throw new Error("SDE.party.movement.combat");
       switch (payload.action) {
         case "toggle": return isPartyDeployed(ctx.token) ? gather(ctx) : deploy(ctx);
         case "gather": return gather(ctx);
         case "deploy": return deploy(ctx);
-        case "resume": armed.add(ctx.token.uuid); await saveState(ctx.token, { ...state(ctx.token), driverUserId: user.id, pause: "" }); return { ok: true };
+        case "resume": armed.add(ctx.token.uuid); await saveState(ctx.token, { ...state(ctx.token), driverUserId: user.id, driverClientId: ctx.clientId, pause: "" }); return { ok: true };
         case "pause": await pause(ctx.token, ["leader", "reload", "scene"].includes(payload.reason) ? payload.reason : "leader"); return { ok: true };
         default: return { ok: false, error: t("unknown") };
       }
@@ -185,8 +210,8 @@ export function registerPartyMovement() {
   Hooks.once("ready", () => {
     for (const scene of game.scenes.contents) for (const token of scene.tokens.contents) {
       if (!isPartyDeployed(token)) continue;
-      if (isActiveGM()) void pause(token, "reload");
-      else if (state(token).driverUserId === game.user.id && Party.canManage(token.actor)) void requestTokenMovement(token.actor, token, "pause", { reason: "reload" });
+      if (isActiveGM()) void serial(`Scene.${scene.id}.Token.${token.id}`, () => pause(token, "reload"));
+      else if (drivesHere(token) && Party.canManage(token.actor)) void requestTokenMovement(token.actor, token, "pause", { reason: "reload" });
     }
   });
   Hooks.on("moveToken", (doc, movement, options, user) => {
@@ -198,7 +223,7 @@ export function registerPartyMovement() {
   });
   Hooks.on("deleteToken", doc => {
     if (!isActiveGM()) return;
-    for (const token of doc.parent.tokens.contents.filter(d => isPartyDeployed(d))) if (doc.actor?.uuid === Party.data(token.actor).leaderUuid) void pause(token, "missing");
+    for (const token of doc.parent.tokens.contents.filter(d => isPartyDeployed(d))) if (doc.actor?.uuid === Party.data(token.actor).leaderUuid) void pause(token, "missing", Party.data(token.actor).leaderUuid);
   });
   Hooks.on("updateCombat", combat => {
     if (!isActiveGM() || !combat.started) return;
@@ -206,12 +231,12 @@ export function registerPartyMovement() {
   });
   Hooks.on("canvasTearDown", () => {
     // Deploy/Resume records its authenticated driver, not the relay authority.
-    for (const token of canvas.scene?.tokens.contents ?? []) if (isPartyDeployed(token) && Party.canManage(token.actor) && state(token).driverUserId === game.user.id) void requestMovement(token.actor, "pause", { reason: "scene" });
+    for (const token of canvas.scene?.tokens.contents ?? []) if (isPartyDeployed(token) && Party.canManage(token.actor) && drivesHere(token)) void requestMovement(token.actor, "pause", { reason: "scene" });
   });
   Hooks.on("canvasReady", () => {
     for (const token of canvas.scene?.tokens.contents ?? []) {
       if (!isPartyDeployed(token) || !Party.canManage(token.actor)) continue;
-      if (state(token).driverUserId === game.user.id && !state(token).pause) void requestMovement(token.actor, "pause", { reason: "reload" });
+      if (drivesHere(token) && !state(token).pause) void requestMovement(token.actor, "pause", { reason: "reload" });
     }
   });
   Hooks.on("updateToken", () => Hooks.callAll(MOVEMENT_CHANGED));

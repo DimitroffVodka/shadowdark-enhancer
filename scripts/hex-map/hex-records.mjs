@@ -110,6 +110,8 @@ function keyedPages(scene, num) {
   }
   return out;
 }
+/** Patch fields a raw cell write may touch; the archive and arrival history stay out of reach. */
+const WRITABLE_CELL_FIELDS = new Set(["title", "features", "notes", "links", "terrain", "rollTable", "rollTableChance", "rollTableFirstOnly"]);
 export const HexRecords = {
   read(offset, target) {
     const scene = sceneRef(target), key = offsetKey(offset);
@@ -138,6 +140,7 @@ export const HexRecords = {
     if (!game.user?.isGM) throw new Error("SDE.hexRecords.gmOnly");
     const scene = sceneRef(target), key = offsetKey(offset);
     if (!key || !scene || !patch || typeof patch !== "object" || Array.isArray(patch)) throw new Error("SDE.hexRecords.invalidCell");
+    for (const field of Object.keys(patch)) if (!WRITABLE_CELL_FIELDS.has(field)) throw new Error("SDE.hexRecords.protectedField");
     // E3 writes terrain/line features through hexTags; never shadow a numbered tag here.
     if (hexNumberAt(offset, scene) !== null && Object.hasOwn(patch, "terrain")) throw new Error("SDE.hexRecords.useTags");
     const { adoptHexScene, withHexLock } = await import("./hex-adoption.mjs");

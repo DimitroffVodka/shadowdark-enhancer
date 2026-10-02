@@ -32,6 +32,8 @@ export function planHexAdoption({ sceneUuid: uuid, legacy = {}, existing = {}, t
     const offset = parseOffsetKey(inputKey);
     if (!offset || !object(raw)) { report.skipped.push({ key: inputKey, input: clone(raw), reason: "SDE.hexRecords.invalidCell" }); continue; }
     const key = offsetKey(offset), num = numberAt(offset);
+    // A cell carrying its own legacy field keeps it inside the archive; report the overwrite.
+    if (Object.hasOwn(raw, "legacy")) report.conflicts.push({ key, field: "legacy" });
     const imported = { ...clone(raw), legacy: clone(raw) };
     if (!Object.hasOwn(imported, "title")) imported.title = raw.name ?? "";
     if (!Object.hasOwn(imported, "discovery")) imported.discovery = { revealed: ["explored", "mapped"].includes(raw.exploration), visited: raw.exploration === "explored" };

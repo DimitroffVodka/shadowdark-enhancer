@@ -15,6 +15,8 @@ const t = (key) => game.i18n.localize(key);
 const LABELS = { members: "SDE.party.members", quests: "SDE.party.quests", items: "SDE.party.sheet.inventory", travel: "SDE.party.sheet.travel", description: "SDE.party.sheet.description",
   characters: "SDE.party.characters", hirelings: "SDE.party.hirelings", mounts: "SDE.party.mounts", missing: "SDE.party.missing" };
 const TAB_ICONS = { members: "fas fa-users", items: "fas fa-box", travel: "fas fa-campground", quests: "fas fa-scroll", description: "fas fa-book-open" };
+// Localized coin labels come from the system's own keys; the sheet draws literal text otherwise.
+const COIN_LABELS = { gp: "SHADOWDARK.coins.gp", sp: "SHADOWDARK.coins.sp", cp: "SHADOWDARK.coins.cp" };
 
 export class PartyApp extends HandlebarsApplicationMixin(ApplicationV2) {
   static DEFAULT_OPTIONS = {
@@ -98,6 +100,7 @@ export class PartyApp extends HandlebarsApplicationMixin(ApplicationV2) {
       }));
       const visible = members.filter(m => !m.missing), players = members.filter(m => m.group === "characters");
       const coins = this.actor.flags?.[MODULE_ID]?.partyCoins ?? this.actor.flags?.["shadowdark-extras"]?.coins ?? { gp: 0, sp: 0, cp: 0 };
+      const coinLabels = Object.fromEntries(Object.keys(coins ?? {}).map(key => [key, COIN_LABELS[key] ?? key]));
       const description = this.actor.flags?.[MODULE_ID]?.partyDescription ?? this.actor.flags?.["shadowdark-extras"]?.description ?? "";
       const editor = globalThis.foundry?.applications?.ux?.TextEditor?.implementation;
       const descriptionHTML = editor ? await editor.enrichHTML(description, { secrets: !!this.actor.isOwner, async: true, relativeTo: this.actor }) : "";
@@ -119,7 +122,7 @@ export class PartyApp extends HandlebarsApplicationMixin(ApplicationV2) {
         const member = rows.find(r => r.uuid === uuid)?.actor;
         slots.push({ row, col, uuid, name: member?.name, img: member?.img, leader: uuid === data.leaderUuid, disabled: !canEdit || !member });
       }
-      return { ...base, actor: this.actor, canEdit, owner: canEdit, players, members, memberCount: visible.length, coins, descriptionHTML, description, editingDescription: !!this.editingDescription,
+      return { ...base, actor: this.actor, canEdit, owner: canEdit, players, members, memberCount: visible.length, coins, coinLabels, descriptionHTML, description, editingDescription: !!this.editingDescription,
         activityHTML, questHTML, campingActive: this.activity !== "carousing", carousingActive: this.activity === "carousing",
         inventorySlots: { used: inventorySlots(this.actor.items.contents, coins), max: this.actor.flags?.["shadowdark-extras"]?.partyMaxSlots ?? 10 },
         partyStats: { totalHp: visible.reduce((n,m) => n + m.hp.value, 0), maxHp: visible.reduce((n,m) => n + m.hp.max, 0), avgAc: visible.length ? Math.round(visible.reduce((n,m) => n + m.ac, 0) / visible.length) : 0, avgLevel: players.length ? Math.round(players.reduce((n,m) => n + m.level, 0) / players.length) : 0 },
@@ -170,8 +173,9 @@ export class PartyApp extends HandlebarsApplicationMixin(ApplicationV2) {
         event.preventDefault();
         const uuid = event.dataTransfer.getData("text/plain");
         if (!Party.canManage(this.actor)) return;
-        const formation = fillFormation(Party.data(this.actor), Party.rows(this.actor));
-        if (formation.needsReview) return;
+        const saved = fillFormation(Party.data(this.actor), Party.rows(this.actor));
+        // A retained oversized formation is unusable; a drop rebuilds it from its valid slots.
+        const formation = saved.needsReview ? fillFormation({ formation: { slots: saved.slots.filter(s => [-1, 0, 1].includes(s.col) && [-1, 0, 1].includes(s.row)) } }, Party.rows(this.actor)) : saved;
         const source = formation.slots.find(s => s.memberUuid === uuid);
         if (!source) return;
         const target = formation.slots.find(s => s.row === Number(slot.dataset.row) && s.col === Number(slot.dataset.col));

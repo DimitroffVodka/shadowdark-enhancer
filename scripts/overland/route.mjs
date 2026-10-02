@@ -41,10 +41,10 @@ function travelToken() {
 }
 
 /**
- * Which hexes a player can't know the cost of: those Extras' hex fog hasn't
- * shown them (its api.hex.isPositionRevealed). The GM knows every hex, and so
- * does a player on a map with no hex fog (no Extras). ponytail: with Extras
- * on but without that API yet (Extras #185), a player knows none.
+ * Which hexes a player can't know the cost of: the native fog when Enhancer owns
+ * it; otherwise Extras' hex fog (its api.hex.isPositionRevealed). The GM knows
+ * every hex, and so does a player on a map with neither fog. ponytail: with
+ * Extras on but without that API yet (Extras #185), a player knows none.
  * @returns {(o:{i:number, j:number}) => boolean}
  */
 export function unknownTo(grid) {

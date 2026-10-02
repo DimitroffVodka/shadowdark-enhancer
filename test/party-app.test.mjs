@@ -243,3 +243,28 @@ test("Party and standalone quests do not replace an action button between blur a
     else delete globalThis.document;
   }
 });
+test("a drag rebuilds a legacy oversized formation instead of deadlocking the grid", async () => {
+  const pc = actor("pc", "Player");
+  const p = actor("p", "NPC", { [MOD]: { party: true, partyData: { version: 1, members: [pc.uuid], leaderUuid: pc.uuid, formation: { slots: [{ memberUuid: pc.uuid, col: 2, row: 2 }] } } } });
+  world([p, pc], true);
+  const app = new PartyApp(p);
+  const drops = [];
+  const slotEl = { dataset: { row: "1", col: "1" }, addEventListener: (name, fn) => { if (name === "drop") drops.push(fn); } };
+  app.element = { querySelector: () => null, querySelectorAll: selector => selector === "[data-formation-slot]" ? [slotEl] : [] };
+  app.render = () => {};
+  app._bindControls();
+  assert.equal(drops.length, 1);
+  drops[0]({ preventDefault() {}, dataTransfer: { getData: () => pc.uuid } });
+  await new Promise(resolve => setTimeout(resolve, 0));
+  assert.deepEqual(p.flags[MOD].partyData.formation.slots, [{ memberUuid: pc.uuid, col: 1, row: 1 }]);
+  assert.equal(p.flags[MOD].partyData.formation.needsReview, undefined);
+});
+test("treasury coin labels localize through the system keys, not literal field names", async () => {
+  const p = actor("p", "NPC", { [MOD]: { party: true } });
+  world([p], true);
+  const context = await new PartyApp(p)._prepareContext();
+  assert.deepEqual(context.coinLabels, { gp: "SHADOWDARK.coins.gp", sp: "SHADOWDARK.coins.sp", cp: "SHADOWDARK.coins.cp" });
+  const template = await readFile(new URL("../templates/party/party.hbs", import.meta.url), "utf8");
+  assert.ok(!template.includes('aria-label="{{key}}"'), "coin inputs do not carry a literal field name as their aria-label");
+  assert.ok(template.includes("{{localize (lookup ../coinLabels key)}}"));
+});
