@@ -17,12 +17,13 @@ import { replaceModuleFlag } from "../../shared/module-flags.mjs";
 import { deployCrawlJournal } from "../../hex-map/hex-pins.mjs";
 import { ADVENTURE_FLAG, findSiteEntry, pageNum } from "./adventure-commit.mjs";
 import { markersFor } from "./adventure-layouts.mjs";
+import { resolveMentions, bestiaryLookup } from "./adventure-creatures.mjs";
 
 /** Scene flag: { site, entryId, skipped:[numbers] }. */
 export const MAP_FLAG = "adventureMap";
 /** Note flag: { num } of the location it pins. */
 export const PIN_FLAG = "adventurePin";
-/** Token flag: { site, key } of the book marker a creature was placed from ("A3"). */
+/** Token flag: { site, key } of what a creature was placed from: a book marker ("A3") or a location ("4/Howler/2"). */
 export const MARKER_FLAG = "adventureMarker";
 
 /** The grid when a site has no printed size (a city district): 100 px squares. */
@@ -167,6 +168,57 @@ export function planMarkerTokens({ markers, rect, gridSize = DEFAULT_GRID_SIZE, 
         x: rect.x + Math.floor((u * rect.width) / gridSize) * gridSize,
         y: rect.y + Math.floor((v * rect.height) / gridSize) * gridSize,
       });
+    }
+  }
+  return out;
+}
+
+/** The squares around a square, nearest ring first and each ring in a fixed turn: the middle itself is left to the pin. */
+function ringSquares(radius) {
+  const out = [];
+  for (let r = 1; r <= radius; r++) {
+    const ring = [];
+    for (let dx = -r; dx <= r; dx++) for (let dy = -r; dy <= r; dy++) if (Math.max(Math.abs(dx), Math.abs(dy)) === r) ring.push([dx, dy]);
+    out.push(...ring.sort((a, b) => Math.atan2(a[1], a[0]) - Math.atan2(b[1], b[0])));
+  }
+  return out;
+}
+
+/**
+ * Pure: the tokens for the creatures a location's text names, each in its own grid
+ * square around the location's pin, nearest first (the pin's square, and every
+ * other pin's, stay clear so no number is hidden under a token). The book says who
+ * is in a room and how many, not where in the room, so they are gathered at the
+ * number for the GM to move. A creature already in `placed` keeps its square and is
+ * left out, so running this twice never doubles one.
+ * @param {{creatures:Record<number,Array<{monster:string,count:number}>>, pins:Record<number,{x:number,y:number}>, rect:{x:number,y:number,width:number,height:number}, gridSize?:number, placed?:Iterable<string>}} args
+ * @returns {Array<{key:string, monster:string, x:number, y:number}>}  x, y: the square's top left, in scene pixels
+ */
+export function planCreatureTokens({ creatures, pins, rect, gridSize = DEFAULT_GRID_SIZE, placed = [] }) {
+  const done = new Set(placed), out = [];
+  const cols = Math.floor(rect.width / gridSize), rows = Math.floor(rect.height / gridSize);
+  const squareOf = (p) => [Math.floor((p.x - rect.x) / gridSize), Math.floor((p.y - rect.y) / gridSize)];
+  const taken = new Set(Object.values(pins).map((p) => squareOf(p).join(",")));
+  const around = ringSquares(8);
+  for (const num of Object.keys(creatures).map(Number).sort((a, b) => a - b)) {
+    if (!pins[num]) continue;   // no pin, no place to gather them
+    const [c0, r0] = squareOf(pins[num]);
+    let next = 0;
+    const free = () => {
+      while (next < around.length) {
+        const [dx, dy] = around[next++];
+        const c = c0 + dx, r = r0 + dy;
+        if (c >= 0 && r >= 0 && c < cols && r < rows && !taken.has(`${c},${r}`)) { taken.add(`${c},${r}`); return [c, r]; }
+      }
+      return null;
+    };
+    for (const { monster, count } of creatures[num]) {
+      for (let i = 1; i <= count; i++) {
+        const spot = free();
+        if (!spot) break;
+        const key = `${num}/${monster}/${i}`;
+        if (!done.has(key)) out.push({ key, monster, x: rect.x + spot[0] * gridSize, y: rect.y + spot[1] * gridSize });
+      }
     }
   }
   return out;
@@ -346,23 +398,20 @@ export async function refreshPinArt(scene) {
   return fixes.length;
 }
 
+/** The keys of the creatures already placed on a scene from a marker or a location. */
+const placedKeys = (scene) => scene.tokens.contents.map((tk) => tk.getFlag(MODULE_ID, MARKER_FLAG)?.key).filter(Boolean);
+
 /**
- * Put the creatures the book's map marks on a site's scene: each marker's monster
- * from the core bestiary (or the GM's imported monsters), as a hidden token in the
- * square it stands in. A creature already placed from its marker is left alone, and
- * a monster the world has no actor for is reported, not guessed.
+ * Create the hidden tokens of a plan: each monster from the core bestiary (or the
+ * GM's imported monsters), as a world actor reused by name. A monster the world
+ * has no actor for is reported, not guessed.
  * @param {Scene} scene
- * @param {{id:string}} site
- * @param {{x:number,y:number,width:number,height:number}} rect  the scene's image area
+ * @param {string} siteId
+ * @param {Array<{key:string, monster:string, x:number, y:number}>} plan
  * @returns {Promise<{placed:number, missing:string[]}>}
  */
-export async function placeMarkerTokens(scene, site, rect) {
-  const markers = markersFor(site.id);
-  if (!markers) return { placed: 0, missing: [] };
-  const placedKeys = scene.tokens.contents.map((tk) => tk.getFlag(MODULE_ID, MARKER_FLAG)?.key).filter(Boolean);
-  const plan = planMarkerTokens({ markers, rect, gridSize: scene.grid?.size, placed: placedKeys });
+async function spawnHiddenTokens(scene, siteId, plan) {
   if (!plan.length) return { placed: 0, missing: [] };
-
   const { MonsterLinker } = await import("../monsters/monster-linker.mjs");
   const { worldActorFor, tokenSourceFor } = await import("../../shared/token-placement.mjs");
   const index = await MonsterLinker.buildIndex();
@@ -375,9 +424,49 @@ export async function placeMarkerTokens(scene, site, rect) {
     actors.set(monster, { world, source: await tokenSourceFor(world, origin) });
   }
   const tokens = plan.filter((p) => actors.has(p.monster))
-    .map((p) => markerTokenData(actors.get(p.monster).source, p, site.id, actors.get(p.monster).world.id));
+    .map((p) => markerTokenData(actors.get(p.monster).source, p, siteId, actors.get(p.monster).world.id));
   if (tokens.length) await scene.createEmbeddedDocuments("Token", tokens);
   return { placed: tokens.length, missing };
+}
+
+/**
+ * Put the creatures the book's map marks on a site's scene, each in the square its
+ * marker stands in. A creature already placed from its marker is left alone.
+ * @param {Scene} scene
+ * @param {{id:string}} site
+ * @param {{x:number,y:number,width:number,height:number}} rect  the scene's image area
+ * @returns {Promise<{placed:number, missing:string[]}>}
+ */
+export async function placeMarkerTokens(scene, site, rect) {
+  const markers = markersFor(site.id);
+  if (!markers) return { placed: 0, missing: [] };
+  const plan = planMarkerTokens({ markers, rect, gridSize: scene.grid?.size, placed: placedKeys(scene) });
+  return spawnHiddenTokens(scene, site.id, plan);
+}
+
+/**
+ * Put the creatures a site's text names on its scene, around each location's pin.
+ * The names are matched against the world's monsters (NPC actors: core first, then
+ * the GM's imports); a bold name the bestiary does not know places nothing.
+ * @param {Scene} scene
+ * @param {{id:string}} site
+ * @param {{x:number,y:number,width:number,height:number}} rect  the scene's image area
+ * @param {Record<number,Array<{phrase:string,count:number}>>} mentions  creatureMentions per location number
+ * @returns {Promise<{placed:number, missing:string[]}>}
+ */
+export async function placeCreatureTokens(scene, site, rect, mentions) {
+  const { MonsterLinker } = await import("../monsters/monster-linker.mjs");
+  const lookup = bestiaryLookup((await MonsterLinker.buildIndex()).filter((e) => e.type === "NPC").map((e) => e.name));
+  const creatures = {}, unknown = new Set();
+  for (const [num, found] of Object.entries(mentions ?? {})) {
+    const r = resolveMentions(found, lookup);
+    if (r.creatures.length) creatures[num] = r.creatures;
+    for (const u of r.unknown) unknown.add(u);
+  }
+  if (unknown.size) console.info(`${MODULE_ID} | adventure creatures: counted but not in the bestiary, left out:`, [...unknown]);
+  const pins = Object.fromEntries(scenePins(scene).map((p) => [p.num, p]));
+  const plan = planCreatureTokens({ creatures, pins, rect, gridSize: scene.grid?.size, placed: placedKeys(scene) });
+  return spawnHiddenTokens(scene, site.id, plan);
 }
 
 /** Mark a location skipped (or not) on its scene. Written whole, never merged. */

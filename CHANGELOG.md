@@ -11,6 +11,14 @@ it needs.
 
 ### Added
 
+- **Adventure maps come with their monsters.** Every adventure's scene now gets the creatures
+  its rooms name, as hidden tokens beside each room's pin: the books set a creature's name in
+  bold with its number just before it, and the module reads that from your own PDF, matches the
+  name to the core bestiary or your imported monsters, and places one token per creature in its
+  own square around the number (the pin stays visible). Dice counts (1d4), chances (2:6) and
+  creatures said to be in another Area are left to you. A **skull button** in the Place
+  locations window places them for pins you clicked in yourself; pressing it or Auto-place
+  again never doubles a creature.
 - **Wortwick Monastery imports whole, with its monsters on the map.** The adventure was read
   from the wrong pages and stopped at room 5, losing the Chapel (with its hidden cache) and the
   Abbot's Quarters; it now files all seven rooms, plus an **Introduction** page (Raiding, The

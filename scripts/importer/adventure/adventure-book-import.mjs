@@ -15,6 +15,7 @@ import { resolveSourcePdf, sourcePdfTarget } from "../source-pdf-registry.mjs";
 import { parsePageRange } from "../pdf-text-extract.mjs";
 import { allSites } from "./adventure-manifest.mjs";
 import { parseAdventurePages } from "./adventure-parser.mjs";
+import { creatureMentions } from "./adventure-creatures.mjs";
 import { commitAdventure } from "./adventure-commit.mjs";
 import { summariseGutter } from "../hex/hex-book-import.mjs";
 
@@ -48,6 +49,24 @@ async function readSite({ extractPdfText, notifyGutterWarnings }, file, site, pa
   return parseAdventurePages(
     (result.pages ?? []).map((p) => p.lines ?? []),
     { style: site.style, range: site.range, skip: skipOf(site), intro: !!site.intro });
+}
+
+/**
+ * Who each location of a site names, read out of the GM's own book: the creatures
+ * set in bold with a count beside them (adventure-creatures.mjs), per location
+ * number. Read when the tokens are placed, never stored, so the book's text is not
+ * kept anywhere the GM did not put it.
+ * @param {{id:string, src:string, pages:string, range:[number,number], style:string, skip?:string}} site
+ * @returns {Promise<Record<number,Array<{phrase:string, count:number}>>|null>} null when the book is not linked
+ */
+export async function readSiteCreatures(site) {
+  const file = resolveSourcePdf(site.src);
+  if (!file) return null;
+  const { extractPdfText } = await import("../pdf-text-extract.mjs");
+  const pages = planSitePages(site, (p) => sourcePdfTarget(site.src, String(p))?.page ?? null);
+  const result = await extractPdfText(file, { pages, columns: "auto", markBold: true });
+  const { locations } = parseAdventurePages((result.pages ?? []).map((p) => p.lines ?? []), { style: site.style, range: site.range, skip: skipOf(site) });
+  return Object.fromEntries(locations.map((l) => [l.num, creatureMentions(l.boldLines)]));
 }
 
 /**

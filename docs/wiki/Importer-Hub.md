@@ -341,14 +341,20 @@ skipped. A pin sits where the book puts its number: in the room, or on the build
 the number points at (a City of Masks district map shows its numbers beside the
 district, so those pins sit on the numbered discs).
 
-When the book's map marks who is where, they are placed too. Wortwick Monastery's map
-marks its twelve monks (acolytes), four knights and the abbot (priest) with a letter each,
-so building its scene, or pressing **Auto-place**, also puts a **hidden** token for each in
-the square the book draws it in, using the Acolyte, Knight and Priest from the core
-bestiary (or your own imported ones). Reveal them as the party walks in. A creature that
-is already on the map is never placed twice, so pressing it again adds nothing, and one
-you delete comes back the next time. If the world has no monster of a name, the module
-says which.
+**Monsters are placed too.** The books set a creature's name in bold with its number just
+before it ("12 unruly **Howlers**"), and the module reads that from your own PDF when it
+places the pins. Each creature found becomes a **hidden** token (the GM sees it, the players
+do not), taken from the core bestiary or your own imported monsters, in its own square
+beside its room's pin, nearest first; the pin's square stays clear so the number is never
+under a token. The book says who is in a room, not where in it, so they are gathered at the
+number for you to move. Only a bold name with a count beside it is placed: a number rolled
+in the text (1d4), a chance (2:6), a creature said to be in another Area, and a name your
+bestiary has no monster for are all left out, so a room can have fewer tokens than it names.
+Wortwick Monastery's map marks its twelve monks (acolytes), four knights and the abbot
+(priest) with a letter each, so that adventure's tokens go where the book draws them instead.
+Building a scene, **Auto-place**, or the **skull button** in the Place locations window puts
+them down; a creature already on the map is never placed twice, and one you delete comes
+back the next time. For pins you placed by hand, press the skull button once they are down.
 
 For a map the module has no positions for (your own, or a new book), press **Place
 next**, click the map where the number is printed, and the pin drops and the next

@@ -14,10 +14,10 @@
  */
 
 import { MODULE_ID } from "../../shared/module-id.mjs";
-import { MAP_FLAG, entryPages, scenePins, placementRows, nextPending, noteData, setSkipped, placementGate, restoreSiteJournal, planBookPins, refreshPinArt, placeMarkerTokens } from "./adventure-scene.mjs";
+import { MAP_FLAG, entryPages, scenePins, placementRows, nextPending, noteData, setSkipped, placementGate, restoreSiteJournal, planBookPins, refreshPinArt, placeMarkerTokens, placeCreatureTokens } from "./adventure-scene.mjs";
 import { findSite } from "./adventure-manifest.mjs";
 import { stitchMapLabels, mapFits } from "./map-labels.mjs";
-import { layoutFor, layoutPoints, layoutFromPins, layoutSnippet } from "./adventure-layouts.mjs";
+import { layoutFor, layoutPoints, layoutFromPins, layoutSnippet, markersFor } from "./adventure-layouts.mjs";
 import { resolveSourcePdf, sourcePdfTarget } from "../source-pdf-registry.mjs";
 import { parsePageRange } from "../pdf-text-extract.mjs";
 
@@ -49,6 +49,7 @@ export class AdventurePlacer extends HandlebarsApplicationMixin(ApplicationV2) {
       advNext: function (...a) { return this._onNext(...a); },
       advBook: function (...a) { return this._onBook(...a); },
       advExport: function (...a) { return this._onExport(...a); },
+      advMonsters: function (...a) { return this._onMonsters(...a); },
       advStop: function (...a) { return this._onStop(...a); },
       advSkip: function (...a) { return this._onSkip(...a); },
       advClear: function (...a) { return this._onClear(...a); },
@@ -264,17 +265,40 @@ export class AdventurePlacer extends HandlebarsApplicationMixin(ApplicationV2) {
   }
 
   /**
-   * Put the creatures the book's map marks onto the scene, if this adventure has any.
+   * Put the creatures onto the scene as hidden tokens: where the book's map marks
+   * them if it does, else around the pin of each location whose text names them.
    * A failure here never costs the pins that were just placed.
    */
   async _placeMonsters(site, rect) {
     try {
-      const { placed, missing } = await placeMarkerTokens(this.scene, site, rect);
-      if (placed) ui.notifications?.info(t("SDE.adventure.placer.monstersDone", { placed }));
-      if (missing.length) ui.notifications?.warn(t("SDE.adventure.placer.monstersMissing", { names: missing.join(", ") }));
+      let found;
+      if (markersFor(site.id)) found = await placeMarkerTokens(this.scene, site, rect);
+      else {
+        const { readSiteCreatures } = await import("./adventure-book-import.mjs");
+        const mentions = await readSiteCreatures(site);
+        if (!mentions) { ui.notifications?.warn(t("SDE.importer.pdf.bookNotLinked")); return null; }
+        found = await placeCreatureTokens(this.scene, site, rect, mentions);
+      }
+      if (found.placed) ui.notifications?.info(t("SDE.adventure.placer.monstersDone", { placed: found.placed }));
+      if (found.missing.length) ui.notifications?.warn(t("SDE.adventure.placer.monstersMissing", { names: found.missing.join(", ") }));
+      return found;
     } catch (err) {
       console.error(`${MODULE_ID} | adventure placer: placing the book's creatures failed`, err);
       ui.notifications?.error(t("SDE.adventure.placer.monstersFailed"));
+      return null;
+    }
+  }
+
+  /** The Place monsters button: the creatures alone, for pins placed by click or a scene built before they were placed. */
+  async _onMonsters() {
+    const site = findSite(this.scene.getFlag(MODULE_ID, MAP_FLAG)?.site);
+    if (!site || this._gate.claim() === null) return;
+    try {
+      const rect = this.scene.dimensions?.sceneRect ?? { x: 0, y: 0, width: this.scene.width, height: this.scene.height };
+      const found = await this._placeMonsters(site, rect);
+      if (found && !found.placed && !found.missing.length) ui.notifications?.info(t("SDE.adventure.placer.monstersNone"));
+    } finally {
+      this._gate.release();
     }
   }
 

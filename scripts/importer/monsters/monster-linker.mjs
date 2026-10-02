@@ -142,7 +142,7 @@ export const MonsterLinker = {
       // "2d6 berserkers" must link core Berserker, not the Berserkers warband.
       if (e.type === `${MODULE_ID}.warband`) continue;
       const key = e.name.toLowerCase();
-      if (!byName.has(key)) byName.set(key, { name: e.name, uuid: e.uuid });
+      if (!byName.has(key)) byName.set(key, { name: e.name, uuid: e.uuid, type: e.type });
     }
   },
 

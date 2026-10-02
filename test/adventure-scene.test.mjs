@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { pinIcon, pinLabelSize, PIN_LABEL_COLOR, pinArtFixes, PIN_ICON, placementGate, sceneSize, placementRows, nextPending, noteData, sceneData, planMarkerTokens, markerTokenData, MAP_FLAG, PIN_FLAG, MARKER_FLAG, DEFAULT_GRID_SIZE } from "../scripts/importer/adventure/adventure-scene.mjs";
+import { pinIcon, pinLabelSize, PIN_LABEL_COLOR, pinArtFixes, PIN_ICON, placementGate, sceneSize, placementRows, nextPending, noteData, sceneData, planMarkerTokens, planCreatureTokens, markerTokenData, MAP_FLAG, PIN_FLAG, MARKER_FLAG, DEFAULT_GRID_SIZE } from "../scripts/importer/adventure/adventure-scene.mjs";
 import { planAdventureCommit, locationPagePayload, introPagePayload, isIntroPage, pageNum, ADVENTURE_FLAG } from "../scripts/importer/adventure/adventure-commit.mjs";
 
 // Invented data throughout.
@@ -177,4 +177,55 @@ test("placementGate: a write that finishes after a cancel no longer owns the ses
   gate.release();
   assert.equal(gate.alive(token), false);
   assert.equal(gate.alive(gate.claim()), true);
+});
+
+// ─── Creatures around a pin ──────────────────────────────────────────────────
+
+const RECT = { x: 100, y: 100, width: 1000, height: 1000 };   // a 10 x 10 map of 100 px squares, offset by the scene padding
+const squareOf = (t) => [(t.x - RECT.x) / 100, (t.y - RECT.y) / 100];
+
+test("planCreatureTokens: one token per creature, each in its own square beside the pin, never on it", () => {
+  const plan = planCreatureTokens({
+    creatures: { 4: [{ monster: "Gribble", count: 3 }, { monster: "Wibbet", count: 1 }] },
+    pins: { 4: { x: 550, y: 550 } }, rect: RECT, gridSize: 100,
+  });
+  assert.equal(plan.length, 4);
+  assert.deepEqual(plan.map((p) => p.key), ["4/Gribble/1", "4/Gribble/2", "4/Gribble/3", "4/Wibbet/1"]);
+  const squares = plan.map((p) => squareOf(p).join(","));
+  assert.equal(new Set(squares).size, 4, "no two share a square");
+  assert.ok(!squares.includes("4,4"), "the pin's own square (col 4, row 4) is left to the pin");
+  for (const p of plan) { const [c, r] = squareOf(p); assert.ok(Math.abs(c - 4) <= 1 && Math.abs(r - 4) <= 1, "all in the first ring while it has room"); }
+});
+
+test("planCreatureTokens: another room's pin square is kept clear too", () => {
+  const plan = planCreatureTokens({
+    creatures: { 1: [{ monster: "Gribble", count: 8 }] },
+    pins: { 1: { x: 550, y: 550 }, 2: { x: 650, y: 550 } },   // 2 is right beside 1
+    rect: RECT, gridSize: 100,
+  });
+  assert.equal(plan.length, 8);
+  assert.ok(!plan.some((p) => squareOf(p).join(",") === "5,4"), "room 2's pin square has no token");
+});
+
+test("planCreatureTokens: tokens already placed keep their squares, so the rest land where they would have", () => {
+  const args = { creatures: { 4: [{ monster: "Gribble", count: 3 }] }, pins: { 4: { x: 550, y: 550 } }, rect: RECT, gridSize: 100 };
+  const all = planCreatureTokens(args);
+  const rest = planCreatureTokens({ ...args, placed: ["4/Gribble/1"] });
+  assert.deepEqual(rest, all.slice(1));
+  assert.deepEqual(planCreatureTokens({ ...args, placed: all.map((p) => p.key) }), []);
+});
+
+test("planCreatureTokens: a corner pin never puts a token off the map; a location with no pin places nothing", () => {
+  const plan = planCreatureTokens({
+    creatures: { 1: [{ monster: "Gribble", count: 5 }], 9: [{ monster: "Wibbet", count: 2 }] },
+    pins: { 1: { x: 120, y: 120 } }, rect: RECT, gridSize: 100,
+  });
+  assert.equal(plan.length, 5, "room 9 has no pin");
+  for (const p of plan) { const [c, r] = squareOf(p); assert.ok(c >= 0 && r >= 0 && c < 10 && r < 10); }
+});
+
+test("planCreatureTokens: more creatures than squares around a pin fill what there is and stop", () => {
+  const tiny = { x: 0, y: 0, width: 300, height: 300 };   // 3 x 3: eight squares besides the pin's
+  const plan = planCreatureTokens({ creatures: { 1: [{ monster: "Gribble", count: 20 }] }, pins: { 1: { x: 150, y: 150 } }, rect: tiny, gridSize: 100 });
+  assert.equal(plan.length, 8);
 });

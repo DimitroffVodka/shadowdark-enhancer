@@ -4937,6 +4937,8 @@
   "SDE.adventure.placer.bookMapFailed": "Could not place from the book's map. See the console for details.",
   "SDE.adventure.placer.monstersDone": "Placed {placed} of the book's creatures on the map, hidden until you reveal them.",
   "SDE.adventure.placer.monstersMissing": "No monster named {names} was found to place from the book's map. Import the monsters, then press Auto-place again.",
+  "SDE.adventure.placer.monstersTip": "Place the creatures the book names in each location, hidden, around its pin",
+  "SDE.adventure.placer.monstersNone": "No new creatures to place: they are already on the map, or no pinned location names one this world has a monster for.",
   "SDE.adventure.placer.monstersFailed": "Could not place the book's creatures. See the console for details.",
   "SDE.importer.adventure.introPage": "Introduction",
   "SDE.adventure.placer.exportTip": "Copy this scene's pin positions as data to paste into the module's adventure layouts, so nobody has to place them again.",
