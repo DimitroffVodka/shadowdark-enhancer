@@ -28,7 +28,9 @@ it needs.
   placed on the sheet (through Party XP), and the **Vault** holds up to 100 gear slots of items
   dropped on the sheet, and a mount stabled at a bastion with a **Stable** shows no starvation
   warning, an **Aviary** sends one pigeon message a day, and the **Infirmary** is named on a pestilence
-  roll (the patients have advantage on the check). The first two go through a new Garrison box on the
+  roll (the patients have advantage on the check). The **Armorer**, **Blacksmith** and **Trading
+  Post** open a shop window on the sheet that sells ordinary armor, weapons or basic gear to the
+  party at 10% over list. The first two go through a new Garrison box on the
   Warband tab, and shown on the upkeep and healing cards. A bastion can name the party that owns it, and **Pay in** and
   **Pay out** move whole gold between a member's purse and the treasury (Extras keeps a
   party's own coins in its own data, so those are left alone). A **Bastions** panel lists the

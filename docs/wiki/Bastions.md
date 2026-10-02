@@ -87,7 +87,7 @@ down** frees the slot and refunds nothing; the other upgrades keep their places.
 | Vault | 200 | Securely store up to 100 gear slots of items |
 | Wizard Tower | 400 | +1 to INT spellcasting checks in the bastion |
 
-Nine effects are applied for you while the bastion stands:
+Ten effects are applied for you while the bastion stands:
 
 - the **Granary** makes each warband [garrisoned](Warbands.md) there cost 10 gp less a month;
 - the **Barracks** heals each of them 1d6 more a day;
@@ -120,7 +120,15 @@ Nine effects are applied for you while the bastion stands:
   one, and a message that couldn't be posted doesn't use the day up;
 - the **Infirmary** is named on the month's disaster roll: when it comes up pestilence (the
   DC 12 CON check for rat disease), the chat message adds that the patients make the check
-  with advantage. The check itself is still rolled at the table.
+  with advantage. The check itself is still rolled at the table;
+- the **Armorer**, the **Blacksmith** and the **Trading Post** are shops: each finished room
+  puts a button in the Shops box on the Overview tab (GM) that opens a shop window. The
+  Armorer sells ordinary armor, the Blacksmith ordinary weapons and the Trading Post basic
+  gear, from the same gear the Merchant Shop's Catalog lists, each at **10% over** its list
+  price (rounded to the copper). Pick which character of the party buys, search, set a
+  quantity and Buy: the gold is taken from their purse and the item is added to their sheet.
+  Magic items are never sold here. The sale is run by the GM; it does not touch the Merchant
+  Shop that may be open at the same time.
 
 The rest the sheet records and you rule on at the table.
 

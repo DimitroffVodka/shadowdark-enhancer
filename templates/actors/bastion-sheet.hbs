@@ -52,6 +52,13 @@
           <button type="button" data-action="withdraw"><i class="fa-solid fa-hand-holding-dollar"></i> {{localize "SDE.bastion.fund.withdraw"}}</button>
         </div>
         {{/if}}
+        {{#if shops.length}}
+        <div class="sde-bast-room">
+        <h3>{{localize "SDE.bastion.shop.heading"}}</h3>
+        {{#if editable}}<div class="sde-bast-buttons">{{#each shops}}<button type="button" data-action="openShop" data-shop="{{id}}"><i class="fa-solid fa-store"></i> {{name}}</button>{{/each}}</div>
+        {{else}}<p class="note">{{#each shops}}{{name}}{{#unless @last}}, {{/unless}}{{/each}}</p>{{/if}}
+        </div>
+        {{/if}}
         {{#if aviary.open}}
         <div class="sde-bast-room">
         <h3>{{localize "SDE.bastion.pigeon.heading"}}</h3>
