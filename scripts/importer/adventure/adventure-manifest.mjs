@@ -30,9 +30,13 @@
 /** A district's banner line and the three facts printed above its first location. */
 const DISTRICT_BANNER = "District$|^(?:Class|Category|City Guard Arrives):";
 
-/** Cursed Scroll 4's nine mini-adventures: the title page, then the key page. */
+/**
+ * Cursed Scroll 4's nine mini-adventures: each is a title page, then its key page.
+ * Only the key page is read: the title page holds no numbered location, and its
+ * two-column text only raised column-gutter warnings for nothing the import uses.
+ */
 const cs4 = (id, title, intro, last, grid) => ({
-  id: `cs4-${id}`, title, pages: `${intro}-${intro + 1}`, range: [1, last], style: "inline", grid,
+  id: `cs4-${id}`, title, pages: String(intro + 1), range: [1, last], style: "inline", grid,
 });
 
 /** City of Masks: one district per two-page spread, the numbers run on through the city. */
