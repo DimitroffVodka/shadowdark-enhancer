@@ -309,8 +309,11 @@ keyed by hex number, not room number). If a read does not give every location
 the book prints, the run says which adventure and which numbers; compare that
 adventure against the book.
 
-**Adventure map** is one step from the map image to a playable scene. Pick the map
-image that came with the book (the module ships no maps) and the module recognises the
+**Adventure map** is one step from the map image to a playable scene. Choose the map
+image that came with the book from your computer (the module ships no maps; it uploads
+the file to your world's own folder, which needs Foundry's *Upload New Files*
+permission, so a user without it is told so and can pick a file that is already in
+Foundry's files instead) and the module recognises the
 adventure from the file's name ("Ruins of Bittermold Keep (68 wide x 44 high).png" is
 the Hideous Halls), imports its journal from your PDF if you have not already, builds a
 scene sized from the image and the book's printed grid, and pins every location. If the

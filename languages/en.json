@@ -4900,12 +4900,12 @@
   "SDE.adventure.notify.wrongScene": "Open the adventure's scene before placing its locations.",
   "SDE.adventure.notify.skewed": "{title}: the image is not the shape of the book's printed grid, so the squares will not be square. Check you picked the right image.",
   "SDE.adventure.map.title": "Adventure map",
-  "SDE.adventure.map.lead": "Pick the map image that came with the book. The module recognises the adventure from the file's name, imports its journal from your PDF if you have not, builds the scene and pins every location it knows the position of.",
+  "SDE.adventure.map.lead": "Choose the map image that came with the book, from your computer. The module recognises the adventure from the file's name, uploads the map to your world, imports the journal from your PDF if you have not, builds the scene and pins every location it knows the position of.",
   "SDE.adventure.map.site": "Adventure",
-  "SDE.adventure.map.image": "Map image",
+  "SDE.adventure.map.image": "Or a file already in Foundry",
   "SDE.adventure.map.imageHint": "Pick the map image from your files",
   "SDE.adventure.map.browse": "Browse for the map image",
-  "SDE.adventure.map.notes": "The module ships no maps. Use the image that came with the book; the scene's grid is sized from it.",
+  "SDE.adventure.map.notes": "The module ships no maps. Use the image that came with the book; the scene's grid is sized from it, and the file is uploaded to your world's own folder.",
   "SDE.adventure.map.build": "Build map",
   "SDE.adventure.map.hasScene": "scene built",
   "SDE.adventure.map.needImage": "Pick the map image first.",
@@ -4943,5 +4943,8 @@
   "SDE.adventure.map.recognized": "Recognised: {title}.",
   "SDE.adventure.map.notRecognized": "The file's name does not say which adventure this is. Choose it from the list.",
   "SDE.adventure.map.needSite": "Choose which adventure this map is of.",
-  "SDE.adventure.map.importing": "Importing {title} from your PDF…"
+  "SDE.adventure.map.importing": "Importing {title} from your PDF…",
+  "SDE.adventure.map.file": "Map from your computer",
+  "SDE.adventure.notify.uploadDenied": "Foundry will not let your user upload files. Ask the GM to give you the 'Upload New Files' permission (Configure Permissions), or choose a map that is already in Foundry's files with the browse button.",
+  "SDE.adventure.notify.uploadFailed": "The map could not be uploaded. Check that Foundry can write to your world's folder, or choose a map that is already in Foundry's files."
 }

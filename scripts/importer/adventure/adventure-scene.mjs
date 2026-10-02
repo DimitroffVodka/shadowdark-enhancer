@@ -160,6 +160,32 @@ export function sceneData(site, { src, imageW, imageH, entryId, levels = sceneHa
   return data;
 }
 
+/**
+ * Put the GM's map image into the world's own folder and return its served path.
+ * The map comes from the GM's computer (the module ships none), so a new user has
+ * nothing uploaded yet; this is the upload. Foundry refuses it for a user without
+ * the "Upload New Files" permission, and says so with a message of its own that
+ * names nobody useful, so the permission is checked first and the refusal is told
+ * in the module's words.
+ * @param {File} file
+ * @returns {Promise<string|null>} the path, or null (with a message) when it could not be uploaded
+ */
+export async function uploadMapImage(file) {
+  if (!game.user?.can?.("FILES_UPLOAD")) { ui.notifications?.warn(t("SDE.adventure.notify.uploadDenied")); return null; }
+  const FP = foundry.applications.apps.FilePicker.implementation;
+  const dir = `worlds/${game.world.id}/adventure-maps`;
+  try { await FP.createDirectory("data", dir); } catch (_err) { /* already there */ }
+  try {
+    const res = await FP.upload("data", dir, file, {}, { notify: false });
+    if (!res?.path) throw new Error("no path returned");
+    return res.path;
+  } catch (err) {
+    console.error(`${MODULE_ID} | adventure map: upload failed`, err);
+    ui.notifications?.warn(t("SDE.adventure.notify.uploadFailed"));
+    return null;
+  }
+}
+
 /** Every site that already has a filed entry, as a Set of site ids. */
 export async function filedSiteIds() {
   const { findSuitePack } = await import("../../shared/compendium-suite.mjs");

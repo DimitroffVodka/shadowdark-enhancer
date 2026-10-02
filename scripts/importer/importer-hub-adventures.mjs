@@ -91,7 +91,7 @@ class HubAdventureMethods {
    */
   async _onAdventureMap() {
     if (!game.user?.isGM) { ui.notifications.warn(t("SDE.adventure.notify.gmOnly")); return; }
-    const { filedSiteIds, findSiteScene, buildSiteScene } = await import("./adventure/adventure-scene.mjs");
+    const { filedSiteIds, findSiteScene, buildSiteScene, uploadMapImage } = await import("./adventure/adventure-scene.mjs");
     const { AdventurePlacer } = await import("./adventure/adventure-placer.mjs");
     const { siteForImage } = await import("./adventure/map-detect.mjs");
     const filed = await filedSiteIds();
@@ -109,6 +109,8 @@ class HubAdventureMethods {
       content: `
         <p>${t("SDE.adventure.map.lead")}</p>
         <div style="display:grid;grid-template-columns:auto 1fr;gap:0.4rem 0.6rem;align-items:center;">
+          <label for="sde-advmap-file"><strong>${t("SDE.adventure.map.file")}</strong></label>
+          <input id="sde-advmap-file" name="file" type="file" accept="image/*">
           <label for="sde-advmap-img"><strong>${t("SDE.adventure.map.image")}</strong></label>
           <span style="display:flex;gap:0.3rem;"><input id="sde-advmap-img" name="img" type="text" style="flex:1;" placeholder="${esc(t("SDE.adventure.map.imageHint"))}">
             <button type="button" data-advmap-browse title="${esc(t("SDE.adventure.map.browse"))}"><i class="fas fa-file-image"></i></button></span>
@@ -119,14 +121,18 @@ class HubAdventureMethods {
       render: (event, dialog) => {
         const root = dialog.element;
         const img = root.querySelector("#sde-advmap-img"), pick = root.querySelector("#sde-advmap-site"), note = root.querySelector("[data-advmap-detected]");
+        const file = root.querySelector("#sde-advmap-file");
         // The file's name says which adventure it is; say so, and select it.
         const detect = () => {
-          const site = siteForImage(img.value, sites);
+          const name = file.files?.[0]?.name || img.value;
+          const site = siteForImage(name, sites);
           if (site) { pick.value = site.id; note.textContent = t("SDE.adventure.map.recognized", { title: site.title }); }
-          else if (img.value.trim()) note.textContent = t("SDE.adventure.map.notRecognized");
+          else if (name.trim()) note.textContent = t("SDE.adventure.map.notRecognized");
         };
         img.addEventListener("input", detect);
         img.addEventListener("change", detect);
+        // A map from the GM's computer wins over a path left in the other field.
+        file.addEventListener("change", () => { if (file.files?.length) img.value = ""; detect(); });
         root.querySelector("[data-advmap-browse]")?.addEventListener("click", () => {
           new foundry.applications.apps.FilePicker.implementation({
             type: "image",
@@ -143,13 +149,15 @@ class HubAdventureMethods {
     }).catch(() => null);
     if (!answer || answer === "cancel") return;
 
-    const src = String(answer.img ?? "").trim();
-    const site = findSite(answer.site) ?? siteForImage(src, sites);
+    let src = String(answer.img ?? "").trim();
+    const picked = answer.file instanceof File && answer.file.size ? answer.file : null;
+    const site = findSite(answer.site) ?? siteForImage(picked?.name || src, sites);
     if (!site) { ui.notifications.warn(t("SDE.adventure.map.needSite")); return; }
     let scene = findSiteScene(site.id);
     if (scene) {
       ui.notifications.info(t("SDE.adventure.map.alreadyBuilt", { title: site.title }));
     } else {
+      if (picked) { src = await uploadMapImage(picked); if (!src) return; }
       if (!src) { ui.notifications.warn(t("SDE.adventure.map.needImage")); return; }
       // Not imported yet: read the journal out of the book first, so this is one step.
       if (!(await filedSiteIds()).has(site.id)) {

@@ -11,7 +11,8 @@ it needs.
 
 ### Added
 
-- **Adventure map is one step.** Pick the map image that came with the book and the module
+- **Adventure map is one step.** Choose the map image that came with the book from your
+  computer (it is uploaded to your world for you) and the module
   recognises the adventure from the file's name, imports its journal from your PDF if you
   have not, builds the scene and pins every location it knows the position of. Choose the
   adventure from the list when the file's name does not say.
