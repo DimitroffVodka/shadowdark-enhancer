@@ -2,6 +2,8 @@
  * Shadowdark Enhancer — Bastions: words shared by the sheet and the panel.
  */
 
+import { effects } from "./bastion-core.mjs";
+
 export const t = (key) => game.i18n.localize(key);
 export const format = (key, data) => game.i18n.format(key, data);
 
@@ -20,6 +22,13 @@ export const WHY = {
   flown: "SDE.bastion.why.flown",
   name: "SDE.bastion.why.name",
 };
+
+/** The line a monthly disaster roll is posted with: its log line, and under a finished Infirmary a pestilence says the patients have ADV. */
+export function monthLine(state) {
+  const entry = state.log.at(-1);
+  const note = entry.key === "SDE.bastion.log.pestilence" && effects(state).infirmary ? ` ${t("SDE.bastion.infirmary.pestilence")}` : "";
+  return `${logText(entry)}${note}`;
+}
 
 /** A log line, with any i18n key in its data (an upgrade's name) turned into words. */
 export const logText = (entry) => format(entry.key, Object.fromEntries(

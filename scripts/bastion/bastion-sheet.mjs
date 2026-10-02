@@ -16,7 +16,7 @@ import { renderPlan } from "./bastion-plan.mjs";
 import { isPartyActor } from "./bastion-funding.mjs";
 import { ensureSprites } from "./bastion-art.mjs";
 import { absDay } from "../time/time-core.mjs";
-import { t, format, WHY, logText } from "./bastion-text.mjs";
+import { t, format, WHY, logText, monthLine } from "./bastion-text.mjs";
 import { writeState, fundBastion, trophyBastion, takeOutBastion, storeBastion, pigeonBastion } from "./bastion-writes.mjs";
 import { slotsOf, usedSlots, VAULT_SLOTS, VAULT_TYPES } from "./bastion-vault-core.mjs";
 
@@ -181,7 +181,7 @@ export class BastionSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const die = (n) => Math.floor(CONFIG.Dice.randomUniform() * n) + 1;
     const next = core.applyDisaster(this.state, core.rollDisaster(die));
     if (!(await this._write(next))) return;
-    const line = logText(next.log.at(-1));
+    const line = monthLine(next);
     await ChatMessage.create({ content: `<p><strong>${esc(this.document.name)}</strong> ${esc(line)}</p>`, speaker: { alias: this.document.name } });
   }
 

@@ -91,7 +91,7 @@ const actor = await api.bastion.create({ name: "Blackhollow", type: "keep", trea
 api.bastion.open(actor);          // open the sheet; true when it is a bastion
 api.bastion.state(actor);         // { type, weeksLeft, week, hp:{value}, treasury, upgrades:[{id,slot,weeksLeft}], repair, log } or null
 api.bastion.built(actor);         // ids of the upgrades that are finished, so give their effect
-api.bastion.effects(actor);       // { granary, barracks, casino, library, trophyRoom, vault, stable, aviary }: the effects the game applies
+api.bastion.effects(actor);       // { granary, barracks, casino, library, trophyRoom, vault, stable, aviary, infirmary }: the effects the game applies
 
 api.bastion.openPanel();          // the bastions panel: every bastion you can see
 api.bastion.openPanel({ party }); // ...or just those a party owns
@@ -110,7 +110,7 @@ api.bastion.forParty(party);      // the bastion actors a party owns, [] for non
 | `bastion.state(actorOrIdOrUuid)` | any | A plain copy of the rules state, or `null`. An upgrade's `slot` is its place on the plan (`-1` for the moat, which has none). |
 | `bastion.built(actorOrIdOrUuid)` | any | The finished upgrades' ids (`weeksLeft` 0), `[]` for anything else. |
 | `bastion.openPanel({ party })` | any | Opens the Bastion panel (one window; a second call brings it forward). `party` is an actor, id or UUID, to show only that party's bastions. Resolves to the panel. A player sees the bastions they have Observer permission on. |
-| `bastion.effects(actorOrIdOrUuid)` | any | `{ granary, barracks, casino, library, trophyRoom, vault, stable, aviary }`, each true only when the bastion stands and has finished that upgrade. A warband garrisoned there (`warband.bastion`, set on its Warband tab) costs 10 gp less a month under a Granary and heals 1d6 more a day under a Barracks; a Casino earns 2d20 gp into the treasury each month start the clock passes; a Library gives the owning party's members +1 on Martial Training and Magical Research downtime checks; a Trophy Room gives them 1 XP for each notable trophy placed on the sheet; a Vault holds up to 100 gear slots of items on the bastion actor; a mount stabled there (the mount's `bastion` flag) shows no starvation warning under a Stable; an Aviary sends one pigeon message a world-clock day from the sheet. |
+| `bastion.effects(actorOrIdOrUuid)` | any | `{ granary, barracks, casino, library, trophyRoom, vault, stable, aviary, infirmary }`, each true only when the bastion stands and has finished that upgrade. A warband garrisoned there (`warband.bastion`, set on its Warband tab) costs 10 gp less a month under a Granary and heals 1d6 more a day under a Barracks; a Casino earns 2d20 gp into the treasury each month start the clock passes; a Library gives the owning party's members +1 on Martial Training and Magical Research downtime checks; a Trophy Room gives them 1 XP for each notable trophy placed on the sheet; a Vault holds up to 100 gear slots of items on the bastion actor; a mount stabled there (the mount's `bastion` flag) shows no starvation warning under a Stable; an Aviary sends one pigeon message a world-clock day from the sheet; an Infirmary is named on a pestilence roll (the patients have ADV on the CON check). |
 | `bastion.partyOf(actorOrIdOrUuid)` | any | The party actor a bastion names (`system.party`, set on its sheet by the GM), or `null`. |
 | `bastion.forParty(partyOrIdOrUuid)` | any | The bastion actors whose `system.party` is that party. |
 

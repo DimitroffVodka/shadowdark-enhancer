@@ -4984,6 +4984,7 @@
   "SDE.bastion.log.dragon": "Disaster: a hostile dragon approaches. It retreats below half its HP.",
   "SDE.bastion.log.empty": "Nothing has happened yet.",
   "SDE.bastion.log.pigeon": "A pigeon was sent.",
+  "SDE.bastion.infirmary.pestilence": "Your Infirmary: the patients make that check with advantage.",
   "SDE.bastion.log.income": "The Casino earned {gp} gp.",
   "SDE.bastion.log.naturalDisaster": "A natural disaster (fire, storm or earthquake) did {amount} damage.",
   "SDE.bastion.log.pestilence": "Disaster: pestilence. Every resident makes a DC 12 CON check or contracts rat disease.",

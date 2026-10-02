@@ -87,7 +87,7 @@ down** frees the slot and refunds nothing; the other upgrades keep their places.
 | Vault | 200 | Securely store up to 100 gear slots of items |
 | Wizard Tower | 400 | +1 to INT spellcasting checks in the bastion |
 
-Eight effects are applied for you while the bastion stands:
+Nine effects are applied for you while the bastion stands:
 
 - the **Granary** makes each warband [garrisoned](Warbands.md) there cost 10 gp less a month;
 - the **Barracks** heals each of them 1d6 more a day;
@@ -117,7 +117,10 @@ Eight effects are applied for you while the bastion stands:
 - the **Aviary** sends **one message a day** by pigeon: the Aviary box on the Overview tab (GM)
   asks who it is for (everyone, or one player, as a whisper the GMs also see) and what it says,
   and posts it from the bastion. A day is a world-clock day; the pigeon is ready again the next
-  one, and a message that couldn't be posted doesn't use the day up.
+  one, and a message that couldn't be posted doesn't use the day up;
+- the **Infirmary** is named on the month's disaster roll: when it comes up pestilence (the
+  DC 12 CON check for rat disease), the chat message adds that the patients make the check
+  with advantage. The check itself is still rolled at the table.
 
 The rest the sheet records and you rule on at the table.
 
