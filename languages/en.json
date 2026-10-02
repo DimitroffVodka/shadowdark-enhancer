@@ -4970,6 +4970,7 @@
   "SDE.bastion.fund.withdrawTitle": "Pay Out of the Treasury",
   "SDE.bastion.gp": "gp",
   "SDE.bastion.income.flavor": "{bastion}'s Casino earned {gp} gp.",
+  "SDE.bastion.library.note": "Library +{bonus}",
   "SDE.bastion.income.lost": "{bastion}'s Casino earned {gp} gp for {date}, but the treasury could not be saved. Add it by hand.",
   "SDE.bastion.log.breached": "The walls are breached.",
   "SDE.bastion.log.buildDone": "{upgrade} is built.",

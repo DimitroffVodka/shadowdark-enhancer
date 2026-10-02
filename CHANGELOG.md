@@ -23,7 +23,8 @@ it needs.
   recorded; the **Granary** (a warband garrisoned there costs 10 gp less a month) and the
   **Barracks** (it heals 1d6 more a day) are applied, and the **Casino** earns 2d20 gp into the
   treasury at each month start the world clock passes (one roll a month in chat, each month
-  paid once). The first two go through a new Garrison box on the
+  paid once), and the **Library** gives the owning party +1 on Martial Training and Magical
+  Research downtime checks. The first two go through a new Garrison box on the
   Warband tab, and shown on the upkeep and healing cards. A bastion can name the party that owns it, and **Pay in** and
   **Pay out** move whole gold between a member's purse and the treasury (Extras keeps a
   party's own coins in its own data, so those are left alone). A **Bastions** panel lists the

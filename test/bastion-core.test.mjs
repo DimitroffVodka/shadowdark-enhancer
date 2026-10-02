@@ -163,9 +163,9 @@ test("a bastion's effects are its finished Granary and Barracks, and only while 
   assert.equal(GRANARY_SAVING_GP, 10);
   assert.deepEqual(BARRACKS_HEAL, { n: 1, faces: 6 });
   const built = advanceWeek(buildAll(standing("keep"), ["granary", "barracks", "stable"]));
-  assert.deepEqual(effects(built), { granary: true, barracks: true, casino: false });
+  assert.deepEqual(effects(built), { granary: true, barracks: true, casino: false, library: false });
   const going = buildAll(standing("keep"), ["granary", "barracks"]);          // a week of building still to go
-  assert.deepEqual(effects(going), { granary: false, barracks: false, casino: false });
-  assert.deepEqual(effects(advanceWeek(buildAll(standing("keep"), ["stable"]))), { granary: false, barracks: false, casino: false });
-  assert.deepEqual(effects({ ...built, weeksLeft: 2 }), { granary: false, barracks: false, casino: false });   // not raised
+  assert.deepEqual(effects(going), { granary: false, barracks: false, casino: false, library: false });
+  assert.deepEqual(effects(advanceWeek(buildAll(standing("keep"), ["stable"]))), { granary: false, barracks: false, casino: false, library: false });
+  assert.deepEqual(effects({ ...built, weeksLeft: 2 }), { granary: false, barracks: false, casino: false, library: false });   // not raised
 });

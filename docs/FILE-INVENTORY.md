@@ -1,7 +1,7 @@
 # Shadowdark Enhancer — File Inventory
 
 <!-- inventory:stats:start -->
-1257 tracked files · ~210,000 lines of code/markup across scripts+templates+styles+test.
+1259 tracked files · ~210,100 lines of code/markup across scripts+templates+styles+test.
 `v0.17.3` in both `module.json` and `package.json`.
 <!-- inventory:stats:end -->
 **Layout reflects the 2026-07-21 feature-folder reorganization (v0.11.0 cycle).**
@@ -455,8 +455,8 @@
 | `downtime-warnings.mjs` | 161 | Shared prose for the downtime parser's warning codes; splits info notes (a two-column paste always emits them) from real problems, so every unlock surface reports a parse identically. |
 | `downtime-recruit-core.mjs` | 120 | Pure rules of Recruit a warband (#205): the `recruit:<id>` slot key, DC 10 plus the warband's level, the party's settlement (the GM's choice, else the keyed hex's), what a settlement supplies from the recruiting limits, and which warbands a character is offered. |
 | `downtime-recruit.mjs` | 186 | Recruit a warband in the world (#205): reads the party's hex, the actors pack and the world's uncommanded warbands, checks the commander's allowance with the warband unit's own checks, and makes a copy under the character's command on the warband queue. GM-side; a player's window asks the session for the offers. |
-| `downtime-app.mjs` | 1526 | The `sde-downtime` ApplicationV2 in three modes: GM solo (pay-before-roll attempts, renown / XP apply buttons), the GM session control panel (picks overview, lock/release, roll-for), and the player view (own actors only, choose then roll). Locked books render as a title-only card; unlocking happens in the Importer Hub. |
-| `downtime-session.mjs` | 1200 | Table-wide downtime session: world-setting state model, the authenticated downtime query protocol (the raw socket carries only the payload-free re-read nudge), and the GM-authoritative handlers that recompute DC, cost and gating from the skeleton, derive the requester from the server-supplied sender, and spend a per-attempt roll token so a roll settles once. Players pick and roll; the GM settles. |
+| `downtime-app.mjs` | 1531 | The `sde-downtime` ApplicationV2 in three modes: GM solo (pay-before-roll attempts, renown / XP apply buttons), the GM session control panel (picks overview, lock/release, roll-for), and the player view (own actors only, choose then roll). Locked books render as a title-only card; unlocking happens in the Importer Hub. |
+| `downtime-session.mjs` | 1205 | Table-wide downtime session: world-setting state model, the authenticated downtime query protocol (the raw socket carries only the payload-free re-read nudge), and the GM-authoritative handlers that recompute DC, cost and gating from the skeleton, derive the requester from the server-supplied sender, and spend a per-attempt roll token so a roll settles once. Players pick and roll; the GM settles. |
 
 Ships the skeleton only (activity names, slot labels, DCs, paid flags, renown/XP deltas). Every outcome sentence is pasted by the GM from their own book and stored in the `downtimeContent` world setting, never in the repo.
 
@@ -513,7 +513,7 @@ One world JournalEntry per quest, its state one flag on the entry. World journal
 
 | File | Lines | Description |
 |---|---:|---|
-| `bastion-core.mjs` | 317 | The rules, pure: the four types and twenty upgrades with their costs and caps, building a week at a time, repairs, the monthly disaster, and the state the actor stores. |
+| `bastion-core.mjs` | 322 | The rules, pure: the four types and twenty upgrades with their costs and caps, building a week at a time, repairs, the monthly disaster, and the state the actor stores. |
 | `bastion-plan.mjs` | 315 | The plan, pure: SVG markup for a bastion from outside (buildings round the main one) or in (one connected compound of rooms, with roofs), each upgrade keeping the place it took. |
 | `bastion-funding.mjs` | 55 | The party link and paying into the treasury, pure: which actors are parties, who can pay, and the purse arithmetic for paying gold in and out. Extras' own party coins are never read or written. |
 | `bastion-art.mjs` | 33 | The actor type id, where the bastion art files are (assets/bastion/art), and the one-time load of the sprite sheet the plan and the panel draw from. |
@@ -526,6 +526,7 @@ One world JournalEntry per quest, its state one flag on the entry. World journal
 | `bastion-panel.mjs` | 108 | The Bastion panel window (ApplicationV2): a card per bastion with Open, and for the GM Pay in, Pay out and New bastion. Redraws as bastions change. |
 | `bastion-entry-points.mjs` | 33 | The ways into the panel: a Bastions entry in the Actors directory's right-click menu on a party actor (the GM always; a player when the party owns a bastion they can see). |
 | `bastion-income.mjs` | 87 | The Casino's income on the world clock: 2d20 gp into the treasury of a standing bastion with a finished Casino at each month start, each month paid once (marked on the bastion), read back, and a payment that did not save told to the GMs. |
+| `bastion-library.mjs` | 37 | The Library's +1 on the learning downtime checks (martial training, magical research) for the members of the party that owns a standing bastion with a finished Library; two don't stack. |
 
 A place the party owns: the four types and twenty upgrades, built a week at a time, drawn from outside or in. The art is assets/bastion, generated by tools/bastion-art.
 <!-- inventory:scripts:end -->

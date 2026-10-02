@@ -100,16 +100,21 @@ export const CASINO_DICE = { n: 2, faces: 20 };
 /** How many paid months a bastion keeps: far more than a clock move reaches back. */
 const KEEP_INCOME_MONTHS = 24;
 
+/** The Library's bonus on the downtime checks that are about learning (the skeleton's activity keys). */
+export const LIBRARY_BONUS = 1;
+export const LEARNING_ACTIVITIES = ["martialTraining", "magicalResearch"];
+
 /**
  * The effects other features apply for a bastion: only a bastion that stands gives any, and
  * only through finished upgrades.
  * granary: warbands garrisoned here each cost GRANARY_SAVING_GP less a month.
  * barracks: warbands garrisoned here heal BARRACKS_HEAL more each day.
  * casino: it earns CASINO_DICE gp into the treasury each month.
+ * library: the party's members get LIBRARY_BONUS on learning downtime checks.
  */
 export function effects(state) {
   const built = new Set(stats(state).standing ? builtUpgrades(state) : []);
-  return { granary: built.has("granary"), barracks: built.has("barracks"), casino: built.has("casino") };
+  return { granary: built.has("granary"), barracks: built.has("barracks"), casino: built.has("casino"), library: built.has("library") };
 }
 
 /** Is this month's Casino income owed: a finished Casino in a standing bastion, and the month not yet paid? */

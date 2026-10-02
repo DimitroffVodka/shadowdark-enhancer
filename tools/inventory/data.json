@@ -456,7 +456,8 @@
       "scripts/bastion/bastion-panel-core.mjs",
       "scripts/bastion/bastion-panel.mjs",
       "scripts/bastion/bastion-entry-points.mjs",
-      "scripts/bastion/bastion-income.mjs"
+      "scripts/bastion/bastion-income.mjs",
+      "scripts/bastion/bastion-library.mjs"
     ]
   },
   "descriptions": {
@@ -820,6 +821,7 @@
     "scripts/bastion/bastion-panel.mjs": "The Bastion panel window (ApplicationV2): a card per bastion with Open, and for the GM Pay in, Pay out and New bastion. Redraws as bastions change.",
     "scripts/bastion/bastion-entry-points.mjs": "The ways into the panel: a Bastions entry in the Actors directory's right-click menu on a party actor (the GM always; a player when the party owns a bastion they can see).",
     "scripts/actors/warband-garrison.mjs": "The bastion a warband is garrisoned at: its name and which of the Granary and Barracks it has finished while it stands, for warband upkeep, healing and the Warband tab.",
-    "scripts/bastion/bastion-income.mjs": "The Casino's income on the world clock: 2d20 gp into the treasury of a standing bastion with a finished Casino at each month start, each month paid once (marked on the bastion), read back, and a payment that did not save told to the GMs."
+    "scripts/bastion/bastion-income.mjs": "The Casino's income on the world clock: 2d20 gp into the treasury of a standing bastion with a finished Casino at each month start, each month paid once (marked on the bastion), read back, and a payment that did not save told to the GMs.",
+    "scripts/bastion/bastion-library.mjs": "The Library's +1 on the learning downtime checks (martial training, magical research) for the members of the party that owns a standing bastion with a finished Library; two don't stack."
   }
 }
