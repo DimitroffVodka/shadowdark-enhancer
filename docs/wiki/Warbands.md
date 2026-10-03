@@ -117,8 +117,16 @@ you setting the date.
   move settles at most its last year of days, and at most 8 weeks of arrears
   checks.
 
-A bastion's Granary (10 gp less upkeep) and Barracks (+1d6 healing) come with
-bastions.
+A warband can be **garrisoned** at a [bastion](Bastions.md): pick it in the Warband
+tab's Garrison box. While it is, and the bastion stands:
+
+- a finished **Granary** makes the warband cost 10 gp less a month (a level 1 warband,
+  which costs 10, costs nothing), and the upkeep card and the Warband tab say so;
+- a finished **Barracks** heals it 1d6 more each day, on top of the usual 1d4 (2d6 Hardy),
+  and the healing card says so.
+
+A bastion still going up, or one without the upgrade, gives nothing. A commander who can't
+cover the reduced upkeep owes the reduced amount in arrears.
 
 ---
 

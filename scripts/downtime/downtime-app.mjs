@@ -72,6 +72,7 @@ import {
   foundFor,
 } from "./downtime-session.mjs";
 import { recruitActivity, recruitKey, recruitSlot } from "./downtime-recruit-core.mjs";
+import { withLibrary } from "../bastion/bastion-library.mjs";
 import {
   SETTLEMENT_SETTING, checkRecruit, commandedWarbands, recruitView, recruitWarband,
 } from "./downtime-recruit.mjs";
@@ -949,7 +950,7 @@ export class DowntimeApp extends HandlebarsApplicationMixin(ApplicationV2) {
       });
     }
 
-    const { ability, mod } = this._modFor(activity, slot, actor);
+    const { ability, mod, library } = this._modFor(activity, slot, actor);
     const modeDef = ADV_MODES.find(m => m.key === this._advantage) ?? ADV_MODES[1];
     const mode = { ...modeDef, label: L(modeDef.label) };
     const formula = `${mode.dice} ${mod < 0 ? "-" : "+"} ${Math.abs(mod)}`;
@@ -969,7 +970,7 @@ export class DowntimeApp extends HandlebarsApplicationMixin(ApplicationV2) {
       speaker: ChatMessage.getSpeaker({ actor }),
       flavor: `<strong>${L("SDE.downtime.card.flavor", { activity: esc(activity.name), slot: esc(slot.label), dc })}</strong>`,
       content: this._cardHtml({
-        activity, slot, actor, ability, mod, mode, total, dc, success,
+        activity, slot, actor, ability, mod, library, mode, total, dc, success,
         cost, outcomeText, nextDC,
       }),
       flags: { [MODULE_ID]: { downtimeCard: true, slotKey: slot.key } },
@@ -1103,8 +1104,12 @@ export class DowntimeApp extends HandlebarsApplicationMixin(ApplicationV2) {
     }
   }
 
-  /** The ability + modifier this slot's check rolls against. */
+  /** The ability + modifier this slot's check rolls against, with a Bastion Library's bonus on learning activities. */
   _modFor(activity, slot, actor) {
+    return withLibrary(this._baseModFor(activity, slot, actor), activity, actor);
+  }
+
+  _baseModFor(activity, slot, actor) {
     const check = activity.check ?? {};
     if (check.kind === "ability") return this._bestOf(actor, check.abilities);
     if (check.kind === "choice") {
@@ -1142,9 +1147,9 @@ export class DowntimeApp extends HandlebarsApplicationMixin(ApplicationV2) {
   }
 
   /** Chat card body. Every stored/pasted string is escaped here. */
-  _cardHtml({ activity, slot, actor, ability, mod, mode, total, dc, success, cost, outcomeText, nextDC }) {
+  _cardHtml({ activity, slot, actor, ability, mod, library = 0, mode, total, dc, success, cost, outcomeText, nextDC }) {
     const abilityLabel = ability ? String(ability).toUpperCase() : "—";
-    const modeNote = mode.key === "normal" ? "" : ` · ${esc(mode.label)}`;
+    const modeNote = (mode.key === "normal" ? "" : ` · ${esc(mode.label)}`) + (library ? ` · ${L("SDE.bastion.library.note", { bonus: library })}` : "");
     const costLine = cost > 0
       ? `<div class="sde-dt-line"><i class="fas fa-coins"></i> ${L("SDE.downtime.card.paid", { cost })}</div>`
       : "";
@@ -1351,7 +1356,7 @@ export class DowntimeApp extends HandlebarsApplicationMixin(ApplicationV2) {
     }
 
     const facts = await classFacts(actor);
-    const { ability, mod } = modForCheck(found.activity, found.slot, actor, {
+    const { ability, mod, library } = modForCheck(found.activity, found.slot, actor, {
       facts, choiceAbility: pick.ability,
     });
     const mode = advMode(pick.advantage);
@@ -1364,7 +1369,7 @@ export class DowntimeApp extends HandlebarsApplicationMixin(ApplicationV2) {
       speaker: ChatMessage.getSpeaker({ actor }),
       flavor: `<strong>${L("SDE.downtime.card.flavor", { activity: esc(found.activity.name), slot: esc(found.slot.label), dc })}</strong>`
         + `<br><span class="sde-dt-check">${ability ? String(ability).toUpperCase() : "—"} ${signed(mod)}`
-        + `${mode.key === "normal" ? "" : ` · ${esc(L(mode.label))}`}</span>`,
+        + `${mode.key === "normal" ? "" : ` · ${esc(L(mode.label))}`}${library ? ` · ${L("SDE.bastion.library.note", { bonus: library })}` : ""}</span>`,
       flags: {
         [MODULE_ID]: {
           [ROLL_FLAG]: { actorId: actor.id, slotKey: pick.slotKey, nonce: pick.nonce },

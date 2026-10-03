@@ -1,0 +1,149 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512"
+     role="img" aria-labelledby="title desc">
+  <title id="title">Armorer</title>
+  <desc id="desc">Armor workshop with lean-to smithy, mail-shirt stand, shield rack and breastplate sign.</desc>
+  <!-- Native vector artwork only: no embedded or linked raster content. -->
+
+  <defs>
+    <pattern id="roofHatch" width="12" height="12" patternUnits="userSpaceOnUse">
+      <path d="M2 0 V12 M8 0 V12" fill="none" stroke="#010206" stroke-width="0.75" opacity="0.17"/>
+    </pattern>
+    <pattern id="leanHatch" width="10" height="10" patternUnits="userSpaceOnUse">
+      <path d="M2 0 V10" fill="none" stroke="#010206" stroke-width="0.65" opacity="0.18"/>
+    </pattern>
+    <pattern id="stoneHatch" width="16" height="13" patternUnits="userSpaceOnUse">
+      <path d="M0 6 H16 M5 0 V6 M12 6 V13" fill="none" stroke="#010206" stroke-width="0.55" opacity="0.16"/>
+    </pattern>
+    <pattern id="shingleHatch" width="14" height="9" patternUnits="userSpaceOnUse">
+      <path d="M0 8 H14 M0 4 Q3.5 8 7 4 Q10.5 8 14 4" fill="none" stroke="#010206" stroke-width="0.6" opacity="0.2"/>
+    </pattern>
+    <pattern id="logHatch" width="9" height="9" patternUnits="userSpaceOnUse">
+      <path d="M4.5 0 V9" fill="none" stroke="#010206" stroke-width="0.7" opacity="0.2"/>
+    </pattern>
+    <pattern id="plankHatch" width="64" height="22" patternUnits="userSpaceOnUse">
+      <path d="M0 0.5 H64 M0 11.5 H64 M20 0 V11 M50 11 V22" fill="none" stroke="#010206" stroke-width="0.8" opacity="0.22"/>
+    </pattern>
+    <pattern id="flagHatch" width="48" height="40" patternUnits="userSpaceOnUse">
+      <path d="M0 0.5 H48 M0 20.5 H48 M16 0 V20 M40 20 V40" fill="none" stroke="#010206" stroke-width="0.8" opacity="0.2"/>
+    </pattern>
+    <pattern id="waterHatch" width="22" height="10" patternUnits="userSpaceOnUse">
+      <path d="M2 5 Q7 1 12 5 T22 5" fill="none" stroke="#A3C9CC" stroke-width="1.1" opacity="0.7"/>
+    </pattern>
+  </defs>
+
+  <g id="building" stroke="#010206" stroke-linecap="round" stroke-linejoin="round">
+    <g transform="translate(256 256) scale(0.94) translate(-269 -245)">
+
+    <defs>
+      <pattern id="mailHatch" width="6" height="6" patternUnits="userSpaceOnUse">
+        <path d="M0 3 H6 M3 0 V6" fill="none" stroke="#010206" stroke-width="0.6" opacity="0.28"/>
+        <circle cx="3" cy="3" r="2" fill="none" stroke="#010206" stroke-width="0.5" opacity="0.2"/>
+      </pattern>
+    </defs>
+    <!-- Chimney of the smithy corner. -->
+    <path d="M370 74 H406 V150 H370 Z" fill="#8E8B83" stroke="none"/>
+    <path d="M370 74 H406 V150 H370 Z" fill="url(#stoneHatch)" stroke="none"/>
+    <path d="M370 74 H406 V150 H370 Z" fill="none" stroke-width="2.2"/>
+    <path d="M365 66 H411 V78 H365 Z" fill="#A8A59B" stroke-width="2"/>
+    <path d="M374 69 H402 V75 H374 Z" fill="#26211f" stroke="none"/>
+    <!-- Lean-to smithy: slate roof, posts and a dark open front. -->
+    <path d="M326 192 H440 V248 H326 Z" fill="#26211f" stroke-width="2.2"/>
+    <path d="M338 232 H434 L438 248 H334 Z" fill="#6F6D68" stroke-width="1.8"/>
+    <path d="M356 204 H388 L394 232 H350 Z" fill="#8A7A5A" stroke-width="1.6"/>
+    <path d="M366 224 L374 206 L382 224 Z" fill="#E08A33" stroke-width="1.2"/>
+    <path d="M410 212 L424 208 L430 236 L416 238 Z" fill="#7A5C3F" stroke-width="1.6"/>
+    <path d="M410 212 L420 196 L430 208 Z" fill="#A58562" stroke-width="1.5"/>
+    <path d="M334 192 V248 M432 192 V248" fill="none" stroke="#5F4434" stroke-width="5"/>
+
+    <path d="M318 118 H446 V159 H318 Z" fill="#A3B1B1" stroke="none"/>
+    <path d="M318 159 H446 V200 H318 Z" fill="#8F9EA0" stroke="none"/>
+    <path d="M318 118 H446 V200 H318 Z" fill="url(#leanHatch)" stroke="none"/>
+    <path d="M318 118 H446 V200 H318 Z" fill="none" stroke-width="2.8"/>
+    <path d="M318 159 C350 157, 414 161, 446 159" fill="none" stroke-width="3.1"/>
+
+    <path d="M330 168 H436 M330 150 H436" fill="none" stroke-width="1" opacity="0.4"/>
+    <!-- Main workshop: shingled roof, wall strip, shop hatch and door. -->
+    <path d="M72 198 H324 L318 236 H78 Z" fill="#8F715E" stroke-width="2.1"/>
+
+    <path d="M64 92 H332 V146 H64 Z" fill="#B69A83" stroke="none"/>
+    <path d="M64 146 H332 V200 H64 Z" fill="#A57F68" stroke="none"/>
+    <path d="M64 92 H332 V200 H64 Z" fill="url(#shingleHatch)" stroke="none"/>
+    <path d="M64 92 H332 V200 H64 Z" fill="none" stroke-width="2.8"/>
+    <path d="M64 146 C131 144, 265 148, 332 146" fill="none" stroke-width="3.1"/>
+
+    <g fill="#A9856E" stroke-width="1.6">
+      <rect x="58" y="85" width="14" height="14" rx="2"/>
+      <rect x="324" y="85" width="14" height="14" rx="2"/>
+      <rect x="58" y="193" width="14" height="14" rx="2"/>
+      <rect x="324" y="193" width="14" height="14" rx="2"/>
+    </g>
+
+    <path d="M84 198 V234 M130 198 V234 M232 198 V234 M300 198 V234" fill="none" stroke="#5F4434" stroke-width="3"/>
+
+    <path d="M150 204 H184 L181 234 H153 Z" fill="#745846" stroke-width="1.8"/>
+    <path d="M155 213 H179 M156 222 H179" fill="none" stroke-width="1.05" opacity="0.72"/>
+
+    <path d="M200 206 H290 V228 H200 Z" fill="#26211f" stroke-width="2"/>
+    <path d="M196 226 H294 V232 H196 Z" fill="#B58F6A" stroke-width="1.8"/>
+    <path d="M206 224 Q214 208 224 216 Q232 208 240 224 Z" fill="#A9B0B5" stroke-width="1.4"/>
+    <path d="M196 204 H294 L302 198 H188 Z" fill="#9C3F3A" stroke-width="1.6"/>
+    <path d="M206 204 L202 198 M226 204 L224 198 M246 204 L246 198 M266 204 L268 198 M286 204 L290 198" fill="none" stroke-width="1" opacity="0.6"/>
+    <path d="M110 128 H178 V160 H110 Z" fill="#8F715E" stroke-width="1.8"/>
+    <path d="M110 128 H178 V160 H110 Z" fill="url(#shingleHatch)" stroke="none"/>
+    <circle cx="228" cy="142" r="18" fill="#A9B0B5" stroke-width="2"/>
+    <circle cx="228" cy="142" r="11" fill="none" stroke-width="1.3"/>
+    <path d="M228 124 V160 M210 142 H246" fill="none" stroke-width="1.3" opacity="0.7"/>
+    <!-- Hanging breastplate sign on an iron bracket. -->
+    <path d="M462 254 V420" fill="none" stroke="#5F4434" stroke-width="6"/>
+    <path d="M462 266 H410" fill="none" stroke="#4B352B" stroke-width="4"/>
+    <path d="M462 280 L440 266" fill="none" stroke="#4B352B" stroke-width="2.6"/>
+    <path d="M416 266 V280 M436 266 V280" fill="none" stroke="#2c2926" stroke-width="1.4"/>
+    <path d="M404 280 H448 C452 296 448 318 440 334 Q426 344 412 334 C404 318 400 296 404 280 Z" fill="#A9B0B5" stroke-width="2.2"/>
+    <path d="M410 300 Q426 312 442 300 M412 316 Q426 326 440 316" fill="none" stroke="#7A8388" stroke-width="1.4"/>
+    <g fill="#7A8388" stroke="none"><circle cx="410" cy="288" r="1.6"/><circle cx="442" cy="288" r="1.6"/><circle cx="426" cy="296" r="1.6"/></g>
+    <path d="M426 284 V338 M408 300 Q426 310 444 300" fill="none" stroke="#7A8388" stroke-width="1.6"/>
+    <path d="M412 282 Q426 292 440 282" fill="none" stroke="#D2D8DB" stroke-width="1.8"/>
+    <!-- Armor stand: pole, shoulder bar, mail shirt, helm with a plume. -->
+    <path d="M122 370 L96 408 M122 370 L148 408 M122 370 V408" fill="none" stroke="#5F4434" stroke-width="4.4"/>
+    <path d="M122 270 V374" fill="none" stroke="#745846" stroke-width="5.6"/>
+    <path d="M86 292 H158" fill="none" stroke="#745846" stroke-width="5"/>
+    <path d="M90 288 L106 282 H138 L154 288 L172 320 L156 328 L148 316 V352 H96 V316 L88 328 L72 320 Z" fill="#A9B0B5" stroke-width="2.2"/>
+    <path d="M90 288 L106 282 H138 L154 288 L172 320 L156 328 L148 316 V352 H96 V316 L88 328 L72 320 Z" fill="url(#mailHatch)" stroke="none"/>
+    <path d="M96 346 H148 L152 358 H92 Z" fill="#8A929A" stroke-width="1.8"/>
+    <path d="M122 284 Q112 288 108 296 H136 Q132 288 122 284 Z" fill="#26211f" stroke-width="1.2"/>
+    <path d="M102 272 C102 248 112 238 122 238 C132 238 142 248 142 272 Z" fill="#B7BEC2" stroke-width="2.2"/>
+    <path d="M108 262 H136 V270 H108 Z" fill="#7A8388" stroke-width="1.3"/>
+    <path d="M122 262 V276" fill="none" stroke-width="2.4"/>
+    <path d="M122 238 C118 226 128 216 138 224 C132 226 130 232 130 238" fill="#9C3F3A" stroke-width="1.6"/>
+    <!-- Shield rack: frame with a round, a heater and a kite shield. -->
+    <path d="M196 302 V408 M308 302 V408 M190 304 H314 M190 394 H314" fill="none" stroke="#5F4434" stroke-width="5"/>
+    <path d="M196 394 H308 V404 H196 Z" fill="#745846" stroke-width="2"/>
+    <circle cx="224" cy="352" r="26" fill="#B58F6A" stroke-width="2.4"/>
+    <circle cx="224" cy="352" r="26" fill="url(#logHatch)" stroke="none"/>
+    <circle cx="224" cy="352" r="20" fill="none" stroke="#7A5C3F" stroke-width="2.4"/>
+    <circle cx="224" cy="352" r="7" fill="#8A929A" stroke-width="1.8"/>
+    <path d="M254 326 H290 V352 Q290 376 272 390 Q254 376 254 352 Z" fill="#4F6B65" stroke-width="2.3"/>
+    <path d="M254 340 H290 M272 326 V390" fill="none" stroke="#E6D9B5" stroke-width="3"/>
+    <path d="M254 326 H290 V352 Q290 376 272 390 Q254 376 254 352 Z" fill="none" stroke-width="2.3"/>
+    <path d="M266 394 V380 M278 394 V380" fill="none" stroke-width="0.8" opacity="0"/>
+    <path d="M298 312 L318 332 L300 386 L284 366 Z" fill="#9C3F3A" stroke-width="2.2"/>
+    <path d="M300 322 L304 372" fill="none" stroke="#E6D9B5" stroke-width="2.2"/>
+    <!-- Anvil-top helmet crate with pauldrons and gauntlets. -->
+    <path d="M318 384 H386 L390 424 H314 Z" fill="#876A56" stroke-width="2"/>
+    <path d="M326 394 L378 416 M378 394 L326 416" fill="none" stroke="#5F4434" stroke-width="1.2" opacity="0.7"/>
+    <path d="M326 384 C326 360 334 352 346 352 C358 352 366 360 366 384 Z" fill="#B7BEC2" stroke-width="2"/>
+    <path d="M332 372 H360 V378 H332 Z" fill="#7A8388" stroke-width="1.2"/>
+    <path d="M374 384 C374 368 380 364 388 364 C392 372 392 378 392 384 Z" fill="#A9B0B5" stroke-width="1.8"/>
+    <!-- Quench barrel with steam. -->
+
+    <ellipse cx="424" cy="380" rx="15" ry="8" fill="#A17A5C" stroke-width="1.7"/>
+    <path d="M409 380 L411 410 Q424 418 437 410 L439 380 Q424 388 409 380 Z" fill="#876449" stroke-width="1.7"/>
+    <path d="M411 390 Q424 396 437 390 M411 401 Q424 407 437 401" fill="none" stroke="#4D4B47" stroke-width="1.3"/>
+
+    <path d="M418 372 C412 362 422 356 418 346 M430 374 C424 364 434 358 430 350" fill="none" stroke="#E9E4D6" stroke-width="3" opacity="0.7"/>
+
+    </g>
+
+  </g>
+</svg>

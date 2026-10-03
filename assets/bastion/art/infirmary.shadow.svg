@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512"
+     role="img" aria-labelledby="title desc">
+  <title id="title">Infirmary shadow</title>
+  <desc id="desc">Separate native-vector cast shadow aligned to the Infirmary SVG.</desc>
+  <g id="shadow" transform="translate(28 16)" fill="#9699AE" opacity="0.46">
+    <path d="M150 84 H392 V120 H420 V262 H408 L402 346 H220 V340 H162 V262 H150 Z"/>
+    <path d="M56 232 H126 V352 H56 Z"/>
+    <path d="M56 372 H192 V438 H56 Z"/>
+    <path d="M218 362 H328 V430 H218 Z"/>
+    <path d="M408 348 H472 V420 H408 Z"/>
+
+  </g>
+</svg>

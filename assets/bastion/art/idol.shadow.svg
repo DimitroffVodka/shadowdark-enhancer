@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512"
+     role="img" aria-labelledby="title desc">
+  <title id="title">Idol shadow</title>
+  <desc id="desc">Separate native-vector cast shadow aligned to the Idol SVG.</desc>
+  <g id="shadow" transform="translate(28 16)" fill="#9699AE" opacity="0.46">
+    <path d="M168 372 H344 L330 322 L312 296 L306 284 L286 196 L284 118 L322 80 L316 62 H196 L190 80 L228 118 L226 196 L206 284 L200 296 L182 322 Z"/>
+    <path d="M232 424 L244 396 H268 L280 424 Z"/>
+    <path d="M75 323 L73 286 L79 249 L92 241 L103 249 L110 282 L109 323 Z"/>
+    <path d="M114 295 L112 258 L118 221 L131 213 L142 221 L149 254 L148 295 Z"/>
+    <path d="M187 277 L185 240 L191 203 L204 195 L215 203 L222 236 L221 277 Z"/>
+    <path d="M291 277 L289 240 L295 203 L308 195 L319 203 L326 236 L325 277 Z"/>
+    <path d="M364 295 L362 258 L368 221 L381 213 L392 221 L399 254 L398 295 Z"/>
+    <path d="M403 323 L401 286 L407 249 L420 241 L431 249 L438 282 L437 323 Z"/>
+    <path d="M400 353 L398 326 L404 299 L417 293 L428 299 L435 323 L434 353 Z"/>
+    <path d="M364 377 L362 350 L368 323 L381 317 L392 323 L399 347 L398 377 Z"/>
+    <path d="M114 377 L112 350 L118 323 L131 317 L142 323 L149 347 L148 377 Z"/>
+    <path d="M78 353 L76 326 L82 299 L95 293 L106 299 L113 323 L112 353 Z"/>
+
+  </g>
+</svg>

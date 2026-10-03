@@ -5,7 +5,7 @@
  * `documentTypes` key (see module.json). Type ids namespace to
  * `<module-id>.<type>` → `shadowdark-enhancer.mount` / `.boat`.
  *
- * MOUNT: reuses the Shadowdark system's own `NpcSD` data model and a subclass
+ * MOUNT: extends the Shadowdark system's own `NpcSD` data model and a subclass
  * of its `NpcSheetSD` sheet, so a mount IS a Shadowdark NPC (existing stat
  * blocks, NPC Attacks/Features/Spells plug straight in) with three extra tabs
  * (Riders / Inventory / Mount). The base classes are read from the live CONFIG
@@ -18,6 +18,9 @@
  * BOAT: a self-contained ApplicationV2 container sheet (BoatSheet) on its own
  * BoatDataModel.
  *
+ * BASTION: a self-contained ApplicationV2 sheet on its own model
+ * (scripts/bastion/register-bastion.mjs).
+ *
  * Called from i18nInit (shadowdark-enhancer.mjs): init can run before the
  * system's, and setup is too late for the world's actors.
  */
@@ -26,8 +29,10 @@ import { MODULE_ID } from "../shared/module-id.mjs";
 import { BoatDataModel } from "./boat-data-model.mjs";
 import { BoatSheet } from "./boat-sheet.mjs";
 import { buildMountNpcSheet } from "./mount-npc-sheet.mjs";
+import { buildMountNpcModel, registerMountScores } from "./mount-scores.mjs";
 import { buildWarbandNpcSheet, registerWarbandWrites, warbandState } from "./warband-npc-sheet.mjs";
 import { registerMakeWarband } from "./make-warband.mjs";
+import { registerBastion } from "../bastion/register-bastion.mjs";
 import { warbandRolledHp, toughHp } from "./warband-core.mjs";
 
 export const MOUNT_TYPE = `${MODULE_ID}.mount`;
@@ -54,7 +59,8 @@ export function registerActorTypes() {
   const NpcModel = CONFIG.Actor.dataModels?.NPC ?? game.system?.models?.NpcSD;
   const BaseNpcSheet = resolveNpcSheetClass();
   if (NpcModel && BaseNpcSheet) {
-    CONFIG.Actor.dataModels[MOUNT_TYPE] = NpcModel;
+    CONFIG.Actor.dataModels[MOUNT_TYPE] = buildMountNpcModel(NpcModel);
+    registerMountScores();
     const MountNpcSheetSD = buildMountNpcSheet(BaseNpcSheet);
     DSC.registerSheet(Actor, MODULE_ID, MountNpcSheetSD, {
       types: [MOUNT_TYPE],
@@ -107,6 +113,9 @@ export function registerActorTypes() {
     makeDefault: true,
     label: "SDE.sheet.boat",
   });
+
+  // ── Bastion: a place the party owns, its own model and sheet ───────────────
+  registerBastion();
 
   // Create-dialog icons (labels come from languages/en.json → TYPES.Actor.*)
   CONFIG.Actor.typeIcons ??= {};

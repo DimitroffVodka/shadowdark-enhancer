@@ -1,0 +1,169 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512"
+     role="img" aria-labelledby="title desc">
+  <title id="title">Stable</title>
+  <desc id="desc">Open-fronted stable block with horses in the stalls, hay-loft dormer, trough, saddle rack and hitching rail.</desc>
+  <!-- Native vector artwork only: no embedded or linked raster content. -->
+
+  <defs>
+    <pattern id="roofHatch" width="12" height="12" patternUnits="userSpaceOnUse">
+      <path d="M2 0 V12 M8 0 V12" fill="none" stroke="#010206" stroke-width="0.75" opacity="0.17"/>
+    </pattern>
+    <pattern id="leanHatch" width="10" height="10" patternUnits="userSpaceOnUse">
+      <path d="M2 0 V10" fill="none" stroke="#010206" stroke-width="0.65" opacity="0.18"/>
+    </pattern>
+    <pattern id="stoneHatch" width="16" height="13" patternUnits="userSpaceOnUse">
+      <path d="M0 6 H16 M5 0 V6 M12 6 V13" fill="none" stroke="#010206" stroke-width="0.55" opacity="0.16"/>
+    </pattern>
+    <pattern id="shingleHatch" width="14" height="9" patternUnits="userSpaceOnUse">
+      <path d="M0 8 H14 M0 4 Q3.5 8 7 4 Q10.5 8 14 4" fill="none" stroke="#010206" stroke-width="0.6" opacity="0.2"/>
+    </pattern>
+    <pattern id="logHatch" width="9" height="9" patternUnits="userSpaceOnUse">
+      <path d="M4.5 0 V9" fill="none" stroke="#010206" stroke-width="0.7" opacity="0.2"/>
+    </pattern>
+    <pattern id="plankHatch" width="64" height="22" patternUnits="userSpaceOnUse">
+      <path d="M0 0.5 H64 M0 11.5 H64 M20 0 V11 M50 11 V22" fill="none" stroke="#010206" stroke-width="0.8" opacity="0.22"/>
+    </pattern>
+    <pattern id="flagHatch" width="48" height="40" patternUnits="userSpaceOnUse">
+      <path d="M0 0.5 H48 M0 20.5 H48 M16 0 V20 M40 20 V40" fill="none" stroke="#010206" stroke-width="0.8" opacity="0.2"/>
+    </pattern>
+    <pattern id="waterHatch" width="22" height="10" patternUnits="userSpaceOnUse">
+      <path d="M2 5 Q7 1 12 5 T22 5" fill="none" stroke="#A3C9CC" stroke-width="1.1" opacity="0.7"/>
+    </pattern>
+  </defs>
+
+  <g id="building" stroke="#010206" stroke-linecap="round" stroke-linejoin="round">
+
+    <!-- Roof, and the hay-loft dormer with hoist beam, pulley and bale. -->
+
+    <path d="M80 98 H424 V155 H80 Z" fill="#C4A68F" stroke="none"/>
+    <path d="M80 155 H424 V212 H80 Z" fill="#B58F78" stroke="none"/>
+    <path d="M80 98 H424 V212 H80 Z" fill="url(#shingleHatch)" stroke="none"/>
+    <path d="M80 98 H424 V212 H80 Z" fill="none" stroke-width="2.8"/>
+    <path d="M80 155 C166 153, 338 157, 424 155" fill="none" stroke-width="3.1"/>
+
+    <!-- Roof: a mended patch and a rooftop weathervane arrow. -->
+    <path d="M110 126 H168 V170 H110 Z" fill="#A8856F" stroke-width="1.5"/>
+    <path d="M110 126 H168 V170 H110 Z" fill="url(#shingleHatch)" stroke="none"/>
+    <path d="M136 100 V70" fill="none" stroke="#4B352B" stroke-width="2.6"/>
+    <path d="M122 84 H152 M146 79 L154 84 L146 89" fill="none" stroke="#4B352B" stroke-width="2.2"/>
+    <path d="M132 76 L136 68 L140 76 Z" fill="#4B352B" stroke-width="1.2"/>
+    <path d="M316 146 V116 H358" fill="none" stroke="#4B352B" stroke-width="3.4"/>
+    <path d="M316 124 L330 116" fill="none" stroke="#4B352B" stroke-width="2.4"/>
+    <circle cx="358" cy="119" r="5" fill="#6F6D68" stroke-width="1.5"/>
+    <path d="M358 124 V158" fill="none" stroke-width="1.2"/>
+    <path d="M355 158 H361 V165 Q358 169 355 165 Z" fill="#6F6D68" stroke-width="1.2"/>
+    <path d="M272 176 L316 140 L360 176 Z" fill="#745846" stroke-width="2.2"/>
+    <path d="M278 212 V178 L316 150 L354 178 V212 Z" fill="#9F7D68" stroke-width="2.2"/>
+    <path d="M278 212 V178 L316 150 L354 178 V212 Z" fill="url(#logHatch)" stroke="none"/>
+    <path d="M290 212 V182 L316 162 L342 182 V212 Z" fill="#241c19" stroke-width="1.8"/>
+    <path d="M290 182 L278 186 V212 L290 212 Z M342 182 L354 186 V212 L342 212 Z" fill="#745846" stroke-width="1.6"/>
+    <path d="M297 212 V194 H335 V212 Z" fill="#D4B76A" stroke-width="1.7"/>
+    <path d="M297 200 H335 M297 206 H335 M305 194 V212 M327 194 V212" fill="none" stroke="#A8893C" stroke-width="1.1"/>
+    <path d="M300 194 l-3 -5 M310 194 l-1 -7 M322 194 l2 -6 M332 194 l4 -5" fill="none" stroke="#D4B76A" stroke-width="1.7"/>
+    <path d="M272 176 L316 140 L360 176" fill="none" stroke="#5F4434" stroke-width="3.4"/>
+    <!-- Aisle: dark stalls under the fascia beam. -->
+    <path d="M88 216 H418 V346 H88 Z" fill="#3B2F28" stroke-width="2.2"/>
+    <path d="M118 230 V346 M148 230 V346 M176 230 V346 M224 230 V346 M254 230 V346 M282 230 V346 M330 230 V346 M360 230 V346 M388 230 V346" fill="none" stroke="#2a211c" stroke-width="1.4" opacity="0.8"/>
+    <path d="M88 338 H418 V346 H88 Z" fill="#C7A06E" stroke="none"/>
+    <path d="M100 342 l7 -3 M150 343 l8 -3 M214 342 l8 -3 M280 343 l7 -3 M340 342 l8 -3" fill="none" stroke="#A8893C" stroke-width="1.2"/>
+    <!-- Right stall: a heap of hay, bucket and pitchfork. -->
+    <path d="M314 346 C318 318 338 306 354 310 C366 304 386 314 398 328 L402 346 Z" fill="#D4B76A" stroke-width="1.8"/>
+    <path d="M324 334 l8 -8 M342 330 l10 -10 M360 330 l8 -12 M378 334 l8 -8 M332 342 l12 -6 M358 342 l12 -8" fill="none" stroke="#A8893C" stroke-width="1.2"/>
+    <path d="M380 346 V272 M374 272 H388 M374 272 V286 M381 272 V286 M388 272 V286" fill="none" stroke="#4B352B" stroke-width="2.4"/>
+    <path d="M320 330 H336 L334 346 H322 Z" fill="#876A56" stroke-width="1.5"/>
+    <path d="M320 334 H336" fill="none" stroke-width="1.1"/>
+
+    <g transform="translate(244 342) scale(0.780 0.780)" stroke-width="2.18">
+      <!-- tail and far legs -->
+      <path d="M-37 -58 C-51 -54 -53 -36 -48 -16 C-44 -31 -40 -42 -33 -48 Z" fill="#3F2A20"/>
+      <path d="M26 -38 L28 -18 L27 -5 H35 L35 -18 L34 -40 Z M-22 -38 L-14 -24 L-12 -18 L-14 -5 H-6 L-5 -18 L-2 -28 L-2 -40 Z" fill="#3F2A20"/>
+      <!-- barrel -->
+      <path d="M-38 -50 C-38 -64 -16 -66 2 -64 C14 -63 22 -64 30 -68 L36 -48 C36 -40 32 -36 28 -34 C10 -30 -14 -30 -32 -34 C-36 -38 -38 -44 -38 -50 Z" fill="#8A5A3A"/>
+      <path d="M-30 -62 C-14 -66 6 -64 20 -66 L18 -56 C4 -58 -16 -56 -32 -54 Z" fill="#3F2A20" stroke="none" opacity="0.28"/>
+      <!-- near legs -->
+      <path d="M14 -38 L17 -19 L16 -5 H25 L25 -19 L28 -40 Z" fill="#8A5A3A"/>
+      <path d="M-32 -40 L-26 -26 L-22 -18 L-24 -5 H-15 L-14 -18 L-9 -28 L-8 -42 Z" fill="#8A5A3A"/>
+      <path d="M16 -5 H25 V0 H15 Z M-24 -5 H-15 V0 H-25 Z M27 -5 H35 V0 H26 Z M-14 -5 H-6 V0 H-15 Z" fill="#1d1a18" stroke-width="1"/>
+      <!-- neck, head -->
+      <path d="M28 -68 C34 -80 40 -90 46 -94 L58 -90 C56 -78 52 -62 42 -44 L34 -42 Z" fill="#8A5A3A"/>
+      <path d="M44 -94 L52 -101 C60 -99 72 -83 75 -76 L73 -70 C67 -70 62 -74 58 -78 L51 -74 C48 -80 46 -86 44 -94 Z" fill="#8A5A3A"/>
+      <path d="M52 -97 L69 -79" fill="none" stroke="#E6D3B8" stroke-width="2.6" opacity="0.85"/>
+      <!-- mane, forelock, ear -->
+      <path d="M30 -68 C32 -82 40 -94 48 -99 L50 -92 C44 -88 40 -78 38 -66 Z" fill="#3F2A20"/>
+      <path d="M50 -101 L52 -110 L57 -100 Z" fill="#3F2A20"/>
+      <circle cx="58" cy="-90" r="1.6" fill="#010206" stroke="none"/>
+      <circle cx="73" cy="-75" r="1.3" fill="#010206" stroke="none"/>
+    </g>
+
+    <g transform="translate(170 342) scale(-0.760 0.760)" stroke-width="2.24">
+      <!-- tail and far legs -->
+      <path d="M-37 -58 C-51 -54 -53 -36 -48 -16 C-44 -31 -40 -42 -33 -48 Z" fill="#8A7C68"/>
+      <path d="M26 -38 L28 -18 L27 -5 H35 L35 -18 L34 -40 Z M-22 -38 L-14 -24 L-12 -18 L-14 -5 H-6 L-5 -18 L-2 -28 L-2 -40 Z" fill="#8A7C68"/>
+      <!-- barrel -->
+      <path d="M-38 -50 C-38 -64 -16 -66 2 -64 C14 -63 22 -64 30 -68 L36 -48 C36 -40 32 -36 28 -34 C10 -30 -14 -30 -32 -34 C-36 -38 -38 -44 -38 -50 Z" fill="#C9B79A"/>
+      <path d="M-30 -62 C-14 -66 6 -64 20 -66 L18 -56 C4 -58 -16 -56 -32 -54 Z" fill="#8A7C68" stroke="none" opacity="0.28"/>
+      <!-- near legs -->
+      <path d="M14 -38 L17 -19 L16 -5 H25 L25 -19 L28 -40 Z" fill="#C9B79A"/>
+      <path d="M-32 -40 L-26 -26 L-22 -18 L-24 -5 H-15 L-14 -18 L-9 -28 L-8 -42 Z" fill="#C9B79A"/>
+      <path d="M16 -5 H25 V0 H15 Z M-24 -5 H-15 V0 H-25 Z M27 -5 H35 V0 H26 Z M-14 -5 H-6 V0 H-15 Z" fill="#1d1a18" stroke-width="1"/>
+      <!-- neck, head -->
+      <path d="M28 -68 C34 -80 40 -90 46 -94 L58 -90 C56 -78 52 -62 42 -44 L34 -42 Z" fill="#C9B79A"/>
+      <path d="M44 -94 L52 -101 C60 -99 72 -83 75 -76 L73 -70 C67 -70 62 -74 58 -78 L51 -74 C48 -80 46 -86 44 -94 Z" fill="#C9B79A"/>
+      <path d="M52 -97 L69 -79" fill="none" stroke="#E6D3B8" stroke-width="2.6" opacity="0.85"/>
+      <!-- mane, forelock, ear -->
+      <path d="M30 -68 C32 -82 40 -94 48 -99 L50 -92 C44 -88 40 -78 38 -66 Z" fill="#8A7C68"/>
+      <path d="M50 -101 L52 -110 L57 -100 Z" fill="#8A7C68"/>
+      <circle cx="58" cy="-90" r="1.6" fill="#010206" stroke="none"/>
+      <circle cx="73" cy="-75" r="1.3" fill="#010206" stroke="none"/>
+    </g>
+
+    <!-- Left stall: the half door shut under the grey mare's head. -->
+    <path d="M100 346 V304 H194 V346 Z" fill="#9F7D68" stroke-width="2"/>
+    <path d="M100 346 V304 H194 V346 Z" fill="url(#logHatch)" stroke="none"/>
+    <path d="M100 304 H194 M100 346 L194 304 M100 304 L194 346" fill="none" stroke="#5F4434" stroke-width="2.6"/>
+    <circle cx="184" cy="318" r="2.6" fill="#4D4B47" stroke-width="1"/>
+    <path d="M98 302 H196 V308 H98 Z" fill="#745846" stroke-width="1.8"/>
+    <!-- Posts and the fascia beam over the stalls. -->
+    <g fill="#8F6F52" stroke-width="2">
+      <path d="M88 216 H100 V350 H88 Z"/><path d="M194 216 H206 V350 H194 Z"/><path d="M300 216 H312 V350 H300 Z"/><path d="M406 216 H418 V350 H406 Z"/>
+    </g>
+    <path d="M88 216 H100 V350 H88 Z M194 216 H206 V350 H194 Z M300 216 H312 V350 H300 Z M406 216 H418 V350 H406 Z" fill="url(#logHatch)" stroke="none"/>
+    <path d="M86 216 H420 V232 H86 Z" fill="#745846" stroke-width="2.2"/>
+    <path d="M86 216 H420 V232 H86 Z" fill="url(#logHatch)" stroke="none"/>
+    <path d="M82 350 H424 L418 360 H88 Z" fill="#85827A" stroke-width="1.8"/>
+    <!-- Horseshoe nailed up over the aisle. -->
+    <path d="M241 236 C233 246 235 260 249 260 C263 260 265 246 257 236" fill="none" stroke="#2c2c2c" stroke-width="5.6"/>
+    <path d="M241 236 C233 246 235 260 249 260 C263 260 265 246 257 236" fill="none" stroke="#B9B7B0" stroke-width="3.2"/>
+    <circle cx="240" cy="243" r="1.2" fill="#2c2c2c" stroke="none"/><circle cx="238" cy="252" r="1.2" fill="#2c2c2c" stroke="none"/><circle cx="259" cy="243" r="1.2" fill="#2c2c2c" stroke="none"/><circle cx="260" cy="252" r="1.2" fill="#2c2c2c" stroke="none"/>
+    <g transform="translate(0 6)">
+    <!-- Water trough on a frame. -->
+    <path d="M100 382 L108 410 M190 382 L182 410 M118 384 L124 410 M172 384 L166 410" fill="none" stroke="#5F4434" stroke-width="3.4"/>
+    <path d="M94 366 H198 L192 388 H100 Z" fill="#876A56" stroke-width="2"/>
+    <path d="M94 366 H198 L192 388 H100 Z" fill="url(#logHatch)" stroke="none"/>
+    <path d="M102 369 H190 L188 378 H104 Z" fill="#5B99A6" stroke-width="1.4"/>
+    <path d="M114 374 q6 -3 12 0 t12 0 M150 372 q6 -3 12 0" fill="none" stroke="#A3C9CC" stroke-width="1.1"/>
+    <path d="M94 366 H198" fill="none" stroke="#A9856E" stroke-width="2.4"/>
+    <!-- Saddle on a rack. -->
+    <path d="M226 416 L238 376 M290 416 L278 376 M226 416 L290 416 M232 396 H284" fill="none" stroke="#5F4434" stroke-width="3.4"/>
+    <path d="M228 378 H288" fill="none" stroke="#745846" stroke-width="6"/>
+    <path d="M236 378 C236 364 244 360 250 366 C256 372 270 372 276 364 C282 358 290 364 288 378 Z" fill="#8A5A3C" stroke-width="1.9"/>
+    <path d="M238 376 C246 374 278 374 286 376" fill="none" stroke="#C99A6B" stroke-width="1.3"/>
+    <path d="M246 378 H282 L280 400 H248 Z" fill="#A66F48" stroke-width="1.8"/>
+    <path d="M251 382 H277 M251 396 H277" fill="none" stroke="#E3C79A" stroke-width="0.9" stroke-dasharray="3 2"/>
+    <path d="M288 378 V396" fill="none" stroke-width="2"/>
+    <path d="M284 396 H292 V406 H284 Z" fill="none" stroke="#9C9A94" stroke-width="2.4"/>
+    <!-- Hitching rail with ring, rope and a bucket. -->
+    <path d="M326 424 V370 M418 424 V370" fill="none" stroke="#5F4434" stroke-width="9"/>
+    <path d="M326 424 V370 M418 424 V370" fill="none" stroke="#8F6F52" stroke-width="5.4"/>
+    <path d="M320 376 H424 M320 394 H424" fill="none" stroke="#5F4434" stroke-width="6.2"/>
+    <path d="M320 376 H424 M320 394 H424" fill="none" stroke="#A58562" stroke-width="3.4"/>
+    <circle cx="326" cy="386" r="4.4" fill="none" stroke-width="2.4"/>
+    <path d="M372 378 C376 392 366 396 366 408 M372 378 C368 386 374 388 372 396" fill="none" stroke="#C7A06E" stroke-width="2.6"/>
+    <path d="M398 408 H416 L414 424 H400 Z" fill="#876A56" stroke-width="1.6"/>
+    <path d="M398 410 H416" fill="none" stroke="#4D4B47" stroke-width="1.6"/>
+    <path d="M400 408 Q407 398 414 408" fill="none" stroke-width="1.4"/>
+    </g>
+
+  </g>
+</svg>

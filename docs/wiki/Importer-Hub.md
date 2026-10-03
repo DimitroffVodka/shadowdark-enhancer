@@ -73,7 +73,9 @@ runs when you expand the Manage review strip.
 
 ### The Rules Data step
 
-Under the paste box, always visible, is the **Rules Data** step: the Western
+The **Rules Data** step lives in the hub's **Manage** strip, first among the
+items there, so it takes no room from the paste view. Expand **Manage** to see
+it: the Western
 Reaches lookup tables that travel, weather and settlements read (hexes per day,
 terrain costs, hex visibility, climate, carousing and recruiting limits). Each
 table is listed with its book and page (GM Guide p.30, 40, 41 and 43, Player's

@@ -1,27 +1,7 @@
 /**
- * Shadowdark Enhancer — Carousing feed (Shadowdark Extras → Session Recap).
- *
- * Shadowdark Extras implements carousing; this file only mirrors its results
- * into our Session Recap so a night at the tavern lands in the session log
- * beside the loot, the XP and the downtime. Nothing here writes to SDX, to any
- * actor, or to SDX's own Carousing Log journal.
- *
- * WHY A WATCHER AND NOT A CALL. Every other recap feed is pushed by the feature
- * that owns it (`Renown.award` → `logRenown`). SDX emits no carousing hook and
- * exposes no carousing function on `module.api`, so there is nothing to call
- * us. What it does do is keep the entire live carouse in ONE journal flag —
- * `flags["shadowdark-extras"].carousingSession` on the hidden
- * `__sdx_carousing_sync__` entry — which it rewrites on every state change.
- * Watching that document is therefore a complete signal: it fires when the
- * rolls land AND again when the GM applies an outcome, and it needs no SDX
- * internals beyond a flag read.
- *
- * WHY WE COPY RATHER THAN READ THROUGH. SDX's overlay holds exactly ONE live
- * carouse; the GM resetting it for the next round erases the last one. A recap
- * that read SDX live would lose the evening's first carouse the moment a second
- * began, and would have nothing at all to archive or export. So each carouse is
- * captured into our own `carousing` array, keyed on SDX's `logId` so a later
- * apply UPDATES the captured row instead of appending a duplicate.
+ * Explicit legacy SDX feed compatibility and downtime overlap read.
+ * Native carousing pushes SessionRecap.logCarousing directly. No hidden
+ * journal watcher is registered; old capture calls do not apply actor effects.
  */
 
 import { carousingUnderway, normalizeCarousingSession } from "./carousing-feed-core.mjs";
@@ -71,6 +51,7 @@ export const CarousingFeed = {
 
   /** Whether a carouse is under way in SDX, so downtime must wait (#198). */
   isOpen() {
+    if (game.shadowdarkEnhancer?.carousing?.isOpen?.()) return true;
     if (!this.isEnabled()) return false;
     const journal = game.journal.find((doc) => this._isSyncJournal(doc));
     return !!journal && carousingUnderway(journal.getFlag(SDX_ID, SESSION_FLAG), journal.getFlag(SDX_ID, DROPS_FLAG));
@@ -134,15 +115,7 @@ export const CarousingFeed = {
 
   init(recap) {
     this._recap = recap;
-    if (!game.user?.isGM) return;
-
-    // `updateJournalEntry` fires on every connected GM; the primary-GM gate is
-    // the same one the combat hooks use, and matters here because this world
-    // runs a second always-on GM client.
-    Hooks.on("updateJournalEntry", (doc) => {
-      if (!recap.isActive() || !recap._isPrimaryGM()) return;
-      if (!this.isEnabled() || !this._isSyncJournal(doc)) return;
-      this.capture(doc);
-    });
+    // Native nights push logCarousing directly. Legacy capture remains an
+    // explicit compatibility call, never a hidden journal watcher.
   },
 };

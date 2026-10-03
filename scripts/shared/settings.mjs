@@ -31,6 +31,15 @@ class MonsterSpellLibraryMenu extends foundry.applications.api.ApplicationV2 {
 }
 
 export function registerSettings() {
+  game.settings.register(MODULE_ID, "showHexCoordinates", {
+    name: "SDE.settings.showHexCoordinates.name",
+    hint: "SDE.settings.showHexCoordinates.hint",
+    scope: "user",
+    config: true,
+    type: Boolean,
+    default: false,
+    onChange: () => import("../hex-map/coordinate-overlay.mjs").then(m => m.refreshHexCoordinates()),
+  });
   game.settings.register(MODULE_ID, "combatMovementDefault", {
     name: "SDE.settings.combatMovementDefault.name",
     hint: "SDE.settings.combatMovementDefault.hint",

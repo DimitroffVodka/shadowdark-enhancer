@@ -6,6 +6,11 @@ export { MODULE_ID } from "./shared/module-id.mjs";
 import { MODULE_ID } from "./shared/module-id.mjs";
 import { registerA0Prompt } from "./hex-map/a0-prompt.mjs";
 import { hexNumberAt, hasHexNumbering } from "./hex-map/hex-number-api.mjs";
+import { registerHexCoordinates } from "./hex-map/coordinate-overlay.mjs";
+import { HexExplorer, registerHexExplorer } from "./hex-map/hex-explorer.mjs";
+import { HexRecords, isHexAdopted } from "./hex-map/hex-records.mjs";
+import { adoptHexScene, registerHexAdoption } from "./hex-map/hex-adoption.mjs";
+import { HexFog, ownsHexFog, registerHexFog } from "./hex-map/hex-fog.mjs";
 import { ICONS } from "./shared/icons.mjs";
 import { claimGmTab, isActiveGM } from "./shared/gm-relay.mjs";
 
@@ -17,6 +22,15 @@ import { timeApi, registerTimeHooks } from "./time/time.mjs";
 import { overlandState, isOverland, rollWeather, startDay, resume, forage, makeCamp, registerOverland, partyReading, setTravelPace, rulesScene } from "./overland/overland.mjs";
 import { TravelBar } from "./overland/overland-bar.mjs";
 import { registerHexRules } from "./overland/hex-rules.mjs";
+import { Party } from "./party/party.mjs";
+import { registerCamping } from "./camping/camping.mjs";
+
+import { registerCarousing, carousingOpen, carousingOf, requestCarousing } from "./carousing/carousing.mjs";
+
+import { PartyApp, registerParty } from "./party/party-app.mjs";
+import { registerPartyMovement, requestMovement, configureMovement, movementStatus } from "./party/party-movement.mjs";
+import { registerPartyHUD } from "./party/party-hud.mjs";
+import { registerPartyLight } from "./party/party-light.mjs";
 import { registerRoute } from "./overland/route.mjs";
 import { registerSky, registerWeatherVisuals } from "./overland/sky.mjs";
 import { CrawlState } from "./crawl-strip/crawl-state.mjs";
@@ -91,6 +105,7 @@ import { Quests, openQuestLog, registerQuests } from "./quests/quests.mjs";
 import { Troubles, registerTroubles } from "./troubles/troubles.mjs";
 import { Rumors, registerRumors } from "./rumors/rumors.mjs";
 import { registerActorTypes, WARBAND_TYPE } from "./actors/register-actors.mjs";
+import { bastionApi } from "./bastion/register-bastion.mjs";
 import { registerWarbandUpkeep } from "./actors/warband-upkeep.mjs";
 import { registerWarbandUpgrades } from "./actors/warband-upgrades.mjs";
 import { registerWarbandCombat } from "./actors/warband-combat.mjs";
@@ -112,7 +127,7 @@ import { initRivalClassTable } from "./forge-loot/rival-class-table-adapter.mjs"
 // templates, producing unstyled block-flow UI. Keep the manifest stylesheet as
 // the startup fallback, then layer a content-addressed copy above it. The layout
 // contract test requires this revision to change whenever the CSS file changes.
-const STYLESHEET_REV = "4a6a3c111927";
+const STYLESHEET_REV = "d2814f794d54";
 
 // The same problem for the SCRIPTS, which cannot be solved the same way: their
 // URLs come from the manifest, which Foundry validates as real package paths,
@@ -127,7 +142,7 @@ const STYLESHEET_REV = "4a6a3c111927";
 // stale); module.json carries the same hash and is fetched fresh at runtime. A
 // mismatch is a stale cache by construction — it cannot be anything else. Both
 // stamps are written by `npm run inventory` and gated by `inventory:check`.
-const BUILD_REV = "7a44d96b4631";
+const BUILD_REV = "3b996c803d11";
 
 /**
  * Tell the user when their browser is running an old build of this module, and
@@ -324,6 +339,10 @@ Hooks.once("init", () => {
   // Hex rules on hex maps (#257): no token light or token vision there. Must
   // run in init, before the canvas is built from CONFIG.
   registerHexRules();
+  registerHexFog();
+  registerHexCoordinates();
+  registerHexExplorer();
+  registerHexAdoption();
   // The route and click-to-travel on the hex map (#257).
   registerRoute();
   // Out-of-combat tracker as a sidebar tab, beside Combat. Must run in init:
@@ -409,6 +428,12 @@ Hooks.once("init", () => {
   // Editing an existing character (#168 P6): a header button on a Player sheet
   // and an "Edit in Character Builder" entry in the Actor directory's context menu.
   registerBuilderEntryPoints();
+  registerParty();
+  registerPartyMovement();
+  registerPartyHUD();
+  registerPartyLight();
+  registerCamping();
+  registerCarousing();
 
   // "Character Builder" launch button in the Actors sidebar header — the single
   // entry point for a fresh build. It opens the builder with no actor (it creates a fresh one on
@@ -485,7 +510,8 @@ Hooks.once("init", () => {
     //   setPace; overland.startDay reads the method and the pace when they're left out (#257).
     // 1.26.0 — additive: hexMaps.numberAt and hexMaps.hasNumbering, the tagger's hex numbers for
     //   Shadowdark Extras' Map Coordinates.
-    apiVersion: "1.26.0",
+    // 1.27.0 — additive: the bastion namespace, the Bastion actor type and its sheet.
+    apiVersion: "1.27.0",
     // The one travel state per world (scripts/overland/overland.mjs): a copy
     // with hexes left, climate, storm, harshness and night derived; whether
     // travel is on; today's weather roll, the travel day's start, Continue
@@ -546,6 +572,8 @@ Hooks.once("init", () => {
         return ImporterHubApp.openContentUnlock({ name: "Canoe", src: "WR", type: "Boat", page: "118" });
       },
     },
+    // Bastions: the actor type, its rules and the places the party owns.
+    bastion: bastionApi(),
     // Universal dump segmentation (D9): one paste → typed buckets.
     import: {
       // Pure, synchronous. Returns { monsters, items, tables, skipped }.
@@ -729,6 +757,13 @@ Hooks.once("init", () => {
       // Resolve an item's XP: tagged value wins, else loot-quality score.
       xpOfItem: (item) => PartyXP.xpOfItem(item),
     },
+    party: { list: () => Party.list(), members: (ref, opts) => Party.members(ref, opts), selected: () => Party.selected(),
+      select: (ref) => Party.select(ref), open: (ref) => PartyApp.open(ref), adopt: (ref) => Party.adopt(ref),
+      add: (ref, uuid) => Party.add(ref, uuid), remove: (ref, uuid) => Party.remove(ref, uuid),
+      movement: (ref, action) => requestMovement(ref, action), configureMovement, movementStatus },
+    camping: { open: (ref) => PartyApp.open(ref, "camping") },
+    carousing: { open: (ref) => PartyApp.open(ref, "carousing"), isOpen: carousingOpen,
+      state: (ref) => carousingOf(Party.get(ref)), request: (ref, action, data) => requestCarousing(Party.get(ref), action, data) },
     tables: {
       all: () => TableRegistry.all(),
       byGroup: (g) => TableRegistry.byGroup(g),
@@ -875,7 +910,13 @@ Hooks.once("init", () => {
     // background cell by cell and stores the GM's terrain tags on the scene;
     // datasets go to Shadowdark Extras' hexcrawl builder or download as JSON.
     // Nothing from a published map ships with the module (docs/plans/hex-map-dataset.md).
+    owns: (feature, target) => feature === "hex.fog" && ownsHexFog(target),
     hexMaps: {
+      fog: HexFog,
+      explorer: HexExplorer,
+      records: HexRecords,
+      adopt: adoptHexScene,
+      isAdopted: isHexAdopted,
       // The published hex number (1403 = column 14, row 03) of the cell at a Foundry
       // offset {i, j} on a scene the Hex Tagger has numbered, or null in the frame
       // around the map. Synchronous: Shadowdark Extras' Map Coordinates asks for

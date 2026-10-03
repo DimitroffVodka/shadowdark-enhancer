@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512"
+     role="img" aria-labelledby="title desc">
+  <title id="title">Dungeon shadow</title>
+  <desc id="desc">Separate native-vector cast shadow aligned to the Dungeon SVG.</desc>
+  <g id="shadow" transform="translate(28 16)" fill="#9699AE" opacity="0.46">
+    <path d="M96 340 C92 230 160 126 256 122 C352 126 420 230 416 340 Z"/>
+    <path d="M296 82 H322 V130 H296 Z"/>
+    <path d="M134 162 H378 V350 H134 Z"/>
+    <path d="M44 272 H176 V410 H44 Z"/>
+    <path d="M180 350 H342 L332 434 H180 Z"/>
+    <path d="M346 348 H380 V442 H346 Z"/>
+    <path d="M394 420 C386 366 410 322 436 318 C462 322 486 366 478 420 V440 H394 Z"/>
+
+  </g>
+</svg>

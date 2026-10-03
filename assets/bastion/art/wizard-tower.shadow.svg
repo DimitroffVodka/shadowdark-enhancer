@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512"
+     role="img" aria-labelledby="title desc">
+  <title id="title">Wizard Tower shadow</title>
+  <desc id="desc">Separate native-vector cast shadow aligned to the Wizard Tower SVG.</desc>
+  <g id="shadow" transform="translate(28 16)" fill="#9699AE" opacity="0.46">
+    <path d="M256 4 L270 36 L262 52 L354 178 L364 190 L352 194 L356 230 L346 250 H324 L346 446 H166 L188 250 H166 L156 230 L160 194 L148 188 L158 178 L250 52 L248 36 Z"/>
+    <path d="M98 330 H152 V452 H98 Z"/>
+
+  </g>
+</svg>

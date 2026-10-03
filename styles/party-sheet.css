@@ -1,0 +1,1107 @@
+/* Party sheet styles ported from the existing SDX ApplicationV2 sheet. */
+/* Party sheet base - dark elegant theme */
+.sde-party {
+    --party-bg-dark: #0a0a0a;
+    --party-bg-medium: #111111;
+    --party-bg-light: #1a1a1a;
+    --party-border: #333;
+    --party-text: #e0e0e0;
+    --party-text-muted: #888;
+    --party-accent: #2c2c2c;
+    --party-accent-glow: rgba(201, 169, 97, 0.3);
+    --party-danger: #c41e3a;
+    background: var(--party-bg-dark) !important;
+    min-width: 680px;
+    min-height: 610px;
+}
+
+.sde-party .window-content {
+    padding: 0;
+    gap: 0;
+    min-height: 0;
+}
+
+.sde-party [data-application-part="body"] {
+    flex: 1;
+    min-height: 0;
+    position: relative;
+    background: var(--party-bg-dark);
+    gap: 0;
+}
+
+/* Override any Shadowdark system header styles */
+.sde-party .SD-header,
+.sde-party header.party-header {
+    min-height: 80px !important;
+    height: auto !important;
+    flex: 0 0 auto !important;
+    background-image: none !important;
+}
+
+/* Force compact layout - kill all flex grow on header/nav */
+.sde-party [data-application-part="body"]>header,
+.sde-party [data-application-part="body"]>nav {
+    flex: 0 0 auto !important;
+}
+
+/* Party Header - redesigned elegant style */
+.sde-party .party-header {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    background: linear-gradient(180deg, #1a1a1a 0%, #0d0d0d 100%) !important;
+    padding: 15px 20px;
+    margin: 0;
+    border: none;
+    border-bottom: 1px solid var(--party-border);
+    min-height: 80px !important;
+    height: auto !important;
+    flex: 0 0 auto !important;
+    position: relative;
+}
+
+.sde-party .party-header::before,
+.sde-party .party-header::after {
+    display: none !important;
+    content: none !important;
+}
+
+.sde-party .party-header .party-portrait {
+    border: 2px solid #c0c0c0;
+    border-radius: 4px;
+    width: 65px;
+    height: 65px;
+    flex-shrink: 0;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+    cursor: pointer;
+    transition: all 0.5s ease;
+}
+
+.sde-party .party-header .party-portrait:hover {
+    border-color: #fff;
+    box-shadow: 0 0 12px var(--party-accent-glow);
+}
+
+.sde-party .party-header-content {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    flex: 1;
+}
+
+.sde-party .party-title {
+    display: flex;
+    align-items: center;
+}
+
+.sde-party .party-title input {
+    height: auto;
+    line-height: 1.2;
+    font-size: 28px;
+    font-weight: bold;
+    color: var(--party-text);
+    background: transparent;
+    border: none;
+    font-family: "Old Newspaper Font";
+    border-bottom: 1px solid transparent;
+    padding: 2px 0;
+    width: auto;
+    text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.5);
+}
+
+.sde-party .party-title input:hover,
+.sde-party .party-title input:focus {
+    border-bottom-color: var(--party-accent);
+    color: #fff;
+}
+
+.sde-party .party-summary {
+    display: flex;
+    gap: 20px;
+}
+
+.sde-party .party-stat {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.95em;
+    color: var(--party-text);
+    padding: 4px 8px;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 4px;
+}
+
+.sde-party .party-stat i {
+    color: var(--party-accent);
+    width: 16px;
+    text-align: center;
+}
+
+/* Navigation tabs - enhanced elegant style */
+.sde-party .SD-nav {
+    background: linear-gradient(180deg, #0d0d0d 0%, #000000 100%);
+    border-bottom: 1px solid var(--party-border);
+    flex: 0 0 auto !important;
+    min-height: 40px !important;
+    height: auto;
+    margin: 0px;
+    padding: 0 10px;
+    display: flex;
+    align-items: stretch;
+    gap: 0;
+    line-height: normal;
+    border-top: none;
+    position: relative;
+    z-index: 1;
+}
+
+.sde-party .SD-nav .navigation-tab {
+    display: flex;
+    flex: 1;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    height: auto;
+    margin: 0;
+    line-height: 1;
+    white-space: nowrap;
+    color: var(--party-text-muted);
+    padding: 7px 4px;
+    font-size: 1.3em;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    border-bottom: 3px solid transparent;
+    transition: all 0.2s ease;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+.sde-party .SD-nav .navigation-tab:hover {
+    color: var(--party-text);
+    background: rgba(255, 255, 255, 0.03);
+    text-shadow: 0 0 8px rgba(255, 255, 255, 0.2);
+}
+
+.sde-party .SD-nav .navigation-tab.active {
+    color: #fff;
+    border-bottom: 3px solid transparent;
+    text-shadow:
+        0 0 10px rgba(255, 255, 255, 0.5),
+        0 0 20px rgba(255, 255, 255, 0.3),
+        0 0 30px rgba(255, 255, 255, 0.2);
+}
+
+.sde-party .SD-nav .navigation-tab i {
+    margin-right: 0;
+    font-size: 0.9em;
+}
+
+/* Content body */
+.sde-party .SD-content-body {
+    background: var(--party-bg-medium);
+    padding: 15px;
+    min-height: 0;
+    overflow-y: auto;
+}
+
+.sde-party .party-actions {
+    margin-bottom: 15px;
+    display: flex;
+    gap: 10px;
+}
+
+.sde-party .party-actions button {
+    display: block;
+    flex: 1;
+    height: auto;
+    line-height: 1.5;
+    white-space: normal;
+    padding: 1px 16px;
+    background: var(--party-bg-light);
+    color: var(--party-text);
+    border: 1px solid var(--party-border);
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.sde-party .party-actions button:hover {
+    background: var(--party-border);
+    border-color: var(--party-accent);
+}
+
+/* Members List */
+.sde-party .members-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.sde-party .member {
+    display: grid;
+    grid-template-columns: 76px minmax(0, 1fr) 160px;
+    column-gap: 15px;
+    align-items: start;
+    padding: 12px;
+    background: var(--party-bg-dark);
+    border: 1px solid var(--party-border);
+    border-radius: 6px;
+    transition: all 0.2s ease;
+}
+
+.sde-party .member:hover {
+    border-color: var(--party-accent);
+}
+
+/* Member Portrait */
+.sde-party .member-portrait {
+    position: relative;
+    flex-shrink: 0;
+    align-self: center;
+}
+
+.sde-party .member-portrait img {
+    width: 72px;
+    height: 72px;
+    border-radius: 6px;
+    cursor: pointer;
+    border: 2px solid var(--party-border);
+    transition: border-color 0.2s ease;
+}
+
+.sde-party .member-portrait img:hover {
+    border-color: var(--party-accent);
+}
+
+.sde-party .member-portrait .remove-member {
+    position: absolute;
+    top: -6px;
+    right: -6px;
+    width: 20px;
+    height: 20px;
+    background: var(--party-danger);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+    border: 2px solid var(--party-bg-dark);
+}
+
+.sde-party .member:hover .remove-member {
+    opacity: 1;
+}
+
+.sde-party .member-portrait .remove-member i {
+    font-size: 10px;
+    color: white;
+}
+
+.sde-party .member-info {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.sde-party .member-header {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+}
+
+.sde-party .member-name {
+    font-size: 1.15em;
+    font-weight: bold;
+    color: var(--party-text);
+    cursor: pointer;
+}
+
+.sde-party .member-name:hover {
+    color: var(--party-accent);
+    text-decoration: underline;
+}
+
+.sde-party .member-class {
+    font-size: 0.9em;
+    color: var(--party-text-muted);
+    font-style: italic;
+}
+
+/* Member Stats */
+.sde-party .member-stats {
+    display: flex;
+    gap: 20px;
+    align-items: center;
+}
+
+.sde-party .member-stats .stat {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.sde-party .member-stats .stat .label {
+    font-size: 0.8em;
+    color: var(--party-text-muted);
+    text-transform: uppercase;
+    font-weight: 600;
+}
+
+.sde-party .member-stats .stat .value {
+    font-weight: bold;
+    color: var(--party-text);
+    white-space: nowrap;
+}
+
+.sde-party .member-stats .stat.hp {
+    flex: 1;
+    max-width: none;
+}
+
+.sde-party .member-stats .stat.hp .value {
+    display: inline-block;
+    min-width: 52px;
+    text-align: right;
+}
+
+.sde-party .member-stats .hp-bar {
+    flex: 0 0 120px;
+    width: 120px;
+    height: 8px;
+    background: var(--party-bg-light);
+    border-radius: 4px;
+    overflow: hidden;
+    margin-left: 8px;
+}
+
+.sde-party .member-stats .hp-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--party-danger), #e63946);
+    border-radius: 4px;
+    transition: width 0.3s ease;
+}
+
+/* Member Abilities */
+.sde-party .member-abilities {
+    display: flex;
+    gap: 8px;
+}
+
+.sde-party .member-abilities .ability {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 4px 10px;
+    background: var(--party-bg-light);
+    border-radius: 4px;
+    min-width: 40px;
+    border: 1px solid var(--party-border);
+}
+
+.sde-party .member-abilities .ability .label {
+    font-size: 0.7em;
+    color: var(--party-text-muted);
+    text-transform: uppercase;
+    font-weight: 600;
+}
+
+.sde-party .member-abilities .ability .mod {
+    font-weight: bold;
+    font-size: 1em;
+    color: var(--party-text);
+}
+
+.sde-party .member-effects {
+    display: flex;
+    gap: 4px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    align-content: flex-start;
+    margin-top: -7px;
+    margin-right: -7px;
+    max-height: 64px;
+    overflow-y: auto;
+    padding: 2px;
+    border: 0;
+}
+
+.sde-party .member-effects.empty {
+    visibility: hidden;
+}
+
+.sde-party .member-effects .effect-icon {
+    width: 24px;
+    height: 24px;
+    border-radius: 3px;
+    overflow: hidden;
+    border: 1px solid var(--party-border);
+    cursor: help;
+}
+
+.sde-party .member-effects .effect-icon img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+/* Empty Members State */
+.sde-party .members-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 60px 40px;
+    color: var(--party-text-muted);
+    text-align: center;
+    background: var(--party-bg-dark);
+    border: 2px dashed var(--party-border);
+    border-radius: 8px;
+}
+
+.sde-party .members-empty i {
+    margin-bottom: 20px;
+    opacity: 0.5;
+    color: var(--party-accent);
+}
+
+.sde-party .members-empty p {
+    margin: 5px 0;
+}
+
+.sde-party .members-empty .hint {
+    font-size: 0.9em;
+    font-style: italic;
+}
+
+/* SD-box styling for party */
+.sde-party .SD-box {
+    background: var(--party-bg-dark);
+    border: 1px solid var(--party-border);
+    border-radius: 6px;
+}
+
+.sde-party .SD-box .header,
+.sde-party .SD-box>.header {
+    background: var(--party-bg-light) !important;
+    background-image: none !important;
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--party-border);
+    border-radius: 6px 6px 0 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: auto;
+    min-height: 34px;
+    gap: 10px;
+}
+
+/* Kill ALL pseudo-elements and background images in headers */
+.sde-party .SD-box .header *,
+.sde-party .SD-box .header::before,
+.sde-party .SD-box .header::after,
+.sde-party .SD-box .header *::before,
+.sde-party .SD-box .header *::after {
+    background-image: none !important;
+}
+
+.sde-party .header::before,
+.sde-party .header::after {
+    display: none !important;
+    content: none !important;
+    background: none !important;
+    background-image: none !important;
+}
+
+.sde-party .SD-box .header label {
+    color: var(--party-text);
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 0.85em;
+    letter-spacing: 0.5px;
+    background: none !important;
+    background-image: none !important;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.sde-party .SD-box .header>span {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-left: auto;
+    color: var(--party-text-muted);
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 0.85em;
+    letter-spacing: 0.5px;
+    white-space: nowrap;
+}
+
+.sde-party .SD-box .header>span a {
+    color: var(--party-text-muted);
+    text-decoration: none;
+}
+
+.sde-party .SD-box .header>span a:hover {
+    color: var(--party-text);
+}
+
+/* Party inventory slots overload indicator */
+.sde-party .SD-box .header>span.sdx-party-capacity.over .sdx-party-capacity-used {
+    color: var(--party-danger);
+    font-weight: 800;
+}
+
+/* Defensive: keep "SLOTS: used / max" strictly inline and ordered */
+.sde-party .SD-box .header>span.sdx-party-capacity .sdx-party-capacity-text,
+.sde-party .SD-box .header>span.sdx-party-capacity .sdx-party-capacity-used,
+.sde-party .SD-box .header>span.sdx-party-capacity .sdx-party-capacity-max {
+    display: inline !important;
+    float: none !important;
+    position: static !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    order: 0 !important;
+    flex: 0 0 auto !important;
+}
+
+.sde-party .SD-box .header label::before,
+.sde-party .SD-box .header label::after {
+    display: none !important;
+    content: none !important;
+}
+
+.sde-party .SD-box .content {
+    padding: 10px 12px;
+}
+
+/* Party Inventory Tab */
+.sde-party .tab-inventory .inventory-grid {
+    display: grid;
+    grid-template-columns: 1fr 200px;
+    gap: 15px;
+    height: 100%;
+}
+
+.sde-party .tab-inventory .inventory-main {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.sde-party .tab-inventory .inventory-sidebar {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+/* Treasury actions */
+.sde-party .inventory-sidebar .party-actions {
+    margin: 10px 0 0;
+}
+.sde-party .party-item-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.sde-party .party-item-list .header {
+    display: grid;
+    grid-template-columns: 1fr 60px 50px 50px;
+    gap: 5px;
+    padding: 6px 10px;
+    font-weight: 600;
+    color: var(--party-text-muted);
+    font-size: 0.85em;
+    text-transform: uppercase;
+    border-bottom: 1px solid var(--party-border);
+}
+
+.sde-party .party-item-list .item {
+    display: grid;
+    grid-template-columns: 30px 1fr 60px 50px 50px;
+    gap: 5px;
+    padding: 6px 10px;
+    align-items: center;
+    border-bottom: 1px solid var(--party-border);
+    color: var(--party-text);
+    cursor: grab;
+}
+
+.sde-party .party-item-list .quantity {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+}
+
+.sde-party .party-item-list .header .quantity,
+.sde-party .party-item-list .header .slots-cost {
+    text-align: center;
+    justify-content: center;
+}
+
+.sde-party .party-item-list .slots-cost {
+    text-align: center;
+    color: var(--party-text-muted);
+    font-weight: 600;
+}
+
+.sde-party .party-item-list .item:hover {
+    background: var(--party-bg-light);
+}
+
+/* Expanded item details (Shadowdark utils.toggleItemDetails appends .item-details) */
+.sde-party .party-item-list .item .item-details {
+    grid-column: 1 / -1;
+    padding: 8px 10px 10px;
+    color: var(--party-text-muted);
+    line-height: 1.3;
+}
+
+.sde-party .party-item-list .item.expanded {
+    align-items: start;
+}
+
+.sde-party .party-item-list .item:last-child {
+    border-bottom: none;
+}
+
+.sde-party .party-item-list .empty-list {
+    padding: 20px;
+    text-align: center;
+    color: var(--party-text-muted);
+    font-style: italic;
+}
+
+/* Party Item Image */
+.sde-party .party-item-list .item-image {
+    width: 26px;
+    height: 26px;
+    background-size: cover;
+    background-position: center;
+    border-radius: 4px;
+    cursor: pointer;
+    position: relative;
+    border: 1px solid var(--party-border);
+}
+
+.sde-party .party-item-list .item-image i {
+    display: none;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: white;
+    text-shadow: 0 0 3px black;
+}
+
+.sde-party .party-item-list .item-image:hover i {
+    display: block;
+}
+.sde-party .party-item-list .item-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    cursor: pointer;
+    color: var(--party-text);
+}
+
+.sde-party .party-item-list .item-name:hover {
+    color: var(--party-accent);
+    text-decoration: underline;
+}
+
+/* Item Actions Column */
+.sde-party .party-item-list .actions {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    min-width: 30px;
+}
+
+.sde-party .party-item-list .actions a {
+    color: var(--party-text-muted);
+    cursor: pointer;
+    transition: color 0.2s ease;
+}
+
+.sde-party .party-item-list .actions a:hover {
+    color: var(--party-accent);
+}
+
+.sde-party .party-item-list .actions .light-active {
+    color: #ffc107;
+    text-shadow: 0 0 6px #ffc107;
+}
+
+.sde-party .party-item-list .actions a:hover .light-active {
+    color: #ffda44;
+}
+
+/* Quantity Controls */
+.sde-party .quantity {
+    text-align: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    color: var(--party-text);
+}
+
+.sde-party .quantity a {
+    cursor: pointer;
+    color: var(--party-text-muted);
+    padding: 2px;
+}
+
+.sde-party .quantity a:hover {
+    color: var(--party-accent);
+}
+
+/* Party Coins */
+.sde-party .party-coins-grid {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 8px 12px;
+    align-items: center;
+}
+
+.sde-party .party-coins-grid label {
+    font-weight: 600;
+    font-size: 0.9em;
+    color: var(--party-text);
+}
+
+.sde-party .party-coins-grid input.coin-value {
+    width: 100%;
+    text-align: center;
+    background: var(--party-bg-light);
+    border: 1px solid var(--party-border);
+    color: var(--party-text);
+    padding: 4px 8px;
+    border-radius: 4px;
+}
+
+.sde-party .party-coins-grid input.coin-value:focus {
+    border-color: var(--party-accent);
+    outline: none;
+}
+
+/* Coin Slots Display */
+.sde-party .party-coin-slots {
+    grid-column: 1 / -1;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px;
+    margin-top: 4px;
+    background: var(--party-bg-light);
+    border: 1px solid var(--party-border);
+    border-radius: 4px;
+    font-size: 0.85em;
+    color: var(--party-text-muted);
+}
+
+.sde-party .party-coin-slots i {
+    color: var(--party-accent);
+}
+
+/* Member Drop Targets */
+.sde-party .member-drop-targets {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.sde-party .member-drop-target {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 10px;
+    background: var(--party-bg-light);
+    border: 1px solid var(--party-border);
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.sde-party .member-drop-target:hover,
+.sde-party .member-drop-target.drag-over {
+    background: var(--party-border);
+    border-color: var(--party-accent);
+}
+
+.sde-party .member-drop-target img {
+    width: 28px;
+    height: 28px;
+    border-radius: 4px;
+    border: 1px solid var(--party-border);
+}
+
+.sde-party .member-drop-target span {
+    font-size: 0.9em;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--party-text);
+}
+
+/* Description Tab */
+.sde-party .description-box {
+    height: 100%;
+}
+
+.sde-party .description-box .header a {
+    cursor: pointer;
+    color: var(--party-text-muted);
+    margin-left: 10px;
+}
+
+.sde-party .description-box .header a:hover {
+    color: var(--party-accent);
+}
+
+.sde-party .description-content {
+    padding: 15px;
+    min-height: 200px;
+    color: var(--party-text);
+    line-height: 1.6;
+}
+
+.sde-party .tab-quests .SD-box {
+    margin-bottom: 8px;
+}
+
+.sde-party .sdx-quest-list,
+.sde-party .sdx-rumor-list {
+    list-style: none;
+    margin: 0;
+    padding: 6px 10px;
+}
+
+/* The sheet is dark; without this the lists inherit the system's dark ink (#167). */
+.sde-party .sdx-quest-list,
+.sde-party .sdx-rumor-list,
+.sde-party .sdx-quest-name {
+    color: var(--party-text);
+}
+
+.sde-party .sdx-quest + .sdx-quest,
+.sde-party .sdx-rumor-list li + li {
+    margin-top: 6px;
+}
+
+.sde-party .sdx-quest-name {
+    cursor: pointer;
+    font-weight: bold;
+}
+
+.sde-party .sdx-quest-objectives {
+    list-style: none;
+    margin: 2px 0 0;
+    padding-left: 14px;
+}
+
+.sde-party .sdx-quest-objectives .done .done {
+    opacity: 0.6;
+    text-decoration: line-through;
+}
+
+.sde-party .sdx-rumor-meta {
+    display: block;
+    color: var(--party-text-muted);
+    font-size: 0.85em;
+}
+.sde-party .hp-wave-container {
+    --hp-wave-color: #dc2626;
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: -20px;
+    overflow: hidden;
+    pointer-events: none;
+    z-index: 1;
+    border-radius: 6px;
+    opacity: 0.8;
+}
+
+.sde-party .hp-wave-container .hp-waves {
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    width: 200%;
+    height: 120%;
+    transform: translateY(var(--hp-translate, 100%));
+    transition: transform 0.5s ease-out;
+}
+
+.sde-party .hp-wave-container .hp-waves .wave-path {
+    animation: hp-wave-move 8s linear infinite;
+}
+
+.sde-party .hp-wave-container .hp-waves .wave-path:nth-child(1) {
+    animation-delay: 0s;
+    animation-duration: 7s;
+    fill: color-mix(in srgb, var(--hp-wave-color) 35%, transparent);
+}
+
+.sde-party .hp-wave-container .hp-waves .wave-path:nth-child(2) {
+    animation-delay: -2s;
+    animation-duration: 10s;
+    fill: color-mix(in srgb, var(--hp-wave-color) 45%, transparent);
+}
+
+.sde-party .hp-wave-container .hp-waves .wave-path:nth-child(3) {
+    animation-delay: -4s;
+    animation-duration: 13s;
+    fill: color-mix(in srgb, var(--hp-wave-color) 55%, transparent);
+}
+
+.sde-party .hp-wave-container .hp-waves .wave-path:nth-child(4) {
+    animation-delay: -6s;
+    animation-duration: 18s;
+    fill: color-mix(in srgb, var(--hp-wave-color) 75%, black 15%);
+}
+
+@keyframes hp-wave-move {
+    0% {
+        transform: translateX(0);
+    }
+
+    100% {
+        transform: translateX(-50%);
+    }
+}
+
+/* Death state - full overlay using wave color */
+.sde-party .hp-wave-container.hp-dead {
+    background: color-mix(in srgb, var(--hp-wave-color) 85%, black);
+}
+
+.sde-party .hp-wave-container.hp-dead .hp-waves {
+    display: none;
+}
+
+/* Full HP - hide waves completely */
+.sde-party .hp-wave-container.hp-full {
+    display: none;
+}
+.sde-party .party-separator {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 15px;
+    margin: 20px 0;
+    opacity: 0.8;
+    width: 100%;
+}
+
+.sde-party .party-separator hr {
+    flex: 1;
+    border: none;
+    border-bottom: 2px solid var(--party-border, #333);
+    margin: 0;
+}
+
+.sde-party .party-separator span {
+    color: var(--party-text-muted, #888);
+    font-size: 1.2em;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.sde-party .party-separator span i {
+    font-size: 1.2em;
+    color: var(--party-accent, #c9aa58);
+}
+
+/* Draggable members */
+.sde-party .member {
+    cursor: grab;
+}
+
+.sde-party .member:active {
+    cursor: grabbing;
+}
+/* Only the requested formation controls and native V2 scoping are additive. */
+.sde-party { color: var(--party-text); }
+.sde-party .sde-party-body { padding: 0; overflow: hidden; display: flex; flex-direction: column; }
+.sde-party .SD-content-body > .tab { display: none; }
+.sde-party .SD-content-body > .tab.active { display: block; }
+.sde-party .party-header-content { min-width: 0; }
+.sde-party .party-title input { width: 100%; min-width: 0; }
+.sde-party .party-summary { flex-wrap: wrap; gap: 6px; }
+.sde-party .party-stat i { color: #b9b9b9; }
+/* Foundry V14 renders native checkboxes for the dark scheme, which hides the box and its tick.
+   A light colour scheme gives every Party control a visible box and checkmark. */
+.sde-party input[type="checkbox"] { color-scheme: light; accent-color: #c9aa58; }
+.sde-party .sde-party-formation { display: grid; grid-template-columns: 108px 160px; gap: 10px; width: auto; flex: 0 0 auto; }
+.sde-party .sde-party-formation-title { grid-column: 1 / -1; margin: 0; padding-bottom: 3px; border-bottom: 1px solid #4a4a4a; font-family: "Old Newspaper Font", serif; font-size: 13px; letter-spacing: .02em; color: #e6d19b; }
+.sde-party .sde-party-label { color: var(--party-text-muted, #888); }
+.sde-party .sde-party-leader { margin: 0 0 4px; font-size: 11px; line-height: 1.35; color: var(--party-text); }
+.sde-party .sde-party-grid { display: grid; grid-template-columns: repeat(3, 32px); gap: 3px; align-content: start; }
+.sde-party .sde-party-grid button { position: relative; padding: 0; min-width: 0; width: 32px; height: 32px; border: 1px solid #555; background: #222; border-radius: 3px; }
+.sde-party .sde-party-grid img { width: 100%; height: 100%; object-fit: cover; }
+.sde-party .sde-party-formation label { display: flex; align-items: center; gap: 5px; }
+.sde-party .sde-party-formation input[type="checkbox"] { flex: 0 0 14px; width: 14px; height: 14px; margin: 0; }
+.sde-party .sde-party-grid .leader { outline: 1px solid #c9aa58; }
+.sde-party .sde-party-grid .leader::after { content: ""; position: absolute; right: 2px; top: 2px; width: 5px; height: 5px; background: #c9aa58; border-radius: 50%; }
+.sde-party .sde-party-follow-status { margin: 4px 0; font-size: 11px; line-height: 1.3; }
+.sde-party .sde-party-formation label { font-size: 11px; margin-top: 0; }
+.sde-party .sde-party-formation .party-actions { margin: 4px 0 0; gap: 4px; }
+.sde-party .sde-party-formation .party-actions button { font-size: 11px; padding: 3px 5px; }
+.sde-party .member-stats { flex-wrap: wrap; gap: 6px 16px; }
+.sde-party .member-stats .stat.hp { flex: 0 0 100%; }
+.sde-party .member-stats .hp-bar { flex: 1; }
+.sde-party .members-list > h3 { font-size: 14px; margin: 0; color: var(--party-text-muted); }
+.sde-party .SD-nav .navigation-tab { font-family: "Old Newspaper Font", serif; cursor: pointer; }
+.sde-party .sde-party-picker { display: flex; gap: 8px; padding: 6px 12px; background: #111; }
+.sde-party .sde-party-picker select { flex: 1; min-width: 0; }
+.sde-party .sde-party-picker button { flex: 0; white-space: nowrap; }
+.sde-party .remove-member { padding: 0; min-height: 0; }
+.sde-party .remove-member:focus-visible { opacity: 1; }
+.sde-party .SD-content-body input, .sde-party .SD-content-body select { color: #e0e0e0; background: #1a1a1a; }
+.sde-party .sde-party-activities button[aria-pressed="true"] { border-color: #c9aa58; color: #e6d19b; background: #292419; }
+.sde-party .sde-camping-body, .sde-party .sde-carousing-body { display: flex; flex-direction: column; gap: 10px; color: var(--party-text); }
+.sde-party .sde-camping-body h2, .sde-party .sde-carousing-body h2 { display: none; }
+.sde-party .sde-camping-body h3, .sde-party .sde-carousing-body h3 { font-family: "Old Newspaper Font", serif; margin: 4px 0; font-size: 18px; color: var(--party-text); }
+.sde-party .sde-camping-body p, .sde-party .sde-carousing-body p { margin: 0; line-height: 1.5; color: var(--party-text-muted); }
+.sde-party .sde-camping-body fieldset, .sde-party .sde-carousing-body fieldset, .sde-party .sde-carousing-body article { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; padding: 14px; border: 1px solid #555; border-radius: 5px; background: #202020; min-width: 0; }
+.sde-party .sde-camping-body legend, .sde-party .sde-carousing-body legend { font-family: "Old Newspaper Font", serif; color: var(--party-text); font-size: 18px; padding: 0 6px; }
+.sde-party .sde-camping-body fieldset > p, .sde-party .sde-camping-body details { flex: 0 0 100%; }
+.sde-party .sde-camping-body label, .sde-party .sde-carousing-body label { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; }
+.sde-party .sde-camping-body select, .sde-party .sde-carousing-body select { width: auto; min-width: 100px; max-width: 260px; }
+.sde-party .sde-camping-body input[type="number"] { width: 60px; }
+.sde-party .sde-camping-body input[type="checkbox"], .sde-party .sde-carousing-body input[type="checkbox"] { width: 16px; flex: 0 0 16px; margin: 0; }
+.sde-party .sde-camping-body button, .sde-party .sde-carousing-body button { width: auto; align-self: flex-start; padding: 6px 12px; color: var(--party-text); background: #282828; border: 1px solid #666; border-radius: 4px; font-size: 12px; }
+.sde-party .sde-camping-body button:hover, .sde-party .sde-carousing-body button:hover { border-color: #c9aa58; }
+.sde-party .sde-camping-body [role="alert"], .sde-party .sde-carousing-body [role="alert"] { padding: 10px; border: 1px solid #c36c4b; background: #321d16; color: #f3c6b6; }
+.sde-party .sde-camping-body table { width: 100%; margin: 0; font-size: 12px; }
+.sde-party .sde-camping-body th, .sde-party .sde-camping-body td { padding: 8px; text-align: left; }
+.sde-party .sde-camping-body summary { cursor: pointer; color: #d6c28d; }
+.sde-party .sde-carousing-body article > h3, .sde-party .sde-carousing-body article > h4 { flex: 0 0 100%; margin: 0; color: var(--party-text); }
+.sde-party .sde-carousing-body article > p { flex: 0 0 100%; }
+.sde-party .sde-quest-log-root { height: auto; min-height: 340px; background: transparent; }
+.sde-party .sde-ql-tabs { padding: 0; flex-wrap: wrap; }
+.sde-party .sde-ql-filters { padding: 10px 0; }
+.sde-party .sde-ql-list { flex-basis: 170px; }
+.sde-party .sde-ql-detail { padding: 10px; }
+.sde-party .sde-ql-card { background: #202020; }
+.sde-party .sde-ql-payout fieldset { min-width: 0; margin: 8px 0; padding: 10px; gap: 8px; border: 1px solid #555; }
+.sde-party .sde-ql-payout legend { max-width: 100%; padding: 0 5px; font-size: 12px; line-height: 1.5; }
+.sde-party .sde-ql-payout label.checkbox { display: flex; align-items: center; justify-content: flex-start; gap: 8px; font-size: 12px; }
+.sde-party .sde-ql-payout input[type="checkbox"] { width: 16px; height: 16px; flex: 0 0 16px; margin: 0; }
+.sde-party .description-content textarea { width: 100%; min-height: 200px; padding: 12px; color: var(--party-text); background: #1a1a1a; border: 1px solid #555; resize: vertical; }
+.sde-party .description-box .header button { width: auto; min-height: 0; padding: 2px 8px; font-size: 12px; }

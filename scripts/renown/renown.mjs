@@ -32,6 +32,7 @@
  */
 
 import { MODULE_ID } from "../shared/module-id.mjs";
+import { replaceModuleFlag } from "../shared/module-flags.mjs";
 import { SessionRecap } from "../session-recap/session-recap.mjs";
 import { isActiveGM, queryActiveGM, refuseQuery, registerQuery } from "../shared/gm-relay.mjs";
 import {
@@ -255,7 +256,7 @@ export const Renown = {
    * @returns {Promise<{ok:boolean, before:number, after:number, delta:number,
    *                    band:object, summary:string, error?:string}>}
    */
-  async award({ actor, delta, reason = "", source = "gm", chat = true } = {}) {
+  async award({ actor, delta, reason = "", source = "gm", chat = true, carousingId = null, questUuid = null } = {}) {
     const step = renownValue(delta);
     const before = this.valueOf(actor);
 
@@ -286,11 +287,12 @@ export const Renown = {
         reason: String(reason ?? ""),
         source: String(source ?? "gm"),
         chat: chat !== false,
+        carousingId, questUuid,
       }, { label: L("SDE.renown.relayLabel") });
       return _shapeReply(reply, before);
     }
 
-    return this._enqueueTx(() => this._awardNow({ actor, step, reason, source, chat }));
+    return this._enqueueTx(() => this._awardNow({ actor, step, reason, source, chat, carousingId, questUuid }));
   },
 
   /**
@@ -300,9 +302,13 @@ export const Renown = {
    * point of it — the caller measured `before` prior to joining the queue, and
    * an award ahead of it may have moved the value in the meantime.
    */
-  async _awardNow({ actor, step, reason = "", source = "gm", chat = true } = {}) {
+  async _awardNow({ actor, step, reason = "", source = "gm", chat = true, carousingId = null, questUuid = null } = {}) {
     const live = game.actors?.get(actor?.id) ?? actor;
     const before = this.valueOf(live);
+    const key = questUuid ? "questProgress" : "carousingProgress", id = questUuid ? questUuid.split(".").at(-1) : carousingId;
+    const progress = live.flags?.[MODULE_ID]?.[key] ?? {};
+    if (id && progress[id]?.renown) return questUuid && !chat && progress[id].renownResult
+      ? structuredClone(progress[id].renownResult) : { ok: true, before, after: before, delta: 0, summary: "" };
     const after = before + step;
     const player = _controllingPlayerName(live);
 
@@ -320,14 +326,15 @@ export const Renown = {
       at: Date.now(),
     });
 
+    const summary = renownChangeLine({ actorName: live.name, delta: step, after });
+    const result = { ok: true, before, after, delta: step, band: renownBand(after), summary };
     try {
-      await live.update({ "system.renown": after, [HISTORY_PATH]: nextHistory });
+      if (id) await replaceModuleFlag(live, key, { ...progress, [id]: { ...progress[id], renown: true, ...(questUuid ? { renownResult: result } : {}) } }, { "system.renown": after, [HISTORY_PATH]: nextHistory });
+      else await live.update({ "system.renown": after, [HISTORY_PATH]: nextHistory });
     } catch (err) {
       console.error(`${MODULE_ID} | renown: could not update ${live?.name}`, err);
       return { ok: false, before, after: before, delta: 0, band: renownBand(before), summary: "", error: err?.message ?? L("SDE.renown.error.updateFailed") };
     }
-
-    const summary = renownChangeLine({ actorName: live.name, delta: step, after });
 
     // Logging must never take down the thing that caused the award.
     try {
@@ -353,7 +360,12 @@ export const Renown = {
       }
     }
 
-    return { ok: true, before, after, delta: step, band: renownBand(after), summary };
+    return result;
+  },
+
+  /** Report a saved quest award without changing renown or its ledger. */
+  async postQuestCard({ actor, delta, after, reason, questReport }) {
+    return _postRenownCard({ actor, delta, after, reason, questReport });
   },
 
   /**
@@ -404,6 +416,7 @@ export const Renown = {
       reason: String(data.reason ?? ""),
       source: String(data.source ?? "gm"),
       chat: data.chat !== false,
+      carousingId: data.carousingId ?? null, questUuid: data.questUuid ?? null,
     }));
   },
 
@@ -713,7 +726,7 @@ function _controllingPlayerName(actor) {
  * Announce the change in chat. Public by design — renown IS public reputation,
  * and both halves of it (a triumph, a humiliation) are things the table saw.
  */
-async function _postRenownCard({ actor, delta, after, reason }) {
+async function _postRenownCard({ actor, delta, after, reason, questReport = null }) {
   const band = renownBand(after);
   const up = delta > 0;
   const esc = foundry.utils.escapeHTML;
@@ -735,5 +748,6 @@ async function _postRenownCard({ actor, delta, after, reason }) {
     user: game.user.id,
     speaker: ChatMessage.getSpeaker({ actor }),
     content,
+    ...(questReport ? { flags: { [MODULE_ID]: { questReport } } } : {}),
   });
 }

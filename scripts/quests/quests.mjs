@@ -14,16 +14,14 @@
  * Every write is the GM's. Players read; nothing here takes a write from a
  * player, so there is no relay.
  *
- * Shadowdark Extras is optional. With it installed a quest can be assigned to
- * one of its party actors, read the way Extras' own party sheet reads them: an
- * NPC flagged `shadowdark-extras.isParty`, its members the ids or UUIDs in
- * `shadowdark-extras.members`. Without it the log works the same, minus the
- * party picker.
+ * Native Parties work without Extras. Optional Extras party readers remain
+ * available for legacy documents; adoption never replaces their identity.
  */
 import { MODULE_ID } from "../shared/module-id.mjs";
 import { replaceModuleFlag } from "../shared/module-flags.mjs";
 import { esc } from "../shared/esc.mjs";
 import { PartyXP } from "../party-xp/party-xp.mjs";
+import { Party } from "../party/party.mjs";
 import { Renown } from "../renown/renown.mjs";
 import { trainerByKey } from "../training/training-core.mjs";
 import {
@@ -87,7 +85,7 @@ export function actorName(uuid) {
 // ── Shadowdark Extras parties (optional) ────────────────────────────────────
 
 export function partiesAvailable() {
-  return !!game.modules?.get(EXTRAS)?.active;
+  return Party.list().length > 0 || !!game.modules?.get(EXTRAS)?.active;
 }
 
 /**
@@ -101,13 +99,15 @@ function extrasParty() {
 }
 
 export function partyActors() {
-  if (!partiesAvailable()) return [];
   const api = extrasParty();
-  if (api) return api.list();
-  return (game.actors?.contents ?? []).filter((a) => a.type === "NPC" && a.flags?.[EXTRAS]?.isParty === true);
+  const native = Party.list();
+  const legacy = api ? api.list() : [];
+  return [...new Map([...native, ...legacy].map((a) => [a.uuid, a])).values()];
 }
 
 export function partyMembers(partyUuid) {
+  const native = Party.list().find((a) => a.uuid === partyUuid && a.type === "NPC");
+  if (native) return Party.members(native, { charactersOnly: true });
   if (!partiesAvailable()) return [];
   const api = extrasParty();
   if (api) return api.members(partyUuid);
@@ -201,9 +201,9 @@ function withActorUuids(data) {
 
 // ── Rewards ─────────────────────────────────────────────────────────────────
 
-/** Ask the GM who gets what. Returns the answer, or null to leave the quest as it was. */
-async function askPayout(quest, name) {
-  const everyone = PartyXP.party().map((a) => a.uuid);
+/** Shared recipient confirmation for the standalone log and inline Party view. */
+export function questPayoutContent(quest, name, { partyScope = null } = {}) {
+  const everyone = partyScope ? [] : PartyXP.party().map((a) => a.uuid);
   const members = quest.party ? partyMembers(quest.party) : [];
   const defaults = defaultRecipients({ characters: quest.characters, partyMembers: members, everyone });
   const candidates = [...new Set([...quest.characters, ...members, ...everyone])];
@@ -213,10 +213,10 @@ async function askPayout(quest, name) {
 
   const r = quest.rewards;
   // A div, not a form: DialogV2 wraps its content in its own form already.
-  const content = `<div class="sde-ql-payout">
+  return `<div class="sde-ql-payout">
     <p>${esc(t("SDE.quests.payout.intro", { name }))}</p>
     <ul>${rewardLines(r, t).map((l) => `<li>${esc(l.text)}</li>`).join("")}</ul>
-    ${(r.xp > 0 || r.renown) ? `<fieldset><legend>${esc(t("SDE.quests.payout.recipients"))}</legend>
+    ${(r.xp > 0 || r.renown || r.coins) ? `<fieldset><legend>${esc(t("SDE.quests.payout.recipients"))}</legend>
       ${candidates.map((u) => `<label class="checkbox"><input type="checkbox" name="recipients" value="${esc(u)}" ${defaults.includes(u) ? "checked" : ""}> ${esc(actorName(u))}</label>`).join("")}
     </fieldset>` : ""}
     ${r.items.map((item, i) => `<div class="form-group"><label>${esc(t("SDE.quests.payout.itemTo", { item: item.name || item.uuid }))}</label>
@@ -224,10 +224,13 @@ async function askPayout(quest, name) {
     ${r.training ? `<div class="form-group"><label>${esc(t("SDE.quests.payout.openTraining", { trainer: trainerLabel(r.training) }))}</label>
       <select name="trainingFor">${options(first)}</select></div>` : ""}
   </div>`;
-
+}
+/** Ask the GM who gets what. Returns the answer, or null to leave the quest as it was. */
+async function askPayout(quest, name) {
+  const r = quest.rewards;
   const answer = await foundry.applications.api.DialogV2.wait({
     window: { title: t("SDE.quests.payout.title"), icon: "fa-solid fa-trophy" },
-    content,
+    content: questPayoutContent(quest, name),
     buttons: [
       {
         action: "pay", label: t("SDE.quests.payout.confirm"), icon: "fa-solid fa-check", default: true,
@@ -249,30 +252,102 @@ async function askPayout(quest, name) {
   return answer && typeof answer === "object" ? answer : null;
 }
 
-/** Hand the rewards out. The quest is already marked paid when this runs. */
-async function pay(plan, name) {
-  const actorOf = (uuid) => { try { return fromUuidSync(uuid); } catch { return null; } };
-  if (plan.xp) {
-    const ids = plan.xp.to.map((u) => actorOf(u)?.id).filter(Boolean);
-    if (ids.length) await PartyXP.award(plan.xp.amount, { actorIds: ids, label: name });
+/** Saved quest-specific progress; actor markers ride with the actual effects. */
+async function pay(entry, quest) {
+  const payout = quest.payout, plan = payout.plan;
+  // A recipient that vanished or was converted is skipped with one warning, never a
+  // wedge: the frozen plan cannot be edited, so a throw here would strand every
+  // surviving reward on every retry.
+  const warned = new Set();
+  const actorOf = uuid => {
+    const actor = game.actors?.contents?.find(a => a.uuid === uuid && a.type === "Player");
+    if (!actor && !warned.has(uuid)) {
+      warned.add(uuid);
+      try { ui.notifications?.warn(t("SDE.quests.notify.recipientMissing")); } catch { /* reporting cannot alter progress */ }
+    }
+    return actor ?? null;
+  };
+  const done = async key => {
+    payout.done[key] = true;
+    await replaceModuleFlag(entry, QUEST_FLAG, quest);
+  };
+  for (const uuid of plan.xp?.to ?? []) {
+    const actor = actorOf(uuid);
+    if (!actor) continue;
+    const key = `xp:${actor.id}`;
+    if (payout.done[key]) continue;
+    const result = await PartyXP.award(plan.xp.amount, { actorIds: [actor.id], label: entry.name, questUuid: entry.uuid, chat: false });
+    if (!result) throw Error(t("SDE.quests.notify.payoutPending"));
+    if (result.length) (payout.reports ??= {})[key] = { kind: "xp", added: plan.xp.amount, label: entry.name, results: result, done: false };
+    await done(key);
   }
-  if (plan.renown) {
-    for (const u of plan.renown.to) {
-      const actor = actorOf(u);
-      if (!actor) continue;
-      const res = await Renown.award({ actor, delta: plan.renown.delta, reason: name, source: "quest" });
-      if (res && !res.ok && res.error) ui.notifications?.warn(res.error);
+  for (const uuid of plan.coins?.to ?? []) {
+    const actor = actorOf(uuid);
+    if (!actor) continue;
+    const key = `coins:${actor.id}`;
+    if (payout.done[key]) continue;
+    const progress = actor.flags?.[MODULE_ID]?.questProgress ?? {};
+    if (!progress[entry.id]?.coins) {
+      const extra = {};
+      for (const [coin, amount] of Object.entries(plan.coins.amount)) extra[`system.coins.${coin}`] = Number(actor.system.coins?.[coin] ?? 0) + amount;
+      await replaceModuleFlag(actor, "questProgress", { ...progress, [entry.id]: { ...progress[entry.id], coins: true } }, extra);
+    }
+    await done(key);
+  }
+  for (let i = 0; i < plan.items.length; i++) {
+    const key = `item:${i}`, item = plan.items[i];
+    if (payout.done[key]) continue;
+    const actor = actorOf(item.to);
+    if (!actor) continue;
+    if (!actor.items.contents.some(v => v.flags?.[MODULE_ID]?.questReward?.questUuid === entry.uuid && v.flags[MODULE_ID].questReward.index === i)) {
+      const source = await fromUuid(item.uuid).catch(() => null);
+      if (!source) throw Error(t("SDE.quests.notify.itemMissing", { item: item.name || item.uuid }));
+      const data = source.toObject();
+      delete data._id;
+      data.flags = { ...data.flags, [MODULE_ID]: { ...data.flags?.[MODULE_ID], questReward: { questUuid: entry.uuid, index: i } } };
+      const created = await actor.createEmbeddedDocuments("Item", [data]);
+      if (!created?.length) throw Error(t("SDE.quests.notify.payoutPending"));
+    }
+    await done(key);
+  }
+  for (const uuid of plan.renown?.to ?? []) {
+    const actor = actorOf(uuid);
+    if (!actor) continue;
+    const key = `renown:${actor.id}`;
+    if (payout.done[key]) continue;
+    const result = await Renown.award({ actor, delta: plan.renown.delta, reason: entry.name, source: "quest", questUuid: entry.uuid, chat: false });
+    if (!result?.ok) throw Error(result?.error ?? t("SDE.quests.notify.payoutPending"));
+    if (result.delta) (payout.reports ??= {})[key] = { kind: "renown", actorUuid: uuid, delta: result.delta, after: result.after, reason: entry.name, done: false };
+    await done(key);
+  }
+  quest.paid = true;
+  await writeQuest(entry, quest);
+  // Reports are separate from reward receipts. A failed card is resumable even
+  // on a paid quest; its saved numbers never come from the actor's later totals.
+  let pending = false;
+  for (const [key, report] of Object.entries(payout.reports ?? {})) {
+    if (report.done) continue;
+    const questReport = { questUuid: entry.uuid, key };
+    try {
+      const existing = game.messages?.contents?.find(m => {
+        const marker = m.flags?.[MODULE_ID]?.questReport;
+        return marker?.questUuid === entry.uuid && marker.key === key;
+      });
+      const reportActor = report.kind === "renown" ? actorOf(report.actorUuid) : null;
+      if (report.kind === "renown" && !reportActor && !existing) { pending = true; continue; }
+      const message = existing ?? (report.kind === "xp"
+        ? await PartyXP._postCard({ ...report, questReport })
+        : await Renown.postQuestCard({ ...report, actor: reportActor, questReport }));
+      if (!message) throw Error(t("SDE.quests.notify.payoutPending"));
+      report.done = true;
+      await replaceModuleFlag(entry, QUEST_FLAG, quest);
+    } catch (error) {
+      pending = true;
+      console.warn(`${MODULE_ID} | quest report pending`, error);
     }
   }
-  for (const item of plan.items) {
-    const actor = actorOf(item.to);
-    const source = await fromUuid(item.uuid).catch(() => null);
-    if (!actor || !source) { ui.notifications?.warn(t("SDE.quests.notify.itemMissing", { item: item.name || item.uuid })); continue; }
-    const data = source.toObject();
-    delete data._id;
-    await actor.createEmbeddedDocuments("Item", [data]);
-  }
-  ui.notifications?.info(t("SDE.quests.notify.paid", { name }));
+  if (pending) throw Error(t("SDE.quests.notify.payoutPending"));
+  try { ui.notifications?.info(t("SDE.quests.notify.paid", { name: entry.name })); } catch (error) { console.warn(`${MODULE_ID} | quest report`, error); }
 }
 
 // ── Pins ────────────────────────────────────────────────────────────────────
@@ -364,7 +439,7 @@ export const Quests = {
    * the GM confirms the payout first; cancelling leaves the quest where it was.
    * @returns {Promise<object|null>} the quest after the change, or null
    */
-  async setStatus(idOrUuid, status) {
+  async setStatus(idOrUuid, status, options = {}) {
     if (gmOnly()) return null;
     let training = null;
     const result = await serialize(async () => {
@@ -375,18 +450,30 @@ export const Quests = {
       if (!plan.changed) return toSummary(entry);
       if (!plan.pay) { await writeQuest(entry, plan.quest); return toSummary(entry); }
 
-      const answer = await askPayout(plan.quest, entry.name);
-      if (!answer) return null;
-      // Paid is written with the status, before anything is handed out: a
-      // failure halfway through can leave a reward short, never paid twice.
-      await writeQuest(entry, { ...plan.quest, paid: true });
-      const payout = payoutPlan(plan.quest, answer);
-      await pay(payout, entry.name);
-      training = payout.training;
+      const quest = plan.quest;
+      if (!quest.payout) {
+        const answer = options.payoutAnswer ?? await askPayout(quest, entry.name);
+        if (!answer) return null;
+        const payout = payoutPlan(quest, answer);
+        if (((quest.rewards.xp || quest.rewards.renown || Object.values(quest.rewards.coins ?? {}).some(n => n > 0)) && !answer.recipients?.length)
+          || (!payout.xp && !payout.renown && !payout.coins && !payout.items.length && !payout.training)) {
+          ui.notifications?.warn(t("SDE.quests.notify.noRecipients")); return null;
+        }
+        quest.payout = { plan: payout, done: {} };
+        // Freeze recipients/rewards before any write to a recipient. Retry never asks again.
+        await writeQuest(entry, quest);
+      }
+      try { await pay(entry, quest); }
+      catch (error) {
+        try { ui.notifications?.warn(t("SDE.quests.notify.payoutPending")); } catch { /* Reporting cannot alter progress. */ }
+        console.warn(`${MODULE_ID} | quest payout pending`, error);
+        return toSummary(entry);
+      }
+      training = quest.payout.plan.training;
       return toSummary(entry);
     });
     // Outside the queue: the Training window is the GM's next step, not part of the write.
-    if (training) {
+    if (training && options.openTraining !== false) {
       const actor = (() => { try { return fromUuidSync(training.actor); } catch { return null; } })();
       if (actor) (await import("../training/training-app.mjs")).TrainingApp.open({ actor, trainer: training.trainer });
     }

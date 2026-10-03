@@ -1,0 +1,35 @@
+<section class="sde-carousing-body">
+  <h2>{{title}}</h2><p>{{localize "SDE.carousing.ownSpend"}}</p>
+  {{#if overlap}}<p>{{localize "SDE.carousing.sdxOverlap"}}</p>{{/if}}
+  {{#if error}}<p role="alert">{{error}}</p>{{/if}}
+  {{#if isGM}}{{#if canConfigure}}
+    <fieldset><legend>{{localize "SDE.carousing.configure"}}</legend>
+      <label>{{localize "SDE.carousing.eventTable"}} <select data-config="event"><option value="">{{localize "SDE.carousing.autoCore"}}</option>{{#each events}}<option value="{{uuid}}" {{#if selected}}selected{{/if}}>{{name}}</option>{{/each}}</select></label>
+      <label>{{localize "SDE.carousing.outcomeTable"}} <select data-config="outcome"><option value="">{{localize "SDE.carousing.autoCore"}}</option>{{#each outcomes}}<option value="{{uuid}}" {{#if selected}}selected{{/if}}>{{name}}</option>{{/each}}</select></label>
+      <label>{{localize "SDE.carousing.settlement"}} <select data-config="settlement">{{#each settlements}}<option value="{{value}}" {{#if selected}}selected{{/if}}>{{label}}</option>{{/each}}</select></label>
+      <label>{{localize "SDE.carousing.place"}} <input type="text" data-config="place" value="{{config.place}}"></label>
+      <button type="button" data-action="configure">{{localize "SDE.carousing.saveConfig"}}</button>
+    </fieldset>
+  {{/if}}{{/if}}
+  {{#if holiday}}<h3>{{holiday}}</h3>{{/if}}
+  {{#if manualHoliday}}<p>{{localize "SDE.carousing.manualHoliday"}}</p>{{/if}}
+  {{#if missingTables}}<p role="alert">{{localize "SDE.carousing.tablesMissing"}}</p>{{/if}}
+  {{#each rows}}<article data-uuid="{{uuid}}">
+    <h3>{{name}}</h3>
+    {{#if ../setup}}
+      <label><input type="checkbox" data-choice="participate" {{#if participate}}checked{{/if}} {{#unless editable}}disabled{{/unless}}> {{localize "SDE.carousing.participate"}}</label>
+      <label>{{localize "SDE.carousing.tierChoice"}} <select data-choice="tierId" {{#unless editable}}disabled{{/unless}} {{#if ../missingTables}}disabled{{/if}}>{{#each tiers}}<option value="{{id}}" {{#if selected}}selected{{/if}}>{{label}}</option>{{else}}<option value="">{{localize "SDE.carousing.tiersUnavailable"}}</option>{{/each}}</select></label>
+      {{#each garbQuestions}}<label><input type="checkbox" data-garb="{{key}}" {{#if checked}}checked{{/if}} {{#unless ../editable}}disabled{{/unless}}> {{label}}{{#if required}} ({{localize "SDE.carousing.required"}}){{/if}}</label>{{/each}}
+      <p>{{status}}</p>{{#if editable}}<button type="button" data-action="confirm" data-uuid="{{uuid}}" {{#if ../missingTables}}disabled{{/if}}>{{localize "SDE.carousing.confirmChoice"}}</button>{{/if}}
+    {{/if}}
+    {{#if result}}<p>{{localize "SDE.carousing.roll"}}: {{result.total}} — {{result.description}}</p><p>{{result.benefit}}</p><p>{{localize "SDE.carousing.manual"}}</p>{{/if}}
+  </article>{{/each}}
+  {{#if manager}}{{#unless overlap}}
+    {{#if empty}}<button type="button" data-action="begin">{{localize "SDE.carousing.begin"}}</button>{{/if}}
+    {{#if setup}}<button type="button" data-action="start" {{#if missingTables}}disabled{{/if}}>{{localize "SDE.carousing.start"}}</button><button type="button" data-action="cancel">{{localize "SDE.carousing.cancel"}}</button>{{/if}}
+    {{#if resume}}<button type="button" data-action="resume">{{localize "SDE.carousing.resume"}}</button>{{/if}}
+    {{#if complete}}<p>{{localize "SDE.carousing.complete"}}</p><button type="button" data-action="begin">{{localize "SDE.carousing.begin"}}</button>{{/if}}
+  {{/unless}}{{/if}}
+  <h3>{{localize "SDE.carousing.history"}}</h3>
+  {{#each history}}<article data-log-id="{{logId}}"><h4>{{date}}</h4>{{#if historyOnly}}<p>{{localize "SDE.carousing.historyOnly"}}</p>{{/if}}{{#each entries}}<p>{{actorName}} — {{cost}} — {{outcome}}</p><p>{{benefit}}</p>{{/each}}</article>{{else}}<p>{{localize "SDE.party.empty"}}</p>{{/each}}
+</section>

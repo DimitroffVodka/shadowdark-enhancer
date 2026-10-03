@@ -17,6 +17,7 @@ import { CrawlState } from "../crawl-strip/crawl-state.mjs";
 import { isHexMapScene, hexReader } from "../encounter/encounter-terrain.mjs";
 import { cheapestRoute } from "./overland-state-core.mjs";
 import { overlandState, travelStepCost, travelSettled } from "./overland.mjs";
+import { ownsHexFog, hexDisclosure } from "../hex-map/hex-fog.mjs";
 
 const t = (key, data) => (data ? game.i18n.format(key, data) : game.i18n.localize(key));
 const offsetKey = (o) => `${o.i},${o.j}`;
@@ -40,14 +41,15 @@ function travelToken() {
 }
 
 /**
- * Which hexes a player can't know the cost of: those Extras' hex fog hasn't
- * shown them (its api.hex.isPositionRevealed). The GM knows every hex, and so
- * does a player on a map with no hex fog (no Extras). ponytail: with Extras
- * on but without that API yet (Extras #185), a player knows none.
+ * Which hexes a player can't know the cost of: the native fog when Enhancer owns
+ * it; otherwise Extras' hex fog (its api.hex.isPositionRevealed). The GM knows
+ * every hex, and so does a player on a map with neither fog. ponytail: with
+ * Extras on but without that API yet (Extras #185), a player knows none.
  * @returns {(o:{i:number, j:number}) => boolean}
  */
-function unknownTo(grid) {
+export function unknownTo(grid) {
   if (game.user.isGM) return () => false;
+  if (ownsHexFog(canvas.scene)) return o => !hexDisclosure(canvas.scene, o);
   const extras = game.modules.get("shadowdark-extras");
   if (!extras?.active) return () => false;
   const revealed = extras.api?.hex?.isPositionRevealed;

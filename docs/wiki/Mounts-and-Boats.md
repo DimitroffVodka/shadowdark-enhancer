@@ -38,6 +38,19 @@ On top of the standard sheet, Mount adds three tabs:
 Occupants and mount fields live in actor **flags**, keeping full compatibility
 with the core system data model.
 
+### Full scores and camping food
+
+Mounts have editable full STR/DEX/CON/INT/WIS/CHA scores, initialized once from
+printed NPC modifiers as `10 + 2 × modifier`. Effective checks use full score
+minus separate ability damage; repeated checks do not subtract it again.
+Ordinary NPCs and warbands keep their models. Existing mounts adopt in place.
+
+Listed Party mounts eat in [Camping](Camping.md) even when excluded from
+deployment: own food first, Party backup only with explicit per-mount approval
+for that camp. They take no PC tasks. A missed meal deals one full-score CON
+damage once/day across reloads and Party changes. CON 16 (+3) becomes 15 (+2);
+death is at full CON zero, not modifier zero. Riders, gear and UUIDs remain.
+
 ---
 
 ## Boat

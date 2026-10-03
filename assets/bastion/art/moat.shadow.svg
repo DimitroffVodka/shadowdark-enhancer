@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512"
+     role="img" aria-labelledby="title desc">
+  <title id="title">Moat shadow</title>
+  <desc id="desc">Separate native-vector cast shadow aligned to the Moat SVG.</desc>
+  <g id="shadow" transform="translate(28 16)" fill="#9699AE" opacity="0.46">
+    <path fill-rule="evenodd" d="M58 8 H454 A50 50 0 0 1 504 58 V454 A50 50 0 0 1 454 504 H58 A50 50 0 0 1 8 454 V58 A50 50 0 0 1 58 8 Z M59 15 H453 A44 44 0 0 1 497 59 V453 A44 44 0 0 1 453 497 H59 A44 44 0 0 1 15 453 V59 A44 44 0 0 1 59 15 Z"/>
+    <path d="M196 436 H316 V510 H196 Z"/>
+
+  </g>
+</svg>

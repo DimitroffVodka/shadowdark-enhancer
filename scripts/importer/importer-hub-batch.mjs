@@ -248,17 +248,19 @@ class HubBatchMethods {
    * The Spell Importer / Class Importer / Item Builder are singletons the batch
    * drives headlessly — `.open()` renders them. Left behind, a whole-library run
    * ends with three windows stacked over the report, each frozen on whatever
-   * entry it processed last. Only what THIS run opened is tracked, so a window
-   * the GM already had up stays up.
+   * entry it processed last. Every workspace the run puts to work is tracked,
+   * including one the GM already had up (#312): each route resets and drives
+   * that same window, so whatever it held before is gone either way — closing it
+   * afterwards is the one end state that isn't batch residue left on screen. A
+   * window this run's routes never touch is never opened, and stays where it is.
    */
   _batchOpen(AppClass) {
-    const opened = AppClass._instance?.rendered !== true;
     const app = AppClass.open();
-    if (opened && app) (this._batchApps ??= new Set()).add(app);
+    if (app) (this._batchApps ??= new Set()).add(app);
     return app;
   }
 
-  /** Close every helper workspace this run opened. */
+  /** Close every helper workspace this run put to work. */
   async _batchCloseApps() {
     const apps = this._batchApps;
     this._batchApps = null;

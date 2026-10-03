@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512"
+     role="img" aria-labelledby="title desc">
+  <title id="title">House shadow</title>
+  <desc id="desc">Separate native-vector cast shadow aligned to the House SVG.</desc>
+  <g id="shadow" transform="translate(28 16)" fill="#9699AE" opacity="0.46">
+    <path d="M82 140 H382 V318 H376 L370 352 H94 L88 318 H82 Z"/>
+    <path d="M335 84 H389 V176 H335 Z"/>
+    <path d="M314 372 H402 V418 H314 Z"/>
+    <path d="M211 372 H237 V410 H211 Z"/>
+
+  </g>
+</svg>

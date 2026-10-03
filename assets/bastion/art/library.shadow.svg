@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512"
+     role="img" aria-labelledby="title desc">
+  <title id="title">Library shadow</title>
+  <desc id="desc">Separate native-vector cast shadow aligned to the Library SVG.</desc>
+  <g id="shadow" transform="translate(28 16)" fill="#9699AE" opacity="0.46">
+    <path d="M66 90 H334 V226 H340 V366 H316 V172 H452 V374 H324 V366 H66 Z"/>
+    <path d="M316 172 H452 V374 H316 Z"/>
+    <path d="M156 366 H248 V388 H156 Z"/>
+    <path d="M90 380 H206 V445 H90 Z"/>
+    <path d="M395 382 H424 V440 H395 Z"/>
+
+  </g>
+</svg>

@@ -1,0 +1,154 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512"
+     role="img" aria-labelledby="title desc">
+  <title id="title">Trophy Room</title>
+  <desc id="desc">Log lodge hung with mounted heads and a horned skull, with a pelt frame, spear rack and bone pile.</desc>
+  <!-- Native vector artwork only: no embedded or linked raster content. -->
+
+  <defs>
+    <pattern id="roofHatch" width="12" height="12" patternUnits="userSpaceOnUse">
+      <path d="M2 0 V12 M8 0 V12" fill="none" stroke="#010206" stroke-width="0.75" opacity="0.17"/>
+    </pattern>
+    <pattern id="leanHatch" width="10" height="10" patternUnits="userSpaceOnUse">
+      <path d="M2 0 V10" fill="none" stroke="#010206" stroke-width="0.65" opacity="0.18"/>
+    </pattern>
+    <pattern id="stoneHatch" width="16" height="13" patternUnits="userSpaceOnUse">
+      <path d="M0 6 H16 M5 0 V6 M12 6 V13" fill="none" stroke="#010206" stroke-width="0.55" opacity="0.16"/>
+    </pattern>
+    <pattern id="shingleHatch" width="14" height="9" patternUnits="userSpaceOnUse">
+      <path d="M0 8 H14 M0 4 Q3.5 8 7 4 Q10.5 8 14 4" fill="none" stroke="#010206" stroke-width="0.6" opacity="0.2"/>
+    </pattern>
+    <pattern id="logHatch" width="9" height="9" patternUnits="userSpaceOnUse">
+      <path d="M4.5 0 V9" fill="none" stroke="#010206" stroke-width="0.7" opacity="0.2"/>
+    </pattern>
+    <pattern id="plankHatch" width="64" height="22" patternUnits="userSpaceOnUse">
+      <path d="M0 0.5 H64 M0 11.5 H64 M20 0 V11 M50 11 V22" fill="none" stroke="#010206" stroke-width="0.8" opacity="0.22"/>
+    </pattern>
+    <pattern id="flagHatch" width="48" height="40" patternUnits="userSpaceOnUse">
+      <path d="M0 0.5 H48 M0 20.5 H48 M16 0 V20 M40 20 V40" fill="none" stroke="#010206" stroke-width="0.8" opacity="0.2"/>
+    </pattern>
+    <pattern id="waterHatch" width="22" height="10" patternUnits="userSpaceOnUse">
+      <path d="M2 5 Q7 1 12 5 T22 5" fill="none" stroke="#A3C9CC" stroke-width="1.1" opacity="0.7"/>
+    </pattern>
+  </defs>
+
+  <g id="building" stroke="#010206" stroke-linecap="round" stroke-linejoin="round">
+
+    <!-- Crossed antlers on the gable ends. -->
+
+    <path d="M124 154 C114 146 110 130 114 114 M115 138 L102 130 M112 126 L100 114 M113 120 L120 106" fill="none" stroke="#E0D4B0" stroke-width="5"/>
+    <path d="M124 154 C114 146 110 130 114 114 M115 138 L102 130 M112 126 L100 114 M113 120 L120 106" fill="none" stroke="#B5A57B" stroke-width="1.4"/>
+
+    <path d="M124 154 C134 146 138 130 134 114 M133 138 L146 130 M136 126 L148 114 M135 120 L128 106" fill="none" stroke="#E0D4B0" stroke-width="5"/>
+    <path d="M124 154 C134 146 138 130 134 114 M133 138 L146 130 M136 126 L148 114 M135 120 L128 106" fill="none" stroke="#B5A57B" stroke-width="1.4"/>
+
+    <path d="M388 154 C398 146 402 130 398 114 M397 138 L410 130 M400 126 L412 114 M399 120 L392 106" fill="none" stroke="#E0D4B0" stroke-width="5"/>
+    <path d="M388 154 C398 146 402 130 398 114 M397 138 L410 130 M400 126 L412 114 M399 120 L392 106" fill="none" stroke="#B5A57B" stroke-width="1.4"/>
+
+    <path d="M388 154 C378 146 374 130 378 114 M379 138 L366 130 M376 126 L364 114 M377 120 L384 106" fill="none" stroke="#E0D4B0" stroke-width="5"/>
+    <path d="M388 154 C378 146 374 130 378 114 M379 138 L366 130 M376 126 L364 114 M377 120 L384 106" fill="none" stroke="#B5A57B" stroke-width="1.4"/>
+
+    <!-- Lodge roof (hide patch, smoke hole, small skulls on the eaves) and the log wall strip. -->
+
+    <path d="M112 150 H400 V198 H112 Z" fill="#A28268" stroke="none"/>
+    <path d="M112 198 H400 V246 H112 Z" fill="#8D6D57" stroke="none"/>
+    <path d="M112 150 H400 V246 H112 Z" fill="url(#shingleHatch)" stroke="none"/>
+    <path d="M112 150 H400 V246 H112 Z" fill="none" stroke-width="2.8"/>
+    <path d="M112 198 C184 196, 328 200, 400 198" fill="none" stroke-width="3.1"/>
+
+    <g fill="#A9856E" stroke-width="1.6">
+      <rect x="106" y="143" width="14" height="14" rx="2"/>
+      <rect x="392" y="143" width="14" height="14" rx="2"/>
+      <rect x="106" y="239" width="14" height="14" rx="2"/>
+      <rect x="392" y="239" width="14" height="14" rx="2"/>
+    </g>
+
+    <path d="M130 166 H196 V190 H130 Z" fill="#7E6A58" stroke-width="1.6"/>
+    <path d="M134 170 Q140 178 134 186 M146 170 Q152 178 146 186 M158 170 Q164 178 158 186 M170 170 Q176 178 170 186 M182 170 Q188 178 182 186" fill="none" stroke="#B5A28A" stroke-width="1.2"/>
+    <path d="M326 164 H378 V192 H326 Z" fill="#26211f" stroke-width="2"/>
+    <path d="M326 178 H378 M352 164 V192" fill="none" stroke="#745846" stroke-width="3"/>
+    <path d="M118 246 H394 L390 340 H122 Z" fill="#8F6F52" stroke-width="2.3"/>
+    <path d="M118 246 H394 L390 340 H122 Z" fill="url(#logHatch)" stroke="none"/>
+    <path d="M118 266 H394 M120 288 H392 M121 312 H391" fill="none" stroke-width="1" opacity="0.45"/>
+<g transform="translate(150 292) scale(1.3) translate(-150 -292)">    <circle cx="150" cy="292" r="17" fill="#745846" stroke-width="1.8"/>
+    <circle cx="150" cy="292" r="17" fill="url(#logHatch)" stroke="none"/>
+
+    <path d="M138 286 C132 276 126 272 128 262 M133 278 L124 278 M162 286 C168 276 174 272 172 262 M167 278 L176 278" fill="none" stroke="#E0D4B0" stroke-width="3.4"/>
+    <path d="M142 284 H158 L156 300 Q150 307 144 300 Z" fill="#9F7D68" stroke-width="1.5"/>
+    <path d="M141 284 L135 279 L144 280 Z M159 284 L165 279 L156 280 Z" fill="#8A6B55" stroke-width="1.2"/>
+    <circle cx="146.5" cy="291" r="1.5" fill="#010206" stroke="none"/><circle cx="153.5" cy="291" r="1.5" fill="#010206" stroke="none"/>
+    <circle cx="150" cy="300" r="2" fill="#2c2622" stroke="none"/>
+</g>
+<g transform="translate(196 292) scale(1.3) translate(-196 -292)">    <circle cx="196" cy="292" r="17" fill="#745846" stroke-width="1.8"/>
+    <circle cx="196" cy="292" r="17" fill="url(#logHatch)" stroke="none"/>
+
+    <path d="M184 285 Q196 278 208 285 L210 297 Q196 308 182 297 Z" fill="#6E5443" stroke-width="1.6"/>
+    <path d="M184 285 L180 278 L190 282 Z M208 285 L212 278 L202 282 Z" fill="#5F4434" stroke-width="1.2"/>
+    <path d="M189 296 H203 L202 302 H190 Z" fill="#C9B79A" stroke-width="1.2"/>
+    <path d="M188 300 Q181 300 182 291 M204 300 Q211 300 210 291" fill="none" stroke="#F0E8D0" stroke-width="3"/>
+    <circle cx="191" cy="290" r="1.5" fill="#010206" stroke="none"/><circle cx="201" cy="290" r="1.5" fill="#010206" stroke="none"/>
+</g>
+<g transform="translate(316 292) scale(1.3) translate(-316 -292)">    <circle cx="316" cy="292" r="17" fill="#745846" stroke-width="1.8"/>
+    <circle cx="316" cy="292" r="17" fill="url(#logHatch)" stroke="none"/>
+
+    <path d="M310 286 C294 282 292 302 302 304 C306 304 306 298 303 297 M322 286 C338 282 340 302 330 304 C326 304 326 298 329 297" fill="none" stroke="#D9CBA3" stroke-width="5"/>
+    <path d="M310 284 H322 L321 301 Q316 306 311 301 Z" fill="#C9B79A" stroke-width="1.5"/>
+    <circle cx="313.4" cy="291" r="1.4" fill="#010206" stroke="none"/><circle cx="318.6" cy="291" r="1.4" fill="#010206" stroke="none"/>
+</g>
+<g transform="translate(362 292) scale(1.3) translate(-362 -292)">    <circle cx="362" cy="292" r="17" fill="#745846" stroke-width="1.8"/>
+    <circle cx="362" cy="292" r="17" fill="url(#logHatch)" stroke="none"/>
+
+    <path d="M350 286 C344 276 338 272 340 262 M345 278 L336 278 M374 286 C380 276 386 272 384 262 M379 278 L388 278" fill="none" stroke="#E0D4B0" stroke-width="3.4"/>
+    <path d="M354 284 H370 L368 300 Q362 307 356 300 Z" fill="#9F7D68" stroke-width="1.5"/>
+    <path d="M353 284 L347 279 L356 280 Z M371 284 L377 279 L368 280 Z" fill="#8A6B55" stroke-width="1.2"/>
+    <circle cx="358.5" cy="291" r="1.5" fill="#010206" stroke="none"/><circle cx="365.5" cy="291" r="1.5" fill="#010206" stroke="none"/>
+    <circle cx="362" cy="300" r="2" fill="#2c2622" stroke="none"/>
+</g>
+
+    <!-- Door: heavy plank leaves under a lintel of bone. -->
+    <path d="M230 296 H282 L280 340 H232 Z" fill="#4B352B" stroke-width="2.1"/>
+    <path d="M256 296 V340 M234 312 H280 M234 327 H279" fill="none" stroke-width="1.3" opacity="0.7"/>
+    <path d="M224 292 H288 V300 H224 Z" fill="#E8DEC4" stroke-width="1.8"/>
+    <path d="M224 340 H288 L294 350 H218 Z" fill="#85827A" stroke-width="1.8"/>
+    <!-- The great horned skull: horns, cranium, sockets, nose and teeth. -->
+    <path d="M234 238 C208 250 184 234 182 202 C182 190 190 184 198 182 C200 206 216 214 236 216 Z" fill="#E8DEC4" stroke-width="2.3"/>
+    <path d="M278 238 C304 250 328 234 330 202 C330 190 322 184 314 182 C312 206 296 214 276 216 Z" fill="#E8DEC4" stroke-width="2.3"/>
+    <path d="M196 226 L208 218 M190 208 L204 204 M316 226 L304 218 M322 208 L308 204" fill="none" stroke-width="1.3" opacity="0.7"/>
+    <path d="M226 240 C226 214 240 202 256 202 C272 202 286 214 286 240 C286 254 280 260 276 266 L274 290 H238 L236 266 C232 260 226 254 226 240 Z" fill="#EDE4CB" stroke-width="2.4"/>
+    <path d="M256 202 C272 202 286 214 286 240 C286 254 280 260 276 266 L274 290 H256 Z" fill="#D2C6A2" stroke="none"/>
+    <ellipse cx="242" cy="242" rx="8.5" ry="9.5" fill="#26211f" stroke-width="1.5"/>
+    <ellipse cx="270" cy="242" rx="8.5" ry="9.5" fill="#26211f" stroke-width="1.5"/>
+    <path d="M256 254 L251 268 H261 Z" fill="#26211f" stroke-width="1"/>
+    <path d="M244 275 V288 M250 275 V289 M256 275 V289 M262 275 V289 M268 275 V288" fill="none" stroke-width="1.4"/>
+    <path d="M256 204 V220 M246 214 Q256 210 266 214" fill="none" stroke-width="1.2" opacity="0.6"/>
+    <g transform="translate(24 0)">
+    <!-- Drying frame with a stretched pelt, laced at the edges. -->
+    <path d="M40 330 V424 M100 330 V424 M34 332 H106 M34 420 H106" fill="none" stroke="#5F4434" stroke-width="4.4"/>
+    <path d="M52 342 Q70 336 88 342 Q98 356 92 372 Q100 388 90 400 Q82 414 70 408 Q60 416 50 402 Q42 390 50 374 Q42 356 52 342 Z" fill="#9A7D62" stroke-width="2"/>
+    <path d="M60 358 Q68 352 74 360 M56 380 Q66 374 70 384 M72 396 Q80 390 84 398" fill="none" stroke="#5F4434" stroke-width="1.8" opacity="0.8"/>
+    <path d="M52 342 L40 336 M88 342 L100 336 M50 374 L40 374 M92 372 L100 372 M50 402 L40 412 M90 400 L100 412 M70 408 L70 420" fill="none" stroke="#C7A06E" stroke-width="1.6"/>
+    </g>
+    <g transform="translate(-26 0)">
+    <!-- Spear-and-banner rack. -->
+    <path d="M418 322 H466 L470 334 H414 Z" fill="#745846" stroke-width="1.8"/>
+    <path d="M424 334 V404 M460 334 V404 M418 404 H466" fill="none" stroke-width="3"/>
+    <path d="M430 332 V250 M442 332 V262 M454 332 V258" fill="none" stroke="#745846" stroke-width="3.2"/>
+    <path d="M430 250 L425 262 H435 Z M442 262 L437 274 H447 Z M454 258 L449 270 H459 Z" fill="#B7B4A9" stroke-width="1.5"/>
+    <path d="M442 276 H478 L470 288 L478 300 H442 Z" fill="#9C3F3A" stroke-width="1.7"/>
+    <path d="M452 282 L458 288 L452 294 M464 284 L464 292" fill="none" stroke="#E8DEC4" stroke-width="1.6"/>
+    </g>
+    <g transform="translate(-14 4)">
+    <!-- Bone pile: femurs, ribs and a small skull. -->
+    <path d="M326 420 L396 396 M334 404 L412 418 M346 428 L420 410" fill="none" stroke="#E8DEC4" stroke-width="7"/>
+    <path d="M326 420 L396 396 M334 404 L412 418 M346 428 L420 410" fill="none" stroke="#B5A57B" stroke-width="1.3"/>
+    <g fill="#E8DEC4" stroke-width="1.4">
+      <circle cx="326" cy="420" r="5"/><circle cx="396" cy="396" r="5"/><circle cx="334" cy="404" r="5"/><circle cx="412" cy="418" r="5"/><circle cx="346" cy="428" r="5"/><circle cx="420" cy="410" r="5"/>
+    </g>
+    <path d="M348 394 Q364 376 380 394 M352 400 Q366 384 378 400 M356 406 Q366 392 376 406" fill="none" stroke="#E8DEC4" stroke-width="3.6"/>
+    <path d="M370 424 Q370 410 384 410 Q398 410 398 424 L394 432 H374 Z" fill="#E8DEC4" stroke-width="1.6"/>
+    <circle cx="378" cy="421" r="2.6" fill="#26211f" stroke="none"/><circle cx="390" cy="421" r="2.6" fill="#26211f" stroke="none"/>
+</g>    <path d="M112 436 Q114 427 117 436 Q120 429 123 436 Z" fill="#6F8A5F" stroke-width="1"/>
+    <path d="M430 430 Q432 421 435 430 Q438 423 441 430 Z" fill="#6F8A5F" stroke-width="1"/>
+
+  </g>
+</svg>

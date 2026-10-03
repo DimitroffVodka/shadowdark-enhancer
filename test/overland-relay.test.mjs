@@ -33,7 +33,8 @@ const owner = (userId) => ({ testUserPermission: (u) => u.id === userId });
 const statResults = [];
 const statRolls = [];
 const character = (id, name, userId) => ({
-  id, name, type: "Player", ...owner(userId), items: [], created: [],
+  id, name, type: "Player", ...owner(userId), items: [], created: [], flags: {},
+  async update(data) { for (const [key, value] of Object.entries(data)) { const parts = key.split("."); let target = this; for (const p of parts.slice(0, -1)) target = target[p] ??= {}; target[parts.at(-1)] = value; } },
   system: { rollStatCheck: async (ability, opts) => { statRolls.push({ id, ability, dc: opts?.mainRoll?.dc }); return statResults.shift() ?? { success: false }; } },
   async createEmbeddedDocuments(type, data) { this.created.push(...data); },
 });
@@ -52,6 +53,7 @@ const actors = { mine: character("mine", "Mine", "player1"), theirs: character("
 const party = { id: "party", uuid: "Actor.party" };
 const partyUuids = (uuid) => ({ "Scene.s.Token.party": { actor: party }, [party.uuid]: party })[uuid] ?? null;
 Object.assign(globalThis, {
+  _replace: value => value,
   foundry: deep, CONFIG: { queries: {} }, Hooks: { on() {}, once() {}, callAll() {} }, ui: { notifications: { warn() {} } },
   Roll, ChatMessage: { create: async (data) => { cards.push(data); }, getWhisperRecipients: () => [{ id: "gm" }], getSpeaker: () => ({}) },
   game: {
@@ -77,6 +79,7 @@ const { BOAT_TYPE } = await import("../scripts/actors/register-actors.mjs");
 const { CrawlState } = await import("../scripts/crawl-strip/crawl-state.mjs");
 
 function travelling(members) {
+  for (const a of Object.values(actors)) a.flags = {};
   stored.overlandState = { members, foraged: [], day: 0 };
   registerOverland();
   CrawlState._state = { ...CrawlState._state, mode: "overland" };
@@ -630,7 +633,7 @@ const settle = () => new Promise((resolve) => { setTimeout(resolve, 20); });
 
 function campWorld({ climate = null, weather = null, hex = { num: 1, terrain: "forest", region: "R", features: [] } } = {}) {
   travellingDay();
-  for (const a of Object.values(actors)) { a.items.length = 0; a.created.length = 0; }
+  for (const a of Object.values(actors)) { a.items.length = 0; a.created.length = 0; a.flags = {}; }
   statResults.length = statRolls.length = 0;
   const damage = [];
   Object.assign(globalThis.game.shadowdarkEnhancer, {
@@ -1489,6 +1492,26 @@ test("no reveal on a player's client, with fog off, without Extras' functions, w
   dice.push(6);
   assert.equal((await applyAction({ action: "weather" }, gm)).ok, true);
   await tick();
+});
+
+test("native travel Party owner opens camp setup without any SDX provider", async () => {
+  travelling(["mine"]);
+  const lookup = globalThis.fromUuidSync, modules = globalThis.game.modules;
+  const api = globalThis.game.shadowdarkEnhancer;
+  const party = { id: "native", uuid: "Actor.native", type: "NPC", flags: { "shadowdark-enhancer": { party: true, camping: { id: "camp", phase: "setup" } } }, ...owner("player1") };
+  let opened = 0;
+  globalThis.game.modules = { get: () => null };
+  globalThis.game.shadowdarkEnhancer = { ...api, camping: { open: p => { assert.equal(p, party); opened++; } } };
+  globalThis.fromUuidSync = uuid => uuid === "Scene.s.Token.native" ? { actor: party } : null;
+  stored.overlandState = { ...stored.overlandState, tokenUuid: "Scene.s.Token.native" };
+  registerOverland();
+  try {
+    const reply = await applyAction({ action: "camp", partyId: party.id }, { id: "player1", isGM: false });
+    assert.deepEqual(reply, { ok: true, setup: true });
+    assert.equal(opened, 1); assert.equal(overlandState().camp, null);
+  } finally {
+    globalThis.fromUuidSync = lookup; globalThis.game.modules = modules; globalThis.game.shadowdarkEnhancer = api;
+  }
 });
 
 test("a throwing Extras never breaks the weather write (#307)", async () => {

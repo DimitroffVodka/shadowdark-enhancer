@@ -165,4 +165,3 @@ export const stripBold = (s) => String(s ?? "").replaceAll(BOLD_OPEN, "").replac
 
 /** A run of two bold items ("Giant" "ants") is one bold run. */
 export const mergeBold = (s) => String(s ?? "").replace(new RegExp(`${BOLD_CLOSE}(\\s*)${BOLD_OPEN}`, "g"), "$1");
-

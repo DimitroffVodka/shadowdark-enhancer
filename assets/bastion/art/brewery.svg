@@ -1,0 +1,164 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512"
+     role="img" aria-labelledby="title desc">
+  <title id="title">Brewery</title>
+  <desc id="desc">Barrel-roofed brewing hall with copper still, stacked casks, hop trellis and tankard sign.</desc>
+  <!-- Native vector artwork only: no embedded or linked raster content. -->
+
+  <defs>
+    <pattern id="roofHatch" width="12" height="12" patternUnits="userSpaceOnUse">
+      <path d="M2 0 V12 M8 0 V12" fill="none" stroke="#010206" stroke-width="0.75" opacity="0.17"/>
+    </pattern>
+    <pattern id="leanHatch" width="10" height="10" patternUnits="userSpaceOnUse">
+      <path d="M2 0 V10" fill="none" stroke="#010206" stroke-width="0.65" opacity="0.18"/>
+    </pattern>
+    <pattern id="stoneHatch" width="16" height="13" patternUnits="userSpaceOnUse">
+      <path d="M0 6 H16 M5 0 V6 M12 6 V13" fill="none" stroke="#010206" stroke-width="0.55" opacity="0.16"/>
+    </pattern>
+    <pattern id="shingleHatch" width="14" height="9" patternUnits="userSpaceOnUse">
+      <path d="M0 8 H14 M0 4 Q3.5 8 7 4 Q10.5 8 14 4" fill="none" stroke="#010206" stroke-width="0.6" opacity="0.2"/>
+    </pattern>
+    <pattern id="logHatch" width="9" height="9" patternUnits="userSpaceOnUse">
+      <path d="M4.5 0 V9" fill="none" stroke="#010206" stroke-width="0.7" opacity="0.2"/>
+    </pattern>
+    <pattern id="plankHatch" width="64" height="22" patternUnits="userSpaceOnUse">
+      <path d="M0 0.5 H64 M0 11.5 H64 M20 0 V11 M50 11 V22" fill="none" stroke="#010206" stroke-width="0.8" opacity="0.22"/>
+    </pattern>
+    <pattern id="flagHatch" width="48" height="40" patternUnits="userSpaceOnUse">
+      <path d="M0 0.5 H48 M0 20.5 H48 M16 0 V20 M40 20 V40" fill="none" stroke="#010206" stroke-width="0.8" opacity="0.2"/>
+    </pattern>
+    <pattern id="waterHatch" width="22" height="10" patternUnits="userSpaceOnUse">
+      <path d="M2 5 Q7 1 12 5 T22 5" fill="none" stroke="#A3C9CC" stroke-width="1.1" opacity="0.7"/>
+    </pattern>
+  </defs>
+
+  <g id="building" stroke="#010206" stroke-linecap="round" stroke-linejoin="round">
+    <g transform="translate(256 256) scale(0.86) translate(-277 -265)">
+
+    <!-- Hop trellis: poles, a wire frame and climbing bines with cones. -->
+    <path d="M318 424 V268 M370 424 V268 M424 424 V268 M318 276 H424 M318 330 H424" fill="none" stroke="#5F4434" stroke-width="4"/>
+    <path d="M324 424 Q310 380 330 350 Q344 330 334 300 Q326 284 340 272 M366 424 Q380 392 360 360 Q348 334 366 308 Q372 288 358 274 M418 424 Q404 392 420 360 Q434 330 418 304 Q408 286 420 272" fill="none" stroke="#5E7F52" stroke-width="3"/>
+    <g fill="#7FA06B" stroke-width="1.3">
+      <path d="M322 300 Q308 296 308 286 Q322 286 330 296 Z M342 340 Q356 336 358 324 Q344 326 338 338 Z M374 296 Q388 292 388 282 Q374 282 368 292 Z M356 346 Q342 346 340 356 Q354 358 360 348 Z M426 300 Q440 296 440 286 Q426 286 420 296 Z M410 346 Q396 346 394 356 Q408 358 414 348 Z M336 392 Q322 392 320 402 Q334 404 340 394 Z M400 380 Q414 376 416 366 Q402 368 396 378 Z"/>
+    </g>
+    <g fill="#C7D27A" stroke-width="1.2">
+      <path d="M332 312 Q326 318 332 326 Q338 318 332 312 Z M348 364 Q342 370 348 378 Q354 370 348 364 Z M366 322 Q360 328 366 336 Q372 328 366 322 Z M412 316 Q406 322 412 330 Q418 322 412 316 Z M426 372 Q420 378 426 386 Q432 378 426 372 Z M376 372 Q370 378 376 386 Q382 378 376 372 Z"/>
+    </g>
+    <!-- Copper still on a stone firebox: kettle, rivets, swan-neck pipe. -->
+    <path d="M410 296 H488 V348 H410 Z" fill="#8E8B83" stroke-width="2.2"/>
+    <path d="M410 296 H488 V348 H410 Z" fill="url(#stoneHatch)" stroke="none"/>
+    <path d="M428 348 V328 Q428 316 449 316 Q470 316 470 328 V348 Z" fill="#26211f" stroke-width="2"/>
+    <path d="M436 348 V332 Q436 324 449 324 Q462 324 462 332 V348 Z" fill="#E08A33" stroke-width="1.4"/>
+    <path d="M442 348 V336 Q442 330 449 330 Q456 330 456 336 V348 Z" fill="#F4D36B" stroke="none"/>
+
+    <path d="M414 300 C396 270 398 224 424 206 C440 196 458 196 474 206 C500 224 502 270 484 300 Z" fill="#B8672F" stroke-width="2.4"/>
+    <path d="M424 300 C410 270 412 230 430 214 C424 236 428 270 438 300 Z" fill="#DE9A5E" stroke="none"/>
+    <path d="M414 300 C396 270 398 224 424 206 C440 196 458 196 474 206 C500 224 502 270 484 300 Z" fill="none" stroke-width="2.4"/>
+    <path d="M404 262 Q449 276 494 262" fill="none" stroke="#8A4A24" stroke-width="2.6"/>
+    <g fill="#8A4A24" stroke="none">
+      <circle cx="412" cy="268" r="2"/><circle cx="426" cy="272" r="2"/><circle cx="441" cy="274" r="2"/><circle cx="456" cy="274" r="2"/><circle cx="472" cy="272" r="2"/><circle cx="486" cy="268" r="2"/>
+    </g>
+    <path d="M426 210 C432 188 466 188 472 210 Z" fill="#B8672F" stroke-width="2.2"/>
+    <path d="M430 206 C436 194 450 192 456 198" fill="none" stroke="#DE9A5E" stroke-width="2.2"/>
+    <path d="M449 192 V164 C449 140 420 134 392 142 C378 146 370 154 366 164" fill="none" stroke="#8A4A24" stroke-width="9"/>
+    <path d="M449 192 V164 C449 140 420 134 392 142 C378 146 370 154 366 164" fill="none" stroke="#B8672F" stroke-width="5.4"/>
+    <path d="M449 192 V164 C449 140 420 134 392 142" fill="none" stroke="#DE9A5E" stroke-width="1.6"/>
+    <path d="M358 160 H376 V172 H358 Z" fill="#8A4A24" stroke-width="1.6"/>
+    <path d="M443 188 H455 V198 H443 Z" fill="#8A4A24" stroke-width="1.6"/>
+    <path d="M488 198 C490 188 482 182 484 172" fill="none" stroke="#E9E4D6" stroke-width="3" opacity="0.6"/>
+    <!-- Hall walls under the barrel roof. -->
+    <path d="M62 228 H362 L356 280 H68 Z" fill="#C9B79A" stroke-width="2.1"/>
+
+    <path d="M62 228 H362" fill="none" stroke-width="2.4"/>
+    <path d="M86 228 V278 M340 228 V278 M138 228 V278 M286 228 V278" fill="none" stroke="#5F4434" stroke-width="3.2"/>
+    <path d="M150 238 H174 V262 H150 Z M246 238 H270 V262 H246 Z" fill="#F0C060" stroke-width="1.8"/>
+    <path d="M162 238 V262 M150 250 H174 M258 238 V262 M246 250 H270" fill="none" stroke-width="1.2"/>
+    <path d="M142 236 H150 V264 H142 Z M174 236 H182 V264 H174 Z M238 236 H246 V264 H238 Z M270 236 H278 V264 H270 Z" fill="#6C8F7E" stroke-width="1.3"/>
+    <!-- Double doors with iron straps, the lintel and a step. -->
+    <path d="M190 232 H234 V278 H190 Z" fill="#26211f" stroke-width="2"/>
+    <path d="M194 236 H211 V278 H194 Z M213 236 H230 V278 H213 Z" fill="#745846" stroke-width="1.6"/>
+    <path d="M194 246 H211 M194 262 H211 M213 246 H230 M213 262 H230" fill="none" stroke="#2c2926" stroke-width="2"/>
+    <path d="M184 278 H240 L244 288 H180 Z" fill="#85827A" stroke-width="1.8"/>
+    <!-- Barrel roof: bulged outline, staves, copper hoops, bung vent. -->
+    <path d="M52 134 C96 98 322 98 372 134 V216 C322 252 96 252 52 216 Z" fill="#B58F6A" stroke="none"/>
+    <path d="M52 134 C96 98 322 98 372 134 L372 150 C322 118 96 118 52 150 Z" fill="#CDA67E" stroke="none"/>
+    <path d="M52 200 C96 232 322 232 372 200 V216 C322 252 96 252 52 216 Z" fill="#8F6A4C" stroke="none"/>
+    <path d="M52 134 C96 98 322 98 372 134 V216 C322 252 96 252 52 216 Z" fill="url(#roofHatch)" stroke="none" transform="rotate(90 212 175) translate(0 0)" opacity="0"/>
+    <path d="M52 150 C96 122 322 122 372 150 M52 166 C96 142 322 142 372 166 M52 182 C96 160 322 160 372 182 M52 198 C96 178 322 178 372 198" fill="none" stroke-width="1" opacity="0.4"/>
+    <path d="M52 134 C96 98 322 98 372 134 V216 C322 252 96 252 52 216 Z" fill="none" stroke-width="2.8"/>
+    <g fill="none" stroke="#8A4A24" stroke-width="7">
+      <path d="M92 116 C90 150 90 200 92 238"/><path d="M148 107 C146 150 146 204 148 246"/><path d="M212 104 C212 150 212 204 212 250"/><path d="M276 107 C278 150 278 204 276 246"/><path d="M332 116 C334 150 334 200 332 238"/>
+    </g>
+    <g fill="none" stroke="#DE9A5E" stroke-width="2.4">
+      <path d="M92 116 C90 150 90 200 92 238"/><path d="M148 107 C146 150 146 204 148 246"/><path d="M212 104 C212 150 212 204 212 250"/><path d="M276 107 C278 150 278 204 276 246"/><path d="M332 116 C334 150 334 200 332 238"/>
+    </g>
+    <path d="M52 134 C96 98 322 98 372 134 V216 C322 252 96 252 52 216 Z" fill="none" stroke-width="2.8"/>
+    <ellipse cx="244" cy="152" rx="17" ry="12" fill="#6A4A32" stroke-width="2"/>
+    <ellipse cx="244" cy="152" rx="9" ry="6" fill="#26211f" stroke-width="1.4"/>
+    <path d="M232 144 Q244 136 256 144" fill="none" stroke="#DE9A5E" stroke-width="1.6"/>
+    <!-- Stacked casks on their sides, a tapped one on top, plus a mug. -->
+
+    <circle cx="96" cy="400" r="26" fill="#A17A5C" stroke-width="2.2"/>
+    <circle cx="96" cy="400" r="22" fill="#B98F68" stroke-width="1.2"/>
+    <path d="M76 394 H116 M74 406 H118 M96 378 V422" fill="none" stroke="#6A4A32" stroke-width="1" opacity="0.7"/>
+    <circle cx="96" cy="400" r="26" fill="none" stroke="#8A4A24" stroke-width="2"/>
+    <circle cx="96" cy="400" r="17" fill="none" stroke="#B8672F" stroke-width="2.4"/>
+    <circle cx="104" cy="407" r="3" fill="#4B352B" stroke-width="1"/>
+
+    <circle cx="150" cy="400" r="26" fill="#A17A5C" stroke-width="2.2"/>
+    <circle cx="150" cy="400" r="22" fill="#B98F68" stroke-width="1.2"/>
+    <path d="M130 394 H170 M128 406 H172 M150 378 V422" fill="none" stroke="#6A4A32" stroke-width="1" opacity="0.7"/>
+    <circle cx="150" cy="400" r="26" fill="none" stroke="#8A4A24" stroke-width="2"/>
+    <circle cx="150" cy="400" r="17" fill="none" stroke="#B8672F" stroke-width="2.4"/>
+    <circle cx="158" cy="407" r="3" fill="#4B352B" stroke-width="1"/>
+
+    <circle cx="202" cy="400" r="26" fill="#A17A5C" stroke-width="2.2"/>
+    <circle cx="202" cy="400" r="22" fill="#B98F68" stroke-width="1.2"/>
+    <path d="M182 394 H222 M180 406 H224 M202 378 V422" fill="none" stroke="#6A4A32" stroke-width="1" opacity="0.7"/>
+    <circle cx="202" cy="400" r="26" fill="none" stroke="#8A4A24" stroke-width="2"/>
+    <circle cx="202" cy="400" r="17" fill="none" stroke="#B8672F" stroke-width="2.4"/>
+    <circle cx="210" cy="407" r="3" fill="#4B352B" stroke-width="1"/>
+
+    <circle cx="123" cy="352" r="26" fill="#A17A5C" stroke-width="2.2"/>
+    <circle cx="123" cy="352" r="22" fill="#B98F68" stroke-width="1.2"/>
+    <path d="M103 346 H143 M101 358 H145 M123 330 V374" fill="none" stroke="#6A4A32" stroke-width="1" opacity="0.7"/>
+    <circle cx="123" cy="352" r="26" fill="none" stroke="#8A4A24" stroke-width="2"/>
+    <circle cx="123" cy="352" r="17" fill="none" stroke="#B8672F" stroke-width="2.4"/>
+    <circle cx="131" cy="359" r="3" fill="#4B352B" stroke-width="1"/>
+
+    <circle cx="176" cy="352" r="26" fill="#A17A5C" stroke-width="2.2"/>
+    <circle cx="176" cy="352" r="22" fill="#B98F68" stroke-width="1.2"/>
+    <path d="M156 346 H196 M154 358 H198 M176 330 V374" fill="none" stroke="#6A4A32" stroke-width="1" opacity="0.7"/>
+    <circle cx="176" cy="352" r="26" fill="none" stroke="#8A4A24" stroke-width="2"/>
+    <circle cx="176" cy="352" r="17" fill="none" stroke="#B8672F" stroke-width="2.4"/>
+    <circle cx="184" cy="359" r="3" fill="#4B352B" stroke-width="1"/>
+
+    <path d="M118 308 C118 300 128 296 150 296 C172 296 182 300 182 308 V324 C182 328 172 330 150 330 C128 330 118 328 118 324 Z" fill="#A17A5C" stroke-width="2"/>
+    <path d="M132 297 V329 M168 297 V329" fill="none" stroke="#8A4A24" stroke-width="5"/>
+    <path d="M118 316 H182" fill="none" stroke-width="0.8" opacity="0.5"/>
+    <path d="M182 314 H196 V320 H182 Z" fill="#B8672F" stroke-width="1.6"/>
+    <path d="M194 320 V332" fill="none" stroke-width="1.8"/>
+    <path d="M232 396 H246 L244 424 H234 Z" fill="#D9922E" stroke-width="1.8"/>
+    <path d="M232 400 Q239 394 246 400" fill="none" stroke="#F4EDD8" stroke-width="4"/>
+    <path d="M246 404 Q256 406 254 416 Q252 420 245 418" fill="none" stroke-width="1.8"/>
+    <!-- Amber lantern on a bracket between the posts. -->
+    <path d="M322 232 V244 M314 244 H330" fill="none" stroke="#4B352B" stroke-width="2.4"/>
+    <path d="M318 244 H326 V260 H318 Z" fill="#F0C060" stroke-width="1.4"/>
+    <path d="M316 244 L322 239 L328 244" fill="#8A4A24" stroke-width="1.4"/>
+    <circle cx="322" cy="252" r="16" fill="#F0C060" stroke="none" opacity="0.28"/>
+    <!-- Hanging tankard sign by the door. -->
+    <path d="M296 262 V420" fill="none" stroke="#5F4434" stroke-width="5"/>
+    <path d="M296 270 H306" fill="none" stroke="#4B352B" stroke-width="4"/>
+    <path d="M296 320 H322 M296 330 L312 320" fill="none" stroke="#4B352B" stroke-width="3.2"/>
+    <path d="M298 322 V334 M320 322 V334" fill="none" stroke="#2c2926" stroke-width="1.2"/>
+    <path d="M292 334 H330 V366 H292 Z" fill="#F0C060" stroke-width="2"/>
+    <path d="M296 338 H326 M296 362 H326" fill="none" stroke="#B8672F" stroke-width="1.2"/>
+    <path d="M299 344 H317 V361 H299 Z" fill="#D9922E" stroke-width="1.6"/>
+    <path d="M298 344 Q305 337 313 340 Q320 336 318 344 Z" fill="#F4EDD8" stroke-width="1.4"/>
+    <path d="M317 348 H322 Q325 350 324 356 Q322 360 317 358" fill="none" stroke-width="1.8"/>
+    <path d="M298 330 L290 340 L298 342" fill="none" stroke-width="0"/>
+
+    </g>
+
+  </g>
+</svg>

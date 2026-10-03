@@ -63,12 +63,12 @@ never edit it.
 3. Add objectives: type one and press **Enter**. Tick them off as the party
    gets them done; only you can.
 4. Set the rewards:
-   - **XP each** and **Renown each**, paid in full to every character you pick.
+   - **XP each**, **Gold each** and **Renown each**, paid in full to every character you pick.
    - **Items**: drag them from the sidebar, a compendium or a sheet onto the
      rewards box.
    - **Training benefit**: a trainer whose benefit roll follows completion.
-5. Pick the **characters** the quest is personal to, if any, and its **party**
-   if you use Shadowdark Extras.
+5. Pick the **characters** the quest is personal to, if any, and its native
+   [Party](Party.md). Extras is optional.
 6. Set the status to **Available** or **Active** when the players should see it.
 
 Every change saves as you make it.
@@ -92,10 +92,21 @@ paid, a confirmation lists them first:
 (tagged *Quest reward*), and a copy of each item onto the character's sheet.
 **Cancel** leaves the quest as it was.
 
-Rewards are paid **once**. Setting a completed quest back to Active and
-completing it again pays nothing more. To complete a quest whose rewards you
-handed out yourself, untick everyone and set every item and training choice
-to *Nobody*.
+Rewards are paid **once**, per character and effect. Confirmed recipients and
+amounts are frozen before payout. **Paid** appears only after all selected
+effects succeed. On failure, set the quest to Active and then Completed again:
+it finishes the saved unpaid effects without another confirmation or repeating
+XP, coins, items or renown. Reload retains progress; editing reward fields does
+not change an interrupted payout's saved plan. Failed XP and renown chat cards
+remain pending separately from Paid: the same retry posts only missing cards,
+using the saved award totals, without repeating rewards or successful cards.
+Notification failure cannot repeat awards. Restore missing recipients/items
+before retrying. Old Paid quests without saved reports do not invent reports.
+
+An empty recipient selection is refused for XP, coins or renown: it never means
+everyone. For manually paid rewards, remove those rewards before completion.
+Old Paid quests stay paid, without historical back-pay. Items set to Nobody
+are deliberately omitted from the plan.
 
 ---
 
@@ -114,12 +125,11 @@ as before. A failed task can be taken again.
 
 ---
 
-## Parties (Shadowdark Extras)
+## Parties and optional Shadowdark Extras
 
-With Shadowdark Extras installed, a quest can be assigned to one of its party
-actors, and the Quest Log can be filtered by party. Filtering by a party shows
-the quests assigned to it **and** the personal quests of its members. Without
-Extras the party picker is simply not there.
+Native Parties supply explicit rosters with or without Extras. Filtering by
+party shows assigned quests and members' personal quests. Supported legacy
+Extras party readers remain available. SDX Party documents are not converted.
 
 Shadowdark Extras reads these quests for its own party-sheet Quests tab
 through the API below.

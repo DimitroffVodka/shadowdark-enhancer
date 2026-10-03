@@ -1,0 +1,121 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512"
+     role="img" aria-labelledby="title desc">
+  <title id="title">Keep</title>
+  <desc id="desc">Three-floor stone tower keep with crenellated roof and ballista.</desc>
+  <!-- Native vector artwork only: no embedded or linked raster content. -->
+
+  <defs>
+    <pattern id="roofHatch" width="12" height="12" patternUnits="userSpaceOnUse">
+      <path d="M2 0 V12 M8 0 V12" fill="none" stroke="#010206" stroke-width="0.75" opacity="0.17"/>
+    </pattern>
+    <pattern id="leanHatch" width="10" height="10" patternUnits="userSpaceOnUse">
+      <path d="M2 0 V10" fill="none" stroke="#010206" stroke-width="0.65" opacity="0.18"/>
+    </pattern>
+    <pattern id="stoneHatch" width="16" height="13" patternUnits="userSpaceOnUse">
+      <path d="M0 6 H16 M5 0 V6 M12 6 V13" fill="none" stroke="#010206" stroke-width="0.55" opacity="0.16"/>
+    </pattern>
+    <pattern id="shingleHatch" width="14" height="9" patternUnits="userSpaceOnUse">
+      <path d="M0 8 H14 M0 4 Q3.5 8 7 4 Q10.5 8 14 4" fill="none" stroke="#010206" stroke-width="0.6" opacity="0.2"/>
+    </pattern>
+    <pattern id="logHatch" width="9" height="9" patternUnits="userSpaceOnUse">
+      <path d="M4.5 0 V9" fill="none" stroke="#010206" stroke-width="0.7" opacity="0.2"/>
+    </pattern>
+    <pattern id="plankHatch" width="64" height="22" patternUnits="userSpaceOnUse">
+      <path d="M0 0.5 H64 M0 11.5 H64 M20 0 V11 M50 11 V22" fill="none" stroke="#010206" stroke-width="0.8" opacity="0.22"/>
+    </pattern>
+    <pattern id="flagHatch" width="48" height="40" patternUnits="userSpaceOnUse">
+      <path d="M0 0.5 H48 M0 20.5 H48 M16 0 V20 M40 20 V40" fill="none" stroke="#010206" stroke-width="0.8" opacity="0.2"/>
+    </pattern>
+    <pattern id="waterHatch" width="22" height="10" patternUnits="userSpaceOnUse">
+      <path d="M2 5 Q7 1 12 5 T22 5" fill="none" stroke="#A3C9CC" stroke-width="1.1" opacity="0.7"/>
+    </pattern>
+  </defs>
+
+  <g id="building" stroke="#010206" stroke-linecap="round" stroke-linejoin="round">
+
+    <!-- Footing apron and stair. -->
+    <path d="M112 392 H400 L412 420 H100 Z" fill="#85827A" stroke-width="2"/>
+    <path d="M214 420 H298 L306 438 H206 Z" fill="#9A978D" stroke-width="1.8"/>
+    <!-- Roof platform: floor stones inside a crenellated parapet. -->
+    <path d="M120 64 H392 V206 H120 Z" fill="#7E7B73" stroke="none"/>
+    <path d="M120 64 H392 V206 H120 Z" fill="url(#stoneHatch)" stroke="none"/>
+    <path d="M132 82 H380 V192 H132 Z" fill="#9A978D" stroke-width="2"/>
+    <path d="M132 82 H380 V192 H132 Z" fill="url(#stoneHatch)" stroke="none"/>
+    <path d="M120 64 H392 V206 H120 Z" fill="none" stroke-width="2.8"/>
+    <g fill="#A8A59B" stroke-width="1.6">
+      <path d="M126 70 V56 H144 V70 Z"/>
+      <path d="M157 70 V56 H174 V70 Z"/>
+      <path d="M187 70 V56 H204 V70 Z"/>
+      <path d="M217 70 V56 H235 V70 Z"/>
+      <path d="M247 70 V56 H265 V70 Z"/>
+      <path d="M277 70 V56 H295 V70 Z"/>
+      <path d="M308 70 V56 H325 V70 Z"/>
+      <path d="M338 70 V56 H355 V70 Z"/>
+      <path d="M368 70 V56 H386 V70 Z"/>
+    </g>
+    <g fill="#A8A59B" stroke-width="1.6">
+      <path d="M126 212 V198 H144 V212 Z"/>
+      <path d="M157 212 V198 H174 V212 Z"/>
+      <path d="M187 212 V198 H204 V212 Z"/>
+      <path d="M217 212 V198 H235 V212 Z"/>
+      <path d="M247 212 V198 H265 V212 Z"/>
+      <path d="M277 212 V198 H295 V212 Z"/>
+      <path d="M308 212 V198 H325 V212 Z"/>
+      <path d="M338 212 V198 H355 V212 Z"/>
+      <path d="M368 212 V198 H386 V212 Z"/>
+    </g>
+
+    <g fill="#A8A59B" stroke-width="1.6">
+      <path d="M112 84 H124 V96 H112 Z M112 110 H124 V122 H112 Z M112 136 H124 V148 H112 Z M112 162 H124 V174 H112 Z"/>
+      <path d="M388 84 H400 V96 H388 Z M388 110 H400 V122 H388 Z M388 136 H400 V148 H388 Z M388 162 H400 V174 H388 Z"/>
+    </g>
+    <!-- Roof hatch, and the siege ballista bolted to the platform. -->
+    <path d="M150 104 H206 V150 H150 Z" fill="#745846" stroke-width="2"/>
+    <path d="M150 127 H206 M178 104 V150" fill="none" stroke-width="1.2" opacity="0.7"/>
+
+    <g transform="translate(290 138)">
+      <path d="M-44.0 -12.0 Q0 -52.0 44.0 -12.0" fill="none" stroke="#4B352B" stroke-width="6.4"/>
+      <path d="M-44.0 -12.0 L0 -6.0 L44.0 -12.0" fill="none" stroke="#2c2622" stroke-width="2.4"/>
+      <path d="M-10.0 -6.0 H10.0 V32.0 H-10.0 Z" fill="#876A56" stroke-width="3.2"/>
+      <path d="M0 -6.0 V-48.0 L-6.0 -36.0 M0 -48.0 L6.0 -36.0" fill="none" stroke-width="3.2"/>
+      <path d="M-28.0 32.0 H28.0 L20.0 44.0 H-20.0 Z" fill="#745846" stroke-width="3.2"/>
+    </g>
+
+    <path d="M232 160 L252 150 M232 150 L252 160" fill="none" stroke-width="2.4"/>
+    <!-- Tower face: three floors split by string courses. -->
+
+    <path d="M126 206 H386 L381 392 H131 Z" fill="#8E8B83" stroke="none"/>
+    <path d="M126 206 H386 L381 392 H131 Z" fill="url(#stoneHatch)" stroke="none"/>
+    <path d="M126 206 H386 L381 392 H131 Z" fill="none" stroke-width="2.2"/>
+
+    <path d="M126 268 H386 M127 330 H385" fill="none" stroke-width="3"/>
+    <path d="M126 268 H386 L384 276 H128 Z M127 330 H385 L384 338 H128 Z" fill="#6F6D68" stroke-width="1.6"/>
+    <path d="M126 206 H134 L139 392 H131 Z M378 206 H386 L381 392 H373 Z" fill="#7E7B73" stroke-width="1.8"/>
+    <path d="M178 226 H182 V252 H178 Z" fill="#1d1a18" stroke="none"/>
+    <path d="M330 226 H334 V252 H330 Z" fill="#1d1a18" stroke="none"/>
+    <path d="M178 288 H182 V314 H178 Z" fill="#1d1a18" stroke="none"/>
+    <path d="M330 288 H334 V314 H330 Z" fill="#1d1a18" stroke="none"/>
+
+    <!-- Timber hoarding balcony on the second floor. -->
+    <path d="M222 284 H290 L294 300 H218 Z" fill="#8F6F52" stroke-width="2"/>
+    <path d="M222 284 H290 L294 300 H218 Z" fill="url(#logHatch)" stroke="none"/>
+    <path d="M232 300 L240 314 M280 300 L272 314" fill="none" stroke="#4B352B" stroke-width="2.4"/>
+    <path d="M232 292 H280" fill="none" stroke-width="1.2" opacity="0.7"/>
+    <!-- Ground floor: arched door and iron-banded leaves. -->
+    <path d="M234 392 V352 Q234 336 256 336 Q278 336 278 352 V392 Z" fill="#3A322C" stroke-width="2.2"/>
+    <path d="M240 392 V354 Q240 344 256 344 Q272 344 272 354 V392 Z" fill="#745846" stroke-width="1.6"/>
+    <path d="M256 344 V392 M240 360 H272 M240 376 H272" fill="none" stroke-width="1.3" opacity="0.7"/>
+
+    <path d="M160 344 V388" fill="none" stroke="#4B352B" stroke-width="2.4"/>
+    <path d="M161 346 H182 L176 355 L182 364 H161 Z" fill="#9C3F3A" stroke-width="1.6"/>
+
+    <path d="M332 344 V388" fill="none" stroke="#4B352B" stroke-width="2.4"/>
+    <path d="M333 346 H354 L348 355 L354 364 H333 Z" fill="#4F6B65" stroke-width="1.6"/>
+
+    <!-- Torch braziers either side of the stair. -->
+    <path d="M168 400 H190 L186 418 H172 Z M322 400 H344 L340 418 H326 Z" fill="#4D4B47" stroke-width="1.7"/>
+    <path d="M179 400 C170 394 176 384 179 378 C182 386 190 390 185 398 Z M333 400 C324 394 330 384 333 378 C336 386 344 390 339 398 Z" fill="#E08A33" stroke-width="1.2"/>
+
+  </g>
+</svg>

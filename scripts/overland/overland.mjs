@@ -36,6 +36,7 @@
  */
 
 import { MODULE_ID } from "../shared/module-id.mjs";
+import { replaceModuleFlag } from "../shared/module-flags.mjs";
 import { CrawlState } from "../crawl-strip/crawl-state.mjs";
 import { authorizeActorFor, isActiveGM, queryActiveGM, refuseQuery, registerQuery } from "../shared/gm-relay.mjs";
 import { makeQueue } from "../quests/quest-core.mjs";
@@ -56,6 +57,10 @@ import {
   checkSettings, encounterChance, checkHalf, makeCampState, campLightsOut, interruptRest, walkMs, walkSlices, lapseMs, WALK_SLICE_MS,
 } from "./overland-state-core.mjs";
 import { PARTY_FLAG, extrasParties, joinExtras, placePartyToken, wearPartyHex } from "./hex-rules.mjs";
+import { Party, isNativeParty, isLegacyParty } from "../party/party.mjs";
+import { isPartyDeployed } from "../party/party-movement.mjs";
+import { prepareCampNight, finishCampNight } from "../camping/camping.mjs";
+import { ownsHexFog, revealParty } from "../hex-map/hex-fog.mjs";
 
 export const OVERLAND_SETTING = "overlandState";
 export const OVERLAND_QUERY = `${MODULE_ID}.overland`;
@@ -196,6 +201,10 @@ function chooseToken() {
  * else every player-owned character (the system light tracker's own filter).
  */
 function membersFor(actorId) {
+  const native = game.actors.get(actorId);
+  if (isNativeParty(native) || isLegacyParty(native)) {
+    return Party.members(native, { charactersOnly: true }).map((uuid) => game.actors.contents.find((a) => a.uuid === uuid)?.id).filter(Boolean);
+  }
   const partyApi = game.modules?.get("shadowdark-extras")?.api?.party;
   const party = extrasParties().find((a) => a.id === actorId);
   if (party && typeof partyApi?.members === "function") {
@@ -325,6 +334,7 @@ async function revealAroundParty() {
     if (!game.user?.isGM || !_state.tokenUuid) return;
     const token = fromUuidSync(_state.tokenUuid);
     const scene = token?.parent;
+    if (scene && ownsHexFog(scene)) { await revealParty(token, { weather: _state.weather }); return; }
     const hex = game.modules?.get("shadowdark-extras")?.api?.hex;
     if (!scene || !isHexMapScene({ scene }) || typeof hex?.revealFrom !== "function" || typeof hex.isFogEnabled !== "function") return;
     if (hex.isFogEnabled(scene.id) === true) await hex.revealFrom(scene.id, token.id);
@@ -338,7 +348,12 @@ async function revealAroundParty() {
  */
 async function rollWeatherHere(reroll) {
   const now = game.time.worldTime;
-  if (!reroll && weatherHolds(_state.weather, now)) return { rolled: false, weather: structuredClone(_state.weather) };
+  if (!reroll && weatherHolds(_state.weather, now)) {
+    // A multi-day weather roll can still hold at sunrise; native dawn visibility must update.
+    const scene = _state.tokenUuid ? fromUuidSync(_state.tokenUuid)?.parent : null;
+    if (scene && ownsHexFog(scene)) await revealAroundParty();
+    return { rolled: false, weather: structuredClone(_state.weather) };
+  }
   const rule = weatherRule();
   const advantage = weatherAdvantage(_state.weather, { rule, reroll, now });
   const roll = await new Roll(weatherFormula(advantage)).evaluate();
@@ -348,7 +363,9 @@ async function rollWeatherHere(reroll) {
     rule, roll: roll.total, advantage, stormDays: days?.total ?? null, dawnAfter: (n) => dawnAfter(cal, now, n),
   });
   await commit(setWeather(_state, weather).state);
-  void revealAroundParty();   // not awaited: the queue must not wait on Extras' reveal
+  const fogScene = _state.tokenUuid ? fromUuidSync(_state.tokenUuid)?.parent : null;
+  if (fogScene && ownsHexFog(fogScene)) await revealAroundParty();
+  else void revealAroundParty(); // preserve unadopted SDX's asynchronous reveal
   await postWeather(weather, [roll, days].filter(Boolean), reroll);
   return { rolled: true, weather: structuredClone(weather) };
 }
@@ -534,9 +551,8 @@ export async function advanceClock(seconds, { to = null, calendar = false } = {}
  * the night. A GM who isn't the active GM is forwarded there.
  * @returns {Promise<{ok:true, stopped:boolean}|{ok:false, error:string}>}
  */
-export async function resume() {
-  if (!game.user?.isGM) return { ok: false, error: t("SDE.overland.notify.dayGmOnly") };
-  const data = { action: "resume" };
+export async function resume(party = null) {
+  const data = { action: "resume", partyId: party?.id };
   return isActiveGM() ? applyAction(data, game.user) : queryActiveGM(OVERLAND_QUERY, data, { label: t("SDE.overland.relayLabel") });
 }
 
@@ -657,7 +673,8 @@ export async function askDay() {
 
 /** Is this a move of the travel token that Overland prices? Not its own sending back. */
 const isTravelMove = (doc, options) => CrawlState.isOverland && !!_state.tokenUuid
-  && doc?.uuid === _state.tokenUuid && !options?.[MODULE_ID]?.overlandRollback;
+  && doc?.uuid === _state.tokenUuid && !isPartyDeployed(doc)
+  && !options?.[MODULE_ID]?.partyFollow && !options?.[MODULE_ID]?.overlandRollback;
 
 /**
  * The steps of a move over the scene's grid: each hex entered on the map, the
@@ -760,7 +777,7 @@ function onMoveToken(doc, movement, operation) {
   const dest = movement.passed.waypoints.at(-1);
   const priced = dest && priceTravelMove(doc, movement.origin, movement.passed.waypoints);
   // Even a move within one hex goes through: it may start from an unpaid spot.
-  if (priced) recordMove(doc, movement.origin, dest, priced);
+  if (priced) recordMove(doc, movement.origin, dest, priced, movement.passed.waypoints);
 }
 
 /**
@@ -784,7 +801,7 @@ const posKey = (p) => `${Math.round(p.x)}:${Math.round(p.y)}:${p.elevation ?? 0}
  * @param {{x:number, y:number, elevation?:number}} origin  where this move started
  * @param {{x:number, y:number, elevation?:number}} dest    where it ended
  */
-export function recordMove(doc, origin, dest, priced) {
+export function recordMove(doc, origin, dest, priced, waypoints = [dest]) {
   return serialize(async () => {
     const back = _unpaid.get(posKey(origin));
     const why = back ? "dependent" : moveVerdict(_state, priced);
@@ -805,6 +822,10 @@ export function recordMove(doc, origin, dest, priced) {
     await commit(spendMove(_state, { cost: priced.cost, hex }).state);
     // The walk is on this screen: the clock keeps pace with it. Nothing to pace against when the token isn't drawn here.
     if (priced.cost > 0) await advanceTravel(game.time.worldTime + priced.cost * _state.pointSeconds, "move", doc.object ? walkMs(priced) : 0);
+    if (ownsHexFog(doc.parent)) {
+      const path = doc.parent.grid.getDirectPath([origin, ...waypoints].map(p => doc.getCenterPoint(p))).slice(1);
+      await revealParty(doc, { path, committed: true, weather: _state.weather });
+    }
     return true;
   });
 }
@@ -876,9 +897,8 @@ export async function askForage() {
  * On a camp already made it goes on from the step the camp reached.
  * @returns {Promise<{ok:true, stopped:boolean}|{ok:false, error:string}>}
  */
-export async function makeCamp() {
-  if (!game.user?.isGM) return { ok: false, error: t("SDE.overland.notify.dayGmOnly") };
-  const data = { action: "camp" };
+export async function makeCamp(party = null, acceptShortages = false) {
+  const data = { action: "camp", partyId: party?.id, acceptShortages };
   return isActiveGM() ? applyAction(data, game.user) : queryActiveGM(OVERLAND_QUERY, data, { label: t("SDE.overland.relayLabel") });
 }
 
@@ -893,11 +913,11 @@ function campEnd() {
   return Math.max(dawn, ...night);
 }
 
-/** The Shadowdark Extras party actor the travel token stands for, or null. */
+/** The native or provider party the persisted travel token stands for, or null. */
 function travelParty() {
   try {
     const actor = _state.tokenUuid ? fromUuidSync(_state.tokenUuid)?.actor : null;
-    return actor && extrasParties().some((a) => a.id === actor.id) ? actor : null;
+    return actor && (isNativeParty(actor) || extrasParties().some((a) => a.id === actor.id)) ? actor : null;
   } catch { return null; }
 }
 
@@ -938,6 +958,11 @@ function campNeeds() {
   const harsh = !!harshToday(overlandState().climate, stormy);
   return { stormy, harsh, each: harsh ? 2 : 1, members: _state.members.map((id) => game.actors.get(id)).filter(Boolean) };
 }
+/** Conditions come from the open Overland day, never a player's payload. */
+export function campContext() {
+  const { each, harsh, stormy } = campNeeds();
+  return { day: _state.day === null ? null : startOfDay(game.time.calendar, _state.day), each, harsh, stormy, pushed: _state.pushed };
+}
 
 /** Extras' camping API, when it can keep a camp's rest for the dawn and finish it there (shadowdark-extras#186), else null. */
 function extrasCampingApi() {
@@ -964,9 +989,17 @@ function extrasCamping() {
  * do is leave a ration uneaten (#282 review).
  * @returns {Promise<boolean>} false when Extras' window was closed or declined: no camp
  */
-async function pitchCamp() {
+async function pitchCamp(user, acceptShortages = false) {
   await Promise.allSettled([..._foraging]);
   const { stormy, harsh, each, members } = campNeeds();
+  const party = travelParty();
+  if (isNativeParty(party)) {
+    const prepared = await prepareCampNight(party, campContext(), user, acceptShortages);
+    if (!prepared.ready) { game.shadowdarkEnhancer.camping.open(party); return false; }
+    const state = makeCampState(_state, party.uuid, campEnd()).state;
+    state.camp = { ...state.camp, executor: "native", campId: prepared.camp.id, day: prepared.camp.day };
+    await commit(state); return true;
+  }
   const extras = extrasCamping();
   // Nothing is spent yet: a rejected save may or may not have landed, so this tab takes what the server holds.
   await commit(makeCampState(_state, extras?.party.uuid ?? null, campEnd()).state).catch((err) => { reread(); throw err; });
@@ -1005,7 +1038,10 @@ const campLine = (lines) => ChatMessage.create({ content: lines.map((l) => `<p>$
 async function finishCamp() {
   const camp = _state.camp;
   let rested = false;   // Extras finished a rest, so its CON rolls were made
-  if (camp?.party) {
+  if (camp?.executor === "native") {
+    await finishCampNight(Party.get(camp.party), camp.campId, camp.interrupted !== null);
+    rested = true;
+  } else if (camp?.party) {
     const camping = extrasCampingApi();
     let party = null;
     try { party = fromUuidSync(camp.party); } catch { /* not a document */ }
@@ -1172,7 +1208,9 @@ export function applyAction(data, user) {
         return { ok: true };
       }
       case "resume": {
-        if (!user.isGM) return { ok: false, error: t("SDE.overland.notify.dayGmOnly") };
+        const party = _state.camp?.executor === "native" ? Party.get(_state.camp.party) : null;
+        if (!user.isGM && !party?.testUserPermission(user, "OWNER")) return { ok: false, error: t("SDE.overland.notify.dayGmOnly") };
+        if (data.partyId && party?.id !== data.partyId) return { ok: false, error: t("SDE.camping.travelParty") };
         const pending = _state.pending;
         // An encounter that hit as the clock reached its target holds nothing but its panel.
         if (!pending && !_state.encounter) return { ok: false, error: t("SDE.overland.notify.nothingPending") };
@@ -1202,10 +1240,11 @@ export function applyAction(data, user) {
         const why = forageRefusal({
           travelling: CrawlState.isOverland,
           member: _state.members.includes(auth.actor.id),
-          foraged: _state.foraged.includes(auth.actor.id),
+          foraged: _state.foraged.includes(auth.actor.id) || (_state.day !== null && auth.actor.flags?.[MODULE_ID]?.overlandForageDay === startOfDay(game.time.calendar, _state.day)),
           dayOpen: _state.day !== null, pushed: _state.pushed, stormy: s.stormy, harsh: !!s.harsh,
         });
         if (why) return { ok: false, error: t(FORAGE_REFUSED[why], { name: auth.actor.name }) };
+        await replaceModuleFlag(auth.actor, "overlandForageDay", startOfDay(game.time.calendar, _state.day));
         await commit(recordForage(_state, auth.actor.id).state);
         // The attempt is recorded; the roll waits on the player, so it runs
         // outside the queue rather than holding every travel action up.
@@ -1216,14 +1255,16 @@ export function applyAction(data, user) {
         return { ok: true };
       }
       case "camp": {
-        if (!user.isGM) return { ok: false, error: t("SDE.overland.notify.dayGmOnly") };
+        const party = travelParty();
+        if (!user.isGM && !(isNativeParty(party) && party.testUserPermission(user, "OWNER"))) return { ok: false, error: t("SDE.overland.notify.dayGmOnly") };
+        if (data.partyId && party?.id !== data.partyId) return { ok: false, error: t("SDE.camping.travelParty") };
         if (!CrawlState.isOverland) return { ok: false, error: t("SDE.overland.notify.notTravelling") };
         if (_state.pending || _state.encounter) return { ok: false, error: t("SDE.overland.notify.pending") };
         // The dawn closes the day: pressed again after it, Make camp makes no second camp (#282 review).
         if (_state.day === null) return { ok: false, error: t("SDE.overland.notify.campNoDay") };
         // Each step is kept in the camp as it's done, so a camp already made (pressed again after
         // something failed, in this tab or after a reload) goes on from the next step (#282 review).
-        if (!_state.camp && !(await pitchCamp())) return { ok: false, error: t("SDE.overland.notify.campNotMade") };
+        if (!_state.camp && !(await pitchCamp(user, data.acceptShortages === true))) return isNativeParty(party) ? { ok: true, setup: true } : { ok: false, error: t("SDE.overland.notify.campNotMade") };
         if (!_state.camp.lightsOut) {
           // Q8: carried lights go out and keep their time, through the off-duty
           // move with no clock of its own (a refusal there warns, and camp goes on).
