@@ -33,12 +33,15 @@
 
 import { MODULE_ID }  from "../shared/module-id.mjs";
 import { CrawlState, isActiveGM } from "./crawl-state.mjs";
-import { hasOocRoll } from "./crawl-state-core.mjs";
+import { hasOocRoll, freeCrawlActive } from "./crawl-state-core.mjs";
 import { CrawlStrip } from "./crawl-strip.mjs";
 import { ICONS }      from "../shared/icons.mjs";
 import { segmentFeet } from "./movement-calc.mjs";
 import { shouldBlockMovement } from "./movement-lock-core.mjs";
 import { relayToGM, authorizeActorFor, refuseQuery, registerQuery } from "../shared/gm-relay.mjs";
+
+/** The "Free movement crawl" setting applies now: no budget, ruler colours or lock out of combat. */
+const freeCrawl = () => freeCrawlActive(game.settings.get(MODULE_ID, "crawlFreeMovement"), CrawlState.mode);
 
 // ── Shared speed helpers ────────────────────────────────────────────────────
 
@@ -118,7 +121,7 @@ class SDETokenRuler extends foundry.canvas.placeables.tokens.TokenRuler {
   }
 
   get _isTracked() {
-    if (!CrawlState.isActive) return false;
+    if (!CrawlState.isActive || freeCrawl()) return false;
     const doc = this.token?.document;
     if (!doc) return false;
     return CrawlState.members.includes(doc.actorId);
@@ -246,7 +249,7 @@ export const MovementTracker = {
           const inCombat = CrawlState.mode === "combat";
           // In combat we also track tokens that aren't crawl members
           // (combatants get added to the combat tracker, not the crawl roster).
-          const tracked  = isMember || inCombat;
+          const tracked  = (isMember && !freeCrawl()) || inCombat;
           if (actor && tracked) {
             const distanceFt = this._pendingDeduct[doc.id] ?? 0;
             delete this._pendingDeduct[doc.id];
@@ -448,7 +451,7 @@ export const MovementTracker = {
     // sceneId is their own scene.
     const sceneId = doc.parent?.id;
     if (shouldBlockMovement({
-      enabled: game.settings.get(MODULE_ID, "lockMovementOutOfTurn"),
+      enabled: game.settings.get(MODULE_ID, "lockMovementOutOfTurn") && !(freeCrawl() && !combat?.started),
       combatActive: !!combat?.started,
       isGM: game.user?.isGM ?? false,
       isCombatant: combat?.combatants?.some(
@@ -483,7 +486,7 @@ export const MovementTracker = {
     const enforce = inCombat
       ? game.settings.get(MODULE_ID, "combatEnforceBudget")
       : game.settings.get(MODULE_ID, "oocEnforceBudget");
-    if (!enforce) return;
+    if (!enforce || freeCrawl()) return;
 
     const stored = doc.getFlag(MODULE_ID, "moveRemaining");
     const moveRemaining = (typeof stored === "number") ? stored : _getBaseSpeed(actor, doc);

@@ -31,7 +31,7 @@
 import { MODULE_ID } from "../shared/module-id.mjs";
 import { CrawlState } from "./crawl-state.mjs";
 import { OocControls, showOocRollAll, showOocAdvance } from "./crawl-strip.mjs";
-import { oocOrderComplete } from "./crawl-state-core.mjs";
+import { oocOrderComplete, freeCrawlActive } from "./crawl-state-core.mjs";
 import {
   buildTrackerRows, showOocReset, rowRollable, trackerFooter, parseInitiativeInput,
 } from "./crawl-tracker-core.mjs";
@@ -111,8 +111,9 @@ export class CrawlTrackerTab extends HandlebarsApplicationMixin(
     });
     const rolledCount = rows.filter(r => r.initiative !== null).length;
     const holderId = state.oocTurn;
+    const free = freeCrawlActive(game.settings.get(MODULE_ID, "crawlFreeMovement"), state.mode);
     const isGM = game.user.isGM;
-    const orderActive = oocOrderComplete(state) && !!holderId;
+    const orderActive = !free && oocOrderComplete(state) && !!holderId;
     const ownsHolder = !!holderId && !!game.actors.get(holderId)?.isOwner;
 
     context.isGM = isGM;
@@ -138,7 +139,7 @@ export class CrawlTrackerTab extends HandlebarsApplicationMixin(
         // `active` is core's own current-turn class — the holder gets combat's
         // highlight rather than a lookalike.
         css: row.isHolder ? "active" : "",
-        canRoll: rowRollable({ isGM, isOwner, hasInitiative }),
+        canRoll: !free && rowRollable({ isGM, isOwner, hasInitiative }),
         // Every row, not just their own: the combat tracker gives a player the
         // pan control on every combatant, and a crawl roster is all party
         // members anyway.
@@ -148,12 +149,12 @@ export class CrawlTrackerTab extends HandlebarsApplicationMixin(
 
     context.controls = {
       rollAll: showOocRollAll({
-        isGM,
+        isGM: isGM && !free,
         memberCount: state.members.length,
         orderComplete: oocOrderComplete(state),
       }),
       advance: showOocAdvance({ isGM, oocOrderActive: orderActive, ownsHolder }),
-      reset: showOocReset({ isGM, rolledCount }),
+      reset: showOocReset({ isGM: isGM && !free, rolledCount }),
     };
     context.footer = trackerFooter({ isGM, orderActive, ownsHolder, round: state.crawlTurn });
     context.empty = rows.length === 0;

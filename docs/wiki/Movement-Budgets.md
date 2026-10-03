@@ -84,6 +84,18 @@ Configure strict movement rules under **Configure Settings → Shadowdark Enhanc
 | **Enforce out-of-combat movement budget** | Off | Refuses crawl moves exceeding budget |
 | **Enforce combat movement budget** | Off | Refuses combat moves exceeding remaining movement |
 | **Lock movement out of turn** | Off | Only the token holding the active turn may move |
+| **Free movement crawl** | Off | Dungeon crawl only: no feet, no crawl initiative, no lock; the GM ends each round |
+
+### Free movement crawl
+
+Turn this on for a dungeon where the party simply explores together. Outside
+combat the [Crawl Strip](Crawl-Strip-and-Crawl-Bar.md) becomes a roster with a
+round counter: the movement pill, the initiative dice and order arrows are
+hidden, tokens are never measured against a budget or refused, and nobody is
+locked out of turn. The GM presses **Next Round** when the round is over, and
+that still advances torches, light and the wandering-encounter check. When
+combat starts, feet, initiative and the lock apply as usual. Hex travel is not
+affected.
 
 ### How out-of-turn locking works
 

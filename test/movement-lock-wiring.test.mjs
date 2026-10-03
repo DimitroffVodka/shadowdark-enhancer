@@ -78,6 +78,7 @@ function stubGame({
   lockSetting = true,
   userId = "u1",
   combatSceneId = SCENE_A,
+  freeSetting = false,
 } = {}) {
   globalThis.game = {
     userId,
@@ -87,7 +88,7 @@ function stubGame({
       combatants: combatantTokenIds.map((tokenId) => ({ tokenId, sceneId: combatSceneId })),
       combatant: currentTokenId ? { tokenId: currentTokenId, sceneId: combatSceneId } : null,
     },
-    settings: { get: (_mod, key) => (key === "lockMovementOutOfTurn" ? lockSetting : undefined) },
+    settings: { get: (_mod, key) => ({ lockMovementOutOfTurn: lockSetting, crawlFreeMovement: freeSetting })[key] },
     i18n: { localize: (s) => s },
   };
   globalThis.ui = { notifications: { warn: () => {} } };
@@ -280,4 +281,22 @@ test("wiring OOC: a started combat takes over the lock — the OOC order goes do
   // actorB holds the OOC turn but is a NON-current combatant: combat rules
   // block, even though the OOC order would let them move.
   assert.strictEqual(preUpdateToken(tokenDoc("tok-b", { actorId: "actorB" }), { x: 200 }, {}, "u1"), false);
+});
+
+const FULL_ORDER = { members: ["actorA", "actorB"], rolls: { actorA: { roll: 10 }, actorB: { roll: 5 } }, oocTurn: "actorA" };
+
+test("wiring free crawl: a complete rolled order stops locking non-holders", () => {
+  boot();
+  stubGame({ started: false });
+  setOocState(FULL_ORDER);
+  assert.strictEqual(preUpdateToken(tokenDoc("tok-b", { actorId: "actorB" }), { x: 200 }, {}, "u1"), false, "locked without the setting");
+  stubGame({ started: false, freeSetting: true });
+  assert.strictEqual(preUpdateToken(tokenDoc("tok-b", { actorId: "actorB" }), { x: 200 }, {}, "u1"), undefined);
+});
+
+test("wiring free crawl: a started combat still locks the out-of-turn combatant", () => {
+  boot();
+  stubGame({ combatantTokenIds: ["tok-out", "tok-current"], currentTokenId: "tok-current", freeSetting: true });
+  setOocState({ ...FULL_ORDER, mode: "combat" });
+  assert.strictEqual(preUpdateToken(tokenDoc("tok-out"), { x: 200 }, {}, "u1"), false);
 });
