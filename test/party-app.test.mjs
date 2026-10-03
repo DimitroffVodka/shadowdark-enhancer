@@ -381,3 +381,36 @@ test("the Bastion tab shows only when a bastion the viewer may see is linked to 
   assert.ok(!/<button[^>]*openBastion/.test(template), "core disables every form control of a sheet the viewer cannot edit, so the player's View bastion is not a button");
   for (const marker of ["tab-bastion", 'data-action="openBastion"', "SDE.party.bastion.open", "SDE.party.bastion.view", "SDE.party.bastion.lastMonth"]) assert.ok(template.includes(marker), marker);
 });
+test("the status bar reads the party's lit light and rations, and hides what it cannot know", async () => {
+  const pc = actor("pc", "Player"), hireling = actor("npc", "NPC");
+  pc.items.contents.push(
+    { id: "t", name: "Torch", type: "Basic", system: { quantity: 1, light: { isSource: true, active: true, remainingSecs: 38 * 60, longevityMins: 60 } } },
+    { id: "r1", name: "Rations", type: "Basic", system: { quantity: 4 } });
+  hireling.items.contents.push({ id: "r2", name: "Rations", type: "Basic", system: { quantity: 9 } });
+  const p = actor("p", "NPC", { [MOD]: { party: true, partyData: { version: 1, members: [pc.uuid, hireling.uuid] } } });
+  p.items.contents.push({ id: "r3", name: "Rations", type: "Basic", system: { quantity: 6 } });
+  world([p, pc, hireling], true);
+  let context = await new PartyApp(p)._prepareContext();
+  assert.deepEqual(context.status.map(r => [r.key, r.label, r.value]), [["light", "SDE.party.status.light", "SDE.party.status.lightLeft Torch 38"], ["rations", "SDE.party.status.rations", "10"]],
+    "no travel readout without an overland module; rations are the party's and its characters', a hireling's own food is not camp food");
+  // A member this viewer cannot see may hold rations: no total rather than a partial one.
+  const hidden = actor("hidden", "Player", {}, 0);
+  p.flags[MOD].partyData.members.push(hidden.uuid);
+  world([p, pc, hireling, hidden], false);
+  p.testUserPermission = () => true;
+  context = await new PartyApp(p)._prepareContext();
+  assert.deepEqual(context.status.map(r => r.key), ["light"]);
+  // Nothing available: no bar at all.
+  const bare = actor("bare", "NPC", { [MOD]: { party: true, partyData: { version: 1, members: [] } } });
+  world([bare], true);
+  context = await new PartyApp(bare)._prepareContext();
+  assert.deepEqual(context.status, [], "an empty party has nothing to count");
+  pc.items.contents.splice(1, 1); hireling.items.contents.length = 0;
+  world([p, pc, hireling], true);
+  p.items.contents.length = 0; p.flags[MOD].partyData.members.length = 2; p.flags[MOD].partyData.members.splice(2);
+  context = await new PartyApp(p)._prepareContext();
+  assert.equal(context.status.find(r => r.key === "rations").low, true, "none left is shown, and low");
+  assert.equal(await new PartyApp(bare)._travel(), null);
+  const template = await readFile(new URL("../templates/party/party.hbs", import.meta.url), "utf8");
+  assert.ok(template.includes("{{#if status.length}}<div class=\"sdp-bar\">"));
+});

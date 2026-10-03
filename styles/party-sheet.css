@@ -1228,3 +1228,11 @@
 .sde-party .sdp-rooms i { font-size: 11px; color: #e6c25a; }
 .sde-party .sdp-btn { display: inline-flex; align-items: center; gap: 6px; align-self: flex-start; height: 30px; padding: 0 14px; border: 1px solid #333; border-radius: 4px; background: #1a1a1a; color: #e0e0e0; font-family: "Old Newspaper Font", serif; cursor: pointer; }
 .sde-party .sdp-btn:hover { border-color: #e6c25a; color: #fff; }
+
+/* ------------------------------------------------------------------ Party sheet: Today / Light / Rations bar */
+.sde-party .sdp-bar { display: flex; flex: 0 0 auto; flex-wrap: wrap; gap: 4px 28px; padding: 7px 16px; border-bottom: 1px solid #2a2a2a; background: #0c0c0c; }
+.sde-party .sdp-bar > div { display: flex; align-items: baseline; gap: 8px; min-width: 0; }
+.sde-party .sdp-bar .l { font: 700 10px/1 Signika, sans-serif; letter-spacing: .7px; text-transform: uppercase; color: #8d8d8d; }
+.sde-party .sdp-bar .l i { margin-right: 5px; font-size: 10px; }
+.sde-party .sdp-bar .v { font-size: 13px; color: #e6e6e6; }
+.sde-party .sdp-bar .low .v { color: #e0b060; }

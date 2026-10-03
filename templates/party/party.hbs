@@ -25,6 +25,7 @@
 			{{#if canEdit}}<button type="button" class="sdp-pin" data-action="placeRecall" {{#if movementDisabled}}disabled{{/if}} title="{{movementReason}}" aria-label="{{localize 'SDE.party.movement.placeRecall'}}"><i class="fas fa-location-dot"></i></button>{{/if}}
 		</div>
 	</header>
+{{#if status.length}}<div class="sdp-bar">{{#each status}}<div class="{{#if low}}low{{/if}}"><span class="l"><i class="fas {{icon}}"></i>{{label}}</span><span class="v">{{value}}</span></div>{{/each}}</div>{{/if}}
 <nav class="sdp-tabs" role="tablist">{{#each tabs}}<a class="sdp-tab {{#if active}}active{{/if}}" data-action="partyTab" data-tab="{{key}}" role="tab" aria-selected="{{#if active}}true{{else}}false{{/if}}" tabindex="0"><i class="{{icon}}"></i>{{label}}</a>{{/each}}</nav>
 <section class="SD-content-body sdp-body flex1">
 {{#if unsupported}}<p>{{localize "SDE.party.sdxNotAdopted"}}</p>{{else}}{{#if unknown}}<p>{{localize "SDE.party.unknownRoster"}}</p>{{else}}

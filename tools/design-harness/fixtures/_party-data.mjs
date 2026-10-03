@@ -29,6 +29,7 @@ export const party = (tab) => ({
     bastion: { name: "The Lantern Hold", type: "Keep", img: "/modules/shadowdark-enhancer/assets/bastion/art/keep.svg", ac: 18, hp: 82, maxHp: 100, breached: false, used: 6, slots: 10, treasury: 240, standing: true, building: "Under construction. Weeks left: 2.",
       rooms: [["Barracks", "fa-bed"], ["Blacksmith", "fa-hammer"], ["Infirmary", "fa-kit-medical"], ["Library", "fa-book"], ["Stable", "fa-horse"], ["Wizard tower", "fa-hat-wizard", true]].map(([name, icon, building]) => ({ name, icon, building: !!building, tip: building ? "Weeks left: 2" : "" })),
       lastMonth: "A quiet month (d6: 4)." },
+    status: [["today", "Today", "fa-person-walking", "Forest \u00b7 Fair \u00b7 3 of 4 hexes left"], ["light", "Light", "fa-fire", "Torch, 38 min"], ["rations", "Rations", "fa-drumstick-bite", "12"]].map(([key, label, icon, value]) => ({ key, label, icon, value })),
     description: "", descriptionHTML: "",
   },
 });

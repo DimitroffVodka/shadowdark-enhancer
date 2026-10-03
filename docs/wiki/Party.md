@@ -10,6 +10,18 @@ or `game.shadowdarkEnhancer.party.open(party)`; it also works with no canvas.
 
 One band across the top: the party's tile, name and four numbers (members, HP,
 AC, level), and on the right the [Marching order](#formation-deploy-and-follow).
+Under the header, a thin status bar shows up to three readouts, and each one is
+left out when its data is not available (with none, the bar is hidden):
+
+- **Today**: terrain, weather and hexes left, while this Party is the one
+  travelling overland with a day open ([Hex Maps](Hex-Maps.md)). Terrain
+  that is not known is omitted.
+- **Light**: the burning light source with the most time left among the Party
+  and its characters and hirelings, and its minutes. Nothing lit, nothing shown.
+- **Rations**: the "Rations" stacks (Basic items) on the Party and its
+  characters, the food camp spends. It is hidden when a member's items are
+  hidden from you, because the total would be a partial one.
+
 Under it the tabs: **Members**, **Items**, **Travel**, **Quests**, **Bastion**
 (only when the Party has a bastion) and **Description**.
 

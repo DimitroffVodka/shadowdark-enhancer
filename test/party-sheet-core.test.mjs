@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { partyTabs, resolveTab, sheetView, marchState, gemSummary, gpText, linkedBastion, lastMonthEntry, roomIcon, ROOM_ICONS, MONTH_LOG_KEYS } from "../scripts/party/party-sheet-core.mjs";
+import { partyTabs, resolveTab, sheetView, marchState, gemSummary, gpText, linkedBastion, lastMonthEntry, roomIcon, ROOM_ICONS, MONTH_LOG_KEYS, terrainLabel, lightReadout, rationsCount, statusBar } from "../scripts/party/party-sheet-core.mjs";
 
 test("the GM sees Travel; a player does not; Bastion needs a linked bastion", () => {
   assert.deepEqual(partyTabs({ isGM: true }), ["members", "items", "travel", "quests", "description"]);
@@ -105,4 +105,53 @@ test("every bastion upgrade has a room icon, and an unknown one falls back to th
   assert.deepEqual(BASTION_UPGRADES.map((u) => u.id).filter((id) => !ROOM_ICONS[id]), []);
   assert.equal(roomIcon("nonsense"), "fa-door-open");
   assert.equal(roomIcon("stable"), "fa-horse");
+});
+
+const say = { hexes: ({ left, budget }) => `${left} of ${budget} hexes left`, light: ({ name, mins }) => (mins == null ? name : `${name}, ${mins} min`), rations: (n) => String(n) };
+const torch = (mins, active = true, id = "t") => ({ id, name: "Torch", type: "Basic", system: { light: { isSource: true, active, remainingSecs: mins * 60, longevityMins: 60 } } });
+
+test("terrain reads as words, and unknown terrain is nothing", () => {
+  assert.equal(terrainLabel("forest"), "Forest");
+  assert.equal(terrainLabel("salt_flat"), "Salt flat");
+  assert.equal(terrainLabel(""), null);
+  assert.equal(terrainLabel(null), null);
+  assert.equal(terrainLabel(undefined), null);
+  assert.equal(terrainLabel("  "), null);
+});
+
+test("light: the burning source with the most time left, across the party and its members", () => {
+  assert.deepEqual(lightReadout([[torch(12)], [torch(38)], [torch(90, false)]]), { name: "Torch", mins: 38 });
+  assert.equal(lightReadout([[torch(30, false)], []]), null, "carried but not lit is not a light");
+  assert.equal(lightReadout([]), null);
+  assert.equal(lightReadout(), null);
+  const spell = { id: "s", name: "Light", type: "Effect", system: { light: { isSource: true, active: true, remainingSecs: 3600, longevityMins: 60 } } };
+  assert.deepEqual(lightReadout([[spell], [torch(5)]]), { name: "Light", mins: 60 });
+});
+
+test("rations count Basic stacks named Rations, and nothing else", () => {
+  const stack = (name, quantity, type = "Basic") => ({ name, type, system: { quantity } });
+  assert.equal(rationsCount([[stack("Rations", 5), stack("Ration", 2), stack("Rations (iron)", 9), stack("Rations", 3, "Treasure")], [stack("rations", 4)]]), 11);
+  assert.equal(rationsCount([[]]), 0);
+  assert.equal(rationsCount(), 0);
+  assert.equal(rationsCount([[{ name: "Rations", type: "Basic", system: { quantity: "x" } }]]), 0);
+});
+
+test("status bar: Today, Light and Rations each appear only with data", () => {
+  const travel = { terrain: "forest", weather: "Fair", hexesLeft: 3, budget: 4 };
+  assert.deepEqual(statusBar({ travel, light: { name: "Torch", mins: 38 }, rations: 12 }, say), [
+    { key: "today", icon: "fa-person-walking", value: "Forest \u00b7 Fair \u00b7 3 of 4 hexes left" },
+    { key: "light", icon: "fa-fire", value: "Torch, 38 min" },
+    { key: "rations", icon: "fa-drumstick-bite", value: "12", low: false },
+  ]);
+  assert.deepEqual(statusBar({}, say), [], "nothing available: no bar");
+  assert.deepEqual(statusBar({ rations: 0 }, say), [{ key: "rations", icon: "fa-drumstick-bite", value: "0", low: true }], "none left is worth showing, and low");
+  assert.deepEqual(statusBar({ light: { name: "Torch", mins: null } }, say).map((r) => r.value), ["Torch"]);
+});
+
+test("status bar: Today leaves out what it does not know and shows nothing when it knows nothing", () => {
+  const only = (travel) => statusBar({ travel }, say).map((r) => r.value);
+  assert.deepEqual(only({ terrain: null, weather: "Stormy", hexesLeft: 0, budget: 4 }), ["Stormy \u00b7 0 of 4 hexes left"]);
+  assert.deepEqual(only({ terrain: "hills", weather: null, hexesLeft: 0, budget: 0 }), ["Hills"], "no day open: no hex count");
+  assert.deepEqual(only({ terrain: null, weather: null, hexesLeft: 0, budget: 0 }), []);
+  assert.deepEqual(only(null), []);
 });

@@ -5,7 +5,7 @@ import { Party, isNativeParty, isLegacyParty } from "./party.mjs";
 import { offerParty } from "./party-create-option.mjs";
 import { scopedQuests } from "./party-core.mjs";
 import { fillFormation } from "./party-movement-core.mjs";
-import { marchState, partyTabs, resolveTab, sheetView, gemSummary, linkedBastion, lastMonthEntry, roomIcon } from "./party-sheet-core.mjs";
+import { marchState, partyTabs, resolveTab, sheetView, gemSummary, linkedBastion, lastMonthEntry, roomIcon, lightReadout, rationsCount, statusBar } from "./party-sheet-core.mjs";
 import { BASTION_TYPE } from "../bastion/bastion-art.mjs";
 import { stateOf as bastionState, stats as bastionStats, upgradeOf } from "../bastion/bastion-core.mjs";
 import { logText as bastionLogText } from "../bastion/bastion-text.mjs";
@@ -58,6 +58,13 @@ function bastionCard(actor) {
     rooms: state.upgrades.filter((u) => upgradeOf(u.id)).map((u) => ({ name: t(upgradeOf(u.id).name), icon: roomIcon(u.id), building: u.weeksLeft > 0, tip: u.weeksLeft > 0 ? game.i18n.format("SDE.bastion.weeksLeft", { weeks: u.weeksLeft }) : "" })),
     lastMonth: last ? bastionLogText(last) : "" };
 }
+const STATUS_LABELS = { today: "SDE.party.status.today", light: "SDE.party.status.light", rations: "SDE.party.status.rations" };
+/** What the status bar's numbers say. */
+const STATUS_SAY = {
+  hexes: ({ left, budget }) => game.i18n.format("SDE.overland.badgeHexes", { left, budget }),
+  light: ({ name, mins }) => (mins == null ? name : game.i18n.format("SDE.party.status.lightLeft", { name, mins })),
+  rations: (count) => String(count),
+};
 // Localized coin labels come from the system's own keys; the sheet draws literal text otherwise.
 const COIN_LABELS = { gp: "SHADOWDARK.coins.gp", sp: "SHADOWDARK.coins.sp", cp: "SHADOWDARK.coins.cp" };
 
@@ -108,6 +115,21 @@ export class PartyApp extends HandlebarsApplicationMixin(ApplicationV2) {
   _bastion() {
     const canSee = (a) => game.user?.isGM || !!a.testUserPermission?.(game.user, "OBSERVER");
     return linkedBastion(this.actor?.uuid, (game.actors?.contents ?? []).filter((a) => a.type === BASTION_TYPE && !a.pack), canSee);
+  }
+  /**
+   * Today's overland readout while THIS party is the one travelling: terrain, weather and hexes left.
+   * Imported when asked: the overland module needs the whole game, and a world with no travel has none to show.
+   */
+  async _travel() {
+    if (!game.shadowdarkEnhancer) return null;
+    try {
+      const [{ CrawlState }, overland] = await Promise.all([import("../crawl-strip/crawl-state.mjs"), import("../overland/overland.mjs")]);
+      if (!CrawlState.isOverland) return null;
+      const state = overland.overlandState();
+      if (!state.tokenUuid || globalThis.fromUuidSync?.(state.tokenUuid)?.actor?.uuid !== this.actor.uuid) return null;
+      const kind = overland.weatherNow();
+      return { terrain: state.hex?.terrain ?? null, weather: kind ? overland.weatherName(kind) : null, hexesLeft: state.hexesLeft, budget: state.budget };
+    } catch (error) { console.debug(`${MODULE_ID} | Party travel readout`, error); return null; }
   }
   _quests() { return scopedQuests(Quests.list(), this.actor.uuid, Party.members(this.actor)); }
   _activityController() {
@@ -169,6 +191,14 @@ export class PartyApp extends HandlebarsApplicationMixin(ApplicationV2) {
         questHTML = (await renderTemplate(QuestLogApp.PARTS.body.template, await app._prepareContext())).replace(/data-action="([^"]+)"/g, 'data-action="questAction" data-quest-action="$1"');
       }
       const bastion = bastionActor ? bastionCard(bastionActor) : null;
+      // Light is carried by the party, its characters and its hirelings; rations by the party and its characters.
+      // A member the viewer cannot see may hold either, so rations are shown only when there are members and every one is visible.
+      const carriers = rows.filter(r => r.actor && ["characters", "hirelings"].includes(r.group)).map(r => r.actor.items?.contents ?? []);
+      const partyItems = this.actor.items?.contents ?? [];
+      const everyoneVisible = rows.length > 0 && rows.every(r => r.actor);
+      const readouts = statusBar({ travel: await this._travel(), light: lightReadout([partyItems, ...carriers]),
+        rations: everyoneVisible ? rationsCount([partyItems, ...rows.filter(r => r.group === "characters").map(r => r.actor.items?.contents ?? [])]) : null }, STATUS_SAY)
+        .map(readout => ({ ...readout, label: t(STATUS_LABELS[readout.key]) }));
       const formation = fillFormation(data, rows), status = movementStatus(this.actor);
       const combat = inPartyCombat(globalThis.canvas?.scene), leaderActor = rows.find(r => r.uuid === data.leaderUuid)?.actor, hasLeader = !!data.leaderUuid && !!leaderActor;
       const march = marchLine(marchState({ follow: data.followLeader, hasToken: !!status.token, deployed: status.deployed, reason: status.reason, pausedMember: status.pausedMemberUuid, manager: canEdit, hasLeader }),
@@ -184,7 +214,7 @@ export class PartyApp extends HandlebarsApplicationMixin(ApplicationV2) {
         inventorySlots: { used: inventorySlots(this.actor.items.contents, coins), max: this.actor.flags?.["shadowdark-extras"]?.partyMaxSlots ?? 10 },
         partyStats: { totalHp: visible.reduce((n,m) => n + m.hp.value, 0), maxHp: visible.reduce((n,m) => n + m.hp.max, 0), avgAc: visible.length ? Math.round(visible.reduce((n,m) => n + m.ac, 0) / visible.length) : 0, avgLevel: players.length ? Math.round(players.reduce((n,m) => n + m.level, 0) / players.length) : 0 },
         needsAdoption: canEdit && !this.actor.flags?.[MODULE_ID]?.partyData,
-        slots, followLeader: data.followLeader, formationReview: formation.needsReview, march, hasLeader, bastion,
+        slots, followLeader: data.followLeader, formationReview: formation.needsReview, march, hasLeader, bastion, status: readouts,
         leaderName: leaderActor?.name ?? t("SDE.party.missing"),
         canResume: !!march.canResume,
         movementDisabled: !canEdit || !status.token || combat,
@@ -244,6 +274,13 @@ export class PartyApp extends HandlebarsApplicationMixin(ApplicationV2) {
   async _onFirstRender(context, options) {
     await super._onFirstRender(context, options);
     this._hooks = ["updateActor", "deleteActor", "createActor", "createItem", "updateItem", "deleteItem", "updateRollTable", "createCombat", "updateCombat", "deleteCombat", "canvasReady", MOVEMENT_CHANGED, QUESTS_CHANGED].map((name) => [name, Hooks.on(name, () => this._onStateChanged())]);
+    await this._hookTravel();
+  }
+  /** The status bar's Today readout follows the overland state; its change hook is named in the overland module. */
+  async _hookTravel() {
+    if (!game.shadowdarkEnhancer) return;
+    try { const { OVERLAND_CHANGED } = await import("../overland/overland.mjs"); if (this._hooks) this._hooks.push([OVERLAND_CHANGED, Hooks.on(OVERLAND_CHANGED, () => this._onStateChanged())]); }
+    catch (error) { console.debug(`${MODULE_ID} | Party travel hook`, error); }
   }
   _onStateChanged() {
     const field = globalThis.document?.activeElement;
@@ -252,7 +289,7 @@ export class PartyApp extends HandlebarsApplicationMixin(ApplicationV2) {
     this._heldFor = field;
     field.addEventListener("blur", event => { this._heldFor = null; if (!event.relatedTarget?.closest("[data-action]")) this.render(); }, { once: true });
   }
-  _onClose(options) { for (const [name, id] of this._hooks ?? []) Hooks.off(name, id); return super._onClose(options); }
+  _onClose(options) { for (const [name, id] of this._hooks ?? []) Hooks.off(name, id); this._hooks = null; return super._onClose(options); }
 }
 
 // The SDX inventory slot calculation, independent of its runtime module.
@@ -278,10 +315,11 @@ export class PartySheet extends HandlebarsApplicationMixin(foundry.applications.
   async _onFirstRender(context, options) {
     await super._onFirstRender(context, options);
     this._hooks = ["updateActor", "deleteActor", "createItem", "updateItem", "deleteItem", "updateRollTable", "createCombat", "updateCombat", "deleteCombat", "canvasReady", MOVEMENT_CHANGED, QUESTS_CHANGED].map(name => [name, Hooks.on(name, () => this._onStateChanged())]);
+    await this._hookTravel();
   }
-  _onClose(options) { for (const [name, id] of this._hooks ?? []) Hooks.off(name, id); return super._onClose(options); }
+  _onClose(options) { for (const [name, id] of this._hooks ?? []) Hooks.off(name, id); this._hooks = null; return super._onClose(options); }
 }
-for (const name of ["_prepareContext", "_change", "_quests", "_bastion", "_bindControls", "_activityController", "_questController", "_onStateChanged"]) PartySheet.prototype[name] = PartyApp.prototype[name];
+for (const name of ["_prepareContext", "_change", "_quests", "_bastion", "_travel", "_hookTravel", "_bindControls", "_activityController", "_questController", "_onStateChanged"]) PartySheet.prototype[name] = PartyApp.prototype[name];
 
 /** Only native/adopted flagged Parties route here; ordinary NPC sheets stay intact. */
 export function registerParty() {

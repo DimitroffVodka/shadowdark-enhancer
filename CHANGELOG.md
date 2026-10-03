@@ -13,6 +13,10 @@
   the red wave over the portrait, AC / LV / SLOTS / XP chips and the six ability modifiers on one
   small line. Hirelings and mounts omit the character-only chips, as before. Camp and Carouse are no
   longer repeated on the Members tab; they stay under Travel.
+- **The Party sheet has a status bar** under its header: **Today** (terrain, weather and hexes left while
+  this party is the one travelling overland), **Light** (the burning source with the most time left and its
+  minutes) and **Rations** (the party's and its characters' stacks). A readout with no data is left out, and
+  the whole bar when there is none.
 - **The Party sheet has a Bastion tab**, so players can look at their bastion: its name, type and art,
   AC, HP, rooms used out of slots, treasury, a chip per room and last month's result. One button opens
   the bastion sheet (**Open bastion** for a GM, **View bastion** for players, read-only for anyone but

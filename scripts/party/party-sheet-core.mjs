@@ -1,3 +1,5 @@
+import { computeLightState } from "../crawl-strip/crawl-lights-core.mjs";
+
 /**
  * Party sheet: the decisions the sheet makes that need no Foundry (who sees what, the
  * tab row, what the Marching order line says). No Foundry globals, so Node tests it
@@ -100,3 +102,51 @@ export const ROOM_ICONS = {
   "trading-post": "fa-store", "trophy-room": "fa-trophy", vault: "fa-vault", "wizard-tower": "fa-hat-wizard",
 };
 export const roomIcon = (id) => ROOM_ICONS[id] ?? "fa-door-open";
+
+// ---------------------------------------------------------------- Status bar: Today, Light, Rations
+
+/** A terrain id ("salt_flat") as words ("Salt flat"), or null when there is none to show. */
+export function terrainLabel(terrain) {
+  const words = typeof terrain === "string" ? terrain.replace(/_/g, " ").trim() : "";
+  return words ? words[0].toUpperCase() + words.slice(1) : null;
+}
+
+/**
+ * The lit light source the party has, or null: across these item lists (the party's and each
+ * member's) the burning source with the most time left. The Party token mirrors the strongest
+ * member light; what the table needs to know is how long the party is still lit.
+ * @param {Array<Array<object>>} itemLists
+ * @returns {{ name: string, mins: number|null }|null}
+ */
+export function lightReadout(itemLists = []) {
+  const lit = (itemLists ?? []).map((items) => computeLightState(items)).filter((state) => state.state === "lit");
+  if (!lit.length) return null;
+  const best = lit.reduce((a, b) => ((b.remainingMins ?? -1) > (a.remainingMins ?? -1) ? b : a));
+  return { name: best.activeName, mins: Number.isFinite(best.remainingMins) ? best.remainingMins : null };
+}
+
+/** The Party's rations: the stacks named "Rations" among these item lists, as camp food counts them (Basic items). */
+export function rationsCount(itemLists = []) {
+  return (itemLists ?? []).flat().filter((item) => item?.type === "Basic" && /^rations?$/i.test(item.name ?? ""))
+    .reduce((sum, item) => sum + Math.max(0, Number(item.system?.quantity) || 0), 0);
+}
+
+/**
+ * The thin bar under the header. A readout whose data is unavailable is left out; with none,
+ * the bar is [] and the sheet hides it.
+ *   travel   {terrain, weather, hexesLeft, budget} while this party is the one travelling overland, else null
+ *   light    lightReadout()'s answer, or null
+ *   rations  a count, or null when it cannot be known (a member's items are hidden from this viewer)
+ * `say` turns the numbers into words: { hexes({left, budget}), light({name, mins}), rations(n) }.
+ * @returns {Array<{ key: "today"|"light"|"rations", icon: string, value: string, low?: boolean }>}
+ */
+export function statusBar({ travel = null, light = null, rations = null } = {}, say) {
+  const bar = [];
+  if (travel) {
+    const parts = [terrainLabel(travel.terrain), travel.weather || null, Number(travel.budget) > 0 ? say.hexes({ left: travel.hexesLeft, budget: travel.budget }) : null].filter(Boolean);
+    if (parts.length) bar.push({ key: "today", icon: "fa-person-walking", value: parts.join(" \u00b7 ") });
+  }
+  if (light?.name) bar.push({ key: "light", icon: "fa-fire", value: say.light(light) });
+  if (Number.isFinite(rations)) bar.push({ key: "rations", icon: "fa-drumstick-bite", value: say.rations(rations), low: rations <= 0 });
+  return bar;
+}
