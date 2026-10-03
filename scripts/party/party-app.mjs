@@ -145,7 +145,7 @@ export class PartyApp extends HandlebarsApplicationMixin(ApplicationV2) {
         inventorySlots: { used: inventorySlots(this.actor.items.contents, coins), max: this.actor.flags?.["shadowdark-extras"]?.partyMaxSlots ?? 10 },
         partyStats: { totalHp: visible.reduce((n,m) => n + m.hp.value, 0), maxHp: visible.reduce((n,m) => n + m.hp.max, 0), avgAc: visible.length ? Math.round(visible.reduce((n,m) => n + m.ac, 0) / visible.length) : 0, avgLevel: players.length ? Math.round(players.reduce((n,m) => n + m.level, 0) / players.length) : 0 },
         needsAdoption: canEdit && !this.actor.flags?.[MODULE_ID]?.partyData,
-        slots, followLeader: data.followLeader, includeMounts: data.includeMounts, formationReview: formation.needsReview,
+        slots, followLeader: data.followLeader, formationReview: formation.needsReview,
         leaderName: rows.find(r => r.uuid === data.leaderUuid)?.actor?.name ?? t("SDE.party.missing"),
         hasLeader: !!data.leaderUuid && !!rows.find(r => r.uuid === data.leaderUuid)?.actor,
         followStatus: status.pausedMemberUuid && ["blocked", "missing"].includes(status.reason)
@@ -183,7 +183,7 @@ export class PartyApp extends HandlebarsApplicationMixin(ApplicationV2) {
       try { const data = JSON.parse(event.dataTransfer.getData("text/plain")); if (data.type === "Actor" && data.uuid) void this._change(() => Party.add(this.actor, data.uuid)); } catch { /* Ignore non-document drags. */ }
     });
     this.element.querySelector("[data-party-choice]")?.addEventListener("change", (event) => { this.actor = Party.get(event.target.value); Party.select(this.actor); this.render(); });
-    for (const key of ["followLeader", "includeMounts"]) this.element.querySelector(`[data-movement-setting="${key}"]`)?.addEventListener("change", event => this._change(() => configureMovement(this.actor, { [key]: event.target.checked })));
+    this.element.querySelector('[data-movement-setting="followLeader"]')?.addEventListener("change", event => this._change(() => configureMovement(this.actor, { followLeader: event.target.checked })));
     for (const slot of this.element.querySelectorAll("[data-formation-slot]")) {
       slot.addEventListener("dragstart", event => { if (!Party.canManage(this.actor) || !slot.dataset.uuid) return event.preventDefault(); event.dataTransfer.setData("text/plain", slot.dataset.uuid); });
       slot.addEventListener("dragover", event => { if (Party.canManage(this.actor)) event.preventDefault(); });

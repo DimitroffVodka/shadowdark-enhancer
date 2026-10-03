@@ -27,7 +27,6 @@ export function deploymentOrder(data, rows) {
   const out = [...slots].sort((a, b) => a.row - b.row || a.col - b.col);
   const assigned = new Set(out.map(s => s.memberUuid));
   const overflow = members.filter(r => !assigned.has(r.uuid));
-  if (data.includeMounts) overflow.push(...rows.filter(r => r.group === "mounts"));
   overflow.forEach((r, n) => out.push({ memberUuid: r.uuid, col: n % 3 - 1, row: 2 + Math.floor(n / 3) }));
   return out;
 }

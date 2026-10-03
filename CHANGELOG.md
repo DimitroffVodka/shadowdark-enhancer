@@ -1,6 +1,13 @@
 # Changelog
 
 ## [Unreleased]
+### Changed
+- **The Party sheet's "Include mounts" option is gone.** Mounts never take a slot in the marching
+  formation and never follow the leader: nobody takes a mount into a dungeon. They stay on the
+  roster under Mounts and still eat at camp. A party saved with the old option still loads; the
+  option is ignored and drops out of the saved party the next time it is written. A mount that an
+  earlier "Include mounts" had already placed on a scene is still recalled by Place / Recall.
+
 ### Fixed
 - `game.shadowdarkEnhancer.party.open()` on a native Party no longer throws `can't access property "style"`: it waits for the window to render before bringing it to front, and now returns a promise that resolves to the window.
 - Create Actor lists one Party, not two: with Shadowdark Extras also active, its separate "Party" entry is dropped and the Enhancer's stays (Extras on its own still shows its own). Existing Extras parties still open in the Enhancer's sheet.

@@ -19,7 +19,7 @@ export const party = (tab) => ({
   title: "Party", icon: "fa-solid fa-users", classes: ["shadowdark", "sheet", "party", "sde-party"], resizable: true, width: 750, height: 650, template: "templates/party/party.hbs",
   context: {
     picker: false, isGM: true, hasParty: true, actor: { name: "The Lantern Guild", img: svg("#6a4a2a", "L") }, canEdit: true, memberCount: 7,
-    partyStats: { totalHp: 60, maxHp: 69, avgAc: 12, avgLevel: 2 }, slots, hasLeader: true, leaderName: "Creeg Greythorn", followLeader: true, includeMounts: false, followStatus: "Marching", canResume: false, movementDisabled: false, movementReason: "",
+    partyStats: { totalHp: 60, maxHp: 69, avgAc: 12, avgLevel: 2 }, slots, hasLeader: true, leaderName: "Creeg Greythorn", followLeader: true, followStatus: "Marching", canResume: false, movementDisabled: false, movementReason: "",
     tabs: [["members", "Members", "fa-solid fa-users"], ["items", "Items", "fa-solid fa-box"], ["travel", "Travel", "fa-solid fa-route"], ["quests", "Quests", "fa-solid fa-scroll"], ["description", "Description", "fa-solid fa-book"]].map(([key, label, icon]) => ({ key, label, icon, active: key === tab })),
     membersTab: tab === "members", itemsTab: tab === "items", travelTab: tab === "travel", questsTab: tab === "quests", descriptionTab: tab === "description",
     members, groups: [["characters", "Characters"], ["hirelings", "Hirelings"], ["mounts", "Mounts"], ["missing", "Missing"]].map(([k, label]) => ({ label, rows: members.filter((m) => m.group === k) })),

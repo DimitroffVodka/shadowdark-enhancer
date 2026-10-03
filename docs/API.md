@@ -706,7 +706,8 @@ Party, and adding a character requires character ownership. Removing never
 deletes an actor, token, item or history.
 
 `party.configureMovement(ref, changes)` persists the owner's `leaderUuid`,
-`followLeader`, `includeMounts` and fixed `formation.slots` in `partyData`.
+`followLeader` and fixed `formation.slots` in `partyData`. Mounts never take a
+formation slot or follow the leader; a saved `includeMounts` is ignored.
 `party.movement(ref, action)` accepts `deploy`, `gather`, `toggle` or `resume`;
 owners automatically use the authenticated active-GM relay for scene-token writes.
 Actions refuse combat and a mismatched authority scene rather than testing the
@@ -1244,7 +1245,7 @@ modifiers (`10 + 2 * modifier`); users may edit them on the mount sheet. Native
 checks and mount helpers use `floor((effectiveScore - 10) / 2)` without PC caps.
 Damage never modifies the stored NPC modifier or the base score; death is at
 full CON zero. `of`/`heal` read/update the mount damage flag, not PC effects.
-Daily camp nutrition includes listed mounts even with Include mounts off,
+Daily camp nutrition includes listed mounts,
 uses their own food then only explicitly approved per-mount Party shortfall,
 and saves once-per-Actor/day food and damage progress. Mounts take no camp task.
 

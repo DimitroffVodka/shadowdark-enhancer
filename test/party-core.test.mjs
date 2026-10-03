@@ -8,6 +8,13 @@ test("roster is explicit, deduplicated and preserves missing/compendium UUIDs", 
   assert.equal(data.version, 1);
   assert.deepEqual(normalizeParty().members, []);
 });
+test("a party saved with includeMounts still loads; the option is ignored and never written back", () => {
+  const old = normalizeParty({ version: 1, members: ["Actor.a"], leaderUuid: "Actor.a", includeMounts: true, followLeader: false });
+  assert.deepEqual(old.members, ["Actor.a"]);
+  assert.equal(old.followLeader, false);
+  assert.equal("includeMounts" in old, false);
+  assert.equal("includeMounts" in normalizeParty(), false);
+});
 test("removing leader selects next member and removes only its slot", () => {
   const original = normalizeParty({ members: ["Actor.a", "Actor.b"], leaderUuid: "Actor.a", formation: { slots: [{ memberUuid: "Actor.a", col: 0, row: 0 }, { memberUuid: "Actor.b", col: 1, row: 1 }] } });
   const next = removeMember(original, "Actor.a");

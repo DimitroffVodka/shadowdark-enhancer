@@ -10,7 +10,7 @@ or `game.shadowdarkEnhancer.party.open(party)`; it also works with no canvas.
 
 Create a native Party (an NPC with Enhancer's boolean Party flag), then add
 Characters, Hirelings and Mounts by UUID. A Party OWNER manages its roster,
-leader, formation, follow and include-mounts choices. Adding a new character
+leader, formation and follow choices. Adding a new character
 requires OWNER on that character. Party ownership does not authorize spending
 another PC's coins or selecting their camping/carousing result.
 
@@ -51,9 +51,11 @@ travels on a hex map, and the one Deploy, Recall and the HUD act on.
 ## Formation, deploy and follow
 
 The fixed 3×3 header widget remembers nine slots. Click a portrait to choose the
-leader; drag it to another slot. Overflow members follow behind the grid, then
-included mounts. **Follow leader** selects Marching Mode versus Free Movement;
-mount inclusion affects deployment, not roster membership or daily food.
+leader; drag it to another slot. Overflow members follow behind the grid.
+**Follow leader** selects Marching Mode versus Free Movement. Mounts never take
+a slot or follow the leader (nobody takes a mount into a dungeon); they stay on
+the roster under Mounts and still eat at camp. An older world's saved
+include-mounts choice is ignored.
 
 **Place/Recall** and the Party token's **Import/Export Members** HUD entry call
 the same service. Export releases linked member tokens around the Party; Import

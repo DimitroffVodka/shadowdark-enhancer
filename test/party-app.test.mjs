@@ -32,6 +32,15 @@ test("owner writes roster through safe replacement without touching second party
   assert.equal(second.writes.length + pc.writes.length + other.writes.length, 0);
   assert.equal(p.flags[MOD].party, true);
 });
+test("a world whose party still stores includeMounts opens and reads back without it", async () => {
+  const p = actor("p", "NPC", { [MOD]: { party: true, partyData: { version: 1, members: ["Actor.pc"], leaderUuid: "Actor.pc", includeMounts: true } } });
+  world([p, actor("pc", "Player")], true);
+  assert.deepEqual(Party.data(p).members, ["Actor.pc"]);
+  assert.equal("includeMounts" in Party.data(p), false);
+  const context = await new PartyApp(p)._prepareContext();
+  assert.equal(context.unknown, undefined);
+  assert.equal(context.includeMounts, undefined);
+});
 test("legacy adoption reads saved SDX flags while getFlag rejects inactive scopes", async () => {
   const p = actor("p", "NPC", { [MOD]: { party: true }, "shadowdark-extras": { members: ["pc"] } });
   p.getFlag = () => { throw new Error("inactive scope"); };
