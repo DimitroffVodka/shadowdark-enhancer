@@ -1,28 +1,35 @@
 <div class="sde-hxb">
-  <div class="form-group">
-    <label>{{localize "SDE.hexMap.brush.terrain"}}</label>
-    <div class="form-fields">
-      <select data-hxb data-hxb-terrain>
-        <option value="">{{localize "SDE.hexMap.label.none"}}</option>
-        {{#each terrainOptions as |o|}}<option value="{{o.value}}" {{#if o.selected}}selected{{/if}}>{{o.label}}</option>{{/each}}
-        <option value="{{other}}">{{localize "SDE.hexMap.label.otherOption"}}</option>
-      </select>
+  <p class="sde-hxb-how">{{localize "SDE.hexMap.brush.howTo"}}</p>
+
+  <section class="sde-hxb-now">
+    <button type="button" class="step" data-action="hxbStep" data-step="-1" aria-label="{{localize 'SDE.hexMap.brush.prev'}}"><i class="fas fa-chevron-left"></i></button>
+    <div class="big">
+      <div class="hex" data-hxb-big-hex>{{#if current.img}}<img src="{{current.img}}" alt="">{{else}}<span class="ico" style="--c:{{current.color}}"><i class="fas {{current.icon}}"></i></span>{{/if}}</div>
+      <strong data-hxb-big-name>{{current.label}}</strong>
     </div>
-  </div>
-  <div class="form-group">
-    <div class="form-fields">
-      <input type="text" data-hxb data-hxb-other placeholder="{{localize 'SDE.hexMap.brush.ownWord'}}" aria-label="{{localize 'SDE.hexMap.label.otherTerrainAria'}}" hidden>
-    </div>
-  </div>
-  <div class="form-group">
-    <label>{{localize "SDE.hexMap.brush.onTheHex"}}</label>
-    <div class="form-fields sde-hxb-features">
-      {{#each features as |o|}}
-      <label><input type="checkbox" data-hxb data-hxb-feature value="{{o.value}}" {{#if o.checked}}checked{{/if}}> {{o.label}}</label>
+    <button type="button" class="step" data-action="hxbStep" data-step="1" aria-label="{{localize 'SDE.hexMap.brush.next'}}"><i class="fas fa-chevron-right"></i></button>
+  </section>
+
+  <section>
+    <h4>{{localize "SDE.hexMap.brush.onThisMap"}}</h4>
+    <div class="sde-hxb-strip" role="radiogroup" aria-label="{{localize 'SDE.hexMap.brush.terrain'}}" data-hxb-strip>
+      {{#each tiles as |o|}}
+      <button type="button" class="t{{#if o.selected}} on{{/if}}" role="radio" aria-checked="{{o.selected}}" tabindex="{{o.tab}}" data-hxb-tile="{{o.value}}" title="{{o.label}}">
+        <span class="hex">{{#if o.img}}<img src="{{o.img}}" alt="">{{else}}<span class="ico" style="--c:{{o.color}}"><i class="fas {{o.icon}}"></i></span>{{/if}}</span>
+        <span class="n">{{o.label}}</span>
+      </button>
       {{/each}}
     </div>
-  </div>
-  <p class="sde-hxb-hint" data-hxb-hint></p>
+    <input type="text" class="sde-hxb-other" data-hxb data-hxb-other value="{{otherWord}}" placeholder="{{localize 'SDE.hexMap.brush.ownWord'}}" aria-label="{{localize 'SDE.hexMap.label.otherTerrainAria'}}"{{#unless otherSelected}} hidden{{/unless}}>
+  </section>
+
+  <section>
+    <h4>{{localize "SDE.hexMap.brush.onTheHex"}}</h4>
+    <div class="sde-hxb-feats">
+      {{#each features as |o|}}<label class="f"><input type="checkbox" data-hxb data-hxb-feature value="{{o.value}}" {{#if o.checked}}checked{{/if}}><i class="fas {{o.icon}}"></i>{{o.label}}</label>{{/each}}
+    </div>
+  </section>
+
   <footer class="sde-hxb-foot">
     <button type="button" data-action="hxbUndo" class="sde-import-secondary"><i class="fas fa-rotate-left"></i> {{localize "SDE.hexMap.btn.undoStroke"}}<span data-hxb-undo-count></span></button>
   </footer>

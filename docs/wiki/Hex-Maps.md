@@ -388,8 +388,8 @@ you cannot judge.
 choices in every dropdown come from one printed list written for the Western
 Reaches (arctic sea, volcano, lava, jungle...), which a hand-drawn map with a
 forest, a lake and a river does not need. Tick the terrains this map has and
-the legend, the review sheets and the brush offer only those, plus the
-settlement sizes and *keyed location*. A terrain that is not on the list
+the legend and the review sheets offer only those, plus the settlement sizes
+and *keyed location*; the brush offers only the ticked terrains. A terrain that is not on the list
 (hills, marsh) goes in through the box below as a word of your own. Nothing is
 ticked to begin with, which means every terrain is offered; a hex already
 tagged with a terrain you then untick stays selectable as an *other…* word,
@@ -576,6 +576,16 @@ time is the wrong shape for that. **Brush** in the tagger's header (or
 `game.shadowdarkEnhancer.hexMaps.brush()`) opens a small window: pick the
 terrain once, tick river, path or coast if the hexes have them, then click or
 drag across the wrong hexes on the map. They take what the brush says.
+
+The window shows the terrain you are painting as a big picture, with previous
+and next buttons, and below it one tile per terrain in **Terrains on this map**
+(*other…* takes any word of your own). Each tile is a picture of one of that
+map's own hexes, cut from the map on your computer when the tagger has read it
+(a hex you tagged yourself is preferred), so what you pick is what is printed
+on the map you are tagging. The pictures are kept in memory only and are never
+saved. Until the tagger has read the map, or for a terrain with no tagged hex
+yet, the tile is a coloured circle with an icon in the colour the overlay paints
+that terrain. Tab goes to the tiles and the arrow keys and Space pick one.
 
 The brush needs a numbered map and nothing else: it is there from the first
 moment, before a single hex is tagged. On a map the classifier reads badly (a
