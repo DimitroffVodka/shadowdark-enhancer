@@ -2,6 +2,7 @@
 
 ## [Unreleased]
 ### Fixed
+- `game.shadowdarkEnhancer.party.open()` on a native Party no longer throws `can't access property "style"`: it waits for the window to render before bringing it to front, and now returns a promise that resolves to the window.
 - Create Actor lists one Party, not two: with Shadowdark Extras also active, its separate "Party" entry is dropped and the Enhancer's stays (Extras on its own still shows its own). Existing Extras parties still open in the Enhancer's sheet.
 - Make Party Travel actionable in-sheet: camping/carousing choices and results no longer open separate activity windows. Embed Party-scoped quest management and payout confirmation, and edit descriptions inline. Disable Place/Recall without a linked Party token and show Resume only for a deployed group; keep camp rules collapsible and saved results above task setup. Label unavailable carousing tiers and disable commitment until usable tables are selected.
 - Restore the existing ApplicationV2 Party-sheet layout, detailed portrait/stat/ability/effect cards and five tabs instead of the stripped-down replacement. Native flagged Party actors open their Party sheet normally; Create Actor offers Party while preserving the existing flagged-NPC representation. Remove the all-world actor dropdown; members are added explicitly by drag-and-drop.

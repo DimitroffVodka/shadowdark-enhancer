@@ -64,17 +64,18 @@ export class PartyApp extends HandlebarsApplicationMixin(ApplicationV2) {
   tab = "members";
   activity = "camping";
   constructor(actor = null, options = {}) { super(options); this.actor = actor; }
-  static open(ref = null, activity = null) {
+  // Resolves once the window exists: render() is async and bringToFront() needs the element.
+  static async open(ref = null, activity = null) {
     const actor = ref ? Party.get(ref) : Party.selected();
     if (actor && !Party.list().includes(actor)) return null;
     if (actor) Party.select(actor);
-    if (isNativeParty(actor) && actor.sheet instanceof PartySheet) { const app = actor.sheet; if (activity) { app.activity = activity; app.tab = "travel"; } app.render(true); app.bringToFront(); return app; }
+    if (isNativeParty(actor) && actor.sheet instanceof PartySheet) { const app = actor.sheet; if (activity) { app.activity = activity; app.tab = "travel"; } await app.render(true); app.bringToFront(); return app; }
     // The picker and Create retarget this window; its identity must not retain
     // the first Party's id. Explicit actor/token opens always retarget it too.
     const id = "sde-party";
     const existing = foundry.applications.instances?.get(id);
-    if (existing) { existing.actor = actor; if (activity) { existing.activity = activity; existing.tab = "travel"; } existing.render(true); existing.bringToFront(); return existing; }
-    const app = new PartyApp(actor, { id }); if (activity) { app.activity = activity; app.tab = "travel"; } app.render(true); return app;
+    if (existing) { existing.actor = actor; if (activity) { existing.activity = activity; existing.tab = "travel"; } await existing.render(true); existing.bringToFront(); return existing; }
+    const app = new PartyApp(actor, { id }); if (activity) { app.activity = activity; app.tab = "travel"; } await app.render(true); return app;
   }
   _quests() { return scopedQuests(Quests.list(), this.actor.uuid, Party.members(this.actor)); }
   _activityController() {
