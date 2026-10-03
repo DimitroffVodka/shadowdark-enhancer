@@ -40,7 +40,7 @@ with the core system data model.
 
 ### Full scores and camping food
 
-Mounts have editable full STR/DEX/CON/INT/WIS/CHA scores, initialized once from
+Mounts have full STR/DEX/CON/INT/WIS/CHA scores, shown in a Stats box like a character's (the pencil edits them), initialized once from
 printed NPC modifiers as `10 + 2 × modifier`. Effective checks use full score
 minus separate ability damage; repeated checks do not subtract it again.
 Ordinary NPCs and warbands keep their models. Existing mounts adopt in place.

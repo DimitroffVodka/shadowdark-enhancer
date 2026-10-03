@@ -7,7 +7,7 @@
  */
 
 import { MODULE_ID } from "../shared/module-id.mjs";
-import { VehicleSheet } from "./vehicle-sheet.mjs";
+import { VehicleSheet, injectActorHeaderButtons } from "./vehicle-sheet.mjs";
 
 export class BoatSheet extends VehicleSheet {
   static DEFAULT_OPTIONS = {
@@ -36,40 +36,6 @@ export class BoatSheet extends VehicleSheet {
   get occupantLabel() { return "SDE.boat.passengersCrew"; }
 
   /**
-   * Surface the actor header buttons (Prototype Token, Configure Sheet) inline in
-   * the window header, like the system's ApplicationV1 sheets show. ApplicationV2
-   * otherwise tucks these into the ⋮ dropdown; we render them as extra
-   * `.header-control` buttons wired to the same `data-action`s the dropdown uses
-   * (the AppV2 action delegation handles the click), so a Boat reads as the real
-   * actor it is. Idempotent — guarded against re-injection on re-render.
-   */
-  _injectActorHeaderButtons() {
-    const header = this.element?.querySelector(".window-header");
-    if (!header || header.querySelector(".sde-veh-hdrbtn")) return;
-    const anchor = header.querySelector("[data-action='toggleControls']")
-      ?? header.querySelector("[data-action='close']");
-    const make = (action, icon, label) => {
-      const b = document.createElement("button");
-      b.type = "button";
-      b.className = "header-control sde-veh-hdrbtn";
-      b.dataset.action = action;
-      const i = document.createElement("i");
-      i.className = `fa-solid ${icon}`;
-      const span = document.createElement("span");
-      span.textContent = label;
-      b.append(i, span);
-      b.setAttribute("aria-label", label);
-      return b;
-    };
-    // Labelled (icon + text) like the system's ApplicationV1 sheet header, in the
-    // same left-to-right order the Mount shows.
-    for (const b of [
-      make("configureSheet", "fa-gear", game.i18n.localize("SDE.boat.header.sheet")),
-      make("configurePrototypeToken", "fa-circle-user", game.i18n.localize("SDE.boat.header.prototypeToken")),
-    ]) header.insertBefore(b, anchor);
-  }
-
-  /**
    * Title the window with just the vessel's name — like a real Shadowdark actor
    * sheet ("Sea Wanderer"), not AppV2's default "Boat: Sea Wanderer" type-prefix.
    */
@@ -89,7 +55,7 @@ export class BoatSheet extends VehicleSheet {
 
   _onRender(context, options) {
     super._onRender?.(context, options);
-    this._injectActorHeaderButtons();
+    injectActorHeaderButtons(this.element);
   }
 
   // ── Sinking countdown helpers ────────────────────────────────────────────

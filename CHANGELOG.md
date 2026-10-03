@@ -41,6 +41,14 @@
   earlier "Include mounts" had already placed on a scene is still recalled by Place / Recall.
 
 ### Fixed
+- **The mount sheet is an ApplicationV2 sheet, laid out like the native NPC sheet.** It no longer borrows the
+  system's old NPC sheet. It keeps the system's NPC header, and Abilities has HP, AC and Level, a **Stats** box
+  in place of Modifiers, Movement, Alignment and Dark-Adapted down the left, beside the Attacks, Special
+  Attacks and Features boxes. Stats is the Player sheet's box: STR/INT, DEX/WIS, CON/CHA, each score with its
+  modifier, a pencil to edit the base scores, a click on the name to roll the check, and a damaged score in
+  red. The "Full ability scores" box with its paragraph of explanation, and the stats box that showed on every
+  tab, are gone. The Mount tab keeps its rules in two columns with Level Up, Push Check and Morale Check on
+  top. Scores, damage, riders and mount rules are stored exactly as before.
 - `game.shadowdarkEnhancer.party.open()` on a native Party no longer throws `can't access property "style"`: it waits for the window to render before bringing it to front, and now returns a promise that resolves to the window.
 - Create Actor lists one Party, not two: with Shadowdark Extras also active, its separate "Party" entry is dropped and the Enhancer's stays (Extras on its own still shows its own). Existing Extras parties still open in the Enhancer's sheet.
 - Make Party Travel actionable in-sheet: camping/carousing choices and results no longer open separate activity windows. Embed Party-scoped quest management and payout confirmation, and edit descriptions inline. Disable Place/Recall without a linked Party token and show Resume only for a deployed group; keep camp rules collapsible and saved results above task setup. Label unavailable carousing tiers and disable commitment until usable tables are selected.

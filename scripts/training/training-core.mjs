@@ -268,7 +268,7 @@ export const TRAINERS = [
     table: "Kyzian Riding Training Benefits",
     // Every row here targets a mount or a riding state, neither of which the
     // granted Talent can see. Mount demeanor lives on the mount actor's own
-    // sheet (actors/mount-npc-sheet.mjs); "while riding" needs a toggle.
+    // sheet (actors/mount-sheet.mjs); "while riding" needs a toggle.
     benefits: [
       { roll: 1, label: "Mount demeanor up one step", todo: "Step the demeanor on the mount's own sheet." },
       { roll: 2, label: "+1 AC while riding", todo: "Conditional on riding; enable the effect while mounted." },
