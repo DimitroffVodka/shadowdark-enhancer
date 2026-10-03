@@ -13,6 +13,11 @@
   the red wave over the portrait, AC / LV / SLOTS / XP chips and the six ability modifiers on one
   small line. Hirelings and mounts omit the character-only chips, as before. Camp and Carouse are no
   longer repeated on the Members tab; they stay under Travel.
+- **A party has an emblem.** The tile at the left of the Party sheet's header is a game-icons.net icon on
+  a colour. A GM clicks it to pick from 24 icons and 8 colours, applied live and saved on the Party actor
+  (a new `partyEmblem` flag); a party that has chosen nothing wears the lantern in amber. The 24 icons
+  ship inside the module (credited in CREDITS.md), so the picker works without the Game-icons.net module.
+  The party portrait is no longer shown on the sheet; the Party token's art on a map is unchanged.
 - **The Party sheet has a status bar** under its header: **Today** (terrain, weather and hexes left while
   this party is the one travelling overland), **Light** (the burning source with the most time left and its
   minutes) and **Rations** (the party's and its characters' stacks). A readout with no data is left out, and

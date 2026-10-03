@@ -613,6 +613,7 @@ Other: `content-registry`, `coins`, `party-xp-core`, `session-recap-core`, `pdf-
 | `assets/pdf/` | Form-fillable character sheet + field map JSON. |
 | `assets/portraits/README.md` | Gallery folder usage note. |
 | `icons/game-icons/classes/` | 25 recolored game-icons.net class emblems (fill baked in). |
+| `icons/game-icons/party/` | 24 white game-icons.net emblems for the Party sheet's header tile (colour applied in CSS). Credited in CREDITS.md. |
 | `icons/game-icons/` | 8 shared SVGs. |
 | `icons/` root | `dragon-head.svg`, `light-sabers.svg`, `shamrock.svg`. |
 

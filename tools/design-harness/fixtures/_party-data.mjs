@@ -1,3 +1,4 @@
+import { DEFAULT_EMBLEM, emblemIconPath, emblemChoices } from "../../../scripts/party/party-emblem-core.mjs";
 const art = (f) => "/systems/shadowdark/assets/quickstart/pregens/" + f;
 const svg = (c, t) => "data:image/svg+xml;utf8," + encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="96" height="96"><rect width="96" height="96" fill="${c}"/><text x="48" y="60" font-size="40" text-anchor="middle" fill="#fff">${t}</text></svg>`);
 const mod = (n) => (n >= 0 ? `+${n}` : String(n));
@@ -30,6 +31,8 @@ export const party = (tab) => ({
       rooms: [["Barracks", "fa-bed"], ["Blacksmith", "fa-hammer"], ["Infirmary", "fa-kit-medical"], ["Library", "fa-book"], ["Stable", "fa-horse"], ["Wizard tower", "fa-hat-wizard", true]].map(([name, icon, building]) => ({ name, icon, building: !!building, tip: building ? "Weeks left: 2" : "" })),
       lastMonth: "A quiet month (d6: 4)." },
     status: [["today", "Today", "fa-person-walking", "Forest \u00b7 Fair \u00b7 3 of 4 hexes left"], ["light", "Light", "fa-fire", "Torch, 38 min"], ["rations", "Rations", "fa-drumstick-bite", "12"]].map(([key, label, icon, value]) => ({ key, label, icon, value })),
+    emblem: { ...DEFAULT_EMBLEM, path: "/" + emblemIconPath(DEFAULT_EMBLEM.icon) }, emblemEdit: true, emblemOpen: tab === "emblem",
+    emblemIcons: emblemChoices(DEFAULT_EMBLEM).icons.map((i) => ({ ...i, label: i.name, path: "/" + i.path })), emblemColors: emblemChoices(DEFAULT_EMBLEM).colors.map((c) => ({ ...c, label: c.color })),
     description: "", descriptionHTML: "",
   },
 });

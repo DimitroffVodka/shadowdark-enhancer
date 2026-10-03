@@ -414,3 +414,41 @@ test("the status bar reads the party's lit light and rations, and hides what it 
   const template = await readFile(new URL("../templates/party/party.hbs", import.meta.url), "utf8");
   assert.ok(template.includes("{{#if status.length}}<div class=\"sdp-bar\">"));
 });
+test("the emblem defaults to the amber lantern, survives a bad flag, and only a GM can change it", async () => {
+  const p = actor("p", "NPC", { [MOD]: { party: true, partyDescription: "Notes" } });
+  world([p], true);
+  const app = new PartyApp(p);
+  app.render = () => {};
+  let context = await app._prepareContext();
+  assert.deepEqual([context.emblem.icon, context.emblem.color, context.emblemEdit, context.emblemOpen], ["lantern", "c8892b", true, false]);
+  assert.equal(context.emblem.path, "modules/shadowdark-enhancer/icons/game-icons/party/lantern.svg");
+  assert.equal(context.emblemIcons.length, 24);
+  assert.equal(context.emblemColors.length, 8);
+  PartyApp.DEFAULT_OPTIONS.actions.emblem.call(app);
+  assert.equal((await app._prepareContext()).emblemOpen, true);
+  // Picking applies live: one flag write, the party's other flags untouched.
+  await PartyApp.DEFAULT_OPTIONS.actions.pickEmblem.call(app, null, { dataset: { icon: "wolf-head" } });
+  await PartyApp.DEFAULT_OPTIONS.actions.pickEmblem.call(app, null, { dataset: { color: "3a6ea5" } });
+  assert.deepEqual(p.flags[MOD].partyEmblem, { icon: "wolf-head", color: "3a6ea5" });
+  assert.equal(p.flags[MOD].party, true);
+  assert.equal(p.flags[MOD].partyDescription, "Notes");
+  context = await app._prepareContext();
+  assert.deepEqual([context.emblem.icon, context.emblem.color], ["wolf-head", "3a6ea5"]);
+  assert.deepEqual(context.emblemIcons.filter(i => i.selected).map(i => i.name), ["wolf-head"]);
+  // A pick that is not on offer changes nothing.
+  await PartyApp.DEFAULT_OPTIONS.actions.pickEmblem.call(app, null, { dataset: { icon: "../x" } });
+  assert.deepEqual(p.flags[MOD].partyEmblem, { icon: "wolf-head", color: "3a6ea5" });
+  // A hand-edited flag still draws.
+  p.flags[MOD].partyEmblem = { icon: "nope", color: 5 };
+  assert.deepEqual((await app._prepareContext()).emblem, { icon: "lantern", color: "c8892b", path: "modules/shadowdark-enhancer/icons/game-icons/party/lantern.svg" });
+  // A player, even one who owns the party, has no picker and no write.
+  world([p], false);
+  const writes = p.writes.length, player = new PartyApp(p);
+  player.render = () => {};
+  PartyApp.DEFAULT_OPTIONS.actions.emblem.call(player);
+  await PartyApp.DEFAULT_OPTIONS.actions.pickEmblem.call(player, null, { dataset: { icon: "owl" } });
+  context = await player._prepareContext();
+  assert.deepEqual([context.emblemEdit, context.emblemOpen, p.writes.length], [false, false, writes]);
+  const template = await readFile(new URL("../templates/party/party.hbs", import.meta.url), "utf8");
+  for (const marker of ['data-action="emblem"', 'data-action="pickEmblem"', "sdp-emblems", "{{#if emblemEdit}}"]) assert.ok(template.includes(marker), marker);
+});

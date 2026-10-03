@@ -3,7 +3,7 @@
 {{#if picker}}<div class="sde-party-picker"><select data-party-choice aria-label="{{localize 'SDE.party.choose'}}"><option value="">{{localize "SDE.party.choose"}}</option>{{#each parties}}<option value="{{uuid}}" {{#if selected}}selected{{/if}}>{{name}}</option>{{/each}}</select>{{#if isGM}}<button type="button" data-action="create">{{localize "SDE.party.create"}}</button>{{/if}}</div>{{/if}}
 {{#if hasParty}}
 	<header class="sdp-head">
-		<span class="sdp-emblem sdp-emblem-img"><img src="{{actor.img}}" alt="" {{#if canEdit}}data-action="editImage" data-edit="img" data-tooltip="{{actor.name}}"{{/if}}></span>
+		{{#if emblemEdit}}<button type="button" class="sdp-emblem" style="--c: #{{emblem.color}}" data-action="emblem" data-tooltip="{{localize 'SDE.party.emblem.title'}}" aria-label="{{localize 'SDE.party.emblem.title'}}" aria-expanded="{{#if emblemOpen}}true{{else}}false{{/if}}"><img src="{{emblem.path}}" alt=""></button>{{else}}<span class="sdp-emblem" style="--c: #{{emblem.color}}"><img src="{{emblem.path}}" alt=""></span>{{/if}}
 		<div class="sdp-id">
 			<input name="name" type="text" value="{{actor.name}}" placeholder="{{localize 'SDE.party.sheet.extras.name_placeholder'}}" aria-label="{{localize 'SDE.party.sheet.extras.name_placeholder'}}" {{#unless canEdit}}readonly{{/unless}}>
 			<div class="sdp-stats">
@@ -24,6 +24,11 @@
 			</div>
 			{{#if canEdit}}<button type="button" class="sdp-pin" data-action="placeRecall" {{#if movementDisabled}}disabled{{/if}} title="{{movementReason}}" aria-label="{{localize 'SDE.party.movement.placeRecall'}}"><i class="fas fa-location-dot"></i></button>{{/if}}
 		</div>
+		{{#if emblemOpen}}<div class="sdp-pop sdp-emblems">
+			<h4>{{localize "SDE.party.emblem.title"}}</h4>
+			<div class="icons">{{#each emblemIcons}}<button type="button" class="{{#if selected}}on{{/if}}" data-action="pickEmblem" data-icon="{{name}}" data-tooltip="{{label}}" aria-label="{{label}}" aria-pressed="{{#if selected}}true{{else}}false{{/if}}"><img src="{{path}}" alt=""></button>{{/each}}</div>
+			<div class="colors">{{#each emblemColors}}<button type="button" class="{{#if selected}}on{{/if}}" style="--c: #{{color}}" data-action="pickEmblem" data-color="{{color}}" data-tooltip="{{label}}" aria-label="{{label}}" aria-pressed="{{#if selected}}true{{else}}false{{/if}}"></button>{{/each}}</div>
+		</div>{{/if}}
 	</header>
 {{#if status.length}}<div class="sdp-bar">{{#each status}}<div class="{{#if low}}low{{/if}}"><span class="l"><i class="fas {{icon}}"></i>{{label}}</span><span class="v">{{value}}</span></div>{{/each}}</div>{{/if}}
 <nav class="sdp-tabs" role="tablist">{{#each tabs}}<a class="sdp-tab {{#if active}}active{{/if}}" data-action="partyTab" data-tab="{{key}}" role="tab" aria-selected="{{#if active}}true{{else}}false{{/if}}" tabindex="0"><i class="{{icon}}"></i>{{label}}</a>{{/each}}</nav>

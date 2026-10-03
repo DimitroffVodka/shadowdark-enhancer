@@ -8,8 +8,18 @@ or `game.shadowdarkEnhancer.party.open(party)`; it also works with no canvas.
 
 ## The sheet
 
-One band across the top: the party's tile, name and four numbers (members, HP,
-AC, level), and on the right the [Marching order](#formation-deploy-and-follow).
+One band across the top: the party's emblem tile, name and four numbers
+(members, HP, AC, level), and on the right the
+[Marching order](#formation-deploy-and-follow).
+
+The **emblem** is a picture of the party: a game-icons.net icon on a coloured
+tile. A GM clicks the tile to open a picker of 24 icons and 8 colours and the
+choice applies as it is made. A party that has chosen nothing wears the lantern
+in amber. It is stored on the Party actor (`flags.shadowdark-enhancer.partyEmblem`,
+`{ icon, color }`), so it survives reloads and is the same for everyone. The icons
+are bundled with the module (credited in CREDITS.md); the picker does not need the
+Game-icons.net module. Only the sheet's tile changes: the Party token's art on a
+map is not tied to it.
 Under the header, a thin status bar shows up to three readouts, and each one is
 left out when its data is not available (with none, the bar is hidden):
 

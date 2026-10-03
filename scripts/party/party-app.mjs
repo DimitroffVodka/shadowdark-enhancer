@@ -6,6 +6,7 @@ import { offerParty } from "./party-create-option.mjs";
 import { scopedQuests } from "./party-core.mjs";
 import { fillFormation } from "./party-movement-core.mjs";
 import { marchState, partyTabs, resolveTab, sheetView, gemSummary, linkedBastion, lastMonthEntry, roomIcon, lightReadout, rationsCount, statusBar } from "./party-sheet-core.mjs";
+import { EMBLEM_FLAG, emblemOf, emblemIconPath, emblemChoices, pickEmblem } from "./party-emblem-core.mjs";
 import { BASTION_TYPE } from "../bastion/bastion-art.mjs";
 import { stateOf as bastionState, stats as bastionStats, upgradeOf } from "../bastion/bastion-core.mjs";
 import { logText as bastionLogText } from "../bastion/bastion-text.mjs";
@@ -73,7 +74,13 @@ export class PartyApp extends HandlebarsApplicationMixin(ApplicationV2) {
     classes: ["shadowdark", "sheet", "party", "sde-party"], window: { title: "SDE.party.title", icon: "fa-solid fa-users", resizable: true },
     position: { width: 750, height: 650 },
     actions: {
-      partyTab: function (_event, el) { this.tab = el.dataset.tab; this.render(); },
+      partyTab: function (_event, el) { this.tab = el.dataset.tab; this.emblemOpen = false; this.render(); },
+      emblem: function () { if (!sheetView({ isGM: !!game.user?.isGM, canEdit: Party.canManage(this.actor) }).emblemEdit) return; this.emblemOpen = !this.emblemOpen; this.render(); },
+      pickEmblem: function (_event, el) {
+        if (!sheetView({ isGM: !!game.user?.isGM, canEdit: Party.canManage(this.actor) }).emblemEdit) return;
+        const next = pickEmblem(this.actor.flags?.[MODULE_ID]?.[EMBLEM_FLAG], { icon: el.dataset.icon, color: el.dataset.color });
+        return this._change(() => replaceModuleFlag(this.actor, EMBLEM_FLAG, next));
+      },
       remove: function (_event, el) { return this._change(() => Party.remove(this.actor, el.dataset.uuid)); },
       member: function (_event, el) { Party.rows(this.actor).find((r) => r.uuid === el.dataset.uuid)?.actor?.sheet?.render(true); },
       item: function (_event, el) { if (this.actor?.testUserPermission(game.user, "OBSERVER")) this.actor.items.get(el.dataset.id)?.sheet?.render(true); },
@@ -191,6 +198,7 @@ export class PartyApp extends HandlebarsApplicationMixin(ApplicationV2) {
         questHTML = (await renderTemplate(QuestLogApp.PARTS.body.template, await app._prepareContext())).replace(/data-action="([^"]+)"/g, 'data-action="questAction" data-quest-action="$1"');
       }
       const bastion = bastionActor ? bastionCard(bastionActor) : null;
+      const emblem = emblemOf(this.actor.flags?.[MODULE_ID]?.[EMBLEM_FLAG]), picker = emblemChoices(emblem, t);
       // Light is carried by the party, its characters and its hirelings; rations by the party and its characters.
       // A member the viewer cannot see may hold either, so rations are shown only when there are members and every one is visible.
       const carriers = rows.filter(r => r.actor && ["characters", "hirelings"].includes(r.group)).map(r => r.actor.items?.contents ?? []);
@@ -215,6 +223,7 @@ export class PartyApp extends HandlebarsApplicationMixin(ApplicationV2) {
         partyStats: { totalHp: visible.reduce((n,m) => n + m.hp.value, 0), maxHp: visible.reduce((n,m) => n + m.hp.max, 0), avgAc: visible.length ? Math.round(visible.reduce((n,m) => n + m.ac, 0) / visible.length) : 0, avgLevel: players.length ? Math.round(players.reduce((n,m) => n + m.level, 0) / players.length) : 0 },
         needsAdoption: canEdit && !this.actor.flags?.[MODULE_ID]?.partyData,
         slots, followLeader: data.followLeader, formationReview: formation.needsReview, march, hasLeader, bastion, status: readouts,
+        emblem: { ...emblem, path: emblemIconPath(emblem.icon) }, emblemEdit: view.emblemEdit, emblemOpen: view.emblemEdit && !!this.emblemOpen, emblemIcons: picker.icons, emblemColors: picker.colors,
         leaderName: leaderActor?.name ?? t("SDE.party.missing"),
         canResume: !!march.canResume,
         movementDisabled: !canEdit || !status.token || combat,
