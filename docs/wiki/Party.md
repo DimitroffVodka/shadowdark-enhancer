@@ -23,6 +23,31 @@ Legacy flagged NPC Parties adopt in place: UUID, ownership, items and foreign
 flags stay intact. Extras `type: Party` documents are not converted. Native
 values win conflicts; repeated adoption does not overwrite edited values.
 
+## Party token
+
+The Party's token stands for the whole group on a scene. It is the token that
+travels on a hex map, and the one Deploy, Recall and the HUD act on.
+
+- **Where it comes from.** Create the Party actor yourself, or let the first
+  **Start travel** on a hex map make one: with no Party in the world, no party
+  token on the scene and nothing selected, a GM gets a new Party and its token in
+  the hex at the centre of the view. If the world has Parties already, travel
+  never picks the first or makes another; choose one. When exactly one
+  Shadowdark Extras party exists, its token is used and no native Party is made.
+- **What it looks like.** A friendly, linked token. On a hex map, Start travel
+  gives it the black Party hex, one cell wide with no ring and no rotation. Only
+  that scene's token changes: the actor keeps its portrait everywhere else. A
+  larger token shrinks onto the hex under its old centre. A token already wearing the
+  hex is left alone.
+- **Linked only.** Deploy and Recall need a *linked* Party token on the scene.
+  Without one they say so rather than guess; drag the Party actor onto the scene.
+- **HUD.** Selecting it shows **Open Party** (for anyone with that Party)
+  and, for a Party OWNER, **Import/Export Members**. The second is greyed out
+  in combat.
+- **Hex maps.** It carries no light and no sight there; see
+  [Hex Maps](Hex-Maps.md) and
+  [which token travels](Crawl-Strip-and-Crawl-Bar.md).
+
 ## Formation, deploy and follow
 
 The fixed 3×3 header widget remembers nine slots. Click a portrait to choose the
