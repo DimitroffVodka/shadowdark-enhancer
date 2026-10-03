@@ -7,13 +7,13 @@ import { computeLightState } from "../crawl-strip/crawl-lights-core.mjs";
  */
 
 /**
- * The tab row. Travel (Camp, Carouse and the travel panels) is the GM's; Bastion is there
- * once the party has a bastion its viewer may see.
- * @param {{ isGM?: boolean, hasBastion?: boolean }} view
+ * The tab row. Travel stays for everyone: each PC's owner confirms their own camping and carousing choices
+ * there. Bastion is there once the party has a bastion its viewer may see.
+ * @param {{ hasBastion?: boolean }} view
  * @returns {string[]}
  */
-export function partyTabs({ isGM = false, hasBastion = false } = {}) {
-  return ["members", "items", ...(isGM ? ["travel"] : []), "quests", ...(hasBastion ? ["bastion"] : []), "description"];
+export function partyTabs({ hasBastion = false } = {}) {
+  return ["members", "items", "travel", "quests", ...(hasBastion ? ["bastion"] : []), "description"];
 }
 
 /** Each tab's name (an en.json key) and icon. */

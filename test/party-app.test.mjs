@@ -167,6 +167,7 @@ test("Party activity buttons stay in the sheet instead of opening applications",
   assert.equal(app.activity, "carousing");
   assert.equal(globalThis.foundry.applications.instances.has("sde-camping-undefined"), false);
   const template = await readFile(new URL("../templates/party/party.hbs", import.meta.url), "utf8");
+  assert.ok(!/<button[^>]*data-action="(camp|carouse)"/.test(template), "the Camp/Carouse switch must work for a player: core disables buttons on a sheet they cannot edit");
   assert.ok(template.includes("activityHTML"));
   assert.ok(template.includes("questHTML"));
   assert.ok(!template.includes("sde-party-task-grid"), "no inert task catalogue masquerading as the Travel workflow");
@@ -328,7 +329,7 @@ test("a party with no members shows a drop zone and a grid hint, and an Actor dr
   await new Promise(resolve => setTimeout(resolve, 0));
   assert.deepEqual(Party.members(p), [pc.uuid]);
 });
-test("a player's sheet drops Travel and every control that changes the party", async () => {
+test("a player's sheet keeps Travel and drops every control that changes the party", async () => {
   const pc = actor("pc", "Player");
   pc.system = { attributes: { hp: { value: 5, max: 8 }, ac: { value: 12 } }, level: { value: 1, xp: 2 }, abilities: { str: { mod: 1 } } };
   const p = actor("p", "NPC", { [MOD]: { party: true, partyData: { version: 1, members: [pc.uuid], leaderUuid: pc.uuid } } }, 2);
@@ -338,13 +339,11 @@ test("a player's sheet drops Travel and every control that changes the party", a
   const context = await app._prepareContext();
   assert.equal(context.isGM, false);
   assert.equal(context.canEdit, false);
-  assert.deepEqual(context.tabs.map(tab => tab.key), ["members", "items", "quests", "description"]);
-  assert.equal(context.travelTab, false, "a player who was on Travel lands on Members");
-  assert.equal(context.membersTab, true);
+  assert.deepEqual(context.tabs.map(tab => tab.key), ["members", "items", "travel", "quests", "description"]);
+  assert.equal(context.travelTab, true, "a player can open Travel: their own camping and carousing choices are confirmed there");
   assert.equal(context.players[0].canEdit, false, "no remove (x) on a card");
   assert.equal(context.players[0].hp.value, 5, "players still see a member's full stats");
   assert.ok(context.slots.every(slot => slot.disabled), "the grid is read-only");
-  assert.equal(context.activityHTML, "");
 });
 test("the Bastion tab shows only when a bastion the viewer may see is linked to this party", async () => {
   const p = actor("p", "NPC", { [MOD]: { party: true } }, 2);
@@ -355,7 +354,7 @@ test("the Bastion tab shows only when a bastion the viewer may see is linked to 
   let rendered = 0; bastion.sheet = { render: () => { rendered++; } };
   const app = new PartyApp(p);
   let context = await app._prepareContext();
-  assert.deepEqual(context.tabs.map(tab => tab.key), ["members", "items", "quests", "bastion", "description"]);
+  assert.deepEqual(context.tabs.map(tab => tab.key), ["members", "items", "travel", "quests", "bastion", "description"]);
   assert.deepEqual([context.bastion.ac, context.bastion.hp, context.bastion.maxHp, context.bastion.used, context.bastion.slots, context.bastion.treasury], [18, 80, 100, 2, 10, 12]);
   assert.deepEqual(context.bastion.rooms.map(r => [r.name, r.building]), [["SDE.bastion.upgrade.stable.name", false], ["SDE.bastion.upgrade.library.name", true]]);
   assert.match(context.bastion.lastMonth, /quietMonth/, "the newest month result, not the later deposit");

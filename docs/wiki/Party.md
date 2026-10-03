@@ -52,10 +52,10 @@ and **View bastion** for players, opens the bastion sheet, which is read-only
 for anyone but the GM.
 
 The sheet has a GM view and a player view. A player (anyone who cannot manage
-the party) sees every member's full stats, but not the **Travel** tab, the
-**Place / Recall** pin, remove (x), item and coin editing, or the emblem. The
-Marching order switch shows as read-only status. **Camp** and **Carouse** live
-under Travel, which is the GM's.
+the party) sees every member's full stats and the same tabs, but not the
+**Place / Recall** pin, remove (x), item and coin editing, or the emblem picker.
+The Marching order switch shows as read-only status. **Camp** and **Carouse**
+live under Travel, where each PC's owner confirms their own choices.
 
 ## Roster and ownership
 
@@ -154,7 +154,7 @@ controls in the sheet: select each PC's task and ability, confirm their choices,
 then lock and roll. Results and food/fuel decisions stay in the same tab;
 **Camp** and **Carouse** (the two buttons at the top of Travel, and the
 `camping.open` / `carousing.open` API) switch to it rather than opening another
-window. Travel is the GM's tab.
+window.
 The **Quests** tab uses the existing Quest Log's status tabs, objectives and
 rewards, scoped to this Party and its PCs. GMs create/edit quests and confirm
 payouts inline; players retain the normal read-only quest permissions. New quests

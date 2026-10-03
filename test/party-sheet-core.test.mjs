@@ -3,18 +3,16 @@ import { readFileSync } from "node:fs";
 import assert from "node:assert/strict";
 import { partyTabs, resolveTab, sheetView, marchState, gemSummary, gpText, linkedBastion, lastMonthEntry, roomIcon, ROOM_ICONS, MONTH_LOG_KEYS, terrainLabel, lightReadout, rationsCount, statusBar, TAB_LABELS, TAB_ICONS, tabRow, movementMessageKey, marchText } from "../scripts/party/party-sheet-core.mjs";
 
-test("the GM sees Travel; a player does not; Bastion needs a linked bastion", () => {
-  assert.deepEqual(partyTabs({ isGM: true }), ["members", "items", "travel", "quests", "description"]);
-  assert.deepEqual(partyTabs({ isGM: false }), ["members", "items", "quests", "description"]);
-  assert.deepEqual(partyTabs({ isGM: true, hasBastion: true }), ["members", "items", "travel", "quests", "bastion", "description"]);
-  assert.deepEqual(partyTabs({ hasBastion: true }), ["members", "items", "quests", "bastion", "description"]);
+test("everyone sees Travel (each PC's owner confirms their own camping and carousing there); Bastion needs a linked bastion", () => {
+  assert.deepEqual(partyTabs(), ["members", "items", "travel", "quests", "description"]);
+  assert.deepEqual(partyTabs({ hasBastion: true }), ["members", "items", "travel", "quests", "bastion", "description"]);
 });
 
 test("a tab the viewer cannot see falls back to Members", () => {
-  const player = partyTabs({});
-  assert.equal(resolveTab("travel", player), "members");
-  assert.equal(resolveTab("bastion", player), "members");
-  assert.equal(resolveTab("items", player), "items");
+  const unlinked = partyTabs();
+  assert.equal(resolveTab("travel", unlinked), "travel");
+  assert.equal(resolveTab("bastion", unlinked), "members");
+  assert.equal(resolveTab("items", unlinked), "items");
 });
 
 test("view flags: editing follows the party rule, the emblem is the GM's alone", () => {
@@ -165,7 +163,7 @@ test("status bar: Today leaves out what it does not know and shows nothing when 
 });
 
 test("every tab has a name and an icon, and the row marks the active one", () => {
-  const keys = partyTabs({ isGM: true, hasBastion: true });
+  const keys = partyTabs({ hasBastion: true });
   assert.deepEqual(Object.keys(TAB_LABELS).sort(), [...keys].sort());
   assert.deepEqual(Object.keys(TAB_ICONS).sort(), [...keys].sort());
   const row = tabRow(keys, "items", say);

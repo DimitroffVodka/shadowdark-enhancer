@@ -53,7 +53,7 @@
     gap: 10px;
 }
 
-.sde-party .party-actions button {
+.sde-party .party-actions button, .sde-party .party-actions a {
     display: block;
     flex: 1;
     height: auto;
@@ -65,10 +65,11 @@
     border: 1px solid var(--party-border);
     border-radius: 4px;
     cursor: pointer;
+    text-align: center;
     transition: all 0.2s ease;
 }
 
-.sde-party .party-actions button:hover {
+.sde-party .party-actions button:hover, .sde-party .party-actions a:hover {
     background: var(--party-border);
     border-color: var(--party-accent);
 }
@@ -276,7 +277,7 @@
 
 .sde-party .SD-content-body input, .sde-party .SD-content-body select { color: #e0e0e0; background: #1a1a1a; }
 
-.sde-party .sde-party-activities button[aria-pressed="true"] { border-color: #c9aa58; color: #e6d19b; background: #292419; }
+.sde-party .sde-party-activities [aria-pressed="true"] { border-color: #c9aa58; color: #e6d19b; background: #292419; }
 
 .sde-party .sde-camping-body, .sde-party .sde-carousing-body { display: flex; flex-direction: column; gap: 10px; color: var(--party-text); }
 

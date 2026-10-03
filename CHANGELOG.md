@@ -30,10 +30,10 @@
   a GM or a party owner) and Gems: the Party's items of the Shadowdark system's Gem type, with each
   gem's quantity and value and the total. Gems no longer appear twice, as plain item rows. The
   Inventory tab is now called Items.
-- **The Party sheet has a GM view and a player view.** A player sees every member's stats but not
-  the Travel tab (camping, carousing and the travel panels stay the GM's), Place / Recall, the
-  remove (x) on a member, item and coin editing, or Camp and Carouse. Tabs the viewer cannot see fall
-  back to Members. The party's name is read-only for them.
+- **The Party sheet has a GM view and a player view.** A player sees every member's stats and the
+  same tabs (Travel stays, so each PC's owner can still confirm their own camping and carousing), but
+  not Place / Recall, the remove (x) on a member, item and coin editing, or the emblem picker. A tab the
+  viewer cannot see (Bastion with none linked) falls back to Members. The party's name is read-only for them.
 - **The Party sheet's "Include mounts" option is gone.** Mounts never take a slot in the marching
   formation and never follow the leader: nobody takes a mount into a dungeon. They stay on the
   roster under Mounts and still eat at camp. A party saved with the old option still loads; the

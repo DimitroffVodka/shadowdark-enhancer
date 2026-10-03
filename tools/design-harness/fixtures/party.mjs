@@ -49,7 +49,7 @@ const build = (state) => {
   const [view = "gm", requested = "members", mode = "-", icon, color] = state.split(".");
   const isGM = view === "gm", empty = mode === "empty", quiet = mode === "quiet";
   const v = sheetView({ isGM, canEdit: isGM });
-  const keys = partyTabs({ isGM, hasBastion: !quiet }), tab = resolveTab(requested, keys);
+  const keys = partyTabs({ hasBastion: !quiet }), tab = resolveTab(requested, keys);
   const members = empty ? [] : roster, walkers = members.filter((m) => m.group !== "mounts");
   const characters = members.filter((m) => m.group === "characters");
   const emblem = emblemOf({ icon: icon ?? DEFAULT_EMBLEM.icon, color: color ?? DEFAULT_EMBLEM.color });

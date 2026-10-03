@@ -122,7 +122,7 @@ export class PartyApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const parties = Party.list().map((a) => ({ uuid: a.uuid, name: a.name, selected: a === this.actor }));
     const view = sheetView({ isGM: !!game.user?.isGM, canEdit: Party.canManage(this.actor) });
     const bastionActor = this._bastion();
-    const keys = partyTabs({ isGM: view.isGM, hasBastion: !!bastionActor }), tab = resolveTab(this.tab, keys);
+    const keys = partyTabs({ hasBastion: !!bastionActor }), tab = resolveTab(this.tab, keys);
     const base = { parties, isGM: view.isGM, hasParty: !!this.actor, title: this.actor?.name,
       tabs: tabRow(keys, tab, t),
       membersTab: tab === "members", questsTab: tab === "quests", itemsTab: tab === "items", travelTab: tab === "travel", bastionTab: tab === "bastion", descriptionTab: tab === "description", picker: !this.document };

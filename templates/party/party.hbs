@@ -68,7 +68,7 @@
 <div class="sdp-box"><h3 class="sdp-boxhead"><span>{{localize "SHADOWDARK.inventory.gems"}}</span>{{#if gems.length}}<small>{{gemTotal}} {{localize "SHADOWDARK.coins.gp"}}</small>{{/if}}</h3>
 <ul class="sdp-list sdp-gems">{{#each gems}}<li data-item-id="{{id}}"><img src="{{img}}" alt=""><a class="n" data-action="item" data-id="{{id}}">{{name}}</a><span class="q">&times;{{quantity}}</span><span class="s">{{value}} {{localize "SHADOWDARK.coins.gp"}}</span></li>{{else}}<li class="empty-list">{{localize "SDE.party.empty"}}</li>{{/each}}</ul></div>
 </div></div></div>
-{{#if isGM}}<div class="tab tab-travel {{#if travelTab}}active{{/if}}"><div class="party-actions sde-party-activities"><button type="button" data-action="camp" aria-pressed="{{campingActive}}"><i class="fas fa-campground"></i> {{localize "SDE.camping.title"}}</button><button type="button" data-action="carouse" aria-pressed="{{carousingActive}}"><i class="fas fa-beer-mug-empty"></i> {{localize "SDE.carousing.title"}}</button></div>{{{activityHTML}}}</div>{{/if}}
+<div class="tab tab-travel {{#if travelTab}}active{{/if}}"><div class="party-actions sde-party-activities"><a data-action="camp" aria-pressed="{{campingActive}}"><i class="fas fa-campground"></i> {{localize "SDE.camping.title"}}</a><a data-action="carouse" aria-pressed="{{carousingActive}}"><i class="fas fa-beer-mug-empty"></i> {{localize "SDE.carousing.title"}}</a></div>{{{activityHTML}}}</div>
 <div class="tab tab-quests {{#if questsTab}}active{{/if}}">{{{questHTML}}}</div>
 {{#if bastion}}<div class="tab tab-bastion {{#if bastionTab}}active{{/if}}"><div class="sdp-box sdp-bastion">
 <img class="art" src="{{bastion.img}}" alt="">
