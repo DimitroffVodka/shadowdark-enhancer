@@ -1,0 +1,297 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512"
+     role="img" aria-labelledby="title desc">
+  <title id="title">Castle</title>
+  <desc id="desc">Walled castle: curtain wall, gatehouse, four drum towers and an inner keep.</desc>
+  <!-- Native vector artwork only: no embedded or linked raster content. -->
+
+  <defs>
+    <pattern id="roofHatch" width="12" height="12" patternUnits="userSpaceOnUse">
+      <path d="M2 0 V12 M8 0 V12" fill="none" stroke="#010206" stroke-width="0.75" opacity="0.17"/>
+    </pattern>
+    <pattern id="leanHatch" width="10" height="10" patternUnits="userSpaceOnUse">
+      <path d="M2 0 V10" fill="none" stroke="#010206" stroke-width="0.65" opacity="0.18"/>
+    </pattern>
+    <pattern id="stoneHatch" width="16" height="13" patternUnits="userSpaceOnUse">
+      <path d="M0 6 H16 M5 0 V6 M12 6 V13" fill="none" stroke="#010206" stroke-width="0.55" opacity="0.16"/>
+    </pattern>
+    <pattern id="shingleHatch" width="14" height="9" patternUnits="userSpaceOnUse">
+      <path d="M0 8 H14 M0 4 Q3.5 8 7 4 Q10.5 8 14 4" fill="none" stroke="#010206" stroke-width="0.6" opacity="0.2"/>
+    </pattern>
+    <pattern id="logHatch" width="9" height="9" patternUnits="userSpaceOnUse">
+      <path d="M4.5 0 V9" fill="none" stroke="#010206" stroke-width="0.7" opacity="0.2"/>
+    </pattern>
+    <pattern id="plankHatch" width="64" height="22" patternUnits="userSpaceOnUse">
+      <path d="M0 0.5 H64 M0 11.5 H64 M20 0 V11 M50 11 V22" fill="none" stroke="#010206" stroke-width="0.8" opacity="0.22"/>
+    </pattern>
+    <pattern id="flagHatch" width="48" height="40" patternUnits="userSpaceOnUse">
+      <path d="M0 0.5 H48 M0 20.5 H48 M16 0 V20 M40 20 V40" fill="none" stroke="#010206" stroke-width="0.8" opacity="0.2"/>
+    </pattern>
+    <pattern id="waterHatch" width="22" height="10" patternUnits="userSpaceOnUse">
+      <path d="M2 5 Q7 1 12 5 T22 5" fill="none" stroke="#A3C9CC" stroke-width="1.1" opacity="0.7"/>
+    </pattern>
+  </defs>
+
+  <g id="building" stroke="#010206" stroke-linecap="round" stroke-linejoin="round">
+
+    <!-- Courtyard: packed earth, cobbled apron, flagstone path to the keep. -->
+    <path d="M76 132 H436 V396 H76 Z" fill="#B8AB8E" stroke="none"/>
+    <path d="M76 132 H436 V396 H76 Z" fill="url(#leanHatch)" stroke="none"/>
+    <path d="M226 396 H286 L292 330 H220 Z" fill="#A9A38F" stroke-width="1.6"/>
+    <path d="M226 396 H286 L292 330 H220 Z" fill="url(#stoneHatch)" stroke="none"/>
+    <!-- Back curtain: inner face, then the walkway on top. -->
+    <path d="M76 100 H436 V138 H76 Z" fill="#7E7B73" stroke-width="2.2"/>
+    <path d="M76 100 H436 V138 H76 Z" fill="url(#stoneHatch)" stroke="none"/>
+    <path d="M60 64 H452 V102 H60 Z" fill="#A8A59B" stroke-width="2.6"/>
+    <path d="M60 64 H452 V102 H60 Z" fill="url(#stoneHatch)" stroke="none"/>
+    <g fill="#A8A59B" stroke-width="1.6">
+      <path d="M64 65 V52 H75 V65 Z"/>
+      <path d="M83 65 V52 H93 V65 Z"/>
+      <path d="M101 65 V52 H112 V65 Z"/>
+      <path d="M120 65 V52 H131 V65 Z"/>
+      <path d="M139 65 V52 H149 V65 Z"/>
+      <path d="M157 65 V52 H168 V65 Z"/>
+      <path d="M176 65 V52 H187 V65 Z"/>
+      <path d="M195 65 V52 H205 V65 Z"/>
+      <path d="M213 65 V52 H224 V65 Z"/>
+      <path d="M232 65 V52 H243 V65 Z"/>
+      <path d="M251 65 V52 H261 V65 Z"/>
+      <path d="M269 65 V52 H280 V65 Z"/>
+      <path d="M288 65 V52 H299 V65 Z"/>
+      <path d="M307 65 V52 H317 V65 Z"/>
+      <path d="M325 65 V52 H336 V65 Z"/>
+      <path d="M344 65 V52 H355 V65 Z"/>
+      <path d="M363 65 V52 H373 V65 Z"/>
+      <path d="M381 65 V52 H392 V65 Z"/>
+      <path d="M400 65 V52 H411 V65 Z"/>
+      <path d="M419 65 V52 H429 V65 Z"/>
+      <path d="M437 65 V52 H448 V65 Z"/>
+    </g>
+    <path d="M118 110 H122 V126 H118 Z" fill="#1d1a18" stroke="none"/>
+    <path d="M174 110 H178 V126 H174 Z" fill="#1d1a18" stroke="none"/>
+    <path d="M334 110 H338 V126 H334 Z" fill="#1d1a18" stroke="none"/>
+    <path d="M390 110 H394 V126 H390 Z" fill="#1d1a18" stroke="none"/>
+
+    <!-- Side curtains: wall-walks running toward the viewer. -->
+    <path d="M40 100 H76 V420 H40 Z" fill="#A8A59B" stroke-width="2.6"/>
+    <path d="M436 100 H472 V420 H436 Z" fill="#A8A59B" stroke-width="2.6"/>
+    <path d="M40 100 H76 V420 H40 Z M436 100 H472 V420 H436 Z" fill="url(#stoneHatch)" stroke="none"/>
+    <g fill="#A8A59B" stroke-width="1.5">
+      <path d="M32 124 H44 V136 H32 Z"/>
+      <path d="M468 124 H480 V136 H468 Z"/>
+      <path d="M32 156 H44 V168 H32 Z"/>
+      <path d="M468 156 H480 V168 H468 Z"/>
+      <path d="M32 188 H44 V200 H32 Z"/>
+      <path d="M468 188 H480 V200 H468 Z"/>
+      <path d="M32 220 H44 V232 H32 Z"/>
+      <path d="M468 220 H480 V232 H468 Z"/>
+      <path d="M32 252 H44 V264 H32 Z"/>
+      <path d="M468 252 H480 V264 H468 Z"/>
+      <path d="M32 284 H44 V296 H32 Z"/>
+      <path d="M468 284 H480 V296 H468 Z"/>
+      <path d="M32 316 H44 V328 H32 Z"/>
+      <path d="M468 316 H480 V328 H468 Z"/>
+      <path d="M32 348 H44 V360 H32 Z"/>
+      <path d="M468 348 H480 V360 H468 Z"/>
+      <path d="M32 380 H44 V392 H32 Z"/>
+      <path d="M468 380 H480 V392 H468 Z"/>
+    </g>
+    <!-- Inner keep: squat stone block, crenellated roof, banners. -->
+    <path d="M192 166 H320 V236 H192 Z" fill="#7E7B73" stroke-width="2.2"/>
+    <path d="M192 166 H320 V236 H192 Z" fill="url(#stoneHatch)" stroke="none"/>
+    <path d="M202 176 H310 V226 H202 Z" fill="#9A978D" stroke-width="1.6"/>
+    <g fill="#A8A59B" stroke-width="1.6">
+      <path d="M196 171 V160 H206 V171 Z"/>
+      <path d="M214 171 V160 H225 V171 Z"/>
+      <path d="M232 171 V160 H243 V171 Z"/>
+      <path d="M251 171 V160 H261 V171 Z"/>
+      <path d="M269 171 V160 H280 V171 Z"/>
+      <path d="M287 171 V160 H298 V171 Z"/>
+      <path d="M306 171 V160 H316 V171 Z"/>
+    </g>
+    <g fill="#A8A59B" stroke-width="1.6">
+      <path d="M196 241 V230 H206 V241 Z"/>
+      <path d="M214 241 V230 H225 V241 Z"/>
+      <path d="M232 241 V230 H243 V241 Z"/>
+      <path d="M251 241 V230 H261 V241 Z"/>
+      <path d="M269 241 V230 H280 V241 Z"/>
+      <path d="M287 241 V230 H298 V241 Z"/>
+      <path d="M306 241 V230 H316 V241 Z"/>
+    </g>
+
+    <path d="M192 242 H320 L316 312 H196 Z" fill="#8E8B83" stroke="none"/>
+    <path d="M192 242 H320 L316 312 H196 Z" fill="url(#stoneHatch)" stroke="none"/>
+    <path d="M192 242 H320 L316 312 H196 Z" fill="none" stroke-width="2.2"/>
+
+    <path d="M242 312 V286 Q242 274 256 274 Q270 274 270 286 V312 Z" fill="#3A322C" stroke-width="1.9"/>
+    <path d="M247 312 V288 Q247 280 256 280 Q265 280 265 288 V312 Z" fill="#745846" stroke-width="1.4"/>
+    <path d="M212 256 H216 V274 H212 Z" fill="#1d1a18" stroke="none"/>
+    <path d="M296 256 H300 V274 H296 Z" fill="#1d1a18" stroke="none"/>
+
+    <path d="M200 238 V278" fill="none" stroke="#4B352B" stroke-width="2.4"/>
+    <path d="M201 240 H222 L216 249 L222 258 H201 Z" fill="#9C3F3A" stroke-width="1.6"/>
+
+    <path d="M298 238 V278" fill="none" stroke="#4B352B" stroke-width="2.4"/>
+    <path d="M299 240 H320 L314 249 L320 258 H299 Z" fill="#9C3F3A" stroke-width="1.6"/>
+
+    <!-- Courtyard well, handcart and training dummy. -->
+    <ellipse cx="128" cy="266" rx="22" ry="12" fill="#8E8B83" stroke-width="2"/>
+    <ellipse cx="128" cy="266" rx="14" ry="7" fill="#4C8699" stroke-width="1.4"/>
+    <path d="M110 262 V240 H146 V262 M106 240 H150" fill="none" stroke="#5F4434" stroke-width="2.6"/>
+    <path d="M360 262 H412 L416 282 H356 Z" fill="#876A56" stroke-width="1.8"/>
+    <circle cx="372" cy="288" r="8" fill="#5F4434" stroke-width="1.6"/><circle cx="402" cy="288" r="8" fill="#5F4434" stroke-width="1.6"/>
+    <path d="M412 266 L440 256" fill="none" stroke-width="2.4"/>
+    <g id="dummy" stroke-width="1.8">
+      <circle cx="136" cy="344" r="8" fill="#B08A68"/>
+      <path d="M136 352 V384 M118 362 H154 M126 384 L136 372 L146 384" fill="none" stroke="#745846" stroke-width="3"/>
+    </g>
+    <path d="M360 340 H400 L404 356 H356 Z" fill="#745846" stroke-width="1.7"/>
+    <path d="M366 354 V386 M394 354 V386 M376 356 V380 M386 356 V380" fill="none" stroke-width="2.4"/>
+    <!-- Front curtain: wall-walk, outer face, gate flanked by drum towers. -->
+    <path d="M40 396 H472 V424 H40 Z" fill="#A8A59B" stroke-width="2.6"/>
+    <path d="M40 396 H472 V424 H40 Z" fill="url(#stoneHatch)" stroke="none"/>
+    <g fill="#A8A59B" stroke-width="1.6">
+      <path d="M44 397 V384 H55 V397 Z"/>
+      <path d="M63 397 V384 H74 V397 Z"/>
+      <path d="M82 397 V384 H92 V397 Z"/>
+      <path d="M100 397 V384 H111 V397 Z"/>
+      <path d="M119 397 V384 H130 V397 Z"/>
+      <path d="M138 397 V384 H149 V397 Z"/>
+      <path d="M157 397 V384 H168 V397 Z"/>
+      <path d="M175 397 V384 H186 V397 Z"/>
+      <path d="M194 397 V384 H205 V397 Z"/>
+      <path d="M213 397 V384 H224 V397 Z"/>
+      <path d="M232 397 V384 H243 V397 Z"/>
+      <path d="M251 397 V384 H261 V397 Z"/>
+      <path d="M269 397 V384 H280 V397 Z"/>
+      <path d="M288 397 V384 H299 V397 Z"/>
+      <path d="M307 397 V384 H318 V397 Z"/>
+      <path d="M326 397 V384 H337 V397 Z"/>
+      <path d="M344 397 V384 H355 V397 Z"/>
+      <path d="M363 397 V384 H374 V397 Z"/>
+      <path d="M382 397 V384 H393 V397 Z"/>
+      <path d="M401 397 V384 H412 V397 Z"/>
+      <path d="M420 397 V384 H430 V397 Z"/>
+      <path d="M438 397 V384 H449 V397 Z"/>
+      <path d="M457 397 V384 H468 V397 Z"/>
+    </g>
+
+    <path d="M40 424 H472 L468 460 H44 Z" fill="#8E8B83" stroke="none"/>
+    <path d="M40 424 H472 L468 460 H44 Z" fill="url(#stoneHatch)" stroke="none"/>
+    <path d="M40 424 H472 L468 460 H44 Z" fill="none" stroke-width="2.2"/>
+
+    <!-- Gatehouse: raised block, arch, portcullis, flanking banners. -->
+    <path d="M196 372 H316 V424 H196 Z" fill="#8E8B83" stroke-width="2.4"/>
+    <path d="M196 372 H316 V424 H196 Z" fill="url(#stoneHatch)" stroke="none"/>
+    <g fill="#A8A59B" stroke-width="1.6">
+      <path d="M200 373 V360 H212 V373 Z"/>
+      <path d="M220 373 V360 H232 V373 Z"/>
+      <path d="M240 373 V360 H252 V373 Z"/>
+      <path d="M260 373 V360 H272 V373 Z"/>
+      <path d="M280 373 V360 H292 V373 Z"/>
+      <path d="M300 373 V360 H312 V373 Z"/>
+    </g>
+
+    <path d="M218 460 V440 Q218 420 256 420 Q294 420 294 440 V460 Z" fill="#26211f" stroke-width="2.2"/>
+    <path d="M226 456 V442 Q226 428 256 428 Q286 428 286 442 V456 M240 424 V458 M256 422 V458 M272 424 V458 M226 440 H286" fill="none" stroke="#6F6D68" stroke-width="2.2"/>
+    <path d="M205 384 V402 M307 384 V402" fill="none" stroke="#4B352B" stroke-width="2.2"/>
+    <path d="M206 386 H218 V402 H206 Z M294 386 H306 V402 H294 Z" fill="#9C3F3A" stroke-width="1.3"/>
+    <!-- Four drum towers, one per corner, with crenellated caps. -->
+    <path d="M20 74 V128 Q58 154 96 128 V74 Z" fill="#8E8B83" stroke-width="2.4"/>
+    <path d="M20 74 V128 Q58 154 96 128 V74 Z" fill="url(#stoneHatch)" stroke="none"/>
+    <ellipse cx="58" cy="74" rx="38" ry="30" fill="#A8A59B" stroke-width="2.6"/>
+    <ellipse cx="58" cy="74" rx="38" ry="30" fill="url(#stoneHatch)" stroke="none"/>
+    <ellipse cx="58" cy="74" rx="38" ry="30" fill="none" stroke-width="9" stroke-dasharray="9 6" stroke="#A8A59B"/>
+    <ellipse cx="58" cy="74" rx="38" ry="30" fill="none" stroke-width="2.4"/>
+    <ellipse cx="58" cy="74" rx="27" ry="20" fill="#7E7B73" stroke-width="1.6"/>
+    <path d="M416 74 V128 Q454 154 492 128 V74 Z" fill="#8E8B83" stroke-width="2.4"/>
+    <path d="M416 74 V128 Q454 154 492 128 V74 Z" fill="url(#stoneHatch)" stroke="none"/>
+    <ellipse cx="454" cy="74" rx="38" ry="30" fill="#A8A59B" stroke-width="2.6"/>
+    <ellipse cx="454" cy="74" rx="38" ry="30" fill="url(#stoneHatch)" stroke="none"/>
+    <ellipse cx="454" cy="74" rx="38" ry="30" fill="none" stroke-width="9" stroke-dasharray="9 6" stroke="#A8A59B"/>
+    <ellipse cx="454" cy="74" rx="38" ry="30" fill="none" stroke-width="2.4"/>
+    <ellipse cx="454" cy="74" rx="27" ry="20" fill="#7E7B73" stroke-width="1.6"/>
+    <path d="M20 392 V446 Q58 472 96 446 V392 Z" fill="#8E8B83" stroke-width="2.4"/>
+    <path d="M20 392 V446 Q58 472 96 446 V392 Z" fill="url(#stoneHatch)" stroke="none"/>
+    <ellipse cx="58" cy="392" rx="38" ry="30" fill="#A8A59B" stroke-width="2.6"/>
+    <ellipse cx="58" cy="392" rx="38" ry="30" fill="url(#stoneHatch)" stroke="none"/>
+    <ellipse cx="58" cy="392" rx="38" ry="30" fill="none" stroke-width="9" stroke-dasharray="9 6" stroke="#A8A59B"/>
+    <ellipse cx="58" cy="392" rx="38" ry="30" fill="none" stroke-width="2.4"/>
+    <ellipse cx="58" cy="392" rx="27" ry="20" fill="#7E7B73" stroke-width="1.6"/>
+    <path d="M416 392 V446 Q454 472 492 446 V392 Z" fill="#8E8B83" stroke-width="2.4"/>
+    <path d="M416 392 V446 Q454 472 492 446 V392 Z" fill="url(#stoneHatch)" stroke="none"/>
+    <ellipse cx="454" cy="392" rx="38" ry="30" fill="#A8A59B" stroke-width="2.6"/>
+    <ellipse cx="454" cy="392" rx="38" ry="30" fill="url(#stoneHatch)" stroke="none"/>
+    <ellipse cx="454" cy="392" rx="38" ry="30" fill="none" stroke-width="9" stroke-dasharray="9 6" stroke="#A8A59B"/>
+    <ellipse cx="454" cy="392" rx="38" ry="30" fill="none" stroke-width="2.4"/>
+    <ellipse cx="454" cy="392" rx="27" ry="20" fill="#7E7B73" stroke-width="1.6"/>
+
+    <g transform="translate(58 70)">
+      <path d="M-13.6 -3.7 Q0 -16.1 13.6 -3.7" fill="none" stroke="#4B352B" stroke-width="2.0"/>
+      <path d="M-13.6 -3.7 L0 -1.9 L13.6 -3.7" fill="none" stroke="#2c2622" stroke-width="0.7"/>
+      <path d="M-3.1 -1.9 H3.1 V9.9 H-3.1 Z" fill="#876A56" stroke-width="1.0"/>
+      <path d="M0 -1.9 V-14.9 L-1.9 -11.2 M0 -14.9 L1.9 -11.2" fill="none" stroke-width="1.0"/>
+      <path d="M-8.7 9.9 H8.7 L6.2 13.6 H-6.2 Z" fill="#745846" stroke-width="1.0"/>
+    </g>
+
+    <g transform="translate(454 70)">
+      <path d="M-13.6 -3.7 Q0 -16.1 13.6 -3.7" fill="none" stroke="#4B352B" stroke-width="2.0"/>
+      <path d="M-13.6 -3.7 L0 -1.9 L13.6 -3.7" fill="none" stroke="#2c2622" stroke-width="0.7"/>
+      <path d="M-3.1 -1.9 H3.1 V9.9 H-3.1 Z" fill="#876A56" stroke-width="1.0"/>
+      <path d="M0 -1.9 V-14.9 L-1.9 -11.2 M0 -14.9 L1.9 -11.2" fill="none" stroke-width="1.0"/>
+      <path d="M-8.7 9.9 H8.7 L6.2 13.6 H-6.2 Z" fill="#745846" stroke-width="1.0"/>
+    </g>
+
+    <g transform="translate(58 388)">
+      <path d="M-13.6 -3.7 Q0 -16.1 13.6 -3.7" fill="none" stroke="#4B352B" stroke-width="2.0"/>
+      <path d="M-13.6 -3.7 L0 -1.9 L13.6 -3.7" fill="none" stroke="#2c2622" stroke-width="0.7"/>
+      <path d="M-3.1 -1.9 H3.1 V9.9 H-3.1 Z" fill="#876A56" stroke-width="1.0"/>
+      <path d="M0 -1.9 V-14.9 L-1.9 -11.2 M0 -14.9 L1.9 -11.2" fill="none" stroke-width="1.0"/>
+      <path d="M-8.7 9.9 H8.7 L6.2 13.6 H-6.2 Z" fill="#745846" stroke-width="1.0"/>
+    </g>
+
+    <g transform="translate(454 388)">
+      <path d="M-13.6 -3.7 Q0 -16.1 13.6 -3.7" fill="none" stroke="#4B352B" stroke-width="2.0"/>
+      <path d="M-13.6 -3.7 L0 -1.9 L13.6 -3.7" fill="none" stroke="#2c2622" stroke-width="0.7"/>
+      <path d="M-3.1 -1.9 H3.1 V9.9 H-3.1 Z" fill="#876A56" stroke-width="1.0"/>
+      <path d="M0 -1.9 V-14.9 L-1.9 -11.2 M0 -14.9 L1.9 -11.2" fill="none" stroke-width="1.0"/>
+      <path d="M-8.7 9.9 H8.7 L6.2 13.6 H-6.2 Z" fill="#745846" stroke-width="1.0"/>
+    </g>
+
+    <g transform="translate(256 76)">
+      <path d="M-13.6 -3.7 Q0 -16.1 13.6 -3.7" fill="none" stroke="#4B352B" stroke-width="2.0"/>
+      <path d="M-13.6 -3.7 L0 -1.9 L13.6 -3.7" fill="none" stroke="#2c2622" stroke-width="0.7"/>
+      <path d="M-3.1 -1.9 H3.1 V9.9 H-3.1 Z" fill="#876A56" stroke-width="1.0"/>
+      <path d="M0 -1.9 V-14.9 L-1.9 -11.2 M0 -14.9 L1.9 -11.2" fill="none" stroke-width="1.0"/>
+      <path d="M-8.7 9.9 H8.7 L6.2 13.6 H-6.2 Z" fill="#745846" stroke-width="1.0"/>
+    </g>
+
+    <g transform="translate(58 232)">
+      <path d="M-13.6 -3.7 Q0 -16.1 13.6 -3.7" fill="none" stroke="#4B352B" stroke-width="2.0"/>
+      <path d="M-13.6 -3.7 L0 -1.9 L13.6 -3.7" fill="none" stroke="#2c2622" stroke-width="0.7"/>
+      <path d="M-3.1 -1.9 H3.1 V9.9 H-3.1 Z" fill="#876A56" stroke-width="1.0"/>
+      <path d="M0 -1.9 V-14.9 L-1.9 -11.2 M0 -14.9 L1.9 -11.2" fill="none" stroke-width="1.0"/>
+      <path d="M-8.7 9.9 H8.7 L6.2 13.6 H-6.2 Z" fill="#745846" stroke-width="1.0"/>
+    </g>
+
+    <g transform="translate(454 232)">
+      <path d="M-13.6 -3.7 Q0 -16.1 13.6 -3.7" fill="none" stroke="#4B352B" stroke-width="2.0"/>
+      <path d="M-13.6 -3.7 L0 -1.9 L13.6 -3.7" fill="none" stroke="#2c2622" stroke-width="0.7"/>
+      <path d="M-3.1 -1.9 H3.1 V9.9 H-3.1 Z" fill="#876A56" stroke-width="1.0"/>
+      <path d="M0 -1.9 V-14.9 L-1.9 -11.2 M0 -14.9 L1.9 -11.2" fill="none" stroke-width="1.0"/>
+      <path d="M-8.7 9.9 H8.7 L6.2 13.6 H-6.2 Z" fill="#745846" stroke-width="1.0"/>
+    </g>
+
+    <g transform="translate(356 392)">
+      <path d="M-13.6 -3.7 Q0 -16.1 13.6 -3.7" fill="none" stroke="#4B352B" stroke-width="2.0"/>
+      <path d="M-13.6 -3.7 L0 -1.9 L13.6 -3.7" fill="none" stroke="#2c2622" stroke-width="0.7"/>
+      <path d="M-3.1 -1.9 H3.1 V9.9 H-3.1 Z" fill="#876A56" stroke-width="1.0"/>
+      <path d="M0 -1.9 V-14.9 L-1.9 -11.2 M0 -14.9 L1.9 -11.2" fill="none" stroke-width="1.0"/>
+      <path d="M-8.7 9.9 H8.7 L6.2 13.6 H-6.2 Z" fill="#745846" stroke-width="1.0"/>
+    </g>
+
+    <path d="M256 24 V64" fill="none" stroke="#4B352B" stroke-width="2.4"/>
+    <path d="M257 26 H278 L272 35 L278 44 H257 Z" fill="#9C3F3A" stroke-width="1.6"/>
+
+  </g>
+</svg>

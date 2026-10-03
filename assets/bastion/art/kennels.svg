@@ -1,0 +1,230 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512"
+     role="img" aria-labelledby="title desc">
+  <title id="title">Kennels</title>
+  <desc id="desc">Plank kennel house with arched doghouse doors and a wire-mesh dog run with three hounds.</desc>
+  <!-- Native vector artwork only: no embedded or linked raster content. -->
+
+  <defs>
+    <pattern id="roofHatch" width="12" height="12" patternUnits="userSpaceOnUse">
+      <path d="M2 0 V12 M8 0 V12" fill="none" stroke="#010206" stroke-width="0.75" opacity="0.17"/>
+    </pattern>
+    <pattern id="leanHatch" width="10" height="10" patternUnits="userSpaceOnUse">
+      <path d="M2 0 V10" fill="none" stroke="#010206" stroke-width="0.65" opacity="0.18"/>
+    </pattern>
+    <pattern id="stoneHatch" width="16" height="13" patternUnits="userSpaceOnUse">
+      <path d="M0 6 H16 M5 0 V6 M12 6 V13" fill="none" stroke="#010206" stroke-width="0.55" opacity="0.16"/>
+    </pattern>
+    <pattern id="shingleHatch" width="14" height="9" patternUnits="userSpaceOnUse">
+      <path d="M0 8 H14 M0 4 Q3.5 8 7 4 Q10.5 8 14 4" fill="none" stroke="#010206" stroke-width="0.6" opacity="0.2"/>
+    </pattern>
+    <pattern id="logHatch" width="9" height="9" patternUnits="userSpaceOnUse">
+      <path d="M4.5 0 V9" fill="none" stroke="#010206" stroke-width="0.7" opacity="0.2"/>
+    </pattern>
+    <pattern id="plankHatch" width="64" height="22" patternUnits="userSpaceOnUse">
+      <path d="M0 0.5 H64 M0 11.5 H64 M20 0 V11 M50 11 V22" fill="none" stroke="#010206" stroke-width="0.8" opacity="0.22"/>
+    </pattern>
+    <pattern id="flagHatch" width="48" height="40" patternUnits="userSpaceOnUse">
+      <path d="M0 0.5 H48 M0 20.5 H48 M16 0 V20 M40 20 V40" fill="none" stroke="#010206" stroke-width="0.8" opacity="0.2"/>
+    </pattern>
+    <pattern id="waterHatch" width="22" height="10" patternUnits="userSpaceOnUse">
+      <path d="M2 5 Q7 1 12 5 T22 5" fill="none" stroke="#A3C9CC" stroke-width="1.1" opacity="0.7"/>
+    </pattern>
+  </defs>
+
+  <g id="building" stroke="#010206" stroke-linecap="round" stroke-linejoin="round">
+
+    <defs>
+      <pattern id="meshHatch" width="9" height="9" patternUnits="userSpaceOnUse">
+        <path d="M0 0 L9 9 M9 0 L0 9" fill="none" stroke="#2c2a27" stroke-width="0.8" opacity="0.55"/>
+      </pattern>
+    </defs>
+    <!-- Pen floor: trampled dirt, scuffs and paw prints. -->
+    <path d="M70 258 H442 L456 398 H56 Z" fill="#B8AB8E" stroke-width="1.8"/>
+    <path d="M70 258 H442 L456 398 H56 Z" fill="url(#leanHatch)" stroke="none"/>
+    <path d="M110 300 Q130 292 150 300 M300 392 Q330 384 360 392 M392 292 Q410 286 424 294" fill="none" stroke="#7A6C52" stroke-width="1.3" opacity="0.6"/>
+    <g fill="#8A7B60" stroke="none" opacity="0.8" transform="translate(214 308) scale(0.9)">
+      <ellipse cx="0" cy="2" rx="3.6" ry="3"/><circle cx="-4.6" cy="-2.4" r="1.6"/><circle cx="-1.6" cy="-4.8" r="1.6"/><circle cx="1.6" cy="-4.8" r="1.6"/><circle cx="4.6" cy="-2.4" r="1.6"/>
+    </g>
+    <g fill="#8A7B60" stroke="none" opacity="0.8" transform="translate(226 318) scale(0.9)">
+      <ellipse cx="0" cy="2" rx="3.6" ry="3"/><circle cx="-4.6" cy="-2.4" r="1.6"/><circle cx="-1.6" cy="-4.8" r="1.6"/><circle cx="1.6" cy="-4.8" r="1.6"/><circle cx="4.6" cy="-2.4" r="1.6"/>
+    </g>
+    <g fill="#8A7B60" stroke="none" opacity="0.8" transform="translate(300 322) scale(0.9)">
+      <ellipse cx="0" cy="2" rx="3.6" ry="3"/><circle cx="-4.6" cy="-2.4" r="1.6"/><circle cx="-1.6" cy="-4.8" r="1.6"/><circle cx="1.6" cy="-4.8" r="1.6"/><circle cx="4.6" cy="-2.4" r="1.6"/>
+    </g>
+    <g fill="#8A7B60" stroke="none" opacity="0.8" transform="translate(312 332) scale(0.9)">
+      <ellipse cx="0" cy="2" rx="3.6" ry="3"/><circle cx="-4.6" cy="-2.4" r="1.6"/><circle cx="-1.6" cy="-4.8" r="1.6"/><circle cx="1.6" cy="-4.8" r="1.6"/><circle cx="4.6" cy="-2.4" r="1.6"/>
+    </g>
+
+    <!-- Side fences: post tops marching toward the viewer, joined by rails. -->
+    <path d="M70 270 L56 396 M442 270 L456 396" fill="none" stroke="#5F4434" stroke-width="3.2"/>
+    <circle cx="68.8" cy="274" r="5.4" fill="#A58562" stroke-width="1.6"/>
+    <circle cx="443.2" cy="274" r="5.4" fill="#A58562" stroke-width="1.6"/>
+    <circle cx="66.2" cy="299" r="5.4" fill="#A58562" stroke-width="1.6"/>
+    <circle cx="445.8" cy="299" r="5.4" fill="#A58562" stroke-width="1.6"/>
+    <circle cx="63.6" cy="324" r="5.4" fill="#A58562" stroke-width="1.6"/>
+    <circle cx="448.4" cy="324" r="5.4" fill="#A58562" stroke-width="1.6"/>
+    <circle cx="61.0" cy="349" r="5.4" fill="#A58562" stroke-width="1.6"/>
+    <circle cx="451.0" cy="349" r="5.4" fill="#A58562" stroke-width="1.6"/>
+    <circle cx="58.5" cy="374" r="5.4" fill="#A58562" stroke-width="1.6"/>
+    <circle cx="453.5" cy="374" r="5.4" fill="#A58562" stroke-width="1.6"/>
+    <circle cx="55.9" cy="399" r="5.4" fill="#A58562" stroke-width="1.6"/>
+    <circle cx="456.1" cy="399" r="5.4" fill="#A58562" stroke-width="1.6"/>
+
+    <!-- Kennel house: plank roof over a long wall strip with three arched doors. -->
+
+    <path d="M104 108 H408 V159 H104 Z" fill="#B79B83" stroke="none"/>
+    <path d="M104 159 H408 V210 H104 Z" fill="#A38268" stroke="none"/>
+    <path d="M104 108 H408 V210 H104 Z" fill="url(#leanHatch)" stroke="none"/>
+    <path d="M104 108 H408 V210 H104 Z" fill="none" stroke-width="2.8"/>
+    <path d="M104 159 C180 157, 332 161, 408 159" fill="none" stroke-width="3.1"/>
+
+    <path d="M104 134 H408 M104 180 H408 M104 195 H408" fill="none" stroke-width="0.9" opacity="0.4"/>
+    <!-- Roof: a mended patch, a ventilation hatch with a bone nailed up, ridge cap. -->
+    <path d="M132 118 H196 V152 H132 Z" fill="#8F715E" stroke-width="1.5"/>
+    <path d="M132 118 H196 V152 H132 Z" fill="url(#logHatch)" stroke="none"/>
+    <path d="M132 135 H196" fill="none" stroke-width="1" opacity="0.6"/>
+    <path d="M308 148 H356 V180 H308 Z" fill="#5F4F44" stroke-width="1.8"/>
+    <path d="M314 154 H350 V174 H314 Z M314 160 H350 M314 167 H350" fill="none" stroke-width="1.1" opacity="0.7"/>
+    <path d="M112 210 H400 L394 262 H118 Z" fill="#8F715E" stroke-width="2.1"/>
+    <path d="M112 210 H400 L394 262 H118 Z" fill="url(#logHatch)" stroke="none"/>
+    <path d="M118 210 L124 262 M156 210 L158 262 M200 210 L201 262 M312 210 L311 262 M356 210 L354 262 M394 210 L388 262" fill="none" stroke="#5F4434" stroke-width="2.4"/>
+    <path d="M112 210 H400 V219 H112 Z" fill="#745846" stroke-width="1.8"/>
+    <!-- Three arched doghouse openings: trim, dark hollow, shaped step. -->
+    <g stroke-width="1.9">
+      <path d="M143 262 V236 Q143 212 168 212 Q193 212 193 236 V262 Z" fill="#745846"/>
+      <path d="M231 262 V236 Q231 212 256 212 Q281 212 281 236 V262 Z" fill="#745846"/>
+      <path d="M319 262 V236 Q319 212 344 212 Q369 212 369 236 V262 Z" fill="#745846"/>
+    </g>
+    <g stroke-width="1.5" fill="#241c19">
+      <path d="M149 262 V237 Q149 219 168 219 Q187 219 187 237 V262 Z"/>
+      <path d="M237 262 V237 Q237 219 256 219 Q275 219 275 237 V262 Z"/>
+      <path d="M325 262 V237 Q325 219 344 219 Q363 219 363 237 V262 Z"/>
+    </g>
+    <path d="M139 262 H197 L199 270 H137 Z M227 262 H285 L287 270 H225 Z M315 262 H373 L375 270 H313 Z" fill="#85827A" stroke-width="1.5"/>
+    <!-- A hound looking out of the middle door. -->
+    <path d="M241 262 C240 242 247 234 256 234 C265 234 272 242 271 262 Z" fill="#B07D52" stroke-width="1.6"/>
+    <path d="M247 262 C247 254 251 250 256 250 C261 250 265 254 265 262 Z" fill="#E3C79A" stroke-width="1.2"/>
+    <path d="M243 241 Q233 242 236 257 Q242 255 246 247 Z M269 241 Q279 242 276 257 Q270 255 266 247 Z" fill="#6F4A30" stroke-width="1.4"/>
+    <ellipse cx="256" cy="251" rx="3.6" ry="2.6" fill="#010206" stroke="none"/>
+    <circle cx="250" cy="241" r="1.7" fill="#010206" stroke="none"/><circle cx="262" cy="241" r="1.7" fill="#010206" stroke="none"/>
+    <path d="M256 255 V260" fill="none" stroke-width="1.1"/>
+    <!-- Glowing eyes in the dark right-hand door, and a water-stained plank. -->
+    <circle cx="338" cy="244" r="2" fill="#F4D36B" stroke="none"/><circle cx="350" cy="244" r="2" fill="#F4D36B" stroke="none"/>
+    <path d="M118 226 H138 V252 H118 Z" fill="#A58562" stroke-width="1.5"/>
+    <g transform="rotate(-50 128 239)" fill="#EDE3CC" stroke-width="1.1"><path d="M121 237.5 H135 V240.5 H121 Z"/><circle cx="121" cy="237" r="2.6"/><circle cx="121" cy="241" r="2.6"/><circle cx="135" cy="237" r="2.6"/><circle cx="135" cy="241" r="2.6"/></g>
+    <!-- Chain stake with its ring, bowl and bone. -->
+    <ellipse cx="90" cy="342" rx="10" ry="4.5" fill="#8A7C60" stroke="none" opacity="0.6"/>
+    <path d="M85 322 H95 L96 342 H84 Z" fill="#A58562" stroke-width="1.7"/>
+    <circle cx="90" cy="328" r="4.4" fill="none" stroke-width="2"/>
+    <g fill="#9C9A94" stroke-width="1.15">
+      <ellipse cx="93.0" cy="329.0" rx="4.6" ry="2.6" transform="rotate(-14 93.0 329.0)"/>
+      <ellipse cx="100.5" cy="327.2" rx="2.3" ry="3.2" transform="rotate(-14 100.5 327.2)"/>
+      <ellipse cx="108.1" cy="325.4" rx="4.6" ry="2.6" transform="rotate(-14 108.1 325.4)"/>
+      <ellipse cx="115.6" cy="323.5" rx="2.3" ry="3.2" transform="rotate(-14 115.6 323.5)"/>
+      <ellipse cx="123.2" cy="321.7" rx="4.6" ry="2.6" transform="rotate(-14 123.2 321.7)"/>
+      <ellipse cx="130.7" cy="319.9" rx="2.3" ry="3.2" transform="rotate(-14 130.7 319.9)"/>
+      <ellipse cx="138.3" cy="318.1" rx="4.6" ry="2.6" transform="rotate(-14 138.3 318.1)"/>
+      <ellipse cx="145.8" cy="316.3" rx="2.3" ry="3.2" transform="rotate(-14 145.8 316.3)"/>
+      <ellipse cx="153.4" cy="314.5" rx="4.6" ry="2.6" transform="rotate(-14 153.4 314.5)"/>
+      <ellipse cx="160.9" cy="312.6" rx="2.3" ry="3.2" transform="rotate(-14 160.9 312.6)"/>
+      <ellipse cx="168.5" cy="310.8" rx="4.6" ry="2.6" transform="rotate(-14 168.5 310.8)"/>
+      <ellipse cx="176.0" cy="309.0" rx="2.3" ry="3.2" transform="rotate(-14 176.0 309.0)"/>
+    </g>
+
+    <ellipse cx="262" cy="322" rx="19" ry="8.5" fill="#8E8B83" stroke-width="1.8"/>
+    <ellipse cx="262" cy="321" rx="14" ry="5.6" fill="#5B99A6" stroke-width="1.2"/>
+    <path d="M253 320 Q259 317 265 320" fill="none" stroke="#A3C9CC" stroke-width="1.1"/>
+    <g transform="rotate(-14 262 368)" fill="#EDE3CC" stroke-width="1.4">
+      <path d="M248 366 H276 V371 H248 Z"/>
+      <circle cx="247" cy="365" r="4.2"/><circle cx="247" cy="372" r="4.2"/><circle cx="277" cy="365" r="4.2"/><circle cx="277" cy="372" r="4.2"/>
+    </g>
+
+    <g transform="translate(142 362) scale(1.55 1.55)" stroke-width="1.5">
+      <!-- far legs -->
+      <path d="M-6 -22 L-5 0 H3 L3 -22 Z M21 -22 L22 0 H30 L29 -22 Z" fill="#74502F"/>
+      <!-- tail, body, darker saddle (lifted above the legs) -->
+      <g transform="translate(0 -9)">
+        <path d="M-25 -23 C-33 -27 -39 -37 -36 -45 C-31 -36 -27 -32 -20 -28 Z" fill="#74502F"/>
+        <path d="M-26 -22 C-26 -31 -10 -33 4 -32 C14 -32 20 -31 23 -27 L23 -14 C8 -9 -12 -9 -24 -12 Z" fill="#B98A5A"/>
+        <path d="M-14 -31 C-2 -33 11 -32 19 -29 L18 -22 C8 -24 -6 -24 -14 -21 Z" fill="#74502F" stroke="none" opacity="0.8"/>
+      </g>
+      <!-- near legs -->
+      <path d="M-24 -24 L-21 0 H-12 L-11 -13 L-5 -15 L-7 -28 Z" fill="#B98A5A"/>
+      <path d="M9 -24 L10 0 H19 L19 -24 Z" fill="#B98A5A"/>
+      <path d="M-21 -4 H-12 M10 -4 H19" fill="none" stroke-width="1" opacity="0.6"/>
+      <g transform="translate(0 -9)">
+        <!-- neck, head, snout -->
+        <path d="M14 -31 L23 -44 L36 -46 L47 -37 L48 -31 L39 -29 L34 -30 L27 -24 L22 -14 Z" fill="#B98A5A"/>
+        <path d="M38 -34 L47 -37 L48 -31 L39 -29 Z" fill="#E3C79A" stroke-width="1.1"/>
+        <!-- floppy ear, collar, eye, nose -->
+        <path d="M27 -45 Q20 -36 27 -29 L35 -37 Z" fill="#74502F"/>
+        <path d="M17 -32 L26 -27" fill="none" stroke="#9C3F3A" stroke-width="3.4"/>
+        <circle cx="36" cy="-40" r="1.5" fill="#010206" stroke="none"/>
+        <circle cx="47.5" cy="-35" r="2.2" fill="#010206" stroke="none"/>
+      </g>
+    </g>
+
+    <g transform="translate(352 384) scale(1.50)" stroke-width="1.5">
+      <path d="M-26 -4 C-38 -6 -42 -18 -34 -22 C-34 -14 -30 -10 -22 -9 Z" fill="#5D4A3B"/>
+      <path d="M-26 -2 C-28 -17 -10 -22 6 -20 C17 -19 23 -12 22 -2 Z" fill="#8C7561"/>
+      <path d="M-16 -20 C-4 -22 8 -21 15 -18 L13 -11 C4 -13 -6 -13 -12 -9 Z" fill="#5D4A3B" stroke="none" opacity="0.75"/>
+      <path d="M-24 -4 C-22 -10 -14 -10 -10 -4 Z" fill="#8C7561"/>
+      <path d="M14 -18 C18 -27 30 -27 36 -20 L45 -10 L44 -3 L22 -3 Z" fill="#8C7561"/>
+      <path d="M36 -12 L45 -10 L44 -3 L34 -3 Z" fill="#E3C79A" stroke-width="1.1"/>
+      <path d="M20 -26 Q13 -18 19 -9 L28 -17 Z" fill="#5D4A3B"/>
+      <path d="M20 -4 H42" fill="none" stroke-width="1" opacity="0.6"/>
+      <circle cx="31" cy="-18" r="1.4" fill="#010206" stroke="none"/>
+      <circle cx="44" cy="-9" r="2" fill="#010206" stroke="none"/>
+    </g>
+
+    <g transform="translate(404 322) scale(-1.40 1.40)" stroke-width="1.5">
+      <!-- far legs -->
+      <path d="M-6 -22 L-5 0 H3 L3 -22 Z M21 -22 L22 0 H30 L29 -22 Z" fill="#4D4B47"/>
+      <!-- tail, body, darker saddle (lifted above the legs) -->
+      <g transform="translate(0 -9)">
+        <path d="M-25 -23 C-33 -27 -39 -37 -36 -45 C-31 -36 -27 -32 -20 -28 Z" fill="#4D4B47"/>
+        <path d="M-26 -22 C-26 -31 -10 -33 4 -32 C14 -32 20 -31 23 -27 L23 -14 C8 -9 -12 -9 -24 -12 Z" fill="#8D8A85"/>
+        <path d="M-14 -31 C-2 -33 11 -32 19 -29 L18 -22 C8 -24 -6 -24 -14 -21 Z" fill="#4D4B47" stroke="none" opacity="0.8"/>
+      </g>
+      <!-- near legs -->
+      <path d="M-24 -24 L-21 0 H-12 L-11 -13 L-5 -15 L-7 -28 Z" fill="#8D8A85"/>
+      <path d="M9 -24 L10 0 H19 L19 -24 Z" fill="#8D8A85"/>
+      <path d="M-21 -4 H-12 M10 -4 H19" fill="none" stroke-width="1" opacity="0.6"/>
+      <g transform="translate(0 -9)">
+        <!-- neck, head, snout -->
+        <path d="M14 -31 L23 -44 L36 -46 L47 -37 L48 -31 L39 -29 L34 -30 L27 -24 L22 -14 Z" fill="#8D8A85"/>
+        <path d="M38 -34 L47 -37 L48 -31 L39 -29 Z" fill="#E3C79A" stroke-width="1.1"/>
+        <!-- floppy ear, collar, eye, nose -->
+        <path d="M27 -45 Q20 -36 27 -29 L35 -37 Z" fill="#4D4B47"/>
+        <path d="M17 -32 L26 -27" fill="none" stroke="#4B7A8F" stroke-width="3.4"/>
+        <circle cx="36" cy="-40" r="1.5" fill="#010206" stroke="none"/>
+        <circle cx="47.5" cy="-35" r="2.2" fill="#010206" stroke="none"/>
+      </g>
+    </g>
+
+    <!-- Front fence: wire mesh between two rails, posts and a gate. -->
+    <path d="M56 396 H456 V424 H56 Z" fill="#B8AB8E" stroke="none" opacity="0.4"/>
+    <path d="M62 404 H450 V420 H62 Z" fill="url(#meshHatch)" stroke="none"/>
+    <path d="M62 400 H450 M62 422 H450" fill="none" stroke="#5F4434" stroke-width="5"/>
+    <path d="M62 400 H450 M62 422 H450" fill="none" stroke="#A58562" stroke-width="2.6"/>
+    <g fill="#8F6F52" stroke-width="1.8">
+      <path d="M56 428 V390 L61 384 L66 390 V428 Z"/>
+      <path d="M98 428 V390 L103 384 L108 390 V428 Z"/>
+      <path d="M140 428 V390 L145 384 L150 390 V428 Z"/>
+      <path d="M182 428 V390 L187 384 L192 390 V428 Z"/>
+      <path d="M296 428 V390 L301 384 L306 390 V428 Z"/>
+      <path d="M338 428 V390 L343 384 L348 390 V428 Z"/>
+      <path d="M380 428 V390 L385 384 L390 390 V428 Z"/>
+      <path d="M422 428 V390 L427 384 L432 390 V428 Z"/>
+      <path d="M446 428 V390 L451 384 L456 390 V428 Z"/>
+    </g>
+    <path d="M196 428 V380 L203 372 L210 380 V428 Z M282 428 V380 L289 372 L296 380 V428 Z" fill="#745846" stroke-width="2"/>
+    <path d="M210 386 H282 V424 H210 Z" fill="#A58562" stroke-width="2"/>
+    <path d="M210 386 H282 V424 H210 Z" fill="url(#meshHatch)" stroke="none"/>
+    <path d="M210 386 L282 424 M210 424 L282 386" fill="none" stroke="#5F4434" stroke-width="2.6" opacity="0.8"/>
+    <path d="M210 386 H282 V424 H210 Z" fill="none" stroke-width="2.2"/>
+    <circle cx="276" cy="404" r="2.6" fill="#D7C39A" stroke-width="1"/>
+
+  </g>
+</svg>

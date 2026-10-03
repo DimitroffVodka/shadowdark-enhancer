@@ -91,6 +91,7 @@ import { Quests, openQuestLog, registerQuests } from "./quests/quests.mjs";
 import { Troubles, registerTroubles } from "./troubles/troubles.mjs";
 import { Rumors, registerRumors } from "./rumors/rumors.mjs";
 import { registerActorTypes, WARBAND_TYPE } from "./actors/register-actors.mjs";
+import { bastionApi } from "./bastion/register-bastion.mjs";
 import { registerWarbandUpkeep } from "./actors/warband-upkeep.mjs";
 import { registerWarbandUpgrades } from "./actors/warband-upgrades.mjs";
 import { registerWarbandCombat } from "./actors/warband-combat.mjs";
@@ -112,7 +113,7 @@ import { initRivalClassTable } from "./forge-loot/rival-class-table-adapter.mjs"
 // templates, producing unstyled block-flow UI. Keep the manifest stylesheet as
 // the startup fallback, then layer a content-addressed copy above it. The layout
 // contract test requires this revision to change whenever the CSS file changes.
-const STYLESHEET_REV = "4a6a3c111927";
+const STYLESHEET_REV = "8f7db6eb7c08";
 
 // The same problem for the SCRIPTS, which cannot be solved the same way: their
 // URLs come from the manifest, which Foundry validates as real package paths,
@@ -127,7 +128,7 @@ const STYLESHEET_REV = "4a6a3c111927";
 // stale); module.json carries the same hash and is fetched fresh at runtime. A
 // mismatch is a stale cache by construction — it cannot be anything else. Both
 // stamps are written by `npm run inventory` and gated by `inventory:check`.
-const BUILD_REV = "6a91b2797d89";
+const BUILD_REV = "2cddae42445a";
 
 /**
  * Tell the user when their browser is running an old build of this module, and
@@ -477,7 +478,8 @@ Hooks.once("init", () => {
     //   setPace; overland.startDay reads the method and the pace when they're left out (#257).
     // 1.26.0 — additive: hexMaps.numberAt and hexMaps.hasNumbering, the tagger's hex numbers for
     //   Shadowdark Extras' Map Coordinates.
-    apiVersion: "1.26.0",
+    // 1.27.0 — additive: the bastion namespace, the Bastion actor type and its sheet.
+    apiVersion: "1.27.0",
     // The one travel state per world (scripts/overland/overland.mjs): a copy
     // with hexes left, climate, storm, harshness and night derived; whether
     // travel is on; today's weather roll, the travel day's start, Continue
@@ -538,6 +540,8 @@ Hooks.once("init", () => {
         return ImporterHubApp.openContentUnlock({ name: "Canoe", src: "WR", type: "Boat", page: "118" });
       },
     },
+    // Bastions: the actor type, its rules and the places the party owns.
+    bastion: bastionApi(),
     // Universal dump segmentation (D9): one paste → typed buckets.
     import: {
       // Pure, synchronous. Returns { monsters, items, tables, skipped }.

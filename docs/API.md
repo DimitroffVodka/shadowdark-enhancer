@@ -14,7 +14,7 @@ and Forge & Loot features.
 [`merchant`](#merchant--shop-window--transaction-log) ·
 [`partyXp`](#partyxp--party-xp-awards) · [`recap`](#recap--session-recap) ·
 [`charBuilder`](#charbuilder--guided-character-creation) ·
-[`actors`](#actors--western-reaches-boats) ·
+[`actors`](#actors--western-reaches-boats) · [`bastion`](#bastion--bastions) ·
 [`statDamage`](#statdamage--tracked-ability-damage) · [`quests`](#quests--the-quest-log) ·
 [`dying`](#dying--death-timers-and-stabilizing) ·
 [`hexMaps`](#hexmaps--hex-map-tagging-and-the-extras-dataset) ·
@@ -23,7 +23,7 @@ and Forge & Loot features.
 [`time`](#time--season-day-and-night-sun-moon-and-anchors) ·
 [`overland`](#overland--the-travel-state)
 
-**API version:** `1.26.0` (semver — additive changes bump the minor version,
+**API version:** `1.27.0` (semver — additive changes bump the minor version,
 breaking changes the major; check `apiVersion` before relying on newer keys).
 
 ## Discovery
@@ -72,6 +72,42 @@ await api.actors.importBoats();
 Boats import through the standard paste → preview → commit flow, exactly like
 monsters and items. The Importer Hub's **Manage → Vehicles → Boats** tree opens the
 same flow (as does `api.actors.importBoats()`).
+
+## `bastion` — bastions
+
+A bastion is a place the party owns: an actor of type `shadowdark-enhancer.bastion`
+with its own sheet (Overview, Upgrades, Plan, Log). The four types, their upgrade
+slots and the twenty upgrades are the printed rules; the sheet draws the bastion
+from outside or in. Since 1.27.0.
+
+```js
+api.bastion.type;                 // "shadowdark-enhancer.bastion"
+api.bastion.types();              // [{ id, cost, ac, hp, slots, weeks, name, blurb }, ...] house, outpost, keep, castle
+api.bastion.upgrades();           // [{ id, cost, name, effect }, ...] the twenty, one of each per bastion
+
+// GM only. A new bastion of a type, not yet raised; the treasury starts at `treasury` gp.
+const actor = await api.bastion.create({ name: "Blackhollow", type: "keep", treasury: 1000 });
+
+api.bastion.open(actor);          // open the sheet; true when it is a bastion
+api.bastion.state(actor);         // { type, weeksLeft, week, hp:{value}, treasury, upgrades:[{id,slot,weeksLeft}], repair, log } or null
+api.bastion.built(actor);         // ids of the upgrades that are finished, so give their effect
+```
+
+| Call | Who | Notes |
+|---|---|---|
+| `bastion.type` | any | The actor type id. |
+| `bastion.types()` | any | A copy of the four types. `name` and `blurb` are language keys. |
+| `bastion.upgrades()` | any | A copy of the twenty upgrades. `name` and `effect` are language keys. |
+| `bastion.create({ name, type, treasury })` | GM | Returns the new actor, or `null` for a non-GM or an unknown type. A House takes a week to build, an Outpost two, a Keep four, a Castle eight; upgrades wait until it stands. |
+| `bastion.open(actorOrIdOrUuid)` | any | Renders the sheet. Returns whether the argument was a bastion. |
+| `bastion.state(actorOrIdOrUuid)` | any | A plain copy of the rules state, or `null`. An upgrade's `slot` is its place on the plan (`-1` for the moat, which has none). |
+| `bastion.built(actorOrIdOrUuid)` | any | The finished upgrades' ids (`weeksLeft` 0), `[]` for anything else. |
+
+The sheet's writes are the GM's: costs come out of the bastion's treasury (a number
+the GM sets), an upgrade takes a week, a repair a week and 1 gp per HP, and the
+monthly disaster is a button. The effects themselves (the Barracks' healing, the
+Granary's saving on a warband's upkeep) are for other features to read through
+`bastion.built`.
 
 ## `items` — bulk items importer
 
@@ -2006,6 +2042,7 @@ scene's choice changes, and once on load.
   `overland.setPace`; `overland.startDay` reads the method and the pace when they're left out.
   `overland.makeCamp` makes the camp before the night (with Shadowdark Extras' `deferRest` and
   `camping.dawn`) and needs an open travel day, and the state gains `camp` and the held encounter `interrupts`.
+- `1.27.0` adds the `bastion` namespace (the Bastion actor type and its sheet).
 - `1.4.0` adds the shared `forgeLoot.open()` preview shell. Generator rules and
   document writes remain behind the later NPC/Rival adapter implementations.
   The version policy is additive: new namespaces bump the minor version; breaking

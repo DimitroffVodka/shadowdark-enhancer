@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512"
+     role="img" aria-labelledby="title desc">
+  <title id="title">Vault shadow</title>
+  <desc id="desc">Separate native-vector cast shadow aligned to the Vault SVG.</desc>
+  <g id="shadow" transform="translate(28 16)" fill="#9699AE" opacity="0.46">
+    <path d="M92 88 H348 V252 L340 404 H104 L106 254 H92 Z"/>
+    <path d="M342 276 H490 V404 H342 Z"/>
+
+  </g>
+</svg>

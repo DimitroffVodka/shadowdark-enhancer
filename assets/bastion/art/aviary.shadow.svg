@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512"
+     role="img" aria-labelledby="title desc">
+  <title id="title">Aviary shadow</title>
+  <desc id="desc">Separate native-vector cast shadow aligned to the Aviary SVG.</desc>
+  <g id="shadow" transform="translate(28 16)" fill="#9699AE" opacity="0.46">
+    <g transform="translate(256 256) scale(0.9) translate(-254 -224)">
+    <path d="M114 202 L180 112 H226 V74 L256 36 L286 74 V112 H332 L398 202 V362 H364 V424 H148 V362 H114 Z"/>
+    <path d="M388 276 H432 V296 V428 H394 V296 Z"/>
+    <path d="M90 372 H146 V430 H90 Z"/>
+
+    </g>
+
+  </g>
+</svg>

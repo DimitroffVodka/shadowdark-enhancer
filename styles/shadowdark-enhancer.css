@@ -11768,3 +11768,113 @@ button.sde-hud-day:hover { border-color: var(--sd-frame); }
 .sde-advp-row.is-skipped .sde-advp-name { opacity: 0.45; text-decoration: line-through; }
 .sde-advp-row.is-armed { background: rgba(255, 200, 0, 0.18); }
 .sde-advp-state { font-size: 0.75rem; opacity: 0.7; }
+
+/* ── Bastion actor sheet ────────────────────────────────────────────────────
+ * An ApplicationV2 window in the Shadowdark parchment chrome, like the Boat's
+ * (the .SD-header / .SD-nav / .SD-box rules come from the system's stylesheet
+ * through the `shadowdark sheet` classes). Parchment and ink are forced so the
+ * look doesn't follow the client's dark or light theme. */
+.sde-bastion-body { height: 100%; }
+.sde-bastion-sheet .window-content {
+  padding: 0;
+  overflow: hidden;
+  background: url("/ui/parchment.jpg") repeat;
+  color: #191813;
+}
+.sde-bastion-sheet,
+.sde-bastion-sheet input,
+.sde-bastion-sheet select,
+.sde-bastion-sheet textarea,
+.sde-bastion-sheet label,
+.sde-bastion-sheet button { color: #191813; }
+.sde-bastion-sheet .SD-title,
+.sde-bastion-sheet .SD-title input { color: #fff; }
+.sde-bastion-sheet .SD-title input { font-family: "Old Newspaper Font", serif; font-size: 40px; text-align: center; }
+.sde-bastion-sheet .SD-title input::placeholder { color: rgba(255, 255, 255, 0.55); }
+.sde-bastion-sheet .SD-header .portrait { grid-row: span 2; width: 110px; height: 110px; object-fit: contain; background: #85A478; }
+.sde-bastion-sheet .shadowdark-logo { font-family: "JSL Blackletter", sans-serif; font-size: 1.75rem; color: #fff; text-align: center; }
+.sde-bastion-sheet .shadowdark-logo span { border-bottom: solid 1px #fff; padding: 0 10px; }
+.sde-bastion-sheet .SD-box .header label { color: #fff; }
+.sde-bastion-sheet .window-header .header-control { color: rgba(235, 230, 220, 0.82); }
+.sde-bastion-sheet .window-header .header-control:hover { color: #fff; }
+
+.sde-bastion-sheet .sde-bast-tab { display: none; flex: 1 1 auto; min-height: 0; overflow: auto; padding: 8px 10px; }
+.sde-bastion-sheet .sde-bast-tab.active { display: block; }
+.sde-bastion-sheet .sde-bast-tab.sde-bast-plan.active { display: flex; flex-direction: column; gap: 6px; }
+.sde-bastion-sheet .note { font-size: 13px; margin: 6px 0; }
+.sde-bastion-sheet .hint { font-size: 12px; font-style: italic; opacity: 0.8; margin: 4px 0; }
+.sde-bastion-sheet h3 { margin: 10px 0 4px; font-size: 14px; color: #191813; border-bottom: 1px solid rgba(0, 0, 0, 0.3); }
+.sde-bastion-sheet .sde-bast-bad,
+.sde-bastion-sheet .sde-bast-bad .content { color: #b22222; font-weight: bold; }
+
+.sde-bastion-sheet button {
+  background: rgba(0, 0, 0, 0.06);
+  border: 1px solid rgba(0, 0, 0, 0.35);
+  border-radius: 4px;
+  padding: 4px 10px;
+  cursor: pointer;
+  width: auto;
+}
+.sde-bastion-sheet button:hover:not([disabled]) { background: rgba(0, 0, 0, 0.12); }
+.sde-bastion-sheet button[disabled] { opacity: 0.4; cursor: not-allowed; }
+.sde-bastion-sheet button.on { background: #7e8f99; border-color: #7e8f99; color: #fff; }
+.sde-bastion-sheet button.ghost { background: transparent; border-color: transparent; }
+
+.sde-bast-overview { display: flex; gap: 14px; align-items: flex-start; }
+.sde-bast-overview .sde-bast-col { flex: 1 1 50%; min-width: 0; }
+.sde-bast-field { display: flex; flex-direction: column; gap: 2px; font-size: 12px; }
+.sde-bast-field select { height: 28px; font-size: 14px; }
+.sde-bast-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; }
+.sde-bast-stats .SD-box { margin: 0; }
+.sde-bast-stat .content { display: flex; align-items: center; justify-content: center; gap: 4px; padding: 6px 5px; font-size: 18px; }
+.sde-bast-stat input { width: 96px; height: 30px; font-size: 18px; text-align: center; }
+.sde-bast-buttons { display: flex; flex-wrap: wrap; gap: 6px; }
+.sde-bast-col textarea { width: 100%; resize: vertical; }
+.sde-bast-col textarea,
+.sde-bast-field select,
+.sde-bast-stat input { background: rgba(255, 255, 255, 0.45); border: 1px solid rgba(0, 0, 0, 0.35); border-radius: 4px; }
+
+.sde-bast-upgrades { display: grid; grid-template-columns: repeat(auto-fill, minmax(330px, 1fr)); gap: 6px; }
+.sde-bast-up { display: grid; grid-template-columns: 56px 1fr auto; gap: 8px; align-items: center; padding: 4px; border: 1px solid rgba(0, 0, 0, 0.3); border-radius: 6px; background: rgba(255, 255, 255, 0.35); }
+.sde-bast-up.built { background: rgba(126, 143, 153, 0.3); }
+.sde-bast-up.building { background: rgba(184, 114, 44, 0.2); }
+.sde-bast-up .art { width: 56px; height: 56px; border-radius: 4px; }
+.sde-bast-up .text { display: flex; flex-direction: column; font-size: 12px; min-width: 0; }
+.sde-bast-up .text strong { font-size: 14px; }
+.sde-bast-up .act { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; font-size: 12px; }
+.sde-bast-up .act .cost { opacity: 0.7; }
+
+.sde-bast-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.sde-bast-toolbar .seg { display: flex; gap: 0; }
+.sde-bast-toolbar .seg button:first-child { border-radius: 4px 0 0 4px; }
+.sde-bast-toolbar .seg button:last-child { border-radius: 0 4px 4px 0; }
+.sde-bast-toolbar .spacer { flex: 1; }
+.sde-bast-planbody { display: grid; grid-template-columns: 1fr 190px; gap: 8px; flex: 1 1 auto; min-height: 0; }
+.sde-bastion-map { width: 100%; height: 100%; min-height: 360px; background: #85A478; border: 1px solid rgba(0, 0, 0, 0.4); border-radius: 6px; cursor: grab; user-select: none; touch-action: none; }
+.sde-bastion-map .roof { transition: opacity 0.22s; }
+.sde-bastion-map .roof:hover { opacity: 0; }
+.sde-bastion-map g[data-id] { cursor: pointer; }
+.sde-bastion-card { border: 1px solid rgba(0, 0, 0, 0.35); border-radius: 6px; background: rgba(255, 255, 255, 0.4); padding: 6px; align-self: start; font-size: 12px; }
+.sde-bastion-card figure { margin: 0 0 6px; }
+.sde-bastion-card svg { width: 100%; height: auto; display: block; border-radius: 4px; background: #85A478; }
+.sde-bastion-card, .sde-bastion-card figcaption, .sde-bastion-card strong, .sde-bastion-card p { color: #191813; }
+.sde-bastion-card figcaption { font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; opacity: 0.6; margin: 2px 0 0; }
+.sde-bastion-card .cost { float: right; opacity: 0.7; }
+.sde-bastion-card p { margin: 4px 0 0; }
+
+.sde-bast-log { margin: 0; padding-left: 18px; font-size: 13px; }
+.sde-bast-log li { margin: 3px 0; }
+.sde-bast-log .week { font-weight: bold; margin-right: 4px; }
+
+/* A field the viewer can't edit reads as text, not as a box to type in. */
+.sde-bastion-sheet input[disabled],
+.sde-bastion-sheet select[disabled],
+.sde-bastion-sheet textarea[disabled],
+.sde-bastion-sheet .sde-bast-stat input[disabled],
+.sde-bastion-sheet .sde-bast-field select[disabled] {
+  background: transparent;
+  border-color: transparent;
+  opacity: 1;
+  -webkit-appearance: none;
+  appearance: none;
+}

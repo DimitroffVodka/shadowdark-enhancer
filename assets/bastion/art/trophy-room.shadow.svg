@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512"
+     role="img" aria-labelledby="title desc">
+  <title id="title">Trophy Room shadow</title>
+  <desc id="desc">Separate native-vector cast shadow aligned to the Trophy Room SVG.</desc>
+  <g id="shadow" transform="translate(28 16)" fill="#9699AE" opacity="0.46">
+    <path d="M112 136 H400 V264 L394 264 L390 342 H292 L296 352 H216 L222 342 H122 L118 264 H112 Z"/>
+    <path d="M190 194 H322 V290 H190 Z"/>
+    <path d="M58 330 H130 V424 H58 Z"/>
+    <path d="M388 250 H452 V300 H444 V404 H388 Z"/>
+    <path d="M306 380 H410 V438 H306 Z"/>
+
+  </g>
+</svg>

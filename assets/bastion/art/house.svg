@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512"
+     role="img" aria-labelledby="title desc">
+  <title id="title">House</title>
+  <desc id="desc">Cob-and-timber cabin bastion with chimney, woodpile and garden.</desc>
+  <!-- Native vector artwork only: no embedded or linked raster content. -->
+
+  <defs>
+    <pattern id="roofHatch" width="12" height="12" patternUnits="userSpaceOnUse">
+      <path d="M2 0 V12 M8 0 V12" fill="none" stroke="#010206" stroke-width="0.75" opacity="0.17"/>
+    </pattern>
+    <pattern id="leanHatch" width="10" height="10" patternUnits="userSpaceOnUse">
+      <path d="M2 0 V10" fill="none" stroke="#010206" stroke-width="0.65" opacity="0.18"/>
+    </pattern>
+    <pattern id="stoneHatch" width="16" height="13" patternUnits="userSpaceOnUse">
+      <path d="M0 6 H16 M5 0 V6 M12 6 V13" fill="none" stroke="#010206" stroke-width="0.55" opacity="0.16"/>
+    </pattern>
+    <pattern id="shingleHatch" width="14" height="9" patternUnits="userSpaceOnUse">
+      <path d="M0 8 H14 M0 4 Q3.5 8 7 4 Q10.5 8 14 4" fill="none" stroke="#010206" stroke-width="0.6" opacity="0.2"/>
+    </pattern>
+    <pattern id="logHatch" width="9" height="9" patternUnits="userSpaceOnUse">
+      <path d="M4.5 0 V9" fill="none" stroke="#010206" stroke-width="0.7" opacity="0.2"/>
+    </pattern>
+    <pattern id="plankHatch" width="64" height="22" patternUnits="userSpaceOnUse">
+      <path d="M0 0.5 H64 M0 11.5 H64 M20 0 V11 M50 11 V22" fill="none" stroke="#010206" stroke-width="0.8" opacity="0.22"/>
+    </pattern>
+    <pattern id="flagHatch" width="48" height="40" patternUnits="userSpaceOnUse">
+      <path d="M0 0.5 H48 M0 20.5 H48 M16 0 V20 M40 20 V40" fill="none" stroke="#010206" stroke-width="0.8" opacity="0.2"/>
+    </pattern>
+    <pattern id="waterHatch" width="22" height="10" patternUnits="userSpaceOnUse">
+      <path d="M2 5 Q7 1 12 5 T22 5" fill="none" stroke="#A3C9CC" stroke-width="1.1" opacity="0.7"/>
+    </pattern>
+  </defs>
+
+  <g id="building" stroke="#010206" stroke-linecap="round" stroke-linejoin="round">
+
+    <!-- Cabbage patch: tilled bed with furrows and heads. -->
+    <path d="M60 372 H176 L182 424 H54 Z" fill="#8A7660" stroke-width="2"/>
+    <path d="M66 386 H172 M63 399 H176 M60 412 H179" fill="none" stroke="#5F4F40" stroke-width="1.2" opacity="0.75"/>
+    <g fill="#7FA06B" stroke-width="1.3">
+      <circle cx="82" cy="380" r="7"/><circle cx="108" cy="381" r="7"/><circle cx="134" cy="380" r="7"/><circle cx="160" cy="381" r="7"/>
+      <circle cx="76" cy="406" r="7"/><circle cx="104" cy="406" r="7"/><circle cx="132" cy="407" r="7"/><circle cx="162" cy="406" r="7"/>
+    </g>
+    <path d="M79 380 Q82 376 85 380 M105 381 Q108 377 111 381 M131 380 Q134 376 137 380 M157 381 Q160 377 163 381 M73 406 Q76 402 79 406 M101 406 Q104 402 107 406 M129 407 Q132 403 135 407 M159 406 Q162 402 165 406" fill="none" stroke-width="0.9" opacity="0.7"/>
+    <!-- Chimney: stone stack rising behind the ridge. -->
+    <path d="M340 92 H384 V176 H340 Z" fill="#8E8B83" stroke="none"/>
+    <path d="M340 92 H384 V176 H340 Z" fill="url(#stoneHatch)" stroke="none"/>
+    <path d="M340 92 H384 V176 H340 Z" fill="none" stroke-width="2.2"/>
+    <path d="M335 84 H389 V98 H335 Z" fill="#A8A59B" stroke-width="2"/>
+    <path d="M346 87 H378 V95 H346 Z" fill="#26211f" stroke="none"/>
+    <path d="M88 318 H376 L370 352 H94 Z" fill="#C9B79A" stroke-width="2.1"/>
+
+    <path d="M82 140 H382 V230 H82 Z" fill="#C4A68F" stroke="none"/>
+    <path d="M82 230 H382 V320 H82 Z" fill="#B58F78" stroke="none"/>
+    <path d="M82 140 H382 V320 H82 Z" fill="url(#shingleHatch)" stroke="none"/>
+    <path d="M82 140 H382 V320 H82 Z" fill="none" stroke-width="2.8"/>
+    <path d="M82 230 C157 228, 307 232, 382 230" fill="none" stroke-width="3.1"/>
+
+    <g fill="#A9856E" stroke-width="1.6">
+      <rect x="76" y="133" width="14" height="14" rx="2"/>
+      <rect x="374" y="133" width="14" height="14" rx="2"/>
+      <rect x="76" y="313" width="14" height="14" rx="2"/>
+      <rect x="374" y="313" width="14" height="14" rx="2"/>
+    </g>
+
+    <!-- Cob wall strip: timber studs, shuttered window, door and step. -->
+    <path d="M118 319 V351 M170 319 V351 M300 319 V351 M344 319 V351" fill="none" stroke="#5F4434" stroke-width="3"/>
+    <path d="M196 326 H228 V346 H196 Z" fill="#E6D9B5" stroke-width="1.8"/>
+    <path d="M212 326 V346 M196 336 H228" fill="none" stroke-width="1.2"/>
+    <path d="M188 324 H196 V348 H188 Z M228 324 H236 V348 H228 Z" fill="#6C8F7E" stroke-width="1.4"/>
+    <path d="M246 319 H284 L281 351 H249 Z" fill="#745846" stroke-width="1.9"/>
+    <path d="M251 329 H279 M252 339 H279" fill="none" stroke-width="1.05" opacity="0.7"/>
+    <circle cx="274" cy="337" r="1.8" fill="#D7C39A" stroke="none"/>
+    <path d="M242 352 H290 L294 362 H238 Z" fill="#85827A" stroke-width="1.8"/>
+    <!-- Roof: a mended patch, and a loft hatch under the ridge. -->
+    <path d="M150 190 H214 V222 H150 Z" fill="#A8856F" stroke-width="1.4"/>
+    <path d="M150 190 H214 V222 H150 Z" fill="url(#shingleHatch)" stroke="none"/>
+    <path d="M276 204 H316 V230 H276 Z" fill="#5F4F44" stroke-width="1.8"/>
+    <path d="M276 217 H316 M296 204 V230" fill="none" stroke-width="1.1" opacity="0.7"/>
+    <!-- Woodpile: ends of stacked split logs under a plank. -->
+    <path d="M318 372 H398 L402 380 H314 Z" fill="#745846" stroke-width="1.8"/>
+    <g fill="#C7A06E" stroke-width="1.3">
+      <circle cx="328" cy="394" r="8"/><circle cx="346" cy="394" r="8"/><circle cx="364" cy="394" r="8"/><circle cx="382" cy="394" r="8"/>
+      <circle cx="337" cy="410" r="8"/><circle cx="355" cy="410" r="8"/><circle cx="373" cy="410" r="8"/>
+    </g>
+    <g fill="none" stroke-width="0.8" opacity="0.65">
+      <circle cx="328" cy="394" r="3.5"/><circle cx="346" cy="394" r="3.5"/><circle cx="364" cy="394" r="3.5"/><circle cx="382" cy="394" r="3.5"/>
+      <circle cx="337" cy="410" r="3.5"/><circle cx="355" cy="410" r="3.5"/><circle cx="373" cy="410" r="3.5"/>
+    </g>
+
+    <ellipse cx="224" cy="380" rx="13" ry="8" fill="#A17A5C" stroke-width="1.7"/>
+    <path d="M211 380 L213 408 Q224 416 235 408 L237 380 Q224 388 211 380 Z" fill="#876449" stroke-width="1.7"/>
+    <path d="M213 390 Q224 396 235 390 M213 401 Q224 407 235 401" fill="none" stroke="#4D4B47" stroke-width="1.3"/>
+
+    <!-- Hanging key-and-hearth sign by the door. -->
+    <path d="M400 330 V372 M400 334 H430" fill="none" stroke="#4B352B" stroke-width="2.6"/>
+    <path d="M410 336 H430 V356 H410 Z" fill="#B97755" stroke-width="1.7"/>
+    <path d="M414 352 Q420 340 426 352 Z" fill="#E5B861" stroke-width="1.2"/>
+
+  </g>
+</svg>

@@ -1,0 +1,152 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512"
+     role="img" aria-labelledby="title desc">
+  <title id="title">Dungeon</title>
+  <desc id="desc">Stone bunker gatehouse in a mound with iron door, barred grate, winch, shackle post and collapsed tunnel.</desc>
+  <!-- Native vector artwork only: no embedded or linked raster content. -->
+
+  <defs>
+    <pattern id="roofHatch" width="12" height="12" patternUnits="userSpaceOnUse">
+      <path d="M2 0 V12 M8 0 V12" fill="none" stroke="#010206" stroke-width="0.75" opacity="0.17"/>
+    </pattern>
+    <pattern id="leanHatch" width="10" height="10" patternUnits="userSpaceOnUse">
+      <path d="M2 0 V10" fill="none" stroke="#010206" stroke-width="0.65" opacity="0.18"/>
+    </pattern>
+    <pattern id="stoneHatch" width="16" height="13" patternUnits="userSpaceOnUse">
+      <path d="M0 6 H16 M5 0 V6 M12 6 V13" fill="none" stroke="#010206" stroke-width="0.55" opacity="0.16"/>
+    </pattern>
+    <pattern id="shingleHatch" width="14" height="9" patternUnits="userSpaceOnUse">
+      <path d="M0 8 H14 M0 4 Q3.5 8 7 4 Q10.5 8 14 4" fill="none" stroke="#010206" stroke-width="0.6" opacity="0.2"/>
+    </pattern>
+    <pattern id="logHatch" width="9" height="9" patternUnits="userSpaceOnUse">
+      <path d="M4.5 0 V9" fill="none" stroke="#010206" stroke-width="0.7" opacity="0.2"/>
+    </pattern>
+    <pattern id="plankHatch" width="64" height="22" patternUnits="userSpaceOnUse">
+      <path d="M0 0.5 H64 M0 11.5 H64 M20 0 V11 M50 11 V22" fill="none" stroke="#010206" stroke-width="0.8" opacity="0.22"/>
+    </pattern>
+    <pattern id="flagHatch" width="48" height="40" patternUnits="userSpaceOnUse">
+      <path d="M0 0.5 H48 M0 20.5 H48 M16 0 V20 M40 20 V40" fill="none" stroke="#010206" stroke-width="0.8" opacity="0.2"/>
+    </pattern>
+    <pattern id="waterHatch" width="22" height="10" patternUnits="userSpaceOnUse">
+      <path d="M2 5 Q7 1 12 5 T22 5" fill="none" stroke="#A3C9CC" stroke-width="1.1" opacity="0.7"/>
+    </pattern>
+  </defs>
+
+  <g id="building" stroke="#010206" stroke-linecap="round" stroke-linejoin="round">
+
+    <!-- Dirt mound the gatehouse is dug into. -->
+    <path d="M96 340 C92 230 160 126 256 122 C352 126 420 230 416 340 Z" fill="#B8AB8E" stroke-width="2.2"/>
+    <path d="M96 340 C92 230 160 126 256 122 C352 126 420 230 416 340 Z" fill="url(#leanHatch)" stroke="none"/>
+    <path d="M150 178 C170 150 210 134 256 132 C230 150 190 162 150 178 Z" fill="#C9BDA0" stroke="none"/>
+    <g fill="#6F6D68" stroke-width="1.5"><ellipse cx="128" cy="270" rx="9" ry="6"/><ellipse cx="392" cy="262" rx="11" ry="7"/><ellipse cx="402" cy="296" rx="7" ry="5"/><ellipse cx="116" cy="302" rx="7" ry="5"/></g>
+    <path d="M176 160 Q178 151 181 160 Q184 153 187 160 Z" fill="#6F8A5F" stroke-width="1"/>
+    <path d="M318 150 Q320 141 323 150 Q326 143 329 150 Z" fill="#6F8A5F" stroke-width="1"/>
+    <path d="M352 190 Q354 181 357 190 Q360 183 363 190 Z" fill="#6F8A5F" stroke-width="1"/>
+    <path d="M150 214 Q152 205 155 214 Q158 207 161 214 Z" fill="#6F8A5F" stroke-width="1"/>
+
+    <!-- Iron air-shaft stack poking out of the mound. -->
+    <path d="M300 126 V92 H316 V126 Z" fill="#4D4B47" stroke-width="2"/>
+    <path d="M294 92 H322 L316 82 H300 Z" fill="#6C6C74" stroke-width="1.8"/>
+    <path d="M300 104 H316 M300 114 H316" fill="none" stroke="#1d1a18" stroke-width="1.2" opacity="0.7"/>
+    <!-- Gatehouse top: stone slab roof with parapet, a ring-hatch and a crow. -->
+    <path d="M146 176 H366 V214 H146 Z" fill="#A8A59B" stroke-width="2.4"/>
+    <path d="M146 176 H366 V214 H146 Z" fill="url(#stoneHatch)" stroke="none"/>
+    <g fill="#A8A59B" stroke-width="1.6">
+      <path d="M152 176 V162 H168 V176 Z"/>
+      <path d="M179 176 V162 H195 V176 Z"/>
+      <path d="M207 176 V162 H223 V176 Z"/>
+      <path d="M234 176 V162 H250 V176 Z"/>
+      <path d="M262 176 V162 H278 V176 Z"/>
+      <path d="M289 176 V162 H305 V176 Z"/>
+      <path d="M317 176 V162 H333 V176 Z"/>
+      <path d="M344 176 V162 H360 V176 Z"/>
+    </g>
+
+    <path d="M218 186 H252 V206 H218 Z" fill="#4D4B47" stroke-width="1.8"/>
+    <path d="M222 190 H248 V202 H222 Z" fill="#2a2724" stroke="none"/>
+    <circle cx="235" cy="196" r="3.4" fill="none" stroke="#6C6C74" stroke-width="1.8"/>
+    <!-- Gatehouse face. -->
+
+    <path d="M152 214 H360 L355 336 H157 Z" fill="#8E8B83" stroke="none"/>
+    <path d="M152 214 H360 L355 336 H157 Z" fill="url(#stoneHatch)" stroke="none"/>
+    <path d="M152 214 H360 L355 336 H157 Z" fill="none" stroke-width="2.2"/>
+
+    <path d="M152 214 H162 L166 336 H157 Z M350 214 H360 L355 336 H346 Z" fill="#6F6D68" stroke-width="1.6" opacity="0.8"/>
+    <path d="M152 268 H360 M154 306 H358" fill="none" stroke-width="1.5" opacity="0.5"/>
+    <!-- Arched doorway: voussoir ring, dark stair-well, swung-open iron-bound leaves. -->
+    <path d="M200 336 V274 Q200 238 256 238 Q312 238 312 274 V336 Z" fill="#A8A59B" stroke-width="2.2"/>
+    <path d="M200 336 V274 Q200 238 256 238 Q312 238 312 274 V336 Z" fill="url(#stoneHatch)" stroke="none"/>
+    <path d="M207 274 L200 270 M214 258 L208 252 M228 246 L224 238 M256 244 V238 M284 246 L288 238 M298 258 L304 252 M305 274 L312 270" fill="none" stroke-width="1.6"/>
+    <path d="M250 232 H262 L260 244 H252 Z" fill="#6F6D68" stroke-width="1.6"/>
+    <path d="M214 336 V278 Q214 254 256 254 Q298 254 298 278 V336 Z" fill="#1d1a18" stroke-width="2"/>
+    <path d="M222 326 H290 M224 314 H288 M227 303 H285 M230 293 H282" fill="none" stroke="#4a443b" stroke-width="2.6"/>
+    <path d="M222 326 H290 V336 H222 Z" fill="#6A655A" stroke-width="1.5"/>
+    <path d="M214 264 L184 276 V330 L214 336 Z" fill="#9F7D68" stroke-width="2"/>
+    <path d="M298 264 L328 276 V330 L298 336 Z" fill="#9F7D68" stroke-width="2"/>
+    <g fill="none" stroke="#4D4B47" stroke-width="5"><path d="M214 274 L184 284 M214 296 L184 304 M214 318 L184 324 M298 274 L328 284 M298 296 L328 304 M298 318 L328 324"/></g>
+    <g fill="#6C6C74" stroke-width="1"><circle cx="196" cy="283" r="2"/><circle cx="206" cy="280" r="2"/><circle cx="196" cy="304" r="2"/><circle cx="206" cy="301" r="2"/><circle cx="316" cy="283" r="2"/><circle cx="306" cy="280" r="2"/><circle cx="316" cy="304" r="2"/><circle cx="306" cy="301" r="2"/></g>
+    <circle cx="190" cy="314" r="4" fill="none" stroke="#6C6C74" stroke-width="2"/><circle cx="322" cy="314" r="4" fill="none" stroke="#6C6C74" stroke-width="2"/>
+    <!-- Carved skull over the arch and torch sconces either side. -->
+    <path d="M244 224 Q244 214 256 214 Q268 214 268 224 Q268 230 263 232 V236 H249 V232 Q244 230 244 224 Z" fill="#E6DFCB" stroke-width="1.5"/>
+    <path d="M249 223 h4 v4 h-4 Z M259 223 h4 v4 h-4 Z" fill="#1d1a18" stroke="none"/>
+    <path d="M176 262 V286 M334 262 V286" fill="none" stroke="#4D4B47" stroke-width="3"/>
+    <path d="M170 262 H182 L180 270 H172 Z M328 262 H340 L338 270 H330 Z" fill="#4D4B47" stroke-width="1.4"/>
+    <path d="M176 262 C168 256 172 248 176 242 C180 250 186 254 182 260 Z M334 262 C326 256 330 248 334 242 C338 250 344 254 340 260 Z" fill="#E08A33" stroke-width="1.2"/>
+    <path d="M176 260 C173 256 175 251 176 248 C178 253 180 256 179 259 Z M334 260 C331 256 333 251 334 248 C336 253 338 256 337 259 Z" fill="#F4D36B" stroke="none"/>
+    <!-- Buttresses, wall cracks and a pale stain of old damp. -->
+    <path d="M138 214 H152 L156 342 H134 Z M360 214 H374 L378 342 H356 Z" fill="#6F6D68" stroke-width="2"/>
+    <path d="M138 214 H152 L156 342 H134 Z M360 214 H374 L378 342 H356 Z" fill="url(#stoneHatch)" stroke="none"/>
+    <path d="M162 222 L168 240 L160 254 L166 270 M346 226 L340 244 L348 258 L342 276" fill="none" stroke-width="1.3" opacity="0.7"/>
+    <path d="M168 222 Q176 236 170 250 L186 250 Q192 236 188 222 Z" fill="#6F8A5F" stroke="none" opacity="0.5"/>
+    <!-- Threshold. -->
+    <path d="M180 336 H332 L342 350 H170 Z" fill="#9A978D" stroke-width="1.8"/>
+    <path d="M180 336 H332 L342 350 H170 Z" fill="url(#stoneHatch)" stroke="none"/>
+    <!-- Crank winch: A-frame, drum, handle, rope and bucket. -->
+    <g transform="translate(-8 24)">
+    <path d="M52 374 H160 V384 H52 Z" fill="#745846" stroke-width="1.8"/>
+    <path d="M60 374 L68 262 H82 L74 374 Z M138 374 L130 262 H144 L152 374 Z" fill="#9F7D68" stroke-width="2"/>
+    <path d="M72 336 H140" fill="none" stroke-width="3"/>
+    <path d="M64 262 H148 V288 H64 Z" fill="#BD9D86" stroke-width="2"/>
+    <path d="M64 262 H148 V288 H64 Z" fill="url(#logHatch)" stroke="none"/>
+    <path d="M86 262 V288 M106 262 V288 M126 262 V288" fill="none" stroke="#5F4F40" stroke-width="2" opacity="0.8"/>
+    <path d="M148 275 H166 L174 258" fill="none" stroke="#4D4B47" stroke-width="4.4"/>
+    <path d="M170 248 H180 V268 H170 Z" fill="#745846" stroke-width="1.8"/>
+    <path d="M106 288 V344" fill="none" stroke="#6A5640" stroke-width="3.2"/>
+    <path d="M106 288 V344" fill="none" stroke-width="0.8"/>
+    <path d="M94 344 H118 L114 366 H98 Z" fill="#4D4B47" stroke-width="1.8"/>
+    <path d="M94 344 Q106 330 118 344" fill="none" stroke-width="2"/>
+    <path d="M95 352 H117" fill="none" stroke="#6C6C74" stroke-width="1.3"/>
+    </g>
+    <!-- Barred floor grate with something pale glimpsed below. -->
+    <path d="M190 378 H322 L332 432 H180 Z" fill="#6F6D68" stroke-width="2.2"/>
+    <path d="M190 378 H322 L332 432 H180 Z" fill="url(#stoneHatch)" stroke="none"/>
+    <path d="M202 388 H310 L316 422 H196 Z" fill="#0e0c0b" stroke-width="2"/>
+    <path d="M214 410 Q236 404 258 410 Q282 404 300 410 V422 H214 Z" fill="#241f1b" stroke="none"/>
+    <path d="M240 414 Q240 406 252 406 Q264 406 264 414 Q264 418 260 420 V422 H244 V420 Q240 418 240 414 Z" fill="#CFC8B4" stroke-width="1.2"/>
+    <path d="M246 411 h4 v4 h-4 Z M255 411 h4 v4 h-4 Z" fill="#1d1a18" stroke="none"/>
+    <path d="M220 388 V422 M238 388 V422 M256 388 V422 M274 388 V422 M292 388 V422" fill="none" stroke="#6C6C74" stroke-width="4"/>
+    <path d="M206 404 H312" fill="none" stroke="#6C6C74" stroke-width="3.4"/>
+    <g fill="#4D4B47" stroke-width="1"><circle cx="220" cy="404" r="2.4"/><circle cx="256" cy="404" r="2.4"/><circle cx="292" cy="404" r="2.4"/></g>
+    <!-- Shackle post with hanging chains and cuffs. -->
+    <path d="M350 432 H378 L374 440 H354 Z" fill="#6F6D68" stroke-width="1.6"/>
+    <path d="M356 434 V348 H372 V434 Z" fill="#9F7D68" stroke-width="2.2"/>
+    <path d="M356 348 H372 V358 H356 Z" fill="#745846" stroke-width="1.5"/>
+    <circle cx="364" cy="366" r="7" fill="none" stroke="#4D4B47" stroke-width="3.6"/>
+    <path d="M364 372 Q344 392 346 420 M364 372 Q384 392 388 418" fill="none" stroke="#4D4B47" stroke-width="3" stroke-dasharray="5 2.5"/>
+    <g fill="#4D4B47" stroke-width="1.4"><ellipse cx="346" cy="424" rx="8" ry="5"/><ellipse cx="389" cy="422" rx="8" ry="5"/></g>
+    <g fill="none" stroke="#6C6C74" stroke-width="1.2"><ellipse cx="346" cy="424" rx="3.5" ry="2"/><ellipse cx="389" cy="422" rx="3.5" ry="2"/></g>
+    <!-- Collapsed tunnel mouth in its own spoil heap. -->
+    <path d="M394 420 C386 366 410 322 436 318 C462 322 486 366 478 420 Z" fill="#B8AB8E" stroke-width="2.2"/>
+    <path d="M394 420 C386 366 410 322 436 318 C462 322 486 366 478 420 Z" fill="url(#leanHatch)" stroke="none"/>
+    <path d="M410 420 V362 L430 358 L462 366 V420 Z" fill="#14110f" stroke-width="2"/>
+    <path d="M404 424 V358 H416 V424 Z" fill="#9F7D68" stroke-width="2"/>
+    <path d="M404 360 L452 340 L458 352 L416 372 Z" fill="#745846" stroke-width="2"/>
+    <path d="M464 424 L452 372 L462 368 L474 424 Z" fill="#9F7D68" stroke-width="2"/>
+    <path d="M418 424 L458 380" fill="none" stroke="#5F4434" stroke-width="7"/>
+    <path d="M418 424 L458 380" fill="none" stroke="#BD9D86" stroke-width="3.4"/>
+    <g fill="#6F6D68" stroke-width="1.6"><ellipse cx="424" cy="418" rx="11" ry="7"/><ellipse cx="446" cy="414" rx="9" ry="6"/><ellipse cx="414" cy="436" rx="8" ry="5"/><ellipse cx="454" cy="430" rx="12" ry="7"/><ellipse cx="478" cy="430" rx="7" ry="5"/></g>
+    <path d="M388 440 L430 408 M424 404 Q438 396 446 408" fill="none" stroke="#4D4B47" stroke-width="3"/>
+    <path d="M388 440 L430 408" fill="none" stroke="#BD9D86" stroke-width="1.4"/>
+
+  </g>
+</svg>
