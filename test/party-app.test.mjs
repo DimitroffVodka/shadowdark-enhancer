@@ -10,7 +10,7 @@ globalThis.foundry = { applications: { api: { ApplicationV2: class {
   bringToFront() {}
   _onRender() {}
 }, HandlebarsApplicationMixin: (base) => base }, sheets: { ActorSheetV2: class { _onRender() {} } }, instances: new Map() } };
-const { PartyApp, registerParty } = await import("../scripts/party/party-app.mjs");
+const { PartyApp, PartySheet, registerParty } = await import("../scripts/party/party-app.mjs");
 function actor(id, type = "NPC", flags = {}, permissions = 3) {
   const a = { id, uuid: `Actor.${id}`, name: id, type, flags, items: { contents: [] }, testUserPermission: (_user, level) => permissions >= ({ OBSERVER: 2, OWNER: 3 })[level],
     getFlag: (mod,key) => a.flags[mod]?.[key], writes: [], update: async (data) => { a.writes.push(data); for (const [key,value] of Object.entries(data)) { const [,mod,flag] = key.split("."); (a.flags[mod] ??= {})[flag] = value; } return a; } };
@@ -64,14 +64,14 @@ test("no-canvas context groups only explicit roster; missing refs retained", asy
   assert.deepEqual(context.groups.map((g) => g.rows.length), [1,1,1,1]);
   assert.deepEqual(Party.members(p, { charactersOnly: true }), ["Actor.pc"]);
 });
-test("v14 actor entry uses visible/onClick and remains scoped", () => {
+test("v14 actor entry uses visible/onClick and remains scoped", async () => {
   const handlers = new Map(); globalThis.Hooks = { on: (name, fn) => handlers.set(name,fn) };
   registerParty();
   const p = actor("p", "NPC", { [MOD]: { party: true } }), npc = actor("npc"); world([p,npc]);
   const entries=[]; handlers.get("getActorContextOptions")({ collection: globalThis.game.actors }, entries);
   const el = (id) => ({ closest: () => ({ dataset: { entryId:id } }) });
   assert.equal(entries[0].visible(el("p")), true); assert.equal(entries[0].visible(el("npc")), false);
-  assert.equal(entries[0].onClick(null, el("p")).actor, p);
+  assert.equal((await entries[0].onClick(null, el("p"))).actor, p);
 });
 test("Party tab action avoids core's reserved tab handler", () => {
   assert.equal(PartyApp.DEFAULT_OPTIONS.actions.tab, undefined);
@@ -79,32 +79,44 @@ test("Party tab action avoids core's reserved tab handler", () => {
   PartyApp.DEFAULT_OPTIONS.actions.partyTab.call(app, null, { dataset: { tab: "quests" } });
   assert.equal(app.tab, "quests");
 });
-test("explicit open retargets the Party window after a picker switch", () => {
+test("explicit open retargets the Party window after a picker switch", async () => {
   const one = actor("one", "NPC", { [MOD]: { party: true } }), two = actor("two", "NPC", { [MOD]: { party: true } });
   world([one, two], true);
-  const app = PartyApp.open(one), id = app.id;
+  const app = await PartyApp.open(one), id = app.id;
   let change;
   app.element = { querySelector: selector => selector === "[data-party-choice]" ? ({ addEventListener: (_name, fn) => { change = fn; } }) : null, querySelectorAll: () => [] };
   app._onRender({}, {});
   change({ target: { value: two.uuid } });
   assert.equal(app.actor, two);
-  assert.equal(PartyApp.open(one), app);
+  assert.equal(await PartyApp.open(one), app);
   assert.equal(app.actor, one);
   assert.equal(app.id, id);
-  assert.equal(PartyApp.open(two), app);
+  assert.equal(await PartyApp.open(two), app);
   assert.equal(app.actor, two);
   assert.equal(globalThis.foundry.applications.instances.size, 1);
+});
+test("open on a native Party sheet waits for the window before bringing it to front", async () => {
+  const p = actor("p", "NPC", { [MOD]: { party: true } });
+  world([p], true);
+  const sheet = new PartySheet();
+  let element = null;
+  sheet.actor = p;
+  sheet.render = async () => { await Promise.resolve(); element = {}; };
+  sheet.bringToFront = () => { if (!element) throw new TypeError("this[#element] is undefined"); };
+  p.sheet = sheet;
+  assert.equal(await PartyApp.open(p, "camping"), sheet);
+  assert.equal(sheet.tab, "travel");
 });
 test("create from an existing window keeps identity coherent on subsequent opens", async () => {
   const one = actor("one", "NPC", { [MOD]: { party: true } }), created = actor("created", "NPC", { [MOD]: { party: true } });
   world([one], true);
   globalThis.Actor = { create: async () => { globalThis.game.actors.contents.push(created); return created; } };
   try {
-    const app = PartyApp.open(one), id = app.id;
+    const app = await PartyApp.open(one), id = app.id;
     await PartyApp.DEFAULT_OPTIONS.actions.create.call(app);
     assert.equal(app.actor, created);
-    assert.equal(PartyApp.open(created), app);
-    assert.equal(PartyApp.open(one), app);
+    assert.equal(await PartyApp.open(created), app);
+    assert.equal(await PartyApp.open(one), app);
     assert.equal(app.actor, one);
     assert.equal(app.id, id);
     assert.equal(globalThis.foundry.applications.instances.size, 1);
