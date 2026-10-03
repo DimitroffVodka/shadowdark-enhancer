@@ -5,11 +5,12 @@
 import http from "node:http";
 import fs from "node:fs";
 import path from "node:path";
+import os from "node:os";
 import { createRequire } from "node:module";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
-const FOUNDRY = process.env.FOUNDRY_APP ?? "/home/patricks/FoundryV14/app";
+const FOUNDRY = process.env.FOUNDRY_APP ?? path.join(os.homedir(), "FoundryV14", "app");
 const SYSTEM = process.env.SDE_SYSTEM ?? path.join(FOUNDRY, "../Data/systems/shadowdark");
 const PORT = Number(process.env.PORT ?? 4177);
 const MODULE_ID = JSON.parse(fs.readFileSync(path.join(ROOT, "module.json"), "utf8")).id;
@@ -129,6 +130,8 @@ const roots = [["/systems/shadowdark/", SYSTEM], ["/modules/game-icons-net/", pa
 http.createServer(async (req, res) => {
   const u = new URL(req.url, "http://x"), p = decodeURIComponent(u.pathname);
   try {
+    // shot.mjs asks this before reusing a running server, so a stale one from another checkout is not trusted.
+    if (p === "/.harness") { res.writeHead(200, { "content-type": "text/plain" }); return res.end(ROOT); }
     if (p === "/" || p.startsWith("/compare/")) {
       const names = fs.readdirSync(path.join(ROOT, "tools/design-harness/fixtures")).filter((f) => !f.startsWith("_")).map((f) => f.replace(/\.mjs$/, ""));
       const frame = async (label, n, state) => {

@@ -7,6 +7,7 @@ import { promisify } from "node:util";
 import { existsSync } from "node:fs";
 import path from "node:path";
 import os from "node:os";
+import { fileURLToPath } from "node:url";
 
 const args = process.argv.slice(2), flag = (k, d) => args.find((a) => a.startsWith(`--${k}=`))?.slice(k.length + 3) ?? d;
 const [name, out = path.join(os.tmpdir(), `${args[0]}.png`)] = args.filter((a) => !a.startsWith("--"));
@@ -15,7 +16,10 @@ const PORT = Number(process.env.PORT ?? 4177), base = `http://127.0.0.1:${PORT}`
 const chrome = process.env.CHROME ?? ["/usr/bin/chromium", "/usr/bin/google-chrome-stable", "/usr/bin/google-chrome"].find(existsSync);
 if (!chrome) { console.error("no chromium/google-chrome found; set CHROME=/path/to/browser"); process.exit(2); }
 
-try { await fetch(base + "/"); } catch { await import("./serve.mjs"); await new Promise((r) => setTimeout(r, 300)); }
+const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
+const served = await fetch(base + "/.harness").then((r) => (r.ok ? r.text() : "?")).catch(() => null);
+if (served === null) { await import("./serve.mjs"); await new Promise((r) => setTimeout(r, 300)); }
+else if (served !== ROOT) { console.error(`port ${PORT} is already served by another harness (${served}); stop it or set PORT=`); process.exit(2); }
 const q = new URLSearchParams(); for (const k of ["w", "state", "theme"]) if (flag(k)) q.set(k, flag(k));
 const url = args.includes("--compare") ? `${base}/compare/${name}` : `${base}/w/${name}?${q}`, size = `${Number(flag("w", 1000)) + 80},${flag("h", 900)}`;
 const run = async (extra) => (await promisify(execFile)(chrome, ["--headless=new", "--no-sandbox", "--disable-gpu", "--hide-scrollbars", `--window-size=${size}`, "--virtual-time-budget=4000", ...extra, url], { encoding: "utf8", maxBuffer: 1 << 26, timeout: 30000 })).stdout;
