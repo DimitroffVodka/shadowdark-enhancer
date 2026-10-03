@@ -139,17 +139,20 @@ row that needs attention:
 The type selector provides two groups:
 
 - **Universal paste & parse:** `Auto-detect`, `Monsters`, `Items`, `Tables`,
-  `Boats`, `Backgrounds`, `Talents`, `Ancestry`, `Compound generator`,
-  `Cartesian table`, and `Downtime`.
+  `Boats`, `Backgrounds`, `Talents`, `Ancestry`, `Compound generator`, and
+  `Cartesian table`.
 - **Guided workspaces:** `Spells…` and `Classes…` open dedicated
   [Class & Spell Importers](Class-and-Spell-Importers.md).
 
 `Auto-detect` segments mixed text into typed blocks. Choose an explicit type
 when pasting ambiguous text.
 
-> **`Downtime` must be selected explicitly.** Auto-detect will not claim
-> downtime tables; selecting Downtime unlocks outcome text into world settings
-> for the [Downtime](Downtime.md) sheet.
+> **Downtime unlocks through Manage → Downtime, never from this selector.**
+> Each book's **Unlock** row opens this paste workspace with that book already
+> fixed — the section names it instead of asking which book you pasted — and
+> the [Downtime](Downtime.md) window's locked card has the same button. There
+> is no Downtime entry in the type selector, and Auto-detect will not claim
+> downtime tables: it lists them under **Skipped** and says where they belong.
 
 ### 2. Paste or grab text
 
@@ -256,8 +259,11 @@ currently in your world packs.
   **Fill all N descriptions**. Both read the patron's page from your linked
   Western Reaches PDF; a description you wrote by hand is left alone. The
   buttons disappear once the descriptions are filled.
-- The **Downtime** node tracks unlocked book tables in world settings, displaying
-  `Unlocked (25/25)`, `Partial`, or `Locked`.
+- The **Downtime** node is where downtime unlocks: one row per book, each with
+  an **Unlock** button that opens the paste workspace fixed to that book, and a
+  count (`Unlocked (25/25)`, `Partial`, or `Locked`) read from world settings.
+  **Import everything** unlocks every downtime book whose PDF is linked in the
+  same run, reporting each book whose PDF is not.
 
 ---
 

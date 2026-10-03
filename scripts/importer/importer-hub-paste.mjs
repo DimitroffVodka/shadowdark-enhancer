@@ -82,23 +82,6 @@ class HubPasteMethods {
     ta.addEventListener("blur", () => { this._importTextFocused = false; this._importText = ta.value; });
   }
 
-  /**
-   * Downtime source select. The parsed outcome text is matched against ONE
-   * book's recipe, so switching books drops the previous parse instead of
-   * letting a Commit file cs6 text under western-reaches: pick the book, then
-   * Parse. (The parse also re-reads the live select, so a programmatic set
-   * that skipped the change event still lands on the right book.)
-   */
-  _wireHubDowntime() {
-    const sel = this.element.querySelector("select[data-downtime-source]");
-    if (!sel) return;
-    sel.addEventListener("change", (ev) => {
-      this._downtimeSource = ev.target.value;
-      this._downtimeParse = null;
-      this.render();
-    });
-  }
-
   /** Source label input: free-text, commit on input. */
   _wireHubSource() {
     // Source is a <select> now (was a free-text input); listen for both so a
@@ -699,9 +682,10 @@ class HubPasteMethods {
     // clicked (see _onHubCommitDowntime). Deliberately absent from the auto
     // segmenter — under Auto a downtime page just lands in Skipped.
     if (type === "downtime") {
-      const sel = this.element.querySelector("select[data-downtime-source]");
-      const slug = DOWNTIME_SOURCES[sel?.value] ? sel.value
-        : (DOWNTIME_SOURCES[this._downtimeSource] ? this._downtimeSource : DOWNTIME_SLUGS[0]);
+      // The book was fixed by the Manage row (or the Downtime window button)
+      // that opened this workspace; the section carries no picker, so the
+      // slug can only ever be the one the seed set.
+      const slug = DOWNTIME_SOURCES[this._downtimeSource] ? this._downtimeSource : DOWNTIME_SLUGS[0];
       this._downtimeSource = slug;
       // Empty box: never run the parser. A 0-match result object is not a
       // "failed unlock" — it is 25 skeleton labels with nothing pasted behind
@@ -1046,9 +1030,10 @@ class HubPasteMethods {
     if (type === "auto") {
       // A downtime page reaches Auto looking enough like a list of things that
       // the item recognizer claims its DC bullets and offers to mint a Basic
-      // item out of a book page. Downtime unlocks a world setting instead, and
-      // needs a book chosen, so Auto cannot do it — but it can say so rather
-      // than quietly building the wrong thing. Reported live, 2026-08-29.
+      // item out of a book page. Downtime unlocks a world setting instead and
+      // is seeded from its Manage → Downtime row, so Auto cannot do it — but
+      // it can say so rather than quietly building the wrong thing. Reported
+      // live, 2026-08-29.
       const sniff = looksLikeDowntimePage(effectiveText);
       if (sniff.isDowntime) {
         const named = sniff.activities.length;

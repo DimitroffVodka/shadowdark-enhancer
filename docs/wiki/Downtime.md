@@ -357,12 +357,19 @@ an Unlock via Importer button](images/downtime-locked.png)
 
 ### Importing via Importer Hub
 
-1. Click **Unlock via Importer** on the locked book card (or open
-   [Importer Hub](Importer-Hub.md) and set **Importing** to **Downtime**).
-2. Select your **Book** (**Cursed Scroll 6** or **Western Reaches Players
-   Guide**).
-3. Paste the full spread pages into the text box and click **Parse**.
-4. Click **Unlock outcomes** to save.
+1. Click **Unlock via Importer** on the locked book card, or in
+   [Importer Hub](Importer-Hub.md) open **Manage → Downtime** and click the
+   book's **Unlock** row. Either way the paste workspace opens fixed to that
+   book — there is no book picker in it — and pulls the cited pages from your
+   linked PDF when it can.
+2. Paste the full spread pages into the text box (or use **Grab text**) and
+   click **Parse**.
+3. Click **Unlock outcomes** to save.
+
+To do both books in one pass, link both PDFs under **Tools → Source PDFs** and
+press **Import everything**: the batch run unlocks Cursed Scroll 6 and the
+Western Reaches Players Guide together, and a book whose PDF is not linked is
+reported by name instead of being skipped silently.
 
 Pastes require specific sub-headings to match entries correctly:
 
@@ -463,7 +470,8 @@ Downtime records attempts in two locations:
 ## Troubleshooting
 
 **The window displays only locked cards.**  
-You have not imported downtime text yet. Click **Unlock via Importer** and paste
+You have not imported downtime text yet. Click **Unlock via Importer** on a
+card (or **Manage → Downtime** in [Importer Hub](Importer-Hub.md)) and paste
 the downtime pages from your book.
 
 **\"Your GM's Foundry tab needs a reload before downtime actions can land.\"**  

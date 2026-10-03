@@ -124,7 +124,9 @@
         The one type that unlocks a world SETTING instead of creating
         documents: the pasted outcome text is the GM's own book copy. Slot
         labels appear in this preview only — the person reading it has the
-        book open — and never in the Manage tree. --}}
+        book open — and never in the Manage tree. The book is fixed by the
+        Manage row (or the Downtime window button) that opened this section;
+        nothing here lets it be switched. --}}
   {{#if importData.hasDowntime}}
   <section class="sde-hub-import-section">
     <div class="sde-hub-import-sechead">
@@ -134,13 +136,6 @@
         <i class="fas fa-unlock"></i> {{localize "SDE.importer.downtime.unlock"}}
       </button>
       {{/if}}
-    </div>
-    <div class="sde-hub-import-sourcebar">
-      <label for="sde-hub-downtime-source"><i class="fas fa-book"></i> {{localize "SDE.importer.downtime.book"}}</label>
-      <select id="sde-hub-downtime-source" data-downtime-source
-              class="sde-hub-import-source-input" aria-label="{{localize 'SDE.importer.downtime.bookAria'}}">
-        {{#each importData.downtime.sourceOptions as |o|}}<option value="{{o.value}}" {{#if o.selected}}selected{{/if}}>{{o.label}}</option>{{/each}}
-      </select>
     </div>
     <p class="sde-hub-import-srcnote">
       {{localize "SDE.importer.downtime.pasteFrom" book=importData.downtime.label}}{{#if importData.downtime.pages}}{{localize "SDE.importer.downtime.pages" pages=importData.downtime.pages}}{{/if}}{{localize "SDE.importer.downtime.thenParse"}}

@@ -987,6 +987,16 @@ page walks through it in order.
   whole interface can be translated from one file. The English is unchanged.
   Book content you import, and the rules tables the module carries, stay as
   they are. (#169)
+- **Downtime unlocks through Manage → Downtime only.** The hub's Downtime
+  section had a **Book** dropdown and the Importing selector listed a
+  standalone **Downtime** type — both asked a GM to say which book they had
+  pasted, a choice the Manage row (or the Downtime window's **Unlock via
+  Importer** button) had already made. Both are gone: the section names the
+  book it was opened for as plain text, and nothing in it can switch books. The
+  Manage batch run unlocks Cursed Scroll 6 and the Western Reaches Players
+  Guide in the one pass, reporting per book when its PDF is not linked, and a
+  downtime page pasted under Auto-detect still lands in **Skipped**, now
+  pointing at Manage → Downtime. (#313)
 
 ### Fixed
 

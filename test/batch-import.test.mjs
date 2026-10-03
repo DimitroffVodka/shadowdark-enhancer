@@ -30,6 +30,23 @@ test("each seedAction routes to the workspace its unlock already opens", () => {
   assert.equal(routeForEntry(entry({ seedAction: "downtimeSeedPaste", listKey: "cs6" })), ROUTE.DOWNTIME);
 });
 
+test("both downtime books are planned in one run, each from its own row's slug", () => {
+  // The Manage tree shows one downtime row per book and a whole-library batch
+  // must plan both (#313: both books unlock in one action). Each job must key
+  // on the slug carded by the ROW (listKey) — collapsing them into one job, or
+  // reading a slug from anywhere else, would leave a book locked or unlock
+  // under the wrong one.
+  const rows = [
+    entry({ name: "Cursed Scroll 6", seedAction: "downtimeSeedPaste", type: "Downtime", src: "", pages: "26-27", listKey: "cs6" }),
+    entry({ name: "Western Reaches Players Guide", seedAction: "downtimeSeedPaste", type: "Downtime", src: "", pages: "234-235", listKey: "western-reaches" }),
+  ];
+  const plan = planBatch([leaf("downtime", "Downtime", rows)]);
+  assert.equal(plan.jobs.length, 2);
+  assert.deepEqual(plan.jobs.map((j) => j.key), ["downtime:cs6", "downtime:western-reaches"]);
+  assert.ok(plan.jobs.every((job) => job.route === ROUTE.DOWNTIME));
+  assert.deepEqual(plan.jobs.map((job) => job.entry.listKey), ["cs6", "western-reaches"]);
+});
+
 test("rows with no automated route are reported, never silently dropped", () => {
   // An item census gap carries a name and nothing else — there is no page to
   // grab, so a batch must hand it back rather than invent a paste.
