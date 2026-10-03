@@ -2,6 +2,13 @@
 
 ## [Unreleased]
 ### Changed
+- **The Party sheet's header is one compact band.** The boxed "Marching formation" block, with its
+  heading and five lines of text, is replaced by a visible **Marching order** switch beside the 3×3
+  grid (off: "Moving freely", the grid dims; on: "<leader> leads"). When following pauses, the status
+  says why and a **Resume following** button sits beside it. Dragging a portrait arranges the grid,
+  clicking one makes it the leader, and Place / Recall is a single pin button. Members, HP, AC and
+  level sit under the party name. A party with no members now shows an outlined drop zone on the
+  Members tab and a hint under the grid ("Drag characters here to add them") instead of looking dead.
 - **The Party sheet's "Include mounts" option is gone.** Mounts never take a slot in the marching
   formation and never follow the leader: nobody takes a mount into a dungeon. They stay on the
   roster under Mounts and still eat at camp. A party saved with the old option still loads; the

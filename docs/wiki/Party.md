@@ -50,12 +50,22 @@ travels on a hex map, and the one Deploy, Recall and the HUD act on.
 
 ## Formation, deploy and follow
 
-The fixed 3×3 header widget remembers nine slots. Click a portrait to choose the
-leader; drag it to another slot. Overflow members follow behind the grid.
-**Follow leader** selects Marching Mode versus Free Movement. Mounts never take
-a slot or follow the leader (nobody takes a mount into a dungeon); they stay on
-the roster under Mounts and still eat at camp. An older world's saved
-include-mounts choice is ignored.
+The header's right side is the **Marching order**: a switch, a status line and
+the 3×3 grid, which remembers nine slots. Marching order is a dungeon thing, so
+it is a visible switch rather than a setting. Off, the party is "Moving freely"
+and the grid dims; on, the status names who leads. Click a portrait to make that
+member the leader; drag one onto another cell to arrange. Overflow members
+follow behind the grid. When following stops (a blocked path, combat, a scene
+change, a teleport, a missing member) the status line says why, and a manager
+gets a **Resume following** button next to it (combat is the exception: nothing
+resumes during combat). The pin button beside the grid is **Place / Recall**.
+Mounts never take a slot or follow the leader (nobody takes a mount into a
+dungeon); they stay on the roster under Mounts and still eat at camp. An older
+world's saved include-mounts choice is ignored.
+
+A party with no members shows an outlined drop zone on the Members tab and a
+hint under the grid: drag characters from the Actors directory onto either one
+to add them.
 
 **Place/Recall** and the Party token's **Import/Export Members** HUD entry call
 the same service. Export releases linked member tokens around the Party; Import

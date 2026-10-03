@@ -146,14 +146,14 @@ test("Party preserves the original detailed member cards and five-tab sheet", as
   assert.equal(context.players[0].effects[0].name, "Blessed");
   assert.deepEqual(context.tabs.map(tab => tab.key), ["members", "items", "travel", "quests", "description"]);
   const template = await readFile(new URL("../templates/party/party.hbs", import.meta.url), "utf8");
-  for (const marker of ["party-portrait", "party-summary", "member-portrait", "member-stats", "member-abilities", "member-effects", "tab-inventory", "tab-travel", "tab-description"]) assert.ok(template.includes(marker), marker);
+  for (const marker of ["sdp-head", "sdp-stats", "member-portrait", "member-stats", "member-abilities", "member-effects", "tab-inventory", "tab-travel", "tab-description"]) assert.ok(template.includes(marker), marker);
   assert.ok(!template.includes("SDE.party.comingSoon"));
   assert.ok(!template.includes("data-member-choice"), "no all-world actor dropdown in the approved sheet");
   assert.equal(context.choices, undefined, "world actors are not enumerated as suggested members");
   assert.equal(PartyApp.DEFAULT_OPTIONS.actions.add, undefined);
   const css = await readFile(new URL("../styles/party-sheet.css", import.meta.url), "utf8");
   assert.ok(css.includes('font-family: "Old Newspaper Font"'));
-  assert.ok(css.includes("grid-template-columns: 76px minmax(0, 1fr) 160px"));
+  assert.ok(css.includes(".sde-party .sdp-head"));
 });
 
 test("Party activity buttons stay in the sheet instead of opening applications", async () => {
@@ -197,20 +197,21 @@ test("Party inline controllers reuse activity actions and redraw their host only
   assert.equal(globalThis.foundry.applications.instances.size, 0);
 });
 
-test("Party header names its formation, leader and follow status instead of leaking debug text", async () => {
+test("Party header carries a Marching order switch, a leader/status line and a grid caption", async () => {
   const pc = actor("pc", "Player");
   const p = actor("p", "NPC", { [MOD]: { party: true, partyData: { members: [pc.uuid], leaderUuid: pc.uuid } } });
   world([p, pc], true);
   const context = await new PartyApp(p)._prepareContext();
   assert.equal(context.hasLeader, true);
   assert.equal(context.leaderName, "pc");
+  assert.equal(context.march.mode, "notice", "a GM with no party token on the scene is told to place one");
   const empty = actor("n", "NPC", { [MOD]: { party: true, partyData: { members: [] } } });
   world([empty, pc], true);
   const bare = await new PartyApp(empty)._prepareContext();
   assert.equal(bare.hasLeader, false, "an empty roster has no leader to name");
   const template = await readFile(new URL("../templates/party/party.hbs", import.meta.url), "utf8");
-  for (const marker of ["sde-party-formation-title", 'SDE.party.movement.leaderLabel', 'SDE.party.movement.statusLabel', 'SDE.party.movement.noLeader']) assert.ok(template.includes(marker), marker);
-  assert.ok(!template.includes("{{leaderName}} — "), "the header no longer dumps leader and status as one unlabelled debug line");
+  for (const marker of ['data-movement-setting="followLeader"', "SDE.party.movement.marchingOrder", "SDE.party.movement.dragHint", "SDE.party.movement.leadHint", "{{march.text}}", 'data-action="resumeFollow"', 'data-action="placeRecall"']) assert.ok(template.includes(marker), marker);
+  assert.ok(!template.includes("Marching formation") && !template.includes("includeMounts"), "no boxed formation block, no mounts switch");
 });
 
 test("Carousing labels unavailable tiers and disables commitment until tables are usable", async () => {
@@ -237,7 +238,7 @@ test("Party description edits inline and movement has no actionable dead ends wi
   assert.equal(context.canResume, false);
   assert.equal(context.movementDisabled, true);
   assert.equal(context.movementReason, "SDE.party.movement.noToken");
-  assert.equal(context.followStatus, "SDE.party.movement.noToken");
+  assert.equal(context.march.text, "SDE.party.movement.noToken");
 });
 
 test("Party and standalone quests do not replace an action button between blur and click", async () => {
@@ -289,4 +290,25 @@ test("treasury coin labels localize through the system keys, not literal field n
   const template = await readFile(new URL("../templates/party/party.hbs", import.meta.url), "utf8");
   assert.ok(!template.includes('aria-label="{{key}}"'), "coin inputs do not carry a literal field name as their aria-label");
   assert.ok(template.includes("{{localize (lookup ../coinLabels key)}}"));
+});
+test("a party with no members shows a drop zone and a grid hint, and an Actor dropped on either adds it", async () => {
+  const pc = actor("pc", "Player");
+  const p = actor("p", "NPC", { [MOD]: { party: true, partyData: { version: 1, members: [] } } });
+  world([p, pc], true);
+  const app = new PartyApp(p);
+  const context = await app._prepareContext();
+  assert.equal(context.unknown, undefined);
+  assert.deepEqual(context.members, []);
+  assert.equal(context.slots.length, 9);
+  assert.ok(context.slots.every(slot => slot.disabled), "nothing to arrange yet");
+  const template = await readFile(new URL("../templates/party/party.hbs", import.meta.url), "utf8");
+  for (const marker of ["sdp-empty", "SDE.party.movement.dropHint", "SDE.party.sheet.dropMembers", "SDE.party.noMembers", "data-drop-members"]) assert.ok(template.includes(marker), marker);
+  const targets = [];
+  app.element = { querySelector: () => null, querySelectorAll: selector => selector === ".tab-members, [data-drop-members]" ? [{ addEventListener: (name, fn) => targets.push([name, fn]) }] : [] };
+  app.render = () => {};
+  app._bindControls();
+  const drop = targets.find(([name]) => name === "drop")[1];
+  drop({ preventDefault() {}, dataTransfer: { getData: () => JSON.stringify({ type: "Actor", uuid: pc.uuid }) } });
+  await new Promise(resolve => setTimeout(resolve, 0));
+  assert.deepEqual(Party.members(p), [pc.uuid]);
 });

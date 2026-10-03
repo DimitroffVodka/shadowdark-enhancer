@@ -5,6 +5,7 @@ import { Party, isNativeParty, isLegacyParty } from "./party.mjs";
 import { offerParty } from "./party-create-option.mjs";
 import { scopedQuests } from "./party-core.mjs";
 import { fillFormation } from "./party-movement-core.mjs";
+import { marchState } from "./party-sheet-core.mjs";
 import { configureMovement, requestMovement, movementStatus, inPartyCombat, MOVEMENT_CHANGED } from "./party-movement.mjs";
 import { Quests, QUESTS_CHANGED } from "../quests/quests.mjs";
 import { QuestLogApp } from "../quests/quest-log-app.mjs";
@@ -30,6 +31,20 @@ function movementMessage(reason) {
     case "missing": return t("SDE.party.movement.missing");
     case "blocked": return t("SDE.party.movement.blocked");
     default: return t("SDE.party.movement.unknown");
+  }
+}
+/** The Marching order line's words and whether it is a warning, from marchState's answer. */
+function marchLine(state, { leaderName, pausedName }) {
+  const missing = t("SDE.party.missing");
+  switch (state.mode) {
+    case "free": return { ...state, text: t("SDE.party.movement.freely") };
+    case "leads": return { ...state, text: game.i18n.format("SDE.party.movement.leads", { name: leaderName ?? missing }) };
+    case "paused": {
+      const status = movementMessage(state.reason);
+      return { ...state, warn: true, text: state.pausedMember && ["blocked", "missing"].includes(state.reason) ? game.i18n.format("SDE.party.movement.pausedMember", { status, name: pausedName ?? missing }) : status };
+    }
+    case "notice": return { ...state, text: t(state.reason === "gathered" ? "SDE.party.movement.gathered" : "SDE.party.movement.noToken") };
+    default: return { ...state, text: "" };
   }
 }
 // Localized coin labels come from the system's own keys; the sheet draws literal text otherwise.
@@ -133,7 +148,9 @@ export class PartyApp extends HandlebarsApplicationMixin(ApplicationV2) {
         questHTML = (await renderTemplate(QuestLogApp.PARTS.body.template, await app._prepareContext())).replace(/data-action="([^"]+)"/g, 'data-action="questAction" data-quest-action="$1"');
       }
       const formation = fillFormation(data, rows), status = movementStatus(this.actor);
-      const reason = !status.token ? t("SDE.party.movement.noToken") : status.reason ? movementMessage(status.reason) : t("SDE.party.movement.marching");
+      const combat = inPartyCombat(globalThis.canvas?.scene), leaderActor = rows.find(r => r.uuid === data.leaderUuid)?.actor, hasLeader = !!data.leaderUuid && !!leaderActor;
+      const march = marchLine(marchState({ follow: data.followLeader, hasToken: !!status.token, deployed: status.deployed, reason: status.reason, pausedMember: status.pausedMemberUuid, manager: canEdit, hasLeader }),
+        { leaderName: leaderActor?.name, pausedName: rows.find(r => r.uuid === status.pausedMemberUuid)?.actor?.name });
       const slots = [];
       for (let row = -1; row <= 1; row++) for (let col = -1; col <= 1; col++) {
         const uuid = formation.slots.find(s => s.row === row && s.col === col)?.memberUuid;
@@ -145,14 +162,11 @@ export class PartyApp extends HandlebarsApplicationMixin(ApplicationV2) {
         inventorySlots: { used: inventorySlots(this.actor.items.contents, coins), max: this.actor.flags?.["shadowdark-extras"]?.partyMaxSlots ?? 10 },
         partyStats: { totalHp: visible.reduce((n,m) => n + m.hp.value, 0), maxHp: visible.reduce((n,m) => n + m.hp.max, 0), avgAc: visible.length ? Math.round(visible.reduce((n,m) => n + m.ac, 0) / visible.length) : 0, avgLevel: players.length ? Math.round(players.reduce((n,m) => n + m.level, 0) / players.length) : 0 },
         needsAdoption: canEdit && !this.actor.flags?.[MODULE_ID]?.partyData,
-        slots, followLeader: data.followLeader, formationReview: formation.needsReview,
-        leaderName: rows.find(r => r.uuid === data.leaderUuid)?.actor?.name ?? t("SDE.party.missing"),
-        hasLeader: !!data.leaderUuid && !!rows.find(r => r.uuid === data.leaderUuid)?.actor,
-        followStatus: status.pausedMemberUuid && ["blocked", "missing"].includes(status.reason)
-          ? game.i18n.format("SDE.party.movement.pausedMember", { status: reason, name: rows.find(r => r.uuid === status.pausedMemberUuid)?.actor?.name ?? t("SDE.party.missing") }) : reason,
-        canResume: canEdit && data.followLeader && status.deployed && !!status.reason && !inPartyCombat(globalThis.canvas?.scene),
-        movementDisabled: !canEdit || !status.token || inPartyCombat(globalThis.canvas?.scene),
-        movementReason: !status.token ? t("SDE.party.movement.noToken") : inPartyCombat(globalThis.canvas?.scene) ? t("SDE.party.movement.combat") : t("SDE.party.movement.importExport"),
+        slots, followLeader: data.followLeader, formationReview: formation.needsReview, march, hasLeader,
+        leaderName: leaderActor?.name ?? t("SDE.party.missing"),
+        canResume: !!march.canResume,
+        movementDisabled: !canEdit || !status.token || combat,
+        movementReason: !status.token ? t("SDE.party.movement.noToken") : combat ? t("SDE.party.movement.combat") : t("SDE.party.movement.importExport"),
         groups: ["characters", "hirelings", "mounts", "missing"].map((key) => ({ label: t(LABELS[key]), rows: members.filter(r => r.group === key) })),
 
         quests: this._quests(), items: this.actor.items.contents.map((i) => ({ id: i.id, name: i.name, img: i.img, quantity: i.system?.quantity ?? 1, slots: inventorySlots([i]) })) };
@@ -177,11 +191,14 @@ export class PartyApp extends HandlebarsApplicationMixin(ApplicationV2) {
       const coins = this.actor.flags?.[MODULE_ID]?.partyCoins ?? this.actor.flags?.["shadowdark-extras"]?.coins ?? {};
       void this._change(() => replaceModuleFlag(this.actor, "partyCoins", { ...coins, [input.dataset.coin]: Math.max(0, Math.trunc(Number(input.value) || 0)) }));
     });
-    this.element.querySelector(".tab-members")?.addEventListener("dragover", event => { if (Party.canManage(this.actor)) event.preventDefault(); });
-    this.element.querySelector(".tab-members")?.addEventListener("drop", event => {
-      event.preventDefault();
-      try { const data = JSON.parse(event.dataTransfer.getData("text/plain")); if (data.type === "Actor" && data.uuid) void this._change(() => Party.add(this.actor, data.uuid)); } catch { /* Ignore non-document drags. */ }
-    });
+    // Actors dropped on the Members tab, or on the formation grid of an empty party, join the roster.
+    for (const target of this.element.querySelectorAll(".tab-members, [data-drop-members]")) {
+      target.addEventListener("dragover", event => { if (Party.canManage(this.actor)) event.preventDefault(); });
+      target.addEventListener("drop", event => {
+        event.preventDefault();
+        try { const data = JSON.parse(event.dataTransfer.getData("text/plain")); if (data.type === "Actor" && data.uuid) void this._change(() => Party.add(this.actor, data.uuid)); } catch { /* Ignore non-document drags. */ }
+      });
+    }
     this.element.querySelector("[data-party-choice]")?.addEventListener("change", (event) => { this.actor = Party.get(event.target.value); Party.select(this.actor); this.render(); });
     this.element.querySelector('[data-movement-setting="followLeader"]')?.addEventListener("change", event => this._change(() => configureMovement(this.actor, { followLeader: event.target.checked })));
     for (const slot of this.element.querySelectorAll("[data-formation-slot]")) {
