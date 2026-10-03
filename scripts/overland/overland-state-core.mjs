@@ -105,6 +105,7 @@ function encounterOf(v) {
 const campOf = (v) => (obj(v) ? {
   party: str(v.party), interrupted: Number.isFinite(v.interrupted) ? v.interrupted : null, ate: v.ate === true,
   until: Number.isFinite(v.until) ? v.until : null, lightsOut: v.lightsOut === true,
+  ...(v.executor === "native" ? { executor: "native", campId: str(v.campId), day: num(v.day) } : {}),
 } : null);
 
 /** A stored weather, or null when it isn't one. */

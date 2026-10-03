@@ -13,6 +13,7 @@ const settings = new Map();
 const settingRejects = new Map();   // setting key → how many of its next writes fail
 const chat = [];                    // the cards, and each morale roll announced ({ roll })
 const rolls = [];          // totals the next Rolls give, in order; 1 when none are queued
+const formulas = [];       // every formula rolled, in order
 const warns = [];
 let chatRejects = 0;
 globalThis.Hooks = { on: (name, fn) => hooks.set(name, fn), once: (name, fn) => hooks.set(`once:${name}`, fn), callAll() {} };
@@ -26,7 +27,7 @@ globalThis.ChatMessage = {
 };
 globalThis.Roll = class {
   constructor(formula) { this.formula = formula; }
-  async evaluate() { this.total = rolls.length ? rolls.shift() : 1; return this; }
+  async evaluate() { formulas.push(this.formula); this.total = rolls.length ? rolls.shift() : 1; return this; }
   async toMessage() { chat.push({ roll: this.total }); }
 };
 const actors = [];
@@ -51,6 +52,8 @@ globalThis.fromUuid = async (uuid) => pcs.get(uuid) ?? null;
 const { registerWarbandUpkeep, PENDING_MONTHS_SETTING } = await import("../scripts/actors/warband-upkeep.mjs");
 const { buildWarbandNpcSheet, registerWarbandWrites, warbandWrites } = await import("../scripts/actors/warband-npc-sheet.mjs");
 const core = await import("../scripts/actors/warband-core.mjs");
+const { BASTION_TYPE } = await import("../scripts/bastion/bastion-art.mjs");
+const bastionCore = await import("../scripts/bastion/bastion-core.mjs");
 registerWarbandWrites(TYPE);
 registerWarbandUpkeep(TYPE);
 const tick = hooks.get(`${MOD}.timeAdvanced`);
@@ -105,7 +108,7 @@ const settle = async () => { for (let i = 0; i < 40; i++) await later(); };
 /** Every queued warband job done: the clock's moves and the sheet's presses all run on that one queue. */
 const drain = () => warbandWrites(() => {});
 const reset = () => {
-  actors.length = 0; users.length = 0; pcs.clear(); chat.length = 0; rolls.length = 0; warns.length = 0; chatRejects = 0; settingRejects.clear();
+  actors.length = 0; users.length = 0; pcs.clear(); chat.length = 0; rolls.length = 0; formulas.length = 0; warns.length = 0; chatRejects = 0; settingRejects.clear();
   for (const k of settings.keys()) settings.set(k, null);
 };
 const Sheet = buildWarbandNpcSheet(class { activateListeners() {} }, TYPE);
@@ -498,3 +501,119 @@ for (const kind of ["month", "arrears"]) {
     }
   });
 }
+
+// ---- Bastions: a warband garrisoned at a standing bastion (the Granary and the Barracks).
+/** A bastion actor the clock can find by its UUID. */
+function bastion(id, state, { type = BASTION_TYPE } = {}) {
+  const b = { uuid: `Actor.${id}`, name: id, type, pack: null, system: { toObject: () => state }, testUserPermission: () => true };
+  pcs.set(b.uuid, b);
+  return b;
+}
+/** A keep that stands, with the upgrades built (and `weeks` of them gone by). */
+const keepWith = (ids, weeks = 1) => {
+  let s = { ...bastionCore.newBastion("keep"), weeksLeft: 0, treasury: 5000 };
+  for (const id of ids) s = bastionCore.build(s, id).state;
+  for (let i = 0; i < weeks; i++) s = bastionCore.advanceWeek(s);
+  return s;
+};
+const feb1 = { from: at(30) + 3600, to: at(31) + 3600, crossed: { days: 1 } };
+
+test("a warband garrisoned under a finished Granary costs 10 gp less a month, and the card says so", async () => {
+  reset();
+  const cmd = pc("Cmd", 100);
+  const hold = bastion("Hold", keepWith(["granary"]));
+  warband("wb", { commander: cmd.uuid, upgrades: [], bastion: hold.uuid }, { level: 3 });
+  tick(feb1);
+  await settle();
+  assert.equal(cmd.system.coins.gp, 80, "30 gp less the Granary's 10");
+  assert.ok(chat.some((m) => m.content?.includes("SDE.warband.upkeep.paidGarrison")), "the line names the saving");
+});
+
+test("the Granary saves nothing for a bastion still going up, one without it, a bastion that isn't one, or one that is gone", async () => {
+  for (const [label, setup] of [
+    ["a Granary still building", () => bastion("Hold", keepWith(["granary"], 0))],
+    ["no Granary", () => bastion("Hold", keepWith(["stable"]))],
+    ["a bastion not yet raised", () => bastion("Hold", { ...bastionCore.newBastion("keep"), treasury: 5000 })],
+    ["a stand-in that isn't a bastion", () => bastion("Hold", keepWith(["granary"]), { type: "NPC" })],
+    ["a bastion that is gone", () => ({ uuid: "Actor.gone" })],
+  ]) {
+    reset();
+    const cmd = pc("Cmd", 100);
+    const hold = setup();
+    warband("wb", { commander: cmd.uuid, upgrades: [], bastion: hold.uuid }, { level: 3 });
+    tick(feb1);
+    await settle();
+    assert.equal(cmd.system.coins.gp, 70, label);
+    assert.ok(!chat.some((m) => m.content?.includes("paidGarrison")), label);
+  }
+});
+
+test("a warband not garrisoned pays in full, and a level 1 warband under a Granary costs nothing", async () => {
+  reset();
+  const a = pc("A", 100), b = pc("B", 100);
+  const hold = bastion("Hold", keepWith(["granary"]));
+  warband("plain", { commander: a.uuid, upgrades: [] }, { level: 3 });
+  const small = warband("small", { commander: b.uuid, upgrades: [], bastion: hold.uuid }, { level: 1 });
+  tick(feb1);
+  await settle();
+  assert.deepEqual([a.system.coins.gp, b.system.coins.gp], [70, 100], "10 gp upkeep, all of it saved");
+  assert.deepEqual(small.flags[MOD].warband.settledMonths ?? [], [], "nothing was charged, so nothing is marked");
+});
+
+test("a commander who can't cover the reduced upkeep owes the reduced amount in arrears", async () => {
+  reset();
+  const cmd = pc("Cmd", 5);
+  const hold = bastion("Hold", keepWith(["granary"]));
+  const wb = warband("wb", { commander: cmd.uuid, upgrades: [], bastion: hold.uuid }, { level: 3 });
+  tick(feb1);
+  await settle();
+  assert.equal(cmd.system.coins.gp, 5, "untouched");
+  assert.equal(wb.flags[MOD].warband.arrears, 20, "20 owed, not 30");
+});
+
+test("under a finished Barracks a warband heals a die more each day; without one it heals as before", async () => {
+  for (const [label, state, expect] of [
+    ["with a Barracks", keepWith(["barracks"]), "1d4 + 1d6"],
+    ["without", keepWith(["stable"]), "1d4"],
+    ["a Barracks still building", keepWith(["barracks"], 0), "1d4"],
+  ]) {
+    reset();
+    const hold = bastion("Hold", state);
+    const wb = warband("wb", { commander: null, upgrades: [], bastion: hold.uuid }, { level: 3, hp: [10, 100] });
+    settings.set("warbandLastMonth", 99999);
+    rolls.push(7);
+    tick({ from: at(40) + 3600, to: at(41) + 3600, crossed: { days: 1 } });
+    await settle();
+    assert.deepEqual(formulas, [expect], label);
+    assert.equal(wb.system.attributes.hp.value, 17, `${label}: healed what was rolled`);
+    assert.equal(chat.some((m) => m.content?.includes("healedBarracks")), expect.includes("d6"), label);
+  }
+});
+
+test("a Barracks heals a nearly healed warband to full without a roll when the least it rolls would", async () => {
+  reset();
+  const hold = bastion("Hold", keepWith(["barracks"]));
+  const wb = warband("wb", { commander: null, upgrades: [], bastion: hold.uuid }, { level: 3, hp: [98, 100] });
+  settings.set("warbandLastMonth", 99999);
+  tick({ from: at(40) + 3600, to: at(41) + 3600, crossed: { days: 1 } });   // 1 + 1 >= 2
+  await settle();
+  assert.equal(wb.system.attributes.hp.value, 100);
+  assert.deepEqual(formulas, [], "no dice");
+});
+
+test("the garrison write sets, clears and refuses a bastion, and writes nothing else of the warband's state", async () => {
+  reset();
+  const hold = bastion("Hold", keepWith(["granary"]));
+  const cmd = pc("Cmd", 100);
+  const wb = warband("wb", { commander: cmd.uuid, upgrades: ["hardy"], arrears: 7 }, { level: 3 });
+  const garrison = (uuid) => sheetOf(wb)._sendWrite({ action: "garrison", bastionUuid: uuid }).catch(() => false);
+  assert.equal(await garrison(hold.uuid), true);
+  assert.deepEqual([wb.flags[MOD].warband.bastion, wb.flags[MOD].warband.commander, wb.flags[MOD].warband.arrears, wb.flags[MOD].warband.upgrades], [hold.uuid, cmd.uuid, 7, ["hardy"]]);
+  assert.equal(await garrison(hold.uuid), true, "again changes nothing and answers the same");
+  assert.equal(await garrison(cmd.uuid), false, "a character is not a bastion");
+  assert.ok(warns.includes("SDE.warband.notify.garrisonBastion"));
+  assert.equal(wb.flags[MOD].warband.bastion, hold.uuid, "a refused one leaves it as it was");
+  assert.equal(await garrison(null), true);
+  assert.equal(wb.flags[MOD].warband.bastion, null);
+  assert.equal(await sheetOf(wb)._sendWrite({ action: "garrison", bastionUuid: 5 }).catch(() => false), false, "a payload of the wrong type is refused");
+});

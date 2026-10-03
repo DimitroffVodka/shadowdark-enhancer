@@ -64,6 +64,11 @@ The summary chat card displays:
 
 Awards log to the active [Session Recap](Session-Recap.md) automatically.
 
+[Party](Party.md) supplies the selected explicit roster without Extras. Quest
+and [Carousing](Carousing.md) awards save recipient progress with the XP write.
+A failed chat card does not authorize another award: retry the Quest Log payout
+or Carousing Resume, not a fresh manual XP award.
+
 ---
 
 ## Treasure XP thresholds

@@ -1,6 +1,12 @@
 # Changelog
 
 ## [Unreleased]
+### Fixed
+- Make Party Travel actionable in-sheet: camping/carousing choices and results no longer open separate activity windows. Embed Party-scoped quest management and payout confirmation, and edit descriptions inline. Disable Place/Recall without a linked Party token and show Resume only for a deployed group; keep camp rules collapsible and saved results above task setup. Label unavailable carousing tiers and disable commitment until usable tables are selected.
+- Restore the existing ApplicationV2 Party-sheet layout, detailed portrait/stat/ability/effect cards and five tabs instead of the stripped-down replacement. Native flagged Party actors open their Party sheet normally; Create Actor offers Party while preserving the existing flagged-NPC representation. Remove the all-world actor dropdown; members are added explicitly by drag-and-drop.
+- Name the Party header's movement controls: a visible Marching formation heading, an explicit `Leader:` line, and a labelled `Status:` line, instead of one unlabelled leader-plus-status debug string. Restore visibly ticked native checkboxes across the sheet; Foundry 14's dark colour scheme was rendering them as unreadable solid squares.
+- Review follow-ups for the native Party and hex work: Gather checks combat before its first write and recalls tokens orphaned by a roster edit; a saved oversized formation is rebuilt by a drag instead of deadlocking the grid; the driving browser tab is remembered per tab, so a second tab of the same GM no longer pauses an active march, a deleted leader names the missing member, and the reload pause queues behind an in-flight movement. Raw hex record writes refuse archive/history fields, a legacy cell's own `legacy` field is archived whole and reported, first-entry arrival history saves once before its chat card, player tooltips re-check hidden markers on pre-filtered input, and the treasury coin labels are localized.
+- Second review pass on the Party and hex work: fog and coordinate refreshes read each scene's store once per refresh pass instead of once per hex; a camp resolved without a canvas declines its fire instead of blocking; a quest payout skips a recipient that vanished or is not a Player with one warning instead of wedging, and a recall clears its deployed flag before its own deletes so its own leader deletion cannot pause it; a leader drag queues behind an in-flight recall and deployment searches the anchor's neighbourhood, not the whole map; party lights only pay a scene-wide perception refresh when the mirrored light changed; carousing state copies and its table sweep are memoized; a total-wealth loss stays a visible GM action instead of an automated coin deduction; literal localization keys replace the built and tabled lookups, and character checks use the system's `isPC`/`isNPC` getters.
 
 The Western Reaches release: overland travel across the map that came with
 your book, with its keyed locations and encounter tables on every hex, plus
@@ -11,6 +17,176 @@ it needs.
 
 ### Added
 
+- **Monster names in adventure text are links.** In every adventure's room pages (and
+  Wortwick's Introduction), a creature the book sets in bold that your bestiary knows now links
+  to that monster, so a room opens the stat block it names. A bold word that is not a creature
+  stays plain, and Wortwick's "monks" link to the Acolyte, as its own "monks (acolytes)" says.
+  Run Adventures again to add the links to pages you already filed.
+- **Adventure maps come with their monsters.** Every adventure's scene now gets the creatures
+  its rooms name, as hidden tokens beside each room's pin: the books set a creature's name in
+  bold with its number just before it, and the module reads that from your own PDF, matches the
+  name to the core bestiary or your imported monsters, and places one token per creature in its
+  own square around the number (the pin stays visible). Dice counts (1d4), chances (2:6) and
+  creatures said to be in another Area are left to you. A **skull button** in the Place
+  locations window places them for pins you clicked in yourself; pressing it or Auto-place
+  again never doubles a creature.
+- **Wortwick Monastery imports whole, with its monsters on the map.** The adventure was read
+  from the wrong pages and stopped at room 5, losing the Chapel (with its hidden cache) and the
+  Abbot's Quarters; it now files all seven rooms, plus an **Introduction** page (Raiding, The
+  Monastery, Inhabitants) that sorts first. Its map marks every monk, knight and the abbot with
+  a letter, so the scene now gets a hidden Acolyte, Knight and Priest token for each in the
+  square the book draws it in (12, 4 and 1, the counts the book's text gives), from the core
+  bestiary or your own imported monsters. Pressing Auto-place again never doubles them.
+- **Adventure map pins match the books' GM key.** Pins are now numbered black chips drawn
+  for the module (SVG, numerals traced from Montserrat Bold, the font the key uses), not the
+  generic book icon, so a map reads like the book's own. Pins you placed earlier take the
+  new look the next time you open the scene's Place locations window.
+- **Adventure map is one step.** Choose the map image that came with the book from your
+  computer (it is uploaded to your world for you) and the module
+  recognises the adventure from the file's name, imports its journal from your PDF if you
+  have not, builds the scene and pins every location it knows the position of. Choose the
+  adventure from the list when the file's name does not say.
+- **Every adventure places its own pins.** The module now ships where each room number
+  sits on its map for every Cursed Scroll adventure and every Western Reaches Mini
+  Adventure, as positions only (fractions of the map, so any resolution fits). Pick the
+  map image, and Adventure map builds the scene and pins every location with no
+  clicking; an **Auto-place** button does the same for an existing scene, and you nudge
+  any pin that misses. The map image has to be the same shape as the map the positions
+  came from; if it is more than 3% off, nothing is placed and you are told why. For a map
+  of your own, the placer's **Copy layout** button turns a map you have placed into data
+  that can ship with the module.
+- **The six Western Reaches Mini Adventures import as journals.** Tools → **Adventures**
+  now also reads House of Rogues, Grotto of the Golden Swan, Forge of the Metallic
+  Sisters, Fallen Keep of the Emerald Knight, Burial Mound of Kaghan and Chapel of the
+  Plague Priestesses from your own PDFs (each is its own two-page book): one journal
+  each with a page per numbered room, 54 rooms in all, "Area N" references linked. Their
+  maps come with positions too, so Adventure map pins every room with no clicking.
+- **Retry-safe shared quest payouts.** Confirmed recipients/effects are saved
+  before payout; per-character XP, coins, items and renown finish once after
+  partial failure or reload. Paid follows successful intended effects, empty
+  recipients are refused and old Paid quests stay paid without back-pay.
+  Failed XP/renown chat cards resume separately from Paid without repeating
+  rewards or successful reports. Gold each is available in the Quest Log;
+  the API also accepts optional gp/sp/cp rewards. Native Party/Camping/Carousing
+  and exploration docs explain optional Extras seams and unguarded-provider
+  limits. No release, publication or deployment is implied.
+- **Native adopted-scene hex fog.** One static overlay separates revealed terrain
+  from visited keyed locations. Tokens, route prices, coordinates, tooltip and
+  pins share disclosure; a visible mountain does not disclose its dungeon.
+  Paid selected-party travel visits cells; dawn only reveals terrain using the
+  native grid and imported visibility rules. Legacy fog and first-entry table
+  history are imported once without changing Extras data. Already-adopted,
+  untouched legacy records retain revealed terrain during the fog upgrade;
+  authored discovery and edited records remain authoritative. GM conceal preserves
+  visits and arrival history. Older Extras without the ownership stand-down
+  guard keeps overlapping native fog off, with one notice and no setting changes.
+- **Native Hexplorer tooltip and GM editor.** Hover a numbered cell for its
+  disclosed terrain, features and public notes; adopted unnumbered maps use
+  their native offsets rather than invented numbers. A short map click keeps a
+  small card with permitted journal/table links and the GM's Edit button.
+  The editor writes terrain and line features to the existing tags and rich
+  features, notes, links and discovery to the native records. Travel pricing
+  and disclosed views update immediately, without export/import or Extras.
+  Pins, token drags and long-press pings retain their existing handlers.
+  Extras' tooltip must be disabled before the native observer runs alongside it.
+- **Native scene-offset hex records and lossless adoption.** A single facade
+  composes existing terrain/feature tags, pinned keyed pages and regions with
+  rich records. Eligible scenes automatically import Extras' legacy records
+  into a GM-only journal compendium, preserving unknown fields, custom links, negative
+  offsets and original conflicts; existing Enhancer edits win. Gameplay on
+  adopted scenes reads native data with Extras disabled. Player projections
+  include only disclosed fields; explicitly hiding a visited location also
+  suppresses its pinned page title and link in the player facade.
+  Extras' original store is unchanged and may
+  already be player-readable; adoption cannot undo past disclosure. The SDX
+  authoring/painter-feature merge remains available. GM-only permissions and
+  filtered player views provide ordinary Foundry spoiler protection, not
+  encryption or confidentiality against deliberate raw document API access.
+- **Native basic carousing and Party history.** Each PC owner confirms their own
+  participation and full tier cost; personal coins only, no subsidies. Imported
+  Core or GM-selected tables gate all spending. Manual settlements, holiday
+  admission/event bonuses, downtime exclusion and 14-real-day cooldowns work
+  without a map or Extras. Saved rolls and actor-local progress protect Resume;
+  only explicit unconditional XP/Luck gains are automated; loss, negated/custom
+  rewards, narrative, expanded holiday and non-coin wealth effects stay visible GM actions.
+  Independent history feeds one stable Session Recap row. Extras' enabled
+  Carousing feature disables the native flow; no hidden SDX journal watcher.
+- **Mount full scores and daily nutrition.** Six editable full ability scores
+  initialize once from NPC modifiers (`10 + 2 × modifier`), with separate
+  ability damage and uncapped native NPC checks. A camel's CON 16 (+3) becomes
+  15 (+2) after one missed daily meal; death is at full CON zero, never modifier
+  zero. Listed mounts eat even when excluded from deployment, using their own
+  inventory before explicitly approved per-mount Party backup. Actor/day
+  receipts prevent repeat food or damage across reloads and party changes.
+  Mounts take no camp tasks; unrelated NPCs and warbands keep their models.
+- **Native PC camp nutrition and Overland nights.** Personal-first daily meals
+  use Party backup only with each PC's current-camp approval and only for the
+  current shortfall. Unfed PCs take one full-score CON damage per day and get
+  no rest recovery; fed PCs rest individually, with saved CON checks after an
+  interruption. Actor/day bookkeeping survives reloads and party changes;
+  item, HP and reward receipts prevent repeat spending or recovery. Overland
+  alone advances the night and weather; existing pending Extras camps keep
+  their executor. Persistent shortages permit an explicit hungry night.
+  Resume retries a missing night summary without repeating any applied effects
+  or time passage.
+
+- **Native camping task setup (internal slice).** One persistent owner-choice
+  window locks eight optional PC tasks, resolves Firewood before explicit
+  three-torch fuel, and saves personal Hunt/Craft rewards, repairs, luck and
+  task results without rerolls. Fire provides near light for eight hours while
+  a PC stays nearby; starting camp during movement uses the committed token
+  destination for both the fire's anchor and proximity. Cook's post-eligible-rest
+  benefit uses current HP above an unchanged maximum, with scoped damage/healing
+  and one-day expiry. Native PC food and eligible rest are now integrated with
+  Overland, including mount nutrition and full-score CON damage.
+- **Party formation and linked member movement.** A fixed 3×3 header widget,
+  remembered leader/follow/mount choices, and one Import/Export Members HUD
+  entry share the compact Place/Recall service. Gather preserves linked Actors
+  and token configuration; wall-safe release reuses tokens and stacks when
+  needed. Native marching pauses visibly on obstruction, combat, scene change
+  or reload. Deployed Party tokens remain selectable without aggregate travel;
+  dungeon light is mirrored without duplicating fuel consumers. Owner actions
+  and marching use the requested scene even when the GM views another map;
+  extinguished member lights stay off through gather/release. Scene navigation
+  pauses the user driving the Party, including a GM, not an unrelated relay GM.
+- **Player-facing hex coordinates.** Each user can enable Show hex coordinates
+  in Configure Settings. Labels use the tagged map's published numbers and native
+  flat-top column geometry, preserve leading zeroes, and follow the current fog.
+  Off-map, unnumbered and unsupported grids stay unlabeled; toggling does not
+  change the anchor or calibration.
+- **Native Party window.** Explicit persistent Characters/Hirelings/Mounts roster,
+  visible missing references, party/member quests and real embedded party items.
+  Open it from the actor directory, Party token HUD or Forge & Loot menu, including
+  without a canvas. Owners may manage characters they own. Legacy flagged NPCs
+  adopt in place; SDX Party actor types and unrelated sheets remain untouched.
+  Camp and Carouse now open the native gameplay workflows described above.
+- **Bastions.** A new Bastion actor type (Create Actor → Bastion): a House, Outpost, Keep or
+  Castle with the printed AC, HP, upgrade slots and build time, and the twenty upgrades,
+  built a week at a time from a treasury the GM sets, one of each. The sheet has an Overview
+  (hit points, treasury, Advance a week, Repair at 1 gp per HP, the monthly disaster rolled
+  to chat), the Upgrades, a Log, and a **Plan** that draws the bastion from outside or in:
+  a House, Outpost, Keep or Castle as one connected compound of rooms, with a Roofs toggle
+  that lays each room's exterior over it, zoom and pan, a card for each room, and SVG and
+  PNG export. 75 pieces of hand-drawn art ship with it (`assets/bastion`, generated by
+  `tools/bastion-art`). The effects (the Granary's saving, the Barracks' healing) are
+  recorded; the **Granary** (a warband garrisoned there costs 10 gp less a month) and the
+  **Barracks** (it heals 1d6 more a day) are applied, and the **Casino** earns 2d20 gp into the
+  treasury at each month start the world clock passes (one roll a month in chat, each month
+  paid once; a clock move longer than a year says what it skipped), and the **Library**
+  gives the owning party +1 on Martial Training and Magical
+  Research downtime checks, and the **Trophy Room** gives them 1 XP for each notable trophy
+  placed on the sheet (through Party XP), and the **Vault** holds up to 100 gear slots of items
+  dropped on the sheet, and a mount stabled at a bastion with a **Stable** shows no starvation
+  warning, an **Aviary** sends one pigeon message a day, and the **Infirmary** is named on a pestilence
+  roll (the patients have advantage on the check). The **Armorer**, **Blacksmith** and **Trading
+  Post** open a shop window on the sheet that sells ordinary armor, weapons or basic gear to the
+  party at 10% over list. The first two go through a new Garrison box on the
+  Warband tab, and shown on the upkeep and healing cards. A bastion can name the party that owns it, and **Pay in** and
+  **Pay out** move whole gold between a member's purse and the treasury (Extras keeps a
+  party's own coins in its own data, so those are left alone). A **Bastions** panel lists the
+  bastions you can see, or one party's, a card each (art, type, week, hit points, treasury,
+  upgrades), from a crawl bar button (once the world has a bastion) and the Actors directory's
+  right-click menu on a party. API 1.27.0 adds `game.shadowdarkEnhancer.bastion`.
 - **The Cursed Scrolls' adventures import, and their keyed locations go on the map.**
   Importer Hub → Tools → **Adventures** reads the numbered locations of every
   Cursed Scroll adventure out of your own PDF (Cursed Scrolls 1 to 6: the Hideous
@@ -824,6 +1000,17 @@ page walks through it in order.
 
 ### Fixed
 
+- **The Importer Hub's Rules Data step sits in the Manage strip, not under the paste box.**
+  It was a block of its own between the paste box and Manage, taking its space whether or
+  not anything was left to fill. It is the first item under **Manage** now, showing and
+  doing what it did before; the "isn't set" cards and the Start day hint still open the
+  hub straight onto it, expanding Manage first. (#311)
+- **A batch import leaves no importer windows open behind it, even ones you had up.**
+  The runner closed only the workspaces it had opened itself, so if the Spell Importer,
+  Class Importer or Item Builder was already open when you pressed **Import everything**,
+  the run reset and drove that window entry by entry and then left it where it was, frozen
+  on whichever entry it had just processed. Every workspace the run puts to work is now
+  closed when the run ends; one it never touches stays where you left it. (#312)
 - **The importer's Manage tab no longer lists places and factions as locked monsters.**
   Monsters showed rows such as Lord Hedron, Volcano Erupts, The Duke and Thieves'
   Guild as still locked. They were never monsters: the tab read capitalised phrases

@@ -783,8 +783,7 @@ export const SessionRecap = {
     this._initRollHooks();
     this._initFeedHooks();
     this._initLifecycleHooks();
-    // Shadowdark Extras' carousing, mirrored in. Self-gates on SDX being active
-    // with carousing enabled, so this is a no-op in a world without it.
+    // Explicit legacy compatibility feed only; native nights push logCarousing.
     CarousingFeed.init(this);
     console.log(`${MODULE_ID} | Session Recap initialized.`);
   },

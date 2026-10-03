@@ -186,3 +186,11 @@ as lossless WebP for the module.
   WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR
   IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
   Calendaria is not a dependency.
+
+## Adventure map pins (`icons/adventure-pins/`)
+
+The numbered pins that Adventure map drops on a scene are drawn for this module in the
+style of the Shadowdark books' GM key: a black rounded chip with a white number. The
+numerals are outlines traced from **Montserrat Bold**, © The Montserrat Project
+Authors, under the [SIL Open Font License 1.1](tools/adventure-pins/MONTSERRAT-OFL.txt).
+`tools/adventure-pins/make-pins.py` regenerates them.

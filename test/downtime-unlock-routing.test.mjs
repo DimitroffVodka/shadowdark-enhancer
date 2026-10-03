@@ -83,11 +83,19 @@ describe("the downtime slug comes from the row, never a select", () => {
   });
 });
 
-describe("the Importing selector no longer offers Downtime", () => {
-  test("the typeGroups list has no downtime entry", () => {
-    const types = appSource.match(/typeGroups: \[(?<body>[\s\S]*?)\]\.map\(g =>/)?.groups?.body;
+describe("the Importing selector offers Downtime only while it is seeded", () => {
+  const types = appSource.match(/typeGroups: \[(?<body>[\s\S]*?)\]\.map\(g =>/)?.groups?.body;
+  const conditional = /\.\.\.\(t === "downtime" \? \[\{ value: "downtime", label: tr\("SDE\.importer\.type\.downtime"\) \}\] : \[\]\),?/;
+
+  test("the only downtime entry is the one shown while the type is downtime", () => {
     assert.ok(types,
       "typeGroups list not found in the hub context — if it was reformatted, update this pattern");
-    assert.doesNotMatch(types, /"downtime"/);
+    assert.match(types, conditional);
+    assert.doesNotMatch(types.replace(conditional, ""), /"downtime"/);
+  });
+
+  test("a seeded downtime type is the selected option, not Auto-detect", () => {
+    // The selected flag is derived from the same list, so an entry in the list is what makes it show.
+    assert.match(appSource, /options: g\.options\.map\(o => \(\{ \.\.\.o, selected: o\.value === t \}\)\)/);
   });
 });

@@ -155,3 +155,13 @@ export function splitRawBlocks(rawText) {
   if (cur.length) blocks.push(cur.join("\n"));
   return blocks;
 }
+
+/** Bracket a bold run in extracted text (see extractPdfText `markBold`). Control characters: never in book text. */
+export const BOLD_OPEN = "\u0001";
+export const BOLD_CLOSE = "\u0002";
+
+/** Text with its bold markers removed. */
+export const stripBold = (s) => String(s ?? "").replaceAll(BOLD_OPEN, "").replaceAll(BOLD_CLOSE, "");
+
+/** A run of two bold items ("Giant" "ants") is one bold run. */
+export const mergeBold = (s) => String(s ?? "").replace(new RegExp(`${BOLD_CLOSE}(\\s*)${BOLD_OPEN}`, "g"), "$1");

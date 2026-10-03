@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512"
+     role="img" aria-labelledby="title desc">
+  <title id="title">Tavern shadow</title>
+  <desc id="desc">Separate native-vector cast shadow aligned to the Tavern SVG.</desc>
+  <g id="shadow" transform="translate(28 16)" fill="#9699AE" opacity="0.46">
+    <path d="M84 90 H432 V150 L420 214 H330 V340 H436 L432 250 H214 L208 340 H84 L90 250 L84 150 Z"/>
+    <path d="M84 150 H214 V250 H84 Z"/>
+    <path d="M336 176 H432 V348 H336 Z"/>
+    <path d="M367 24 H415 V140 H367 Z"/>
+    <path d="M86 364 H186 V410 H86 Z"/>
+    <path d="M190 358 H245 V420 H190 Z"/>
+    <path d="M322 370 H362 V438 H322 Z"/>
+    <path d="M374 374 H418 V418 H374 Z"/>
+
+  </g>
+</svg>

@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512"
+     role="img" aria-labelledby="title desc">
+  <title id="title">Temple</title>
+  <desc id="desc">Small stone chapel with bell cote, rose window and flame braziers.</desc>
+  <!-- Native vector artwork only: no embedded or linked raster content. -->
+
+  <defs>
+    <pattern id="roofHatch" width="12" height="12" patternUnits="userSpaceOnUse">
+      <path d="M2 0 V12 M8 0 V12" fill="none" stroke="#010206" stroke-width="0.75" opacity="0.17"/>
+    </pattern>
+    <pattern id="leanHatch" width="10" height="10" patternUnits="userSpaceOnUse">
+      <path d="M2 0 V10" fill="none" stroke="#010206" stroke-width="0.65" opacity="0.18"/>
+    </pattern>
+    <pattern id="stoneHatch" width="16" height="13" patternUnits="userSpaceOnUse">
+      <path d="M0 6 H16 M5 0 V6 M12 6 V13" fill="none" stroke="#010206" stroke-width="0.55" opacity="0.16"/>
+    </pattern>
+    <pattern id="shingleHatch" width="14" height="9" patternUnits="userSpaceOnUse">
+      <path d="M0 8 H14 M0 4 Q3.5 8 7 4 Q10.5 8 14 4" fill="none" stroke="#010206" stroke-width="0.6" opacity="0.2"/>
+    </pattern>
+    <pattern id="logHatch" width="9" height="9" patternUnits="userSpaceOnUse">
+      <path d="M4.5 0 V9" fill="none" stroke="#010206" stroke-width="0.7" opacity="0.2"/>
+    </pattern>
+    <pattern id="plankHatch" width="64" height="22" patternUnits="userSpaceOnUse">
+      <path d="M0 0.5 H64 M0 11.5 H64 M20 0 V11 M50 11 V22" fill="none" stroke="#010206" stroke-width="0.8" opacity="0.22"/>
+    </pattern>
+    <pattern id="flagHatch" width="48" height="40" patternUnits="userSpaceOnUse">
+      <path d="M0 0.5 H48 M0 20.5 H48 M16 0 V20 M40 20 V40" fill="none" stroke="#010206" stroke-width="0.8" opacity="0.2"/>
+    </pattern>
+    <pattern id="waterHatch" width="22" height="10" patternUnits="userSpaceOnUse">
+      <path d="M2 5 Q7 1 12 5 T22 5" fill="none" stroke="#A3C9CC" stroke-width="1.1" opacity="0.7"/>
+    </pattern>
+  </defs>
+
+  <g id="building" stroke="#010206" stroke-linecap="round" stroke-linejoin="round">
+
+    <!-- Bell cote: stone pier with an arched bell opening, gabled cap, sun disc. -->
+    <path d="M214 66 H298 V134 H214 Z" fill="#8E8B83" stroke="none"/>
+    <path d="M214 66 H298 V134 H214 Z" fill="url(#stoneHatch)" stroke="none"/>
+    <path d="M214 66 H298 V134 H214 Z" fill="none" stroke-width="2.3"/>
+    <path d="M232 128 V92 Q232 74 256 74 Q280 74 280 92 V128 Z" fill="#26211f" stroke-width="2"/>
+    <path d="M243 106 Q243 94 256 94 Q269 94 269 106 L272 118 H240 Z" fill="#C9A24A" stroke-width="1.6"/>
+    <path d="M256 82 V94" fill="none" stroke-width="1.8"/>
+    <circle cx="256" cy="120" r="3.3" fill="#7E6A2C" stroke-width="1.1"/>
+    <path d="M206 68 L256 34 L306 68 Z" fill="#A8A59B" stroke-width="2.3"/>
+    <path d="M256 34 L306 68 H256 Z" fill="#8E8B83" stroke="none"/>
+    <circle cx="256" cy="55" r="6.5" fill="#E5B861" stroke-width="1.4"/>
+    <path d="M256 45 V49 M256 61 V65 M246 55 H250 M262 55 H266" fill="none" stroke-width="1.3"/>
+    <!-- Standing-stone finial: a tapered monolith with a carved sun ring. -->
+    <path d="M249 36 L251 14 Q256 4 261 14 L263 36 Z" fill="#B7B4A9" stroke-width="2"/>
+    <path d="M256 4 L263 36 H257 Z" fill="#8E8B83" stroke="none"/>
+    <circle cx="256" cy="20" r="3.2" fill="none" stroke-width="1.1"/>
+    <path d="M251 28 H261" fill="none" stroke-width="1.1"/>
+    <!-- Slate roof: vertical ridge, two slopes, tile courses, diamond tile band, stone ridge cap. -->
+    <path d="M112 120 H256 V252 H112 Z" fill="#9DAAAE" stroke="none"/>
+    <path d="M256 120 H400 V252 H256 Z" fill="#7F8F95" stroke="none"/>
+    <path d="M112 120 H400 V252 H112 Z" fill="url(#shingleHatch)" stroke="none"/>
+    <path d="M112 146 H256 M112 172 H256 M112 198 H256 M112 224 H256 M256 146 H400 M256 172 H400 M256 198 H400 M256 224 H400" fill="none" stroke-width="1" opacity="0.3"/>
+    <g fill="#C9A24A" stroke-width="1.2" opacity="0.95">
+      <path d="M136 186 L148 177 L160 186 L148 195 Z M172 186 L184 177 L196 186 L184 195 Z M208 186 L220 177 L232 186 L220 195 Z"/>
+      <path d="M280 186 L292 177 L304 186 L292 195 Z M316 186 L328 177 L340 186 L328 195 Z M352 186 L364 177 L376 186 L364 195 Z"/>
+    </g>
+    <path d="M112 120 H400 V252 H112 Z" fill="none" stroke-width="2.8"/>
+    <path d="M249 114 H263 V250 H249 Z" fill="#A8A59B" stroke-width="2"/>
+    <path d="M249 146 H263 M249 172 H263 M249 198 H263 M249 224 H263" fill="none" stroke-width="1.1" opacity="0.6"/>
+    <path d="M112 246 H400 V260 H112 Z" fill="#6F7F85" stroke-width="2"/>
+    <circle cx="150" cy="150" r="10" fill="#2c2622" stroke-width="2"/>
+    <circle cx="150" cy="150" r="5.8" fill="#6C8F9E" stroke-width="1.2"/>
+    <circle cx="362" cy="150" r="10" fill="#2c2622" stroke-width="2"/>
+    <circle cx="362" cy="150" r="5.8" fill="#6C8F9E" stroke-width="1.2"/>
+    <!-- Front gable wall: stone with buttresses, lancets, rose window and door. -->
+
+    <path d="M130 260 H382 L377 396 H135 Z" fill="#8E8B83" stroke="none"/>
+    <path d="M130 260 H382 L377 396 H135 Z" fill="url(#stoneHatch)" stroke="none"/>
+    <path d="M130 260 H382 L377 396 H135 Z" fill="none" stroke-width="2.2"/>
+
+    <path d="M118 256 H138 V396 H118 Z M374 256 H394 V396 H374 Z" fill="#A8A59B" stroke-width="2.1"/>
+    <path d="M118 256 H138 V396 H118 Z M374 256 H394 V396 H374 Z" fill="url(#stoneHatch)" stroke="none"/>
+    <path d="M116 256 L128 242 L140 256 Z M372 256 L384 242 L396 256 Z" fill="#8E8B83" stroke-width="1.8"/>
+    <path d="M176 350 V318 Q176 304 188 304 Q200 304 200 318 V350 Z M312 350 V318 Q312 304 324 304 Q336 304 336 318 V350 Z" fill="#6C8F9E" stroke-width="1.8"/>
+    <path d="M188 305 V350 M176 330 H200 M324 305 V350 M312 330 H336" fill="none" stroke-width="1.1" opacity="0.7"/>
+    <circle cx="256" cy="298" r="38" fill="#A8A59B" stroke-width="2.3"/>
+    <circle cx="256" cy="298" r="33" fill="#4C6C7A" stroke-width="1.6"/>
+    <circle cx="275.4" cy="306.0" r="7" fill="#C97B5A" stroke-width="1.2"/><path d="M265.2 301.8 L285.6 310.2" fill="none" stroke-width="1.6"/><circle cx="264.0" cy="317.4" r="7" fill="#6C8F9E" stroke-width="1.2"/><path d="M259.8 307.2 L268.2 327.6" fill="none" stroke-width="1.6"/><circle cx="248.0" cy="317.4" r="7" fill="#C97B5A" stroke-width="1.2"/><path d="M252.2 307.2 L243.8 327.6" fill="none" stroke-width="1.6"/><circle cx="236.6" cy="306.0" r="7" fill="#6C8F9E" stroke-width="1.2"/><path d="M246.8 301.8 L226.4 310.2" fill="none" stroke-width="1.6"/><circle cx="236.6" cy="290.0" r="7" fill="#C97B5A" stroke-width="1.2"/><path d="M246.8 294.2 L226.4 285.8" fill="none" stroke-width="1.6"/><circle cx="248.0" cy="278.6" r="7" fill="#6C8F9E" stroke-width="1.2"/><path d="M252.2 288.8 L243.8 268.4" fill="none" stroke-width="1.6"/><circle cx="264.0" cy="278.6" r="7" fill="#C97B5A" stroke-width="1.2"/><path d="M259.8 288.8 L268.2 268.4" fill="none" stroke-width="1.6"/><circle cx="275.4" cy="290.0" r="7" fill="#6C8F9E" stroke-width="1.2"/><path d="M265.2 294.2 L285.6 285.8" fill="none" stroke-width="1.6"/>
+    <circle cx="256" cy="298" r="8.5" fill="#E5B861" stroke-width="1.4"/>
+    <circle cx="256" cy="298" r="33" fill="none" stroke-width="1.2" opacity="0.8"/>
+    <path d="M230 396 V368 Q230 346 256 346 Q282 346 282 368 V396 Z" fill="#A8A59B" stroke-width="2.2"/>
+    <path d="M237 396 V370 Q237 354 256 354 Q275 354 275 370 V396 Z" fill="#745846" stroke-width="1.8"/>
+    <path d="M256 354 V396 M237 372 H275 M237 384 H275" fill="none" stroke-width="1.2" opacity="0.7"/>
+    <circle cx="251" cy="380" r="1.8" fill="#D7C39A" stroke="none"/><circle cx="261" cy="380" r="1.8" fill="#D7C39A" stroke="none"/>
+    <!-- Stepped porch. -->
+    <path d="M204 396 H308 L318 414 H194 Z" fill="#9A978D" stroke-width="1.9"/>
+    <path d="M190 414 H322 L334 434 H178 Z" fill="#A8A59B" stroke-width="1.9"/>
+    <path d="M204 396 H308 L318 414 H194 Z M190 414 H322 L334 434 H178 Z" fill="url(#stoneHatch)" stroke="none"/>
+
+    <path d="M131 390 L125 416 M153 390 L159 416 M142 392 V418" fill="none" stroke="#2c2622" stroke-width="3"/>
+    <path d="M125 416 H159" fill="none" stroke="#2c2622" stroke-width="2.4"/>
+    <path d="M123 378 H161 L154 394 H130 Z" fill="#4D4B47" stroke-width="2"/>
+    <path d="M123 378 H161 L160 383 H124 Z" fill="#6F6D68" stroke-width="1.3"/>
+
+    <path d="M139 378 C122.5 370.5 130.0 349.5 140.5 333.0 C143.5 351.0 160.0 357.0 154.0 372.0 C151.0 379.5 143.5 381.0 139 378 Z" fill="#E08A33" stroke-width="1.4"/>
+    <path d="M140.5 375.0 C133.0 369.0 137.5 358.5 142.0 351.0 C143.5 360.0 151.0 364.5 148.0 372.0 Z" fill="#F4D36B" stroke="none"/>
+
+    <path d="M359 390 L353 416 M381 390 L387 416 M370 392 V418" fill="none" stroke="#2c2622" stroke-width="3"/>
+    <path d="M353 416 H387" fill="none" stroke="#2c2622" stroke-width="2.4"/>
+    <path d="M351 378 H389 L382 394 H358 Z" fill="#4D4B47" stroke-width="2"/>
+    <path d="M351 378 H389 L388 383 H352 Z" fill="#6F6D68" stroke-width="1.3"/>
+
+    <path d="M367 378 C350.5 370.5 358.0 349.5 368.5 333.0 C371.5 351.0 388.0 357.0 382.0 372.0 C379.0 379.5 371.5 381.0 367 378 Z" fill="#E08A33" stroke-width="1.4"/>
+    <path d="M368.5 375.0 C361.0 369.0 365.5 358.5 370.0 351.0 C371.5 360.0 379.0 364.5 376.0 372.0 Z" fill="#F4D36B" stroke="none"/>
+
+    <!-- Grass tufts at the foot of the steps. -->
+    <path d="M150 432 Q152 423 155 432 Q158 425 161 432 Z" fill="#6F8A5F" stroke-width="1"/>
+    <path d="M352 434 Q354 425 357 434 Q360 427 363 434 Z" fill="#6F8A5F" stroke-width="1"/>
+    <path d="M110 408 Q112 399 115 408 Q118 401 121 408 Z" fill="#6F8A5F" stroke-width="1"/>
+
+  </g>
+</svg>

@@ -18,6 +18,7 @@ import { installMethods, t } from "./importer-hub-shared.mjs";
 import { CHAR_SOURCES } from "./char-content/char-content-manifest.mjs";
 import { resolveSourcePdf } from "./source-pdf-registry.mjs";
 import { adventureBooks, allSites, findSite } from "./adventure/adventure-manifest.mjs";
+import { hasKnownPositions } from "./adventure/adventure-layouts.mjs";
 
 const esc = (s) => foundry.utils.escapeHTML(String(s ?? ""));
 const ALL = "*";
@@ -79,66 +80,100 @@ class HubAdventureMethods {
     if (failed.length) ui.notifications.warn(t("SDE.importer.adventure.failed", { n: failed.length, first: failed[0].title }));
   }
 
-  /** Tools → Adventure map: build (or resume) a filed adventure's map scene and place its keys. */
+  /**
+   * Tools → Adventure map: pick the map image that came with the book and the rest
+   * is done. The adventure is recognised from the file's name (or chosen), its
+   * journal is imported from the linked PDF when it has not been yet, the scene is
+   * built from the image, and every location whose position is known is pinned.
+   * Whatever is left, and any adventure whose positions are not known yet, is
+   * placed by clicking in the placer window. An adventure that already has a scene
+   * is picked up where it was left.
+   */
   async _onAdventureMap() {
     if (!game.user?.isGM) { ui.notifications.warn(t("SDE.adventure.notify.gmOnly")); return; }
-    const { filedSiteIds, findSiteScene, buildSiteScene } = await import("./adventure/adventure-scene.mjs");
+    const { filedSiteIds, findSiteScene, buildSiteScene, uploadMapImage } = await import("./adventure/adventure-scene.mjs");
     const { AdventurePlacer } = await import("./adventure/adventure-placer.mjs");
+    const { siteForImage } = await import("./adventure/map-detect.mjs");
     const filed = await filedSiteIds();
-    const sites = allSites().filter((s) => filed.has(s.id));
-    if (!sites.length) { ui.notifications.warn(t("SDE.adventure.map.noneFiled")); return; }
+    const sites = allSites();
 
-    const options = sites.map((s) => {
-      const has = findSiteScene(s.id) ? ` (${t("SDE.adventure.map.hasScene")})` : "";
-      return `<option value="${s.id}">${esc(CHAR_SOURCES[s.src]?.label ?? s.src)}: ${esc(s.title)}${has}</option>`;
+    const groups = adventureBooks().map((src) => {
+      const rows = sites.filter((s) => s.src === src).map((s) => {
+        const note = findSiteScene(s.id) ? t("SDE.adventure.map.hasScene") : (filed.has(s.id) ? "" : t("SDE.adventure.map.notImported"));
+        return `<option value="${s.id}">${esc(s.title)}${note ? ` (${esc(note)})` : ""}</option>`;
+      }).join("");
+      return `<optgroup label="${esc(CHAR_SOURCES[src]?.label ?? src)}">${rows}</optgroup>`;
     }).join("");
     const answer = await foundry.applications.api.DialogV2.wait({
       window: { title: t("SDE.adventure.map.title"), icon: "fas fa-map-location-dot" },
       content: `
         <p>${t("SDE.adventure.map.lead")}</p>
         <div style="display:grid;grid-template-columns:auto 1fr;gap:0.4rem 0.6rem;align-items:center;">
-          <label for="sde-advmap-site"><strong>${t("SDE.adventure.map.site")}</strong></label>
-          <select id="sde-advmap-site" name="site">${options}</select>
+          <label for="sde-advmap-file"><strong>${t("SDE.adventure.map.file")}</strong></label>
+          <input id="sde-advmap-file" name="file" type="file" accept="image/*">
           <label for="sde-advmap-img"><strong>${t("SDE.adventure.map.image")}</strong></label>
           <span style="display:flex;gap:0.3rem;"><input id="sde-advmap-img" name="img" type="text" style="flex:1;" placeholder="${esc(t("SDE.adventure.map.imageHint"))}">
             <button type="button" data-advmap-browse title="${esc(t("SDE.adventure.map.browse"))}"><i class="fas fa-file-image"></i></button></span>
+          <label for="sde-advmap-site"><strong>${t("SDE.adventure.map.site")}</strong></label>
+          <select id="sde-advmap-site" name="site"><option value="">${esc(t("SDE.adventure.map.choose"))}</option>${groups}</select>
         </div>
-        <p class="notes">${t("SDE.adventure.map.notes")}</p>`,
+        <p class="notes" data-advmap-detected>${t("SDE.adventure.map.notes")}</p>`,
       render: (event, dialog) => {
         const root = dialog.element;
+        const img = root.querySelector("#sde-advmap-img"), pick = root.querySelector("#sde-advmap-site"), note = root.querySelector("[data-advmap-detected]");
+        const file = root.querySelector("#sde-advmap-file");
+        // The file's name says which adventure it is; say so, and select it.
+        const detect = () => {
+          const name = file.files?.[0]?.name || img.value;
+          const site = siteForImage(name, sites);
+          if (site) { pick.value = site.id; note.textContent = t("SDE.adventure.map.recognized", { title: site.title }); }
+          else if (name.trim()) note.textContent = t("SDE.adventure.map.notRecognized");
+        };
+        img.addEventListener("input", detect);
+        img.addEventListener("change", detect);
+        // A map from the GM's computer wins over a path left in the other field.
+        file.addEventListener("change", () => { if (file.files?.length) img.value = ""; detect(); });
         root.querySelector("[data-advmap-browse]")?.addEventListener("click", () => {
           new foundry.applications.apps.FilePicker.implementation({
             type: "image",
-            callback: (path) => { root.querySelector("#sde-advmap-img").value = path; },
+            callback: (path) => { img.value = path; detect(); },
           }).render(true);
         });
       },
       buttons: [
         { action: "build", label: t("SDE.adventure.map.build"), icon: "fas fa-map", default: true,
-          callback: (event, button) => ({ mode: "build", ...Object.fromEntries(new FormData(button.form)) }) },
-        { action: "resume", label: t("SDE.adventure.map.resume"), icon: "fas fa-location-dot",
-          callback: (event, button) => ({ mode: "resume", ...Object.fromEntries(new FormData(button.form)) }) },
+          callback: (event, button) => Object.fromEntries(new FormData(button.form)) },
         { action: "cancel", label: t("SDE.importer.btn.cancel"), icon: "fas fa-xmark" },
       ],
       rejectClose: false,
     }).catch(() => null);
     if (!answer || answer === "cancel") return;
 
-    const site = findSite(answer.site);
-    if (!site) return;
+    let src = String(answer.img ?? "").trim();
+    const picked = answer.file instanceof File && answer.file.size ? answer.file : null;
+    const site = findSite(answer.site) ?? siteForImage(picked?.name || src, sites);
+    if (!site) { ui.notifications.warn(t("SDE.adventure.map.needSite")); return; }
     let scene = findSiteScene(site.id);
-    if (answer.mode === "resume") {
-      if (!scene) { ui.notifications.warn(t("SDE.adventure.map.noScene", { title: site.title })); return; }
+    if (scene) {
+      ui.notifications.info(t("SDE.adventure.map.alreadyBuilt", { title: site.title }));
     } else {
-      const src = String(answer.img ?? "").trim();
+      if (picked) { src = await uploadMapImage(picked); if (!src) return; }
       if (!src) { ui.notifications.warn(t("SDE.adventure.map.needImage")); return; }
-      if (scene) { ui.notifications.warn(t("SDE.adventure.map.alreadyBuilt", { title: site.title })); return; }
+      // Not imported yet: read the journal out of the book first, so this is one step.
+      if (!(await filedSiteIds()).has(site.id)) {
+        const { importAdventures } = await import("./adventure/adventure-book-import.mjs");
+        const note = ui.notifications.info(t("SDE.adventure.map.importing", { title: site.title }), { permanent: true, console: false });
+        try { await importAdventures(site.src, { ids: [site.id] }); } finally { note?.remove?.(); }
+      }
       const built = await buildSiteScene(site, src);
       if (!built) return;
       scene = built.scene;
       if (built.skewed) ui.notifications.warn(t("SDE.adventure.notify.skewed", { title: site.title }));
     }
     const placer = await AdventurePlacer.open(scene);
+    // Positions saved with the module (or printed as text in the book) place the
+    // pins with no clicking; the rest is the GM's to click.
+    if (hasKnownPositions(site)) await placer?.placeFromBook();
     placer?._onNext();
   }
 }

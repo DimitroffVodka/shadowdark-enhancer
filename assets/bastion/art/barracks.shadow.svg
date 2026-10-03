@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512"
+     role="img" aria-labelledby="title desc">
+  <title id="title">Barracks shadow</title>
+  <desc id="desc">Separate native-vector cast shadow aligned to the Barracks SVG.</desc>
+  <g id="shadow" transform="translate(28 16)" fill="#9699AE" opacity="0.46">
+    <g transform="translate(256 256) scale(0.9) translate(-265 -249)">
+    <path d="M48 90 H436 V262 H252 V286 H60 V262 H48 Z"/>
+    <path d="M54 306 H182 V390 H54 Z"/>
+    <path d="M200 306 H296 V392 H200 Z"/>
+    <path d="M324 330 H450 V414 H324 Z"/>
+    <path d="M436 122 H482 V240 H440 V412 H452 V240 Z"/>
+
+    </g>
+
+  </g>
+</svg>

@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512"
+     role="img" aria-labelledby="title desc">
+  <title id="title">Brewery shadow</title>
+  <desc id="desc">Separate native-vector cast shadow aligned to the Brewery SVG.</desc>
+  <g id="shadow" transform="translate(28 16)" fill="#9699AE" opacity="0.46">
+    <g transform="translate(256 256) scale(0.86) translate(-277 -265)">
+    <path d="M52 134 C96 98 322 98 372 134 V228 H362 L356 280 H68 L62 228 H52 Z"/>
+    <path d="M404 142 C420 134 449 140 449 164 V190 C500 190 504 250 494 300 V348 H410 V300 C396 270 396 224 416 206 C422 196 440 190 449 190 L392 142 Z"/>
+    <path d="M92 296 H230 V428 H92 Z"/>
+    <path d="M286 262 H336 V424 H286 Z"/>
+    <path d="M314 268 H430 V428 H314 Z"/>
+
+    </g>
+
+  </g>
+</svg>

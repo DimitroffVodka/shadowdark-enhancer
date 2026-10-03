@@ -1,0 +1,184 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512"
+     role="img" aria-labelledby="title desc">
+  <title id="title">Idol</title>
+  <desc id="desc">Open-air shrine: horned sun-crowned stone idol on a stepped plinth in a ring of standing stones.</desc>
+  <!-- Native vector artwork only: no embedded or linked raster content. -->
+
+  <defs>
+    <pattern id="roofHatch" width="12" height="12" patternUnits="userSpaceOnUse">
+      <path d="M2 0 V12 M8 0 V12" fill="none" stroke="#010206" stroke-width="0.75" opacity="0.17"/>
+    </pattern>
+    <pattern id="leanHatch" width="10" height="10" patternUnits="userSpaceOnUse">
+      <path d="M2 0 V10" fill="none" stroke="#010206" stroke-width="0.65" opacity="0.18"/>
+    </pattern>
+    <pattern id="stoneHatch" width="16" height="13" patternUnits="userSpaceOnUse">
+      <path d="M0 6 H16 M5 0 V6 M12 6 V13" fill="none" stroke="#010206" stroke-width="0.55" opacity="0.16"/>
+    </pattern>
+    <pattern id="shingleHatch" width="14" height="9" patternUnits="userSpaceOnUse">
+      <path d="M0 8 H14 M0 4 Q3.5 8 7 4 Q10.5 8 14 4" fill="none" stroke="#010206" stroke-width="0.6" opacity="0.2"/>
+    </pattern>
+    <pattern id="logHatch" width="9" height="9" patternUnits="userSpaceOnUse">
+      <path d="M4.5 0 V9" fill="none" stroke="#010206" stroke-width="0.7" opacity="0.2"/>
+    </pattern>
+    <pattern id="plankHatch" width="64" height="22" patternUnits="userSpaceOnUse">
+      <path d="M0 0.5 H64 M0 11.5 H64 M20 0 V11 M50 11 V22" fill="none" stroke="#010206" stroke-width="0.8" opacity="0.22"/>
+    </pattern>
+    <pattern id="flagHatch" width="48" height="40" patternUnits="userSpaceOnUse">
+      <path d="M0 0.5 H48 M0 20.5 H48 M16 0 V20 M40 20 V40" fill="none" stroke="#010206" stroke-width="0.8" opacity="0.2"/>
+    </pattern>
+    <pattern id="waterHatch" width="22" height="10" patternUnits="userSpaceOnUse">
+      <path d="M2 5 Q7 1 12 5 T22 5" fill="none" stroke="#A3C9CC" stroke-width="1.1" opacity="0.7"/>
+    </pattern>
+  </defs>
+
+  <g id="building" stroke="#010206" stroke-linecap="round" stroke-linejoin="round">
+
+    <!-- Trampled ritual ground. -->
+    <ellipse cx="256" cy="336" rx="204" ry="90" fill="#B8AB8E" stroke-width="1.8"/>
+    <ellipse cx="256" cy="336" rx="204" ry="90" fill="url(#leanHatch)" stroke="none"/>
+    <ellipse cx="256" cy="340" rx="124" ry="48" fill="#A99C80" stroke="none" opacity="0.7"/>
+    <!-- Back arc of standing stones. -->
+
+    <path d="M76.0 323.0 L74.1 288.6 L79.2 252.5 L89.4 241.0 L101.6 249.2 L108.0 282.0 L108.0 323.0 Z" fill="#A8A59B" stroke-width="2"/>
+    <path d="M76.0 323.0 L74.1 288.6 L79.2 252.5 L89.4 241.0 L101.6 249.2 L108.0 282.0 L108.0 323.0 Z" fill="url(#leanHatch)" stroke="none"/>
+    <path d="M95.2 243.5 L101.6 249.2 L108.0 282.0 L108.0 323.0 H95.8 L98.4 282.0 Z" fill="#6F6D68" stroke="none" opacity="0.55"/>
+    <path d="M76.0 318.1 Q85.6 306.6 95.2 316.4 L101.6 323.0 H76.0 Z" fill="#6F8A5F" stroke="none" opacity="0.8"/>
+    <path d="M88.2 265.6 v13.1 m-5 -6.6 h10" fill="none" stroke-width="1.2" opacity="0.6"/>
+
+    <path d="M113.0 295.0 L110.8 260.6 L116.6 224.5 L128.1 213.0 L141.8 221.2 L149.0 254.0 L149.0 295.0 Z" fill="#A8A59B" stroke-width="2"/>
+    <path d="M113.0 295.0 L110.8 260.6 L116.6 224.5 L128.1 213.0 L141.8 221.2 L149.0 254.0 L149.0 295.0 Z" fill="url(#leanHatch)" stroke="none"/>
+    <path d="M134.6 215.5 L141.8 221.2 L149.0 254.0 L149.0 295.0 H135.3 L138.2 254.0 Z" fill="#6F6D68" stroke="none" opacity="0.55"/>
+    <path d="M113.0 290.1 Q123.8 278.6 134.6 288.4 L141.8 295.0 H113.0 Z" fill="#6F8A5F" stroke="none" opacity="0.8"/>
+    <path d="M126.7 237.6 v13.1 m-5 -6.6 h10" fill="none" stroke-width="1.2" opacity="0.6"/>
+
+    <path d="M188.0 277.0 L186.1 242.6 L191.2 206.5 L201.4 195.0 L213.6 203.2 L220.0 236.0 L220.0 277.0 Z" fill="#A8A59B" stroke-width="2"/>
+    <path d="M188.0 277.0 L186.1 242.6 L191.2 206.5 L201.4 195.0 L213.6 203.2 L220.0 236.0 L220.0 277.0 Z" fill="url(#leanHatch)" stroke="none"/>
+    <path d="M207.2 197.5 L213.6 203.2 L220.0 236.0 L220.0 277.0 H207.8 L210.4 236.0 Z" fill="#6F6D68" stroke="none" opacity="0.55"/>
+    <path d="M188.0 272.1 Q197.6 260.6 207.2 270.4 L213.6 277.0 H188.0 Z" fill="#6F8A5F" stroke="none" opacity="0.8"/>
+    <path d="M200.2 219.6 v13.1 m-5 -6.6 h10" fill="none" stroke-width="1.2" opacity="0.6"/>
+
+    <path d="M290.0 277.0 L287.8 242.6 L293.6 206.5 L305.1 195.0 L318.8 203.2 L326.0 236.0 L326.0 277.0 Z" fill="#A8A59B" stroke-width="2"/>
+    <path d="M290.0 277.0 L287.8 242.6 L293.6 206.5 L305.1 195.0 L318.8 203.2 L326.0 236.0 L326.0 277.0 Z" fill="url(#leanHatch)" stroke="none"/>
+    <path d="M311.6 197.5 L318.8 203.2 L326.0 236.0 L326.0 277.0 H312.3 L315.2 236.0 Z" fill="#6F6D68" stroke="none" opacity="0.55"/>
+    <path d="M290.0 272.1 Q300.8 260.6 311.6 270.4 L318.8 277.0 H290.0 Z" fill="#6F8A5F" stroke="none" opacity="0.8"/>
+    <path d="M303.7 219.6 v13.1 m-5 -6.6 h10" fill="none" stroke-width="1.2" opacity="0.6"/>
+
+    <path d="M365.0 295.0 L363.1 260.6 L368.2 224.5 L378.4 213.0 L390.6 221.2 L397.0 254.0 L397.0 295.0 Z" fill="#A8A59B" stroke-width="2"/>
+    <path d="M365.0 295.0 L363.1 260.6 L368.2 224.5 L378.4 213.0 L390.6 221.2 L397.0 254.0 L397.0 295.0 Z" fill="url(#leanHatch)" stroke="none"/>
+    <path d="M384.2 215.5 L390.6 221.2 L397.0 254.0 L397.0 295.0 H384.8 L387.4 254.0 Z" fill="#6F6D68" stroke="none" opacity="0.55"/>
+    <path d="M365.0 290.1 Q374.6 278.6 384.2 288.4 L390.6 295.0 H365.0 Z" fill="#6F8A5F" stroke="none" opacity="0.8"/>
+    <path d="M377.2 237.6 v13.1 m-5 -6.6 h10" fill="none" stroke-width="1.2" opacity="0.6"/>
+
+    <path d="M402.0 323.0 L399.8 288.6 L405.6 252.5 L417.1 241.0 L430.8 249.2 L438.0 282.0 L438.0 323.0 Z" fill="#A8A59B" stroke-width="2"/>
+    <path d="M402.0 323.0 L399.8 288.6 L405.6 252.5 L417.1 241.0 L430.8 249.2 L438.0 282.0 L438.0 323.0 Z" fill="url(#leanHatch)" stroke="none"/>
+    <path d="M423.6 243.5 L430.8 249.2 L438.0 282.0 L438.0 323.0 H424.3 L427.2 282.0 Z" fill="#6F6D68" stroke="none" opacity="0.55"/>
+    <path d="M402.0 318.1 Q412.8 306.6 423.6 316.4 L430.8 323.0 H402.0 Z" fill="#6F8A5F" stroke="none" opacity="0.8"/>
+    <path d="M415.7 265.6 v13.1 m-5 -6.6 h10" fill="none" stroke-width="1.2" opacity="0.6"/>
+
+    <path d="M131 266 Q167.5 310 204 266" fill="none" stroke-width="1.1"/>
+    <circle cx="139.1" cy="274.7" r="3" fill="#E8B64B" stroke-width="1"/>
+    <circle cx="147.2" cy="281.2" r="3" fill="#7FC4B2" stroke-width="1"/>
+    <circle cx="155.3" cy="285.6" r="3" fill="#C8483F" stroke-width="1"/>
+    <circle cx="163.4" cy="287.7" r="3" fill="#E8B64B" stroke-width="1"/>
+    <circle cx="171.6" cy="287.7" r="3" fill="#7FC4B2" stroke-width="1"/>
+    <circle cx="179.7" cy="285.6" r="3" fill="#C8483F" stroke-width="1"/>
+    <circle cx="187.8" cy="281.2" r="3" fill="#E8B64B" stroke-width="1"/>
+    <circle cx="195.9" cy="274.7" r="3" fill="#7FC4B2" stroke-width="1"/>
+    <path d="M308 266 Q344.5 310 381 266" fill="none" stroke-width="1.1"/>
+    <circle cx="316.1" cy="274.7" r="3" fill="#C8483F" stroke-width="1"/>
+    <circle cx="324.2" cy="281.2" r="3" fill="#E8B64B" stroke-width="1"/>
+    <circle cx="332.3" cy="285.6" r="3" fill="#7FC4B2" stroke-width="1"/>
+    <circle cx="340.4" cy="287.7" r="3" fill="#C8483F" stroke-width="1"/>
+    <circle cx="348.6" cy="287.7" r="3" fill="#E8B64B" stroke-width="1"/>
+    <circle cx="356.7" cy="285.6" r="3" fill="#7FC4B2" stroke-width="1"/>
+    <circle cx="364.8" cy="281.2" r="3" fill="#C8483F" stroke-width="1"/>
+    <circle cx="372.9" cy="274.7" r="3" fill="#E8B64B" stroke-width="1"/>
+
+    <!-- Sun crown behind the idol's head. -->
+    <circle cx="256" cy="104" r="40" fill="#D9A83F" stroke-width="2.4"/>
+    <path d="M218.2 100.0 L183.6 88.6 L219.9 92.3 Z" fill="#EAC862" stroke-width="1.6"/>
+    <path d="M220.3 91.0 L202.1 77.7 L223.8 83.9 Z" fill="#D9A83F" stroke-width="1.6"/>
+    <path d="M224.5 82.8 L199.3 56.4 L229.6 76.7 Z" fill="#EAC862" stroke-width="1.6"/>
+    <path d="M230.6 75.8 L220.7 55.5 L237.0 71.1 Z" fill="#D9A83F" stroke-width="1.6"/>
+    <path d="M238.2 70.4 L228.3 35.4 L245.5 67.5 Z" fill="#EAC862" stroke-width="1.6"/>
+    <path d="M246.8 67.1 L247.6 44.6 L254.7 66.0 Z" fill="#D9A83F" stroke-width="1.6"/>
+    <path d="M256.0 66.0 L263.7 30.4 L263.9 66.8 Z" fill="#EAC862" stroke-width="1.6"/>
+    <path d="M265.2 67.1 L276.5 47.6 L272.7 69.8 Z" fill="#D9A83F" stroke-width="1.6"/>
+    <path d="M273.8 70.4 L297.4 42.7 L280.4 74.9 Z" fill="#EAC862" stroke-width="1.6"/>
+    <path d="M281.4 75.8 L300.6 63.9 L286.7 81.7 Z" fill="#D9A83F" stroke-width="1.6"/>
+    <path d="M287.5 82.8 L321.3 69.3 L291.2 89.8 Z" fill="#EAC862" stroke-width="1.6"/>
+    <path d="M291.7 91.0 L314.2 89.5 L293.6 98.7 Z" fill="#D9A83F" stroke-width="1.6"/>
+
+    <circle cx="256" cy="104" r="40" fill="none" stroke="#EAC862" stroke-width="3" opacity="0.8"/>
+    <!-- Stepped plinth. -->
+    <path d="M168 372 H344 L338 336 H174 Z" fill="#8E8B83" stroke-width="2.2"/>
+    <path d="M168 372 H344 L338 336 H174 Z" fill="url(#stoneHatch)" stroke="none"/>
+    <path d="M174 336 H338 L330 322 H182 Z" fill="#A8A59B" stroke-width="2"/>
+    <path d="M194 322 H318 L312 296 H200 Z" fill="#8E8B83" stroke-width="2.2"/>
+    <path d="M194 322 H318 L312 296 H200 Z" fill="url(#stoneHatch)" stroke="none"/>
+    <path d="M200 296 H312 L306 284 H206 Z" fill="#A8A59B" stroke-width="2"/>
+    <!-- Idol body: tapering carved column with folded arms and a belt of runes. -->
+    <path d="M226 286 L236 196 H276 L286 286 Z" fill="#A8A59B" stroke-width="2.4"/>
+    <path d="M262 196 H276 L286 286 H268 Z" fill="#6F6D68" stroke="none" opacity="0.5"/>
+    <path d="M226 286 L236 196 H276 L286 286 Z" fill="url(#stoneHatch)" stroke="none"/>
+    <path d="M238 214 Q256 238 274 214 M240 238 Q256 256 272 238" fill="none" stroke-width="2.2"/>
+    <path d="M232 262 H280" fill="none" stroke="#A97E2A" stroke-width="3"/>
+    <path d="M240 270 l4 4 l4 -4 l4 4 l4 -4 l4 4 l4 -4 l4 4 l4 -4" fill="none" stroke-width="1.3"/>
+    <!-- Idol head: blocky face with brow, glowing eyes, nose and fanged mouth. -->
+    <path d="M228 198 Q224 140 232 118 Q256 104 280 118 Q288 140 284 198 Z" fill="#A8A59B" stroke-width="2.4"/>
+    <path d="M268 120 Q280 128 284 198 H266 Q272 150 268 120 Z" fill="#6F6D68" stroke="none" opacity="0.5"/>
+    <path d="M230 142 L256 150 L282 142" fill="none" stroke-width="3.2"/>
+    <path d="M234 158 H250 L246 168 H236 Z M262 158 H278 L276 168 H266 Z" fill="#EAC862" stroke-width="1.8"/>
+    <path d="M256 150 V176 L250 182 H262 Z" fill="#6F6D68" stroke-width="1.8"/>
+    <path d="M238 188 Q256 178 274 188 L270 198 H242 Z" fill="#1d1a18" stroke-width="1.8"/>
+    <path d="M246 188 L249 195 L252 188 M260 188 L263 195 L266 188" fill="#E6DFCB" stroke-width="1"/>
+    <!-- Horns sweeping out and up from the brow. -->
+    <path d="M232 134 C210 136 192 124 188 96 C187 86 190 78 194 72 C196 88 206 104 234 114 Z" fill="#CBC3A4" stroke-width="2.2"/>
+    <path d="M280 134 C302 136 320 124 324 96 C325 86 322 78 318 72 C316 88 306 104 278 114 Z" fill="#CBC3A4" stroke-width="2.2"/>
+    <path d="M200 112 L210 116 M193 98 L203 102 M312 112 L302 116 M319 98 L309 102" fill="none" stroke-width="1.2" opacity="0.7"/>
+    <!-- Ribbons knotted to the horn tips. -->
+    <path d="M192 74 C166 100 176 150 164 196 L177 198 C190 150 184 106 200 78 Z" fill="#C8483F" stroke-width="1.6"/>
+    <path d="M320 74 C346 100 336 150 348 196 L335 198 C322 150 328 106 312 78 Z" fill="#4F8A92" stroke-width="1.6"/>
+    <path d="M172 130 L181 133 M170 164 L178 167 M340 130 L331 133 M342 164 L334 167" fill="none" stroke-width="1" opacity="0.6"/>
+    <!-- Offerings on the plinth: fruit, candle stub. -->
+    <g stroke-width="1.5"><circle cx="196" cy="330" r="6" fill="#C8483F"/><circle cx="208" cy="332" r="5.4" fill="#D9A83F"/><circle cx="316" cy="330" r="5.6" fill="#7FA06B"/></g>
+    <path d="M306 316 V304 H312 V316 Z" fill="#F0E6C8" stroke-width="1.4"/>
+    <path d="M309 304 C305 300 308 296 309 293 C311 297 313 300 311 304 Z" fill="#E08A33" stroke-width="1"/>
+    <!-- Offering bowl on a stand with a living flame, in the gap of the ring. -->
+    <path d="M232 424 L244 400 H268 L280 424 Z" fill="#4D4B47" stroke-width="2"/>
+    <ellipse cx="256" cy="398" rx="30" ry="10" fill="#6F6D68" stroke-width="2.2"/>
+    <ellipse cx="256" cy="397" rx="22" ry="6.5" fill="#26211f" stroke-width="1.4"/>
+    <path d="M256 396 C238 392 244 372 256 360 C258 372 280 378 272 392 C270 398 262 399 256 396 Z" fill="#E08A33" stroke-width="1.8"/>
+    <path d="M256 394 C247 390 252 378 257 372 C259 380 267 384 263 392 C262 396 259 396 256 394 Z" fill="#F4D36B" stroke="none"/>
+    <path d="M232 408 Q238 402 244 408 M268 408 Q274 402 280 408" fill="none" stroke="#D9A83F" stroke-width="2"/>
+    <g fill="#E8B64B" stroke-width="1"><circle cx="222" cy="408" r="3"/><circle cx="214" cy="414" r="3" fill="#C8483F"/><circle cx="292" cy="408" r="3" fill="#7FC4B2"/><circle cx="300" cy="414" r="3"/></g>
+    <!-- Front standing stones left and right of the approach. -->
+
+    <path d="M399.0 353.0 L396.8 327.8 L402.6 301.4 L414.1 293.0 L427.8 299.0 L435.0 323.0 L435.0 353.0 Z" fill="#A8A59B" stroke-width="2"/>
+    <path d="M399.0 353.0 L396.8 327.8 L402.6 301.4 L414.1 293.0 L427.8 299.0 L435.0 323.0 L435.0 353.0 Z" fill="url(#leanHatch)" stroke="none"/>
+    <path d="M420.6 294.8 L427.8 299.0 L435.0 323.0 L435.0 353.0 H421.3 L424.2 323.0 Z" fill="#6F6D68" stroke="none" opacity="0.55"/>
+    <path d="M399.0 349.4 Q409.8 341.0 420.6 348.2 L427.8 353.0 H399.0 Z" fill="#6F8A5F" stroke="none" opacity="0.8"/>
+    <path d="M412.7 311.0 v9.6 m-5 -4.8 h10" fill="none" stroke-width="1.2" opacity="0.6"/>
+
+    <path d="M363.0 377.0 L360.8 351.8 L366.6 325.4 L378.1 317.0 L391.8 323.0 L399.0 347.0 L399.0 377.0 Z" fill="#A8A59B" stroke-width="2"/>
+    <path d="M363.0 377.0 L360.8 351.8 L366.6 325.4 L378.1 317.0 L391.8 323.0 L399.0 347.0 L399.0 377.0 Z" fill="url(#leanHatch)" stroke="none"/>
+    <path d="M384.6 318.8 L391.8 323.0 L399.0 347.0 L399.0 377.0 H385.3 L388.2 347.0 Z" fill="#6F6D68" stroke="none" opacity="0.55"/>
+    <path d="M363.0 373.4 Q373.8 365.0 384.6 372.2 L391.8 377.0 H363.0 Z" fill="#6F8A5F" stroke="none" opacity="0.8"/>
+    <path d="M376.7 335.0 v9.6 m-5 -4.8 h10" fill="none" stroke-width="1.2" opacity="0.6"/>
+
+    <path d="M113.0 377.0 L110.8 351.8 L116.6 325.4 L128.1 317.0 L141.8 323.0 L149.0 347.0 L149.0 377.0 Z" fill="#A8A59B" stroke-width="2"/>
+    <path d="M113.0 377.0 L110.8 351.8 L116.6 325.4 L128.1 317.0 L141.8 323.0 L149.0 347.0 L149.0 377.0 Z" fill="url(#leanHatch)" stroke="none"/>
+    <path d="M134.6 318.8 L141.8 323.0 L149.0 347.0 L149.0 377.0 H135.3 L138.2 347.0 Z" fill="#6F6D68" stroke="none" opacity="0.55"/>
+    <path d="M113.0 373.4 Q123.8 365.0 134.6 372.2 L141.8 377.0 H113.0 Z" fill="#6F8A5F" stroke="none" opacity="0.8"/>
+    <path d="M126.7 335.0 v9.6 m-5 -4.8 h10" fill="none" stroke-width="1.2" opacity="0.6"/>
+
+    <path d="M77.0 353.0 L74.8 327.8 L80.6 301.4 L92.1 293.0 L105.8 299.0 L113.0 323.0 L113.0 353.0 Z" fill="#A8A59B" stroke-width="2"/>
+    <path d="M77.0 353.0 L74.8 327.8 L80.6 301.4 L92.1 293.0 L105.8 299.0 L113.0 323.0 L113.0 353.0 Z" fill="url(#leanHatch)" stroke="none"/>
+    <path d="M98.6 294.8 L105.8 299.0 L113.0 323.0 L113.0 353.0 H99.3 L102.2 323.0 Z" fill="#6F6D68" stroke="none" opacity="0.55"/>
+    <path d="M77.0 349.4 Q87.8 341.0 98.6 348.2 L105.8 353.0 H77.0 Z" fill="#6F8A5F" stroke="none" opacity="0.8"/>
+    <path d="M90.7 311.0 v9.6 m-5 -4.8 h10" fill="none" stroke-width="1.2" opacity="0.6"/>
+
+
+  </g>
+</svg>

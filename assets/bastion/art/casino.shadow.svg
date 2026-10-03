@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512"
+     role="img" aria-labelledby="title desc">
+  <title id="title">Casino shadow</title>
+  <desc id="desc">Separate native-vector cast shadow aligned to the Casino SVG.</desc>
+  <g id="shadow" transform="translate(28 16)" fill="#9699AE" opacity="0.46">
+    <path d="M52 66 H72 V346 H52 Z M440 66 H460 V346 H440 Z"/>
+    <path d="M98 140 H414 V250 H402 L396 342 H116 L110 250 H98 Z"/>
+    <path d="M70 386 H204 V444 H70 Z"/>
+    <path d="M322 374 H420 V440 H322 Z"/>
+
+  </g>
+</svg>

@@ -59,6 +59,20 @@ test("hasHexNumbering: tells 'off the map' apart from 'never numbered'", () => {
   assert.equal(hasHexNumbering(undefined), false);
 });
 
+test("hexNumberAt: shifted physical anchor preserves leading-zero published identity on both parities", () => {
+  for (const type of [4, 5]) {
+    const q = 2, r = 3;
+    const origin = { q, r, num: "0001", shifted: "even", bounds: { cols: 3, rows: 3, base: { col: 0, row: 1 } } };
+    const scene = sceneWith(origin, type);
+    const before = JSON.stringify(origin);
+    assert.equal(hexNumberAt({ i: 4, j: 2 }, scene), 1);
+    assert.equal(hexNumberAt({ i: 5, j: 2 }, scene), 2);
+    assert.equal(hexNumberAt({ i: 3, j: 2 }, scene), null);
+    assert.equal(String(hexNumberAt({ i: 4, j: 2 }, scene)).padStart(4, "0"), "0001");
+    assert.equal(JSON.stringify(origin), before, "API never changes calibration");
+  }
+});
+
 test("a scene id is looked up in game.scenes, and the viewed scene is the default", () => {
   const scene = sceneWith(gloaming);
   globalThis.game = { scenes: { get: (id) => (id === "abc" ? scene : undefined) } };

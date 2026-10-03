@@ -325,10 +325,10 @@ describe("the updateJournalEntry watcher", () => {
   /** The capture is fire-and-forget inside the hook; let its write settle. */
   const settle = () => new Promise((r) => setImmediate(r));
 
-  test("a real update captures", async () => {
+  test("a hidden SDX journal update is not watched; native nights push explicitly", async () => {
     fire(doc());
     await settle();
-    assert.equal(carousing().length, 1);
+    assert.equal(carousing().length, 0);
   });
 
   test("an unrelated journal update captures nothing", async () => {

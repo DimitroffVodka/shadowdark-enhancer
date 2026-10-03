@@ -178,3 +178,21 @@ test("a payment marked before its gold was taken: landed, not landed, or unclear
   const table = [[7000, "landed"], [10000, "not-landed"], [9500, "unclear"], [0, "unclear"], [13000, "unclear"], [null, "unclear"], [6999, "unclear"], [7001, "unclear"], [10001, "unclear"]];
   for (const [purse, want] of table) assert.equal(decidePayment(intent, purse), want, `purse ${purse}`);
 });
+
+test("a warband's upkeep can be less by a saving, never below nothing", () => {
+  assert.equal(upkeepGp(3), 30);
+  assert.equal(upkeepGp(3, 10), 20);
+  assert.equal(upkeepGp(1, 10), 0);
+  assert.equal(upkeepGp(1, 25), 0);
+  assert.equal(upkeepGp(0, 10), 0);
+});
+
+test("healing with a die a day more: the dice add, and a full heal counts the least they roll", () => {
+  const extra = { n: 1, faces: 6 };
+  assert.deepEqual(healPlan(1, 50, [], extra), { full: false, formula: "1d4 + 1d6" });
+  assert.deepEqual(healPlan(3, 50, ["hardy"], extra), { full: false, formula: "6d6 + 3d6" });
+  assert.deepEqual(healPlan(2, 4, [], extra), { full: true, formula: null });     // 2 + 2 >= 4
+  assert.deepEqual(healPlan(2, 5, [], extra), { full: false, formula: "2d4 + 2d6" });
+  assert.deepEqual(healPlan(2, 5, []), { full: false, formula: "2d4" });          // without it, as before
+  assert.deepEqual(healPlan(1, 0, [], extra), { full: false, formula: null });
+});

@@ -10,6 +10,11 @@
  * filled value is replaced). Import everything runs it too, when a book is
  * linked. The settings entry stays: two doors, one window.
  *
+ * The step sits inside the Manage strip since #311, with the census and the
+ * duplicate-cull sections, so it is not a block of its own between the paste
+ * box and Manage. The strip starts collapsed (and its census lazy), so
+ * openRulesData() expands it before scrolling to the step.
+ *
  * Installed onto ImporterHubApp.prototype by installHubRules(cls); `this` is
  * the live hub.
  */
@@ -27,6 +32,11 @@ class HubRulesMethods {
 
   /** Open the hub and bring the Rules Data step into view (the "isn't set" cards' button). */
   static async openRulesData() {
+    // The step sits inside the Manage strip (#311), which is collapsed by
+    // default and computes its census lazily: expand it BEFORE opening, or the
+    // render has no step in the DOM to scroll to. Same shape as openNewContent().
+    if (!this._instance) this._instance = new this();
+    this._instance._manageExpanded = true;
     const hub = this.open();
     await hub.render();
     hub.element?.querySelector("[data-rules-step]")?.scrollIntoView({ block: "start" });

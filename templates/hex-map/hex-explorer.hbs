@@ -1,0 +1,50 @@
+<div class="sde-hex-explorer-body standard-form">
+{{#if isGM}}
+  <p><strong>{{sceneName}} — {{number}}</strong></p>
+  <p class="hint">{{localize "SDE.hexExplorer.hint"}}</p>
+  <label>{{localize "SDE.hexExplorer.terrain"}}<input name="terrain" value="{{terrain}}" list="{{rootId}}-terrains" required></label>
+  <datalist id="{{rootId}}-terrains">{{#each terrains}}<option value="{{this}}"></option>{{/each}}</datalist>
+  <label>{{localize "SDE.hexExplorer.locationTitle"}}<input name="title" value="{{title}}"></label>
+  <fieldset><legend>{{localize "SDE.hexExplorer.lines"}}</legend>
+    {{#each lineRows}}<div class="sde-hex-explorer-line"><label><input type="checkbox" name="{{type}}" {{checked checked}}> {{label}}</label><label><input type="checkbox" name="{{type}}Discovered" {{checked discovered}}> {{localize "SDE.hexExplorer.disclosed"}}</label></div>{{/each}}
+  </fieldset>
+  <fieldset><legend>{{localize "SDE.hexExplorer.features"}}</legend>
+    {{#each features}}<div data-row="feature" data-index="{{index}}">
+      <label>{{localize "SDE.hexExplorer.type"}}<input data-field="type" value="{{type}}"></label>
+      <label>{{localize "SDE.hexExplorer.name"}}<input data-field="name" value="{{name}}"></label>
+      <label>{{localize "SDE.hexExplorer.uuid"}}<input data-field="uuid" value="{{uuid}}"></label>
+      <label><input type="checkbox" data-field="discovered" {{checked discovered}}> {{localize "SDE.hexExplorer.disclosed"}}</label>
+      <button type="button" data-action="remove">{{localize "SDE.hexExplorer.remove"}}</button>
+    </div>{{/each}}
+    <button type="button" data-action="addFeature">{{localize "SDE.hexExplorer.addFeature"}}</button>
+  </fieldset>
+  <fieldset><legend>{{localize "SDE.hexExplorer.notes"}}</legend>
+    {{#each notes}}<div data-row="note" data-index="{{index}}">
+      <label>{{localize "SDE.hexExplorer.note"}}<textarea data-field="text">{{text}}</textarea></label>
+      <label><input type="checkbox" data-field="visible" {{checked visible}}> {{localize "SDE.hexExplorer.publicNote"}}</label>
+      <label><input type="checkbox" data-field="location" {{checked location}}> {{localize "SDE.hexFog.locationNote"}}</label>
+      <button type="button" data-action="remove">{{localize "SDE.hexExplorer.remove"}}</button>
+    </div>{{/each}}
+    <button type="button" data-action="addNote">{{localize "SDE.hexExplorer.addNote"}}</button>
+  </fieldset>
+  <fieldset><legend>{{localize "SDE.hexExplorer.links"}}</legend>
+    {{#each links}}<div data-row="link" data-index="{{index}}">
+      <label>{{localize "SDE.hexExplorer.name"}}<input data-field="label" value="{{label}}"></label>
+      <label>{{localize "SDE.hexExplorer.uuid"}}<input data-field="uuid" value="{{uuid}}"></label>
+      <label><input type="checkbox" data-field="visible" {{checked visible}}> {{localize "SDE.hexExplorer.disclosed"}}</label>
+      <button type="button" data-action="remove">{{localize "SDE.hexExplorer.remove"}}</button>
+    </div>{{/each}}
+    <button type="button" data-action="addLink">{{localize "SDE.hexExplorer.addLink"}}</button>
+  </fieldset>
+  <fieldset><legend>{{localize "SDE.hexExplorer.discovery"}}</legend>
+    <label><input type="checkbox" name="revealed" {{checked revealed}}> {{localize "SDE.hexExplorer.revealed"}}</label>
+    <label><input type="checkbox" name="visited" {{checked visited}}> {{localize "SDE.hexExplorer.visited"}}</label>
+    <label>{{localize "SDE.hexExplorer.keyed"}}<select name="location">
+      <option value="auto" {{#if locationAuto}}selected{{/if}}>{{localize "SDE.hexExplorer.auto"}}</option>
+      <option value="show" {{#if locationShow}}selected{{/if}}>{{localize "SDE.hexExplorer.show"}}</option>
+      <option value="hide" {{#if locationHide}}selected{{/if}}>{{localize "SDE.hexExplorer.hide"}}</option>
+    </select></label>
+  </fieldset>
+  <button type="button" data-action="save" {{#if saving}}disabled{{/if}}>{{localize "SDE.hexExplorer.save"}}</button>
+{{/if}}
+</div>

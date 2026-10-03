@@ -634,10 +634,13 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
           { value: "ancestries",  label: tr("SDE.importer.type.ancestries") },
           { value: "generators",  label: tr("SDE.importer.type.generators") },
           { value: "cartesian",   label: tr("SDE.importer.type.cartesian") },
-          // No downtime entry on purpose: the paste workspace is reachable only
+          // Downtime is never a choice: the paste workspace is reachable only
           // through a Manage → Downtime row (or the Downtime window's Unlock
           // button → openHub("import", { downtimeSource })), which already
-          // names the book. See _seedDowntimeUnlock.
+          // names the book. See _seedDowntimeUnlock. But when it is seeded the
+          // select must say so, or it shows Auto-detect while Parse runs the
+          // downtime parser, so the entry exists only while that type is active.
+          ...(t === "downtime" ? [{ value: "downtime", label: tr("SDE.importer.type.downtime") }] : []),
         ] },
         { group: tr("SDE.importer.type.groupGuided"), options: [
           { value: "__spells",  label: tr("SDE.importer.type.spells") },

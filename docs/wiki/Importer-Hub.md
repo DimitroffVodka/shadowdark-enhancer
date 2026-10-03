@@ -73,7 +73,9 @@ runs when you expand the Manage review strip.
 
 ### The Rules Data step
 
-Under the paste box, always visible, is the **Rules Data** step: the Western
+The **Rules Data** step lives in the hub's **Manage** strip, first among the
+items there, so it takes no room from the paste view. Expand **Manage** to see
+it: the Western
 Reaches lookup tables that travel, weather and settlements read (hexes per day,
 terrain costs, hex visibility, climate, carousing and recruiting limits). Each
 table is listed with its book and page (GM Guide p.30, 40, 41 and 43, Player's
@@ -281,45 +283,101 @@ Game Master's Guide to the Western Reaches files 270 keyed hexes across 15
 regions this way. Run it again whenever you like: pages are matched by their
 hex number and updated in place, never duplicated.
 
-**Adventures** reads the numbered locations of a Cursed Scroll's adventures out
-of your own PDF. Pick one book, or all six, and each adventure is filed as one
+**Adventures** reads the numbered locations of the Cursed Scrolls' adventures and
+the six Western Reaches Mini Adventures out of your own PDFs. Pick one book, or all
+of them, and each adventure is filed as one
 journal entry with a page per location (`12. Meteorite Room`): the keyed
 description, the bulleted details and the traps, with every "Area 12" reference
 linked to that location's page. Run it again whenever you like: pages are matched
-by number and updated in place, never duplicated. Twenty-five adventure maps are
-covered, 290 locations in all (the City of Masks is filed twice, see below):
+by number and updated in place, never duplicated. Thirty-one adventure maps are
+covered, 346 locations in all (the City of Masks is filed twice, see below):
 
 | Book | Adventures | Locations |
 |---|---|---:|
 | Cursed Scroll 1 | The Hideous Halls of Mugdulblub | 33 |
 | Cursed Scroll 2 | Fortress of the Burning Brothers: the iron fortress, and the mines | 19 + 16 |
-| Cursed Scroll 3 | Wortwick Monastery; Hoard of the Sea Wolf King | 5 + 29 |
+| Cursed Scroll 3 | Wortwick Monastery; Hoard of the Sea Wolf King | 7 + 29 |
 | Cursed Scroll 4 | The nine mini-adventures: Army Ants, Basilisk Cult, Black Ziggurat, Chanichu, Eclipse Dial, Flooded Ruins, Star Map Temple, The Black Seed, Tsibalba | 9, 9, 9, 9, 8, 9, 8, 3, 10 |
 | Cursed Scroll 5 | The Ghoulish Library of Leng, levels 1 and 2 | 28 + 36 |
 | Cursed Scroll 6 | The City of Masks, one journal per district, and one for the whole city | 6, 6, 6, 6, 6, 6, 7, 7, and all 50 |
+| Western Reaches Mini Adventures | House of Rogues; Grotto of the Golden Swan; Forge of the Metallic Sisters; Fallen Keep of the Emerald Knight; Burial Mound of Kaghan; Chapel of the Plague Priestesses | 9, 8, 8, 11, 8, 10 |
 
 The City of Masks is filed as one journal per district and again as one
 journal for the whole city, the same fifty locations in each. Use the whole-city
 journal with the city's overview map to get every pin on a single scene, or a
 district's with that district's map.
 
+Wortwick Monastery also gets an **Introduction** page, filed first: the book's Raiding,
+The Monastery and Inhabitants text, which comes before its first room. Running Adventures
+again adds it, and the two rooms the first version missed (the Chapel and the Abbot's
+Quarters), to the module's own journal. A copy already deployed to your world is left as
+it is, because you may have edited it.
+
+Each Mini Adventure is its own two-page PDF (its intro and map, then its key), so
+each is its own book: link them under Source PDFs, or put them in your `assets`
+folder under their own file names (`House of Rogues V1.pdf` and so on). Only the
+numbered key is filed; the intro page and its random encounters are not.
+
 The hex crawls of Cursed Scrolls 1 to 5 stay under **Key locations** (they are
 keyed by hex number, not room number). If a read does not give every location
 the book prints, the run says which adventure and which numbers; compare that
 adventure against the book.
 
-**Adventure map** puts those locations on a map. Pick an adventure you have
-imported and the map image that came with the book (the module ships no maps),
-and it builds a scene sized from the image and the book's printed grid, then opens
-the **Place locations** window. The numbers are printed inside your image, so the
-module cannot read where each one sits; you show it once. Press **Place next**,
-click the map where the number is printed, and the pin drops and the next location
-is ready, so a thirty-room dungeon is thirty clicks along the printed numbers.
-Right-click puts the target down. Each row also has **Skip** (a location the map
-does not show) and **Clear** (take its pin off), and a pin can be moved by
-placing it again. Pins and skips are kept on the scene, so you can stop at any
-point and pick the map up later with **Continue placing**. Each pin opens its
-location's journal page.
+**Adventure map** is one step from the map image to a playable scene. Choose the map
+image that came with the book from your computer (the module ships no maps; it uploads
+the file to your world's own folder, which needs Foundry's *Upload New Files*
+permission, so a user without it is told so and can pick a file that is already in
+Foundry's files instead) and the module recognises the
+adventure from the file's name ("Ruins of Bittermold Keep (68 wide x 44 high).png" is
+the Hideous Halls), imports its journal from your PDF if you have not already, builds a
+scene sized from the image and the book's printed grid, and pins every location. If the
+name does not say which adventure it is, choose it from the list. Choosing an adventure
+that already has a scene picks it up where you left it. A **Place locations** window
+opens over the scene for anything left to place.
+
+The pins are numbered chips drawn in the style of the books' GM key (black with a white
+number); hovering one shows the room's name, and clicking it opens the room's journal page.
+They are placed **automatically** as soon as the scene is built, with no
+clicking, for every adventure listed above. The module ships where each room number
+sits on its map, as positions only (no map and no book text). Check them against your
+map and nudge any that sit off a room (placing a pin again moves it). The map image has
+to be the same map the positions were taken from, not a different crop; if its shape is
+more than 3% off, the module says so and does not place anything and the Place
+locations window is there for clicking them in. The **Auto-place** button does the same
+for a scene you already have, and never touches a pin you placed or a location you
+skipped. A pin sits where the book puts its number: in the room, or on the building
+the number points at (a City of Masks district map shows its numbers beside the
+district, so those pins sit on the numbered discs).
+
+**Monsters are placed too.** The books set a creature's name in bold with its number just
+before it ("12 unruly **Howlers**"), and the module reads that from your own PDF when it
+places the pins. Each creature found becomes a **hidden** token (the GM sees it, the players
+do not), taken from the core bestiary or your own imported monsters, in its own square
+beside its room's pin, nearest first; the pin's square stays clear so the number is never
+under a token. The book says who is in a room, not where in it, so they are gathered at the
+number for you to move. Only a bold name with a count beside it is placed: a number rolled
+in the text (1d4), a chance (2:6), a creature said to be in another Area, and a name your
+bestiary has no monster for are all left out, so a room can have fewer tokens than it names.
+Wortwick Monastery's map marks its twelve monks (acolytes), four knights and the abbot
+(priest) with a letter each, so that adventure's tokens go where the book draws them instead.
+Building a scene, **Auto-place**, or the **skull button** in the Place locations window puts
+them down; a creature already on the map is never placed twice, and one you delete comes
+back the next time. For pins you placed by hand, press the skull button once they are down.
+
+**Monster names are links.** In a room's journal page, every creature name the book sets in
+bold that your bestiary knows (the core bestiary first, then your imported monsters) is a
+link to that monster, so a room opens the stat block it names; a bold word that is not a
+creature stays plain text. Wortwick Monastery's "monks" are linked to the Acolyte, as the
+book's own "monks (acolytes)" says. It is done when the adventure is filed, so run
+**Adventures** again after importing monsters you did not have, and the pages are updated in
+place with the new links.
+
+For a map the module has no positions for (your own, or a new book), press **Place
+next**, click the map where the number is printed, and the pin drops and the next
+location is ready, so a thirty-room dungeon is thirty clicks along the printed numbers.
+Right-click puts the target down. Each row also has **Skip** and **Clear**, and a pin can
+be moved by placing it again. Pins and skips are kept on the scene, so you can stop at
+any point and pick the map up later. Each pin opens its location's journal page.
 
 **Chapter to journal** turns a range of pages from a linked PDF into one
 journal you can read at the table. Pick the book, type the printed pages

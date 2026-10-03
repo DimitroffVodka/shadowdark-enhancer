@@ -4,18 +4,29 @@
 
 Every setting the module registers, its real default, and what it actually does.
 
-All settings are **world-scoped**. They are configured by the GM for the whole world.
+Unless noted otherwise, settings are **world-scoped**, configured by the GM for the whole world.
 
 ---
 
 ## Settings you can see
 
-Go to **Configure Settings → Shadowdark Enhancer**. Every setting lives in one of nine
+Go to **Configure Settings → Shadowdark Enhancer**. Apart from the per-user hex
+coordinates switch, feature settings live in one of nine
 pop-out windows, one per feature, each opened by its own button (**Configure**, or
 **Modes of Play** for that one): Character Builder, Monsters, PC Automation, Modes
 of Play, Movement, Crawl Strip, Overland, Encounters, and Loot & XP. One more
 button, **Edit Rules Data**, opens the Western Reaches rules tables (see
 [Rules data](#rules-data) below).
+
+### Hex coordinates (per user)
+
+| Setting | Default | What it does |
+|---|---|---|
+| **Show hex coordinates** | off | A persistent user preference in Configure Settings. Immediately shows published numbers on numbered flat-top odd/even-column maps. Unseen cells follow the current fog; off-map, unsupported and unnumbered cells have no label. Does not alter numbering or grid calibration. |
+
+With Shadowdark Extras active, disable its Map Coordinates feature in its Feature
+Manager and reload before enabling native coordinates. Enhancer does not change
+Extras' settings and keeps native labels off while the overlapping feature is enabled.
 
 ### Character Builder
 

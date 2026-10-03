@@ -5,7 +5,8 @@ import assert from "node:assert/strict";
 const MOD = "shadowdark-enhancer";
 const TYPE = `${MOD}.warband`;
 const hooks = {};
-globalThis.Hooks = { on: (name, fn) => { hooks[name] = fn; } };
+// Every hook registered under a name runs, as in Foundry (the Bastion registers a preCreateActor of its own).
+globalThis.Hooks = { on: (name, fn) => { (hooks[name] ??= []).push(fn); }, once: () => {} };
 globalThis.CONFIG = { Actor: { dataModels: { NPC: class {} }, sheetClasses: {} }, queries: {} };
 // Any foundry.* the module reaches for at import answers with itself (as in overland-relay.test.mjs).
 const deep = new Proxy(function () {}, {
@@ -21,7 +22,7 @@ registerActorTypes();
 /** What the hook writes into a copy's creation data. */
 function created(warband) {
   const doc = { type: TYPE, updateSource(update) { this.update = update; } };
-  hooks.preCreateActor(doc, { type: TYPE, flags: { [MOD]: { warband, other: 1 } } });
+  for (const hook of hooks.preCreateActor) hook(doc, { type: TYPE, flags: { [MOD]: { warband, other: 1 } } });
   return doc.update;
 }
 const at = (update, key) => update[`flags.${MOD}.warband.${key}`];
@@ -41,6 +42,6 @@ test("a copy of a warband in debt and deserted starts clean, and keeps its upgra
 
 test("a warband made with no flag gets no flag written, only its linked token", () => {
   const doc = { type: TYPE, updateSource(u) { this.u = u; } };
-  hooks.preCreateActor(doc, { type: TYPE });
+  for (const hook of hooks.preCreateActor) hook(doc, { type: TYPE });
   assert.deepEqual(doc.u, { "prototypeToken.actorLink": true });
 });

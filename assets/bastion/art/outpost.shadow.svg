@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512"
+     role="img" aria-labelledby="title desc">
+  <title id="title">Outpost shadow</title>
+  <desc id="desc">Separate native-vector cast shadow aligned to the Outpost SVG.</desc>
+  <g id="shadow" transform="translate(28 16)" fill="#9699AE" opacity="0.46">
+    <path d="M76 96 H442 L458 128 L474 372 L306 338 V388 H206 V338 L44 372 L60 128 Z"/>
+    <path d="M338 164 H442 V270 H350 Z"/>
+    <path d="M52 124 H138 V232 H46 Z"/>
+    <path d="M112 150 H302 V264 H118 Z"/>
+
+  </g>
+</svg>

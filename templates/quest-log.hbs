@@ -20,12 +20,12 @@
       <option value="">{{localize "SDE.quests.filter.anyCharacter"}}</option>
       {{#each filterCharacters}}<option value="{{uuid}}" {{#if selected}}selected{{/if}}>{{name}}</option>{{/each}}
     </select>
-    {{#if hasParties}}
+    {{#unless inline}}{{#if hasParties}}
       <select name="ql-filter-party" data-ql-filter="party" aria-label="{{localize "SDE.quests.party"}}">
         <option value="">{{localize "SDE.quests.filter.anyParty"}}</option>
         {{#each filterParties}}<option value="{{uuid}}" {{#if selected}}selected{{/if}}>{{name}}</option>{{/each}}
       </select>
-    {{/if}}
+    {{/if}}{{/unless}}
     <select name="ql-filter-source" data-ql-filter="source" aria-label="{{localize "SDE.quests.sourceLabel"}}">
       <option value="">{{localize "SDE.quests.filter.anySource"}}</option>
       {{#each filterSources}}<option value="{{kind}}" {{#if selected}}selected{{/if}}>{{label}}</option>{{/each}}
@@ -52,6 +52,7 @@
     </ol>
 
     <section class="sde-ql-detail">
+    {{#if payoutHTML}}<div class="sde-ql-card">{{{payoutHTML}}}<div class="sde-ql-links"><button type="button" class="sde-ql-btn sde-ql-primary" data-action="qlConfirmPayout">{{localize "SDE.quests.payout.confirm"}}</button><button type="button" class="sde-ql-btn" data-action="qlCancelPayout">{{localize "SDE.quests.payout.cancel"}}</button></div></div>{{/if}}
     {{#with quest}}
 
       {{!-- Name, status, where it came from. --}}
@@ -69,12 +70,12 @@
         {{/if}}
         <p class="sde-ql-sub">
           {{statusLabel}} · {{sourceLabel}}
-          {{#if source.uuid}}· <a data-action="qlOpenSource">{{localize "SDE.quests.openSource"}}</a>{{/if}}
+          {{#unless ../inline}}{{#if source.uuid}}· <a data-action="qlOpenSource">{{localize "SDE.quests.openSource"}}</a>{{/if}}{{/unless}}
         </p>
         <div class="sde-ql-links">
-          <button type="button" class="sde-ql-btn" data-action="qlOpenJournal">
+          {{#unless ../inline}}<button type="button" class="sde-ql-btn" data-action="qlOpenJournal">
             <i class="fa-solid fa-book-open"></i> {{localize "SDE.quests.openJournal"}}
-          </button>
+          </button>{{/unless}}
           {{#if hasPin}}
             <button type="button" class="sde-ql-btn" data-action="qlJump">
               <i class="fa-solid fa-location-dot"></i> {{localize "SDE.quests.jump"}}
@@ -103,14 +104,14 @@
         {{/if}}
         {{#if ../hasParties}}
           <h3 class="sde-ql-head">{{localize "SDE.quests.party"}}</h3>
-          {{#if ../isGM}}
+          {{#if ../inline}}<p>{{partyName}}</p>{{else}}{{#if ../isGM}}
             <select name="ql-party" data-ql-field="party" aria-label="{{localize "SDE.quests.party"}}">
               <option value="">{{localize "SDE.quests.noParty"}}</option>
               {{#each partyOptions}}<option value="{{uuid}}" {{#if selected}}selected{{/if}}>{{name}}</option>{{/each}}
             </select>
           {{else}}
             <p>{{#if partyName}}{{partyName}}{{else}}{{localize "SDE.quests.noParty"}}{{/if}}</p>
-          {{/if}}
+          {{/if}}{{/if}}
         {{/if}}
       </div>
 
@@ -165,6 +166,8 @@
           <div class="sde-ql-grid">
             <label>{{localize "SDE.quests.xp"}}
               <input type="number" min="0" step="1" name="ql-xp" data-ql-field="xp" value="{{rewards.xp}}"></label>
+            <label>{{localize "SDE.quests.gp"}}
+              <input type="number" min="0" step="1" name="ql-gp" data-ql-field="gp" value="{{rewards.coins.gp}}"></label>
             <label>{{localize "SDE.quests.renown"}}
               <input type="number" step="1" name="ql-renown" data-ql-field="renown" value="{{rewards.renown}}"></label>
             <label>{{localize "SDE.quests.training"}}
@@ -186,6 +189,7 @@
           {{#if hasRewards}}
             <ul class="sde-ql-rewards">
               {{#if rewards.xp}}<li>{{localize "SDE.quests.reward.xp" n=rewards.xp}}</li>{{/if}}
+              {{#each coinRewards}}<li>{{this}}</li>{{/each}}
               {{#if rewards.renown}}<li>{{localize "SDE.quests.reward.renown" n=renownSigned}}</li>{{/if}}
               {{#each rewards.items}}<li><img src="{{img}}" alt="" width="20" height="20"> {{name}}</li>{{/each}}
               {{#if trainerName}}<li>{{localize "SDE.quests.reward.training" trainer=trainerName}}</li>{{/if}}

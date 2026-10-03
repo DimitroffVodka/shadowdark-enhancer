@@ -1,0 +1,167 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512"
+     role="img" aria-labelledby="title desc">
+  <title id="title">Vault</title>
+  <desc id="desc">Windowless stone strongroom with a round iron wheel-lock door, trapdoor roof and chained chests.</desc>
+  <!-- Native vector artwork only: no embedded or linked raster content. -->
+
+  <defs>
+    <pattern id="roofHatch" width="12" height="12" patternUnits="userSpaceOnUse">
+      <path d="M2 0 V12 M8 0 V12" fill="none" stroke="#010206" stroke-width="0.75" opacity="0.17"/>
+    </pattern>
+    <pattern id="leanHatch" width="10" height="10" patternUnits="userSpaceOnUse">
+      <path d="M2 0 V10" fill="none" stroke="#010206" stroke-width="0.65" opacity="0.18"/>
+    </pattern>
+    <pattern id="stoneHatch" width="16" height="13" patternUnits="userSpaceOnUse">
+      <path d="M0 6 H16 M5 0 V6 M12 6 V13" fill="none" stroke="#010206" stroke-width="0.55" opacity="0.16"/>
+    </pattern>
+    <pattern id="shingleHatch" width="14" height="9" patternUnits="userSpaceOnUse">
+      <path d="M0 8 H14 M0 4 Q3.5 8 7 4 Q10.5 8 14 4" fill="none" stroke="#010206" stroke-width="0.6" opacity="0.2"/>
+    </pattern>
+    <pattern id="logHatch" width="9" height="9" patternUnits="userSpaceOnUse">
+      <path d="M4.5 0 V9" fill="none" stroke="#010206" stroke-width="0.7" opacity="0.2"/>
+    </pattern>
+    <pattern id="plankHatch" width="64" height="22" patternUnits="userSpaceOnUse">
+      <path d="M0 0.5 H64 M0 11.5 H64 M20 0 V11 M50 11 V22" fill="none" stroke="#010206" stroke-width="0.8" opacity="0.22"/>
+    </pattern>
+    <pattern id="flagHatch" width="48" height="40" patternUnits="userSpaceOnUse">
+      <path d="M0 0.5 H48 M0 20.5 H48 M16 0 V20 M40 20 V40" fill="none" stroke="#010206" stroke-width="0.8" opacity="0.2"/>
+    </pattern>
+    <pattern id="waterHatch" width="22" height="10" patternUnits="userSpaceOnUse">
+      <path d="M2 5 Q7 1 12 5 T22 5" fill="none" stroke="#A3C9CC" stroke-width="1.1" opacity="0.7"/>
+    </pattern>
+  </defs>
+
+  <g id="building" stroke="#010206" stroke-linecap="round" stroke-linejoin="round">
+
+    <!-- Roof deck: flagstones inside a plain crenellated parapet. -->
+    <path d="M100 100 H340 V252 H100 Z" fill="#7E7B73" stroke="none"/>
+    <path d="M100 100 H340 V252 H100 Z" fill="url(#stoneHatch)" stroke="none"/>
+    <path d="M114 116 H326 V238 H114 Z" fill="#9A978D" stroke-width="2"/>
+    <path d="M114 116 H326 V238 H114 Z" fill="url(#stoneHatch)" stroke="none"/>
+    <path d="M100 100 H340 V252 H100 Z" fill="none" stroke-width="2.8"/>
+    <g fill="#A8A59B" stroke-width="1.6">
+      <path d="M106 102 V88 H124 V102 Z"/>
+      <path d="M136 102 V88 H154 V102 Z"/>
+      <path d="M166 102 V88 H184 V102 Z"/>
+      <path d="M196 102 V88 H214 V102 Z"/>
+      <path d="M226 102 V88 H244 V102 Z"/>
+      <path d="M256 102 V88 H274 V102 Z"/>
+      <path d="M286 102 V88 H304 V102 Z"/>
+      <path d="M316 102 V88 H334 V102 Z"/>
+    </g>
+    <g fill="#A8A59B" stroke-width="1.6">
+      <path d="M106 258 V244 H124 V258 Z"/>
+      <path d="M136 258 V244 H154 V258 Z"/>
+      <path d="M166 258 V244 H184 V258 Z"/>
+      <path d="M196 258 V244 H214 V258 Z"/>
+      <path d="M226 258 V244 H244 V258 Z"/>
+      <path d="M256 258 V244 H274 V258 Z"/>
+      <path d="M286 258 V244 H304 V258 Z"/>
+      <path d="M316 258 V244 H334 V258 Z"/>
+    </g>
+
+    <g fill="#A8A59B" stroke-width="1.5">
+      <path d="M92 118 H104 V130 H92 Z M92 146 H104 V158 H92 Z M92 174 H104 V186 H92 Z M92 202 H104 V214 H92 Z"/>
+      <path d="M336 118 H348 V130 H336 Z M336 146 H348 V158 H336 Z M336 174 H348 V186 H336 Z M336 202 H348 V214 H336 Z"/>
+    </g>
+    <!-- Locked trapdoor: plank hatch, iron straps, ring and padlock. -->
+    <path d="M168 134 H276 V222 H168 Z" fill="#745846" stroke-width="2.4"/>
+    <path d="M168 134 H276 V222 H168 Z" fill="url(#logHatch)" stroke="none"/>
+    <path d="M168 150 H276 M168 206 H276" fill="none" stroke="#4D4B47" stroke-width="7"/>
+    <path d="M168 150 H276 M168 206 H276" fill="none" stroke="#6F6D68" stroke-width="2"/>
+    <path d="M168 134 H276 V222 H168 Z" fill="none" stroke-width="2.4"/>
+    <circle cx="190" cy="178" r="7" fill="none" stroke="#4D4B47" stroke-width="3.2"/>
+    <path d="M232 168 V176 M232 170 Q232 162 240 162 Q248 162 248 170 V176" fill="none" stroke="#8D9296" stroke-width="3"/>
+    <path d="M228 176 H252 V194 H228 Z" fill="#C9A24A" stroke-width="1.7"/>
+    <circle cx="240" cy="184" r="2.2" fill="#26211f" stroke="none"/>
+    <path d="M130 130 H152 V148 H130 Z M290 130 H312 V148 H290 Z" fill="#4D4B47" stroke-width="1.6"/>
+    <path d="M134 134 V144 M140 134 V144 M146 134 V144 M294 134 V144 M300 134 V144 M306 134 V144" fill="none" stroke="#8D9296" stroke-width="1.2"/>
+    <!-- Front wall of the strongroom with iron bands. -->
+
+    <path d="M106 254 H334 L328 388 H112 Z" fill="#8E8B83" stroke="none"/>
+    <path d="M106 254 H334 L328 388 H112 Z" fill="url(#stoneHatch)" stroke="none"/>
+    <path d="M106 254 H334 L328 388 H112 Z" fill="none" stroke-width="2.2"/>
+
+    <path d="M110 256 H330 V268 H110 Z" fill="#4D4B47" stroke-width="1.8"/>
+    <path d="M112 384 H328 V388 H112 Z" fill="#4D4B47" stroke-width="1.4"/>
+    <path d="M108 256 H122 L128 388 H114 Z M318 256 H332 L326 388 H312 Z" fill="#5C5E62" stroke-width="1.8"/>
+    <g fill="#8D9296" stroke-width="0.9">
+      <circle cx="128" cy="262" r="2.4"/><circle cx="154" cy="262" r="2.4"/><circle cx="188" cy="262" r="2.4"/><circle cx="256" cy="262" r="2.4"/><circle cx="288" cy="262" r="2.4"/><circle cx="314" cy="262" r="2.4"/>
+      <circle cx="115" cy="290" r="2.4"/><circle cx="116" cy="324" r="2.4"/><circle cx="117" cy="358" r="2.4"/>
+      <circle cx="325" cy="290" r="2.4"/><circle cx="324" cy="324" r="2.4"/><circle cx="323" cy="358" r="2.4"/>
+    </g>
+    <!-- The round door: bolts into the frame, hinges, ring of rivets, wheel lock. -->
+    <path d="M148 312 H176 V322 H148 Z M148 338 H176 V348 H148 Z M268 312 H296 V322 H268 Z M268 338 H296 V348 H268 Z" fill="#6A6C70" stroke-width="1.8"/>
+    <circle cx="222" cy="330" r="56" fill="#3F4146" stroke-width="2.6"/>
+    <circle cx="222" cy="330" r="50" fill="#5C5E62" stroke-width="1.8"/>
+    <circle cx="268.0" cy="330.0" r="2.6" fill="#8D9296" stroke-width="0.9"/><circle cx="264.5" cy="347.6" r="2.6" fill="#8D9296" stroke-width="0.9"/><circle cx="254.5" cy="362.5" r="2.6" fill="#8D9296" stroke-width="0.9"/><circle cx="239.6" cy="372.5" r="2.6" fill="#8D9296" stroke-width="0.9"/><circle cx="222.0" cy="376.0" r="2.6" fill="#8D9296" stroke-width="0.9"/><circle cx="204.4" cy="372.5" r="2.6" fill="#8D9296" stroke-width="0.9"/><circle cx="189.5" cy="362.5" r="2.6" fill="#8D9296" stroke-width="0.9"/><circle cx="179.5" cy="347.6" r="2.6" fill="#8D9296" stroke-width="0.9"/><circle cx="176.0" cy="330.0" r="2.6" fill="#8D9296" stroke-width="0.9"/><circle cx="179.5" cy="312.4" r="2.6" fill="#8D9296" stroke-width="0.9"/><circle cx="189.5" cy="297.5" r="2.6" fill="#8D9296" stroke-width="0.9"/><circle cx="204.4" cy="287.5" r="2.6" fill="#8D9296" stroke-width="0.9"/><circle cx="222.0" cy="284.0" r="2.6" fill="#8D9296" stroke-width="0.9"/><circle cx="239.6" cy="287.5" r="2.6" fill="#8D9296" stroke-width="0.9"/><circle cx="254.5" cy="297.5" r="2.6" fill="#8D9296" stroke-width="0.9"/><circle cx="264.5" cy="312.4" r="2.6" fill="#8D9296" stroke-width="0.9"/>
+    <circle cx="222" cy="330" r="40" fill="#6F7378" stroke-width="2"/>
+    <circle cx="222" cy="330" r="33" fill="none" stroke="#3F4146" stroke-width="2.4"/>
+    <path d="M178 306 H190 V318 H178 Z M178 342 H190 V354 H178 Z" fill="#4D4B47" stroke-width="1.5"/>
+    <path d="M222 330 L244.2 336.0" fill="none" stroke="#2c2f33" stroke-width="3.6"/><circle cx="244.2" cy="336.0" r="4.4" fill="#6A6C70" stroke-width="1.4"/><path d="M222 330 L228.0 352.2" fill="none" stroke="#2c2f33" stroke-width="3.6"/><circle cx="228.0" cy="352.2" r="4.4" fill="#6A6C70" stroke-width="1.4"/><path d="M222 330 L205.7 346.3" fill="none" stroke="#2c2f33" stroke-width="3.6"/><circle cx="205.7" cy="346.3" r="4.4" fill="#6A6C70" stroke-width="1.4"/><path d="M222 330 L199.8 324.0" fill="none" stroke="#2c2f33" stroke-width="3.6"/><circle cx="199.8" cy="324.0" r="4.4" fill="#6A6C70" stroke-width="1.4"/><path d="M222 330 L216.0 307.8" fill="none" stroke="#2c2f33" stroke-width="3.6"/><circle cx="216.0" cy="307.8" r="4.4" fill="#6A6C70" stroke-width="1.4"/><path d="M222 330 L238.3 313.7" fill="none" stroke="#2c2f33" stroke-width="3.6"/><circle cx="238.3" cy="313.7" r="4.4" fill="#6A6C70" stroke-width="1.4"/>
+    <circle cx="222" cy="330" r="8.5" fill="#C9A24A" stroke-width="1.8"/>
+    <circle cx="222" cy="330" r="2.6" fill="#26211f" stroke="none"/>
+    <path d="M200 300 Q222 292 244 300" fill="none" stroke="#A9ADB1" stroke-width="2.2" opacity="0.7"/>
+    <path d="M112 388 H332 L340 404 H104 Z" fill="#85827A" stroke-width="1.9"/>
+    <path d="M112 388 H332 L340 404 H104 Z" fill="url(#stoneHatch)" stroke="none"/>
+    <!-- Canopy: slanted cloth shelter on two posts over the chained chests. -->
+    <path d="M364 290 V404 M468 290 V404" fill="none" stroke="#5F4434" stroke-width="5"/>
+    <path d="M350 276 H482 L490 316 H342 Z" fill="#6C7C8E" stroke-width="2.2"/>
+    <path d="M350 276 H482 L490 316 H342 Z" fill="url(#roofHatch)" stroke="none"/>
+    <path d="M372 276 L368 316 M394 276 L392 316 M416 276 L416 316 M438 276 L440 316 M460 276 L464 316" fill="none" stroke="#4F5B6A" stroke-width="2.4" opacity="0.8"/>
+    <path d="M342 316 Q352 324 362 316 Q372 324 382 316 Q392 324 402 316 Q412 324 422 316 Q432 324 442 316 Q452 324 462 316 Q472 324 482 316 L490 316" fill="none" stroke-width="1.8"/>
+
+    <path d="M356 362 Q356 348 383.0 348 Q410 348 410 362 Z" fill="#8F6F52" stroke-width="1.9"/>
+    <path d="M355 362 H411 V388 H355 Z" fill="#745846" stroke-width="1.9"/>
+    <path d="M365 349 V388 M401 349 V388" fill="none" stroke="#4D4B47" stroke-width="5"/>
+    <path d="M355 362 H411" fill="none" stroke="#4D4B47" stroke-width="4"/>
+    <path d="M377.0 358 H389.0 V372 H377.0 Z" fill="#C9A24A" stroke-width="1.5"/>
+    <circle cx="383.0" cy="365" r="1.8" fill="#26211f" stroke="none"/>
+    <path d="M365 352 V356 M365 378 V382 M401 352 V356 M401 378 V382" fill="none" stroke="#B5B3AA" stroke-width="2.2"/>
+
+    <path d="M416 366 Q416 352 443.0 352 Q470 352 470 366 Z" fill="#8F6F52" stroke-width="1.9"/>
+    <path d="M415 366 H471 V392 H415 Z" fill="#745846" stroke-width="1.9"/>
+    <path d="M425 353 V392 M461 353 V392" fill="none" stroke="#4D4B47" stroke-width="5"/>
+    <path d="M415 366 H471" fill="none" stroke="#4D4B47" stroke-width="4"/>
+    <path d="M437.0 362 H449.0 V376 H437.0 Z" fill="#C9A24A" stroke-width="1.5"/>
+    <circle cx="443.0" cy="369" r="1.8" fill="#26211f" stroke="none"/>
+    <path d="M425 356 V360 M425 382 V386 M461 356 V360 M461 382 V386" fill="none" stroke="#B5B3AA" stroke-width="2.2"/>
+    <ellipse cx="366.0" cy="356.0" rx="4.6" ry="3.2" transform="rotate(-49 366.0 356.0)" fill="#6A6C70" stroke-width="1.1"/>
+    <ellipse cx="369.1" cy="352.8" rx="4.6" ry="1.5" transform="rotate(-43 369.1 352.8)" fill="#6A6C70" stroke-width="1.1"/>
+    <ellipse cx="372.1" cy="350.3" rx="4.6" ry="3.2" transform="rotate(-36 372.1 350.3)" fill="#6A6C70" stroke-width="1.1"/>
+    <ellipse cx="375.1" cy="348.4" rx="4.6" ry="1.5" transform="rotate(-27 375.1 348.4)" fill="#6A6C70" stroke-width="1.1"/>
+    <ellipse cx="378.0" cy="347.3" rx="4.6" ry="3.2" transform="rotate(-15 378.0 347.3)" fill="#6A6C70" stroke-width="1.1"/>
+    <ellipse cx="380.9" cy="346.9" rx="4.6" ry="1.5" transform="rotate(-2 380.9 346.9)" fill="#6A6C70" stroke-width="1.1"/>
+    <ellipse cx="383.8" cy="347.1" rx="4.6" ry="3.2" transform="rotate(12 383.8 347.1)" fill="#6A6C70" stroke-width="1.1"/>
+    <ellipse cx="386.6" cy="348.0" rx="4.6" ry="1.5" transform="rotate(25 386.6 348.0)" fill="#6A6C70" stroke-width="1.1"/>
+    <ellipse cx="389.3" cy="349.7" rx="4.6" ry="3.2" transform="rotate(36 389.3 349.7)" fill="#6A6C70" stroke-width="1.1"/>
+    <ellipse cx="392.0" cy="352.0" rx="4.6" ry="1.5" transform="rotate(45 392.0 352.0)" fill="#6A6C70" stroke-width="1.1"/>
+    <ellipse cx="452.0" cy="358.0" rx="4.6" ry="3.2" transform="rotate(-149 452.0 358.0)" fill="#6A6C70" stroke-width="1.1"/>
+    <ellipse cx="447.6" cy="355.6" rx="4.6" ry="1.5" transform="rotate(-154 447.6 355.6)" fill="#6A6C70" stroke-width="1.1"/>
+    <ellipse cx="443.3" cy="353.8" rx="4.6" ry="3.2" transform="rotate(-160 443.3 353.8)" fill="#6A6C70" stroke-width="1.1"/>
+    <ellipse cx="439.1" cy="352.4" rx="4.6" ry="1.5" transform="rotate(-166 439.1 352.4)" fill="#6A6C70" stroke-width="1.1"/>
+    <ellipse cx="435.0" cy="351.7" rx="4.6" ry="3.2" transform="rotate(-173 435.0 351.7)" fill="#6A6C70" stroke-width="1.1"/>
+    <ellipse cx="431.0" cy="351.5" rx="4.6" ry="1.5" transform="rotate(179 431.0 351.5)" fill="#6A6C70" stroke-width="1.1"/>
+    <ellipse cx="427.1" cy="351.8" rx="4.6" ry="3.2" transform="rotate(171 427.1 351.8)" fill="#6A6C70" stroke-width="1.1"/>
+    <ellipse cx="423.3" cy="352.6" rx="4.6" ry="1.5" transform="rotate(163 423.3 352.6)" fill="#6A6C70" stroke-width="1.1"/>
+    <ellipse cx="419.6" cy="354.0" rx="4.6" ry="3.2" transform="rotate(155 419.6 354.0)" fill="#6A6C70" stroke-width="1.1"/>
+    <ellipse cx="416.0" cy="356.0" rx="4.6" ry="1.5" transform="rotate(148 416.0 356.0)" fill="#6A6C70" stroke-width="1.1"/>
+    <ellipse cx="380.0" cy="390.0" rx="4.6" ry="3.2" transform="rotate(49 380.0 390.0)" fill="#6A6C70" stroke-width="1.1"/>
+    <ellipse cx="386.2" cy="395.8" rx="4.6" ry="1.5" transform="rotate(35 386.2 395.8)" fill="#6A6C70" stroke-width="1.1"/>
+    <ellipse cx="393.0" cy="399.0" rx="4.6" ry="3.2" transform="rotate(16 393.0 399.0)" fill="#6A6C70" stroke-width="1.1"/>
+    <ellipse cx="400.2" cy="399.8" rx="4.6" ry="1.5" transform="rotate(-4 400.2 399.8)" fill="#6A6C70" stroke-width="1.1"/>
+    <ellipse cx="408.0" cy="398.0" rx="4.6" ry="3.2" transform="rotate(-21 408.0 398.0)" fill="#6A6C70" stroke-width="1.1"/>
+    <ellipse cx="440.0" cy="394.0" rx="4.6" ry="3.2" transform="rotate(140 440.0 394.0)" fill="#6A6C70" stroke-width="1.1"/>
+    <ellipse cx="433.6" cy="398.0" rx="4.6" ry="1.5" transform="rotate(156 433.6 398.0)" fill="#6A6C70" stroke-width="1.1"/>
+    <ellipse cx="426.5" cy="400.0" rx="4.6" ry="3.2" transform="rotate(172 426.5 400.0)" fill="#6A6C70" stroke-width="1.1"/>
+    <ellipse cx="418.6" cy="400.0" rx="4.6" ry="1.5" transform="rotate(-173 418.6 400.0)" fill="#6A6C70" stroke-width="1.1"/>
+    <ellipse cx="410.0" cy="398.0" rx="4.6" ry="3.2" transform="rotate(-162 410.0 398.0)" fill="#6A6C70" stroke-width="1.1"/>
+
+    <path d="M364 392 H470 V398 H364 Z" fill="#5F4434" stroke-width="1.5"/>
+    <circle cx="408" cy="398" r="6" fill="none" stroke="#4D4B47" stroke-width="3"/>
+    <path d="M330 420 Q332 411 335 420 Q338 413 341 420 Z" fill="#6F8A5F" stroke-width="1"/>
+    <path d="M480 414 Q482 405 485 414 Q488 407 491 414 Z" fill="#6F8A5F" stroke-width="1"/>
+
+  </g>
+</svg>

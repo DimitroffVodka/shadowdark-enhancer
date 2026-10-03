@@ -1,0 +1,367 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512"
+     role="img" aria-labelledby="title desc">
+  <title id="title">Armorer</title>
+  <desc id="desc">Armorer's shop: a counter with a gap, armor stands in mail, plate and leather, a mail-sewing bench, shield rack, small forge, quench barrel, hides and a chest of buckles.</desc>
+  <!-- Native vector artwork only: no embedded or linked raster content. -->
+
+  <defs>
+    <pattern id="roofHatch" width="12" height="12" patternUnits="userSpaceOnUse">
+      <path d="M2 0 V12 M8 0 V12" fill="none" stroke="#010206" stroke-width="0.75" opacity="0.17"/>
+    </pattern>
+    <pattern id="leanHatch" width="10" height="10" patternUnits="userSpaceOnUse">
+      <path d="M2 0 V10" fill="none" stroke="#010206" stroke-width="0.65" opacity="0.18"/>
+    </pattern>
+    <pattern id="stoneHatch" width="16" height="13" patternUnits="userSpaceOnUse">
+      <path d="M0 6 H16 M5 0 V6 M12 6 V13" fill="none" stroke="#010206" stroke-width="0.55" opacity="0.16"/>
+    </pattern>
+    <pattern id="shingleHatch" width="14" height="9" patternUnits="userSpaceOnUse">
+      <path d="M0 8 H14 M0 4 Q3.5 8 7 4 Q10.5 8 14 4" fill="none" stroke="#010206" stroke-width="0.6" opacity="0.2"/>
+    </pattern>
+    <pattern id="logHatch" width="9" height="9" patternUnits="userSpaceOnUse">
+      <path d="M4.5 0 V9" fill="none" stroke="#010206" stroke-width="0.7" opacity="0.2"/>
+    </pattern>
+    <pattern id="plankHatch" width="64" height="22" patternUnits="userSpaceOnUse">
+      <path d="M0 0.5 H64 M0 11.5 H64 M20 0 V11 M50 11 V22" fill="none" stroke="#010206" stroke-width="0.8" opacity="0.22"/>
+    </pattern>
+    <pattern id="flagHatch" width="48" height="40" patternUnits="userSpaceOnUse">
+      <path d="M0 0.5 H48 M0 20.5 H48 M16 0 V20 M40 20 V40" fill="none" stroke="#010206" stroke-width="0.8" opacity="0.2"/>
+    </pattern>
+    <pattern id="waterHatch" width="22" height="10" patternUnits="userSpaceOnUse">
+      <path d="M2 5 Q7 1 12 5 T22 5" fill="none" stroke="#A3C9CC" stroke-width="1.1" opacity="0.7"/>
+    </pattern>
+  </defs>
+
+  <g id="building" stroke="#010206" stroke-linecap="round" stroke-linejoin="round">
+
+    <path d="M0 0 H512 V512 H0 Z" fill="#A8A59B" stroke="none"/>
+    <path d="M0 0 H512 V512 H0 Z" fill="url(#flagHatch)" stroke="none"/>
+    <path d="M28 28 H484 V484 H28 Z" fill="none" stroke="#010206" stroke-width="1.2" opacity="0.35"/>
+    <path d="M0 0 H512 V512 H296 V484 H484 V28 H28 V484 H216 V512 H0 Z" fill="#6F6D68" fill-rule="evenodd" stroke-width="2.6"/>
+    <path d="M0 0 H512 V512 H296 V484 H484 V28 H28 V484 H216 V512 H0 Z" fill="url(#stoneHatch)" fill-rule="evenodd" stroke="none"/>
+    <path d="M216 484 V512 M296 484 V512" fill="none" stroke-width="3.2"/>
+    <path d="M216 487 H296" fill="none" stroke="#745846" stroke-width="5"/>
+
+    <defs><pattern id="raRings" width="6" height="6" patternUnits="userSpaceOnUse">
+      <circle cx="3" cy="3" r="2" fill="none" stroke="#010206" stroke-width="0.6" opacity="0.45"/>
+    </pattern></defs>
+    <!-- rug before the counter -->
+
+    <path d="M204 340 H308 V394 H204 Z" fill="#6C5B8C" stroke-width="1.8"/>
+    <path d="M212 348 H300 V386 H212 Z" fill="none" stroke="#D7C39A" stroke-width="3"/>
+    <path d="M222 367 L256 350 L290 367 L256 384 Z" fill="none" stroke-width="1.6" stroke="#D7C39A"/>
+    <circle cx="256" cy="366" r="5" fill="#C9A24E" stroke-width="1.1"/>
+    <!-- mail-sewing bench: ring heap, half-made hauberk, pliers, wire spool -->
+
+    <path d="M40 36 H180 V88 H40 Z" fill="#876A56" stroke-width="2"/>
+    <path d="M44 40 H176 V84 H44 Z" fill="none" stroke-width="0.9" opacity="0.5"/>
+    <circle cx="66" cy="62" r="15" fill="#9AA0A2" stroke-width="1.5"/>
+    <path d="M51 62 a15 15 0 1 0 30 0 a15 15 0 1 0 -30 0 Z" fill="url(#raRings)" stroke-width="0" stroke="none"/>
+    <circle cx="90.6" cy="51.1" r="2.4" fill="none" stroke-width="1.2" stroke="#C5CBCD"/>
+    <circle cx="95.1" cy="52.6" r="2.4" fill="none" stroke-width="1.2" stroke="#C5CBCD"/>
+    <circle cx="85.9" cy="60.0" r="2.4" fill="none" stroke-width="1.2" stroke="#C5CBCD"/>
+    <circle cx="109.7" cy="72.0" r="2.4" fill="none" stroke-width="1.2" stroke="#C5CBCD"/>
+    <circle cx="105.4" cy="54.7" r="2.4" fill="none" stroke-width="1.2" stroke="#C5CBCD"/>
+    <circle cx="99.0" cy="56.3" r="2.4" fill="none" stroke-width="1.2" stroke="#C5CBCD"/>
+    <circle cx="88.8" cy="51.2" r="2.4" fill="none" stroke-width="1.2" stroke="#C5CBCD"/>
+    <circle cx="90.0" cy="75.8" r="2.4" fill="none" stroke-width="1.2" stroke="#C5CBCD"/>
+    <circle cx="107.2" cy="72.2" r="2.4" fill="none" stroke-width="1.2" stroke="#C5CBCD"/>
+    <circle cx="106.4" cy="53.8" r="2.4" fill="none" stroke-width="1.2" stroke="#C5CBCD"/>
+    <circle cx="92.7" cy="66.8" r="2.4" fill="none" stroke-width="1.2" stroke="#C5CBCD"/>
+    <circle cx="104.5" cy="73.6" r="2.4" fill="none" stroke-width="1.2" stroke="#C5CBCD"/>
+    <circle cx="108.6" cy="50.6" r="2.4" fill="none" stroke-width="1.2" stroke="#C5CBCD"/>
+    <circle cx="101.0" cy="68.2" r="2.4" fill="none" stroke-width="1.2" stroke="#C5CBCD"/>
+    <circle cx="98.2" cy="53.3" r="2.4" fill="none" stroke-width="1.2" stroke="#C5CBCD"/>
+    <circle cx="97.3" cy="50.7" r="2.4" fill="none" stroke-width="1.2" stroke="#C5CBCD"/>
+    <circle cx="110.2" cy="74.0" r="2.4" fill="none" stroke-width="1.2" stroke="#C5CBCD"/>
+    <circle cx="99.3" cy="57.0" r="2.4" fill="none" stroke-width="1.2" stroke="#C5CBCD"/>
+    <circle cx="109.4" cy="65.2" r="2.4" fill="none" stroke-width="1.2" stroke="#C5CBCD"/>
+    <circle cx="108.7" cy="73.4" r="2.4" fill="none" stroke-width="1.2" stroke="#C5CBCD"/>
+    <circle cx="98.2" cy="60.4" r="2.4" fill="none" stroke-width="1.2" stroke="#C5CBCD"/>
+    <circle cx="100.8" cy="60.9" r="2.4" fill="none" stroke-width="1.2" stroke="#C5CBCD"/>
+    <g transform="translate(136 64) rotate(12)">
+    <path d="M-14 -4 L10 2 M-14 4 L10 -2" fill="none" stroke-width="2.4"/>
+    <circle cx="-14" cy="-4" r="2" fill="#5F4434" stroke-width="1"/>
+    <circle cx="-14" cy="4" r="2" fill="#5F4434" stroke-width="1"/>
+    <circle cx="0" cy="0" r="1.6" fill="#B9BFC1" stroke-width="0.8"/>
+    </g>
+    <circle cx="162" cy="52" r="8" fill="#745846" stroke-width="1.4"/>
+    <circle cx="162" cy="52" r="4" fill="#B9BFC1" stroke-width="1"/>
+    <circle cx="162" cy="52" r="1.4" fill="#010206" stroke-width="0" stroke="none"/>
+    <path d="M150 78 C158 74 164 80 172 76" fill="none" stroke-width="1.3" stroke="#C5CBCD"/>
+    <circle cx="108" cy="106" r="11" fill="#A9856E" stroke-width="1.7"/>
+    <!-- pile of leather hides -->
+    <g transform="translate(236 72) rotate(14) scale(1.15)">
+    <path d="M-22 -10 C-26 -18 -18 -22 -12 -16 C-6 -22 6 -22 12 -16 C18 -22 26 -18 22 -10 C28 -2 26 6 20 12 C24 20 14 24 10 18 C4 22 -4 22 -10 18 C-14 24 -24 20 -20 12 C-26 6 -28 -2 -22 -10 Z" fill="#B88B5A" stroke-width="1.8"/>
+    <path d="M0 -16 V16" fill="none" stroke-width="0.9" opacity="0.4"/>
+    <path d="M-12 -4 Q-6 0 -10 6 M12 -4 Q6 0 10 6" fill="none" stroke-width="0.7" opacity="0.35"/>
+    </g>
+    <g transform="translate(252 76) rotate(-30) scale(1.05)">
+    <path d="M-22 -10 C-26 -18 -18 -22 -12 -16 C-6 -22 6 -22 12 -16 C18 -22 26 -18 22 -10 C28 -2 26 6 20 12 C24 20 14 24 10 18 C4 22 -4 22 -10 18 C-14 24 -24 20 -20 12 C-26 6 -28 -2 -22 -10 Z" fill="#8A5F3E" stroke-width="1.8"/>
+    <path d="M0 -16 V16" fill="none" stroke-width="0.9" opacity="0.4"/>
+    <path d="M-12 -4 Q-6 0 -10 6 M12 -4 Q6 0 10 6" fill="none" stroke-width="0.7" opacity="0.35"/>
+    </g>
+    <g transform="translate(228 58) rotate(48) scale(0.95)">
+    <path d="M-22 -10 C-26 -18 -18 -22 -12 -16 C-6 -22 6 -22 12 -16 C18 -22 26 -18 22 -10 C28 -2 26 6 20 12 C24 20 14 24 10 18 C4 22 -4 22 -10 18 C-14 24 -24 20 -20 12 C-26 6 -28 -2 -22 -10 Z" fill="#C9A66B" stroke-width="1.8"/>
+    <path d="M0 -16 V16" fill="none" stroke-width="0.9" opacity="0.4"/>
+    <path d="M-12 -4 Q-6 0 -10 6 M12 -4 Q6 0 10 6" fill="none" stroke-width="0.7" opacity="0.35"/>
+    </g>
+    <g transform="translate(246 58) rotate(-8) scale(0.8)">
+    <path d="M-22 -10 C-26 -18 -18 -22 -12 -16 C-6 -22 6 -22 12 -16 C18 -22 26 -18 22 -10 C28 -2 26 6 20 12 C24 20 14 24 10 18 C4 22 -4 22 -10 18 C-14 24 -24 20 -20 12 C-26 6 -28 -2 -22 -10 Z" fill="#6B4A36" stroke-width="1.8"/>
+    <path d="M0 -16 V16" fill="none" stroke-width="0.9" opacity="0.4"/>
+    <path d="M-12 -4 Q-6 0 -10 6 M12 -4 Q6 0 10 6" fill="none" stroke-width="0.7" opacity="0.35"/>
+    </g>
+    <!-- open chest of buckles -->
+    <rect x="300" y="34" width="52" height="16" rx="2" fill="#745846" stroke-width="1.8"/>
+    <rect x="305" y="38" width="42" height="8" rx="1" fill="#8A5F3E" stroke-width="1"/>
+    <rect x="300" y="52" width="52" height="30" rx="0" fill="#8F6F52" stroke-width="2"/>
+    <rect x="304" y="56" width="44" height="22" rx="0" fill="#33261e" stroke-width="1.2"/>
+    <rect x="324.4" y="67.8" width="6" height="5" rx="1" fill="none" stroke-width="1.2" stroke="#C9A24E"/>
+    <path d="M327.4 68.3 V72.3" fill="none" stroke-width="0.9" stroke="#C9A24E"/>
+    <rect x="340.4" y="66.5" width="6" height="5" rx="1" fill="none" stroke-width="1.2" stroke="#C9A24E"/>
+    <path d="M343.4 67.0 V71.0" fill="none" stroke-width="0.9" stroke="#C9A24E"/>
+    <rect x="326.3" y="68.2" width="6" height="5" rx="1" fill="none" stroke-width="1.2" stroke="#C9A24E"/>
+    <path d="M329.3 68.7 V72.7" fill="none" stroke-width="0.9" stroke="#C9A24E"/>
+    <rect x="315.3" y="67.2" width="6" height="5" rx="1" fill="none" stroke-width="1.2" stroke="#C9A24E"/>
+    <path d="M318.3 67.7 V71.7" fill="none" stroke-width="0.9" stroke="#C9A24E"/>
+    <rect x="330.4" y="71.1" width="6" height="5" rx="1" fill="none" stroke-width="1.2" stroke="#C9A24E"/>
+    <path d="M333.4 71.6 V75.6" fill="none" stroke-width="0.9" stroke="#C9A24E"/>
+    <rect x="312.2" y="64.2" width="6" height="5" rx="1" fill="none" stroke-width="1.2" stroke="#C9A24E"/>
+    <path d="M315.2 64.7 V68.7" fill="none" stroke-width="0.9" stroke="#C9A24E"/>
+    <rect x="312.1" y="71.3" width="6" height="5" rx="1" fill="none" stroke-width="1.2" stroke="#C9A24E"/>
+    <path d="M315.1 71.8 V75.8" fill="none" stroke-width="0.9" stroke="#C9A24E"/>
+    <rect x="332.6" y="60.6" width="6" height="5" rx="1" fill="none" stroke-width="1.2" stroke="#C9A24E"/>
+    <path d="M335.6 61.1 V65.1" fill="none" stroke-width="0.9" stroke="#C9A24E"/>
+    <rect x="342.4" y="73.5" width="6" height="5" rx="1" fill="none" stroke-width="1.2" stroke="#C9A24E"/>
+    <path d="M345.4 74.0 V78.0" fill="none" stroke-width="0.9" stroke="#C9A24E"/>
+    <rect x="331.2" y="68.6" width="6" height="5" rx="1" fill="none" stroke-width="1.2" stroke="#C9A24E"/>
+    <path d="M334.2 69.1 V73.1" fill="none" stroke-width="0.9" stroke="#C9A24E"/>
+    <rect x="314.4" y="60.2" width="6" height="5" rx="1" fill="none" stroke-width="1.2" stroke="#C9A24E"/>
+    <path d="M317.4 60.7 V64.7" fill="none" stroke-width="0.9" stroke="#C9A24E"/>
+    <rect x="327.0" y="60.8" width="6" height="5" rx="1" fill="none" stroke-width="1.2" stroke="#C9A24E"/>
+    <path d="M330.0 61.3 V65.3" fill="none" stroke-width="0.9" stroke="#C9A24E"/>
+    <rect x="315.5" y="63.4" width="6" height="5" rx="1" fill="none" stroke-width="1.2" stroke="#C9A24E"/>
+    <path d="M318.5 63.9 V67.9" fill="none" stroke-width="0.9" stroke="#C9A24E"/>
+    <rect x="325" y="52" width="4" height="30" rx="0" fill="#4D4B47" stroke-width="1"/>
+    <!-- small forge, bellows, anvil, quench barrel -->
+    <rect x="390" y="32" width="94" height="66" rx="3" fill="#8E8B83" stroke-width="2.4"/>
+    <path d="M390 32 H484 V98 H390 Z" fill="url(#stoneHatch)" stroke-width="0" stroke="none"/>
+    <rect x="402" y="44" width="70" height="42" rx="3" fill="#26211f" stroke-width="1.6"/>
+    <circle cx="417.6" cy="70.7" r="4.1" fill="#E08A33" stroke-width="0.8"/>
+    <circle cx="456.9" cy="79.7" r="3.7" fill="#E08A33" stroke-width="0.8"/>
+    <circle cx="437.3" cy="57.1" r="2.5" fill="#7A2E1E" stroke-width="0.8"/>
+    <circle cx="462.1" cy="62.8" r="2.9" fill="#E08A33" stroke-width="0.8"/>
+    <circle cx="461.4" cy="70.8" r="3.6" fill="#E08A33" stroke-width="0.8"/>
+    <circle cx="443.7" cy="51.0" r="3.3" fill="#E08A33" stroke-width="0.8"/>
+    <circle cx="448.2" cy="69.5" r="4.8" fill="#C8502A" stroke-width="0.8"/>
+    <circle cx="417.0" cy="74.5" r="2.8" fill="#C8502A" stroke-width="0.8"/>
+    <circle cx="434.3" cy="66.6" r="3.4" fill="#E08A33" stroke-width="0.8"/>
+    <circle cx="416.8" cy="70.0" r="3.7" fill="#E08A33" stroke-width="0.8"/>
+    <circle cx="412.3" cy="55.9" r="4.2" fill="#C8502A" stroke-width="0.8"/>
+    <circle cx="415.1" cy="64.3" r="4.6" fill="#E08A33" stroke-width="0.8"/>
+    <circle cx="427.8" cy="54.4" r="3.8" fill="#7A2E1E" stroke-width="0.8"/>
+    <circle cx="429.2" cy="63.5" r="3.5" fill="#E08A33" stroke-width="0.8"/>
+    <circle cx="430.4" cy="50.8" r="2.7" fill="#E08A33" stroke-width="0.8"/>
+    <circle cx="408.2" cy="52.1" r="4.0" fill="#E08A33" stroke-width="0.8"/>
+    <circle cx="441.1" cy="59.6" r="4.9" fill="#C8502A" stroke-width="0.8"/>
+    <circle cx="418.5" cy="55.1" r="3.4" fill="#7A2E1E" stroke-width="0.8"/>
+    <circle cx="428.1" cy="67.9" r="3.3" fill="#C8502A" stroke-width="0.8"/>
+    <circle cx="417.8" cy="77.7" r="2.9" fill="#E08A33" stroke-width="0.8"/>
+    <path d="M424 80 C418 66 430 62 432 50 C438 60 448 66 444 80 Z" fill="#E08A33" stroke-width="1.2"/>
+    <path d="M430 80 C428 70 434 66 436 60 C440 68 442 72 440 80 Z" fill="#F2B544" stroke-width="0.8"/>
+    <g transform="translate(438 152) rotate(-90) scale(0.9)">
+    <rect x="0" y="-3" width="22" height="6" rx="2" fill="#4D4B47" stroke-width="1.4"/>
+    <path d="M-4 -4 L-44 -19 Q-54 0 -44 19 L-4 4 Z" fill="#8A5F3E" stroke-width="2"/>
+    <path d="M-14 -8 Q-18 0 -14 8 M-26 -13 Q-32 0 -26 13 M-38 -17 Q-44 0 -38 17" fill="none" stroke-width="1.2" opacity="0.7"/>
+    <rect x="-62" y="-4" width="20" height="8" rx="3" fill="#745846" stroke-width="1.6"/>
+    <circle cx="-62" cy="0" r="4" fill="#A9856E" stroke-width="1.2"/>
+    </g>
+    <circle cx="354" cy="150" r="20" fill="#9F7D68" stroke-width="1.8"/>
+    <circle cx="354" cy="150" r="20" fill="none" stroke-width="0.9" stroke="#4D4B47" opacity="0.5"/>
+    <g transform="translate(342 150) rotate(0) scale(0.9)">
+    <path d="M-24 -10 H10 C18 -10 28 -5 38 0 C28 5 18 10 10 10 H-24 Z" fill="#7D8386" stroke-width="2"/>
+    <path d="M-24 -10 H10 C18 -10 28 -5 38 0 L-24 0 Z" fill="#A4AAAC" stroke-width="0" stroke="none"/>
+    <path d="M-24 -10 H10 C18 -10 28 -5 38 0 C28 5 18 10 10 10 H-24 Z" fill="none" stroke-width="2"/>
+    <rect x="-19" y="-4" width="6" height="6" rx="0" fill="#26211f" stroke-width="1"/>
+    <circle cx="-5" cy="0" r="2.4" fill="#26211f" stroke-width="0.8"/>
+    <path d="M-9 -7 H12" fill="none" stroke-width="0.8" opacity="0.5"/>
+    </g>
+    <rect x="396" y="132" width="8" height="26" rx="3" fill="#745846" stroke-width="1.4" transform="rotate(35 400 145)"/>
+    <rect x="392" y="128" width="14" height="8" rx="2" fill="#4D4B47" stroke-width="1.4" transform="rotate(35 400 145)"/>
+
+    <circle cx="452" cy="212" r="17" fill="#A17A5C" stroke-width="1.8"/>
+    <circle cx="452" cy="212" r="12" fill="none" stroke-width="1" opacity="0.6"/>
+    <path d="M438 212 H466" fill="none" stroke="#4D4B47" stroke-width="1.2" opacity="0.7"/>
+    <circle cx="452" cy="212" r="12.5" fill="#5B99A6" stroke-width="1.2"/>
+    <circle cx="452" cy="212" r="12.5" fill="url(#waterHatch)" stroke-width="0" stroke="none"/>
+    <circle cx="448" cy="208" r="2.2" fill="#A3C9CC" stroke-width="0.5"/>
+    <!-- shield rack: round, kite and heater shields -->
+    <rect x="30" y="124" width="62" height="162" rx="0" fill="#745846" stroke-width="2"/>
+    <path d="M30 124 H92 V286 H30 Z" fill="url(#plankHatch)" stroke-width="0" stroke="none"/>
+    <circle cx="62" cy="148" r="21" fill="#9C3F3A" stroke-width="1.9"/>
+    <circle cx="62" cy="148" r="17" fill="none" stroke-width="1.2" opacity="0.7"/>
+    <circle cx="62" cy="148" r="5" fill="#B9BFC1" stroke-width="1.4"/>
+    <path d="M44 148 H80 M62 130 V166" fill="none" stroke-width="1" opacity="0.35"/>
+    <circle cx="62" cy="198" r="21" fill="#4F6B65" stroke-width="1.9"/>
+    <circle cx="62" cy="198" r="17" fill="none" stroke-width="1.2" opacity="0.7"/>
+    <circle cx="62" cy="198" r="5" fill="#B9BFC1" stroke-width="1.4"/>
+    <path d="M44 198 H80 M62 180 V216" fill="none" stroke-width="1" opacity="0.35"/>
+    <path d="M44 224 H80 V252 Q80 272 62 282 Q44 272 44 252 Z" fill="#C9A24E" stroke-width="2"/>
+    <path d="M62 224 V280 M44 242 H80" fill="none" stroke-width="1.2" opacity="0.6"/>
+    <circle cx="62" cy="242" r="4.5" fill="#B9BFC1" stroke-width="1.2"/>
+    <path d="M62 150 V190" fill="none" stroke-width="0" stroke="none"/>
+    <!-- work table: breastplate, hammer, rivet bowl -->
+
+    <path d="M122 160 H250 V214 H122 Z" fill="#876A56" stroke-width="2"/>
+    <path d="M126 164 H246 V210 H126 Z" fill="none" stroke-width="0.9" opacity="0.5"/>
+    <path d="M140 176 C140 168 156 164 168 170 C180 164 196 168 196 176 C196 192 186 204 168 206 C150 204 140 192 140 176 Z" fill="#CBD0D2" stroke-width="1.9"/>
+    <path d="M168 170 V206 M152 182 H184" fill="none" stroke-width="1.1" opacity="0.6"/>
+    <circle cx="150" cy="176" r="1.4" fill="#010206" stroke-width="0" stroke="none"/>
+    <circle cx="186" cy="176" r="1.4" fill="#010206" stroke-width="0" stroke="none"/>
+    <g transform="translate(222 186) rotate(-25)">
+    <rect x="-16" y="-1.5" width="32" height="3" rx="0" fill="#745846" stroke-width="1.2"/>
+    <rect x="8" y="-6" width="10" height="12" rx="1" fill="#4D4B47" stroke-width="1.6"/>
+    </g>
+    <circle cx="214" cy="168" r="8" fill="#A9856E" stroke-width="1.4"/>
+    <circle cx="214" cy="168" r="5" fill="#33261e" stroke-width="0.8"/>
+    <circle cx="212" cy="167" r="1.1" fill="#B9BFC1" stroke-width="0.3"/>
+    <circle cx="216" cy="169" r="1.1" fill="#B9BFC1" stroke-width="0.3"/>
+    <circle cx="214" cy="166" r="1.1" fill="#B9BFC1" stroke-width="0.3"/>
+    <g transform="translate(318 222) rotate(0) scale(1.1)">
+    <ellipse cx="-23" cy="2" rx="10" ry="8" fill="#CBD0D2" stroke-width="1.8"/>
+    <ellipse cx="23" cy="2" rx="10" ry="8" fill="#CBD0D2" stroke-width="1.8"/>
+    <ellipse cx="0" cy="3" rx="17" ry="13" fill="#CBD0D2" stroke-width="2"/>
+    <path d="M-30 -1 Q-23 -5 -16 -1 M-29 5 Q-23 2 -17 5 M30 -1 Q23 -5 16 -1 M29 5 Q23 2 17 5" fill="none" stroke-width="0.9" opacity="0.6"/>
+    <path d="M-11 12 Q0 16 11 12 M0 -8 V15 M-10 6 Q0 10 10 6" fill="none" stroke-width="1.1" opacity="0.6"/>
+    <circle cx="0" cy="-1" r="9" fill="#D8DCDD" stroke-width="1.8"/>
+    <path d="M0 -10 V8 M-7 4 H7" fill="none" stroke-width="1.1"/>
+    <path d="M-6 -2 H6" fill="none" stroke-width="2.2" stroke="#010206"/>
+    <path d="M0 -9 Q5 -14 0 -19 Q-5 -14 0 -9 Z" fill="#9C3F3A" stroke-width="1"/>
+    </g>
+    <!-- counter across the room with a gap -->
+    <path d="M28 292 H214 Q222 292 222 300 V322 Q222 330 214 330 H28 Z" fill="#9F7D68" stroke-width="2.4"/>
+    <path d="M28 292 H214 Q222 292 222 300 V322 Q222 330 214 330 H28 Z" fill="url(#plankHatch)" stroke-width="0" stroke="none"/>
+    <path d="M484 292 H298 Q290 292 290 300 V322 Q290 330 298 330 H484 Z" fill="#9F7D68" stroke-width="2.4"/>
+    <path d="M484 292 H298 Q290 292 290 300 V322 Q290 330 298 330 H484 Z" fill="url(#plankHatch)" stroke-width="0" stroke="none"/>
+    <path d="M34 297 H212 M34 325 H212 M292 297 H478 M292 325 H478" fill="none" stroke-width="0.8" opacity="0.35"/>
+    <circle cx="58" cy="311" r="4" fill="#745846" stroke-width="1.2"/>
+    <path d="M36 311 H80" fill="none" stroke-width="1.6"/>
+    <circle cx="38" cy="311" r="7" fill="#B9BFC1" stroke-width="1.3"/>
+    <circle cx="78" cy="311" r="7" fill="#B9BFC1" stroke-width="1.3"/>
+    <circle cx="77" cy="311" r="3" fill="#C9A24E" stroke-width="0.6"/>
+    <circle cx="130" cy="311" r="11" fill="#CBD0D2" stroke-width="1.8"/>
+    <path d="M130 300 V322 M122 316 H138" fill="none" stroke-width="1.1"/>
+    <path d="M130 300 Q135 296 130 292 Q125 296 130 300 Z" fill="#9C3F3A" stroke-width="0.9"/>
+    <path d="M160 322 C156 312 158 302 162 298 L170 298 L172 308 L180 306 L182 316 C182 322 174 326 160 322 Z" fill="#8A5F3E" stroke-width="1.5"/>
+    <path d="M164 302 V318" fill="none" stroke-width="0.8" opacity="0.5"/>
+    <rect x="316" y="298" width="28" height="22" rx="1" fill="#6C5B8C" stroke-width="1.5"/>
+    <rect x="320" y="301" width="20" height="16" rx="0" fill="#E6D9B5" stroke-width="0.9"/>
+    <path d="M323 306 H337 M323 311 H334" fill="none" stroke-width="0.8" opacity="0.6"/>
+    <circle cx="366" cy="310" r="4" fill="#E0C25A" stroke-width="1"/>
+    <circle cx="373" cy="312" r="4" fill="#E0C25A" stroke-width="1"/>
+    <circle cx="369" cy="317" r="4" fill="#E0C25A" stroke-width="1"/>
+    <circle cx="378" cy="308" r="4" fill="#E0C25A" stroke-width="1"/>
+    <rect x="408" y="300" width="40" height="20" rx="3" fill="#B9BFC1" stroke-width="1.5"/>
+    <path d="M408 300 H448 V320 H408 Z" fill="url(#raRings)" stroke-width="0" stroke="none"/>
+    <!-- armor stands (mail, plate, leather) -->
+    <g transform="translate(74 384) rotate(180) scale(1.1)">
+    <ellipse cx="-23" cy="2" rx="10" ry="8" fill="#9AA0A2" stroke-width="1.8"/>
+    <ellipse cx="23" cy="2" rx="10" ry="8" fill="#9AA0A2" stroke-width="1.8"/>
+    <ellipse cx="0" cy="3" rx="17" ry="13" fill="#9AA0A2" stroke-width="2"/>
+    <path d="M-30 -1 Q-23 -5 -16 -1 M-29 5 Q-23 2 -17 5 M30 -1 Q23 -5 16 -1 M29 5 Q23 2 17 5" fill="none" stroke-width="0.9" opacity="0.6"/>
+    <path d="M-17 3 a17 13 0 1 0 34 0 a17 13 0 1 0 -34 0 Z M-33 2 a10 8 0 1 0 20 0 a10 8 0 1 0 -20 0 Z M13 2 a10 8 0 1 0 20 0 a10 8 0 1 0 -20 0 Z" fill="url(#raRings)" stroke-width="0" stroke="none"/>
+    <circle cx="0" cy="-1" r="9" fill="#9AA0A2" stroke-width="1.8"/>
+    <circle cx="0" cy="-1" r="9" fill="url(#raRings)" stroke-width="0" stroke="none"/>
+    <path d="M-5 5 Q0 8 5 5" fill="none" stroke-width="1.2"/>
+    </g>
+    <g transform="translate(158 384) rotate(180) scale(1.1)">
+    <ellipse cx="-23" cy="2" rx="10" ry="8" fill="#CBD0D2" stroke-width="1.8"/>
+    <ellipse cx="23" cy="2" rx="10" ry="8" fill="#CBD0D2" stroke-width="1.8"/>
+    <ellipse cx="0" cy="3" rx="17" ry="13" fill="#CBD0D2" stroke-width="2"/>
+    <path d="M-30 -1 Q-23 -5 -16 -1 M-29 5 Q-23 2 -17 5 M30 -1 Q23 -5 16 -1 M29 5 Q23 2 17 5" fill="none" stroke-width="0.9" opacity="0.6"/>
+    <path d="M-11 12 Q0 16 11 12 M0 -8 V15 M-10 6 Q0 10 10 6" fill="none" stroke-width="1.1" opacity="0.6"/>
+    <circle cx="0" cy="-1" r="9" fill="#D8DCDD" stroke-width="1.8"/>
+    <path d="M0 -10 V8 M-7 4 H7" fill="none" stroke-width="1.1"/>
+    <path d="M-6 -2 H6" fill="none" stroke-width="2.2" stroke="#010206"/>
+    <path d="M0 -9 Q5 -14 0 -19 Q-5 -14 0 -9 Z" fill="#9C3F3A" stroke-width="1"/>
+    </g>
+    <g transform="translate(354 384) rotate(180) scale(1.1)">
+    <ellipse cx="-23" cy="2" rx="10" ry="8" fill="#8A5F3E" stroke-width="1.8"/>
+    <ellipse cx="23" cy="2" rx="10" ry="8" fill="#8A5F3E" stroke-width="1.8"/>
+    <ellipse cx="0" cy="3" rx="17" ry="13" fill="#8A5F3E" stroke-width="2"/>
+    <path d="M-30 -1 Q-23 -5 -16 -1 M-29 5 Q-23 2 -17 5 M30 -1 Q23 -5 16 -1 M29 5 Q23 2 17 5" fill="none" stroke-width="0.9" opacity="0.6"/>
+    <path d="M-12 4 Q0 -4 12 4" fill="none" stroke-width="0.9" stroke-dasharray="2 2" opacity="0.8"/>
+    <circle cx="0" cy="-1" r="8.5" fill="#6B4A36" stroke-width="1.8"/>
+    <path d="M-6 -1 H6 M0 -8 V6" fill="none" stroke-width="1" opacity="0.55"/>
+    </g>
+    <g transform="translate(436 384) rotate(180) scale(1.1)">
+    <ellipse cx="-23" cy="2" rx="10" ry="8" fill="#9AA0A2" stroke-width="1.8"/>
+    <ellipse cx="23" cy="2" rx="10" ry="8" fill="#9AA0A2" stroke-width="1.8"/>
+    <ellipse cx="0" cy="3" rx="17" ry="13" fill="#9AA0A2" stroke-width="2"/>
+    <path d="M-30 -1 Q-23 -5 -16 -1 M-29 5 Q-23 2 -17 5 M30 -1 Q23 -5 16 -1 M29 5 Q23 2 17 5" fill="none" stroke-width="0.9" opacity="0.6"/>
+    <path d="M-17 3 a17 13 0 1 0 34 0 a17 13 0 1 0 -34 0 Z M-33 2 a10 8 0 1 0 20 0 a10 8 0 1 0 -20 0 Z M13 2 a10 8 0 1 0 20 0 a10 8 0 1 0 -20 0 Z" fill="url(#raRings)" stroke-width="0" stroke="none"/>
+    <circle cx="0" cy="-1" r="9" fill="#9AA0A2" stroke-width="1.8"/>
+    <circle cx="0" cy="-1" r="9" fill="url(#raRings)" stroke-width="0" stroke="none"/>
+    <path d="M-5 5 Q0 8 5 5" fill="none" stroke-width="1.2"/>
+    </g>
+    <g transform="translate(74 456) rotate(180) scale(1.1)">
+    <ellipse cx="-23" cy="2" rx="10" ry="8" fill="#8A5F3E" stroke-width="1.8"/>
+    <ellipse cx="23" cy="2" rx="10" ry="8" fill="#8A5F3E" stroke-width="1.8"/>
+    <ellipse cx="0" cy="3" rx="17" ry="13" fill="#8A5F3E" stroke-width="2"/>
+    <path d="M-30 -1 Q-23 -5 -16 -1 M-29 5 Q-23 2 -17 5 M30 -1 Q23 -5 16 -1 M29 5 Q23 2 17 5" fill="none" stroke-width="0.9" opacity="0.6"/>
+    <path d="M-12 4 Q0 -4 12 4" fill="none" stroke-width="0.9" stroke-dasharray="2 2" opacity="0.8"/>
+    <circle cx="0" cy="-1" r="8.5" fill="#6B4A36" stroke-width="1.8"/>
+    <path d="M-6 -1 H6 M0 -8 V6" fill="none" stroke-width="1" opacity="0.55"/>
+    </g>
+
+    <path d="M124 436 H206 V474 H124 Z" fill="#876A56" stroke-width="2"/>
+    <path d="M128 440 H202 V470 H128 Z" fill="none" stroke-width="0.9" opacity="0.5"/>
+    <circle cx="144" cy="455" r="9" fill="#CBD0D2" stroke-width="1.6"/>
+    <path d="M144 446 V464" fill="none" stroke-width="1"/>
+    <circle cx="166" cy="455" r="9" fill="#9AA0A2" stroke-width="1.6"/>
+    <path d="M166 446 V464" fill="none" stroke-width="1"/>
+    <circle cx="188" cy="455" r="9" fill="#CBD0D2" stroke-width="1.6"/>
+    <path d="M188 446 V464" fill="none" stroke-width="1"/>
+    <path d="M132 470 H198" fill="none" stroke-width="0.8" opacity="0.4"/>
+
+    <path d="M334 440 H418 V476 H334 Z" fill="#876A56" stroke-width="2"/>
+    <path d="M338 444 H414 V472 H338 Z" fill="none" stroke-width="0.9" opacity="0.5"/>
+    <path d="M344 450 C350 446 356 454 362 450 C368 446 374 454 380 450 L380 458 C374 462 368 454 362 458 C356 462 350 454 344 458 Z" fill="#8A5F3E" stroke-width="1.2"/>
+    <path d="M388 446 C392 444 398 446 400 452 L412 454 L410 466 L388 468 Z" fill="#6B4A36" stroke-width="1.5"/>
+
+    <circle cx="454" cy="454" r="17" fill="#A17A5C" stroke-width="1.8"/>
+    <circle cx="454" cy="454" r="12" fill="none" stroke-width="1" opacity="0.6"/>
+    <path d="M440 454 H468" fill="none" stroke="#4D4B47" stroke-width="1.2" opacity="0.7"/>
+
+    <circle cx="430" cy="470" r="12" fill="#A17A5C" stroke-width="1.8"/>
+    <circle cx="430" cy="470" r="7" fill="none" stroke-width="1" opacity="0.6"/>
+    <path d="M421 470 H439" fill="none" stroke="#4D4B47" stroke-width="1.2" opacity="0.7"/>
+    <path d="M446 440 L452 420 M458 440 L462 422" fill="none" stroke-width="2.4" stroke="#745846"/>
+    <ellipse cx="430" cy="236" rx="22" ry="10" fill="#5B99A6" stroke-width="0" stroke="none" opacity="0.35"/>
+    <g transform="translate(206 266) rotate(0) scale(1.1)">
+    <ellipse cx="-23" cy="2" rx="10" ry="8" fill="#8A5F3E" stroke-width="1.8"/>
+    <ellipse cx="23" cy="2" rx="10" ry="8" fill="#8A5F3E" stroke-width="1.8"/>
+    <ellipse cx="0" cy="3" rx="17" ry="13" fill="#8A5F3E" stroke-width="2"/>
+    <path d="M-30 -1 Q-23 -5 -16 -1 M-29 5 Q-23 2 -17 5 M30 -1 Q23 -5 16 -1 M29 5 Q23 2 17 5" fill="none" stroke-width="0.9" opacity="0.6"/>
+    <path d="M-12 4 Q0 -4 12 4" fill="none" stroke-width="0.9" stroke-dasharray="2 2" opacity="0.8"/>
+    <circle cx="0" cy="-1" r="8.5" fill="#6B4A36" stroke-width="1.8"/>
+    <path d="M-6 -1 H6 M0 -8 V6" fill="none" stroke-width="1" opacity="0.55"/>
+    </g>
+    <g transform="translate(380 262) rotate(0) scale(1.1)">
+    <ellipse cx="-23" cy="2" rx="10" ry="8" fill="#9AA0A2" stroke-width="1.8"/>
+    <ellipse cx="23" cy="2" rx="10" ry="8" fill="#9AA0A2" stroke-width="1.8"/>
+    <ellipse cx="0" cy="3" rx="17" ry="13" fill="#9AA0A2" stroke-width="2"/>
+    <path d="M-30 -1 Q-23 -5 -16 -1 M-29 5 Q-23 2 -17 5 M30 -1 Q23 -5 16 -1 M29 5 Q23 2 17 5" fill="none" stroke-width="0.9" opacity="0.6"/>
+    <path d="M-17 3 a17 13 0 1 0 34 0 a17 13 0 1 0 -34 0 Z M-33 2 a10 8 0 1 0 20 0 a10 8 0 1 0 -20 0 Z M13 2 a10 8 0 1 0 20 0 a10 8 0 1 0 -20 0 Z" fill="url(#raRings)" stroke-width="0" stroke="none"/>
+    <circle cx="0" cy="-1" r="9" fill="#9AA0A2" stroke-width="1.8"/>
+    <circle cx="0" cy="-1" r="9" fill="url(#raRings)" stroke-width="0" stroke="none"/>
+    <path d="M-5 5 Q0 8 5 5" fill="none" stroke-width="1.2"/>
+    </g>
+    <g transform="translate(272 240) rotate(-20)">
+    <rect x="-22" y="-5" width="44" height="10" rx="3" fill="#8A5F3E" stroke-width="1.6"/>
+    <path d="M-14 -5 V5 M-4 -5 V5 M6 -5 V5 M16 -5 V5" fill="none" stroke-width="0.8" opacity="0.5"/>
+    </g>
+    <circle cx="138" cy="232" r="10" fill="#A9856E" stroke-width="1.7"/>
+
+  </g>
+</svg>

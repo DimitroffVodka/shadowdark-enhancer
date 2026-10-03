@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512"
+     role="img" aria-labelledby="title desc">
+  <title id="title">Castle shadow</title>
+  <desc id="desc">Separate native-vector cast shadow aligned to the Castle SVG.</desc>
+  <g id="shadow" transform="translate(28 16)" fill="#9699AE" opacity="0.46">
+    <path d="M20 42 H492 V120 H472 V440 H316 V372 H196 V440 H40 V120 H20 Z"/>
+    <path d="M192 160 H320 V312 H192 Z"/>
+
+  </g>
+</svg>

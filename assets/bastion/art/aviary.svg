@@ -1,0 +1,242 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512"
+     role="img" aria-labelledby="title desc">
+  <title id="title">Aviary</title>
+  <desc id="desc">Stilted timber pigeon loft with cubbies, perch ledge, cupola and message-tube post.</desc>
+  <!-- Native vector artwork only: no embedded or linked raster content. -->
+
+  <defs>
+    <pattern id="roofHatch" width="12" height="12" patternUnits="userSpaceOnUse">
+      <path d="M2 0 V12 M8 0 V12" fill="none" stroke="#010206" stroke-width="0.75" opacity="0.17"/>
+    </pattern>
+    <pattern id="leanHatch" width="10" height="10" patternUnits="userSpaceOnUse">
+      <path d="M2 0 V10" fill="none" stroke="#010206" stroke-width="0.65" opacity="0.18"/>
+    </pattern>
+    <pattern id="stoneHatch" width="16" height="13" patternUnits="userSpaceOnUse">
+      <path d="M0 6 H16 M5 0 V6 M12 6 V13" fill="none" stroke="#010206" stroke-width="0.55" opacity="0.16"/>
+    </pattern>
+    <pattern id="shingleHatch" width="14" height="9" patternUnits="userSpaceOnUse">
+      <path d="M0 8 H14 M0 4 Q3.5 8 7 4 Q10.5 8 14 4" fill="none" stroke="#010206" stroke-width="0.6" opacity="0.2"/>
+    </pattern>
+    <pattern id="logHatch" width="9" height="9" patternUnits="userSpaceOnUse">
+      <path d="M4.5 0 V9" fill="none" stroke="#010206" stroke-width="0.7" opacity="0.2"/>
+    </pattern>
+    <pattern id="plankHatch" width="64" height="22" patternUnits="userSpaceOnUse">
+      <path d="M0 0.5 H64 M0 11.5 H64 M20 0 V11 M50 11 V22" fill="none" stroke="#010206" stroke-width="0.8" opacity="0.22"/>
+    </pattern>
+    <pattern id="flagHatch" width="48" height="40" patternUnits="userSpaceOnUse">
+      <path d="M0 0.5 H48 M0 20.5 H48 M16 0 V20 M40 20 V40" fill="none" stroke="#010206" stroke-width="0.8" opacity="0.2"/>
+    </pattern>
+    <pattern id="waterHatch" width="22" height="10" patternUnits="userSpaceOnUse">
+      <path d="M2 5 Q7 1 12 5 T22 5" fill="none" stroke="#A3C9CC" stroke-width="1.1" opacity="0.7"/>
+    </pattern>
+  </defs>
+
+  <g id="building" stroke="#010206" stroke-linecap="round" stroke-linejoin="round">
+    <g transform="translate(256 256) scale(0.9) translate(-254 -224)">
+
+    <!-- Ground: scattered grain, droppings and feathers. -->
+    <g fill="#E9E4D6" stroke-width="0.9">
+      <ellipse cx="206" cy="428" rx="7" ry="3"/><ellipse cx="318" cy="424" rx="5" ry="2.4"/><ellipse cx="270" cy="434" rx="4" ry="2"/>
+    </g>
+    <path transform="translate(150 432) rotate(-20) scale(1.0)" d="M-8 0 Q0 -5 8 0 Q0 4 -8 0 Z M-8 0 H8" fill="#E8E6EA" stroke-width="0.9"/>
+    <path transform="translate(340 438) rotate(25) scale(0.9)" d="M-8 0 Q0 -5 8 0 Q0 4 -8 0 Z M-8 0 H8" fill="#E8E6EA" stroke-width="0.9"/>
+    <path transform="translate(236 440) rotate(70) scale(0.8)" d="M-8 0 Q0 -5 8 0 Q0 4 -8 0 Z M-8 0 H8" fill="#BFC4CE" stroke-width="0.9"/>
+
+    <!-- Feed sack, slumped against the stilts, with spilled grain. -->
+    <path d="M96 424 C88 400 92 380 104 374 C110 368 130 368 136 374 C148 380 150 402 142 424 Q120 432 96 424 Z" fill="#CDBB92" stroke-width="2"/>
+    <path d="M104 374 Q120 386 136 374 M100 392 Q120 400 140 392" fill="none" stroke-width="1.2" opacity="0.7"/>
+    <path d="M102 374 Q108 362 114 374 M126 374 Q132 362 138 374" fill="#CDBB92" stroke-width="1.6"/>
+    <g fill="#E5C468" stroke-width="0.9">
+      <circle cx="152" cy="428" r="2.4"/><circle cx="160" cy="432" r="2.4"/><circle cx="146" cy="436" r="2.4"/><circle cx="168" cy="426" r="2.4"/><circle cx="158" cy="440" r="2.4"/>
+    </g>
+    <!-- Stilts: three posts on foot stones with cross bracing and a ladder. -->
+    <path d="M170 366 L254 416 M254 366 L170 416 M258 366 L342 416 M342 366 L258 416" fill="none" stroke="#5F4434" stroke-width="3.4"/>
+    <g fill="#8E8B83" stroke-width="1.8">
+      <path d="M156 414 H188 L184 428 H160 Z"/><path d="M240 414 H272 L268 428 H244 Z"/><path d="M324 414 H356 L352 428 H328 Z"/>
+    </g>
+    <g fill="#8F6F52" stroke-width="2">
+      <path d="M162 364 H178 V418 H162 Z"/><path d="M248 364 H264 V418 H248 Z"/><path d="M334 364 H350 V418 H334 Z"/>
+    </g>
+    <path d="M164 366 V416 M250 366 V416 M336 366 V416" fill="none" stroke-width="1" opacity="0.6"/>
+    <path d="M286 366 L300 424 M314 366 L328 424" fill="none" stroke="#5F4434" stroke-width="3"/>
+    <path d="M290 384 H318 M293 398 H322 M296 412 H325" fill="none" stroke="#745846" stroke-width="3"/>
+    <!-- Loft floor beam. -->
+    <path d="M148 358 H364 V370 H148 Z" fill="#745846" stroke-width="2.2"/>
+    <!-- Cubby wall: timber frame with a lattice backing. -->
+    <path d="M154 200 H358 V360 H154 Z" fill="#9F7D68" stroke-width="2.4"/>
+    <path d="M154 200 H358 V360 H154 Z" fill="url(#logHatch)" stroke="none"/>
+    <path d="M154 200 H358 V360 H154 Z" fill="none" stroke-width="2.6"/>
+    <path d="M154 242 H358 M154 282 H358 M154 322 H358 M205 202 V358 M256 202 V358 M307 202 V358" fill="none" stroke="#5F4434" stroke-width="3.2"/>
+    <g fill="#26211f" stroke-width="1.6">
+      <path d="M170 232 V218 Q170 210 179 210 Q188 210 188 218 V232 Z"/>
+      <path d="M221 232 V218 Q221 210 230 210 Q239 210 239 218 V232 Z"/>
+      <path d="M272 232 V218 Q272 210 281 210 Q290 210 290 218 V232 Z"/>
+      <path d="M323 232 V218 Q323 210 332 210 Q341 210 341 218 V232 Z"/>
+      <path d="M170 272 V258 Q170 250 179 250 Q188 250 188 258 V272 Z"/>
+      <path d="M221 272 V258 Q221 250 230 250 Q239 250 239 258 V272 Z"/>
+      <path d="M272 272 V258 Q272 250 281 250 Q290 250 290 258 V272 Z"/>
+      <path d="M323 272 V258 Q323 250 332 250 Q341 250 341 258 V272 Z"/>
+      <path d="M170 312 V298 Q170 290 179 290 Q188 290 188 298 V312 Z"/>
+      <path d="M221 312 V298 Q221 290 230 290 Q239 290 239 298 V312 Z"/>
+      <path d="M272 312 V298 Q272 290 281 290 Q290 290 290 298 V312 Z"/>
+      <path d="M323 312 V298 Q323 290 332 290 Q341 290 341 298 V312 Z"/>
+      <path d="M170 352 V338 Q170 330 179 330 Q188 330 188 338 V352 Z"/>
+      <path d="M221 352 V338 Q221 330 230 330 Q239 330 239 338 V352 Z"/>
+      <path d="M272 352 V338 Q272 330 281 330 Q290 330 290 338 V352 Z"/>
+      <path d="M323 352 V338 Q323 330 332 330 Q341 330 341 338 V352 Z"/>
+    </g>
+    <g fill="#C7A06E" stroke-width="1.5">
+      <path d="M167 232 H191 V238 H167 Z"/>
+      <path d="M218 232 H242 V238 H218 Z"/>
+      <path d="M269 232 H293 V238 H269 Z"/>
+      <path d="M320 232 H344 V238 H320 Z"/>
+      <path d="M167 272 H191 V278 H167 Z"/>
+      <path d="M218 272 H242 V278 H218 Z"/>
+      <path d="M269 272 H293 V278 H269 Z"/>
+      <path d="M320 272 H344 V278 H320 Z"/>
+      <path d="M167 312 H191 V318 H167 Z"/>
+      <path d="M218 312 H242 V318 H218 Z"/>
+      <path d="M269 312 H293 V318 H269 Z"/>
+      <path d="M320 312 H344 V318 H320 Z"/>
+      <path d="M167 352 H191 V358 H167 Z"/>
+      <path d="M218 352 H242 V358 H218 Z"/>
+      <path d="M269 352 H293 V358 H269 Z"/>
+      <path d="M320 352 H344 V358 H320 Z"/>
+    </g>
+    <!-- Landing ledge across the loft, wider than the wall, with perching pigeons. -->
+    <path d="M136 296 H376 L372 308 H140 Z" fill="#B58F6A" stroke-width="2"/>
+    <path d="M150 296 L147 308 M200 296 L198 308 M300 296 L302 308 M350 296 L353 308" fill="none" stroke-width="1" opacity="0.5"/>
+
+    <g transform="translate(176 296) scale(1.15 1.15)" stroke-width="1.13">
+      <path d="M-9 -5 L-19 -1 L-17 -9 Z" fill="#6E7686"/>
+      <path d="M-11 -6 C-10 -16 4 -18 8 -11 C10 -6 6 0 0 0 H-6 C-10 0 -12 -3 -11 -6 Z" fill="#8F97A6"/>
+      <path d="M-7 -8 C-2 -14 5 -11 6 -6 C0 -4 -5 -5 -7 -8 Z" fill="#6E7686"/>
+      <path d="M4 -11 Q8 -8 10 -11" fill="none" stroke="#5FA39A" stroke-width="1.39"/>
+      <circle cx="8.5" cy="-14.5" r="4.3" fill="#8F97A6"/>
+      <path d="M12 -15.5 L17 -13.8 L12 -12.6 Z" fill="#D9A441"/>
+      <circle cx="9.6" cy="-15.4" r="0.9" fill="#010206" stroke="none"/>
+      <path d="M-2 0 V3.5 M3 0 V3.5" fill="none" stroke="#B5675A"/>
+    </g>
+
+    <g transform="translate(250 296) scale(-1.15 1.15)" stroke-width="1.13">
+      <path d="M-9 -5 L-19 -1 L-17 -9 Z" fill="#6E7686"/>
+      <path d="M-11 -6 C-10 -16 4 -18 8 -11 C10 -6 6 0 0 0 H-6 C-10 0 -12 -3 -11 -6 Z" fill="#8F97A6"/>
+      <path d="M-7 -8 C-2 -14 5 -11 6 -6 C0 -4 -5 -5 -7 -8 Z" fill="#6E7686"/>
+      <path d="M4 -11 Q8 -8 10 -11" fill="none" stroke="#5FA39A" stroke-width="1.39"/>
+      <circle cx="8.5" cy="-14.5" r="4.3" fill="#8F97A6"/>
+      <path d="M12 -15.5 L17 -13.8 L12 -12.6 Z" fill="#D9A441"/>
+      <circle cx="9.6" cy="-15.4" r="0.9" fill="#010206" stroke="none"/>
+      <path d="M-2 0 V3.5 M3 0 V3.5" fill="none" stroke="#B5675A"/>
+    </g>
+
+    <g transform="translate(332 296) scale(1.15 1.15)" stroke-width="1.13">
+      <path d="M-9 -5 L-19 -1 L-17 -9 Z" fill="#6E7686"/>
+      <path d="M-11 -6 C-10 -16 4 -18 8 -11 C10 -6 6 0 0 0 H-6 C-10 0 -12 -3 -11 -6 Z" fill="#8F97A6"/>
+      <path d="M-7 -8 C-2 -14 5 -11 6 -6 C0 -4 -5 -5 -7 -8 Z" fill="#6E7686"/>
+      <path d="M4 -11 Q8 -8 10 -11" fill="none" stroke="#5FA39A" stroke-width="1.39"/>
+      <circle cx="8.5" cy="-14.5" r="4.3" fill="#8F97A6"/>
+      <path d="M12 -15.5 L17 -13.8 L12 -12.6 Z" fill="#D9A441"/>
+      <circle cx="9.6" cy="-15.4" r="0.9" fill="#010206" stroke="none"/>
+      <path d="M-2 0 V3.5 M3 0 V3.5" fill="none" stroke="#B5675A"/>
+    </g>
+
+    <g transform="translate(240 250) scale(-1.00 1.00)" stroke-width="1.30">
+      <path d="M-9 -5 L-19 -1 L-17 -9 Z" fill="#6E7686"/>
+      <path d="M-11 -6 C-10 -16 4 -18 8 -11 C10 -6 6 0 0 0 H-6 C-10 0 -12 -3 -11 -6 Z" fill="#8F97A6"/>
+      <path d="M-7 -8 C-2 -14 5 -11 6 -6 C0 -4 -5 -5 -7 -8 Z" fill="#6E7686"/>
+      <path d="M4 -11 Q8 -8 10 -11" fill="none" stroke="#5FA39A" stroke-width="1.60"/>
+      <circle cx="8.5" cy="-14.5" r="4.3" fill="#8F97A6"/>
+      <path d="M12 -15.5 L17 -13.8 L12 -12.6 Z" fill="#D9A441"/>
+      <circle cx="9.6" cy="-15.4" r="0.9" fill="#010206" stroke="none"/>
+      <path d="M-2 0 V3.5 M3 0 V3.5" fill="none" stroke="#B5675A"/>
+    </g>
+
+    <g transform="translate(188 336) scale(1.00 1.00)" stroke-width="1.30">
+      <path d="M-9 -5 L-19 -1 L-17 -9 Z" fill="#6E7686"/>
+      <path d="M-11 -6 C-10 -16 4 -18 8 -11 C10 -6 6 0 0 0 H-6 C-10 0 -12 -3 -11 -6 Z" fill="#8F97A6"/>
+      <path d="M-7 -8 C-2 -14 5 -11 6 -6 C0 -4 -5 -5 -7 -8 Z" fill="#6E7686"/>
+      <path d="M4 -11 Q8 -8 10 -11" fill="none" stroke="#5FA39A" stroke-width="1.60"/>
+      <circle cx="8.5" cy="-14.5" r="4.3" fill="#8F97A6"/>
+      <path d="M12 -15.5 L17 -13.8 L12 -12.6 Z" fill="#D9A441"/>
+      <circle cx="9.6" cy="-15.4" r="0.9" fill="#010206" stroke="none"/>
+      <path d="M-2 0 V3.5 M3 0 V3.5" fill="none" stroke="#B5675A"/>
+    </g>
+
+    <g transform="translate(343 336) scale(-1.00 1.00)" stroke-width="1.30">
+      <path d="M-9 -5 L-19 -1 L-17 -9 Z" fill="#8F8B7E"/>
+      <path d="M-11 -6 C-10 -16 4 -18 8 -11 C10 -6 6 0 0 0 H-6 C-10 0 -12 -3 -11 -6 Z" fill="#B9B5A8"/>
+      <path d="M-7 -8 C-2 -14 5 -11 6 -6 C0 -4 -5 -5 -7 -8 Z" fill="#8F8B7E"/>
+      <path d="M4 -11 Q8 -8 10 -11" fill="none" stroke="#5FA39A" stroke-width="1.60"/>
+      <circle cx="8.5" cy="-14.5" r="4.3" fill="#B9B5A8"/>
+      <path d="M12 -15.5 L17 -13.8 L12 -12.6 Z" fill="#D9A441"/>
+      <circle cx="9.6" cy="-15.4" r="0.9" fill="#010206" stroke="none"/>
+      <path d="M-2 0 V3.5 M3 0 V3.5" fill="none" stroke="#B5675A"/>
+    </g>
+
+    <g transform="translate(300 336) scale(0.90 0.90)" stroke-width="1.44">
+      <path d="M-9 -5 L-19 -1 L-17 -9 Z" fill="#7A7690"/>
+      <path d="M-11 -6 C-10 -16 4 -18 8 -11 C10 -6 6 0 0 0 H-6 C-10 0 -12 -3 -11 -6 Z" fill="#A4A0B4"/>
+      <path d="M-7 -8 C-2 -14 5 -11 6 -6 C0 -4 -5 -5 -7 -8 Z" fill="#7A7690"/>
+      <path d="M4 -11 Q8 -8 10 -11" fill="none" stroke="#5FA39A" stroke-width="1.78"/>
+      <circle cx="8.5" cy="-14.5" r="4.3" fill="#A4A0B4"/>
+      <path d="M12 -15.5 L17 -13.8 L12 -12.6 Z" fill="#D9A441"/>
+      <circle cx="9.6" cy="-15.4" r="0.9" fill="#010206" stroke="none"/>
+      <path d="M-2 0 V3.5 M3 0 V3.5" fill="none" stroke="#B5675A"/>
+    </g>
+
+    <g fill="#E9E4D6" stroke-width="0.8">
+      <ellipse cx="206" cy="306" rx="4" ry="2"/><ellipse cx="288" cy="307" rx="3" ry="1.6"/><ellipse cx="356" cy="307" rx="3" ry="1.6"/><ellipse cx="324" cy="357" rx="4" ry="1.8"/><ellipse cx="206" cy="357" rx="3" ry="1.6"/>
+    </g>
+    <!-- Hip roof: upper plane, lower plane, shingle courses and a ridge beam. -->
+    <path d="M128 204 L180 112 H332 L384 204 Z" fill="#C4A68F" stroke="none"/>
+    <path d="M150 164 H362 L384 204 H128 Z" fill="#AB8670" stroke="none"/>
+    <path d="M128 204 L180 112 H332 L384 204 Z" fill="url(#shingleHatch)" stroke="none"/>
+    <path d="M128 204 L180 112 H332 L384 204 Z" fill="none" stroke-width="2.8"/>
+    <path d="M150 164 H362 M213 112 L196 164 M299 112 L316 164" fill="none" stroke-width="2"/>
+    <path d="M172 117 H340" fill="none" stroke="#5F4434" stroke-width="5"/>
+    <g fill="#A9856E" stroke-width="1.6">
+      <rect x="120" y="198" width="14" height="14" rx="2"/><rect x="378" y="198" width="14" height="14" rx="2"/>
+    </g>
+    <path d="M198 178 L210 170 H250 L244 192 H194 Z" fill="#8F715E" stroke-width="1.5"/>
+    <path d="M196 184 H246" fill="none" stroke-width="1" opacity="0.6"/>
+    <!-- Cupola with its own cubby holes, pointed roof and a weathervane. -->
+    <path d="M226 74 H286 V122 H226 Z" fill="#9F7D68" stroke-width="2.2"/>
+    <path d="M226 74 H286 V122 H226 Z" fill="url(#logHatch)" stroke="none"/>
+    <path d="M236 86 V96 Q236 92 241 92 Q246 92 246 96 V104 H236 Z M266 86 V96 Q266 92 271 92 Q276 92 276 96 V104 H266 Z" fill="#26211f" stroke-width="1.5"/>
+    <path d="M250 80 H262 V104 H250 Z" fill="#26211f" stroke-width="1.5"/>
+    <path d="M244 104 H268 V109 H244 Z" fill="#C7A06E" stroke-width="1.4"/>
+    <path d="M216 76 L256 36 L296 76 Z" fill="#A57F68" stroke-width="2.4"/>
+    <path d="M216 76 L256 36 L296 76 Z" fill="url(#shingleHatch)" stroke="none"/>
+    <path d="M256 36 V16 M240 22 L272 22 M256 36 L250 56 M256 36 L262 56" fill="none" stroke="#4B352B" stroke-width="2.2"/>
+    <path d="M244 12 C250 8 262 8 266 14 C262 12 258 14 256 16 C252 14 248 14 244 12 Z" fill="#4B352B" stroke-width="1.2"/>
+    <path d="M256 36 L258 20" fill="none" stroke-width="0" />
+    <!-- Message post: pole, tiny roof, and a scroll tube with a wax seal. -->
+    <path d="M410 292 V428" fill="none" stroke="#5F4434" stroke-width="6"/>
+    <path d="M412 292 V428" fill="none" stroke="#9F7D68" stroke-width="2"/>
+    <path d="M394 296 H426 V316 H394 Z" fill="#B58F6A" stroke-width="2"/>
+    <path d="M388 296 L410 276 L432 296 Z" fill="#A57F68" stroke-width="2"/>
+    <path d="M404 304 H416 V316 H404 Z" fill="#26211f" stroke-width="1.3"/>
+    <path d="M410 318 V338" fill="none" stroke-width="1.5"/>
+    <path d="M398 336 H422 Q426 336 426 340 V368 Q426 372 422 372 H398 Q394 372 394 368 V340 Q394 336 398 336 Z" fill="#C7A06E" stroke-width="2"/>
+    <path d="M394 346 H426 M394 362 H426" fill="none" stroke="#7A5C3F" stroke-width="2"/>
+    <path d="M398 372 H422 V378 H398 Z" fill="#8A7A5A" stroke-width="1.6"/>
+    <path d="M400 336 L404 326 H418 L422 336 Z" fill="#E6D9B5" stroke-width="1.5"/>
+    <circle cx="410" cy="354" r="4.2" fill="#9C3F3A" stroke-width="1.3"/>
+    <path d="M410 372 Q404 388 412 396 M410 372 Q418 386 410 396" fill="none" stroke="#9C3F3A" stroke-width="2"/>
+
+    <g transform="translate(424 292) scale(-0.70 0.70)" stroke-width="1.86">
+      <path d="M-9 -5 L-19 -1 L-17 -9 Z" fill="#6E7686"/>
+      <path d="M-11 -6 C-10 -16 4 -18 8 -11 C10 -6 6 0 0 0 H-6 C-10 0 -12 -3 -11 -6 Z" fill="#8F97A6"/>
+      <path d="M-7 -8 C-2 -14 5 -11 6 -6 C0 -4 -5 -5 -7 -8 Z" fill="#6E7686"/>
+      <path d="M4 -11 Q8 -8 10 -11" fill="none" stroke="#5FA39A" stroke-width="2.29"/>
+      <circle cx="8.5" cy="-14.5" r="4.3" fill="#8F97A6"/>
+      <path d="M12 -15.5 L17 -13.8 L12 -12.6 Z" fill="#D9A441"/>
+      <circle cx="9.6" cy="-15.4" r="0.9" fill="#010206" stroke="none"/>
+      <path d="M-2 0 V3.5 M3 0 V3.5" fill="none" stroke="#B5675A"/>
+    </g>
+
+    </g>
+
+  </g>
+</svg>

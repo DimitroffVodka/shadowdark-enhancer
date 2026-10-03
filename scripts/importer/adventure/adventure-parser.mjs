@@ -22,6 +22,7 @@
  */
 
 import { PAGE_FURNITURE_RE } from "../tables/hex-parser.mjs";
+import { stripBold } from "../pdf-text-utils.mjs";
 
 /** A step bigger than this between two headings reads as a stray, not a run. */
 export const MAX_GAP = 3;
@@ -67,42 +68,70 @@ export function titleCaseName(name) {
 /**
  * Parse a site's pages.
  * @param {string[][]} pages  one array of lines per page, in page order
- * @param {{style?:"caps"|"inline", range?:[number,number], skip?:RegExp}} [opts]
+ * @param {{style?:"caps"|"inline", range?:[number,number], skip?:RegExp, intro?:boolean}} [opts]
  *   range = the numbers the site is printed to hold, to report what is missing;
- *   skip = lines that are page banners, not text ("Gedgarrin District")
- * @returns {{locations: Array<{num:number, name:string, bodyLines:string[]}>, warnings:string[]}}
+ *   skip = lines that are page banners, not text ("Gedgarrin District");
+ *   intro = keep the text printed before the first location (a site's "The
+ *   Monastery" and "Inhabitants" sections) instead of dropping it. Opt-in: a
+ *   page read from further up a book's page may open with something unrelated.
+ *   Lines may carry bold markers (extractPdfText markBold): every match is made on the plain
+ *   text, and each location's `boldLines` keeps the marked copy of its `bodyLines`.
+ * @returns {{locations: Array<{num:number, name:string, bodyLines:string[], boldLines:string[]}>, warnings:string[], intro:string[], introBold:string[]}}
  */
-export function parseAdventurePages(pages, { style = "caps", range, skip } = {}) {
+export function parseAdventurePages(pages, { style = "caps", range, skip, intro = false } = {}) {
   const locations = [];
   const warnings = [];
+  const introLines = [], introBold = [];
   let cur = null;
   for (const lines of pages ?? []) {
     const page = [...lines];
     // The printed page number sits last on the page; it is furniture, not text.
     while (page.length && PAGE_FURNITURE_RE.test(String(page.at(-1)).trim())) page.pop();
     for (const raw of page) {
-      const line = String(raw ?? "").trim();
+      const marked = String(raw ?? "").trim();
+      const line = stripBold(marked).trim();
       if (skip?.test(line)) continue;
       const head = matchHeading(line, style);
       const last = locations.at(-1)?.num;
       const follows = head && (last == null ? (!range || head.num <= range[0] + MAX_GAP) : (head.num > last && head.num - last <= MAX_GAP));
       if (follows) {
         if (last != null && head.num - last > 1) warnings.push(`missing ${last + 1}${head.num - last > 2 ? `-${head.num - 1}` : ""}`);
-        cur = { num: head.num, name: head.name, bodyLines: head.rest ? [head.rest] : [] };
+        cur = { num: head.num, name: head.name, bodyLines: head.rest ? [head.rest] : [], boldLines: head.rest ? [markedTail(marked, head.rest)] : [] };
         locations.push(cur);
       } else if (cur && line) {
         cur.bodyLines.push(line);
+        cur.boldLines.push(marked);
+      } else if (!cur && intro && line) {
+        introLines.push(line);
+        introBold.push(marked);
       }
     }
   }
-  if (locations.length) locations.at(-1).bodyLines = trimTrailingTable(locations.at(-1).bodyLines);
+  if (locations.length) {
+    const end = locations.at(-1), keep = trimTrailingTable(end.bodyLines).length;
+    end.bodyLines = end.bodyLines.slice(0, keep);
+    end.boldLines = end.boldLines.slice(0, keep);
+  }
   if (range && locations.length) {
     if (locations[0].num > range[0]) warnings.push(`missing ${range[0]}${locations[0].num - 1 > range[0] ? `-${locations[0].num - 1}` : ""}`);
     const end = locations.at(-1).num;
     if (end < range[1]) warnings.push(`missing ${end + 1}${range[1] > end + 1 ? `-${range[1]}` : ""}`);
   }
   if (range && !locations.length) warnings.push(`no locations found (expected ${range[0]}-${range[1]})`);
-  return { locations, warnings };
+  return { locations, warnings, intro: introLines, introBold };
+}
+
+/**
+ * The tail of a marked line: the part whose plain text is `rest` (a heading's
+ * body, after "3. Parlor."). Walks the marked text until that many plain
+ * characters are left, so a bold heading never leaks into the body.
+ */
+function markedTail(marked, rest) {
+  const plain = stripBold(marked).trim();
+  let skip = plain.length - rest.length;
+  let i = 0;
+  while (i < marked.length && skip > 0) { if (stripBold(marked[i])) skip--; i++; }
+  return marked.slice(i).trim();
 }
 
 /**
