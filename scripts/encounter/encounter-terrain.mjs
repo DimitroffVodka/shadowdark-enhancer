@@ -23,8 +23,10 @@ import { findSuitePack } from "../shared/compendium-suite.mjs";
 import { cellNumber, foundryOffsetToCube } from "../hex-map/geometry.mjs";
 import { decodeTags, readCell, FEATURES } from "../hex-map/tag-store.mjs";
 import { extrasRecordsByOffset } from "../hex-map/extras-records.mjs";
+import { HexRecords, isHexAdopted, recordJournal, RECORD_FLAG, PUBLIC_FLAG } from "../hex-map/hex-records.mjs";
 import { moonPhase } from "../time/time-core.mjs";
 import { moonEpoch } from "../time/time.mjs";
+import { Party } from "../party/party.mjs";
 
 /** Scene flag holding the tag store (hex-tagger-app.mjs owns it). */
 const TAGS_FLAG = "hexTags";
@@ -299,10 +301,14 @@ function partyPoints(canvasRef) {
   let extras = [];
   try { extras = game.modules?.get("shadowdark-extras")?.active ? game.modules.get("shadowdark-extras").api?.party?.list?.() ?? [] : []; } catch { /* no party API */ }
   const parties = new Set(extras.map((a) => a.id));
-  const party = placed.filter((t) => parties.has(t.actor?.id) || t.actor?.flags?.[MODULE_ID]?.party === true);
+  const selected = Party.selected();
+  // Multiple saved parties require an explicit activity/selection, never everyone.
+  if (!selected && !controlled.length && Party.list().length) return [];
+  const party = placed.filter((t) => selected ? t.actor?.id === selected.id : parties.has(t.actor?.id));
   const tokens = controlled.length ? controlled
     : party.length ? party
-    : placed.filter((t) => t.actor?.type === "Player" && t.actor?.hasPlayerOwner);
+    : selected ? placed.filter((t) => Party.members(selected).includes(t.actor?.uuid))
+      : placed.filter((t) => t.actor?.type === "Player" && t.actor?.hasPlayerOwner);
   return tokens.map((t) => t.center).filter((c) => Number.isFinite(c?.x) && Number.isFinite(c?.y));
 }
 
@@ -378,6 +384,19 @@ export function hexReader(canvasRef = globalThis.canvas) {
   const grid = canvasRef?.grid;
   if (!grid?.isHexagonal) return null;
   const scene = canvasRef?.scene;
+  if (isHexAdopted(scene)) {
+    const rect = scene?.dimensions?.sceneRect;
+    return offset => {
+      if (rect) {
+        const at = grid.getCenterPoint(offset);
+        if (!rect.contains(at.x, at.y)) return null;
+      }
+      const record = HexRecords.read(offset, scene);
+      // Unknown native cells remain traversable on-map; never reveal their real terrain or price.
+      if (!record) return { num: null, terrain: null, features: [] };
+      return { num: record.num, terrain: record.terrain, features: (record.features ?? []).map(f => f?.type).filter(type => FEATURES.includes(type)) };
+    };
+  }
   const flag = scene?.getFlag?.(MODULE_ID, TAGS_FLAG);
   // The numbering's cube maths is the column layout's: a row-oriented grid reads as an untagged one.
   if (flag?.origin && grid.columns) {
@@ -412,6 +431,13 @@ export function hexReader(canvasRef = globalThis.canvas) {
  */
 export function hasHexTerrain(canvasRef = globalThis.canvas) {
   const scene = canvasRef?.scene;
+  if (isHexAdopted(scene)) {
+    const gm = !!globalThis.game?.user?.isGM;
+    if (gm && Object.keys(scene?.getFlag?.(MODULE_ID, TAGS_FLAG)?.cells ?? {}).length) return true;
+    const flag = gm ? RECORD_FLAG : PUBLIC_FLAG;
+    const cells = recordJournal(scene, { publicOnly: !gm })?.flags?.[MODULE_ID]?.[flag]?.cells;
+    return Object.values(cells ?? {}).some(r => !!r?.terrain);
+  }
   if (Object.keys(scene?.getFlag?.(MODULE_ID, TAGS_FLAG)?.cells ?? {}).length) return true;
   return [...(extrasRecords(scene)?.values() ?? [])].some((r) => !!r?.terrain);
 }

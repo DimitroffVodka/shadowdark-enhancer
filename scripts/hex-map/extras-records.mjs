@@ -1,11 +1,11 @@
 /**
- * Shadowdark Enhancer — Shadowdark Extras' hex records, read where they sit.
+ * Shadowdark Enhancer — legacy/authoring reader for Shadowdark Extras' hex records.
  *
  * Extras keeps every hex record in one flag on one journal entry, keyed per
  * scene by Foundry offset ("i_j"). Its own read call (api.hex.getHexRecords,
- * shadowdark-extras#157) is async and GM-only, which the sync hex reader that
- * prices a move on any client cannot use; this reads the store directly, the
- * way hex-handoff's fallback does for an older Extras. Nothing here writes.
+ * shadowdark-extras#157) is async and GM-only. This reader remains for the
+ * painter-feature merge in hex-handoff and unadopted scenes, NOT native gameplay.
+ * hex-adoption reads raw persisted flags once (also with SDX off). Nothing here writes.
  * With nothing recorded for the scene it finds nothing; it throws where Foundry
  * does, which is when the journal outlives an Extras that is no longer active.
  */

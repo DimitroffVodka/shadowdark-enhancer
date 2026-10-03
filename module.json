@@ -57,6 +57,8 @@
     "scripts/shadowdark-enhancer.mjs"
   ],
   "styles": [
+    { "src": "styles/hex-explorer.css" },
+    { "src": "styles/party.css" },
     {
       "src": "styles/shadowdark-enhancer.css"
     }
@@ -73,5 +75,5 @@
   "url": "https://github.com/DimitroffVodka/shadowdark-enhancer",
   "manifest": "https://github.com/DimitroffVodka/shadowdark-enhancer/releases/latest/download/module.json",
   "download": "https://github.com/DimitroffVodka/shadowdark-enhancer/releases/latest/download/module.zip",
-  "flags": { "buildRev": "0d8ca680805d" }
+  "flags": { "buildRev": "85a90e08e313" }
 }

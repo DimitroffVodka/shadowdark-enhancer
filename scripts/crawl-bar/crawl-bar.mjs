@@ -611,6 +611,9 @@ export const CrawlBar = {
       <div class="sde-menu-item sde-menu-btn" data-loot-action="partyXp" role="menuitem" tabindex="0">
         <i class="fas fa-star"></i> ${game.i18n.localize("SDE.crawlBar.lootMenu.partyXp")}
       </div>
+      <div class="sde-menu-item sde-menu-btn" data-loot-action="party" role="menuitem" tabindex="0">
+        <i class="fas fa-users"></i> ${game.i18n.localize("SDE.party.open")}
+      </div>
       <div class="sde-menu-item sde-menu-btn" data-loot-action="downtime" role="menuitem" tabindex="0">
         <i class="fas fa-mug-hot"></i> ${game.i18n.localize("SDE.crawlBar.lootMenu.downtime")}
       </div>
@@ -662,6 +665,7 @@ export const CrawlBar = {
       if (target.dataset.lootAction === "magicForge") game.shadowdarkEnhancer.forge.open();
       if (target.dataset.lootAction === "merchant") game.shadowdarkEnhancer.merchant.openLocally();
       if (target.dataset.lootAction === "partyXp") game.shadowdarkEnhancer.partyXp.open();
+      if (target.dataset.lootAction === "party") game.shadowdarkEnhancer.party.open();
       if (target.dataset.lootAction === "downtime") game.shadowdarkEnhancer.downtime.open();
       if (target.dataset.lootAction === "pitFighting") game.shadowdarkEnhancer.pitFighting.open();
       if (target.dataset.lootAction === "training") game.shadowdarkEnhancer.training.open();

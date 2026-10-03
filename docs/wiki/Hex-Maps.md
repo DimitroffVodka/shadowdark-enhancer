@@ -2,8 +2,8 @@
 
 [← Wiki home](index.md)
 
-Turn a published hex map you own into data for Shadowdark Extras' hexcrawl
-tools, without the module shipping any of the map. Three pieces, each useful on
+Turn your map into native exploration and optional Extras authoring data,
+without the module shipping any of the map. Three pieces, each useful on
 its own:
 
 1. **Hex key pages** — the [Importer Hub](Importer-Hub.md) files a pasted hex
@@ -17,6 +17,51 @@ its own:
 
 Everything is built from your own book text and your own map image in your
 browser. Nothing is uploaded, and nothing from a book ships with the module.
+
+## Native coordinates, Hexplorer and fog
+
+These work without Extras. Each user's **Show hex coordinates** setting follows
+`hexMaps.numberAt`, preserving leading zeroes and calibration. Flat-top odd/even
+column grids are supported; unsupported grids and unnumbered cells get no invented
+labels. Eligible scenes adopt native records once; unnumbered adopted maps use
+scene UUID plus offset. Hover for disclosed terrain/public notes; a short click
+keeps the small card with permitted links. GM Edit saves terrain, line features,
+rich locations, notes and discovery; travel prices update immediately. Pins,
+token drags and long-press pings retain their handlers.
+
+One native fog overlay separates revealed terrain from visited cells. A visible
+mountain does not disclose its dungeon. Committed selected-Party travel visits;
+dawn reveals terrain using native grid, time, weather and imported visibility/
+elevation rules. Tokens, prices/routes, labels, tooltip and pins share disclosure
+with ordinary GM/owner exceptions. GM reveal/conceal can hide a visited location
+without erasing arrival history. Dawn/manual reveal never rerolls first-entry
+tables. Adoption imports legacy fog/rolled history once and reload retains it.
+
+Private rich data lives in GM-restricted journals/packs, not public actor/scene
+flags. Player projections are filtered. This is ordinary Foundry spoiler
+protection, not encryption against deliberate raw document/pack API inspection.
+Adoption cannot undo data already disclosed by a legacy Extras store.
+
+### Standing on its own: optional Extras seams
+
+[Party](Party.md), [Camping](Camping.md), [Carousing](Carousing.md), quests and
+native hex gameplay do not require Extras. Map painting/authoring and unrelated
+Extras features remain available; their authoring readers are retained.
+`game.shadowdarkEnhancer.owns('hex.fog', scene)` returns enabled/adopted fog
+ownership; other feature keys currently return false. A cooperating Extras
+must stand down for that scene. Available Extras 6.15.0 has no fog guard:
+native fog stays off with a notice while Extras scene fog is on. Native Parties
+use native camping; pending Extras camps keep their original executor.
+Carousing gates on the Extras Carousing setting; the native
+Hexplorer requires the Extras tooltip to be disabled. Enhancer never toggles
+those settings. Guarded-provider integration is not yet verified; this does
+not prevent native play with Extras disabled.
+
+Legacy flagged NPC Parties adopt in place with UUIDs/items/ownership/foreign
+flags retained. SDX `type: Party` documents are not converted. Native hex adoption
+preserves unknown data/conflicts, keeps native edits authoritative and never
+replaces scenes, map art, pins or keyed journals. Rerun does not replay rewards
+or re-import. The authoring workflows below remain available independently.
 
 ## Terrain and features
 

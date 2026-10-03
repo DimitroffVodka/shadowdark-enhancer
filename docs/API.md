@@ -43,6 +43,27 @@ documents); they warn and return `null` for non-GM callers. Import-type
 operations follow the module's never-delete contract: they create or skip,
 never overwrite or remove existing documents.
 
+## `owns` — adopted gameplay ownership
+
+`api.owns("hex.fog", scene)` is true only for an adopted hex scene with native
+fog enabled and no incompatible Extras overlap. It does not toggle Extras.
+An SDX provider advertising `api.hex.enhancerOwnershipGuardVersion >= 1` must
+stand down its fog writes, arrival rolls and overlay, and use native disclosure
+for its token/pin/tooltip/coordinate consumers on scenes owned by Enhancer.
+An older provider must have its fog explicitly off before native fog can run.
+The currently inspected SDX source does not advertise this guard.
+
+`api.hexMaps.fog.disclosed(scene, offset, kind)` uses the same predicate as the
+native consumers (`kind` is `terrain` or `location`). GM-only
+`setDisclosure(offset, {revealed, locationRevealed}, scene)` changes disclosure
+without clearing visit or first-entry history. `setEnabled(boolean, scene)`
+controls native fog without modifying any SDX state. `revealParty(token,
+{weather})` is a reveal-only pass: it never visits or rolls arrival tables.
+Committed travel is invoked by Overland after payment. Keyed location notes
+may additionally be marked in the Hexplorer editor; public terrain notes remain
+visible on revealed cells. Deliberate raw Foundry document access is outside
+this ordinary-play spoiler-protection boundary.
+
 ---
 
 ## `import` — universal dump segmentation
@@ -618,6 +639,83 @@ The sell ratio and shop name are world settings edited **in the shop window**,
 not in Foundry's settings UI (`shopSellRatio`, default `50`; `shopName`, default
 `"The Merchant"`).
 
+## `carousing` — native basic outings and independent history
+
+`api.carousing.open(partyUuid)` opens the native window from the Party's Carouse
+button. `state(partyUuid)` reads `{config, current, history}` from the Party's
+`carousing` flag; `isOpen()` is the downtime overlap gate. `request(partyUuid,
+action, data)` uses the existing authenticated active-GM relay. A Party owner
+may begin/start/resume/cancel; only each PC's OWNER may select and confirm that
+PC's attendance, tier and holiday garb. Party ownership never authorizes spending
+another PC's coins. The GM selects event/outcome RollTable UUIDs and manual
+settlement kind/place with `configure`; empty UUIDs resolve the imported Core
+tables by manifest id, not name. Event rows are `Cost | Event | Bonus`; outcomes
+are `Outcome | Benefit` and real ranges. No default book outcomes are shipped.
+
+Every participating PC pays the FULL chosen tier cost from their own purse.
+Preflight checks all confirmations, table coverage, funds, settlement limits,
+holiday admission, downtime overlap and 14-real-day actor cooldown before charging.
+Explicit unconditional positive XP/Luck gains, signed renown and carried-coin
+percentage loss are concrete automatic effects. XP/Luck extraction accepts
+`Gain/Earn/Receive N XP`, `Gain/Earn/Receive N luck tokens` (including `a`/`one`),
+or an explicit `+N` reward, with a shared gain across `and`. Bare quantities,
+losses, negative, negated, conditional or custom reward phrasing are not awards;
+the original result remains visible for GM adjudication. Narrative/custom, gear/debt and expanded holiday effects
+remain visibly marked GM actions. Basic rolls include tier, holiday/garb and
+the existing renown bonus once. Time uses `advanceOffDuty`, with one saved target
+time and group duration equal to the highest chosen tier/base holiday bonus,
+minimum one calendar day. No rations or survival travel clock are run.
+
+Saved participants, rolls and actor-local `carousingProgress[logId]` markers
+protect reload/Resume. XP and renown markers commit with the corresponding
+actor changes through their existing award helpers. Independent history is
+saved before reporting; one stable `logId` upserts Session Recap. Reporting
+failure never rolls back an applied effect or makes it eligible again.
+GM-only `request(partyUuid, "importHistory", {entries})` imports normalized
+legacy recap-shaped nights once by `logId`, marked `historyOnly`; they are never
+assigned as the current outing, charged or awarded. There is no hidden SDX
+journal watcher. Explicit old feed compatibility calls remain available.
+
+If SDX's Carousing is enabled, this overlapping native flow refuses and explains
+how the GM can disable that SDX feature; it never toggles SDX settings. Works
+without SDX, tokens or a map. No live deployment is implied by this API.
+
+## `camping` — internal task setup slice
+
+`camping.open(actorOrUuid)` opens one persistent native PC task setup/results
+window for a visible native Party. Owners choose their own PCs; a Party owner
+locks tasks and resolves fire and effects over the authenticated GM relay.
+This internal slice stops at saved results awaiting nutrition and rest. It
+does not grant rest, advance time or replace Overland's executor. Cook HP is
+an internal post-eligible-rest seam, not a public free-healing operation.
+
+## `party` — native Party roster and window
+
+`party.list()` returns visible Party actors (including unadopted SDX Party types).
+`party.open(actorOrUuid)` opens an explicit actor; a bare call offers the party
+picker. `party.select(ref)` selects the activity's party on this client and
+`party.selected()` returns that choice, a single controlled party or the only
+visible party; it never guesses the first of multiple parties.
+`party.members(ref)` returns the saved explicit UUID roster, including unresolved
+references. Pass `{charactersOnly: true}` for world Player actors only.
+`party.adopt(ref)` copies a flagged NPC's roster into the versioned Enhancer flag
+in place, preserving actor/items and SDX flags. Unknown reads refuse adoption.
+SDX `type: "Party"` remains unadopted. `party.add(ref, memberUuid)` and
+`party.remove(ref, memberUuid)` edit only membership; the caller must own the
+Party, and adding a character requires character ownership. Removing never
+deletes an actor, token, item or history.
+
+`party.configureMovement(ref, changes)` persists the owner's `leaderUuid`,
+`followLeader`, `includeMounts` and fixed `formation.slots` in `partyData`.
+`party.movement(ref, action)` accepts `deploy`, `gather`, `toggle` or `resume`;
+owners automatically use the authenticated active-GM relay for scene-token writes.
+Actions refuse combat and a mismatched authority scene rather than testing the
+wrong walls. `party.movementStatus(ref)` returns deployment and visible pause
+information. Gather preserves linked Actors and canonical token configuration;
+release reuses a scene token or its saved id/configuration. Following uses native
+V14 committed movement, marks follower operations, and does not price aggregate
+travel. Pauses and fresh-path Resume are distinct from the remembered follow choice.
+
 ## `partyXp` — party XP awards
 
 Shadowdark RAW: treasure and quest XP is awarded to **each** character in full,
@@ -671,8 +769,8 @@ Every logged entry is stamped with the real time (`timestamp`, ms, and `time`,
 "14:05") and, since 1.12.0, the in-game time: `worldTime` (seconds) and
 `gameTime`, the date as [`time.format()`](#time--season-day-and-night-sun-moon-and-anchors)
 writes it (both `null` without a world clock). Entries logged before 1.12.0
-have no in-game time. A carousing row that Shadowdark Extras rewrites keeps
-the stamp of its first capture.
+have no in-game time. Carousing upserts keep the stamp of their first capture;
+native nights push directly, with no hidden SDX journal watcher.
 
 Each entry in `playerStats` carries:
 
@@ -916,12 +1014,10 @@ picker for whose renown applies. Independent of all of that, **double 1s on the
 reaction dice are always hostile** — `reactionBand(total, { doubleOnes })` in
 `encounter-result.mjs` short-circuits before the band ladder.
 
-**Carousing belongs to shadowdark-extras, and it applies the bonus itself.** By
-the book the same bonus applies to carousing event rolls. This module has no
-carousing roll to hook, but SDX does, and its `getRenownBonus` (CarousingSD.mjs)
-is the same `≥4/≥8/≥12 → +1/+2/+3` ladder folded into the carousing `totalBonus`.
-So do NOT tell users to add it by hand where SDX is installed — that doubles it.
-SDX also applies carousing renown *deltas* with a bare
+**Native basic carousing is owned by Enhancer.** Its event roll applies the
+existing renown bonus once. If SDX Carousing is enabled instead, the native flow
+stands down; do not add another bonus by hand. SDX's older versions also apply
+carousing renown *deltas* with a bare
 `actor.update({"system.renown": next})` (`applyRenownDelta`), which is why the
 external-change watcher below exists.
 
@@ -1134,7 +1230,7 @@ damaged ability, shown in the sheet's Effects tab, and it is gone when healed.
 
 | Call | What |
 |---|---|
-| `statDamage.apply(actor, ability, amount)` | Add `amount` points to one ability (`"str"` … `"cha"`, any case, or the full name). Characters only. Resolves to that ability's new total, or `null` when nothing was applied (an NPC, an unknown ability, an amount below 1). |
+| `statDamage.apply(actor, ability, amount)` | Add `amount` points to one ability (`"str"` … `"cha"`, any case, or the full name). Characters and `shadowdark-enhancer.mount` actors only. Resolves to that ability's new total, or `null` for an unrelated NPC/warband, unknown ability, or amount below 1. |
 | `statDamage.heal(actor)` | Clear all of it: a normal rest. `heal(actor, { all: true })` is the same. |
 | `statDamage.heal(actor, { perAbility: n })` | Take `n` off each damaged ability: Grinder Mode passes 1. Resolves to what is left, as `of` reads it. |
 | `statDamage.of(actor)` | `{ str, dex, con, int, wis, cha }`, the points of damage on each, zero when clean. Several effects on one ability are summed. |
@@ -1142,7 +1238,17 @@ damaged ability, shown in the sheet's Effects tab, and it is gone when healed.
 `apply` and `heal` write Active Effects, so the caller needs owner permission
 on the actor: the GM, or the character's own player.
 
-**The effect is a contract.** Anything that creates stat damage without calling
+Mounts instead persist `{base, damage}` in `flags.shadowdark-enhancer.mountScores`
+through the safe flag helper. Six base scores initialize once from printed NPC
+modifiers (`10 + 2 * modifier`); users may edit them on the mount sheet. Native
+checks and mount helpers use `floor((effectiveScore - 10) / 2)` without PC caps.
+Damage never modifies the stored NPC modifier or the base score; death is at
+full CON zero. `of`/`heal` read/update the mount damage flag, not PC effects.
+Daily camp nutrition includes listed mounts even with Include mounts off,
+uses their own food then only explicitly approved per-mount Party shortfall,
+and saves once-per-Actor/day food and damage progress. Mounts take no camp task.
+
+**The character effect is a contract.** Anything that creates character stat damage without calling
 `apply` (Shadowdark Extras' Effects library) must use exactly this shape, and
 `of`, `heal` and the CON check then treat it like any other:
 
@@ -1198,9 +1304,9 @@ const q = await api.quests.create({
   source: { kind: "rumor", uuid: rumorEntry.uuid },
   description: "The fishers of Low Town hear a bell under the water.",
   objectives: ["Find the bell", "Silence it"],
-  rewards: { xp: 3, renown: 1, items: [{ uuid: item.uuid, name: item.name }] },
+  rewards: { xp: 3, coins: { gp: 5 }, renown: 1, items: [{ uuid: item.uuid, name: item.name }] },
   characters: [actor],                            // Actor, uuid or id
-  party: partyActor,                              // Shadowdark Extras party, or omit
+  party: partyActor,                              // native Party or optional legacy Extras party
   hex: 353,                                       // pin to jump to, or omit
 });
 await api.quests.setStatus(q.id, "completed");    // asks the GM to confirm the payout
@@ -1226,7 +1332,8 @@ await api.quests.setStatus(q.id, "completed");    // asks the GM to confirm the 
   characters,    // actor UUIDs; non-empty means the quest is personal to them
   objectives: [{ id, text, done }],
   description,   // the GM's player-facing text
-  rewards: { xp, renown, items: [{ uuid, name, img }], training },   // training: a trainer key or null
+  rewards: { xp, coins: { gp, sp, cp }, renown, items: [{ uuid, name, img }], training },
+  payout,        // absent, or saved plan, per-effect done and optional report progress
   hex,           // published hex number or null
   paid,          // true once the rewards were handed out
   created,       // the entry's creation time, ms
@@ -1245,23 +1352,28 @@ quest with `create({ source: { kind: "rumor", uuid } })` and find it again with
 `list({ sourceUuid })`. Nothing here acts on a source when its quest ends;
 the source listens to `questsChanged` and reads the status.
 
-**Parties** are Shadowdark Extras' party actors, read through its
-`api.party.list()` and `api.party.members()` (on an Extras from before those,
-the NPCs flagged `shadowdark-extras.isParty`, with the same result). `list({ party })` matches quests *assigned* to
-that party only; the personal quests of its members come from
-`list({ character })` for each member. A quest can carry both, so deduplicate
-by `id`. Without Extras the log works the same and a quest simply has no
-party.
+**Parties** use the native Party registry and explicit UUID roster without
+Extras. Optional legacy Extras readers remain supported. `list({ party })`
+matches quests assigned to that Party only; personal quests of its members
+come from `list({ character })` for each member. A quest can carry both, so
+deduplicate by `id`.
 
 **Completing a quest pays its rewards once.** Moving a quest into Completed
 with rewards not yet paid opens a confirmation listing them, where the GM
-picks who gets the XP and renown (each in full), who gets each item, and
+picks who gets the XP, coins and renown (each in full), who gets each item, and
 whether to open Regional Training for the benefit roll. XP goes through
 `partyXp.award`, renown through `renown.award` (source `quest`), and items
 are copied onto the chosen character. Cancelling leaves the quest where it
-was. `paid` is written with the status before anything is handed out, so
-Completed → Active → Completed never pays twice. Unticking everyone completes
-a quest without paying it.
+was. Empty recipient selection is refused. The confirmed plan is saved before
+effects; per-recipient XP/coins/renown receipts and exact item markers protect
+reloads and partial failures. `paid` becomes true only after all intended
+effects succeed. Calling `setStatus(id, "completed")` again resumes a pending
+plan without a new confirmation and skips completed effects. Editing rewards
+does not change an interrupted plan. Failed XP/renown cards remain in optional
+`payout.reports`, separate from `paid`; the same retry recovers missing cards
+from saved award totals without repeating effects or successful reports.
+Legacy `paid: true` quests without reports remain untouched, without historical
+back-pay or invented reports.
 
 **Jump to pin** (the window's button) goes to a Note placed for the quest
 itself (its journal entry dragged onto a scene), else to the Hex Tagger's pin

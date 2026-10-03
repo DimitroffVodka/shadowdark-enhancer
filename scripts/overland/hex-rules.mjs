@@ -14,12 +14,15 @@
  *
  * The party travels as one hex-shaped token: Extras' party token, or else an
  * Enhancer "Party" actor, made the first time a GM starts travel with no party
- * token on the map. With Extras there and no party of its own, that actor is an
- * Extras party too (joinExtras), so it opens Extras' Party sheet.
+ * token on the map. Native rosters remain independent of Extras; no implicit
+ * PC enrollment or writes to Extras' party flags.
  */
 
 import { MODULE_ID } from "../shared/module-id.mjs";
 import { isHexRulesScene } from "../encounter/encounter-terrain.mjs";
+import { Party } from "../party/party.mjs";
+import { normalizeParty } from "../party/party-core.mjs";
+import { ownsHexFog, positionDisclosed } from "../hex-map/hex-fog.mjs";
 
 /** Actor flag: this NPC is the Enhancer's party (a party without Extras). */
 export const PARTY_FLAG = "party";
@@ -53,8 +56,11 @@ export function registerHexRules() {
         const visible = super.isVisible;
         if (!visible || game.user?.isGM || this.isOwner || this.isPreview) return visible;
         const scene = this.document?.parent;
+        if (ownsHexFog(scene)) return positionDisclosed(scene, this.center, "location");
         const revealed = game.modules?.get("shadowdark-extras")?.api?.hex?.isPositionRevealed;
         if (typeof revealed !== "function" || !isHexRulesScene(scene)) return visible;
+        // A failed Extras read must not hide tokens (fail open); coordinate labels deliberately
+        // fail closed instead — a wrong number is worse than none (coordinate-overlay.mjs).
         try { return revealed(scene, this.center) !== false; } catch { return visible; }
       }
     };
@@ -101,60 +107,24 @@ export function extrasParties() {
   try { return extrasPartyApi()?.list() ?? []; } catch { return []; }
 }
 
-/**
- * Should this actor be an Extras party too? When Extras is there and has no party but this one. With a
- * party of its own Extras keeps that one (Start travel uses it and never makes ours); two would leave
- * the travel token ambiguous. A list that could not be read proves nothing: no enrolling on a failed read.
- */
-const joinsExtras = (actor) => {
-  try {
-    const list = extrasPartyApi()?.list();
-    return Array.isArray(list) && list.every((a) => a.id === actor?.id);
-  } catch { return false; }
-};
-
-/** A member Extras' party keeps (a world actor's id, or a uuid) that travel can use: one that is a world actor. */
-const isWorldActor = (key) => {
-  try {
-    if (game.actors.get(key)) return true;
-    const doc = fromUuidSync(key);
-    return !!doc?.id && game.actors.get(doc.id) === doc;
-  } catch { return false; }
-};
-
-/** The player characters, as the members an Extras party starts with: who travelled before Extras' sheet came into it. */
-const playerIds = () => game.actors.filter((a) => a.type === "Player" && a.hasPlayerOwner).map((a) => a.id);
-
-/**
- * Make the Enhancer's party an Extras party (GM): an NPC flagged `isParty`, which is Extras' own definition
- * of one (its Developer API). Extras then gives it its Party sheet, members and light tracker where the
- * plain actor got the NPC sheet and was never listed. Members it already has are kept when they are all world
- * characters (else it is not joined); with none, the player characters, so the same people travel as before.
- * Once, and only ever the Enhancer's own party.
- * @param {Actor|null} actor
- */
+/** Compatibility entry point: adopt a flagged NPC roster without writing SDX flags. */
 export async function joinExtras(actor) {
-  if (!actor?.getFlag(MODULE_ID, PARTY_FLAG) || actor.getFlag(EXTRAS_ID, "isParty") === true || !joinsExtras(actor)) return;
-  const members = actor.getFlag(EXTRAS_ID, "members");
-  // Members that are not world actors (a compendium uuid) would leave nobody travelling once Extras'
-  // roster is the one used: the party stays as it is, the saved list untouched, the player characters travel.
-  if (members?.length && !members.every(isWorldActor)) return;
-  if (!members?.length) await actor.setFlag(EXTRAS_ID, "members", playerIds());
-  await actor.setFlag(EXTRAS_ID, "isParty", true);
+  // Compatibility entry point: adoption writes only Enhancer's own roster.
+  if (Party.canManage(actor)) await Party.adopt(actor);
 }
 
-/** The Enhancer's party actor, made on first use (GM); with Extras there, an Extras party. */
+/** Explicitly chosen party, or a new native empty-roster party on first use (GM). */
 export async function partyActor() {
-  const found = game.actors.find((a) => a.getFlag(MODULE_ID, PARTY_FLAG));
-  if (found) { await joinExtras(found); return found; }
+  const found = Party.selected();
+  if (found) { if (Party.canManage(found)) await Party.adopt(found); return found; }
+  // Never pick the first of several parties or create a surprise second one.
+  if (Party.list().length) return null;
   const name = game.i18n.localize("SDE.overland.party.name");
   return Actor.create({
     name, type: "NPC", img: PARTY_TOKEN_IMG,
     prototypeToken: { name, actorLink: true, disposition: CONST.TOKEN_DISPOSITIONS.FRIENDLY, ...PARTY_TOKEN_STYLE },
     flags: {
-      [MODULE_ID]: { [PARTY_FLAG]: true },
-      // Flagged at creation, so Extras' own creation hooks set its sheet and its token.
-      ...(joinsExtras(null) ? { [EXTRAS_ID]: { isParty: true, members: playerIds() } } : {}),
+      [MODULE_ID]: { [PARTY_FLAG]: true, partyData: normalizeParty() },
     },
   });
 }

@@ -124,6 +124,7 @@ export function normalizeQuest(raw = {}, { newId = defaultId } = {}) {
     objectives: list(raw?.objectives).map((o) => normalizeObjective(o, newId)).filter((o) => o.text),
     rewards: {
       xp: wholeNumber(r.xp, { min: 0 }),
+      ...(r.coins ? { coins: Object.fromEntries(["gp", "sp", "cp"].map(k => [k, wholeNumber(r.coins[k], { min: 0 })])) } : {}),
       renown: wholeNumber(r.renown),
       items: list(r.items).filter((i) => str(i?.uuid))
         .map((i) => ({ uuid: str(i.uuid), name: str(i.name), img: str(i.img) })),
@@ -131,6 +132,7 @@ export function normalizeQuest(raw = {}, { newId = defaultId } = {}) {
     },
     hex: hexNumber(raw?.hex),
     paid: raw?.paid === true,
+    ...(raw?.payout ? { payout: structuredClone(raw.payout) } : {}),
   };
 }
 
@@ -148,11 +150,12 @@ export function mergeQuest(current, patch = {}, opts) {
     status: base.status,
     source: base.source,
     paid: base.paid,
+    payout: base.payout,
   }, opts);
 }
 
 export function hasRewards(rewards) {
-  return !!rewards && (rewards.xp > 0 || !!rewards.renown || rewards.items?.length > 0 || !!rewards.training);
+  return !!rewards && (rewards.xp > 0 || Object.values(rewards.coins ?? {}).some(n => n > 0) || !!rewards.renown || rewards.items?.length > 0 || !!rewards.training);
 }
 
 /**
@@ -161,7 +164,8 @@ export function hasRewards(rewards) {
  * Completed → Active → Completed pays once.
  */
 export function shouldPay(quest, to) {
-  return to === "completed" && quest.status !== "completed" && !quest.paid && hasRewards(quest.rewards);
+  return to === "completed" && (Object.values(quest.payout?.reports ?? {}).some(r => !r.done)
+    || (!quest.paid && (!!quest.payout || (quest.status !== "completed" && hasRewards(quest.rewards)))));
 }
 
 /**
@@ -171,7 +175,7 @@ export function shouldPay(quest, to) {
 export function planStatusChange(quest, to) {
   if (!isStatus(to)) return { ok: false, error: "badStatus" };
   const q = normalizeQuest(quest);
-  if (q.status === to) return { ok: true, changed: false, quest: q, pay: false, ownership: ownershipFor(to) };
+  if (q.status === to) return { ok: true, changed: !!shouldPay(q, to), quest: q, pay: !!shouldPay(q, to), ownership: ownershipFor(to) };
   return { ok: true, changed: true, quest: { ...q, status: to }, pay: shouldPay(q, to), ownership: ownershipFor(to) };
 }
 
@@ -248,6 +252,7 @@ export function payoutPlan(quest, { recipients = [], itemTo = {}, trainingFor = 
   const r = quest.rewards;
   return {
     xp: r.xp > 0 && to.length ? { amount: r.xp, to } : null,
+    ...(r.coins ? { coins: to.length ? { amount: r.coins, to } : null } : {}),
     renown: r.renown && to.length ? { delta: r.renown, to } : null,
     items: r.items.map((item, i) => ({ ...item, to: itemTo[i] || null })).filter((x) => x.to),
     training: r.training && trainingFor ? { trainer: r.training, actor: trainingFor } : null,
@@ -264,6 +269,7 @@ export function trainerLabel(key) {
 export function rewardLines(rewards, t) {
   const out = [];
   if (rewards.xp > 0) out.push({ text: t("SDE.quests.reward.xp", { n: rewards.xp }) });
+  for (const [coin, n] of Object.entries(rewards.coins ?? {})) if (n > 0) out.push({ text: t("SDE.quests.reward.coins", { n, coin }) });
   if (rewards.renown) out.push({ text: t("SDE.quests.reward.renown", { n: rewards.renown > 0 ? `+${rewards.renown}` : rewards.renown }) });
   for (const item of rewards.items) out.push({ text: item.name || item.uuid, uuid: item.uuid });
   if (rewards.training) out.push({ text: t("SDE.quests.reward.training", { trainer: trainerLabel(rewards.training) }) });

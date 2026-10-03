@@ -19,6 +19,9 @@
 
 import { isActiveGM } from "../shared/gm-relay.mjs";
 import { onConZero } from "../dying/dying.mjs";
+import { isMount, scoresOf, adoptMountScores } from "../actors/mount-scores.mjs";
+import { damageMountScores, effectiveMountScores } from "../actors/mount-scores-core.mjs";
+import { replaceModuleFlag } from "../shared/module-flags.mjs";
 import {
   ABILITIES, abilityKey, afterHeal, damageOf, damagedAbility, statDamageEffect,
 } from "./stat-damage-core.mjs";
@@ -61,10 +64,19 @@ export const StatDamage = {
    * so the score read here already includes the new effect.
    */
   init() {
+    Hooks.on("updateActor", actor => {
+      if (isMount(actor)) void StatDamage.checkMountCon(actor).catch(err => console.warn("shadowdark-enhancer | mount CON", err));
+    });
     Hooks.on("createActiveEffect", (effect) => {
       StatDamage._checkCon(effect).catch((err) =>
         console.warn("shadowdark-enhancer | stat damage: could not check CON", err));
     });
+  },
+
+  async checkMountCon(actor) {
+    if (!isActiveGM() || !isMount(actor) || effectiveMountScores(scoresOf(actor)).con > 0 || actor.statuses?.has("dead") || _dying.has(actor.uuid)) return;
+    _dying.add(actor.uuid);
+    try { await onConZero(actor); } finally { _dying.delete(actor.uuid); }
   },
 
   async _checkCon(effect) {
@@ -87,19 +99,27 @@ export const StatDamage = {
 
   /** Damage per ability: `{ str, dex, con, int, wis, cha }`, zero when clean. */
   of(actor) {
+    if (isMount(actor)) return scoresOf(actor).damage;
     return damageOf(actor?.effects ?? []);
   },
 
   /**
-   * Add `amount` points of damage to one ability. Characters only.
+   * Add `amount` points of damage to one ability. Characters or the mount-only score path.
    * @returns {Promise<?number>} that ability's new total, or null when
    *   nothing was applied (not a character, unknown ability, amount below 1).
    */
   async apply(actor, ability, amount) {
     const key = abilityKey(ability);
     const points = Math.floor(Number(amount));
-    if (!canTake(actor) || !key || !(points > 0)) return null;
+    if ((!canTake(actor) && !isMount(actor)) || !key || !(points > 0)) return null;
     return serial(async () => {
+      if (isMount(actor)) {
+        await adoptMountScores(actor);
+        const state = damageMountScores(scoresOf(actor), key, points);
+        await replaceModuleFlag(actor, "mountScores", state);
+        await StatDamage.checkMountCon(actor);
+        return state.damage[key];
+      }
       const total = StatDamage.of(actor)[key] + points;
       await setDamage(actor, key, total);
       return total;
@@ -117,6 +137,10 @@ export const StatDamage = {
     return serial(async () => {
       const before = StatDamage.of(actor);
       const after = afterHeal(before, options);
+      if (isMount(actor)) {
+        await replaceModuleFlag(actor, "mountScores", { ...scoresOf(actor), damage: after });
+        return after;
+      }
       for (const a of ABILITIES) {
         if (after[a] !== before[a]) await setDamage(actor, a, after[a]);
       }

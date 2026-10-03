@@ -54,7 +54,7 @@ function documented() {
 
 /** Tracked .mjs files under scripts/ — what §3 is responsible for. */
 function trackedScripts() {
-  return execFileSync("git", ["ls-files", "scripts/*"], { cwd: ROOT, encoding: "utf8" })
+  return execFileSync("git", ["ls-files", "--cached", "--others", "--exclude-standard", "--deduplicate", "scripts/*"], { cwd: ROOT, encoding: "utf8" })
     .split("\n")
     .filter((f) => f.endsWith(".mjs"));
 }

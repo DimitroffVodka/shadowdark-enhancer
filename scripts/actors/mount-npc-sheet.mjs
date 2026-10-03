@@ -3,7 +3,7 @@
  * system's NPC sheet (NpcSheetSD, AppV1).
  *
  * Mounts ARE Shadowdark NPCs: the `shadowdark-enhancer.mount` sub-type reuses
- * the system's `NpcSD` data model, so existing NPC stat blocks (abilities,
+ * a mount-only extension of the system's `NpcSD` data model, so existing NPC stat blocks (abilities,
  * HP/AC, NPC Attacks/Features/Spells) plug straight in. This sheet reuses the
  * system's own `actors/npc/*` Handlebars partials so the Abilities / Spells /
  * Description / Effects tabs are pixel-identical to a native NPC, and injects
@@ -19,12 +19,17 @@
 
 import { MODULE_ID } from "../shared/module-id.mjs";
 import { rollToChat, promptNumber } from "./vehicle-rolls.mjs";
+import { replaceModuleFlag } from "../shared/module-flags.mjs";
+import { scoresOf } from "./mount-scores.mjs";
+import { mountScores } from "./mount-scores-core.mjs";
 import { garrisonFor } from "./warband-garrison.mjs";
 import { visibleBastions } from "../bastion/bastion-panel-core.mjs";
 
 const PHYSICAL_TYPES = ["Weapon", "Armor", "Basic", "Gem", "Potion", "Scroll", "Wand", "Light"];
 const RARITIES = ["common", "uncommon", "rare", "legendary"];
 const PERSONALITIES = ["horrid", "bad", "neutral", "good", "lovely"];
+/** The six ability labels are the system's own keys, written out literally (CONTRIBUTING § Localization). */
+const ABILITY_LABEL_KEYS = { str: "SHADOWDARK.ability_str", dex: "SHADOWDARK.ability_dex", con: "SHADOWDARK.ability_con", int: "SHADOWDARK.ability_int", wis: "SHADOWDARK.ability_wis", cha: "SHADOWDARK.ability_cha" };
 
 /** Build the Mount sheet class as a subclass of the live NpcSheetSD. */
 export function buildMountNpcSheet(BaseNpcSheet) {
@@ -49,6 +54,8 @@ export function buildMountNpcSheet(BaseNpcSheet) {
       const sys = this.actor.system;
       const mount = this.actor.getFlag(MODULE_ID, "mount") ?? {};
       context.mount = mount;
+      const scores = scoresOf(this.actor);
+      context.mountAbilities = Object.entries(scores.base).map(([key, base]) => ({ key, base, damage: scores.damage[key], value: sys.abilities[key].value, mod: sys.abilities[key].mod, label: game.i18n.localize(ABILITY_LABEL_KEYS[key]) }));
       // The bastion it is stabled at: a finished Stable there means it needs no grazing or rations.
       const stabled = await garrisonFor(mount.bastion);
       context.stabling = {
@@ -176,6 +183,22 @@ export function buildMountNpcSheet(BaseNpcSheet) {
         el.addEventListener("click", () => this._onApplyBaseFromSelect()));
 
       super.activateListeners(html);
+      // Native NPC modifier inputs would otherwise fight the derived scores.
+      for (const el of root.querySelectorAll("input[name^='system.abilities.']")) { el.disabled = true; el.removeAttribute("name"); }
+    }
+
+    async _updateObject(event, formData) {
+      const state = scoresOf(this.actor);
+      for (const key of Object.keys(state.base)) {
+        const path = `flags.${MODULE_ID}.mountScores.base.${key}`;
+        if (formData[path] !== undefined) {
+          const value = Number(formData[path]);
+          if (!Number.isInteger(value)) throw new Error(game.i18n.localize("SDE.mount.invalidScore"));
+          state.base[key] = value; delete formData[path];
+        }
+        delete formData[`system.abilities.${key}.mod`];
+      }
+      return replaceModuleFlag(this.actor, "mountScores", state, formData);
     }
 
     /**
@@ -228,7 +251,7 @@ export function buildMountNpcSheet(BaseNpcSheet) {
       const STAT_TYPES = ["NPC Attack", "NPC Special Attack", "NPC Feature", "Spell"];
 
       // System data + portrait (mount-rule flags & name are preserved).
-      await this.actor.update({
+      await replaceModuleFlag(this.actor, "mountScores", mountScores(source.toObject().system.abilities, { damage: scoresOf(this.actor).damage }), {
         system: foundry.utils.duplicate(source.toObject().system),
         img: source.img,
       });

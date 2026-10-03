@@ -38,6 +38,9 @@ Tools you run during an active game session.
 | [Loot & Treasure](Loot-and-Treasure.md) | Hoard rolls, claimable chat cards, opt-in loot drops on combat end, coin piles |
 | [Merchant Shop](Merchant-Shop.md) | A live shop window for the whole party, buying and selling against `system.coins` |
 | [Party XP](Party-XP.md) | Whole-party XP awards and Shadowdark treasure-XP rules |
+| [Party](Party.md) | Explicit roster, formation, deploy/gather/follow and shared items without Extras |
+| [Camping](Camping.md) | Owner choices, eight tasks, fire, daily PC/mount food and eligible rest |
+| [Carousing](Carousing.md) | Personal tier payments, imported tables, saved outcomes and Party history |
 | [Quest Log](Quest-Log.md) | Quests from rumors, troubles, trainer tasks and the GM: statuses, objectives, rewards paid once, readable by players |
 | [Rumors](Rumors.md) | Give rumors from the Western Reaches tables, never twice, into a Rumors Heard journal players can read |
 | [Trouble Tracker](Trouble-Tracker.md) | The weekly trouble check, a named settlement, and a countdown on the world clock (Western Reaches GM Guide) |

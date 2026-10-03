@@ -13,10 +13,10 @@ import { MODULE_ID } from "../shared/module-id.mjs";
 import { TRAINERS } from "../training/training-core.mjs";
 import {
   SOURCE_KINDS, SOURCE_LABELS, STATUSES, STATUS_LABELS,
-  addObjective, matchesFilter, objectiveProgress, removeObjective, setObjectiveDone, setObjectiveText,
+  addObjective, hasRewards, matchesFilter, objectiveProgress, planStatusChange, removeObjective, setObjectiveDone, setObjectiveText,
   textToParagraphs, trainerLabel, visibleStatuses,
 } from "./quest-core.mjs";
-import { QUESTS_CHANGED, Quests, actorName, partiesAvailable, partyActors, partyMembers } from "./quests.mjs";
+import { QUESTS_CHANGED, Quests, actorName, partiesAvailable, partyActors, partyMembers, questPayoutContent } from "./quests.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
@@ -40,6 +40,8 @@ export class QuestLogApp extends HandlebarsApplicationMixin(ApplicationV2) {
       qlTab: function (_ev, el) { this.tab = el.dataset.status; this.selectedId = null; this.render(); },
       qlSelect: function (_ev, el) { this.selectedId = el.dataset.id; this.render(); },
       qlNew: function () { return this._onNew(); },
+      qlConfirmPayout: function () { return this._onConfirmPayout(); },
+      qlCancelPayout: function () { this.payoutId = null; this.render(); },
       qlOpenJournal: function () { game.journal.get(this.selectedId)?.sheet?.render(true); },
       qlOpenSource: async function () {
         const uuid = Quests.get(this.selectedId)?.source.uuid;
@@ -64,6 +66,9 @@ export class QuestLogApp extends HandlebarsApplicationMixin(ApplicationV2) {
     body: { template: `modules/${MODULE_ID}/templates/quest-log.hbs`, scrollable: [".sde-ql-list", ".sde-ql-detail"] },
   };
 
+  constructor(options = {}, host = null) { super(options); this.host = host; }
+  render(...args) { return this.host ? this.host.render() : super.render(...args); }
+
   static open() {
     const existing = foundry.applications.instances?.get?.("sde-quest-log");
     if (existing) { existing.render(true); existing.bringToFront?.(); return existing; }
@@ -74,6 +79,7 @@ export class QuestLogApp extends HandlebarsApplicationMixin(ApplicationV2) {
 
   tab = "active";
   selectedId = null;
+  payoutId = null;
   filters = { character: "", party: "", source: "" };
 
   async _onFirstRender(context, options) {
@@ -95,7 +101,7 @@ export class QuestLogApp extends HandlebarsApplicationMixin(ApplicationV2) {
     if (!typing) { this.render(); return; }
     if (this._heldFor === field) return;
     this._heldFor = field;
-    field.addEventListener("blur", () => { this._heldFor = null; this.render(); }, { once: true });
+    field.addEventListener("blur", event => { this._heldFor = null; if (!event.relatedTarget?.closest("[data-action]")) this.render(); }, { once: true });
   }
 
   _onClose(options) {
@@ -111,9 +117,10 @@ export class QuestLogApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const hasParties = partiesAvailable();
     const parties = hasParties ? partyActors() : [];
     const players = (game.actors?.contents ?? []).filter((a) => a.type === "Player")
+      .filter(a => !this.partyScope || partyMembers(this.partyScope).includes(a.uuid))
       .sort((a, b) => a.name.localeCompare(b.name));
 
-    const f = this.filters;
+    const f = this.partyScope ? { ...this.filters, party: this.partyScope } : this.filters;
     const shown = Quests.list().filter((q) => matchesFilter(q,
       { character: f.character || null, party: f.party || null, sourceKind: f.source || null },
       { partyMembers: f.party ? partyMembers(f.party) : [] }));
@@ -123,6 +130,8 @@ export class QuestLogApp extends HandlebarsApplicationMixin(ApplicationV2) {
 
     return {
       isGM,
+      inline: !!this.host,
+      payoutHTML: quest && this.payoutId === quest.id ? questPayoutContent(quest, quest.name, { partyScope: this.partyScope }) : "",
       hasParties,
       tabs: tabsFor.map((s) => ({
         status: s, label: t(STATUS_LABELS[s]), active: s === this.tab,
@@ -156,14 +165,18 @@ export class QuestLogApp extends HandlebarsApplicationMixin(ApplicationV2) {
       trainerName: r.training ? trainerLabel(r.training) : "",
       trainerOptions: TRAINERS.map((x) => ({ key: x.key, label: trainerLabel(x.key), selected: x.key === r.training })),
       renownSigned: r.renown > 0 ? `+${r.renown}` : r.renown,
-      hasRewards: r.xp > 0 || !!r.renown || r.items.length > 0 || !!r.training,
+      hasRewards: hasRewards(r),
+      coinRewards: Object.entries(r.coins ?? {}).filter(([,n]) => n > 0).map(([coin,n]) => t("SDE.quests.reward.coins", { coin, n })),
       hasPin: Quests.hasPin(q),
     };
   }
 
   _onRender(context, options) {
     super._onRender(context, options);
-    const root = this.element;
+    this.bindControls(this.element, context);
+  }
+  bindControls(root, context) {
+    this.root = root;
     for (const el of root.querySelectorAll("[data-ql-filter]")) {
       el.addEventListener("change", (ev) => { this.filters[el.dataset.qlFilter] = ev.currentTarget.value; this.selectedId = null; this.render(); });
     }
@@ -194,8 +207,14 @@ export class QuestLogApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const value = el.type === "checkbox" ? el.checked : el.value;
     switch (field) {
       case "status": {
+        const quest = Quests.get(id);
+        if (this.host && quest && planStatusChange(quest, value).pay && !quest.payout) {
+          this.payoutId = id;
+          return this.render();
+        }
+        this.payoutId = null;
         // Follow the quest to its new tab; a cancelled payout redraws the old status.
-        const moved = await Quests.setStatus(id, value);
+        const moved = await Quests.setStatus(id, value, { openTraining: !this.host });
         if (moved) this.tab = moved.status;
         return this.render();
       }
@@ -204,6 +223,7 @@ export class QuestLogApp extends HandlebarsApplicationMixin(ApplicationV2) {
       case "party": return this._edit((q) => ({ ...q, party: value || null }));
       case "addCharacter": return value && this._edit((q) => ({ ...q, characters: [...q.characters, value] }));
       case "xp": return this._edit((q) => ({ ...q, rewards: { ...q.rewards, xp: value } }));
+      case "gp": return this._edit((q) => ({ ...q, rewards: { ...q.rewards, coins: { ...q.rewards.coins, gp: value } } }));
       case "renown": return this._edit((q) => ({ ...q, rewards: { ...q.rewards, renown: value } }));
       case "training": return this._edit((q) => ({ ...q, rewards: { ...q.rewards, training: value || null } }));
       case "hex": return this._edit((q) => ({ ...q, hex: value }));
@@ -213,7 +233,7 @@ export class QuestLogApp extends HandlebarsApplicationMixin(ApplicationV2) {
   }
 
   async _onAddObjective() {
-    const input = this.element.querySelector("[data-ql-new-objective]");
+    const input = (this.root ?? this.element).querySelector("[data-ql-new-objective]");
     const text = input?.value ?? "";
     if (!text.trim()) return;
     input.value = "";
@@ -224,11 +244,24 @@ export class QuestLogApp extends HandlebarsApplicationMixin(ApplicationV2) {
   }
 
   async _onNew() {
-    const quest = await Quests.create({});
+    const quest = await Quests.create(this.partyScope ? { party: this.partyScope } : {});
     if (!quest) return;
     this.tab = quest.status;
     this.selectedId = quest.id;
     this.filters = { character: "", party: "", source: "" };
+    this.render();
+  }
+
+  async _onConfirmPayout() {
+    const quest = Quests.get(this.payoutId), root = this.root?.querySelector(".sde-ql-payout");
+    if (!quest || !root) return;
+    const payoutAnswer = {
+      recipients: [...root.querySelectorAll('input[name="recipients"]:checked')].map(el => el.value),
+      itemTo: Object.fromEntries(quest.rewards.items.map((_item, i) => [i, root.querySelector(`[name="item${i}"]`)?.value ?? ""])),
+      trainingFor: root.querySelector('[name="trainingFor"]')?.value ?? "",
+    };
+    const moved = await Quests.setStatus(quest.id, "completed", { payoutAnswer, openTraining: false });
+    if (moved) { this.payoutId = null; this.tab = moved.status; }
     this.render();
   }
 

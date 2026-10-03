@@ -6,7 +6,7 @@ const MOD = "shadowdark-enhancer";
 const TYPE = `${MOD}.warband`;
 const hooks = {};
 // Every hook registered under a name runs, as in Foundry (the Bastion registers a preCreateActor of its own).
-globalThis.Hooks = { on: (name, fn) => { (hooks[name] ??= []).push(fn); } };
+globalThis.Hooks = { on: (name, fn) => { (hooks[name] ??= []).push(fn); }, once: () => {} };
 globalThis.CONFIG = { Actor: { dataModels: { NPC: class {} }, sheetClasses: {} }, queries: {} };
 // Any foundry.* the module reaches for at import answers with itself (as in overland-relay.test.mjs).
 const deep = new Proxy(function () {}, {
