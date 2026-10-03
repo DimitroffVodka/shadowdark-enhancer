@@ -53,7 +53,6 @@ export class PartyApp extends HandlebarsApplicationMixin(ApplicationV2) {
       adopt: function () { return this._change(() => Party.adopt(this.actor)); },
       leader: function (_event, el) { return this._change(() => configureMovement(this.actor, { leaderUuid: el.dataset.uuid })); },
       placeRecall: function () { return this._change(() => requestMovement(this.actor, "toggle")); },
-      resumeFollow: function () { return this._change(() => requestMovement(this.actor, "resume")); },
       camp: function () { this.activity = "camping"; this.tab = "travel"; this.render(); },
       carouse: function () { this.activity = "carousing"; this.tab = "travel"; this.render(); },
       openBastion: function () { this._bastion()?.sheet?.render(true); },
@@ -171,8 +170,8 @@ export class PartyApp extends HandlebarsApplicationMixin(ApplicationV2) {
         rations: everyoneVisible ? rationsCount([partyItems, ...rows.filter(r => r.group === "characters").map(r => r.actor.items?.contents ?? [])]) : null }, I18N);
       const formation = fillFormation(data, rows), status = movementStatus(this.actor);
       const combat = inPartyCombat(globalThis.canvas?.scene), leaderActor = rows.find(r => r.uuid === data.leaderUuid)?.actor, hasLeader = !!data.leaderUuid && !!leaderActor;
-      const march = marchText(marchState({ follow: data.followLeader, hasToken: !!status.token, deployed: status.deployed, reason: status.reason, pausedMember: status.pausedMemberUuid, manager: canEdit, hasLeader }),
-        { leaderName: leaderActor?.name, pausedName: rows.find(r => r.uuid === status.pausedMemberUuid)?.actor?.name, missing: t("SDE.party.missing") }, I18N);
+      const march = marchText(marchState({ follow: data.followLeader, hasToken: !!status.token, reason: status.reason, manager: canEdit, hasLeader }),
+        { leaderName: leaderActor?.name, missing: t("SDE.party.missing") }, I18N);
       const slots = [];
       for (let row = -1; row <= 1; row++) for (let col = -1; col <= 1; col++) {
         const uuid = formation.slots.find(s => s.row === row && s.col === col)?.memberUuid;
@@ -187,7 +186,6 @@ export class PartyApp extends HandlebarsApplicationMixin(ApplicationV2) {
         slots, followLeader: data.followLeader, formationReview: formation.needsReview, march, hasLeader, bastion, status: readouts,
         emblem: { ...emblem, path: emblemIconPath(emblem.icon) }, emblemEdit: view.emblemEdit, emblemOpen: view.emblemEdit && !!this.emblemOpen, emblemIcons: picker.icons, emblemColors: picker.colors,
         leaderName: leaderActor?.name ?? t("SDE.party.missing"),
-        canResume: !!march.canResume,
         movementDisabled: !canEdit || !status.token || combat,
         movementReason: !status.token ? t("SDE.party.movement.noToken") : combat ? t("SDE.party.movement.combat") : t("SDE.party.movement.importExport"),
         groups: ["characters", "hirelings", "mounts", "missing"].map((key) => ({ label: t(LABELS[key]), rows: members.filter(r => r.group === key) })),
@@ -311,11 +309,19 @@ export function registerParty() {
     ActorClass.prototype._getSheetClass = function () { return isNativeParty(this) ? PartySheet : original.call(this); };
     const create = ActorClass.create;
     ActorClass.create = function (data, options) {
-      const convert = value => value.type !== "sde-party" ? value : { ...value, type: "NPC", img: value.img || "icons/environment/people/group.webp", flags: { ...value.flags, [MODULE_ID]: { ...value.flags?.[MODULE_ID], party: true } }, prototypeToken: { ...value.prototypeToken, actorLink: true } };
+      const convert = value => value.type !== "sde-party" ? value : { ...value, type: "NPC", img: value.img || "icons/environment/people/group.webp", flags: { ...value.flags, [MODULE_ID]: { ...value.flags?.[MODULE_ID], party: true } } };
       return create.call(this, Array.isArray(data) ? data.map(convert) : convert(data), options);
     };
     Hooks.on("renderDialogV2", (_app, html) => offerParty(html.querySelector?.('select[name="type"]'), t("SDE.party.title")));
   }
+  // The system's _preCreate forces actorLink off for every non-Player and runs before this hook, so link here.
+  // Movement only follows a linked token; an unlinked party token reads as "no party token".
+  Hooks.on("preCreateActor", actor => { if (isNativeParty(actor)) actor.updateSource({ "prototypeToken.actorLink": true }); });
+  // Heal parties made before this: new tokens come out linked; tokens already on a scene stay unlinked.
+  Hooks.once("ready", () => {
+    if (!game.user?.isGM) return;
+    for (const actor of (game.actors?.contents ?? []).filter(a => isNativeParty(a) && !a.prototypeToken.actorLink)) void actor.update({ "prototypeToken.actorLink": true });
+  });
   Hooks.on("getActorContextOptions", (directory, entries) => {
     const actorOf = (el) => directory.collection.get(el.closest("[data-entry-id]")?.dataset.entryId);
     entries.push({ label: "SDE.party.open", icon: "fa-solid fa-users",

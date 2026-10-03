@@ -74,7 +74,7 @@ test("no-canvas context groups only explicit roster; missing refs retained", asy
   assert.deepEqual(Party.members(p, { charactersOnly: true }), ["Actor.pc"]);
 });
 test("v14 actor entry uses visible/onClick and remains scoped", async () => {
-  const handlers = new Map(); globalThis.Hooks = { on: (name, fn) => handlers.set(name,fn) };
+  const handlers = new Map(); globalThis.Hooks = { on: (name, fn) => handlers.set(name,fn), once: (name, fn) => handlers.set(`once:${name}`, fn) };
   registerParty();
   const p = actor("p", "NPC", { [MOD]: { party: true } }), npc = actor("npc"); world([p,npc]);
   const entries=[]; handlers.get("getActorContextOptions")({ collection: globalThis.game.actors }, entries);
@@ -212,7 +212,7 @@ test("Party header carries a Marching order switch, a leader/status line and a g
   const bare = await new PartyApp(empty)._prepareContext();
   assert.equal(bare.hasLeader, false, "an empty roster has no leader to name");
   const template = await readFile(new URL("../templates/party/party.hbs", import.meta.url), "utf8");
-  for (const marker of ['data-movement-setting="followLeader"', "SDE.party.movement.marchingOrder", "SDE.party.movement.dragHint", "SDE.party.movement.leadHint", "{{march.text}}", 'data-action="resumeFollow"', 'data-action="placeRecall"']) assert.ok(template.includes(marker), marker);
+  for (const marker of ['data-movement-setting="followLeader"', "SDE.party.movement.marchingOrder", "SDE.party.movement.dragHint", "SDE.party.movement.leadHint", "{{march.text}}", 'data-action="placeRecall"']) assert.ok(template.includes(marker), marker);
   assert.ok(!template.includes("Marching formation") && !template.includes("includeMounts"), "no boxed formation block, no mounts switch");
 });
 
@@ -237,7 +237,6 @@ test("Party description edits inline and movement has no actionable dead ends wi
   assert.equal(p.flags[MOD].party, true);
   assert.equal(app.editingDescription, false);
   const context = await app._prepareContext();
-  assert.equal(context.canResume, false);
   assert.equal(context.movementDisabled, true);
   assert.equal(context.movementReason, "SDE.party.movement.noToken");
   assert.equal(context.march.text, "SDE.party.movement.noToken");
@@ -473,4 +472,15 @@ test("the emblem picker closes on a click elsewhere, but not on itself or its ti
     app._bindControls();
     assert.equal(listeners.size, 0, "no picker open, no listener");
   } finally { if (descriptor) Object.defineProperty(globalThis, "document", descriptor); else delete globalThis.document; }
+});
+test("a native party is linked after the system's _preCreate and a stale one is healed on ready", async () => {
+  const handlers = new Map(); globalThis.Hooks = { on: (name, fn) => handlers.set(name, fn), once: (name, fn) => handlers.set(`once:${name}`, fn) };
+  registerParty();
+  const updates = [], doc = (flagged, linked) => ({ type: "NPC", flags: { [MOD]: flagged ? { party: true } : {} }, prototypeToken: { actorLink: linked }, updateSource: (d) => updates.push(d), update: async (d) => { updates.push(d); } });
+  handlers.get("preCreateActor")(doc(true, false)); handlers.get("preCreateActor")(doc(false, false));
+  assert.deepEqual(updates, [{ "prototypeToken.actorLink": true }]);
+  updates.length = 0;
+  world([doc(true, false), doc(true, true), doc(false, false)], true);
+  handlers.get("once:ready")();
+  assert.deepEqual(updates, [{ "prototypeToken.actorLink": true }]);
 });

@@ -39,55 +39,36 @@ export function sheetView({ isGM = false, canEdit = false } = {}) {
  * The Marching order line under the switch.
  *   free     the switch is off: the party moves freely
  *   leads    marching, or nothing to report: "<leader> leads"
- *   paused   the members are out and following has stopped (`reason`); a manager may resume
- *            unless combat is what stopped it
- *   notice   marching is on but there is nothing running to follow: no party token to
- *            place from (managers only), or the members were recalled
+ *   notice   a reason it cannot work right now: no party token on the scene (managers only), or combat
  *   none     marching with nobody to lead
- * `reason` is the movement status reason ("" when following runs).
- * @returns {{ mode: "free"|"leads"|"paused"|"notice"|"none", reason?: string, canResume?: boolean, pausedMember?: string|null }}
+ * `reason` is the movement status reason ("" when nothing is in the way).
+ * @returns {{ mode: "free"|"leads"|"notice"|"none", reason?: string }}
  */
-export function marchState({ follow = true, hasToken = false, deployed = false, reason = "", pausedMember = null, manager = false, hasLeader = false } = {}) {
-  const leads = hasLeader ? { mode: "leads" } : { mode: "none" };
+export function marchState({ follow = true, hasToken = false, reason = "", manager = false, hasLeader = false } = {}) {
+  const leads = { mode: hasLeader ? "leads" : "none" };
   if (!follow) return { mode: "free" };
   if (!hasToken) return manager ? { mode: "notice", reason: "noToken" } : leads;
-  if (reason === "combat") return { mode: "paused", reason, canResume: false, pausedMember: null };
-  if (deployed && reason) return { mode: "paused", reason, canResume: !!manager, pausedMember: pausedMember ?? null };
-  // Nothing placed and the only thing to say is that a deploy found no safe spot: say so, not "<leader> leads".
-  if (reason === "gathered" || reason === "blocked") return { mode: "notice", reason };
-  return leads;
+  return reason === "combat" ? { mode: "notice", reason } : leads;
 }
 
-/** Movement pause reasons name their message with literal keys; a lookup table hides them from the i18n scan. */
+/** Movement messages name their key with literals; a lookup table hides them from the i18n scan. */
 export function movementMessageKey(reason) {
   switch (reason) {
     case "noToken": return "SDE.party.movement.noToken";
-    case "free": return "SDE.party.movement.free";
     case "combat": return "SDE.party.movement.combat";
-    case "scene": return "SDE.party.movement.scene";
-    case "reload": return "SDE.party.movement.reload";
-    case "gathered": return "SDE.party.movement.gathered";
-    case "leader": return "SDE.party.movement.leader";
-    case "teleport": return "SDE.party.movement.teleport";
-    case "missing": return "SDE.party.movement.missing";
-    case "blocked": return "SDE.party.movement.blocked";
     default: return "SDE.party.movement.unknown";
   }
 }
 
 /**
- * marchState()'s answer in words, and whether it is a warning. `say(key)` localizes; `sayWith(key, data)` fills a {name}.
+ * marchState()'s answer in words. `say(key)` localizes; `sayWith(key, data)` fills a {name}.
  * @param {ReturnType<typeof marchState>} state
- * @param {{ leaderName?: string, pausedName?: string, missing: string }} names `missing` is the word for a member that is gone
+ * @param {{ leaderName?: string, missing: string }} names `missing` is the word for a member that is gone
  */
-export function marchText(state, { leaderName, pausedName, missing }, { say, sayWith }) {
+export function marchText(state, { leaderName, missing }, { say, sayWith }) {
   switch (state.mode) {
     case "free": return { ...state, text: say("SDE.party.movement.freely") };
     case "leads": return { ...state, text: sayWith("SDE.party.movement.leads", { name: leaderName ?? missing }) };
-    case "paused": {
-      const status = say(movementMessageKey(state.reason));
-      return { ...state, warn: true, text: state.pausedMember && ["blocked", "missing"].includes(state.reason) ? sayWith("SDE.party.movement.pausedMember", { status, name: pausedName ?? missing }) : status };
-    }
     case "notice": return { ...state, text: say(movementMessageKey(state.reason)) };
     default: return { ...state, text: "" };
   }

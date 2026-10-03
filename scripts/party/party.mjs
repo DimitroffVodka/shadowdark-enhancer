@@ -86,6 +86,6 @@ export const Party = {
   },
   async create() {
     if (!game.user?.isGM) throw new Error("SDE.party.noPermission");
-    return Actor.create({ name: game.i18n.localize("SDE.overland.party.name"), type: "NPC", img: "icons/environment/people/group.webp", prototypeToken: { actorLink: true }, flags: { [MODULE_ID]: { party: true, partyData: normalizeParty() } } });
+    return Actor.create({ name: game.i18n.localize("SDE.overland.party.name"), type: "NPC", img: "icons/environment/people/group.webp", flags: { [MODULE_ID]: { party: true, partyData: normalizeParty() } } });
   },
 };

@@ -106,10 +106,21 @@ the 3×3 grid, which remembers nine slots. Marching order is a dungeon thing, so
 it is a visible switch rather than a setting. Off, the party is "Moving freely"
 and the grid dims; on, the status names who leads. Click a portrait to make that
 member the leader; drag one onto another cell to arrange. Overflow members
-follow behind the grid. When following stops (a blocked path, combat, a scene
-change, a teleport, a missing member) the status line says why, and a manager
-gets a **Resume following** button next to it (combat is the exception: nothing
-resumes during combat). The pin button beside the grid is **Place / Recall**.
+follow behind the grid. Following has no paused state: while the switch is on
+and the members are out, they follow every move the leader makes. A member who
+cannot take a step (a wall, a missing token) stays where they are and the rest
+carry on; the next move tries again. The formation holds while the party walks:
+each member goes to their slot around the square the leader stopped on. The
+grid's top row is the front: it faces the way the leader's last step went
+(north, east, south or west), so turning the leader around reverses the order.
+Hex maps keep the grid north-up. When a wall is in the way they walk round it
+(the search covers the whole scene) to the nearest square they can reach, so
+nobody gets stranded behind a door the leader went through. Nothing follows
+during combat, and the status line says so. The pin button beside the grid is
+**Place / Recall**. If two browser tabs are both the active GM (plain http over
+a LAN, where the browser has no tab locks), each runs the follower pass and
+every move is sent twice; the end positions are the same, only the animation
+and traffic double.
 Mounts never take a slot or follow the leader (nobody takes a mount into a
 dungeon); they stay on the roster under Mounts and still eat at camp. An older
 world's saved include-mounts choice is ignored.
@@ -124,12 +135,14 @@ gathers eligible linked copies on that scene regardless of distance. Other
 scenes/unlinked tokens stay untouched. The Party token remains selectable.
 Existing token IDs/configurations are reused; repeat Export makes no duplicates.
 
-Placement uses wall-safe slots, nearest safe space, then stacking if cramped.
-A token whose full footprint cannot fit is named and left packed. Native leader
+Placement puts each member in the grid slot around the party token, using
+Foundry's own wall test (a clear line from the party token to the slot, inside
+the scene), then the nearest such square, then stacking if cramped. A member
+with no square at all is named and left packed. Native leader
 movement drives ordered follower movement, never direct teleportation through
-walls. A visible pause/Resume covers obstruction, combat, missing leader,
-scene change, teleport and reload. Resume starts a fresh path. Combat blocks
-both deploy/gather. Owner token actions use the authenticated GM relay without
+walls. There is nothing to pause or resume: a follower that cannot step is
+skipped, a leader teleport is not followed, and reloading or changing scene
+changes nothing. Combat blocks deploy, gather and following. Owner token actions use the authenticated GM relay without
 an approval dialog; if no GM is connected they stop and say so.
 
 On dungeon scenes the Party mirrors a current valid shared/member light without
