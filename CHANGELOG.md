@@ -926,7 +926,7 @@ page walks through it in order.
   then **Tools** and **End** at the right. With no crawl running, Next Round and Combat are no
   longer drawn greyed out. **Tools** opens one labelled panel above the bar: *This travel day*
   (Start day, Forage, Roll weather, Start a crawl; travel only), *At the table* (Encounter, Roll
-  tables, Loot, Magic items, Merchant, Party), *Between sessions* (Party XP, Downtime, Training,
+  tables, Loot, Magic items, Merchant), *Between sessions* (Party XP, Downtime, Training,
   Renown, Rumors, Recap, Pit fighting) and *Set up* (Importer, and Bastions once the world has
   one). It replaces the single **Forge & Loot** button, whose tooltip listed ten tools; every
   entry now shows its name. Click outside or press Esc to close it; it works from the keyboard

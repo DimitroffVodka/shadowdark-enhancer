@@ -100,7 +100,6 @@ export function toolsSections({ mode, hasBastion = false }) {
         e("lootGen", "forge", "SDE.crawlBar.toolsMenu.loot"),
         e("magicForge", "hammer", "SDE.crawlBar.toolsMenu.magicItems"),
         e("merchant", "merchant", "SDE.crawlBar.toolsMenu.merchant"),
-        e("party", "heroes", "SDE.crawlBar.toolsMenu.party"),
         ...(mode === "crawl" ? [e("resetOocInit", "diceD20", "SDE.crawlBar.addTokensMenu.resetInit")] : []),
       ],
     },

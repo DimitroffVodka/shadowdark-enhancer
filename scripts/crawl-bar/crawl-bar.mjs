@@ -40,7 +40,6 @@ const TOOL_OPENERS = {
   lootGen:     (api) => api.loot.open(),
   magicForge:  (api) => api.forge.open(),
   merchant:    (api) => api.merchant.openLocally(),
-  party:       (api) => api.party.open(),
   partyXp:     (api) => api.partyXp.open(),
   downtime:    (api) => api.downtime.open(),
   training:    (api) => api.training.open(),

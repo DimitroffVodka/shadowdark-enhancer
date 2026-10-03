@@ -71,7 +71,7 @@ the button.
 | Section | Entries |
 |---|---|
 | **This travel day** (overland travel only) | Start day, Forage, Roll weather, Start a crawl |
-| **At the table** | **Encounter** (opens the [Encounter Roller](Random-Encounters.md); the button beside it, or a right-click, opens the encounter menu: check, threshold, frequency, tables by terrain), Roll tables, [Loot](Loot-and-Treasure.md), [Magic items](Magic-Item-Forge.md), [Merchant](Merchant-Shop.md), [Party](Party.md), and in a crawl **Reset Initiative** |
+| **At the table** | **Encounter** (opens the [Encounter Roller](Random-Encounters.md); the button beside it, or a right-click, opens the encounter menu: check, threshold, frequency, tables by terrain), Roll tables, [Loot](Loot-and-Treasure.md), [Magic items](Magic-Item-Forge.md), [Merchant](Merchant-Shop.md), and in a crawl **Reset Initiative** |
 | **Between sessions** | [Party XP](Party-XP.md), [Downtime](Downtime.md), [Training](Regional-Training.md), [Renown](Renown.md), [Rumors](Rumors.md), [Recap](Session-Recap.md), [Pit fighting](Pit-Fighting.md) |
 | **Set up** | [Importer](Importer-Hub.md), and Bastions once the world has one |
 
