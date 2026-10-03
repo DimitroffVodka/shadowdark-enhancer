@@ -108,6 +108,22 @@ The flag inside the party's hex token is **flying-flag** by **Lorc**, from
 [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/). The hex around it is
 this module's own.
 
+## Party emblem icons (`icons/game-icons/party/`)
+
+The picture a party picks for its sheet's header tile: twenty-four icons from
+[game-icons.net](https://game-icons.net/), licensed under
+[CC BY 3.0](https://creativecommons.org/licenses/by/3.0/). The SVGs are the
+white-on-transparent versions, unchanged; the tile colour is applied by CSS. They
+are bundled here so the sheet does not depend on the Game-icons.net module.
+
+- `lantern.svg`, `campfire.svg`, `castle.svg`, `crown.svg`, `crossed-swords.svg`,
+  `wolf-head.svg`, `stag-head.svg`, `raven.svg`, `owl.svg`, `dragon-head.svg`,
+  `skull-crossed-bones.svg`, `shield-echoes.svg`, `anvil-impact.svg`,
+  `treasure-map.svg`, `rune-stone.svg`, `minotaur.svg`, `gem-pendant.svg` — **Lorc**
+- `torch.svg`, `bear-head.svg`, `tower-flag.svg`, `mountain-cave.svg`,
+  `tree-roots.svg`, `unicorn.svg` — **Delapouite**
+- `hooded-figure.svg` — **DarkZaitzev**
+
 ## Class icons (`icons/game-icons/classes/`)
 
 One icon per class, chosen to match each class's description. Also from

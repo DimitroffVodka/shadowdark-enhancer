@@ -7,15 +7,15 @@ test("new parties default to marching; explicit Free survives and leader removal
   assert.equal(normalizeParty().followLeader, true); assert.equal(normalizeParty({ followLeader: false }).followLeader, false);
   const d = normalizeParty({ members: ["a", "b"], leaderUuid: "a" }); assert.equal(removeMember(d, "a").leaderUuid, "b");
 });
-test("formation fills nine fixed slots, keeps valid arrangement, and orders overflow then mounts", () => {
-  const data = { members: rows.map(r => r.uuid), formation: { slots: [{ memberUuid: "Actor.1", col: 1, row: 1 }] }, leaderUuid: "Actor.0", includeMounts: true };
+test("formation fills nine fixed slots, keeps valid arrangement, and orders overflow; mounts never follow", () => {
+  const data = { members: rows.map(r => r.uuid), formation: { slots: [{ memberUuid: "Actor.1", col: 1, row: 1 }] }, leaderUuid: "Actor.0", includeMounts: true /* an old world may still hold it: it is ignored */ };
   const f = fillFormation(data, rows);
   assert.equal(f.slots.length, 9);
   assert.deepEqual(f.slots.find(s => s.memberUuid === "Actor.1"), data.formation.slots[0]);
   assert.deepEqual(f.slots.find(s => s.memberUuid === "Actor.0"), { memberUuid: "Actor.0", col: 0, row: -1 });
   assert.equal(followOrder({ ...data, formation: f }, rows)[0], "Actor.0");
   const ordered = deploymentOrder({ ...data, formation: f }, [...rows, { uuid: "mount", group: "mounts" }]);
-  assert.equal(ordered.length, 13); assert.equal(ordered.at(-1).memberUuid, "mount");
+  assert.equal(ordered.length, 12); assert.ok(!ordered.some(s => s.memberUuid === "mount"));
   assert.ok(ordered.slice(9).every(s => s.row > 1));
 });
 test("larger saved formation is retained and marked for review", () => {

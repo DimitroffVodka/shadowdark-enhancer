@@ -19,7 +19,7 @@ function actor(id, type = "NPC", flags = {}, permissions = 3) {
 function world(actors, isGM = false, journal = []) {
   globalThis.foundry.applications.instances.clear();
   globalThis.canvas = null;
-  globalThis.game = { actors: { contents: actors, get: (id) => actors.find((a) => a.id === id) }, user: { id: "player", isGM }, modules: new Map(), journal: { contents: journal }, i18n: { localize: (k) => k } };
+  globalThis.game = { actors: { contents: actors, get: (id) => actors.find((a) => a.id === id) }, user: { id: "player", isGM }, modules: new Map(), journal: { contents: journal }, i18n: { localize: (k) => k, format: (k, data = {}) => `${k} ${Object.values(data).join(" ")}`.trim() } };
 }
 test("owner writes roster through safe replacement without touching second party, PC or items", async () => {
   const p = actor("p", "NPC", { [MOD]: { party: true } }), second = actor("second", "NPC", { [MOD]: { party: true } }), pc = actor("pc", "Player"), other = actor("other", "Player", {}, 2);
@@ -31,6 +31,15 @@ test("owner writes roster through safe replacement without touching second party
   assert.deepEqual(Party.members(p), []);
   assert.equal(second.writes.length + pc.writes.length + other.writes.length, 0);
   assert.equal(p.flags[MOD].party, true);
+});
+test("a world whose party still stores includeMounts opens and reads back without it", async () => {
+  const p = actor("p", "NPC", { [MOD]: { party: true, partyData: { version: 1, members: ["Actor.pc"], leaderUuid: "Actor.pc", includeMounts: true } } });
+  world([p, actor("pc", "Player")], true);
+  assert.deepEqual(Party.data(p).members, ["Actor.pc"]);
+  assert.equal("includeMounts" in Party.data(p), false);
+  const context = await new PartyApp(p)._prepareContext();
+  assert.equal(context.unknown, undefined);
+  assert.equal(context.includeMounts, undefined);
 });
 test("legacy adoption reads saved SDX flags while getFlag rejects inactive scopes", async () => {
   const p = actor("p", "NPC", { [MOD]: { party: true }, "shadowdark-extras": { members: ["pc"] } });
@@ -123,7 +132,7 @@ test("create from an existing window keeps identity coherent on subsequent opens
   } finally { delete globalThis.Actor; }
 });
 
-test("Party preserves the original detailed member cards and five-tab sheet", async () => {
+test("Party member cards keep the portrait, HP, AC, level, slots, XP, ability mods and effects", async () => {
   const pc = actor("pc", "Player");
   pc.system = { attributes: { hp: { value: 5, max: 3 }, ac: { value: 14 } }, level: { value: 2, xp: 7 }, abilities: { str: { mod: 2 }, con: { mod: -1 } }, slots: 12 };
   pc.effects = [{ name: "Blessed", img: "icons/svg/aura.svg", disabled: false }];
@@ -135,16 +144,17 @@ test("Party preserves the original detailed member cards and five-tab sheet", as
   assert.equal(context.players[0].abilities.str, 2);
   assert.equal(context.players[0].xp.next, 20);
   assert.equal(context.players[0].effects[0].name, "Blessed");
-  assert.deepEqual(context.tabs.map(tab => tab.key), ["members", "items", "travel", "quests", "description"]);
+  assert.deepEqual(context.tabs.map(tab => tab.key), ["members", "items", "travel", "quests", "description"], "the GM sees Travel");
   const template = await readFile(new URL("../templates/party/party.hbs", import.meta.url), "utf8");
-  for (const marker of ["party-portrait", "party-summary", "member-portrait", "member-stats", "member-abilities", "member-effects", "tab-inventory", "tab-travel", "tab-description"]) assert.ok(template.includes(marker), marker);
+  for (const marker of ["sdp-head", "sdp-stats", "sdp-face", "sdp-hp", "sdp-chips", "sdp-abil", "sdp-fx", "tab-inventory", "tab-travel", "tab-description"]) assert.ok(template.includes(marker), marker);
   assert.ok(!template.includes("SDE.party.comingSoon"));
+  assert.ok(!template.includes("hp-wave"), "the HP wave over the portrait is replaced by the HP bar");
   assert.ok(!template.includes("data-member-choice"), "no all-world actor dropdown in the approved sheet");
   assert.equal(context.choices, undefined, "world actors are not enumerated as suggested members");
   assert.equal(PartyApp.DEFAULT_OPTIONS.actions.add, undefined);
   const css = await readFile(new URL("../styles/party-sheet.css", import.meta.url), "utf8");
   assert.ok(css.includes('font-family: "Old Newspaper Font"'));
-  assert.ok(css.includes("grid-template-columns: 76px minmax(0, 1fr) 160px"));
+  assert.ok(css.includes(".sde-party .sdp-head"));
 });
 
 test("Party activity buttons stay in the sheet instead of opening applications", async () => {
@@ -157,6 +167,7 @@ test("Party activity buttons stay in the sheet instead of opening applications",
   assert.equal(app.activity, "carousing");
   assert.equal(globalThis.foundry.applications.instances.has("sde-camping-undefined"), false);
   const template = await readFile(new URL("../templates/party/party.hbs", import.meta.url), "utf8");
+  assert.ok(!/<button[^>]*data-action="(camp|carouse)"/.test(template), "the Camp/Carouse switch must work for a player: core disables buttons on a sheet they cannot edit");
   assert.ok(template.includes("activityHTML"));
   assert.ok(template.includes("questHTML"));
   assert.ok(!template.includes("sde-party-task-grid"), "no inert task catalogue masquerading as the Travel workflow");
@@ -188,20 +199,21 @@ test("Party inline controllers reuse activity actions and redraw their host only
   assert.equal(globalThis.foundry.applications.instances.size, 0);
 });
 
-test("Party header names its formation, leader and follow status instead of leaking debug text", async () => {
+test("Party header carries a Marching order switch, a leader/status line and a grid caption", async () => {
   const pc = actor("pc", "Player");
   const p = actor("p", "NPC", { [MOD]: { party: true, partyData: { members: [pc.uuid], leaderUuid: pc.uuid } } });
   world([p, pc], true);
   const context = await new PartyApp(p)._prepareContext();
   assert.equal(context.hasLeader, true);
   assert.equal(context.leaderName, "pc");
+  assert.equal(context.march.mode, "notice", "a GM with no party token on the scene is told to place one");
   const empty = actor("n", "NPC", { [MOD]: { party: true, partyData: { members: [] } } });
   world([empty, pc], true);
   const bare = await new PartyApp(empty)._prepareContext();
   assert.equal(bare.hasLeader, false, "an empty roster has no leader to name");
   const template = await readFile(new URL("../templates/party/party.hbs", import.meta.url), "utf8");
-  for (const marker of ["sde-party-formation-title", 'SDE.party.movement.leaderLabel', 'SDE.party.movement.statusLabel', 'SDE.party.movement.noLeader']) assert.ok(template.includes(marker), marker);
-  assert.ok(!template.includes("{{leaderName}} — "), "the header no longer dumps leader and status as one unlabelled debug line");
+  for (const marker of ['data-movement-setting="followLeader"', "SDE.party.movement.marchingOrder", "SDE.party.movement.dragHint", "SDE.party.movement.leadHint", "{{march.text}}", 'data-action="resumeFollow"', 'data-action="placeRecall"']) assert.ok(template.includes(marker), marker);
+  assert.ok(!template.includes("Marching formation") && !template.includes("includeMounts"), "no boxed formation block, no mounts switch");
 });
 
 test("Carousing labels unavailable tiers and disables commitment until tables are usable", async () => {
@@ -228,7 +240,7 @@ test("Party description edits inline and movement has no actionable dead ends wi
   assert.equal(context.canResume, false);
   assert.equal(context.movementDisabled, true);
   assert.equal(context.movementReason, "SDE.party.movement.noToken");
-  assert.equal(context.followStatus, "SDE.party.movement.noToken");
+  assert.equal(context.march.text, "SDE.party.movement.noToken");
 });
 
 test("Party and standalone quests do not replace an action button between blur and click", async () => {
@@ -276,8 +288,189 @@ test("treasury coin labels localize through the system keys, not literal field n
   const p = actor("p", "NPC", { [MOD]: { party: true } });
   world([p], true);
   const context = await new PartyApp(p)._prepareContext();
-  assert.deepEqual(context.coinLabels, { gp: "SHADOWDARK.coins.gp", sp: "SHADOWDARK.coins.sp", cp: "SHADOWDARK.coins.cp" });
+  assert.deepEqual(context.coinList.map(c => [c.key, c.labelKey, c.value]), [["gp", "SHADOWDARK.coins.gp", 0], ["sp", "SHADOWDARK.coins.sp", 0], ["cp", "SHADOWDARK.coins.cp", 0]]);
   const template = await readFile(new URL("../templates/party/party.hbs", import.meta.url), "utf8");
   assert.ok(!template.includes('aria-label="{{key}}"'), "coin inputs do not carry a literal field name as their aria-label");
-  assert.ok(template.includes("{{localize (lookup ../coinLabels key)}}"));
+  assert.ok(template.includes('aria-label="{{localize labelKey}}"'));
+});
+test("Items lists the party's own items with Gems apart in their own box, and treasury from the flag", async () => {
+  const p = actor("p", "NPC", { [MOD]: { party: true, partyCoins: { gp: 7, sp: 3 } } });
+  p.items.contents.push(
+    { id: "r", name: "Rope", type: "Basic", img: "r.webp", system: { quantity: 2, isPhysical: true, slots: { slots_used: 1, per_slot: 1 } } },
+    { id: "g", name: "Jade", type: "Gem", img: "g.webp", system: { quantity: 2, isPhysical: true, cost: { gp: 50 } } });
+  world([p], true);
+  const context = await new PartyApp(p)._prepareContext();
+  assert.deepEqual(context.items.map(i => i.name), ["Rope"], "a gem is not also an item row");
+  assert.deepEqual(context.gems.map(g => [g.name, g.quantity, g.value]), [["Jade", 2, "50"]]);
+  assert.equal(context.gemTotal, "100");
+  assert.deepEqual(context.coinList.map(c => c.value), [7, 3, 0]);
+  assert.equal(context.inventorySlots.used, 2, "gems do not take party slots, as in the system's own count");
+  const template = await readFile(new URL("../templates/party/party.hbs", import.meta.url), "utf8");
+  for (const marker of ["SHADOWDARK.inventory.gems", "{{gemTotal}}", "sdp-coins", 'data-action="createItem"']) assert.ok(template.includes(marker), marker);
+});
+test("a party with no members shows a drop zone and a grid hint, and an Actor dropped on either adds it", async () => {
+  const pc = actor("pc", "Player");
+  const p = actor("p", "NPC", { [MOD]: { party: true, partyData: { version: 1, members: [] } } });
+  world([p, pc], true);
+  const app = new PartyApp(p);
+  const context = await app._prepareContext();
+  assert.equal(context.unknown, undefined);
+  assert.deepEqual(context.members, []);
+  assert.equal(context.slots.length, 9);
+  assert.ok(context.slots.every(slot => slot.disabled), "nothing to arrange yet");
+  const template = await readFile(new URL("../templates/party/party.hbs", import.meta.url), "utf8");
+  for (const marker of ["sdp-empty", "SDE.party.movement.dropHint", "SDE.party.sheet.dropMembers", "SDE.party.noMembers", "data-drop-members"]) assert.ok(template.includes(marker), marker);
+  const targets = [];
+  app.element = { querySelector: () => null, querySelectorAll: selector => selector === ".tab-members, [data-drop-members]" ? [{ addEventListener: (name, fn) => targets.push([name, fn]) }] : [] };
+  app.render = () => {};
+  app._bindControls();
+  const drop = targets.find(([name]) => name === "drop")[1];
+  drop({ preventDefault() {}, dataTransfer: { getData: () => JSON.stringify({ type: "Actor", uuid: pc.uuid }) } });
+  await new Promise(resolve => setTimeout(resolve, 0));
+  assert.deepEqual(Party.members(p), [pc.uuid]);
+});
+test("a player's sheet keeps Travel and drops every control that changes the party", async () => {
+  const pc = actor("pc", "Player");
+  pc.system = { attributes: { hp: { value: 5, max: 8 }, ac: { value: 12 } }, level: { value: 1, xp: 2 }, abilities: { str: { mod: 1 } } };
+  const p = actor("p", "NPC", { [MOD]: { party: true, partyData: { version: 1, members: [pc.uuid], leaderUuid: pc.uuid } } }, 2);
+  world([p, pc], false);
+  const app = new PartyApp(p);
+  app.tab = "travel";
+  const context = await app._prepareContext();
+  assert.equal(context.isGM, false);
+  assert.equal(context.canEdit, false);
+  assert.deepEqual(context.tabs.map(tab => tab.key), ["members", "items", "travel", "quests", "description"]);
+  assert.equal(context.travelTab, true, "a player can open Travel: their own camping and carousing choices are confirmed there");
+  assert.equal(context.players[0].canEdit, false, "no remove (x) on a card");
+  assert.equal(context.players[0].hp.value, 5, "players still see a member's full stats");
+  assert.ok(context.slots.every(slot => slot.disabled), "the grid is read-only");
+});
+test("the Bastion tab shows only when a bastion the viewer may see is linked to this party", async () => {
+  const p = actor("p", "NPC", { [MOD]: { party: true } }, 2);
+  const bastion = actor("b", "shadowdark-enhancer.bastion", {}, 2);
+  bastion.system = { type: "keep", party: p.uuid, hp: { value: 80 }, treasury: 12, weeksLeft: 0, upgrades: [{ id: "stable", slot: 0, weeksLeft: 0 }, { id: "library", slot: 1, weeksLeft: 2 }], log: [{ week: 1, key: "SDE.bastion.log.quietMonth", data: { d6: 3 } }, { week: 2, key: "SDE.bastion.log.deposited", data: {} }] };
+  bastion.img = "keep.svg";
+  world([p, bastion], false);
+  let rendered = 0; bastion.sheet = { render: () => { rendered++; } };
+  const app = new PartyApp(p);
+  let context = await app._prepareContext();
+  assert.deepEqual(context.tabs.map(tab => tab.key), ["members", "items", "travel", "quests", "bastion", "description"]);
+  assert.deepEqual([context.bastion.ac, context.bastion.hp, context.bastion.maxHp, context.bastion.used, context.bastion.slots, context.bastion.treasury], [18, 80, 100, 2, 10, 12]);
+  assert.deepEqual(context.bastion.rooms.map(r => [r.name, r.building]), [["SDE.bastion.upgrade.stable.name", false], ["SDE.bastion.upgrade.library.name", true]]);
+  assert.match(context.bastion.lastMonth, /quietMonth/, "the newest month result, not the later deposit");
+  app.tab = "bastion"; context = await app._prepareContext();
+  assert.equal(context.bastionTab, true);
+  PartyApp.DEFAULT_OPTIONS.actions.openBastion.call(app);
+  assert.equal(rendered, 1);
+  // Not linked to this party: no tab, and a stale selection falls back to Members.
+  bastion.system.party = "Actor.other";
+  context = await app._prepareContext();
+  assert.equal(context.bastion, null);
+  assert.equal(context.bastionTab, false);
+  assert.equal(context.membersTab, true);
+  // Linked but the viewer cannot observe it: not offered.
+  bastion.system.party = p.uuid; bastion.testUserPermission = () => false;
+  assert.equal((await app._prepareContext()).bastion, null);
+  // A GM sees it regardless of permission and gets the manage wording.
+  world([p, bastion], true);
+  context = await new PartyApp(p)._prepareContext();
+  assert.equal(context.isGM, true);
+  assert.ok(context.bastion);
+  const template = await readFile(new URL("../templates/party/party.hbs", import.meta.url), "utf8");
+  assert.ok(!/<button[^>]*openBastion/.test(template), "core disables every form control of a sheet the viewer cannot edit, so the player's View bastion is not a button");
+  for (const marker of ["tab-bastion", 'data-action="openBastion"', "SDE.party.bastion.open", "SDE.party.bastion.view", "SDE.party.bastion.lastMonth"]) assert.ok(template.includes(marker), marker);
+});
+test("the status bar reads the party's lit light and rations, and hides what it cannot know", async () => {
+  const pc = actor("pc", "Player"), hireling = actor("npc", "NPC");
+  pc.items.contents.push(
+    { id: "t", name: "Torch", type: "Basic", system: { quantity: 1, light: { isSource: true, active: true, remainingSecs: 38 * 60, longevityMins: 60 } } },
+    { id: "r1", name: "Rations", type: "Basic", system: { quantity: 4 } });
+  hireling.items.contents.push({ id: "r2", name: "Rations", type: "Basic", system: { quantity: 9 } });
+  const p = actor("p", "NPC", { [MOD]: { party: true, partyData: { version: 1, members: [pc.uuid, hireling.uuid] } } });
+  p.items.contents.push({ id: "r3", name: "Rations", type: "Basic", system: { quantity: 6 } });
+  world([p, pc, hireling], true);
+  let context = await new PartyApp(p)._prepareContext();
+  assert.deepEqual(context.status.map(r => [r.key, r.label, r.value]), [["light", "SDE.party.status.light", "SDE.party.status.lightLeft Torch 38"], ["rations", "SDE.party.status.rations", "10"]],
+    "no travel readout without an overland module; rations are the party's and its characters', a hireling's own food is not camp food");
+  // A member this viewer cannot see may hold rations: no total rather than a partial one.
+  const hidden = actor("hidden", "Player", {}, 0);
+  p.flags[MOD].partyData.members.push(hidden.uuid);
+  world([p, pc, hireling, hidden], false);
+  p.testUserPermission = () => true;
+  context = await new PartyApp(p)._prepareContext();
+  assert.deepEqual(context.status.map(r => r.key), ["light"]);
+  // Nothing available: no bar at all.
+  const bare = actor("bare", "NPC", { [MOD]: { party: true, partyData: { version: 1, members: [] } } });
+  world([bare], true);
+  context = await new PartyApp(bare)._prepareContext();
+  assert.deepEqual(context.status, [], "an empty party has nothing to count");
+  pc.items.contents.splice(1, 1); hireling.items.contents.length = 0;
+  world([p, pc, hireling], true);
+  p.items.contents.length = 0; p.flags[MOD].partyData.members.length = 2; p.flags[MOD].partyData.members.splice(2);
+  context = await new PartyApp(p)._prepareContext();
+  assert.equal(context.status.find(r => r.key === "rations").low, true, "none left is shown, and low");
+  assert.equal(await new PartyApp(bare)._travel(), null);
+  const template = await readFile(new URL("../templates/party/party.hbs", import.meta.url), "utf8");
+  assert.ok(template.includes("{{#if status.length}}<div class=\"sdp-bar\">"));
+});
+test("the emblem defaults to the amber lantern, survives a bad flag, and only a GM can change it", async () => {
+  const p = actor("p", "NPC", { [MOD]: { party: true, partyDescription: "Notes" } });
+  world([p], true);
+  const app = new PartyApp(p);
+  app.render = () => {};
+  let context = await app._prepareContext();
+  assert.deepEqual([context.emblem.icon, context.emblem.color, context.emblemEdit, context.emblemOpen], ["lantern", "c8892b", true, false]);
+  assert.equal(context.emblem.path, "modules/shadowdark-enhancer/icons/game-icons/party/lantern.svg");
+  assert.equal(context.emblemIcons.length, 24);
+  assert.equal(context.emblemColors.length, 8);
+  PartyApp.DEFAULT_OPTIONS.actions.emblem.call(app);
+  assert.equal((await app._prepareContext()).emblemOpen, true);
+  // Picking applies live: one flag write, the party's other flags untouched.
+  await PartyApp.DEFAULT_OPTIONS.actions.pickEmblem.call(app, null, { dataset: { icon: "wolf-head" } });
+  await PartyApp.DEFAULT_OPTIONS.actions.pickEmblem.call(app, null, { dataset: { color: "3a6ea5" } });
+  assert.deepEqual(p.flags[MOD].partyEmblem, { icon: "wolf-head", color: "3a6ea5" });
+  assert.equal(p.flags[MOD].party, true);
+  assert.equal(p.flags[MOD].partyDescription, "Notes");
+  context = await app._prepareContext();
+  assert.deepEqual([context.emblem.icon, context.emblem.color], ["wolf-head", "3a6ea5"]);
+  assert.deepEqual(context.emblemIcons.filter(i => i.selected).map(i => i.name), ["wolf-head"]);
+  // A pick that is not on offer changes nothing.
+  await PartyApp.DEFAULT_OPTIONS.actions.pickEmblem.call(app, null, { dataset: { icon: "../x" } });
+  assert.deepEqual(p.flags[MOD].partyEmblem, { icon: "wolf-head", color: "3a6ea5" });
+  // A hand-edited flag still draws.
+  p.flags[MOD].partyEmblem = { icon: "nope", color: 5 };
+  assert.deepEqual((await app._prepareContext()).emblem, { icon: "lantern", color: "c8892b", path: "modules/shadowdark-enhancer/icons/game-icons/party/lantern.svg" });
+  // A player, even one who owns the party, has no picker and no write.
+  world([p], false);
+  const writes = p.writes.length, player = new PartyApp(p);
+  player.render = () => {};
+  PartyApp.DEFAULT_OPTIONS.actions.emblem.call(player);
+  await PartyApp.DEFAULT_OPTIONS.actions.pickEmblem.call(player, null, { dataset: { icon: "owl" } });
+  context = await player._prepareContext();
+  assert.deepEqual([context.emblemEdit, context.emblemOpen, p.writes.length], [false, false, writes]);
+  const template = await readFile(new URL("../templates/party/party.hbs", import.meta.url), "utf8");
+  for (const marker of ['data-action="emblem"', 'data-action="pickEmblem"', "sdp-emblems", "{{#if emblemEdit}}"]) assert.ok(template.includes(marker), marker);
+});
+test("the emblem picker closes on a click elsewhere, but not on itself or its tile", async () => {
+  const p = actor("p", "NPC", { [MOD]: { party: true } });
+  world([p], true);
+  const app = new PartyApp(p);
+  let renders = 0;
+  app.render = () => { renders++; };
+  const listeners = new Set(), descriptor = Object.getOwnPropertyDescriptor(globalThis, "document");
+  globalThis.document = { addEventListener: (_n, fn) => listeners.add(fn), removeEventListener: (_n, fn) => listeners.delete(fn) };
+  try {
+    app.element = { querySelector: selector => (selector === ".sdp-emblems" ? {} : null), querySelectorAll: () => [] };
+    app.emblemOpen = true;
+    app._bindControls(); app._bindControls();
+    assert.equal(listeners.size, 1, "a re-render replaces the listener, it does not stack another");
+    const [away] = listeners;
+    away({ target: { closest: () => ({}) } });
+    assert.equal(app.emblemOpen, true, "a click inside the picker or on its tile leaves it open");
+    away({ target: { closest: () => null } });
+    assert.deepEqual([app.emblemOpen, renders, listeners.size], [false, 1, 0]);
+    app.element = { querySelector: () => null, querySelectorAll: () => [] };
+    app._bindControls();
+    assert.equal(listeners.size, 0, "no picker open, no listener");
+  } finally { if (descriptor) Object.defineProperty(globalThis, "document", descriptor); else delete globalThis.document; }
 });

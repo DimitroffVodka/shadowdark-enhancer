@@ -9,7 +9,10 @@ module's stylesheets), with no world running. For checking how a window looks be
   Use the busiest state a GM can reach, not the empty one.
 - A fixture can be several screens: `initial`, `build(state)` and `actions` (a `data-action` click goes to
   a state, or toggles between two). Tabs, panels and wizard steps are clickable. Native controls
-  (select, checkbox, details) work as they are. See `fixtures/party.mjs`.
+  (select, checkbox, details) work as they are. A state with several parts (`gm.items.-.lantern`) can be
+  edited one part at a time: in an action's `state`, `{tab}` is the clicked element's `data-tab`, `{1}` is
+  the current state's second part, and `{icon|3}` is `data-icon` or, without one, the current fourth part.
+  See `fixtures/party.mjs`, which builds the real Party sheet's context with the sheet's own helpers.
 - `/w/<fixture>` dark, `?theme=light`, `?w=420` to force a width. Edit a template or stylesheet and reload.
 - The box bottom right counts visible buttons and primary buttons and lists layout problems
   (content sticking out sideways, text overflowing, tiny controls, sideways scroll).

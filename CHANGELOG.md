@@ -1,6 +1,45 @@
 # Changelog
 
 ## [Unreleased]
+### Changed
+- **The Party sheet's header is one compact band.** The boxed "Marching formation" block, with its
+  heading and five lines of text, is replaced by a visible **Marching order** switch beside the 3×3
+  grid (off: "Moving freely", the grid dims; on: "<leader> leads"). When following pauses, the status
+  says why and a **Resume following** button sits beside it. Dragging a portrait arranges the grid,
+  clicking one makes it the leader, and Place / Recall is a single pin button. Members, HP, AC and
+  level sit under the party name. A party with no members now shows an outlined drop zone on the
+  Members tab and a hint under the grid ("Drag characters here to add them") instead of looking dead.
+- **Party member cards are two to a row**, with the real portrait, an HP bar with numbers in place of
+  the red wave over the portrait, AC / LV / SLOTS / XP chips and the six ability modifiers on one
+  small line. Hirelings and mounts omit the character-only chips, as before. Camp and Carouse are no
+  longer repeated on the Members tab; they stay under Travel.
+- **A party has an emblem.** The tile at the left of the Party sheet's header is a game-icons.net icon on
+  a colour. A GM clicks it to pick from 24 icons and 8 colours, applied live and saved on the Party actor
+  (a new `partyEmblem` flag); a party that has chosen nothing wears the lantern in amber. The 24 icons
+  ship inside the module (credited in CREDITS.md), so the picker works without the Game-icons.net module.
+  The party portrait is no longer shown on the sheet; the Party token's art on a map is unchanged.
+- **The Party sheet has a status bar** under its header: **Today** (terrain, weather and hexes left while
+  this party is the one travelling overland), **Light** (the burning source with the most time left and its
+  minutes) and **Rations** (the party's and its characters' stacks). A readout with no data is left out, and
+  the whole bar when there is none.
+- **The Party sheet has a Bastion tab**, so players can look at their bastion: its name, type and art,
+  AC, HP, rooms used out of slots, treasury, a chip per room and last month's result. One button opens
+  the bastion sheet (**Open bastion** for a GM, **View bastion** for players, read-only for anyone but
+  the GM). The tab shows only when a bastion that the viewer can see is linked to the party.
+- **The Party's Items tab has a Gems box.** Beside the item list sit the Treasury (gp, sp, cp, editable by
+  a GM or a party owner) and Gems: the Party's items of the Shadowdark system's Gem type, with each
+  gem's quantity and value and the total. Gems no longer appear twice, as plain item rows. The
+  Inventory tab is now called Items.
+- **The Party sheet has a GM view and a player view.** A player sees every member's stats and the
+  same tabs (Travel stays, so each PC's owner can still confirm their own camping and carousing), but
+  not Place / Recall, the remove (x) on a member, item and coin editing, or the emblem picker. A tab the
+  viewer cannot see (Bastion with none linked) falls back to Members. The party's name is read-only for them.
+- **The Party sheet's "Include mounts" option is gone.** Mounts never take a slot in the marching
+  formation and never follow the leader: nobody takes a mount into a dungeon. They stay on the
+  roster under Mounts and still eat at camp. A party saved with the old option still loads; the
+  option is ignored and drops out of the saved party the next time it is written. A mount that an
+  earlier "Include mounts" had already placed on a scene is still recalled by Place / Recall.
+
 ### Fixed
 - `game.shadowdarkEnhancer.party.open()` on a native Party no longer throws `can't access property "style"`: it waits for the window to render before bringing it to front, and now returns a promise that resolves to the window.
 - Create Actor lists one Party, not two: with Shadowdark Extras also active, its separate "Party" entry is dropped and the Enhancer's stays (Extras on its own still shows its own). Existing Extras parties still open in the Enhancer's sheet.

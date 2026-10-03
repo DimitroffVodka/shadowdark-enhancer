@@ -13,7 +13,7 @@ export function normalizeParty(value = {}) {
     slots.push({ memberUuid, col, row }); occupied.add(key); assigned.add(memberUuid);
   }
   return { version: PARTY_VERSION, members, leaderUuid: members.includes(value.leaderUuid) ? value.leaderUuid : members[0] ?? null,
-    followLeader: value.followLeader !== false, includeMounts: value.includeMounts === true, formation: { ...value.formation, slots } };
+    followLeader: value.followLeader !== false, formation: { ...value.formation, slots } };
 }
 export function removeMember(data, uuid) {
   return normalizeParty({ ...data, members: data.members.filter((u) => u !== uuid) });

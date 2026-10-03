@@ -482,6 +482,8 @@
     "scripts/camping/camping-cook.mjs": "Post-eligible-rest Cook seam and active-benefit-scoped native damage/healing/expiry compatibility.",
     "scripts/party/party-core.mjs": "Pure versioned roster validation, membership permissions, groups and quest scoping.",
     "scripts/party/party-movement-core.mjs": "Fixed formation fill, follow ordering, square/hex footprint-aware wall-safe placement and stack fallback.",
+    "scripts/party/party-sheet-core.mjs": "Pure Party sheet decisions: the tab row and view flags (GM vs player), the Marching order status line, Gems, the linked Bastion and its last month, and the Today / Light / Rations status bar.",
+    "scripts/party/party-emblem-core.mjs": "Pure party emblem: the curated icon and colour sets, the default, the safe read of the stored flag and the picker's choices.",
     "scripts/party/party-movement.mjs": "Authenticated Party-owner gather/deploy relay, linked token configuration preservation and committed native marching with visible pauses.",
     "scripts/party/party-hud.mjs": "Single combat-gated Import/Export Members Party token HUD action.",
     "scripts/party/party-create-option.mjs": "Adds the Enhancer's Party entry to the Create Actor type list and drops Extras' duplicate Party entry.",

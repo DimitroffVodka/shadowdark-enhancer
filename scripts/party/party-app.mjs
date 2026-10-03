@@ -5,6 +5,11 @@ import { Party, isNativeParty, isLegacyParty } from "./party.mjs";
 import { offerParty } from "./party-create-option.mjs";
 import { scopedQuests } from "./party-core.mjs";
 import { fillFormation } from "./party-movement-core.mjs";
+import { marchState, marchText, partyTabs, tabRow, resolveTab, sheetView, gemSummary, linkedBastion, lastMonthEntry, roomIcon, lightReadout, rationsCount, statusBar } from "./party-sheet-core.mjs";
+import { EMBLEM_FLAG, emblemOf, emblemIconPath, emblemChoices, pickEmblem } from "./party-emblem-core.mjs";
+import { BASTION_TYPE } from "../bastion/bastion-art.mjs";
+import { stateOf as bastionState, stats as bastionStats, upgradeOf } from "../bastion/bastion-core.mjs";
+import { logText as bastionLogText } from "../bastion/bastion-text.mjs";
 import { configureMovement, requestMovement, movementStatus, inPartyCombat, MOVEMENT_CHANGED } from "./party-movement.mjs";
 import { Quests, QUESTS_CHANGED } from "../quests/quests.mjs";
 import { QuestLogApp } from "../quests/quest-log-app.mjs";
@@ -13,24 +18,16 @@ import { replaceModuleFlag } from "../shared/module-flags.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 const t = (key) => game.i18n.localize(key);
-const LABELS = { members: "SDE.party.members", quests: "SDE.party.quests", items: "SDE.party.sheet.inventory", travel: "SDE.party.sheet.travel", description: "SDE.party.sheet.description",
-  characters: "SDE.party.characters", hirelings: "SDE.party.hirelings", mounts: "SDE.party.mounts", missing: "SDE.party.missing" };
-const TAB_ICONS = { members: "fas fa-users", items: "fas fa-box", travel: "fas fa-campground", quests: "fas fa-scroll", description: "fas fa-book-open" };
-/** Movement pause reasons name their message with literal keys; a lookup table hides them from the i18n scan. */
-function movementMessage(reason) {
-  switch (reason) {
-    case "noToken": return t("SDE.party.movement.noToken");
-    case "free": return t("SDE.party.movement.free");
-    case "combat": return t("SDE.party.movement.combat");
-    case "scene": return t("SDE.party.movement.scene");
-    case "reload": return t("SDE.party.movement.reload");
-    case "gathered": return t("SDE.party.movement.gathered");
-    case "leader": return t("SDE.party.movement.leader");
-    case "teleport": return t("SDE.party.movement.teleport");
-    case "missing": return t("SDE.party.movement.missing");
-    case "blocked": return t("SDE.party.movement.blocked");
-    default: return t("SDE.party.movement.unknown");
-  }
+const sayWith = (key, data) => game.i18n.format(key, data);
+const I18N = { say: t, sayWith };
+const LABELS = { characters: "SDE.party.characters", hirelings: "SDE.party.hirelings", mounts: "SDE.party.mounts", missing: "SDE.party.missing" };
+/** What the Bastion tab shows of a bastion actor: its numbers, rooms and last month's result. */
+function bastionCard(actor) {
+  const state = bastionState(actor), st = bastionStats(state), last = lastMonthEntry(state.log);
+  return { name: actor.name, img: actor.img, type: t(st.type.name), ac: st.ac, hp: st.hp, maxHp: st.maxHp, breached: st.breached, used: st.used, slots: st.slots, treasury: state.treasury,
+    standing: st.standing, building: game.i18n.format("SDE.bastion.building", { weeks: state.weeksLeft }),
+    rooms: state.upgrades.filter((u) => upgradeOf(u.id)).map((u) => ({ name: t(upgradeOf(u.id).name), icon: roomIcon(u.id), building: u.weeksLeft > 0, tip: u.weeksLeft > 0 ? game.i18n.format("SDE.bastion.weeksLeft", { weeks: u.weeksLeft }) : "" })),
+    lastMonth: last ? bastionLogText(last) : "" };
 }
 // Localized coin labels come from the system's own keys; the sheet draws literal text otherwise.
 const COIN_LABELS = { gp: "SHADOWDARK.coins.gp", sp: "SHADOWDARK.coins.sp", cp: "SHADOWDARK.coins.cp" };
@@ -40,7 +37,13 @@ export class PartyApp extends HandlebarsApplicationMixin(ApplicationV2) {
     classes: ["shadowdark", "sheet", "party", "sde-party"], window: { title: "SDE.party.title", icon: "fa-solid fa-users", resizable: true },
     position: { width: 750, height: 650 },
     actions: {
-      partyTab: function (_event, el) { this.tab = el.dataset.tab; this.render(); },
+      partyTab: function (_event, el) { this.tab = el.dataset.tab; this.emblemOpen = false; this.render(); },
+      emblem: function () { if (!sheetView({ isGM: !!game.user?.isGM, canEdit: Party.canManage(this.actor) }).emblemEdit) return; this.emblemOpen = !this.emblemOpen; this.render(); },
+      pickEmblem: function (_event, el) {
+        if (!sheetView({ isGM: !!game.user?.isGM, canEdit: Party.canManage(this.actor) }).emblemEdit) return;
+        const next = pickEmblem(this.actor.flags?.[MODULE_ID]?.[EMBLEM_FLAG], { icon: el.dataset.icon, color: el.dataset.color });
+        return this._change(() => replaceModuleFlag(this.actor, EMBLEM_FLAG, next));
+      },
       remove: function (_event, el) { return this._change(() => Party.remove(this.actor, el.dataset.uuid)); },
       member: function (_event, el) { Party.rows(this.actor).find((r) => r.uuid === el.dataset.uuid)?.actor?.sheet?.render(true); },
       item: function (_event, el) { if (this.actor?.testUserPermission(game.user, "OBSERVER")) this.actor.items.get(el.dataset.id)?.sheet?.render(true); },
@@ -53,6 +56,7 @@ export class PartyApp extends HandlebarsApplicationMixin(ApplicationV2) {
       resumeFollow: function () { return this._change(() => requestMovement(this.actor, "resume")); },
       camp: function () { this.activity = "camping"; this.tab = "travel"; this.render(); },
       carouse: function () { this.activity = "carousing"; this.tab = "travel"; this.render(); },
+      openBastion: function () { this._bastion()?.sheet?.render(true); },
       createItem: function () { return this._change(() => this.actor?.isOwner && this.actor.createEmbeddedDocuments("Item", [{ name: t("SDE.party.sheet.newItem"), type: "Basic", img: "icons/svg/item-bag.svg" }])); },
       quantity: function (_event, el) { return this._change(async () => { const item = this.actor?.items.get(el.dataset.id); if (!this.actor?.isOwner || !item) return; await item.update({ "system.quantity": Math.max(0, Number(item.system.quantity ?? 1) + Number(el.dataset.delta)) }); }); },
       editDescription: function () { if (this.actor?.isOwner) { this.editingDescription = true; this.render(); } },
@@ -77,6 +81,26 @@ export class PartyApp extends HandlebarsApplicationMixin(ApplicationV2) {
     if (existing) { existing.actor = actor; if (activity) { existing.activity = activity; existing.tab = "travel"; } await existing.render(true); existing.bringToFront(); return existing; }
     const app = new PartyApp(actor, { id }); if (activity) { app.activity = activity; app.tab = "travel"; } await app.render(true); return app;
   }
+  /** The Bastion actor linked to this party that the viewer may see (a GM sees any), or null. */
+  _bastion() {
+    const canSee = (a) => game.user?.isGM || !!a.testUserPermission?.(game.user, "OBSERVER");
+    return linkedBastion(this.actor?.uuid, (game.actors?.contents ?? []).filter((a) => a.type === BASTION_TYPE && !a.pack), canSee);
+  }
+  /**
+   * Today's overland readout while THIS party is the one travelling: terrain, weather and hexes left.
+   * Imported when asked: the overland module needs the whole game, and a world with no travel has none to show.
+   */
+  async _travel() {
+    if (!game.shadowdarkEnhancer) return null;
+    try {
+      const [{ CrawlState }, overland] = await Promise.all([import("../crawl-strip/crawl-state.mjs"), import("../overland/overland.mjs")]);
+      if (!CrawlState.isOverland) return null;
+      const state = overland.overlandState();
+      if (!state.tokenUuid || globalThis.fromUuidSync?.(state.tokenUuid)?.actor?.uuid !== this.actor.uuid) return null;
+      const kind = overland.weatherNow();
+      return { terrain: state.hex?.terrain ?? null, weather: kind ? overland.weatherName(kind) : null, hexesLeft: state.hexesLeft, budget: state.budget };
+    } catch (error) { console.debug(`${MODULE_ID} | Party travel readout`, error); return null; }
+  }
   _quests() { return scopedQuests(Quests.list(), this.actor.uuid, Party.members(this.actor)); }
   _activityController() {
     const Class = this.activity === "carousing" ? CarousingApp : CampingApp;
@@ -96,14 +120,17 @@ export class PartyApp extends HandlebarsApplicationMixin(ApplicationV2) {
   }
   async _prepareContext() {
     const parties = Party.list().map((a) => ({ uuid: a.uuid, name: a.name, selected: a === this.actor }));
-    const base = { parties, isGM: !!game.user?.isGM, hasParty: !!this.actor, title: this.actor?.name,
-      tabs: ["members", "items", "travel", "quests", "description"].map((key) => ({ key, label: t(LABELS[key]), icon: TAB_ICONS[key], active: this.tab === key })),
-      membersTab: this.tab === "members", questsTab: this.tab === "quests", itemsTab: this.tab === "items", travelTab: this.tab === "travel", descriptionTab: this.tab === "description", picker: !this.document };
+    const view = sheetView({ isGM: !!game.user?.isGM, canEdit: Party.canManage(this.actor) });
+    const bastionActor = this._bastion();
+    const keys = partyTabs({ hasBastion: !!bastionActor }), tab = resolveTab(this.tab, keys);
+    const base = { parties, isGM: view.isGM, hasParty: !!this.actor, title: this.actor?.name,
+      tabs: tabRow(keys, tab, t),
+      membersTab: tab === "members", questsTab: tab === "quests", itemsTab: tab === "items", travelTab: tab === "travel", bastionTab: tab === "bastion", descriptionTab: tab === "description", picker: !this.document };
     if (!this.actor) return base;
     if (!Party.list().includes(this.actor)) return { ...base, hasParty: false };
     if (this.actor.type === "Party") return { ...base, unsupported: true };
     try {
-      const data = Party.data(this.actor), rows = Party.rows(this.actor), canEdit = Party.canManage(this.actor);
+      const data = Party.data(this.actor), rows = Party.rows(this.actor), canEdit = view.canEdit;
       const members = await Promise.all(rows.map(async (row) => {
         const a = row.actor, sys = a?.system ?? {}, hp = sys.attributes?.hp ?? { value: 0, max: 0 };
         let className = "";
@@ -111,51 +138,61 @@ export class PartyApp extends HandlebarsApplicationMixin(ApplicationV2) {
         const items = a?.items?.contents ?? [], percent = Math.max(0, Math.min(100, Math.round(hp.value / (hp.max || 1) * 100)));
         return { ...row, memberKey: row.uuid, name: a?.name ?? t("SDE.party.missing"), img: a?.img ?? "icons/svg/mystery-man.svg", missing: !a, canEdit, isNPC: !!a?.system?.isNPC, className,
           hp: { value: hp.value ?? 0, max: hp.max ?? 0 }, ac: sys.attributes?.ac?.value ?? 0, level: sys.level?.value ?? 1,
-          xp: { current: sys.level?.xp ?? 0, next: (sys.level?.value ?? 1) * 10 }, hpPercent: percent, hpWavesEnabled: true, hpWaveTranslate: Math.max(0, percent - 15), hpWaveColor: "#dc2626", hpWaveClass: percent >= 100 ? "hp-full" : percent <= 0 ? "hp-dead" : "",
+          xp: { current: sys.level?.xp ?? 0, next: (sys.level?.value ?? 1) * 10 }, hpPercent: percent, showAbilities: !!a && ["characters", "hirelings"].includes(row.group) && !!sys.abilities,
           slots: { used: inventorySlots(items, sys.coins), max: sys.slots ?? 10 }, abilities: Object.fromEntries(["str", "dex", "con", "int", "wis", "cha"].map(key => [key, sys.abilities?.[key]?.mod ?? 0])),
           abilityLabels: Object.fromEntries(["str", "dex", "con", "int", "wis", "cha"].map(key => { const mod = sys.abilities?.[key]?.mod ?? 0; return [key, mod >= 0 ? `+${mod}` : String(mod)]; })),
           effects: (a?.effects?.contents ?? a?.effects ?? []).filter(e => !e.disabled).map(e => ({ name: e.name, img: e.img ?? "icons/svg/aura.svg" })), leader: row.uuid === data.leaderUuid };
       }));
       const visible = members.filter(m => !m.missing), players = members.filter(m => m.group === "characters");
       const coins = this.actor.flags?.[MODULE_ID]?.partyCoins ?? this.actor.flags?.["shadowdark-extras"]?.coins ?? { gp: 0, sp: 0, cp: 0 };
-      const coinLabels = Object.fromEntries(Object.keys(coins ?? {}).map(key => [key, COIN_LABELS[key] ?? key]));
+      const coinList = Object.entries(COIN_LABELS).map(([key, labelKey]) => ({ key, labelKey, value: Math.max(0, Math.trunc(Number(coins?.[key]) || 0)) }));
+      const gemBag = gemSummary(this.actor.items.contents);
       const description = this.actor.flags?.[MODULE_ID]?.partyDescription ?? this.actor.flags?.["shadowdark-extras"]?.description ?? "";
       const editor = globalThis.foundry?.applications?.ux?.TextEditor?.implementation;
       const descriptionHTML = editor ? await editor.enrichHTML(description, { secrets: !!this.actor.isOwner, async: true, relativeTo: this.actor }) : "";
       let activityHTML = "", questHTML = "";
       const renderTemplate = foundry.applications.handlebars?.renderTemplate;
-      if (this.tab === "travel" && renderTemplate) {
+      if (tab === "travel" && renderTemplate) {
         const app = this._activityController();
         activityHTML = (await renderTemplate(app.constructor.PARTS.body.template, await app._prepareContext())).replace(/data-action="([^"]+)"/g, 'data-action="activityAction" data-activity-action="$1"');
       }
-      if (this.tab === "quests" && renderTemplate) {
+      if (tab === "quests" && renderTemplate) {
         const app = this._questController();
         questHTML = (await renderTemplate(QuestLogApp.PARTS.body.template, await app._prepareContext())).replace(/data-action="([^"]+)"/g, 'data-action="questAction" data-quest-action="$1"');
       }
+      const bastion = bastionActor ? bastionCard(bastionActor) : null;
+      const emblem = emblemOf(this.actor.flags?.[MODULE_ID]?.[EMBLEM_FLAG]), picker = emblemChoices(emblem, t);
+      // Light is carried by the party, its characters and its hirelings; rations by the party and its characters.
+      // A member the viewer cannot see may hold either, so rations are shown only when there are members and every one is visible.
+      const carriers = rows.filter(r => r.actor && ["characters", "hirelings"].includes(r.group)).map(r => r.actor.items?.contents ?? []);
+      const partyItems = this.actor.items?.contents ?? [];
+      const everyoneVisible = rows.length > 0 && rows.every(r => r.actor);
+      const readouts = statusBar({ travel: await this._travel(), light: lightReadout([partyItems, ...carriers]),
+        rations: everyoneVisible ? rationsCount([partyItems, ...rows.filter(r => r.group === "characters").map(r => r.actor.items?.contents ?? [])]) : null }, I18N);
       const formation = fillFormation(data, rows), status = movementStatus(this.actor);
-      const reason = !status.token ? t("SDE.party.movement.noToken") : status.reason ? movementMessage(status.reason) : t("SDE.party.movement.marching");
+      const combat = inPartyCombat(globalThis.canvas?.scene), leaderActor = rows.find(r => r.uuid === data.leaderUuid)?.actor, hasLeader = !!data.leaderUuid && !!leaderActor;
+      const march = marchText(marchState({ follow: data.followLeader, hasToken: !!status.token, deployed: status.deployed, reason: status.reason, pausedMember: status.pausedMemberUuid, manager: canEdit, hasLeader }),
+        { leaderName: leaderActor?.name, pausedName: rows.find(r => r.uuid === status.pausedMemberUuid)?.actor?.name, missing: t("SDE.party.missing") }, I18N);
       const slots = [];
       for (let row = -1; row <= 1; row++) for (let col = -1; col <= 1; col++) {
         const uuid = formation.slots.find(s => s.row === row && s.col === col)?.memberUuid;
         const member = rows.find(r => r.uuid === uuid)?.actor;
         slots.push({ row, col, uuid, name: member?.name, img: member?.img, leader: uuid === data.leaderUuid, disabled: !canEdit || !member });
       }
-      return { ...base, actor: this.actor, canEdit, owner: canEdit, players, members, memberCount: visible.length, coins, coinLabels, descriptionHTML, description, editingDescription: !!this.editingDescription,
+      return { ...base, actor: this.actor, canEdit, owner: canEdit, players, members, memberCount: visible.length, coins, coinList, gems: gemBag.rows, gemTotal: gemBag.total, descriptionHTML, description, editingDescription: !!this.editingDescription,
         activityHTML, questHTML, campingActive: this.activity !== "carousing", carousingActive: this.activity === "carousing",
         inventorySlots: { used: inventorySlots(this.actor.items.contents, coins), max: this.actor.flags?.["shadowdark-extras"]?.partyMaxSlots ?? 10 },
         partyStats: { totalHp: visible.reduce((n,m) => n + m.hp.value, 0), maxHp: visible.reduce((n,m) => n + m.hp.max, 0), avgAc: visible.length ? Math.round(visible.reduce((n,m) => n + m.ac, 0) / visible.length) : 0, avgLevel: players.length ? Math.round(players.reduce((n,m) => n + m.level, 0) / players.length) : 0 },
         needsAdoption: canEdit && !this.actor.flags?.[MODULE_ID]?.partyData,
-        slots, followLeader: data.followLeader, includeMounts: data.includeMounts, formationReview: formation.needsReview,
-        leaderName: rows.find(r => r.uuid === data.leaderUuid)?.actor?.name ?? t("SDE.party.missing"),
-        hasLeader: !!data.leaderUuid && !!rows.find(r => r.uuid === data.leaderUuid)?.actor,
-        followStatus: status.pausedMemberUuid && ["blocked", "missing"].includes(status.reason)
-          ? game.i18n.format("SDE.party.movement.pausedMember", { status: reason, name: rows.find(r => r.uuid === status.pausedMemberUuid)?.actor?.name ?? t("SDE.party.missing") }) : reason,
-        canResume: canEdit && data.followLeader && status.deployed && !!status.reason && !inPartyCombat(globalThis.canvas?.scene),
-        movementDisabled: !canEdit || !status.token || inPartyCombat(globalThis.canvas?.scene),
-        movementReason: !status.token ? t("SDE.party.movement.noToken") : inPartyCombat(globalThis.canvas?.scene) ? t("SDE.party.movement.combat") : t("SDE.party.movement.importExport"),
+        slots, followLeader: data.followLeader, formationReview: formation.needsReview, march, hasLeader, bastion, status: readouts,
+        emblem: { ...emblem, path: emblemIconPath(emblem.icon) }, emblemEdit: view.emblemEdit, emblemOpen: view.emblemEdit && !!this.emblemOpen, emblemIcons: picker.icons, emblemColors: picker.colors,
+        leaderName: leaderActor?.name ?? t("SDE.party.missing"),
+        canResume: !!march.canResume,
+        movementDisabled: !canEdit || !status.token || combat,
+        movementReason: !status.token ? t("SDE.party.movement.noToken") : combat ? t("SDE.party.movement.combat") : t("SDE.party.movement.importExport"),
         groups: ["characters", "hirelings", "mounts", "missing"].map((key) => ({ label: t(LABELS[key]), rows: members.filter(r => r.group === key) })),
 
-        quests: this._quests(), items: this.actor.items.contents.map((i) => ({ id: i.id, name: i.name, img: i.img, quantity: i.system?.quantity ?? 1, slots: inventorySlots([i]) })) };
+        quests: this._quests(), items: this.actor.items.contents.filter((i) => i.type !== "Gem").map((i) => ({ id: i.id, name: i.name, img: i.img, quantity: i.system?.quantity ?? 1, slots: inventorySlots([i]) })) };
     } catch (error) { console.error(`${MODULE_ID} | Party roster read`, error); return { ...base, unknown: true }; }
   }
   _onRender(context, options) {
@@ -177,13 +214,26 @@ export class PartyApp extends HandlebarsApplicationMixin(ApplicationV2) {
       const coins = this.actor.flags?.[MODULE_ID]?.partyCoins ?? this.actor.flags?.["shadowdark-extras"]?.coins ?? {};
       void this._change(() => replaceModuleFlag(this.actor, "partyCoins", { ...coins, [input.dataset.coin]: Math.max(0, Math.trunc(Number(input.value) || 0)) }));
     });
-    this.element.querySelector(".tab-members")?.addEventListener("dragover", event => { if (Party.canManage(this.actor)) event.preventDefault(); });
-    this.element.querySelector(".tab-members")?.addEventListener("drop", event => {
-      event.preventDefault();
-      try { const data = JSON.parse(event.dataTransfer.getData("text/plain")); if (data.type === "Actor" && data.uuid) void this._change(() => Party.add(this.actor, data.uuid)); } catch { /* Ignore non-document drags. */ }
-    });
+    // The emblem picker closes on a click anywhere else in the page, not only on its own tile and the tabs.
+    globalThis.document?.removeEventListener("pointerdown", this._pickerAway, true);
+    if (this.element.querySelector(".sdp-emblems")) {
+      this._pickerAway = (event) => {
+        if (event.target?.closest?.(".sdp-emblems, .sdp-emblem")) return;
+        globalThis.document?.removeEventListener("pointerdown", this._pickerAway, true);
+        this.emblemOpen = false; this.render();
+      };
+      globalThis.document?.addEventListener("pointerdown", this._pickerAway, true);
+    }
+    // Actors dropped on the Members tab, or on the formation grid of an empty party, join the roster.
+    for (const target of this.element.querySelectorAll(".tab-members, [data-drop-members]")) {
+      target.addEventListener("dragover", event => { if (Party.canManage(this.actor)) event.preventDefault(); });
+      target.addEventListener("drop", event => {
+        event.preventDefault();
+        try { const data = JSON.parse(event.dataTransfer.getData("text/plain")); if (data.type === "Actor" && data.uuid) void this._change(() => Party.add(this.actor, data.uuid)); } catch { /* Ignore non-document drags. */ }
+      });
+    }
     this.element.querySelector("[data-party-choice]")?.addEventListener("change", (event) => { this.actor = Party.get(event.target.value); Party.select(this.actor); this.render(); });
-    for (const key of ["followLeader", "includeMounts"]) this.element.querySelector(`[data-movement-setting="${key}"]`)?.addEventListener("change", event => this._change(() => configureMovement(this.actor, { [key]: event.target.checked })));
+    this.element.querySelector('[data-movement-setting="followLeader"]')?.addEventListener("change", event => this._change(() => configureMovement(this.actor, { followLeader: event.target.checked })));
     for (const slot of this.element.querySelectorAll("[data-formation-slot]")) {
       slot.addEventListener("dragstart", event => { if (!Party.canManage(this.actor) || !slot.dataset.uuid) return event.preventDefault(); event.dataTransfer.setData("text/plain", slot.dataset.uuid); });
       slot.addEventListener("dragover", event => { if (Party.canManage(this.actor)) event.preventDefault(); });
@@ -205,6 +255,13 @@ export class PartyApp extends HandlebarsApplicationMixin(ApplicationV2) {
   async _onFirstRender(context, options) {
     await super._onFirstRender(context, options);
     this._hooks = ["updateActor", "deleteActor", "createActor", "createItem", "updateItem", "deleteItem", "updateRollTable", "createCombat", "updateCombat", "deleteCombat", "canvasReady", MOVEMENT_CHANGED, QUESTS_CHANGED].map((name) => [name, Hooks.on(name, () => this._onStateChanged())]);
+    await this._hookTravel();
+  }
+  /** The status bar's Today readout follows the overland state; its change hook is named in the overland module. */
+  async _hookTravel() {
+    if (!game.shadowdarkEnhancer) return;
+    try { const { OVERLAND_CHANGED } = await import("../overland/overland.mjs"); if (this._hooks) this._hooks.push([OVERLAND_CHANGED, Hooks.on(OVERLAND_CHANGED, () => this._onStateChanged())]); }
+    catch (error) { console.debug(`${MODULE_ID} | Party travel hook`, error); }
   }
   _onStateChanged() {
     const field = globalThis.document?.activeElement;
@@ -213,7 +270,7 @@ export class PartyApp extends HandlebarsApplicationMixin(ApplicationV2) {
     this._heldFor = field;
     field.addEventListener("blur", event => { this._heldFor = null; if (!event.relatedTarget?.closest("[data-action]")) this.render(); }, { once: true });
   }
-  _onClose(options) { for (const [name, id] of this._hooks ?? []) Hooks.off(name, id); return super._onClose(options); }
+  _onClose(options) { for (const [name, id] of this._hooks ?? []) Hooks.off(name, id); this._hooks = null; globalThis.document?.removeEventListener("pointerdown", this._pickerAway, true); return super._onClose(options); }
 }
 
 // The SDX inventory slot calculation, independent of its runtime module.
@@ -239,10 +296,11 @@ export class PartySheet extends HandlebarsApplicationMixin(foundry.applications.
   async _onFirstRender(context, options) {
     await super._onFirstRender(context, options);
     this._hooks = ["updateActor", "deleteActor", "createItem", "updateItem", "deleteItem", "updateRollTable", "createCombat", "updateCombat", "deleteCombat", "canvasReady", MOVEMENT_CHANGED, QUESTS_CHANGED].map(name => [name, Hooks.on(name, () => this._onStateChanged())]);
+    await this._hookTravel();
   }
-  _onClose(options) { for (const [name, id] of this._hooks ?? []) Hooks.off(name, id); return super._onClose(options); }
+  _onClose(options) { for (const [name, id] of this._hooks ?? []) Hooks.off(name, id); this._hooks = null; globalThis.document?.removeEventListener("pointerdown", this._pickerAway, true); return super._onClose(options); }
 }
-for (const name of ["_prepareContext", "_change", "_quests", "_bindControls", "_activityController", "_questController", "_onStateChanged"]) PartySheet.prototype[name] = PartyApp.prototype[name];
+for (const name of ["_prepareContext", "_change", "_quests", "_bastion", "_travel", "_hookTravel", "_bindControls", "_activityController", "_questController", "_onStateChanged"]) PartySheet.prototype[name] = PartyApp.prototype[name];
 
 /** Only native/adopted flagged Parties route here; ordinary NPC sheets stay intact. */
 export function registerParty() {
