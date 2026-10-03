@@ -11,7 +11,8 @@
     "inventory": "node tools/inventory/generate.mjs && node tools/build-rev.mjs",
     "inventory:check": "node tools/inventory/generate.mjs --check && node tools/build-rev.mjs --check",
     "wiki:sync": "node tools/sync-wiki.mjs",
-    "wiki:check": "node tools/sync-wiki.mjs --check"
+    "wiki:check": "node tools/sync-wiki.mjs --check",
+    "design": "node tools/design-harness/serve.mjs"
   },
   "license": "MIT",
   "devDependencies": {
