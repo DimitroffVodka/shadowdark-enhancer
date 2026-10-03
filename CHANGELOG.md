@@ -937,6 +937,9 @@ page walks through it in order.
   travel the bar no longer shows Add Tokens (the party token travels), and **Make camp** stays
   on the bar. Right-clicking **Add Tokens** in a crawl still offers **Reset Initiative**, which is
   now also in Tools.
+- **The travel badge names the terrain.** It reads *Forest · Fair · 3 of 4 hexes left*: the
+  terrain of the hex the party stands in (left out on a map with no terrain tags), today's
+  weather, and the hexes left. Hover it for the hex number and its features.
 - **The crawl strip is easier to read.** A card waiting for its turn keeps full-contrast
   text and only its portrait dims, so you can still read a name and an HP count. Whose turn
   it is gets a thin gold ring and a gold name. Long names such as "Animated Armor" wrap onto

@@ -176,6 +176,14 @@ move of the travel token against the day's hexes, moving the clock with it,
 rolls the day's encounter checks as the clock reaches them, and ends the day
 with forage and camp.
 
+While you travel the Crawl Bar's badge reads **Terrain · Weather · N of M hexes
+left** (the terrain is left out on a map with no terrain tags; hover the badge
+for the hex number and its features). Then one main button, **Start day**, or
+**Continue** when an encounter stopped the clock partway through a move, then
+**Make camp**, **Tools** and **End travel**. **Forage**, **Roll weather** and
+**Start a crawl** are in Tools under *This travel day*. Add Tokens is not shown:
+the party token travels.
+
 - **The travel plate.** While travelling, the [clock bar](Clock-and-Calendar.md)
   at the top shows the hexes left today, and its party icon opens the
   **Travel** panel:

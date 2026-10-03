@@ -14,7 +14,7 @@ import { CrawlStrip }      from "../crawl-strip/crawl-strip.mjs";
 import { isHexMapScene }   from "../encounter/encounter-terrain.mjs";
 import { BASTION_TYPE } from "../bastion/bastion-art.mjs";
 import { esc }             from "../shared/esc.mjs";
-import { BUTTONS, barItems, toolsSections } from "./crawl-bar-core.mjs";
+import { BUTTONS, barItems, overlandBadge, toolsSections } from "./crawl-bar-core.mjs";
 import {
   startOverland, endOverland, rollWeather, weatherNow, weatherName, startDayFromParty, resume, overlandState, OVERLAND_CHANGED,
   askForage, forage, makeCamp,
@@ -183,11 +183,11 @@ export const CrawlBar = {
 
     const badge = () => {
       if (mode === "overland") {
-        const text = [
-          this._weatherShown ? loc("SDE.overland.badgeWeather", { weather: weatherName(this._weatherShown) }) : loc("SDE.overland.badge"),
-          Number.isFinite(day?.day) ? loc("SDE.overland.badgeHexes", { left: day.hexesLeft, budget: day.budget }) : null,
-        ].filter(Boolean).join(" · ");
-        return `<span class="sde-bar-phase-badge sde-bar-phase-overland">${ICONS.walking} ${esc(text)}</span>`;
+        const { text, title } = overlandBadge({
+          hex: day.hex, day, t: loc,
+          weather: this._weatherShown ? weatherName(this._weatherShown) : null,
+        });
+        return `<span class="sde-bar-phase-badge sde-bar-phase-overland"${title ? ` title="${esc(title)}"` : ""}>${ICONS.walking} ${esc(text)}</span>`;
       }
       return `<span class="sde-bar-phase-badge sde-bar-phase-crawl"${mode === "off" ? ' style="opacity:0.55"' : ""}>
           ${ICONS.startCrawl} ${loc("SDE.crawlBar.roundBadge", { turn: state.crawlTurn })}

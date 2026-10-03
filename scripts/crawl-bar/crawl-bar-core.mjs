@@ -1,9 +1,42 @@
 /**
  * Shadowdark Enhancer — Crawl Bar, the parts that need no Foundry.
  *
- * Which controls the bar shows in each mode (one row, always) and what the
- * Tools panel holds. crawl-bar.mjs renders from these.
+ * Which controls the bar shows in each mode (one row, always), what the travel
+ * badge reads, and what the Tools panel holds. crawl-bar.mjs renders from these.
  */
+
+/**
+ * A map word for people: "deep_tunnels" → "Deep tunnels". The words come from the
+ * map (its own legend), so there is no translation table to look them up in.
+ * @param {string|null|undefined} word
+ */
+export function humanise(word) {
+  const s = String(word ?? "").replace(/_/g, " ").trim();
+  return s ? s[0].toUpperCase() + s.slice(1) : "";
+}
+
+/**
+ * The travel badge: "<Terrain> · <Weather> · N of M hexes left". Terrain is left
+ * out when the map doesn't say (a hex map with no terrain tags), weather when none
+ * holds, the hex count until a travel day is open. The hex number and its features
+ * ride in `title`, for a hover.
+ * @param {object} p
+ * @param {{num?:number|null, terrain?:string|null, features?:string[]}|null} [p.hex]  overlandState().hex
+ * @param {string|null} [p.weather]  today's weather, already named
+ * @param {{day?:number|null, hexesLeft:number, budget:number}|null} [p.day]  overlandState()
+ * @param {(key:string, data?:object)=>string} p.t  localise / format
+ * @returns {{text:string, title:string}}
+ */
+export function overlandBadge({ hex = null, weather = null, day = null, t }) {
+  const parts = [
+    humanise(hex?.terrain),
+    weather,
+    Number.isFinite(day?.day) ? t("SDE.overland.badgeHexes", { left: day.hexesLeft, budget: day.budget }) : "",
+  ].filter(Boolean);
+  const where = Number.isInteger(hex?.num) ? [t("SDE.overland.badgeHex", { num: String(hex.num).padStart(4, "0") })] : [];
+  const title = [...where, ...(hex?.features ?? []).map(humanise).filter(Boolean)].join(", ");
+  return { text: parts.join(" · ") || t("SDE.overland.badge"), title };
+}
 
 /** The bar's own buttons, by the data-action each runs: ICONS key, en.json label and hover text, extra class. */
 export const BUTTONS = {

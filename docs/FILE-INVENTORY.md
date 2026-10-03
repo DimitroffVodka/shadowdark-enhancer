@@ -201,7 +201,7 @@
 | File | Lines | Description |
 |---|---:|---|
 | `crawl-bar.mjs` | 778 | GM-only persistent bottom bar above the macro bar (mode toggles, tools, launchers). |
-| `crawl-bar-core.mjs` | 94 | The crawl bar's Foundry-free half: which controls each mode shows, the overland badge text, and the Tools panel's sections. |
+| `crawl-bar-core.mjs` | 127 | The crawl bar's Foundry-free half: which controls each mode shows, the overland badge text, and the Tools panel's sections. |
 
 ### 3.5 `scripts/encounter/` — the Encounter Roller
 
