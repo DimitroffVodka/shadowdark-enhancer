@@ -194,7 +194,8 @@
       "scripts/crawl-strip/npc-action-menu.mjs"
     ],
     "3.4": [
-      "scripts/crawl-bar/crawl-bar.mjs"
+      "scripts/crawl-bar/crawl-bar.mjs",
+      "scripts/crawl-bar/crawl-bar-core.mjs"
     ],
     "3.5": [
       "scripts/encounter/encounter-roller-app.mjs",
