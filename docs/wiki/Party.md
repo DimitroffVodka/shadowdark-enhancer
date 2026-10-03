@@ -10,14 +10,23 @@ or `game.shadowdarkEnhancer.party.open(party)`; it also works with no canvas.
 
 One band across the top: the party's tile, name and four numbers (members, HP,
 AC, level), and on the right the [Marching order](#formation-deploy-and-follow).
-Under it the tabs: **Members**, **Items**, **Travel**, **Quests** and
-**Description**.
+Under it the tabs: **Members**, **Items**, **Travel**, **Quests**, **Bastion**
+(only when the Party has a bastion) and **Description**.
 
 **Members** are two-column cards: portrait, name and class, an HP bar with
 numbers, AC / LV / SLOTS / XP chips, the six ability modifiers as one small
 line, and the member's active effect icons. Hirelings and mounts omit the
 character-only chips. Characters, Hirelings and Mounts are grouped; click a
 portrait or name to open the sheet, and a manager sees a remove (x) on hover.
+
+**Bastion** lets the whole table look at the Party's [bastion](Bastions.md): the
+Bastion actor whose Party field is this Party (a Bastion the viewer cannot observe
+is not offered, and with none linked the tab is hidden). It shows the name, type
+and art, AC, HP, rooms used out of slots, the treasury, a chip for each room (a
+dashed chip is still being built), and last month's result: the newest monthly
+disaster roll or Casino income in its log. One button, **Open bastion** for a GM
+and **View bastion** for players, opens the bastion sheet, which is read-only
+for anyone but the GM.
 
 The sheet has a GM view and a player view. A player (anyone who cannot manage
 the party) sees every member's full stats, but not the **Travel** tab, the

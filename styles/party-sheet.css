@@ -1212,3 +1212,19 @@
 .sde-party .sdp-coins .cp { background: #b8733f; }
 .sde-party .sdp-coins input { flex: 1; min-width: 0; height: 28px; text-align: right; }
 .sde-party .sdp-coins em { width: 24px; font-size: 12px; font-style: normal; color: #8d8d8d; }
+
+/* ------------------------------------------------------------------ Party sheet: Bastion tab */
+.sde-party .sdp-bastion { display: flex; gap: 16px; padding: 14px; }
+.sde-party .sdp-bastion .art { flex: none; width: 150px; height: 150px; padding: 8px; object-fit: contain; border: 1px solid #2a2a2a; border-radius: 8px; background: #0c0c0c; }
+.sde-party .sdp-bastion .info { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.sde-party .sdp-bastion h3 { margin: 0; padding: 0; border: 0; font: 400 24px/1.1 "Old Newspaper Font", serif; color: #eee; }
+.sde-party .sdp-bastion .sub { margin: -8px 0 0; font-size: 13px; color: #8d8d8d; }
+.sde-party .sdp-bastion .log { margin: 0; font-size: 13px; color: #cfcfcf; }
+.sde-party .sdp-bastion .log span { margin-right: 5px; color: #8d8d8d; }
+.sde-party .sdp-chips .bad { color: #e06060; }
+.sde-party .sdp-rooms { display: flex; flex-wrap: wrap; gap: 6px; }
+.sde-party .sdp-rooms span { display: flex; align-items: center; gap: 6px; padding: 4px 9px; border: 1px solid #2f2f2f; border-radius: 6px; background: #181818; font-size: 12px; }
+.sde-party .sdp-rooms span.building { opacity: .6; border-style: dashed; }
+.sde-party .sdp-rooms i { font-size: 11px; color: #e6c25a; }
+.sde-party .sdp-btn { display: inline-flex; align-items: center; gap: 6px; align-self: flex-start; height: 30px; padding: 0 14px; border: 1px solid #333; border-radius: 4px; background: #1a1a1a; color: #e0e0e0; font-family: "Old Newspaper Font", serif; cursor: pointer; }
+.sde-party .sdp-btn:hover { border-color: #e6c25a; color: #fff; }

@@ -346,3 +346,38 @@ test("a player's sheet drops Travel and every control that changes the party", a
   assert.ok(context.slots.every(slot => slot.disabled), "the grid is read-only");
   assert.equal(context.activityHTML, "");
 });
+test("the Bastion tab shows only when a bastion the viewer may see is linked to this party", async () => {
+  const p = actor("p", "NPC", { [MOD]: { party: true } }, 2);
+  const bastion = actor("b", "shadowdark-enhancer.bastion", {}, 2);
+  bastion.system = { type: "keep", party: p.uuid, hp: { value: 80 }, treasury: 12, weeksLeft: 0, upgrades: [{ id: "stable", slot: 0, weeksLeft: 0 }, { id: "library", slot: 1, weeksLeft: 2 }], log: [{ week: 1, key: "SDE.bastion.log.quietMonth", data: { d6: 3 } }, { week: 2, key: "SDE.bastion.log.deposited", data: {} }] };
+  bastion.img = "keep.svg";
+  world([p, bastion], false);
+  let rendered = 0; bastion.sheet = { render: () => { rendered++; } };
+  const app = new PartyApp(p);
+  let context = await app._prepareContext();
+  assert.deepEqual(context.tabs.map(tab => tab.key), ["members", "items", "quests", "bastion", "description"]);
+  assert.deepEqual([context.bastion.ac, context.bastion.hp, context.bastion.maxHp, context.bastion.used, context.bastion.slots, context.bastion.treasury], [18, 80, 100, 2, 10, 12]);
+  assert.deepEqual(context.bastion.rooms.map(r => [r.name, r.building]), [["SDE.bastion.upgrade.stable.name", false], ["SDE.bastion.upgrade.library.name", true]]);
+  assert.match(context.bastion.lastMonth, /quietMonth/, "the newest month result, not the later deposit");
+  app.tab = "bastion"; context = await app._prepareContext();
+  assert.equal(context.bastionTab, true);
+  PartyApp.DEFAULT_OPTIONS.actions.openBastion.call(app);
+  assert.equal(rendered, 1);
+  // Not linked to this party: no tab, and a stale selection falls back to Members.
+  bastion.system.party = "Actor.other";
+  context = await app._prepareContext();
+  assert.equal(context.bastion, null);
+  assert.equal(context.bastionTab, false);
+  assert.equal(context.membersTab, true);
+  // Linked but the viewer cannot observe it: not offered.
+  bastion.system.party = p.uuid; bastion.testUserPermission = () => false;
+  assert.equal((await app._prepareContext()).bastion, null);
+  // A GM sees it regardless of permission and gets the manage wording.
+  world([p, bastion], true);
+  context = await new PartyApp(p)._prepareContext();
+  assert.equal(context.isGM, true);
+  assert.ok(context.bastion);
+  const template = await readFile(new URL("../templates/party/party.hbs", import.meta.url), "utf8");
+  assert.ok(!/<button[^>]*openBastion/.test(template), "core disables every form control of a sheet the viewer cannot edit, so the player's View bastion is not a button");
+  for (const marker of ["tab-bastion", 'data-action="openBastion"', "SDE.party.bastion.open", "SDE.party.bastion.view", "SDE.party.bastion.lastMonth"]) assert.ok(template.includes(marker), marker);
+});

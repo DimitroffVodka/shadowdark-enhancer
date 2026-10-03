@@ -68,3 +68,35 @@ export function gemSummary(items = []) {
   });
   return { rows, total: gpText(rows.reduce((sum, row) => sum + row.total, 0)), count: rows.reduce((sum, row) => sum + row.quantity, 0) };
 }
+
+// ---------------------------------------------------------------- Bastion
+
+/**
+ * The bastion this party owns: the first (by name) of the given bastion actors whose party link
+ * is `partyUuid` and that `canSee` allows. A bastion the viewer cannot observe is not offered.
+ * @param {string} partyUuid
+ * @param {Array<{name:string, system?:{party?:string}}>} bastions world Bastion actors
+ * @param {(actor:object)=>boolean} canSee
+ */
+export function linkedBastion(partyUuid, bastions = [], canSee = () => true) {
+  if (!partyUuid) return null;
+  return [...bastions].filter((b) => b?.system?.party === partyUuid && canSee(b)).sort((a, b) => String(a.name).localeCompare(String(b.name)))[0] ?? null;
+}
+
+/** The log lines a month's roll leaves: a disaster, a quiet month, or the Casino's income. */
+export const MONTH_LOG_KEYS = [
+  "SDE.bastion.log.quietMonth", "SDE.bastion.log.naturalDisaster", "SDE.bastion.log.warbands",
+  "SDE.bastion.log.pestilence", "SDE.bastion.log.dragon", "SDE.bastion.log.income",
+];
+
+/** The newest log entry that is a month's result, or null (the log is oldest first). */
+export const lastMonthEntry = (log = []) => [...(log ?? [])].reverse().find((entry) => MONTH_LOG_KEYS.includes(entry?.key)) ?? null;
+
+/** Each upgrade's room chip icon; a Font Awesome class. Anything else gets the door. */
+export const ROOM_ICONS = {
+  aviary: "fa-dove", armorer: "fa-shield-halved", barracks: "fa-bed", blacksmith: "fa-hammer", brewery: "fa-beer-mug-empty",
+  casino: "fa-dice", dungeon: "fa-lock", granary: "fa-wheat-awn", idol: "fa-place-of-worship", infirmary: "fa-kit-medical",
+  kennels: "fa-dog", library: "fa-book", moat: "fa-water", stable: "fa-horse", tavern: "fa-mug-hot", temple: "fa-church",
+  "trading-post": "fa-store", "trophy-room": "fa-trophy", vault: "fa-vault", "wizard-tower": "fa-hat-wizard",
+};
+export const roomIcon = (id) => ROOM_ICONS[id] ?? "fa-door-open";

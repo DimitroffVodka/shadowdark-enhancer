@@ -13,6 +13,10 @@
   the red wave over the portrait, AC / LV / SLOTS / XP chips and the six ability modifiers on one
   small line. Hirelings and mounts omit the character-only chips, as before. Camp and Carouse are no
   longer repeated on the Members tab; they stay under Travel.
+- **The Party sheet has a Bastion tab**, so players can look at their bastion: its name, type and art,
+  AC, HP, rooms used out of slots, treasury, a chip per room and last month's result. One button opens
+  the bastion sheet (**Open bastion** for a GM, **View bastion** for players, read-only for anyone but
+  the GM). The tab shows only when a bastion that the viewer can see is linked to the party.
 - **The Party's Items tab has a Gems box.** Beside the item list sit the Treasury (gp, sp, cp, editable by
   a GM or a party owner) and Gems: the Party's items of the Shadowdark system's Gem type, with each
   gem's quantity and value and the total. Gems no longer appear twice, as plain item rows.

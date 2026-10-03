@@ -5,7 +5,10 @@ import { Party, isNativeParty, isLegacyParty } from "./party.mjs";
 import { offerParty } from "./party-create-option.mjs";
 import { scopedQuests } from "./party-core.mjs";
 import { fillFormation } from "./party-movement-core.mjs";
-import { marchState, partyTabs, resolveTab, sheetView, gemSummary } from "./party-sheet-core.mjs";
+import { marchState, partyTabs, resolveTab, sheetView, gemSummary, linkedBastion, lastMonthEntry, roomIcon } from "./party-sheet-core.mjs";
+import { BASTION_TYPE } from "../bastion/bastion-art.mjs";
+import { stateOf as bastionState, stats as bastionStats, upgradeOf } from "../bastion/bastion-core.mjs";
+import { logText as bastionLogText } from "../bastion/bastion-text.mjs";
 import { configureMovement, requestMovement, movementStatus, inPartyCombat, MOVEMENT_CHANGED } from "./party-movement.mjs";
 import { Quests, QUESTS_CHANGED } from "../quests/quests.mjs";
 import { QuestLogApp } from "../quests/quest-log-app.mjs";
@@ -14,9 +17,9 @@ import { replaceModuleFlag } from "../shared/module-flags.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 const t = (key) => game.i18n.localize(key);
-const LABELS = { members: "SDE.party.members", quests: "SDE.party.quests", items: "SDE.party.sheet.inventory", travel: "SDE.party.sheet.travel", description: "SDE.party.sheet.description",
+const LABELS = { members: "SDE.party.members", quests: "SDE.party.quests", items: "SDE.party.sheet.inventory", travel: "SDE.party.sheet.travel", bastion: "SDE.party.sheet.bastion", description: "SDE.party.sheet.description",
   characters: "SDE.party.characters", hirelings: "SDE.party.hirelings", mounts: "SDE.party.mounts", missing: "SDE.party.missing" };
-const TAB_ICONS = { members: "fas fa-users", items: "fas fa-box", travel: "fas fa-campground", quests: "fas fa-scroll", description: "fas fa-book-open" };
+const TAB_ICONS = { members: "fas fa-users", items: "fas fa-box", travel: "fas fa-campground", quests: "fas fa-scroll", bastion: "fas fa-chess-rook", description: "fas fa-book-open" };
 /** Movement pause reasons name their message with literal keys; a lookup table hides them from the i18n scan. */
 function movementMessage(reason) {
   switch (reason) {
@@ -47,6 +50,14 @@ function marchLine(state, { leaderName, pausedName }) {
     default: return { ...state, text: "" };
   }
 }
+/** What the Bastion tab shows of a bastion actor: its numbers, rooms and last month's result. */
+function bastionCard(actor) {
+  const state = bastionState(actor), st = bastionStats(state), last = lastMonthEntry(state.log);
+  return { name: actor.name, img: actor.img, type: t(st.type.name), ac: st.ac, hp: st.hp, maxHp: st.maxHp, breached: st.breached, used: st.used, slots: st.slots, treasury: state.treasury,
+    standing: st.standing, building: game.i18n.format("SDE.bastion.building", { weeks: state.weeksLeft }),
+    rooms: state.upgrades.filter((u) => upgradeOf(u.id)).map((u) => ({ name: t(upgradeOf(u.id).name), icon: roomIcon(u.id), building: u.weeksLeft > 0, tip: u.weeksLeft > 0 ? game.i18n.format("SDE.bastion.weeksLeft", { weeks: u.weeksLeft }) : "" })),
+    lastMonth: last ? bastionLogText(last) : "" };
+}
 // Localized coin labels come from the system's own keys; the sheet draws literal text otherwise.
 const COIN_LABELS = { gp: "SHADOWDARK.coins.gp", sp: "SHADOWDARK.coins.sp", cp: "SHADOWDARK.coins.cp" };
 
@@ -68,6 +79,7 @@ export class PartyApp extends HandlebarsApplicationMixin(ApplicationV2) {
       resumeFollow: function () { return this._change(() => requestMovement(this.actor, "resume")); },
       camp: function () { this.activity = "camping"; this.tab = "travel"; this.render(); },
       carouse: function () { this.activity = "carousing"; this.tab = "travel"; this.render(); },
+      openBastion: function () { this._bastion()?.sheet?.render(true); },
       createItem: function () { return this._change(() => this.actor?.isOwner && this.actor.createEmbeddedDocuments("Item", [{ name: t("SDE.party.sheet.newItem"), type: "Basic", img: "icons/svg/item-bag.svg" }])); },
       quantity: function (_event, el) { return this._change(async () => { const item = this.actor?.items.get(el.dataset.id); if (!this.actor?.isOwner || !item) return; await item.update({ "system.quantity": Math.max(0, Number(item.system.quantity ?? 1) + Number(el.dataset.delta)) }); }); },
       editDescription: function () { if (this.actor?.isOwner) { this.editingDescription = true; this.render(); } },
@@ -92,6 +104,11 @@ export class PartyApp extends HandlebarsApplicationMixin(ApplicationV2) {
     if (existing) { existing.actor = actor; if (activity) { existing.activity = activity; existing.tab = "travel"; } await existing.render(true); existing.bringToFront(); return existing; }
     const app = new PartyApp(actor, { id }); if (activity) { app.activity = activity; app.tab = "travel"; } await app.render(true); return app;
   }
+  /** The Bastion actor linked to this party that the viewer may see (a GM sees any), or null. */
+  _bastion() {
+    const canSee = (a) => game.user?.isGM || !!a.testUserPermission?.(game.user, "OBSERVER");
+    return linkedBastion(this.actor?.uuid, (game.actors?.contents ?? []).filter((a) => a.type === BASTION_TYPE && !a.pack), canSee);
+  }
   _quests() { return scopedQuests(Quests.list(), this.actor.uuid, Party.members(this.actor)); }
   _activityController() {
     const Class = this.activity === "carousing" ? CarousingApp : CampingApp;
@@ -112,10 +129,11 @@ export class PartyApp extends HandlebarsApplicationMixin(ApplicationV2) {
   async _prepareContext() {
     const parties = Party.list().map((a) => ({ uuid: a.uuid, name: a.name, selected: a === this.actor }));
     const view = sheetView({ isGM: !!game.user?.isGM, canEdit: Party.canManage(this.actor) });
-    const keys = partyTabs({ isGM: view.isGM }), tab = resolveTab(this.tab, keys);
+    const bastionActor = this._bastion();
+    const keys = partyTabs({ isGM: view.isGM, hasBastion: !!bastionActor }), tab = resolveTab(this.tab, keys);
     const base = { parties, isGM: view.isGM, hasParty: !!this.actor, title: this.actor?.name,
       tabs: keys.map((key) => ({ key, label: t(LABELS[key]), icon: TAB_ICONS[key], active: tab === key })),
-      membersTab: tab === "members", questsTab: tab === "quests", itemsTab: tab === "items", travelTab: tab === "travel", descriptionTab: tab === "description", picker: !this.document };
+      membersTab: tab === "members", questsTab: tab === "quests", itemsTab: tab === "items", travelTab: tab === "travel", bastionTab: tab === "bastion", descriptionTab: tab === "description", picker: !this.document };
     if (!this.actor) return base;
     if (!Party.list().includes(this.actor)) return { ...base, hasParty: false };
     if (this.actor.type === "Party") return { ...base, unsupported: true };
@@ -150,6 +168,7 @@ export class PartyApp extends HandlebarsApplicationMixin(ApplicationV2) {
         const app = this._questController();
         questHTML = (await renderTemplate(QuestLogApp.PARTS.body.template, await app._prepareContext())).replace(/data-action="([^"]+)"/g, 'data-action="questAction" data-quest-action="$1"');
       }
+      const bastion = bastionActor ? bastionCard(bastionActor) : null;
       const formation = fillFormation(data, rows), status = movementStatus(this.actor);
       const combat = inPartyCombat(globalThis.canvas?.scene), leaderActor = rows.find(r => r.uuid === data.leaderUuid)?.actor, hasLeader = !!data.leaderUuid && !!leaderActor;
       const march = marchLine(marchState({ follow: data.followLeader, hasToken: !!status.token, deployed: status.deployed, reason: status.reason, pausedMember: status.pausedMemberUuid, manager: canEdit, hasLeader }),
@@ -165,7 +184,7 @@ export class PartyApp extends HandlebarsApplicationMixin(ApplicationV2) {
         inventorySlots: { used: inventorySlots(this.actor.items.contents, coins), max: this.actor.flags?.["shadowdark-extras"]?.partyMaxSlots ?? 10 },
         partyStats: { totalHp: visible.reduce((n,m) => n + m.hp.value, 0), maxHp: visible.reduce((n,m) => n + m.hp.max, 0), avgAc: visible.length ? Math.round(visible.reduce((n,m) => n + m.ac, 0) / visible.length) : 0, avgLevel: players.length ? Math.round(players.reduce((n,m) => n + m.level, 0) / players.length) : 0 },
         needsAdoption: canEdit && !this.actor.flags?.[MODULE_ID]?.partyData,
-        slots, followLeader: data.followLeader, formationReview: formation.needsReview, march, hasLeader,
+        slots, followLeader: data.followLeader, formationReview: formation.needsReview, march, hasLeader, bastion,
         leaderName: leaderActor?.name ?? t("SDE.party.missing"),
         canResume: !!march.canResume,
         movementDisabled: !canEdit || !status.token || combat,
@@ -262,7 +281,7 @@ export class PartySheet extends HandlebarsApplicationMixin(foundry.applications.
   }
   _onClose(options) { for (const [name, id] of this._hooks ?? []) Hooks.off(name, id); return super._onClose(options); }
 }
-for (const name of ["_prepareContext", "_change", "_quests", "_bindControls", "_activityController", "_questController", "_onStateChanged"]) PartySheet.prototype[name] = PartyApp.prototype[name];
+for (const name of ["_prepareContext", "_change", "_quests", "_bastion", "_bindControls", "_activityController", "_questController", "_onStateChanged"]) PartySheet.prototype[name] = PartyApp.prototype[name];
 
 /** Only native/adopted flagged Parties route here; ordinary NPC sheets stay intact. */
 export function registerParty() {

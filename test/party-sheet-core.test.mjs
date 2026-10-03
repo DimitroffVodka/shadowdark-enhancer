@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { partyTabs, resolveTab, sheetView, marchState, gemSummary, gpText } from "../scripts/party/party-sheet-core.mjs";
+import { partyTabs, resolveTab, sheetView, marchState, gemSummary, gpText, linkedBastion, lastMonthEntry, roomIcon, ROOM_ICONS, MONTH_LOG_KEYS } from "../scripts/party/party-sheet-core.mjs";
 
 test("the GM sees Travel; a player does not; Bastion needs a linked bastion", () => {
   assert.deepEqual(partyTabs({ isGM: true }), ["members", "items", "travel", "quests", "description"]);
@@ -72,4 +72,37 @@ test("gems: an empty bag, a missing cost and a stack of none add nothing", () =>
   assert.equal(gpText(0), "0");
   assert.equal(gpText(100), "1");
   assert.equal(gpText(5), "0.05");
+});
+
+test("the party's bastion is the one whose party link is this party and the viewer may see", () => {
+  const mine = "Actor.party1";
+  const castle = { name: "Castle", system: { party: mine } }, hold = { name: "Anchor Hold", system: { party: mine } };
+  const other = { name: "Other", system: { party: "Actor.party2" } }, unlinked = { name: "Loose", system: { party: "" } };
+  assert.equal(linkedBastion(mine, [castle, other, unlinked, hold]), hold, "several: the first by name");
+  assert.equal(linkedBastion(mine, [other, unlinked]), null, "none linked: no tab");
+  assert.equal(linkedBastion(mine, [castle, hold], (b) => b === castle), castle, "a bastion the viewer cannot see is skipped");
+  assert.equal(linkedBastion(mine, [castle], () => false), null);
+  assert.equal(linkedBastion("", [unlinked]), null, "an empty party uuid never matches an unlinked bastion");
+  assert.equal(linkedBastion(mine), null);
+});
+
+test("last month is the newest month result, not a build or a deposit", () => {
+  const log = [
+    { key: "SDE.bastion.log.quietMonth", data: { d6: 3 } },
+    { key: "SDE.bastion.log.buildStarted", data: {} },
+    { key: "SDE.bastion.log.deposited", data: {} },
+  ];
+  assert.equal(lastMonthEntry(log).key, "SDE.bastion.log.quietMonth");
+  assert.equal(lastMonthEntry([...log, { key: "SDE.bastion.log.dragon" }]).key, "SDE.bastion.log.dragon");
+  assert.equal(lastMonthEntry([{ key: "SDE.bastion.log.buildDone" }]), null);
+  assert.equal(lastMonthEntry([]), null);
+  assert.equal(lastMonthEntry(), null);
+  assert.ok(MONTH_LOG_KEYS.every((k) => k.startsWith("SDE.bastion.log.")));
+});
+
+test("every bastion upgrade has a room icon, and an unknown one falls back to the door", async () => {
+  const { BASTION_UPGRADES } = await import("../scripts/bastion/bastion-core.mjs");
+  assert.deepEqual(BASTION_UPGRADES.map((u) => u.id).filter((id) => !ROOM_ICONS[id]), []);
+  assert.equal(roomIcon("nonsense"), "fa-door-open");
+  assert.equal(roomIcon("stable"), "fa-horse");
 });
