@@ -14,7 +14,7 @@ Discord.
 
 | Route | How |
 |---|---|
-| **Crawl Bar** | Right-click **Forge & Loot** → **Session Recap** |
+| **Crawl Bar** | **Tools** → **Recap** |
 | **API** | `game.shadowdarkEnhancer.recap.open()` |
 
 ---

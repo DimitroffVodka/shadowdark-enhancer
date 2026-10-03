@@ -3,7 +3,7 @@
 [← Wiki home](index.md)
 
 An explicit native roster, shared items and party quests, without Shadowdark
-Extras. Open from the Actors directory, Party token HUD or Forge & Loot menu,
+Extras. Open from the Actors directory or Party token HUD,
 or `game.shadowdarkEnhancer.party.open(party)`; it also works with no canvas.
 
 ## The sheet

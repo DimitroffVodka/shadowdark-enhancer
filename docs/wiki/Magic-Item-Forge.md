@@ -12,7 +12,7 @@ Roll or hand-build a magic item and create it as a real Foundry item.
 
 | Route | How |
 |---|---|
-| **Crawl Bar** | Right-click **Forge & Loot** → **Magic Item Forge** |
+| **Crawl Bar** | **Tools** → **Magic items** |
 | **API** | `game.shadowdarkEnhancer.forge.open()` |
 
 Treasure and loot placeholders hand a **stable type hint** into the Forge, so

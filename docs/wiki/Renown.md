@@ -17,7 +17,7 @@ when the party encounters someone who might recognize them.
 
 | Route | How |
 |---|---|
-| **Crawl Bar** | Right-click **Forge & Loot** → **Renown** |
+| **Crawl Bar** | **Tools** → **Renown** |
 | **API** | `game.shadowdarkEnhancer.renown.open()` |
 
 The Renown window is GM-only because adjustments record directly to the session

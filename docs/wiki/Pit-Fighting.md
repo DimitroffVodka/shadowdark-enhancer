@@ -6,7 +6,7 @@ Run Cursed Scroll 2's pit fights in the book's intended order: roll the venue,
 determine the stakes against party level, choose the danger level, draw the foe,
 and manage a secret twist until the bout begins.
 
-Open it from the Crawl Bar's **Forge & Loot** menu → **Pit Fighting** (GM only).
+Open it from the Crawl Bar's **Tools** menu → **Pit fighting** (GM only).
 
 ---
 
