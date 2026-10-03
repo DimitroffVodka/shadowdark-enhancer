@@ -4,7 +4,10 @@
     <span class="sde-advp-summary">{{summary}}</span>
     <p class="sde-advp-hint">{{hint}}</p>
     <div class="sde-advp-actions">
+      <button type="button" data-action="advBook" title="{{localize 'SDE.adventure.placer.fromBookTip'}}"><i class="fas fa-wand-magic-sparkles"></i> {{localize "SDE.adventure.placer.fromBook"}}</button>
       <button type="button" data-action="advNext"><i class="fas fa-location-crosshairs"></i> {{localize "SDE.adventure.placer.placeNext"}}</button>
+      <button type="button" data-action="advMonsters" class="sde-import-secondary" title="{{localize 'SDE.adventure.placer.monstersTip'}}" aria-label="{{localize 'SDE.adventure.placer.monstersTip'}}"><i class="fas fa-skull"></i></button>
+      <button type="button" data-action="advExport" class="sde-import-secondary" title="{{localize 'SDE.adventure.placer.exportTip'}}" aria-label="{{localize 'SDE.adventure.placer.exportTip'}}"><i class="fas fa-copy"></i></button>
       <button type="button" data-action="advStop" class="sde-import-secondary" {{#unless armed}}disabled{{/unless}}><i class="fas fa-xmark"></i> {{localize "SDE.adventure.placer.stop"}}</button>
     </div>
   </header>

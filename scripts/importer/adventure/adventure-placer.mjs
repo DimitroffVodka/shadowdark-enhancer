@@ -14,7 +14,12 @@
  */
 
 import { MODULE_ID } from "../../shared/module-id.mjs";
-import { MAP_FLAG, entryPages, scenePins, placementRows, nextPending, noteData, setSkipped, placementGate, restoreSiteJournal } from "./adventure-scene.mjs";
+import { MAP_FLAG, entryPages, scenePins, placementRows, nextPending, noteData, setSkipped, placementGate, restoreSiteJournal, planBookPins, refreshPinArt, placeMarkerTokens, placeCreatureTokens } from "./adventure-scene.mjs";
+import { findSite } from "./adventure-manifest.mjs";
+import { stitchMapLabels, mapFits } from "./map-labels.mjs";
+import { layoutFor, layoutPoints, layoutFromPins, layoutSnippet, markersFor } from "./adventure-layouts.mjs";
+import { resolveSourcePdf, sourcePdfTarget } from "../source-pdf-registry.mjs";
+import { parsePageRange } from "../pdf-text-extract.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
@@ -42,6 +47,9 @@ export class AdventurePlacer extends HandlebarsApplicationMixin(ApplicationV2) {
     actions: {
       advPlace: function (...a) { return this._onPlace(...a); },
       advNext: function (...a) { return this._onNext(...a); },
+      advBook: function (...a) { return this._onBook(...a); },
+      advExport: function (...a) { return this._onExport(...a); },
+      advMonsters: function (...a) { return this._onMonsters(...a); },
       advStop: function (...a) { return this._onStop(...a); },
       advSkip: function (...a) { return this._onSkip(...a); },
       advClear: function (...a) { return this._onClear(...a); },
@@ -68,6 +76,7 @@ export class AdventurePlacer extends HandlebarsApplicationMixin(ApplicationV2) {
     if (!scene?.getFlag(MODULE_ID, MAP_FLAG)) { ui.notifications?.warn(t("SDE.adventure.notify.notAdventureScene")); return null; }
     if (canvas?.scene?.id !== scene.id) await scene.view();
     await restoreSiteJournal(scene);
+    await refreshPinArt(scene);
     const open = foundry.applications.instances?.get?.(ID);
     if (open) { open.disarm(); open.scene = scene; open.render(true); return open; }
     const app = new AdventurePlacer(scene);
@@ -196,6 +205,121 @@ export class AdventurePlacer extends HandlebarsApplicationMixin(ApplicationV2) {
     const next = nextPending(this._rows(), num);
     if (next) this.arm(next.num);
     else { this.disarm(); ui.notifications?.info(t("SDE.adventure.placer.allDone")); }
+  }
+
+  // ─── Positions that are already known ──────────────────────────────────────
+
+  /**
+   * The positions the module can place without a click, as fractions of the map:
+   * the layout saved with the module for this adventure, else (for a book that
+   * prints its room numbers as text over its map) read from the GM's own PDF.
+   * Nothing is analysed in the image either way.
+   * @returns {Promise<{points:Map<number,{x:number,y:number}>, aspect:number}|null>} null (with a message) when there are none
+   */
+  async _knownPositions(site) {
+    const saved = layoutFor(site.id);
+    if (saved) return { points: layoutPoints(saved), aspect: saved.aspect };
+    if (!site.mapPages) { ui.notifications?.info(t("SDE.adventure.placer.noBookMap")); return null; }
+    const file = resolveSourcePdf(site.src);
+    if (!file) { ui.notifications?.warn(t("SDE.importer.pdf.bookNotLinked")); return null; }
+    const pages = parsePageRange(site.mapPages).map((p) => sourcePdfTarget(site.src, String(p))?.page).filter(Number.isInteger);
+    const { extractMapLabels } = await import("../pdf-text-extract.mjs");
+    const map = stitchMapLabels(await extractMapLabels(file, pages));
+    if (!map) ui.notifications?.warn(t("SDE.adventure.placer.bookMapUnreadable"));
+    return map;
+  }
+
+  /**
+   * Place every pending location whose position is known. Placed and skipped
+   * locations are left alone. The scene's image has to be the same shape as the
+   * map the positions were taken from (the GM's copy of that map, not a different
+   * crop).
+   * @returns {Promise<{placed:number, left:number}|null>} null when nothing could be placed
+   */
+  async placeFromBook() {
+    const flag = this.scene.getFlag(MODULE_ID, MAP_FLAG);
+    const site = findSite(flag?.site);
+    if (!site) return null;
+    const token = this._gate.claim();
+    if (token === null) return null;
+    try {
+      const map = await this._knownPositions(site);
+      if (!map) return null;
+      const rect = this.scene.dimensions?.sceneRect ?? { x: 0, y: 0, width: this.scene.width, height: this.scene.height };
+      if (!mapFits(map.aspect, rect.width, rect.height)) { ui.notifications?.warn(t("SDE.adventure.placer.bookMapMismatch")); return null; }
+      const { create, left } = planBookPins({
+        rows: this._rows(), points: map.points, rect, entryId: flag.entryId, gridSize: this.scene.grid?.size,
+      });
+      if (create.length) await this.scene.createEmbeddedDocuments("Note", create);
+      ui.notifications?.info(t("SDE.adventure.placer.fromBookDone", { placed: create.length, left: left.length }));
+      await this._placeMonsters(site, rect);
+      return { placed: create.length, left: left.length };
+    } catch (err) {
+      console.error(`${MODULE_ID} | adventure placer: placing from known positions failed`, err);
+      ui.notifications?.error(t("SDE.adventure.placer.bookMapFailed"));
+      return null;
+    } finally {
+      this._gate.release();
+      this.render();
+    }
+  }
+
+  /**
+   * Put the creatures onto the scene as hidden tokens: where the book's map marks
+   * them if it does, else around the pin of each location whose text names them.
+   * A failure here never costs the pins that were just placed.
+   */
+  async _placeMonsters(site, rect) {
+    try {
+      let found;
+      if (markersFor(site.id)) found = await placeMarkerTokens(this.scene, site, rect);
+      else {
+        const { readSiteCreatures } = await import("./adventure-book-import.mjs");
+        const mentions = await readSiteCreatures(site);
+        if (!mentions) { ui.notifications?.warn(t("SDE.importer.pdf.bookNotLinked")); return null; }
+        found = await placeCreatureTokens(this.scene, site, rect, mentions);
+      }
+      if (found.placed) ui.notifications?.info(t("SDE.adventure.placer.monstersDone", { placed: found.placed }));
+      if (found.missing.length) ui.notifications?.warn(t("SDE.adventure.placer.monstersMissing", { names: found.missing.join(", ") }));
+      return found;
+    } catch (err) {
+      console.error(`${MODULE_ID} | adventure placer: placing the book's creatures failed`, err);
+      ui.notifications?.error(t("SDE.adventure.placer.monstersFailed"));
+      return null;
+    }
+  }
+
+  /** The Place monsters button: the creatures alone, for pins placed by click or a scene built before they were placed. */
+  async _onMonsters() {
+    const site = findSite(this.scene.getFlag(MODULE_ID, MAP_FLAG)?.site);
+    if (!site || this._gate.claim() === null) return;
+    try {
+      const rect = this.scene.dimensions?.sceneRect ?? { x: 0, y: 0, width: this.scene.width, height: this.scene.height };
+      const found = await this._placeMonsters(site, rect);
+      if (found && !found.placed && !found.missing.length) ui.notifications?.info(t("SDE.adventure.placer.monstersNone"));
+    } finally {
+      this._gate.release();
+    }
+  }
+
+  /**
+   * Copy this scene's pin positions as the text to paste into adventure-layouts.mjs
+   * (CONTRIBUTING.md), so the next GM never has to place them.
+   */
+  async _onExport() {
+    const flag = this.scene.getFlag(MODULE_ID, MAP_FLAG);
+    const pins = scenePins(this.scene);
+    if (!pins.length) { ui.notifications?.warn(t("SDE.adventure.placer.exportNone")); return; }
+    const rect = this.scene.dimensions?.sceneRect ?? { x: 0, y: 0, width: this.scene.width, height: this.scene.height };
+    const text = layoutSnippet(flag.site, layoutFromPins(pins, rect));
+    try { await game.clipboard.copyPlainText(text); } catch (err) { console.info(text); console.warn(`${MODULE_ID} | adventure placer: clipboard refused`, err); }
+    ui.notifications?.info(t("SDE.adventure.placer.exportDone", { n: pins.length }));
+  }
+
+  async _onBook() {
+    this.disarm();
+    await this.placeFromBook();
+    this._onNext();
   }
 
   // ─── Actions ───────────────────────────────────────────────────────────────

@@ -28,7 +28,7 @@
  *   parsePageRange(spec, max)      — "12", "12-14", "12,16,20-22" → [numbers]
  */
 
-import { collapse } from "./pdf-text-utils.mjs";
+import { collapse, BOLD_OPEN, BOLD_CLOSE, mergeBold } from "./pdf-text-utils.mjs";
 import { fileRoute } from "../shared/file-route.mjs";
 import { t as tr } from "./importer-hub-shared.mjs";
 
@@ -493,10 +493,10 @@ function columnLines(col, pad = false) {
     // A y-jump greater than ~half the glyph height starts a new line.
     if (lastY === null || Math.abs(y - lastY) > (it.height || 8) * 0.5) {
       if (cur) lines.push(cur);
-      cur = { parts: [{ x: it.transform[4], w: it.width, s: it.str, h: it.height }] };
+      cur = { parts: [{ x: it.transform[4], w: it.width, s: it.str, h: it.height, b: it.bold }] };
       lastY = y;
     } else {
-      cur.parts.push({ x: it.transform[4], w: it.width, s: it.str, h: it.height });
+      cur.parts.push({ x: it.transform[4], w: it.width, s: it.str, h: it.height, b: it.bold });
     }
   }
   if (cur) lines.push(cur);
@@ -524,10 +524,10 @@ function columnLines(col, pad = false) {
           text += " ";
         }
       }
-      text += p.s;
+      text += p.b ? BOLD_OPEN + p.s + BOLD_CLOSE : p.s;
       prevEnd = p.x + p.w;
     }
-    return text.replace(/\s+$/, "");
+    return mergeBold(text).replace(/\s+$/, "");
   });
 }
 
@@ -748,8 +748,23 @@ function _readingSpace(its, W, H) {
   return { items, width: H };
 }
 
+/**
+ * Flag the items set in a bold face. The text content names a font only by an
+ * internal id; the face's real name ("Montserrat-Bold") is on the page's font
+ * objects once its operator list has been read.
+ */
+async function _tagBold(page, items) {
+  await page.getOperatorList();
+  const bold = new Map();
+  const isBold = (id) => {
+    if (!bold.has(id)) bold.set(id, page.commonObjs.has(id) && /bold|black|heavy/i.test(page.commonObjs.get(id)?.name ?? ""));
+    return bold.get(id);
+  };
+  return items.map((i) => (isBold(i.fontName) ? { ...i, bold: true } : i));
+}
+
 /** Extract one already-loaded page to an ordered array of text lines. */
-async function extractPageLines(page, mode, { cropTablePrefix = false } = {}) {
+async function extractPageLines(page, mode, { cropTablePrefix = false, markBold = false } = {}) {
   // Force rotation:0 so page width matches the text items' coordinate space.
   // getTextContent() returns item transforms in UNROTATED page space, but a
   // viewport's default width reflects the page's /Rotate (e.g. a Rotate-90 page
@@ -760,10 +775,11 @@ async function extractPageLines(page, mode, { cropTablePrefix = false } = {}) {
   // since both dimensions then describe the same unrotated page.
   const vp = page.getViewport({ scale: 1, rotation: 0 });
   const tc = await page.getTextContent();
+  let text = tc.items.filter((i) => i.str && i.str.trim().length);
+  if (markBold) text = await _tagBold(page, text);
   // Rotate a sideways page into reading space FIRST, so the crop, the column
   // split and the gutter warnings all reason in one frame.
-  const { items, width } = _readingSpace(
-    tc.items.filter((i) => i.str && i.str.trim().length), vp.width, vp.height);
+  const { items, width } = _readingSpace(text, vp.width, vp.height);
   let its = items;
   if (cropTablePrefix) its = _cropTablePrefix(its);
   const { gutter, lines } = layoutPageItems(its, width, mode);
@@ -786,13 +802,16 @@ async function extractPageLines(page, mode, { cropTablePrefix = false } = {}) {
  *        full-width band above two columns (PGWR p.250), else as "auto".
  * @param {boolean} [opts.cropTablePrefix=false]  drop a leading full-width
  *        price-table block before column detection (shared gear pages)
+ * @param {boolean} [opts.markBold=false]  bracket every run set in a bold face
+ *        with BOLD_OPEN / BOLD_CLOSE (pdf-text-utils.mjs); stripBold() restores
+ *        the plain text. Off, the lines are exactly as before.
  * @returns {Promise<{text:string, numPages:number, warnings:string[],
  *   pages: Array<{page:number, gutter:number|null, lines:string[],
  *                 warnings:string[], empty:boolean}>}>}
  *   `warnings` flags a column split that may have moved text between columns —
  *   see gutterRisks. Advisory: the text is still returned.
  */
-export async function extractPdfText(filePath, { pages = [1], columns = "auto", cropTablePrefix = false } = {}) {
+export async function extractPdfText(filePath, { pages = [1], columns = "auto", cropTablePrefix = false, markBold = false } = {}) {
   const doc = await _openDoc(filePath);
   const wanted = pages
     .filter((n) => Number.isInteger(n) && n >= 1 && n <= doc.numPages)
@@ -800,7 +819,7 @@ export async function extractPdfText(filePath, { pages = [1], columns = "auto", 
   const results = [];
   for (const n of wanted) {
     const page = await doc.getPage(n);
-    const { gutter, lines, warnings } = await extractPageLines(page, columns, { cropTablePrefix });
+    const { gutter, lines, warnings } = await extractPageLines(page, columns, { cropTablePrefix, markBold });
     results.push({ page: n, gutter, lines, warnings, empty: lines.length === 0 });
   }
   const text = results.map((r) => r.lines.join("\n")).join("\n\n").trim();
@@ -824,6 +843,80 @@ export function notifyGutterWarnings(result) {
   for (const w of result?.warnings ?? []) {
     ui.notifications?.warn(tr("SDE.importer.pdfText.notify.columnCheck", { warning: w }));
   }
+}
+
+// ─── Keyed maps ───────────────────────────────────────────────────────────────
+
+/** 2D affine product, PDF convention [a b c d e f]: apply `n` first, then `m`. */
+const _mul = (m, n) => [
+  m[0] * n[0] + m[2] * n[1], m[1] * n[0] + m[3] * n[1],
+  m[0] * n[2] + m[2] * n[3], m[1] * n[2] + m[3] * n[3],
+  m[0] * n[4] + m[2] * n[5] + m[4], m[1] * n[4] + m[3] * n[5] + m[5],
+];
+
+/**
+ * A keyed map page: where its picture sits on the page and where the printed
+ * room numbers are. The Cursed Scrolls' key maps are one raster with the numbers
+ * laid over it as live text, so a number's position needs no image analysis.
+ *
+ * `box` is the largest image painted on the page in page points (PDF y runs up),
+ * `upright` is false when the page paints it turned or flipped, and each label is
+ * the CENTRE of a one- or two-digit text item that lies inside the box. A number
+ * printed twice (the book repeats a label across the seam of a spread) is
+ * reported once, at its first place in the page's text.
+ *
+ * Takes the page and pdf.js's OPS so it can be driven without a browser.
+ * @param {object} page  a pdf.js page
+ * @param {object} OPS   pdfjs.OPS
+ * @returns {Promise<{box:{x:number,y:number,w:number,h:number}|null, upright:boolean, labels:Array<{num:number,cx:number,cy:number}>}>}
+ */
+export async function readPageMap(page, OPS) {
+  const ops = await page.getOperatorList();
+  let ctm = [1, 0, 0, 1, 0, 0];
+  const stack = [];
+  let best = null;
+  for (let i = 0; i < ops.fnArray.length; i++) {
+    const fn = ops.fnArray[i], args = ops.argsArray[i];
+    if (fn === OPS.save) stack.push(ctm);
+    else if (fn === OPS.restore) ctm = stack.pop() ?? ctm;
+    else if (fn === OPS.transform) ctm = _mul(ctm, args);
+    else if (fn === OPS.paintImageXObject || fn === OPS.paintInlineImageXObject) {
+      const area = Math.abs(ctm[0] * ctm[3]);
+      if (!best || area > best.area) best = { area, ctm };
+    }
+  }
+  if (!best) return { box: null, upright: false, labels: [] };
+  const [a, b, c, d, e, f] = best.ctm;
+  const box = { x: Math.min(e, e + a), y: Math.min(f, f + d), w: Math.abs(a), h: Math.abs(d) };
+  const upright = a > 0 && d > 0 && Math.abs(b) < 1e-6 && Math.abs(c) < 1e-6;
+  const seen = new Set();
+  const labels = [];
+  const tc = await page.getTextContent();
+  for (const it of tc.items) {
+    const text = String(it.str ?? "").trim();
+    if (!/^\d{1,2}$/.test(text)) continue;
+    const num = Number(text);
+    if (seen.has(num)) continue;
+    // Digits sit on the baseline; their middle is a little over a third of the size up.
+    const cx = it.transform[4] + (it.width || 0) / 2, cy = it.transform[5] + Math.abs(it.transform[3]) * 0.36;
+    if (cx < box.x || cx > box.x + box.w || cy < box.y || cy > box.y + box.h) continue;
+    seen.add(num);
+    labels.push({ num, cx, cy });
+  }
+  return { box, upright, labels };
+}
+
+/**
+ * The keyed-map reads of several PDF pages of one book (a spread's two halves).
+ * @param {string} filePath  served path to the user's PDF
+ * @param {number[]} pages   1-based PDF page numbers, left to right
+ */
+export async function extractMapLabels(filePath, pages) {
+  const doc = await _openDoc(filePath);
+  const { OPS } = await _lib();
+  const out = [];
+  for (const n of pages) out.push(await readPageMap(await doc.getPage(n), OPS));
+  return out;
 }
 
 // Node-testable internals (no Foundry globals at module level).

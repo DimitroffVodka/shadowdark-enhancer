@@ -15,6 +15,7 @@ import { resolveSourcePdf, sourcePdfTarget } from "../source-pdf-registry.mjs";
 import { parsePageRange } from "../pdf-text-extract.mjs";
 import { allSites } from "./adventure-manifest.mjs";
 import { parseAdventurePages } from "./adventure-parser.mjs";
+import { creatureMentions, creatureResolver } from "./adventure-creatures.mjs";
 import { commitAdventure } from "./adventure-commit.mjs";
 import { summariseGutter } from "../hex/hex-book-import.mjs";
 
@@ -40,15 +41,49 @@ const skipOf = (site) => (site.skip ? new RegExp(site.skip) : undefined);
 
 /**
  * Read one site out of the book.
- * @returns {Promise<{locations:object[], warnings:string[]}>}
+ * @returns {Promise<{locations:object[], warnings:string[], intro:string[], introBold:string[]}>}
  */
 async function readSite({ extractPdfText, notifyGutterWarnings }, file, site, pages) {
-  const result = await extractPdfText(file, { pages, columns: "auto" });
+  const result = await extractPdfText(file, { pages, columns: "auto", markBold: true });
   notifyGutterWarnings(result);
-  const { locations, warnings } = parseAdventurePages(
+  return parseAdventurePages(
     (result.pages ?? []).map((p) => p.lines ?? []),
-    { style: site.style, range: site.range, skip: skipOf(site) });
-  return { locations, warnings };
+    { style: site.style, range: site.range, skip: skipOf(site), intro: !!site.intro });
+}
+
+/**
+ * Where a bold creature name in this site's text links to: the world's monsters (core
+ * first, then the GM's imports), plus the names the book gives a creature that the
+ * bestiary calls something else. Undefined when the world has no monsters to look in,
+ * so the text is filed plain rather than failing.
+ * @param {{creatureAliases?:Record<string,string>}} site
+ */
+async function creatureLinks(site) {
+  try {
+    const { MonsterLinker } = await import("../monsters/monster-linker.mjs");
+    return creatureResolver(await MonsterLinker.buildIndex(), site.creatureAliases);
+  } catch (err) {
+    console.warn("Shadowdark Enhancer | adventures: monster names are filed without links", err);
+    return undefined;
+  }
+}
+
+/**
+ * Who each location of a site names, read out of the GM's own book: the creatures
+ * set in bold with a count beside them (adventure-creatures.mjs), per location
+ * number. Read when the tokens are placed, never stored, so the book's text is not
+ * kept anywhere the GM did not put it.
+ * @param {{id:string, src:string, pages:string, range:[number,number], style:string, skip?:string}} site
+ * @returns {Promise<Record<number,Array<{phrase:string, count:number}>>|null>} null when the book is not linked
+ */
+export async function readSiteCreatures(site) {
+  const file = resolveSourcePdf(site.src);
+  if (!file) return null;
+  const { extractPdfText } = await import("../pdf-text-extract.mjs");
+  const pages = planSitePages(site, (p) => sourcePdfTarget(site.src, String(p))?.page ?? null);
+  const result = await extractPdfText(file, { pages, columns: "auto", markBold: true });
+  const { locations } = parseAdventurePages((result.pages ?? []).map((p) => p.lines ?? []), { style: site.style, range: site.range, skip: skipOf(site) });
+  return Object.fromEntries(locations.map((l) => [l.num, creatureMentions(l.boldLines)]));
 }
 
 /**
@@ -75,8 +110,8 @@ export async function importAdventures(src, { ids, onSite } = {}) {
     onSite?.(site.title, i + 1, sites.length);
     try {
       const pages = planSitePages(site, (p) => sourcePdfTarget(src, String(p))?.page ?? null);
-      const { locations, warnings } = await readSite({ ...pdf, notifyGutterWarnings: collect }, file, site, pages);
-      const res = await commitAdventure(site, locations, { source: label });
+      const { locations, warnings, intro, introBold } = await readSite({ ...pdf, notifyGutterWarnings: collect }, file, site, pages);
+      const res = await commitAdventure(site, locations, { source: label, intro, introBold, resolve: await creatureLinks(site) });
       report.sites.push({
         id: site.id, title: site.title, locations: locations.length,
         expected: site.range[1] - site.range[0] + 1, missing: warnings, uuid: res.entryUuid,

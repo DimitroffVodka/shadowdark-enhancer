@@ -86,7 +86,7 @@ test("a failed write keeps the location armed and frees the slot for a retry", a
 function twoScenes() {
   const mk = (id) => {
     const scene = {
-      id, grid: { size: 100 }, flags: { skipped: [1] }, updates: [], deletes: [],
+      id, grid: { size: 100 }, flags: { skipped: [1] }, updates: [], deletes: [], notes: { contents: [] },
       getFlag: () => ({ entryId: "E", skipped: scene.flags.skipped }),
       createEmbeddedDocuments: () => scene.hold(),
       deleteEmbeddedDocuments: () => scene.hold(),

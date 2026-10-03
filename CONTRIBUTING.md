@@ -186,3 +186,22 @@ every key the code asks for exists and that en.json carries none nobody uses.
 
 By contributing you agree that your contributions are licensed under the
 project's [MIT licence](LICENSE).
+
+## Adding pin positions for an adventure
+
+Cursed Scroll adventures whose room numbers are printed inside the map image are
+placed by clicking, once. To make that "once" once for everybody, capture the
+positions and ship them:
+
+1. In a world, import the adventure (Importer Hub → Tools → Adventures), then
+   Adventure map → build its scene from the book's map image and place every pin.
+   Nudge any that sit off a room.
+2. Press the **Copy layout** button (copy icon) in the Place locations window. It
+   copies one site's block: its id, the map's width over height, and each pin as
+   fractions of the map.
+3. Paste it into `ADVENTURE_LAYOUTS` in
+   `scripts/importer/adventure/adventure-layouts.mjs`, keeping the file's order.
+   `npm test` checks the layout covers the site's whole range, sits inside the map,
+   and agrees with the site's printed grid.
+
+Positions only: never commit a map image or book text.

@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { placementGate, sceneSize, placementRows, nextPending, noteData, sceneData, MAP_FLAG, PIN_FLAG, DEFAULT_GRID_SIZE } from "../scripts/importer/adventure/adventure-scene.mjs";
-import { planAdventureCommit, locationPagePayload, pageNum, ADVENTURE_FLAG } from "../scripts/importer/adventure/adventure-commit.mjs";
+import { pinIcon, pinLabelSize, PIN_LABEL_COLOR, pinArtFixes, PIN_ICON, placementGate, sceneSize, placementRows, nextPending, noteData, sceneData, planMarkerTokens, planCreatureTokens, markerTokenData, MAP_FLAG, PIN_FLAG, MARKER_FLAG, DEFAULT_GRID_SIZE } from "../scripts/importer/adventure/adventure-scene.mjs";
+import { planAdventureCommit, locationPagePayload, introPagePayload, isIntroPage, pageNum, ADVENTURE_FLAG } from "../scripts/importer/adventure/adventure-commit.mjs";
 
 // Invented data throughout.
 
@@ -48,11 +48,56 @@ test("nextPending: the next one after, wrapping to the first, null when none is 
   assert.equal(nextPending(placementRows(PAGES, [{ id: "a", num: 1 }, { id: "b", num: 2 }, { id: "c", num: 3 }], [])), null);
 });
 
-test("noteData: a numbered pin at the point, flagged with its number, sized from the grid", () => {
+test("noteData: the pin art for its number, no text of its own, sized from the grid, flagged with its number", () => {
   const n = noteData({ entryId: "E", pageId: "P", num: 12, point: { x: 10.6, y: 20.4 }, gridSize: 100 });
-  assert.deepEqual([n.x, n.y, n.text, n.iconSize], [11, 20, "12", 50]);
+  assert.deepEqual([n.x, n.y, n.text, n.iconSize], [11, 20, "", 90]);
+  assert.equal(n.texture.src, "modules/shadowdark-enhancer/icons/adventure-pins/pin-12.svg");
   assert.deepEqual(n.flags["shadowdark-enhancer"][PIN_FLAG], { num: 12 });
-  assert.equal(noteData({ entryId: "E", pageId: "P", num: 1, point: { x: 0, y: 0 }, gridSize: 20 }).iconSize, 24);
+  assert.equal(noteData({ entryId: "E", pageId: "P", num: 1, point: { x: 0, y: 0 }, gridSize: 20 }).iconSize, 32);
+});
+
+test("pinIcon: art for 1 to 99, the book icon beyond", () => {
+  assert.match(pinIcon(1), /pin-1\.svg$/);
+  assert.match(pinIcon(99), /pin-99\.svg$/);
+  assert.equal(pinIcon(100), PIN_ICON);
+  assert.equal(pinIcon(0), PIN_ICON);
+  assert.equal(pinIcon("x"), PIN_ICON);
+});
+
+test("pinLabelSize: half the chip, within Foundry's 8 to 128 and never tiny", () => {
+  assert.equal(pinLabelSize(53), 24);                  // chip 48 -> 24
+  assert.equal(pinLabelSize(100), 45);                 // chip 90
+  assert.equal(pinLabelSize(300), 128);                // chip 270 -> capped at Foundry's maximum
+  assert.equal(noteData({ entryId: "E", pageId: "P", num: 3, point: { x: 0, y: 0 }, gridSize: 100 }).fontSize, 45);
+});
+
+test("the label is black, and pinArtFixes turns Foundry's default white black but keeps a colour the GM chose", () => {
+  assert.equal(noteData({ entryId: "E", pageId: "P", num: 3, point: { x: 0, y: 0 } }).textColor, PIN_LABEL_COLOR);
+  const base = { id: "a", num: 3, src: pinIcon(3), text: "", iconSize: 48, fontSize: 24 };
+  assert.deepEqual(pinArtFixes([{ ...base, textColor: "#ffffff" }], 53), [{ _id: "a", text: "", "texture.src": pinIcon(3), textColor: PIN_LABEL_COLOR }]);
+  assert.deepEqual(pinArtFixes([{ ...base, textColor: "#000000" }], 53), []);
+  assert.deepEqual(pinArtFixes([{ ...base, textColor: "#ff0000" }], 53), []);   // chosen by hand: kept
+});
+
+test("pinArtFixes: old pins get the art; hand-set sizes are kept; current pins are left alone", () => {
+  const oldLabel = { id: "e", num: 8, src: "icons/svg/book.svg", text: "8", iconSize: 27, fontSize: 24 };
+  const resized = { id: "b", num: 5, src: "icons/svg/book.svg", text: "5", iconSize: 60, fontSize: 90 };
+  const current = { id: "c", num: 6, src: pinIcon(6), text: "", iconSize: 48, fontSize: 24 };
+  assert.deepEqual(pinArtFixes([oldLabel, resized, current], 53), [
+    { _id: "e", text: "", "texture.src": pinIcon(8), iconSize: 48 },    // 24 already is the right label for grid 53
+    { _id: "b", text: "", "texture.src": pinIcon(5) },
+  ]);
+  assert.deepEqual(pinArtFixes([current], 53), []);
+  // Foundry keeps a Note's iconSize at 32 or more, so on a small grid the old default (27) was stored as 32.
+  const storedMin = { id: "d", num: 7, src: "icons/svg/book.svg", text: "7", iconSize: 32, fontSize: 24 };
+  assert.deepEqual(pinArtFixes([storedMin], 53), [{ _id: "d", text: "", "texture.src": pinIcon(7), iconSize: 48 }]);
+});
+
+test("pinArtFixes: a chip left at Foundry's default label size gets the sized label (Wortwick on a 300 px grid)", () => {
+  const chip = { id: "w", num: 1, src: pinIcon(1), text: "", iconSize: 270, fontSize: 32 };
+  assert.deepEqual(pinArtFixes([chip], 300), [{ _id: "w", text: "", "texture.src": pinIcon(1), fontSize: 128 }]);
+  assert.deepEqual(pinArtFixes([{ ...chip, fontSize: 128 }], 300), []);
+  assert.deepEqual(pinArtFixes([{ ...chip, fontSize: 90 }], 300), []);   // set by hand: kept
 });
 
 test("planAdventureCommit: creates, updates by number, reports a collision once", () => {
@@ -69,6 +114,62 @@ test("locationPagePayload: page name, html, and the number on the flag", () => {
   assert.deepEqual(p.flags["shadowdark-enhancer"][ADVENTURE_FLAG], { num: 4 });
   assert.equal(pageNum({ flags: { "shadowdark-enhancer": { [ADVENTURE_FLAG]: { num: 4 } } } }), 4);
   assert.equal(pageNum({ flags: {} }), null);
+});
+
+test("page payloads link the bold creature names they are given, and are plain without them", () => {
+  const O = "\u0001", C = "\u0002";
+  const resolve = (phrase) => (/^gribbles?$/i.test(phrase) ? "Compendium.x.Actor.GRIB" : undefined);
+  const loc = { num: 1, name: "PEN", bodyLines: ["Two Gribbles bark."], boldLines: [`Two ${O}Gribbles${C} bark.`] };
+  assert.match(locationPagePayload(loc, new Set([1]), { resolve }).text.content, /Two @UUID\[Compendium\.x\.Actor\.GRIB\]\{Gribbles\} bark\./);
+  assert.match(locationPagePayload(loc, new Set([1])).text.content, /<p>Two Gribbles bark\.<\/p>/);
+  assert.match(locationPagePayload({ ...loc, boldLines: undefined }, new Set([1]), { resolve }).text.content, /<p>Two Gribbles bark\.<\/p>/);
+  const intro = introPagePayload(["A gribble."], new Set(), { boldLines: [`A ${O}gribble${C}.`], resolve });
+  assert.match(intro.text.content, /A @UUID\[Compendium\.x\.Actor\.GRIB\]\{gribble\}\./);
+  assert.match(introPagePayload(["A gribble."], new Set(), { boldLines: [], resolve }).text.content, /<p>A gribble\.<\/p>/, "marked lines that do not match the plain ones are not used");
+});
+
+test("introPagePayload: a numberless page that sorts first and is found by its flag", () => {
+  const p = introPagePayload(["ABOUT", "Fog rolls in. See Area 2."], new Set([2]));
+  assert.equal(p.name, "SDE.importer.adventure.introPage");
+  assert.ok(p.sort < 0);
+  assert.match(p.text.content, /<strong>About<\/strong>/);
+  assert.match(p.text.content, /@@LOC\[2\]\{2\}@@/);
+  assert.deepEqual(p.flags["shadowdark-enhancer"][ADVENTURE_FLAG], { intro: true });
+  assert.equal(isIntroPage(p), true);
+  assert.equal(pageNum(p), null);
+  assert.equal(isIntroPage({ flags: { "shadowdark-enhancer": { [ADVENTURE_FLAG]: { num: 3 } } } }), false);
+  assert.equal(isIntroPage(null), false);
+});
+
+test("planMarkerTokens: each marker in the grid square it falls in, keyed by letter and order", () => {
+  const rect = { x: 0, y: 0, width: 2800, height: 2800 };   // 28 squares of 100
+  const markers = { A: { monster: "Foo", at: [[0.0149, 0.0001], [0.5, 0.995]] }, P: { monster: "Bar", at: [[0.999, 0.5]] } };
+  assert.deepEqual(planMarkerTokens({ markers, rect, gridSize: 100 }), [
+    { key: "A1", monster: "Foo", x: 0, y: 0 },
+    { key: "A2", monster: "Foo", x: 1400, y: 2700 },
+    { key: "P1", monster: "Bar", x: 2700, y: 1400 },
+  ]);
+  // A scene whose image sits inside padding is measured from the image's corner.
+  assert.deepEqual(planMarkerTokens({ markers: { A: { monster: "Foo", at: [[0.5, 0.5]] } }, rect: { x: 300, y: 200, width: 2800, height: 2800 }, gridSize: 100 }),
+    [{ key: "A1", monster: "Foo", x: 1700, y: 1600 }]);
+  assert.deepEqual(planMarkerTokens({ markers: null, rect }), []);
+});
+
+test("planMarkerTokens: a creature already placed is not placed again, so a second run adds nothing", () => {
+  const rect = { x: 0, y: 0, width: 1000, height: 1000 };
+  const markers = { A: { monster: "Foo", at: [[0.1, 0.1], [0.5, 0.5], [0.9, 0.9]] } };
+  assert.deepEqual(planMarkerTokens({ markers, rect, gridSize: 100, placed: ["A1", "A3"] }).map((p) => p.key), ["A2"]);
+  assert.deepEqual(planMarkerTokens({ markers, rect, gridSize: 100, placed: ["A1", "A2", "A3"] }), []);
+});
+
+test("markerTokenData: hidden, in its square, tied to its actor and marked so a rerun finds it; the source is not changed", () => {
+  const source = { _id: "tmp", name: "Foo", width: 1, flags: { "shadowdark-enhancer": { other: 1 }, elsewhere: { x: 1 } } };
+  const td = markerTokenData(source, { key: "K2", x: 300, y: 600 }, "cs3-wortwick", "ACT1");
+  assert.deepEqual([td.x, td.y, td.actorId, td.hidden, td._id], [300, 600, "ACT1", true, undefined]);
+  assert.deepEqual(td.flags["shadowdark-enhancer"], { other: 1, [MARKER_FLAG]: { site: "cs3-wortwick", key: "K2" } });
+  assert.deepEqual(td.flags.elsewhere, { x: 1 });
+  assert.equal(source._id, "tmp");
+  assert.equal(source.flags["shadowdark-enhancer"][MARKER_FLAG], undefined);
 });
 
 test("placementGate: a second click while a write is pending is refused, and the slot frees on release", () => {
@@ -88,4 +189,55 @@ test("placementGate: a write that finishes after a cancel no longer owns the ses
   gate.release();
   assert.equal(gate.alive(token), false);
   assert.equal(gate.alive(gate.claim()), true);
+});
+
+// ─── Creatures around a pin ──────────────────────────────────────────────────
+
+const RECT = { x: 100, y: 100, width: 1000, height: 1000 };   // a 10 x 10 map of 100 px squares, offset by the scene padding
+const squareOf = (t) => [(t.x - RECT.x) / 100, (t.y - RECT.y) / 100];
+
+test("planCreatureTokens: one token per creature, each in its own square beside the pin, never on it", () => {
+  const plan = planCreatureTokens({
+    creatures: { 4: [{ monster: "Gribble", count: 3 }, { monster: "Wibbet", count: 1 }] },
+    pins: { 4: { x: 550, y: 550 } }, rect: RECT, gridSize: 100,
+  });
+  assert.equal(plan.length, 4);
+  assert.deepEqual(plan.map((p) => p.key), ["4/Gribble/1", "4/Gribble/2", "4/Gribble/3", "4/Wibbet/1"]);
+  const squares = plan.map((p) => squareOf(p).join(","));
+  assert.equal(new Set(squares).size, 4, "no two share a square");
+  assert.ok(!squares.includes("4,4"), "the pin's own square (col 4, row 4) is left to the pin");
+  for (const p of plan) { const [c, r] = squareOf(p); assert.ok(Math.abs(c - 4) <= 1 && Math.abs(r - 4) <= 1, "all in the first ring while it has room"); }
+});
+
+test("planCreatureTokens: another room's pin square is kept clear too", () => {
+  const plan = planCreatureTokens({
+    creatures: { 1: [{ monster: "Gribble", count: 8 }] },
+    pins: { 1: { x: 550, y: 550 }, 2: { x: 650, y: 550 } },   // 2 is right beside 1
+    rect: RECT, gridSize: 100,
+  });
+  assert.equal(plan.length, 8);
+  assert.ok(!plan.some((p) => squareOf(p).join(",") === "5,4"), "room 2's pin square has no token");
+});
+
+test("planCreatureTokens: tokens already placed keep their squares, so the rest land where they would have", () => {
+  const args = { creatures: { 4: [{ monster: "Gribble", count: 3 }] }, pins: { 4: { x: 550, y: 550 } }, rect: RECT, gridSize: 100 };
+  const all = planCreatureTokens(args);
+  const rest = planCreatureTokens({ ...args, placed: ["4/Gribble/1"] });
+  assert.deepEqual(rest, all.slice(1));
+  assert.deepEqual(planCreatureTokens({ ...args, placed: all.map((p) => p.key) }), []);
+});
+
+test("planCreatureTokens: a corner pin never puts a token off the map; a location with no pin places nothing", () => {
+  const plan = planCreatureTokens({
+    creatures: { 1: [{ monster: "Gribble", count: 5 }], 9: [{ monster: "Wibbet", count: 2 }] },
+    pins: { 1: { x: 120, y: 120 } }, rect: RECT, gridSize: 100,
+  });
+  assert.equal(plan.length, 5, "room 9 has no pin");
+  for (const p of plan) { const [c, r] = squareOf(p); assert.ok(c >= 0 && r >= 0 && c < 10 && r < 10); }
+});
+
+test("planCreatureTokens: more creatures than squares around a pin fill what there is and stop", () => {
+  const tiny = { x: 0, y: 0, width: 300, height: 300 };   // 3 x 3: eight squares besides the pin's
+  const plan = planCreatureTokens({ creatures: { 1: [{ monster: "Gribble", count: 20 }] }, pins: { 1: { x: 150, y: 150 } }, rect: tiny, gridSize: 100 });
+  assert.equal(plan.length, 8);
 });

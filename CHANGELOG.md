@@ -17,6 +17,50 @@ it needs.
 
 ### Added
 
+- **Monster names in adventure text are links.** In every adventure's room pages (and
+  Wortwick's Introduction), a creature the book sets in bold that your bestiary knows now links
+  to that monster, so a room opens the stat block it names. A bold word that is not a creature
+  stays plain, and Wortwick's "monks" link to the Acolyte, as its own "monks (acolytes)" says.
+  Run Adventures again to add the links to pages you already filed.
+- **Adventure maps come with their monsters.** Every adventure's scene now gets the creatures
+  its rooms name, as hidden tokens beside each room's pin: the books set a creature's name in
+  bold with its number just before it, and the module reads that from your own PDF, matches the
+  name to the core bestiary or your imported monsters, and places one token per creature in its
+  own square around the number (the pin stays visible). Dice counts (1d4), chances (2:6) and
+  creatures said to be in another Area are left to you. A **skull button** in the Place
+  locations window places them for pins you clicked in yourself; pressing it or Auto-place
+  again never doubles a creature.
+- **Wortwick Monastery imports whole, with its monsters on the map.** The adventure was read
+  from the wrong pages and stopped at room 5, losing the Chapel (with its hidden cache) and the
+  Abbot's Quarters; it now files all seven rooms, plus an **Introduction** page (Raiding, The
+  Monastery, Inhabitants) that sorts first. Its map marks every monk, knight and the abbot with
+  a letter, so the scene now gets a hidden Acolyte, Knight and Priest token for each in the
+  square the book draws it in (12, 4 and 1, the counts the book's text gives), from the core
+  bestiary or your own imported monsters. Pressing Auto-place again never doubles them.
+- **Adventure map pins match the books' GM key.** Pins are now numbered black chips drawn
+  for the module (SVG, numerals traced from Montserrat Bold, the font the key uses), not the
+  generic book icon, so a map reads like the book's own. Pins you placed earlier take the
+  new look the next time you open the scene's Place locations window.
+- **Adventure map is one step.** Choose the map image that came with the book from your
+  computer (it is uploaded to your world for you) and the module
+  recognises the adventure from the file's name, imports its journal from your PDF if you
+  have not, builds the scene and pins every location it knows the position of. Choose the
+  adventure from the list when the file's name does not say.
+- **Every adventure places its own pins.** The module now ships where each room number
+  sits on its map for every Cursed Scroll adventure and every Western Reaches Mini
+  Adventure, as positions only (fractions of the map, so any resolution fits). Pick the
+  map image, and Adventure map builds the scene and pins every location with no
+  clicking; an **Auto-place** button does the same for an existing scene, and you nudge
+  any pin that misses. The map image has to be the same shape as the map the positions
+  came from; if it is more than 3% off, nothing is placed and you are told why. For a map
+  of your own, the placer's **Copy layout** button turns a map you have placed into data
+  that can ship with the module.
+- **The six Western Reaches Mini Adventures import as journals.** Tools → **Adventures**
+  now also reads House of Rogues, Grotto of the Golden Swan, Forge of the Metallic
+  Sisters, Fallen Keep of the Emerald Knight, Burial Mound of Kaghan and Chapel of the
+  Plague Priestesses from your own PDFs (each is its own two-page book): one journal
+  each with a page per numbered room, 54 rooms in all, "Area N" references linked. Their
+  maps come with positions too, so Adventure map pins every room with no clicking.
 - **Retry-safe shared quest payouts.** Confirmed recipients/effects are saved
   before payout; per-character XP, coins, items and renown finish once after
   partial failure or reload. Paid follows successful intended effects, empty
