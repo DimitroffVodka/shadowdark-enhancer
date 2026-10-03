@@ -11984,6 +11984,7 @@ button.sde-hud-day:hover { border-color: var(--sd-frame); }
 .sde-mount-npc .ability-score span { font-size: 18px; font-family: "Montserrat-SemiBold"; width: 2.5em; }
 .sde-mount-npc .ability-score .sde-mount-damaged { color: #b3261e; text-shadow: 0 0 6px rgba(179, 38, 30, 0.6); }
 .sde-mount-npc .sde-mount-traits { display: grid; gap: 6px; padding: 4px 6px 6px; }
+.sde-mount-npc .SD-nav { flex-wrap: wrap; }
 .sde-mount-npc .sde-tab-count { font-size: 12px; vertical-align: super; opacity: 0.75; }
 
 /* Mount tab: boxes in two columns so the rules fit one screen. */

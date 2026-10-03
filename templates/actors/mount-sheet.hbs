@@ -298,6 +298,13 @@
             </div>
           </div>
           <ol class="SD-list sde-mount-spells">
+            <li class="header">
+              <div class="item-name">{{localize "SHADOWDARK.item.spell.label"}}</div>
+              <div class="flex-60-px">{{localize "SHADOWDARK.class-ability.dc.label"}}</div>
+              <div class="duration">{{localize "SHADOWDARK.item.spell_duration"}}</div>
+              <div class="range">{{localize "SHADOWDARK.item.spell_range"}}</div>
+              <div class="actions"></div>
+            </li>
             {{#each spells}}
               <li class="item expanded" data-item-id="{{id}}" data-uuid="{{uuid}}">
                 <div class="item-image" style="background-image: url({{img}})"><i class="fas fa-comment"></i></div>
@@ -366,7 +373,7 @@
                 <div class="effect-image"><img src="{{img}}" /></div>
                 <div class="effect-name">{{name}}</div>
                 <div class="effect-name">{{source}}</div>
-                <div class="effect-duration">{{#if unlimited}}<i class="fas fa-infinity"></i>{{else}}{{duration}}{{/if}}</div>
+                <div class="effect-duration">{{#if unlimited}}<i class="fas fa-infinity"></i>{{else if duration}}{{duration}}{{else}}<i class="fas fa-clock"></i>{{/if}}</div>
                 <div class="actions">
                   <a data-action="effectControl" data-effect-action="toggle" data-tooltip="{{localize 'SHADOWDARK.sheet.general.active_effects.toggle_effect.tooltip'}}">
                     {{#if disabled}}<i class="fas fa-circle-xmark"></i>{{else}}<i class="fas fa-circle-check" style="color:var(--primary);"></i>{{/if}}

@@ -192,10 +192,16 @@ export class MountSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       else if (i.type === "Effect") effects[i.system.category]?.items.push({ id: i.id, uuid: i.uuid, name: i.name, img: i.img, unlimited: i.system.duration?.type === "unlimited" });
     }
     Object.assign(context, { attacks, specials, features, spells, effects: Object.values(effects) });
-    context.activeEffects = actor.allApplicableEffects().filter((e) => !e.isSuppressed).map((e) => ({
-      uuid: e.uuid, name: e.name, img: e.img, source: e.parent?.name, duration: e.durationLabel,
-      unlimited: e.durationLabel === "None", disabled: e.disabled, situational: !!e.isSituational,
-    }));
+    // v14 effects carry no label of their own: a duration is finite or event-based when isTemporary, and the
+    // prepared duration tells how long is left (Infinity for an event with no timer).
+    context.activeEffects = actor.allApplicableEffects().filter((e) => !e.isSuppressed).map((e) => {
+      const left = e.duration?.remaining;
+      return {
+        uuid: e.uuid, name: e.name, img: e.img, source: e.parent?.name, disabled: e.disabled, situational: !!e.isSituational,
+        unlimited: !e.isTemporary,
+        duration: e.isTemporary && Number.isFinite(left) ? `${Math.max(0, Math.ceil(left))} ${e.duration.units}` : "",
+      };
+    });
     context.predefinedEffects = await shadowdark.effects.getPredefinedEffectsList();
   }
 
@@ -265,7 +271,7 @@ export class MountSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   async _processSubmitData(event, form, submitData, options = {}) {
     const predefined = submitData.predefinedEffects;
     delete submitData.predefinedEffects;
-    if (predefined) await shadowdark.effects.createPredefinedEffect(this.actor, predefined);
+    if (predefined && event?.target?.name === "predefinedEffects") await shadowdark.effects.createPredefinedEffect(this.actor, predefined);
     const base = submitData.flags?.[MODULE_ID]?.mountScores?.base;
     if (!base) return super._processSubmitData(event, form, submitData, options);
     delete submitData.flags[MODULE_ID].mountScores;

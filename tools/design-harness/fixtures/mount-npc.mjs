@@ -33,7 +33,7 @@ const build = (state) => {
       npcChoices: [{ uuid: "Actor.n1", name: "Horse (riding)" }, { uuid: "Actor.n2", name: "Pony" }],
       spells: [{ id: "sp1", uuid: "Item.sp1", name: "Cure Wounds", img: "/icons/svg/heal.svg", lost: false, dc: 12, focus: false, duration: "Instant", range: "Close", description: "<p>Heals 1d6 hit points.</p>" }],
       effects: [{ label: "Effects", items: [{ id: "e1", uuid: "Item.e1", name: "Lantern light", img: "/icons/svg/light.svg", unlimited: false }] }, { label: "Conditions", items: [] }],
-      activeEffects: [{ uuid: "ActiveEffect.1", name: "Haste", img: "/icons/svg/wing.svg", source: "Warhorse", duration: "3 rounds", unlimited: false, disabled: false, situational: false }],
+      activeEffects: [{ uuid: "ActiveEffect.1", name: "Haste", img: "/icons/svg/wing.svg", source: "Warhorse", duration: "3 rounds", unlimited: false, disabled: false, situational: false }, { uuid: "ActiveEffect.2", name: "Blessing of the road", img: "/icons/svg/sun.svg", source: "Warhorse", duration: "", unlimited: true, disabled: false, situational: false }, { uuid: "ActiveEffect.3", name: "Until the next rest", img: "/icons/svg/sleep.svg", source: "Warhorse", duration: "", unlimited: false, disabled: false, situational: true }],
       predefinedEffects: [{ key: "blessed", name: "Blessed" }], enrichedNotes: "<p>Bred in the Western Reaches.</p>",
     },
     toolbar: `<span>State:</span>${TABS.map(([id]) => `<button data-action="changeTab" data-tab="${id}">${id}</button>`).join("")}<button data-action="toggleEditStats">pencil</button>`,
