@@ -2,6 +2,7 @@ import { MODULE_ID } from "../shared/module-id.mjs";
 import { CampingApp } from "../camping/camping-app.mjs";
 import { CarousingApp } from "../carousing/carousing-app.mjs";
 import { Party, isNativeParty, isLegacyParty } from "./party.mjs";
+import { offerParty } from "./party-create-option.mjs";
 import { scopedQuests } from "./party-core.mjs";
 import { fillFormation } from "./party-movement-core.mjs";
 import { configureMovement, requestMovement, movementStatus, inPartyCombat, MOVEMENT_CHANGED } from "./party-movement.mjs";
@@ -254,11 +255,7 @@ export function registerParty() {
       const convert = value => value.type !== "sde-party" ? value : { ...value, type: "NPC", img: value.img || "icons/environment/people/group.webp", flags: { ...value.flags, [MODULE_ID]: { ...value.flags?.[MODULE_ID], party: true } }, prototypeToken: { ...value.prototypeToken, actorLink: true } };
       return create.call(this, Array.isArray(data) ? data.map(convert) : convert(data), options);
     };
-    Hooks.on("renderDialogV2", (_app, html) => {
-      const select = html.querySelector?.('select[name="type"]');
-      if (!select?.querySelector('option[value="NPC"]') || select.querySelector('option[value="sde-party"]')) return;
-      const option = document.createElement("option"); option.value = "sde-party"; option.textContent = t("SDE.party.title"); select.append(option);
-    });
+    Hooks.on("renderDialogV2", (_app, html) => offerParty(html.querySelector?.('select[name="type"]'), t("SDE.party.title")));
   }
   Hooks.on("getActorContextOptions", (directory, entries) => {
     const actorOf = (el) => directory.collection.get(el.closest("[data-entry-id]")?.dataset.entryId);

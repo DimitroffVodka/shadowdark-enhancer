@@ -2,6 +2,7 @@
 
 ## [Unreleased]
 ### Fixed
+- Create Actor lists one Party, not two: with Shadowdark Extras also active, its separate "Party" entry is dropped and the Enhancer's stays (Extras on its own still shows its own). Existing Extras parties still open in the Enhancer's sheet.
 - Make Party Travel actionable in-sheet: camping/carousing choices and results no longer open separate activity windows. Embed Party-scoped quest management and payout confirmation, and edit descriptions inline. Disable Place/Recall without a linked Party token and show Resume only for a deployed group; keep camp rules collapsible and saved results above task setup. Label unavailable carousing tiers and disable commitment until usable tables are selected.
 - Restore the existing ApplicationV2 Party-sheet layout, detailed portrait/stat/ability/effect cards and five tabs instead of the stripped-down replacement. Native flagged Party actors open their Party sheet normally; Create Actor offers Party while preserving the existing flagged-NPC representation. Remove the all-world actor dropdown; members are added explicitly by drag-and-drop.
 - Name the Party header's movement controls: a visible Marching formation heading, an explicit `Leader:` line, and a labelled `Status:` line, instead of one unlabelled leader-plus-status debug string. Restore visibly ticked native checkboxes across the sheet; Foundry 14's dark colour scheme was rendering them as unreadable solid squares.
