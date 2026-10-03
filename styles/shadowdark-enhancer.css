@@ -659,12 +659,11 @@ body.theme-light .sde-bar-start-btn:hover {
   50%      { opacity: 1; }
 }
 
-/* Honor reduced-motion: kill the looping pulse animations (rollinit + active
-   turn). The static color/border/box-shadow states remain, so the affordance
-   and active-turn highlight are still visible — just not animated. */
+/* Honor reduced-motion: kill the looping rollinit pulse. The static
+   color/border/box-shadow state remains, so the affordance is still visible —
+   just not animated. (The active turn's ring never animates.) */
 @media (prefers-reduced-motion: reduce) {
-  .sde-strip-rollinit-btn::after,
-  .sde-strip-member.sde-strip-is-turn::after {
+  .sde-strip-rollinit-btn::after {
     animation: none !important;
   }
 }
@@ -687,32 +686,31 @@ body.theme-light .sde-bar-start-btn:hover {
 /* Light theme: the chat badge kept its near-black ground while the accent
    text token flipped dark — and the pale adv/dis greens/reds washed out. */
 body.theme-light .sde-chat-init-total { background: rgba(248, 245, 238, 0.92); }
-body.theme-light .sde-strip-init-badge { color: var(--sde-bar-accent-dim); }
 body.theme-light .sde-chat-adv { color: #2e6b2e; }
 body.theme-light .sde-chat-dis { color: #a33326; }
 
 /* Init result badge — replaces the dice button once an initiative is recorded. */
 .sde-strip-init-badge {
   position: absolute;
-  /* Below the name row (level with the AC line) so it never covers the name. */
-  top: 22px;
-  right: 3px;
-  min-width: 22px;
+  /* A dark chip at the card's left, mid-height: clear of the name above and the
+     HP bar below, and a number on a chip reads over any portrait. */
+  top: 50%;
+  left: 3px;
+  transform: translateY(-50%);
+  min-width: 20px;
   height: 20px;
   padding: 0 5px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: transparent;
-  border: none;
-  border-radius: 4px;
-  color: var(--sde-bar-accent);
+  background: rgba(0,0,0,0.7);
+  border-radius: 10px;
+  font-family: "Old Newspaper Font", serif;
+  color: var(--sde-strip-ring-text);
   font-weight: 700;
   font-size: 13px;
   letter-spacing: 0.5px;
   z-index: 3;
-  /* Transparent badge — legibility comes from a strong shadow, not a box. */
-  text-shadow: 0 1px 3px rgba(0,0,0,0.95), 0 0 3px rgba(0,0,0,0.9);
 }
 
 /* ── Members strip ────────────────────────────────────────────────────────── */
@@ -750,9 +748,12 @@ body.theme-light .sde-chat-dis { color: #a33326; }
 }
 /* Dim / defeated / hidden fade the card's children, not the card: a child can't
    undo its parent's opacity, and a lit flame must read at full strength on
-   every card so the table can see who carries light (#164). The dim rule ties
-   the later defeated/hidden portrait filters on specificity, so those win. */
-.sde-strip-member.sde-strip-dim > :not(.sde-strip-light-lit) { opacity: 0.4; filter: saturate(0.4); }
+   every card so the table can see who carries light (#164). A waiting card sits
+   back at 80% but keeps readable text; only the portrait is darkened. The dim
+   portrait rule ties the later defeated/hidden portrait filters on specificity,
+   so those win. */
+.sde-strip-member.sde-strip-dim > :not(.sde-strip-light-lit) { opacity: 0.8; }
+.sde-strip-member.sde-strip-dim .sde-strip-portrait { filter: saturate(0.5) brightness(0.6); }
 
 .sde-strip-member.sde-strip-active.sde-strip-type-player,
 .sde-strip-member.sde-strip-active.sde-strip-type-gm {
@@ -842,31 +843,25 @@ body.theme-light .sde-chat-dis { color: #a33326; }
 
 /* ── Name — top of card ───────────────────────────────────────────────────── */
 
+/* A name wraps onto a second line rather than ellipsizing ("Animated Arm…" hid
+   which creature it was); only a third line would be clipped. The scrim is
+   solid enough that the name is readable over any portrait. */
 .sde-strip-name {
   font-size: 12px;
   font-weight: 700;
-  color: var(--sde-bar-overlay-text);
+  color: #f0f0f0;
   text-align: center;
   width: 100%;
   overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  padding: 3px 4px 2px;
-  background: linear-gradient(to bottom, var(--sde-bar-overlay-dark) 0%, transparent 100%);
-  line-height: 1.3;
-  text-shadow: 0 1px 3px rgba(0,0,0,0.9);
-  flex-shrink: 0;
-}
-
-/* The GM card carries ONLY a name (no AC line, effects row, HP bar or pills),
-   so it has the vertical room the stat cards don't. Let the name wrap instead
-   of ellipsizing: "Game Master" measures ~89px against a ~74px content box and
-   was rendering as "Game Mas…" — unreadable, which is the whole point of the
-   card. Stat cards keep the single-line ellipsis. */
-.sde-strip-type-gm .sde-strip-name {
-  white-space: normal;
   overflow-wrap: anywhere;
-  line-height: 1.15;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  padding: 3px 4px 1px;
+  background: rgba(0,0,0,0.72);
+  line-height: 1.1;
+  flex-shrink: 0;
 }
 
 /* ── Active effects row — above HP bar ────────────────────────────────────── */
@@ -895,6 +890,8 @@ body.theme-light .sde-chat-dis { color: #a33326; }
   flex-direction: column;
   flex-shrink: 0;
   margin-top: auto;
+  /* A scrim under the HP label and pills so their text reads over a bright portrait. */
+  background: linear-gradient(to top, rgba(0,0,0,0.85), transparent);
 }
 
 .sde-strip-hp-bar-wrap {
@@ -924,9 +921,7 @@ body.theme-light .sde-chat-dis { color: #a33326; }
   font-weight: 700;
   color: #fff;
   line-height: 1;
-  text-shadow:
-    0 1px 2px rgba(0,0,0,0.95),
-    0 0 4px rgba(0,0,0,0.7);
+  text-shadow: 0 1px 2px #000, 0 0 3px #000;
 }
 
 /* ── Pills — luck + movement ──────────────────────────────────────────────── */
@@ -935,8 +930,6 @@ body.theme-light .sde-chat-dis { color: #a33326; }
   display: flex;
   gap: 0;
   width: 100%;
-  /* Transparent — let the portrait show through; text-shadow carries legibility. */
-  background: transparent;
 }
 .sde-strip-pill {
   display: inline-flex;
@@ -950,11 +943,8 @@ body.theme-light .sde-chat-dis { color: #a33326; }
   font-weight: 700;
   color: var(--sde-bar-overlay-text);
   flex: 1;
-  text-shadow: 0 1px 3px rgba(0,0,0,0.9);
+  text-shadow: 0 1px 2px #000, 0 0 3px #000;
   white-space: nowrap;
-}
-.sde-strip-pill + .sde-strip-pill {
-  border-left: 1px solid rgba(255,255,255,0.1);
 }
 .sde-strip-pill i { font-size: 11px; }
 .sde-bar-icon-shamrock            { width: 14px; height: 14px; vertical-align: middle; margin-right: 2px; }
@@ -969,15 +959,14 @@ body.theme-light .sde-chat-dis { color: #a33326; }
 /* AC sub-line lives right under the name to keep the pill row uncrowded. */
 .sde-strip-ac-line {
   display: inline-block;
-  margin: 1px auto 2px;
+  margin: 2px auto 2px;
   padding: 0 6px;
   font-size: 10px;
   font-weight: 700;
   letter-spacing: 0.5px;
-  color: #c8d8ff;
-  background: rgba(60, 60, 80, 0.55);
+  color: #f0f0f0;
+  background: rgba(0,0,0,0.72);
   border-radius: 3px;
-  text-shadow: 0 1px 2px rgba(0,0,0,0.9);
   align-self: center;
 }
 .sde-strip-pill[data-action="spendLuck"] { cursor: pointer; pointer-events: auto; }
@@ -988,36 +977,28 @@ body.theme-light .sde-chat-dis { color: #a33326; }
 .sde-strip-pill.sde-strip-pill-empty[data-actor-id] { pointer-events: auto; }
 .sde-strip-pill.sde-strip-pill-over {
   color: #ff8a8a;
-  background: rgba(157, 0, 0, 0.18);
-  border: 1px solid rgba(255, 100, 100, 0.45);
+  background: rgba(157, 0, 0, 0.32);
+  border: 1px solid rgba(255, 100, 100, 0.5);
   font-weight: 700;
 }
 .sde-strip-pill.sde-strip-pill-over i.fa-person-walking { color: #ff8a8a; }
 
 /* ── Active turn state ────────────────────────────────────────────────────── */
 
+/* Whose turn it is: a thin gold ring (border + 1px outer ring + a soft glow)
+   and the name in gold. Nothing moves or grows, so there is no animation to
+   reduce. The !importants are the one place this must beat the active-phase
+   border colours above and in the late layer, whatever the card's type. */
 .sde-strip-member.sde-strip-is-turn {
-  border-color: var(--sde-bar-accent) !important;
-  box-shadow: 0 0 14px color-mix(in srgb, var(--sde-bar-accent) 70%, transparent) !important;
+  border-color: var(--sde-strip-ring) !important;
+  box-shadow:
+    0 0 0 1px var(--sde-strip-ring),
+    0 0 10px color-mix(in srgb, var(--sde-strip-ring) 40%, transparent) !important;
   opacity: 1 !important;
   position: relative;
 }
 .sde-strip-member.sde-strip-is-turn .sde-strip-portrait { filter: none !important; }
-
-.sde-strip-member.sde-strip-is-turn::after {
-  content: "";
-  position: absolute;
-  inset: -2px;
-  border-radius: inherit;
-  box-shadow: 0 0 18px color-mix(in srgb, var(--sde-bar-accent) 80%, transparent);
-  opacity: 0.4;
-  pointer-events: none;
-  animation: sde-turn-pulse 1.8s ease-in-out infinite;
-}
-@keyframes sde-turn-pulse {
-  0%, 100% { opacity: 0.35; }
-  50%       { opacity: 1; }
-}
+.sde-strip-member.sde-strip-is-turn .sde-strip-name { color: var(--sde-strip-ring-text); }
 
 /* ── Light-source badge (crawl + combat, PC cards) ───────────────────────────
    Direct child of the card (NOT the pointer-events:none overlay). Sits below
@@ -7887,6 +7868,9 @@ body.theme-light .sde-hub-monsters-row td {
   --sde-init: #c9aa58;
   --sde-ranged: #9f9275;
   --sde-bar-radius: 0;
+  /* Strip: the active turn's ring and name, and the initiative number on its chip. */
+  --sde-strip-ring: #e6c25a;
+  --sde-strip-ring-text: #f2d77a;
 }
 
 body.theme-light {
@@ -7907,6 +7891,9 @@ body.theme-light {
   --sde-bar-heroes-text: #6f4f12;
   --sde-bar-heroes-border: rgba(138, 112, 32, 0.55);
   --sde-init: #8a7020;
+  /* The ring sits on the parchment strip, so it darkens; the name and the
+     initiative chip stay on the dark card and keep the bright gold. */
+  --sde-strip-ring: #8a7020;
 }
 
 #shadowdark-enhancer-bar,
@@ -7963,8 +7950,7 @@ body.theme-light .sde-strip-ptab { background: #f4f1ec !important; }
 .sde-strip-group-label,
 .sde-strip-turn-num,
 .sde-strip-crawl-turn,
-.sde-strip-round-num,
-.sde-strip-init-badge {
+.sde-strip-round-num {
   font-family: "Old Newspaper Font", serif !important;
   color: var(--sde-bar-accent) !important;
   text-shadow: none !important;
@@ -8026,27 +8012,19 @@ body.theme-light .sde-strip-combat-controls { background: #f4f1ec !important; }
   box-shadow: none !important;
 }
 
-.sde-strip-member.sde-strip-active.sde-strip-type-player,
-.sde-strip-member.sde-strip-active.sde-strip-type-gm,
-.sde-strip-member.sde-strip-is-turn {
+/* The turn card is left to its own rule (the gold ring), whatever its type. */
+.sde-strip-member.sde-strip-active.sde-strip-type-player:not(.sde-strip-is-turn),
+.sde-strip-member.sde-strip-active.sde-strip-type-gm:not(.sde-strip-is-turn) {
   border-color: var(--sde-bar-accent) !important;
   box-shadow: none !important;
 }
 
-.sde-strip-member.sde-strip-active.sde-strip-type-npc {
+.sde-strip-member.sde-strip-active.sde-strip-type-npc:not(.sde-strip-is-turn) {
   border-color: #7a3737 !important;
   box-shadow: none !important;
 }
 
-.sde-strip-member.sde-strip-is-turn::after,
 .sde-strip-rollinit-btn::after { display: none !important; }
-
-.sde-strip-name,
-.sde-strip-ac-line {
-  background: rgba(0, 0, 0, 0.72) !important;
-  color: #f0f0f0 !important;
-  text-shadow: none !important;
-}
 
 .sde-strip-rollinit-btn,
 .sde-strip-action-tabs,
@@ -8057,25 +8035,6 @@ body.theme-light .sde-strip-combat-controls { background: #f4f1ec !important; }
   box-shadow: none !important;
 }
 
-/* Init badge + movement/luck pills read as transparent over the portrait
-   (matching the light flame) — no box, legibility from the text-shadow.
-   The shadow is restored here because the newspaper layer above zeroes it.
-   ID-scoped (specificity 1,1,0) so it wins over any class-level themed box. */
-#shadowdark-enhancer-strip .sde-strip-pill,
-#shadowdark-enhancer-strip .sde-strip-init-badge {
-  background: transparent !important;
-  border: none !important;
-  box-shadow: none !important;
-  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.95), 0 0 3px rgba(0, 0, 0, 0.9) !important;
-}
-
-/* Movement-over-budget stays a visible alert even with transparent pills. */
-#shadowdark-enhancer-strip .sde-strip-pill.sde-strip-pill-over {
-  background: rgba(157, 0, 0, 0.32) !important;
-  border: 1px solid rgba(255, 100, 100, 0.5) !important;
-}
-
-.sde-strip-init-badge,
 .sde-strip-rollinit-btn,
 .sde-strip-atab.sde-strip-atab-active,
 .sde-strip-ptab.sde-strip-ptab-active {

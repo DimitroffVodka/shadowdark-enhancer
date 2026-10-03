@@ -919,6 +919,12 @@ page walks through it in order.
 
 ### Changed
 
+- **The crawl strip is easier to read.** A card waiting for its turn keeps full-contrast
+  text and only its portrait dims, so you can still read a name and an HP count. Whose turn
+  it is gets a thin gold ring and a gold name. Long names such as "Animated Armor" wrap onto
+  a second line instead of being cut off with "...", and the initiative number sits on a
+  dark chip at the card's left, clear of the name.
+
 - **Loot for a monster is in the Actors sidebar's right-click menu, not the sheet's title bar.**
   Right-click an NPC and pick **Loot** to set its drop table and chance, as before.
   The button no longer takes up room in the NPC sheet's header.
