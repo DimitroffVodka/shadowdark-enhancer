@@ -345,6 +345,8 @@
   "SDE.settings.combatMovementDefault.hint": "Movement per combat turn. The ruler turns red past it.",
   "SDE.settings.oocMovementBudget.name": "Out-of-combat movement budget (ft)",
   "SDE.settings.oocMovementBudget.hint": "Movement per crawl round. Resets on Next Round.",
+  "SDE.settings.crawlFreeMovement.name": "Free movement crawl",
+  "SDE.settings.crawlFreeMovement.hint": "In the dungeon crawl, outside combat, drop feet and turns: no movement budget or ruler colours, no crawl initiative, no out-of-turn lock. The GM ends each round with Next Round. Combat is unchanged.",
   "SDE.settings.oocEnforceBudget.name": "Enforce out-of-combat movement budget",
   "SDE.settings.oocEnforceBudget.hint": "Refuse crawl moves over budget instead of just marking them red.",
   "SDE.settings.combatEnforceBudget.name": "Enforce combat movement budget",

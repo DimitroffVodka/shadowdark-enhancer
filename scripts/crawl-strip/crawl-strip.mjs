@@ -18,7 +18,7 @@ import { ICONS }            from "../shared/icons.mjs";
 import { relayToGM, authorizeActorFor, refuseQuery, registerQuery } from "../shared/gm-relay.mjs";
 import { computeLightState, isLightItem } from "./crawl-lights-core.mjs";
 import { canAdvanceTurn, canAdvanceOocTurn, nextTurnWouldRollRound } from "./crawl-turn-core.mjs";
-import { oocOrderComplete, stripShown } from "./crawl-state-core.mjs";
+import { oocOrderComplete, stripShown, freeCrawlActive } from "./crawl-state-core.mjs";
 import { combatantEntry, isHiddenFromStrip, isTurnless, commanderCombatant } from "./turn-skip-core.mjs";
 import { showOocReset } from "./crawl-tracker-core.mjs";
 import { dyingState, badgeHTML as dyingBadgeHTML, openMenu as openDyingMenu } from "../dying/dying.mjs";
@@ -433,7 +433,8 @@ export const CrawlStrip = {
     // (every crawl member has rolled — an incomplete order is not an order).
     const holderId = CrawlState.oocTurn;
     const holderActor = holderId ? game.actors.get(holderId) : null;
-    const orderActive = CrawlState.mode === "crawl" && oocOrderComplete(CrawlState);
+    const orderActive = CrawlState.mode === "crawl" && oocOrderComplete(CrawlState)
+      && !freeCrawlActive(game.settings.get(MODULE_ID, "crawlFreeMovement"), CrawlState.mode);
     const verdict = canAdvanceOocTurn({
       orderActive,
       requesterIsGM: !!user?.isGM,
@@ -664,7 +665,10 @@ export const CrawlStrip = {
     // missing holder, and so does the presentation — no holder means no turn
     // to show). Shared by the card highlight idiom and the badge below, so
     // the two cannot disagree about whether an order is active.
-    const oocOrderActive = !inCombat && oocOrderComplete(state) && !!state.oocTurn;
+    // Free movement crawl: no order, no feet — the strip is a roster plus the
+    // round counter (freeCrawlActive; combat is exempt).
+    const freeCrawl = freeCrawlActive(game.settings.get(MODULE_ID, "crawlFreeMovement"), state.mode);
+    const oocOrderActive = !inCombat && !freeCrawl && oocOrderComplete(state) && !!state.oocTurn;
 
     const combatantMap = new Map(
       (game.combat?.combatants ?? []).map(c => [c.tokenId, c])
@@ -783,7 +787,7 @@ export const CrawlStrip = {
           pills = `
         <div class="sde-strip-pills">
           <div class="sde-strip-pill ${luckClass}" data-actor-id="${m.actorId ?? ""}" ${luckClickable} title="${luckTitle}">${ICONS.shamrock}${data.luck}</div>
-          <div class="sde-strip-pill ${moveClass}">${ICONS.walking}${data.moveRemaining}/${data.activeSpeed}ft</div>
+          ${freeCrawl ? "" : `<div class="sde-strip-pill ${moveClass}">${ICONS.walking}${data.moveRemaining}/${data.activeSpeed}ft</div>`}
         </div>`;
         } else if (m.type === "npc" && inCombat && !concealStats) {
           pills = `
@@ -852,7 +856,7 @@ export const CrawlStrip = {
             // Crawl mode: dice when no oocInitiative; otherwise show the rolled
             // value. Keyed by actorId (world-scoped) so the rolled order carries
             // across scenes.
-            if (!inCombat && m.actorId && m.type === "player") {
+            if (!inCombat && !freeCrawl && m.actorId && m.type === "player") {
               const oocEntry = CrawlState.oocInitiative[m.actorId];
               if (!oocEntry && (actor?.isOwner || game.user.isGM)) {
                 return `<button class="sde-strip-rollinit-btn" data-actor-id="${m.actorId}" data-action="rollOocInit" title="${esc(game.i18n.localize("SDE.crawlStrip.rollOocInit"))}">${ICONS.diceD20}</button>`;
@@ -903,7 +907,7 @@ export const CrawlStrip = {
       : "";
     // Roll-all dice, above the round number (showOocRollAll holds the rule).
     const oocRollAllBtn = showOocRollAll({
-      isGM: game.user.isGM,
+      isGM: game.user.isGM && !freeCrawl,
       memberCount: state.members?.length ?? 0,
       orderComplete: oocOrderComplete(state),
     })
@@ -919,7 +923,7 @@ export const CrawlStrip = {
       : "";
     const rolledCount = (state.members ?? [])
       .filter(id => typeof state.oocInitiative?.[id]?.roll === "number").length;
-    const oocResetBtn = showOocReset({ isGM: game.user.isGM, rolledCount })
+    const oocResetBtn = showOocReset({ isGM: game.user.isGM && !freeCrawl, rolledCount })
       ? `<button class="sde-strip-cbtn" data-action="resetOocInit" title="${game.i18n.localize("SDE.crawlStrip.resetOocInit")}">${ICONS.resetOocInit}</button>`
       : "";
     const crawlBadge = game.user.isGM

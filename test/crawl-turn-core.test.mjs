@@ -590,6 +590,23 @@ test("OOC: a player who owns the current holder is served — the turn advances 
   assert.equal(CrawlState.oocTurn, "pc2", "the turn passed to the next member in order");
 });
 
+test("OOC: free movement crawl refuses a stale client's advance and leaves the dormant order alone", async () => {
+  const mine = makeActor({ id: "pc1", ownerId: PLAYER.id });
+  const other = makeActor({ id: "pc2", ownerId: OTHER_PLAYER.id });
+  const { oocHandle, CrawlState } = await gmClientHarness({
+    settings: { crawlFreeMovement: true },
+    oocState: {
+      mode: "crawl", members: ["pc1", "pc2"],
+      oocInitiative: { pc1: { roll: 10 }, pc2: { roll: 5 } }, oocTurn: "pc1",
+    },
+  });
+  globalThis.game.actors = { get: (id) => ({ pc1: mine, pc2: other }[id] ?? null) };
+
+  const reply = await oocHandle({ action: "ooc:nextTurn" }, PLAYER);
+  assert.equal(reply.ok, false);
+  assert.equal(CrawlState.oocTurn, "pc1", "the order did not move");
+});
+
 test("OOC: a player who does not own the current holder is refused and nothing advances", async () => {
   const mine = makeActor({ id: "pc1", ownerId: PLAYER.id });
   const other = makeActor({ id: "pc2", ownerId: OTHER_PLAYER.id });

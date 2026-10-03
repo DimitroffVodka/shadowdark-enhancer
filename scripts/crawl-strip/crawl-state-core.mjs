@@ -142,6 +142,19 @@ export function hasOocRoll(oocInitiative, actorId) {
 }
 
 /**
+ * Does the "Free movement crawl" setting apply right now? It shapes only the
+ * out-of-combat crawl: no feet budget, no rolled order, no turn lock. Combat
+ * keeps all three. Every surface that would show or enforce one of them asks
+ * here, so none can disagree about the mode.
+ * @param {boolean} enabled  The `crawlFreeMovement` setting.
+ * @param {string}  mode     CrawlState.mode ("off" | "crawl" | "combat" | "overland"); only "combat" is exempt.
+ * @returns {boolean}
+ */
+export function freeCrawlActive(enabled, mode) {
+  return Boolean(enabled) && mode !== "combat";
+}
+
+/**
  * Is the out-of-combat order COMPLETE — every crawl member has rolled?
  * An incomplete order is not an order: the OoC lock, the advance button and
  * the holder highlight all engage only once this holds (an empty roster is

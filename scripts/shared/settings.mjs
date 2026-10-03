@@ -58,6 +58,19 @@ export function registerSettings() {
     default: 90,
   });
 
+  game.settings.register(MODULE_ID, "crawlFreeMovement", {
+    name: "SDE.settings.crawlFreeMovement.name",
+    hint: "SDE.settings.crawlFreeMovement.hint",
+    scope: "world",
+    config: false,
+    type: Boolean,
+    default: false,
+    onChange: () => {
+      import("../crawl-strip/crawl-strip.mjs").then(m => m.CrawlStrip.queueRender());
+      import("../crawl-strip/crawl-tracker.mjs").then(m => m.refreshTracker());
+    },
+  });
+
   game.settings.register(MODULE_ID, "oocEnforceBudget", {
     name: "SDE.settings.oocEnforceBudget.name",
     hint: "SDE.settings.oocEnforceBudget.hint",

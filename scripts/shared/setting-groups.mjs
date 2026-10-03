@@ -113,6 +113,7 @@ export const SETTING_GROUPS = [
     sections: [{
       entries: [
         "combatMovementDefault",
+        "crawlFreeMovement",
         "oocMovementBudget",
         "oocEnforceBudget",
         "combatEnforceBudget",

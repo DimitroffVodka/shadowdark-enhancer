@@ -18,6 +18,7 @@ stays optional. Where a feature hands data to it, the entry says which Extras
 it needs.
 
 ### Added
+- **Free movement crawl** (Settings → Movement, off by default): in the dungeon crawl, outside combat, drop feet and turns. The strip hides the movement pill and the crawl initiative dice, order arrows and Reset, the ruler stops colouring against a budget, nothing is deducted or refused, and the out-of-turn lock no longer applies; the GM ends each round with Next Round, which still drives torches, light and the wandering-encounter check. Combat keeps feet, initiative and the lock exactly as before, and hex travel is unaffected.
 
 - **Monster names in adventure text are links.** In every adventure's room pages (and
   Wortwick's Introduction), a creature the book sets in bold that your bestiary knows now links

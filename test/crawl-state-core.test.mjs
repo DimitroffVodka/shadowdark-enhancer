@@ -22,6 +22,7 @@ import {
   clearOocInitiative,
   hasOocRoll,
   oocOrderComplete,
+  freeCrawlActive,
   startOverland,
   endOverland,
   isFutureState,
@@ -684,4 +685,12 @@ test("the Crawl Strip shows on a map that is not a hex map, and on a hex map onl
   assert.equal(stripShown({ active: true, mode: "combat", hex: true }), true, "a combat's own display takes over there");
   assert.equal(stripShown({ active: false, mode: "off", hex: false }), false, "nothing running");
   assert.equal(stripShown({ active: false, mode: "overland", hex: true }), false);
+});
+
+test("freeCrawlActive: the setting shapes the crawl only, never combat", () => {
+  assert.equal(freeCrawlActive(true, "crawl"), true);
+  assert.equal(freeCrawlActive(true, "off"), true);
+  assert.equal(freeCrawlActive(true, "combat"), false);
+  assert.equal(freeCrawlActive(false, "crawl"), false);
+  assert.equal(freeCrawlActive(undefined, "crawl"), false);
 });
