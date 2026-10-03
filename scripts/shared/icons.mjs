@@ -35,6 +35,7 @@ export const ICONS = {
   // and no downtime-shaped slug is.
   importer:    gameIcon("open-book"),
   charBuilder: gameIcon("visored-helm"),
+  bastion:     `<i class="fas fa-chess-rook"></i>`,
   monsterArt:  gameIcon("dragon-head"),
   close:       `<i class="fas fa-times"></i>`,
   play:        `<i class="fas fa-play"></i>`,

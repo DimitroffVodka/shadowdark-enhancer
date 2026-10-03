@@ -1,0 +1,168 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512"
+     role="img" aria-labelledby="title desc">
+  <title id="title">Blacksmith</title>
+  <desc id="desc">Stone forge with a glowing chimney, anvil on a stump, quench trough, bellows and a hanging weapon rack.</desc>
+  <!-- Native vector artwork only: no embedded or linked raster content. -->
+
+  <defs>
+    <pattern id="roofHatch" width="12" height="12" patternUnits="userSpaceOnUse">
+      <path d="M2 0 V12 M8 0 V12" fill="none" stroke="#010206" stroke-width="0.75" opacity="0.17"/>
+    </pattern>
+    <pattern id="leanHatch" width="10" height="10" patternUnits="userSpaceOnUse">
+      <path d="M2 0 V10" fill="none" stroke="#010206" stroke-width="0.65" opacity="0.18"/>
+    </pattern>
+    <pattern id="stoneHatch" width="16" height="13" patternUnits="userSpaceOnUse">
+      <path d="M0 6 H16 M5 0 V6 M12 6 V13" fill="none" stroke="#010206" stroke-width="0.55" opacity="0.16"/>
+    </pattern>
+    <pattern id="shingleHatch" width="14" height="9" patternUnits="userSpaceOnUse">
+      <path d="M0 8 H14 M0 4 Q3.5 8 7 4 Q10.5 8 14 4" fill="none" stroke="#010206" stroke-width="0.6" opacity="0.2"/>
+    </pattern>
+    <pattern id="logHatch" width="9" height="9" patternUnits="userSpaceOnUse">
+      <path d="M4.5 0 V9" fill="none" stroke="#010206" stroke-width="0.7" opacity="0.2"/>
+    </pattern>
+    <pattern id="plankHatch" width="64" height="22" patternUnits="userSpaceOnUse">
+      <path d="M0 0.5 H64 M0 11.5 H64 M20 0 V11 M50 11 V22" fill="none" stroke="#010206" stroke-width="0.8" opacity="0.22"/>
+    </pattern>
+    <pattern id="flagHatch" width="48" height="40" patternUnits="userSpaceOnUse">
+      <path d="M0 0.5 H48 M0 20.5 H48 M16 0 V20 M40 20 V40" fill="none" stroke="#010206" stroke-width="0.8" opacity="0.2"/>
+    </pattern>
+    <pattern id="waterHatch" width="22" height="10" patternUnits="userSpaceOnUse">
+      <path d="M2 5 Q7 1 12 5 T22 5" fill="none" stroke="#A3C9CC" stroke-width="1.1" opacity="0.7"/>
+    </pattern>
+  </defs>
+
+  <g id="building" stroke="#010206" stroke-linecap="round" stroke-linejoin="round">
+    <g transform="translate(256 256) scale(0.9) translate(-265 -223)">
+
+    <!-- Coal heap and spilled coals on the ground. -->
+    <path d="M60 424 C58 404 76 388 98 392 C106 380 130 380 140 394 C158 396 168 412 164 424 Q112 436 60 424 Z" fill="#26211f" stroke-width="2"/>
+    <path d="M78 408 L88 400 L96 410 Z M106 398 L116 392 L122 402 Z M128 410 L138 404 L144 414 Z M92 418 L102 412 L108 422 Z" fill="#4D4B47" stroke-width="1.2"/>
+    <path d="M110 412 L116 408 L118 416 Z" fill="#E08A33" stroke="none"/>
+    <!-- Chimney: tall tapered stone stack with a glowing mouth and smoke. -->
+
+    <g fill="#CFCBC4" stroke-width="1.2" opacity="0.55">
+      <ellipse cx="398" cy="24" rx="16" ry="10"/><ellipse cx="408" cy="6" rx="14" ry="9"/><ellipse cx="394" cy="-10" rx="12" ry="8"/>
+    </g>
+
+    <path d="M366 60 H430 L424 200 H372 Z" fill="#8E8B83" stroke="none"/>
+    <path d="M366 60 H430 L424 200 H372 Z" fill="url(#stoneHatch)" stroke="none"/>
+    <path d="M366 60 L372 200 M430 60 L424 200" fill="none" stroke-width="0"/>
+    <path d="M366 60 H430 L424 200 H372 Z" fill="none" stroke-width="2.4"/>
+    <path d="M366 60 H378 L383 200 H372 Z M430 60 H418 L413 200 H424 Z" fill="#6F6D68" stroke="none" opacity="0.5"/>
+    <path d="M358 50 H438 V66 H358 Z" fill="#A8A59B" stroke-width="2.2"/>
+    <path d="M370 53 H426 V63 H370 Z" fill="#26211f" stroke="none"/>
+    <path d="M382 63 Q390 46 398 56 Q404 40 410 58 Q418 52 420 63 Z" fill="#E08A33" stroke-width="1.3"/>
+    <path d="M392 63 Q398 52 402 60 Q406 52 410 63 Z" fill="#F4D36B" stroke="none"/>
+    <!-- Forge hall: stone wall, hearth hood, hip roof. -->
+
+    <path d="M78 190 H378 L372 252 H84 Z" fill="#8E8B83" stroke="none"/>
+    <path d="M78 190 H378 L372 252 H84 Z" fill="url(#stoneHatch)" stroke="none"/>
+    <path d="M78 190 H378 L372 252 H84 Z" fill="none" stroke-width="2.2"/>
+
+    <path d="M78 190 H378" fill="none" stroke-width="3"/>
+    <path d="M90 190 V252 M210 190 V252 M340 190 V252" fill="none" stroke="#5F4434" stroke-width="4"/>
+    <!-- Forge mouth: hood, arch, coals and glowing fire. -->
+    <path d="M232 252 V208 Q232 196 252 196 Q272 196 272 208 V252 Z" fill="#3A322C" stroke-width="2.2"/>
+    <path d="M239 252 V212 Q239 204 252 204 Q265 204 265 212 V252 Z" fill="#E08A33" stroke-width="1.6"/>
+    <path d="M244 252 V220 Q244 212 252 212 Q260 212 260 220 V252 Z" fill="#F4D36B" stroke="none"/>
+    <path d="M238 252 Q245 242 252 248 Q259 240 266 252 Z" fill="#8A4A24" stroke="none"/>
+    <path d="M228 252 H276 L280 258 H224 Z" fill="#6F6D68" stroke-width="1.8"/>
+    <circle cx="252" cy="224" r="40" fill="#F0A040" stroke="none" opacity="0.22"/>
+    <circle cx="398" cy="58" r="30" fill="#F0A040" stroke="none" opacity="0.2"/>
+    <!-- Horseshoe nailed above a stone sill, and the bellows beside the hearth. -->
+    <path d="M122 206 V224 Q122 238 134 238 Q146 238 146 224 V206" fill="none" stroke="#2c2926" stroke-width="6"/>
+    <path d="M122 206 V224 Q122 238 134 238 Q146 238 146 224 V206" fill="none" stroke="#7A7873" stroke-width="2.4"/>
+    <g fill="#2c2926" stroke="none"><circle cx="124" cy="212" r="1.4"/><circle cx="144" cy="212" r="1.4"/><circle cx="125" cy="226" r="1.4"/><circle cx="143" cy="226" r="1.4"/></g>
+    <path d="M296 214 L326 204 L326 238 L296 232 Z" fill="#7A5C3F" stroke-width="2"/>
+    <path d="M300 218 V230 M308 215 V232 M316 213 V235" fill="none" stroke-width="1.2" opacity="0.8"/>
+    <path d="M296 224 H282 L276 230" fill="none" stroke="#4D4B47" stroke-width="3.4"/>
+    <path d="M326 216 L346 208 M326 228 L346 238" fill="none" stroke="#5F4434" stroke-width="3"/>
+
+    <path d="M66 90 H390 V142 H66 Z" fill="#9A8878" stroke="none"/>
+    <path d="M66 142 H390 V194 H66 Z" fill="#7F6E60" stroke="none"/>
+    <path d="M66 90 H390 V194 H66 Z" fill="url(#shingleHatch)" stroke="none"/>
+    <path d="M66 90 H390 V194 H66 Z" fill="none" stroke-width="2.8"/>
+    <path d="M66 142 C147 140, 309 144, 390 142" fill="none" stroke-width="3.1"/>
+
+    <g fill="#A9856E" stroke-width="1.6">
+      <rect x="60" y="83" width="14" height="14" rx="2"/>
+      <rect x="382" y="83" width="14" height="14" rx="2"/>
+      <rect x="60" y="187" width="14" height="14" rx="2"/>
+      <rect x="382" y="187" width="14" height="14" rx="2"/>
+    </g>
+
+    <path d="M110 142 V190 M346 142 V190" fill="none" stroke-width="0"/>
+    <path d="M96 110 H156 V128 H96 Z M284 110 H344 V128 H284 Z" fill="#6A5B4F" stroke-width="1.4" opacity="0.8"/>
+    <path d="M300 96 Q326 120 350 100 M310 130 Q330 150 366 128" fill="none" stroke="#2c2926" stroke-width="7" opacity="0.14"/>
+    <path d="M168 142 H240 V170 H168 Z" fill="#3A322C" stroke-width="2"/>
+    <path d="M178 148 H230 M178 156 H230" fill="none" stroke="#6F6D68" stroke-width="2.4"/>
+    <!-- Hanging weapon rack: two posts, a rail, swords and an axe. -->
+    <path d="M392 262 V404 M474 262 V404 M384 266 H482" fill="none" stroke="#5F4434" stroke-width="5.4"/>
+    <path d="M392 306 H474" fill="none" stroke="#745846" stroke-width="3"/>
+
+    <g transform="translate(410 276) scale(1 1)" stroke-width="1.3">
+      <circle cx="0" cy="0" r="2.6" fill="#8A7A5A"/>
+      <path d="M-1.8 2 H1.8 V12 H-1.8 Z" fill="#5F4434"/>
+      <path d="M-8 12 H8 V15 H-8 Z" fill="#8A7A5A"/>
+      <path d="M-3.4 15 H3.4 L2.4 49 L0 54 L-2.4 49 Z" fill="#A9B0B5"/>
+      <path d="M0 17 V49" fill="none" stroke="#D2D8DB" stroke-width="0.9"/>
+    </g>
+
+    <g transform="translate(428 276) scale(1 1)" stroke-width="1.3">
+      <circle cx="0" cy="0" r="2.6" fill="#8A7A5A"/>
+      <path d="M-1.8 2 H1.8 V12 H-1.8 Z" fill="#5F4434"/>
+      <path d="M-8 12 H8 V15 H-8 Z" fill="#8A7A5A"/>
+      <path d="M-3.4 15 H3.4 L2.4 55 L0 60 L-2.4 55 Z" fill="#A9B0B5"/>
+      <path d="M0 17 V55" fill="none" stroke="#D2D8DB" stroke-width="0.9"/>
+    </g>
+
+    <g transform="translate(446 276) scale(1 1)" stroke-width="1.3">
+      <circle cx="0" cy="0" r="2.6" fill="#8A7A5A"/>
+      <path d="M-1.8 2 H1.8 V12 H-1.8 Z" fill="#5F4434"/>
+      <path d="M-8 12 H8 V15 H-8 Z" fill="#8A7A5A"/>
+      <path d="M-3.4 15 H3.4 L2.4 46 L0 50 L-2.4 46 Z" fill="#C7CCCF"/>
+      <path d="M0 17 V46" fill="none" stroke="#D2D8DB" stroke-width="0.9"/>
+    </g>
+
+    <path d="M462 276 V340" fill="none" stroke="#7A5C3F" stroke-width="3.4"/>
+    <path d="M462 280 C452 282 448 296 456 306 L462 298 Z" fill="#A9B0B5" stroke-width="1.8"/>
+    <path d="M462 280 C474 282 478 296 470 306 L462 298 Z" fill="#8A929A" stroke-width="1.8"/>
+    <path d="M400 372 V398 M414 372 V398 M428 372 V398 M442 372 V398 M456 372 V398" fill="none" stroke="#7A5C3F" stroke-width="3.4"/>
+    <path d="M400 372 L404 368 H398 Z M414 372 L418 368 H412 Z M428 372 L432 368 H426 Z M442 372 L446 368 H440 Z M456 372 L460 368 H454 Z" fill="#A9B0B5" stroke-width="1.4"/>
+    <path d="M396 398 H474 L478 410 H392 Z" fill="#745846" stroke-width="1.8"/>
+    <!-- Anvil on a stump: trunk, ring top, then the anvil, hot bar and hammer. -->
+    <path d="M158 342 L162 402 Q190 416 218 402 L222 342 Z" fill="#7A5C3F" stroke-width="2.2"/>
+    <path d="M164 364 Q190 374 216 364 M165 384 Q190 394 215 384" fill="none" stroke="#4B352B" stroke-width="1.2" opacity="0.7"/>
+    <path d="M170 350 V398 M190 354 V408 M208 350 V398" fill="none" stroke-width="0.8" opacity="0.35"/>
+    <ellipse cx="190" cy="342" rx="32" ry="12" fill="#C7A06E" stroke-width="2.2"/>
+    <ellipse cx="190" cy="342" rx="21" ry="7.5" fill="none" stroke="#8A6A45" stroke-width="1.2"/>
+    <ellipse cx="190" cy="342" rx="10" ry="3.4" fill="none" stroke="#8A6A45" stroke-width="1"/>
+    <g transform="translate(190 340)">
+      <path d="M-8 -2 H8 L12 -12 H-12 Z" fill="#2c2926" stroke-width="1.8"/>
+      <path d="M-30 -38 H20 Q34 -38 44 -46 Q40 -30 26 -26 H16 Q18 -16 22 -10 H-22 Q-16 -18 -16 -26 H-26 Q-34 -26 -30 -38 Z" fill="#4D4B47" stroke-width="2.2"/>
+      <path d="M-28 -37 H20 Q30 -37 38 -43" fill="none" stroke="#9AA0A4" stroke-width="2"/>
+      <path d="M-16 -26 H16" fill="none" stroke="#2c2926" stroke-width="1.2"/>
+      <path d="M-22 -39 H-6 V-44 H-22 Z" fill="#E08A33" stroke-width="1.4"/>
+      <path d="M-20 -41 H-10 V-43 H-20 Z" fill="#F4D36B" stroke="none"/>
+      <circle cx="-14" cy="-48" r="2" fill="#F4D36B" stroke="none"/><circle cx="-6" cy="-54" r="1.5" fill="#E08A33" stroke="none"/><circle cx="-24" cy="-52" r="1.5" fill="#E08A33" stroke="none"/>
+    </g>
+    <path d="M214 344 L242 332" fill="none" stroke="#7A5C3F" stroke-width="4.4"/>
+    <path d="M236 322 L252 334 L246 342 L230 330 Z" fill="#6E7376" stroke-width="1.8"/>
+    <path d="M162 350 L136 334 M162 354 L134 346" fill="none" stroke="#4D4B47" stroke-width="2.8"/>
+    <!-- Quench trough: plank box on legs with water, a blade cooling, steam. -->
+    <path d="M254 408 V424 M346 408 V424" fill="none" stroke="#5F4434" stroke-width="5"/>
+    <path d="M250 352 H350 L344 410 H256 Z" fill="#745846" stroke-width="2.2"/>
+    <path d="M250 352 H350 L344 410 H256 Z" fill="url(#logHatch)" stroke="none"/>
+    <path d="M250 352 H350 L346 372 H254 Z" fill="#5B99A6" stroke-width="2"/>
+    <path d="M250 352 H350 L346 372 H254 Z" fill="url(#waterHatch)" stroke="none"/>
+    <path d="M254 372 H346" fill="none" stroke-width="1.6"/>
+    <path d="M262 352 L326 368" fill="none" stroke="#C7CCCF" stroke-width="5.4"/>
+    <path d="M262 352 L326 368" fill="none" stroke="#A9B0B5" stroke-width="3"/>
+    <path d="M254 388 H346" fill="none" stroke="#4D4B47" stroke-width="2.2"/>
+    <path d="M280 346 C272 334 284 326 278 314 M300 346 C292 334 304 326 298 314 M320 346 C312 334 324 326 318 314" fill="none" stroke="#E9E4D6" stroke-width="3.2" opacity="0.6"/>
+
+    </g>
+
+  </g>
+</svg>

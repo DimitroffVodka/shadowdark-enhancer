@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512"
+     role="img" aria-labelledby="title desc">
+  <title id="title">Temple shadow</title>
+  <desc id="desc">Separate native-vector cast shadow aligned to the Temple SVG.</desc>
+  <g id="shadow" transform="translate(28 16)" fill="#9699AE" opacity="0.46">
+    <path d="M118 116 H400 V272 L396 286 V396 H334 L346 434 H166 L178 396 H118 V286 Z"/>
+    <path d="M206 34 L256 4 L306 34 V134 H206 Z"/>
+    <path d="M118 380 H166 V420 H118 Z M346 380 H394 V420 H346 Z"/>
+
+  </g>
+</svg>

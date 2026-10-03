@@ -74,6 +74,7 @@ import {
 } from "./downtime-core.mjs";
 import { effectPlanFor, applyDowntimeEffect } from "./downtime-effects.mjs";
 import { recruitActivity, recruitIdOf, recruitSlot } from "./downtime-recruit-core.mjs";
+import { withLibrary } from "../bastion/bastion-library.mjs";
 import { refuseQuery, registerQuery } from "../shared/gm-relay.mjs";
 import { advanceOffDuty } from "../time/off-duty.mjs";
 import { secondsPerDay } from "../time/time-core.mjs";
@@ -277,8 +278,12 @@ export function slotAllowed(activity, slot, { facts, casterList }) {
   return true;
 }
 
-/** The ability + modifier a slot's check rolls against. */
-export function modForCheck(activity, slot, actor, { facts, choiceAbility } = {}) {
+/** The ability + modifier a slot's check rolls against, with a Bastion Library's bonus on the learning activities. */
+export function modForCheck(activity, slot, actor, opts) {
+  return withLibrary(baseModForCheck(activity, slot, actor, opts), activity, actor);
+}
+
+function baseModForCheck(activity, slot, actor, { facts, choiceAbility } = {}) {
   const check = activity?.check ?? {};
   if (check.kind === "ability") return bestOf(actor, check.abilities);
   if (check.kind === "choice") {

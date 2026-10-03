@@ -1,0 +1,155 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512"
+     role="img" aria-labelledby="title desc">
+  <title id="title">Trading Post</title>
+  <desc id="desc">Timber shop with an open counter, striped awning, wares, signpost and pack mule.</desc>
+  <!-- Native vector artwork only: no embedded or linked raster content. -->
+
+  <defs>
+    <pattern id="roofHatch" width="12" height="12" patternUnits="userSpaceOnUse">
+      <path d="M2 0 V12 M8 0 V12" fill="none" stroke="#010206" stroke-width="0.75" opacity="0.17"/>
+    </pattern>
+    <pattern id="leanHatch" width="10" height="10" patternUnits="userSpaceOnUse">
+      <path d="M2 0 V10" fill="none" stroke="#010206" stroke-width="0.65" opacity="0.18"/>
+    </pattern>
+    <pattern id="stoneHatch" width="16" height="13" patternUnits="userSpaceOnUse">
+      <path d="M0 6 H16 M5 0 V6 M12 6 V13" fill="none" stroke="#010206" stroke-width="0.55" opacity="0.16"/>
+    </pattern>
+    <pattern id="shingleHatch" width="14" height="9" patternUnits="userSpaceOnUse">
+      <path d="M0 8 H14 M0 4 Q3.5 8 7 4 Q10.5 8 14 4" fill="none" stroke="#010206" stroke-width="0.6" opacity="0.2"/>
+    </pattern>
+    <pattern id="logHatch" width="9" height="9" patternUnits="userSpaceOnUse">
+      <path d="M4.5 0 V9" fill="none" stroke="#010206" stroke-width="0.7" opacity="0.2"/>
+    </pattern>
+    <pattern id="plankHatch" width="64" height="22" patternUnits="userSpaceOnUse">
+      <path d="M0 0.5 H64 M0 11.5 H64 M20 0 V11 M50 11 V22" fill="none" stroke="#010206" stroke-width="0.8" opacity="0.22"/>
+    </pattern>
+    <pattern id="flagHatch" width="48" height="40" patternUnits="userSpaceOnUse">
+      <path d="M0 0.5 H48 M0 20.5 H48 M16 0 V20 M40 20 V40" fill="none" stroke="#010206" stroke-width="0.8" opacity="0.2"/>
+    </pattern>
+    <pattern id="waterHatch" width="22" height="10" patternUnits="userSpaceOnUse">
+      <path d="M2 5 Q7 1 12 5 T22 5" fill="none" stroke="#A3C9CC" stroke-width="1.1" opacity="0.7"/>
+    </pattern>
+  </defs>
+
+  <g id="building" stroke="#010206" stroke-linecap="round" stroke-linejoin="round">
+
+    <!-- Chimney stack behind the ridge. -->
+    <path d="M132 76 H168 V150 H132 Z" fill="#8E8B83" stroke="none"/>
+    <path d="M132 76 H168 V150 H132 Z" fill="url(#stoneHatch)" stroke="none"/>
+    <path d="M132 76 H168 V150 H132 Z" fill="none" stroke-width="2.2"/>
+    <path d="M127 68 H173 V80 H127 Z" fill="#A8A59B" stroke-width="2"/>
+    <path d="M136 71 H164 V77 H136 Z" fill="#26211f" stroke="none"/>
+    <!-- Shop roof, wall strip and the open front. -->
+
+    <path d="M110 100 H340 V175 H110 Z" fill="#C09A7E" stroke="none"/>
+    <path d="M110 175 H340 V250 H110 Z" fill="#A9806A" stroke="none"/>
+    <path d="M110 100 H340 V250 H110 Z" fill="url(#shingleHatch)" stroke="none"/>
+    <path d="M110 100 H340 V250 H110 Z" fill="none" stroke-width="2.8"/>
+    <path d="M110 175 C167 173, 282 177, 340 175" fill="none" stroke-width="3.1"/>
+
+    <g fill="#A9856E" stroke-width="1.6">
+      <rect x="104" y="93" width="14" height="14" rx="2"/>
+      <rect x="332" y="93" width="14" height="14" rx="2"/>
+      <rect x="104" y="243" width="14" height="14" rx="2"/>
+      <rect x="332" y="243" width="14" height="14" rx="2"/>
+    </g>
+
+    <path d="M200 134 H248 V170 H200 Z" fill="#5F4F44" stroke-width="1.8"/>
+    <path d="M200 152 H248 M224 134 V170" fill="none" stroke-width="1.1" opacity="0.7"/>
+    <path d="M192 128 H256 V136 H192 Z" fill="#745846" stroke-width="1.6"/>
+    <path d="M142 190 H182 V222 H142 Z" fill="#A8856F" stroke-width="1.4"/>
+    <path d="M142 190 H182 V222 H142 Z" fill="url(#shingleHatch)" stroke="none"/>
+    <path d="M300 96 V58" fill="none" stroke="#4B352B" stroke-width="2.6"/>
+    <path d="M301 60 H336 L328 72 L336 84 H301 Z" fill="#B5483F" stroke-width="1.6"/>
+    <circle cx="316" cy="72" r="6" fill="#E5B861" stroke-width="1.2"/>
+    <path d="M114 250 H336 L330 306 H120 Z" fill="#8F715E" stroke-width="2.1"/>
+    <path d="M114 250 H336 L330 306 H120 Z" fill="url(#logHatch)" stroke="none"/>
+    <path d="M142 262 H308 V330 H142 Z" fill="#3A2E27" stroke-width="2"/>
+    <path d="M150 284 H300 M150 306 H300" fill="none" stroke="#745846" stroke-width="3"/>
+    <path d="M158 270 H172 V284 H158 Z M178 272 H190 V284 H178 Z M262 268 H280 V284 H262 Z M286 273 H296 V284 H286 Z" fill="#B97755" stroke-width="1.2"/>
+    <path d="M160 294 H174 V306 H160 Z M268 291 H284 V306 H268 Z" fill="#7C9A82" stroke-width="1.2"/>
+    <!-- Awning poles, then the striped awning with its scalloped edge. -->
+    <path d="M128 262 V362 M322 262 V362" fill="none" stroke="#5F4434" stroke-width="5"/>
+    <path d="M124 264 H146 L148 300 Q136 312 122 300 Z" fill="#B5483F" stroke-width="1.4"/><path d="M146 264 H168 L170 300 Q158 312 144 300 Z" fill="#E6D9B5" stroke-width="1.4"/><path d="M168 264 H190 L192 300 Q180 312 166 300 Z" fill="#B5483F" stroke-width="1.4"/><path d="M190 264 H212 L214 300 Q202 312 188 300 Z" fill="#E6D9B5" stroke-width="1.4"/><path d="M212 264 H234 L236 300 Q224 312 210 300 Z" fill="#B5483F" stroke-width="1.4"/><path d="M234 264 H256 L258 300 Q246 312 232 300 Z" fill="#E6D9B5" stroke-width="1.4"/><path d="M256 264 H278 L280 300 Q268 312 254 300 Z" fill="#B5483F" stroke-width="1.4"/><path d="M278 264 H300 L302 300 Q290 312 276 300 Z" fill="#E6D9B5" stroke-width="1.4"/><path d="M300 264 H322 L324 300 Q312 312 298 300 Z" fill="#B5483F" stroke-width="1.4"/>
+    <path d="M120 262 H334" fill="none" stroke-width="3"/>
+
+    <path d="M160 308 V318 M200 308 V316 M240 308 V316 M278 308 V318" fill="none" stroke-width="1.3"/>
+    <!-- Hanging lantern. -->
+    <path d="M152 322 H168 L166 340 H154 Z" fill="#C9A24A" stroke-width="1.5"/>
+    <path d="M156 326 H164 V336 H156 Z" fill="#F4D36B" stroke="none"/>
+    <path d="M155 322 Q160 314 165 322" fill="none" stroke-width="1.4"/>
+    <!-- Hanging pan with a handle. -->
+    <circle cx="200" cy="328" r="12" fill="#5F6266" stroke-width="1.7"/>
+    <circle cx="200" cy="328" r="8" fill="#7E8286" stroke-width="1"/>
+    <path d="M200 316 V306" fill="none" stroke-width="2.2"/>
+    <!-- Coil of rope. -->
+    <ellipse cx="240" cy="326" rx="13" ry="11" fill="#C7A06E" stroke-width="1.6"/>
+    <ellipse cx="240" cy="326" rx="8" ry="6.5" fill="none" stroke-width="1.1"/>
+    <ellipse cx="240" cy="326" rx="3.4" ry="2.6" fill="#745846" stroke-width="0.9"/>
+    <!-- Second lantern. -->
+    <path d="M270 322 H286 L284 340 H272 Z" fill="#C9A24A" stroke-width="1.5"/>
+    <path d="M274 326 H282 V336 H274 Z" fill="#F4D36B" stroke="none"/>
+    <path d="M273 322 Q278 314 283 322" fill="none" stroke-width="1.4"/>
+
+    <!-- Counter: plank top, planked front, goods standing on it. -->
+    <path d="M134 336 H316 L322 346 H128 Z" fill="#C7A06E" stroke-width="1.8"/>
+    <path d="M128 346 H322 V372 H128 Z" fill="#8F6F52" stroke-width="2"/>
+    <path d="M128 346 H322 V372 H128 Z" fill="url(#logHatch)" stroke="none"/>
+    <path d="M168 346 V372 M208 346 V372 M248 346 V372 M288 346 V372" fill="none" stroke-width="1.2" opacity="0.6"/>
+    <path d="M296 322 Q304 312 312 322 V336 H296 Z" fill="#6C8F9E" stroke-width="1.5"/>
+    <path d="M290 326 H294 V336 H290 Z" fill="#E5B861" stroke-width="1.1"/>
+    <!-- Crates and sacks stacked left of the shop. -->
+
+    <path d="M62 380 H108 L111 412 H59 Z" fill="#876A56" stroke-width="1.8"/>
+    <path d="M68 385 L103 407 M103 385 L67 407" fill="none" stroke="#5F4434" stroke-width="1" opacity="0.7"/>
+
+    <path d="M66 346 H106 L109 376 H63 Z" fill="#876A56" stroke-width="1.8"/>
+    <path d="M72 351 L101 371 M101 351 L71 371" fill="none" stroke="#5F4434" stroke-width="1" opacity="0.7"/>
+
+    <path d="M33.2 412 C28.4 392.8 39.6 384.8 42.0 381.6 L38.8 375.2 L46.0 378.4 L53.2 375.2 L50.0 381.6 C52.4 384.8 63.6 392.8 58.8 412 Q46 416.0 33.2 412 Z" fill="#C9B79A" stroke-width="1.7"/>
+    <path d="M41.2 381.6 Q46 384.8 50.8 381.6" fill="none" stroke="#745846" stroke-width="1.8"/>
+    <path d="M39.6 399.2 Q43.6 405.6 39.6 409.6" fill="none" stroke-width="0.9" opacity="0.5"/>
+
+    <path d="M89.6 416 C84.2 394.4 96.8 385.4 99.5 381.8 L95.9 374.6 L104.0 378.2 L112.1 374.6 L108.5 381.8 C111.2 385.4 123.8 394.4 118.4 416 Q104 420.5 89.6 416 Z" fill="#D8C7A4" stroke-width="1.7"/>
+    <path d="M98.6 381.8 Q104 385.4 109.4 381.8" fill="none" stroke="#745846" stroke-width="2.0"/>
+    <path d="M96.8 401.6 Q101.3 408.8 96.8 413.3" fill="none" stroke-width="0.9" opacity="0.5"/>
+
+    <ellipse cx="142" cy="392" rx="12" ry="7" fill="#A17A5C" stroke-width="1.7"/>
+    <path d="M130 392 L132 414 Q142 421 152 414 L154 392 Q142 399 130 392 Z" fill="#876449" stroke-width="1.7"/>
+    <path d="M132 402 Q142 408 152 402 M132 413 Q142 419 152 413" fill="none" stroke="#4D4B47" stroke-width="1.3"/>
+
+    <!-- Signpost with a hanging coin board. -->
+    <path d="M352 292 V382" fill="none" stroke="#4B352B" stroke-width="4"/>
+    <path d="M350 300 H392" fill="none" stroke="#4B352B" stroke-width="3"/>
+    <path d="M358 300 V308 M388 300 V308" fill="none" stroke-width="1.3"/>
+    <path d="M354 308 H394 V336 H354 Z" fill="#B97755" stroke-width="1.8"/>
+    <circle cx="374" cy="322" r="10" fill="#E5B861" stroke-width="1.6"/>
+    <circle cx="374" cy="322" r="6" fill="none" stroke-width="1.1"/>
+    <path d="M374 318 V326" fill="none" stroke-width="1.2"/>
+
+    <g transform="translate(0 4)">
+      <!-- Tail, back legs and front legs. -->
+      <path d="M376 366 Q364 372 366 394" fill="none" stroke="#5F4434" stroke-width="4"/>
+      <path d="M388 388 V412 H398 V388 Z M404 388 V410 H414 V388 Z M436 388 V410 H446 V388 Z M450 388 V412 H460 V388 Z" fill="#6E5443" stroke-width="1.5"/>
+      <path d="M388 408 H398 V414 H388 Z M450 408 H460 V414 H450 Z M404 406 H414 V412 H404 Z M436 406 H446 V412 H436 Z" fill="#2c2622" stroke="none"/>
+      <!-- Body, neck and head. -->
+      <path d="M378 366 Q378 350 396 348 H446 Q464 350 466 366 V382 Q464 392 452 392 H392 Q378 392 378 378 Z" fill="#8A6B55" stroke-width="2"/>
+      <path d="M378 380 Q420 392 466 380 V382 Q464 392 452 392 H392 Q378 392 378 378 Z" fill="#A9916F" stroke="none"/>
+      <path d="M452 356 L468 332 L486 340 L490 360 L478 372 L458 372 Z" fill="#8A6B55" stroke-width="2"/>
+      <path d="M476 356 Q490 358 490 366 Q486 374 474 372 Z" fill="#C9B79A" stroke-width="1.5"/>
+      <path d="M468 334 L464 314 L474 328 Z M476 338 L486 320 L486 342 Z" fill="#6E5443" stroke-width="1.5"/>
+      <circle cx="474" cy="352" r="2.2" fill="#010206" stroke="none"/>
+      <path d="M458 340 Q452 354 450 360" fill="none" stroke="#5F4434" stroke-width="3.2"/>
+      <!-- Pack: blanket, panniers, bedroll and rope. -->
+      <path d="M398 348 H440 L444 372 H394 Z" fill="#9C3F3A" stroke-width="1.8"/>
+      <path d="M402 356 H440 M400 364 H442" fill="none" stroke="#E6D9B5" stroke-width="1.4"/>
+      <path d="M398 336 Q420 322 442 336 V350 H398 Z" fill="#C9B79A" stroke-width="1.8"/>
+      <path d="M408 340 V350 M420 334 V350 M432 340 V350" fill="none" stroke-width="1.1" opacity="0.7"/>
+      <path d="M394 372 H444 M410 348 V374 M428 348 V374" fill="none" stroke="#4B352B" stroke-width="1.6"/>
+    </g>
+    <path d="M340 420 Q342 411 345 420 Q348 413 351 420 Z" fill="#6F8A5F" stroke-width="1"/>
+    <path d="M124 428 Q126 419 129 428 Q132 421 135 428 Z" fill="#6F8A5F" stroke-width="1"/>
+
+  </g>
+</svg>

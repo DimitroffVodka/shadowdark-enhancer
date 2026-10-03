@@ -18,6 +18,9 @@
  * BOAT: a self-contained ApplicationV2 container sheet (BoatSheet) on its own
  * BoatDataModel.
  *
+ * BASTION: a self-contained ApplicationV2 sheet on its own model
+ * (scripts/bastion/register-bastion.mjs).
+ *
  * Called from i18nInit (shadowdark-enhancer.mjs): init can run before the
  * system's, and setup is too late for the world's actors.
  */
@@ -29,6 +32,7 @@ import { buildMountNpcSheet } from "./mount-npc-sheet.mjs";
 import { buildMountNpcModel, registerMountScores } from "./mount-scores.mjs";
 import { buildWarbandNpcSheet, registerWarbandWrites, warbandState } from "./warband-npc-sheet.mjs";
 import { registerMakeWarband } from "./make-warband.mjs";
+import { registerBastion } from "../bastion/register-bastion.mjs";
 import { warbandRolledHp, toughHp } from "./warband-core.mjs";
 
 export const MOUNT_TYPE = `${MODULE_ID}.mount`;
@@ -109,6 +113,9 @@ export function registerActorTypes() {
     makeDefault: true,
     label: "SDE.sheet.boat",
   });
+
+  // ── Bastion: a place the party owns, its own model and sheet ───────────────
+  registerBastion();
 
   // Create-dialog icons (labels come from languages/en.json → TYPES.Actor.*)
   CONFIG.Actor.typeIcons ??= {};

@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512"
+     role="img" aria-labelledby="title desc">
+  <title id="title">Stable shadow</title>
+  <desc id="desc">Separate native-vector cast shadow aligned to the Stable SVG.</desc>
+  <g id="shadow" transform="translate(28 16)" fill="#9699AE" opacity="0.46">
+    <path d="M80 98 H424 V216 H418 V360 H88 V216 H80 Z"/>
+    <path d="M272 120 H362 V212 H272 Z"/>
+    <path d="M94 372 H198 L192 416 H100 Z"/>
+    <path d="M226 366 H292 V422 H226 Z"/>
+    <path d="M320 376 H424 V430 H320 Z"/>
+
+  </g>
+</svg>

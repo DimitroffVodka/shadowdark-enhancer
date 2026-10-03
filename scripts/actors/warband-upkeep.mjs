@@ -15,7 +15,8 @@
  * sheet's ticks and the upkeep never write over each other (#284 review).
  * Each warband records the month and week it was settled, so a write that
  * failed is tried again at the next clock move without charging anyone twice.
- * The bastion's Granary and Barracks join when bastions do.
+ * A warband garrisoned at a standing bastion (warband-garrison.mjs) costs 10 gp less a month under
+ * a finished Granary and heals 1d6 more each day under a finished Barracks.
  */
 
 import { MODULE_ID } from "../shared/module-id.mjs";
@@ -27,6 +28,8 @@ import { secondsPerDay } from "../time/time-core.mjs";
 import { format as formatTime } from "../time/time.mjs";
 import * as core from "./warband-core.mjs";
 import { WARBAND_FLAG, warbandState, warbandWrites } from "./warband-npc-sheet.mjs";
+import { garrisonFor } from "./warband-garrison.mjs";
+import { GRANARY_SAVING_GP, BARRACKS_HEAL } from "../bastion/bastion-core.mjs";
 import { isActiveGM } from "../shared/gm-relay.mjs";
 
 /** World setting: the last month key charged, so a clock set back and moved on again doesn't charge a month twice. */
@@ -191,13 +194,18 @@ async function runMonth(type, at = game.time.worldTime, month = null, ids = null
     if (st.deserted || st.routed) return;
     if (month !== null && st.settledMonths.includes(month)) return;
     const pc = await commanderOf(wb);
-    const gp = core.upkeepGp(wb.system.level?.value);
+    const garrison = await garrisonFor(st.bastion);
+    const level = wb.system.level?.value;
+    const gp = core.upkeepGp(level, garrison?.granary ? GRANARY_SAVING_GP : 0);
     if (!pc || !gp) return;
+    const saved = core.upkeepGp(level) - gp;
     const settle = (s) => (month === null ? s : markPaid(s, { month }));
     if (canAfford(pc.system.coins ?? {}, { gp })) {
       const paid = month === null ? (await takeFromPurse(pc, gp)) === "taken" : await payMarked(wb, pc, gp, month);
       if (!paid) throw new Error(`${gp} gp wasn't taken from ${pc.name}`);
-      lines.push(t("SDE.warband.upkeep.paid", { warband: wb.name, commander: pc.name, gp }));
+      lines.push(saved
+        ? t("SDE.warband.upkeep.paidGarrison", { warband: wb.name, commander: pc.name, gp, saved, bastion: garrison.name })
+        : t("SDE.warband.upkeep.paid", { warband: wb.name, commander: pc.name, gp }));
       await Promise.resolve(SessionRecap.logPurchase({ player: pc.name, item: t("SDE.warband.upkeep.item", { warband: wb.name }), qty: 1, price: { gp, sp: 0, cp: 0 } }))
         .catch((err) => console.warn(`${MODULE_ID} | warband upkeep: recap`, err));
     } else {
@@ -250,11 +258,17 @@ async function healDays(type, days, healed) {
     if (st.deserted || st.routed) return;
     const hp = wb.system.attributes?.hp ?? {};
     const missing = (Number(hp.max) || 0) - (Number(hp.value) || 0);
-    const plan = core.healPlan(days, missing, st.upgrades);
+    const garrison = await garrisonFor(st.bastion);
+    const extra = garrison?.barracks ? BARRACKS_HEAL : null;
+    const plan = core.healPlan(days, missing, st.upgrades, extra);
     if (!plan.full && !plan.formula) return;
     const gain = plan.full ? missing : Math.min(missing, (await new Roll(plan.formula).evaluate()).total);
     await wb.update({ "system.attributes.hp.value": hp.value + gain });
-    healed.set(wb.id, { name: wb.name, gain: (healed.get(wb.id)?.gain ?? 0) + gain, value: hp.value + gain, max: hp.max });
+    const was = healed.get(wb.id);
+    healed.set(wb.id, {
+      name: wb.name, gain: (was?.gain ?? 0) + gain, value: hp.value + gain, max: hp.max,
+      barracks: extra ? garrison.name : was?.barracks ?? null,   // the bastion whose Barracks helped, for the card
+    });
   });
 }
 
@@ -362,7 +376,9 @@ async function onTimeAdvanced(type, { from, to, crossed }) {
   }
   await healTo(to);
   const days = Math.min(crossed.days, MAX_DAYS);
-  const lines = [...healed.values()].map((h) => t("SDE.warband.upkeep.healed", { warband: h.name, hp: h.gain, value: h.value, max: h.max }));
+  const lines = [...healed.values()].map((h) => (h.barracks
+    ? t("SDE.warband.upkeep.healedBarracks", { warband: h.name, hp: h.gain, value: h.value, max: h.max, bastion: h.barracks })
+    : t("SDE.warband.upkeep.healed", { warband: h.name, hp: h.gain, value: h.value, max: h.max })));
   const title = days === 1 ? t("SDE.warband.upkeep.healTitleOne") : t("SDE.warband.upkeep.healTitle", { days });
   if (lines.length) await card(title, lines, { whisper: true });
 }

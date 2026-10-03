@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512"
+     role="img" aria-labelledby="title desc">
+  <title id="title">Keep shadow</title>
+  <desc id="desc">Separate native-vector cast shadow aligned to the Keep SVG.</desc>
+  <g id="shadow" transform="translate(28 16)" fill="#9699AE" opacity="0.46">
+    <path d="M112 56 H400 V206 H386 L381 392 H412 L420 420 H100 L112 392 H131 L126 206 H112 Z"/>
+    <path d="M206 420 H306 L312 440 H200 Z"/>
+
+  </g>
+</svg>

@@ -1,0 +1,153 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512"
+     role="img" aria-labelledby="title desc">
+  <title id="title">Wizard Tower</title>
+  <desc id="desc">Slender round tower with blue-grey tiled cone, observatory balcony, telescope, glowing window and crystal.</desc>
+  <!-- Native vector artwork only: no embedded or linked raster content. -->
+
+  <defs>
+    <pattern id="roofHatch" width="12" height="12" patternUnits="userSpaceOnUse">
+      <path d="M2 0 V12 M8 0 V12" fill="none" stroke="#010206" stroke-width="0.75" opacity="0.17"/>
+    </pattern>
+    <pattern id="leanHatch" width="10" height="10" patternUnits="userSpaceOnUse">
+      <path d="M2 0 V10" fill="none" stroke="#010206" stroke-width="0.65" opacity="0.18"/>
+    </pattern>
+    <pattern id="stoneHatch" width="16" height="13" patternUnits="userSpaceOnUse">
+      <path d="M0 6 H16 M5 0 V6 M12 6 V13" fill="none" stroke="#010206" stroke-width="0.55" opacity="0.16"/>
+    </pattern>
+    <pattern id="shingleHatch" width="14" height="9" patternUnits="userSpaceOnUse">
+      <path d="M0 8 H14 M0 4 Q3.5 8 7 4 Q10.5 8 14 4" fill="none" stroke="#010206" stroke-width="0.6" opacity="0.2"/>
+    </pattern>
+    <pattern id="logHatch" width="9" height="9" patternUnits="userSpaceOnUse">
+      <path d="M4.5 0 V9" fill="none" stroke="#010206" stroke-width="0.7" opacity="0.2"/>
+    </pattern>
+    <pattern id="plankHatch" width="64" height="22" patternUnits="userSpaceOnUse">
+      <path d="M0 0.5 H64 M0 11.5 H64 M20 0 V11 M50 11 V22" fill="none" stroke="#010206" stroke-width="0.8" opacity="0.22"/>
+    </pattern>
+    <pattern id="flagHatch" width="48" height="40" patternUnits="userSpaceOnUse">
+      <path d="M0 0.5 H48 M0 20.5 H48 M16 0 V20 M40 20 V40" fill="none" stroke="#010206" stroke-width="0.8" opacity="0.2"/>
+    </pattern>
+    <pattern id="waterHatch" width="22" height="10" patternUnits="userSpaceOnUse">
+      <path d="M2 5 Q7 1 12 5 T22 5" fill="none" stroke="#A3C9CC" stroke-width="1.1" opacity="0.7"/>
+    </pattern>
+  </defs>
+
+  <g id="building" stroke="#010206" stroke-linecap="round" stroke-linejoin="round">
+
+    <!-- Cast glow of the crystal behind the pedestal. -->
+    <circle cx="124" cy="372" r="40" fill="#8FD8E8" stroke="none" opacity="0.22"/>
+    <!-- Crescent-moon finial on a staff. -->
+    <path d="M256 54 V34" fill="none" stroke-width="2.4"/>
+    <path d="M262 4 A15 15 0 1 0 262 36 A11 11 0 1 1 262 4 Z" fill="#E5B861" stroke-width="1.8"/>
+    <circle cx="259" cy="20" r="2.2" fill="#F4E9A8" stroke="none"/>
+    <!-- Conical tiled roof: two shaded halves, tile courses, flared brim. -->
+    <path d="M256 52 C252 86 204 128 158 178 Q206 192 256 192 Z" fill="#7D8CA3" stroke="none"/>
+    <path d="M256 52 C260 86 308 128 354 178 Q306 192 256 192 Z" fill="#66758C" stroke="none"/>
+    <path d="M256 52 C252 86 204 128 158 178 Q256 200 354 178 C308 128 260 86 256 52 Z" fill="url(#shingleHatch)" stroke="none"/>
+    <path d="M247 78 Q256 89 265 78" fill="none" stroke-width="1.1" opacity="0.5"/><path d="M233 100 Q256 111 279 100" fill="none" stroke-width="1.1" opacity="0.5"/><path d="M215 122 Q256 133 297 122" fill="none" stroke-width="1.1" opacity="0.5"/><path d="M195 144 Q256 155 317 144" fill="none" stroke-width="1.1" opacity="0.5"/><path d="M172 166 Q256 177 340 166" fill="none" stroke-width="1.1" opacity="0.5"/>
+    <path d="M256 52 C252 86 204 128 158 178 Q256 200 354 178 C308 128 260 86 256 52 Z" fill="none" stroke-width="2.6"/>
+    <path d="M158 178 Q256 200 354 178 Q364 188 352 194 Q256 216 160 194 Q148 188 158 178 Z" fill="#4F5A6E" stroke-width="2.2"/>
+    <path d="M190 108 Q182 132 172 156 M322 108 Q330 132 340 156" fill="none" stroke="#A9B6C8" stroke-width="1.2" opacity="0.55"/>
+    <!-- Roof dormer: a small round window in the cone. -->
+    <circle cx="256" cy="124" r="11" fill="#3A4254" stroke-width="2"/>
+    <circle cx="256" cy="124" r="6.4" fill="#9EE6F2" stroke-width="1.3"/>
+    <!-- Observatory chamber under the brim with two arched slits. -->
+    <path d="M196 196 H316 V232 H196 Z" fill="#8E8B83" stroke-width="2.2"/>
+    <path d="M196 196 H316 V232 H196 Z" fill="url(#stoneHatch)" stroke="none"/>
+    <path d="M214 232 V214 Q214 204 224 204 Q234 204 234 214 V232 Z M278 232 V214 Q278 204 288 204 Q298 204 298 214 V232 Z" fill="#26211f" stroke-width="1.8"/>
+    <path d="M240 232 V212 Q240 204 256 204 Q272 204 272 212 V232 Z" fill="#7C6BC0" stroke-width="1.6"/>
+    <!-- Brass telescope on a tripod, aimed over the rail. -->
+    <path d="M304 230 L292 254 M318 230 L330 254 M311 230 V254" fill="none" stroke="#5F4434" stroke-width="2.4"/>
+    <g transform="translate(300 224) rotate(-20)">
+      <path d="M-6 -7 H58 V7 H-6 Z" fill="#C9A24A" stroke-width="1.8"/>
+      <path d="M58 -11 H84 L84 11 H58 Z" fill="#B58C36" stroke-width="1.8"/>
+      <path d="M-14 -4 H-6 V4 H-14 Z" fill="#7E6A2C" stroke-width="1.5"/>
+      <path d="M8 -7 V7 M26 -7 V7 M62 -9 V9" fill="none" stroke-width="1.1" opacity="0.7"/>
+    </g>
+    <!-- Observatory balcony: plank deck, brackets and a railing. -->
+    <path d="M156 230 H356 L346 250 H166 Z" fill="#9F7D68" stroke-width="2.1"/>
+    <path d="M156 230 H356 L346 250 H166 Z" fill="url(#logHatch)" stroke="none"/>
+    <path d="M200 250 L212 266 M312 250 L300 266" fill="none" stroke="#4B352B" stroke-width="3"/>
+    <path d="M170 230 V210" fill="none" stroke="#5F4434" stroke-width="2.6"/><path d="M192 230 V210" fill="none" stroke="#5F4434" stroke-width="2.6"/><path d="M215 230 V210" fill="none" stroke="#5F4434" stroke-width="2.6"/><path d="M238 230 V210" fill="none" stroke="#5F4434" stroke-width="2.6"/><path d="M260 230 V210" fill="none" stroke="#5F4434" stroke-width="2.6"/><path d="M282 230 V210" fill="none" stroke="#5F4434" stroke-width="2.6"/><path d="M305 230 V210" fill="none" stroke="#5F4434" stroke-width="2.6"/><path d="M328 230 V210" fill="none" stroke="#5F4434" stroke-width="2.6"/><path d="M350 230 V210" fill="none" stroke="#5F4434" stroke-width="2.6"/>
+    <path d="M162 210 H350" fill="none" stroke="#5F4434" stroke-width="3"/>
+    <!-- Tower shaft: round stone, shaded on the right, tile-stone courses. -->
+    <path d="M200 250 H312 L324 420 H188 Z" fill="#8C8E94" stroke="none"/>
+    <path d="M200 250 H312 L324 420 H188 Z" fill="url(#stoneHatch)" stroke="none"/>
+    <path d="M200 250 H220 L212 420 H188 Z" fill="#A9ACB2" stroke="none" opacity="0.7"/>
+    <path d="M286 250 H312 L324 420 H292 Z" fill="#010206" stroke="none" opacity="0.2"/>
+    <path d="M194 278 Q256 287 318 278" fill="none" stroke-width="1.2" opacity="0.45"/><path d="M193 312 Q256 321 319 312" fill="none" stroke-width="1.2" opacity="0.45"/><path d="M191 346 Q256 355 321 346" fill="none" stroke-width="1.2" opacity="0.45"/><path d="M190 380 Q256 389 322 380" fill="none" stroke-width="1.2" opacity="0.45"/><path d="M189 408 Q256 417 323 408" fill="none" stroke-width="1.2" opacity="0.45"/>
+    <path d="M200 250 H312 L324 420 H188 Z" fill="none" stroke-width="2.6"/>
+    <!-- Faintly glowing rune band around the shaft. -->
+    <path d="M208 322 l5 -8 l5 8 M222 314 v14 M216 321 h12 M296 316 l-8 14 M288 316 l8 14 M302 322 h-18" fill="none" stroke="#9EE6F2" stroke-width="1.8"/>
+    <!-- Glowing arcane window with a rune star. -->
+    <circle cx="256" cy="330" r="34" fill="#9EE6F2" stroke="none" opacity="0.26"/>
+    <path d="M238 358 V330 Q238 308 256 308 Q274 308 274 330 V358 Z" fill="#A9ACB2" stroke-width="2.2"/>
+    <path d="M243 358 V331 Q243 314 256 314 Q269 314 269 331 V358 Z" fill="#9EE6F2" stroke-width="1.6"/>
+    <path d="M243 344 Q256 338 269 344 V358 H243 Z" fill="#7C6BC0" stroke="none" opacity="0.6"/>
+    <path d="M256 328 L258.2 333.8 L264 336 L258.2 338.2 L256 344 L253.8 338.2 L248 336 L253.8 333.8 Z" fill="#FFFFFF" stroke-width="0.9"/>
+
+    <path d="M256 314 V358 M243 336 H269" fill="none" stroke-width="1" opacity="0.5"/>
+    <!-- Plinth, door under the stair and porch step. -->
+    <path d="M178 420 H334 L346 446 H166 Z" fill="#85827A" stroke-width="2.2"/>
+    <path d="M178 420 H334 L346 446 H166 Z" fill="url(#stoneHatch)" stroke="none"/>
+    <path d="M280 420 V400 Q280 388 294 388 Q308 388 308 400 V420 Z" fill="#745846" stroke-width="2"/>
+    <path d="M294 388 V420 M280 404 H308" fill="none" stroke-width="1.2" opacity="0.7"/>
+    <circle cx="289" cy="408" r="1.8" fill="#E5B861" stroke="none"/>
+    <path d="M270 446 H318 L322 458 H266 Z" fill="#9A978D" stroke-width="1.8"/>
+    <!-- Crooked timber stair: lower flight up the front, landing, wraps behind, upper flight to the balcony. -->
+    <path d="M342 372 V446 M352 372 V446" fill="none" stroke="#5F4434" stroke-width="4"/>
+    <path d="M150 340 V420 M160 340 V420" fill="none" stroke="#5F4434" stroke-width="4"/>
+
+    <path d="M172 424 L172.0 418.0 L190.4 418.0 L190.4 413.6 L208.9 413.6 L208.9 405.6 L227.3 405.6 L227.3 398.5 L245.8 398.5 L245.8 394.8 L264.2 394.8 L264.2 389.3 L282.7 389.3 L282.7 380.9 L301.1 380.9 L301.1 375.0 L319.6 375.0 L319.6 371.4 L338.0 371.4 L338 383 L172 437 Z" fill="#9F7D68" stroke-width="1.8"/>
+    <path d="M172 424 L172.0 418.0 L190.4 418.0 L190.4 413.6 L208.9 413.6 L208.9 405.6 L227.3 405.6 L227.3 398.5 L245.8 398.5 L245.8 394.8 L264.2 394.8 L264.2 389.3 L282.7 389.3 L282.7 380.9 L301.1 380.9 L301.1 375.0 L319.6 375.0 L319.6 371.4 L338.0 371.4 L338 383 L172 437 Z" fill="url(#logHatch)" stroke="none"/>
+
+    <path d="M172 410 L338 356 M172 424 L172 408 M338 370 L338 354" fill="none" stroke="#5F4434" stroke-width="2.4"/>
+    <path d="M326 366 H358 V376 H326 Z" fill="#B08A68" stroke-width="1.9"/>
+    <path d="M146 336 H182 V346 H146 Z" fill="#B08A68" stroke-width="1.9"/>
+
+    <path d="M182 332 L182.0 323.8 L199.5 323.8 L199.5 317.1 L217.0 317.1 L217.0 306.8 L234.5 306.8 L234.5 297.5 L252.0 297.5 L252.0 291.5 L269.5 291.5 L269.5 283.8 L287.0 283.8 L287.0 273.1 L304.5 273.1 L304.5 265.0 L322.0 265.0 L322 279 L182 345 Z" fill="#9F7D68" stroke-width="1.8"/>
+    <path d="M182 332 L182.0 323.8 L199.5 323.8 L199.5 317.1 L217.0 317.1 L217.0 306.8 L234.5 306.8 L234.5 297.5 L252.0 297.5 L252.0 291.5 L269.5 291.5 L269.5 283.8 L287.0 283.8 L287.0 273.1 L304.5 273.1 L304.5 265.0 L322.0 265.0 L322 279 L182 345 Z" fill="url(#logHatch)" stroke="none"/>
+
+    <path d="M182 318 L322 252 M182 332 L182 316 M322 266 L322 250" fill="none" stroke="#5F4434" stroke-width="2.4"/>
+    <!-- Crystal on a stone pedestal. -->
+    <path d="M98 452 H150 L146 440 H102 Z" fill="#8E8B83" stroke-width="1.9"/>
+    <path d="M108 440 V414 H140 V440 Z" fill="#A8A59B" stroke-width="2"/>
+    <path d="M108 440 V414 H140 V440 Z" fill="url(#stoneHatch)" stroke="none"/>
+    <path d="M102 414 H146 L142 404 H106 Z" fill="#B7B4A9" stroke-width="1.9"/>
+    <path d="M124 330 L142 362 L138 402 H110 L106 362 Z" fill="#7FD3E6" stroke-width="2"/>
+    <path d="M124 330 L142 362 L138 402 H124 Z" fill="#4EA7C4" stroke="none"/>
+    <path d="M124 330 L118 362 L124 402 M106 362 H142" fill="none" stroke-width="1.2" opacity="0.7"/>
+    <path d="M112 364 L118 358" fill="none" stroke="#FFFFFF" stroke-width="2" opacity="0.8"/>
+    <path d="M148 392 L156 372 L162 394 Z M96 394 L90 378 L86 396 Z" fill="#7FD3E6" stroke-width="1.5"/>
+    <!-- Floating books and sparks. -->
+
+    <g transform="translate(96 196) rotate(-18)">
+      <path d="M-18 4 L0 9 L18 4 L18 8 L0 13 L-18 8 Z" fill="#7D4F8C" stroke-width="1.5"/>
+      <path d="M-18 4 L-17 -9 Q-8 -12 0 -5 Q8 -12 17 -9 L18 4 L0 9 Z" fill="#EDE4CB" stroke-width="1.5"/>
+      <path d="M0 -5 V9 M-12 -4 Q-8 -6 -4 -3 M-12 0 Q-8 -2 -4 1 M4 -3 Q8 -6 12 -4 M4 1 Q8 -2 12 0" fill="none" stroke-width="0.8" opacity="0.6"/>
+    </g>
+
+    <g transform="translate(414 258) rotate(14)">
+      <path d="M-18 4 L0 9 L18 4 L18 8 L0 13 L-18 8 Z" fill="#3F6F72" stroke-width="1.5"/>
+      <path d="M-18 4 L-17 -9 Q-8 -12 0 -5 Q8 -12 17 -9 L18 4 L0 9 Z" fill="#EDE4CB" stroke-width="1.5"/>
+      <path d="M0 -5 V9 M-12 -4 Q-8 -6 -4 -3 M-12 0 Q-8 -2 -4 1 M4 -3 Q8 -6 12 -4 M4 1 Q8 -2 12 0" fill="none" stroke-width="0.8" opacity="0.6"/>
+    </g>
+
+    <g transform="translate(88 280) rotate(24)">
+      <path d="M-18 4 L0 9 L18 4 L18 8 L0 13 L-18 8 Z" fill="#9C3F3A" stroke-width="1.5"/>
+      <path d="M-18 4 L-17 -9 Q-8 -12 0 -5 Q8 -12 17 -9 L18 4 L0 9 Z" fill="#EDE4CB" stroke-width="1.5"/>
+      <path d="M0 -5 V9 M-12 -4 Q-8 -6 -4 -3 M-12 0 Q-8 -2 -4 1 M4 -3 Q8 -6 12 -4 M4 1 Q8 -2 12 0" fill="none" stroke-width="0.8" opacity="0.6"/>
+    </g>
+    <path d="M60 225 L62.0 230.0 L67 232 L62.0 234.0 L60 239 L58.0 234.0 L53 232 L58.0 230.0 Z" fill="#F4E9A8" stroke-width="0.9"/>
+    <path d="M430 188 L432.2 193.8 L438 196 L432.2 198.2 L430 204 L427.8 198.2 L422 196 L427.8 193.8 Z" fill="#F4E9A8" stroke-width="0.9"/>
+    <path d="M396 106 L397.7 110.3 L402 112 L397.7 113.7 L396 118 L394.3 113.7 L390 112 L394.3 110.3 Z" fill="#F4E9A8" stroke-width="0.9"/>
+    <path d="M126 122 L127.7 126.3 L132 128 L127.7 129.7 L126 134 L124.3 129.7 L120 128 L124.3 126.3 Z" fill="#F4E9A8" stroke-width="0.9"/>
+    <path d="M440 295 L441.4 298.6 L445 300 L441.4 301.4 L440 305 L438.6 301.4 L435 300 L438.6 298.6 Z" fill="#F4E9A8" stroke-width="0.9"/>
+    <path d="M396 165 L397.4 168.6 L401 170 L397.4 171.4 L396 175 L394.6 171.4 L391 170 L394.6 168.6 Z" fill="#F4E9A8" stroke-width="0.9"/>
+
+    <circle cx="70" cy="166" r="3" fill="#F4E9A8" stroke-width="0.9"/><circle cx="438" cy="236" r="2.6" fill="#F4E9A8" stroke-width="0.9"/><circle cx="104" cy="248" r="2.4" fill="#F4E9A8" stroke-width="0.9"/><circle cx="410" cy="150" r="2.4" fill="#F4E9A8" stroke-width="0.9"/>
+    <path d="M214 452 Q216 443 219 452 Q222 445 225 452 Z" fill="#6F8A5F" stroke-width="1"/>
+    <path d="M346 454 Q348 445 351 454 Q354 447 357 454 Z" fill="#6F8A5F" stroke-width="1"/>
+
+  </g>
+</svg>
