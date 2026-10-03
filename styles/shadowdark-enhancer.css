@@ -391,6 +391,46 @@ body.theme-light .sde-bar-start-btn:hover {
   border: 1px solid var(--sde-bar-combat-border); color: var(--sde-bar-combat-text);
 }
 
+/* ── Tools panel ──────────────────────────────────────────────────────────────
+   One labelled panel behind the Tools button. The bar sits at the bottom of the
+   screen, so it opens upward from the button's right edge. Hidden while closed. */
+
+.sde-bar-gap { flex: 1; min-width: 12px; }
+.sde-bar-tools { position: relative; display: inline-block; }
+.sde-bar-menu {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  right: 0;
+  width: 430px;
+  max-width: calc(100vw - 24px);
+  box-sizing: border-box;
+  padding: 10px 12px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: var(--sde-bar-bg);
+  border: 1px solid var(--sde-bar-border);
+  border-radius: 6px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.6);
+  z-index: 5;
+}
+.sde-bar-menu[hidden] { display: none; }
+.sde-bar-menu h4 {
+  margin: 0 0 5px;
+  font: 700 11px/1 Signika, sans-serif;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  color: var(--sde-bar-text-muted);
+  border: 0;
+}
+.sde-bar-menu-row { display: flex; flex-wrap: wrap; gap: 5px; }
+.sde-bar-menu .sde-bar-btn:disabled { opacity: 0.45; cursor: default; }
+.sde-bar-menu .sde-bar-btn:focus-visible,
+.sde-bar-tools-btn:focus-visible { outline: 2px solid var(--sde-bar-accent); outline-offset: 1px; }
+/* Encounter and its options button read as one control. */
+.sde-bar-split { display: inline-flex; }
+.sde-bar-split .sde-bar-btn + .sde-bar-btn { margin-left: -1px; padding-inline: 8px; }
+
 /* ── Turn info ────────────────────────────────────────────────────────────── */
 
 .sde-bar-turn-info {
@@ -7934,6 +7974,7 @@ body.theme-light .sde-strip-atab,
 body.theme-light .sde-strip-ptab { background: #f4f1ec !important; }
 
 .sde-bar-btn:hover,
+.sde-bar-tools-btn[aria-expanded="true"],
 .sde-strip-cbtn:hover,
 .sde-strip-atab:hover:not(:disabled),
 .sde-strip-ptab:hover:not(:disabled),

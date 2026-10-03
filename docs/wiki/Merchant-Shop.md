@@ -14,7 +14,7 @@ transactions are logged automatically.
 
 | Route | How |
 |---|---|
-| **Crawl Bar** | Right-click **Forge & Loot** → **Merchant Shop** |
+| **Crawl Bar** | **Tools** → **Merchant** |
 | **API** | `game.shadowdarkEnhancer.merchant.openLocally()` |
 
 When opened by the GM, the shop window opens for **all connected players**.

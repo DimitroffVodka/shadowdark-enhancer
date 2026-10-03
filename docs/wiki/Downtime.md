@@ -16,7 +16,7 @@ chip, DC, fee and an Attempt button](images/downtime.png)
 
 | Route | How |
 |---|---|
-| **Forge & Loot menu** | Click **Forge & Loot** on the crawl bar, then **Downtime** |
+| **Tools menu** | Click **Tools** on the crawl bar, then **Downtime** |
 | **API** | `game.shadowdarkEnhancer.downtime.open()` |
 
 As GM, you can open Downtime at any time.

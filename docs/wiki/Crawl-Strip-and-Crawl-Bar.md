@@ -38,6 +38,12 @@ itself when there are no active members to show.
 
 ## The Crawl Bar
 
+### One row, in every mode
+
+The bar is always one row: a badge saying what is running, the one action you
+are most likely to want next, a few more, then **Tools** and **End** at the
+right. Controls that would do nothing are not drawn.
+
 ### In crawl mode
 
 ![Crawl Bar, crawl mode](images/crawl-bar-crawl.png)
@@ -48,13 +54,32 @@ itself when there are no active members to show.
 | **Next Round** | Advances round and refills movement budgets | — |
 | **Add Tokens** | Adds selected tokens to crawl roster | **Reset Initiative** (clears roll order) |
 | **Combat** | Starts a combat encounter from current state | — |
-| **Encounter** | Opens [Encounter Roller](Random-Encounters.md) | Encounter menu (check, threshold, frequency, table) |
-| **Forge & Loot** | Opens the tools menu: [Loot Generator](Loot-and-Treasure.md), [Magic Item Forge](Magic-Item-Forge.md), [Merchant Shop](Merchant-Shop.md), [Party XP](Party-XP.md), [Downtime](Downtime.md), [Pit Fighting](Pit-Fighting.md), [Regional Training](Regional-Training.md), [Renown](Renown.md), [Give Rumors](Rumors.md), [Session Recap](Session-Recap.md) | Same menu |
-| **Importer** | Opens [Importer Hub](Importer-Hub.md) | — |
-| **Start / End** | Starts or ends the crawl session | — |
+| **Tools** | Opens the Tools panel (below) | — |
+| **End** | Ends the crawl session | — |
 
-You can also **drag a RollTable from the sidebar directly onto the Encounter
-button** to set it as your active random encounter table.
+With no crawl running the bar shows **Add Tokens**, **Tools** and **Start**
+(plus **Travel** on a hex map). **Next Round** and **Combat** appear once the
+crawl starts.
+
+### Tools
+
+**Tools** opens one panel above the bar. It closes when you click outside it or
+press **Esc**, and it works from the keyboard: **Enter** or **Down** opens it,
+the arrow keys and **Tab** move between entries, and **Esc** puts you back on
+the button.
+
+| Section | Entries |
+|---|---|
+| **This travel day** (overland travel only) | Start day, Forage, Roll weather, Start a crawl |
+| **At the table** | **Encounter** (opens the [Encounter Roller](Random-Encounters.md); the button beside it, or a right-click, opens the encounter menu: check, threshold, frequency, tables by terrain), Roll tables, [Loot](Loot-and-Treasure.md), [Magic items](Magic-Item-Forge.md), [Merchant](Merchant-Shop.md), [Party](Party.md), and in a crawl **Reset Initiative** |
+| **Between sessions** | [Party XP](Party-XP.md), [Downtime](Downtime.md), [Training](Regional-Training.md), [Renown](Renown.md), [Rumors](Rumors.md), [Recap](Session-Recap.md), [Pit fighting](Pit-Fighting.md) |
+| **Set up** | [Importer](Importer-Hub.md), and Bastions once the world has one |
+
+![The Tools panel](images/crawl-bar-tools.png)
+
+You can still **drag a RollTable from the sidebar onto Encounter** to set it as
+your active random encounter table: drag it over **Tools** (the panel opens
+while you drag) and drop it on **Encounter**.
 
 > **Add Tokens adds only Player actors to the crawl roster.** Selected NPC
 > tokens are ignored with a notice. Membership is stored by **actor ID**, so

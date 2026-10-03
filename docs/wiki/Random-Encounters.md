@@ -11,8 +11,9 @@ creatures standing on the map.
 
 ## The encounter check
 
-Right-click the **Encounter** button on the [Crawl Bar](Crawl-Strip-and-Crawl-Bar.md)
-and choose **Encounter Check**.
+Open **Tools** on the [Crawl Bar](Crawl-Strip-and-Crawl-Bar.md), press the options
+button beside **Encounter** (or right-click **Encounter**), and choose **Encounter
+Check**.
 
 The same check also runs **by itself as the crawl clock advances** — the *Next
 round* button and the round an out-of-combat turn wrap rolls over. How often is

@@ -15,7 +15,7 @@ to a single character when you want to.
 
 | Route | How |
 |---|---|
-| **Crawl Bar** | **Forge & Loot** → **Loot Generator** (the menu opens on either click) |
+| **Crawl Bar** | **Tools** → **Loot** |
 | **API** | `game.shadowdarkEnhancer.loot.open()` |
 
 ---

@@ -39,6 +39,15 @@ export const ICONS = {
   monsterArt:  gameIcon("dragon-head"),
   close:       `<i class="fas fa-times"></i>`,
   play:        `<i class="fas fa-play"></i>`,
+  tools:       `<i class="fas fa-toolbox"></i>`,
+  caretUp:     `<i class="fas fa-caret-up"></i>`,
+  encounterOptions: `<i class="fas fa-sliders"></i>`,
+  // The Tools panel's entries (the old Forge & Loot menu's glyphs, kept).
+  merchant:    `<i class="fas fa-store"></i>`,
+  downtime:    `<i class="fas fa-mug-hot"></i>`,
+  training:    `<i class="fas fa-dumbbell"></i>`,
+  rumors:      `<i class="fas fa-comments"></i>`,
+  pitFighting: `<i class="fas fa-hand-fist"></i>`,
   clock:       `<i class="fas fa-clock" style="font-size:20px;color:var(--sde-bar-accent)"></i>`,
 
   // ── Clock Menu ───────────────────────────────────────────────────────────

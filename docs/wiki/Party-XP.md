@@ -13,7 +13,7 @@ treasure-XP rules.
 
 | Route | How |
 |---|---|
-| **Crawl Bar** | Right-click **Forge & Loot** → **Party XP** |
+| **Crawl Bar** | **Tools** → **Party XP** |
 | **API** | `game.shadowdarkEnhancer.partyXp.open()` |
 
 Party XP is GM-only.
