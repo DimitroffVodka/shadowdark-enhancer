@@ -483,6 +483,7 @@
     "scripts/party/party-movement-core.mjs": "Fixed formation fill, follow ordering, square/hex footprint-aware wall-safe placement and stack fallback.",
     "scripts/party/party-movement.mjs": "Authenticated Party-owner gather/deploy relay, linked token configuration preservation and committed native marching with visible pauses.",
     "scripts/party/party-hud.mjs": "Single combat-gated Import/Export Members Party token HUD action.",
+    "scripts/party/party-create-option.mjs": "Adds the Enhancer's Party entry to the Create Actor type list and drops Extras' duplicate Party entry.",
     "scripts/party/party-light.mjs": "Runtime-only dungeon Party light mirror without duplicated fuel items; hex lights and stored vision unchanged.",
     "scripts/party/party.mjs": "Explicit native Party provider, safe in-place NPC adoption and owner-scoped membership writes.",
     "scripts/party/party-app.mjs": "Native ApplicationV2 Party actor sheet and directory/token-HUD entry points, preserving detailed member cards with inline activities, scoped quests/payouts and description editing.",
