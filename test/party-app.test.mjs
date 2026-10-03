@@ -287,10 +287,25 @@ test("treasury coin labels localize through the system keys, not literal field n
   const p = actor("p", "NPC", { [MOD]: { party: true } });
   world([p], true);
   const context = await new PartyApp(p)._prepareContext();
-  assert.deepEqual(context.coinLabels, { gp: "SHADOWDARK.coins.gp", sp: "SHADOWDARK.coins.sp", cp: "SHADOWDARK.coins.cp" });
+  assert.deepEqual(context.coinList.map(c => [c.key, c.labelKey, c.value]), [["gp", "SHADOWDARK.coins.gp", 0], ["sp", "SHADOWDARK.coins.sp", 0], ["cp", "SHADOWDARK.coins.cp", 0]]);
   const template = await readFile(new URL("../templates/party/party.hbs", import.meta.url), "utf8");
   assert.ok(!template.includes('aria-label="{{key}}"'), "coin inputs do not carry a literal field name as their aria-label");
-  assert.ok(template.includes("{{localize (lookup ../coinLabels key)}}"));
+  assert.ok(template.includes('aria-label="{{localize labelKey}}"'));
+});
+test("Items lists the party's own items with Gems apart in their own box, and treasury from the flag", async () => {
+  const p = actor("p", "NPC", { [MOD]: { party: true, partyCoins: { gp: 7, sp: 3 } } });
+  p.items.contents.push(
+    { id: "r", name: "Rope", type: "Basic", img: "r.webp", system: { quantity: 2, isPhysical: true, slots: { slots_used: 1, per_slot: 1 } } },
+    { id: "g", name: "Jade", type: "Gem", img: "g.webp", system: { quantity: 2, isPhysical: true, cost: { gp: 50 } } });
+  world([p], true);
+  const context = await new PartyApp(p)._prepareContext();
+  assert.deepEqual(context.items.map(i => i.name), ["Rope"], "a gem is not also an item row");
+  assert.deepEqual(context.gems.map(g => [g.name, g.quantity, g.value]), [["Jade", 2, "50"]]);
+  assert.equal(context.gemTotal, "100");
+  assert.deepEqual(context.coinList.map(c => c.value), [7, 3, 0]);
+  assert.equal(context.inventorySlots.used, 2, "gems do not take party slots, as in the system's own count");
+  const template = await readFile(new URL("../templates/party/party.hbs", import.meta.url), "utf8");
+  for (const marker of ["SHADOWDARK.inventory.gems", "{{gemTotal}}", "sdp-coins", 'data-action="createItem"']) assert.ok(template.includes(marker), marker);
 });
 test("a party with no members shows a drop zone and a grid hint, and an Actor dropped on either adds it", async () => {
   const pc = actor("pc", "Player");

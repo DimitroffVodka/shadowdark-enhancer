@@ -5,7 +5,7 @@ import { Party, isNativeParty, isLegacyParty } from "./party.mjs";
 import { offerParty } from "./party-create-option.mjs";
 import { scopedQuests } from "./party-core.mjs";
 import { fillFormation } from "./party-movement-core.mjs";
-import { marchState, partyTabs, resolveTab, sheetView } from "./party-sheet-core.mjs";
+import { marchState, partyTabs, resolveTab, sheetView, gemSummary } from "./party-sheet-core.mjs";
 import { configureMovement, requestMovement, movementStatus, inPartyCombat, MOVEMENT_CHANGED } from "./party-movement.mjs";
 import { Quests, QUESTS_CHANGED } from "../quests/quests.mjs";
 import { QuestLogApp } from "../quests/quest-log-app.mjs";
@@ -135,7 +135,8 @@ export class PartyApp extends HandlebarsApplicationMixin(ApplicationV2) {
       }));
       const visible = members.filter(m => !m.missing), players = members.filter(m => m.group === "characters");
       const coins = this.actor.flags?.[MODULE_ID]?.partyCoins ?? this.actor.flags?.["shadowdark-extras"]?.coins ?? { gp: 0, sp: 0, cp: 0 };
-      const coinLabels = Object.fromEntries(Object.keys(coins ?? {}).map(key => [key, COIN_LABELS[key] ?? key]));
+      const coinList = Object.entries(COIN_LABELS).map(([key, labelKey]) => ({ key, labelKey, value: Math.max(0, Math.trunc(Number(coins?.[key]) || 0)) }));
+      const gemBag = gemSummary(this.actor.items.contents);
       const description = this.actor.flags?.[MODULE_ID]?.partyDescription ?? this.actor.flags?.["shadowdark-extras"]?.description ?? "";
       const editor = globalThis.foundry?.applications?.ux?.TextEditor?.implementation;
       const descriptionHTML = editor ? await editor.enrichHTML(description, { secrets: !!this.actor.isOwner, async: true, relativeTo: this.actor }) : "";
@@ -159,7 +160,7 @@ export class PartyApp extends HandlebarsApplicationMixin(ApplicationV2) {
         const member = rows.find(r => r.uuid === uuid)?.actor;
         slots.push({ row, col, uuid, name: member?.name, img: member?.img, leader: uuid === data.leaderUuid, disabled: !canEdit || !member });
       }
-      return { ...base, actor: this.actor, canEdit, owner: canEdit, players, members, memberCount: visible.length, coins, coinLabels, descriptionHTML, description, editingDescription: !!this.editingDescription,
+      return { ...base, actor: this.actor, canEdit, owner: canEdit, players, members, memberCount: visible.length, coins, coinList, gems: gemBag.rows, gemTotal: gemBag.total, descriptionHTML, description, editingDescription: !!this.editingDescription,
         activityHTML, questHTML, campingActive: this.activity !== "carousing", carousingActive: this.activity === "carousing",
         inventorySlots: { used: inventorySlots(this.actor.items.contents, coins), max: this.actor.flags?.["shadowdark-extras"]?.partyMaxSlots ?? 10 },
         partyStats: { totalHp: visible.reduce((n,m) => n + m.hp.value, 0), maxHp: visible.reduce((n,m) => n + m.hp.max, 0), avgAc: visible.length ? Math.round(visible.reduce((n,m) => n + m.ac, 0) / visible.length) : 0, avgLevel: players.length ? Math.round(players.reduce((n,m) => n + m.level, 0) / players.length) : 0 },
@@ -171,7 +172,7 @@ export class PartyApp extends HandlebarsApplicationMixin(ApplicationV2) {
         movementReason: !status.token ? t("SDE.party.movement.noToken") : combat ? t("SDE.party.movement.combat") : t("SDE.party.movement.importExport"),
         groups: ["characters", "hirelings", "mounts", "missing"].map((key) => ({ label: t(LABELS[key]), rows: members.filter(r => r.group === key) })),
 
-        quests: this._quests(), items: this.actor.items.contents.map((i) => ({ id: i.id, name: i.name, img: i.img, quantity: i.system?.quantity ?? 1, slots: inventorySlots([i]) })) };
+        quests: this._quests(), items: this.actor.items.contents.filter((i) => i.type !== "Gem").map((i) => ({ id: i.id, name: i.name, img: i.img, quantity: i.system?.quantity ?? 1, slots: inventorySlots([i]) })) };
     } catch (error) { console.error(`${MODULE_ID} | Party roster read`, error); return { ...base, unknown: true }; }
   }
   _onRender(context, options) {

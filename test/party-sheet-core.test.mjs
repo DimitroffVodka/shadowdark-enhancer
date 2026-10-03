@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { partyTabs, resolveTab, sheetView, marchState } from "../scripts/party/party-sheet-core.mjs";
+import { partyTabs, resolveTab, sheetView, marchState, gemSummary, gpText } from "../scripts/party/party-sheet-core.mjs";
 
 test("the GM sees Travel; a player does not; Bastion needs a linked bastion", () => {
   assert.deepEqual(partyTabs({ isGM: true }), ["members", "items", "travel", "quests", "description"]);
@@ -47,4 +47,29 @@ test("Marching order line: no party token is a hint for a manager and nothing fo
   assert.deepEqual(marchState({ ...bare, manager: true }), { mode: "notice", reason: "noToken" });
   assert.deepEqual(marchState({ ...bare, manager: false }), { mode: "leads" });
   assert.deepEqual(marchState({ follow: true, hasToken: true, deployed: false, reason: "gathered", hasLeader: true }), { mode: "notice", reason: "gathered" });
+});
+
+test("gems: the system's Gem items only, each worth its cost, the total is value times quantity", () => {
+  const items = [
+    { id: "a", name: "Jade", img: "j.webp", type: "Gem", system: { quantity: 2, cost: { gp: 50, sp: 0, cp: 0 } } },
+    { id: "b", name: "Garnet", type: "Gem", system: { quantity: 3, cost: { gp: 25 } } },
+    { id: "c", name: "Chip", type: "Gem", system: { quantity: 1, cost: { sp: 5, cp: 7 } } },
+    { id: "d", name: "Rope", type: "Basic", system: { quantity: 9, cost: { gp: 1 } } },
+    { id: "e", name: "Idol", type: "Treasure", system: { quantity: 1, cost: { gp: 300 } } },
+  ];
+  const { rows, total, count } = gemSummary(items);
+  assert.deepEqual(rows.map((r) => [r.name, r.quantity, r.value]), [["Jade", 2, "50"], ["Garnet", 3, "25"], ["Chip", 1, "0.57"]]);
+  assert.equal(total, "175.57");
+  assert.equal(count, 6);
+});
+
+test("gems: an empty bag, a missing cost and a stack of none add nothing", () => {
+  assert.deepEqual(gemSummary([]), { rows: [], total: "0", count: 0 });
+  assert.deepEqual(gemSummary(), { rows: [], total: "0", count: 0 });
+  const odd = gemSummary([{ name: "x", type: "Gem", system: { quantity: 0, cost: { gp: 10 } } }, { name: "y", type: "Gem", system: {} }]);
+  assert.equal(odd.total, "0");
+  assert.equal(odd.rows[1].quantity, 1);
+  assert.equal(gpText(0), "0");
+  assert.equal(gpText(100), "1");
+  assert.equal(gpText(5), "0.05");
 });

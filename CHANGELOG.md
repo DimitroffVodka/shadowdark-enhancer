@@ -13,6 +13,9 @@
   the red wave over the portrait, AC / LV / SLOTS / XP chips and the six ability modifiers on one
   small line. Hirelings and mounts omit the character-only chips, as before. Camp and Carouse are no
   longer repeated on the Members tab; they stay under Travel.
+- **The Party's Items tab has a Gems box.** Beside the item list sit the Treasury (gp, sp, cp, editable by
+  a GM or a party owner) and Gems: the Party's items of the Shadowdark system's Gem type, with each
+  gem's quantity and value and the total. Gems no longer appear twice, as plain item rows.
 - **The Party sheet has a GM view and a player view.** A player sees every member's stats but not
   the Travel tab (camping, carousing and the travel panels stay the GM's), Place / Recall, the
   remove (x) on a member, item and coin editing, or Camp and Carouse. Tabs the viewer cannot see fall

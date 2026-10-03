@@ -47,3 +47,24 @@ export function marchState({ follow = true, hasToken = false, deployed = false, 
   if (reason === "gathered") return { mode: "notice", reason };
   return leads;
 }
+
+// ---------------------------------------------------------------- Gems
+
+/** A cost {gp, sp, cp} in copper (1 gp = 10 sp = 100 cp); a missing or odd part counts as 0. */
+const copper = (cost) => ["gp", "sp", "cp"].reduce((sum, key, i) => sum + Math.max(0, Math.trunc(Number(cost?.[key]) || 0)) * [100, 10, 1][i], 0);
+
+/** Copper as gp text: whole when whole, else to the copper ("12", "0.5", "0.07"). */
+export const gpText = (cp) => String(Math.round(cp) / 100);
+
+/**
+ * The party's gems: its items of the Shadowdark system's Gem type, with each gem's value (its
+ * cost; the system keeps a gem's worth in `system.cost`), the quantity held, and the total.
+ * @param {Array<{id?:string, name:string, img?:string, type?:string, system?:{quantity?:number, cost?:object}}>} items
+ */
+export function gemSummary(items = []) {
+  const rows = (items ?? []).filter((item) => item?.type === "Gem").map((item) => {
+    const each = copper(item.system?.cost), quantity = Math.max(0, Math.trunc(Number(item.system?.quantity ?? 1)) || 0);
+    return { id: item.id, name: item.name, img: item.img, quantity, value: gpText(each), total: each * quantity };
+  });
+  return { rows, total: gpText(rows.reduce((sum, row) => sum + row.total, 0)), count: rows.reduce((sum, row) => sum + row.quantity, 0) };
+}

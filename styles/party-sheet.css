@@ -1182,3 +1182,33 @@
 .sde-party .sdp-remove:hover { color: #e06060; }
 .sde-party .sdp-card.missing { opacity: .7; }
 @media (max-width: 719px) { .sde-party .sdp-cards { grid-template-columns: minmax(0, 1fr); } }
+
+/* ------------------------------------------------------------------ Party sheet: Items, Treasury and Gems */
+.sde-party .sdp-two { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); gap: 12px; align-items: start; }
+.sde-party .sdp-col { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.sde-party .sdp-box { padding: 10px 12px; border: 1px solid #2a2a2a; border-radius: 8px; background: #121212; }
+.sde-party .sdp-boxhead { display: flex; align-items: baseline; gap: 8px; margin: 0 0 8px; padding: 0; border: 0; font: 700 11px/1 Signika, sans-serif; letter-spacing: .7px; text-transform: uppercase; color: #8d8d8d; }
+.sde-party .sdp-boxhead small { margin-left: auto; font-weight: 400; letter-spacing: .3px; }
+.sde-party .sdp-boxhead small + a { margin-left: 0; }
+.sde-party .sdp-boxhead a { color: #cfcfcf; cursor: pointer; }
+.sde-party .sdp-list { margin: 0; padding: 0; list-style: none; }
+.sde-party .sdp-list li { display: flex; align-items: center; gap: 9px; padding: 6px 0; border-top: 1px solid #1f1f1f; font-size: 13px; }
+.sde-party .sdp-list li:first-child { border-top: 0; }
+.sde-party .sdp-list img { flex: none; width: 22px; height: 22px; border: 0; border-radius: 4px; object-fit: cover; }
+.sde-party .sdp-list .n { flex: 1; min-width: 0; overflow: hidden; color: #e0e0e0; text-overflow: ellipsis; white-space: nowrap; cursor: pointer; }
+.sde-party .sdp-list .n:hover { color: #fff; text-decoration: underline; }
+.sde-party .sdp-list .q { display: flex; align-items: center; justify-content: center; gap: 7px; min-width: 64px; color: #ddd; }
+.sde-party .sdp-list .q a { padding: 4px; color: #8d8d8d; font-size: 10px; cursor: pointer; }
+.sde-party .sdp-list .q a:hover { color: #fff; }
+.sde-party .sdp-list .s { width: 34px; font-size: 12px; text-align: right; color: #8d8d8d; }
+.sde-party .sdp-list .empty-list { color: #8d8d8d; }
+.sde-party .sdp-gems .q { min-width: 30px; color: #8d8d8d; }
+.sde-party .sdp-gems .s { width: 64px; }
+.sde-party .sdp-coins { display: flex; flex-direction: column; gap: 7px; }
+.sde-party .sdp-coins label { display: flex; flex-direction: row; align-items: center; gap: 9px; width: auto; margin: 0; }
+.sde-party .sdp-coins .coin { flex: none; width: 14px; height: 14px; border: 1px solid #0006; border-radius: 50%; }
+.sde-party .sdp-coins .gp { background: #e2b43c; }
+.sde-party .sdp-coins .sp { background: #b9bcc4; }
+.sde-party .sdp-coins .cp { background: #b8733f; }
+.sde-party .sdp-coins input { flex: 1; min-width: 0; height: 28px; text-align: right; }
+.sde-party .sdp-coins em { width: 24px; font-size: 12px; font-style: normal; color: #8d8d8d; }

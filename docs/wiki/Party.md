@@ -108,8 +108,15 @@ Deployed Party movement does not also trigger aggregate travel/encounters.
 ## Quests, items and activities
 
 The window displays party-assigned and member-personal [quests](Quest-Log.md),
-filtered by ordinary permissions. Items are the actual embedded Party inventory;
-this feature does not add a treasury/trade/container transfer subsystem.
+filtered by ordinary permissions.
+
+**Items** is the actual embedded Party inventory, with a column on its right:
+the **Treasury** (gp, sp and cp, which a manager edits) and **Gems**, the
+Party's items of the Shadowdark system's Gem type. A gem is worth its cost
+(`system.cost`, as in the system's Gem Bag); the box lists each gem's quantity
+and value and the total, quantity times value. Gems are kept out of the item list
+and take no Party slots, as in the system. Quantity buttons and **New Item** are
+a manager's. This feature does not add a trade/container transfer subsystem.
 The **Travel** tab contains [Camping](Camping.md) and [Carousing](Carousing.md)
 controls in the sheet: select each PC's task and ability, confirm their choices,
 then lock and roll. Results and food/fuel decisions stay in the same tab;

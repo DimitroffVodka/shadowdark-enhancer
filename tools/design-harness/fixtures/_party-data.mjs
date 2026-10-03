@@ -23,8 +23,9 @@ export const party = (tab) => ({
     tabs: [["members", "Members", "fa-solid fa-users"], ["items", "Items", "fa-solid fa-box"], ["travel", "Travel", "fa-solid fa-route"], ["quests", "Quests", "fa-solid fa-scroll"], ["description", "Description", "fa-solid fa-book"]].map(([key, label, icon]) => ({ key, label, icon, active: key === tab })),
     membersTab: tab === "members", itemsTab: tab === "items", travelTab: tab === "travel", questsTab: tab === "quests", descriptionTab: tab === "description",
     members, groups: [["characters", "Characters"], ["hirelings", "Hirelings"], ["mounts", "Mounts"], ["missing", "Missing"]].map(([k, label]) => ({ label, rows: members.filter((m) => m.group === k) })),
-    coins: { gp: 42, sp: 17, cp: 3 }, coinLabels: { gp: "SHADOWDARK.coins.gp", sp: "SHADOWDARK.coins.sp", cp: "SHADOWDARK.coins.cp" }, inventorySlots: { used: 14, max: 20 },
+    coins: { gp: 42, sp: 17, cp: 3 }, coinList: [["gp", 42], ["sp", 17], ["cp", 3]].map(([key, value]) => ({ key, labelKey: "SHADOWDARK.coins." + key, value })), inventorySlots: { used: 14, max: 20 },
     items: ["Rope, 60'", "Torches (6)", "Rations (12)", "Crowbar", "Iron spikes", "Lantern"].map((name, i) => ({ id: "i" + i, name, img: svg("#555", name[0]), quantity: i + 1, slots: 1 })),
+    gems: [["Jade", 2, "50"], ["Black opal", 1, "100"], ["Garnet", 3, "25"], ["Citrine", 1, "10"]].map(([name, quantity, value], i) => ({ id: "g" + i, name, quantity, value, img: svg("#3a7", name[0]) })), gemTotal: "285",
     description: "", descriptionHTML: "",
   },
 });
