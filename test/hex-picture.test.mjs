@@ -73,6 +73,11 @@ test("chooseExemplar: when no edge is clean, the cleanest one looked at (busy ar
   assert.equal(chooseExemplar([5, 6, 7, 8], (n) => m(ink[n]), { tries: 3 }), 6, "it looks at `tries` candidates and no more");
 });
 
+test("chooseExemplar: a clean hex far down a long list is still found", () => {
+  const list = Array.from({ length: 45 }, (_, i) => i + 1);
+  assert.equal(chooseExemplar(list, (n) => m(n === 44 ? 0 : 0.05)), 44);
+});
+
 test("chooseExemplar: nothing readable means no picture, so the tile keeps its icon", () => {
   assert.equal(chooseExemplar([1, 2, 3], () => null), null);
 });

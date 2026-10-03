@@ -40,8 +40,12 @@ export const EDGE_RING = { from: 0.9, to: 1 };
 /** Share of the ring that may be ink before an exemplar is rejected. */
 export const EDGE_INK_LIMIT = 0.02;
 
-/** How many candidates to look at per terrain (each is one 96-pixel read). */
-export const EXEMPLAR_TRIES = 40;
+/**
+ * How many candidates to look at per terrain (each is one 96-pixel read, about 0.1 ms). Well past what a
+ * hand-tagged map has per terrain, so a clean hex deep in the list (classifier tags add many) is still
+ * found; the cap only bounds the worst case once the store holds thousands of cells.
+ */
+export const EXEMPLAR_TRIES = 400;
 
 /** Font Awesome icon for a terrain's tile while it has no picture; a word the GM typed gets MAP_ICON. */
 export const TERRAIN_ICONS = {
