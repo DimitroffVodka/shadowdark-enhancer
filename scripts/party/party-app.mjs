@@ -5,7 +5,7 @@ import { Party, isNativeParty, isLegacyParty } from "./party.mjs";
 import { offerParty } from "./party-create-option.mjs";
 import { scopedQuests } from "./party-core.mjs";
 import { fillFormation } from "./party-movement-core.mjs";
-import { marchState, partyTabs, resolveTab, sheetView, gemSummary, linkedBastion, lastMonthEntry, roomIcon, lightReadout, rationsCount, statusBar } from "./party-sheet-core.mjs";
+import { marchState, marchText, partyTabs, tabRow, resolveTab, sheetView, gemSummary, linkedBastion, lastMonthEntry, roomIcon, lightReadout, rationsCount, statusBar } from "./party-sheet-core.mjs";
 import { EMBLEM_FLAG, emblemOf, emblemIconPath, emblemChoices, pickEmblem } from "./party-emblem-core.mjs";
 import { BASTION_TYPE } from "../bastion/bastion-art.mjs";
 import { stateOf as bastionState, stats as bastionStats, upgradeOf } from "../bastion/bastion-core.mjs";
@@ -18,39 +18,9 @@ import { replaceModuleFlag } from "../shared/module-flags.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 const t = (key) => game.i18n.localize(key);
-const LABELS = { members: "SDE.party.members", quests: "SDE.party.quests", items: "SDE.party.sheet.inventory", travel: "SDE.party.sheet.travel", bastion: "SDE.party.sheet.bastion", description: "SDE.party.sheet.description",
-  characters: "SDE.party.characters", hirelings: "SDE.party.hirelings", mounts: "SDE.party.mounts", missing: "SDE.party.missing" };
-const TAB_ICONS = { members: "fas fa-users", items: "fas fa-box", travel: "fas fa-campground", quests: "fas fa-scroll", bastion: "fas fa-chess-rook", description: "fas fa-book-open" };
-/** Movement pause reasons name their message with literal keys; a lookup table hides them from the i18n scan. */
-function movementMessage(reason) {
-  switch (reason) {
-    case "noToken": return t("SDE.party.movement.noToken");
-    case "free": return t("SDE.party.movement.free");
-    case "combat": return t("SDE.party.movement.combat");
-    case "scene": return t("SDE.party.movement.scene");
-    case "reload": return t("SDE.party.movement.reload");
-    case "gathered": return t("SDE.party.movement.gathered");
-    case "leader": return t("SDE.party.movement.leader");
-    case "teleport": return t("SDE.party.movement.teleport");
-    case "missing": return t("SDE.party.movement.missing");
-    case "blocked": return t("SDE.party.movement.blocked");
-    default: return t("SDE.party.movement.unknown");
-  }
-}
-/** The Marching order line's words and whether it is a warning, from marchState's answer. */
-function marchLine(state, { leaderName, pausedName }) {
-  const missing = t("SDE.party.missing");
-  switch (state.mode) {
-    case "free": return { ...state, text: t("SDE.party.movement.freely") };
-    case "leads": return { ...state, text: game.i18n.format("SDE.party.movement.leads", { name: leaderName ?? missing }) };
-    case "paused": {
-      const status = movementMessage(state.reason);
-      return { ...state, warn: true, text: state.pausedMember && ["blocked", "missing"].includes(state.reason) ? game.i18n.format("SDE.party.movement.pausedMember", { status, name: pausedName ?? missing }) : status };
-    }
-    case "notice": return { ...state, text: t(state.reason === "gathered" ? "SDE.party.movement.gathered" : "SDE.party.movement.noToken") };
-    default: return { ...state, text: "" };
-  }
-}
+const sayWith = (key, data) => game.i18n.format(key, data);
+const I18N = { say: t, sayWith };
+const LABELS = { characters: "SDE.party.characters", hirelings: "SDE.party.hirelings", mounts: "SDE.party.mounts", missing: "SDE.party.missing" };
 /** What the Bastion tab shows of a bastion actor: its numbers, rooms and last month's result. */
 function bastionCard(actor) {
   const state = bastionState(actor), st = bastionStats(state), last = lastMonthEntry(state.log);
@@ -59,13 +29,6 @@ function bastionCard(actor) {
     rooms: state.upgrades.filter((u) => upgradeOf(u.id)).map((u) => ({ name: t(upgradeOf(u.id).name), icon: roomIcon(u.id), building: u.weeksLeft > 0, tip: u.weeksLeft > 0 ? game.i18n.format("SDE.bastion.weeksLeft", { weeks: u.weeksLeft }) : "" })),
     lastMonth: last ? bastionLogText(last) : "" };
 }
-const STATUS_LABELS = { today: "SDE.party.status.today", light: "SDE.party.status.light", rations: "SDE.party.status.rations" };
-/** What the status bar's numbers say. */
-const STATUS_SAY = {
-  hexes: ({ left, budget }) => game.i18n.format("SDE.overland.badgeHexes", { left, budget }),
-  light: ({ name, mins }) => (mins == null ? name : game.i18n.format("SDE.party.status.lightLeft", { name, mins })),
-  rations: (count) => String(count),
-};
 // Localized coin labels come from the system's own keys; the sheet draws literal text otherwise.
 const COIN_LABELS = { gp: "SHADOWDARK.coins.gp", sp: "SHADOWDARK.coins.sp", cp: "SHADOWDARK.coins.cp" };
 
@@ -161,7 +124,7 @@ export class PartyApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const bastionActor = this._bastion();
     const keys = partyTabs({ isGM: view.isGM, hasBastion: !!bastionActor }), tab = resolveTab(this.tab, keys);
     const base = { parties, isGM: view.isGM, hasParty: !!this.actor, title: this.actor?.name,
-      tabs: keys.map((key) => ({ key, label: t(LABELS[key]), icon: TAB_ICONS[key], active: tab === key })),
+      tabs: tabRow(keys, tab, t),
       membersTab: tab === "members", questsTab: tab === "quests", itemsTab: tab === "items", travelTab: tab === "travel", bastionTab: tab === "bastion", descriptionTab: tab === "description", picker: !this.document };
     if (!this.actor) return base;
     if (!Party.list().includes(this.actor)) return { ...base, hasParty: false };
@@ -205,12 +168,11 @@ export class PartyApp extends HandlebarsApplicationMixin(ApplicationV2) {
       const partyItems = this.actor.items?.contents ?? [];
       const everyoneVisible = rows.length > 0 && rows.every(r => r.actor);
       const readouts = statusBar({ travel: await this._travel(), light: lightReadout([partyItems, ...carriers]),
-        rations: everyoneVisible ? rationsCount([partyItems, ...rows.filter(r => r.group === "characters").map(r => r.actor.items?.contents ?? [])]) : null }, STATUS_SAY)
-        .map(readout => ({ ...readout, label: t(STATUS_LABELS[readout.key]) }));
+        rations: everyoneVisible ? rationsCount([partyItems, ...rows.filter(r => r.group === "characters").map(r => r.actor.items?.contents ?? [])]) : null }, I18N);
       const formation = fillFormation(data, rows), status = movementStatus(this.actor);
       const combat = inPartyCombat(globalThis.canvas?.scene), leaderActor = rows.find(r => r.uuid === data.leaderUuid)?.actor, hasLeader = !!data.leaderUuid && !!leaderActor;
-      const march = marchLine(marchState({ follow: data.followLeader, hasToken: !!status.token, deployed: status.deployed, reason: status.reason, pausedMember: status.pausedMemberUuid, manager: canEdit, hasLeader }),
-        { leaderName: leaderActor?.name, pausedName: rows.find(r => r.uuid === status.pausedMemberUuid)?.actor?.name });
+      const march = marchText(marchState({ follow: data.followLeader, hasToken: !!status.token, deployed: status.deployed, reason: status.reason, pausedMember: status.pausedMemberUuid, manager: canEdit, hasLeader }),
+        { leaderName: leaderActor?.name, pausedName: rows.find(r => r.uuid === status.pausedMemberUuid)?.actor?.name, missing: t("SDE.party.missing") }, I18N);
       const slots = [];
       for (let row = -1; row <= 1; row++) for (let col = -1; col <= 1; col++) {
         const uuid = formation.slots.find(s => s.row === row && s.col === col)?.memberUuid;

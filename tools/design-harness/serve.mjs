@@ -117,7 +117,7 @@ addEventListener("load", runCheck);
 document.addEventListener("click", async (e) => {
   const el = e.target.closest("[data-action]"), a = el && ACTIONS[el.dataset.action]; if (!a) return;
   e.preventDefault();
-  state = a.toggle ? (state === a.toggle[0] ? a.toggle[1] : a.toggle[0]) : a.state.replace(/\\{(\\w+)\\}/g, (m, k) => el.dataset[k] ?? "");
+  state = a.toggle ? (state === a.toggle[0] ? a.toggle[1] : a.toggle[0]) : a.state.replace(/\\{(\\w+)(?:\\|(\\d+))?\\}/g, (m, k, n) => { const p = (state ?? "").split("."); return /^\\d+$/.test(k) ? p[k] ?? "" : el.dataset[k] ?? (n === undefined ? "" : p[n] ?? ""); });
   const r = await (await fetch("/w/" + NAME + "?frag=1&state=" + encodeURIComponent(state))).json();
   (document.querySelector(".window-content") ?? document.getElementById("ui-middle")).innerHTML = r.html; const wt = document.querySelector(".window-title"); if (wt) wt.textContent = r.title;
   history.replaceState(null, "", "?state=" + encodeURIComponent(state)); runCheck();

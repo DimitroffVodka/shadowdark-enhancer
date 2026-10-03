@@ -16,6 +16,13 @@ export function partyTabs({ isGM = false, hasBastion = false } = {}) {
   return ["members", "items", ...(isGM ? ["travel"] : []), "quests", ...(hasBastion ? ["bastion"] : []), "description"];
 }
 
+/** Each tab's name (an en.json key) and icon. */
+export const TAB_LABELS = { members: "SDE.party.members", items: "SDE.party.sheet.inventory", travel: "SDE.party.sheet.travel", quests: "SDE.party.quests", bastion: "SDE.party.sheet.bastion", description: "SDE.party.sheet.description" };
+export const TAB_ICONS = { members: "fas fa-users", items: "fas fa-box", travel: "fas fa-campground", quests: "fas fa-scroll", bastion: "fas fa-chess-rook", description: "fas fa-book-open" };
+
+/** The tab row as the template draws it. `say` localizes a key. */
+export const tabRow = (keys, active, say) => keys.map((key) => ({ key, label: say(TAB_LABELS[key]), icon: TAB_ICONS[key], active: key === active }));
+
 /** A tab the viewer cannot see (Travel for a player, Bastion once unlinked) falls back to Members. */
 export const resolveTab = (tab, keys) => (keys.includes(tab) ? tab : "members");
 
@@ -48,6 +55,41 @@ export function marchState({ follow = true, hasToken = false, deployed = false, 
   if (deployed && reason) return { mode: "paused", reason, canResume: !!manager, pausedMember: pausedMember ?? null };
   if (reason === "gathered") return { mode: "notice", reason };
   return leads;
+}
+
+/** Movement pause reasons name their message with literal keys; a lookup table hides them from the i18n scan. */
+export function movementMessageKey(reason) {
+  switch (reason) {
+    case "noToken": return "SDE.party.movement.noToken";
+    case "free": return "SDE.party.movement.free";
+    case "combat": return "SDE.party.movement.combat";
+    case "scene": return "SDE.party.movement.scene";
+    case "reload": return "SDE.party.movement.reload";
+    case "gathered": return "SDE.party.movement.gathered";
+    case "leader": return "SDE.party.movement.leader";
+    case "teleport": return "SDE.party.movement.teleport";
+    case "missing": return "SDE.party.movement.missing";
+    case "blocked": return "SDE.party.movement.blocked";
+    default: return "SDE.party.movement.unknown";
+  }
+}
+
+/**
+ * marchState()'s answer in words, and whether it is a warning. `say(key)` localizes; `sayWith(key, data)` fills a {name}.
+ * @param {ReturnType<typeof marchState>} state
+ * @param {{ leaderName?: string, pausedName?: string, missing: string }} names `missing` is the word for a member that is gone
+ */
+export function marchText(state, { leaderName, pausedName, missing }, { say, sayWith }) {
+  switch (state.mode) {
+    case "free": return { ...state, text: say("SDE.party.movement.freely") };
+    case "leads": return { ...state, text: sayWith("SDE.party.movement.leads", { name: leaderName ?? missing }) };
+    case "paused": {
+      const status = say(movementMessageKey(state.reason));
+      return { ...state, warn: true, text: state.pausedMember && ["blocked", "missing"].includes(state.reason) ? sayWith("SDE.party.movement.pausedMember", { status, name: pausedName ?? missing }) : status };
+    }
+    case "notice": return { ...state, text: say(movementMessageKey(state.reason)) };
+    default: return { ...state, text: "" };
+  }
 }
 
 // ---------------------------------------------------------------- Gems
@@ -131,22 +173,27 @@ export function rationsCount(itemLists = []) {
     .reduce((sum, item) => sum + Math.max(0, Number(item.system?.quantity) || 0), 0);
 }
 
+/** Each readout's name, as an en.json key. */
+export const STATUS_LABELS = { today: "SDE.party.status.today", light: "SDE.party.status.light", rations: "SDE.party.status.rations" };
+
 /**
  * The thin bar under the header. A readout whose data is unavailable is left out; with none,
  * the bar is [] and the sheet hides it.
  *   travel   {terrain, weather, hexesLeft, budget} while this party is the one travelling overland, else null
  *   light    lightReadout()'s answer, or null
  *   rations  a count, or null when it cannot be known (a member's items are hidden from this viewer)
- * `say` turns the numbers into words: { hexes({left, budget}), light({name, mins}), rations(n) }.
- * @returns {Array<{ key: "today"|"light"|"rations", icon: string, value: string, low?: boolean }>}
+ * `say(key)` localizes; `sayWith(key, data)` localizes and fills {placeholders}.
+ * @returns {Array<{ key: "today"|"light"|"rations", label: string, icon: string, value: string, low?: boolean }>}
  */
-export function statusBar({ travel = null, light = null, rations = null } = {}, say) {
+export function statusBar({ travel = null, light = null, rations = null } = {}, { say, sayWith }) {
   const bar = [];
+  const add = (key, icon, value, extra = {}) => bar.push({ key, label: say(STATUS_LABELS[key]), icon, value, ...extra });
   if (travel) {
-    const parts = [terrainLabel(travel.terrain), travel.weather || null, Number(travel.budget) > 0 ? say.hexes({ left: travel.hexesLeft, budget: travel.budget }) : null].filter(Boolean);
-    if (parts.length) bar.push({ key: "today", icon: "fa-person-walking", value: parts.join(" \u00b7 ") });
+    const hexes = Number(travel.budget) > 0 ? sayWith("SDE.overland.badgeHexes", { left: travel.hexesLeft, budget: travel.budget }) : null;
+    const parts = [terrainLabel(travel.terrain), travel.weather || null, hexes].filter(Boolean);
+    if (parts.length) add("today", "fa-person-walking", parts.join(" \u00b7 "));
   }
-  if (light?.name) bar.push({ key: "light", icon: "fa-fire", value: say.light(light) });
-  if (Number.isFinite(rations)) bar.push({ key: "rations", icon: "fa-drumstick-bite", value: say.rations(rations), low: rations <= 0 });
+  if (light?.name) add("light", "fa-fire", light.mins == null ? light.name : sayWith("SDE.party.status.lightLeft", { name: light.name, mins: light.mins }));
+  if (Number.isFinite(rations)) add("rations", "fa-drumstick-bite", String(rations), { low: rations <= 0 });
   return bar;
 }

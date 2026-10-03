@@ -1,6 +1,7 @@
 import { test } from "node:test";
+import { readFileSync } from "node:fs";
 import assert from "node:assert/strict";
-import { partyTabs, resolveTab, sheetView, marchState, gemSummary, gpText, linkedBastion, lastMonthEntry, roomIcon, ROOM_ICONS, MONTH_LOG_KEYS, terrainLabel, lightReadout, rationsCount, statusBar } from "../scripts/party/party-sheet-core.mjs";
+import { partyTabs, resolveTab, sheetView, marchState, gemSummary, gpText, linkedBastion, lastMonthEntry, roomIcon, ROOM_ICONS, MONTH_LOG_KEYS, terrainLabel, lightReadout, rationsCount, statusBar, TAB_LABELS, TAB_ICONS, tabRow, movementMessageKey, marchText } from "../scripts/party/party-sheet-core.mjs";
 
 test("the GM sees Travel; a player does not; Bastion needs a linked bastion", () => {
   assert.deepEqual(partyTabs({ isGM: true }), ["members", "items", "travel", "quests", "description"]);
@@ -107,7 +108,12 @@ test("every bastion upgrade has a room icon, and an unknown one falls back to th
   assert.equal(roomIcon("stable"), "fa-horse");
 });
 
-const say = { hexes: ({ left, budget }) => `${left} of ${budget} hexes left`, light: ({ name, mins }) => (mins == null ? name : `${name}, ${mins} min`), rations: (n) => String(n) };
+// The words come from the real en.json: a key that does not exist shows as itself, and a test notices.
+const en = JSON.parse(readFileSync(new URL("../languages/en.json", import.meta.url), "utf8"));
+const sys = { "SDE.overland.badgeHexes": "{left} of {budget} hexes left" };
+const say = (key) => en[key] ?? sys[key] ?? `?${key}`;
+const sayWith = (key, data) => say(key).replace(/\{(\w+)\}/g, (_, k) => data[k]);
+const words = { say, sayWith };
 const torch = (mins, active = true, id = "t") => ({ id, name: "Torch", type: "Basic", system: { light: { isSource: true, active, remainingSecs: mins * 60, longevityMins: 60 } } });
 
 test("terrain reads as words, and unknown terrain is nothing", () => {
@@ -138,20 +144,48 @@ test("rations count Basic stacks named Rations, and nothing else", () => {
 
 test("status bar: Today, Light and Rations each appear only with data", () => {
   const travel = { terrain: "forest", weather: "Fair", hexesLeft: 3, budget: 4 };
-  assert.deepEqual(statusBar({ travel, light: { name: "Torch", mins: 38 }, rations: 12 }, say), [
-    { key: "today", icon: "fa-person-walking", value: "Forest \u00b7 Fair \u00b7 3 of 4 hexes left" },
-    { key: "light", icon: "fa-fire", value: "Torch, 38 min" },
-    { key: "rations", icon: "fa-drumstick-bite", value: "12", low: false },
+  assert.deepEqual(statusBar({ travel, light: { name: "Torch", mins: 38 }, rations: 12 }, words), [
+    { key: "today", label: "Today", icon: "fa-person-walking", value: "Forest \u00b7 Fair \u00b7 3 of 4 hexes left" },
+    { key: "light", label: "Light", icon: "fa-fire", value: "Torch, 38 min" },
+    { key: "rations", label: "Rations", icon: "fa-drumstick-bite", value: "12", low: false },
   ]);
-  assert.deepEqual(statusBar({}, say), [], "nothing available: no bar");
-  assert.deepEqual(statusBar({ rations: 0 }, say), [{ key: "rations", icon: "fa-drumstick-bite", value: "0", low: true }], "none left is worth showing, and low");
-  assert.deepEqual(statusBar({ light: { name: "Torch", mins: null } }, say).map((r) => r.value), ["Torch"]);
+  assert.deepEqual(statusBar({}, words), [], "nothing available: no bar");
+  assert.deepEqual(statusBar({ rations: 0 }, words), [{ key: "rations", label: "Rations", icon: "fa-drumstick-bite", value: "0", low: true }], "none left is worth showing, and low");
+  assert.deepEqual(statusBar({ light: { name: "Torch", mins: null } }, words).map((r) => r.value), ["Torch"]);
 });
 
 test("status bar: Today leaves out what it does not know and shows nothing when it knows nothing", () => {
-  const only = (travel) => statusBar({ travel }, say).map((r) => r.value);
+  const only = (travel) => statusBar({ travel }, words).map((r) => r.value);
   assert.deepEqual(only({ terrain: null, weather: "Stormy", hexesLeft: 0, budget: 4 }), ["Stormy \u00b7 0 of 4 hexes left"]);
   assert.deepEqual(only({ terrain: "hills", weather: null, hexesLeft: 0, budget: 0 }), ["Hills"], "no day open: no hex count");
   assert.deepEqual(only({ terrain: null, weather: null, hexesLeft: 0, budget: 0 }), []);
   assert.deepEqual(only(null), []);
+});
+
+test("every tab has a name and an icon, and the row marks the active one", () => {
+  const keys = partyTabs({ isGM: true, hasBastion: true });
+  assert.deepEqual(Object.keys(TAB_LABELS).sort(), [...keys].sort());
+  assert.deepEqual(Object.keys(TAB_ICONS).sort(), [...keys].sort());
+  const row = tabRow(keys, "items", say);
+  assert.deepEqual(row.map((t) => t.label), ["Members", "Items", "Travel", "Quests", "Bastion", "Description"]);
+  assert.deepEqual(row.filter((t) => t.active).map((t) => t.key), ["items"]);
+});
+
+test("every movement pause has its own message, and the Marching order line says it", () => {
+  for (const reason of ["noToken", "free", "combat", "scene", "reload", "gathered", "leader", "teleport", "missing", "blocked"]) {
+    assert.notEqual(movementMessageKey(reason), "SDE.party.movement.unknown", reason);
+    assert.ok(en[movementMessageKey(reason)], reason);
+  }
+  assert.equal(movementMessageKey("???"), "SDE.party.movement.unknown");
+  const names = { leaderName: "Creeg", pausedName: "Iraga", missing: "Missing member" };
+  assert.equal(marchText({ mode: "leads" }, names, words).text, "Creeg leads");
+  assert.equal(marchText({ mode: "leads" }, { missing: "Missing member" }, words).text, "Missing member leads", "a leader who is gone is named as missing, not undefined");
+  assert.equal(marchText({ mode: "free" }, names, words).text, "Moving freely");
+  assert.equal(marchText({ mode: "none" }, names, words).text, "");
+  const blocked = marchText({ mode: "paused", reason: "blocked", pausedMember: "Actor.i", canResume: true }, names, words);
+  assert.equal(blocked.warn, true);
+  assert.match(blocked.text, /^Paused: .* Iraga$/);
+  assert.equal(marchText({ mode: "paused", reason: "leader", canResume: true }, names, words).text, en["SDE.party.movement.leader"]);
+  assert.equal(marchText({ mode: "notice", reason: "noToken" }, names, words).text, en["SDE.party.movement.noToken"]);
+  assert.equal(marchText({ mode: "notice", reason: "gathered" }, names, words).warn, undefined);
 });

@@ -1,6 +1,6 @@
 {
   "TYPES.Actor.shadowdark-enhancer.mount": "Mount",
-  "SDE.party.sheet.inventory": "Inventory",
+  "SDE.party.sheet.inventory": "Items",
   "SDE.party.sheet.travel": "Travel",
   "SDE.party.sheet.bastion": "Bastion",
   "SDE.party.emblem.title": "Party emblem",

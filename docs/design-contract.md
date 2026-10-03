@@ -2,7 +2,10 @@
 
 Status: draft 2026-10-02, taken from the Party sheet (`templates/party/party.hbs`,
 `styles/party-sheet.css`), which Patrick named as the reference window. Numbers below
-were measured off it in the design harness, not guessed. Anything under "Proposed" is
+were measured off it in the design harness, not guessed. They were measured off the
+sheet as it was on 2026-10-02; the Party sheet was redesigned on 2026-10-03 (one
+compact header, two-column member cards, a status bar) and keeps these colours, type
+roles and card rules, with its own `sdp-` classes. Anything under "Proposed" is
 not in the Party sheet and needs Patrick's yes.
 
 ## Before you call a window done
