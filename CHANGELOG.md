@@ -945,6 +945,14 @@ page walks through it in order.
   it is gets a thin gold ring and a gold name. Long names such as "Animated Armor" wrap onto
   a second line instead of being cut off with "...", and the initiative number sits on a
   dark chip at the card's left, clear of the name.
+- **The Hex Brush shows the map's own hexes.** A big picture of the terrain you are painting with
+  previous and next buttons, and a grid of only the terrains the map's Legend named, each as a
+  picture of one of that map's hexes (on the Western Reaches print: the pine, the grass, the
+  mountain, the waves) with its name under it. River, Path and Coast are three toggles; "other…"
+  still takes any word. The pictures are cut from the map on your own machine, kept in memory
+  only, and never saved; until the Hex Tagger has read the map, each tile is a coloured icon
+  instead. The terrain list no longer includes settlements, keyed locations or words only
+  already painted on the scene. Painting and Undo work as before.
 
 - **Loot for a monster is in the Actors sidebar's right-click menu, not the sheet's title bar.**
   Right-click an NPC and pick **Loot** to set its drop table and chance, as before.
