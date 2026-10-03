@@ -72,7 +72,7 @@ runs on player honesty. Details in [Movement Budgets](Movement-Budgets.md).
 ### 2. Set your encounter threshold
 
 The encounter check rolls `1d6` and hits on a result at or below your threshold
-(default `1`). You configure this directly from the Crawl Bar's encounter menu
+(default `1`). You configure this directly from the Crawl Bar's Encounter options (Tools)
 rather than the settings window. See [Random Encounters](Random-Encounters.md).
 
 ### 3. Point the loot generator at real tables

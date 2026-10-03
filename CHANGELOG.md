@@ -919,6 +919,32 @@ page walks through it in order.
 
 ### Changed
 
+- **The crawl bar is one row, with a Tools panel.** It used to wrap to two rows of up to
+  fifteen buttons, several of them disabled and doing nothing. Now it is one row in every
+  mode: a badge, the one action you most likely want next (**Next Round** in a crawl,
+  **Start day** or **Continue** while travelling, **Start** with nothing running), a few more,
+  then **Tools** and **End** at the right. With no crawl running, Next Round and Combat are no
+  longer drawn greyed out. **Tools** opens one labelled panel above the bar: *This travel day*
+  (Start day, Forage, Roll weather, Start a crawl; travel only), *At the table* (Encounter, Roll
+  tables, Loot, Magic items, Merchant), *Between sessions* (Party XP, Downtime, Training,
+  Renown, Rumors, Recap, Pit fighting) and *Set up* (Importer, and Bastions once the world has
+  one). It replaces the single **Forge & Loot** button, whose tooltip listed ten tools; every
+  entry now shows its name. Click outside or press Esc to close it; it works from the keyboard
+  (Enter or Down opens it, arrow keys and Tab move, Esc returns to the button). Dropping a roll
+  table on **Encounter** still sets the active table (drag it over **Tools** and the panel
+  opens), and the encounter menu (check, threshold,
+  frequency, tables by terrain) opens from a button beside it as well as on right-click. In
+  travel the bar no longer shows Add Tokens (the party token travels), and **Make camp** stays
+  on the bar. Right-clicking **Add Tokens** in a crawl still offers **Reset Initiative**, which is
+  now also in Tools.
+- **The travel badge names the terrain.** It reads *Forest · Fair · 3 of 4 hexes left*: the
+  terrain of the hex the party stands in (left out on a map with no terrain tags), today's
+  weather, and the hexes left. Hover it for the hex number and its features.
+- **The crawl strip is easier to read.** A card waiting for its turn keeps full-contrast
+  text and only its portrait dims, so you can still read a name and an HP count. Whose turn
+  it is gets a thin gold ring and a gold name. Long names such as "Animated Armor" wrap onto
+  a second line instead of being cut off with "...", and the initiative number sits on a
+  dark chip at the card's left, clear of the name.
 - **The Hex Brush shows the map's own hexes.** A big picture of the terrain you are painting with
   previous and next buttons, and a grid of only the terrains the map's Legend named, each as a
   picture of one of that map's hexes (on the Western Reaches print: the pine, the grass, the

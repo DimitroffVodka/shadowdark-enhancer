@@ -19,7 +19,7 @@ The rumor tables from the GM Guide, imported through the Importer Hub:
 
 ## Giving rumors
 
-**Crawl Bar → Forge & Loot → Give Rumors…** (GM only) asks:
+**Crawl Bar → Tools → Rumors** (GM only) asks:
 
 | Field | What it does |
 |---|---|

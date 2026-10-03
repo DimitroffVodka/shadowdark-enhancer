@@ -19,7 +19,7 @@ run at the table.
 
 | Route | How |
 |---|---|
-| **Forge & Loot menu** | Click **Forge & Loot** on the crawl bar, then **Regional Training** |
+| **Tools menu** | Click **Tools** on the crawl bar, then **Training** |
 | **Quest Log** | Completing a quest with a training reward offers to open it (see [Quest Log](Quest-Log.md#trainer-tasks)) |
 | **API** | `game.shadowdarkEnhancer.training.open()` |
 

@@ -194,7 +194,8 @@
       "scripts/crawl-strip/npc-action-menu.mjs"
     ],
     "3.4": [
-      "scripts/crawl-bar/crawl-bar.mjs"
+      "scripts/crawl-bar/crawl-bar.mjs",
+      "scripts/crawl-bar/crawl-bar-core.mjs"
     ],
     "3.5": [
       "scripts/encounter/encounter-roller-app.mjs",
@@ -523,6 +524,7 @@
     "scripts/crawl-strip/movement-calc.mjs": "Pure per-segment feet-moved math.",
     "scripts/crawl-strip/npc-action-menu.mjs": "Per-combatant hover action HUD.",
     "scripts/crawl-bar/crawl-bar.mjs": "GM-only persistent bottom bar above the macro bar (mode toggles, tools, launchers).",
+    "scripts/crawl-bar/crawl-bar-core.mjs": "The crawl bar's Foundry-free half: which controls each mode shows, the overland badge text, and the Tools panel's sections.",
     "scripts/encounter/encounter-roller-app.mjs": "The Encounter Roller shell + tabs (Roll Tables / Build / Browse / Creator).",
     "scripts/encounter/encounter-check.mjs": "The d6 random-encounter check + chat post. Options (#232): a threshold, the travel hex (its region as the zone), a card label and the recap clock label, for Overland's travel checks.",
     "scripts/encounter/encounter-result.mjs": "Distance / Activity / Reaction RAW lookups.",

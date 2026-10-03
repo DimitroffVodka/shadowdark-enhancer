@@ -65,7 +65,7 @@ icons, and files documents into organized world compendiums.
 
 | Route | How |
 |---|---|
-| **Crawl Bar** | Click the **Importer** button. |
+| **Crawl Bar** | **Tools** → **Importer** (under *Set up*). |
 | **API** | `game.shadowdarkEnhancer.tables.openHub()` |
 
 Opening the hub is instant; scanning your world compendiums is lazy and only

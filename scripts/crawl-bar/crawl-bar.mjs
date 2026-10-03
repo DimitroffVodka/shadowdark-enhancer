@@ -13,6 +13,8 @@ import { ICONS }           from "../shared/icons.mjs";
 import { CrawlStrip }      from "../crawl-strip/crawl-strip.mjs";
 import { isHexMapScene }   from "../encounter/encounter-terrain.mjs";
 import { BASTION_TYPE } from "../bastion/bastion-art.mjs";
+import { esc }             from "../shared/esc.mjs";
+import { BUTTONS, barItems, overlandBadge, toolsSections } from "./crawl-bar-core.mjs";
 import {
   startOverland, endOverland, rollWeather, weatherNow, weatherName, startDayFromParty, resume, overlandState, OVERLAND_CHANGED,
   askForage, forage, makeCamp,
@@ -30,6 +32,26 @@ const frequencyLabel = (n) => (n === 1
   ? game.i18n.localize("SDE.crawlBar.encounterMenu.everyRound")
   : game.i18n.format("SDE.crawlBar.encounterMenu.everyNRounds", { n }));
 
+/** What each Tools entry opens: the module's API (game.shadowdarkEnhancer) handed in. */
+const TOOL_OPENERS = {
+  rollTables:  (api) => api.tables.openHub("tables"),
+  // The Importer is the hub's front door — land on the Import tab (D-01).
+  importer:    (api) => api.tables.openHub("import"),
+  lootGen:     (api) => api.loot.open(),
+  magicForge:  (api) => api.forge.open(),
+  merchant:    (api) => api.merchant.openLocally(),
+  partyXp:     (api) => api.partyXp.open(),
+  downtime:    (api) => api.downtime.open(),
+  training:    (api) => api.training.open(),
+  renown:      (api) => api.renown.open(),
+  recap:       (api) => api.recap.open(),
+  pitFighting: (api) => api.pitFighting.open(),
+  bastions:    (api) => api.bastion.openPanel(),
+  // A dialog: the Tools panel is closed before it opens.
+  rumors:      () => import("../rumors/rumors.mjs").then(({ askAndGive }) => askAndGive())
+    .catch((err) => console.error("shadowdark-enhancer | give rumors", err)),
+};
+
 export const CrawlBar = {
 
   _el: null,
@@ -37,6 +59,9 @@ export const CrawlBar = {
   _renderQueued: false,
   /** The weather kind the Overland badge shows, or null. */
   _weatherShown: null,
+  /** The Tools panel is open. Kept here, not in the markup, so a re-render does not close it. */
+  _toolsOpen: false,
+  _toolsListeners: null,
 
   init() {
     if (!game.user.isGM) return;
@@ -106,6 +131,7 @@ export const CrawlBar = {
   },
 
   destroy() {
+    this._setTools(false);
     for (const [ev, id] of this._hookIds) Hooks.off(ev, id);
     this._hookIds = [];
     this._el?.remove();
@@ -121,15 +147,11 @@ export const CrawlBar = {
     if (!this._el) return;
     const state = CrawlState;
     this._weatherShown = this._badgeWeather();
-
-    // The crawl bar is ALWAYS shown (no separate "Start Crawl" screen). When no
-    // session is active the last button reads "Start"; starting flips it to
-    // "End". Session-only actions (Next Turn, Combat) are disabled while idle.
-    const idle = !state.isActive;
-    const idleAttr = idle ? 'disabled style="opacity:0.4;cursor:default"' : "";
+    const loc = (key, data) => (data ? game.i18n.format(key, data) : game.i18n.localize(key));
 
     // COMBAT state
     if (state.mode === "combat") {
+      this._setTools(false);
       const combatStarted = game.combat?.started ?? false;
       this._el.innerHTML = `
         <div class="sde-bar-inner">
@@ -148,71 +170,130 @@ export const CrawlBar = {
       return;
     }
 
-    // Overland travel (#229) is a mode of its own: not a crawl, so the crawl's
-    // session actions stay idle; Start still begins a crawl from it (§4.3).
-    const overland = state.mode === "overland";
-    const weather = this._weatherShown ? weatherName(this._weatherShown) : null;
-    const day = overland ? overlandState() : null;
-    const badge = [
-      weather ? game.i18n.format("SDE.overland.badgeWeather", { weather }) : game.i18n.localize("SDE.overland.badge"),
-      Number.isFinite(day?.day) ? game.i18n.format("SDE.overland.badgeHexes", { left: day.hexesLeft, budget: day.budget }) : null,
-    ].filter(Boolean).join(" · ");
-    const continueButton = day?.pending
-      ? `<button class="sde-bar-btn sde-bar-start-btn" data-action="resumeTravel" title="${game.i18n.localize("SDE.overland.resumeHint")}">${ICONS.play} ${game.i18n.localize("SDE.overland.resume")}</button>`
-      : "";
-    const travelButton = overland
-      ? `${continueButton}<button class="sde-bar-btn" data-action="startDay" title="${game.i18n.localize("SDE.overland.startDayHint")}">${ICONS.sunrise} ${game.i18n.localize("SDE.overland.startDay")}</button>
-        <button class="sde-bar-btn" data-action="forage" title="${game.i18n.localize("SDE.overland.forage.buttonHint")}">${ICONS.forage} ${game.i18n.localize("SDE.overland.forage.button")}</button>
-        <button class="sde-bar-btn" data-action="makeCamp" title="${game.i18n.localize("SDE.overland.makeCampHint")}">${ICONS.camp} ${game.i18n.localize("SDE.overland.makeCamp")}</button>
-        <button class="sde-bar-btn" data-action="rollWeather" title="${game.i18n.localize("SDE.overland.rollWeatherHint")}">${ICONS.weather} ${game.i18n.localize("SDE.overland.rollWeather")}</button>
-        <button class="sde-bar-btn sde-bar-danger-btn" data-action="endTravel" title="${game.i18n.localize("SDE.overland.endTravelHint")}">${ICONS.close} ${game.i18n.localize("SDE.overland.endTravel")}</button>`
-      : (state.mode === "off" && isHexMapScene()
-        ? `<button class="sde-bar-btn" data-action="startTravel" title="${game.i18n.localize("SDE.overland.startTravelHint")}">${ICONS.walking} ${game.i18n.localize("SDE.overland.startTravel")}</button>`
-        : "");
+    // One row in every other mode. The crawl bar is ALWAYS shown (no separate
+    // "Start Crawl" screen): with no session the last button reads "Start", and
+    // the controls that only mean something in a session are not drawn.
+    // Overland travel (#229) is a mode of its own, not a crawl; Start a crawl is
+    // in its Tools panel (§4.3).
+    const mode = state.mode === "overland" ? "overland" : state.isActive ? "crawl" : "off";
+    const day = mode === "overland" ? overlandState() : null;
+    const items = barItems({ mode, hexScene: mode === "off" && isHexMapScene(), pending: !!day?.pending });
+    const hasBastion = game.actors.some((a) => a.type === BASTION_TYPE);
 
-    // The Bastions button is there once the world has a bastion.
-    const bastionButton = game.actors.some((a) => a.type === BASTION_TYPE)
-      ? `<button class="sde-bar-btn" data-action="bastions" title="${game.i18n.localize("SDE.crawlBar.bastionsTip")}">${ICONS.bastion} ${game.i18n.localize("SDE.crawlBar.bastions")}</button>`
-      : "";
+    const badge = () => {
+      if (mode === "overland") {
+        const { text, title } = overlandBadge({
+          hex: day.hex, day, t: loc,
+          weather: this._weatherShown ? weatherName(this._weatherShown) : null,
+        });
+        return `<span class="sde-bar-phase-badge sde-bar-phase-overland"${title ? ` title="${esc(title)}"` : ""}>${ICONS.walking} ${esc(text)}</span>`;
+      }
+      return `<span class="sde-bar-phase-badge sde-bar-phase-crawl"${mode === "off" ? ' style="opacity:0.55"' : ""}>
+          ${ICONS.startCrawl} ${loc("SDE.crawlBar.roundBadge", { turn: state.crawlTurn })}
+        </span>`;
+    };
+    const button = (action) => {
+      const b = BUTTONS[action];
+      return `<button type="button" class="sde-bar-btn${b.cls ? ` ${b.cls}` : ""}" data-action="${action}"${b.tip ? ` title="${esc(loc(b.tip))}"` : ""}>${ICONS[b.icon]} ${loc(b.label)}</button>`;
+    };
+    const item = (id) => {
+      if (id === "badge") return badge();
+      if (id === "spacer") return `<span class="sde-bar-gap"></span>`;
+      if (id === "tools") return this._toolsHtml(toolsSections({ mode, hasBastion }), loc);
+      return button(id);
+    };
 
-    // CRAWL state — single phase, just turn counter + next button
-    this._el.innerHTML = `
-      <div class="sde-bar-inner sde-bar-active">
-
-        ${overland
-          ? `<span class="sde-bar-phase-badge sde-bar-phase-overland">${ICONS.walking} ${badge}</span>`
-          : `<span class="sde-bar-phase-badge sde-bar-phase-crawl"${idle ? ' style="opacity:0.55"' : ""}>
-          ${ICONS.startCrawl} ${game.i18n.format("SDE.crawlBar.roundBadge", { turn: state.crawlTurn })}
-        </span>`}
-        <button class="sde-bar-btn sde-bar-next-btn" data-action="nextCrawlTurn" ${idleAttr}>
-          ${ICONS.nextTurn} ${game.i18n.localize("SDE.crawlBar.nextRound")}
-        </button>
-
-        <button class="sde-bar-btn" data-action="addSelectedTokens" title="${game.i18n.localize("SDE.crawlBar.addTokensCrawlTip")}">
-          ${ICONS.addTokens} ${game.i18n.localize("SDE.crawlBar.addTokens")}
-        </button>
-        <button class="sde-bar-btn sde-bar-combat-btn" data-action="startCombat" ${idleAttr}>
-          ${ICONS.combat} ${game.i18n.localize("SDE.crawlBar.combat")}
-        </button>
-
-        <button class="sde-bar-btn" data-action="encounter" title="${game.i18n.localize("SDE.crawlBar.encounterTip")}">
-          ${ICONS.encounter} ${game.i18n.localize("SDE.crawlBar.encounter")}
-        </button>
-        <button class="sde-bar-btn" data-action="loot" title="${game.i18n.localize("SDE.crawlBar.forgeLootTip")}">
-          ${ICONS.forge} ${game.i18n.localize("SDE.crawlBar.forgeLoot")}
-        </button>
-        <button class="sde-bar-btn" data-action="rollTables" title="${game.i18n.localize("SDE.crawlBar.importerTip")}">
-          ${ICONS.importer} ${game.i18n.localize("SDE.crawlBar.importer")}
-        </button>
-        ${bastionButton}
-        ${travelButton}
-        ${idle
-          ? `<button class="sde-bar-btn sde-bar-start-btn" data-action="startCrawl" title="${game.i18n.localize("SDE.crawlBar.startTip")}">${ICONS.startCrawl} ${game.i18n.localize("SDE.crawlBar.start")}</button>`
-          : `<button class="sde-bar-btn sde-bar-danger-btn" data-action="endCrawl" title="${game.i18n.localize("SDE.crawlBar.endTip")}">${ICONS.close} ${game.i18n.localize("SDE.crawlBar.end")}</button>`}
-
-      </div>`;
-
+    this._el.innerHTML = `<div class="sde-bar-inner sde-bar-active">${items.map(item).join("")}</div>`;
     this._bindEvents();
+    if (this._toolsOpen) this._keepToolsOnScreen();
+  },
+
+  /**
+   * The Tools button and its panel: every tool, grouped under a name, opening
+   * upward. The panel is always in the markup (hidden while closed) so a
+   * re-render mid-session keeps it open.
+   */
+  _toolsHtml(sections, loc) {
+    const open = this._toolsOpen;
+    const entry = (e) => {
+      const disabled = e.action === "resetOocInit" && !Object.keys(CrawlState.oocInitiative ?? {}).length;
+      const tip = e.action === "resetOocInit"
+        ? loc(disabled ? "SDE.crawlBar.addTokensMenu.resetInitNoneTip" : "SDE.crawlBar.addTokensMenu.resetInitTip")
+        : e.tip ? loc(e.tip) : "";
+      const button = `<button type="button" class="sde-bar-btn" role="menuitem" data-action="${e.action}"${tip ? ` title="${esc(tip)}"` : ""}${disabled ? " disabled" : ""}>${ICONS[e.icon]} ${loc(e.label)}</button>`;
+      // Encounter's right-click menu has no keyboard or touch way in, so its
+      // options also open from a button beside it.
+      return e.action === "encounter"
+        ? `<span class="sde-bar-split">${button}<button type="button" class="sde-bar-btn" role="menuitem" data-action="encounterMenu" aria-haspopup="menu" title="${esc(loc("SDE.crawlBar.encounterOptionsTip"))}" aria-label="${esc(loc("SDE.crawlBar.encounterOptions"))}">${ICONS.encounterOptions}</button></span>`
+        : button;
+    };
+    return `<div class="sde-bar-tools">
+      <button type="button" class="sde-bar-btn sde-bar-tools-btn" data-action="tools" aria-haspopup="menu" aria-expanded="${open}" aria-controls="sde-bar-tools-menu" title="${esc(loc("SDE.crawlBar.toolsTip"))}">${ICONS.tools} ${loc("SDE.crawlBar.toolsButton")} ${ICONS.caretUp}</button>
+      <div class="sde-bar-menu" id="sde-bar-tools-menu" role="menu" aria-label="${esc(loc("SDE.crawlBar.toolsMenu.aria"))}"${open ? "" : " hidden"}>
+        ${sections.map((sec) => `<section role="group" aria-labelledby="sde-bar-menu-${sec.id}">
+          <h4 id="sde-bar-menu-${sec.id}">${loc(sec.label)}</h4>
+          <div class="sde-bar-menu-row">${sec.entries.map(entry).join("")}</div>
+        </section>`).join("")}
+      </div>
+    </div>`;
+  },
+
+  /**
+   * Open or close the Tools panel. Open, it closes on a press outside it or
+   * Escape (focus goes back to the Tools button), arrow keys move between its
+   * entries, and Tab out of it closes it.
+   * @param {boolean} open
+   * @param {{focusFirst?:boolean, refocus?:boolean}} [opts]  focus the first entry; focus the Tools button
+   */
+  _setTools(open, { focusFirst = false, refocus = false } = {}) {
+    this._toolsListeners ??= {
+      pointerdown: (ev) => { if (!ev.target.closest?.(".sde-bar-tools")) this._setTools(false); },
+      keydown: (ev) => this._onToolsKey(ev),
+    };
+    for (const [type, fn] of Object.entries(this._toolsListeners)) {
+      document.removeEventListener(type, fn, true);
+      if (open) document.addEventListener(type, fn, true);
+    }
+    this._toolsOpen = open;
+    const wrap = this._el?.querySelector(".sde-bar-tools");
+    const toggle = wrap?.querySelector(".sde-bar-tools-btn");
+    const menu = wrap?.querySelector(".sde-bar-menu");
+    if (menu) menu.hidden = !open;
+    toggle?.setAttribute("aria-expanded", String(open));
+    if (open) this._keepToolsOnScreen();
+    if (open && focusFirst) menu?.querySelector("button:not([disabled])")?.focus();
+    if (!open && refocus) toggle?.focus();
+  },
+
+  /** The panel opens leftward from the Tools button; on a narrow window, slide it back in. */
+  _keepToolsOnScreen() {
+    const menu = this._el?.querySelector(".sde-bar-menu");
+    if (!menu) return;
+    menu.style.right = "";
+    const { left } = menu.getBoundingClientRect();
+    if (left < 8) menu.style.right = `${left - 8}px`;
+  },
+
+  _onToolsKey(ev) {
+    const wrap = this._el?.querySelector(".sde-bar-tools");
+    if (!wrap) return;
+    if (ev.key === "Escape") {
+      ev.preventDefault();
+      ev.stopPropagation();
+      this._setTools(false, { refocus: true });
+      return;
+    }
+    const keys = ["ArrowDown", "ArrowRight", "ArrowUp", "ArrowLeft", "Home", "End"];
+    if (!keys.includes(ev.key) || !wrap.contains(document.activeElement)) return;
+    ev.preventDefault();
+    const entries = [...wrap.querySelectorAll(".sde-bar-menu button:not([disabled])")];
+    const at = entries.indexOf(document.activeElement);
+    const forward = ev.key === "ArrowDown" || ev.key === "ArrowRight";
+    const last = entries.length - 1;
+    const to = ev.key === "Home" || (at < 0 && forward) ? 0
+      : ev.key === "End" || (at < 0 && !forward) ? last
+      : (at + (forward ? 1 : -1) + entries.length) % entries.length;
+    entries[to]?.focus();
   },
 
   _bindEvents() {
@@ -221,15 +302,18 @@ export const CrawlBar = {
       el.addEventListener("click", ev => {
         ev.preventDefault();
         ev.stopPropagation();
+        // A pick from the Tools panel closes it. Detail 0 is the keyboard.
+        if (el.closest(".sde-bar-menu")) this._setTools(false, { refocus: ev.detail === 0 });
         this._onAction(el.dataset.action, el, ev);
       });
 
-      // Right-click for Encounter
+      // Right-click for the Encounter options (they also open from the button beside it)
       if (el.dataset.action === "encounter") {
         el.addEventListener("contextmenu", ev => {
           ev.preventDefault();
           ev.stopPropagation();
-          this._onEncounterContextMenu(el, ev);
+          this._setTools(false);
+          this._onAction("encounterMenu", el, ev);
         });
       }
 
@@ -243,7 +327,7 @@ export const CrawlBar = {
         });
       }
 
-      // Drag-drop for RollTable (Encounter button)
+      // Drag-drop for RollTable (Encounter entry)
       if (el.dataset.action === "encounter") {
         el.addEventListener("dragover", ev => {
           ev.preventDefault();
@@ -253,6 +337,7 @@ export const CrawlBar = {
         el.addEventListener("drop", async ev => {
           ev.preventDefault();
           el.classList.remove("sde-drag-over");
+          this._setTools(false);
           const data = JSON.parse(ev.dataTransfer.getData("text/plain"));
           if (data.type === "RollTable") {
             const table = await fromUuid(data.uuid);
@@ -263,23 +348,41 @@ export const CrawlBar = {
           }
         });
       }
+    });
 
-      // Right-click for Forge & Loot
-      if (el.dataset.action === "loot") {
-        el.addEventListener("contextmenu", ev => {
-          ev.preventDefault();
-          ev.stopPropagation();
-          this._onLootContextMenu(el, ev);
-        });
-      }
+    // Dragging anything over the Tools button opens the panel, so a roll table
+    // from the sidebar can be dropped on Encounter; the panel closes when the drag ends.
+    const wrap = this._el.querySelector(".sde-bar-tools");
+    wrap?.querySelector(".sde-bar-tools-btn")?.addEventListener("dragenter", () => {
+      if (this._toolsOpen) return;
+      this._setTools(true);
+      document.addEventListener("dragend", () => this._setTools(false), { once: true });
+    });
+    // Tab out of the open panel closes it; ArrowDown on its button opens it.
+    wrap?.addEventListener("focusout", ev => {
+      if (ev.relatedTarget && !wrap.contains(ev.relatedTarget)) this._setTools(false);
+    });
+    wrap?.querySelector(".sde-bar-tools-btn")?.addEventListener("keydown", ev => {
+      if (ev.key !== "ArrowDown" && ev.key !== "ArrowUp") return;
+      ev.preventDefault();
+      this._setTools(true, { focusFirst: true });
     });
   },
 
   async _onAction(action, el, ev) {
     switch (action) {
 
+      case "tools":
+        this._setTools(!this._toolsOpen, { focusFirst: !this._toolsOpen && ev.detail === 0 });
+        break;
+
       case "encounter":
         game.shadowdarkEnhancer.encounter.openRoller("tables");
+        break;
+
+      case "encounterMenu":
+        // The panel is closed by now; the menu opens above the Tools button it came from.
+        this._onEncounterContextMenu(this._el.querySelector(".sde-bar-tools-btn") ?? el);
         break;
 
       case "startTravel": {
@@ -400,25 +503,8 @@ export const CrawlBar = {
         await this._addSelectedTokens();
         break;
 
-      case "loot":
-        // Left-click opens the Forge & Loot menu.
-        this._onLootContextMenu(el, ev);
-        break;
-
-      case "rollTables":
-        // The Importer button is the hub's front door — land on the Import
-        // tab (D-01). Bare openHub() keeps its legacy dashboard mapping for
-        // old callers.
-        game.shadowdarkEnhancer.tables.openHub("import");
-        break;
-
-      case "recap":
-        game.shadowdarkEnhancer.recap.open();
-        break;
-
-      case "bastions":
-        game.shadowdarkEnhancer.bastion.openPanel();
-        break;
+      default:
+        TOOL_OPENERS[action]?.(game.shadowdarkEnhancer);
     }
   },
 
@@ -523,13 +609,15 @@ export const CrawlBar = {
       </div>
     `;
 
-    // Position menu above button
+    // Position menu above button, kept inside the window (it opens from the
+    // Tools button, near the bar's right end).
     const rect = el.getBoundingClientRect();
     menu.style.left = `${rect.left}px`;
     menu.style.bottom = `${window.innerHeight - rect.top + 5}px`;
 
     document.body.appendChild(menu);
     menu.setAttribute("role", "menu");
+    menu.style.left = `${Math.max(8, Math.min(rect.left, window.innerWidth - menu.offsetWidth - 8))}px`;
 
     // Keyboard: Escape closes; Enter/Space activates the focused item.
     menu.addEventListener("keydown", e => {
@@ -577,108 +665,6 @@ export const CrawlBar = {
     });
 
     // Close on click outside
-    const close = () => {
-      menu.remove();
-      document.removeEventListener("click", close);
-    };
-    setTimeout(() => document.addEventListener("click", close), 10);
-  },
-
-  _onLootContextMenu(el, _ev) {
-    if (!game.user.isGM) return;
-
-    const existing = document.getElementById("sde-loot-context-menu");
-    if (existing) { existing.remove(); return; }
-
-    const menu = document.createElement("div");
-    menu.id = "sde-loot-context-menu";
-    menu.className = "sde-bar-context-menu";
-    // Forge & Loot is deliberately absent from this menu: every generator it
-    // hosts is still a placeholder, so the entry opened a window whose only
-    // buttons refuse.  Restore this item in the same change that registers a
-    // working generator — it stays reachable meanwhile via
-    // game.shadowdarkEnhancer.forgeLoot.open() for development.
-    menu.innerHTML = `
-      <div class="sde-menu-item sde-menu-btn" data-loot-action="lootGen" role="menuitem" tabindex="0">
-        <i class="fas fa-coins"></i> ${game.i18n.localize("SDE.crawlBar.lootMenu.lootGen")}
-      </div>
-      <div class="sde-menu-item sde-menu-btn" data-loot-action="magicForge" role="menuitem" tabindex="0">
-        <i class="fas fa-hammer"></i> ${game.i18n.localize("SDE.crawlBar.lootMenu.magicForge")}
-      </div>
-      <div class="sde-menu-item sde-menu-btn" data-loot-action="merchant" role="menuitem" tabindex="0">
-        <i class="fas fa-store"></i> ${game.i18n.localize("SDE.crawlBar.lootMenu.merchant")}
-      </div>
-      <div class="sde-menu-item sde-menu-btn" data-loot-action="partyXp" role="menuitem" tabindex="0">
-        <i class="fas fa-star"></i> ${game.i18n.localize("SDE.crawlBar.lootMenu.partyXp")}
-      </div>
-      <div class="sde-menu-item sde-menu-btn" data-loot-action="party" role="menuitem" tabindex="0">
-        <i class="fas fa-users"></i> ${game.i18n.localize("SDE.party.open")}
-      </div>
-      <div class="sde-menu-item sde-menu-btn" data-loot-action="downtime" role="menuitem" tabindex="0">
-        <i class="fas fa-mug-hot"></i> ${game.i18n.localize("SDE.crawlBar.lootMenu.downtime")}
-      </div>
-      <div class="sde-menu-item sde-menu-btn" data-loot-action="pitFighting" role="menuitem" tabindex="0">
-        <i class="fas fa-hand-fist"></i> ${game.i18n.localize("SDE.crawlBar.lootMenu.pitFighting")}
-      </div>
-      <div class="sde-menu-item sde-menu-btn" data-loot-action="training" role="menuitem" tabindex="0">
-        <i class="fas fa-dumbbell"></i> ${game.i18n.localize("SDE.crawlBar.lootMenu.training")}
-      </div>
-      <div class="sde-menu-item sde-menu-btn" data-loot-action="renown" role="menuitem" tabindex="0">
-        <i class="fas fa-crown"></i> ${game.i18n.localize("SDE.crawlBar.lootMenu.renown")}
-      </div>
-      <div class="sde-menu-item sde-menu-btn" data-loot-action="rumors" role="menuitem" tabindex="0">
-        <i class="fas fa-comments"></i> ${game.i18n.localize("SDE.crawlBar.lootMenu.rumors")}
-      </div>
-      <div class="sde-menu-item sde-menu-btn" data-loot-action="recap" role="menuitem" tabindex="0">
-        <i class="fas fa-scroll"></i> ${game.i18n.localize("SDE.crawlBar.lootMenu.recap")}
-      </div>
-    `;
-
-    // Position menu above button
-    const rect = el.getBoundingClientRect();
-    menu.style.left = `${rect.left}px`;
-    menu.style.bottom = `${window.innerHeight - rect.top + 5}px`;
-
-    document.body.appendChild(menu);
-    menu.setAttribute("role", "menu");
-
-    // Keyboard: Escape closes; Enter/Space activates the focused item.
-    menu.addEventListener("keydown", e => {
-      if (e.key === "Escape") { e.stopPropagation(); menu.remove(); return; }
-      if (e.key === "Enter" || e.key === " ") {
-        const t = e.target.closest("[data-loot-action]");
-        if (t) { e.preventDefault(); t.click(); }
-      }
-    });
-    menu.querySelector("[data-loot-action]")?.focus();
-
-    menu.addEventListener("click", e => {
-      e.stopPropagation();
-      const target = e.target.closest("[data-loot-action]");
-      if (!target) return;
-      if (target.dataset.lootAction === "forgeLoot") {
-        import("../forge-loot/forge-loot-app.mjs")
-          .then(({ ForgeLootApp }) => ForgeLootApp.open())
-          .catch((error) => ui.notifications?.error(game.i18n.format("SDE.crawlBar.notify.forgeLootFailed", { error: error.message })));
-      }
-      if (target.dataset.lootAction === "lootGen") game.shadowdarkEnhancer.loot.open();
-      if (target.dataset.lootAction === "magicForge") game.shadowdarkEnhancer.forge.open();
-      if (target.dataset.lootAction === "merchant") game.shadowdarkEnhancer.merchant.openLocally();
-      if (target.dataset.lootAction === "partyXp") game.shadowdarkEnhancer.partyXp.open();
-      if (target.dataset.lootAction === "party") game.shadowdarkEnhancer.party.open();
-      if (target.dataset.lootAction === "downtime") game.shadowdarkEnhancer.downtime.open();
-      if (target.dataset.lootAction === "pitFighting") game.shadowdarkEnhancer.pitFighting.open();
-      if (target.dataset.lootAction === "training") game.shadowdarkEnhancer.training.open();
-      if (target.dataset.lootAction === "renown") game.shadowdarkEnhancer.renown.open();
-      if (target.dataset.lootAction === "recap") game.shadowdarkEnhancer.recap.open();
-      menu.remove();
-      // A dialog: the menu goes first, or it stays open behind it.
-      if (target.dataset.lootAction === "rumors") {
-        import("../rumors/rumors.mjs").then(({ askAndGive }) => askAndGive())
-          .catch((err) => console.error("shadowdark-enhancer | give rumors", err));
-      }
-    });
-
     const close = () => {
       menu.remove();
       document.removeEventListener("click", close);

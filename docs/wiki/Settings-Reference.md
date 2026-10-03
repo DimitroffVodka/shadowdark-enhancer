@@ -226,7 +226,8 @@ See [Crawl Strip and Crawl Bar](Crawl-Strip-and-Crawl-Bar.md#overland-travel).
 | **Auto-roll active table on hit** | on | Draws from active encounter table automatically on a hit. |
 
 > **The encounter threshold and check frequency are set on the Crawl Bar.**
-> Right-click **Encounter** on the bar to adjust either. See
+> Open **Tools** and press the options button beside **Encounter** (or right-click
+> **Encounter**) to adjust either. See
 > [Random Encounters](Random-Encounters.md).
 
 ### Rules data
@@ -249,9 +250,9 @@ main settings menu:
 |---|---|---|
 | **Merchant Sell Ratio (%)** | `50` | Merchant Shop window |
 | **Merchant Shop Name** | `The Merchant` | Merchant Shop window |
-| **Encounter threshold** | `1` | Crawl Bar → right-click **Encounter** |
-| **Encounter check frequency** | `1` (every crawl round) | Crawl Bar → right-click **Encounter** → **Check Frequency** — counted from the last check, so a mid-crawl change applies from where you stand |
-| **Active encounter table** | *(none)* | Crawl Bar → drag table onto **Encounter** |
+| **Encounter threshold** | `1` | Crawl Bar → **Tools** → **Encounter** options |
+| **Encounter check frequency** | `1` (every crawl round) | Crawl Bar → **Tools** → **Encounter** options → **Check Frequency** — counted from the last check, so a mid-crawl change applies from where you stand |
+| **Active encounter table** | *(none)* | Crawl Bar → drag a table over **Tools**, onto **Encounter** |
 | **Encounter sources** | `["world", "shadowdark.bestiary"]` | Scripting API (use `shadowdark.monsters` on 4.x) |
 | **Loot tier tables** | *(empty)* | Loot Generator → **Set up loot tables** |
 | **Loot picker tables** | *(empty)* | Loot Setup window |
