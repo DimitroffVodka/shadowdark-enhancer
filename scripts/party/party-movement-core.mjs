@@ -61,20 +61,30 @@ export function turnSlot({ col, row }, turns) {
 }
 /**
  * The squares to walk, one adjacent square at a time, from `from` toward the grid slot `slot` (both top-left
- * points) without crossing a wall. A search of at most `limit` steps picks the reachable square nearest the
- * slot that is not in `avoid` ("i,j" keys); the slot itself when it can be reached. [] means stay put,
- * null means nothing better than staying is reachable either.
+ * points) without crossing a wall. The search runs outward over the whole scene (scene bounds are part of
+ * safeTrail) and stops at the slot; if the slot cannot be had (rock, or already taken: `avoid`, "i,j" keys)
+ * it takes the reachable square nearest the slot. `maxCells` bounds one search on a huge scene (about 11 µs a
+ * collision call, 8 per square). [] means stay put, null means nothing at all is reachable.
  */
-export function routeToward({ from, slot, grid, sizeX, sizeY, bounds, blocked, avoid = new Set(), limit = 10 }) {
+export function routeToward({ from, slot, grid, sizeX, sizeY, bounds, blocked, avoid = new Set(), maxCells = 5000 }) {
   const key = o => `${o.i},${o.j}`, point = o => grid.getTopLeftPoint(o);
   const startOffset = grid.getOffset({ x: from.x + sizeX / 2, y: from.y + sizeY / 2 });
+  const goal = key(grid.getOffset({ x: slot.x + sizeX / 2, y: slot.y + sizeY / 2 })), wantGoal = !avoid.has(goal);
+  // One search asks about the same pair of squares from both ends.
+  const memo = new Map();
+  const clear = (a, b) => { const k = `${a.x},${a.y},${b.x},${b.y}`; if (!memo.has(k)) memo.set(k, safeTrail(a, b, sizeX, sizeY, bounds, blocked)); return memo.get(k); };
   const seen = new Map([[key(startOffset), { offset: startOffset, depth: 0, prev: null }]]);
-  for (let queue = [startOffset], depth = 1; queue.length && depth <= limit; depth++) {
+  let queue = [startOffset], found = key(startOffset) === goal && wantGoal;
+  for (let depth = 1; queue.length && !found && seen.size < maxCells; depth++) {
     const next = [];
-    for (const here of queue) for (const offset of grid.getAdjacentOffsets(here)) {
-      if (seen.has(key(offset)) || !safeTrail(point(here), point(offset), sizeX, sizeY, bounds, blocked)) continue;
-      seen.set(key(offset), { offset, depth, prev: seen.get(key(here)) });
-      next.push(offset);
+    for (const here of queue) {
+      for (const offset of grid.getAdjacentOffsets(here)) {
+        if (seen.has(key(offset)) || !clear(point(here), point(offset))) continue;
+        seen.set(key(offset), { offset, depth, prev: seen.get(key(here)) });
+        next.push(offset);
+        if (wantGoal && key(offset) === goal) found = true;
+      }
+      if (found) break;
     }
     queue = next;
   }

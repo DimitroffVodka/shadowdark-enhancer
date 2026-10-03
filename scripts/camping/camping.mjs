@@ -38,7 +38,9 @@ function nearFire(party, camp) {
   const radius = 30 * scene.grid.size / scene.grid.distance;
   return scene.tokens.contents.some(t => {
     const pc = camp.participants.some(p => p.participate && actorOf(p.uuid)?.id === t.actorId);
-    const gathered = t.actorId === party.id && t.flags?.[MODULE_ID]?.partyMovement?.pause === "gathered" && camp.participants.some(p => p.participate);
+    // A recalled party is its token: its members are packed into it and not deployed.
+    const moved = t.flags?.[MODULE_ID]?.partyMovement;
+    const gathered = t.actorId === party.id && moved?.deployed !== true && !!moved?.packed?.length && camp.participants.some(p => p.participate);
     // TokenDocument x/y may still be the animation's interpolated position in
     // updateToken; proximity follows committed coordinates, not rendered motion.
     const position = t._source ?? t;

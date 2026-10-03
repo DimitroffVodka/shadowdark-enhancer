@@ -113,10 +113,14 @@ carry on; the next move tries again. The formation holds while the party walks:
 each member goes to their slot around the square the leader stopped on. The
 grid's top row is the front: it faces the way the leader's last step went
 (north, east, south or west), so turning the leader around reverses the order.
-Hex maps keep the grid north-up. When a wall
-is in the way they walk round it (up to ten squares) to the nearest square they
-can reach, so nobody gets stranded behind a door the leader went through. Nothing follows during combat, and the
-status line says so. The pin button beside the grid is **Place / Recall**.
+Hex maps keep the grid north-up. When a wall is in the way they walk round it
+(the search covers the whole scene) to the nearest square they can reach, so
+nobody gets stranded behind a door the leader went through. Nothing follows
+during combat, and the status line says so. The pin button beside the grid is
+**Place / Recall**. If two browser tabs are both the active GM (plain http over
+a LAN, where the browser has no tab locks), each runs the follower pass and
+every move is sent twice; the end positions are the same, only the animation
+and traffic double.
 Mounts never take a slot or follow the leader (nobody takes a mount into a
 dungeon); they stay on the roster under Mounts and still eat at camp. An older
 world's saved include-mounts choice is ignored.

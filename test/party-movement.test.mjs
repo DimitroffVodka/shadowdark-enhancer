@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { fillFormation, followOrder, deploymentOrder, headingTurns, planPlacement, safeTrail, turnSlot } from "../scripts/party/party-movement-core.mjs";
+import { fillFormation, followOrder, deploymentOrder, headingTurns, planPlacement, routeToward, safeTrail, turnSlot } from "../scripts/party/party-movement-core.mjs";
 import { normalizeParty, removeMember } from "../scripts/party/party-core.mjs";
 const rows = Array.from({ length: 12 }, (_, i) => ({ uuid: `Actor.${i}`, group: "characters" }));
 test("new parties default to marching; explicit Free survives and leader removal selects next", () => {
@@ -82,4 +82,19 @@ test("heading snaps to the dominant axis and slots turn so the top row faces it"
   const front = { col: 0, row: -1 };
   assert.deepEqual([0, 1, 2, 3].map(n => turnSlot(front, n)), [{ col: 0, row: -1 }, { col: 1, row: 0 }, { col: 0, row: 1 }, { col: -1, row: 0 }]);
   assert.deepEqual(turnSlot({ col: -1, row: 0 }, 1), { col: 0, row: -1 }, "the left slot of a northbound party leads when it turns east");
+});
+test("a follower finds a route round a wall far longer than ten squares", () => {
+  // A wall between columns 5 and 6 from the top to row 33; the only way through is below it.
+  const grid = { getOffset: p => ({ i: Math.floor(p.y / 100), j: Math.floor(p.x / 100) }), getTopLeftPoint: o => ({ x: o.j * 100, y: o.i * 100 }),
+    getAdjacentOffsets: o => [-1, 0, 1].flatMap(di => [-1, 0, 1].filter(dj => di || dj).map(dj => ({ i: o.i + di, j: o.j + dj }))) };
+  const wall = (a, b) => (a.x < 600) !== (b.x < 600) && !(a.y > 3350 && b.y > 3350);
+  const bounds = { x: 0, y: 0, width: 1200, height: 4000 };
+  const path = routeToward({ from: { x: 500, y: 0 }, slot: { x: 700, y: 0 }, grid, sizeX: 100, sizeY: 100, bounds, blocked: wall });
+  assert.deepEqual(path.at(-1), { x: 700, y: 0 }, "reaches the slot");
+  assert.ok(path.length > 60, `a detour of ${path.length} squares, well past ten`);
+  // A slot that is already taken settles for the nearest free square instead.
+  const taken = routeToward({ from: { x: 500, y: 0 }, slot: { x: 700, y: 0 }, grid, sizeX: 100, sizeY: 100, bounds, blocked: wall, avoid: new Set(["0,7"]) });
+  assert.notDeepEqual(taken.at(-1), { x: 700, y: 0 });
+  // Nothing better than where it stands is a stay-put, not a failure.
+  assert.deepEqual(routeToward({ from: { x: 500, y: 0 }, slot: { x: 500, y: 0 }, grid, sizeX: 100, sizeY: 100, bounds, blocked: wall }), []);
 });

@@ -62,7 +62,7 @@
 | `camping/camping-cook.mjs` | 37 | Post-eligible-rest Cook seam and active-benefit-scoped native damage/healing/expiry compatibility. |
 | `camping/camping-core.mjs` | 100 | Pure PC task choices, lock, exact shared-first torch cost and scoped Cook surplus/expiry rules. |
 | `camping/camping-nutrition.mjs` | 120 | Actor/day whole-meal accounting, explicit personal-first Party backup, per-effect starvation and eligible normal-rest receipts across parties/reloads. |
-| `camping/camping.mjs` | 247 | Authenticated owner-choice camp task relay, persistent results/rewards, nearby-PC fire and deferred native nutrition/rest seams for Overland nights. |
+| `camping/camping.mjs` | 249 | Authenticated owner-choice camp task relay, persistent results/rewards, nearby-PC fire and deferred native nutrition/rest seams for Overland nights. |
 | `carousing/carousing-app.mjs` | 63 | Carousing controller hosted inline in Party Travel, with GM table/manual-place setup, each PC owner's own-spend choices, persistent results and independent history. |
 | `carousing/carousing-core.mjs` | 74 | Pure imported basic table adapters, owner choices/funds/holiday/cooldown preflight, supported effects and stable recap shaping. |
 | `carousing/carousing.mjs` | 181 | Authenticated native per-PC carousing authority, saved rolls/atomic costs and effect progress, off-duty time, independent history and recap upsert. |
@@ -121,7 +121,7 @@
 | `party/party-emblem-core.mjs` | 68 | Pure party emblem: the curated icon and colour sets, the default, the safe read of the stored flag and the picker's choices. |
 | `party/party-hud.mjs` | 21 | Single combat-gated Import/Export Members Party token HUD action. |
 | `party/party-light.mjs` | 49 | Runtime-only dungeon Party light mirror without duplicated fuel items; hex lights and stored vision unchanged. |
-| `party/party-movement-core.mjs` | 118 | Fixed formation fill, follow ordering, heading turns, and the wall tests: centre-line placement and a breadth-first route round walls. |
+| `party/party-movement-core.mjs` | 128 | Fixed formation fill, follow ordering, heading turns, and the wall tests: centre-line placement and a breadth-first route round walls. |
 | `party/party-movement.mjs` | 192 | Authenticated Party-owner gather/deploy relay, linked token configuration preservation and native marching: followers keep the formation, turned to the leader's heading, and never pause. |
 | `party/party-sheet-core.mjs` | 181 | Pure Party sheet decisions: the tab row and view flags (GM vs player), the Marching order status line, Gems, the linked Bastion and its last month, and the Today / Light / Rations status bar. |
 | `party/party.mjs` | 91 | Explicit native Party provider, safe in-place NPC adoption and owner-scoped membership writes. |
