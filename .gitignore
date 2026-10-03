@@ -59,13 +59,14 @@ storage/
 # Playwright MCP scratch output
 .playwright-mcp/
 
-# docs/ tracks only the published manual (wiki/), API.md, the generated
+# docs/ tracks only the published manual (wiki/), API.md, design-contract.md, the generated
 # FILE-INVENTORY.md, and implementation plans under plans/. Internal audits,
 # review reports, sweep dumps, the promo plan and superpowers plans/specs stay
 # local — never tracked, never shipped.
 docs/*
 !docs/wiki/
 !docs/API.md
+!docs/design-contract.md
 !docs/FILE-INVENTORY.md
 !docs/plans/
 

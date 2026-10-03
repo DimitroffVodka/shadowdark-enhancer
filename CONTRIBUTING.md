@@ -64,6 +64,21 @@ the in-client **Quench** batches (`test/quench/`). Install the
 `shadowdark-enhancer.combat-state` from its dialog. It guards real regressions —
 notably the combat-start flow that once enrolled every player token twice.
 
+## Looking at a window before it ships
+
+Foundry windows (ApplicationV2 templates and their CSS) are easy to write blind
+and hard to judge from code. Render yours first:
+
+```bash
+npm run design          # http://127.0.0.1:4177/ — no Foundry world needed
+node tools/design-harness/shot.mjs <fixture>   # a PNG plus the layout check, no browser pane
+```
+
+Add or update a fixture in `tools/design-harness/fixtures/` for the busiest
+state a user can reach, then check it at its real width and at `?w=420`. The
+rules a window is held to are in [docs/design-contract.md](docs/design-contract.md);
+the harness itself is described in `tools/design-harness/README.md`.
+
 ## Compatibility priorities
 
 In rough order of how often they bite:

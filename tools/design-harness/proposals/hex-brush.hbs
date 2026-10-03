@@ -1,0 +1,18 @@
+<div class="sde-hxb2">
+  <p class="sde-hxb2-how">{{localize "SDE.hexMap.brush.howTo"}}</p>
+  <section>
+    <h4>{{localize "SDE.hexMap.brush.terrain"}}</h4>
+    <div class="sde-hxb2-tiles">
+      {{#each terrainOptions as |o|}}<label class="sde-hxb2-tile"><input type="radio" name="terrain" value="{{o.value}}" data-hxb data-hxb-terrain {{#if o.selected}}checked{{/if}}><span class="sde-hxb2-ico" style="--c:{{o.color}}"><i class="fas {{o.icon}}"></i></span><span class="sde-hxb2-lab">{{o.label}}</span></label>{{/each}}
+    </div>
+  </section>
+  <section>
+    <h4>{{localize "SDE.hexMap.brush.onTheHex"}}</h4>
+    <div class="sde-hxb2-feats">
+      {{#each features as |o|}}<label class="sde-hxb2-feat"><input type="checkbox" value="{{o.value}}" data-hxb data-hxb-feature {{#if o.checked}}checked{{/if}}><i class="fas {{o.icon}}"></i>{{o.label}}</label>{{/each}}
+    </div>
+  </section>
+  <footer class="sde-hxb2-foot">
+    <button type="button" data-action="hxbUndo" class="sde-import-secondary"><i class="fas fa-rotate-left"></i> {{localize "SDE.hexMap.btn.undoStroke"}}</button>
+  </footer>
+</div>
