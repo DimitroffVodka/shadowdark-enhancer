@@ -19,6 +19,8 @@
 
 import { MODULE_ID } from "../shared/module-id.mjs";
 import { rollToChat, promptNumber } from "./vehicle-rolls.mjs";
+import { garrisonFor } from "./warband-garrison.mjs";
+import { visibleBastions } from "../bastion/bastion-panel-core.mjs";
 
 const PHYSICAL_TYPES = ["Weapon", "Armor", "Basic", "Gem", "Potion", "Scroll", "Wand", "Light"];
 const RARITIES = ["common", "uncommon", "rare", "legendary"];
@@ -47,6 +49,13 @@ export function buildMountNpcSheet(BaseNpcSheet) {
       const sys = this.actor.system;
       const mount = this.actor.getFlag(MODULE_ID, "mount") ?? {};
       context.mount = mount;
+      // The bastion it is stabled at: a finished Stable there means it needs no grazing or rations.
+      const stabled = await garrisonFor(mount.bastion);
+      context.stabling = {
+        bastions: visibleBastions(game.actors.contents, { user: game.user }).map((a) => ({ uuid: a.uuid, name: a.name, selected: a.uuid === mount.bastion })),
+        missing: !!mount.bastion && !stabled,
+        line: stabled?.stable ? game.i18n.format("SDE.mount.stabledLine", { bastion: stabled.name }) : null,
+      };
       context.occupantLabel = game.i18n.localize("SDE.mount.riders");
 
       // Riders
@@ -82,7 +91,7 @@ export function buildMountNpcSheet(BaseNpcSheet) {
         personalityBonus: mount.properties?.goodTempered ? 2 : 0,
         needsTraining: RARITIES.slice(2).includes(mount.rarity),
         thirstDanger: (mount.feeding?.daysSinceWater ?? 0) >= 3,
-        starveDanger: (mount.feeding?.daysSinceFood ?? 0) >= 21,
+        starveDanger: !stabled?.stable && (mount.feeding?.daysSinceFood ?? 0) >= 21,
       };
 
       const opt = (vals, cur, labels) => vals.map((v) => ({

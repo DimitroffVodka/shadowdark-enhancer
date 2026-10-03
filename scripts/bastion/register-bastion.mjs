@@ -11,12 +11,15 @@
  */
 
 import { MODULE_ID } from "../shared/module-id.mjs";
+import { absDay } from "../time/time-core.mjs";
 import * as core from "./bastion-core.mjs";
 import { BastionDataModel } from "./bastion-data-model.mjs";
 import { BastionSheet } from "./bastion-sheet.mjs";
-import { bastionArt } from "./bastion-art.mjs";
+import { BASTION_TYPE, bastionArt } from "./bastion-art.mjs";
+import { registerBastionEntryPoints } from "./bastion-entry-points.mjs";
+import { registerBastionIncome } from "./bastion-income.mjs";
 
-export const BASTION_TYPE = `${MODULE_ID}.bastion`;
+export { BASTION_TYPE };
 
 export function registerBastion() {
   const DSC = foundry.applications.apps.DocumentSheetConfig;
@@ -28,6 +31,15 @@ export function registerBastion() {
   });
   CONFIG.Actor.typeIcons ??= {};
   CONFIG.Actor.typeIcons[BASTION_TYPE] = "fa-solid fa-chess-rook";
+  registerBastionEntryPoints();
+  registerBastionIncome();
+  // An open sheet follows the world clock: the Aviary's pigeon is ready again on a new day. The clock
+  // ticks every second under the system's real-time light tracking, so a sheet is redrawn only when the
+  // day it was rendered for has turned, as the crawl bar guards its weather badge.
+  Hooks.on("updateWorldTime", () => {
+    const day = absDay(game.time.calendar, game.time.worldTime);
+    for (const app of foundry.applications.instances.values()) if (app instanceof BastionSheet && app._shownDay !== day) app.render();
+  });
 
   // A new bastion carries its type's art, and one actor is one place: its token is linked.
   Hooks.on("preCreateActor", (doc, data) => {
@@ -60,9 +72,20 @@ export function bastionApi() {
         system: { type: def.id, weeksLeft: def.weeks, hp: { value: def.hp }, treasury: Math.max(0, Math.trunc(Number(treasury) || 0)) },
       });
     },
+    // The panel: every bastion you can see, or those one party owns.
+    openPanel: async ({ party } = {}) => {
+      const { BastionPanel } = await import("./bastion-panel.mjs");
+      return BastionPanel.open({ party: party ? find(party) : null });
+    },
     open: (ref) => { const actor = find(ref); if (isBastion(actor)) actor.sheet?.render(true); return isBastion(actor); },
     // A bastion's rules state: type, hit points, treasury, upgrades with their places and weeks left.
     state: (ref) => { const actor = find(ref); return isBastion(actor) ? core.stateOf(actor) : null; },
+    // The party that owns a bastion (an actor), or null.
+    partyOf: (ref) => { const actor = find(ref); const uuid = isBastion(actor) ? actor.system.party : ""; return uuid ? fromUuidSync(uuid, { strict: false }) ?? null : null; },
+    // The bastions a party owns (actors).
+    forParty: (ref) => { const party = find(ref); return party ? game.actors.filter((a) => isBastion(a) && a.system.party === party.uuid) : []; },
+    // The effects other features apply: { granary, barracks, casino, library, trophyRoom, vault, stable, aviary, infirmary, armorer, blacksmith, tradingPost }, true only for a standing bastion's finished upgrade.
+    effects: (ref) => { const actor = find(ref); return isBastion(actor) ? core.effects(core.stateOf(actor)) : { granary: false, barracks: false, casino: false, library: false, trophyRoom: false, vault: false, stable: false, aviary: false, infirmary: false, armorer: false, blacksmith: false, tradingPost: false }; },
     // The upgrades that are finished and so give their effect.
     built: (ref) => { const actor = find(ref); return isBastion(actor) ? core.builtUpgrades(core.stateOf(actor)) : []; },
   };

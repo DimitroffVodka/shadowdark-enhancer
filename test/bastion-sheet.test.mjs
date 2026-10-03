@@ -3,10 +3,10 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-/** The Foundry surface bastion-sheet.mjs touches: the two bases it extends, and the roll's inputs. */
+/** The Foundry surface bastion-sheet.mjs and its imports touch: the bases the classes extend, and the roll's inputs. */
 globalThis.foundry = {
   applications: {
-    api: { HandlebarsApplicationMixin: (Base) => class extends Base {}, DialogV2: {} },
+    api: { ApplicationV2: class {}, HandlebarsApplicationMixin: (Base) => class extends Base {}, DialogV2: {} },
     sheets: { ActorSheetV2: class {} },
   },
   utils: {},

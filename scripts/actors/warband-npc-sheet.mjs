@@ -23,6 +23,10 @@ import {
   UPGRADES, MOST_UPGRADES, allowanceFor, cleanUpgrades, commandRefusal, upgradeRefusal, upkeepGp,
 } from "./warband-core.mjs";
 import { upgradeText, upgradeWrites, readUpgradeText, syncAttacks, warbandWrites } from "./warband-upgrades.mjs";
+import { garrisonFor } from "./warband-garrison.mjs";
+import { BASTION_TYPE } from "../bastion/bastion-art.mjs";
+import { GRANARY_SAVING_GP, BARRACKS_HEAL } from "../bastion/bastion-core.mjs";
+import { visibleBastions } from "../bastion/bastion-panel-core.mjs";
 
 export const WARBAND_FLAG = "warband";
 
@@ -64,9 +68,10 @@ function sendWarbandWrite(data, type) {
  */
 async function applyWarbandWrite(data, user, type) {
   // The payload comes off the wire from any player who owns a warband: every field is checked for its type first.
-  const { action, actorId, pcUuid = null, key, on } = data && typeof data === "object" ? data : {};
+  const { action, actorId, pcUuid = null, bastionUuid = null, key, on } = data && typeof data === "object" ? data : {};
   if (typeof action !== "string" || typeof actorId !== "string") return { ok: false };
   if (pcUuid !== null && typeof pcUuid !== "string") return { ok: false };
+  if (bastionUuid !== null && typeof bastionUuid !== "string") return { ok: false };
   if (action === "upgrade" && (typeof key !== "string" || typeof on !== "boolean")) return { ok: false };
   // The Warband tab's upkeep controls, a GM's (#204): on this same queue, so they and the ticks never interleave.
   if (UPKEEP_ACTIONS.has(action)) {
@@ -99,6 +104,15 @@ async function applyWarbandWrite(data, user, type) {
   }
   if (action === "leading") {
     await replaceModuleFlag(actor, WARBAND_FLAG, { ...state, leading: !!on });
+    return { ok: true };
+  }
+  // The garrison: a world bastion the requester can see (a GM: any), or none. Setting it again changes nothing.
+  if (action === "garrison") {
+    const bastion = bastionUuid ? await fromUuid(bastionUuid).catch(() => null) : null;
+    if (bastionUuid && (bastion?.type !== BASTION_TYPE || bastion.pack || (!user?.isGM && !bastion.testUserPermission(user, "OBSERVER")))) {
+      return { ok: false, warn: { key: "SDE.warband.notify.garrisonBastion", data: {} } };
+    }
+    await replaceModuleFlag(actor, WARBAND_FLAG, { ...state, bastion: bastion?.uuid ?? null });
     return { ok: true };
   }
   if (action !== "upgrade") return { ok: false };
@@ -152,7 +166,8 @@ const marks = (v) => (Array.isArray(v) ? [...new Set(v.filter(Number.isFinite))]
  * A warband's state, cleaned, every field kept so a whole-flag write loses
  * none: `{ commander: uuid|null, upgrades: string[], arrears: gp owed,
  * deserted: bool, retrainingUntil: worldTime|null, leading: bool, routed: bool,
- * settledMonths: number[], moraleWeeks: number[], payment: object|null }` (#200, #203, #204).
+ * settledMonths: number[], moraleWeeks: number[], payment: object|null,
+ * bastion: uuid|null }` (#200, #203, #204; the bastion it is garrisoned at).
  */
 export function warbandState(actor) {
   const f = actor?.getFlag?.(MODULE_ID, WARBAND_FLAG) ?? {};
@@ -169,6 +184,7 @@ export function warbandState(actor) {
     settledMonths: marks(f.settledMonths),
     moraleWeeks: marks(f.moraleWeeks),
     payment: cleanPayment(f.payment),
+    bastion: typeof f.bastion === "string" ? f.bastion : null,
   };
 }
 
@@ -221,6 +237,7 @@ export function buildWarbandNpcSheet(BaseNpcSheet, type) {
       const { otherWarbands, otherUpgrades } = pc ? commandedBy(pc.uuid, { except: this.actor.id, type }) : { otherWarbands: 0, otherUpgrades: 0 };
       const cha = pc?.system?.abilities?.cha?.mod ?? null;
       const tips = upgradeText();
+      const garrison = await garrisonFor(state.bastion);
       context.warband = {
         commander: pc ? { uuid: pc.uuid, name: pc.name, img: pc.img } : null,
         commanderMissing: !!state.commander && !pc,
@@ -237,7 +254,14 @@ export function buildWarbandNpcSheet(BaseNpcSheet, type) {
         upgrades: UPGRADES.map((key) => ({ key, label: game.i18n.localize(UPGRADE_KEYS[key]), checked: state.upgrades.includes(key), tip: tips[key] ?? "" })),
         textMissing: game.user.isGM && Object.keys(tips).length < UPGRADES.length,
         // #204: upkeep, arrears, desertion and retraining.
-        upkeep: game.i18n.format("SDE.warband.upkeepLine", { gp: upkeepGp(this.actor.system.level?.value) }),
+        upkeep: game.i18n.format("SDE.warband.upkeepLine", { gp: upkeepGp(this.actor.system.level?.value, garrison?.granary ? GRANARY_SAVING_GP : 0) }),
+        // The bastion it is garrisoned at, and what that gives it while the bastion stands.
+        bastions: visibleBastions(game.actors.contents, { user: game.user }).map((a) => ({ uuid: a.uuid, name: a.name, selected: a.uuid === state.bastion })),
+        garrisonMissing: !!state.bastion && !garrison,
+        garrisonLines: [
+          ...(garrison?.granary ? [game.i18n.format("SDE.warband.garrisonGranary", { bastion: garrison.name, gp: GRANARY_SAVING_GP })] : []),
+          ...(garrison?.barracks ? [game.i18n.format("SDE.warband.garrisonBarracks", { bastion: garrison.name, dice: `${BARRACKS_HEAL.n}d${BARRACKS_HEAL.faces}` })] : []),
+        ],
         arrears: state.arrears ? game.i18n.format("SDE.warband.arrearsLine", { gp: state.arrears }) : null,
         deserted: state.deserted,
         retraining: state.retrainingUntil > game.time.worldTime
@@ -261,6 +285,10 @@ export function buildWarbandNpcSheet(BaseNpcSheet, type) {
       for (const [selector, action] of [["run-month", "runMonth"], ["pay-arrears", "payArrears"], ["return-to-service", "returnToService"]]) {
         root.querySelectorAll(`[data-sde-action='${selector}']`).forEach((el) => el.addEventListener("click", () => this._sendWrite({ action })));
       }
+      root.querySelectorAll("select[data-sde-garrison]").forEach((el) => el.addEventListener("change", (ev) => {
+        ev.stopPropagation();
+        this._sendWrite({ action: "garrison", bastionUuid: el.value || null }).then((ok) => { if (!ok) this.render(false); });
+      }));
       root.querySelectorAll("input[data-sde-leading]").forEach((el) => el.addEventListener("change", (ev) => {
         ev.stopPropagation();
         this._sendWrite({ action: "leading", on: el.checked });

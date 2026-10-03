@@ -44,11 +44,20 @@ per HP. A bastion shelters you from weather, climate and random encounters.
 
 ## The sheet
 
-**Overview.** The type, AC, hit points, the treasury (a gold total the GM sets), how
+**Overview.** The type, the party that owns it, AC, hit points, the treasury, how
 many of its upgrade slots are used, and what it is worth. Under the build clock:
 **Advance a week** finishes the bastion and its upgrades as the weeks pass,
 **Repair** pays 1 gp per missing HP and mends them after a week, and **Roll the
 month's disaster** rolls the d6 (and on a 1 the d4) and posts it to chat.
+
+**The party and the treasury.** Pick the **Party** that owns the bastion (Extras'
+party, or the Enhancer's own). **Pay in** moves gold from a character's purse into the
+treasury, and **Pay out** moves it back to a character. The dialog lists the party's
+members, or every player character when the bastion has no party or its party lists
+none. The gold is whole, comes out of silver and copper first, and a payment that
+can't complete on both sides is put back. You can still type the treasury yourself.
+Extras keeps a party's own coins in its own data and offers no way to change them, so
+the party's stash isn't touched: a member pays from their own purse.
 
 **Upgrades.** All twenty, with their art. **Build** takes the cost from the
 treasury and starts a week of work. You can't build one that's already there,
@@ -78,8 +87,50 @@ down** frees the slot and refunds nothing; the other upgrades keep their places.
 | Vault | 200 | Securely store up to 100 gear slots of items |
 | Wizard Tower | 400 | +1 to INT spellcasting checks in the bastion |
 
-The sheet records these effects but doesn't apply them yet: you rule on them at
-the table.
+Ten effects are applied for you while the bastion stands:
+
+- the **Granary** makes each warband [garrisoned](Warbands.md) there cost 10 gp less a month;
+- the **Barracks** heals each of them 1d6 more a day;
+- the **Casino** earns **2d20 gp** into the treasury at each month start the world clock
+  passes, one roll a month shown in chat and logged, each month paid once however the clock
+  moves. A Casino that finishes part way through a month earns from the next month start. If
+  the treasury can't be saved, the GMs get a card with the gold to add by hand;
+- the **Library** gives **+1** to the downtime checks about learning (Martial Training and
+  Magical Research) for the members of the party that owns the bastion, on the Downtime
+  window's rolls and shown on the chat card as "Library +1". Members are the linked party's
+  (every player character if the party lists none); two Libraries don't stack;
+- the **Trophy Room** gives each member of the party **1 XP** for each notable trophy you place
+  (the Overview tab's Trophies box, GM only: name it and place it). The name is kept on the
+  bastion, the XP goes out through Party XP (the full amount to each member, with its chat card),
+  and a trophy is only placed when the party has a character to give it to. Taking a name off the
+  list doesn't take the XP back;
+- the **Vault** holds up to **100 gear slots** of items (the Vault box on the Overview tab).
+  Drop gear on the Bastion sheet to store it (GM only): gear a character holds is moved out of
+  their pack, anything else is copied in, and gear that would pass 100 slots is refused. The
+  button on a stored item hands it to a character of the party. A stack takes the slots it
+  takes on a character (per-slot quantity and slots used). Each move is a copy first and a
+  delete second, so an item is never in two places and never lost;
+- the **Stable** means a mount **stabled** there needs no grazing or rations: pick the bastion
+  in the Care box on the mount's sheet ("Stabled at") and the starvation warning stays off
+  while the Stable stands. The days-since-food counter is still yours to keep, and water is
+  still needed;
+- the **Aviary** sends **one message a day** by pigeon: the Aviary box on the Overview tab (GM)
+  asks who it is for (everyone, or one player, as a whisper the GMs also see) and what it says,
+  and posts it from the bastion. A day is a world-clock day; the pigeon is ready again the next
+  one, and a message that couldn't be posted doesn't use the day up;
+- the **Infirmary** is named on the month's disaster roll: when it comes up pestilence (the
+  DC 12 CON check for rat disease), the chat message adds that the patients make the check
+  with advantage. The check itself is still rolled at the table;
+- the **Armorer**, the **Blacksmith** and the **Trading Post** are shops: each finished room
+  puts a button in the Shops box on the Overview tab (GM) that opens a shop window. The
+  Armorer sells ordinary armor, the Blacksmith ordinary weapons and the Trading Post basic
+  gear, from the same gear the Merchant Shop's Catalog lists, each at **10% over** its list
+  price (rounded to the copper). Pick which character of the party buys, search, set a
+  quantity and Buy: the gold is taken from their purse and the item is added to their sheet.
+  Magic items are never sold here. The sale is run by the GM; it does not touch the Merchant
+  Shop that may be open at the same time.
+
+The rest the sheet records and you rule on at the table.
 
 **Plan.** The bastion drawn two ways:
 
@@ -105,6 +156,18 @@ later. Upgrades being built are drawn faint.
 
 ---
 
+## The panel
+
+**Bastions** (a button on the crawl bar once the world has one, and in the Actors
+directory's right-click menu on a party actor) opens a panel with a card for each
+bastion you can see, or just the party's: its art, type and week, hit points,
+treasury, upgrades built and building. **Open** opens the sheet. The GM also gets
+**Pay in** and **Pay out** on each card, and **New bastion**, which makes a House
+owned by the panel's party when it was opened for one. The panel redraws as
+bastions change. Players see the bastions they have at least Observer permission on.
+
+---
+
 ## The monthly disaster
 
 Each month the GM rolls a d6; on a 1 they roll a d4:
@@ -123,5 +186,6 @@ the GM's to run.
 ## For macros
 
 `game.shadowdarkEnhancer.bastion` creates a bastion, opens its sheet and reads its
-state and finished upgrades, so other features can read a bastion's effects. See
+state, its party (and a party's bastions) and its finished upgrades, so other features
+can read a bastion's effects. See
 the [API reference](https://github.com/DimitroffVodka/shadowdark-enhancer/blob/master/docs/API.md#bastion--bastions).

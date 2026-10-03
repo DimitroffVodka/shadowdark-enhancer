@@ -140,6 +140,14 @@
 				</div>
 				{{#if derived.thirstDanger}}<p class="sde-veh-warn">{{localize "SDE.mount.thirstWarn"}}</p>{{/if}}
 				{{#if derived.starveDanger}}<p class="sde-veh-warn">{{localize "SDE.mount.starveWarn"}}</p>{{/if}}
+				<div class="sde-veh-field"><label>{{localize "SDE.mount.stabledAt"}}</label>
+					<select name="flags.shadowdark-enhancer.mount.bastion">
+						<option value="">{{localize "SDE.mount.stabledNone"}}</option>
+						{{#each stabling.bastions}}<option value="{{uuid}}" {{#if selected}}selected{{/if}}>{{name}}</option>{{/each}}
+					</select>
+				</div>
+				{{#if stabling.missing}}<p class="sde-veh-warn">{{localize "SDE.mount.stabledMissing"}}</p>{{/if}}
+				{{#if stabling.line}}<p class="sde-veh-hint">{{stabling.line}}</p>{{/if}}
 			{{/ui/sd-box}}
 
 			<div class="sde-veh-actions">

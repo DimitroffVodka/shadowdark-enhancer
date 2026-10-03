@@ -11,46 +11,19 @@
 import { MODULE_ID } from "../shared/module-id.mjs";
 import { esc } from "../shared/esc.mjs";
 import * as core from "./bastion-core.mjs";
-import { stateOf, updateOf } from "./bastion-core.mjs";
+import { stateOf } from "./bastion-core.mjs";
 import { renderPlan } from "./bastion-plan.mjs";
-import { bastionArt } from "./bastion-art.mjs";
+import { isPartyActor } from "./bastion-funding.mjs";
+import { ensureSprites } from "./bastion-art.mjs";
+import { absDay } from "../time/time-core.mjs";
+import { t, format, WHY, logText, monthLine } from "./bastion-text.mjs";
+import { writeState, fundBastion, trophyBastion, takeOutBastion, storeBastion, pigeonBastion } from "./bastion-writes.mjs";
+import { slotsOf, usedSlots, VAULT_SLOTS, VAULT_TYPES } from "./bastion-vault-core.mjs";
+import { openShops } from "./bastion-shop-core.mjs";
+import { BastionShopApp } from "./bastion-shop-app.mjs";
 
 const { HandlebarsApplicationMixin } = foundry.applications.api;
 const { ActorSheetV2 } = foundry.applications.sheets;
-
-const SPRITES_URL = `modules/${MODULE_ID}/assets/bastion/sprites.svg`;
-const t = (key) => game.i18n.localize(key);
-const format = (key, data) => game.i18n.format(key, data);
-
-/** The art as symbols, loaded into the page once so a plan can `<use>` it. */
-let spritesLoaded = null;
-export function ensureSprites() {
-  spritesLoaded ??= (async () => {
-    if (document.getElementById("sde-bastion-sprites")) return;
-    const text = await (await fetch(foundry.utils.getRoute(SPRITES_URL))).text();
-    const holder = document.createElement("div");
-    holder.id = "sde-bastion-sprites";
-    holder.hidden = true;
-    holder.innerHTML = text;
-    document.body.append(holder);
-  })().catch((err) => { spritesLoaded = null; throw err; });
-  return spritesLoaded;
-}
-
-/** Why a rules call said no, in words (written out in full: the i18n test scans for keys). */
-const WHY = {
-  unknown: "SDE.bastion.why.unknown",
-  full: "SDE.bastion.why.full",
-  unstanding: "SDE.bastion.why.unstanding",
-  broke: "SDE.bastion.why.broke",
-  tooMany: "SDE.bastion.why.tooMany",
-  nothing: "SDE.bastion.why.nothing",
-  built: "SDE.bastion.why.built",
-};
-
-/** A log line, with any i18n key in its data (an upgrade's name) turned into words. */
-const logText = (entry) => format(entry.key, Object.fromEntries(
-  Object.entries(entry.data ?? {}).map(([k, v]) => [k, typeof v === "string" && v.startsWith("SDE.") ? t(v) : v])));
 
 export class BastionSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   static DEFAULT_OPTIONS = {
@@ -67,6 +40,13 @@ export class BastionSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       advanceWeek: BastionSheet.prototype._onAdvanceWeek,
       repair: BastionSheet.prototype._onRepair,
       rollMonth: BastionSheet.prototype._onRollMonth,
+      deposit: BastionSheet.prototype._onDeposit,
+      withdraw: BastionSheet.prototype._onWithdraw,
+      placeTrophy: BastionSheet.prototype._onPlaceTrophy,
+      removeTrophy: BastionSheet.prototype._onRemoveTrophy,
+      takeOut: BastionSheet.prototype._onTakeOut,
+      sendPigeon: BastionSheet.prototype._onSendPigeon,
+      openShop: BastionSheet.prototype._onOpenShop,
       exportSvg: BastionSheet.prototype._onExportSvg,
       exportPng: BastionSheet.prototype._onExportPng,
     },
@@ -80,6 +60,8 @@ export class BastionSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   _view = "ext";
   _roofs = false;
   _card = null;
+  /** The world-clock day this sheet's context was built for; the clock hook redraws it only when a new day turns. */
+  _shownDay = null;
   /** The viewBox the GM zoomed or panned to, kept across redraws of the same plan. */
   _zoom = { key: "", viewBox: null };
 
@@ -119,8 +101,20 @@ export class BastionSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
         why: check.reason && check.reason !== "built" ? t(WHY[check.reason]) : "",
       };
     });
+    const fx = core.effects(state);
+    const stored = this.document.items.filter((i) => VAULT_TYPES.includes(i.type));
+    context.vault = { shown: fx.vault || stored.length > 0, open: fx.vault, used: usedSlots(stored), max: VAULT_SLOTS,
+      items: stored.map((i) => ({ id: i.id, name: i.name, img: i.img, quantity: i.system?.quantity ?? 1, slots: slotsOf(i) })).sort((a, b) => a.name.localeCompare(b.name)) };
+    context.shops = openShops(fx).map((shop) => ({ id: shop.id, name: t(shop.name) }));
+    const day = absDay(game.time.calendar, game.time.worldTime);
+    this._shownDay = day;
+    context.aviary = { open: fx.aviary, flown: state.pigeonDay === day };
+    context.trophyRoom = fx.trophyRoom;
+    context.trophies = state.trophies.map((name, index) => ({ name, index }));
+    context.trophyXp = core.TROPHY_XP;
     context.log = state.log.map((e) => ({ week: e.week, text: logText(e) })).reverse();
     context.plan = this._plan(state, st);
+    context.parties = game.actors.filter(isPartyActor).map((a) => ({ uuid: a.uuid, name: a.name, selected: a.uuid === this.document.system.party }));
     context.view = { ext: this._view === "ext", in: this._view === "in" };
     context.roofs = this._roofs;
     context.enrichedNotes = await foundry.applications.ux.TextEditor.implementation.enrichHTML(
@@ -142,19 +136,8 @@ export class BastionSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
   // ── Writes ─────────────────────────────────────────────────────────────────
 
-  /** Write a state back, and say so when Foundry vetoed it after the fact. */
-  async _write(next) {
-    if (!game.user.isGM) return false;
-    const update = updateOf(next), was = this.document.system.type;
-    // A bastion still wearing its old type's art takes the new type's.
-    if (next.type !== was) {
-      if (this.document.img === bastionArt(was)) update.img = bastionArt(next.type);
-      if (this.document.prototypeToken.texture.src === bastionArt(was)) update["prototypeToken.texture.src"] = bastionArt(next.type);
-    }
-    const saved = await this.document.update(update);
-    if (!saved) ui.notifications?.warn(t("SDE.bastion.notify.notSaved"));
-    return !!saved;
-  }
+  /** Write a state back (the GM's), and say so when Foundry vetoed it after the fact. */
+  _write(next) { return writeState(this.document, next); }
 
   /** Run a rules function on the current state and write its result, or say why not. */
   async _apply(fn) {
@@ -207,12 +190,38 @@ export class BastionSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const before = this.state;
     const next = core.applyDisaster(before, core.rollDisaster(die));
     if (!(await this._write(next))) return;
-    // Every line the roll added goes to chat (a breaching disaster adds two: the damage, then the breach).
+    // Every line the roll added goes to chat (a breaching disaster adds two: the damage, then the breach;
+    // under a finished Infirmary the pestilence line says the patients have ADV).
     // The cap can drop old lines, so compare entries — the ones handed in are the same that come back — not indexes.
     const seen = new Set(before.log);
-    const lines = next.log.filter((e) => !seen.has(e)).map(logText);
+    const lines = next.log.filter((e) => !seen.has(e)).map((e) => monthLine(next, e));
     await ChatMessage.create({ content: `<p><strong>${esc(this.document.name)}</strong> ${lines.map(esc).join(" ")}</p>`, speaker: { alias: this.document.name } });
   }
+
+  // ── Paying in and out of the treasury (bastion-writes.mjs) ─────────────────
+
+  _onDeposit() { return fundBastion(this.document, "deposit"); }
+  _onWithdraw() { return fundBastion(this.document, "withdraw"); }
+
+  // ── The Trophy Room (bastion-trophies.mjs) ─────────────────────────────────
+
+  _onPlaceTrophy() { return trophyBastion(this.document); }
+  _onRemoveTrophy(_event, target) { return this._apply((s) => core.removeTrophy(s, Number(target.dataset.index))); }
+
+  // ── The shops (bastion-shop.mjs): the Armorer, the Blacksmith, the Trading Post ──
+
+  _onOpenShop(_event, target) { return BastionShopApp.open(this.document, target.dataset.shop); }
+
+  // ── The Aviary (bastion-aviary.mjs) ────────────────────────────────────────
+
+  _onSendPigeon() { return pigeonBastion(this.document); }
+
+  // ── The Vault (bastion-vault.mjs): items dropped on the sheet go in, a button takes them out ──
+
+  _onTakeOut(_event, target) { return takeOutBastion(this.document, target.dataset.id); }
+
+  /** An item dropped on the sheet is stored in the Vault (the GM's drop; the base sheet would just copy it in). */
+  async _onDropItem(_event, item) { return storeBastion(this.document, item); }
 
   /** The plan as a standalone SVG: the page's art symbols plus what's drawn. */
   _planSvg() {

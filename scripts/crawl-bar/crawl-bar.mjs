@@ -12,6 +12,7 @@ import { CrawlState }      from "../crawl-strip/crawl-state.mjs";
 import { ICONS }           from "../shared/icons.mjs";
 import { CrawlStrip }      from "../crawl-strip/crawl-strip.mjs";
 import { isHexMapScene }   from "../encounter/encounter-terrain.mjs";
+import { BASTION_TYPE } from "../bastion/bastion-art.mjs";
 import {
   startOverland, endOverland, rollWeather, weatherNow, weatherName, startDayFromParty, resume, overlandState, OVERLAND_CHANGED,
   askForage, forage, makeCamp,
@@ -51,6 +52,9 @@ export const CrawlBar = {
     on("updateCombat",  queue);
     // The Travel button is offered only on a hex map, so it follows the scene.
     on("canvasReady",   queue);
+    // ...and the Bastions button follows the world's bastions.
+    on("createActor", (actor) => { if (actor.type === BASTION_TYPE) queue(); });
+    on("deleteActor", (actor) => { if (actor.type === BASTION_TYPE) queue(); });
     // The Overland badge shows today's weather, which also ends at a dawn with
     // no write. The clock moves every second under real-time light tracking,
     // so re-render only when what the badge shows would change.
@@ -166,6 +170,11 @@ export const CrawlBar = {
         ? `<button class="sde-bar-btn" data-action="startTravel" title="${game.i18n.localize("SDE.overland.startTravelHint")}">${ICONS.walking} ${game.i18n.localize("SDE.overland.startTravel")}</button>`
         : "");
 
+    // The Bastions button is there once the world has a bastion.
+    const bastionButton = game.actors.some((a) => a.type === BASTION_TYPE)
+      ? `<button class="sde-bar-btn" data-action="bastions" title="${game.i18n.localize("SDE.crawlBar.bastionsTip")}">${ICONS.bastion} ${game.i18n.localize("SDE.crawlBar.bastions")}</button>`
+      : "";
+
     // CRAWL state — single phase, just turn counter + next button
     this._el.innerHTML = `
       <div class="sde-bar-inner sde-bar-active">
@@ -195,6 +204,7 @@ export const CrawlBar = {
         <button class="sde-bar-btn" data-action="rollTables" title="${game.i18n.localize("SDE.crawlBar.importerTip")}">
           ${ICONS.importer} ${game.i18n.localize("SDE.crawlBar.importer")}
         </button>
+        ${bastionButton}
         ${travelButton}
         ${idle
           ? `<button class="sde-bar-btn sde-bar-start-btn" data-action="startCrawl" title="${game.i18n.localize("SDE.crawlBar.startTip")}">${ICONS.startCrawl} ${game.i18n.localize("SDE.crawlBar.start")}</button>`
@@ -404,6 +414,10 @@ export const CrawlBar = {
 
       case "recap":
         game.shadowdarkEnhancer.recap.open();
+        break;
+
+      case "bastions":
+        game.shadowdarkEnhancer.bastion.openPanel();
         break;
     }
   },

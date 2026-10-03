@@ -27,6 +27,13 @@
           </select>
         </label>
         <p class="hint">{{type.blurb}}</p>
+        <label class="sde-bast-field">
+          <span>{{localize "SDE.bastion.field.party"}}</span>
+          <select name="system.party" {{#unless editable}}disabled{{/unless}}>
+            <option value="">{{localize "SDE.bastion.party.none"}}</option>
+            {{#each parties}}<option value="{{uuid}}" {{#if selected}}selected{{/if}}>{{name}}</option>{{/each}}
+          </select>
+        </label>
         <div class="sde-bast-stats">
           <div class="SD-box sde-bast-stat"><div class="header"><label>{{localize "SDE.bastion.stat.ac"}}</label><span></span></div><div class="content">{{stats.ac}}</div></div>
           <div class="SD-box sde-bast-stat {{#if stats.breached}}sde-bast-bad{{/if}}">
@@ -39,6 +46,36 @@
             <div class="content"><input type="number" name="system.treasury" value="{{system.treasury}}" min="0" {{#unless editable}}disabled{{/unless}} /> {{localize "SDE.bastion.gp"}}</div>
           </div>
         </div>
+        {{#if editable}}
+        <div class="sde-bast-buttons">
+          <button type="button" data-action="deposit"><i class="fa-solid fa-coins"></i> {{localize "SDE.bastion.fund.deposit"}}</button>
+          <button type="button" data-action="withdraw"><i class="fa-solid fa-hand-holding-dollar"></i> {{localize "SDE.bastion.fund.withdraw"}}</button>
+        </div>
+        {{/if}}
+        {{#if shops.length}}
+        <div class="sde-bast-room">
+        <h3>{{localize "SDE.bastion.shop.heading"}}</h3>
+        {{#if editable}}<div class="sde-bast-buttons">{{#each shops}}<button type="button" data-action="openShop" data-shop="{{id}}"><i class="fa-solid fa-store"></i> {{name}}</button>{{/each}}</div>
+        {{else}}<p class="note">{{#each shops}}{{name}}{{#unless @last}}, {{/unless}}{{/each}}</p>{{/if}}
+        </div>
+        {{/if}}
+        {{#if aviary.open}}
+        <div class="sde-bast-room">
+        <h3>{{localize "SDE.bastion.pigeon.heading"}}</h3>
+        <p class="note">{{#if aviary.flown}}{{localize "SDE.bastion.pigeon.flown"}}{{else}}{{localize "SDE.bastion.pigeon.ready"}}{{/if}}</p>
+        {{#if editable}}<div class="sde-bast-buttons"><button type="button" data-action="sendPigeon" {{#if aviary.flown}}disabled{{/if}}><i class="fa-solid fa-dove"></i> {{localize "SDE.bastion.pigeon.send"}}</button></div>{{/if}}
+        </div>
+        {{/if}}
+        {{#if trophyRoom}}
+        <div class="sde-bast-room">
+        <h3>{{localize "SDE.bastion.trophy.heading"}}</h3>
+        <ul class="sde-bast-trophies">
+          {{#each trophies}}<li><span>{{name}}</span>{{#if ../editable}}<button type="button" class="ghost" data-action="removeTrophy" data-index="{{index}}" data-tooltip="{{localize 'SDE.bastion.trophy.remove'}}"><i class="fa-solid fa-xmark"></i></button>{{/if}}</li>
+          {{else}}<li class="hint">{{localize "SDE.bastion.trophy.none"}}</li>{{/each}}
+        </ul>
+        {{#if editable}}<div class="sde-bast-buttons"><button type="button" data-action="placeTrophy"><i class="fa-solid fa-trophy"></i> {{localize "SDE.bastion.trophy.place"}}</button></div>{{/if}}
+        </div>
+        {{/if}}
         <p class="note">{{localize "SDE.bastion.stat.worth" worth=stats.worth}}</p>
         {{#if stats.breached}}<p class="note sde-bast-bad">{{localize "SDE.bastion.breached"}}</p>{{/if}}
         {{#if stats.standing}}
@@ -57,6 +94,16 @@
         </div>
         {{#if stats.repairing}}<p class="note">{{localize "SDE.bastion.repairing"}}</p>{{/if}}
         <p class="hint">{{localize "SDE.bastion.rules"}}</p>
+        {{/if}}
+        {{#if vault.shown}}
+        <div class="sde-bast-room">
+        <h3>{{localize "SDE.bastion.vault.heading"}} <span class="sde-bast-slots">{{vault.used}} / {{vault.max}}</span></h3>
+        <ul class="sde-bast-vault">
+          {{#each vault.items}}<li><img src="{{img}}" alt="" /><span class="name">{{name}}{{#if (gt quantity 1)}} &times;{{quantity}}{{/if}}</span><span class="slots">{{slots}}</span>{{#if ../editable}}<button type="button" class="ghost" data-action="takeOut" data-id="{{id}}" data-tooltip="{{localize 'SDE.bastion.vault.takeTitle'}}"><i class="fa-solid fa-arrow-right-from-bracket"></i></button>{{/if}}</li>
+          {{else}}<li class="hint">{{localize "SDE.bastion.vault.empty"}}</li>{{/each}}
+        </ul>
+        {{#if vault.open}}{{#if editable}}<p class="hint">{{localize "SDE.bastion.vault.hint"}}</p>{{/if}}{{/if}}
+        </div>
         {{/if}}
         <h3>{{localize "SDE.bastion.tab.notes"}}</h3>
         {{#if editable}}

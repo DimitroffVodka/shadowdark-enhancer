@@ -14,6 +14,9 @@
  *   week        weeks the bastion has stood, counted by advanceWeek
  *   upgrades    [{ id, slot, weeksLeft }]  slot is its place on the plan, -1 for the moat
  *   repair      { hp, weeksLeft }  hp being mended, 0 weeksLeft when none
+ *   incomeMonths  the calendar months whose Casino income is paid (month keys, the last few)
+ *   trophies    the names of the trophies placed in the Trophy Room, oldest first, capped
+ *   pigeonDay   the world-clock day the Aviary's pigeon last flew, or null
  *   log         [{ week, key, data }]  newest last, capped
  *
  * Every function takes a state and returns a NEW one with the log lines it
@@ -64,7 +67,7 @@ const toInt = (n, fallback = 0) => (Number.isFinite(Number(n)) ? Math.trunc(Numb
 /** A new bastion of a type: unbuilt, full HP, nothing in the treasury. */
 export function newBastion(typeId = "house") {
   const type = typeOf(typeId) ?? BASTION_TYPES[0];
-  return { type: type.id, weeksLeft: type.weeks, hp: { value: type.hp }, treasury: 0, week: 0, upgrades: [], repair: { hp: 0, weeksLeft: 0 }, log: [] };
+  return { type: type.id, weeksLeft: type.weeks, hp: { value: type.hp }, treasury: 0, week: 0, upgrades: [], repair: { hp: 0, weeksLeft: 0 }, incomeMonths: [], trophies: [], pigeonDay: null, log: [] };
 }
 
 /** The numbers a type fixes, with the bastion's current hit points. */
@@ -89,6 +92,85 @@ export function worth(state) {
 
 /** Upgrades that are finished and so give their effect. */
 export const builtUpgrades = (state) => (state?.upgrades ?? []).filter((u) => toInt(u.weeksLeft) <= 0 && upgradeOf(u.id)).map((u) => u.id);
+
+/** What the Granary saves a warband garrisoned here each month, in gp. */
+export const GRANARY_SAVING_GP = 10;
+/** What the Barracks adds to a garrisoned warband's healing each day. */
+export const BARRACKS_HEAL = { n: 1, faces: 6 };
+/** The Casino's income each month, in gp. */
+export const CASINO_DICE = { n: 2, faces: 20 };
+/** How many paid months a bastion keeps: far more than a clock move reaches back. */
+const KEEP_INCOME_MONTHS = 24;
+
+/** The Library's bonus on the downtime checks that are about learning (the skeleton's activity keys). */
+export const LIBRARY_BONUS = 1;
+export const LEARNING_ACTIVITIES = ["martialTraining", "magicalResearch"];
+
+/** XP each party member gains for a notable trophy placed in a Trophy Room, and how many names a bastion keeps. */
+export const TROPHY_XP = 1;
+const KEEP_TROPHIES = 100;
+const TROPHY_NAME_MAX = 60;
+
+/**
+ * The effects other features apply for a bastion: only a bastion that stands gives any, and
+ * only through finished upgrades.
+ * granary: warbands garrisoned here each cost GRANARY_SAVING_GP less a month.
+ * barracks: warbands garrisoned here heal BARRACKS_HEAL more each day.
+ * casino: it earns CASINO_DICE gp into the treasury each month.
+ * library: the party's members get LIBRARY_BONUS on learning downtime checks.
+ * trophyRoom: each notable trophy placed gives the party's members TROPHY_XP.
+ * vault: the bastion can hold items, up to VAULT_SLOTS gear slots (bastion-vault-core.mjs).
+ * aviary: one pigeon message can be sent a day.
+ * armorer, blacksmith, tradingPost: the party can buy that kind of ordinary gear here at 10% over (bastion-shop-core.mjs).
+ * infirmary: the monthly pestilence check is made with advantage by the bastion's patients.
+ * stable: mounts stabled here (a mount's `bastion`) need no grazing or rations.
+ */
+export function effects(state) {
+  const built = new Set(stats(state).standing ? builtUpgrades(state) : []);
+  return { granary: built.has("granary"), barracks: built.has("barracks"), casino: built.has("casino"), library: built.has("library"), trophyRoom: built.has("trophy-room"), vault: built.has("vault"), stable: built.has("stable"), aviary: built.has("aviary"), infirmary: built.has("infirmary"), armorer: built.has("armorer"), blacksmith: built.has("blacksmith"), tradingPost: built.has("trading-post") };
+}
+
+/** Place a notable trophy in a finished Trophy Room: its name is kept (the last KEEP_TROPHIES) and logged. `error`: "trophyRoom" | "name". */
+export function placeTrophy(state, name) {
+  if (!effects(state).trophyRoom) return { state, error: "trophyRoom" };
+  const clean = String(name ?? "").replace(/\s+/g, " ").trim().slice(0, TROPHY_NAME_MAX);
+  if (!clean) return { state, error: "name" };
+  const next = { ...state, trophies: [...(state.trophies ?? []), clean].slice(-KEEP_TROPHIES) };
+  next.log = log(next, "SDE.bastion.log.trophy", { name: clean });
+  return { state: next, error: null };
+}
+
+/** Send the day's pigeon from a finished Aviary: one a world-clock `day`. `error`: "aviary" | "flown". */
+export function sendPigeon(state, day) {
+  if (!effects(state).aviary) return { state, error: "aviary" };
+  if (state.pigeonDay === day) return { state, error: "flown" };
+  const next = { ...state, pigeonDay: day };
+  next.log = log(next, "SDE.bastion.log.pigeon");
+  return { state: next, error: null };
+}
+
+/** Take a trophy off the list (a typo, a trophy lost). The XP it gave stays given. */
+export function removeTrophy(state, index) {
+  const list = state.trophies ?? [];
+  if (!Number.isInteger(index) || index < 0 || index >= list.length) return { state, error: "nothing" };
+  return { state: { ...state, trophies: list.filter((_, i) => i !== index) }, error: null };
+}
+
+/** Is this month's Casino income owed: a finished Casino in a standing bastion, and the month not yet paid? */
+export const owesIncome = (state, month) => effects(state).casino && !(state.incomeMonths ?? []).includes(month);
+
+/**
+ * Pay a month's Casino income, `gp` rolled, into the treasury, and mark the month paid. Never twice for one month.
+ * `mark`: an opaque id for this payment, kept in the income log line in the same write, so a writer can tell from
+ * a read-back whether ITS write was the one that kept (a second session's write replaces it; #352 review).
+ */
+export function payIncome(state, month, gp, mark = null) {
+  if (!owesIncome(state, month)) return { state, error: "none" };
+  if (!Number.isInteger(gp) || gp < 0) return { state, error: "amount" };
+  const next = { ...state, treasury: toInt(state.treasury) + gp, incomeMonths: [...new Set([...(state.incomeMonths ?? []), month])].sort((a, b) => a - b).slice(-KEEP_INCOME_MONTHS) };
+  next.log = log(next, "SDE.bastion.log.income", mark === null ? { gp } : { gp, mark });
+  return { state: next, error: null };
+}
 
 const lowestFree = (upgrades) => {
   const taken = new Set(upgrades.filter((u) => u.id !== MOAT).map((u) => u.slot));
@@ -238,6 +320,26 @@ export function applyDisaster(state, roll) {
   return next;
 }
 
+/** Whole gold only: a deposit or withdrawal of nothing, or of a part of a coin, is not one. */
+const wholeGp = (gp) => Number.isInteger(gp) && gp > 0;
+
+/** Someone pays `gp` into the treasury. `who` is their name, for the log. */
+export function deposit(state, gp, who = "") {
+  if (!wholeGp(gp)) return { state, error: "amount" };
+  const next = { ...state, treasury: toInt(state.treasury) + gp };
+  next.log = log(next, "SDE.bastion.log.deposited", { who, gp });
+  return { state: next, error: null };
+}
+
+/** The treasury pays `gp` out to someone. It can't go below nothing. */
+export function withdraw(state, gp, who = "") {
+  if (!wholeGp(gp)) return { state, error: "amount" };
+  if (toInt(state.treasury) < gp) return { state, error: "broke" };
+  const next = { ...state, treasury: toInt(state.treasury) - gp };
+  next.log = log(next, "SDE.bastion.log.withdrew", { who, gp });
+  return { state: next, error: null };
+}
+
 // ---------------------------------------------------------------- the actor's data
 
 /** The rules' view of an actor: plain data, safe to hand to bastion-core and not to mutate. */
@@ -252,6 +354,9 @@ export function stateOf(actor) {
     treasury: s.treasury ?? 0,
     upgrades: (s.upgrades ?? []).map((u) => ({ id: u.id, slot: u.slot, weeksLeft: u.weeksLeft })),
     repair: { hp: s.repair?.hp ?? 0, weeksLeft: s.repair?.weeksLeft ?? 0 },
+    incomeMonths: (s.incomeMonths ?? []).filter(Number.isFinite),
+    trophies: (s.trophies ?? []).filter((n) => typeof n === "string"),
+    pigeonDay: Number.isInteger(s.pigeonDay) ? s.pigeonDay : null,
     log: (s.log ?? []).map((e) => ({ week: e.week, key: e.key, data: { ...e.data } })),
   };
 }
@@ -267,6 +372,9 @@ export function updateOf(state) {
     "system.upgrades": state.upgrades,
     "system.repair.hp": state.repair.hp,
     "system.repair.weeksLeft": state.repair.weeksLeft,
+    "system.incomeMonths": state.incomeMonths,
+    "system.trophies": state.trophies,
+    "system.pigeonDay": state.pigeonDay,
     "system.log": state.log,
   };
 }

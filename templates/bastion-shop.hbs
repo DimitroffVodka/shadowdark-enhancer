@@ -1,0 +1,26 @@
+<div class="sde-bs">
+  {{#if open}}
+  <header class="sde-bs-head">
+    <label>
+      <span>{{localize "SDE.bastion.fund.who"}}</span>
+      <select name="buyer">{{#each people}}<option value="{{id}}" {{#if selected}}selected{{/if}}>{{name}}</option>{{/each}}</select>
+    </label>
+    <span class="purse">{{purse}}</span>
+    <input type="search" name="search" placeholder="{{localize 'SDE.bastion.shop.search'}}" />
+  </header>
+  <p class="hint">{{localize "SDE.bastion.shop.hint" markup=markup}}</p>
+  <ul class="sde-bs-list">
+    {{#each stock}}
+    <li class="sde-bs-row" data-name="{{key}}">
+      <img src="{{img}}" alt="" />
+      <span class="name">{{name}}{{#if bundle}} <em>({{bundle}})</em>{{/if}}<small>{{localize "SDE.bastion.shop.list"}} {{list}}</small></span>
+      <span class="price">{{price}}</span>
+      <input type="number" name="qty" value="1" min="1" max="99" />
+      <button type="button" data-action="buy" data-uuid="{{uuid}}">{{localize "SDE.bastion.shop.buy"}}</button>
+    </li>
+    {{else}}<li class="hint">{{localize "SDE.bastion.shop.empty"}}</li>{{/each}}
+  </ul>
+  {{else}}
+  <p class="hint">{{localize "SDE.bastion.shop.closed"}}</p>
+  {{/if}}
+</div>

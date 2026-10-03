@@ -63,6 +63,16 @@
 				{{/if}}
 			{{/ui/sd-box}}
 
+			{{#> ui/sd-box header-label=(localize "SDE.warband.garrison")}}
+				<select data-sde-garrison {{#unless editable}}disabled{{/unless}}>
+					<option value="">{{localize "SDE.warband.garrisonNone"}}</option>
+					{{#each warband.bastions}}<option value="{{uuid}}" {{#if selected}}selected{{/if}}>{{name}}</option>{{/each}}
+				</select>
+				{{#if warband.garrisonMissing}}<p class="sde-warband-alert"><i class="fa-solid fa-triangle-exclamation"></i> {{localize "SDE.warband.garrisonMissing"}}</p>{{/if}}
+				{{#each warband.garrisonLines}}<p>{{this}}</p>{{/each}}
+				<p class="sde-veh-hint">{{localize "SDE.warband.garrisonHint"}}</p>
+			{{/ui/sd-box}}
+
 			{{#> ui/sd-box header-label=(localize "SDE.warband.upgrades")}}
 				{{#if warband.noCommanderCap}}<p class="sde-warband-allowance">{{warband.noCommanderCap}}</p>{{/if}}
 				<div class="sde-warband-upgrades">

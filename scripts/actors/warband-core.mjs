@@ -99,7 +99,7 @@ export function warbandAttack({ attackBonus = 0, damage = null }, gained) {
 // ── Upkeep, morale and healing (#204, PGWR p.249) ────────────────────────────
 
 /** A month's upkeep: 10 gp a level. */
-export const upkeepGp = (level) => 10 * Math.max(0, Number(level) || 0);
+export const upkeepGp = (level, saving = 0) => Math.max(0, 10 * Math.max(0, Number(level) || 0) - Math.max(0, Number(saving) || 0));
 
 /** The morale check's DC: 15, or 9 for a Loyal warband. */
 export const moraleDC = (upgrades) => ((upgrades ?? []).includes("loyal") ? 9 : 15);
@@ -116,11 +116,12 @@ export const healDie = (upgrades) => ((upgrades ?? []).includes("hardy") ? { n: 
  * move needs no hundred-die roll), else the dice to roll.
  * @returns {{full:boolean, formula:string|null}}
  */
-export function healPlan(days, missing, upgrades) {
+export function healPlan(days, missing, upgrades, extra = null) {
   if (!(days > 0) || !(missing > 0)) return { full: false, formula: null };
   const { n, faces } = healDie(upgrades);
-  if (days * n >= missing) return { full: true, formula: null };
-  return { full: false, formula: `${days * n}d${faces}` };
+  // `extra` is a die a day more (a bastion's Barracks): the least it can roll counts toward a full heal.
+  if (days * n + (extra ? days * extra.n : 0) >= missing) return { full: true, formula: null };
+  return { full: false, formula: `${days * n}d${faces}${extra ? ` + ${days * extra.n}d${extra.faces}` : ""}` };
 }
 
 /** A month's place on the calendar, for counting month starts: year × months a year + month. */
