@@ -9,6 +9,14 @@
   clicking one makes it the leader, and Place / Recall is a single pin button. Members, HP, AC and
   level sit under the party name. A party with no members now shows an outlined drop zone on the
   Members tab and a hint under the grid ("Drag characters here to add them") instead of looking dead.
+- **Party member cards are two to a row**, with the real portrait, an HP bar with numbers in place of
+  the red wave over the portrait, AC / LV / SLOTS / XP chips and the six ability modifiers on one
+  small line. Hirelings and mounts omit the character-only chips, as before. Camp and Carouse are no
+  longer repeated on the Members tab; they stay under Travel.
+- **The Party sheet has a GM view and a player view.** A player sees every member's stats but not
+  the Travel tab (camping, carousing and the travel panels stay the GM's), Place / Recall, the
+  remove (x) on a member, item and coin editing, or Camp and Carouse. Tabs the viewer cannot see fall
+  back to Members. The party's name is read-only for them.
 - **The Party sheet's "Include mounts" option is gone.** Mounts never take a slot in the marching
   formation and never follow the leader: nobody takes a mount into a dungeon. They stay on the
   roster under Mounts and still eat at camp. A party saved with the old option still loads; the

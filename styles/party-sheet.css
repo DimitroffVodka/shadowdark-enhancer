@@ -1149,3 +1149,36 @@
 .sde-party .sdp-empty.drop { border: 2px dashed #555; }
 .sde-party .sdp-empty i { font-size: 36px; color: #555; }
 .sde-party .sdp-empty p { margin: 0; font-size: 14px; }
+
+/* ------------------------------------------------------------------ Party sheet: tabs and member cards */
+.sde-party .sdp-tabs { display: flex; flex: 0 0 auto; gap: 2px; padding: 0 10px; border-bottom: 1px solid #2a2a2a; background: #0e0e0e; }
+.sde-party .sdp-tab { display: flex; align-items: center; gap: 7px; padding: 9px 12px 8px; border-bottom: 2px solid transparent; color: #9a9a9a; font: 400 15px/1 "Old Newspaper Font", serif; letter-spacing: .4px; text-transform: uppercase; cursor: pointer; }
+.sde-party .sdp-tab i { font-size: 12px; }
+.sde-party .sdp-tab:hover { color: #ddd; }
+.sde-party .sdp-tab.active { color: #fff; border-bottom-color: #e6c25a; }
+.sde-party .sdp-body { flex: 1; min-height: 0; overflow: auto; padding: 12px 16px 16px; background: #0a0a0a; }
+.sde-party .sdp-group { margin: 14px 0 8px; padding: 0; border: 0; font: 700 11px/1 Signika, sans-serif; letter-spacing: .7px; text-transform: uppercase; color: #8d8d8d; }
+.sde-party .sdp-group:first-child { margin-top: 2px; }
+.sde-party .sdp-cards { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.sde-party .sdp-card { position: relative; display: flex; gap: 10px; padding: 9px; border: 1px solid #2a2a2a; border-radius: 8px; background: #121212; }
+.sde-party .sdp-face { flex: none; width: 62px; height: 62px; object-fit: cover; object-position: top; border: 1px solid #333; border-radius: 6px; cursor: pointer; }
+.sde-party .sdp-main { flex: 1; display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+.sde-party .sdp-line { display: flex; align-items: baseline; gap: 7px; min-width: 0; padding-right: 14px; }
+.sde-party .sdp-name { overflow: hidden; font-size: 14px; font-weight: 700; color: #e6e6e6; white-space: nowrap; text-overflow: ellipsis; cursor: pointer; }
+.sde-party .sdp-name:hover { color: #fff; text-decoration: underline; }
+.sde-party .sdp-line em { font-size: 12px; color: #8d8d8d; white-space: nowrap; }
+.sde-party .sdp-fx { flex: none; width: 16px; height: 16px; margin-left: auto; align-self: center; border: 0; border-radius: 3px; }
+.sde-party .sdp-line em + .sdp-fx, .sde-party .sdp-name + .sdp-fx { margin-left: auto; }
+.sde-party .sdp-fx ~ .sdp-fx { margin-left: 0; }
+.sde-party .sdp-hp { position: relative; height: 16px; overflow: hidden; border-radius: 4px; background: #1d1d1d; }
+.sde-party .sdp-hpbar { position: absolute; inset: 0 auto 0 0; background: linear-gradient(90deg, #9d2a3a, #d0405a); }
+.sde-party .sdp-hp span { position: relative; display: block; font-size: 11px; font-weight: 700; line-height: 16px; text-align: center; text-shadow: 0 1px 2px #000; }
+.sde-party .sdp-chips { display: flex; flex-wrap: wrap; gap: 4px 10px; font-size: 12px; color: #e0e0e0; }
+.sde-party .sdp-chips b { margin-right: 3px; font-size: 10px; letter-spacing: .5px; color: #8d8d8d; }
+.sde-party .sdp-abil { display: flex; flex-wrap: wrap; gap: 0 9px; font-size: 10px; letter-spacing: .3px; color: #8d8d8d; }
+.sde-party .sdp-abil b { font-size: 11px; color: #cfcfcf; }
+.sde-party .sdp-remove { position: absolute; top: 5px; right: 6px; display: grid; place-items: center; width: 18px; height: 18px; color: #8d8d8d; opacity: 0; cursor: pointer; }
+.sde-party .sdp-card:hover .sdp-remove, .sde-party .sdp-remove:focus-visible { opacity: 1; }
+.sde-party .sdp-remove:hover { color: #e06060; }
+.sde-party .sdp-card.missing { opacity: .7; }
+@media (max-width: 719px) { .sde-party .sdp-cards { grid-template-columns: minmax(0, 1fr); } }

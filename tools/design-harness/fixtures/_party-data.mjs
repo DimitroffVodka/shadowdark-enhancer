@@ -2,7 +2,7 @@ const art = (f) => "/systems/shadowdark/assets/quickstart/pregens/" + f;
 const svg = (c, t) => "data:image/svg+xml;utf8," + encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="96" height="96"><rect width="96" height="96" fill="${c}"/><text x="48" y="60" font-size="40" text-anchor="middle" fill="#fff">${t}</text></svg>`);
 const mod = (n) => (n >= 0 ? `+${n}` : String(n));
 const member = (name, cls, hp, max, ac, lvl, group = "characters", effects = []) => ({
-  uuid: "Actor." + name, memberKey: "Actor." + name, name, img: portraits[name] ?? "/systems/shadowdark/assets/tokens/cowled_token.webp", className: cls, group, canEdit: true, isNPC: group !== "characters",
+  uuid: "Actor." + name, memberKey: "Actor." + name, name, img: portraits[name] ?? "/systems/shadowdark/assets/tokens/cowled_token.webp", className: cls, group, canEdit: true, isNPC: group !== "characters", showAbilities: group !== "mounts", missing: false,
   hp: { value: hp, max }, hpPercent: Math.round(hp / max * 100), hpWavesEnabled: true, hpWaveTranslate: Math.max(0, Math.round(hp / max * 100) - 15), hpWaveColor: "#dc2626", hpWaveClass: hp >= max ? "hp-full" : "",
   ac, level: lvl, xp: { current: lvl * 4, next: lvl * 10 }, slots: { used: 7, max: 10 },
   abilityLabels: Object.fromEntries(["str", "dex", "con", "int", "wis", "cha"].map((k, i) => [k, mod(((i * 3 + lvl) % 7) - 2)])), effects,

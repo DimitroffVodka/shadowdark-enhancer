@@ -5,7 +5,7 @@
   "SDE.party.sheet.description": "Description",
   "SDE.party.sheet.hp": "HP",
   "SDE.party.sheet.ac": "AC",
-  "SDE.party.sheet.level": "LVL",
+  "SDE.party.sheet.level": "LV",
   "SDE.party.sheet.slots": "SLOTS",
   "SDE.party.sheet.xp": "XP",
   "SDE.party.sheet.str": "STR",
@@ -264,8 +264,6 @@
 
   "SDE.party.empty": "None",
   "SDE.party.noMembers": "No one has joined this party yet.",
-  "SDE.party.camp": "Camp",
-  "SDE.party.carouse": "Carouse",
 
   "SDE.party.sdxNotAdopted": "SDX party, not adopted. Its actor type and data remain with Shadowdark Extras.",
   "SDE.party.unknownRoster": "The party roster could not be read. No membership changes were made.",

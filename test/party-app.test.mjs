@@ -19,7 +19,7 @@ function actor(id, type = "NPC", flags = {}, permissions = 3) {
 function world(actors, isGM = false, journal = []) {
   globalThis.foundry.applications.instances.clear();
   globalThis.canvas = null;
-  globalThis.game = { actors: { contents: actors, get: (id) => actors.find((a) => a.id === id) }, user: { id: "player", isGM }, modules: new Map(), journal: { contents: journal }, i18n: { localize: (k) => k } };
+  globalThis.game = { actors: { contents: actors, get: (id) => actors.find((a) => a.id === id) }, user: { id: "player", isGM }, modules: new Map(), journal: { contents: journal }, i18n: { localize: (k) => k, format: (k, data = {}) => `${k} ${Object.values(data).join(" ")}`.trim() } };
 }
 test("owner writes roster through safe replacement without touching second party, PC or items", async () => {
   const p = actor("p", "NPC", { [MOD]: { party: true } }), second = actor("second", "NPC", { [MOD]: { party: true } }), pc = actor("pc", "Player"), other = actor("other", "Player", {}, 2);
@@ -132,7 +132,7 @@ test("create from an existing window keeps identity coherent on subsequent opens
   } finally { delete globalThis.Actor; }
 });
 
-test("Party preserves the original detailed member cards and five-tab sheet", async () => {
+test("Party member cards keep the portrait, HP, AC, level, slots, XP, ability mods and effects", async () => {
   const pc = actor("pc", "Player");
   pc.system = { attributes: { hp: { value: 5, max: 3 }, ac: { value: 14 } }, level: { value: 2, xp: 7 }, abilities: { str: { mod: 2 }, con: { mod: -1 } }, slots: 12 };
   pc.effects = [{ name: "Blessed", img: "icons/svg/aura.svg", disabled: false }];
@@ -144,10 +144,11 @@ test("Party preserves the original detailed member cards and five-tab sheet", as
   assert.equal(context.players[0].abilities.str, 2);
   assert.equal(context.players[0].xp.next, 20);
   assert.equal(context.players[0].effects[0].name, "Blessed");
-  assert.deepEqual(context.tabs.map(tab => tab.key), ["members", "items", "travel", "quests", "description"]);
+  assert.deepEqual(context.tabs.map(tab => tab.key), ["members", "items", "travel", "quests", "description"], "the GM sees Travel");
   const template = await readFile(new URL("../templates/party/party.hbs", import.meta.url), "utf8");
-  for (const marker of ["sdp-head", "sdp-stats", "member-portrait", "member-stats", "member-abilities", "member-effects", "tab-inventory", "tab-travel", "tab-description"]) assert.ok(template.includes(marker), marker);
+  for (const marker of ["sdp-head", "sdp-stats", "sdp-face", "sdp-hp", "sdp-chips", "sdp-abil", "sdp-fx", "tab-inventory", "tab-travel", "tab-description"]) assert.ok(template.includes(marker), marker);
   assert.ok(!template.includes("SDE.party.comingSoon"));
+  assert.ok(!template.includes("hp-wave"), "the HP wave over the portrait is replaced by the HP bar");
   assert.ok(!template.includes("data-member-choice"), "no all-world actor dropdown in the approved sheet");
   assert.equal(context.choices, undefined, "world actors are not enumerated as suggested members");
   assert.equal(PartyApp.DEFAULT_OPTIONS.actions.add, undefined);
@@ -311,4 +312,22 @@ test("a party with no members shows a drop zone and a grid hint, and an Actor dr
   drop({ preventDefault() {}, dataTransfer: { getData: () => JSON.stringify({ type: "Actor", uuid: pc.uuid }) } });
   await new Promise(resolve => setTimeout(resolve, 0));
   assert.deepEqual(Party.members(p), [pc.uuid]);
+});
+test("a player's sheet drops Travel and every control that changes the party", async () => {
+  const pc = actor("pc", "Player");
+  pc.system = { attributes: { hp: { value: 5, max: 8 }, ac: { value: 12 } }, level: { value: 1, xp: 2 }, abilities: { str: { mod: 1 } } };
+  const p = actor("p", "NPC", { [MOD]: { party: true, partyData: { version: 1, members: [pc.uuid], leaderUuid: pc.uuid } } }, 2);
+  world([p, pc], false);
+  const app = new PartyApp(p);
+  app.tab = "travel";
+  const context = await app._prepareContext();
+  assert.equal(context.isGM, false);
+  assert.equal(context.canEdit, false);
+  assert.deepEqual(context.tabs.map(tab => tab.key), ["members", "items", "quests", "description"]);
+  assert.equal(context.travelTab, false, "a player who was on Travel lands on Members");
+  assert.equal(context.membersTab, true);
+  assert.equal(context.players[0].canEdit, false, "no remove (x) on a card");
+  assert.equal(context.players[0].hp.value, 5, "players still see a member's full stats");
+  assert.ok(context.slots.every(slot => slot.disabled), "the grid is read-only");
+  assert.equal(context.activityHTML, "");
 });

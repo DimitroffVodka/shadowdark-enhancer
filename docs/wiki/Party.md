@@ -6,6 +6,25 @@ An explicit native roster, shared items and party quests, without Shadowdark
 Extras. Open from the Actors directory, Party token HUD or Forge & Loot menu,
 or `game.shadowdarkEnhancer.party.open(party)`; it also works with no canvas.
 
+## The sheet
+
+One band across the top: the party's tile, name and four numbers (members, HP,
+AC, level), and on the right the [Marching order](#formation-deploy-and-follow).
+Under it the tabs: **Members**, **Items**, **Travel**, **Quests** and
+**Description**.
+
+**Members** are two-column cards: portrait, name and class, an HP bar with
+numbers, AC / LV / SLOTS / XP chips, the six ability modifiers as one small
+line, and the member's active effect icons. Hirelings and mounts omit the
+character-only chips. Characters, Hirelings and Mounts are grouped; click a
+portrait or name to open the sheet, and a manager sees a remove (x) on hover.
+
+The sheet has a GM view and a player view. A player (anyone who cannot manage
+the party) sees every member's full stats, but not the **Travel** tab, the
+**Place / Recall** pin, remove (x), item and coin editing, or the emblem. The
+Marching order switch shows as read-only status. **Camp** and **Carouse** live
+under Travel, which is the GM's.
+
 ## Roster and ownership
 
 Create a native Party (an NPC with Enhancer's boolean Party flag), then add
@@ -94,7 +113,9 @@ this feature does not add a treasury/trade/container transfer subsystem.
 The **Travel** tab contains [Camping](Camping.md) and [Carousing](Carousing.md)
 controls in the sheet: select each PC's task and ability, confirm their choices,
 then lock and roll. Results and food/fuel decisions stay in the same tab;
-**Camp** and **Carouse** switch to it rather than opening another window.
+**Camp** and **Carouse** (the two buttons at the top of Travel, and the
+`camping.open` / `carousing.open` API) switch to it rather than opening another
+window. Travel is the GM's tab.
 The **Quests** tab uses the existing Quest Log's status tabs, objectives and
 rewards, scoped to this Party and its PCs. GMs create/edit quests and confirm
 payouts inline; players retain the normal read-only quest permissions. New quests

@@ -5,7 +5,7 @@ import { Party, isNativeParty, isLegacyParty } from "./party.mjs";
 import { offerParty } from "./party-create-option.mjs";
 import { scopedQuests } from "./party-core.mjs";
 import { fillFormation } from "./party-movement-core.mjs";
-import { marchState } from "./party-sheet-core.mjs";
+import { marchState, partyTabs, resolveTab, sheetView } from "./party-sheet-core.mjs";
 import { configureMovement, requestMovement, movementStatus, inPartyCombat, MOVEMENT_CHANGED } from "./party-movement.mjs";
 import { Quests, QUESTS_CHANGED } from "../quests/quests.mjs";
 import { QuestLogApp } from "../quests/quest-log-app.mjs";
@@ -111,14 +111,16 @@ export class PartyApp extends HandlebarsApplicationMixin(ApplicationV2) {
   }
   async _prepareContext() {
     const parties = Party.list().map((a) => ({ uuid: a.uuid, name: a.name, selected: a === this.actor }));
-    const base = { parties, isGM: !!game.user?.isGM, hasParty: !!this.actor, title: this.actor?.name,
-      tabs: ["members", "items", "travel", "quests", "description"].map((key) => ({ key, label: t(LABELS[key]), icon: TAB_ICONS[key], active: this.tab === key })),
-      membersTab: this.tab === "members", questsTab: this.tab === "quests", itemsTab: this.tab === "items", travelTab: this.tab === "travel", descriptionTab: this.tab === "description", picker: !this.document };
+    const view = sheetView({ isGM: !!game.user?.isGM, canEdit: Party.canManage(this.actor) });
+    const keys = partyTabs({ isGM: view.isGM }), tab = resolveTab(this.tab, keys);
+    const base = { parties, isGM: view.isGM, hasParty: !!this.actor, title: this.actor?.name,
+      tabs: keys.map((key) => ({ key, label: t(LABELS[key]), icon: TAB_ICONS[key], active: tab === key })),
+      membersTab: tab === "members", questsTab: tab === "quests", itemsTab: tab === "items", travelTab: tab === "travel", descriptionTab: tab === "description", picker: !this.document };
     if (!this.actor) return base;
     if (!Party.list().includes(this.actor)) return { ...base, hasParty: false };
     if (this.actor.type === "Party") return { ...base, unsupported: true };
     try {
-      const data = Party.data(this.actor), rows = Party.rows(this.actor), canEdit = Party.canManage(this.actor);
+      const data = Party.data(this.actor), rows = Party.rows(this.actor), canEdit = view.canEdit;
       const members = await Promise.all(rows.map(async (row) => {
         const a = row.actor, sys = a?.system ?? {}, hp = sys.attributes?.hp ?? { value: 0, max: 0 };
         let className = "";
@@ -126,7 +128,7 @@ export class PartyApp extends HandlebarsApplicationMixin(ApplicationV2) {
         const items = a?.items?.contents ?? [], percent = Math.max(0, Math.min(100, Math.round(hp.value / (hp.max || 1) * 100)));
         return { ...row, memberKey: row.uuid, name: a?.name ?? t("SDE.party.missing"), img: a?.img ?? "icons/svg/mystery-man.svg", missing: !a, canEdit, isNPC: !!a?.system?.isNPC, className,
           hp: { value: hp.value ?? 0, max: hp.max ?? 0 }, ac: sys.attributes?.ac?.value ?? 0, level: sys.level?.value ?? 1,
-          xp: { current: sys.level?.xp ?? 0, next: (sys.level?.value ?? 1) * 10 }, hpPercent: percent, hpWavesEnabled: true, hpWaveTranslate: Math.max(0, percent - 15), hpWaveColor: "#dc2626", hpWaveClass: percent >= 100 ? "hp-full" : percent <= 0 ? "hp-dead" : "",
+          xp: { current: sys.level?.xp ?? 0, next: (sys.level?.value ?? 1) * 10 }, hpPercent: percent, showAbilities: !!a && ["characters", "hirelings"].includes(row.group) && !!sys.abilities,
           slots: { used: inventorySlots(items, sys.coins), max: sys.slots ?? 10 }, abilities: Object.fromEntries(["str", "dex", "con", "int", "wis", "cha"].map(key => [key, sys.abilities?.[key]?.mod ?? 0])),
           abilityLabels: Object.fromEntries(["str", "dex", "con", "int", "wis", "cha"].map(key => { const mod = sys.abilities?.[key]?.mod ?? 0; return [key, mod >= 0 ? `+${mod}` : String(mod)]; })),
           effects: (a?.effects?.contents ?? a?.effects ?? []).filter(e => !e.disabled).map(e => ({ name: e.name, img: e.img ?? "icons/svg/aura.svg" })), leader: row.uuid === data.leaderUuid };
@@ -139,11 +141,11 @@ export class PartyApp extends HandlebarsApplicationMixin(ApplicationV2) {
       const descriptionHTML = editor ? await editor.enrichHTML(description, { secrets: !!this.actor.isOwner, async: true, relativeTo: this.actor }) : "";
       let activityHTML = "", questHTML = "";
       const renderTemplate = foundry.applications.handlebars?.renderTemplate;
-      if (this.tab === "travel" && renderTemplate) {
+      if (tab === "travel" && renderTemplate) {
         const app = this._activityController();
         activityHTML = (await renderTemplate(app.constructor.PARTS.body.template, await app._prepareContext())).replace(/data-action="([^"]+)"/g, 'data-action="activityAction" data-activity-action="$1"');
       }
-      if (this.tab === "quests" && renderTemplate) {
+      if (tab === "quests" && renderTemplate) {
         const app = this._questController();
         questHTML = (await renderTemplate(QuestLogApp.PARTS.body.template, await app._prepareContext())).replace(/data-action="([^"]+)"/g, 'data-action="questAction" data-quest-action="$1"');
       }
