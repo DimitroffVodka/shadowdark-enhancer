@@ -53,7 +53,8 @@ export function marchState({ follow = true, hasToken = false, deployed = false, 
   if (!hasToken) return manager ? { mode: "notice", reason: "noToken" } : leads;
   if (reason === "combat") return { mode: "paused", reason, canResume: false, pausedMember: null };
   if (deployed && reason) return { mode: "paused", reason, canResume: !!manager, pausedMember: pausedMember ?? null };
-  if (reason === "gathered") return { mode: "notice", reason };
+  // Nothing placed and the only thing to say is that a deploy found no safe spot: say so, not "<leader> leads".
+  if (reason === "gathered" || reason === "blocked") return { mode: "notice", reason };
   return leads;
 }
 

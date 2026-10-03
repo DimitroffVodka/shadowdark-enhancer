@@ -452,3 +452,26 @@ test("the emblem defaults to the amber lantern, survives a bad flag, and only a 
   const template = await readFile(new URL("../templates/party/party.hbs", import.meta.url), "utf8");
   for (const marker of ['data-action="emblem"', 'data-action="pickEmblem"', "sdp-emblems", "{{#if emblemEdit}}"]) assert.ok(template.includes(marker), marker);
 });
+test("the emblem picker closes on a click elsewhere, but not on itself or its tile", async () => {
+  const p = actor("p", "NPC", { [MOD]: { party: true } });
+  world([p], true);
+  const app = new PartyApp(p);
+  let renders = 0;
+  app.render = () => { renders++; };
+  const listeners = new Set(), descriptor = Object.getOwnPropertyDescriptor(globalThis, "document");
+  globalThis.document = { addEventListener: (_n, fn) => listeners.add(fn), removeEventListener: (_n, fn) => listeners.delete(fn) };
+  try {
+    app.element = { querySelector: selector => (selector === ".sdp-emblems" ? {} : null), querySelectorAll: () => [] };
+    app.emblemOpen = true;
+    app._bindControls(); app._bindControls();
+    assert.equal(listeners.size, 1, "a re-render replaces the listener, it does not stack another");
+    const [away] = listeners;
+    away({ target: { closest: () => ({}) } });
+    assert.equal(app.emblemOpen, true, "a click inside the picker or on its tile leaves it open");
+    away({ target: { closest: () => null } });
+    assert.deepEqual([app.emblemOpen, renders, listeners.size], [false, 1, 0]);
+    app.element = { querySelector: () => null, querySelectorAll: () => [] };
+    app._bindControls();
+    assert.equal(listeners.size, 0, "no picker open, no listener");
+  } finally { if (descriptor) Object.defineProperty(globalThis, "document", descriptor); else delete globalThis.document; }
+});

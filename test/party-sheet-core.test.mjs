@@ -48,6 +48,8 @@ test("Marching order line: no party token is a hint for a manager and nothing fo
   assert.deepEqual(marchState({ ...bare, manager: true }), { mode: "notice", reason: "noToken" });
   assert.deepEqual(marchState({ ...bare, manager: false }), { mode: "leads" });
   assert.deepEqual(marchState({ follow: true, hasToken: true, deployed: false, reason: "gathered", hasLeader: true }), { mode: "notice", reason: "gathered" });
+  // A deploy that found no safe spot for anyone leaves nothing placed and a stored "blocked": not "<leader> leads".
+  assert.deepEqual(marchState({ follow: true, hasToken: true, deployed: false, reason: "blocked", hasLeader: true, manager: true }), { mode: "notice", reason: "blocked" });
 });
 
 test("gems: the system's Gem items only, each worth its cost, the total is value times quantity", () => {

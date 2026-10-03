@@ -214,6 +214,16 @@ export class PartyApp extends HandlebarsApplicationMixin(ApplicationV2) {
       const coins = this.actor.flags?.[MODULE_ID]?.partyCoins ?? this.actor.flags?.["shadowdark-extras"]?.coins ?? {};
       void this._change(() => replaceModuleFlag(this.actor, "partyCoins", { ...coins, [input.dataset.coin]: Math.max(0, Math.trunc(Number(input.value) || 0)) }));
     });
+    // The emblem picker closes on a click anywhere else in the page, not only on its own tile and the tabs.
+    globalThis.document?.removeEventListener("pointerdown", this._pickerAway, true);
+    if (this.element.querySelector(".sdp-emblems")) {
+      this._pickerAway = (event) => {
+        if (event.target?.closest?.(".sdp-emblems, .sdp-emblem")) return;
+        globalThis.document?.removeEventListener("pointerdown", this._pickerAway, true);
+        this.emblemOpen = false; this.render();
+      };
+      globalThis.document?.addEventListener("pointerdown", this._pickerAway, true);
+    }
     // Actors dropped on the Members tab, or on the formation grid of an empty party, join the roster.
     for (const target of this.element.querySelectorAll(".tab-members, [data-drop-members]")) {
       target.addEventListener("dragover", event => { if (Party.canManage(this.actor)) event.preventDefault(); });
@@ -260,7 +270,7 @@ export class PartyApp extends HandlebarsApplicationMixin(ApplicationV2) {
     this._heldFor = field;
     field.addEventListener("blur", event => { this._heldFor = null; if (!event.relatedTarget?.closest("[data-action]")) this.render(); }, { once: true });
   }
-  _onClose(options) { for (const [name, id] of this._hooks ?? []) Hooks.off(name, id); this._hooks = null; return super._onClose(options); }
+  _onClose(options) { for (const [name, id] of this._hooks ?? []) Hooks.off(name, id); this._hooks = null; globalThis.document?.removeEventListener("pointerdown", this._pickerAway, true); return super._onClose(options); }
 }
 
 // The SDX inventory slot calculation, independent of its runtime module.
@@ -288,7 +298,7 @@ export class PartySheet extends HandlebarsApplicationMixin(foundry.applications.
     this._hooks = ["updateActor", "deleteActor", "createItem", "updateItem", "deleteItem", "updateRollTable", "createCombat", "updateCombat", "deleteCombat", "canvasReady", MOVEMENT_CHANGED, QUESTS_CHANGED].map(name => [name, Hooks.on(name, () => this._onStateChanged())]);
     await this._hookTravel();
   }
-  _onClose(options) { for (const [name, id] of this._hooks ?? []) Hooks.off(name, id); this._hooks = null; return super._onClose(options); }
+  _onClose(options) { for (const [name, id] of this._hooks ?? []) Hooks.off(name, id); this._hooks = null; globalThis.document?.removeEventListener("pointerdown", this._pickerAway, true); return super._onClose(options); }
 }
 for (const name of ["_prepareContext", "_change", "_quests", "_bastion", "_travel", "_hookTravel", "_bindControls", "_activityController", "_questController", "_onStateChanged"]) PartySheet.prototype[name] = PartyApp.prototype[name];
 
