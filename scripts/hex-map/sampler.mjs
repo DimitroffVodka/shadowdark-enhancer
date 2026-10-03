@@ -17,6 +17,7 @@
  */
 
 import { foundryOffsetToCube } from "./geometry.mjs";
+import { pictureLayout, PICTURE_SCALE } from "./hex-picture.mjs";
 
 /** One string from `languages/en.json`; the key when no i18n is mounted. */
 const t = (key, data) => {
@@ -149,5 +150,41 @@ export class CellSampler {
     }
     ctx.drawImage(this.image, cell.u - w / 2, cell.v - h / 2, w, h, 0, 0, px, px);
     return c.toDataURL("image/png");
+  }
+
+  /**
+   * The cell as the hex brush's picture: the whole printed hexagon with its outline, transparent outside,
+   * and the printed number blanked unless `blankNumber` is off (hex-picture.mjs says where, and when it
+   * should be). Layout and the drawing here only; which cell to draw is the brush's call.
+   *
+   * The hexagon is a mask drawn at twice the size and scaled down onto the picture, because a canvas clip
+   * is not anti-aliased everywhere, and keeping the picture itself at 1:1 keeps the print crisp.
+   * ponytail: the patch takes the colour of the paper just left of it; a number printed over a texture
+   * would show as a flat box.
+   * @returns {string} PNG data URL; held in memory only
+   */
+  hexPicture(cell, px = 192, { blankNumber = true } = {}) {
+    const { cellW, cellH } = this.geom;
+    const { w, h, mask, band } = pictureLayout(cellW, cellH, px);
+    const canvas = (cw, ch) => Object.assign(document.createElement("canvas"), { width: cw, height: ch });
+    const pic = canvas(w, h), ctx = pic.getContext("2d");
+    ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, w, h);
+    const sw = cellW * PICTURE_SCALE, sh = cellH * PICTURE_SCALE;
+    ctx.drawImage(this.image, cell.u - sw / 2, cell.v - sh / 2, sw, sh, 0, 0, w, h);
+    if (blankNumber) {
+      // The paper beside the number, not pure white: a print's paper is a shade off, and a white patch shows as a box.
+      const [r, g, b] = ctx.getImageData(Math.max(0, Math.round(band.x) - 4), Math.round(band.y + band.h / 2), 1, 1).data;
+      ctx.fillStyle = `rgb(${r}, ${g}, ${b})`;
+      ctx.fillRect(band.x, band.y, band.w, band.h);
+    }
+    const SS = 2, big = canvas(w * SS, h * SS), bg = big.getContext("2d");
+    bg.beginPath();
+    mask.forEach(([x, y], i) => (i ? bg.lineTo(x * SS, y * SS) : bg.moveTo(x * SS, y * SS)));
+    bg.closePath(); bg.fill();
+    const edge = canvas(w, h);
+    edge.getContext("2d").drawImage(big, 0, 0, w, h);
+    ctx.globalCompositeOperation = "destination-in";
+    ctx.drawImage(edge, 0, 0);
+    return pic.toDataURL("image/png");
   }
 }

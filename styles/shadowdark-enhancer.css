@@ -10581,12 +10581,42 @@ body.theme-light .sde-parry-note { color: #2e6b2e; }
 .sde-hxt-direction { border-left: 3px solid #d3af63; padding: 6px 8px; }
 /* One line of facts, not a paragraph: keep it compact and out of the way. */
 .sde-hxt-facts { border-left: 3px solid #d3af63; padding: 3px 8px; margin: 2px 0; font-size: 0.9em; line-height: 1.35; }
-/* The hex brush: a small window that stays open over the map while painting. */
-.sde-hxb { display: flex; flex-direction: column; gap: 6px; }
-.sde-hxb .sde-hxb-features { display: flex; flex-wrap: wrap; gap: 8px; }
-.sde-hxb .sde-hxb-features label { display: inline-flex; align-items: center; gap: 4px; }
-.sde-hxb-hint { margin: 0; font-size: 0.85rem; opacity: 0.8; min-height: 2.2em; }
-.sde-hxb-foot { display: flex; justify-content: flex-end; }
+/* The hex brush: a small window that stays open over the map while painting. The big picture is the terrain
+   being painted; below it, one tile per terrain the map's Legend named. A tile is a picture of one of the map's
+   own hexes, or (before the map has been read) a coloured circle with an icon. */
+.sde-hex-brush .sde-hxb { display: flex; flex-direction: column; gap: 14px; padding: 12px 14px 14px; }
+.sde-hex-brush .sde-hxb-how { margin: 0; color: #a8a8a8; font-size: 13px; line-height: 1.4; }
+.sde-hex-brush .sde-hxb h4 { margin: 0 0 8px; font: 700 11px/1 Signika, sans-serif; letter-spacing: 0.6px; text-transform: uppercase; color: #888; }
+.sde-hex-brush .sde-hxb button { min-height: 0; }
+.sde-hex-brush .sde-hxb .hex { display: grid; place-items: center; }
+.sde-hex-brush .sde-hxb .hex img { width: 100%; height: auto; display: block; filter: drop-shadow(0 2px 3px #000a); }
+.sde-hex-brush .sde-hxb .ico { display: grid; place-items: center; width: 78%; aspect-ratio: 1; border-radius: 50%; background: var(--c); box-shadow: inset 0 -4px 8px #0004, 0 2px 5px #000a; }
+.sde-hex-brush .sde-hxb .ico i { font-size: 1.4em; color: #fff; text-shadow: 0 1px 2px #0009; }
+.sde-hex-brush .sde-hxb-now { display: flex; align-items: center; justify-content: center; gap: 14px; padding: 10px 0 8px; border: 1px solid #262626; border-radius: 10px; background: radial-gradient(ellipse at 50% 40%, #1c1c1c, #101010); }
+.sde-hex-brush .sde-hxb-now .big { display: flex; flex-direction: column; align-items: center; gap: 6px; width: 132px; }
+.sde-hex-brush .sde-hxb-now .big .hex { width: 118px; }
+.sde-hex-brush .sde-hxb-now .big .ico i { font-size: 30px; }
+.sde-hex-brush .sde-hxb-now .big strong { font: 400 19px/1 "Old Newspaper Font", serif; color: #f2d77a; text-transform: capitalize; }
+.sde-hex-brush .sde-hxb-now .step { width: 32px; height: 44px; padding: 0; border: 1px solid #333; border-radius: 8px; background: #161616; color: #cfcfcf; cursor: pointer; }
+.sde-hex-brush .sde-hxb-now .step:hover { border-color: #e6c25a; color: #e6c25a; }
+.sde-hex-brush .sde-hxb-strip { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+.sde-hex-brush .sde-hxb-strip .t { height: auto; min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 6px 2px; border: 1px solid transparent; border-radius: 8px; background: transparent; cursor: pointer; }
+.sde-hex-brush .sde-hxb-strip .t .hex { width: 54px; }
+.sde-hex-brush .sde-hxb-strip .t .ico i { font-size: 15px; }
+.sde-hex-brush .sde-hxb-strip .t .n { max-width: 100%; overflow: hidden; text-overflow: ellipsis; font-size: 11px; color: #bdbdbd; line-height: 1; white-space: nowrap; text-transform: capitalize; }
+.sde-hex-brush .sde-hxb-strip .t:hover { background: #171717; }
+.sde-hex-brush .sde-hxb-strip .t:focus-visible { outline: 2px solid #e6c25a; outline-offset: -2px; }
+.sde-hex-brush .sde-hxb-strip .t.on { border-color: #e6c25a; background: rgba(230, 194, 90, 0.12); }
+.sde-hex-brush .sde-hxb-strip .t.on .n { color: #f2d77a; font-weight: 700; }
+.sde-hex-brush .sde-hxb-other { width: 100%; margin-top: 8px; }
+.sde-hex-brush .sde-hxb-feats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+.sde-hex-brush .sde-hxb-feats .f { position: relative; display: flex; align-items: center; justify-content: center; gap: 6px; height: 32px; margin: 0; border: 1px solid #2e2e2e; border-radius: 8px; background: #141414; color: #d6d6d6; font-size: 12px; cursor: pointer; }
+.sde-hex-brush .sde-hxb-feats input { position: absolute; opacity: 0; pointer-events: none; }
+.sde-hex-brush .sde-hxb-feats .f i { font-size: 12px; color: #8fb4d9; }
+.sde-hex-brush .sde-hxb-feats .f:has(input:checked) { border-color: #e6c25a; background: rgba(230, 194, 90, 0.12); color: #f2d77a; }
+.sde-hex-brush .sde-hxb-feats .f:has(input:focus-visible) { outline: 2px solid #e6c25a; outline-offset: -2px; }
+.sde-hex-brush .sde-hxb-foot { display: flex; justify-content: flex-end; padding-top: 12px; border-top: 1px solid #262626; }
+.sde-hex-brush .sde-hxb-foot button { height: 30px; padding: 0 12px; }
 
 /* Hex Tagger: a legend card opened up, one answer per hex. */
 .sde-hxt-opened { grid-column: 1 / -1; }
