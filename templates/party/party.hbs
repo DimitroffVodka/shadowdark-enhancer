@@ -16,7 +16,7 @@
 		<div class="sdp-march {{#unless followLeader}}off{{/unless}}">
 			<div class="sdp-ctl">
 				<label class="sdp-switch" data-tooltip="{{localize 'SDE.party.movement.follow'}}"><input type="checkbox" data-movement-setting="followLeader" {{#if followLeader}}checked{{/if}} {{#unless canEdit}}disabled{{/unless}}><span class="track"></span><span>{{localize "SDE.party.movement.marchingOrder"}}</span></label>
-				{{#if march.text}}<div class="sdp-status {{#if march.warn}}warn{{/if}}" role="status"><i class="dot"></i><span>{{march.text}}</span>{{#if canResume}}<button type="button" class="sdp-mini" data-action="resumeFollow">{{localize "SDE.party.movement.resume"}}</button>{{/if}}</div>{{/if}}
+				{{#if march.text}}<div class="sdp-status {{#if march.warn}}warn{{/if}}" role="status"><i class="dot"></i><span>{{march.text}}</span></div>{{/if}}
 			</div>
 			<div class="sdp-gridwrap" {{#unless members.length}}{{#if canEdit}}data-drop-members{{/if}}{{/unless}}>
 				<div class="sdp-grid" aria-label="{{localize 'SDE.party.movement.marchingOrder'}}">{{#each slots}}<button type="button" class="sdp-slot{{#if leader}} leader{{/if}}" data-formation-slot data-row="{{row}}" data-col="{{col}}" data-uuid="{{uuid}}" {{#if uuid}}data-action="leader" draggable="true"{{/if}} {{#if disabled}}disabled{{/if}} title="{{name}}" aria-label="{{#if name}}{{name}}{{else}}{{localize 'SDE.party.movement.emptySlot'}}{{/if}}">{{#if img}}<img src="{{img}}" alt="">{{/if}}</button>{{/each}}</div>

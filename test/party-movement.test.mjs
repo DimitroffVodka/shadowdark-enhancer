@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { fillFormation, followOrder, deploymentOrder, planPlacement, safeFootprint } from "../scripts/party/party-movement-core.mjs";
+import { fillFormation, followOrder, deploymentOrder, headingTurns, planPlacement, safeTrail, turnSlot } from "../scripts/party/party-movement-core.mjs";
 import { normalizeParty, removeMember } from "../scripts/party/party-core.mjs";
 const rows = Array.from({ length: 12 }, (_, i) => ({ uuid: `Actor.${i}`, group: "characters" }));
 test("new parties default to marching; explicit Free survives and leader removal selects next", () => {
@@ -38,20 +38,34 @@ test("hex planner uses grid positions instead of square pixel offsets", () => {
   const plan = planPlacement({ ...base, anchor: { x: 150, y: 200 }, grid: hex, blocked: () => false, entries: [{ memberUuid: "one", col: 1, row: 0, width: 1, height: 1 }] });
   assert.equal(plan[0].x % 75, 0);
 });
-test("corridor, scene edges, internal walls and corners use the whole footprint", () => {
+test("corridor, scene edges and a wall between the squares are refused", () => {
   const bounds = { x: 0, y: 0, width: 600, height: 100 };
-  assert.equal(safeFootprint({ x: 0, y: 0 }, { x: 100, y: 0 }, 100, 200, bounds, () => false), false);
-  assert.equal(safeFootprint({ x: 0, y: 0 }, { x: 600, y: 0 }, 100, 100, bounds, () => false), false);
-  assert.equal(safeFootprint({ x: 0, y: 0 }, { x: 100, y: 0 }, 100, 100, bounds, () => false, () => true), false);
+  assert.equal(safeTrail({ x: 0, y: 0 }, { x: 100, y: 0 }, 100, 200, bounds, () => false), false);
+  assert.equal(safeTrail({ x: 0, y: 0 }, { x: 600, y: 0 }, 100, 100, bounds, () => false), false);
   const corner = (a, b) => a.y < 150 && b.y >= 150;
-  assert.equal(safeFootprint({ x: 0, y: 0 }, { x: 100, y: 100 }, 100, 100, base.bounds, corner), false);
+  assert.equal(safeTrail({ x: 0, y: 0 }, { x: 100, y: 100 }, 100, 100, base.bounds, corner), false);
   const plan = planPlacement({ ...base, bounds, anchor: { x: 0, y: 0 }, blocked: () => false, entries: [{ memberUuid: "one", col: 0, row: 1, width: 1, height: 1 }] });
   assert.equal(plan[0].y, 0);
 });
-test("stack touching room boundaries survives native integer collision rounding", () => {
-  const point = { x: 600, y: 400 }, room = { x: 600, y: 400, width: 100, height: 100 };
-  const rounded = (a, b) => [a, b].some(p => [600, 700].includes(Math.round(p.x)) || [400, 500].includes(Math.round(p.y)));
-  assert.equal(safeFootprint(point, point, 100, 100, room, rounded), true);
+test("placement keeps the formation in an aisle whose pillars touch most squares", () => {
+  // Pillars on the aisle's edges touch every square but the middle column; only a wall between slots may refuse one.
+  const grid = { getOffset: p => ({ i: Math.floor(p.y / 100), j: Math.floor(p.x / 100) }), getTopLeftPoint: o => ({ x: o.j * 100, y: o.i * 100 }) };
+  const plan = planPlacement({ grid, sizeX: 100, sizeY: 100, bounds: { x: 0, y: 0, width: 800, height: 800 }, anchor: { x: 300, y: 300 }, blocked: () => false,
+    entries: [{ memberUuid: "lead", col: 0, row: -1, width: 1, height: 1 }, { memberUuid: "l", col: -1, row: 0, width: 1, height: 1 }, { memberUuid: "m", col: 0, row: 0, width: 1, height: 1 }, { memberUuid: "r", col: 1, row: 0, width: 1, height: 1 }] });
+  assert.deepEqual(plan.map(p => [p.x, p.y]), [[300, 200], [200, 300], [300, 300], [400, 300]]);
+  assert.ok(plan.every(p => !p.stacked));
+});
+test("an anchor whose corner sits inside a pillar can still place members beside it", () => {
+  // A closed wall diamond on the grid intersection at the anchor's bottom-left: any path out of it crosses its edge.
+  const inside = p => Math.abs(p.x - 3) + Math.abs(p.y - 97) < 25;
+  const pillar = (a, b) => inside(a) !== inside(b);
+  assert.equal(safeTrail({ x: 0, y: 0 }, { x: 100, y: 0 }, 100, 100, { x: 0, y: 0, width: 600, height: 400 }, pillar), true);
+});
+test("a follower may step onto a square that only touches a pillar, but not through a wall or out of the scene", () => {
+  const room = { x: 0, y: 0, width: 600, height: 400 }, wall = (a, b) => a.x < 200 && b.x >= 200;
+  assert.equal(safeTrail({ x: 0, y: 0 }, { x: 100, y: 0 }, 100, 100, room, () => false), true);
+  assert.equal(safeTrail({ x: 100, y: 0 }, { x: 200, y: 0 }, 100, 100, room, wall), false);
+  assert.equal(safeTrail({ x: 500, y: 0 }, { x: 600, y: 0 }, 100, 100, room, () => false), false);
 });
 test("placement bounds its candidate search to the anchor's neighbourhood", () => {
   let calls = 0;
@@ -61,4 +75,11 @@ test("placement bounds its candidate search to the anchor's neighbourhood", () =
   assert.equal(plan[0].blocked, undefined);
   assert.equal(plan[0].x, 4100, "the preferred free slot is still found");
   assert.ok(calls <= 400, `candidate search stays local, not scene-sized (${calls} lookups)`);
+});
+test("heading snaps to the dominant axis and slots turn so the top row faces it", () => {
+  assert.equal(headingTurns(0, -100), 0); assert.equal(headingTurns(100, 0), 1); assert.equal(headingTurns(0, 100), 2); assert.equal(headingTurns(-100, 0), 3);
+  assert.equal(headingTurns(100, -60), 1); assert.equal(headingTurns(0, 0), null);
+  const front = { col: 0, row: -1 };
+  assert.deepEqual([0, 1, 2, 3].map(n => turnSlot(front, n)), [{ col: 0, row: -1 }, { col: 1, row: 0 }, { col: 0, row: 1 }, { col: -1, row: 0 }]);
+  assert.deepEqual(turnSlot({ col: -1, row: 0 }, 1), { col: 0, row: -1 }, "the left slot of a northbound party leads when it turns east");
 });
