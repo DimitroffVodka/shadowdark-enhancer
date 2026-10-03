@@ -20,6 +20,7 @@ in amber. It is stored on the Party actor (`flags.shadowdark-enhancer.partyEmble
 are bundled with the module (credited in CREDITS.md); the picker does not need the
 Game-icons.net module. Only the sheet's tile changes: the Party token's art on a
 map is not tied to it.
+
 Under the header, a thin status bar shows up to three readouts, and each one is
 left out when its data is not available (with none, the bar is hidden):
 
