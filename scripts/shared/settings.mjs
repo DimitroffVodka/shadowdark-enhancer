@@ -65,7 +65,10 @@ export function registerSettings() {
     config: false,
     type: Boolean,
     default: false,
-    onChange: () => import("../crawl-strip/crawl-strip.mjs").then(m => m.CrawlStrip.queueRender()),
+    onChange: () => {
+      import("../crawl-strip/crawl-strip.mjs").then(m => m.CrawlStrip.queueRender());
+      import("../crawl-strip/crawl-tracker.mjs").then(m => m.refreshTracker());
+    },
   });
 
   game.settings.register(MODULE_ID, "oocEnforceBudget", {

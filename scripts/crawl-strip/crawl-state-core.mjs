@@ -147,7 +147,7 @@ export function hasOocRoll(oocInitiative, actorId) {
  * keeps all three. Every surface that would show or enforce one of them asks
  * here, so none can disagree about the mode.
  * @param {boolean} enabled  The `crawlFreeMovement` setting.
- * @param {string}  mode     CrawlState.mode ("off" | "crawl" | "combat").
+ * @param {string}  mode     CrawlState.mode ("off" | "crawl" | "combat" | "overland"); only "combat" is exempt.
  * @returns {boolean}
  */
 export function freeCrawlActive(enabled, mode) {

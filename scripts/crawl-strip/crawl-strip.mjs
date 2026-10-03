@@ -433,7 +433,8 @@ export const CrawlStrip = {
     // (every crawl member has rolled — an incomplete order is not an order).
     const holderId = CrawlState.oocTurn;
     const holderActor = holderId ? game.actors.get(holderId) : null;
-    const orderActive = CrawlState.mode === "crawl" && oocOrderComplete(CrawlState);
+    const orderActive = CrawlState.mode === "crawl" && oocOrderComplete(CrawlState)
+      && !freeCrawlActive(game.settings.get(MODULE_ID, "crawlFreeMovement"), CrawlState.mode);
     const verdict = canAdvanceOocTurn({
       orderActive,
       requesterIsGM: !!user?.isGM,

@@ -120,7 +120,7 @@ export class CrawlTrackerTab extends HandlebarsApplicationMixin(
     context.round = state.crawlTurn;
     // Mirrors COMBAT.Round / COMBAT.NotStarted: a crawl with no order rolled is
     // the out-of-combat equivalent of an encounter nobody has rolled for.
-    context.title = orderActive
+    context.title = orderActive || free
       ? game.i18n.format("SDE.crawlStrip.tracker.round", { round: state.crawlTurn })
       : game.i18n.localize("SDE.crawlStrip.tracker.notStarted");
     // The d20 art the combat tracker rolls with, so the two roll buttons are
@@ -138,7 +138,7 @@ export class CrawlTrackerTab extends HandlebarsApplicationMixin(
         hasInitiative,
         // `active` is core's own current-turn class — the holder gets combat's
         // highlight rather than a lookalike.
-        css: row.isHolder ? "active" : "",
+        css: row.isHolder && !free ? "active" : "",
         canRoll: !free && rowRollable({ isGM, isOwner, hasInitiative }),
         // Every row, not just their own: the combat tracker gives a player the
         // pan control on every combatant, and a crawl roster is all party
