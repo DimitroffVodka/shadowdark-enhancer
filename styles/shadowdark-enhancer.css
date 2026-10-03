@@ -8096,20 +8096,20 @@ body.theme-light .sde-strip-combat-controls { background: #f4f1ec !important; }
  * Mount & Boat actor sheets (shadowdark-enhancer.mount / .boat)
  * ─────────────────────────────────────────────────────────────────────────── */
 .sde-mount-sheet .window-content,
-.sde-boat-sheet .window-content {
+.sde-vehicle-sheet .window-content {
   overflow-y: auto;
   padding: 6px 8px;
 }
 
 .sde-mount-sheet fieldset,
-.sde-boat-sheet fieldset {
+.sde-vehicle-sheet fieldset {
   border: 1px solid var(--color-border-light-tertiary, #999);
   border-radius: 4px;
   margin: 6px 0;
   padding: 4px 8px 8px;
 }
 .sde-mount-sheet legend,
-.sde-boat-sheet legend {
+.sde-vehicle-sheet legend {
   font-weight: bold;
   font-size: 12px;
   text-transform: uppercase;
@@ -8142,17 +8142,17 @@ body.theme-light .sde-strip-combat-controls { background: #f4f1ec !important; }
 /* SD forces form controls to width:100%; keep them sized to their column. */
 .sde-mount-sheet input,
 .sde-mount-sheet select,
-.sde-boat-sheet input,
-.sde-boat-sheet select {
+.sde-vehicle-sheet input,
+.sde-vehicle-sheet select {
   width: 100% !important;
   min-width: 0;
   height: 24px;
   box-sizing: border-box;
 }
 .sde-mount-sheet input[disabled],
-.sde-boat-sheet input[disabled] { opacity: 0.7; }
+.sde-vehicle-sheet input[disabled] { opacity: 0.7; }
 .sde-mount-sheet input[type="checkbox"],
-.sde-boat-sheet input[type="checkbox"] {
+.sde-vehicle-sheet input[type="checkbox"] {
   width: auto !important;
   height: auto;
 }
@@ -8211,74 +8211,78 @@ body.theme-light .sde-strip-combat-controls { background: #f4f1ec !important; }
  * the system's own (ApplicationV1) sheets — e.g. the NPC-based Mount sheet —
  * regardless of the user's theme. The .SD-header / .SD-nav / .SD-box chrome
  * comes from the system stylesheet via the `shadowdark sheet` classes. */
-.sde-boat-sheet .window-content {
+.sde-vehicle-sheet .window-content {
   padding: 0;
   overflow: hidden;
   background: url("/ui/parchment.jpg") repeat;
   color: #191813;
 }
-.sde-boat-sheet,
-.sde-boat-sheet input,
-.sde-boat-sheet select,
-.sde-boat-sheet textarea,
-.sde-boat-sheet label,
-.sde-boat-sheet button { color: #191813; }
+.sde-vehicle-sheet,
+.sde-vehicle-sheet input,
+.sde-vehicle-sheet select,
+.sde-vehicle-sheet textarea,
+.sde-vehicle-sheet label,
+.sde-vehicle-sheet button { color: #191813; }
 
 /* The vessel name sits inside the black .SD-header — render it as the big
  * Old-Newspaper title the system's ApplicationV1 sheets show. AppV2 inputs
  * don't inherit the parent's font, so restate it here (and keep it light,
  * overriding the parchment ink above). */
-.sde-boat-sheet .SD-title,
-.sde-boat-sheet .SD-title input { color: #fff; }
-.sde-boat-sheet .SD-title input {
+.sde-vehicle-sheet .SD-title,
+.sde-vehicle-sheet .SD-title input { color: #fff; }
+.sde-vehicle-sheet .SD-title input {
   font-family: "Old Newspaper Font", serif;
   font-size: 40px;
   text-align: center;
+  /* ApplicationV2 gives inputs a fixed 24px height; the 40px name needs its own line. */
+  height: 50px;
+  line-height: 50px;
+  padding: 0;
 }
-.sde-boat-sheet .SD-title input::placeholder { color: rgba(255, 255, 255, 0.55); }
+.sde-vehicle-sheet .SD-title input::placeholder { color: rgba(255, 255, 255, 0.55); }
 
 /* Buttons as light SD controls (AppV2 would otherwise paint them dark-theme). */
-.sde-boat-sheet button.sde-veh-btn {
+.sde-vehicle-sheet button.sde-veh-btn {
   background: rgba(0, 0, 0, 0.06);
   border: 1px solid rgba(0, 0, 0, 0.35);
   border-radius: 4px;
 }
-.sde-boat-sheet button.sde-veh-btn:hover { background: rgba(0, 0, 0, 0.12); }
+.sde-vehicle-sheet button.sde-veh-btn:hover { background: rgba(0, 0, 0, 0.12); }
 
 /* Section boxes: breathing room around the system .SD-box chrome. */
-.sde-boat-sheet .SD-box { margin: 6px 8px; }
+.sde-vehicle-sheet .SD-box { margin: 6px 8px; }
 
 /* SD-box header labels are white on their black bar — the parchment-ink rule
  * above must not darken them (they'd be unreadable, as the Mount's are white). */
-.sde-boat-sheet .SD-box .header label { color: #fff; }
+.sde-vehicle-sheet .SD-box .header label { color: #fff; }
 
 /* Match the system's larger in-box value sizing (Mount inputs render at 20px;
  * ours were inheriting 14px, which read as "too small"). */
-.sde-boat-sheet .sde-veh-field input,
-.sde-boat-sheet .sde-veh-stat input { font-size: 18px; height: 30px; }
-.sde-boat-sheet .sde-veh-field select { font-size: 16px; }
+.sde-vehicle-sheet .sde-veh-field input,
+.sde-vehicle-sheet .sde-veh-stat input { font-size: 18px; height: 30px; }
+.sde-vehicle-sheet .sde-veh-field select { font-size: 16px; }
 
 /* Header: portrait spans both rows + the ShadowDark logo (the system scopes
  * both of these to .npc/.player sheets only, so restate them for the Boat). */
-.sde-boat-sheet .SD-header .portrait {
+.sde-vehicle-sheet .SD-header .portrait {
   grid-row: span 2;
   width: 110px;
   height: 110px;
   object-fit: cover;
 }
-.sde-boat-sheet .shadowdark-logo {
+.sde-vehicle-sheet .shadowdark-logo {
   font-family: "JSL Blackletter", sans-serif;
   font-size: 1.75rem;
   color: #fff;
   text-align: center;
 }
-.sde-boat-sheet .shadowdark-logo span { border-bottom: solid 1px #fff; padding: 0 10px; }
+.sde-vehicle-sheet .shadowdark-logo span { border-bottom: solid 1px #fff; padding: 0 10px; }
 
 /* Actor header buttons injected into the AppV2 title bar (Sheet / Prototype
  * Token) — labelled like the system's ApplicationV1 header and light on the dark
  * title bar (the parchment-ink button rule above would otherwise hide them).
  * Also drop the copy-UUID button the Mount's header doesn't show. */
-.sde-boat-sheet .window-header .sde-veh-hdrbtn {
+.sde-vehicle-sheet .window-header .sde-veh-hdrbtn {
   flex: 0 0 auto;
   width: auto;
   display: inline-flex;
@@ -8289,13 +8293,13 @@ body.theme-light .sde-strip-combat-controls { background: #f4f1ec !important; }
   font-size: 13px;
   color: rgba(235, 230, 220, 0.82);
 }
-.sde-boat-sheet .window-header .sde-veh-hdrbtn span { display: inline; font-size: 13px; }
-.sde-boat-sheet .window-header .sde-veh-hdrbtn:hover { color: #fff; }
-.sde-boat-sheet .window-header [data-action="copyUuid"] { display: none; }
+.sde-vehicle-sheet .window-header .sde-veh-hdrbtn span { display: inline; font-size: 13px; }
+.sde-vehicle-sheet .window-header .sde-veh-hdrbtn:hover { color: #fff; }
+.sde-vehicle-sheet .window-header [data-action="copyUuid"] { display: none; }
 /* The built-in ⋮ (Toggle Controls) and ✕ (Close) controls: keep them light on
  * the dark title bar — the parchment-ink `button` rule would black them out. */
-.sde-boat-sheet .window-header .header-control { color: rgba(235, 230, 220, 0.82); }
-.sde-boat-sheet .window-header .header-control:hover { color: #fff; }
+.sde-vehicle-sheet .window-header .header-control { color: rgba(235, 230, 220, 0.82); }
+.sde-vehicle-sheet .window-header .header-control:hover { color: #fff; }
 
 /* Overview = vital-stat boxes down a 1/3 left column, detail sections in the
  * 2/3 right column (mirrors the Mount's left-rail / right-content split). */
@@ -11813,7 +11817,7 @@ button.sde-hud-day:hover { border-color: var(--sd-frame); }
 .sde-bastion-sheet button { color: #191813; }
 .sde-bastion-sheet .SD-title,
 .sde-bastion-sheet .SD-title input { color: #fff; }
-.sde-bastion-sheet .SD-title input { font-family: "Old Newspaper Font", serif; font-size: 40px; text-align: center; }
+.sde-bastion-sheet .SD-title input { font-family: "Old Newspaper Font", serif; font-size: 40px; text-align: center; height: 50px; line-height: 50px; padding: 0; }
 .sde-bastion-sheet .SD-title input::placeholder { color: rgba(255, 255, 255, 0.55); }
 .sde-bastion-sheet .SD-header .portrait { grid-row: span 2; width: 110px; height: 110px; object-fit: contain; background: #85A478; }
 .sde-bastion-sheet .shadowdark-logo { font-family: "JSL Blackletter", sans-serif; font-size: 1.75rem; color: #fff; text-align: center; }
@@ -11956,3 +11960,34 @@ button.sde-hud-day:hover { border-color: var(--sd-frame); }
 .sde-bastion-shop .sde-bs-row img { width: 28px; height: 28px; border: 0; }
 .sde-bastion-shop .sde-bs-row .name small { display: block; opacity: 0.7; font-size: 11px; }
 .sde-bastion-shop .sde-bs-row .price { font-weight: bold; white-space: nowrap; }
+
+/* Mount sheet (ApplicationV2). The system scopes these to its NPC and Player sheets, so restate the ones it uses. */
+.sde-mount-npc .sde-vehicle-sheet-body { display: flex; flex-direction: column; height: 100%; }
+.sde-mount-npc .sde-mount-body { overflow-y: auto; min-height: 0; }
+.sde-mount-npc .sde-mount-body .SD-box { margin: 0 0 5px; }
+.sde-mount-npc .value-grid { display: grid; grid-template-columns: 2fr 1fr 2fr; column-gap: 2px; align-items: center; text-align: center; }
+.sde-mount-npc .SD-box .content.larger input { font-size: 20px; text-align: center; height: 32px; width: 100%; }
+.sde-mount-npc .sde-mount-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 5px; }
+.sde-mount-npc .sde-mount-pair .SD-box { margin: 0; }
+.sde-mount-npc .sde-mount-dark { display: grid; grid-template-columns: 1fr auto; align-items: center; padding: 0 4px; }
+.sde-mount-npc .sde-mount-dark h3 { margin: 0; font-size: 16px; }
+.sde-mount-npc .attack { margin: 4px 0 4px 24px; }
+.sde-mount-npc .attack .rollable { margin-left: -24px; }
+
+/* Abilities tab: Stats down a narrow left column, the combat boxes beside it, as on the Player sheet. */
+.sde-mount-npc .sde-mount-abilities { display: grid; grid-template-columns: minmax(175px, 1fr) 2.6fr; gap: 8px; align-items: start; }
+.sde-mount-npc .sde-mount-left .grid-2-columns { gap: 3px 8px; padding: 4px 6px 6px; }
+.sde-mount-npc .ability-score { display: block; }
+.sde-mount-npc .ability-score > div { display: grid; grid-template-columns: 1fr 1fr; align-items: center; min-width: 2em; text-align: center; }
+.sde-mount-npc .ability-score a { font-size: 18px; font-family: "Old Newspaper Font", serif; text-transform: uppercase; font-weight: bold; }
+.sde-mount-npc .ability-score > div > input,
+.sde-mount-npc .ability-score span { font-size: 18px; font-family: "Montserrat-SemiBold"; width: 2.5em; }
+.sde-mount-npc .ability-score .sde-mount-damaged { color: #b3261e; text-shadow: 0 0 6px rgba(179, 38, 30, 0.6); }
+.sde-mount-npc .sde-mount-traits { display: grid; gap: 6px; padding: 4px 6px 6px; }
+.sde-mount-npc .sde-tab-count { font-size: 12px; vertical-align: super; opacity: 0.75; }
+
+/* Mount tab: boxes in two columns so the rules fit one screen. */
+.sde-mount-npc .sde-mount-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; align-items: start; }
+.sde-mount-npc .sde-mount-cols > div > .SD-box:last-child { margin-bottom: 0; }
+.sde-mount-npc .sde-mount-care { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px 8px; align-items: end; }
+.sde-mount-npc .sde-mount-care .sde-veh-field { min-width: 0; }

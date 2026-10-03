@@ -1,7 +1,7 @@
 # Shadowdark Enhancer — File Inventory
 
 <!-- inventory:stats:start -->
-1491 tracked files · ~221,000 lines of code/markup across scripts+templates+styles+test.
+1492 tracked files · ~221,400 lines of code/markup across scripts+templates+styles+test.
 `v0.17.3` in both `module.json` and `package.json`.
 <!-- inventory:stats:end -->
 **Layout reflects the 2026-07-21 feature-folder reorganization (v0.11.0 cycle).**
@@ -399,10 +399,10 @@
 
 | File | Lines | Description |
 |---|---:|---|
-| `register-actors.mjs` | 127 | Registers `shadowdark-enhancer.mount` / `.warband` / `.boat` (models + sheets, in `i18nInit`): the warband's NpcSD subclass with fixed HP, its linked-token and commander-cleared create hook, and Make a Warband. |
+| `register-actors.mjs` | 125 | Registers `shadowdark-enhancer.mount` / `.warband` / `.boat` (models + sheets, in `i18nInit`): the warband's NpcSD subclass with fixed HP, its linked-token and commander-cleared create hook, and Make a Warband. |
 | `boat-data-model.mjs` | 115 | Boat data model — WR vessel rules. |
-| `boat-sheet.mjs` | 179 | Boat sheet: Overview / Passengers & Crew / Cargo / Description. |
-| `mount-npc-sheet.mjs` | 374 | Mount sheet — subclass of the system's `NpcSheetSD`. |
+| `boat-sheet.mjs` | 145 | Boat sheet: Overview / Passengers & Crew / Cargo / Description. |
+| `mount-sheet.mjs` | 555 | Mount sheet — an ApplicationV2 actor sheet over the NPC data model: stats, riders, gear, mount rules, spells, notes, effects. |
 | `mount-scores-core.mjs` | 13 | Pure mount full-score defaults, uncapped modifier conversion, separate damage and effective scores. |
 | `mount-scores.mjs` | 40 | Mount-only NPC model extension and once-only creation/adoption of persisted full scores; native checks derive effective modifiers. |
 | `warband-core.mjs` | 265 | Warband rules, pure (#200, #202, #204): the 18 upgrades, a commander's allowance by hit die tier (2/2, 4/3, 6/4), the command and upgrade refusals, and a creature made into a warband (level doubled, 8 HP a level plus CON, one attack, +1 attack a level gained, damage dice tripled). |
@@ -412,7 +412,7 @@
 | `warband-garrison.mjs` | 22 | The bastion a warband is garrisoned at: its name and which of the Granary and Barracks it has finished while it stands, for warband upkeep, healing and the Warband tab. |
 | `warband-combat.mjs` | 140 | Warbands in mass combat (#203): a warband's combatant takes its commander's initiative (on join and whenever either changes, Chaos rerolls included); automatic morale on the active GM from a per-client HP cache (falling to half, every hit below it; d20 + commander CHA vs 15/Loyal 9, advantage when leading), a 3-in-6 (Withdraw 1-in-6) rout that marks it defeated; the attack card's area note; the retraining warning on attack. |
 | `warband-upgrades.mjs` | 126 | What a warband's upgrades do (#201): Armor Upgrade, Tough, Training and Weapons Upgrade written into the stored fields they change in the same update as the tick, and taken off by the same amount (marked attacks only); each upgrade's book text read once from the Player's Guide p.250 into the warbandUpgradeText world setting for the sheet's hovers. |
-| `vehicle-sheet.mjs` | 424 | Shared party-like container base (ApplicationV2). |
+| `vehicle-sheet.mjs` | 457 | Shared party-like container base (ApplicationV2). |
 | `vehicle-rolls.mjs` | 79 | Shared helper-roll button handlers. |
 
 ### 3.14 `scripts/char-builder/` — guided character creation

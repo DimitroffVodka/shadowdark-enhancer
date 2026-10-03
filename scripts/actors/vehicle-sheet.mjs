@@ -7,11 +7,11 @@
  * NPC-style stat cards, a Place Tokens button, and embedded-item inventory with a
  * gear slot tally.
  *
- * Currently only `BoatSheet` extends this — the Mount actor sub-type is instead
- * an NPC-based sheet (`mount-npc-sheet.mjs`, a subclass of the system's
- * NpcSheetSD), not a VehicleSheet. The one subclass supplies its own template
- * (whose Overview renders the vessel's stats + helper rolls) and extends
- * `_prepareContext` with type-specific data.
+ * Currently only `BoatSheet` extends this — the Mount (`mount-sheet.mjs`) is its
+ * own ApplicationV2 sheet over the NPC data model; it shares this file's
+ * header-button helper and the `sde-vehicle-sheet` chrome. The one subclass
+ * supplies its own template (whose Overview renders the vessel's stats + helper
+ * rolls) and extends `_prepareContext` with type-specific data.
  */
 
 
@@ -19,6 +19,39 @@ import { rollToChat, promptSiegeAttack } from "./vehicle-rolls.mjs";
 
 const { HandlebarsApplicationMixin } = foundry.applications.api;
 const { ActorSheetV2 } = foundry.applications.sheets;
+
+/**
+ * Surface the actor header buttons (Prototype Token, Configure Sheet) inline in
+ * the window header, like the system's own sheets show. ApplicationV2 otherwise
+ * tucks these into the ⋮ dropdown; we render them as extra `.header-control`
+ * buttons wired to the same `data-action`s the dropdown uses (the AppV2 action
+ * delegation handles the click). Idempotent — guarded against re-injection on
+ * re-render.
+ * @param {HTMLElement} element  the sheet's root element
+ */
+export function injectActorHeaderButtons(element) {
+  const header = element?.querySelector(".window-header");
+  if (!header || header.querySelector(".sde-veh-hdrbtn")) return;
+  const anchor = header.querySelector("[data-action='toggleControls']")
+    ?? header.querySelector("[data-action='close']");
+  const make = (action, icon, label) => {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "header-control sde-veh-hdrbtn";
+    b.dataset.action = action;
+    const i = document.createElement("i");
+    i.className = `fa-solid ${icon}`;
+    const span = document.createElement("span");
+    span.textContent = label;
+    b.append(i, span);
+    b.setAttribute("aria-label", label);
+    return b;
+  };
+  for (const b of [
+    make("configureSheet", "fa-gear", game.i18n.localize("SDE.boat.header.sheet")),
+    make("configurePrototypeToken", "fa-circle-user", game.i18n.localize("SDE.boat.header.prototypeToken")),
+  ]) header.insertBefore(b, anchor);
+}
 
 export class VehicleSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   static DEFAULT_OPTIONS = {
