@@ -11895,3 +11895,11 @@ button.sde-hud-day:hover { border-color: var(--sd-frame); }
 .sde-carousing-body .cr-head .ui-switch { min-width: 90px; }
 @container (max-width: 560px) { .sde-carousing-body .cr-tier { grid-template-columns: minmax(0, 1fr); } .sde-carousing-body .cr-head .ui-btn { min-width: 0; } }
 @container (max-width: 480px) { .sde-carousing-body .ui-actions { flex-wrap: wrap; } }
+
+/* Hexplorer window (kit parts come from styles/sde-ui.css). */
+.sde-hex-explorer .hx-art { display: flex; align-items: center; justify-content: center; color: var(--ui-muted); font-size: 22px; }
+.sde-hex-explorer .hx-flags { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; }
+.sde-hex-explorer .hx-line { display: contents; }
+.sde-hex-explorer .hx-pair { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 2fr); gap: 8px; }
+.sde-hex-explorer .ui-card .ui-chip.ui-check { white-space: normal; min-height: 28px; }
+.sde-hex-explorer .sde-hex-explorer-body .ui-card > .ui-h { margin-bottom: 0; }

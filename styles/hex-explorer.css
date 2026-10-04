@@ -18,9 +18,3 @@
 #sde-hex-explorer-tip strong { display: block; }
 #sde-hex-explorer-tip.selected { right: 16px; bottom: 90px; pointer-events: auto; }
 #sde-hex-explorer-tip button { display: block; width: 100%; height: auto; min-height: 28px; margin-top: 5px; color: inherit; white-space: normal; }
-.sde-hex-explorer .sde-hex-explorer-body { overflow-y: auto; gap: 10px; }
-.sde-hex-explorer fieldset { display: flex; flex-direction: column; gap: 8px; }
-.sde-hex-explorer [data-row] { border-bottom: 1px solid var(--color-border-light-2); padding-bottom: 8px; }
-.sde-hex-explorer label { display: block; }
-.sde-hex-explorer textarea { min-height: 60px; width: 100%; }
-.sde-hex-explorer .sde-hex-explorer-line { display: flex; justify-content: space-between; gap: 8px; }
