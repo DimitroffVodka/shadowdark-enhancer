@@ -1,6 +1,10 @@
 # Changelog
 
 ## [Unreleased]
+### Added
+- **A shared UI kit stylesheet** (`styles/sde-ui.css`, dark and light tokens plus parts) for the window
+  redesign. No window uses it yet, so nothing looks different.
+
 ### Changed
 - **Camping: everyone takes part, and meals use your own rations first.** The Participate box and the "use party rations" box are gone. A meal takes the character's own rations, then the party's.
 - **Camping: everyone participates and meals use the party's rations automatically.** The per-character Participate checkbox is gone, and a character eats their own rations first and then the party's with no consent box; a character short overall is not fed and nothing is deducted. Torch contribution is still opt-in.
@@ -45,6 +49,9 @@
   earlier "Include mounts" had already placed on a scene is still recalled by Place / Recall.
 
 ### Fixed
+- **Two unreadable text colours.** The gold primary buttons (the monster importer's and the loot generator's
+  Roll) now have near-black text instead of cream, and the encounter result chat card's text is no longer
+  black on black in dark mode.
 - **The mount sheet is an ApplicationV2 sheet, laid out like the native NPC sheet.** It no longer borrows the
   system's old NPC sheet. It keeps the system's NPC header, and Abilities has HP, AC and Level, a **Stats** box
   in place of Modifiers, Movement, Alignment and Dark-Adapted down the left, beside the Attacks, Special
