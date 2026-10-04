@@ -1,7 +1,7 @@
 # Shadowdark Enhancer — File Inventory
 
 <!-- inventory:stats:start -->
-1714 tracked files · ~224,000 lines of code/markup across scripts+templates+styles+test.
+1716 tracked files · ~224,000 lines of code/markup across scripts+templates+styles+test.
 `v0.17.3` in both `module.json` and `package.json`.
 <!-- inventory:stats:end -->
 **Layout reflects the 2026-07-21 feature-folder reorganization (v0.11.0 cycle).**
@@ -87,7 +87,8 @@
 | `hex-map/hex-pins.mjs` | 129 | Keyed hexes as map notes: deploys the crawl journal into the world with stable ids (links rewritten), plans one Note per keyed page at its hex centre (pure planner), moves existing pins on re-run. |
 | `hex-map/hex-records.mjs` | 205 | Scene-offset native rich-record facade over existing tags, keyed pins/pages and regions, private compendium records and allowlisted public disclosure projections. |
 | `hex-map/hex-region.mjs` | 289 | Which region is a hex in: the book's own word for a keyed hex, the nearest keyed hex's region for any other (84.8% on the Western Reaches, leave-one-out over the book's own keyed rows). Seeds come from the filed crawls; nothing is stored. |
-| `hex-map/hex-tagger-app.mjs` | 1835 | Hex Tagger AppV2: contact sheet over the active hex scene, anchor numbering, tags on the scene flag, dataset hand-off. |
+| `hex-map/hex-tagger-app.mjs` | 1827 | Hex Tagger AppV2: contact sheet over the active hex scene, anchor numbering, tags on the scene flag, dataset hand-off. |
+| `hex-map/hex-tagger-tabs.mjs` | 14 | Hex Tagger tab list and the pure rule that keeps the chosen tab when the scene still offers it, else Sheet. |
 | `hex-map/ink.mjs` | 62 | Whole-image 0/1 ink bitmap at a working scale, one browser resize then strip reads; ink threshold from the paper's brightness. Browser-bound. |
 | `hex-map/lattice.mjs` | 448 | Hex lattice detection from a map's ink: row and column pitch by autocorrelation, phase by folding long horizontal runs, the hex field by outline support with frame-cut half cells, edge-band pitch refinement, and a lattice hung on two hand-placed corner cells. Pure. |
 | `hex-map/legend.mjs` | 250 | The legend: cells grouped by glyph with k-means++ over masked cell features (restarts, lowest inertia kept), one card per group with sample members and a core that becomes the hand tags. Pure. |

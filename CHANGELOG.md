@@ -9,6 +9,7 @@
   redesign. No window uses it yet, so nothing looks different.
 
 ### Changed
+- **Hex Tagger window uses the new design.** A header band with the scene and its tagging progress, five tabs (Sheet, Map, Terrains, Data, Settings) that keep the one you chose while the window redraws, and the Confirm / Apply buttons in a footer on the Sheet tab. The More button is gone; its tools are the Data and Settings tabs.
 - **Hexplorer window uses the new design.** A header band with the hex number and terrain, cards for each section, and a Save button in the footer.
 - **Carousing window uses the new design.** One tier select for the party at the top, one shared-cost line (total, headcount, each person's share), a Joining switch and the result for each character.
 - **Camping window uses the new design.** Hairline rows on the shared UI kit, a ration count next to the ham hock icon, a Ready button, and no gold.
