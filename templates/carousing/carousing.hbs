@@ -14,12 +14,14 @@
   {{#if holiday}}<h3>{{holiday}}</h3>{{/if}}
   {{#if manualHoliday}}<p>{{localize "SDE.carousing.manualHoliday"}}</p>{{/if}}
   {{#if missingTables}}<p role="alert">{{localize "SDE.carousing.tablesMissing"}}</p>{{/if}}
+  {{#if setup}}
+    <label>{{localize "SDE.carousing.tierChoice"}} <select data-tier {{#unless tierEditable}}disabled{{/unless}} {{#if missingTables}}disabled{{/if}}>{{#each tiers}}<option value="{{id}}" {{#if selected}}selected{{/if}}>{{label}}</option>{{else}}<option value="">{{localize "SDE.carousing.tiersUnavailable"}}</option>{{/each}}</select></label>
+    {{#if costLine}}<p>{{costLine}}</p>{{/if}}
+  {{/if}}
   {{#each rows}}<article data-uuid="{{uuid}}">
     <h3>{{name}}</h3>
     {{#if ../setup}}
       <label><input type="checkbox" data-choice="participate" {{#if participate}}checked{{/if}} {{#unless editable}}disabled{{/unless}}> {{localize "SDE.carousing.participate"}}</label>
-      <label>{{localize "SDE.carousing.tierChoice"}} <select data-choice="tierId" {{#unless editable}}disabled{{/unless}} {{#if ../missingTables}}disabled{{/if}}>{{#each tiers}}<option value="{{id}}" {{#if selected}}selected{{/if}}>{{label}}</option>{{else}}<option value="">{{localize "SDE.carousing.tiersUnavailable"}}</option>{{/each}}</select></label>
-      {{#each garbQuestions}}<label><input type="checkbox" data-garb="{{key}}" {{#if checked}}checked{{/if}} {{#unless ../editable}}disabled{{/unless}}> {{label}}{{#if required}} ({{localize "SDE.carousing.required"}}){{/if}}</label>{{/each}}
       <p>{{status}}</p>{{#if editable}}<button type="button" data-action="confirm" data-uuid="{{uuid}}" {{#if ../missingTables}}disabled{{/if}}>{{localize "SDE.carousing.confirmChoice"}}</button>{{/if}}
     {{/if}}
     {{#if result}}<p>{{localize "SDE.carousing.roll"}}: {{result.total}} — {{result.description}}</p><p>{{result.benefit}}</p><p>{{localize "SDE.carousing.manual"}}</p>{{/if}}

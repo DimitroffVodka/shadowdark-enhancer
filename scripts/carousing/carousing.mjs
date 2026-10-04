@@ -132,7 +132,8 @@ export function handleCarousing(data, user) {
         if (!manager) invalid(); if (current && current.phase !== "complete") return { ok: true, state };
         if (carousingOpen() || (await context(state.config ?? {})).downtime) invalid("SDE.carousing.downtime");
         const config = state.config ?? { settlement: "none", place: "" }, tables = await tableData(config);
-        state.current = { logId: foundry.utils.randomID(), phase: "setup", config, ...tables, results: {}, participants: Party.members(party, { charactersOnly: true }).map(uuid => ({ uuid, actorId: actorOf(uuid).id, name: actorOf(uuid).name, confirmed: false, participate: false, tierId: tables.tiers[0]?.id ?? "", garb: {} })) };
+        state.current = { logId: foundry.utils.randomID(), phase: "setup", config, ...tables, results: {}, participants: Party.members(party, { charactersOnly: true }).map(uuid => ({ uuid, actorId: actorOf(uuid).id, name: actorOf(uuid).name, confirmed: false, participate: false })) };
+        state.current.tierId = tables.tiers[0]?.id ?? "";
         await save(party, state);
       } else if (data.action === "configure") {
         if (!user.isGM || (current && current.phase !== "setup" && current.phase !== "complete")) invalid();
@@ -140,12 +141,16 @@ export function handleCarousing(data, user) {
         for (const key of ["event", "outcome", "settlement", "place"]) if (typeof data.config?.[key] === "string") config[key] = data.config[key];
         if (!["none", "village", "town", "city", "city_state"].includes(config.settlement)) invalid();
         state.config = config;
-        if (current?.phase === "setup") { Object.assign(current, await tableData(config), { config }); for (const p of current.participants) { p.confirmed = false; p.tierId = current.tiers[0]?.id ?? ""; } }
+        if (current?.phase === "setup") { Object.assign(current, await tableData(config), { config }); current.tierId = current.tiers[0]?.id ?? ""; for (const p of current.participants) p.confirmed = false; }
+        await save(party, state);
+      } else if (data.action === "tier") {
+        if (!manager || current?.phase !== "setup" || !current.tiers.some(t => t.id === data.tierId)) invalid();
+        current.tierId = data.tierId; for (const p of current.participants) p.confirmed = false;
         await save(party, state);
       } else if (data.action === "select") {
         const p = current?.participants.find(p => p.uuid === data.uuid);
         if (current?.phase !== "setup" || !p || !own(actorOf(p.uuid), user)) invalid();
-        for (const key of ["participate", "tierId", "garb"]) if (data.patch?.[key] !== undefined) p[key] = data.patch[key];
+        for (const key of ["participate"]) if (data.patch?.[key] !== undefined) p[key] = data.patch[key];
         p.confirmed = data.confirm === true; p.player = user.name; await save(party, state);
       } else if (data.action === "cancel") {
         if (!manager || current?.phase !== "setup") invalid(); state.current = null; await save(party, state);
@@ -156,7 +161,7 @@ export function handleCarousing(data, user) {
           if (JSON.stringify(fresh.tiers) !== JSON.stringify(current.tiers) || JSON.stringify(fresh.outcomes) !== JSON.stringify(current.outcomes)) invalid("SDE.carousing.tablesChanged");
           const ctx = await context(current.config), now = Date.now();
           const participants = current.participants.map(p => { const a = actorOf(p.uuid); if (!a) invalid(); return { ...p, coins: a.system.coins, renownBonus: Renown.bonusOf(a), lastAt: Math.max(-Infinity, ...Object.values(flag(a, "carousingProgress") ?? {}).filter(r => r.cost).map(r => r.at)) }; });
-          const check = preflight({ ...ctx, tiers: current.tiers, outcomes: current.outcomes, participants, now }); if (!check.ok) invalid(check.error);
+          const check = preflight({ ...ctx, tierId: current.tierId, tiers: current.tiers, outcomes: current.outcomes, participants, now }); if (!check.ok) invalid(check.error);
           Object.assign(current, { participants: check.participants, phase: "rolling", at: now, date: new Date(now).toISOString(), holiday: ctx.holiday });
           await save(party, state);
         }

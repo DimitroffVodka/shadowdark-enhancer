@@ -646,13 +646,13 @@ button. `state(partyUuid)` reads `{config, current, history}` from the Party's
 `carousing` flag; `isOpen()` is the downtime overlap gate. `request(partyUuid,
 action, data)` uses the existing authenticated active-GM relay. A Party owner
 may begin/start/resume/cancel; only each PC's OWNER may select and confirm that
-PC's attendance, tier and holiday garb. Party ownership never authorizes spending
+PC's attendance. The Party owner picks the one party-wide tier with `tier` (`{ tierId }`, setup only; it resets every confirmation). Party ownership never authorizes spending
 another PC's coins. The GM selects event/outcome RollTable UUIDs and manual
 settlement kind/place with `configure`; empty UUIDs resolve the imported Core
 tables by manifest id, not name. Event rows are `Cost | Event | Bonus`; outcomes
 are `Outcome | Benefit` and real ranges. No default book outcomes are shipped.
 
-Every participating PC pays the FULL chosen tier cost from their own purse.
+The chosen tier cost is a group total split between the joining PCs in whole gp, the remainder charged one gp at a time to the first in list order (100 gp among 3 is 34, 33, 33); each pays their share from their own purse.
 Preflight checks all confirmations, table coverage, funds, settlement limits,
 holiday admission, downtime overlap and 14-real-day actor cooldown before charging.
 Explicit unconditional positive XP/Luck gains, signed renown and carried-coin
@@ -661,7 +661,7 @@ percentage loss are concrete automatic effects. XP/Luck extraction accepts
 or an explicit `+N` reward, with a shared gain across `and`. Bare quantities,
 losses, negative, negated, conditional or custom reward phrasing are not awards;
 the original result remains visible for GM adjudication. Narrative/custom, gear/debt and expanded holiday effects
-remain visibly marked GM actions. Basic rolls include tier, holiday/garb and
+remain visibly marked GM actions. Basic rolls include tier, the holiday event bonus and
 the existing renown bonus once. Time uses `advanceOffDuty`, with one saved target
 time and group duration equal to the highest chosen tier/base holiday bonus,
 minimum one calendar day. No rations or survival travel clock are run.

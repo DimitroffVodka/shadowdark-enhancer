@@ -2,6 +2,7 @@
 
 ## [Unreleased]
 ### Changed
+- **Carousing: one spending tier for the party, and a shared cost.** The tier is picked once at the top of the window by whoever manages the party (changing it asks everyone to confirm again), and its cost is a group total split between the joining characters in whole gp, any remainder charged one gp at a time to the first in list order. The mask and paper-lantern holiday boxes are gone.
 - **The Party sheet's header is one compact band.** The boxed "Marching formation" block, with its
   heading and five lines of text, is replaced by a visible **Marching order** switch beside the 3×3
   grid (off: "Moving freely", the grid dims; on: "<leader> leads"). Following never pauses and there is
