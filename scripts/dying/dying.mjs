@@ -50,6 +50,7 @@ import {
   DYING_STATUS, DEAD_STATUS, DYING_KEYS, NEAR_FEET, modifier, timerRoll, deathTimer, stabilizeDC,
   riseMin, turnOutcome, hpAction, shouldTick, cardStabilizes, badge, checkedNatural, timerChat,
 } from "./dying-core.mjs";
+import { compactCard } from "../shared/chat-cards.mjs";
 
 export { DYING_STATUS, DYING_KEYS };
 
@@ -121,10 +122,13 @@ async function ownerRoll(actor, formula, flavor, faces, silent = false) {
 
 // ── Chat ────────────────────────────────────────────────────────────────────
 
+/** The lines that mean the character is out of danger; the rest are the death timer's. */
+const GOOD_LINES = new Set(["SDE.dying.rise", "SDE.dying.stabilized"]);
+
 function say(actor, key, { gm = false, ...data } = {}) {
   return ChatMessage.create({
     speaker: ChatMessage.getSpeaker({ actor }),
-    content: `<p class="sde-dying-line">${esc(fmt(key, { name: actor.name, ...data }))}</p>`,
+    content: compactCard({ icon: GOOD_LINES.has(key) ? "heart-pulse" : "skull", tone: GOOD_LINES.has(key) ? "good" : "bad", html: esc(fmt(key, { name: actor.name, ...data })) }),
     whisper: gm ? gmIds() : [],
   });
 }

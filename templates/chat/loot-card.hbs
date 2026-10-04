@@ -1,58 +1,53 @@
-<div class="sde-loot-card">
-  <header class="sde-loot-head"><i class="fas fa-coins"></i> {{#if source}}{{localize "SDE.loot.card.headingSource" source=source tier=tier}}{{else}}{{localize "SDE.loot.card.heading" tier=tier}}{{/if}}</header>
-
+<div class="sde-ui ui-cc">
+  <header class="cc-head"><i class="fa-solid fa-coins"></i><h4 class="cc-title">{{#if source}}{{localize "SDE.loot.card.headingSource" source=source tier=tier}}{{else}}{{localize "SDE.loot.card.heading" tier=tier}}{{/if}}</h4></header>
   {{#if items.length}}
-  <ul class="sde-loot-items">
+  <ul class="cc-list">
     {{#each items as |it|}}
-    <li class="sde-loot-row" data-item-index="{{it.idx}}">
+    <li class="cc-item" data-item-index="{{it.idx}}">
       <img src="{{it.img}}" width="28" height="28" alt="">
-      <span class="sde-loot-name">{{it.name}}{{it.qtyLabel}}<span class="sde-loot-value">{{it.valueLabel}}</span><span class="sde-loot-feature">{{it.featureLabel}}</span></span>
+      <span class="cc-main"><span class="cc-val">{{it.name}}{{it.qtyLabel}}</span>{{#if it.valueLabel}}<span class="cc-aux">{{it.valueLabel}}{{#if it.featureLabel}} &middot; {{it.featureLabel}}{{/if}}</span>{{else if it.featureLabel}}<span class="cc-aux">{{it.featureLabel}}</span>{{/if}}</span>
       {{#if it.claimedBy}}
-      <span class="sde-loot-claimed"><i class="fas fa-check"></i> {{it.claimedByName}}</span>
+      <span class="cc-got"><i class="fa-solid fa-check"></i>{{it.claimedByName}}</span>
       {{else}}
-      <button type="button" class="sde-loot-claim" data-item-index="{{it.idx}}">
-        <i class="fas fa-hand-holding"></i> {{localize "SDE.loot.btn.claim"}}
-      </button>
-      <button type="button" class="sde-loot-give sde-loot-gm" data-item-index="{{it.idx}}">
-        <i class="fas fa-gift"></i> {{localize "SDE.loot.btn.give"}}
-      </button>
-      {{#if it.forgeable}}
-      <button type="button" class="sde-loot-forge sde-loot-gm" data-item-index="{{it.idx}}">
-        <i class="fas fa-hammer"></i> {{localize "SDE.loot.btn.forge"}}
-      </button>
-      {{/if}}
+      <button type="button" class="ui-btn sde-loot-claim" data-item-index="{{it.idx}}"><i class="fa-solid fa-hand-holding"></i>{{localize "SDE.loot.btn.claim"}}</button>
+      <details class="cc-more sde-loot-gm">
+        <summary class="cc-icon" title="{{localize 'SDE.loot.card.more'}}" aria-label="{{localize 'SDE.loot.card.more'}}"><i class="fa-solid fa-ellipsis"></i></summary>
+        <div class="cc-more-body">
+          <button type="button" class="ui-btn sde-loot-give" data-item-index="{{it.idx}}"><i class="fa-solid fa-gift"></i>{{localize "SDE.loot.btn.give"}}</button>
+          {{#if it.forgeable}}<button type="button" class="ui-btn sde-loot-forge" data-item-index="{{it.idx}}"><i class="fa-solid fa-hammer"></i>{{localize "SDE.loot.btn.forge"}}</button>{{/if}}
+        </div>
+      </details>
       {{/if}}
     </li>
     {{/each}}
-  </ul>
-  {{/if}}
-
-  {{#if hasCoins}}
-  <div class="sde-loot-coins">
-    <span class="sde-loot-coinlabel"><i class="fas fa-coins"></i> {{coinsLabel}}</span>
-    {{#if coinsAssigned}}
-    <span class="sde-loot-claimed"><i class="fas fa-arrow-right"></i> {{coinsAssigned.actorName}}</span>
-    {{else}}
-    <button type="button" class="sde-loot-claim-coins">
-      <i class="fas fa-hand-holding"></i> {{localize "SDE.loot.btn.claim"}}
-    </button>
-    <span class="sde-loot-gm">
-      <select class="sde-loot-coins-actor" aria-label="{{localize 'SDE.loot.card.assignCoinsTo'}}">
-        {{#each party as |p|}}<option value="{{p.id}}">{{p.name}}</option>{{/each}}
-      </select>
-      <button type="button" class="sde-loot-assign-coins">{{localize "SDE.loot.card.assign"}}</button>
-    </span>
+    {{#if hasCoins}}
+    <li class="cc-item">
+      <i class="fa-solid fa-coins" aria-hidden="true"></i>
+      <span class="cc-main"><span class="cc-val">{{coinsLabel}}</span></span>
+      {{#if coinsAssigned}}
+      <span class="cc-got"><i class="fa-solid fa-arrow-right"></i>{{coinsAssigned.actorName}}</span>
+      {{else}}
+      <button type="button" class="ui-btn sde-loot-claim-coins"><i class="fa-solid fa-hand-holding"></i>{{localize "SDE.loot.btn.claim"}}</button>
+      <details class="cc-more sde-loot-gm">
+        <summary class="cc-icon" title="{{localize 'SDE.loot.card.more'}}" aria-label="{{localize 'SDE.loot.card.more'}}"><i class="fa-solid fa-ellipsis"></i></summary>
+        <div class="cc-more-body">
+          <select class="sde-loot-coins-actor" aria-label="{{localize 'SDE.loot.card.assignCoinsTo'}}">{{#each party as |p|}}<option value="{{p.id}}">{{p.name}}</option>{{/each}}</select>
+          <button type="button" class="ui-btn sde-loot-assign-coins">{{localize "SDE.loot.card.assign"}}</button>
+        </div>
+      </details>
+      {{/if}}
+    </li>
     {{/if}}
-  </div>
-  {{/if}}
-
-  {{#if notes.length}}
-  <ul class="sde-loot-notes">
-    {{#each notes as |n|}}<li>{{n}}</li>{{/each}}
   </ul>
+  {{else}}
+  {{#if hasCoins}}
+  <ul class="cc-list"><li class="cc-item"><span class="cc-main"><span class="cc-val">{{coinsLabel}}</span></span></li></ul>
   {{/if}}
-
+  {{/if}}
+  {{#if notes.length}}
+  <div class="cc-body">{{#each notes as |n|}}<p class="cc-note warn">{{n}}</p>{{/each}}</div>
+  {{/if}}
   {{#if hasTotals}}
-  <div class="sde-loot-total"><i class="fas fa-coins"></i> {{localize "SDE.loot.card.hoard" gp=totalGp xp=totalXp}}</div>
+  <footer class="cc-foot"><i class="fa-solid fa-coins" aria-hidden="true"></i><span class="cc-fine">{{localize "SDE.loot.card.hoard" gp=totalGp xp=totalXp}}</span></footer>
   {{/if}}
 </div>

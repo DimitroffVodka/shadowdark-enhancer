@@ -30,6 +30,7 @@ import { Quests, openQuestLog } from "../quests/quests.mjs";
 import { Troubles } from "../troubles/troubles.mjs";
 import { SessionRecap } from "../session-recap/session-recap.mjs";
 import * as core from "./rumor-core.mjs";
+import { rumorsCard } from "../shared/chat-cards.mjs";
 
 /** `shadowdark-enhancer.rumorsChanged`, `{ ids }`: ledger pages that changed, on every client. */
 export const RUMORS_CHANGED = `${MODULE_ID}.rumorsChanged`;
@@ -225,7 +226,7 @@ async function runGive({ count = 1, region, heardBy } = {}) {
   const safely = (what, fn) => Promise.resolve().then(fn).catch((err) => console.error(`${MODULE_ID} | rumors: ${what}`, err));
   await safely("recap", () => SessionRecap.logRumors(rumors.map(core.heardView)));
   await safely("chat", () => ChatMessage.create({
-    content: `<div class="sde-rumor-card"><header>${esc(t("SDE.rumors.chat.title"))}</header><ul>${rumors.map((r) => `<li>${esc(r.text)}</li>`).join("")}</ul></div>`,
+    content: rumorsCard({ title: t("SDE.rumors.chat.title"), rumors: rumors.map((r) => r.text) }),
     speaker: { alias: t("SDE.rumors.title") },
   }));
   return rumors.map(core.heardView);

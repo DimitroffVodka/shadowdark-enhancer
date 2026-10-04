@@ -6,6 +6,7 @@
   redesign. No window uses it yet, so nothing looks different.
 
 ### Changed
+- **Chat cards use the new look.** The encounter check, encounter result, flavor and loot cards, plus the chaos initiative, session luck, rumors, troubles, rules notice, weather, downtime, merchant purchase, item pickup, forge, parry, dying, out-of-combat initiative, warband note and pit fight twist cards, now read as one family in dark and light. Same data and buttons; the loot card keeps Claim in view and puts Give and Forge behind one more-actions icon.
 - **The Party sheet's header is one compact band.** The boxed "Marching formation" block, with its
   heading and five lines of text, is replaced by a visible **Marching order** switch beside the 3×3
   grid (off: "Moving freely", the grid dims; on: "<leader> leads"). Following never pauses and there is

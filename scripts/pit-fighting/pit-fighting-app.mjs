@@ -40,6 +40,7 @@ import {
   suggestedRenown,
   venueRowFor,
 } from "./pit-fighting-core.mjs";
+import { pitTwistCard } from "../shared/chat-cards.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
@@ -957,11 +958,7 @@ export class PitFightingApp extends HandlebarsApplicationMixin(ApplicationV2) {
 
     await ChatMessage.create({
       user: game.user.id,
-      content: `
-        <div class="sde-pit-card">
-          <header class="sde-pit-card-head"><i class="fas fa-bolt"></i> ${L("SDE.pitFighting.card.twist")}</header>
-          <div class="sde-pit-card-body">${esc(body)}${sub ? ` <em>(1d4: ${sub})</em>` : ""}</div>
-        </div>`,
+      content: pitTwistCard({ title: L("SDE.pitFighting.card.twist"), text: body, sub: sub ? `1d4: ${sub}` : "" }),
     });
     await this._persist();
     this.render();

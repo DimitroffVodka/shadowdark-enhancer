@@ -32,6 +32,7 @@ import { IMPORTED_ITEMS_PACK, isShopType, isCatalogStock } from "./catalog-stock
 // to `ctx.buyMultiplier`, which is shop-wide and GM-authored: one character's
 // leverage must never reprice the shop for the whole party.
 import { applyExtortion, readExtortion, spendExtortion } from "../downtime/downtime-effects.mjs";
+import { purchaseCard } from "../shared/chat-cards.mjs";
 
 /** Dice roller for the sub-roll resolver, which is kept Foundry-free. */
 const _rollDice = async (dice) => (await new Roll(dice).evaluate()).total;
@@ -829,30 +830,17 @@ export const MerchantShop = {
     const qtyStr = quantity > 1 ? ` ×${quantity}` : "";
     await ChatMessage.create({
       speaker: { alias: this._app?._shopName ?? game.i18n.localize("SDE.merchant.card.speaker") },
-      content: `<div class="sdems-chat-card-v2" data-card-type="generic">
-        <div class="card-body">
-          <header class="card-header">
-            <div class="header-icon">
-              <img src="${esc(entry.img || "icons/svg/item-bag.svg")}" alt="${esc(entry.name)}">
-            </div>
-            <div class="header-info">
-              <h3 class="header-title">${game.i18n.localize("SDE.merchant.card.purchased")}</h3>
-              <div class="metadata-tags-row">
-                <div class="meta-tag"><span>${esc(buyer.name)}</span></div>
-              </div>
-            </div>
-          </header>
-          <section class="content-body">
-            <div class="card-description" style="padding:4px 0;">
-              <p>${game.i18n.format("SDE.merchant.card.boughtLine", {
-                buyer: `<strong>${esc(buyer.name)}</strong>`,
-                item: `<strong>${esc(entry.name)}${qtyStr}</strong>`,
-                price: _formatPrice(totalCost),
-              })}${swingNote}</p>
-            </div>
-          </section>
-        </div>
-      </div>`,
+      content: purchaseCard({
+        title: game.i18n.localize("SDE.merchant.card.purchased"),
+        buyer: buyer.name,
+        img: entry.img || "icons/svg/item-bag.svg",
+        name: entry.name,
+        html: `${game.i18n.format("SDE.merchant.card.boughtLine", {
+          buyer: `<strong>${esc(buyer.name)}</strong>`,
+          item: `<strong>${esc(entry.name)}${qtyStr}</strong>`,
+          price: _formatPrice(totalCost),
+        })}${swingNote}`,
+      }),
     });
 
     // Tell the table. Players get it over the authenticated notice channel, so

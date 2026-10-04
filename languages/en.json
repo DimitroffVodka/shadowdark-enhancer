@@ -3989,6 +3989,7 @@
   "SDE.loot.card.heading": "Loot — Treasure {tier}",
   "SDE.loot.card.assignCoinsTo": "Assign coins to",
   "SDE.loot.card.assign": "Assign",
+  "SDE.loot.card.more": "More actions",
   "SDE.loot.card.hoard": "Hoard: {gp} gp · {xp} XP",
   "SDE.loot.label": "Loot",
   "SDE.loot.drops.sourceMore": "{names} +{count} more",

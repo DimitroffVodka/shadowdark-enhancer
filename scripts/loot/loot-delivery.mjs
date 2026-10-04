@@ -152,8 +152,8 @@ export const LootDelivery = {
       source: flags.source ?? null,
       items: (flags.items ?? []).map((it, idx) => ({
         ...it, idx, qtyLabel: it.qty > 1 ? ` ×${it.qty}` : "",
-        valueLabel: it.value > 0 ? ` · ${it.value} gp` : "",
-        featureLabel: it.feature ? ` — ${it.feature}` : "",
+        valueLabel: it.value > 0 ? `${it.value} gp` : "",
+        featureLabel: it.feature ?? "",
       })),
       hasCoins: coinsParts.length > 0,
       coinsLabel: coinsParts.join(", "),

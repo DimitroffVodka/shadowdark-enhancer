@@ -174,6 +174,7 @@
       "scripts/shared/art-utils.mjs",
       "scripts/shared/coins.mjs",
       "scripts/shared/esc.mjs",
+      "scripts/shared/chat-cards.mjs",
       "scripts/shared/file-route.mjs",
       "scripts/shared/gm-relay.mjs",
       "scripts/shared/token-placement.mjs"
@@ -511,6 +512,7 @@
     "scripts/shared/art-utils.mjs": "Portrait/token image resolution across world + compendium sources.",
     "scripts/shared/coins.mjs": "Pure Shadowdark currency math (10cp=1sp, 10sp=1gp).",
     "scripts/shared/esc.mjs": "HTML-escape helper for safe `innerHTML` interpolation.",
+    "scripts/shared/chat-cards.mjs": "Markup builders for the module's chat cards (UI kit `ui-cc` parts).",
     "scripts/shared/file-route.mjs": "Routes a stored file path for fetching; leaves absolute upload URLs (The Forge, S3) untouched instead of handing them to getRoute.",
     "scripts/crawl-strip/crawl-strip.mjs": "The core feature: the top strip. Plain DOM (`#shadowdark-enhancer-strip`), not ApplicationV2.",
     "scripts/crawl-strip/crawl-state.mjs": "Foundry-coupled state singleton — persistence, sockets, hook emission.",
