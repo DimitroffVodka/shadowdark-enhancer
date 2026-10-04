@@ -2,6 +2,7 @@
 
 ## [Unreleased]
 ### Changed
+- **Token HUD buttons are real buttons.** The rollback-move, pick-up and Quick Adjust buttons, and the prayer icon beside a deity on the character sheet, can now be reached and used from the keyboard and have an accessible name; the prayer icon also appears on both sheet generations without doubling.
 - **The Party sheet's header is one compact band.** The boxed "Marching formation" block, with its
   heading and five lines of text, is replaced by a visible **Marching order** switch beside the 3×3
   grid (off: "Moving freely", the grid dims; on: "<leader> leads"). Following never pauses and there is
