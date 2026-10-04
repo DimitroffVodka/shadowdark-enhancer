@@ -9,6 +9,7 @@
   redesign. No window uses it yet, so nothing looks different.
 
 ### Changed
+- **Pit Fighting window uses the new design.** The bout is four numbered cards (Offer, Twist, Who steps up, Result) with the rolls and picks on one line each, the foes as chips, and Accept, Decline and Apply result in the footer.
 - **Regional Training window uses the new design.** Character and trainer pickers up top, the trainer's emblem and the rolls left in the header, tasks and benefits as numbered rows with square status chips, and Roll in the footer.
 - **Carousing window uses the new design.** One tier select for the party at the top, one shared-cost line (total, headcount, each person's share), a Joining switch and the result for each character.
 - **Camping window uses the new design.** Hairline rows on the shared UI kit, a ration count next to the ham hock icon, a Ready button, and no gold.
