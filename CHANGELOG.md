@@ -42,6 +42,7 @@
   earlier "Include mounts" had already placed on a scene is still recalled by Place / Recall.
 
 ### Fixed
+- **Safer destructive prompts.** The importer's delete-copies dialogs now default to Cancel, so pressing Enter no longer deletes. The other destructive prompts (deleting a recap session, clearing hex tags, ending a crawl, resetting level guidelines and similar) already focused the safe button; their buttons now name the action (Delete session / Keep it) instead of Yes / No.
 - **The mount sheet is an ApplicationV2 sheet, laid out like the native NPC sheet.** It no longer borrows the
   system's old NPC sheet. It keeps the system's NPC header, and Abilities has HP, AC and Level, a **Stats** box
   in place of Modifiers, Movement, Alignment and Dark-Adapted down the left, beside the Attacks, Special
