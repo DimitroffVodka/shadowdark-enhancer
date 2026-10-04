@@ -1389,6 +1389,8 @@
   "SDE.rulesData.cancel": "Cancel",
   "SDE.rulesData.noLimit": "No limit",
   "SDE.rulesData.addRegion": "Add a region…",
+  "SDE.rulesData.tab.travel": "Travel",
+  "SDE.rulesData.tab.settlements": "Settlements",
   "SDE.rulesData.table.terrain": "Terrain",
   "SDE.rulesData.table.terrainTypes": "Terrain types",
   "SDE.rulesData.table.travel": "Hexes per day",
