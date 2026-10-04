@@ -229,6 +229,7 @@ export function questPayoutContent(quest, name, { partyScope = null } = {}) {
 async function askPayout(quest, name) {
   const r = quest.rewards;
   const answer = await foundry.applications.api.DialogV2.wait({
+    classes: ["sde-ui", "sde-dialog"],
     window: { title: t("SDE.quests.payout.title"), icon: "fa-solid fa-trophy" },
     content: questPayoutContent(quest, name),
     buttons: [

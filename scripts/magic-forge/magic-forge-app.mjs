@@ -19,6 +19,7 @@ import {
   buildChildSeed, buildSetSeed, roleIsMechanical, roleIsHint, toPlainText, pageLabel,
 } from "./magic-table-runtime.mjs";
 import { esc } from "../shared/esc.mjs";
+import { compactCard } from "../shared/chat-cards.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
@@ -715,10 +716,11 @@ export class MagicForgeApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const sub = this._previewSubtitle(item);
     await ChatMessage.create({
       speaker: ChatMessage.getSpeaker(),
-      content: `<div class="shadowdark-enhancer sde-forge-card" style="display:flex;align-items:center;gap:8px;">
-        <img src="${esc(item.img)}" alt="" width="36" height="36" style="border:none;flex:0 0 auto;">
-        <div><strong>${game.i18n.localize("SDE.magicForge.card.forged")}</strong> ${esc(item.name)}<br><span style="opacity:0.8;">${esc(sub)}</span></div>
-      </div>`,
+      content: compactCard({
+        img: item.img,
+        html: `<strong>${esc(game.i18n.localize("SDE.magicForge.card.forged"))}</strong> ${esc(item.name)}`,
+        aux: sub,
+      }),
     });
   }
 

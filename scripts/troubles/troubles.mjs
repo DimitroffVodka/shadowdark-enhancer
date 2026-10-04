@@ -26,6 +26,7 @@ import { format as formatTime } from "../time/time.mjs";
 import { secondsPerDay } from "../time/time-core.mjs";
 import { Quests, openQuestLog, jumpToHex } from "../quests/quests.mjs";
 import * as core from "./trouble-core.mjs";
+import { troubleCard } from "../shared/chat-cards.mjs";
 
 /** World setting: the quiet weeks since trouble last stirred. */
 export const QUIET_SETTING = "troubleQuietWeeks";
@@ -130,7 +131,7 @@ function calendarSecs() {
 }
 
 const whisper = (content) => ChatMessage.create({
-  content: `<div class="sde-trouble-card">${content}</div>`,
+  content: troubleCard({ title: t("SDE.troubles.title"), html: content }),
   speaker: { alias: t("SDE.troubles.title") },
   whisper: ChatMessage.getWhisperRecipients("GM"),
 });

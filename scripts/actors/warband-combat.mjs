@@ -19,6 +19,7 @@ import { isAttackCard, actorFromUuidSync } from "../shared/attack-card.mjs";
 import { leaderCombatant } from "../crawl-strip/turn-skip-core.mjs";
 import * as core from "./warband-core.mjs";
 import { WARBAND_FLAG, warbandState, warbandWrites } from "./warband-npc-sheet.mjs";
+import { warbandNote } from "../shared/chat-cards.mjs";
 
 const t = (key, data) => (data ? game.i18n.format(key, data) : game.i18n.localize(key));
 
@@ -87,10 +88,7 @@ function noteAttackCard(message, html) {
   if (!isAttackCard(message)) return;
   const attacker = actorFromUuidSync(message.flags.shadowdark.rollConfig.actorUuid);
   if (attacker?.type !== TYPE || html.querySelector(".sde-warband-note")) return;
-  const note = document.createElement("div");
-  note.className = "sde-warband-note";
-  note.textContent = t("SDE.warband.areaNote");
-  (html.querySelector(".message-content") ?? html).append(note);
+  (html.querySelector(".message-content") ?? html).insertAdjacentHTML("beforeend", warbandNote({ text: t("SDE.warband.areaNote") }));
 }
 
 let TYPE = null;

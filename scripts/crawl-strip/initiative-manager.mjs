@@ -1,4 +1,6 @@
 import { CrawlState, isActiveGM } from "./crawl-state.mjs";
+import { compactCard } from "../shared/chat-cards.mjs";
+import { esc } from "../shared/esc.mjs";
 
 /**
  * Out-of-combat initiative for crawl rounds.
@@ -121,12 +123,13 @@ export const InitiativeManager = {
     const full = bonus !== 0 ? `${advFormula} + ${bonus}` : advFormula;
 
     const roll = await new Roll(full).evaluate();
-    const content = await roll.render();
     await roll.toMessage({
       speaker: ChatMessage.getSpeaker({ actor }),
-      flavor: `${game.i18n.format("SDE.crawlStrip.oocInitFlavor", { name: actor.name })} <em>${game.i18n.localize("SDE.crawlStrip.oocTag")}</em>
-        <strong class="sde-chat-init-total">${roll.total}</strong>`,
-      content,
+      content: compactCard({
+        big: roll.total,
+        html: esc(game.i18n.format("SDE.crawlStrip.oocInitFlavor", { name: actor.name })),
+        aux: `${game.i18n.localize("SDE.crawlStrip.oocTag")} ${full}`,
+      }),
     });
     await CrawlState.setOocInitiative(actorId, { roll: roll.total, advantage });
     return roll.total;

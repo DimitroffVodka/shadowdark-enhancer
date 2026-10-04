@@ -50,6 +50,7 @@ import {
   DYING_STATUS, DEAD_STATUS, DYING_KEYS, NEAR_FEET, modifier, timerRoll, deathTimer, stabilizeDC,
   riseMin, turnOutcome, hpAction, shouldTick, cardStabilizes, badge, checkedNatural, timerChat,
 } from "./dying-core.mjs";
+import { compactCard } from "../shared/chat-cards.mjs";
 
 export { DYING_STATUS, DYING_KEYS };
 
@@ -121,10 +122,13 @@ async function ownerRoll(actor, formula, flavor, faces, silent = false) {
 
 // ── Chat ────────────────────────────────────────────────────────────────────
 
+/** The lines that mean the character is out of danger; the rest are the death timer's. */
+const GOOD_LINES = new Set(["SDE.dying.rise", "SDE.dying.stabilized"]);
+
 function say(actor, key, { gm = false, ...data } = {}) {
   return ChatMessage.create({
     speaker: ChatMessage.getSpeaker({ actor }),
-    content: `<p class="sde-dying-line">${esc(fmt(key, { name: actor.name, ...data }))}</p>`,
+    content: compactCard({ icon: GOOD_LINES.has(key) ? "heart-pulse" : "skull", tone: GOOD_LINES.has(key) ? "good" : "bad", html: esc(fmt(key, { name: actor.name, ...data })) }),
     whisper: gm ? gmIds() : [],
   });
 }
@@ -465,21 +469,21 @@ export async function openMenu(actor) {
   const buttons = [];
   if (!s.stable && helper) {
     const dc = await stabilizeDCFor(actor, helper);
-    buttons.push({ action: "check", label: fmt("SDE.dying.stabilizeWith", { name: helper.name, dc }) });
+    buttons.push({ action: "check", icon: "fa-solid fa-dice-d20", label: fmt("SDE.dying.stabilizeWith", { name: helper.name, dc }) });
   }
   if (game.user.isGM) {
     if (!s.stable) {
-      buttons.push({ action: "stabilize", label: fmt("SDE.dying.stabilizeNow") });
+      buttons.push({ action: "stabilize", icon: "fa-solid fa-heart-pulse", label: fmt("SDE.dying.stabilizeNow") });
       // Rounds exist once the first turn has rolled the timer (#263).
       if (Number.isInteger(s.timer)) {
         buttons.push(
-          { action: "add", label: fmt("SDE.dying.addRound") },
-          { action: "remove", label: fmt("SDE.dying.removeRound") },
+          { action: "add", icon: "fa-solid fa-plus", label: fmt("SDE.dying.addRound") },
+          { action: "remove", icon: "fa-solid fa-minus", label: fmt("SDE.dying.removeRound") },
         );
       }
-      buttons.push({ action: "conscious", label: s.conscious ? fmt("SDE.dying.unconsciousAgain") : fmt("SDE.dying.conscious") });
+      buttons.push({ action: "conscious", icon: "fa-solid fa-eye", label: s.conscious ? fmt("SDE.dying.unconsciousAgain") : fmt("SDE.dying.conscious") });
     }
-    buttons.push({ action: "rise", label: fmt("SDE.dying.riseNow") });
+    buttons.push({ action: "rise", icon: "fa-solid fa-arrow-up", label: fmt("SDE.dying.riseNow") });
   }
   if (!buttons.length) {
     ui.notifications.info(fmt("SDE.dying.noHelper"));
@@ -487,7 +491,7 @@ export async function openMenu(actor) {
   }
   const choice = await foundry.applications.api.DialogV2.wait({
     window: { title: fmt("SDE.dying.menuTitle", { name: actor.name }) },
-    classes: ["sde-dying-menu"],
+    classes: ["sde-ui", "sde-dialog", "dlg-choices", "sde-dying-menu"],
     content: `<p>${esc(fmt("SDE.dying.menuHint"))}</p>`,
     buttons,
     rejectClose: false,

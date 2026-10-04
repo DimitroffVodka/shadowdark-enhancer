@@ -23,7 +23,7 @@ export function foodPreview(party, camp, each = camp.each ?? 1, day = camp.day) 
   const stacks = stacksOf([party, ...campEaters(camp).map(p => actorOf(p.uuid))]);
   return campEaters(camp).map(p => {
     const actor = actorOf(p.uuid), saved = nutritionDay(actor, day);
-    const plan = saved?.foodDone ? { fed: saved.fed, own: 0, shortfall: 0, deductions: [] } : mealPlan(stacks, p.uuid, party.uuid, needs(actor, each), p.partyRations === true);
+    const plan = saved?.foodDone ? { fed: saved.fed, own: 0, shortfall: 0, deductions: [] } : mealPlan(stacks, p.uuid, party.uuid, needs(actor, each));
     for (const d of plan.deductions) stacks.find(s => s.id === d.id && s.actorUuid === d.actorUuid).quantity -= d.quantity;
     return { actorId: p.actorId, ...plan, saved: !!saved?.foodDone, con: isMount(actor) ? effectiveMountScores(scoresOf(actor)).con : Number(actor?.system.abilities.con.value ?? 0), rest: saved?.rest?.done ? saved.rest.eligible : null };
   });
@@ -39,7 +39,7 @@ export function feedCamp(party, camp) {
       let record = nutritionDay(actor, camp.day);
       if (record?.foodDone) continue;
       if (!record) {
-        const plan = mealPlan(stacksOf([actor, party]), actor.uuid, party.uuid, needs(actor, camp.each), p.partyRations === true);
+        const plan = mealPlan(stacksOf([actor, party]), actor.uuid, party.uuid, needs(actor, camp.each));
         record = { partyUuid: party.uuid, campId: camp.id, fed: plan.fed, deductions: plan.deductions, foodDone: false, starvationId: plan.fed ? null : foundry.utils.randomID() };
         await saveDay(actor, camp.day, record);
       }

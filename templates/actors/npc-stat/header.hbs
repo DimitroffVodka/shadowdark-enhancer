@@ -1,0 +1,14 @@
+{{!-- Shared NPC stat block: the Shadowdark system's actor header and its tab bar. --}}
+  <header class="SD-header flex0">
+    <img class="portrait" src="{{actor.img}}" data-action="editImage" data-edit="img" data-tooltip="{{actor.name}}" height="110" width="110" />
+    <div class="shadowdark-logo"><span>ShadowDark</span></div>
+    <div class="SD-title">
+      <input type="text" name="name" value="{{actor.name}}" placeholder="{{localize 'SHADOWDARK.sheet.actor.placeholder.name'}}" />
+    </div>
+  </header>
+
+  <nav class="SD-nav flex0" data-group="primary">
+    {{#each tabs}}
+      <a class="navigation-tab {{#if active}}active{{/if}}" data-action="changeTab" data-tab="{{id}}">{{label}}{{#if count}} <span class="sde-tab-count">{{count}}</span>{{/if}}</a>
+    {{/each}}
+  </nav>

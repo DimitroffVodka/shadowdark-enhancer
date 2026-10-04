@@ -1,32 +1,30 @@
 /**
- * Shadowdark Enhancer — Warband unit sheet (#200), a subclass of the Shadowdark
- * system's NPC sheet (NpcSheetSD, AppV1), built like the Mount's.
+ * Shadowdark Enhancer — a Warband unit's state and its writer (#200).
  *
  * A warband IS a Shadowdark NPC: the `shadowdark-enhancer.warband` sub-type
  * reuses the system's NpcSD model, so its attacks, AC, HP and damage roll as
- * any NPC's. The Warband tab adds its commander (a PC dropped on it), the
- * commander's allowance across all of that commander's warbands, the upgrade
- * checklist and the morale bonus. The warband's own state is one flag,
- * `warband: { commander, upgrades }`, written whole (replaceModuleFlag).
+ * any NPC's. Its own state is one flag, `warband: { commander, upgrades, ... }`,
+ * written whole (replaceModuleFlag), and every change to it goes through the
+ * writer below: the commander (a PC dropped on the sheet), the commander's
+ * allowance across all of that commander's warbands, the upgrade checklist, the
+ * garrison and the upkeep controls.
  *
- * The base class is passed in at registration, so nothing here touches the
- * system bundle or any global at import.
+ * The sheet that sends those changes is WarbandSheet (warband-sheet.mjs, an
+ * ApplicationV2 sheet). This file keeps the old name because the combat, upkeep
+ * and recruiting code import the state and the queue from it; it touches no
+ * Foundry class or global at import.
  */
 
 import { MODULE_ID } from "../shared/module-id.mjs";
 import { replaceModuleFlag } from "../shared/module-flags.mjs";
 import { martialTierForHitDie } from "../downtime/downtime-core.mjs";
 import { secondsPerDay } from "../time/time-core.mjs";
-import { format as formatTime } from "../time/time.mjs";
 import { authorizeActorFor, isActiveGM, queryActiveGM, refuseQuery, registerQuery } from "../shared/gm-relay.mjs";
 import {
-  UPGRADES, MOST_UPGRADES, allowanceFor, cleanUpgrades, commandRefusal, upgradeRefusal, upkeepGp,
+  MOST_UPGRADES, allowanceFor, cleanUpgrades, commandRefusal, upgradeRefusal,
 } from "./warband-core.mjs";
-import { upgradeText, upgradeWrites, readUpgradeText, syncAttacks, warbandWrites } from "./warband-upgrades.mjs";
-import { garrisonFor } from "./warband-garrison.mjs";
+import { upgradeWrites, syncAttacks, warbandWrites } from "./warband-upgrades.mjs";
 import { BASTION_TYPE } from "../bastion/bastion-art.mjs";
-import { GRANARY_SAVING_GP, BARRACKS_HEAL } from "../bastion/bastion-core.mjs";
-import { visibleBastions } from "../bastion/bastion-panel-core.mjs";
 
 export const WARBAND_FLAG = "warband";
 
@@ -144,16 +142,6 @@ async function applyWarbandWrite(data, user, type) {
   return { ok: true };
 }
 
-const UPGRADE_KEYS = {
-  accurate: "SDE.warband.upgrade.accurate", ambush: "SDE.warband.upgrade.ambush",
-  armorUpgrade: "SDE.warband.upgrade.armorUpgrade", batteringRam: "SDE.warband.upgrade.batteringRam",
-  camouflage: "SDE.warband.upgrade.camouflage", fast: "SDE.warband.upgrade.fast", hardy: "SDE.warband.upgrade.hardy",
-  loyal: "SDE.warband.upgrade.loyal", phalanx: "SDE.warband.upgrade.phalanx", scout: "SDE.warband.upgrade.scout",
-  siege: "SDE.warband.upgrade.siege", stealthy: "SDE.warband.upgrade.stealthy", tough: "SDE.warband.upgrade.tough",
-  training: "SDE.warband.upgrade.training", trap: "SDE.warband.upgrade.trap", warcry: "SDE.warband.upgrade.warcry",
-  weaponsUpgrade: "SDE.warband.upgrade.weaponsUpgrade", withdraw: "SDE.warband.upgrade.withdraw",
-};
-const TIER_KEYS = { d4: "SDE.warband.tier.d4", d6: "SDE.warband.tier.d6", d8plus: "SDE.warband.tier.d8plus" };
 const REFUSAL_KEYS = {
   warbands: "SDE.warband.notify.tooManyWarbands", upgrades: "SDE.warband.notify.tooManyUpgrades",
   duplicate: "SDE.warband.notify.duplicate", unknown: "SDE.warband.notify.unknownUpgrade",
@@ -208,149 +196,4 @@ export function commandedBy(commanderUuid, { except, type }) {
   const others = game.actors.filter((a) => a.type === type && a.id !== except && !warbandState(a).routed
     && warbandState(a).commander === commanderUuid);
   return { otherWarbands: others.length, otherUpgrades: others.reduce((n, a) => n + warbandState(a).upgrades.length, 0) };
-}
-
-/** Build the Warband sheet class as a subclass of the live NpcSheetSD. */
-export function buildWarbandNpcSheet(BaseNpcSheet, type) {
-  return class WarbandNpcSheetSD extends BaseNpcSheet {
-    static get defaultOptions() {
-      return foundry.utils.mergeObject(super.defaultOptions, {
-        classes: ["shadowdark", "sheet", "npc", "sde-warband-npc"],
-        width: 600,
-        height: 760,
-        scrollY: ["section.SD-content-body"],
-        tabs: [{ navSelector: ".SD-nav", contentSelector: ".SD-content-body", initial: "tab-abilities" }],
-      });
-    }
-
-    get template() {
-      return `modules/${MODULE_ID}/templates/actors/warband-npc.hbs`;
-    }
-
-    /** @override — the Warband tab's context on top of the NPC's. */
-    async getData(options) {
-      const context = await super.getData(options);
-      const state = warbandState(this.actor);
-      const pc = state.commander ? await fromUuid(state.commander).catch(() => null) : null;
-      const tier = pc ? await commanderTier(pc) : null;
-      const allowance = allowanceFor(tier);
-      const { otherWarbands, otherUpgrades } = pc ? commandedBy(pc.uuid, { except: this.actor.id, type }) : { otherWarbands: 0, otherUpgrades: 0 };
-      const cha = pc?.system?.abilities?.cha?.mod ?? null;
-      const tips = upgradeText();
-      const garrison = await garrisonFor(state.bastion);
-      context.warband = {
-        commander: pc ? { uuid: pc.uuid, name: pc.name, img: pc.img } : null,
-        commanderMissing: !!state.commander && !pc,
-        tier: tier ? game.i18n.localize(TIER_KEYS[tier]) : null,
-        allowance: allowance ? {
-          // A routed warband counts against no one's allowance, its own sheet's included (#285 review).
-          warbands: game.i18n.format("SDE.warband.allowance.warbands", { used: otherWarbands + (state.routed ? 0 : 1), max: allowance.warbands }),
-          upgrades: game.i18n.format("SDE.warband.allowance.upgrades", {
-            used: otherUpgrades + (state.routed ? 0 : state.upgrades.length), max: allowance.upgrades,
-          }),
-        } : null,
-        noCommanderCap: !allowance ? game.i18n.format("SDE.warband.allowance.noCommander", { max: MOST_UPGRADES }) : null,
-        morale: cha === null ? null : game.i18n.format("SDE.warband.moraleBonus", { bonus: `${cha >= 0 ? "+" : ""}${cha}` }),
-        upgrades: UPGRADES.map((key) => ({ key, label: game.i18n.localize(UPGRADE_KEYS[key]), checked: state.upgrades.includes(key), tip: tips[key] ?? "" })),
-        textMissing: game.user.isGM && Object.keys(tips).length < UPGRADES.length,
-        // #204: upkeep, arrears, desertion and retraining.
-        upkeep: game.i18n.format("SDE.warband.upkeepLine", { gp: upkeepGp(this.actor.system.level?.value, garrison?.granary ? GRANARY_SAVING_GP : 0) }),
-        // The bastion it is garrisoned at, and what that gives it while the bastion stands.
-        bastions: visibleBastions(game.actors.contents, { user: game.user }).map((a) => ({ uuid: a.uuid, name: a.name, selected: a.uuid === state.bastion })),
-        garrisonMissing: !!state.bastion && !garrison,
-        garrisonLines: [
-          ...(garrison?.granary ? [game.i18n.format("SDE.warband.garrisonGranary", { bastion: garrison.name, gp: GRANARY_SAVING_GP })] : []),
-          ...(garrison?.barracks ? [game.i18n.format("SDE.warband.garrisonBarracks", { bastion: garrison.name, dice: `${BARRACKS_HEAL.n}d${BARRACKS_HEAL.faces}` })] : []),
-        ],
-        arrears: state.arrears ? game.i18n.format("SDE.warband.arrearsLine", { gp: state.arrears }) : null,
-        deserted: state.deserted,
-        retraining: state.retrainingUntil > game.time.worldTime
-          ? game.i18n.format("SDE.warband.retrainingLine", { date: formatTime(state.retrainingUntil) }) : null,
-        isGM: game.user.isGM,
-        leading: state.leading,
-        routed: state.routed,
-        outOfService: state.deserted || state.routed,
-      };
-      return context;
-    }
-
-    /** @override — our controls, then the system's own. */
-    activateListeners(html) {
-      const root = html[0] ?? html;
-      root.querySelectorAll("[data-sde-action='open-commander']").forEach((el) =>
-        el.addEventListener("click", () => this._openCommander()));
-      root.querySelectorAll("[data-sde-action='clear-commander']").forEach((el) =>
-        el.addEventListener("click", () => this._setCommander(null)));
-      // #204: the GM's upkeep controls, sent to the active GM's warband writer like every other change.
-      for (const [selector, action] of [["run-month", "runMonth"], ["pay-arrears", "payArrears"], ["return-to-service", "returnToService"]]) {
-        root.querySelectorAll(`[data-sde-action='${selector}']`).forEach((el) => el.addEventListener("click", () => this._sendWrite({ action })));
-      }
-      root.querySelectorAll("select[data-sde-garrison]").forEach((el) => el.addEventListener("change", (ev) => {
-        ev.stopPropagation();
-        this._sendWrite({ action: "garrison", bastionUuid: el.value || null }).then((ok) => { if (!ok) this.render(false); });
-      }));
-      root.querySelectorAll("input[data-sde-leading]").forEach((el) => el.addEventListener("change", (ev) => {
-        ev.stopPropagation();
-        this._sendWrite({ action: "leading", on: el.checked });
-      }));
-      root.querySelectorAll("[data-sde-action='read-upgrade-text']").forEach((el) =>
-        el.addEventListener("click", () => readUpgradeText().then((n) => { if (n) this.render(false); })
-          .catch((err) => console.error(`${MODULE_ID} | warband upgrade text`, err))));
-      // The checklist isn't a form field: each tick is checked against the
-      // allowance and written whole, and a refused one is put back.
-      root.querySelectorAll("input[data-sde-upgrade]").forEach((el) => el.addEventListener("change", (ev) => {
-        ev.stopPropagation();
-        this._toggleUpgrade(el.dataset.sdeUpgrade, el.checked)
-          .then((ok) => { if (!ok) el.checked = !el.checked; })
-          .catch((err) => {
-            console.error(`${MODULE_ID} | warband upgrade`, err);
-            ui.notifications?.error(game.i18n.localize("SDE.warband.notify.upgradeFailed"));
-            // Show what was stored, which may be the tick without all of its numbers.
-            this.render(false);
-          });
-      }));
-      super.activateListeners(html);
-    }
-
-    /** @override — a PC dropped on the Commander box commands the warband; other actors elsewhere do nothing. */
-    async _onDrop(event) {
-      let data = null;
-      try { data = foundry.applications.ux.TextEditor.implementation.getDragEventData(event); } catch { /* not ours */ }
-      if (data?.type === "Actor") {
-        if (!event.target?.closest?.("[data-drop='commander']")) return;
-        const pc = await fromUuid(data.uuid).catch(() => null);
-        if (pc?.type !== "Player" || pc.pack || !(game.user.isGM || pc.isOwner)) { ui.notifications?.warn(game.i18n.localize("SDE.warband.notify.commanderPc")); return; }
-        return this._setCommander(pc);
-      }
-      return super._onDrop(event);
-    }
-
-    async _openCommander() {
-      const uuid = warbandState(this.actor).commander;
-      (uuid ? await fromUuid(uuid).catch(() => null) : null)?.sheet?.render(true);
-    }
-
-    /** Give the warband to a commander (or none), if the allowance holds. */
-    _setCommander(pc) {
-      return this._sendWrite({ action: "commander", pcUuid: pc?.uuid ?? null });
-    }
-
-    /**
-     * Tick or untick one upgrade; refused (with a message) over the allowance
-     * or twice. Its numbers go on or off in the same update (#201). One at a
-     * time, on the client's warband queue: each reads the list, the allowance
-     * and the stored numbers only after the last one's writes have landed.
-     */
-    _toggleUpgrade(key, on) {
-      return this._sendWrite({ action: "upgrade", key, on });
-    }
-
-    /** Send a change to the active GM's writer, and show what it answered. */
-    async _sendWrite(data) {
-      const reply = await sendWarbandWrite({ ...data, actorId: this.actor.id }, type);
-      if (reply?.warn) ui.notifications?.warn(game.i18n.format(reply.warn.key, reply.warn.data));
-      else if (!reply?.ok && reply?.error) ui.notifications?.warn(reply.error);
-      return !!reply?.ok;
-    }
-  };
 }

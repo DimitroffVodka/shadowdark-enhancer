@@ -717,6 +717,7 @@ export class MonsterTokenArt {
     buttons.push({ action: "cancel", label: "SDE.tokenArt.dialog.close" });
 
     await DialogV2.wait({
+      classes: ["sde-ui", "sde-dialog"],
       window: { title: "SDE.tokenArt.dialog.title", icon: "fa-solid fa-dragon" },
       content,
       buttons,

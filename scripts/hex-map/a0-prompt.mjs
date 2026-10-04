@@ -24,6 +24,7 @@ export function registerA0Prompt() {
     if (scene.getFlag(MODULE_ID, "hexTags")?.origin || scene.getFlag(MODULE_ID, ASKED_FLAG)) return;
     await replaceModuleFlag(scene, ASKED_FLAG, true);
     const yes = await foundry.applications.api.DialogV2.confirm({
+      classes: ["sde-ui", "sde-dialog"],
       window: { title: t("SDE.hexMap.playable.title"), icon: "fa-solid fa-map" },
       content: `<p>${t("SDE.hexMap.playable.promptBody")}</p>`,
       yes: { label: t("SDE.hexMap.playable.promptYes") },

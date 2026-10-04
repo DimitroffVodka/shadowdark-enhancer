@@ -372,7 +372,7 @@
 .sde-party .sdp-pop h4 + .colors, .sde-party .sdp-pop .icons + h4 { margin-top: 2px; }
 .sde-party .sdp-pop-foot { display: flex; justify-content: flex-end; }
 .sde-party .sdp-emblems .icons { display: grid; grid-template-columns: repeat(6, 1fr); gap: 5px; }
-.sde-party .sdp-emblems .icons button { display: grid; place-items: center; height: 38px; min-height: 0; padding: 0; border: 1px solid var(--ui-line); border-radius: var(--ui-r); background: var(--ui-raised); cursor: pointer; }
+.sde-party .sdp-emblems .icons button { display: grid; place-items: center; height: 38px; min-height: 0; padding: 0; border: 1px solid var(--ui-line); border-radius: var(--ui-r); background: color-mix(in srgb, var(--ui-page) 30%, black); cursor: pointer; }
 .sde-party .sdp-emblems .icons img { width: 24px; height: 24px; border: 0; opacity: .85; }
 .sde-party .sdp-emblems .icons button:hover { border-color: var(--ui-frame); }
 .sde-party .sdp-emblems .icons button.on { border-color: var(--ui-frame); box-shadow: 0 0 0 1px var(--ui-frame); }
@@ -465,7 +465,7 @@
 .sde-party .sdp-itemlist li.head .q, .sde-party .sdp-itemlist li.head .s { justify-content: center; text-align: center; }
 .sde-party .sdp-itemlist .act { display: flex; justify-content: flex-end; }
 /* the gem list lives in the narrow right column: name first, then the count and value at their own width */
-.sde-party .sdp-gems li { grid-template-columns: 24px minmax(0, 1fr) auto auto; }
+.sde-party .sdp-gems li { grid-template-columns: 24px minmax(0, 1fr) auto auto; column-gap: 4px; }
 .sde-party .sdp-gems .act { display: none; }
 .sde-party .sdp-gems .s { text-align: right; }
 /* the Add item menu, a row's Give to, and the coin forms are <details>: the summary is the button, the open part a small list or form */

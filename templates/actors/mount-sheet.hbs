@@ -1,19 +1,7 @@
 <div class="sde-vehicle-sheet-body flexcol">
 
-  {{!-- Header (Shadowdark system chrome), as on the system's NPC sheet --}}
-  <header class="SD-header flex0">
-    <img class="portrait" src="{{actor.img}}" data-action="editImage" data-edit="img" data-tooltip="{{actor.name}}" height="110" width="110" />
-    <div class="shadowdark-logo"><span>ShadowDark</span></div>
-    <div class="SD-title">
-      <input type="text" name="name" value="{{actor.name}}" placeholder="{{localize 'SHADOWDARK.sheet.actor.placeholder.name'}}" />
-    </div>
-  </header>
-
-  <nav class="SD-nav flex0" data-group="primary">
-    {{#each tabs}}
-      <a class="navigation-tab {{#if active}}active{{/if}}" data-action="changeTab" data-tab="{{id}}">{{label}}{{#if count}} <span class="sde-tab-count">{{count}}</span>{{/if}}</a>
-    {{/each}}
-  </nav>
+  {{!-- Header and tab bar (Shadowdark system chrome), as on the system's NPC sheet --}}
+  {{> "modules/shadowdark-enhancer/templates/actors/npc-stat/header.hbs"}}
 
   <div class="sde-mount-body flex1">
 
@@ -21,29 +9,7 @@
     <section class="sde-veh-tab-content {{#if tab.stats}}active{{/if}}" data-tab-content="stats">
      <div class="sde-mount-abilities">
       <div class="sde-mount-left">
-      <div class="SD-box">
-        <div class="header">
-          <label>{{localize "SHADOWDARK.sheet.actor.hp"}}</label>
-          <span>{{#if owner}}<a class="fas fa-dice" data-action="rollHp"></a>{{/if}}</span>
-        </div>
-        <div class="content larger">
-          <div class="value-grid">
-            <input type="number" name="system.attributes.hp.value" value="{{system.attributes.hp.value}}" placeholder="0" />
-            <div>/</div>
-            <input type="number" name="system.attributes.hp.max" value="{{system.attributes.hp.max}}" placeholder="0" step="1" />
-          </div>
-        </div>
-      </div>
-      <div class="sde-mount-pair">
-        <div class="SD-box">
-          <div class="header"><label>{{localize "SHADOWDARK.sheet.actor.ac"}}</label><span></span></div>
-          <div class="content centered larger"><input type="number" name="system.attributes.ac.value" value="{{system.attributes.ac.value}}" placeholder="0" /></div>
-        </div>
-        <div class="SD-box">
-          <div class="header"><label>{{localize "SHADOWDARK.sheet.actor.level"}}</label><span></span></div>
-          <div class="content centered larger"><input type="number" name="system.level.value" value="{{system.level.value}}" placeholder="0" /></div>
-        </div>
-      </div>
+      {{> "modules/shadowdark-enhancer/templates/actors/npc-stat/top.hbs"}}
       <div class="SD-box">
         <div class="header">
           <label>{{localize "SHADOWDARK.sheet.abilities.stats"}}</label>
@@ -70,61 +36,10 @@
         </div>
       </div>
 
-      <div class="SD-box">
-        <div class="header"><label>{{localize "SHADOWDARK.sheet.npc.movement"}}</label><span></span></div>
-        <div class="content sde-mount-traits">
-          <select name="system.move">{{#each moves}}<option value="{{value}}" {{#if selected}}selected{{/if}}>{{label}}</option>{{/each}}</select>
-          <input type="text" name="system.moveNote" value="{{system.moveNote}}" />
-        </div>
-      </div>
-      <div class="SD-box">
-        <div class="header"><label>{{localize "SHADOWDARK.sheet.actor.alignment"}}</label><span></span></div>
-        <div class="content sde-mount-traits">
-          <select name="system.alignment">{{#each alignments}}<option value="{{value}}" {{#if selected}}selected{{/if}}>{{label}}</option>{{/each}}</select>
-        </div>
-      </div>
-      <div class="sde-mount-dark">
-        <h3>{{localize "SHADOWDARK.sheet.npc.dark_adapted"}}</h3>
-        <input type="checkbox" name="system.darkAdapted" {{#if system.darkAdapted}}checked{{/if}} />
-      </div>
+      {{> "modules/shadowdark-enhancer/templates/actors/npc-stat/traits.hbs"}}
       </div>
       <div class="sde-mount-right">
-
-      <div class="SD-box">
-        <div class="header">
-          <label>{{localize "SHADOWDARK.sheet.npc.attacks_label"}}</label>
-          <span><a class="fas fa-square-plus" data-action="itemCreate" data-item-type="NPC Attack" data-tooltip="{{localize 'SHADOWDARK.sheet.general.item_create.tooltip' type='NPC Attack'}}"></a></span>
-        </div>
-        <div class="content">
-          {{#each attacks}}<div class="item attack" data-item-id="{{itemId}}">{{{display}}}</div>{{/each}}
-        </div>
-      </div>
-
-      <div class="SD-box">
-        <div class="header">
-          <label>{{localize "SHADOWDARK.sheet.npc.specials_label"}}</label>
-          <span><a class="fas fa-square-plus" data-action="itemCreate" data-item-type="NPC Special Attack" data-tooltip="{{localize 'SHADOWDARK.sheet.general.item_create.tooltip' type='NPC Special Attack'}}"></a></span>
-        </div>
-        <div class="content">
-          {{#each specials}}<div class="item attack" data-item-id="{{itemId}}">{{{display}}}</div>{{/each}}
-        </div>
-      </div>
-
-      <div class="SD-box">
-        <div class="header">
-          <label>{{localize "SHADOWDARK.sheet.npc.features_label"}}</label>
-          <span><a class="fas fa-square-plus" data-action="itemCreate" data-item-type="NPC Feature" data-tooltip="{{localize 'SHADOWDARK.sheet.general.item_create.tooltip' type='NPC Feature'}}"></a></span>
-        </div>
-        <div class="content">
-          {{#each features}}
-            <div class="item attack" data-item-id="{{itemId}}">
-              <a class="rollable" data-action="display-feature" data-item-id="{{itemId}}"><i class="fas fa-comment"></i> <b>{{name}}.</b></a>
-              {{{description}}}
-            </div>
-          {{/each}}
-        </div>
-      </div>
-
+      {{> "modules/shadowdark-enhancer/templates/actors/npc-stat/attacks.hbs"}}
       </div>
      </div>
     </section>
@@ -285,111 +200,9 @@
       </div>
     </section>
 
-    {{!-- Spells --}}
-    <section class="sde-veh-tab-content {{#if tab.spells}}active{{/if}}" data-tab-content="spells">
-      <div class="SD-box">
-        <div class="header"><label>{{localize "SHADOWDARK.sheet.npc.tab.spells"}}</label><span><a class="fa-solid fa-square-plus" data-action="itemCreate" data-item-type="Spell" data-tooltip="{{localize 'SHADOWDARK.sheet.general.item_create.tooltip' type='Spell'}}"></a></span></div>
-        <div class="content">
-          <div class="sde-veh-grid">
-            <div class="sde-veh-field"><label>{{localize "SHADOWDARK.item.npc.spell_count"}}</label><input type="number" name="system.spellcasting.attacks" value="{{system.spellcasting.attacks}}" placeholder="0" /></div>
-            <div class="sde-veh-field"><label>{{localize "SHADOWDARK.item.npc.spell_bonus"}}</label><input type="number" name="system.spellcasting.bonus" value="{{system.spellcasting.bonus}}" placeholder="0" /></div>
-            <div class="sde-veh-field"><label>{{localize "SHADOWDARK.item.npc.spell_ability"}}</label>
-              <select name="system.spellcasting.ability"><option value="">&mdash;</option>{{#each castingAbilities}}<option value="{{value}}" {{#if selected}}selected{{/if}}>{{label}}</option>{{/each}}</select>
-            </div>
-          </div>
-          <ol class="SD-list sde-mount-spells">
-            <li class="header">
-              <div class="item-name">{{localize "SHADOWDARK.item.spell.label"}}</div>
-              <div class="flex-60-px">{{localize "SHADOWDARK.class-ability.dc.label"}}</div>
-              <div class="duration">{{localize "SHADOWDARK.item.spell_duration"}}</div>
-              <div class="range">{{localize "SHADOWDARK.item.spell_range"}}</div>
-              <div class="actions"></div>
-            </li>
-            {{#each spells}}
-              <li class="item expanded" data-item-id="{{id}}" data-uuid="{{uuid}}">
-                <div class="item-image" style="background-image: url({{img}})"><i class="fas fa-comment"></i></div>
-                <a class="item-name {{#if lost}}strike-through{{/if}}" data-action="show-details">{{name}}</a>
-                <div class="flex-60-px">{{dc}}</div>
-                <div class="duration">{{duration}}</div>
-                <div class="range">{{range}}</div>
-                <div class="actions">
-                  {{#unless lost}}
-                    {{#if focus}}<a data-action="focus-npc-spell" data-item-id="{{id}}" data-item-uuid="{{uuid}}" data-tooltip="{{localize 'SHADOWDARK.sheet.player.tooltip.focus_on_spell'}}"><i class="fa-solid fa-brain"></i></a>{{/if}}
-                    <a data-action="cast-npc-spell" data-item-id="{{id}}" data-item-uuid="{{uuid}}" data-tooltip="{{localize 'SHADOWDARK.sheet.player.tooltip.cast_spell'}}"><i class="fa-solid fa-hand-sparkles"></i></a>
-                  {{/unless}}
-                  <a data-action="toggle-lost" data-item-id="{{id}}" data-tooltip="{{localize 'SHADOWDARK.sheet.player.toggle_spell_lost'}}">
-                    {{#if lost}}<i style="color:red;" class="fa-solid fa-xmark"></i>{{else}}<i class="fa-solid fa-check"></i>{{/if}}
-                  </a>
-                </div>
-                <div class="item-details">{{{description}}}</div>
-              </li>
-            {{/each}}
-          </ol>
-        </div>
-      </div>
-    </section>
-
-    {{!-- Notes --}}
-    <section class="sde-veh-tab-content {{#if tab.notes}}active{{/if}}" data-tab-content="notes">
-      <div class="SD-box">
-        <div class="header"><label>{{localize "SHADOWDARK.sheet.npc.tab.description"}}</label><span></span></div>
-        <div class="content">
-          <prose-mirror name="system.notes" value="{{system.notes}}" toggled="true" collaborate="false">{{{enrichedNotes}}}</prose-mirror>
-        </div>
-      </div>
-    </section>
-
-    {{!-- Effects --}}
-    <section class="sde-veh-tab-content {{#if tab.effects}}active{{/if}}" data-tab-content="effects">
-      <div class="SD-box">
-        <div class="header"><label>{{localize "SHADOWDARK.sheet.general.effects_and_conditions.title"}}</label><span></span></div>
-        <div class="content">
-          {{#each effects}}
-            <ol class="SD-list">
-              <li class="header"><div class="item-name">{{label}}</div></li>
-              {{#each items}}
-                <li class="item effect flexrow" data-item-id="{{id}}" data-uuid="{{uuid}}">
-                  <div class="item-image" style="background-image: url({{img}})"><i class="fas fa-comment fa-lg"></i></div>
-                  <a class="item-name effect-name" data-action="show-details">{{name}}</a>
-                  <div class="effect-duration">{{#if unlimited}}<i class="fas fa-infinity"></i>{{else}}<i class="fas fa-clock"></i>{{/if}}</div>
-                </li>
-              {{/each}}
-            </ol>
-          {{/each}}
-        </div>
-      </div>
-
-      <div class="SD-box">
-        <div class="header"><label>{{localize "SHADOWDARK.app.active_effects.title"}}</label><span><a class="fa-solid fa-square-plus" data-action="effectControl" data-effect-action="create"></a></span></div>
-        <div class="content">
-          <div class="sde-veh-field">
-            <label>{{localize "SHADOWDARK.item.effect.pre-defined.title"}}</label>
-            <input list="sde-mount-predefined-effects" name="predefinedEffects" type="text" value="" placeholder="{{localize 'SHADOWDARK.dialog.type_here'}}" />
-            <datalist id="sde-mount-predefined-effects">{{#each predefinedEffects}}<option value="{{key}}" label="{{name}}"></option>{{/each}}</datalist>
-          </div>
-          <ol class="SD-list">
-            {{#each activeEffects}}
-              <li class="effect" data-effect-uuid="{{uuid}}">
-                <div class="effect-image"><img src="{{img}}" /></div>
-                <div class="effect-name">{{name}}</div>
-                <div class="effect-name">{{source}}</div>
-                <div class="effect-duration">{{#if unlimited}}<i class="fas fa-infinity"></i>{{else if duration}}{{duration}}{{else}}<i class="fas fa-clock"></i>{{/if}}</div>
-                <div class="actions">
-                  <a data-action="effectControl" data-effect-action="toggle" data-tooltip="{{localize 'SHADOWDARK.sheet.general.active_effects.toggle_effect.tooltip'}}">
-                    {{#if disabled}}<i class="fas fa-circle-xmark"></i>{{else}}<i class="fas fa-circle-check" style="color:var(--primary);"></i>{{/if}}
-                  </a>
-                  <a data-action="effectControl" data-effect-action="toggle-situational" data-tooltip="{{localize 'SHADOWDARK.sheet.general.active_effects.toggle_situational.tooltip'}}">
-                    {{#if situational}}<i class="fas fa-circle-question" style="color:var(--primary);"></i>{{else}}<i class="far fa-circle-question"></i>{{/if}}
-                  </a>
-                  <a data-action="effectControl" data-effect-action="edit" data-tooltip="{{localize 'SHADOWDARK.sheet.general.active_effects.edit_effect.tooltip'}}"><i class="fa-solid fa-pen-to-square"></i></a>
-                  <a data-action="effectControl" data-effect-action="delete" data-tooltip="{{localize 'SHADOWDARK.sheet.general.active_effects.delete_effect.tooltip'}}"><i class="fas fa-trash"></i></a>
-                </div>
-              </li>
-            {{/each}}
-          </ol>
-        </div>
-      </div>
-    </section>
+    {{> "modules/shadowdark-enhancer/templates/actors/npc-stat/spells.hbs"}}
+    {{> "modules/shadowdark-enhancer/templates/actors/npc-stat/notes.hbs"}}
+    {{> "modules/shadowdark-enhancer/templates/actors/npc-stat/effects.hbs"}}
 
   </div>
 </div>

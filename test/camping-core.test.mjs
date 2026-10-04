@@ -49,7 +49,7 @@ test("Firewood success is free and failure explicitly waits for fallback", () =>
 test("every owner's participation choice is required before locking", () => {
   const c = setup(); c.participants[1].confirmed = false;
   assert.throws(() => lockCamp(c));
-  assert.equal(lockCamp(selectTask(c, "B", { participate: false })).phase, "firewood");
+  assert.equal(lockCamp(selectTask(c, "B", { task: "" })).phase, "firewood");
 });
 test("Cook grants once only after eligible rest with unchanged max", () => {
   assert.equal(cookGrant({ value: 3, max: 3 }, null, "camp", 10, false), null);

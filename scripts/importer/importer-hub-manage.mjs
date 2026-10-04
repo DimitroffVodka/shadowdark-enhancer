@@ -452,11 +452,12 @@ class HubManageMethods {
       </p>`;
 
     const choice = await foundry.applications.api.DialogV2.wait({
+      classes: ["sde-ui", "sde-dialog"],
       window: { title: t("SDE.importer.cull.titleMonsters") },
       content,
       buttons: [
-        { action: "cull",   label: t("SDE.importer.cull.deleteCopies"), default: true },
-        { action: "cancel", label: t("SDE.importer.btn.cancel") },
+        { action: "cull",   label: t("SDE.importer.cull.deleteCopies") },
+        { action: "cancel", label: t("SDE.importer.btn.cancel"), default: true },
       ],
       rejectClose: false,
     }).catch(() => "cancel");
@@ -1018,6 +1019,7 @@ class HubManageMethods {
       .map((r) => `<option value="${r.src}"${r.src === defaultSrc ? " selected" : ""}>${foundry.utils.escapeHTML(r.label)}</option>`)
       .join("");
     const picked = await foundry.applications.api.DialogV2.wait({
+      classes: ["sde-ui", "sde-dialog"],
       window: { title: t("SDE.importer.extract.title"), icon: "fas fa-file-pdf" },
       content: `
         <p>${t("SDE.importer.extract.lead")}</p>
@@ -1118,11 +1120,12 @@ class HubManageMethods {
       </p>`;
 
     const choice = await foundry.applications.api.DialogV2.wait({
+      classes: ["sde-ui", "sde-dialog"],
       window: { title: t("SDE.importer.cull.titleItems") },
       content,
       buttons: [
-        { action: "cull",   label: t("SDE.importer.cull.deleteCopies"), default: true },
-        { action: "cancel", label: t("SDE.importer.btn.cancel") },
+        { action: "cull",   label: t("SDE.importer.cull.deleteCopies") },
+        { action: "cancel", label: t("SDE.importer.btn.cancel"), default: true },
       ],
       rejectClose: false,
     }).catch(() => "cancel");
@@ -1156,6 +1159,7 @@ class HubManageMethods {
       .map((src) => `<option value="${src}">${foundry.utils.escapeHTML(CHAR_SOURCES[src]?.label ?? src)}</option>`)
       .join("");
     const picked = await foundry.applications.api.DialogV2.wait({
+      classes: ["sde-ui", "sde-dialog"],
       window: { title: t("SDE.importer.hex.book.title"), icon: "fas fa-map-location-dot" },
       content: `
         <p>${t("SDE.importer.hex.book.lead")}</p>
@@ -1209,6 +1213,7 @@ class HubManageMethods {
       ...CHAPTER_PRESETS.map((p) => `<option value="${p.id}">${esc(t(p.label))}</option>`)].join("");
     const bookOpts = books.map((b) => `<option value="${esc(b.src)}">${esc(b.label)}</option>`).join("");
     const form = await foundry.applications.api.DialogV2.wait({
+      classes: ["sde-ui", "sde-dialog"],
       window: { title: t("SDE.importer.chapter.title"), icon: "fas fa-book-open-reader" },
       content: `
         <p>${t("SDE.importer.chapter.lead")}</p>
@@ -1261,6 +1266,7 @@ class HubManageMethods {
       ? `<p><strong>${t("SDE.importer.chapter.dropped")}</strong> ${read.dropped.map((l) => `“${esc(l)}”`).join(", ")}</p>`
       : "";
     const go = await foundry.applications.api.DialogV2.wait({
+      classes: ["sde-ui", "sde-dialog"],
       window: { title: t("SDE.importer.chapter.previewTitle", { name: req.name }), icon: "fas fa-book-open-reader" },
       content: `
         <p>${t("SDE.importer.chapter.previewLead", { n: read.pages.length, pages: esc(req.pages) })}</p>
