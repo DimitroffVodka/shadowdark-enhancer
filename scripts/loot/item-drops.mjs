@@ -520,10 +520,13 @@ export const ItemDrops = {
     const col = el.querySelector(".col.right") || el.querySelector(".right");
     if (!col) return;
 
-    const btn = document.createElement("div");
-    btn.classList.add("control-icon");
-    btn.title = L("SDE.loot.itemDrops.pickUpTip", { name: actor.name });
-    btn.innerHTML = `<i class="fas fa-hand-holding" style="font-size:1.2em;"></i>`;
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "control-icon sde-hud-btn";
+    const tip = L("SDE.loot.itemDrops.pickUpTip", { name: actor.name });
+    btn.dataset.tooltip = tip;
+    btn.setAttribute("aria-label", tip);
+    btn.innerHTML = `<i class="fas fa-hand-holding" style="font-size:1.2em;" inert></i>`;
     btn.addEventListener("click", async (ev) => {
       ev.preventDefault();
       ev.stopPropagation();

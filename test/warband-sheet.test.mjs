@@ -1,8 +1,10 @@
 // The Warband sheet's writes (#283, #286 reviews): one writer, the active GM, one at a time, and the
-// attacks always following the stored upgrades.
+// attacks always following the stored upgrades; and the ApplicationV2 sheet that sends them (#200): the commander
+// dropped on it, the allowance refusing, and the controls reaching the writer.
 import test from "node:test";
 import assert from "node:assert/strict";
-import { buildWarbandNpcSheet, registerWarbandWrites, WARBAND_QUERY } from "../scripts/actors/warband-npc-sheet.mjs";
+import { registerWarbandWrites, WARBAND_QUERY } from "../scripts/actors/warband-npc-sheet.mjs";
+import { installAppV2Stub } from "./helpers/appv2-stub.mjs";
 
 const TYPE = "shadowdark-enhancer.warband";
 const MOD = "shadowdark-enhancer";
@@ -10,7 +12,8 @@ const later = () => new Promise((resolve) => setImmediate(resolve));
 const hooks = new Map();
 globalThis.Hooks = { on: (name, fn) => hooks.set(name, fn), once() {}, callAll() {} };
 globalThis._replace = (value) => ({ __replace: value });
-globalThis.ui = { notifications: { warn() {}, error() {}, info() {} } };
+const warns = [];
+globalThis.ui = { notifications: { warn: (m) => warns.push(m), error() {}, info() {} } };
 globalThis.CONFIG = { queries: {} };
 const actors = [];
 actors.get = (id) => actors.find((a) => a.id === id);
@@ -67,7 +70,8 @@ function warband(id, flag, items = []) {
   actors.push(a);
   return a;
 }
-const Sheet = buildWarbandNpcSheet(class { activateListeners() {} }, TYPE);
+installAppV2Stub();
+const { WarbandSheet: Sheet } = await import("../scripts/actors/warband-sheet.mjs");
 const sheetOf = (actor) => Object.defineProperty(Object.create(Sheet.prototype), "actor", { value: actor });
 const bonus = (item) => item._source.system.bonuses.attackBonus;
 
@@ -233,4 +237,169 @@ test("the writer takes nothing from the payload on trust: odd types change nothi
     assert.equal(reply?.ok, false, JSON.stringify(data));
     assert.deepEqual({ commander: a.flags[MOD].warband.commander, upgrades: a.flags[MOD].warband.upgrades }, { commander: null, upgrades: [] }, JSON.stringify(data));
   }
+});
+
+// ── The sheet: the commander drop, the allowance and the controls ────────────────────────────────────────────────
+
+/** A drop event: on the Commander box, or off it. */
+const dropOn = (onCommanderBox) => ({ target: { closest: (selector) => (onCommanderBox && selector === "[data-drop='commander']" ? {} : null) } });
+const owned = (extra = {}) => ({ ...pc, isOwner: true, ...extra });
+const asUser = async (user, fn) => {
+  const was = globalThis.game.user;
+  globalThis.game.user = user;
+  try { return await fn(); } finally { globalThis.game.user = was; }
+};
+
+test("a PC dropped on the Commander box commands the warband, through the writer", async () => {
+  actors.length = 0;
+  const a = warband("a", { commander: null, upgrades: [] });
+  const dropped = owned();
+  assert.equal(await sheetOf(a)._onDropActor(dropOn(true), dropped), dropped, "the drop is taken");
+  assert.equal(a.flags[MOD].warband.commander, pc.uuid);
+});
+
+test("a PC dropped anywhere but the Commander box changes nothing", async () => {
+  actors.length = 0;
+  const a = warband("a", { commander: null, upgrades: [] });
+  warns.length = 0;
+  assert.equal(await sheetOf(a)._onDropActor(dropOn(false), owned()), null);
+  assert.equal(await sheetOf(a)._onDropActor({ target: null }, owned()), null);
+  assert.equal(a.flags[MOD].warband.commander, null);
+  assert.deepEqual(warns, [], "a near miss isn't a refusal");
+});
+
+test("only a world PC the user owns can be dropped as commander: anything else is refused with a notice", async () => {
+  actors.length = 0;
+  const a = warband("a", { commander: null, upgrades: [] });
+  const alice = { id: "alice", isGM: false, hasPermission: () => true };
+  const refused = [
+    ["a compendium PC", () => sheetOf(a)._onDropActor(dropOn(true), packPc), globalThis.game.user],
+    ["an NPC", () => sheetOf(a)._onDropActor(dropOn(true), { ...owned(), type: "NPC" }), globalThis.game.user],
+    ["another player's PC", () => sheetOf(a)._onDropActor(dropOn(true), { ...bobPc, isOwner: false }), alice],
+  ];
+  for (const [what, drop, user] of refused) {
+    warns.length = 0;
+    assert.equal(await asUser(user, drop), null, what);
+    assert.deepEqual(warns, ["SDE.warband.notify.commanderPc"], what);
+    assert.equal(a.flags[MOD].warband.commander, null, what);
+  }
+});
+
+test("a player can drop their own PC as commander: their change goes to the active GM, who writes it", async () => {
+  actors.length = 0;
+  const a = warband("a", { commander: null, upgrades: [] });
+  const alice = { id: "alice", isGM: false, hasPermission: () => true };
+  const sent = [];
+  // The active GM's client answers the query, with the sender as the requesting user.
+  globalThis.game.users.activeGM = {
+    id: "gm",
+    query: (name, data) => {
+      sent.push(name);
+      const was = globalThis.game.user;
+      globalThis.game.user = { ...activeGM, hasPermission: () => true };
+      try { return globalThis.CONFIG.queries[name](data, { user: { id: "alice", isGM: false } }); } finally { globalThis.game.user = was; }
+    },
+  };
+  try {
+    assert.ok(await asUser(alice, () => sheetOf(a)._onDropActor(dropOn(true), owned())));
+  } finally {
+    globalThis.game.users.activeGM = activeGM;
+  }
+  assert.deepEqual(sent, [WARBAND_QUERY]);
+  assert.equal(a.flags[MOD].warband.commander, pc.uuid);
+});
+
+test("a commander over the warband allowance is refused with the allowance's notice, and the commander stays as it was", async () => {
+  actors.length = 0;
+  // A d6 commander has 4 warbands in all.
+  for (const id of ["w1", "w2", "w3", "w4"]) warband(id, { commander: pc.uuid, upgrades: [] });
+  const fifth = warband("fifth", { commander: null, upgrades: ["fast"] });
+  warns.length = 0;
+  assert.equal(await sheetOf(fifth)._onDropActor(dropOn(true), owned()), null);
+  assert.deepEqual(warns, ["SDE.warband.notify.tooManyWarbands"]);
+  assert.equal(fifth.flags[MOD].warband.commander, null);
+});
+
+test("a commander whose other warbands already hold the upgrades is refused for upgrades", async () => {
+  actors.length = 0;
+  // A d6 commander has 3 upgrades in all: 2 are taken elsewhere, and this warband brings 2.
+  warband("other", { commander: pc.uuid, upgrades: ["fast", "tough"] });
+  const b = warband("b", { commander: null, upgrades: ["scout", "hardy"] });
+  warns.length = 0;
+  assert.equal(await sheetOf(b)._onDropActor(dropOn(true), owned()), null);
+  assert.deepEqual(warns, ["SDE.warband.notify.tooManyUpgrades"]);
+  assert.equal(b.flags[MOD].warband.commander, null);
+});
+
+test("clearing the commander sends 'no commander' to the writer", async () => {
+  actors.length = 0;
+  const a = warband("a", { commander: pc.uuid, upgrades: ["fast"] });
+  assert.equal(await sheetOf(a)._onClearCommander(), true);
+  assert.deepEqual({ commander: a.flags[MOD].warband.commander, upgrades: a.flags[MOD].warband.upgrades }, { commander: null, upgrades: ["fast"] });
+});
+
+/** A sheet whose writes are recorded, not made. */
+function spySheet(reply = true) {
+  const sent = [];
+  const sheet = sheetOf(warband("a", { commander: null, upgrades: [] }));
+  sheet._sendWrite = async (data) => { sent.push(data); return reply; };
+  return { sheet, sent };
+}
+
+test("the upkeep controls each send their one action", async () => {
+  const { sheet, sent } = spySheet();
+  await sheet._onRunMonth();
+  await sheet._onPayArrears();
+  await sheet._onReturnToService();
+  assert.deepEqual(sent, [{ action: "runMonth" }, { action: "payArrears" }, { action: "returnToService" }]);
+});
+
+test("a change to an upgrade, the garrison or Leading goes to the writer and does not submit the form", async () => {
+  const { sheet, sent } = spySheet();
+  const form = {};
+  assert.notEqual(await sheet._onChangeForm(form, { target: { dataset: { sdeUpgrade: "fast" }, checked: true } }), "submitted");
+  assert.notEqual(await sheet._onChangeForm(form, { target: { dataset: { sdeGarrison: "" }, value: "Actor.keep" } }), "submitted");
+  assert.notEqual(await sheet._onChangeForm(form, { target: { dataset: { sdeGarrison: "" }, value: "" } }), "submitted");
+  assert.notEqual(await sheet._onChangeForm(form, { target: { dataset: { sdeLeading: "" }, checked: true } }), "submitted");
+  assert.deepEqual(sent, [
+    { action: "upgrade", key: "fast", on: true },
+    { action: "garrison", bastionUuid: "Actor.keep" },
+    { action: "garrison", bastionUuid: null },
+    { action: "leading", on: true },
+  ]);
+});
+
+test("any other field on the sheet still submits the form", async () => {
+  const { sheet, sent } = spySheet();
+  assert.equal(await sheet._onChangeForm({}, { target: { dataset: {}, name: "system.attributes.hp.value" } }), "submitted");
+  assert.deepEqual(sent, []);
+});
+
+test("a refused tick is put back on the box", async () => {
+  const { sheet } = spySheet(false);
+  const box = { dataset: { sdeUpgrade: "fast" }, checked: true };
+  await sheet._onChangeForm({}, { target: box });
+  assert.equal(box.checked, false);
+  const accepted = spySheet(true);
+  const ticked = { dataset: { sdeUpgrade: "fast" }, checked: true };
+  await accepted.sheet._onChangeForm({}, { target: ticked });
+  assert.equal(ticked.checked, true);
+});
+
+test("a tick whose write throws says so, and the sheet is drawn again from what was stored", async () => {
+  const { sheet } = spySheet();
+  sheet._sendWrite = async () => { throw new Error("write failed"); };
+  let rendered = 0;
+  sheet.render = () => { rendered++; };
+  const errors = [];
+  const keep = [globalThis.ui.notifications.error, console.error];
+  globalThis.ui.notifications.error = (m) => errors.push(m);
+  console.error = () => {};
+  try {
+    await sheet._onChangeForm({}, { target: { dataset: { sdeUpgrade: "fast" }, checked: true } });
+  } finally {
+    [globalThis.ui.notifications.error, console.error] = keep;
+  }
+  assert.deepEqual(errors, ["SDE.warband.notify.upgradeFailed"]);
+  assert.equal(rendered, 1);
 });
