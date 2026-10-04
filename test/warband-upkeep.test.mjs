@@ -50,7 +50,8 @@ const pcs = new Map();
 globalThis.fromUuid = async (uuid) => pcs.get(uuid) ?? null;
 
 const { registerWarbandUpkeep, PENDING_MONTHS_SETTING } = await import("../scripts/actors/warband-upkeep.mjs");
-const { buildWarbandNpcSheet, registerWarbandWrites, warbandWrites } = await import("../scripts/actors/warband-npc-sheet.mjs");
+const { registerWarbandWrites, warbandWrites } = await import("../scripts/actors/warband-npc-sheet.mjs");
+const { installAppV2Stub } = await import("./helpers/appv2-stub.mjs");
 const core = await import("../scripts/actors/warband-core.mjs");
 const { BASTION_TYPE } = await import("../scripts/bastion/bastion-art.mjs");
 const bastionCore = await import("../scripts/bastion/bastion-core.mjs");
@@ -111,7 +112,8 @@ const reset = () => {
   actors.length = 0; users.length = 0; pcs.clear(); chat.length = 0; rolls.length = 0; formulas.length = 0; warns.length = 0; chatRejects = 0; settingRejects.clear();
   for (const k of settings.keys()) settings.set(k, null);
 };
-const Sheet = buildWarbandNpcSheet(class { activateListeners() {} }, TYPE);
+installAppV2Stub();
+const { WarbandSheet: Sheet } = await import("../scripts/actors/warband-sheet.mjs");
 const sheetOf = (wb) => Object.defineProperty(Object.create(Sheet.prototype), "actor", { value: wb });
 /** Pay Arrears pressed on the warband's sheet: true when it went through. */
 const pay = (wb) => sheetOf(wb)._sendWrite({ action: "payArrears" }).catch(() => false);

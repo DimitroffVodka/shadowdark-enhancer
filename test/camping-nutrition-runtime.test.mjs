@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { feedCamp, restCamp, foodPreview, nutritionDay } from "../scripts/camping/camping-nutrition.mjs";
-import { finishCampNight, handleCamp, requestCamp } from "../scripts/camping/camping.mjs";
+import { finishCampNight, requestCamp } from "../scripts/camping/camping.mjs";
 import { normalizeOverlandState, makeCampState, interruptRest } from "../scripts/overland/overland-state-core.mjs";
 const M = "shadowdark-enhancer";
 const collection = rows => { const map = new Map(rows.map(r => [r.id, r])); map.filter = fn => [...map.values()].filter(fn); map.find = fn => [...map.values()].find(fn); return map; };
@@ -36,11 +36,11 @@ function fixture() {
 }
 test("unavailable harsh meal is untouched; starvation one/day across reload and party change; unrelated flags survive", async () => {
   const { a, b, party, camp, ration } = fixture();
-  const one = ration(a, 1), hunt = ration(b, 10), shared = ration(party, 4);
+  const one = ration(a, 1), hunt = ration(b, 10), shared = ration(party, 0);
   await feedCamp(party, camp);
   assert.equal(one.system.quantity, 1);
   assert.equal(hunt.system.quantity, 8);
-  assert.equal(shared.system.quantity, 4);
+  assert.equal(shared.system.quantity, 0);
   assert.equal(a.effects.size, 1);
   assert.equal(nutritionDay(a, 0).fed, false);
   await feedCamp(party, structuredClone(camp));
@@ -49,21 +49,18 @@ test("unavailable harsh meal is untouched; starvation one/day across reload and 
   assert.equal(a.effects.size, 1); assert.equal(hunt.system.quantity, 8);
   assert.equal(a.flags[M].sentinel, true); assert.equal(a.flags.other.retained, true);
 });
-test("shared consent is per PC/camp and uses only the shortfall at commit, not stale preview", async () => {
-  const { a, b, party, ration, user } = fixture();
+test("party rations cover only the shortfall at commit, not a stale preview", async () => {
+  const { a, b, party, ration } = fixture();
   const own = ration(a, 1), shared = ration(party, 3); ration(b, 2);
-  assert.equal((await handleCamp({ partyId: party.id, action: "foodConsent", uuid: a.uuid, accept: true }, user)).ok, true);
   const chosen = party.flags[M].camping;
   assert.equal(foodPreview(party, chosen)[0].deductions[1].quantity, 1);
   await own.update({ "system.quantity": 2 });
   await feedCamp(party, chosen);
   assert.equal(own.system.quantity, 0); assert.equal(shared.system.quantity, 3);
-  assert.equal((await handleCamp({ partyId: party.id, action: "foodConsent", uuid: "Actor.missing", accept: true }, user)).ok, false);
 });
 test("a quantity write that lands before rejection is skipped on retry", async () => {
   const { a, b, party, camp, ration } = fixture();
   const own = ration(a, 1), shared = ration(party, 2); ration(b, 2);
-  camp.participants[0].partyRations = true;
   const update = shared.update; let once = true;
   shared.update = async data => { const result = await update(data); if (once) { once = false; throw Error("reply lost after save"); } return result; };
   await assert.rejects(feedCamp(party, camp), /reply lost/);
@@ -121,15 +118,13 @@ test("native executor identity survives normalization and interruption; pending 
   assert.equal(held.camp.executor, "native"); assert.equal(held.camp.campId, "id"); assert.equal(held.camp.day, 0);
 });
 
-test("mount meals use owned inventory and current approved shortfall, never rider food", async () => {
-  const { a, b, party, camp, ration, user } = fixture();
+test("mount meals use owned inventory then party rations for the current shortfall, never rider food", async () => {
+  const { a, b, party, camp, ration } = fixture();
   const mount = doc("mount", { type: `${M}.mount`, system: { abilities: { con: { mod: 3 } } }, items: collection([]), statuses: new Set(), testUserPermission: u => u.id === "gm" });
   globalThis.game.actors.contents.push(mount);
-  camp.mounts = [{ uuid: mount.uuid, actorId: mount.id, partyRations: false }];
+  camp.mounts = [{ uuid: mount.uuid, actorId: mount.id }];
   ration(a, 2); const rider = ration(b, 10), personal = ration(mount, 1), shared = ration(party, 5);
-  assert.equal(foodPreview(party, camp).at(-1).fed, false);
-  assert.equal((await handleCamp({ partyId: party.id, action: "foodConsent", uuid: mount.uuid, accept: true }, { ...user, id: "other" })).ok, false);
-  assert.equal((await handleCamp({ partyId: party.id, action: "foodConsent", uuid: mount.uuid, accept: true }, user)).ok, true);
+  assert.equal(foodPreview(party, camp).at(-1).fed, true);
   const chosen = party.flags[M].camping;
   assert.equal(foodPreview(party, chosen).at(-1).deductions.at(-1).quantity, 1);
   await personal.update({ "system.quantity": 2 });
@@ -141,13 +136,13 @@ test("mount starvation flag and Actor/day receipt survive partial save without d
   const { party, camp, ration } = fixture();
   const mount = doc("mount", { type: `${M}.mount`, system: { abilities: { con: { mod: 3 } } }, items: collection([]), statuses: new Set() });
   globalThis.game.actors.contents.push(mount); camp.participants = []; camp.mounts = [{ uuid: mount.uuid, actorId: mount.id }];
-  const shared = ration(party, 10);
+  const shared = ration(party, 0);
   const update = mount.update; let fail = true;
   mount.update = async data => { const result = await update(data); if (fail && data[`flags.${M}.campNutrition`]?.days?.[0]?.starvationDone) { fail = false; throw Error("saved damage reply lost"); } return result; };
   await assert.rejects(feedCamp(party, camp), /reply lost/);
   assert.equal(mount.flags[M].mountScores.base.con, 16); assert.equal(mount.flags[M].mountScores.damage.con, 1);
   await feedCamp(party, JSON.parse(JSON.stringify(camp))); await feedCamp(party, { ...camp, id: "another" });
-  assert.equal(mount.flags[M].mountScores.damage.con, 1); assert.equal(shared.system.quantity, 10);
+  assert.equal(mount.flags[M].mountScores.damage.con, 1); assert.equal(shared.system.quantity, 0);
   mount.flags[M].mount = { properties: { grazing: true } }; const own = ration(mount, 1);
   await feedCamp(party, { ...camp, day: 1 }); assert.equal(own.system.quantity, 0); assert.equal(mount.flags[M].mountScores.damage.con, 1);
 });

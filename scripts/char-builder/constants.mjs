@@ -11,61 +11,28 @@ import { MODULE_ID } from "../shared/module-id.mjs";
 /** Ability keys in the canonical Shadowdark "down the line" order. */
 export const ABILITY_ORDER = ["str", "dex", "con", "int", "wis", "cha"];
 
-/** Short display labels for the six abilities. */
-export const ABILITY_LABELS = {
-  str: "STR", dex: "DEX", con: "CON", int: "INT", wis: "WIS", cha: "CHA",
+/** Localization keys for each ability: short label (STR) and the Abilities step reference text. */
+const ABILITY_TEXT = {
+  str: { short: "SDE.charBuilder.ability.str.short", label: "SDE.charBuilder.ability.str.label", represents: "SDE.charBuilder.ability.str.represents", checks: "SDE.charBuilder.ability.str.checks", mechanics: "SDE.charBuilder.ability.str.mechanics", keyClasses: "SDE.charBuilder.ability.str.keyClasses" },
+  dex: { short: "SDE.charBuilder.ability.dex.short", label: "SDE.charBuilder.ability.dex.label", represents: "SDE.charBuilder.ability.dex.represents", checks: "SDE.charBuilder.ability.dex.checks", mechanics: "SDE.charBuilder.ability.dex.mechanics", keyClasses: "SDE.charBuilder.ability.dex.keyClasses" },
+  con: { short: "SDE.charBuilder.ability.con.short", label: "SDE.charBuilder.ability.con.label", represents: "SDE.charBuilder.ability.con.represents", checks: "SDE.charBuilder.ability.con.checks", mechanics: "SDE.charBuilder.ability.con.mechanics", keyClasses: "SDE.charBuilder.ability.con.keyClasses" },
+  int: { short: "SDE.charBuilder.ability.int.short", label: "SDE.charBuilder.ability.int.label", represents: "SDE.charBuilder.ability.int.represents", checks: "SDE.charBuilder.ability.int.checks", mechanics: "SDE.charBuilder.ability.int.mechanics", keyClasses: "SDE.charBuilder.ability.int.keyClasses" },
+  wis: { short: "SDE.charBuilder.ability.wis.short", label: "SDE.charBuilder.ability.wis.label", represents: "SDE.charBuilder.ability.wis.represents", checks: "SDE.charBuilder.ability.wis.checks", mechanics: "SDE.charBuilder.ability.wis.mechanics", keyClasses: "SDE.charBuilder.ability.wis.keyClasses" },
+  cha: { short: "SDE.charBuilder.ability.cha.short", label: "SDE.charBuilder.ability.cha.label", represents: "SDE.charBuilder.ability.cha.represents", checks: "SDE.charBuilder.ability.cha.checks", mechanics: "SDE.charBuilder.ability.cha.mechanics", keyClasses: "SDE.charBuilder.ability.cha.keyClasses" },
 };
 
+/** Short display label for an ability key ("STR"). Needs `game.i18n`, so call it at use, never at import. */
+export const abilityLabel = (key) => game.i18n.localize(ABILITY_TEXT[key].short);
+
 /**
- * Player-facing reference: what each ability represents, example checks, its
+ * Player-facing reference for an ability: what it represents, example checks, its
  * mechanical hooks, and the classes that lean on it. Rendered on the Abilities
- * step so a new player understands what they are rolling for. English-only
- * reference prose (kept here rather than i18n to keep the copy structured).
+ * step so a new player understands what they are rolling for.
  */
-export const ABILITY_INFO = {
-  str: {
-    label: "Strength",
-    represents: "Physical power",
-    checks: "Bashing open a stuck or locked door, bending prison bars, lifting a large rock overhead, or swimming in rough water.",
-    mechanics: "Drives your melee and thrown attack rolls — damage is always just the weapon's die, never your modifier. It also sets your gear slots: carry items equal to your Strength score or 10, whichever is higher.",
-    keyClasses: "Any melee class leans on Strength — it's your to-hit stat in melee, not a gate on wielding weapons or armor. Fighters lean on it hardest.",
-  },
-  dex: {
-    label: "Dexterity",
-    represents: "Agility and reflexes",
-    checks: "Balancing on a ledge, sneaking silently, diving away from a trap, disabling a tripwire, or scaling a sheer wall.",
-    mechanics: "Adds to your Armor Class, drives your ranged attack rolls (again, not damage), and sets your initiative order at the start of combat.",
-    keyClasses: "Thieves depend on Dexterity for backstab, sneaking, and thievery; it's also every archer's aim.",
-  },
-  con: {
-    label: "Constitution",
-    represents: "Endurance and resistance to injury",
-    checks: "Holding your breath underwater, withstanding intense pain, resisting poison or disease, or enduring searing heat or freezing cold.",
-    mechanics: "Adds to your maximum Hit Points, and sets how long you cling to life at 0 HP — you die in 1d4 + your Constitution modifier rounds (minimum 1).",
-    keyClasses: "Every class wants Constitution — in a game this lethal, it's raw survival.",
-  },
-  int: {
-    label: "Intelligence",
-    represents: "Logical ability and knowledge",
-    checks: "Deciphering runes, giving first aid to a dying character, recalling a maze's path, or foraging for food and water.",
-    mechanics: "Powers your wizard spellcasting checks, and the Intelligence check to permanently learn a spell from a scroll.",
-    keyClasses: "Wizards cast their arcane spells with Intelligence.",
-  },
-  wis: {
-    label: "Wisdom",
-    represents: "Instinct, willpower, and sensory acuity",
-    checks: "Detecting the hidden, recognizing omens, spotting a well-hidden enemy, or hearing what's on the other side of a door.",
-    mechanics: "Powers priest and seer spellcasting checks. It's also the ability rolled for morale — the check that decides whether bloodied enemies flee.",
-    keyClasses: "Priests and Seers channel their divine and mystic magic through Wisdom.",
-  },
-  cha: {
-    label: "Charisma",
-    represents: "Appeal, presence, and force of personality",
-    checks: "Convincing creatures to be friendly, resisting mental control, applying a disguise, or rallying terrified allies.",
-    mechanics: "Adds to the reaction roll (2d6 + your Charisma) that decides how creatures you meet react, from hostile to friendly.",
-    keyClasses: "Witches and Knights of St. Ydris cast with Charisma, and Bards trade on it for their performances.",
-  },
-};
+export const abilityInfo = (key) => Object.fromEntries(
+  Object.entries(ABILITY_TEXT[key]).filter(([field]) => field !== "short").map(([field, k]) => [field, game.i18n.localize(k)]),
+);
+
 
 /**
  * Stat-generation methods. The GM picks ONE via the `charBuilderStatMethod`

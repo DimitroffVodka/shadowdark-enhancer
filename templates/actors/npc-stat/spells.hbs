@@ -1,0 +1,43 @@
+{{!-- Shared NPC stat block: the Spells tab (casting numbers and the spell list). --}}
+    <section class="sde-veh-tab-content {{#if tab.spells}}active{{/if}}" data-tab-content="spells">
+      <div class="SD-box">
+        <div class="header"><label>{{localize "SHADOWDARK.sheet.npc.tab.spells"}}</label><span><a class="fa-solid fa-square-plus" data-action="itemCreate" data-item-type="Spell" data-tooltip="{{localize 'SHADOWDARK.sheet.general.item_create.tooltip' type='Spell'}}"></a></span></div>
+        <div class="content">
+          <div class="sde-veh-grid">
+            <div class="sde-veh-field"><label>{{localize "SHADOWDARK.item.npc.spell_count"}}</label><input type="number" name="system.spellcasting.attacks" value="{{system.spellcasting.attacks}}" placeholder="0" /></div>
+            <div class="sde-veh-field"><label>{{localize "SHADOWDARK.item.npc.spell_bonus"}}</label><input type="number" name="system.spellcasting.bonus" value="{{system.spellcasting.bonus}}" placeholder="0" /></div>
+            <div class="sde-veh-field"><label>{{localize "SHADOWDARK.item.npc.spell_ability"}}</label>
+              <select name="system.spellcasting.ability"><option value="">&mdash;</option>{{#each castingAbilities}}<option value="{{value}}" {{#if selected}}selected{{/if}}>{{label}}</option>{{/each}}</select>
+            </div>
+          </div>
+          <ol class="SD-list sde-mount-spells">
+            <li class="header">
+              <div class="item-name">{{localize "SHADOWDARK.item.spell.label"}}</div>
+              <div class="flex-60-px">{{localize "SHADOWDARK.class-ability.dc.label"}}</div>
+              <div class="duration">{{localize "SHADOWDARK.item.spell_duration"}}</div>
+              <div class="range">{{localize "SHADOWDARK.item.spell_range"}}</div>
+              <div class="actions"></div>
+            </li>
+            {{#each spells}}
+              <li class="item expanded" data-item-id="{{id}}" data-uuid="{{uuid}}">
+                <div class="item-image" style="background-image: url({{img}})"><i class="fas fa-comment"></i></div>
+                <a class="item-name {{#if lost}}strike-through{{/if}}" data-action="show-details">{{name}}</a>
+                <div class="flex-60-px">{{dc}}</div>
+                <div class="duration">{{duration}}</div>
+                <div class="range">{{range}}</div>
+                <div class="actions">
+                  {{#unless lost}}
+                    {{#if focus}}<a data-action="focus-npc-spell" data-item-id="{{id}}" data-item-uuid="{{uuid}}" data-tooltip="{{localize 'SHADOWDARK.sheet.player.tooltip.focus_on_spell'}}"><i class="fa-solid fa-brain"></i></a>{{/if}}
+                    <a data-action="cast-npc-spell" data-item-id="{{id}}" data-item-uuid="{{uuid}}" data-tooltip="{{localize 'SHADOWDARK.sheet.player.tooltip.cast_spell'}}"><i class="fa-solid fa-hand-sparkles"></i></a>
+                  {{/unless}}
+                  <a data-action="toggle-lost" data-item-id="{{id}}" data-tooltip="{{localize 'SHADOWDARK.sheet.player.toggle_spell_lost'}}">
+                    {{#if lost}}<i style="color:red;" class="fa-solid fa-xmark"></i>{{else}}<i class="fa-solid fa-check"></i>{{/if}}
+                  </a>
+                </div>
+                <div class="item-details">{{{description}}}</div>
+              </li>
+            {{/each}}
+          </ol>
+        </div>
+      </div>
+    </section>
