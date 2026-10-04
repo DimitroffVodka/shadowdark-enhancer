@@ -613,7 +613,10 @@ function baseFor({ method, boatUuid }) {
 export async function startDayFromParty() {
   // A day is open: starting another re-rolls its checks and drops its progress, so ask first.
   if (_state.day !== null && !(await foundry.applications.api.DialogV2.confirm({
-    window: { title: t("SDE.overland.day.title") }, content: `<p>${esc(t("SDE.overland.day.restart"))}</p>`, rejectClose: false,
+    window: { title: t("SDE.overland.day.title") }, content: `<p>${esc(t("SDE.overland.day.restart"))}</p>`,
+    yes: { label: "SDE.overland.day.restartYes", icon: "fa-solid fa-rotate" },
+    no: { label: "SDE.overland.day.restartNo", icon: "fa-solid fa-xmark", default: true },
+    rejectClose: false,
   }))) return null;
   if (baseFor(partyReading()) > 0) return startDay();
   const options = await askDay();

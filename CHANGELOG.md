@@ -1,9 +1,15 @@
 # Changelog
 
 ## [Unreleased]
+### Added
+- **A shared UI kit stylesheet** (`styles/sde-ui.css`, dark and light tokens plus parts) for the window
+  redesign. No window uses it yet, so nothing looks different.
+
 ### Changed
 - **Camping: everyone takes part, and meals use your own rations first.** The Participate box and the "use party rations" box are gone. A meal takes the character's own rations, then the party's.
 - **Camping: everyone participates and meals use the party's rations automatically.** The per-character Participate checkbox is gone, and a character eats their own rations first and then the party's with no consent box; a character short overall is not fed and nothing is deducted. Torch contribution is still opt-in.
+- **The Character Builder's ability names and descriptions, the Hit Points formula's CON and the Gold step's dice formula now come from the language file** instead of being written into the code, and the Gold step's two inline styles are stylesheet classes. Nothing changes on screen.
+- **Token HUD buttons are real buttons.** The rollback-move, pick-up and Quick Adjust buttons, and the prayer icon beside a deity on the character sheet, can now be reached and used from the keyboard and have an accessible name; the prayer icon also appears on both sheet generations without doubling.
 - **The Party sheet's header is one compact band.** The boxed "Marching formation" block, with its
   heading and five lines of text, is replaced by a visible **Marching order** switch beside the 3×3
   grid (off: "Moving freely", the grid dims; on: "<leader> leads"). Following never pauses and there is
@@ -43,6 +49,19 @@
   earlier "Include mounts" had already placed on a scene is still recalled by Place / Recall.
 
 ### Fixed
+- **Two unreadable text colours.** The gold primary buttons (the monster importer's and the loot generator's
+  Roll) now have near-black text instead of cream, and the encounter result chat card's text is no longer
+  black on black in dark mode.
+- **The Description editor opens on the mount and warband sheets.** The notes editor was marked `collaborate="false"`, which Foundry v14 reads as "collaborate", so clicking the pencil only logged an error. The attribute is gone.
+- **The Warband sheet is an ApplicationV2 sheet, built like the Mount's.** It no longer borrows the system's old
+  NPC sheet. It has the Mount's Abilities layout (HP, AC and Level, the six modifiers, Movement, Alignment,
+  Dark-Adapted and the attack lists), then **Warband**, Spells, Description and Effects tabs, in the system's own
+  NPC look. The Warband tab keeps everything it had: the commander dropped as a player character, the allowance
+  across that commander's warbands, the upgrade checklist, the garrison, upkeep (Charge a Month, Pay Arrears,
+  Return to Service) and the morale bonus, and every change still goes through the active GM's writer and the one
+  `warband` flag. The Mount and the Warband now share one stat-block sheet class and its markup, and the Mount's
+  "Dark-Adapted" label is dark ink instead of near-invisible white.
+- **Safer destructive prompts.** The importer's delete-copies dialogs now default to Cancel, so pressing Enter no longer deletes. The other destructive prompts (deleting a recap session, clearing hex tags, ending a crawl, resetting level guidelines and similar) already focused the safe button; their buttons now name the action (Delete session / Keep it) instead of Yes / No.
 - **The mount sheet is an ApplicationV2 sheet, laid out like the native NPC sheet.** It no longer borrows the
   system's old NPC sheet. It keeps the system's NPC header, and Abilities has HP, AC and Level, a **Stats** box
   in place of Modifiers, Movement, Alignment and Dark-Adapted down the left, beside the Attacks, Special

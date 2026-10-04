@@ -1,0 +1,18 @@
+{{!-- Shared NPC stat block: movement, alignment and dark adaptation. --}}
+      <div class="SD-box">
+        <div class="header"><label>{{localize "SHADOWDARK.sheet.npc.movement"}}</label><span></span></div>
+        <div class="content sde-mount-traits">
+          <select name="system.move">{{#each moves}}<option value="{{value}}" {{#if selected}}selected{{/if}}>{{label}}</option>{{/each}}</select>
+          <input type="text" name="system.moveNote" value="{{system.moveNote}}" />
+        </div>
+      </div>
+      <div class="SD-box">
+        <div class="header"><label>{{localize "SHADOWDARK.sheet.actor.alignment"}}</label><span></span></div>
+        <div class="content sde-mount-traits">
+          <select name="system.alignment">{{#each alignments}}<option value="{{value}}" {{#if selected}}selected{{/if}}>{{label}}</option>{{/each}}</select>
+        </div>
+      </div>
+      <div class="sde-mount-dark">
+        <h3>{{localize "SHADOWDARK.sheet.npc.dark_adapted"}}</h3>
+        <input type="checkbox" name="system.darkAdapted" {{#if system.darkAdapted}}checked{{/if}} />
+      </div>

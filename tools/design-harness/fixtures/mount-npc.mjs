@@ -40,7 +40,7 @@ const build = (state) => {
   };
 };
 export default {
-  previewHeight: 840, title: "Warhorse", icon: "fa-solid fa-horse", classes: ["shadowdark", "sheet", "shadowdark-enhancer", "sde-vehicle-sheet", "sde-mount-npc"],
+  previewHeight: 840, title: "Warhorse", icon: "fa-solid fa-horse", classes: ["shadowdark", "sheet", "shadowdark-enhancer", "sde-vehicle-sheet", "sde-npc-sheet", "sde-mount-npc"],
   width: 620, height: 780, resizable: true, template: "templates/actors/mount-sheet.hbs", initial: "stats", build,
   actions: { changeTab: { state: "{tab}" }, toggleEditStats: { toggle: ["stats", "stats.edit"] } },
 };
