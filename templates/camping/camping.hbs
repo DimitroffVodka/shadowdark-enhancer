@@ -11,10 +11,8 @@
     {{#each rows}}<fieldset data-uuid="{{uuid}}">
       <legend>{{name}}</legend>
       <p>{{foodStatus}} — {{localize "SDE.camping.shortfall"}}: {{meal.shortfall}}{{#if restStatus}} — {{restStatus}}{{/if}}</p>
-      <label><input type="checkbox" data-food {{#if partyRations}}checked{{/if}} {{#unless foodEditable}}disabled{{/unless}}> {{localize "SDE.camping.usePartyRations"}}</label>
       {{#unless meal.fed}}<p>{{localize "SDE.camping.hungerWarning"}}{{#if deathWarning}} {{localize "SDE.camping.deathWarning"}}{{/if}}</p>{{/unless}}
       {{#if confirmed}}<span>{{localize "SDE.camping.confirmed"}}</span>{{else}}{{#if editable}}<button type="button" data-action="confirmChoice" data-uuid="{{uuid}}">{{localize "SDE.camping.confirm"}}</button>{{else}}<span>{{localize "SDE.camping.awaitingOwner"}}</span>{{/if}}{{/if}}
-      <label><input type="checkbox" data-choice="participate" {{#if participate}}checked{{/if}} {{#unless editable}}disabled{{/unless}}> {{localize "SDE.camping.participate"}}</label>
       <label>{{localize "SDE.camping.task"}} <select data-choice="task" {{#unless editable}}disabled{{/unless}}>{{#each tasks}}<option value="{{key}}" {{#if selected}}selected{{/if}}>{{name}}</option>{{/each}}</select></label>
       {{#if abilities}}<label>{{localize "SDE.camping.ability"}} <select data-choice="ability" {{#unless editable}}disabled{{/unless}}>{{#each abilities}}<option value="{{value}}" {{#if selected}}selected{{/if}}>{{label}}</option>{{/each}}</select></label>{{/if}}
       {{#if dc}}<label>{{localize "SDE.camping.dc"}} <input type="number" data-dc="{{task}}" value="{{dc}}" {{#unless ../isGM}}disabled{{/unless}} {{#unless ../setup}}disabled{{/unless}}></label>{{/if}}
@@ -31,7 +29,6 @@
     {{#each mounts}}<fieldset data-uuid="{{uuid}}" data-mount>
       <legend>{{name}}</legend>
       <p>{{foodStatus}} — {{localize "SDE.camping.shortfall"}}: {{meal.shortfall}} — {{localize "SDE.vehicle.stat.con"}}: {{meal.con}}</p>
-      <label><input type="checkbox" data-food {{#if partyRations}}checked{{/if}} {{#unless foodEditable}}disabled{{/unless}}> {{localize "SDE.camping.usePartyRations"}}</label>
       {{#unless meal.fed}}<p>{{localize "SDE.camping.hungerWarning"}}{{#if deathWarning}} {{localize "SDE.camping.deathWarning"}}{{/if}}</p>{{/unless}}
     </fieldset>{{/each}}
     {{#if fuel}}
