@@ -334,6 +334,7 @@ export class SpellImporterApp extends HandlebarsApplicationMixin(ApplicationV2) 
       .join("");
 
     const picked = await foundry.applications.api.DialogV2.wait({
+      classes: ["sde-ui", "sde-dialog"],
       window: { title: "SDE.importer.spellImporter.grab.title", icon: "fas fa-wand-sparkles" },
       content: `
         <p>${tr("SDE.importer.spellImporter.grab.lead")}</p>

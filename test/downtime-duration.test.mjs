@@ -59,7 +59,7 @@ test("start rolls 2d6 once for the group; the card shows it and carries the roll
   assert.equal(DowntimeSession.days, 7);
   assert.deepEqual(rolls, ["2d6"], "one roll");
   assert.equal(messages[0].rolls[0].formula, "2d6");
-  assert.match(messages[0].content, /SDE\.downtime\.card\.days\{"days":7\}/);
+  assert.match(messages[0].content, /SDE\.downtime\.card\.days\{&quot;days&quot;:7\}/);
 });
 
 test("a double click on Start rolls one duration and posts one card", async () => {

@@ -132,10 +132,12 @@ test("create from an existing window keeps identity coherent on subsequent opens
   } finally { delete globalThis.Actor; }
 });
 
-test("Party member cards keep the portrait, HP, AC, level, slots, XP, ability mods and effects", async () => {
+test("Party member cards keep the portrait, HP, AC, level, slots, XP, ability mods, Luck and Light, and no effect icons", async () => {
   const pc = actor("pc", "Player");
   pc.system = { attributes: { hp: { value: 5, max: 3 }, ac: { value: 14 } }, level: { value: 2, xp: 7 }, abilities: { str: { mod: 2 }, con: { mod: -1 } }, slots: 12 };
   pc.effects = [{ name: "Blessed", img: "icons/svg/aura.svg", disabled: false }];
+  pc.system.luck = { available: true };
+  pc.items.contents.push({ id: "t", name: "Torch", type: "Basic", system: { quantity: 1, light: { isSource: true, active: true, remainingSecs: 600, longevityMins: 60 } } });
   const p = actor("p", "NPC", { [MOD]: { party: true, partyData: { members: [pc.uuid] } } });
   world([p, pc], true);
   const context = await new PartyApp(p)._prepareContext();
@@ -143,10 +145,13 @@ test("Party member cards keep the portrait, HP, AC, level, slots, XP, ability mo
   assert.equal(context.players[0].ac, 14);
   assert.equal(context.players[0].abilities.str, 2);
   assert.equal(context.players[0].xp.next, 20);
-  assert.equal(context.players[0].effects[0].name, "Blessed");
-  assert.deepEqual(context.tabs.map(tab => tab.key), ["members", "items", "travel", "quests", "description"], "the GM sees Travel");
+  assert.equal(context.players[0].effects, undefined, "the member card no longer lists active effects");
+  assert.deepEqual([context.players[0].luck, context.players[0].lightOn], [1, true]);
+  assert.deepEqual(context.tabs.map(tab => tab.key), ["members", "items", "travel", "quests", "downtime", "warbands", "description"], "the GM sees Travel");
   const template = await readFile(new URL("../templates/party/party.hbs", import.meta.url), "utf8");
-  for (const marker of ["sdp-head", "sdp-stats", "sdp-face", "sdp-hp", "sdp-chips", "sdp-abil", "sdp-fx", "tab-inventory", "tab-travel", "tab-description"]) assert.ok(template.includes(marker), marker);
+  for (const marker of ["sdp-head", "sdp-stats", "sdp-face", "sdp-hp", "sdp-chips", "sdp-abil", "sdp-luck", "sdp-light", "tab-inventory", "tab-travel", "tab-description"]) assert.ok(template.includes(marker), marker);
+  assert.ok(!template.includes("sdp-fx") && !template.includes("member.effects"), "the active-effects loop is gone");
+  assert.ok(!template.includes("<select data-leader"), "the leader is chosen by clicking a formation slot");
   assert.ok(!template.includes("SDE.party.comingSoon"));
   assert.ok(!template.includes("hp-wave"), "the HP wave over the portrait is replaced by the HP bar");
   assert.ok(!template.includes("data-member-choice"), "no all-world actor dropdown in the approved sheet");
@@ -305,7 +310,7 @@ test("Items lists the party's own items with Gems apart in their own box, and tr
   assert.deepEqual(context.coinList.map(c => c.value), [7, 3, 0]);
   assert.equal(context.inventorySlots.used, 2, "gems do not take party slots, as in the system's own count");
   const template = await readFile(new URL("../templates/party/party.hbs", import.meta.url), "utf8");
-  for (const marker of ["SHADOWDARK.inventory.gems", "{{gemTotal}}", "sdp-coins", 'data-action="createItem"']) assert.ok(template.includes(marker), marker);
+  for (const marker of ["SHADOWDARK.inventory.gems", "{{gemTotal}}", "sdp-coins", "SDE.party.item.add"]) assert.ok(template.includes(marker), marker);
 });
 test("a party with no members shows a drop zone and a grid hint, and an Actor dropped on either adds it", async () => {
   const pc = actor("pc", "Player");
@@ -338,7 +343,7 @@ test("a player's sheet keeps Travel and drops every control that changes the par
   const context = await app._prepareContext();
   assert.equal(context.isGM, false);
   assert.equal(context.canEdit, false);
-  assert.deepEqual(context.tabs.map(tab => tab.key), ["members", "items", "travel", "quests", "description"]);
+  assert.deepEqual(context.tabs.map(tab => tab.key), ["members", "items", "travel", "quests", "downtime", "warbands", "description"]);
   assert.equal(context.travelTab, true, "a player can open Travel: their own camping and carousing choices are confirmed there");
   assert.equal(context.players[0].canEdit, false, "no remove (x) on a card");
   assert.equal(context.players[0].hp.value, 5, "players still see a member's full stats");
@@ -353,7 +358,7 @@ test("the Bastion tab shows only when a bastion the viewer may see is linked to 
   let rendered = 0; bastion.sheet = { render: () => { rendered++; } };
   const app = new PartyApp(p);
   let context = await app._prepareContext();
-  assert.deepEqual(context.tabs.map(tab => tab.key), ["members", "items", "travel", "quests", "bastion", "description"]);
+  assert.deepEqual(context.tabs.map(tab => tab.key), ["members", "items", "travel", "quests", "downtime", "warbands", "bastion", "description"]);
   assert.deepEqual([context.bastion.ac, context.bastion.hp, context.bastion.maxHp, context.bastion.used, context.bastion.slots, context.bastion.treasury], [18, 80, 100, 2, 10, 12]);
   assert.deepEqual(context.bastion.rooms.map(r => [r.name, r.building]), [["SDE.bastion.upgrade.stable.name", false], ["SDE.bastion.upgrade.library.name", true]]);
   assert.match(context.bastion.lastMonth, /quietMonth/, "the newest month result, not the later deposit");
@@ -389,8 +394,8 @@ test("the status bar reads the party's lit light and rations, and hides what it 
   p.items.contents.push({ id: "r3", name: "Rations", type: "Basic", system: { quantity: 6 } });
   world([p, pc, hireling], true);
   let context = await new PartyApp(p)._prepareContext();
-  assert.deepEqual(context.status.map(r => [r.key, r.label, r.value]), [["light", "SDE.party.status.light", "SDE.party.status.lightLeft Torch 38"], ["rations", "SDE.party.status.rations", "10"]],
-    "no travel readout without an overland module; rations are the party's and its characters', a hireling's own food is not camp food");
+  assert.deepEqual(context.status.map(r => [r.key, r.label, r.value]), [["light", "SDE.party.status.light", "SDE.party.status.lightLeft Torch 38"], ["torches", "SDE.party.status.torches", "1"], ["rations", "SDE.party.status.rations", "10"]],
+    "no travel readout without an overland module; torches and rations are the party's and its characters', a hireling's own food is not camp food");
   // A member this viewer cannot see may hold rations: no total rather than a partial one.
   const hidden = actor("hidden", "Player", {}, 0);
   p.flags[MOD].partyData.members.push(hidden.uuid);
@@ -418,16 +423,26 @@ test("the emblem defaults to the amber lantern, survives a bad flag, and only a 
   const app = new PartyApp(p);
   app.render = () => {};
   let context = await app._prepareContext();
-  assert.deepEqual([context.emblem.icon, context.emblem.color, context.emblemEdit, context.emblemOpen], ["lantern", "c8892b", true, false]);
+  assert.deepEqual([context.emblem.icon, context.emblem.color, context.emblem.iconColor, context.emblemEdit, context.emblemOpen], ["lantern", "c8892b", "ffffff", true, false]);
   assert.equal(context.emblem.path, "modules/shadowdark-enhancer/icons/game-icons/party/lantern.svg");
   assert.equal(context.emblemIcons.length, 24);
   assert.equal(context.emblemColors.length, 8);
+  assert.equal(context.emblemIconColors.length, 8);
   PartyApp.DEFAULT_OPTIONS.actions.emblem.call(app);
   assert.equal((await app._prepareContext()).emblemOpen, true);
   // Picking applies live: one flag write, the party's other flags untouched.
   await PartyApp.DEFAULT_OPTIONS.actions.pickEmblem.call(app, null, { dataset: { icon: "wolf-head" } });
   await PartyApp.DEFAULT_OPTIONS.actions.pickEmblem.call(app, null, { dataset: { color: "3a6ea5" } });
-  assert.deepEqual(p.flags[MOD].partyEmblem, { icon: "wolf-head", color: "3a6ea5" });
+  assert.deepEqual(p.flags[MOD].partyEmblem, { icon: "wolf-head", color: "3a6ea5", iconColor: "ffffff" });
+  // Any hex is a colour for the tile or the picture, and the picker shows it as the custom one.
+  await PartyApp.DEFAULT_OPTIONS.actions.pickEmblem.call(app, null, { dataset: { iconColor: "e0a040" } });
+  await app._pickEmblem({ color: "#12A4B8" });
+  assert.deepEqual(p.flags[MOD].partyEmblem, { icon: "wolf-head", color: "12a4b8", iconColor: "e0a040" });
+  context = await app._prepareContext();
+  assert.deepEqual([context.emblemCustomBox, context.emblemCustomIcon], [true, true]);
+  await PartyApp.DEFAULT_OPTIONS.actions.pickEmblem.call(app, null, { dataset: { color: "3a6ea5" } });
+  await PartyApp.DEFAULT_OPTIONS.actions.pickEmblem.call(app, null, { dataset: { iconColor: "ffffff" } });
+  assert.deepEqual(p.flags[MOD].partyEmblem, { icon: "wolf-head", color: "3a6ea5", iconColor: "ffffff" });
   assert.equal(p.flags[MOD].party, true);
   assert.equal(p.flags[MOD].partyDescription, "Notes");
   context = await app._prepareContext();
@@ -435,10 +450,10 @@ test("the emblem defaults to the amber lantern, survives a bad flag, and only a 
   assert.deepEqual(context.emblemIcons.filter(i => i.selected).map(i => i.name), ["wolf-head"]);
   // A pick that is not on offer changes nothing.
   await PartyApp.DEFAULT_OPTIONS.actions.pickEmblem.call(app, null, { dataset: { icon: "../x" } });
-  assert.deepEqual(p.flags[MOD].partyEmblem, { icon: "wolf-head", color: "3a6ea5" });
+  assert.deepEqual(p.flags[MOD].partyEmblem, { icon: "wolf-head", color: "3a6ea5", iconColor: "ffffff" });
   // A hand-edited flag still draws.
   p.flags[MOD].partyEmblem = { icon: "nope", color: 5 };
-  assert.deepEqual((await app._prepareContext()).emblem, { icon: "lantern", color: "c8892b", path: "modules/shadowdark-enhancer/icons/game-icons/party/lantern.svg" });
+  assert.deepEqual((await app._prepareContext()).emblem, { icon: "lantern", color: "c8892b", iconColor: "ffffff", path: "modules/shadowdark-enhancer/icons/game-icons/party/lantern.svg" });
   // A player, even one who owns the party, has no picker and no write.
   world([p], false);
   const writes = p.writes.length, player = new PartyApp(p);
@@ -483,4 +498,188 @@ test("a native party is linked after the system's _preCreate and a stale one is 
   world([doc(true, false), doc(true, true), doc(false, false)], true);
   handlers.get("once:ready")();
   assert.deepEqual(updates, [{ "prototypeToken.actorLink": true }]);
+});
+
+// ---------------------------------------------------------------- Items tab: Treasury handlers, Give to, Add item
+function treasury({ pool = { gp: 10, sp: 7, cp: 100 }, isGM = true } = {}) {
+  const purse = (id, type = "Player", coins = { gp: 1, sp: 0, cp: 0 }) => {
+    const a = actor(id, type); a.system = { coins: { ...coins } }; a.isOwner = true;
+    a.update = async (data) => { a.writes.push(data); for (const [key, value] of Object.entries(data)) a.system.coins[key.split(".")[2]] = value; return a; };
+    return a;
+  };
+  const pcs = [purse("a"), purse("b"), purse("c")], hireling = purse("h", "NPC"), mount = purse("m", "shadowdark-enhancer.mount");
+  const p = actor("p", "NPC", { [MOD]: { party: true, partyCoins: pool, partyData: { version: 1, members: [...pcs, hireling, mount].map(a => a.uuid) } } });
+  p.isOwner = true; p.items.get = (id) => p.items.contents.find(i => i.id === id);
+  world([p, ...pcs, hireling, mount], isGM);
+  const notes = { warn: [], info: [] };
+  globalThis.ui = { notifications: { warn: (m) => notes.warn.push(m), info: (m) => notes.info.push(m) } };
+  const app = new PartyApp(p); app.render = () => {};
+  const form = (selector, key, values, to) => { app.element = { querySelectorAll: (q) => (q === selector ? Object.entries(values).map(([k, v]) => ({ dataset: { [key]: k }, value: String(v) })) : []), querySelector: (q) => (q === "[data-give-to]" ? { value: to ?? "" } : null) }; };
+  return { p, pcs, hireling, mount, app, notes, form, purses: () => pcs.map(a => ({ ...a.system.coins })), pool: () => ({ ...p.flags[MOD].partyCoins }) };
+}
+const act = (app, name, el = {}) => PartyApp.DEFAULT_OPTIONS.actions[name].call(app, null, { dataset: {}, ...el });
+
+test("Add coins adds to the party's own pool through the flag helper and never touches a purse", async () => {
+  const t = treasury();
+  t.form("[data-add-coin]", "addCoin", { gp: 5, sp: 0, cp: -1000 });
+  await act(t.app, "addCoins");
+  assert.deepEqual(t.pool(), { gp: 15, sp: 7, cp: 0 }, "a type stops at 0");
+  assert.ok(t.p.writes.every(w => Object.keys(w).join() === `flags.${MOD}.partyCoins`), "one flag key per write");
+  assert.deepEqual(t.purses(), [{ gp: 1, sp: 0, cp: 0 }, { gp: 1, sp: 0, cp: 0 }, { gp: 1, sp: 0, cp: 0 }]);
+});
+
+test("Give coins moves the pool to a purse, or to every PC's, and is refused whole when the pool is short", async () => {
+  const t = treasury();
+  t.form("[data-give-coin]", "giveCoin", { gp: 4, sp: 2, cp: 0 }, t.pcs[1].uuid);
+  await act(t.app, "giveCoins");
+  assert.deepEqual(t.pool(), { gp: 6, sp: 5, cp: 100 });
+  assert.deepEqual(t.purses(), [{ gp: 1, sp: 0, cp: 0 }, { gp: 5, sp: 2, cp: 0 }, { gp: 1, sp: 0, cp: 0 }]);
+  t.form("[data-give-coin]", "giveCoin", { gp: 2, sp: 0, cp: 0 }, "");
+  await act(t.app, "giveCoins");
+  assert.deepEqual(t.pool(), { gp: 0, sp: 5, cp: 100 }, "each of the three PCs got 2 gp; the hireling and the mount got nothing");
+  assert.deepEqual(t.purses().map(c => c.gp), [3, 7, 3]);
+  assert.deepEqual([t.hireling.writes.length, t.mount.writes.length], [0, 0]);
+  const writes = t.pcs.map(a => a.writes.length);
+  t.form("[data-give-coin]", "giveCoin", { gp: 1, sp: 0, cp: 0 }, "");
+  await act(t.app, "giveCoins");
+  assert.equal(t.notes.warn.at(-1), "SDE.party.coins.refused.short", "the pool has 0 gp");
+  assert.deepEqual(t.pcs.map(a => a.writes.length), writes, "a refused give changes no purse");
+  assert.deepEqual(t.pool(), { gp: 0, sp: 5, cp: 100 });
+});
+
+test("Give coins puts everything back when a purse cannot be written", async () => {
+  const t = treasury();
+  t.pcs[1].update = async () => { throw new Error("denied"); };
+  t.form("[data-give-coin]", "giveCoin", { gp: 2, sp: 0, cp: 0 }, "");
+  await act(t.app, "giveCoins");
+  assert.deepEqual(t.pool(), { gp: 10, sp: 7, cp: 100 }, "the pool is restored");
+  assert.deepEqual(t.purses().map(c => c.gp), [1, 1, 1], "the PC paid before the failure is repaid");
+});
+
+test("Divide coins splits gp, sp and cp among the PCs only, in whole coins, and the remainder stays", async () => {
+  const t = treasury();
+  await act(t.app, "divideCoins");
+  assert.deepEqual(t.pool(), { gp: 1, sp: 1, cp: 1 });
+  assert.deepEqual(t.purses(), [{ gp: 4, sp: 2, cp: 33 }, { gp: 4, sp: 2, cp: 33 }, { gp: 4, sp: 2, cp: 33 }]);
+  assert.deepEqual([t.hireling.writes.length, t.mount.writes.length], [0, 0], "hirelings and mounts are not PCs");
+  await act(t.app, "divideCoins");
+  assert.equal(t.notes.warn.at(-1), "SDE.party.coins.refused.nothing", "less than one coin each: nothing moves");
+});
+
+test("coin and item actions are the GM's alone", async () => {
+  const t = treasury({ isGM: false });
+  t.form("[data-add-coin]", "addCoin", { gp: 5 });
+  await act(t.app, "addCoins");
+  await act(t.app, "divideCoins");
+  await act(t.app, "addItemCompendium");
+  await act(t.app, "addItemForge");
+  assert.deepEqual(t.pool(), { gp: 10, sp: 7, cp: 100 });
+  assert.equal(t.p.writes.length, 0);
+  const context = await t.app._prepareContext();
+  assert.equal(context.isGM, false);
+  const template = await readFile(new URL("../templates/party/party.hbs", import.meta.url), "utf8");
+  for (const marker of ["{{#if isGM}}<details class=\"sdp-menu\"", "{{#if isGM}}<div class=\"sdp-coinbtns\">", "{{#if @root.isGM}}"]) assert.ok(template.includes(marker), marker);
+});
+
+test("Give to moves the whole stack to a PC and not to anyone else", async () => {
+  const t = treasury();
+  const created = [], deleted = [];
+  const rope = { id: "r", name: "Rope", toObject: () => ({ _id: "r", name: "Rope", system: { quantity: 3 } }), delete: async () => { deleted.push("r"); } };
+  t.p.items.contents.push(rope);
+  t.pcs[2].createEmbeddedDocuments = async (type, data) => { created.push([type, data]); };
+  await act(t.app, "giveItem", { dataset: { id: "r", uuid: t.pcs[2].uuid } });
+  assert.deepEqual(created, [["Item", [{ name: "Rope", system: { quantity: 3 } }]]], "a copy without the old id");
+  assert.deepEqual(deleted, ["r"]);
+  await act(t.app, "giveItem", { dataset: { id: "r", uuid: t.hireling.uuid } });
+  assert.deepEqual(deleted, ["r"], "a hireling is not offered the item");
+  const context = await t.app._prepareContext();
+  assert.deepEqual(context.receivers.map(r => r.uuid), t.pcs.map(a => a.uuid), "the Give to list is the PCs");
+});
+
+test("Add item: a forged or compendium item is copied onto the party actor", async () => {
+  const t = treasury();
+  const added = [];
+  t.p.createEmbeddedDocuments = async (type, data) => { added.push([type, data]); };
+  await t.app._addItemFrom({ name: "Sword +1", toObject: () => ({ _id: "x", name: "Sword +1", type: "Weapon" }) });
+  assert.deepEqual(added, [["Item", [{ name: "Sword +1", type: "Weapon" }]]]);
+  await t.app._addItemFrom(null);
+  assert.equal(added.length, 1);
+  t.app.openKeys.add("addItem");
+  assert.equal((await t.app._prepareContext()).addItemOpen, true, "an open menu stays open through a re-render");
+});
+
+test("the Items tab has slots used / max, the Add item menu, Give to, Treasury buttons and Gems under Treasury", async () => {
+  const template = await readFile(new URL("../templates/party/party.hbs", import.meta.url), "utf8");
+  const items = template.slice(template.indexOf("tab-inventory"), template.indexOf("tab-travel"));
+  for (const marker of ["inventorySlots.used", "inventorySlots.max", 'data-action="addItemCompendium"', 'data-action="addItemForge"', 'data-action="giveItem"', 'data-action="addCoins"', 'data-action="giveCoins"', 'data-action="divideCoins"', 'data-action="quantity"']) assert.ok(items.includes(marker), marker);
+  assert.ok(items.indexOf("SDE.party.sheet.treasury") < items.indexOf("SHADOWDARK.inventory.gems"), "Gems sit under Treasury");
+  const t = treasury();
+  const context = await t.app._prepareContext();
+  assert.deepEqual(context.inventorySlots, { used: 1, max: 10, over: false });
+});
+
+test("the GM bar is the GM's alone, defaults to every PC and DC 12, and the spell rows come from the caster's Spell items", async () => {
+  const t = treasury();
+  const caster = t.pcs[0];
+  caster.items.contents = [
+    { id: "s1", name: "Light", img: "l.webp", type: "Spell", system: { tier: 1 } },
+    { id: "s2", name: "Fireball", img: "f.webp", type: "Spell", system: { tier: 3, lost: true } },
+  ];
+  const context = await t.app._prepareContext();
+  assert.equal(context.gmBar.dc, "12");
+  assert.equal(context.gmBar.whoAll, true);
+  assert.deepEqual(context.gmBar.pcs.map((pc) => pc.name), ["a", "b", "c"], "PCs only: no hireling or mount to ask");
+  assert.deepEqual(context.gmBar.stats.map((s) => s.key), ["str", "dex", "con", "int", "wis", "cha"]);
+  assert.deepEqual(context.members.find((m) => m.name === "a").spellTiers.map((x) => [x.tier, x.spells.map((s) => s.lost)]), [[1, [false]], [3, [true]]]);
+  const player = treasury({ isGM: false });
+  assert.equal((await player.app._prepareContext()).gmBar, null);
+});
+
+test("Request roll posts one card with a link for each PC ticked, and nothing with nobody ticked", async () => {
+  const t = treasury();
+  const posted = [];
+  globalThis.ChatMessage = { create: async (data) => { posted.push(data); return data; } };
+  globalThis.ui = { notifications: { warn: () => {} } };
+  const form = t.app._form();
+  form.stat = "dex"; form.dc = ""; form.who = ["Actor.a", "Actor.c"];
+  await act(t.app, "requestRoll");
+  assert.equal(posted.length, 1);
+  assert.deepEqual(posted[0].flags[MOD].partyRoll, { stat: "dex", dc: null, targets: [{ uuid: "Actor.a", name: "a" }, { uuid: "Actor.c", name: "c" }] });
+  assert.equal((posted[0].content.match(/data-party-roll/g) ?? []).length, 2);
+  assert.ok(!/<button/.test(posted[0].content));
+  form.who = [];
+  await act(t.app, "requestRoll");
+  assert.equal(posted.length, 1);
+  const player = treasury({ isGM: false });
+  await act(player.app, "requestRoll");
+  assert.equal(posted.length, 1, "a player cannot post one");
+});
+
+test("the Members tab carries the GM bar and the spell rows in the markup", async () => {
+  const template = await readFile(new URL("../templates/party/party.hbs", import.meta.url), "utf8");
+  for (const marker of ['data-action="requestRoll"', 'data-action="awardParty"', "data-roll-dc", "data-roll-stat", "data-roll-member", 'class="sdp-spells"', "{{#if gmBar}}"]) assert.ok(template.includes(marker), marker);
+});
+
+test("the Warbands tab lists the warbands a party character commands, each with its upkeep, and shows a viewer only the ones they may see", async () => {
+  const t = treasury();
+  const wb = (id, commander, { arrears = 0, deserted = false, perm = 3 } = {}) => {
+    const a = actor(id, `${MOD}.warband`, { [MOD]: { warband: { commander, arrears, deserted } } }, perm);
+    a.img = `${id}.webp`; a.system = { level: { value: 2 }, attributes: { hp: { value: 5, max: 20 } } };
+    return a;
+  };
+  const owed = wb("w1", "Actor.a", { arrears: 15 }), out = wb("w2", "Actor.b", { deserted: true }), stranger = wb("w3", "Actor.nobody"), hidden = wb("w4", "Actor.a", { perm: 0 });
+  globalThis.game.actors.contents.push(owed, out, stranger, hidden);
+  t.app.tab = "warbands";
+  const context = await t.app._prepareContext();
+  assert.equal(context.warbandsTab, true);
+  assert.deepEqual(context.warbandGroups.map((g) => [g.commander, g.rows.map((r) => r.name)]), [["a", ["w1"]], ["b", ["w2"]]]);
+  assert.deepEqual([context.warbandGroups[0].rows[0].arrears, context.warbandGroups[0].rows[0].upkeepGp, context.warbandGroups[1].rows[0].out], [15, 20, true]);
+  const other = await new PartyApp(t.p)._prepareContext();
+  assert.deepEqual(other.warbandGroups, [], "only the active tab is worked out");
+});
+
+test("Warbands and Downtime controls are the GM's alone", async () => {
+  const t = treasury({ isGM: false });
+  for (const name of ["runMonth", "payArrears", "returnToService", "startSession", "lockRolls", "releaseRolls", "endSession", "gmClearPick", "gmRollFor"]) await act(t.app, name, { dataset: { uuid: "Actor.w1", actorId: "a" } });
+  assert.equal(t.p.writes.length, 0, "nothing ran for a player: each handler returned before loading the downtime or warband code");
 });

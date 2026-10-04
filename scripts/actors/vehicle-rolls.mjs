@@ -22,6 +22,7 @@ export async function rollToChat(formula, { actor, flavor }) {
 export async function promptNumber({ title, label, initial = 0 }) {
   const { DialogV2 } = foundry.applications.api;
   const result = await DialogV2.prompt({
+    classes: ["sde-ui", "sde-dialog"],
     window: { title },
     content: `<div class="form-group">
         <label>${label}</label>
@@ -56,6 +57,7 @@ export async function promptSiegeAttack({ title, operators, preselect }) {
     : `<select name="operator" autofocus>${operators.map((o) => `<option value="${esc(o.value)}"${sel(o.value)}>${esc(o.label)}</option>`).join("")}</select>`;
   const L = (key) => game.i18n.localize(key);
   const result = await DialogV2.prompt({
+    classes: ["sde-ui", "sde-dialog"],
     window: { title },
     content: `<div class="form-group"><label>${L("SDE.vehicle.siege.operator")}</label>${operatorControl}</div>
       <div class="form-group">

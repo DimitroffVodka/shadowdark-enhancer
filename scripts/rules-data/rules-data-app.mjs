@@ -152,6 +152,7 @@ async function confirmOverwrites(list) {
     + `<td>${esc(shown(c.field, c.from))}</td><td>${esc(shown(c.field, c.to))}</td></tr>`).join("");
   const head = ["table", "row", "now", "imported"].map((k) => `<th>${esc(L(`SDE.rulesData.preview.${k}`))}</th>`).join("");
   const answer = await DialogV2.confirm({
+    classes: ["sde-ui", "sde-dialog"],
     window: { title: L("SDE.rulesData.preview.title") },
     position: { width: 600 },
     content: `<p>${esc(F("SDE.rulesData.preview.intro", { n: list.length }))}</p>`
@@ -343,6 +344,7 @@ export class RulesDataApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const starts = [["", L("SDE.rulesData.set.blank")], ["default", F("SDE.rulesData.set.copyOf", { name: L("SDE.rulesData.set.default") })],
       ...Object.entries(a.sets).map(([id, s]) => [id, F("SDE.rulesData.set.copyOf", { name: s.name })])];
     const out = await DialogV2.prompt({
+      classes: ["sde-ui", "sde-dialog"],
       window: { title: L("SDE.rulesData.set.newTitle") },
       content: `<div class="form-group"><label>${esc(L("SDE.rulesData.set.name"))}</label><input type="text" name="name" autofocus></div>`
         + `<div class="form-group"><label>${esc(L("SDE.rulesData.set.startFrom"))}</label><select name="from">`
@@ -370,6 +372,7 @@ export class RulesDataApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const a = this._store(), set = a.sets[a.current];
     if (!set) return;
     const out = await DialogV2.prompt({
+      classes: ["sde-ui", "sde-dialog"],
       window: { title: L("SDE.rulesData.set.renameTitle") },
       content: `<div class="form-group"><label>${esc(L("SDE.rulesData.set.name"))}</label><input type="text" name="name" value="${esc(set.name)}" autofocus></div>`,
       ok: { label: L("SDE.rulesData.set.rename"), icon: "fa-solid fa-pen", callback: (_event, button) => new foundry.applications.ux.FormDataExtended(button.form).object },
@@ -386,8 +389,11 @@ export class RulesDataApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const a = this._store(), set = a.sets[a.current];
     if (!set) return;
     const yes = await DialogV2.confirm({
+      classes: ["sde-ui", "sde-dialog"],
       window: { title: L("SDE.rulesData.set.deleteTitle") },
       content: `<p>${esc(F("SDE.rulesData.set.deleteConfirm", { name: set.name }))}</p>`,
+      yes: { label: "SDE.rulesData.set.delete", icon: "fa-solid fa-trash" },
+      no: { label: "SDE.rulesData.set.keep", icon: "fa-solid fa-xmark", default: true },
       rejectClose: false,
     }).catch(() => false);
     if (yes !== true) return;

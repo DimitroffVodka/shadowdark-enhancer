@@ -1,0 +1,9 @@
+{{!-- Shared NPC stat block: the Description tab. --}}
+    <section class="sde-veh-tab-content {{#if tab.notes}}active{{/if}}" data-tab-content="notes">
+      <div class="SD-box">
+        <div class="header"><label>{{localize "SHADOWDARK.sheet.npc.tab.description"}}</label><span></span></div>
+        <div class="content">
+          <prose-mirror name="system.notes" value="{{system.notes}}" toggled="true">{{{enrichedNotes}}}</prose-mirror>
+        </div>
+      </div>
+    </section>

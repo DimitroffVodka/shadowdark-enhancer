@@ -1588,8 +1588,7 @@ export const CrawlStrip = {
           receiver: receiver.name,
         }),
         yes: { label: "SDE.crawlStrip.giveLuckYes", icon: "fas fa-hand-holding-heart" },
-        no: { label: "Cancel", icon: "fas fa-times" },
-        defaultYes: false,
+        no: { label: "Cancel", icon: "fas fa-times", default: true },
       }).catch(() => false);
       if (confirmed) await this._executeGive(giver, receiver);
       return;

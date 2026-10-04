@@ -26,12 +26,12 @@
  */
 
 import { MODULE_ID } from "../shared/module-id.mjs";
-import { esc } from "../shared/esc.mjs";
 import { relayToGM, refuseQuery, registerQuery } from "../shared/gm-relay.mjs";
 import { SessionRecap } from "../session-recap/session-recap.mjs";
 import {
   critExtraFormula, showLuckCrit, showForceReroll, forceShape, uncritFormula, forcedDamage,
 } from "./pulp-core.mjs";
+import { pulpCard } from "../shared/chat-cards.mjs";
 
 export const PULP_QUERY = `${MODULE_ID}.pulp`;
 const FLAG_CRIT = "pulpLuckCrit";
@@ -64,10 +64,9 @@ export async function rollSessionLuck(users = game.users.players ?? game.users.f
     rows.push({ name: actor.name, total: roll.total, roll });
   }
   if (!rows.length) return rows;
-  const list = rows.map((r) => `<li><strong>${esc(r.name)}</strong> ${esc(r.total)}</li>`).join("");
   await ChatMessage.create({
     speaker: { alias: game.i18n.localize("SDE.pulp.speaker") },
-    content: `<div class="sde-pulp-card"><header>${esc(game.i18n.localize("SDE.pulp.sessionLuck"))}</header><ul>${list}</ul></div>`,
+    content: pulpCard({ title: game.i18n.localize("SDE.pulp.sessionLuck"), rows }),
     rolls: rows.map((r) => r.roll),
   });
   return rows;

@@ -75,6 +75,7 @@ export function freshKeys() {
  */
 export async function promptImporterUpdate(n) {
   const go = await foundry.applications.api.DialogV2.confirm({
+    classes: ["sde-ui", "sde-dialog"],
     window: { title: t("SDE.importer.news.title") },
     content: `<p>${t("SDE.importer.news.body", { n })}</p>`,
     yes: { label: t("SDE.importer.news.review"), icon: "fa-solid fa-sparkles" },
