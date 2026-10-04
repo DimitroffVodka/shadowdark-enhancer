@@ -1,0 +1,48 @@
+<div class="ui-shell sde-ege">
+  <div class="ui-body sde-ege-body">
+    <div class="ui-note info">{{localize "SDE.ui.gearEditorNote"}}</div>
+    <div class="ui-inline sde-ege-toolbar">
+      <div class="ui-search ui-grow"><i class="fa-solid fa-magnifying-glass"></i><input type="search" class="sde-ege-filter" placeholder="{{localize 'SDE.charBuilder.extraGear.filter'}}" autocomplete="off"></div>
+      <select class="sde-ege-source ege-source" title="{{localize 'SDE.charBuilder.extraGear.source'}}">
+        <option value="">{{localize "SDE.charBuilder.extraGear.allSources"}}</option>
+        {{#each sources}}<option value="{{id}}">{{label}} ({{count}})</option>{{/each}}
+      </select>
+    </div>
+    <div class="ui-inline sde-ege-subbar">
+      <span class="ui-chip gold sde-ege-count">{{localize "SDE.charBuilder.extraGear.selected"}}: {{count}}</span>
+      <button type="button" class="ui-btn ghost ui-right" data-action="ege-reset" title="{{localize 'SDE.charBuilder.extraGear.resetHint'}}"><i class="fa-solid fa-rotate-left"></i> {{localize "SDE.charBuilder.extraGear.reset"}}</button>
+    </div>
+
+    <div class="ui-stack sde-ege-list">
+      {{#if hasGroups}}
+        {{#each folders}}
+        <details class="ui-details sde-ege-folder" data-source="{{id}}"{{#if hasChecked}} open{{/if}}>
+          <summary><span class="ui-grow">{{label}}</span><span class="ui-chip">{{count}}</span></summary>
+          <div class="ui-details-body sde-ege-folder-body">
+            <div class="ui-list">
+              {{#each items}}
+              <label class="ui-row sde-ege-row{{#if isDefault}} is-default{{/if}}" data-name="{{name}}">
+                <input type="checkbox" class="sde-gear-pick" data-uuid="{{uuid}}" {{#if checked}}checked{{/if}}{{#if isDefault}} disabled data-default="1"{{/if}}>
+                <img src="{{img}}" alt="" loading="lazy">
+                <span class="ui-row-main"><span class="ui-row-name" title="{{name}}">{{name}}</span></span>
+                {{#if isDefault}}<span class="ui-tag" title="{{localize 'SDE.charBuilder.extraGear.defaultHint'}}">{{localize "SDE.charBuilder.extraGear.defaultTag"}}</span>{{/if}}
+                <span class="ui-tag">{{type}}</span>
+              </label>
+              {{/each}}
+            </div>
+          </div>
+        </details>
+        {{/each}}
+      {{else}}
+        <div class="ui-empty"><i class="fa-solid fa-toolbox"></i><span>{{localize "SDE.charBuilder.extraGear.empty"}}</span></div>
+      {{/if}}
+    </div>
+  </div>
+
+  <footer class="ui-footer">
+    <div class="ui-right">
+      <button type="button" class="ui-btn" data-action="ege-cancel"><i class="fa-solid fa-xmark"></i> {{localize "SDE.charBuilder.extraGear.cancel"}}</button>
+      <button type="submit" class="ui-btn primary sde-ege-save"><i class="fa-solid fa-floppy-disk"></i> {{localize "SDE.charBuilder.extraGear.save"}}</button>
+    </div>
+  </footer>
+</div>

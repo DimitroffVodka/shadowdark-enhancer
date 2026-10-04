@@ -1,0 +1,11 @@
+/* Bastion panel: card art and the row of built rooms. Tokens only. */
+.ubp-ui .ui-bp-art { width: 52px; height: 52px; flex: 0 0 52px; object-fit: cover; border: 1px solid var(--ui-line); border-radius: var(--ui-r2); background: var(--ui-raised); cursor: pointer; }
+.ubp-ui .ui-card-head { align-items: flex-start; }
+.ubp-ui [data-action="openSheet"] { cursor: pointer; }
+.ubp-ui .ui-bp-room { width: 28px; height: 28px; border: 1px solid var(--ui-line); border-radius: var(--ui-r); color: var(--ui-raised); }
+.ubp-ui .ui-bp-room.faint { opacity: .45; }
+.ui-icon:disabled { opacity: .35; }
+.ui-icon { flex: 0 0 24px; }
+.sde-ui .ui-card-actions .ui-icon { flex: 0 0 24px; }
+.sde-ui .ui-row-main { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; }
+.ubp-ui .ui-pairs { grid-template-columns: repeat(3, minmax(0, 1fr)); }

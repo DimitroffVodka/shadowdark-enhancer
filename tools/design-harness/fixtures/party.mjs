@@ -32,7 +32,7 @@ const member = (name, className, hp, max, ac, level, group = "characters", effec
   abilityLabels: Object.fromEntries(["str", "dex", "con", "int", "wis", "cha"].map((k, i) => [k, mod(((i * 3 + level) % 7) - 2)])),
 });
 const roster = [
-  member("Creeg Greythorn", "Fighter", 14, 18, 15, 3), member("Elbin Grizzlegut", "Priest", 9, 12, 13, 3, "characters", [{ name: "Blessed", img: svg("#a80", "B") }]),
+  member("Creeg Greythorn", "Fighter", 14, 18, 15, 3), member("Elbin Grizzlegut", "Priest", 9, 12, 13, 3),
   member("Iraga Draguul", "Thief", 6, 8, 12, 2), member("Jorbin Ironhelm", "Fighter", 11, 11, 14, 2), member("Martin Rast", "Wizard", 4, 4, 10, 2),
   member("Bram", "Porter", 5, 5, 10, 1, "hirelings"), member("Dusty", "Mule", 11, 11, 9, 1, "mounts"),
 ];

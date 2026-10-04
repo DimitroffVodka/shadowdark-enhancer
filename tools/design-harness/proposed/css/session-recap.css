@@ -1,0 +1,26 @@
+/* shared fixes (kit candidates): flex children that must not shrink, header that keeps one line below 560px */
+.ui-num { flex: 0 0 20px; }
+.ui-row > .ui-btn, .ui-row > .ui-chip, .ui-row > .ui-tag, .ui-row > .ui-icon, .ui-card-head > .ui-btn, .ui-card-head > .ui-chip { flex: 0 0 auto; }
+.ui-head { flex-wrap: nowrap; }
+.ui-head-text { flex: 1 1 0; }
+.ui-head > .ui-art, .ui-head > img { flex: 0 0 auto; }
+@container (max-width: 560px) { .ui-head { flex-wrap: nowrap; } }
+/* Session Recap. Kit candidates: .sr-wrap (scrolling table), .ui-card-head clickable. */
+.sr-stats { margin-top: 6px; }
+.sr-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
+.sr-pairs { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.sr-click { cursor: pointer; }
+.sr-down { text-decoration: line-through; color: var(--ui-muted); }
+.sr-wrap { overflow-x: auto; border: 1px solid var(--ui-line); border-radius: var(--ui-r2); background: var(--ui-panel); }
+.sr-wrap .ui-table { min-width: 480px; }
+.sr-flat { border: 0; background: transparent; border-radius: 0; }
+.sr-flat .ui-row { padding-left: 0; padding-right: 0; }
+.sr-plain { font-weight: 500; color: var(--ui-body); }
+.sr-unclaimed { box-shadow: inset 3px 0 0 var(--ui-warn); }
+.sr-icon { flex: 0 0 18px; text-align: center; color: var(--ui-gold); }
+.sr-viewing { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.ui-head .ui-label { margin: 0 0 2px; color: var(--ui-gold); }
+@container (max-width: 560px) { .ui-tab i { display: none; } .ui-tab { padding: 6px 9px; } }
+.sde-ui .ui-body > * { flex-shrink: 0; }
+.sde-ui input[type=radio]::before, .sde-ui input[type=radio]::after { content: none !important; }
+.ui-table { margin: 0; }

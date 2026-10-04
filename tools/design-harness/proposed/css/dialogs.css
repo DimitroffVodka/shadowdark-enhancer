@@ -1,0 +1,53 @@
+/* SDE dialogs (proposal). DialogV2 on the UI kit (sde-ui.css): tokens only, no colours, no theme selectors, no inline styles.
+   Call sites pass  classes: ["sde-ui", "sde-dialog"]  (add "dlg-choices" for a list of actions) and a content string built from
+   the parts below. Footer buttons are DialogV2's own `buttons` array: `default: true` makes the filled button, `class: "danger"` the
+   red outline, `class: "ghost"` the quiet one. Nothing else in a dialog is a button. Prefix: dlg-. */
+
+.sde-dialog .window-content { padding: 0; gap: 0; }
+.sde-dialog .dialog-content { flex: 1 1 auto; display: flex; flex-direction: column; gap: 14px; min-height: 0; margin: 0; padding: 16px; overflow-y: auto; background: var(--ui-page); }
+.sde-dialog .dialog-content > form, .sde-dialog form.dialog-content { display: contents; }
+
+/* message: a status icon and one paragraph */
+.dlg-msg { display: flex; align-items: flex-start; gap: 14px; min-width: 0; }
+.dlg-msg > i { flex: 0 0 28px; padding-top: 2px; text-align: center; font-size: 22px; color: var(--ui-gold); }
+.dlg-msg.warn > i { color: var(--ui-gold); } .dlg-msg.danger > i { color: var(--ui-danger-text); } .dlg-msg.info > i { color: var(--ui-frame); }
+.dlg-text { flex: 1 1 auto; min-width: 0; margin: 0; font-size: 14px; line-height: 1.5; color: var(--ui-body); overflow-wrap: anywhere; }
+.dlg-text strong { color: var(--ui-text); }
+.dlg-sub { margin: 0; font-size: 12px; color: var(--ui-muted); overflow-wrap: anywhere; }
+.dlg-fields { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+
+/* what will be affected: a short list, not a paragraph */
+.dlg-items { display: flex; flex-direction: column; margin: 0; padding: 0; list-style: none; border: 1px solid var(--ui-line); border-radius: var(--ui-r); background: var(--ui-panel); }
+.dlg-items > li { padding: 6px 10px; border-bottom: 1px solid var(--ui-line); overflow-wrap: anywhere; }
+.dlg-items > li:last-child { border-bottom: 0; }
+
+/* progress: one line of words, one bar, a percent */
+.dlg-progress-line { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; min-width: 0; }
+.dlg-progress-line > span:first-child { flex: 1 1 auto; min-width: 0; overflow-wrap: anywhere; }
+.dlg-progress-line > .ui-value { flex: 0 0 auto; }
+progress.dlg-progress { appearance: none; -webkit-appearance: none; display: block; width: 100%; height: 8px; margin: 0; border: 1px solid var(--ui-line); border-radius: 4px; background: var(--ui-raised); overflow: hidden; }
+progress.dlg-progress::-webkit-progress-bar { background: var(--ui-raised); }
+progress.dlg-progress::-webkit-progress-value { background: var(--ui-frame); }
+progress.dlg-progress::-moz-progress-bar { background: var(--ui-frame); }
+
+/* footer: DialogV2's own buttons, restyled to the kit */
+.sde-dialog .form-footer { flex: 0 0 auto; display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 8px; margin: 0; padding: 10px 16px; border-top: 1px solid var(--ui-line); background: var(--ui-page); }
+.sde-dialog .form-footer button { display: inline-flex; align-items: center; justify-content: center; gap: 6px; flex: 0 0 auto; height: 30px; min-width: 88px; margin: 0; padding: 0 16px; border: 1px solid var(--ui-frame); border-radius: var(--ui-r); background: var(--ui-panel); color: var(--ui-text); font: 600 12px/1 var(--ui-head); letter-spacing: .02em; text-shadow: none; box-shadow: none; cursor: pointer; }
+.sde-dialog .form-footer button:hover { background: var(--ui-raised); }
+.sde-dialog .form-footer button.default { height: 32px; background: var(--ui-btn-bg); border-color: var(--ui-btn-bg); color: var(--ui-btn-fg); font-weight: 700; }
+.sde-dialog .form-footer button.default:hover { background: var(--ui-btn-bg); filter: brightness(1.12); }
+.sde-dialog .form-footer button.danger { border-color: var(--ui-danger); color: var(--ui-text); background: transparent; }
+.sde-dialog .form-footer button.danger:hover { background: var(--ui-raised); border-color: var(--ui-danger-text); }
+.sde-dialog .form-footer button.ghost { border-color: var(--ui-line); background: transparent; color: var(--ui-muted); }
+.sde-dialog .form-footer button.ghost:hover { color: var(--ui-text); border-color: var(--ui-frame); }
+
+/* a list of actions: the footer becomes rows, one action each (the dying menu). Same buttons array, no JS change. */
+.sde-dialog.dlg-choices .form-footer { flex-direction: column; align-items: stretch; justify-content: flex-start; gap: 6px; padding: 0 16px 14px; border-top: 0; }
+.sde-dialog.dlg-choices .form-footer button { justify-content: flex-start; width: 100%; height: 38px; padding: 0 12px; text-align: left; font: 600 13px/1.2 var(--ui-font); background: var(--ui-panel); border-color: var(--ui-line); color: var(--ui-text); }
+.sde-dialog.dlg-choices .form-footer button:hover { border-color: var(--ui-frame); background: var(--ui-raised); }
+.sde-dialog.dlg-choices .form-footer button > i { flex: 0 0 18px; width: 18px; text-align: center; color: var(--ui-gold); }
+.sde-dialog.dlg-choices .form-footer button.default { height: 38px; background: var(--ui-btn-bg); color: var(--ui-btn-fg); }
+.sde-dialog.dlg-choices .form-footer button.default > i { color: inherit; }
+.sde-dialog.dlg-choices .form-footer button.ghost { justify-content: center; height: 30px; background: transparent; border-color: transparent; color: var(--ui-muted); }
+.sde-ui .ui-body > * { flex-shrink: 0; }
+.sde-ui input[type=radio]::before, .sde-ui input[type=radio]::after { content: none !important; }

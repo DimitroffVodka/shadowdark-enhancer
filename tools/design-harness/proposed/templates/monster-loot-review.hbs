@@ -1,0 +1,53 @@
+<div class="ui-shell">
+  <header class="ui-head">
+    <div class="ui-art ml-art"><i class="fa-solid fa-coins"></i></div>
+    <div class="ui-head-text">
+      <h2 class="ui-title">{{localize "SDE.settings.monsterLoot.title"}}</h2>
+      <p class="ui-sub">{{localize "SDE.monsterLoot.intro"}}</p>
+    </div>
+    <div class="ui-stats">
+      <div class="ui-stat"><span class="ui-label">{{localize "SDE.monsterLoot.monsters"}}</span><span class="ui-value">{{rows.length}}</span></div>
+      <div class="ui-stat"><span class="ui-label">{{localize "SDE.monsterLoot.colChance"}}</span><span class="ui-value">{{worldChance}}</span></div>
+    </div>
+  </header>
+  <div class="ml-tools">
+    <div class="ui-search ui-grow"><i class="fa-solid fa-magnifying-glass"></i><input type="search" data-ml-filter placeholder="{{localize 'SDE.monsterLoot.filter'}}" autocomplete="off"></div>
+  </div>
+  <div class="ui-body sde-ml-list">
+    {{#if dropsOn}}
+    <div class="ui-note info">{{#if perEncounter}}{{localize "SDE.monsterLoot.perEncounter"}}{{else}}{{localize "SDE.monsterLoot.perNpc"}}{{/if}}</div>
+    {{else}}
+    <div class="ui-note warn">{{localize "SDE.monsterLoot.dropsOff"}}</div>
+    {{/if}}
+    {{#if rows.length}}
+    <table class="ui-table ml-table">
+      <thead><tr>
+        <th>{{localize "SDE.monsterLoot.colMonster"}}</th>
+        <th class="num">{{localize "SDE.monsterLoot.colLevel"}}</th>
+        <th>{{localize "SDE.monsterLoot.colTable"}}</th>
+        <th>{{localize "SDE.monsterLoot.colChance"}}</th>
+      </tr></thead>
+      <tbody>
+      {{#each rows as |row|}}
+        <tr data-actor-id="{{row.id}}" data-name="{{row.nameKey}}" class="{{#if row.overridden}}overridden{{/if}}">
+          <td class="ml-name"><a data-action="openSheet" title="{{row.name}}">{{row.name}}</a></td>
+          <td class="num ml-lvl"><span class="ui-label ml-lvl-label">{{localize "SDE.monsterLoot.colLevel"}}</span> {{row.level}}</td>
+          <td class="ml-tbl">
+            <select name="table">
+              <option value="">{{row.defaultLabel}}</option>
+              {{#if row.missingTable}}<option value="{{row.table}}" selected>{{row.missingTable}}</option>{{/if}}
+              {{#each @root.tables as |t|}}
+              <option value="{{t.uuid}}" {{#if (eq t.uuid row.table)}}selected{{/if}}>{{t.name}}</option>
+              {{/each}}
+            </select>
+          </td>
+          <td class="ml-chance"><input type="number" name="chance" min="0" max="100" step="1" value="{{row.chance}}" placeholder="{{@root.worldChance}}%"></td>
+        </tr>
+      {{/each}}
+      </tbody>
+    </table>
+    {{else}}
+    <div class="ui-empty"><i class="fa-solid fa-skull"></i><span>{{localize "SDE.monsterLoot.empty"}}</span></div>
+    {{/if}}
+  </div>
+</div>

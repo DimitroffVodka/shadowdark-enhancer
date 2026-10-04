@@ -1,0 +1,89 @@
+<div class="ui-shell">
+  <header class="ui-head">
+    <div class="ui-art ls-art"><i class="fa-solid fa-gear"></i></div>
+    <div class="ui-head-text">
+      <h2 class="ui-title">{{localize "SDE.loot.setup.title"}}</h2>
+      <p class="ui-sub">{{localize "SDE.loot.setup.progress" done=done total=total}}</p>
+    </div>
+  </header>
+
+  <div class="ui-body">
+    <div class="ui-note info">{{{localize "SDE.loot.setup.intro"}}}</div>
+
+    {{#each library as |g|}}
+    <section class="ui-group">
+      <h3 class="ui-h">{{g.label}} <small>{{g.entries.length}}</small></h3>
+      <div class="ui-list">
+        {{#each g.entries as |e|}}
+        <div class="ui-row ls-row">
+          <div class="ui-row-main">
+            <span class="ui-row-name ls-name" title="{{e.displayName}}">{{e.displayName}}</span>
+            <span class="ui-row-sub">{{#if e.page}}{{localize "SDE.loot.setup.page" page=e.page}}{{/if}}{{#if e.isTier}} <span class="ui-tag">{{localize "SDE.loot.setup.tierBadge" tier=e.tier}}</span>{{/if}}</span>
+          </div>
+          {{#if e.present}}
+            {{#if e.isTier}}
+              {{#if e.boundHere}}
+              <span class="ui-chip ok"><i class="fas fa-check"></i> {{localize "SDE.loot.setup.bound"}}</span>
+              {{else}}
+              <button type="button" class="ui-btn" data-action="bindLibrary" data-tier="{{e.tier}}" data-uuid="{{e.uuid}}" title="{{localize 'SDE.loot.setup.bindTip' tier=e.tier}}"><i class="fas fa-link"></i> {{localize "SDE.loot.setup.bind"}}</button>
+              {{/if}}
+            {{else}}
+              <span class="ui-chip ok"><i class="fas fa-check"></i> {{localize "SDE.loot.setup.inLibrary"}}</span>
+            {{/if}}
+          {{else}}
+          <button type="button" class="ui-btn" data-action="unlockLibrary" data-name="{{e.name}}" data-src="{{e.src}}"><i class="fas fa-unlock"></i> {{localize "SDE.loot.setup.unlock"}}</button>
+          {{/if}}
+        </div>
+        {{/each}}
+      </div>
+    </section>
+    {{/each}}
+
+    <section class="ui-group">
+      <h3 class="ui-h">{{localize "SDE.loot.setup.pickerHeading"}} <small>{{managed.length}}</small></h3>
+      <p class="ui-sub">{{localize "SDE.loot.setup.pickerHint"}}</p>
+      {{#if managed.length}}
+      <div class="ui-list">
+        {{#each managed as |m|}}
+        <div class="ui-row ls-row ls-pick">
+          <div class="ui-row-main"><span class="ui-row-name ls-name" title="{{m.name}}">{{m.name}}</span><span class="ui-row-sub">{{m.group}}</span></div>
+          <button type="button" class="ui-icon danger" data-action="removePicker" data-uuid="{{m.uuid}}" title="{{localize 'SDE.loot.setup.removeTip'}}" aria-label="{{localize 'SDE.loot.setup.remove'}}"><i class="fas fa-xmark"></i></button>
+        </div>
+        {{/each}}
+      </div>
+      {{else}}
+      <div class="ui-empty"><i class="fa-solid fa-table-list"></i><span>{{localize "SDE.loot.setup.noneAdded"}}</span></div>
+      {{/if}}
+      {{#if hasAddable}}
+      <div class="ui-inline ls-add">
+        <select data-picker-add aria-label="{{localize 'SDE.loot.setup.addAria'}}">
+          <option value="">{{localize "SDE.loot.setup.addPlaceholder"}}</option>
+          {{#each addable as |t|}}<option value="{{t.uuid}}">{{t.name}} ({{t.group}})</option>{{/each}}
+        </select>
+        <button type="button" class="ui-btn" data-action="addPicker"><i class="fas fa-plus"></i> {{localize "SDE.loot.setup.add"}}</button>
+      </div>
+      {{/if}}
+    </section>
+
+    <details class="ui-details">
+      <summary>{{localize "SDE.loot.setup.customHeading"}}</summary>
+      <div class="ui-details-body">
+        {{#if hasLootTables}}
+        <div class="ui-inline ls-bind">
+          <select data-custom-tier aria-label="{{localize 'SDE.loot.setup.tierAria'}}">
+            {{#each tierOptions as |t|}}<option value="{{t.tier}}">{{t.label}}{{#if t.boundName}} — {{t.boundName}}{{/if}}</option>{{/each}}
+          </select>
+          <select data-custom-table aria-label="{{localize 'SDE.monsterLoot.colTable'}}">
+            <option value="">{{localize "SDE.loot.setup.tablePlaceholder"}}</option>
+            {{#each lootTables as |t|}}<option value="{{t.uuid}}">{{t.name}} ({{t.group}})</option>{{/each}}
+          </select>
+          <button type="button" class="ui-btn" data-action="bindCustom"><i class="fas fa-link"></i> {{localize "SDE.loot.setup.bind"}}</button>
+        </div>
+        {{else}}
+        <p class="ui-sub">{{localize "SDE.loot.setup.noTables"}}</p>
+        {{/if}}
+        <p class="ui-sub">{{{localize "SDE.loot.setup.markHint"}}}</p>
+      </div>
+    </details>
+  </div>
+</div>

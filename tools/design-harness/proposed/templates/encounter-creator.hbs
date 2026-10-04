@@ -1,0 +1,286 @@
+{{!-- Monster Creator panel, proposed: a two-pane layout (the creature's core on the left, always in view; one tab per
+      concern on the right) with one primary, the Save. Same context, data-action, data-draft-field, data-section, data-*
+      and name= attributes as templates/encounter-creator.hbs. The tabs are driven by the same sectionOpen flags the old
+      accordions used (a tab is open when its flag is true; clicking it fires sectionToggle). --}}
+<div class="mc">
+
+  {{#if _loaderOpen}}
+  <div class="ui-shell mc-loader">
+    <header class="ui-head">
+      <button type="button" class="ui-btn" data-action="creatorToggleLoader" title="{{localize 'SDE.encounterCreator.loader.backTip'}}"><i class="fas fa-arrow-left"></i> {{localize "SDE.encounterCreator.loader.back"}}</button>
+      <div class="ui-head-text"><h2 class="ui-title">{{localize "SDE.encounterCreator.loader.title"}}</h2></div>
+      <span class="ui-chip">{{localize "SDE.encounterCreator.loader.count" filtered=loaderData.filteredCount total=loaderData.totalCount}}</span>
+    </header>
+    <div class="ui-body ui-cols-side mc-loader-body">
+      <aside class="ui-card mc-filters">
+        <h3 class="ui-h">{{localize "SDE.encounterCreator.loader.filters"}}</h3>
+        <div class="ui-field"><span class="ui-label">{{localize "SDE.encounterCreator.loader.sources"}}</span>
+          <details class="ui-details mc-sources"><summary>{{loaderData.sourcesLabel}}</summary>
+            <div class="ui-details-body">{{#each loaderData.availableSources}}<label class="ui-check"><input type="checkbox" {{#if (includes ../loaderData.selectedSources this.id)}}checked{{/if}} data-action="creatorLoaderToggleSource" data-source-id="{{this.id}}"> <span>{{this.label}}</span></label>{{/each}}</div>
+          </details></div>
+        <div class="ui-field"><label class="ui-label" for="sde-ldr-search">{{localize "SDE.encounterCreator.loader.search"}}</label>
+          <div class="ui-search"><i class="fas fa-magnifying-glass"></i><input id="sde-ldr-search" type="text" data-loader-search  placeholder="{{localize 'SDE.encounterCreator.loader.searchPlaceholder'}}" value="{{loaderData.search}}"></div></div>
+        <div class="ui-field"><span class="ui-label">{{localize "SDE.encounterCreator.field.alignment"}}</span>
+          <div class="ui-inline">{{#each (array "L" "N" "C")}}<button type="button" class="ui-chip {{#if (includes ../loaderData.alignment this)}}sel{{/if}}" data-action="creatorLoaderToggleAlign" aria-pressed="{{#if (includes ../loaderData.alignment this)}}true{{else}}false{{/if}}" data-alignment="{{this}}">{{this}}</button>{{/each}}</div></div>
+        <div class="ui-field"><span class="ui-label">{{localize "SDE.monsterCreator.stat.level"}}</span>
+          <div class="ui-inline mc-range"><input type="number" name="loaderLevelMin" placeholder="{{localize 'SDE.encounterCreator.loader.min'}}" aria-label="{{localize 'SDE.encounterCreator.range.minLevel'}}" value="{{#unless (eq loaderData.levelMin null)}}{{loaderData.levelMin}}{{/unless}}"><span class="ui-muted">&ndash;</span><input type="number" name="loaderLevelMax" placeholder="{{localize 'SDE.encounterCreator.loader.max'}}" aria-label="{{localize 'SDE.encounterCreator.range.maxLevel'}}" value="{{#unless (eq loaderData.levelMax null)}}{{loaderData.levelMax}}{{/unless}}"></div></div>
+        <div class="ui-field"><span class="ui-label">{{localize "SDE.importer.monsters.hp"}}</span>
+          <div class="ui-inline mc-range"><input type="number" name="loaderHpMin" placeholder="{{localize 'SDE.encounterCreator.loader.min'}}" aria-label="{{localize 'SDE.encounterCreator.range.minHp'}}" value="{{#unless (eq loaderData.hpMin null)}}{{loaderData.hpMin}}{{/unless}}"><span class="ui-muted">&ndash;</span><input type="number" name="loaderHpMax" placeholder="{{localize 'SDE.encounterCreator.loader.max'}}" aria-label="{{localize 'SDE.encounterCreator.range.maxHp'}}" value="{{#unless (eq loaderData.hpMax null)}}{{loaderData.hpMax}}{{/unless}}"></div></div>
+        <div class="ui-field"><span class="ui-label">{{localize "SDE.importer.monsters.ac"}}</span>
+          <div class="ui-inline mc-range"><input type="number" name="loaderAcMin" placeholder="{{localize 'SDE.encounterCreator.loader.min'}}" aria-label="{{localize 'SDE.encounterCreator.range.minAc'}}" value="{{#unless (eq loaderData.acMin null)}}{{loaderData.acMin}}{{/unless}}"><span class="ui-muted">&ndash;</span><input type="number" name="loaderAcMax" placeholder="{{localize 'SDE.encounterCreator.loader.max'}}" aria-label="{{localize 'SDE.encounterCreator.range.maxAc'}}" value="{{#unless (eq loaderData.acMax null)}}{{loaderData.acMax}}{{/unless}}"></div></div>
+        <div class="ui-field"><label class="ui-label" for="sde-ldr-move">{{localize "SDE.encounterCreator.field.movement"}}</label>
+          <select id="sde-ldr-move" name="loaderMove"><option value="" {{#unless loaderData.moves.length}}selected{{/unless}}>{{localize "SDE.encounterCreator.loader.allMovement"}}</option>{{#each loaderData.moveOptions}}<option value="{{this}}" {{#if (includes ../loaderData.moves this)}}selected{{/if}}>{{this}}</option>{{/each}}</select></div>
+        <label class="ui-check"><input type="checkbox" {{#if loaderData.darkAdapted}}checked{{/if}} data-action="creatorLoaderToggleDark"> <span>{{localize "SDE.encounterCreator.field.darkAdapted"}}</span></label>
+        <label class="ui-check"><input type="checkbox" {{#if loaderData.hasSpellcasting}}checked{{/if}} data-action="creatorLoaderToggleSpellcaster"> <span>{{localize "SDE.encounterCreator.loader.spellcaster"}}</span></label>
+        <div class="ui-field"><label class="ui-label" for="sde-ldr-ability">{{localize "SDE.monsterCreator.stat.abilities"}}</label><input id="sde-ldr-ability" type="text" data-loader-ability  placeholder="{{localize 'SDE.encounterCreator.loader.abilityPlaceholder'}}" value="{{loaderData.abilitySearch}}"></div>
+      </aside>
+      <div class="ui-card mc-results">
+        {{#if loaderData.noSources}}<div class="ui-empty"><i class="fas fa-book"></i><span>{{localize "SDE.encounterCreator.loader.noSources"}}</span></div>
+        {{else if loaderData.empty}}<div class="ui-empty"><i class="fas fa-magnifying-glass"></i><span>{{localize "SDE.encounterCreator.loader.empty"}}</span></div>
+        {{else}}
+        <table class="ui-table mc-table">
+          <thead><tr>
+            <th></th>
+            <th aria-sort="{{#if (eq loaderData.sortCol "name")}}{{#if loaderData.sortAsc}}ascending{{else}}descending{{/if}}{{else}}none{{/if}}"><button type="button" class="mc-sort" data-action="creatorLoaderSort" data-column="name">{{localize "SDE.encounterCreator.field.name"}} {{#if (eq loaderData.sortCol "name")}}{{#if loaderData.sortAsc}}&#9650;{{else}}&#9660;{{/if}}{{/if}}</button></th>
+            <th aria-sort="{{#if (eq loaderData.sortCol "level")}}{{#if loaderData.sortAsc}}ascending{{else}}descending{{/if}}{{else}}none{{/if}}"><button type="button" class="mc-sort" data-action="creatorLoaderSort" data-column="level">{{localize "SDE.importer.monsters.lv"}} {{#if (eq loaderData.sortCol "level")}}{{#if loaderData.sortAsc}}&#9650;{{else}}&#9660;{{/if}}{{/if}}</button></th>
+            <th aria-sort="{{#if (eq loaderData.sortCol "alignment")}}{{#if loaderData.sortAsc}}ascending{{else}}descending{{/if}}{{else}}none{{/if}}"><button type="button" class="mc-sort" data-action="creatorLoaderSort" data-column="alignment">{{localize "SDE.encounterCreator.loader.colAlignment"}} {{#if (eq loaderData.sortCol "alignment")}}{{#if loaderData.sortAsc}}&#9650;{{else}}&#9660;{{/if}}{{/if}}</button></th>
+            <th aria-sort="{{#if (eq loaderData.sortCol "hp")}}{{#if loaderData.sortAsc}}ascending{{else}}descending{{/if}}{{else}}none{{/if}}"><button type="button" class="mc-sort" data-action="creatorLoaderSort" data-column="hp">{{localize "SDE.importer.monsters.hp"}} {{#if (eq loaderData.sortCol "hp")}}{{#if loaderData.sortAsc}}&#9650;{{else}}&#9660;{{/if}}{{/if}}</button></th>
+            <th aria-sort="{{#if (eq loaderData.sortCol "ac")}}{{#if loaderData.sortAsc}}ascending{{else}}descending{{/if}}{{else}}none{{/if}}"><button type="button" class="mc-sort" data-action="creatorLoaderSort" data-column="ac">{{localize "SDE.importer.monsters.ac"}} {{#if (eq loaderData.sortCol "ac")}}{{#if loaderData.sortAsc}}&#9650;{{else}}&#9660;{{/if}}{{/if}}</button></th>
+            <th aria-sort="{{#if (eq loaderData.sortCol "dpr")}}{{#if loaderData.sortAsc}}ascending{{else}}descending{{/if}}{{else}}none{{/if}}"><button type="button" class="mc-sort" data-action="creatorLoaderSort" data-column="dpr">{{localize "SDE.encounterCreator.loader.colDpr"}} {{#if (eq loaderData.sortCol "dpr")}}{{#if loaderData.sortAsc}}&#9650;{{else}}&#9660;{{/if}}{{/if}}</button></th>
+            <th aria-sort="{{#if (eq loaderData.sortCol "attackCount")}}{{#if loaderData.sortAsc}}ascending{{else}}descending{{/if}}{{else}}none{{/if}}"><button type="button" class="mc-sort" data-action="creatorLoaderSort" data-column="attackCount">{{localize "SDE.encounterCreator.loader.colAttack"}} {{#if (eq loaderData.sortCol "attackCount")}}{{#if loaderData.sortAsc}}&#9650;{{else}}&#9660;{{/if}}{{/if}}</button></th>
+          </tr></thead>
+          <tbody>
+            {{#each loaderData.rows}}
+            <tr class="mc-pick" data-action="creatorLoaderPick" data-uuid="{{this.uuid}}" title="{{localize 'SDE.encounterCreator.loader.rowTip' name=this.name}}">
+              <td><img src="{{this.img}}" width="24" height="24" alt="" loading="lazy" decoding="async"></td>
+              <td class="mc-name" title="{{this.name}}">{{this.name}}</td>
+              <td>{{this.levelLabel}}</td>
+              <td title="{{this.alignmentLabel}}">{{#if this.alignment}}{{this.alignment}}{{else}}&mdash;{{/if}}</td>
+              <td>{{this.hpLabel}}</td><td>{{this.acLabel}}</td><td>{{this.dprLabel}}</td>
+              <td>{{#if this.attackCount}}<span title="{{this.primaryAttack}}">{{this.attackSummary}}</span>
+                {{#if this.attackKinds.melee}}<i class="fas fa-swords" title="{{localize 'SDE.encounterCreator.loader.melee'}}"></i>{{/if}}{{#if this.attackKinds.ranged}}<i class="fas fa-crosshairs" title="{{localize 'SDE.encounterCreator.loader.ranged'}}"></i>{{/if}}{{#if this.attackKinds.special}}<i class="fas fa-bolt" title="{{localize 'SDE.encounterCreator.loader.special'}}"></i>{{/if}}{{else}}&mdash;{{/if}}
+                {{#if this.hasSpellcasting}}<i class="fas fa-wand-sparkles" title="{{localize 'SDE.encounterCreator.loader.spellcasterTip' bonus=this.spellcastingBonus}}"></i>{{/if}}{{#if this.darkAdapted}}<i class="fas fa-moon" title="{{localize 'SDE.encounterCreator.field.darkAdapted'}}"></i>{{/if}}</td>
+            </tr>
+            {{/each}}
+          </tbody>
+        </table>
+        {{/if}}
+      </div>
+    </div>
+  </div>
+
+  {{else}}
+  <div class="ui-shell mc-shell">
+    <header class="ui-head mc-top">
+      <div class="ui-head-text"><h2 class="ui-title">{{#if draft.name}}{{draft.name}}{{else}}{{localize "SDE.encounterCreator.field.namePlaceholder"}}{{/if}}</h2></div>
+      <div class="ui-inline">
+        <button type="button" class="ui-btn" data-action="creatorToggleLoader"><i class="fas fa-book"></i> {{localize "SDE.encounterCreator.loader.open"}}</button>
+        <button type="button" class="ui-btn" data-action="creatorBulkImport" title="{{localize 'SDE.encounterCreator.bulkImportTip'}}"><i class="fas fa-dragon"></i> {{localize "SDE.encounterCreator.bulkImport"}}</button>
+      </div>
+    </header>
+    {{#if source}}
+    <div class="ui-note info mc-source"><i class="fas fa-link"></i> <span class="ui-grow">{{{source.editingHtml}}}</span>
+      <button type="button" class="ui-btn ghost" data-action="creatorClearSource" title="{{localize 'SDE.encounterCreator.source.detachTip' name=source.name}}"><i class="fas fa-link-slash"></i> {{localize "SDE.encounterCreator.source.detach"}}</button></div>
+    {{/if}}
+
+    <div class="ui-body mc-body">
+      <div class="mc-panes">
+        {{!-- ===== Left pane: the creature's core, always in view ===== --}}
+        <aside class="mc-core">
+          <section class="ui-card">
+            <h3 class="ui-h">{{localize "SDE.encounterCreator.section.identity"}}</h3>
+            <div class="ui-field"><label class="ui-label" for="sde-cr-name">{{localize "SDE.encounterCreator.field.name"}}</label><input id="sde-cr-name" type="text" data-draft-field="name" value="{{draft.name}}" placeholder="{{localize 'SDE.encounterCreator.field.namePlaceholder'}}"></div>
+            <div class="mc-two mc-id">
+              <div class="ui-field"><span class="ui-label">{{localize "SDE.encounterCreator.field.alignment"}}</span>
+                <div class="ui-inline">{{#each alignments}}<label class="ui-chip ui-check"><input type="radio" name="alignment" value="{{this}}" {{#if (eq this ../draft.alignment)}}checked{{/if}} data-draft-field="alignment"> {{this}}</label>{{/each}}</div></div>
+              <div class="ui-field"><label class="ui-label" for="sde-cr-level">{{localize "SDE.monsterCreator.stat.level"}}</label>
+                <div class="ui-inline mc-step">
+                  <button type="button" class="ui-btn" data-action="creatorLevelStep" data-step="-1" aria-label="{{localize 'SDE.encounterCreator.field.levelDown'}}" title="{{localize 'SDE.encounterCreator.field.levelDown'}}" {{#if levelStep.atMin}}disabled{{/if}}><i class="fas fa-minus"></i></button>
+                  <input id="sde-cr-level" type="number" class="ui-num-in" data-draft-field="level" value="{{draft.level}}" min="0" max="{{levelStep.max}}">
+                  <button type="button" class="ui-btn" data-action="creatorLevelStep" data-step="1" aria-label="{{localize 'SDE.encounterCreator.field.levelUp'}}" title="{{localize 'SDE.encounterCreator.field.levelUp'}}" {{#if levelStep.atMax}}disabled{{/if}}><i class="fas fa-plus"></i></button>
+                </div></div>
+            </div>
+            <div class="ui-field"><label class="ui-label" for="sde-cr-img">{{localize "SDE.encounterCreator.field.portrait"}}</label>
+              <div class="ui-inline mc-img"><img src="{{draft.img}}" width="40" height="40" alt=""><input id="sde-cr-img" type="text" data-draft-field="img" value="{{draft.img}}" class="ui-grow"><button type="button" class="ui-icon" data-action="pickImg" title="{{localize 'SDE.encounterCreator.field.browse'}}" aria-label="{{localize 'SDE.encounterCreator.field.browse'}}"><i class="fas fa-folder-open"></i></button></div></div>
+            <div class="ui-field"><label class="ui-label" for="sde-cr-token">{{localize "SDE.encounterCreator.field.tokenImage"}}</label>
+              <div class="ui-inline mc-img"><img src="{{#if draft.tokenSrc}}{{draft.tokenSrc}}{{else}}{{draft.img}}{{/if}}" width="40" height="40" alt=""><input id="sde-cr-token" type="text" data-draft-field="tokenSrc" value="{{draft.tokenSrc}}" placeholder="{{localize 'SDE.encounterCreator.field.tokenPlaceholder'}}" class="ui-grow"><button type="button" class="ui-icon" data-action="pickTokenSrc" title="{{localize 'SDE.encounterCreator.field.browse'}}" aria-label="{{localize 'SDE.encounterCreator.field.browse'}}"><i class="fas fa-folder-open"></i></button></div></div>
+          </section>
+
+          <section class="ui-card">
+            <h3 class="ui-h">{{localize "SDE.encounterCreator.section.stats"}}</h3>
+            <div class="mc-two">
+              <div class="ui-field"><label class="ui-label" for="sde-cr-hp-value">{{localize "SDE.importer.monsters.hp"}}</label>
+                <div class="ui-inline mc-hp"><input id="sde-cr-hp-value" type="number" data-draft-field="hp.value" value="{{draft.hp.value}}" min="0" title="{{localize 'SDE.encounterCreator.field.currentHp'}}" aria-label="{{localize 'SDE.encounterCreator.field.currentHp'}}"><span class="ui-muted">/</span><input type="number" data-draft-field="hp.max" value="{{draft.hp.max}}" min="1" title="{{localize 'SDE.encounterCreator.range.maxHp'}}" aria-label="{{localize 'SDE.encounterCreator.range.maxHp'}}"></div></div>
+              <div class="ui-field"><label class="ui-label" for="sde-cr-ac">{{localize "SDE.importer.monsters.ac"}}</label><input id="sde-cr-ac" type="number" data-draft-field="ac" value="{{draft.ac}}" min="0"></div>
+            </div>
+            <div class="ui-field"><span class="ui-label">{{localize "SDE.monsterCreator.stat.abilities"}}</span>
+              <div class="mc-abil">{{#each abilityFields}}<label class="ui-field mc-ab"><span class="ui-label" aria-hidden="true">{{this.label}}</span><input type="number" data-draft-field="abilities.{{this.key}}" value="{{lookup ../draft.abilities this.key}}" aria-label="{{localize 'SDE.encounterCreator.field.abilityScore' ability=this.label}}" placeholder="0"></label>{{/each}}</div></div>
+            <label class="ui-check" for="sde-cr-dark"><input id="sde-cr-dark" type="checkbox" data-draft-field="darkAdapted" {{#if draft.darkAdapted}}checked{{/if}}> {{localize "SDE.encounterCreator.field.darkAdapted"}}</label>
+          </section>
+
+          <section class="ui-card">
+            <h3 class="ui-h">{{localize "SDE.encounterCreator.field.movement"}}</h3>
+            <div class="ui-field"><label class="ui-label" for="sde-cr-move">{{localize "SDE.encounterCreator.field.moveType"}}</label>
+              <select id="sde-cr-move" data-draft-field="move">{{#each moveOptions}}<option value="{{this}}" {{#if (eq this ../draft.move)}}selected{{/if}}>{{this}}</option>{{/each}}</select></div>
+            <div class="ui-field"><label class="ui-label" for="sde-cr-movenote">{{localize "SDE.encounterCreator.field.moveNote"}}</label><input id="sde-cr-movenote" type="text" data-draft-field="moveNote" value="{{draft.moveNote}}" placeholder="{{localize 'SDE.encounterCreator.field.moveNotePlaceholder'}}"></div>
+          </section>
+        </aside>
+
+        {{!-- ===== Right pane: one tab per concern ===== --}}
+        <div class="mc-work">
+          <nav class="ui-tabs mc-tabs">
+            <a class="ui-tab {{#if sectionOpen.actions}}active{{/if}}" data-action="sectionToggle" data-section="actions" tabindex="0"><i class="fas fa-swords"></i> {{localize "SDE.encounterCreator.section.actions"}}</a>
+            <a class="ui-tab {{#if sectionOpen.features}}active{{/if}}" data-action="sectionToggle" data-section="features" tabindex="0"><i class="fas fa-star"></i> {{localize "SDE.encounterCreator.section.features"}}</a>
+            <a class="ui-tab {{#if sectionOpen.spellcasting}}active{{/if}}" data-action="sectionToggle" data-section="spellcasting" tabindex="0"><i class="fas fa-wand-sparkles"></i> {{localize "SDE.encounterCreator.section.spellcasting"}}{{#if spellPicker.selectedCount}} <span class="ui-count">{{spellPicker.selectedCount}}</span>{{/if}}</a>
+            <a class="ui-tab {{#if sectionOpen.mutations}}active{{/if}}" data-action="sectionToggle" data-section="mutations" tabindex="0"><i class="fas fa-dna"></i> {{localize "SDE.encounterCreator.section.mutations"}}{{#if mutations.selectedCount}} <span class="ui-count">{{mutations.selectedCount}}</span>{{/if}}</a>
+            <a class="ui-tab {{#if sectionOpen.baseline}}active{{/if}}" data-action="sectionToggle" data-section="baseline" tabindex="0"><i class="fas fa-scale-balanced"></i> {{localize "SDE.monsterCreator.baseline.section"}}</a>
+          </nav>
+
+          {{#unless sectionOpen.actions}}{{#unless sectionOpen.features}}{{#unless sectionOpen.spellcasting}}{{#unless sectionOpen.mutations}}{{#unless sectionOpen.baseline}}
+          <div class="ui-empty mc-none"><i class="fas fa-hand-pointer"></i><span>{{localize "SDE.encounterCreator.action.empty"}}</span></div>
+          {{/unless}}{{/unless}}{{/unless}}{{/unless}}{{/unless}}
+
+          {{!-- Actions --}}
+          {{#if sectionOpen.actions}}<section class="mc-panel">
+            <details class="ui-details mc-quick"><summary>{{localize "SDE.encounterCreator.quickAdd"}}</summary><div class="ui-details-body"><div class="mc-quickgrid">
+              {{#each ACTION_QUICK_PICKS}}<button type="button" class="ui-chip mc-qbtn" data-action="creatorAddQuickPick" data-index="{{@index}}" title="{{name}}{{#if (eq type 'NPC Attack')}} &mdash; {{num}}x +{{bonus}} {{damage}}{{/if}}{{#if description}} &mdash; {{description}}{{/if}}"><i class="fas {{icon}}"></i> <span >{{name}}</span></button>{{/each}}
+            </div></div></details>
+            <div class="ui-stack">
+              {{#each draft.actions}}<div class="ui-card" data-id="{{id}}">
+                <div class="ui-card-head"><input type="text" class="ui-grow mc-cardname" data-draft-field="actions.{{@index}}.name" value="{{name}}" placeholder="{{localize 'SDE.encounterCreator.action.namePlaceholder'}}"><button type="button" class="ui-icon danger" data-action="creatorRemoveAction" data-id="{{id}}" aria-label="{{localize 'SDE.hexExplorer.remove'}}"><i class="fas fa-trash"></i></button></div>
+                {{#if (eq type "NPC Attack")}}
+                <div class="mc-three">
+                  <label class="ui-field"><span class="ui-label">{{localize "SDE.encounterCreator.action.count"}}</span><input type="number" data-draft-field="actions.{{@index}}.num" value="{{num}}" min="1" aria-label="{{localize 'SDE.encounterCreator.action.countAria'}}"></label>
+                  <label class="ui-field"><span class="ui-label">{{localize "SDE.encounterCreator.action.atk"}}</span><input type="number" data-draft-field="actions.{{@index}}.bonus" value="{{bonus}}" aria-label="{{localize 'SDE.encounterCreator.action.bonusAria'}}"></label>
+                  <label class="ui-field"><span class="ui-label">{{localize "SDE.encounterCreator.action.damage"}}</span><input type="text" data-draft-field="actions.{{@index}}.damage" value="{{damage}}" placeholder="1d6" aria-label="{{localize 'SDE.encounterCreator.action.damage'}}"></label>
+                </div>
+                <div class="ui-inline">{{#each @root.ranges}}<label class="ui-chip ui-check {{#if (includes ../ranges this)}}sel{{/if}}"><input type="checkbox" data-draft-field="actions.{{@../index}}.ranges" value="{{this}}" {{#if (includes ../ranges this)}}checked{{/if}}> {{this}}</label>{{/each}}</div>
+                {{/if}}
+                <textarea data-draft-field="actions.{{@index}}.description" rows="2" placeholder="{{localize 'SDE.encounterCreator.action.descPlaceholder'}}">{{description}}</textarea>
+              </div>{{else}}<div class="ui-empty"><i class="fas fa-swords"></i><span>{{localize "SDE.encounterCreator.action.empty"}}</span></div>{{/each}}
+            </div>
+            <div class="ui-inline"><button type="button" class="ui-btn" data-action="creatorAddAction"><i class="fas fa-plus"></i> {{localize "SDE.encounterCreator.action.addAttack"}}</button><button type="button" class="ui-btn" data-action="creatorAddSpecial"><i class="fas fa-plus"></i> {{localize "SDE.encounterCreator.action.addSpecial"}}</button></div>
+          </section>{{/if}}
+
+          {{!-- Features --}}
+          {{#if sectionOpen.features}}<section class="mc-panel">
+            <details class="ui-details mc-quick"><summary>{{localize "SDE.encounterCreator.quickAdd"}}</summary><div class="ui-details-body"><div class="mc-quickgrid">
+              {{#each FEATURE_QUICK_PICKS}}<button type="button" class="ui-chip mc-qbtn" data-action="creatorAddFeatureQuickPick" data-index="{{@index}}" title="{{name}}: {{description}}" aria-label="{{name}}"><i class="fas {{icon}}"></i> {{name}}</button>{{/each}}
+            </div></div></details>
+            <div class="ui-stack">
+              {{#each draft.features}}<div class="ui-card" data-id="{{id}}">
+                <div class="ui-card-head"><input type="text" class="ui-grow mc-cardname" data-draft-field="features.{{@index}}.name" value="{{name}}" placeholder="{{localize 'SDE.encounterCreator.feature.namePlaceholder'}}"><button type="button" class="ui-icon danger" data-action="creatorRemoveFeature" data-id="{{id}}" aria-label="{{localize 'SDE.hexExplorer.remove'}}"><i class="fas fa-trash"></i></button></div>
+                <textarea data-draft-field="features.{{@index}}.description" rows="2" placeholder="{{localize 'SDE.encounterCreator.feature.descPlaceholder'}}">{{description}}</textarea>
+              </div>{{else}}<div class="ui-empty"><i class="fas fa-star"></i><span>{{localize "SDE.encounterCreator.feature.empty"}}</span></div>{{/each}}
+            </div>
+            <div><button type="button" class="ui-btn" data-action="creatorAddFeature"><i class="fas fa-plus"></i> {{localize "SDE.encounterCreator.feature.addCustom"}}</button></div>
+          </section>{{/if}}
+
+          {{!-- Spellcasting --}}
+          {{#if sectionOpen.spellcasting}}<section class="mc-panel">
+            <div class="ui-card">
+              <div class="mc-three">
+                <div class="ui-field"><label class="ui-label" for="sde-cr-sc-ability">{{localize "SDE.encounterCreator.spell.ability"}}</label><select id="sde-cr-sc-ability" data-draft-field="spellcasting.ability"><option value="" {{#unless draft.spellcasting.ability}}selected{{/unless}}>{{localize "SDE.encounterCreator.spell.none"}}</option>{{#each spellAbilities}}<option value="{{this}}" {{#if (eq this ../draft.spellcasting.ability)}}selected{{/if}}>{{this}}</option>{{/each}}</select></div>
+                <div class="ui-field"><label class="ui-label" for="sde-cr-sc-bonus">{{localize "SDE.encounterCreator.spell.bonus"}}</label><input id="sde-cr-sc-bonus" type="number" data-draft-field="spellcasting.bonus" value="{{draft.spellcasting.bonus}}" {{#unless draft.spellcasting.ability}}disabled{{/unless}}></div>
+                <div class="ui-field"><label class="ui-label" for="sde-cr-sc-attacks">{{localize "SDE.encounterCreator.spell.attacks"}}</label><input id="sde-cr-sc-attacks" type="number" data-draft-field="spellcasting.attacks" value="{{draft.spellcasting.attacks}}" min="0" {{#unless draft.spellcasting.ability}}disabled{{/unless}}></div>
+              </div>
+            </div>
+            <div class="ui-card">
+              <div class="ui-card-head"><h3 class="ui-card-name"><i class="fas fa-book-sparkles"></i> {{localize "SDE.encounterCreator.spell.heading"}}{{#if spellPicker.selectedCount}} <span class="ui-chip" aria-label="{{localize 'SDE.encounterCreator.spell.countAria' count=spellPicker.selectedCount}}">{{spellPicker.selectedCount}}</span>{{/if}}</h3>
+                {{#if spellPicker.canBuildLibrary}}<button type="button" class="ui-btn ghost" data-action="creatorMonsterSpellsBuild" title="{{localize 'SDE.encounterCreator.spell.buildTip'}}"><i class="fas fa-rotate"></i> {{localize "SDE.monsterCreator.spellIndex.monsterSpells"}}</button>{{/if}}</div>
+              {{#if spellPicker.selectedCount}}<div class="ui-inline">{{#each spellPicker.selected}}<span class="ui-chip"><img src="{{this.img}}" alt="" width="18" height="18" loading="lazy" decoding="async"> <span title="{{this.name}}">{{this.name}}</span> <span class="ui-muted">{{this.tierLabel}}</span><button type="button" class="ui-icon" data-action="creatorSpellRemove" data-uuid="{{this.uuid}}" aria-label="{{localize 'SDE.encounterCreator.spell.removeAria' name=this.name}}"><i class="fas fa-xmark"></i></button></span>{{/each}}</div>{{/if}}
+              <div class="mc-spellsearch">
+                <div class="ui-search"><i class="fas fa-magnifying-glass"></i><input type="text" data-spell-search  placeholder="{{localize 'SDE.encounterCreator.spell.searchPlaceholder'}}" value="{{spellPicker.search}}" aria-label="{{localize 'SDE.encounterCreator.spell.searchAria'}}"></div>
+                <select data-spell-source aria-label="{{localize 'SDE.encounterCreator.spell.sourceAria'}}">{{#each spellPicker.sourceOptions}}<option value="{{this.value}}" {{#if (eq this.value ../spellPicker.source)}}selected{{/if}}>{{this.label}}</option>{{/each}}</select>
+                <select data-spell-tier aria-label="{{localize 'SDE.encounterCreator.spell.tierAria'}}"><option value="" {{#unless spellPicker.tier}}selected{{/unless}}>{{localize "SDE.encounterCreator.spell.allTiers"}}</option>{{#each spellPicker.tierOptions}}<option value="{{this}}" {{#if (eq this ../spellPicker.tier)}}selected{{/if}}>{{localize "SDE.encounterCreator.spell.tier" tier=this}}</option>{{/each}}</select>
+              </div>
+              {{#if spellPicker.resultCount}}
+              <ul class="ui-list">
+                {{#each spellPicker.results}}<li class="ui-row {{#if this.added}}is-added{{/if}}"><img src="{{this.img}}" alt="" width="24" height="24" loading="lazy" decoding="async"><div class="ui-row-main"><span class="ui-row-name" title="{{this.name}}">{{this.name}}</span><span class="ui-row-sub">{{this.tierLabel}}{{#if this.rangeLabel}} &bull; {{this.rangeLabel}}{{/if}} &bull; {{this.sourceLabel}}</span></div>
+                  {{#if this.variant}}<i class="fas fa-code-branch ui-muted" title="{{localize 'SDE.encounterCreator.spell.variantTip'}}"></i>{{/if}}{{#if this.conflict}}<i class="fas fa-pen-to-square ui-muted" title="{{localize 'SDE.encounterCreator.spell.conflictTip'}}"></i>{{/if}}{{#if this.warningCount}}<i class="fas fa-triangle-exclamation" title="{{localize 'SDE.encounterCreator.spell.warningsTip' count=this.warningCount}}"></i>{{/if}}
+                  {{#if this.sourceActorUuid}}<button type="button" class="ui-icon" data-action="creatorSpellOpenSource" data-uuid="{{this.sourceActorUuid}}" aria-label="{{localize 'SDE.encounterCreator.spell.openSourceAria' name=this.name}}" title="{{localize 'SDE.encounterCreator.spell.openSource'}}"><i class="fas fa-arrow-up-right-from-square"></i></button>{{/if}}
+                  <button type="button" class="ui-icon" data-action="creatorSpellAdd" data-uuid="{{this.uuid}}" {{#if this.added}}disabled aria-label="{{localize 'SDE.encounterCreator.spell.attachedAria' name=this.name}}"{{else}}aria-label="{{localize 'SDE.encounterCreator.spell.attachAria' name=this.name}}"{{/if}}><i class="fas {{#if this.added}}fa-check{{else}}fa-plus{{/if}}"></i></button></li>{{/each}}
+              </ul>
+              {{#if spellPicker.capped}}<p class="ui-muted">{{localize "SDE.encounterCreator.spell.capped" total=spellPicker.resultTotal}}</p>{{/if}}
+              {{else}}<div class="ui-empty"><i class="fas fa-book-sparkles"></i><span>{{localize "SDE.encounterCreator.spell.empty"}}</span></div>{{/if}}
+            </div>
+          </section>{{/if}}
+
+          {{!-- Generator & Mutator --}}
+          {{#if sectionOpen.mutations}}<section class="mc-panel">
+            <p class="ui-note info"><span >{{{localize "SDE.encounterCreator.mut.notice"}}}</span></p>
+            {{#each mutations.sets}}<div class="ui-card {{#if this.ready}}good{{/if}}">
+              <div class="ui-card-head"><h3 class="ui-card-name">{{this.label}}</h3><span class="ui-chip {{#if this.ready}}ok{{else}}off{{/if}}">{{this.stateLabel}}</span></div>
+              {{#if this.ready}}
+              <div class="mc-cols">{{#each this.columns}}<div class="ui-field"><span class="ui-label">{{this.columnLabel}}</span><div class="ui-inline mc-colctl">
+                <select class="ui-grow" data-mut-result data-set="{{../key}}" data-manifest="{{this.manifestId}}" data-table="{{this.tableUuid}}"><option value="">{{localize "SDE.encounterCreator.mut.none"}}</option>{{#each this.results}}<option value="{{this.resultId}}" {{#if this.selected}}selected{{/if}}>{{this.text}}</option>{{/each}}</select>
+                <button type="button" class="ui-icon" title="{{localize 'SDE.encounterCreator.mut.rollColumn'}}" aria-label="{{localize 'SDE.encounterCreator.mut.rollColumn'}}" data-action="creatorMutRollColumn" data-set="{{../key}}" data-manifest="{{this.manifestId}}"><i class="fas fa-dice-d20"></i></button></div></div>{{/each}}</div>
+              <div class="ui-inline"><button type="button" class="ui-btn" data-action="creatorMutRollSet" data-set="{{this.key}}"><i class="fas fa-dice"></i> {{localize "SDE.encounterCreator.mut.rollSet"}}</button><button type="button" class="ui-btn ghost" title="{{localize 'SDE.encounterCreator.mut.clearSetTip'}}" data-action="creatorMutClearSet" data-set="{{this.key}}"><i class="fas fa-xmark"></i> {{localize "SDE.encounterCreator.mut.clearSet"}}</button></div>
+              {{else}}
+              {{#each this.diagnostics}}<p class="ui-note warn"><i class="fas fa-triangle-exclamation"></i> {{this.message}}</p>{{else}}<p class="ui-note warn"><i class="fas fa-triangle-exclamation"></i> {{localize "SDE.encounterCreator.mut.importToUnlock" table=this.label}}</p>{{/each}}
+              <div><button type="button" class="ui-btn" data-action="creatorMutImport" data-set="{{this.key}}"><i class="fas fa-file-import"></i> {{localize "SDE.encounterCreator.mut.import"}}</button></div>
+              {{/if}}
+            </div>{{/each}}
+            {{#if mutations.selectedCount}}<div class="ui-card">
+              <h3 class="ui-h">{{localize "SDE.encounterCreator.mut.selected" count=mutations.selectedCount}}</h3>
+              <ul class="ui-list">{{#each mutations.selection}}<li class="ui-row"><div class="ui-row-main"><span class="ui-row-name">{{this.setLabel}} &middot; {{this.columnLabel}} <span class="ui-chip {{#if (eq this.mode 'automated')}}ok{{else}}warn{{/if}}">{{this.modeLabel}}</span></span><span class="ui-row-sub">{{this.text}}</span></div><button type="button" class="ui-icon danger" title="{{localize 'SDE.encounterCreator.mut.remove'}}" aria-label="{{localize 'SDE.encounterCreator.mut.remove'}}" data-action="creatorMutRemove" data-manifest="{{this.manifestId}}"><i class="fas fa-xmark"></i></button></li>{{/each}}</ul>
+            </div>{{/if}}
+            {{#if mutations.staleCount}}<p class="ui-note"><i class="fas fa-circle-info"></i> {{localize "SDE.encounterCreator.mut.stale" count=mutations.staleCount}}</p>{{/if}}
+            <div class="ui-inline">
+              <button type="button" class="ui-btn" data-action="creatorMutApply" {{#unless mutations.selectedCount}}disabled{{/unless}}><i class="fas fa-wand-magic-sparkles"></i> {{localize "SDE.encounterCreator.mut.apply"}}</button>
+              <button type="button" class="ui-btn" data-action="creatorMutCreateCopy" {{#unless mutations.selectedCount}}disabled{{/unless}}><i class="fas fa-clone"></i> {{localize "SDE.encounterCreator.mut.createCopy"}}</button>
+              <button type="button" class="ui-btn ghost" title="{{localize 'SDE.encounterCreator.mut.clearAllTip'}}" data-action="creatorMutClear" {{#unless mutations.selectedCount}}disabled{{/unless}}><i class="fas fa-xmark"></i> {{localize "SDE.encounterCreator.mut.clearAll"}}</button>
+            </div>
+            {{#if mutations.applied.total}}<div class="ui-card">
+              <div class="ui-card-head"><h3 class="ui-card-name">{{localize "SDE.encounterCreator.mut.applied" count=mutations.applied.total}}</h3>
+                <div class="ui-inline">{{#if mutations.applied.automated}}<span class="ui-chip ok">{{localize "SDE.encounterCreator.mut.countAutomated" count=mutations.applied.automated}}</span>{{/if}}{{#if mutations.applied.mixed}}<span class="ui-chip warn">{{localize "SDE.encounterCreator.mut.countMixed" count=mutations.applied.mixed}}</span>{{/if}}{{#if mutations.applied.gm}}<span class="ui-chip">{{localize "SDE.encounterCreator.mut.countGm" count=mutations.applied.gm}}</span>{{/if}}</div></div>
+              <ul class="ui-list">{{#each mutations.applied.applications}}<li class="ui-row"><span class="ui-chip {{#if (eq this.mode 'automated')}}ok{{else}}warn{{/if}}">{{this.modeLabel}}</span>{{#if this.edited}}<span class="ui-chip warn">{{localize "SDE.encounterCreator.mut.edited"}}</span>{{/if}}{{#if this.conflict}}<span class="ui-chip bad">{{localize "SDE.encounterCreator.mut.conflict"}}</span>{{/if}}<span class="ui-row-main">{{this.setLabel}} &middot; {{this.columnLabel}}</span><span class="ui-inline">{{#each this.chips}}<span class="ui-chip">{{this.label}}</span>{{/each}}</span></li>{{/each}}</ul>
+              <div class="ui-inline">
+                {{#if mutations.applied.generatorCount}}<button type="button" class="ui-btn danger" data-action="creatorMutRemoveGenerator"><i class="fas fa-trash-can"></i> {{localize "SDE.encounterCreator.mut.removeGenerator"}}</button>{{/if}}
+                {{#if mutations.applied.mutationsCount}}<button type="button" class="ui-btn danger" data-action="creatorMutRemoveMutations"><i class="fas fa-trash-can"></i> {{localize "SDE.encounterCreator.mut.removeMutations"}}</button>{{/if}}
+                <button type="button" class="ui-btn danger" data-action="creatorMutRemoveAll"><i class="fas fa-trash-can"></i> {{localize "SDE.encounterCreator.mut.removeAll"}}</button>
+              </div>
+            </div>{{/if}}
+          </section>{{/if}}
+
+          {{!-- Level baseline + description --}}
+          {{#if sectionOpen.baseline}}<section class="mc-panel">
+            {{#if baseline.hasSpellBump}}<div class="ui-note warn">
+              <div class="ui-inline"><strong><i class="fas fa-wand-sparkles"></i> {{localize "SDE.monsterCreator.baseline.spellHead" written=baseline.writtenLevel effective=baseline.effectiveLevel}}</strong>
+                <button type="button" class="ui-btn ui-right" data-action="creatorBaselineUseSpellLevel" title="{{localize 'SDE.monsterCreator.baseline.useSpellLevelTip' level=baseline.effectiveLevel}}">{{localize "SDE.monsterCreator.baseline.useSpellLevel" level=baseline.effectiveLevel}}</button></div>
+              <ul>{{#each baseline.spellReasons}}<li>{{this}}</li>{{/each}}</ul></div>{{/if}}
+            {{#if baseline.changed}}
+            <div class="ui-card">
+              <table class="ui-table">
+                <thead><tr><th></th><th>{{localize "SDE.monsterCreator.baseline.colStat"}}</th><th>{{localize "SDE.monsterCreator.baseline.colNow"}}</th><th></th><th>{{localize "SDE.monsterCreator.baseline.colGuideline"}}</th><th class="num">&Delta;</th></tr></thead>
+                <tbody>
+                  <tr class="{{#unless baseline.rows.ac.changed}}ui-muted{{/unless}}"><td><input type="checkbox" data-baseline-apply="ac" {{#if baseline.apply.ac}}checked{{/if}} aria-label="{{localize 'SDE.monsterCreator.baseline.applyAc'}}"></td><td><strong>{{localize "SDE.importer.monsters.ac"}}</strong></td><td>{{baseline.rows.ac.fromLabel}}</td><td class="ui-muted">&rarr;</td><td><strong>{{baseline.rows.ac.toLabel}}</strong></td><td class="num">{{baseline.rows.ac.deltaLabel}}</td></tr>
+                  <tr class="{{#unless baseline.rows.hp.changed}}ui-muted{{/unless}}"><td><input type="checkbox" data-baseline-apply="hp" {{#if baseline.apply.hp}}checked{{/if}} aria-label="{{localize 'SDE.monsterCreator.baseline.applyHp'}}"></td><td><strong>{{localize "SDE.importer.monsters.hp"}}</strong></td><td>{{baseline.rows.hp.fromLabel}}</td><td class="ui-muted">&rarr;</td><td><strong>{{baseline.rows.hp.toLabel}}</strong></td><td class="num">{{baseline.rows.hp.deltaLabel}}</td></tr>
+                  <tr class="{{#unless baseline.abilitiesChanged}}ui-muted{{/unless}}"><td><input type="checkbox" data-baseline-apply="abilities" {{#if baseline.apply.abilities}}checked{{/if}} aria-label="{{localize 'SDE.monsterCreator.baseline.applyAbilities'}}"></td><td><strong>{{localize "SDE.monsterCreator.stat.abilities"}}</strong></td><td colspan="4"><div class="ui-inline">{{#each baseline.rows.abilities}}<span class="ui-chip {{#unless this.changed}}off{{/unless}}"><span class="ui-label">{{this.label}}</span> {{this.fromLabel}}{{#if this.changed}} &rarr; <strong>{{this.toLabel}}</strong>{{/if}}</span>{{/each}}</div></td></tr>
+                  <tr class="{{#unless baseline.attacksChanged}}ui-muted{{/unless}}"><td><input type="checkbox" data-baseline-apply="attacks" {{#if baseline.apply.attacks}}checked{{/if}} aria-label="{{localize 'SDE.monsterCreator.baseline.applyAttacks'}}" {{#unless baseline.hasAttacks}}disabled{{/unless}}></td><td><strong>{{localize "SDE.quickAdjust.attacksHeading"}}</strong></td><td colspan="4">{{#if baseline.hasAttacks}}{{#each baseline.attacks}}<div><strong>{{this.name}}</strong> <span class="ui-muted">{{localize "SDE.monsterCreator.baseline.attackLine" num=this.num.from bonus=this.bonus.from damage=this.damage.from}}</span>{{#if this.changed}} &rarr; <strong>{{localize "SDE.monsterCreator.baseline.attackLine" num=this.num.to bonus=this.bonus.to damage=this.damage.to}}</strong>{{/if}}</div>{{/each}}{{else}}<span class="ui-muted">{{localize "SDE.monsterCreator.baseline.noAttacks"}}</span>{{/if}}</td></tr>
+                </tbody>
+              </table>
+              <div class="ui-inline"><button type="button" class="ui-btn" data-action="creatorBaselineApply"><i class="fas fa-wand-magic-sparkles"></i> {{localize "SDE.monsterCreator.baseline.apply"}}</button><span class="ui-muted">{{localize "SDE.monsterCreator.baseline.hint"}}</span></div>
+            </div>
+            {{else}}<p class="ui-note good"><i class="fas fa-check"></i> {{localize "SDE.monsterCreator.baseline.onTarget" level=baseline.effectiveLevel}}</p>{{/if}}
+            <div class="ui-card"><h3 class="ui-h">{{localize "SDE.encounterCreator.section.description"}}</h3>
+              <textarea data-draft-field="description" rows="6" placeholder="{{localize 'SDE.encounterCreator.descriptionPlaceholder'}}">{{draft.description}}</textarea></div>
+          </section>{{/if}}
+        </div>
+      </div>
+    </div>
+
+    <footer class="ui-footer">
+      <span class="ui-muted mc-preview">{{draftPreview}}</span>
+      <div class="ui-right">
+        {{#if source}}
+        <button type="button" class="ui-btn" data-action="creatorSaveAsNew" title="{{localize 'SDE.encounterCreator.save.asNewTip' name=source.name}}"><i class="fas fa-copy"></i> {{localize "SDE.encounterCreator.save.asNew"}}</button>
+        <button type="button" class="ui-btn primary" data-action="save" title="{{localize 'SDE.encounterCreator.save.updateTip' name=source.name}}"><i class="fas fa-floppy-disk"></i> {{localize "SDE.encounterCreator.save.update" name=source.name}}</button>
+        {{else}}
+        <button type="button" class="ui-btn primary" data-action="save"><i class="fas fa-floppy-disk"></i> {{localize "SDE.encounterCreator.save.create"}}</button>
+        {{/if}}
+      </div>
+    </footer>
+  </div>
+  {{/if}}
+</div>

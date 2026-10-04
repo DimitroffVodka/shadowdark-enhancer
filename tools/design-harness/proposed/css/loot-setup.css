@@ -1,0 +1,16 @@
+/* Loot Setup proposal. Tokens only. */
+.sde-ui [hidden] { display: none !important; }
+.sde-ui .ui-art.ls-art { display: grid; place-items: center; font-size: 22px; color: var(--ui-frame); }
+.sde-ui .ui-icon { flex: 0 0 auto; }
+.sde-ui .ui-head, .sde-ui .ui-head .ui-stats { flex-wrap: nowrap; }
+.sde-ui .ls-add select, .sde-ui .ls-bind select { flex: 1 1 160px; width: auto; }
+.sde-ui .ls-add .ui-btn, .sde-ui .ls-bind .ui-btn { flex: 0 0 auto; }
+.sde-ui .ui-row-sub .ui-tag { margin-left: 6px; }
+.sde-ui .ui-body > * { flex-shrink: 0; }
+.sde-ui input[type=radio]::before, .sde-ui input[type=radio]::after { content: none !important; }
+/* name column takes the rest and wraps; the control column is fixed so Bind, Unlock and the chips line up */
+.sde-ui .ls-row { display: grid; grid-template-columns: minmax(0, 1fr) 112px; align-items: center; gap: 10px; }
+.sde-ui .ls-row.ls-pick { grid-template-columns: minmax(0, 1fr) 24px; }
+.sde-ui .ls-name { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; overflow-wrap: anywhere; }
+.sde-ui .ls-row > .ui-btn, .sde-ui .ls-row > .ui-chip { width: 100%; justify-content: center; min-width: 0; padding: 0 6px; }
+.sde-ui .ls-row > .ui-chip { height: 28px; }

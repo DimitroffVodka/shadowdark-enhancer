@@ -1,0 +1,34 @@
+/* Monster Loot Overrides proposal. Tokens only. */
+.sde-ui [hidden], .sde-ui tr[hidden] { display: none !important; }
+.sde-ui .ui-art.ml-art { display: grid; place-items: center; font-size: 22px; color: var(--ui-frame); }
+.sde-ui .ui-head, .sde-ui .ui-head .ui-stats { flex-wrap: nowrap; }
+.sde-ui .ml-tools { flex: 0 0 auto; display: flex; gap: 8px; padding: 10px 16px; border-bottom: 1px solid var(--ui-line); background: var(--ui-page); }
+.sde-ui .ml-table { table-layout: fixed; }
+.sde-ui .ml-table th:nth-child(2) { width: 44px; }
+.sde-ui .ml-table th:nth-child(4) { width: 84px; }
+.sde-ui .ml-table thead th { position: sticky; top: -16px; z-index: 1; background: var(--ui-page); }
+.sde-ui .ml-name a { color: var(--ui-text); font-weight: 600; cursor: pointer; text-decoration: none; overflow-wrap: anywhere; }
+.sde-ui .ml-name a:hover { text-decoration: underline; }
+.sde-ui .ml-table tr.overridden td:first-child { box-shadow: inset 3px 0 0 var(--ui-gold); }
+.sde-ui .ml-table tr.overridden .ml-name a { color: var(--ui-gold); }
+.sde-ui .ml-lvl { color: var(--ui-muted); }
+.sde-ui .ml-lvl-label { display: none; }
+@container (max-width: 560px) {
+  .sde-ui .ml-table, .sde-ui .ml-table tbody { display: block; }
+  .sde-ui .ml-table thead { display: none; }
+  .sde-ui .ml-table tr { display: grid; grid-template-columns: minmax(0, 1fr) 84px; gap: 6px 8px; padding: 8px 10px; margin-bottom: 8px; border: 1px solid var(--ui-line); border-radius: var(--ui-r2); background: var(--ui-panel); }
+  .sde-ui .ml-table td { display: block; padding: 0; border: 0; background: transparent; }
+  .sde-ui .ml-table tr:hover td { background: transparent; }
+  .sde-ui .ml-table td.ml-name { grid-column: 1; }
+  .sde-ui .ml-table td.ml-lvl { grid-column: 2; text-align: right; }
+  .sde-ui .ml-lvl-label { display: inline; }
+  .sde-ui .ml-table td.ml-tbl { grid-column: 1; }
+  .sde-ui .ml-table td.ml-chance { grid-column: 2; }
+  .sde-ui .ml-table tr.overridden { border-color: var(--ui-gold); }
+  .sde-ui .ml-table tr.overridden td:first-child { box-shadow: none; }
+  .sde-ui .ml-table thead th { position: static; }
+}
+.sde-ui .ui-search > input[type] { padding-left: 28px; }
+.sde-ui .ml-table th { border: 0; border-bottom: 1px solid var(--ui-frame); }
+.sde-ui .ui-body > * { flex-shrink: 0; }
+.sde-ui input[type=radio]::before, .sde-ui input[type=radio]::after { content: none !important; }

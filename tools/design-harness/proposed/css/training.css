@@ -1,0 +1,15 @@
+/* shared fixes (kit candidates): flex children that must not shrink, header that keeps one line below 560px */
+.ui-num { flex: 0 0 20px; }
+.ui-row > .ui-btn, .ui-row > .ui-chip, .ui-row > .ui-tag, .ui-row > .ui-icon, .ui-card-head > .ui-btn, .ui-card-head > .ui-chip { flex: 0 0 auto; }
+.ui-head { flex-wrap: nowrap; }
+.ui-head-text { flex: 1 1 0; }
+.ui-head > .ui-art, .ui-head > img { flex: 0 0 auto; }
+@container (max-width: 560px) { .ui-head { flex-wrap: nowrap; } }
+/* Training: only what the kit lacks. */
+.tr-left { font-size: 22px; text-align: right; }
+.tr-task { font-weight: 500; color: var(--ui-body); }
+.tr-taken { color: var(--ui-muted); text-decoration: line-through; }
+.tr-numbered { counter-reset: trn; }
+.tr-numbered .ui-num::before { counter-increment: trn; content: counter(trn); }
+.sde-ui .ui-body > * { flex-shrink: 0; }
+.sde-ui input[type=radio]::before, .sde-ui input[type=radio]::after { content: none !important; }

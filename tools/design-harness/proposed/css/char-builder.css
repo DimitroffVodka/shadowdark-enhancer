@@ -1,0 +1,75 @@
+/* Character builder: step layout the kit does not have (list + detail split, ability tiles, pool chips, big numbers).
+   The look is the kit's (black page, blackletter, silver frames, gold); this only arranges it. Tokens only. */
+.cbu-ui .cbu-body { overflow: hidden; padding: 14px 16px; gap: 0; }
+.cbu-ui .cbu-step { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; gap: 12px; overflow-y: auto; padding-right: 2px; }
+.cbu-ui .cbu-step.split { overflow: hidden; }
+.cbu-ui .cbu-step > .ui-h { margin: 0; }
+.cbu-ui .cbu-main { min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; padding-right: 2px; }
+.cbu-ui .cbu-split { flex: 1 1 auto; min-height: 0; display: grid; grid-template-columns: 220px minmax(0, 1fr); gap: 16px; }
+.cbu-ui .cbu-split.cbu-3col { grid-template-columns: 220px minmax(0, 1fr) 250px; }
+.cbu-ui .cbu-col-list, .cbu-ui .cbu-gear-left { display: flex; flex-direction: column; gap: 8px; min-height: 0; }
+.cbu-ui .sde-cb-list { flex: 1 1 auto; min-height: 0; overflow-y: auto; }
+.cbu-ui .sde-cb-list .ui-row { cursor: pointer; }
+.cbu-ui .ui-cols-2 > .ui-group > .cbu-col-list > .sde-cb-list { max-height: 190px; }
+@container (max-width: 700px) {
+  .cbu-ui .cbu-split, .cbu-ui .cbu-split.cbu-3col { grid-template-columns: minmax(0, 1fr); overflow-y: auto; }
+  .cbu-ui .cbu-step.split { overflow-y: auto; }
+  .cbu-ui .cbu-col-list > .sde-cb-list, .cbu-ui .cbu-gear-left .sde-cb-list { max-height: 200px; }
+  .cbu-ui .cbu-main { overflow: visible; }
+}
+@container (max-width: 700px) { .cbu-ui .cbu-class-cols { grid-template-columns: minmax(0, 1fr); } }
+
+/* the numbered strip: a filled number once a step is complete */
+.cbu-ui .cbu-tabs .ui-tab.complete .ui-num { background: var(--ui-frame); border-color: var(--ui-frame); color: var(--ui-page); }
+.cbu-ui .cbu-tabs { padding-inline: 12px; }
+@container (max-width: 560px) { .cbu-ui .cbu-tabs .ui-tab { padding-inline: 8px; gap: 4px; font-size: 0; } .cbu-ui .cbu-tabs .ui-tab .ui-num { font-size: 11px; } .cbu-ui .cbu-tabs .ui-tab.active { font-size: 14px; } }
+
+.cbu-ui .cbu-desc { color: var(--ui-body); } .cbu-ui .cbu-desc p { margin: 0 0 8px; }
+.cbu-ui .cbu-detail { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; }
+.cbu-ui .cbu-detail.with-portrait { grid-template-columns: minmax(0, 1fr) 150px; align-items: start; }
+.cbu-ui .cbu-portrait { width: 100%; aspect-ratio: 1; object-fit: cover; border: 1px solid var(--ui-line); border-radius: var(--ui-r2); background: var(--ui-panel); }
+@container (max-width: 560px) { .cbu-ui .cbu-detail.with-portrait { grid-template-columns: minmax(0, 1fr); } .cbu-ui .cbu-portrait { max-width: 150px; } }
+.cbu-ui .cbu-banner-img { width: 40px; height: 40px; object-fit: cover; border: 1px solid var(--ui-line); border-radius: var(--ui-r); }
+.cbu-ui .cbu-anc-trait.choosable { cursor: pointer; }
+
+/* ability tiles */
+.cbu-ui .cbu-abil-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; align-items: start; }
+.cbu-ui .cbu-abil-col { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.cbu-ui .cbu-abil-tile { align-items: center; text-align: center; gap: 2px; padding: 12px 8px; }
+.cbu-ui .cbu-abil-tile .tile-val { font: 400 38px/1.1 var(--ui-title); color: var(--ui-text); }
+.cbu-ui .cbu-abil-tile input.tile-val { width: 80px; text-align: center; height: 40px; font-size: 22px; }
+.cbu-ui .cbu-abil-tile .ph { color: var(--ui-muted); }
+.cbu-ui .cbu-abil-tile .tile-mod { font-weight: 700; color: var(--ui-muted); font-variant-numeric: tabular-nums; }
+.cbu-ui .cbu-abil-tile.assignable { cursor: pointer; border-color: var(--ui-frame); }
+.cbu-ui .cbu-abil-tile.empty { border-style: dashed; }
+.cbu-ui .cbu-abil-tile.drop-hover { border-color: var(--ui-gold); background: var(--ui-gold-bg); }
+.cbu-ui .cbu-abil-info-card .ui-details-body p { margin: 2px 0 0; }
+.cbu-ui .cbu-pool-chip { cursor: grab; min-width: 36px; justify-content: center; font-weight: 700; }
+/* a die already placed stays readable: struck through and quiet, but at body-text contrast */
+.cbu-ui .cbu-pool-chip.used { color: var(--ui-muted); border-style: dashed; text-decoration: line-through; }
+
+.cbu-ui .cbu-big-number { display: flex; align-items: baseline; gap: 8px; }
+.cbu-ui .cbu-big-number .val { font: 400 clamp(40px, 9cqw, 64px)/1 var(--ui-title); color: var(--ui-text); }
+.cbu-ui .cbu-big-number .unit { font: 600 14px/1 var(--ui-head); color: var(--ui-muted); text-transform: uppercase; letter-spacing: .06em; }
+.cbu-ui .cbu-talent-result { display: flex; align-items: center; gap: 8px; color: var(--ui-gold); }
+.cbu-ui .cbu-spell-row { display: inline-flex; align-items: center; gap: 2px; }
+.cbu-ui [data-cb-spell], .cbu-ui [data-cb-lang], .cbu-ui [data-cb-patron], .cbu-ui [data-cb-talent-opt], .cbu-ui [data-cb-bonus-opt], .cbu-ui [data-cb-pool], .cbu-ui [data-cb-align] { cursor: pointer; }
+.cbu-ui .cbu-align-card.suggested { border-style: dashed; }
+.cbu-ui .cbu-art-thumb { margin: 0; text-align: center; font-size: 11px; color: var(--ui-muted); }
+.cbu-ui .cbu-art-thumb img { width: 84px; height: 84px; object-fit: cover; border: 1px solid var(--ui-line); border-radius: var(--ui-r2); background: var(--ui-panel); }
+.cbu-ui .cbu-art-thumb.is-unset img { opacity: .55; }
+.cbu-ui .cbu-footer .cbu-level { gap: 6px; flex-wrap: nowrap; }
+.cbu-ui .cbu-footer { flex-wrap: wrap; }
+/* (candidate kit fix) the accordion body must lay its children out left and full width */
+.sde-ui .ui-details > .ui-details-body { align-items: stretch; text-align: left; }
+.sde-ui .ui-details > summary { text-align: left; }
+
+/* the five scroll hooks the builder's PARTS name keep their old class names; in a real swap the old stylesheet is gone, here it still loads, so neutralise it */
+.cbu-ui .sde-cb-preview-main, .cbu-ui .sde-cb-origins-main { flex: 1 1 auto; padding: 0; max-width: none; width: auto; margin: 0; }
+.cbu-ui .sde-cb-col-detail { padding: 0 2px 0 0; }
+.cbu-ui .sde-cb-anc-main { padding: 0 2px 0 0; }
+.cbu-ui .sde-cb-list { padding: 0; list-style: none; }
+.cbu-ui .cbu-art-row { align-items: flex-start; }
+.cbu-ui .cbu-art-thumb { flex: 0 0 auto; }
+.cbu-ui .cbu-art-actions { flex: 1 1 260px; }
+.cbu-ui .cbu-art-thumb { width: 96px; flex: 0 0 96px; }

@@ -1,0 +1,31 @@
+<div class="sde-ui ui-cc">
+  <header class="cc-head"><i class="fa-solid fa-dragon"></i><h4 class="cc-title">{{localize "SDE.encounter.chat.heading"}}</h4></header>
+  <div class="cc-body">
+    {{#if via}}<p class="cc-sub">{{via}}</p>{{/if}}
+    <div class="cc-thing">
+      <img src="{{img}}" width="40" height="40" alt="">
+      <span class="cc-count">{{count}} &times;</span>
+      <span class="cc-name">{{name}}</span>
+    </div>
+    <div class="cc-rows">
+      <div class="cc-row">
+        <span class="cc-label"><i class="fa-solid fa-ruler-horizontal"></i>{{localize "SDE.encounter.facet.distance"}}</span>
+        <span class="cc-main"><span class="cc-val">{{distanceText}}</span><span class="cc-aux">{{distanceRoll}}</span></span>
+      </div>
+      <div class="cc-row">
+        <span class="cc-label"><i class="fa-solid fa-masks-theater"></i>{{localize "SDE.encounter.facet.activity"}}</span>
+        <span class="cc-main"><span class="cc-val">{{activityText}}</span><span class="cc-aux">{{activityRoll}}</span></span>
+      </div>
+      <div class="cc-row">
+        <span class="cc-label"><i class="fa-solid fa-comment"></i>{{localize "SDE.encounter.facet.reaction"}}</span>
+        <span class="cc-main"><span class="cc-val cc-react-{{reactionBand}}">{{reactionText}}</span><span class="cc-aux">{{reactionRoll}} + {{chaMod}}{{#if renownApplied}} + {{renownBonus}}{{/if}}</span></span>
+      </div>
+    </div>
+    {{#if renownApplied}}
+    <p class="cc-note info"><i class="fa-solid fa-crown"></i>{{localize "SDE.encounter.chat.renownNote" bonus=renownBonusText name=renownName band=renownBandLabel}}</p>
+    {{/if}}
+    {{#if reactionDoubleOnes}}
+    <p class="cc-note warn"><i class="fa-solid fa-triangle-exclamation"></i>{{localize "SDE.encounter.chat.doubleOnes"}}</p>
+    {{/if}}
+  </div>
+</div>

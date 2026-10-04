@@ -1,0 +1,94 @@
+{{!-- Camping, proposed (plain). One heading, hairline-separated rows, no cards, no chips. Same context and data-* as templates/camping/camping.hbs
+      minus the Participate and Party-rations controls (see report). --}}
+<section class="ui-body sde-camping-body cp-root">
+  <h3 class="ui-h">{{title}} <small>{{phase}} · {{fire}}</small></h3>
+  {{#if error}}<div class="ui-note bad" role="alert">{{error}}</div>{{/if}}
+
+  {{#if empty}}
+    <div class="ui-empty"><span>{{localize "SDE.camping.rules"}}</span>
+      {{#if manager}}<button type="button" class="ui-btn primary" data-action="begin">{{localize "SDE.camping.begin"}}</button>{{/if}}</div>
+  {{/if}}
+
+  <details class="cp-more cp-rules"><summary>{{localize "SDE.camping.rules"}}</summary><p>{{localize "SDE.camping.foodRule"}}</p><p>{{localize "SDE.camping.fireRule"}}</p></details>
+
+  {{#unless empty}}
+    {{#if setup}}
+    <div class="ui-field cp-fuel"><label class="ui-label">{{localize "SDE.camping.fuelChoice"}}</label>
+      <select data-fuel {{#unless manager}}disabled{{/unless}}>{{#each fuelChoices}}<option value="{{value}}" {{#if selected}}selected{{/if}}>{{label}}</option>{{/each}}</select></div>
+    {{/if}}
+
+    {{#if hasResults}}
+    <div class="cp-wrap"><table class="ui-table">
+      <thead><tr><th>{{localize "SDE.camping.pc"}}</th><th>{{localize "SDE.camping.task"}}</th><th>{{localize "SDE.camping.roll"}}</th><th>{{localize "SDE.camping.results"}}</th><th>{{localize "SDE.camping.effect"}}</th></tr></thead>
+      <tbody>{{#each rows}}{{#if result}}<tr><td><strong>{{name}}</strong></td><td>{{taskName}}</td><td>{{result.total}} / {{result.dc}}{{#if result.disadvantage}} <span class="ui-muted">{{localize "SDE.camping.disadvantage"}}</span>{{/if}}</td><td class="{{#unless result.success}}cp-bad{{/unless}}">{{result.status}}{{#if result.amount}} ({{result.amount}}){{/if}}</td><td>{{result.effect}}</td></tr>{{/if}}{{/each}}</tbody>
+    </table></div>
+    {{/if}}
+
+    <div class="cp-list">
+      {{#each rows}}
+      <article class="cp-pc" data-uuid="{{uuid}}">
+        <div class="cp-head">
+          <h4 class="cp-name">{{name}}</h4>
+          <span class="cp-count {{#unless meal.fed}}cp-bad{{/unless}}" data-tooltip="{{localize 'SDE.proposed.camping.rationsTip'}}"><b>{{meal.own}}</b><img class="cp-ration" src="/icons/consumables/food/cooked-grilled-ham-hock-glazed-brown.webp" alt=""></span>
+          {{#if confirmed}}<span class="cp-ready on" data-tooltip="{{localize 'SDE.proposed.camping.readyTip'}}"><i class="fa-solid fa-check"></i>{{localize "SDE.proposed.camping.readyBtn"}}</span>
+          {{else}}{{#if editable}}<button type="button" class="ui-btn cp-ready-btn" data-action="confirmChoice" data-uuid="{{uuid}}" data-tooltip="{{localize 'SDE.proposed.camping.readyBtnTip'}}">{{localize "SDE.proposed.camping.readyBtn"}}</button>
+          {{else}}<span class="cp-ready" data-tooltip="{{localize 'SDE.proposed.camping.waitingTip'}}">{{localize "SDE.proposed.camping.notReady"}}</span>{{/if}}{{/if}}
+        </div>
+        <div class="cp-fields">
+          <div class="ui-field"><label class="ui-label">{{localize "SDE.camping.task"}}</label>
+            <select data-choice="task" {{#unless editable}}disabled{{/unless}}>{{#each tasks}}<option value="{{key}}" {{#if selected}}selected{{/if}}>{{name}}</option>{{/each}}</select></div>
+          {{#if abilities}}<div class="ui-field"><label class="ui-label">{{localize "SDE.camping.ability"}}</label>
+            <select data-choice="ability" {{#unless editable}}disabled{{/unless}}>{{#each abilities}}<option value="{{value}}" {{#if selected}}selected{{/if}}>{{label}}</option>{{/each}}</select></div>{{/if}}
+          {{#if dc}}<div class="ui-field cp-dc"><label class="ui-label">{{localize "SDE.camping.dc"}}</label>
+            <input type="number" data-dc="{{task}}" value="{{dc}}" {{#unless ../isGM}}disabled{{/unless}} {{#unless ../setup}}disabled{{/unless}}></div>{{/if}}
+          {{#if craftTask}}<div class="ui-field"><label class="ui-label">{{localize "SDE.camping.output"}}</label>
+            <select data-choice="craft" {{#unless editable}}disabled{{/unless}}>{{#each outputs}}<option value="{{value}}" {{#if selected}}selected{{/if}}>{{label}}</option>{{/each}}</select></div>
+            {{#if repair}}<div class="ui-field"><label class="ui-label">{{localize "SDE.camping.repairItem"}}</label>
+              <select data-choice="repairItemId" {{#unless editable}}disabled{{/unless}}><option value="">{{localize "SDE.camping.choose"}}</option>{{#each repairs}}<option value="{{id}}" {{#if selected}}selected{{/if}}>{{name}}</option>{{/each}}</select></div>{{/if}}
+          {{/if}}
+          {{#if entertainTask}}<div class="ui-field"><label class="ui-label">{{localize "SDE.camping.recipient"}}</label>
+            <select data-choice="recipientUuid" {{#unless editable}}disabled{{/unless}}><option value="">{{localize "SDE.camping.choose"}}</option>{{#each recipients}}<option value="{{uuid}}" {{#if selected}}selected{{/if}}>{{name}}</option>{{/each}}</select></div>{{/if}}
+          {{#if watchTask}}<div class="ui-field"><label class="ui-label">{{localize "SDE.camping.watchHalf"}}</label>
+            <select data-choice="watchHalf" {{#unless editable}}disabled{{/unless}}>{{#each halves}}<option value="{{value}}" {{#if selected}}selected{{/if}}>{{label}}</option>{{/each}}</select></div>{{/if}}
+        </div>
+        <label class="ui-switch cp-torch"><input type="checkbox" data-choice="torchConsent" {{#if torchConsent}}checked{{/if}} {{#unless editable}}disabled{{/unless}}><span>{{localize "SDE.camping.contribute"}}</span></label>
+        {{#unless meal.fed}}<p class="cp-warn">{{localize "SDE.camping.hungerWarning"}}{{#if deathWarning}} {{localize "SDE.camping.deathWarning"}}{{/if}}</p>{{/unless}}
+        {{#if description}}<details class="cp-more" title="{{description}}"><summary>{{localize "SDE.camping.description"}}{{#if campfire}} · {{localize "SDE.camping.fireTask"}}{{/if}}</summary><p>{{description}}</p></details>{{/if}}
+      </article>
+      {{/each}}
+    </div>
+
+    {{#if mounts}}
+    <h3 class="ui-h">{{localize "SDE.camping.mounts"}}</h3>
+    <p class="ui-muted cp-hint">{{localize "SDE.camping.mountFoodRule"}}</p>
+    <div class="cp-list">
+      {{#each mounts}}
+      <article class="cp-pc" data-uuid="{{uuid}}" data-mount>
+        <div class="cp-head"><h4 class="cp-name">{{name}}</h4>
+          <span class="cp-count {{#unless meal.fed}}cp-bad{{/unless}}" data-tooltip="{{localize 'SDE.proposed.camping.rationsTip'}}"><b>{{meal.own}}</b><img class="cp-ration" src="/icons/consumables/food/cooked-grilled-ham-hock-glazed-brown.webp" alt=""></span></div>
+        {{#unless meal.fed}}<p class="cp-warn">{{localize "SDE.camping.hungerWarning"}}{{#if deathWarning}} {{localize "SDE.camping.deathWarning"}}{{/if}}</p>{{/unless}}
+      </article>
+      {{/each}}
+    </div>
+    {{/if}}
+
+    {{#if fuel}}
+    <h3 class="ui-h">{{localize "SDE.camping.fallback"}} <small>{{localize "SDE.camping.available"}}: {{available}}</small></h3>
+    <div class="cp-list">{{#each deductions}}<div class="cp-pc cp-line"><span class="cp-name">{{name}}</span><span class="ui-muted">{{item}}</span><span class="cp-qty">{{quantity}}</span></div>{{/each}}</div>
+    {{#if manager}}<div class="ui-inline"><button type="button" class="ui-btn" data-action="declineFuel">{{localize "SDE.camping.decline"}}</button><button type="button" class="ui-btn primary" data-action="acceptFuel" {{#unless canFuel}}disabled{{/unless}}>{{localize "SDE.camping.spendThree"}}</button></div>{{/if}}
+    {{/if}}
+
+    {{#if awaitingRest}}<p class="ui-muted cp-hint">{{localize "SDE.camping.awaitingRest"}}</p>{{/if}}
+    {{#if canNight}}{{#if shortageWarning}}<div class="ui-note bad">{{localize "SDE.camping.shortageWarning"}}</div>{{/if}}{{/if}}
+
+    <div class="ui-actions">
+      {{#if canResolve}}<button type="button" class="ui-btn ghost" data-action="cancel">{{localize "SDE.camping.cancel"}}</button>{{/if}}
+      <div class="ui-right">
+        {{#if canResolve}}<button type="button" class="ui-btn primary" data-action="resolve">{{localize "SDE.camping.resolve"}}</button>{{/if}}
+        {{#if canResume}}<button type="button" class="ui-btn primary" data-action="resume">{{localize "SDE.camping.resume"}}</button>{{/if}}
+        {{#if canNight}}{{#if shortageWarning}}<button type="button" class="ui-btn primary" data-action="acceptShortages">{{localize "SDE.camping.continueHungry"}}</button>{{else}}<button type="button" class="ui-btn primary" data-action="night">{{localize "SDE.camping.passNight"}}</button>{{/if}}{{/if}}
+        {{#if complete}}{{#if manager}}<button type="button" class="ui-btn {{#unless canResume}}primary{{/unless}}" data-action="begin">{{localize "SDE.camping.newCamp"}}</button>{{/if}}{{/if}}
+      </div>
+    </div>
+  {{/unless}}
+</section>

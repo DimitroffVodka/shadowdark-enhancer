@@ -1,0 +1,41 @@
+/* Level guidelines: a spreadsheet inside one card. It scrolls in both directions in its own box so a narrow window
+   never scrolls sideways as a whole. Tokens only. */
+.lg-art { display: flex; align-items: center; justify-content: center; color: var(--ui-muted); font-size: 22px; }
+.lg-list { padding: 0; flex: 1 1 auto; min-height: 0; overflow: auto; }
+.lg-table { table-layout: fixed; }
+.lg-table th, .lg-table td { padding-left: 2px; padding-right: 2px; }
+.lg-table th { font-size: 9.5px; letter-spacing: .02em; overflow: hidden; text-overflow: clip; }
+@container (max-width: 560px) { .lg-table th { font-size: 8px; letter-spacing: 0; } .lg-table input { font-size: 11px; } .sde-ui .sde-lg .ui-body { padding: 10px; } }
+.lg-table td { padding: 2px 4px; text-align: center; }
+.lg-table td.lg-level { font-weight: 700; color: var(--ui-text); width: 40px; }
+.lg-table input { text-align: center; padding: 0 1px; }
+.sde-ui .sde-lg .ui-body { padding-bottom: 8px; }
+
+.lg-table col:nth-child(1) { width: 6%; }
+.lg-table col:nth-child(2) { width: 10%; }
+.lg-table col:nth-child(3) { width: 11%; }
+.lg-table col:nth-child(4) { width: 8%; }
+.lg-table col:nth-child(5) { width: 9%; }
+.lg-table col:nth-child(6) { width: 12%; }
+.lg-table col:nth-child(7) { width: 10%; }
+.lg-table col:nth-child(8) { width: 10%; }
+.lg-table col:nth-child(9) { width: 10%; }
+.lg-table col:nth-child(10) { width: 14%; }
+.sde-ui .ui-body > * { flex-shrink: 0; }
+.sde-ui input[type=radio]::before, .sde-ui input[type=radio]::after { content: none !important; }
+
+/* Header: two rows with fixed heights (group names over their columns, then one row of column names on one baseline, one
+   rule under it). The cells are separate-border so a sticky header keeps its rules when the body scrolls under it. */
+.lg-table { border-collapse: separate; border-spacing: 0; }
+.lg-table thead th { position: sticky; z-index: 2; box-sizing: border-box; padding: 0 2px; background: var(--ui-panel); text-align: center; vertical-align: bottom; white-space: nowrap; overflow: hidden; border: 0; }
+.lg-table .lg-groups th { top: 0; height: 26px; padding-bottom: 3px; }
+.lg-table .lg-cols th { top: 26px; height: 28px; padding-bottom: 6px; border-bottom: 1px solid var(--ui-frame); }
+.lg-table td { border-bottom: 1px solid var(--ui-line); }
+.lg-table tbody tr:last-child td { border-bottom: 0; }
+
+/* Group boundaries (HP | #, Damage | Typical, Highest | Talent DC) are one straight vertical line through both header rows
+   and every body row: the same border-left on the first cell of each group, in every row. No partial rules under the
+   group names (they started at the HP/# edge and read as a step). */
+.lg-table tr > :nth-child(4), .lg-table tr > :nth-child(7), .lg-table tr > :nth-child(10) { border-left: 1px solid var(--ui-line); }
+.lg-table .lg-groups > :nth-child(2), .lg-table .lg-groups > :nth-child(3), .lg-table .lg-groups > :nth-child(4) { border-left: 1px solid var(--ui-line); }
+.lg-table .lg-groups > :nth-child(2) { border-left: 1px solid var(--ui-line); }

@@ -1,0 +1,41 @@
+<div class="ui-shell">
+  <header class="ui-head">
+    <div class="ui-art bs-art"><i class="fa-solid fa-store"></i></div>
+    <div class="ui-head-text">
+      <h2 class="ui-title">{{localize "SDE.bastion.shop.title"}}</h2>
+      {{#if open}}<p class="ui-sub">{{localize "SDE.bastion.shop.hint" markup=markup}}</p>{{/if}}
+    </div>
+    {{#if open}}
+    <div class="ui-stats"><div class="ui-stat"><span class="ui-value bs-purse"><i class="fas fa-coins"></i> {{purse}}</span></div></div>
+    {{/if}}
+  </header>
+  {{#if open}}
+  <div class="bs-tools">
+    <label class="ui-field bs-buyer"><span class="ui-label">{{localize "SDE.bastion.fund.who"}}</span>
+      <select name="buyer">{{#each people}}<option value="{{id}}" {{#if selected}}selected{{/if}}>{{name}}</option>{{/each}}</select>
+    </label>
+    <div class="ui-search ui-grow bs-search"><i class="fa-solid fa-magnifying-glass"></i><input type="search" name="search" placeholder="{{localize 'SDE.bastion.shop.search'}}"></div>
+  </div>
+  <div class="ui-body sde-bs-list">
+    {{#if stock.length}}
+    <div class="ui-list">
+      {{#each stock}}
+      <div class="ui-row sde-bs-row bs-row" data-name="{{key}}">
+        <img src="{{img}}" alt="">
+        <div class="ui-row-main"><span class="ui-row-name bs-name" title="{{name}}">{{name}}{{#if bundle}} <span class="ui-tag">{{bundle}}</span>{{/if}}</span><span class="ui-row-sub">{{localize "SDE.bastion.shop.list"}} {{list}}</span></div>
+        <span class="ui-row-meta bs-price">{{price}}</span>
+        <input type="number" name="qty" class="ui-num-in" value="1" min="1" max="99" aria-label="{{localize 'SDE.bastion.shop.buy'}}">
+        <button type="button" class="ui-btn bs-buy" data-action="buy" data-uuid="{{uuid}}"><i class="fas fa-cart-plus"></i> {{localize "SDE.bastion.shop.buy"}}</button>
+      </div>
+      {{/each}}
+    </div>
+    {{else}}
+    <div class="ui-empty"><i class="fa-solid fa-box-open"></i><span>{{localize "SDE.bastion.shop.empty"}}</span></div>
+    {{/if}}
+  </div>
+  {{else}}
+  <div class="ui-body">
+    <div class="ui-empty"><i class="fa-solid fa-store-slash"></i><span>{{localize "SDE.bastion.shop.closed"}}</span></div>
+  </div>
+  {{/if}}
+</div>

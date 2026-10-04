@@ -1,68 +1,65 @@
 # Window design contract
 
-Status: draft 2026-10-02, taken from the Party sheet (`templates/party/party.hbs`,
-`styles/party-sheet.css`), which Patrick named as the reference window. Numbers below
-were measured off it in the design harness, not guessed. They were measured off the
-sheet as it was on 2026-10-02; the Party sheet was redesigned on 2026-10-03 (one
-compact header, two-column member cards, a status bar) and keeps these colours, type
-roles and card rules, with its own `sdp-` classes. Anything under "Proposed" is
-not in the Party sheet and needs Patrick's yes.
+Status: rewritten 2026-10-04 from Patrick's review of the redesign proposals. It replaces the 2026-10-02 draft, which was
+measured off the old Party sheet. The reference is now the Character Builder's look, built as a shared kit:
+`tools/design-harness/proposed/sde-ui.css` (tokens `--ui-*`, parts `ui-*`). The plan to build it into the module is
+`docs/plans/window-redesign.md`.
 
 ## Before you call a window done
 
-1. `node tools/design-harness/serve.mjs` (see `tools/design-harness/README.md`).
-2. Add or update a fixture for the window, in the busiest state a user can reach.
-3. Screenshot it at its real width and at `?w=420`. Look at it.
-4. The box bottom right must say `no layout problems found` and show the button count you meant.
+1. Run the harness (`node tools/design-harness/serve.mjs`, or `PORT=4300 node tools/design-harness/gallery-serve.mjs`
+   for the before and after gallery with review controls). See `tools/design-harness/README.md`.
+2. Add or update a fixture for the window in the busiest state a user can reach (a very long name, every section shown).
+3. Look at it in dark AND light, at its real width and at 420px. Read the screenshots; the harness box alone is not
+   enough (it has no overlap check and counts only some primary buttons).
+4. Nothing clipped, nothing overlapping, nothing scrolling sideways, text readable in both themes.
 
-A window that has not been looked at is not finished.
+A window that has not been looked at, in both themes, is not finished.
 
-## What the Party sheet does
+## The look
 
-**Structure.** Three bands: a header that says what this is (name, image, 3-4 headline numbers),
-a tab row of 5 or fewer, and one scrolling body. The header and tabs never scroll.
+Dark is the Character Builder's printed-rulebook palette: black page, white blackletter titles, silver frames, gold. Light is
+the same book on warm paper. Both themes are first-class. Put the class `sde-ui` on the window root and use only the kit's
+tokens; never a hard-coded colour in a window's own CSS and never a theme-specific selector (the tokens already switch).
 
-**Surface.** One near-black ground `#0a0a0a`. Raised things sit on it as bordered cards, never as
-a second ground colour. Cards: `1px solid #333`, radius 6px, padding 12px, gap 15px between parts.
-Body padding 15px. Small chips (stats, abilities): `#1a1a1a` or `rgba(0,0,0,.3)`, radius 4px, padding 4px 8px.
+Type, three roles: titles and tabs in the blackletter display face (digits come from the system's Montserrat), body in
+Montserrat Medium 13px, labels in Montserrat SemiBold 10.5px uppercase muted. A value is bold, a label names it.
 
-**Type: three roles, no more.**
+## Colour rules (Patrick's)
 
-| Role | Face | Size | Used for |
-|---|---|---|---|
-| Display | Old Newspaper Font | 28 title, 18 tabs, 13 section rules, 11 buttons | the window's own name, tabs, button labels |
-| Body | Signika | 14 (16 bold for a card's name) | what the user reads |
-| Label | Signika | 11, uppercase, `#888` | the name of a value, never the value |
+- Status colour is rationed to three: silver (neutral), the book's gold, and the Party health bar's dark crimson
+  (`--ui-danger` `#9d2a3a` as a fill or border, `--ui-danger-text` for crimson text). Never salmon, pastel or neon.
+- Green exists only for an on/off switch (`ui-switch`, for example Marching order) and the Bastion health bar (`ui-bar ok`).
+  A character's health bar is crimson (`ui-bar hp`).
+- No translucent coloured fills and no glows.
+- Gold marks a selection or a warning, sparingly.
 
-Value `#e0e0e0` bold 14, directly beside or under its label. Secondary text `#888`, italic for a
-category (the class under a name). Gold `#e6d19b` is for section rules only, a line under a heading.
+## Shape
 
-**Grouping.** One card is one thing (one member). Inside it: name line, a row of label/value pairs,
-a row of chips. A heading (`#888`, 14, bold) sits above a group of cards, with no box of its own.
+- No pill-shaped chips or buttons. Chips and tags are square (2px) outlines. Buttons are 28px, radius 4px.
+- Icon buttons are 24px. Nothing clickable is smaller than 22px in either direction.
+- One primary button per screen (`ui-btn primary`, solid inverse), never a destructive action. Secondary actions are plain.
+- Destructive confirms default to the safe choice and name the action with a verb, not Yes and No.
 
-**Controls.** Buttons are 24px tall, `#1a1a1a`, `1px solid #333`, radius 4px. They come in pairs at most
-per row, and each row is something you do to the whole body (Camp, Carouse), not to one card.
-Per-card actions are small icon links that appear on the card.
+## Structure
 
-**Empty states.** A big muted icon and one sentence saying what to do.
+Header band (name, image, three or four headline numbers), then tabs if there are several, then one scrolling body, then a
+footer for the screen's actions. Header, tabs and footer never scroll. Content sits in cards, rows or under a heading;
+no loose text on the page ground. Empty states are an icon and one sentence saying what to do. Tabs: prefer five or fewer;
+more is fine when they are all used often and the row fits at 750px (it fills its width) and wraps cleanly narrower.
 
-## Rules
+## Text and layout
 
-- No text sitting loose on the window ground: every piece of text is inside a card, chip or heading.
-- One primary action on a screen. Everything else is secondary.
-- Nothing is wider than the window; nothing scrolls sideways; the harness checks both.
-- A control is at least 22px in both directions.
-- 5 or fewer tabs. 8 or fewer buttons visible at once. If you need more, the window is two windows
-  or a wizard.
 - Every user-facing string comes from `languages/en.json`.
+- A long name must never be cut by another label (the class sits under the name), and never push the controls out of line:
+  names wrap or end in an ellipsis with the full text in a `data-tooltip`; control columns have fixed widths.
+- Use container queries, not viewport media queries; a window is resized, the screen is not.
+- A number that needs a unit or meaning gets its icon or label next to it; an icon alone means nothing.
+- `data-tooltip` is Foundry's; the design harness shows it only through a shim (`fixtures/_proposed.mjs`).
 
-## Proposed (not in the Party sheet)
+## Exceptions
 
-- **Wizard screen.** One sentence of what happens, one big button (the only primary), a quiet
-  "Skip" or "Back" link, a row of dots showing the step. Nothing else on screen. Built from the
-  card and type rules above; the button is the one exception to the 24px height (40px, Display 16).
-- **Tokens.** The Party sheet keeps its colours as `--party-*` on `.sde-party`. Hoist them to
-  `--sde-*` on `.application.shadowdark` so every window shares one set. Not done yet.
-- **Window title.** Shadowdark's `.shadowdark h1` renders every window title at 40px. The harness
-  shows it; a one-rule reset under `.application.shadowdark .window-title` would fix all windows
-  (see the worklog entry of 2026-10-03).
+- Actor sheets (Mount, Warband, and the Shadowdark system's own) keep the system's parchment look; Shadowdark Extras
+  restyles them. They are not built from the kit.
+- HUD overlays (the crawl bar and strip, the Token HUD buttons) follow their host's own markup and are only checked for
+  readability in both themes.

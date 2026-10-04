@@ -1,0 +1,24 @@
+/* Hex brush: the picture tiles (a hex crop or a coloured disc) and the big current tile. Kit candidate: "ui-tile" (a
+   selectable picture tile with a name under it). Tokens only; the disc colour comes from the data (--c). */
+.hxb .hex { display: grid; place-items: center; }
+.hxb .hex img { width: 100%; height: auto; display: block; }
+.hxb .ico { display: grid; place-items: center; width: 78%; aspect-ratio: 1; border-radius: 50%; background: var(--c); border: 1px solid var(--ui-line); }
+.hxb .ico i { font-size: 1.4em; color: #fff; }
+.hxb-now { flex-direction: row; align-items: center; justify-content: center; gap: 14px; }
+.hxb-now .big { display: flex; flex-direction: column; align-items: center; gap: 6px; width: 132px; }
+.hxb-now .big .hex { width: 104px; }
+.hxb-now .big .ico i { font-size: 28px; }
+.hxb-now .big strong { flex: 0 0 auto; text-align: center; text-transform: capitalize; font: 400 20px/1.1 var(--ui-title); }
+.hxb-now .step { height: 44px; width: 32px; padding: 0; }
+.hxb-strip { display: grid; grid-template-columns: repeat(auto-fill, minmax(68px, 1fr)); gap: 6px; }
+.hxb-strip .t { height: auto; min-height: 0; display: flex; flex-direction: column; align-items: center; gap: 4px; min-width: 0; padding: 6px 2px; border: 1px solid transparent; border-radius: var(--ui-r2); background: transparent; color: var(--ui-body); cursor: pointer; }
+.hxb-strip .t .hex { width: 46px; }
+.hxb-strip .t .ico i { font-size: 15px; }
+.hxb-strip .t .n { max-width: 100%; overflow: hidden; text-overflow: ellipsis; font-size: 11px; line-height: 1.1; white-space: nowrap; text-transform: capitalize; color: var(--ui-muted); }
+.hxb-strip .t:hover { background: var(--ui-raised); }
+.hxb-strip .t.on { border-color: var(--ui-frame); background: var(--ui-raised); }
+.hxb-strip .t.on .n { color: var(--ui-text); font-weight: 700; }
+.hxb .ui-chip.f i { color: var(--ui-info); }
+.hxb .sde-hxb-other { margin-top: 8px; }
+.sde-ui .ui-body > * { flex-shrink: 0; }
+.sde-ui input[type=radio]::before, .sde-ui input[type=radio]::after { content: none !important; }

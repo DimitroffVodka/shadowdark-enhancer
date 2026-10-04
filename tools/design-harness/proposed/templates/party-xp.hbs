@@ -1,0 +1,58 @@
+<div class="ui-shell">
+  <header class="ui-head">
+    <div class="ui-art px-art"><i class="fa-solid fa-star"></i></div>
+    <div class="ui-head-text">
+      <h2 class="ui-title">{{localize "SDE.partyXp.title"}}</h2>
+      <p class="ui-sub">{{{localize "SDE.partyXp.intro"}}}</p>
+    </div>
+  </header>
+
+  <div class="ui-body">
+    {{#if hasItem}}
+    <section class="ui-card">
+      <div class="ui-card-head">
+        <img class="px-item-img" src="{{item.img}}" width="40" height="40" alt="">
+        <div class="ui-row-main"><span class="ui-card-name">{{item.name}}</span><span class="ui-row-sub">{{localize "SDE.partyXp.xpValue" xp=item.xp}} · {{itemSourceLabel}}</span></div>
+        <button type="button" class="ui-icon" data-action="clearItem" title="{{localize 'SDE.partyXp.clearTip'}}" aria-label="{{localize 'SDE.partyXp.clearTip'}}"><i class="fas fa-xmark"></i></button>
+      </div>
+      <label class="ui-check"><input type="checkbox" name="saveToItem" {{#if saveToItem}}checked{{/if}}> {{localize "SDE.partyXp.saveToItem"}}</label>
+    </section>
+    {{else}}
+    <div class="ui-empty sde-pxp-drop px-drop"><i class="fa-solid fa-hand-holding-hand"></i><span>{{localize "SDE.partyXp.dropHint"}}</span></div>
+    {{/if}}
+
+    <div class="px-fields">
+      <label class="ui-field"><span class="ui-label">{{localize "SDE.partyXp.amountLabel"}}</span><input type="number" name="amount" min="0" step="1" value="{{amount}}" aria-label="{{localize 'SDE.partyXp.amountLabel'}}"></label>
+      <label class="ui-field"><span class="ui-label">{{localize "SDE.partyXp.labelLabel"}}</span><input type="text" name="label" value="{{label}}" placeholder="{{localize 'SDE.partyXp.labelPlaceholder'}}" aria-label="{{localize 'SDE.partyXp.labelAria'}}"></label>
+    </div>
+
+    <section class="ui-group">
+      <h3 class="ui-h"><span>{{localize "SDE.partyXp.awardTo" xp=xpPerLevel}}</span>
+        <span class="ui-inline px-tools">
+          <button type="button" class="ui-btn ghost" data-action="selectAll">{{localize "SDE.partyXp.selectAll"}}</button>
+          <button type="button" class="ui-btn ghost" data-action="selectNone">{{localize "SDE.partyXp.selectNone"}}</button>
+        </span>
+      </h3>
+      {{#if hasParty}}
+      <div class="ui-list">
+        {{#each party as |p|}}
+        <label class="ui-row px-member">
+          <input type="checkbox" data-member="{{p.id}}" {{#if p.checked}}checked{{/if}}>
+          <span class="ui-row-main"><span class="ui-row-name px-name" title="{{p.name}}">{{p.name}}</span></span>
+          {{#if p.level}}<span class="ui-tag px-lvl">{{localize "SDE.partyXp.levelShort" level=p.level}}</span>{{/if}}
+          <span class="ui-row-meta px-xp">{{localize "SDE.partyXp.xpValue" xp=p.xp}}</span>
+        </label>
+        {{/each}}
+      </div>
+      {{else}}
+      <div class="ui-empty"><i class="fa-solid fa-users-slash"></i><span>{{localize "SDE.partyXp.noParty"}}</span></div>
+      {{/if}}
+    </section>
+  </div>
+
+  <footer class="ui-footer">
+    <div class="ui-right">
+      <button type="button" class="ui-btn primary" data-action="award" {{#unless hasParty}}disabled{{/unless}}><i class="fas fa-star"></i> {{localize "SDE.partyXp.award"}}</button>
+    </div>
+  </footer>
+</div>

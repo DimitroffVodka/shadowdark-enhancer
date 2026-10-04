@@ -1,0 +1,13 @@
+<div class="cbu-step cbu-anc is-hp-gold">
+  <h2 class="ui-h">{{localize "SDE.charBuilder.step.hpGold"}}</h2>
+  <div class="ui-cols-2 cbu-hp-gold">
+    <section class="ui-card" data-cb-vital="hp">
+      <div class="ui-card-head"><h3 class="ui-card-name">{{localize "SDE.charBuilder.step.hp"}}</h3></div>
+      {{> sde-cb-hp step=step.hp}}
+    </section>
+    <section class="ui-card" data-cb-vital="gold">
+      <div class="ui-card-head"><h3 class="ui-card-name">{{localize "SDE.charBuilder.step.gold"}}</h3></div>
+      {{> sde-cb-gold step=step.gold}}
+    </section>
+  </div>
+</div>

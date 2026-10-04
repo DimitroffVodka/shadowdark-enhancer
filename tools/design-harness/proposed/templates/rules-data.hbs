@@ -1,0 +1,128 @@
+{{!-- Rules data, proposed. Same context, names (terrain.<key>.<field>, climate.<i>...., <table>.<key>, _ruleset, _scene, newTerrain),
+      data-action and data-rd-ruleset as templates/rules-data.hbs. Tabs are CSS-only (hidden radios named _rdTab; core ignores an
+      unknown form key), so no JS is needed to switch them. --}}
+<div class="ui-shell sde-rd rd">
+  <header class="ui-head">
+    <div class="ui-art rd-art"><i class="fa-solid fa-scroll"></i></div>
+    <div class="ui-head-text"><h2 class="ui-title">{{localize "SDE.rulesData.title"}}</h2></div>
+    <div class="ui-inline rd-setbtns">
+      <button type="button" class="ui-btn" data-action="rd-set-new"><i class="fa-solid fa-plus"></i> {{localize "SDE.rulesData.set.new"}}</button>
+      {{#if custom}}
+      <button type="button" class="ui-btn" data-action="rd-set-rename"><i class="fa-solid fa-pen"></i> {{localize "SDE.rulesData.set.rename"}}</button>
+      <button type="button" class="ui-btn danger" data-action="rd-set-delete"><i class="fa-solid fa-trash"></i> {{localize "SDE.rulesData.set.delete"}}</button>
+      {{/if}}
+      {{#if canImport}}
+      <button type="button" class="ui-btn" data-action="rd-import" data-tooltip="{{localize 'SDE.rulesData.importHint'}}"><i class="fa-solid fa-file-import"></i> {{localize "SDE.rulesData.import"}}</button>
+      {{/if}}
+    </div>
+  </header>
+
+  <input class="rd-tabradio" type="radio" name="_rdTab" id="rd-t1" checked>
+  <input class="rd-tabradio" type="radio" name="_rdTab" id="rd-t2">
+  <input class="rd-tabradio" type="radio" name="_rdTab" id="rd-t3">
+  <input class="rd-tabradio" type="radio" name="_rdTab" id="rd-t4">
+  <nav class="ui-tabs rd-tabs">
+    <label class="ui-tab" for="rd-t1">{{localize "SDE.rulesData.table.terrain"}}</label>
+    <label class="ui-tab" for="rd-t2">{{localize "SDE.rulesData.tab.travel"}}</label>
+    <label class="ui-tab" for="rd-t3">{{localize "SDE.rulesData.tab.settlements"}}</label>
+    <label class="ui-tab" for="rd-t4">{{localize "SDE.rulesData.table.climate"}}</label>
+  </nav>
+
+  <div class="ui-body sde-rd-body">
+    <section class="ui-card rd-sets">
+      <div class="ui-field"><label class="ui-label" for="rd-ruleset">{{localize "SDE.rulesData.set.editing"}}</label>
+        <select id="rd-ruleset" name="_ruleset" data-rd-ruleset>
+          {{#each rulesets}}<option value="{{this.id}}" {{#if this.selected}}selected{{/if}}>{{this.label}}</option>{{/each}}
+        </select></div>
+      {{#if sceneName}}
+      <div class="ui-field" title="{{localize 'SDE.rulesData.set.sceneHint'}}"><label class="ui-label" for="rd-scene">{{localize "SDE.rulesData.set.sceneUses" scene=sceneName}}</label>
+        <select id="rd-scene" name="_scene">
+          {{#each sceneRulesets}}<option value="{{this.id}}" {{#if this.selected}}selected{{/if}}>{{this.label}}</option>{{/each}}
+        </select></div>
+      {{/if}}
+    </section>
+    <p class="ui-note info">{{localize "SDE.rulesData.intro"}}</p>
+
+    <div class="rd-panel rd-p1">
+      <section class="ui-card">
+        <p class="ui-muted">{{localize "SDE.rulesData.hint.terrain"}}</p>
+        <table class="ui-table rd-table rd-terrain">
+          <thead><tr>
+            <th>{{localize "SDE.rulesData.col.terrain"}}</th><th>{{localize "SDE.rulesData.col.type"}}</th><th>{{localize "SDE.rulesData.col.cost"}}</th>
+            <th>{{localize "SDE.rulesData.col.boat"}}</th><th>{{localize "SDE.rulesData.col.elevation"}}</th><th></th>
+          </tr></thead>
+          <tbody>
+            {{#each terrain}}
+            <tr>
+              <td class="rd-name">{{this.word}}</td>
+              <td><span class="ui-label rd-cell">{{localize "SDE.rulesData.col.type"}}</span><select name="terrain.{{this.key}}.type" aria-label="{{localize 'SDE.rulesData.col.type'}}">{{selectOptions @root.typeChoices selected=this.type blank="—" localize=true}}</select></td>
+              <td><span class="ui-label rd-cell">{{localize "SDE.rulesData.col.cost"}}</span><input type="number" step="1" name="terrain.{{this.key}}.cost" value="{{this.cost}}" aria-label="{{localize 'SDE.rulesData.col.cost'}}"></td>
+              <td><span class="ui-label rd-cell">{{localize "SDE.rulesData.col.boat"}}</span><input type="number" step="1" name="terrain.{{this.key}}.boat" value="{{this.boat}}" aria-label="{{localize 'SDE.rulesData.col.boat'}}"></td>
+              <td><span class="ui-label rd-cell">{{localize "SDE.rulesData.col.elevation"}}</span><select name="terrain.{{this.key}}.elevation" aria-label="{{localize 'SDE.rulesData.col.elevation'}}">{{selectOptions @root.elevationChoices selected=this.elevation blank="—" localize=true}}</select></td>
+              <td class="rd-remove">{{#if this.removable}}<button type="button" class="ui-icon danger" data-action="rd-remove-terrain" data-key="{{this.key}}" data-tooltip="{{localize 'SDE.rulesData.terrain.remove'}}" aria-label="{{localize 'SDE.rulesData.terrain.remove'}}"><i class="fa-solid fa-trash"></i></button>{{/if}}</td>
+            </tr>
+            {{/each}}
+          </tbody>
+        </table>
+        <div class="ui-inline rd-add">
+          <input class="ui-grow" type="text" name="newTerrain" placeholder="{{localize 'SDE.rulesData.terrain.addPlaceholder'}}" aria-label="{{localize 'SDE.rulesData.terrain.addLabel'}}">
+          <button type="button" class="ui-btn" data-action="rd-add-terrain"><i class="fa-solid fa-plus"></i> {{localize "SDE.rulesData.terrain.add"}}</button>
+        </div>
+      </section>
+    </div>
+
+    <div class="rd-panel rd-p2">
+      <div class="rd-flats">
+      {{#each flats}}{{#if (lt @index 3)}}
+        <section class="ui-card">
+          <h3 class="ui-h">{{localize this.title}}</h3>
+          <p class="ui-muted">{{localize this.hint}}</p>
+          <table class="ui-table"><tbody>
+            {{#each this.rows}}<tr><td class="rd-name">{{localize this.label}}</td><td class="rd-val"><input type="number" step="1" name="{{this.name}}" value="{{this.value}}" placeholder="{{this.placeholder}}" aria-label="{{localize this.label}}"></td></tr>{{/each}}
+          </tbody></table>
+        </section>
+      {{/if}}{{/each}}
+      </div>
+    </div>
+
+    <div class="rd-panel rd-p3">
+      <div class="rd-flats">
+      {{#each flats}}{{#unless (lt @index 3)}}
+        <section class="ui-card">
+          <h3 class="ui-h">{{localize this.title}}</h3>
+          <p class="ui-muted">{{localize this.hint}}</p>
+          <table class="ui-table"><tbody>
+            {{#each this.rows}}<tr><td class="rd-name">{{localize this.label}}</td><td class="rd-val"><input type="number" step="1" name="{{this.name}}" value="{{this.value}}" placeholder="{{this.placeholder}}" aria-label="{{localize this.label}}"></td></tr>{{/each}}
+          </tbody></table>
+        </section>
+      {{/unless}}{{/each}}
+      </div>
+    </div>
+
+    <div class="rd-panel rd-p4">
+      <section class="ui-card">
+        <p class="ui-muted">{{localize "SDE.rulesData.hint.climate"}}</p>
+        <table class="ui-table rd-table rd-climate">
+          <thead><tr><th>{{localize "SDE.rulesData.col.region"}}</th>{{#each seasons}}<th>{{localize this}}</th>{{/each}}</tr></thead>
+          <tbody>
+            {{#each climate}}
+            <tr>
+              <td><input type="text" name="climate.{{this.i}}.region" value="{{this.region}}" placeholder="{{localize 'SDE.rulesData.addRegion'}}" aria-label="{{localize 'SDE.rulesData.col.region'}}"></td>
+              {{#each this.cells}}
+              <td class="rd-cellpair"><span class="ui-label rd-cell">{{localize (lookup @root.seasons @index)}}</span>
+                <input type="text" name="climate.{{../i}}.{{this.season}}.label" value="{{this.label}}" aria-label="{{localize 'SDE.rulesData.col.climate'}}">
+                <select name="climate.{{../i}}.{{this.season}}.harsh" aria-label="{{localize 'SDE.rulesData.col.harsh'}}">{{selectOptions @root.harshChoices selected=this.harsh blank="—" localize=true}}</select></td>
+              {{/each}}
+            </tr>
+            {{/each}}
+          </tbody>
+        </table>
+      </section>
+    </div>
+  </div>
+
+  <footer class="ui-footer">
+    <button type="button" class="ui-btn ghost" data-action="rd-cancel"><i class="fa-solid fa-xmark"></i> {{localize "SDE.rulesData.cancel"}}</button>
+    <div class="ui-right"><button type="submit" class="ui-btn primary"><i class="fa-solid fa-floppy-disk"></i> {{localize "SDE.rulesData.save"}}</button></div>
+  </footer>
+</div>

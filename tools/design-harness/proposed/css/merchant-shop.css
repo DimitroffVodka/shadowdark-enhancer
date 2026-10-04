@@ -1,0 +1,84 @@
+/* Merchant Shop proposal. Tokens only. Legacy sdems-* classes stay on elements the JS selects on. */
+.sde-ui [hidden] { display: none !important; }
+.sde-ui .ui-art.ms-art { display: grid; place-items: center; font-size: 22px; color: var(--ui-frame); }
+.sde-ui .ui-icon { flex: 0 0 auto; }
+.sde-ui .ui-head, .sde-ui .ui-head .ui-stats { flex-wrap: nowrap; }
+.sde-ui .ms-wallet { color: var(--ui-gold); white-space: nowrap; }
+.sde-ui .ms-tools { display: flex; gap: 4px; flex: 0 0 auto; }
+.sde-ui .ms-tools .ui-icon.on { color: var(--ui-text); border-color: var(--ui-frame); background: var(--ui-raised); }
+.sde-ui .ms-filters > select, .sde-ui .ms-filters > .ui-search { min-width: 120px; }
+.sde-ui .ms-filters > select { flex: 1 1 130px; width: auto; }
+.sde-ui .ms-filters > .ui-grow { flex: 2 1 180px; }
+.sde-ui .ms-filters .ui-num-in { flex: 0 0 64px; }
+.sde-ui .ui-search > input[type] { padding-left: 28px; }
+/* collapsible sections (the JS toggles sdems-section-collapsed and aria-expanded) */
+.sde-ui .sdems-section-header { cursor: pointer; user-select: none; }
+.sde-ui .sdems-section-header > span { display: inline-flex; align-items: baseline; gap: 8px; }
+.sde-ui .ms-caret { font-size: 10px; color: var(--ui-muted); transition: transform .12s; }
+.sde-ui .sdems-section-collapsed .ms-caret { transform: rotate(-90deg); }
+.sde-ui .sdems-section-collapsed .ms-section-body { display: none; }
+/* rows: the JS appends an .sdems-item-desc inside a clicked row */
+/* rows are grids with fixed control columns: the name takes the rest and wraps (2 lines, then clipped, tooltip has it all) */
+.sde-ui .ms-row { display: grid; align-items: center; gap: 10px; cursor: default; }
+.sde-ui .ms-r-buy { grid-template-columns: 28px minmax(0, 1fr) 104px 40px 150px; }
+.sde-ui .ms-r-cat, .sde-ui .ms-r-sell { grid-template-columns: 28px minmax(0, 1fr) 104px 150px; }
+.sde-ui .ms-r-gamble { grid-template-columns: minmax(0, 1fr) 104px 96px; }
+.sde-ui .ms-name { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; overflow-wrap: anywhere; }
+.sde-ui .ms-row .ui-row-meta { text-align: right; white-space: nowrap; }
+.sde-ui .ms-row .ms-stock { justify-self: center; }
+.sde-ui .ms-r-gamble .ui-btn { width: 100%; padding: 0 6px; }
+.sde-ui .sdems-item-desc { grid-column: 1 / -1; padding: 6px 2px 2px 38px; color: var(--ui-body); font-size: 12.5px; border-top: 1px dashed var(--ui-line); }
+.sde-ui .sdems-item-desc p { margin: 0 0 4px; }
+.sde-ui .ms-out { opacity: .5; }
+.sde-ui .ms-poor .ui-row-meta { color: var(--ui-danger-text); }
+.sde-ui .ms-sell { color: var(--ui-ok); }
+.sde-ui .ms-stock { min-width: 28px; justify-content: center; color: var(--ui-muted); }
+.sde-ui .ms-actions { display: grid; grid-template-columns: 56px minmax(0, 1fr); gap: 6px; }
+.sde-ui .ms-actions .ui-num-in { width: 100% !important; }
+.sde-ui .ms-actions .ui-btn { width: 100%; padding: 0 6px; min-width: 0; }
+.sde-ui .ms-junk { box-shadow: inset 3px 0 0 var(--ui-danger); }
+.sde-ui .ms-junk-ic { color: var(--ui-danger-text); }
+.sde-ui .ms-sellhead { align-items: center; }
+.sde-ui .ms-sellhead .ui-h { margin: 0; }
+/* log */
+.sde-ui .ms-log-ic { width: 20px; text-align: center; color: var(--ui-muted); }
+.sde-ui .ms-log-ic.buy { color: var(--ui-ok); }
+.sde-ui .ms-log-ic.sell { color: var(--ui-gold); }
+/* manage */
+.sde-ui .ms-span { grid-column: 1 / -1; }
+.sde-ui .ms-saved select { flex: 1 1 auto; width: auto; }
+.sde-ui .ms-edit { flex-wrap: wrap; }
+.sde-ui .ms-price { display: flex; gap: 6px; flex: 0 0 auto; }
+.sde-ui .ms-coin { display: inline-flex; align-items: center; gap: 3px; color: var(--ui-muted); font-size: 11px; }
+.sde-ui .ms-coin input { width: 54px; padding: 0 4px; text-align: center; }
+.sde-ui .ms-comp { max-height: 220px; overflow-y: auto; }
+.sde-ui .ui-note.sdems-drop-zone { border-style: dashed; border-left-style: dashed; color: var(--ui-muted); text-align: center; }
+.sde-ui .ui-details > summary .ui-chip { margin-left: auto; }
+@container (max-width: 560px) {
+  .sde-ui .ms-r-buy { grid-template-columns: 28px minmax(0, 1fr) 40px 150px; }
+  .sde-ui .ms-r-cat, .sde-ui .ms-r-sell { grid-template-columns: 28px minmax(0, 1fr) 150px; }
+  .sde-ui .ms-r-gamble { grid-template-columns: minmax(0, 1fr) 96px; }
+  .sde-ui .ms-row > img { grid-column: 1; grid-row: 1; }
+  .sde-ui .ms-r-buy > .ui-row-main, .sde-ui .ms-r-cat > .ui-row-main, .sde-ui .ms-r-sell > .ui-row-main { grid-column: 2 / -1; grid-row: 1; }
+  .sde-ui .ms-r-gamble > .ui-row-main { grid-column: 1 / -1; grid-row: 1; }
+  .sde-ui .ms-row .ui-row-meta { grid-column: 2; grid-row: 2; text-align: left; }
+  .sde-ui .ms-r-gamble .ui-row-meta { grid-column: 1; }
+  .sde-ui .ms-r-buy .ms-stock { grid-column: 3; grid-row: 2; }
+  .sde-ui .ms-r-buy .ms-actions { grid-column: 4; grid-row: 2; }
+  .sde-ui .ms-r-cat .ms-actions, .sde-ui .ms-r-sell .ms-actions { grid-column: 3; grid-row: 2; }
+  .sde-ui .ms-r-gamble .ui-btn { grid-column: 2; grid-row: 2; }
+  .sde-ui .ms-edit .ms-price { flex: 1 1 100%; order: 3; justify-content: flex-start; }
+  .sde-ui .ms-wide { flex-basis: 100%; }
+  .sde-ui .ui-head { gap: 10px; }
+  .sde-ui .ui-title { font-size: 20px; }
+}
+.sde-ui .ui-body > * { flex-shrink: 0; }
+.sde-ui input[type=radio]::before, .sde-ui input[type=radio]::after { content: none !important; }
+.sde-ui .ui-footer .ui-btn { flex: 0 0 auto; width: auto; }
+.sde-ui .sdems-item-row { background: transparent; border-radius: 0; margin: 0; }
+.sde-ui .sdems-item-row:hover { background: var(--ui-hover); }
+@container (max-width: 560px) {
+  .sde-ui .ui-head { flex-wrap: wrap; }
+  .sde-ui .ui-head-text { flex: 1 1 55%; }
+  .sde-ui .ui-head .ui-stats { flex-wrap: wrap; }
+}

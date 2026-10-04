@@ -1,0 +1,35 @@
+<div class="ui-shell cbu-ui">
+
+  {{!-- Numbered step strip (kept from the current builder) --}}
+  <nav class="ui-tabs cbu-tabs">
+    {{#each steps}}
+    <button type="button" class="ui-tab{{#if active}} active{{/if}}{{#if complete}} complete{{/if}}" data-action="cb-goto" data-index="{{index}}" data-step="{{id}}"><span class="ui-num">{{num}}</span>{{label}}</button>
+    {{/each}}
+  </nav>
+
+  <div class="ui-body cbu-body" data-step="{{stepId}}">
+    {{> (lookup . 'stepPartial') }}
+  </div>
+
+  {{!-- Footer: quiet buttons on the left, Back / Next and the one primary on the right --}}
+  <footer class="ui-footer cbu-footer">
+    <button type="button" class="ui-btn ghost" data-action="cb-dismiss"><i class="fa-solid fa-circle-xmark"></i> {{localize "SDE.charBuilder.nav.dismiss"}}</button>
+    {{#if nav.canUndo}}<button type="button" class="ui-btn ghost" data-action="cb-undo" {{#if nav.finishing}}disabled{{/if}}><i class="fa-solid fa-rotate-left"></i> {{localize "SDE.charBuilder.existing.undo"}}</button>{{/if}}
+    {{#if nav.levelUpOffer}}<button type="button" class="ui-btn" data-action="cb-level-up"><i class="fa-solid fa-arrow-up"></i> {{localize "SDE.charBuilder.levelUp.button"}} ({{nav.levelUpOffer.to}})</button>{{/if}}
+    {{#if nav.levelUpActive}}<button type="button" class="ui-btn ghost" data-action="cb-level-up-cancel" {{#if nav.finishing}}disabled{{/if}}><i class="fa-solid fa-xmark"></i> {{localize "SDE.charBuilder.levelUp.cancel"}} ({{nav.levelUpActive.from}} &rarr; {{nav.levelUpActive.to}})</button>{{/if}}
+    {{#if nav.level}}
+    <label class="ui-inline cbu-level" title="{{localize 'SDE.charBuilder.levelHint'}}">
+      <span class="ui-label">{{localize "SDE.charBuilder.level"}}</span>
+      <select data-cb-level class="ui-num-in">{{#each nav.level.options}}<option value="{{value}}"{{#if selected}} selected{{/if}}>{{value}}</option>{{/each}}</select>
+    </label>
+    {{/if}}
+    {{#if nav.showFullRandom}}<button type="button" class="ui-btn" data-action="cb-full-random"><i class="fa-solid fa-bolt"></i> {{localize "SDE.charBuilder.nav.fullRandom"}}</button>{{/if}}
+    {{#if nav.supportsRandom}}<button type="button" class="ui-btn" data-action="cb-random"><i class="fa-solid fa-dice"></i> {{localize "SDE.charBuilder.nav.random"}}</button>{{/if}}
+    <div class="ui-right">
+      <button type="button" class="ui-btn" data-action="cb-prev" {{#unless nav.canPrev}}disabled{{/unless}}><i class="fa-solid fa-caret-left"></i> {{localize "SDE.charBuilder.nav.prev"}}</button>
+      <button type="button" class="ui-btn" data-action="cb-next" {{#if nav.isLast}}disabled{{/if}}>{{localize "SDE.charBuilder.nav.next"}} <i class="fa-solid fa-caret-right"></i></button>
+      <button type="button" class="ui-btn primary" data-action="cb-finish" {{#if nav.finishing}}disabled{{/if}}><i class="fa-solid fa-check"></i> {{#if nav.existing}}{{localize "SDE.charBuilder.existing.finish"}}{{else}}{{localize "SDE.charBuilder.nav.finish"}}{{/if}}</button>
+    </div>
+  </footer>
+
+</div>

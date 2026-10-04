@@ -1,0 +1,20 @@
+<div class="ui-stack cbu-roll-step">
+  {{#if step.existing}}
+  <div class="ui-note"><i class="fa-solid fa-lock"></i> {{localize "SDE.charBuilder.gold.existingHint"}}</div>
+  <div class="cbu-big-number"><span class="val">{{step.coinsText}}</span></div>
+  {{else}}
+  {{#if step.fixed}}
+  <div class="ui-note"><i class="fa-solid fa-lock"></i> {{localize "SDE.charBuilder.gold.fixed"}}: <b>{{step.fixed}} {{localize "SDE.charBuilder.gold.unit"}}</b> ({{localize "SDE.charBuilder.stats.methodGm"}})</div>
+  {{else}}
+  <div class="ui-note info">{{localize "SDE.charBuilder.gold.formula"}}: <b>{{localize "SDE.charBuilder.gold.formulaDice"}} {{localize "SDE.charBuilder.gold.unit"}}</b></div>
+  {{/if}}
+  <div class="cbu-big-number"><span class="val">{{step.gp}}</span> <span class="unit">{{localize "SDE.charBuilder.gold.unit"}}</span></div>
+  {{#unless step.fixed}}
+  <div class="ui-inline cbu-stats-btns">
+    {{#if step.rollLocked}}<span class="ui-muted"><i class="fa-solid fa-lock"></i> {{localize "SDE.charBuilder.lockedRoll"}}</span>
+    {{else}}<button type="button" class="ui-btn" data-action="cb-roll-gold"><i class="fa-solid fa-dice"></i> {{#if step.rolled}}{{localize "SDE.charBuilder.gold.rollAgain"}}{{else}}{{localize "SDE.charBuilder.gold.roll"}}{{/if}}</button>{{/if}}
+    {{#if step.canEdit}}<label class="ui-field"><span class="ui-label">{{localize "SDE.charBuilder.gold.manual"}}</span><input class="ui-num-in" type="number" min="0" step="1" data-cb-gold-input value="{{step.gp}}"></label>{{/if}}
+  </div>
+  {{/unless}}
+  {{/if}}
+</div>

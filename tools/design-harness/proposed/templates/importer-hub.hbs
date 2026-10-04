@@ -1,0 +1,629 @@
+{{!-- Importer Hub, proposed. A shell with four tabs over the same dashboards:
+      Paste (what + where from + the paste box), Preview (everything the parser found), Manage (census, rules data, duplicates),
+      Tools (one-time setup and bundles). Same context as templates/importer-hub.hbs plus `tab` ("paste"|"preview"|"manage"|"tools")
+      and optional `previewTotal`; every data-action / data-* / name attribute is kept. --}}
+<div class="ui-shell" id="sde-hub-import">
+
+  <header class="ui-head">
+    <div class="ui-art imp-art"><i class="fa-solid fa-file-import"></i></div>
+    <div class="ui-head-text"><h2 class="ui-title">{{localize "SDE.importer.app.title"}}</h2><p class="ui-sub">{{localize "SDE.importer.ui.hubSub"}}</p></div>
+  </header>
+
+  <nav class="ui-tabs">
+    <button type="button" class="ui-tab{{#if (or (not tab) (eq tab 'paste'))}} active{{/if}}" data-action="hubTab" data-tab="paste">{{localize "SDE.importer.ui.tabPaste"}}</button>
+    <button type="button" class="ui-tab{{#if (eq tab 'preview')}} active{{/if}}" data-action="hubTab" data-tab="preview">{{localize "SDE.importer.ui.tabPreview"}}{{#if previewTotal}} <span class="ui-count">{{previewTotal}}</span>{{/if}}</button>
+    <button type="button" class="ui-tab{{#if (eq tab 'manage')}} active{{/if}}" data-action="hubTab" data-tab="manage">{{localize "SDE.importer.manage.title"}}</button>
+    <button type="button" class="ui-tab{{#if (eq tab 'tools')}} active{{/if}}" data-action="hubTab" data-tab="tools">{{localize "SDE.importer.btn.tools"}}</button>
+  </nav>
+
+{{!-- ═════════════════ PASTE ═════════════════ --}}
+{{#if (or (not tab) (eq tab "paste"))}}
+  <div class="ui-body">
+    {{#if importData.seed}}
+    <section class="ui-card sel">
+      <div class="ui-card-head">
+        <h3 class="ui-card-name"><i class="fas fa-bullseye"></i> {{localize "SDE.importer.seed.pastingFor"}} {{importData.seed.name}}</h3>
+        <div class="ui-card-actions">
+          {{#if importData.seedPdfHref}}
+          <button type="button" class="ui-btn" data-action="openSourcePdf" data-href="{{importData.seedPdfHref}}" title="{{localize 'SDE.importer.seed.openPdfTip'}}"><i class="fas fa-file-pdf"></i> {{localize "SDE.importer.seed.openPdf"}}{{#if importData.seed.page}}{{localize "SDE.importer.seed.atPage" page=importData.seed.page}}{{/if}}</button>
+          <button type="button" class="ui-btn" data-action="hubGrabPdfText" title="{{localize 'SDE.importer.seed.grabTextTip'}}"><i class="fas fa-wand-magic-sparkles"></i> {{localize "SDE.importer.seed.grabText"}}{{#if importData.seed.page}}{{localize "SDE.importer.seed.atPage" page=importData.seed.page}}{{/if}}</button>
+          {{else}}
+          <button type="button" class="ui-btn" data-action="hubExtractPdf" title="{{localize 'SDE.importer.seed.grabFromPdfTip'}}"><i class="fas fa-wand-magic-sparkles"></i> {{localize "SDE.importer.seed.grabFromPdf"}}</button>
+          {{/if}}
+        </div>
+      </div>
+      <div class="ui-inline">
+        {{#if importData.seed.book}}<span class="ui-chip"><i class="fas fa-book"></i> {{importData.seed.book}}{{#if importData.seed.page}}{{localize "SDE.importer.seed.page" page=importData.seed.page}}{{/if}}</span>{{/if}}
+        {{#if importData.seed.die}}<span class="ui-chip">{{importData.seed.die}}</span>{{/if}}
+        {{#if importData.seedResult}}
+          {{#if importData.seedResult.ok}}
+          <span class="ui-chip ok"><i class="fas fa-circle-check"></i> {{localize "SDE.importer.seed.parsedOk" name=importData.seedResult.name rows=importData.seedResult.rows formula=importData.seedResult.formula}}</span>
+          {{else}}
+          <span class="ui-chip bad"><i class="fas fa-triangle-exclamation"></i> {{localize "SDE.importer.seed.parsedBad" rows=importData.seedResult.rows formula=importData.seedResult.formula name=importData.seedResult.name}}
+            {{#if importData.seedResult.problem}}{{localize "SDE.importer.seed.parsedProblem" problem=importData.seedResult.problem}}{{else}}{{localize "SDE.importer.seed.parsedExpected" expected=importData.seedResult.expected}}{{/if}}</span>
+          {{/if}}
+        {{else}}
+        <span class="ui-muted">{{localize "SDE.importer.seed.thenParse"}}</span>
+        {{/if}}
+      </div>
+    </section>
+    {{/if}}
+
+    <section class="ui-card">
+      <div class="imp-fields wide">
+        <label class="ui-field" for="sde-hub-import-type"><span class="ui-label">{{localize "SDE.importer.type.importing"}}</span>
+          <select id="sde-hub-import-type" data-import-type aria-label="{{localize 'SDE.importer.type.aria'}}">
+            {{#each importData.typeGroups as |g|}}<optgroup label="{{g.group}}">{{#each g.options as |o|}}<option value="{{o.value}}" {{#if o.selected}}selected{{/if}}>{{o.label}}</option>{{/each}}</optgroup>{{/each}}
+          </select></label>
+        {{#if importData.showItemSubtype}}
+        <label class="ui-field" for="sde-hub-import-subtype"><span class="ui-label">{{localize "SDE.importer.type.itemType"}}</span>
+          <select id="sde-hub-import-subtype" data-import-subtype aria-label="{{localize 'SDE.importer.type.itemTypeAria'}}">
+            {{#each importData.itemSubtypeOptions as |o|}}<option value="{{o.value}}" {{#if o.selected}}selected{{/if}}>{{o.label}}</option>{{/each}}
+          </select></label>
+        {{/if}}
+        {{#if importData.showGenSpec}}
+        <label class="ui-field" for="sde-hub-import-genspec" data-tooltip="{{localize 'SDE.importer.type.diceTip'}}" data-tooltip-direction="UP"><span class="ui-label">{{localize "SDE.importer.type.dice"}}</span>
+          <input id="sde-hub-import-genspec" type="text" data-gen-spec value="{{importData.genSpec}}" placeholder="{{localize 'SDE.importer.type.dicePlaceholder'}}" aria-label="{{localize 'SDE.importer.type.diceAria'}}"></label>
+        {{/if}}
+        <label class="ui-field" for="sde-hub-import-source"><span class="ui-label">{{localize "SDE.importer.source.label"}}</span>
+          <select id="sde-hub-import-source" data-import-source aria-label="{{localize 'SDE.importer.source.aria'}}">
+            {{#each importData.sourceOptions as |o|}}<option value="{{o.value}}" {{#if o.selected}}selected{{/if}}>{{o.label}}</option>{{/each}}
+          </select></label>
+      </div>
+    </section>
+
+    <label class="ui-field imp-grow" for="sde-hub-import-text"><span class="ui-label">{{localize "SDE.importer.paste.label"}}</span>
+      <textarea id="sde-hub-import-text" data-import-text rows="10" class="imp-paste" placeholder="{{importData.formatExample}}">{{importData.text}}</textarea></label>
+
+    <div class="ui-note info"><i class="fas fa-circle-info"></i> {{{localize "SDE.importer.note.offline"}}}</div>
+  </div>
+  <footer class="ui-footer">
+    <button type="button" class="ui-btn ghost" data-action="hubClear"><i class="fas fa-eraser"></i> {{localize "SDE.importer.btn.clear"}}</button>
+    <div class="ui-right"><button type="button" class="ui-btn primary sde-import-primary" data-action="hubParse"><i class="fas fa-wand-magic"></i> {{localize "SDE.importer.btn.parse"}}</button></div>
+  </footer>
+{{/if}}
+
+{{!-- ═════════════════ PREVIEW ═════════════════ --}}
+{{#if (eq tab "preview")}}
+  <div class="ui-body">
+    {{#unless (or importData.hasMonsters importData.hasItems importData.hasSpells importData.hasTables importData.hasGenerators importData.hasBoats importData.hasHexes importData.hexCrawlDone importData.hasChar importData.hasDowntime importData.skippedCount)}}
+    <div class="ui-empty"><i class="fa-solid fa-wand-magic"></i><span>{{localize "SDE.importer.ui.emptyPreview"}}</span></div>
+    {{/unless}}
+
+    {{!-- Downtime --}}
+    {{#if importData.hasDowntime}}
+    <section class="ui-group">
+      <h3 class="ui-h"><span><i class="fas fa-mug-hot"></i> {{localize "SDE.importer.downtime.title"}}</span>
+        {{#if importData.downtime.result.canCommit}}<button type="button" class="ui-btn{{#unless (or importData.showImportAll)}} primary sde-import-primary{{/unless}}" data-action="hubCommitDowntime"><i class="fas fa-unlock"></i> {{localize "SDE.importer.downtime.unlock"}}</button>{{/if}}</h3>
+      <div class="ui-note info">{{localize "SDE.importer.downtime.pasteFrom" book=importData.downtime.label}}{{#if importData.downtime.pages}}{{localize "SDE.importer.downtime.pages" pages=importData.downtime.pages}}{{/if}}{{localize "SDE.importer.downtime.thenParse"}}</div>
+      {{#if importData.downtime.result}}
+      <div class="ui-card">
+        <div class="ui-inline"><span class="ui-chip {{#if importData.downtime.result.complete}}ok{{else}}warn{{/if}}"><i class="fas {{#if importData.downtime.result.complete}}fa-circle-check{{else}}fa-triangle-exclamation{{/if}}"></i> {{localize "SDE.importer.downtime.matched" filled=importData.downtime.result.filledCount expected=importData.downtime.expected}}</span></div>
+        {{#if importData.downtime.result.warnings.length}}
+        <ul class="imp-warnlist">{{#each importData.downtime.result.warnings as |w|}}<li{{#unless w.info}} class="imp-warnic"{{/unless}}>{{w.text}}</li>{{/each}}</ul>
+        {{/if}}
+        {{#if importData.downtime.result.unfilled.length}}
+        <span class="ui-label">{{localize "SDE.importer.downtime.unfilled"}}</span>
+        <div class="ui-inline">{{#each importData.downtime.result.unfilled as |u|}}<span class="ui-chip off">{{u}}</span>{{/each}}</div>
+        {{/if}}
+        {{#if importData.downtime.result.unmatched.length}}
+        <span class="ui-label">{{localize "SDE.importer.downtime.unclaimed"}}</span>
+        <ul class="imp-warnlist">{{#each importData.downtime.result.unmatched as |b|}}<li><strong>DC {{b.dc}}{{#if b.paid}} *{{/if}}</strong> {{b.text}}</li>{{/each}}</ul>
+        {{/if}}
+      </div>
+      {{/if}}
+    </section>
+    {{/if}}
+
+    {{!-- Monsters --}}
+    {{#if importData.hasMonsters}}
+    <section class="ui-group">
+      <h3 class="ui-h"><span><i class="fas fa-dragon"></i> {{localize "SDE.importer.monsters.title" n=importData.monstersCount}}</span>
+        <button type="button" class="ui-btn{{#unless (or importData.showImportAll importData.hasDowntime)}} primary sde-import-primary{{/unless}}" data-action="hubCommitMonsters"><i class="fas fa-dragon"></i> {{localize "SDE.importer.monsters.create"}}</button></h3>
+      <div class="ui-muted"><i class="fas fa-folder-tree"></i> {{localize "SDE.importer.source.filingAs"}} <strong>{{#if importData.source}}{{importData.source}}{{else}}{{localize "SDE.importer.source.none"}}{{/if}}</strong></div>
+      {{#each importData.monsters as |m|}}
+      <details class="ui-details" data-monster-idx="{{m.idx}}"{{#if m.hasWarnings}} open{{/if}}>
+        <summary><span class="imp-sumname">{{m.draft.name}}</span>
+          <span class="ui-chip">{{localize "SDE.importer.monsters.lv"}} {{m.draft.level}}</span><span class="ui-chip">{{localize "SDE.importer.monsters.ac"}} {{m.draft.ac}}</span><span class="ui-chip">{{localize "SDE.importer.monsters.hp"}} {{m.draft.hp.value}}</span>
+          {{#if m.hasWarnings}}<span class="ui-chip warn" title="{{localize 'SDE.importer.monsters.flaggedTip' n=m.warnCount}}"><i class="fas fa-triangle-exclamation"></i> {{m.warnCount}}</span>{{/if}}</summary>
+        <div class="ui-details-body">
+        <div class="ui-card-head">
+          <input type="text" data-mimport-field="name" value="{{m.draft.name}}" class="imp-name" aria-label="{{localize 'SDE.importer.monsters.nameAria'}}" placeholder="{{localize 'SDE.importer.monsters.nameAria'}}">
+          <div class="ui-card-actions"><button type="button" class="ui-icon danger" data-action="mimportRemoveMonster" aria-label="{{localize 'SDE.importer.monsters.removeAria'}}" title="{{localize 'SDE.importer.monsters.removeTip'}}"><i class="fas fa-xmark"></i></button></div>
+        </div>
+        {{#if m.hasWarnings}}<div class="ui-note warn"><ul class="imp-warnlist">{{#each m.warnings as |w|}}<li>{{w}}</li>{{/each}}</ul></div>{{/if}}
+        <div class="imp-fields">
+          <label class="ui-field"><span class="ui-label">{{localize "SDE.importer.monsters.lv"}}</span><input type="number" data-mimport-field="level" value="{{m.draft.level}}"{{#if m.warn.level}} class="imp-warn"{{/if}}></label>
+          <label class="ui-field"><span class="ui-label">{{localize "SDE.importer.monsters.ac"}}</span><input type="number" data-mimport-field="ac" value="{{m.draft.ac}}"{{#if m.warn.ac}} class="imp-warn"{{/if}}></label>
+          <label class="ui-field"><span class="ui-label">{{localize "SDE.importer.monsters.hp"}}</span><input type="number" data-mimport-field="hpValue" value="{{m.draft.hp.value}}"{{#if m.warn.hp}} class="imp-warn"{{/if}}></label>
+          <label class="ui-field"><span class="ui-label">{{localize "SDE.importer.monsters.hpMaxAria"}}</span><input type="number" data-mimport-field="hpMax" value="{{m.draft.hp.max}}" aria-label="{{localize 'SDE.importer.monsters.hpMaxAria'}}"{{#if m.warn.hp}} class="imp-warn"{{/if}}></label>
+          <label class="ui-field"><span class="ui-label">{{localize "SDE.importer.monsters.al"}}</span><select data-mimport-field="alignment"{{#if m.warn.alignment}} class="imp-warn"{{/if}}>{{#each @root.importData.alignments as |a|}}<option value="{{a}}" {{#if (eq a m.draft.alignment)}}selected{{/if}}>{{a}}</option>{{/each}}</select></label>
+          <label class="ui-field"><span class="ui-label">{{localize "SDE.importer.monsters.mv"}}</span><select data-mimport-field="move"{{#if m.warn.move}} class="imp-warn"{{/if}}>{{#each @root.importData.moveOptions as |mv|}}<option value="{{mv}}" {{#if (eq mv m.draft.move)}}selected{{/if}}>{{mv}}</option>{{/each}}</select></label>
+          <label class="ui-field span2"><span class="ui-label">{{localize "SDE.importer.monsters.moveNoteAria"}}</span><input type="text" data-mimport-field="moveNote" value="{{m.draft.moveNote}}" placeholder="{{localize 'SDE.importer.monsters.moveNote'}}" aria-label="{{localize 'SDE.importer.monsters.moveNoteAria'}}"></label>
+        </div>
+        <div class="imp-fields abil{{#if m.warn.abilities}} imp-warnrow{{/if}}">
+          {{#each @root.importData.abilityKeys as |ab|}}<label class="ui-field"><span class="ui-label">{{ab.label}}</span><input type="number" data-mimport-field="{{ab.key}}" value="{{lookup m.draft.abilities ab.key}}"></label>{{/each}}
+        </div>
+        <div class="imp-fields{{#if m.warn.spellcasting}} imp-warnrow{{/if}}">
+          <label class="ui-field"><span class="ui-label">{{localize "SDE.importer.monsters.spellcasting"}}</span><select data-mimport-field="scAbility">{{#each @root.importData.spellAbilities as |sa|}}<option value="{{sa.value}}" {{#if (eq sa.value m.draft.spellcasting.ability)}}selected{{/if}}>{{sa.label}}</option>{{/each}}</select></label>
+          <label class="ui-field"><span class="ui-label">{{localize "SDE.importer.monsters.bonus"}}</span><input type="number" data-mimport-field="scBonus" value="{{m.draft.spellcasting.bonus}}"></label>
+          <label class="ui-field"><span class="ui-label">{{localize "SDE.importer.monsters.spellsPerRound"}}</span><input type="number" data-mimport-field="scAttacks" value="{{m.draft.spellcasting.attacks}}"></label>
+        </div>
+        <div class="imp-rows{{#if m.warn.attacks}} imp-warnrow{{/if}}">
+          <div class="imp-sechead"><span class="ui-label">{{localize "SDE.importer.monsters.attacks"}}</span>
+            <button type="button" class="ui-icon" data-action="mimportAddAttack" title="{{localize 'SDE.importer.monsters.addAttack'}}" aria-label="{{localize 'SDE.importer.monsters.addAttack'}}"><i class="fas fa-plus"></i></button>
+            <button type="button" class="ui-icon" data-action="mimportAddSpecial" title="{{localize 'SDE.importer.monsters.addSpecial'}}" aria-label="{{localize 'SDE.importer.monsters.addSpecial'}}"><i class="fas fa-bolt"></i></button></div>
+          {{#if m.draft.actions.length}}
+          <div class="imp-attack head"><span class="ui-label">{{localize "SDE.importer.monsters.attackCountTip"}}</span><span class="ui-label">{{localize "SDE.importer.common.nameCap"}}</span><span class="ui-label">{{localize "SDE.importer.monsters.attackTypeAria"}}</span><span class="ui-label">{{localize "SDE.importer.monsters.toHitTip"}}</span><span class="ui-label">{{localize "SDE.importer.monsters.damageAria"}}</span><span class="ui-label">{{localize "SDE.importer.monsters.rangesAria"}}</span><span class="ui-label">{{localize "SDE.importer.monsters.riderAria"}}</span><span></span></div>
+          {{/if}}
+          {{#each m.actions as |a|}}
+          <div class="imp-attack{{#if a.flagged}} imp-warnrow{{/if}}" data-attack-idx="{{@index}}">
+            <input type="number" data-mimport-field="aNum" value="{{a.num}}" aria-label="{{localize 'SDE.importer.monsters.attackCountAria'}}" title="{{localize 'SDE.importer.monsters.attackCountTip'}}">
+            <input type="text" data-mimport-field="aName" value="{{a.name}}" aria-label="{{localize 'SDE.importer.monsters.attackNameAria'}}" placeholder="{{localize 'SDE.importer.common.name'}}">
+            <select data-mimport-field="aType" aria-label="{{localize 'SDE.importer.monsters.attackTypeAria'}}">{{#each @root.importData.attackTypes as |ty|}}<option value="{{ty}}" {{#if (eq ty a.type)}}selected{{/if}}>{{ty}}</option>{{/each}}</select>
+            <input type="number" data-mimport-field="aBonus" value="{{a.bonus}}" aria-label="{{localize 'SDE.importer.monsters.toHitAria'}}" title="{{localize 'SDE.importer.monsters.toHitTip'}}">
+            <input type="text" data-mimport-field="aDamage" value="{{a.damage}}" aria-label="{{localize 'SDE.importer.monsters.damageAria'}}" placeholder="1d6">
+            <input type="text" data-mimport-field="aRanges" value="{{join a.ranges}}" aria-label="{{localize 'SDE.importer.monsters.rangesAria'}}" placeholder="{{localize 'SDE.importer.monsters.rangesPlaceholder'}}">
+            <input type="text" data-mimport-field="aDesc" value="{{a.description}}" aria-label="{{localize 'SDE.importer.monsters.riderAria'}}" placeholder="{{localize 'SDE.importer.monsters.riderPlaceholder'}}">
+            <button type="button" class="ui-icon danger" data-action="mimportRemoveAttack" aria-label="{{localize 'SDE.importer.monsters.removeAttackAria'}}"><i class="fas fa-xmark"></i></button>
+          </div>
+          {{/each}}
+        </div>
+        <div class="imp-rows">
+          <div class="imp-sechead"><span class="ui-label">{{localize "SDE.importer.monsters.features"}}</span>
+            <button type="button" class="ui-icon" data-action="mimportAddFeature" title="{{localize 'SDE.importer.monsters.addFeature'}}" aria-label="{{localize 'SDE.importer.monsters.addFeature'}}"><i class="fas fa-plus"></i></button></div>
+          {{#each m.draft.features as |f|}}
+          <div class="imp-feature" data-feature-idx="{{@index}}">
+            <input type="text" data-mimport-field="fName" value="{{f.name}}" aria-label="{{localize 'SDE.importer.monsters.featureNameAria'}}" placeholder="{{localize 'SDE.importer.common.name'}}">
+            <input type="text" data-mimport-field="fDesc" value="{{f.description}}" aria-label="{{localize 'SDE.importer.monsters.featureTextAria'}}" placeholder="{{localize 'SDE.importer.common.description'}}">
+            <button type="button" class="ui-icon danger" data-action="mimportRemoveFeature" aria-label="{{localize 'SDE.importer.monsters.removeFeatureAria'}}"><i class="fas fa-xmark"></i></button>
+          </div>
+          {{/each}}
+        </div>
+        </div>
+      </details>
+      {{/each}}
+    </section>
+    {{/if}}
+
+    {{!-- Items --}}
+    {{#if importData.hasItems}}
+    <section class="ui-group">
+      <h3 class="ui-h"><span><i class="fas fa-gem"></i> {{localize "SDE.importer.items.title" n=importData.itemsCount}}</span>
+        <button type="button" class="ui-btn{{#unless (or importData.showImportAll importData.hasDowntime importData.hasMonsters)}} primary sde-import-primary{{/unless}}" data-action="hubCommitItems"><i class="fas fa-gem"></i> {{localize "SDE.importer.items.create"}}</button></h3>
+      {{#each importData.items as |it|}}
+      <details class="ui-details" data-item-idx="{{@index}}"{{#if it.warnings.length}} open{{/if}}>
+        <summary><span class="imp-sumname">{{it.draft.name}}</span><span class="ui-chip">{{it.draft.type}}</span>{{#if it.warnings.length}}<span class="ui-chip warn"><i class="fas fa-triangle-exclamation"></i> {{it.warnings.length}}</span>{{/if}}</summary>
+        <div class="ui-details-body">
+        <div class="ui-card-head">
+          <input type="text" data-iimport-field="name" value="{{it.draft.name}}" class="imp-name" aria-label="{{localize 'SDE.importer.items.nameAria'}}" placeholder="{{localize 'SDE.importer.items.nameAria'}}">
+          <select data-iimport-field="type" class="imp-type" aria-label="{{localize 'SDE.importer.items.typeAria'}}">{{#each @root.importData.itemTypeOptions as |opt|}}<option value="{{opt}}" {{#if (eq opt it.draft.type)}}selected{{/if}}>{{opt}}</option>{{/each}}</select>
+          <div class="ui-card-actions"><button type="button" class="ui-icon danger" data-action="iimportRemoveItem" aria-label="{{localize 'SDE.importer.items.removeAria'}}" title="{{localize 'SDE.importer.monsters.removeTip'}}"><i class="fas fa-xmark"></i></button></div>
+        </div>
+        <div class="imp-fields">
+          <label class="ui-field"><span class="ui-label">{{localize "SDE.importer.items.gp"}}</span><input type="number" data-iimport-field="costGp" value="{{it.draft.cost.gp}}" aria-label="{{localize 'SDE.importer.items.costGpAria'}}"></label>
+          <label class="ui-field"><span class="ui-label">{{localize "SDE.importer.items.sp"}}</span><input type="number" data-iimport-field="costSp" value="{{it.draft.cost.sp}}" aria-label="{{localize 'SDE.importer.items.costSpAria'}}"></label>
+          <label class="ui-field"><span class="ui-label">{{localize "SDE.importer.items.cp"}}</span><input type="number" data-iimport-field="costCp" value="{{it.draft.cost.cp}}" aria-label="{{localize 'SDE.importer.items.costCpAria'}}"></label>
+          <label class="ui-field"><span class="ui-label">{{localize "SDE.importer.items.slots"}}</span><input type="number" data-iimport-field="slots" value="{{it.draft.slots.slots_used}}" aria-label="{{localize 'SDE.importer.items.slotsAria'}}"></label>
+        </div>
+        {{#if it.statLine}}<div class="ui-inline" title="{{localize 'SDE.importer.items.statLineTip'}}"><span class="ui-chip"><i class="fas fa-shield-halved"></i> {{it.statLine}}</span></div>{{/if}}
+        <textarea data-iimport-field="description" rows="2" aria-label="{{localize 'SDE.importer.items.descAria'}}" placeholder="{{localize 'SDE.importer.common.descriptionCap'}}">{{it.draft.description}}</textarea>
+        {{#if it.warnings.length}}<div class="ui-note warn"><ul class="imp-warnlist">{{#each it.warnings as |w|}}<li>{{w}}</li>{{/each}}</ul></div>{{/if}}
+        </div>
+      </details>
+      {{/each}}
+    </section>
+    {{/if}}
+
+    {{!-- Spells --}}
+    {{#if importData.hasSpells}}
+    <section class="ui-group">
+      <h3 class="ui-h"><span><i class="fas fa-wand-sparkles"></i> {{localize "SDE.importer.spells.title" n=importData.spellsCount}}</span>
+        <button type="button" class="ui-btn{{#unless (or importData.showImportAll importData.hasDowntime importData.hasMonsters importData.hasItems)}} primary sde-import-primary{{/unless}}" data-action="hubCommitSpells"><i class="fas fa-wand-sparkles"></i> {{localize "SDE.importer.spells.create"}}</button></h3>
+      {{#each importData.spells as |sp|}}
+      <details class="ui-details" data-spell-idx="{{sp.idx}}"{{#if sp.hasWarnings}} open{{/if}}>
+        <summary><span class="imp-sumname">{{sp.draft.name}}</span><span class="ui-chip">{{localize "SDE.importer.spells.tier"}} {{sp.draft.tier}}</span><span class="ui-chip">{{sp.draft.className}}</span>{{#if sp.hasWarnings}}<span class="ui-chip warn" title="{{localize 'SDE.importer.spells.flaggedTip' n=sp.warnCount}}"><i class="fas fa-triangle-exclamation"></i> {{sp.warnCount}}</span>{{/if}}</summary>
+        <div class="ui-details-body">
+        <div class="ui-card-head">
+          <input type="text" data-simport-field="name" value="{{sp.draft.name}}" class="imp-name" aria-label="{{localize 'SDE.importer.spells.nameAria'}}" placeholder="{{localize 'SDE.importer.spells.nameAria'}}">
+          <div class="ui-card-actions"><button type="button" class="ui-icon danger" data-action="simportRemoveSpell" aria-label="{{localize 'SDE.importer.spells.removeAria'}}" title="{{localize 'SDE.importer.monsters.removeTip'}}"><i class="fas fa-xmark"></i></button></div>
+        </div>
+        <div class="imp-fields">
+          <label class="ui-field"><span class="ui-label">{{localize "SDE.importer.spells.tier"}}</span><input type="number" min="1" max="5" data-simport-field="tier" value="{{sp.draft.tier}}" aria-label="{{localize 'SDE.importer.spells.tierAria'}}"></label>
+          <label class="ui-field"><span class="ui-label">{{localize "SDE.importer.spells.class"}}</span><input type="text" data-simport-field="className" value="{{sp.draft.className}}" aria-label="{{localize 'SDE.importer.spells.classAria'}}" placeholder="{{localize 'SDE.importer.spells.classPlaceholder'}}"></label>
+          <label class="ui-field"><span class="ui-label">{{localize "SDE.importer.spells.range"}}</span><select data-simport-field="range" aria-label="{{localize 'SDE.importer.spells.rangeAria'}}">{{#each @root.importData.spellRanges as |rg|}}<option value="{{rg}}" {{#if (eq rg sp.draft.range)}}selected{{/if}}>{{rg}}</option>{{/each}}</select></label>
+          <label class="ui-field"><span class="ui-label">{{localize "SDE.importer.spells.duration"}}</span><select data-simport-field="durationType" aria-label="{{localize 'SDE.importer.spells.durationTypeAria'}}">{{#each @root.importData.spellDurationTypes as |dt|}}<option value="{{dt}}" {{#if (eq dt sp.draft.duration.type)}}selected{{/if}}>{{dt}}</option>{{/each}}</select></label>
+          <label class="ui-field"><span class="ui-label">{{localize "SDE.importer.spells.durationValueTip"}}</span><input type="text" data-simport-field="durationValue" value="{{sp.draft.duration.value}}" aria-label="{{localize 'SDE.importer.spells.durationValueAria'}}"></label>
+        </div>
+        <textarea data-simport-field="description" rows="3" aria-label="{{localize 'SDE.importer.spells.descAria'}}" placeholder="{{localize 'SDE.importer.common.descriptionCap'}}">{{sp.draft.description}}</textarea>
+        {{#if sp.warnings.length}}<div class="ui-note warn"><ul class="imp-warnlist">{{#each sp.warnings as |w|}}<li>{{w}}</li>{{/each}}</ul></div>{{/if}}
+        </div>
+      </details>
+      {{/each}}
+    </section>
+    {{/if}}
+
+    {{!-- Character content --}}
+    {{#if importData.hasChar}}
+    <section class="ui-group">
+      <h3 class="ui-h"><span><i class="fas fa-user-plus"></i> {{importData.charsTitle}} ({{importData.charsCount}})</span>
+        <button type="button" class="ui-btn{{#unless (or importData.showImportAll importData.hasDowntime importData.hasMonsters importData.hasItems importData.hasSpells)}} primary sde-import-primary{{/unless}}" data-action="hubCommitChar"><i class="fas fa-file-import"></i> {{importData.charsCommitLabel}}</button></h3>
+      {{#each importData.chars as |c|}}
+      <div class="ui-card">
+        <div class="ui-card-head"><h3 class="ui-card-name">{{c.name}}</h3><span class="ui-tag">{{c.type}}</span></div>
+        {{#if c.unit}}
+        <div class="ui-stack" data-char-idx="{{@index}}">
+          <div class="imp-fields wide">
+            <label class="ui-field"><span class="ui-label">{{localize "SDE.importer.cls.hpDie"}}</span><input type="text" data-cu-field="hp" value="{{c.unit.hp}}" aria-label="{{localize 'SDE.importer.cls.hpDieAria'}}"></label>
+            <label class="ui-field"><span class="ui-label">{{localize "SDE.importer.cls.scAbility"}}</span><select data-cu-field="scAbility" aria-label="{{localize 'SDE.importer.cls.scAbilityAria'}}">{{#each c.unit.scOptions as |o|}}<option value="{{o.value}}"{{#if o.selected}} selected{{/if}}>{{o.label}}</option>{{/each}}</select></label>
+            {{#if c.unit.isCaster}}<label class="ui-field" title="{{localize 'SDE.importer.cls.spellListTip'}}"><span class="ui-label">{{localize "SDE.importer.cls.spellList"}}</span><select data-cu-field="spellList" aria-label="{{localize 'SDE.importer.cls.spellListAria'}}">{{#each c.unit.spellListOptions as |o|}}<option value="{{o.value}}"{{#if o.selected}} selected{{/if}}>{{o.label}}</option>{{/each}}</select></label>{{/if}}
+          </div>
+          <label class="ui-field"><span class="ui-label">{{localize "SDE.importer.common.descriptionCap"}}</span><textarea data-cu-field="flavor" rows="2" aria-label="{{localize 'SDE.importer.cls.flavorAria'}}">{{c.unit.flavor}}</textarea></label>
+          <details class="ui-details" open><summary>{{localize "SDE.importer.cls.equipment"}}</summary><div class="ui-details-body">
+            <div class="imp-fields wide">
+              <label class="ui-field"><span class="ui-label">{{localize "SDE.importer.cls.weapons"}}</span><input type="text" data-cu-field="weapons" value="{{c.unit.weaponsText}}" placeholder="{{localize 'SDE.importer.common.typeHere'}}"></label>
+              <label class="ui-field"><span class="ui-label">{{localize "SDE.importer.cls.armor"}}</span><input type="text" data-cu-field="armor" value="{{c.unit.armorText}}" placeholder="{{localize 'SDE.importer.common.typeHere'}}"></label>
+            </div>
+            <div class="ui-inline">
+              <label class="ui-check"><input type="checkbox" data-cu-field="allWeapons" {{#if c.unit.allWeapons}}checked{{/if}}> {{localize "SDE.importer.cls.allWeapons"}}</label>
+              <label class="ui-check"><input type="checkbox" data-cu-field="allMeleeWeapons" {{#if c.unit.allMeleeWeapons}}checked{{/if}}> {{localize "SDE.importer.cls.allMelee"}}</label>
+              <label class="ui-check"><input type="checkbox" data-cu-field="allRangedWeapons" {{#if c.unit.allRangedWeapons}}checked{{/if}}> {{localize "SDE.importer.cls.allRanged"}}</label>
+              <label class="ui-check"><input type="checkbox" data-cu-field="allArmor" {{#if c.unit.allArmor}}checked{{/if}}> {{localize "SDE.importer.cls.allArmor"}}</label>
+            </div></div></details>
+          <details class="ui-details"><summary>{{localize "SDE.importer.cls.languages"}}</summary><div class="ui-details-body">
+            <div class="imp-fields wide">
+              <label class="ui-field"><span class="ui-label">{{localize "SDE.importer.cls.fixed"}}</span><input type="text" data-cu-field="langFixed" value="{{c.unit.langFixed}}" placeholder="{{localize 'SDE.importer.common.typeHere'}}"></label>
+              <label class="ui-field"><span class="ui-label">{{localize "SDE.importer.cls.addCommon"}}</span><input type="number" min="0" data-cu-field="langCommon" value="{{c.unit.langCommon}}"></label>
+              <label class="ui-field"><span class="ui-label">{{localize "SDE.importer.cls.addRare"}}</span><input type="number" min="0" data-cu-field="langRare" value="{{c.unit.langRare}}"></label>
+            </div></div></details>
+          <details class="ui-details" open><summary>{{localize "SDE.importer.cls.features" n=c.unit.features.length}}</summary><div class="ui-details-body">
+            {{#each c.unit.features as |f|}}
+            <div class="imp-feature" data-cu-feat="{{@index}}">
+              <input type="text" data-cu-field="featName" value="{{f.name}}" aria-label="{{localize 'SDE.importer.monsters.featureNameAria'}}">
+              <input type="text" data-cu-field="featText" value="{{f.text}}" aria-label="{{localize 'SDE.importer.cls.featTextAria'}}">
+              <button type="button" class="ui-icon danger" data-action="cuFeatDel" title="{{localize 'SDE.importer.cls.featDelTip'}}"><i class="fas fa-trash"></i></button>
+            </div>
+            {{/each}}
+            <div><button type="button" class="ui-btn" data-action="cuFeatAdd" title="{{localize 'SDE.importer.cls.featAddTip'}}"><i class="fas fa-plus"></i> {{localize "SDE.importer.cls.feature"}}</button></div>
+          </div></details>
+          {{#if c.unit.stage1}}<div class="ui-note info"><i class="fas fa-circle-info"></i> {{{localize "SDE.importer.cls.stage1"}}}</div>{{/if}}
+          {{#unless c.unit.stage1}}
+          <details class="ui-details" open><summary>{{localize "SDE.importer.cls.talentTable"}}{{#if c.unit.table}} ({{c.unit.table.formula}}){{else}}{{localize "SDE.importer.cls.noneFound"}}{{/if}}</summary><div class="ui-details-body">
+            {{#unless c.unit.table}}<div class="ui-note">{{localize "SDE.importer.cls.noTable"}}</div>{{/unless}}
+            {{#if c.unit.table}}
+            <table class="ui-table imp-resp talent">
+              {{#each c.unit.table.rows as |r|}}
+              <tr data-cu-row="{{@index}}">
+                <td class="w72"><input type="text" data-cu-field="range" value="{{r.range}}" aria-label="{{localize 'SDE.importer.cls.rangeAria'}}" title="{{localize 'SDE.importer.cls.rangeTip'}}"></td>
+                <td><input type="text" data-cu-field="text" value="{{r.text}}" aria-label="{{localize 'SDE.importer.cls.effectAria'}}">
+                  {{#if r.isChoice}}
+                  <div class="ui-inline imp-optrow">
+                    {{#each r.options as |o|}}<span class="imp-opt" data-cu-opt="{{@index}}"><input type="text" data-cu-field="option" value="{{o}}" aria-label="{{localize 'SDE.importer.cls.optionAria'}}"><button type="button" class="ui-icon danger" data-action="cuOptDel" title="{{localize 'SDE.importer.cls.optDelTip'}}"><i class="fas fa-xmark"></i></button></span>{{/each}}
+                    <button type="button" class="ui-btn" data-action="cuOptAdd" title="{{localize 'SDE.importer.cls.optAddTip'}}"><i class="fas fa-plus"></i> {{localize "SDE.importer.cls.option"}}</button>
+                    <button type="button" class="ui-btn ghost" data-action="cuRowMerge" title="{{localize 'SDE.importer.cls.mergeTip'}}">{{localize "SDE.importer.cls.merge"}}</button>
+                  </div>
+                  {{else if r.grand}}<div class="ui-inline imp-optrow"><span class="ui-chip gold">{{localize "SDE.importer.cls.grand"}}</span></div>
+                  {{else}}<div class="ui-inline imp-optrow"><button type="button" class="ui-btn ghost" data-action="cuRowSplit" title="{{localize 'SDE.importer.cls.splitTip'}}">{{localize "SDE.importer.cls.split"}}</button></div>{{/if}}
+                </td>
+                <td class="w32"><button type="button" class="ui-icon danger" data-action="cuRowDel" title="{{localize 'SDE.importer.cls.rowDelTip'}}"><i class="fas fa-trash"></i></button></td>
+              </tr>
+              {{/each}}
+            </table>
+            {{/if}}
+            <div class="ui-inline"><button type="button" class="ui-btn" data-action="cuRowAdd" title="{{localize 'SDE.importer.cls.rowAddTip'}}"><i class="fas fa-plus"></i> {{localize "SDE.importer.cls.row"}}</button>
+              {{#if c.unit.table}}<label class="ui-check">{{localize "SDE.importer.cls.formula"}} <input type="text" class="ui-num-in" data-cu-field="tblFormula" value="{{c.unit.table.formula}}"></label>{{/if}}</div>
+          </div></details>
+          {{/unless}}
+          {{#if c.unit.isCaster}}
+          <details class="ui-details"><summary>{{localize "SDE.importer.monsters.spellcasting"}}</summary><div class="ui-details-body">
+            <textarea data-cu-field="scText" rows="2" aria-label="{{localize 'SDE.importer.cls.scTextAria'}}">{{c.unit.scText}}</textarea>
+            {{#unless c.unit.stage1}}{{#if c.unit.spellsKnown.length}}<div class="ui-inline" title="{{localize 'SDE.importer.cls.spellsKnownTip'}}">{{#each c.unit.spellsKnown as |r|}}<span class="ui-chip">{{localize "SDE.importer.cls.spellsKnownRow" level=r.level cells=r.cells}}</span>{{/each}}</div>{{/if}}{{/unless}}
+          </div></details>
+          {{/if}}
+          {{#unless c.unit.stage1}}
+          <details class="ui-details"><summary>{{localize "SDE.importer.cls.titles" n=c.unit.titles.length}}</summary><div class="ui-details-body">
+            <table class="ui-table imp-resp titles sde-cu-titles">
+              {{#if c.unit.titles.length}}<thead><tr><th>{{localize "SDE.importer.cls.levels"}}</th><th>{{localize "SDE.importer.cls.lawful"}}</th><th>{{localize "SDE.importer.cls.chaotic"}}</th><th>{{localize "SDE.importer.cls.neutral"}}</th><th></th></tr></thead>{{/if}}
+              <tbody>{{#each c.unit.titles as |t|}}
+              <tr data-cu-title="{{@index}}">
+                <td class="w72" data-label="{{localize 'SDE.importer.cls.levels'}}"><input type="text" data-cu-field="titleRange" value="{{t.range}}" aria-label="{{localize 'SDE.importer.cls.levelRangeAria'}}"></td>
+                <td data-label="{{localize 'SDE.importer.cls.lawful'}}"><input type="text" data-cu-field="titleLawful" value="{{t.lawful}}" aria-label="{{localize 'SDE.importer.cls.lawfulAria'}}"></td>
+                <td data-label="{{localize 'SDE.importer.cls.chaotic'}}"><input type="text" data-cu-field="titleChaotic" value="{{t.chaotic}}" aria-label="{{localize 'SDE.importer.cls.chaoticAria'}}"></td>
+                <td data-label="{{localize 'SDE.importer.cls.neutral'}}"><input type="text" data-cu-field="titleNeutral" value="{{t.neutral}}" aria-label="{{localize 'SDE.importer.cls.neutralAria'}}"></td>
+                <td class="w32"><button type="button" class="ui-icon danger" data-action="cuTitleDel" title="{{localize 'SDE.importer.cls.bandDelTip'}}"><i class="fas fa-trash"></i></button></td>
+              </tr>{{/each}}</tbody>
+            </table>
+            <div><button type="button" class="ui-btn" data-action="cuTitleAdd" title="{{localize 'SDE.importer.cls.bandAddTip'}}"><i class="fas fa-plus"></i> {{localize "SDE.importer.cls.band"}}</button></div>
+          </div></details>
+          {{/unless}}
+          {{#if c.unit.warnings.length}}
+          <details class="ui-details" open><summary>{{localize "SDE.importer.cls.reviewNotes" n=c.unit.warnings.length}}</summary><div class="ui-details-body"><div class="ui-note warn"><ul class="imp-warnlist">{{#each c.unit.warnings as |w|}}<li>{{w}}</li>{{/each}}</ul></div></div></details>
+          {{/if}}
+        </div>
+        {{else if c.supplement}}
+        <div class="sde-class-supplement ui-stack" data-char-idx="{{@index}}">
+          <label class="ui-field"><span class="ui-label">{{localize "SDE.importer.sup.attachTo"}}</span><select data-supplement-attach aria-label="{{localize 'SDE.importer.sup.attachAria'}}">{{#each c.supplement.attachOptions as |o|}}<option value="{{o.value}}"{{#if o.selected}} selected{{/if}}>{{o.label}}</option>{{/each}}</select></label>
+          <div class="ui-inline">
+            {{#if c.supplement.hasTable}}<span class="ui-chip">{{localize "SDE.importer.sup.talentTable" n=c.supplement.tableRows}}</span>{{/if}}
+            {{#each c.supplement.extraTables as |t|}}<span class="ui-chip">{{localize "SDE.importer.sup.tableRows" name=t.name rows=t.rows}}</span>{{/each}}
+            {{#each c.supplement.spellsKnown as |r|}}<span class="ui-chip">{{localize "SDE.importer.cls.spellsKnownRow" level=r.level cells=r.cells}}</span>{{/each}}
+          </div>
+          <details class="ui-details" open><summary>{{localize "SDE.importer.cls.titles" n=c.supplement.titles.length}}</summary><div class="ui-details-body">
+            <div class="ui-note info">{{{localize "SDE.importer.sup.titlesHint"}}}</div>
+            <table class="ui-table imp-resp titles sde-cu-titles">
+              {{#if c.supplement.titles.length}}<thead><tr><th>{{localize "SDE.importer.cls.levels"}}</th><th>{{localize "SDE.importer.cls.lawful"}}</th><th>{{localize "SDE.importer.cls.chaotic"}}</th><th>{{localize "SDE.importer.cls.neutral"}}</th><th></th></tr></thead>{{/if}}
+              <tbody>{{#each c.supplement.titles as |t|}}
+              <tr data-cu-title="{{@index}}">
+                <td class="w72" data-label="{{localize 'SDE.importer.cls.levels'}}"><input type="text" data-cu-field="titleRange" value="{{t.range}}" aria-label="{{localize 'SDE.importer.cls.levelRangeAria'}}"></td>
+                <td data-label="{{localize 'SDE.importer.cls.lawful'}}"><input type="text" data-cu-field="titleLawful" value="{{t.lawful}}" aria-label="{{localize 'SDE.importer.cls.lawfulAria'}}"></td>
+                <td data-label="{{localize 'SDE.importer.cls.chaotic'}}"><input type="text" data-cu-field="titleChaotic" value="{{t.chaotic}}" aria-label="{{localize 'SDE.importer.cls.chaoticAria'}}"></td>
+                <td data-label="{{localize 'SDE.importer.cls.neutral'}}"><input type="text" data-cu-field="titleNeutral" value="{{t.neutral}}" aria-label="{{localize 'SDE.importer.cls.neutralAria'}}"></td>
+                <td class="w32"><button type="button" class="ui-icon danger" data-action="cuTitleDel" title="{{localize 'SDE.importer.cls.bandDelTip'}}"><i class="fas fa-trash"></i></button></td>
+              </tr>{{/each}}</tbody>
+            </table>
+            <div><button type="button" class="ui-btn" data-action="cuTitleAdd" title="{{localize 'SDE.importer.cls.bandAddTip'}}"><i class="fas fa-plus"></i> {{localize "SDE.importer.cls.band"}}</button></div>
+          </div></details>
+          {{#if c.supplement.warnings.length}}<div class="ui-note warn"><ul class="imp-warnlist">{{#each c.supplement.warnings as |w|}}<li>{{w}}</li>{{/each}}</ul></div>{{/if}}
+        </div>
+        {{else}}
+        <p class="imp-text">{{c.preview}}</p>
+        {{#if c.meta}}
+        <div class="ui-pairs">
+          <div class="ui-pair"><span class="ui-label">{{localize "SDE.importer.cls.languages"}}</span><span class="ui-value">{{c.meta.languages}}</span></div>
+          <div class="ui-pair" title="{{c.meta.talentText}}"><span class="ui-label">{{localize "SDE.importer.cls.ancestryTalent"}}</span><span class="ui-value">{{c.meta.talent}}</span></div>
+        </div>
+        {{#if c.meta.talentText}}<div class="ui-muted">{{c.meta.talentText}}</div>{{/if}}
+        {{/if}}
+        {{/if}}
+      </div>
+      {{/each}}
+    </section>
+    {{/if}}
+
+    {{!-- Boats --}}
+    {{#if importData.hasBoats}}
+    <section class="ui-group">
+      <h3 class="ui-h"><span><i class="fas fa-sailboat"></i> {{localize "SDE.importer.boats.title" n=importData.boats.length}}</span>
+        <button type="button" class="ui-btn{{#unless (or importData.showImportAll importData.hasDowntime importData.hasMonsters importData.hasItems importData.hasSpells importData.hasChar)}} primary sde-import-primary{{/unless}}" data-action="hubCommitBoats"><i class="fas fa-anchor"></i> {{localize "SDE.importer.boats.create"}}</button></h3>
+      <div class="ui-scrollx"><table class="ui-table">
+        <thead><tr><th>{{localize "SDE.importer.common.nameCap"}}</th><th class="num">{{localize "SDE.importer.boats.cost"}}</th><th>{{localize "SDE.importer.boats.speed"}}</th><th class="num">{{localize "SDE.importer.monsters.ac"}}</th><th class="num">{{localize "SDE.importer.monsters.hp"}}</th><th class="num">{{localize "SDE.importer.boats.slots"}}</th><th></th></tr></thead>
+        <tbody>{{#each importData.boats as |b|}}<tr><td>{{b.name}}</td><td class="num">{{localize "SDE.importer.boats.gp" cost=b.cost}}</td><td>{{b.speed}}</td><td class="num">{{b.ac}}</td><td class="num">{{b.hp}}</td><td class="num">{{b.gearSlots}}</td><td>{{b.props}}</td></tr>{{/each}}</tbody>
+      </table></div>
+    </section>
+    {{/if}}
+
+    {{!-- Hex crawl hand-off --}}
+    {{#if importData.hexCrawlDone}}
+    <section class="ui-group">
+      <h3 class="ui-h"><span><i class="fas fa-map-location-dot"></i> {{localize "SDE.importer.hex.filed" title=importData.hexCrawlDone.title}}</span></h3>
+      <div class="ui-note good">{{#if importData.hexPinScene}}{{{localize "SDE.importer.hex.pinNote"}}} {{else}}{{{localize "SDE.importer.hex.noSceneNote"}}} {{/if}}{{#if importData.hexViaExtras}}{{{localize "SDE.importer.hex.extrasNote"}}}{{else}}{{{localize "SDE.importer.hex.downloadNote"}}}{{/if}}</div>
+      <div class="ui-inline">
+        {{#if importData.hexPinScene}}<button type="button" class="ui-btn" data-action="hubPinHexes" data-uuid="{{importData.hexCrawlDone.uuid}}" title="{{localize 'SDE.importer.hex.pinTip'}}"><i class="fas fa-map-pin"></i> {{localize "SDE.importer.hex.pinOn" scene=importData.hexPinScene}}</button>{{/if}}
+        <button type="button" class="ui-btn" data-action="hubHexDataset" data-uuid="{{importData.hexCrawlDone.uuid}}">{{#if importData.hexViaExtras}}<i class="fas fa-paper-plane"></i> {{localize "SDE.importer.hex.sendExtras"}}{{else}}<i class="fas fa-download"></i> {{localize "SDE.importer.hex.download"}}{{/if}}</button>
+      </div>
+    </section>
+    {{/if}}
+
+    {{!-- Hex key --}}
+    {{#if importData.hasHexes}}
+    <section class="ui-group">
+      <h3 class="ui-h"><span><i class="fas fa-map-location-dot"></i> {{localize "SDE.importer.hex.title" n=importData.hexCount}}</span>
+        <button type="button" class="ui-btn{{#unless (or importData.showImportAll importData.hasDowntime importData.hasMonsters importData.hasItems importData.hasSpells importData.hasChar importData.hasBoats)}} primary sde-import-primary{{/unless}}" data-action="hubCommitHexes"><i class="fas fa-book-open"></i> {{localize "SDE.importer.hex.create"}}</button></h3>
+      <label class="ui-field" for="sde-hub-hex-title"><span class="ui-label">{{localize "SDE.importer.hex.crawl"}}</span>
+        <input type="text" id="sde-hub-hex-title" data-hex-title value="{{importData.hexTitle}}" placeholder="{{localize 'SDE.importer.hex.titlePlaceholder'}}" aria-label="{{localize 'SDE.importer.hex.titleAria'}}"></label>
+      <div class="ui-note">{{localize "SDE.importer.hex.filedUnder"}} <strong>{{#if importData.source}}{{importData.source}}{{else}}{{localize "SDE.importer.hex.custom"}}{{/if}}</strong> {{localize "SDE.importer.hex.filedRest"}}
+        {{#if importData.hexSummaryCount}}<br><i class="fas fa-table-list"></i> {{localize "SDE.importer.hex.summaryRows" n=importData.hexSummaryCount}}{{/if}}</div>
+      {{#if importData.hexes.length}}
+      <div class="imp-scroll"><table class="ui-table">
+        <thead><tr><th>{{localize "SDE.importer.hex.hex"}}</th><th>{{localize "SDE.importer.common.nameCap"}}</th><th class="num">{{localize "SDE.importer.hex.lines"}}</th><th></th></tr></thead>
+        <tbody>{{#each importData.hexes as |h|}}<tr><td>{{h.num}}</td><td>{{h.name}}</td><td class="num">{{h.lines}}</td><td>{{#each h.warnings as |w|}}<span class="ui-chip warn">{{w}}</span>{{/each}}</td></tr>{{/each}}</tbody>
+      </table></div>
+      {{/if}}
+    </section>
+    {{/if}}
+
+    {{!-- Tables --}}
+    {{#if importData.hasTables}}
+    <section class="ui-group">
+      <h3 class="ui-h"><span><i class="fas fa-table-list"></i> {{localize "SDE.importer.tables.title" n=importData.tablesCount}}</span>
+        <button type="button" class="ui-btn{{#unless (or importData.showImportAll importData.hasDowntime importData.hasMonsters importData.hasItems importData.hasSpells importData.hasChar importData.hasBoats importData.hasHexes)}} primary sde-import-primary{{/unless}}" data-action="hubCommitTables"><i class="fas fa-table-list"></i> {{localize "SDE.importer.tables.create"}}</button></h3>
+      {{#each importData.tables as |tbl|}}
+      <div class="ui-card sde-import-table" data-table-idx="{{@index}}">
+        <div class="imp-tablehead">
+          <input type="text" data-import-field="name" value="{{tbl.name}}" aria-label="{{localize 'SDE.importer.tables.nameAria'}}" placeholder="{{localize 'SDE.importer.tables.nameAria'}}">
+          <input type="text" data-import-field="formula" value="{{tbl.formula}}" aria-label="{{localize 'SDE.importer.tables.formulaAria'}}">
+          <select data-import-field="category" aria-label="{{localize 'SDE.importer.tableHub.tableTypeAria'}}" data-tooltip="{{localize 'SDE.importer.tableHub.folderTip'}}" data-tooltip-direction="UP">{{#each @root.importData.categoryOptions as |opt|}}<option value="{{opt.id}}" {{#if (eq opt.id tbl.category)}}selected{{/if}}>{{opt.label}}</option>{{/each}}</select>
+          {{#if (eq tbl.category "custom")}}<input type="text" data-import-field="customLabel" value="{{tbl.customLabel}}" aria-label="{{localize 'SDE.importer.tables.customAria'}}" placeholder="{{localize 'SDE.importer.tables.customPlaceholder'}}">{{/if}}
+          <label class="ui-check" data-tooltip="{{localize 'SDE.importer.tableHub.replacementTip'}}" data-tooltip-direction="UP"><input type="checkbox" data-import-field="replacement" {{#if tbl.replacement}}checked{{/if}}> {{localize "SDE.importer.tables.replacement"}}</label>
+          <button type="button" class="ui-btn" data-action="importCreate"><i class="fas fa-plus"></i> {{localize "SDE.importer.btn.create"}}</button>
+        </div>
+        {{#if tbl.bestEffort}}<div class="ui-note warn"><i class="fas fa-triangle-exclamation"></i> {{localize "SDE.importer.tables.bestEffort"}}</div>{{/if}}
+        {{#if tbl.warnings.length}}<div class="ui-note warn"><ul class="imp-warnlist">{{#each tbl.warnings as |w|}}<li>{{w}}</li>{{/each}}</ul></div>{{/if}}
+        <div class="imp-rows imp-scroll">
+          {{#each tbl.rows as |row|}}
+          <div class="imp-trow" data-row-idx="{{@index}}">
+            <input type="number" data-import-field="min" value="{{row.min}}" aria-label="{{localize 'SDE.importer.tables.minAria'}}">
+            <span class="ui-muted">&ndash;</span>
+            <input type="number" data-import-field="max" value="{{row.max}}" aria-label="{{localize 'SDE.importer.tables.maxAria'}}">
+            <input type="text" data-import-field="text" value="{{row.text}}" aria-label="{{localize 'SDE.importer.tables.resultAria'}}">
+            {{#if row.link}}<span class="ui-chip gold" data-tooltip="{{localize 'SDE.importer.tables.linkTip'}}"><i class="fas fa-link"></i> {{row.link.name}}</span>
+            <button type="button" class="ui-icon" data-action="importUnlinkRow" aria-label="{{localize 'SDE.importer.tables.unlinkAria'}}"><i class="fas fa-link-slash"></i></button>{{else}}<span></span><span></span>{{/if}}
+            <button type="button" class="ui-icon danger" data-action="importDeleteRow" aria-label="{{localize 'SDE.importer.tables.delRowAria'}}"><i class="fas fa-xmark"></i></button>
+          </div>
+          {{/each}}
+        </div>
+        <div><button type="button" class="ui-btn" data-action="importAddRow"><i class="fas fa-plus"></i> {{localize "SDE.importer.tables.addRow"}}</button></div>
+      </div>
+      {{/each}}
+    </section>
+    {{/if}}
+
+    {{!-- Generators --}}
+    {{#if importData.hasGenerators}}
+    <section class="ui-group">
+      <h3 class="ui-h"><span><i class="fas fa-dice-d6"></i> {{#if importData.cartesianMode}}{{localize "SDE.importer.gen.cartesianTitle" n=importData.generatorsCount}}{{else}}{{localize "SDE.importer.gen.title" n=importData.generatorsCount}}{{/if}}</span>
+        <button type="button" class="ui-btn{{#unless (or importData.showImportAll importData.hasDowntime importData.hasMonsters importData.hasItems importData.hasSpells importData.hasChar importData.hasBoats importData.hasHexes importData.hasTables)}} primary sde-import-primary{{/unless}}" data-action="hubCommitGenerators"><i class="fas fa-dice-d6"></i> {{#if importData.cartesianMode}}{{localize "SDE.importer.tables.create"}}{{else}}{{localize "SDE.importer.gen.create"}}{{/if}}</button></h3>
+      <div class="ui-note info">{{#if importData.cartesianMode}}{{{localize "SDE.importer.gen.cartesianNote" total=importData.cartesianTotal}}}{{else}}{{{localize "SDE.importer.gen.note"}}}{{/if}}</div>
+      {{#each importData.generators as |gen|}}
+      <div class="ui-card sde-import-gen" data-gen-idx="{{gen.idx}}">
+        <div class="imp-tablehead">
+          <input type="text" data-gen-field="name" value="{{gen.name}}" aria-label="{{localize 'SDE.importer.gen.nameAria'}}" placeholder="{{localize 'SDE.importer.gen.nameAria'}}">
+          <input type="text" data-gen-field="formula" value="{{gen.formula}}" aria-label="{{localize 'SDE.importer.tables.formulaAria'}}" data-tooltip="{{localize 'SDE.importer.gen.dieTip'}}" data-tooltip-direction="UP">
+          <label class="ui-check" data-tooltip="{{localize 'SDE.importer.gen.joinTip'}}" data-tooltip-direction="UP">{{localize "SDE.importer.gen.join"}} <input type="text" class="ui-num-in" data-gen-field="separator" value="{{gen.separator}}" aria-label="{{localize 'SDE.importer.gen.separatorAria'}}"></label>
+          <button type="button" class="ui-btn" data-action="hubCommitGenerators"><i class="fas fa-plus"></i> {{localize "SDE.importer.btn.create"}}</button>
+        </div>
+        {{#if gen.isCartesian}}<div class="ui-note info"><i class="fas fa-table-cells"></i> {{{localize "SDE.importer.gen.expands" rows=gen.expandRowsLabel math=gen.expandMath formula=gen.expandFormula}}}</div>{{/if}}
+        {{#if gen.hasWarnings}}<div class="ui-note warn"><ul class="imp-warnlist">{{#each gen.warnings as |w|}}<li>{{w}}</li>{{/each}}</ul></div>{{/if}}
+        <div class="imp-scroll"><table class="ui-table">
+          <thead><tr><th class="w44">{{localize "SDE.importer.gen.dieHead"}}</th>
+            {{#each gen.columns as |col|}}<th data-col-idx="{{col.idx}}"><div class="imp-colhead"><input type="text" data-gen-field="label" data-col-idx="{{col.idx}}" value="{{col.label}}" aria-label="{{localize 'SDE.importer.gen.colLabelAria'}}" placeholder="{{localize 'SDE.importer.gen.colPlaceholder' n=col.idx}}"><button type="button" class="ui-icon danger" data-action="genRemoveColumn" aria-label="{{localize 'SDE.importer.gen.removeColAria'}}" title="{{localize 'SDE.importer.gen.removeColTip'}}"><i class="fas fa-xmark"></i></button></div></th>{{/each}}
+            <th class="w32"><button type="button" class="ui-icon" data-action="genAddColumn" aria-label="{{localize 'SDE.importer.gen.addColAria'}}" title="{{localize 'SDE.importer.gen.addColTip'}}"><i class="fas fa-plus"></i></button></th></tr></thead>
+          <tbody>{{#each gen.faces as |frow|}}
+            <tr data-face-row="{{frow.face}}"><td class="num">{{frow.face}}</td>
+              {{#each frow.cells as |cell|}}<td><input type="text" data-gen-field="cell" data-col-idx="{{cell.colIdx}}" data-face="{{frow.face}}" value="{{cell.text}}" aria-label="{{localize 'SDE.importer.gen.cellAria'}}"></td>{{/each}}
+              <td><button type="button" class="ui-icon danger" data-action="genDeleteRow" aria-label="{{localize 'SDE.importer.tables.delRowAria'}}" title="{{localize 'SDE.importer.gen.delFaceTip'}}"><i class="fas fa-xmark"></i></button></td></tr>
+          {{/each}}</tbody>
+        </table></div>
+        <div><button type="button" class="ui-btn" data-action="genAddRow"><i class="fas fa-plus"></i> {{localize "SDE.importer.gen.addFace"}}</button></div>
+      </div>
+      {{/each}}
+    </section>
+    {{/if}}
+
+    {{!-- Skipped --}}
+    {{#if importData.skippedCount}}
+    <details class="ui-details" open>
+      <summary class="imp-sumlong"><i class="fas fa-filter-circle-xmark"></i> {{localize "SDE.importer.skipped.title" n=importData.skippedCount}}</summary>
+      <div class="ui-details-body"><ul class="imp-warnlist">{{#each importData.skipped as |s|}}<li><strong>{{s.name}}</strong> {{s.reason}}</li>{{/each}}</ul></div>
+    </details>
+    {{/if}}
+  </div>
+  {{#if importData.showImportAll}}
+  <footer class="ui-footer"><div class="ui-right"><button type="button" class="ui-btn primary sde-import-primary" data-action="hubCommitAll"><i class="fas fa-file-import"></i> {{localize "SDE.importer.btn.importAll"}}</button></div></footer>
+  {{/if}}
+{{/if}}
+
+{{!-- ═════════════════ MANAGE ═════════════════ --}}
+{{#if (eq tab "manage")}}
+  {{#if manage}}
+  <div class="ui-body">
+    {{#with rulesStep}}
+    <section class="ui-card" data-rules-step>
+      <div class="ui-card-head imp-wrap">
+        <h3 class="ui-card-name"><i class="fas fa-scroll"></i> {{localize "SDE.rulesData.step.title"}}</h3>
+        <span class="ui-chip {{#if complete}}ok{{else}}warn{{/if}}">{{localize "SDE.rulesData.step.count" n=n total=total}}</span>
+        <div class="ui-card-actions">
+          <button type="button" class="ui-btn" data-action="hubRulesEdit"><i class="fas fa-pen-to-square"></i> {{localize "SDE.settings.rulesData.label"}}</button>
+          <button type="button" class="ui-btn" data-action="hubRulesImport" title="{{localize 'SDE.rulesData.importHint'}}"><i class="fas fa-file-import"></i> {{localize "SDE.rulesData.import"}}</button>
+        </div>
+      </div>
+      <div class="ui-muted">{{localize "SDE.rulesData.step.intro"}}</div>
+      <div class="ui-list">
+        {{#each rows as |r|}}
+        <div class="ui-row"><i class="fas {{#if r.filled}}fa-circle-check imp-ok{{else}}fa-circle-minus imp-warnic{{/if}}"></i>
+          <div class="ui-row-main"><span class="ui-row-name">{{r.name}}</span><span class="ui-row-sub">{{r.needs}}</span></div>
+          <span class="ui-tag">{{r.cite}}</span></div>
+        {{/each}}
+      </div>
+      {{#unless linked}}<div class="ui-note warn"><i class="fas fa-file-pdf"></i> {{localize "SDE.rulesData.step.unlinked"}}</div>{{/unless}}
+    </section>
+    {{/with}}
+
+    <section class="ui-group">
+      <div class="imp-toolbar">
+        <div class="ui-inline" role="group" aria-label="{{localize 'SDE.importer.manage.filterAria'}}">
+          <button type="button" class="ui-chip{{#if manage.filterAll}} sel{{/if}}" data-action="manageFilter" data-filter="all" title="{{localize 'SDE.importer.manage.showAllTip'}}">{{localize "SDE.importer.manage.showAll"}}</button>
+          <button type="button" class="ui-chip{{#if manage.filterLocked}} sel{{/if}}" data-action="manageFilter" data-filter="locked" title="{{localize 'SDE.importer.manage.lockedTip'}}"><i class="fas fa-file-import"></i> {{localize "SDE.importer.manage.locked"}}</button>
+          <button type="button" class="ui-chip{{#if manage.filterImported}} sel{{/if}}" data-action="manageFilter" data-filter="imported" title="{{localize 'SDE.importer.manage.importedTip'}}"><i class="fas fa-circle-check"></i> {{localize "SDE.importer.manage.imported"}}</button>
+          {{#if manage.newTotal}}<button type="button" class="ui-chip{{#if manage.filterNew}} sel{{/if}}" data-action="manageFilter" data-filter="new" title="{{localize 'SDE.importer.manage.newTip'}}"><i class="fas fa-sparkles"></i> {{localize "SDE.importer.manage.new" n=manage.newTotal}}</button>{{/if}}
+        </div>
+        <div class="ui-search imp-search"><i class="fas fa-magnifying-glass"></i><input type="search" data-manage-search value="{{manage.search}}" placeholder="{{localize 'SDE.importer.manage.searchPlaceholder'}}" aria-label="{{localize 'SDE.importer.manage.searchAria'}}" title="{{localize 'SDE.importer.manage.searchTip'}}"></div>
+        <div class="ui-card-actions">
+          <button type="button" class="ui-icon" data-action="manageExpandAll" title="{{localize 'SDE.importer.manage.expandTip'}}" aria-label="{{localize 'SDE.importer.manage.expandAll'}}"><i class="fas fa-angles-down"></i></button>
+          <button type="button" class="ui-icon" data-action="manageCollapseAll" title="{{localize 'SDE.importer.manage.collapseTip'}}" aria-label="{{localize 'SDE.importer.manage.collapseAll'}}"><i class="fas fa-angles-up"></i></button>
+        </div>
+      </div>
+      <div class="ui-muted"><i class="fas fa-circle-check"></i> {{localize "SDE.importer.manage.legendPresent"}} &middot; <i class="fas fa-file-import"></i> {{{localize "SDE.importer.manage.legendMissing"}}}</div>
+
+      {{#if batch}}
+      <div class="ui-note info imp-batch" role="status" aria-live="polite">
+        <div class="ui-bar ok"><i style="width: {{batch.percent}}%"></i></div>
+        <div class="ui-inline"><span class="ui-grow">{{#if batch.cancelled}}{{localize "SDE.importer.manage.stopping"}}{{else}}{{localize "SDE.importer.manage.importing"}}{{/if}} {{batch.done}} / {{batch.total}}{{#if batch.current}} &mdash; {{batch.current}}{{/if}}</span>
+          <button type="button" class="ui-btn" data-action="batchCancel" {{#if batch.cancelled}}disabled{{/if}} title="{{localize 'SDE.importer.manage.stopTip'}}"><i class="fas fa-stop"></i> {{localize "SDE.importer.manage.stop"}}</button></div>
+      </div>
+      {{/if}}
+      {{#if manage.filterEmpty}}
+      <div class="ui-empty"><i class="fas fa-circle-check"></i><span>{{#if manage.searching}}{{localize "SDE.importer.manage.noMatch" search=manage.search}}{{#unless manage.filterAll}}{{localize "SDE.importer.manage.noMatchFilter"}}{{/unless}}{{localize "SDE.importer.manage.noMatchClear"}}{{else if manage.filterLocked}}{{localize "SDE.importer.manage.allImported"}}{{else if manage.filterNew}}{{localize "SDE.importer.manage.allNewImported"}}{{else}}{{{localize "SDE.importer.manage.noneImported"}}}{{/if}}</span></div>
+      {{/if}}
+      <div class="sde-mtree ui-stack">
+        {{#each manage.tree as |node|}}{{> sdeTreeNodeUi node=node}}{{/each}}
+      </div>
+    </section>
+
+    {{#if manage.monstersData.hasDuplicates}}
+    <details class="ui-details">
+      <summary><i class="fas fa-copy"></i> {{localize "SDE.importer.dups.monsters" n=manage.monstersData.duplicateCount}}</summary>
+      <div class="ui-details-body">
+        {{#each manage.monstersData.duplicateGroups as |group|}}
+        <div class="ui-card sde-hub-monsters-dup-card" data-group-key="{{group.key}}">
+          <div class="ui-card-head"><h3 class="ui-card-name">{{group.key}}</h3><div class="ui-card-actions"><button type="button" class="ui-btn danger" data-action="monsterCullGroup" data-group-key="{{group.key}}"><i class="fas fa-trash-can"></i> {{localize "SDE.importer.dups.cull"}}</button></div></div>
+          <div class="ui-list">{{#each group.members as |m|}}
+            <label class="ui-row"><input type="radio" name="keep-{{@../index}}" value="{{m.uuid}}" {{#if @first}}checked{{/if}}>
+              <div class="ui-row-main"><span class="ui-row-name">{{m.name}}</span><span class="ui-row-sub">{{#if m.source}}{{m.source}}{{/if}}</span></div>
+              {{#if m.date}}<span class="ui-tag" title="{{localize 'SDE.importer.dups.lastModified'}}">{{m.date}}</span>{{/if}}</label>
+          {{/each}}</div>
+        </div>
+        {{/each}}
+      </div>
+    </details>
+    {{/if}}
+    {{#if manage.itemsData.hasDuplicates}}
+    <details class="ui-details">
+      <summary><i class="fas fa-copy"></i> {{localize "SDE.importer.dups.items" n=manage.itemsData.duplicateCount}}</summary>
+      <div class="ui-details-body">
+        {{#each manage.itemsData.duplicateGroups as |group|}}
+        <div class="ui-card sde-hub-monsters-dup-card" data-group-key="{{group.key}}">
+          <div class="ui-card-head"><h3 class="ui-card-name">{{group.key}}</h3><div class="ui-card-actions"><button type="button" class="ui-btn danger" data-action="itemCullGroup" data-group-key="{{group.key}}"><i class="fas fa-trash-can"></i> {{localize "SDE.importer.dups.cull"}}</button></div></div>
+          <div class="ui-list">{{#each group.members as |m|}}
+            <label class="ui-row"><input type="radio" name="keep-item-{{@../index}}" value="{{m.uuid}}" {{#if @first}}checked{{/if}}>
+              <div class="ui-row-main"><span class="ui-row-name">{{m.name}}</span><span class="ui-row-sub">{{#if m.source}}{{m.source}}{{/if}}</span></div>
+              {{#if m.date}}<span class="ui-tag" title="{{localize 'SDE.importer.dups.lastModified'}}">{{m.date}}</span>{{/if}}</label>
+          {{/each}}</div>
+        </div>
+        {{/each}}
+      </div>
+    </details>
+    {{/if}}
+  </div>
+  <footer class="ui-footer">
+    {{#unless manage.runnableTotal}}{{#if manage.lockedTotal}}<span class="ui-muted" title="{{localize 'SDE.importer.manage.noPdfTip'}}"><i class="fas fa-file-pdf"></i> {{localize "SDE.importer.manage.noPdf"}}</span>{{/if}}{{/unless}}
+    {{#if manage.runnableTotal}}<div class="ui-right"><button type="button" class="ui-btn primary sde-import-primary" data-action="batchImport" {{#if batch}}disabled{{/if}} title="{{localize 'SDE.importer.manage.batchTip'}}"><i class="fas fa-wand-magic-sparkles"></i> {{localize "SDE.importer.manage.batch" n=manage.runnableTotal}}</button></div>{{/if}}
+  </footer>
+  {{else}}
+  <div class="ui-body"><div class="ui-empty"><i class="fas fa-circle-info"></i><span>{{localize "SDE.importer.manage.loading"}}</span></div></div>
+  {{/if}}
+{{/if}}
+
+{{!-- ═════════════════ TOOLS ═════════════════ --}}
+{{#if (eq tab "tools")}}
+  <div class="ui-body">
+    <details class="ui-details" open><summary>{{localize "SDE.importer.ui.groupBooks"}}</summary><div class="ui-details-body"><div class="ui-list imp-flat">
+      <button type="button" class="ui-row imp-tool" data-action="hubManageSourcePdfs" title="{{localize 'SDE.importer.tools.sourcePdfsTip'}}"><i class="fas fa-file-pdf"></i><span class="ui-row-main"><span class="ui-row-name">{{localize "SDE.importer.tools.sourcePdfs"}}</span><span class="ui-row-sub">{{localize "SDE.importer.tools.sourcePdfsSub"}}</span></span><i class="fas fa-chevron-right imp-chev"></i></button>
+      <button type="button" class="ui-row imp-tool" data-action="hubExtractPdf" title="{{localize 'SDE.importer.tools.extractTip'}}"><i class="fas fa-wand-magic-sparkles"></i><span class="ui-row-main"><span class="ui-row-name">{{localize "SDE.importer.tools.extract"}}</span><span class="ui-row-sub">{{localize "SDE.importer.tools.extractSub"}}</span></span><i class="fas fa-chevron-right imp-chev"></i></button>
+    </div></div></details>
+    <details class="ui-details" open><summary>{{localize "SDE.importer.ui.groupBackup"}}</summary><div class="ui-details-body"><div class="ui-list imp-flat">
+      <button type="button" class="ui-row imp-tool" data-action="hubExportBundle" title="{{localize 'SDE.importer.tools.exportTip'}}"><i class="fas fa-file-export"></i><span class="ui-row-main"><span class="ui-row-name">{{localize "SDE.importer.tools.export"}}</span><span class="ui-row-sub">{{localize "SDE.importer.tools.exportSub"}}</span></span><i class="fas fa-chevron-right imp-chev"></i></button>
+      <button type="button" class="ui-row imp-tool" data-action="hubImportBundle" title="{{localize 'SDE.importer.tools.importBundleTip'}}"><i class="fas fa-file-arrow-up"></i><span class="ui-row-main"><span class="ui-row-name">{{localize "SDE.importer.tools.importBundle"}}</span><span class="ui-row-sub">{{localize "SDE.importer.tools.importBundleSub"}}</span></span><i class="fas fa-chevron-right imp-chev"></i></button>
+    </div></div></details>
+    <details class="ui-details"><summary>{{localize "SDE.importer.ui.groupMaps"}}</summary><div class="ui-details-body"><div class="ui-list imp-flat">
+      <button type="button" class="ui-row imp-tool" data-action="hubHexMap" title="{{localize 'SDE.importer.tools.hexMapTip'}}"><i class="fas fa-map"></i><span class="ui-row-main"><span class="ui-row-name">{{localize "SDE.importer.tools.hexMap"}}</span><span class="ui-row-sub">{{localize "SDE.importer.tools.hexMapSub"}}</span></span><i class="fas fa-chevron-right imp-chev"></i></button>
+      <button type="button" class="ui-row imp-tool" data-action="hubOpenHexTagger" title="{{localize 'SDE.importer.tools.hexTaggerTip'}}"><i class="fas fa-map-location-dot"></i><span class="ui-row-main"><span class="ui-row-name">{{localize "SDE.importer.tools.hexTagger"}}</span><span class="ui-row-sub">{{localize "SDE.importer.tools.hexTaggerSub"}}</span></span><i class="fas fa-chevron-right imp-chev"></i></button>
+      <button type="button" class="ui-row imp-tool" data-action="hubKeyLocations" title="{{localize 'SDE.importer.tools.keyLocationsTip'}}"><i class="fas fa-location-dot"></i><span class="ui-row-main"><span class="ui-row-name">{{localize "SDE.importer.tools.keyLocations"}}</span><span class="ui-row-sub">{{localize "SDE.importer.tools.keyLocationsSub"}}</span></span><i class="fas fa-chevron-right imp-chev"></i></button>
+      <button type="button" class="ui-row imp-tool" data-action="hubAdventures" title="{{localize 'SDE.importer.tools.adventuresTip'}}"><i class="fas fa-dungeon"></i><span class="ui-row-main"><span class="ui-row-name">{{localize "SDE.importer.tools.adventures"}}</span><span class="ui-row-sub">{{localize "SDE.importer.tools.adventuresSub"}}</span></span><i class="fas fa-chevron-right imp-chev"></i></button>
+      <button type="button" class="ui-row imp-tool" data-action="hubAdventureMap" title="{{localize 'SDE.importer.tools.adventureMapTip'}}"><i class="fas fa-map-pin"></i><span class="ui-row-main"><span class="ui-row-name">{{localize "SDE.importer.tools.adventureMap"}}</span><span class="ui-row-sub">{{localize "SDE.importer.tools.adventureMapSub"}}</span></span><i class="fas fa-chevron-right imp-chev"></i></button>
+      <button type="button" class="ui-row imp-tool" data-action="hubChapterJournal" title="{{localize 'SDE.importer.tools.chapterTip'}}"><i class="fas fa-book-open-reader"></i><span class="ui-row-main"><span class="ui-row-name">{{localize "SDE.importer.tools.chapter"}}</span><span class="ui-row-sub">{{localize "SDE.importer.tools.chapterSub"}}</span></span><i class="fas fa-chevron-right imp-chev"></i></button>
+    </div></div></details>
+  </div>
+{{/if}}
+
+</div>

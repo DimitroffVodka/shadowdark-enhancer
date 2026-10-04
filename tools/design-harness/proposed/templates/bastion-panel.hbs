@@ -1,0 +1,42 @@
+<div class="ui-shell ubp-ui">
+  <div class="ui-body">
+    {{#if gm}}
+    <div class="ui-inline"><button type="button" class="ui-btn primary" data-action="newBastion"><i class="fa-solid fa-plus"></i> {{localize "SDE.bastion.panel.new"}}</button></div>
+    {{/if}}
+
+    {{#if cards.length}}
+    <div class="ui-cols-2 sde-bp-cards">
+      {{#each cards}}
+      <article class="ui-card ubp-card {{#if breached}}bad{{/if}}">
+        <div class="ui-card-head">
+          <img class="art ui-bp-art" src="{{img}}" alt="" data-action="openSheet" data-id="{{id}}">
+          <div class="ui-row-main">
+            <h3 class="ui-card-name" data-action="openSheet" data-id="{{id}}">{{name}}</h3>
+            <span class="ui-row-sub">{{typeName}} &middot; {{line}}</span>
+          </div>
+          <div class="ui-card-actions">
+            <button type="button" class="ui-icon" data-action="openSheet" data-id="{{id}}" data-tooltip="{{localize 'SDE.bastion.panel.open'}}"><i class="fa-solid fa-up-right-from-square"></i></button>
+            {{#if ../gm}}
+            <button type="button" class="ui-icon" data-action="deposit" data-id="{{id}}" data-tooltip="{{localize 'SDE.bastion.fund.deposit'}}"><i class="fa-solid fa-coins"></i></button>
+            <button type="button" class="ui-icon" data-action="withdraw" data-id="{{id}}" data-tooltip="{{localize 'SDE.bastion.fund.withdraw'}}"><i class="fa-solid fa-hand-holding-dollar"></i></button>
+            {{/if}}
+          </div>
+        </div>
+        <div class="ui-bar {{#if breached}}bad{{else}}ok{{/if}}" role="img" aria-label="{{localize 'SDE.bastion.stat.hp'}} {{hp}} / {{maxHp}}"><i style="width: {{hpPct}}%"></i></div>
+        <div class="ui-pairs">
+          <div class="ui-pair"><span class="ui-label">{{localize "SDE.bastion.stat.hp"}}</span><span class="ui-value">{{hp}} / {{maxHp}}</span></div>
+          <div class="ui-pair"><span class="ui-label">{{localize "SDE.bastion.stat.treasury"}}</span><span class="ui-value">{{treasury}} {{localize "SDE.bastion.gp"}}</span></div>
+          <div class="ui-pair"><span class="ui-label">{{localize "SDE.bastion.stat.upgrades"}}</span><span class="ui-value">{{used}} / {{slots}}</span></div>
+        </div>
+        <div class="ui-inline ubp-built">
+          {{#each built}}<svg class="ui-bp-room" viewBox="0 0 512 512"><title>{{name}}</title><rect width="512" height="512" fill="currentColor" class="ui-bp-ground"/><use href="#b-{{id}}" width="512" height="512"/></svg>{{/each}}
+          {{#each building}}<svg class="ui-bp-room faint" viewBox="0 0 512 512"><title>{{name}}</title><rect width="512" height="512" fill="currentColor" class="ui-bp-ground"/><use href="#b-{{id}}" width="512" height="512"/></svg>{{/each}}
+        </div>
+      </article>
+      {{/each}}
+    </div>
+    {{else}}
+    <div class="ui-empty"><i class="fa-solid fa-chess-rook"></i><span>{{empty}}</span></div>
+    {{/if}}
+  </div>
+</div>

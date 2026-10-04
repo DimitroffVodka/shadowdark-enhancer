@@ -1,0 +1,38 @@
+/* shared fixes (kit candidates): flex children that must not shrink, header that keeps one line below 560px */
+.ui-num { flex: 0 0 20px; }
+.ui-row > .ui-btn, .ui-row > .ui-chip, .ui-row > .ui-tag, .ui-row > .ui-icon, .ui-card-head > .ui-btn, .ui-card-head > .ui-chip { flex: 0 0 auto; }
+.ui-head { flex-wrap: nowrap; }
+.ui-head-text { flex: 1 1 0; }
+.ui-head > .ui-art, .ui-head > img { flex: 0 0 auto; }
+@container (max-width: 560px) { .ui-head { flex-wrap: nowrap; } }
+/* Quest Log. Kit candidates: header band holding filters (.ql-filters), list+detail split (.ql-split), .ql-flat (list without its own frame). */
+.ql-filters { flex-wrap: wrap; padding: 10px 16px; gap: 8px; }
+.ql-filters select { flex: 1 1 130px; width: auto; min-width: 0; }
+.ql-new { flex: 0 0 auto; margin-left: auto; }
+.ql-body { padding: 12px 16px; overflow: hidden; }
+.ql-split { display: grid; grid-template-columns: minmax(150px, 220px) minmax(0, 1fr); gap: 14px; min-height: 0; flex: 1 1 auto; }
+.ql-list, .ql-detail { overflow-y: auto; min-height: 0; align-content: start; }
+.ql-list { align-self: start; max-height: 100%; }
+.ql-item { cursor: pointer; align-items: flex-start; }
+.ql-detail { display: flex; flex-direction: column; gap: 12px; padding-right: 2px; }
+.ql-titlerow { display: flex; gap: 8px; }
+.ql-titlerow .ql-name { flex: 1 1 auto; font-weight: 700; font-size: 14px; }
+.ql-titlerow select { flex: 0 0 120px; width: 120px; }
+.ql-title { font-size: 22px; }
+.ql-x { width: 18px; height: 18px; font-size: 10px; }
+.ql-flat { border: 0; background: transparent; border-radius: 0; }
+.ql-flat .ui-row { padding-left: 0; padding-right: 0; }
+.ql-done input[type=text], .ql-done .ui-row-main { text-decoration: line-through; color: var(--ui-muted); }
+.ql-add input { flex: 1 1 0; width: auto; }
+.ql-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 10px; }
+.ql-drop { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; min-height: 40px; padding: 8px; border: 1px dashed var(--ui-line); border-radius: var(--ui-r2); }
+.ql-drop.sde-drag-over { border-color: var(--ui-frame); background: var(--ui-raised); }
+.ql-desc p { margin: 0 0 8px; }
+.ql-detail > .ui-details { flex: 0 0 auto; }
+@container (max-width: 560px) { .ql-split { grid-template-columns: minmax(0, 1fr); overflow-y: auto; } .ql-list { max-height: 220px; flex: 0 0 auto; } .ql-detail { overflow: visible; } .ql-body { overflow-y: auto; } }
+.sde-ui a.ui-icon { color: var(--ui-muted); } .sde-ui a.ui-icon:hover { color: var(--ui-text); }
+.ql-list .ui-row { flex: 0 0 auto; }
+.sde-ui .ui-body > * { flex-shrink: 0; }
+.sde-ui input[type=radio]::before, .sde-ui input[type=radio]::after { content: none !important; }
+/* kit fix candidate: Foundry v14 ships Font Awesome 7 Pro, not "6 Free", so the accordion chevron was blank */
+.ui-details > summary::before { font-family: "Font Awesome 7 Pro", "Font Awesome 6 Free"; }

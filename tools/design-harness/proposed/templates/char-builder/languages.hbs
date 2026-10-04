@@ -1,0 +1,22 @@
+<div class="ui-stack cbu-languages">
+  {{#if step.readOnly}}
+  <div class="ui-group"><span class="ui-label">{{localize "SDE.charBuilder.languages.known"}}</span>
+    <div class="ui-inline">{{#each step.known}}<span class="ui-chip">{{name}}</span>{{else}}<span class="ui-muted">&mdash;</span>{{/each}}</div>
+    <div class="ui-note"><i class="fa-solid fa-lock"></i> {{localize "SDE.charBuilder.existing.languagesHint"}}</div>
+  </div>
+  {{/if}}
+  {{#if step.fixed.length}}
+  <div class="ui-group"><span class="ui-label">{{localize "SDE.charBuilder.languages.known"}}</span>
+    <div class="ui-inline">{{#each step.fixed}}<span class="ui-chip">{{name}}</span>{{/each}}</div>
+  </div>
+  {{/if}}
+  {{#each step.categories}}
+  <div class="ui-group">
+    <span class="ui-label">{{localize labelKey}} &mdash; {{localize "SDE.charBuilder.class.choose"}} {{need}} <span class="ui-chip {{#if full}}ok{{else}}warn{{/if}}">{{chosenCount}}/{{need}}</span></span>
+    <div class="ui-inline">
+      {{#each options}}<span class="ui-chip{{#if selected}} sel{{/if}}{{#if disabled}} off{{/if}}" data-cb-lang="{{uuid}}" data-cb-lang-cat="{{../key}}">{{name}}</span>{{/each}}
+    </div>
+  </div>
+  {{/each}}
+  {{#if step.noChoices}}<span class="ui-muted">{{localize "SDE.charBuilder.languages.noChoices"}}</span>{{/if}}
+</div>

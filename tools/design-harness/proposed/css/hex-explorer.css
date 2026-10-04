@@ -1,0 +1,9 @@
+/* Hexplorer: grid of flag chips (checkbox beside its label) and a two-up row; both would suit the kit. Tokens only. */
+.hx-art { display: flex; align-items: center; justify-content: center; color: var(--ui-muted); font-size: 22px; }
+.hx-flags { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; }
+.hx-line { display: contents; }
+.hx-pair { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 2fr); gap: 8px; }
+.hx-flags .ui-chip, .ui-card .ui-chip.ui-check { white-space: normal; min-height: 28px; }
+.sde-hex-explorer-body .ui-card > .ui-h { margin-bottom: 0; }
+.sde-ui .ui-body > * { flex-shrink: 0; }
+.sde-ui input[type=radio]::before, .sde-ui input[type=radio]::after { content: none !important; }

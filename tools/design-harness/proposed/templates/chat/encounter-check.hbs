@@ -1,0 +1,11 @@
+<div class="sde-ui ui-cc {{#if hit}}hit{{/if}}">
+  <div class="cc-body">
+    <div class="cc-split">
+      <span class="cc-big {{#if hit}}hit{{else}}miss{{/if}}">{{roll.total}}</span>
+      <div class="cc-main">
+        <span class="cc-val">{{flavor}}</span>
+        {{#if where}}<span class="cc-aux">{{where}}</span>{{/if}}
+      </div>
+    </div>
+  </div>
+</div>

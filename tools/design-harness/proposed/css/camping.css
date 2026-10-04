@@ -1,0 +1,40 @@
+/* Camping (plain): hairline rows on the page, no cards, no chips, no gold. Kit candidates: .cp-list/.cp-pc (hairline rows), .cp-more (plain disclosure), .ui-actions, .ui-fields. */
+.ui-num { flex: 0 0 20px; }
+.ui-head { flex-wrap: nowrap; }
+.ui-table { margin: 0; }
+.cp-root { gap: 12px; }
+.cp-hint { margin: 0; }
+.cp-fuel { max-width: 320px; }
+.cp-list { display: flex; flex-direction: column; border-top: 1px solid var(--ui-line); }
+.cp-pc { display: flex; flex-direction: column; gap: 8px; padding: 12px 0; border-bottom: 1px solid var(--ui-line); }
+.cp-line { flex-direction: row; align-items: baseline; gap: 12px; padding: 8px 0; }
+.cp-qty { margin-left: auto; font-variant-numeric: tabular-nums; color: var(--ui-text); font-weight: 700; }
+.cp-head { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 14px; min-height: 28px; }
+.cp-name { margin: 0; flex: 1 1 140px; font: 700 14px/1.2 var(--ui-font); color: var(--ui-text); }
+.cp-status { color: var(--ui-muted); font-size: 12px; }
+.cp-bad { color: var(--ui-danger-text); }
+.cp-fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px 12px; }
+.cp-torch { align-self: flex-start; }
+.cp-warn { margin: 0; font-size: 12px; color: var(--ui-danger-text); }
+.cp-more { font-size: 12px; color: var(--ui-muted); }
+.cp-more > summary { cursor: pointer; padding: 2px 0; }
+.cp-more > summary:hover { color: var(--ui-text); }
+.cp-more > p { margin: 4px 0 0; color: var(--ui-body); }
+.cp-rules { border-bottom: 1px solid var(--ui-line); padding-bottom: 8px; }
+.cp-wrap { overflow-x: auto; }
+.cp-wrap .ui-table { min-width: 460px; }
+.ui-actions { position: sticky; bottom: -16px; display: flex; align-items: center; gap: 8px; margin: 0 -16px -16px; padding: 10px 16px; border-top: 1px solid var(--ui-line); background: var(--ui-page); }
+.ui-actions .ui-right { margin-left: auto; display: flex; gap: 8px; }
+@container (max-width: 480px) { .ui-actions { flex-wrap: wrap; } }
+.ui-table td.cp-bad { color: var(--ui-danger-text); font-weight: 700; }
+
+/* ration counter and Ready control in each character's header line */
+.sde-ui .cp-count { display: inline-flex; align-items: center; gap: 6px; margin-left: auto; color: var(--ui-text); font-variant-numeric: tabular-nums; }
+.sde-ui .cp-count .cp-ration { align-self: center; width: 26px; height: 26px; border: 0; border-radius: 3px; object-fit: contain; }
+.sde-ui .cp-count.cp-bad .cp-ration { opacity: .55; }
+.sde-ui .cp-count b { font-size: 18px; min-width: 1ch; }
+.sde-ui .cp-count small { font-size: 11px; color: var(--ui-muted); }
+.sde-ui .cp-count.cp-bad b { color: var(--ui-danger-text); }
+.sde-ui .cp-ready-btn { flex: 0 0 auto; }
+.sde-ui .cp-ready { flex: 0 0 auto; display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 10px; border: 1px solid transparent; color: var(--ui-muted); font: 600 12px/1 var(--ui-head); }
+.sde-ui .cp-ready.on { border-color: var(--ui-frame); background: var(--ui-frame); color: var(--ui-page); border-radius: var(--ui-r); }

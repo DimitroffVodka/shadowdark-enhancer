@@ -1,0 +1,17 @@
+/* Quick adjust: the title is a creature name, so it is smaller than a window title; the stepper sits in the header. */
+.sde-ui .qa-name { font-size: 20px; }
+.qa-target { align-items: flex-end; }
+.qa-stepper { flex-wrap: nowrap; gap: 4px; }
+.qa-footer { flex-wrap: wrap; row-gap: 8px; }
+.qa-table td, .qa-table th { vertical-align: top; }
+.qa-table td:first-child, .qa-table th:first-child { width: 28px; padding-right: 0; }
+/* The footer has four actions; at the window's own 460 the two that are not Apply or Revert keep their icon and drop the
+   words (the title and aria-label stay), so the footer never wraps or overflows. */
+@container (max-width: 560px) {
+  .sde-ui .ui-head.qa-head { flex-wrap: nowrap; }
+  .sde-ui .qa-head .qa-name { font-size: 17px; }
+  .qa-footer .qa-lbl { display: none; }
+  .qa-footer { flex-wrap: nowrap; }
+}
+.sde-ui .ui-body > * { flex-shrink: 0; }
+.sde-ui input[type=radio]::before, .sde-ui input[type=radio]::after { content: none !important; }

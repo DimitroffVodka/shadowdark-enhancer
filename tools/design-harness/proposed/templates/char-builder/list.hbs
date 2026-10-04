@@ -1,0 +1,14 @@
+{{!-- Shared left column: search box + scrollable option list (context: the list object). --}}
+<div class="cbu-col-list">
+  {{#unless noSearch}}
+  <div class="ui-search"><i class="fa-solid fa-magnifying-glass"></i><input type="text" data-cb-search value="{{search}}" placeholder="{{placeholder}}"></div>
+  {{/unless}}
+  <div class="ui-list sde-cb-list{{#if noThumbs}} no-thumbs{{/if}}{{#if readOnly}} is-readonly{{/if}}">
+    {{#each entries}}
+    <div class="ui-row cbu-list-item{{#if selected}} sel{{/if}}" data-cb-select="{{id}}" data-name="{{name}}">
+      {{#unless ../noThumbs}}<img src="{{img}}" alt="">{{/unless}}
+      <span class="ui-row-main"><span class="ui-row-name">{{name}}</span></span>
+    </div>
+    {{/each}}
+  </div>
+</div>

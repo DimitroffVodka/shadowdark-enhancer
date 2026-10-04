@@ -1,0 +1,13 @@
+/* Token HUD buttons the module adds (proposal). Foundry's HUD themes itself with its own --control-* tokens (dark and light), so these use only those:
+   no theme selector, no colours. Markup: <button type="button"
+   class="control-icon sde-hud-btn" data-action="..." aria-label="..." data-tooltip>. Core already sizes and colours
+   .placeable-hud .control-icon at --control-size (32px); .sde-hud-btn adds only the focus ring and the disabled look; the size stays core's 32px. */
+.placeable-hud .control-icon.sde-hud-btn:focus-visible { outline: 2px solid var(--control-hover-icon-color); outline-offset: 1px; }
+.placeable-hud .control-icon.sde-hud-btn:disabled { opacity: .45; cursor: not-allowed; }
+
+/* The prayer-roll icon the module adds to the system's character sheet (character-sheet/prayer-roll.mjs). Replaces the inline
+   cssText and the mouseenter/mouseleave opacity handlers: <button type="button" class="sde-prayer-roll" title aria-label><img src alt=""></button>.
+   The sheet is the system's own (AppV1, light parchment), so no kit tokens apply: plain values, no theme. */
+button.sde-prayer-roll { display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; margin: 0 0 0 6px; padding: 0; border: 0; background: none; box-shadow: none; opacity: .7; cursor: pointer; vertical-align: middle; }
+button.sde-prayer-roll:hover, button.sde-prayer-roll:focus-visible { opacity: 1; }
+button.sde-prayer-roll img { display: block; width: 16px; height: 16px; border: 0; }

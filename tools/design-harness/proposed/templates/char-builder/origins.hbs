@@ -1,0 +1,42 @@
+<div class="cbu-step sde-cb-origins-main">
+  <h2 class="ui-h">{{localize "SDE.charBuilder.step.origins"}}</h2>
+
+  <section class="ui-group" data-cb-origin="alignment">
+    <h3 class="ui-h">{{localize "SDE.charBuilder.step.alignment"}} {{#if step.alignment.currentTitle}}<small><i class="fa-solid fa-crown"></i> {{localize "SDE.charBuilder.alignment.title"}}: {{step.alignment.currentTitle}} ({{step.alignment.className}}, {{localize "SDE.charBuilder.alignment.level1"}})</small>{{/if}}</h3>
+    <div class="ui-cols-3 cbu-align-cards">
+      {{#each step.alignment.options}}
+      <div class="ui-card cbu-align-card{{#if selected}} sel{{/if}}{{#if suggested}} suggested{{/if}}" data-cb-align="{{key}}">
+        <div class="ui-card-head"><h4 class="ui-card-name">{{label}}</h4>{{#if suggested}}<span class="ui-chip gold"><i class="fa-solid fa-lightbulb"></i> {{localize "SDE.charBuilder.alignment.suggestedTag"}}</span>{{/if}}</div>
+        {{#if title}}<span class="ui-card-sub"><i class="fa-solid fa-crown"></i> {{title}}</span>{{/if}}
+        <p class="ui-muted">{{desc}}</p>
+      </div>
+      {{/each}}
+    </div>
+  </section>
+
+  <div class="ui-cols-2">
+    <section class="ui-group" data-cb-origin="background">
+      <h3 class="ui-h">{{localize "SDE.charBuilder.step.background"}}</h3>
+      {{> sde-cb-list step.background.list}}
+      <div class="ui-card cbu-origin-detail">
+        {{#if step.background.hasSelection}}
+          <h4 class="ui-card-name">{{step.background.detail.name}}</h4>
+          <div class="cbu-desc">{{{step.background.detail.description}}}</div>
+        {{else}}<span class="ui-muted">{{localize "SDE.charBuilder.selectPrompt"}}</span>{{/if}}
+      </div>
+    </section>
+
+    <section class="ui-group" data-cb-origin="deity">
+      <h3 class="ui-h">{{localize "SDE.charBuilder.step.deity"}}</h3>
+      {{> sde-cb-list step.deity.list}}
+      <div class="ui-card cbu-origin-detail">
+        {{#if step.deity.hasSelection}}
+          <div class="ui-card-head"><h4 class="ui-card-name">{{step.deity.detail.name}}</h4><span class="ui-chip">{{localize "SDE.charBuilder.step.alignment"}}: {{step.deity.aside.alignment}}</span></div>
+          <div class="cbu-desc">{{{step.deity.detail.description}}}</div>
+          {{#if step.deity.fixedDeity}}<div class="ui-note"><i class="fa-solid fa-lock"></i> {{localize "SDE.charBuilder.deity.fixedByClass"}}</div>
+          {{else}}{{#unless step.deity.aside.matchesChar}}<div class="ui-note warn"><i class="fa-solid fa-triangle-exclamation"></i> {{localize "SDE.charBuilder.deity.mismatch"}}</div>{{/unless}}{{/if}}
+        {{else}}<span class="ui-muted">{{localize "SDE.charBuilder.deity.optional"}}</span>{{/if}}
+      </div>
+    </section>
+  </div>
+</div>

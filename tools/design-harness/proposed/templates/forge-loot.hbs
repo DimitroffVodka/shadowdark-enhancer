@@ -1,0 +1,141 @@
+<div class="ui-shell" data-phase="{{phase}}">
+  <header class="ui-head">
+    <div class="ui-art fl-art"><i class="fa-solid fa-hammer"></i></div>
+    <div class="ui-head-text">
+      <h2 class="ui-title">{{localize "SDE.forgeLoot.title"}}</h2>
+      <p class="ui-sub">{{localize "SDE.forgeLoot.intro"}}</p>
+    </div>
+    <div class="ui-stats">
+      <div class="ui-stat" title="{{localize 'SDE.forgeLoot.seedTip'}}"><span class="ui-label">{{localize "SDE.forgeLoot.seed"}}</span><span class="ui-value fl-seed">{{seed}}</span>{{#if rerollCount}}<span class="ui-sub">{{localize "SDE.forgeLoot.rerollCount" count=rerollCount}}</span>{{/if}}</div>
+    </div>
+  </header>
+
+  <div class="ui-body">
+    <section class="fl-gens" aria-label="{{localize 'SDE.forgeLoot.generatorsAria'}}">
+      {{#each generators as |g|}}
+      <button type="button" class="ui-card fl-gen {{#if g.selected}}sel{{/if}}" data-action="selectGenerator" data-generator="{{g.id}}" aria-pressed="{{g.selected}}">
+        <span class="ui-card-head"><i class="fas {{g.icon}} fl-gen-icon"></i><strong class="ui-card-name">{{g.label}}</strong></span>
+        {{#if g.description}}<span class="ui-card-sub">{{g.description}}</span>{{/if}}
+      </button>
+      {{/each}}
+    </section>
+
+    {{#if hasGenerator}}
+    <section class="ui-card" aria-label="{{localize 'SDE.forgeLoot.inputsAria'}}">
+      <div class="ui-card-head">
+        <h3 class="ui-card-name">{{generatorLabel}}</h3>
+        <span class="ui-chip {{#if isBlocked}}bad{{else if isDisabled}}off{{else if hasPreview}}sel{{/if}}">{{phaseLabel}}</span>
+      </div>
+      {{#if generatorDescription}}<p class="ui-card-sub">{{generatorDescription}}</p>{{/if}}
+      {{#if fields.length}}
+      <div class="ui-cols-2">
+        {{#each fields as |field|}}
+        {{#if field.isCheckbox}}
+        <label class="ui-check fl-check">
+          <input type="checkbox" data-forge-input="{{field.key}}" {{#if field.checked}}checked{{/if}}>
+          <span>{{field.label}}</span>
+        </label>
+        {{else}}
+        <label class="ui-field {{#if field.isTextarea}}fl-wide{{/if}}">
+          <span class="ui-label">{{field.label}}{{#if field.required}} <em>*</em>{{/if}}</span>
+          {{#if field.isTextarea}}
+            <textarea data-forge-input="{{field.key}}" placeholder="{{field.placeholder}}" {{#if field.required}}required{{/if}}>{{field.value}}</textarea>
+          {{else if field.isSelect}}
+            <select data-forge-input="{{field.key}}" {{#if field.required}}required{{/if}}>
+              {{#each field.options as |option|}}<option value="{{option.value}}" {{#if option.selected}}selected{{/if}}>{{option.label}}</option>{{/each}}
+            </select>
+          {{else}}
+            <input type="{{field.type}}" data-forge-input="{{field.key}}" value="{{field.value}}" placeholder="{{field.placeholder}}" {{#if field.required}}required{{/if}}>
+          {{/if}}
+          {{#if field.hint}}<span class="ui-sub">{{field.hint}}</span>{{/if}}
+        </label>
+        {{/if}}
+        {{/each}}
+      </div>
+      {{else}}
+      <p class="ui-sub">{{localize "SDE.forgeLoot.noInputs"}}</p>
+      {{/if}}
+    </section>
+    {{else}}
+    <div class="ui-empty"><i class="fa-solid fa-hammer"></i><span>{{localize "SDE.forgeLoot.empty"}}</span></div>
+    {{/if}}
+
+    {{#if statusMessage}}<div class="ui-note info" role="status">{{statusMessage}}</div>{{/if}}
+
+    {{#if isDisabled}}
+    <div class="ui-note warn" role="status"><strong>{{localize "SDE.forgeLoot.disabled"}}</strong>{{#unless diagnostics.missing.length}} {{localize "SDE.forgeLoot.disabledHint"}}{{/unless}}</div>
+    {{/if}}
+
+    {{#if error}}
+    <div class="ui-note bad" role="alert"><strong>{{error.code}}</strong> {{error.message}}{{#if error.evidence}}<br><small class="ui-muted">{{error.evidence}}</small>{{/if}}</div>
+    {{/if}}
+
+    {{#if diagnostics.missing.length}}
+    <details class="ui-details" open aria-label="{{localize 'SDE.forgeLoot.missingAria'}}">
+      <summary>{{localize "SDE.forgeLoot.missingHeading"}} <span class="ui-chip bad">{{diagnostics.missing.length}}</span></summary>
+      <div class="ui-details-body">{{#each diagnostics.missing as |item|}}<div class="ui-note bad"><strong>{{item.code}}</strong> {{item.message}}{{#if item.evidence}}<br><small class="ui-muted">{{item.evidence}}</small>{{/if}}</div>{{/each}}</div>
+    </details>
+    {{/if}}
+    {{#if diagnostics.exclusions.length}}
+    <details class="ui-details" aria-label="{{localize 'SDE.forgeLoot.exclusionsAria'}}">
+      <summary>{{localize "SDE.forgeLoot.exclusionsHeading"}} <span class="ui-chip">{{diagnostics.exclusions.length}}</span></summary>
+      <div class="ui-details-body">{{#each diagnostics.exclusions as |item|}}<div class="ui-note"><strong>{{item.code}}</strong> {{item.message}}{{#if item.evidence}}<br><small class="ui-muted">{{item.evidence}}</small>{{/if}}</div>{{/each}}</div>
+    </details>
+    {{/if}}
+    {{#if diagnostics.warnings.length}}
+    <details class="ui-details" aria-label="{{localize 'SDE.forgeLoot.warnings'}}">
+      <summary>{{localize "SDE.forgeLoot.warnings"}} <span class="ui-chip warn">{{diagnostics.warnings.length}}</span></summary>
+      <div class="ui-details-body">{{#each diagnostics.warnings as |item|}}<div class="ui-note warn"><strong>{{item.code}}</strong> {{item.message}}{{#if item.evidence}}<br><small class="ui-muted">{{item.evidence}}</small>{{/if}}</div>{{/each}}</div>
+    </details>
+    {{/if}}
+
+    {{#if hasPreview}}
+    <section class="ui-card good" aria-label="{{localize 'SDE.forgeLoot.previewAria'}}">
+      <div class="ui-card-head">
+        <h3 class="ui-card-name"><i class="fas fa-eye ui-muted"></i> {{preview.title}}</h3>
+        <span class="ui-chip off"><i class="fas fa-lock"></i> {{localize "SDE.forgeLoot.immutable"}}</span>
+      </div>
+      {{#if preview.summary}}<p class="ui-card-sub">{{preview.summary}}</p>{{/if}}
+      {{#each preview.sections as |section|}}
+      <div class="ui-group">
+        {{#if section.title}}<h4 class="ui-h">{{section.title}}</h4>{{/if}}
+        {{#if section.rows.length}}
+        <div class="ui-list">{{#each section.rows as |row|}}<div class="ui-row fl-kv"><span class="ui-label">{{row.label}}</span><span class="ui-row-main">{{row.value}}</span></div>{{/each}}</div>
+        {{/if}}
+        {{#if section.items.length}}
+        <div class="ui-list">{{#each section.items as |item|}}<div class="ui-row"><div class="ui-row-main"><span class="ui-row-name">{{item.label}}</span>{{#if item.detail}}<span class="ui-row-sub">{{item.detail}}</span>{{/if}}</div></div>{{/each}}</div>
+        {{/if}}
+      </div>
+      {{/each}}
+      {{#if preview.members.length}}
+      <div class="ui-group">
+        <h4 class="ui-h">{{localize "SDE.forgeLoot.members"}} <small>{{preview.members.length}}</small></h4>
+        <div class="ui-list">{{#each preview.members as |member|}}<div class="ui-row"><div class="ui-row-main"><span class="ui-row-name">{{member.name}}</span>{{#if member.detail}}<span class="ui-row-sub">{{member.detail}}</span>{{/if}}</div></div>{{/each}}</div>
+      </div>
+      {{/if}}
+    </section>
+    {{else if isCommitted}}
+    <div class="ui-note good" role="status"><i class="fas fa-circle-check"></i> {{localize "SDE.forgeLoot.committed"}}</div>
+    {{else if isCancelled}}
+    <div class="ui-note" role="status"><i class="fas fa-ban"></i> {{localize "SDE.forgeLoot.status.cancelled"}}</div>
+    {{else if hasGenerator}}
+    <div class="ui-empty"><i class="fa-solid fa-hourglass-start"></i><span>{{localize "SDE.forgeLoot.noPreview"}}</span></div>
+    {{/if}}
+  </div>
+
+  <footer class="ui-footer">
+    <button type="button" class="ui-btn ghost" data-action="reset"><i class="fas fa-rotate-left"></i> {{localize "SDE.forgeLoot.btn.startOver"}}</button>
+    <button type="button" class="ui-btn ghost" data-action="cancel" {{#unless canCancel}}disabled{{/unless}}><i class="fas fa-xmark"></i> {{localize "SDE.forgeLoot.btn.cancel"}}</button>
+    {{#if hasGenerator}}
+    <div class="ui-right">
+      <button type="button" class="ui-btn" data-action="reroll" {{#unless canReroll}}disabled{{/unless}}><i class="fas fa-arrows-rotate"></i> {{localize "SDE.forgeLoot.btn.reroll"}}</button>
+      {{#if hasPreview}}
+      <button type="button" class="ui-btn" data-action="generatePreview" {{#unless canPreview}}disabled{{/unless}}><i class="fas fa-dice-d20"></i> {{localize "SDE.forgeLoot.btn.preview"}}</button>
+      <button type="button" class="ui-btn primary" data-action="approve" {{#unless canApprove}}disabled{{/unless}}><i class="fas fa-check"></i> {{localize "SDE.forgeLoot.btn.approve"}}</button>
+      {{else}}
+      <button type="button" class="ui-btn primary" data-action="generatePreview" {{#unless canPreview}}disabled{{/unless}}><i class="fas fa-dice-d20"></i> {{localize "SDE.forgeLoot.btn.preview"}}</button>
+      {{/if}}
+    </div>
+    {{/if}}
+  </footer>
+</div>

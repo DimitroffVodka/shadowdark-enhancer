@@ -1,0 +1,182 @@
+<div class="ui-shell sde-bastion-ui">
+
+  <header class="ui-head">
+    <img src="{{document.img}}" data-action="editImage" data-edit="img" data-tooltip="{{document.name}}" alt="">
+    <div class="ui-head-text">
+      <input class="ui-title-input" type="text" name="name" value="{{document.name}}" placeholder="{{localize 'SDE.bastion.namePlaceholder'}}" {{#unless editable}}disabled{{/unless}}>
+      <p class="ui-sub">{{type.name}} &middot; {{#if stats.standing}}{{localize "SDE.bastion.standing" week=stats.week}}{{else}}{{localize "SDE.bastion.building" weeks=stats.weeksLeft}}{{/if}}</p>
+      {{#if stats.breached}}<span class="ui-chip bad"><i class="fa-solid fa-burst"></i> {{localize "SDE.bastion.breached"}}</span>{{/if}}
+    </div>
+    <div class="ui-stats">
+      <div class="ui-stat"><span class="ui-label">{{localize "SDE.bastion.stat.ac"}}</span><span class="ui-value">{{stats.ac}}</span></div>
+      <div class="ui-stat"><span class="ui-label">{{localize "SDE.bastion.stat.hp"}}</span>
+        <div class="ui-inputs"><input type="number" name="system.hp.value" value="{{stats.hp}}" min="0" max="{{stats.maxHp}}" {{#unless editable}}disabled{{/unless}}><span>/ {{stats.maxHp}}</span></div></div>
+      <div class="ui-stat"><span class="ui-label">{{localize "SDE.bastion.stat.upgrades"}}</span><span class="ui-value">{{stats.used}} / {{stats.slots}}</span></div>
+      <div class="ui-stat"><span class="ui-label">{{localize "SDE.bastion.stat.treasury"}}</span>
+        <div class="ui-inputs"><input type="number" name="system.treasury" value="{{system.treasury}}" min="0" {{#unless editable}}disabled{{/unless}}><span>{{localize "SDE.bastion.gp"}}</span></div></div>
+    </div>
+  </header>
+
+  <nav class="ui-tabs">
+    <button type="button" class="ui-tab {{#if tab.overview}}active{{/if}}" data-action="changeTab" data-tab="overview">{{localize "SDE.bastion.tab.overview"}}</button>
+    <button type="button" class="ui-tab {{#if tab.upgrades}}active{{/if}}" data-action="changeTab" data-tab="upgrades">{{localize "SDE.bastion.tab.upgrades"}} <span class="ui-count">{{stats.used}}</span></button>
+    <button type="button" class="ui-tab {{#if tab.plan}}active{{/if}}" data-action="changeTab" data-tab="plan">{{localize "SDE.bastion.tab.plan"}}</button>
+    <button type="button" class="ui-tab {{#if tab.log}}active{{/if}}" data-action="changeTab" data-tab="log">{{localize "SDE.bastion.tab.log"}}</button>
+  </nav>
+
+  <div class="ui-body">
+
+    {{!-- Overview: the type, the money, the build clock, then the rooms at work (folded) --}}
+    {{#if tab.overview}}
+    <section class="ui-stack" data-tab-content="overview">
+      <div class="ui-cols-2">
+        <section class="ui-card">
+          <div class="ui-card-head"><h3 class="ui-card-name">{{localize "SDE.bastion.field.type"}}</h3><span class="ui-chip">{{localize "SDE.bastion.stat.worth" worth=stats.worth}}</span></div>
+          <select data-bastion-type {{#unless editable}}disabled{{/unless}}>
+            {{#each types}}<option value="{{id}}" {{#if selected}}selected{{/if}}>{{name}}: {{line}}</option>{{/each}}
+          </select>
+          <p class="ui-muted">{{type.blurb}}</p>
+          <div class="ui-field"><span class="ui-label">{{localize "SDE.bastion.field.party"}}</span>
+            <select name="system.party" {{#unless editable}}disabled{{/unless}}>
+              <option value="">{{localize "SDE.bastion.party.none"}}</option>
+              {{#each parties}}<option value="{{uuid}}" {{#if selected}}selected{{/if}}>{{name}}</option>{{/each}}
+            </select>
+          </div>
+          {{#if editable}}
+          <div class="ui-inline">
+            <button type="button" class="ui-btn" data-action="deposit"><i class="fa-solid fa-coins"></i> {{localize "SDE.bastion.fund.deposit"}}</button>
+            <button type="button" class="ui-btn" data-action="withdraw"><i class="fa-solid fa-hand-holding-dollar"></i> {{localize "SDE.bastion.fund.withdraw"}}</button>
+          </div>
+          {{/if}}
+        </section>
+        {{#if gm}}
+        <section class="ui-card">
+          <div class="ui-card-head"><h3 class="ui-card-name">{{localize "SDE.bastion.clock"}}</h3></div>
+          <div class="ui-inline">
+            <button type="button" class="ui-btn primary" data-action="advanceWeek"><i class="fa-solid fa-hourglass-half"></i> {{localize "SDE.bastion.advanceWeek"}}</button>
+            <button type="button" class="ui-btn" data-action="repair" {{#unless stats.repairCost}}disabled{{/unless}}><i class="fa-solid fa-hammer"></i> {{localize "SDE.bastion.repair" cost=stats.repairCost}}</button>
+            <button type="button" class="ui-btn" data-action="rollMonth"><i class="fa-solid fa-dice-d6"></i> {{localize "SDE.bastion.rollMonth"}}</button>
+          </div>
+          {{#if stats.repairing}}<div class="ui-note info">{{localize "SDE.bastion.repairing"}}</div>{{/if}}
+          <p class="ui-muted">{{localize "SDE.bastion.rules"}}</p>
+        </section>
+        {{/if}}
+      </div>
+
+      {{#if shops.length}}
+      <details class="ui-details">
+        <summary>{{localize "SDE.bastion.shop.heading"}} <span class="ui-count ui-muted">{{shops.length}}</span></summary>
+        <div class="ui-details-body">
+          {{#if editable}}<div class="ui-inline">{{#each shops}}<button type="button" class="ui-btn" data-action="openShop" data-shop="{{id}}"><i class="fa-solid fa-store"></i> {{name}}</button>{{/each}}</div>
+          {{else}}<div class="ui-inline">{{#each shops}}<span class="ui-chip">{{name}}</span>{{/each}}</div>{{/if}}
+        </div>
+      </details>
+      {{/if}}
+      {{#if aviary.open}}
+      <details class="ui-details">
+        <summary>{{localize "SDE.bastion.pigeon.heading"}}</summary>
+        <div class="ui-details-body">
+          <div class="ui-note {{#if aviary.flown}}warn{{else}}good{{/if}}">{{#if aviary.flown}}{{localize "SDE.bastion.pigeon.flown"}}{{else}}{{localize "SDE.bastion.pigeon.ready"}}{{/if}}</div>
+          {{#if editable}}<div class="ui-inline"><button type="button" class="ui-btn" data-action="sendPigeon" {{#if aviary.flown}}disabled{{/if}}><i class="fa-solid fa-dove"></i> {{localize "SDE.bastion.pigeon.send"}}</button></div>{{/if}}
+        </div>
+      </details>
+      {{/if}}
+      {{#if trophyRoom}}
+      <details class="ui-details">
+        <summary>{{localize "SDE.bastion.trophy.heading"}} <span class="ui-count ui-muted">{{trophies.length}}</span></summary>
+        <div class="ui-details-body">
+          {{#if trophies.length}}
+          <div class="ui-list">
+            {{#each trophies}}<div class="ui-row"><div class="ui-row-main"><span class="ui-row-name">{{name}}</span></div>{{#if ../editable}}<button type="button" class="ui-icon danger" data-action="removeTrophy" data-index="{{index}}" data-tooltip="{{localize 'SDE.bastion.trophy.remove'}}"><i class="fa-solid fa-xmark"></i></button>{{/if}}</div>{{/each}}
+          </div>
+          {{else}}<div class="ui-empty"><i class="fa-solid fa-trophy"></i><span>{{localize "SDE.bastion.trophy.none"}}</span></div>{{/if}}
+          {{#if editable}}<div class="ui-inline"><button type="button" class="ui-btn" data-action="placeTrophy"><i class="fa-solid fa-trophy"></i> {{localize "SDE.bastion.trophy.place"}}</button></div>{{/if}}
+        </div>
+      </details>
+      {{/if}}
+      {{#if vault.shown}}
+      <details class="ui-details">
+        <summary>{{localize "SDE.bastion.vault.heading"}} <span class="ui-count ui-muted">{{vault.used}} / {{vault.max}}</span></summary>
+        <div class="ui-details-body">
+          {{#if vault.items.length}}
+          <div class="ui-list">
+            {{#each vault.items}}
+              <div class="ui-row"><img src="{{img}}" alt=""><div class="ui-row-main"><span class="ui-row-name">{{name}}{{#if (gt quantity 1)}} &times;{{quantity}}{{/if}}</span></div><span class="ui-row-meta">{{slots}}</span>{{#if ../editable}}<button type="button" class="ui-icon" data-action="takeOut" data-id="{{id}}" data-tooltip="{{localize 'SDE.bastion.vault.takeTitle'}}"><i class="fa-solid fa-arrow-right-from-bracket"></i></button>{{/if}}</div>
+            {{/each}}
+          </div>
+          {{else}}<div class="ui-empty"><i class="fa-solid fa-vault"></i><span>{{localize "SDE.bastion.vault.empty"}}</span></div>{{/if}}
+          {{#if vault.open}}{{#if editable}}<div class="ui-note info">{{localize "SDE.bastion.vault.hint"}}</div>{{/if}}{{/if}}
+        </div>
+      </details>
+      {{/if}}
+
+      <section class="ui-card">
+        <div class="ui-card-head"><h3 class="ui-card-name">{{localize "SDE.bastion.tab.notes"}}</h3></div>
+        {{#if editable}}<textarea name="system.notes" rows="6">{{system.notes}}</textarea>{{else}}<div class="sde-bast-notes">{{{enrichedNotes}}}</div>{{/if}}
+      </section>
+    </section>
+    {{/if}}
+
+    {{!-- Upgrades: one card each; the actions are small icons on the card --}}
+    {{#if tab.upgrades}}
+    <section class="ui-stack" data-tab-content="upgrades">
+      <div class="ui-note info">{{localize "SDE.bastion.upgradesNote" used=stats.used slots=stats.slots}}</div>
+      <div class="ui-cols-2 sde-bast-upgrades">
+        {{#each upgrades}}
+        <div class="ui-card ui-up {{#if isBuilt}}good{{/if}} {{#if isBuilding}}warn{{/if}}" data-card="{{id}}">
+          <div class="ui-card-head">
+            <svg viewBox="0 0 512 512" class="ui-up-art"><rect width="512" height="512" fill="currentColor" class="ui-up-ground"/><use href="#b-{{id}}" width="512" height="512"/></svg>
+            <div class="ui-row-main"><h4 class="ui-card-name">{{name}}</h4><span class="ui-row-sub">{{effect}}</span></div>
+            <div class="ui-card-actions">
+              {{#if isNone}}<button type="button" class="ui-icon" data-action="build" data-id="{{id}}" {{#unless ../editable}}disabled{{/unless}} {{#unless canBuild}}disabled{{/unless}} data-tooltip="{{#if why}}{{why}}{{else}}{{localize 'SDE.bastion.build'}}{{/if}}"><i class="fa-solid fa-hammer"></i></button>{{/if}}
+              {{#unless isNone}}{{#if ../editable}}<button type="button" class="ui-icon danger" data-action="takeDown" data-id="{{id}}" data-tooltip="{{localize 'SDE.bastion.takeDown.tip'}}"><i class="fa-solid fa-trash"></i></button>{{/if}}{{/unless}}
+            </div>
+          </div>
+          <div class="ui-inline">
+            <span class="ui-chip">{{cost}} {{localize "SDE.bastion.gp"}}</span>
+            {{#if isBuilding}}<span class="ui-chip warn">{{localize "SDE.bastion.weeksLeft" weeks=weeksLeft}}</span>{{/if}}
+            {{#if isBuilt}}<span class="ui-chip ok">{{localize "SDE.bastion.builtLabel"}}</span>{{/if}}
+            {{#if isNone}}{{#unless canBuild}}{{#if why}}<span class="ui-chip off">{{why}}</span>{{/if}}{{/unless}}{{/if}}
+          </div>
+        </div>
+        {{/each}}
+      </div>
+    </section>
+    {{/if}}
+
+    {{!-- Plan: the bastion from outside or in --}}
+    {{#if tab.plan}}
+    <section class="ui-stack sde-bast-plan" data-tab-content="plan">
+      <div class="ui-inline">
+        <div class="ui-seg">
+          <button type="button" class="ui-btn ghost {{#if view.ext}}on{{/if}}" data-action="setView" data-view="ext">{{localize "SDE.bastion.view.exterior"}}</button>
+          <button type="button" class="ui-btn ghost {{#if view.in}}on{{/if}}" data-action="setView" data-view="in">{{localize "SDE.bastion.view.interior"}}</button>
+        </div>
+        {{#if view.in}}<button type="button" class="ui-btn ghost {{#if roofs}}on{{/if}}" data-action="toggleRoofs" data-tooltip="{{localize 'SDE.bastion.roofs.tip'}}"><i class="fa-solid fa-house-chimney"></i> {{localize "SDE.bastion.roofs.label"}}</button>{{/if}}
+        <span class="ui-right ui-card-actions">
+          <button type="button" class="ui-icon" data-action="exportSvg" data-tooltip="{{localize 'SDE.bastion.export.svg'}}"><i class="fa-solid fa-file-code"></i></button>
+          <button type="button" class="ui-icon" data-action="exportPng" data-tooltip="{{localize 'SDE.bastion.export.png'}}"><i class="fa-solid fa-file-image"></i></button>
+        </span>
+      </div>
+      <div class="sde-bast-planbody">
+        <svg class="sde-bastion-map" viewBox="{{plan.viewBox}}" role="img" aria-label="{{localize 'SDE.bastion.plan.aria'}}">{{{plan.markup}}}</svg>
+        <aside class="sde-bastion-card ui-card"><div class="ui-empty"><i class="fa-solid fa-hand-pointer"></i><span>{{localize "SDE.bastion.plan.hint"}}</span></div></aside>
+      </div>
+    </section>
+    {{/if}}
+
+    {{!-- Log --}}
+    {{#if tab.log}}
+    <section class="ui-group" data-tab-content="log">
+      {{#if log.length}}
+        <div class="ui-list sde-bast-log">
+          {{#each log}}<div class="ui-row"><span class="ui-chip">{{localize "SDE.bastion.log.week" week=week}}</span><div class="ui-row-main"><span>{{text}}</span></div></div>{{/each}}
+        </div>
+      {{else}}
+        <div class="ui-empty"><i class="fa-solid fa-scroll"></i><span>{{localize "SDE.bastion.log.empty"}}</span></div>
+      {{/if}}
+    </section>
+    {{/if}}
+
+  </div>
+</div>

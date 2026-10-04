@@ -1,0 +1,10 @@
+// SpellImporterApp, real template. Audit fixture. state: busy | empty
+const names = ["Burning Hands", "Charm Person", "Detect Magic", "Feather Fall", "Floating Disk", "Hold Portal", "Light", "Magic Missile", "Protection from Evil", "Sleep", "Alarm of the Watchful Sentinel", "Acid Arrow"];
+const al = [{ value: "", label: "Universal" }, { value: "lawful", label: "Lawful" }, { value: "neutral", label: "Neutral" }, { value: "chaotic", label: "Chaotic" }];
+const sp = (n, idx, tier) => ({ idx, name: n, tier, className: "wizard", alignment: "", desc: "A short description", alignOptions: al.map((a) => ({ ...a, selected: a.value === "" })), warn: idx === 2 });
+const groups = [{ class: "Wizard", tier: 1, alignmentLabel: "Universal", spells: names.slice(0, 8).map((n, i) => sp(n, i, 1)) }, { class: "Wizard", tier: 2, alignmentLabel: "Lawful", spells: names.slice(8).map((n, i) => sp(n, i + 8, 2)) }, { class: "Priest", tier: 1, alignmentLabel: "Chaotic", spells: [sp("Cause Fear", 12, 1)] }];
+const build = (state) => { const busy = state !== "empty"; return { context: {
+  source: "Western Reaches Player's Guide", sourceList: ["Core Rulebook", "Cursed Scroll 1"], spellLists: [{ key: "w", label: "Wizard (all alignments)", selected: busy }, { key: "p", label: "Priest", selected: false }], listPdf: busy ? "x" : null, listPage: "40", listLabel: "Wizard",
+  pasteText: busy ? "Burning Hands\nTier 1, wizard\nDuration: Instant..." : "", bulkClass: "Wizard", bulkAlignOptions: al.map((a) => ({ ...a, selected: a.value === "" })), spellCount: busy ? 13 : 0, groups: busy ? groups : [],
+  summary: busy ? "13 spells · Wizard, Priest · Tiers 1, 2 · Universal, Lawful, Chaotic" : null, imported: busy ? { created: 5, skipped: 2, classes: "Wizard", alignments: "universal" } : null } }; };
+export default { id: "sde-spell-importer", title: "SDE.importer.spellImporter.title", icon: "fa-solid fa-wand-sparkles", classes: [], width: 760, height: 820, template: "templates/spell-importer.hbs", initial: "busy", build, resizable: true, actions: {} };

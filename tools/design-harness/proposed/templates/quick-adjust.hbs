@@ -1,0 +1,64 @@
+{{!-- Token HUD quick-adjust, proposed. Same context, data-action / data-qa-* attributes as templates/quick-adjust.hbs. --}}
+<div class="ui-shell">
+  <header class="ui-head qa-head">
+    <img src="{{img}}" alt="">
+    <div class="ui-head-text"><h2 class="ui-title qa-name">{{actorName}}</h2><p class="ui-sub">{{localize "SDE.quickAdjust.currentLevel" level=currentLevel}}</p></div>
+    <div class="ui-stat qa-target">
+      <label class="ui-label" for="sde-qa-target">{{localize "SDE.quickAdjust.targetLevel"}}</label>
+      <div class="ui-inline qa-stepper">
+        <button type="button" class="ui-btn" data-action="qa-step" data-step="-1" aria-label="{{localize 'SDE.quickAdjust.levelDown'}}" title="{{localize 'SDE.quickAdjust.levelDown'}}" {{#if atMinLevel}}disabled{{/if}}><i class="fa-solid fa-minus"></i></button>
+        <input id="sde-qa-target" class="ui-num-in" type="number" data-qa-level value="{{targetLevel}}" min="0" max="{{maxLevel}}">
+        <button type="button" class="ui-btn" data-action="qa-step" data-step="1" aria-label="{{localize 'SDE.quickAdjust.levelUp'}}" title="{{localize 'SDE.quickAdjust.levelUp'}}" {{#if atMaxLevel}}disabled{{/if}}><i class="fa-solid fa-plus"></i></button>
+      </div>
+    </div>
+  </header>
+
+  <div class="ui-body">
+    {{#if spellBump}}
+    <div class="ui-note warn"><strong>{{localize "SDE.quickAdjust.spellBump" level=spellLevel}}</strong>{{#each spellReasons}} {{this}}.{{/each}}</div>
+    {{/if}}
+
+    {{#if changed}}
+    <section class="ui-card">
+      <table class="ui-table qa-table">
+        <thead><tr><th></th><th>{{localize "SDE.monsterCreator.baseline.colStat"}}</th><th>{{localize "SDE.monsterCreator.baseline.colNow"}}</th><th></th><th>{{localize "SDE.monsterCreator.baseline.colGuideline"}}</th><th class="num">&Delta;</th></tr></thead>
+        <tbody>
+          <tr class="{{#unless rows.ac.changed}}ui-muted{{/unless}}">
+            <td><input type="checkbox" data-qa-apply="ac" {{#if apply.ac}}checked{{/if}} aria-label="{{localize 'SDE.monsterCreator.baseline.applyAc'}}"></td>
+            <td><strong>{{localize "SDE.importer.monsters.ac"}}</strong></td><td>{{rows.ac.fromLabel}}</td><td class="ui-muted">&rarr;</td><td><strong>{{rows.ac.toLabel}}</strong></td><td class="num">{{rows.ac.deltaLabel}}</td>
+          </tr>
+          <tr class="{{#unless rows.hp.changed}}ui-muted{{/unless}}">
+            <td><input type="checkbox" data-qa-apply="hp" {{#if apply.hp}}checked{{/if}} aria-label="{{localize 'SDE.monsterCreator.baseline.applyHp'}}"></td>
+            <td><strong>{{localize "SDE.importer.monsters.hp"}}</strong></td><td>{{rows.hp.fromLabel}}</td><td class="ui-muted">&rarr;</td><td><strong>{{rows.hp.toLabel}}</strong></td><td class="num">{{rows.hp.deltaLabel}}</td>
+          </tr>
+          <tr class="{{#unless abilitiesChanged}}ui-muted{{/unless}}">
+            <td><input type="checkbox" data-qa-apply="abilities" {{#if apply.abilities}}checked{{/if}} aria-label="{{localize 'SDE.monsterCreator.baseline.applyAbilities'}}"></td>
+            <td><strong>{{localize "SDE.monsterCreator.stat.abilities"}}</strong></td>
+            <td colspan="4"><div class="ui-inline">{{#each rows.abilities}}<span class="ui-chip {{#unless this.changed}}off{{/unless}}"><span class="ui-label">{{this.label}}</span> {{this.fromLabel}}{{#if this.changed}} &rarr; <strong>{{this.toLabel}}</strong>{{/if}}</span>{{/each}}</div></td>
+          </tr>
+          <tr class="{{#unless attacksChanged}}ui-muted{{/unless}}">
+            <td><input type="checkbox" data-qa-apply="attacks" {{#if apply.attacks}}checked{{/if}} aria-label="{{localize 'SDE.monsterCreator.baseline.applyAttacks'}}" {{#unless hasAttacks}}disabled{{/unless}}></td>
+            <td><strong>{{localize "SDE.quickAdjust.attacksHeading"}}</strong></td>
+            <td colspan="4">
+              {{#if hasAttacks}}<div class="ui-stack qa-attacks">{{#each attacks}}
+                <div><strong>{{this.name}}</strong> <span class="ui-muted">{{localize "SDE.monsterCreator.baseline.attackLine" num=this.num.from bonus=this.bonus.from damage=this.damage.from}}</span>{{#if this.changed}} &rarr; <strong>{{localize "SDE.monsterCreator.baseline.attackLine" num=this.num.to bonus=this.bonus.to damage=this.damage.to}}</strong>{{/if}}</div>
+              {{/each}}</div>
+              {{else}}<span class="ui-muted">{{localize "SDE.quickAdjust.noAttacks"}}</span>{{/if}}
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+    <p class="ui-note">{{localize "SDE.quickAdjust.hpNote"}} {{localize "SDE.quickAdjust.statBlockNote"}}</p>
+    {{else}}
+    <div class="ui-empty"><i class="fa-solid fa-circle-check"></i><span>{{localize "SDE.quickAdjust.noChange" level=targetLevel}}</span></div>
+    {{/if}}
+  </div>
+
+  <footer class="ui-footer qa-footer">
+    <button type="button" class="ui-btn ghost qa-revert" data-action="qa-revert" title="{{localize 'SDE.quickAdjust.revertHint'}}" {{#unless hasBackup}}disabled{{/unless}}><i class="fa-solid fa-rotate-left"></i> {{localize "SDE.quickAdjust.revert"}}</button>
+    <button type="button" class="ui-btn" data-action="qa-open-creator" aria-label="{{localize 'SDE.quickAdjust.openCreator'}}" title="{{localize 'SDE.quickAdjust.openCreatorHint'}}"><i class="fa-solid fa-pen-to-square"></i><span class="qa-lbl">{{localize "SDE.quickAdjust.openCreator"}}</span></button>
+    <button type="button" class="ui-btn" data-action="qa-copy" aria-label="{{localize 'SDE.quickAdjust.createCopy'}}" title="{{localize 'SDE.quickAdjust.createCopy'}}"><i class="fa-solid fa-copy"></i><span class="qa-lbl">{{localize "SDE.quickAdjust.createCopy"}}</span></button>
+    <div class="ui-right"><button type="button" class="ui-btn primary" data-action="qa-apply" {{#unless changed}}disabled{{/unless}}><i class="fa-solid fa-wand-magic-sparkles"></i> {{localize "SDE.quickAdjust.apply"}}</button></div>
+  </footer>
+</div>
