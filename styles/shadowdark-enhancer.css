@@ -1351,24 +1351,7 @@ button.sde-strip-dying:hover { filter: brightness(1.25); }
   border-color: var(--sde-bar-border);
   background: var(--sde-bar-surface-1);
 }
-.sde-thub-searchbox {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 2px 4px;
-  color: var(--sde-bar-text);
-}
-.sde-thub-searchbox i { opacity: 0.6; }
-.sde-thub-search {
-  flex: 1;
-  background: var(--sde-bar-surface-2, rgba(0, 0, 0, 0.2));
-  border: 1px solid var(--sde-bar-border);
-  border-radius: 6px;
-  padding: 4px 8px;
-  color: var(--sde-bar-text);
-  font-family: inherit;
-  font-size: 13px;
-}
+
 /* Global source filter bar — sits directly under the hub tab nav and scopes
    every dashboard. */
 .sde-hub-sources-global {
@@ -1404,121 +1387,17 @@ button.sde-strip-dying:hover { filter: brightness(1.25); }
 .sde-thub-stat:hover { background: rgba(255, 255, 255, 0.07); }
 .sde-thub-stat.active { border-color: currentColor; background: rgba(255, 255, 255, 0.10); }
 
-.sde-thub-sources {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  flex-wrap: wrap;
-  padding: 4px 4px 8px;
-  border-bottom: 1px solid var(--sde-bar-border);
-}
-.sde-thub-srclabel {
-  font-size: 11px;
-  font-weight: 700;
-  color: var(--sde-bar-text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  margin-right: 2px;
-}
-.sde-thub-src {
-  font-family: inherit;
-  font-size: 12px;
-  font-weight: 700;
-  color: var(--sde-bar-text);
-  background: var(--sde-bar-bg-alt);
-  border: 1px solid var(--sde-bar-border);
-  border-radius: 12px;
-  padding: 2px 9px;
-  cursor: pointer;
-}
-.sde-thub-src:hover { background: var(--sde-bar-bg-hover); }
-.sde-thub-src.active {
-  border-color: var(--sde-bar-accent);
-  color: var(--sde-bar-accent);
-  background: var(--sde-bar-bg-hover);
-}
-.sde-thub-src.empty { opacity: 0.45; }
-.sde-thub-src-n { font-size: 10px; color: var(--sde-bar-text-muted); }
-.sde-thub-src.active .sde-thub-src-n { color: inherit; }
 .sde-thub-stat.ok   { color: #6fb86f; }
 .sde-thub-stat.imp  { color: var(--sde-ranged); }
 .sde-thub-stat.miss { color: #d98a3a; }
-.sde-thub-refresh {
-  margin-left: auto;
-  padding: 3px 10px;
-  background: var(--sde-bar-btn-1);
-  border: 1px solid var(--sde-bar-border);
-  border-radius: 4px;
-  color: var(--sde-bar-text);
-  cursor: pointer;
-}
-.sde-thub-refresh:hover { background: var(--sde-bar-bg-hover); color: var(--sde-bar-accent); }
 
 .sde-thub-cat { border-bottom: 1px solid var(--sde-bar-border); }
-.sde-thub-cat-head {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  cursor: pointer;
-  list-style: none;
-  padding: 5px 2px;
-  font-size: 13px;
-  font-weight: 700;
-  color: var(--sde-bar-accent);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  user-select: none;
-}
-.sde-thub-cat-head::-webkit-details-marker { display: none; }
-.sde-thub-caret { font-size: 11px; transition: transform 0.12s; }
-.sde-thub-cat[open] > .sde-thub-cat-head .sde-thub-caret { transform: rotate(90deg); }
-.sde-thub-cat-name { flex: 1 1 auto; }
-.sde-thub-cat-count {
-  flex: 0 0 auto;
-  font-size: 11px;
-  font-weight: 700;
-  color: var(--sde-bar-text-muted);
-  background: rgba(255, 255, 255, 0.06);
-  border-radius: 10px;
-  padding: 0 8px;
-}
+
 .sde-thub-sub { margin: 2px 0 8px; }
-.sde-thub-sub-head {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  cursor: pointer;
-  list-style: none;
-  font-size: 11px;
-  font-weight: 700;
-  color: var(--sde-bar-text-bright);
-  margin: 4px 0 3px 4px;
-  opacity: 0.85;
-  user-select: none;
-}
-.sde-thub-sub-head::-webkit-details-marker { display: none; }
-.sde-thub-sub-head:hover { opacity: 1; }
-.sde-thub-sub[open] > .sde-thub-sub-head .sde-thub-caret { transform: rotate(90deg); }
-.sde-thub-sub-name { flex: 1 1 auto; }
-.sde-thub-sub-count {
-  flex: 0 0 auto;
-  font-size: 10px;
-  font-weight: 700;
-  color: var(--sde-bar-text-muted);
-  background: rgba(255, 255, 255, 0.05);
-  border-radius: 10px;
-  padding: 0 7px;
-}
+
 .sde-thub-openable { cursor: pointer; }
 .sde-thub-openable:hover { outline: 1px solid var(--sde-bar-accent-dim); }
-.sde-thub-rows {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
+
 .sde-thub-row {
   display: flex;
   align-items: center;
@@ -1528,63 +1407,9 @@ button.sde-strip-dying:hover { filter: brightness(1.25); }
   background: var(--sde-bar-bg-alt);
 }
 .sde-thub-row:hover { background: var(--sde-bar-bg-hover); }
-.sde-thub-name { font-weight: 700; flex: 0 0 auto; }
-.sde-thub-meta {
-  color: var(--sde-bar-text-muted);
-  font-size: 11px;
-  flex: 1 1 auto;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.sde-thub-badge {
-  flex: 0 0 auto;
-  font-size: 11px;
-  font-weight: 700;
-  padding: 1px 8px;
-  border-radius: 10px;
-  border: 1px solid transparent;
-}
-.sde-thub-badge.ok   { color: #bdf0bd; background: rgba(60,120,60,0.25);  border-color: rgba(110,184,110,0.5); }
-.sde-thub-badge.imp  { color: #cfe8ff; background: rgba(40,90,140,0.25);  border-color: rgba(90,169,230,0.5); }
-.sde-thub-badge.miss { color: #f3d2a8; background: rgba(150,90,30,0.22);  border-color: rgba(217,138,58,0.5); }
-.sde-thub-badge.warn { color: #ffd9a8; background: rgba(190,120,30,0.28);  border-color: rgba(240,170,70,0.6); }
+
 .sde-thub-stat.part { color: #e0a84a; }
-.sde-thub-matrix-tag {
-  flex: 0 0 auto;
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.03em;
-  padding: 1px 6px;
-  border-radius: 3px;
-  color: var(--sde-bar-text-muted);
-  background: rgba(255,255,255,0.06);
-  border: 1px dashed var(--sde-bar-border);
-}
-.sde-thub-world {
-  flex: 0 1 auto;
-  font-size: 11px;
-  color: var(--sde-bar-text-muted);
-  font-style: italic;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 16rem;
-}
-.sde-thub-rows-chk { flex: 0 0 auto; font-size: 10px; font-weight: 700; padding: 1px 6px; border-radius: 4px; }
-.sde-thub-rows-chk.ok   { color: #6fb86f; }
-.sde-thub-rows-chk.warn { color: #d98a3a; }
-.sde-thub-import {
-  flex: 0 0 auto;
-  padding: 2px 8px;
-  font-size: 11px;
-  background: linear-gradient(135deg, var(--sde-bar-accent-dim) 0%, var(--sde-bar-accent-dark) 100%);
-  color: var(--sde-bar-on-accent);
-  border: 1px solid var(--sde-bar-accent);
-  border-radius: 4px;
-  cursor: pointer;
-}
-.sde-thub-import:hover { filter: brightness(1.15); }
+
 .sde-thub-link {
   flex: 0 0 auto;
   padding: 2px 8px;
@@ -1597,32 +1422,6 @@ button.sde-strip-dying:hover { filter: brightness(1.25); }
 }
 .sde-thub-link:hover { filter: brightness(1.2); }
 
-/* Seeded-import banner — shown in the Importer when opened from the hub for a
-   known missing table. */
-.sde-import-seed {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin-bottom: 8px;
-  padding: 6px 10px;
-  background: rgba(40, 90, 140, 0.18);
-  border: 1px solid rgba(90, 169, 230, 0.5);
-  border-radius: 4px;
-  color: var(--sde-bar-text-bright);
-  font-size: 12px;
-}
-.sde-import-seed i { color: var(--sde-ranged); }
-.sde-import-seed strong { color: var(--sde-bar-accent); }
-.sde-import-seed-tag {
-  font-family: monospace;
-  font-size: 11px;
-  padding: 0 6px;
-  border-radius: 3px;
-  background: rgba(0,0,0,0.3);
-  color: var(--sde-bar-text);
-}
-
 /* ── Light theme coverage — Table Hub / Importer / browse (audit P1-8) ──────
    These components were authored in raw dark-palette literals with no
    body.theme-light counterpart; pale status text went near-invisible on the
@@ -1631,27 +1430,17 @@ button.sde-strip-dying:hover { filter: brightness(1.25); }
 body.theme-light .sde-thub-tabs .item:hover,
 body.theme-light .sde-thub-stat:hover { background: rgba(0, 0, 0, 0.06); }
 body.theme-light .sde-thub-stat.active { background: rgba(0, 0, 0, 0.08); }
-body.theme-light .sde-thub-stat.ok,
-body.theme-light .sde-thub-rows-chk.ok   { color: #2e6b2e; }
+body.theme-light .sde-thub-stat.ok   { color: #2e6b2e; }
 body.theme-light .sde-thub-stat.imp  { color: #1d5e8f; }
-body.theme-light .sde-thub-stat.miss,
-body.theme-light .sde-thub-rows-chk.warn { color: #9c5210; }
+body.theme-light .sde-thub-stat.miss { color: #9c5210; }
 body.theme-light .sde-thub-stat.part { color: #8a6210; }
-body.theme-light .sde-thub-cat-count,
-body.theme-light .sde-thub-sub-count,
-body.theme-light .sde-thub-matrix-tag { background: rgba(0, 0, 0, 0.05); }
-body.theme-light .sde-thub-badge.ok   { color: #1e5c1e; background: rgba(60,120,60,0.14);  border-color: rgba(46,107,46,0.5); }
-body.theme-light .sde-thub-badge.imp  { color: #14507c; background: rgba(40,90,140,0.12);  border-color: rgba(29,94,143,0.5); }
-body.theme-light .sde-thub-badge.miss { color: #8a4a0e; background: rgba(150,90,30,0.12);  border-color: rgba(156,82,16,0.5); }
-body.theme-light .sde-thub-badge.warn { color: #8a5a00; background: rgba(190,120,30,0.14); border-color: rgba(170,110,20,0.55); }
+
 body.theme-light .sde-thub-link {
   color: #14507c;
   background: rgba(40, 90, 140, 0.12);
   border-color: rgba(29, 94, 143, 0.55);
 }
-body.theme-light .sde-import-seed { background: rgba(40, 90, 140, 0.10); }
-body.theme-light .sde-import-seed i { color: #1d5e8f; }
-body.theme-light .sde-import-seed-tag { background: rgba(0, 0, 0, 0.08); }
+
 body.theme-light .sde-browse-atk-melee   { color: #b04020; }
 body.theme-light .sde-browse-atk-ranged  { color: #1d5e8f; }
 body.theme-light .sde-browse-atk-special { color: #9c6210; }
@@ -4563,19 +4352,6 @@ body.theme-light .sde-hub-monsters-row td {
   gap: 0.6rem;
   padding: 0.25rem 0;
 }
-.sde-import-label {
-  font-family: var(--sde-bar-font);
-  color: var(--sde-bar-text);
-  font-weight: 600;
-}
-.sde-import-note {
-  font-family: var(--sde-bar-font);
-  color: var(--sde-bar-text);
-  opacity: 0.75;
-  font-size: 0.82rem;
-  margin: 0;
-}
-.sde-import-note i { opacity: 0.7; margin-right: 0.25rem; }
 
 .sde-thub-missing-note {
   opacity: 0.9;
@@ -4585,27 +4361,6 @@ body.theme-light .sde-hub-monsters-row td {
   background: rgba(200, 161, 58, 0.08);
   border-radius: 0 4px 4px 0;
   line-height: 1.4;
-}
-.sde-import-text {
-  width: 100%;
-  min-height: 8rem;
-  resize: vertical;
-  background: var(--sde-bar-input-bg);
-  color: var(--sde-bar-text-bright);
-  border: 1px solid var(--sde-bar-border);
-  border-radius: 4px;
-  padding: 0.5rem;
-  font-family: monospace;
-  font-size: 0.85rem;
-}
-.sde-import-text:focus-visible {
-  outline: 2px solid var(--sde-bar-accent);
-  outline-offset: 1px;
-}
-.sde-import-controls {
-  display: flex;
-  gap: 0.5rem;
-  align-items: center;
 }
 
 .sde-import-primary {
@@ -4618,84 +4373,11 @@ body.theme-light .sde-hub-monsters-row td {
   color: var(--sde-bar-text);
 }
 
-.sde-import-empty {
-  color: var(--sde-bar-text-muted);
-  font-style: italic;
-}
-.sde-import-preview {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-}
 .sde-thub .sde-import-table {
   border: 1px solid var(--sde-bar-border);
   border-radius: 5px;
   background: var(--sde-bar-bg-alt);
   padding: 0.5rem 0.6rem;
-}
-.sde-thub .sde-import-table-head {
-  display: flex;
-  gap: 0.4rem;
-  align-items: center;
-  flex-wrap: wrap;
-  margin-bottom: 0.4rem;
-}
-.sde-import-name { flex: 1 1 12rem; }
-.sde-import-formula { flex: 0 0 6rem; }
-.sde-import-name,
-.sde-import-formula,
-.sde-import-rowtext,
-.sde-import-num {
-  background: var(--sde-bar-input-bg);
-  color: var(--sde-bar-text-bright);
-  border: 1px solid var(--sde-bar-border);
-  border-radius: 3px;
-  padding: 0.2rem 0.35rem;
-  font-family: var(--sde-bar-font);
-}
-.sde-import-repl {
-  display: flex;
-  align-items: center;
-  gap: 0.25rem;
-  color: var(--sde-bar-text-muted);
-  font-size: 0.8rem;
-}
-.sde-import-flag {
-  color: var(--sde-bar-accent);
-  font-size: 0.8rem;
-  margin: 0.2rem 0;
-}
-.sde-import-warnings {
-  margin: 0.2rem 0;
-  padding-left: 1.1rem;
-  color: var(--sde-bar-text-muted);
-  font-size: 0.78rem;
-}
-.sde-import-rows {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-}
-.sde-import-row {
-  display: flex;
-  align-items: center;
-  gap: 0.3rem;
-}
-.sde-import-num { width: 3.2rem; text-align: center; }
-.sde-import-dash { color: var(--sde-bar-text-muted); }
-.sde-import-rowtext { flex: 1 1 auto; }
-.sde-import-del {
-  background: transparent;
-  color: var(--sde-bar-text-muted);
-  border: none;
-  cursor: pointer;
-}
-.sde-import-del:hover { color: var(--sde-bar-accent); }
-.sde-import-addrow {
-  margin-top: 0.4rem;
-  background: var(--sde-bar-bg-hover);
-  color: var(--sde-bar-text);
-  border: 1px dashed var(--sde-bar-border);
 }
 
 /* ── Compound generator chat card ─────────────────────────────────────────── */
@@ -4726,35 +4408,6 @@ body.theme-light .sde-hub-monsters-row td {
 }
 .sde-cg-label { flex: 0 0 auto; opacity: 0.7; font-style: italic; }
 .sde-cg-text { flex: 1 1 auto; }
-.sde-import-cat,
-.sde-import-customcat {
-  background: var(--sde-bar-input-bg);
-  color: var(--sde-bar-text-bright);
-  border: 1px solid var(--sde-bar-border);
-  border-radius: 3px;
-  padding: 0.2rem 0.35rem;
-  font-family: var(--sde-bar-font);
-}
-.sde-import-cat { flex: 0 0 auto; }
-.sde-import-customcat { flex: 1 1 8rem; }
-.sde-import-link {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.25rem;
-  padding: 0.1rem 0.4rem;
-  border-radius: 3px;
-  background: var(--sde-bar-bg-hover);
-  color: var(--sde-bar-accent);
-  font-size: 0.78rem;
-  white-space: nowrap;
-}
-.sde-import-unlink {
-  background: transparent;
-  color: var(--sde-bar-text-muted);
-  border: none;
-  cursor: pointer;
-}
-.sde-import-unlink:hover { color: var(--sde-bar-accent); }
 
 /* ─── Monster Importer (bulk statblock → NPC actors) ─────────────────── */
 
@@ -5080,10 +4733,10 @@ body.theme-light .sde-hub-monsters-row td {
 .sde-loot-picker-item .sde-loot-setup-unlock { flex: 0 0 auto; width: auto; margin: 0; white-space: nowrap; }
 
 /* ─── Audit P2-3: shared minimum hit size for GM-window icon buttons ─────── */
-.sde-import-del,
 .sde-stepper button,
 .sde-spell-chip-remove,
-.sde-forge-add, .sde-forge-remove,
+.sde-forge-add,
+.sde-forge-remove,
 .sde-reroll-btn {
   min-width: 24px;
   min-height: 24px;
@@ -7765,45 +7418,25 @@ body.theme-light .sde-strip-combat-controls { background: #f4f1ec !important; }
 /* ---- Token Art Manager (monster-art) ---------------------------------- */
 .sde-token-art-manager .window-content { padding: 0; }
 .sde-tam { display: flex; flex-direction: column; height: 100%; gap: 0; }
-/* Stacked, not side by side. Five nowrap buttons demanded ~520px of a 720px
-   window, so the blurb was squeezed into a ~180px column twelve lines tall and
-   the space beside the buttons sat empty. Full width it is three lines, and the
-   button row wraps instead of starving the text. */
-.sde-tam-head { display: flex; flex-direction: column; gap: 8px; padding: 10px 12px; border-bottom: 1px solid var(--color-border-light-2, #666); }
-.sde-tam-blurb { font-size: 12px; line-height: 1.35; opacity: 0.9; }
-/* Four lines you read once. `list-style: revert` restores the disclosure marker
-   Foundry's reset strips; closed, the header is the summary line alone. */
-.sde-tam-blurb-title { cursor: pointer; list-style: revert; user-select: none; font-weight: 600; opacity: 0.85; }
-.sde-tam-blurb-title:hover { color: var(--sde-gold, #c9aa58); }
-.sde-tam-blurb[open] .sde-tam-blurb-title { margin-bottom: 4px; }
-.sde-tam-actions { display: flex; flex-wrap: wrap; gap: 6px; }
-.sde-tam-actions button { white-space: nowrap; }
-.sde-tam-apply { font-weight: 600; }
+
 .sde-tam-dim { opacity: 0.6; font-weight: 400; font-size: 11px; }
 
-.sde-tam-folders { padding: 6px 12px; border-bottom: 1px solid var(--color-border-light-2, #666); }
-.sde-tam-folders-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 4px; }
-.sde-tam-folder-add { white-space: nowrap; display: inline-flex; align-items: center; gap: 4px; font-size: 11px; padding: 3px 8px; }
 .sde-tam-folder { display: flex; align-items: center; gap: 8px; min-width: 0; padding: 2px 0; }
-.sde-tam-folder-name { flex: 0 0 170px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
 .sde-tam-folder-path { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 11px; opacity: .75; }
 .sde-tam-folder > button { width: 24px; height: 22px; padding: 0; line-height: 1; flex: 0 0 auto; }
 .sde-tam-folder > button:hover { color: var(--sde-gold, #c9aa58); }
-.sde-tam-folder-empty { font-size: 11px; opacity: .6; font-style: italic; padding: 2px 0; }
+
 .sde-tam-folder-form { display: flex; flex-direction: column; gap: 10px; padding: 4px 0; }
 .sde-tam-folder-form label { display: flex; flex-direction: column; gap: 4px; }
 .sde-tam-folder-form input { width: 100%; }
 .sde-tam-folder-form .notes { margin: 0; }
 
 .sde-tam-sources { padding: 6px 12px; border-bottom: 1px solid var(--color-border-light-2, #666); }
-/* A <summary>, so it carries the disclosure triangle and is keyboard-operable
-   without any of it being written here. `list-style: revert` restores the
-   marker that Foundry's reset strips. */
-.sde-tam-sources-title { font-weight: 600; margin-bottom: 4px; cursor: pointer; list-style: revert; user-select: none; }
-.sde-tam-sources-title:hover { color: var(--sde-gold, #c9aa58); }
+
 /* Closed, the panel is one line: drop the padding that assumed a list under it. */
 .sde-tam-sources:not([open]) { padding-bottom: 6px; }
-.sde-tam-sources:not([open]) .sde-tam-sources-title { margin-bottom: 0; }
+
 /* Draggable rows. The carets remain for keyboard use; dragging is the fast
    path, and the row is the drag handle so there is no 13px target to hit. */
 .sde-tam-source { display: flex; align-items: center; gap: 8px; padding: 2px 0; cursor: grab; border-radius: 3px; }
@@ -7813,28 +7446,16 @@ body.theme-light .sde-strip-combat-controls { background: #f4f1ec !important; }
 .sde-tam-source.drop-after { box-shadow: inset 0 -2px 0 var(--sde-gold, #c9aa58); }
 .sde-tam-grip { flex: 0 0 auto; opacity: 0.35; font-size: 11px; }
 .sde-tam-source:hover .sde-tam-grip { opacity: 0.8; color: var(--sde-gold, #c9aa58); }
-.sde-tam-rank { display: flex; flex-direction: column; gap: 1px; }
-/* Was 20x13 — too small to hit reliably, which is what drag now solves. */
-.sde-tam-rank button { width: 22px; height: 16px; min-height: 0; flex: 0 0 auto; line-height: 1; padding: 0; margin: 0; border: none; background: transparent; cursor: pointer; opacity: 0.75; font-size: 12px; }
-.sde-tam-rank button:hover:not(:disabled) { opacity: 1; color: var(--sde-gold, #c9aa58); }
-.sde-tam-rank button:disabled { opacity: 0.2; cursor: default; }
-.sde-tam-source-name { flex: 1; font-weight: 600; }
+
 .sde-tam-source-used { min-width: 34px; text-align: right; font-variant-numeric: tabular-nums; color: var(--sde-gold, #c9aa58); font-weight: 700; }
 
-.sde-tam-toolbar { display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-bottom: 1px solid var(--color-border-light-2, #666); }
-.sde-tam-toolbar input[name="filter"] { flex: 1; }
-.sde-tam-toggle { display: flex; align-items: center; gap: 5px; white-space: nowrap; font-size: 12px; }
-.sde-tam-toggle input { flex: 0 0 auto; }
 .sde-tam-count { font-variant-numeric: tabular-nums; opacity: 0.7; font-size: 12px; }
 
 .sde-tam-list { flex: 1; overflow-y: auto; padding: 4px 12px 12px; }
 .sde-tam-row { display: flex; align-items: center; gap: 10px; padding: 4px 6px; border-radius: 4px; }
 .sde-tam-row:nth-child(odd) { background: rgba(0,0,0,0.04); }
 .sde-tam-row.is-override { background: rgba(201, 170, 88, 0.12); }
-.sde-tam-name { flex: 1; font-weight: 600; display: flex; align-items: center; gap: 6px; }
-.sde-tam-name .fa-thumbtack { font-size: 11px; color: var(--sde-gold, #c9aa58); cursor: pointer; }
-.sde-tam-imported { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: var(--sde-gold, #c9aa58); border: 1px solid rgba(201, 170, 88, 0.5); border-radius: 3px; padding: 0 4px; opacity: .85; }
-.sde-tam-opts { display: flex; gap: 6px; }
+
 .sde-tam-opt { position: relative; width: 46px; height: 46px; padding: 0; border: 2px solid transparent; border-radius: 6px; background: rgba(0,0,0,0.12); cursor: pointer; overflow: hidden; flex: 0 0 auto; }
 .sde-tam-opt img { width: 100%; height: 100%; object-fit: contain; display: block; }
 .sde-tam-opt:hover { border-color: var(--color-border-highlight, #ff9); }
@@ -9909,20 +9530,6 @@ button.sde-hud-day:hover { border-color: var(--sd-frame); }
   color: var(--color-level-error, #b3261e);
 }
 
-/* Adventure placer: the keyed-location list over an adventure map scene. */
-.sde-advp { display: flex; flex-direction: column; gap: 6px; height: 100%; }
-.sde-advp-head { display: flex; flex-direction: column; gap: 4px; }
-.sde-advp-summary { font-size: 0.85rem; opacity: 0.8; }
-.sde-advp-hint { margin: 0; font-size: 0.85rem; opacity: 0.8; min-height: 2.2em; }
-.sde-advp-actions { display: flex; gap: 6px; }
-.sde-advp-rows { list-style: none; margin: 0; padding: 0; overflow-y: auto; flex: 1; }
-.sde-advp-row { display: grid; grid-template-columns: 1fr auto auto auto auto; gap: 4px; align-items: center; padding: 2px 4px; border-bottom: 1px solid rgba(128, 128, 128, 0.25); }
-.sde-advp-row button { width: 26px; height: 26px; padding: 0; line-height: 1; }
-.sde-advp-row.is-placed .sde-advp-name { opacity: 0.6; }
-.sde-advp-row.is-skipped .sde-advp-name { opacity: 0.45; text-decoration: line-through; }
-.sde-advp-row.is-armed { background: rgba(255, 200, 0, 0.18); }
-.sde-advp-state { font-size: 0.75rem; opacity: 0.7; }
-
 /* ── Bastion actor sheet ────────────────────────────────────────────────────
  * An ApplicationV2 window in the Shadowdark parchment chrome, like the Boat's
  * (the .SD-header / .SD-nav / .SD-box rules come from the system's stylesheet
@@ -10263,7 +9870,7 @@ button.sde-hud-day:hover { border-color: var(--sd-frame); }
 .sde-dialog.dlg-choices .form-footer button.default > i { color: inherit; }
 .sde-dialog.dlg-choices .form-footer button.ghost { justify-content: center; height: 30px; background: transparent; border-color: transparent; color: var(--ui-muted); }
 
-/* ═══ Importer windows (Importer Hub, Class Importer, Monster Importer, Spell Importer, Item Builder) ═══
+/* ═══ Importer windows (Importer Hub, Class, Monster, Spell, Item Builder, Roll Tables, Adventure Placer, Token Art Manager) ═══
    Kit parts come from styles/sde-ui.css; these are the parts the kit does not have yet. Window roots carry
    "sde-ui sde-imp", and every rule hangs off .sde-imp so nothing reaches another window. Tokens only. */
 .sde-imp .imp-art { display: flex; align-items: center; justify-content: center; color: var(--ui-muted); font-size: 22px; }
@@ -10397,6 +10004,61 @@ button.sde-hud-day:hover { border-color: var(--sd-frame); }
   .sde-imp .imp-spellrow > .imp-tier { grid-row: 2; grid-column: 1; }
   .sde-imp .imp-spellrow > input { grid-row: 2; grid-column: 2; }
   .sde-imp .imp-spellrow > select { grid-row: 2; grid-column: 3; }
+}
+
+.sde-imp .sde-mtree-entry.is-present { cursor: pointer; }
+.sde-imp .sde-mtree-entry.is-present:hover { background: var(--ui-hover); }
+.sde-imp .sde-cu-titles input { width: 100%; min-width: 4rem; }
+.sde-imp .sde-tam { height: auto; }
+.sde-imp .sde-thub .imp-search { flex: 1 1 180px; min-width: 150px; }
+.sde-imp .imp-blurb { font-size: 12.5px; line-height: 1.45; }
+.sde-imp .sde-tam-row { padding: 6px 10px; border-radius: 0; background: transparent; }
+.sde-imp .sde-tam-row:nth-child(odd) { background: transparent; }
+.sde-imp .sde-tam-row.is-override { background: var(--ui-raised); }
+.sde-imp .sde-tam-list { padding: 0; overflow: visible; }
+.sde-imp .imp-opts { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 6px; flex: 0 1 auto; }
+.sde-imp .sde-tam-opt { width: 44px; height: 44px; border: 2px solid var(--ui-line); border-radius: var(--ui-r2); background: var(--ui-raised); }
+.sde-imp .sde-tam-opt:hover { border-color: var(--ui-frame); }
+.sde-imp .sde-tam-opt.is-chosen { border-color: var(--ui-gold); box-shadow: none; }
+.sde-imp .sde-tam-check { background: var(--ui-gold); color: var(--ui-page); }
+.sde-imp .sde-tam-nomatch { font-style: italic; }
+.sde-imp .sde-tam-source { cursor: grab; }
+.sde-imp .sde-tam-grip { color: var(--ui-muted); }
+.sde-imp .sde-tam-folder-path { background: transparent; padding: 0; overflow-wrap: anywhere; }
+.sde-imp .sde-tam-browse { align-self: center; margin-left: 0; padding: 0; border: 1px solid transparent; background: transparent; font-size: 12px; }
+.sde-imp .sde-tam-browser { background: var(--ui-page); border: 1px solid var(--ui-frame); box-shadow: var(--ui-shadow); }
+.sde-imp .sde-tam-browser-head { border-bottom: 1px solid var(--ui-line); }
+.sde-imp .sde-tam-browser-title { font: 400 17px/1 var(--ui-title); color: var(--ui-text); }
+.sde-imp .sde-tam-bgroup-head { background: var(--ui-page); color: var(--ui-gold); border-bottom: 1px solid var(--ui-line); }
+.sde-imp .sde-tam-browser-zoom { accent-color: var(--ui-frame); }
+.sde-imp .sde-tam-browser-status { padding: 6px 12px; border-top: 1px solid var(--ui-line); }
+.sde-imp .ui-footer.imp-wrap { flex-wrap: wrap; }
+.sde-imp .sde-thub .imp-paste { min-height: 200px; }
+.sde-imp .sde-thub .ui-h.plain { font: 700 13px/1.2 var(--ui-font); color: var(--ui-muted); text-transform: uppercase; letter-spacing: .05em; }
+.sde-imp .imp-count { margin-left: auto; }
+.sde-imp .ui-row .ui-chip, .sde-imp .ui-row .ui-tag { flex: 0 0 auto; }
+.sde-imp .sde-thub-row.sde-thub-openable { cursor: pointer; }
+.sde-imp .ui-shell.sde-thub { padding: 0; gap: 0; max-height: none; overflow: visible; }
+.sde-imp .sde-thub-row { background: transparent; border-radius: 0; padding: 6px 10px; }
+.sde-imp .sde-thub-cat { border-bottom: 1px solid var(--ui-line); }
+.sde-imp .sde-thub-sub { margin: 0; }
+.sde-imp .sde-thub-tabs { gap: 2px; padding: 6px 12px 0; }
+.sde-imp .sde-thub-tabs .item { border: 0; border-bottom: 3px solid transparent; padding: 6px 14px; opacity: 1; }
+.sde-imp .sde-thub-tabs .item.active { border-bottom-color: var(--ui-frame); background: var(--ui-panel); }
+.sde-imp .ui-title.imp-small { font-size: 19px; }
+.sde-imp .imp-tight { padding: 10px; gap: 10px; }
+.sde-imp .imp-placerow { min-height: 38px; gap: 8px; padding: 4px 8px; }
+.sde-imp .imp-placerow .ui-card-actions { gap: 2px; }
+.sde-imp .imp-placerow.is-skipped .ui-row-name { text-decoration: line-through; color: var(--ui-muted); }
+.sde-imp .ui-footer.imp-wrap { padding: 8px 10px; gap: 6px; }
+.sde-imp .ui-footer .ui-btn { padding: 0 9px; }
+@container (max-width: 640px) {
+  .sde-imp .ui-row.sde-thub-row { flex-wrap: wrap; }
+  .sde-imp .ui-row.sde-thub-row .ui-row-main { flex-basis: 100%; }
+}
+@container (max-width: 560px) {
+  .sde-imp .ui-row.sde-tam-row { flex-wrap: wrap; }
+  .sde-imp .ui-row.sde-tam-row .imp-opts { justify-content: flex-start; flex-basis: 100%; order: 3; }
 }
 
 /* Camping window (kit parts come from styles/sde-ui.css): hairline rows on the page, no cards. */

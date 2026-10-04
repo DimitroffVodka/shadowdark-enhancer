@@ -1,7 +1,7 @@
 # Shadowdark Enhancer — File Inventory
 
 <!-- inventory:stats:start -->
-1715 tracked files · ~222,000 lines of code/markup across scripts+templates+styles+test.
+1716 tracked files · ~221,700 lines of code/markup across scripts+templates+styles+test.
 `v0.17.3` in both `module.json` and `package.json`.
 <!-- inventory:stats:end -->
 **Layout reflects the 2026-07-21 feature-folder reorganization (v0.11.0 cycle).**
@@ -337,7 +337,7 @@
 | `tables/table-importer.mjs` | 3968 | Roll-table text → structure. The big one; includes `repairSharedStartRanges`. |
 | `tables/table-shapes.mjs` | 860 | Per-unlock deterministic table SHAPE recipes (prayer/grid/lookup/reflow kinds). |
 | `tables/table-hub.mjs` | 449 | Reconciles the shipped manifest against the live world (system / imported / missing). |
-| `tables/table-hub-app.mjs` | 596 | "Set up ALL tables" window — dashboard + import view. |
+| `tables/table-hub-app.mjs` | 597 | "Set up ALL tables" window — dashboard + import view. |
 | `tables/table-registry.mjs` | 209 | Parses live tables into `{source, page, displayName, subCategory}` and groups them. |
 | `tables/table-seed-map.mjs` | 240 | Generated table-name → group-id seed map. |
 | `tables/table-structure-seeds.mjs` | 2106 | Structure-only seeds (formulas, folders, flags, chain links). |
@@ -464,7 +464,7 @@
 | `imported-monster-art.mjs` | 830 | N6's exact source-aware curated art map and F4's Foundry-free pick-state planner; missing rows stay available to Browse. |
 | `monster-token-art.mjs` | 727 | Applies licensed art to monsters **by path reference**, never bundled. |
 | `token-art-catalog.mjs` | 1104 | Name→art matching catalog. |
-| `token-art-manager-app.mjs` | 709 | GM window to review/apply matches. |
+| `token-art-manager-app.mjs` | 726 | GM window to review/apply matches. |
 | `token-art-manager-state.mjs` | 79 | Normalizes the persistent Token Art Manager state and named Browse folders. |
 
 ### 3.16 `scripts/pdf-export/`

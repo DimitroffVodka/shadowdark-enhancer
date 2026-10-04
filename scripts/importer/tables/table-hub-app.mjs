@@ -28,6 +28,7 @@ const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 export class RollTablesApp extends HandlebarsApplicationMixin(ApplicationV2) {
   static DEFAULT_OPTIONS = {
     id: "sde-roll-tables",
+    classes: ["sde-ui", "sde-imp"],
     window: { title: "SDE.importer.tableHub.title", icon: "fas fa-table-list", resizable: true },
     position: { width: 820, height: 720 },
     actions: {

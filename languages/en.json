@@ -2695,7 +2695,6 @@
   "SDE.importer.tableHub.pasteGridTip": "Paste the grid once — it splits into {n} tables",
   "SDE.importer.tableHub.importAllN": "Import all {n}",
   "SDE.importer.tableHub.inSystem": "In system",
-  "SDE.importer.tableHub.worldTip": "Matched world table — confirm it's the right one",
   "SDE.importer.tableHub.rowsTip": "Imported table has {actual} rows; expected {expected}",
   "SDE.importer.tableHub.rowsCount": "{actual}/{expected} rows",
   "SDE.importer.tableHub.reimportTip": "Row count doesn't match the book — re-import from your copy",
@@ -5610,5 +5609,7 @@
   "SDE.importer.ui.monsterSub": "Paste stat blocks from your book, check the parsed fields, then create the monsters.",
   "SDE.importer.ui.monsterPastePlaceholder": "ENHANCED SYNTHETIC\nA glass-and-brass training construct built to exercise the importer.\nAC 13, HP 9, ATK 1 calibration beam +3 (1d6), MV near, S +1, D +2, C +1, I +0, W +0, Ch -2, AL N, LV 2\nAdaptive Plating. Gains +1 AC after it is hit, until the start of its next turn.",
   "SDE.importer.ui.spellSub": "Pick a spell list, paste the spells, check how they were sorted, then import.",
-  "SDE.importer.ui.itemSub": "Paste a price table and the descriptions, match them up, then create the items."
+  "SDE.importer.ui.itemSub": "Paste a price table and the descriptions, match them up, then create the items.",
+  "SDE.importer.ui.tableSub": "See which roll tables are in the system, imported or still missing, and import the rest.",
+  "SDE.importer.ui.tamSub": "Choose which installed art skins each monster, then apply."
 }

@@ -9,6 +9,7 @@
   redesign. No window uses it yet, so nothing looks different.
 
 ### Changed
+- **Roll Tables, Adventure Placer and Token Art Manager use the new design.** Token Art Manager has Monsters and Sources tabs and a row count that is right on first open, and the Adventure Placer is a list of locations with place, skip and clear buttons.
 - **Importer Hub, Class Importer, Monster Importer, Spell Importer and Item Builder use the new design.** The hub has Paste, Preview, Manage and Tools tabs (Parse opens Preview, Tools is a list instead of a popover), and its preview cards stay open or closed as you left them.
 - **Carousing window uses the new design.** One tier select for the party at the top, one shared-cost line (total, headcount, each person's share), a Joining switch and the result for each character.
 - **Camping window uses the new design.** Hairline rows on the shared UI kit, a ration count next to the ham hock icon, a Ready button, and no gold.
