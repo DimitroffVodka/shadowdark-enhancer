@@ -5,7 +5,7 @@ import { Party, isNativeParty, isLegacyParty } from "./party.mjs";
 import { offerParty } from "./party-create-option.mjs";
 import { scopedQuests } from "./party-core.mjs";
 import { fillFormation } from "./party-movement-core.mjs";
-import { marchState, marchText, partyTabs, tabRow, resolveTab, sheetView, gemSummary, linkedBastion, lastMonthEntry, roomIcon, lightReadout, rationsCount, torchCount, carriesLight, luckCount, statusBar, COIN_REFUSALS, coinsOf, coinText, poolAfterAdd, planGive, planDivide, purseAfter } from "./party-sheet-core.mjs";
+import { marchState, marchText, partyTabs, tabRow, resolveTab, sheetView, gemSummary, linkedBastion, lastMonthEntry, roomIcon, lightReadout, rationsCount, torchCount, carriesLight, luckCount, statusBar, COIN_REFUSALS, coinsOf, coinText, poolAfterAdd, planGive, planDivide, purseAfter, spellTiers, whoSelection, whoAfter, ROLL_STATS, ROLL_STAT_LABELS, DEFAULT_DC } from "./party-sheet-core.mjs";
 import { EMBLEM_FLAG, emblemOf, emblemIconPath, emblemChoices, pickEmblem } from "./party-emblem-core.mjs";
 import { BASTION_TYPE } from "../bastion/bastion-art.mjs";
 import { stateOf as bastionState, stats as bastionStats, upgradeOf } from "../bastion/bastion-core.mjs";
@@ -15,6 +15,7 @@ import { Quests, QUESTS_CHANGED } from "../quests/quests.mjs";
 import { QuestLogApp } from "../quests/quest-log-app.mjs";
 import { replaceModuleFlag } from "../shared/module-flags.mjs";
 import { PartyItemPicker } from "./party-item-picker.mjs";
+import { postRollRequest } from "./party-roll.mjs";
 
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
@@ -68,6 +69,8 @@ export class PartyApp extends HandlebarsApplicationMixin(ApplicationV2) {
         this.openKeys.delete("addItem"); this.render();
         PartyItemPicker.open({ onPick: (entry) => this._change(async () => this._addItemFrom(await fromUuid(entry.uuid))) });
       },
+      requestRoll: function () { return this._requestRoll(); },
+      awardParty: function () { return this._awardParty(); },
       quantity: function (_event, el) { return this._change(async () => { const item = this.actor?.items.get(el.dataset.id); if (!this.actor?.isOwner || !item) return; await item.update({ "system.quantity": Math.max(0, Number(item.system.quantity ?? 1) + Number(el.dataset.delta)) }); }); },
       editDescription: function () { if (this.actor?.isOwner) { this.editingDescription = true; this.render(); } },
       cancelDescription: function () { this.editingDescription = false; this.render(); },
@@ -195,6 +198,25 @@ export class PartyApp extends HandlebarsApplicationMixin(ApplicationV2) {
     await item.delete();
     ui.notifications.info(sayWith("SDE.party.item.gave", { item: item.name, name: target.name }));
   }
+  /** The GM bar's fields, kept through a re-render: the ability, the DC as typed (blank: none), who is ticked (null: all PCs), the XP. */
+  _form() { return (this.rollForm ??= { stat: "str", dc: String(DEFAULT_DC), who: null, xp: "" }); }
+  /** The PCs the Who list has ticked. */
+  _asked() { const pcs = this._pcs(); const { uuids } = whoSelection(pcs.map((row) => row.uuid), this._form().who); return pcs.filter((row) => uuids.includes(row.uuid)); }
+  /** Request roll: one chat card with a Roll link for each PC ticked. */
+  async _requestRoll() {
+    if (!game.user?.isGM || !this.actor?.isOwner) return;
+    const form = this._form();
+    await postRollRequest({ stat: form.stat, dc: form.dc, targets: this._asked().map((row) => ({ uuid: row.uuid, name: row.actor.name })) });
+  }
+  /** Award XP: the typed amount, in full, to each PC ticked (the party XP tool's rules and chat card). */
+  async _awardParty() {
+    if (!game.user?.isGM || !this.actor?.isOwner) return;
+    const asked = this._asked();
+    if (!asked.length) return ui.notifications.warn(t("SDE.party.roll.noTargets"));
+    const { PartyXP } = await import("../party-xp/party-xp.mjs");
+    const done = await PartyXP.award(this._form().xp, { actorIds: asked.map((row) => row.actor.id) });
+    if (done) { this._form().xp = ""; this.render(); }
+  }
   /** One emblem pick (an icon, a tile colour or an icon colour; a colour may be any hex), written as one flag. The GM's alone. */
   _pickEmblem(pick) {
     if (!sheetView({ isGM: !!game.user?.isGM, canEdit: Party.canManage(this.actor) }).emblemEdit) return;
@@ -228,7 +250,7 @@ export class PartyApp extends HandlebarsApplicationMixin(ApplicationV2) {
           xp: { current: sys.level?.xp ?? 0, next: (sys.level?.value ?? 1) * 10 }, hpPercent: percent, showAbilities: !!a && ["characters", "hirelings"].includes(row.group) && !!sys.abilities,
           slots: { used: inventorySlots(items, sys.coins), max: sys.slots ?? 10 }, abilities: Object.fromEntries(["str", "dex", "con", "int", "wis", "cha"].map(key => [key, sys.abilities?.[key]?.mod ?? 0])),
           abilityLabels: Object.fromEntries(["str", "dex", "con", "int", "wis", "cha"].map(key => { const mod = sys.abilities?.[key]?.mod ?? 0; return [key, mod >= 0 ? `+${mod}` : String(mod)]; })),
-          luck: luckCount(sys.luck), lightOn: carriesLight(items), leader: row.uuid === data.leaderUuid };
+          luck: luckCount(sys.luck), lightOn: carriesLight(items), spellTiers: spellTiers(items), leader: row.uuid === data.leaderUuid };
       }));
       const visible = members.filter(m => !m.missing), players = members.filter(m => m.group === "characters");
       const coins = this.actor.flags?.[MODULE_ID]?.partyCoins ?? this.actor.flags?.["shadowdark-extras"]?.coins ?? { gp: 0, sp: 0, cp: 0 };
@@ -269,7 +291,13 @@ export class PartyApp extends HandlebarsApplicationMixin(ApplicationV2) {
         const member = rows.find(r => r.uuid === uuid)?.actor;
         slots.push({ row, col, uuid, name: member?.name, img: member?.img, leader: uuid === data.leaderUuid, disabled: !canEdit || !member });
       }
-      return { ...base, actor: this.actor, canEdit, owner: canEdit, players, members, memberCount: visible.length, coins, coinList, gems: gemBag.rows, gemTotal: gemBag.total, descriptionHTML, description, editingDescription: !!this.editingDescription,
+      const form = this._form(), pcs = players.filter(m => !m.missing), who = whoSelection(pcs.map(m => m.uuid), form.who);
+      const gmBar = view.isGM && pcs.length ? {
+        stats: ROLL_STATS.map(key => ({ key, label: t(ROLL_STAT_LABELS[key]), selected: key === form.stat })), dc: form.dc, xp: form.xp,
+        whoOpen: this.openKeys.has("who"), whoAll: who.all,
+        whoLabel: who.all ? t("SDE.party.roll.whoAll") : (pcs.filter(m => who.uuids.includes(m.uuid)).map(m => m.name).join(", ") || t("SDE.party.roll.whoNone")),
+        pcs: pcs.map(m => ({ uuid: m.uuid, name: m.name, checked: who.uuids.includes(m.uuid) })) } : null;
+      return { ...base, gmBar, actor: this.actor, canEdit, owner: canEdit, players, members, memberCount: visible.length, coins, coinList, gems: gemBag.rows, gemTotal: gemBag.total, descriptionHTML, description, editingDescription: !!this.editingDescription,
         activityHTML, questHTML, campingActive: this.activity !== "carousing", carousingActive: this.activity === "carousing",
         inventorySlots: { used: slotsUsed, max: slotsMax, over: slotsUsed > slotsMax }, coinSlots: Math.floor(["gp", "sp", "cp"].reduce((n, key) => n + coinList.find(c => c.key === key).value, 0) / 100),
         receivers: players.filter(m => !m.missing).map(m => ({ uuid: m.uuid, name: m.name })),
@@ -315,6 +343,13 @@ export class PartyApp extends HandlebarsApplicationMixin(ApplicationV2) {
       };
       globalThis.document?.addEventListener("pointerdown", this._pickerAway, true);
     }
+    // The GM bar: its fields are kept through a re-render, and the Who list changes who the roll and the XP go to.
+    const form = this._form(), pcUuids = () => this._pcs().map((row) => row.uuid);
+    this.element.querySelector("[data-roll-stat]")?.addEventListener("change", (event) => { form.stat = event.target.value; });
+    this.element.querySelector("[data-roll-dc]")?.addEventListener("input", (event) => { form.dc = event.target.value; });
+    this.element.querySelector("[data-award-xp]")?.addEventListener("input", (event) => { form.xp = event.target.value; });
+    this.element.querySelector("[data-roll-all]")?.addEventListener("change", (event) => { form.who = whoAfter(pcUuids(), form.who, { all: true, on: event.target.checked }); this.render(); });
+    for (const box of this.element.querySelectorAll("[data-roll-member]")) box.addEventListener("change", () => { form.who = whoAfter(pcUuids(), form.who, { uuid: box.value, on: box.checked }); this.render(); });
     // An open menu or form stays open through a re-render (a hook, a typed number) until its action closes it.
     for (const details of this.element.querySelectorAll("details[data-open-key]")) details.addEventListener("toggle", () => { this.openKeys[details.open ? "add" : "delete"](details.dataset.openKey); });
     // A custom emblem colour: the colour well and its hex field both pick it; a half-typed hex waits until it is six digits.
@@ -399,7 +434,7 @@ export class PartySheet extends HandlebarsApplicationMixin(foundry.applications.
   }
   _onClose(options) { for (const [name, id] of this._hooks ?? []) Hooks.off(name, id); this._hooks = null; globalThis.document?.removeEventListener("pointerdown", this._pickerAway, true); return super._onClose(options); }
 }
-for (const name of ["_prepareContext", "_change", "_pickEmblem", "_pool", "_coinInputs", "_pcs", "_refuse", "_settle", "_coinLabel", "_addCoins", "_giveCoins", "_divideCoins", "_addItemFrom", "_giveItem", "_quests", "_bastion", "_travel", "_hookTravel", "_bindControls", "_activityController", "_questController", "_onStateChanged"]) PartySheet.prototype[name] = PartyApp.prototype[name];
+for (const name of ["_prepareContext", "_change", "_pickEmblem", "_pool", "_coinInputs", "_pcs", "_refuse", "_settle", "_coinLabel", "_addCoins", "_giveCoins", "_divideCoins", "_addItemFrom", "_giveItem", "_quests", "_bastion", "_travel", "_hookTravel", "_bindControls", "_activityController", "_questController", "_onStateChanged", "_form", "_asked", "_requestRoll", "_awardParty"]) PartySheet.prototype[name] = PartyApp.prototype[name];
 
 /** Only native/adopted flagged Parties route here; ordinary NPC sheets stay intact. */
 export function registerParty() {

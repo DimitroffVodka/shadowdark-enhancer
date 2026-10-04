@@ -617,3 +617,45 @@ test("the Items tab has slots used / max, the Add item menu, Give to, Treasury b
   const context = await t.app._prepareContext();
   assert.deepEqual(context.inventorySlots, { used: 1, max: 10, over: false });
 });
+
+test("the GM bar is the GM's alone, defaults to every PC and DC 12, and the spell rows come from the caster's Spell items", async () => {
+  const t = treasury();
+  const caster = t.pcs[0];
+  caster.items.contents = [
+    { id: "s1", name: "Light", img: "l.webp", type: "Spell", system: { tier: 1 } },
+    { id: "s2", name: "Fireball", img: "f.webp", type: "Spell", system: { tier: 3, lost: true } },
+  ];
+  const context = await t.app._prepareContext();
+  assert.equal(context.gmBar.dc, "12");
+  assert.equal(context.gmBar.whoAll, true);
+  assert.deepEqual(context.gmBar.pcs.map((pc) => pc.name), ["a", "b", "c"], "PCs only: no hireling or mount to ask");
+  assert.deepEqual(context.gmBar.stats.map((s) => s.key), ["str", "dex", "con", "int", "wis", "cha"]);
+  assert.deepEqual(context.members.find((m) => m.name === "a").spellTiers.map((x) => [x.tier, x.spells.map((s) => s.lost)]), [[1, [false]], [3, [true]]]);
+  const player = treasury({ isGM: false });
+  assert.equal((await player.app._prepareContext()).gmBar, null);
+});
+
+test("Request roll posts one card with a link for each PC ticked, and nothing with nobody ticked", async () => {
+  const t = treasury();
+  const posted = [];
+  globalThis.ChatMessage = { create: async (data) => { posted.push(data); return data; } };
+  globalThis.ui = { notifications: { warn: () => {} } };
+  const form = t.app._form();
+  form.stat = "dex"; form.dc = ""; form.who = ["Actor.a", "Actor.c"];
+  await act(t.app, "requestRoll");
+  assert.equal(posted.length, 1);
+  assert.deepEqual(posted[0].flags[MOD].partyRoll, { stat: "dex", dc: null, targets: [{ uuid: "Actor.a", name: "a" }, { uuid: "Actor.c", name: "c" }] });
+  assert.equal((posted[0].content.match(/data-party-roll/g) ?? []).length, 2);
+  assert.ok(!/<button/.test(posted[0].content));
+  form.who = [];
+  await act(t.app, "requestRoll");
+  assert.equal(posted.length, 1);
+  const player = treasury({ isGM: false });
+  await act(player.app, "requestRoll");
+  assert.equal(posted.length, 1, "a player cannot post one");
+});
+
+test("the Members tab carries the GM bar and the spell rows in the markup", async () => {
+  const template = await readFile(new URL("../templates/party/party.hbs", import.meta.url), "utf8");
+  for (const marker of ['data-action="requestRoll"', 'data-action="awardParty"', "data-roll-dc", "data-roll-stat", "data-roll-member", 'class="sdp-spells"', "{{#if gmBar}}"]) assert.ok(template.includes(marker), marker);
+});

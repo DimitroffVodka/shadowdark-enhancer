@@ -29,6 +29,7 @@ import { registerCarousing, carousingOpen, carousingOf, requestCarousing } from 
 
 import { PartyApp, registerParty } from "./party/party-app.mjs";
 import { registerPartyMovement, requestMovement, configureMovement, movementStatus } from "./party/party-movement.mjs";
+import { registerPartyRoll } from "./party/party-roll.mjs";
 import { registerPartyHUD } from "./party/party-hud.mjs";
 import { registerPartyLight } from "./party/party-light.mjs";
 import { registerRoute } from "./overland/route.mjs";
@@ -142,7 +143,7 @@ const STYLESHEET_REV = "03b5b5bc40fc";
 // stale); module.json carries the same hash and is fetched fresh at runtime. A
 // mismatch is a stale cache by construction — it cannot be anything else. Both
 // stamps are written by `npm run inventory` and gated by `inventory:check`.
-const BUILD_REV = "793f5d452295";
+const BUILD_REV = "3bb2326c44dd";
 
 /**
  * Tell the user when their browser is running an old build of this module, and
@@ -431,6 +432,7 @@ Hooks.once("init", () => {
   registerParty();
   registerPartyMovement();
   registerPartyHUD();
+  registerPartyRoll();
   registerPartyLight();
   registerCamping();
   registerCarousing();

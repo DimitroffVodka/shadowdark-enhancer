@@ -43,6 +43,18 @@
 {{#if needsAdoption}}<button type="button" data-action="adopt">{{localize "SDE.party.adopt"}}</button>{{/if}}
 {{#if formationReview}}<p>{{localize "SDE.party.movement.review"}}</p>{{/if}}
 <div class="tab tab-members {{#if membersTab}}active{{/if}}">
+{{#if gmBar}}<div class="sdp-gm sdp-gmbar">
+	<details class="sdp-who" data-open-key="who" {{#if gmBar.whoOpen}}open{{/if}}><summary class="ui-btn" data-tooltip="{{gmBar.whoLabel}}"><span class="sdp-who-k">{{localize "SDE.party.roll.who"}}:</span> <span class="sdp-who-v">{{gmBar.whoLabel}}</span></summary><div class="sdp-who-list">
+		<label class="ui-check sdp-who-all"><input type="checkbox" data-roll-all {{#if gmBar.whoAll}}checked{{/if}}> {{localize "SDE.partyXp.selectAll"}}</label>
+		{{#each gmBar.pcs}}<label class="ui-check"><input type="checkbox" data-roll-member value="{{uuid}}" {{#if checked}}checked{{/if}}> {{name}}</label>{{/each}}
+	</div></details>
+	<select data-roll-stat aria-label="{{localize 'SDE.party.roll.stat'}}">{{#each gmBar.stats}}<option value="{{key}}" {{#if selected}}selected{{/if}}>{{label}}</option>{{/each}}</select>
+	<input type="number" data-roll-dc value="{{gmBar.dc}}" min="1" max="30" placeholder="{{localize 'SDE.party.roll.dc'}}" aria-label="{{localize 'SDE.party.roll.dc'}}">
+	<button type="button" class="ui-btn" data-action="requestRoll">{{localize "SDE.party.roll.request"}}</button>
+	<span class="sdp-sep"></span>
+	<input type="number" data-award-xp value="{{gmBar.xp}}" min="0" step="1" placeholder="{{localize 'SDE.party.award.xp'}}" aria-label="{{localize 'SDE.party.award.xp'}}">
+	<button type="button" class="ui-btn" data-action="awardParty">{{localize "SDE.partyXp.award"}}</button>
+</div>{{/if}}
 <div class="members-list">{{#each groups}}{{#if rows.length}}<h3 class="sdp-group">{{label}}</h3><div class="sdp-cards">{{#each rows as |member|}}
 <article class="sdp-card{{#if member.missing}} missing{{/if}}" data-uuid="{{member.uuid}}" data-member-id="{{member.memberKey}}">
 	<div class="sdp-portrait">
@@ -64,6 +76,7 @@
 		</div>{{/if}}
 		{{/unless}}
 	</div>
+	{{#if member.spellTiers.length}}<div class="sdp-spells">{{#each member.spellTiers}}<span class="sdp-tier"><b>{{localize "SDE.party.spells.tierShort" tier=tier}}</b>{{#each spells}}<span class="sdp-spell {{#if lost}}lost{{/if}}" data-tooltip="{{name}} - {{localize 'SDE.party.spells.tierShort' tier=../tier}}{{#if lost}} - {{localize 'SHADOWDARK.class-ability.lost.label'}}{{/if}}" aria-label="{{name}} {{localize 'SDE.party.spells.tierShort' tier=../tier}}{{#if lost}} {{localize 'SHADOWDARK.class-ability.lost.label'}}{{/if}}"><img src="{{img}}" alt=""></span>{{/each}}</span>{{/each}}</div>{{/if}}
 	{{#if member.canEdit}}<a class="sdp-remove" data-action="remove" data-uuid="{{member.uuid}}" data-tooltip="{{localize 'SDE.party.sheet.extras.remove_member'}}" aria-label="{{localize 'SDE.party.sheet.extras.remove_member'}}"><i class="fas fa-times"></i></a>{{/if}}
 </article>{{/each}}</div>{{/if}}{{/each}}{{#unless members.length}}<div class="sdp-empty {{#if canEdit}}drop{{/if}}"><i class="fas fa-users"></i><p>{{#if canEdit}}{{localize "SDE.party.sheet.dropMembers"}}{{else}}{{localize "SDE.party.noMembers"}}{{/if}}</p></div>{{/unless}}</div>
 </div>

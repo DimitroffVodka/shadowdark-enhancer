@@ -480,6 +480,7 @@
     "scripts/camping/camping-nutrition.mjs": "Actor/day whole-meal accounting, explicit personal-first Party backup, per-effect starvation and eligible normal-rest receipts across parties/reloads.",
     "scripts/camping/camping-app.mjs": "Camping controller hosted inline in Party Travel for native owner-choice task setup, food/fuel decisions and persistent results.",
     "scripts/camping/camping-cook.mjs": "Post-eligible-rest Cook seam and active-benefit-scoped native damage/healing/expiry compatibility.",
+    "scripts/party/party-roll.mjs": "Request roll from the Party sheet's GM bar: posts one chat card with a Roll link per character asked; the owner's click runs the system's ability check against the DC and posts pass or fail.",
     "scripts/party/party-core.mjs": "Pure versioned roster validation, membership permissions, groups and quest scoping.",
     "scripts/party/party-movement-core.mjs": "Fixed formation fill, follow ordering, heading turns, and the wall tests: centre-line placement and a breadth-first route round walls.",
     "scripts/party/party-sheet-core.mjs": "Pure Party sheet decisions: the tab row and view flags (GM vs player), the Marching order status line, Gems, the linked Bastion and its last month, and the Today / Light / Rations status bar.",

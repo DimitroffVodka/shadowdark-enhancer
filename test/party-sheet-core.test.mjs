@@ -1,7 +1,8 @@
 import { test } from "node:test";
 import { readFileSync } from "node:fs";
 import assert from "node:assert/strict";
-import { partyTabs, resolveTab, sheetView, marchState, gemSummary, gpText, linkedBastion, lastMonthEntry, roomIcon, ROOM_ICONS, MONTH_LOG_KEYS, terrainLabel, lightReadout, rationsCount, torchCount, carriesLight, luckCount, statusBar, COIN_REFUSALS, coinsOf, coinText, poolAfterAdd, planGive, planDivide, purseAfter, searchItemIndex, TAB_LABELS, TAB_ICONS, tabRow, movementMessageKey, marchText } from "../scripts/party/party-sheet-core.mjs";
+import { esc } from "../scripts/shared/esc.mjs";
+import { partyTabs, resolveTab, sheetView, marchState, gemSummary, gpText, linkedBastion, lastMonthEntry, roomIcon, ROOM_ICONS, MONTH_LOG_KEYS, terrainLabel, lightReadout, rationsCount, torchCount, carriesLight, luckCount, statusBar, COIN_REFUSALS, coinsOf, coinText, poolAfterAdd, planGive, planDivide, purseAfter, searchItemIndex, TAB_LABELS, TAB_ICONS, tabRow, movementMessageKey, marchText, spellTiers, ROLL_STATS, ROLL_STAT_LABELS, DEFAULT_DC, cleanDc, whoSelection, whoAfter, rollRequest, rollOutcome, rollCardHtml, rollResultText } from "../scripts/party/party-sheet-core.mjs";
 
 test("everyone sees Travel (each PC's owner confirms their own camping and carousing there); Bastion needs a linked bastion", () => {
   assert.deepEqual(partyTabs(), ["members", "items", "travel", "quests", "description"]);
@@ -271,4 +272,87 @@ test("the item search needs every word, ranks names that start with the query fi
   assert.deepEqual(searchItemIndex(entries, "dragon"), []);
   assert.equal(searchItemIndex(entries, "rope", 2).length, 2);
   assert.deepEqual(searchItemIndex(undefined, "x"), []);
+});
+
+// ---------------------------------------------------------------- Members GM bar
+
+test("spells group by tier, lowest first, with the lost ones marked; non-spells and no tier are handled", () => {
+  const items = [
+    { name: "Fireball", img: "f.webp", type: "Spell", system: { tier: 3, lost: true } },
+    { name: "Light", img: "l.webp", type: "Spell", system: { tier: 1 } },
+    { name: "Sword", type: "Weapon", system: {} },
+    { name: "Magic Missile", img: "m.webp", type: "Spell", system: { tier: 1, lost: false } },
+    { name: "Odd", type: "Spell", system: {} },
+  ];
+  assert.deepEqual(spellTiers(items), [
+    { tier: 0, spells: [{ name: "Odd", img: "", lost: false }] },
+    { tier: 1, spells: [{ name: "Light", img: "l.webp", lost: false }, { name: "Magic Missile", img: "m.webp", lost: false }] },
+    { tier: 3, spells: [{ name: "Fireball", img: "f.webp", lost: true }] },
+  ]);
+  assert.deepEqual(spellTiers([]), []);
+  assert.deepEqual(spellTiers(undefined), []);
+});
+
+test("the DC field: blank is no DC, a number is whole and kept between 1 and 30", () => {
+  assert.equal(DEFAULT_DC, 12);
+  assert.equal(cleanDc(""), null);
+  assert.equal(cleanDc("  "), null);
+  assert.equal(cleanDc(null), null);
+  assert.equal(cleanDc("abc"), null);
+  assert.equal(cleanDc("15"), 15);
+  assert.equal(cleanDc(11.9), 11);
+  assert.equal(cleanDc(0), 1);
+  assert.equal(cleanDc(99), 30);
+});
+
+test("Who: null means every PC; ticking works one at a time and all ticked is everybody again", () => {
+  const pcs = ["a", "b", "c"];
+  assert.deepEqual(whoSelection(pcs, null), { all: true, uuids: pcs });
+  assert.deepEqual(whoSelection(pcs, ["b", "gone"]), { all: false, uuids: ["b"] });
+  assert.deepEqual(whoSelection([], []), { all: false, uuids: [] });
+  assert.equal(whoAfter(pcs, null, { all: true, on: false }).length, 0, "All off clears");
+  assert.equal(whoAfter(pcs, [], { all: true, on: true }), null, "All on is everybody");
+  assert.deepEqual(whoAfter(pcs, null, { uuid: "b", on: false }), ["a", "c"]);
+  assert.deepEqual(whoAfter(pcs, ["a"], { uuid: "c", on: true }), ["a", "c"]);
+  assert.equal(whoAfter(pcs, ["a", "b"], { uuid: "c", on: true }), null, "the last box ticked makes it all again");
+  assert.deepEqual(whoAfter(pcs, ["a"], { uuid: "stranger", on: true }), ["a"], "a uuid that is not a PC changes nothing");
+});
+
+test("a roll request needs a real ability and somebody to ask; the DC is cleaned and a target is asked once", () => {
+  const targets = [{ uuid: "Actor.a", name: "Ana" }, { uuid: "Actor.a", name: "Ana again" }, { uuid: "Actor.b", name: "Bo" }];
+  assert.deepEqual(rollRequest({ stat: "DEX", dc: "14", targets }), { stat: "dex", dc: 14, targets: [{ uuid: "Actor.a", name: "Ana" }, { uuid: "Actor.b", name: "Bo" }] });
+  assert.equal(rollRequest({ stat: "dex", dc: "", targets }).dc, null);
+  assert.equal(rollRequest({ stat: "luck", targets }), null);
+  assert.equal(rollRequest({ stat: "str", targets: [] }), null);
+  assert.equal(rollRequest(), null);
+  assert.deepEqual(Object.keys(ROLL_STAT_LABELS), ROLL_STATS);
+});
+
+test("pass or fail: a total at the DC passes, below fails, and with no DC there is no verdict", () => {
+  assert.equal(rollOutcome({ total: 12, dc: 12 }), "pass");
+  assert.equal(rollOutcome({ total: 11, dc: 12 }), "fail");
+  assert.equal(rollOutcome({ total: 20, dc: null }), null);
+  assert.equal(rollOutcome({ total: null, dc: 12 }), null);
+  assert.equal(rollOutcome({ total: undefined, dc: 12 }), null);
+});
+
+test("the Request roll card has one anchor (never a button) per character, escaped, and the DC in its title", () => {
+  const sayWith = (key, data) => `${key}|${Object.entries(data).map(([k, v]) => `${k}=${v}`).join(",")}`;
+  const html = rollCardHtml({ stat: "wis", dc: 13, targets: [{ uuid: "Actor.a", name: "<b>Ana</b>" }, { uuid: "Actor.b", name: "Bo" }] }, { sayWith, statLabel: "WIS", esc });
+  assert.equal((html.match(/<a /g) ?? []).length, 2);
+  assert.ok(!/<button/.test(html), "buttons are disabled for a viewer who cannot edit");
+  assert.ok(html.includes('data-uuid="Actor.a"') && html.includes('data-uuid="Actor.b"'));
+  assert.ok(html.includes("SDE.party.roll.cardTitleDc|stat=WIS,dc=13"));
+  assert.ok(html.includes("&lt;b&gt;Ana&lt;/b&gt;") && !html.includes("<b>Ana"));
+  const open = rollCardHtml({ stat: "wis", dc: null, targets: [{ uuid: "Actor.a", name: "Ana" }] }, { sayWith, statLabel: "WIS", esc });
+  assert.ok(open.includes("SDE.party.roll.cardTitle|stat=WIS") && !open.includes("cardTitleDc"));
+});
+
+test("the result line says pass or fail only when there was a DC, from the system's verdict or the total", () => {
+  const sayWith = (key, data) => `${key}|${Object.entries(data).map(([k, v]) => `${k}=${v}`).join(",")}`;
+  assert.equal(rollResultText({ name: "Ana", total: 15, dc: null }, { sayWith }), "");
+  assert.equal(rollResultText({ name: "Ana", total: 15, dc: 12 }, { sayWith }), "SDE.party.roll.result|name=Ana,total=15,dc=12,outcome=SDE.party.roll.pass|");
+  assert.ok(rollResultText({ name: "Ana", total: 15, dc: 12, success: false }, { sayWith }).includes("outcome=SDE.party.roll.fail"), "the system's verdict wins");
+  assert.ok(rollResultText({ name: "Ana", dc: 12, success: true }, { sayWith }).startsWith("SDE.party.roll.resultNoTotal|name=Ana,dc=12"));
+  assert.equal(rollResultText({ name: "Ana", dc: 12 }, { sayWith }), "", "neither a verdict nor a total: nothing to add");
 });

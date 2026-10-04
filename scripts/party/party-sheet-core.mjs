@@ -284,3 +284,117 @@ export function searchItemIndex(entries = [], query = "", limit = 50) {
     .sort((a, b) => (String(b.name).toLowerCase().startsWith(needle) - String(a.name).toLowerCase().startsWith(needle)) || String(a.name).localeCompare(String(b.name)))
     .slice(0, Math.max(0, limit));
 }
+
+// ---------------------------------------------------------------- Members GM bar: spells, who, Request roll
+
+/**
+ * A caster's spells for the Members card: its Spell items grouped by tier (`system.tier`), lowest first, each with
+ * its icon and whether it is lost (`system.lost`, until the caster rests). A creature with no spells gets [].
+ * @param {Array<{name?:string, img?:string, type?:string, system?:{tier?:number, lost?:boolean}}>} items
+ * @returns {Array<{ tier: number, spells: Array<{ name: string, img: string, lost: boolean }> }>}
+ */
+export function spellTiers(items = []) {
+  const tiers = new Map();
+  for (const item of items ?? []) {
+    if (item?.type !== "Spell") continue;
+    const tier = Math.max(0, Math.trunc(Number(item.system?.tier)) || 0);
+    if (!tiers.has(tier)) tiers.set(tier, []);
+    tiers.get(tier).push({ name: String(item.name ?? ""), img: item.img ?? "", lost: !!item.system?.lost });
+  }
+  return [...tiers].sort(([a], [b]) => a - b).map(([tier, spells]) => ({ tier, spells }));
+}
+
+/** The six ability scores a roll can be asked of, in the system's order. */
+export const ROLL_STATS = ["str", "dex", "con", "int", "wis", "cha"];
+/** Each ability's name, as an en.json key written out in full. */
+export const ROLL_STAT_LABELS = { str: "SDE.party.sheet.str", dex: "SDE.party.sheet.dex", con: "SDE.party.sheet.con", int: "SDE.party.sheet.int", wis: "SDE.party.sheet.wis", cha: "SDE.party.sheet.cha" };
+/** The DC the GM bar starts with. */
+export const DEFAULT_DC = 12;
+export const MIN_DC = 1;
+export const MAX_DC = 30;
+
+/** The DC field's text as a DC: blank (or not a number) means no DC, anything else a whole number from 1 to 30. */
+export function cleanDc(value) {
+  if (value === null || value === undefined || String(value).trim() === "") return null;
+  const n = Math.trunc(Number(value));
+  return Number.isFinite(n) ? Math.min(MAX_DC, Math.max(MIN_DC, n)) : null;
+}
+
+/**
+ * Who the GM bar's Who list has ticked. `current` is null for "all PCs" (the default, and what a PC joining the
+ * party falls under) or the uuids ticked; a uuid no longer a PC is dropped.
+ * @param {string[]} pcUuids the party's player characters
+ * @param {string[]|null} current
+ * @returns {{ all: boolean, uuids: string[] }}
+ */
+export function whoSelection(pcUuids = [], current = null) {
+  const pcs = [...new Set(pcUuids ?? [])];
+  if (current === null || current === undefined) return { all: true, uuids: pcs };
+  const ticked = pcs.filter((uuid) => current.includes(uuid));
+  return { all: ticked.length === pcs.length && pcs.length > 0, uuids: ticked };
+}
+
+/**
+ * The Who selection after one click: the All box (on: everybody, off: nobody) or one character's box.
+ * Everybody ticked one by one is "all" again, so a PC who joins later is included.
+ * @returns {string[]|null} the new `current`
+ */
+export function whoAfter(pcUuids = [], current = null, { all, uuid, on } = {}) {
+  const pcs = [...new Set(pcUuids ?? [])];
+  if (all) return on ? null : [];
+  if (!uuid || !pcs.includes(uuid)) return current;
+  const ticked = new Set(whoSelection(pcs, current).uuids);
+  if (on) ticked.add(uuid); else ticked.delete(uuid);
+  return ticked.size === pcs.length ? null : pcs.filter((id) => ticked.has(id));
+}
+
+/**
+ * A roll request, or null when there is nobody to ask or the ability is not one of the six. The DC is cleaned
+ * (blank: no DC).
+ * @param {{ stat: string, dc?: string|number|null, targets: Array<{ uuid: string, name: string }> }} form
+ * @returns {{ stat: string, dc: number|null, targets: Array<{ uuid: string, name: string }> }|null}
+ */
+export function rollRequest({ stat, dc = null, targets = [] } = {}) {
+  const key = String(stat ?? "").toLowerCase();
+  const seen = new Set();
+  const asked = (targets ?? []).filter((t) => t?.uuid && !seen.has(t.uuid) && seen.add(t.uuid)).map((t) => ({ uuid: t.uuid, name: String(t.name ?? "") }));
+  if (!ROLL_STATS.includes(key) || !asked.length) return null;
+  return { stat: key, dc: cleanDc(dc), targets: asked };
+}
+
+/** Pass or fail of a total against a DC; null when there was no DC to beat (or no total). */
+export function rollOutcome({ total, dc }) {
+  const t = Number(total), d = cleanDc(dc);
+  if (d === null || total === null || total === undefined || !Number.isFinite(t)) return null;
+  return t >= d ? "pass" : "fail";
+}
+
+/**
+ * The Request roll chat card, as HTML: a title, the DC when there is one, and one Roll link per character asked.
+ * The links are anchors, not buttons, so they work for every viewer
+ * (core disables form controls for a viewer who cannot edit the document) and the owner of the character clicks theirs. `say(key)` localizes; `sayWith(key, data)` fills {placeholders}; text is escaped.
+ * @param {NonNullable<ReturnType<typeof rollRequest>>} request
+ * @param {{ say: (key:string)=>string, sayWith: (key:string, data:object)=>string, statLabel: string, esc: (s:*)=>string }} text
+ */
+export function rollCardHtml(request, { sayWith, statLabel, esc }) {
+  const title = request.dc === null ? sayWith("SDE.party.roll.cardTitle", { stat: statLabel }) : sayWith("SDE.party.roll.cardTitleDc", { stat: statLabel, dc: request.dc });
+  const links = request.targets.map((t) => `<a class="sde-party-roll-go" data-party-roll data-uuid="${esc(t.uuid)}"><i class="fas fa-dice-d20"></i> ${esc(sayWith("SDE.party.roll.button", { name: t.name }))}</a>`).join("");
+  return `<div class="sde-party-roll"><header>${esc(title)}</header><div class="sde-party-roll-list">${links}</div></div>`;
+}
+
+/**
+ * The line posted after a character rolls: total and pass or fail against the DC. With no DC, or when the
+ * system's roll gave back neither a pass/fail nor a total, there is nothing to add and this is "".
+ * `success` is the system's own verdict when it gives one; otherwise the total is compared with the DC.
+ * @param {{ name: string, total?: number|null, dc: number|null, success?: boolean|null }} result
+ */
+export function rollResultText({ name, total = null, dc, success = null }, { sayWith }) {
+  const d = cleanDc(dc);
+  if (d === null) return "";
+  const verdict = typeof success === "boolean" ? (success ? "pass" : "fail") : rollOutcome({ total, dc: d });
+  if (!verdict) return "";
+  const outcome = sayWith(verdict === "pass" ? "SDE.party.roll.pass" : "SDE.party.roll.fail", {});
+  return Number.isFinite(Number(total)) && total !== null
+    ? sayWith("SDE.party.roll.result", { name, total, dc: d, outcome })
+    : sayWith("SDE.party.roll.resultNoTotal", { name, dc: d, outcome });
+}
