@@ -45,66 +45,75 @@ function findPrayerTable(deityName) {
   return null;
 }
 
-export function init() {
-  Hooks.on("renderActorSheet", (_app, html, data) => {
-    const actor = data.actor ?? data.document;
-    if (!actor || actor.type !== "Player") return;
+/**
+ * Add the prayer button to a rendered Player sheet's Deity heading. Idempotent:
+ * both the AppV1 and AppV2 render hooks route here and a sheet gets one button.
+ */
+export function injectPrayerRoll(app, html, data = {}) {
+  const actor = data.actor ?? data.document ?? app?.actor ?? app?.document;
+  if (!actor || actor.type !== "Player") return;
 
-    const deityUuid = actor.system?.deity;
-    if (!deityUuid) return;
+  const deityUuid = actor.system?.deity;
+  if (!deityUuid) return;
 
-    // Find the Deity header in the DOM
-    const deitySections = html[0]?.querySelectorAll(".SD-box .header label")
-      ?? html.querySelectorAll(".SD-box .header label");
-    
-    let deityHeader = null;
-    for (const label of deitySections) {
-      if (label.textContent?.toLowerCase().includes("deity")) {
-        deityHeader = label.closest(".header");
-        break;
-      }
+  const root = html?.querySelectorAll ? html : html?.[0];
+  if (!root) return;
+
+  // Find the Deity header in the DOM
+  let deityHeader = null;
+  for (const label of root.querySelectorAll(".SD-box .header label")) {
+    if (label.textContent?.toLowerCase().includes("deity")) {
+      deityHeader = label.closest(".header");
+      break;
     }
-    if (!deityHeader) return;
+  }
+  if (!deityHeader) return;
 
-    // Don't inject twice
-    if (deityHeader.querySelector(".sde-prayer-roll")) return;
+  // Don't inject twice
+  if (deityHeader.querySelector(".sde-prayer-roll")) return;
 
-    // Resolve deity name from UUID
-    const deityName = (() => {
-      try {
-        const item = fromUuidSync(deityUuid);
-        return item?.name ?? null;
-      } catch { return null; }
-    })();
-    if (!deityName) return;
+  // Resolve deity name from UUID
+  const deityName = (() => {
+    try {
+      const item = fromUuidSync(deityUuid);
+      return item?.name ?? null;
+    } catch { return null; }
+  })();
+  if (!deityName) return;
 
-    // Find the prayer table
-    const table = findPrayerTable(deityName);
-    if (!table) return;
+  // Find the prayer table
+  const table = findPrayerTable(deityName);
+  if (!table) return;
 
-    // Build and inject the icon
-    const icon = document.createElement("img");
-    icon.className = "sde-prayer-roll";
-    icon.src = PRAYER_ICON;
-    icon.alt = "Pray";
-    icon.title = game.i18n.format("SDE.prayerRoll.title", { deity: deityName });
-    icon.style.cssText = "width:16px;height:16px;margin-left:6px;cursor:pointer;opacity:0.7;display:inline-block;vertical-align:middle;";
-    icon.addEventListener("mouseenter", () => { icon.style.opacity = "1"; });
-    icon.addEventListener("mouseleave", () => { icon.style.opacity = "0.7"; });
-    icon.addEventListener("click", async (ev) => {
-      ev.stopPropagation();
-      ev.preventDefault();
-      await rollPrayerTable(table, actor, deityName);
-    });
-
-    // Insert after the edit button (or at the end of the header span)
-    const headerSpan = deityHeader.querySelector("span");
-    if (headerSpan) {
-      headerSpan.appendChild(icon);
-    } else {
-      deityHeader.appendChild(icon);
-    }
+  // Build and inject the button
+  const button = document.createElement("button");
+  button.type = "button";
+  button.className = "sde-prayer-roll";
+  const label = game.i18n.format("SDE.prayerRoll.title", { deity: deityName });
+  button.setAttribute("aria-label", label);
+  button.dataset.tooltip = label;
+  const icon = document.createElement("img");
+  icon.src = PRAYER_ICON;
+  icon.alt = game.i18n.localize("SDE.prayerRoll.alt");
+  button.append(icon);
+  button.addEventListener("click", async (ev) => {
+    ev.stopPropagation();
+    ev.preventDefault();
+    await rollPrayerTable(table, actor, deityName);
   });
+
+  // Insert after the edit button (or at the end of the header span)
+  const headerSpan = deityHeader.querySelector("span");
+  if (headerSpan) {
+    headerSpan.appendChild(button);
+  } else {
+    deityHeader.appendChild(button);
+  }
+}
+
+export function init() {
+  Hooks.on("renderActorSheet", injectPrayerRoll);
+  Hooks.on("renderActorSheetV2", injectPrayerRoll);
 }
 
 export async function rollPrayerTable(table, actor, deityName) {

@@ -7,7 +7,7 @@
 import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { ABILITY_ORDER, ABILITY_LABELS, ABILITY_INFO } from "../../../scripts/char-builder/constants.mjs";
+import { ABILITY_ORDER, abilityLabel, abilityInfo } from "../../../scripts/char-builder/constants.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../..");
 const SCRATCH = "/tmp/claude-1000/-home-patricks-git-shadowdark-enhancer/d0efba86-ed4a-4173-b027-7af1159d99a1/scratchpad/tpl";
@@ -25,6 +25,7 @@ const flatFor = (id) => {
 const STEPS = [["stats", "SDE.charBuilder.step.stats"], ["ancestry", "SDE.charBuilder.step.ancestry"], ["origins", "SDE.charBuilder.step.origins"], ["class", "SDE.charBuilder.step.class"], ["hp", "SDE.charBuilder.step.hpGold"], ["gear", "SDE.charBuilder.step.gear"], ["preview", "SDE.charBuilder.step.preview"]];
 const en = JSON.parse(readFileSync(path.join(ROOT, "languages/en.json"), "utf8"));
 const say = (k) => en[k] ?? k;
+globalThis.game = { i18n: { localize: say } }; // the constants read their text through game.i18n
 
 const entries = (names, sel, img = "/icons/svg/mystery-man.svg") => names.map((name, i) => ({ id: "u" + i, name, img, selected: name === sel }));
 const lorem = "<p>Dwarves are short, stocky folk who live under mountains. They are famously tough and stubborn, and fond of gold, ale and holding a grudge. A dwarf who has given an oath will keep it for a hundred years.</p><p>Second paragraph of the description to show how long body text sets against the list column.</p>";
@@ -33,7 +34,7 @@ const mod = (n) => (n >= 0 ? "+" : "") + n;
 const stats = (mode) => {
   const vals = { str: 14, dex: 10, con: 15, int: 7, wis: 12, cha: 9 };
   const pb = mode === "pointbuy";
-  return { methodLabel: pb ? "Point buy" : "Roll 3d6, assign to taste", isAssign: !pb, isFixed: false, isPointBuy: pb, isManual: false, rolled: true, total: 67, spent: 22, remaining: 6, pointBuyBudget: 28, abilities: ABILITY_ORDER.map((k) => ({ key: k, label: ABILITY_LABELS[k], value: vals[k], mod: mod(Math.floor((vals[k] - 10) / 2)), empty: false, isAssign: !pb, pointBuy: pb, manual: false, pointBuyCost: pb ? 3 : null, canIncrease: true, canDecrease: true, info: ABILITY_INFO[k] })),
+  return { methodLabel: pb ? "Point buy" : "Roll 3d6, assign to taste", isAssign: !pb, isFixed: false, isPointBuy: pb, isManual: false, rolled: true, total: 67, spent: 22, remaining: 6, pointBuyBudget: 28, abilities: ABILITY_ORDER.map((k) => ({ key: k, label: abilityLabel(k), value: vals[k], mod: mod(Math.floor((vals[k] - 10) / 2)), empty: false, isAssign: !pb, pointBuy: pb, manual: false, pointBuyCost: pb ? 3 : null, canIncrease: true, canDecrease: true, info: abilityInfo(k) })),
     poolChips: pb ? [] : [14, 10, 15, 7, 12, 9].map((value, idx) => ({ idx, value, used: true, picked: false })), showReroll: true, canReroll: false, showReset: true, rollLocked: false, complete: true };
 };
 const ancestry = () => ({ list: { entries: entries(["Dwarf", "Elf", "Goblin", "Half-Orc", "Halfling", "Human", "Aasimar", "Dragonborn", "Tiefling", "Gnome"], "Dwarf"), search: "", placeholder: "Search ancestries", noThumbs: false, noSearch: false, readOnly: false }, readOnly: false,

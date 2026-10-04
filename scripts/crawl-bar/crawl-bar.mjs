@@ -449,7 +449,7 @@ export const CrawlBar = {
         break;
 
       case "endCrawl": {
-        const ok = await this._confirm("SDE.crawlBar.confirm.endCrawlTitle", "SDE.crawlBar.confirm.endCrawl");
+        const ok = await this._confirm("SDE.crawlBar.confirm.endCrawlTitle", "SDE.crawlBar.confirm.endCrawl", "SDE.crawlBar.confirm.endCrawlYes", "SDE.crawlBar.confirm.endCrawlNo");
         if (ok) {
           await CrawlState.endCrawl();
           this.render();
@@ -489,7 +489,7 @@ export const CrawlBar = {
 
       case "deleteEncounter":
         if (game.combat) {
-          const ok = await this._confirm("SDE.crawlBar.deleteEncounterTitle", "SDE.crawlBar.deleteEncounterConfirm");
+          const ok = await this._confirm("SDE.crawlBar.deleteEncounterTitle", "SDE.crawlBar.deleteEncounterConfirm", "SDE.crawlBar.deleteEncounterYes", "SDE.crawlBar.deleteEncounterNo");
           if (ok) {
             // Hunter, Loot drops and Session Recap skip a combat deleted with this.
             await game.combat.delete({ [MODULE_ID]: { discard: true } });
@@ -767,10 +767,12 @@ export const CrawlBar = {
   },
 
   /** Yes/no confirm; `titleKey` and `contentKey` are en.json keys. */
-  async _confirm(titleKey, contentKey) {
+  async _confirm(titleKey, contentKey, yesKey, noKey) {
     return foundry.applications.api.DialogV2.confirm({
       window: { title: titleKey },
       content: `<p>${game.i18n.localize(contentKey)}</p>`,
+      yes: { label: yesKey, icon: "fa-solid fa-check" },
+      no: { label: noKey, icon: "fa-solid fa-xmark", default: true },
       rejectClose: false,
     });
   },
