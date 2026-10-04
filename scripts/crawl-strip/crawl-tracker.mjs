@@ -229,6 +229,7 @@ export class CrawlTrackerTab extends HandlebarsApplicationMixin(
     const confirm = foundry.applications.api.DialogV2?.confirm;
     const ok = confirm
       ? await foundry.applications.api.DialogV2.confirm({
+        classes: ["sde-ui", "sde-dialog"],
         window: { title: "SDE.crawlStrip.tracker.endCrawl" },
         content: `<p>${game.i18n.localize("SDE.crawlStrip.tracker.endCrawlConfirm")}</p>`,
         yes: { label: "SDE.crawlStrip.tracker.endCrawlYes", icon: "fa-solid fa-stop" },

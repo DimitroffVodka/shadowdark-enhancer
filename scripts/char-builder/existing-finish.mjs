@@ -209,6 +209,7 @@ export async function undoLastSave(app, { confirm = defaultConfirm } = {}) {
 
 function defaultConfirm({ title, content, yes, no, safeDefault = false }) {
   return foundry.applications.api.DialogV2.confirm({
+    classes: ["sde-ui", "sde-dialog"],
     window: { title, icon: "fa-solid fa-floppy-disk" },
     content,
     yes: { label: yes, icon: "fa-solid fa-check" },

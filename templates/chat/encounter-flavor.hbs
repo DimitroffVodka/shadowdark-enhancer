@@ -1,7 +1,7 @@
-<div class="sde-encounter-flavor-card">
-  <header class="sde-card-header">
-    <h3><i class="fas fa-scroll"></i> {{localize "SDE.encounter.chat.flavorHeading"}}</h3>
-  </header>
-  {{#if via}}<p class="sde-result-via">{{via}}</p>{{/if}}
-  <div class="sde-flavor-text">{{text}}</div>
+<div class="sde-ui ui-cc">
+  <header class="cc-head"><i class="fa-solid fa-scroll"></i><h4 class="cc-title">{{localize "SDE.encounter.chat.flavorHeading"}}</h4></header>
+  <div class="cc-body">
+    {{#if via}}<p class="cc-sub">{{via}}</p>{{/if}}
+    <p class="cc-quote">{{text}}</p>
+  </div>
 </div>

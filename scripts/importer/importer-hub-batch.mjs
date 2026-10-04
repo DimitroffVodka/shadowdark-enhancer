@@ -675,6 +675,7 @@ class HubBatchMethods {
       `<li><strong>${n}</strong> ${esc(routeLabel[route] ?? route)}</li>`).join("");
     const covered = plan.jobs.reduce((a, j) => a + j.covers.length, 0);
     const choice = await foundry.applications.api.DialogV2.wait({
+      classes: ["sde-ui", "sde-dialog"],
       window: { title: t("SDE.importer.batch.confirmTitle") },
       position: { width: 520 },
       content: `
@@ -711,6 +712,7 @@ class HubBatchMethods {
               <ul style="margin:0 0 .2em 1.1em">${items}</ul>`;
     }).join("");
     await foundry.applications.api.DialogV2.wait({
+      classes: ["sde-ui", "sde-dialog"],
       window: { title: t("SDE.importer.report.title") },
       position: { width: 620, height: 620 },
       content: `

@@ -273,6 +273,7 @@ export class MountSheet extends NpcStatSheet {
       return;
     }
     const ok = await foundry.applications.api.DialogV2.confirm({
+      classes: ["sde-ui", "sde-dialog"],
       window: { title: "SDE.mount.copyStats.title" },
       content: `<p>${game.i18n.format("SDE.mount.copyStats.question", { name: `<strong>${source.name}</strong>` })}</p>`
         + `<p>${game.i18n.localize("SDE.mount.copyStats.warning")}</p>`,

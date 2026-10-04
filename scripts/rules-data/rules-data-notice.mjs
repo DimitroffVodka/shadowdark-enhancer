@@ -9,9 +9,9 @@
  */
 
 import { MODULE_ID } from "../shared/module-id.mjs";
-import { esc } from "../shared/esc.mjs";
 import { filledTables } from "./rules-data-core.mjs";
 import { storedRulesFor, usesOwnRuleset } from "./rules-data-scope.mjs";
+import { rulesNoticeCard } from "../shared/chat-cards.mjs";
 
 const t = (key) => game.i18n.localize(key);
 
@@ -39,8 +39,7 @@ export async function tellMissing(id, scene = globalThis.canvas?.scene) {
   if (filledTables(storedRulesFor(scene))[id]) return false;
   told.add(id);
   await ChatMessage.create({
-    content: `<div class="sde-rules-notice"><p>${esc(t(`SDE.rulesData.missing.${id}`))}</p>`
-      + `<button type="button"><i class="fa-solid fa-scroll"></i> ${esc(t("SDE.rulesData.openStep"))}</button></div>`,
+    content: rulesNoticeCard({ text: t(`SDE.rulesData.missing.${id}`), button: t("SDE.rulesData.openStep") }),
     speaker: { alias: t("SDE.rulesData.title") },
     whisper: ChatMessage.getWhisperRecipients("GM"),
     flags: { [MODULE_ID]: { rulesNotice: id } },

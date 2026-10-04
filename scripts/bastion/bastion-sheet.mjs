@@ -173,6 +173,7 @@ export class BastionSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   async _confirmTakeDown(id) {
     const upgrade = core.upgradeOf(id);
     const sure = await foundry.applications.api.DialogV2.confirm({
+      classes: ["sde-ui", "sde-dialog"],
       window: { title: "SDE.bastion.takeDown.title" },
       content: `<p>${esc(format("SDE.bastion.takeDown.question", { upgrade: t(upgrade?.name ?? "") }))}</p>`,
       yes: { label: "SDE.bastion.takeDown.yes", icon: "fa-solid fa-trash" },

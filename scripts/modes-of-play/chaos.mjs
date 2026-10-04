@@ -36,8 +36,8 @@
  */
 
 import { MODULE_ID } from "../shared/module-id.mjs";
-import { esc } from "../shared/esc.mjs";
 import { leaderCombatant } from "../crawl-strip/turn-skip-core.mjs";
+import { chaosCard } from "../shared/chat-cards.mjs";
 
 /**
  * Does this combat update start a round Chaos rerolls? Round 2 or later,
@@ -212,11 +212,9 @@ async function postOrder(rolled, round) {
   if (!rows.length) return;
   const animate = game.settings.get(MODULE_ID, "modeChaosDiceSoNice") === true;
   const visible = new Set(rows.map((r) => r.name));
-  const list = rows.map((r) =>
-    `<li><strong>${esc(r.name)}</strong> <span class="sde-chaos-roll">${esc(r.total)}</span> <span class="sde-chaos-formula">${esc(r.formula)}</span></li>`).join("");
   await ChatMessage.create({
     speaker: { alias: game.i18n.localize("SDE.chaos.speaker") },
-    content: `<div class="sde-chaos-card"><header>${esc(game.i18n.format("SDE.chaos.header", { round }))}</header><ol>${list}</ol></div>`,
+    content: chaosCard({ title: game.i18n.format("SDE.chaos.header", { round }), rows }),
     rolls: animate ? rolled.filter((r) => !r.hidden && visible.has(r.name)).map((r) => r.roll) : [],
     flags: { [MODULE_ID]: { chaosRound: round } },
   });

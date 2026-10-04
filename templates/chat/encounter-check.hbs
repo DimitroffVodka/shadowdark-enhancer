@@ -1,11 +1,11 @@
-<div class="sde-encounter-check-card {{#if hit}}sde-hit{{else}}sde-miss{{/if}}">
-  <div class="sde-card-flavor">{{flavor}}</div>
-  <div class="sde-card-roll">
-    {{#if hit}}
-      <span class="sde-roll-total hit">{{roll.total}}</span>
-    {{else}}
-      <span class="sde-roll-total miss">{{roll.total}}</span>
-    {{/if}}
+<div class="sde-ui ui-cc {{#if hit}}hit{{/if}}">
+  <div class="cc-body">
+    <div class="cc-split">
+      <span class="cc-big {{#if hit}}hit{{else}}miss{{/if}}">{{roll.total}}</span>
+      <div class="cc-main">
+        <span class="cc-val">{{flavor}}</span>
+        {{#if where}}<span class="cc-aux">{{where}}</span>{{/if}}
+      </div>
+    </div>
   </div>
-  {{#if where}}<div class="sde-card-where">{{where}}</div>{{/if}}
 </div>

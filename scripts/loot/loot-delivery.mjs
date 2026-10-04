@@ -152,8 +152,8 @@ export const LootDelivery = {
       source: flags.source ?? null,
       items: (flags.items ?? []).map((it, idx) => ({
         ...it, idx, qtyLabel: it.qty > 1 ? ` ×${it.qty}` : "",
-        valueLabel: it.value > 0 ? ` · ${it.value} gp` : "",
-        featureLabel: it.feature ? ` — ${it.feature}` : "",
+        valueLabel: it.value > 0 ? `${it.value} gp` : "",
+        featureLabel: it.feature ?? "",
       })),
       hasCoins: coinsParts.length > 0,
       coinsLabel: coinsParts.join(", "),
@@ -397,6 +397,7 @@ export const LootDelivery = {
     // callback return becomes the resolved value (the chosen actor id);
     // "cancel" returns the action string; closing returns null.
     const choice = await foundry.applications.api.DialogV2.wait({
+      classes: ["sde-ui", "sde-dialog"],
       window: { title: "SDE.loot.card.giveTitle" },
       content: `<div style="padding:8px;"><label>${game.i18n.localize("SDE.loot.card.giveTo")} <select name="recipient">${options}</select></label></div>`,
       buttons: [

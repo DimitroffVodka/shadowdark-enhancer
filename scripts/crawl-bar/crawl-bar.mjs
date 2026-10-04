@@ -769,6 +769,7 @@ export const CrawlBar = {
   /** Yes/no confirm; `titleKey` and `contentKey` are en.json keys. */
   async _confirm(titleKey, contentKey, yesKey, noKey) {
     return foundry.applications.api.DialogV2.confirm({
+      classes: ["sde-ui", "sde-dialog"],
       window: { title: titleKey },
       content: `<p>${game.i18n.localize(contentKey)}</p>`,
       yes: { label: yesKey, icon: "fa-solid fa-check" },

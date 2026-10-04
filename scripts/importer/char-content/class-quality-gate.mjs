@@ -94,6 +94,7 @@ export async function confirmClassGate(name, issues) {
   if (!issues?.length) return true;
   const esc = (s) => String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
   const choice = await foundry.applications.api.DialogV2.wait({
+    classes: ["sde-ui", "sde-dialog"],
     window: { title: "SDE.importer.charContent.gate.title" },
     position: { width: 460 },
     content:

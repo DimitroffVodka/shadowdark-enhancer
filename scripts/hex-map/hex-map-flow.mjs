@@ -44,6 +44,7 @@ const t = (key, data) => {
 /** The file picker dialog. @returns {Promise<{file:File, name:string}|null>} */
 async function pickFile() {
   const picked = await foundry.applications.api.DialogV2.wait({
+    classes: ["sde-ui", "sde-dialog"],
     window: { title: t("SDE.hexMap.flow.pickTitle") },
     content: `<p>${t("SDE.hexMap.flow.pickHint")}</p>
       <div class="form-group"><label>${t("SDE.hexMap.flow.mapImage")}</label><input type="file" name="hex-map-image" accept="image/png,image/jpeg,image/webp,.png,.jpg,.jpeg,.webp"></div>

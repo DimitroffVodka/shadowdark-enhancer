@@ -6,6 +6,8 @@
   redesign. No window uses it yet, so nothing looks different.
 
 ### Changed
+- **Dialogs share one look.** Confirms, prompts and choice dialogs take the kit's title, body and button row (the default button is the filled one), and the dying menu lists its actions as rows with icons. Handlers and default buttons are unchanged.
+- **Chat cards use the new look.** The encounter check, encounter result, flavor and loot cards, plus the chaos initiative, session luck, rumors, troubles, rules notice, weather, downtime, merchant purchase, item pickup, forge, parry, dying, out-of-combat initiative, warband note and pit fight twist cards, now read as one family in dark and light. Same data and buttons; the loot card keeps Claim in view and puts Give and Forge behind one more-actions icon.
 - **Carousing: one spending tier for the party, and a shared cost.** The tier is picked once at the top of the window by whoever manages the party (changing it asks everyone to confirm again), and its cost is a group total split between the joining characters in whole gp, any remainder charged one gp at a time to the first in list order. The mask and paper-lantern holiday boxes are gone.
 - **Camping: everyone takes part, and meals use your own rations first.** The Participate box and the "use party rations" box are gone. A meal takes the character's own rations, then the party's.
 - **Camping: everyone participates and meals use the party's rations automatically.** The per-character Participate checkbox is gone, and a character eats their own rations first and then the party's with no consent box; a character short overall is not fed and nothing is deducted. Torch contribution is still opt-in.

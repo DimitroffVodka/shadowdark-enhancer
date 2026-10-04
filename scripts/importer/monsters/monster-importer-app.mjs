@@ -319,6 +319,7 @@ export class MonsterImporterApp extends HandlebarsApplicationMixin(ApplicationV2
     return async (name) => {
       const safe = foundry.utils.escapeHTML(name);
       const choice = await foundry.applications.api.DialogV2.wait({
+        classes: ["sde-ui", "sde-dialog"],
         window: { title: "SDE.importer.conflict.monsterTitle" },
         content: `<p>${tr("SDE.importer.conflict.monster", { name: safe })}</p>`,
         buttons: [

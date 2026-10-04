@@ -278,6 +278,7 @@ async function showPlayableChecklist(scene, f) {
   });
   if (f.extras.hex && !f.extras.fogApi) rows.push(`<li class="sde-hxt-check"><i class="fa-solid fa-circle-info"></i> <span>${esc(t("SDE.hexMap.playable.todo.fog"))}</span></li>`);
   await foundry.applications.api.DialogV2.prompt({
+    classes: ["sde-ui", "sde-dialog"],
     window: { title: t("SDE.hexMap.playable.checklistTitle", { scene: scene.name }), icon: "fa-solid fa-list-check" },
     position: { width: 520 },
     content: `<ul class="sde-hxt-checklist">${rows.join("")}</ul>`,
@@ -381,6 +382,7 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
     try {
       if (run.includes("anchor")) {
         if (confirm && !(await foundry.applications.api.DialogV2.confirm({
+          classes: ["sde-ui", "sde-dialog"],
           window: { title: t("SDE.hexMap.playable.title") }, content: `<p>${t("SDE.hexMap.playable.rebuildBody", { n: facts.placed })}</p>`,
           yes: { label: "SDE.hexMap.playable.rebuildYes", icon: "fa-solid fa-expand" },
           no: { label: "SDE.hexMap.playable.rebuildNo", icon: "fa-solid fa-xmark", default: true },
@@ -889,6 +891,7 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
     if (!sources.length) { ui.notifications?.warn(t("SDE.hexMap.notify.noOtherScene")); return; }
     const esc = foundry.utils.escapeHTML;
     const chosen = await foundry.applications.api.DialogV2.prompt({
+      classes: ["sde-ui", "sde-dialog"],
       window: { title: t("SDE.hexMap.learn.title"), icon: "fa-solid fa-graduation-cap" },
       position: { width: 460 },
       content: `<form class="standard-form">
@@ -1374,6 +1377,7 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
     if (suspects.length) {
       const esc = foundry.utils.escapeHTML;
       const ok = await foundry.applications.api.DialogV2.confirm({
+        classes: ["sde-ui", "sde-dialog"],
         window: { title: t("SDE.hexMap.suspect.title") },
         content: `<p>${t("SDE.hexMap.suspect.lead")}</p>
           <ul>${suspects.map((sp) => `<li>${t("SDE.hexMap.suspect.row", { size: sp.size, name: esc(sp.name), times: sp.times, looksLike: esc(sp.looksLike) })}</li>`).join("")}</ul>
@@ -1396,6 +1400,7 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const big = this._legend.filter((c) => !handled(c) && c.size >= Math.max(20, Math.round(this._numbered.size * 0.01)));
     if (big.length) {
       const ok = await foundry.applications.api.DialogV2.confirm({
+        classes: ["sde-ui", "sde-dialog"],
         window: { title: t("SDE.hexMap.unnamed.title") },
         content: `<p>${t(big.length === 1 ? "SDE.hexMap.unnamed.one" : "SDE.hexMap.unnamed.many", { cards: big.length, hexes: big.reduce((a, c) => a + c.size, 0), largest: Math.max(...big.map((c) => c.size)) })}</p>
           <p>${t("SDE.hexMap.unnamed.why")}</p>`,
@@ -1530,6 +1535,7 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
       || this._log().fixes.size || Object.keys(this._artAssignments()).length;
     if (!filed) return true;
     return foundry.applications.api.DialogV2.confirm({
+      classes: ["sde-ui", "sde-dialog"],
       window: { title: t("SDE.hexMap.renumber.title") },
       content: `<p>${t("SDE.hexMap.renumber.confirm")}</p>`,
       yes: { label: "SDE.hexMap.renumber.yes", icon: "fa-solid fa-arrow-down-1-9" },
@@ -1668,6 +1674,7 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
   async _onImport() {
     if (!this._requireCurrentScene()) return;
     const file = await foundry.applications.api.DialogV2.wait({
+      classes: ["sde-ui", "sde-dialog"],
       window: { title: t("SDE.hexMap.import.title") },
       content: `<p>${t("SDE.hexMap.import.hint")}</p>
         <input type="file" name="hex-tags-file" accept=".csv,.json,text/csv,application/json">`,
@@ -1710,6 +1717,7 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
   async _onArtManifest() {
     if (!this._requireCurrentScene()) return;
     const file = await foundry.applications.api.DialogV2.wait({
+      classes: ["sde-ui", "sde-dialog"],
       window: { title: t("SDE.hexMap.art.title") },
       content: `<p>${t("SDE.hexMap.art.hint")}</p>
         <p>${t("SDE.hexMap.art.skipped")}</p>
@@ -1788,6 +1796,7 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
     if (!targets.length) { ui.notifications?.warn(t("SDE.hexMap.notify.noTargetScene")); return; }
     const options = targets.map((s) => `<option value="${s.id}">${foundry.utils.escapeHTML(s.name)}</option>`).join("");
     const id = await foundry.applications.api.DialogV2.wait({
+      classes: ["sde-ui", "sde-dialog"],
       window: { title: t("SDE.hexMap.btn.reference") },
       content: `<p>${t("SDE.hexMap.reference.hint", { cols: this._state.origin?.bounds?.cols ?? "?", rows: this._state.origin?.bounds?.rows ?? "?" })}</p>
         <label>${t("SDE.hexMap.reference.scene")} <select name="hex-ref-target">${options}</select></label>
@@ -1810,6 +1819,7 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
   async _onClearTags() {
     if (!this._requireCurrentScene()) return;
     const ok = await foundry.applications.api.DialogV2.confirm({
+      classes: ["sde-ui", "sde-dialog"],
       window: { title: t("SDE.hexMap.clear.title") },
       content: `<p>${t("SDE.hexMap.clear.confirm", { scene: foundry.utils.escapeHTML(this._scene()?.name ?? "") })}</p>`,
       yes: { label: "SDE.hexMap.clear.yes", icon: "fa-solid fa-trash" },

@@ -61,6 +61,7 @@ import { Party, isNativeParty, isLegacyParty } from "../party/party.mjs";
 import { isPartyDeployed } from "../party/party-movement.mjs";
 import { prepareCampNight, finishCampNight } from "../camping/camping.mjs";
 import { ownsHexFog, revealParty } from "../hex-map/hex-fog.mjs";
+import { weatherCard } from "../shared/chat-cards.mjs";
 
 export const OVERLAND_SETTING = "overlandState";
 export const OVERLAND_QUERY = `${MODULE_ID}.overland`;
@@ -313,14 +314,16 @@ async function postWeather(weather, rolls, reroll) {
   // A storm reads both tables; the card below is for the table, so what to press goes to the GM alone (#299).
   if (weather.kind === "stormy") { const scene = rulesScene(); void tellMissing("terrain", scene); void tellMissing("climate", scene); }
   const what = weather.kind === "stormy" ? stormText(weather.days) : t(effect);
-  const lines = [
-    `<p><strong>${esc(t("SDE.overland.weather.title", { weather: weatherName(weather.kind) }))}</strong></p>`,
-    `<p>${esc(what)}</p>`,
-    `<p>${esc(t("SDE.overland.weather.until", { date: game.shadowdarkEnhancer?.time?.format?.(weather.until) ?? "" }))}</p>`,
-    `<p><em>${esc(t(weather.advantage ? "SDE.overland.weather.rolledAdvantage" : "SDE.overland.weather.rolled", { roll: weather.roll }))}${
-      reroll ? ` ${esc(t("SDE.overland.weather.rerolled"))}` : ""}</em></p>`,
-  ];
-  await ChatMessage.create({ content: `<div class="sde-weather-card">${lines.join("")}</div>`, rolls })
+  const fine = [
+    t("SDE.overland.weather.until", { date: game.shadowdarkEnhancer?.time?.format?.(weather.until) ?? "" }),
+    t(weather.advantage ? "SDE.overland.weather.rolledAdvantage" : "SDE.overland.weather.rolled", { roll: weather.roll }),
+    reroll ? t("SDE.overland.weather.rerolled") : "",
+  ].filter(Boolean).join(" ");
+  const icon = weather.kind === "stormy" ? "cloud-showers-heavy" : "sun";
+  await ChatMessage.create({
+    content: weatherCard({ icon, title: t("SDE.overland.weather.title", { weather: weatherName(weather.kind) }), text: what, fine }),
+    rolls,
+  })
     .catch((err) => console.error(`${MODULE_ID} | weather chat card`, err));
 }
 
@@ -613,6 +616,7 @@ function baseFor({ method, boatUuid }) {
 export async function startDayFromParty() {
   // A day is open: starting another re-rolls its checks and drops its progress, so ask first.
   if (_state.day !== null && !(await foundry.applications.api.DialogV2.confirm({
+    classes: ["sde-ui", "sde-dialog"],
     window: { title: t("SDE.overland.day.title") }, content: `<p>${esc(t("SDE.overland.day.restart"))}</p>`,
     yes: { label: "SDE.overland.day.restartYes", icon: "fa-solid fa-rotate" },
     no: { label: "SDE.overland.day.restartNo", icon: "fa-solid fa-xmark", default: true },
@@ -658,6 +662,7 @@ export async function askDay() {
       <select name="boatUuid">${option("", t("SDE.overland.day.noBoat"), !read.boatUuid)}${
   boats.map((b) => option(b.uuid, b.name, b.uuid === read.boatUuid)).join("")}</select></div>` : ""}`;
   return foundry.applications.api.DialogV2.prompt({
+    classes: ["sde-ui", "sde-dialog"],
     window: { title: t("SDE.overland.day.title") },
     content,
     ok: {
@@ -879,6 +884,7 @@ export async function askForage() {
   const rows = members.map((a) => `<label class="checkbox"><input type="checkbox" name="${esc(a.id)}"${
     _state.foraged.includes(a.id) ? " disabled" : " checked"}> ${esc(a.name)}</label>`).join("");
   return foundry.applications.api.DialogV2.prompt({
+    classes: ["sde-ui", "sde-dialog"],
     window: { title: t("SDE.overland.forage.dialogTitle") },
     content: `<p>${esc(t("SDE.overland.forage.dialogPick"))}</p><div class="form-fields">${rows}</div>`,
     ok: {

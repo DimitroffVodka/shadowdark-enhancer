@@ -33,6 +33,7 @@ class HubAdventureMethods {
     const options = [`<option value="${ALL}">${esc(t("SDE.importer.adventure.allBooks"))}</option>`,
       ...books.map((src) => `<option value="${src}">${esc(CHAR_SOURCES[src]?.label ?? src)}</option>`)].join("");
     const picked = await foundry.applications.api.DialogV2.wait({
+      classes: ["sde-ui", "sde-dialog"],
       window: { title: t("SDE.importer.adventure.title"), icon: "fas fa-dungeon" },
       content: `
         <p>${t("SDE.importer.adventure.lead")}</p>
@@ -105,6 +106,7 @@ class HubAdventureMethods {
       return `<optgroup label="${esc(CHAR_SOURCES[src]?.label ?? src)}">${rows}</optgroup>`;
     }).join("");
     const answer = await foundry.applications.api.DialogV2.wait({
+      classes: ["sde-ui", "sde-dialog"],
       window: { title: t("SDE.adventure.map.title"), icon: "fas fa-map-location-dot" },
       content: `
         <p>${t("SDE.adventure.map.lead")}</p>

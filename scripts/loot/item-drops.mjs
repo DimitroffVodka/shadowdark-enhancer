@@ -28,6 +28,7 @@ import { SessionRecap } from "../session-recap/session-recap.mjs";
 import { esc } from "../shared/esc.mjs";
 import { addToPurse } from "../shared/coins.mjs";
 import { relayToGM, authorizeActorFor, refuseQuery, registerQuery } from "../shared/gm-relay.mjs";
+import { compactCard } from "../shared/chat-cards.mjs";
 
 /** One string from `languages/en.json`; the key when no i18n is mounted (node tests). */
 const L = (key, data) => {
@@ -278,6 +279,7 @@ export const ItemDrops = {
   async _promptDropQuantity(name, max) {
     const safeName = Handlebars.escapeExpression(name ?? "");
     const result = await foundry.applications.api.DialogV2.wait({
+      classes: ["sde-ui", "sde-dialog"],
       window: { title: "SDE.loot.itemDrops.dropTitle" },
       content: `<div style="padding:8px;">
         <label>${L("SDE.loot.itemDrops.dropQtyPrompt", { name: `<strong>${safeName}</strong>`, max })}<br>
@@ -673,13 +675,10 @@ export const ItemDrops = {
     ui.notifications.info(L("SDE.loot.itemDrops.notify.pickedUp", { name: recipient.name, label: cardLabel }));
     await ChatMessage.create({
       speaker: ChatMessage.getSpeaker({ actor: recipient }),
-      content: `<div class="shadowdark-enhancer item-pickup-card" style="display:flex;align-items:center;gap:8px;padding:6px 4px;">
-        <img src="${esc(cardImg)}" alt="" width="36" height="36" style="border:none;flex:0 0 auto;">
-        <div style="line-height:1.2;">
-          ${L("SDE.loot.itemDrops.pickedUpCard", { name: `<strong>${esc(recipient.name)}</strong>` })}<br>
-          <span>${esc(cardLabel)}</span>
-        </div>
-      </div>`,
+      content: compactCard({
+        img: cardImg,
+        html: `${L("SDE.loot.itemDrops.pickedUpCard", { name: `<strong>${esc(recipient.name)}</strong>` })} <strong>${esc(cardLabel)}</strong>`,
+      }),
     });
 
     // Log to the session recap (no-op when no session is active)

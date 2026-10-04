@@ -329,6 +329,7 @@ export class TokenArtManagerApp extends HandlebarsApplicationMixin(ApplicationV2
     }
     const esc = foundry.utils.escapeHTML;
     const result = await DialogV2.prompt({
+      classes: ["sde-ui", "sde-dialog"],
       window: { title: editing ? "SDE.tokenArt.folder.editTitle" : "SDE.tokenArt.folder.addTitle" },
       content: `<div class="sde-tam-folder-form">
         <label>${game.i18n.localize("SDE.tokenArt.folder.label")}<input type="text" name="label" value="${esc(editing?.label ?? "")}" maxlength="120" autofocus></label>
@@ -393,6 +394,7 @@ export class TokenArtManagerApp extends HandlebarsApplicationMixin(ApplicationV2
     const DialogV2 = foundry.applications?.api?.DialogV2;
     if (!DialogV2?.confirm) return false;
     const confirmed = await DialogV2.confirm({
+      classes: ["sde-ui", "sde-dialog"],
       window: { title: "SDE.tokenArt.folder.removeTitle" },
       content: `<p>${game.i18n.format("SDE.tokenArt.folder.removeQuestion", { label: `<strong>${foundry.utils.escapeHTML(folder.label)}</strong>` })}</p>`,
       yes: { label: "SDE.tokenArt.folder.removeYes", icon: "fa-solid fa-trash" },

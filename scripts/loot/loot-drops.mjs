@@ -156,6 +156,7 @@ export const LootDrops = {
     // Same DialogV2.wait pattern as loot-delivery's recipient picker: the
     // "save" callback's return value becomes the resolved choice.
     const choice = await foundry.applications.api.DialogV2.wait({
+      classes: ["sde-ui", "sde-dialog"],
       window: { title: game.i18n.format("SDE.loot.drops.configTitle", { name: actor.name }) },
       content,
       buttons: [

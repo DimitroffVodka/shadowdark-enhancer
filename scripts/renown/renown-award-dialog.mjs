@@ -59,6 +59,7 @@ export const RenownAwardDialog = {
       ?? party[0].actorId;
 
     const choice = await DialogV2.wait({
+      classes: ["sde-ui", "sde-dialog"],
       window: { title: "SDE.renown.title", icon: "fas fa-crown" },
       position: { width: 460 },
       content: _content({ party, preferred, delta, reason, history }),

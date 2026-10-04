@@ -59,6 +59,7 @@ export async function fundBastion(actor, direction) {
 export async function trophyBastion(actor) {
   if (!game.user.isGM) return false;
   const pick = await foundry.applications.api.DialogV2.prompt({
+    classes: ["sde-ui", "sde-dialog"],
     window: { title: "SDE.bastion.trophy.title" },
     content: `<div class="form-group"><label>${esc(t("SDE.bastion.trophy.name"))}</label><div class="form-fields"><input type="text" name="name" maxlength="60" autofocus></div></div>
       <p class="hint">${esc(format("SDE.bastion.trophy.hint", { xp: core.TROPHY_XP }))}</p>`,
@@ -81,6 +82,7 @@ export async function pigeonBastion(actor) {
   const players = game.users.filter((u) => !u.isGM && u.active);
   const options = [`<option value="">${esc(t("SDE.bastion.pigeon.everyone"))}</option>`, ...players.map((u) => `<option value="${esc(u.id)}">${esc(u.name)}</option>`)].join("");
   const pick = await foundry.applications.api.DialogV2.prompt({
+    classes: ["sde-ui", "sde-dialog"],
     window: { title: "SDE.bastion.pigeon.title" },
     content: `<div class="form-group"><label>${esc(t("SDE.bastion.pigeon.to"))}</label><div class="form-fields"><select name="to">${options}</select></div></div>
       <div class="form-group"><label>${esc(t("SDE.bastion.pigeon.text"))}</label><div class="form-fields"><textarea name="text" rows="4" autofocus></textarea></div></div>`,
@@ -126,6 +128,7 @@ export async function takeOutBastion(actor, itemId) {
   }
   const options = people.map((a) => `<option value="${esc(a.uuid)}">${esc(a.name)}</option>`).join("");
   const pick = await foundry.applications.api.DialogV2.prompt({
+    classes: ["sde-ui", "sde-dialog"],
     window: { title: "SDE.bastion.vault.takeTitle" },
     content: `<div class="form-group"><label>${esc(t("SDE.bastion.fund.who"))}</label><div class="form-fields"><select name="who">${options}</select></div></div>`,
     ok: { label: "SDE.bastion.vault.takeOut", callback: (_event, button) => new foundry.applications.ux.FormDataExtended(button.form).object },
@@ -143,6 +146,7 @@ function promptFunding(direction, people) {
   const options = people.map((a) => `<option value="${esc(a.uuid)}">${esc(a.name)} (${esc(format("SDE.bastion.fund.purse", { gp: a.system.coins.gp ?? 0 }))})</option>`).join("");
   const paying = direction === "deposit";
   return foundry.applications.api.DialogV2.prompt({
+    classes: ["sde-ui", "sde-dialog"],
     window: { title: paying ? "SDE.bastion.fund.depositTitle" : "SDE.bastion.fund.withdrawTitle" },
     content: `<div class="form-group"><label>${esc(t("SDE.bastion.fund.who"))}</label><div class="form-fields"><select name="who">${options}</select></div></div>
       <div class="form-group"><label>${esc(t("SDE.bastion.fund.amount"))}</label><div class="form-fields"><input type="number" name="gp" min="1" step="1" value="10" autofocus></div></div>`,

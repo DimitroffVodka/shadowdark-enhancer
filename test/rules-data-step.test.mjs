@@ -192,7 +192,7 @@ test("the notice names the button to press and has a button, whispered to GMs on
   assert.deepEqual(card.whisper, [{ id: "gm" }]);
   assert.match(card.content, /Terrain costs aren&#39;t set/);
   assert.match(card.content, /Importer Hub &gt; Rules Data &gt; Import from GM Guide/);
-  assert.match(card.content, /<button type="button">[\s\S]*Open Rules Data/);
+  assert.match(card.content, /<button type="button" class="ui-btn">[\s\S]*Open Rules Data/);
   assert.equal(card.flags["shadowdark-enhancer"].rulesNotice, "terrain");
 });
 
