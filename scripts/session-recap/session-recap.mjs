@@ -703,6 +703,7 @@ export const SessionRecap = {
   async _waitChoice({ title, content, buttons, defaultButton }) {
     const DialogV2 = foundry.applications.api.DialogV2;
     return DialogV2.wait({
+      classes: ["sde-ui", "sde-dialog"],
       window: { title },
       content: `<p>${content}</p>`,
       buttons: buttons.map(b => ({

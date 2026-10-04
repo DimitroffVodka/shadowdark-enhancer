@@ -6,6 +6,7 @@
   redesign. No window uses it yet, so nothing looks different.
 
 ### Changed
+- **Dialogs share one look.** Confirms, prompts and choice dialogs take the kit's title, body and button row (the default button is the filled one), and the dying menu lists its actions as rows with icons. Handlers and default buttons are unchanged.
 - **Chat cards use the new look.** The encounter check, encounter result, flavor and loot cards, plus the chaos initiative, session luck, rumors, troubles, rules notice, weather, downtime, merchant purchase, item pickup, forge, parry, dying, out-of-combat initiative, warband note and pit fight twist cards, now read as one family in dark and light. Same data and buttons; the loot card keeps Claim in view and puts Give and Forge behind one more-actions icon.
 - **The Party sheet's header is one compact band.** The boxed "Marching formation" block, with its
   heading and five lines of text, is replaced by a visible **Marching order** switch beside the 3×3

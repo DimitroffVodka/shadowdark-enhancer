@@ -616,6 +616,7 @@ function baseFor({ method, boatUuid }) {
 export async function startDayFromParty() {
   // A day is open: starting another re-rolls its checks and drops its progress, so ask first.
   if (_state.day !== null && !(await foundry.applications.api.DialogV2.confirm({
+    classes: ["sde-ui", "sde-dialog"],
     window: { title: t("SDE.overland.day.title") }, content: `<p>${esc(t("SDE.overland.day.restart"))}</p>`, rejectClose: false,
   }))) return null;
   if (baseFor(partyReading()) > 0) return startDay();
@@ -658,6 +659,7 @@ export async function askDay() {
       <select name="boatUuid">${option("", t("SDE.overland.day.noBoat"), !read.boatUuid)}${
   boats.map((b) => option(b.uuid, b.name, b.uuid === read.boatUuid)).join("")}</select></div>` : ""}`;
   return foundry.applications.api.DialogV2.prompt({
+    classes: ["sde-ui", "sde-dialog"],
     window: { title: t("SDE.overland.day.title") },
     content,
     ok: {
@@ -879,6 +881,7 @@ export async function askForage() {
   const rows = members.map((a) => `<label class="checkbox"><input type="checkbox" name="${esc(a.id)}"${
     _state.foraged.includes(a.id) ? " disabled" : " checked"}> ${esc(a.name)}</label>`).join("");
   return foundry.applications.api.DialogV2.prompt({
+    classes: ["sde-ui", "sde-dialog"],
     window: { title: t("SDE.overland.forage.dialogTitle") },
     content: `<p>${esc(t("SDE.overland.forage.dialogPick"))}</p><div class="form-fields">${rows}</div>`,
     ok: {

@@ -308,6 +308,7 @@ export class SessionRecapApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const id = target.dataset.sessionId;
     if (!id) return;
     const ok = await foundry.applications.api.DialogV2.confirm({
+      classes: ["sde-ui", "sde-dialog"],
       window: { title: "SDE.sessionRecap.dialog.deleteTitle" },
       content: `<p>${L("SDE.sessionRecap.dialog.deleteBody")}</p>`,
       rejectClose: false,
@@ -339,6 +340,7 @@ export class SessionRecapApp extends HandlebarsApplicationMixin(ApplicationV2) {
 
   static async _onClearSession() {
     const ok = await foundry.applications.api.DialogV2.confirm({
+      classes: ["sde-ui", "sde-dialog"],
       window: { title: "SDE.sessionRecap.dialog.clearTitle" },
       content: `<p>${L("SDE.sessionRecap.dialog.clearBody")}</p>`,
       rejectClose: false,

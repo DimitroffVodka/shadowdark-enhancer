@@ -400,6 +400,7 @@ export class MountSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       case "delete": {
         if (!effect) return null;
         const ok = await foundry.applications.api.DialogV2.confirm({
+          classes: ["sde-ui", "sde-dialog"],
           window: { title: "SHADOWDARK.sheet.general.active_effects.delete_effect.tooltip" },
           content: `<p>${game.i18n.localize("SHADOWDARK.dialog.general.yes")}?</p>`, rejectClose: false,
         });
@@ -436,6 +437,7 @@ export class MountSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const item = this.actor.items.get(id);
     if (!item) return null;
     const ok = await foundry.applications.api.DialogV2.confirm({
+      classes: ["sde-ui", "sde-dialog"],
       window: { title: "SHADOWDARK.sheet.general.item_delete.title" },
       content: `<p>${foundry.utils.escapeHTML(item.name)}</p>`, rejectClose: false,
     });
@@ -484,6 +486,7 @@ export class MountSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       return;
     }
     const ok = await foundry.applications.api.DialogV2.confirm({
+      classes: ["sde-ui", "sde-dialog"],
       window: { title: "SDE.mount.copyStats.title" },
       content: `<p>${game.i18n.format("SDE.mount.copyStats.question", { name: `<strong>${source.name}</strong>` })}</p>`
         + `<p>${game.i18n.localize("SDE.mount.copyStats.warning")}</p>`,

@@ -127,7 +127,7 @@ import { initRivalClassTable } from "./forge-loot/rival-class-table-adapter.mjs"
 // templates, producing unstyled block-flow UI. Keep the manifest stylesheet as
 // the startup fallback, then layer a content-addressed copy above it. The layout
 // contract test requires this revision to change whenever the CSS file changes.
-const STYLESHEET_REV = "20e722a167b2";
+const STYLESHEET_REV = "bc4eac659922";
 
 // The same problem for the SCRIPTS, which cannot be solved the same way: their
 // URLs come from the manifest, which Foundry validates as real package paths,
@@ -142,7 +142,7 @@ const STYLESHEET_REV = "20e722a167b2";
 // stale); module.json carries the same hash and is fetched fresh at runtime. A
 // mismatch is a stale cache by construction — it cannot be anything else. Both
 // stamps are written by `npm run inventory` and gated by `inventory:check`.
-const BUILD_REV = "4e3e19053617";
+const BUILD_REV = "fab8d6328286";
 
 /**
  * Tell the user when their browser is running an old build of this module, and
@@ -200,6 +200,7 @@ async function checkBuildRev() {
 
     console.warn(`${MODULE_ID} | stale scripts: running ${BUILD_REV}, ${onDisk} is installed.`);
     const reload = await foundry.applications.api.DialogV2.confirm({
+      classes: ["sde-ui", "sde-dialog"],
       // Old cached code reads these keys from whatever en.json is installed,
       // so renaming one blanks the very dialog meant to rescue that build.
       window: { title: "SDE.staleBuild.title" },

@@ -2267,6 +2267,7 @@ class MerchantShopApp extends HandlebarsApplicationMixin(ApplicationV2) {
       if (!junkItems.length) { ui.notifications.info(game.i18n.localize("SDE.merchant.notify.noJunk")); return; }
 
       const ok = await foundry.applications.api.DialogV2.confirm({
+        classes: ["sde-ui", "sde-dialog"],
         window: { title: "SDE.merchant.dialog.sellJunkTitle" },
         content: `<p>${game.i18n.format("SDE.merchant.dialog.sellJunkBody", { n: junkItems.length })}</p>`,
         rejectClose: false,
@@ -2297,6 +2298,7 @@ class MerchantShopApp extends HandlebarsApplicationMixin(ApplicationV2) {
 
     el.querySelector(".sdems-clear-log")?.addEventListener("click", async () => {
       const ok = await foundry.applications.api.DialogV2.confirm({
+        classes: ["sde-ui", "sde-dialog"],
         window: { title: "SDE.merchant.dialog.clearLogTitle" },
         content: `<p>${game.i18n.localize("SDE.merchant.dialog.clearLogBody")}</p>`,
         rejectClose: false,
@@ -2539,6 +2541,7 @@ class MerchantShopApp extends HandlebarsApplicationMixin(ApplicationV2) {
         if (!configName) { ui.notifications.warn(game.i18n.localize("SDE.merchant.notify.selectToDelete")); return; }
 
         const confirmed = await foundry.applications.api.DialogV2.confirm({
+          classes: ["sde-ui", "sde-dialog"],
           window: { title: "SDE.merchant.dialog.deleteConfigTitle" },
           content: `<p>${game.i18n.format("SDE.merchant.dialog.deleteConfigBody", { name: `<strong>${configName}</strong>` })}</p>`,
           rejectClose: false,

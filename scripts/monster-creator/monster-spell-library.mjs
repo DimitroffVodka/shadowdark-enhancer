@@ -330,6 +330,7 @@ async function chooseSourcesDialog(sources) {
       <span>${escapeHtml(source.label)}</span>
     </label>`).join("");
   const choice = await foundry.applications.api.DialogV2.wait({
+    classes: ["sde-ui", "sde-dialog"],
     window: { title: "SDE.monsterCreator.spellLibrary.chooseTitle" },
     content: `<p>${L("SDE.monsterCreator.spellLibrary.chooseIntro")}</p>${rows}`,
     buttons: [
@@ -365,6 +366,7 @@ async function confirmRefreshDialog(preview) {
   // and en.json stays plain text.
   const strong = n => `<strong>${n}</strong>`;
   return foundry.applications.api.DialogV2.confirm({
+    classes: ["sde-ui", "sde-dialog"],
     window: { title: "SDE.monsterCreator.spellLibrary.confirmTitle" },
     content: `
       <p>${L("SDE.monsterCreator.spellLibrary.scanned", {

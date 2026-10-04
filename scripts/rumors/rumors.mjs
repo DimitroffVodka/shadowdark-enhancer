@@ -251,6 +251,7 @@ export async function askAndGive() {
       ${pcs.map((a) => `<label class="checkbox"><input type="checkbox" name="heardBy" value="${esc(a.name)}" ${heard.has(a.name) ? "checked" : ""}> ${esc(a.name)}</label>`).join("")}</fieldset>
     ${pending ? `<p class="hint">${esc(t("SDE.rumors.dialog.troubles", { n: pending }))}</p>` : ""}`;
   const opts = await foundry.applications.api.DialogV2.prompt({
+    classes: ["sde-ui", "sde-dialog"],
     window: { title: "SDE.rumors.dialog.title" },
     content,
     ok: {

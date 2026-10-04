@@ -894,6 +894,7 @@ export class PitFightingApp extends HandlebarsApplicationMixin(ApplicationV2) {
     }
 
     const mapId = await DialogV2.prompt({
+      classes: ["sde-ui", "sde-dialog"],
       window: { title: "SDE.pitFighting.arena.title" },
       content: `<div class="form-group">
           <label>${L("SDE.pitFighting.arena.chooseMap")}</label>

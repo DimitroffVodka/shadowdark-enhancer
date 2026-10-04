@@ -279,6 +279,7 @@ export const ItemDrops = {
   async _promptDropQuantity(name, max) {
     const safeName = Handlebars.escapeExpression(name ?? "");
     const result = await foundry.applications.api.DialogV2.wait({
+      classes: ["sde-ui", "sde-dialog"],
       window: { title: "SDE.loot.itemDrops.dropTitle" },
       content: `<div style="padding:8px;">
         <label>${L("SDE.loot.itemDrops.dropQtyPrompt", { name: `<strong>${safeName}</strong>`, max })}<br>
