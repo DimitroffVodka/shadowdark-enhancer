@@ -1,7 +1,7 @@
 # Shadowdark Enhancer — File Inventory
 
 <!-- inventory:stats:start -->
-1715 tracked files · ~223,900 lines of code/markup across scripts+templates+styles+test.
+1716 tracked files · ~223,800 lines of code/markup across scripts+templates+styles+test.
 `v0.17.3` in both `module.json` and `package.json`.
 <!-- inventory:stats:end -->
 **Layout reflects the 2026-07-21 feature-folder reorganization (v0.11.0 cycle).**
@@ -404,7 +404,7 @@
 |---|---:|---|
 | `register-actors.mjs` | 114 | Registers `shadowdark-enhancer.mount` / `.warband` / `.boat` (models + sheets, in `i18nInit`): the warband's NpcSD subclass with fixed HP, its linked-token and commander-cleared create hook, and Make a Warband. |
 | `boat-data-model.mjs` | 115 | Boat data model — WR vessel rules. |
-| `boat-sheet.mjs` | 145 | Boat sheet: Overview / Passengers & Crew / Cargo / Description. |
+| `boat-sheet.mjs` | 142 | Boat sheet: Overview / Passengers & Crew / Cargo / Description. |
 | `npc-stat-sheet.mjs` | 273 | The NPC stat block as an ApplicationV2 actor sheet, shared by the Mount and the Warband: header and tabs, HP/AC/level, attacks, specials, features, spells, description, effects and the system's own data-action names (item-attack, roll-hp, cast-npc-spell...) mapped to V2 actions, tab handling and emulateItemDrop. Markup in templates/actors/npc-stat/. |
 | `mount-sheet.mjs` | 351 | Mount sheet — an ApplicationV2 actor sheet over the NPC data model: stats, riders, gear, mount rules, spells, notes, effects. |
 | `mount-scores-core.mjs` | 13 | Pure mount full-score defaults, uncapped modifier conversion, separate damage and effective scores. |

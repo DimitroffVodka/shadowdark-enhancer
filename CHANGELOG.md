@@ -9,6 +9,7 @@
   redesign. No window uses it yet, so nothing looks different.
 
 ### Changed
+- **Boat sheet uses the new design.** A header band (name, hit points, AC, move, passengers), five tabs, and Overview cards for Command, Sinking, Crew and cargo and Properties, with weather folded away; passengers, cargo and siege weapons are rows with icon buttons. It keeps the Shadowdark parchment look.
 - **Bastion sheet and panel use the new design.** The sheet has a header band (name, type, AC, hit points, upgrades, treasury), the rooms at work folded under Overview, upgrade cards with icon actions, and a Plan tab whose side card says what to do instead of sitting empty; the panel shows each Bastion as a card with icon buttons. Both keep the Shadowdark parchment look.
 - **Carousing window uses the new design.** One tier select for the party at the top, one shared-cost line (total, headcount, each person's share), a Joining switch and the result for each character.
 - **Camping window uses the new design.** Hairline rows on the shared UI kit, a ration count next to the ham hock icon, a Ready button, and no gold.

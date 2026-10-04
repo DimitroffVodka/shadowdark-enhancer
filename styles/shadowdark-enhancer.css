@@ -7811,7 +7811,7 @@ body.theme-light .sde-strip-combat-controls { background: #f4f1ec !important; }
  * Mount & Boat actor sheets (shadowdark-enhancer.mount / .boat)
  * ─────────────────────────────────────────────────────────────────────────── */
 .sde-mount-sheet .window-content,
-.sde-vehicle-sheet .window-content {
+.sde-vehicle-sheet:not(.sde-ui) .window-content {
   overflow-y: auto;
   padding: 6px 8px;
 }
@@ -7857,17 +7857,17 @@ body.theme-light .sde-strip-combat-controls { background: #f4f1ec !important; }
 /* SD forces form controls to width:100%; keep them sized to their column. */
 .sde-mount-sheet input,
 .sde-mount-sheet select,
-.sde-vehicle-sheet input,
-.sde-vehicle-sheet select {
+.sde-vehicle-sheet:not(.sde-ui) input,
+.sde-vehicle-sheet:not(.sde-ui) select {
   width: 100% !important;
   min-width: 0;
   height: 24px;
   box-sizing: border-box;
 }
 .sde-mount-sheet input[disabled],
-.sde-vehicle-sheet input[disabled] { opacity: 0.7; }
+.sde-vehicle-sheet:not(.sde-ui) input[disabled] { opacity: 0.7; }
 .sde-mount-sheet input[type="checkbox"],
-.sde-vehicle-sheet input[type="checkbox"] {
+.sde-vehicle-sheet:not(.sde-ui) input[type="checkbox"] {
   width: auto !important;
   height: auto;
 }
@@ -7913,10 +7913,6 @@ body.theme-light .sde-strip-combat-controls { background: #f4f1ec !important; }
   color: #b22222;
   margin: 4px 0;
 }
-.sde-veh-details { margin: 6px 0; font-size: 12px; }
-.sde-veh-details summary { cursor: pointer; font-weight: bold; }
-.sde-veh-reflist { margin: 4px 0; padding-left: 18px; }
-.sde-veh-reflist li { margin: 2px 0; }
 
 /* ── Tabbed container (Boat sheet — Shadowdark parchment chrome) ───────────── */
 .sde-vehicle-sheet-body { height: 100%; }
@@ -7926,18 +7922,18 @@ body.theme-light .sde-strip-combat-controls { background: #f4f1ec !important; }
  * the system's own (ApplicationV1) sheets — e.g. the NPC-based Mount sheet —
  * regardless of the user's theme. The .SD-header / .SD-nav / .SD-box chrome
  * comes from the system stylesheet via the `shadowdark sheet` classes. */
-.sde-vehicle-sheet .window-content {
+.sde-vehicle-sheet:not(.sde-ui) .window-content {
   padding: 0;
   overflow: hidden;
   background: url("/ui/parchment.jpg") repeat;
   color: #191813;
 }
-.sde-vehicle-sheet,
-.sde-vehicle-sheet input,
-.sde-vehicle-sheet select,
-.sde-vehicle-sheet textarea,
-.sde-vehicle-sheet label,
-.sde-vehicle-sheet button { color: #191813; }
+.sde-vehicle-sheet:not(.sde-ui),
+.sde-vehicle-sheet:not(.sde-ui) input,
+.sde-vehicle-sheet:not(.sde-ui) select,
+.sde-vehicle-sheet:not(.sde-ui) textarea,
+.sde-vehicle-sheet:not(.sde-ui) label,
+.sde-vehicle-sheet:not(.sde-ui) button { color: #191813; }
 
 /* The vessel name sits inside the black .SD-header — render it as the big
  * Old-Newspaper title the system's ApplicationV1 sheets show. AppV2 inputs
@@ -8016,34 +8012,6 @@ body.theme-light .sde-strip-combat-controls { background: #f4f1ec !important; }
 .sde-vehicle-sheet .window-header .header-control { color: rgba(235, 230, 220, 0.82); }
 .sde-vehicle-sheet .window-header .header-control:hover { color: #fff; }
 
-/* Overview = vital-stat boxes down a 1/3 left column, detail sections in the
- * 2/3 right column (mirrors the Mount's left-rail / right-content split). */
-.sde-boat-sheet .sde-veh-overview { display: flex; gap: 8px; align-items: flex-start; margin: 6px 8px; }
-.sde-boat-sheet .sde-veh-col-left { flex: 0 0 33%; display: flex; flex-direction: column; gap: 8px; }
-.sde-boat-sheet .sde-veh-col-right { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 8px; }
-.sde-boat-sheet .sde-veh-overview .SD-box { margin: 0; }
-.sde-boat-sheet .sde-veh-col-left .sde-veh-hint { margin: 2px 0 0; }
-
-/* AC + Move sit side by side (half-width each) in the left rail. */
-.sde-boat-sheet .sde-veh-statpair { display: flex; gap: 8px; }
-.sde-boat-sheet .sde-veh-statpair .SD-box { flex: 1 1 0; min-width: 0; }
-
-/* Vital-stat boxes (HP / AC / Movement / Passengers) — compact SD-boxes like
- * the Mount's HP/AC/LEVEL. */
-.sde-boat-sheet .sde-veh-stat .content {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 2px;
-  padding: 6px 5px;
-}
-.sde-boat-sheet .sde-veh-stat input { text-align: center; }
-.sde-boat-sheet .sde-veh-hpline { display: flex; align-items: center; gap: 4px; }
-.sde-boat-sheet .sde-veh-hpline input { width: 46px !important; }
-.sde-boat-sheet .sde-veh-statbig { font-size: 22px; }
-.sde-boat-sheet .sde-veh-substat { font-size: 10px; opacity: 0.65; text-align: center; }
-
 .sde-veh-tab-content { display: none; padding: 8px; overflow-y: auto; }
 .sde-veh-tab-content.active { display: block; flex: 1 1 auto; min-height: 0; }
 
@@ -8088,52 +8056,6 @@ body.theme-light .sde-strip-combat-controls { background: #f4f1ec !important; }
 .sde-veh-member-remove:hover { opacity: 1; color: #b22222; }
 .sde-veh-member-broken { flex: 1 1 auto; color: #b22222; font-style: italic; }
 
-/* Crew roles: per-occupant selector + at-a-glance badge */
-.sde-veh-member-rolesel { flex: 0 0 auto; margin: 0 4px; }
-.sde-veh-member-rolesel select {
-  font-size: 11px;
-  padding: 1px 4px;
-  height: auto;
-  min-width: 92px;
-}
-.sde-veh-role-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 3px;
-  margin-left: 6px;
-  padding: 0 6px;
-  border-radius: 8px;
-  font-size: 10px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
-  vertical-align: middle;
-}
-.sde-veh-role-badge.is-captain { background: rgba(30, 80, 140, 0.16); color: #1e508c; }
-.sde-veh-role-badge.is-gunner { background: rgba(150, 70, 20, 0.16); color: #964614; }
-.sde-veh-role-badge.is-crew { background: rgba(40, 110, 60, 0.16); color: #2a7a3c; }
-
-/* Source tag (e.g. a CS3 marker on an optional non-WR rule) */
-.sde-veh-srctag {
-  display: inline-block;
-  margin-left: 5px;
-  padding: 0 5px;
-  border-radius: 6px;
-  font-size: 9px;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  vertical-align: middle;
-  background: rgba(120, 90, 40, 0.2);
-  color: #7a5a1e;
-}
-
-/* Command box (Captain / Gunners + right-the-ship) */
-.sde-veh-command { display: flex; flex-direction: column; gap: 6px; }
-.sde-veh-cmdrow { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-.sde-veh-cmdlabel { flex: 0 0 88px; font-weight: 600; font-size: 12px; }
-.sde-veh-cmdval { flex: 1 1 auto; font-size: 13px; }
-.sde-veh-cmdrow .sde-veh-btn { flex: 0 0 auto; }
-
 /* Inventory / cargo */
 .sde-veh-slottally { font-size: 13px; margin-bottom: 6px; }
 .sde-veh-slotnote { opacity: 0.7; font-size: 11px; }
@@ -8158,47 +8080,7 @@ body.theme-light .sde-strip-combat-controls { background: #f4f1ec !important; }
 }
 .sde-veh-item-del:hover { opacity: 1; color: #b22222; }
 
-/* Attack / Damage roll buttons on the Weapons tab. */
-.sde-veh-wpn-btn {
-  width: auto !important;
-  flex: 0 0 auto;
-  padding: 2px 8px;
-  font-size: 11px;
-  cursor: pointer;
-  white-space: nowrap;
-  background: rgba(0, 0, 0, 0.06);
-  border: 1px solid rgba(0, 0, 0, 0.3);
-  border-radius: 4px;
-}
-.sde-veh-wpn-btn:hover { background: rgba(0, 0, 0, 0.12); }
 
-.sde-boat-sheet .sde-veh-tab-content[data-tab-content="description"] textarea {
-  width: 100% !important;
-  resize: vertical;
-  color: #191813;
-  background: #f4f0e8;
-  border: 1px solid rgba(25, 24, 19, 0.45);
-  /* Keep AppV2's input tokens aligned so Foundry theme rules cannot re-darken
-   * the explicit colors above. */
-  --input-background-color: #f4f0e8;
-  --input-border-color: rgba(25, 24, 19, 0.45);
-  --input-text-color: #191813;
-  --input-focus-outline-color: #7a5a1e;
-}
-.sde-boat-sheet .sde-veh-tab-content[data-tab-content="description"] textarea:hover {
-  border-color: rgba(25, 24, 19, 0.7);
-}
-.sde-boat-sheet .sde-veh-tab-content[data-tab-content="description"] textarea:focus {
-  border-color: #7a5a1e;
-  outline: 2px solid #7a5a1e;
-  outline-offset: -2px;
-  box-shadow: 0 0 0 1px rgba(122, 90, 30, 0.25);
-}
-.sde-boat-sheet .sde-veh-tab-content[data-tab-content="description"] textarea:read-only,
-.sde-boat-sheet .sde-veh-tab-content[data-tab-content="description"] textarea:disabled {
-  color: #191813;
-  background: #f4f0e8;
-}
 
 /* ==========================================================================
    AppV2 window frame under the system's `.shadowdark` scope
@@ -11563,6 +11445,23 @@ button.sde-hud-day:hover { border-color: var(--sd-frame); }
 .ubp-ui .ui-bp-room { width: 28px; height: 28px; border: 1px solid var(--ui-line); border-radius: var(--ui-r); color: var(--ui-raised); }
 .ubp-ui .ui-bp-room.faint { opacity: 0.45; }
 .ubp-ui .ui-pairs { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+
+/* ── Boat actor sheet: panes, drop targets, rider rows and field grids (kit parts in parchment) ── */
+.sde-ui .ui-pane:not(.active) { display: none; }
+.ui-drop { border: 1px dashed var(--ui-line); border-radius: var(--ui-r2); padding: 8px; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.ui-drop.sde-drag-over { border-color: var(--ui-gold); background: var(--ui-gold-bg); }
+.ui-dim { color: var(--ui-muted); }
+.is-damaged { color: var(--ui-danger-text); font-weight: 700; }
+.ui-fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px 12px; align-items: end; }
+.ui-fields .ui-check { min-height: 28px; }
+.sde-ui input.ui-ro { background: transparent; border-style: dashed; }
+.ui-two { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 16px; align-items: start; }
+@container (max-width: 560px) { .ui-two { grid-template-columns: minmax(0, 1fr); } }
+.ui-row.ui-rider { flex-wrap: wrap; }
+.ui-rider .ui-row-main { flex: 1 1 140px; }
+.ui-rolesel { flex: 0 0 120px; }
+.ui-rolesel select { width: 100%; }
+.ui-chips { margin-top: 4px; }
 
 /* Bastion shops: the window opened from the Shops box. */
 .sde-bastion-shop .sde-bs { display: flex; flex-direction: column; height: 100%; gap: 6px; padding: 8px; }

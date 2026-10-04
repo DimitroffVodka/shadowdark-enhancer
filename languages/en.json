@@ -5144,7 +5144,6 @@
   "SDE.boat.moveTip": "hexes per 8-hour day",
   "SDE.boat.combatSpeed": "{feet} ft",
   "SDE.boat.cost": "Cost",
-  "SDE.boat.capacityNote": "capacity = max HP",
   "SDE.boat.overviewHint": "Carries passengers equal to HP (they don't use cargo slots). Repairs: 1 week, 1 gp per HP. Begins to sink at 0 HP or capsize.",
   "SDE.boat.command": "Command",
   "SDE.boat.unassigned": "unassigned",
