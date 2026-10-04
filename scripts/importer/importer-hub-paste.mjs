@@ -607,6 +607,7 @@ class HubPasteMethods {
     if (!this._importText.trim()) { ui.notifications.warn(t("SDE.importer.parse.needTableCompound")); return; }
 
     const spec = await foundry.applications.api.DialogV2.wait({
+      classes: ["sde-ui", "sde-dialog"],
       window: { title: t("SDE.importer.compound.title"), icon: "fas fa-dice-d6" },
       content: `
         <p>${t("SDE.importer.compound.lead")}</p>
@@ -641,6 +642,7 @@ class HubPasteMethods {
     if (!this._importText.trim()) { ui.notifications.warn(t("SDE.importer.parse.needTableCartesian")); return; }
 
     const spec = await foundry.applications.api.DialogV2.wait({
+      classes: ["sde-ui", "sde-dialog"],
       window: { title: t("SDE.importer.cartesian.title"), icon: "fas fa-table-cells" },
       content: `
         <p>${t("SDE.importer.cartesian.lead")}</p>

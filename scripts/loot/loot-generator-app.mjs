@@ -176,6 +176,7 @@ export class LootGeneratorApp extends HandlebarsApplicationMixin(ApplicationV2) 
   /** Prompt for an arbitrary coin amount and drop it on the canvas (GM). */
   async _onDropCoinsPrompt() {
     const result = await foundry.applications.api.DialogV2.wait({
+      classes: ["sde-ui", "sde-dialog"],
       window: { title: "SDE.loot.generator.dropCoinsTitle", icon: "fas fa-coins" },
       content: `<div style="padding:8px;display:flex;gap:12px;align-items:flex-end;">
         <label style="display:flex;flex-direction:column;gap:2px;">${game.i18n.localize("SDE.loot.coins.gp")}<input type="number" name="gp" value="0" min="0" step="1" style="width:5em;"></label>

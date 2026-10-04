@@ -583,6 +583,7 @@ export async function openTerrainTables() {
     </div></div>`).join("")}
   </form>`;
   const answer = await foundry.applications.api.DialogV2.prompt({
+    classes: ["sde-ui", "sde-dialog"],
     window: { title: "SDE.encounter.terrain.title", icon: "fa-solid fa-mountain-sun" },
     position: { width: 520 },
     content,

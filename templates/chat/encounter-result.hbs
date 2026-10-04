@@ -1,42 +1,31 @@
-<div class="sde-encounter-chat-card">
-  <header class="sde-chat-header">
-    <h3><i class="fas fa-dragon"></i> {{localize "SDE.encounter.chat.heading"}}</h3>
-  </header>
-  {{#if via}}<p class="sde-result-via">{{via}}</p>{{/if}}
-
-  <div class="sde-chat-monster">
-    <img src="{{img}}" width="40" height="40" alt="" />
-    <div class="sde-chat-monster-info">
-      <span class="sde-chat-monster-count">{{count}} ×</span>
-      <span class="sde-chat-monster-name">{{name}}</span>
+<div class="sde-ui ui-cc">
+  <header class="cc-head"><i class="fa-solid fa-dragon"></i><h4 class="cc-title">{{localize "SDE.encounter.chat.heading"}}</h4></header>
+  <div class="cc-body">
+    {{#if via}}<p class="cc-sub">{{via}}</p>{{/if}}
+    <div class="cc-thing">
+      <img src="{{img}}" width="40" height="40" alt="">
+      <span class="cc-count">{{count}} &times;</span>
+      <span class="cc-name">{{name}}</span>
     </div>
-  </div>
-
-  <div class="sde-chat-facets">
-    <div class="sde-chat-facet">
-      <span class="sde-chat-facet-label"><i class="fas fa-ruler-horizontal"></i> {{localize "SDE.encounter.facet.distance"}}</span>
-      <span class="sde-chat-facet-result">{{distanceText}}</span>
-      <span class="sde-chat-facet-roll">({{distanceRoll}})</span>
-    </div>
-    <div class="sde-chat-facet">
-      <span class="sde-chat-facet-label"><i class="fas fa-masks-theater"></i> {{localize "SDE.encounter.facet.activity"}}</span>
-      <span class="sde-chat-facet-result">{{activityText}}</span>
-      <span class="sde-chat-facet-roll">({{activityRoll}})</span>
-    </div>
-    <div class="sde-chat-facet">
-      <span class="sde-chat-facet-label"><i class="fas fa-comment"></i> {{localize "SDE.encounter.facet.reaction"}}</span>
-      <span class="sde-chat-facet-result sde-reaction-{{reactionBand}}">{{reactionText}}</span>
-      <span class="sde-chat-facet-roll">({{reactionRoll}} + {{chaMod}}{{#if renownApplied}} + {{renownBonus}}{{/if}})</span>
+    <div class="cc-rows">
+      <div class="cc-row">
+        <span class="cc-label"><i class="fa-solid fa-ruler-horizontal"></i>{{localize "SDE.encounter.facet.distance"}}</span>
+        <span class="cc-main"><span class="cc-val">{{distanceText}}</span><span class="cc-aux">{{distanceRoll}}</span></span>
+      </div>
+      <div class="cc-row">
+        <span class="cc-label"><i class="fa-solid fa-masks-theater"></i>{{localize "SDE.encounter.facet.activity"}}</span>
+        <span class="cc-main"><span class="cc-val">{{activityText}}</span><span class="cc-aux">{{activityRoll}}</span></span>
+      </div>
+      <div class="cc-row">
+        <span class="cc-label"><i class="fa-solid fa-comment"></i>{{localize "SDE.encounter.facet.reaction"}}</span>
+        <span class="cc-main"><span class="cc-val cc-react-{{reactionBand}}">{{reactionText}}</span><span class="cc-aux">{{reactionRoll}} + {{chaMod}}{{#if renownApplied}} + {{renownBonus}}{{/if}}</span></span>
+      </div>
     </div>
     {{#if renownApplied}}
-    <div class="sde-chat-facet-note">
-      <i class="fas fa-crown"></i> {{localize "SDE.encounter.chat.renownNote" bonus=renownBonusText name=renownName band=renownBandLabel}}
-    </div>
+    <p class="cc-note info"><i class="fa-solid fa-crown"></i>{{localize "SDE.encounter.chat.renownNote" bonus=renownBonusText name=renownName band=renownBandLabel}}</p>
     {{/if}}
     {{#if reactionDoubleOnes}}
-    <div class="sde-chat-facet-note">
-      <i class="fas fa-triangle-exclamation"></i> {{localize "SDE.encounter.chat.doubleOnes"}}
-    </div>
+    <p class="cc-note warn"><i class="fa-solid fa-triangle-exclamation"></i>{{localize "SDE.encounter.chat.doubleOnes"}}</p>
     {{/if}}
   </div>
 </div>

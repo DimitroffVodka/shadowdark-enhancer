@@ -74,6 +74,7 @@ export async function makeWarband(source, type) {
   const { data, rows } = planWarband(source, type);
   const table = rows.map((r) => `<tr><td>${esc(r.label)}</td><td>${esc(r.before)}</td><td>${esc(r.after)}</td></tr>`).join("");
   const ok = await foundry.applications.api.DialogV2.confirm({
+    classes: ["sde-ui", "sde-dialog"],
     window: { title: "SDE.warband.make.title" },
     content: `<p>${esc(game.i18n.format("SDE.warband.make.question", { name: source.name, warband: data.name }))}</p>
       <table class="sde-warband-preview"><thead><tr><th></th><th>${esc(game.i18n.localize("SDE.warband.make.before"))}</th><th>${esc(game.i18n.localize("SDE.warband.make.after"))}</th></tr></thead><tbody>${table}</tbody></table>

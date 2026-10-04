@@ -285,6 +285,7 @@ export class TrainingApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const buttons = benefit.choice.map((c) => ({ action: c.key, label: c.label }));
     try {
       return await DialogV2.wait({
+        classes: ["sde-ui", "sde-dialog"],
         window: { title: t("SDE.training.choiceTitle") },
         content: `<p>${benefit.label}</p>`,
         buttons,

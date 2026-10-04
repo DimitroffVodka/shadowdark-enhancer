@@ -219,17 +219,6 @@ body.theme-light .sde-bar-phase-badge {
   background-size: var(--sde-bar-texture-size);
 }
 
-.sde-encounter-result-card,
-.sde-encounter-flavor-card {
-  background-image:
-    radial-gradient(ellipse at 50% 0%, color-mix(in srgb, var(--sde-bar-accent) 6%, transparent) 0%, transparent 70%);
-}
-
-.sde-loot-card {
-  background-image:
-    radial-gradient(ellipse at 50% 0%, color-mix(in srgb, var(--sde-bar-accent) 5%, transparent) 0%, transparent 70%);
-}
-
 /* ═══════════════════════════════════════════════════════════════════════════
    BOTTOM BAR
    ═══════════════════════════════════════════════════════════════════════════ */
@@ -708,24 +697,9 @@ body.theme-light .sde-bar-start-btn:hover {
   }
 }
 
-/* Chat — initiative roll total badge in the flavor line */
-.sde-chat-init-total {
-  display: inline-block;
-  margin-left: 6px;
-  padding: 1px 8px;
-  background: rgba(20, 18, 14, 0.92);
-  color: var(--sde-bar-accent);
-  border: 1px solid var(--sde-bar-accent);
-  border-radius: 4px;
-  font-weight: 700;
-  font-size: 1.15em;
-  letter-spacing: 0.5px;
-}
+/* Chat — advantage / disadvantage notes (light theme darkens them below). */
 .sde-chat-adv { color: #6fb86f; font-style: italic; font-size: 0.9em; }
 .sde-chat-dis { color: #c44a3a; font-style: italic; font-size: 0.9em; }
-/* Light theme: the chat badge kept its near-black ground while the accent
-   text token flipped dark — and the pale adv/dis greens/reds washed out. */
-body.theme-light .sde-chat-init-total { background: rgba(248, 245, 238, 0.92); }
 body.theme-light .sde-chat-adv { color: #2e6b2e; }
 body.theme-light .sde-chat-dis { color: #a33326; }
 
@@ -1119,7 +1093,6 @@ body.theme-light .sde-chat-dis { color: #a33326; }
 button.sde-strip-dying { cursor: pointer; }
 button.sde-strip-dying:hover { filter: brightness(1.25); }
 .sde-strip-dying.sde-strip-dying-stable { background: rgba(60, 60, 70, 0.9); }
-.sde-dying-menu .form-footer { flex-direction: column; }
 
 .sde-strip-remove {
   position: absolute;
@@ -3291,109 +3264,8 @@ body.theme-light .sde-hub-monsters-row td {
   opacity: 0.7;
 }
 
-/* ── Chat result card — narrow-pane compact layout ──────────────────────── */
-/* Distinct from the roller window's `.sde-result-card` (which is tuned for
-   the wider 720px panel with fixed 110px label columns). The chat pane is
-   ~280px so labels and results have to flex, never use fixed widths. */
-
-.sde-encounter-chat-card {
-  padding: 4px 2px;
-}
-.sde-chat-header {
-  border-bottom: 1px solid var(--sde-bar-accent-dark);
-  margin-bottom: 6px;
-  padding-bottom: 3px;
-}
-.sde-chat-header h3 {
-  margin: 0;
-  font-size: 14px;
-  color: var(--sde-bar-accent);
-  font-family: "Eskapade", "Palatino Linotype", Palatino, serif;
-  border: none;
-}
-
-.sde-chat-monster {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  background: var(--sde-bar-surface-1);
-  color: var(--sde-bar-text);
-  padding: 4px 6px;
-  margin-bottom: 6px;
-  border-radius: 3px;
-  border: 1px solid var(--sde-bar-border);
-}
-.sde-chat-monster img {
-  flex-shrink: 0;
-  border: 1px solid var(--sde-bar-accent-dark);
-  border-radius: 3px;
-}
-.sde-chat-monster-info {
-  display: flex;
-  align-items: baseline;
-  gap: 5px;
-  min-width: 0;
-}
-.sde-chat-monster-count {
-  font-size: 16px;
-  font-weight: 800;
-  color: var(--sde-bar-accent);
-  flex-shrink: 0;
-}
-.sde-chat-monster-name {
-  font-size: 14px;
-  font-weight: 700;
-  font-family: "Eskapade", "Palatino Linotype", Palatino, serif;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.sde-chat-facets {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-.sde-chat-facet {
-  display: flex;
-  align-items: baseline;
-  gap: 6px;
-  padding: 3px 4px;
-  font-size: 13px;
-  background: var(--sde-bar-surface-2);
-  color: var(--sde-bar-text);
-  border-radius: 3px;
-}
-.sde-chat-facet-label {
-  font-weight: 700;
-  color: var(--sde-bar-text-dim);
-  white-space: nowrap;
-  flex-shrink: 0;
-}
-.sde-chat-facet-result {
-  font-weight: 700;
-  font-size: 14px;
-  flex: 1;
-  min-width: 0;
-}
-.sde-chat-facet-roll {
-  color: var(--sde-bar-text-muted);
-  font-family: monospace;
-  font-size: 11px;
-  flex-shrink: 0;
-}
-
-/* Reaction band colors — scoped to chat to avoid collision with the
-   window's `.sde-facet-result.Hostile` etc. */
-.sde-reaction-Hostile    { color: var(--sde-bar-hit); }
-.sde-reaction-Friendly   { color: var(--sde-bar-miss); }
-.sde-reaction-Neutral    { color: var(--sde-bar-text-dim); }
-.sde-reaction-Curious    { color: var(--sde-bar-accent); }
-.sde-reaction-Suspicious { color: #d08030; }
-
 /* Flavor result card (chat + window) — large readable text, no facets. */
-.sde-result-flavor .sde-flavor-text,
-.sde-encounter-flavor-card .sde-flavor-text {
+.sde-result-flavor .sde-flavor-text {
   padding: 12px 16px;
   font-size: 14px;
   font-style: italic;
@@ -3936,16 +3808,6 @@ body.theme-light .sde-hub-monsters-row td {
    select per row. Measured: at 200px the text column is 38px and every dropdown
    clips to unreadable. A floor is cheaper than making the rows reflow. */
 #sde-pit-fighting { min-width: 420px; }
-
-/* Encounter chat card — the renown / double-1s note under the facets. */
-.sde-chat-facet-note {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 12px;
-  opacity: 0.85;
-  padding-top: 2px;
-}
 
 /* Session Recap — the Renown block sharing the XP tab. */
 .sr-subhead {
@@ -5816,64 +5678,6 @@ body.theme-light .sde-hub-monsters-row td {
   color: var(--sde-bar-accent);
 }
 
-/* ── Chat Cards ──────────────────────────────────────────────────────────── */
-
-.sde-encounter-check-card {
-  border-left: 4px solid var(--sde-bar-border);
-  padding-left: 8px;
-}
-.sde-encounter-check-card.sde-hit { border-left-color: var(--sde-bar-hit); }
-.sde-encounter-check-card.sde-miss { border-left-color: var(--sde-bar-border); }
-
-.sde-card-flavor {
-  font-style: italic;
-  font-size: 13px;
-  margin-bottom: 4px;
-}
-.sde-roll-total {
-  font-size: 24px;
-  font-weight: 800;
-}
-/* Where the party stood: hex number and terrain, on a tagged hex map only. */
-.sde-card-where {
-  font-size: 12px;
-  opacity: 0.75;
-  margin-top: 2px;
-}
-.sde-roll-total.hit { color: var(--sde-bar-hit); }
-.sde-roll-total.miss { color: var(--sde-bar-text-muted); }
-
-.sde-encounter-result-card {
-  border: 1px solid var(--sde-bar-accent-dim);
-  border-radius: 4px;
-  overflow: hidden;
-}
-.sde-encounter-result-card .sde-card-header {
-  background: var(--sde-bar-accent-dark);
-  padding: 4px 8px;
-  border-bottom: none;
-}
-.sde-encounter-result-card .sde-card-header h3 {
-  color: var(--sde-bar-on-accent);
-  font-size: 14px;
-}
-.sde-encounter-result-card .sde-monster-row {
-  border: none;
-  border-radius: 0;
-  padding: 4px 8px;
-}
-.sde-encounter-result-card .sde-facets {
-  padding: 6px;
-  gap: 2px;
-}
-.sde-encounter-result-card .sde-facet-row {
-  padding: 2px 6px;
-  font-size: 12px;
-  background: none;
-}
-.sde-encounter-result-card .sde-facet-label { width: 70px; }
-.sde-encounter-result-card .sde-facet-roll { width: auto; font-size: 11px; }
-
 /* ── Drag & Drop ─────────────────────────────────────────────────────────── */
 
 .sde-bar-btn.sde-drag-over {
@@ -6410,98 +6214,7 @@ body.theme-light .sde-hub-monsters-row td {
   cursor: help;
 }
 
-/* ─── Loot delivery chat card ───────────────────────────────────────── */
-
-.sde-loot-card {
-  border: 1px solid var(--sde-bar-border, #555);
-  border-radius: 5px;
-  overflow: hidden;
-  font-size: 0.85rem;
-}
-.sde-loot-head {
-  background: var(--sde-bar-accent, #c9a54a);
-  color: var(--sde-bar-on-accent, #f5eccc);
-  font-weight: 600;
-  padding: 0.3rem 0.5rem;
-}
-.sde-loot-items {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-}
-.sde-loot-row {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 0.4rem;
-  padding: 0.25rem 0.5rem;
-  border-bottom: 1px solid var(--sde-bar-border, #444);
-}
-.sde-loot-row img {
-  border: none;
-  flex: 0 0 auto;
-  border-radius: 3px;
-}
-.sde-loot-name { flex: 1 1 6rem; min-width: 6rem; overflow-wrap: anywhere; }
-/* Scoped with element+class so these beat Foundry's default chat-button
-   styling, which otherwise renders the labels dark-on-dark + unreadable. */
-.sde-loot-card button.sde-loot-claim,
-.sde-loot-card button.sde-loot-claim-coins,
-.sde-loot-card button.sde-loot-give,
-.sde-loot-card button.sde-loot-assign-coins {
-  flex: 0 0 auto;
-  cursor: pointer;
-  white-space: nowrap;
-  width: auto;
-  border-radius: 3px;
-  padding: 0.12rem 0.5rem;
-  font-size: 0.8rem;
-  line-height: 1.4;
-  background: var(--sde-bar-accent, #c9a54a);
-  color: var(--sde-bar-on-accent, #f5eccc);
-  border: 1px solid var(--sde-bar-border, #555);
-}
-/* GM "Give" — outlined secondary variant, distinct from the solid Claim. */
-.sde-loot-card button.sde-loot-give {
-  margin-left: 4px;
-  background: transparent;
-  color: var(--sde-bar-accent, #c9a54a);
-}
-.sde-loot-card button.sde-loot-forge { background: transparent; color: var(--sde-bar-accent, #c9a54a); margin-left: 4px; }
 .sde-lootgen-forge { margin-left: 4px; }
-.sde-loot-card button.sde-loot-claim:hover,
-.sde-loot-card button.sde-loot-claim-coins:hover,
-.sde-loot-card button.sde-loot-give:hover,
-.sde-loot-card button.sde-loot-assign-coins:hover {
-  filter: brightness(1.12);
-  box-shadow: 0 0 4px var(--sde-bar-accent, #c9a54a);
-}
-.sde-loot-claimed {
-  flex: 0 0 auto;
-  color: var(--sde-bar-accent, #c9a54a);
-  font-style: italic;
-  white-space: nowrap;
-}
-.sde-loot-coins {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.4rem 0.5rem;
-  font-weight: 600;
-}
-.sde-loot-coinlabel { flex: 1 1 auto; }
-.sde-loot-coins-actor { max-width: 9rem; }
-.sde-loot-notes {
-  margin: 0;
-  padding: 0.25rem 0.5rem 0.4rem 1.4rem;
-  color: var(--sde-bar-text-muted, #999);
-  font-size: 0.78rem;
-}
-
-.sde-loot-value { color: var(--sde-bar-accent, #c9a54a); font-size: 0.78rem; }
-.sde-loot-feature { font-style: italic; color: var(--sde-bar-text-muted, #9a9a9a); font-size: 0.78rem; }
-.sde-loot-total { padding: 0.35rem 0.5rem; border-top: 1px solid var(--sde-bar-border, #444); font-weight: 600; }
-
 /* ── Loot Generator window (Vagabond-Crawler-style history) ── */
 .sde-lootgen { padding: 8px; display: flex; flex-direction: column; gap: 8px; }
 .sde-lootgen .notes { margin: 0; font-size: 0.8rem; color: var(--sde-bar-text-muted, #9a9a9a); }
@@ -8719,6 +8432,8 @@ body.theme-light .sde-strip-combat-controls { background: #f4f1ec !important; }
 .sde-cb-subfields { margin-top: 16px; display: flex; flex-direction: column; gap: 12px; }
 .sde-cb-field { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--cb-muted); }
 .sde-cb-field.wide { max-width: 520px; }
+.sde-cb-field.inline { flex-direction: row; align-items: center; gap: 8px; }
+.sde-cb-gold-input { width: 90px; }
 .sde-cb-field > span { text-transform: uppercase; letter-spacing: 0.04em; font-weight: 700; }
 .sde-cb-field select, .sde-cb-field input[type="text"] {
   background: var(--cb-ink); color: var(--cb-text); border: 1px solid var(--cb-border);
@@ -10299,30 +10014,6 @@ body.theme-light .sde-strip-combat-controls { background: #f4f1ec !important; }
   opacity: 0.75;
 }
 
-/* Announcement card (chat). Lives with the other chat-card rules, not with the
-   window chrome — it renders inside chat's design language, not the app's. */
-.sde-dt-announce .sde-dt-book { font-weight: 600; }
-/* Chat cards render OUTSIDE the app root, so the --sd-* tokens declared there
-   don't reach this button — hard values only, filled-primary like the app.
-   Scoped under the card class: core's chat button rules out-specify a lone
-   class and swallowed the background (invisible dark-on-dark button). */
-.sde-downtime-card .sde-dt-open-btn {
-  width: auto;
-  padding: 3px 12px;
-  margin-top: 4px;
-  /* !important: core's comma-list chat button rules out-specify anything
-     class-based here and painted the button dark-on-dark (invisible). */
-  background: #f0f0f0 !important;
-  color: #111 !important;
-  font-weight: 700 !important;
-  border: 1px solid #c9c9c9 !important;
-  border-radius: 3px;
-  cursor: pointer;
-}
-.sde-downtime-card .sde-dt-open-btn:hover {
-  background: #fff !important;
-}
-
 /* Spell-mishap chat card. Each drawn result is enriched table HTML, so the
    wrapper must be a block that can legally contain the <p> some descriptions
    already carry — and must supply the margin those bare ones lack, so a
@@ -10364,7 +10055,6 @@ body.theme-light .sde-strip-combat-controls { background: #f4f1ec !important; }
   color: #6fb86f;
 }
 .sde-parry-note .sde-parry-undone { opacity: 0.85; }
-.sde-parry-card { font-weight: 600; }
 body.theme-light .sde-parry-note { color: #2e6b2e; }
 
 /* Taunt: the arming card, and the "why did that roll have advantage" line the
@@ -11963,34 +11653,178 @@ button.sde-hud-day:hover { border-color: var(--sd-frame); }
 .sde-bastion-shop .sde-bs-row .name small { display: block; opacity: 0.7; font-size: 11px; }
 .sde-bastion-shop .sde-bs-row .price { font-weight: bold; white-space: nowrap; }
 
-/* Mount sheet (ApplicationV2). The system scopes these to its NPC and Player sheets, so restate the ones it uses. */
-.sde-mount-npc .sde-vehicle-sheet-body { display: flex; flex-direction: column; height: 100%; }
-.sde-mount-npc .sde-mount-body { overflow-y: auto; min-height: 0; }
-.sde-mount-npc .sde-mount-body .SD-box { margin: 0 0 5px; }
-.sde-mount-npc .value-grid { display: grid; grid-template-columns: 2fr 1fr 2fr; column-gap: 2px; align-items: center; text-align: center; }
-.sde-mount-npc .SD-box .content.larger input { font-size: 20px; text-align: center; height: 32px; width: 100%; }
-.sde-mount-npc .sde-mount-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 5px; }
-.sde-mount-npc .sde-mount-pair .SD-box { margin: 0; }
-.sde-mount-npc .sde-mount-dark { display: grid; grid-template-columns: 1fr auto; align-items: center; padding: 0 4px; }
-.sde-mount-npc .sde-mount-dark h3 { margin: 0; font-size: 16px; }
-.sde-mount-npc .attack { margin: 4px 0 4px 24px; }
-.sde-mount-npc .attack .rollable { margin-left: -24px; }
+/* The NPC stat block of the Mount and Warband sheets (ApplicationV2, npc-stat-sheet.mjs). The system scopes these to its
+   NPC and Player sheets, so restate the ones it uses. */
+.sde-npc-sheet .sde-vehicle-sheet-body { display: flex; flex-direction: column; height: 100%; }
+.sde-npc-sheet .sde-mount-body { overflow-y: auto; min-height: 0; }
+.sde-npc-sheet .sde-mount-body .SD-box { margin: 0 0 5px; }
+.sde-npc-sheet .value-grid { display: grid; grid-template-columns: 2fr 1fr 2fr; column-gap: 2px; align-items: center; text-align: center; }
+.sde-npc-sheet .SD-box .content.larger input { font-size: 20px; text-align: center; height: 32px; width: 100%; }
+.sde-npc-sheet .sde-mount-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 5px; }
+.sde-npc-sheet .sde-mount-pair .SD-box { margin: 0; }
+.sde-npc-sheet .sde-mount-dark { display: grid; grid-template-columns: 1fr auto; align-items: center; padding: 0 4px; }
+.sde-npc-sheet .sde-mount-dark h3 { margin: 0; font-size: 16px; color: #191813; }
+.sde-npc-sheet .attack { margin: 4px 0 4px 24px; }
+.sde-npc-sheet .attack .rollable { margin-left: -24px; }
 
 /* Abilities tab: Stats down a narrow left column, the combat boxes beside it, as on the Player sheet. */
-.sde-mount-npc .sde-mount-abilities { display: grid; grid-template-columns: minmax(175px, 1fr) 2.6fr; gap: 8px; align-items: start; }
-.sde-mount-npc .sde-mount-left .grid-2-columns { gap: 3px 8px; padding: 4px 6px 6px; }
-.sde-mount-npc .ability-score { display: block; }
-.sde-mount-npc .ability-score > div { display: grid; grid-template-columns: 1fr 1fr; align-items: center; min-width: 2em; text-align: center; }
-.sde-mount-npc .ability-score a { font-size: 18px; font-family: "Old Newspaper Font", serif; text-transform: uppercase; font-weight: bold; }
-.sde-mount-npc .ability-score > div > input,
-.sde-mount-npc .ability-score span { font-size: 18px; font-family: "Montserrat-SemiBold"; width: 2.5em; }
-.sde-mount-npc .ability-score .sde-mount-damaged { color: #b3261e; text-shadow: 0 0 6px rgba(179, 38, 30, 0.6); }
-.sde-mount-npc .sde-mount-traits { display: grid; gap: 6px; padding: 4px 6px 6px; }
-.sde-mount-npc .SD-nav { flex-wrap: wrap; }
-.sde-mount-npc .sde-tab-count { font-size: 12px; vertical-align: super; opacity: 0.75; }
+.sde-npc-sheet .sde-mount-abilities { display: grid; grid-template-columns: minmax(175px, 1fr) 2.6fr; gap: 8px; align-items: start; }
+.sde-npc-sheet .sde-mount-left .grid-2-columns { gap: 3px 8px; padding: 4px 6px 6px; }
+.sde-npc-sheet .ability-score { display: block; }
+.sde-npc-sheet .ability-score > div { display: grid; grid-template-columns: 1fr 1fr; align-items: center; min-width: 2em; text-align: center; }
+.sde-npc-sheet .ability-score a { font-size: 18px; font-family: "Old Newspaper Font", serif; text-transform: uppercase; font-weight: bold; }
+.sde-npc-sheet .ability-score > div > input,
+.sde-npc-sheet .ability-score span { font-size: 18px; font-family: "Montserrat-SemiBold"; width: 2.5em; }
+/* An NPC's abilities are one modifier each (no score beside it, as the Mount has): the box takes the whole cell. */
+.sde-npc-sheet.sde-warband-npc .ability-score > div { grid-template-columns: 1fr; }
+.sde-npc-sheet .ability-score .sde-mount-damaged { color: #b3261e; text-shadow: 0 0 6px rgba(179, 38, 30, 0.6); }
+.sde-npc-sheet .sde-mount-traits { display: grid; gap: 6px; padding: 4px 6px 6px; }
+.sde-npc-sheet .SD-nav { flex-wrap: wrap; }
+.sde-npc-sheet .sde-tab-count { font-size: 12px; vertical-align: super; opacity: 0.75; }
 
 /* Mount tab: boxes in two columns so the rules fit one screen. */
-.sde-mount-npc .sde-mount-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; align-items: start; }
-.sde-mount-npc .sde-mount-cols > div > .SD-box:last-child { margin-bottom: 0; }
-.sde-mount-npc .sde-mount-care { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px 8px; align-items: end; }
-.sde-mount-npc .sde-mount-care .sde-veh-field { min-width: 0; }
+.sde-npc-sheet .sde-mount-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; align-items: start; }
+.sde-npc-sheet .sde-mount-cols > div > .SD-box:last-child { margin-bottom: 0; }
+.sde-npc-sheet .sde-mount-care { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px 8px; align-items: end; }
+.sde-npc-sheet .sde-mount-care .sde-veh-field { min-width: 0; }
+
+/* Prayer roll button beside the Deity heading on the character sheet. */
+.sde-prayer-roll { width: 24px; height: 24px; margin-left: 6px; padding: 0; display: inline-flex; align-items: center; justify-content: center; vertical-align: middle; background: transparent; border: 0; cursor: pointer; opacity: 0.7; }
+.sde-prayer-roll:hover, .sde-prayer-roll:focus-visible { opacity: 1; }
+.sde-prayer-roll img { width: 16px; height: 16px; border: 0; }
+
+/* ═══ Chat cards (UI kit card-scale parts) ═══════════════════════════════════ */
+
+/* Chat cards. Card-scale parts on top of the UI kit (sde-ui.css): tokens only, no colours of its own,
+   no theme selectors (the kit's tokens switch on .theme-light). A card is a self-contained panel, so it reads the same on
+   any chat ground. Root: <div class="sde-ui ui-cc [compact] [hit|good|warn|bad]">. Fits 260-300px.
+   Rules: one card = one thing; one title line; at most 2 visible controls per line (extras sit behind .cc-more);
+   text never loose on the chat ground. Prefix: cc- (card-scale), ui- (kit parts reused as they are). */
+
+.sde-ui.ui-cc {
+  display: flex; flex-direction: column; width: 100%; max-width: 100%; min-width: 0; margin: 0; padding: 0; box-sizing: border-box;
+  background: var(--ui-panel); color: var(--ui-body); border: 1px solid var(--ui-line); border-radius: var(--ui-r2);
+  font: 500 13px/1.4 var(--ui-font); text-align: left; box-shadow: none;
+}
+.sde-ui.ui-cc * { box-sizing: border-box; }
+:where(.sde-ui.ui-cc) :where(p, ul, ol) { margin: 0; padding: 0; list-style: none; }
+.sde-ui.ui-cc.hit { border-left: 4px solid var(--ui-warn); }
+.sde-ui.ui-cc.good { border-left: 4px solid var(--ui-ok); }
+.sde-ui.ui-cc.warn { border-left: 4px solid var(--ui-warn); }
+.sde-ui.ui-cc.bad { border-left: 4px solid var(--ui-danger); }
+
+/* head: icon, one-line title, optional tag. The only place the blackletter face appears. */
+.cc-head { display: flex; align-items: center; gap: 8px; min-width: 0; padding: 7px 10px; background: var(--ui-page); border-bottom: 1px solid var(--ui-line); border-radius: var(--ui-r2) var(--ui-r2) 0 0; }
+.cc-head > i { flex: 0 0 auto; width: 16px; text-align: center; color: var(--ui-gold); font-size: 13px; }
+.cc-title { flex: 1 1 auto; min-width: 0; margin: 0; padding: 0; border: 0; background: none; font: 400 17px/1.15 var(--ui-title); color: var(--ui-text); overflow-wrap: anywhere; }
+.cc-head .ui-chip { flex: 0 0 auto; }
+.ui-cc .ui-chip { white-space: normal; min-width: 0; border-radius: 2px; }
+.cc-body { display: flex; flex-direction: column; gap: 8px; min-width: 0; padding: 10px; }
+.cc-sub { margin: 0; color: var(--ui-muted); font-size: 12px; font-style: italic; overflow-wrap: anywhere; }
+.cc-text { margin: 0; color: var(--ui-body); overflow-wrap: anywhere; }
+.cc-fine { margin: 0; color: var(--ui-muted); font-size: 11.5px; overflow-wrap: anywhere; }
+
+/* a number that is the point of the card (a roll total) */
+.cc-big { flex: 0 0 auto; min-width: 44px; text-align: center; font: 700 34px/1 var(--ui-font); color: var(--ui-text); font-variant-numeric: tabular-nums; }
+.cc-big.hit { color: var(--ui-warn); } .cc-big.miss { color: var(--ui-muted); }
+.cc-split { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.cc-split > .cc-main { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+
+/* label / value rows (facets). The value wraps; the roll is a muted second line, never a third column. */
+.cc-rows { display: flex; flex-direction: column; border: 1px solid var(--ui-line); border-radius: var(--ui-r); background: var(--ui-page); }
+.cc-row { display: flex; align-items: flex-start; gap: 10px; min-width: 0; padding: 5px 8px; border-bottom: 1px solid var(--ui-line); }
+.cc-row:last-child { border-bottom: 0; }
+.cc-label { flex: 0 0 88px; display: inline-flex; align-items: center; gap: 5px; min-height: 20px; font: 600 10.5px/1.2 var(--ui-head); text-transform: uppercase; letter-spacing: .03em; color: var(--ui-muted); }
+.cc-label > i { width: 12px; text-align: center; }
+.cc-main { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; }
+.cc-val { font: 700 14px/1.3 var(--ui-font); color: var(--ui-text); overflow-wrap: anywhere; }
+.cc-aux { font: 500 11px/1.3 var(--ui-font); color: var(--ui-muted); font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.cc-val.cc-react-Hostile { color: var(--ui-danger-text); }
+.cc-val.cc-react-Friendly { color: var(--ui-text); }
+.cc-val.cc-react-Neutral { color: var(--ui-text); }
+.cc-val.cc-react-Curious { color: var(--ui-text); }
+.cc-val.cc-react-Suspicious { color: var(--ui-warn); }
+
+/* a creature or an item: picture, count, name (wraps) */
+.cc-thing { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.cc-thing > img { flex: 0 0 auto; width: 40px; height: 40px; object-fit: cover; border: 1px solid var(--ui-line); border-radius: var(--ui-r); background: var(--ui-page); }
+.cc-thing .cc-count { flex: 0 0 auto; font: 700 20px/1 var(--ui-font); color: var(--ui-gold); }
+.cc-thing .cc-name { flex: 1 1 auto; min-width: 0; font: 700 15px/1.2 var(--ui-font); color: var(--ui-text); overflow-wrap: anywhere; }
+.cc-thing .cc-name small { display: block; margin-top: 2px; font: 500 12px/1.3 var(--ui-font); color: var(--ui-muted); }
+
+/* notes and quotes */
+.cc-note { margin: 0; padding: 6px 9px; border: 1px solid var(--ui-line); border-left: 3px solid var(--ui-frame); border-radius: var(--ui-r); background: var(--ui-page); color: var(--ui-body); font-size: 12px; overflow-wrap: anywhere; }
+.cc-note > i { margin-right: 5px; color: var(--ui-muted); }
+.cc-note.warn { border-left-color: var(--ui-warn); } .cc-note.bad { border-left-color: var(--ui-danger-text); } .cc-note.good { border-left-color: var(--ui-ok); } .cc-note.info { border-left-color: var(--ui-info); }
+.cc-quote { margin: 0; padding: 6px 10px; border-left: 3px solid var(--ui-gold); background: var(--ui-gold-bg); color: var(--ui-body); font-style: italic; overflow-wrap: anywhere; }
+
+/* ordered or plain lists inside a card (initiative order, rumors, luck) */
+.cc-list { display: flex; flex-direction: column; border: 1px solid var(--ui-line); border-radius: var(--ui-r); background: var(--ui-page); }
+.cc-li { display: flex; align-items: baseline; gap: 8px; min-width: 0; padding: 5px 8px; border-bottom: 1px solid var(--ui-line); }
+.cc-li:last-child { border-bottom: 0; }
+.cc-li .cc-rank { flex: 0 0 18px; color: var(--ui-muted); font-variant-numeric: tabular-nums; }
+.cc-li .cc-who { flex: 1 1 auto; min-width: 0; font-weight: 700; color: var(--ui-text); overflow-wrap: anywhere; }
+.cc-li .cc-num { flex: 0 0 auto; font: 700 14px/1.2 var(--ui-font); color: var(--ui-text); font-variant-numeric: tabular-nums; }
+.cc-li .cc-fine { flex: 0 0 auto; }
+.cc-li.quote { border-left: 3px solid var(--ui-gold); font-style: italic; overflow-wrap: anywhere; }
+
+/* loot rows: picture, name over value line, one claim button, one more-icon */
+.cc-item { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; min-width: 0; padding: 6px 8px; border-bottom: 1px solid var(--ui-line); }
+.cc-item:last-child { border-bottom: 0; }
+.cc-item > img { flex: 0 0 auto; width: 28px; height: 28px; border: 1px solid var(--ui-line); border-radius: var(--ui-r); object-fit: cover; }
+.cc-item .cc-main { flex: 1 1 0; min-width: 72px; }
+.cc-item .cc-val { font-size: 13px; }
+.cc-got { flex: 0 0 auto; display: inline-flex; align-items: center; gap: 5px; color: var(--ui-body); font-weight: 700; font-size: 12px; }
+
+/* controls: at most 2 visible per line. Card-scale buttons are the kit's .ui-btn; icon-only ones are .cc-icon (28px). */
+.cc-icon { display: inline-flex; align-items: center; justify-content: center; flex: 0 0 auto; width: 28px; height: 28px; padding: 0; margin: 0; border: 1px solid var(--ui-line); border-radius: var(--ui-r); background: transparent; color: var(--ui-muted); cursor: pointer; font-size: 12px; list-style: none; }
+.cc-icon::-webkit-details-marker { display: none; }
+.cc-icon:hover { color: var(--ui-text); border-color: var(--ui-frame); background: var(--ui-raised); }
+.cc-foot { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 8px 10px; border-top: 1px solid var(--ui-line); background: var(--ui-page); border-radius: 0 0 var(--ui-r2) var(--ui-r2); }
+.cc-foot .cc-fine { flex: 1 1 auto; }
+.cc-foot .ui-right { margin-left: auto; display: flex; gap: 6px; align-items: center; }
+
+/* the extra actions (GM-only) behind one icon; opens as its own line under the row */
+.cc-more { display: contents; }
+.cc-more > summary { cursor: pointer; }
+.cc-more:not([open]) > .cc-more-body { display: none; }
+.cc-more > .cc-more-body { flex: 1 0 100%; order: 9; display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 6px 0 2px 36px; min-width: 0; }
+.cc-more > .cc-more-body select { flex: 1 1 110px; width: auto; }
+
+/* compact: one line, no head (dying, parry, pickup, forge, days passed) */
+.sde-ui.ui-cc.compact { flex-direction: row; align-items: center; gap: 10px; padding: 8px 10px; }
+.ui-cc.compact > i { flex: 0 0 auto; width: 18px; text-align: center; color: var(--ui-gold); font-size: 15px; }
+.ui-cc.compact > img { flex: 0 0 auto; width: 32px; height: 32px; object-fit: cover; border: 1px solid var(--ui-line); border-radius: var(--ui-r); }
+.ui-cc.compact > .cc-main { flex: 1 1 auto; }
+.ui-cc.compact .cc-text strong { color: var(--ui-text); }
+/* Foundry's own chat button rules out-specify a lone class; keep card buttons the kit's size. */
+.sde-ui.ui-cc button.ui-btn { width: auto; flex: 0 0 auto; margin: 0; }
+
+/* ═══ Dialogs (DialogV2 on the UI kit) ═══════════════════════════════════════ */
+
+/* DialogV2 calls pass  classes: ["sde-ui", "sde-dialog"]  (add "dlg-choices" for a list of actions). Tokens only. Footer buttons are
+   DialogV2's own `buttons` array: `default: true` is the filled button, `class: "danger"` the red outline, `class: "ghost"` the quiet one. */
+
+.sde-dialog .window-content { padding: 0; gap: 0; }
+.sde-dialog .dialog-content { flex: 1 1 auto; display: flex; flex-direction: column; gap: 14px; min-height: 0; margin: 0; padding: 16px; overflow-y: auto; background: var(--ui-page); }
+.sde-dialog .dialog-content > form, .sde-dialog form.dialog-content { display: contents; }
+
+/* footer: DialogV2's own buttons, restyled to the kit */
+.sde-dialog .form-footer { flex: 0 0 auto; display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 8px; margin: 0; padding: 10px 16px; border-top: 1px solid var(--ui-line); background: var(--ui-page); }
+.sde-dialog .form-footer button { display: inline-flex; align-items: center; justify-content: center; gap: 6px; flex: 0 0 auto; height: 30px; min-width: 88px; margin: 0; padding: 0 16px; border: 1px solid var(--ui-frame); border-radius: var(--ui-r); background: var(--ui-panel); color: var(--ui-text); font: 600 12px/1 var(--ui-head); letter-spacing: .02em; text-shadow: none; box-shadow: none; cursor: pointer; }
+.sde-dialog .form-footer button:hover { background: var(--ui-raised); }
+.sde-dialog .form-footer button.default { height: 32px; background: var(--ui-btn-bg); border-color: var(--ui-btn-bg); color: var(--ui-btn-fg); font-weight: 700; }
+.sde-dialog .form-footer button.default:hover { background: var(--ui-btn-bg); filter: brightness(1.12); }
+.sde-dialog .form-footer button.danger { border-color: var(--ui-danger); color: var(--ui-text); background: transparent; }
+.sde-dialog .form-footer button.danger:hover { background: var(--ui-raised); border-color: var(--ui-danger-text); }
+.sde-dialog .form-footer button.ghost { border-color: var(--ui-line); background: transparent; color: var(--ui-muted); }
+.sde-dialog .form-footer button.ghost:hover { color: var(--ui-text); border-color: var(--ui-frame); }
+
+/* a list of actions: the footer becomes rows, one action each (the dying menu). Same buttons array, no JS change. */
+.sde-dialog.dlg-choices .form-footer { flex-direction: column; align-items: stretch; justify-content: flex-start; gap: 6px; padding: 0 16px 14px; border-top: 0; }
+.sde-dialog.dlg-choices .form-footer button { justify-content: flex-start; width: 100%; height: 38px; padding: 0 12px; text-align: left; font: 600 13px/1.2 var(--ui-font); background: var(--ui-panel); border-color: var(--ui-line); color: var(--ui-text); }
+.sde-dialog.dlg-choices .form-footer button:hover { border-color: var(--ui-frame); background: var(--ui-raised); }
+.sde-dialog.dlg-choices .form-footer button > i { flex: 0 0 18px; width: 18px; text-align: center; color: var(--ui-gold); }
+.sde-dialog.dlg-choices .form-footer button.default { height: 38px; background: var(--ui-btn-bg); color: var(--ui-btn-fg); }
+.sde-dialog.dlg-choices .form-footer button.default > i { color: inherit; }
+.sde-dialog.dlg-choices .form-footer button.ghost { justify-content: center; height: 30px; background: transparent; border-color: transparent; color: var(--ui-muted); }
