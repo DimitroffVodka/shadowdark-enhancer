@@ -241,7 +241,7 @@
   "SDE.camping.effects.failed": "No benefit",
   "SDE.camping.effects.afterRest": "Cook saved; requires eligible fed full rest",
   "SDE.camping.awaitingRest": "Task results are saved. Review the results, then pass the night through the active Overland day. Reload or Resume never spends a day's food or grants a rest again.",
-  "SDE.camping.phases.setup": "Choose tasks and participation",
+  "SDE.camping.phases.setup": "Choose tasks",
   "SDE.camping.phases.firewood": "Firewood first; choices locked",
   "SDE.camping.phases.fuel": "Choose torch fallback; tasks stay locked",
   "SDE.camping.phases.tasks": "Resolving locked tasks",
