@@ -1,6 +1,7 @@
 import { MODULE_ID } from "../shared/module-id.mjs";
 import { Party } from "../party/party.mjs";
 import { carousingOf, carousingTables, carousingAvailable, requestCarousing } from "./carousing.mjs";
+import { splitCost } from "./carousing-core.mjs";
 import { holidaysToday } from "../holidays/holidays.mjs";
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 const t = (key) => game.i18n.localize(key);
@@ -32,11 +33,14 @@ export class CarousingApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const rows = night?.participants.map(p => {
       const actor = Party.get(p.uuid), result = night.results[p.actorId];
       return { ...p, editable: setup && !!actor?.testUserPermission(game.user, "OWNER"),
-        tiers: night.tiers.map(v => ({ id: v.id, label: game.i18n.format("SDE.carousing.tier", { name: v.description, cost: v.cost, bonus: v.bonus }), selected: p.tierId === v.id })),
-        garbQuestions: (holiday?.garb ?? []).map(g => ({ key: g.key, label: t(g.label), checked: p.garb?.[g.key] === true, required: g.required })),
         result, status: t(p.confirmed ? "SDE.carousing.confirmed" : "SDE.carousing.unconfirmed") };
     }) ?? [];
-    return { title: this.party.name, rows, error: this.error, manager: Party.canManage(this.party), isGM: game.user.isGM,
+    const tier = night?.tiers.find(v => v.id === night.tierId), joining = night?.participants.filter(p => p.participate).length ?? 0, shares = tier ? splitCost(tier.cost, joining) : [];
+    const each = shares.length ? (shares[0] === shares.at(-1) ? `${shares[0]}` : `${shares.at(-1)}–${shares[0]}`) : "";
+    return { title: this.party.name, rows,
+      tiers: night?.tiers.map(v => ({ id: v.id, label: game.i18n.format("SDE.carousing.tier", { name: v.description, cost: v.cost, bonus: v.bonus }), selected: night.tierId === v.id })) ?? [],
+      tierEditable: setup && Party.canManage(this.party),
+      costLine: tier ? game.i18n.format(joining ? "SDE.carousing.costLine" : "SDE.carousing.costNobody", { total: tier.cost, count: joining, each }) : "", error: this.error, manager: Party.canManage(this.party), isGM: game.user.isGM,
       overlap: !carousingAvailable(), empty: !night, setup, complete: night?.phase === "complete", resume: night && !setup,
       phase: night?.phase, holiday: holiday?.name, manualHoliday: !!holiday && (!!holiday.carousing?.extraBenefit || !!holiday.carousing?.extraMishap || !!holiday.carousing?.benefitBonus || !!holiday.carousing?.benefitAdvantage || !!holiday.carousing?.chances?.length),
       canConfigure: !night || setup || night.phase === "complete", missingTables: setup && (!night.tiers.length || !night.outcomes.length),
@@ -49,11 +53,8 @@ export class CarousingApp extends HandlebarsApplicationMixin(ApplicationV2) {
     this.bindControls(this.element);
   }
   bindControls(root) {
+    root.querySelector("[data-tier]")?.addEventListener("change", event => { void this.change("tier", { tierId: event.target.value }); });
     for (const el of root.querySelectorAll("[data-choice]")) el.addEventListener("change", () => { void this.change("select", { uuid: el.closest("[data-uuid]").dataset.uuid, patch: { [el.dataset.choice]: el.type === "checkbox" ? el.checked : el.value } }); });
-    for (const el of root.querySelectorAll("[data-garb]")) el.addEventListener("change", () => {
-      const row = el.closest("[data-uuid]"), p = carousingOf(this.party).current.participants.find(p => p.uuid === row.dataset.uuid);
-      void this.change("select", { uuid: p.uuid, patch: { garb: { ...p.garb, [el.dataset.garb]: el.checked } } });
-    });
   }
   async _onFirstRender(context, options) {
     await super._onFirstRender(context, options);
