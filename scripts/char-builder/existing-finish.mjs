@@ -1,4 +1,4 @@
-import { ABILITY_LABELS } from "./constants.mjs";
+import { abilityLabel } from "./constants.mjs";
 import { loadActorSnapshot, hydrateState } from "./hydrate.mjs";
 import { planCommit, planIsEmpty } from "./commit-plan.mjs";
 import { applyPlan, IncompleteError, ApplyInProgressError } from "./commit-apply.mjs";
@@ -42,7 +42,7 @@ async function nameOfUuid(uuid) {
 
 /** `[label, from, to]` for a "set" line, in words. */
 async function setRow({ key, from, to }) {
-  if (key.startsWith("abilities.")) return [ABILITY_LABELS[key.split(".")[1]], from, to];
+  if (key.startsWith("abilities.")) return [abilityLabel(key.split(".")[1]), from, to];
   if (key === "level") return [L("SDE.charBuilder.level"), from, to];
   if (key === "hpMax") return [L(`${K}hpMax`), from, `${to} (+${to - from})`];
   if (key === "xp") return [L(`${K}xp`), from, to];
