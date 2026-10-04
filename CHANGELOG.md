@@ -1,6 +1,10 @@
 # Changelog
 
 ## [Unreleased]
+### Added
+- **A shared UI kit stylesheet** (`styles/sde-ui.css`, dark and light tokens plus parts) for the window
+  redesign. No window uses it yet, so nothing looks different.
+
 ### Changed
 - **The Party sheet's header is one compact band.** The boxed "Marching formation" block, with its
   heading and five lines of text, is replaced by a visible **Marching order** switch beside the 3×3
@@ -41,6 +45,9 @@
   earlier "Include mounts" had already placed on a scene is still recalled by Place / Recall.
 
 ### Fixed
+- **Two unreadable text colours.** The gold primary buttons (the monster importer's and the loot generator's
+  Roll) now have near-black text instead of cream, and the encounter result chat card's text is no longer
+  black on black in dark mode.
 - **The mount sheet is an ApplicationV2 sheet, laid out like the native NPC sheet.** It no longer borrows the
   system's old NPC sheet. It keeps the system's NPC header, and Abilities has HP, AC and Level, a **Stats** box
   in place of Modifiers, Movement, Alignment and Dark-Adapted down the left, beside the Attacks, Special
