@@ -12,7 +12,7 @@ no covering another character's shortfall.
 The GM selects imported Core or custom world event/outcome tables. Missing
 tables are reported before any charge; the module never invents missing results
 or ships sourcebook prose. A manual settlement is allowed; settlement limits,
-holiday admission/event bonuses, active downtime exclusion and each PC's
+active downtime exclusion and each PC's
 14-real-day cooldown apply without a map.
 
 The whole outing is preflighted: chosen participants, every share affordable,

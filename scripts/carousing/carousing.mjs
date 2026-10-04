@@ -161,7 +161,7 @@ export function handleCarousing(data, user) {
           if (JSON.stringify(fresh.tiers) !== JSON.stringify(current.tiers) || JSON.stringify(fresh.outcomes) !== JSON.stringify(current.outcomes)) invalid("SDE.carousing.tablesChanged");
           const ctx = await context(current.config), now = Date.now();
           const participants = current.participants.map(p => { const a = actorOf(p.uuid); if (!a) invalid(); return { ...p, coins: a.system.coins, renownBonus: Renown.bonusOf(a), lastAt: Math.max(-Infinity, ...Object.values(flag(a, "carousingProgress") ?? {}).filter(r => r.cost).map(r => r.at)) }; });
-          const check = preflight({ ...ctx, tierId: current.tierId, tiers: current.tiers, outcomes: current.outcomes, participants, now }); if (!check.ok) invalid(check.error);
+          const check = preflight({ ...ctx, tierId: current.tierId ?? current.tiers[0]?.id ?? "", tiers: current.tiers, outcomes: current.outcomes, participants, now }); if (!check.ok) invalid(check.error);
           Object.assign(current, { participants: check.participants, phase: "rolling", at: now, date: new Date(now).toISOString(), holiday: ctx.holiday });
           await save(party, state);
         }
