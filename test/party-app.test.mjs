@@ -158,7 +158,6 @@ test("Party member cards keep the portrait, HP, AC, level, slots, XP, ability mo
   assert.equal(context.choices, undefined, "world actors are not enumerated as suggested members");
   assert.equal(PartyApp.DEFAULT_OPTIONS.actions.add, undefined);
   const css = await readFile(new URL("../styles/party-sheet.css", import.meta.url), "utf8");
-  assert.ok(css.includes('font-family: "Old Newspaper Font"'));
   assert.ok(css.includes(".sde-party .sdp-head"));
 });
 

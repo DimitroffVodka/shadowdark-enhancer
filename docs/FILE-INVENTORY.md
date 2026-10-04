@@ -1,7 +1,7 @@
 # Shadowdark Enhancer — File Inventory
 
 <!-- inventory:stats:start -->
-1711 tracked files · ~223,700 lines of code/markup across scripts+templates+styles+test.
+1713 tracked files · ~223,900 lines of code/markup across scripts+templates+styles+test.
 `v0.17.3` in both `module.json` and `package.json`.
 <!-- inventory:stats:end -->
 **Layout reflects the 2026-07-21 feature-folder reorganization (v0.11.0 cycle).**
@@ -58,12 +58,12 @@
 | `stat-damage/stat-damage-core.mjs` | 194 | Pure stat-damage rules and the effect contract Shadowdark Extras' Effects library follows: a negative ADD on `system.abilities.<key>.value` flagged `statDamage: { ability }`, summed across effects, healed whole or N per ability, and the parser for monster riders ("DC 12 CON or 1d4 STR damage", enriched or not). |
 | `stat-damage/stat-damage.mjs` | 150 | `statDamage.{apply, heal, of}`: writes replace an ability's effects with one holding the new total (serialized per client), and a stat-damage effect taking CON to 0 hands the character to dying's onConZero on the active GM (dead, unless noDeathAtZeroCon). |
 | `stat-damage/stat-riders.mjs` | 127 | Applies a monster attack's stat-damage riders when its card HIT a character, reading the attack's rider and the NPC feature it names (or shares its name with). Only a card posted by a GM or the attacker's owner, naming the attacker's own item, counts. A rider behind a save asks the owning player to roll it (GM→player user query, GM sender required) and falls back to the GM's client. StatRiders.save also takes a title, for Overland's forage and underground checks (#233). |
-| `camping/camping-app.mjs` | 98 | Camping controller hosted inline in Party Travel for native owner-choice task setup, food/fuel decisions and persistent results. |
+| `camping/camping-app.mjs` | 97 | Camping controller hosted inline in Party Travel for native owner-choice task setup, food/fuel decisions and persistent results. |
 | `camping/camping-cook.mjs` | 37 | Post-eligible-rest Cook seam and active-benefit-scoped native damage/healing/expiry compatibility. |
 | `camping/camping-core.mjs` | 100 | Pure PC task choices, lock, exact shared-first torch cost and scoped Cook surplus/expiry rules. |
 | `camping/camping-nutrition.mjs` | 120 | Actor/day whole-meal accounting, personal-first then automatic Party rations, per-effect starvation and eligible normal-rest receipts across parties/reloads. |
 | `camping/camping.mjs` | 244 | Authenticated owner-choice camp task relay, persistent results/rewards, nearby-PC fire and deferred native nutrition/rest seams for Overland nights. |
-| `carousing/carousing-app.mjs` | 64 | Carousing controller hosted inline in Party Travel, with GM table/manual-place setup, each PC owner's own-spend choices, persistent results and independent history. |
+| `carousing/carousing-app.mjs` | 65 | Carousing controller hosted inline in Party Travel, with GM table/manual-place setup, each PC owner's own-spend choices, persistent results and independent history. |
 | `carousing/carousing-core.mjs` | 75 | Pure imported basic table adapters, owner choices/funds/holiday/cooldown preflight, supported effects and stable recap shaping. |
 | `carousing/carousing.mjs` | 186 | Authenticated native per-PC carousing authority, saved rolls/atomic costs and effect progress, off-duty time, independent history and recap upsert. |
 | `dying/dying-core.mjs` | 222 | Dying rules (#181), pure: the dying-modifier vocabulary (Active Effect flag keys: timer die and bonus, rise range, own and near stabilize DC, no death at CON 0), the 1d4 + CON timer (minimum 1; none under Deadly, whose 1 beats every die and bonus), stabilize DC resolution (15, Deadly 18, raised near a Draugr, the helper's own DC beats both), shouldTick (once per round of a scope, forward only), the turn-start outcome, what an HP change means (Fatality: 0 HP kills), which stabilize cards count, and the strip badge with the hidden timer. |
