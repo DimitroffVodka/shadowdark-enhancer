@@ -42,26 +42,27 @@ export function outcomeEffects(description = "", benefit = "") {
   // docs/wiki/Carousing.md keeps them visible GM actions, never automation.
   return { xp, luck, renown: renown ? (renown[2] ? Number(renown[2]) * (renown[1].toLowerCase() === "lose" ? -1 : 1) : Number(renown[1].replace(/\s/g, ""))) : 0 };
 }
-export function holidayFor(holiday, answers = {}) {
-  const garb = holiday?.garb ?? [], yes = garb.filter(g => answers[g.key] === true);
-  return { admitted: garb.every(g => !g.required || answers[g.key] === true), bonus: (holiday?.carousing?.eventBonus ?? 0) + yes.reduce((s, g) => s + g.modifier, 0), notes: yes.map(g => g.note).filter(Boolean) };
+/** A group total in whole gp split between `count` people; the remainder goes one coin at a time to the first in list order. */
+export function splitCost(total, count) {
+  if (!(count > 0)) return [];
+  const base = Math.floor(total / count), extra = total - base * count;
+  return Array.from({ length: count }, (_, i) => base + (i < extra ? 1 : 0));
 }
-export function preflight({ participants, tiers, outcomes, limit = Infinity, holiday = null, downtime = false, now = Date.now() }) {
+export function preflight({ participants, tierId, tiers, outcomes, limit = Infinity, holiday = null, downtime = false, now = Date.now() }) {
   const fail = error => ({ ok: false, error });
   if (downtime) return fail("SDE.carousing.downtime");
   if (!tiers.length || !outcomes.length) return fail("SDE.carousing.tablesMissing");
   if (!participants.length || !participants.some(p => p.participate)) return fail("SDE.carousing.noParticipants");
   if (participants.some(p => !p.confirmed)) return fail("SDE.carousing.confirm");
-  const chosen = [];
-  for (const p of participants.filter(p => p.participate)) {
-    const tier = tiers.find(t => t.id === p.tierId); if (!tier) return fail("SDE.carousing.tablesMissing");
-    if (tier.cost > limit) return fail("SDE.carousing.limit");
+  const tier = tiers.find(t => t.id === tierId); if (!tier) return fail("SDE.carousing.tablesMissing");
+  if (tier.cost > limit) return fail("SDE.carousing.limit");
+  const joining = participants.filter(p => p.participate), shares = splitCost(tier.cost, joining.length), chosen = [];
+  for (const [i, p] of joining.entries()) {
     if (p.lastAt != null && now - p.lastAt < 14 * 86400000) return fail("SDE.carousing.cooldown");
-    if (toCopper(p.coins) < tier.cost * 100) return fail("SDE.carousing.funds");
-    const h = holidayFor(holiday, p.garb); if (!h.admitted) return fail("SDE.carousing.holidayEntry");
-    const bonus = tier.bonus + h.bonus + (p.renownBonus ?? 0);
+    if (toCopper(p.coins) < shares[i] * 100) return fail("SDE.carousing.funds");
+    const bonus = tier.bonus + (holiday?.carousing?.eventBonus ?? 0) + (p.renownBonus ?? 0);
     for (let die = 1; die <= 8; die++) if (!outcomeAt(die + bonus, outcomes)) return fail("SDE.carousing.tablesMissing");
-    chosen.push({ ...p, cost: tier.cost, bonus, tier, holidayNotes: h.notes });
+    chosen.push({ ...p, cost: shares[i], bonus, tier });
   }
   return { ok: true, participants: chosen };
 }
