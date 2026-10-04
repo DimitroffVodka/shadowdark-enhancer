@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import { readFileSync } from "node:fs";
 import assert from "node:assert/strict";
-import { partyTabs, resolveTab, sheetView, marchState, gemSummary, gpText, linkedBastion, lastMonthEntry, roomIcon, ROOM_ICONS, MONTH_LOG_KEYS, terrainLabel, lightReadout, rationsCount, statusBar, TAB_LABELS, TAB_ICONS, tabRow, movementMessageKey, marchText } from "../scripts/party/party-sheet-core.mjs";
+import { partyTabs, resolveTab, sheetView, marchState, gemSummary, gpText, linkedBastion, lastMonthEntry, roomIcon, ROOM_ICONS, MONTH_LOG_KEYS, terrainLabel, lightReadout, rationsCount, torchCount, carriesLight, luckCount, statusBar, TAB_LABELS, TAB_ICONS, tabRow, movementMessageKey, marchText } from "../scripts/party/party-sheet-core.mjs";
 
 test("everyone sees Travel (each PC's owner confirms their own camping and carousing there); Bastion needs a linked bastion", () => {
   assert.deepEqual(partyTabs(), ["members", "items", "travel", "quests", "description"]);
@@ -126,6 +126,38 @@ test("rations count Basic stacks named Rations, and nothing else", () => {
   assert.equal(rationsCount([[]]), 0);
   assert.equal(rationsCount(), 0);
   assert.equal(rationsCount([[{ name: "Rations", type: "Basic", system: { quantity: "x" } }]]), 0);
+});
+
+test("Luck counts a token in hand as at least one and Pulp's remaining tokens as they are", () => {
+  assert.equal(luckCount(undefined), 0);
+  assert.equal(luckCount({ available: false, remaining: 0 }), 0);
+  assert.equal(luckCount({ available: true }), 1);
+  assert.equal(luckCount({ available: true, remaining: 3 }), 3);
+  assert.equal(luckCount({ available: false, remaining: 2 }), 2);
+  assert.equal(luckCount({ available: true, remaining: -4 }), 1);
+});
+
+test("a member carries light only while one of the items is burning", () => {
+  const torch = (active) => ({ id: "t", name: "Torch", type: "Basic", system: { light: { isSource: true, active, remainingSecs: 600, longevityMins: 60 } } });
+  assert.equal(carriesLight([torch(true)]), true);
+  assert.equal(carriesLight([torch(false)]), false);
+  assert.equal(carriesLight([]), false);
+  assert.equal(carriesLight(), false);
+});
+
+test("torches count Basic stacks named Torch or Torches, lit or not, and nothing else", () => {
+  const stack = (name, quantity, type = "Basic") => ({ name, type, system: { quantity } });
+  assert.equal(torchCount([[stack("Torch", 2), stack("Torches", 3), stack("Torch (bundle)", 9), stack("Torch", 4, "Treasure")], [stack("torch", 1)]]), 6);
+  assert.equal(torchCount([[]]), 0);
+  assert.equal(torchCount(), 0);
+  assert.equal(torchCount([[{ name: "Torch", type: "Basic", system: { quantity: "x" } }]]), 0);
+});
+
+test("status bar: Torches sit between Light and Rations, show zero as low, and are left out when unknown", () => {
+  assert.deepEqual(statusBar({ light: { name: "Torch", mins: 38 }, torches: 6, rations: 12 }, words).map((r) => [r.key, r.value]), [["light", "Torch, 38 min"], ["torches", "6"], ["rations", "12"]]);
+  assert.deepEqual(statusBar({ torches: 0 }, words), [{ key: "torches", label: "Torches", icon: "fa-fire-flame-simple", value: "0", low: true }]);
+  assert.deepEqual(statusBar({ torches: 3 }, words), [{ key: "torches", label: "Torches", icon: "fa-fire-flame-simple", value: "3", low: false }]);
+  assert.deepEqual(statusBar({ torches: null, rations: 2 }, words).map((r) => r.key), ["rations"]);
 });
 
 test("status bar: Today, Light and Rations each appear only with data", () => {

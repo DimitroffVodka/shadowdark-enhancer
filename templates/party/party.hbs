@@ -1,9 +1,9 @@
 {{!-- The Party sheet: header band, status bar, tabs, one body. A GM sees every control; a player sees the same sheet read-only. Design: docs/design-contract.md; look at it with tools/design-harness (fixture "party"). --}}
-<div class="sde-party-body flexcol" data-tokenizer-skip="true">
+<div class="sde-party-body flexcol ui-shell" data-tokenizer-skip="true">
 {{#if picker}}<div class="sde-party-picker"><select data-party-choice aria-label="{{localize 'SDE.party.choose'}}"><option value="">{{localize "SDE.party.choose"}}</option>{{#each parties}}<option value="{{uuid}}" {{#if selected}}selected{{/if}}>{{name}}</option>{{/each}}</select>{{#if isGM}}<button type="button" data-action="create">{{localize "SDE.party.create"}}</button>{{/if}}</div>{{/if}}
 {{#if hasParty}}
-	<header class="sdp-head">
-		{{#if emblemEdit}}<button type="button" class="sdp-emblem" style="--c: #{{emblem.color}}" data-action="emblem" data-tooltip="{{localize 'SDE.party.emblem.title'}}" aria-label="{{localize 'SDE.party.emblem.title'}}" aria-expanded="{{#if emblemOpen}}true{{else}}false{{/if}}"><img src="{{emblem.path}}" alt=""></button>{{else}}<span class="sdp-emblem" style="--c: #{{emblem.color}}"><img src="{{emblem.path}}" alt=""></span>{{/if}}
+	<header class="sdp-head ui-head">
+		{{#if emblemEdit}}<button type="button" class="sdp-emblem" data-mode="emblem" style="--c: #{{emblem.color}}; --ic: #{{#if emblem.iconColor}}{{emblem.iconColor}}{{else}}ffffff{{/if}}" data-action="emblem" data-tooltip="{{localize 'SDE.party.emblem.title'}}" aria-label="{{localize 'SDE.party.emblem.title'}}" aria-expanded="{{#if emblemOpen}}true{{else}}false{{/if}}"><span class="sdp-glyph" style="--icon: url('{{emblem.path}}')"></span></button>{{else}}<span class="sdp-emblem" style="--c: #{{emblem.color}}; --ic: #{{#if emblem.iconColor}}{{emblem.iconColor}}{{else}}ffffff{{/if}}"><span class="sdp-glyph" style="--icon: url('{{emblem.path}}')"></span></span>{{/if}}
 		<div class="sdp-id">
 			<input name="name" type="text" value="{{actor.name}}" placeholder="{{localize 'SDE.party.sheet.extras.name_placeholder'}}" aria-label="{{localize 'SDE.party.sheet.extras.name_placeholder'}}" {{#unless canEdit}}readonly{{/unless}}>
 			<div class="sdp-stats">
@@ -14,20 +14,26 @@
 			</div>
 		</div>
 		<div class="sdp-march {{#unless followLeader}}off{{/unless}}">
-			<div class="sdp-ctl">
-				<label class="sdp-switch" data-tooltip="{{localize 'SDE.party.movement.follow'}}"><input type="checkbox" data-movement-setting="followLeader" {{#if followLeader}}checked{{/if}} {{#unless canEdit}}disabled{{/unless}}><span class="track"></span><span>{{localize "SDE.party.movement.marchingOrder"}}</span></label>
-				{{#if march.text}}<div class="sdp-status" role="status"><i class="dot"></i><span>{{march.text}}</span></div>{{/if}}
+			<div class="sdp-marchrow">
+				<div class="sdp-controls">
+					<label class="ui-switch" data-tooltip="{{localize 'SDE.party.movement.follow'}}"><input type="checkbox" data-movement-setting="followLeader" {{#if followLeader}}checked{{/if}} {{#unless canEdit}}disabled{{/unless}}><span>{{localize "SDE.party.movement.marchingOrder"}}</span></label>
+					{{#if march.text}}<div class="sdp-status {{#if march.warn}}warn{{/if}}" role="status">{{march.text}}</div>{{/if}}
+					{{#if canEdit}}<button type="button" class="ui-btn sdp-pin" data-action="placeRecall" {{#if movementDisabled}}disabled{{/if}} title="{{movementReason}}"><i class="fas fa-location-dot"></i> {{localize "SDE.party.movement.placeRecall"}}</button>{{/if}}
+				</div>
+				<div class="sdp-gridwrap" {{#unless members.length}}{{#if canEdit}}data-drop-members{{/if}}{{/unless}}>
+					<div class="sdp-grid" aria-label="{{localize 'SDE.party.movement.marchingOrder'}}">{{#each slots}}<button type="button" class="sdp-slot{{#if leader}} leader{{/if}}" data-formation-slot data-row="{{row}}" data-col="{{col}}" data-uuid="{{uuid}}" {{#if uuid}}data-action="leader" draggable="true"{{/if}} {{#if disabled}}disabled{{/if}} title="{{name}}" aria-label="{{#if name}}{{name}}{{else}}{{localize 'SDE.party.movement.emptySlot'}}{{/if}}">{{#if img}}<img src="{{img}}" alt="">{{/if}}</button>{{/each}}</div>
+				</div>
 			</div>
-			<div class="sdp-gridwrap" {{#unless members.length}}{{#if canEdit}}data-drop-members{{/if}}{{/unless}}>
-				<div class="sdp-grid" aria-label="{{localize 'SDE.party.movement.marchingOrder'}}">{{#each slots}}<button type="button" class="sdp-slot{{#if leader}} leader{{/if}}" data-formation-slot data-row="{{row}}" data-col="{{col}}" data-uuid="{{uuid}}" {{#if uuid}}data-action="leader" draggable="true"{{/if}} {{#if disabled}}disabled{{/if}} title="{{name}}" aria-label="{{#if name}}{{name}}{{else}}{{localize 'SDE.party.movement.emptySlot'}}{{/if}}">{{#if img}}<img src="{{img}}" alt="">{{/if}}</button>{{/each}}</div>
-				{{#if members.length}}{{#if canEdit}}<small class="sdp-caption">{{localize "SDE.party.movement.dragHint"}}<br>{{localize "SDE.party.movement.leadHint"}}</small>{{/if}}{{else}}{{#if canEdit}}<small class="sdp-caption">{{localize "SDE.party.movement.dropHint"}}</small>{{/if}}{{/if}}
-			</div>
-			{{#if canEdit}}<button type="button" class="sdp-pin" data-action="placeRecall" {{#if movementDisabled}}disabled{{/if}} title="{{movementReason}}" aria-label="{{localize 'SDE.party.movement.placeRecall'}}"><i class="fas fa-location-dot"></i></button>{{/if}}
+			{{#if members.length}}{{#if canEdit}}<small class="sdp-caption">{{localize "SDE.party.movement.dragHint"}}<br>{{localize "SDE.party.movement.leadHint"}}</small>{{/if}}{{else}}{{#if canEdit}}<small class="sdp-caption">{{localize "SDE.party.movement.dropHint"}}</small>{{/if}}{{/if}}
 		</div>
 		{{#if emblemOpen}}<div class="sdp-pop sdp-emblems">
 			<h4>{{localize "SDE.party.emblem.title"}}</h4>
 			<div class="icons">{{#each emblemIcons}}<button type="button" class="{{#if selected}}on{{/if}}" data-action="pickEmblem" data-icon="{{name}}" data-tooltip="{{label}}" aria-label="{{label}}" aria-pressed="{{#if selected}}true{{else}}false{{/if}}"><img src="{{path}}" alt=""></button>{{/each}}</div>
-			<div class="colors">{{#each emblemColors}}<button type="button" class="{{#if selected}}on{{/if}}" style="--c: #{{color}}" data-action="pickEmblem" data-color="{{color}}" data-tooltip="{{label}}" aria-label="{{label}}" aria-pressed="{{#if selected}}true{{else}}false{{/if}}"></button>{{/each}}</div>
+			<h4>{{localize "SDE.party.emblem.boxColor"}}</h4>
+			<div class="colors">{{#each emblemColors}}<button type="button" class="{{#if selected}}on{{/if}}" style="--c: #{{color}}" data-action="pickEmblem" data-color="{{color}}" data-tooltip="{{label}}" aria-label="{{label}}" aria-pressed="{{#if selected}}true{{else}}false{{/if}}"></button>{{/each}}<label class="pt-custom {{#if emblemCustomBox}}on{{/if}}" style="--c: #{{emblem.color}}" data-tooltip="{{localize 'SDE.party.emblem.custom'}}"><input type="color" value="#{{emblem.color}}" data-color-input="box" aria-label="{{localize 'SDE.party.emblem.custom'}}"><input type="text" class="pt-hex" value="#{{emblem.color}}" maxlength="7" pattern="#[0-9a-fA-F]{6}" data-color-hex="box" aria-label="{{localize 'SDE.party.emblem.custom'}}"></label></div>
+			<h4>{{localize "SDE.party.emblem.iconColor"}}</h4>
+			<div class="colors">{{#each emblemIconColors}}<button type="button" class="{{#if selected}}on{{/if}}" style="--c: #{{color}}" data-action="pickEmblem" data-icon-color="{{color}}" data-tooltip="{{label}}" aria-label="{{label}}" aria-pressed="{{#if selected}}true{{else}}false{{/if}}"></button>{{/each}}<label class="pt-custom {{#if emblemCustomIcon}}on{{/if}}" style="--c: #{{emblem.iconColor}}" data-tooltip="{{localize 'SDE.party.emblem.custom'}}"><input type="color" value="#{{emblem.iconColor}}" data-color-input="icon" aria-label="{{localize 'SDE.party.emblem.custom'}}"><input type="text" class="pt-hex" value="#{{emblem.iconColor}}" maxlength="7" pattern="#[0-9a-fA-F]{6}" data-color-hex="icon" aria-label="{{localize 'SDE.party.emblem.custom'}}"></label></div>
+			<div class="sdp-pop-foot"><button type="button" class="ui-btn" data-action="emblem" data-mode="-">{{localize "SDE.party.emblem.done"}}</button></div>
 		</div>{{/if}}
 	</header>
 {{#if status.length}}<div class="sdp-bar">{{#each status}}<div class="{{#if low}}low{{/if}}"><span class="l"><i class="fas {{icon}}"></i>{{label}}</span><span class="v">{{value}}</span></div>{{/each}}</div>{{/if}}
@@ -39,9 +45,12 @@
 <div class="tab tab-members {{#if membersTab}}active{{/if}}">
 <div class="members-list">{{#each groups}}{{#if rows.length}}<h3 class="sdp-group">{{label}}</h3><div class="sdp-cards">{{#each rows as |member|}}
 <article class="sdp-card{{#if member.missing}} missing{{/if}}" data-uuid="{{member.uuid}}" data-member-id="{{member.memberKey}}">
-	<img class="sdp-face" src="{{member.img}}" alt="" data-action="member" data-uuid="{{member.uuid}}">
+	<div class="sdp-portrait">
+		<img class="sdp-face" src="{{member.img}}" alt="" data-action="member" data-uuid="{{member.uuid}}">
+		{{#unless member.missing}}<div class="sdp-under">{{#unless member.isNPC}}<span class="sdp-luck {{#unless member.luck}}empty{{/unless}}" data-tooltip="{{localize 'SHADOWDARK.sheet.player.luck'}}" aria-label="{{localize 'SHADOWDARK.sheet.player.luck'}} {{member.luck}}"><span class="sdp-clover"></span>{{member.luck}}</span>{{/unless}}<span class="sdp-light {{#if member.lightOn}}lit{{/if}}" data-tooltip="{{localize 'SDE.party.status.light'}}" aria-label="{{localize 'SDE.party.status.light'}}"><i class="fas fa-fire"></i></span></div>{{/unless}}
+	</div>
 	<div class="sdp-main">
-		<div class="sdp-line"><a class="sdp-name" data-action="member" data-uuid="{{member.uuid}}">{{member.name}}</a>{{#if member.className}}<em>{{member.className}}</em>{{/if}}{{#each member.effects as |effect|}}<img class="sdp-fx" src="{{effect.img}}" alt="{{effect.name}}" data-tooltip="{{effect.name}}">{{/each}}</div>
+		<div class="sdp-line"><a class="sdp-name" data-action="member" data-uuid="{{member.uuid}}">{{member.name}}</a>{{#if member.className}}<em>{{member.className}}</em>{{/if}}</div>
 		{{#unless member.missing}}
 		<div class="sdp-hp" data-tooltip="{{localize 'SDE.party.sheet.hp'}}"><div class="sdp-hpbar" style="width: {{member.hpPercent}}%"></div><span>{{member.hp.value}} / {{member.hp.max}}</span></div>
 		<div class="sdp-chips"><span><b>{{localize "SDE.party.sheet.ac"}}</b> {{member.ac}}</span>{{#unless member.isNPC}}<span><b>{{localize "SDE.party.sheet.level"}}</b> {{member.level}}</span><span data-tooltip="{{localize 'SHADOWDARK.inventory.slots'}}"><b>{{localize "SDE.party.sheet.slots"}}</b> {{member.slots.used}}/{{member.slots.max}}</span><span><b>{{localize "SDE.party.sheet.xp"}}</b> {{member.xp.current}}/{{member.xp.next}}</span>{{/unless}}</div>

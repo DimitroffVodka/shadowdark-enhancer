@@ -6,6 +6,7 @@
   redesign. No window uses it yet, so nothing looks different.
 
 ### Changed
+- **The Party sheet is restyled on the shared UI kit.** The emblem takes any hex colour for its tile and its icon, the leader is chosen by clicking a formation slot, Torches join the status strip, member cards show Luck and Light under the portrait with the class on its own line and all six ability scores on one line, the active-effects icons are gone, and the tab row fills its width.
 - **The Party sheet's header is one compact band.** The boxed "Marching formation" block, with its
   heading and five lines of text, is replaced by a visible **Marching order** switch beside the 3×3
   grid (off: "Moving freely", the grid dims; on: "<leader> leads"). Following never pauses and there is

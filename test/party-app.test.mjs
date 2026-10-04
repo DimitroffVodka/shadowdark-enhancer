@@ -132,10 +132,12 @@ test("create from an existing window keeps identity coherent on subsequent opens
   } finally { delete globalThis.Actor; }
 });
 
-test("Party member cards keep the portrait, HP, AC, level, slots, XP, ability mods and effects", async () => {
+test("Party member cards keep the portrait, HP, AC, level, slots, XP, ability mods, Luck and Light, and no effect icons", async () => {
   const pc = actor("pc", "Player");
   pc.system = { attributes: { hp: { value: 5, max: 3 }, ac: { value: 14 } }, level: { value: 2, xp: 7 }, abilities: { str: { mod: 2 }, con: { mod: -1 } }, slots: 12 };
   pc.effects = [{ name: "Blessed", img: "icons/svg/aura.svg", disabled: false }];
+  pc.system.luck = { available: true };
+  pc.items.contents.push({ id: "t", name: "Torch", type: "Basic", system: { quantity: 1, light: { isSource: true, active: true, remainingSecs: 600, longevityMins: 60 } } });
   const p = actor("p", "NPC", { [MOD]: { party: true, partyData: { members: [pc.uuid] } } });
   world([p, pc], true);
   const context = await new PartyApp(p)._prepareContext();
@@ -143,10 +145,13 @@ test("Party member cards keep the portrait, HP, AC, level, slots, XP, ability mo
   assert.equal(context.players[0].ac, 14);
   assert.equal(context.players[0].abilities.str, 2);
   assert.equal(context.players[0].xp.next, 20);
-  assert.equal(context.players[0].effects[0].name, "Blessed");
+  assert.equal(context.players[0].effects, undefined, "the member card no longer lists active effects");
+  assert.deepEqual([context.players[0].luck, context.players[0].lightOn], [1, true]);
   assert.deepEqual(context.tabs.map(tab => tab.key), ["members", "items", "travel", "quests", "description"], "the GM sees Travel");
   const template = await readFile(new URL("../templates/party/party.hbs", import.meta.url), "utf8");
-  for (const marker of ["sdp-head", "sdp-stats", "sdp-face", "sdp-hp", "sdp-chips", "sdp-abil", "sdp-fx", "tab-inventory", "tab-travel", "tab-description"]) assert.ok(template.includes(marker), marker);
+  for (const marker of ["sdp-head", "sdp-stats", "sdp-face", "sdp-hp", "sdp-chips", "sdp-abil", "sdp-luck", "sdp-light", "tab-inventory", "tab-travel", "tab-description"]) assert.ok(template.includes(marker), marker);
+  assert.ok(!template.includes("sdp-fx") && !template.includes("member.effects"), "the active-effects loop is gone");
+  assert.ok(!template.includes("<select data-leader"), "the leader is chosen by clicking a formation slot");
   assert.ok(!template.includes("SDE.party.comingSoon"));
   assert.ok(!template.includes("hp-wave"), "the HP wave over the portrait is replaced by the HP bar");
   assert.ok(!template.includes("data-member-choice"), "no all-world actor dropdown in the approved sheet");
@@ -389,8 +394,8 @@ test("the status bar reads the party's lit light and rations, and hides what it 
   p.items.contents.push({ id: "r3", name: "Rations", type: "Basic", system: { quantity: 6 } });
   world([p, pc, hireling], true);
   let context = await new PartyApp(p)._prepareContext();
-  assert.deepEqual(context.status.map(r => [r.key, r.label, r.value]), [["light", "SDE.party.status.light", "SDE.party.status.lightLeft Torch 38"], ["rations", "SDE.party.status.rations", "10"]],
-    "no travel readout without an overland module; rations are the party's and its characters', a hireling's own food is not camp food");
+  assert.deepEqual(context.status.map(r => [r.key, r.label, r.value]), [["light", "SDE.party.status.light", "SDE.party.status.lightLeft Torch 38"], ["torches", "SDE.party.status.torches", "1"], ["rations", "SDE.party.status.rations", "10"]],
+    "no travel readout without an overland module; torches and rations are the party's and its characters', a hireling's own food is not camp food");
   // A member this viewer cannot see may hold rations: no total rather than a partial one.
   const hidden = actor("hidden", "Player", {}, 0);
   p.flags[MOD].partyData.members.push(hidden.uuid);
@@ -418,16 +423,26 @@ test("the emblem defaults to the amber lantern, survives a bad flag, and only a 
   const app = new PartyApp(p);
   app.render = () => {};
   let context = await app._prepareContext();
-  assert.deepEqual([context.emblem.icon, context.emblem.color, context.emblemEdit, context.emblemOpen], ["lantern", "c8892b", true, false]);
+  assert.deepEqual([context.emblem.icon, context.emblem.color, context.emblem.iconColor, context.emblemEdit, context.emblemOpen], ["lantern", "c8892b", "ffffff", true, false]);
   assert.equal(context.emblem.path, "modules/shadowdark-enhancer/icons/game-icons/party/lantern.svg");
   assert.equal(context.emblemIcons.length, 24);
   assert.equal(context.emblemColors.length, 8);
+  assert.equal(context.emblemIconColors.length, 8);
   PartyApp.DEFAULT_OPTIONS.actions.emblem.call(app);
   assert.equal((await app._prepareContext()).emblemOpen, true);
   // Picking applies live: one flag write, the party's other flags untouched.
   await PartyApp.DEFAULT_OPTIONS.actions.pickEmblem.call(app, null, { dataset: { icon: "wolf-head" } });
   await PartyApp.DEFAULT_OPTIONS.actions.pickEmblem.call(app, null, { dataset: { color: "3a6ea5" } });
-  assert.deepEqual(p.flags[MOD].partyEmblem, { icon: "wolf-head", color: "3a6ea5" });
+  assert.deepEqual(p.flags[MOD].partyEmblem, { icon: "wolf-head", color: "3a6ea5", iconColor: "ffffff" });
+  // Any hex is a colour for the tile or the picture, and the picker shows it as the custom one.
+  await PartyApp.DEFAULT_OPTIONS.actions.pickEmblem.call(app, null, { dataset: { iconColor: "e0a040" } });
+  await app._pickEmblem({ color: "#12A4B8" });
+  assert.deepEqual(p.flags[MOD].partyEmblem, { icon: "wolf-head", color: "12a4b8", iconColor: "e0a040" });
+  context = await app._prepareContext();
+  assert.deepEqual([context.emblemCustomBox, context.emblemCustomIcon], [true, true]);
+  await PartyApp.DEFAULT_OPTIONS.actions.pickEmblem.call(app, null, { dataset: { color: "3a6ea5" } });
+  await PartyApp.DEFAULT_OPTIONS.actions.pickEmblem.call(app, null, { dataset: { iconColor: "ffffff" } });
+  assert.deepEqual(p.flags[MOD].partyEmblem, { icon: "wolf-head", color: "3a6ea5", iconColor: "ffffff" });
   assert.equal(p.flags[MOD].party, true);
   assert.equal(p.flags[MOD].partyDescription, "Notes");
   context = await app._prepareContext();
@@ -435,10 +450,10 @@ test("the emblem defaults to the amber lantern, survives a bad flag, and only a 
   assert.deepEqual(context.emblemIcons.filter(i => i.selected).map(i => i.name), ["wolf-head"]);
   // A pick that is not on offer changes nothing.
   await PartyApp.DEFAULT_OPTIONS.actions.pickEmblem.call(app, null, { dataset: { icon: "../x" } });
-  assert.deepEqual(p.flags[MOD].partyEmblem, { icon: "wolf-head", color: "3a6ea5" });
+  assert.deepEqual(p.flags[MOD].partyEmblem, { icon: "wolf-head", color: "3a6ea5", iconColor: "ffffff" });
   // A hand-edited flag still draws.
   p.flags[MOD].partyEmblem = { icon: "nope", color: 5 };
-  assert.deepEqual((await app._prepareContext()).emblem, { icon: "lantern", color: "c8892b", path: "modules/shadowdark-enhancer/icons/game-icons/party/lantern.svg" });
+  assert.deepEqual((await app._prepareContext()).emblem, { icon: "lantern", color: "c8892b", iconColor: "ffffff", path: "modules/shadowdark-enhancer/icons/game-icons/party/lantern.svg" });
   // A player, even one who owns the party, has no picker and no write.
   world([p], false);
   const writes = p.writes.length, player = new PartyApp(p);

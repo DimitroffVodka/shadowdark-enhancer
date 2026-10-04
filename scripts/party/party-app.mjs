@@ -5,7 +5,7 @@ import { Party, isNativeParty, isLegacyParty } from "./party.mjs";
 import { offerParty } from "./party-create-option.mjs";
 import { scopedQuests } from "./party-core.mjs";
 import { fillFormation } from "./party-movement-core.mjs";
-import { marchState, marchText, partyTabs, tabRow, resolveTab, sheetView, gemSummary, linkedBastion, lastMonthEntry, roomIcon, lightReadout, rationsCount, statusBar } from "./party-sheet-core.mjs";
+import { marchState, marchText, partyTabs, tabRow, resolveTab, sheetView, gemSummary, linkedBastion, lastMonthEntry, roomIcon, lightReadout, rationsCount, torchCount, carriesLight, luckCount, statusBar } from "./party-sheet-core.mjs";
 import { EMBLEM_FLAG, emblemOf, emblemIconPath, emblemChoices, pickEmblem } from "./party-emblem-core.mjs";
 import { BASTION_TYPE } from "../bastion/bastion-art.mjs";
 import { stateOf as bastionState, stats as bastionStats, upgradeOf } from "../bastion/bastion-core.mjs";
@@ -34,16 +34,12 @@ const COIN_LABELS = { gp: "SHADOWDARK.coins.gp", sp: "SHADOWDARK.coins.sp", cp: 
 
 export class PartyApp extends HandlebarsApplicationMixin(ApplicationV2) {
   static DEFAULT_OPTIONS = {
-    classes: ["shadowdark", "sheet", "party", "sde-party"], window: { title: "SDE.party.title", icon: "fa-solid fa-users", resizable: true },
+    classes: ["shadowdark", "sheet", "party", "sde-party", "sde-ui"], window: { title: "SDE.party.title", icon: "fa-solid fa-users", resizable: true },
     position: { width: 750, height: 650 },
     actions: {
       partyTab: function (_event, el) { this.tab = el.dataset.tab; this.emblemOpen = false; this.render(); },
       emblem: function () { if (!sheetView({ isGM: !!game.user?.isGM, canEdit: Party.canManage(this.actor) }).emblemEdit) return; this.emblemOpen = !this.emblemOpen; this.render(); },
-      pickEmblem: function (_event, el) {
-        if (!sheetView({ isGM: !!game.user?.isGM, canEdit: Party.canManage(this.actor) }).emblemEdit) return;
-        const next = pickEmblem(this.actor.flags?.[MODULE_ID]?.[EMBLEM_FLAG], { icon: el.dataset.icon, color: el.dataset.color });
-        return this._change(() => replaceModuleFlag(this.actor, EMBLEM_FLAG, next));
-      },
+      pickEmblem: function (_event, el) { return this._pickEmblem({ icon: el.dataset.icon, color: el.dataset.color, iconColor: el.dataset.iconColor }); },
       remove: function (_event, el) { return this._change(() => Party.remove(this.actor, el.dataset.uuid)); },
       member: function (_event, el) { Party.rows(this.actor).find((r) => r.uuid === el.dataset.uuid)?.actor?.sheet?.render(true); },
       item: function (_event, el) { if (this.actor?.testUserPermission(game.user, "OBSERVER")) this.actor.items.get(el.dataset.id)?.sheet?.render(true); },
@@ -113,6 +109,12 @@ export class PartyApp extends HandlebarsApplicationMixin(ApplicationV2) {
     }
     return this._questLog;
   }
+  /** One emblem pick (an icon, a tile colour or an icon colour; a colour may be any hex), written as one flag. The GM's alone. */
+  _pickEmblem(pick) {
+    if (!sheetView({ isGM: !!game.user?.isGM, canEdit: Party.canManage(this.actor) }).emblemEdit) return;
+    const next = pickEmblem(this.actor.flags?.[MODULE_ID]?.[EMBLEM_FLAG], pick);
+    return this._change(() => replaceModuleFlag(this.actor, EMBLEM_FLAG, next));
+  }
   async _change(write) {
     try { await write(); this.render(); }
     catch (error) { console.error(`${MODULE_ID} | Party write`, error); ui.notifications.warn(t(error.message.startsWith("SDE.") ? error.message : "SDE.party.unknownRoster")); }
@@ -140,7 +142,7 @@ export class PartyApp extends HandlebarsApplicationMixin(ApplicationV2) {
           xp: { current: sys.level?.xp ?? 0, next: (sys.level?.value ?? 1) * 10 }, hpPercent: percent, showAbilities: !!a && ["characters", "hirelings"].includes(row.group) && !!sys.abilities,
           slots: { used: inventorySlots(items, sys.coins), max: sys.slots ?? 10 }, abilities: Object.fromEntries(["str", "dex", "con", "int", "wis", "cha"].map(key => [key, sys.abilities?.[key]?.mod ?? 0])),
           abilityLabels: Object.fromEntries(["str", "dex", "con", "int", "wis", "cha"].map(key => { const mod = sys.abilities?.[key]?.mod ?? 0; return [key, mod >= 0 ? `+${mod}` : String(mod)]; })),
-          effects: (a?.effects?.contents ?? a?.effects ?? []).filter(e => !e.disabled).map(e => ({ name: e.name, img: e.img ?? "icons/svg/aura.svg" })), leader: row.uuid === data.leaderUuid };
+          luck: luckCount(sys.luck), lightOn: carriesLight(items), leader: row.uuid === data.leaderUuid };
       }));
       const visible = members.filter(m => !m.missing), players = members.filter(m => m.group === "characters");
       const coins = this.actor.flags?.[MODULE_ID]?.partyCoins ?? this.actor.flags?.["shadowdark-extras"]?.coins ?? { gp: 0, sp: 0, cp: 0 };
@@ -166,12 +168,14 @@ export class PartyApp extends HandlebarsApplicationMixin(ApplicationV2) {
       const carriers = rows.filter(r => r.actor && ["characters", "hirelings"].includes(r.group)).map(r => r.actor.items?.contents ?? []);
       const partyItems = this.actor.items?.contents ?? [];
       const everyoneVisible = rows.length > 0 && rows.every(r => r.actor);
+      const stock = everyoneVisible ? [partyItems, ...rows.filter(r => r.group === "characters").map(r => r.actor.items?.contents ?? [])] : null;
       const readouts = statusBar({ travel: await this._travel(), light: lightReadout([partyItems, ...carriers]),
-        rations: everyoneVisible ? rationsCount([partyItems, ...rows.filter(r => r.group === "characters").map(r => r.actor.items?.contents ?? [])]) : null }, I18N);
+        torches: stock ? torchCount(stock) : null, rations: stock ? rationsCount(stock) : null }, I18N);
       const formation = fillFormation(data, rows), status = movementStatus(this.actor);
       const combat = inPartyCombat(globalThis.canvas?.scene), leaderActor = rows.find(r => r.uuid === data.leaderUuid)?.actor, hasLeader = !!data.leaderUuid && !!leaderActor;
-      const march = marchText(marchState({ follow: data.followLeader, hasToken: !!status.token, reason: status.reason, manager: canEdit, hasLeader }),
+      const marchLine = marchText(marchState({ follow: data.followLeader, hasToken: !!status.token, reason: status.reason, manager: canEdit, hasLeader }),
         { leaderName: leaderActor?.name, missing: t("SDE.party.missing") }, I18N);
+      const march = { ...marchLine, warn: marchLine.mode === "notice" };
       const slots = [];
       for (let row = -1; row <= 1; row++) for (let col = -1; col <= 1; col++) {
         const uuid = formation.slots.find(s => s.row === row && s.col === col)?.memberUuid;
@@ -184,7 +188,7 @@ export class PartyApp extends HandlebarsApplicationMixin(ApplicationV2) {
         partyStats: { totalHp: visible.reduce((n,m) => n + m.hp.value, 0), maxHp: visible.reduce((n,m) => n + m.hp.max, 0), avgAc: visible.length ? Math.round(visible.reduce((n,m) => n + m.ac, 0) / visible.length) : 0, avgLevel: players.length ? Math.round(players.reduce((n,m) => n + m.level, 0) / players.length) : 0 },
         needsAdoption: canEdit && !this.actor.flags?.[MODULE_ID]?.partyData,
         slots, followLeader: data.followLeader, formationReview: formation.needsReview, march, hasLeader, bastion, status: readouts,
-        emblem: { ...emblem, path: emblemIconPath(emblem.icon) }, emblemEdit: view.emblemEdit, emblemOpen: view.emblemEdit && !!this.emblemOpen, emblemIcons: picker.icons, emblemColors: picker.colors,
+        emblem: { ...emblem, path: emblemIconPath(emblem.icon) }, emblemEdit: view.emblemEdit, emblemOpen: view.emblemEdit && !!this.emblemOpen, emblemIcons: picker.icons, emblemColors: picker.colors, emblemIconColors: picker.iconColors, emblemCustomBox: picker.customBox, emblemCustomIcon: picker.customIcon,
         leaderName: leaderActor?.name ?? t("SDE.party.missing"),
         movementDisabled: !canEdit || !status.token || combat,
         movementReason: !status.token ? t("SDE.party.movement.noToken") : combat ? t("SDE.party.movement.combat") : t("SDE.party.movement.importExport"),
@@ -222,6 +226,11 @@ export class PartyApp extends HandlebarsApplicationMixin(ApplicationV2) {
       };
       globalThis.document?.addEventListener("pointerdown", this._pickerAway, true);
     }
+    // A custom emblem colour: the colour well and its hex field both pick it; a half-typed hex waits until it is six digits.
+    for (const input of this.element.querySelectorAll("[data-color-input], [data-color-hex]")) input.addEventListener("change", () => {
+      const part = input.dataset.colorInput ?? input.dataset.colorHex;
+      void this._pickEmblem({ [part === "icon" ? "iconColor" : "color"]: input.value });
+    });
     // Actors dropped on the Members tab, or on the formation grid of an empty party, join the roster.
     for (const target of this.element.querySelectorAll(".tab-members, [data-drop-members]")) {
       target.addEventListener("dragover", event => { if (Party.canManage(this.actor)) event.preventDefault(); });
@@ -298,7 +307,7 @@ export class PartySheet extends HandlebarsApplicationMixin(foundry.applications.
   }
   _onClose(options) { for (const [name, id] of this._hooks ?? []) Hooks.off(name, id); this._hooks = null; globalThis.document?.removeEventListener("pointerdown", this._pickerAway, true); return super._onClose(options); }
 }
-for (const name of ["_prepareContext", "_change", "_quests", "_bastion", "_travel", "_hookTravel", "_bindControls", "_activityController", "_questController", "_onStateChanged"]) PartySheet.prototype[name] = PartyApp.prototype[name];
+for (const name of ["_prepareContext", "_change", "_pickEmblem", "_quests", "_bastion", "_travel", "_hookTravel", "_bindControls", "_activityController", "_questController", "_onStateChanged"]) PartySheet.prototype[name] = PartyApp.prototype[name];
 
 /** Only native/adopted flagged Parties route here; ordinary NPC sheets stay intact. */
 export function registerParty() {
