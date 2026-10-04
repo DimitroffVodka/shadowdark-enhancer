@@ -1,11 +1,12 @@
 import { test } from "node:test";
 import { readFileSync } from "node:fs";
 import assert from "node:assert/strict";
-import { partyTabs, resolveTab, sheetView, marchState, gemSummary, gpText, linkedBastion, lastMonthEntry, roomIcon, ROOM_ICONS, MONTH_LOG_KEYS, terrainLabel, lightReadout, rationsCount, torchCount, carriesLight, luckCount, statusBar, COIN_REFUSALS, coinsOf, coinText, poolAfterAdd, planGive, planDivide, purseAfter, searchItemIndex, TAB_LABELS, TAB_ICONS, tabRow, movementMessageKey, marchText } from "../scripts/party/party-sheet-core.mjs";
+import { esc } from "../scripts/shared/esc.mjs";
+import { partyTabs, resolveTab, sheetView, marchState, gemSummary, gpText, linkedBastion, lastMonthEntry, roomIcon, ROOM_ICONS, MONTH_LOG_KEYS, terrainLabel, lightReadout, rationsCount, torchCount, carriesLight, luckCount, statusBar, COIN_REFUSALS, coinsOf, coinText, poolAfterAdd, planGive, planDivide, purseAfter, searchItemIndex, TAB_LABELS, TAB_ICONS, tabRow, movementMessageKey, marchText, spellTiers, ROLL_STATS, ROLL_STAT_LABELS, DEFAULT_DC, cleanDc, whoSelection, whoAfter, rollRequest, rollOutcome, rollCardHtml, rollResultText, defaultSource, downtimeSummary, warbandGroups } from "../scripts/party/party-sheet-core.mjs";
 
 test("everyone sees Travel (each PC's owner confirms their own camping and carousing there); Bastion needs a linked bastion", () => {
-  assert.deepEqual(partyTabs(), ["members", "items", "travel", "quests", "description"]);
-  assert.deepEqual(partyTabs({ hasBastion: true }), ["members", "items", "travel", "quests", "bastion", "description"]);
+  assert.deepEqual(partyTabs(), ["members", "items", "travel", "quests", "downtime", "warbands", "description"]);
+  assert.deepEqual(partyTabs({ hasBastion: true }), ["members", "items", "travel", "quests", "downtime", "warbands", "bastion", "description"]);
 });
 
 test("a tab the viewer cannot see falls back to Members", () => {
@@ -185,7 +186,7 @@ test("every tab has a name and an icon, and the row marks the active one", () =>
   assert.deepEqual(Object.keys(TAB_LABELS).sort(), [...keys].sort());
   assert.deepEqual(Object.keys(TAB_ICONS).sort(), [...keys].sort());
   const row = tabRow(keys, "items", say);
-  assert.deepEqual(row.map((t) => t.label), ["Members", "Items", "Travel", "Quests", "Bastion", "Description"]);
+  assert.deepEqual(row.map((t) => t.label), ["Members", "Items", "Travel", "Quests", "Downtime", "Warbands", "Bastion", "Description"]);
   assert.deepEqual(row.filter((t) => t.active).map((t) => t.key), ["items"]);
 });
 
@@ -271,4 +272,155 @@ test("the item search needs every word, ranks names that start with the query fi
   assert.deepEqual(searchItemIndex(entries, "dragon"), []);
   assert.equal(searchItemIndex(entries, "rope", 2).length, 2);
   assert.deepEqual(searchItemIndex(undefined, "x"), []);
+});
+
+// ---------------------------------------------------------------- Members GM bar
+
+test("spells group by tier, lowest first, with the lost ones marked; non-spells and no tier are handled", () => {
+  const items = [
+    { name: "Fireball", img: "f.webp", type: "Spell", system: { tier: 3, lost: true } },
+    { name: "Light", img: "l.webp", type: "Spell", system: { tier: 1 } },
+    { name: "Sword", type: "Weapon", system: {} },
+    { name: "Magic Missile", img: "m.webp", type: "Spell", system: { tier: 1, lost: false } },
+    { name: "Odd", type: "Spell", system: {} },
+  ];
+  assert.deepEqual(spellTiers(items), [
+    { tier: 0, spells: [{ name: "Odd", img: "", lost: false }] },
+    { tier: 1, spells: [{ name: "Light", img: "l.webp", lost: false }, { name: "Magic Missile", img: "m.webp", lost: false }] },
+    { tier: 3, spells: [{ name: "Fireball", img: "f.webp", lost: true }] },
+  ]);
+  assert.deepEqual(spellTiers([]), []);
+  assert.deepEqual(spellTiers(undefined), []);
+});
+
+test("the DC field: blank is no DC, a number is whole and kept between 1 and 30", () => {
+  assert.equal(DEFAULT_DC, 12);
+  assert.equal(cleanDc(""), null);
+  assert.equal(cleanDc("  "), null);
+  assert.equal(cleanDc(null), null);
+  assert.equal(cleanDc("abc"), null);
+  assert.equal(cleanDc("15"), 15);
+  assert.equal(cleanDc(11.9), 11);
+  assert.equal(cleanDc(0), 1);
+  assert.equal(cleanDc(99), 30);
+});
+
+test("Who: null means every PC; ticking works one at a time and all ticked is everybody again", () => {
+  const pcs = ["a", "b", "c"];
+  assert.deepEqual(whoSelection(pcs, null), { all: true, uuids: pcs });
+  assert.deepEqual(whoSelection(pcs, ["b", "gone"]), { all: false, uuids: ["b"] });
+  assert.deepEqual(whoSelection([], []), { all: false, uuids: [] });
+  assert.equal(whoAfter(pcs, null, { all: true, on: false }).length, 0, "All off clears");
+  assert.equal(whoAfter(pcs, [], { all: true, on: true }), null, "All on is everybody");
+  assert.deepEqual(whoAfter(pcs, null, { uuid: "b", on: false }), ["a", "c"]);
+  assert.deepEqual(whoAfter(pcs, ["a"], { uuid: "c", on: true }), ["a", "c"]);
+  assert.equal(whoAfter(pcs, ["a", "b"], { uuid: "c", on: true }), null, "the last box ticked makes it all again");
+  assert.deepEqual(whoAfter(pcs, ["a"], { uuid: "stranger", on: true }), ["a"], "a uuid that is not a PC changes nothing");
+});
+
+test("a roll request needs a real ability and somebody to ask; the DC is cleaned and a target is asked once", () => {
+  const targets = [{ uuid: "Actor.a", name: "Ana" }, { uuid: "Actor.a", name: "Ana again" }, { uuid: "Actor.b", name: "Bo" }];
+  assert.deepEqual(rollRequest({ stat: "DEX", dc: "14", targets }), { stat: "dex", dc: 14, targets: [{ uuid: "Actor.a", name: "Ana" }, { uuid: "Actor.b", name: "Bo" }] });
+  assert.equal(rollRequest({ stat: "dex", dc: "", targets }).dc, null);
+  assert.equal(rollRequest({ stat: "luck", targets }), null);
+  assert.equal(rollRequest({ stat: "str", targets: [] }), null);
+  assert.equal(rollRequest(), null);
+  assert.deepEqual(Object.keys(ROLL_STAT_LABELS), ROLL_STATS);
+});
+
+test("pass or fail: a total at the DC passes, below fails, and with no DC there is no verdict", () => {
+  assert.equal(rollOutcome({ total: 12, dc: 12 }), "pass");
+  assert.equal(rollOutcome({ total: 11, dc: 12 }), "fail");
+  assert.equal(rollOutcome({ total: 20, dc: null }), null);
+  assert.equal(rollOutcome({ total: null, dc: 12 }), null);
+  assert.equal(rollOutcome({ total: undefined, dc: 12 }), null);
+});
+
+test("the Request roll card has one anchor (never a button) per character, escaped, and the DC in its title", () => {
+  const sayWith = (key, data) => `${key}|${Object.entries(data).map(([k, v]) => `${k}=${v}`).join(",")}`;
+  const html = rollCardHtml({ stat: "wis", dc: 13, targets: [{ uuid: "Actor.a", name: "<b>Ana</b>" }, { uuid: "Actor.b", name: "Bo" }] }, { sayWith, statLabel: "WIS", esc });
+  assert.equal((html.match(/<a /g) ?? []).length, 2);
+  assert.ok(!/<button/.test(html), "buttons are disabled for a viewer who cannot edit");
+  assert.ok(html.includes('data-uuid="Actor.a"') && html.includes('data-uuid="Actor.b"'));
+  assert.ok(html.includes("SDE.party.roll.cardTitleDc|stat=WIS,dc=13"));
+  assert.ok(html.includes("&lt;b&gt;Ana&lt;/b&gt;") && !html.includes("<b>Ana"));
+  const open = rollCardHtml({ stat: "wis", dc: null, targets: [{ uuid: "Actor.a", name: "Ana" }] }, { sayWith, statLabel: "WIS", esc });
+  assert.ok(open.includes("SDE.party.roll.cardTitle|stat=WIS") && !open.includes("cardTitleDc"));
+});
+
+test("the result line says pass or fail only when there was a DC, from the system's verdict or the total", () => {
+  const sayWith = (key, data) => `${key}|${Object.entries(data).map(([k, v]) => `${k}=${v}`).join(",")}`;
+  assert.equal(rollResultText({ name: "Ana", total: 15, dc: null }, { sayWith }), "");
+  assert.equal(rollResultText({ name: "Ana", total: 15, dc: 12 }, { sayWith }), "SDE.party.roll.result|name=Ana,total=15,dc=12,outcome=SDE.party.roll.pass|");
+  assert.ok(rollResultText({ name: "Ana", total: 15, dc: 12, success: false }, { sayWith }).includes("outcome=SDE.party.roll.fail"), "the system's verdict wins");
+  assert.ok(rollResultText({ name: "Ana", dc: 12, success: true }, { sayWith }).startsWith("SDE.party.roll.resultNoTotal|name=Ana,dc=12"));
+  assert.equal(rollResultText({ name: "Ana", dc: 12 }, { sayWith }), "", "neither a verdict nor a total: nothing to add");
+});
+
+// ---------------------------------------------------------------- Downtime and Warbands tabs
+
+test("Downtime and Warbands are tabs for everyone, between Quests and Bastion, and the row's labels come from en.json", () => {
+  assert.deepEqual(partyTabs().slice(3, 6), ["quests", "downtime", "warbands"]);
+  assert.equal(partyTabs({ hasBastion: true }).indexOf("bastion") > partyTabs().indexOf("warbands"), true);
+  for (const key of ["downtime", "warbands"]) assert.ok(en[TAB_LABELS[key]], key);
+  assert.equal(resolveTab("downtime", partyTabs()), "downtime");
+  assert.equal(resolveTab("warbands", partyTabs()), "warbands");
+});
+
+test("a new session starts in the first unlocked book, Western Reaches first, or in none", () => {
+  const open = (list) => (slug) => list.includes(slug);
+  assert.equal(defaultSource(["cs6", "western-reaches"], open(["cs6", "western-reaches"])), "western-reaches");
+  assert.equal(defaultSource(["western-reaches", "cs6"], open(["cs6"])), "cs6");
+  assert.equal(defaultSource(["cs6"], open([])), null);
+  assert.equal(defaultSource(), null);
+});
+
+test("Downtime: no session is no rows; a session shows its status and one row for each character", () => {
+  const words = { pickLabel: (pick) => `label:${pick.slotKey}`, advLabel: (pick) => pick.advantage };
+  assert.deepEqual(downtimeSummary(null, [{ id: "a", name: "Ana" }], words), { inSession: false, session: null, rows: [] });
+  assert.deepEqual(downtimeSummary({ active: false }, [{ id: "a", name: "Ana" }], words).rows, []);
+  const session = { active: true, phase: "roll", sourceLabel: "Western Reaches", days: 7, picks: { a: { slotKey: "train", advantage: "adv" }, b: { slotKey: "craft", advantage: "normal" } }, results: { a: { total: 17, dc: 13, success: true } } };
+  const out = downtimeSummary(session, [{ id: "a", name: "Ana" }, { id: "b", name: "Bo" }, { id: "c", name: "Cy" }], words);
+  assert.deepEqual(out.session, { sourceLabel: "Western Reaches", days: 7, locked: true, pickCount: 2, resultCount: 1 });
+  assert.deepEqual(out.rows[0], { actorId: "a", name: "Ana", picked: true, pickLabel: "label:train", advantage: "adv", rolled: true, total: 17, dc: 13, success: true });
+  assert.deepEqual(out.rows[1], { actorId: "b", name: "Bo", picked: true, pickLabel: "label:craft", advantage: "normal", rolled: false, total: null, dc: null, success: null });
+  assert.deepEqual(out.rows[2], { actorId: "c", name: "Cy", picked: false, pickLabel: "", advantage: "", rolled: false, total: null, dc: null, success: null }, "a character who has not chosen is still listed");
+  assert.equal(downtimeSummary({ ...session, phase: "select" }, [], words).session.locked, false);
+});
+
+test("Downtime lists only the characters it is given: a player's own, never the rest of the party", () => {
+  const session = { active: true, phase: "select", picks: {}, results: {} };
+  assert.deepEqual(downtimeSummary(session, [{ id: "mine", name: "Mine" }]).rows.map((r) => r.name), ["Mine"]);
+});
+
+test("Warbands group by commander, by name, and only a party member's commands are listed", () => {
+  const wb = (uuid, name, commander, extra = {}) => ({ uuid, name, img: `${name}.webp`, level: 2, hp: { value: 10, max: 20 }, commander, upkeepGp: 20, ...extra });
+  const groups = warbandGroups([
+    wb("Actor.w3", "Zeta band", "Actor.iraga", { arrears: 15, out: true }),
+    wb("Actor.w1", "Hill Raiders", "Actor.creeg"),
+    wb("Actor.w2", "Axe band", "Actor.creeg", { arrears: 7.9, hp: { value: 30, max: 20 } }),
+    wb("Actor.w4", "Stranger's", "Actor.outsider"),
+    wb("Actor.w5", "Leaderless", null),
+  ], ["Actor.creeg", "Actor.iraga"], (uuid) => ({ "Actor.creeg": "Creeg", "Actor.iraga": "Iraga" })[uuid]);
+  assert.deepEqual(groups.map((g) => g.commander), ["Creeg", "Iraga"]);
+  assert.deepEqual(groups[0].rows.map((r) => r.name), ["Axe band", "Hill Raiders"]);
+  assert.deepEqual(groups[0].rows[0], { uuid: "Actor.w2", name: "Axe band", img: "Axe band.webp", level: 2, hp: { value: 30, max: 20 }, hpPercent: 100, upkeepGp: 20, arrears: 7, out: false }, "arrears are whole gp, the bar never passes full");
+  assert.equal(groups[0].rows[1].arrears, 0, "paid: no arrears");
+  assert.deepEqual([groups[1].rows[0].arrears, groups[1].rows[0].out], [15, true]);
+  assert.deepEqual(warbandGroups([], ["Actor.creeg"]), []);
+  assert.deepEqual(warbandGroups(undefined, undefined), []);
+  assert.equal(warbandGroups([wb("Actor.w6", "Dead", "Actor.creeg", { hp: { value: 0, max: 0 } })], ["Actor.creeg"])[0].rows[0].hpPercent, 0, "no max HP is an empty bar, not NaN");
+});
+
+test("the Downtime and Warbands markup: the GM's controls sit behind isGM and every player-facing control is an anchor", async () => {
+  const template = readFileSync(new URL("../templates/party/party.hbs", import.meta.url), "utf8");
+  const part = (from, to) => template.slice(template.indexOf(from), template.indexOf(to));
+  const downtime = part('class="tab tab-downtime', 'class="tab tab-warbands'), warbands = part('class="tab tab-warbands', "{{#if bastion}}");
+  assert.ok(/<a [^>]*data-action="openDowntime"/.test(downtime), "Open Downtime window works for a viewer who cannot edit");
+  for (const action of ["startSession", "lockRolls", "releaseRolls", "endSession"]) assert.ok(downtime.includes(`data-action="${action}"`), action);
+  assert.ok(downtime.indexOf('data-action="startSession"') > downtime.indexOf("{{#if isGM}}"), "session controls are the GM's");
+  assert.ok(/<a [^>]*data-action="warband"/.test(warbands) && /<img [^>]*data-action="warband"/.test(warbands), "open a warband's sheet");
+  for (const action of ["payArrears", "returnToService", "runMonth"]) assert.ok(warbands.includes(`data-action="${action}"`), action);
+  assert.ok(warbands.indexOf('data-action="payArrears"') > warbands.indexOf("@root.isGM"));
+  assert.ok(warbands.indexOf('data-action="runMonth"') > warbands.indexOf("{{#if isGM}}"));
 });

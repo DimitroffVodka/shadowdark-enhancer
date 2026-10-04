@@ -43,6 +43,18 @@
 {{#if needsAdoption}}<button type="button" data-action="adopt">{{localize "SDE.party.adopt"}}</button>{{/if}}
 {{#if formationReview}}<p>{{localize "SDE.party.movement.review"}}</p>{{/if}}
 <div class="tab tab-members {{#if membersTab}}active{{/if}}">
+{{#if gmBar}}<div class="sdp-gm sdp-gmbar">
+	<details class="sdp-who" data-open-key="who" {{#if gmBar.whoOpen}}open{{/if}}><summary class="ui-btn" data-tooltip="{{gmBar.whoLabel}}"><span class="sdp-who-k">{{localize "SDE.party.roll.who"}}:</span> <span class="sdp-who-v">{{gmBar.whoLabel}}</span></summary><div class="sdp-who-list">
+		<label class="ui-check sdp-who-all"><input type="checkbox" data-roll-all {{#if gmBar.whoAll}}checked{{/if}}> {{localize "SDE.partyXp.selectAll"}}</label>
+		{{#each gmBar.pcs}}<label class="ui-check"><input type="checkbox" data-roll-member value="{{uuid}}" {{#if checked}}checked{{/if}}> {{name}}</label>{{/each}}
+	</div></details>
+	<select data-roll-stat aria-label="{{localize 'SDE.party.roll.stat'}}">{{#each gmBar.stats}}<option value="{{key}}" {{#if selected}}selected{{/if}}>{{label}}</option>{{/each}}</select>
+	<input type="number" data-roll-dc value="{{gmBar.dc}}" min="1" max="30" placeholder="{{localize 'SDE.party.roll.dc'}}" aria-label="{{localize 'SDE.party.roll.dc'}}">
+	<button type="button" class="ui-btn" data-action="requestRoll">{{localize "SDE.party.roll.request"}}</button>
+	<span class="sdp-sep"></span>
+	<input type="number" data-award-xp value="{{gmBar.xp}}" min="0" step="1" placeholder="{{localize 'SDE.party.award.xp'}}" aria-label="{{localize 'SDE.party.award.xp'}}">
+	<button type="button" class="ui-btn" data-action="awardParty">{{localize "SDE.partyXp.award"}}</button>
+</div>{{/if}}
 <div class="members-list">{{#each groups}}{{#if rows.length}}<h3 class="sdp-group">{{label}}</h3><div class="sdp-cards">{{#each rows as |member|}}
 <article class="sdp-card{{#if member.missing}} missing{{/if}}" data-uuid="{{member.uuid}}" data-member-id="{{member.memberKey}}">
 	<div class="sdp-portrait">
@@ -64,6 +76,7 @@
 		</div>{{/if}}
 		{{/unless}}
 	</div>
+	{{#if member.spellTiers.length}}<div class="sdp-spells">{{#each member.spellTiers}}<span class="sdp-tier"><b>{{localize "SDE.party.spells.tierShort" tier=tier}}</b>{{#each spells}}<span class="sdp-spell {{#if lost}}lost{{/if}}" data-tooltip="{{name}} - {{localize 'SDE.party.spells.tierShort' tier=../tier}}{{#if lost}} - {{localize 'SHADOWDARK.class-ability.lost.label'}}{{/if}}" aria-label="{{name}} {{localize 'SDE.party.spells.tierShort' tier=../tier}}{{#if lost}} {{localize 'SHADOWDARK.class-ability.lost.label'}}{{/if}}"><img src="{{img}}" alt=""></span>{{/each}}</span>{{/each}}</div>{{/if}}
 	{{#if member.canEdit}}<a class="sdp-remove" data-action="remove" data-uuid="{{member.uuid}}" data-tooltip="{{localize 'SDE.party.sheet.extras.remove_member'}}" aria-label="{{localize 'SDE.party.sheet.extras.remove_member'}}"><i class="fas fa-times"></i></a>{{/if}}
 </article>{{/each}}</div>{{/if}}{{/each}}{{#unless members.length}}<div class="sdp-empty {{#if canEdit}}drop{{/if}}"><i class="fas fa-users"></i><p>{{#if canEdit}}{{localize "SDE.party.sheet.dropMembers"}}{{else}}{{localize "SDE.party.noMembers"}}{{/if}}</p></div>{{/unless}}</div>
 </div>
@@ -90,6 +103,19 @@
 </div></div>
 <div class="tab tab-travel {{#if travelTab}}active{{/if}}"><div class="party-actions sde-party-activities"><a data-action="camp" aria-pressed="{{campingActive}}"><i class="fas fa-campground"></i> {{localize "SDE.camping.title"}}</a><a data-action="carouse" aria-pressed="{{carousingActive}}"><i class="fas fa-beer-mug-empty"></i> {{localize "SDE.carousing.title"}}</a></div>{{{activityHTML}}}</div>
 <div class="tab tab-quests {{#if questsTab}}active{{/if}}">{{{questHTML}}}</div>
+<div class="tab tab-downtime {{#if downtimeTab}}active{{/if}}">
+{{#if downtime.inSession}}
+<div class="sdp-dtstatus"><span class="ui-chip gold"><i class="fas fa-book"></i> {{downtime.session.sourceLabel}}</span>{{#if downtime.session.days}}<span class="ui-chip"><i class="fas fa-hourglass-half"></i> {{localize "SDE.downtime.ui.days" days=downtime.session.days}}</span>{{/if}}<span class="ui-chip">{{localize "SDE.downtime.ui.sessionStat" picks=downtime.session.pickCount results=downtime.session.resultCount}}</span>{{#if isGM}}<span class="ui-muted sdp-hint">{{#if downtime.session.locked}}{{localize "SDE.downtime.ui.diceUnlocked"}}{{else}}{{localize "SDE.downtime.ui.playersChoosing"}}{{/if}}</span>{{/if}}</div>
+<ul class="sdp-dtlist">{{#each downtime.rows}}<li class="{{#if rolled}}done{{/if}}"><span class="n" data-tooltip="{{name}}">{{name}}</span><span class="pick">{{#if picked}}{{pickLabel}} <em class="ui-muted">({{advantage}})</em>{{else}}<span class="ui-muted">{{localize "SDE.downtime.ui.choosing"}}</span>{{/if}}</span><span class="res">{{#if rolled}}{{localize "SDE.downtime.ui.totalVs" total=total dc=dc}} - {{#if success}}{{localize "SDE.downtime.card.success"}}{{else}}{{localize "SDE.downtime.card.failure"}}{{/if}}{{/if}}</span>{{#if @root.isGM}}<span class="act">{{#unless rolled}}{{#if picked}}<a class="ui-icon" data-action="gmClearPick" data-actor-id="{{actorId}}" aria-label="{{localize 'SDE.downtime.ui.clearPickTip'}}" data-tooltip="{{localize 'SDE.downtime.ui.clearPickTip'}}"><i class="fas fa-eraser"></i></a><a class="ui-icon" data-action="gmRollFor" data-actor-id="{{actorId}}" aria-label="{{localize 'SDE.downtime.ui.rollForTip'}}" data-tooltip="{{localize 'SDE.downtime.ui.rollForTip'}}"><i class="fas fa-dice-d20"></i></a>{{/if}}{{/unless}}</span>{{/if}}</li>{{/each}}</ul>
+{{else}}
+<div class="sdp-empty"><i class="fas fa-mug-hot"></i><p>{{localize "SDE.party.downtime.none"}}</p></div>
+{{/if}}
+<div class="sdp-dtbtns">{{#if isGM}}{{#if downtime.inSession}}{{#if downtime.session.locked}}<button type="button" class="ui-btn" data-action="releaseRolls">{{localize "SDE.downtime.ui.reopenPicks"}}</button>{{else}}<button type="button" class="ui-btn" data-action="lockRolls">{{localize "SDE.downtime.ui.lockDice"}}</button>{{/if}}<button type="button" class="ui-btn" data-action="endSession">{{localize "SDE.downtime.ui.endSession"}}</button>{{else}}<button type="button" class="ui-btn" data-action="startSession">{{localize "SDE.downtime.ui.startSession"}}</button>{{/if}}{{/if}}{{!-- An anchor, not a button: a sheet a player cannot edit has every form control disabled by core, and this one must work for them. --}}<a class="ui-btn sdp-dtopen" data-action="openDowntime"><i class="fas fa-mug-hot"></i> {{localize "SDE.party.downtime.open"}}</a></div>
+</div>
+<div class="tab tab-warbands {{#if warbandsTab}}active{{/if}}">
+{{#if warbandGroups.length}}{{#each warbandGroups}}<section class="sdp-wbgroup"><h3 class="sdp-group">{{commander}}</h3><ul class="sdp-wblist">{{#each rows}}<li data-uuid="{{uuid}}"><img src="{{img}}" alt="" data-action="warband" data-uuid="{{uuid}}"><div class="who"><a class="sdp-name" data-action="warband" data-uuid="{{uuid}}" data-tooltip="{{name}}">{{name}}</a><span class="sub">{{localize "SDE.party.sheet.level"}} {{level}} &middot; {{localize "SDE.party.sheet.hp"}} {{hp.value}} / {{hp.max}}</span></div><div class="sdp-hp"><div class="sdp-hpbar" style="width: {{hpPercent}}%"></div></div><span class="up {{#if arrears}}owe{{/if}}">{{#if arrears}}{{localize "SDE.party.warbands.owes" gp=arrears}}{{else}}{{localize "SDE.party.warbands.paid"}}{{/if}}<small>{{localize "SDE.party.warbands.upkeep" gp=upkeepGp}}</small></span>{{#if @root.isGM}}<span class="act">{{#if arrears}}<button type="button" class="ui-btn" data-action="payArrears" data-uuid="{{uuid}}">{{localize "SDE.party.warbands.payArrears"}}</button>{{/if}}{{#if out}}<button type="button" class="ui-btn" data-action="returnToService" data-uuid="{{uuid}}">{{localize "SDE.party.warbands.returnToService"}}</button>{{/if}}</span>{{/if}}</li>{{/each}}</ul></section>{{/each}}{{#if isGM}}<div class="sdp-dtbtns"><button type="button" class="ui-btn" data-action="runMonth">{{localize "SDE.party.warbands.runMonth"}}</button></div>{{/if}}
+{{else}}<div class="sdp-empty"><i class="fas fa-flag"></i><p>{{localize "SDE.party.warbands.empty"}}</p></div>{{/if}}
+</div>
 {{#if bastion}}<div class="tab tab-bastion {{#if bastionTab}}active{{/if}}"><div class="sdp-box sdp-bastion">
 <img class="art" src="{{bastion.img}}" alt="">
 <div class="info"><h3>{{bastion.name}}</h3><p class="sub">{{bastion.type}}</p>

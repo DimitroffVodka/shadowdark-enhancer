@@ -5,16 +5,18 @@ import { Party, isNativeParty, isLegacyParty } from "./party.mjs";
 import { offerParty } from "./party-create-option.mjs";
 import { scopedQuests } from "./party-core.mjs";
 import { fillFormation } from "./party-movement-core.mjs";
-import { marchState, marchText, partyTabs, tabRow, resolveTab, sheetView, gemSummary, linkedBastion, lastMonthEntry, roomIcon, lightReadout, rationsCount, torchCount, carriesLight, luckCount, statusBar, COIN_REFUSALS, coinsOf, coinText, poolAfterAdd, planGive, planDivide, purseAfter } from "./party-sheet-core.mjs";
+import { marchState, marchText, partyTabs, tabRow, resolveTab, sheetView, gemSummary, linkedBastion, lastMonthEntry, roomIcon, lightReadout, rationsCount, torchCount, carriesLight, luckCount, statusBar, COIN_REFUSALS, coinsOf, coinText, poolAfterAdd, planGive, planDivide, purseAfter, spellTiers, whoSelection, whoAfter, ROLL_STATS, ROLL_STAT_LABELS, DEFAULT_DC, defaultSource, downtimeSummary, warbandGroups } from "./party-sheet-core.mjs";
 import { EMBLEM_FLAG, emblemOf, emblemIconPath, emblemChoices, pickEmblem } from "./party-emblem-core.mjs";
 import { BASTION_TYPE } from "../bastion/bastion-art.mjs";
-import { stateOf as bastionState, stats as bastionStats, upgradeOf } from "../bastion/bastion-core.mjs";
+import { stateOf as bastionState, stats as bastionStats, upgradeOf, GRANARY_SAVING_GP } from "../bastion/bastion-core.mjs";
 import { logText as bastionLogText } from "../bastion/bastion-text.mjs";
 import { configureMovement, requestMovement, movementStatus, inPartyCombat, MOVEMENT_CHANGED } from "./party-movement.mjs";
 import { Quests, QUESTS_CHANGED } from "../quests/quests.mjs";
 import { QuestLogApp } from "../quests/quest-log-app.mjs";
 import { replaceModuleFlag } from "../shared/module-flags.mjs";
 import { PartyItemPicker } from "./party-item-picker.mjs";
+import { postRollRequest } from "./party-roll.mjs";
+import { upkeepGp } from "../actors/warband-core.mjs";
 
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
@@ -30,6 +32,10 @@ function bastionCard(actor) {
     rooms: state.upgrades.filter((u) => upgradeOf(u.id)).map((u) => ({ name: t(upgradeOf(u.id).name), icon: roomIcon(u.id), building: u.weeksLeft > 0, tip: u.weeksLeft > 0 ? game.i18n.format("SDE.bastion.weeksLeft", { weeks: u.weeksLeft }) : "" })),
     lastMonth: last ? bastionLogText(last) : "" };
 }
+/** The Warband actor sub-type (register-actors.mjs WARBAND_TYPE, written out here so this sheet need not load the actor registry). */
+const WARBAND_TYPE = `${MODULE_ID}.warband`;
+/** The Downtime window's change hook (downtime-session.mjs HOOK_CHANGED), named here so the sheet need not load the session to listen. */
+const DOWNTIME_CHANGED = "sde.downtimeSessionChanged";
 // Localized coin labels come from the system's own keys; the sheet draws literal text otherwise.
 const COIN_LABELS = { gp: "SHADOWDARK.coins.gp", sp: "SHADOWDARK.coins.sp", cp: "SHADOWDARK.coins.cp" };
 
@@ -68,6 +74,21 @@ export class PartyApp extends HandlebarsApplicationMixin(ApplicationV2) {
         this.openKeys.delete("addItem"); this.render();
         PartyItemPicker.open({ onPick: (entry) => this._change(async () => this._addItemFrom(await fromUuid(entry.uuid))) });
       },
+      // Downtime tab. The GM's session controls are the Downtime window's own handlers, run for this sheet.
+      openDowntime: async function () { const { DowntimeApp } = await import("../downtime/downtime-app.mjs"); DowntimeApp.open(); },
+      startSession: function () { return this._startDowntime(); },
+      lockRolls: function () { return this._downtimeCall("_onLockRolls"); },
+      releaseRolls: function () { return this._downtimeCall("_onReleaseRolls"); },
+      endSession: function () { return this._downtimeCall("_onEndSession"); },
+      gmClearPick: function (_event, el) { return this._downtimeCall("_onGmClearPick", el); },
+      gmRollFor: function (_event, el) { return this._downtimeCall("_onGmRollFor", el); },
+      // Warbands tab: the sheet's Upkeep controls, sent to the active GM's warband writer like the Warband sheet's own.
+      warband: async function (_event, el) { const wb = await fromUuid(el.dataset.uuid); if (wb?.testUserPermission?.(game.user, "OBSERVER")) wb.sheet?.render(true); },
+      runMonth: function () { return this._warbandWrite({ action: "runMonth", actorId: this.actor.id }); },
+      payArrears: function (_event, el) { return this._warbandWrite({ action: "payArrears", actorId: el.dataset.uuid?.split(".").at(-1) }); },
+      returnToService: function (_event, el) { return this._warbandWrite({ action: "returnToService", actorId: el.dataset.uuid?.split(".").at(-1) }); },
+      requestRoll: function () { return this._requestRoll(); },
+      awardParty: function () { return this._awardParty(); },
       quantity: function (_event, el) { return this._change(async () => { const item = this.actor?.items.get(el.dataset.id); if (!this.actor?.isOwner || !item) return; await item.update({ "system.quantity": Math.max(0, Number(item.system.quantity ?? 1) + Number(el.dataset.delta)) }); }); },
       editDescription: function () { if (this.actor?.isOwner) { this.editingDescription = true; this.render(); } },
       cancelDescription: function () { this.editingDescription = false; this.render(); },
@@ -195,6 +216,68 @@ export class PartyApp extends HandlebarsApplicationMixin(ApplicationV2) {
     await item.delete();
     ui.notifications.info(sayWith("SDE.party.item.gave", { item: item.name, name: target.name }));
   }
+  /** The GM bar's fields, kept through a re-render: the ability, the DC as typed (blank: none), who is ticked (null: all PCs), the XP. */
+  _form() { return (this.rollForm ??= { stat: "str", dc: String(DEFAULT_DC), who: null, xp: "" }); }
+  /** The PCs the Who list has ticked. */
+  _asked() { const pcs = this._pcs(); const { uuids } = whoSelection(pcs.map((row) => row.uuid), this._form().who); return pcs.filter((row) => uuids.includes(row.uuid)); }
+  /** Request roll: one chat card with a Roll link for each PC ticked. */
+  async _requestRoll() {
+    if (!game.user?.isGM || !this.actor?.isOwner) return;
+    const form = this._form();
+    await postRollRequest({ stat: form.stat, dc: form.dc, targets: this._asked().map((row) => ({ uuid: row.uuid, name: row.actor.name })) });
+  }
+  /** Award XP: the typed amount, in full, to each PC ticked (the party XP tool's rules and chat card). */
+  async _awardParty() {
+    if (!game.user?.isGM || !this.actor?.isOwner) return;
+    const asked = this._asked();
+    if (!asked.length) return ui.notifications.warn(t("SDE.party.roll.noTargets"));
+    const { PartyXP } = await import("../party-xp/party-xp.mjs");
+    const done = await PartyXP.award(this._form().xp, { actorIds: asked.map((row) => row.actor.id) });
+    if (done) { this._form().xp = ""; this.render(); }
+  }
+  /** Run one of the Downtime window's GM handlers for this sheet (a stand-in window that never opens), then redraw. */
+  async _downtimeCall(method, el = null) {
+    if (!game.user?.isGM) return;
+    const { DowntimeApp } = await import("../downtime/downtime-app.mjs");
+    const app = new DowntimeApp(); app.render = async () => app;
+    await DowntimeApp.prototype[method].call(app, null, el);
+    this.render();
+  }
+  /** Start a session in the first unlocked book (the Downtime window has the book picker for any other). */
+  async _startDowntime() {
+    if (!game.user?.isGM) return;
+    const [{ DowntimeApp }, { DowntimeSession }, { SOURCES }] = await Promise.all([import("../downtime/downtime-app.mjs"), import("../downtime/downtime-session.mjs"), import("../downtime/downtime-skeleton.mjs")]);
+    const app = new DowntimeApp(), slug = defaultSource(Object.keys(SOURCES ?? {}), (key) => app._stored(key).ok);
+    if (!slug) return ui.notifications.warn(t("SDE.downtime.notify.pickBook"));
+    await DowntimeSession.start(slug);
+    this.render();
+  }
+  /** The Downtime tab: the session's status and a row for each character this viewer may see. */
+  async _downtime(rows) {
+    const [{ DowntimeSession, foundFor, advMode }, { SOURCES }] = await Promise.all([import("../downtime/downtime-session.mjs"), import("../downtime/downtime-skeleton.mjs")]);
+    const pcs = rows.filter((row) => row.group === "characters" && row.actor && (game.user?.isGM || row.actor.isOwner)).map((row) => ({ id: row.actor.id, name: row.actor.name }));
+    const session = { active: DowntimeSession.active, phase: DowntimeSession.phase, sourceLabel: SOURCES?.[DowntimeSession.source]?.label ?? DowntimeSession.source, days: DowntimeSession.days, picks: DowntimeSession.picks, results: DowntimeSession.results };
+    return downtimeSummary(session, pcs, { pickLabel: (pick) => foundFor(pick)?.slot?.label ?? pick.slotKey, advLabel: (pick) => t(advMode(pick.advantage).label) });
+  }
+  /** The Warbands tab: the warbands under a character of this party that the viewer may see, each with what its upkeep costs now. */
+  async _warbands(rows) {
+    const [{ warbandState }, { garrisonFor }] = await Promise.all([import("../actors/warband-npc-sheet.mjs"), import("../actors/warband-garrison.mjs")]);
+    const commanders = rows.filter((row) => row.group === "characters" && row.actor), bands = [];
+    for (const wb of (game.actors?.contents ?? []).filter((a) => a.type === WARBAND_TYPE && !a.pack && a.testUserPermission?.(game.user, "OBSERVER"))) {
+      const state = warbandState(wb), garrison = await garrisonFor(state.bastion), hp = wb.system?.attributes?.hp ?? {}, level = wb.system?.level?.value;
+      bands.push({ uuid: wb.uuid, name: wb.name, img: wb.img, level, hp: { value: hp.value, max: hp.max }, commander: state.commander, arrears: state.arrears, out: state.deserted || state.routed, upkeepGp: upkeepGp(level, garrison?.granary ? GRANARY_SAVING_GP : 0) });
+    }
+    return warbandGroups(bands, commanders.map((row) => row.uuid), (uuid) => commanders.find((row) => row.uuid === uuid)?.actor?.name ?? uuid);
+  }
+  /** One of the Warband tab's upkeep controls, a GM's: sent to the active GM's warband writer, and what it answered shown. */
+  async _warbandWrite(data) {
+    if (!game.user?.isGM || !data.actorId) return;
+    const { sendWarbandWrite } = await import("../actors/warband-npc-sheet.mjs");
+    const reply = await sendWarbandWrite(data, WARBAND_TYPE);
+    if (reply?.warn) ui.notifications.warn(sayWith(reply.warn.key, reply.warn.data));
+    else if (!reply?.ok && reply?.error) ui.notifications.warn(reply.error);
+    this.render();
+  }
   /** One emblem pick (an icon, a tile colour or an icon colour; a colour may be any hex), written as one flag. The GM's alone. */
   _pickEmblem(pick) {
     if (!sheetView({ isGM: !!game.user?.isGM, canEdit: Party.canManage(this.actor) }).emblemEdit) return;
@@ -212,7 +295,7 @@ export class PartyApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const keys = partyTabs({ hasBastion: !!bastionActor }), tab = resolveTab(this.tab, keys);
     const base = { parties, isGM: view.isGM, hasParty: !!this.actor, title: this.actor?.name,
       tabs: tabRow(keys, tab, t),
-      membersTab: tab === "members", questsTab: tab === "quests", itemsTab: tab === "items", travelTab: tab === "travel", bastionTab: tab === "bastion", descriptionTab: tab === "description", picker: !this.document };
+      membersTab: tab === "members", questsTab: tab === "quests", itemsTab: tab === "items", travelTab: tab === "travel", downtimeTab: tab === "downtime", warbandsTab: tab === "warbands", bastionTab: tab === "bastion", descriptionTab: tab === "description", picker: !this.document };
     if (!this.actor) return base;
     if (!Party.list().includes(this.actor)) return { ...base, hasParty: false };
     if (this.actor.type === "Party") return { ...base, unsupported: true };
@@ -228,7 +311,7 @@ export class PartyApp extends HandlebarsApplicationMixin(ApplicationV2) {
           xp: { current: sys.level?.xp ?? 0, next: (sys.level?.value ?? 1) * 10 }, hpPercent: percent, showAbilities: !!a && ["characters", "hirelings"].includes(row.group) && !!sys.abilities,
           slots: { used: inventorySlots(items, sys.coins), max: sys.slots ?? 10 }, abilities: Object.fromEntries(["str", "dex", "con", "int", "wis", "cha"].map(key => [key, sys.abilities?.[key]?.mod ?? 0])),
           abilityLabels: Object.fromEntries(["str", "dex", "con", "int", "wis", "cha"].map(key => { const mod = sys.abilities?.[key]?.mod ?? 0; return [key, mod >= 0 ? `+${mod}` : String(mod)]; })),
-          luck: luckCount(sys.luck), lightOn: carriesLight(items), leader: row.uuid === data.leaderUuid };
+          luck: luckCount(sys.luck), lightOn: carriesLight(items), spellTiers: spellTiers(items), leader: row.uuid === data.leaderUuid };
       }));
       const visible = members.filter(m => !m.missing), players = members.filter(m => m.group === "characters");
       const coins = this.actor.flags?.[MODULE_ID]?.partyCoins ?? this.actor.flags?.["shadowdark-extras"]?.coins ?? { gp: 0, sp: 0, cp: 0 };
@@ -269,7 +352,14 @@ export class PartyApp extends HandlebarsApplicationMixin(ApplicationV2) {
         const member = rows.find(r => r.uuid === uuid)?.actor;
         slots.push({ row, col, uuid, name: member?.name, img: member?.img, leader: uuid === data.leaderUuid, disabled: !canEdit || !member });
       }
-      return { ...base, actor: this.actor, canEdit, owner: canEdit, players, members, memberCount: visible.length, coins, coinList, gems: gemBag.rows, gemTotal: gemBag.total, descriptionHTML, description, editingDescription: !!this.editingDescription,
+      const form = this._form(), pcs = players.filter(m => !m.missing), who = whoSelection(pcs.map(m => m.uuid), form.who);
+      const gmBar = view.isGM && pcs.length ? {
+        stats: ROLL_STATS.map(key => ({ key, label: t(ROLL_STAT_LABELS[key]), selected: key === form.stat })), dc: form.dc, xp: form.xp,
+        whoOpen: this.openKeys.has("who"), whoAll: who.all,
+        whoLabel: who.all ? t("SDE.party.roll.whoAll") : (pcs.filter(m => who.uuids.includes(m.uuid)).map(m => m.name).join(", ") || t("SDE.party.roll.whoNone")),
+        pcs: pcs.map(m => ({ uuid: m.uuid, name: m.name, checked: who.uuids.includes(m.uuid) })) } : null;
+      const downtime = tab === "downtime" ? await this._downtime(rows) : null, warbandGroupsList = tab === "warbands" ? await this._warbands(rows) : [];
+      return { ...base, gmBar, downtime, warbandGroups: warbandGroupsList, actor: this.actor, canEdit, owner: canEdit, players, members, memberCount: visible.length, coins, coinList, gems: gemBag.rows, gemTotal: gemBag.total, descriptionHTML, description, editingDescription: !!this.editingDescription,
         activityHTML, questHTML, campingActive: this.activity !== "carousing", carousingActive: this.activity === "carousing",
         inventorySlots: { used: slotsUsed, max: slotsMax, over: slotsUsed > slotsMax }, coinSlots: Math.floor(["gp", "sp", "cp"].reduce((n, key) => n + coinList.find(c => c.key === key).value, 0) / 100),
         receivers: players.filter(m => !m.missing).map(m => ({ uuid: m.uuid, name: m.name })),
@@ -315,6 +405,13 @@ export class PartyApp extends HandlebarsApplicationMixin(ApplicationV2) {
       };
       globalThis.document?.addEventListener("pointerdown", this._pickerAway, true);
     }
+    // The GM bar: its fields are kept through a re-render, and the Who list changes who the roll and the XP go to.
+    const form = this._form(), pcUuids = () => this._pcs().map((row) => row.uuid);
+    this.element.querySelector("[data-roll-stat]")?.addEventListener("change", (event) => { form.stat = event.target.value; });
+    this.element.querySelector("[data-roll-dc]")?.addEventListener("input", (event) => { form.dc = event.target.value; });
+    this.element.querySelector("[data-award-xp]")?.addEventListener("input", (event) => { form.xp = event.target.value; });
+    this.element.querySelector("[data-roll-all]")?.addEventListener("change", (event) => { form.who = whoAfter(pcUuids(), form.who, { all: true, on: event.target.checked }); this.render(); });
+    for (const box of this.element.querySelectorAll("[data-roll-member]")) box.addEventListener("change", () => { form.who = whoAfter(pcUuids(), form.who, { uuid: box.value, on: box.checked }); this.render(); });
     // An open menu or form stays open through a re-render (a hook, a typed number) until its action closes it.
     for (const details of this.element.querySelectorAll("details[data-open-key]")) details.addEventListener("toggle", () => { this.openKeys[details.open ? "add" : "delete"](details.dataset.openKey); });
     // A custom emblem colour: the colour well and its hex field both pick it; a half-typed hex waits until it is six digits.
@@ -352,7 +449,7 @@ export class PartyApp extends HandlebarsApplicationMixin(ApplicationV2) {
   }
   async _onFirstRender(context, options) {
     await super._onFirstRender(context, options);
-    this._hooks = ["updateActor", "deleteActor", "createActor", "createItem", "updateItem", "deleteItem", "updateRollTable", "createCombat", "updateCombat", "deleteCombat", "canvasReady", MOVEMENT_CHANGED, QUESTS_CHANGED].map((name) => [name, Hooks.on(name, () => this._onStateChanged())]);
+    this._hooks = ["updateActor", "deleteActor", "createActor", "createItem", "updateItem", "deleteItem", "updateRollTable", "createCombat", "updateCombat", "deleteCombat", "canvasReady", MOVEMENT_CHANGED, QUESTS_CHANGED, DOWNTIME_CHANGED].map((name) => [name, Hooks.on(name, () => this._onStateChanged())]);
     await this._hookTravel();
   }
   /** The status bar's Today readout follows the overland state; its change hook is named in the overland module. */
@@ -394,12 +491,12 @@ export class PartySheet extends HandlebarsApplicationMixin(foundry.applications.
   _onRender(context, options) { super._onRender(context, options); this._bindControls(); }
   async _onFirstRender(context, options) {
     await super._onFirstRender(context, options);
-    this._hooks = ["updateActor", "deleteActor", "createItem", "updateItem", "deleteItem", "updateRollTable", "createCombat", "updateCombat", "deleteCombat", "canvasReady", MOVEMENT_CHANGED, QUESTS_CHANGED].map(name => [name, Hooks.on(name, () => this._onStateChanged())]);
+    this._hooks = ["updateActor", "deleteActor", "createItem", "updateItem", "deleteItem", "updateRollTable", "createCombat", "updateCombat", "deleteCombat", "canvasReady", MOVEMENT_CHANGED, QUESTS_CHANGED, DOWNTIME_CHANGED].map(name => [name, Hooks.on(name, () => this._onStateChanged())]);
     await this._hookTravel();
   }
   _onClose(options) { for (const [name, id] of this._hooks ?? []) Hooks.off(name, id); this._hooks = null; globalThis.document?.removeEventListener("pointerdown", this._pickerAway, true); return super._onClose(options); }
 }
-for (const name of ["_prepareContext", "_change", "_pickEmblem", "_pool", "_coinInputs", "_pcs", "_refuse", "_settle", "_coinLabel", "_addCoins", "_giveCoins", "_divideCoins", "_addItemFrom", "_giveItem", "_quests", "_bastion", "_travel", "_hookTravel", "_bindControls", "_activityController", "_questController", "_onStateChanged"]) PartySheet.prototype[name] = PartyApp.prototype[name];
+for (const name of ["_prepareContext", "_change", "_pickEmblem", "_pool", "_coinInputs", "_pcs", "_refuse", "_settle", "_coinLabel", "_addCoins", "_giveCoins", "_divideCoins", "_addItemFrom", "_giveItem", "_quests", "_bastion", "_travel", "_hookTravel", "_bindControls", "_activityController", "_questController", "_onStateChanged", "_form", "_asked", "_requestRoll", "_awardParty", "_downtimeCall", "_startDowntime", "_downtime", "_warbands", "_warbandWrite"]) PartySheet.prototype[name] = PartyApp.prototype[name];
 
 /** Only native/adopted flagged Parties route here; ordinary NPC sheets stay intact. */
 export function registerParty() {
