@@ -21,6 +21,7 @@ test("the HP and Gold steps carry no literal English or inline style", () => {
   assert.match(hp, /SDE\.charBuilder\.ability\.con\.short/);
   assert.doesNotMatch(gold, /2d6 × 5|style=/);
   assert.match(gold, /SDE\.charBuilder\.gold\.rollFormula/);
+  assert.ok(!String(en["SDE.charBuilder.gold.rollFormula"] ?? "").startsWith("SDE."));
   const css = read("styles/shadowdark-enhancer.css");
   assert.match(css, /\.sde-cb-field\.inline \{/); assert.match(css, /\.sde-cb-gold-input \{/);
   assert.doesNotMatch(read("scripts/char-builder/constants.mjs"), /Physical power/);
