@@ -43,6 +43,15 @@
   earlier "Include mounts" had already placed on a scene is still recalled by Place / Recall.
 
 ### Fixed
+- **The Description editor opens on the mount and warband sheets.** The notes editor was marked `collaborate="false"`, which Foundry v14 reads as "collaborate", so clicking the pencil only logged an error. The attribute is gone.
+- **The Warband sheet is an ApplicationV2 sheet, built like the Mount's.** It no longer borrows the system's old
+  NPC sheet. It has the Mount's Abilities layout (HP, AC and Level, the six modifiers, Movement, Alignment,
+  Dark-Adapted and the attack lists), then **Warband**, Spells, Description and Effects tabs, in the system's own
+  NPC look. The Warband tab keeps everything it had: the commander dropped as a player character, the allowance
+  across that commander's warbands, the upgrade checklist, the garrison, upkeep (Charge a Month, Pay Arrears,
+  Return to Service) and the morale bonus, and every change still goes through the active GM's writer and the one
+  `warband` flag. The Mount and the Warband now share one stat-block sheet class and its markup, and the Mount's
+  "Dark-Adapted" label is dark ink instead of near-invisible white.
 - **Safer destructive prompts.** The importer's delete-copies dialogs now default to Cancel, so pressing Enter no longer deletes. The other destructive prompts (deleting a recap session, clearing hex tags, ending a crawl, resetting level guidelines and similar) already focused the safe button; their buttons now name the action (Delete session / Keep it) instead of Yes / No.
 - **The mount sheet is an ApplicationV2 sheet, laid out like the native NPC sheet.** It no longer borrows the
   system's old NPC sheet. It keeps the system's NPC header, and Abilities has HP, AC and Level, a **Stats** box

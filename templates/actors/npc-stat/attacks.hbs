@@ -1,0 +1,35 @@
+{{!-- Shared NPC stat block: the NPC Attack, Special Attack and Feature lists. The attack lines are the system's own npc-attack partial. --}}
+      <div class="SD-box">
+        <div class="header">
+          <label>{{localize "SHADOWDARK.sheet.npc.attacks_label"}}</label>
+          <span><a class="fas fa-square-plus" data-action="itemCreate" data-item-type="NPC Attack" data-tooltip="{{localize 'SHADOWDARK.sheet.general.item_create.tooltip' type='NPC Attack'}}"></a></span>
+        </div>
+        <div class="content">
+          {{#each attacks}}<div class="item attack" data-item-id="{{itemId}}">{{{display}}}</div>{{/each}}
+        </div>
+      </div>
+
+      <div class="SD-box">
+        <div class="header">
+          <label>{{localize "SHADOWDARK.sheet.npc.specials_label"}}</label>
+          <span><a class="fas fa-square-plus" data-action="itemCreate" data-item-type="NPC Special Attack" data-tooltip="{{localize 'SHADOWDARK.sheet.general.item_create.tooltip' type='NPC Special Attack'}}"></a></span>
+        </div>
+        <div class="content">
+          {{#each specials}}<div class="item attack" data-item-id="{{itemId}}">{{{display}}}</div>{{/each}}
+        </div>
+      </div>
+
+      <div class="SD-box">
+        <div class="header">
+          <label>{{localize "SHADOWDARK.sheet.npc.features_label"}}</label>
+          <span><a class="fas fa-square-plus" data-action="itemCreate" data-item-type="NPC Feature" data-tooltip="{{localize 'SHADOWDARK.sheet.general.item_create.tooltip' type='NPC Feature'}}"></a></span>
+        </div>
+        <div class="content">
+          {{#each features}}
+            <div class="item attack" data-item-id="{{itemId}}">
+              <a class="rollable" data-action="display-feature" data-item-id="{{itemId}}"><i class="fas fa-comment"></i> <b>{{name}}.</b></a>
+              {{{description}}}
+            </div>
+          {{/each}}
+        </div>
+      </div>

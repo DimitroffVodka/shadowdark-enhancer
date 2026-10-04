@@ -10,9 +10,10 @@
  * straight in), on its own ApplicationV2 sheet (MountSheet). The model is read
  * from the live CONFIG so we never hard-import the system bundle.
  *
- * WARBAND: the same NpcSD model and an NpcSheetSD subclass with a Warband tab
- * (commander, allowance, upgrades; #200), plus the NPC sheet's "Make a
- * warband" context-menu entry (#202).
+ * WARBAND: the same NpcSD model (fixed HP) on its own ApplicationV2 sheet
+ * (WarbandSheet: the Mount's stat block plus a Warband tab with commander,
+ * allowance, upgrades; #200), plus the NPC sheet's "Make a warband"
+ * context-menu entry (#202).
  *
  * BOAT: a self-contained ApplicationV2 container sheet (BoatSheet) on its own
  * BoatDataModel.
@@ -29,7 +30,8 @@ import { BoatDataModel } from "./boat-data-model.mjs";
 import { BoatSheet } from "./boat-sheet.mjs";
 import { MountSheet } from "./mount-sheet.mjs";
 import { buildMountNpcModel, registerMountScores } from "./mount-scores.mjs";
-import { buildWarbandNpcSheet, registerWarbandWrites, warbandState } from "./warband-npc-sheet.mjs";
+import { WarbandSheet } from "./warband-sheet.mjs";
+import { registerWarbandWrites, warbandState } from "./warband-npc-sheet.mjs";
 import { registerMakeWarband } from "./make-warband.mjs";
 import { registerBastion } from "../bastion/register-bastion.mjs";
 import { warbandRolledHp, toughHp } from "./warband-core.mjs";
@@ -38,26 +40,13 @@ export const MOUNT_TYPE = `${MODULE_ID}.mount`;
 export const BOAT_TYPE = `${MODULE_ID}.boat`;
 export const WARBAND_TYPE = `${MODULE_ID}.warband`;
 
-/**
- * Resolve the system's NPC sheet class. Prefer `game.system.sheets` (merged at
- * the system's init, so available early — by i18nInit) over
- * `CONFIG.Actor.sheetClasses` (which populates late, after setup).
- */
-function resolveNpcSheetClass() {
-  const reg = CONFIG.Actor.sheetClasses?.NPC ?? {};
-  return game.system?.sheets?.NpcSheetSD
-    ?? reg["shadowdark.NpcSheetSD"]?.cls
-    ?? Object.values(reg).map((e) => e?.cls).find((c) => c?.name === "NpcSheetSD")
-    ?? null;
-}
-
 export function registerActorTypes() {
   const DSC = foundry.applications.apps.DocumentSheetConfig;
 
   // ── Mount: reuse the SD NPC data model, on our own ApplicationV2 sheet ─────
+  // Neither the Mount nor the Warband sheet extends the system's NPC sheet any more, so only its model is needed.
   const NpcModel = CONFIG.Actor.dataModels?.NPC ?? game.system?.models?.NpcSD;
-  const BaseNpcSheet = resolveNpcSheetClass();
-  if (NpcModel && BaseNpcSheet) {
+  if (NpcModel) {
     CONFIG.Actor.dataModels[MOUNT_TYPE] = buildMountNpcModel(NpcModel);
     registerMountScores();
     DSC.registerSheet(Actor, MODULE_ID, MountSheet, {
@@ -93,7 +82,7 @@ export function registerActorTypes() {
       }
       doc.updateSource(update);
     });
-    DSC.registerSheet(Actor, MODULE_ID, buildWarbandNpcSheet(BaseNpcSheet, WARBAND_TYPE), {
+    DSC.registerSheet(Actor, MODULE_ID, WarbandSheet, {
       types: [WARBAND_TYPE],
       makeDefault: true,
       label: "SDE.sheet.warband",
@@ -101,7 +90,7 @@ export function registerActorTypes() {
     registerMakeWarband(WARBAND_TYPE);
     registerWarbandWrites(WARBAND_TYPE);
   } else {
-    console.warn(`${MODULE_ID} | Shadowdark NPC model/sheet not found — mount and warband types not registered`);
+    console.warn(`${MODULE_ID} | Shadowdark NPC model not found — mount and warband types not registered`);
   }
 
   // ── Boat: self-contained container sheet ──────────────────────────────────
