@@ -4,7 +4,7 @@ import { Party, isNativeParty } from "../party/party.mjs";
 import { CAMP_LABELS, taskDefinitions, selectTask, lockCamp, torchPlan, fireDecision, fireAlive } from "./camping-core.mjs";
 import { queryActiveGM, registerQuery, refuseQuery, isActiveGM } from "../shared/gm-relay.mjs";
 import { registerCook, expireCook } from "./camping-cook.mjs";
-import { foodPreview, feedCamp, restCamp, campEaters } from "./camping-nutrition.mjs";
+import { foodPreview, feedCamp, restCamp } from "./camping-nutrition.mjs";
 import { isMount, adoptMountScores } from "../actors/mount-scores.mjs";
 const QUERY = `${MODULE_ID}.camping`, queues = new Map();
 const actorOf = uuid => game.actors.contents.find(a => a.uuid === uuid);
@@ -37,10 +37,10 @@ function nearFire(party, camp) {
   const scene = game.scenes.get(camp.anchor?.sceneId); if (!scene) return false;
   const radius = 30 * scene.grid.size / scene.grid.distance;
   return scene.tokens.contents.some(t => {
-    const pc = camp.participants.some(p => p.participate && actorOf(p.uuid)?.id === t.actorId);
+    const pc = camp.participants.some(p => actorOf(p.uuid)?.id === t.actorId);
     // A recalled party is its token: its members are packed into it and not deployed.
     const moved = t.flags?.[MODULE_ID]?.partyMovement;
-    const gathered = t.actorId === party.id && moved?.deployed !== true && !!moved?.packed?.length && camp.participants.some(p => p.participate);
+    const gathered = t.actorId === party.id && moved?.deployed !== true && !!moved?.packed?.length && camp.participants.length > 0;
     // TokenDocument x/y may still be the animation's interpolated position in
     // updateToken; proximity follows committed coordinates, not rendered motion.
     const position = t._source ?? t;
@@ -57,7 +57,7 @@ async function lightFire(party, camp, source) {
   if (!scene.lights.has(camp.fire.lightId)) await scene.createEmbeddedDocuments("AmbientLight", [{ _id: camp.fire.lightId, x: camp.anchor.x, y: camp.anchor.y, config: { dim: 0, bright: 30, color: "#ffb35c", alpha: 0.3 }, flags: { [MODULE_ID]: { campFire: { partyUuid: party.uuid, campId: camp.id } } } }], { keepId: true });
 }
 async function rollTask(party, camp, p) {
-  if (camp.results[p.actorId] || !p.task || !p.participate) return;
+  if (camp.results[p.actorId] || !p.task) return;
   const actor = actorOf(p.uuid), task = camp.tasks.find(t => t.key === p.task); if (!actor || !task) invalid();
   const disadvantage = task.campfire && !camp.fire?.lit;
   const modifier = Number(actor.system.abilities[p.ability].mod) || 0;
@@ -115,7 +115,7 @@ async function resolveTasks(party, camp) {
   return camp;
 }
 function validateChoices(camp) {
-  for (const p of camp.participants.filter(p => p.participate)) {
+  for (const p of camp.participants) {
     const actor = actorOf(p.uuid); if (!actor || actor.type !== "Player") invalid();
     if (p.task === "craft" && p.craft === "repair") { const item = actor.items.get(p.repairItemId); if (!item?.system?.isPhysical || !item.system.broken || item.system.magicItem) invalid(); }
   }
@@ -127,19 +127,14 @@ async function perform(party, action, data, user) {
     if (!manager) invalid(); if (camp && camp.phase !== "complete") return camp;
     // IDs, not dotted UUIDs, key saved result/effect maps: Foundry expands dotted object keys.
     const participants = Party.members(party, { charactersOnly: true }).map(uuid => ({ uuid, actorId: actorOf(uuid).id, confirmed: false, participate: true, task: "", ability: null, torchConsent: false, craft: "torch", watchHalf: "first" }));
-    const mounts = Party.members(party).filter(uuid => isMount(actorOf(uuid))).map(uuid => ({ uuid, actorId: actorOf(uuid).id, partyRations: false }));
+    const mounts = Party.members(party).filter(uuid => isMount(actorOf(uuid))).map(uuid => ({ uuid, actorId: actorOf(uuid).id }));
     for (const p of mounts) await adoptMountScores(actorOf(p.uuid));
     camp = { id: foundry.utils.randomID(), phase: "setup", participants, mounts, tasks: definitions(party), fuel: "none", anchor: anchor(party, participants), results: {}, effects: {}, day: null }; await save(party, camp); return camp;
   }
   if (!camp) invalid();
-  if (action === "foodConsent") {
-    const p = campEaters(camp).find(p => p.uuid === data.uuid);
-    if (!p || !own(actorOf(p.uuid), user) || !["setup", "awaitingRest"].includes(camp.phase) || camp.foodCommitted) invalid();
-    p.partyRations = data.accept === true; camp.shortageWarning = false; await save(party, camp); return camp;
-  }
   if (action === "select") {
     const actor = actorOf(data.uuid); if (!own(actor, user) || actor.type !== "Player") invalid();
-    const patch = {}; for (const k of ["participate", "task", "ability", "torchConsent", "craft", "repairItemId", "recipientUuid", "watchHalf"]) if (data.patch?.[k] !== undefined) patch[k] = data.patch[k];
+    const patch = {}; for (const k of ["task", "ability", "torchConsent", "craft", "repairItemId", "recipientUuid", "watchHalf"]) if (data.patch?.[k] !== undefined) patch[k] = data.patch[k];
     if (patch.task && patch.task !== camp.participants.find(p => p.uuid === data.uuid)?.task) patch.ability ??= camp.tasks.find(t => t.key === patch.task)?.abilities[0];
     camp = selectTask(camp, data.uuid, patch); await save(party, camp); return camp;
   }
@@ -152,7 +147,7 @@ async function perform(party, action, data, user) {
   if (action === "dc" && camp.phase === "setup" && user.isGM) { const t = camp.tasks.find(t => t.key === data.task); if (!t || !Number.isFinite(data.dc)) invalid(); t.dc = data.dc; await save(party, camp); return camp; }
   if (action === "resolve") {
     if (camp.phase === "setup") validateChoices(camp);
-    if (camp.phase === "setup") { if ((camp.fuel !== "none" || camp.participants.some(p => p.participate && p.task === "firewood")) && camp.anchor && !nearFire(party, camp)) invalid(); camp = lockCamp(camp); await save(party, camp); }
+    if (camp.phase === "setup") { if ((camp.fuel !== "none" || camp.participants.some(p => p.task === "firewood")) && camp.anchor && !nearFire(party, camp)) invalid(); camp = lockCamp(camp); await save(party, camp); }
     return resolveTasks(party, camp);
   }
   if (action === "fuel" && camp.phase === "fuel") {

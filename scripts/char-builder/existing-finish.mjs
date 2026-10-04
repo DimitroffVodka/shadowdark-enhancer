@@ -1,4 +1,4 @@
-import { ABILITY_LABELS } from "./constants.mjs";
+import { abilityLabel } from "./constants.mjs";
 import { loadActorSnapshot, hydrateState } from "./hydrate.mjs";
 import { planCommit, planIsEmpty } from "./commit-plan.mjs";
 import { applyPlan, IncompleteError, ApplyInProgressError } from "./commit-apply.mjs";
@@ -42,7 +42,7 @@ async function nameOfUuid(uuid) {
 
 /** `[label, from, to]` for a "set" line, in words. */
 async function setRow({ key, from, to }) {
-  if (key.startsWith("abilities.")) return [ABILITY_LABELS[key.split(".")[1]], from, to];
+  if (key.startsWith("abilities.")) return [abilityLabel(key.split(".")[1]), from, to];
   if (key === "level") return [L("SDE.charBuilder.level"), from, to];
   if (key === "hpMax") return [L(`${K}hpMax`), from, `${to} (+${to - from})`];
   if (key === "xp") return [L(`${K}xp`), from, to];
@@ -189,6 +189,7 @@ export async function undoLastSave(app, { confirm = defaultConfirm } = {}) {
     content: `<p>${esc(F(`${K}undoConfirm`, { when: new Date(info.at).toLocaleString(), count: info.items }))}</p>`,
     yes: L(`${K}undoYes`),
     no: L("SDE.charBuilder.commit.back"),
+    safeDefault: true,
   });
   if (!ok) return "cancelled";
 
@@ -206,12 +207,12 @@ export async function undoLastSave(app, { confirm = defaultConfirm } = {}) {
   return outcome;
 }
 
-function defaultConfirm({ title, content, yes, no }) {
+function defaultConfirm({ title, content, yes, no, safeDefault = false }) {
   return foundry.applications.api.DialogV2.confirm({
     classes: ["sde-ui", "sde-dialog"],
     window: { title, icon: "fa-solid fa-floppy-disk" },
     content,
     yes: { label: yes, icon: "fa-solid fa-check" },
-    no: { label: no },
+    no: { label: no, default: safeDefault },
   });
 }

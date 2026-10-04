@@ -397,6 +397,8 @@ export class TokenArtManagerApp extends HandlebarsApplicationMixin(ApplicationV2
       classes: ["sde-ui", "sde-dialog"],
       window: { title: "SDE.tokenArt.folder.removeTitle" },
       content: `<p>${game.i18n.format("SDE.tokenArt.folder.removeQuestion", { label: `<strong>${foundry.utils.escapeHTML(folder.label)}</strong>` })}</p>`,
+      yes: { label: "SDE.tokenArt.folder.removeYes", icon: "fa-solid fa-trash" },
+      no: { label: "SDE.tokenArt.folder.removeKeep", icon: "fa-solid fa-xmark", default: true },
       rejectClose: false,
     }).catch(() => false);
     if (!confirmed) return false;

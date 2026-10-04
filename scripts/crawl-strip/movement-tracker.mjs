@@ -295,9 +295,12 @@ export const MovementTracker = {
       const root = html instanceof HTMLElement ? html : html?.[0];
       if (!root) return;
 
-      const btn = document.createElement("div");
-      btn.classList.add("control-icon");
-      btn.title = game.i18n.localize("SDE.crawlStrip.movement.rollbackTip");
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "control-icon sde-hud-btn";
+      const tip = game.i18n.localize("SDE.crawlStrip.movement.rollbackTip");
+      btn.dataset.tooltip = tip;
+      btn.setAttribute("aria-label", tip);
       btn.innerHTML = ICONS.rollbackMove;
       btn.addEventListener("click", () => {
         hud.close();

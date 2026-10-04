@@ -47,6 +47,12 @@ A level 2 goblin with a +1 attack for 1d6 becomes a level 4 warband with
 
 ## The Warband tab
 
+The warband's sheet is laid out like the [Mount's](Mounts-and-Boats.md), in
+the Shadowdark system's own NPC look: **Abilities** (HP, AC and Level, the six
+ability modifiers, Movement, Alignment, Dark-Adapted and the Attacks, Special
+Attacks and Features), **Warband**, **Spells**, **Description** and
+**Effects**. Right-click an attack, feature or spell for Edit and Delete.
+
 | Part | What it does |
 |---|---|
 | **Commander** | Drop a player character here. The warband is theirs. A player can only name a character they own; a GM can name any, since the upkeep is paid from the commander's coins. Upkeep and Pay Arrears only take gold from a commander that one of the warband's player owners also owns, so a GM who names another player's character for a player's warband should give that player ownership of it. |

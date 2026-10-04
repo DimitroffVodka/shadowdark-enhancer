@@ -8432,6 +8432,8 @@ body.theme-light .sde-strip-combat-controls { background: #f4f1ec !important; }
 .sde-cb-subfields { margin-top: 16px; display: flex; flex-direction: column; gap: 12px; }
 .sde-cb-field { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--cb-muted); }
 .sde-cb-field.wide { max-width: 520px; }
+.sde-cb-field.inline { flex-direction: row; align-items: center; gap: 8px; }
+.sde-cb-gold-input { width: 90px; }
 .sde-cb-field > span { text-transform: uppercase; letter-spacing: 0.04em; font-weight: 700; }
 .sde-cb-field select, .sde-cb-field input[type="text"] {
   background: var(--cb-ink); color: var(--cb-text); border: 1px solid var(--cb-border);
@@ -11651,37 +11653,45 @@ button.sde-hud-day:hover { border-color: var(--sd-frame); }
 .sde-bastion-shop .sde-bs-row .name small { display: block; opacity: 0.7; font-size: 11px; }
 .sde-bastion-shop .sde-bs-row .price { font-weight: bold; white-space: nowrap; }
 
-/* Mount sheet (ApplicationV2). The system scopes these to its NPC and Player sheets, so restate the ones it uses. */
-.sde-mount-npc .sde-vehicle-sheet-body { display: flex; flex-direction: column; height: 100%; }
-.sde-mount-npc .sde-mount-body { overflow-y: auto; min-height: 0; }
-.sde-mount-npc .sde-mount-body .SD-box { margin: 0 0 5px; }
-.sde-mount-npc .value-grid { display: grid; grid-template-columns: 2fr 1fr 2fr; column-gap: 2px; align-items: center; text-align: center; }
-.sde-mount-npc .SD-box .content.larger input { font-size: 20px; text-align: center; height: 32px; width: 100%; }
-.sde-mount-npc .sde-mount-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 5px; }
-.sde-mount-npc .sde-mount-pair .SD-box { margin: 0; }
-.sde-mount-npc .sde-mount-dark { display: grid; grid-template-columns: 1fr auto; align-items: center; padding: 0 4px; }
-.sde-mount-npc .sde-mount-dark h3 { margin: 0; font-size: 16px; }
-.sde-mount-npc .attack { margin: 4px 0 4px 24px; }
-.sde-mount-npc .attack .rollable { margin-left: -24px; }
+/* The NPC stat block of the Mount and Warband sheets (ApplicationV2, npc-stat-sheet.mjs). The system scopes these to its
+   NPC and Player sheets, so restate the ones it uses. */
+.sde-npc-sheet .sde-vehicle-sheet-body { display: flex; flex-direction: column; height: 100%; }
+.sde-npc-sheet .sde-mount-body { overflow-y: auto; min-height: 0; }
+.sde-npc-sheet .sde-mount-body .SD-box { margin: 0 0 5px; }
+.sde-npc-sheet .value-grid { display: grid; grid-template-columns: 2fr 1fr 2fr; column-gap: 2px; align-items: center; text-align: center; }
+.sde-npc-sheet .SD-box .content.larger input { font-size: 20px; text-align: center; height: 32px; width: 100%; }
+.sde-npc-sheet .sde-mount-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 5px; }
+.sde-npc-sheet .sde-mount-pair .SD-box { margin: 0; }
+.sde-npc-sheet .sde-mount-dark { display: grid; grid-template-columns: 1fr auto; align-items: center; padding: 0 4px; }
+.sde-npc-sheet .sde-mount-dark h3 { margin: 0; font-size: 16px; color: #191813; }
+.sde-npc-sheet .attack { margin: 4px 0 4px 24px; }
+.sde-npc-sheet .attack .rollable { margin-left: -24px; }
 
 /* Abilities tab: Stats down a narrow left column, the combat boxes beside it, as on the Player sheet. */
-.sde-mount-npc .sde-mount-abilities { display: grid; grid-template-columns: minmax(175px, 1fr) 2.6fr; gap: 8px; align-items: start; }
-.sde-mount-npc .sde-mount-left .grid-2-columns { gap: 3px 8px; padding: 4px 6px 6px; }
-.sde-mount-npc .ability-score { display: block; }
-.sde-mount-npc .ability-score > div { display: grid; grid-template-columns: 1fr 1fr; align-items: center; min-width: 2em; text-align: center; }
-.sde-mount-npc .ability-score a { font-size: 18px; font-family: "Old Newspaper Font", serif; text-transform: uppercase; font-weight: bold; }
-.sde-mount-npc .ability-score > div > input,
-.sde-mount-npc .ability-score span { font-size: 18px; font-family: "Montserrat-SemiBold"; width: 2.5em; }
-.sde-mount-npc .ability-score .sde-mount-damaged { color: #b3261e; text-shadow: 0 0 6px rgba(179, 38, 30, 0.6); }
-.sde-mount-npc .sde-mount-traits { display: grid; gap: 6px; padding: 4px 6px 6px; }
-.sde-mount-npc .SD-nav { flex-wrap: wrap; }
-.sde-mount-npc .sde-tab-count { font-size: 12px; vertical-align: super; opacity: 0.75; }
+.sde-npc-sheet .sde-mount-abilities { display: grid; grid-template-columns: minmax(175px, 1fr) 2.6fr; gap: 8px; align-items: start; }
+.sde-npc-sheet .sde-mount-left .grid-2-columns { gap: 3px 8px; padding: 4px 6px 6px; }
+.sde-npc-sheet .ability-score { display: block; }
+.sde-npc-sheet .ability-score > div { display: grid; grid-template-columns: 1fr 1fr; align-items: center; min-width: 2em; text-align: center; }
+.sde-npc-sheet .ability-score a { font-size: 18px; font-family: "Old Newspaper Font", serif; text-transform: uppercase; font-weight: bold; }
+.sde-npc-sheet .ability-score > div > input,
+.sde-npc-sheet .ability-score span { font-size: 18px; font-family: "Montserrat-SemiBold"; width: 2.5em; }
+/* An NPC's abilities are one modifier each (no score beside it, as the Mount has): the box takes the whole cell. */
+.sde-npc-sheet.sde-warband-npc .ability-score > div { grid-template-columns: 1fr; }
+.sde-npc-sheet .ability-score .sde-mount-damaged { color: #b3261e; text-shadow: 0 0 6px rgba(179, 38, 30, 0.6); }
+.sde-npc-sheet .sde-mount-traits { display: grid; gap: 6px; padding: 4px 6px 6px; }
+.sde-npc-sheet .SD-nav { flex-wrap: wrap; }
+.sde-npc-sheet .sde-tab-count { font-size: 12px; vertical-align: super; opacity: 0.75; }
 
 /* Mount tab: boxes in two columns so the rules fit one screen. */
-.sde-mount-npc .sde-mount-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; align-items: start; }
-.sde-mount-npc .sde-mount-cols > div > .SD-box:last-child { margin-bottom: 0; }
-.sde-mount-npc .sde-mount-care { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px 8px; align-items: end; }
-.sde-mount-npc .sde-mount-care .sde-veh-field { min-width: 0; }
+.sde-npc-sheet .sde-mount-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; align-items: start; }
+.sde-npc-sheet .sde-mount-cols > div > .SD-box:last-child { margin-bottom: 0; }
+.sde-npc-sheet .sde-mount-care { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px 8px; align-items: end; }
+.sde-npc-sheet .sde-mount-care .sde-veh-field { min-width: 0; }
+
+/* Prayer roll button beside the Deity heading on the character sheet. */
+.sde-prayer-roll { width: 24px; height: 24px; margin-left: 6px; padding: 0; display: inline-flex; align-items: center; justify-content: center; vertical-align: middle; background: transparent; border: 0; cursor: pointer; opacity: 0.7; }
+.sde-prayer-roll:hover, .sde-prayer-roll:focus-visible { opacity: 1; }
+.sde-prayer-roll img { width: 16px; height: 16px; border: 0; }
 
 /* ═══ Chat cards (UI kit card-scale parts) ═══════════════════════════════════ */
 

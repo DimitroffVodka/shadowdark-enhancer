@@ -54,13 +54,13 @@ export class CampingApp extends HandlebarsApplicationMixin(ApplicationV2) {
       deductions: plan.deductions.map(d => { const a = game.actors.contents.find(a => a.uuid === d.actorUuid); return { ...d, name: a?.name, item: a?.items.get(d.id)?.name }; }),
       mounts: (camp.mounts ?? []).map(p => {
         const actor = game.actors.contents.find(a => a.uuid === p.uuid), meal = food.find(f => f.actorId === p.actorId);
-        return { ...p, meal, name: actor?.name ?? t("SDE.party.missing"), foodEditable: !!actor?.testUserPermission(game.user, "OWNER") && !camp.foodCommitted && ["setup", "awaitingRest"].includes(camp.phase), foodStatus: t(meal.fed ? "SDE.camping.fed" : "SDE.camping.unfed"), deathWarning: !meal.fed && meal.con <= (meal.saved ? 0 : 1) };
+        return { ...p, meal, name: actor?.name ?? t("SDE.party.missing"), foodStatus: t(meal.fed ? "SDE.camping.fed" : "SDE.camping.unfed"), deathWarning: !meal.fed && meal.con <= (meal.saved ? 0 : 1) };
       }),
       rows: camp.participants.map(p => {
         const actor = game.actors.contents.find(a => a.uuid === p.uuid), task = camp.tasks.find(t => t.key === p.task), result = camp.results[p.actorId];
         const description = task?.descriptionKey ? t(task.descriptionKey) : task?.description;
         const meal = food.find(f => f.actorId === p.actorId);
-        return { ...p, meal, foodEditable: !!actor?.testUserPermission(game.user, "OWNER") && !camp.foodCommitted && ["setup", "awaitingRest"].includes(camp.phase),
+        return { ...p, meal,
           foodStatus: t(meal.fed ? "SDE.camping.fed" : "SDE.camping.unfed"), deathWarning: !meal.fed && meal.con <= (meal.saved ? 0 : 1),
           restStatus: meal.rest === null ? null : t(meal.rest ? "SDE.camping.rested" : "SDE.camping.noRest"),
           name: actor?.name ?? t("SDE.party.missing"), editable: setup && !!actor?.testUserPermission(game.user, "OWNER"),
@@ -88,7 +88,6 @@ export class CampingApp extends HandlebarsApplicationMixin(ApplicationV2) {
       void this.change("select", { uuid: row.dataset.uuid, patch });
     });
     root.querySelector("[data-fuel]")?.addEventListener("change", event => { void this.change("fuelChoice", { fuel: event.target.value }); });
-    for (const el of root.querySelectorAll("[data-food]")) el.addEventListener("change", () => { void this.change("foodConsent", { uuid: el.closest("[data-uuid]").dataset.uuid, accept: el.checked }); });
     for (const el of root.querySelectorAll("[data-dc]")) el.addEventListener("change", () => { void this.change("dc", { task: el.dataset.dc, dc: Number(el.value) }); });
   }
   async _onFirstRender(context, options) {

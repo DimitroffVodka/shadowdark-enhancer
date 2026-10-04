@@ -2270,6 +2270,8 @@ class MerchantShopApp extends HandlebarsApplicationMixin(ApplicationV2) {
         classes: ["sde-ui", "sde-dialog"],
         window: { title: "SDE.merchant.dialog.sellJunkTitle" },
         content: `<p>${game.i18n.format("SDE.merchant.dialog.sellJunkBody", { n: junkItems.length })}</p>`,
+        yes: { label: "SDE.merchant.dialog.sellJunkYes", icon: "fa-solid fa-coins" },
+        no: { label: "SDE.merchant.dialog.cancel", icon: "fa-solid fa-xmark", default: true },
         rejectClose: false,
       });
       if (!ok) return;
@@ -2301,6 +2303,8 @@ class MerchantShopApp extends HandlebarsApplicationMixin(ApplicationV2) {
         classes: ["sde-ui", "sde-dialog"],
         window: { title: "SDE.merchant.dialog.clearLogTitle" },
         content: `<p>${game.i18n.localize("SDE.merchant.dialog.clearLogBody")}</p>`,
+        yes: { label: "SDE.merchant.dialog.clearLogYes", icon: "fa-solid fa-trash" },
+        no: { label: "SDE.merchant.dialog.keep", icon: "fa-solid fa-xmark", default: true },
         rejectClose: false,
       });
       if (ok) await MerchantShop.clearLog();
@@ -2544,6 +2548,8 @@ class MerchantShopApp extends HandlebarsApplicationMixin(ApplicationV2) {
           classes: ["sde-ui", "sde-dialog"],
           window: { title: "SDE.merchant.dialog.deleteConfigTitle" },
           content: `<p>${game.i18n.format("SDE.merchant.dialog.deleteConfigBody", { name: `<strong>${configName}</strong>` })}</p>`,
+          yes: { label: "SDE.merchant.dialog.deleteConfigYes", icon: "fa-solid fa-trash" },
+          no: { label: "SDE.merchant.dialog.keep", icon: "fa-solid fa-xmark", default: true },
           rejectClose: false,
         });
         if (!confirmed) return;

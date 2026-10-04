@@ -456,8 +456,8 @@ class HubManageMethods {
       window: { title: t("SDE.importer.cull.titleMonsters") },
       content,
       buttons: [
-        { action: "cull",   label: t("SDE.importer.cull.deleteCopies"), default: true },
-        { action: "cancel", label: t("SDE.importer.btn.cancel") },
+        { action: "cull",   label: t("SDE.importer.cull.deleteCopies") },
+        { action: "cancel", label: t("SDE.importer.btn.cancel"), default: true },
       ],
       rejectClose: false,
     }).catch(() => "cancel");
@@ -1124,8 +1124,8 @@ class HubManageMethods {
       window: { title: t("SDE.importer.cull.titleItems") },
       content,
       buttons: [
-        { action: "cull",   label: t("SDE.importer.cull.deleteCopies"), default: true },
-        { action: "cancel", label: t("SDE.importer.btn.cancel") },
+        { action: "cull",   label: t("SDE.importer.cull.deleteCopies") },
+        { action: "cancel", label: t("SDE.importer.btn.cancel"), default: true },
       ],
       rejectClose: false,
     }).catch(() => "cancel");

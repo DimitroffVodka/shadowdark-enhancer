@@ -50,14 +50,14 @@ export function selectTask(camp, uuid, patch) {
 export function lockCamp(camp) {
   if (camp.phase !== "setup") return camp;
   if (camp.participants.some(p => !p.confirmed)) invalid();
-  for (const p of camp.participants.filter(p => p.participate && p.task)) {
+  for (const p of camp.participants.filter(p => p.task)) {
     if (p.task === "entertain" && !p.recipientUuid) invalid();
     if (p.task === "craft" && p.craft === "repair" && !p.repairItemId) invalid();
   }
   return { ...camp, phase: "firewood", results: {}, effects: {} };
 }
 export function torchPlan(stacks, partyUuid, participants) {
-  const order = [partyUuid, ...participants.filter(p => p.participate !== false && p.torchConsent).map(p => p.uuid)];
+  const order = [partyUuid, ...participants.filter(p => p.torchConsent).map(p => p.uuid)];
   const eligible = order.flatMap(uuid => stacks.filter(s => s.actorUuid === uuid && s.quantity > 0));
   const available = eligible.reduce((n, s) => n + s.quantity, 0);
   if (available < 3) return { ok: false, available, deductions: [] };
@@ -67,7 +67,7 @@ export function torchPlan(stacks, partyUuid, participants) {
 }
 export function fireDecision(camp, results) {
   if (results.some(r => r.task === "firewood" && r.success)) return "wood";
-  return camp.fuel !== "none" || camp.participants.some(p => p.participate && p.task === "firewood") ? "fuel" : "none";
+  return camp.fuel !== "none" || camp.participants.some(p => p.task === "firewood") ? "fuel" : "none";
 }
 export const fireAlive = (fire, time, near) => !!fire?.lit && near && time < fire.started + 28800;
 export function cookGrant(hp, previous, campId, time, eligible) {
@@ -82,12 +82,12 @@ export function cookExpiry(hp, benefit, time) {
   if (!benefit || benefit.expired || time < benefit.expires) return null;
   return { value: hp.value - Math.min(benefit.remaining, Math.max(0, hp.value - hp.max)), benefit: { ...benefit, remaining: 0, expired: true } };
 }
-/** A whole meal or nothing. Party consent covers only the current personal shortfall. */
-export function mealPlan(stacks, actorUuid, partyUuid, each, consent) {
+/** A whole meal or nothing. Own rations are used first, then the party's; short overall means no deductions. */
+export function mealPlan(stacks, actorUuid, partyUuid, each) {
   const personal = stacks.filter(s => s.actorUuid === actorUuid && s.quantity > 0);
   const own = personal.reduce((n, s) => n + s.quantity, 0);
   const shortfall = Math.max(0, each - own);
-  const eligible = [...personal, ...(consent ? stacks.filter(s => s.actorUuid === partyUuid && s.quantity > 0) : [])];
+  const eligible = [...personal, ...stacks.filter(s => s.actorUuid === partyUuid && s.quantity > 0)];
   if (eligible.reduce((n, s) => n + s.quantity, 0) < each) return { fed: false, own, shortfall, deductions: [] };
   let remaining = each; const deductions = [];
   for (const s of eligible) {

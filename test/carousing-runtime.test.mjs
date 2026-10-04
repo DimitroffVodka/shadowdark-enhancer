@@ -115,3 +115,28 @@ test("a total-wealth loss stays a visible GM action, never an automatic deductio
   assert.equal(f.a.system.renown, 1, "the explicit renown delta still applies");
   assert.equal(carousingOf(f.party).current.results[f.a.id].description, "Lose 5% of your total wealth and +1 Renown");
 });
+test("the tier is one party-level choice: manager only, setup only, known tier, resets every confirmation", async () => {
+  const f = fixture(); await setup(f, true);
+  assert.equal(carousingOf(f.party).current.tierId, "tier");
+  assert.equal(carousingOf(f.party).current.participants.every(p => p.confirmed), true);
+  assert.equal((await f.call("tier", { tierId: "tier" }, { id: "b", name: "B" })).ok, false, "a PC owner who does not manage the party cannot pick it");
+  assert.equal((await f.call("tier", { tierId: "nope" })).ok, false);
+  assert.equal(carousingOf(f.party).current.participants.every(p => p.confirmed), true, "a refused change leaves confirmations alone");
+  assert.equal((await f.call("tier", { tierId: "tier" })).ok, true);
+  assert.equal(carousingOf(f.party).current.participants.some(p => p.confirmed), false);
+  assert.equal(carousingOf(f.party).current.participants.every(p => !("tierId" in p) && !("garb" in p)), true);
+});
+test("select ignores per-participant tier and garb patches", async () => {
+  const f = fixture(); await f.call("configure", { config: { event: "RollTable.event", outcome: "RollTable.outcome", settlement: "none" } }); await f.call("begin");
+  await f.call("select", { uuid: f.a.uuid, patch: { participate: true, tierId: "other", garb: { x: true } }, confirm: true }, { id: "a", name: "A" });
+  const p = carousingOf(f.party).current.participants[0];
+  assert.equal(p.participate, true); assert.equal("tierId" in p, false); assert.equal("garb" in p, false);
+});
+test("the tier cost is shared: two joiners split the group total, the first takes any remainder", async () => {
+  const f = fixture(); f.b.system.coins = { gp: 5 }; f.a.system.coins = { gp: 30 }; await setup(f, true);
+  assert.equal((await f.call("start")).ok, true);
+  assert.equal(f.a.system.coins.gp, 25); assert.equal(f.b.system.coins.gp, 0);
+  const night = carousingOf(f.party).history[0];
+  assert.deepEqual(night.participants.map(p => p.cost), [5, 5]);
+  assert.equal(f.recap.get(night.logId).tierCost, 10);
+});

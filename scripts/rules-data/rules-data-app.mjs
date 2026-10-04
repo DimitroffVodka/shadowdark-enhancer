@@ -392,6 +392,8 @@ export class RulesDataApp extends HandlebarsApplicationMixin(ApplicationV2) {
       classes: ["sde-ui", "sde-dialog"],
       window: { title: L("SDE.rulesData.set.deleteTitle") },
       content: `<p>${esc(F("SDE.rulesData.set.deleteConfirm", { name: set.name }))}</p>`,
+      yes: { label: "SDE.rulesData.set.delete", icon: "fa-solid fa-trash" },
+      no: { label: "SDE.rulesData.set.keep", icon: "fa-solid fa-xmark", default: true },
       rejectClose: false,
     }).catch(() => false);
     if (yes !== true) return;

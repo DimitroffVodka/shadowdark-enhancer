@@ -311,6 +311,8 @@ export class SessionRecapApp extends HandlebarsApplicationMixin(ApplicationV2) {
       classes: ["sde-ui", "sde-dialog"],
       window: { title: "SDE.sessionRecap.dialog.deleteTitle" },
       content: `<p>${L("SDE.sessionRecap.dialog.deleteBody")}</p>`,
+      yes: { label: "SDE.sessionRecap.dialog.deleteYes", icon: "fa-solid fa-trash" },
+      no: { label: "SDE.sessionRecap.dialog.keep", icon: "fa-solid fa-xmark", default: true },
       rejectClose: false,
     }).catch(() => false);
     if (!ok) return;
@@ -343,6 +345,8 @@ export class SessionRecapApp extends HandlebarsApplicationMixin(ApplicationV2) {
       classes: ["sde-ui", "sde-dialog"],
       window: { title: "SDE.sessionRecap.dialog.clearTitle" },
       content: `<p>${L("SDE.sessionRecap.dialog.clearBody")}</p>`,
+      yes: { label: "SDE.sessionRecap.dialog.clearYes", icon: "fa-solid fa-trash" },
+      no: { label: "SDE.sessionRecap.dialog.keep", icon: "fa-solid fa-xmark", default: true },
       rejectClose: false,
     }).catch(() => false);
     if (ok) { await SessionRecap.clear(); this.render(); }
