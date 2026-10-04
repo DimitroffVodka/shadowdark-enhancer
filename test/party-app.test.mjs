@@ -218,7 +218,7 @@ test("Party header carries a Marching order switch, a leader/status line and a g
 
 test("Carousing labels unavailable tiers and disables commitment until tables are usable", async () => {
   const template = await readFile(new URL("../templates/carousing/carousing.hbs", import.meta.url), "utf8");
-  assert.ok(template.includes('{{localize "SDE.carousing.tierChoice"}} <select data-tier'));
+  assert.ok(template.includes('<select id="cr-tier" data-tier {{#unless tierEditable}}disabled{{/unless}}'));
   assert.ok(template.includes('{{localize "SDE.carousing.tiersUnavailable"}}'));
   assert.ok(template.includes('data-action="start" {{#if missingTables}}disabled{{/if}}'));
   assert.ok(template.includes('data-action="confirm" data-uuid="{{uuid}}" {{#if ../missingTables}}disabled{{/if}}'));
