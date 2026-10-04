@@ -1,7 +1,7 @@
 # Shadowdark Enhancer — File Inventory
 
 <!-- inventory:stats:start -->
-1715 tracked files · ~223,700 lines of code/markup across scripts+templates+styles+test.
+1716 tracked files · ~222,800 lines of code/markup across scripts+templates+styles+test.
 `v0.17.3` in both `module.json` and `package.json`.
 <!-- inventory:stats:end -->
 **Layout reflects the 2026-07-21 feature-folder reorganization (v0.11.0 cycle).**
@@ -274,7 +274,7 @@
 
 | File | Lines | Description |
 |---|---:|---|
-| `magic-forge-app.mjs` | 745 | Magic Item Forge window (weapons/armor with working +N, benefit/curse riders). |
+| `magic-forge-app.mjs` | 748 | Magic Item Forge window (weapons/armor with working +N, benefit/curse riders). |
 | `magic-forge.mjs` | 292 | Core engine building items that actually function in the system. |
 | `magic-table-runtime.mjs` | 727 | Drives forge recipes off the GM's own imported magic-item tables. |
 
@@ -282,7 +282,7 @@
 
 | File | Lines | Description |
 |---|---:|---|
-| `merchant-shop.mjs` | 2729 | Two-mode shop system (compendium global or actor NPC inventory); GM opens for all players. |
+| `merchant-shop.mjs` | 2730 | Two-mode shop system (compendium global or actor NPC inventory); GM opens for all players. |
 | `merchant-defaults.mjs` | 209 | The two shipped merchant configs (Base, Western Reaches). |
 | `catalog-stock.mjs` | 37 | What the Catalog tab may sell: gear types with a list price, not loot-table props. |
 

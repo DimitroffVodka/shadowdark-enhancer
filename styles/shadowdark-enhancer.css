@@ -6214,213 +6214,8 @@ body.theme-light .sde-hub-monsters-row td {
 }
 
 
-/* ── Magic Item Forge ──────────────────────────────────────────────────────── */
-/* The window opens with height:"auto" — cap growth to the viewport and let the
-   forge root scroll as one column (same pattern as .sde-importer-hub), so Core
-   mode's stack of table cards never runs off-screen with no scrollbar. */
+/* Magic Item Forge: the window grows with its content up to the viewport; the kit body scrolls. */
 #sde-magic-forge { max-height: 95vh; }
-#sde-magic-forge .window-content { overflow: hidden; }
-.sde-forge {
-  padding: 8px; display: flex; flex-direction: column; gap: 10px;
-  flex: 1 1 auto; min-height: 0;
-  overflow-y: auto;
-  scrollbar-width: auto;
-  scrollbar-color: var(--sde-bar-border, #6b6b6b) var(--sde-bar-surface-1, #1a1a1a);
-  scrollbar-gutter: stable;
-}
-.sde-forge::-webkit-scrollbar { width: 10px; }
-.sde-forge::-webkit-scrollbar-track { background: var(--sde-bar-surface-1, #1a1a1a); }
-.sde-forge::-webkit-scrollbar-thumb {
-  background: var(--sde-bar-border, #6b6b6b);
-  border-radius: 5px;
-}
-.sde-forge::-webkit-scrollbar-thumb:hover { background: var(--sde-bar-accent, #d4a017); }
-/* Never crush sections to "fit" — keep natural heights, root scrollbar takes the rest. */
-.sde-forge > * { flex-shrink: 0; }
-
-/* Type tabs */
-.sde-forge-types { display: flex; gap: 6px; flex-wrap: wrap; }
-.sde-forge-type {
-  flex: 1 1 0; min-width: 5.5rem; cursor: pointer; white-space: nowrap;
-  padding: 0.35rem 0.5rem; border-radius: 4px; font-size: 0.85rem;
-  border: 1px solid var(--sde-bar-border, #555);
-  background: var(--sde-bar-btn-1, #252830);
-  color: var(--sde-bar-text, #BDC1C6);
-}
-.sde-forge-type:hover { filter: brightness(1.12); }
-.sde-forge-type.active {
-  background: var(--sde-bar-accent, #c9a54a); color: var(--sde-bar-on-accent, #f5eccc);
-  border-color: var(--sde-bar-accent-dark, #7a7030); font-weight: 600;
-}
-
-/* Two-column body */
-.sde-forge-cols { display: flex; gap: 12px; align-items: flex-start; }
-.sde-forge-build { flex: 1 1 60%; min-width: 0; display: flex; flex-direction: column; gap: 10px; }
-.sde-forge-preview {
-  flex: 1 1 40%; min-width: 12rem; align-self: stretch;
-  display: flex; flex-direction: column; gap: 8px;
-  padding: 10px; border-radius: 5px;
-  border: 1px solid var(--sde-bar-border, #555);
-  background: var(--sde-bar-bg-alt, #111);
-}
-
-.sde-forge-field { display: flex; flex-direction: column; gap: 4px; }
-.sde-forge-label { font-size: 0.78rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--sde-bar-accent, #c9a54a); }
-.sde-forge-hint { font-weight: 400; text-transform: none; letter-spacing: 0; color: var(--sde-bar-text-muted, #9a9a9a); margin-left: 4px; }
-.sde-forge-input { width: 100%; }
-.sde-forge-check { display: flex; align-items: center; gap: 6px; font-size: 0.82rem; color: var(--sde-bar-text-dim, #d7d7d7); }
-
-/* Bonus chips */
-.sde-forge-bonus-row { display: flex; gap: 6px; }
-.sde-forge-bonus {
-  flex: 0 0 auto; min-width: 2.6rem; cursor: pointer; padding: 0.2rem 0.5rem; border-radius: 4px;
-  border: 1px solid var(--sde-bar-border, #555); background: var(--sde-bar-btn-1, #252830); color: var(--sde-bar-text, #BDC1C6);
-}
-.sde-forge-bonus.active { background: var(--sde-bar-accent, #c9a54a); color: var(--sde-bar-on-accent, #f5eccc); border-color: var(--sde-bar-accent-dark, #7a7030); font-weight: 600; }
-
-/* Search + scrollable picker lists */
-.sde-forge-base-search, .sde-forge-spell-search { width: 100%; }
-.sde-forge-list {
-  display: flex; flex-direction: column; gap: 2px; max-height: 240px; overflow-y: auto;
-  border: 1px solid var(--sde-bar-border, #555); border-radius: 4px; padding: 3px;
-  background: var(--sde-bar-input-bg, #0b0b0b);
-}
-.sde-forge-row {
-  display: flex; align-items: center; gap: 6px; cursor: pointer; padding: 3px 5px; border-radius: 3px;
-  color: var(--sde-bar-text, #BDC1C6); font-size: 0.84rem;
-}
-.sde-forge-row:hover { background: var(--sde-bar-drag-over, rgba(201,170,88,0.16)); }
-.sde-forge-row.selected { background: var(--sde-bar-accent-dark, #6f6244); color: var(--sde-bar-on-accent, #f5eccc); }
-.sde-forge-row img { border: none; flex: 0 0 auto; border-radius: 2px; }
-.sde-forge-row-name { flex: 1 1 auto; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.sde-forge-row-meta { flex: 0 0 auto; font-size: 0.72rem; color: var(--sde-bar-text-muted, #9a9a9a); }
-.sde-forge-row.selected .sde-forge-row-meta { color: var(--sde-bar-text-dim, #d7d7d7); }
-.sde-forge-row-check { flex: 0 0 auto; color: var(--sde-bar-accent, #c9a54a); display: none; }
-.sde-forge-row.selected .sde-forge-row-check { display: inline; }
-
-/* Spell selector — per-class folders */
-.sde-forge-spell-classes {
-  max-height: 300px; overflow-y: auto;
-  border: 1px solid var(--sde-bar-border, #555); border-radius: 4px;
-  background: var(--sde-bar-input-bg, #0b0b0b);
-  display: flex; flex-direction: column;
-}
-.sde-forge-spell-group { border-bottom: 1px solid var(--sde-bar-border, #555); }
-.sde-forge-spell-group:last-child { border-bottom: none; }
-.sde-forge-spell-group[hidden] { display: none; }
-.sde-forge-spell-group-head {
-  display: flex; align-items: center; gap: 6px; cursor: pointer; padding: 5px 7px;
-  font-size: 0.8rem; font-weight: 600; color: var(--sde-bar-accent, #c9a54a);
-  background: var(--sde-bar-bg-alt, #111); list-style: none; user-select: none;
-}
-.sde-forge-spell-group-head::-webkit-details-marker { display: none; }
-.sde-forge-spell-group-head:hover { filter: brightness(1.15); }
-.sde-forge-group-caret { flex: 0 0 auto; font-size: 0.7rem; transition: transform 0.12s ease; color: var(--sde-bar-text-muted, #9a9a9a); }
-.sde-forge-spell-group[open] .sde-forge-group-caret { transform: rotate(90deg); }
-.sde-forge-group-name { flex: 1 1 auto; }
-.sde-forge-group-count {
-  flex: 0 0 auto; font-weight: 400; font-size: 0.72rem; color: var(--sde-bar-text-muted, #9a9a9a);
-  background: var(--sde-bar-input-bg, #0b0b0b); border-radius: 8px; padding: 0 6px;
-}
-/* Spell rows live inside their folder — drop the standalone list's frame/scroll. */
-.sde-forge-spell-list { max-height: none; overflow: visible; border: none; border-radius: 0; background: transparent; padding: 2px 3px 4px; }
-
-/* Tier (level) filter chips — `.sde-forge` prefix raises specificity so the
-   row stays a flex row even against Foundry's generic form/button styling
-   (which can otherwise turn each chip into a block and stack them). */
-.sde-forge .sde-forge-tier-row { display: flex; flex-flow: row wrap; align-items: center; gap: 5px; }
-.sde-forge-tier-label { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--sde-bar-text-muted, #9a9a9a); margin-right: 2px; }
-.sde-forge .sde-forge-tier {
-  flex: 0 0 auto; width: auto; min-width: 2.1rem; cursor: pointer; padding: 0.12rem 0.4rem; border-radius: 4px; font-size: 0.78rem;
-  border: 1px solid var(--sde-bar-border, #555); background: var(--sde-bar-btn-1, #252830); color: var(--sde-bar-text, #BDC1C6);
-}
-.sde-forge .sde-forge-tier.active { background: var(--sde-bar-accent, #c9a54a); color: var(--sde-bar-on-accent, #f5eccc); border-color: var(--sde-bar-accent-dark, #7a7030); font-weight: 600; }
-
-/* Pop-out spell-review button (revealed on row hover / when selected) */
-.sde-forge-spell-peek {
-  flex: 0 0 auto; cursor: pointer; background: transparent; border: none; padding: 1px 4px;
-  color: var(--sde-bar-text-muted, #9a9a9a); opacity: 0; font-size: 0.78rem;
-}
-.sde-forge-spell-row:hover .sde-forge-spell-peek,
-.sde-forge-spell-row.selected .sde-forge-spell-peek { opacity: 1; }
-.sde-forge-spell-peek:hover { color: var(--sde-bar-accent, #c9a54a); }
-
-/* Selected base chip */
-.sde-forge-base-selected {
-  display: flex; align-items: center; gap: 6px; padding: 4px 6px; border-radius: 4px;
-  border: 1px solid var(--sde-bar-accent-dark, #6f6244); background: var(--sde-bar-bg-alt, #111);
-}
-.sde-forge-base-selected img { border: none; }
-.sde-forge-base-selected span { flex: 1 1 auto; }
-.sde-forge-x { flex: 0 0 auto; cursor: pointer; background: transparent; border: none; color: var(--sde-bar-text-muted, #9a9a9a); }
-.sde-forge-x:hover { color: var(--sde-bar-danger, #b02020); }
-
-/* Preview pane */
-.sde-forge-preview-badge { font-size: 0.74rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--sde-bar-accent, #c9a54a); }
-.sde-forge-preview-name { font-size: 1.05rem; font-weight: 700; color: var(--sde-bar-text, #f0f0f0); line-height: 1.2; }
-.sde-forge-preview-lines { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 3px; font-size: 0.8rem; color: var(--sde-bar-text-dim, #d7d7d7); }
-.sde-forge-create {
-  margin-top: auto; cursor: pointer; padding: 0.4rem 0.8rem; border-radius: 4px; font-weight: 600;
-  background: var(--sde-bar-accent, #c9a54a); color: var(--sde-bar-on-accent, #f5eccc);
-  border: 1px solid var(--sde-bar-accent-dark, #7a7030);
-}
-.sde-forge-create:hover:not(:disabled) { filter: brightness(1.12); box-shadow: 0 0 5px var(--sde-bar-accent, #c9a54a); }
-.sde-forge-create:disabled { opacity: 0.5; cursor: not-allowed; }
-
-/* ── Magic Forge — Manual / Core mode ─────────────────────────────────────── */
-.sde-forge-modes { display: flex; gap: 6px; }
-.sde-forge-mode {
-  flex: 1; cursor: pointer; padding: 0.3rem 0.5rem; border-radius: 4px; font-size: 0.82rem;
-  background: var(--sde-bar-panel, #1c1c1c); color: var(--sde-bar-text-dim, #cfcfcf);
-  border: 1px solid var(--sde-bar-line, #3a3a3a);
-}
-.sde-forge-mode.active {
-  background: var(--sde-bar-accent, #c9a54a); color: var(--sde-bar-on-accent, #f5eccc);
-  border-color: var(--sde-bar-accent-dark, #7a7030); font-weight: 600;
-}
-.sde-forge-core { display: flex; flex-direction: column; gap: 8px; margin-top: 4px; }
-.sde-forge-core-set {
-  border: 1px solid var(--sde-bar-line, #3a3a3a); border-radius: 5px; padding: 6px 8px;
-  background: var(--sde-bar-panel, #1a1a1a);
-}
-.sde-forge-core-set-head { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
-.sde-forge-core-set-name { font-weight: 700; font-size: 0.9rem; color: var(--sde-bar-text, #f0f0f0); }
-.sde-forge-core-set-page { margin-left: auto; font-size: 0.72rem; opacity: 0.7; }
-.sde-forge-badge {
-  font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.03em; padding: 1px 6px;
-  border-radius: 3px; border: 1px solid transparent;
-}
-.sde-forge-badge.ready { background: #1e3b22; color: #7fd18b; border-color: #2f6b39; }
-.sde-forge-badge.locked { background: #2a2a2a; color: #b0b0b0; border-color: #444; }
-.sde-forge-badge.partial { background: #3a3320; color: #e0c274; border-color: #6b5b2f; }
-.sde-forge-badge.bad { background: #3b1e1e; color: #e08a8a; border-color: #6b2f2f; }
-.sde-forge-core-diag { font-size: 0.75rem; color: var(--sde-bar-text-dim, #cdb98a); margin: 2px 0; }
-.sde-forge-core-import {
-  cursor: pointer; margin: 3px 0; padding: 0.28rem 0.55rem; border-radius: 4px; font-size: 0.78rem;
-  background: var(--sde-bar-panel-2, #262015); color: var(--sde-bar-accent, #c9a54a);
-  border: 1px solid var(--sde-bar-accent-dark, #7a7030);
-}
-.sde-forge-core-import.small { font-size: 0.72rem; padding: 0.2rem 0.4rem; }
-.sde-forge-core-import:hover { filter: brightness(1.15); }
-.sde-forge-core-field {
-  border-top: 1px solid var(--sde-bar-line-soft, #2b2b2b); padding: 4px 0 2px;
-}
-.sde-forge-core-field-head { display: flex; align-items: center; gap: 6px; }
-.sde-forge-core-field-name { font-size: 0.82rem; font-weight: 600; color: var(--sde-bar-text, #ececec); }
-.sde-forge-core-role { font-size: 0.66rem; text-transform: uppercase; letter-spacing: 0.03em; padding: 0 4px; border-radius: 3px; }
-.sde-forge-core-role.mechanical { background: #17303b; color: #7fc4d1; }
-.sde-forge-core-role.hint { background: #2a2a2a; color: #a9a9a9; }
-.sde-forge-core-role.descriptive { background: #2b2436; color: #b79fd1; }
-.sde-forge-core-controls { display: flex; align-items: center; gap: 4px; margin-top: 3px; }
-.sde-forge-core-select { flex: 1; min-width: 0; font-size: 0.78rem; }
-.sde-forge-core-btn {
-  cursor: pointer; flex: 0 0 auto; width: 26px; height: 24px; border-radius: 4px;
-  background: var(--sde-bar-panel, #232323); color: var(--sde-bar-text-dim, #cfcfcf);
-  border: 1px solid var(--sde-bar-line, #3a3a3a);
-}
-.sde-forge-core-btn:hover { filter: brightness(1.2); }
-.sde-forge-core-picked { font-size: 0.74rem; color: var(--sde-bar-text-dim, #cbb98f); margin-top: 2px; font-style: italic; }
-.sde-forge-core-muted { font-size: 0.72rem; opacity: 0.55; }
 .sde-forge-nonauto { font-size: 0.85em; opacity: 0.7; }
 
 
@@ -6428,7 +6223,6 @@ body.theme-light .sde-hub-monsters-row td {
 .sde-import-del,
 .sde-stepper button,
 .sde-spell-chip-remove,
-.sde-forge-add, .sde-forge-remove,
 .sde-reroll-btn {
   min-width: 24px;
   min-height: 24px;
@@ -6493,678 +6287,6 @@ body.theme-light .sde-hub-monsters-row td {
   transform: translate(-50%, -50%);
 }
 
-/* ═══════════════════════════════════════════════════════════════════════════
-   Merchant Shop (sdems-) — ported from Vagabond Crawler
-   Theme variables scoped to the shop window so it renders self-contained.
-   ═══════════════════════════════════════════════════════════════════════════ */
-
-.shadowdark-enhancer-merchant-shop {
-  --vcb-bg:          #17191d;
-  --vcb-bg-alt:      #1f2226;
-  --vcb-bg-hover:    #2a2d32;
-  --vcb-border:      #3a3d44;
-  --vcb-text:        #BDC1C6;
-  --vcb-text-bright: #e8eaed;
-  --vcb-text-muted:  #767676;
-  --vcb-text-shadow: rgba(0,0,0,0.6);
-  --vcb-accent-dim:  #94913c;
-  --vcb-action-buy:      #4caf50;
-  --vcb-action-buy-dim:  #2e7d32;
-  --vcb-action-sell:     #e74c3c;
-  --vcb-btn-1:       #252830;
-  --vcb-btn-2:       #1b1e24;
-  --vcb-btn-hover-1: #2e3138;
-  --vcb-btn-hover-2: #232730;
-  --vcb-drag-over:   #22241a;
-  --vcb-ext-discord: #5865f2;
-  --vcb-input-bg:    #111418;
-  --vcb-price-gold:    #daa520;
-  --vcb-price-gold-hi: #f4c542;
-  --vcb-radius:      4px;
-  --vcb-shadow-md:   rgba(0,0,0,0.5);
-}
-
-.sdems-container {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-  gap: 6px;
-  padding: 8px;
-  color: var(--vcb-text, #BDC1C6);
-}
-
-/* ── Header ────────────────────────────────────────────────────────────── */
-
-.sdems-header {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 6px 10px;
-  background: linear-gradient(135deg, var(--vcb-bg-alt, #1f2226), var(--vcb-bg, #17191d));
-  border: 1px solid var(--vcb-border, #3a3d44);
-  border-radius: 6px;
-}
-.sdems-header-icon { font-size: 1.3em; color: var(--vcb-accent-dim, #94913c); }
-.sdems-title { margin: 0; font-size: 1.1em; color: var(--vcb-text-bright, #e8eaed); flex: 1; }
-.sdems-wallet {
-  font-size: 1em;
-  color: var(--vcb-price-gold);
-  background: rgba(218, 165, 32, 0.1);
-  padding: 3px 8px;
-  border-radius: 4px;
-  border: 1px solid rgba(218, 165, 32, 0.25);
-}
-.sdems-wallet.sdems-no-actor { color: var(--vcb-text-muted); background: rgba(0,0,0,0.15); border-color: rgba(255,255,255,0.1); }
-
-/* ── Tabs ──────────────────────────────────────────────────────────────── */
-
-.sdems-tab-bar {
-  display: flex;
-  gap: 2px;
-  background: var(--vcb-bg, #17191d);
-  border-radius: 6px;
-  padding: 2px;
-}
-.sdems-tab-btn {
-  flex: 1;
-  padding: 6px 10px;
-  border: none;
-  background: transparent;
-  color: var(--vcb-text-muted, #666);
-  cursor: pointer;
-  border-radius: 4px;
-  font-size: 1em;
-  transition: background 0.15s, color 0.15s, border-color 0.15s, box-shadow 0.15s;
-}
-.sdems-tab-btn:hover { color: var(--vcb-text, #BDC1C6); background: var(--vcb-bg-hover, #2a2d32); }
-.sdems-tab-btn.active {
-  color: var(--vcb-accent-dim, #94913c);
-  background: var(--vcb-bg-alt, #1f2226);
-  border: 1px solid var(--vcb-border, #3a3d44);
-}
-.sdems-tab-btn i { margin-right: 4px; }
-
-/* ── Body ──────────────────────────────────────────────────────────────── */
-
-.sdems-body { flex: 1; overflow-y: auto; min-height: 0; }
-.sdems-tab-content { display: flex; flex-direction: column; gap: 6px; height: 100%; }
-
-/* ── Filters (Buy tab) ─────────────────────────────────────────────────── */
-
-.sdems-filters { display: flex; gap: 6px; }
-.sdems-search-input, .sdems-category-select {
-  padding: 5px 8px;
-  background: var(--vcb-input-bg, #111418);
-  border: 1px solid var(--vcb-border, #3a3d44);
-  border-radius: 4px;
-  color: var(--vcb-text, #BDC1C6);
-  font-size: 1em;
-}
-.sdems-search-input { flex: 1; }
-.sdems-category-select { min-width: 140px; }
-
-/* ── Item rows (shared Buy + Sell) ─────────────────────────────────────── */
-
-.sdems-item-list { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 3px; }
-
-/* Collapsible category sections (buy tab) */
-.sdems-shop-section { display: flex; flex-direction: column; gap: 3px; }
-.sdems-section-header {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 4px 8px;
-  cursor: pointer;
-  user-select: none;
-  background: rgba(255, 255, 255, 0.04);
-  border-radius: 4px;
-  border-left: 3px solid var(--vcb-accent, #b8860b);
-}
-.sdems-section-header:hover { background: rgba(255, 255, 255, 0.08); }
-.sdems-section-caret { font-size: 0.85em; color: var(--vcb-text-muted, #888); transition: transform 0.15s; }
-.sdems-shop-section.sdems-section-collapsed .sdems-section-caret { transform: rotate(-90deg); }
-.sdems-section-title {
-  flex: 1;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  font-size: 0.85em;
-  color: var(--vcb-text-bright, #e8eaed);
-}
-.sdems-section-count {
-  color: var(--vcb-text-muted, #888);
-  font-size: 0.8em;
-  background: rgba(0, 0, 0, 0.25);
-  padding: 1px 7px;
-  border-radius: 9px;
-}
-.sdems-section-body { display: flex; flex-direction: column; gap: 3px; padding: 3px 0 6px; }
-.sdems-shop-section.sdems-section-collapsed .sdems-section-body { display: none; }
-.sdems-item-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 5px 8px;
-  background: rgba(0, 0, 0, 0.15);
-  border-radius: 4px;
-  font-size: 1em;
-  transition: background 0.1s;
-}
-.sdems-item-row:hover { background: var(--vcb-bg-hover, #2a2d32); }
-.sdems-item-row.sdems-out-of-stock { opacity: 0.4; }
-.sdems-item-row.sdems-cant-afford:not(.sdems-out-of-stock) .sdems-buy-btn { opacity: 0.4; }
-
-.sdems-item-icon { border-radius: 3px; flex-shrink: 0; border: 1px solid rgba(255,255,255,0.08); }
-.sdems-item-info { flex: 1; display: flex; flex-direction: column; gap: 1px; min-width: 0; }
-.sdems-item-name { color: var(--vcb-text-bright, #e8eaed); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.sdems-item-cat { color: var(--vcb-text-muted, #666); font-size: 0.9em; }
-
-.sdems-item-price { color: var(--vcb-price-gold); font-weight: 600; min-width: 55px; text-align: right; }
-.sdems-sell-price { color: var(--vcb-action-buy); }
-
-.sdems-item-stock { color: var(--vcb-text-muted, #666); min-width: 30px; text-align: center; }
-
-.sdems-item-actions { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
-.sdems-qty-input {
-  width: 40px;
-  padding: 2px 4px;
-  text-align: center;
-  background: var(--vcb-input-bg, #111418);
-  border: 1px solid var(--vcb-border, #3a3d44);
-  border-radius: 3px;
-  color: var(--vcb-text, #BDC1C6);
-  font-size: 1em;
-}
-/* Primary-action buttons — solid fill matching .forge-btn energy (audit P1).
- * Buy spends money (go-ahead affordance), Sell gains gold (semantic pairing
- * with gold price color). Both read as confident CTAs, not tags. */
-.sdems-buy-btn, .sdems-sell-btn {
-  padding: 6px 14px;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 1em;
-  font-weight: bold;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  color: var(--vcb-bg);
-  text-shadow: 0 1px 0 rgba(0,0,0,0.25);
-  transition: background 0.15s, box-shadow 0.15s, transform 0.08s;
-}
-.sdems-buy-btn {
-  background: linear-gradient(135deg, var(--vcb-action-buy-dim), var(--vcb-action-buy));
-  border: 2px solid var(--vcb-action-buy);
-}
-.sdems-buy-btn:hover:not([disabled]) {
-  background: linear-gradient(135deg, var(--vcb-action-buy), var(--vcb-action-buy));
-  box-shadow: 0 0 10px rgba(76,175,80,0.45);
-}
-.sdems-buy-btn:active:not([disabled]) { transform: translateY(1px); }
-.sdems-buy-btn[disabled] { cursor: not-allowed; opacity: 0.45; filter: grayscale(0.3); }
-
-.sdems-sell-btn {
-  background: linear-gradient(135deg, var(--vcb-price-gold), var(--vcb-price-gold));
-  border: 2px solid var(--vcb-price-gold-hi);
-}
-.sdems-sell-btn:hover {
-  background: linear-gradient(135deg, var(--vcb-price-gold), var(--vcb-price-gold-hi));
-  box-shadow: 0 0 10px rgba(218,165,32,0.45);
-}
-.sdems-sell-btn:active { transform: translateY(1px); }
-
-/* ── Sell tab header ───────────────────────────────────────────────────── */
-
-.sdems-sell-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 4px 8px;
-  font-size: 1em;
-  color: var(--vcb-text-muted, #666);
-}
-.sdems-sell-ratio strong { color: var(--vcb-text, #BDC1C6); }
-.sdems-sell-all-junk {
-  padding: 4px 10px;
-  border: 1px solid rgba(231, 76, 60, 0.4);
-  border-radius: 4px;
-  background: rgba(231, 76, 60, 0.12);
-  color: var(--vcb-action-sell);
-  cursor: pointer;
-  font-size: 1em;
-  transition: background 0.15s, color 0.15s, border-color 0.15s, box-shadow 0.15s;
-}
-.sdems-sell-all-junk:hover { background: rgba(231, 76, 60, 0.25); }
-.sdems-junk-item { border-left: 3px solid var(--vcb-action-sell); opacity: 0.7; }
-.sdems-junk-item:hover { opacity: 1; }
-
-/* ── Log tab ───────────────────────────────────────────────────────────── */
-
-.sdems-log-toolbar { display: flex; gap: 6px; justify-content: flex-end; }
-.sdems-copy-discord, .sdems-clear-log {
-  padding: 4px 10px;
-  cursor: pointer;
-  border-radius: 4px;
-  font-size: 1em;
-  border: 1px solid;
-}
-.sdems-copy-discord {
-  background: rgba(88, 101, 242, 0.2);
-  border-color: rgba(88, 101, 242, 0.5);
-  color: var(--vcb-ext-discord);
-}
-.sdems-copy-discord:hover { background: rgba(88, 101, 242, 0.35); }
-.sdems-copy-session {
-  background: rgba(76, 175, 80, 0.2);
-  border-color: rgba(76, 175, 80, 0.5);
-  color: var(--vcb-action-buy);
-}
-.sdems-copy-session:hover { background: rgba(76, 175, 80, 0.35); }
-.sdems-clear-log {
-  background: rgba(192, 57, 43, 0.15);
-  border-color: rgba(192, 57, 43, 0.35);
-  color: var(--vcb-action-sell);
-}
-.sdems-clear-log:hover { background: rgba(192, 57, 43, 0.3); }
-
-.sdems-log-list { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 2px; }
-.sdems-log-entry {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 4px 8px;
-  background: rgba(0, 0, 0, 0.15);
-  border-radius: 4px;
-  font-size: 1em;
-}
-.sdems-log-time { color: var(--vcb-text-muted); font-size: 0.9em; width: 50px; flex-shrink: 0; }
-.sdems-log-icon { width: 18px; text-align: center; flex-shrink: 0; }
-.sdems-log-buy i { color: var(--vcb-action-buy); }
-.sdems-log-sell i { color: var(--vcb-price-gold); }
-.sdems-log-player { color: var(--vcb-price-gold-hi); font-weight: bold; min-width: 80px; }
-.sdems-log-action { color: var(--vcb-text-muted, #666); font-size: 0.9em; }
-.sdems-log-detail { flex: 1; color: var(--vcb-text, #BDC1C6); }
-.sdems-log-price { color: var(--vcb-price-gold); font-weight: 600; }
-
-/* ── Manage tab ────────────────────────────────────────────────────────── */
-
-.sdems-manage-tab { gap: 8px; overflow-y: auto; }
-.sdems-manage-section {
-  padding: 8px;
-  background: rgba(0, 0, 0, 0.1);
-  border-radius: 6px;
-  border: 1px solid rgba(255, 255, 255, 0.04);
-}
-.sdems-manage-section h3 {
-  margin: 0 0 6px 0;
-  font-size: 1.05em;
-  color: var(--vcb-accent-dim, #94913c);
-}
-
-.sdems-manage-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 6px;
-}
-.sdems-manage-row label { min-width: 100px; font-size: 1em; color: var(--vcb-text-muted, #666); }
-.sdems-manage-row input[type="text"],
-.sdems-manage-row input[type="number"] {
-  flex: 1;
-  padding: 4px 8px;
-  background: var(--vcb-input-bg, #111418);
-  border: 1px solid var(--vcb-border, #3a3d44);
-  border-radius: 4px;
-  color: var(--vcb-text, #BDC1C6);
-  font-size: 1em;
-}
-
-.sdems-mode-selector {
-  display: flex;
-  gap: 16px;
-  margin: 6px 0;
-  font-size: 1em;
-}
-.sdems-mode-selector label { display: flex; align-items: center; gap: 4px; cursor: pointer; min-width: auto; }
-.sdems-actor-select {
-  width: 100%;
-  margin-top: 6px;
-  padding: 4px 8px;
-  background: var(--vcb-input-bg, #111418);
-  border: 1px solid var(--vcb-border, #3a3d44);
-  border-radius: 4px;
-  color: var(--vcb-text, #BDC1C6);
-  font-size: 1em;
-}
-
-.sdems-broadcast-controls { display: flex; gap: 8px; }
-
-.sdems-saved-configs-row {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  margin-bottom: 6px;
-}
-.sdems-load-config-select {
-  flex: 1;
-  padding: 4px 8px;
-  background: var(--vcb-input-bg, #111418);
-  border: 1px solid var(--vcb-border, #3a3d44);
-  border-radius: 4px;
-  color: var(--vcb-text, #BDC1C6);
-  font-size: 1em;
-}
-
-.sdems-save-config-name {
-  flex: 1;
-  padding: 4px 8px;
-  background: var(--vcb-input-bg, #111418);
-  border: 1px solid var(--vcb-border, #3a3d44);
-  border-radius: 4px;
-  color: var(--vcb-text, #BDC1C6);
-  font-size: 1em;
-}
-
-/* All Manage-tab action buttons share the neutral .vcb-btn aesthetic —
- * icons + labels carry semantic meaning; colors stay muted for visual
- * coherence with the rest of the module. Addresses the rainbow-UI
- * anti-pattern from /audit. Delete keeps a subtle red-tint hover
- * as the only color callout (destructive-action convention). */
-.sdems-open-for-all,
-.sdems-close-for-all,
-.sdems-save-merchant-btn,
-.sdems-save-config-btn,
-.sdems-load-merchant-btn,
-.sdems-load-config-btn,
-.sdems-delete-merchant-btn {
-  padding: 6px 14px;
-  background: linear-gradient(135deg, var(--vcb-btn-1) 0%, var(--vcb-btn-2) 100%);
-  border: 1px solid var(--vcb-border);
-  border-radius: var(--vcb-radius);
-  color: var(--vcb-text);
-  cursor: pointer;
-  font-size: 1em;
-  line-height: 1.3;
-  transition: background 0.15s, border-color 0.15s, color 0.15s, box-shadow 0.15s;
-  box-shadow: 1px 1px 2px var(--vcb-shadow-md);
-  text-shadow: 1px 1px 2px var(--vcb-text-shadow);
-}
-
-/* Broadcast row buttons stretch to fill — Open / Close / Save */
-.sdems-open-for-all,
-.sdems-close-for-all,
-.sdems-save-merchant-btn,
-.sdems-save-config-btn {
-  flex: 1;
-  padding: 8px 14px;
-}
-
-.sdems-open-for-all:hover,
-.sdems-close-for-all:hover,
-.sdems-save-merchant-btn:hover,
-.sdems-save-config-btn:hover,
-.sdems-load-merchant-btn:hover,
-.sdems-load-config-btn:hover {
-  background: linear-gradient(135deg, var(--vcb-btn-hover-1) 0%, var(--vcb-btn-hover-2) 100%);
-  border-color: var(--vcb-accent-dim);
-  color: var(--vcb-text-bright);
-}
-
-/* Delete is destructive — subtle red border + text tint on hover only */
-.sdems-delete-merchant-btn:hover {
-  background: linear-gradient(135deg, var(--vcb-btn-hover-1) 0%, var(--vcb-btn-hover-2) 100%);
-  border-color: var(--vcb-action-sell);
-  color: var(--vcb-action-sell);
-}
-
-/* ── Drop zone ─────────────────────────────────────────────────────────── */
-
-.sdems-drop-zone {
-  padding: 14px;
-  text-align: center;
-  border: 2px dashed var(--vcb-border, #3a3d44);
-  border-radius: 6px;
-  color: var(--vcb-text-muted, #666);
-  font-size: 1em;
-  margin-bottom: 8px;
-  transition: background 0.15s, color 0.15s, border-color 0.15s, box-shadow 0.15s;
-}
-.sdems-drop-zone:hover, .sdems-drop-zone.dragover {
-  border-color: var(--vcb-accent-dim, #94913c);
-  color: var(--vcb-accent-dim, #94913c);
-  background: var(--vcb-drag-over, #22241a);
-}
-.sdems-drop-zone i { margin-right: 6px; }
-
-/* ── Manage inventory rows ─────────────────────────────────────────────── */
-
-.sdems-manage-inventory { display: flex; flex-direction: column; gap: 3px; margin-bottom: 10px; }
-.sdems-manage-item-row {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 4px 6px;
-  background: rgba(0, 0, 0, 0.15);
-  border-radius: 4px;
-  font-size: 1em;
-}
-.sdems-manage-item-row img { border-radius: 2px; flex-shrink: 0; }
-.sdems-manage-item-name { flex: 1; color: var(--vcb-text-bright, #e8eaed); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-
-.sdems-manage-price { display: flex; align-items: center; gap: 2px; }
-.sdems-manage-price input {
-  width: 32px;
-  padding: 2px 3px;
-  text-align: center;
-  background: var(--vcb-input-bg, #111418);
-  border: 1px solid var(--vcb-border, #3a3d44);
-  border-radius: 3px;
-  color: var(--vcb-price-gold);
-  font-size: 1em;
-}
-.sdems-manage-price span { color: var(--vcb-text-muted, #666); font-size: 0.9em; }
-
-.sdems-manage-stock { display: flex; align-items: center; gap: 3px; }
-.sdems-stock-input {
-  width: 40px;
-  padding: 2px 3px;
-  text-align: center;
-  background: var(--vcb-input-bg, #111418);
-  border: 1px solid var(--vcb-border, #3a3d44);
-  border-radius: 3px;
-  color: var(--vcb-text, #BDC1C6);
-  font-size: 1em;
-}
-.sdems-stock-hint { color: var(--vcb-text-muted, #666); font-size: 0.9em; }
-
-.sdems-remove-item-btn {
-  padding: 3px 6px;
-  background: rgba(192, 57, 43, 0.12);
-  border: 1px solid rgba(192, 57, 43, 0.3);
-  border-radius: 3px;
-  color: var(--vcb-action-sell);
-  cursor: pointer;
-  font-size: 1em;
-}
-.sdems-remove-item-btn:hover { background: rgba(192, 57, 43, 0.3); }
-
-/* ── Compendium browser ────────────────────────────────────────────────── */
-
-.sdems-comp-browser { margin-top: 4px; }
-.sdems-comp-controls { display: flex; gap: 6px; margin-bottom: 6px; }
-.sdems-pack-select, .sdems-comp-search {
-  padding: 4px 8px;
-  background: var(--vcb-input-bg, #111418);
-  border: 1px solid var(--vcb-border, #3a3d44);
-  border-radius: 4px;
-  color: var(--vcb-text, #BDC1C6);
-  font-size: 1em;
-}
-.sdems-pack-select { min-width: 140px; }
-.sdems-comp-search { flex: 1; }
-
-.sdems-comp-list { max-height: 200px; overflow-y: auto; display: flex; flex-direction: column; gap: 2px; }
-.sdems-comp-item {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 3px 6px;
-  background: rgba(0, 0, 0, 0.1);
-  border-radius: 3px;
-  font-size: 1em;
-}
-.sdems-comp-item img { border-radius: 2px; flex-shrink: 0; }
-.sdems-comp-item span { flex: 1; color: var(--vcb-text, #BDC1C6); }
-.sdems-add-item-btn {
-  padding: 2px 6px;
-  background: rgba(76, 175, 80, 0.12);
-  border: 1px solid rgba(76, 175, 80, 0.3);
-  border-radius: 3px;
-  color: var(--vcb-action-buy);
-  cursor: pointer;
-  font-size: 1em;
-}
-.sdems-add-item-btn:hover { background: rgba(76, 175, 80, 0.3); }
-
-/* ── Empty state ───────────────────────────────────────────────────────── */
-
-.sdems-empty {
-  text-align: center;
-  color: var(--vcb-text-muted, #666);
-  padding: 40px;
-}
-.sdems-empty i { font-size: 2em; display: block; margin-bottom: 8px; }
-.sdems-empty p { margin: 0; }
-
-/* ── Catalog tab ───────────────────────────────────────────────────────── */
-
-.sdems-catalog-filters {
-  display: flex;
-  gap: 6px;
-  flex-wrap: wrap;
-}
-.sdems-catalog-filters select,
-.sdems-catalog-filters input {
-  padding: 5px 8px;
-  background: var(--vcb-input-bg, #111418);
-  border: 1px solid var(--vcb-border, #3a3d44);
-  border-radius: 4px;
-  color: var(--vcb-text, #BDC1C6);
-  font-size: 1em;
-}
-.sdems-catalog-search { flex: 1; min-width: 120px; }
-.sdems-catalog-pack { min-width: 120px; }
-.sdems-catalog-folder { min-width: 120px; }
-.sdems-catalog-sort { min-width: 80px; }
-
-.sdems-catalog-tag {
-  display: inline-block;
-  padding: 1px 5px;
-  border-radius: 3px;
-  font-size: 0.85em;
-  background: rgba(255, 255, 255, 0.06);
-  color: var(--vcb-text-muted, #666);
-  border: 1px solid rgba(255, 255, 255, 0.06);
-}
-.sdems-folder-tag {
-  background: rgba(148, 145, 60, 0.12);
-  color: var(--vcb-accent-dim, #94913c);
-  border-color: rgba(148, 145, 60, 0.2);
-}
-
-.sdems-catalog-buy-btn {
-  padding: 4px 10px;
-  border: 1px solid rgba(76, 175, 80, 0.3);
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 1em;
-  background: rgba(76, 175, 80, 0.15);
-  color: var(--vcb-action-buy);
-  transition: background 0.15s, color 0.15s, border-color 0.15s, box-shadow 0.15s;
-}
-.sdems-catalog-buy-btn:hover:not([disabled]) { background: rgba(76, 175, 80, 0.3); }
-.sdems-catalog-buy-btn[disabled] { cursor: not-allowed; opacity: 0.4; }
-
-/* ── Item description expand ───────────────────────────────────────────── */
-
-.sdems-item-row { cursor: pointer; flex-wrap: wrap; }
-.sdems-item-desc {
-  width: 100%;
-  padding: 6px 10px;
-  margin-top: 4px;
-  font-size: 1em;
-  line-height: 1.5;
-  color: var(--vcb-text, #BDC1C6);
-  background: rgba(0, 0, 0, 0.2);
-  border-radius: 4px;
-  border: 1px solid rgba(255, 255, 255, 0.05);
-}
-.sdems-item-desc p { margin: 0 0 4px 0; }
-.sdems-item-desc p:last-child { margin-bottom: 0; }
-.sdems-item-desc em { color: var(--vcb-text-muted, #666); }
-
-/* ── Gamble tab ─────────────────────────────────────────────────────────── */
-
-.sdems-gamble-header {
-  padding: 8px 10px;
-  font-size: 1em;
-  color: var(--vcb-text, #BDC1C6);
-  background: rgba(0, 0, 0, 0.1);
-  border-radius: 4px;
-  border-left: 3px solid var(--vcb-accent-dim, #94913c);
-}
-.sdems-gamble-header i { margin-right: 6px; color: var(--vcb-accent-dim, #94913c); }
-
-.sdems-gamble-btn {
-  padding: 4px 12px;
-  border: 1px solid rgba(148, 145, 60, 0.4);
-  border-radius: 4px;
-  background: rgba(148, 145, 60, 0.15);
-  color: var(--vcb-accent-dim, #94913c);
-  cursor: pointer;
-  font-size: 1em;
-  transition: background 0.15s, color 0.15s, border-color 0.15s, box-shadow 0.15s;
-}
-.sdems-gamble-btn:hover:not([disabled]) { background: rgba(148, 145, 60, 0.3); }
-
-.sdems-gamble-add-row {
-  display: flex;
-  gap: 6px;
-  margin-top: 6px;
-  align-items: center;
-}
-.sdems-gamble-add-row input,
-.sdems-gamble-add-row select {
-  padding: 4px 8px;
-  background: var(--vcb-input-bg, #111418);
-  border: 1px solid var(--vcb-border, #3a3d44);
-  border-radius: 4px;
-  color: var(--vcb-text, #BDC1C6);
-  font-size: 1em;
-}
-.sdems-gamble-new-name { flex: 1; }
-.sdems-gamble-new-source { min-width: 140px; }
-.sdems-gamble-new-gold { width: 60px; }
-.sdems-gamble-add-btn {
-  padding: 4px 10px;
-  background: rgba(76, 175, 80, 0.12);
-  border: 1px solid rgba(76, 175, 80, 0.3);
-  border-radius: 4px;
-  color: var(--vcb-action-buy);
-  cursor: pointer;
-  font-size: 1em;
-}
-.sdems-gamble-add-btn:hover { background: rgba(76, 175, 80, 0.3); }
-.sdems-gamble-btn[disabled] { cursor: not-allowed; opacity: 0.4; }
-
-.sdems-toggle-label {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  cursor: pointer;
-  font-size: 1em;
-  color: var(--vcb-text, #BDC1C6);
-  min-width: auto !important;
-}
-
 
 /* ── Crawl Strip merchant button (opens the Merchant Shop) ───────────────── */
 .sde-strip-merchant-btn {
@@ -7205,47 +6327,6 @@ body.theme-light .sde-hub-monsters-row td {
   border-radius: 0;
 }
 .sde-strip-label-col .sde-strip-merchant-btn:hover { background: rgba(218, 165, 32, 0.15); }
-
-/* ── Merchant Shop — reconcile with Shadowdark system form styling ──────────
-   The Shadowdark system forces form controls to width:100% and flattens some
-   flex rows inside .window-content. The ported Vagabond rules are single-class
-   and lose to it, so re-assert the shop's intended layout scoped (2-class) to
-   the shop window, where it wins on specificity. */
-.shadowdark-enhancer-merchant-shop .sdems-filters,
-.shadowdark-enhancer-merchant-shop .sdems-catalog-filters,
-.shadowdark-enhancer-merchant-shop .sdems-comp-controls,
-.shadowdark-enhancer-merchant-shop .sdems-manage-price,
-.shadowdark-enhancer-merchant-shop .sdems-manage-stock,
-.shadowdark-enhancer-merchant-shop .sdems-gamble-add-row { display: flex; }
-.shadowdark-enhancer-merchant-shop .sdems-filters,
-.shadowdark-enhancer-merchant-shop .sdems-catalog-filters,
-.shadowdark-enhancer-merchant-shop .sdems-gamble-add-row { flex-wrap: wrap; gap: 6px; align-items: center; }
-/* Neutralize the system's width:100% on form controls inside the shop.
-   The system rule outspecifies a plain 2-class selector and is applied late,
-   so use !important on the children of each control row to guarantee the
-   shop's layout wins regardless of cascade order. */
-.shadowdark-enhancer-merchant-shop .sdems-filters > *,
-.shadowdark-enhancer-merchant-shop .sdems-catalog-filters > *,
-.shadowdark-enhancer-merchant-shop .sdems-comp-controls > *,
-.shadowdark-enhancer-merchant-shop .sdems-gamble-add-row > * { width: auto !important; }
-/* Restore the Vagabond design's intended control sizing. */
-.shadowdark-enhancer-merchant-shop .sdems-search-input,
-.shadowdark-enhancer-merchant-shop .sdems-catalog-search,
-.shadowdark-enhancer-merchant-shop .sdems-comp-search { flex: 1 1 160px; min-width: 140px; }
-.shadowdark-enhancer-merchant-shop .sdems-category-select { min-width: 140px; }
-.shadowdark-enhancer-merchant-shop .sdems-catalog-pack,
-.shadowdark-enhancer-merchant-shop .sdems-catalog-folder { min-width: 120px; }
-.shadowdark-enhancer-merchant-shop .sdems-catalog-sort { min-width: 90px; }
-.shadowdark-enhancer-merchant-shop .sdems-qty-input,
-.shadowdark-enhancer-merchant-shop .sdems-stock-input { width: 40px !important; }
-.shadowdark-enhancer-merchant-shop .sdems-manage-price input { width: 32px !important; }
-.shadowdark-enhancer-merchant-shop .sdems-gamble-new-name { flex: 1 1 auto; min-width: 120px; }
-.shadowdark-enhancer-merchant-shop .sdems-gamble-new-source { min-width: 140px; }
-.shadowdark-enhancer-merchant-shop .sdems-gamble-new-gold,
-.shadowdark-enhancer-merchant-shop .sdems-gamble-cost-gold,
-.shadowdark-enhancer-merchant-shop .sdems-gamble-cost-silver { width: 60px !important; }
-.shadowdark-enhancer-merchant-shop .sdems-markup-input,
-.shadowdark-enhancer-merchant-shop .sdems-ratio-input { width: 80px !important; }
 
 /* ── Merchant Shop chat cards (availability + buy/sell announcements) ────────
    These render in the chat log, OUTSIDE the shop window, so they can't use the
@@ -11322,19 +10403,6 @@ button.sde-hud-day:hover { border-color: var(--sd-frame); }
 .sde-bp-card footer { display: flex; gap: 6px; }
 .sde-bp-empty { margin: 14px 4px; font-style: italic; opacity: 0.8; }
 
-/* Bastion shops: the window opened from the Shops box. */
-.sde-bastion-shop .sde-bs { display: flex; flex-direction: column; height: 100%; gap: 6px; padding: 8px; }
-.sde-bastion-shop .sde-bs-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-.sde-bastion-shop .sde-bs-head label { display: flex; align-items: center; gap: 6px; }
-.sde-bastion-shop .sde-bs-head .purse { font-weight: bold; }
-.sde-bastion-shop .sde-bs-head input[type="search"] { flex: 1; min-width: 120px; }
-.sde-bastion-shop .hint { opacity: 0.8; margin: 0; }
-.sde-bastion-shop .sde-bs-list { list-style: none; margin: 0; padding: 0; overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: 2px; }
-.sde-bastion-shop .sde-bs-row { display: grid; grid-template-columns: 28px 1fr auto 56px auto; gap: 8px; align-items: center; padding: 2px 6px; border-radius: 4px; background: rgba(255, 255, 255, 0.08); }
-.sde-bastion-shop .sde-bs-row[hidden] { display: none; }
-.sde-bastion-shop .sde-bs-row img { width: 28px; height: 28px; border: 0; }
-.sde-bastion-shop .sde-bs-row .name small { display: block; opacity: 0.7; font-size: 11px; }
-.sde-bastion-shop .sde-bs-row .price { font-weight: bold; white-space: nowrap; }
 
 /* The NPC stat block of the Mount and Warband sheets (ApplicationV2, npc-stat-sheet.mjs). The system scopes these to its
    NPC and Player sheets, so restate the ones it uses. */
@@ -11690,3 +10758,163 @@ button.sde-hud-day:hover { border-color: var(--sd-frame); }
 .sde-ui.sde-party-xp .px-name { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; overflow-wrap: anywhere; }
 .sde-ui.sde-party-xp .px-lvl { grid-column: 3; text-align: center; }
 .sde-ui.sde-party-xp .px-xp { grid-column: 4; text-align: right; white-space: nowrap; }
+
+/* magic-forge window (kit parts come from styles/sde-ui.css). */
+/* Magic Item Forge proposal: three numbered steps on the left, a live preview on the right; one column when narrow.
+   Tokens only. Old hook classes (sde-forge-*) are kept on elements because the JS selects on them. */
+.sde-ui.sde-magicforge .ui-art.mf-art { display: grid; place-items: center; font-size: 22px; color: var(--ui-frame); }
+.sde-ui.sde-magicforge .ui-icon { flex: 0 0 auto; }
+.sde-ui.sde-magicforge .ui-head, .sde-ui.sde-magicforge .ui-head .ui-stats { flex-wrap: nowrap; }
+.sde-ui.sde-magicforge .mf-cols { display: grid; grid-template-columns: minmax(0, 1fr) minmax(190px, 240px); gap: 16px; align-items: start; }
+.sde-ui.sde-magicforge .mf-build { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.sde-ui.sde-magicforge .mf-preview { position: sticky; top: 0; }
+.sde-ui.sde-magicforge .mf-lines { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 4px; }
+.sde-ui.sde-magicforge .mf-lines li { margin: 0; padding: 0 0 4px; border-bottom: 1px solid var(--ui-line); color: var(--ui-body); font-size: 12.5px; }
+.sde-ui.sde-magicforge .mf-lines li:last-child { border-bottom: 0; }
+.sde-ui.sde-magicforge .ui-h > span { display: inline-flex; align-items: center; gap: 8px; }
+.sde-ui.sde-magicforge .ui-h .ui-num { font-family: var(--ui-font); }
+/* segmented chip rows are buttons */
+.sde-ui.sde-magicforge button.ui-chip { cursor: pointer; font: inherit; font-size: 12px; height: auto; min-height: 26px; padding: 2px 11px; }
+.sde-ui.sde-magicforge button.ui-chip:hover { border-color: var(--ui-frame); }
+.sde-ui.sde-magicforge .mf-seg { gap: 6px; }
+/* rows */
+.sde-ui.sde-magicforge .mf-pick .ui-row, .sde-ui.sde-magicforge .mf-spells .ui-row { cursor: pointer; }
+.sde-ui.sde-magicforge .mf-spells { border: 0; border-radius: 0; background: transparent; }
+.sde-ui.sde-magicforge .ui-row.selected { background: var(--ui-raised); box-shadow: inset 3px 0 0 var(--ui-frame); }
+.sde-ui.sde-magicforge .mf-check { display: none; color: var(--ui-ok); }
+.sde-ui.sde-magicforge .ui-row.selected .mf-check { display: inline-block; }
+.sde-ui.sde-magicforge .mf-spells .ui-icon { opacity: .55; }
+.sde-ui.sde-magicforge .mf-spells .ui-row:hover .ui-icon, .sde-ui.sde-magicforge .mf-spells .ui-row.selected .ui-icon { opacity: 1; }
+.sde-ui.sde-magicforge .mf-count { margin-left: auto; min-height: 20px; font-size: 11px; }
+.sde-ui.sde-magicforge .ui-details > summary { justify-content: flex-start; }
+/* core sets */
+.sde-ui.sde-magicforge .mf-set { gap: 8px; }
+.sde-ui.sde-magicforge .mf-set .ui-card-head { align-items: flex-start; flex-wrap: wrap; }
+.sde-ui.sde-magicforge .mf-field { padding-top: 8px; border-top: 1px solid var(--ui-line); }
+.sde-ui.sde-magicforge .mf-ctrl { flex-wrap: nowrap; gap: 4px; }
+.sde-ui.sde-magicforge .mf-ctrl select { flex: 1 1 auto; width: auto; min-width: 0; }
+.sde-ui.sde-magicforge .mf-picked { font-style: italic; }
+.sde-ui.sde-magicforge .mf-field .ui-label .ui-tag { margin-left: 6px; vertical-align: 1px; }
+.sde-ui.sde-magicforge .ui-btn.mf-wrap { height: auto; min-height: 28px; padding: 6px 12px; white-space: normal; text-align: left; line-height: 1.25; justify-content: flex-start; }
+@container (max-width: 560px) {
+  .sde-ui.sde-magicforge .mf-cols { grid-template-columns: minmax(0, 1fr); }
+  .sde-ui.sde-magicforge .mf-preview { position: static; order: -1; }
+  .sde-ui.sde-magicforge .ui-tab { padding: 6px 10px; font-size: 14px; }
+}
+.sde-ui.sde-magicforge .ui-search > input[type] { padding-left: 28px; }
+.sde-ui.sde-magicforge .mf-pick { max-height: 300px; overflow-y: auto; }
+.sde-ui.sde-magicforge .ui-body > * { flex-shrink: 0; }
+
+/* merchant-shop window (kit parts come from styles/sde-ui.css). */
+.sde-ui.sde-merchant .ui-art.ms-art { display: grid; place-items: center; font-size: 22px; color: var(--ui-frame); }
+.sde-ui.sde-merchant .ui-icon { flex: 0 0 auto; }
+.sde-ui.sde-merchant .ui-head, .sde-ui.sde-merchant .ui-head .ui-stats { flex-wrap: nowrap; }
+.sde-ui.sde-merchant .ms-wallet { color: var(--ui-gold); white-space: nowrap; }
+.sde-ui.sde-merchant .ms-tools { display: flex; gap: 4px; flex: 0 0 auto; }
+.sde-ui.sde-merchant .ms-tools .ui-icon.on { color: var(--ui-text); border-color: var(--ui-frame); background: var(--ui-raised); }
+.sde-ui.sde-merchant .ms-filters > select, .sde-ui.sde-merchant .ms-filters > .ui-search { min-width: 120px; }
+.sde-ui.sde-merchant .ms-filters > select { flex: 1 1 130px; width: auto; }
+.sde-ui.sde-merchant .ms-filters > .ui-grow { flex: 2 1 180px; }
+.sde-ui.sde-merchant .ms-filters .ui-num-in { flex: 0 0 64px; }
+.sde-ui.sde-merchant .ui-search > input[type] { padding-left: 28px; }
+/* collapsible sections (the JS toggles sdems-section-collapsed and aria-expanded) */
+.sde-ui.sde-merchant .sdems-section-header { cursor: pointer; user-select: none; }
+.sde-ui.sde-merchant .sdems-section-header > span { display: inline-flex; align-items: baseline; gap: 8px; }
+.sde-ui.sde-merchant .ms-caret { font-size: 10px; color: var(--ui-muted); transition: transform .12s; }
+.sde-ui.sde-merchant .sdems-section-collapsed .ms-caret { transform: rotate(-90deg); }
+.sde-ui.sde-merchant .sdems-section-collapsed .ms-section-body { display: none; }
+/* rows: the JS appends an .sdems-item-desc inside a clicked row */
+/* rows are grids with fixed control columns: the name takes the rest and wraps (2 lines, then clipped, tooltip has it all) */
+.sde-ui.sde-merchant .ms-row { display: grid; align-items: center; gap: 10px; cursor: default; }
+.sde-ui.sde-merchant .ms-r-buy { grid-template-columns: 28px minmax(0, 1fr) 104px 40px 150px; }
+.sde-ui.sde-merchant .ms-r-cat, .sde-ui.sde-merchant .ms-r-sell { grid-template-columns: 28px minmax(0, 1fr) 104px 150px; }
+.sde-ui.sde-merchant .ms-r-gamble { grid-template-columns: minmax(0, 1fr) 104px 96px; }
+.sde-ui.sde-merchant .ms-name { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; overflow-wrap: anywhere; }
+.sde-ui.sde-merchant .ms-row .ui-row-meta { text-align: right; white-space: nowrap; }
+.sde-ui.sde-merchant .ms-row .ms-stock { justify-self: center; }
+.sde-ui.sde-merchant .ms-r-gamble .ui-btn { width: 100%; padding: 0 6px; }
+.sde-ui.sde-merchant .sdems-item-desc { grid-column: 1 / -1; padding: 6px 2px 2px 38px; color: var(--ui-body); font-size: 12.5px; border-top: 1px dashed var(--ui-line); }
+.sde-ui.sde-merchant .sdems-item-desc p { margin: 0 0 4px; }
+.sde-ui.sde-merchant .ms-out { opacity: .5; }
+.sde-ui.sde-merchant .ms-poor .ui-row-meta { color: var(--ui-danger-text); }
+.sde-ui.sde-merchant .ms-sell { color: var(--ui-ok); }
+.sde-ui.sde-merchant .ms-stock { min-width: 28px; justify-content: center; color: var(--ui-muted); }
+.sde-ui.sde-merchant .ms-actions { display: grid; grid-template-columns: 56px minmax(0, 1fr); gap: 6px; }
+.sde-ui.sde-merchant .ms-actions .ui-num-in { width: 100% !important; }
+.sde-ui.sde-merchant .ms-actions .ui-btn { width: 100%; padding: 0 6px; min-width: 0; }
+.sde-ui.sde-merchant .ms-junk { box-shadow: inset 3px 0 0 var(--ui-danger); }
+.sde-ui.sde-merchant .ms-junk-ic { color: var(--ui-danger-text); }
+.sde-ui.sde-merchant .ms-sellhead { align-items: center; }
+.sde-ui.sde-merchant .ms-sellhead .ui-h { margin: 0; }
+/* log */
+.sde-ui.sde-merchant .ms-log-ic { width: 20px; text-align: center; color: var(--ui-muted); }
+.sde-ui.sde-merchant .ms-log-ic.buy { color: var(--ui-ok); }
+.sde-ui.sde-merchant .ms-log-ic.sell { color: var(--ui-gold); }
+/* manage */
+.sde-ui.sde-merchant .ms-span { grid-column: 1 / -1; }
+.sde-ui.sde-merchant .ms-saved select { flex: 1 1 auto; width: auto; }
+.sde-ui.sde-merchant .ms-edit { flex-wrap: wrap; }
+.sde-ui.sde-merchant .ms-price { display: flex; gap: 6px; flex: 0 0 auto; }
+.sde-ui.sde-merchant .ms-coin { display: inline-flex; align-items: center; gap: 3px; color: var(--ui-muted); font-size: 11px; }
+.sde-ui.sde-merchant .ms-coin input { width: 54px; padding: 0 4px; text-align: center; }
+.sde-ui.sde-merchant .ms-comp { max-height: 220px; overflow-y: auto; }
+.sde-ui.sde-merchant .ui-note.sdems-drop-zone { border-style: dashed; border-left-style: dashed; color: var(--ui-muted); text-align: center; }
+.sde-ui.sde-merchant .ui-details > summary .ui-chip { margin-left: auto; }
+@container (max-width: 560px) {
+  .sde-ui.sde-merchant .ms-r-buy { grid-template-columns: 28px minmax(0, 1fr) 40px 150px; }
+  .sde-ui.sde-merchant .ms-r-cat, .sde-ui.sde-merchant .ms-r-sell { grid-template-columns: 28px minmax(0, 1fr) 150px; }
+  .sde-ui.sde-merchant .ms-r-gamble { grid-template-columns: minmax(0, 1fr) 96px; }
+  .sde-ui.sde-merchant .ms-row > img { grid-column: 1; grid-row: 1; }
+  .sde-ui.sde-merchant .ms-r-buy > .ui-row-main, .sde-ui.sde-merchant .ms-r-cat > .ui-row-main, .sde-ui.sde-merchant .ms-r-sell > .ui-row-main { grid-column: 2 / -1; grid-row: 1; }
+  .sde-ui.sde-merchant .ms-r-gamble > .ui-row-main { grid-column: 1 / -1; grid-row: 1; }
+  .sde-ui.sde-merchant .ms-row .ui-row-meta { grid-column: 2; grid-row: 2; text-align: left; }
+  .sde-ui.sde-merchant .ms-r-gamble .ui-row-meta { grid-column: 1; }
+  .sde-ui.sde-merchant .ms-r-buy .ms-stock { grid-column: 3; grid-row: 2; }
+  .sde-ui.sde-merchant .ms-r-buy .ms-actions { grid-column: 4; grid-row: 2; }
+  .sde-ui.sde-merchant .ms-r-cat .ms-actions, .sde-ui.sde-merchant .ms-r-sell .ms-actions { grid-column: 3; grid-row: 2; }
+  .sde-ui.sde-merchant .ms-r-gamble .ui-btn { grid-column: 2; grid-row: 2; }
+  .sde-ui.sde-merchant .ms-edit .ms-price { flex: 1 1 100%; order: 3; justify-content: flex-start; }
+  .sde-ui.sde-merchant .ms-wide { flex-basis: 100%; }
+  .sde-ui.sde-merchant .ui-head { gap: 10px; }
+  .sde-ui.sde-merchant .ui-title { font-size: 20px; }
+}
+.sde-ui.sde-merchant .ui-body > * { flex-shrink: 0; }
+.sde-ui.sde-merchant .ui-footer .ui-btn { flex: 0 0 auto; width: auto; }
+.sde-ui.sde-merchant .sdems-item-row { background: transparent; border-radius: 0; margin: 0; }
+.sde-ui.sde-merchant .sdems-item-row:hover { background: var(--ui-hover); }
+@container (max-width: 560px) {
+  .sde-ui.sde-merchant .ui-head { flex-wrap: wrap; }
+  .sde-ui.sde-merchant .ui-head-text { flex: 1 1 55%; }
+  .sde-ui.sde-merchant .ui-head .ui-stats { flex-wrap: wrap; }
+}
+
+/* bastion-shop window (kit parts come from styles/sde-ui.css). */
+.sde-ui.sde-bastion-shop .ui-art.bs-art { display: grid; place-items: center; font-size: 22px; color: var(--ui-frame); }
+.sde-ui.sde-bastion-shop .ui-icon { flex: 0 0 auto; }
+.sde-ui.sde-bastion-shop .ui-head, .sde-ui.sde-bastion-shop .ui-head .ui-stats { flex-wrap: nowrap; }
+.sde-ui.sde-bastion-shop .bs-purse { color: var(--ui-gold); white-space: nowrap; }
+.sde-ui.sde-bastion-shop .bs-tools { flex: 0 0 auto; display: flex; gap: 10px; align-items: flex-end; padding: 10px 16px; border-bottom: 1px solid var(--ui-line); background: var(--ui-page); }
+.sde-ui.sde-bastion-shop .bs-buyer { flex: 0 1 220px; }
+.sde-ui.sde-bastion-shop .bs-search { flex: 1 1 auto; }
+.sde-ui.sde-bastion-shop .ui-search > input[type] { padding-left: 28px; }
+/* one grid, fixed control columns: the name takes what is left and wraps (two lines, then clipped, full text in the tooltip) */
+.sde-ui.sde-bastion-shop .sde-bs-row { background: transparent; border-radius: 0; margin: 0; display: grid; grid-template-columns: 28px minmax(0, 1fr) 104px 56px 84px; align-items: center; gap: 10px; }
+.sde-ui.sde-bastion-shop .bs-name { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; overflow-wrap: anywhere; }
+.sde-ui.sde-bastion-shop .bs-price { text-align: right; white-space: nowrap; }
+.sde-ui.sde-bastion-shop .bs-row .ui-btn { width: 100%; padding: 0 6px; min-width: 0; }
+.sde-ui.sde-bastion-shop .sde-bs-row:hover { background: var(--ui-hover); }
+.sde-ui.sde-bastion-shop .bs-row .ui-num-in { width: 100% !important; }
+.sde-ui.sde-bastion-shop .ui-body > * { flex-shrink: 0; }
+@container (max-width: 480px) {
+  .sde-ui.sde-bastion-shop .bs-tools { flex-wrap: wrap; }
+  .sde-ui.sde-bastion-shop .bs-buyer { flex: 1 1 100%; }
+  .sde-ui.sde-bastion-shop .sde-bs-row { grid-template-columns: 28px minmax(0, 1fr) 56px 84px; }
+  .sde-ui.sde-bastion-shop .sde-bs-row > img { grid-column: 1; grid-row: 1; }
+  .sde-ui.sde-bastion-shop .sde-bs-row > .ui-row-main { grid-column: 2 / -1; grid-row: 1; }
+  .sde-ui.sde-bastion-shop .bs-price { grid-column: 2; grid-row: 2; text-align: left; }
+  .sde-ui.sde-bastion-shop .bs-row .ui-num-in { grid-column: 3; grid-row: 2; }
+  .sde-ui.sde-bastion-shop .bs-row .ui-btn { grid-column: 4; grid-row: 2; }
+  .sde-ui.sde-bastion-shop .ui-head { flex-wrap: wrap; }
+  .sde-ui.sde-bastion-shop .ui-head-text { flex: 1 1 55%; }
+  .sde-ui.sde-bastion-shop .ui-head .ui-stats { flex-wrap: wrap; }
+}

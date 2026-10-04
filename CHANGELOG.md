@@ -9,6 +9,7 @@
   redesign. No window uses it yet, so nothing looks different.
 
 ### Changed
+- **Magic Forge, Merchant Shop and Bastion Shop use the new design.** Magic Forge has numbered steps with a live preview and one icon on each spell row; the Merchant Shop has a header wallet, icon buttons for Log and Manage and aligned price, stock and buy columns, and its stock tooltip now says Unlimited from a proper flag; the Bastion Shop has a purse in the header and one grid for its rows. Every action still does what it did.
 - **Loot Generator, Loot Setup, Monster Loot Overrides, Forge and Loot, and Party XP use the new design.** Each opens with a header, cards and rows on the shared UI kit, one primary button in a footer, and icon buttons for the per-row actions (Post, Drop and Forge on a loot roll). Every action still does what it did.
 - **Carousing window uses the new design.** One tier select for the party at the top, one shared-cost line (total, headcount, each person's share), a Joining switch and the result for each character.
 - **Camping window uses the new design.** Hairline rows on the shared UI kit, a ration count next to the ham hock icon, a Ready button, and no gold.

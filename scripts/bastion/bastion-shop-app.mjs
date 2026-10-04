@@ -21,7 +21,7 @@ const { HandlebarsApplicationMixin, ApplicationV2 } = foundry.applications.api;
 export class BastionShopApp extends HandlebarsApplicationMixin(ApplicationV2) {
   static DEFAULT_OPTIONS = {
     id: "sde-bastion-shop",
-    classes: ["shadowdark-enhancer", "sde-bastion-shop"],
+    classes: ["shadowdark-enhancer", "sde-ui", "sde-bastion-shop"],
     position: { width: 560, height: 620 },
     window: { icon: "fa-solid fa-store", title: "SDE.bastion.shop.title", resizable: true },
     actions: { buy: BastionShopApp.prototype._onBuy },
