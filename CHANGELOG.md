@@ -6,6 +6,7 @@
   redesign. No window uses it yet, so nothing looks different.
 
 ### Changed
+- **Carousing: one spending tier for the party, and a shared cost.** The tier is picked once at the top of the window by whoever manages the party (changing it asks everyone to confirm again), and its cost is a group total split between the joining characters in whole gp, any remainder charged one gp at a time to the first in list order. The mask and paper-lantern holiday boxes are gone.
 - **Camping: everyone takes part, and meals use your own rations first.** The Participate box and the "use party rations" box are gone. A meal takes the character's own rations, then the party's.
 - **Camping: everyone participates and meals use the party's rations automatically.** The per-character Participate checkbox is gone, and a character eats their own rations first and then the party's with no consent box; a character short overall is not fed and nothing is deducted. Torch contribution is still opt-in.
 - **The Character Builder's ability names and descriptions, the Hit Points formula's CON and the Gold step's dice formula now come from the language file** instead of being written into the code, and the Gold step's two inline styles are stylesheet classes. Nothing changes on screen.

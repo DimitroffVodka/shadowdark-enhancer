@@ -3,8 +3,8 @@
 [← Wiki home](index.md) · [Party](Party.md)
 
 Open Carouse from a native Party, even without a token/map or Shadowdark Extras.
-A Party owner starts/resumes. Each PC owner confirms only their own participation
-and full tier cost. Each pays from personal coins: no Party purse subsidy and
+A Party owner starts/resumes. The Party owner picks one tier for the whole party. Each PC owner confirms only their own participation.
+The tier cost is a group total split between the joining characters in whole gp (the remainder goes one gp at a time to the first in list order). Each pays their share from personal coins: no Party purse subsidy and
 no covering another character's shortfall.
 
 ## Configure before spending
@@ -12,10 +12,10 @@ no covering another character's shortfall.
 The GM selects imported Core or custom world event/outcome tables. Missing
 tables are reported before any charge; the module never invents missing results
 or ships sourcebook prose. A manual settlement is allowed; settlement limits,
-holiday admission/event bonuses, active downtime exclusion and each PC's
+active downtime exclusion and each PC's
 14-real-day cooldown apply without a map.
 
-The whole outing is preflighted: chosen participants, every full cost affordable,
+The whole outing is preflighted: chosen participants, every share affordable,
 and tables resolving. One shortfall refuses the outing before charging anyone.
 Declining or canceling during setup costs nothing. First commitment freezes
 inputs, charges once, and saves actual rolls/outcomes.
