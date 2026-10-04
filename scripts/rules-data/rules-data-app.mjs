@@ -158,6 +158,7 @@ async function confirmOverwrites(list) {
       + `<div style="max-height: 360px; overflow: auto;"><table><thead><tr>${head}</tr></thead><tbody>${rows}</tbody></table></div>`,
     yes: { label: L("SDE.rulesData.preview.overwrite"), icon: "fa-solid fa-file-import" },
     no: { label: L("SDE.rulesData.preview.keep"), icon: "fa-solid fa-xmark", default: true },
+    defaultYes: false,
     rejectClose: false,
   });
   return answer === true;
@@ -388,6 +389,9 @@ export class RulesDataApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const yes = await DialogV2.confirm({
       window: { title: L("SDE.rulesData.set.deleteTitle") },
       content: `<p>${esc(F("SDE.rulesData.set.deleteConfirm", { name: set.name }))}</p>`,
+      yes: { label: "SDE.rulesData.set.delete", icon: "fa-solid fa-trash" },
+      no: { label: "SDE.rulesData.set.keep", icon: "fa-solid fa-xmark" },
+      defaultYes: false,
       rejectClose: false,
     }).catch(() => false);
     if (yes !== true) return;

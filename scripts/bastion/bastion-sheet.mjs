@@ -175,6 +175,9 @@ export class BastionSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const sure = await foundry.applications.api.DialogV2.confirm({
       window: { title: "SDE.bastion.takeDown.title" },
       content: `<p>${esc(format("SDE.bastion.takeDown.question", { upgrade: t(upgrade?.name ?? "") }))}</p>`,
+      yes: { label: "SDE.bastion.takeDown.yes", icon: "fa-solid fa-trash" },
+      no: { label: "SDE.bastion.takeDown.keep", icon: "fa-solid fa-xmark" },
+      defaultYes: false,
       rejectClose: false,
     });
     if (sure) return this._apply((s) => core.takeDown(s, id));
