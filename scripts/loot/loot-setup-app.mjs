@@ -32,6 +32,7 @@ const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 export class LootSetupApp extends HandlebarsApplicationMixin(ApplicationV2) {
   static DEFAULT_OPTIONS = {
     id: "sde-loot-setup",
+    classes: ["sde-ui", "sde-lootsetup"],
     tag: "form",
     window: { title: "SDE.loot.setup.title", icon: "fas fa-gear", resizable: true },
     position: { width: 620, height: "auto" },

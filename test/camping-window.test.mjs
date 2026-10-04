@@ -29,7 +29,8 @@ test("every string the Camping template localizes exists in en.json, and no prop
 
 test("Camping uses no gold and no leftover party-sheet camping rules", async () => {
   const [css, party] = await Promise.all([read("styles/shadowdark-enhancer.css"), read("styles/party-sheet.css")]);
-  const block = css.slice(css.indexOf("/* Camping window"));
+  const start = css.indexOf("/* Camping window");
+  const block = css.slice(start, css.indexOf("/* Carousing window", start));
   assert.ok(block.length > 200 && !/gold|#c9aa58/i.test(block));
   assert.ok(!party.includes(".sde-camping-body"), "the old Camping selectors are gone from the Party sheet stylesheet");
 });

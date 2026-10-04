@@ -17,6 +17,7 @@ const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 export class LootGeneratorApp extends HandlebarsApplicationMixin(ApplicationV2) {
   static DEFAULT_OPTIONS = {
     id: "sde-loot-generator",
+    classes: ["sde-ui", "sde-lootgen"],
     tag: "form",
     window: { title: "SDE.loot.generator.title", icon: "fas fa-coins", resizable: true },
     position: { width: 560, height: "auto" },
