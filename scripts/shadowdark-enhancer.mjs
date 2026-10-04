@@ -300,6 +300,12 @@ Hooks.on("canvasReady", async (cv) => {
   catch (err) { console.warn(`${MODULE_ID} | adventure pins: could not refresh`, err); }
 });
 
+// DialogV2 only marks the default button with `autofocus`; give it the class the Enhancer's dialog look styles.
+Hooks.on("renderDialogV2", (app, element) => {
+  if (!app.options.classes?.includes("sde-dialog")) return;
+  element.querySelector(".form-footer button[autofocus]")?.classList.add("default");
+});
+
 Hooks.once("init", () => {
   ensureFreshStylesheet();
   // Of a GM signed in in several tabs of one browser, one does the GM's work (#288).

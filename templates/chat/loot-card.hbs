@@ -41,7 +41,24 @@
   </ul>
   {{else}}
   {{#if hasCoins}}
-  <ul class="cc-list"><li class="cc-item"><span class="cc-main"><span class="cc-val">{{coinsLabel}}</span></span></li></ul>
+  <ul class="cc-list">
+    <li class="cc-item">
+      <i class="fa-solid fa-coins" aria-hidden="true"></i>
+      <span class="cc-main"><span class="cc-val">{{coinsLabel}}</span></span>
+      {{#if coinsAssigned}}
+      <span class="cc-got"><i class="fa-solid fa-arrow-right"></i>{{coinsAssigned.actorName}}</span>
+      {{else}}
+      <button type="button" class="ui-btn sde-loot-claim-coins"><i class="fa-solid fa-hand-holding"></i>{{localize "SDE.loot.btn.claim"}}</button>
+      <details class="cc-more sde-loot-gm">
+        <summary class="cc-icon" title="{{localize 'SDE.loot.card.more'}}" aria-label="{{localize 'SDE.loot.card.more'}}"><i class="fa-solid fa-ellipsis"></i></summary>
+        <div class="cc-more-body">
+          <select class="sde-loot-coins-actor" aria-label="{{localize 'SDE.loot.card.assignCoinsTo'}}">{{#each party as |p|}}<option value="{{p.id}}">{{p.name}}</option>{{/each}}</select>
+          <button type="button" class="ui-btn sde-loot-assign-coins">{{localize "SDE.loot.card.assign"}}</button>
+        </div>
+      </details>
+      {{/if}}
+    </li>
+  </ul>
   {{/if}}
   {{/if}}
   {{#if notes.length}}

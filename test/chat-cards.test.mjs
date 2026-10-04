@@ -92,3 +92,15 @@ test("encounter card templates keep the context they render", () => {
 test("the weather card keeps its marker class", () => {
   assert.match(weatherCard({ title: "t", text: "x", fine: "f" }), /ui-cc sde-weather-card/);
 });
+
+test("a coins-only loot card still carries Claim and the GM assign control", () => {
+  const tpl = readFileSync(new URL("../templates/chat/loot-card.hbs", import.meta.url), "utf8");
+  const coinsOnly = tpl.slice(tpl.indexOf("{{else}}\n  {{#if hasCoins}}"));
+  assert.match(coinsOnly, /sde-loot-claim-coins/);
+  assert.match(coinsOnly, /sde-loot-assign-coins/);
+});
+
+test("the default dialog button gets the class the dialog look styles", () => {
+  const src = readFileSync(new URL("../scripts/shadowdark-enhancer.mjs", import.meta.url), "utf8");
+  assert.match(src, /Hooks\.on\("renderDialogV2"[\s\S]{0,300}button\[autofocus\][\s\S]{0,80}classList\.add\("default"\)/);
+});
