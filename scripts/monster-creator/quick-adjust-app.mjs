@@ -453,11 +453,14 @@ export function registerQuickAdjustHUD() {
     const col = root?.querySelector(".col.right") ?? root?.querySelector(".right");
     if (!col) return;
 
-    const btn = document.createElement("div");
-    btn.classList.add("control-icon");
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "control-icon sde-hud-btn";
     btn.dataset.action = "sde-quick-adjust";
-    btn.title = game.i18n.localize("SDE.quickAdjust.hudTooltip");
-    btn.innerHTML = `<i class="fa-solid fa-scale-balanced"></i>`;
+    const tip = game.i18n.localize("SDE.quickAdjust.hudTooltip");
+    btn.dataset.tooltip = tip;
+    btn.setAttribute("aria-label", tip);
+    btn.innerHTML = `<i class="fa-solid fa-scale-balanced" inert></i>`;
     btn.addEventListener("click", ev => {
       ev.preventDefault();
       ev.stopPropagation();
