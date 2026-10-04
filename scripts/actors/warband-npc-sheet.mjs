@@ -54,7 +54,7 @@ export function registerWarbandWrites(type) {
 }
 
 /** Send a change to the active GM, or make it here when this client is the active GM. */
-function sendWarbandWrite(data, type) {
+export function sendWarbandWrite(data, type) {
   return isActiveGM() ? warbandWrites(() => applyWarbandWrite(data, game.user, type))
     : queryActiveGM(WARBAND_QUERY, data, { label: game.i18n.localize("SDE.warband.relayLabel") });
 }

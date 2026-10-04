@@ -8,17 +8,18 @@ import { computeLightState } from "../crawl-strip/crawl-lights-core.mjs";
 
 /**
  * The tab row. Travel stays for everyone: each PC's owner confirms their own camping and carousing choices
- * there. Bastion is there once the party has a bastion its viewer may see.
+ * there. Downtime and Warbands are there for everyone too (a player sees their own characters' picks, and the warbands
+ * they may see). Bastion is there once the party has a bastion its viewer may see.
  * @param {{ hasBastion?: boolean }} view
  * @returns {string[]}
  */
 export function partyTabs({ hasBastion = false } = {}) {
-  return ["members", "items", "travel", "quests", ...(hasBastion ? ["bastion"] : []), "description"];
+  return ["members", "items", "travel", "quests", "downtime", "warbands", ...(hasBastion ? ["bastion"] : []), "description"];
 }
 
 /** Each tab's name (an en.json key) and icon. */
-export const TAB_LABELS = { members: "SDE.party.members", items: "SDE.party.sheet.inventory", travel: "SDE.party.sheet.travel", quests: "SDE.party.quests", bastion: "SDE.party.sheet.bastion", description: "SDE.party.sheet.description" };
-export const TAB_ICONS = { members: "fas fa-users", items: "fas fa-box", travel: "fas fa-campground", quests: "fas fa-scroll", bastion: "fas fa-chess-rook", description: "fas fa-book-open" };
+export const TAB_LABELS = { members: "SDE.party.members", items: "SDE.party.sheet.inventory", travel: "SDE.party.sheet.travel", quests: "SDE.party.quests", downtime: "SDE.party.downtime.tab", warbands: "SDE.party.warbands.tab", bastion: "SDE.party.sheet.bastion", description: "SDE.party.sheet.description" };
+export const TAB_ICONS = { members: "fas fa-users", items: "fas fa-box", travel: "fas fa-campground", quests: "fas fa-scroll", downtime: "fas fa-mug-hot", warbands: "fas fa-flag", bastion: "fas fa-chess-rook", description: "fas fa-book-open" };
 
 /** The tab row as the template draws it. `say` localizes a key. */
 export const tabRow = (keys, active, say) => keys.map((key) => ({ key, label: say(TAB_LABELS[key]), icon: TAB_ICONS[key], active: key === active }));
@@ -397,4 +398,59 @@ export function rollResultText({ name, total = null, dc, success = null }, { say
   return Number.isFinite(Number(total)) && total !== null
     ? sayWith("SDE.party.roll.result", { name, total, dc: d, outcome })
     : sayWith("SDE.party.roll.resultNoTotal", { name, dc: d, outcome });
+}
+
+// ---------------------------------------------------------------- Downtime tab
+
+/** The book a new session starts in: the first of these that is unlocked, Western Reaches first; null when none is. */
+export function defaultSource(slugs = [], unlocked = () => false, preferred = "western-reaches") {
+  const ordered = [...(slugs ?? [])].sort((a, b) => (a === preferred ? -1 : b === preferred ? 1 : 0));
+  return ordered.find((slug) => unlocked(slug)) ?? null;
+}
+
+/**
+ * The Downtime tab: the session's status and one row per character. `session` is null (or not active) when
+ * no session is running, and then there are no rows to show.
+ * @param {{ active?: boolean, phase?: string, sourceLabel?: string, days?: number, picks?: object, results?: object }|null} session
+ * @param {Array<{ id: string, name: string }>} pcs the characters to list (a player's own, or all of the party's for a GM)
+ * @param {{ pickLabel: (pick: object) => string, advLabel: (pick: object) => string }} words
+ */
+export function downtimeSummary(session, pcs = [], { pickLabel = () => "", advLabel = () => "" } = {}) {
+  if (!session?.active) return { inSession: false, session: null, rows: [] };
+  const picks = session.picks ?? {}, results = session.results ?? {};
+  return {
+    inSession: true,
+    session: { sourceLabel: session.sourceLabel ?? "", days: Number(session.days) || 0, locked: session.phase === "roll", pickCount: Object.keys(picks).length, resultCount: Object.keys(results).length },
+    rows: (pcs ?? []).map(({ id, name }) => {
+      const pick = picks[id] ?? null, result = results[id] ?? null;
+      return { actorId: id, name, picked: !!pick, pickLabel: pick ? pickLabel(pick) : "", advantage: pick ? advLabel(pick) : "", rolled: !!result,
+        total: result?.total ?? null, dc: result?.dc ?? null, success: result?.success ?? null };
+    }),
+  };
+}
+
+// ---------------------------------------------------------------- Warbands tab
+
+/**
+ * The Warbands tab: the warbands under a party member's command, one group for each commander (by name), each
+ * group's warbands by name. A warband with no commander, or one outside the party, is not listed.
+ * `arrears` is gp owed (0: upkeep is paid); `out` is a warband that deserted or routed, which the GM can return to service.
+ * @param {Array<{ uuid: string, name: string, img?: string, level?: number, hp?: {value?: number, max?: number}, commander?: string|null, arrears?: number, out?: boolean, upkeepGp?: number }>} warbands
+ * @param {string[]} commanderUuids the party's characters, who may command
+ * @param {(uuid: string) => string} nameOf a commander's name
+ * @returns {Array<{ commander: string, rows: Array<object> }>}
+ */
+export function warbandGroups(warbands = [], commanderUuids = [], nameOf = (uuid) => uuid) {
+  const members = new Set(commanderUuids ?? []);
+  const byCommander = new Map();
+  for (const wb of warbands ?? []) {
+    if (!wb?.commander || !members.has(wb.commander)) continue;
+    const value = Math.max(0, Number(wb.hp?.value) || 0), max = Math.max(0, Number(wb.hp?.max) || 0);
+    const row = { uuid: wb.uuid, name: wb.name, img: wb.img, level: Number(wb.level) || 0, hp: { value, max }, hpPercent: max ? Math.min(100, Math.round(value / max * 100)) : 0,
+      upkeepGp: Math.max(0, Number(wb.upkeepGp) || 0), arrears: Math.max(0, Math.trunc(Number(wb.arrears) || 0)), out: !!wb.out };
+    if (!byCommander.has(wb.commander)) byCommander.set(wb.commander, []);
+    byCommander.get(wb.commander).push(row);
+  }
+  return [...byCommander].map(([uuid, rows]) => ({ commander: nameOf(uuid), rows: rows.sort((a, b) => String(a.name).localeCompare(String(b.name))) }))
+    .sort((a, b) => String(a.commander).localeCompare(String(b.commander)));
 }

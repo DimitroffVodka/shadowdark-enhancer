@@ -147,7 +147,7 @@ test("Party member cards keep the portrait, HP, AC, level, slots, XP, ability mo
   assert.equal(context.players[0].xp.next, 20);
   assert.equal(context.players[0].effects, undefined, "the member card no longer lists active effects");
   assert.deepEqual([context.players[0].luck, context.players[0].lightOn], [1, true]);
-  assert.deepEqual(context.tabs.map(tab => tab.key), ["members", "items", "travel", "quests", "description"], "the GM sees Travel");
+  assert.deepEqual(context.tabs.map(tab => tab.key), ["members", "items", "travel", "quests", "downtime", "warbands", "description"], "the GM sees Travel");
   const template = await readFile(new URL("../templates/party/party.hbs", import.meta.url), "utf8");
   for (const marker of ["sdp-head", "sdp-stats", "sdp-face", "sdp-hp", "sdp-chips", "sdp-abil", "sdp-luck", "sdp-light", "tab-inventory", "tab-travel", "tab-description"]) assert.ok(template.includes(marker), marker);
   assert.ok(!template.includes("sdp-fx") && !template.includes("member.effects"), "the active-effects loop is gone");
@@ -343,7 +343,7 @@ test("a player's sheet keeps Travel and drops every control that changes the par
   const context = await app._prepareContext();
   assert.equal(context.isGM, false);
   assert.equal(context.canEdit, false);
-  assert.deepEqual(context.tabs.map(tab => tab.key), ["members", "items", "travel", "quests", "description"]);
+  assert.deepEqual(context.tabs.map(tab => tab.key), ["members", "items", "travel", "quests", "downtime", "warbands", "description"]);
   assert.equal(context.travelTab, true, "a player can open Travel: their own camping and carousing choices are confirmed there");
   assert.equal(context.players[0].canEdit, false, "no remove (x) on a card");
   assert.equal(context.players[0].hp.value, 5, "players still see a member's full stats");
@@ -358,7 +358,7 @@ test("the Bastion tab shows only when a bastion the viewer may see is linked to 
   let rendered = 0; bastion.sheet = { render: () => { rendered++; } };
   const app = new PartyApp(p);
   let context = await app._prepareContext();
-  assert.deepEqual(context.tabs.map(tab => tab.key), ["members", "items", "travel", "quests", "bastion", "description"]);
+  assert.deepEqual(context.tabs.map(tab => tab.key), ["members", "items", "travel", "quests", "downtime", "warbands", "bastion", "description"]);
   assert.deepEqual([context.bastion.ac, context.bastion.hp, context.bastion.maxHp, context.bastion.used, context.bastion.slots, context.bastion.treasury], [18, 80, 100, 2, 10, 12]);
   assert.deepEqual(context.bastion.rooms.map(r => [r.name, r.building]), [["SDE.bastion.upgrade.stable.name", false], ["SDE.bastion.upgrade.library.name", true]]);
   assert.match(context.bastion.lastMonth, /quietMonth/, "the newest month result, not the later deposit");
@@ -658,4 +658,28 @@ test("Request roll posts one card with a link for each PC ticked, and nothing wi
 test("the Members tab carries the GM bar and the spell rows in the markup", async () => {
   const template = await readFile(new URL("../templates/party/party.hbs", import.meta.url), "utf8");
   for (const marker of ['data-action="requestRoll"', 'data-action="awardParty"', "data-roll-dc", "data-roll-stat", "data-roll-member", 'class="sdp-spells"', "{{#if gmBar}}"]) assert.ok(template.includes(marker), marker);
+});
+
+test("the Warbands tab lists the warbands a party character commands, each with its upkeep, and shows a viewer only the ones they may see", async () => {
+  const t = treasury();
+  const wb = (id, commander, { arrears = 0, deserted = false, perm = 3 } = {}) => {
+    const a = actor(id, `${MOD}.warband`, { [MOD]: { warband: { commander, arrears, deserted } } }, perm);
+    a.img = `${id}.webp`; a.system = { level: { value: 2 }, attributes: { hp: { value: 5, max: 20 } } };
+    return a;
+  };
+  const owed = wb("w1", "Actor.a", { arrears: 15 }), out = wb("w2", "Actor.b", { deserted: true }), stranger = wb("w3", "Actor.nobody"), hidden = wb("w4", "Actor.a", { perm: 0 });
+  globalThis.game.actors.contents.push(owed, out, stranger, hidden);
+  t.app.tab = "warbands";
+  const context = await t.app._prepareContext();
+  assert.equal(context.warbandsTab, true);
+  assert.deepEqual(context.warbandGroups.map((g) => [g.commander, g.rows.map((r) => r.name)]), [["a", ["w1"]], ["b", ["w2"]]]);
+  assert.deepEqual([context.warbandGroups[0].rows[0].arrears, context.warbandGroups[0].rows[0].upkeepGp, context.warbandGroups[1].rows[0].out], [15, 20, true]);
+  const other = await new PartyApp(t.p)._prepareContext();
+  assert.deepEqual(other.warbandGroups, [], "only the active tab is worked out");
+});
+
+test("Warbands and Downtime controls are the GM's alone", async () => {
+  const t = treasury({ isGM: false });
+  for (const name of ["runMonth", "payArrears", "returnToService", "startSession", "lockRolls", "releaseRolls", "endSession", "gmClearPick", "gmRollFor"]) await act(t.app, name, { dataset: { uuid: "Actor.w1", actorId: "a" } });
+  assert.equal(t.p.writes.length, 0, "nothing ran for a player: each handler returned before loading the downtime or warband code");
 });
