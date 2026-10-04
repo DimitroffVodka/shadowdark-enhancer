@@ -154,7 +154,7 @@
   "SDE.carousing.confirmChoice": "Confirm my choice / decline",
   "SDE.carousing.roll": "Saved outcome roll",
   "SDE.carousing.manual": "GM action: adjudicate narrative and custom effects here. Automatic effects cover positive XP, signed renown and Luck only; losses, gear, debt and other wealth effects stay visible GM actions.",
-  "SDE.carousing.manualHoliday": "GM action: this holiday also specifies benefit/mishap modifiers or extra events. These expanded/narrative effects remain manual in basic carousing; admission and event bonuses are automatic.",
+  "SDE.carousing.manualHoliday": "GM action: this holiday also specifies benefit/mishap modifiers or extra events. These expanded/narrative effects remain manual in basic carousing; event bonuses are automatic.",
   "SDE.carousing.begin": "Open a new outing",
   "SDE.carousing.start": "Commit choices and carouse",
   "SDE.carousing.cancel": "Cancel unpaid outing",

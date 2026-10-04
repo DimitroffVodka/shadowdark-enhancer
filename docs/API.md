@@ -1581,9 +1581,9 @@ Each holiday:
 }
 ```
 
-A garb question with `required: true` (the Duke's Ball's 500 gp costume) gates
-entry: a "no" keeps the character out of the ball. A question with a `note`
-(red at the Duke's Ball) should post that note when answered "yes". Labels
+Garb questions (the Duke's Ball's 500 gp costume, the red at the Duke's Ball)
+are delivered for API callers but native carousing no longer asks them, so
+they gate nothing there. Labels
 come back already localised. Mechanics only: the book's wording is the
 imported page, at `pageUuid`.
 

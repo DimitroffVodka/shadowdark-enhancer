@@ -50,7 +50,7 @@ export const ANCHORS = {
 
 /** A 1-in-N chance the table rolls for, e.g. a marriage proposal. */
 const chance = (key, n, label) => ({ key, oneIn: n, label });
-/** A garb question: answering "yes" applies `modifier` to carousing event rolls. */
+/** A garb question (recipe data for API callers; native carousing no longer asks it). */
 const garb = (key, modifier, label, extra = {}) => ({ key, modifier, label, ...extra });
 
 const CITY_OF_MASKS = { name: "City of Masks", hex: "1334" };
@@ -64,8 +64,8 @@ const CITY_OF_MASKS = { name: "City of Masks", hex: "1334" };
  *   benefitBonus      added to benefit rolls (d100)
  *   benefitAdvantage  benefit rolls with advantage
  *   chances           1-in-N events for the table to roll
- * A garb question with `required: true` gates entry (a "no" keeps the PC out)
- * instead of modifying the roll; `note` is said when the answer is "yes".
+ * Native carousing no longer asks garb questions; the data stays for API callers
+ * (`required: true` meant the question gated entry, `note` was said on "yes").
  */
 export const HOLIDAYS = [
   {
