@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import { readFileSync } from "node:fs";
 import assert from "node:assert/strict";
-import { partyTabs, resolveTab, sheetView, marchState, gemSummary, gpText, linkedBastion, lastMonthEntry, roomIcon, ROOM_ICONS, MONTH_LOG_KEYS, terrainLabel, lightReadout, rationsCount, statusBar, TAB_LABELS, TAB_ICONS, tabRow, movementMessageKey, marchText } from "../scripts/party/party-sheet-core.mjs";
+import { partyTabs, resolveTab, sheetView, marchState, gemSummary, gpText, linkedBastion, lastMonthEntry, roomIcon, ROOM_ICONS, MONTH_LOG_KEYS, terrainLabel, lightReadout, rationsCount, torchCount, carriesLight, luckCount, statusBar, COIN_REFUSALS, coinsOf, coinText, poolAfterAdd, planGive, planDivide, purseAfter, searchItemIndex, TAB_LABELS, TAB_ICONS, tabRow, movementMessageKey, marchText } from "../scripts/party/party-sheet-core.mjs";
 
 test("everyone sees Travel (each PC's owner confirms their own camping and carousing there); Bastion needs a linked bastion", () => {
   assert.deepEqual(partyTabs(), ["members", "items", "travel", "quests", "description"]);
@@ -128,6 +128,38 @@ test("rations count Basic stacks named Rations, and nothing else", () => {
   assert.equal(rationsCount([[{ name: "Rations", type: "Basic", system: { quantity: "x" } }]]), 0);
 });
 
+test("Luck counts a token in hand as at least one and Pulp's remaining tokens as they are", () => {
+  assert.equal(luckCount(undefined), 0);
+  assert.equal(luckCount({ available: false, remaining: 0 }), 0);
+  assert.equal(luckCount({ available: true }), 1);
+  assert.equal(luckCount({ available: true, remaining: 3 }), 3);
+  assert.equal(luckCount({ available: false, remaining: 2 }), 2);
+  assert.equal(luckCount({ available: true, remaining: -4 }), 1);
+});
+
+test("a member carries light only while one of the items is burning", () => {
+  const torch = (active) => ({ id: "t", name: "Torch", type: "Basic", system: { light: { isSource: true, active, remainingSecs: 600, longevityMins: 60 } } });
+  assert.equal(carriesLight([torch(true)]), true);
+  assert.equal(carriesLight([torch(false)]), false);
+  assert.equal(carriesLight([]), false);
+  assert.equal(carriesLight(), false);
+});
+
+test("torches count Basic stacks named Torch or Torches, lit or not, and nothing else", () => {
+  const stack = (name, quantity, type = "Basic") => ({ name, type, system: { quantity } });
+  assert.equal(torchCount([[stack("Torch", 2), stack("Torches", 3), stack("Torch (bundle)", 9), stack("Torch", 4, "Treasure")], [stack("torch", 1)]]), 6);
+  assert.equal(torchCount([[]]), 0);
+  assert.equal(torchCount(), 0);
+  assert.equal(torchCount([[{ name: "Torch", type: "Basic", system: { quantity: "x" } }]]), 0);
+});
+
+test("status bar: Torches sit between Light and Rations, show zero as low, and are left out when unknown", () => {
+  assert.deepEqual(statusBar({ light: { name: "Torch", mins: 38 }, torches: 6, rations: 12 }, words).map((r) => [r.key, r.value]), [["light", "Torch, 38 min"], ["torches", "6"], ["rations", "12"]]);
+  assert.deepEqual(statusBar({ torches: 0 }, words), [{ key: "torches", label: "Torches", icon: "fa-fire-flame-simple", value: "0", low: true }]);
+  assert.deepEqual(statusBar({ torches: 3 }, words), [{ key: "torches", label: "Torches", icon: "fa-fire-flame-simple", value: "3", low: false }]);
+  assert.deepEqual(statusBar({ torches: null, rations: 2 }, words).map((r) => r.key), ["rations"]);
+});
+
 test("status bar: Today, Light and Rations each appear only with data", () => {
   const travel = { terrain: "forest", weather: "Fair", hexesLeft: 3, budget: 4 };
   assert.deepEqual(statusBar({ travel, light: { name: "Torch", mins: 38 }, rations: 12 }, words), [
@@ -170,4 +202,73 @@ test("every movement notice has its own message, and the Marching order line say
   assert.equal(marchText({ mode: "none" }, names, words).text, "");
   assert.equal(marchText({ mode: "notice", reason: "noToken" }, names, words).text, en["SDE.party.movement.noToken"]);
   assert.equal(marchText({ mode: "notice", reason: "combat" }, names, words).text, en["SDE.party.movement.combat"]);
+});
+
+// ---------------------------------------------------------------- Treasury and Add item
+
+test("coins are whole, never negative, and read from any odd value", () => {
+  assert.deepEqual(coinsOf({ gp: 3.9, sp: -2, cp: "7" }), { gp: 3, sp: 0, cp: 7 });
+  assert.deepEqual(coinsOf(undefined), { gp: 0, sp: 0, cp: 0 });
+  assert.equal(coinText({ gp: 3, sp: 0, cp: 2 }, (key) => key.toUpperCase()), "3 GP, 2 CP");
+  assert.equal(coinText({ gp: 0, sp: 0, cp: 0 }), "");
+});
+
+test("adding coins adds whole coins, a negative takes them, and a type stops at 0", () => {
+  assert.deepEqual(poolAfterAdd({ gp: 5, sp: 0, cp: 3 }, { gp: 10, sp: 4.7, cp: -9 }), { gp: 15, sp: 4, cp: 0 });
+  assert.deepEqual(poolAfterAdd(undefined, { gp: "x" }), { gp: 0, sp: 0, cp: 0 });
+});
+
+test("giving coins moves them from the pool to each chosen character, and a short pool refuses everything", () => {
+  const pool = { gp: 10, sp: 5, cp: 0 };
+  const one = planGive(pool, { gp: 4, sp: 1 }, ["a"]);
+  assert.deepEqual(one, { ok: true, pool: { gp: 6, sp: 4, cp: 0 }, grants: [{ id: "a", coins: { gp: 4, sp: 1, cp: 0 } }] });
+  const all = planGive(pool, { gp: 3 }, ["a", "b", "c"]);
+  assert.deepEqual(all.pool, { gp: 1, sp: 5, cp: 0 }, "each of the three gets 3 gp");
+  assert.deepEqual(all.grants.map((g) => g.id), ["a", "b", "c"]);
+  assert.deepEqual(planGive(pool, { gp: 4 }, ["a", "b", "c"]), { ok: false, reason: "short" }, "12 gp wanted, 10 held");
+  assert.deepEqual(planGive(pool, { cp: 1 }, ["a"]), { ok: false, reason: "short" }, "one short type refuses the whole give");
+  assert.deepEqual(planGive(pool, { gp: 1 }, []), { ok: false, reason: "noPcs" });
+  assert.deepEqual(planGive(pool, { gp: 0, sp: 0 }, ["a"]), { ok: false, reason: "nothing" });
+  assert.deepEqual(planGive(pool, { gp: 1 }, ["a", "a"]).grants.length, 1, "one character is paid once");
+});
+
+test("dividing coins splits all three types among the characters in whole coins and the remainder stays", () => {
+  assert.deepEqual(planDivide({ gp: 10, sp: 7, cp: 100 }, ["a", "b", "c"]), {
+    ok: true, share: { gp: 3, sp: 2, cp: 33 }, pool: { gp: 1, sp: 1, cp: 1 },
+    grants: ["a", "b", "c"].map((id) => ({ id, coins: { gp: 3, sp: 2, cp: 33 } })) });
+  const even = planDivide({ gp: 12, sp: 0, cp: 0 }, ["a", "b"]);
+  assert.deepEqual([even.share, even.pool], [{ gp: 6, sp: 0, cp: 0 }, { gp: 0, sp: 0, cp: 0 }]);
+  const spare = planDivide({ gp: 2, sp: 9, cp: 0 }, ["a", "b", "c"]);
+  assert.deepEqual([spare.share, spare.pool], [{ gp: 0, sp: 3, cp: 0 }, { gp: 2, sp: 0, cp: 0 }], "a type with less than one coin each stays whole in the pool");
+  assert.deepEqual(planDivide({ gp: 2, sp: 2, cp: 2 }, ["a", "b", "c"]), { ok: false, reason: "nothing" }, "not one whole coin each");
+  assert.deepEqual(planDivide({ gp: 9, sp: 9, cp: 9 }, []), { ok: false, reason: "noPcs" });
+  assert.deepEqual(planDivide(undefined, ["a"]), { ok: false, reason: "nothing" });
+});
+
+test("divided coins plus the remainder always equal the pool", () => {
+  for (const [gp, sp, cp, n] of [[7, 3, 11, 4], [100, 1, 0, 3], [0, 5, 5, 5], [13, 13, 13, 7]]) {
+    const plan = planDivide({ gp, sp, cp }, Array.from({ length: n }, (_, i) => `p${i}`));
+    if (!plan.ok) continue;
+    for (const [key, held] of Object.entries({ gp, sp, cp })) assert.equal(plan.share[key] * n + plan.pool[key], held, key);
+  }
+});
+
+test("a purse gains coins by type", () => {
+  assert.deepEqual(purseAfter({ gp: 1, sp: 2, cp: 3 }, { gp: 4, cp: 1 }), { gp: 5, sp: 2, cp: 4 });
+  assert.deepEqual(purseAfter(undefined, { sp: 2 }), { gp: 0, sp: 2, cp: 0 });
+});
+
+test("every refusal has words in en.json", () => {
+  for (const key of Object.values(COIN_REFUSALS)) assert.ok(en[key], key);
+});
+
+test("the item search needs every word, ranks names that start with the query first, and finds nothing for nothing", () => {
+  const entries = ["Rope, 60'", "Silk Rope", "Rope Ladder", "Torch", "Hemp Rope of Climbing"].map((name) => ({ name }));
+  assert.deepEqual(searchItemIndex(entries, "rope").map((e) => e.name), ["Rope Ladder", "Rope, 60'", "Hemp Rope of Climbing", "Silk Rope"]);
+  assert.deepEqual(searchItemIndex(entries, "ROPE  climbing").map((e) => e.name), ["Hemp Rope of Climbing"]);
+  assert.deepEqual(searchItemIndex(entries, ""), []);
+  assert.deepEqual(searchItemIndex(entries, "   "), []);
+  assert.deepEqual(searchItemIndex(entries, "dragon"), []);
+  assert.equal(searchItemIndex(entries, "rope", 2).length, 2);
+  assert.deepEqual(searchItemIndex(undefined, "x"), []);
 });

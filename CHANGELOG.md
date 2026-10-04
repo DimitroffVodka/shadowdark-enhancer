@@ -2,10 +2,12 @@
 
 ## [Unreleased]
 ### Added
+- **The Party Items tab shows slots used and the maximum, an Add item menu (From compendium, with a new name search over the item compendiums, or Forge a magic item), a Give to menu on each item, and GM buttons to Add, Give and Divide coins.** Give coins moves coins from the party's treasury into the PCs' own purses and is refused if the treasury is short; Divide splits GP, SP and CP evenly among the PCs in whole coins and the remainder stays in the treasury.
 - **A shared UI kit stylesheet** (`styles/sde-ui.css`, dark and light tokens plus parts) for the window
   redesign. No window uses it yet, so nothing looks different.
 
 ### Changed
+- **The Party sheet is restyled on the shared UI kit.** The emblem takes any hex colour for its tile and its icon, the leader is chosen by clicking a formation slot, Torches join the status strip, member cards show Luck and Light under the portrait with the class on its own line and all six ability scores on one line, the active-effects icons are gone, and the tab row fills its width.
 - **Dialogs share one look.** Confirms, prompts and choice dialogs take the kit's title, body and button row (the default button is the filled one), and the dying menu lists its actions as rows with icons. Handlers and default buttons are unchanged.
 - **Chat cards use the new look.** The encounter check, encounter result, flavor and loot cards, plus the chaos initiative, session luck, rumors, troubles, rules notice, weather, downtime, merchant purchase, item pickup, forge, parry, dying, out-of-combat initiative, warband note and pit fight twist cards, now read as one family in dark and light. Same data and buttons; the loot card keeps Claim in view and puts Give and Forge behind one more-actions icon.
 - **Carousing: one spending tier for the party, and a shared cost.** The tier is picked once at the top of the window by whoever manages the party (changing it asks everyone to confirm again), and its cost is a group total split between the joining characters in whole gp, any remainder charged one gp at a time to the first in list order. The mask and paper-lantern holiday boxes are gone.

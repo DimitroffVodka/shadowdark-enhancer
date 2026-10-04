@@ -2,19 +2,19 @@
 
 /* Party sheet base - dark elegant theme */
 
+/* The window root carries sde-ui (styles/sde-ui.css): its --ui-* tokens switch with the theme. The older --party-* names below are the
+   camping, carousing and quest panes' own and now read the same tokens. */
 .sde-party {
-    --party-bg-dark: #0a0a0a;
-    --party-bg-medium: #111111;
-    --party-bg-light: #1a1a1a;
-    --party-border: #333;
-    --party-text: #e0e0e0;
-    --party-text-muted: #888;
-    --party-accent: #2c2c2c;
-    --party-accent-glow: rgba(201, 169, 97, 0.3);
-    --party-danger: #c41e3a;
-    background: var(--party-bg-dark) !important;
-    min-width: 680px;
-    min-height: 610px;
+    --party-bg-dark: var(--ui-page);
+    --party-bg-medium: var(--ui-panel);
+    --party-bg-light: var(--ui-raised);
+    --party-border: var(--ui-line);
+    --party-text: var(--ui-body);
+    --party-text-muted: var(--ui-muted);
+    --party-accent: var(--ui-frame);
+    --party-danger: var(--ui-danger-text);
+    min-width: 420px;
+    min-height: 480px;
 }
 
 .sde-party .window-content {
@@ -264,20 +264,13 @@
 
 .sde-party .SD-content-body > .tab.active { display: block; }
 
-/* Foundry V14 renders native checkboxes for the dark scheme, which hides the box and its tick.
-   A light colour scheme gives every Party control a visible box and checkmark. */
-
-.sde-party input[type="checkbox"] { color-scheme: light; accent-color: #c9aa58; }
-
-.sde-party .sde-party-picker { display: flex; gap: 8px; padding: 6px 12px; background: #111; }
+.sde-party .sde-party-picker { display: flex; gap: 8px; padding: 8px 16px; border-bottom: 1px solid var(--ui-line); }
 
 .sde-party .sde-party-picker select { flex: 1; min-width: 0; }
 
 .sde-party .sde-party-picker button { flex: 0; white-space: nowrap; }
 
-.sde-party .SD-content-body input, .sde-party .SD-content-body select { color: #e0e0e0; background: #1a1a1a; }
-
-.sde-party .sde-party-activities [aria-pressed="true"] { border-color: #c9aa58; color: #e6d19b; background: #292419; }
+.sde-party .sde-party-activities [aria-pressed="true"] { border-color: var(--ui-gold); color: var(--ui-gold); background: var(--ui-raised); }
 
 .sde-party .sde-camping-body, .sde-party .sde-carousing-body { display: flex; flex-direction: column; gap: 10px; color: var(--party-text); }
 
@@ -337,148 +330,205 @@
 
 .sde-party .sde-ql-payout input[type="checkbox"] { width: 16px; height: 16px; flex: 0 0 16px; margin: 0; }
 
-.sde-party .description-content textarea { width: 100%; min-height: 200px; padding: 12px; color: var(--party-text); background: #1a1a1a; border: 1px solid #555; resize: vertical; }
+.sde-party .description-content textarea { width: 100%; min-height: 200px; resize: vertical; }
 
 .sde-party .description-box .header button { width: auto; min-height: 0; padding: 2px 8px; font-size: 12px; }
 
 /* ------------------------------------------------------------------ Party sheet: header band */
-.sde-party .sdp-head { position: relative; display: flex; align-items: center; gap: 14px; flex: 0 0 auto; padding: 8px 14px; border-bottom: 1px solid #2a2a2a; background: linear-gradient(180deg, #181818, #0d0d0d); }
-.sde-party .sdp-head button { min-height: 0; }
-.sde-party .sdp-emblem { display: grid; place-items: center; flex: none; width: 54px; height: 54px; padding: 0; overflow: hidden; border: 1px solid #0008; border-radius: 12px; background: radial-gradient(circle at 30% 25%, color-mix(in srgb, var(--c) 70%, #fff 30%), var(--c) 55%, color-mix(in srgb, var(--c) 70%, #000)); box-shadow: inset 0 -4px 8px #0005, 0 2px 6px #000a; }
+.sde-party .sdp-head { position: relative; gap: 16px; height: 124px; padding: 0 16px; align-items: center; flex-wrap: nowrap; }
+/* the emblem is 90% of the header height; its picture is a mask, so the same tile shows it in any colour (--ic) */
+.sde-party .sdp-emblem { position: relative; display: block; flex: 0 0 auto; height: 90%; aspect-ratio: 1; width: auto; padding: 0; overflow: hidden; border: 1px solid var(--ui-frame); border-radius: 12px; background: var(--c); }
+.sde-party .sdp-glyph { position: absolute; inset: 14%; background-color: var(--ic, #fff); -webkit-mask: var(--icon) center / contain no-repeat; mask: var(--icon) center / contain no-repeat; }
 .sde-party button.sdp-emblem { cursor: pointer; }
-.sde-party button.sdp-emblem:hover { box-shadow: inset 0 -4px 8px #0005, 0 0 0 2px #e6c25a; }
-.sde-party .sdp-emblem img { width: 34px; height: 34px; border: 0; filter: drop-shadow(0 1px 2px #0008); }
-.sde-party .sdp-pop { position: absolute; top: 100%; left: 14px; z-index: 6; display: flex; flex-direction: column; gap: 7px; width: 300px; margin-top: 4px; padding: 10px 12px; border: 1px solid #3a3a3a; border-radius: 8px; background: #101010; box-shadow: 0 8px 20px #000a; font-size: 13px; }
-.sde-party .sdp-pop h4 { margin: 0; font: 700 11px/1 Signika, sans-serif; letter-spacing: .7px; text-transform: uppercase; color: #8d8d8d; }
-.sde-party .sdp-emblems .icons { display: grid; grid-template-columns: repeat(6, 1fr); gap: 5px; }
-.sde-party .sdp-emblems .icons button { display: grid; place-items: center; height: 38px; padding: 0; border: 1px solid #2f2f2f; border-radius: 6px; background: #181818; cursor: pointer; }
-.sde-party .sdp-emblems .icons img { width: 24px; height: 24px; border: 0; opacity: .85; }
-.sde-party .sdp-emblems .icons button:hover { border-color: #666; }
-.sde-party .sdp-emblems .icons button.on { border-color: #e6c25a; background: rgba(230, 194, 90, .14); }
-.sde-party .sdp-emblems .icons button.on img { opacity: 1; }
-.sde-party .sdp-emblems .colors { display: flex; gap: 7px; }
-.sde-party .sdp-emblems .colors button { flex: none; width: 26px; height: 26px; padding: 0; border: 2px solid transparent; border-radius: 50%; background: var(--c); box-shadow: inset 0 -2px 4px #0005; cursor: pointer; }
-.sde-party .sdp-emblems .colors button.on { border-color: #fff; }
-.sde-party .sdp-id { flex: 0 1 auto; min-width: 0; }
-.sde-party .sdp-id input[name="name"] { width: 100%; min-width: 0; height: auto; margin: 0 0 5px; padding: 0; border: 0; border-radius: 0; background: transparent; color: #eee; font: 400 24px/1.05 "Old Newspaper Font", serif; }
-.sde-party .sdp-id input[name="name"]:hover:not([readonly]), .sde-party .sdp-id input[name="name"]:focus { outline: 0; border-bottom: 1px solid #555; }
-.sde-party .sdp-stats { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 13px; color: #ddd; }
-.sde-party .sdp-stats i { margin-right: 5px; color: #8d8d8d; font-size: 12px; }
-.sde-party .sdp-stats small { color: #8d8d8d; }
-.sde-party .sdp-march { display: flex; align-items: center; gap: 12px; margin-left: auto; }
-.sde-party .sdp-ctl { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; }
-.sde-party .sdp-switch { position: relative; display: flex; flex-direction: row; align-items: center; gap: 8px; width: auto; margin: 0; font-size: 12px; font-weight: 400; color: #d6d6d6; white-space: nowrap; cursor: pointer; }
-.sde-party .sdp-switch input { position: absolute; opacity: 0; pointer-events: none; }
-.sde-party .sdp-switch .track { position: relative; flex: none; width: 28px; height: 16px; border: 1px solid #444; border-radius: 8px; background: #2a2a2a; transition: background .12s; }
-.sde-party .sdp-switch .track::after { content: ""; position: absolute; top: 2px; left: 2px; width: 10px; height: 10px; border-radius: 50%; background: #9a9a9a; transition: left .12s, background .12s; }
-.sde-party .sdp-switch input:checked + .track { border-color: #6fae52; background: #3b5f2e; }
-.sde-party .sdp-switch input:checked + .track::after { left: 14px; background: #fff; }
-.sde-party .sdp-switch input:disabled + .track { opacity: .55; }
-.sde-party .sdp-switch input:focus-visible + .track { outline: 2px solid #e6c25a; }
-.sde-party .sdp-status { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; max-width: 190px; min-height: 18px; font-size: 11px; line-height: 1.3; color: #8d8d8d; }
-.sde-party .sdp-status .dot { flex: none; width: 7px; height: 7px; border-radius: 50%; background: #6fae52; }
-.sde-party .sdp-march.off .sdp-status .dot { background: #666; }
-.sde-party .sdp-mini { width: auto; height: 24px; padding: 0 10px; border: 1px solid #6a5420; border-radius: 4px; background: #2a2208; color: #f0cf7a; font-size: 11px; cursor: pointer; }
+.sde-party button.sdp-emblem:hover { box-shadow: 0 0 0 2px var(--ui-frame); }
+.sde-party .sdp-id { flex: 1 1 auto; min-width: 0; }
+.sde-party .sdp-id input[name="name"] { width: 100%; min-width: 0; height: auto; margin: 0 0 5px; padding: 0; border: 0; border-bottom: 1px solid transparent; border-radius: 0; background: transparent; color: var(--ui-text); font: 400 26px/1.1 var(--ui-title); }
+.sde-party .sdp-id input[name="name"]:hover:not([readonly]), .sde-party .sdp-id input[name="name"]:focus { border-bottom-color: var(--ui-line); box-shadow: none; }
+.sde-party .sdp-stats { display: flex; flex-wrap: wrap; gap: 4px 14px; font: 600 13px/1.3 var(--ui-font); color: var(--ui-text); }
+.sde-party .sdp-stats i { margin-right: 5px; color: var(--ui-muted); font-size: 12px; }
+.sde-party .sdp-stats small { color: var(--ui-muted); }
+/* the Marching order controls are a column left of the 3x3 grid: switch level with its first row, the "leads" line between, Place / Recall level with the last */
+.sde-party .sdp-march { display: flex; flex-direction: column; align-items: flex-end; flex: 0 0 auto; gap: 4px; }
+.sde-party .sdp-marchrow { display: flex; align-items: stretch; gap: 10px; }
+.sde-party .sdp-controls { display: flex; flex-direction: column; justify-content: space-evenly; align-items: stretch; width: max-content; min-width: 128px; max-width: 160px; }
+.sde-party .sdp-controls > * { flex: 0 0 auto; margin: 0; }
+.sde-party .sdp-controls .ui-switch { width: 100%; height: 28px; min-height: 28px; justify-content: center; white-space: nowrap; }
+.sde-party .sdp-controls .sdp-pin { width: 100%; height: 28px; padding: 0 12px; }
+.sde-party .sdp-pin:disabled { opacity: .45; cursor: default; }
+.sde-party .sdp-status { display: flex; align-items: center; justify-content: center; max-width: 100%; font-size: 11px; line-height: 1.3; color: var(--ui-muted); text-align: center; }
+.sde-party .sdp-status.warn { color: var(--ui-gold); }
 .sde-party .sdp-gridwrap { display: flex; flex-direction: column; align-items: center; gap: 3px; }
-.sde-party .sdp-grid { display: grid; grid-template-columns: repeat(3, 26px); gap: 3px; }
+.sde-party .sdp-grid { display: grid; grid-template-columns: repeat(3, 28px); gap: 3px; }
 .sde-party .sdp-march.off .sdp-grid { opacity: .45; }
-.sde-party .sdp-slot { position: relative; width: 26px; height: 26px; min-width: 0; padding: 0; overflow: hidden; border: 1px solid #444; border-radius: 5px; background: #1c1c1c; cursor: pointer; }
+.sde-party .sdp-slot { position: relative; width: 28px; height: 28px; min-width: 0; min-height: 0; padding: 0; overflow: hidden; border: 1px solid var(--ui-line); border-radius: 4px; background: var(--ui-raised); cursor: pointer; }
 .sde-party .sdp-slot img { display: block; width: 100%; height: 100%; object-fit: cover; }
 .sde-party .sdp-slot:disabled { cursor: default; opacity: 1; }
-.sde-party .sdp-slot.leader { border-color: #e6c25a; box-shadow: 0 0 0 1px #e6c25a; }
-.sde-party .sdp-caption { max-width: 110px; font-size: 9px; line-height: 1.25; letter-spacing: .3px; text-align: center; text-transform: uppercase; color: #8d8d8d; }
-.sde-party [data-drop-members] .sdp-grid { outline: 1px dashed #666; outline-offset: 3px; }
-.sde-party .sdp-pin { display: grid; place-items: center; flex: none; width: 28px; height: 28px; padding: 0; border: 1px solid #3a3a3a; border-radius: 6px; background: #1a1a1a; color: #cfcfcf; cursor: pointer; }
-.sde-party .sdp-pin:hover:not(:disabled) { border-color: #e6c25a; color: #e6c25a; }
-.sde-party .sdp-pin:disabled { opacity: .45; cursor: default; }
-.sde-party .sdp-empty { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; min-height: 180px; padding: 24px; border: 1px solid #2a2a2a; border-radius: 8px; color: #8d8d8d; text-align: center; }
-.sde-party .sdp-empty.drop { border: 2px dashed #555; }
-.sde-party .sdp-empty i { font-size: 36px; color: #555; }
+.sde-party .sdp-slot.leader { border-color: var(--ui-gold); box-shadow: 0 0 0 1px var(--ui-gold); }
+.sde-party .sdp-caption { max-width: 120px; font: 600 9px/1.25 var(--ui-head); letter-spacing: .04em; text-align: center; text-transform: uppercase; color: var(--ui-muted); }
+.sde-party .sdp-march > .sdp-caption { align-self: flex-end; width: 120px; max-width: none; margin-right: -15px; }
+.sde-party [data-drop-members] .sdp-grid { outline: 1px dashed var(--ui-muted); outline-offset: 3px; }
+.sde-party .sdp-pop { position: absolute; top: 100%; left: 16px; z-index: 6; display: flex; flex-direction: column; gap: 7px; width: 300px; margin-top: 4px; padding: 10px 12px; border: 1px solid var(--ui-line); border-radius: var(--ui-r2); background: var(--ui-panel); box-shadow: var(--ui-shadow); font-size: 13px; }
+.sde-party .sdp-pop h4 { margin: 0; font: 600 11px/1 var(--ui-head); letter-spacing: .06em; text-transform: uppercase; color: var(--ui-muted); }
+.sde-party .sdp-pop h4 + .colors, .sde-party .sdp-pop .icons + h4 { margin-top: 2px; }
+.sde-party .sdp-pop-foot { display: flex; justify-content: flex-end; }
+.sde-party .sdp-emblems .icons { display: grid; grid-template-columns: repeat(6, 1fr); gap: 5px; }
+.sde-party .sdp-emblems .icons button { display: grid; place-items: center; height: 38px; min-height: 0; padding: 0; border: 1px solid var(--ui-line); border-radius: var(--ui-r); background: color-mix(in srgb, var(--ui-page) 30%, black); cursor: pointer; }
+.sde-party .sdp-emblems .icons img { width: 24px; height: 24px; border: 0; opacity: .85; }
+.sde-party .sdp-emblems .icons button:hover { border-color: var(--ui-frame); }
+.sde-party .sdp-emblems .icons button.on { border-color: var(--ui-frame); box-shadow: 0 0 0 1px var(--ui-frame); }
+.sde-party .sdp-emblems .icons button.on img { opacity: 1; }
+.sde-party .sdp-emblems .colors { display: flex; flex-wrap: wrap; align-items: center; gap: 7px; }
+.sde-party .sdp-emblems .colors button { flex: none; width: 26px; height: 26px; min-height: 0; padding: 0; border: 2px solid transparent; border-radius: 3px; background: var(--c); cursor: pointer; }
+.sde-party .sdp-emblems .colors button.on { border-color: var(--ui-frame); box-shadow: 0 0 0 1px var(--ui-page) inset; }
+/* a custom colour: a swatch the size of the presets holding a native colour input, and a small hex field beside it */
+.sde-party .pt-custom { display: inline-flex; align-items: center; gap: 4px; margin: 0; }
+.sde-party .pt-custom input[type=color] { width: 26px; height: 26px; min-height: 0; padding: 0; border: 2px solid transparent; border-radius: 3px; background: none; cursor: pointer; }
+.sde-party .pt-custom input[type=color]::-webkit-color-swatch-wrapper { padding: 0; }
+.sde-party .pt-custom input[type=color]::-webkit-color-swatch { border: 1px solid var(--ui-line); border-radius: 2px; }
+.sde-party .pt-custom.on input[type=color] { border-color: var(--ui-frame); box-shadow: 0 0 0 1px var(--ui-page) inset; }
+.sde-party .pt-custom .pt-hex { width: 76px; height: 26px; padding: 0 6px; font: 600 12px/1 var(--ui-font); text-transform: lowercase; }
+.sde-party .sdp-empty { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; min-height: 180px; padding: 24px; border: 1px solid var(--ui-line); border-radius: var(--ui-r2); color: var(--ui-muted); text-align: center; }
+.sde-party .sdp-empty.drop { border: 2px dashed var(--ui-line); }
+.sde-party .sdp-empty i { font-size: 36px; opacity: .6; }
 .sde-party .sdp-empty p { margin: 0; font-size: 14px; }
 
-/* ------------------------------------------------------------------ Party sheet: tabs and member cards */
-.sde-party .sdp-tabs { display: flex; flex: 0 0 auto; gap: 0; padding: 0 8px; border-bottom: 1px solid #2a2a2a; background: #0e0e0e; }
-.sde-party .sdp-tab { display: flex; flex: 0 1 auto; align-items: center; gap: 6px; min-width: 0; padding: 9px 10px 8px; border-bottom: 2px solid transparent; color: #9a9a9a; font: 400 15px/1 "Old Newspaper Font", serif; letter-spacing: .3px; text-transform: uppercase; white-space: nowrap; cursor: pointer; }
+/* ------------------------------------------------------------------ Party sheet: status strip (Today, Light, Torches, Rations) */
+.sde-party .sdp-bar { display: flex; flex: 0 0 auto; flex-wrap: wrap; gap: 4px 26px; padding: 7px 16px; border-bottom: 1px solid var(--ui-line); background: var(--ui-panel); }
+.sde-party .sdp-bar > div { display: flex; align-items: baseline; gap: 8px; min-width: 0; }
+.sde-party .sdp-bar .l { font: 600 10px/1 var(--ui-head); letter-spacing: .06em; text-transform: uppercase; color: var(--ui-muted); }
+.sde-party .sdp-bar .l i { margin-right: 5px; font-size: 10px; }
+.sde-party .sdp-bar .v { font: 600 13px/1.2 var(--ui-font); color: var(--ui-text); }
+.sde-party .sdp-bar .low .v { color: var(--ui-danger-text); }
+
+/* ------------------------------------------------------------------ Party sheet: tabs (the row fills its width) */
+.sde-party .sdp-tabs { display: flex; flex: 0 0 auto; gap: 2px; padding: 6px 12px 0; border-bottom: 1px solid var(--ui-line); background: var(--ui-page); overflow-x: auto; }
+.sde-party .sdp-tab { display: inline-flex; flex: 1 1 auto; align-items: center; justify-content: center; gap: 6px; min-height: 30px; padding: 6px 10px; border-bottom: 3px solid transparent; border-radius: 5px 5px 0 0; color: var(--ui-muted); font: 400 15px/1 var(--ui-title); text-decoration: none; white-space: nowrap; cursor: pointer; }
 .sde-party .sdp-tab i { font-size: 12px; }
-.sde-party .sdp-tab:hover { color: #ddd; }
-.sde-party .sdp-tab.active { color: #fff; border-bottom-color: #e6c25a; }
-.sde-party .sdp-body { flex: 1; min-height: 0; overflow: auto; padding: 12px 16px 16px; background: #0a0a0a; }
-.sde-party .sdp-group { margin: 14px 0 8px; padding: 0; border: 0; font: 700 11px/1 Signika, sans-serif; letter-spacing: .7px; text-transform: uppercase; color: #8d8d8d; }
+.sde-party .sdp-tab:hover { color: var(--ui-text); background: var(--ui-panel); }
+.sde-party .sdp-tab.active { color: var(--ui-text); background: var(--ui-panel); border-bottom-color: var(--ui-frame); }
+.sde-party .sdp-body { flex: 1; min-height: 0; overflow: auto; padding: 12px 16px 16px; background: var(--ui-page); }
+.sde-party .sdp-group { display: block; margin: 14px 0 8px; padding: 0 0 4px; border: 0; border-bottom: 1px solid var(--ui-line); font: 400 18px/1.15 var(--ui-title); color: var(--ui-text); }
 .sde-party .sdp-group:first-child { margin-top: 2px; }
+
+/* ------------------------------------------------------------------ Party sheet: member cards */
 .sde-party .sdp-cards { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
-.sde-party .sdp-card { position: relative; display: flex; gap: 10px; padding: 9px; border: 1px solid #2a2a2a; border-radius: 8px; background: #121212; }
-.sde-party .sdp-face { flex: none; width: 62px; height: 62px; object-fit: cover; object-position: top; border: 1px solid #333; border-radius: 6px; cursor: pointer; }
+.sde-party .sdp-card { position: relative; display: flex; gap: 10px; padding: 9px; border: 1px solid var(--ui-line); border-radius: var(--ui-r2); background: var(--ui-panel); }
+.sde-party .sdp-portrait { flex: none; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.sde-party .sdp-face { flex: none; width: 62px; height: 62px; object-fit: cover; object-position: top; border: 1px solid var(--ui-line); border-radius: var(--ui-r); cursor: pointer; }
+/* Luck (green, dim at 0) and Light (a flame: gold when lit, dim when not) are always shown under the portrait */
+.sde-party .sdp-under { display: flex; align-items: center; justify-content: flex-start; gap: 6px; width: 62px; min-height: 20px; }
+.sde-party .sdp-luck, .sde-party .sdp-light { display: inline-flex; align-items: center; gap: 3px; height: 20px; color: var(--ui-on); font: 700 12px/1 var(--ui-font); font-variant-numeric: tabular-nums; }
+.sde-party .sdp-luck.empty { color: var(--ui-muted); opacity: .6; }
+.sde-party .sdp-light { margin-left: auto; color: var(--ui-muted); opacity: .55; font-size: 13px; }
+.sde-party .sdp-light.lit { color: var(--ui-gold); opacity: 1; }
+.sde-party .sdp-clover { width: 12px; height: 12px; background-color: currentColor; -webkit-mask: url(/modules/shadowdark-enhancer/icons/shamrock.svg) center / contain no-repeat; mask: url(/modules/shadowdark-enhancer/icons/shamrock.svg) center / contain no-repeat; }
 .sde-party .sdp-main { flex: 1; display: flex; flex-direction: column; gap: 5px; min-width: 0; }
-.sde-party .sdp-line { display: flex; align-items: baseline; gap: 7px; min-width: 0; padding-right: 14px; }
-.sde-party .sdp-name { overflow: hidden; font-size: 14px; font-weight: 700; color: #e6e6e6; white-space: nowrap; text-overflow: ellipsis; cursor: pointer; }
-.sde-party .sdp-name:hover { color: #fff; text-decoration: underline; }
-.sde-party .sdp-line em { font-size: 12px; color: #8d8d8d; white-space: nowrap; }
-.sde-party .sdp-fx { flex: none; width: 16px; height: 16px; margin-left: auto; align-self: center; border: 0; border-radius: 3px; }
-.sde-party .sdp-line em + .sdp-fx, .sde-party .sdp-name + .sdp-fx { margin-left: auto; }
-.sde-party .sdp-fx ~ .sdp-fx { margin-left: 0; }
-.sde-party .sdp-hp { position: relative; height: 16px; overflow: hidden; border-radius: 4px; background: #1d1d1d; }
-.sde-party .sdp-hpbar { position: absolute; inset: 0 auto 0 0; background: linear-gradient(90deg, #9d2a3a, #d0405a); }
-.sde-party .sdp-hp span { position: relative; display: block; font-size: 11px; font-weight: 700; line-height: 16px; text-align: center; text-shadow: 0 1px 2px #000; }
-.sde-party .sdp-chips { display: flex; flex-wrap: wrap; gap: 4px 10px; font-size: 12px; color: #e0e0e0; }
-.sde-party .sdp-chips b { margin-right: 3px; font-size: 10px; letter-spacing: .5px; color: #8d8d8d; }
-.sde-party .sdp-abil { display: flex; flex-wrap: wrap; gap: 0 7px; font-size: 10px; letter-spacing: 0; color: #8d8d8d; }
-.sde-party .sdp-abil b { font-size: 11px; color: #cfcfcf; }
-.sde-party .sdp-remove { position: absolute; top: 5px; right: 6px; display: grid; place-items: center; width: 18px; height: 18px; color: #8d8d8d; opacity: 0; cursor: pointer; }
+/* the name never shares a line with the class: the class sits under it */
+.sde-party .sdp-line { display: flex; flex-direction: column; align-items: flex-start; gap: 1px; min-width: 0; padding-right: 18px; }
+.sde-party .sdp-name { max-width: 100%; overflow: hidden; font: 700 14px/1.2 var(--ui-font); color: var(--ui-text); white-space: nowrap; text-overflow: ellipsis; text-decoration: none; cursor: pointer; }
+.sde-party .sdp-name:hover { text-decoration: underline; }
+.sde-party .sdp-line em { font-size: 11.5px; font-style: italic; line-height: 1.2; color: var(--ui-muted); }
+.sde-party .sdp-hp { position: relative; height: 16px; overflow: hidden; border-radius: 4px; background: var(--ui-raised); border: 1px solid var(--ui-line); }
+.sde-party .sdp-hpbar { position: absolute; inset: 0 auto 0 0; background: linear-gradient(90deg, var(--ui-hp-from), var(--ui-hp-to)); }
+.sde-party .sdp-hp span { position: relative; display: block; font: 700 11px/14px var(--ui-font); text-align: center; color: #fff; text-shadow: 0 0 2px #000, 0 0 2px #000, 0 1px 2px #000; }
+.sde-party .sdp-chips { display: flex; flex-wrap: wrap; gap: 4px 10px; font: 600 12px/1.3 var(--ui-font); color: var(--ui-text); }
+.sde-party .sdp-chips b { margin-right: 3px; font: 600 10px/1 var(--ui-head); letter-spacing: .06em; text-transform: uppercase; color: var(--ui-muted); }
+.sde-party .sdp-chips .bad { color: var(--ui-danger-text); }
+/* all six ability scores stay on one line; below 700px the cards go to one column so their text column stays wide enough */
+.sde-party .sdp-abil { display: flex; flex-wrap: nowrap; justify-content: space-between; white-space: nowrap; gap: 0 4px; font: 600 10px/1.4 var(--ui-head); text-transform: uppercase; color: var(--ui-muted); }
+.sde-party .sdp-abil b { font-size: 11px; color: var(--ui-text); }
+.sde-party .sdp-remove { position: absolute; top: 5px; right: 6px; display: grid; place-items: center; width: 18px; height: 18px; color: var(--ui-muted); opacity: 0; cursor: pointer; text-decoration: none; }
 .sde-party .sdp-card:hover .sdp-remove, .sde-party .sdp-remove:focus-visible { opacity: 1; }
-.sde-party .sdp-remove:hover { color: #e06060; }
+.sde-party .sdp-remove:hover { color: var(--ui-danger-text); }
 .sde-party .sdp-card.missing { opacity: .7; }
-@media (max-width: 719px) { .sde-party .sdp-cards { grid-template-columns: minmax(0, 1fr); } }
 
 /* ------------------------------------------------------------------ Party sheet: Items, Treasury and Gems */
-.sde-party .sdp-two { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); gap: 12px; align-items: start; }
-.sde-party .sdp-col { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
-.sde-party .sdp-box { padding: 10px 12px; border: 1px solid #2a2a2a; border-radius: 8px; background: #121212; }
-.sde-party .sdp-boxhead { display: flex; align-items: baseline; gap: 8px; margin: 0 0 8px; padding: 0; border: 0; font: 700 11px/1 Signika, sans-serif; letter-spacing: .7px; text-transform: uppercase; color: #8d8d8d; }
-.sde-party .sdp-boxhead small { margin-left: auto; font-weight: 400; letter-spacing: .3px; }
+.sde-party .sdp-box { padding: 10px 12px; border: 1px solid var(--ui-line); border-radius: var(--ui-r2); background: var(--ui-panel); }
+.sde-party .sdp-boxhead { display: flex; align-items: center; gap: 8px; min-height: 28px; margin: 0 0 8px; padding: 0; border: 0; font: 600 11px/1 var(--ui-head); letter-spacing: .06em; text-transform: uppercase; color: var(--ui-muted); }
+.sde-party .sdp-boxhead small { margin-left: auto; font-weight: 400; letter-spacing: .03em; }
 .sde-party .sdp-boxhead small + a { margin-left: 0; }
-.sde-party .sdp-boxhead a { color: #cfcfcf; cursor: pointer; }
-.sde-party .sdp-list { margin: 0; padding: 0; list-style: none; }
-.sde-party .sdp-list li { display: flex; align-items: center; gap: 9px; padding: 6px 0; border-top: 1px solid #1f1f1f; font-size: 13px; }
-.sde-party .sdp-list li:first-child { border-top: 0; }
-.sde-party .sdp-list img { flex: none; width: 22px; height: 22px; border: 0; border-radius: 4px; object-fit: cover; }
-.sde-party .sdp-list .n { flex: 1; min-width: 0; overflow: hidden; color: #e0e0e0; text-overflow: ellipsis; white-space: nowrap; cursor: pointer; }
-.sde-party .sdp-list .n:hover { color: #fff; text-decoration: underline; }
-.sde-party .sdp-list .q { display: flex; align-items: center; justify-content: center; gap: 7px; min-width: 64px; color: #ddd; }
-.sde-party .sdp-list .q a { padding: 4px; color: #8d8d8d; font-size: 10px; cursor: pointer; }
-.sde-party .sdp-list .q a:hover { color: #fff; }
-.sde-party .sdp-list .s { width: 34px; font-size: 12px; text-align: right; color: #8d8d8d; }
-.sde-party .sdp-list .empty-list { color: #8d8d8d; }
-.sde-party .sdp-gems .q { min-width: 30px; color: #8d8d8d; }
-.sde-party .sdp-gems .s { width: 64px; }
-.sde-party .sdp-coins { display: flex; flex-direction: column; gap: 7px; }
-.sde-party .sdp-coins label { display: flex; flex-direction: row; align-items: center; gap: 9px; width: auto; margin: 0; }
-.sde-party .sdp-coins .coin { flex: none; width: 14px; height: 14px; border: 1px solid #0006; border-radius: 50%; }
-.sde-party .sdp-coins .gp { background: #e2b43c; }
-.sde-party .sdp-coins .sp { background: #b9bcc4; }
-.sde-party .sdp-coins .cp { background: #b8733f; }
-.sde-party .sdp-coins input { flex: 1; min-width: 0; height: 28px; text-align: right; }
-.sde-party .sdp-coins em { width: 24px; font-size: 12px; font-style: normal; color: #8d8d8d; }
+.sde-party .sdp-boxhead a { color: var(--ui-text); cursor: pointer; text-decoration: none; }
+.sde-party .sdp-inv { display: grid; grid-template-columns: minmax(0, 1fr) 200px; gap: 15px; align-items: start; }
+.sde-party .sdp-inv-main, .sde-party .sdp-inv-side { display: flex; flex-direction: column; gap: 15px; min-width: 0; }
+.sde-party .sdp-cap.over { color: var(--ui-danger-text); font-weight: 700; }
+.sde-party .sdp-itemlist { margin: 0; padding: 0; list-style: none; }
+.sde-party .sdp-itemlist li { display: grid; grid-template-columns: 24px minmax(0, 1fr) 64px 44px 28px; gap: 6px; align-items: center; padding: 5px 4px; border-top: 1px solid var(--ui-line); font-size: 13px; }
+.sde-party .sdp-itemlist li.head { grid-template-columns: minmax(0, 1fr) 64px 44px 28px; padding: 4px; border-top: 0; border-bottom: 1px solid var(--ui-frame); font: 600 10.5px/1.2 var(--ui-head); letter-spacing: .06em; text-transform: uppercase; color: var(--ui-muted); }
+.sde-party .sdp-itemlist li.empty-list { display: block; color: var(--ui-muted); }
+.sde-party .sdp-itemlist img { width: 24px; height: 24px; border: 0; border-radius: 3px; object-fit: cover; }
+.sde-party .sdp-itemlist .n { min-width: 0; overflow: hidden; color: var(--ui-text); text-overflow: ellipsis; white-space: nowrap; text-decoration: none; cursor: pointer; }
+.sde-party .sdp-itemlist .n:hover { text-decoration: underline; }
+.sde-party .sdp-itemlist .q { display: flex; align-items: center; justify-content: center; gap: 6px; color: var(--ui-text); }
+.sde-party .sdp-itemlist .q a { padding: 3px; color: var(--ui-muted); font-size: 10px; cursor: pointer; text-decoration: none; }
+.sde-party .sdp-itemlist .q a:hover { color: var(--ui-text); }
+.sde-party .sdp-itemlist .s { text-align: center; color: var(--ui-muted); font-weight: 600; }
+.sde-party .sdp-itemlist li.head .q, .sde-party .sdp-itemlist li.head .s { justify-content: center; text-align: center; }
+.sde-party .sdp-itemlist .act { display: flex; justify-content: flex-end; }
+/* the gem list lives in the narrow right column: name first, then the count and value at their own width */
+.sde-party .sdp-gems li { grid-template-columns: 24px minmax(0, 1fr) auto auto; column-gap: 4px; }
+.sde-party .sdp-gems .act { display: none; }
+.sde-party .sdp-gems .s { text-align: right; }
+/* the Add item menu, a row's Give to, and the coin forms are <details>: the summary is the button, the open part a small list or form */
+.sde-party .sdp-menu, .sde-party .sdp-give { position: relative; }
+.sde-party .sdp-menu { margin-left: 4px; }
+.sde-party .sdp-menu > summary, .sde-party .sdp-give > summary, .sde-party .sdp-coinform > summary { list-style: none; cursor: pointer; }
+.sde-party .sdp-menu > summary { display: inline-flex; text-transform: none; letter-spacing: .02em; }
+.sde-party .sdp-menu > summary::-webkit-details-marker, .sde-party .sdp-give > summary::-webkit-details-marker, .sde-party .sdp-coinform > summary::-webkit-details-marker { display: none; }
+.sde-party .sdp-menu[open] > summary, .sde-party .sdp-coinform[open] > summary { background: var(--ui-raised); }
+.sde-party .sdp-menu-list { position: absolute; z-index: 5; top: calc(100% + 4px); right: 0; min-width: 170px; display: flex; flex-direction: column; border: 1px solid var(--ui-frame); border-radius: var(--ui-r); background: var(--ui-panel); box-shadow: var(--ui-shadow); text-transform: none; }
+.sde-party .sdp-menu-list a { display: flex; align-items: center; gap: 8px; padding: 7px 12px; color: var(--ui-text); font: 600 12px/1.2 var(--ui-head); letter-spacing: .02em; text-decoration: none; white-space: nowrap; cursor: pointer; }
+.sde-party .sdp-menu-list a + a { border-top: 1px solid var(--ui-line); }
+.sde-party .sdp-menu-list a:hover { background: var(--ui-raised); }
+/* Treasury */
+.sde-party .sdp-coins { display: grid; grid-template-columns: auto auto 1fr; gap: 8px; align-items: center; }
+.sde-party .sdp-coins label { display: contents; }
+.sde-party .sdp-coins .coin { grid-column: 1; }
+.sde-party .sdp-coins em { grid-column: 2; font: 600 10.5px/1 var(--ui-head); letter-spacing: .06em; text-transform: uppercase; font-style: normal; color: var(--ui-muted); }
+.sde-party .sdp-coins input { grid-column: 3; width: 100%; min-width: 0; height: 28px; text-align: right; }
+.sde-party .coin { flex: none; display: inline-block; width: 14px; height: 14px; border: 1px solid var(--ui-line); border-radius: 50%; }
+.sde-party .coin.gp { background: var(--ui-gold); } .sde-party .coin.sp { background: var(--ui-frame); } .sde-party .coin.cp { background: var(--ui-muted); }
+.sde-party .sdp-coinslots { display: flex; align-items: center; gap: 6px; margin-top: 8px; padding: 6px 8px; border: 1px solid var(--ui-line); border-radius: var(--ui-r); font-size: 12px; color: var(--ui-muted); }
+.sde-party .sdp-coinbtns { display: flex; flex-direction: column; gap: 6px; margin-top: 10px; }
+.sde-party .sdp-coinbtns > .ui-btn, .sde-party .sdp-coinform > summary { width: 100%; height: 28px; }
+.sde-party .sdp-coinform { display: flex; flex-direction: column; gap: 6px; }
+.sde-party .sdp-addrow { display: flex; flex-direction: column; gap: 6px; padding: 8px; border: 1px solid var(--ui-line); border-radius: var(--ui-r); background: var(--ui-page); }
+.sde-party .sdp-addrow label { display: flex; align-items: center; gap: 8px; margin: 0; }
+.sde-party .sdp-addrow input, .sde-party .sdp-addrow select { width: 100%; height: 28px; text-align: right; }
+.sde-party .sdp-addrow select { text-align: left; }
+/* the compendium picker window */
+.sde-item-picker .sde-item-picker-body { display: flex; flex: 1 1 auto; flex-direction: column; gap: 10px; min-height: 0; padding: 12px; }
+.sde-item-picker .sde-item-picker-list { flex: 1 1 auto; min-height: 0; margin: 0; padding: 0; overflow-y: auto; list-style: none; }
+.sde-item-picker .sde-item-picker-list:empty { display: none; }
 
 /* ------------------------------------------------------------------ Party sheet: Bastion tab */
 .sde-party .sdp-bastion { display: flex; gap: 16px; padding: 14px; }
-.sde-party .sdp-bastion .art { flex: none; width: 150px; height: 150px; padding: 8px; object-fit: contain; border: 1px solid #2a2a2a; border-radius: 8px; background: #0c0c0c; }
+.sde-party .sdp-bastion .art { flex: none; width: 150px; height: 150px; padding: 8px; object-fit: contain; border: 1px solid var(--ui-line); border-radius: var(--ui-r2); background: var(--ui-page); }
 .sde-party .sdp-bastion .info { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
-.sde-party .sdp-bastion h3 { margin: 0; padding: 0; border: 0; font: 400 24px/1.1 "Old Newspaper Font", serif; color: #eee; }
-.sde-party .sdp-bastion .sub { margin: -8px 0 0; font-size: 13px; color: #8d8d8d; }
-.sde-party .sdp-bastion .log { margin: 0; font-size: 13px; color: #cfcfcf; }
-.sde-party .sdp-bastion .log span { margin-right: 5px; color: #8d8d8d; }
-.sde-party .sdp-chips .bad { color: #e06060; }
+.sde-party .sdp-bastion h3 { margin: 0; padding: 0; border: 0; font: 400 26px/1.1 var(--ui-title); color: var(--ui-text); }
+.sde-party .sdp-bastion .sub { margin: -8px 0 0; font-size: 13px; color: var(--ui-muted); }
+.sde-party .sdp-bastion .log { margin: 0; font-size: 13px; color: var(--ui-body); }
+.sde-party .sdp-bastion .log span { margin-right: 5px; color: var(--ui-muted); }
 .sde-party .sdp-rooms { display: flex; flex-wrap: wrap; gap: 6px; }
-.sde-party .sdp-rooms span { display: flex; align-items: center; gap: 6px; padding: 4px 9px; border: 1px solid #2f2f2f; border-radius: 6px; background: #181818; font-size: 12px; }
+.sde-party .sdp-rooms span { display: flex; align-items: center; gap: 6px; padding: 3px 9px; border: 1px solid var(--ui-line); border-radius: 2px; font-size: 12px; }
 .sde-party .sdp-rooms span.building { opacity: .6; border-style: dashed; }
-.sde-party .sdp-rooms i { font-size: 11px; color: #e6c25a; }
-.sde-party .sdp-btn { display: inline-flex; align-items: center; gap: 6px; align-self: flex-start; height: 30px; padding: 0 14px; border: 1px solid #333; border-radius: 4px; background: #1a1a1a; color: #e0e0e0; font-family: "Old Newspaper Font", serif; cursor: pointer; }
-.sde-party .sdp-btn:hover { border-color: #e6c25a; color: #fff; }
+.sde-party .sdp-rooms i { font-size: 11px; color: var(--ui-gold); }
+.sde-party .sdp-btn { display: inline-flex; align-items: center; gap: 6px; align-self: flex-start; height: 28px; padding: 0 14px; border: 1px solid var(--ui-frame); border-radius: var(--ui-r); background: var(--ui-panel); color: var(--ui-text); font: 600 12px/1 var(--ui-head); text-decoration: none; cursor: pointer; }
+.sde-party .sdp-btn:hover { background: var(--ui-raised); }
 
-/* ------------------------------------------------------------------ Party sheet: Today / Light / Rations bar */
-.sde-party .sdp-bar { display: flex; flex: 0 0 auto; flex-wrap: wrap; gap: 4px 28px; padding: 7px 16px; border-bottom: 1px solid #2a2a2a; background: #0c0c0c; }
-.sde-party .sdp-bar > div { display: flex; align-items: baseline; gap: 8px; min-width: 0; }
-.sde-party .sdp-bar .l { font: 700 10px/1 Signika, sans-serif; letter-spacing: .7px; text-transform: uppercase; color: #8d8d8d; }
-.sde-party .sdp-bar .l i { margin-right: 5px; font-size: 10px; }
-.sde-party .sdp-bar .v { font-size: 13px; color: #e6e6e6; }
-.sde-party .sdp-bar .low .v { color: #e0b060; }
+/* ------------------------------------------------------------------ Party sheet: narrow windows (container queries: a window is resized, the screen is not) */
+@container (max-width: 700px) { .sde-party .sdp-cards { grid-template-columns: minmax(0, 1fr); } }
+@container (max-width: 820px) { .sde-party .sdp-tab { padding: 6px 9px; gap: 0; } .sde-party .sdp-tab i { display: none; } }
+@container (max-width: 560px) {
+  .sde-party .sdp-head { height: auto; flex-wrap: wrap; align-items: flex-start; padding: 10px 12px; }
+  .sde-party .sdp-emblem { height: 72px; width: 72px; }
+  .sde-party .sdp-id { flex: 1 1 200px; }
+  .sde-party .sdp-march { width: 100%; align-items: flex-start; }
+  .sde-party .sdp-marchrow { width: 100%; }
+  .sde-party .sdp-controls { flex: 1 1 auto; width: auto; min-width: 0; gap: 6px; justify-content: flex-start; }
+  .sde-party .sdp-march > .sdp-caption { align-self: flex-end; margin-right: 0; width: 100px; }
+  .sde-party .sdp-pop { left: 8px; }
+  .sde-party .sdp-tabs { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); padding-inline: 6px; gap: 0; overflow-x: visible; }
+  .sde-party .sdp-tab { min-width: 0; padding: 5px 4px; }
+  .sde-party .sdp-inv { grid-template-columns: minmax(0, 1fr); }
+  .sde-party .sdp-bastion { flex-direction: column; }
+}

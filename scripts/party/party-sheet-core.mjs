@@ -127,7 +127,7 @@ export const ROOM_ICONS = {
 };
 export const roomIcon = (id) => ROOM_ICONS[id] ?? "fa-door-open";
 
-// ---------------------------------------------------------------- Status bar: Today, Light, Rations
+// ---------------------------------------------------------------- Status bar: Today, Light, Torches, Rations
 
 /** A terrain id ("salt_flat") as words ("Salt flat"), or null when there is none to show. */
 export function terrainLabel(terrain) {
@@ -149,25 +149,45 @@ export function lightReadout(itemLists = []) {
   return { name: best.activeName, mins: Number.isFinite(best.remainingMins) ? best.remainingMins : null };
 }
 
+/** True when one of these items is a burning light source (a lit torch, a lantern, a Light spell). */
+export const carriesLight = (items = []) => computeLightState(items).state === "lit";
+
+/**
+ * A character's Luck as a count for the sheet: the system keeps a luck token as `available`
+ * (and, in Pulp mode, how many `remaining`). A token in hand counts as at least one.
+ * @param {{ available?: boolean, remaining?: number }|undefined} luck `system.luck`
+ */
+export function luckCount(luck) {
+  const remaining = Math.max(0, Math.trunc(Number(luck?.remaining)) || 0);
+  return luck?.available ? Math.max(1, remaining) : remaining;
+}
+
 /** The Party's rations: the stacks named "Rations" among these item lists, as camp food counts them (Basic items). */
 export function rationsCount(itemLists = []) {
   return (itemLists ?? []).flat().filter((item) => item?.type === "Basic" && /^rations?$/i.test(item.name ?? ""))
     .reduce((sum, item) => sum + Math.max(0, Number(item.system?.quantity) || 0), 0);
 }
 
+/** The Party's torches: the stacks named "Torch" or "Torches" among these item lists (Basic items), lit or not. */
+export function torchCount(itemLists = []) {
+  return (itemLists ?? []).flat().filter((item) => item?.type === "Basic" && /^torch(es)?$/i.test(item.name ?? ""))
+    .reduce((sum, item) => sum + Math.max(0, Number(item.system?.quantity) || 0), 0);
+}
+
 /** Each readout's name, as an en.json key. */
-export const STATUS_LABELS = { today: "SDE.party.status.today", light: "SDE.party.status.light", rations: "SDE.party.status.rations" };
+export const STATUS_LABELS = { today: "SDE.party.status.today", light: "SDE.party.status.light", torches: "SDE.party.status.torches", rations: "SDE.party.status.rations" };
 
 /**
  * The thin bar under the header. A readout whose data is unavailable is left out; with none,
  * the bar is [] and the sheet hides it.
  *   travel   {terrain, weather, hexesLeft, budget} while this party is the one travelling overland, else null
  *   light    lightReadout()'s answer, or null
+ *   torches  a count (torchCount()), or null when it cannot be known, as for rations
  *   rations  a count, or null when it cannot be known (a member's items are hidden from this viewer)
  * `say(key)` localizes; `sayWith(key, data)` localizes and fills {placeholders}.
- * @returns {Array<{ key: "today"|"light"|"rations", label: string, icon: string, value: string, low?: boolean }>}
+ * @returns {Array<{ key: "today"|"light"|"torches"|"rations", label: string, icon: string, value: string, low?: boolean }>}
  */
-export function statusBar({ travel = null, light = null, rations = null } = {}, { say, sayWith }) {
+export function statusBar({ travel = null, light = null, torches = null, rations = null } = {}, { say, sayWith }) {
   const bar = [];
   const add = (key, icon, value, extra = {}) => bar.push({ key, label: say(STATUS_LABELS[key]), icon, value, ...extra });
   if (travel) {
@@ -176,6 +196,91 @@ export function statusBar({ travel = null, light = null, rations = null } = {}, 
     if (parts.length) add("today", "fa-person-walking", parts.join(" \u00b7 "));
   }
   if (light?.name) add("light", "fa-fire", light.mins == null ? light.name : sayWith("SDE.party.status.lightLeft", { name: light.name, mins: light.mins }));
+  if (Number.isFinite(torches)) add("torches", "fa-fire-flame-simple", String(torches), { low: torches <= 0 });
   if (Number.isFinite(rations)) add("rations", "fa-drumstick-bite", String(rations), { low: rations <= 0 });
   return bar;
+}
+
+// ---------------------------------------------------------------- Treasury: the party's coins
+
+export const COIN_TYPES = ["gp", "sp", "cp"];
+
+/** Why a coin move was refused, as en.json keys written out in full. */
+export const COIN_REFUSALS = {
+  nothing: "SDE.party.coins.refused.nothing",
+  noPcs: "SDE.party.coins.refused.noPcs",
+  short: "SDE.party.coins.refused.short",
+};
+
+/** A coin count as a whole number of coins, never below 0. */
+export const wholeCoins = (value) => Math.max(0, Math.trunc(Number(value)) || 0);
+
+/** Any coins value as { gp, sp, cp }, each a whole number of coins. */
+export const coinsOf = (coins) => ({ gp: wholeCoins(coins?.gp), sp: wholeCoins(coins?.sp), cp: wholeCoins(coins?.cp) });
+
+const coinTotal = (coins) => COIN_TYPES.reduce((sum, key) => sum + coins[key], 0);
+
+/** Coins as words, zero types left out: "3 gp, 2 sp". `label(key)` names a type. */
+export const coinText = (coins, label = (key) => key) => COIN_TYPES.filter((key) => coins?.[key] > 0).map((key) => `${coins[key]} ${label(key)}`).join(", ");
+
+/**
+ * The pool after the GM adds (or, with a negative number, takes) coins. A type never goes below 0,
+ * and only whole coins count.
+ * @param {object} pool the party's coins
+ * @param {object} delta { gp, sp, cp }, each may be negative
+ */
+export function poolAfterAdd(pool, delta) {
+  const held = coinsOf(pool);
+  return Object.fromEntries(COIN_TYPES.map((key) => [key, Math.max(0, held[key] + (Math.trunc(Number(delta?.[key])) || 0))]));
+}
+
+/**
+ * Give coins from the party's pool to the characters' own purses: EACH recipient receives `amount`.
+ * Refused when there is nothing to give, nobody to give it to, or the pool is short of what all of them
+ * would receive (nothing moves on a refusal).
+ * @param {object} pool the party's coins
+ * @param {object} amount { gp, sp, cp } for each recipient
+ * @param {string[]} recipients ids of the characters (PCs only: the caller filters)
+ * @returns {{ ok: false, reason: keyof typeof COIN_REFUSALS } | { ok: true, pool: object, grants: Array<{ id: string, coins: object }> }}
+ */
+export function planGive(pool, amount, recipients = []) {
+  const held = coinsOf(pool), each = coinsOf(amount), ids = [...new Set(recipients ?? [])];
+  if (!coinTotal(each)) return { ok: false, reason: "nothing" };
+  if (!ids.length) return { ok: false, reason: "noPcs" };
+  if (COIN_TYPES.some((key) => each[key] * ids.length > held[key])) return { ok: false, reason: "short" };
+  return { ok: true, pool: Object.fromEntries(COIN_TYPES.map((key) => [key, held[key] - each[key] * ids.length])), grants: ids.map((id) => ({ id, coins: { ...each } })) };
+}
+
+/**
+ * Divide every coin type (gp, sp and cp) evenly among the characters, in whole coins; what does not
+ * divide stays in the pool. Refused with nobody to divide among, or when no type has a whole coin each.
+ * @returns {{ ok: false, reason: keyof typeof COIN_REFUSALS } | { ok: true, pool: object, share: object, grants: Array<{ id: string, coins: object }> }}
+ */
+export function planDivide(pool, recipients = []) {
+  const held = coinsOf(pool), ids = [...new Set(recipients ?? [])];
+  if (!ids.length) return { ok: false, reason: "noPcs" };
+  const share = Object.fromEntries(COIN_TYPES.map((key) => [key, Math.floor(held[key] / ids.length)]));
+  if (!coinTotal(share)) return { ok: false, reason: "nothing" };
+  return { ok: true, share, pool: Object.fromEntries(COIN_TYPES.map((key) => [key, held[key] - share[key] * ids.length])), grants: ids.map((id) => ({ id, coins: { ...share } })) };
+}
+
+/** A purse with these coins added. */
+export const purseAfter = (purse, add) => Object.fromEntries(COIN_TYPES.map((key) => [key, coinsOf(purse)[key] + coinsOf(add)[key]]));
+
+// ---------------------------------------------------------------- Add item: searching the item compendiums
+
+/**
+ * The compendium index entries whose name has every word of the query (any case), best first: names that
+ * start with the query, then the rest by name. An empty query finds nothing, so the list is not the whole world.
+ * @param {Array<{ name: string }>} entries
+ * @param {string} query
+ * @param {number} [limit]
+ */
+export function searchItemIndex(entries = [], query = "", limit = 50) {
+  const words = String(query ?? "").toLowerCase().split(/\s+/).filter(Boolean);
+  if (!words.length) return [];
+  const needle = words.join(" ");
+  return (entries ?? []).filter((entry) => words.every((word) => String(entry?.name ?? "").toLowerCase().includes(word)))
+    .sort((a, b) => (String(b.name).toLowerCase().startsWith(needle) - String(a.name).toLowerCase().startsWith(needle)) || String(a.name).localeCompare(String(b.name)))
+    .slice(0, Math.max(0, limit));
 }

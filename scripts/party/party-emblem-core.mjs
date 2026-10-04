@@ -1,6 +1,7 @@
 /**
  * The party emblem: a game-icons.net icon on a coloured tile, the header's picture of the party.
- * Stored in a flag of its own, `partyEmblem` ({ icon, color }), written through replaceModuleFlag.
+ * Stored in a flag of its own, `partyEmblem` ({ icon, color, iconColor }), written through replaceModuleFlag.
+ * `color` (the tile) and `iconColor` (the picture) are any six hex digits; a flag written before iconColor existed reads as white.
  * The icons are the curated set vendored under icons/game-icons/party/, so the sheet never depends on
  * another module being installed. Pure: no Foundry globals.
  */
@@ -34,19 +35,33 @@ export const EMBLEM_COLOR_KEYS = {
   "7a4fa5": "SDE.party.emblem.color.violet", "8b7d6b": "SDE.party.emblem.color.stone", "2f9ea0": "SDE.party.emblem.color.teal", d9478a: "SDE.party.emblem.color.rose",
 };
 
-/** A party that has chosen nothing wears the lantern in amber. */
-export const DEFAULT_EMBLEM = { icon: "lantern", color: "c8892b" };
+/** The picture colours the picker offers: white, black, then the tile presets that read well on a tile. */
+export const EMBLEM_ICON_COLORS = ["ffffff", "000000", ...EMBLEM_COLORS.slice(0, 6)];
+
+/** The two picture colours that are not tile presets, named as en.json keys written out in full. */
+const ICON_COLOR_KEYS = { ffffff: "SDE.party.emblem.color.white", "000000": "SDE.party.emblem.color.black" };
+
+/** A party that has chosen nothing wears the lantern in white on amber. */
+export const DEFAULT_EMBLEM = { icon: "lantern", color: "c8892b", iconColor: "ffffff" };
+
+/** Six hex digits (a leading # and any case tolerated) as lower-case digits, or null. */
+const hexOf = (value) => {
+  const hex = typeof value === "string" ? value.replace(/^#/, "").toLowerCase() : "";
+  return /^[0-9a-f]{6}$/.test(hex) ? hex : null;
+};
 
 /**
  * A stored emblem made safe to draw: an icon outside the set, or a colour that is not six hex digits,
- * falls back to the default for that half alone, so a hand-edited or half-written flag never breaks the sheet.
+ * falls back to the default for that part alone, so a hand-edited or half-written flag never breaks the sheet.
  * @param {unknown} value the flag as stored (anything)
- * @returns {{ icon: string, color: string }}
+ * @returns {{ icon: string, color: string, iconColor: string }}
  */
 export function emblemOf(value) {
-  const icon = EMBLEM_ICONS.includes(value?.icon) ? value.icon : DEFAULT_EMBLEM.icon;
-  const hex = typeof value?.color === "string" ? value.color.replace(/^#/, "").toLowerCase() : "";
-  return { icon, color: /^[0-9a-f]{6}$/.test(hex) ? hex : DEFAULT_EMBLEM.color };
+  return {
+    icon: EMBLEM_ICONS.includes(value?.icon) ? value.icon : DEFAULT_EMBLEM.icon,
+    color: hexOf(value?.color) ?? DEFAULT_EMBLEM.color,
+    iconColor: hexOf(value?.iconColor) ?? DEFAULT_EMBLEM.iconColor,
+  };
 }
 
 /** Where an icon's file is, relative to the Foundry root (the way actor images are). */
@@ -54,15 +69,25 @@ export const emblemIconPath = (icon) => `modules/${MODULE_ID}/icons/game-icons/p
 
 /**
  * What the picker draws for the current emblem: every icon and colour, named, with the chosen one marked.
- * @param {{ icon: string, color: string }} emblem an emblemOf() result
+ * A colour that is not one of the presets is the custom one: `customBox` / `customIcon` say so.
+ * @param {{ icon: string, color: string, iconColor: string }} emblem an emblemOf() result
  * @param {(key: string) => string} say localizes an en.json key
  */
 export function emblemChoices(emblem, say = (key) => key) {
+  const named = (color) => say(EMBLEM_COLOR_KEYS[color] ?? ICON_COLOR_KEYS[color]);
   return {
     icons: EMBLEM_ICONS.map((name) => ({ name, label: say(EMBLEM_ICON_KEYS[name]), path: emblemIconPath(name), selected: name === emblem.icon })),
-    colors: EMBLEM_COLORS.map((color) => ({ color, label: say(EMBLEM_COLOR_KEYS[color]), selected: color === emblem.color })),
+    colors: EMBLEM_COLORS.map((color) => ({ color, label: named(color), selected: color === emblem.color })),
+    iconColors: EMBLEM_ICON_COLORS.map((color) => ({ color, label: named(color), selected: color === emblem.iconColor })),
+    customBox: !EMBLEM_COLORS.includes(emblem.color),
+    customIcon: !EMBLEM_ICON_COLORS.includes(emblem.iconColor),
   };
 }
 
-/** The emblem after one pick; `pick` is { icon } or { color }, anything else changes nothing. */
-export const pickEmblem = (current, pick) => emblemOf({ ...emblemOf(current), ...(EMBLEM_ICONS.includes(pick?.icon) ? { icon: pick.icon } : {}), ...(EMBLEM_COLORS.includes(pick?.color) ? { color: pick.color } : {}) });
+/** The emblem after one pick; `pick` is any of { icon, color, iconColor } (colours: any six hex digits), anything else changes nothing. */
+export const pickEmblem = (current, pick) => emblemOf({
+  ...emblemOf(current),
+  ...(EMBLEM_ICONS.includes(pick?.icon) ? { icon: pick.icon } : {}),
+  ...(hexOf(pick?.color) ? { color: hexOf(pick.color) } : {}),
+  ...(hexOf(pick?.iconColor) ? { iconColor: hexOf(pick.iconColor) } : {}),
+});
