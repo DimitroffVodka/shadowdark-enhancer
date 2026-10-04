@@ -1,7 +1,7 @@
 # Shadowdark Enhancer — File Inventory
 
 <!-- inventory:stats:start -->
-1691 tracked files · ~221,700 lines of code/markup across scripts+templates+styles+test.
+1706 tracked files · ~222,300 lines of code/markup across scripts+templates+styles+test.
 `v0.17.3` in both `module.json` and `package.json`.
 <!-- inventory:stats:end -->
 **Layout reflects the 2026-07-21 feature-folder reorganization (v0.11.0 cycle).**
@@ -87,7 +87,7 @@
 | `hex-map/hex-pins.mjs` | 129 | Keyed hexes as map notes: deploys the crawl journal into the world with stable ids (links rewritten), plans one Note per keyed page at its hex centre (pure planner), moves existing pins on re-run. |
 | `hex-map/hex-records.mjs` | 205 | Scene-offset native rich-record facade over existing tags, keyed pins/pages and regions, private compendium records and allowlisted public disclosure projections. |
 | `hex-map/hex-region.mjs` | 289 | Which region is a hex in: the book's own word for a keyed hex, the nearest keyed hex's region for any other (84.8% on the Western Reaches, leave-one-out over the book's own keyed rows). Seeds come from the filed crawls; nothing is stored. |
-| `hex-map/hex-tagger-app.mjs` | 1819 | Hex Tagger AppV2: contact sheet over the active hex scene, anchor numbering, tags on the scene flag, dataset hand-off. |
+| `hex-map/hex-tagger-app.mjs` | 1825 | Hex Tagger AppV2: contact sheet over the active hex scene, anchor numbering, tags on the scene flag, dataset hand-off. |
 | `hex-map/ink.mjs` | 62 | Whole-image 0/1 ink bitmap at a working scale, one browser resize then strip reads; ink threshold from the paper's brightness. Browser-bound. |
 | `hex-map/lattice.mjs` | 448 | Hex lattice detection from a map's ink: row and column pitch by autocorrelation, phase by folding long horizontal runs, the hex field by outline support with frame-cut half cells, edge-band pitch refinement, and a lattice hung on two hand-placed corner cells. Pure. |
 | `hex-map/legend.mjs` | 250 | The legend: cells grouped by glyph with k-means++ over masked cell features (restarts, lowest inertia kept), one card per group with sample members and a core that becomes the hand tags. Pure. |
@@ -110,7 +110,7 @@
 | `overland/overland-bar-core.mjs` | 60 | The travel bar (#234, O8), pure: where the sun (sunrise to sunset) or the moon (sunset to the next sunrise) stands on the sky dome's arc, the moon's shadow offset by phase, and the bar's model for one viewer (members' rations and forage state, Forage only on owned members of an open unpushed day, and the check hours for a GM only). |
 | `overland/overland-bar.mjs` | 573 | The clock HUD (#253, #257 look; was the travel bar #234): on hex maps only (any hex grid, #298), for whom the clockBar setting says, hidden in combat. The bar: date with the year, time, Stopped while an encounter holds the travel clock, the sky chevron, on a hex map the travel plate (hexes left) or Start travel, and for a GM the rewind/advance step columns, the Time panel (jump to the next dawn/noon/dusk/midnight, set a date, the real-time clock) and the month view (moon quarters, imported holidays, a day click jumps). Under it the season band and the sky dial SVG. Steps go through Overland's clock action; calendar jumps forward go off duty. The Crawl Strip moves under it (body.sde-clock-on). |
 | `overland/overland-state-core.mjs` | 638 | Overland travel state (#229, O3), pure: the one travel state's shape (token, members, method, the open day and its budget, weather, checks, forage, the travel token's hex), its normalization, the startTravel / setHex / recordForage reducers, the travel-token choice (the one Extras party token, else the one selected token), the forage refusal rules, and the weather (#230, O4): the setWeather reducer, whether a weather holds, the advantage a roll has (a Western Reaches 6 gives the next roll 2d6kh; a reroll keeps the replaced roll's), the weather from a d6 under the Western Reaches or core rule, whether today is harsh, and a hex's cost with the weather; and the travel day (#231, O5): openDay (budget, push, clock rate fixed at the day's start), spendMove, priceMove (displaced legs free, unknown terrain 1) and moveVerdict (no day, pending, impassable, bounce); and the encounter checks (#232, O6): dayChecks (two by day 06-17, two at night 18-05, 1 or 2 in 6), dueChecks, markCheck and setPending; and the day's end (#233, O7): forageRefusal's travel rules (no day, pushed, harsh storm), forageDC, closeDay and planRations (each member's own, a single ration none when harsh, mounts from what's left). |
-| `overland/overland.mjs` | 1298 | Overland travel (#229): the overlandState world setting (active-GM writes in one queue, payload-free re-read nudge), Start and End travel (another GM's forwarded to the active GM), the players' relayed Forage with the sender checked from the query context, overland.state() with hexes left, climate, storm, harshness and night derived, rollWeather (GM; dice rolled on the active GM, one chat card, the overlandWeatherRule setting), startDay and its dialog (the weather first, then the budget; a boat actor's speed when sailing aboard one), the travel token's moves (preMoveToken refuses on the mover's client; moveToken on the active GM spends, records the hex and advances the clock, or sends an overdrawn move back with a displace), advanceTravel (rolls each check due at its hour through encounter.check; a hit stops the clock and leaves pending) and resume (Continue), forage (the owner rolls INT through StatRiders.save after the queue; a success adds a ration), makeCamp (lights out through advanceOffDuty(0), the clock to dawn or the last night check, then Extras' camping.open or Overland's own rations, the day closed and the weather rolled), the underground season check on timeAdvanced, and the overlandChanged / overlandStart / overlandEnd hooks. |
+| `overland/overland.mjs` | 1301 | Overland travel (#229): the overlandState world setting (active-GM writes in one queue, payload-free re-read nudge), Start and End travel (another GM's forwarded to the active GM), the players' relayed Forage with the sender checked from the query context, overland.state() with hexes left, climate, storm, harshness and night derived, rollWeather (GM; dice rolled on the active GM, one chat card, the overlandWeatherRule setting), startDay and its dialog (the weather first, then the budget; a boat actor's speed when sailing aboard one), the travel token's moves (preMoveToken refuses on the mover's client; moveToken on the active GM spends, records the hex and advances the clock, or sends an overdrawn move back with a displace), advanceTravel (rolls each check due at its hour through encounter.check; a hit stops the clock and leaves pending) and resume (Continue), forage (the owner rolls INT through StatRiders.save after the queue; a success adds a ration), makeCamp (lights out through advanceOffDuty(0), the clock to dawn or the last night check, then Extras' camping.open or Overland's own rations, the day closed and the weather rolled), the underground season check on timeAdvanced, and the overlandChanged / overlandStart / overlandEnd hooks. |
 | `overland/route.mjs` | 339 | The route on the hex map (#257): with the travel token selected while travelling on a tagged hex map, the cheapest route (overland-state-core cheapestRoute over the grid's neighbours, priced as a move) is drawn to the hovered hex with each hex's cost and a tooltip (hexes, miles, points, hours, or why there's no way); a click walks the party there one hex a move, stopping at an encounter, a bounce or the end of the day's points. |
 | `overland/sky-core.mjs` | 125 | The sky on scenes (#235, O9), pure: darkness by the sun and moon (0 by day, a one-hour twilight each way, night 1 - 0.2 x illumination, the hex map capped at 0.6), the Isles of Andrik's Midnight Sun and Long Dark by region and season, the weather effect (rainStorm, blizzard in the cold, the season's snow or leaves on a fair day: #294), and which scenes follow the sky and are written (the active scene and the party's). |
 | `overland/sky.mjs` | 206 | The sky on scenes (#235, O9): the active GM writes the darkness of the active scene and of the party's scene, the one the travel token is on (#294; only on a 0.02 change, animated for steps under an hour, never on a locked scene; no other module is consulted) and weather effect (never over one the GM chose) on each clock move, weather change and scene activation; one pass at a time. Also the per-device Show weather effects setting and its drawWeatherEffects hook (#294). Adds the Follows the sky choice to Scene Configuration's Environment tab (the followsSky scene flag). |
@@ -125,7 +125,7 @@
 | `party/party-movement.mjs` | 192 | Authenticated Party-owner gather/deploy relay, linked token configuration preservation and native marching: followers keep the formation, turned to the leader's heading, and never pause. |
 | `party/party-sheet-core.mjs` | 181 | Pure Party sheet decisions: the tab row and view flags (GM vs player), the Marching order status line, Gems, the linked Bastion and its last month, and the Today / Light / Rations status bar. |
 | `party/party.mjs` | 91 | Explicit native Party provider, safe in-place NPC adoption and owner-scoped membership writes. |
-| `rules-data/rules-data-app.mjs` | 410 | The GM-only Rules data window (AppV2, Configure Settings menu): shows and edits every rules table, staged until Save. Its import (importFromBooks, also the Importer Hub step's importAndSave) runs table-shapes RULES_TABLES over the GM's own linked GM Guide and Player's Guide PDFs (lazy-loaded), canonicalises region names through hex-region knownRegions, and previews every filled value it would replace. |
+| `rules-data/rules-data-app.mjs` | 412 | The GM-only Rules data window (AppV2, Configure Settings menu): shows and edits every rules table, staged until Save. Its import (importFromBooks, also the Importer Hub step's importAndSave) runs table-shapes RULES_TABLES over the GM's own linked GM Guide and Player's Guide PDFs (lazy-loaded), canonicalises region names through hex-region knownRegions, and previews every filled value it would replace. |
 | `rules-data/rules-data-core.mjs` | 457 | Rules data (#195), pure: the Western Reaches lookup tables (terrain cost and elevation, terrain types, hexes per day, hex visibility, climate by region and season, carousing and recruiting limits) as one sparse world setting laid over an empty structure, the game.shadowdarkEnhancer.rules lookups over it, the readers that turn the importer's `reference` rows into those tables, and the overwrite preview and merge for an import. Ships structure only (tagger terrain words, travel methods, conditions, seasons, settlement kinds), never a value. |
 | `rules-data/rules-data-notice.mjs` | 57 | The GM-only "Rules Data isn't set" notices (#299): tellMissing posts one whispered card per empty table per session, naming Importer Hub > Rules Data > Import from GM Guide with a button that opens the hub's Rules Data step; openRulesStep; the chat hook that wires the button. |
 | `rules-data/rules-data-scope.mjs` | 49 | Which ruleset a scene reads: the default `rulesData`, or one of the `rulesSets` a scene names in its `rulesSet` flag. storedRulesFor for the API, Overland and recruiting; setSceneRuleset for the editor. |
@@ -183,17 +183,17 @@
 
 | File | Lines | Description |
 |---|---:|---|
-| `crawl-strip.mjs` | 1701 | The core feature: the top strip. Plain DOM (`#shadowdark-enhancer-strip`), not ApplicationV2. |
+| `crawl-strip.mjs` | 1700 | The core feature: the top strip. Plain DOM (`#shadowdark-enhancer-strip`), not ApplicationV2. |
 | `crawl-state.mjs` | 482 | Foundry-coupled state singleton — persistence, sockets, hook emission. |
 | `crawl-state-core.mjs` | 401 | Pure reducer/normalizer behind crawl-state. Node-testable. |
 | `crawl-lights-core.mjs` | 93 | Pure light-source logic for the strip's flame badges. |
-| `crawl-tracker.mjs` | 343 | The out-of-combat tracker as a real sidebar tab (`AbstractSidebarTab`), registered into `Sidebar.TABS` + `CONFIG.ui` beside Combat. Hidden unless a crawl is running; carries the roll-all / advance / reset controls. |
+| `crawl-tracker.mjs` | 345 | The out-of-combat tracker as a real sidebar tab (`AbstractSidebarTab`), registered into `Sidebar.TABS` + `CONFIG.ui` beside Combat. Hidden unless a crawl is running; carries the roll-all / advance / reset controls. |
 | `crawl-tracker-core.mjs` | 138 | Pure view model for the tracker tab: `buildTrackerRows()` (rolled first, unrolled last, holder flagged), `showOocReset()`, and `parseInitiativeInput()` — which treats a blanked box as "no change" rather than the initiative of 0 that `Number("")` yields. Node-testable. |
 | `initiative-manager.mjs` | 134 | Combat/initiative state machine glue for the strip. |
 | `hidden-sync.mjs` | 66 | Bidirectional `token.hidden` ↔ `combatant.hidden` sync, GM-only. |
 | `turn-skip.mjs` | 163 | Auto-advances past combatants the strip renders no card for (dead enemies). Active-GM gated. Also drives Chaos Mode: queues each held Chaos round (updateCombat) and replays it under the same lock (#259). |
 | `turn-skip-core.mjs` | 164 | Pure strip-visibility test shared by the strip and the auto-skip, so the two can't drift. |
-| `movement-tracker.mjs` | 809 | Crawl-mode movement budget enforcement + turn-start rollback (`displace` waypoints). |
+| `movement-tracker.mjs` | 812 | Crawl-mode movement budget enforcement + turn-start rollback (`displace` waypoints). |
 | `movement-calc.mjs` | 88 | Pure per-segment feet-moved math. |
 | `npc-action-menu.mjs` | 633 | Per-combatant hover action HUD. |
 | `crawl-turn-core.mjs` | 121 | Pure turn-advance authorization for the crawl strip: `canAdvanceTurn()` (a GM always may; a player only when they own the current combatant and the advance would not roll the round) and `nextTurnWouldRollRound()`, mirroring `Combat#nextTurn`'s real wrap rules. |
@@ -203,7 +203,7 @@
 
 | File | Lines | Description |
 |---|---:|---|
-| `crawl-bar.mjs` | 777 | GM-only persistent bottom bar above the macro bar (mode toggles, tools, launchers). |
+| `crawl-bar.mjs` | 779 | GM-only persistent bottom bar above the macro bar (mode toggles, tools, launchers). |
 | `crawl-bar-core.mjs` | 126 | The crawl bar's Foundry-free half: which controls each mode shows, the overland badge text, and the Tools panel's sections. |
 
 ### 3.5 `scripts/encounter/` — the Encounter Roller
@@ -239,9 +239,9 @@
 | `spell-index.mjs` | 260 | Lightweight Spell index (compendium indices, not documents). |
 | `npc-moves.mjs` | 16 | Canonical NPC movement keys with a pre-config fallback. |
 | `npc-statblock.mjs` | 143 | Builds the formatted `system.notes` statblock HTML. |
-| `level-guidelines-app.mjs` | 220 | GM-facing editor for the per-level monster guidelines — what a level-N monster's stats should look like. |
+| `level-guidelines-app.mjs` | 222 | GM-facing editor for the per-level monster guidelines — what a level-N monster's stats should look like. |
 | `level-guidelines.mjs` | 527 | Pure, node-testable monster level-guideline math (isotonic-smoothed medians over the system's 244 monsters). |
-| `quick-adjust-app.mjs` | 469 | Quick stat-adjust dialog — lightweight AC/HP/level/attack swaps on an existing monster (not a generated effect). |
+| `quick-adjust-app.mjs` | 472 | Quick stat-adjust dialog — lightweight AC/HP/level/attack swaps on an existing monster (not a generated effect). |
 
 ### 3.7 `scripts/loot/`
 
@@ -263,7 +263,7 @@
 | `sea-wolf-plunder.mjs` | 576 | D4/#57's exact CS3 Sea Wolf Plunder seam: recognizes only the manifest/content identity or exact table name, strips only a terminal `(N gp)` for the generated Item name, stamps curated art plus A7 source-qualified generated identity, and keeps row-level unresolved, ambiguous, or reconciliation failures as raw TEXT with their priced source phrase. A TableResult write failure is a separate outcome: source preservation is guaranteed only when snapshot restoration reports `restored: true`; `restored: false` may require manual recovery. |
 | `subroll.mjs` | 95 | Resolve "Meteorite 1d4: 1. lute…" table rows to the object rolled. |
 | `treasure-data.mjs` | 15 | Level → tier band boundaries. |
-| `item-drops.mjs` | 697 | Drag items to canvas as pickup tokens; TokenHUD pickup; light sources burn. |
+| `item-drops.mjs` | 700 | Drag items to canvas as pickup tokens; TokenHUD pickup; light sources burn. |
 | `loot-resolution.mjs` | 243 | Precise loot-row → Item resolution (pure), replacing the containment regex that lived in `loot-linker.mjs`. That matcher asked whether a row CONTAINED any known item name as a word (`\b<name>s?\b`, longest candidate first), which made every generic container, material and body part in the system gear pack a landmine: "Unopened bottle of exceptionally potent Murgazi wine (25 gp)" resolved to the plain system `Bottle` and the GM's 25 gp vintage became a 1 gp empty bottle (#58) — with "A flask of oil" → `Flask` and "Bolt of fine silk" → `Bolt` behind it. The replacement resolves the row AS A NAME in two tiers: `exact` (the priced row, stripped, IS the item's name modulo case and spacing) and `alias` (that name modulo a leading article or count, a trailing parenthetical, and the plural of its FINAL word). Every fold is anchored, so none of them can shorten a phrase to one of its interior words — the containment bug is structurally unreachable, not merely tuned away. A row landing on two distinct items at the same tier is `ambiguous` and resolves to nothing, because picking one by index order is the same bug with extra steps; ambiguity is reachable because the alias fold is looser than `buildItemIndex`'s lowercased-name dedupe. Recall is traded for precision DELIBERATELY (D4/D5 accept "an explicit unresolved case" and put loose generic fallback out of scope): an unresolved row keeps its text and can be fabricated, while a false positive silently hands the player the wrong object and looks like it worked. Also owns `stripPrice`, moved verbatim from `loot-pack.mjs` (which re-exports it) because its output is a fabricated Item's NAME and must not acquire any of the matching folds. Foundry-free, node-tested. |
 | `monster-loot-review-app.mjs` | 86 | Monster Loot Overrides window: every world NPC with its loot table and drop chance, edited inline via LootDrops.setOverrides. Opened from the Loot & XP settings pop-out. |
 
@@ -279,7 +279,7 @@
 
 | File | Lines | Description |
 |---|---:|---|
-| `merchant-shop.mjs` | 2732 | Two-mode shop system (compendium global or actor NPC inventory); GM opens for all players. |
+| `merchant-shop.mjs` | 2738 | Two-mode shop system (compendium global or actor NPC inventory); GM opens for all players. |
 | `merchant-defaults.mjs` | 209 | The two shipped merchant configs (Base, Western Reaches). |
 | `catalog-stock.mjs` | 37 | What the Catalog tab may sell: gear types with a list price, not loot-table props. |
 
@@ -296,7 +296,7 @@
 |---|---:|---|
 | `session-recap.mjs` | 801 | Session event tracker singleton (loot, sales, XP, combats, per-PC stats). |
 | `session-recap-core.mjs` | 430 | Pure data shape, currency math, duration format, Discord-markdown export. |
-| `session-recap-app.mjs` | 348 | Recap window: Overview / Combat / Loot / XP / History. |
+| `session-recap-app.mjs` | 352 | Recap window: Overview / Combat / Loot / XP / History. |
 | `carousing-feed.mjs` | 121 | Explicit legacy SDX result-capture compatibility and native/SDX downtime overlap read. Native outings push one stable Session Recap row directly; no hidden journal watcher or actor-effect replay. |
 | `carousing-feed-core.mjs` | 239 | Pure normalizer for both SDX carousing result shapes — original (d8 outcome + one benefit, GM applies) and expanded (d8 → XP + d100 benefit/mishap arrays, self-applying) — detected off the payload, not off SDX's mode setting, so a carouse rolled before the GM flipped it still reads. Also the shared `recapRow`, `carousingSubtotal` and `tierLine` wording the recap window and the Discord export both use. Foundry-free, node-tested. |
 
@@ -399,14 +399,16 @@
 
 | File | Lines | Description |
 |---|---:|---|
-| `register-actors.mjs` | 125 | Registers `shadowdark-enhancer.mount` / `.warband` / `.boat` (models + sheets, in `i18nInit`): the warband's NpcSD subclass with fixed HP, its linked-token and commander-cleared create hook, and Make a Warband. |
+| `register-actors.mjs` | 114 | Registers `shadowdark-enhancer.mount` / `.warband` / `.boat` (models + sheets, in `i18nInit`): the warband's NpcSD subclass with fixed HP, its linked-token and commander-cleared create hook, and Make a Warband. |
 | `boat-data-model.mjs` | 115 | Boat data model — WR vessel rules. |
 | `boat-sheet.mjs` | 145 | Boat sheet: Overview / Passengers & Crew / Cargo / Description. |
-| `mount-sheet.mjs` | 561 | Mount sheet — an ApplicationV2 actor sheet over the NPC data model: stats, riders, gear, mount rules, spells, notes, effects. |
+| `npc-stat-sheet.mjs` | 271 | The NPC stat block as an ApplicationV2 actor sheet, shared by the Mount and the Warband: header and tabs, HP/AC/level, attacks, specials, features, spells, description, effects and the system's own data-action names (item-attack, roll-hp, cast-npc-spell...) mapped to V2 actions, tab handling and emulateItemDrop. Markup in templates/actors/npc-stat/. |
+| `mount-sheet.mjs` | 350 | Mount sheet — an ApplicationV2 actor sheet over the NPC data model: stats, riders, gear, mount rules, spells, notes, effects. |
 | `mount-scores-core.mjs` | 13 | Pure mount full-score defaults, uncapped modifier conversion, separate damage and effective scores. |
 | `mount-scores.mjs` | 40 | Mount-only NPC model extension and once-only creation/adoption of persisted full scores; native checks derive effective modifiers. |
 | `warband-core.mjs` | 265 | Warband rules, pure (#200, #202, #204): the 18 upgrades, a commander's allowance by hit die tier (2/2, 4/3, 6/4), the command and upgrade refusals, and a creature made into a warband (level doubled, 8 HP a level plus CON, one attack, +1 attack a level gained, damage dice tripled). |
-| `warband-npc-sheet.mjs` | 356 | The Warband unit sheet (#200): an NpcSheetSD subclass (AppV1) with a Warband tab for the commander (a PC dropped on it), the allowance across that commander's warbands, the upgrade checklist written whole to the `warband` flag, and the commander's CHA for morale, and (#204) upkeep, arrears, desertion and retraining with their GM buttons. |
+| `warband-sheet.mjs` | 198 | The Warband unit sheet (#200), an ApplicationV2 actor sheet: the Mount's NPC stat block (npc-stat-sheet.mjs) plus a Warband tab for the commander (a PC dropped on it), the allowance across that commander's warbands, the upgrade checklist, the garrison, the commander's CHA for morale and the GM's upkeep buttons. Every change goes to the warband writer; it writes no flag itself. |
+| `warband-npc-sheet.mjs` | 199 | A Warband's state and its writer (#200, #204): `warbandState`, the commander's tier and other warbands, and the one queue the active GM runs every commander, upgrade, garrison and upkeep change through (the single `warband` flag written whole via replaceModuleFlag, allowance checked on that GM). The sheet that sends them is warband-sheet.mjs; this file keeps its old name because combat, upkeep and recruiting import from it. |
 | `make-warband.mjs` | 119 | Make a Warband (#202): the GM's Actors-directory context entry on a level 1-5 NPC, a before/after preview, and a new warband actor from a copy (the stat block in its notes rebuilt as Quick Adjust does). |
 | `warband-upkeep.mjs` | 454 | Warband upkeep and healing on the world clock (#204): on timeAdvanced (active GM, queued), month and week starts in order over a move's last 366 days (clockEvents, last-month and last-week markers against rewinds): each month start charges 10 gp a level per commanded warband from the commander's coins, in one card; arrears check morale each week start (at most 8 rolling weeks a move) and desert on a failure (marked, never deleted); every day heals 1d4 (Hardy 2d6); the GM's Charge a Month, Pay Arrears and Return to Service. |
 | `warband-garrison.mjs` | 22 | The bastion a warband is garrisoned at: its name and which of the Granary and Barracks it has finished while it stands, for warband upkeep, healing and the Warband tab. |
@@ -421,7 +423,7 @@
 |---|---:|---|
 | `char-builder-app.mjs` | 405 | `ShadowdarkCharBuilder` ApplicationV2 shell; drives the step lifecycle. |
 | `state.mjs` | 158 | `CharBuilderState` — the in-progress character. |
-| `constants.mjs` | 193 | Shared constants; hands off to the system's `CharacterGeneratorSD`. |
+| `constants.mjs` | 160 | Shared constants; hands off to the system's `CharacterGeneratorSD`. |
 | `data.mjs` | 325 | Thin wrappers over the system's compendium loaders. |
 | `commit.mjs` | 304 | `commitCharacter` — final actor creation + `coinsAfterGear`. |
 | `item-source.mjs` | 19 | `stampSource` — records the compendium link on items the builder creates. |
@@ -429,7 +431,7 @@
 | `commit-plan.mjs` | 260 | `planCommit` — pure three-way plan (baseline, builder, live) of what Finish changes on an existing actor. |
 | `commit-apply.mjs` | 209 | `applyPlan` — resumable executor for a merge-aware plan: creates, item updates, one actor update, deletes last, each read back so a write rejected after saving is not repeated. |
 | `before-image.mjs` | 178 | `takeBeforeImage` / `restoreBeforeImage` — one actor flag holding the builder-writable fields and every item's source, and a restore that puts the character back with the executor's write discipline. |
-| `existing-finish.mjs` | 216 | The builder on an existing character: `hydrateActor`, `finishExisting` (diff dialog, before-image, `applyPlan`, then re-hydrate from the live actor) and `undoLastSave`. |
+| `existing-finish.mjs` | 217 | The builder on an existing character: `hydrateActor`, `finishExisting` (diff dialog, before-image, `applyPlan`, then re-hydrate from the live actor) and `undoLastSave`. |
 | `level-up.mjs` | 66 | Level up an existing character, one level (pure): `canLevelUp` (XP or GM), `startLevelUp`, `cancelLevelUp`, the odd-level talent rule, the spells-known delta and the picked talent. |
 | `entry-points.mjs` | 38 | Ways into the builder on an existing character: the Player sheet header button and the Actor directory's Edit in Character Builder entry. |
 | `art.mjs` | 77 | Ancestry/class NAME → local portrait manifest. |
@@ -459,7 +461,7 @@
 | `imported-monster-art.mjs` | 830 | N6's exact source-aware curated art map and F4's Foundry-free pick-state planner; missing rows stay available to Browse. |
 | `monster-token-art.mjs` | 726 | Applies licensed art to monsters **by path reference**, never bundled. |
 | `token-art-catalog.mjs` | 1104 | Name→art matching catalog. |
-| `token-art-manager-app.mjs` | 705 | GM window to review/apply matches. |
+| `token-art-manager-app.mjs` | 707 | GM window to review/apply matches. |
 | `token-art-manager-state.mjs` | 79 | Normalizes the persistent Token Art Manager state and named Browse folders. |
 
 ### 3.16 `scripts/pdf-export/`
@@ -472,7 +474,7 @@
 
 | File | Lines | Description |
 |---|---:|---|
-| `prayer-roll.mjs` | 174 | Prayer icon beside the sheet's Deity header; rolls that deity's `<Deity> Prayers` table (world first, then compendiums). |
+| `prayer-roll.mjs` | 183 | Prayer icon beside the sheet's Deity header; rolls that deity's `<Deity> Prayers` table (world first, then compendiums). |
 
 ### 3.18 `scripts/downtime/` — between-crawls downtime activities
 
@@ -551,7 +553,7 @@ One world JournalEntry per quest, its state one flag on the entry. World journal
 | `bastion-funding.mjs` | 57 | The party link and paying into the treasury, pure: which actors are parties, who can pay, and the purse arithmetic for paying gold in and out. Extras' own party coins are never read or written. |
 | `bastion-art.mjs` | 33 | The actor type id, where the bastion art files are (assets/bastion/art), and the one-time load of the sprite sheet the plan and the panel draw from. |
 | `bastion-data-model.mjs` | 53 | The Bastion actor's data model: type, build weeks, hit points, treasury, upgrades and their places, repair, log. |
-| `bastion-sheet.mjs` | 325 | The Bastion actor sheet (ApplicationV2): Overview, Upgrades, Plan (exterior and interior, roofs, zoom, room card, SVG and PNG export) and Log. The GM edits. |
+| `bastion-sheet.mjs` | 327 | The Bastion actor sheet (ApplicationV2): Overview, Upgrades, Plan (exterior and interior, roofs, zoom, room card, SVG and PNG export) and Log. The GM edits. |
 | `register-bastion.mjs` | 92 | Registers the `shadowdark-enhancer.bastion` actor type, its sheet and art defaults, and builds `game.shadowdarkEnhancer.bastion`. |
 | `bastion-text.mjs` | 34 | Words the sheet and the panel share: the localizers, why a rules call said no, and a log line turned into words. |
 | `bastion-writes.mjs` | 195 | Writing a bastion and paying into it, the GM's: a state written back as one update (the type's art follows a retype), and gold moved between a character's purse and the treasury with each write read back and the first put back if the second is refused. |
