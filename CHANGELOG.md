@@ -9,6 +9,7 @@
   redesign. No window uses it yet, so nothing looks different.
 
 ### Changed
+- **The Luck and Light marks on the Party sheet's member cards now work.** Click Luck to spend a luck token and Light to light or snuff the character's torch, the same as on the crawl strip. Only the character's owner or a GM can; anyone else gets a short refusal.
 - **Carousing window uses the new design.** One tier select for the party at the top, one shared-cost line (total, headcount, each person's share), a Joining switch and the result for each character.
 - **Camping window uses the new design.** Hairline rows on the shared UI kit, a ration count next to the ham hock icon, a Ready button, and no gold.
 - **Camping: everyone participates and meals use the party's rations automatically.** The per-character Participate checkbox is gone, and a character eats their own rations first and then the party's with no consent box; a character short overall is not fed and nothing is deducted. Torch contribution is still opt-in.
