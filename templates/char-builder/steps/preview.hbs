@@ -1,131 +1,81 @@
-<div class="sde-cb-anc is-preview">
+<div class="cbu-step sde-cb-preview-main is-preview">
+  <h2 class="ui-h">{{localize "SDE.charBuilder.step.preview"}} <small>{{step.summary}}</small></h2>
 
-  <div class="sde-cb-page-title sd-band">
-    <h1>{{localize "SDE.charBuilder.step.preview"}}</h1>
-  </div>
+  {{#unless step.ready}}
+  <div class="ui-note warn"><i class="fa-solid fa-triangle-exclamation"></i> {{localize "SDE.charBuilder.preview.incomplete"}} {{#each step.missing}}{{this}}{{#unless @last}}, {{/unless}}{{/each}}</div>
+  {{/unless}}
 
-  <div class="sde-cb-anc-subhead sd-band sd-band--tight">
-    <h2>{{step.name}}</h2>
-  </div>
-
-  <div class="sde-cb-preview-main">
-
-    {{#unless step.ready}}
-    <p class="sde-cb-hint warn">
-      <i class="fa-solid fa-triangle-exclamation"></i>
-      {{localize "SDE.charBuilder.preview.incomplete"}} {{#each step.missing}}{{this}}{{#unless @last}}, {{/unless}}{{/each}}
-    </p>
-    {{/unless}}
-
-    <section class="sde-cb-preview-block sde-cb-art">
-      <h3>{{localize "SDE.charBuilder.preview.artwork"}}</h3>
-      <div class="sde-cb-art-row">
-
-        <figure class="sde-cb-art-thumb{{#unless step.art.portrait}} is-unset{{/unless}}">
-          <img src="{{step.art.portraitSrc}}" alt="">
-          <figcaption>
-            {{localize "SDE.charBuilder.art.portrait"}}
-            {{#if step.art.portraitIsSuggested}}<span class="tag">{{localize "SDE.charBuilder.art.suggested"}}</span>{{/if}}
-          </figcaption>
-        </figure>
-
-        <figure class="sde-cb-art-thumb{{#unless step.art.token}} is-unset{{/unless}}">
-          <img src="{{step.art.tokenSrc}}" alt="">
-          <figcaption>{{localize "SDE.charBuilder.art.token"}}</figcaption>
-        </figure>
-
-        <div class="sde-cb-art-actions">
-          {{#if step.art.canSuggest}}
-          <button type="button" class="sde-cb-btn" data-action="cb-art-suggest">
-            <i class="fa-solid fa-wand-sparkles"></i> {{localize "SDE.charBuilder.art.useSuggested"}}
-          </button>
-          {{/if}}
-          {{#if step.art.canPickFiles}}
-          <button type="button" class="sde-cb-btn" data-action="cb-art-portrait">
-            <i class="fa-solid fa-image"></i> {{localize "SDE.charBuilder.art.pickPortrait"}}
-          </button>
-          <button type="button" class="sde-cb-btn" data-action="cb-art-token">
-            <i class="fa-solid fa-chess-pawn"></i> {{localize "SDE.charBuilder.art.pickToken"}}
-          </button>
-          {{/if}}
-          {{#if step.art.canGallery}}
-          <button type="button" class="sde-cb-btn" data-action="cb-gallery-portrait">
-            <i class="fa-solid fa-images"></i> {{localize "SDE.charBuilder.art.galleryPortrait"}}
-          </button>
-          <button type="button" class="sde-cb-btn" data-action="cb-gallery-token">
-            <i class="fa-solid fa-images"></i> {{localize "SDE.charBuilder.art.galleryToken"}}
-          </button>
-          {{/if}}
-          <button type="button" class="sde-cb-btn" data-action="cb-art-url">
-            <i class="fa-solid fa-link"></i> {{localize "SDE.charBuilder.art.fromUrl"}}
-          </button>
-          {{#if step.art.any}}
-          <button type="button" class="sde-cb-btn ghost" data-action="cb-art-clear">
-            <i class="fa-solid fa-rotate-left"></i> {{localize "SDE.charBuilder.art.clear"}}
-          </button>
-          {{/if}}
-          {{#if step.art.lightOnly}}
-          <p class="sde-cb-art-hint">{{localize "SDE.charBuilder.art.lightHint"}}</p>
-          {{/if}}
+  <section class="ui-card cbu-art">
+    <div class="ui-card-head"><h3 class="ui-card-name">{{localize "SDE.charBuilder.preview.artwork"}}</h3>
+      {{#if step.art.canSuggest}}<button type="button" class="ui-btn" data-action="cb-art-suggest"><i class="fa-solid fa-wand-sparkles"></i> {{localize "SDE.charBuilder.art.useSuggested"}}</button>{{/if}}
+    </div>
+    <div class="ui-inline cbu-art-row">
+      <figure class="cbu-art-thumb{{#unless step.art.portrait}} is-unset{{/unless}}"><img src="{{step.art.portraitSrc}}" alt=""><figcaption>{{localize "SDE.charBuilder.art.portrait"}} {{#if step.art.portraitIsSuggested}}<span class="ui-tag">{{localize "SDE.charBuilder.art.suggested"}}</span>{{/if}}</figcaption></figure>
+      <figure class="cbu-art-thumb{{#unless step.art.token}} is-unset{{/unless}}"><img src="{{step.art.tokenSrc}}" alt=""><figcaption>{{localize "SDE.charBuilder.art.token"}}</figcaption></figure>
+      <details class="ui-details ui-grow cbu-art-actions">
+        <summary>{{localize "SDE.charBuilder.preview.changeArt"}}</summary>
+        <div class="ui-details-body">
+          <div class="ui-inline">
+            {{#if step.art.canPickFiles}}
+            <button type="button" class="ui-btn" data-action="cb-art-portrait"><i class="fa-solid fa-image"></i> {{localize "SDE.charBuilder.art.pickPortrait"}}</button>
+            <button type="button" class="ui-btn" data-action="cb-art-token"><i class="fa-solid fa-chess-pawn"></i> {{localize "SDE.charBuilder.art.pickToken"}}</button>
+            {{/if}}
+            {{#if step.art.canGallery}}
+            <button type="button" class="ui-btn" data-action="cb-gallery-portrait"><i class="fa-solid fa-images"></i> {{localize "SDE.charBuilder.art.galleryPortrait"}}</button>
+            <button type="button" class="ui-btn" data-action="cb-gallery-token"><i class="fa-solid fa-images"></i> {{localize "SDE.charBuilder.art.galleryToken"}}</button>
+            {{/if}}
+            <button type="button" class="ui-btn" data-action="cb-art-url"><i class="fa-solid fa-link"></i> {{localize "SDE.charBuilder.art.fromUrl"}}</button>
+            {{#if step.art.any}}<button type="button" class="ui-btn ghost" data-action="cb-art-clear"><i class="fa-solid fa-rotate-left"></i> {{localize "SDE.charBuilder.art.clear"}}</button>{{/if}}
+          </div>
+          {{#if step.art.lightOnly}}<div class="ui-note info">{{localize "SDE.charBuilder.art.lightHint"}}</div>{{/if}}
         </div>
+      </details>
+    </div>
+  </section>
 
+  <div class="ui-cols-2 cbu-preview-cols">
+    <section class="ui-card">
+      <div class="ui-card-head"><h3 class="ui-card-name">{{localize "SDE.charBuilder.preview.identity"}}</h3></div>
+      <div class="ui-pairs">
+        <div class="ui-pair"><span class="ui-label">{{localize "SDE.charBuilder.step.ancestry"}}</span><span class="ui-value">{{#if step.ancestry}}{{step.ancestry}}{{else}}&mdash;{{/if}}</span></div>
+        <div class="ui-pair"><span class="ui-label">{{localize "SDE.charBuilder.step.class"}}</span><span class="ui-value">{{#if step.class}}{{step.class}}{{else}}&mdash;{{/if}}</span></div>
+        <div class="ui-pair"><span class="ui-label">{{localize "SDE.charBuilder.step.background"}}</span><span class="ui-value">{{#if step.background}}{{step.background}}{{else}}&mdash;{{/if}}</span></div>
+        <div class="ui-pair"><span class="ui-label">{{localize "SDE.charBuilder.step.alignment"}}</span><span class="ui-value">{{step.alignment}}</span></div>
+        <div class="ui-pair"><span class="ui-label">{{localize "SDE.charBuilder.step.deity"}}</span><span class="ui-value">{{#if step.deity}}{{step.deity}}{{else}}&mdash;{{/if}}</span></div>
+        {{#if step.patron}}<div class="ui-pair"><span class="ui-label">{{localize "SDE.charBuilder.class.patron"}}</span><span class="ui-value">{{step.patron}}</span></div>{{/if}}
+        {{#if step.trinket}}<div class="ui-pair"><span class="ui-label">{{localize "SDE.charBuilder.ancestry.trinket"}}</span><span class="ui-value">{{step.trinket}}</span></div>{{/if}}
       </div>
     </section>
-
-    <div class="sde-cb-preview-cols">
-
-      <section class="sde-cb-preview-block">
-        <h3>{{localize "SDE.charBuilder.preview.identity"}}</h3>
-        <p><b>{{localize "SDE.charBuilder.step.ancestry"}}:</b> {{#if step.ancestry}}{{step.ancestry}}{{else}}—{{/if}}</p>
-        <p><b>{{localize "SDE.charBuilder.step.class"}}:</b> {{#if step.class}}{{step.class}}{{else}}—{{/if}}</p>
-        <p><b>{{localize "SDE.charBuilder.step.background"}}:</b> {{#if step.background}}{{step.background}}{{else}}—{{/if}}</p>
-        <p><b>{{localize "SDE.charBuilder.step.alignment"}}:</b> {{step.alignment}}</p>
-        <p><b>{{localize "SDE.charBuilder.step.deity"}}:</b> {{#if step.deity}}{{step.deity}}{{else}}—{{/if}}</p>
-        {{#if step.patron}}<p><b>{{localize "SDE.charBuilder.class.patron"}}:</b> {{step.patron}}</p>{{/if}}
-        {{#if step.trinket}}<p><b>{{localize "SDE.charBuilder.ancestry.trinket"}}:</b> {{step.trinket}}</p>{{/if}}
-      </section>
-
-      <section class="sde-cb-preview-block">
-        <h3>{{localize "SDE.charBuilder.step.stats"}}</h3>
-        <div class="sde-cb-preview-abilities">
-          {{#each step.abilities}}
-          <div class="ab"><span class="k">{{key}}</span><span class="v">{{value}}</span><span class="m">{{mod}}</span></div>
-          {{/each}}
-        </div>
-        <p><b>{{localize "SDE.charBuilder.level"}}:</b> {{step.level}}</p>
-        <p><b>{{localize "SDE.charBuilder.step.hp"}}:</b> {{#if step.hp}}{{step.hp}}{{else}}—{{/if}}</p>
-        <p><b>{{localize "SDE.charBuilder.step.gold"}}:</b> {{#if step.goldRolled}}{{step.goldRolled}}{{else}}—{{/if}}
-          {{#if step.gear.length}}<span class="after">→ {{step.coinsAfter}} {{localize "SDE.charBuilder.preview.afterGear"}}</span>{{/if}}</p>
-        <p><b>{{localize "SDE.charBuilder.step.languages"}}:</b>
-          {{#if step.languages.length}}{{#each step.languages}}{{this}}{{#unless @last}}, {{/unless}}{{/each}}{{else}}—{{/if}}</p>
-      </section>
-
-      <section class="sde-cb-preview-block">
-        <h3>{{localize "SDE.charBuilder.preview.features"}}</h3>
-        {{#if step.talents.length}}
-        {{#each step.talents}}<p>{{this}}</p>{{/each}}
-        {{else}}<p>—</p>{{/if}}
-        {{#if step.spells.length}}
-        <h3>{{localize "SDE.charBuilder.class.spells"}}</h3>
-        {{#each step.spells}}<p>{{name}} <span class="tier">({{localize "SDE.charBuilder.class.tier"}} {{tier}})</span></p>{{/each}}
-        {{/if}}
-      </section>
-
-      <section class="sde-cb-preview-block">
-        <h3>{{localize "SDE.charBuilder.step.gear"}}</h3>
-        {{#if step.gear.length}}
-        {{#each step.gear}}<p>{{qty}}× {{name}}</p>{{/each}}
-        {{else}}<p>—</p>{{/if}}
-      </section>
-
-      {{#if step.kept}}
-      <section class="sde-cb-preview-block sde-cb-kept">
-        <h3>{{localize "SDE.charBuilder.preview.kept"}}</h3>
-        <p class="sde-cb-hint">{{localize "SDE.charBuilder.preview.keptHint"}}</p>
-        {{#each step.kept}}<p>{{name}} <span class="tier">({{type}})</span></p>{{/each}}
-      </section>
+    <section class="ui-card">
+      <div class="ui-card-head"><h3 class="ui-card-name">{{localize "SDE.charBuilder.step.stats"}}</h3></div>
+      <div class="ui-inline cbu-preview-abilities">
+        {{#each step.abilities}}<span class="ui-chip ab"><b>{{key}}</b> {{value}} <span class="ui-muted">{{mod}}</span></span>{{/each}}
+      </div>
+      <div class="ui-pairs">
+        <div class="ui-pair"><span class="ui-label">{{localize "SDE.charBuilder.level"}}</span><span class="ui-value">{{step.level}}</span></div>
+        <div class="ui-pair"><span class="ui-label">{{localize "SDE.charBuilder.step.hp"}}</span><span class="ui-value">{{#if step.hp}}{{step.hp}}{{else}}&mdash;{{/if}}</span></div>
+        <div class="ui-pair"><span class="ui-label">{{localize "SDE.charBuilder.step.gold"}}</span><span class="ui-value">{{#if step.goldRolled}}{{step.goldRolled}}{{else}}&mdash;{{/if}}</span>{{#if step.gear.length}}<span class="ui-muted">&rarr; {{step.coinsAfter}} {{localize "SDE.charBuilder.preview.afterGear"}}</span>{{/if}}</div>
+      </div>
+      <div class="ui-pair"><span class="ui-label">{{localize "SDE.charBuilder.step.languages"}}</span><span class="ui-value">{{#if step.languages.length}}{{#each step.languages}}{{this}}{{#unless @last}}, {{/unless}}{{/each}}{{else}}&mdash;{{/if}}</span></div>
+    </section>
+    <section class="ui-card">
+      <div class="ui-card-head"><h3 class="ui-card-name">{{localize "SDE.charBuilder.preview.features"}}</h3></div>
+      <div class="ui-inline">{{#if step.talents.length}}{{#each step.talents}}<span class="ui-chip">{{this}}</span>{{/each}}{{else}}<span class="ui-muted">&mdash;</span>{{/if}}</div>
+      {{#if step.spells.length}}
+      <span class="ui-label">{{localize "SDE.charBuilder.class.spells"}}</span>
+      <div class="ui-inline">{{#each step.spells}}<span class="ui-chip sel">{{name}} <span class="tier">({{localize "SDE.charBuilder.class.tier"}} {{tier}})</span></span>{{/each}}</div>
       {{/if}}
-
-    </div>
+    </section>
+    <section class="ui-card">
+      <div class="ui-card-head"><h3 class="ui-card-name">{{localize "SDE.charBuilder.step.gear"}}</h3></div>
+      {{#if step.gear.length}}<div class="ui-inline">{{#each step.gear}}<span class="ui-chip">{{qty}}&times; {{name}}</span>{{/each}}</div>{{else}}<span class="ui-muted">&mdash;</span>{{/if}}
+    </section>
+    {{#if step.kept}}
+    <section class="ui-card cbu-kept">
+      <div class="ui-card-head"><h3 class="ui-card-name">{{localize "SDE.charBuilder.preview.kept"}}</h3></div>
+      <span class="ui-muted">{{localize "SDE.charBuilder.preview.keptHint"}}</span>
+      <div class="ui-inline">{{#each step.kept}}<span class="ui-chip">{{name}} <span class="tier">({{type}})</span></span>{{/each}}</div>
+    </section>
+    {{/if}}
   </div>
 </div>

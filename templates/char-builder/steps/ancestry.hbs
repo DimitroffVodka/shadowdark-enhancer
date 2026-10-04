@@ -1,97 +1,54 @@
-<div class="sde-cb-anc">
+<div class="cbu-step split cbu-anc">
+  <h2 class="ui-h">{{localize "SDE.charBuilder.step.ancestry"}} <small>{{step.summary}}</small></h2>
 
-  <div class="sde-cb-page-title sd-band">
-    <h1>{{localize "SDE.charBuilder.step.ancestry"}}</h1>
-  </div>
-
-  {{!-- Always rendered — pre-selection it is invisible but keeps its height,
-        so picking an option doesn't shove the whole body down. --}}
-  <div class="sde-cb-anc-subhead sd-band sd-band--tight{{#unless step.hasSelection}} is-empty{{/unless}}">
-    <h2>{{#if step.hasSelection}}{{step.detail.name}}{{else}}&nbsp;{{/if}}</h2>
-  </div>
-
-  <div class="sde-cb-anc-body">
-
+  <div class="cbu-split">
     {{> sde-cb-list step.list}}
 
-    <div class="sde-cb-anc-main">
-      {{#if step.readOnly}}<p class="sde-cb-hint"><i class="fa-solid fa-lock"></i> {{localize "SDE.charBuilder.existing.ancestryHint"}}</p>{{/if}}
+    <div class="sde-cb-anc-main cbu-main">
+      {{#if step.readOnly}}<div class="ui-note"><i class="fa-solid fa-lock"></i> {{localize "SDE.charBuilder.existing.ancestryHint"}}</div>{{/if}}
       {{#if step.hasSelection}}
-
-      <div class="sde-cb-anc-detail{{#if step.detail.hasPortrait}} with-portrait{{/if}}">
-        <div class="sde-cb-anc-text">
-
-          <div class="sde-cb-desc">{{{step.detail.description}}}</div>
-
-          {{#if step.aside.languageText}}
-          <p class="sde-cb-anc-langs">{{step.aside.languageText}}</p>
-          {{/if}}
-
-          {{#if step.aside.needsTalentChoice}}
-          <p class="sde-cb-hint warn">{{localize "SDE.charBuilder.ancestry.chooseTraits"}} {{step.aside.talentChoiceCount}}</p>
-          {{/if}}
-
-          <div class="sde-cb-anc-traits">
-            {{#each step.aside.traits}}
-            <div class="sde-cb-anc-trait{{#if ../step.aside.needsTalentChoice}} choosable{{#if selected}} selected{{/if}}{{/if}}"
-              {{#if ../step.aside.needsTalentChoice}}data-cb-anc-talent="{{uuid}}"{{/if}}>
-              {{#if ../step.aside.needsTalentChoice}}{{#if selected}}<i class="fa-solid fa-check tsel"></i> {{else}}<i class="fa-regular fa-circle tsel"></i> {{/if}}{{/if}}<b class="tn">{{name}}.</b> {{{descInline}}}
-            </div>
-            {{/each}}
+      <section class="ui-card">
+        <div class="cbu-detail{{#if step.detail.hasPortrait}} with-portrait{{/if}}">
+          <div class="ui-stack">
+            <div class="cbu-desc">{{{step.detail.description}}}</div>
+            {{#if step.aside.languageText}}<div class="ui-note info">{{step.aside.languageText}}</div>{{/if}}
+            {{#if step.aside.needsTalentChoice}}<div class="ui-note warn">{{localize "SDE.charBuilder.ancestry.chooseTraits"}} {{step.aside.talentChoiceCount}}</div>{{/if}}
           </div>
-
-          <div class="sde-cb-subfields">
-            <label class="sde-cb-field wide">
-              <span>{{localize "SDE.charBuilder.ancestry.name"}}</span>
-              <div class="sde-cb-choicerow">
-                <select data-cb-name-choice {{#unless step.canRollName}}disabled{{/unless}}>
-                  <option value="">{{localize "SDE.charBuilder.chooseOption"}}</option>
-                  {{#each step.nameOptions}}<option value="{{value}}" {{#if selected}}selected{{/if}}>{{label}}</option>{{/each}}
-                </select>
-                <input type="text" data-cb-name value="{{step.charName}}" placeholder="{{localize 'SDE.charBuilder.ancestry.namePlaceholder'}}">
-                <button type="button" class="sde-cb-btn dice sm" data-cb-roll-name {{#unless step.canRollName}}disabled{{/unless}} title="{{localize 'SDE.charBuilder.ancestry.rollName'}}">
-                  <i class="fa-solid fa-dice"></i>
-                </button>
-                {{#if step.lockedName}}
-                <button type="button" class="sde-cb-btn sm" data-cb-unlock="{{step.lockedName.id}}" title="{{localize 'SDE.charBuilder.ancestry.lockedNameTip' pages=step.lockedName.pages}}">
-                  <i class="fa-solid fa-lock"></i> {{localize "SDE.charBuilder.unlock"}}
-                </button>
-                {{/if}}
-              </div>
-            </label>
-            <label class="sde-cb-field wide">
-              <span>{{localize "SDE.charBuilder.ancestry.trinket"}}</span>
-              <div class="sde-cb-choicerow">
-                <select data-cb-trinket-choice {{#unless step.canRollTrinket}}disabled{{/unless}}>
-                  <option value="">{{localize "SDE.charBuilder.chooseOption"}}</option>
-                  {{#each step.trinketOptions}}<option value="{{value}}" {{#if selected}}selected{{/if}}>{{label}}</option>{{/each}}
-                </select>
-                <input type="text" data-cb-trinket value="{{step.trinket}}" placeholder="{{localize 'SDE.charBuilder.ancestry.trinketPlaceholder'}}">
-                <button type="button" class="sde-cb-btn dice sm" data-cb-roll-trinket {{#unless step.canRollTrinket}}disabled{{/unless}} title="{{localize 'SDE.charBuilder.ancestry.rollTrinket'}}">
-                  <i class="fa-solid fa-dice"></i>
-                </button>
-                {{#if step.lockedTrinket}}
-                <button type="button" class="sde-cb-btn sm" data-cb-unlock="{{step.lockedTrinket.id}}" title="{{localize 'SDE.charBuilder.ancestry.lockedTrinketTip' pages=step.lockedTrinket.pages}}">
-                  <i class="fa-solid fa-lock"></i> {{localize "SDE.charBuilder.unlock"}}
-                </button>
-                {{/if}}
-              </div>
-            </label>
+          {{#if step.detail.hasPortrait}}<img class="cbu-portrait" src="{{step.detail.img}}" alt="{{step.detail.name}}">{{/if}}
+        </div>
+        <div class="ui-list">
+          {{#each step.aside.traits}}
+          <div class="ui-row cbu-anc-trait{{#if ../step.aside.needsTalentChoice}} choosable{{#if selected}} sel{{/if}}{{/if}}" {{#if ../step.aside.needsTalentChoice}}data-cb-anc-talent="{{uuid}}"{{/if}}>
+            {{#if ../step.aside.needsTalentChoice}}<i class="{{#if selected}}fa-solid fa-check{{else}}fa-regular fa-circle{{/if}}"></i>{{/if}}
+            <div class="ui-row-main"><span class="ui-row-name">{{name}}</span><span class="ui-row-sub">{{{descInline}}}</span></div>
           </div>
-
+          {{/each}}
         </div>
+      </section>
 
-        {{#if step.detail.hasPortrait}}
-        <div class="sde-cb-anc-portrait">
-          <img src="{{step.detail.img}}" alt="{{step.detail.name}}">
-        </div>
-        {{/if}}
+      <div class="ui-cols-2">
+        <section class="ui-card cbu-subfields">
+          <div class="ui-card-head"><h3 class="ui-card-name">{{localize "SDE.charBuilder.ancestry.name"}}</h3></div>
+          <div class="ui-field"><select data-cb-name-choice {{#unless step.canRollName}}disabled{{/unless}}><option value="">{{localize "SDE.charBuilder.chooseOption"}}</option>{{#each step.nameOptions}}<option value="{{value}}" {{#if selected}}selected{{/if}}>{{label}}</option>{{/each}}</select></div>
+          <div class="ui-inline cbu-choicerow">
+            <input class="ui-grow" type="text" data-cb-name value="{{step.charName}}" placeholder="{{localize 'SDE.charBuilder.ancestry.namePlaceholder'}}">
+            <button type="button" class="ui-icon" data-cb-roll-name {{#unless step.canRollName}}disabled{{/unless}} title="{{localize 'SDE.charBuilder.ancestry.rollName'}}"><i class="fa-solid fa-dice"></i></button>
+            {{#if step.lockedName}}<button type="button" class="ui-btn" data-cb-unlock="{{step.lockedName.id}}" title="{{localize 'SDE.charBuilder.ancestry.lockedNameTip' pages=step.lockedName.pages}}"><i class="fa-solid fa-lock"></i> {{localize "SDE.charBuilder.unlock"}}</button>{{/if}}
+          </div>
+        </section>
+        <section class="ui-card cbu-subfields">
+          <div class="ui-card-head"><h3 class="ui-card-name">{{localize "SDE.charBuilder.ancestry.trinket"}}</h3></div>
+          <div class="ui-field"><select data-cb-trinket-choice {{#unless step.canRollTrinket}}disabled{{/unless}}><option value="">{{localize "SDE.charBuilder.chooseOption"}}</option>{{#each step.trinketOptions}}<option value="{{value}}" {{#if selected}}selected{{/if}}>{{label}}</option>{{/each}}</select></div>
+          <div class="ui-inline cbu-choicerow">
+            <input class="ui-grow" type="text" data-cb-trinket value="{{step.trinket}}" placeholder="{{localize 'SDE.charBuilder.ancestry.trinketPlaceholder'}}">
+            <button type="button" class="ui-icon" data-cb-roll-trinket {{#unless step.canRollTrinket}}disabled{{/unless}} title="{{localize 'SDE.charBuilder.ancestry.rollTrinket'}}"><i class="fa-solid fa-dice"></i></button>
+            {{#if step.lockedTrinket}}<button type="button" class="ui-btn" data-cb-unlock="{{step.lockedTrinket.id}}" title="{{localize 'SDE.charBuilder.ancestry.lockedTrinketTip' pages=step.lockedTrinket.pages}}"><i class="fa-solid fa-lock"></i> {{localize "SDE.charBuilder.unlock"}}</button>{{/if}}
+          </div>
+        </section>
       </div>
-
       {{else}}
-      {{#unless step.readOnly}}<div class="sde-cb-empty">{{localize "SDE.charBuilder.selectPrompt"}}</div>{{/unless}}
+      {{#unless step.readOnly}}<div class="ui-empty"><i class="fa-solid fa-hand-pointer"></i><span>{{localize "SDE.charBuilder.selectPrompt"}}</span></div>{{/unless}}
       {{/if}}
     </div>
-
   </div>
 </div>

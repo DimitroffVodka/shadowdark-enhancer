@@ -89,6 +89,9 @@ export class StatsStep extends BaseStep {
 
     return {
       methodLabel: game.i18n.localize(m.label),
+      // The step heading's one-line summary: the method, and that a GM set it unless values are typed.
+      summary: `${game.i18n.localize("SDE.charBuilder.stats.method.label")}: ${game.i18n.localize(m.label)}`
+        + (this.isManual ? "" : ` (${game.i18n.localize("SDE.charBuilder.stats.methodGm")})`),
       isAssign: assign,
       isFixed: this.isFixed,
       isPointBuy: this.isPointBuy,
