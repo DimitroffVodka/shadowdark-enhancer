@@ -1,6 +1,10 @@
 # Changelog
 
 ## [Unreleased]
+### Added
+- **A shared UI kit stylesheet** (`styles/sde-ui.css`, dark and light tokens plus parts) for the window
+  redesign. No window uses it yet, so nothing looks different.
+
 ### Changed
 - **The Character Builder's ability names and descriptions, the Hit Points formula's CON and the Gold step's dice formula now come from the language file** instead of being written into the code, and the Gold step's two inline styles are stylesheet classes. Nothing changes on screen.
 - **Token HUD buttons are real buttons.** The rollback-move, pick-up and Quick Adjust buttons, and the prayer icon beside a deity on the character sheet, can now be reached and used from the keyboard and have an accessible name; the prayer icon also appears on both sheet generations without doubling.
@@ -43,6 +47,9 @@
   earlier "Include mounts" had already placed on a scene is still recalled by Place / Recall.
 
 ### Fixed
+- **Two unreadable text colours.** The gold primary buttons (the monster importer's and the loot generator's
+  Roll) now have near-black text instead of cream, and the encounter result chat card's text is no longer
+  black on black in dark mode.
 - **The Description editor opens on the mount and warband sheets.** The notes editor was marked `collaborate="false"`, which Foundry v14 reads as "collaborate", so clicking the pencil only logged an error. The attribute is gone.
 - **The Warband sheet is an ApplicationV2 sheet, built like the Mount's.** It no longer borrows the system's old
   NPC sheet. It has the Mount's Abilities layout (HP, AC and Level, the six modifiers, Movement, Alignment,

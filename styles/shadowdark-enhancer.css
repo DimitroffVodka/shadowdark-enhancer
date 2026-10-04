@@ -3317,6 +3317,7 @@ body.theme-light .sde-hub-monsters-row td {
   align-items: center;
   gap: 8px;
   background: var(--sde-bar-surface-1);
+  color: var(--sde-bar-text);
   padding: 4px 6px;
   margin-bottom: 6px;
   border-radius: 3px;
@@ -3360,6 +3361,7 @@ body.theme-light .sde-hub-monsters-row td {
   padding: 3px 4px;
   font-size: 13px;
   background: var(--sde-bar-surface-2);
+  color: var(--sde-bar-text);
   border-radius: 3px;
 }
 .sde-chat-facet-label {
@@ -5947,7 +5949,7 @@ body.theme-light .sde-hub-monsters-row td {
 }
 .sde-import-primary {
   background: var(--sde-bar-accent);
-  color: var(--sde-bar-on-accent);
+  color: #14110a;
   border: none;
 }
 .sde-import-secondary {
@@ -6516,7 +6518,7 @@ body.theme-light .sde-hub-monsters-row td {
 }
 .sde-lootgen-roll {
   background: var(--sde-bar-accent, #c9a54a);
-  color: var(--sde-bar-on-accent, #f5eccc);
+  color: #14110a;
   font-weight: 600;
 }
 .sde-lootgen-rolltoken {

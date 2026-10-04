@@ -127,7 +127,7 @@ import { initRivalClassTable } from "./forge-loot/rival-class-table-adapter.mjs"
 // templates, producing unstyled block-flow UI. Keep the manifest stylesheet as
 // the startup fallback, then layer a content-addressed copy above it. The layout
 // contract test requires this revision to change whenever the CSS file changes.
-const STYLESHEET_REV = "9a8f11112d53";
+const STYLESHEET_REV = "3456728be2ad";
 
 // The same problem for the SCRIPTS, which cannot be solved the same way: their
 // URLs come from the manifest, which Foundry validates as real package paths,
@@ -142,7 +142,7 @@ const STYLESHEET_REV = "9a8f11112d53";
 // stale); module.json carries the same hash and is fetched fresh at runtime. A
 // mismatch is a stale cache by construction — it cannot be anything else. Both
 // stamps are written by `npm run inventory` and gated by `inventory:check`.
-const BUILD_REV = "5bea85177e2d";
+const BUILD_REV = "54220f4b544c";
 
 /**
  * Tell the user when their browser is running an old build of this module, and
@@ -281,7 +281,7 @@ function dropStaleModuleStylesheet(cssPath, keepId) {
 }
 
 // Register the Mount/Boat actor sub-types in `i18nInit`. The mount type reuses
-// the Shadowdark system's NpcSD model, which the system
+// the Shadowdark system's NpcSD model + NpcSheetSD sheet, which the system
 // registers in its own `init` hook — and module init hooks can run BEFORE the
 // system's. `i18nInit` fires after ALL init hooks (so the SD classes exist via
 // game.system.models/sheets) but BEFORE world documents are instantiated (so
