@@ -1,248 +1,220 @@
-<div class="sr-wrapper">
+{{!-- Session Recap, proposed: 5 tabs (History moves to the footer; it is the same changeTab action). Same context and data-* as templates/session-recap.hbs. --}}
+<div class="ui-shell">
 
-  <nav class="sr-tabs">
-    <button type="button" class="sr-tab {{#if tab.overview}}active{{/if}}" data-action="changeTab" data-tab="overview"><i class="fas fa-chart-pie"></i> {{localize "SDE.sessionRecap.ui.overview"}}</button>
-    <button type="button" class="sr-tab {{#if tab.combat}}active{{/if}}" data-action="changeTab" data-tab="combat"><i class="fas fa-khanda"></i> {{localize "SDE.sessionRecap.discord.combat"}}</button>
-    <button type="button" class="sr-tab {{#if tab.loot}}active{{/if}}" data-action="changeTab" data-tab="loot"><i class="fas fa-coins"></i> {{localize "SDE.sessionRecap.discord.loot"}}</button>
-    <button type="button" class="sr-tab {{#if tab.xp}}active{{/if}}" data-action="changeTab" data-tab="xp"><i class="fas fa-star"></i> {{localize "SDE.sessionRecap.ui.xpRenown"}}</button>
-    <button type="button" class="sr-tab {{#if tab.downtime}}active{{/if}}" data-action="changeTab" data-tab="downtime"><i class="fas fa-mug-hot"></i> {{localize "SDE.sessionRecap.ui.downtimeCarousing"}}</button>
-    <button type="button" class="sr-tab {{#if tab.history}}active{{/if}}" data-action="changeTab" data-tab="history"><i class="fas fa-book"></i> {{localize "SDE.sessionRecap.ui.history"}}</button>
+  <header class="ui-head">
+    <div class="ui-head-text">
+      <p class="ui-label">{{sessionStatusLabel}}</p>
+      <h2 class="ui-title">{{sessionDisplayName}}</h2>
+      <div class="ui-inline sr-stats">{{#each sessionStats}}<span class="ui-chip">{{label}}</span>{{/each}}</div>
+    </div>
+  </header>
+
+  <nav class="ui-tabs">
+    <button type="button" class="ui-tab {{#if tab.overview}}active{{/if}}" data-action="changeTab" data-tab="overview"><i class="fas fa-chart-pie"></i> {{localize "SDE.sessionRecap.ui.overview"}}</button>
+    <button type="button" class="ui-tab {{#if tab.combat}}active{{/if}}" data-action="changeTab" data-tab="combat"><i class="fas fa-khanda"></i> {{localize "SDE.sessionRecap.discord.combat"}}</button>
+    <button type="button" class="ui-tab {{#if tab.loot}}active{{/if}}" data-action="changeTab" data-tab="loot"><i class="fas fa-coins"></i> {{localize "SDE.sessionRecap.discord.loot"}}</button>
+    <button type="button" class="ui-tab {{#if tab.xp}}active{{/if}}" data-action="changeTab" data-tab="xp"><i class="fas fa-star"></i> {{localize "SDE.sessionRecap.ui.xpRenown"}}</button>
+    <button type="button" class="ui-tab {{#if tab.downtime}}active{{/if}}" data-action="changeTab" data-tab="downtime"><i class="fas fa-mug-hot"></i> {{localize "SDE.sessionRecap.ui.downtimeCarousing"}}</button>
   </nav>
 
-  <div class="sr-tab-content">
+  <div class="ui-body">
     {{#if isViewingHistory}}
-    <div class="sr-viewing-banner">
-      <i class="fas fa-eye"></i> {{localize "SDE.sessionRecap.ui.viewing"}} <strong>{{viewingSession.name}}</strong>
-      <button type="button" class="sr-back-btn" data-action="backToCurrent"><i class="fas fa-arrow-left"></i> {{localize "SDE.sessionRecap.ui.backToCurrent"}}</button>
+    <div class="ui-note info sr-viewing">
+      <span><i class="fas fa-eye"></i> {{localize "SDE.sessionRecap.ui.viewing"}} <strong>{{viewingSession.name}}</strong></span>
+      <button type="button" class="ui-btn" data-action="backToCurrent"><i class="fas fa-arrow-left"></i> {{localize "SDE.sessionRecap.ui.backToCurrent"}}</button>
     </div>
     {{/if}}
 
     {{#if tab.overview}}
-    <section class="sr-section">
-      <header class="sr-chapter-header">
-        <div class="sr-chapter-kicker">{{sessionStatusLabel}}</div>
-        <h1 class="sr-chapter-title">{{sessionDisplayName}}</h1>
-        <div class="sr-chapter-stats">
-          {{#each sessionStats}}{{#unless @first}}<span class="sr-chapter-sep" aria-hidden="true">·</span>{{/unless}}<span>{{label}}</span>{{/each}}
-        </div>
-        <hr class="sr-chapter-rule" />
-      </header>
-
-      {{#if hasEncounterChecks}}<p class="sr-encounter-summary"><i class="fas fa-dice-d6"></i> {{encounterSummary}}</p>{{/if}}
-
+      {{#if hasEncounterChecks}}<div class="ui-note"><i class="fas fa-dice-d6"></i> {{encounterSummary}}</div>{{/if}}
       {{#if hasPlayerSummaries}}
-      <h4 class="sr-section-title">{{localize "SDE.sessionRecap.ui.theParty"}}</h4>
-      <div class="sr-party-grid">
-        {{#each playerSummaries}}
-        <article class="sr-party-card">
-          <h4 class="sr-party-name">{{name}}</h4>
-          <dl class="sr-party-stats">
-            <div class="sr-party-stat"><dt>{{localize "SDE.sessionRecap.ui.kills"}}</dt><dd>{{kills}}</dd></div>
-            <div class="sr-party-stat"><dt>{{localize "SDE.sessionRecap.ui.dealt"}}</dt><dd>{{damageDealt}}</dd></div>
-            <div class="sr-party-stat"><dt>{{localize "SDE.sessionRecap.ui.taken"}}</dt><dd>{{damageTaken}}</dd></div>
-            <div class="sr-party-stat"><dt>{{localize "SDE.sessionRecap.discord.xp"}}</dt><dd>{{totalXp}}</dd></div>
-          </dl>
-        </article>
-        {{/each}}
-      </div>
+      <section class="ui-group">
+        <h3 class="ui-h">{{localize "SDE.sessionRecap.ui.theParty"}}</h3>
+        <div class="sr-grid">
+          {{#each playerSummaries}}
+          <article class="ui-card">
+            <h4 class="ui-card-name">{{name}}</h4>
+            <div class="ui-pairs sr-pairs">
+              <div class="ui-pair"><span class="ui-label">{{localize "SDE.sessionRecap.ui.kills"}}</span><span class="ui-value">{{kills}}</span></div>
+              <div class="ui-pair"><span class="ui-label">{{localize "SDE.sessionRecap.ui.dealt"}}</span><span class="ui-value">{{damageDealt}}</span></div>
+              <div class="ui-pair"><span class="ui-label">{{localize "SDE.sessionRecap.ui.taken"}}</span><span class="ui-value">{{damageTaken}}</span></div>
+              <div class="ui-pair"><span class="ui-label">{{localize "SDE.sessionRecap.discord.xp"}}</span><span class="ui-value">{{totalXp}}</span></div>
+            </div>
+          </article>
+          {{/each}}
+        </div>
+      </section>
       {{else}}
-      <p class="sr-empty">{{localize "SDE.sessionRecap.ui.noActivity"}}</p>
+      <div class="ui-empty"><i class="fas fa-scroll"></i><span>{{localize "SDE.sessionRecap.ui.noActivity"}}</span></div>
       {{/if}}
-    </section>
     {{/if}}
 
     {{#if tab.combat}}
-    <section class="sr-section">
-      {{#unless hasDamageLog}}
-      <div class="sr-notice"><i class="fas fa-info-circle"></i> {{{localize "SDE.sessionRecap.ui.damageLogNotice"}}}</div>
-      {{/unless}}
-
+      {{#unless hasDamageLog}}<div class="ui-note info"><i class="fas fa-info-circle"></i> {{{localize "SDE.sessionRecap.ui.damageLogNotice"}}}</div>{{/unless}}
       {{#if hasCombats}}
-      {{#each combats}}
-      <div class="sr-encounter">
-        <div class="sr-encounter-header" data-action="toggleEncounter" data-index="{{index}}">
-          <i class="fas {{#if expanded}}fa-chevron-down{{else}}fa-chevron-right{{/if}}"></i>
-          <strong>{{label}}</strong> — {{localize "SDE.sessionRecap.discord.rounds" n=rounds}}{{#if duration}} ({{duration}}){{/if}}
-          <span class="sr-encounter-badge">{{localize "SDE.sessionRecap.ui.defeatedOf" defeated=totalDefeated total=totalEnemies}}</span>
-        </div>
-        {{#if expanded}}
-        <div class="sr-encounter-body">
-          <div class="sr-enemy-list">
-            {{#each enemies}}
-            <span class="sr-enemy {{#if defeated}}defeated{{/if}}">{{name}}{{#if defeated}} <i class="fas fa-skull"></i>{{#if killedBy}} <em>({{killedBy}})</em>{{/if}}{{/if}}</span>
-            {{/each}}
+      <section class="ui-group">
+        {{#each combats}}
+        <article class="ui-card {{#if expanded}}raised{{/if}}">
+          <div class="ui-card-head sr-click" data-action="toggleEncounter" data-index="{{index}}">
+            <i class="fas {{#if expanded}}fa-chevron-down{{else}}fa-chevron-right{{/if}} ui-muted"></i>
+            <h4 class="ui-card-name">{{label}}</h4>
+            <span class="ui-card-sub">{{localize "SDE.sessionRecap.discord.rounds" n=rounds}}{{#if duration}} ({{duration}}){{/if}}</span>
+            <span class="ui-chip gold">{{localize "SDE.sessionRecap.ui.defeatedOf" defeated=totalDefeated total=totalEnemies}}</span>
           </div>
-        </div>
-        {{/if}}
-      </div>
-      {{/each}}
+          {{#if expanded}}
+          <div class="ui-inline">
+            {{#each enemies}}<span class="ui-chip {{#unless defeated}}sel{{/unless}}">{{#if defeated}}<i class="fas fa-skull ui-muted"></i> <span class="sr-down">{{name}}</span>{{#if killedBy}} <em class="ui-muted">({{killedBy}})</em>{{/if}}{{else}}{{name}}{{/if}}</span>{{/each}}
+          </div>
+          {{/if}}
+        </article>
+        {{/each}}
+      </section>
       {{else}}
-      <p class="sr-empty">{{localize "SDE.sessionRecap.ui.noCombats"}}</p>
+      <div class="ui-empty"><i class="fas fa-khanda"></i><span>{{localize "SDE.sessionRecap.ui.noCombats"}}</span></div>
       {{/if}}
 
       {{#if hasPlayerStats}}
-      <h4 class="sr-section-title">{{localize "SDE.sessionRecap.ui.rollStats"}}</h4>
-      <table class="sr-stats-table">
-        <thead><tr><th>{{localize "SDE.sessionRecap.ui.player"}}</th><th>{{localize "SDE.sessionRecap.ui.hitRate"}}</th><th>{{localize "SDE.sessionRecap.ui.nat20"}}</th><th>{{localize "SDE.sessionRecap.ui.nat1"}}</th><th>{{localize "SDE.sessionRecap.ui.avgD20"}}</th><th>{{localize "SDE.sessionRecap.ui.checks"}}</th><th>{{localize "SDE.sessionRecap.ui.dealt"}}</th><th>{{localize "SDE.sessionRecap.ui.taken"}}</th><th>{{localize "SDE.sessionRecap.ui.kills"}}</th></tr></thead>
-        <tbody>
-          {{#each playerStatsTable}}
-          <tr><td class="sr-cell-name">{{name}}</td><td>{{hitRate}}</td><td>{{nat20s}}</td><td>{{nat1s}}</td><td>{{avgD20}}</td><td>{{saveRate}}</td><td>{{damageDealt}}</td><td>{{damageTaken}}</td><td>{{kills}}</td></tr>
-          {{/each}}
-        </tbody>
-      </table>
+      <section class="ui-group">
+        <h3 class="ui-h">{{localize "SDE.sessionRecap.ui.rollStats"}}</h3>
+        <div class="sr-wrap"><table class="ui-table">
+          <thead><tr><th>{{localize "SDE.sessionRecap.ui.player"}}</th><th class="num">{{localize "SDE.sessionRecap.ui.hitRate"}}</th><th class="num">{{localize "SDE.sessionRecap.ui.nat20"}}</th><th class="num">{{localize "SDE.sessionRecap.ui.nat1"}}</th><th class="num">{{localize "SDE.sessionRecap.ui.avgD20"}}</th><th class="num">{{localize "SDE.sessionRecap.ui.checks"}}</th><th class="num">{{localize "SDE.sessionRecap.ui.dealt"}}</th><th class="num">{{localize "SDE.sessionRecap.ui.taken"}}</th><th class="num">{{localize "SDE.sessionRecap.ui.kills"}}</th></tr></thead>
+          <tbody>{{#each playerStatsTable}}<tr><td><strong>{{name}}</strong></td><td class="num">{{hitRate}}</td><td class="num">{{nat20s}}</td><td class="num">{{nat1s}}</td><td class="num">{{avgD20}}</td><td class="num">{{saveRate}}</td><td class="num">{{damageDealt}}</td><td class="num">{{damageTaken}}</td><td class="num">{{kills}}</td></tr>{{/each}}</tbody>
+        </table></div>
+      </section>
       {{/if}}
-    </section>
     {{/if}}
 
     {{#if tab.loot}}
-    <section class="sr-section">
       {{#if hasLoot}}
-      <div class="sr-loot-list">
+      <div class="ui-list">
         {{#each lootEntries}}
-        <div class="sr-loot-entry {{#if unclaimed}}unclaimed{{/if}}">
-          <span class="sr-loot-time">{{time}}</span>
-          <span class="sr-loot-icon">{{{iconHtml}}}</span>
-          <span class="sr-loot-player">{{player}}</span>
-          <span class="sr-loot-detail">{{detail}}</span>
-          {{#if source}}<span class="sr-loot-source">{{source}}</span>{{/if}}
+        <div class="ui-row {{#if unclaimed}}sr-unclaimed{{/if}}">
+          <span class="ui-tag">{{time}}</span>
+          <span class="sr-icon">{{{iconHtml}}}</span>
+          <div class="ui-row-main"><span class="ui-row-name">{{detail}}</span><span class="ui-row-sub">{{player}}</span></div>
+          {{#if source}}<span class="ui-chip">{{source}}</span>{{/if}}
         </div>
         {{/each}}
       </div>
       {{else}}
-      <p class="sr-empty">{{localize "SDE.sessionRecap.ui.noLoot"}}</p>
+      <div class="ui-empty"><i class="fas fa-coins"></i><span>{{localize "SDE.sessionRecap.ui.noLoot"}}</span></div>
       {{/if}}
 
       {{#if hasMerchant}}
-      <h4 class="sr-section-title">{{localize "SDE.sessionRecap.ui.merchant"}}</h4>
-      {{#if purchases.length}}
-      <div class="sr-merchant-block">
-        <div class="sr-merchant-head"><i class="fas fa-shopping-bag"></i> {{localize "SDE.sessionRecap.discord.purchases"}}</div>
-        {{#each purchases}}
-        <div class="sr-merchant-player"><span class="sr-merchant-name">{{player}}</span><span class="sr-merchant-subtotal">{{subtotal}}</span></div>
-        {{#each items}}<div class="sr-merchant-item">{{item}}{{qtyLabel}} — {{price}}</div>{{/each}}
-        {{/each}}
-      </div>
+      <section class="ui-group">
+        <h3 class="ui-h">{{localize "SDE.sessionRecap.ui.merchant"}}</h3>
+        <div class="ui-cols-2">
+        {{#if purchases.length}}
+        <article class="ui-card">
+          <div class="ui-card-head"><i class="fas fa-shopping-bag ui-muted"></i><h4 class="ui-card-name">{{localize "SDE.sessionRecap.discord.purchases"}}</h4></div>
+          {{#each purchases}}
+          <div class="ui-row-main"><div class="ui-card-head"><span class="ui-row-name ui-grow">{{player}}</span><span class="ui-row-meta">{{subtotal}}</span></div>
+            {{#each items}}<span class="ui-row-sub">{{item}}{{qtyLabel}} - {{price}}</span>{{/each}}</div>
+          {{/each}}
+        </article>
+        {{/if}}
+        {{#if sales.length}}
+        <article class="ui-card">
+          <div class="ui-card-head"><i class="fas fa-hand-holding-usd ui-muted"></i><h4 class="ui-card-name">{{localize "SDE.sessionRecap.discord.sales"}}</h4></div>
+          {{#each sales}}
+          <div class="ui-row-main"><div class="ui-card-head"><span class="ui-row-name ui-grow">{{player}}</span><span class="ui-row-meta">{{subtotal}}</span></div>
+            {{#each items}}<span class="ui-row-sub">{{item}}{{qtyLabel}} - {{price}}{{#if ratio}} ({{ratio}}){{/if}}</span>{{/each}}</div>
+          {{/each}}
+        </article>
+        {{/if}}
+        </div>
+      </section>
       {{/if}}
-      {{#if sales.length}}
-      <div class="sr-merchant-block">
-        <div class="sr-merchant-head"><i class="fas fa-hand-holding-usd"></i> {{localize "SDE.sessionRecap.discord.sales"}}</div>
-        {{#each sales}}
-        <div class="sr-merchant-player"><span class="sr-merchant-name">{{player}}</span><span class="sr-merchant-subtotal">{{subtotal}}</span></div>
-        {{#each items}}<div class="sr-merchant-item">{{item}}{{qtyLabel}} — {{price}}{{#if ratio}} ({{ratio}}){{/if}}</div>{{/each}}
-        {{/each}}
-      </div>
-      {{/if}}
-      {{/if}}
-    </section>
     {{/if}}
 
     {{#if tab.xp}}
-    <section class="sr-section">
       {{#if hasXp}}
-      {{#each xpPlayers}}
-      <div class="sr-xp-player">
-        <h4>{{player}}</h4>
-        {{#each awards}}
-        <div class="sr-xp-award">
-          <span class="sr-xp-time">{{time}}</span>
-          <span class="sr-xp-label">{{label}}</span>
-          <span class="sr-xp-total">+{{totalXp}} XP</span>
-        </div>
+      <section class="ui-group"><div class="ui-cols-2">
+        {{#each xpPlayers}}
+        <article class="ui-card">
+          <div class="ui-card-head"><h4 class="ui-card-name">{{player}}</h4><span class="ui-chip gold">{{localize "SDE.sessionRecap.discord.totalXp" n=total}}</span></div>
+          <div class="ui-list sr-flat">{{#each awards}}<div class="ui-row"><span class="ui-tag">{{time}}</span><span class="ui-row-main">{{label}}</span><span class="ui-row-meta">+{{totalXp}} XP</span></div>{{/each}}</div>
+        </article>
         {{/each}}
-        <div class="sr-xp-player-total">{{localize "SDE.sessionRecap.discord.totalXp" n=total}}</div>
-      </div>
-      {{/each}}
+      </div></section>
       {{else}}
-      <p class="sr-empty">{{localize "SDE.sessionRecap.ui.noXp"}}</p>
+      <div class="ui-empty"><i class="fas fa-star"></i><span>{{localize "SDE.sessionRecap.ui.noXp"}}</span></div>
       {{/if}}
 
       {{#if hasRenown}}
-      <h3 class="sr-subhead"><i class="fas fa-crown"></i> {{localize "SDE.sessionRecap.discord.renown"}}</h3>
-      {{#each renownPlayers}}
-      <div class="sr-xp-player">
-        <h4>{{player}}</h4>
-        {{#each changes}}
-        <div class="sr-xp-award">
-          <span class="sr-xp-time">{{time}}</span>
-          <span class="sr-xp-label">{{text}}</span>
-        </div>
+      <section class="ui-group">
+        <h3 class="ui-h"><span><i class="fas fa-crown"></i> {{localize "SDE.sessionRecap.discord.renown"}}</span></h3>
+        <div class="ui-cols-2">
+        {{#each renownPlayers}}
+        <article class="ui-card">
+          <div class="ui-card-head"><h4 class="ui-card-name">{{player}}</h4><span class="ui-chip gold">{{localize "SDE.sessionRecap.ui.net" net=net}}</span></div>
+          <div class="ui-list sr-flat">{{#each changes}}<div class="ui-row"><span class="ui-tag">{{time}}</span><span class="ui-row-main">{{text}}</span></div>{{/each}}</div>
+        </article>
         {{/each}}
-        <div class="sr-xp-player-total">{{localize "SDE.sessionRecap.ui.net" net=net}}</div>
-      </div>
-      {{/each}}
+        </div>
+      </section>
       {{/if}}
-    </section>
     {{/if}}
 
     {{#if tab.downtime}}
-    <section class="sr-section">
       {{#if hasDowntime}}
-      {{#each downtimePlayers}}
-      <div class="sr-merchant-block">
-        <div class="sr-merchant-head"><i class="fas fa-mug-hot"></i> {{player}}</div>
-        <div class="sr-merchant-player"><span class="sr-merchant-name">{{localize "SDE.sessionRecap.ui.attempts"}}</span><span class="sr-merchant-subtotal">{{subtotal}}</span></div>
-        {{#each rows}}
-        <div class="sr-merchant-item">{{#if time}}{{time}} — {{/if}}{{text}}</div>
-        {{#if effect}}<div class="sr-merchant-item"><em>{{effect}}</em></div>{{/if}}
+      <section class="ui-group"><div class="ui-cols-2">
+        {{#each downtimePlayers}}
+        <article class="ui-card">
+          <div class="ui-card-head"><i class="fas fa-mug-hot ui-muted"></i><h4 class="ui-card-name">{{player}}</h4><span class="ui-chip">{{localize "SDE.sessionRecap.ui.attempts"}}: {{subtotal}}</span></div>
+          <div class="ui-list sr-flat">{{#each rows}}<div class="ui-row"><div class="ui-row-main"><span class="ui-row-name sr-plain">{{#if time}}{{time}} - {{/if}}{{text}}</span>{{#if effect}}<span class="ui-row-sub">{{effect}}</span>{{/if}}</div></div>{{/each}}</div>
+        </article>
         {{/each}}
-      </div>
-      {{/each}}
+      </div></section>
       {{else}}
-      <p class="sr-empty">{{localize "SDE.sessionRecap.ui.noDowntime"}}</p>
+      <div class="ui-empty"><i class="fas fa-mug-hot"></i><span>{{localize "SDE.sessionRecap.ui.noDowntime"}}</span></div>
       {{/if}}
 
       {{#if hasCarousing}}
-      <h3 class="sr-subhead"><i class="fas fa-beer-mug-empty"></i> {{localize "SDE.sessionRecap.discord.carousing"}}</h3>
-      {{#each carousing}}
-      <div class="sr-merchant-block">
-        <div class="sr-merchant-head"><i class="fas fa-beer-mug-empty"></i> {{heading}}</div>
-        {{#if tier}}<div class="sr-merchant-item"><em>{{tier}}</em></div>{{/if}}
-        <div class="sr-merchant-player"><span class="sr-merchant-name">{{localize "SDE.sessionRecap.ui.carousers"}}</span><span class="sr-merchant-subtotal">{{subtotal}}</span></div>
-        {{#each rows}}
-        <div class="sr-merchant-item">{{text}}{{#if player}} <span class="sr-xp-time">({{player}})</span>{{/if}}</div>
-        {{#each benefits}}<div class="sr-merchant-item">— {{localize "SDE.sessionRecap.discord.benefit" text=this}}</div>{{/each}}
-        {{#each mishaps}}<div class="sr-merchant-item">— {{localize "SDE.sessionRecap.discord.mishap" text=this}}</div>{{/each}}
-        {{#if applied}}<div class="sr-merchant-item"><em>{{applied}}</em></div>{{/if}}
-        {{#if pending}}<div class="sr-merchant-item"><em>{{localize "SDE.sessionRecap.discord.notApplied"}}</em></div>{{/if}}
+      <section class="ui-group">
+        <h3 class="ui-h"><span><i class="fas fa-beer-mug-empty"></i> {{localize "SDE.sessionRecap.discord.carousing"}}</span></h3>
+        {{#each carousing}}
+        <article class="ui-card">
+          <div class="ui-card-head"><h4 class="ui-card-name">{{heading}}</h4>{{#if tier}}<span class="ui-chip">{{tier}}</span>{{/if}}<span class="ui-chip">{{localize "SDE.sessionRecap.ui.carousers"}}: {{subtotal}}</span></div>
+          <div class="ui-list sr-flat">
+            {{#each rows}}<div class="ui-row"><div class="ui-row-main"><span class="ui-row-name sr-plain">{{text}}{{#if player}} <span class="ui-muted">({{player}})</span>{{/if}}</span>
+              {{#each benefits}}<span class="ui-row-sub">{{localize "SDE.sessionRecap.discord.benefit" text=this}}</span>{{/each}}
+              {{#each mishaps}}<span class="ui-row-sub">{{localize "SDE.sessionRecap.discord.mishap" text=this}}</span>{{/each}}
+              {{#if applied}}<span class="ui-row-sub">{{applied}}</span>{{/if}}
+              {{#if pending}}<span class="ui-row-sub">{{localize "SDE.sessionRecap.discord.notApplied"}}</span>{{/if}}</div></div>{{/each}}
+          </div>
+        </article>
         {{/each}}
-      </div>
-      {{/each}}
+      </section>
       {{/if}}
 
       {{#if hasRumors}}
-      <h3 class="sr-subhead"><i class="fas fa-comments"></i> {{localize "SDE.sessionRecap.discord.rumors"}}</h3>
-      <div class="sr-merchant-block">
-        {{#each rumors}}
-        <div class="sr-merchant-item">{{text}}{{#if region}} <span class="sr-xp-time">({{region}})</span>{{/if}} <span class="sr-xp-time">{{time}}</span></div>
-        {{/each}}
-      </div>
+      <section class="ui-group">
+        <h3 class="ui-h"><span><i class="fas fa-comments"></i> {{localize "SDE.sessionRecap.discord.rumors"}}</span></h3>
+        <div class="ui-list">{{#each rumors}}<div class="ui-row"><span class="ui-tag">{{time}}</span><div class="ui-row-main"><span class="ui-row-name sr-plain">{{text}}</span>{{#if region}}<span class="ui-row-sub">{{region}}</span>{{/if}}</div></div>{{/each}}</div>
+      </section>
       {{/if}}
-    </section>
     {{/if}}
 
     {{#if tab.history}}
-    <section class="sr-section">
       {{#if hasHistory}}
-      <div class="sr-history-list">
+      <div class="ui-list">
         {{#each historyEntries}}
-        <div class="sr-history-entry">
-          <div class="sr-history-info" data-action="viewSession" data-session-id="{{id}}">
-            <span class="sr-history-name">{{name}}</span>
-            <span class="sr-history-meta">{{localize "SDE.sessionRecap.ui.historyMeta" duration=duration combats=combatCount defeated=enemiesDefeated loot=lootCount}}</span>
-          </div>
-          {{#if ../isGM}}<button type="button" class="sr-history-delete" data-action="deleteSession" data-session-id="{{id}}"><i class="fas fa-trash"></i></button>{{/if}}
+        <div class="ui-row sr-click" data-action="viewSession" data-session-id="{{id}}">
+          <div class="ui-row-main"><span class="ui-row-name">{{name}}</span><span class="ui-row-sub">{{localize "SDE.sessionRecap.ui.historyMeta" duration=duration combats=combatCount defeated=enemiesDefeated loot=lootCount}}</span></div>
+          {{#if ../isGM}}<button type="button" class="ui-icon danger" data-action="deleteSession" data-session-id="{{id}}"><i class="fas fa-trash"></i></button>{{/if}}
         </div>
         {{/each}}
       </div>
       {{else}}
-      <p class="sr-empty">{{localize "SDE.sessionRecap.ui.noHistory"}}</p>
+      <div class="ui-empty"><i class="fas fa-book"></i><span>{{localize "SDE.sessionRecap.ui.noHistory"}}</span></div>
       {{/if}}
-    </section>
     {{/if}}
   </div>
 
-  <footer class="sr-footer">
-    <button type="button" class="sr-copy-btn" data-action="copyDiscord"><i class="fab fa-discord"></i> {{localize "SDE.sessionRecap.ui.copyDiscord"}}</button>
-    {{#if isGM}}{{#unless isViewingHistory}}<button type="button" class="sr-clear-btn" data-action="clearSession"><i class="fas fa-trash"></i> {{localize "SDE.sessionRecap.dialog.clearTitle"}}</button>{{/unless}}{{/if}}
+  <footer class="ui-footer">
+    <button type="button" class="ui-btn {{#unless tab.history}}ghost{{/unless}}" data-action="changeTab" data-tab="history"><i class="fas fa-book"></i> {{localize "SDE.sessionRecap.ui.history"}}</button>
+    {{#if isGM}}{{#unless isViewingHistory}}<button type="button" class="ui-btn danger" data-action="clearSession"><i class="fas fa-trash"></i> {{localize "SDE.sessionRecap.dialog.clearTitle"}}</button>{{/unless}}{{/if}}
+    <div class="ui-right"><button type="button" class="ui-btn primary" data-action="copyDiscord"><i class="fab fa-discord"></i> {{localize "SDE.sessionRecap.ui.copyDiscord"}}</button></div>
   </footer>
 </div>
