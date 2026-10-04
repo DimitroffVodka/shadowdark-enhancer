@@ -41,7 +41,7 @@ export class QuickAdjustApp extends HandlebarsApplicationMixin(ApplicationV2) {
   static DEFAULT_OPTIONS = {
     id: "sde-quick-adjust",
     tag: "div",
-    classes: ["shadowdark", "sde-quick-adjust"],
+    classes: ["shadowdark", "sde-quick-adjust", "sde-ui"],
     window: { title: "SDE.quickAdjust.title", icon: "fa-solid fa-scale-balanced", resizable: true },
     position: { width: 460, height: "auto" },
     actions: {

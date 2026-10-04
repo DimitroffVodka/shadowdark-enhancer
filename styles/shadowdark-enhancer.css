@@ -11902,7 +11902,7 @@ button.sde-hud-day:hover { border-color: var(--sd-frame); }
 .sde-level-guidelines .lg-art { display: flex; align-items: center; justify-content: center; color: var(--ui-muted); font-size: 22px; }
 .sde-level-guidelines .lg-list { padding: 0; flex: 1 1 auto; min-height: 0; overflow: auto; }
 .sde-level-guidelines .lg-table { table-layout: fixed; }
-.sde-level-guidelines .lg-table th, .lg-table td { padding-left: 2px; padding-right: 2px; }
+.sde-level-guidelines .lg-table th, .sde-level-guidelines .lg-table td { padding-left: 2px; padding-right: 2px; }
 .sde-level-guidelines .lg-table th { font-size: 9.5px; letter-spacing: .02em; overflow: hidden; text-overflow: clip; }
 @container (max-width: 560px) { .sde-level-guidelines .lg-table th { font-size: 8px; letter-spacing: 0; } .sde-level-guidelines .lg-table input { font-size: 11px; } .sde-level-guidelines.sde-ui .sde-lg .ui-body { padding: 10px; } }
 .sde-level-guidelines .lg-table td { padding: 2px 4px; text-align: center; }
@@ -11933,6 +11933,21 @@ button.sde-hud-day:hover { border-color: var(--sd-frame); }
 /* Group boundaries (HP | #, Damage | Typical, Highest | Talent DC) are one straight vertical line through both header rows
    and every body row: the same border-left on the first cell of each group, in every row. No partial rules under the
    group names (they started at the HP/# edge and read as a step). */
-.sde-level-guidelines .lg-table tr > :nth-child(4), .lg-table tr > :nth-child(7), .lg-table tr > :nth-child(10) { border-left: 1px solid var(--ui-line); }
-.sde-level-guidelines .lg-table .lg-groups > :nth-child(2), .lg-table .lg-groups > :nth-child(3), .lg-table .lg-groups > :nth-child(4) { border-left: 1px solid var(--ui-line); }
+.sde-level-guidelines .lg-table tr > :nth-child(4), .sde-level-guidelines .lg-table tr > :nth-child(7), .sde-level-guidelines .lg-table tr > :nth-child(10) { border-left: 1px solid var(--ui-line); }
+.sde-level-guidelines .lg-table .lg-groups > :nth-child(2), .sde-level-guidelines .lg-table .lg-groups > :nth-child(3), .sde-level-guidelines .lg-table .lg-groups > :nth-child(4) { border-left: 1px solid var(--ui-line); }
 .sde-level-guidelines .lg-table .lg-groups > :nth-child(2) { border-left: 1px solid var(--ui-line); }
+/* Token HUD Quick Adjust */
+.sde-quick-adjust.sde-ui .qa-name { font-size: 20px; }
+.sde-quick-adjust .qa-target { align-items: flex-end; }
+.sde-quick-adjust .qa-stepper { flex-wrap: nowrap; gap: 4px; }
+.sde-quick-adjust .qa-footer { flex-wrap: wrap; row-gap: 8px; }
+.sde-quick-adjust .qa-table td, .sde-quick-adjust .qa-table th { vertical-align: top; }
+.sde-quick-adjust .qa-table td:first-child, .sde-quick-adjust .qa-table th:first-child { width: 28px; padding-right: 0; }
+/* The footer has four actions; at the window's own 460 the two that are not Apply or Revert keep their icon and drop the
+   words (the title and aria-label stay), so the footer never wraps or overflows. */
+@container (max-width: 560px) {
+  .sde-quick-adjust.sde-ui .ui-head.qa-head { flex-wrap: nowrap; }
+  .sde-quick-adjust.sde-ui .qa-head .qa-name { font-size: 17px; }
+  .sde-quick-adjust .qa-footer .qa-lbl { display: none; }
+  .sde-quick-adjust .qa-footer { flex-wrap: nowrap; }
+}

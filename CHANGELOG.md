@@ -9,6 +9,7 @@
   redesign. No window uses it yet, so nothing looks different.
 
 ### Changed
+- **Quick Adjust window uses the new design.** The creature and a level stepper in the header, the changes in one card, and Revert, Open creator, Copy and Apply in the footer (the two middle ones show only their icons in a narrow window).
 - **Level Guidelines editor uses the new design.** Header band, one card holding the table with a sticky two-row header, and a Cancel / Save footer.
 - **Carousing window uses the new design.** One tier select for the party at the top, one shared-cost line (total, headcount, each person's share), a Joining switch and the result for each character.
 - **Camping window uses the new design.** Hairline rows on the shared UI kit, a ration count next to the ham hock icon, a Ready button, and no gold.
