@@ -8,9 +8,7 @@
 ### Changed
 - **Carousing window uses the new design.** One tier select for the party at the top, one shared-cost line (total, headcount, each person's share), a Joining switch and the result for each character.
 - **Camping window uses the new design.** Hairline rows on the shared UI kit, a ration count next to the ham hock icon, a Ready button, and no gold.
-- **Camping: everyone takes part, and meals use your own rations first.** The Participate box and the "use party rations" box are gone. A meal takes the character's own rations, then the party's.
 - **Camping: everyone participates and meals use the party's rations automatically.** The per-character Participate checkbox is gone, and a character eats their own rations first and then the party's with no consent box; a character short overall is not fed and nothing is deducted. Torch contribution is still opt-in.
-- **Carousing: one tier for the whole party, with a shared cost.** The tier is chosen once; the cost is split in whole coins and any leftover is charged a coin at a time to the first characters. The mask and paper-lantern boxes are removed.
 - **Carousing: one spending tier for the party, and a shared cost.** The tier is picked once at the top of the window by whoever manages the party (changing it asks everyone to confirm again), and its cost is a group total split between the joining characters in whole gp, any remainder charged one gp at a time to the first in list order. The mask and paper-lantern holiday boxes are gone.
 - **The Party sheet's header is one compact band.** The boxed "Marching formation" block, with its
   heading and five lines of text, is replaced by a visible **Marching order** switch beside the 3×3

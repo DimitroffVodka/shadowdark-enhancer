@@ -134,7 +134,7 @@
   "SDE.carousing.invalid": "That carousing action is unavailable or you do not own its target.",
   "SDE.carousing.noParticipants": "Choose at least one participating PC before starting.",
   "SDE.carousing.confirm": "Each PC owner must confirm participation or decline before starting.",
-  "SDE.carousing.funds": "A participant cannot afford their selected tier. No new costs were charged; check each PC's purse.",
+  "SDE.carousing.funds": "A participant cannot afford their share of the tier. No new costs were charged; check each PC's purse.",
   "SDE.carousing.tablesMissing": "Carousing tables are not ready. Import Core Carousing Event and Outcome, or let the GM select usable RollTables: event rows Cost | Event | Bonus, outcome rows Outcome | Benefit with complete roll ranges. No coins have been charged for this setup.",
   "SDE.carousing.tablesChanged": "The selected tables changed after choices were made. Save the table setup again and have owners reconfirm before starting.",
   "SDE.carousing.limit": "A selected tier exceeds this settlement's configured carousing limit.",
