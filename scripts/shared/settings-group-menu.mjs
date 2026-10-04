@@ -24,7 +24,7 @@ export class SettingsGroupMenu extends HandlebarsApplicationMixin(ApplicationV2)
   static MENU_TYPES = {};
 
   static DEFAULT_OPTIONS = {
-    classes: ["sde-settings-group"],
+    classes: ["sde-settings-group", "sde-ui"],
     tag: "form",
     window: { contentClasses: ["standard-form"], resizable: true },
     position: { width: 720 },
@@ -153,12 +153,14 @@ export class SettingsGroupMenu extends HandlebarsApplicationMixin(ApplicationV2)
 
   static _onAddFolder(_event, button) {
     const row = document.createElement("div");
-    row.className = "sde-sg-folder";
+    row.className = "sde-sg-folder sg-folder";
+    const remove = game.i18n.localize("SDE.settingsGroup.removeFolder");
     row.innerHTML = `<file-picker type="folder"></file-picker>
-      <button type="button" data-action="removeFolder" data-tooltip="${game.i18n.localize("SDE.settingsGroup.removeFolder")}">
+      <button type="button" class="ui-icon danger" data-action="removeFolder" data-tooltip="${remove}" aria-label="${remove}">
         <i class="fa-solid fa-xmark" inert></i>
       </button>`;
-    button.before(row);
+    // The Add folder button sits in its own wrapper after the rows.
+    button.parentElement.before(row);
     row.querySelector("input")?.focus();
   }
 

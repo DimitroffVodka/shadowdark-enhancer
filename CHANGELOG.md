@@ -9,6 +9,7 @@
   redesign. No window uses it yet, so nothing looks different.
 
 ### Changed
+- **The settings group windows use the new design.** Each group opened from Configure Settings shows its settings in cards (label and hint left, control right), sub-groups as collapsible sections, and a Save footer.
 - **Rules Data window uses the new design.** Tabs for Terrain, Travel, Settlements and Climate, the ruleset buttons in the header, and the window now stays on the tab you chose when it redraws (adding a terrain, switching ruleset, importing).
 - **Quick Adjust window uses the new design.** The creature and a level stepper in the header, the changes in one card, and Revert, Open creator, Copy and Apply in the footer (the two middle ones show only their icons in a narrow window).
 - **Level Guidelines editor uses the new design.** Header band, one card holding the table with a sticky two-row header, and a Cancel / Save footer.

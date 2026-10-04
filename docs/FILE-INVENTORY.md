@@ -1,7 +1,7 @@
 # Shadowdark Enhancer — File Inventory
 
 <!-- inventory:stats:start -->
-1714 tracked files · ~223,900 lines of code/markup across scripts+templates+styles+test.
+1714 tracked files · ~223,800 lines of code/markup across scripts+templates+styles+test.
 `v0.17.3` in both `module.json` and `package.json`.
 <!-- inventory:stats:end -->
 **Layout reflects the 2026-07-21 feature-folder reorganization (v0.11.0 cycle).**
@@ -180,7 +180,7 @@
 | `module-flags.mjs` | 160 | What this module owns on a document's flags, and what survives a wholesale replacement (pure). `replaceDocument` updates with `recursive: false`, which is right for `system` and wrong for `flags`: a creation payload knows only the bookkeeping ITS pipeline stamps, so replacing the object outright deletes every other pipeline's — including `monsterSpell.libraryId`, the only handle the Monster Spell planner has on a generated spell, whose loss makes the next refresh create a duplicate (A8/#93). `preservedModuleFlags` re-merges this module's namespace only: keys the payload declares win, keys it never mentions survive, and other packages' namespaces are left exactly as the payload states them. `replacementFlags` then answers the two replace branches SEPARATELY, because they are not symmetric — an update keeps the document, so a payload declaring no flags correctly omits the key and the stored object is never touched, while a recreate DELETES the original and must therefore carry those blocks itself or lose them (the defect that quietly recreated a Monster Spell without its `libraryId` on any forced fallback or type mismatch). Also carries `isGeneratedMonsterSpell`, read from the library's own `monsterSpell.generated` marker and never from the A7/D6 `flags[MODULE_ID].generated` replace-always marker — the two contracts share the managed Items pack and mean opposite things. Foundry-free, node-tested. |
 | `property-note.mjs` | 194 | Stamps and preserves the "no core Shadowdark property" note on imported gear (pure). Also owns which description survives a REPLACE: the GM's own text beats importer output, and importer output is the empty placeholder, the note alone, or — since A8 — a description that merely echoes the document's name, which is exactly what `buildItemData`'s Spell path writes when a paste brings no prose. |
 | `setting-groups.mjs` | 190 | Feature groups for Configure Settings — which settings, nested editors, other packages' settings and notes each pop-out shows, in display order, incl. the Modes of Play boxes. Pure data; the docs-contract test imports it. |
-| `settings-group-menu.mjs` | 208 | The per-feature settings pop-out (ApplicationV2): builds a DataField per setting the way SettingsConfig does (other packages' settings too), renders nested editor buttons, notes and Modes of Play switches, saves on submit, and mints one registerMenu class per group. |
+| `settings-group-menu.mjs` | 210 | The per-feature settings pop-out (ApplicationV2): builds a DataField per setting the way SettingsConfig does (other packages' settings too), renders nested editor buttons, notes and Modes of Play switches, saves on submit, and mints one registerMenu class per group. |
 
 ### 3.3 `scripts/crawl-strip/` — the top strip + movement + combat sync
 
