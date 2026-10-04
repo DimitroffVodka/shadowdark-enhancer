@@ -1,7 +1,7 @@
 # Shadowdark Enhancer — File Inventory
 
 <!-- inventory:stats:start -->
-1689 tracked files · ~221,400 lines of code/markup across scripts+templates+styles+test.
+1690 tracked files · ~221,400 lines of code/markup across scripts+templates+styles+test.
 `v0.17.3` in both `module.json` and `package.json`.
 <!-- inventory:stats:end -->
 **Layout reflects the 2026-07-21 feature-folder reorganization (v0.11.0 cycle).**
@@ -421,7 +421,7 @@
 |---|---:|---|
 | `char-builder-app.mjs` | 405 | `ShadowdarkCharBuilder` ApplicationV2 shell; drives the step lifecycle. |
 | `state.mjs` | 158 | `CharBuilderState` — the in-progress character. |
-| `constants.mjs` | 193 | Shared constants; hands off to the system's `CharacterGeneratorSD`. |
+| `constants.mjs` | 160 | Shared constants; hands off to the system's `CharacterGeneratorSD`. |
 | `data.mjs` | 325 | Thin wrappers over the system's compendium loaders. |
 | `commit.mjs` | 304 | `commitCharacter` — final actor creation + `coinsAfterGear`. |
 | `item-source.mjs` | 19 | `stampSource` — records the compendium link on items the builder creates. |
