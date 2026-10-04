@@ -486,6 +486,7 @@
     "scripts/party/party-emblem-core.mjs": "Pure party emblem: the curated icon and colour sets, the default, the safe read of the stored flag and the picker's choices.",
     "scripts/party/party-movement.mjs": "Authenticated Party-owner gather/deploy relay, linked token configuration preservation and native marching: followers keep the formation, turned to the leader's heading, and never pause.",
     "scripts/party/party-hud.mjs": "Single combat-gated Import/Export Members Party token HUD action.",
+    "scripts/party/party-item-picker.mjs": "The Party sheet's Add item > From compendium window: an ApplicationV2 that reads every Item compendium's index once, filters it by name as the GM types (searchItemIndex), and hands the picked entry to the sheet to copy onto the party actor.",
     "scripts/party/party-create-option.mjs": "Adds the Enhancer's Party entry to the Create Actor type list and drops Extras' duplicate Party entry.",
     "scripts/party/party-light.mjs": "Runtime-only dungeon Party light mirror without duplicated fuel items; hex lights and stored vision unchanged.",
     "scripts/party/party.mjs": "Explicit native Party provider, safe in-place NPC adoption and owner-scoped membership writes.",

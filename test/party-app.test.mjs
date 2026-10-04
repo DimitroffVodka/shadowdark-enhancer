@@ -310,7 +310,7 @@ test("Items lists the party's own items with Gems apart in their own box, and tr
   assert.deepEqual(context.coinList.map(c => c.value), [7, 3, 0]);
   assert.equal(context.inventorySlots.used, 2, "gems do not take party slots, as in the system's own count");
   const template = await readFile(new URL("../templates/party/party.hbs", import.meta.url), "utf8");
-  for (const marker of ["SHADOWDARK.inventory.gems", "{{gemTotal}}", "sdp-coins", 'data-action="createItem"']) assert.ok(template.includes(marker), marker);
+  for (const marker of ["SHADOWDARK.inventory.gems", "{{gemTotal}}", "sdp-coins", "SDE.party.item.add"]) assert.ok(template.includes(marker), marker);
 });
 test("a party with no members shows a drop zone and a grid hint, and an Actor dropped on either adds it", async () => {
   const pc = actor("pc", "Player");
@@ -498,4 +498,122 @@ test("a native party is linked after the system's _preCreate and a stale one is 
   world([doc(true, false), doc(true, true), doc(false, false)], true);
   handlers.get("once:ready")();
   assert.deepEqual(updates, [{ "prototypeToken.actorLink": true }]);
+});
+
+// ---------------------------------------------------------------- Items tab: Treasury handlers, Give to, Add item
+function treasury({ pool = { gp: 10, sp: 7, cp: 100 }, isGM = true } = {}) {
+  const purse = (id, type = "Player", coins = { gp: 1, sp: 0, cp: 0 }) => {
+    const a = actor(id, type); a.system = { coins: { ...coins } }; a.isOwner = true;
+    a.update = async (data) => { a.writes.push(data); for (const [key, value] of Object.entries(data)) a.system.coins[key.split(".")[2]] = value; return a; };
+    return a;
+  };
+  const pcs = [purse("a"), purse("b"), purse("c")], hireling = purse("h", "NPC"), mount = purse("m", "shadowdark-enhancer.mount");
+  const p = actor("p", "NPC", { [MOD]: { party: true, partyCoins: pool, partyData: { version: 1, members: [...pcs, hireling, mount].map(a => a.uuid) } } });
+  p.isOwner = true; p.items.get = (id) => p.items.contents.find(i => i.id === id);
+  world([p, ...pcs, hireling, mount], isGM);
+  const notes = { warn: [], info: [] };
+  globalThis.ui = { notifications: { warn: (m) => notes.warn.push(m), info: (m) => notes.info.push(m) } };
+  const app = new PartyApp(p); app.render = () => {};
+  const form = (selector, key, values, to) => { app.element = { querySelectorAll: (q) => (q === selector ? Object.entries(values).map(([k, v]) => ({ dataset: { [key]: k }, value: String(v) })) : []), querySelector: (q) => (q === "[data-give-to]" ? { value: to ?? "" } : null) }; };
+  return { p, pcs, hireling, mount, app, notes, form, purses: () => pcs.map(a => ({ ...a.system.coins })), pool: () => ({ ...p.flags[MOD].partyCoins }) };
+}
+const act = (app, name, el = {}) => PartyApp.DEFAULT_OPTIONS.actions[name].call(app, null, { dataset: {}, ...el });
+
+test("Add coins adds to the party's own pool through the flag helper and never touches a purse", async () => {
+  const t = treasury();
+  t.form("[data-add-coin]", "addCoin", { gp: 5, sp: 0, cp: -1000 });
+  await act(t.app, "addCoins");
+  assert.deepEqual(t.pool(), { gp: 15, sp: 7, cp: 0 }, "a type stops at 0");
+  assert.ok(t.p.writes.every(w => Object.keys(w).join() === `flags.${MOD}.partyCoins`), "one flag key per write");
+  assert.deepEqual(t.purses(), [{ gp: 1, sp: 0, cp: 0 }, { gp: 1, sp: 0, cp: 0 }, { gp: 1, sp: 0, cp: 0 }]);
+});
+
+test("Give coins moves the pool to a purse, or to every PC's, and is refused whole when the pool is short", async () => {
+  const t = treasury();
+  t.form("[data-give-coin]", "giveCoin", { gp: 4, sp: 2, cp: 0 }, t.pcs[1].uuid);
+  await act(t.app, "giveCoins");
+  assert.deepEqual(t.pool(), { gp: 6, sp: 5, cp: 100 });
+  assert.deepEqual(t.purses(), [{ gp: 1, sp: 0, cp: 0 }, { gp: 5, sp: 2, cp: 0 }, { gp: 1, sp: 0, cp: 0 }]);
+  t.form("[data-give-coin]", "giveCoin", { gp: 2, sp: 0, cp: 0 }, "");
+  await act(t.app, "giveCoins");
+  assert.deepEqual(t.pool(), { gp: 0, sp: 5, cp: 100 }, "each of the three PCs got 2 gp; the hireling and the mount got nothing");
+  assert.deepEqual(t.purses().map(c => c.gp), [3, 7, 3]);
+  assert.deepEqual([t.hireling.writes.length, t.mount.writes.length], [0, 0]);
+  const writes = t.pcs.map(a => a.writes.length);
+  t.form("[data-give-coin]", "giveCoin", { gp: 1, sp: 0, cp: 0 }, "");
+  await act(t.app, "giveCoins");
+  assert.equal(t.notes.warn.at(-1), "SDE.party.coins.refused.short", "the pool has 0 gp");
+  assert.deepEqual(t.pcs.map(a => a.writes.length), writes, "a refused give changes no purse");
+  assert.deepEqual(t.pool(), { gp: 0, sp: 5, cp: 100 });
+});
+
+test("Give coins puts everything back when a purse cannot be written", async () => {
+  const t = treasury();
+  t.pcs[1].update = async () => { throw new Error("denied"); };
+  t.form("[data-give-coin]", "giveCoin", { gp: 2, sp: 0, cp: 0 }, "");
+  await act(t.app, "giveCoins");
+  assert.deepEqual(t.pool(), { gp: 10, sp: 7, cp: 100 }, "the pool is restored");
+  assert.deepEqual(t.purses().map(c => c.gp), [1, 1, 1], "the PC paid before the failure is repaid");
+});
+
+test("Divide coins splits gp, sp and cp among the PCs only, in whole coins, and the remainder stays", async () => {
+  const t = treasury();
+  await act(t.app, "divideCoins");
+  assert.deepEqual(t.pool(), { gp: 1, sp: 1, cp: 1 });
+  assert.deepEqual(t.purses(), [{ gp: 4, sp: 2, cp: 33 }, { gp: 4, sp: 2, cp: 33 }, { gp: 4, sp: 2, cp: 33 }]);
+  assert.deepEqual([t.hireling.writes.length, t.mount.writes.length], [0, 0], "hirelings and mounts are not PCs");
+  await act(t.app, "divideCoins");
+  assert.equal(t.notes.warn.at(-1), "SDE.party.coins.refused.nothing", "less than one coin each: nothing moves");
+});
+
+test("coin and item actions are the GM's alone", async () => {
+  const t = treasury({ isGM: false });
+  t.form("[data-add-coin]", "addCoin", { gp: 5 });
+  await act(t.app, "addCoins");
+  await act(t.app, "divideCoins");
+  await act(t.app, "addItemCompendium");
+  await act(t.app, "addItemForge");
+  assert.deepEqual(t.pool(), { gp: 10, sp: 7, cp: 100 });
+  assert.equal(t.p.writes.length, 0);
+  const context = await t.app._prepareContext();
+  assert.equal(context.isGM, false);
+  const template = await readFile(new URL("../templates/party/party.hbs", import.meta.url), "utf8");
+  for (const marker of ["{{#if isGM}}<details class=\"sdp-menu\"", "{{#if isGM}}<div class=\"sdp-coinbtns\">", "{{#if @root.isGM}}"]) assert.ok(template.includes(marker), marker);
+});
+
+test("Give to moves the whole stack to a PC and not to anyone else", async () => {
+  const t = treasury();
+  const created = [], deleted = [];
+  const rope = { id: "r", name: "Rope", toObject: () => ({ _id: "r", name: "Rope", system: { quantity: 3 } }), delete: async () => { deleted.push("r"); } };
+  t.p.items.contents.push(rope);
+  t.pcs[2].createEmbeddedDocuments = async (type, data) => { created.push([type, data]); };
+  await act(t.app, "giveItem", { dataset: { id: "r", uuid: t.pcs[2].uuid } });
+  assert.deepEqual(created, [["Item", [{ name: "Rope", system: { quantity: 3 } }]]], "a copy without the old id");
+  assert.deepEqual(deleted, ["r"]);
+  await act(t.app, "giveItem", { dataset: { id: "r", uuid: t.hireling.uuid } });
+  assert.deepEqual(deleted, ["r"], "a hireling is not offered the item");
+  const context = await t.app._prepareContext();
+  assert.deepEqual(context.receivers.map(r => r.uuid), t.pcs.map(a => a.uuid), "the Give to list is the PCs");
+});
+
+test("Add item: a forged or compendium item is copied onto the party actor", async () => {
+  const t = treasury();
+  const added = [];
+  t.p.createEmbeddedDocuments = async (type, data) => { added.push([type, data]); };
+  await t.app._addItemFrom({ name: "Sword +1", toObject: () => ({ _id: "x", name: "Sword +1", type: "Weapon" }) });
+  assert.deepEqual(added, [["Item", [{ name: "Sword +1", type: "Weapon" }]]]);
+  await t.app._addItemFrom(null);
+  assert.equal(added.length, 1);
+  t.app.openKeys.add("addItem");
+  assert.equal((await t.app._prepareContext()).addItemOpen, true, "an open menu stays open through a re-render");
+});
+
+test("the Items tab has slots used / max, the Add item menu, Give to, Treasury buttons and Gems under Treasury", async () => {
+  const template = await readFile(new URL("../templates/party/party.hbs", import.meta.url), "utf8");
+  const items = template.slice(template.indexOf("tab-inventory"), template.indexOf("tab-travel"));
+  for (const marker of ["inventorySlots.used", "inventorySlots.max", 'data-action="addItemCompendium"', 'data-action="addItemForge"', 'data-action="giveItem"', 'data-action="addCoins"', 'data-action="giveCoins"', 'data-action="divideCoins"', 'data-action="quantity"']) assert.ok(items.includes(marker), marker);
+  assert.ok(items.indexOf("SDE.party.sheet.treasury") < items.indexOf("SHADOWDARK.inventory.gems"), "Gems sit under Treasury");
+  const t = treasury();
+  const context = await t.app._prepareContext();
+  assert.deepEqual(context.inventorySlots, { used: 1, max: 10, over: false });
 });

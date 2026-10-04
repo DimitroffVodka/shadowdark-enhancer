@@ -443,32 +443,62 @@
 .sde-party .sdp-card.missing { opacity: .7; }
 
 /* ------------------------------------------------------------------ Party sheet: Items, Treasury and Gems */
-.sde-party .sdp-two { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); gap: 12px; align-items: start; }
-.sde-party .sdp-col { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
 .sde-party .sdp-box { padding: 10px 12px; border: 1px solid var(--ui-line); border-radius: var(--ui-r2); background: var(--ui-panel); }
 .sde-party .sdp-boxhead { display: flex; align-items: center; gap: 8px; min-height: 28px; margin: 0 0 8px; padding: 0; border: 0; font: 600 11px/1 var(--ui-head); letter-spacing: .06em; text-transform: uppercase; color: var(--ui-muted); }
 .sde-party .sdp-boxhead small { margin-left: auto; font-weight: 400; letter-spacing: .03em; }
 .sde-party .sdp-boxhead small + a { margin-left: 0; }
 .sde-party .sdp-boxhead a { color: var(--ui-text); cursor: pointer; text-decoration: none; }
-.sde-party .sdp-list { margin: 0; padding: 0; list-style: none; }
-.sde-party .sdp-list li { display: flex; align-items: center; gap: 9px; padding: 6px 0; border-top: 1px solid var(--ui-line); font-size: 13px; }
-.sde-party .sdp-list li:first-child { border-top: 0; }
-.sde-party .sdp-list img { flex: none; width: 22px; height: 22px; border: 0; border-radius: 4px; object-fit: cover; }
-.sde-party .sdp-list .n { flex: 1; min-width: 0; overflow: hidden; color: var(--ui-text); text-overflow: ellipsis; white-space: nowrap; text-decoration: none; cursor: pointer; }
-.sde-party .sdp-list .n:hover { text-decoration: underline; }
-.sde-party .sdp-list .q { display: flex; align-items: center; justify-content: center; gap: 7px; min-width: 64px; color: var(--ui-text); }
-.sde-party .sdp-list .q a { padding: 4px; color: var(--ui-muted); font-size: 10px; cursor: pointer; text-decoration: none; }
-.sde-party .sdp-list .q a:hover { color: var(--ui-text); }
-.sde-party .sdp-list .s { width: 34px; font-size: 12px; text-align: right; color: var(--ui-muted); }
-.sde-party .sdp-list .empty-list { color: var(--ui-muted); }
-.sde-party .sdp-gems .q { min-width: 30px; color: var(--ui-muted); }
-.sde-party .sdp-gems .s { width: 64px; }
-.sde-party .sdp-coins { display: flex; flex-direction: column; gap: 7px; }
-.sde-party .sdp-coins label { display: flex; flex-direction: row; align-items: center; gap: 9px; width: auto; margin: 0; }
+.sde-party .sdp-inv { display: grid; grid-template-columns: minmax(0, 1fr) 200px; gap: 15px; align-items: start; }
+.sde-party .sdp-inv-main, .sde-party .sdp-inv-side { display: flex; flex-direction: column; gap: 15px; min-width: 0; }
+.sde-party .sdp-cap.over { color: var(--ui-danger-text); font-weight: 700; }
+.sde-party .sdp-itemlist { margin: 0; padding: 0; list-style: none; }
+.sde-party .sdp-itemlist li { display: grid; grid-template-columns: 24px minmax(0, 1fr) 64px 44px 28px; gap: 6px; align-items: center; padding: 5px 4px; border-top: 1px solid var(--ui-line); font-size: 13px; }
+.sde-party .sdp-itemlist li.head { grid-template-columns: minmax(0, 1fr) 64px 44px 28px; padding: 4px; border-top: 0; border-bottom: 1px solid var(--ui-frame); font: 600 10.5px/1.2 var(--ui-head); letter-spacing: .06em; text-transform: uppercase; color: var(--ui-muted); }
+.sde-party .sdp-itemlist li.empty-list { display: block; color: var(--ui-muted); }
+.sde-party .sdp-itemlist img { width: 24px; height: 24px; border: 0; border-radius: 3px; object-fit: cover; }
+.sde-party .sdp-itemlist .n { min-width: 0; overflow: hidden; color: var(--ui-text); text-overflow: ellipsis; white-space: nowrap; text-decoration: none; cursor: pointer; }
+.sde-party .sdp-itemlist .n:hover { text-decoration: underline; }
+.sde-party .sdp-itemlist .q { display: flex; align-items: center; justify-content: center; gap: 6px; color: var(--ui-text); }
+.sde-party .sdp-itemlist .q a { padding: 3px; color: var(--ui-muted); font-size: 10px; cursor: pointer; text-decoration: none; }
+.sde-party .sdp-itemlist .q a:hover { color: var(--ui-text); }
+.sde-party .sdp-itemlist .s { text-align: center; color: var(--ui-muted); font-weight: 600; }
+.sde-party .sdp-itemlist li.head .q, .sde-party .sdp-itemlist li.head .s { justify-content: center; text-align: center; }
+.sde-party .sdp-itemlist .act { display: flex; justify-content: flex-end; }
+/* the gem list lives in the narrow right column: name first, then the count and value at their own width */
+.sde-party .sdp-gems li { grid-template-columns: 24px minmax(0, 1fr) auto auto; }
+.sde-party .sdp-gems .act { display: none; }
+.sde-party .sdp-gems .s { text-align: right; }
+/* the Add item menu, a row's Give to, and the coin forms are <details>: the summary is the button, the open part a small list or form */
+.sde-party .sdp-menu, .sde-party .sdp-give { position: relative; }
+.sde-party .sdp-menu { margin-left: 4px; }
+.sde-party .sdp-menu > summary, .sde-party .sdp-give > summary, .sde-party .sdp-coinform > summary { list-style: none; cursor: pointer; }
+.sde-party .sdp-menu > summary { display: inline-flex; text-transform: none; letter-spacing: .02em; }
+.sde-party .sdp-menu > summary::-webkit-details-marker, .sde-party .sdp-give > summary::-webkit-details-marker, .sde-party .sdp-coinform > summary::-webkit-details-marker { display: none; }
+.sde-party .sdp-menu[open] > summary, .sde-party .sdp-coinform[open] > summary { background: var(--ui-raised); }
+.sde-party .sdp-menu-list { position: absolute; z-index: 5; top: calc(100% + 4px); right: 0; min-width: 170px; display: flex; flex-direction: column; border: 1px solid var(--ui-frame); border-radius: var(--ui-r); background: var(--ui-panel); box-shadow: var(--ui-shadow); text-transform: none; }
+.sde-party .sdp-menu-list a { display: flex; align-items: center; gap: 8px; padding: 7px 12px; color: var(--ui-text); font: 600 12px/1.2 var(--ui-head); letter-spacing: .02em; text-decoration: none; white-space: nowrap; cursor: pointer; }
+.sde-party .sdp-menu-list a + a { border-top: 1px solid var(--ui-line); }
+.sde-party .sdp-menu-list a:hover { background: var(--ui-raised); }
+/* Treasury */
+.sde-party .sdp-coins { display: grid; grid-template-columns: auto auto 1fr; gap: 8px; align-items: center; }
+.sde-party .sdp-coins label { display: contents; }
+.sde-party .sdp-coins .coin { grid-column: 1; }
+.sde-party .sdp-coins em { grid-column: 2; font: 600 10.5px/1 var(--ui-head); letter-spacing: .06em; text-transform: uppercase; font-style: normal; color: var(--ui-muted); }
+.sde-party .sdp-coins input { grid-column: 3; width: 100%; min-width: 0; height: 28px; text-align: right; }
 .sde-party .coin { flex: none; display: inline-block; width: 14px; height: 14px; border: 1px solid var(--ui-line); border-radius: 50%; }
 .sde-party .coin.gp { background: var(--ui-gold); } .sde-party .coin.sp { background: var(--ui-frame); } .sde-party .coin.cp { background: var(--ui-muted); }
-.sde-party .sdp-coins input { flex: 1; min-width: 0; height: 28px; text-align: right; }
-.sde-party .sdp-coins em { width: 24px; font-size: 12px; font-style: normal; color: var(--ui-muted); }
+.sde-party .sdp-coinslots { display: flex; align-items: center; gap: 6px; margin-top: 8px; padding: 6px 8px; border: 1px solid var(--ui-line); border-radius: var(--ui-r); font-size: 12px; color: var(--ui-muted); }
+.sde-party .sdp-coinbtns { display: flex; flex-direction: column; gap: 6px; margin-top: 10px; }
+.sde-party .sdp-coinbtns > .ui-btn, .sde-party .sdp-coinform > summary { width: 100%; height: 28px; }
+.sde-party .sdp-coinform { display: flex; flex-direction: column; gap: 6px; }
+.sde-party .sdp-addrow { display: flex; flex-direction: column; gap: 6px; padding: 8px; border: 1px solid var(--ui-line); border-radius: var(--ui-r); background: var(--ui-page); }
+.sde-party .sdp-addrow label { display: flex; align-items: center; gap: 8px; margin: 0; }
+.sde-party .sdp-addrow input, .sde-party .sdp-addrow select { width: 100%; height: 28px; text-align: right; }
+.sde-party .sdp-addrow select { text-align: left; }
+/* the compendium picker window */
+.sde-item-picker .sde-item-picker-body { display: flex; flex: 1 1 auto; flex-direction: column; gap: 10px; min-height: 0; padding: 12px; }
+.sde-item-picker .sde-item-picker-list { flex: 1 1 auto; min-height: 0; margin: 0; padding: 0; overflow-y: auto; list-style: none; }
+.sde-item-picker .sde-item-picker-list:empty { display: none; }
 
 /* ------------------------------------------------------------------ Party sheet: Bastion tab */
 .sde-party .sdp-bastion { display: flex; gap: 16px; padding: 14px; }
@@ -499,6 +529,6 @@
   .sde-party .sdp-pop { left: 8px; }
   .sde-party .sdp-tabs { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); padding-inline: 6px; gap: 0; overflow-x: visible; }
   .sde-party .sdp-tab { min-width: 0; padding: 5px 4px; }
-  .sde-party .sdp-two { grid-template-columns: minmax(0, 1fr); }
+  .sde-party .sdp-inv { grid-template-columns: minmax(0, 1fr); }
   .sde-party .sdp-bastion { flex-direction: column; }
 }

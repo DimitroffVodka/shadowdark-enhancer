@@ -5,7 +5,7 @@ import { Party, isNativeParty, isLegacyParty } from "./party.mjs";
 import { offerParty } from "./party-create-option.mjs";
 import { scopedQuests } from "./party-core.mjs";
 import { fillFormation } from "./party-movement-core.mjs";
-import { marchState, marchText, partyTabs, tabRow, resolveTab, sheetView, gemSummary, linkedBastion, lastMonthEntry, roomIcon, lightReadout, rationsCount, torchCount, carriesLight, luckCount, statusBar } from "./party-sheet-core.mjs";
+import { marchState, marchText, partyTabs, tabRow, resolveTab, sheetView, gemSummary, linkedBastion, lastMonthEntry, roomIcon, lightReadout, rationsCount, torchCount, carriesLight, luckCount, statusBar, COIN_REFUSALS, coinsOf, coinText, poolAfterAdd, planGive, planDivide, purseAfter } from "./party-sheet-core.mjs";
 import { EMBLEM_FLAG, emblemOf, emblemIconPath, emblemChoices, pickEmblem } from "./party-emblem-core.mjs";
 import { BASTION_TYPE } from "../bastion/bastion-art.mjs";
 import { stateOf as bastionState, stats as bastionStats, upgradeOf } from "../bastion/bastion-core.mjs";
@@ -14,6 +14,7 @@ import { configureMovement, requestMovement, movementStatus, inPartyCombat, MOVE
 import { Quests, QUESTS_CHANGED } from "../quests/quests.mjs";
 import { QuestLogApp } from "../quests/quest-log-app.mjs";
 import { replaceModuleFlag } from "../shared/module-flags.mjs";
+import { PartyItemPicker } from "./party-item-picker.mjs";
 
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
@@ -52,7 +53,21 @@ export class PartyApp extends HandlebarsApplicationMixin(ApplicationV2) {
       camp: function () { this.activity = "camping"; this.tab = "travel"; this.render(); },
       carouse: function () { this.activity = "carousing"; this.tab = "travel"; this.render(); },
       openBastion: function () { this._bastion()?.sheet?.render(true); },
-      createItem: function () { return this._change(() => this.actor?.isOwner && this.actor.createEmbeddedDocuments("Item", [{ name: t("SDE.party.sheet.newItem"), type: "Basic", img: "icons/svg/item-bag.svg" }])); },
+      addCoins: function () { return this._change(() => this._addCoins(this._coinInputs("[data-add-coin]", "addCoin"))); },
+      giveCoins: function () { return this._change(() => this._giveCoins(this._coinInputs("[data-give-coin]", "giveCoin"), this.element.querySelector("[data-give-to]")?.value)); },
+      divideCoins: function () { return this._change(() => this._divideCoins()); },
+      giveItem: function (_event, el) { return this._change(() => this._giveItem(el.dataset.id, el.dataset.uuid)); },
+      addItemForge: async function () {
+        if (!game.user?.isGM || !this.actor?.isOwner) return;
+        this.openKeys.delete("addItem"); this.render();
+        const { MagicForgeApp } = await import("../magic-forge/magic-forge-app.mjs");
+        MagicForgeApp.open({ seed: null, onCreate: (forged) => this._change(() => this._addItemFrom(forged)) });
+      },
+      addItemCompendium: function () {
+        if (!game.user?.isGM || !this.actor?.isOwner) return;
+        this.openKeys.delete("addItem"); this.render();
+        PartyItemPicker.open({ onPick: (entry) => this._change(async () => this._addItemFrom(await fromUuid(entry.uuid))) });
+      },
       quantity: function (_event, el) { return this._change(async () => { const item = this.actor?.items.get(el.dataset.id); if (!this.actor?.isOwner || !item) return; await item.update({ "system.quantity": Math.max(0, Number(item.system.quantity ?? 1) + Number(el.dataset.delta)) }); }); },
       editDescription: function () { if (this.actor?.isOwner) { this.editingDescription = true; this.render(); } },
       cancelDescription: function () { this.editingDescription = false; this.render(); },
@@ -62,6 +77,8 @@ export class PartyApp extends HandlebarsApplicationMixin(ApplicationV2) {
   static PARTS = { body: { template: `modules/${MODULE_ID}/templates/party/party.hbs`, scrollable: [".SD-content-body"] } };
   tab = "members";
   activity = "camping";
+  /** The menus and forms the GM has open (Add item, Add coins, Give coins, a row's Give to): they survive a re-render. */
+  openKeys = new Set();
   constructor(actor = null, options = {}) { super(options); this.actor = actor; }
   // Resolves once the window exists: render() is async and bringToFront() needs the element.
   static async open(ref = null, activity = null) {
@@ -109,6 +126,75 @@ export class PartyApp extends HandlebarsApplicationMixin(ApplicationV2) {
     }
     return this._questLog;
   }
+  /** The party's own coins, read fresh from the document (the older Shadowdark Extras flag until the party has its own). */
+  _pool() { return coinsOf(this.actor.flags?.[MODULE_ID]?.partyCoins ?? this.actor.flags?.["shadowdark-extras"]?.coins); }
+  /** The numbers typed into one coin form, by type. */
+  _coinInputs(selector, key) { return Object.fromEntries([...this.element.querySelectorAll(selector)].map((input) => [input.dataset[key], Number(input.value)])); }
+  /** The party's player characters (PCs only: hirelings, mounts and unseen members never get coins). */
+  _pcs() { return Party.rows(this.actor).filter((row) => row.group === "characters" && row.actor); }
+  /** A refused coin move: say why, change nothing. */
+  _refuse(reason) { ui.notifications.warn(t(COIN_REFUSALS[reason])); }
+  /**
+   * Write the pool and the purses of one coin move. The pool is debited first; a purse that cannot be written
+   * puts back the ones already paid and the pool, so coins are never made or lost halfway.
+   */
+  async _settle(plan, before) {
+    const paid = [];
+    await replaceModuleFlag(this.actor, "partyCoins", plan.pool);
+    try {
+      for (const grant of plan.grants) {
+        const actor = this._pcs().find((row) => row.actor.id === grant.id)?.actor, purse = coinsOf(actor?.system?.coins);
+        await actor.update(Object.fromEntries(Object.entries(purseAfter(purse, grant.coins)).map(([key, value]) => [`system.coins.${key}`, value])));
+        paid.push({ actor, purse });
+      }
+    } catch (error) {
+      for (const { actor, purse } of paid) await actor.update(Object.fromEntries(Object.entries(purse).map(([key, value]) => [`system.coins.${key}`, value])));
+      await replaceModuleFlag(this.actor, "partyCoins", before);
+      throw error;
+    }
+  }
+  _coinLabel(key) { return t({ gp: "SHADOWDARK.coins.gp", sp: "SHADOWDARK.coins.sp", cp: "SHADOWDARK.coins.cp" }[key]); }
+  async _addCoins(delta) {
+    if (!game.user?.isGM || !this.actor?.isOwner) return;
+    const before = this._pool(), next = poolAfterAdd(before, delta);
+    await replaceModuleFlag(this.actor, "partyCoins", next);
+    this.openKeys.delete("addCoins");
+    ui.notifications.info(sayWith("SDE.party.coins.addedNote", { coins: coinText(Object.fromEntries(Object.keys(next).map((key) => [key, next[key] - before[key]])), (key) => this._coinLabel(key)) || "0" }));
+  }
+  async _giveCoins(amount, to) {
+    if (!game.user?.isGM || !this.actor?.isOwner) return;
+    const pcs = this._pcs().filter((row) => !to || row.uuid === to), before = this._pool();
+    const plan = planGive(before, amount, pcs.map((row) => row.actor.id));
+    if (!plan.ok) return this._refuse(plan.reason);
+    await this._settle(plan, before);
+    this.openKeys.delete("giveCoins");
+    ui.notifications.info(sayWith("SDE.party.coins.gaveNote", { coins: coinText(plan.grants[0].coins, (key) => this._coinLabel(key)), names: pcs.map((row) => row.actor.name).join(", ") }));
+  }
+  async _divideCoins() {
+    if (!game.user?.isGM || !this.actor?.isOwner) return;
+    const pcs = this._pcs(), before = this._pool(), plan = planDivide(before, pcs.map((row) => row.actor.id));
+    if (!plan.ok) return this._refuse(plan.reason);
+    await this._settle(plan, before);
+    ui.notifications.info(sayWith("SDE.party.coins.dividedNote", { coins: coinText(plan.share, (key) => this._coinLabel(key)), count: pcs.length, rest: coinText(plan.pool, (key) => this._coinLabel(key)) || t("SDE.party.coins.restNone") }));
+  }
+  /** Copy an Item document (a forged item, a compendium entry) onto the party actor. */
+  async _addItemFrom(item) {
+    if (!game.user?.isGM || !this.actor?.isOwner || !item) return;
+    const data = item.toObject(); delete data._id;
+    await this.actor.createEmbeddedDocuments("Item", [data]);
+    ui.notifications.info(sayWith("SDE.party.item.added", { item: item.name }));
+  }
+  /** Move a party item, its whole stack, to one of the party's characters. */
+  async _giveItem(id, uuid) {
+    if (!game.user?.isGM || !this.actor?.isOwner) return;
+    const item = this.actor.items.get(id), target = this._pcs().find((row) => row.uuid === uuid)?.actor;
+    this.openKeys.delete(`give:${id}`);
+    if (!item || !target) return;
+    const data = item.toObject(); delete data._id;
+    await target.createEmbeddedDocuments("Item", [data]);
+    await item.delete();
+    ui.notifications.info(sayWith("SDE.party.item.gave", { item: item.name, name: target.name }));
+  }
   /** One emblem pick (an icon, a tile colour or an icon colour; a colour may be any hex), written as one flag. The GM's alone. */
   _pickEmblem(pick) {
     if (!sheetView({ isGM: !!game.user?.isGM, canEdit: Party.canManage(this.actor) }).emblemEdit) return;
@@ -147,6 +233,7 @@ export class PartyApp extends HandlebarsApplicationMixin(ApplicationV2) {
       const visible = members.filter(m => !m.missing), players = members.filter(m => m.group === "characters");
       const coins = this.actor.flags?.[MODULE_ID]?.partyCoins ?? this.actor.flags?.["shadowdark-extras"]?.coins ?? { gp: 0, sp: 0, cp: 0 };
       const coinList = Object.entries(COIN_LABELS).map(([key, labelKey]) => ({ key, labelKey, value: Math.max(0, Math.trunc(Number(coins?.[key]) || 0)) }));
+      const slotsUsed = inventorySlots(this.actor.items.contents, coins), slotsMax = this.actor.flags?.["shadowdark-extras"]?.partyMaxSlots ?? 10;
       const gemBag = gemSummary(this.actor.items.contents);
       const description = this.actor.flags?.[MODULE_ID]?.partyDescription ?? this.actor.flags?.["shadowdark-extras"]?.description ?? "";
       const editor = globalThis.foundry?.applications?.ux?.TextEditor?.implementation;
@@ -184,7 +271,9 @@ export class PartyApp extends HandlebarsApplicationMixin(ApplicationV2) {
       }
       return { ...base, actor: this.actor, canEdit, owner: canEdit, players, members, memberCount: visible.length, coins, coinList, gems: gemBag.rows, gemTotal: gemBag.total, descriptionHTML, description, editingDescription: !!this.editingDescription,
         activityHTML, questHTML, campingActive: this.activity !== "carousing", carousingActive: this.activity === "carousing",
-        inventorySlots: { used: inventorySlots(this.actor.items.contents, coins), max: this.actor.flags?.["shadowdark-extras"]?.partyMaxSlots ?? 10 },
+        inventorySlots: { used: slotsUsed, max: slotsMax, over: slotsUsed > slotsMax }, coinSlots: Math.floor(["gp", "sp", "cp"].reduce((n, key) => n + coinList.find(c => c.key === key).value, 0) / 100),
+        receivers: players.filter(m => !m.missing).map(m => ({ uuid: m.uuid, name: m.name })),
+        addItemOpen: this.openKeys.has("addItem"), addCoinsOpen: this.openKeys.has("addCoins"), giveCoinsOpen: this.openKeys.has("giveCoins"),
         partyStats: { totalHp: visible.reduce((n,m) => n + m.hp.value, 0), maxHp: visible.reduce((n,m) => n + m.hp.max, 0), avgAc: visible.length ? Math.round(visible.reduce((n,m) => n + m.ac, 0) / visible.length) : 0, avgLevel: players.length ? Math.round(players.reduce((n,m) => n + m.level, 0) / players.length) : 0 },
         needsAdoption: canEdit && !this.actor.flags?.[MODULE_ID]?.partyData,
         slots, followLeader: data.followLeader, formationReview: formation.needsReview, march, hasLeader, bastion, status: readouts,
@@ -194,7 +283,7 @@ export class PartyApp extends HandlebarsApplicationMixin(ApplicationV2) {
         movementReason: !status.token ? t("SDE.party.movement.noToken") : combat ? t("SDE.party.movement.combat") : t("SDE.party.movement.importExport"),
         groups: ["characters", "hirelings", "mounts", "missing"].map((key) => ({ label: t(LABELS[key]), rows: members.filter(r => r.group === key) })),
 
-        quests: this._quests(), items: this.actor.items.contents.filter((i) => i.type !== "Gem").map((i) => ({ id: i.id, name: i.name, img: i.img, quantity: i.system?.quantity ?? 1, slots: inventorySlots([i]) })) };
+        quests: this._quests(), items: this.actor.items.contents.filter((i) => i.type !== "Gem").map((i) => ({ id: i.id, name: i.name, img: i.img, quantity: i.system?.quantity ?? 1, slots: inventorySlots([i]), giveOpen: this.openKeys.has(`give:${i.id}`) })) };
     } catch (error) { console.error(`${MODULE_ID} | Party roster read`, error); return { ...base, unknown: true }; }
   }
   _onRender(context, options) {
@@ -226,6 +315,8 @@ export class PartyApp extends HandlebarsApplicationMixin(ApplicationV2) {
       };
       globalThis.document?.addEventListener("pointerdown", this._pickerAway, true);
     }
+    // An open menu or form stays open through a re-render (a hook, a typed number) until its action closes it.
+    for (const details of this.element.querySelectorAll("details[data-open-key]")) details.addEventListener("toggle", () => { this.openKeys[details.open ? "add" : "delete"](details.dataset.openKey); });
     // A custom emblem colour: the colour well and its hex field both pick it; a half-typed hex waits until it is six digits.
     for (const input of this.element.querySelectorAll("[data-color-input], [data-color-hex]")) input.addEventListener("change", () => {
       const part = input.dataset.colorInput ?? input.dataset.colorHex;
@@ -298,6 +389,7 @@ export class PartySheet extends HandlebarsApplicationMixin(foundry.applications.
   static PARTS = PartyApp.PARTS;
   tab = "members";
   activity = "camping";
+  openKeys = new Set();
   get title() { return this.actor.name; }
   _onRender(context, options) { super._onRender(context, options); this._bindControls(); }
   async _onFirstRender(context, options) {
@@ -307,7 +399,7 @@ export class PartySheet extends HandlebarsApplicationMixin(foundry.applications.
   }
   _onClose(options) { for (const [name, id] of this._hooks ?? []) Hooks.off(name, id); this._hooks = null; globalThis.document?.removeEventListener("pointerdown", this._pickerAway, true); return super._onClose(options); }
 }
-for (const name of ["_prepareContext", "_change", "_pickEmblem", "_quests", "_bastion", "_travel", "_hookTravel", "_bindControls", "_activityController", "_questController", "_onStateChanged"]) PartySheet.prototype[name] = PartyApp.prototype[name];
+for (const name of ["_prepareContext", "_change", "_pickEmblem", "_pool", "_coinInputs", "_pcs", "_refuse", "_settle", "_coinLabel", "_addCoins", "_giveCoins", "_divideCoins", "_addItemFrom", "_giveItem", "_quests", "_bastion", "_travel", "_hookTravel", "_bindControls", "_activityController", "_questController", "_onStateChanged"]) PartySheet.prototype[name] = PartyApp.prototype[name];
 
 /** Only native/adopted flagged Parties route here; ordinary NPC sheets stay intact. */
 export function registerParty() {

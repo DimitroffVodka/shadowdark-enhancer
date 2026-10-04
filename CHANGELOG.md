@@ -2,6 +2,7 @@
 
 ## [Unreleased]
 ### Added
+- **The Party Items tab shows slots used and the maximum, an Add item menu (From compendium, with a new name search over the item compendiums, or Forge a magic item), a Give to menu on each item, and GM buttons to Add, Give and Divide coins.** Give coins moves coins from the party's treasury into the PCs' own purses and is refused if the treasury is short; Divide splits GP, SP and CP evenly among the PCs in whole coins and the remainder stays in the treasury.
 - **A shared UI kit stylesheet** (`styles/sde-ui.css`, dark and light tokens plus parts) for the window
   redesign. No window uses it yet, so nothing looks different.
 
