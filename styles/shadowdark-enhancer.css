@@ -11994,3 +11994,41 @@ button.sde-hud-day:hover { border-color: var(--sd-frame); }
 .sde-mount-npc .sde-mount-cols > div > .SD-box:last-child { margin-bottom: 0; }
 .sde-mount-npc .sde-mount-care { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px 8px; align-items: end; }
 .sde-mount-npc .sde-mount-care .sde-veh-field { min-width: 0; }
+
+/* Camping window (kit parts come from styles/sde-ui.css): hairline rows on the page, no cards. */
+.sde-camping-body { container-type: inline-size; gap: 12px; }
+.sde-camping-body.sde-ui { border: 0; }
+.sde-party .sde-camping-body { overflow: visible; flex: 0 0 auto; background: transparent; }
+.sde-camping-body * { box-sizing: border-box; }
+.sde-camping-body .cp-hint { margin: 0; }
+.sde-camping-body .cp-fuel { max-width: 320px; }
+.sde-camping-body .cp-list { display: flex; flex-direction: column; border-top: 1px solid var(--ui-line); }
+.sde-camping-body .cp-pc { display: flex; flex-direction: column; gap: 8px; padding: 12px 0; border-bottom: 1px solid var(--ui-line); }
+.sde-camping-body .cp-line { flex-direction: row; align-items: baseline; gap: 12px; padding: 8px 0; }
+.sde-camping-body .cp-qty { margin-left: auto; font-variant-numeric: tabular-nums; color: var(--ui-text); font-weight: 700; }
+.sde-camping-body .cp-head { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 14px; min-height: 28px; }
+.sde-camping-body .cp-name { margin: 0; flex: 1 1 140px; font: 700 14px/1.2 var(--ui-font); color: var(--ui-text); overflow-wrap: anywhere; }
+.sde-camping-body .cp-bad { color: var(--ui-danger-text); }
+.sde-camping-body .cp-fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px 12px; }
+.sde-camping-body .cp-torch { align-self: flex-start; }
+.sde-camping-body .cp-warn { margin: 0; font-size: 12px; color: var(--ui-danger-text); }
+.sde-camping-body .cp-more { font-size: 12px; color: var(--ui-muted); }
+.sde-camping-body .cp-more > summary { cursor: pointer; padding: 2px 0; }
+.sde-camping-body .cp-more > summary:hover { color: var(--ui-text); }
+.sde-camping-body .cp-more > p { margin: 4px 0 0; color: var(--ui-body); }
+.sde-camping-body .cp-rules { border-bottom: 1px solid var(--ui-line); padding-bottom: 8px; }
+.sde-camping-body .cp-wrap { overflow-x: auto; }
+.sde-camping-body .cp-wrap .ui-table { min-width: 460px; }
+.sde-camping-body .ui-table td.cp-bad { color: var(--ui-danger-text); font-weight: 700; }
+.sde-camping-body .ui-actions { position: sticky; bottom: -16px; display: flex; align-items: center; gap: 8px; margin: 0 -16px -16px; padding: 10px 16px; border-top: 1px solid var(--ui-line); background: var(--ui-page); }
+.sde-camping-body .ui-actions .ui-right { margin-left: auto; display: flex; gap: 8px; }
+@container (max-width: 480px) { .sde-camping-body .ui-actions { flex-wrap: wrap; } }
+/* ration counter and Ready control in each character's header line */
+.sde-camping-body .cp-count { display: inline-flex; align-items: center; gap: 6px; margin-left: auto; color: var(--ui-text); font-variant-numeric: tabular-nums; }
+.sde-camping-body .cp-count .cp-ration { align-self: center; width: 26px; height: 26px; border: 0; border-radius: 3px; object-fit: contain; }
+.sde-camping-body .cp-count.cp-bad .cp-ration { opacity: .55; }
+.sde-camping-body .cp-count b { font-size: 18px; min-width: 1ch; }
+.sde-camping-body .cp-count.cp-bad b { color: var(--ui-danger-text); }
+.sde-camping-body .cp-ready-btn { flex: 0 0 auto; }
+.sde-camping-body .cp-ready { flex: 0 0 auto; display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 10px; border: 1px solid transparent; color: var(--ui-muted); font: 600 12px/1 var(--ui-head); }
+.sde-camping-body .cp-ready.on { border-color: var(--ui-frame); background: var(--ui-frame); color: var(--ui-page); border-radius: var(--ui-r); }

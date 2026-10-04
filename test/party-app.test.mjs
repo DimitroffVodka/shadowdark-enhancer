@@ -175,7 +175,7 @@ test("Party activity buttons stay in the sheet instead of opening applications",
   assert.ok(entrypoint.includes('camping: { open: (ref) => PartyApp.open(ref, "camping") }'));
   assert.ok(entrypoint.includes('carousing: { open: (ref) => PartyApp.open(ref, "carousing")'));
   const camping = await readFile(new URL("../templates/camping/camping.hbs", import.meta.url), "utf8");
-  assert.ok(camping.indexOf("{{#if hasResults}}") < camping.indexOf('{{#each rows}}<fieldset'), "saved results come before the task setup, not below it");
+  assert.ok(camping.indexOf("{{#if hasResults}}") < camping.indexOf('{{#each rows}}\n      <article class="cp-pc"'), "saved results come before the task setup, not below it");
 });
 
 test("Party inline controllers reuse activity actions and redraw their host only", async () => {

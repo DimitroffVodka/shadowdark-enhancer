@@ -1,7 +1,7 @@
 # Shadowdark Enhancer — File Inventory
 
 <!-- inventory:stats:start -->
-1691 tracked files · ~221,700 lines of code/markup across scripts+templates+styles+test.
+1692 tracked files · ~221,800 lines of code/markup across scripts+templates+styles+test.
 `v0.17.3` in both `module.json` and `package.json`.
 <!-- inventory:stats:end -->
 **Layout reflects the 2026-07-21 feature-folder reorganization (v0.11.0 cycle).**
@@ -58,7 +58,7 @@
 | `stat-damage/stat-damage-core.mjs` | 194 | Pure stat-damage rules and the effect contract Shadowdark Extras' Effects library follows: a negative ADD on `system.abilities.<key>.value` flagged `statDamage: { ability }`, summed across effects, healed whole or N per ability, and the parser for monster riders ("DC 12 CON or 1d4 STR damage", enriched or not). |
 | `stat-damage/stat-damage.mjs` | 150 | `statDamage.{apply, heal, of}`: writes replace an ability's effects with one holding the new total (serialized per client), and a stat-damage effect taking CON to 0 hands the character to dying's onConZero on the active GM (dead, unless noDeathAtZeroCon). |
 | `stat-damage/stat-riders.mjs` | 127 | Applies a monster attack's stat-damage riders when its card HIT a character, reading the attack's rider and the NPC feature it names (or shares its name with). Only a card posted by a GM or the attacker's owner, naming the attacker's own item, counts. A rider behind a save asks the owning player to roll it (GM→player user query, GM sender required) and falls back to the GM's client. StatRiders.save also takes a title, for Overland's forage and underground checks (#233). |
-| `camping/camping-app.mjs` | 98 | Camping controller hosted inline in Party Travel for native owner-choice task setup, food/fuel decisions and persistent results. |
+| `camping/camping-app.mjs` | 97 | Camping controller hosted inline in Party Travel for native owner-choice task setup, food/fuel decisions and persistent results. |
 | `camping/camping-cook.mjs` | 37 | Post-eligible-rest Cook seam and active-benefit-scoped native damage/healing/expiry compatibility. |
 | `camping/camping-core.mjs` | 100 | Pure PC task choices, lock, exact shared-first torch cost and scoped Cook surplus/expiry rules. |
 | `camping/camping-nutrition.mjs` | 120 | Actor/day whole-meal accounting, explicit personal-first Party backup, per-effect starvation and eligible normal-rest receipts across parties/reloads. |

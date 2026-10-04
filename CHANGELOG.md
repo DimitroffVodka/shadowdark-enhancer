@@ -6,6 +6,7 @@
   redesign. No window uses it yet, so nothing looks different.
 
 ### Changed
+- **Camping window uses the new design.** Hairline rows on the shared UI kit, a ration count next to the ham hock icon, a Ready button, and no gold.
 - **Camping: everyone takes part, and meals use your own rations first.** The Participate box and the "use party rations" box are gone. A meal takes the character's own rations, then the party's.
 - **Camping: everyone participates and meals use the party's rations automatically.** The per-character Participate checkbox is gone, and a character eats their own rations first and then the party's with no consent box; a character short overall is not fed and nothing is deducted. Torch contribution is still opt-in.
 - **Carousing: one tier for the whole party, with a shared cost.** The tier is chosen once; the cost is split in whole coins and any leftover is charged a coin at a time to the first characters. The mask and paper-lantern boxes are removed.

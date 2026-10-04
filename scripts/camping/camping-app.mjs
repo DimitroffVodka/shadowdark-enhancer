@@ -7,7 +7,7 @@ import { foodPreview } from "./camping-nutrition.mjs";
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 const t = (key) => game.i18n.localize(key);
 export class CampingApp extends HandlebarsApplicationMixin(ApplicationV2) {
-  static DEFAULT_OPTIONS = { classes: ["shadowdark", "sde-camping"], position: { width: 820, height: 700 }, window: { title: "SDE.camping.title", resizable: true }, actions: {
+  static DEFAULT_OPTIONS = { classes: ["shadowdark", "sde-camping", "sde-ui"], position: { width: 820, height: 700 }, window: { title: "SDE.camping.title", resizable: true }, actions: {
     begin: function () { return this.change("begin"); }, resolve: function () { return this.change("resolve"); },
     resume: function () { return this.change("resume"); }, cancel: function () { return this.change("cancel"); },
     acceptFuel: function () { return this.change("fuel", { accept: true, deductions: this.fuelPreview }); },
@@ -54,15 +54,14 @@ export class CampingApp extends HandlebarsApplicationMixin(ApplicationV2) {
       deductions: plan.deductions.map(d => { const a = game.actors.contents.find(a => a.uuid === d.actorUuid); return { ...d, name: a?.name, item: a?.items.get(d.id)?.name }; }),
       mounts: (camp.mounts ?? []).map(p => {
         const actor = game.actors.contents.find(a => a.uuid === p.uuid), meal = food.find(f => f.actorId === p.actorId);
-        return { ...p, meal, name: actor?.name ?? t("SDE.party.missing"), foodStatus: t(meal.fed ? "SDE.camping.fed" : "SDE.camping.unfed"), deathWarning: !meal.fed && meal.con <= (meal.saved ? 0 : 1) };
+        return { ...p, meal, name: actor?.name ?? t("SDE.party.missing"), deathWarning: !meal.fed && meal.con <= (meal.saved ? 0 : 1) };
       }),
       rows: camp.participants.map(p => {
         const actor = game.actors.contents.find(a => a.uuid === p.uuid), task = camp.tasks.find(t => t.key === p.task), result = camp.results[p.actorId];
         const description = task?.descriptionKey ? t(task.descriptionKey) : task?.description;
         const meal = food.find(f => f.actorId === p.actorId);
         return { ...p, meal,
-          foodStatus: t(meal.fed ? "SDE.camping.fed" : "SDE.camping.unfed"), deathWarning: !meal.fed && meal.con <= (meal.saved ? 0 : 1),
-          restStatus: meal.rest === null ? null : t(meal.rest ? "SDE.camping.rested" : "SDE.camping.noRest"),
+          deathWarning: !meal.fed && meal.con <= (meal.saved ? 0 : 1),
           name: actor?.name ?? t("SDE.party.missing"), editable: setup && !!actor?.testUserPermission(game.user, "OWNER"),
           tasks: [{ key: "", name: t("SDE.camping.noTask"), selected: !p.task }, ...camp.tasks.map(v => ({ key: v.key, name: v.name ?? t(v.label), selected: p.task === v.key }))],
           abilities: (task?.abilities ?? []).map(value => ({ value, label: value.toUpperCase(), selected: p.ability === value })),
