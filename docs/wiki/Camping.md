@@ -3,7 +3,7 @@
 [← Wiki home](index.md) · [Party](Party.md)
 
 Open Camp from the native Party or Overland. A Party owner starts/resumes;
-each PC owner chooses their own participation and at most one optional task.
+every PC takes part, and each PC owner chooses at most one optional task.
 Hirelings and mounts have no PC task slots; listed mounts still need food.
 
 ## Setup and fire
@@ -26,8 +26,8 @@ and expires without touching other lights. Persistent results survive reload.
 
 Normal conditions require one ration per PC/mount/day. Imported harsh-climate
 conditions can require two per PC and non-grazing mount. Own inventory is used
-first. **Use Party rations** is explicit per PC/per camp, and per mount; only
-the actual current shortfall is taken, never another PC's food or a stale preview.
+first, then the Party's rations are used automatically for any shortfall; never
+another PC's food or a stale preview.
 Hunt and existing daily foraging remain separate, with personal food rewards.
 
 Actor/day records prevent another meal charge, starvation hit or rest when

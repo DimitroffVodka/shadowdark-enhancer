@@ -479,7 +479,7 @@
     "scripts/carousing/carousing-app.mjs": "Carousing controller hosted inline in Party Travel, with GM table/manual-place setup, each PC owner's own-spend choices, persistent results and independent history.",
     "scripts/camping/camping-core.mjs": "Pure PC task choices, lock, exact shared-first torch cost and scoped Cook surplus/expiry rules.",
     "scripts/camping/camping.mjs": "Authenticated owner-choice camp task relay, persistent results/rewards, nearby-PC fire and deferred native nutrition/rest seams for Overland nights.",
-    "scripts/camping/camping-nutrition.mjs": "Actor/day whole-meal accounting, explicit personal-first Party backup, per-effect starvation and eligible normal-rest receipts across parties/reloads.",
+    "scripts/camping/camping-nutrition.mjs": "Actor/day whole-meal accounting, personal-first then automatic Party rations, per-effect starvation and eligible normal-rest receipts across parties/reloads.",
     "scripts/camping/camping-app.mjs": "Camping controller hosted inline in Party Travel for native owner-choice task setup, food/fuel decisions and persistent results.",
     "scripts/camping/camping-cook.mjs": "Post-eligible-rest Cook seam and active-benefit-scoped native damage/healing/expiry compatibility.",
     "scripts/party/party-core.mjs": "Pure versioned roster validation, membership permissions, groups and quest scoping.",

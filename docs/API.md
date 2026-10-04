@@ -1249,7 +1249,7 @@ checks and mount helpers use `floor((effectiveScore - 10) / 2)` without PC caps.
 Damage never modifies the stored NPC modifier or the base score; death is at
 full CON zero. `of`/`heal` read/update the mount damage flag, not PC effects.
 Daily camp nutrition includes listed mounts,
-uses their own food then only explicitly approved per-mount Party shortfall,
+uses their own food then the Party's rations,
 and saves once-per-Actor/day food and damage progress. Mounts take no camp task.
 
 **The character effect is a contract.** Anything that creates character stat damage without calling

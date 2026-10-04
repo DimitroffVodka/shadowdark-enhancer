@@ -6,6 +6,8 @@
   redesign. No window uses it yet, so nothing looks different.
 
 ### Changed
+- **Camping: everyone takes part, and meals use your own rations first.** The Participate box and the "use party rations" box are gone. A meal takes the character's own rations, then the party's.
+- **Camping: everyone participates and meals use the party's rations automatically.** The per-character Participate checkbox is gone, and a character eats their own rations first and then the party's with no consent box; a character short overall is not fed and nothing is deducted. Torch contribution is still opt-in.
 - **The Character Builder's ability names and descriptions, the Hit Points formula's CON and the Gold step's dice formula now come from the language file** instead of being written into the code, and the Gold step's two inline styles are stylesheet classes. Nothing changes on screen.
 - **Token HUD buttons are real buttons.** The rollback-move, pick-up and Quick Adjust buttons, and the prayer icon beside a deity on the character sheet, can now be reached and used from the keyboard and have an accessible name; the prayer icon also appears on both sheet generations without doubling.
 - **The Party sheet's header is one compact band.** The boxed "Marching formation" block, with its
