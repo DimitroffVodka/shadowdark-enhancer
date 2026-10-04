@@ -382,6 +382,8 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
       if (run.includes("anchor")) {
         if (confirm && !(await foundry.applications.api.DialogV2.confirm({
           window: { title: t("SDE.hexMap.playable.title") }, content: `<p>${t("SDE.hexMap.playable.rebuildBody", { n: facts.placed })}</p>`,
+          yes: { label: "SDE.hexMap.playable.rebuildYes", icon: "fa-solid fa-expand" },
+          no: { label: "SDE.hexMap.playable.rebuildNo", icon: "fa-solid fa-xmark", default: true },
           rejectClose: false,
         }))) return false;
         say("SDE.hexMap.playable.progress.anchor");
@@ -1530,6 +1532,8 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
     return foundry.applications.api.DialogV2.confirm({
       window: { title: t("SDE.hexMap.renumber.title") },
       content: `<p>${t("SDE.hexMap.renumber.confirm")}</p>`,
+      yes: { label: "SDE.hexMap.renumber.yes", icon: "fa-solid fa-arrow-down-1-9" },
+      no: { label: "SDE.hexMap.renumber.no", icon: "fa-solid fa-xmark", default: true },
       rejectClose: false,
     }).catch(() => false);
   }
@@ -1808,6 +1812,8 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const ok = await foundry.applications.api.DialogV2.confirm({
       window: { title: t("SDE.hexMap.clear.title") },
       content: `<p>${t("SDE.hexMap.clear.confirm", { scene: foundry.utils.escapeHTML(this._scene()?.name ?? "") })}</p>`,
+      yes: { label: "SDE.hexMap.clear.yes", icon: "fa-solid fa-trash" },
+      no: { label: "SDE.hexMap.clear.keep", icon: "fa-solid fa-xmark", default: true },
       rejectClose: false,
     }).catch(() => false);
     if (!ok) return;

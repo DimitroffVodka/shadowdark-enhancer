@@ -189,6 +189,7 @@ export async function undoLastSave(app, { confirm = defaultConfirm } = {}) {
     content: `<p>${esc(F(`${K}undoConfirm`, { when: new Date(info.at).toLocaleString(), count: info.items }))}</p>`,
     yes: L(`${K}undoYes`),
     no: L("SDE.charBuilder.commit.back"),
+    safeDefault: true,
   });
   if (!ok) return "cancelled";
 
@@ -206,11 +207,11 @@ export async function undoLastSave(app, { confirm = defaultConfirm } = {}) {
   return outcome;
 }
 
-function defaultConfirm({ title, content, yes, no }) {
+function defaultConfirm({ title, content, yes, no, safeDefault = false }) {
   return foundry.applications.api.DialogV2.confirm({
     window: { title, icon: "fa-solid fa-floppy-disk" },
     content,
     yes: { label: yes, icon: "fa-solid fa-check" },
-    no: { label: no },
+    no: { label: no, default: safeDefault },
   });
 }

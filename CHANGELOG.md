@@ -3,6 +3,7 @@
 ## [Unreleased]
 ### Changed
 - **The Character Builder's ability names and descriptions, the Hit Points formula's CON and the Gold step's dice formula now come from the language file** instead of being written into the code, and the Gold step's two inline styles are stylesheet classes. Nothing changes on screen.
+- **Token HUD buttons are real buttons.** The rollback-move, pick-up and Quick Adjust buttons, and the prayer icon beside a deity on the character sheet, can now be reached and used from the keyboard and have an accessible name; the prayer icon also appears on both sheet generations without doubling.
 - **The Party sheet's header is one compact band.** The boxed "Marching formation" block, with its
   heading and five lines of text, is replaced by a visible **Marching order** switch beside the 3×3
   grid (off: "Moving freely", the grid dims; on: "<leader> leads"). Following never pauses and there is
@@ -42,6 +43,7 @@
   earlier "Include mounts" had already placed on a scene is still recalled by Place / Recall.
 
 ### Fixed
+- **Safer destructive prompts.** The importer's delete-copies dialogs now default to Cancel, so pressing Enter no longer deletes. The other destructive prompts (deleting a recap session, clearing hex tags, ending a crawl, resetting level guidelines and similar) already focused the safe button; their buttons now name the action (Delete session / Keep it) instead of Yes / No.
 - **The mount sheet is an ApplicationV2 sheet, laid out like the native NPC sheet.** It no longer borrows the
   system's old NPC sheet. It keeps the system's NPC header, and Abilities has HP, AC and Level, a **Stats** box
   in place of Modifiers, Movement, Alignment and Dark-Adapted down the left, beside the Attacks, Special
