@@ -1,7 +1,7 @@
 # Shadowdark Enhancer — File Inventory
 
 <!-- inventory:stats:start -->
-1689 tracked files · ~221,400 lines of code/markup across scripts+templates+styles+test.
+1701 tracked files · ~221,800 lines of code/markup across scripts+templates+styles+test.
 `v0.17.3` in both `module.json` and `package.json`.
 <!-- inventory:stats:end -->
 **Layout reflects the 2026-07-21 feature-folder reorganization (v0.11.0 cycle).**
@@ -399,14 +399,16 @@
 
 | File | Lines | Description |
 |---|---:|---|
-| `register-actors.mjs` | 125 | Registers `shadowdark-enhancer.mount` / `.warband` / `.boat` (models + sheets, in `i18nInit`): the warband's NpcSD subclass with fixed HP, its linked-token and commander-cleared create hook, and Make a Warband. |
+| `register-actors.mjs` | 114 | Registers `shadowdark-enhancer.mount` / `.warband` / `.boat` (models + sheets, in `i18nInit`): the warband's NpcSD subclass with fixed HP, its linked-token and commander-cleared create hook, and Make a Warband. |
 | `boat-data-model.mjs` | 115 | Boat data model — WR vessel rules. |
 | `boat-sheet.mjs` | 145 | Boat sheet: Overview / Passengers & Crew / Cargo / Description. |
-| `mount-sheet.mjs` | 561 | Mount sheet — an ApplicationV2 actor sheet over the NPC data model: stats, riders, gear, mount rules, spells, notes, effects. |
+| `npc-stat-sheet.mjs` | 271 | The NPC stat block as an ApplicationV2 actor sheet, shared by the Mount and the Warband: header and tabs, HP/AC/level, attacks, specials, features, spells, description, effects and the system's own data-action names (item-attack, roll-hp, cast-npc-spell...) mapped to V2 actions, tab handling and emulateItemDrop. Markup in templates/actors/npc-stat/. |
+| `mount-sheet.mjs` | 350 | Mount sheet — an ApplicationV2 actor sheet over the NPC data model: stats, riders, gear, mount rules, spells, notes, effects. |
 | `mount-scores-core.mjs` | 13 | Pure mount full-score defaults, uncapped modifier conversion, separate damage and effective scores. |
 | `mount-scores.mjs` | 40 | Mount-only NPC model extension and once-only creation/adoption of persisted full scores; native checks derive effective modifiers. |
 | `warband-core.mjs` | 265 | Warband rules, pure (#200, #202, #204): the 18 upgrades, a commander's allowance by hit die tier (2/2, 4/3, 6/4), the command and upgrade refusals, and a creature made into a warband (level doubled, 8 HP a level plus CON, one attack, +1 attack a level gained, damage dice tripled). |
-| `warband-npc-sheet.mjs` | 356 | The Warband unit sheet (#200): an NpcSheetSD subclass (AppV1) with a Warband tab for the commander (a PC dropped on it), the allowance across that commander's warbands, the upgrade checklist written whole to the `warband` flag, and the commander's CHA for morale, and (#204) upkeep, arrears, desertion and retraining with their GM buttons. |
+| `warband-sheet.mjs` | 198 | The Warband unit sheet (#200), an ApplicationV2 actor sheet: the Mount's NPC stat block (npc-stat-sheet.mjs) plus a Warband tab for the commander (a PC dropped on it), the allowance across that commander's warbands, the upgrade checklist, the garrison, the commander's CHA for morale and the GM's upkeep buttons. Every change goes to the warband writer; it writes no flag itself. |
+| `warband-npc-sheet.mjs` | 199 | A Warband's state and its writer (#200, #204): `warbandState`, the commander's tier and other warbands, and the one queue the active GM runs every commander, upgrade, garrison and upkeep change through (the single `warband` flag written whole via replaceModuleFlag, allowance checked on that GM). The sheet that sends them is warband-sheet.mjs; this file keeps its old name because combat, upkeep and recruiting import from it. |
 | `make-warband.mjs` | 119 | Make a Warband (#202): the GM's Actors-directory context entry on a level 1-5 NPC, a before/after preview, and a new warband actor from a copy (the stat block in its notes rebuilt as Quick Adjust does). |
 | `warband-upkeep.mjs` | 454 | Warband upkeep and healing on the world clock (#204): on timeAdvanced (active GM, queued), month and week starts in order over a move's last 366 days (clockEvents, last-month and last-week markers against rewinds): each month start charges 10 gp a level per commanded warband from the commander's coins, in one card; arrears check morale each week start (at most 8 rolling weeks a move) and desert on a failure (marked, never deleted); every day heals 1d4 (Hardy 2d6); the GM's Charge a Month, Pay Arrears and Return to Service. |
 | `warband-garrison.mjs` | 22 | The bastion a warband is garrisoned at: its name and which of the Granary and Barracks it has finished while it stands, for warband upkeep, healing and the Warband tab. |
