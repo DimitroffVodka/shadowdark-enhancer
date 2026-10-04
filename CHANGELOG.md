@@ -9,6 +9,7 @@
   redesign. No window uses it yet, so nothing looks different.
 
 ### Changed
+- **Bastion sheet and panel use the new design.** The sheet has a header band (name, type, AC, hit points, upgrades, treasury), the rooms at work folded under Overview, upgrade cards with icon actions, and a Plan tab whose side card says what to do instead of sitting empty; the panel shows each Bastion as a card with icon buttons. Both keep the Shadowdark parchment look.
 - **Carousing window uses the new design.** One tier select for the party at the top, one shared-cost line (total, headcount, each person's share), a Joining switch and the result for each character.
 - **Camping window uses the new design.** Hairline rows on the shared UI kit, a ration count next to the ham hock icon, a Ready button, and no gold.
 - **Camping: everyone participates and meals use the party's rations automatically.** The per-character Participate checkbox is gone, and a character eats their own rations first and then the party's with no consent box; a character short overall is not fed and nothing is deducted. Torch contribution is still opt-in.

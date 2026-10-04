@@ -11489,155 +11489,80 @@ button.sde-hud-day:hover { border-color: var(--sd-frame); }
 .sde-advp-row.is-armed { background: rgba(255, 200, 0, 0.18); }
 .sde-advp-state { font-size: 0.75rem; opacity: 0.7; }
 
-/* ── Bastion actor sheet ────────────────────────────────────────────────────
- * An ApplicationV2 window in the Shadowdark parchment chrome, like the Boat's
- * (the .SD-header / .SD-nav / .SD-box rules come from the system's stylesheet
- * through the `shadowdark sheet` classes). Parchment and ink are forced so the
- * look doesn't follow the client's dark or light theme. */
-.sde-bastion-body { height: 100%; }
-.sde-bastion-sheet .window-content {
-  padding: 0;
-  overflow: hidden;
-  background: url("/ui/parchment.jpg") repeat;
-  color: #191813;
+/* ── Sheet family (Bastion sheet, Bastion panel, Boat sheet) ──────────────────
+ * These windows carry the kit's parts (class sde-ui) but keep the Shadowdark system's parchment, so
+ * sde-parchment re-points the kit's tokens at parchment and ink in either client theme. */
+.sde-ui.sde-parchment,
+.theme-light .sde-ui.sde-parchment,
+.theme-dark .sde-ui.sde-parchment {
+  --ui-page: #e6dcc3; --ui-panel: #f1ead6; --ui-raised: #ddd2b8; --ui-hover: #e9dfc6;
+  --ui-text: #191813; --ui-body: #191813; --ui-muted: #5a5242;
+  --ui-line: #a89c80; --ui-frame: #3a352c; --ui-gold: #7a5a1e; --ui-gold-bg: var(--ui-raised);
+  --ui-danger: #9d2a3a; --ui-danger-text: #9d2a3a; --ui-on: #2f7a42;
+  --ui-btn-bg: #191813; --ui-btn-fg: #f4f0e8;
+  --ui-shadow: 0 2px 6px rgba(60, 45, 20, 0.18);
+  color-scheme: light;
 }
-.sde-bastion-sheet,
-.sde-bastion-sheet input,
-.sde-bastion-sheet select,
-.sde-bastion-sheet textarea,
-.sde-bastion-sheet label,
-.sde-bastion-sheet button { color: #191813; }
-.sde-bastion-sheet .SD-title,
-.sde-bastion-sheet .SD-title input { color: #fff; }
-.sde-bastion-sheet .SD-title input { font-family: "Old Newspaper Font", serif; font-size: 40px; text-align: center; height: 50px; line-height: 50px; padding: 0; }
-.sde-bastion-sheet .SD-title input::placeholder { color: rgba(255, 255, 255, 0.55); }
-.sde-bastion-sheet .SD-header .portrait { grid-row: span 2; width: 110px; height: 110px; object-fit: contain; background: #85A478; }
-.sde-bastion-sheet .shadowdark-logo { font-family: "JSL Blackletter", sans-serif; font-size: 1.75rem; color: #fff; text-align: center; }
-.sde-bastion-sheet .shadowdark-logo span { border-bottom: solid 1px #fff; padding: 0 10px; }
-.sde-bastion-sheet .SD-box .header label { color: #fff; }
-.sde-bastion-sheet .window-header .header-control { color: rgba(235, 230, 220, 0.82); }
-.sde-bastion-sheet .window-header .header-control:hover { color: #fff; }
+.sde-parchment .window-content { background: url("/ui/parchment.jpg") repeat; padding: 0; overflow: hidden; }
+.sde-parchment [data-application-part="body"] { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; }
+.sde-parchment .ui-shell, .sde-parchment .ui-head, .sde-parchment .ui-tabs { background: transparent; }
+.sde-parchment .window-header .header-control { color: var(--ui-muted); }
+.sde-parchment .window-header .header-control:hover { color: var(--ui-text); }
+/* player-facing controls on an actor sheet are anchors (a sheet disables buttons for viewers who cannot edit) */
+.sde-ui a.ui-tab, .sde-ui a.ui-btn, .sde-ui a.ui-icon { text-decoration: none; }
+.sde-ui a.ui-tab { color: var(--ui-muted); }
+.sde-ui a.ui-tab:hover, .sde-ui a.ui-tab.active { color: var(--ui-text); }
+.sde-ui a.ui-btn { color: var(--ui-text); }
+.sde-ui a.ui-btn.ghost, .sde-ui a.ui-icon { color: var(--ui-muted); }
+.sde-ui a.ui-btn.ghost:hover, .sde-ui a.ui-icon:hover { color: var(--ui-text); }
+.ui-head > img[data-action] { cursor: pointer; }
+.sde-ui .ui-head input.ui-title-input { height: auto; width: 100%; padding: 0; border: 0; border-bottom: 1px solid transparent; border-radius: 0; background: transparent; font: 400 26px/1.1 var(--ui-title); color: var(--ui-text); }
+.sde-ui .ui-head input.ui-title-input:hover { border-bottom-color: var(--ui-line); }
+.sde-ui .ui-head input.ui-title-input:focus { border-bottom-color: var(--ui-frame); box-shadow: none; }
+.ui-stat .ui-inputs { display: flex; align-items: center; gap: 4px; }
+.sde-ui .ui-stat input[type=number] { width: 52px; height: 26px; padding: 0 4px; text-align: center; font-weight: 700; font-variant-numeric: tabular-nums; }
+.ui-stat .ui-inputs > span { color: var(--ui-muted); }
+.ui-seg { display: inline-flex; flex: 0 0 auto; }
+.ui-seg > .ui-btn { border-radius: 0; margin-left: -1px; }
+.ui-seg > .ui-btn:first-child { border-radius: var(--ui-r) 0 0 var(--ui-r); margin-left: 0; }
+.ui-seg > .ui-btn:last-child { border-radius: 0 var(--ui-r) var(--ui-r) 0; }
+.ui-seg > .ui-btn.on, .ui-btn.ghost.on { background: var(--ui-raised); border-color: var(--ui-frame); color: var(--ui-text); position: relative; z-index: 1; }
+.ui-icon { flex: 0 0 24px; }
+.ui-icon:disabled, .ui-icon[disabled] { opacity: 0.35; cursor: not-allowed; }
+.ui-icon:disabled:hover { color: var(--ui-muted); border-color: transparent; background: transparent; }
+.sde-ui .ui-details > summary::before { font-family: "Font Awesome 7 Pro", "Font Awesome 6 Free", "FontAwesome"; font-weight: 900; }
+@container (max-width: 700px) { .sde-ui .ui-head input.ui-title-input { font-size: 22px; } }
+@container (max-width: 560px) { .ui-tabs .ui-tab { padding: 6px 8px; font-size: 14px; } .ui-tabs { padding-inline: 6px; } }
+.ui-count { font: 600 11px/1 var(--ui-font); }
 
-.sde-bastion-sheet .sde-bast-tab { display: none; flex: 1 1 auto; min-height: 0; overflow: auto; padding: 8px 10px; }
-.sde-bastion-sheet .sde-bast-tab.active { display: block; }
-.sde-bastion-sheet .sde-bast-tab.sde-bast-plan.active { display: flex; flex-direction: column; gap: 6px; }
-.sde-bastion-sheet .note { font-size: 13px; margin: 6px 0; }
-.sde-bastion-sheet .hint { font-size: 12px; font-style: italic; opacity: 0.8; margin: 4px 0; }
-.sde-bastion-sheet h3 { margin: 10px 0 4px; font-size: 14px; color: #191813; border-bottom: 1px solid rgba(0, 0, 0, 0.3); }
-.sde-bastion-sheet .sde-bast-bad,
-.sde-bastion-sheet .sde-bast-bad .content { color: #b22222; font-weight: bold; }
+/* ── Bastion actor sheet: the plan frame, the upgrade cards and the hover card the sheet's JS fills ── */
+.sde-bastion-ui .sde-bast-planbody { display: grid; grid-template-columns: minmax(0, 1fr) 200px; gap: 12px; align-items: start; }
+.sde-bastion-ui .sde-bastion-map { width: 100%; height: clamp(300px, 56cqw, 600px); border: 1px solid var(--ui-line); border-radius: var(--ui-r2); cursor: grab; user-select: none; touch-action: none; background: var(--ui-panel); }
+.sde-bastion-ui .sde-bastion-map .roof { transition: opacity 0.22s; }
+.sde-bastion-ui .sde-bastion-map .roof:hover { opacity: 0; }
+.sde-bastion-ui .sde-bastion-map g[data-id] { cursor: pointer; }
+.sde-bastion-ui .sde-bastion-card { padding: 10px; font-size: 12px; align-self: start; gap: 6px; }
+.sde-bastion-ui .sde-bastion-card figure { margin: 0 0 6px; }
+.sde-bastion-ui .sde-bastion-card svg { width: 100%; height: auto; display: block; border-radius: var(--ui-r); background: var(--ui-raised); }
+.sde-bastion-ui .sde-bastion-card figcaption { color: var(--ui-muted); font: 600 10px/1.2 var(--ui-head); letter-spacing: 0.08em; text-transform: uppercase; margin: 2px 0 0; }
+.sde-bastion-ui .sde-bastion-card strong { color: var(--ui-text); }
+.sde-bastion-ui .sde-bastion-card p { margin: 4px 0 0; color: var(--ui-body); }
+.sde-bastion-ui .sde-bastion-card .cost { float: right; color: var(--ui-muted); }
+@container (max-width: 560px) { .sde-bastion-ui .sde-bast-planbody { grid-template-columns: minmax(0, 1fr); } .sde-bastion-ui .sde-bastion-map { height: auto; } }
+.sde-bastion-ui .ui-up .ui-card-head { align-items: flex-start; }
+.sde-bastion-ui .ui-up-art { flex: 0 0 44px; width: 44px; height: 44px; border: 1px solid var(--ui-line); border-radius: var(--ui-r); color: var(--ui-raised); }
+.sde-bastion-ui .ui-up .ui-card-name { font-size: 14px; }
+.sde-bastion-ui .ui-up.good { border-color: var(--ui-line); box-shadow: inset 3px 0 0 var(--ui-ok); }
+.sde-bastion-ui .ui-up.warn { border-color: var(--ui-line); box-shadow: inset 3px 0 0 var(--ui-warn); }
+.sde-bastion-ui .sde-bast-notes { color: var(--ui-body); }
 
-.sde-bastion-sheet button {
-  background: rgba(0, 0, 0, 0.06);
-  border: 1px solid rgba(0, 0, 0, 0.35);
-  border-radius: 4px;
-  padding: 4px 10px;
-  cursor: pointer;
-  width: auto;
-}
-.sde-bastion-sheet button:hover:not([disabled]) { background: rgba(0, 0, 0, 0.12); }
-.sde-bastion-sheet button[disabled] { opacity: 0.4; cursor: not-allowed; }
-.sde-bastion-sheet button.on { background: #7e8f99; border-color: #7e8f99; color: #fff; }
-.sde-bastion-sheet button.ghost { background: transparent; border-color: transparent; }
-
-.sde-bast-overview { display: flex; gap: 14px; align-items: flex-start; }
-.sde-bast-overview .sde-bast-col { flex: 1 1 50%; min-width: 0; }
-.sde-bast-field { display: flex; flex-direction: column; gap: 2px; font-size: 12px; }
-.sde-bast-field select { height: 28px; font-size: 14px; }
-.sde-bast-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; }
-.sde-bast-stats .SD-box { margin: 0; }
-.sde-bast-stat .content { display: flex; align-items: center; justify-content: center; gap: 4px; padding: 6px 5px; font-size: 18px; }
-.sde-bast-stat input { width: 96px; height: 30px; font-size: 18px; text-align: center; }
-.sde-bast-buttons { display: flex; flex-wrap: wrap; gap: 6px; }
-.sde-bast-room { margin-top: 14px; }
-.sde-bast-room h3 { margin-top: 0; }
-.sde-bast-slots { font-size: 12px; font-weight: normal; margin-left: 6px; opacity: 0.8; }
-.sde-bast-vault { list-style: none; margin: 0 0 6px; padding: 0; display: flex; flex-direction: column; gap: 2px; }
-.sde-bast-vault li { display: flex; align-items: center; gap: 6px; padding: 1px 6px; border-radius: 4px; background: rgba(255, 255, 255, 0.35); }
-.sde-bast-vault li.hint { background: none; }
-.sde-bast-vault img { width: 20px; height: 20px; border: 0; }
-.sde-bast-vault .name { flex: 1; }
-.sde-bast-vault button.ghost { padding: 0 4px; }
-.sde-bast-trophies { list-style: none; margin: 0 0 6px; padding: 0; display: flex; flex-direction: column; gap: 2px; max-height: 120px; overflow-y: auto; }
-.sde-bast-trophies li { display: flex; align-items: center; justify-content: space-between; gap: 6px; padding: 1px 6px; border-radius: 4px; background: rgba(255, 255, 255, 0.35); }
-.sde-bast-trophies li.hint { background: none; }
-.sde-bast-trophies button.ghost { padding: 0 4px; }
-.sde-bast-col textarea { width: 100%; resize: vertical; }
-.sde-bast-col textarea,
-.sde-bast-field select,
-.sde-bast-stat input { background: rgba(255, 255, 255, 0.45); border: 1px solid rgba(0, 0, 0, 0.35); border-radius: 4px; }
-
-.sde-bast-upgrades { display: grid; grid-template-columns: repeat(auto-fill, minmax(330px, 1fr)); gap: 6px; }
-.sde-bast-up { display: grid; grid-template-columns: 56px 1fr auto; gap: 8px; align-items: center; padding: 4px; border: 1px solid rgba(0, 0, 0, 0.3); border-radius: 6px; background: rgba(255, 255, 255, 0.35); }
-.sde-bast-up.built { background: rgba(126, 143, 153, 0.3); }
-.sde-bast-up.building { background: rgba(184, 114, 44, 0.2); }
-.sde-bast-up .art { width: 56px; height: 56px; border-radius: 4px; }
-.sde-bast-up .text { display: flex; flex-direction: column; font-size: 12px; min-width: 0; }
-.sde-bast-up .text strong { font-size: 14px; }
-.sde-bast-up .act { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; font-size: 12px; }
-.sde-bast-up .act .cost { opacity: 0.7; }
-
-.sde-bast-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
-.sde-bast-toolbar .seg { display: flex; gap: 0; }
-.sde-bast-toolbar .seg button:first-child { border-radius: 4px 0 0 4px; }
-.sde-bast-toolbar .seg button:last-child { border-radius: 0 4px 4px 0; }
-.sde-bast-toolbar .spacer { flex: 1; }
-.sde-bast-planbody { display: grid; grid-template-columns: 1fr 190px; gap: 8px; flex: 1 1 auto; min-height: 0; }
-.sde-bastion-map { width: 100%; height: 100%; min-height: 360px; background: #85A478; border: 1px solid rgba(0, 0, 0, 0.4); border-radius: 6px; cursor: grab; user-select: none; touch-action: none; }
-.sde-bastion-map .roof { transition: opacity 0.22s; }
-.sde-bastion-map .roof:hover { opacity: 0; }
-.sde-bastion-map g[data-id] { cursor: pointer; }
-.sde-bastion-card { border: 1px solid rgba(0, 0, 0, 0.35); border-radius: 6px; background: rgba(255, 255, 255, 0.4); padding: 6px; align-self: start; font-size: 12px; }
-.sde-bastion-card figure { margin: 0 0 6px; }
-.sde-bastion-card svg { width: 100%; height: auto; display: block; border-radius: 4px; background: #85A478; }
-.sde-bastion-card, .sde-bastion-card figcaption, .sde-bastion-card strong, .sde-bastion-card p { color: #191813; }
-.sde-bastion-card figcaption { font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; opacity: 0.6; margin: 2px 0 0; }
-.sde-bastion-card .cost { float: right; opacity: 0.7; }
-.sde-bastion-card p { margin: 4px 0 0; }
-
-.sde-bast-log { margin: 0; padding-left: 18px; font-size: 13px; }
-.sde-bast-log li { margin: 3px 0; }
-.sde-bast-log .week { font-weight: bold; margin-right: 4px; }
-
-/* A field the viewer can't edit reads as text, not as a box to type in. */
-.sde-bastion-sheet input[disabled],
-.sde-bastion-sheet select[disabled],
-.sde-bastion-sheet textarea[disabled],
-.sde-bastion-sheet .sde-bast-stat input[disabled],
-.sde-bastion-sheet .sde-bast-field select[disabled] {
-  background: transparent;
-  border-color: transparent;
-  opacity: 1;
-  -webkit-appearance: none;
-  appearance: none;
-}
-
-/* ── Bastion panel ──────────────────────────────────────────────────────────
- * A window listing bastions as cards, in the sheet's parchment so the two read as one. */
-.sde-bastion-panel .window-content { background: url("/ui/parchment.jpg") repeat; color: #191813; padding: 8px; overflow: auto; }
-.sde-bastion-panel button { background: rgba(0, 0, 0, 0.06); border: 1px solid rgba(0, 0, 0, 0.35); border-radius: 4px; padding: 3px 9px; cursor: pointer; color: #191813; width: auto; }
-.sde-bastion-panel button:hover { background: rgba(0, 0, 0, 0.12); }
-.sde-bastion-panel .window-header .header-control { color: rgba(235, 230, 220, 0.82); }
-.sde-bastion-panel .window-header .header-control:hover { color: #fff; }
-.sde-bp-toolbar { margin-bottom: 8px; }
-.sde-bp-cards { display: flex; flex-direction: column; gap: 8px; }
-.sde-bp-card { display: grid; grid-template-columns: 110px 1fr; gap: 10px; padding: 8px; border: 1px solid rgba(0, 0, 0, 0.35); border-radius: 6px; background: rgba(255, 255, 255, 0.4); }
-.sde-bp-card.breached { border-color: #b22222; }
-.sde-bp-card .art { width: 110px; height: 110px; object-fit: contain; background: #85A478; border-radius: 4px; cursor: pointer; }
-.sde-bp-card header { display: flex; align-items: baseline; gap: 8px; }
-.sde-bp-card header strong { font-size: 17px; cursor: pointer; }
-.sde-bp-card header span { opacity: 0.7; font-size: 12px; }
-.sde-bp-card .line { margin: 2px 0 6px; font-size: 12px; opacity: 0.85; }
-.sde-bp-card .hp { position: relative; height: 18px; border: 1px solid rgba(0, 0, 0, 0.5); border-radius: 4px; background: rgba(0, 0, 0, 0.15); overflow: hidden; }
-.sde-bp-card .hp i { position: absolute; inset: 0 auto 0 0; background: #5f8f5a; }
-.sde-bp-card.breached .hp i { background: #b22222; }
-.sde-bp-card .hp span { position: relative; display: block; text-align: center; font-size: 12px; line-height: 16px; color: #fff; text-shadow: 0 0 2px #000; }
-.sde-bp-card .figs { display: flex; gap: 14px; margin: 6px 0; font-size: 13px; }
-.sde-bp-card .built { display: flex; flex-wrap: wrap; gap: 3px; margin-bottom: 6px; }
-.sde-bp-card .built svg { width: 30px; height: 30px; border-radius: 3px; }
-.sde-bp-card .built svg.faint { opacity: 0.4; }
-.sde-bp-card footer { display: flex; gap: 6px; }
-.sde-bp-empty { margin: 14px 4px; font-style: italic; opacity: 0.8; }
+/* ── Bastion panel: card art and the row of built rooms ── */
+.ubp-ui .ui-bp-art { width: 52px; height: 52px; flex: 0 0 52px; object-fit: cover; border: 1px solid var(--ui-line); border-radius: var(--ui-r2); background: var(--ui-raised); cursor: pointer; }
+.ubp-ui .ui-card-head { align-items: flex-start; }
+.ubp-ui [data-action="openSheet"] { cursor: pointer; }
+.ubp-ui .ui-bp-room { width: 28px; height: 28px; border: 1px solid var(--ui-line); border-radius: var(--ui-r); color: var(--ui-raised); }
+.ubp-ui .ui-bp-room.faint { opacity: 0.45; }
+.ubp-ui .ui-pairs { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 
 /* Bastion shops: the window opened from the Shops box. */
 .sde-bastion-shop .sde-bs { display: flex; flex-direction: column; height: 100%; gap: 6px; padding: 8px; }
