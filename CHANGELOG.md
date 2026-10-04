@@ -9,6 +9,7 @@
   redesign. No window uses it yet, so nothing looks different.
 
 ### Changed
+- **Encounter Roller and its Monster Creator tab use the new design.** Roll Tables shows the table and the result side by side with icon buttons on each row, Build Table is one row per slot, and Browse NPCs has a filter card beside a sortable table. The creator keeps the creature's core on the left and opens one tab (Actions, Features, Spellcasting, Mutations, Baseline) at a time on the right.
 - **Pit Fighting window uses the new design.** The bout is four numbered cards (Offer, Twist, Who steps up, Result) with the rolls and picks on one line each, the foes as chips, and Accept, Decline and Apply result in the footer.
 - **Regional Training window uses the new design.** Character and trainer pickers up top, the trainer's emblem and the rolls left in the header, tasks and benefits as numbered rows with square status chips, and Roll in the footer.
 - **Carousing window uses the new design.** One tier select for the party at the top, one shared-cost line (total, headcount, each person's share), a Joining switch and the result for each character.

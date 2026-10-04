@@ -1479,7 +1479,6 @@
   "SDE.monsterCreator.baseline.reasonTierPlural": "Tier {tier} spell: +{n} levels",
   "SDE.monsterCreator.baseline.reasonExtra": "{n} spell beyond 2: +{n}",
   "SDE.monsterCreator.baseline.reasonExtraPlural": "{n} spells beyond 2: +{n}",
-  "SDE.monsterCreator.baseline.lvTag": "LV {level}",
   "SDE.monsterCreator.baseline.spellHead": "Written LV {written} → plays as LV {effective}",
   "SDE.monsterCreator.baseline.useSpellLevelTip": "Set the draft's level to {level}",
   "SDE.monsterCreator.baseline.useSpellLevel": "Use LV {level}",
