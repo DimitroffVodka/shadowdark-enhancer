@@ -1,7 +1,7 @@
 # Shadowdark Enhancer — File Inventory
 
 <!-- inventory:stats:start -->
-1713 tracked files · ~223,900 lines of code/markup across scripts+templates+styles+test.
+1715 tracked files · ~222,000 lines of code/markup across scripts+templates+styles+test.
 `v0.17.3` in both `module.json` and `package.json`.
 <!-- inventory:stats:end -->
 **Layout reflects the 2026-07-21 feature-folder reorganization (v0.11.0 cycle).**
@@ -307,8 +307,8 @@
 
 | File | Lines | Description |
 |---|---:|---|
-| `importer-hub-app.mjs` | 983 | **The single front door (shell).** ApplicationV2 lifecycle, singleton, instance fields/caches, `_prepareContext`; installs the three method packs below onto the class (split 2026-07-22). |
-| `importer-hub-paste.mjs` | 1583 | Paste box, type selector, parse dispatch, per-type preview field/row wiring. |
+| `importer-hub-app.mjs` | 980 | **The single front door (shell).** ApplicationV2 lifecycle, singleton, instance fields/caches, `_prepareContext`; installs the three method packs below onto the class (split 2026-07-22). |
+| `importer-hub-paste.mjs` | 1584 | Paste box, type selector, parse dispatch, per-type preview field/row wiring. |
 | `importer-hub-commit.mjs` | 975 | Conflict dialogs, quality gates, magic-bundle plan, all per-type commit flows. |
 | `importer-hub-manage.mjs` | 1294 | Manage strip: censuses + caches, manage tree, gap/seed/cull, source-PDF grab/extract. |
 | `importer-hub-batch.mjs` | 731 | Batch “Import everything” runner: seeds, grabs, parses and commits each planned entry unattended. |
@@ -326,14 +326,14 @@
 | `source-pdf-viewer.mjs` | 66 | Singleton ApplicationV2 embedding Foundry's PDF.js viewer at a given page. |
 | `char-content/char-content-manifest.mjs` | 1904 | Metadata-only manifest of CS4–6 + WR char-builder content (names/types/sources, no rules text) + `parseCharContent` + census. |
 | `char-content/class-parser.mjs` | 1100 | Class section → structured unit (writeup, talents, tables, spellcasting). Pure. |
-| `char-content/class-importer-app.mjs` | 802 | Purpose-built single-view class workspace. |
+| `char-content/class-importer-app.mjs` | 803 | Purpose-built single-view class workspace. |
 | `char-content/class-unit-importer.mjs` | 1449 | Class unit → real documents in dependency order. |
 | `char-content/class-overlays.mjs` | 280 | SDE-original automation not derivable from book text (ActiveEffects, invented names). |
 | `char-content/class-quality-gate.mjs` | 111 | The one place computing blocking class-import issues + override dialog. |
 | `char-content/class-index.mjs` | 98 | Class name → system Class item UUID. |
 | `char-content/language-resolver.mjs` | 16 | Language names → system UUIDs. |
 | `spells/spell-parser.mjs` | 290 | Spell blocks → Spell drafts. Pure. |
-| `spells/spell-importer-app.mjs` | 476 | Spell workspace organized by class / tier / alignment. |
+| `spells/spell-importer-app.mjs` | 477 | Spell workspace organized by class / tier / alignment. |
 | `tables/table-importer.mjs` | 3968 | Roll-table text → structure. The big one; includes `repairSharedStartRanges`. |
 | `tables/table-shapes.mjs` | 860 | Per-unlock deterministic table SHAPE recipes (prayer/grid/lookup/reflow kinds). |
 | `tables/table-hub.mjs` | 449 | Reconciles the shipped manifest against the live world (system / imported / missing). |
@@ -349,7 +349,7 @@
 | `tables/hex-parser.mjs` | 488 | Hex-key dumps → per-hex draft journal pages. Pure. |
 | `monsters/statblock-parser.mjs` | 553 | Monster statblock dump → draft objects. Pure. |
 | `monsters/monster-importer.mjs` | 233 | Drafts → NPC actors in `sde-actors`. |
-| `monsters/monster-importer-app.mjs` | 397 | Paste dump → per-monster preview/edit grid → create. |
+| `monsters/monster-importer-app.mjs` | 404 | Paste dump → per-monster preview/edit grid → create. |
 | `monsters/monster-census.mjs` | 241 | Pure have/gap/duplicate helpers. |
 | `monsters/monster-census-live.mjs` | 463 | Foundry-bound adapter reading `sde-actors`/`sde-tables`. |
 | `monsters/monster-backfill.mjs` | 512 | Idempotent upgrade of pre-fidelity-fix imports; auto-runs once per module version. |
@@ -365,7 +365,7 @@
 | `items/wr-property-importer.mjs` | 202 | Foundry-bound shared materializer for canonical Western Reaches Weapon Properties (siege Blast/Exploding and Lance Charge/Devastating/Mounted), with root migration, idempotent reuse and fail-closed preparation. |
 | `items/gear-join.mjs` | 257 | Joins split cost-table + description layouts into one item. Pure. |
 | `items/item-importer.mjs` | 1068 | Drafts → Items in `sde-items`, foldered by source. |
-| `items/item-builder-app.mjs` | 401 | Guided multi-stage equipment-section workspace. |
+| `items/item-builder-app.mjs` | 402 | Guided multi-stage equipment-section workspace. |
 | `items/item-builder-gear.mjs` | 299 | Pure stage-①/③ logic for the Item Builder. |
 | `items/item-census-live.mjs` | 201 | Items census adapter (same shape as monsters). |
 | `items/shikashi-icons.mjs` | 235 | Item name → bundled Shikashi icon matcher (284 icons). |
