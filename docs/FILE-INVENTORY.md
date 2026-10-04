@@ -1,7 +1,7 @@
 # Shadowdark Enhancer — File Inventory
 
 <!-- inventory:stats:start -->
-1713 tracked files · ~223,900 lines of code/markup across scripts+templates+styles+test.
+1714 tracked files · ~223,400 lines of code/markup across scripts+templates+styles+test.
 `v0.17.3` in both `module.json` and `package.json`.
 <!-- inventory:stats:end -->
 **Layout reflects the 2026-07-21 feature-folder reorganization (v0.11.0 cycle).**
@@ -493,7 +493,7 @@
 | `downtime-warnings.mjs` | 161 | Shared prose for the downtime parser's warning codes; splits info notes (a two-column paste always emits them) from real problems, so every unlock surface reports a parse identically. |
 | `downtime-recruit-core.mjs` | 120 | Pure rules of Recruit a warband (#205): the `recruit:<id>` slot key, DC 10 plus the warband's level, the party's settlement (the GM's choice, else the keyed hex's), what a settlement supplies from the recruiting limits, and which warbands a character is offered. |
 | `downtime-recruit.mjs` | 186 | Recruit a warband in the world (#205): reads the party's hex, the actors pack and the world's uncommanded warbands, checks the commander's allowance with the warband unit's own checks, and makes a copy under the character's command on the warband queue. GM-side; a player's window asks the session for the offers. |
-| `downtime-app.mjs` | 1531 | The `sde-downtime` ApplicationV2 in three modes: GM solo (pay-before-roll attempts, renown / XP apply buttons), the GM session control panel (picks overview, lock/release, roll-for), and the player view (own actors only, choose then roll). Locked books render as a title-only card; unlocking happens in the Importer Hub. |
+| `downtime-app.mjs` | 1541 | The `sde-downtime` ApplicationV2 in three modes: GM solo (pay-before-roll attempts, renown / XP apply buttons), the GM session control panel (picks overview, lock/release, roll-for), and the player view (own actors only, choose then roll). Locked books render as a title-only card; unlocking happens in the Importer Hub. |
 | `downtime-session.mjs` | 1201 | Table-wide downtime session: world-setting state model, the authenticated downtime query protocol (the raw socket carries only the payload-free re-read nudge), and the GM-authoritative handlers that recompute DC, cost and gating from the skeleton, derive the requester from the server-supplied sender, and spend a per-attempt roll token so a roll settles once. Players pick and roll; the GM settles. |
 
 Ships the skeleton only (activity names, slot labels, DCs, paid flags, renown/XP deltas). Every outcome sentence is pasted by the GM from their own book and stored in the `downtimeContent` world setting, never in the repo.

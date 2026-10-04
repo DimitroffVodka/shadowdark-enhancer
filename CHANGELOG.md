@@ -9,6 +9,7 @@
   redesign. No window uses it yet, so nothing looks different.
 
 ### Changed
+- **Downtime window uses the new design.** One header with the pickers and purse, one status card, one accordion per activity (the first open, and your open or closed choice now survives a refresh), book notices folded into one section, and the session buttons in a footer. Every action and rule is unchanged.
 - **Carousing window uses the new design.** One tier select for the party at the top, one shared-cost line (total, headcount, each person's share), a Joining switch and the result for each character.
 - **Camping window uses the new design.** Hairline rows on the shared UI kit, a ration count next to the ham hock icon, a Ready button, and no gold.
 - **Camping: everyone participates and meals use the party's rations automatically.** The per-character Participate checkbox is gone, and a character eats their own rations first and then the party's with no consent box; a character short overall is not fed and nothing is deducted. Torch contribution is still opt-in.

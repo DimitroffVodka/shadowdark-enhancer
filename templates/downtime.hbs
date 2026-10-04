@@ -1,535 +1,267 @@
-{{!--
-  Downtime window. Every {{ }} below auto-escapes, which is the point: outcome
-  text originates in a GM paste.
+{{!-- Downtime, proposed. One header (pickers + purse), ONE status area, then the activity list, then a footer with the one primary.
+      Same context and data-* as templates/downtime.hbs. Locked/stale/partial book notices are folded into one "source" accordion at the end. --}}
+<div class="ui-shell">
 
-  NOTHING here may render a skeleton slot label, DC or cost unless that slot's
-  text was unlocked from the GM's own book — _prepareContext drops locked slots
-  before they reach this template, and the locked-source card below has no slot
-  loop at all. With no source unlocked, the body is the locked cards and
-  nothing else: no controls, no rules text.
---}}
-<div class="sde-downtime-root">
-
-  {{#unless hasSources}}
-    <p class="sde-dt-empty">{{localize "SDE.downtime.ui.noSources"}}</p>
-  {{/unless}}
+  {{#unless hasSources}}<div class="ui-empty"><i class="fas fa-book"></i><span>{{localize "SDE.downtime.ui.noSources"}}</span></div>{{/unless}}
 
   {{#if anyUnlocked}}
-  <header class="sde-dt-header">
-
-    <div class="sde-dt-field">
-      <label for="sde-dt-source">{{localize "SDE.downtime.ui.source"}}</label>
-      {{#if inSession}}
-        {{!-- Pinned: the whole table is doing downtime out of one book. --}}
-        <span class="sde-dt-pinned"><i class="fas fa-book"></i> {{session.sourceLabel}}</span>
-        {{#if session.days}}<span class="sde-dt-pinned"><i class="fas fa-hourglass-half"></i> {{localize "SDE.downtime.ui.days" days=session.days}}</span>{{/if}}
-      {{else}}
-        <select id="sde-dt-source" data-field="source">
-          {{#each sources}}
-            <option value="{{this.slug}}" {{#if this.selected}}selected{{/if}}>
-              {{this.label}}{{#unless this.unlocked}} {{localize "SDE.downtime.ui.locked"}}{{/unless}}
-            </option>
-          {{/each}}
-        </select>
-      {{/if}}
-    </div>
-
-    <div class="sde-dt-field">
-      <label for="sde-dt-actor">{{localize "SDE.training.character"}}</label>
-      <select id="sde-dt-actor" data-field="actor">
-        {{#each actors}}
-          <option value="{{this.id}}" {{#if this.selected}}selected{{/if}}>{{this.name}}</option>
-        {{/each}}
-      </select>
-    </div>
-
-    <div class="sde-dt-field">
-      <label for="sde-dt-adv">{{localize "SDE.downtime.ui.rollWith"}}</label>
-      <select id="sde-dt-adv" data-field="advantage">
-        {{#each advModes}}
-          <option value="{{this.key}}" {{#if this.selected}}selected{{/if}}>{{this.long}}</option>
-        {{/each}}
-      </select>
-    </div>
-
-    {{#if hasActors}}
-      <div class="sde-dt-purse">
-        <span title="{{localize 'SDE.downtime.ui.level'}}">{{localize "SDE.downtime.ui.levelShort" level=actorLevel}}</span>
-        <span title="{{localize 'SDE.downtime.ui.coins'}}"><i class="fas fa-coins"></i> {{coins.gp}} gp {{coins.sp}} sp {{coins.cp}} cp</span>
-        <span title="{{localize 'SDE.downtime.ui.renownTip' note=renownBandNote}}"><i class="fas fa-crown"></i> {{renown}} · {{renownBand}}{{#if renownBonus}} ({{renownBonus}}){{/if}}</span>
+  <header class="ui-head dt-head">
+    <div class="dt-pickers">
+      <div class="ui-field">
+        <label class="ui-label" for="sde-dt-source">{{localize "SDE.downtime.ui.source"}}</label>
+        {{#if inSession}}
+          <div class="ui-inline"><span class="ui-chip gold"><i class="fas fa-book"></i> {{session.sourceLabel}}</span>{{#if session.days}}<span class="ui-chip"><i class="fas fa-hourglass-half"></i> {{localize "SDE.downtime.ui.days" days=session.days}}</span>{{/if}}</div>
+        {{else}}
+          <select id="sde-dt-source" data-field="source">{{#each sources}}<option value="{{this.slug}}" {{#if this.selected}}selected{{/if}}>{{this.label}}{{#unless this.unlocked}} {{localize "SDE.downtime.ui.locked"}}{{/unless}}</option>{{/each}}</select>
+        {{/if}}
       </div>
+      <div class="ui-field">
+        <label class="ui-label" for="sde-dt-actor">{{localize "SDE.training.character"}}</label>
+        <select id="sde-dt-actor" data-field="actor">{{#each actors}}<option value="{{this.id}}" {{#if this.selected}}selected{{/if}}>{{this.name}}</option>{{/each}}</select>
+      </div>
+      <div class="ui-field">
+        <label class="ui-label" for="sde-dt-adv">{{localize "SDE.downtime.ui.rollWith"}}</label>
+        <select id="sde-dt-adv" data-field="advantage">{{#each advModes}}<option value="{{this.key}}" {{#if this.selected}}selected{{/if}}>{{this.long}}</option>{{/each}}</select>
+      </div>
+    </div>
+    {{#if hasActors}}
+    <div class="ui-stats dt-purse">
+      <div class="ui-stat" title="{{localize 'SDE.downtime.ui.level'}}"><span class="ui-label">{{localize "SDE.downtime.ui.level"}}</span><span class="ui-value">{{actorLevel}}</span></div>
+      <div class="ui-stat" title="{{localize 'SDE.downtime.ui.coins'}}"><span class="ui-label">{{localize "SDE.downtime.ui.coins"}}</span><span class="ui-value">{{coins.gp}} gp {{coins.sp}} sp {{coins.cp}} cp</span></div>
+      <div class="ui-stat" title="{{localize 'SDE.downtime.ui.renownTip' note=renownBandNote}}"><span class="ui-label">{{localize "SDE.renown.title"}}</span><span class="ui-value">{{renown}} <small class="ui-muted">{{renownBand}}{{#if renownBonus}} ({{renownBonus}}){{/if}}</small></span></div>
+      {{#unless isPlayer}}{{#if hasSteps}}<button type="button" class="ui-icon dt-clear" data-action="clearSteps" title="{{localize 'SDE.downtime.ui.clearStepsTip'}}" aria-label="{{localize 'SDE.downtime.ui.clearSteps'}}"><i class="fas fa-eraser"></i></button>{{/if}}{{/unless}}
+    </div>
+    {{/if}}
+  </header>
+  {{/if}}
+
+  <div class="ui-body">
+
+    {{!-- ONE status area: the running session, or the last result, or the player's own state. --}}
+    {{#if anyUnlocked}}{{#if hasActors}}
+    {{#if overview}}
+      <section class="ui-card sel dt-status">
+        <div class="ui-card-head">
+          <h3 class="ui-card-name"><i class="fas fa-users"></i> {{localize "SDE.downtime.ui.sessionHead" source=session.sourceLabel}}</h3>
+          <span class="ui-chip">{{localize "SDE.downtime.ui.sessionStat" picks=session.pickCount results=session.resultCount}}</span>
+        </div>
+        <p class="ui-muted dt-hint">{{#if session.locked}}{{localize "SDE.downtime.ui.diceUnlocked"}}{{else}}{{localize "SDE.downtime.ui.playersChoosing"}}{{/if}}</p>
+        <div class="ui-list">
+          {{#each overview}}
+            <div class="ui-row dt-ov {{#if this.rolled}}dt-done{{/if}}">
+              <span class="ui-row-name dt-ov-name">{{this.name}}</span>
+              <span class="ui-row-main dt-ov-pick">
+                {{#if this.picked}}{{this.pickLabel}} <em class="ui-muted">({{this.advantage}})</em>{{else}}<span class="ui-muted">{{localize "SDE.downtime.ui.choosing"}}</span>{{/if}}
+                {{#if this.rolled}}<span class="ui-row-sub">{{localize "SDE.downtime.ui.totalVs" total=this.total dc=this.dc}} - {{#if this.success}}{{localize "SDE.downtime.card.success"}}{{else}}{{localize "SDE.downtime.card.failure"}}{{/if}}{{#if this.awaitingChoice}} · {{localize "SDE.downtime.ui.awaitingChoice"}}{{/if}}</span>{{/if}}
+              </span>
+              {{#unless this.rolled}}{{#if this.picked}}
+                <button type="button" class="ui-icon" data-action="gmClearPick" data-actor-id="{{this.actorId}}" title="{{localize 'SDE.downtime.ui.clearPickTip'}}"><i class="fas fa-eraser"></i></button>
+                <button type="button" class="ui-icon" data-action="gmRollFor" data-actor-id="{{this.actorId}}" title="{{localize 'SDE.downtime.ui.rollForTip'}}"><i class="fas fa-dice-d20"></i></button>
+              {{/if}}{{/unless}}
+            </div>
+          {{/each}}
+        </div>
+      </section>
     {{/if}}
 
-    {{!-- GM-only, like the per-slot steppers: the DC ladder is the GM's to
-          grant or wipe, and a player clearing it only costs them credit. --}}
-    {{#unless isPlayer}}
-      {{#if hasSteps}}
-        <button type="button" class="sde-dt-mini" data-action="clearSteps"
-                title="{{localize 'SDE.downtime.ui.clearStepsTip'}}">
-          {{localize "SDE.downtime.ui.clearSteps"}}
-        </button>
-      {{/if}}
-    {{/unless}}
-  </header>
-
-  {{!-- GM control panel: only while a session is running. --}}
-  {{#if overview}}
-    <section class="sde-dt-panel">
-      <header class="sde-dt-panel-head">
-        <span><i class="fas fa-users"></i> {{localize "SDE.downtime.ui.sessionHead" source=session.sourceLabel}}</span>
-        <span class="sde-dt-panel-stat">{{localize "SDE.downtime.ui.sessionStat" picks=session.pickCount results=session.resultCount}}</span>
-        {{#if session.locked}}
-          <button type="button" class="sde-dt-mini" data-action="releaseRolls">{{localize "SDE.downtime.ui.reopenPicks"}}</button>
-        {{else}}
-          <button type="button" class="sde-dt-btn sde-dt-primary" data-action="lockRolls">{{localize "SDE.downtime.ui.lockDice"}}</button>
-        {{/if}}
-        <button type="button" class="sde-dt-mini sde-dt-danger" data-action="endSession"
-                {{#if session.days}}title="{{localize 'SDE.downtime.ui.endSessionTip' days=session.days}}"{{/if}}>{{localize "SDE.downtime.ui.endSession"}}</button>
-      </header>
-      <p class="sde-dt-note">
-        {{#if session.locked}}{{localize "SDE.downtime.ui.diceUnlocked"}}
-        {{else}}{{localize "SDE.downtime.ui.playersChoosing"}}{{/if}}
-      </p>
-      <ul class="sde-dt-overview">
-        {{#each overview}}
-          <li class="sde-dt-ov-row {{#if this.rolled}}sde-dt-ov-done{{/if}}">
-            <span class="sde-dt-ov-name">{{this.name}}</span>
-            <span class="sde-dt-ov-pick">
-              {{#if this.picked}}{{this.pickLabel}} <em>({{this.advantage}})</em>
-              {{else}}<span class="sde-dt-ov-waiting">{{localize "SDE.downtime.ui.choosing"}}</span>{{/if}}
-            </span>
-            <span class="sde-dt-ov-result">
-              {{#if this.rolled}}
-                {{localize "SDE.downtime.ui.totalVs" total=this.total dc=this.dc}} — {{#if this.success}}{{localize "SDE.downtime.card.success"}}{{else}}{{localize "SDE.downtime.card.failure"}}{{/if}}
-                {{#if this.awaitingChoice}}<em>· {{localize "SDE.downtime.ui.awaitingChoice"}}</em>{{/if}}
-              {{/if}}
-            </span>
-            {{#unless this.rolled}}
-              {{#if this.picked}}
-                <button type="button" class="sde-dt-mini" data-action="gmClearPick"
-                        data-actor-id="{{this.actorId}}" title="{{localize 'SDE.downtime.ui.clearPickTip'}}">{{localize "SDE.downtime.ui.clear"}}</button>
-                <button type="button" class="sde-dt-mini" data-action="gmRollFor"
-                        data-actor-id="{{this.actorId}}" title="{{localize 'SDE.downtime.ui.rollForTip'}}">{{localize "SDE.downtime.ui.rollFor"}}</button>
-              {{/if}}
-            {{/unless}}
-          </li>
-        {{/each}}
-      </ul>
-    </section>
-  {{/if}}
-
-  {{!-- GM, no session running: offer to start one. --}}
-  {{#if soloMode}}
-    {{#unless isPlayer}}
-      {{#if anyUnlocked}}
-        <p class="sde-dt-banner sde-dt-start">
-          {{localize "SDE.downtime.ui.startBanner"}}
-          <button type="button" class="sde-dt-btn sde-dt-primary" data-action="startSession">
-            <i class="fas fa-users"></i> {{localize "SDE.downtime.ui.startSession"}}
-          </button>
-        </p>
-      {{/if}}
-    {{/unless}}
-  {{/if}}
-
-  {{!-- Player-facing status strip. --}}
-  {{#if inSession}}
-    <section class="sde-dt-status">
+    {{#if inSession}}
       {{#if myResult}}
-        <div class="sde-dt-status-line {{#if myResult.success}}sde-dt-success{{else}}sde-dt-failure{{/if}}">
-          <strong>{{myResult.activityName}} — {{myResult.label}}</strong>
-          <span>{{localize "SDE.downtime.log.vsDc" total=myResult.total dc=myResult.dc}}</span>
-          <span class="sde-dt-verdict">{{#if myResult.success}}{{localize "SDE.downtime.card.success"}}{{else}}{{localize "SDE.downtime.card.failure"}}{{/if}}</span>
-        </div>
-        {{#if myResult.effectSummary}}
-          <p class="sde-dt-note">{{myResult.effectSummary}}</p>
-        {{/if}}
-        {{#unless myResult.success}}
-          {{#if myResult.nextDC}}<p class="sde-dt-note">{{localize "SDE.downtime.ui.nextAttempt" dc=myResult.nextDC}}</p>{{/if}}
-        {{/unless}}
+      <section class="ui-card {{#if myResult.success}}good{{else}}bad{{/if}} dt-status">
+        <div class="ui-card-head"><h3 class="ui-card-name">{{myResult.activityName}} - {{myResult.label}}</h3>
+          <span class="ui-chip {{#if myResult.success}}ok{{else}}bad{{/if}}">{{#if myResult.success}}{{localize "SDE.downtime.card.success"}}{{else}}{{localize "SDE.downtime.card.failure"}}{{/if}}</span></div>
+        <span class="ui-muted">{{localize "SDE.downtime.log.vsDc" total=myResult.total dc=myResult.dc}}</span>
+        {{#if myResult.effectSummary}}<p class="dt-hint">{{myResult.effectSummary}}</p>{{/if}}
+        {{#unless myResult.success}}{{#if myResult.nextDC}}<p class="ui-muted dt-hint">{{localize "SDE.downtime.ui.nextAttempt" dc=myResult.nextDC}}</p>{{/if}}{{/unless}}
         {{#if myResult.pendingChoice}}
-          <div class="sde-dt-choice-box">
-            <p class="sde-dt-choice-prompt">{{myResult.pendingChoice.prompt}}</p>
-            <div class="sde-dt-choice-opts">
+          <div class="sde-dt-choice-box dt-choice">
+            <p class="ui-row-name">{{myResult.pendingChoice.prompt}}</p>
+            <div class="ui-inline">
               {{#each myResult.pendingChoice.options}}
                 {{#if this.gain}}
-                  {{!-- Spell trade: each drop option carries its own legal
-                        same-tier replacements, so the pair is one click. --}}
-                  <div class="sde-dt-trade-group {{#if this.disabled}}sde-dt-opt-off{{/if}}">
-                    <span class="sde-dt-trade-drop">{{localize "SDE.downtime.ui.giveUp" spell=this.label}}</span>
-                    {{#if this.disabled}}
-                      <span class="sde-dt-opt-reason">{{this.reason}}</span>
-                    {{else}}
-                      {{#each this.gain}}
-                        <button type="button" class="sde-dt-btn sde-dt-trade-gain"
-                                data-action="chooseEffect" data-choice="{{../this.id}}"
-                                data-gain="{{this.uuid}}">→ {{this.label}}</button>
-                      {{/each}}
+                  <div class="dt-trade {{#if this.disabled}}off{{/if}}">
+                    <span class="ui-label">{{localize "SDE.downtime.ui.giveUp" spell=this.label}}</span>
+                    {{#if this.disabled}}<span class="ui-muted">{{this.reason}}</span>{{else}}
+                      {{#each this.gain}}<button type="button" class="ui-btn" data-action="chooseEffect" data-choice="{{../this.id}}" data-gain="{{this.uuid}}">&rarr; {{this.label}}</button>{{/each}}
                     {{/if}}
                   </div>
                 {{else}}
-                  {{!-- Unavailable options are greyed WITH their reason, never
-                        hidden: the player should see what they just missed. --}}
-                  <button type="button" class="sde-dt-btn {{#if this.disabled}}sde-dt-opt-off{{/if}}"
-                          data-action="chooseEffect" data-choice="{{this.id}}"
-                          {{#if this.disabled}}disabled title="{{this.reason}}"{{/if}}>{{this.label}}</button>
+                  <button type="button" class="ui-btn" data-action="chooseEffect" data-choice="{{this.id}}" {{#if this.disabled}}disabled title="{{this.reason}}"{{/if}}>{{this.label}}</button>
                 {{/if}}
               {{/each}}
             </div>
             {{#if myResult.pendingChoice.freeText}}
-              {{!-- Martial training records a descriptive Talent, so the preset
-                    buttons above are only what the gear packs happen to hold.
-                    The book lets you train with anything, so a typed name is a
-                    first-class answer — the GM cleans and length-caps it. --}}
-              <div class="sde-dt-freetext">
-                <label class="sde-dt-freetext-label" for="sde-dt-freetext-input">
-                  {{localize "SDE.downtime.ui.notListed"}}
-                </label>
-                <input type="text" id="sde-dt-freetext-input" class="sde-dt-freetext-input"
-                       maxlength="60" placeholder="{{localize 'SDE.downtime.ui.freeTextPlaceholder'}}" autocomplete="off">
-                <button type="button" class="sde-dt-btn sde-dt-primary" data-action="submitFreeText">
-                  <i class="fas fa-check"></i> {{localize "SDE.downtime.ui.trainWithThis"}}
-                </button>
+              <div class="ui-field dt-free">
+                <label class="ui-label" for="sde-dt-freetext-input">{{localize "SDE.downtime.ui.notListed"}}</label>
+                <div class="ui-inline"><input type="text" id="sde-dt-freetext-input" class="sde-dt-freetext-input" maxlength="60" placeholder="{{localize 'SDE.downtime.ui.freeTextPlaceholder'}}" autocomplete="off">
+                  <button type="button" class="ui-btn {{#unless overview}}primary{{/unless}}" data-action="submitFreeText"><i class="fas fa-check"></i> {{localize "SDE.downtime.ui.trainWithThis"}}</button></div>
               </div>
             {{/if}}
           </div>
         {{/if}}
+      </section>
+      {{else if myPick}}
+      <section class="ui-card sel dt-status">
+        <div class="ui-card-head"><h3 class="ui-card-name">{{localize "SDE.downtime.ui.youChose"}} {{myPick.label}} <em class="ui-muted">({{myPick.advantage}})</em></h3></div>
+        {{#if canRoll}}{{else}}{{#if rollBlockedReason}}<span class="ui-chip warn"><i class="fas fa-coins"></i> {{rollBlockedReason}}</span>{{else}}<span class="ui-muted"><i class="fas fa-lock"></i> {{localize "SDE.downtime.ui.waitingGm"}}</span>{{/if}}{{/if}}
+      </section>
       {{else}}
-        {{#if myPick}}
-          <div class="sde-dt-status-line">
-            <span>{{localize "SDE.downtime.ui.youChose"}} <strong>{{myPick.label}}</strong> <em>({{myPick.advantage}})</em></span>
-            {{#if canRoll}}
-              <button type="button" class="sde-dt-btn sde-dt-primary sde-dt-roll" data-action="rollPick">
-                <i class="fas fa-dice-d20"></i> {{localize "SDE.downtime.ui.rollIt"}}
-              </button>
-            {{else}}
-              {{#if rollBlockedReason}}
-                {{!-- Pay-per-attempt: the button is dead and says why, rather
-                      than rolling dice the GM will refuse. --}}
-                <button type="button" class="sde-dt-btn sde-dt-roll sde-dt-opt-off"
-                        data-action="rollPick" disabled title="{{rollBlockedReason}}">
-                  <i class="fas fa-dice-d20"></i> {{localize "SDE.downtime.ui.rollIt"}}
-                </button>
-                <span class="sde-dt-opt-reason"><i class="fas fa-coins"></i> {{rollBlockedReason}}</span>
-              {{else}}
-                <span class="sde-dt-waiting"><i class="fas fa-lock"></i> {{localize "SDE.downtime.ui.waitingGm"}}</span>
-              {{/if}}
-            {{/if}}
+      <div class="ui-note dt-status">{{#if session.locked}}{{localize "SDE.downtime.ui.picksLockedNone"}}{{else}}{{localize "SDE.downtime.ui.chooseBelow"}}{{/if}}</div>
+      {{/if}}
+    {{/if}}
+
+    {{#if soloMode}}{{#unless isPlayer}}{{#unless result}}<div class="ui-note info dt-status">{{localize "SDE.downtime.ui.startBanner"}}</div>{{/unless}}{{/unless}}{{/if}}
+    {{#if result}}
+      <section class="ui-card {{#if result.success}}good{{else}}bad{{/if}} dt-status">
+        <div class="ui-card-head">
+          <h3 class="ui-card-name">{{result.activityName}} - {{result.label}}</h3>
+          <span class="ui-chip {{#if result.success}}ok{{else}}bad{{/if}}">{{localize "SDE.downtime.log.vsDc" total=result.total dc=result.dc}}</span>
+          <button type="button" class="ui-icon" data-action="dismissResult" title="{{localize 'SDE.downtime.ui.dismiss'}}"><i class="fas fa-xmark"></i></button>
+        </div>
+        {{#if result.success}}
+          <p class="dt-hint">{{result.outcome}}</p>
+          <div class="ui-inline">
+            {{#if result.renownDelta}}<span class="ui-chip gold">{{localize "SDE.downtime.ui.renownDelta" delta=result.renownDelta}}</span><button type="button" class="ui-btn" data-action="applyRenown" {{#if result.applied}}disabled{{/if}}>{{localize "SDE.downtime.ui.apply"}}</button>{{/if}}
+            {{#if result.xpDelta}}<span class="ui-chip gold">{{result.xpDelta}} XP</span><button type="button" class="ui-btn" data-action="applyXp" {{#if result.applied}}disabled{{/if}}>{{localize "SDE.downtime.ui.apply"}}</button>{{/if}}
           </div>
+          {{#if result.renownSigned}}
+          <div class="ui-field"><span class="ui-label">{{localize "SDE.downtime.ui.rumor"}}</span>
+            <div class="ui-inline"><select data-field="renownTarget" class="dt-target">{{#each result.targets}}<option value="{{this.id}}" {{#if this.selected}}selected{{/if}}>{{this.name}}</option>{{/each}}</select>
+              <button type="button" class="ui-icon dt-sign" data-action="applyRenownSign" data-sign="+" {{#if result.applied}}disabled{{/if}}>+1</button>
+              <button type="button" class="ui-icon dt-sign" data-action="applyRenownSign" data-sign="-" {{#if result.applied}}disabled{{/if}}>&minus;1</button></div></div>
+          {{/if}}
         {{else}}
-          <p class="sde-dt-note">
-            {{#if session.locked}}{{localize "SDE.downtime.ui.picksLockedNone"}}
-            {{else}}{{localize "SDE.downtime.ui.chooseBelow"}}{{/if}}
-          </p>
+          {{#if result.nextDC}}<p class="ui-muted dt-hint">{{localize "SDE.downtime.ui.failedNext" dc=result.nextDC}}</p>{{/if}}
         {{/if}}
-      {{/if}}
-    </section>
-  {{/if}}
+      </section>
+    {{/if}}
+    {{else}}
+      <div class="ui-empty"><i class="fas fa-user"></i><span>{{localize "SDE.downtime.ui.noActors"}}</span></div>
+    {{/if}}{{/if}}
 
-  {{#unless hasActors}}
-    <p class="sde-dt-empty">{{localize "SDE.downtime.ui.noActors"}}</p>
-  {{/unless}}
-  {{/if}}
-
-  {{!--
-    Everything above this point is PINNED: the pickers, the GM's session panel
-    and the player's status strip are controls you need while reading the list.
-    Everything below scrolls. Four activity sections with their descriptions run
-    ~1500px, well past any window, and the ApplicationV2 .window-content clips
-    with overflow:hidden — so without this region the tail was simply unreachable.
-  --}}
-  <div class="sde-dt-scroll">
-
-  {{#each staleSources}}
-    <p class="sde-dt-banner sde-dt-stale">
-      {{localize "SDE.downtime.ui.stale" source=this.label}}
-      <button type="button" class="sde-dt-mini" data-action="unlockViaImporter" data-source="{{this.slug}}">{{localize "SDE.downtime.ui.reimport"}}</button>
-    </p>
-  {{/each}}
-
-  {{!--
-    LOCKED SOURCE CARD. Deliberately contains NO slot loop, no DCs, no costs and
-    no activity names — only the book's title and page cite, which are our own
-    metadata. Greying out the full mechanical outline would imply we already
-    hold the book's content.
-  --}}
-  {{#each lockedSources}}
-    <section class="sde-dt-locked-card">
-      <header class="sde-dt-locked-head">
-        <i class="fas fa-lock"></i>
-        <span class="sde-dt-locked-title">{{this.label}}</span>
-        {{#if this.pages}}<span class="sde-dt-cite">{{localize "SDE.downtime.ui.page" pages=this.pages}}</span>{{/if}}
-      </header>
-      <p class="sde-dt-locked-body">
-        {{localize "SDE.downtime.ui.lockedBody"}}
-      </p>
-      <button type="button" class="sde-dt-btn sde-dt-primary"
-              data-action="unlockViaImporter" data-source="{{this.slug}}">
-        {{localize "SDE.downtime.ui.unlockViaImporter"}}
-      </button>
-    </section>
-  {{/each}}
-
-  {{#if result}}
-    <section class="sde-dt-result {{#if result.success}}sde-dt-success{{else}}sde-dt-failure{{/if}}">
-      <header class="sde-dt-result-head">
-        {{result.activityName}} — {{result.label}}
-        <span class="sde-dt-result-num">{{localize "SDE.downtime.log.vsDc" total=result.total dc=result.dc}}</span>
-        <button type="button" class="sde-dt-mini" data-action="dismissResult">{{localize "SDE.downtime.ui.dismiss"}}</button>
-      </header>
-
-      {{#if result.success}}
-        <p class="sde-dt-outcome">{{result.outcome}}</p>
-
-        {{#if result.renownDelta}}
-          <div class="sde-dt-extra">
-            <span>{{localize "SDE.downtime.ui.renownDelta" delta=result.renownDelta}}</span>
-            <button type="button" class="sde-dt-btn" data-action="applyRenown"
-                    {{#if result.applied}}disabled{{/if}}>{{localize "SDE.downtime.ui.apply"}}</button>
-          </div>
+    {{!-- The list comes first, one accordion per activity; only the first is open. --}}
+    {{#each activities}}
+    <details class="ui-details dt-activity" data-activity="{{this.key}}" {{#if @first}}open{{/if}}>
+      <summary>{{this.name}}{{#if this.checkLabel}} <span class="ui-chip dt-check">{{this.checkLabel}}</span>{{/if}}</summary>
+      <div class="ui-details-body">
+        {{#if this.gateNote}}<div class="ui-note warn">{{this.gateNote}}</div>{{/if}}
+        {{#if this.casterToggle}}
+          <div class="ui-inline"><span class="ui-label">{{localize "SDE.downtime.ui.spellList"}}</span>
+            <button type="button" class="ui-chip {{#if this.casterToggle.arcane}}sel{{/if}}" data-action="setCasterList" data-list="arcane">{{localize "SDE.downtime.ui.arcane"}}</button>
+            <button type="button" class="ui-chip {{#if this.casterToggle.divine}}sel{{/if}}" data-action="setCasterList" data-list="divine">{{localize "SDE.downtime.ui.divine"}}</button></div>
+        {{/if}}
+        {{#if this.tierPicker}}
+          <div class="ui-field"><label class="ui-label" for="sde-dt-tier-{{this.key}}">{{localize "SDE.downtime.ui.trainingTier"}}</label>
+            <select id="sde-dt-tier-{{this.key}}" data-field="martialTier">{{#each this.tierPicker.options}}<option value="{{this.key}}" {{#if this.selected}}selected{{/if}}>{{this.label}}{{#if this.detected}} - {{localize "SDE.downtime.ui.thisCharacter"}}{{/if}}</option>{{/each}}</select></div>
+        {{/if}}
+        {{#if this.choice}}
+          <div class="ui-field"><label class="ui-label" for="sde-dt-choice-{{this.key}}">{{localize "SDE.downtime.ui.ability"}}</label>
+            <select id="sde-dt-choice-{{this.key}}" data-field="choiceAbility">{{#each this.choice.options}}<option value="{{this.key}}" {{#if this.selected}}selected{{/if}}>{{this.label}}</option>{{/each}}</select></div>
         {{/if}}
 
-        {{#if result.renownSigned}}
-          <div class="sde-dt-extra">
-            <span>{{localize "SDE.downtime.ui.rumor"}}</span>
-            <select data-field="renownTarget">
-              {{#each result.targets}}
-                <option value="{{this.id}}" {{#if this.selected}}selected{{/if}}>{{this.name}}</option>
-              {{/each}}
-            </select>
-            <button type="button" class="sde-dt-btn" data-action="applyRenownSign" data-sign="+"
-                    {{#if result.applied}}disabled{{/if}}>+1</button>
-            <button type="button" class="sde-dt-btn" data-action="applyRenownSign" data-sign="-"
-                    {{#if result.applied}}disabled{{/if}}>&minus;1</button>
-          </div>
-        {{/if}}
-
-        {{#if result.xpDelta}}
-          <div class="sde-dt-extra">
-            <span>{{result.xpDelta}} XP</span>
-            <button type="button" class="sde-dt-btn" data-action="applyXp"
-                    {{#if result.applied}}disabled{{/if}}>{{localize "SDE.downtime.ui.apply"}}</button>
-          </div>
-        {{/if}}
-      {{else}}
-        {{#if result.nextDC}}<p class="sde-dt-note">{{localize "SDE.downtime.ui.failedNext" dc=result.nextDC}}</p>{{/if}}
-      {{/if}}
-    </section>
-  {{/if}}
-
-  {{#each activities}}
-    <section class="sde-dt-activity" data-activity="{{this.key}}">
-      <header class="sde-dt-activity-head">
-        <span class="sde-dt-activity-name">{{this.name}}</span>
-        {{#if this.checkLabel}}<span class="sde-dt-check-label">{{this.checkLabel}}</span>{{/if}}
-      </header>
-
-      {{#if this.gateNote}}
-        <p class="sde-dt-note sde-dt-gate">{{this.gateNote}}</p>
-      {{/if}}
-
-      {{#if this.casterToggle}}
-        <div class="sde-dt-toggle">
-          <span>{{localize "SDE.downtime.ui.spellList"}}</span>
-          <button type="button" class="sde-dt-mini {{#if this.casterToggle.arcane}}sde-dt-on{{/if}}"
-                  data-action="setCasterList" data-list="arcane">{{localize "SDE.downtime.ui.arcane"}}</button>
-          <button type="button" class="sde-dt-mini {{#if this.casterToggle.divine}}sde-dt-on{{/if}}"
-                  data-action="setCasterList" data-list="divine">{{localize "SDE.downtime.ui.divine"}}</button>
-        </div>
-      {{/if}}
-
-      {{!-- Martial training: browse any tier; only the character's own is live
-            for a player (the GM may train any of them). --}}
-      {{#if this.tierPicker}}
-        <div class="sde-dt-field sde-dt-choice">
-          <label for="sde-dt-tier-{{this.key}}">{{localize "SDE.downtime.ui.trainingTier"}}</label>
-          <select id="sde-dt-tier-{{this.key}}" data-field="martialTier">
-            {{#each this.tierPicker.options}}
-              <option value="{{this.key}}" {{#if this.selected}}selected{{/if}}>
-                {{this.label}}{{#if this.detected}} — {{localize "SDE.downtime.ui.thisCharacter"}}{{/if}}
-              </option>
-            {{/each}}
-          </select>
-        </div>
-      {{/if}}
-
-      {{#if this.choice}}
-        <div class="sde-dt-field sde-dt-choice">
-          <label for="sde-dt-choice-{{this.key}}">{{localize "SDE.downtime.ui.ability"}}</label>
-          <select id="sde-dt-choice-{{this.key}}" data-field="choiceAbility">
-            {{#each this.choice.options}}
-              <option value="{{this.key}}" {{#if this.selected}}selected{{/if}}>{{this.label}}</option>
-            {{/each}}
-          </select>
-        </div>
-      {{/if}}
-
-      {{#each this.groups}}
-        {{!-- Magical research prints as two labelled subsections, the way the
-              book does. The inapplicable one stays visible but dead. --}}
-        {{#if this.label}}
-          <div class="sde-dt-subhead {{#unless this.enabled}}sde-dt-opt-off{{/unless}}">
-            <span class="sde-dt-subhead-label">{{this.label}}</span>
-            {{#if this.reason}}<span class="sde-dt-opt-reason">{{this.reason}}</span>{{/if}}
-          </div>
-        {{else}}
-          {{#if this.reason}}<p class="sde-dt-note">{{this.reason}}</p>{{/if}}
-        {{/if}}
-
-        <ul class="sde-dt-slots {{#unless this.enabled}}sde-dt-opt-off{{/unless}}">
-          {{#each this.slots}}
-            <li class="sde-dt-slot-row {{#if this.chosen}}sde-dt-slot-chosen{{/if}}">
-              <div class="sde-dt-slot-main">
-                <span class="sde-dt-slot-label">{{this.label}}</span>
-                {{!-- Per-row stat + DC: the section header can't speak for
-                      skulduggery, which mixes CHA and DEX rows. --}}
-                <span class="sde-dt-slot-dc">
-                  {{#if this.statChip}}<span class="sde-dt-stat">{{this.statChip}}</span>{{/if}}
-                  {{localize "SDE.downtime.log.dc" dc=this.dc}}{{#if this.stepped}} <em>{{localize "SDE.downtime.ui.wasDc" dc=this.baseDc}}</em>{{/if}}
-                </span>
+        {{#each this.groups}}
+          {{#if this.label}}<h4 class="ui-h dt-sub {{#unless this.enabled}}ui-muted{{/unless}}">{{this.label}}{{#if this.reason}} <small>{{this.reason}}</small>{{/if}}</h4>{{else}}{{#if this.reason}}<p class="ui-muted dt-hint">{{this.reason}}</p>{{/if}}{{/if}}
+          <div class="ui-list {{#unless this.enabled}}dt-off{{/unless}}">
+            {{#each this.slots}}
+              <div class="ui-row dt-slot {{#if this.chosen}}sel{{/if}}">
+                <div class="ui-row-main dt-slot-main">
+                  <span class="ui-row-name">{{this.label}}</span>
+                  <span class="ui-row-sub dt-desc">{{this.outcome}}</span>
+                  {{#if this.unaffordable}}<span class="ui-row-sub dt-block"><i class="fas fa-coins"></i> {{this.rowReason}}</span>{{/if}}
+                </div>
+                <div class="dt-slot-meta">
+                  {{#if this.statChip}}<span class="ui-tag">{{this.statChip}}</span>{{/if}}
+                  <span class="ui-chip">{{localize "SDE.downtime.log.dc" dc=this.dc}}{{#if this.stepped}} <em class="ui-muted">{{localize "SDE.downtime.ui.wasDc" dc=this.baseDc}}</em>{{/if}}</span>
+                  <span class="ui-chip gold">{{this.costLabel}}</span>
+                </div>
                 {{#if ../../showStepper}}
-                  <span class="sde-dt-stepper" title="{{localize 'SDE.downtime.ui.stepperTip'}}">
-                    <button type="button" class="sde-dt-step" data-action="adjustStep"
-                            data-slot-key="{{this.key}}" data-dc-delta="-1"
-                            {{#unless this.canStepDown}}disabled{{/unless}}
-                            aria-label="{{localize 'SDE.downtime.ui.lowerDc'}}">&minus;</button>
-                    <button type="button" class="sde-dt-step" data-action="adjustStep"
-                            data-slot-key="{{this.key}}" data-dc-delta="1"
-                            {{#unless this.canStepUp}}disabled{{/unless}}
-                            aria-label="{{localize 'SDE.downtime.ui.raiseDc'}}">+</button>
+                  <span class="dt-stepper" title="{{localize 'SDE.downtime.ui.stepperTip'}}">
+                    <button type="button" class="ui-icon" data-action="adjustStep" data-slot-key="{{this.key}}" data-dc-delta="-1" {{#unless this.canStepDown}}disabled{{/unless}} aria-label="{{localize 'SDE.downtime.ui.lowerDc'}}">&minus;</button>
+                    <button type="button" class="ui-icon" data-action="adjustStep" data-slot-key="{{this.key}}" data-dc-delta="1" {{#unless this.canStepUp}}disabled{{/unless}} aria-label="{{localize 'SDE.downtime.ui.raiseDc'}}">+</button>
                   </span>
                 {{/if}}
-                <span class="sde-dt-slot-cost">{{this.costLabel}}</span>
                 {{#if this.inSession}}
-                  <button type="button" class="sde-dt-btn {{#if this.chosen}}sde-dt-primary{{/if}}"
-                          data-action="pickSlot" data-slot-key="{{this.key}}"
-                          {{#if this.pickDisabled}}disabled{{/if}}
-                          {{#if this.rowReason}}title="{{this.rowReason}}"{{/if}}>
-                    {{#if this.chosen}}<i class="fas fa-check"></i> {{localize "SDE.downtime.ui.chosen"}}{{else}}{{localize "SDE.downtime.ui.choose"}}{{/if}}
-                  </button>
+                  <button type="button" class="ui-btn" data-action="pickSlot" data-slot-key="{{this.key}}" {{#if this.pickDisabled}}disabled{{/if}} {{#if this.rowReason}}title="{{this.rowReason}}"{{/if}}>{{#if this.chosen}}<i class="fas fa-check"></i> {{localize "SDE.downtime.ui.chosen"}}{{else}}{{localize "SDE.downtime.ui.choose"}}{{/if}}</button>
                 {{else}}
-                  <button type="button" class="sde-dt-btn" data-action="attempt"
-                          data-slot-key="{{this.key}}" data-activity-key="{{this.activityKey}}"
-                          {{#if this.disabled}}disabled{{/if}}
-                          {{#if this.rowReason}}title="{{this.rowReason}}"{{/if}}>{{localize "SDE.downtime.ui.attempt"}}</button>
+                  <button type="button" class="ui-btn" data-action="attempt" data-slot-key="{{this.key}}" data-activity-key="{{this.activityKey}}" {{#if this.disabled}}disabled{{/if}} {{#if this.rowReason}}title="{{this.rowReason}}"{{/if}}>{{localize "SDE.downtime.ui.attempt"}}</button>
                 {{/if}}
               </div>
-              {{!-- The description IS the decision: players read it before choosing. --}}
-              <p class="sde-dt-slot-desc">{{this.outcome}}</p>
-              {{#if this.unaffordable}}
-                {{!-- Can't pay, can't pick. Stated on the row rather than left
-                      for the player to discover at the die. --}}
-                <p class="sde-dt-opt-reason sde-dt-row-block">
-                  <i class="fas fa-coins"></i> {{this.rowReason}}
-                </p>
-              {{/if}}
-            </li>
-          {{/each}}
-        </ul>
-      {{/each}}
-    </section>
-  {{/each}}
+            {{/each}}
+          </div>
+        {{/each}}
+      </div>
+    </details>
+    {{/each}}
 
-  {{!--
-    Recruit a warband (#205). Not a slot of a book: it carries no book text, so
-    there is nothing here to keep locked. Retraining is the warband sheet's; the
-    list of warbands the character commands links to it.
-  --}}
-  {{#if recruit}}
-    <section class="sde-dt-activity" data-activity="recruitWarband">
-      <header class="sde-dt-activity-head">
-        <span class="sde-dt-activity-name">{{recruit.name}}</span>
-        <span class="sde-dt-check-label">{{recruit.checkLabel}}</span>
-      </header>
-
-      {{#if recruit.loading}}
-        <p class="sde-dt-note">{{localize "SDE.downtime.recruit.loading"}}</p>
-      {{else if recruit.error}}
-        <p class="sde-dt-note sde-dt-opt-reason">{{recruit.error}}</p>
-      {{else}}
-        <p class="sde-dt-note">{{recruit.settlementLine}}</p>
-
-        {{#if recruit.settlementOptions}}
-          <div class="sde-dt-field sde-dt-choice">
-            <label for="sde-dt-settlement">{{localize "SDE.downtime.recruit.settlement"}}</label>
-            <select id="sde-dt-settlement" data-field="settlement">
-              {{#each recruit.settlementOptions}}
-                <option value="{{this.value}}" {{#if this.selected}}selected{{/if}}>{{this.label}}</option>
-              {{/each}}
-            </select>
+    {{#if recruit}}
+    <details class="ui-details dt-activity" data-activity="recruitWarband">
+      <summary>{{recruit.name}} <span class="ui-chip dt-check">{{recruit.checkLabel}}</span></summary>
+      <div class="ui-details-body">
+        {{#if recruit.loading}}<p class="ui-muted">{{localize "SDE.downtime.recruit.loading"}}</p>
+        {{else if recruit.error}}<div class="ui-note bad">{{recruit.error}}</div>
+        {{else}}
+          <div class="ui-note">{{recruit.settlementLine}}</div>
+          {{#if recruit.settlementOptions}}<div class="ui-field"><label class="ui-label" for="sde-dt-settlement">{{localize "SDE.downtime.recruit.settlement"}}</label>
+            <select id="sde-dt-settlement" data-field="settlement">{{#each recruit.settlementOptions}}<option value="{{this.value}}" {{#if this.selected}}selected{{/if}}>{{this.label}}</option>{{/each}}</select></div>{{/if}}
+          {{#if recruit.blocked}}<div class="ui-note warn"><i class="fas fa-people-group"></i> {{recruit.blocked}}</div>{{/if}}
+          {{#if recruit.none}}<p class="ui-muted">{{localize "SDE.downtime.recruit.none"}}</p>{{/if}}
+          <div class="ui-list">
+            {{#each recruit.offers}}
+              <div class="ui-row dt-slot {{#if this.chosen}}sel{{/if}}">
+                <div class="ui-row-main"><span class="ui-row-name">{{this.name}} <em class="ui-muted">{{localize "SDE.downtime.ui.levelShort" level=this.level}}</em></span>{{#if this.showReason}}<span class="ui-row-sub dt-block">{{this.reason}}</span>{{/if}}</div>
+                <div class="dt-slot-meta"><span class="ui-tag">{{this.statChip}}</span><span class="ui-chip">{{localize "SDE.downtime.log.dc" dc=this.dc}}</span></div>
+                {{#if this.inSession}}
+                  <button type="button" class="ui-btn" data-action="pickSlot" data-slot-key="{{this.key}}" {{#if this.pickDisabled}}disabled{{/if}} {{#if this.reason}}title="{{this.reason}}"{{/if}}>{{#if this.chosen}}<i class="fas fa-check"></i> {{localize "SDE.downtime.ui.chosen"}}{{else}}{{localize "SDE.downtime.ui.choose"}}{{/if}}</button>
+                {{else}}
+                  <button type="button" class="ui-btn" data-action="recruit" data-warband-id="{{this.id}}" {{#if this.disabled}}disabled{{/if}} {{#if this.reason}}title="{{this.reason}}"{{/if}}>{{localize "SDE.downtime.ui.attempt"}}</button>
+                {{/if}}
+              </div>
+            {{/each}}
           </div>
         {{/if}}
-
-        {{#if recruit.blocked}}
-          <p class="sde-dt-opt-reason sde-dt-row-block"><i class="fas fa-people-group"></i> {{recruit.blocked}}</p>
+        {{#if recruit.warbands.length}}
+          <h4 class="ui-h dt-sub">{{localize "SDE.downtime.recruit.yours"}}</h4>
+          <p class="ui-muted dt-hint">{{localize "SDE.downtime.recruit.retrainNote"}}</p>
+          <div class="ui-list">{{#each recruit.warbands}}<div class="ui-row"><div class="ui-row-main"><span class="ui-row-name">{{this.name}} <em class="ui-muted">{{localize "SDE.downtime.ui.levelShort" level=this.level}}</em></span>{{#if this.retraining}}<span class="ui-row-sub">{{this.retraining}}</span>{{/if}}</div>
+            <button type="button" class="ui-icon" data-action="openWarband" data-warband-id="{{this.id}}" title="{{localize 'SDE.downtime.recruit.openSheet'}}"><i class="fas fa-up-right-from-square"></i></button></div>{{/each}}</div>
         {{/if}}
+      </div>
+    </details>
+    {{/if}}
 
-        {{#if recruit.none}}
-          <p class="sde-dt-note">{{localize "SDE.downtime.recruit.none"}}</p>
+    {{!-- Book notices, folded: stale, locked, partial. Open by default only when nothing is unlocked. --}}
+    {{#if staleSources.length}}<details class="ui-details dt-books" {{#unless anyUnlocked}}open{{/unless}}>{{else if lockedSources.length}}<details class="ui-details dt-books" {{#unless anyUnlocked}}open{{/unless}}>{{else if isPartial}}<details class="ui-details dt-books">{{else}}<details class="ui-details dt-books" hidden>{{/if}}
+      <summary><i class="fas fa-lock"></i> {{localize "SDE.downtime.ui.source"}}</summary>
+      <div class="ui-details-body">
+        {{#each staleSources}}
+          <div class="ui-note warn dt-notice"><span>{{localize "SDE.downtime.ui.stale" source=this.label}}</span><button type="button" class="ui-btn" data-action="unlockViaImporter" data-source="{{this.slug}}">{{localize "SDE.downtime.ui.reimport"}}</button></div>
+        {{/each}}
+        {{#each lockedSources}}
+          <div class="ui-card dt-locked">
+            <div class="ui-card-head"><i class="fas fa-lock ui-muted"></i><h4 class="ui-card-name">{{this.label}}</h4>{{#if this.pages}}<span class="ui-chip">{{localize "SDE.downtime.ui.page" pages=this.pages}}</span>{{/if}}</div>
+            <p class="ui-muted dt-hint">{{localize "SDE.downtime.ui.lockedBody"}}</p>
+            <button type="button" class="ui-btn" data-action="unlockViaImporter" data-source="{{this.slug}}">{{localize "SDE.downtime.ui.unlockViaImporter"}}</button>
+          </div>
+        {{/each}}
+        {{#if isPartial}}
+          <div class="ui-note dt-notice"><span>{{localize "SDE.downtime.ui.partial" n=missingCount}}</span><button type="button" class="ui-btn" data-action="unlockViaImporter" data-source="{{selectedSource.slug}}">{{localize "SDE.downtime.ui.openImporter"}}</button></div>
         {{/if}}
+      </div>
+    </details>
 
-        <ul class="sde-dt-slots">
-          {{#each recruit.offers}}
-            <li class="sde-dt-slot-row {{#if this.chosen}}sde-dt-slot-chosen{{/if}}">
-              <div class="sde-dt-slot-main">
-                <span class="sde-dt-slot-label">{{this.name}} <em>{{localize "SDE.downtime.ui.levelShort" level=this.level}}</em></span>
-                <span class="sde-dt-slot-dc"><span class="sde-dt-stat">{{this.statChip}}</span> {{localize "SDE.downtime.log.dc" dc=this.dc}}</span>
-                {{#if this.inSession}}
-                  <button type="button" class="sde-dt-btn {{#if this.chosen}}sde-dt-primary{{/if}}"
-                          data-action="pickSlot" data-slot-key="{{this.key}}"
-                          {{#if this.pickDisabled}}disabled{{/if}}
-                          {{#if this.reason}}title="{{this.reason}}"{{/if}}>
-                    {{#if this.chosen}}<i class="fas fa-check"></i> {{localize "SDE.downtime.ui.chosen"}}{{else}}{{localize "SDE.downtime.ui.choose"}}{{/if}}
-                  </button>
-                {{else}}
-                  <button type="button" class="sde-dt-btn" data-action="recruit"
-                          data-warband-id="{{this.id}}"
-                          {{#if this.disabled}}disabled{{/if}}
-                          {{#if this.reason}}title="{{this.reason}}"{{/if}}>{{localize "SDE.downtime.ui.attempt"}}</button>
-                {{/if}}
-              </div>
-              {{#if this.showReason}}<p class="sde-dt-opt-reason sde-dt-row-block">{{this.reason}}</p>{{/if}}
-            </li>
-          {{/each}}
-        </ul>
-      {{/if}}
-
-      {{#if recruit.warbands.length}}
-        <div class="sde-dt-subhead">
-          <span class="sde-dt-subhead-label">{{localize "SDE.downtime.recruit.yours"}}</span>
-        </div>
-        <p class="sde-dt-note">{{localize "SDE.downtime.recruit.retrainNote"}}</p>
-        <ul class="sde-dt-slots">
-          {{#each recruit.warbands}}
-            <li class="sde-dt-slot-row">
-              <div class="sde-dt-slot-main">
-                <span class="sde-dt-slot-label">{{this.name}} <em>{{localize "SDE.downtime.ui.levelShort" level=this.level}}</em></span>
-                {{#if this.retraining}}<span class="sde-dt-slot-dc">{{this.retraining}}</span>{{/if}}
-                <button type="button" class="sde-dt-btn" data-action="openWarband" data-warband-id="{{this.id}}">
-                  {{localize "SDE.downtime.recruit.openSheet"}}
-                </button>
-              </div>
-            </li>
-          {{/each}}
-        </ul>
-      {{/if}}
-    </section>
-  {{/if}}
-
-  {{!-- Partial unlock: how many are missing, never which ones. --}}
-  {{#if isPartial}}
-    <p class="sde-dt-banner sde-dt-partial-note">
-      {{localize "SDE.downtime.ui.partial" n=missingCount}}
-      <button type="button" class="sde-dt-mini" data-action="unlockViaImporter"
-              data-source="{{selectedSource.slug}}">{{localize "SDE.downtime.ui.openImporter"}}</button>
-    </p>
-  {{/if}}
+    {{#if anyUnlocked}}<p class="ui-muted dt-foot">{{localize "SDE.downtime.card.noLuck"}}</p>{{/if}}
+  </div>
 
   {{#if anyUnlocked}}
-    <footer class="sde-dt-footer">
-      {{localize "SDE.downtime.card.noLuck"}}
-    </footer>
+  <footer class="ui-footer">
+    {{#if overview}}<button type="button" class="ui-btn danger" data-action="endSession" {{#if session.days}}title="{{localize 'SDE.downtime.ui.endSessionTip' days=session.days}}"{{/if}}>{{localize "SDE.downtime.ui.endSession"}}</button>{{/if}}
+    <div class="ui-right">
+      {{#if overview}}
+        {{#if session.locked}}<button type="button" class="ui-btn" data-action="releaseRolls">{{localize "SDE.downtime.ui.reopenPicks"}}</button>
+        {{else}}<button type="button" class="ui-btn primary" data-action="lockRolls">{{localize "SDE.downtime.ui.lockDice"}}</button>{{/if}}
+      {{/if}}
+      {{#if soloMode}}{{#unless isPlayer}}<button type="button" class="ui-btn primary" data-action="startSession"><i class="fas fa-users"></i> {{localize "SDE.downtime.ui.startSession"}}</button>{{/unless}}{{/if}}
+      {{#if inSession}}{{#if canRoll}}<button type="button" class="ui-btn primary" data-action="rollPick"><i class="fas fa-dice-d20"></i> {{localize "SDE.downtime.ui.rollIt"}}</button>{{else}}{{#if rollBlockedReason}}<button type="button" class="ui-btn" data-action="rollPick" disabled title="{{rollBlockedReason}}"><i class="fas fa-dice-d20"></i> {{localize "SDE.downtime.ui.rollIt"}}</button>{{/if}}{{/if}}{{/if}}
+    </div>
+  </footer>
   {{/if}}
-
-  </div>{{!-- /.sde-dt-scroll --}}
 </div>
