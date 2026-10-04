@@ -61,7 +61,7 @@ const build = (state) => {
   const slots = Array.from({ length: 9 }, (_, i) => { const m = walkers[i]; return { row: Math.floor(i / 3) - 1, col: (i % 3) - 1, uuid: m?.uuid ?? "", name: m?.name, img: m?.img, leader: m?.name === "Creeg Greythorn", disabled: !v.canEdit || !m }; });
   const status = quiet ? [] : statusBar({ travel: { terrain: "forest", weather: "Fair", hexesLeft: 3, budget: 4 }, light: { name: "Torch", mins: 38 }, rations: 12 }, words);
   return {
-    title: "The Lantern Guild", icon: "fa-solid fa-users", classes: ["shadowdark", "sheet", "party", "sde-party"], resizable: true, width: 750, height: 650, template: "templates/party/party.hbs",
+    title: "The Lantern Guild", icon: "fa-solid fa-users", classes: ["shadowdark", "sheet", "party", "sde-party", "sde-ui"], resizable: true, width: 750, height: 650, template: "templates/party/party.hbs",
     toolbar: `<span>Marching order:</span><button data-action="setMode" data-mode="-">on</button><button data-action="setMode" data-mode="paused">paused</button><button data-action="setMode" data-mode="off">off</button><span style="margin-left:14px">Party:</span><button data-action="setMode" data-mode="empty">no members</button><button data-action="setMode" data-mode="quiet">no bastion or status</button><span style="margin-left:14px">View as</span><button data-action="asView" data-view="gm">GM</button><button data-action="asView" data-view="player">Player</button>`,
     context: {
       picker: false, hasParty: true, isGM, canEdit: v.canEdit, actor: { name: "The Lantern Guild" }, memberCount: members.length,

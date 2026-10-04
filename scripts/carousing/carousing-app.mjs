@@ -6,7 +6,7 @@ import { holidaysToday } from "../holidays/holidays.mjs";
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 const t = (key) => game.i18n.localize(key);
 export class CarousingApp extends HandlebarsApplicationMixin(ApplicationV2) {
-  static DEFAULT_OPTIONS = { classes: ["shadowdark", "sde-carousing"], position: { width: 760, height: 700 }, window: { title: "SDE.carousing.title", resizable: true }, actions: {
+  static DEFAULT_OPTIONS = { classes: ["shadowdark", "sde-carousing", "sde-ui"], position: { width: 760, height: 700 }, window: { title: "SDE.carousing.title", resizable: true }, actions: {
     begin: function () { return this.change("begin"); }, start: function () { return this.change("start"); }, resume: function () { return this.change("resume"); }, cancel: function () { return this.change("cancel"); },
     confirm: function (_event, el) { return this.change("select", { uuid: el.dataset.uuid, confirm: true }); },
     configure: function (_event, el) { const root = el?.closest(".sde-carousing-body") ?? this.element; const config = Object.fromEntries([...root.querySelectorAll("[data-config]")].map(el => [el.dataset.config, el.value])); return this.change("configure", { config }); },
@@ -36,11 +36,12 @@ export class CarousingApp extends HandlebarsApplicationMixin(ApplicationV2) {
         result, status: t(p.confirmed ? "SDE.carousing.confirmed" : "SDE.carousing.unconfirmed") };
     }) ?? [];
     const tier = night?.tiers.find(v => v.id === night.tierId), joining = night?.participants.filter(p => p.participate).length ?? 0, shares = tier ? splitCost(tier.cost, joining) : [];
-    const each = shares.length ? (shares[0] === shares.at(-1) ? `${shares[0]}` : `${shares.at(-1)}–${shares[0]}`) : "";
+    const each = shares.length ? (shares[0] === shares.at(-1) ? `${shares[0]}` : `${shares.at(-1)}–${shares[0]}`) : "—", gp = n => game.i18n.format("SDE.carousing.gp", { n });
     return { title: this.party.name, rows,
       tiers: night?.tiers.map(v => ({ id: v.id, label: game.i18n.format("SDE.carousing.tier", { name: v.description, cost: v.cost, bonus: v.bonus }), selected: night.tierId === v.id })) ?? [],
       tierEditable: setup && Party.canManage(this.party),
-      costLine: tier ? game.i18n.format(joining ? "SDE.carousing.costLine" : "SDE.carousing.costNobody", { total: tier.cost, count: joining, each }) : "", error: this.error, manager: Party.canManage(this.party), isGM: game.user.isGM,
+      tier: tier ? { bonus: tier.bonus } : null, count: joining, costText: tier ? gp(tier.cost) : "", shareText: shares.length ? gp(each) : each,
+      eachLabel: joining ? game.i18n.format("SDE.carousing.eachPays", { n: joining }) : t("SDE.carousing.eachPaysNobody"), error: this.error, manager: Party.canManage(this.party), isGM: game.user.isGM,
       overlap: !carousingAvailable(), empty: !night, setup, complete: night?.phase === "complete", resume: night && !setup,
       phase: night?.phase, holiday: holiday?.name, manualHoliday: !!holiday && (!!holiday.carousing?.extraBenefit || !!holiday.carousing?.extraMishap || !!holiday.carousing?.benefitBonus || !!holiday.carousing?.benefitAdvantage || !!holiday.carousing?.chances?.length),
       canConfigure: !night || setup || night.phase === "complete", missingTables: setup && (!night.tiers.length || !night.outcomes.length),

@@ -38,4 +38,4 @@ const build = (state) => {
   const html = asActivity(renderTemplate("templates/camping/camping.hbs", ctxFor(state, setup, fuel, results)));
   return { ...inParty("gm.travel", { activityHTML: html }), height: full ? 2600 : 650 };
 };
-export default { previewHeight: 900, initial: "setup", build, toolbar: "", actions: {}, ...{ title: "The Lantern Guild", icon: "fa-solid fa-users", classes: ["shadowdark", "sheet", "party", "sde-party"], resizable: true, width: 750, height: 650, template: "templates/party/party.hbs" } };
+export default { previewHeight: 900, initial: "setup", build, toolbar: "", actions: {}, ...{ title: "The Lantern Guild", icon: "fa-solid fa-users", classes: ["shadowdark", "sheet", "party", "sde-party", "sde-ui"], resizable: true, width: 750, height: 650, template: "templates/party/party.hbs" } };

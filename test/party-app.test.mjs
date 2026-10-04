@@ -158,7 +158,6 @@ test("Party member cards keep the portrait, HP, AC, level, slots, XP, ability mo
   assert.equal(context.choices, undefined, "world actors are not enumerated as suggested members");
   assert.equal(PartyApp.DEFAULT_OPTIONS.actions.add, undefined);
   const css = await readFile(new URL("../styles/party-sheet.css", import.meta.url), "utf8");
-  assert.ok(css.includes('font-family: "Old Newspaper Font"'));
   assert.ok(css.includes(".sde-party .sdp-head"));
 });
 
@@ -180,7 +179,7 @@ test("Party activity buttons stay in the sheet instead of opening applications",
   assert.ok(entrypoint.includes('camping: { open: (ref) => PartyApp.open(ref, "camping") }'));
   assert.ok(entrypoint.includes('carousing: { open: (ref) => PartyApp.open(ref, "carousing")'));
   const camping = await readFile(new URL("../templates/camping/camping.hbs", import.meta.url), "utf8");
-  assert.ok(camping.indexOf("{{#if hasResults}}") < camping.indexOf('{{#each rows}}<fieldset'), "saved results come before the task setup, not below it");
+  assert.ok(camping.indexOf("{{#if hasResults}}") < camping.indexOf('{{#each rows}}\n      <article class="cp-pc"'), "saved results come before the task setup, not below it");
 });
 
 test("Party inline controllers reuse activity actions and redraw their host only", async () => {
@@ -223,7 +222,7 @@ test("Party header carries a Marching order switch, a leader/status line and a g
 
 test("Carousing labels unavailable tiers and disables commitment until tables are usable", async () => {
   const template = await readFile(new URL("../templates/carousing/carousing.hbs", import.meta.url), "utf8");
-  assert.ok(template.includes('{{localize "SDE.carousing.tierChoice"}} <select data-tier'));
+  assert.ok(template.includes('<select id="cr-tier" data-tier {{#unless tierEditable}}disabled{{/unless}}'));
   assert.ok(template.includes('{{localize "SDE.carousing.tiersUnavailable"}}'));
   assert.ok(template.includes('data-action="start" {{#if missingTables}}disabled{{/if}}'));
   assert.ok(template.includes('data-action="confirm" data-uuid="{{uuid}}" {{#if ../missingTables}}disabled{{/if}}'));

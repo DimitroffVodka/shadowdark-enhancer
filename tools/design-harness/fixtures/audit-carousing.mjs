@@ -21,4 +21,4 @@ const build = (state) => {
   const html = asActivity(renderTemplate("templates/carousing/carousing.hbs", ctxFor(state, setup, complete)));
   return { ...inParty("gm.travel", { activityHTML: html, carousingActive: true, campingActive: false }), height: full ? 2800 : 650 };
 };
-export default { previewHeight: 900, initial: "setup", build, toolbar: "", actions: {}, title: "The Lantern Guild", icon: "fa-solid fa-users", classes: ["shadowdark", "sheet", "party", "sde-party"], resizable: true, width: 750, height: 650, template: "templates/party/party.hbs" };
+export default { previewHeight: 900, initial: "setup", build, toolbar: "", actions: {}, title: "The Lantern Guild", icon: "fa-solid fa-users", classes: ["shadowdark", "sheet", "party", "sde-party", "sde-ui"], resizable: true, width: 750, height: 650, template: "templates/party/party.hbs" };
