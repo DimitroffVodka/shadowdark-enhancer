@@ -121,8 +121,7 @@ export class LevelGuidelinesEditor extends HandlebarsApplicationMixin(Applicatio
       window: { title: game.i18n.localize("SDE.settings.levelGuidelines.resetTitle") },
       content: `<p>${game.i18n.localize("SDE.settings.levelGuidelines.resetPrompt")}</p>`,
       yes: { label: "SDE.settings.levelGuidelines.reset", icon: "fa-solid fa-rotate-left" },
-      no: { label: "SDE.settings.levelGuidelines.resetKeep", icon: "fa-solid fa-xmark" },
-      defaultYes: false,
+      no: { label: "SDE.settings.levelGuidelines.resetKeep", icon: "fa-solid fa-xmark", default: true },
     });
     if (!ok) return;
     this._working = foundry.utils.deepClone(BASE_GUIDELINES);

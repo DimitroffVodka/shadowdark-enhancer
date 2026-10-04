@@ -772,8 +772,7 @@ export const CrawlBar = {
       window: { title: titleKey },
       content: `<p>${game.i18n.localize(contentKey)}</p>`,
       yes: { label: yesKey, icon: "fa-solid fa-check" },
-      no: { label: noKey, icon: "fa-solid fa-xmark" },
-      defaultYes: false,
+      no: { label: noKey, icon: "fa-solid fa-xmark", default: true },
       rejectClose: false,
     });
   },

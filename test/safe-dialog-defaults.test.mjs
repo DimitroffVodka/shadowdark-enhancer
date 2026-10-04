@@ -33,15 +33,18 @@ test("destructive confirms name their buttons and default to the safe one", () =
       assert.ok(at > -1, `${file} uses ${yes}`);
       const block = src.slice(at, src.indexOf("rejectClose", at) > -1 ? src.indexOf("rejectClose", at) : at + 400);
       assert.ok(block.includes(`"${no}"`), `${file}: ${yes} is paired with ${no}`);
-      assert.match(src.slice(at, at + 500), /defaultYes: false/, `${file}: ${yes} confirm is not default-yes`);
+      // the safe (no) button carries the autofocus; the destructive (yes) one never does
+      const near = src.slice(at, at + 500);
+      assert.match(near, new RegExp(`no: \\{[^\\n]*"${no}"[^\\n]*default: true`), `${file}: ${yes} confirm focuses ${no}`);
+      assert.doesNotMatch(near, /yes: \{[^\n]*default: true/, `${file}: ${yes} is not the default button`);
     }
   }
 });
 
-test("the crawl bar's shared confirm passes labels and is not default-yes", () => {
+test("the crawl bar's shared confirm passes labels and focuses the safe button", () => {
   const src = read("scripts/crawl-bar/crawl-bar.mjs");
   const at = src.indexOf("async _confirm(");
-  assert.match(src.slice(at, at + 600), /defaultYes: false/);
+  assert.match(src.slice(at, at + 600), /no: \{[^\n]*default: true/);
   for (const k of ["endCrawlYes", "endCrawlNo"]) assert.ok(en[`SDE.crawlBar.confirm.${k}`]);
   for (const k of ["deleteEncounterYes", "deleteEncounterNo"]) assert.ok(en[`SDE.crawlBar.${k}`]);
   assert.match(src, /SDE\.crawlBar\.confirm\.endCrawlYes/);
@@ -57,6 +60,7 @@ test("the importer's delete-copies dialogs default to Cancel", () => {
 
 test("undoing a character-builder save defaults to Back", () => {
   const src = read("scripts/char-builder/existing-finish.mjs");
-  assert.match(src, /defaultYes: !safeDefault/);
+  assert.match(src, /no: \{ label: no, default: safeDefault \}/);
+  assert.doesNotMatch(src, /defaultYes/);
   assert.match(src, /undoYes`\),[\s\S]{0,120}safeDefault: true/);
 });

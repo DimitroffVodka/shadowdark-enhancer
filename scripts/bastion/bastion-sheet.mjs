@@ -176,8 +176,7 @@ export class BastionSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       window: { title: "SDE.bastion.takeDown.title" },
       content: `<p>${esc(format("SDE.bastion.takeDown.question", { upgrade: t(upgrade?.name ?? "") }))}</p>`,
       yes: { label: "SDE.bastion.takeDown.yes", icon: "fa-solid fa-trash" },
-      no: { label: "SDE.bastion.takeDown.keep", icon: "fa-solid fa-xmark" },
-      defaultYes: false,
+      no: { label: "SDE.bastion.takeDown.keep", icon: "fa-solid fa-xmark", default: true },
       rejectClose: false,
     });
     if (sure) return this._apply((s) => core.takeDown(s, id));

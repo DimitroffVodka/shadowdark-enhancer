@@ -615,8 +615,7 @@ export async function startDayFromParty() {
   if (_state.day !== null && !(await foundry.applications.api.DialogV2.confirm({
     window: { title: t("SDE.overland.day.title") }, content: `<p>${esc(t("SDE.overland.day.restart"))}</p>`,
     yes: { label: "SDE.overland.day.restartYes", icon: "fa-solid fa-rotate" },
-    no: { label: "SDE.overland.day.restartNo", icon: "fa-solid fa-xmark" },
-    defaultYes: false,
+    no: { label: "SDE.overland.day.restartNo", icon: "fa-solid fa-xmark", default: true },
     rejectClose: false,
   }))) return null;
   if (baseFor(partyReading()) > 0) return startDay();

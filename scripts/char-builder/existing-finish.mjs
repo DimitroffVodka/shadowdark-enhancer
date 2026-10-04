@@ -212,7 +212,6 @@ function defaultConfirm({ title, content, yes, no, safeDefault = false }) {
     window: { title, icon: "fa-solid fa-floppy-disk" },
     content,
     yes: { label: yes, icon: "fa-solid fa-check" },
-    no: { label: no },
-    defaultYes: !safeDefault,
+    no: { label: no, default: safeDefault },
   });
 }
