@@ -243,7 +243,8 @@ export class TrainingApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const button = this.element.querySelector("[data-action='trnImport']");
     if (button) button.disabled = true;
     try {
-      const r = await importTrainerJournals();
+      // Only the trainers with no entry yet: pressing it again, or after a partial read, redoes nothing.
+      const r = await importTrainerJournals({ missingOnly: true });
       if (!r.ok) { ui.notifications?.error(t(`SDE.training.notify.${r.error}`)); return; }
       ui.notifications?.info(t("SDE.training.notify.imported", { created: r.created, updated: r.updated }));
       for (const p of r.problems) console.warn(`${MODULE_ID} | training journal`, p);

@@ -94,6 +94,11 @@
   earlier "Include mounts" had already placed on a scene is still recalled by Place / Recall.
 
 ### Fixed
+- **The Magic Item Forge and the Monster Creator find tables you already imported.** Core tables imported from the Manage tree or with Import everything carry no identity stamp, so both windows called the book locked and asked you to import it again (and then offered to replace the table that was already there). A table now counts when it is the only one under the name the importer gives it. Nothing in your world is changed.
+- **The Monster Generator imports.** Its Combat and Quality columns are on the numbered lines and Strength and Weakness are in a block below under their own header; the importer only knew the one-leading-column layout, so every row warned "only 3 of 4 columns had text". It reads both layouts now. The Generator and Make It Weird are also in the Manage tree under Roll Tables > Core Rulebook, so Import everything reaches them.
+- **Tools > Roll tables opens the Roll Tables tab** instead of the Importer.
+- **Regional Training says what is missing, and only reads that.** The window's "Not imported yet" is the trainers' descriptions and tasks (read from your Game Master's Guide PDF), not the benefit tables. The button is now "Read trainer pages" and skips trainers that already have an entry.
+- **The Monster Creator no longer shows Make It Weird as locked right after an import.** A table read that started before the last change could finish last and be kept.
 - **Dialogs are no longer crooked.** Session Tracking, Table Already Exists, Drop Coins and every other dialog opened at a squeezed ~200px, which stacked and right-shifted the buttons and clipped the title and inputs. They now open at a normal width.
 - **Drop Coins can be resized, and the pile is pointed out.** After coins (or a loot item) are dropped from the Loot Generator, the spot is pinged and the view pans to it if it is off screen, so a half-size token is not lost on a big map. The Loot Generator's bottom buttons no longer overlap.
 - **The crawl bar has a small gap between Combat and Tools** instead of a wide one.
