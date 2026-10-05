@@ -29,7 +29,8 @@ test("every string the Camping template localizes exists in en.json, and no prop
 
 test("Camping uses no gold and no leftover party-sheet camping rules", async () => {
   const [css, party] = await Promise.all([read("styles/shadowdark-enhancer.css"), read("styles/party-sheet.css")]);
-  const block = css.slice(css.indexOf("/* Camping window"));
+  const start = css.indexOf("/* Camping window");
+  const block = css.slice(start, css.indexOf("/* Carousing window", start));
   assert.ok(block.length > 200 && !/gold|#c9aa58/i.test(block));
   assert.ok(!party.includes(".sde-camping-body"), "the old Camping selectors are gone from the Party sheet stylesheet");
 });
@@ -38,4 +39,18 @@ test("the camping window context no longer builds the dropped food and rest stat
   const src = await read("scripts/camping/camping-app.mjs");
   assert.ok(!/foodStatus|restStatus/.test(src));
   assert.ok(src.includes('"sde-ui"'));
+});
+
+test("the embedded camping and carousing bodies hide the party-name title and keep the small text", async () => {
+  const { readFile } = await import("node:fs/promises");
+  const camping = await readFile(new URL("../templates/camping/camping.hbs", import.meta.url), "utf8");
+  const carousing = await readFile(new URL("../templates/carousing/carousing.hbs", import.meta.url), "utf8");
+  assert.match(camping, /\{\{#unless embedded\}\}\{\{title\}\} \{\{\/unless\}\}<small>\{\{phase\}\}/);
+  assert.match(carousing, /\{\{#unless embedded\}\}\{\{title\}\} \{\{\/unless\}\}\{\{#if holiday\}\}<small>/);
+});
+
+test("the camping and carousing bodies declare no gap the kit's ui-body would override", async () => {
+  const { readFile } = await import("node:fs/promises");
+  const css = await readFile(new URL("../styles/shadowdark-enhancer.css", import.meta.url), "utf8");
+  assert.doesNotMatch(css, /\.sde-(camping|carousing)-body \{[^}]*\bgap:/);
 });

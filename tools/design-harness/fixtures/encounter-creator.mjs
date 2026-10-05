@@ -1,10 +1,11 @@
 // The Monster Creator panel (templates/encounter-creator.hbs, scripts/monster-creator/encounter-creator.mjs). It is not a
 // window: MonsterCreatorApp mounts it in the "Creator" tab of the Encounter Roller (templates/encounter-roller.hbs,
-// 1280px wide). This fixture compiles the real creator template and sets it in the roller's own tab frame (nav, hr,
-// .sde-content, .tab, #sde-monster-creator-host). The other three roller tabs are not drawn.
-//   state: open    every section open, a monster loaded from a token (source banner), spells attached
+// 1280px wide). This fixture compiles the real creator template and sets it in the roller's own tab frame (ui-shell,
+// ui-tabs, ui-body, .tab, #sde-monster-creator-host). The other three roller tabs are not drawn.
+//   state: open    the Actions tab open, a monster loaded from a token (source banner), spells attached
 //          loader  the Bestiary Loader takeover
-//          closed  the first-open state: only Identity open
+//          closed  the first-open state: no right-hand tab open
+// The panel keeps its core (identity, stats, movement, description) always shown; sectionOpen only tracks the one open right-hand tab.
 import { compile, windowHtml, say, esc } from "./_hb.mjs";
 import { ACTION_QUICK_PICKS } from "../../../scripts/monster-creator/action-templates.mjs";
 import { FEATURE_QUICK_PICKS } from "../../../scripts/monster-creator/feature-templates.mjs";
@@ -46,14 +47,14 @@ const mutations = {
 const source = { name: "Hill Giant Chieftain", editingHtml: say("SDE.encounterCreator.source.editing", { name: "<b>Hill Giant Chieftain</b>", scope: '<span class="sde-creator-source-scope">(this token only)</span>' }) };
 const loaderRows = Array.from({ length: 14 }, (_, i) => ({ uuid: "u" + i, img: art, name: ["Giant spider", "Ogre of the Salt Marsh", "Hill giant", "Skeleton warrior", "Gnoll packlord", "Wraith", "Cave troll", "Basilisk", "Dire wolf", "Cultist of the Pale Lantern", "Ankheg", "Owlbear", "Stone golem", "Young green dragon"][i], levelLabel: String(i + 1), alignment: "NC"[i % 2] ?? "N", alignmentLabel: "Neutral", hpLabel: String(8 + i * 5), acLabel: String(10 + (i % 6)), dprLabel: (3 + i * 1.5).toFixed(1), attackCount: 2, attackSummary: "2 atk", primaryAttack: "bite", attackKinds: { melee: true, ranged: i % 3 === 0, special: i % 4 === 0 }, hasSpellcasting: i % 5 === 0, spellcastingBonus: 3, darkAdapted: i % 2 === 0 }));
 const loaderData = { availableSources: [{ id: "core", label: "Core Rulebook" }, { id: "wr", label: "Western Reaches" }, { id: "cs", label: "Cursed Scroll 1" }], selectedSources: ["core", "wr"], sourcesLabel: "2 sources", rows: loaderRows, totalCount: 244, filteredCount: 14, empty: false, noSources: false, search: "", alignment: ["C"], levelMin: 2, levelMax: 8, hpMin: null, hpMax: null, acMin: null, acMax: null, moves: [], moveOptions: ["close", "near", "far", "fly"], darkAdapted: false, hasSpellcasting: false, abilitySearch: "", sortCol: "name", sortAsc: true };
-const open = { identity: true, stats: true, movement: true, actions: true, features: true, spellcasting: true, mutations: true, baseline: true, description: true };
+const one = (key) => ({ actions: false, features: false, spellcasting: false, mutations: false, baseline: false, [key]: true });
 export const contextFor = (state) => {
   const loader = state === "loader", closed = state === "closed";
   return {
     draft: closed ? { ...draft, name: "", level: 0, actions: [], features: [], spellcasting: {}, description: "", move: "close", moveNote: "", darkAdapted: false, abilities: {}, hp: { value: 1, max: 1 }, ac: 10 } : draft,
     levelStep: { atMin: false, atMax: false, max: 30 }, source: state === "open" ? source : null,
     draftPreview: "Hill Giant Chieftain of the Broken Tooth Clan, LV 6 C. AC 13, HP 30, ATK 2 greatclub +6 (2d6), 1 hurled boulder +4 (1d10), MV near (burrow).",
-    sectionOpen: closed ? { identity: true } : open, spellPicker: closed ? { ...spellPicker, selectedCount: 0, selected: [], resultCount: 0, results: [], capped: false } : spellPicker,
+    sectionOpen: closed ? one(null) : one("actions"), spellPicker: closed ? { ...spellPicker, selectedCount: 0, selected: [], resultCount: 0, results: [], capped: false } : spellPicker,
     mutations: closed ? { selectedCount: 0, staleCount: 0, sets: mutations.sets, selection: [], applied: { total: 0 } } : mutations, baseline,
     alignments: ["L", "N", "C"], abilityFields: ["str", "dex", "con", "int", "wis", "cha"].map((key) => ({ key, label: key.toUpperCase() })),
     moveOptions: ["none", "close", "near", "doubleNear", "tripleNear", "far", "special"], spellAbilities: ["int", "wis", "cha"], ACTION_QUICK_PICKS, ranges: ["close", "near", "far", "nearLine"], FEATURE_QUICK_PICKS,
@@ -63,9 +64,9 @@ export const contextFor = (state) => {
 const build = (state) => {
   const ctx = contextFor(state);
   const creator = compile("templates/encounter-creator.hbs", ctx);
-  const tab = (id, icon, label, on) => `<button type="button" class="item ${on ? "active" : ""}" data-tab="${id}" aria-pressed="${on}"><i class="fas ${icon}"></i> ${esc(say(label))}</button>`;
-  const body = `<div class="sde-encounter-roller"><nav class="sde-tabs" data-group="primary">${tab("tables", "fa-table-list", "SDE.encounter.roller.tab.tables", false)}${tab("build", "fa-hammer", "SDE.encounter.roller.tab.build", false)}${tab("browse", "fa-user-group", "SDE.encounter.roller.tab.browse", false)}${tab("creator", "fa-wand-magic-sparkles", "SDE.encounter.roller.tab.creator", true)}</nav><hr><section class="sde-content"><div class="tab active" data-tab="creator"><div id="sde-monster-creator-host">${creator}</div></div></section></div>`;
-  return { html: windowHtml("sde-encounter-roller", { title: say("SDE.encounter.roller.title"), icon: "fas fa-dice-d20", tag: "form" }, body) };
+  const tab = (id, icon, label, on) => `<button type="button" class="ui-tab ${on ? "active" : ""}" data-tab="${id}" aria-pressed="${on}"><i class="fas ${icon}"></i> ${esc(say(label))}</button>`;
+  const body = `<div class="ui-shell"><nav class="ui-tabs">${tab("tables", "fa-table-list", "SDE.encounter.roller.tab.tables", false)}${tab("build", "fa-hammer", "SDE.encounter.roller.tab.build", false)}${tab("browse", "fa-user-group", "SDE.encounter.roller.tab.browse", false)}${tab("creator", "fa-wand-magic-sparkles", "SDE.encounter.roller.tab.creator", true)}</nav><section class="ui-body er-body"><div class="tab er-tab active" data-tab="creator"><div id="sde-monster-creator-host" class="ui-shell mc-host">${creator}</div></div></section></div>`;
+  return { html: windowHtml("sde-encounter-roller", { title: say("SDE.encounter.roller.title"), icon: "fas fa-dice-d20", tag: "form", classes: "sde-roller sde-ui" }, body) };
 };
 export default {
   previewHeight: 900, title: "Encounter Roller", width: 1280, initial: "open", build,

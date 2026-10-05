@@ -78,6 +78,7 @@ const _strip = (h) => String(h ?? "").replace(/<[^>]+>/g, " ").replace(/\s+/g, "
 export class ItemBuilderApp extends HandlebarsApplicationMixin(ApplicationV2) {
   static DEFAULT_OPTIONS = {
     id: "sde-item-builder",
+    classes: ["sde-ui", "sde-imp"],
     window: { title: "SDE.importer.itemBuilder.title", icon: "fa-solid fa-boxes-stacked", resizable: true },
     position: { width: 760, height: 820 },
     actions: {

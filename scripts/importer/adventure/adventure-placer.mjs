@@ -41,7 +41,7 @@ const STATE_LABEL = {
 export class AdventurePlacer extends HandlebarsApplicationMixin(ApplicationV2) {
   static DEFAULT_OPTIONS = {
     id: ID,
-    classes: ["shadowdark", "sde-adventure-placer"],
+    classes: ["sde-ui", "sde-imp", "sde-adventure-placer"],
     window: { title: "SDE.adventure.placer.title", icon: "fa-solid fa-location-dot", resizable: true },
     position: { width: 340, height: 520 },
     actions: {

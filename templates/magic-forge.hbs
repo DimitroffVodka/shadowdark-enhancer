@@ -1,187 +1,158 @@
-<div class="sde-forge">
-
-  {{!-- Type selector --}}
-  <div class="sde-forge-types">
-    {{#each types as |t|}}
-      <button type="button" class="sde-forge-type {{#if t.active}}active{{/if}}"
-        data-action="setType" data-type="{{t.id}}">
-        <i class="fas {{t.icon}}"></i> {{t.label}}
-      </button>
-    {{/each}}
-  </div>
-
-  {{!-- Manual / Core mode toggle (weapon & armor only) --}}
-  {{#if coreAvailable}}
-    <div class="sde-forge-modes">
-      <button type="button" class="sde-forge-mode {{#unless isCore}}active{{/unless}}"
-        data-action="setMode" data-mode="manual"><i class="fas fa-hand"></i> {{localize "SDE.magicForge.mode.manual"}}</button>
-      <button type="button" class="sde-forge-mode {{#if isCore}}active{{/if}}"
-        data-action="setMode" data-mode="core"><i class="fas fa-book"></i> {{localize "SDE.magicForge.mode.core"}}</button>
+<div class="ui-shell">
+  <header class="ui-head">
+    <div class="ui-art mf-art"><i class="fas {{preview.icon}}"></i></div>
+    <div class="ui-head-text">
+      <h2 class="ui-title">{{localize "SDE.magicForge.title"}}</h2>
+      <p class="ui-sub">{{typeLabel}}{{#if isGear}}{{#unless isCore}} · +{{bonus}}{{else}}{{#if coreBonusHint}} · +{{coreBonusHint}}{{/if}}{{/unless}}{{/if}}</p>
     </div>
-  {{/if}}
+  </header>
 
-  <div class="sde-forge-cols">
+  <nav class="ui-tabs">
+    {{#each types as |t|}}
+    <button type="button" class="ui-tab {{#if t.active}}active{{/if}}" data-action="setType" data-type="{{t.id}}"><i class="fas {{t.icon}}"></i> {{t.label}}</button>
+    {{/each}}
+  </nav>
 
-    {{!-- ── Left: controls ── --}}
-    <div class="sde-forge-build">
+  <div class="ui-body">
+    <div class="mf-cols">
 
-      {{#if isGear}}
-        {{#unless isCore}}
-        <div class="sde-forge-field">
-          <label class="sde-forge-label">{{localize "SDE.magicForge.magicBonus"}}</label>
-          <div class="sde-forge-bonus-row">
-            {{#each bonusOptions as |b|}}
-              <button type="button" class="sde-forge-bonus {{#if b.active}}active{{/if}}"
-                data-action="setBonus" data-bonus="{{b.n}}">+{{b.n}}</button>
+      <div class="mf-build">
+
+        {{#if isGear}}
+        {{#if coreAvailable}}
+        <div class="ui-inline mf-seg">
+          <button type="button" class="ui-chip {{#unless isCore}}sel{{/unless}}" data-action="setMode" data-mode="manual"><i class="fas fa-hand"></i> {{localize "SDE.magicForge.mode.manual"}}</button>
+          <button type="button" class="ui-chip {{#if isCore}}sel{{/if}}" data-action="setMode" data-mode="core"><i class="fas fa-book"></i> {{localize "SDE.magicForge.mode.core"}}</button>
+        </div>
+        {{/if}}
+
+        <section class="ui-group">
+          <h3 class="ui-h"><span><span class="ui-num">1</span> {{localize "SDE.magicForge.baseLabel" type=typeLabel}}</span>{{#if typeHint}}<small>{{localize "SDE.magicForge.typeHintLabel" hint=typeHint}}</small>{{/if}}</h3>
+          {{#if baseSelected}}
+          <div class="ui-list"><div class="ui-row sel">
+            <img src="{{baseSelected.img}}" alt="">
+            <div class="ui-row-main"><span class="ui-row-name">{{baseSelected.name}}</span></div>
+            <button type="button" class="ui-icon" data-action="clearBase" title="{{localize 'SDE.magicForge.changeBase'}}" aria-label="{{localize 'SDE.magicForge.changeBase'}}"><i class="fas fa-xmark"></i></button>
+          </div></div>
+          {{else}}
+          <div class="ui-search"><i class="fa-solid fa-magnifying-glass"></i><input type="text" class="sde-forge-base-search" placeholder="{{localize 'SDE.magicForge.searchBase' type=typeLabel}}"></div>
+          <div class="ui-list mf-pick">
+            {{#each bases as |b|}}
+            <div class="ui-row sde-forge-base-row" data-action="pickBase" data-uuid="{{b.uuid}}" data-name="{{b.nameLower}}">
+              <img src="{{b.img}}" alt="">
+              <div class="ui-row-main"><span class="ui-row-name">{{b.name}}</span></div>
+            </div>
             {{/each}}
           </div>
-        </div>
+          {{/if}}
+        </section>
+
+        {{#unless isCore}}
+        <section class="ui-group">
+          <h3 class="ui-h"><span><span class="ui-num">2</span> {{localize "SDE.magicForge.magicBonus"}}</span></h3>
+          <div class="ui-inline mf-seg">
+            {{#each bonusOptions as |b|}}
+            <button type="button" class="ui-chip {{#if b.active}}sel{{/if}}" data-action="setBonus" data-bonus="{{b.n}}">+{{b.n}}</button>
+            {{/each}}
+          </div>
+        </section>
         {{/unless}}
 
-        <div class="sde-forge-field">
-          <label class="sde-forge-label">{{localize "SDE.magicForge.baseLabel" type=typeLabel}}
-            {{#if typeHint}}<span class="sde-forge-hint">{{localize "SDE.magicForge.typeHintLabel" hint=typeHint}}</span>{{/if}}
-          </label>
-          {{#if baseSelected}}
-            <div class="sde-forge-base-selected">
-              <img src="{{baseSelected.img}}" alt="" width="22" height="22">
-              <span>{{baseSelected.name}}</span>
-              <button type="button" class="sde-forge-x" data-action="clearBase" title="{{localize 'SDE.magicForge.changeBase'}}">
-                <i class="fas fa-xmark"></i>
-              </button>
+        {{#if isCore}}
+        <section class="ui-group">
+          <h3 class="ui-h"><span><span class="ui-num">2</span> {{localize "SDE.magicForge.mode.core"}}</span></h3>
+          {{#each coreSets as |set|}}
+          <div class="ui-card mf-set {{#if set.ready}}good{{/if}}">
+            <div class="ui-card-head">
+              <h4 class="ui-card-name">{{set.label}}</h4>
+              <span class="ui-chip {{#if set.ready}}ok{{else if (eq set.badge.cls "partial")}}warn{{else if (eq set.badge.cls "bad")}}bad{{else}}off{{/if}}"><i class="fas {{set.badge.icon}}"></i> {{set.badge.label}}</span>
             </div>
-          {{else}}
-            <input type="text" class="sde-forge-base-search" placeholder="{{localize 'SDE.magicForge.searchBase' type=typeLabel}}">
-            <div class="sde-forge-list">
-              {{#each bases as |b|}}
-                <div class="sde-forge-row sde-forge-base-row" data-action="pickBase"
-                  data-uuid="{{b.uuid}}" data-name="{{b.nameLower}}">
-                  <img src="{{b.img}}" alt="" width="22" height="22">
-                  <span class="sde-forge-row-name">{{b.name}}</span>
-                </div>
+            {{#if set.pageLabel}}<span class="ui-card-sub">{{set.pageLabel}}</span>{{/if}}
+            {{#unless set.ready}}
+              {{#each set.diagnostics as |d|}}<div class="ui-note warn">{{d.message}}</div>{{/each}}
+              {{#unless set.perTable}}
+              <button type="button" class="ui-btn mf-wrap" data-action="coreImport" data-set="{{set.key}}"><i class="fas fa-file-import"></i> {{localize "SDE.magicForge.importSet" label=set.label}}</button>
+              {{/unless}}
+            {{/unless}}
+            {{#each set.fields as |f|}}
+            <div class="ui-field mf-field">
+              <span class="ui-label">{{f.label}} <span class="ui-tag">{{f.roleLabel}}</span></span>
+              {{#if f.ready}}
+              <div class="ui-inline mf-ctrl">
+                <select class="sde-forge-core-select" data-manifest-id="{{f.manifestId}}">
+                  <option value="">{{localize "SDE.magicForge.choose"}}</option>
+                  {{#each f.results as |r|}}
+                  <option value="{{r.resultId}}" {{#if r.selected}}selected{{/if}}>{{r.rangeLabel}}. {{r.text}}</option>
+                  {{/each}}
+                </select>
+                <button type="button" class="ui-icon" data-action="coreRoll" data-manifest-id="{{f.manifestId}}" title="{{localize 'SDE.magicForge.rollTable'}}" aria-label="{{localize 'SDE.magicForge.rollTable'}}"><i class="fas fa-dice-d20"></i></button>
+                {{#if f.hasSelection}}<button type="button" class="ui-icon" data-action="coreClear" data-manifest-id="{{f.manifestId}}" title="{{localize 'SDE.magicForge.clearSelection'}}" aria-label="{{localize 'SDE.magicForge.clearSelection'}}"><i class="fas fa-xmark"></i></button>{{/if}}
+              </div>
+              {{#if f.hasSelection}}<span class="ui-sub mf-picked">{{f.selectedText}}</span>{{/if}}
+              {{else}}
+                {{#if f.perTable}}
+                <button type="button" class="ui-btn mf-wrap" data-action="coreImport" data-child="{{f.manifestId}}"><i class="fas fa-file-import"></i> {{localize "SDE.magicForge.importTable" label=f.label}}</button>
+                {{else}}
+                <span class="ui-sub">{{localize "SDE.magicForge.notImported"}}</span>
+                {{/if}}
+              {{/if}}
+            </div>
+            {{/each}}
+          </div>
+          {{/each}}
+        </section>
+        {{/if}}
+        {{/if}}
+
+        {{#if isSpellItem}}
+        <section class="ui-group">
+          <h3 class="ui-h"><span><span class="ui-num">1</span> {{#if isWand}}{{localize "SDE.magicForge.spells"}}{{else}}{{localize "SDE.magicForge.spell"}}{{/if}}</span><small>{{#if isWand}}{{localize "SDE.magicForge.pickOneOrMore"}}{{else}}{{localize "SDE.magicForge.pickOne"}}{{/if}}</small></h3>
+          <div class="ui-search"><i class="fa-solid fa-magnifying-glass"></i><input type="text" class="sde-forge-spell-search" placeholder="{{localize 'SDE.magicForge.searchSpells'}}"></div>
+          <div class="ui-inline mf-seg">
+            <span class="ui-label">{{localize "SDE.magicForge.tierLabel"}}</span>
+            {{#each tierChips as |tc|}}
+            <button type="button" class="ui-chip sde-forge-tier {{#if tc.active}}active sel{{/if}}" data-action="setTier" data-tier="{{tc.tier}}">{{tc.label}}</button>
+            {{/each}}
+          </div>
+          {{#each spellGroups as |g|}}
+          <details class="ui-details sde-forge-spell-group" data-class="{{g.className}}" {{#if g.open}}open{{/if}}>
+            <summary>{{g.className}} <span class="ui-chip mf-count">{{g.count}}</span></summary>
+            <div class="ui-list mf-spells">
+              {{#each g.spells as |s|}}
+              <div class="ui-row sde-forge-spell-row {{#if s.selected}}selected{{/if}}" data-action="toggleSpell" data-uuid="{{s.uuid}}" data-name="{{s.nameLower}}" data-tier="{{s.tier}}">
+                <img src="{{s.img}}" alt="">
+                <div class="ui-row-main"><span class="ui-row-name">{{s.name}}</span><span class="ui-row-sub">{{localize "SDE.magicForge.rowMeta" tier=s.tier dc=s.dc}}</span></div>
+                <button type="button" class="ui-icon" data-action="openSpell" data-uuid="{{s.uuid}}" title="{{localize 'SDE.magicForge.openSpell'}}" aria-label="{{localize 'SDE.magicForge.openSpell'}}"><i class="fas fa-up-right-from-square"></i></button>
+                <i class="fas fa-check mf-check"></i>
+              </div>
               {{/each}}
             </div>
-          {{/if}}
-        </div>
-
-        {{!-- Core Rulebook table panel (imported tables only) --}}
-        {{#if isCore}}
-          <div class="sde-forge-core">
-            {{#each coreSets as |set|}}
-              <div class="sde-forge-core-set state-{{set.badge.cls}}">
-                <div class="sde-forge-core-set-head">
-                  <span class="sde-forge-badge {{set.badge.cls}}"><i class="fas {{set.badge.icon}}"></i> {{set.badge.label}}</span>
-                  <span class="sde-forge-core-set-name">{{set.label}}</span>
-                  <span class="sde-forge-core-set-page">{{set.pageLabel}}</span>
-                </div>
-                {{#unless set.ready}}
-                  {{#each set.diagnostics as |d|}}<div class="sde-forge-core-diag">{{d.message}}</div>{{/each}}
-                  {{#unless set.perTable}}
-                    <button type="button" class="sde-forge-core-import" data-action="coreImport" data-set="{{set.key}}">
-                      <i class="fas fa-file-import"></i> {{localize "SDE.magicForge.importSet" label=set.label}}
-                    </button>
-                  {{/unless}}
-                {{/unless}}
-                {{#each set.fields as |f|}}
-                  <div class="sde-forge-core-field role-{{f.roleClass}}">
-                    <div class="sde-forge-core-field-head">
-                      <span class="sde-forge-core-field-name">{{f.label}}</span>
-                      <span class="sde-forge-core-role {{f.roleClass}}">{{f.roleLabel}}</span>
-                    </div>
-                    {{#if f.ready}}
-                      <div class="sde-forge-core-controls">
-                        <select class="sde-forge-core-select" data-manifest-id="{{f.manifestId}}">
-                          <option value="">{{localize "SDE.magicForge.choose"}}</option>
-                          {{#each f.results as |r|}}
-                            <option value="{{r.resultId}}" {{#if r.selected}}selected{{/if}}>{{r.rangeLabel}}. {{r.text}}</option>
-                          {{/each}}
-                        </select>
-                        <button type="button" class="sde-forge-core-btn" data-action="coreRoll" data-manifest-id="{{f.manifestId}}" title="{{localize 'SDE.magicForge.rollTable'}}"><i class="fas fa-dice-d20"></i></button>
-                        {{#if f.hasSelection}}<button type="button" class="sde-forge-core-btn" data-action="coreClear" data-manifest-id="{{f.manifestId}}" title="{{localize 'SDE.magicForge.clearSelection'}}"><i class="fas fa-xmark"></i></button>{{/if}}
-                      </div>
-                      {{#if f.hasSelection}}<div class="sde-forge-core-picked">{{f.selectedText}}</div>{{/if}}
-                    {{else}}
-                      {{#if f.perTable}}
-                        <button type="button" class="sde-forge-core-import small" data-action="coreImport" data-child="{{f.manifestId}}">
-                          <i class="fas fa-file-import"></i> {{localize "SDE.magicForge.importTable" label=f.label}}
-                        </button>
-                      {{else}}
-                        <span class="sde-forge-core-muted">{{localize "SDE.magicForge.notImported"}}</span>
-                      {{/if}}
-                    {{/if}}
-                  </div>
-                {{/each}}
-              </div>
-            {{/each}}
-          </div>
+          </details>
+          {{/each}}
+        </section>
         {{/if}}
-      {{/if}}
 
-      {{#if isSpellItem}}
-        <div class="sde-forge-field">
-          <label class="sde-forge-label">
-            {{#if isWand}}{{localize "SDE.magicForge.spells"}}{{else}}{{localize "SDE.magicForge.spell"}}{{/if}}
-            <span class="sde-forge-hint">{{#if isWand}}{{localize "SDE.magicForge.pickOneOrMore"}}{{else}}{{localize "SDE.magicForge.pickOne"}}{{/if}}</span>
-          </label>
-          <input type="text" class="sde-forge-spell-search" placeholder="{{localize 'SDE.magicForge.searchSpells'}}">
-          <div class="sde-forge-tier-row">
-            <span class="sde-forge-tier-label">{{localize "SDE.magicForge.tierLabel"}}</span>
-            {{#each tierChips as |tc|}}
-              <button type="button" class="sde-forge-tier {{#if tc.active}}active{{/if}}"
-                data-action="setTier" data-tier="{{tc.tier}}">{{tc.label}}</button>
-            {{/each}}
-          </div>
-          <div class="sde-forge-spell-classes">
-            {{#each spellGroups as |g|}}
-              <details class="sde-forge-spell-group" data-class="{{g.className}}" {{#if g.open}}open{{/if}}>
-                <summary class="sde-forge-spell-group-head">
-                  <i class="fas fa-chevron-right sde-forge-group-caret"></i>
-                  <span class="sde-forge-group-name">{{g.className}}</span>
-                  <span class="sde-forge-group-count">{{g.count}}</span>
-                </summary>
-                <div class="sde-forge-list sde-forge-spell-list">
-                  {{#each g.spells as |s|}}
-                    <div class="sde-forge-row sde-forge-spell-row {{#if s.selected}}selected{{/if}}"
-                      data-action="toggleSpell" data-uuid="{{s.uuid}}" data-name="{{s.nameLower}}" data-tier="{{s.tier}}">
-                      <img src="{{s.img}}" alt="" width="22" height="22">
-                      <span class="sde-forge-row-name">{{s.name}}</span>
-                      <span class="sde-forge-row-meta">{{localize "SDE.magicForge.rowMeta" tier=s.tier dc=s.dc}}</span>
-                      <button type="button" class="sde-forge-spell-peek" data-action="openSpell"
-                        data-uuid="{{s.uuid}}" title="{{localize 'SDE.magicForge.openSpell'}}">
-                        <i class="fas fa-up-right-from-square"></i>
-                      </button>
-                      <i class="fas fa-check sde-forge-row-check"></i>
-                    </div>
-                  {{/each}}
-                </div>
-              </details>
-            {{/each}}
-          </div>
-        </div>
-      {{/if}}
-
-      <div class="sde-forge-field">
-        <label class="sde-forge-label" for="sde-forge-name">{{localize "SDE.magicForge.nameLabel"}} <span class="sde-forge-hint">{{localize "SDE.magicForge.optionalOverride"}}</span></label>
-        <input type="text" name="name" id="sde-forge-name" value="{{name}}" placeholder="{{localize 'SDE.magicForge.namePlaceholder'}}" class="sde-forge-input">
+        <section class="ui-group">
+          <h3 class="ui-h"><span><span class="ui-num">{{#if isGear}}3{{else}}2{{/if}}</span> {{localize "SDE.magicForge.nameLabel"}}</span><small>{{localize "SDE.magicForge.optionalOverride"}}</small></h3>
+          <input type="text" name="name" id="sde-forge-name" value="{{name}}" placeholder="{{localize 'SDE.magicForge.namePlaceholder'}}">
+        </section>
       </div>
 
-      <label class="sde-forge-check">
-        <input type="checkbox" name="identified" {{#if identified}}checked{{/if}}>
-        {{localize "SDE.magicForge.identified"}}
-      </label>
-    </div>
+      <aside class="ui-card raised mf-preview">
+        <div class="ui-card-head"><span class="ui-chip gold"><i class="fas {{preview.icon}}"></i> {{preview.typeLabel}}</span></div>
+        <h3 class="ui-card-name sde-forge-preview-name">{{preview.name}}</h3>
+        <ul class="sde-forge-preview-lines mf-lines">
+          {{#each preview.lines as |line|}}<li>{{line}}</li>{{/each}}
+        </ul>
+      </aside>
 
-    {{!-- ── Right: live preview ── --}}
-    <div class="sde-forge-preview">
-      <div class="sde-forge-preview-badge"><i class="fas {{preview.icon}}"></i> {{preview.typeLabel}}</div>
-      <div class="sde-forge-preview-name">{{preview.name}}</div>
-      <ul class="sde-forge-preview-lines">
-        {{#each preview.lines as |line|}}<li>{{line}}</li>{{/each}}
-      </ul>
-      <button type="button" class="sde-forge-create" data-action="createItem" {{#unless canForge}}disabled{{/unless}}>
-        <i class="fas fa-hammer"></i> {{localize "SDE.magicForge.forgeItem"}}
-      </button>
     </div>
-
   </div>
+
+  <footer class="ui-footer">
+    <label class="ui-check"><input type="checkbox" name="identified" {{#if identified}}checked{{/if}}> {{localize "SDE.magicForge.identified"}}</label>
+    <div class="ui-right">
+      <button type="button" class="ui-btn primary sde-forge-create" data-action="createItem" {{#unless canForge}}disabled{{/unless}}><i class="fas fa-hammer"></i> {{localize "SDE.magicForge.forgeItem"}}</button>
+    </div>
+  </footer>
 </div>
