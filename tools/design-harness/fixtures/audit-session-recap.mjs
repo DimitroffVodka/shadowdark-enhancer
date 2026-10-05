@@ -21,5 +21,5 @@ const build = (state) => ({ context: {
   hasRumors: true, rumors: [{ text: "The well in Harwick sings at night", region: "Western Reaches", time: "Day 2" }, { text: "A ship without a crew", region: "", time: "Day 3" }],
   hasHistory: true, historyEntries: Array.from({ length: 6 }, (_, i) => ({ id: "s" + i, name: "Session " + (13 - i), duration: "3h", combatCount: 3, enemiesDefeated: 11, lootCount: 8 })),
 } });
-export default { previewHeight: 700, title: "SDE.sessionRecap.title", icon: "fas fa-scroll", classes: ["shadowdark-enhancer", "sde-session-recap"], width: 660, height: 560, resizable: true, template: "templates/session-recap.hbs", initial: "overview", build,
+export default { previewHeight: 700, title: "SDE.sessionRecap.title", icon: "fas fa-scroll", classes: ["shadowdark-enhancer", "sde-session-recap", "sde-ui"], width: 660, height: 560, resizable: true, template: "templates/session-recap.hbs", initial: "overview", build,
   toolbar: ["overview", "combat", "loot", "xp", "downtime", "history"].map((s) => `<button data-action="t" data-state="${s}">${s}</button>`).join(""), actions: { t: { state: "{state}" }, changeTab: { state: "{tab}" } } };

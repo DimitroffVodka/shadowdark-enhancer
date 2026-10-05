@@ -9,6 +9,7 @@
   redesign. No window uses it yet, so nothing looks different.
 
 ### Changed
+- **Downtime's icon-only buttons are labelled for screen readers, and the Session Recap tabs wrap on narrow windows** instead of scrolling the last tab out of view.
 - **Quest Log window uses the new design.** The filters sit in the header, one tab per status with a count, then the list and the chosen quest side by side, and the payout confirmation is styled to match in both the log and the Party sheet's Quests tab. Every action is unchanged.
 - **Session Recap window uses the new design.** One header with the session name and its numbers on every tab, five tabs, and History moved to a button in the footer. Tables scroll sideways inside their own frame at narrow widths. Every action is unchanged.
 - **Downtime window uses the new design.** One header with the pickers and purse, one status card, one accordion per activity (the first open, and your open or closed choice now survives a refresh), book notices folded into one section, and the session buttons in a footer. Every action and rule is unchanged.

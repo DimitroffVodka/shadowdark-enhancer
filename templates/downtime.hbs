@@ -55,8 +55,8 @@
                 {{#if this.rolled}}<span class="ui-row-sub">{{localize "SDE.downtime.ui.totalVs" total=this.total dc=this.dc}} - {{#if this.success}}{{localize "SDE.downtime.card.success"}}{{else}}{{localize "SDE.downtime.card.failure"}}{{/if}}{{#if this.awaitingChoice}} · {{localize "SDE.downtime.ui.awaitingChoice"}}{{/if}}</span>{{/if}}
               </span>
               {{#unless this.rolled}}{{#if this.picked}}
-                <button type="button" class="ui-icon" data-action="gmClearPick" data-actor-id="{{this.actorId}}" title="{{localize 'SDE.downtime.ui.clearPickTip'}}"><i class="fas fa-eraser"></i></button>
-                <button type="button" class="ui-icon" data-action="gmRollFor" data-actor-id="{{this.actorId}}" title="{{localize 'SDE.downtime.ui.rollForTip'}}"><i class="fas fa-dice-d20"></i></button>
+                <button type="button" class="ui-icon" data-action="gmClearPick" data-actor-id="{{this.actorId}}" aria-label="{{localize 'SDE.downtime.ui.clearPickTip'}}" title="{{localize 'SDE.downtime.ui.clearPickTip'}}"><i class="fas fa-eraser"></i></button>
+                <button type="button" class="ui-icon" data-action="gmRollFor" data-actor-id="{{this.actorId}}" aria-label="{{localize 'SDE.downtime.ui.rollForTip'}}" title="{{localize 'SDE.downtime.ui.rollForTip'}}"><i class="fas fa-dice-d20"></i></button>
               {{/if}}{{/unless}}
             </div>
           {{/each}}
@@ -115,7 +115,7 @@
         <div class="ui-card-head">
           <h3 class="ui-card-name">{{result.activityName}} - {{result.label}}</h3>
           <span class="ui-chip {{#if result.success}}ok{{else}}bad{{/if}}">{{localize "SDE.downtime.log.vsDc" total=result.total dc=result.dc}}</span>
-          <button type="button" class="ui-icon" data-action="dismissResult" title="{{localize 'SDE.downtime.ui.dismiss'}}"><i class="fas fa-xmark"></i></button>
+          <button type="button" class="ui-icon" data-action="dismissResult" aria-label="{{localize 'SDE.downtime.ui.dismiss'}}" title="{{localize 'SDE.downtime.ui.dismiss'}}"><i class="fas fa-xmark"></i></button>
         </div>
         {{#if result.success}}
           <p class="dt-hint">{{result.outcome}}</p>
@@ -222,7 +222,7 @@
           <h4 class="ui-h dt-sub">{{localize "SDE.downtime.recruit.yours"}}</h4>
           <p class="ui-muted dt-hint">{{localize "SDE.downtime.recruit.retrainNote"}}</p>
           <div class="ui-list">{{#each recruit.warbands}}<div class="ui-row"><div class="ui-row-main"><span class="ui-row-name">{{this.name}} <em class="ui-muted">{{localize "SDE.downtime.ui.levelShort" level=this.level}}</em></span>{{#if this.retraining}}<span class="ui-row-sub">{{this.retraining}}</span>{{/if}}</div>
-            <button type="button" class="ui-icon" data-action="openWarband" data-warband-id="{{this.id}}" title="{{localize 'SDE.downtime.recruit.openSheet'}}"><i class="fas fa-up-right-from-square"></i></button></div>{{/each}}</div>
+            <button type="button" class="ui-icon" data-action="openWarband" data-warband-id="{{this.id}}" aria-label="{{localize 'SDE.downtime.recruit.openSheet'}}" title="{{localize 'SDE.downtime.recruit.openSheet'}}"><i class="fas fa-up-right-from-square"></i></button></div>{{/each}}</div>
         {{/if}}
       </div>
     </details>
