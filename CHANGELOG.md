@@ -10,6 +10,7 @@
   redesign. No window uses it yet, so nothing looks different.
 
 ### Changed
+- **The Merchant window's Log and Settings are tabs in the tab bar** instead of two small icons in the header, and the Make Shop Available and Close Shop buttons stay at the bottom of every tab for the GM, so you can open the shop without going into Settings first.
 - **The Boat sheet header keeps the boat name whole at the default width** (the stats wrap instead), the unused vehicle tabs partial is gone, and the bastion, boat and character builder design-harness fixtures carry the windows' current classes.
 - **Character Builder steps have a simpler structure.** Each step has one heading line with a summary of the choice (the ancestry or class picked, the stat method, gold left, the character's name) instead of the two bordered bands; the Class step is two columns with folded sections, the used dice are readable, the ability guides and art actions fold away, and Create Character is the one primary button. The window keeps its black-and-silver look.
 - **Boat sheet uses the new design.** A header band (name, hit points, AC, move, passengers), five tabs, and Overview cards for Command, Sinking, Crew and cargo and Properties, with weather folded away; passengers, cargo and siege weapons are rows with icon buttons. It keeps the Shadowdark parchment look.
@@ -91,6 +92,7 @@
   earlier "Include mounts" had already placed on a scene is still recalled by Place / Recall.
 
 ### Fixed
+- **Levelling up in the Character Builder raises current hit points as well as the maximum.** The character gains the rolled amount on both (current is capped at the new maximum), so a hurt character stays as hurt as before, and Undo puts both back. It used to raise only the maximum, which left a sheet reading 8/14.
 - **Request roll works.** The Roll links on the chat card did nothing because the click handler was never registered. Clicking your character's link now runs the ability check and posts the result, with pass or fail when there is a DC.
 - **The Party emblem icon shows again in the header.** Its picture was loaded from a path that resolved inside the styles folder, so the box drew empty. The picker tiles were fine.
 - **The Party sheet header no longer stretches when the scene has no party token.** The long "drag the party onto the scene" warning now sits in a full-width strip under the header, so Marching order, Place / Recall and the grid stay in line.

@@ -215,13 +215,20 @@ test("planning a level-up writes exactly the level, the HP maximum, the XP and t
     st.bonusRolls = [{ key: "level-talent-3", chosenUuid: TALENT, chosenName: "Gladiator", options: [] }];
     st.spells.push({ uuid: SPELL(3), name: "Spell 3", tier: 1 }, { uuid: SPELL(4), name: "Spell 4", tier: 2 });
   });
-  assert.deepEqual(plan.system, { "system.level.value": 3, "system.attributes.hp.max": 9, "system.level.xp": 5 });
+  assert.deepEqual(plan.system, { "system.level.value": 3, "system.attributes.hp.max": 9, "system.attributes.hp.value": 6, "system.level.xp": 5 });
   assert.deepEqual(plan.creates.map((c) => [c.kind, c.name]).sort(), [["spell", "Spell 3"], ["spell", "Spell 4"], ["talent", "Gladiator"]]);
   assert.equal(plan.creates.find((c) => c.kind === "talent").level, 3);
   assert.deepEqual([plan.updates, plan.deletes, plan.name, plan.art], [[], [], null, {}]);
   for (const k of Object.keys(plan.system)) assert.ok(ACTOR_KEYS.includes(k), `${k} is written by a level-up but not in the before-image`);
-  assert.equal(plan.system["system.attributes.hp.value"], undefined, "current hit points are never written");
+  assert.equal(plan.system["system.attributes.hp.value"], 6, "current hit points rise by the same gain");
   assert.equal(plan.summary.lines.some((l) => l.kind === "set" && l.key === "level" && l.from === 2 && l.to === 3), true);
+});
+
+test("current hit points follow the gain but never pass the new maximum", async () => {
+  const hurt = await plannedLevelUp(makeActor({ level: 1, xp: 10, hp: { max: 10, value: 4 }, items: CARRIED() }), (st) => { st.levelUp.dice = [5]; });
+  assert.equal(hurt.plan.system["system.attributes.hp.value"], 9, "4 + 5: still 6 down from the new maximum of 15");
+  const over = await plannedLevelUp(makeActor({ level: 1, xp: 10, hp: { max: 10, value: 14 }, items: CARRIED() }), (st) => { st.levelUp.dice = [2]; });
+  assert.equal(over.plan.system["system.attributes.hp.value"], 12, "clamped to the new maximum");
 });
 
 test("hit points never go down, and a non-caster's level-up creates no spells", async () => {
@@ -309,7 +316,7 @@ test("a non-caster levels 1 to 2 through the builder: one die, no talent, no spe
   assert.match(html, /Hit points \(maximum\)<\/span><b>5 → 11 \(\+6\)/);
   assert.match(html, /XP<\/span><b>14 → 4/);
   assert.equal(actor._source.system.level.value, 2);
-  assert.deepEqual(actor._source.system.attributes.hp, { max: 11, value: 2 }, "current hit points stay");
+  assert.deepEqual(actor._source.system.attributes.hp, { max: 11, value: 8 }, "current hit points rise by the gain, so the damage taken stays the same");
   assert.equal(actor._source.system.level.xp, 4);
   assert.deepEqual(actor._source.system.luck, { available: true, remaining: 1 });
   assert.equal([...actor.items].length, 3, "no item was created");
@@ -366,7 +373,7 @@ test("a caster levels 2 to 3: the level-3 talent is rolled, only the new spells 
   assert.equal(actor._source.system.level.value, 3);
   assert.equal(actor._source.system.level.xp, 0);
   assert.equal(actor._source.system.attributes.hp.max, 9);
-  assert.equal(actor._source.system.attributes.hp.value, 6);
+  assert.equal(actor._source.system.attributes.hp.value, 9, "a character at full health ends at the new maximum");
   assert.ok(actor.items.has("amulet1") && actor.items.has("abil1"), "everything else is kept");
   assert.equal([...actor.items].filter((i) => i.type === "Class Ability").length, 1, "no Class Ability is created");
 

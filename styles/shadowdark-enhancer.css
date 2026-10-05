@@ -4999,8 +4999,6 @@ button.sde-hud-day:hover { border-color: var(--sd-frame); }
 .sde-ui.sde-merchant .ui-icon { flex: 0 0 auto; }
 .sde-ui.sde-merchant .ui-head, .sde-ui.sde-merchant .ui-head .ui-stats { flex-wrap: nowrap; }
 .sde-ui.sde-merchant .ms-wallet { color: var(--ui-gold); white-space: nowrap; }
-.sde-ui.sde-merchant .ms-tools { display: flex; gap: 4px; flex: 0 0 auto; }
-.sde-ui.sde-merchant .ms-tools .ui-icon.on { color: var(--ui-text); border-color: var(--ui-frame); background: var(--ui-raised); }
 .sde-ui.sde-merchant .ms-filters > select, .sde-ui.sde-merchant .ms-filters > .ui-search { min-width: 120px; }
 .sde-ui.sde-merchant .ms-filters > select { flex: 1 1 130px; width: auto; }
 .sde-ui.sde-merchant .ms-filters > .ui-grow { flex: 2 1 180px; }

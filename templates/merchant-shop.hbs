@@ -9,15 +9,12 @@
       <span class="ui-chip off"><i class="fas fa-user-slash"></i> {{localize "SDE.merchant.noCharacter"}}</span>
       {{/if}}
     </div>
-    <div class="ms-tools">
-      {{#each tabs}}{{#if (eq id "log")}}<button type="button" class="ui-icon sdems-tab-btn {{#if active}}on{{/if}}" data-tab="{{id}}" title="{{label}}" aria-label="{{label}}"><i class="fas {{icon}}"></i></button>{{else if (eq id "manage")}}<button type="button" class="ui-icon sdems-tab-btn {{#if active}}on{{/if}}" data-tab="{{id}}" title="{{label}}" aria-label="{{label}}"><i class="fas {{icon}}"></i></button>{{/if}}{{/each}}
-    </div>
   </header>
 
   <nav class="ui-tabs">
-    {{#each tabs}}{{#if (eq id "log")}}{{else if (eq id "manage")}}{{else}}
+    {{#each tabs}}
     <button type="button" class="ui-tab sdems-tab-btn {{#if active}}active{{/if}}" data-tab="{{id}}"><i class="fas {{icon}}"></i> {{label}}</button>
-    {{/if}}{{/each}}
+    {{/each}}
   </nav>
 
   <div class="ui-body">
@@ -262,9 +259,9 @@
 
   </div>
 
-  {{#if (eq tab "manage")}}
+  {{#if isGM}}
   <footer class="ui-footer">
-    <button type="button" class="ui-btn ghost sdems-save-config-btn"><i class="fas fa-book"></i> {{localize "SDE.merchant.manage.save"}}</button>
+    {{#if (eq tab "manage")}}<button type="button" class="ui-btn ghost sdems-save-config-btn"><i class="fas fa-book"></i> {{localize "SDE.merchant.manage.save"}}</button>{{/if}}
     <div class="ui-right">
       <button type="button" class="ui-btn sdems-close-for-all"><i class="fas fa-door-closed"></i> {{localize "SDE.merchant.manage.closeShop"}}</button>
       <button type="button" class="ui-btn primary sdems-open-for-all"><i class="fas fa-bullhorn"></i> {{localize "SDE.merchant.manage.makeAvailable"}}</button>
