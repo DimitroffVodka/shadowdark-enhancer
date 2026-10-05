@@ -452,7 +452,7 @@ test("the emblem defaults to the amber lantern, survives a bad flag, and only a 
   assert.deepEqual(p.flags[MOD].partyEmblem, { icon: "wolf-head", color: "3a6ea5", iconColor: "ffffff" });
   // A hand-edited flag still draws.
   p.flags[MOD].partyEmblem = { icon: "nope", color: 5 };
-  assert.deepEqual((await app._prepareContext()).emblem, { icon: "lantern", color: "c8892b", iconColor: "ffffff", path: "modules/shadowdark-enhancer/icons/game-icons/party/lantern.svg" });
+  assert.deepEqual((await app._prepareContext()).emblem, { icon: "lantern", color: "c8892b", iconColor: "ffffff", path: "modules/shadowdark-enhancer/icons/game-icons/party/lantern.svg", maskUrl: "/modules/shadowdark-enhancer/icons/game-icons/party/lantern.svg" });
   // A player, even one who owns the party, has no picker and no write.
   world([p], false);
   const writes = p.writes.length, player = new PartyApp(p);
