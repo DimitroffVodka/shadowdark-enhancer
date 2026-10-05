@@ -43,7 +43,7 @@ const t = (key, data) => {
 export class TrainingApp extends HandlebarsApplicationMixin(ApplicationV2) {
   static DEFAULT_OPTIONS = {
     id: "sde-training",
-    classes: ["shadowdark", "sde-training"],
+    classes: ["shadowdark", "sde-training", "sde-ui"],
     window: { title: "SDE.training.title", icon: "fa-solid fa-dumbbell", resizable: true },
     position: { width: 520, height: "auto" },
     actions: {
