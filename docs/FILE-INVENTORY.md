@@ -1,7 +1,7 @@
 # Shadowdark Enhancer — File Inventory
 
 <!-- inventory:stats:start -->
-1718 tracked files · ~217,400 lines of code/markup across scripts+templates+styles+test.
+1720 tracked files · ~216,200 lines of code/markup across scripts+templates+styles+test.
 `v0.17.3` in both `module.json` and `package.json`.
 <!-- inventory:stats:end -->
 **Layout reflects the 2026-07-21 feature-folder reorganization (v0.11.0 cycle).**
@@ -250,11 +250,11 @@
 
 | File | Lines | Description |
 |---|---:|---|
-| `loot-generator-app.mjs` | 266 | Roll a loot table, work a running batch, whisper claimable cards. |
+| `loot-generator-app.mjs` | 267 | Roll a loot table, work a running batch, whisper claimable cards. |
 | `loot-generator.mjs` | 234 | RollTable → structured loot batch (documents, coins, flavor). |
 | `loot-delivery.mjs` | 451 | Shared claimable chat card; first-claim-wins, GM-authoritative over an authenticated relay query. |
 | `loot-drops.mjs` | 195 | Auto-drop loot on NPC defeat at combat end. |
-| `loot-setup-app.mjs` | 237 | Browsable Loot & Treasure library; rows unlock from the GM's own PDF. |
+| `loot-setup-app.mjs` | 238 | Browsable Loot & Treasure library; rows unlock from the GM's own PDF. |
 | `loot-value.mjs` | 68 | gp value → Shadowdark XP quality tiers. |
 | `loot-table-catalog.mjs` | 312 | Loot/treasure table catalog + classifier across Core, CS1–6, WR (metadata only). |
 | `loot-table-tag.mjs` | 80 | Sidebar context-menu "Mark as Loot Table" toggle. |
@@ -274,7 +274,7 @@
 
 | File | Lines | Description |
 |---|---:|---|
-| `magic-forge-app.mjs` | 745 | Magic Item Forge window (weapons/armor with working +N, benefit/curse riders). |
+| `magic-forge-app.mjs` | 748 | Magic Item Forge window (weapons/armor with working +N, benefit/curse riders). |
 | `magic-forge.mjs` | 292 | Core engine building items that actually function in the system. |
 | `magic-table-runtime.mjs` | 727 | Drives forge recipes off the GM's own imported magic-item tables. |
 
@@ -282,7 +282,7 @@
 
 | File | Lines | Description |
 |---|---:|---|
-| `merchant-shop.mjs` | 2729 | Two-mode shop system (compendium global or actor NPC inventory); GM opens for all players. |
+| `merchant-shop.mjs` | 2730 | Two-mode shop system (compendium global or actor NPC inventory); GM opens for all players. |
 | `merchant-defaults.mjs` | 209 | The two shipped merchant configs (Base, Western Reaches). |
 | `catalog-stock.mjs` | 37 | What the Catalog tab may sell: gear types with a list price, not loot-table props. |
 
@@ -290,7 +290,7 @@
 
 | File | Lines | Description |
 |---|---:|---|
-| `party-xp.mjs` | 321 | Award XP to the whole party in one click (ApplicationV2 GM tool). |
+| `party-xp.mjs` | 322 | Award XP to the whole party in one click (ApplicationV2 GM tool). |
 | `party-xp-core.mjs` | 52 | Pure XP math + item-XP resolution. |
 
 ### 3.11 `scripts/session-recap/`
@@ -528,7 +528,7 @@ Structure and thresholds only. Venue descriptions, twist details, what each stak
 | `advancement-engine.mjs` | 936 | Foundry-free G6b advancement engine: clones a complete level-one Player plan, rolls HP and bounded level-3/5 talent graphs through G6a, fills caster spell-grid deltas, resolves every supported replacement effect, records duplicate/recursion caps and level history, and returns a deterministic complete plan or diagnostic failure without persistence. |
 | `class-readiness.mjs` | 760 | Foundry-free G3 class automation-readiness evaluator, stable blocker/warning vocabulary, G6a mappings, and bounded importer defect queue. |
 | `class-readiness-adapter.mjs` | 304 | Read-only Foundry adapter that inventories Core and importer-managed Classes, resolves talent evidence, invokes the existing via classifier, and feeds the pure readiness report. |
-| `forge-loot-app.mjs` | 277 | The `sde-forge-loot` ApplicationV2 shell: generator selection, declared adapter inputs, preview/report rendering, and thin Generate Preview/Reroll/Cancel/Approve controls. It contains no NPC or Rival Crawler rules and delegates all persistence to the core adapter contract. |
+| `forge-loot-app.mjs` | 278 | The `sde-forge-loot` ApplicationV2 shell: generator selection, declared adapter inputs, preview/report rendering, and thin Generate Preview/Reroll/Cancel/Approve controls. It contains no NPC or Rival Crawler rules and delegates all persistence to the core adapter contract. |
 | `forge-loot-core.mjs` | 840 | Foundry-free G4 state machine and adapter boundary for the shared Forge & Loot tool: deterministic seeds, immutable previews, explicit reroll/cancel/approve transitions, missing/exclusion/warning diagnostics, active-GM/source-drift gates, and a synchronous in-flight commit guard. G5/G7 supply generator rules and sole commit adapters; this file performs no world writes. |
 | `forge-loot-rng.mjs` | 80 | Foundry-free deterministic mulberry32-style PRNG for Forge & Loot. A fresh seeded function is created for each preview lifecycle, with helpers for bounded integers and snapshot picks; commit adapters receive no RNG and planners never call Foundry RollTable methods. |
 | `rival-class-table.mjs` | 252 | Foundry-free G2 policy for selecting eligible Core/importer-managed classes with Level-0 filtering and Core-wins canonical deduplication, then building deterministic equal-probability RollTable payloads with replacement warning and content fingerprint. |
