@@ -128,7 +128,7 @@ document.addEventListener("click", async (e) => {
 }
 
 const TYPES = { ".css": "text/css", ".js": "text/javascript", ".mjs": "text/javascript", ".json": "application/json", ".png": "image/png", ".jpg": "image/jpeg", ".webp": "image/webp", ".svg": "image/svg+xml", ".woff2": "font/woff2", ".woff": "font/woff", ".ttf": "font/ttf", ".TTF": "font/ttf", ".hbs": "text/plain" };
-const roots = [["/systems/shadowdark/", SYSTEM], ["/modules/game-icons-net/", path.join(FOUNDRY, "../Data/modules/game-icons-net")], [`/modules/${MODULE_ID}/`, ROOT], ["/", path.join(FOUNDRY, "public")]];
+const roots = [["/systems/shadowdark/", SYSTEM], ["/modules/game-icons-net/", path.join(FOUNDRY, "../Data/modules/game-icons-net")], ["/modules/shadowdark-extras/", path.join(FOUNDRY, "../Data/modules/shadowdark-extras")], ["/cache/", path.join(os.homedir(), ".cache/sde-design-harness")], [`/modules/${MODULE_ID}/`, ROOT], ["/", path.join(FOUNDRY, "public")]];
 
 http.createServer(async (req, res) => {
   const u = new URL(req.url, "http://x"), p = decodeURIComponent(u.pathname);

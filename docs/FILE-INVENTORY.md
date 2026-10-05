@@ -1,7 +1,7 @@
 # Shadowdark Enhancer — File Inventory
 
 <!-- inventory:stats:start -->
-1724 tracked files · ~215,000 lines of code/markup across scripts+templates+styles+test.
+1725 tracked files · ~215,000 lines of code/markup across scripts+templates+styles+test.
 `v0.17.3` in both `module.json` and `package.json`.
 <!-- inventory:stats:end -->
 **Layout reflects the 2026-07-21 feature-folder reorganization (v0.11.0 cycle).**
@@ -557,7 +557,7 @@ One world JournalEntry per quest, its state one flag on the entry. World journal
 | `bastion-funding.mjs` | 57 | The party link and paying into the treasury, pure: which actors are parties, who can pay, and the purse arithmetic for paying gold in and out. Extras' own party coins are never read or written. |
 | `bastion-art.mjs` | 33 | The actor type id, where the bastion art files are (assets/bastion/art), and the one-time load of the sprite sheet the plan and the panel draw from. |
 | `bastion-data-model.mjs` | 53 | The Bastion actor's data model: type, build weeks, hit points, treasury, upgrades and their places, repair, log. |
-| `bastion-sheet.mjs` | 328 | The Bastion actor sheet (ApplicationV2): Overview, Upgrades, Plan (exterior and interior, roofs, zoom, room card, SVG and PNG export) and Log. The GM edits. |
+| `bastion-sheet.mjs` | 331 | The Bastion actor sheet (ApplicationV2): Overview, Upgrades, Plan (exterior and interior, roofs, zoom, room card, SVG and PNG export) and Log. The GM edits. |
 | `register-bastion.mjs` | 92 | Registers the `shadowdark-enhancer.bastion` actor type, its sheet and art defaults, and builds `game.shadowdarkEnhancer.bastion`. |
 | `bastion-text.mjs` | 34 | Words the sheet and the panel share: the localizers, why a rules call said no, and a log line turned into words. |
 | `bastion-writes.mjs` | 199 | Writing a bastion and paying into it, the GM's: a state written back as one update (the type's art follows a retype), and gold moved between a character's purse and the treasury with each write read back and the first put back if the second is refused. |
