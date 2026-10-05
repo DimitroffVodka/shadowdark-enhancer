@@ -9,6 +9,9 @@
   redesign. No window uses it yet, so nothing looks different.
 
 ### Changed
+- **Design-harness fixtures for the importer windows carry the windows' current classes.**
+- **Roll Tables, Adventure Placer and Token Art Manager use the new design.** Token Art Manager has Monsters and Sources tabs and a row count that is right on first open, and the Adventure Placer is a list of locations with place, skip and clear buttons.
+- **Importer Hub, Class Importer, Monster Importer, Spell Importer and Item Builder use the new design.** The hub has Paste, Preview, Manage and Tools tabs (Parse opens Preview, Tools is a list instead of a popover), and its preview cards stay open or closed as you left them.
 - **Design-harness fixtures for Training, Pit Fighting, the Encounter Roller and the Monster Creator panel match the current window markup and classes.**
 - **Encounter Roller and its Monster Creator tab use the new design.** Roll Tables shows the table and the result side by side with icon buttons on each row, Build Table is one row per slot, and Browse NPCs has a filter card beside a sortable table. The creator keeps the creature's core on the left and opens one tab (Actions, Features, Spellcasting, Mutations, Baseline) at a time on the right.
 - **Pit Fighting window uses the new design.** The bout is four numbered cards (Offer, Twist, Who steps up, Result) with the rolls and picks on one line each, the foes as chips, and Accept, Decline and Apply result in the footer.

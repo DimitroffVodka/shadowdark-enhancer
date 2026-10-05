@@ -52,6 +52,7 @@ const _featureHtml = (h) => String(h ?? "")
 export class ClassImporterApp extends HandlebarsApplicationMixin(ApplicationV2) {
   static DEFAULT_OPTIONS = {
     id: "sde-class-importer",
+    classes: ["sde-ui", "sde-imp"],
     window: { title: "SDE.importer.classImporter.title", icon: "fa-solid fa-hat-wizard", resizable: true },
     position: { width: 720, height: 800 },
     actions: {

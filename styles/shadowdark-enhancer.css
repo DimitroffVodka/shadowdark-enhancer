@@ -1350,24 +1350,7 @@ button.sde-strip-dying:hover { filter: brightness(1.25); }
   border-color: var(--sde-bar-border);
   background: var(--sde-bar-surface-1);
 }
-.sde-thub-searchbox {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 2px 4px;
-  color: var(--sde-bar-text);
-}
-.sde-thub-searchbox i { opacity: 0.6; }
-.sde-thub-search {
-  flex: 1;
-  background: var(--sde-bar-surface-2, rgba(0, 0, 0, 0.2));
-  border: 1px solid var(--sde-bar-border);
-  border-radius: 6px;
-  padding: 4px 8px;
-  color: var(--sde-bar-text);
-  font-family: inherit;
-  font-size: 13px;
-}
+
 /* Global source filter bar — sits directly under the hub tab nav and scopes
    every dashboard. */
 .sde-hub-sources-global {
@@ -1403,121 +1386,17 @@ button.sde-strip-dying:hover { filter: brightness(1.25); }
 .sde-thub-stat:hover { background: rgba(255, 255, 255, 0.07); }
 .sde-thub-stat.active { border-color: currentColor; background: rgba(255, 255, 255, 0.10); }
 
-.sde-thub-sources {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  flex-wrap: wrap;
-  padding: 4px 4px 8px;
-  border-bottom: 1px solid var(--sde-bar-border);
-}
-.sde-thub-srclabel {
-  font-size: 11px;
-  font-weight: 700;
-  color: var(--sde-bar-text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  margin-right: 2px;
-}
-.sde-thub-src {
-  font-family: inherit;
-  font-size: 12px;
-  font-weight: 700;
-  color: var(--sde-bar-text);
-  background: var(--sde-bar-bg-alt);
-  border: 1px solid var(--sde-bar-border);
-  border-radius: 12px;
-  padding: 2px 9px;
-  cursor: pointer;
-}
-.sde-thub-src:hover { background: var(--sde-bar-bg-hover); }
-.sde-thub-src.active {
-  border-color: var(--sde-bar-accent);
-  color: var(--sde-bar-accent);
-  background: var(--sde-bar-bg-hover);
-}
-.sde-thub-src.empty { opacity: 0.45; }
-.sde-thub-src-n { font-size: 10px; color: var(--sde-bar-text-muted); }
-.sde-thub-src.active .sde-thub-src-n { color: inherit; }
 .sde-thub-stat.ok   { color: #6fb86f; }
 .sde-thub-stat.imp  { color: var(--sde-ranged); }
 .sde-thub-stat.miss { color: #d98a3a; }
-.sde-thub-refresh {
-  margin-left: auto;
-  padding: 3px 10px;
-  background: var(--sde-bar-btn-1);
-  border: 1px solid var(--sde-bar-border);
-  border-radius: 4px;
-  color: var(--sde-bar-text);
-  cursor: pointer;
-}
-.sde-thub-refresh:hover { background: var(--sde-bar-bg-hover); color: var(--sde-bar-accent); }
 
 .sde-thub-cat { border-bottom: 1px solid var(--sde-bar-border); }
-.sde-thub-cat-head {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  cursor: pointer;
-  list-style: none;
-  padding: 5px 2px;
-  font-size: 13px;
-  font-weight: 700;
-  color: var(--sde-bar-accent);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  user-select: none;
-}
-.sde-thub-cat-head::-webkit-details-marker { display: none; }
-.sde-thub-caret { font-size: 11px; transition: transform 0.12s; }
-.sde-thub-cat[open] > .sde-thub-cat-head .sde-thub-caret { transform: rotate(90deg); }
-.sde-thub-cat-name { flex: 1 1 auto; }
-.sde-thub-cat-count {
-  flex: 0 0 auto;
-  font-size: 11px;
-  font-weight: 700;
-  color: var(--sde-bar-text-muted);
-  background: rgba(255, 255, 255, 0.06);
-  border-radius: 10px;
-  padding: 0 8px;
-}
+
 .sde-thub-sub { margin: 2px 0 8px; }
-.sde-thub-sub-head {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  cursor: pointer;
-  list-style: none;
-  font-size: 11px;
-  font-weight: 700;
-  color: var(--sde-bar-text-bright);
-  margin: 4px 0 3px 4px;
-  opacity: 0.85;
-  user-select: none;
-}
-.sde-thub-sub-head::-webkit-details-marker { display: none; }
-.sde-thub-sub-head:hover { opacity: 1; }
-.sde-thub-sub[open] > .sde-thub-sub-head .sde-thub-caret { transform: rotate(90deg); }
-.sde-thub-sub-name { flex: 1 1 auto; }
-.sde-thub-sub-count {
-  flex: 0 0 auto;
-  font-size: 10px;
-  font-weight: 700;
-  color: var(--sde-bar-text-muted);
-  background: rgba(255, 255, 255, 0.05);
-  border-radius: 10px;
-  padding: 0 7px;
-}
+
 .sde-thub-openable { cursor: pointer; }
 .sde-thub-openable:hover { outline: 1px solid var(--sde-bar-accent-dim); }
-.sde-thub-rows {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
+
 .sde-thub-row {
   display: flex;
   align-items: center;
@@ -1527,63 +1406,9 @@ button.sde-strip-dying:hover { filter: brightness(1.25); }
   background: var(--sde-bar-bg-alt);
 }
 .sde-thub-row:hover { background: var(--sde-bar-bg-hover); }
-.sde-thub-name { font-weight: 700; flex: 0 0 auto; }
-.sde-thub-meta {
-  color: var(--sde-bar-text-muted);
-  font-size: 11px;
-  flex: 1 1 auto;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.sde-thub-badge {
-  flex: 0 0 auto;
-  font-size: 11px;
-  font-weight: 700;
-  padding: 1px 8px;
-  border-radius: 10px;
-  border: 1px solid transparent;
-}
-.sde-thub-badge.ok   { color: #bdf0bd; background: rgba(60,120,60,0.25);  border-color: rgba(110,184,110,0.5); }
-.sde-thub-badge.imp  { color: #cfe8ff; background: rgba(40,90,140,0.25);  border-color: rgba(90,169,230,0.5); }
-.sde-thub-badge.miss { color: #f3d2a8; background: rgba(150,90,30,0.22);  border-color: rgba(217,138,58,0.5); }
-.sde-thub-badge.warn { color: #ffd9a8; background: rgba(190,120,30,0.28);  border-color: rgba(240,170,70,0.6); }
+
 .sde-thub-stat.part { color: #e0a84a; }
-.sde-thub-matrix-tag {
-  flex: 0 0 auto;
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.03em;
-  padding: 1px 6px;
-  border-radius: 3px;
-  color: var(--sde-bar-text-muted);
-  background: rgba(255,255,255,0.06);
-  border: 1px dashed var(--sde-bar-border);
-}
-.sde-thub-world {
-  flex: 0 1 auto;
-  font-size: 11px;
-  color: var(--sde-bar-text-muted);
-  font-style: italic;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 16rem;
-}
-.sde-thub-rows-chk { flex: 0 0 auto; font-size: 10px; font-weight: 700; padding: 1px 6px; border-radius: 4px; }
-.sde-thub-rows-chk.ok   { color: #6fb86f; }
-.sde-thub-rows-chk.warn { color: #d98a3a; }
-.sde-thub-import {
-  flex: 0 0 auto;
-  padding: 2px 8px;
-  font-size: 11px;
-  background: linear-gradient(135deg, var(--sde-bar-accent-dim) 0%, var(--sde-bar-accent-dark) 100%);
-  color: var(--sde-bar-on-accent);
-  border: 1px solid var(--sde-bar-accent);
-  border-radius: 4px;
-  cursor: pointer;
-}
-.sde-thub-import:hover { filter: brightness(1.15); }
+
 .sde-thub-link {
   flex: 0 0 auto;
   padding: 2px 8px;
@@ -1596,32 +1421,6 @@ button.sde-strip-dying:hover { filter: brightness(1.25); }
 }
 .sde-thub-link:hover { filter: brightness(1.2); }
 
-/* Seeded-import banner — shown in the Importer when opened from the hub for a
-   known missing table. */
-.sde-import-seed {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin-bottom: 8px;
-  padding: 6px 10px;
-  background: rgba(40, 90, 140, 0.18);
-  border: 1px solid rgba(90, 169, 230, 0.5);
-  border-radius: 4px;
-  color: var(--sde-bar-text-bright);
-  font-size: 12px;
-}
-.sde-import-seed i { color: var(--sde-ranged); }
-.sde-import-seed strong { color: var(--sde-bar-accent); }
-.sde-import-seed-tag {
-  font-family: monospace;
-  font-size: 11px;
-  padding: 0 6px;
-  border-radius: 3px;
-  background: rgba(0,0,0,0.3);
-  color: var(--sde-bar-text);
-}
-
 /* ── Light theme coverage — Table Hub / Importer / browse (audit P1-8) ──────
    These components were authored in raw dark-palette literals with no
    body.theme-light counterpart; pale status text went near-invisible on the
@@ -1630,198 +1429,15 @@ button.sde-strip-dying:hover { filter: brightness(1.25); }
 body.theme-light .sde-thub-tabs .item:hover,
 body.theme-light .sde-thub-stat:hover { background: rgba(0, 0, 0, 0.06); }
 body.theme-light .sde-thub-stat.active { background: rgba(0, 0, 0, 0.08); }
-body.theme-light .sde-thub-stat.ok,
-body.theme-light .sde-thub-rows-chk.ok   { color: #2e6b2e; }
+body.theme-light .sde-thub-stat.ok   { color: #2e6b2e; }
 body.theme-light .sde-thub-stat.imp  { color: #1d5e8f; }
-body.theme-light .sde-thub-stat.miss,
-body.theme-light .sde-thub-rows-chk.warn { color: #9c5210; }
+body.theme-light .sde-thub-stat.miss { color: #9c5210; }
 body.theme-light .sde-thub-stat.part { color: #8a6210; }
-body.theme-light .sde-thub-cat-count,
-body.theme-light .sde-thub-sub-count,
-body.theme-light .sde-thub-matrix-tag { background: rgba(0, 0, 0, 0.05); }
-body.theme-light .sde-thub-badge.ok   { color: #1e5c1e; background: rgba(60,120,60,0.14);  border-color: rgba(46,107,46,0.5); }
-body.theme-light .sde-thub-badge.imp  { color: #14507c; background: rgba(40,90,140,0.12);  border-color: rgba(29,94,143,0.5); }
-body.theme-light .sde-thub-badge.miss { color: #8a4a0e; background: rgba(150,90,30,0.12);  border-color: rgba(156,82,16,0.5); }
-body.theme-light .sde-thub-badge.warn { color: #8a5a00; background: rgba(190,120,30,0.14); border-color: rgba(170,110,20,0.55); }
+
 body.theme-light .sde-thub-link {
   color: #14507c;
   background: rgba(40, 90, 140, 0.12);
   border-color: rgba(29, 94, 143, 0.55);
-}
-body.theme-light .sde-import-seed { background: rgba(40, 90, 140, 0.10); }
-body.theme-light .sde-import-seed i { color: #1d5e8f; }
-body.theme-light .sde-import-seed-tag { background: rgba(0, 0, 0, 0.08); }
-
-body.theme-light .sde-mimport-warn {
-  border-color: #a87800 !important;
-  box-shadow: 0 0 0 1px rgba(168, 120, 0, 0.5);
-  background: rgba(230, 161, 0, 0.10);
-}
-body.theme-light .sde-mimport-warn-row { border-left-color: rgba(168, 120, 0, 0.6); }
-body.theme-light .sde-mimport-warncount { color: #7c5800; }
-
-/* ═══════════════════════════════════════════════════════════════════════════
-   IMPORTER HUB  (3-tab shell: Import / Tables / Monsters)
-   Uses only --sde-* tokens (no raw hex). The Tables tab body reuses all
-   existing .sde-thub-* rules above — nothing repeated here.
-   ═══════════════════════════════════════════════════════════════════════════ */
-
-/* Hub root — scrolls as one column with an always-visible scrollbar
-   (overflow:hidden here used to clip the Manage strip with no way to
-   tell there was more content below). */
-.sde-importer-hub {
-  min-height: 0;
-  overflow-y: auto;
-  scrollbar-width: auto;
-  scrollbar-color: var(--sde-bar-border, #6b6b6b) var(--sde-bar-surface-1, #1a1a1a);
-  scrollbar-gutter: stable;
-}
-.sde-importer-hub::-webkit-scrollbar { width: 10px; }
-.sde-importer-hub::-webkit-scrollbar-track { background: var(--sde-bar-surface-1, #1a1a1a); }
-.sde-importer-hub::-webkit-scrollbar-thumb {
-  background: var(--sde-bar-border, #6b6b6b);
-  border-radius: 5px;
-}
-.sde-importer-hub::-webkit-scrollbar-thumb:hover { background: var(--sde-bar-accent, #d4a017); }
-
-/* Each parsed-preview block scrolls internally with a visible bar, so a
-   100-row d100 table never swallows the window. Sized against the importer
-   WINDOW (container units), not the browser viewport — resizing the app
-   resizes the preview. */
-#sde-importer-hub .window-content { container-type: size; }
-/* The hub root is a flex column: never let it crush the preview sections to
-   "fit" — keep their full height and let the root scrollbar take the rest. */
-.sde-importer-hub > * { flex-shrink: 0; }
-.sde-hub-import-section .sde-import-preview {
-  max-height: 42vh;        /* fallback if container sizing is unavailable */
-  max-height: 55cqh;
-  overflow-y: auto;
-  scrollbar-width: auto;
-  scrollbar-color: var(--sde-bar-border, #6b6b6b) var(--sde-bar-surface-1, #1a1a1a);
-  scrollbar-gutter: stable;
-}
-.sde-hub-import-section .sde-import-preview::-webkit-scrollbar { width: 10px; }
-.sde-hub-import-section .sde-import-preview::-webkit-scrollbar-track { background: var(--sde-bar-surface-1, #1a1a1a); }
-.sde-hub-import-section .sde-import-preview::-webkit-scrollbar-thumb {
-  background: var(--sde-bar-border, #6b6b6b);
-  border-radius: 5px;
-}
-
-.sde-hub-tabs {
-  flex: 0 0 auto;
-  display: flex;
-  gap: 4px;
-  border-bottom: 1px solid var(--sde-bar-border);
-  margin-bottom: 2px;
-}
-
-.sde-hub-tab-btn {
-  font-weight: 700;
-  font-size: 13px;
-  font-family: var(--sde-bar-font);
-  padding: 6px 14px;
-  border: 1px solid transparent;
-  border-bottom: none;
-  border-radius: var(--sde-bar-radius) var(--sde-bar-radius) 0 0;
-  background: transparent;
-  color: var(--sde-bar-text);
-  cursor: pointer;
-  opacity: 0.7;
-  transition: background 0.12s, opacity 0.12s, border-color 0.12s;
-}
-
-.sde-hub-tab-btn:hover {
-  background: var(--sde-bar-bg-hover);
-  opacity: 1;
-}
-
-.sde-hub-tab-btn.active {
-  opacity: 1;
-  border-color: var(--sde-bar-border);
-  background: var(--sde-bar-surface-1);
-  color: var(--sde-bar-accent);
-}
-
-/* Tab body — each tab panel */
-.sde-hub-tab-body {
-  flex: 1 1 auto;
-  min-height: 0;
-  overflow-y: auto;
-  scrollbar-gutter: stable;
-  display: flex;
-  flex-direction: column;
-}
-
-/* Placeholder state for Import and Monsters tabs (populated in 10-03/10-04) */
-.sde-hub-placeholder {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  padding: 48px 24px;
-  text-align: center;
-  color: var(--sde-bar-text-muted);
-}
-
-.sde-hub-placeholder-icon {
-  font-size: 2.5rem;
-  opacity: 0.35;
-  color: var(--sde-bar-accent);
-}
-
-.sde-hub-placeholder-title {
-  font-size: 15px;
-  font-weight: 700;
-  font-family: var(--sde-bar-font);
-  color: var(--sde-bar-text);
-  margin: 0;
-}
-
-.sde-hub-placeholder-note {
-  font-size: 13px;
-  color: var(--sde-bar-text-muted);
-  margin: 0;
-  max-width: 32ch;
-  line-height: 1.5;
-}
-
-/* ── Import-tab layout ───────────────────────────────────────────────────── */
-
-/* The tab body uses flex column — constrain the paste box */
-.sde-hub-import {
-  padding: 8px 12px 12px;
-  gap: 6px;
-}
-
-/* Keep tab content at its natural height so the tab body owns scrolling. */
-.sde-hub-tab-body > * {
-  flex-shrink: 0;
-}
-
-/* Seed hint bar */
-.sde-hub-import-seed {
-  background: var(--sde-bar-surface-1);
-  border: 1px solid var(--sde-bar-border);
-  border-left: 3px solid var(--sde-bar-accent);
-  border-radius: var(--sde-bar-radius);
-  padding: 6px 10px;
-  font-size: 13px;
-  color: var(--sde-bar-text);
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  flex-wrap: wrap;
-}
-
-.sde-hub-import-seed-tag {
-  background: var(--sde-bar-btn-1);
-  border: 1px solid var(--sde-bar-border);
-  border-radius: var(--sde-bar-radius);
-  padding: 1px 6px;
-  font-size: 11px;
-  font-family: var(--sde-bar-font);
-  color: var(--sde-bar-text);
 }
 
 /* Source-PDF manager dialog list. */
@@ -1849,523 +1465,12 @@ body.theme-light .sde-mimport-warncount { color: #7c5800; }
 .sde-srcpdf-file { font-size: 11px; opacity: .8; overflow-wrap: anywhere; }
 .sde-srcpdf-upload { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 6px; }
 
-/* Deep-link to the user's uploaded source PDF at the cited page. */
-.sde-hub-import-pdfbtn {
-  background: var(--sde-bar-btn-1);
-  border: 1px solid var(--sde-bar-accent);
-  border-radius: var(--sde-bar-radius);
-  padding: 1px 8px;
-  width: auto;
-  line-height: 1.6;
-  font-size: 11px;
-  font-family: var(--sde-bar-font);
-  color: var(--sde-bar-accent);
-  cursor: pointer;
-}
-.sde-hub-import-pdfbtn:hover {
-  background: var(--sde-bar-accent);
-  color: var(--sde-bar-surface-1);
-}
-
-/* Paste-box label */
-.sde-hub-import-label {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--sde-bar-text-muted);
-  font-family: var(--sde-bar-font);
-}
-
-/* Paste textarea */
-.sde-hub-import-text {
-  width: 100%;
-  min-height: 100px;
-  background: var(--sde-bar-surface-1);
-  border: 1px solid var(--sde-bar-border);
-  border-radius: var(--sde-bar-radius);
-  color: var(--sde-bar-text);
-  font-family: monospace;
-  font-size: 12px;
-  padding: 6px 8px;
-  resize: vertical;
-  box-sizing: border-box;
-}
-.sde-hub-import-text:focus-visible {
-  outline: 2px solid var(--sde-bar-accent);
-  outline-offset: 1px;
-}
-
-/* Source bar */
-.sde-hub-import-sourcebar {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 12px;
-  color: var(--sde-bar-text-muted);
-  font-family: var(--sde-bar-font);
-}
-.sde-hub-import-source-input {
-  flex: 1 1 auto;
-  max-width: 200px;
-  background: var(--sde-bar-surface-1);
-  border: 1px solid var(--sde-bar-border);
-  border-radius: var(--sde-bar-radius);
-  color: var(--sde-bar-text);
-  font-size: 12px;
-  padding: 3px 6px;
-}
-
-/* Type selector bar */
-.sde-hub-import-typebar {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 8px;
-  font-size: 12px;
-  color: var(--sde-bar-text-muted);
-  font-family: var(--sde-bar-font);
-}
-.sde-hub-import-typebar > label { font-weight: 600; }
-.sde-hub-import-subtype-label { opacity: 0.8; }
-.sde-hub-import-type-sel {
-  background: var(--sde-bar-surface-1);
-  border: 1px solid var(--sde-bar-border);
-  border-radius: var(--sde-bar-radius);
-  color: var(--sde-bar-text);
-  font-size: 12px;
-  padding: 3px 6px;
-  width: auto;
-  min-width: 120px;
-}
-
-/* Controls row */
-.sde-hub-import-controls {
-  display: flex;
-  gap: 6px;
-  align-items: center;
-  flex-wrap: wrap;
-}
-
-/* Manage / cleanup strip (collapsible, lazy) */
-.sde-hub-manage {
-  margin-top: 14px;
-  border: 1px solid var(--sde-bar-border);
-  border-radius: var(--sde-bar-radius);
-  background: var(--sde-bar-surface-1);
-}
-.sde-hub-manage-summary {
-  cursor: pointer;
-  list-style: none;
-  padding: 8px 12px;
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--sde-bar-text);
-  font-family: var(--sde-bar-font);
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-.sde-hub-manage-summary::-webkit-details-marker { display: none; }
-.sde-hub-manage-summary::before {
-  content: "\f0da"; /* caret-right */
-  font-family: "Font Awesome 7 Pro", "Font Awesome 6 Free", "Font Awesome 6 Pro", "FontAwesome";
-  font-weight: 900;
-  color: var(--sde-bar-accent);
-  transition: transform 0.15s ease;
-}
-.sde-hub-manage[open] > .sde-hub-manage-summary::before { transform: rotate(90deg); }
-.sde-hub-manage-summary:hover { background: var(--sde-bar-bg-hover); }
-.sde-hub-manage-hint {
-  margin-left: auto;
-  font-weight: 400;
-  font-size: 11px;
-  color: var(--sde-bar-text-muted);
-}
-.sde-hub-manage-body {
-  padding: 4px 12px 12px;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-.sde-hub-manage-loading {
-  padding: 8px 12px;
-  font-size: 12px;
-  color: var(--sde-bar-text-muted);
-}
-
-/* ── Manage review tree (unlocked/locked folders & sub-folders) ──────────── */
-.sde-mtree { display: flex; flex-direction: column; gap: 1px; }
-.sde-mtree-node { display: flex; flex-direction: column; }
-/* Each nesting level indents + draws a guide rail, so depth reads at a glance. */
-.sde-mtree-children {
-  display: flex;
-  flex-direction: column;
-  gap: 1px;
-  margin-left: 15px;
-  padding-left: 9px;
-  border-left: 1px solid var(--sde-bar-border);
-}
-
-.sde-mtree-row {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 3px 6px;
-  border-radius: 3px;
-  font-size: 0.84rem;
-  color: var(--sde-bar-text);
-}
-.sde-mtree-row.is-expandable { cursor: pointer; }
-.sde-mtree-row.is-expandable:hover { background: var(--sde-bar-bg-hover); }
-
-.sde-mtree-caret {
-  flex: 0 0 auto;
-  width: 0.8rem;
-  text-align: center;
-  color: var(--sde-bar-accent);
-  font-size: 0.75rem;
-}
-.sde-mtree-caret-hidden { visibility: hidden; }
-.sde-mtree-icon {
-  flex: 0 0 auto;
-  width: 1rem;
-  text-align: center;
-  color: var(--sde-bar-text-muted);
-  font-size: 0.8rem;
-}
-.sde-mtree-label { flex: 1 1 auto; }
-.sde-mtree-chips {
-  flex: 0 0 auto;
-  display: flex;
-  gap: 10px;
-  font-size: 0.78rem;
-  font-variant-numeric: tabular-nums;
-}
-.sde-mtree-chip { display: inline-flex; align-items: center; gap: 3px; }
-.sde-mtree-chip.unlocked { color: #6fb86f; }
-.sde-mtree-chip.locked { color: var(--sde-bar-text-muted); }
-.sde-mtree-chip.locked.has { color: #d98a3a; font-weight: 600; }
-
-/* Depth colour ramp: gold top folders → white → medium → muted, so each level
-   is visually distinct from its parent (indentation + rail carry the nesting). */
-.sde-mtree-node.depth-0 > .sde-mtree-row {
-  font-size: 0.9rem;
-  border-bottom: 1px solid var(--sde-bar-border);
-  margin-top: 6px;
-}
-.sde-mtree-node.depth-0 > .sde-mtree-row .sde-mtree-label { color: var(--sde-bar-accent); font-weight: 700; }
-.sde-mtree-node.depth-0 > .sde-mtree-row .sde-mtree-icon { color: var(--sde-bar-accent); }
-
-.sde-mtree-node.depth-1 > .sde-mtree-row .sde-mtree-label { color: var(--sde-bar-text); font-weight: 600; }
-.sde-mtree-node.depth-1 > .sde-mtree-row .sde-mtree-icon { color: var(--sde-bar-accent); opacity: 0.75; }
-
-.sde-mtree-node.depth-2 > .sde-mtree-row .sde-mtree-label { color: #cdb98a; font-weight: 500; }
-.sde-mtree-node.depth-2 > .sde-mtree-row .sde-mtree-icon { color: #cdb98a; opacity: 0.8; }
-
-.sde-mtree-node.depth-3 > .sde-mtree-row,
-.sde-mtree-node.depth-4 > .sde-mtree-row { font-size: 0.8rem; }
-.sde-mtree-node.depth-3 > .sde-mtree-row .sde-mtree-label,
-.sde-mtree-node.depth-4 > .sde-mtree-row .sde-mtree-label { color: var(--sde-bar-text-muted); }
-
-/* Expand-all / collapse-all toolbar + legend */
-.sde-mtree-topbar {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
-  margin-bottom: 4px;
-}
-.sde-mtree-legend { margin: 0; flex: 1 1 auto; }
-.sde-mtree-tools { flex: 0 0 auto; display: flex; gap: 6px; }
-.sde-mtree-toolbtn {
-  background: transparent;
-  border: 1px solid var(--sde-bar-border);
-  border-radius: 3px;
-  color: var(--sde-bar-accent);
-  font-size: 0.74rem;
-  cursor: pointer;
-  padding: 2px 8px;
-  width: auto;
-  white-space: nowrap;
-}
-.sde-mtree-toolbtn:hover { background: var(--sde-bar-bg-hover); }
-/* Segmented "All / Still locked / Imported" filter — one selected at a time,
-   so it reads as a state rather than three independent buttons. */
-.sde-mtree-filter { display: inline-flex; margin-right: 6px; }
-.sde-mtree-filterbtn {
-  background: transparent;
-  border: 1px solid var(--sde-bar-border);
-  border-right-width: 0;
-  color: var(--sde-bar-text-muted);
-  font-size: 0.74rem;
-  cursor: pointer;
-  padding: 2px 8px;
-  width: auto;
-  white-space: nowrap;
-}
-.sde-mtree-filterbtn:first-child { border-radius: 3px 0 0 3px; }
-.sde-mtree-filterbtn:last-child { border-radius: 0 3px 3px 0; border-right-width: 1px; }
-.sde-mtree-filterbtn:hover { background: var(--sde-bar-bg-hover); color: var(--sde-bar-text); }
-.sde-mtree-filterbtn.is-on {
-  background: var(--sde-bar-btn-hover-2, rgba(255, 255, 255, 0.08));
-  color: var(--sde-bar-accent);
-  font-weight: 600;
-}
-.sde-mtree-filterbtn:focus-visible { outline: 2px solid var(--sde-bar-accent); outline-offset: 1px; }
-.sde-mtree-filter-empty { margin: 8px 0; }
-/* Free-text search, sized like the buttons it sits between. */
-.sde-mtree-search {
-  background: transparent;
-  border: 1px solid var(--sde-bar-border);
-  border-radius: 3px;
-  color: var(--sde-bar-text);
-  font-size: 0.74rem;
-  padding: 2px 8px;
-  width: 11em;
-  height: auto;
-  flex: 0 0 auto;
-  margin-right: 6px;
-}
-.sde-mtree-search::placeholder { color: var(--sde-bar-text-muted); }
-.sde-mtree-search:focus-visible { outline: 2px solid var(--sde-bar-accent); outline-offset: 1px; }
-.sde-mtree-toolbtn:focus-visible { outline: 2px solid var(--sde-bar-accent); outline-offset: 1px; }
-
-body.theme-light .sde-mtree-node.depth-2 > .sde-mtree-row .sde-mtree-label,
-body.theme-light .sde-mtree-node.depth-2 > .sde-mtree-row .sde-mtree-icon { color: #8a6a2a; }
-
-.sde-mtree-note {
-  margin: 2px 0;
-  font-size: 0.76rem;
-  color: var(--sde-bar-text-muted);
-}
-
-.sde-mtree-entries {
-  list-style: none;
-  margin: 2px 0 4px;
-  padding: 0 4px;
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-}
-.sde-mtree-entry { display: flex; align-items: center; gap: 8px; }
-.sde-mtree-entry-name { flex: 1 1 auto; color: var(--sde-bar-text); font-size: 0.8rem; }
-.sde-mtree-entry-pg { flex: 0 0 auto; font-size: 0.72rem; color: var(--sde-bar-text-muted); }
-.sde-mtree-entry-mark { flex: 0 0 auto; width: 0.85rem; text-align: center; font-size: 0.72rem; }
-.sde-mtree-entry.is-present .sde-mtree-entry-mark { color: #6fb86f; }
-/* An imported row opens its document on double-click — advertise it. */
-.sde-mtree-entry.is-present { cursor: pointer; }
-.sde-mtree-entry.is-present:hover { background: var(--sde-bar-btn-hover-2, rgba(255, 255, 255, 0.06)); }
-.sde-mtree-entry.is-locked .sde-mtree-entry-mark { color: #d98a3a; }
-.sde-mtree-entry.is-present .sde-mtree-entry-name { color: var(--sde-bar-text-muted); }
-.sde-mtree-entry-tag {
-  flex: 0 0 auto;
-  font-size: 0.68rem;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: #6fb86f;
-  opacity: 0.75;
-}
-.sde-mtree-entry-bundle {
-  color: var(--sde-bar-text-muted);
-  text-transform: none;
-  letter-spacing: 0;
-  font-style: italic;
-  opacity: 0.6;
-}
-body.theme-light .sde-mtree-entry.is-present .sde-mtree-entry-mark,
-/* "new" sits in the same slot as the green "imported" tag but means the
-   opposite thing — a row this update added — so it takes the accent. */
-.sde-mtree-entry-new { color: var(--sde-bar-accent); opacity: 1; }
-body.theme-light .sde-mtree-entry-tag { color: #2e6b2e; }
-body.theme-light .sde-mtree-entry-new { color: var(--sde-bar-accent); }
-body.theme-light .sde-mtree-entry-bundle { color: #6b6b6b; }
-body.theme-light .sde-mtree-entry.is-locked .sde-mtree-entry-mark { color: #9c5210; }
-.sde-mtree-unlock {
-  flex: 0 0 auto;
-  background: transparent;
-  border: 1px solid var(--sde-bar-border);
-  border-radius: 3px;
-  color: var(--sde-bar-accent);
-  font-size: 0.74rem;
-  cursor: pointer;
-  padding: 1px 6px;
-  width: auto;
-  white-space: nowrap;
-}
-.sde-mtree-unlock:hover { background: var(--sde-bar-bg-hover); }
-.sde-mtree-unlock:focus-visible { outline: 2px solid var(--sde-bar-accent); outline-offset: 1px; }
-
-/* Batch import ("Import everything" / a folder's "Import all"). Tinted apart
-   from the per-row Import buttons because it acts on a whole branch. */
-.sde-mtree-batchbtn {
-  border-color: var(--sde-bar-accent);
-  margin-left: 6px;
-}
-.sde-mtree-batchbtn:disabled {
-  opacity: 0.45;
-  cursor: default;
-  border-color: var(--sde-bar-border);
-  color: var(--sde-bar-text-muted);
-}
-/* The per-folder run sits as the first line INSIDE an opened folder, so it only
-   appears where the GM has already drilled in — no hover to discover, and the
-   folder rows' have/locked chips stay aligned. */
-.sde-mtree-batchrow { margin: 2px 0 4px; }
-
-/* Live progress while a batch runs. */
-.sde-mtree-batchbar {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin: 4px 0 6px;
-  padding: 4px 6px;
-  border: 1px solid var(--sde-bar-accent);
-  border-radius: var(--sde-bar-radius, 4px);
-  background: var(--sde-bar-surface-1);
-}
-.sde-mtree-batchbar-track {
-  flex: 1 1 auto;
-  height: 6px;
-  min-width: 80px;
-  border-radius: 3px;
-  background: var(--sde-bar-btn-hover-2, rgba(255, 255, 255, 0.08));
-  overflow: hidden;
-}
-.sde-mtree-batchbar-fill {
-  height: 100%;
-  background: var(--sde-bar-accent);
-  transition: width 0.2s ease;
-}
-.sde-mtree-batchbar-text {
-  flex: 0 1 auto;
-  font-size: 0.74rem;
-  color: var(--sde-bar-text-muted);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 46%;
-}
-
-body.theme-light .sde-mtree-chip.unlocked { color: #2e6b2e; }
-body.theme-light .sde-mtree-chip.locked.has { color: #9c5210; }
-
-/* Sectioned preview sections */
-.sde-hub-import-section {
-  border: 1px solid var(--sde-bar-border);
-  border-radius: var(--sde-bar-radius);
-  background: var(--sde-bar-surface-1);
-  margin-top: 4px;
-  overflow: hidden;
-}
-
-.sde-hub-import-sechead {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 5px 10px;
-  background: var(--sde-bar-btn-1);
-  border-bottom: 1px solid var(--sde-bar-border);
-}
-
-.sde-hub-import-sectitle {
-  font-size: 12px;
-  font-weight: 700;
-  font-family: var(--sde-bar-font);
-  color: var(--sde-bar-text);
-  flex: 1 1 auto;
-  display: flex;
-  align-items: center;
-  gap: 5px;
-}
-
-.sde-hub-import-sectitle-skipped {
-  color: var(--sde-bar-text-muted);
-  font-weight: 600;
-}
-
-.sde-hub-import-secbtn {
-  flex: 0 0 auto;
-}
-
-/* Source note inside Monsters section */
-.sde-hub-import-srcnote {
-  font-size: 11px;
-  color: var(--sde-bar-text-muted);
-  margin: 4px 10px 2px;
-  font-family: var(--sde-bar-font);
-}
-
-/* Rules Data step (#299): one row per table, its state, book and what waits on it */
-.sde-hub-rules-list {
-  list-style: none;
-  margin: 2px 10px 6px;
-  padding: 0;
-  font-size: 11px;
-  font-family: var(--sde-bar-font);
-}
-.sde-hub-rules-list li {
-  display: grid;
-  grid-template-columns: 7em 14em 10em 1fr;
-  gap: 6px;
-  align-items: baseline;
-  padding: 1px 0;
-}
-.sde-hub-rules-list .sde-thub-stat { font-size: 11px; padding: 0; cursor: default; }
-.sde-hub-rules-list .sde-thub-stat:hover { background: none; }
-.sde-hub-rules-cite,
-.sde-hub-rules-needs { color: var(--sde-bar-text-muted); }
-
-/* Skipped section */
-.sde-hub-import-skipped-section {
-  border-color: var(--sde-bar-border);
-  opacity: 0.85;
-}
-
-.sde-hub-import-skipped-list {
-  margin: 0;
-  padding: 6px 12px 8px 24px;
-  font-size: 12px;
-  color: var(--sde-bar-text);
-  list-style: disc;
-}
-.sde-hub-import-skipped-list li {
-  padding: 1px 0;
-}
-
 .sde-hub-import-skipped-empty {
   padding: 6px 12px;
   font-size: 12px;
   color: var(--sde-bar-text-muted);
   font-style: italic;
   margin: 0;
-}
-
-/* Light-theme parity */
-body.theme-light .sde-hub-import-seed {
-  background: var(--sde-bar-surface-1);
-  color: var(--sde-bar-text);
-}
-body.theme-light .sde-hub-import-text {
-  background: var(--sde-bar-surface-1);
-  color: var(--sde-bar-text);
-}
-body.theme-light .sde-hub-import-section {
-  background: var(--sde-bar-surface-1);
-}
-body.theme-light .sde-hub-import-sechead {
-  background: var(--sde-bar-btn-1);
-}
-
-/* Items section grid — token-only (no raw hex) */
-.sde-hub-import-item-card {
-  container-type: inline-size;
-  background: var(--sde-bar-surface-2, var(--sde-bar-surface-1));
-  border: 1px solid var(--sde-bar-border);
-  border-radius: var(--sde-bar-radius);
-  padding: 6px 8px;
-  margin-bottom: 4px;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
 }
 
 .sde-hub-import-item-row {
@@ -2414,368 +1519,13 @@ body.theme-light .sde-hub-import-sechead {
   }
 }
 
-.sde-hub-import-item-head {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.sde-hub-import-item-name {
-  flex: 1 1 auto;
-  min-width: 0;
-}
-
-.sde-hub-import-item-type {
-  flex: 0 0 auto;
-  min-width: 80px;
-}
-
-.sde-hub-import-item-fields {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-
-.sde-hub-import-item-field {
-  display: flex;
-  align-items: center;
-  gap: 3px;
-  font-size: 12px;
-  color: var(--sde-bar-text);
-}
-
-.sde-hub-import-item-label {
-  font-size: 11px;
-  color: var(--sde-bar-text-muted);
-  font-weight: 600;
-  min-width: 14px;
-}
-
-.sde-hub-import-item-desc {
-  display: flex;
-}
-
-/* Weapon/Armor parsed stat line (read-only) — AC/damage/range/properties. */
-.sde-hub-import-item-stats {
-  margin: 3px 0 4px;
-  font-size: 0.82em;
-  opacity: 0.85;
-  font-style: italic;
-}
-.sde-hub-import-item-stats i {
-  margin-right: 4px;
-  opacity: 0.7;
-}
-
-/* Ancestry import confirmation: parsed languages + ancestry talent, so the
-   user can verify the import without opening the item. */
-.sde-hub-import-item-meta {
-  margin-top: 4px;
-  padding-top: 4px;
-  border-top: 1px solid var(--sde-bar-border);
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  font-size: 0.85em;
-}
-.sde-hub-import-metarow {
-  color: var(--sde-bar-text-2, inherit);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.sde-hub-import-metarow i { opacity: 0.7; margin-right: 3px; }
-.sde-hub-import-metarow strong { color: var(--sde-bar-accent, inherit); }
-
-.sde-hub-import-item-desc-input {
-  flex: 1 1 auto;
-  background: var(--sde-bar-surface-1);
-  border: 1px solid var(--sde-bar-border);
-  border-radius: var(--sde-bar-radius);
-  color: var(--sde-bar-text);
-  font-family: var(--sde-bar-font);
-  font-size: 12px;
-  padding: 3px 6px;
-  box-sizing: border-box;
-}
-.sde-hub-import-item-desc-input:focus-visible {
-  outline: 2px solid var(--sde-bar-accent);
-  outline-offset: 1px;
-}
-/* Description fields are textareas (multi-line rules text, review
-   maintainability) — grow downward only, never sideways. */
-textarea.sde-hub-import-item-desc-input {
-  resize: vertical;
-  min-height: 2.4em;
-  line-height: 1.35;
-}
-
-/* Light-theme parity for item grid */
-body.theme-light .sde-hub-import-item-card {
-  background: var(--sde-bar-surface-1);
-}
-body.theme-light .sde-hub-import-item-desc-input {
-  background: var(--sde-bar-surface-1);
-  color: var(--sde-bar-text);
-}
-
-/* ── Class-unit preview (Importer hub) — styled after the SD class item sheet:
-   parchment page, black section banners, 2px-ruled boxed panels. Palette is
-   hard-coded to the sheet look on purpose (independent of hub theme). ── */
-.sde-class-preview {
-  --cus-paper: #f3eedd;
-  --cus-paper-2: #e9e3cd;
-  --cus-ink: #17140e;
-  --cus-rule: #b7ad92;
-  --cus-dim: #4a4438;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  font-size: 12px;
-  background: var(--cus-paper);
-  color: var(--cus-ink);
-  padding: 10px 12px 12px;
-  border-radius: 2px;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.35);
-}
-.sde-cusheet-head {
-  font-family: "Eskapade", "Palatino Linotype", Palatino, serif;
-  font-size: 22px;
-  text-align: center;
-  background: #131313;
-  color: var(--cus-paper);
-  padding: 3px 8px 5px;
-  letter-spacing: 0.02em;
-}
-.sde-cusheet-details {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
-  gap: 8px 14px;
-}
-.sde-cusheet-field { display: flex; flex-direction: column; gap: 2px; }
-.sde-cusheet-fieldname { font-weight: 700; font-size: 12px; color: var(--cus-ink); }
-.sde-class-preview-flavor {
-  margin: 0;
-  font-style: italic;
-  color: var(--cus-dim);
-}
-/* Section banners — the sheet's black EQUIPMENT/LANGUAGES/TALENTS bands */
-.sde-class-preview-block > summary {
-  cursor: pointer;
-  list-style: none;
-  background: #131313;
-  color: var(--cus-paper);
-  font-family: "Eskapade", "Palatino Linotype", Palatino, serif;
-  font-size: 13px;
-  text-transform: uppercase;
-  letter-spacing: 0.14em;
-  text-align: center;
-  padding: 2px 8px 3px;
-}
-.sde-class-preview-block > summary::-webkit-details-marker { display: none; }
-.sde-class-preview-block[open] > summary { margin-bottom: 6px; }
-/* Boxed sub-panels (WEAPONS / ARMOR / OPTIONS …) */
-.sde-cusheet-cols {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
-  gap: 10px;
-}
-.sde-cusheet-box {
-  border: 2px solid var(--cus-ink);
-  padding: 5px 8px 7px;
-}
-.sde-cusheet-box h5 {
-  font-family: "Eskapade", "Palatino Linotype", Palatino, serif;
-  margin: 0 0 5px;
-  font-size: 13px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  border: none;
-  color: var(--cus-ink);
-}
-.sde-cusheet-check {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 8px;
-  font-weight: 600;
-  font-size: 12px;
-  margin: 3px 0;
-}
 .sde-class-preview-features {
   margin: 0.2rem 0 0;
   padding-left: 1.1rem;
 }
 .sde-class-preview-features li { margin-bottom: 0.25rem; }
-.sde-class-preview-table {
-  margin: 0.2rem 0 0;
-  border-collapse: collapse;
-  background: transparent;
-  border: none;
-  width: 100%;
-}
-.sde-class-preview-table td {
-  border: none;
-  border-top: 1px solid var(--cus-rule);
-  padding: 3px 6px;
-  vertical-align: top;
-}
-.sde-class-preview-range {
-  white-space: nowrap;
-  font-weight: 700;
-  width: 3rem;
-  text-align: center;
-}
-.sde-class-preview-opts {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 3px;
-  margin-top: 2px;
-  align-items: center;
-}
-.sde-class-opt {
-  background: var(--cus-paper-2);
-  border: 1px solid var(--cus-rule);
-  border-radius: 8px;
-  padding: 0 6px;
-  font-size: 11px;
-  color: var(--cus-ink);
-}
-.sde-class-opt-grand { font-style: italic; color: var(--cus-dim); border-style: dashed; }
-.sde-class-preview-notes > summary { background: #4a3a08; color: #f0e0a0; }
 
-/* Editable fields inside the class sheet — flat parchment inputs */
-.sde-class-preview input[type="text"],
-.sde-class-preview input[type="number"],
-.sde-class-preview select,
-.sde-class-preview textarea {
-  background: var(--cus-paper-2);
-  border: 1px solid var(--cus-rule);
-  border-radius: 2px;
-  color: var(--cus-ink);
-  font-size: 12px;
-  padding: 2px 5px;
-  box-sizing: border-box;
-  height: auto;
-}
-.sde-class-preview input:focus-visible,
-.sde-class-preview select:focus-visible,
-.sde-class-preview textarea:focus-visible {
-  outline: 2px solid #8a7020;
-  outline-offset: 1px;
-}
-.sde-class-preview input[type="checkbox"] {
-  width: 15px;
-  height: 15px;
-  accent-color: var(--cus-ink);
-  flex: 0 0 auto;
-}
-.sde-cu-range { width: 3.4rem; text-align: center; }
-.sde-cu-text { width: 100%; }
-.sde-cu-opt { width: 14rem; max-width: 100%; }
 .sde-cu-hp { width: 4rem; }
-.sde-cu-num { width: 3.2rem; text-align: center; }
-.sde-cu-area { width: 100%; resize: vertical; }
-.sde-cu-optwrap {
-  display: inline-flex;
-  align-items: center;
-  gap: 2px;
-}
-.sde-cu-btn {
-  background: transparent;
-  border: 1px dashed var(--cus-dim);
-  border-radius: 8px;
-  color: var(--cus-dim);
-  font-size: 11px;
-  padding: 0 6px;
-  line-height: 1.5;
-  cursor: pointer;
-  width: auto;
-}
-.sde-cu-btn:hover { color: var(--cus-ink); border-color: #8a7020; box-shadow: none; }
-.sde-cu-btn-del { border-style: solid; }
-.sde-cu-rowdel { width: 1.8rem; text-align: center; }
-.sde-cu-addrow { margin-top: 4px; }
-.sde-cu-formula { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; color: var(--cus-dim); }
-.sde-cu-features {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  margin-top: 0.2rem;
-}
-.sde-cu-featrow {
-  display: grid;
-  grid-template-columns: 10rem 1fr max-content;
-  gap: 4px;
-  align-items: center;
-}
-.sde-cu-featname { width: 100%; font-weight: 700; }
-.sde-cu-titles input, .sde-cu-talents input { width: 100%; min-width: 4rem; }
-.sde-cu-talents .sde-cu-range { min-width: 3rem; }
-/* A title band a parse warning flagged for review (e.g. a title that couldn't
-   be split into Lawful/Chaotic/Neutral) — mark the row + tag the reason. */
-.sde-cu-row-flagged td {
-  background: color-mix(in srgb, var(--sde-bar-warn, #c8930a) 12%, transparent);
-}
-.sde-cu-row-flagged .sde-cu-range { box-shadow: inset 2px 0 0 var(--sde-bar-warn, #c8930a); }
-.sde-ci-titlewarn { color: var(--sde-bar-warn, #c8930a); }
-
-/* Talent-row wiring badges (issue #4): mark whether each talent-table row is
-   backed by a real Talent item (green) or imports as description-only text
-   needing hand-wiring (amber). */
-.sde-ci-talent-effect { display: flex; align-items: center; gap: 0.4rem; }
-.sde-ci-talent-effect input { flex: 1 1 auto; }
-.sde-ci-wired {
-  flex: 0 0 auto; white-space: nowrap; font-size: 0.72rem; line-height: 1;
-  padding: 0.15rem 0.4rem; border-radius: 0.6rem; cursor: help;
-}
-.sde-ci-wired-on {
-  color: var(--sde-bar-ok, #2f8f4e);
-  background: color-mix(in srgb, var(--sde-bar-ok, #2f8f4e) 15%, transparent);
-}
-.sde-ci-wired-off {
-  color: var(--sde-bar-warn, #c8930a);
-  background: color-mix(in srgb, var(--sde-bar-warn, #c8930a) 15%, transparent);
-}
-.sde-ci-talent-unwired .sde-cu-range { box-shadow: inset 2px 0 0 var(--sde-bar-warn, #c8930a); }
-.sde-ci-wiredcount { color: var(--sde-faint, #8a8a8a); font-weight: normal; }
-/* Detected roll-tables summary in the class body preview (issue #5). */
-.sde-ci-detected { margin-top: 0.5rem; }
-.sde-ci-detectedlist { margin: 0.25rem 0 0; padding-left: 1.1rem; list-style: none; }
-.sde-ci-detectedlist li { color: var(--sde-faint, #8a8a8a); font-size: 0.85rem; }
-.sde-ci-detectedlist i { margin-right: 0.35rem; opacity: 0.8; }
-
-/* Item Builder — table → descriptions → combine (reuses the class-builder look). */
-.sde-ib-fields { display: flex; gap: 0.75rem; flex-wrap: wrap; margin-bottom: 0.5rem; }
-.sde-ib-fields .sde-ci-sourcefield { flex: 1 1 12rem; }
-.sde-ib-items { width: 100%; }
-.sde-ib-items td, .sde-ib-items th { vertical-align: middle; }
-.sde-ib-items input { width: 100%; }
-.sde-ib-items .sde-cu-range { min-width: 4rem; }
-.sde-ib-slots { text-align: center; color: var(--sde-faint, #8a8a8a); width: 3rem; }
-/* A row still missing its description — amber left edge (shares the unwired cue). */
-.sde-ib-items tr.sde-ci-talent-unwired input[data-ib-field="description"] {
-  box-shadow: inset 2px 0 0 var(--sde-bar-warn, #c8930a);
-}
-.sde-cu-spellsknown {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 3px;
-  margin-top: 4px;
-}
-.sde-cu-titlehead th {
-  border: none;
-  font-size: 10px;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: var(--cus-dim);
-  text-align: left;
-  padding: 2px 6px;
-  background: transparent;
-}
-/* Review-note list text on parchment */
-.sde-class-preview .sde-import-warnings { color: var(--cus-dim); }
 
 /* Light-theme: keep tab active accent legible (8a7020 = 4.5:1 on #f0ede6) */
 body.theme-light .sde-hub-tab-btn:hover {
@@ -2802,17 +1552,6 @@ body.theme-light .sde-hub-tab-btn.active {
   gap: 0;
   padding: 0;
   overflow-y: auto;
-}
-
-.sde-hub-monsters-section-title {
-  font-size: 0.8rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--sde-bar-accent);
-  margin: 0 0 6px;
-  padding: 8px 12px 4px;
-  border-bottom: 1px solid var(--sde-bar-border);
 }
 
 /* Census table */
@@ -2948,89 +1687,6 @@ body.theme-light .sde-hub-tab-btn.active {
   margin: 0;
 }
 
-/* Duplicates section */
-.sde-hub-monsters-dups {
-  border-top: 1px solid var(--sde-bar-border);
-  padding-bottom: 4px;
-}
-
-.sde-hub-monsters-dup-cards {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding: 0 12px 8px;
-}
-
-.sde-hub-monsters-dup-card {
-  border: 1px solid var(--sde-bar-border);
-  border-left: 3px solid var(--sde-bar-accent-dim);
-  border-radius: 4px;
-  padding: 8px;
-  background: var(--sde-bar-bg-alt);
-}
-
-.sde-hub-monsters-dup-name {
-  font-weight: 700;
-  font-size: 0.85rem;
-  color: var(--sde-bar-accent);
-  margin: 0 0 6px;
-  text-transform: capitalize;
-}
-
-.sde-hub-monsters-dup-members {
-  list-style: none;
-  margin: 0 0 6px;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.sde-hub-monsters-dup-label {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  cursor: pointer;
-  font-size: 0.82rem;
-  color: var(--sde-bar-text);
-}
-
-.sde-hub-monsters-dup-member-name {
-  flex: 1 1 auto;
-}
-
-.sde-hub-monsters-dup-member-meta {
-  display: flex;
-  gap: 6px;
-  font-size: 0.75rem;
-  color: var(--sde-bar-text-muted);
-}
-
-.sde-hub-monsters-cull-btn {
-  background: var(--sde-bar-btn-1);
-  border: 1px solid var(--sde-bar-border);
-  border-radius: 3px;
-  color: var(--sde-bar-text);
-  font-size: 0.8rem;
-  cursor: pointer;
-  padding: 3px 10px;
-  width: auto;
-}
-.sde-hub-monsters-cull-btn:hover {
-  border-color: var(--sde-bar-accent);
-  color: var(--sde-bar-accent);
-  background: var(--sde-bar-bg-hover);
-}
-.sde-hub-monsters-cull-btn:focus-visible {
-  outline: 2px solid var(--sde-bar-accent);
-  outline-offset: 1px;
-}
-
-/* Light theme overrides */
-body.theme-light .sde-hub-monsters-dup-card {
-  background: var(--sde-bar-surface-1);
-  border-color: var(--sde-bar-border);
-}
 body.theme-light .sde-hub-monsters-gap-td {
   background: var(--sde-bar-surface-1);
 }
@@ -3506,28 +2162,7 @@ body.theme-light .sde-hub-monsters-row td {
   gap: 0.6rem;
   padding: 0.25rem 0;
 }
-.sde-import-label {
-  font-family: var(--sde-bar-font);
-  color: var(--sde-bar-text);
-  font-weight: 600;
-}
-.sde-import-note {
-  font-family: var(--sde-bar-font);
-  color: var(--sde-bar-text);
-  opacity: 0.75;
-  font-size: 0.82rem;
-  margin: 0;
-}
-.sde-import-note i { opacity: 0.7; margin-right: 0.25rem; }
-/* Per-generator Cartesian line: says what committing actually creates, since
-   the grid above it is the INPUT columns, not the expanded table. */
-.sde-import-cartesian-note {
-  font-family: var(--sde-bar-font);
-  font-size: 0.78rem;
-  color: var(--sde-bar-accent, #d9b45b);
-  margin: 2px 0 4px;
-}
-.sde-import-cartesian-note i { opacity: 0.8; margin-right: 0.25rem; }
+
 .sde-thub-missing-note {
   opacity: 0.9;
   border-left: 3px solid var(--sde-init, #c8a13a);
@@ -3537,32 +2172,7 @@ body.theme-light .sde-hub-monsters-row td {
   border-radius: 0 4px 4px 0;
   line-height: 1.4;
 }
-.sde-import-text {
-  width: 100%;
-  min-height: 8rem;
-  resize: vertical;
-  background: var(--sde-bar-input-bg);
-  color: var(--sde-bar-text-bright);
-  border: 1px solid var(--sde-bar-border);
-  border-radius: 4px;
-  padding: 0.5rem;
-  font-family: monospace;
-  font-size: 0.85rem;
-}
-.sde-import-text:focus-visible {
-  outline: 2px solid var(--sde-bar-accent);
-  outline-offset: 1px;
-}
-.sde-import-controls {
-  display: flex;
-  gap: 0.5rem;
-  align-items: center;
-}
-/* Sits apart from Parse / Clear / Create all: it acts on the whole library, not
-   on what is currently pasted into this window. */
-.sde-mimport-spell-library {
-  margin-left: auto;
-}
+
 .sde-import-primary {
   background: var(--sde-bar-accent);
   color: #14110a;
@@ -3573,243 +2183,12 @@ body.theme-light .sde-hub-monsters-row td {
   color: var(--sde-bar-text);
 }
 
-/* Tools menu: a <details> disclosure that features a small action list so the
-   power-user / one-time-setup buttons don't crowd the control bar. */
-.sde-hub-tools {
-  position: relative;
-  display: inline-block;
-  margin-left: auto;
-}
-.sde-hub-tools > summary {
-  list-style: none;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-  padding: 0.35rem 0.7rem;
-  border: 1px solid var(--sde-bar-border);
-  border-radius: 4px;
-  background: var(--sde-bar-bg-alt);
-  color: var(--sde-bar-text);
-}
-.sde-hub-tools > summary::-webkit-details-marker,
-.sde-hub-tools > summary::marker { display: none; content: ""; }
-.sde-hub-tools[open] > summary { background: var(--sde-bar-btn-hover-2); }
-/* Lives in the top layer (popover), because the hub's own scroll container and
-   Foundry's .window-content/.application all clip overflow — an absolutely
-   positioned menu got cut off whenever the window was shorter than the menu
-   (e.g. Manage collapsed). Coordinates come from _wireHubToolsMenu. */
-.sde-hub-tools-menu {
-  position: fixed;
-  inset: auto;
-  margin: 0;
-  z-index: 30;
-  min-width: 260px;
-  max-height: 70vh;
-  overflow-y: auto;
-  display: none;
-  flex-direction: column;
-  padding: 5px;
-  background: var(--sde-bar-surface-2);
-  border: 1px solid var(--sde-bar-border);
-  border-radius: 6px;
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5);
-}
-/* Shown as a popover when the API is there; the [open] rule keeps the menu
-   working (in-flow, clipped as before) if it ever isn't. */
-.sde-hub-tools-menu:popover-open,
-.sde-hub-tools[open] > .sde-hub-tools-menu { display: flex; }
-/* PDF actions, then whole-suite backup — a rule instead of guesswork. */
-.sde-hub-tools-group { display: flex; flex-direction: column; gap: 2px; }
-.sde-hub-tools-group + .sde-hub-tools-group {
-  margin-top: 6px;
-  padding-top: 6px;
-  border-top: 1px solid var(--sde-bar-border);
-}
-/* Icon spans both rows so the hint aligns under its OWN title; the gap inside
-   an item stays well under the gap between items, or the hint reads as a label
-   for the next one. */
-.sde-hub-tools-menu button {
-  display: grid;
-  grid-template-columns: 1.15rem 1fr;
-  align-items: start;
-  column-gap: 0.5rem;
-  row-gap: 1px;
-  text-align: left;
-  width: 100%;
-  /* Foundry pins every <button> to one control height. A two-line item has to
-     grow or its hint spills out of the button and over the next item — which is
-     what made this menu look bunched. */
-  height: auto;
-  min-height: 0;
-  line-height: normal;
-  padding: 0.45rem 0.6rem;
-  border: none;
-  border-radius: 4px;
-  background: transparent;
-  color: var(--sde-bar-text);
-}
-.sde-hub-tools-menu button > i {
-  grid-row: 1 / span 2;
-  align-self: center;
-  justify-self: center;
-  opacity: 0.85;
-}
-.sde-hub-tools-menu button > span { font-weight: 600; line-height: 1.2; }
-.sde-hub-tools-menu button:hover { background: var(--sde-bar-btn-hover-2); }
-.sde-hub-tools-menu button small {
-  color: var(--sde-bar-text-muted);
-  font-size: 0.78em;
-  line-height: 1.25;
-}
-.sde-import-empty {
-  color: var(--sde-bar-text-muted);
-  font-style: italic;
-}
-.sde-import-preview {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-}
-.sde-import-table {
+.sde-thub .sde-import-table {
   border: 1px solid var(--sde-bar-border);
   border-radius: 5px;
   background: var(--sde-bar-bg-alt);
   padding: 0.5rem 0.6rem;
 }
-.sde-import-table-head {
-  display: flex;
-  gap: 0.4rem;
-  align-items: center;
-  flex-wrap: wrap;
-  margin-bottom: 0.4rem;
-}
-.sde-import-name { flex: 1 1 12rem; }
-.sde-import-formula { flex: 0 0 6rem; }
-.sde-import-name,
-.sde-import-formula,
-.sde-import-rowtext,
-.sde-import-num {
-  background: var(--sde-bar-input-bg);
-  color: var(--sde-bar-text-bright);
-  border: 1px solid var(--sde-bar-border);
-  border-radius: 3px;
-  padding: 0.2rem 0.35rem;
-  font-family: var(--sde-bar-font);
-}
-.sde-import-repl {
-  display: flex;
-  align-items: center;
-  gap: 0.25rem;
-  color: var(--sde-bar-text-muted);
-  font-size: 0.8rem;
-}
-.sde-import-flag {
-  color: var(--sde-bar-accent);
-  font-size: 0.8rem;
-  margin: 0.2rem 0;
-}
-.sde-import-warnings {
-  margin: 0.2rem 0;
-  padding-left: 1.1rem;
-  color: var(--sde-bar-text-muted);
-  font-size: 0.78rem;
-}
-.sde-import-rows {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-}
-.sde-import-row {
-  display: flex;
-  align-items: center;
-  gap: 0.3rem;
-}
-.sde-import-num { width: 3.2rem; text-align: center; }
-.sde-import-dash { color: var(--sde-bar-text-muted); }
-.sde-import-rowtext { flex: 1 1 auto; }
-.sde-import-del {
-  background: transparent;
-  color: var(--sde-bar-text-muted);
-  border: none;
-  cursor: pointer;
-}
-.sde-import-del:hover { color: var(--sde-bar-accent); }
-.sde-import-addrow {
-  margin-top: 0.4rem;
-  background: var(--sde-bar-bg-hover);
-  color: var(--sde-bar-text);
-  border: 1px dashed var(--sde-bar-border);
-}
-
-.sde-hub-import-genspec-input { width: 5rem; text-align: center; }
-
-/* ── Compound generator preview (roll-all grid) ───────────────────────────── */
-.sde-import-gen {
-  border: 1px solid var(--sde-bar-border);
-  border-radius: 5px;
-  background: var(--sde-bar-bg-alt);
-  padding: 0.5rem 0.6rem;
-}
-.sde-import-gen-head {
-  display: flex;
-  gap: 0.4rem;
-  align-items: center;
-  flex-wrap: wrap;
-  margin-bottom: 0.4rem;
-}
-.sde-import-gen-sep {
-  width: 3rem;
-  text-align: center;
-  background: var(--sde-bar-input-bg);
-  color: var(--sde-bar-text-bright);
-  border: 1px solid var(--sde-bar-border);
-  border-radius: 3px;
-  padding: 0.2rem 0.35rem;
-  font-family: var(--sde-bar-font);
-}
-.sde-import-gen-gridwrap { overflow-x: auto; }
-.sde-import-gen-grid {
-  border-collapse: collapse;
-  width: 100%;
-}
-.sde-import-gen-grid th,
-.sde-import-gen-grid td {
-  border: 1px solid var(--sde-bar-border);
-  padding: 0.15rem 0.25rem;
-  vertical-align: middle;
-}
-.sde-import-gen-grid thead th {
-  background: var(--sde-bar-bg-hover);
-  white-space: nowrap;
-}
-.sde-import-gen-face,
-.sde-import-gen-facehead {
-  text-align: center;
-  color: var(--sde-bar-text-muted);
-  width: 2rem;
-}
-.sde-import-gen-label {
-  min-width: 6rem;
-  background: var(--sde-bar-input-bg);
-  color: var(--sde-bar-text-bright);
-  border: 1px solid var(--sde-bar-border);
-  border-radius: 3px;
-  padding: 0.15rem 0.3rem;
-  font-family: var(--sde-bar-font);
-}
-.sde-import-gen-cell {
-  width: 100%;
-  min-width: 8rem;
-  background: var(--sde-bar-input-bg);
-  color: var(--sde-bar-text-bright);
-  border: 1px solid var(--sde-bar-border);
-  border-radius: 3px;
-  padding: 0.2rem 0.35rem;
-  font-family: var(--sde-bar-font);
-}
-.sde-import-gen-addcolcell,
-.sde-import-gen-rowdel { text-align: center; width: 2rem; }
 
 /* ── Compound generator chat card ─────────────────────────────────────────── */
 .sde-compound-card { line-height: 1.35; }
@@ -3839,191 +2218,14 @@ body.theme-light .sde-hub-monsters-row td {
 }
 .sde-cg-label { flex: 0 0 auto; opacity: 0.7; font-style: italic; }
 .sde-cg-text { flex: 1 1 auto; }
-.sde-import-cat,
-.sde-import-customcat {
-  background: var(--sde-bar-input-bg);
-  color: var(--sde-bar-text-bright);
-  border: 1px solid var(--sde-bar-border);
-  border-radius: 3px;
-  padding: 0.2rem 0.35rem;
-  font-family: var(--sde-bar-font);
-}
-.sde-import-cat { flex: 0 0 auto; }
-.sde-import-customcat { flex: 1 1 8rem; }
-.sde-import-link {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.25rem;
-  padding: 0.1rem 0.4rem;
-  border-radius: 3px;
-  background: var(--sde-bar-bg-hover);
-  color: var(--sde-bar-accent);
-  font-size: 0.78rem;
-  white-space: nowrap;
-}
-.sde-import-unlink {
-  background: transparent;
-  color: var(--sde-bar-text-muted);
-  border: none;
-  cursor: pointer;
-}
-.sde-import-unlink:hover { color: var(--sde-bar-accent); }
 
 /* ─── Monster Importer (bulk statblock → NPC actors) ─────────────────── */
 
-/* Shared input look for the mimport-specific controls the .sde-import-*
-   classes don't already cover (selects + odd-sized text inputs). */
-.sde-mimport-sel,
-.sde-mimport-movenote,
-.sde-mimport-aname,
-.sde-mimport-dmg,
-.sde-mimport-ranges,
-.sde-mimport-fname,
-.sde-mimport-source-input {
-  background: var(--sde-bar-input-bg);
-  color: var(--sde-bar-text-bright);
-  border: 1px solid var(--sde-bar-border);
-  border-radius: 3px;
-  padding: 0.2rem 0.35rem;
-  font-family: var(--sde-bar-font);
-}
-.sde-mimport-aname { flex: 1 1 8rem; }
-.sde-mimport-dmg { flex: 0 0 5rem; }
-.sde-mimport-ranges { flex: 0 0 8rem; }
-.sde-mimport-fname { flex: 0 0 10rem; }
-.sde-mimport-movenote { flex: 1 1 10rem; }
-
-/* Source row */
-.sde-mimport-source {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  flex-wrap: wrap;
-}
-.sde-mimport-source > label {
-  font-weight: 600;
-  color: var(--sde-bar-text);
-}
-.sde-mimport-source-input { flex: 0 0 14rem; }
-.sde-mimport-source-hint {
-  color: var(--sde-bar-text-muted);
-  font-size: 0.76rem;
-  font-style: italic;
-}
-
-/* Per-field "parser wasn't sure" highlight + inline legend sample. */
-.sde-mimport-warn {
-  border-color: var(--sde-bar-warn) !important;
-  box-shadow: 0 0 0 1px color-mix(in srgb, var(--sde-bar-warn) 45%, transparent);
-  background: color-mix(in srgb, var(--sde-bar-warn) 12%, transparent);
-}
-.sde-mimport-warn-row {
-  border-left: 2px solid color-mix(in srgb, var(--sde-bar-warn) 60%, transparent);
-  padding-left: 0.4rem;
-}
+/* Inline legend sample for the parser-warning highlight. */
 .sde-mimport-warn-legend {
   background: color-mix(in srgb, var(--sde-bar-warn) 18%, transparent);
   border-bottom: 1px solid color-mix(in srgb, var(--sde-bar-warn) 60%, transparent);
   padding: 0 2px;
-}
-
-/* Skipped non-monster blocks */
-.sde-mimport-skipped {
-  border: 1px solid var(--sde-bar-border);
-  border-radius: 4px;
-  background: var(--sde-bar-bg-alt);
-  padding: 0.3rem 0.5rem;
-  font-size: 0.8rem;
-}
-.sde-mimport-skipped > summary { cursor: pointer; color: var(--sde-bar-text-muted); }
-.sde-mimport-skipped ul {
-  margin: 0.3rem 0 0;
-  padding-left: 1.1rem;
-  color: var(--sde-bar-text-muted);
-}
-
-/* Monster cards */
-.sde-mimport-card {
-  border: 1px solid var(--sde-bar-border);
-  border-radius: 5px;
-  background: var(--sde-bar-bg-alt);
-  padding: 0.5rem 0.6rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.4rem;
-}
-.sde-mimport-card-head {
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-}
-.sde-mimport-cardname {
-  flex: 1 1 auto;
-  font-weight: 700;
-  font-size: 0.95rem;
-}
-.sde-mimport-warncount {
-  color: var(--sde-bar-warn);
-  font-size: 0.78rem;
-  white-space: nowrap;
-}
-
-/* Stat / ability / spell rows */
-.sde-mimport-stats,
-.sde-mimport-abils,
-.sde-mimport-spell,
-.sde-mimport-sechead {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.4rem;
-}
-.sde-mimport-abils { gap: 0.3rem; }
-.sde-mimport-stats label,
-.sde-mimport-abils label,
-.sde-mimport-spell label {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.2rem;
-  color: var(--sde-bar-text-muted);
-  font-size: 0.78rem;
-}
-.sde-mimport-sublabel {
-  font-weight: 700;
-  color: var(--sde-bar-text);
-  font-size: 0.8rem;
-}
-
-/* Attack / feature rows */
-.sde-mimport-section {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-}
-.sde-mimport-attack,
-.sde-mimport-feature {
-  display: flex;
-  align-items: center;
-  gap: 0.3rem;
-  flex-wrap: wrap;
-}
-/* A specific attack/feature row a parser warning named — mark it so the review
-   note points straight at the row to fix (user QA 2026-07-13). */
-.sde-mimport-attack.flagged,
-.sde-mimport-feature.flagged {
-  border-left: 2px solid var(--sde-bar-warn);
-  padding-left: 0.3rem;
-  background: color-mix(in srgb, var(--sde-bar-warn) 10%, transparent);
-  border-radius: 3px;
-}
-.sde-mimport-flagtag {
-  color: var(--sde-bar-warn);
-  font-size: 0.72rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
-  white-space: nowrap;
-  cursor: help;
 }
 
 .sde-lootgen-forge { margin-left: 4px; }
@@ -4341,7 +2543,6 @@ body.theme-light .sde-hub-monsters-row td {
 .sde-loot-picker-item .sde-loot-setup-unlock { flex: 0 0 auto; width: auto; margin: 0; white-space: nowrap; }
 
 /* ─── Audit P2-3: shared minimum hit size for GM-window icon buttons ─────── */
-.sde-import-del,
 .sde-forge-add,
 .sde-forge-remove {
   min-width: 24px;
@@ -6941,45 +5142,25 @@ body.theme-light .sde-strip-combat-controls { background: #f4f1ec !important; }
 /* ---- Token Art Manager (monster-art) ---------------------------------- */
 .sde-token-art-manager .window-content { padding: 0; }
 .sde-tam { display: flex; flex-direction: column; height: 100%; gap: 0; }
-/* Stacked, not side by side. Five nowrap buttons demanded ~520px of a 720px
-   window, so the blurb was squeezed into a ~180px column twelve lines tall and
-   the space beside the buttons sat empty. Full width it is three lines, and the
-   button row wraps instead of starving the text. */
-.sde-tam-head { display: flex; flex-direction: column; gap: 8px; padding: 10px 12px; border-bottom: 1px solid var(--color-border-light-2, #666); }
-.sde-tam-blurb { font-size: 12px; line-height: 1.35; opacity: 0.9; }
-/* Four lines you read once. `list-style: revert` restores the disclosure marker
-   Foundry's reset strips; closed, the header is the summary line alone. */
-.sde-tam-blurb-title { cursor: pointer; list-style: revert; user-select: none; font-weight: 600; opacity: 0.85; }
-.sde-tam-blurb-title:hover { color: var(--sde-gold, #c9aa58); }
-.sde-tam-blurb[open] .sde-tam-blurb-title { margin-bottom: 4px; }
-.sde-tam-actions { display: flex; flex-wrap: wrap; gap: 6px; }
-.sde-tam-actions button { white-space: nowrap; }
-.sde-tam-apply { font-weight: 600; }
+
 .sde-tam-dim { opacity: 0.6; font-weight: 400; font-size: 11px; }
 
-.sde-tam-folders { padding: 6px 12px; border-bottom: 1px solid var(--color-border-light-2, #666); }
-.sde-tam-folders-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 4px; }
-.sde-tam-folder-add { white-space: nowrap; display: inline-flex; align-items: center; gap: 4px; font-size: 11px; padding: 3px 8px; }
 .sde-tam-folder { display: flex; align-items: center; gap: 8px; min-width: 0; padding: 2px 0; }
-.sde-tam-folder-name { flex: 0 0 170px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
 .sde-tam-folder-path { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 11px; opacity: .75; }
 .sde-tam-folder > button { width: 24px; height: 22px; padding: 0; line-height: 1; flex: 0 0 auto; }
 .sde-tam-folder > button:hover { color: var(--sde-gold, #c9aa58); }
-.sde-tam-folder-empty { font-size: 11px; opacity: .6; font-style: italic; padding: 2px 0; }
+
 .sde-tam-folder-form { display: flex; flex-direction: column; gap: 10px; padding: 4px 0; }
 .sde-tam-folder-form label { display: flex; flex-direction: column; gap: 4px; }
 .sde-tam-folder-form input { width: 100%; }
 .sde-tam-folder-form .notes { margin: 0; }
 
 .sde-tam-sources { padding: 6px 12px; border-bottom: 1px solid var(--color-border-light-2, #666); }
-/* A <summary>, so it carries the disclosure triangle and is keyboard-operable
-   without any of it being written here. `list-style: revert` restores the
-   marker that Foundry's reset strips. */
-.sde-tam-sources-title { font-weight: 600; margin-bottom: 4px; cursor: pointer; list-style: revert; user-select: none; }
-.sde-tam-sources-title:hover { color: var(--sde-gold, #c9aa58); }
+
 /* Closed, the panel is one line: drop the padding that assumed a list under it. */
 .sde-tam-sources:not([open]) { padding-bottom: 6px; }
-.sde-tam-sources:not([open]) .sde-tam-sources-title { margin-bottom: 0; }
+
 /* Draggable rows. The carets remain for keyboard use; dragging is the fast
    path, and the row is the drag handle so there is no 13px target to hit. */
 .sde-tam-source { display: flex; align-items: center; gap: 8px; padding: 2px 0; cursor: grab; border-radius: 3px; }
@@ -6989,28 +5170,16 @@ body.theme-light .sde-strip-combat-controls { background: #f4f1ec !important; }
 .sde-tam-source.drop-after { box-shadow: inset 0 -2px 0 var(--sde-gold, #c9aa58); }
 .sde-tam-grip { flex: 0 0 auto; opacity: 0.35; font-size: 11px; }
 .sde-tam-source:hover .sde-tam-grip { opacity: 0.8; color: var(--sde-gold, #c9aa58); }
-.sde-tam-rank { display: flex; flex-direction: column; gap: 1px; }
-/* Was 20x13 — too small to hit reliably, which is what drag now solves. */
-.sde-tam-rank button { width: 22px; height: 16px; min-height: 0; flex: 0 0 auto; line-height: 1; padding: 0; margin: 0; border: none; background: transparent; cursor: pointer; opacity: 0.75; font-size: 12px; }
-.sde-tam-rank button:hover:not(:disabled) { opacity: 1; color: var(--sde-gold, #c9aa58); }
-.sde-tam-rank button:disabled { opacity: 0.2; cursor: default; }
-.sde-tam-source-name { flex: 1; font-weight: 600; }
+
 .sde-tam-source-used { min-width: 34px; text-align: right; font-variant-numeric: tabular-nums; color: var(--sde-gold, #c9aa58); font-weight: 700; }
 
-.sde-tam-toolbar { display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-bottom: 1px solid var(--color-border-light-2, #666); }
-.sde-tam-toolbar input[name="filter"] { flex: 1; }
-.sde-tam-toggle { display: flex; align-items: center; gap: 5px; white-space: nowrap; font-size: 12px; }
-.sde-tam-toggle input { flex: 0 0 auto; }
 .sde-tam-count { font-variant-numeric: tabular-nums; opacity: 0.7; font-size: 12px; }
 
 .sde-tam-list { flex: 1; overflow-y: auto; padding: 4px 12px 12px; }
 .sde-tam-row { display: flex; align-items: center; gap: 10px; padding: 4px 6px; border-radius: 4px; }
 .sde-tam-row:nth-child(odd) { background: rgba(0,0,0,0.04); }
 .sde-tam-row.is-override { background: rgba(201, 170, 88, 0.12); }
-.sde-tam-name { flex: 1; font-weight: 600; display: flex; align-items: center; gap: 6px; }
-.sde-tam-name .fa-thumbtack { font-size: 11px; color: var(--sde-gold, #c9aa58); cursor: pointer; }
-.sde-tam-imported { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: var(--sde-gold, #c9aa58); border: 1px solid rgba(201, 170, 88, 0.5); border-radius: 3px; padding: 0 4px; opacity: .85; }
-.sde-tam-opts { display: flex; gap: 6px; }
+
 .sde-tam-opt { position: relative; width: 46px; height: 46px; padding: 0; border: 2px solid transparent; border-radius: 6px; background: rgba(0,0,0,0.12); cursor: pointer; overflow: hidden; flex: 0 0 auto; }
 .sde-tam-opt img { width: 100%; height: 100%; object-fit: contain; display: block; }
 .sde-tam-opt:hover { border-color: var(--color-border-highlight, #ff9); }
@@ -7059,105 +5228,10 @@ body.theme-light .sde-strip-combat-controls { background: #f4f1ec !important; }
 .sde-tam-browser-status .sde-tam-status-src { color: var(--sde-gold, #c9aa58); font-weight: 600; }
 .sde-tam-browser-status .sde-tam-status-file { opacity: .85; }
 
-/* ── Class Importer — dedicated 2-stage workspace (parchment sheet look, so the
-   reused title-editor classes get their --cus-* vars) ─────────────────────── */
-.sde-class-importer {
-  --cus-paper: #f3eedd; --cus-paper-2: #e9e3cd; --cus-ink: #17140e;
-  --cus-rule: #b7ad92; --cus-dim: #4a4438;
-  display: flex; flex-direction: column; gap: 10px;
-  background: var(--cus-paper); color: var(--cus-ink);
-  font-size: 13px; padding: 12px 14px 14px; height: 100%; overflow-y: auto;
-}
-.sde-ci-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-bottom: 8px; border-bottom: 1px solid var(--cus-rule); }
-.sde-ci-title { font-family: "Eskapade","Palatino Linotype",Palatino,serif; font-size: 20px; display: flex; align-items: center; gap: 8px; }
-.sde-ci-headright { display: flex; align-items: center; gap: 8px; }
-.sde-ci-buildlabel { font-size: 11px; color: var(--cus-dim); }
-.sde-ci-chip { background: var(--cus-paper-2); border: 1px solid var(--cus-rule); border-radius: 20px; padding: 2px 12px; font-size: 12px; color: var(--cus-dim); }
-.sde-ci-chip-on { background: #131313; color: var(--cus-paper); border-color: #131313; font-weight: 700; }
-.sde-ci-sourcefield { display: flex; align-items: center; gap: 8px; }
-.sde-ci-sourcefield input { flex: 1; }
-.sde-ci-fieldname { font-weight: 700; font-size: 12px; min-width: 3.5rem; }
-.sde-ci-stagehead { font-family: "Eskapade","Palatino Linotype",Palatino,serif; font-size: 15px; margin-top: 6px; }
-.sde-ci-note { margin: 0; font-size: 12px; color: var(--cus-dim); font-style: italic; }
-.sde-ci-note-info { font-style: normal; }
-.sde-ci-paste { width: 100%; min-height: 60px; font-size: 12px; background: #fffdf5; color: var(--cus-ink); border: 1px solid var(--cus-rule); border-radius: 3px; }
-.sde-ci-bodypaste { min-height: 120px; }
-.sde-ci-bodybtns { display: flex; gap: 8px; margin-top: 6px; }
-.sde-ci-bodypreview { margin-top: 8px; background: var(--cus-paper-2); border: 1px solid var(--cus-rule); border-radius: 3px; padding: 8px 10px; }
-.sde-ci-previewrow { margin-bottom: 3px; }
-.sde-ci-featlist { margin: 4px 0 0; padding-left: 1.1rem; }
-.sde-ci-featlist li { margin-bottom: 2px; }
-/* A feature's own paragraphs/bullets (the Delver's Trailblazer list) render as
-   structure here, not a flattened run-on — tightened against core's 1rem list
-   margins so the preview stays compact. */
-.sde-ci-featlist li > ul, .sde-ci-featlist li > ol { margin: 2px 0 0; padding-left: 1.1rem; }
-.sde-ci-featlist li > ul > li { list-style: disc; margin-bottom: 0; }
-.sde-ci-featlist li > p { margin: 3px 0 0; }
-.sde-ci-stage-done { background: #e5efd8; border: 1px solid #7fa350; border-radius: 4px; padding: 8px 12px; }
-.sde-ci-donerow { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-.sde-ci-donetext { display: flex; align-items: center; gap: 10px; }
-.sde-ci-donetext > i { font-size: 18px; color: #3d6b1f; }
-.sde-ci-donetitle { font-weight: 700; }
-.sde-ci-donesub { font-size: 12px; color: var(--cus-dim); }
-.sde-ci-parts { display: flex; flex-direction: column; gap: 10px; }
-.sde-ci-part { background: var(--cus-paper-2); border: 1px solid var(--cus-rule); border-radius: 4px; padding: 8px 12px; }
 .sde-ci-part-off { opacity: 0.6; }
-.sde-ci-partrow { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 6px; }
-.sde-ci-partname { font-weight: 700; display: inline-flex; align-items: center; gap: 6px; }
-.sde-ci-status { font-size: 12px; color: var(--cus-dim); }
+
 .sde-ci-status-on { color: #3d6b1f; font-weight: 700; display: inline-flex; align-items: center; gap: 4px; }
 .sde-ci-extras { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 6px; }
-.sde-ci-footer { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--cus-rule); }
-.sde-ci-pending { font-size: 12px; color: var(--cus-dim); }
-.sde-ci-footer button[disabled] { opacity: 0.5; cursor: not-allowed; }
-.sde-ci-seedbanner { background: #fff3d6; border: 1px solid #d8b24a; border-radius: 4px; padding: 7px 11px; font-size: 12px; color: #5a4415; }
-.sde-ci-namefield { display: flex; align-items: center; gap: 8px; }
-.sde-ci-namefield input { flex: 1; font-weight: 500; }
-.sde-ci-imported { display: flex; flex-direction: column; gap: 4px; background: #e5efd8; border: 1px solid #7fa350; border-radius: 4px; padding: 8px 12px; }
-.sde-ci-impitem { font-size: 13px; display: flex; align-items: center; gap: 8px; }
-.sde-ci-impok { color: #2f5e17; font-weight: 500; }
-.sde-ci-impok > i { color: #3d8b1f; }
-.sde-ci-imppend { color: var(--cus-dim); }
-.sde-ci-imppend > i { color: var(--cus-rule); }
-
-/* ── Spell Importer (Class → Tier → Alignment workspace, parchment theme) ──── */
-.sde-spell-importer {
-  --cus-paper: #f3eedd; --cus-paper-2: #e9e3cd; --cus-ink: #17140e;
-  --cus-rule: #b7ad92; --cus-dim: #4a4438;
-  display: flex; flex-direction: column; gap: 10px;
-  background: var(--cus-paper); color: var(--cus-ink);
-  font-size: 13px; padding: 12px 14px 14px; height: 100%; overflow-y: auto;
-}
-.sde-si-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-bottom: 8px; border-bottom: 1px solid var(--cus-rule); }
-.sde-si-title { font-family: "Eskapade","Palatino Linotype",Palatino,serif; font-size: 20px; display: flex; align-items: center; gap: 8px; }
-.sde-si-headright { display: flex; align-items: center; gap: 8px; }
-.sde-si-chip { background: var(--cus-paper-2); border: 1px solid var(--cus-rule); border-radius: 20px; padding: 2px 12px; font-size: 12px; color: var(--cus-dim); }
-.sde-si-chip-on { background: #131313; color: var(--cus-paper); border-color: #131313; font-weight: 700; }
-.sde-si-field { display: flex; align-items: center; gap: 8px; }
-.sde-si-field input { flex: 1; }
-.sde-si-fieldname { font-weight: 700; font-size: 12px; min-width: 3.5rem; }
-.sde-si-imported { display: flex; flex-direction: column; gap: 4px; background: #e5efd8; border: 1px solid #7fa350; border-radius: 4px; padding: 8px 12px; }
-.sde-si-bulkbar { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; background: var(--cus-paper-2); border: 1px solid var(--cus-rule); border-radius: 4px; padding: 8px 12px; }
-.sde-si-bulklabel { font-weight: 700; }
-.sde-si-bulkfield { display: flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 700; }
-.sde-si-bulkfield input { width: 8rem; }
-.sde-si-note { margin: 0; font-size: 12px; color: var(--cus-dim); font-style: italic; }
-.sde-si-paste { width: 100%; min-height: 120px; font-size: 12px; background: #fffdf5; color: var(--cus-ink); border: 1px solid var(--cus-rule); border-radius: 3px; }
-.sde-si-parsebtns { display: flex; align-items: center; gap: 10px; }
-.sde-si-summary { font-size: 12px; color: var(--cus-dim); }
-.sde-si-groups { display: flex; flex-direction: column; gap: 8px; }
-.sde-si-group { background: var(--cus-paper-2); border: 1px solid var(--cus-rule); border-radius: 4px; padding: 6px 10px 8px; }
-.sde-si-grouphead { font-weight: 700; font-family: "Eskapade","Palatino Linotype",Palatino,serif; font-size: 14px; padding-bottom: 4px; border-bottom: 1px solid var(--cus-rule); margin-bottom: 5px; }
-.sde-si-groupcount { color: var(--cus-dim); font-weight: 400; font-family: inherit; }
-.sde-si-spellrow { display: flex; align-items: center; gap: 6px; padding: 2px 0; }
-.sde-si-spellname { flex: 1; font-weight: 500; }
-.sde-si-warn { color: #8a5a12; }
-.sde-si-inline { display: inline-flex; align-items: center; gap: 3px; font-size: 11px; color: var(--cus-dim); }
-.sde-si-tier { width: 3rem; }
-.sde-si-cls { width: 7rem; }
-.sde-si-align { width: 9rem; }
-.sde-si-footer { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 6px; padding-top: 10px; border-top: 1px solid var(--cus-rule); }
-.sde-si-pending { font-size: 12px; color: var(--cus-dim); }
 
 /* Extra Gear editor styles are embedded in templates/char-builder/gear-editor.hbs
    (as an inline <style>) rather than here — this window must render correctly even
@@ -7220,27 +5294,6 @@ body.theme-light .sde-strip-combat-controls { background: #f4f1ec !important; }
 @container (max-width: 560px) {
   .sde-downtime .dt-pickers { grid-template-columns: minmax(0, 1fr); }
   .sde-downtime .dt-ov-name { flex-basis: 100px; }
-}
-
-/* Importer Hub — downtime parse preview.
-   A complete 25-slot parse renders the match line plus warning / unfilled /
-   unmatched lists; unbounded it pushed the "Unlock outcomes" button below the
-   fold. Bounded here so the section's own controls stay reachable and the
-   preview scrolls on its own. Scoped to the downtime preview: the hub's other
-   import types keep their unbounded .sde-import-preview. */
-.sde-dt-hub-preview {
-  max-height: 320px;
-  overflow-y: auto;
-  padding-right: 6px;
-  scrollbar-width: thin;
-  scrollbar-gutter: stable;
-  scrollbar-color: var(--sde-bar-border, #6b6b6b) var(--sde-bar-surface-1, #1a1a1a);
-}
-.sde-dt-hub-preview::-webkit-scrollbar { width: 9px; }
-.sde-dt-hub-preview::-webkit-scrollbar-track { background: var(--sde-bar-surface-1, #1a1a1a); }
-.sde-dt-hub-preview::-webkit-scrollbar-thumb {
-  background: var(--sde-bar-border, #6b6b6b);
-  border-radius: 5px;
 }
 
 /* ── Downtime chat card ──────────────────────────────────────────────────── */
@@ -8331,20 +6384,6 @@ button.sde-hud-day:hover { border-color: var(--sd-frame); }
   color: var(--color-level-error, #b3261e);
 }
 
-/* Adventure placer: the keyed-location list over an adventure map scene. */
-.sde-advp { display: flex; flex-direction: column; gap: 6px; height: 100%; }
-.sde-advp-head { display: flex; flex-direction: column; gap: 4px; }
-.sde-advp-summary { font-size: 0.85rem; opacity: 0.8; }
-.sde-advp-hint { margin: 0; font-size: 0.85rem; opacity: 0.8; min-height: 2.2em; }
-.sde-advp-actions { display: flex; gap: 6px; }
-.sde-advp-rows { list-style: none; margin: 0; padding: 0; overflow-y: auto; flex: 1; }
-.sde-advp-row { display: grid; grid-template-columns: 1fr auto auto auto auto; gap: 4px; align-items: center; padding: 2px 4px; border-bottom: 1px solid rgba(128, 128, 128, 0.25); }
-.sde-advp-row button { width: 26px; height: 26px; padding: 0; line-height: 1; }
-.sde-advp-row.is-placed .sde-advp-name { opacity: 0.6; }
-.sde-advp-row.is-skipped .sde-advp-name { opacity: 0.45; text-decoration: line-through; }
-.sde-advp-row.is-armed { background: rgba(255, 200, 0, 0.18); }
-.sde-advp-state { font-size: 0.75rem; opacity: 0.7; }
-
 /* ── Bastion actor sheet ────────────────────────────────────────────────────
  * An ApplicationV2 window in the Shadowdark parchment chrome, like the Boat's
  * (the .SD-header / .SD-nav / .SD-box rules come from the system's stylesheet
@@ -8684,6 +6723,197 @@ button.sde-hud-day:hover { border-color: var(--sd-frame); }
 .sde-dialog.dlg-choices .form-footer button.default { height: 38px; background: var(--ui-btn-bg); color: var(--ui-btn-fg); }
 .sde-dialog.dlg-choices .form-footer button.default > i { color: inherit; }
 .sde-dialog.dlg-choices .form-footer button.ghost { justify-content: center; height: 30px; background: transparent; border-color: transparent; color: var(--ui-muted); }
+
+/* ═══ Importer windows (Importer Hub, Class, Monster, Spell, Item Builder, Roll Tables, Adventure Placer, Token Art Manager) ═══
+   Kit parts come from styles/sde-ui.css; these are the parts the kit does not have yet. Window roots carry
+   "sde-ui sde-imp", and every rule hangs off .sde-imp so nothing reaches another window. Tokens only. */
+.sde-imp .imp-art { display: flex; align-items: center; justify-content: center; color: var(--ui-muted); font-size: 22px; }
+.sde-imp .imp-fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(84px, 1fr)); gap: 8px 10px; }
+.sde-imp .imp-fields.wide { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
+.sde-imp .imp-fields.abil { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+.sde-imp .imp-fields .span2 { grid-column: span 2; }
+.sde-imp .imp-fields .ui-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sde-imp .imp-warn { border-color: var(--ui-warn) !important; background: var(--ui-gold-bg) !important; }
+.sde-imp .imp-warnrow { border-left: 3px solid var(--ui-warn); padding-left: 8px; }
+.sde-imp .imp-warnlist { margin: 0; padding: 0 0 0 16px; font-size: 12px; }
+.sde-imp .imp-sechead { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-height: 28px; }
+.sde-imp .imp-sechead .ui-label { margin-right: auto; }
+.sde-imp .imp-sechead .ui-btn { height: 24px; padding: 0 9px; }
+.sde-imp .ui-h .ui-btn { align-self: center; }
+.sde-imp .imp-rows { display: flex; flex-direction: column; gap: 6px; }
+.sde-imp .imp-attack { display: grid; grid-template-columns: 46px minmax(90px, 1.2fr) minmax(130px, 150px) 56px 66px minmax(70px, 1fr) minmax(110px, 2fr) 24px; gap: 6px; align-items: center; }
+.sde-imp .imp-attack.head { align-items: end; }
+.sde-imp .imp-attack.head .ui-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sde-imp .imp-attack input, .sde-imp .imp-attack select { min-width: 0; }
+.sde-imp .imp-feature { display: grid; grid-template-columns: minmax(90px, 1fr) minmax(140px, 3fr) 24px; gap: 6px; align-items: center; }
+.sde-imp .imp-ok { color: var(--ui-ok); }
+.sde-imp .imp-warnic { color: var(--ui-warn); }
+.sde-imp .imp-hidden { visibility: hidden; }
+.sde-imp .imp-node { display: flex; flex-direction: column; gap: 6px; }
+.sde-imp .imp-noderow { display: flex; align-items: center; gap: 8px; min-height: 32px; padding: 3px 8px; border-radius: var(--ui-r); color: var(--ui-text); }
+.sde-imp .imp-noderow.is-expandable { cursor: pointer; }
+.sde-imp .imp-noderow.is-expandable:hover { background: var(--ui-hover); }
+.sde-imp .imp-caret { width: 14px; text-align: center; color: var(--ui-muted); font-size: 11px; }
+.sde-imp .imp-nodeicon { width: 16px; text-align: center; color: var(--ui-gold); }
+.sde-imp .imp-nodelabel { flex: 1 1 auto; min-width: 0; font-weight: 700; overflow-wrap: anywhere; }
+.sde-imp .imp-node.depth-0 > .imp-noderow { border-bottom: 1px solid var(--ui-line); border-radius: 0; font: 400 17px/1.2 var(--ui-title); }
+.sde-imp .imp-node.depth-0 > .imp-noderow .imp-nodelabel { font-weight: 400; }
+.sde-imp .imp-nodechips { display: flex; gap: 6px; flex: 0 0 auto; font-family: var(--ui-font); font-weight: 400; }
+.sde-imp .ui-search > input { padding-left: 28px; }
+.sde-imp .imp-children { display: flex; flex-direction: column; gap: 6px; padding-left: 18px; }
+.sde-imp .imp-batchrow { display: flex; }
+.sde-imp .imp-entries .ui-row { min-height: 34px; }
+.sde-imp .imp-grow { flex: 1 1 auto; min-height: 0; }
+.sde-imp .ui-field.imp-grow > textarea { flex: 1 1 auto; }
+.sde-imp .imp-sumname { flex: 1 1 auto; min-width: 0; font: 700 14px/1.2 var(--ui-font); color: var(--ui-text); overflow-wrap: anywhere; }
+.sde-imp .ui-details[data-monster-idx] > summary, .sde-imp .ui-details[data-item-idx] > summary, .sde-imp .ui-details[data-spell-idx] > summary { font-family: var(--ui-font); font-size: 14px; flex-wrap: wrap; }
+.sde-imp .ui-icon { min-width: 24px; min-height: 24px; flex: 0 0 24px; }
+.sde-imp [data-cu-row] > td { vertical-align: top; }
+.sde-imp .imp-flat { border: 0; background: transparent; border-radius: 0; }
+.sde-imp .imp-wrap { flex-wrap: wrap; }
+.sde-imp .ui-body > * { flex-shrink: 0; }
+.sde-imp input[type=radio]::before, .sde-imp input[type=radio]::after { content: none !important; }
+.sde-imp .w96 { width: 110px; }
+.sde-imp .w44 { width: 56px; }
+.sde-imp .imp-pending { flex: 1 1 auto; min-width: 0; text-align: right; padding-right: 8px; overflow-wrap: anywhere; }
+.sde-imp .imp-flagged td { background: var(--ui-gold-bg); }
+.sde-imp [hidden] { display: none !important; }
+.sde-imp .ui-details > summary.imp-sumlong { font: 600 13px/1.3 var(--ui-font); }
+.sde-imp .imp-paste { min-height: 220px; font-family: var(--font-mono, monospace); }
+.sde-imp .imp-name { flex: 1 1 auto; min-width: 0; font-weight: 700; }
+.sde-imp .imp-type { flex: 0 0 120px; width: 120px !important; }
+.sde-imp .imp-text { margin: 0; color: var(--ui-body); }
+.sde-imp .imp-scroll { max-height: 340px; overflow: auto; }
+.sde-imp .ui-scrollx { overflow-x: auto; }
+.sde-imp .imp-tablehead { display: grid; grid-template-columns: minmax(120px, 2fr) 76px minmax(110px, 1fr) auto auto; gap: 8px; align-items: center; }
+.sde-imp .imp-trow { display: grid; grid-template-columns: 54px 12px 54px minmax(120px, 1fr) auto 24px 24px; gap: 6px; align-items: center; }
+.sde-imp .imp-colhead { display: flex; align-items: center; gap: 4px; }
+.sde-imp .imp-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.sde-imp .imp-search { flex: 1 1 160px; min-width: 140px; }
+.sde-imp .imp-batch { display: flex; flex-direction: column; gap: 8px; }
+.sde-imp .imp-tool { width: 100%; text-align: left; background: transparent; border: 0; border-bottom: 1px solid var(--ui-line); color: var(--ui-text); cursor: pointer; font: inherit; }
+.sde-imp .imp-tool:last-child { border-bottom: 0; }
+.sde-imp .imp-tool > i:first-child { width: 20px; text-align: center; color: var(--ui-gold); }
+.sde-imp .imp-chev { color: var(--ui-muted); font-size: 11px; }
+.sde-imp .imp-optrow { margin-top: 6px; }
+.sde-imp .imp-opt { display: inline-flex; align-items: center; gap: 2px; }
+.sde-imp .imp-opt input { width: 140px; }
+.sde-imp .w72 { width: 78px; }
+.sde-imp .w32 { width: 32px; }
+.sde-imp .ui-table td button.ui-icon { margin: 0; }
+.sde-imp .imp-effect { display: flex; align-items: center; gap: 8px; }
+.sde-imp .imp-effect input { flex: 1 1 auto; }
+.sde-imp .imp-feats { display: flex; flex-direction: column; gap: 4px; }
+.sde-imp .ui-table.imp-fixed { table-layout: fixed; }
+.sde-imp .ui-table.imp-fixed td, .sde-imp .ui-table.imp-fixed th { padding-left: 3px; padding-right: 3px; }
+.sde-imp .ui-table.imp-fixed td input { padding: 0 4px; text-align: center; }
+.sde-imp .ui-table.imp-fixed.wide2 td input { text-align: left; padding: 0 8px; }
+.sde-imp .imp-spellrow { display: grid; grid-template-columns: minmax(120px, 1fr) 64px minmax(100px, 150px) minmax(100px, 140px) 24px; gap: 8px; align-items: center; }
+.sde-imp .imp-spellrow .ui-row-name { min-width: 0; }
+.sde-imp .imp-tier { display: flex; align-items: center; gap: 4px; }
+.sde-imp .imp-tier input { text-align: center; }
+.sde-imp .ui-h.plain { font: 700 14px/1.2 var(--ui-font); }
+@container (max-width: 640px) {
+  .sde-imp .imp-attack.head { display: none; }
+  .sde-imp .imp-fields.abil { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .sde-imp .imp-feature { grid-template-columns: minmax(0, 1fr) 24px; }
+  .sde-imp .imp-feature > :nth-child(2) { grid-column: 1 / -1; order: 3; }
+  .sde-imp .imp-attack > :nth-child(1) { grid-area: 1 / 1; }
+  .sde-imp .imp-attack > :nth-child(2) { grid-area: 1 / 2 / 2 / 4; }
+  .sde-imp .imp-attack > :nth-child(8) { grid-area: 1 / 4; }
+  .sde-imp .imp-attack > :nth-child(3) { grid-area: 2 / 1 / 3 / -1; }
+  .sde-imp .imp-attack > :nth-child(4) { grid-area: 3 / 1; }
+  .sde-imp .imp-attack > :nth-child(5) { grid-area: 3 / 2; }
+  .sde-imp .imp-attack > :nth-child(6) { grid-area: 3 / 3 / 4 / -1; }
+  .sde-imp .imp-attack > :nth-child(7) { grid-area: 4 / 1 / 5 / -1; }
+  .sde-imp .imp-attack { grid-template-columns: 46px minmax(0, 1fr) 56px 24px; }
+  .sde-imp .imp-resp, .sde-imp .imp-resp tbody, .sde-imp .imp-resp thead { display: block; }
+  .sde-imp .imp-resp thead { display: none; }
+  .sde-imp .imp-resp tr { display: grid; gap: 6px 8px; padding: 8px 0; border-bottom: 1px solid var(--ui-line); }
+  .sde-imp .imp-resp td { display: block; padding: 0; border: 0; width: auto; }
+  .sde-imp .imp-resp tr:hover td { background: transparent; }
+  .sde-imp .imp-resp td[data-label]::before { content: attr(data-label); display: block; font: 600 10.5px/1.2 var(--ui-head); text-transform: uppercase; letter-spacing: .06em; color: var(--ui-muted); margin-bottom: 2px; }
+  .sde-imp .imp-resp.titles tr { grid-template-columns: repeat(3, minmax(0, 1fr)) 28px; }
+  .sde-imp .imp-resp.titles td:nth-child(1) { grid-column: 1 / 4; grid-row: 1; }
+  .sde-imp .imp-resp.titles td:nth-child(5) { grid-column: 4; grid-row: 1; align-self: end; }
+  .sde-imp .imp-resp.titles td:nth-child(2) { grid-column: 1; grid-row: 2; }
+  .sde-imp .imp-resp.titles td:nth-child(3) { grid-column: 2; grid-row: 2; }
+  .sde-imp .imp-resp.titles td:nth-child(4) { grid-column: 3; grid-row: 2; }
+  .sde-imp .imp-resp.talent tr { grid-template-columns: minmax(0, 1fr) 28px; }
+  .sde-imp .imp-resp.talent td:nth-child(1) { grid-column: 1; grid-row: 1; }
+  .sde-imp .imp-resp.talent td:nth-child(3) { grid-column: 2; grid-row: 1; }
+  .sde-imp .imp-resp.talent td:nth-child(2) { grid-column: 1 / -1; grid-row: 2; }
+  .sde-imp .imp-resp.items tr { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 28px; }
+  .sde-imp .imp-resp.items td:nth-child(1) { grid-column: 1 / 3; grid-row: 1; }
+  .sde-imp .imp-resp.items td:nth-child(5) { grid-column: 3; grid-row: 1; align-self: end; }
+  .sde-imp .imp-resp.items td:nth-child(2) { grid-column: 1; grid-row: 2; }
+  .sde-imp .imp-resp.items td:nth-child(3) { grid-column: 2; grid-row: 2; text-align: left; }
+  .sde-imp .imp-resp.items td:nth-child(4) { grid-column: 1 / -1; grid-row: 3; }
+  .sde-imp .imp-tablehead { grid-template-columns: minmax(0, 1fr) 76px; }
+  .sde-imp .imp-trow { grid-template-columns: 48px 10px 48px minmax(0, 1fr) 24px; }
+  .sde-imp .imp-trow > :nth-child(5), .sde-imp .imp-trow > :nth-child(6) { display: none; }
+  .sde-imp .imp-spellrow { grid-template-columns: 64px minmax(0, 1fr) minmax(0, 1fr); }
+  .sde-imp .imp-spellrow > .ui-row-name { grid-column: 1 / 3; }
+  .sde-imp .imp-spellrow > .ui-icon { grid-column: 3; grid-row: 1; justify-self: end; }
+  .sde-imp .imp-spellrow > .imp-tier { grid-row: 2; grid-column: 1; }
+  .sde-imp .imp-spellrow > input { grid-row: 2; grid-column: 2; }
+  .sde-imp .imp-spellrow > select { grid-row: 2; grid-column: 3; }
+}
+
+.sde-imp .sde-mtree-entry.is-present { cursor: pointer; }
+.sde-imp .sde-mtree-entry.is-present:hover { background: var(--ui-hover); }
+.sde-imp .sde-cu-titles input { width: 100%; min-width: 4rem; }
+.sde-imp .sde-tam { height: auto; }
+.sde-imp .sde-thub .imp-search { flex: 1 1 180px; min-width: 150px; }
+.sde-imp .imp-blurb { font-size: 12.5px; line-height: 1.45; }
+.sde-imp .sde-tam-row { padding: 6px 10px; border-radius: 0; background: transparent; }
+.sde-imp .sde-tam-row:nth-child(odd) { background: transparent; }
+.sde-imp .sde-tam-row.is-override { background: var(--ui-raised); }
+.sde-imp .sde-tam-list { padding: 0; overflow: visible; }
+.sde-imp .imp-opts { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 6px; flex: 0 1 auto; }
+.sde-imp .sde-tam-opt { width: 44px; height: 44px; border: 2px solid var(--ui-line); border-radius: var(--ui-r2); background: var(--ui-raised); }
+.sde-imp .sde-tam-opt:hover { border-color: var(--ui-frame); }
+.sde-imp .sde-tam-opt.is-chosen { border-color: var(--ui-gold); box-shadow: none; }
+.sde-imp .sde-tam-check { background: var(--ui-gold); color: var(--ui-page); }
+.sde-imp .sde-tam-nomatch { font-style: italic; }
+.sde-imp .sde-tam-source { cursor: grab; }
+.sde-imp .sde-tam-grip { color: var(--ui-muted); }
+.sde-imp .sde-tam-folder-path { background: transparent; padding: 0; overflow-wrap: anywhere; }
+.sde-imp .sde-tam-browse { align-self: center; margin-left: 0; padding: 0; border: 1px solid transparent; background: transparent; font-size: 12px; }
+.sde-imp .sde-tam-browser { background: var(--ui-page); border: 1px solid var(--ui-frame); box-shadow: var(--ui-shadow); }
+.sde-imp .sde-tam-browser-head { border-bottom: 1px solid var(--ui-line); }
+.sde-imp .sde-tam-browser-title { font: 400 17px/1 var(--ui-title); color: var(--ui-text); }
+.sde-imp .sde-tam-bgroup-head { background: var(--ui-page); color: var(--ui-gold); border-bottom: 1px solid var(--ui-line); }
+.sde-imp .sde-tam-browser-zoom { accent-color: var(--ui-frame); }
+.sde-imp .sde-tam-browser-status { padding: 6px 12px; border-top: 1px solid var(--ui-line); }
+.sde-imp .ui-footer.imp-wrap { flex-wrap: wrap; }
+.sde-imp .sde-thub .imp-paste { min-height: 200px; }
+.sde-imp .sde-thub .ui-h.plain { font: 700 13px/1.2 var(--ui-font); color: var(--ui-muted); text-transform: uppercase; letter-spacing: .05em; }
+.sde-imp .imp-count { margin-left: auto; }
+.sde-imp .ui-row .ui-chip, .sde-imp .ui-row .ui-tag { flex: 0 0 auto; }
+.sde-imp .sde-thub-row.sde-thub-openable { cursor: pointer; }
+.sde-imp .ui-shell.sde-thub { padding: 0; gap: 0; max-height: none; overflow: visible; }
+.sde-imp .sde-thub-row { background: transparent; border-radius: 0; padding: 6px 10px; }
+.sde-imp .sde-thub-cat { border-bottom: 1px solid var(--ui-line); }
+.sde-imp .sde-thub-sub { margin: 0; }
+.sde-imp .sde-thub-tabs { gap: 2px; padding: 6px 12px 0; }
+.sde-imp .sde-thub-tabs .item { border: 0; border-bottom: 3px solid transparent; padding: 6px 14px; opacity: 1; }
+.sde-imp .sde-thub-tabs .item.active { border-bottom-color: var(--ui-frame); background: var(--ui-panel); }
+.sde-imp .ui-title.imp-small { font-size: 19px; }
+.sde-imp .imp-tight { padding: 10px; gap: 10px; }
+.sde-imp .imp-placerow { min-height: 38px; gap: 8px; padding: 4px 8px; }
+.sde-imp .imp-placerow .ui-card-actions { gap: 2px; }
+.sde-imp .imp-placerow.is-skipped .ui-row-name { text-decoration: line-through; color: var(--ui-muted); }
+.sde-imp .ui-footer.imp-wrap { padding: 8px 10px; gap: 6px; }
+.sde-imp .ui-footer .ui-btn { padding: 0 9px; }
+@container (max-width: 640px) {
+  .sde-imp .ui-row.sde-thub-row { flex-wrap: wrap; }
+  .sde-imp .ui-row.sde-thub-row .ui-row-main { flex-basis: 100%; }
+}
+@container (max-width: 560px) {
+  .sde-imp .ui-row.sde-tam-row { flex-wrap: wrap; }
+  .sde-imp .ui-row.sde-tam-row .imp-opts { justify-content: flex-start; flex-basis: 100%; order: 3; }
+}
 
 /* Camping window (kit parts come from styles/sde-ui.css): hairline rows on the page, no cards. */
 .sde-camping-body { container-type: inline-size; }
