@@ -4,7 +4,7 @@ export const TAGGER_TABS = [
   { id: "map", needs: null },
   { id: "terrains", needs: "origin" },
   { id: "data", needs: "showMore" },
-  { id: "settings", needs: "showMore" },
+  { id: "settings", needs: "origin" },
 ];
 
 /** The tab to show: the one asked for if it exists for this scene, else the first (Sheet). */

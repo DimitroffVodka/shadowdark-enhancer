@@ -10206,10 +10206,12 @@ body.theme-light .sde-parry-note { color: #2e6b2e; }
 .hxt-panel { display: none; flex-direction: column; gap: 12px; }
 #hxt-t1:checked ~ .hxt-body .hxt-p1, #hxt-t2:checked ~ .hxt-body .hxt-p2, #hxt-t3:checked ~ .hxt-body .hxt-p3, #hxt-t4:checked ~ .hxt-body .hxt-p4, #hxt-t5:checked ~ .hxt-body .hxt-p5 { display: flex; }
 #hxt-t1:checked ~ .hxt-tabs label[for=hxt-t1], #hxt-t2:checked ~ .hxt-tabs label[for=hxt-t2], #hxt-t3:checked ~ .hxt-tabs label[for=hxt-t3], #hxt-t4:checked ~ .hxt-tabs label[for=hxt-t4], #hxt-t5:checked ~ .hxt-tabs label[for=hxt-t5] { color: var(--ui-text); background: var(--ui-panel); border-bottom-color: var(--ui-frame); }
+/* the radios are invisible, so the focused one's label shows the focus ring */
+#hxt-t1:focus-visible ~ .hxt-tabs label[for=hxt-t1], #hxt-t2:focus-visible ~ .hxt-tabs label[for=hxt-t2], #hxt-t3:focus-visible ~ .hxt-tabs label[for=hxt-t3], #hxt-t4:focus-visible ~ .hxt-tabs label[for=hxt-t4], #hxt-t5:focus-visible ~ .hxt-tabs label[for=hxt-t5] { outline: 2px solid var(--ui-info); outline-offset: 1px; }
 .hxt-sheet { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 10px; }
 .hxt-wide { grid-column: 1 / -1; }
 .hxt-thumb { width: 72px; height: 72px; object-fit: contain; flex: 0 0 auto; border-radius: var(--ui-r); background: var(--ui-raised); border: 1px solid var(--ui-line); }
-.hxt-cellhead { gap: 2px; min-width: 0; }
+.hxt .hxt-cellhead { gap: 2px; min-width: 0; }
 .hxt-fig { margin: 0; display: flex; flex-direction: column; align-items: center; gap: 2px; cursor: pointer; }
 .hxt-auto { width: auto !important; }
 .hxt-settings { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; }
@@ -10223,7 +10225,7 @@ body.theme-light .sde-parry-note { color: #2e6b2e; }
   .hxt-tabs .ui-tab i { display: none; }
 }
 /* the footer is the Sheet tab's: Confirm and Show me others mean nothing on another tab */
-.hxt-foot { display: none; }
+.hxt .hxt-foot { display: none; }
 #hxt-t1:checked ~ .hxt-foot { display: flex; }
 .hxt .hxt-body { max-height: 62vh; }
 /* Make this map playable's checklist (#257). */
@@ -10256,7 +10258,7 @@ body.theme-light .sde-parry-note { color: #2e6b2e; }
 .hxb .hex img { width: 100%; height: auto; display: block; }
 .hxb .ico { display: grid; place-items: center; width: 78%; aspect-ratio: 1; border-radius: 50%; background: var(--c); border: 1px solid var(--ui-line); }
 .hxb .ico i { font-size: 1.4em; color: #fff; }
-.hxb-now { flex-direction: row; align-items: center; justify-content: center; gap: 14px; }
+.hxb .hxb-now { flex-direction: row; align-items: center; justify-content: center; gap: 14px; }
 .hxb-now .big { display: flex; flex-direction: column; align-items: center; gap: 6px; width: 132px; }
 .hxb-now .big .hex { width: 104px; }
 .hxb-now .big .ico i { font-size: 28px; }

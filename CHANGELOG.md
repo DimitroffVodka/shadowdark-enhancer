@@ -9,6 +9,7 @@
   redesign. No window uses it yet, so nothing looks different.
 
 ### Changed
+- **Hex Tagger: the Settings tab shows only once the grid anchor is set** (it opened onto an empty panel before), the tab labels show a focus ring for keyboard users, and the hex tools' footer and heading rules no longer depend on stylesheet order.
 - **Hex Brush window uses the new design.** The current terrain in a card with previous and next buttons, a tile for each terrain on the map, the hex features as checked chips, and Undo stroke in a footer.
 - **Hex Tagger window uses the new design.** A header band with the scene and its tagging progress, five tabs (Sheet, Map, Terrains, Data, Settings) that keep the one you chose while the window redraws, and the Confirm / Apply buttons in a footer on the Sheet tab. The More button is gone; its tools are the Data and Settings tabs.
 - **Hexplorer window uses the new design.** A header band with the hex number and terrain, cards for each section, and a Save button in the footer.
