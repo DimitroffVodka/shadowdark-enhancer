@@ -11951,7 +11951,7 @@ button.sde-hud-day:hover { border-color: var(--sd-frame); }
   .sde-quick-adjust .qa-footer .qa-lbl { display: none; }
   .sde-quick-adjust .qa-footer { flex-wrap: nowrap; }
 }
-
+/* Rules data: CSS-only tabs (hidden radios + labels in the .ui-tabs row), tables that become cards on a narrow window,
    cells that hold an input and a select stacked so neither truncates. Tokens only. */
 .sde-rules-data .rd-art { display: flex; align-items: center; justify-content: center; color: var(--ui-muted); font-size: 22px; }
 .sde-rules-data .rd-tabradio { position: absolute; opacity: 0; pointer-events: none; width: 0; height: 0; }

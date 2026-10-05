@@ -9,6 +9,7 @@
   redesign. No window uses it yet, so nothing looks different.
 
 ### Changed
+- **Rules data styles apply again** (a comment in the stylesheet had lost its opener and swallowed the next rule), and the utility-tool design-harness fixtures carry the windows' current classes.
 - **The settings group windows use the new design.** Each group opened from Configure Settings shows its settings in cards (label and hint left, control right), sub-groups as collapsible sections, and a Save footer.
 - **Rules Data window uses the new design.** Tabs for Terrain, Travel, Settlements and Climate, the ruleset buttons in the header, and the window now stays on the tab you chose when it redraws (adding a terrain, switching ruleset, importing).
 - **Quick Adjust window uses the new design.** The creature and a level stepper in the header, the changes in one card, and Revert, Open creator, Copy and Apply in the footer (the two middle ones show only their icons in a narrow window).
