@@ -23,5 +23,5 @@ const build = (state) => {
     },
   } };
 };
-export default { previewHeight: 700, title: "SDE.quests.title", icon: "fa-solid fa-list-check", classes: ["shadowdark", "sde-quest-log"], width: 780, height: 620, resizable: true,
+export default { previewHeight: 700, title: "SDE.quests.title", icon: "fa-solid fa-list-check", classes: ["shadowdark", "sde-quest-log", "sde-ui"], width: 780, height: 620, resizable: true,
   template: "templates/quest-log.hbs", initial: "gm", build, toolbar: `<button data-action="v" data-state="gm">GM</button><button data-action="v" data-state="player">player</button>`, actions: { v: { state: "{state}" } } };

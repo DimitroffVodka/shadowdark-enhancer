@@ -51,6 +51,7 @@ export class EncounterRollerApp extends HandlebarsApplicationMixin(ApplicationV2
   static DEFAULT_OPTIONS = {
     id: "sde-encounter-roller",
     tag: "form",
+    classes: ["shadowdark", "sde-roller", "sde-ui"],
     window: {
       title: "SDE.encounter.roller.title",
       icon: "fas fa-dice-d20",
@@ -452,7 +453,7 @@ export class EncounterRollerApp extends HandlebarsApplicationMixin(ApplicationV2
     super._onRender(context, options);
 
     // Tab switching
-    const tabs = this.element.querySelectorAll(".sde-tabs .item:not(.disabled)");
+    const tabs = this.element.querySelectorAll(".ui-tabs [data-tab]");
     tabs.forEach(tab => {
       tab.addEventListener("click", ev => {
         this._activeTab = ev.currentTarget.dataset.tab;
@@ -577,7 +578,7 @@ export class EncounterRollerApp extends HandlebarsApplicationMixin(ApplicationV2
 
     // Drag-to-canvas (and to anything else that accepts Foundry's Actor
     // drag payload — sidebar, other modules, future Build Table tab).
-    this.element.querySelectorAll(".sde-browse-row[draggable='true']").forEach(row => {
+    this.element.querySelectorAll("tr[data-uuid][draggable]").forEach(row => {
       row.addEventListener("dblclick", ev => {
         ev.preventDefault();
         this._openBrowseActor(row.dataset.uuid);
@@ -632,7 +633,7 @@ export class EncounterRollerApp extends HandlebarsApplicationMixin(ApplicationV2
 
     // Per-slot min / max range inputs — change-event only, so the GM
     // can type freely without triggering re-renders mid-input.
-    this.element.querySelectorAll(".sde-build-slot input[data-slot-field='min'], .sde-build-slot input[data-slot-field='max']").forEach(input => {
+    this.element.querySelectorAll("tr[data-slot-idx] input[data-slot-field='min'], tr[data-slot-idx] input[data-slot-field='max']").forEach(input => {
       input.addEventListener("change", ev => {
         const idx = Number(ev.target.closest("[data-slot-idx]")?.dataset.slotIdx);
         const field = ev.target.dataset.slotField;
@@ -646,7 +647,7 @@ export class EncounterRollerApp extends HandlebarsApplicationMixin(ApplicationV2
 
     // Appearing-formula input per slot — change-event, so typing
     // "1d4+1" doesn't trigger a render until the user commits.
-    this.element.querySelectorAll(".sde-build-slot input[data-slot-field='appearing']").forEach(input => {
+    this.element.querySelectorAll("tr[data-slot-idx] input[data-slot-field='appearing']").forEach(input => {
       input.addEventListener("change", ev => {
         const idx = Number(ev.target.closest("[data-slot-idx]")?.dataset.slotIdx);
         if (Number.isFinite(idx) && this._buildSlots[idx]) {
@@ -678,18 +679,18 @@ export class EncounterRollerApp extends HandlebarsApplicationMixin(ApplicationV2
     // Drag-and-drop: each slot is an Actor drop target. Accepts the
     // standard Foundry drag payload (same one emitted by the Browse
     // tab rows and Foundry's sidebar).
-    this.element.querySelectorAll(".sde-build-slot[data-slot-idx]").forEach(slot => {
+    this.element.querySelectorAll("tr[data-slot-idx]").forEach(slot => {
       slot.addEventListener("dragover", ev => {
         ev.preventDefault();
         ev.dataTransfer.dropEffect = "copy";
-        slot.classList.add("sde-build-slot-dragover");
+        slot.classList.add("er-dragover");
       });
       slot.addEventListener("dragleave", () => {
-        slot.classList.remove("sde-build-slot-dragover");
+        slot.classList.remove("er-dragover");
       });
       slot.addEventListener("drop", async ev => {
         ev.preventDefault();
-        slot.classList.remove("sde-build-slot-dragover");
+        slot.classList.remove("er-dragover");
         const idx = Number(slot.dataset.slotIdx);
         if (!Number.isFinite(idx) || !this._buildSlots[idx]) return;
         let data;

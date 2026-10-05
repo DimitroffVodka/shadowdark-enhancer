@@ -78,7 +78,7 @@ export function settingsGroupHtml(groupKey, { faked = {}, title, template = "tem
   return { title: w, icon: group.icon, body };
 }
 
-export function windowHtml(name, { title, icon, body }, classes = "sde-settings-group", theme = "dark") {
+export function windowHtml(name, { title, icon, body }, classes = "sde-settings-group sde-ui", theme = "dark") {
   return `<form id="${name}" class="application window-app themed theme-${theme} shadowdark ${classes}" data-appid="1"><header class="window-header"><i class="window-icon ${icon}" inert></i><h1 class="window-title">${esc(title)}</h1><button type="button" class="header-control icon fa-solid fa-ellipsis-vertical"></button><button type="button" class="header-control icon fa-solid fa-xmark"></button></header><section class="window-content standard-form">${body}</section></form>`;
 }
 

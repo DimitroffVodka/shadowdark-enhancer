@@ -16,4 +16,4 @@ const build = (state) => ({ context: {
   trainer: t, benefits: t.benefits.map((b, i) => ({ roll: b.roll, label: b.label, printed: i === 1 ? "" : b.label + " (as printed in the book, a longer sentence that wraps onto two lines)", todo: b.todo ?? "", mechanical: !!(b.actions || b.changes || b.choice), taken: i === 0 })),
   remaining: 3, spent: false, tableMissing: false, hasActor: true,
 } });
-export default { previewHeight: 760, title: "SDE.training.title", icon: "fa-solid fa-dumbbell", classes: ["shadowdark", "sde-training"], width: 520, resizable: true, template: "templates/training.hbs", initial: "gm", build, actions: {} };
+export default { previewHeight: 760, title: "SDE.training.title", icon: "fa-solid fa-dumbbell", classes: ["shadowdark", "sde-training", "sde-ui"], width: 520, resizable: true, template: "templates/training.hbs", initial: "gm", build, actions: {} };

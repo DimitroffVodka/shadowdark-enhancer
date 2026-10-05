@@ -29,6 +29,20 @@ export const VISIBILITY_KEYS = ["darkness", "stormy", "excellent", "slight", "hi
 export const ELEVATIONS = ["slight", "high"];
 /** Climate columns, in the order the book prints them. */
 export const SEASONS = ["spring_fall", "summer", "winter"];
+
+/** The Rules data window's tabs, in order, with the label key each shows. */
+export const RULES_TABS = [
+  { id: "terrain", label: "SDE.rulesData.table.terrain" },
+  { id: "travel", label: "SDE.rulesData.tab.travel" },
+  { id: "settlements", label: "SDE.rulesData.tab.settlements" },
+  { id: "climate", label: "SDE.rulesData.table.climate" },
+];
+
+/** The tabs with the chosen one marked `on`; an unknown or missing id shows the first. */
+export function rulesTabs(chosen) {
+  const id = RULES_TABS.some((t) => t.id === chosen) ? chosen : RULES_TABS[0].id;
+  return RULES_TABS.map((t) => ({ ...t, on: t.id === id }));
+}
 /** A climate cell's harsh marker: "storm" harsh in stormy weather only, "always" at all times. */
 export const HARSH = ["storm", "always"];
 export const SETTLEMENT_KINDS = Object.values(SETTLEMENTS);

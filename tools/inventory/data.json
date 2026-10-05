@@ -805,6 +805,7 @@
     "scripts/hex-map/sampler.mjs": "Reads the active scene's background per hex cell (one drawImage each) for bitmaps, thumbnails and the brush's masked hex pictures; scene→image transform from the drawn sprite.",
     "scripts/hex-map/hex-picture.mjs": "What the hex brush shows per terrain (pure): the Legend palette's terrains only, which tagged hex stands for each, the hexagon mask and printed-number patch geometry, and the edge-ink test that rejects a neighbour's border bleeding in.",
     "scripts/hex-map/hex-tagger-app.mjs": "Hex Tagger AppV2: contact sheet over the active hex scene, anchor numbering, tags on the scene flag, dataset hand-off.",
+    "scripts/hex-map/hex-tagger-tabs.mjs": "Hex Tagger tab list and the pure rule that keeps the chosen tab when the scene still offers it, else Sheet.",
     "scripts/hex-map/bitmap.mjs": "0/1 cell bitmaps: dilate, 8-connected components, majority stamps, hex masks, residual features, label zone. Pure.",
     "scripts/hex-map/classify.mjs": "Nearest-exemplar terrain + stamp-subtraction river/path classifier with a review queue; truth-CSV comparison for the dev check. Pure.",
     "scripts/hex-map/reference-tile.mjs": "Hidden reference tile: places the tagged print on a painted hex scene so its hex field covers the first cols × rows cells; two-rectangle placement, non-uniform scale, create-once-then-update.",

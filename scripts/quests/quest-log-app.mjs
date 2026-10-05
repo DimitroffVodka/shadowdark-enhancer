@@ -33,7 +33,7 @@ const t = (key, data) => {
 export class QuestLogApp extends HandlebarsApplicationMixin(ApplicationV2) {
   static DEFAULT_OPTIONS = {
     id: "sde-quest-log",
-    classes: ["shadowdark", "sde-quest-log"],
+    classes: ["shadowdark", "sde-quest-log", "sde-ui"],
     window: { title: "SDE.quests.title", icon: "fa-solid fa-list-check", resizable: true },
     position: { width: 780, height: 620 },
     actions: {
@@ -63,7 +63,7 @@ export class QuestLogApp extends HandlebarsApplicationMixin(ApplicationV2) {
   };
 
   static PARTS = {
-    body: { template: `modules/${MODULE_ID}/templates/quest-log.hbs`, scrollable: [".sde-ql-list", ".sde-ql-detail"] },
+    body: { template: `modules/${MODULE_ID}/templates/quest-log.hbs`, scrollable: [".ql-list", ".ql-detail"] },
   };
 
   constructor(options = {}, host = null) { super(options); this.host = host; }

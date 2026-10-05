@@ -7,6 +7,6 @@ const rows = Object.keys(BASE_GUIDELINES).map(Number).filter(Number.isFinite).so
     median: row.statMod?.median ?? 0, low: row.statMod?.low ?? 0, high: row.statMod?.high ?? 0, talentDC: row.talentDC ?? 12 };
 });
 export default {
-  previewHeight: 760, title: "SDE.settings.levelGuidelines.title", icon: "fa-solid fa-scale-balanced", classes: ["shadowdark", "sde-level-guidelines"],
+  previewHeight: 760, title: "SDE.settings.levelGuidelines.title", icon: "fa-solid fa-scale-balanced", classes: ["shadowdark", "sde-level-guidelines", "sde-ui"],
   width: 720, height: 700, resizable: true, template: "templates/level-guidelines.hbs", context: { rows },
 };

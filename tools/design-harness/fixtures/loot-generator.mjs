@@ -14,7 +14,7 @@ const build = (state) => state === "empty"
   ? { context: { tables: [], hasTables: false, noneMarked: false, history: [], hasHistory: false, needsSetup: true } }
   : { context: { tables, hasTables: true, noneMarked: false, history, hasHistory: true, needsSetup: true } };
 export default {
-  title: "SDE.loot.generator.title", icon: "fas fa-coins", classes: [], resizable: true, width: 560, template: "templates/loot-generator.hbs",
+  title: "SDE.loot.generator.title", icon: "fas fa-coins", classes: ["sde-ui", "sde-lootgen"], resizable: true, width: 560, template: "templates/loot-generator.hbs",
   initial: "busy", build, toolbar: `<span>State:</span><button data-action="s" data-state="busy">busy</button><button data-action="s" data-state="empty">empty</button>`,
   actions: { s: { state: "{state}" } },
 };

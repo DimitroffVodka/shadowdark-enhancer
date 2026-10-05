@@ -3,7 +3,7 @@
 // rulesFrom. 780 x 760 is the real size. The harness's selectOptions stub neither localizes nor adds the blank option,
 // so the choices here are pre-localized and carry their own "—" entry.
 import { readFileSync } from "node:fs";
-import { rulesFrom, TERRAIN_TYPES, COSTED_TYPES, ELEVATIONS, SEASONS, HARSH, TRAVEL_METHODS, VISIBILITY_KEYS, SETTLEMENT_KINDS, TERRAIN_KEYS } from "../../../scripts/rules-data/rules-data-core.mjs";
+import { rulesFrom, rulesTabs, TERRAIN_TYPES, COSTED_TYPES, ELEVATIONS, SEASONS, HARSH, TRAVEL_METHODS, VISIBILITY_KEYS, SETTLEMENT_KINDS, TERRAIN_KEYS } from "../../../scripts/rules-data/rules-data-core.mjs";
 const en = JSON.parse(readFileSync(new URL("../../../languages/en.json", import.meta.url), "utf8"));
 const L = (k) => en[k] ?? k;
 const choices = (keys, prefix) => ({ "": "—", ...Object.fromEntries(keys.map((k) => [k, L(prefix + k)])) });
@@ -20,10 +20,10 @@ const r = rulesFrom(stored);
 const flat = (table, keys, labelOf, placeholder = "") => ({ title: `SDE.rulesData.table.${table}`, hint: `SDE.rulesData.hint.${table}`, rows: keys.map((k) => ({ name: `${table}.${k}`, label: labelOf(k), value: r[table][k] ?? "", placeholder })) });
 const rulesets = [{ id: "", label: L("SDE.rulesData.set.default"), selected: true }, { id: "sc", label: "Saltmarsh Coast ruleset" }];
 const base = {
-  previewHeight: 820, title: "SDE.rulesData.title", icon: "fa-solid fa-scroll", classes: ["shadowdark", "sde-rules-data"], width: 780, height: 760, resizable: true,
+  previewHeight: 820, title: "SDE.rulesData.title", icon: "fa-solid fa-scroll", classes: ["shadowdark", "sde-rules-data", "sde-ui"], width: 780, height: 760, resizable: true,
   template: "templates/rules-data.hbs",
   context: {
-    rulesets, custom: false, canImport: true, sceneName: "The Western Reaches (A0 hex map)", sceneRulesets: rulesets,
+    tabs: rulesTabs("terrain"), rulesets, custom: false, canImport: true, sceneName: "The Western Reaches (A0 hex map)", sceneRulesets: rulesets,
     terrain: Object.entries(r.terrain).map(([key, row]) => ({ key, word: key.replace(/_/g, " "), ...row, cost: row.cost ?? "", boat: row.boat ?? "", removable: !TERRAIN_KEYS.includes(key) })),
     typeChoices: choices(TERRAIN_TYPES, "SDE.rulesData.type."), elevationChoices: choices(ELEVATIONS, "SDE.rulesData.elevation."), harshChoices: choices(HARSH, "SDE.rulesData.harsh."),
     seasons: SEASONS.map((s) => `SDE.rulesData.season.${s}`),

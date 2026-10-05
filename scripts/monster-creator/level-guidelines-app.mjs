@@ -27,7 +27,7 @@ export class LevelGuidelinesEditor extends HandlebarsApplicationMixin(Applicatio
   static DEFAULT_OPTIONS = {
     id: "sde-level-guidelines",
     tag: "form",
-    classes: ["shadowdark", "sde-level-guidelines"],
+    classes: ["shadowdark", "sde-level-guidelines", "sde-ui"],
     window: {
       title: "SDE.settings.levelGuidelines.title",
       icon: "fa-solid fa-scale-balanced",

@@ -31,5 +31,5 @@ const build = (state) => {
   if (state === "player-pending") { ctx.myPick = null; ctx.myResult = { activityName: "Training", label: "Serious option", total: 17, dc: 13, success: true, effectSummary: "", pendingChoice: { prompt: "Choose a weapon to train with.", freeText: true, options: ["Longsword", "Shortbow", "Spear", "Warhammer"].map((label, i) => ({ id: "o" + i, label, disabled: i === 3, reason: i === 3 ? "Already trained." : "" })).concat([{ id: "t", label: "Replace Fireball", gain: [{ uuid: "u1", label: "Lightning Bolt" }, { uuid: "u2", label: "Slow" }] }]) } }; }
   return { context: ctx };
 };
-export default { previewHeight: 900, title: "SDE.downtime.title", icon: "fas fa-mug-hot", classes: ["shadowdark", "sde-downtime"], width: 720, template: "templates/downtime.hbs", initial: "solo", build,
+export default { previewHeight: 900, title: "SDE.downtime.title", icon: "fas fa-mug-hot", classes: ["shadowdark", "sde-downtime", "sde-ui"], width: 720, template: "templates/downtime.hbs", initial: "solo", build,
   toolbar: ["solo", "gm", "player", "player-pending"].map((s) => `<button data-action="t" data-state="${s}">${s}</button>`).join(""), actions: { t: { state: "{state}" } } };

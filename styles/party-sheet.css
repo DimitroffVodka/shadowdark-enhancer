@@ -272,24 +272,11 @@
 
 .sde-party .sde-party-activities [aria-pressed="true"] { border-color: var(--ui-gold); color: var(--ui-gold); background: var(--ui-raised); }
 
-.sde-party .sde-quest-log-root { height: auto; min-height: 340px; background: transparent; }
-
-.sde-party .sde-ql-tabs { padding: 0; flex-wrap: wrap; }
-
-.sde-party .sde-ql-filters { padding: 10px 0; }
-
-.sde-party .sde-ql-list { flex-basis: 170px; }
-
-.sde-party .sde-ql-detail { padding: 10px; }
-
-.sde-party .sde-ql-card { background: #202020; }
-
-.sde-party .sde-ql-payout fieldset { min-width: 0; margin: 8px 0; padding: 10px; gap: 8px; border: 1px solid #555; }
-
-.sde-party .sde-ql-payout legend { max-width: 100%; padding: 0 5px; font-size: 12px; line-height: 1.5; }
-
-.sde-party .sde-ql-payout label.checkbox { display: flex; align-items: center; justify-content: flex-start; gap: 8px; font-size: 12px; }
-
+.sde-party .sde-quest-log-root { flex: 0 0 auto; min-height: 340px; background: transparent; }
+.sde-party .sde-quest-log-root .ql-body { overflow: visible; padding-left: 0; padding-right: 0; }
+.sde-party .sde-quest-log-root .ql-filters { padding-left: 0; padding-right: 0; }
+.sde-party .sde-quest-log-root .ql-split { flex: 0 0 auto; }
+.sde-party .sde-quest-log-root .ql-list, .sde-party .sde-quest-log-root .ql-detail { overflow: visible; max-height: none; }
 .sde-party .sde-ql-payout input[type="checkbox"] { width: 16px; height: 16px; flex: 0 0 16px; margin: 0; }
 
 .sde-party .description-content textarea { width: 100%; min-height: 200px; resize: vertical; }
@@ -379,7 +366,7 @@
 .sde-party .sdp-face { flex: none; width: 62px; height: 62px; object-fit: cover; object-position: top; border: 1px solid var(--ui-line); border-radius: var(--ui-r); cursor: pointer; }
 /* Luck (green, dim at 0) and Light (a flame: gold when lit, dim when not) are always shown under the portrait */
 .sde-party .sdp-under { display: flex; align-items: center; justify-content: flex-start; gap: 6px; width: 62px; min-height: 20px; }
-.sde-party .sdp-luck, .sde-party .sdp-light { display: inline-flex; align-items: center; gap: 3px; height: 20px; color: var(--ui-on); font: 700 12px/1 var(--ui-font); font-variant-numeric: tabular-nums; }
+.sde-party .sdp-luck, .sde-party .sdp-light { display: inline-flex; align-items: center; gap: 3px; height: 20px; color: var(--ui-on); text-decoration: none; font: 700 12px/1 var(--ui-font); font-variant-numeric: tabular-nums; }
 .sde-party .sdp-luck.empty { color: var(--ui-muted); opacity: .6; }
 .sde-party .sdp-light { margin-left: auto; color: var(--ui-muted); opacity: .55; font-size: 13px; }
 .sde-party .sdp-light.lit { color: var(--ui-gold); opacity: 1; }

@@ -25,7 +25,7 @@ const build = (state) => {
   }, title: "Adjust Hill Giant Chieftain of the Broken Tooth Clan" };
 };
 export default {
-  previewHeight: 640, title: "Adjust Hill Giant Chieftain of the Broken Tooth Clan", icon: "fa-solid fa-scale-balanced", classes: ["shadowdark", "sde-quick-adjust"],
+  previewHeight: 640, title: "Adjust Hill Giant Chieftain of the Broken Tooth Clan", icon: "fa-solid fa-scale-balanced", classes: ["shadowdark", "sde-quick-adjust", "sde-ui"],
   width: 460, resizable: true, template: "templates/quick-adjust.hbs", initial: "up", build,
   toolbar: `<span>State:</span><button data-action="s" data-state="up">level 9</button><button data-action="s" data-state="same">no change</button>`, actions: { s: { state: "{state}" } },
 };
