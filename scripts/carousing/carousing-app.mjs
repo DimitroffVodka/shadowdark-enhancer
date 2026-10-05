@@ -37,7 +37,7 @@ export class CarousingApp extends HandlebarsApplicationMixin(ApplicationV2) {
     }) ?? [];
     const tier = night?.tiers.find(v => v.id === night.tierId), joining = night?.participants.filter(p => p.participate).length ?? 0, shares = tier ? splitCost(tier.cost, joining) : [];
     const each = shares.length ? (shares[0] === shares.at(-1) ? `${shares[0]}` : `${shares.at(-1)}–${shares[0]}`) : "—", gp = n => game.i18n.format("SDE.carousing.gp", { n });
-    return { title: this.party.name, rows,
+    return { title: this.party.name, embedded: !!this.host, rows,
       tiers: night?.tiers.map(v => ({ id: v.id, label: game.i18n.format("SDE.carousing.tier", { name: v.description, cost: v.cost, bonus: v.bonus }), selected: night.tierId === v.id })) ?? [],
       tierEditable: setup && Party.canManage(this.party),
       tier: tier ? { bonus: tier.bonus } : null, count: joining, costText: tier ? gp(tier.cost) : "", shareText: shares.length ? gp(each) : each,

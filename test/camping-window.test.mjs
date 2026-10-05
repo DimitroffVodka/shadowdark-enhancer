@@ -39,3 +39,17 @@ test("the camping window context no longer builds the dropped food and rest stat
   assert.ok(!/foodStatus|restStatus/.test(src));
   assert.ok(src.includes('"sde-ui"'));
 });
+
+test("the embedded camping and carousing bodies hide the party-name title and keep the small text", async () => {
+  const { readFile } = await import("node:fs/promises");
+  const camping = await readFile(new URL("../templates/camping/camping.hbs", import.meta.url), "utf8");
+  const carousing = await readFile(new URL("../templates/carousing/carousing.hbs", import.meta.url), "utf8");
+  assert.match(camping, /\{\{#unless embedded\}\}\{\{title\}\} \{\{\/unless\}\}<small>\{\{phase\}\}/);
+  assert.match(carousing, /\{\{#unless embedded\}\}\{\{title\}\} \{\{\/unless\}\}\{\{#if holiday\}\}<small>/);
+});
+
+test("the camping and carousing bodies declare no gap the kit's ui-body would override", async () => {
+  const { readFile } = await import("node:fs/promises");
+  const css = await readFile(new URL("../styles/shadowdark-enhancer.css", import.meta.url), "utf8");
+  assert.doesNotMatch(css, /\.sde-(camping|carousing)-body \{[^}]*\bgap:/);
+});

@@ -146,3 +146,14 @@ test("mount starvation flag and Actor/day receipt survive partial save without d
   mount.flags[M].mount = { properties: { grazing: true } }; const own = ration(mount, 1);
   await feedCamp(party, { ...camp, day: 1 }); assert.equal(own.system.quantity, 0); assert.equal(mount.flags[M].mountScores.damage.con, 1);
 });
+test("a saved night's preview shows the live on-hand rations, not zero", async () => {
+  const { a, b, party, ration } = fixture();
+  const mine = ration(a, 3), theirs = ration(b, 1); ration(party, 3);
+  const chosen = party.flags[M].camping;
+  assert.deepEqual(foodPreview(party, chosen).map(p => [p.saved, p.own]), [[false, 3], [false, 1]]);
+  await feedCamp(party, chosen);
+  const after = foodPreview(party, chosen);
+  assert.deepEqual(after.map(p => p.saved), [true, true]);
+  assert.deepEqual(after.map(p => p.own), [mine.system.quantity, theirs.system.quantity], "what each character still carries after the meal");
+  assert.ok(after[0].own > 0, "a character who kept rations shows them");
+});

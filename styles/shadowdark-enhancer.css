@@ -11279,7 +11279,7 @@ button.sde-hud-day:hover { border-color: var(--sd-frame); }
 .sde-dialog.dlg-choices .form-footer button.ghost { justify-content: center; height: 30px; background: transparent; border-color: transparent; color: var(--ui-muted); }
 
 /* Camping window (kit parts come from styles/sde-ui.css): hairline rows on the page, no cards. */
-.sde-camping-body { container-type: inline-size; gap: 12px; }
+.sde-camping-body { container-type: inline-size; }
 .sde-camping-body.sde-ui { border: 0; }
 .sde-party .sde-camping-body { overflow: visible; flex: 0 0 auto; background: transparent; }
 .sde-camping-body * { box-sizing: border-box; }
@@ -11317,7 +11317,7 @@ button.sde-hud-day:hover { border-color: var(--sd-frame); }
 .sde-camping-body .cp-ready.on { border-color: var(--ui-frame); background: var(--ui-frame); color: var(--ui-page); border-radius: var(--ui-r); }
 
 /* Carousing window (kit parts come from styles/sde-ui.css): one shared tier block, hairline rows, no cards. */
-.sde-carousing-body { container-type: inline-size; gap: 12px; }
+.sde-carousing-body { container-type: inline-size; }
 .sde-carousing-body.sde-ui { border: 0; }
 .sde-party .sde-carousing-body { overflow: visible; flex: 0 0 auto; background: transparent; }
 .sde-carousing-body * { box-sizing: border-box; }
