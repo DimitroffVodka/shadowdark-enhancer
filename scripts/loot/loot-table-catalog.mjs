@@ -199,6 +199,23 @@ async function scanAllTables() {
   return out;
 }
 
+/** Table uuids this GM starred in the Loot Generator. */
+export const getFavourites = () => {
+  const list = game.settings.get(MODULE_ID, "lootFavouriteTables");
+  return Array.isArray(list) ? list : [];
+};
+
+/**
+ * Split the picker's tables into the starred ones (a favourite whose table is gone is simply not
+ * listed) and the rest, each keeping its order. Pure.
+ * @param {{uuid:string}[]} tables
+ * @param {string[]} favourites
+ */
+export function splitFavourites(tables, favourites) {
+  const starred = new Set(favourites ?? []);
+  return { favourites: tables.filter((t) => starred.has(t.uuid)), others: tables.filter((t) => !starred.has(t.uuid)) };
+}
+
 /**
  * Curated loot/treasure tables that actually exist, across world + compendia.
  * Deduped by uuid, sorted by name. Feeds the Loot Generator picker and the Loot

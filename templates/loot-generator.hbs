@@ -18,11 +18,24 @@
     <section class="ui-card">
       <div class="ui-field">
         <span class="ui-label">{{localize "SDE.monsterLoot.colTable"}}</span>
-        <select data-loot-table aria-label="{{localize 'SDE.monsterLoot.colTable'}}">
-          {{#each tables as |t|}}
-          <option value="{{t.uuid}}" {{#if t.isSelected}}selected{{/if}}>{{t.name}}</option>
-          {{/each}}
-        </select>
+        <div class="ui-inline lg-picker">
+          <select data-loot-table aria-label="{{localize 'SDE.monsterLoot.colTable'}}">
+            {{#if hasFavourites}}
+            <optgroup label="{{localize 'SDE.loot.generator.favourites'}}">
+              {{#each favouriteTables as |t|}}<option value="{{t.uuid}}" {{#if t.isSelected}}selected{{/if}}>{{t.name}}</option>{{/each}}
+            </optgroup>
+            {{#if otherTables.length}}
+            <optgroup label="{{localize 'SDE.loot.generator.allTables'}}">
+              {{#each otherTables as |t|}}<option value="{{t.uuid}}" {{#if t.isSelected}}selected{{/if}}>{{t.name}}</option>{{/each}}
+            </optgroup>
+            {{/if}}
+            {{else}}
+            {{#each tables as |t|}}<option value="{{t.uuid}}" {{#if t.isSelected}}selected{{/if}}>{{t.name}}</option>{{/each}}
+            {{/if}}
+          </select>
+          <button type="button" class="ui-icon lg-fav {{#if selectedIsFav}}on{{/if}}" data-action="toggleFavourite" aria-pressed="{{#if selectedIsFav}}true{{else}}false{{/if}}" title="{{localize 'SDE.loot.generator.favourite'}}" aria-label="{{localize 'SDE.loot.generator.favourite'}}"><i class="{{#if selectedIsFav}}fas{{else}}far{{/if}} fa-star"></i></button>
+          {{#if hasFavourites}}<button type="button" class="ui-btn ghost lg-fav-only {{#if favOnly}}on{{/if}}" data-action="toggleFavOnly" aria-pressed="{{#if favOnly}}true{{else}}false{{/if}}"><i class="fas fa-filter"></i> {{localize "SDE.loot.generator.favOnly"}}</button>{{/if}}
+        </div>
       </div>
       <p class="ui-sub">{{{localize "SDE.loot.generator.curatedHint"}}}</p>
     </section>
@@ -59,6 +72,7 @@
         <div class="ui-inline lg-give">
           <select class="sde-lootgen-recipient lg-recipient" data-entry-id="{{e.id}}" aria-label="{{localize 'SDE.loot.generator.recipientAria'}}">
             <option value="party">{{localize "SDE.loot.generator.partyOption"}}</option>
+            {{#if e.hasParty}}<option value="partyStash">{{localize "SDE.loot.generator.partyStashOption"}}</option>{{/if}}
             {{#each e.party as |p|}}<option value="{{p.id}}">{{p.name}}</option>{{/each}}
           </select>
           <button type="button" class="ui-btn" data-action="giveEntry" data-entry-id="{{e.id}}"><i class="fas fa-gift"></i> {{localize "SDE.loot.btn.give"}}</button>

@@ -4851,6 +4851,11 @@ button.sde-hud-day:hover { border-color: var(--sd-frame); }
 .sde-ui.sde-lootgen .lg-give { flex-wrap: nowrap; }
 .sde-ui.sde-lootgen .lg-give .lg-recipient { flex: 1 1 auto; width: auto; min-width: 0; }
 .sde-ui.sde-lootgen .lg-give .ui-btn { flex: 0 0 auto; }
+.sde-ui.sde-lootgen .lg-picker { flex-wrap: nowrap; }
+.sde-ui.sde-lootgen .lg-picker select { flex: 1 1 auto; min-width: 0; width: auto; }
+.sde-ui.sde-lootgen .lg-picker .ui-btn { flex: 0 0 auto; }
+.sde-ui.sde-lootgen .lg-fav.on { color: var(--ui-gold); border-color: var(--ui-gold); }
+.sde-ui.sde-lootgen .lg-fav-only.on { color: var(--ui-gold); border-color: var(--ui-gold); }
 .sde-ui.sde-lootgen .ui-footer { flex-wrap: wrap; }
 .sde-ui.sde-lootgen .ui-footer .ui-btn { flex: 0 0 auto; }
 .sde-ui.sde-lootgen .lg-setup.needs-setup.ghost { border-color: var(--ui-gold); color: var(--ui-gold); }

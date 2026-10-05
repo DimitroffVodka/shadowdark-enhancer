@@ -7,7 +7,7 @@ const read = (p) => fs.readFile(new URL(`../${p}`, import.meta.url), "utf8");
 // Every action a window's app registers must still have a control in its template, and the hooks its script
 // queries must still exist. The windows were rebuilt on the UI kit; the behaviour is unchanged.
 const WINDOWS = [
-  ["templates/loot-generator.hbs", "scripts/loot/loot-generator-app.mjs", ["rollLoot", "rollForToken", "postEntry", "giveEntry", "dropEntry", "dropCoinsPrompt", "clearHistory", "forgeEntryItem", "openSetup"], ["data-loot-table", "sde-lootgen-recipient"]],
+  ["templates/loot-generator.hbs", "scripts/loot/loot-generator-app.mjs", ["rollLoot", "rollForToken", "postEntry", "giveEntry", "dropEntry", "dropCoinsPrompt", "clearHistory", "forgeEntryItem", "openSetup", "toggleFavourite", "toggleFavOnly"], ["data-loot-table", "sde-lootgen-recipient"]],
   ["templates/loot-setup.hbs", "scripts/loot/loot-setup-app.mjs", ["bindLibrary", "bindCustom", "unlockLibrary", "addPicker", "removePicker"], ["data-picker-add", "data-custom-tier", "data-custom-table"]],
   ["templates/monster-loot-review.hbs", "scripts/loot/monster-loot-review-app.mjs", ["openSheet"], ["data-ml-filter", "data-actor-id", "sde-ml-list", 'name="table"', 'name="chance"']],
   ["templates/forge-loot.hbs", "scripts/forge-loot/forge-loot-app.mjs", ["selectGenerator", "generatePreview", "reroll", "cancel", "approve", "reset"], ["data-forge-input"]],

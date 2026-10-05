@@ -460,6 +460,15 @@ export function registerSettings() {
     default: [],
   });
 
+  // The loot tables this GM starred in the Loot Generator (table uuids). Per GM, so one GM's
+  // favourites do not reorder another's picker.
+  game.settings.register(MODULE_ID, "lootFavouriteTables", {
+    scope: "client",
+    config: false,
+    type: Array,
+    default: [],
+  });
+
   // Opt-in: auto loot cards on combat end don't fit every Shadowdark table,
   // so the feature ships disabled.
   game.settings.register(MODULE_ID, "lootDropEnabled", {

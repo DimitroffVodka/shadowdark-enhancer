@@ -19,6 +19,8 @@ import { MODULE_ID } from "../shared/module-id.mjs";
 import { inferSeedFromName } from "../magic-forge/magic-forge.mjs";
 import { esc } from "../shared/esc.mjs";
 import { addToPurse } from "../shared/coins.mjs";
+import { replaceModuleFlag } from "../shared/module-flags.mjs";
+import { poolAfterAdd } from "../party/party-sheet-core.mjs";
 import { SessionRecap } from "../session-recap/session-recap.mjs";
 import { relayToGM, authorizeActorFor, refuseQuery, registerQuery } from "../shared/gm-relay.mjs";
 
@@ -137,6 +139,27 @@ export const LootDelivery = {
         "system.coins.sp": next.sp,
         "system.coins.cp": next.cp,
       });
+    }
+  },
+
+  /**
+   * Put a loot batch on the Party actor, where everyone sees it on the Party sheet: the items become
+   * the party's items and the coins join its shared pool (the same `partyCoins` flag the sheet reads,
+   * with the older Shadowdark Extras pool as the starting point until the party has its own).
+   */
+  async depositToParty(party, batch) {
+    if (!party) return;
+    const docs = [];
+    for (const it of batch.items ?? []) {
+      const data = await this._resolveItemData(it);
+      if (data) docs.push(data);
+    }
+    if (docs.length) await party.createEmbeddedDocuments("Item", docs);
+
+    const c = batch.coins ?? { gp: 0, sp: 0, cp: 0 };
+    if ((c.gp || 0) + (c.sp || 0) + (c.cp || 0) > 0) {
+      const held = party.flags?.[MODULE_ID]?.partyCoins ?? party.flags?.["shadowdark-extras"]?.coins;
+      await replaceModuleFlag(party, "partyCoins", poolAfterAdd(held, c));
     }
   },
 

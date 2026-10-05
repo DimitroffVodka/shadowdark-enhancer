@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 ### Added
+- **The Loot Generator can give a roll to the Party sheet.** "Party sheet (shared items and coins)" is a new choice next to Give: the items go onto the Party actor and the coins into its shared pool, where the Party sheet shows them. It uses the selected Party (or the only one).
+- **The Loot Generator has favourite tables.** A star next to the table picker marks the selected table; starred tables are listed first under Favourites, and a Favourites only button hides the rest. The stars are yours alone (they are saved per GM).
 - **The Request roll card shows the results.** Once a character rolls, their link on the card turns green for a pass or red for a fail (no colour when there was no DC) and shows the total, so you can read the whole card at a glance. Each character rolls once per card.
 - **The Party sheet has Downtime and Warbands tabs.** Downtime shows the session's status and a row for each character (their pick and result), with the GM's Start session, Lock dice, End session and per-row Clear and Roll for, and an Open Downtime window button. Warbands lists the warbands under a party member's command, grouped by commander, with upkeep Paid or Owes N gp, open sheet, and the GM's Run month, Pay arrears and Return to service.
 - **The Party Members tab has a GM bar and a spell row on casters.** One always-visible line: Who (a list of the PCs with an All box), an ability, a DC (12, blank for none), Request roll, then XP and Award XP. Request roll posts one chat card with a Roll link per character asked; its owner clicks it, the system's ability check runs, and the result is posted with pass or fail when there was a DC. A caster's card shows its spells by tier with the lost ones struck through.
