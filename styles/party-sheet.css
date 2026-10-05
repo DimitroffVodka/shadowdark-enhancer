@@ -379,7 +379,7 @@
 .sde-party .sdp-face { flex: none; width: 62px; height: 62px; object-fit: cover; object-position: top; border: 1px solid var(--ui-line); border-radius: var(--ui-r); cursor: pointer; }
 /* Luck (green, dim at 0) and Light (a flame: gold when lit, dim when not) are always shown under the portrait */
 .sde-party .sdp-under { display: flex; align-items: center; justify-content: flex-start; gap: 6px; width: 62px; min-height: 20px; }
-.sde-party .sdp-luck, .sde-party .sdp-light { display: inline-flex; align-items: center; gap: 3px; height: 20px; color: var(--ui-on); font: 700 12px/1 var(--ui-font); font-variant-numeric: tabular-nums; }
+.sde-party .sdp-luck, .sde-party .sdp-light { display: inline-flex; align-items: center; gap: 3px; height: 20px; color: var(--ui-on); text-decoration: none; font: 700 12px/1 var(--ui-font); font-variant-numeric: tabular-nums; }
 .sde-party .sdp-luck.empty { color: var(--ui-muted); opacity: .6; }
 .sde-party .sdp-light { margin-left: auto; color: var(--ui-muted); opacity: .55; font-size: 13px; }
 .sde-party .sdp-light.lit { color: var(--ui-gold); opacity: 1; }

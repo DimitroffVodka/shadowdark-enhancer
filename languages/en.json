@@ -112,6 +112,7 @@
   "SDE.party.bastion.view": "View bastion",
   "SDE.party.sheet.description": "Description",
   "SDE.party.sheet.hp": "HP",
+  "SDE.party.sheet.notOwner": "Only the character's owner or a GM can use this.",
   "SDE.party.sheet.ac": "AC",
   "SDE.party.sheet.level": "LV",
   "SDE.party.sheet.slots": "SLOTS",

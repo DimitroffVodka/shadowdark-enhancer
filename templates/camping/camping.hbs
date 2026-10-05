@@ -1,5 +1,5 @@
 <section class="sde-ui ui-body sde-camping-body cp-root">
-  <h3 class="ui-h">{{title}} <small>{{phase}} · {{fire}}</small></h3>
+  <h3 class="ui-h">{{#unless embedded}}{{title}} {{/unless}}<small>{{phase}} · {{fire}}</small></h3>
   {{#if error}}<div class="ui-note bad" role="alert">{{error}}</div>{{/if}}
 
   {{#if empty}}

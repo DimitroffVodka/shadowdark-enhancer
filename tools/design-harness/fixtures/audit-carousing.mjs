@@ -7,7 +7,7 @@ const ctxFor = (state, setup, complete) => {
     garbQuestions: [{ key: "mask", label: "Wearing a mask for the Festival of Lanterns", checked: i === 0, required: true }, { key: "lantern", label: "Carrying a paper lantern", checked: false }],
     result: complete ? { total: 11 + i, description: "You wake in a barn beside a goat wearing your hat.", benefit: "A friendly rival offers you a favour; gain 1 renown." } : null }));
   return {
-    title: "The Lantern Guild", rows, error: setup ? "The tier table could not be read." : null, manager: true, isGM: true, overlap: false, empty: false, setup, complete, resume: false, phase: state,
+    embedded: true, title: "The Lantern Guild", rows, error: setup ? "The tier table could not be read." : null, manager: true, isGM: true, overlap: false, empty: false, setup, complete, resume: false, phase: state,
     holiday: "Festival of Lanterns", manualHoliday: true, canConfigure: true, missingTables: false, config: { place: "Harwick Vale" },
     events: [{ uuid: "e1", name: "Carousing Events", selected: true }, { uuid: "e2", name: "Harwick Events" }], outcomes: [{ uuid: "o1", name: "Carousing Outcomes", selected: true }],
     settlements: ["No settlement", "Village", "Town", "City", "City-state"].map((label, k) => ({ value: label, label, selected: k === 2 })),
