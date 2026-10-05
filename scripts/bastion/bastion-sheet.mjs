@@ -69,6 +69,9 @@ export class BastionSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
   // ── Context ────────────────────────────────────────────────────────────────
 
+  /** Just the bastion's name — AppV2's default "Bastion: Bastion" repeats the type for a bastion left at its default name. */
+  get title() { return this.document.name; }
+
   async _prepareContext(options) {
     const context = await super._prepareContext(options);
     await ensureSprites();

@@ -2926,6 +2926,15 @@ body.theme-light .sde-strip-combat-controls { background: #f4f1ec !important; }
   font-family: var(--fa-style-family-classic, "Font Awesome 6 Pro");
 }
 
+/* The window title is an <h1>, and the system's `.shadowdark h1` (40px
+   blackletter, `system` layer) outranks Foundry's `font-size: inherit` in the
+   `applications` layer. 40px does not fit the 36px header bar and the title
+   was clipped. Back to what Foundry intends: the header's own size and font. */
+.application.shadowdark .window-header .window-title {
+  font-size: inherit;
+  font-family: inherit;
+}
+
 /* ==========================================================================
    Character Builder (sde-char-builder) — Vagabond layout, Shadowdark theme
    Black + gold.
