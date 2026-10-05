@@ -382,7 +382,7 @@ body.theme-light .sde-bar-start-btn:hover {
    One labelled panel behind the Tools button. The bar sits at the bottom of the
    screen, so it opens upward from the button's right edge. Hidden while closed. */
 
-.sde-bar-gap { flex: 0 0 4px; }
+.sde-bar-gap { flex: none; width: 4px; } /* a width, not a flex-basis: only a width counts toward the bar's max-content, and 4px short wraps the last button */
 .sde-bar-tools { position: relative; display: inline-block; }
 .sde-bar-menu {
   position: absolute;
