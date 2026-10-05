@@ -415,6 +415,7 @@ export class PitFightingApp extends HandlebarsApplicationMixin(ApplicationV2) {
   static DEFAULT_OPTIONS = {
     id: "sde-pit-fighting",
     tag: "form",
+    classes: ["shadowdark", "sde-pit", "sde-ui"],
     window: { title: "SDE.pitFighting.title", icon: "fas fa-hand-fist", resizable: true },
     position: { width: 520, height: "auto" },
     actions: {

@@ -20,7 +20,7 @@ const rowFor = (name, i, setup, results) => {
   };
 };
 const ctxFor = (state, setup, fuel, results) => ({
-    title: "The Lantern Guild", manager: true, setup, fuel, isGM: true, error: state === "setup" ? "Martin Rast chose Entertain but has not picked a recipient." : null,
+    embedded: true, title: "The Lantern Guild", manager: true, setup, fuel, isGM: true, error: state === "setup" ? "Martin Rast chose Entertain but has not picked a recipient." : null,
     phase: { setup: "Choose tasks and participation", fuel: "Choose torch fallback; tasks stay locked", results: "Night complete; review saved results" }[state], fire: "Fire lit", hasResults: results,
     awaitingRest: false, complete: results, shortageWarning: false, canNight: false, canResolve: setup, canResume: !setup && !fuel,
     fuelChoices: [["none", "No fire"], ["wood", "Firewood task; offer torches on failure"], ["torches", "Existing torches"]].map(([value, label]) => ({ value, label, selected: value === "torches" })),

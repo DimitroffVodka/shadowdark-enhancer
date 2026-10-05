@@ -1,91 +1,58 @@
 {{!-- Recursive Manage-tree node. Invoked as {{> sdeTreeNode node=<node> }}.
-      node: { id, label, icon, depth, expandable, expanded, have, locked,
+      node: { id, label, icon, depth, expandable, expanded, have, locked, runnable, fillable,
               placeholder?, note?, children:[node], entries:[{name,seedAction,type,src,pages}] }
       Self-recurses on node.children; leaf nodes list not-yet-imported entries
       with an Import button reusing the existing seed handlers. --}}
-<div class="sde-mtree-node depth-{{node.depth}}">
-  <div class="sde-mtree-row{{#if node.expandable}} is-expandable{{/if}}"
+<div class="imp-node depth-{{node.depth}} sde-mtree-node">
+  <div class="imp-noderow{{#if node.expandable}} is-expandable{{/if}}"
        {{#if node.expandable}}data-action="manageNodeExpand" data-node-id="{{node.id}}"{{/if}}>
-    <i class="fas {{#if node.expandable}}{{#if node.expanded}}fa-caret-down{{else}}fa-caret-right{{/if}}{{else}}fa-caret-right sde-mtree-caret-hidden{{/if}} sde-mtree-caret"></i>
-    <i class="fas {{node.icon}} sde-mtree-icon"></i>
-    <span class="sde-mtree-label">{{node.label}}</span>
-    <span class="sde-mtree-chips">
-      <span class="sde-mtree-chip unlocked" title="{{localize 'SDE.importer.tree.presentTip'}}">
-        <i class="fas fa-circle-check"></i> {{node.have}}</span>
-      <span class="sde-mtree-chip locked{{#if node.locked}} has{{/if}}" title="{{localize 'SDE.importer.tree.lockedTip'}}">
-        <i class="fas fa-file-import"></i> {{node.locked}}</span>
+    <i class="fas {{#if node.expandable}}{{#if node.expanded}}fa-caret-down{{else}}fa-caret-right{{/if}}{{else}}fa-caret-right imp-hidden{{/if}} imp-caret"></i>
+    <i class="fas {{node.icon}} imp-nodeicon"></i>
+    <span class="imp-nodelabel">{{node.label}}</span>
+    <span class="imp-nodechips">
+      <span class="ui-chip ok" title="{{localize 'SDE.importer.tree.presentTip'}}"><i class="fas fa-circle-check"></i> {{node.have}}</span>
+      <span class="ui-chip{{#if node.locked}} warn{{else}} off{{/if}}" title="{{localize 'SDE.importer.tree.lockedTip'}}"><i class="fas fa-file-import"></i> {{node.locked}}</span>
     </span>
   </div>
 
   {{#if node.expanded}}
-  <div class="sde-mtree-children">
-    {{!-- Per-folder batch: the same runner as "Import everything", scoped to
-          this node. Inside the opened folder rather than on its row — a button
-          in the row would sit inside the expand hitbox, and would push the
-          have/locked chips out of line with every sibling that has nothing
-          left to import. @root reaches past the {{#each}} item context. --}}
+  <div class="imp-children">
     {{#if node.runnable}}
-    <p class="sde-mtree-batchrow">
-      <button type="button" class="sde-mtree-unlock sde-mtree-batchbtn"
-              data-action="batchImport" data-node-id="{{node.id}}" data-label="{{node.label}}"
-              {{#if @root.batch}}disabled{{/if}}
-              title="{{localize 'SDE.importer.tree.batchNodeTip' label=node.label}}">
-        <i class="fas fa-wand-magic-sparkles"></i> {{localize "SDE.importer.tree.batchNode" n=node.runnable label=node.label}}
-      </button>
-    </p>
+    <div class="imp-batchrow"><button type="button" class="ui-btn" data-action="batchImport" data-node-id="{{node.id}}" data-label="{{node.label}}"
+        {{#if @root.batch}}disabled{{/if}} title="{{localize 'SDE.importer.tree.batchNodeTip' label=node.label}}"><i class="fas fa-wand-magic-sparkles"></i> {{localize "SDE.importer.tree.batchNode" n=node.runnable label=node.label}}</button></div>
     {{/if}}
     {{#if node.fillable}}
-    <p class="sde-mtree-batchrow">
-      <button type="button" class="sde-mtree-unlock sde-mtree-batchbtn"
-              data-action="patronFillDescription" data-node-id="{{node.id}}"
-              title="{{localize 'SDE.importer.tree.fillAllTip' label=node.label}}">
-        <i class="fas fa-file-lines"></i> {{localize "SDE.importer.tree.fillAll" n=node.fillable label=node.label}}
-      </button>
-    </p>
+    <div class="imp-batchrow"><button type="button" class="ui-btn" data-action="patronFillDescription" data-node-id="{{node.id}}"
+        title="{{localize 'SDE.importer.tree.fillAllTip' label=node.label}}"><i class="fas fa-file-lines"></i> {{localize "SDE.importer.tree.fillAll" n=node.fillable label=node.label}}</button></div>
     {{/if}}
     {{#if node.placeholder}}
-    <p class="sde-mtree-note"><i class="fas fa-circle-info"></i> {{node.note}}</p>
+    <div class="ui-note info"><i class="fas fa-circle-info"></i> {{node.note}}</div>
     {{/if}}
     {{#each node.children as |child|}}
       {{> sdeTreeNode node=child}}
     {{/each}}
     {{#if node.entries.length}}
-    <ul class="sde-mtree-entries">
+    <div class="ui-list imp-entries">
       {{#each node.entries as |e|}}
-      <li class="sde-mtree-entry {{#if e.present}}is-present{{else}}is-locked{{/if}}"
-          {{#if e.present}}data-name="{{e.name}}" data-type="{{e.type}}" data-src="{{e.src}}"
-          title="{{localize 'SDE.importer.tree.openTip' name=e.name}}"{{/if}}>
-        <i class="fas {{#if e.present}}fa-circle-check{{else}}fa-file-import{{/if}} sde-mtree-entry-mark"></i>
-        <span class="sde-mtree-entry-name">{{e.name}}</span>
-        {{#if e.pages}}<span class="sde-mtree-entry-pg" title="{{localize 'SDE.importer.tree.pageTip'}}">{{#if e.src}}{{e.src}} {{/if}}{{localize "SDE.importer.tree.page" pages=e.pages}}{{#if e.pagesAlt}}{{localize "SDE.importer.tree.pageAlt" alt=e.pagesAlt}}{{/if}}</span>{{/if}}
+      <div class="ui-row sde-mtree-entry {{#if e.present}}is-present{{else}}is-locked{{/if}}"
+          {{#if e.present}}data-name="{{e.name}}" data-type="{{e.type}}" data-src="{{e.src}}" title="{{localize 'SDE.importer.tree.openTip' name=e.name}}"{{/if}}>
+        <i class="fas {{#if e.present}}fa-circle-check imp-ok{{else}}fa-file-import imp-warnic{{/if}}"></i>
+        <div class="ui-row-main">
+          <span class="ui-row-name">{{e.name}}</span>
+          {{#if e.pages}}<span class="ui-row-sub" title="{{localize 'SDE.importer.tree.pageTip'}}">{{#if e.src}}{{e.src}} {{/if}}{{localize "SDE.importer.tree.page" pages=e.pages}}{{#if e.pagesAlt}}{{localize "SDE.importer.tree.pageAlt" alt=e.pagesAlt}}{{/if}}</span>{{/if}}
+        </div>
         {{#if e.present}}
-        <span class="sde-mtree-entry-tag">{{#if e.countNote}}{{e.countNote}}{{else}}{{localize "SDE.importer.tree.imported"}}{{/if}}</span>
-        {{!-- A Western Reaches patron imported before its description was
-              captured: fill it from the linked PDF. Gone once filled. --}}
-        {{#if e.fillDesc}}
-          <button type="button" class="sde-mtree-unlock" data-action="patronFillDescription" data-name="{{e.name}}"
-                  title="{{localize 'SDE.importer.tree.fillOneTip'}}">
-            <i class="fas fa-file-lines"></i> {{localize "SDE.importer.tree.fillOne"}}
-          </button>
-        {{/if}}
+        <span class="ui-tag">{{#if e.countNote}}{{e.countNote}}{{else}}{{localize "SDE.importer.tree.imported"}}{{/if}}</span>
+        {{#if e.fillDesc}}<button type="button" class="ui-btn" data-action="patronFillDescription" data-name="{{e.name}}" title="{{localize 'SDE.importer.tree.fillOneTip'}}"><i class="fas fa-file-lines"></i> {{localize "SDE.importer.tree.fillOne"}}</button>{{/if}}
         {{else}}
-          {{!-- Added by the module version this world last loaded, and not
-                imported yet — see importer-hub-news.mjs. --}}
-          {{#if e.isNew}}<span class="sde-mtree-entry-tag sde-mtree-entry-new"
-                title="{{localize 'SDE.importer.tree.newTip'}}">{{localize "SDE.importer.tree.new"}}</span>{{/if}}
-          {{!-- State for rows that are partly filled rather than simply absent
-                (downtime: "Partial (21/25)" / "Locked"). Counts only. --}}
-          {{#if e.stateNote}}<span class="sde-mtree-entry-tag">{{e.stateNote}}</span>{{/if}}
-          <button type="button" class="sde-mtree-unlock"
-                  data-action="{{e.seedAction}}" data-name="{{e.name}}"
-                  data-type="{{e.type}}" data-src="{{e.src}}" data-pages="{{e.pages}}" data-list-key="{{e.listKey}}" data-content-id="{{e.contentId}}" data-manifest-id="{{e.manifestId}}"
-                  title="{{localize 'SDE.importer.tree.importTip' name=e.name}}">
-            <i class="fas fa-file-import"></i> {{#if e.importLabel}}{{e.importLabel}}{{else}}{{localize "SDE.importer.btn.import"}}{{/if}}
-          </button>
+        {{#if e.isNew}}<span class="ui-chip gold" title="{{localize 'SDE.importer.tree.newTip'}}">{{localize "SDE.importer.tree.new"}}</span>{{/if}}
+        {{#if e.stateNote}}<span class="ui-tag">{{e.stateNote}}</span>{{/if}}
+        <button type="button" class="ui-btn" data-action="{{e.seedAction}}" data-name="{{e.name}}" data-type="{{e.type}}" data-src="{{e.src}}" data-pages="{{e.pages}}" data-list-key="{{e.listKey}}" data-content-id="{{e.contentId}}" data-manifest-id="{{e.manifestId}}"
+                title="{{localize 'SDE.importer.tree.importTip' name=e.name}}"><i class="fas fa-file-import"></i> {{#if e.importLabel}}{{e.importLabel}}{{else}}{{localize "SDE.importer.btn.import"}}{{/if}}</button>
         {{/if}}
-      </li>
+      </div>
       {{/each}}
-    </ul>
+    </div>
     {{/if}}
   </div>
   {{/if}}

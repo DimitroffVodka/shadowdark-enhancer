@@ -1,148 +1,109 @@
-<div class="sde-import sde-mimport">
-
-  <div class="sde-mimport-source">
-    <label for="sde-mimport-source"><i class="fas fa-folder-tree"></i> {{localize "SDE.importer.source.label"}}</label>
-    <input id="sde-mimport-source" type="text" data-mimport-source list="sde-mimport-sources"
-           value="{{source}}" placeholder="{{localize 'SDE.importer.monsterImporter.sourcePlaceholder'}}"
-           class="sde-mimport-source-input" aria-label="{{localize 'SDE.importer.monsterImporter.sourceAria'}}">
-    <datalist id="sde-mimport-sources">
-      {{#each sourceSuggestions as |s|}}<option value="{{s}}"></option>{{/each}}
-    </datalist>
-    <span class="sde-mimport-source-hint">{{localize "SDE.importer.monsterImporter.sourceHint"}}</span>
-  </div>
-
-  <label class="sde-import-label" for="sde-mimport-text">
-    {{localize "SDE.importer.monsterImporter.pasteLabel"}}
-  </label>
-  <textarea id="sde-mimport-text" data-mimport-text rows="8" class="sde-import-text"
-            placeholder="ENHANCED SYNTHETIC&#10;A glass-and-brass training construct built to exercise the importer.&#10;AC 13, HP 9, ATK 1 calibration beam +3 (1d6), MV near, S +1, D +2, C +1, I +0, W +0, Ch -2, AL N, LV 2&#10;Adaptive Plating. Gains +1 AC after it is hit, until the start of its next turn.">{{text}}</textarea>
-
-  <div class="sde-import-controls">
-    <button type="button" data-action="mimportParse"><i class="fas fa-wand-magic"></i> {{localize "SDE.importer.btn.parse"}}</button>
-    <button type="button" data-action="mimportClear" class="sde-import-secondary"><i class="fas fa-eraser"></i> {{localize "SDE.importer.btn.clear"}}</button>
-    {{#if hasParsed}}
-    <button type="button" data-action="mimportCreateAll" class="sde-import-primary">
-      <i class="fas fa-dragon"></i> {{localize "SDE.importer.monsterImporter.createAll" n=total}}
-    </button>
-    {{/if}}
-    <button type="button" data-action="mimportSpellLibrary" class="sde-import-secondary sde-mimport-spell-library"
-            title="{{localize 'SDE.importer.monsterImporter.spellLibraryTip'}}">
-      <i class="fas fa-book-sparkles"></i> {{localize "SDE.importer.monsterImporter.spellLibrary"}}
-    </button>
-  </div>
-
-  <p class="sde-import-note">
-    <i class="fas fa-circle-info"></i> {{{localize "SDE.importer.monsterImporter.note"}}}
-  </p>
-
-  {{#if skippedCount}}
-  <details class="sde-mimport-skipped">
-    <summary><i class="fas fa-filter-circle-xmark"></i> {{localize "SDE.importer.monsterImporter.skippedSummary" n=skippedCount}}</summary>
-    <ul>
-      {{#each skipped as |s|}}<li><strong>{{s.name}}</strong> — {{s.reason}}</li>{{/each}}
-    </ul>
-  </details>
-  {{/if}}
-
-  {{#if hasParsed}}
-  <div class="sde-import-preview">
-    {{#each monsters as |m|}}
-    <div class="sde-mimport-card" data-monster-idx="{{m.idx}}">
-
-      <div class="sde-mimport-card-head">
-        <input type="text" data-mimport-field="name" value="{{m.draft.name}}"
-               class="sde-import-name sde-mimport-cardname" aria-label="{{localize 'SDE.importer.monsters.nameAria'}}" placeholder="{{localize 'SDE.importer.monsters.nameAria'}}">
-        {{#if m.hasWarnings}}
-        <span class="sde-mimport-warncount" title="{{localize 'SDE.importer.monsters.flaggedTip' n=m.warnCount}}">
-          <i class="fas fa-triangle-exclamation"></i> {{m.warnCount}}
-        </span>
-        {{/if}}
-        <button type="button" data-action="mimportRemoveMonster" class="sde-import-del"
-                aria-label="{{localize 'SDE.importer.monsters.removeAria'}}" title="{{localize 'SDE.importer.monsters.removeTip'}}"><i class="fas fa-xmark"></i></button>
-      </div>
-
-      {{#if m.hasWarnings}}
-      <ul class="sde-import-warnings">
-        {{#each m.warnings as |w|}}<li>{{w}}</li>{{/each}}
-      </ul>
-      {{/if}}
-
-      <div class="sde-mimport-stats">
-        <label>{{localize "SDE.importer.monsters.lv"}} <input type="number" data-mimport-field="level" value="{{m.draft.level}}" class="sde-import-num{{#if m.warn.level}} sde-mimport-warn{{/if}}"></label>
-        <label>{{localize "SDE.importer.monsters.ac"}} <input type="number" data-mimport-field="ac" value="{{m.draft.ac}}" class="sde-import-num{{#if m.warn.ac}} sde-mimport-warn{{/if}}"></label>
-        <label>{{localize "SDE.importer.monsters.hp"}} <input type="number" data-mimport-field="hpValue" value="{{m.draft.hp.value}}" class="sde-import-num{{#if m.warn.hp}} sde-mimport-warn{{/if}}"></label>
-        <label class="sde-mimport-hpmax">/ <input type="number" data-mimport-field="hpMax" value="{{m.draft.hp.max}}" class="sde-import-num{{#if m.warn.hp}} sde-mimport-warn{{/if}}" aria-label="{{localize 'SDE.importer.monsters.hpMaxAria'}}"></label>
-        <label>{{localize "SDE.importer.monsters.al"}}
-          <select data-mimport-field="alignment" class="sde-mimport-sel{{#if m.warn.alignment}} sde-mimport-warn{{/if}}">
-            {{#each @root.alignments as |a|}}<option value="{{a}}" {{#if (eq a m.draft.alignment)}}selected{{/if}}>{{a}}</option>{{/each}}
-          </select>
-        </label>
-        <label>{{localize "SDE.importer.monsters.mv"}}
-          <select data-mimport-field="move" class="sde-mimport-sel{{#if m.warn.move}} sde-mimport-warn{{/if}}">
-            {{#each @root.moveOptions as |mv|}}<option value="{{mv}}" {{#if (eq mv m.draft.move)}}selected{{/if}}>{{mv}}</option>{{/each}}
-          </select>
-        </label>
-        <input type="text" data-mimport-field="moveNote" value="{{m.draft.moveNote}}" class="sde-mimport-movenote" placeholder="{{localize 'SDE.importer.monsters.moveNote'}}" aria-label="{{localize 'SDE.importer.monsters.moveNoteAria'}}">
-      </div>
-
-      <div class="sde-mimport-abils{{#if m.warn.abilities}} sde-mimport-warn-row{{/if}}">
-        {{#each @root.abilityKeys as |ab|}}
-        <label>{{ab.label}} <input type="number" data-mimport-field="{{ab.key}}" value="{{lookup m.draft.abilities ab.key}}" class="sde-import-num"></label>
-        {{/each}}
-      </div>
-
-      <div class="sde-mimport-spell{{#if m.warn.spellcasting}} sde-mimport-warn-row{{/if}}">
-        <span class="sde-mimport-sublabel">{{localize "SDE.importer.monsters.spellcasting"}}</span>
-        <label>{{localize "SDE.importer.monsters.ability"}}
-          <select data-mimport-field="scAbility" class="sde-mimport-sel">
-            {{#each @root.spellAbilities as |sa|}}<option value="{{sa.value}}" {{#if (eq sa.value m.draft.spellcasting.ability)}}selected{{/if}}>{{sa.label}}</option>{{/each}}
-          </select>
-        </label>
-        <label>{{localize "SDE.importer.monsters.bonus"}} <input type="number" data-mimport-field="scBonus" value="{{m.draft.spellcasting.bonus}}" class="sde-import-num"></label>
-        <label>{{localize "SDE.importer.monsters.spellsPerRound"}} <input type="number" data-mimport-field="scAttacks" value="{{m.draft.spellcasting.attacks}}" class="sde-import-num"></label>
-      </div>
-
-      <div class="sde-mimport-section{{#if m.warn.attacks}} sde-mimport-warn-row{{/if}}">
-        <div class="sde-mimport-sechead">
-          <span class="sde-mimport-sublabel">{{localize "SDE.importer.monsters.attacks"}}</span>
-          <button type="button" data-action="mimportAddAttack" class="sde-import-addrow"><i class="fas fa-plus"></i> {{localize "SDE.importer.monsters.addAttack"}}</button>
-          <button type="button" data-action="mimportAddSpecial" class="sde-import-addrow"><i class="fas fa-plus"></i> {{localize "SDE.importer.monsters.addSpecial"}}</button>
-        </div>
-        {{#each m.draft.actions as |a|}}
-        <div class="sde-mimport-attack" data-attack-idx="{{@index}}">
-          <input type="number" data-mimport-field="aNum" value="{{a.num}}" class="sde-import-num" aria-label="{{localize 'SDE.importer.monsters.attackCountAria'}}" title="{{localize 'SDE.importer.monsters.attackCountTip'}}">
-          <input type="text" data-mimport-field="aName" value="{{a.name}}" class="sde-mimport-aname" aria-label="{{localize 'SDE.importer.monsters.attackNameAria'}}" placeholder="{{localize 'SDE.importer.common.name'}}">
-          <select data-mimport-field="aType" class="sde-mimport-sel" aria-label="{{localize 'SDE.importer.monsters.attackTypeAria'}}">
-            {{#each @root.attackTypes as |ty|}}<option value="{{ty}}" {{#if (eq ty a.type)}}selected{{/if}}>{{ty}}</option>{{/each}}
-          </select>
-          <input type="number" data-mimport-field="aBonus" value="{{a.bonus}}" class="sde-import-num" aria-label="{{localize 'SDE.importer.monsters.toHitAria'}}" title="{{localize 'SDE.importer.monsters.toHitTip'}}">
-          <input type="text" data-mimport-field="aDamage" value="{{a.damage}}" class="sde-mimport-dmg" aria-label="{{localize 'SDE.importer.monsters.damageAria'}}" placeholder="1d6">
-          <input type="text" data-mimport-field="aRanges" value="{{join a.ranges}}" class="sde-mimport-ranges" aria-label="{{localize 'SDE.importer.monsters.rangesAria'}}" placeholder="{{localize 'SDE.importer.monsters.rangesPlaceholder'}}">
-          <input type="text" data-mimport-field="aDesc" value="{{a.description}}" class="sde-import-rowtext" aria-label="{{localize 'SDE.importer.monsters.riderAria'}}" placeholder="{{localize 'SDE.importer.monsters.riderPlaceholder'}}">
-          <button type="button" data-action="mimportRemoveAttack" class="sde-import-del" aria-label="{{localize 'SDE.importer.monsters.removeAttackAria'}}"><i class="fas fa-xmark"></i></button>
-        </div>
-        {{/each}}
-      </div>
-
-      <div class="sde-mimport-section">
-        <div class="sde-mimport-sechead">
-          <span class="sde-mimport-sublabel">{{localize "SDE.importer.monsters.features"}}</span>
-          <button type="button" data-action="mimportAddFeature" class="sde-import-addrow"><i class="fas fa-plus"></i> {{localize "SDE.importer.monsters.addFeature"}}</button>
-        </div>
-        {{#each m.draft.features as |f|}}
-        <div class="sde-mimport-feature" data-feature-idx="{{@index}}">
-          <input type="text" data-mimport-field="fName" value="{{f.name}}" class="sde-mimport-fname" aria-label="{{localize 'SDE.importer.monsters.featureNameAria'}}" placeholder="{{localize 'SDE.importer.common.name'}}">
-          <input type="text" data-mimport-field="fDesc" value="{{f.description}}" class="sde-import-rowtext" aria-label="{{localize 'SDE.importer.monsters.featureTextAria'}}" placeholder="{{localize 'SDE.importer.common.description'}}">
-          <button type="button" data-action="mimportRemoveFeature" class="sde-import-del" aria-label="{{localize 'SDE.importer.monsters.removeFeatureAria'}}"><i class="fas fa-xmark"></i></button>
-        </div>
-        {{/each}}
-      </div>
-
+{{!-- Monster Importer, proposed. Same context and data attributes as templates/monster-importer.hbs. Cards are the hub's monster card:
+      one row per attack, one row per feature, collapsed unless flagged (or first). --}}
+<div class="ui-shell">
+  <header class="ui-head">
+    <div class="ui-art imp-art"><i class="fas fa-dragon"></i></div>
+    <div class="ui-head-text"><h2 class="ui-title">{{localize "SDE.importer.monsterImporter.title"}}</h2><p class="ui-sub">{{localize "SDE.importer.ui.monsterSub"}}</p></div>
+    <div class="ui-stats">
+      <div class="ui-stat"><span class="ui-label">{{localize "SDE.importer.type.monsters"}}</span><span class="ui-value">{{total}}</span></div>
     </div>
-    {{/each}}
-  </div>
-  {{else}}
-  <p class="sde-import-empty">{{{localize "SDE.importer.monsterImporter.empty"}}}</p>
-  {{/if}}
+  </header>
 
+  <div class="ui-body">
+    <section class="ui-card">
+      <label class="ui-field" for="sde-mimport-source"><span class="ui-label">{{localize "SDE.importer.source.label"}}</span>
+        <input id="sde-mimport-source" type="text" data-mimport-source list="sde-mimport-sources" value="{{source}}" placeholder="{{localize 'SDE.importer.monsterImporter.sourcePlaceholder'}}" aria-label="{{localize 'SDE.importer.monsterImporter.sourceAria'}}">
+        <datalist id="sde-mimport-sources">{{#each sourceSuggestions as |s|}}<option value="{{s}}"></option>{{/each}}</datalist></label>
+      <div class="ui-muted">{{localize "SDE.importer.monsterImporter.sourceHint"}}</div>
+      <label class="ui-field" for="sde-mimport-text"><span class="ui-label">{{localize "SDE.importer.monsterImporter.pasteLabel"}}</span>
+        <textarea id="sde-mimport-text" data-mimport-text rows="{{#if hasParsed}}4{{else}}10{{/if}}" placeholder="{{localize 'SDE.importer.ui.monsterPastePlaceholder'}}">{{text}}</textarea></label>
+      <div class="ui-muted"><i class="fas fa-circle-info"></i> {{{localize "SDE.importer.monsterImporter.note"}}}</div>
+    </section>
+
+    {{#if skippedCount}}
+    <details class="ui-details">
+      <summary class="imp-sumlong"><i class="fas fa-filter-circle-xmark"></i> {{localize "SDE.importer.monsterImporter.skippedSummary" n=skippedCount}}</summary>
+      <div class="ui-details-body"><ul class="imp-warnlist">{{#each skipped as |s|}}<li><strong>{{s.name}}</strong> {{s.reason}}</li>{{/each}}</ul></div>
+    </details>
+    {{/if}}
+
+    {{#if hasParsed}}
+    <section class="ui-group">
+      <h3 class="ui-h"><span>{{localize "SDE.importer.type.monsters"}}</span><small>{{total}}</small></h3>
+      {{#each monsters as |m|}}
+      <details class="ui-details" data-monster-idx="{{m.idx}}"{{#if m.hasWarnings}} open{{else}}{{#if @first}} open{{/if}}{{/if}}>
+        <summary><span class="imp-sumname">{{m.draft.name}}</span>
+          <span class="ui-chip">{{localize "SDE.importer.monsters.lv"}} {{m.draft.level}}</span><span class="ui-chip">{{localize "SDE.importer.monsters.ac"}} {{m.draft.ac}}</span><span class="ui-chip">{{localize "SDE.importer.monsters.hp"}} {{m.draft.hp.value}}</span>
+          {{#if m.hasWarnings}}<span class="ui-chip warn" title="{{localize 'SDE.importer.monsters.flaggedTip' n=m.warnCount}}"><i class="fas fa-triangle-exclamation"></i> {{m.warnCount}}</span>{{/if}}</summary>
+        <div class="ui-details-body">
+        <div class="ui-card-head">
+          <input type="text" data-mimport-field="name" value="{{m.draft.name}}" class="imp-name" aria-label="{{localize 'SDE.importer.monsters.nameAria'}}" placeholder="{{localize 'SDE.importer.monsters.nameAria'}}">
+          <div class="ui-card-actions"><button type="button" class="ui-icon danger" data-action="mimportRemoveMonster" aria-label="{{localize 'SDE.importer.monsters.removeAria'}}" title="{{localize 'SDE.importer.monsters.removeTip'}}"><i class="fas fa-xmark"></i></button></div>
+        </div>
+        {{#if m.hasWarnings}}<div class="ui-note warn"><ul class="imp-warnlist">{{#each m.warnings as |w|}}<li>{{w}}</li>{{/each}}</ul></div>{{/if}}
+        <div class="imp-fields">
+          <label class="ui-field"><span class="ui-label">{{localize "SDE.importer.monsters.lv"}}</span><input type="number" data-mimport-field="level" value="{{m.draft.level}}"{{#if m.warn.level}} class="imp-warn"{{/if}}></label>
+          <label class="ui-field"><span class="ui-label">{{localize "SDE.importer.monsters.ac"}}</span><input type="number" data-mimport-field="ac" value="{{m.draft.ac}}"{{#if m.warn.ac}} class="imp-warn"{{/if}}></label>
+          <label class="ui-field"><span class="ui-label">{{localize "SDE.importer.monsters.hp"}}</span><input type="number" data-mimport-field="hpValue" value="{{m.draft.hp.value}}"{{#if m.warn.hp}} class="imp-warn"{{/if}}></label>
+          <label class="ui-field"><span class="ui-label">{{localize "SDE.importer.monsters.hpMaxAria"}}</span><input type="number" data-mimport-field="hpMax" value="{{m.draft.hp.max}}" aria-label="{{localize 'SDE.importer.monsters.hpMaxAria'}}"{{#if m.warn.hp}} class="imp-warn"{{/if}}></label>
+          <label class="ui-field"><span class="ui-label">{{localize "SDE.importer.monsters.al"}}</span><select data-mimport-field="alignment"{{#if m.warn.alignment}} class="imp-warn"{{/if}}>{{#each @root.alignments as |a|}}<option value="{{a}}" {{#if (eq a m.draft.alignment)}}selected{{/if}}>{{a}}</option>{{/each}}</select></label>
+          <label class="ui-field"><span class="ui-label">{{localize "SDE.importer.monsters.mv"}}</span><select data-mimport-field="move"{{#if m.warn.move}} class="imp-warn"{{/if}}>{{#each @root.moveOptions as |mv|}}<option value="{{mv}}" {{#if (eq mv m.draft.move)}}selected{{/if}}>{{mv}}</option>{{/each}}</select></label>
+          <label class="ui-field span2"><span class="ui-label">{{localize "SDE.importer.monsters.moveNoteAria"}}</span><input type="text" data-mimport-field="moveNote" value="{{m.draft.moveNote}}" placeholder="{{localize 'SDE.importer.monsters.moveNote'}}" aria-label="{{localize 'SDE.importer.monsters.moveNoteAria'}}"></label>
+        </div>
+        <div class="imp-fields abil{{#if m.warn.abilities}} imp-warnrow{{/if}}">
+          {{#each @root.abilityKeys as |ab|}}<label class="ui-field"><span class="ui-label">{{ab.label}}</span><input type="number" data-mimport-field="{{ab.key}}" value="{{lookup m.draft.abilities ab.key}}"></label>{{/each}}
+        </div>
+        <div class="imp-fields{{#if m.warn.spellcasting}} imp-warnrow{{/if}}">
+          <label class="ui-field"><span class="ui-label">{{localize "SDE.importer.monsters.spellcasting"}}</span><select data-mimport-field="scAbility">{{#each @root.spellAbilities as |sa|}}<option value="{{sa.value}}" {{#if (eq sa.value m.draft.spellcasting.ability)}}selected{{/if}}>{{sa.label}}</option>{{/each}}</select></label>
+          <label class="ui-field"><span class="ui-label">{{localize "SDE.importer.monsters.bonus"}}</span><input type="number" data-mimport-field="scBonus" value="{{m.draft.spellcasting.bonus}}"></label>
+          <label class="ui-field"><span class="ui-label">{{localize "SDE.importer.monsters.spellsPerRound"}}</span><input type="number" data-mimport-field="scAttacks" value="{{m.draft.spellcasting.attacks}}"></label>
+        </div>
+        <div class="imp-rows{{#if m.warn.attacks}} imp-warnrow{{/if}}">
+          <div class="imp-sechead"><span class="ui-label">{{localize "SDE.importer.monsters.attacks"}}</span>
+            <button type="button" class="ui-icon" data-action="mimportAddAttack" title="{{localize 'SDE.importer.monsters.addAttack'}}" aria-label="{{localize 'SDE.importer.monsters.addAttack'}}"><i class="fas fa-plus"></i></button>
+            <button type="button" class="ui-icon" data-action="mimportAddSpecial" title="{{localize 'SDE.importer.monsters.addSpecial'}}" aria-label="{{localize 'SDE.importer.monsters.addSpecial'}}"><i class="fas fa-bolt"></i></button></div>
+          {{#if m.draft.actions.length}}
+          <div class="imp-attack head"><span class="ui-label">{{localize "SDE.importer.monsters.attackCountTip"}}</span><span class="ui-label">{{localize "SDE.importer.common.nameCap"}}</span><span class="ui-label">{{localize "SDE.importer.monsters.attackTypeAria"}}</span><span class="ui-label">{{localize "SDE.importer.monsters.toHitTip"}}</span><span class="ui-label">{{localize "SDE.importer.monsters.damageAria"}}</span><span class="ui-label">{{localize "SDE.importer.monsters.rangesAria"}}</span><span class="ui-label">{{localize "SDE.importer.monsters.riderAria"}}</span><span></span></div>
+          {{/if}}
+          {{#each m.actions as |a|}}
+          <div class="imp-attack{{#if a.flagged}} imp-warnrow{{/if}}" data-attack-idx="{{@index}}">
+            <input type="number" data-mimport-field="aNum" value="{{a.num}}" aria-label="{{localize 'SDE.importer.monsters.attackCountAria'}}" title="{{localize 'SDE.importer.monsters.attackCountTip'}}">
+            <input type="text" data-mimport-field="aName" value="{{a.name}}" aria-label="{{localize 'SDE.importer.monsters.attackNameAria'}}" placeholder="{{localize 'SDE.importer.common.name'}}">
+            <select data-mimport-field="aType" aria-label="{{localize 'SDE.importer.monsters.attackTypeAria'}}">{{#each @root.attackTypes as |ty|}}<option value="{{ty}}" {{#if (eq ty a.type)}}selected{{/if}}>{{ty}}</option>{{/each}}</select>
+            <input type="number" data-mimport-field="aBonus" value="{{a.bonus}}" aria-label="{{localize 'SDE.importer.monsters.toHitAria'}}" title="{{localize 'SDE.importer.monsters.toHitTip'}}">
+            <input type="text" data-mimport-field="aDamage" value="{{a.damage}}" aria-label="{{localize 'SDE.importer.monsters.damageAria'}}" placeholder="1d6">
+            <input type="text" data-mimport-field="aRanges" value="{{join a.ranges}}" aria-label="{{localize 'SDE.importer.monsters.rangesAria'}}" placeholder="{{localize 'SDE.importer.monsters.rangesPlaceholder'}}">
+            <input type="text" data-mimport-field="aDesc" value="{{a.description}}" aria-label="{{localize 'SDE.importer.monsters.riderAria'}}" placeholder="{{localize 'SDE.importer.monsters.riderPlaceholder'}}">
+            <button type="button" class="ui-icon danger" data-action="mimportRemoveAttack" aria-label="{{localize 'SDE.importer.monsters.removeAttackAria'}}"><i class="fas fa-xmark"></i></button>
+          </div>
+          {{/each}}
+        </div>
+        <div class="imp-rows">
+          <div class="imp-sechead"><span class="ui-label">{{localize "SDE.importer.monsters.features"}}</span>
+            <button type="button" class="ui-icon" data-action="mimportAddFeature" title="{{localize 'SDE.importer.monsters.addFeature'}}" aria-label="{{localize 'SDE.importer.monsters.addFeature'}}"><i class="fas fa-plus"></i></button></div>
+          {{#each m.features as |f|}}
+          <div class="imp-feature" data-feature-idx="{{@index}}">
+            <input type="text" data-mimport-field="fName" value="{{f.name}}" aria-label="{{localize 'SDE.importer.monsters.featureNameAria'}}" placeholder="{{localize 'SDE.importer.common.name'}}">
+            <input type="text" data-mimport-field="fDesc" value="{{f.description}}" aria-label="{{localize 'SDE.importer.monsters.featureTextAria'}}" placeholder="{{localize 'SDE.importer.common.description'}}">
+            <button type="button" class="ui-icon danger" data-action="mimportRemoveFeature" aria-label="{{localize 'SDE.importer.monsters.removeFeatureAria'}}"><i class="fas fa-xmark"></i></button>
+          </div>
+          {{/each}}
+        </div>
+        </div>
+      </details>
+      {{/each}}
+    </section>
+    {{else}}
+    <div class="ui-empty"><i class="fas fa-dragon"></i><span>{{{localize "SDE.importer.monsterImporter.empty"}}}</span></div>
+    {{/if}}
+  </div>
+
+  <footer class="ui-footer">
+    <button type="button" class="ui-btn ghost" data-action="mimportClear"><i class="fas fa-eraser"></i> {{localize "SDE.importer.btn.clear"}}</button>
+    <button type="button" class="ui-btn ghost" data-action="mimportSpellLibrary" title="{{localize 'SDE.importer.monsterImporter.spellLibraryTip'}}"><i class="fas fa-book-sparkles"></i> {{localize "SDE.importer.monsterImporter.spellLibrary"}}</button>
+    <div class="ui-right">
+      <button type="button" class="ui-btn{{#unless hasParsed}} primary{{/unless}}" data-action="mimportParse"><i class="fas fa-wand-magic"></i> {{localize "SDE.importer.btn.parse"}}</button>
+      {{#if hasParsed}}<button type="button" class="ui-btn primary" data-action="mimportCreateAll"><i class="fas fa-dragon"></i> {{localize "SDE.importer.monsterImporter.createAll" n=total}}</button>{{/if}}
+    </div>
+  </footer>
 </div>

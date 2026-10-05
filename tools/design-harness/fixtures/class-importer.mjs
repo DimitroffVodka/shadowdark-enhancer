@@ -18,4 +18,4 @@ const build = (state) => {
     report: busy ? { created: 12, updated: 3 } : null,
   } };
 };
-export default { id: "sde-class-importer", title: "SDE.importer.classImporter.title", icon: "fa-solid fa-hat-wizard", classes: [], width: 720, height: 800, template: "templates/class-importer.hbs", initial: "busy", build, resizable: true, actions: {} };
+export default { id: "sde-class-importer", title: "SDE.importer.classImporter.title", icon: "fa-solid fa-hat-wizard", classes: ["sde-ui", "sde-imp"], width: 720, height: 800, template: "templates/class-importer.hbs", initial: "busy", build, resizable: true, actions: {} };

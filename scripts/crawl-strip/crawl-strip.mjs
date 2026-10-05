@@ -1164,9 +1164,22 @@ export const CrawlStrip = {
   // in sync). A missing direct target means several carriables → chooser.
   async _onToggleLight(el) {
     const actor = el.dataset.actorId ? game.actors.get(el.dataset.actorId) : null;
+    return this.toggleActorLight(actor, el.dataset.lightId);
+  },
+
+  // Spend one of `actor`'s luck tokens (the strip's Luck pill and the party
+  // sheet's member cards share this).
+  async spendLuck(actor) {
+    if (actor?.system?.useLuckToken) await actor.system.useLuckToken(true);
+  },
+
+  // Light or snuff `actor`'s light for its owner or the GM. With no `lightId`
+  // a burning Basic source is snuffed, else the one carried source is lit
+  // (several carried → chooser).
+  async toggleActorLight(actor, lightId = null) {
     if (!actor || !(actor.isOwner || game.user.isGM)) return;
 
-    const directId = el.dataset.lightId;
+    const directId = lightId || computeLightState(actor.items?.contents ?? Array.from(actor.items ?? [])).toggleId;
     if (directId) return this._applyLightToggle(actor, directId);
 
     const items = actor.items?.contents ?? Array.from(actor.items ?? []);
@@ -1299,7 +1312,7 @@ export const CrawlStrip = {
           if (!actor) return;
           // Owned pill with luck → spend normally
           if (actor.isOwner && luckBtn.hasAttribute("data-action")) {
-            if (actor.system?.useLuckToken) await actor.system.useLuckToken(true);
+            await this.spendLuck(actor);
             return;
           }
           // Owned pill at 0 → nothing to spend

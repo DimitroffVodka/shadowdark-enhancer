@@ -114,24 +114,24 @@ test("template exposes the exact visible labels and badge classes", async () => 
   for (const action of ["creatorMutRemoveGenerator", "creatorMutRemoveMutations", "creatorMutRemoveAll"]) {
     assert.match(tpl, new RegExp(`data-action="${action}"`), `template missing action: ${action}`);
   }
-  for (const cls of ["sde-mut-mode-automated", "sde-mut-mode-mixed", "sde-mut-mode-gm"]) {
-    assert.ok(tpl.includes(cls), `template missing badge class: ${cls}`);
-  }
+  // The automation mode reads as a square chip: ok for Automated, warn for Mixed or GM adjudication.
+  assert.match(tpl, /ui-chip \{\{#if \(eq this\.mode 'automated'\)\}\}ok\{\{else\}\}warn\{\{\/if\}\}/, "mode chip");
   assert.match(
     tpl,
-    /sde-mut-selected[\s\S]*sde-mut-mode-\{\{this\.mode\}\}/,
+    /mutations\.selection[\s\S]*ui-chip \{\{#if \(eq this\.mode 'automated'\)\}\}ok/,
     "selected results preview their automation mode before Apply",
   );
   const creator = await read("scripts/monster-creator/encounter-creator.mjs");
   assert.match(creator, /selection\s*=\s*live\.map[\s\S]*planResultEffects\(r,/);
-  assert.match(tpl, /sde-mut-applied-set">\{\{this\.setLabel\}\}\s*·\s*\{\{this\.columnLabel\}\}/);
+  assert.match(tpl, /\{\{this\.setLabel\}\} &middot; \{\{this\.columnLabel\}\}/);
   assert.match(creator, /columnLabel:\s*columnLabelByManifest\.get\(a\.slotKey\)/);
 });
 
-test("badge/remove CSS classes exist in the stylesheet", async () => {
-  const css = await read("styles/shadowdark-enhancer.css");
-  for (const rule of [".sde-mut-applied", ".sde-mut-badge-mode", ".sde-mut-mode-automated", ".sde-mut-mode-gm", ".sde-mut-remove-actions"]) {
-    assert.ok(css.includes(rule), `CSS missing rule: ${rule}`);
+test("applied-effect ledger uses the kit's chips and danger buttons", async () => {
+  const tpl = await read("templates/encounter-creator.hbs");
+  assert.match(tpl, /mutations\.applied\.total[\s\S]*ui-chip ok[\s\S]*mutations\.applied\.applications/);
+  for (const action of ["creatorMutRemoveGenerator", "creatorMutRemoveMutations", "creatorMutRemoveAll"]) {
+    assert.match(tpl, new RegExp(`class="ui-btn danger" data-action="${action}"`), `${action} is a danger button`);
   }
 });
 

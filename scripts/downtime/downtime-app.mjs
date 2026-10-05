@@ -108,7 +108,7 @@ export class DowntimeApp extends HandlebarsApplicationMixin(ApplicationV2) {
     // change-wired select, and an ApplicationV2 whose root is a <form> invites
     // the nested-form trap that silently broke the boat sheet.
     tag: "div",
-    classes: ["shadowdark", "sde-downtime"],
+    classes: ["shadowdark", "sde-downtime", "sde-ui"],
     window: { title: "SDE.downtime.title", icon: "fas fa-mug-hot", resizable: true },
     position: { width: 720, height: "auto" },
     actions: {
@@ -859,6 +859,16 @@ export class DowntimeApp extends HandlebarsApplicationMixin(ApplicationV2) {
     if (!root) return;
 
     const on = (sel, ev, fn) => root.querySelector(sel)?.addEventListener(ev, fn);
+
+    // Accordions: the template opens the first one; after that the player's own open/closed choice survives re-renders.
+    this._openActivities ??= null;
+    for (const d of root.querySelectorAll("details[data-activity]")) {
+      if (this._openActivities) d.open = this._openActivities.has(d.dataset.activity);
+      d.addEventListener("toggle", () => {
+        this._openActivities = new Set(
+          [...root.querySelectorAll("details[data-activity][open]")].map(el => el.dataset.activity));
+      });
+    }
 
     on("[data-field='source']", "change", (e) => {
       this._sourceSlug = e.target.value;

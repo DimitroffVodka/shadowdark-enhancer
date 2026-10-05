@@ -1,5 +1,5 @@
 <section class="sde-ui ui-body sde-carousing-body cr-root">
-  <h3 class="ui-h">{{title}} {{#if holiday}}<small>{{holiday}}</small>{{/if}}</h3>
+  <h3 class="ui-h">{{#unless embedded}}{{title}} {{/unless}}{{#if holiday}}<small>{{holiday}}</small>{{/if}}</h3>
   <p class="ui-muted cr-hint">{{localize "SDE.carousing.sharedRule"}}</p>
   {{#if overlap}}<div class="ui-note bad">{{localize "SDE.carousing.sdxOverlap"}}</div>{{/if}}
   {{#if error}}<div class="ui-note bad" role="alert">{{error}}</div>{{/if}}
