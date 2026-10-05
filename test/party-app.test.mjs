@@ -696,3 +696,9 @@ test("the header emblem mask is an absolute route, not a path relative to the st
   const app = await readFile(new URL("../scripts/party/party-app.mjs", import.meta.url), "utf8");
   assert.match(app, /maskUrl: routeOf\(emblemIconPath\(emblem\.icon\)\)/);
 });
+
+test("the module registers the Request roll chat hook, or the card's Roll links do nothing", async () => {
+  const entry = await readFile(new URL("../scripts/shadowdark-enhancer.mjs", import.meta.url), "utf8");
+  assert.match(entry, /import \{ registerPartyRoll \} from "\.\/party\/party-roll\.mjs"/);
+  assert.match(entry, /\n\s+registerPartyRoll\(\);/);
+});
