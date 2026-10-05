@@ -59,7 +59,7 @@
 <article class="sdp-card{{#if member.missing}} missing{{/if}}" data-uuid="{{member.uuid}}" data-member-id="{{member.memberKey}}">
 	<div class="sdp-portrait">
 		<img class="sdp-face" src="{{member.img}}" alt="" data-action="member" data-uuid="{{member.uuid}}">
-		{{#unless member.missing}}<div class="sdp-under">{{#unless member.isNPC}}<span class="sdp-luck {{#unless member.luck}}empty{{/unless}}" data-tooltip="{{localize 'SHADOWDARK.sheet.player.luck'}}" aria-label="{{localize 'SHADOWDARK.sheet.player.luck'}} {{member.luck}}"><span class="sdp-clover"></span>{{member.luck}}</span>{{/unless}}<span class="sdp-light {{#if member.lightOn}}lit{{/if}}" data-tooltip="{{localize 'SDE.party.status.light'}}" aria-label="{{localize 'SDE.party.status.light'}}"><i class="fas fa-fire"></i></span></div>{{/unless}}
+		{{#unless member.missing}}<div class="sdp-under">{{#unless member.isNPC}}<a class="sdp-luck {{#unless member.luck}}empty{{/unless}}" data-action="spendLuck" data-actor-id="{{member.uuid}}" data-tooltip="{{localize 'SHADOWDARK.sheet.player.luck'}}" aria-label="{{localize 'SHADOWDARK.sheet.player.luck'}} {{member.luck}}"><span class="sdp-clover"></span>{{member.luck}}</a>{{/unless}}<a class="sdp-light {{#if member.lightOn}}lit{{/if}}" data-action="toggleLight" data-actor-id="{{member.uuid}}" data-tooltip="{{localize 'SDE.party.status.light'}}" aria-label="{{localize 'SDE.party.status.light'}}" aria-pressed="{{#if member.lightOn}}true{{else}}false{{/if}}"><i class="fas fa-fire"></i></a></div>{{/unless}}
 	</div>
 	<div class="sdp-main">
 		<div class="sdp-line"><a class="sdp-name" data-action="member" data-uuid="{{member.uuid}}">{{member.name}}</a>{{#if member.className}}<em>{{member.className}}</em>{{/if}}</div>
