@@ -4557,15 +4557,15 @@ button.sde-hud-day:hover { border-color: var(--sd-frame); }
 .sde-dialog .window-content { padding: 0; gap: 0; }
 /* container-type on .window-content (sde-ui.css) zeroes its intrinsic width, so an auto-width dialog collapsed to ~200px:
    buttons stacked and right-shifted, the title clipped, inputs cut off. Give dialogs a real width; a call that passes
-   position.width still wins (inline style). */
-.application.sde-dialog { width: 420px; max-width: calc(100vw - 24px); }
+   position.width still wins (inline style). 460 fits three buttons (End & Save / Pause Session / Discard) on one row. */
+.application.sde-dialog { width: 460px; max-width: calc(100vw - 24px); }
 .sde-dialog form.dialog-form { flex: 1 1 auto; min-height: 0; }
 .sde-dialog .dialog-content { flex: 1 1 auto; display: flex; flex-direction: column; gap: 14px; min-height: 0; margin: 0; padding: 16px; overflow-y: auto; background: var(--ui-page); }
 .sde-dialog .dialog-content > form, .sde-dialog form.dialog-content { display: contents; }
 
 /* footer: DialogV2's own buttons, restyled to the kit */
 .sde-dialog .form-footer { flex: 0 0 auto; display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 8px; margin: 0; padding: 10px 16px; border-top: 1px solid var(--ui-line); background: var(--ui-page); }
-.sde-dialog .form-footer button { display: inline-flex; align-items: center; justify-content: center; gap: 6px; flex: 0 0 auto; height: 30px; min-width: 88px; margin: 0; padding: 0 16px; border: 1px solid var(--ui-frame); border-radius: var(--ui-r); background: var(--ui-panel); color: var(--ui-text); font: 600 12px/1 var(--ui-head); letter-spacing: .02em; text-shadow: none; box-shadow: none; cursor: pointer; }
+.sde-dialog .form-footer button { display: inline-flex; align-items: center; justify-content: center; gap: 6px; flex: 1 1 auto; height: 30px; min-width: 88px; margin: 0; padding: 0 16px; border: 1px solid var(--ui-frame); border-radius: var(--ui-r); background: var(--ui-panel); color: var(--ui-text); font: 600 12px/1 var(--ui-head); letter-spacing: .02em; text-shadow: none; box-shadow: none; cursor: pointer; }
 .sde-dialog .form-footer button:hover { background: var(--ui-raised); }
 .sde-dialog .form-footer button.default { height: 32px; background: var(--ui-btn-bg); border-color: var(--ui-btn-bg); color: var(--ui-btn-fg); font-weight: 700; }
 .sde-dialog .form-footer button.default:hover { background: var(--ui-btn-bg); filter: brightness(1.12); }
@@ -4576,7 +4576,7 @@ button.sde-hud-day:hover { border-color: var(--sd-frame); }
 
 /* a list of actions: the footer becomes rows, one action each (the dying menu). Same buttons array, no JS change. */
 .sde-dialog.dlg-choices .form-footer { flex-direction: column; align-items: stretch; justify-content: flex-start; gap: 6px; padding: 0 16px 14px; border-top: 0; }
-.sde-dialog.dlg-choices .form-footer button { justify-content: flex-start; width: 100%; height: 38px; padding: 0 12px; text-align: left; font: 600 13px/1.2 var(--ui-font); background: var(--ui-panel); border-color: var(--ui-line); color: var(--ui-text); }
+.sde-dialog.dlg-choices .form-footer button { flex: 0 0 auto; justify-content: flex-start; width: 100%; height: 38px; padding: 0 12px; text-align: left; font: 600 13px/1.2 var(--ui-font); background: var(--ui-panel); border-color: var(--ui-line); color: var(--ui-text); }
 .sde-dialog.dlg-choices .form-footer button:hover { border-color: var(--ui-frame); background: var(--ui-raised); }
 .sde-dialog.dlg-choices .form-footer button > i { flex: 0 0 18px; width: 18px; text-align: center; color: var(--ui-gold); }
 .sde-dialog.dlg-choices .form-footer button.default { height: 38px; background: var(--ui-btn-bg); color: var(--ui-btn-fg); }
