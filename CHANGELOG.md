@@ -9,6 +9,10 @@
   redesign. No window uses it yet, so nothing looks different.
 
 ### Changed
+- **Design-harness fixtures for Training, Pit Fighting, the Encounter Roller and the Monster Creator panel match the current window markup and classes.**
+- **Encounter Roller and its Monster Creator tab use the new design.** Roll Tables shows the table and the result side by side with icon buttons on each row, Build Table is one row per slot, and Browse NPCs has a filter card beside a sortable table. The creator keeps the creature's core on the left and opens one tab (Actions, Features, Spellcasting, Mutations, Baseline) at a time on the right.
+- **Pit Fighting window uses the new design.** The bout is four numbered cards (Offer, Twist, Who steps up, Result) with the rolls and picks on one line each, the foes as chips, and Accept, Decline and Apply result in the footer.
+- **Regional Training window uses the new design.** Character and trainer pickers up top, the trainer's emblem and the rolls left in the header, tasks and benefits as numbered rows with square status chips, and Roll in the footer.
 - **Downtime's icon-only buttons are labelled for screen readers, and the Session Recap tabs wrap on narrow windows** instead of scrolling the last tab out of view.
 - **Quest Log window uses the new design.** The filters sit in the header, one tab per status with a count, then the list and the chosen quest side by side, and the payout confirmation is styled to match in both the log and the Party sheet's Quests tab. Every action is unchanged.
 - **Session Recap window uses the new design.** One header with the session name and its numbers on every tab, five tabs, and History moved to a button in the footer. Tables scroll sideways inside their own frame at narrow widths. Every action is unchanged.

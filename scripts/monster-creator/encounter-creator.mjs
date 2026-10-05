@@ -176,17 +176,14 @@ export class MonsterCreatorApp {
 
   constructor() {
     this._draft = _defaultDraft();
-    // Section open/closed state — survives renders. Default: Identity open.
+    // Which right-hand tab is open (at most one) — survives renders. The
+    // creature's core (identity, stats, movement, description) is always shown.
     this._sectionOpen = {
-      identity:     true,
-      stats:        false,
-      movement:     false,
       actions:      false,
       features:     false,
       spellcasting: false,
       mutations:    false,
       baseline:     false,
-      description:  false,
     };
     // Level Baseline section — which stat groups the Apply button writes.
     // All on by default; unchecking one leaves that stat alone.
@@ -613,13 +610,13 @@ export class MonsterCreatorApp {
       // Keyboard parity for non-native interactive elements (e.g. the
       // bestiary loader-pick <tr>): focusable + Enter/Space activates.
       const tag = el.tagName;
-      if (tag !== "BUTTON" && tag !== "A" && tag !== "INPUT" && tag !== "SELECT") {
+      if (tag !== "BUTTON" && !(tag === "A" && el.hasAttribute("href")) && tag !== "INPUT" && tag !== "SELECT") {
         if (!el.hasAttribute("tabindex")) el.setAttribute("tabindex", "0");
         el.addEventListener("keydown", ev => {
           if (ev.key !== "Enter" && ev.key !== " ") return;
           // Don't double-fire when a nested native control (e.g. a sort
           // button inside a data-action <th>) handles the key itself.
-          if (ev.target.closest("button, a, input, select, textarea")) return;
+          if (ev.target !== el && ev.target.closest("button, a, input, select, textarea")) return;
           fire(ev);
         });
       }
@@ -799,8 +796,14 @@ export class MonsterCreatorApp {
   _onSectionToggle(event, target) {
     const section = target.dataset.section;
     if (!section) return;
-    this._sectionOpen[section] = !this._sectionOpen[section];
+    if (this._sectionOpen[section]) this._sectionOpen[section] = false;
+    else this._openSection(section);
     this.render();
+  }
+
+  /** Open one tab and close the others. */
+  _openSection(section) {
+    for (const key of Object.keys(this._sectionOpen)) this._sectionOpen[key] = key === section;
   }
 
   _onAddAction() {
@@ -814,7 +817,7 @@ export class MonsterCreatorApp {
       ranges: ["close"],
       description: "",
     });
-    this._sectionOpen.actions = true;
+    this._openSection("actions");
     this.render();
   }
 
@@ -825,7 +828,7 @@ export class MonsterCreatorApp {
       type: "NPC Special Attack",
       description: L("SDE.encounterCreator.draft.newSpecialDesc"),
     });
-    this._sectionOpen.actions = true;
+    this._openSection("actions");
     this.render();
   }
 
@@ -844,7 +847,7 @@ export class MonsterCreatorApp {
       ...foundry.utils.deepClone(template),
       id: foundry.utils.randomID(),
     });
-    this._sectionOpen.actions = true;
+    this._openSection("actions");
     this.render();
   }
 
@@ -854,7 +857,7 @@ export class MonsterCreatorApp {
       name: L("SDE.encounterCreator.draft.newFeature"),
       description: L("SDE.encounterCreator.draft.newFeatureDesc"),
     });
-    this._sectionOpen.features = true;
+    this._openSection("features");
     this.render();
   }
 
@@ -873,7 +876,7 @@ export class MonsterCreatorApp {
       ...foundry.utils.deepClone(template),
       id: foundry.utils.randomID(),
     });
-    this._sectionOpen.features = true;
+    this._openSection("features");
     this.render();
   }
 
@@ -1196,9 +1199,7 @@ export class MonsterCreatorApp {
       const r = applyResult(this._draft, result, { idFn: foundry.utils.randomID });
       if (!r.noop) applied += 1;
     }
-    this._sectionOpen.features = this._draft.features.length > 0;
-    this._sectionOpen.actions  = this._draft.actions.length > 0;
-    this._sectionOpen.mutations = true;
+    this._openSection("mutations");
     ui.notifications.info(
       applied
         ? L(applied === 1 ? "SDE.encounterCreator.notify.appliedOne" : "SDE.encounterCreator.notify.appliedMany", { count: applied })
@@ -1292,12 +1293,11 @@ export class MonsterCreatorApp {
   async _draftFromActor(actor) {
     const draft = await actorToDraft(actor);
     this._draft = draft;
-    // Open sections that have content
-    this._sectionOpen.stats = true;
-    this._sectionOpen.actions = draft.actions.length > 0;
-    this._sectionOpen.features = draft.features.length > 0;
-    this._sectionOpen.spellcasting = !!draft.spellcasting.ability || draft.spells.length > 0;
-    this._sectionOpen.description = !!draft.description;
+    // Open the first tab that has content
+    if (draft.actions.length > 0) this._openSection("actions");
+    else if (draft.features.length > 0) this._openSection("features");
+    else if (draft.spellcasting.ability || draft.spells.length > 0) this._openSection("spellcasting");
+    else this._openSection(null);
   }
 
   // ─── Level Baseline ───────────────────────────────────────────────────
@@ -1412,7 +1412,6 @@ export class MonsterCreatorApp {
       }
     }
 
-    this._sectionOpen.stats = true;
     this.render();
     ui.notifications.info(
       game.i18n.format("SDE.monsterCreator.baseline.applied", { level: ctx.effectiveLevel }),
@@ -1434,7 +1433,7 @@ export class MonsterCreatorApp {
     const inst = this.instance;
     await inst._draftFromActor(actor);
     inst._sourceRef = { uuid: actor.uuid, name: actor.name, isToken: !!actor.isToken };
-    inst._sectionOpen.baseline = true;
+    inst._openSection("baseline");
     // Dynamic import: encounter-roller-app.mjs imports THIS module, so a
     // static import would close the cycle at load time.
     const { EncounterRollerApp } = await import("../encounter/encounter-roller-app.mjs");
