@@ -11,7 +11,7 @@ const names = ["Supercalifragilisticexpialidocious_Longsword_of_Unbreakingness_P
 const managed = names.map((name, i) => ({ uuid: "m" + i, name, group: i % 2 ? "World" : "sde-tables" }));
 const addable = Array.from({ length: 30 }, (_, i) => ({ uuid: "a" + i, name: "Random Table Number " + (i + 1) + " with a moderately long title", group: i % 3 ? "Shadowdark Roll Tables" : "World" }));
 export default {
-  title: "SDE.loot.setup.title", icon: "fas fa-gear", classes: [], resizable: true, width: 620, template: "templates/loot-setup.hbs",
+  title: "SDE.loot.setup.title", icon: "fas fa-gear", classes: ["sde-ui", "sde-lootsetup"], resizable: true, width: 620, template: "templates/loot-setup.hbs",
   context: {
     library, lootTables: addable.slice(0, 12), hasLootTables: true, done: 2, total: 4, managed, addable, hasAddable: true,
     tierOptions: [["0-3", "Treasure Tables 0-3"], ["4-6", "Treasure Tables 4-6"], ["7-9", "Treasure Tables 7-9"], ["10+", "Treasure Tables 10+"]].map(([tier, label], i) => ({ tier, label: "Tier " + tier, boundName: i < 2 ? "TREASURE " + tier : null })),

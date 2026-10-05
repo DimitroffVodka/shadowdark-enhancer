@@ -9,6 +9,9 @@
   redesign. No window uses it yet, so nothing looks different.
 
 ### Changed
+- **The loot and shop design-harness fixtures carry the windows' current classes.**
+- **Magic Forge, Merchant Shop and Bastion Shop use the new design.** Magic Forge has numbered steps with a live preview and one icon on each spell row; the Merchant Shop has a header wallet, icon buttons for Log and Manage and aligned price, stock and buy columns, and its stock tooltip now says Unlimited from a proper flag; the Bastion Shop has a purse in the header and one grid for its rows. Every action still does what it did.
+- **Loot Generator, Loot Setup, Monster Loot Overrides, Forge and Loot, and Party XP use the new design.** Each opens with a header, cards and rows on the shared UI kit, one primary button in a footer, and icon buttons for the per-row actions (Post, Drop and Forge on a loot roll). Every action still does what it did.
 - **Design-harness fixtures for the importer windows carry the windows' current classes.**
 - **Roll Tables, Adventure Placer and Token Art Manager use the new design.** Token Art Manager has Monsters and Sources tabs and a row count that is right on first open, and the Adventure Placer is a list of locations with place, skip and clear buttons.
 - **Importer Hub, Class Importer, Monster Importer, Spell Importer and Item Builder use the new design.** The hub has Paste, Preview, Manage and Tools tabs (Parse opens Preview, Tools is a list instead of a popover), and its preview cards stay open or closed as you left them.

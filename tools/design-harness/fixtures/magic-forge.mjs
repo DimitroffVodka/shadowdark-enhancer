@@ -25,6 +25,6 @@ const build = (state) => state === "scroll"
   : { context: { ...base, types: typesFor("armor"), typeLabel: "Armor", isCore: true, coreSets, typeHint: "Plate", coreBonusHint: 2, baseSelected: { name: "Chainmail of the Lantern Hold, Reinforced", img: ico("armor") }, canForge: true,
       preview: { icon: "fa-shield-halved", typeLabel: "Armor", name: "Chainmail of the Lantern Hold, Reinforced +2", lines: ["Base: Chainmail of the Lantern Hold, Reinforced", "+2 magic bonus (from the Core table)", "3 Core rider(s) chosen", "Type hint: Plate"] } } };
 export default {
-  title: "SDE.magicForge.title", icon: "fas fa-hammer", classes: [], resizable: true, width: 720, template: "templates/magic-forge.hbs", initial: "core", build,
+  title: "SDE.magicForge.title", icon: "fas fa-hammer", classes: ["sde-ui", "sde-magicforge"], resizable: true, width: 720, template: "templates/magic-forge.hbs", initial: "core", build,
   toolbar: `<span>State:</span>${["core", "scroll", "weapon"].map((s) => `<button data-action="s" data-state="${s}">${s}</button>`).join("")}`, actions: { s: { state: "{state}" } },
 };

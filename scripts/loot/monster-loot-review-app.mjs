@@ -15,7 +15,7 @@ const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 export class MonsterLootReviewApp extends HandlebarsApplicationMixin(ApplicationV2) {
   static DEFAULT_OPTIONS = {
     id: "sde-monster-loot-review",
-    classes: ["sde-monster-loot"],
+    classes: ["sde-ui", "sde-monster-loot"],
     window: { title: "SDE.settings.monsterLoot.title", icon: "fa-solid fa-coins", resizable: true },
     position: { width: 780, height: 640 },
     actions: { openSheet: MonsterLootReviewApp._onOpenSheet },

@@ -79,6 +79,7 @@ function diagnosticContext(values) {
 export class ForgeLootApp extends HandlebarsApplicationMixin(ApplicationV2) {
   static DEFAULT_OPTIONS = {
     id: "sde-forge-loot",
+    classes: ["sde-ui", "sde-forgeloot"],
     tag: "form",
     window: { title: "SDE.forgeLoot.title", icon: "fas fa-hammer", resizable: true },
     position: { width: 760, height: "auto" },
