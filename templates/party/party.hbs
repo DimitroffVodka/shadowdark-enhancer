@@ -17,7 +17,7 @@
 			<div class="sdp-marchrow">
 				<div class="sdp-controls">
 					<label class="ui-switch" data-tooltip="{{localize 'SDE.party.movement.follow'}}"><input type="checkbox" data-movement-setting="followLeader" {{#if followLeader}}checked{{/if}} {{#unless canEdit}}disabled{{/unless}}><span>{{localize "SDE.party.movement.marchingOrder"}}</span></label>
-					{{#if march.text}}<div class="sdp-status {{#if march.warn}}warn{{/if}}" role="status">{{march.text}}</div>{{/if}}
+					{{#if march.text}}{{#unless march.warn}}<div class="sdp-status" role="status">{{march.text}}</div>{{/unless}}{{/if}}
 					{{#if canEdit}}<button type="button" class="ui-btn sdp-pin" data-action="placeRecall" {{#if movementDisabled}}disabled{{/if}} title="{{movementReason}}"><i class="fas fa-location-dot"></i> {{localize "SDE.party.movement.placeRecall"}}</button>{{/if}}
 				</div>
 				<div class="sdp-gridwrap" {{#unless members.length}}{{#if canEdit}}data-drop-members{{/if}}{{/unless}}>
@@ -36,6 +36,7 @@
 			<div class="sdp-pop-foot"><button type="button" class="ui-btn" data-action="emblem" data-mode="-">{{localize "SDE.party.emblem.done"}}</button></div>
 		</div>{{/if}}
 	</header>
+{{#if march.warn}}<div class="sdp-march-warn" role="status"><i class="fas fa-triangle-exclamation" aria-hidden="true"></i>{{march.text}}</div>{{/if}}
 {{#if status.length}}<div class="sdp-bar">{{#each status}}<div class="{{#if low}}low{{/if}}"><span class="l"><i class="fas {{icon}}"></i>{{label}}</span><span class="v">{{value}}</span></div>{{/each}}</div>{{/if}}
 <nav class="sdp-tabs" role="tablist">{{#each tabs}}<a class="sdp-tab {{#if active}}active{{/if}}" data-action="partyTab" data-tab="{{key}}" role="tab" aria-selected="{{#if active}}true{{else}}false{{/if}}" tabindex="0"><i class="{{icon}}"></i>{{label}}</a>{{/each}}</nav>
 <section class="SD-content-body sdp-body flex1">
