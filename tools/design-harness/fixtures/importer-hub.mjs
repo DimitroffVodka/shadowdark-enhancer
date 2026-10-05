@@ -135,7 +135,7 @@ const build = (state) => {
 };
 
 export default {
-  id: "sde-importer-hub", title: "SDE.importer.app.title", icon: "fas fa-file-import", classes: [], width: 860, height: 780,
+  id: "sde-importer-hub", title: "SDE.importer.app.title", icon: "fas fa-file-import", classes: ["sde-ui", "sde-imp"], width: 860, height: 780,
   template: "templates/importer-hub.hbs", initial: "paste", build, resizable: true,
   toolbar: ["paste", "parsed", "chars", "tables", "hexes", "downtime", "manage"].map((s) => `<a href="?state=${s}" style="color:#9cf">${s}</a>`).join(" | "),
   actions: {},

@@ -6,4 +6,4 @@ const build = (state) => { const busy = state !== "empty"; return { context: {
   tableText: busy ? "Arrows (20) 1 gp\nBackpack 2 gp" : "", descText: busy ? "Arrows. 20 arrows..." : "", tablePage: "58", descPage: "59-60", tablePdf: "x", descPdf: "x",
   items: busy ? items : [], itemCount: busy ? items.length : 0, dropped: busy ? [{ text: "Gear", reason: "heading" }, { text: "Cost Slots", reason: "header" }] : [], droppedCount: busy ? 2 : 0, withDesc: busy ? 7 : 0, needDesc: busy ? 4 : 0,
   systemDupes: busy ? ["Torch", "Rope"] : [], systemDupeCount: busy ? 2 : 0, report: busy ? { created: 5, replaced: 2 } : null } }; };
-export default { id: "sde-item-builder", title: "SDE.importer.itemBuilder.title", icon: "fa-solid fa-boxes-stacked", classes: [], width: 760, height: 820, template: "templates/item-builder.hbs", initial: "busy", build, resizable: true, actions: {} };
+export default { id: "sde-item-builder", title: "SDE.importer.itemBuilder.title", icon: "fa-solid fa-boxes-stacked", classes: ["sde-ui", "sde-imp"], width: 760, height: 820, template: "templates/item-builder.hbs", initial: "busy", build, resizable: true, actions: {} };

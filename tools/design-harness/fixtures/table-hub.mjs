@@ -10,5 +10,5 @@ const tbl = (n, name) => ({ name, formula: "1d12", replacement: false, category:
 const build = (state) => { const imp = state === "import"; return { context: {
   tabDashboard: !imp, tabImport: imp, search: "", groups, summary: { total: 43, system: 12, imported: 18, partial: 2, missing: 11 }, fAll: true, fSystem: false, fImported: false, fPartial: false, fMissing: false, sources, sourceAll: false,
   importData: { text: "", seed: imp ? { name: "Monster Generator", die: "3d6", page: "22" } : null, parsed: imp ? [tbl(0, "Forest Encounters"), tbl(1, "Swamp Encounters")] : [], categoryOptions: [{ id: "gameplay", label: "Gameplay" }, { id: "roll", label: "Roll Tables" }, { id: "custom", label: "Custom folder..." }] } } }; };
-export default { id: "sde-roll-tables", title: "SDE.importer.tableHub.title", icon: "fas fa-table-list", classes: [], width: 820, height: 720, template: "templates/table-hub.hbs", initial: "dashboard", build, resizable: true,
+export default { id: "sde-roll-tables", title: "SDE.importer.tableHub.title", icon: "fas fa-table-list", classes: ["sde-ui", "sde-imp"], width: 820, height: 720, template: "templates/table-hub.hbs", initial: "dashboard", build, resizable: true,
   toolbar: ["dashboard", "import"].map((s) => `<a href="?state=${s}" style="color:#9cf">${s}</a>`).join(" | "), actions: {} };
