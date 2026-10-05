@@ -9,6 +9,7 @@
   redesign. No window uses it yet, so nothing looks different.
 
 ### Changed
+- **The Party sheet's Luck and Light marks no longer show the kit's link underline.**
 - **Camping and Carousing inside the Party sheet are tidier.** The ration count next to the ham hock now shows what each character still carries after the night is saved, instead of 0; the party name no longer repeats as a title under the sheet header; and the unused gap rule on both bodies is gone.
 - **The Luck and Light marks on the Party sheet's member cards now work.** Click Luck to spend a luck token and Light to light or snuff the character's torch, the same as on the crawl strip. Only the character's owner or a GM can; anyone else gets a short refusal.
 - **Carousing window uses the new design.** One tier select for the party at the top, one shared-cost line (total, headcount, each person's share), a Joining switch and the result for each character.
