@@ -370,6 +370,20 @@ export function rollOutcome({ total, dc }) {
   return t >= d ? "pass" : "fail";
 }
 
+/** "pass" or "fail" for one roll: the system's own verdict when it gives a boolean, else the total against the DC; null with no DC. */
+export function rollVerdict({ total = null, dc = null, success = null } = {}) {
+  if (cleanDc(dc) === null) return null;
+  return typeof success === "boolean" ? (success ? "pass" : "fail") : rollOutcome({ total, dc });
+}
+
+/** The request with one character's result recorded (a roll already recorded is kept: one roll per character per card). Results are an array: a flag key never carries a uuid's dots. */
+export function withRollResult(request, { uuid, total = null, outcome = null } = {}) {
+  const results = Array.isArray(request?.results) ? request.results : [];
+  if (!request?.targets?.some((t) => t.uuid === uuid) || results.some((r) => r.uuid === uuid)) return request;
+  const n = Number(total);
+  return { ...request, results: [...results, { uuid, total: total !== null && Number.isFinite(n) ? n : null, outcome: outcome === "pass" || outcome === "fail" ? outcome : null }] };
+}
+
 /**
  * The Request roll chat card, as HTML: a title, the DC when there is one, and one Roll link per character asked.
  * The links are anchors, not buttons, so they work for every viewer
@@ -379,7 +393,12 @@ export function rollOutcome({ total, dc }) {
  */
 export function rollCardHtml(request, { sayWith, statLabel, esc }) {
   const title = request.dc === null ? sayWith("SDE.party.roll.cardTitle", { stat: statLabel }) : sayWith("SDE.party.roll.cardTitleDc", { stat: statLabel, dc: request.dc });
-  const links = request.targets.map((t) => `<a class="sde-party-roll-go" data-party-roll data-uuid="${esc(t.uuid)}"><i class="fas fa-dice-d20"></i> ${esc(sayWith("SDE.party.roll.button", { name: t.name }))}</a>`).join("");
+  const links = request.targets.map((t) => {
+    const done = (request.results ?? []).find((r) => r.uuid === t.uuid);
+    const state = done ? ` rolled ${done.outcome ?? "none"}` : "";
+    const total = done && done.total !== null ? ` <b class="sde-party-roll-total">${esc(done.total)}</b>` : "";
+    return `<a class="sde-party-roll-go${state}" data-party-roll data-uuid="${esc(t.uuid)}"${done ? ' aria-disabled="true"' : ""}><i class="fas fa-dice-d20"></i> ${esc(sayWith("SDE.party.roll.button", { name: t.name }))}${total}</a>`;
+  }).join("");
   return `<div class="sde-party-roll"><header>${esc(title)}</header><div class="sde-party-roll-list">${links}</div></div>`;
 }
 
