@@ -9,6 +9,11 @@
   redesign. No window uses it yet, so nothing looks different.
 
 ### Changed
+- **Rules data styles apply again** (a comment in the stylesheet had lost its opener and swallowed the next rule), and the utility-tool design-harness fixtures carry the windows' current classes.
+- **The settings group windows use the new design.** Each group opened from Configure Settings shows its settings in cards (label and hint left, control right), sub-groups as collapsible sections, and a Save footer.
+- **Rules Data window uses the new design.** Tabs for Terrain, Travel, Settlements and Climate, the ruleset buttons in the header, and the window now stays on the tab you chose when it redraws (adding a terrain, switching ruleset, importing).
+- **Quick Adjust window uses the new design.** The creature and a level stepper in the header, the changes in one card, and Revert, Open creator, Copy and Apply in the footer (the two middle ones show only their icons in a narrow window).
+- **Level Guidelines editor uses the new design.** Header band, one card holding the table with a sticky two-row header, and a Cancel / Save footer.
 - **Hex Tagger: the Settings tab shows only once the grid anchor is set** (it opened onto an empty panel before), the tab labels show a focus ring for keyboard users, and the hex tools' footer and heading rules no longer depend on stylesheet order.
 - **Hex Brush window uses the new design.** The current terrain in a card with previous and next buttons, a tile for each terrain on the map, the hex features as checked chips, and Undo stroke in a footer.
 - **Hex Tagger window uses the new design.** A header band with the scene and its tagging progress, five tabs (Sheet, Map, Terrains, Data, Settings) that keep the one you chose while the window redraws, and the Confirm / Apply buttons in a footer on the Sheet tab. The More button is gone; its tools are the Data and Settings tabs.

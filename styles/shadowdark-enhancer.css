@@ -5962,3 +5962,119 @@ button.sde-hud-day:hover { border-color: var(--sd-frame); }
 .sde-hex-explorer .hx-pair { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 2fr); gap: 8px; }
 .sde-hex-explorer .ui-card .ui-chip.ui-check { white-space: normal; min-height: 28px; }
 .sde-hex-explorer .sde-hex-explorer-body .ui-card > .ui-h { margin-bottom: 0; }
+/* Level Guidelines editor */
+/* Level guidelines: a spreadsheet inside one card. It scrolls in both directions in its own box so a narrow window
+   never scrolls sideways as a whole. Tokens only. */
+.sde-level-guidelines .lg-art { display: flex; align-items: center; justify-content: center; color: var(--ui-muted); font-size: 22px; }
+.sde-level-guidelines .lg-list { padding: 0; flex: 1 1 auto; min-height: 0; overflow: auto; }
+.sde-level-guidelines .lg-table { table-layout: fixed; }
+.sde-level-guidelines .lg-table th, .sde-level-guidelines .lg-table td { padding-left: 2px; padding-right: 2px; }
+.sde-level-guidelines .lg-table th { font-size: 9.5px; letter-spacing: .02em; overflow: hidden; text-overflow: clip; }
+@container (max-width: 560px) { .sde-level-guidelines .lg-table th { font-size: 8px; letter-spacing: 0; } .sde-level-guidelines .lg-table input { font-size: 11px; } .sde-level-guidelines.sde-ui .sde-lg .ui-body { padding: 10px; } }
+.sde-level-guidelines .lg-table td { padding: 2px 4px; text-align: center; }
+.sde-level-guidelines .lg-table td.lg-level { font-weight: 700; color: var(--ui-text); width: 40px; }
+.sde-level-guidelines .lg-table input { text-align: center; padding: 0 1px; }
+.sde-level-guidelines.sde-ui .sde-lg .ui-body { padding-bottom: 8px; }
+
+.sde-level-guidelines .lg-table col:nth-child(1) { width: 6%; }
+.sde-level-guidelines .lg-table col:nth-child(2) { width: 10%; }
+.sde-level-guidelines .lg-table col:nth-child(3) { width: 11%; }
+.sde-level-guidelines .lg-table col:nth-child(4) { width: 8%; }
+.sde-level-guidelines .lg-table col:nth-child(5) { width: 9%; }
+.sde-level-guidelines .lg-table col:nth-child(6) { width: 12%; }
+.sde-level-guidelines .lg-table col:nth-child(7) { width: 10%; }
+.sde-level-guidelines .lg-table col:nth-child(8) { width: 10%; }
+.sde-level-guidelines .lg-table col:nth-child(9) { width: 10%; }
+.sde-level-guidelines .lg-table col:nth-child(10) { width: 14%; }
+
+/* Header: two rows with fixed heights (group names over their columns, then one row of column names on one baseline, one
+   rule under it). The cells are separate-border so a sticky header keeps its rules when the body scrolls under it. */
+.sde-level-guidelines .lg-table { border-collapse: separate; border-spacing: 0; }
+.sde-level-guidelines .lg-table thead th { position: sticky; z-index: 2; box-sizing: border-box; padding: 0 2px; background: var(--ui-panel); text-align: center; vertical-align: bottom; white-space: nowrap; overflow: hidden; border: 0; }
+.sde-level-guidelines .lg-table .lg-groups th { top: 0; height: 26px; padding-bottom: 3px; }
+.sde-level-guidelines .lg-table .lg-cols th { top: 26px; height: 28px; padding-bottom: 6px; border-bottom: 1px solid var(--ui-frame); }
+.sde-level-guidelines .lg-table td { border-bottom: 1px solid var(--ui-line); }
+.sde-level-guidelines .lg-table tbody tr:last-child td { border-bottom: 0; }
+
+/* Group boundaries (HP | #, Damage | Typical, Highest | Talent DC) are one straight vertical line through both header rows
+   and every body row: the same border-left on the first cell of each group, in every row. No partial rules under the
+   group names (they started at the HP/# edge and read as a step). */
+.sde-level-guidelines .lg-table tr > :nth-child(4), .sde-level-guidelines .lg-table tr > :nth-child(7), .sde-level-guidelines .lg-table tr > :nth-child(10) { border-left: 1px solid var(--ui-line); }
+.sde-level-guidelines .lg-table .lg-groups > :nth-child(2), .sde-level-guidelines .lg-table .lg-groups > :nth-child(3), .sde-level-guidelines .lg-table .lg-groups > :nth-child(4) { border-left: 1px solid var(--ui-line); }
+.sde-level-guidelines .lg-table .lg-groups > :nth-child(2) { border-left: 1px solid var(--ui-line); }
+/* Token HUD Quick Adjust */
+.sde-quick-adjust.sde-ui .qa-name { font-size: 20px; }
+.sde-quick-adjust .qa-target { align-items: flex-end; }
+.sde-quick-adjust .qa-stepper { flex-wrap: nowrap; gap: 4px; }
+.sde-quick-adjust .qa-footer { flex-wrap: wrap; row-gap: 8px; }
+.sde-quick-adjust .qa-table td, .sde-quick-adjust .qa-table th { vertical-align: top; }
+.sde-quick-adjust .qa-table td:first-child, .sde-quick-adjust .qa-table th:first-child { width: 28px; padding-right: 0; }
+/* The footer has four actions; at the window's own 460 the two that are not Apply or Revert keep their icon and drop the
+   words (the title and aria-label stay), so the footer never wraps or overflows. */
+@container (max-width: 560px) {
+  .sde-quick-adjust.sde-ui .ui-head.qa-head { flex-wrap: nowrap; }
+  .sde-quick-adjust.sde-ui .qa-head .qa-name { font-size: 17px; }
+  .sde-quick-adjust .qa-footer .qa-lbl { display: none; }
+  .sde-quick-adjust .qa-footer { flex-wrap: nowrap; }
+}
+/* Rules data: CSS-only tabs (hidden radios + labels in the .ui-tabs row), tables that become cards on a narrow window,
+   cells that hold an input and a select stacked so neither truncates. Tokens only. */
+.sde-rules-data .rd-art { display: flex; align-items: center; justify-content: center; color: var(--ui-muted); font-size: 22px; }
+.sde-rules-data .rd-tabradio { position: absolute; opacity: 0; pointer-events: none; width: 0; height: 0; }
+.sde-rules-data .rd-tabs .ui-tab { cursor: pointer; }
+.sde-rules-data .rd-panel { display: none; flex-direction: column; gap: 16px; }
+.sde-rules-data .rd-sets { flex-direction: row; flex-wrap: wrap; align-items: flex-end; }
+.sde-rules-data .rd-sets .ui-field { flex: 1 1 220px; }
+.sde-rules-data .rd-setbtns { flex-wrap: wrap; justify-content: flex-end; max-width: 52%; }
+.sde-rules-data .rd-flats { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 16px; align-items: start; }
+.sde-rules-data .rd-name { text-transform: capitalize; white-space: nowrap; font-weight: 600; color: var(--ui-text); }
+.sde-rules-data .rd-val { width: 90px; }
+.sde-rules-data .rd-terrain td:nth-child(3), .sde-rules-data .rd-terrain td:nth-child(4) { width: 90px; }
+.sde-rules-data .rd-terrain td:nth-child(2), .sde-rules-data .rd-terrain td:nth-child(5) { width: 130px; }
+.sde-rules-data .rd-remove { width: 36px; text-align: right; }
+.sde-rules-data .rd-cell { display: none; }
+.sde-rules-data .rd-cellpair { min-width: 150px; }
+.sde-rules-data .rd-cellpair input, .sde-rules-data .rd-cellpair select { margin-bottom: 4px; }
+.sde-rules-data .rd-add .ui-grow { flex: 1 1 160px; }
+@container (max-width: 560px) {
+  .sde-rules-data .rd-setbtns { max-width: none; justify-content: flex-start; }
+  .sde-rules-data .ui-head { flex-wrap: wrap; }
+  .sde-rules-data .rd-table thead { display: none; }
+  .sde-rules-data .rd-table, .sde-rules-data .rd-table tbody { display: block; }
+  .sde-rules-data .rd-table tr { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 10px; padding: 8px 0; border-bottom: 1px solid var(--ui-line); position: relative; }
+  .sde-rules-data .rd-table td { display: block; border: 0; padding: 0; width: auto !important; min-width: 0 !important; }
+  .sde-rules-data .rd-table td:first-child { grid-column: 1 / -1; padding-right: 36px; }
+  .sde-rules-data .rd-cell { display: block; margin-bottom: 2px; }
+  .sde-rules-data .rd-terrain .rd-remove { position: absolute; top: 4px; right: 0; width: auto; }
+  .sde-rules-data .rd-climate tr { grid-template-columns: 1fr; }
+}
+.sde-rules-data .rd-tabradio[value=terrain]:checked ~ .sde-rd-body .rd-p-terrain, .sde-rules-data .rd-tabradio[value=travel]:checked ~ .sde-rd-body .rd-p-travel, .sde-rules-data .rd-tabradio[value=settlements]:checked ~ .sde-rd-body .rd-p-settlements, .sde-rules-data .rd-tabradio[value=climate]:checked ~ .sde-rd-body .rd-p-climate { display: flex; }
+.sde-rules-data .rd-tabradio[value=terrain]:checked ~ .rd-tabs label[for=rd-tab-terrain], .sde-rules-data .rd-tabradio[value=travel]:checked ~ .rd-tabs label[for=rd-tab-travel], .sde-rules-data .rd-tabradio[value=settlements]:checked ~ .rd-tabs label[for=rd-tab-settlements], .sde-rules-data .rd-tabradio[value=climate]:checked ~ .rd-tabs label[for=rd-tab-climate] { color: var(--ui-text); background: var(--ui-panel); border-bottom-color: var(--ui-frame); }
+
+/* Settings group pop-outs */
+.sde-settings-group .form-group { display: grid; grid-template-columns: minmax(0, 1fr) auto; column-gap: 18px; row-gap: 2px; align-items: center; margin: 0; padding: 10px 0; border-top: 1px solid var(--ui-line); }
+.sde-settings-group .ui-card > .form-group:first-child, .sde-settings-group .ui-details-body > .form-group:first-child, .sde-settings-group .sg-hint + .form-group { border-top: 0; }
+.sde-settings-group .form-group > label { grid-column: 1; grid-row: 1; font: 700 13px/1.3 var(--ui-font); color: var(--ui-text); }
+.sde-settings-group .form-group > .hint { grid-column: 1; grid-row: 2; margin: 0; font-size: 12px; color: var(--ui-muted); }
+.sde-settings-group .form-group > .form-fields { grid-column: 2; grid-row: 1 / span 2; display: flex; justify-content: flex-end; align-items: center; gap: 6px; }
+.sde-settings-group .form-fields > input[type=number] { width: 6.5em; }
+.sde-settings-group .form-fields > input[type=text] { width: 16em; }
+.sde-settings-group .form-fields > select { width: auto; min-width: 12em; max-width: 22em; }
+.sde-settings-group .form-fields > range-picker { width: 14em; display: flex; align-items: center; gap: 8px; }
+.sde-settings-group .form-fields > range-picker input[type=range] { flex: 1; accent-color: var(--ui-frame); }
+.sde-settings-group .form-fields > file-picker { display: flex; gap: 4px; width: 18em; }
+.sde-settings-group .sg-mode { margin: 0; padding-top: 6px; }
+.sde-settings-group .sg-legend { display: flex; align-items: center; gap: 8px; padding: 0 6px; font: 400 18px/1.1 var(--ui-title); color: var(--ui-text); }
+.sde-settings-group .sg-hint { margin: 0 0 4px; font-size: 12px; }
+.sde-settings-group .sg-folders { display: flex; flex-direction: column; gap: 6px; grid-column: 1 / -1; margin-top: 6px; }
+.sde-settings-group .sg-folder { display: flex; gap: 6px; align-items: center; }
+.sde-settings-group .sg-folder > file-picker { flex: 1 1 auto; display: flex; }
+.sde-settings-group .sg-folders-group > label, .sde-settings-group .sg-folders-group > .hint { grid-column: 1 / -1; }
+.sde-settings-group .sg-pending { margin: -4px 0 6px; font-size: 11.5px; font-style: italic; }
+.sde-settings-group .sg-details > summary { font-size: 16px; }
+.sde-settings-group fieldset { min-width: 0; }
+@container (max-width: 560px) {
+  .sde-settings-group .form-group { grid-template-columns: minmax(0, 1fr); }
+  .sde-settings-group .form-group > .form-fields { grid-column: 1; grid-row: 3; justify-content: flex-start; margin-top: 4px; }
+  .sde-settings-group .form-fields > input[type=text], .sde-settings-group .form-fields > select, .sde-settings-group .form-fields > range-picker, .sde-settings-group .form-fields > file-picker { width: 100%; }
+}

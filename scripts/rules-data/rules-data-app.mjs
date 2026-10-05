@@ -18,7 +18,7 @@ import { MODULE_ID } from "../shared/module-id.mjs";
 import { esc } from "../shared/esc.mjs";
 import {
   rulesFrom, readReferenceTables, importOverwrites, applyImport, canonicalRegion, partlyRead,
-  rulesSetsFrom, newRulesetId, terrainWords, addTerrain, removeTerrain, TERRAIN_KEYS,
+  rulesSetsFrom, rulesTabs, RULES_TABS, newRulesetId, terrainWords, addTerrain, removeTerrain, TERRAIN_KEYS,
   TERRAIN_TYPES, COSTED_TYPES, ELEVATIONS, SEASONS, HARSH, TRAVEL_METHODS, VISIBILITY_KEYS, SETTLEMENT_KINDS,
 } from "./rules-data-core.mjs";
 import { RULES_SETTING, RULESETS_SETTING, rulesetOf, setSceneRuleset } from "./rules-data-scope.mjs";
@@ -168,7 +168,7 @@ export class RulesDataApp extends HandlebarsApplicationMixin(ApplicationV2) {
   static DEFAULT_OPTIONS = {
     id: "sde-rules-data",
     tag: "form",
-    classes: ["shadowdark", "sde-rules-data"],
+    classes: ["shadowdark", "sde-rules-data", "sde-ui"],
     window: { title: "SDE.rulesData.title", icon: "fa-solid fa-scroll", resizable: true },
     position: { width: 780, height: 760 },
     form: { handler: RulesDataApp._onSubmit, closeOnSubmit: true },
@@ -194,6 +194,9 @@ export class RulesDataApp extends HandlebarsApplicationMixin(ApplicationV2) {
    * being that map.
    */
   _all = null;
+
+  /** The tab showing. Kept here, not in the DOM, so a re-render (adding a terrain, switching ruleset) stays on it. */
+  _tab = RULES_TABS[0].id;
 
   /**
    * The map the window was opened for, when it is a hex map: the only kind a
@@ -258,6 +261,7 @@ export class RulesDataApp extends HandlebarsApplicationMixin(ApplicationV2) {
       rows: keys.map((k) => ({ name: `${table}.${k}`, label: labelOf(k), value: r[table][k] ?? "", placeholder })),
     });
     return {
+      tabs: rulesTabs(this._tab),
       rulesets: rulesets.map((c) => ({ ...c, selected: c.id === a.current })),
       custom: !!a.current,
       canImport: !a.current,   // the GM Guide import fills the Western Reaches' ruleset, the default one
@@ -315,6 +319,9 @@ export class RulesDataApp extends HandlebarsApplicationMixin(ApplicationV2) {
       this._store().current = event.currentTarget.value;
       this.render();
     });
+    for (const radio of this.element.querySelectorAll("input[name='_rdTab']")) {
+      radio.addEventListener("change", () => { if (radio.checked) this._tab = radio.value; });
+    }
     // Enter in the Add terrain box adds; it must not save and close the window.
     this.element.querySelector("input[name='newTerrain']")?.addEventListener("keydown", (event) => {
       if (event.key !== "Enter") return;
