@@ -4277,50 +4277,41 @@ body.theme-light .sde-parry-note { color: #2e6b2e; }
    roll card prints from config.messages. */
 .sde-taunt-card { font-weight: 600; }
 
-/* ── Hex Tagger (scripts/hex-map/hex-tagger-app.mjs) ─────────────────────── */
-.sde-hex-tagger .window-content { display: flex; flex-direction: column; gap: 6px; }
-/* The window is sized by its content (position height "auto"), so an unsampled
-   scene is a header and a line of guidance, not a screenful of black. */
-.sde-hxt { display: flex; flex-direction: column; gap: 6px; min-height: 0; }
-.sde-hxt-head { display: flex; flex-direction: column; gap: 4px; }
-.sde-hxt-title { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; }
-.sde-hxt-stat, .sde-hxt-muted { font-size: 0.78rem; opacity: 0.8; }
-.sde-hxt-actions { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+/* ── Hex Tagger (scripts/hex-map/hex-tagger-app.mjs); kit parts come from styles/sde-ui.css ── */
+/* Tabs are hidden radios (name _hxtTab) plus labels in the .ui-tabs row; the app remembers the chosen one. */
+.hxt-art { display: flex; align-items: center; justify-content: center; color: var(--ui-muted); font-size: 22px; }
+.hxt-tabradio { position: absolute; opacity: 0; pointer-events: none; width: 0; height: 0; }
+.hxt-tabs .ui-tab { cursor: pointer; }
+.hxt-panel { display: none; flex-direction: column; gap: 12px; }
+#hxt-t1:checked ~ .hxt-body .hxt-p1, #hxt-t2:checked ~ .hxt-body .hxt-p2, #hxt-t3:checked ~ .hxt-body .hxt-p3, #hxt-t4:checked ~ .hxt-body .hxt-p4, #hxt-t5:checked ~ .hxt-body .hxt-p5 { display: flex; }
+#hxt-t1:checked ~ .hxt-tabs label[for=hxt-t1], #hxt-t2:checked ~ .hxt-tabs label[for=hxt-t2], #hxt-t3:checked ~ .hxt-tabs label[for=hxt-t3], #hxt-t4:checked ~ .hxt-tabs label[for=hxt-t4], #hxt-t5:checked ~ .hxt-tabs label[for=hxt-t5] { color: var(--ui-text); background: var(--ui-panel); border-bottom-color: var(--ui-frame); }
+/* the radios are invisible, so the focused one's label shows the focus ring */
+#hxt-t1:focus-visible ~ .hxt-tabs label[for=hxt-t1], #hxt-t2:focus-visible ~ .hxt-tabs label[for=hxt-t2], #hxt-t3:focus-visible ~ .hxt-tabs label[for=hxt-t3], #hxt-t4:focus-visible ~ .hxt-tabs label[for=hxt-t4], #hxt-t5:focus-visible ~ .hxt-tabs label[for=hxt-t5] { outline: 2px solid var(--ui-info); outline-offset: 1px; }
+.hxt-sheet { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 10px; }
+.hxt-wide { grid-column: 1 / -1; }
+.hxt-thumb { width: 72px; height: 72px; object-fit: contain; flex: 0 0 auto; border-radius: var(--ui-r); background: var(--ui-raised); border: 1px solid var(--ui-line); }
+.hxt .hxt-cellhead { gap: 2px; min-width: 0; }
+.hxt-fig { margin: 0; display: flex; flex-direction: column; align-items: center; gap: 2px; cursor: pointer; }
+.hxt-auto { width: auto !important; }
+.hxt-settings { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; }
+.hxt .hxt-body > .hxt-panel .ui-note i { margin-right: 4px; color: var(--ui-muted); }
+.hxt .ui-status { min-height: 26px; }
+.hxt-panel p { margin: 0; }
+.hxt-panel .ui-note { padding: 6px 12px; }
+@container (max-width: 560px) {
+  .hxt-tabs { padding-inline: 6px; }
+  .hxt-tabs .ui-tab { padding: 6px 8px; font-size: 14px; gap: 0; }
+  .hxt-tabs .ui-tab i { display: none; }
+}
+/* the footer is the Sheet tab's: Confirm and Show me others mean nothing on another tab */
+.hxt .hxt-foot { display: none; }
+#hxt-t1:checked ~ .hxt-foot { display: flex; }
+.hxt .hxt-body { max-height: 62vh; }
 /* Make this map playable's checklist (#257). */
 .sde-hxt-checklist { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
 .sde-hxt-check i { width: 1.2em; color: var(--sde-bar-miss, #60b050); }
 .sde-hxt-check.sde-hxt-missing i { color: var(--sde-bar-hit, #e05050); }
 .sde-hxt-check .hint { margin-left: 1.6em; }
-.sde-hxt-actions label { display: inline-flex; gap: 4px; align-items: center; font-size: 0.85rem; }
-.sde-hxt-note { margin: 0; font-size: 0.85rem; }
-.sde-hxt-error { margin: 0; padding: 6px 8px; border-left: 3px solid #e08a8a; font-size: 0.85rem; }
-.sde-hxt-small { width: 4.2rem; }
-.sde-hxt-inline { padding: 1px 8px; font-size: 0.8rem; }
-/* Grows with the sheet, but a full sheet must not make a window taller than the screen. */
-.sde-hxt-sheet:empty { display: none; }
-.sde-hxt-sheet { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; overflow: auto; min-height: 0; max-height: 58vh; padding: 2px; }
-.sde-hxt-cell { display: flex; flex-direction: column; gap: 4px; padding: 4px; border: 1px solid rgba(128, 128, 128, 0.35); border-radius: 4px; }
-.sde-hxt-cell.keyed { border-color: #d3af63; }
-.sde-hxt-cell img { width: 96px; height: 96px; align-self: center; border: 1px solid rgba(0, 0, 0, 0.4); background: #fff; }
-.sde-hxt-legend { grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); }
-.sde-hxt-thumbs { display: flex; flex-wrap: wrap; gap: 2px; justify-content: center; }
-.sde-hxt-cell .sde-hxt-thumbs img { width: 72px; height: 72px; }
-.sde-hxt-thumb { flex: 0 0 72px; width: 72px; margin: 0; display: flex; flex-direction: column; align-items: center; gap: 1px; cursor: pointer; }
-.sde-hxt-thumb figcaption { font-size: 0.7rem; line-height: 1; font-variant-numeric: tabular-nums; opacity: 0.85; }
-.sde-hxt-thumb:hover img, .sde-hxt-pick img[data-action]:hover { outline: 2px solid #d3af63; }
-.sde-hxt-pick img[data-action] { cursor: pointer; }
-.sde-hxt-palette { border: 1px solid rgba(128, 128, 128, 0.35); border-radius: 4px; padding: 4px 8px; margin: 4px 0; }
-.sde-hxt-palette summary { cursor: pointer; }
-.sde-hxt-palette-terms { display: flex; flex-wrap: wrap; gap: 2px 14px; margin: 4px 0; }
-.sde-hxt-palette-terms label { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; }
-.sde-hxt-palette-own { display: flex; gap: 6px; align-items: center; }
-.sde-hxt-fields { display: flex; flex-direction: column; gap: 3px; font-size: 0.8rem; }
-.sde-hxt-label { font-weight: bold; }
-.sde-hxt-num { width: 5rem; }
-.sde-hxt-features { display: flex; gap: 6px; flex-wrap: wrap; }
-.sde-hxt-features label { display: inline-flex; gap: 2px; align-items: center; }
-.sde-hxt-foot { display: flex; gap: 6px; justify-content: flex-end; align-items: center; }
-.sde-hxt-foot .sde-hxt-muted { margin-right: auto; }
 
 /* ── Hex map from image: the confirmation window (scripts/hex-map/hex-map-flow.mjs) ── */
 .sde-hexmap-dialog .window-content { display: flex; flex-direction: column; }
@@ -4339,66 +4330,30 @@ body.theme-light .sde-parry-note { color: #2e6b2e; }
 .sde-hexmap-side input[type="number"] { width: 5rem; }
 .sde-hexmap-side input[name="firstNum"] { width: 6rem; }
 .sde-hexmap-side .sde-hexmap-warn { padding: 6px 8px; border-left: 3px solid #e08a8a; }
-/* "More" sits in the normal flow and the window grows for it. It was an
-   absolutely positioned popover, which the window's content box simply clipped:
-   the window is only as tall as its content, so a panel hanging below the
-   button had nothing to hang into. Nothing positioned, nothing to clip. */
-.sde-hxt-more-btn[aria-expanded="true"], .sde-hxt-more-btn.sde-hxt-more-on { border-color: #d3af63; }
-.sde-hxt-more-panel {
-  display: flex; flex-direction: column; gap: 6px;
-  margin-top: 4px; padding: 8px;
-  border: 1px solid rgba(128, 128, 128, 0.5); border-radius: 4px;
-  background: rgba(0, 0, 0, 0.25);
-}
-.sde-hxt-more-row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
-.sde-hxt-more-row label { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; font-size: 0.85rem; }
-.sde-hxt-more-panel .sde-hxt-muted { margin: 0; }
-.sde-hxt-direction { border-left: 3px solid #d3af63; padding: 6px 8px; }
-/* One line of facts, not a paragraph: keep it compact and out of the way. */
-.sde-hxt-facts { border-left: 3px solid #d3af63; padding: 3px 8px; margin: 2px 0; font-size: 0.9em; line-height: 1.35; }
-/* The hex brush: a small window that stays open over the map while painting. The big picture is the terrain
-   being painted; below it, one tile per terrain the map's Legend named. A tile is a picture of one of the map's
-   own hexes, or (before the map has been read) a coloured circle with an icon. */
-.sde-hex-brush .sde-hxb { display: flex; flex-direction: column; gap: 14px; padding: 12px 14px 14px; }
-.sde-hex-brush .sde-hxb-how { margin: 0; color: #a8a8a8; font-size: 13px; line-height: 1.4; }
-.sde-hex-brush .sde-hxb h4 { margin: 0 0 8px; font: 700 11px/1 Signika, sans-serif; letter-spacing: 0.6px; text-transform: uppercase; color: #888; }
-.sde-hex-brush .sde-hxb button { min-height: 0; }
-.sde-hex-brush .sde-hxb .hex { display: grid; place-items: center; }
-.sde-hex-brush .sde-hxb .hex img { width: 100%; height: auto; display: block; filter: drop-shadow(0 2px 3px #000a); }
-.sde-hex-brush .sde-hxb .ico { display: grid; place-items: center; width: 78%; aspect-ratio: 1; border-radius: 50%; background: var(--c); box-shadow: inset 0 -4px 8px #0004, 0 2px 5px #000a; }
-.sde-hex-brush .sde-hxb .ico i { font-size: 1.4em; color: #fff; text-shadow: 0 1px 2px #0009; }
-.sde-hex-brush .sde-hxb-now { display: flex; align-items: center; justify-content: center; gap: 14px; padding: 10px 0 8px; border: 1px solid #262626; border-radius: 10px; background: radial-gradient(ellipse at 50% 40%, #1c1c1c, #101010); }
-.sde-hex-brush .sde-hxb-now .big { display: flex; flex-direction: column; align-items: center; gap: 6px; width: 132px; }
-.sde-hex-brush .sde-hxb-now .big .hex { width: 118px; }
-.sde-hex-brush .sde-hxb-now .big .ico i { font-size: 30px; }
-.sde-hex-brush .sde-hxb-now .big strong { font: 400 19px/1 "Old Newspaper Font", serif; color: #f2d77a; text-transform: capitalize; }
-.sde-hex-brush .sde-hxb-now .step { width: 32px; height: 44px; padding: 0; border: 1px solid #333; border-radius: 8px; background: #161616; color: #cfcfcf; cursor: pointer; }
-.sde-hex-brush .sde-hxb-now .step:hover { border-color: #e6c25a; color: #e6c25a; }
-.sde-hex-brush .sde-hxb-strip { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
-.sde-hex-brush .sde-hxb-strip .t { height: auto; min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 6px 2px; border: 1px solid transparent; border-radius: 8px; background: transparent; cursor: pointer; }
-.sde-hex-brush .sde-hxb-strip .t .hex { width: 54px; }
-.sde-hex-brush .sde-hxb-strip .t .ico i { font-size: 15px; }
-.sde-hex-brush .sde-hxb-strip .t .n { max-width: 100%; overflow: hidden; text-overflow: ellipsis; font-size: 11px; color: #bdbdbd; line-height: 1; white-space: nowrap; text-transform: capitalize; }
-.sde-hex-brush .sde-hxb-strip .t:hover { background: #171717; }
-.sde-hex-brush .sde-hxb-strip .t:focus-visible { outline: 2px solid #e6c25a; outline-offset: -2px; }
-.sde-hex-brush .sde-hxb-strip .t.on { border-color: #e6c25a; background: rgba(230, 194, 90, 0.12); }
-.sde-hex-brush .sde-hxb-strip .t.on .n { color: #f2d77a; font-weight: 700; }
-.sde-hex-brush .sde-hxb-other { width: 100%; margin-top: 8px; }
-.sde-hex-brush .sde-hxb-feats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
-.sde-hex-brush .sde-hxb-feats .f { position: relative; display: flex; align-items: center; justify-content: center; gap: 6px; height: 32px; margin: 0; border: 1px solid #2e2e2e; border-radius: 8px; background: #141414; color: #d6d6d6; font-size: 12px; cursor: pointer; }
-.sde-hex-brush .sde-hxb-feats input { position: absolute; opacity: 0; pointer-events: none; }
-.sde-hex-brush .sde-hxb-feats .f i { font-size: 12px; color: #8fb4d9; }
-.sde-hex-brush .sde-hxb-feats .f:has(input:checked) { border-color: #e6c25a; background: rgba(230, 194, 90, 0.12); color: #f2d77a; }
-.sde-hex-brush .sde-hxb-feats .f:has(input:focus-visible) { outline: 2px solid #e6c25a; outline-offset: -2px; }
-.sde-hex-brush .sde-hxb-foot { display: flex; justify-content: flex-end; padding-top: 12px; border-top: 1px solid #262626; }
-.sde-hex-brush .sde-hxb-foot button { height: 30px; padding: 0 12px; }
+/* The hex brush: a small window that stays open over the map while painting (kit parts come from styles/sde-ui.css).
+   The big picture is the terrain being painted; below it, one tile per terrain the map's Legend named. A tile is a
+   picture of one of the map's own hexes, or (before the map has been read) a coloured circle with an icon (--c). */
+.hxb .hex { display: grid; place-items: center; }
+.hxb .hex img { width: 100%; height: auto; display: block; }
+.hxb .ico { display: grid; place-items: center; width: 78%; aspect-ratio: 1; border-radius: 50%; background: var(--c); border: 1px solid var(--ui-line); }
+.hxb .ico i { font-size: 1.4em; color: #fff; }
+.hxb .hxb-now { flex-direction: row; align-items: center; justify-content: center; gap: 14px; }
+.hxb-now .big { display: flex; flex-direction: column; align-items: center; gap: 6px; width: 132px; }
+.hxb-now .big .hex { width: 104px; }
+.hxb-now .big .ico i { font-size: 28px; }
+.hxb-now .big strong { flex: 0 0 auto; text-align: center; text-transform: capitalize; font: 400 20px/1.1 var(--ui-title); }
+.hxb-now .step { height: 44px; width: 32px; padding: 0; }
+.hxb-strip { display: grid; grid-template-columns: repeat(auto-fill, minmax(68px, 1fr)); gap: 6px; }
+.hxb-strip .t { height: auto; min-height: 0; display: flex; flex-direction: column; align-items: center; gap: 4px; min-width: 0; padding: 6px 2px; border: 1px solid transparent; border-radius: var(--ui-r2); background: transparent; color: var(--ui-body); cursor: pointer; }
+.hxb-strip .t .hex { width: 46px; }
+.hxb-strip .t .ico i { font-size: 15px; }
+.hxb-strip .t .n { max-width: 100%; overflow: hidden; text-overflow: ellipsis; font-size: 11px; line-height: 1.1; white-space: nowrap; text-transform: capitalize; color: var(--ui-muted); }
+.hxb-strip .t:hover { background: var(--ui-raised); }
+.hxb-strip .t.on { border-color: var(--ui-frame); background: var(--ui-raised); }
+.hxb-strip .t.on .n { color: var(--ui-text); font-weight: 700; }
+.hxb .ui-chip.f i { color: var(--ui-info); }
+.hxb .sde-hxb-other { margin-top: 8px; }
 
-/* Hex Tagger: a legend card opened up, one answer per hex. */
-.sde-hxt-opened { grid-column: 1 / -1; }
-.sde-hxt-picks { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 6px; margin-top: 4px; }
-.sde-hxt-pick { display: flex; flex-direction: column; gap: 2px; align-items: stretch; }
-.sde-hxt-pick img { align-self: center; background: #fff; border-radius: 3px; }
-.sde-hxt-pick select, .sde-hxt-pick input { width: 100%; font-size: 11px; }
 
 /* Hex map: what the grid confirmation can and cannot change. */
 .sde-hexmap-scope { border-left: 3px solid var(--color-border-highlight, #a88); padding-left: 8px; }
@@ -6000,3 +5955,10 @@ button.sde-hud-day:hover { border-color: var(--sd-frame); }
   .sde-ui.sde-bastion-shop .ui-head-text { flex: 1 1 55%; }
   .sde-ui.sde-bastion-shop .ui-head .ui-stats { flex-wrap: wrap; }
 }
+/* Hexplorer window (kit parts come from styles/sde-ui.css). */
+.sde-hex-explorer .hx-art { display: flex; align-items: center; justify-content: center; color: var(--ui-muted); font-size: 22px; }
+.sde-hex-explorer .hx-flags { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; }
+.sde-hex-explorer .hx-line { display: contents; }
+.sde-hex-explorer .hx-pair { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 2fr); gap: 8px; }
+.sde-hex-explorer .ui-card .ui-chip.ui-check { white-space: normal; min-height: 28px; }
+.sde-hex-explorer .sde-hex-explorer-body .ui-card > .ui-h { margin-bottom: 0; }

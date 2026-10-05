@@ -24,6 +24,6 @@ const build = (state) => {
   };
 };
 export default {
-  previewHeight: 560, title: "SDE.hexMap.brush.title", icon: "fa-solid fa-paintbrush", classes: ["shadowdark", "sde-hex-brush"],
+  previewHeight: 560, title: "SDE.hexMap.brush.title", icon: "fa-solid fa-paintbrush", classes: ["shadowdark", "sde-hex-brush", "sde-ui"],
   width: 330, template: "templates/hex-brush.hbs", initial: "forest", build, actions: { pick: { state: "{state}" } },
 };

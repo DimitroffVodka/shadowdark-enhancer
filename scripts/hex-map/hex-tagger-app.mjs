@@ -32,6 +32,7 @@ import { scanRegions, encodeRegions, decodeRegions, decodeRegionFixes, REGIONS_F
 import { regionSeeds, nameComponents } from "./hex-region.mjs";
 import { TERRAIN_TAGS, SETTLEMENTS, rowTag } from "../importer/hex/hex-summary.mjs";
 import { HEX_FLAG } from "../importer/hex/hex-commit.mjs";
+import { resolveTab } from "./hex-tagger-tabs.mjs";
 import { datasetFromEntries, handoffDataset, handoffToPrint, extrasHexApi } from "../importer/hex/hex-handoff.mjs";
 import { buildHexDataset, validateHexDataset, hexNum, assignmentsFromManifest } from "../importer/hex/hex-dataset.mjs";
 import { A0_PRINT, A0_TOTAL, isA0, a0Origin, copyTags, copiedTerrain, copySource, regionSource, playablePlan } from "./a0-print.mjs";
@@ -290,7 +291,7 @@ async function showPlayableChecklist(scene, f) {
 export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
   static DEFAULT_OPTIONS = {
     id: "sde-hex-tagger",
-    classes: ["shadowdark", "sde-hex-tagger"],
+    classes: ["shadowdark", "sde-hex-tagger", "sde-ui"],
     window: { title: "SDE.hexMap.app.title", icon: "fa-solid fa-map-location-dot", resizable: true },
     // Height follows the content: an unsampled scene is a few lines, a sheet is
     // a sheet. A fixed 780 opened every scene as a mostly empty black box.
@@ -314,7 +315,6 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
       hxtShowTags:     function (...a) { return this._onShowTags(...a); },
       hxtUseMargin:    function (...a) { return this._onUseMargin(...a); },
       hxtBrush:        function (...a) { return this._onBrush(...a); },
-      hxtMore:         function (...a) { return this._onMore(...a); },
       hxtLearnFrom:    function (...a) { return this._onLearnFrom(...a); },
       hxtApplyLegend:  function (...a) { return this._onApplyLegend(...a); },
       hxtCancelLegend: function () { this._legend = null; this.render(); },
@@ -325,7 +325,7 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
   };
 
   static PARTS = {
-    body: { template: `modules/${MODULE_ID}/templates/hex-tagger.hbs`, scrollable: [".sde-hxt-sheet"] },
+    body: { template: `modules/${MODULE_ID}/templates/hex-tagger.hbs`, scrollable: [".hxt-body"] },
   };
 
   /**
@@ -521,6 +521,8 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const own = this.element.querySelector("input[data-hxt-palette-own]");
     own?.addEventListener("keydown", (ev) => { if (ev.key === "Enter") { ev.preventDefault(); this._onAddTerrain(); } });
     this.element.querySelector("details[data-hxt-palette-box]")?.addEventListener("toggle", (ev) => { this._paletteOpen = ev.currentTarget.open; });
+    // The tabs are hidden radios (no script switches them), so the choice is written down here and put back by _prepareContext.
+    for (const radio of this.element.querySelectorAll("input[name='_hxtTab']")) radio.addEventListener("change", () => { if (radio.checked) this._tab = radio.dataset.hxtTab; });
     if (!this._autoLegend) return;
     this._autoLegend = false;
     this._onSample()
@@ -785,22 +787,6 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
     this._sheet = nextSheet(this._state, { nums: [...this._numbered.keys()], size: SHEET_SIZE, mode: "review", reviewMargin: margin });
     ui.notifications?.info(t("SDE.hexMap.notify.marginSet", { margin: margin.toFixed(2) }));
     this.render();
-  }
-
-  /**
-   * More: the rarely used half, in the normal flow under the header. A floating
-   * panel was clipped by the window's content box — the window is only as tall
-   * as its content, so there is nothing below the button to hang into. Toggling
-   * it re-measures the window instead of re-rendering the whole sheet.
-   */
-  _onMore(event, target) {
-    const panel = this.element.querySelector(".sde-hxt-more-panel");
-    if (!panel) return;
-    this._moreOpen = panel.hidden;
-    panel.hidden = !panel.hidden;
-    target?.setAttribute("aria-expanded", String(this._moreOpen));
-    target?.classList.toggle("sde-hxt-more-on", this._moreOpen);
-    this.setPosition({ height: "auto" });
   }
 
   /**
@@ -1109,17 +1095,23 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
     // old header: "so cluttered and I honestly have no clue what it is trying
     // to do" — six primary buttons, five of which could not act yet.
     const done = total > 0 && summary.untagged === 0;
+    // A legend or a sheet shows on the Sheet tab, so it takes the window there when it first appears (the buttons that
+    // start one live on Map and Data); every other re-render keeps the tab the GM picked.
+    const working = !!legend || sheet.length > 0;
+    if (working && !this._working) this._tab = "sheet";
+    this._working = working;
+    const tab = resolveTab(this._tab, { origin: !!origin, showMore: sampled || !!origin });
     const tf = backgroundTransform(canvas);
     const a0 = isA0(tf?.texW, tf?.texH);
     const primary = done ? "build" : (a0 && !origin ? "playable" : (sampled && origin ? "legend" : "sample"));
     return {
-      legend, hasLegend: !!legend, a0,
+      legend, hasLegend: !!legend, a0, tab,
       // Which terrains the map has: ticked once, then every dropdown offers only those. Open until it is
       // first set, because that is the first thing to say about a map.
       palette: { terms: paletteTerms, set: !!state.palette?.length, open: this._paletteOpen ?? !state.palette?.length },
       primarySample: primary === "sample", primaryLegend: primary === "legend", primaryBuild: primary === "build",
       primaryPlayable: primary === "playable",
-      showMore: sampled || !!origin, moreOpen: !!this._moreOpen,
+      showMore: sampled || !!origin,
       // A control appears when it can do something and not before. Patrick, on
       // a scene with nothing tagged yet: "Half this shit I don't even know what
       // it does." Most of it could not have done anything for him at that point.
