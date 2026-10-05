@@ -9,6 +9,10 @@
   redesign. No window uses it yet, so nothing looks different.
 
 ### Changed
+- **Downtime's icon-only buttons are labelled for screen readers, and the Session Recap tabs wrap on narrow windows** instead of scrolling the last tab out of view.
+- **Quest Log window uses the new design.** The filters sit in the header, one tab per status with a count, then the list and the chosen quest side by side, and the payout confirmation is styled to match in both the log and the Party sheet's Quests tab. Every action is unchanged.
+- **Session Recap window uses the new design.** One header with the session name and its numbers on every tab, five tabs, and History moved to a button in the footer. Tables scroll sideways inside their own frame at narrow widths. Every action is unchanged.
+- **Downtime window uses the new design.** One header with the pickers and purse, one status card, one accordion per activity (the first open, and your open or closed choice now survives a refresh), book notices folded into one section, and the session buttons in a footer. Every action and rule is unchanged.
 - **The Party sheet's Luck and Light marks no longer show the kit's link underline.**
 - **Camping and Carousing inside the Party sheet are tidier.** The ration count next to the ham hock now shows what each character still carries after the night is saved, instead of 0; the party name no longer repeats as a title under the sheet header; and the unused gap rule on both bodies is gone.
 - **The Luck and Light marks on the Party sheet's member cards now work.** Click Luck to spend a luck token and Light to light or snuff the character's torch, the same as on the crawl strip. Only the character's owner or a GM can; anyone else gets a short refusal.

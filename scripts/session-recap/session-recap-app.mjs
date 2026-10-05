@@ -24,7 +24,7 @@ const L = (key, data) => (data ? game.i18n.format(key, data) : game.i18n.localiz
 export class SessionRecapApp extends HandlebarsApplicationMixin(ApplicationV2) {
   static DEFAULT_OPTIONS = {
     id: "shadowdark-enhancer-session-recap",
-    classes: ["shadowdark-enhancer", "sde-session-recap"],
+    classes: ["shadowdark-enhancer", "sde-session-recap", "sde-ui"],
     tag: "div",
     window: { title: "SDE.sessionRecap.title", icon: "fas fa-scroll", resizable: true },
     position: { width: 660, height: 560 },
@@ -42,7 +42,7 @@ export class SessionRecapApp extends HandlebarsApplicationMixin(ApplicationV2) {
   static PARTS = {
     body: {
       template: "modules/shadowdark-enhancer/templates/session-recap.hbs",
-      scrollable: [".sr-tab-content"],
+      scrollable: [".ui-body"],
     },
   };
 
