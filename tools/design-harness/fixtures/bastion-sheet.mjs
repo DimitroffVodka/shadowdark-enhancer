@@ -43,7 +43,7 @@ const build = (s) => {
   };
 };
 export default {
-  previewHeight: 800, title: "Ashdown Keep", icon: "fa-solid fa-chess-rook", classes: ["shadowdark", "sheet", "shadowdark-enhancer", "sde-bastion-sheet"],
+  previewHeight: 800, title: "Ashdown Keep", icon: "fa-solid fa-chess-rook", classes: ["shadowdark", "sheet", "shadowdark-enhancer", "sde-ui", "sde-parchment", "sde-bastion-sheet"],
   width: 980, height: 760, resizable: true, template: "templates/actors/bastion-sheet.hbs", initial: "overview", build,
   actions: { changeTab: { state: "{tab}.{1}.{2}" }, setView: { state: "{0}.{view}.{2}" }, toggleRoofs: { state: "{0}.{1}.{2|}" } },
 };

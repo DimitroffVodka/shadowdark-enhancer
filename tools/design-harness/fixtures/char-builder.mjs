@@ -66,15 +66,17 @@ const preview = () => ({ name: "Brenna Ashdown the Younger", ancestry: "Dwarf", 
   spells: [{ name: "Burning Hands", tier: 1 }, { name: "Alarm", tier: 1 }, { name: "Acid Arrow", tier: 2 }], gear: [["Backpack", 1], ["Torch", 4], ["Rations", 3], ["Rope, 60'", 1]].map(([name, qty]) => ({ name, qty })), kept: null,
   art: { portrait: "x", token: null, portraitSrc: "/icons/svg/mystery-man.svg", tokenSrc: "/icons/svg/mystery-man.svg", portraitIsSuggested: true, canSuggest: true, canPickFiles: true, canGallery: true, any: true, lightOnly: false }, ready: false, missing: ["Hit Points", "Gear"] });
 
+// The one-line summary each step prepareContext returns for the heading.
+const SUMMARY = { stats: "Method: Roll 3d6 in order", ancestry: "Dwarf", origins: "Lawful", class: "Wizard", hp: "9 hit points", gear: "Remaining: 12 gp 5 sp", preview: "Brenna Ashdown the Younger" };
 const build = (state) => {
   const [id, mode] = (state ?? "class").split(".");
   const ctx = { stats, ancestry, origins, class: klass, hp, gear, preview }[id](mode);
-  return { template: flatFor(id), context: { steps: STEPS.map(([sid, label], i) => ({ id: sid, label: say(label), icon: "", active: sid === id, complete: i % 2 === 0 && sid !== id, index: i, num: i + 1 })), stepId: id, step: ctx,
+  return { template: flatFor(id), context: { steps: STEPS.map(([sid, label], i) => ({ id: sid, label: say(label), icon: "", active: sid === id, complete: i % 2 === 0 && sid !== id, index: i, num: i + 1 })), stepId: id, step: { summary: SUMMARY[id], ...ctx },
     nav: { canPrev: id !== "stats", isLast: id === "preview", supportsRandom: true, showFullRandom: id === "stats", allComplete: false, existing: false, finishing: false, canUndo: false, levelUpOffer: null, levelUpActive: null, level: { value: 3, options: Array.from({ length: 10 }, (_, i) => ({ value: i + 1, selected: i === 2 })) } } },
     toolbar: `<span>Step:</span>${STEPS.map(([sid]) => `<button data-action="cbGoto" data-step="${sid}">${sid}</button>`).join("")}<button data-action="cbGoto" data-step="stats.pointbuy">pointbuy</button>` };
 };
 export default {
-  previewHeight: 800, title: "SDE.charBuilder.title", icon: "fa-solid fa-user-plus", classes: ["shadowdark", "sde-char-builder"],
+  previewHeight: 800, title: "SDE.charBuilder.title", icon: "fa-solid fa-user-plus", classes: ["shadowdark", "sde-ui", "sde-char-builder"],
   width: 1040, height: 780, resizable: true, template: flatFor("class"), initial: "class", build,
   actions: { "cb-goto": { state: "{step}" }, cbGoto: { state: "{step}" } },
 };

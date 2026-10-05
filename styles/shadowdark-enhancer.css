@@ -7960,6 +7960,10 @@ body.theme-light .sde-strip-combat-controls { background: #f4f1ec !important; }
 }
 .sde-vehicle-sheet button.sde-veh-btn:hover { background: rgba(0, 0, 0, 0.12); }
 
+/* Boat header: the name never gives up width to the stats (at the default 600 it was cut); the stats wrap instead. */
+.sde-boat-ui .ui-head-text { min-width: 170px; }
+.sde-boat-ui .ui-stats { flex: 0 1 auto; }
+
 /* Section boxes: breathing room around the system .SD-box chrome. */
 .sde-vehicle-sheet .SD-box { margin: 6px 8px; }
 

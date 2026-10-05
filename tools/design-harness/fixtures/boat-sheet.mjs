@@ -1,18 +1,6 @@
 // The Boat sheet (ApplicationV2 at runtime) at its busiest: a war galley with captain, gunners, crew, siege weapons,
-// cargo, a crew shortage and a sinking countdown. The sheet's tabs pull in a partial the module registers at runtime
-// ("sdeVehicleBody"); the harness does not, so the fixture splices vehicle-tabs.hbs into a scratch copy of the template.
+// cargo, a crew shortage and a sinking countdown.
 //   state: <tab> = overview | occupants | inventory | weapons | description
-import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
-import path from "node:path";
-import { fileURLToPath } from "node:url";
-
-const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../..");
-const SCRATCH = "/tmp/claude-1000/-home-patricks-git-shadowdark-enhancer/d0efba86-ed4a-4173-b027-7af1159d99a1/scratchpad/tpl";
-mkdirSync(SCRATCH, { recursive: true });
-const boat = readFileSync(path.join(ROOT, "templates/actors/boat-sheet.hbs"), "utf8");
-const tabs = readFileSync(path.join(ROOT, "templates/partials/vehicle-tabs.hbs"), "utf8");
-const flat = path.join(SCRATCH, "boat-sheet-flat.hbs");
-writeFileSync(flat, boat.replace("{{> sdeVehicleBody}}", tabs));
 
 const TABS = ["overview", "occupants", "inventory", "weapons", "description"];
 const person = (name, sub, role, hp, ac, lvl, a) => ({ uuid: "Actor." + name, id: name, name, img: "/icons/svg/mystery-man.svg", role, isCaptain: role === "captain", isGunner: role === "gunner", isCrew: role === "crew", isNPC: false, subtitle: sub, hp: { value: hp, max: hp }, ac, level: lvl, abilities: a });
@@ -36,7 +24,7 @@ const build = (state) => {
   };
 };
 export default {
-  previewHeight: 760, title: "The Sea Wanderer", icon: "fa-solid fa-sailboat", classes: ["shadowdark", "sheet", "shadowdark-enhancer", "sde-vehicle-sheet", "sde-boat-sheet"],
-  width: 600, height: 720, resizable: true, template: path.relative(ROOT, flat), initial: "overview", build,
+  previewHeight: 760, title: "The Sea Wanderer", icon: "fa-solid fa-sailboat", classes: ["shadowdark", "sheet", "shadowdark-enhancer", "sde-ui", "sde-parchment", "sde-vehicle-sheet", "sde-boat-sheet"],
+  width: 600, height: 720, resizable: true, template: "templates/actors/boat-sheet.hbs", initial: "overview", build,
   actions: { changeTab: { state: "{tab}" } },
 };

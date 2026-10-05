@@ -1,7 +1,7 @@
 # Shadowdark Enhancer — File Inventory
 
 <!-- inventory:stats:start -->
-1717 tracked files · ~222,900 lines of code/markup across scripts+templates+styles+test.
+1716 tracked files · ~222,700 lines of code/markup across scripts+templates+styles+test.
 `v0.17.3` in both `module.json` and `package.json`.
 <!-- inventory:stats:end -->
 **Layout reflects the 2026-07-21 feature-folder reorganization (v0.11.0 cycle).**
@@ -46,7 +46,7 @@
 
 | File | Lines | Description |
 |---|---:|---|
-| `shadowdark-enhancer.mjs` | 1365 | **Entry point** (module.json esmodules). Registers hooks, settings, sheets, actor sub-types, the public `game.shadowdarkEnhancer` API, and wires every sub-system. |
+| `shadowdark-enhancer.mjs` | 1359 | **Entry point** (module.json esmodules). Registers hooks, settings, sheets, actor sub-types, the public `game.shadowdarkEnhancer` API, and wires every sub-system. |
 | `luck-reroll/luck-reroll.mjs` | 172 | Wraps the system's `_onReroll` to enforce nat-1 prevention and log Luck rerolls to the session recap. |
 | `spell-mishap/spell-mishap.mjs` | 271 | Nat-1 spellcasting failures auto-roll the class's mishap table (wizard / witch / necromancer sets); divine casters are exempt. |
 | `scavenger/scavenger-core.mjs` | 171 | Pure Delver Scavenger rules: the 5-6 success range and Master Scavenger's widening (floored at 3-6), what counts as expending a consumable's last use (a 1→0 decrement or a delete at quantity 1 — never a stack deleted whole), and which single client rolls. |
@@ -590,7 +590,7 @@ A place the party owns: the four types and twenty upgrades, built a week at a ti
 - `templates/char-builder/` — shell, gear-editor, `partials/list.hbs`, 11 step bodies.
 - `templates/actors/` — `boat-sheet.hbs`, `mount-npc.hbs`.
 - `templates/chat/` — encounter-check, encounter-flavor, encounter-result, loot-card.
-- `templates/partials/` — `census.hbs`, `tree-node.hbs`, `vehicle-tabs.hbs`.
+- `templates/partials/` — `census.hbs`, `tree-node.hbs`.
 
 ## 5. `styles/`
 
