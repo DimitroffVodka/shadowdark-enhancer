@@ -83,6 +83,7 @@
   "SDE.party.roll.fail": "Fail",
   "SDE.party.roll.result": "{name}: {total} against DC {dc}, {outcome}",
   "SDE.party.roll.resultNoTotal": "{name}: DC {dc}, {outcome}",
+  "SDE.party.roll.already": "That character has already rolled on this card.",
   "SDE.party.roll.notOwner": "Only this character's owner can roll for them.",
   "SDE.party.roll.noCheck": "This character cannot make an ability check.",
   "SDE.party.award.xp": "XP",

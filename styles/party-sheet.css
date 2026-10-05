@@ -514,6 +514,11 @@
 .sde-party-roll .sde-party-roll-go { display: inline-flex; align-items: center; gap: 6px; min-height: 24px; padding: 2px 10px; border: 1px solid #c9c9c9; border-radius: 3px; background: #f0f0f0; color: #111; font-weight: 700; text-decoration: none; cursor: pointer; }
 .sde-party-roll .sde-party-roll-go:hover { background: #fff; }
 .sde-party-roll .sde-party-roll-go.busy { opacity: .5; pointer-events: none; }
+.sde-party-roll .sde-party-roll-go.rolled { cursor: default; font-weight: 600; }
+.sde-party-roll .sde-party-roll-go.rolled:hover { background: #f0f0f0; }
+.sde-party-roll .sde-party-roll-go.pass, .sde-party-roll .sde-party-roll-go.pass:hover { border-color: #2f7a42; background: #2f7a42; color: #fff; }
+.sde-party-roll .sde-party-roll-go.fail, .sde-party-roll .sde-party-roll-go.fail:hover { border-color: #9d2a3a; background: #9d2a3a; color: #fff; }
+.sde-party-roll .sde-party-roll-total { margin-left: 2px; }
 
 /* ---- Downtime and Warbands tabs ---- */
 /* downtime */

@@ -1,7 +1,7 @@
 # Shadowdark Enhancer — File Inventory
 
 <!-- inventory:stats:start -->
-1725 tracked files · ~215,000 lines of code/markup across scripts+templates+styles+test.
+1725 tracked files · ~215,100 lines of code/markup across scripts+templates+styles+test.
 `v0.17.3` in both `module.json` and `package.json`.
 <!-- inventory:stats:end -->
 **Layout reflects the 2026-07-21 feature-folder reorganization (v0.11.0 cycle).**
@@ -125,8 +125,8 @@
 | `party/party-light.mjs` | 49 | Runtime-only dungeon Party light mirror without duplicated fuel items; hex lights and stored vision unchanged. |
 | `party/party-movement-core.mjs` | 128 | Fixed formation fill, follow ordering, heading turns, and the wall tests: centre-line placement and a breadth-first route round walls. |
 | `party/party-movement.mjs` | 192 | Authenticated Party-owner gather/deploy relay, linked token configuration preservation and native marching: followers keep the formation, turned to the leader's heading, and never pause. |
-| `party/party-roll.mjs` | 60 | Request roll from the Party sheet's GM bar: posts one chat card with a Roll link per character asked; the owner's click runs the system's ability check against the DC and posts pass or fail. |
-| `party/party-sheet-core.mjs` | 456 | Pure Party sheet decisions: the tab row and view flags (GM vs player), the Marching order status line, Gems, the linked Bastion and its last month, and the Today / Light / Rations status bar. |
+| `party/party-roll.mjs` | 90 | Request roll from the Party sheet's GM bar: posts one chat card with a Roll link per character asked; the owner's click runs the system's ability check against the DC and posts pass or fail. |
+| `party/party-sheet-core.mjs` | 475 | Pure Party sheet decisions: the tab row and view flags (GM vs player), the Marching order status line, Gems, the linked Bastion and its last month, and the Today / Light / Rations status bar. |
 | `party/party.mjs` | 91 | Explicit native Party provider, safe in-place NPC adoption and owner-scoped membership writes. |
 | `rules-data/rules-data-app.mjs` | 423 | The GM-only Rules data window (AppV2, Configure Settings menu): shows and edits every rules table, staged until Save. Its import (importFromBooks, also the Importer Hub step's importAndSave) runs table-shapes RULES_TABLES over the GM's own linked GM Guide and Player's Guide PDFs (lazy-loaded), canonicalises region names through hex-region knownRegions, and previews every filled value it would replace. |
 | `rules-data/rules-data-core.mjs` | 471 | Rules data (#195), pure: the Western Reaches lookup tables (terrain cost and elevation, terrain types, hexes per day, hex visibility, climate by region and season, carousing and recruiting limits) as one sparse world setting laid over an empty structure, the game.shadowdarkEnhancer.rules lookups over it, the readers that turn the importer's `reference` rows into those tables, and the overwrite preview and merge for an import. Ships structure only (tagger terrain words, travel methods, conditions, seasons, settlement kinds), never a value. |

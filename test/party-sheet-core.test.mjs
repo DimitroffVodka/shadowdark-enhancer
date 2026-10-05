@@ -2,7 +2,7 @@ import { test } from "node:test";
 import { readFileSync } from "node:fs";
 import assert from "node:assert/strict";
 import { esc } from "../scripts/shared/esc.mjs";
-import { partyTabs, resolveTab, sheetView, marchState, gemSummary, gpText, linkedBastion, lastMonthEntry, roomIcon, ROOM_ICONS, MONTH_LOG_KEYS, terrainLabel, lightReadout, rationsCount, torchCount, carriesLight, luckCount, statusBar, COIN_REFUSALS, coinsOf, coinText, poolAfterAdd, planGive, planDivide, purseAfter, searchItemIndex, TAB_LABELS, TAB_ICONS, tabRow, movementMessageKey, marchText, spellTiers, ROLL_STATS, ROLL_STAT_LABELS, DEFAULT_DC, cleanDc, whoSelection, whoAfter, rollRequest, rollOutcome, rollCardHtml, rollResultText, defaultSource, downtimeSummary, warbandGroups } from "../scripts/party/party-sheet-core.mjs";
+import { partyTabs, resolveTab, sheetView, marchState, gemSummary, gpText, linkedBastion, lastMonthEntry, roomIcon, ROOM_ICONS, MONTH_LOG_KEYS, terrainLabel, lightReadout, rationsCount, torchCount, carriesLight, luckCount, statusBar, COIN_REFUSALS, coinsOf, coinText, poolAfterAdd, planGive, planDivide, purseAfter, searchItemIndex, TAB_LABELS, TAB_ICONS, tabRow, movementMessageKey, marchText, spellTiers, ROLL_STATS, ROLL_STAT_LABELS, DEFAULT_DC, cleanDc, whoSelection, whoAfter, rollRequest, rollOutcome, rollCardHtml, rollResultText, rollVerdict, withRollResult, defaultSource, downtimeSummary, warbandGroups } from "../scripts/party/party-sheet-core.mjs";
 
 test("everyone sees Travel (each PC's owner confirms their own camping and carousing there); Bastion needs a linked bastion", () => {
   assert.deepEqual(partyTabs(), ["members", "items", "travel", "quests", "downtime", "warbands", "description"]);
@@ -423,4 +423,27 @@ test("the Downtime and Warbands markup: the GM's controls sit behind isGM and ev
   for (const action of ["payArrears", "returnToService", "runMonth"]) assert.ok(warbands.includes(`data-action="${action}"`), action);
   assert.ok(warbands.indexOf('data-action="payArrears"') > warbands.indexOf("@root.isGM"));
   assert.ok(warbands.indexOf('data-action="runMonth"') > warbands.indexOf("{{#if isGM}}"));
+});
+
+test("a roll's verdict is the system's own when it gives one, else the total against the DC, and none without a DC", () => {
+  assert.equal(rollVerdict({ total: 10, dc: 12 }), "fail");
+  assert.equal(rollVerdict({ total: 12, dc: 12 }), "pass");
+  assert.equal(rollVerdict({ total: 3, dc: 12, success: true }), "pass");
+  assert.equal(rollVerdict({ total: 20, dc: 12, success: false }), "fail");
+  assert.equal(rollVerdict({ total: 20, dc: null }), null);
+});
+
+test("a result is recorded once per character, for characters on the card only, and the card shows it", () => {
+  const request = { stat: "str", dc: 12, targets: [{ uuid: "Actor.a", name: "Ana" }, { uuid: "Actor.b", name: "Bo" }] };
+  const one = withRollResult(request, { uuid: "Actor.a", total: 15, outcome: "pass" });
+  assert.deepEqual(one.results, [{ uuid: "Actor.a", total: 15, outcome: "pass" }]);
+  assert.equal(withRollResult(one, { uuid: "Actor.a", total: 1, outcome: "fail" }), one, "a second roll does not replace the first");
+  assert.equal(withRollResult(one, { uuid: "Actor.zzz", total: 20, outcome: "pass" }), one, "someone not on the card cannot add a result");
+  const two = withRollResult(one, { uuid: "Actor.b", total: 4, outcome: "fail" });
+  const html = rollCardHtml(two, { sayWith, statLabel: "STR", esc });
+  assert.match(html, /sde-party-roll-go rolled pass"[^>]*data-uuid="Actor\.a"[^>]*aria-disabled="true"/);
+  assert.match(html, /sde-party-roll-go rolled fail"[^>]*data-uuid="Actor\.b"/);
+  assert.match(html, /<b class="sde-party-roll-total">15<\/b>/);
+  const open = rollCardHtml(request, { sayWith, statLabel: "STR", esc });
+  assert.ok(!open.includes("rolled") && !open.includes("aria-disabled"), "an unrolled card has no result state");
 });
