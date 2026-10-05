@@ -94,6 +94,7 @@
   earlier "Include mounts" had already placed on a scene is still recalled by Place / Recall.
 
 ### Fixed
+- **The Importer Hub opens again.** It failed with "The partial sdeTreeNodeUi could not be found" (the Manage tree called a partial name only the design harness registers).
 - **The Magic Item Forge and the Monster Creator find tables you already imported.** Core tables imported from the Manage tree or with Import everything carry no identity stamp, so both windows called the book locked and asked you to import it again (and then offered to replace the table that was already there). A table now counts when it is the only one under the name the importer gives it. Nothing in your world is changed.
 - **The Monster Generator imports.** Its Combat and Quality columns are on the numbered lines and Strength and Weakness are in a block below under their own header; the importer only knew the one-leading-column layout, so every row warned "only 3 of 4 columns had text". It reads both layouts now. The Generator and Make It Weird are also in the Manage tree under Roll Tables > Core Rulebook, so Import everything reaches them.
 - **Tools > Roll tables opens the Roll Tables tab** instead of the Importer.

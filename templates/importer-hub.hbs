@@ -553,7 +553,7 @@
       <div class="ui-empty"><i class="fas fa-circle-check"></i><span>{{#if manage.searching}}{{localize "SDE.importer.manage.noMatch" search=manage.search}}{{#unless manage.filterAll}}{{localize "SDE.importer.manage.noMatchFilter"}}{{/unless}}{{localize "SDE.importer.manage.noMatchClear"}}{{else if manage.filterLocked}}{{localize "SDE.importer.manage.allImported"}}{{else if manage.filterNew}}{{localize "SDE.importer.manage.allNewImported"}}{{else}}{{{localize "SDE.importer.manage.noneImported"}}}{{/if}}</span></div>
       {{/if}}
       <div class="sde-mtree ui-stack">
-        {{#each manage.tree as |node|}}{{> sdeTreeNodeUi node=node}}{{/each}}
+        {{#each manage.tree as |node|}}{{> sdeTreeNode node=node}}{{/each}}
       </div>
     </section>
 
