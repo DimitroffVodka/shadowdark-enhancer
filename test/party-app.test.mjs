@@ -682,3 +682,9 @@ test("Warbands and Downtime controls are the GM's alone", async () => {
   for (const name of ["runMonth", "payArrears", "returnToService", "startSession", "lockRolls", "releaseRolls", "endSession", "gmClearPick", "gmRollFor"]) await act(t.app, name, { dataset: { uuid: "Actor.w1", actorId: "a" } });
   assert.equal(t.p.writes.length, 0, "nothing ran for a player: each handler returned before loading the downtime or warband code");
 });
+
+test("the no-party-token warning sits in its own strip, not in the narrow controls column", async () => {
+  const template = await readFile(new URL("../templates/party/party.hbs", import.meta.url), "utf8");
+  assert.match(template, /\{\{#unless march\.warn\}\}<div class="sdp-status"/);
+  assert.match(template, /<\/header>\s*\{\{#if march\.warn\}\}<div class="sdp-march-warn"/);
+});
