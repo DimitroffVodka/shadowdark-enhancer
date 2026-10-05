@@ -382,7 +382,7 @@ body.theme-light .sde-bar-start-btn:hover {
    One labelled panel behind the Tools button. The bar sits at the bottom of the
    screen, so it opens upward from the button's right edge. Hidden while closed. */
 
-.sde-bar-gap { flex: 1; min-width: 12px; }
+.sde-bar-gap { flex: 0 0 4px; }
 .sde-bar-tools { position: relative; display: inline-block; }
 .sde-bar-menu {
   position: absolute;
@@ -4555,6 +4555,11 @@ button.sde-hud-day:hover { border-color: var(--sd-frame); }
    DialogV2's own `buttons` array: `default: true` is the filled button, `class: "danger"` the red outline, `class: "ghost"` the quiet one. */
 
 .sde-dialog .window-content { padding: 0; gap: 0; }
+/* container-type on .window-content (sde-ui.css) zeroes its intrinsic width, so an auto-width dialog collapsed to ~200px:
+   buttons stacked and right-shifted, the title clipped, inputs cut off. Give dialogs a real width; a call that passes
+   position.width still wins (inline style). */
+.application.sde-dialog { width: 420px; max-width: calc(100vw - 24px); }
+.sde-dialog form.dialog-form { flex: 1 1 auto; min-height: 0; }
 .sde-dialog .dialog-content { flex: 1 1 auto; display: flex; flex-direction: column; gap: 14px; min-height: 0; margin: 0; padding: 16px; overflow-y: auto; background: var(--ui-page); }
 .sde-dialog .dialog-content > form, .sde-dialog form.dialog-content { display: contents; }
 
@@ -4846,6 +4851,8 @@ button.sde-hud-day:hover { border-color: var(--sd-frame); }
 .sde-ui.sde-lootgen .lg-give { flex-wrap: nowrap; }
 .sde-ui.sde-lootgen .lg-give .lg-recipient { flex: 1 1 auto; width: auto; min-width: 0; }
 .sde-ui.sde-lootgen .lg-give .ui-btn { flex: 0 0 auto; }
+.sde-ui.sde-lootgen .ui-footer { flex-wrap: wrap; }
+.sde-ui.sde-lootgen .ui-footer .ui-btn { flex: 0 0 auto; }
 .sde-ui.sde-lootgen .lg-setup.needs-setup.ghost { border-color: var(--ui-gold); color: var(--ui-gold); }
 @container (max-width: 560px) {
   .sde-ui.sde-lootgen .ui-footer .ui-right { margin-left: 0; width: 100%; justify-content: flex-end; }

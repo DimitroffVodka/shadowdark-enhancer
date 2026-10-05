@@ -1,7 +1,7 @@
 # Shadowdark Enhancer — File Inventory
 
 <!-- inventory:stats:start -->
-1725 tracked files · ~215,100 lines of code/markup across scripts+templates+styles+test.
+1726 tracked files · ~215,100 lines of code/markup across scripts+templates+styles+test.
 `v0.17.3` in both `module.json` and `package.json`.
 <!-- inventory:stats:end -->
 **Layout reflects the 2026-07-21 feature-folder reorganization (v0.11.0 cycle).**
@@ -251,7 +251,7 @@
 
 | File | Lines | Description |
 |---|---:|---|
-| `loot-generator-app.mjs` | 267 | Roll a loot table, work a running batch, whisper claimable cards. |
+| `loot-generator-app.mjs` | 268 | Roll a loot table, work a running batch, whisper claimable cards. |
 | `loot-generator.mjs` | 234 | RollTable → structured loot batch (documents, coins, flavor). |
 | `loot-delivery.mjs` | 451 | Shared claimable chat card; first-claim-wins, GM-authoritative over an authenticated relay query. |
 | `loot-drops.mjs` | 195 | Auto-drop loot on NPC defeat at combat end. |
@@ -267,7 +267,7 @@
 | `sea-wolf-plunder.mjs` | 576 | D4/#57's exact CS3 Sea Wolf Plunder seam: recognizes only the manifest/content identity or exact table name, strips only a terminal `(N gp)` for the generated Item name, stamps curated art plus A7 source-qualified generated identity, and keeps row-level unresolved, ambiguous, or reconciliation failures as raw TEXT with their priced source phrase. A TableResult write failure is a separate outcome: source preservation is guaranteed only when snapshot restoration reports `restored: true`; `restored: false` may require manual recovery. |
 | `subroll.mjs` | 95 | Resolve "Meteorite 1d4: 1. lute…" table rows to the object rolled. |
 | `treasure-data.mjs` | 15 | Level → tier band boundaries. |
-| `item-drops.mjs` | 699 | Drag items to canvas as pickup tokens; TokenHUD pickup; light sources burn. |
+| `item-drops.mjs` | 715 | Drag items to canvas as pickup tokens; TokenHUD pickup; light sources burn. |
 | `loot-resolution.mjs` | 243 | Precise loot-row → Item resolution (pure), replacing the containment regex that lived in `loot-linker.mjs`. That matcher asked whether a row CONTAINED any known item name as a word (`\b<name>s?\b`, longest candidate first), which made every generic container, material and body part in the system gear pack a landmine: "Unopened bottle of exceptionally potent Murgazi wine (25 gp)" resolved to the plain system `Bottle` and the GM's 25 gp vintage became a 1 gp empty bottle (#58) — with "A flask of oil" → `Flask` and "Bolt of fine silk" → `Bolt` behind it. The replacement resolves the row AS A NAME in two tiers: `exact` (the priced row, stripped, IS the item's name modulo case and spacing) and `alias` (that name modulo a leading article or count, a trailing parenthetical, and the plural of its FINAL word). Every fold is anchored, so none of them can shorten a phrase to one of its interior words — the containment bug is structurally unreachable, not merely tuned away. A row landing on two distinct items at the same tier is `ambiguous` and resolves to nothing, because picking one by index order is the same bug with extra steps; ambiguity is reachable because the alias fold is looser than `buildItemIndex`'s lowercased-name dedupe. Recall is traded for precision DELIBERATELY (D4/D5 accept "an explicit unresolved case" and put loose generic fallback out of scope): an unresolved row keeps its text and can be fabricated, while a false positive silently hands the player the wrong object and looks like it worked. Also owns `stripPrice`, moved verbatim from `loot-pack.mjs` (which re-exports it) because its output is a fabricated Item's NAME and must not acquire any of the matching folds. Foundry-free, node-tested. |
 | `monster-loot-review-app.mjs` | 86 | Monster Loot Overrides window: every world NPC with its loot table and drop chance, edited inline via LootDrops.setOverrides. Opened from the Loot & XP settings pop-out. |
 

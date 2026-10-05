@@ -405,7 +405,8 @@ export const ItemDrops = {
 
   /**
    * Default drop point for GM-initiated drops: the controlled token's centre,
-   * else the current view centre, else the scene centre.
+   * else the current view centre, else the scene centre. (A forgotten selection wins over
+   * the view, which is why the drop is pinged and panned to afterwards.)
    */
   defaultDropPoint(scene) {
     const sel = canvas.tokens?.controlled?.[0];
@@ -415,6 +416,19 @@ export const ItemDrops = {
       x: (scene.dimensions?.width ?? scene.width ?? 0) / 2,
       y: (scene.dimensions?.height ?? scene.height ?? 0) / 2,
     };
+  },
+
+  /**
+   * Show the GM where a pile just landed: a 0.5-size token is a few pixels on a zoomed-out map, so
+   * ping the spot and, when it is off screen, pan there. Only for the scene being viewed.
+   */
+  async _revealDrop(scene, x, y) {
+    if (canvas.scene?.id !== scene.id) return;
+    try {
+      canvas.ping?.({ x, y });
+      const view = canvas.visibleRect;
+      if (view && !view.contains?.(x, y)) await canvas.animatePan?.({ x, y, duration: 400 });
+    } catch (err) { console.warn(`${MODULE_ID} | could not reveal the drop`, err); }
   },
 
   /**
@@ -440,6 +454,7 @@ export const ItemDrops = {
       y: dropY,
       sceneId: scene.id,
     });
+    await this._revealDrop(scene, dropX, dropY);
     return true;
   },
 
@@ -500,6 +515,7 @@ export const ItemDrops = {
     }]);
 
     console.log(`${MODULE_ID} | Coins dropped: ${label} on ${scene.name}`);
+    await this._revealDrop(scene, dropX, dropY);
     return actor;
   },
 

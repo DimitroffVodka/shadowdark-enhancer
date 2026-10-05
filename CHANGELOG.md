@@ -92,6 +92,9 @@
   earlier "Include mounts" had already placed on a scene is still recalled by Place / Recall.
 
 ### Fixed
+- **Dialogs are no longer crooked.** Session Tracking, Table Already Exists, Drop Coins and every other dialog opened at a squeezed ~200px, which stacked and right-shifted the buttons and clipped the title and inputs. They now open at a normal width.
+- **Drop Coins can be resized, and the pile is pointed out.** After coins (or a loot item) are dropped from the Loot Generator, the spot is pinged and the view pans to it if it is off screen, so a half-size token is not lost on a big map. The Loot Generator's bottom buttons no longer overlap.
+- **The crawl bar has a small gap between Combat and Tools** instead of a wide one.
 - **Levelling up in the Character Builder raises current hit points as well as the maximum.** The character gains the rolled amount on both (current is capped at the new maximum), so a hurt character stays as hurt as before, and Undo puts both back. It used to raise only the maximum, which left a sheet reading 8/14.
 - **Request roll works.** The Roll links on the chat card did nothing because the click handler was never registered. Clicking your character's link now runs the ability check and posts the result, with pass or fail when there is a DC.
 - **The Party emblem icon shows again in the header.** Its picture was loaded from a path that resolved inside the styles folder, so the box drew empty. The picker tiles were fine.
