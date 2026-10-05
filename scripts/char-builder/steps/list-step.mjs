@@ -165,6 +165,8 @@ export class ListStep extends BaseStep {
       },
       readOnly: this.readOnly,
       detail,
+      // The step heading's one-line summary: the chosen entry's name.
+      summary: detail?.name ?? "",
       aside: selItem ? await this.asideContext(selItem) : null,
       hasSelection: !!selItem,
       ...(await this.extraContext(selItem)),

@@ -1,37 +1,22 @@
-<div class="sde-cb-languages">
+<div class="ui-stack cbu-languages">
   {{#if step.readOnly}}
-  <div class="sde-cb-lang-block">
-    <span class="sde-cb-panel-title">{{localize "SDE.charBuilder.languages.known"}}</span>
-    <div class="sde-cb-chip-row">
-      {{#each step.known}}<span class="sde-cb-chip fixed">{{name}}</span>{{else}}<span class="sde-cb-hint">—</span>{{/each}}
-    </div>
-    <p class="sde-cb-hint"><i class="fa-solid fa-lock"></i> {{localize "SDE.charBuilder.existing.languagesHint"}}</p>
+  <div class="ui-group"><span class="ui-label">{{localize "SDE.charBuilder.languages.known"}}</span>
+    <div class="ui-inline">{{#each step.known}}<span class="ui-chip">{{name}}</span>{{else}}<span class="ui-muted">&mdash;</span>{{/each}}</div>
+    <div class="ui-note"><i class="fa-solid fa-lock"></i> {{localize "SDE.charBuilder.existing.languagesHint"}}</div>
   </div>
   {{/if}}
   {{#if step.fixed.length}}
-  <div class="sde-cb-lang-block">
-    <span class="sde-cb-panel-title">{{localize "SDE.charBuilder.languages.known"}}</span>
-    <div class="sde-cb-chip-row">
-      {{#each step.fixed}}<span class="sde-cb-chip fixed">{{name}}</span>{{/each}}
-    </div>
+  <div class="ui-group"><span class="ui-label">{{localize "SDE.charBuilder.languages.known"}}</span>
+    <div class="ui-inline">{{#each step.fixed}}<span class="ui-chip">{{name}}</span>{{/each}}</div>
   </div>
   {{/if}}
-
   {{#each step.categories}}
-  <div class="sde-cb-lang-block">
-    <div class="sde-cb-spell-tier-head">
-      {{localize labelKey}} — {{localize "SDE.charBuilder.class.choose"}} {{need}}
-      <span class="sde-cb-count{{#if full}} full{{/if}}">{{chosenCount}}/{{need}}</span>
-    </div>
-    <div class="sde-cb-chip-row">
-      {{#each options}}
-      <span class="sde-cb-chip{{#if selected}} selected{{/if}}{{#if disabled}} disabled{{/if}}" data-cb-lang="{{uuid}}" data-cb-lang-cat="{{../key}}">{{name}}</span>
-      {{/each}}
+  <div class="ui-group">
+    <span class="ui-label">{{localize labelKey}} &mdash; {{localize "SDE.charBuilder.class.choose"}} {{need}} <span class="ui-chip {{#if full}}ok{{else}}warn{{/if}}">{{chosenCount}}/{{need}}</span></span>
+    <div class="ui-inline">
+      {{#each options}}<span class="ui-chip{{#if selected}} sel{{/if}}{{#if disabled}} off{{/if}}" data-cb-lang="{{uuid}}" data-cb-lang-cat="{{../key}}">{{name}}</span>{{/each}}
     </div>
   </div>
   {{/each}}
-
-  {{#if step.noChoices}}
-  <p class="sde-cb-hint">{{localize "SDE.charBuilder.languages.noChoices"}}</p>
-  {{/if}}
+  {{#if step.noChoices}}<span class="ui-muted">{{localize "SDE.charBuilder.languages.noChoices"}}</span>{{/if}}
 </div>

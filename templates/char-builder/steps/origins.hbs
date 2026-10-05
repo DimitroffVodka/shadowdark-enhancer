@@ -1,74 +1,42 @@
-<div class="sde-cb-anc is-origins">
+<div class="cbu-step sde-cb-origins-main">
+  <h2 class="ui-h">{{localize "SDE.charBuilder.step.origins"}}</h2>
 
-  <div class="sde-cb-page-title sd-band">
-    <h1>{{localize "SDE.charBuilder.step.origins"}}</h1>
-  </div>
+  <section class="ui-group" data-cb-origin="alignment">
+    <h3 class="ui-h">{{localize "SDE.charBuilder.step.alignment"}} {{#if step.alignment.currentTitle}}<small><i class="fa-solid fa-crown"></i> {{localize "SDE.charBuilder.alignment.title"}}: {{step.alignment.currentTitle}} ({{step.alignment.className}}, {{localize "SDE.charBuilder.alignment.level1"}})</small>{{/if}}</h3>
+    <div class="ui-cols-3 cbu-align-cards">
+      {{#each step.alignment.options}}
+      <div class="ui-card cbu-align-card{{#if selected}} sel{{/if}}{{#if suggested}} suggested{{/if}}" data-cb-align="{{key}}">
+        <div class="ui-card-head"><h4 class="ui-card-name">{{label}}</h4>{{#if suggested}}<span class="ui-chip gold"><i class="fa-solid fa-lightbulb"></i> {{localize "SDE.charBuilder.alignment.suggestedTag"}}</span>{{/if}}</div>
+        {{#if title}}<span class="ui-card-sub"><i class="fa-solid fa-crown"></i> {{title}}</span>{{/if}}
+        <p class="ui-muted">{{desc}}</p>
+      </div>
+      {{/each}}
+    </div>
+  </section>
 
-  <div class="sde-cb-origins-main">
-
-    <section class="sde-cb-origin" data-cb-origin="alignment">
-      <h3 class="sde-cb-origin-head sd-band sd-band--tight">{{localize "SDE.charBuilder.step.alignment"}}</h3>
-      {{#if step.alignment.suggestedLabel}}
-      <p class="sde-cb-method-label">
-        <i class="fa-solid fa-lightbulb"></i> {{localize "SDE.charBuilder.alignment.suggested"}}: <b>{{step.alignment.suggestedLabel}}</b>
-      </p>
-      {{/if}}
-      {{#if step.alignment.currentTitle}}
-      <p class="sde-cb-title-banner">
-        <i class="fa-solid fa-crown"></i> {{localize "SDE.charBuilder.alignment.title"}}: <b>{{step.alignment.currentTitle}}</b>
-        <span class="cls">({{step.alignment.className}}, {{localize "SDE.charBuilder.alignment.level1"}})</span>
-      </p>
-      {{/if}}
-      <div class="sde-cb-align-cards slim">
-        {{#each step.alignment.options}}
-        <div class="sde-cb-align-card{{#if selected}} selected{{/if}}{{#if suggested}} suggested{{/if}}" data-cb-align="{{key}}">
-          <div class="sde-cb-align-name">{{label}}{{#if suggested}} <span class="sde-cb-align-tag">{{localize "SDE.charBuilder.alignment.suggestedTag"}}</span>{{/if}}</div>
-          {{#if title}}<div class="sde-cb-align-title"><i class="fa-solid fa-crown"></i> {{title}}</div>{{/if}}
-          <div class="sde-cb-align-desc">{{desc}}</div>
-        </div>
-        {{/each}}
+  <div class="ui-cols-2">
+    <section class="ui-group" data-cb-origin="background">
+      <h3 class="ui-h">{{localize "SDE.charBuilder.step.background"}}</h3>
+      {{> sde-cb-list step.background.list}}
+      <div class="ui-card cbu-origin-detail">
+        {{#if step.background.hasSelection}}
+          <h4 class="ui-card-name">{{step.background.detail.name}}</h4>
+          <div class="cbu-desc">{{{step.background.detail.description}}}</div>
+        {{else}}<span class="ui-muted">{{localize "SDE.charBuilder.selectPrompt"}}</span>{{/if}}
       </div>
     </section>
 
-    <div class="sde-cb-origins-cols">
-
-      <section class="sde-cb-origin" data-cb-origin="background">
-        <h3 class="sde-cb-origin-head sd-band sd-band--tight">{{localize "SDE.charBuilder.step.background"}}</h3>
-        {{> sde-cb-list step.background.list}}
-        <div class="sde-cb-origin-detail">
-          {{#if step.background.hasSelection}}
-          <p class="sde-cb-origin-pick"><b class="tn">{{step.background.detail.name}}.</b></p>
-          <div class="sde-cb-desc">{{{step.background.detail.description}}}</div>
-          {{else}}
-          <p class="sde-cb-hint">{{localize "SDE.charBuilder.selectPrompt"}}</p>
-          {{/if}}
-        </div>
-      </section>
-
-      <section class="sde-cb-origin" data-cb-origin="deity">
-        <h3 class="sde-cb-origin-head sd-band sd-band--tight">{{localize "SDE.charBuilder.step.deity"}}</h3>
-        {{> sde-cb-list step.deity.list}}
-        <div class="sde-cb-origin-detail">
-          {{#if step.deity.hasSelection}}
-          <p class="sde-cb-origin-pick">
-            <b class="tn">{{step.deity.detail.name}}.</b>
-            <span class="sde-cb-origin-align">{{localize "SDE.charBuilder.step.alignment"}}: <b>{{step.deity.aside.alignment}}</b></span>
-          </p>
-          <div class="sde-cb-desc">{{{step.deity.detail.description}}}</div>
-          {{#if step.deity.fixedDeity}}
-          <p class="sde-cb-hint"><i class="fa-solid fa-lock"></i> {{localize "SDE.charBuilder.deity.fixedByClass"}}</p>
-          {{else}}
-          {{#unless step.deity.aside.matchesChar}}
-          <p class="sde-cb-hint warn"><i class="fa-solid fa-triangle-exclamation"></i> {{localize "SDE.charBuilder.deity.mismatch"}}</p>
-          {{/unless}}
-          {{/if}}
-          {{else}}
-          <p class="sde-cb-hint">{{localize "SDE.charBuilder.deity.optional"}}</p>
-          {{/if}}
-        </div>
-      </section>
-
-    </div>
-
+    <section class="ui-group" data-cb-origin="deity">
+      <h3 class="ui-h">{{localize "SDE.charBuilder.step.deity"}}</h3>
+      {{> sde-cb-list step.deity.list}}
+      <div class="ui-card cbu-origin-detail">
+        {{#if step.deity.hasSelection}}
+          <div class="ui-card-head"><h4 class="ui-card-name">{{step.deity.detail.name}}</h4><span class="ui-chip">{{localize "SDE.charBuilder.step.alignment"}}: {{step.deity.aside.alignment}}</span></div>
+          <div class="cbu-desc">{{{step.deity.detail.description}}}</div>
+          {{#if step.deity.fixedDeity}}<div class="ui-note"><i class="fa-solid fa-lock"></i> {{localize "SDE.charBuilder.deity.fixedByClass"}}</div>
+          {{else}}{{#unless step.deity.aside.matchesChar}}<div class="ui-note warn"><i class="fa-solid fa-triangle-exclamation"></i> {{localize "SDE.charBuilder.deity.mismatch"}}</div>{{/unless}}{{/if}}
+        {{else}}<span class="ui-muted">{{localize "SDE.charBuilder.deity.optional"}}</span>{{/if}}
+      </div>
+    </section>
   </div>
 </div>

@@ -80,7 +80,7 @@ export class ShadowdarkCharBuilder extends HandlebarsApplicationMixin(Applicatio
 
   static DEFAULT_OPTIONS = {
     id: "sde-char-builder",
-    classes: ["shadowdark", "sde-char-builder"],
+    classes: ["shadowdark", "sde-ui", "sde-char-builder"],
     window: {
       title: "SDE.charBuilder.title",
       icon: "fa-solid fa-user-plus",

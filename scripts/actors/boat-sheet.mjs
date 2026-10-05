@@ -11,13 +11,10 @@ import { VehicleSheet, injectActorHeaderButtons } from "./vehicle-sheet.mjs";
 
 export class BoatSheet extends VehicleSheet {
   static DEFAULT_OPTIONS = {
-    // `shadowdark` + `sheet` (the latter added by DocumentSheetV2) opt this
-    // AppV2 sheet into the system's own chrome: .SD-header / .SD-nav / .SD-box
-    // styling and the parchment body, so it reads as a native Shadowdark sheet
-    // (matching the NPC-based Mount sheet). Parchment + dark text are forced in
-    // CSS so the look is theme-independent (AppV2 windows otherwise follow the
-    // client's dark/light setting, which is what made this sheet look foreign).
-    classes: ["shadowdark", "shadowdark-enhancer", "sde-vehicle-sheet", "sde-boat-sheet"],
+    // `shadowdark` + `sheet` (the latter added by DocumentSheetV2) keep this AppV2 sheet in the
+    // system's family; the kit's parts (`sde-ui`) are re-pointed at the system's parchment and ink by
+    // `sde-parchment`, so the look is theme-independent like the Mount sheet's.
+    classes: ["shadowdark", "shadowdark-enhancer", "sde-ui", "sde-parchment", "sde-vehicle-sheet", "sde-boat-sheet"],
     position: { width: 600, height: 720 },
     window: { icon: "fa-solid fa-sailboat" },
     actions: {

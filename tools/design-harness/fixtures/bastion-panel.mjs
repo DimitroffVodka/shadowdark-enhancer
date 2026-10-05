@@ -23,6 +23,6 @@ const build = (state) => {
   return { context: { gm, cards: empty ? [] : actors.map((a) => bastionCard(a, { t, format })), empty: t("SDE.bastion.panel.empty") }, toolbar: `<span>State:</span>${["gm", "player", "empty"].map((x) => `<button data-action="setMode" data-mode="${x}">${x}</button>`).join("")}${sprites}` };
 };
 export default {
-  previewHeight: 640, title: "SDE.bastion.panel.title", icon: "fa-solid fa-chess-rook", classes: ["shadowdark-enhancer", "sde-bastion-panel"],
+  previewHeight: 640, title: "SDE.bastion.panel.title", icon: "fa-solid fa-chess-rook", classes: ["shadowdark-enhancer", "sde-ui", "sde-parchment", "sde-bastion-panel"],
   width: 680, height: 560, resizable: true, template: "templates/bastion-panel.hbs", initial: "gm", build, actions: { setMode: { state: "{mode}" } },
 };

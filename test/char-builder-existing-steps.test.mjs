@@ -1,5 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { CharBuilderState } from "../scripts/char-builder/state.mjs";
 import { hydrateState } from "../scripts/char-builder/hydrate.mjs";
 import { planCommit } from "../scripts/char-builder/commit-plan.mjs";
 import { coinsAfterGear } from "../scripts/char-builder/commit.mjs";
@@ -7,6 +8,7 @@ import { STAT_METHODS } from "../scripts/char-builder/constants.mjs";
 import { StatsStep } from "../scripts/char-builder/steps/stats-step.mjs";
 import { ClassStep } from "../scripts/char-builder/steps/class-step.mjs";
 import { AncestryStep } from "../scripts/char-builder/steps/ancestry-step.mjs";
+import { ListStep } from "../scripts/char-builder/steps/list-step.mjs";
 import { LanguagesStep } from "../scripts/char-builder/steps/languages-step.mjs";
 import { GearStep } from "../scripts/char-builder/steps/gear-step.mjs";
 import { HpStep } from "../scripts/char-builder/steps/hp-step.mjs";
@@ -314,4 +316,34 @@ test("the preview lists what the builder keeps as-is and never writes", async ()
   const fresh = hydrated({}, []);
   fresh.existing = null;
   assert.equal((await new PreviewStep({ ...app(fresh), steps: [] }).prepareContext()).kept, null);
+});
+
+// --- The step heading's summary field -------------------------------------------------------
+
+test("each step heading's summary is supplied by its step context", async () => {
+  const st = hydrated({}, []);
+  const stats = await new StatsStep(app(st)).prepareContext();
+  assert.equal(stats.summary, "SDE.charBuilder.stats.method.label: SDE.charBuilder.stats.method.manual");
+  class Pick extends ListStep {
+    get stateKey() { return "ancestry"; }
+    async loadItems() { return [{ uuid: "Compendium.shadowdark.ancestries.Item.human", name: "Human", img: "i.webp", system: { description: "" } }]; }
+  }
+  st.ancestry = null;
+  const pick = new Pick(app(st));
+  assert.equal((await pick.prepareContext()).summary, "", "nothing chosen yet: no summary");
+  st.ancestry = { uuid: "Compendium.shadowdark.ancestries.Item.human", name: "Human" };
+  assert.equal((await pick.prepareContext()).summary, "Human");
+  const fresh = new StatsStep(app(new CharBuilderState({ statMethod: "3d6-down" })));
+  assert.equal((await fresh.prepareContext()).summary,
+    "SDE.charBuilder.stats.method.label: SDE.charBuilder.stats.method.3d6Down (SDE.charBuilder.stats.methodGm)");
+});
+
+test("every step.summary a Character Builder template reads has a step that supplies it", async () => {
+  const { readFileSync, readdirSync } = await import("node:fs");
+  const dir = new URL("../templates/char-builder/steps/", import.meta.url);
+  const reading = readdirSync(dir).filter((f) => /step\.summary/.test(readFileSync(new URL(f, dir), "utf8"))).map((f) => f.replace(".hbs", ""));
+  assert.deepEqual(reading.sort(), ["ancestry", "class", "gear", "preview", "stats"]);
+  const supplied = ["list-step", "stats-step", "gear-step", "preview-step"]
+    .filter((f) => /\bsummary:/.test(readFileSync(new URL(`../scripts/char-builder/steps/${f}.mjs`, import.meta.url), "utf8")));
+  assert.equal(supplied.length, 4);
 });

@@ -27,7 +27,7 @@ const { ActorSheetV2 } = foundry.applications.sheets;
 
 export class BastionSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   static DEFAULT_OPTIONS = {
-    classes: ["shadowdark", "shadowdark-enhancer", "sde-bastion-sheet"],
+    classes: ["shadowdark", "shadowdark-enhancer", "sde-ui", "sde-parchment", "sde-bastion-sheet"],
     position: { width: 980, height: 760 },
     window: { icon: "fa-solid fa-chess-rook", resizable: true },
     form: { submitOnChange: true, closeOnSubmit: false },

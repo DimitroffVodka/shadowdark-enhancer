@@ -9,6 +9,10 @@
   redesign. No window uses it yet, so nothing looks different.
 
 ### Changed
+- **The Boat sheet header keeps the boat name whole at the default width** (the stats wrap instead), the unused vehicle tabs partial is gone, and the bastion, boat and character builder design-harness fixtures carry the windows' current classes.
+- **Character Builder steps have a simpler structure.** Each step has one heading line with a summary of the choice (the ancestry or class picked, the stat method, gold left, the character's name) instead of the two bordered bands; the Class step is two columns with folded sections, the used dice are readable, the ability guides and art actions fold away, and Create Character is the one primary button. The window keeps its black-and-silver look.
+- **Boat sheet uses the new design.** A header band (name, hit points, AC, move, passengers), five tabs, and Overview cards for Command, Sinking, Crew and cargo and Properties, with weather folded away; passengers, cargo and siege weapons are rows with icon buttons. It keeps the Shadowdark parchment look.
+- **Bastion sheet and panel use the new design.** The sheet has a header band (name, type, AC, hit points, upgrades, treasury), the rooms at work folded under Overview, upgrade cards with icon actions, and a Plan tab whose side card says what to do instead of sitting empty; the panel shows each Bastion as a card with icon buttons. Both keep the Shadowdark parchment look.
 - **Rules data styles apply again** (a comment in the stylesheet had lost its opener and swallowed the next rule), and the utility-tool design-harness fixtures carry the windows' current classes.
 - **The settings group windows use the new design.** Each group opened from Configure Settings shows its settings in cards (label and hint left, control right), sub-groups as collapsible sections, and a Save footer.
 - **Rules Data window uses the new design.** Tabs for Terrain, Travel, Settlements and Climate, the ruleset buttons in the header, and the window now stays on the tab you chose when it redraws (adding a terrain, switching ruleset, importing).

@@ -1,64 +1,58 @@
-<div class="sde-cb-3col">
-  <div class="sde-cb-gear-left">
-    <div class="sde-cb-gear-cats">
-      {{#each step.categories}}
-      <button type="button" class="sde-cb-gear-cat{{#if active}} active{{/if}}" data-cb-gear-cat="{{key}}">{{label}}</button>
-      {{/each}}
-    </div>
-    {{> sde-cb-list step.list}}
-  </div>
+<div class="cbu-step split cbu-gear">
+  <h2 class="ui-h">{{localize "SDE.charBuilder.step.gear"}} <small>{{step.summary}}</small></h2>
 
-  <div class="sde-cb-col-detail">
-    {{#if step.hasSelection}}
-    <div class="sde-cb-banner">
-      <img class="sde-cb-banner-img" src="{{step.detail.img}}" alt="">
-      <h2 class="sde-cb-banner-name">{{step.detail.name}}</h2>
-    </div>
-
-    <div class="sde-cb-gear-meta">
-      <span>{{localize "SDE.charBuilder.gear.type"}}: <b>{{step.detail.type}}</b></span>
-      <span>{{localize "SDE.charBuilder.gear.cost"}}: <b>{{step.detail.cost}}</b></span>
-      <span>{{localize "SDE.charBuilder.gear.slots"}}: <b>{{step.detail.slots}}</b></span>
-      {{#each step.detail.stats}}
-      <span>{{label}}: <b>{{value}}</b></span>
-      {{/each}}
-      {{#if step.detail.magic}}<span class="sde-cb-magic-tag">{{localize "SDE.charBuilder.gear.magic"}}</span>{{/if}}
-    </div>
-
-    <button type="button" class="sde-cb-btn primary" data-cb-add-gear>
-      <i class="fa-solid fa-plus"></i> {{localize "SDE.charBuilder.gear.add"}}{{#if step.detail.inCart}} ({{step.detail.inCart}}){{/if}}
-    </button>
-
-    <div class="sde-cb-desc">{{{step.detail.description}}}</div>
-    {{else}}
-    <div class="sde-cb-empty">{{localize "SDE.charBuilder.gear.browse"}}</div>
-    {{/if}}
-  </div>
-
-  <aside class="sde-cb-col-aside">
-    <div class="sde-cb-panel-title">{{localize "SDE.charBuilder.gear.pack"}}</div>
-    <div class="sde-cb-gear-budget">
-      <div class="sde-cb-budget-row{{#if step.overBudget}} over{{/if}}">
-        <span>{{localize "SDE.charBuilder.gear.remaining"}}</span><b>{{step.remaining}}</b>
+  <div class="cbu-split cbu-3col">
+    <div class="cbu-gear-left">
+      <div class="ui-seg cbu-gear-cats">
+        {{#each step.categories}}<button type="button" class="ui-btn ghost{{#if active}} on{{/if}}" data-cb-gear-cat="{{key}}">{{label}}</button>{{/each}}
       </div>
-      <div class="sde-cb-budget-row{{#if step.overSlots}} over{{/if}}">
-        <span>{{localize "SDE.charBuilder.gear.carry"}}</span><b>{{step.slotsUsed}} / {{step.slotLimit}}</b>
-      </div>
+      {{> sde-cb-list step.list}}
     </div>
 
-    {{#if step.cartEmpty}}
-    <p class="sde-cb-hint">{{localize "SDE.charBuilder.gear.empty"}}</p>
-    {{else}}
-    <ul class="sde-cb-cart">
-      {{#each step.cart}}
-      <li class="sde-cb-cart-row">
-        <span class="qty">{{qty}}×</span>
-        <span class="name">{{name}}{{#if magic}} <i class="fa-solid fa-wand-sparkles" title="{{localize 'SDE.charBuilder.gear.magicTip'}}"></i>{{/if}}</span>
-        <button type="button" class="sde-cb-cart-btn" data-cb-add-one="{{key}}" title="{{localize 'SDE.charBuilder.gear.addTip'}}">+</button>
-        <button type="button" class="sde-cb-cart-btn" data-cb-remove-gear="{{key}}" title="{{localize 'SDE.charBuilder.gear.removeTip'}}">−</button>
-      </li>
-      {{/each}}
-    </ul>
-    {{/if}}
-  </aside>
+    <div class="sde-cb-col-detail cbu-main">
+      {{#if step.hasSelection}}
+      <section class="ui-card">
+        <div class="ui-card-head">
+          <img class="cbu-banner-img" src="{{step.detail.img}}" alt="">
+          <h3 class="ui-card-name">{{step.detail.name}}</h3>
+          <button type="button" class="ui-btn" data-cb-add-gear><i class="fa-solid fa-plus"></i> {{localize "SDE.charBuilder.gear.add"}}{{#if step.detail.inCart}} ({{step.detail.inCart}}){{/if}}</button>
+        </div>
+        <div class="ui-inline">
+          <span class="ui-chip">{{localize "SDE.charBuilder.gear.type"}}: {{step.detail.type}}</span>
+          <span class="ui-chip">{{localize "SDE.charBuilder.gear.cost"}}: {{step.detail.cost}}</span>
+          <span class="ui-chip">{{localize "SDE.charBuilder.gear.slots"}}: {{step.detail.slots}}</span>
+          {{#each step.detail.stats}}<span class="ui-chip">{{label}}: {{value}}</span>{{/each}}
+          {{#if step.detail.magic}}<span class="ui-chip gold">{{localize "SDE.charBuilder.gear.magic"}}</span>{{/if}}
+        </div>
+        <div class="cbu-desc">{{{step.detail.description}}}</div>
+      </section>
+      {{else}}
+      <div class="ui-empty"><i class="fa-solid fa-hand-pointer"></i><span>{{localize "SDE.charBuilder.gear.browse"}}</span></div>
+      {{/if}}
+    </div>
+
+    <aside class="cbu-col-aside cbu-main">
+      <section class="ui-card">
+        <div class="ui-card-head"><h3 class="ui-card-name">{{localize "SDE.charBuilder.gear.pack"}}</h3></div>
+        <div class="ui-pairs cbu-gear-budget">
+          <div class="ui-pair"><span class="ui-label">{{localize "SDE.charBuilder.gear.remaining"}}</span><span class="ui-value{{#if step.overBudget}} is-damaged{{/if}}">{{step.remaining}}</span></div>
+          <div class="ui-pair"><span class="ui-label">{{localize "SDE.charBuilder.gear.carry"}}</span><span class="ui-value{{#if step.overSlots}} is-damaged{{/if}}">{{step.slotsUsed}} / {{step.slotLimit}}</span></div>
+        </div>
+        {{#if step.cartEmpty}}
+        <div class="ui-empty"><i class="fa-solid fa-bag-shopping"></i><span>{{localize "SDE.charBuilder.gear.empty"}}</span></div>
+        {{else}}
+        <div class="ui-list cbu-cart">
+          {{#each step.cart}}
+          <div class="ui-row cbu-cart-row">
+            <span class="ui-chip">{{qty}}&times;</span>
+            <span class="ui-row-main"><span class="ui-row-name">{{name}}{{#if magic}} <i class="fa-solid fa-wand-sparkles" title="{{localize 'SDE.charBuilder.gear.magicTip'}}"></i>{{/if}}</span></span>
+            <button type="button" class="ui-icon" data-cb-add-one="{{key}}" title="{{localize 'SDE.charBuilder.gear.addTip'}}"><i class="fa-solid fa-plus"></i></button>
+            <button type="button" class="ui-icon" data-cb-remove-gear="{{key}}" title="{{localize 'SDE.charBuilder.gear.removeTip'}}"><i class="fa-solid fa-minus"></i></button>
+          </div>
+          {{/each}}
+        </div>
+        {{/if}}
+      </section>
+    </aside>
+  </div>
 </div>

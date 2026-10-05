@@ -20,7 +20,7 @@ const { HandlebarsApplicationMixin, ApplicationV2 } = foundry.applications.api;
 export class BastionPanel extends HandlebarsApplicationMixin(ApplicationV2) {
   static DEFAULT_OPTIONS = {
     id: "sde-bastion-panel",
-    classes: ["shadowdark-enhancer", "sde-bastion-panel"],
+    classes: ["shadowdark-enhancer", "sde-ui", "sde-parchment", "sde-bastion-panel"],
     position: { width: 680, height: 560 },
     window: { icon: "fa-solid fa-chess-rook", title: "SDE.bastion.panel.title", resizable: true },
     actions: {
@@ -32,7 +32,7 @@ export class BastionPanel extends HandlebarsApplicationMixin(ApplicationV2) {
   };
 
   static PARTS = {
-    body: { template: `modules/${MODULE_ID}/templates/bastion-panel.hbs`, scrollable: [".sde-bp-cards"] },
+    body: { template: `modules/${MODULE_ID}/templates/bastion-panel.hbs`, scrollable: [".ui-body"] },
   };
 
   /** The party whose bastions are shown, or null for every one you can see. */
