@@ -452,7 +452,7 @@ test("the emblem defaults to the amber lantern, survives a bad flag, and only a 
   assert.deepEqual(p.flags[MOD].partyEmblem, { icon: "wolf-head", color: "3a6ea5", iconColor: "ffffff" });
   // A hand-edited flag still draws.
   p.flags[MOD].partyEmblem = { icon: "nope", color: 5 };
-  assert.deepEqual((await app._prepareContext()).emblem, { icon: "lantern", color: "c8892b", iconColor: "ffffff", path: "modules/shadowdark-enhancer/icons/game-icons/party/lantern.svg" });
+  assert.deepEqual((await app._prepareContext()).emblem, { icon: "lantern", color: "c8892b", iconColor: "ffffff", path: "modules/shadowdark-enhancer/icons/game-icons/party/lantern.svg", maskUrl: "/modules/shadowdark-enhancer/icons/game-icons/party/lantern.svg" });
   // A player, even one who owns the party, has no picker and no write.
   world([p], false);
   const writes = p.writes.length, player = new PartyApp(p);
@@ -687,4 +687,12 @@ test("the no-party-token warning sits in its own strip, not in the narrow contro
   const template = await readFile(new URL("../templates/party/party.hbs", import.meta.url), "utf8");
   assert.match(template, /\{\{#unless march\.warn\}\}<div class="sdp-status"/);
   assert.match(template, /<\/header>\s*\{\{#if march\.warn\}\}<div class="sdp-march-warn"/);
+});
+
+test("the header emblem mask is an absolute route, not a path relative to the stylesheet", async () => {
+  const template = await readFile(new URL("../templates/party/party.hbs", import.meta.url), "utf8");
+  assert.ok(!template.includes("url('{{emblem.path}}')"), "a relative url() in a custom property resolves against styles/");
+  assert.ok(template.includes("url('{{emblem.maskUrl}}')"));
+  const app = await readFile(new URL("../scripts/party/party-app.mjs", import.meta.url), "utf8");
+  assert.match(app, /maskUrl: routeOf\(emblemIconPath\(emblem\.icon\)\)/);
 });

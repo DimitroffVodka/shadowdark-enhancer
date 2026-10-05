@@ -17,6 +17,8 @@ import { replaceModuleFlag } from "../shared/module-flags.mjs";
 import { PartyItemPicker } from "./party-item-picker.mjs";
 import { postRollRequest } from "./party-roll.mjs";
 import { upkeepGp } from "../actors/warband-core.mjs";
+/** A module path as an absolute route: a CSS mask url() resolves against the stylesheet, so a relative path points inside styles/. */
+const routeOf = (path) => foundry.utils?.getRoute?.(path) ?? `/${path}`;
 
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
@@ -379,7 +381,7 @@ export class PartyApp extends HandlebarsApplicationMixin(ApplicationV2) {
         partyStats: { totalHp: visible.reduce((n,m) => n + m.hp.value, 0), maxHp: visible.reduce((n,m) => n + m.hp.max, 0), avgAc: visible.length ? Math.round(visible.reduce((n,m) => n + m.ac, 0) / visible.length) : 0, avgLevel: players.length ? Math.round(players.reduce((n,m) => n + m.level, 0) / players.length) : 0 },
         needsAdoption: canEdit && !this.actor.flags?.[MODULE_ID]?.partyData,
         slots, followLeader: data.followLeader, formationReview: formation.needsReview, march, hasLeader, bastion, status: readouts,
-        emblem: { ...emblem, path: emblemIconPath(emblem.icon) }, emblemEdit: view.emblemEdit, emblemOpen: view.emblemEdit && !!this.emblemOpen, emblemIcons: picker.icons, emblemColors: picker.colors, emblemIconColors: picker.iconColors, emblemCustomBox: picker.customBox, emblemCustomIcon: picker.customIcon,
+        emblem: { ...emblem, path: emblemIconPath(emblem.icon), maskUrl: routeOf(emblemIconPath(emblem.icon)) }, emblemEdit: view.emblemEdit, emblemOpen: view.emblemEdit && !!this.emblemOpen, emblemIcons: picker.icons, emblemColors: picker.colors, emblemIconColors: picker.iconColors, emblemCustomBox: picker.customBox, emblemCustomIcon: picker.customIcon,
         leaderName: leaderActor?.name ?? t("SDE.party.missing"),
         movementDisabled: !canEdit || !status.token || combat,
         movementReason: !status.token ? t("SDE.party.movement.noToken") : combat ? t("SDE.party.movement.combat") : t("SDE.party.movement.importExport"),
