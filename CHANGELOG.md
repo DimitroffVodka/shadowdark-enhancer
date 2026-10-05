@@ -90,6 +90,7 @@
   earlier "Include mounts" had already placed on a scene is still recalled by Place / Recall.
 
 ### Fixed
+- **The Party emblem icon shows again in the header.** Its picture was loaded from a path that resolved inside the styles folder, so the box drew empty. The picker tiles were fine.
 - **The Party sheet header no longer stretches when the scene has no party token.** The long "drag the party onto the scene" warning now sits in a full-width strip under the header, so Marching order, Place / Recall and the grid stay in line.
 - **Two unreadable text colours.** The gold primary buttons (the monster importer's and the loot generator's
   Roll) now have near-black text instead of cream, and the encounter result chat card's text is no longer

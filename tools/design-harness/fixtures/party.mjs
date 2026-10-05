@@ -67,7 +67,7 @@ const build = (state) => {
     context: {
       picker: false, hasParty: true, isGM, canEdit: v.canEdit, actor: { name: "The Lantern Guild" }, memberCount: members.length,
       partyStats: { totalHp: members.reduce((n, m) => n + m.hp.value, 0), maxHp: members.reduce((n, m) => n + m.hp.max, 0), avgAc: members.length ? Math.round(members.reduce((n, m) => n + m.ac, 0) / members.length) : 0, avgLevel: characters.length ? Math.round(characters.reduce((n, m) => n + m.level, 0) / characters.length) : 0 },
-      emblem: { ...emblem, path: "/" + emblemIconPath(emblem.icon) }, emblemEdit: v.emblemEdit, emblemOpen: v.emblemEdit && mode === "emblem",
+      emblem: { ...emblem, path: "/" + emblemIconPath(emblem.icon), maskUrl: "/" + emblemIconPath(emblem.icon) }, emblemEdit: v.emblemEdit, emblemOpen: v.emblemEdit && mode === "emblem",
       emblemIcons: picker.icons.map((i) => ({ ...i, path: "/" + i.path })), emblemColors: picker.colors,
       slots, followLeader: follow, march: { ...march, warn: march.mode === "notice" }, hasLeader: !empty, leaderName: "Creeg Greythorn", canResume: !!march.canResume, movementDisabled: !v.canEdit, movementReason: say("SDE.party.movement.importExport"),
       status, tabs: tabRow(keys, tab, say),
