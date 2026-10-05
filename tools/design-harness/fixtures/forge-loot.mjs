@@ -29,6 +29,6 @@ const build = (state) => state === "blocked"
   : state === "idle" ? { context: { ...base, phase: "idle", phaseLabel: "idle", generator: "", hasGenerator: false, generators: generators.map((g) => ({ ...g, selected: false })), hasPreview: false, preview: null, canPreview: false, canApprove: false, canReroll: false, fields: [], diagnostics: { missing: [], exclusions: [], warnings: [] } } }
   : { context: base };
 export default {
-  title: "SDE.forgeLoot.title", icon: "fas fa-hammer", classes: [], resizable: true, width: 760, template: "templates/forge-loot.hbs", initial: "preview", build,
+  title: "SDE.forgeLoot.title", icon: "fas fa-hammer", classes: ["sde-ui", "sde-forgeloot"], resizable: true, width: 760, template: "templates/forge-loot.hbs", initial: "preview", build,
   toolbar: `<span>State:</span>${["preview", "blocked", "idle"].map((s) => `<button data-action="s" data-state="${s}">${s}</button>`).join("")}`, actions: { s: { state: "{state}" } },
 };

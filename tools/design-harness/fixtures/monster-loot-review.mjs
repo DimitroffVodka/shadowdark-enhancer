@@ -8,6 +8,6 @@ const rows = names.map((name, i) => {
     defaultLabel: i % 7 === 0 ? "Default (no table for this level)" : "Default: Treasure " + ["0-3", "4-6", "7-9", "10+"][Math.floor(i / 10)], missingTable: missing ? "Deleted Hoard Table" : null };
 });
 export default {
-  title: "SDE.settings.monsterLoot.title", icon: "fa-solid fa-coins", classes: ["sde-monster-loot"], resizable: true, width: 780, height: 640, template: "templates/monster-loot-review.hbs",
+  title: "SDE.settings.monsterLoot.title", icon: "fa-solid fa-coins", classes: ["sde-ui", "sde-monster-loot"], resizable: true, width: 780, height: 640, template: "templates/monster-loot-review.hbs",
   context: { rows, tables, worldChance: 50, dropsOn: true, perEncounter: true },
 };

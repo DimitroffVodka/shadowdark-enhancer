@@ -17,7 +17,7 @@ const base = { isGM: true, shopName: "Marga's Mercantile and Sundries of the Low
   gambleOptions, sellItems, sellRatio: 50, hasJunk: true, logEntries, mode: "compendium", npcActors: [{ id: "n1", name: "Marga the Merchant", type: "NPC", selected: false }], inventory, compendiumItems, compendiumPacks: [{ id: "p", label: "Shadowdark Gear", selected: true }], compendiumFilter: "",
   catalogEnabled: true, buyMultiplier: 100, gambleEnabled: true, gambleSources: [{ label: "World Tables", options: [{ id: "t1", label: "Trinkets" }, { id: "t2", label: "Wild Magic" }] }], savedConfigs: { a: { name: "Marga's Mercantile" }, b: { name: "The Rusty Anchor Chandlery" } } };
 export default {
-  previewHeight: 700, title: "Marga's Mercantile and Sundries of the Lower Quarter (open for players)", icon: "", classes: ["shadowdark-enhancer-merchant-shop"], resizable: true, width: 740, height: 620, template: "templates/merchant-shop.hbs", initial: "buy",
+  previewHeight: 700, title: "Marga's Mercantile and Sundries of the Lower Quarter (open for players)", icon: "", classes: ["shadowdark-enhancer-merchant-shop", "sde-ui", "sde-merchant"], resizable: true, width: 740, height: 620, template: "templates/merchant-shop.hbs", initial: "buy",
   build: (t) => ({ context: { ...base, tab: t.replace("-full", ""), tabs: tabs(t.replace("-full", "")) }, ...(t.endsWith("-full") ? { height: 2300 } : {}) }),
   toolbar: `<span>Tab:</span>${["buy", "catalog", "gamble", "sell", "log", "manage"].map((s) => `<button data-action="s" data-state="${s}">${s}</button>`).join("")}`, actions: { s: { state: "{state}" } },
 };

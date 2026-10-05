@@ -4,6 +4,6 @@ const party = ["Creeg Greythorn", "Elbin Grizzlegut", "Iraga Draguul", "Supercal
 const build = (s) => ({ context: { amount: s === "item" ? 6 : "", label: s === "item" ? "Disarmed the pit trap in the Sunken Temple" : "", xpPerLevel: 10, item: { img: "/icons/svg/item-bag.svg", name: "Idol of the Drowned Queen", xp: 6 }, hasItem: s === "item", saveToItem: true, itemSourceLabel: "from the item's XP flag",
   hasParty: s !== "noparty", party: s === "noparty" ? [] : party } });
 export default {
-  title: "SDE.partyXp.title", icon: "fas fa-star", classes: [], resizable: true, width: 460, template: "templates/party-xp.hbs", initial: "item", build,
+  title: "SDE.partyXp.title", icon: "fas fa-star", classes: ["sde-ui", "sde-party-xp"], resizable: true, width: 460, template: "templates/party-xp.hbs", initial: "item", build,
   toolbar: `<span>State:</span>${["item", "drop", "noparty"].map((s) => `<button data-action="s" data-state="${s}">${s}</button>`).join("")}`, actions: { s: { state: "{state}" } },
 };
