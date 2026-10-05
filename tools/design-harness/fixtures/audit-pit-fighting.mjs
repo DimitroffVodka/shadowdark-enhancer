@@ -1,4 +1,4 @@
-// Audit fixture: Pit Fighting. The real window has NO "shadowdark" class (DEFAULT_OPTIONS has no classes), so none here.
+// Audit fixture: Pit Fighting. Classes mirror the app's DEFAULT_OPTIONS.classes (shadowdark, sde-pit, sde-ui).
 // state = fresh | offer | result
 const P = ["Creeg Greythorn", "Elbin Grizzlegut", "Iraga Draguul", "Jorbin Ironhelm", "Martin Rast"];
 const build = (state) => {
@@ -21,5 +21,5 @@ const build = (state) => {
     prize: result ? "A masterwork short sword, 120 gp and the crowd's favour." : "", outcome: result ? "win" : null, isWin: result, isLoss: false, renownDelta: 2, applied: false, canApply: result,
   } };
 };
-export default { previewHeight: 900, title: "SDE.pitFighting.title", icon: "fas fa-hand-fist", classes: [], width: 520, template: "templates/pit-fighting.hbs", initial: "offer", build,
+export default { previewHeight: 900, title: "SDE.pitFighting.title", icon: "fas fa-hand-fist", classes: ["shadowdark", "sde-pit", "sde-ui"], width: 520, template: "templates/pit-fighting.hbs", initial: "offer", build,
   toolbar: ["fresh", "offer", "result"].map((s) => `<button data-action="t" data-state="${s}">${s}</button>`).join(""), actions: { t: { state: "{state}" } } };

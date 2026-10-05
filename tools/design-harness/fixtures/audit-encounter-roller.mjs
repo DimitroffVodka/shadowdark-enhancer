@@ -15,5 +15,5 @@ const build = (state) => ({ context: {
     filteredCount: 25, totalCount: 412, sortCol: "level", sortAsc: true,
     rows: monsters.map((name, i) => ({ uuid: "Actor." + i, img: "/icons/svg/mystery-man.svg", name, levelLabel: String((i % 9) + 1), alignment: "LNC"[i % 3], alignmentLabel: "Chaotic", hpLabel: String(4 + i * 3), acLabel: String(10 + (i % 8)), dprLabel: (2 + i / 2).toFixed(1), attackCount: i % 5 === 4 ? 0 : 1 + (i % 3), attackSummary: i % 2 ? "2 attacks (1d8, 1d6+2)" : "1 attack (1d6)", primaryAttack: "Bite", attackKinds: { melee: true, ranged: i % 4 === 0, special: i % 6 === 0 }, hasSpellcasting: i % 7 === 0, spellcastingBonus: 3, darkAdapted: i % 3 === 0 })) },
 } });
-export default { previewHeight: 900, title: "SDE.encounter.roller.title", icon: "fas fa-dice-d20", classes: [], width: 1280, template: "templates/encounter-roller.hbs", initial: "tables", build,
+export default { previewHeight: 900, title: "SDE.encounter.roller.title", icon: "fas fa-dice-d20", classes: ["shadowdark", "sde-roller", "sde-ui"], width: 1280, template: "templates/encounter-roller.hbs", initial: "tables", build,
   toolbar: ["tables", "build", "browse", "creator"].map((s) => `<button data-action="t" data-state="${s}">${s}</button>`).join(""), actions: { t: { state: "{state}" } } };

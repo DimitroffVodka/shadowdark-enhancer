@@ -1675,7 +1675,7 @@ class MerchantShopApp extends HandlebarsApplicationMixin(ApplicationV2) {
     tag: "div",
     window: { title: "SDE.merchant.title", resizable: true },
     position: { width: 740, height: 620 },
-    classes: ["shadowdark-enhancer-merchant-shop"],
+    classes: ["shadowdark-enhancer-merchant-shop", "sde-ui", "sde-merchant"],
   };
 
   static PARTS = {
@@ -1739,6 +1739,7 @@ class MerchantShopApp extends HandlebarsApplicationMixin(ApplicationV2) {
         ...entry,
         priceDisplay: _formatPrice(adjustedCost),
         stockDisplay: entry.stock === -1 ? "∞" : String(entry.stock),
+        unlimited: entry.stock === -1,
         canAfford: canAfford && !outOfStock,
         outOfStock,
         category: entry.category || "Other",

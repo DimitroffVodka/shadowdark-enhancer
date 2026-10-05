@@ -95,7 +95,7 @@ const t = (key, data) => {
 export class HexBrushApp extends HandlebarsApplicationMixin(ApplicationV2) {
   static DEFAULT_OPTIONS = {
     id: "sde-hex-brush",
-    classes: ["shadowdark", "sde-hex-brush"],
+    classes: ["shadowdark", "sde-hex-brush", "sde-ui"],
     window: { title: "SDE.hexMap.brush.title", icon: "fa-solid fa-paintbrush", resizable: false },
     position: { width: 330, height: "auto" },
     actions: {

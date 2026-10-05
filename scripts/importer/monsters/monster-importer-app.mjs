@@ -15,7 +15,7 @@
 import { parseStatblocks } from "./statblock-parser.mjs";
 import { npcMoveKeys } from "../../monster-creator/npc-moves.mjs";
 import { MonsterImporter } from "./monster-importer.mjs";
-import { t as tr } from "../importer-hub-shared.mjs";
+import { t as tr, flaggedRowNames } from "../importer-hub-shared.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
@@ -46,6 +46,7 @@ function warnFields(warnings) {
 export class MonsterImporterApp extends HandlebarsApplicationMixin(ApplicationV2) {
   static DEFAULT_OPTIONS = {
     id: "sde-monster-importer",
+    classes: ["sde-ui", "sde-imp"],
     window: { title: "SDE.importer.monsterImporter.title", icon: "fas fa-dragon", resizable: true },
     position: { width: 860, height: 780 },
     actions: {
@@ -89,9 +90,15 @@ export class MonsterImporterApp extends HandlebarsApplicationMixin(ApplicationV2
 
     const monsters = this._parsed.map((p, i) => {
       const wf = warnFields(p.warnings ?? []);
+      // Display views aligned 1:1 with the draft arrays (so the field-edit and remove-row handlers
+      // still address the real draft); a row a warning quotes by name is marked.
+      const flagMap = flaggedRowNames(p.warnings);
+      const flagged = (name) => flagMap.has(String(name ?? "").trim().toLowerCase());
       return {
         idx: i,
         draft: p.draft,
+        actions: (p.draft.actions ?? []).map((a) => ({ ...a, flagged: flagged(a.name) })),
+        features: (p.draft.features ?? []).map((f) => ({ name: f.name, description: f.description, flagged: flagged(f.name) })),
         warnings: p.warnings ?? [],
         hasWarnings: (p.warnings?.length ?? 0) > 0,
         warnCount: p.warnings?.length ?? 0,
@@ -193,7 +200,7 @@ export class MonsterImporterApp extends HandlebarsApplicationMixin(ApplicationV2
         } else {
           this._setDraftField(draft, field, ev.target);
         }
-        ev.target.classList.remove("sde-mimport-warn");
+        ev.target.classList.remove("imp-warn");
       });
     });
   }

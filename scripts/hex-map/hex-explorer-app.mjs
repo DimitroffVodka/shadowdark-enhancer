@@ -7,7 +7,7 @@ const t = key => game.i18n.localize(key);
 const LABELS = { river: "SDE.hexMap.feature.river", path: "SDE.hexMap.feature.path", coast: "SDE.hexMap.feature.coast" };
 export class HexExplorerApp extends HandlebarsApplicationMixin(ApplicationV2) {
   static DEFAULT_OPTIONS = {
-    classes: ["shadowdark", "sde-hex-explorer"], window: { title: "SDE.hexExplorer.title", icon: "fa-solid fa-map", resizable: true },
+    classes: ["shadowdark", "sde-hex-explorer", "sde-ui"], window: { title: "SDE.hexExplorer.title", icon: "fa-solid fa-map", resizable: true },
     position: { width: 480, height: 620 },
     actions: {
       save: function () { return this._save(); },

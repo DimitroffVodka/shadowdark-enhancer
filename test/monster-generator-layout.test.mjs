@@ -30,16 +30,11 @@ test("monster generator owns a compact responsive layout contract", async () => 
     read("templates/encounter-creator.hbs"),
   ]);
 
-  assert.match(template, /<details class="sde-creator-section sde-mut-section"/);
-  assert.match(
-    template,
-    /<p class="sde-mut-notice">[\s\S]*<i[^>]*><\/i>[\s\S]*<span class="sde-mut-notice-copy">/,
-    "notice prose is one flex child instead of fragmented inline flex items",
-  );
-  assert.match(css, /\.sde-mut-section\s*\{[^}]*container-type:\s*inline-size/s);
-  assert.match(css, /\.sde-mut-columns\s*\{[^}]*grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\)/s);
-  assert.match(css, /@container\s*\(max-width:\s*700px\)[\s\S]*?\.sde-mut-columns\s*\{[^}]*grid-template-columns:\s*1fr/s);
-  assert.match(css, /\.sde-mut-selected\s*\{[^}]*grid-template-columns:\s*max-content\s+minmax\(0,\s*1fr\)\s+24px/s);
-  assert.match(css, /\.sde-mut-actions\s*\{[^}]*justify-content:\s*flex-end/s);
-  assert.match(css, /\.sde-mut-actions\s+button\s*\{[^}]*flex:\s*0\s+1\s+240px/s);
+  // Two panes (the creature's core, one tab on the right) that stack below 800px of the window's own width.
+  assert.match(template, /<div class="mc">/);
+  assert.match(template, /class="mc-panes"/);
+  assert.match(template, /<p class="ui-note info"><span >\{\{\{localize "SDE\.encounterCreator\.mut\.notice"\}\}\}<\/span><\/p>/);
+  assert.match(css, /\.mc-panes\s*\{[^}]*grid-template-columns:\s*minmax\(280px,\s*340px\)\s+minmax\(0,\s*1fr\)/s);
+  assert.match(css, /@container\s*\(max-width:\s*800px\)\s*\{[^}]*\.mc-panes[^}]*grid-template-columns:\s*minmax\(0,\s*1fr\)/s);
+  assert.match(css, /\.mc-cols\s*\{[^}]*grid-template-columns:\s*repeat\(auto-fit,\s*minmax\(220px,\s*1fr\)\)/s);
 });

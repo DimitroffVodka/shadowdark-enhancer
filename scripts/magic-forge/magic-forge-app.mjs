@@ -50,6 +50,7 @@ const STATE_BADGE = {
 export class MagicForgeApp extends HandlebarsApplicationMixin(ApplicationV2) {
   static DEFAULT_OPTIONS = {
     id: "sde-magic-forge",
+    classes: ["sde-ui", "sde-magicforge"],
     tag: "form",
     window: { title: "SDE.magicForge.title", icon: "fas fa-hammer", resizable: true },
     position: { width: 720, height: "auto" },
@@ -609,8 +610,10 @@ export class MagicForgeApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const raw = target.dataset.tier;
     this._tierFilter = raw === "all" ? null : Number(raw);
     const el = this.element;
-    for (const chip of el.querySelectorAll(".sde-forge-tier"))
+    for (const chip of el.querySelectorAll(".sde-forge-tier")) {
       chip.classList.toggle("active", chip.dataset.tier === raw);
+      chip.classList.toggle("sel", chip.dataset.tier === raw);
+    }
     this._filterSpells(el);
   }
 

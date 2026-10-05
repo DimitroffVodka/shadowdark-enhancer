@@ -49,6 +49,8 @@ export class PartyApp extends HandlebarsApplicationMixin(ApplicationV2) {
       pickEmblem: function (_event, el) { return this._pickEmblem({ icon: el.dataset.icon, color: el.dataset.color, iconColor: el.dataset.iconColor }); },
       remove: function (_event, el) { return this._change(() => Party.remove(this.actor, el.dataset.uuid)); },
       member: function (_event, el) { Party.rows(this.actor).find((r) => r.uuid === el.dataset.uuid)?.actor?.sheet?.render(true); },
+      spendLuck: function (_event, el) { return this._memberCrawl(el, (strip, actor) => strip.spendLuck(actor)); },
+      toggleLight: function (_event, el) { return this._memberCrawl(el, (strip, actor) => strip.toggleActorLight(actor)); },
       item: function (_event, el) { if (this.actor?.testUserPermission(game.user, "OBSERVER")) this.actor.items.get(el.dataset.id)?.sheet?.render(true); },
       activityAction: function (event, el) { const app = this._activityController(); return app.constructor.DEFAULT_OPTIONS.actions[el.dataset.activityAction]?.call(app, event, el); },
       questAction: function (event, el) { const app = this._questController(); return QuestLogApp.DEFAULT_OPTIONS.actions[el.dataset.questAction]?.call(app, event, el); },
@@ -102,6 +104,16 @@ export class PartyApp extends HandlebarsApplicationMixin(ApplicationV2) {
   openKeys = new Set();
   constructor(actor = null, options = {}) { super(options); this.actor = actor; }
   // Resolves once the window exists: render() is async and bringToFront() needs the element.
+  /** A member card's Luck or Light mark: the crawl strip's own control, for the character's owner or a GM. */
+  async _memberCrawl(el, run) {
+    const row = Party.rows(this.actor).find((r) => r.uuid === el.dataset.actorId), actor = row?.actor;
+    if (!actor) return;
+    if (!(game.user?.isGM || actor.isOwner)) return void ui.notifications?.warn(game.i18n.localize("SDE.party.sheet.notOwner"));
+    const { CrawlStrip } = await import("../crawl-strip/crawl-strip.mjs");
+    await run(CrawlStrip, actor);
+    this.render();
+  }
+
   static async open(ref = null, activity = null) {
     const actor = ref ? Party.get(ref) : Party.selected();
     if (actor && !Party.list().includes(actor)) return null;

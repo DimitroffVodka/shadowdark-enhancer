@@ -2,7 +2,7 @@
 // collection has rows, long names, a long UUID). 480 x 620 is the window's real size; the body scrolls.
 const uuid = "Compendium.shadowdark-enhancer--journals.JournalEntry.Fn82kQ0aXz91LmPq.JournalEntryPage.aB3dE5fG7hJ9kLmN";
 const base = {
-  previewHeight: 700, title: "SDE.hexExplorer.title", icon: "fa-solid fa-map", classes: ["shadowdark", "sde-hex-explorer"],
+  previewHeight: 700, title: "SDE.hexExplorer.title", icon: "fa-solid fa-map", classes: ["shadowdark", "sde-hex-explorer", "sde-ui"],
   width: 480, height: 620, resizable: true, template: "templates/hex-map/hex-explorer.hbs",
   context: {
     isGM: true, saving: false, rootId: "sde-hex-explorer-x", sceneName: "The Western Reaches (A0 hex map)", number: "0417",
