@@ -1947,6 +1947,7 @@
   "SDE.hexMap.mode.random": "Hexes with no tag yet",
   "SDE.hexMap.mode.keyed": "Hexes the book keys",
   "SDE.hexMap.mode.review": "Most likely wrong",
+  "SDE.hexMap.progress.image": "Reading the map image…",
   "SDE.hexMap.progress.reading": "Reading cells {k} of {total}…",
   "SDE.hexMap.progress.regions": "Reading region borders…",
   "SDE.hexMap.progress.preparing": "Preparing {n} examples…",

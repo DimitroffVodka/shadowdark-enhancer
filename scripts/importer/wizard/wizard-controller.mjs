@@ -214,10 +214,12 @@ export class WizardController {
   /** Read the current hex map and build its cards. A map that cannot be read is left for the Hex Tagger. */
   async openTerrainMap() {
     const T = this.state.terrain;
-    T.stage = "reading"; T.error = ""; this.legend = null;
+    T.stage = "reading"; T.error = ""; T.progress = ""; this.legend = null;
     this.changed();
+    // What the engine is doing (reading cells k of n, sorting, classifying) is shown as it goes, through reading and Apply.
+    const onProgress = (text) => { T.progress = text; this.changed(); };
     try {
-      this.legend = await this.env.legendOpen(T.queue[T.i]);
+      this.legend = await this.env.legendOpen(T.queue[T.i], onProgress);
       T.stage = "cards";
     } catch (err) {
       console.warn("shadowdark-enhancer | wizard terrain failed", err);
@@ -230,10 +232,11 @@ export class WizardController {
   async terrainApply() {
     const T = this.state.terrain;
     if (T?.stage !== "cards") return undefined;
-    T.stage = "applying"; T.error = "";
+    T.stage = "applying"; T.error = ""; T.progress = "";
     this.changed();
     const done = await this.legend.apply().catch((err) => { T.error = String(err?.message ?? err); return false; });
     if (!done) { T.stage = "cards"; this.changed(); return undefined; }
+    T.progress = "";
     T.named.push(T.queue[T.i].id);
     return this.terrainNext();
   }
@@ -308,7 +311,7 @@ export class WizardController {
       const T = s.terrain;
       vm.terrain = {
         heading: t("SDE.importer.wizard.terrain.heading", { title: T.queue[T.i].title, n: T.i + 1, of: T.queue.length }),
-        reading: T.stage === "reading", applying: T.stage === "applying", failed: T.stage === "failed", error: T.error,
+        reading: T.stage === "reading", applying: T.stage === "applying", failed: T.stage === "failed", error: T.error, progress: T.progress ?? "",
         cards: T.stage === "cards" || T.stage === "applying" ? (this.legend?.cards() ?? []) : [],
       };
     }

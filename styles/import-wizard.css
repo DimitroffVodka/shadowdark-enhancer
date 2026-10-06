@@ -68,3 +68,6 @@
 .sde-wiz .hxt-fig { flex: 0 0 auto; width: auto; }
 .sde-wiz .hxt-sheet .ui-card { gap: 8px; }
 .sde-wiz .hxt-sheet select { width: 100%; }
+
+/* What the engine is doing on the Terrain page: a line of figures that changes, kept from jumping as the numbers do. */
+.sde-wiz-progress { margin: 0; color: var(--ui-text); font-variant-numeric: tabular-nums; }

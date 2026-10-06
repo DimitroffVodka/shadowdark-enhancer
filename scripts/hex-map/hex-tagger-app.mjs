@@ -565,6 +565,8 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
    * redraw is skipped, so nothing opens, and what the window would have read from its form comes from the cards.
    */
   _headless = false;
+  /** Told what the engine is doing while there is no window to show it (hex-legend-session.mjs sets it). */
+  _onProgress = null;
   async render(...args) { return this._headless ? this : super.render(...args); }
   /** Whether the palette box is open; undefined until the GM toggles it (it opens itself while no palette is set). */
   _paletteOpen = undefined;
@@ -1169,6 +1171,7 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
 
   _setProgress(text) {
     this._progress = text;
+    this._onProgress?.(text);
     const el = this.element?.querySelector("[data-hxt-progress]");
     if (el) el.textContent = text;
   }

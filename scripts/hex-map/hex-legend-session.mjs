@@ -19,25 +19,30 @@ export const legendNamed = (scene) => !!legendReport(decodeFixes(scene?.getFlag(
 /**
  * Read a hex scene and build its Legend cards, GM only. The scene is taken to the canvas, because the map is read from
  * what is drawn there.
- * @param {{sceneId:string, folder?:string}} args  folder: the book whose keyed hexes belong to this map (hex-prints.mjs),
- *   because another book's keyed hexes have numbers of their own, and a card must not skip a hex it only shares a number with
+ * @param {{sceneId:string, folder?:string, onProgress?:(text:string)=>void}} args
+ *   folder: the book whose keyed hexes belong to this map (hex-prints.mjs), because another book's keyed hexes have
+ *   numbers of their own, and a card must not skip a hex it only shares a number with.
+ *   onProgress: hears what the engine is doing (reading cells k of n, sorting, classifying), from the first read of the
+ *   image to the end of Apply, since there is no window to show it.
  * @returns {Promise<{cards:()=>object[], answer:Function, pick:Function, apply:()=>Promise<boolean>, close:()=>void}>}
  *   cards(): what the window draws (idx, size, thumbs, terrainOptions, and for an opened card its picks)
  *   answer(idx, value, other): a card's name; true when the card opened up and wants redrawing
  *   pick(idx, num, value, other): the name of one hex of an opened card
  *   apply(): name every hex from the answers; true when it did (a card still in question, or a refusal, is false)
  */
-export async function openLegendSession({ sceneId, folder = "" }) {
+export async function openLegendSession({ sceneId, folder = "", onProgress = null }) {
   const scene = game.scenes.get(sceneId);
   if (!game.user?.isGM || !scene) throw new Error("This map is not here to read.");
   await scene.view();
   const [{ HexTaggerApp, ALL_CRAWLS, SPLIT }, { sourceFolderName }] = await Promise.all([import("./hex-tagger-app.mjs"), import("../shared/compendium-suite.mjs")]);
   const app = new HexTaggerApp();
   app._headless = true;
+  app._onProgress = onProgress;
   app._loadState();
   await app._loadEntries();
   if (folder) app._entries = app._entries.filter((e) => sourceFolderName(e.doc.getFlag(MODULE_ID, HEX_FLAG)?.source) === folder);
   app._entryUuid = app._entries.length ? ALL_CRAWLS : "";
+  onProgress?.(game.i18n.localize("SDE.hexMap.progress.image"));
   // As the image flow does: read the map, read its region borders (they finish without asking anything), then the cards.
   if (!(await app._onSample())) throw new Error(app._error || "The map could not be read.");
   await app._onScanRegions();

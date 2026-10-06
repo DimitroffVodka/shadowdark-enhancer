@@ -113,10 +113,10 @@ export class ImportWizardApp extends HandlebarsApplicationMixin(ApplicationV2) {
         if (files.length) await hexMapFromFile(files, { name: title, mapId: id, firstNum: hexPrint(id)?.firstNum ?? "0000" });
       },
       // The Terrain page: read a hex map and build its Legend cards (hex-legend-session.mjs), on this page rather than the tagger's.
-      legendOpen: async ({ id, sceneId }) => {
+      legendOpen: async ({ id, sceneId }, onProgress) => {
         app._tookCanvas = true;
         const { openLegendSession } = await import("../../hex-map/hex-legend-session.mjs");
-        return openLegendSession({ sceneId, folder: hexPrint(id)?.folder });
+        return openLegendSession({ sceneId, folder: hexPrint(id)?.folder, onProgress });
       },
       // A map whose terrain was left for later: the tagger's own Legend, on that map.
       openLegend: async (sceneId) => {

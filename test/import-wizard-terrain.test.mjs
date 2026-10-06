@@ -21,12 +21,12 @@ const fakeLegend = ({ opens = null, applies = true, cards = [{ idx: 0, size: 40,
 };
 
 /** A controller whose run has finished with these hex results, sitting on the page after the import. */
-async function afterRun(hex, { legends = {}, openFails = [] } = {}) {
+async function afterRun(hex, { legends = {}, openFails = [], steps = [] } = {}) {
   const opened = [];
   const ctl = new WizardController({
     t, release: async () => {},
     run: async () => ({ imported: 1, already: 0, needsYou: [], hex }),
-    legendOpen: async (m) => { opened.push(m); if (openFails.includes(m.id)) throw new Error("the map would not load"); return (legends[m.id] ??= fakeLegend()); },
+    legendOpen: async (m, onProgress) => { opened.push(m); for (const text of steps) onProgress?.(text); if (openFails.includes(m.id)) throw new Error("the map would not load"); return (legends[m.id] ??= fakeLegend()); },
   }, () => {});
   ctl.state.page = "ready"; ctl.state.check = { done: true, ready: [], problems: [], items: [] };
   await ctl.dispatch("next");
@@ -138,4 +138,35 @@ test("closing the wizard lets the current Legend go", async () => {
   ctl.state.page = "done";
   await ctl.dispatch("next");     // Finish
   assert.equal(legend.log.closed, 1);
+});
+
+test("what the engine reports while it reads the map shows on the page as it goes, and is gone once the cards are", async () => {
+  const { ctl } = await afterRun([HEX("hex-cs1")], { steps: ["Reading the map image…", "Reading cells 200 of 4736…"] });
+  // the steps were told before the cards came; the page keeps the last one until Apply or the next map clears it
+  assert.equal(ctl.state.terrain.progress, "Reading cells 200 of 4736…");
+  ctl.state.terrain.stage = "reading";
+  ctl.state.terrain.progress = "Sorting cells by glyph… pass 1 of 3, step 4";
+  assert.equal(ctl.viewModel().terrain.progress, "Sorting cells by glyph… pass 1 of 3, step 4");
+  ctl.state.terrain.stage = "cards";
+  await ctl.dispatch("next");
+  assert.equal(ctl.state.page, "done");
+  assert.equal(ctl.state.terrain.progress, "", "Apply's own progress is cleared when it finishes");
+});
+
+test("progress during Apply is shown on the page (classifying done of total) and each map starts with none", async () => {
+  const a = fakeLegend();
+  const opened = [];
+  const ctl = new WizardController({
+    t, release: async () => {},
+    run: async () => ({ imported: 0, already: 0, needsYou: [], hex: [HEX("hex-cs1"), HEX("hex-cs2")] }),
+    legendOpen: async (m, onProgress) => { opened.push(onProgress); onProgress(`reading ${m.id}`); return a; },
+  }, () => {});
+  ctl.state.page = "ready"; ctl.state.check = { done: true, ready: [], problems: [], items: [] };
+  await ctl.dispatch("next");
+  const during = [];
+  a.apply = async () => { opened[0]("Classifying 100 of 178…"); during.push(ctl.viewModel().terrain.progress); return true; };
+  await ctl.dispatch("next");
+  assert.deepEqual(during, ["Classifying 100 of 178…"]);
+  assert.match(ctl.viewModel().terrain.heading, /"n":2/);
+  assert.equal(ctl.viewModel().terrain.progress, "reading hex-cs2", "the second map shows its own reading, not the last map's classifying");
 });
