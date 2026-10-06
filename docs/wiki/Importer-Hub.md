@@ -415,6 +415,18 @@ Building a scene, **Auto-place**, or the **skull button** in the Place locations
 them down; a creature already on the map is never placed twice, and one you delete comes
 back the next time. For pins you placed by hand, press the skull button once they are down.
 
+**Walls, doors and light come with the scene for some maps.** The module carries the wall and
+door positions of the maps it has measured (positions only, no map and no book text), and builds
+them with the pins: a wall along every room, corridor and cave, a closed door where the map
+draws one, and the book's fixed lights. Today that is the Hideous Halls of Mugdulblub and the
+Iron Fortress (the Fortress of the Burning Brothers); the other maps follow one at a time. The
+creatures filed under a room are placed in that room's own squares, never in the rock, in
+another room or behind a closed door. Building again replaces only the walls and lights the
+module made, never ones you added, and a scene whose picture is not the shape of the book's
+map gets none. A light only shows once the scene is darkened (the Darkness slider in the
+scene's settings): the module leaves the scene as it is, because a fully dark scene hides even
+your own hidden creatures from you.
+
 **Monster names are links.** In a room's journal page, every creature name the book sets in
 bold that your bestiary knows (the core bestiary first, then your imported monsters) is a
 link to that monster, so a room opens the stat block it names; a bold word that is not a

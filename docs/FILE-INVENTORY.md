@@ -1,7 +1,7 @@
 # Shadowdark Enhancer — File Inventory
 
 <!-- inventory:stats:start -->
-1762 tracked files · ~220,300 lines of code/markup across scripts+templates+styles+test.
+1762 tracked files · ~220,600 lines of code/markup across scripts+templates+styles+test.
 `v0.17.3` in both `module.json` and `package.json`.
 <!-- inventory:stats:end -->
 **Layout reflects the 2026-07-21 feature-folder reorganization (v0.11.0 cycle).**
@@ -388,7 +388,7 @@
 | `adventure/adventure-parser.mjs` | 246 | Numbered-location parser for printed adventures (pure): "12. METEORITE ROOM" and "12. Meteorite Room. Body" headings, a run rule that keeps a numbered list inside a room out of the key, missing-number reports, page HTML with bullets and "Area 12" links. |
 | `adventure/adventure-placer.mjs` | 374 | The keyed-location placer (AppV2): lists a map's locations and turns the canvas into a one-click target, dropping each numbered Note and arming the next; skip and clear per location, resumable. |
 | `adventure/adventure-scene.mjs` | 550 | A filed adventure as a map Scene: scene sized from the GM's image and the book's printed grid, the journal deployed into the world, and the pure rules for which locations are placed, skipped or still to do (remembered on the scene's notes and flag); also the hidden tokens for the creatures the book's map marks and the ones each location's text names, spread on free squares around its pin. |
-| `adventure/adventure-walls.mjs` | 550 | The walls, doors and solid furniture of each adventure's map as positions (fractions of the map picture), made ahead of time and checked by a leak test; the pure planner that turns them into Wall documents. No map art or book text. |
+| `adventure/adventure-walls.mjs` | 879 | The walls, doors and solid furniture of each adventure's map as positions (fractions of the map picture), made ahead of time and checked by a leak test; the pure planner that turns them into Wall documents. No map art or book text. |
 | `adventure/map-detect.mjs` | 57 | Which adventure a map image is of (pure): the file name's words, minus sizes and version words, matched against each site's title and map names, the longest name winning and a tie meaning the GM is asked. |
 | `adventure/map-labels.mjs` | 48 | Where the book puts each room number on its own map (pure): the page reads of a keyed map (one picture per page, numbers as text over it, two pages for a spread) stitched into one point per number as a fraction of the map, plus the shape check against the GM's image. No coordinates ship; they come from the GM's own PDF. |
 | `chapter-journal.mjs` | 317 | Chapter to journal (#194): a printed page range of a linked book → one JournalEntry in the journals pack, split at ALL-CAPS headings (or a preset's sections, e.g. the GM Guide's City-States) and reflowed, with page furniture dropped. Identity by flag, so a re-import updates in place and keeps GM pages; pages naming a key location link to its hex page and back. Presets are page numbers only. |
