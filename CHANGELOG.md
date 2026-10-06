@@ -57,6 +57,7 @@ stays optional. Where a feature hands data to it, the entry says which Extras
 it needs.
 
 ### Added
+- **A book too big to upload can be used straight from your computer.** On a host that refuses a book-sized upload (The Forge takes 50 MB a file on the Game Master plan; the Player's Guide is 145 MB), **Tools → Source PDFs → Use once** (now the default button, beside **Upload and keep**) lets the importer read the PDF from your own machine. Nothing is uploaded and nothing is saved in the world: the file is held in the browser while the import runs and let go when it finishes or the Importer closes (a stopped run keeps it). When an upload is refused the importer offers this instead of leaving you to start over. A book used this way has no "Open PDF" viewer links, because the viewer opens a URL. On The Forge the Source PDFs window says how big a file can be.
 - **Free movement crawl** (Settings → Movement, off by default): in the dungeon crawl, outside combat, drop feet and turns. The strip hides the movement pill and the crawl initiative dice, order arrows and Reset, the ruler stops colouring against a budget, nothing is deducted or refused, and the out-of-turn lock no longer applies; the GM ends each round with Next Round, which still drives torches, light and the wandering-encounter check. Combat keeps feet, initiative and the lock exactly as before, and hex travel is unaffected.
 
 - **Monster names in adventure text are links.** In every adventure's room pages (and

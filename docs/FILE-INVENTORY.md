@@ -1,7 +1,7 @@
 # Shadowdark Enhancer — File Inventory
 
 <!-- inventory:stats:start -->
-1491 tracked files · ~221,000 lines of code/markup across scripts+templates+styles+test.
+1509 tracked files · ~223,100 lines of code/markup across scripts+templates+styles+test.
 `v0.17.3` in both `module.json` and `package.json`.
 <!-- inventory:stats:end -->
 **Layout reflects the 2026-07-21 feature-folder reorganization (v0.11.0 cycle).**
@@ -304,24 +304,24 @@
 
 | File | Lines | Description |
 |---|---:|---|
-| `importer-hub-app.mjs` | 983 | **The single front door (shell).** ApplicationV2 lifecycle, singleton, instance fields/caches, `_prepareContext`; installs the three method packs below onto the class (split 2026-07-22). |
+| `importer-hub-app.mjs` | 985 | **The single front door (shell).** ApplicationV2 lifecycle, singleton, instance fields/caches, `_prepareContext`; installs the three method packs below onto the class (split 2026-07-22). |
 | `importer-hub-paste.mjs` | 1581 | Paste box, type selector, parse dispatch, per-type preview field/row wiring. |
 | `importer-hub-commit.mjs` | 970 | Conflict dialogs, quality gates, magic-bundle plan, all per-type commit flows. |
 | `importer-hub-manage.mjs` | 1288 | Manage strip: censuses + caches, manage tree, gap/seed/cull, source-PDF grab/extract. |
-| `importer-hub-batch.mjs` | 729 | Batch “Import everything” runner: seeds, grabs, parses and commits each planned entry unattended. |
+| `importer-hub-batch.mjs` | 734 | Batch “Import everything” runner: seeds, grabs, parses and commits each planned entry unattended. |
 | `importer-hub-rules.mjs` | 113 | Importer Hub Rules Data step (#299; first in the Manage strip since #311): lists each Western Reaches lookup table with its book, page and filled or empty state, runs the settings window's own import (importAndSave) from the hub, opens the Edit window, and is Import everything's last step when a book is linked. |
 | `importer-hub-shared.mjs` | 110 | Hub-shared constants/helpers + `installMethods` (the split's descriptor copier). |
 | `importer-hub-news.mjs` | 123 | What a module update added to the import library: snapshots every Manage-tree row once per module version, diffs the new snapshot against the last, and hands the hub the rows this release added but the GM has not imported (the "New" filter and badge) plus a one-time notice. |
-| `importer-hub-maintenance.mjs` | 282 | Tools-menu bodies (bundle export/import, source-PDF library). |
+| `importer-hub-maintenance.mjs` | 312 | Tools-menu bodies (bundle export/import, source-PDF library). |
 | `dump-segmenter.mjs` | 308 | Routes a mixed dump through the recognizer registry: hexcrawl → spell → monster → item → table. |
 | `bundle-io.mjs` | 410 | Whole-suite export/import as one JSON; validates, skips existing, never overwrites. |
 | `manage-tree.mjs` | 705 | Composes the folder/sub-folder unlock-review tree the Manage strip renders. |
 | `batch-import.mjs` | 263 | Pure batch planner: locked tree rows → deduped import jobs, routes, and the run report. |
-| `pdf-text-extract.mjs` | 965 | Clean reading-ordered PDF text via Foundry's bundled PDF.js; column-aware gutter detection. |
+| `pdf-text-extract.mjs` | 1009 | Clean reading-ordered PDF text via Foundry's bundled PDF.js; column-aware gutter detection. |
 | `pdf-text-utils.mjs` | 167 | Shared PDF-text helpers + the HTML-safety contract. |
-| `source-pdf-registry.mjs` | 319 | Content source → the user's own uploaded PDF, for page deep-links. |
+| `source-pdf-registry.mjs` | 327 | Content source → the user's own uploaded PDF, for page deep-links. |
 | `source-pdf-viewer.mjs` | 66 | Singleton ApplicationV2 embedding Foundry's PDF.js viewer at a given page. |
-| `char-content/char-content-manifest.mjs` | 1904 | Metadata-only manifest of CS4–6 + WR char-builder content (names/types/sources, no rules text) + `parseCharContent` + census. |
+| `char-content/char-content-manifest.mjs` | 1917 | Metadata-only manifest of CS4–6 + WR char-builder content (names/types/sources, no rules text) + `parseCharContent` + census. |
 | `char-content/class-parser.mjs` | 1100 | Class section → structured unit (writeup, talents, tables, spellcasting). Pure. |
 | `char-content/class-importer-app.mjs` | 802 | Purpose-built single-view class workspace. |
 | `char-content/class-unit-importer.mjs` | 1449 | Class unit → real documents in dependency order. |
@@ -392,8 +392,15 @@
 | `hex/hex-summary.mjs` | 174 | Keyed hex summary rows (number, region, terrain, name) → structured rows; zone/terrain split decided by the table. Pure. |
 | `importer-hub-adventures.mjs` | 184 | Hub Tools → Adventures (file a Cursed Scroll's adventures as journals) and Adventure map (build the scene from the GM's image and open the placer); installed onto the hub class. |
 | `items/record-boundary.mjs` | 210 | Where one pasted description record ends and the next begins. Pure. |
+| `session-pdf.mjs` | 61 | Source PDFs given from the GM's own computer for one session, for hosts that refuse a book-sized upload (The Forge): the picked files, the `session-pdf:` pseudo-path they resolve to, and the Forge check. Never uploaded or saved; released when the import is done. |
 | `tables/cursed-scroll-tables.mjs` | 190 | The Cursed Scrolls' hexcrawl and adventure tables (rumors, region and site encounters, weather, points of interest, NPC rosters, d20 treasure lists): one entry per Manage row with its catalogue id, page cite and recipe, read by the shape registry, the Manage tree and the catalogue's names. The regions are named as the key-location entries are, so a CS hex finds its zone tables. Structure only. |
 | `tables/patron-items.mjs` | 223 | Patron Items for the imported WR boon tables (#167): find-or-create in `patrons-and-deities`, plus the ready-time rename/link backfill. |
+| `wizard/map-master.mjs` | 81 | Master list of the books' own maps: each map's measured pixel shape, which names a file must or must not carry to be it (not a GM's overlay, a later copy or a stitched whole), and which of two shipped copies to prefer. Pure data. |
+| `wizard/wizard-check.mjs` | 136 | Import wizard Check page: makes sure each picked book opens (and uploads, when kept) and each map opens, has the right shape and is uploaded; a problem carries a plain reason and its fixes. Foundry calls come in as env. |
+| `wizard/wizard-controller.mjs` | 287 | Import wizard controller: owns the state, answers clicks and file drops, and describes the current page as plain data for the template. The Foundry window and the browser preview both drive it. |
+| `wizard/wizard-core.mjs` | 256 | Import wizard brain, pure: the page flow and its guards, which book or map a picked file is (from the module's own manifests), and the catalogue of everything the wizard asks for. |
+| `wizard/wizard-dom.mjs` | 55 | Import wizard browser wiring: the file dialog, drop zones and click delegation, shared by the Foundry window and the preview. |
+| `wizard/zip-reader.mjs` | 103 | Reads a downloaded .zip in the browser with no library (the browser's own DecompressionStream): lists the files in it and inflates only the books and maps the wizard wants, so a new user never unzips anything. |
 
 ### 3.13 `scripts/actors/` — Mount, Warband & Boat sub-types
 

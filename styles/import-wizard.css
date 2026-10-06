@@ -1,0 +1,103 @@
+/* The import wizard: one page at a time, Back / Next / Cancel in the same place on every page.
+   Colours and type follow docs/design-contract.md. Everything is scoped under .sde-wiz. */
+
+.sde-import-wizard .window-content { padding: 0; }
+
+.sde-wiz {
+  display: flex; flex-direction: column; height: 100%; min-height: 0;
+  background: #0a0a0a; color: #e0e0e0; font-family: Signika, sans-serif; font-size: 14px;
+}
+
+/* Header band: what this page is, and where in the wizard we are. */
+.sde-wiz-head {
+  display: flex; align-items: flex-start; justify-content: space-between; gap: 12px;
+  padding: 14px 16px 12px; border-bottom: 1px solid #333;
+}
+.sde-wiz-titles { min-width: 0; }
+.sde-wiz-title { margin: 0; border: 0; font-family: "Old Newspaper Font", serif; font-size: 26px; line-height: 1.1; font-weight: 400; color: #e0e0e0; }
+.sde-wiz-sub { margin: 4px 0 0; color: #888; font-size: 13px; }
+.sde-wiz-dots { display: flex; gap: 5px; list-style: none; margin: 6px 0 0; padding: 0; flex: 0 0 auto; }
+.sde-wiz-dots li { width: 9px; height: 9px; border-radius: 50%; background: #2a2a2a; border: 1px solid #444; }
+.sde-wiz-dots li.is-done { background: #4f7a4f; border-color: #4f7a4f; }
+.sde-wiz-dots li.is-current { background: #e6d19b; border-color: #e6d19b; }
+
+.sde-wiz-body { flex: 1 1 auto; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; padding: 14px 16px; }
+
+.sde-wiz-card { border: 1px solid #333; border-radius: 6px; padding: 12px; display: flex; flex-direction: column; gap: 8px; }
+.sde-wiz-card p, .sde-wiz-count, .sde-wiz-drop p { margin: 0; font-size: 14px; line-height: 1.4; }
+.sde-wiz-card h3 { margin: 0; border: 0; font-size: 14px; font-weight: 700; color: #e0e0e0; }
+.sde-wiz-muted { margin: 0; color: #888; font-size: 12px; font-style: italic; }
+.sde-wiz-note { flex-direction: row; align-items: flex-start; gap: 10px; background: rgba(230, 209, 155, .06); border-color: #4a4330; }
+.sde-wiz-note > i { color: #e6d19b; margin-top: 3px; }
+.sde-wiz-note strong { display: block; margin-bottom: 4px; }
+.sde-wiz-steps { margin: 6px 0 0; padding-left: 18px; color: #bbb; }
+.sde-wiz-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.sde-wiz-list i { width: 18px; color: #e6d19b; }
+
+/* An either/or choice, as an installer's radio rows. */
+.sde-wiz-opt { display: flex; gap: 10px; align-items: flex-start; padding: 10px; border: 1px solid #2a2a2a; border-radius: 6px; background: #1a1a1a; cursor: pointer; }
+.sde-wiz-opt.is-picked { border-color: #e6d19b; }
+.sde-wiz-opt input { margin: 3px 0 0; flex: 0 0 auto; }
+.sde-wiz-opt span { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.sde-wiz-opt small { font-size: 12px; color: #aaa; }
+
+/* Where files are dropped. */
+.sde-wiz-drop {
+  display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 18px 12px;
+  border: 2px dashed #3a3a3a; border-radius: 8px; text-align: center; color: #bbb;
+}
+.sde-wiz-drop > i { font-size: 28px; color: #666; }
+.sde-wiz-drop p { margin: 0; }
+.sde-wiz-drop.is-over { border-color: #e6d19b; background: rgba(230, 209, 155, .05); }
+.sde-wiz-count { margin: 0; color: #888; }
+.sde-wiz-count strong { color: #e0e0e0; font-size: 16px; }
+
+/* A list of expected files and what is added. */
+.sde-wiz-files { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.sde-wiz-file { display: grid; grid-template-columns: 18px minmax(0, 1fr) auto auto; gap: 8px; align-items: center; padding: 6px 8px; background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 4px; }
+.sde-wiz-file > i { color: #555; }
+.sde-wiz-file.is-added > i { color: #7bb77b; }
+.sde-wiz-file-name { display: flex; flex-direction: column; min-width: 0; overflow-wrap: anywhere; }
+.sde-wiz-file-name small { font-size: 11px; color: #888; font-style: italic; overflow-wrap: anywhere; }
+.sde-wiz-file-name .sde-wiz-extra { color: #e6d19b; font-style: normal; }
+.sde-wiz-file-size { font-size: 11px; color: #888; white-space: nowrap; }
+.sde-wiz-x { width: 24px; height: 24px; padding: 0; border: 0; background: none; color: #888; cursor: pointer; border-radius: 4px; }
+.sde-wiz-x:hover { color: #e0e0e0; background: #2a2a2a; }
+
+.sde-wiz-group { display: flex; flex-direction: column; gap: 6px; }
+.sde-wiz-group-head {
+  display: flex; align-items: center; gap: 8px; width: 100%; min-height: 28px; padding: 4px 8px;
+  background: #141414; border: 1px solid #2a2a2a; border-radius: 4px; color: #e0e0e0; cursor: pointer; text-align: left;
+}
+.sde-wiz-group-head i { width: 12px; color: #888; font-size: 11px; }
+.sde-wiz-group-head span { flex: 1 1 auto; font-weight: 700; }
+.sde-wiz-group-head em { font-style: normal; color: #888; font-size: 12px; }
+
+/* Progress, for the check and for the import itself. */
+.sde-wiz-run { align-items: stretch; text-align: center; gap: 12px; padding: 22px 14px; }
+.sde-wiz-pct { font-family: "Old Newspaper Font", serif; font-size: 54px; line-height: 1; }
+.sde-wiz-pct small { font-size: 22px; color: #888; }
+.sde-wiz-bar { height: 10px; background: #1a1a1a; border: 1px solid #333; border-radius: 5px; overflow: hidden; }
+.sde-wiz-bar span { display: block; height: 100%; background: #e6d19b; transition: width .2s ease; }
+
+.sde-wiz-problem { border-color: #5a4a2a; }
+.sde-wiz-problem-head { display: flex; gap: 8px; align-items: baseline; }
+.sde-wiz-problem-head i { color: #e6b45b; }
+.sde-wiz-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+.sde-wiz-stats { display: flex; gap: 8px; flex-wrap: wrap; }
+.sde-wiz-stats > div { flex: 1 1 90px; display: flex; flex-direction: column; padding: 6px 10px; background: rgba(0, 0, 0, .3); border-radius: 4px; }
+.sde-wiz-stats strong { font-size: 22px; }
+.sde-wiz-label { font-size: 11px; text-transform: uppercase; color: #888; }
+
+/* Footer: the same three buttons in the same place on every page. */
+.sde-wiz-foot { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 16px; border-top: 1px solid #333; }
+.sde-wiz-buttons { display: flex; gap: 8px; align-items: center; margin-left: auto; }
+.sde-wiz-advanced { font-size: 11px; color: #777; text-decoration: underline; cursor: pointer; }
+.sde-wiz .sde-import-primary, .sde-wiz .sde-import-secondary {
+  min-height: 28px; padding: 0 14px; border-radius: 4px; cursor: pointer; font-family: "Old Newspaper Font", serif; font-size: 13px;
+}
+.sde-wiz .sde-import-primary { background: #e6d19b; color: #0a0a0a; border: 1px solid #e6d19b; }
+.sde-wiz .sde-import-primary:disabled { opacity: .4; cursor: not-allowed; }
+.sde-wiz .sde-import-secondary { background: #1a1a1a; color: #e0e0e0; border: 1px solid #333; }
+.sde-wiz-foot .sde-import-primary { min-height: 32px; }

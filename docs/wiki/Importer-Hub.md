@@ -457,6 +457,14 @@ match its PDF pages, and either printing works — the standard one or the
   [Troubleshooting](Troubleshooting.md#uploading-a-book-pdf-is-rejected-as-too-large)).
   Put the file in your Foundry data folder by any route you like, press the
   button and pick it.
+- **Use once** (the default) or **Upload and keep**: most people only need a
+  book for the one import, so **Use once** reads it straight from your machine,
+  with no upload, and is the way past hosts that refuse a book-sized file (The Forge takes 50 MB a file
+  on the Game Master plan; the Player's Guide is 145 MB). The file is held in
+  your browser while the import runs and let go when it finishes or you close
+  the Importer; a stopped run keeps it so you can carry on. Nothing is saved in
+  the world, so after a reload you pick it again. Such a book has no *Open PDF*
+  viewer links. If an upload is refused, the importer offers this on the spot.
 - **A link is only as good as the file behind it.** Every linked book is
   checked when the library opens, so one whose file has moved or was never
   written reads as missing rather than linked. Books in a host's asset library

@@ -30,6 +30,7 @@
 import { installMethods, t } from "./importer-hub-shared.mjs";
 import { CHAR_SOURCES, citesForTable } from "./char-content/char-content-manifest.mjs";
 import { sourcePdfTarget } from "./source-pdf-registry.mjs";
+import { releaseLocalPdfs } from "./pdf-text-extract.mjs";
 import { firstLinkedCite } from "./manage-tree.mjs";
 import { MODULE_ID } from "../shared/module-id.mjs";
 import { ROUTE, planBatch, summarizeBatch } from "./batch-import.mjs";
@@ -208,10 +209,14 @@ class HubBatchMethods {
         await breathe();
       }
     } finally {
+      const stopped = this._batchState?.cancelled;
       restoreNotifications();
       this._batchAuto = null;
       this._batchState = null;
       await this._batchCloseApps();
+      // A book the GM gave us from their computer is let go the moment the run is
+      // done with it. A stopped run keeps it, so Import everything can pick up again.
+      if (!stopped) await releaseLocalPdfs();
       // The run created content, so every census the tree is built from is
       // stale. Rebuild once at the end rather than after each job — a census
       // pass per entry would cost more than the imports themselves.

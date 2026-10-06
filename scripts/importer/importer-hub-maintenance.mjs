@@ -138,6 +138,7 @@ export async function manageSourcePdfs(app) {
   if (!game.user?.isGM) { ui.notifications.warn(t("SDE.importer.notify.gmOnlyPdfs")); return; }
   const { listSourcePdfs, uploadSourcePdf, registerSourcePdf, sourcePdfBookHref, customSourceKey, sourceLabel } =
     await import("./source-pdf-registry.mjs");
+  const { useSessionPdf, onTheForge, FORGE_UPLOAD_LIMIT_MB } = await import("./session-pdf.mjs");
 
   const rows = await listSourcePdfs();
   const statusList = rows.map((r) => {
@@ -145,9 +146,10 @@ export async function manageSourcePdfs(app) {
     const icon = r.linked ? "fa-file-pdf" : "fa-file-circle-xmark";
     // A verified upload, the shared default path (HEAD-checked), or a default
     // that points at nothing on this deployment. (review 2026-07-12 #5)
-    const note = r.origin === "fallback"
-      ? t(r.linked ? "SDE.importer.srcpdf.defaultPath" : "SDE.importer.srcpdf.defaultMissing")
-      : "";
+    const note = r.origin === "session" ? t("SDE.importer.srcpdf.sessionRow")
+      : r.origin === "fallback"
+        ? t(r.linked ? "SDE.importer.srcpdf.defaultPath" : "SDE.importer.srcpdf.defaultMissing")
+        : "";
     // `data-src` + the open hint only on rows that actually resolve to a file.
     const open = r.linked
       ? ` data-src="${foundry.utils.escapeHTML(r.src)}" title="${t("SDE.importer.srcpdf.openTip")}"`
@@ -161,6 +163,14 @@ export async function manageSourcePdfs(app) {
     // Anything that isn't a Shadowdark book — third-party adventures, homebrew.
     + `<option value="${NEW_BOOK}">${t("SDE.importer.srcpdf.anotherBook")}</option>`;
 
+  const readPick = (dialog, extra = {}) => {
+    const root = dialog.element ?? dialog;
+    const src = root.querySelector("select[name='src']")?.value;
+    const file = root.querySelector("input[name='pdf']")?.files?.[0] ?? null;
+    const newLabel = root.querySelector("input[name='newlabel']")?.value?.trim() ?? "";
+    return file ? { src, file, newLabel, ...extra } : null;
+  };
+
   const picked = await foundry.applications.api.DialogV2.wait({
     // Without a width DialogV2 sizes to content, and the intro paragraph is one
     // long line — the dialog came out nearly as wide as the screen.
@@ -168,6 +178,7 @@ export async function manageSourcePdfs(app) {
     position: { width: 620 },
     content: `
       <p>${t("SDE.importer.srcpdf.lead")}</p>
+      ${onTheForge() ? `<p class="sde-srcpdf-tip"><i class="fas fa-circle-info"></i> ${t("SDE.importer.srcpdf.forgeNote", { limit: FORGE_UPLOAD_LIMIT_MB })}</p>` : ""}
       <p class="sde-srcpdf-tip"><i class="fas fa-hand-pointer"></i>
       ${t("SDE.importer.srcpdf.tip")}</p>
       <ul class="sde-srcpdf-list">${statusList}</ul>
@@ -178,14 +189,16 @@ export async function manageSourcePdfs(app) {
       </div>`,
     buttons: [
       {
-        action: "upload", label: t("SDE.importer.srcpdf.upload"), default: true,
-        callback: (ev, button, dialog) => {
-          const root = dialog.element ?? dialog;
-          const src = root.querySelector("select[name='src']")?.value;
-          const file = root.querySelector("input[name='pdf']")?.files?.[0] ?? null;
-          const newLabel = root.querySelector("input[name='newlabel']")?.value?.trim() ?? "";
-          return file ? { src, file, newLabel } : null;
-        },
+        // The default. Most people only need the book for one import, and a host may refuse
+        // a book-sized upload (The Forge: 50 MB a file). Nothing is uploaded; the importer
+        // reads the file from this computer and lets it go when the import is done
+        // (session-pdf.mjs).
+        action: "session", label: t("SDE.importer.srcpdf.useHere"), default: true,
+        callback: (ev, button, dialog) => readPick(dialog, { session: true }),
+      },
+      {
+        action: "upload", label: t("SDE.importer.srcpdf.upload"),
+        callback: (ev, button, dialog) => readPick(dialog),
       },
       {
         // For a book the upload route cannot take: a proxy in front of Foundry
@@ -212,7 +225,9 @@ export async function manageSourcePdfs(app) {
       // "Another book…" needs a name to file it under; only ask when picked.
       const sel = root?.querySelector?.("select[name='src']");
       const newLabel = root?.querySelector?.("input[name='newlabel']");
+      const sessionBtn = root?.querySelector?.("[data-action='session']");
       sel?.addEventListener("change", () => {
+        if (sessionBtn) sessionBtn.hidden = sel.value === NEW_BOOK;   // only the known books can come from this computer
         newLabel.hidden = sel.value !== NEW_BOOK;
         if (!newLabel.hidden) newLabel.focus();
       });
@@ -268,12 +283,27 @@ export async function manageSourcePdfs(app) {
     return;
   }
 
+  const fromHere = () => {
+    useSessionPdf(src, picked.file);
+    ui.notifications.info(t("SDE.importer.srcpdf.sessionLinked", { book }));
+    app._invalidateManageTree?.();
+    app.render();
+    return manageSourcePdfs(app);
+  };
+  if (picked.session) return fromHere();
+
   try {
     const path = await uploadSourcePdf(src, picked.file, label);
     ui.notifications.info(t("SDE.importer.srcpdf.linked", { book, file: path.split("/").pop() }));
   } catch (err) {
     console.error("[SDE] source PDF upload failed", err);
-    ui.notifications.error(t("SDE.importer.srcpdf.uploadFailed"));
+    // The file is already in the browser: offer to use it from there instead of making them start over.
+    const useHere = !label && await foundry.applications.api.DialogV2.confirm({   // a new custom book cannot come from here
+      window: { title: t("SDE.importer.srcpdf.title"), icon: "fas fa-file-pdf" },
+      content: `<p>${t("SDE.importer.srcpdf.uploadFailed")}</p><p>${t("SDE.importer.srcpdf.useInstead", { file: foundry.utils.escapeHTML(picked.file.name) })}</p>`,
+      rejectClose: false,
+    }).catch(() => false);
+    if (useHere) return fromHere();
     return manageSourcePdfs(app);
   }
   app._invalidateManageTree?.();   // the new link changes what the tree can run

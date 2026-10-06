@@ -27,6 +27,7 @@
 import { MODULE_ID } from "../shared/module-id.mjs";
 import { CHAR_SOURCES, SOURCE_PDFS } from "./char-content/char-content-manifest.mjs";
 import { fileRoute } from "../shared/file-route.mjs";
+import { isSessionPdf, sessionPdfPath, hasSessionPdf, sessionPdfName } from "./session-pdf.mjs";
 
 const JOURNAL_NAME = "Shadowdark Source PDFs";
 const LIB_FLAG = "sourcePdfLibrary";   // marks the library JournalEntry
@@ -151,6 +152,9 @@ export async function ensureLibraryJournal() {
  * @returns {string|null}
  */
 export function resolveSourcePdf(src) {
+  // A book the GM gave us from their own computer for this session (session-pdf.mjs)
+  // beats any link: they picked it on purpose, and a stale link is the usual reason.
+  if (hasSessionPdf(src)) return sessionPdfPath(src);
   const j = findLibraryJournal();
   if (j) {
     for (const p of j.pages) {
@@ -172,7 +176,7 @@ export function resolveSourcePdf(src) {
 export function sourcePdfHref(src, pages) {
   const file = resolveSourcePdf(src);
   const page = firstPage(pages);
-  if (!file || !page) return null;
+  if (!file || !page || isSessionPdf(file)) return null;   // the viewer opens a URL; a session book has none
   // Shift the printed cite to the PDF's own page numbering (see PAGE_OFFSETS).
   const pdfPage = page + (PAGE_OFFSETS[src] ?? 0);
   const viewer = foundry.utils.getRoute("scripts/pdfjs/web/viewer.html");
@@ -188,7 +192,7 @@ export function sourcePdfHref(src, pages) {
  */
 export function sourcePdfBookHref(src) {
   const file = resolveSourcePdf(src);
-  if (!file) return null;
+  if (!file || isSessionPdf(file)) return null;
   const viewer = foundry.utils.getRoute("scripts/pdfjs/web/viewer.html");
   return `${viewer}?file=${encodeURIComponent(fileRoute(file))}`;
 }
@@ -249,6 +253,10 @@ export async function listSourcePdfs() {
   const j = findLibraryJournal();
   const rows = [];
   for (const [src, meta] of Object.entries(CHAR_SOURCES)) {
+    if (hasSessionPdf(src)) {   // from this computer, this session only: nothing on the server to check
+      rows.push({ src, label: meta.label, book: meta.book, file: sessionPdfName(src), origin: "session", linked: true, custom: false });
+      continue;
+    }
     const page = j?.pages.find((p) => p.type === "pdf" && p.src && p.getFlag(MODULE_ID, KEY_FLAG) === src);
     const file = page?.src ?? SOURCE_PDFS[src] ?? null;
     const origin = page ? "journal" : (SOURCE_PDFS[src] ? "fallback" : null);

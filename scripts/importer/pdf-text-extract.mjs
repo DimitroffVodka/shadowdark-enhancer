@@ -30,6 +30,7 @@
 
 import { collapse, BOLD_OPEN, BOLD_CLOSE, mergeBold } from "./pdf-text-utils.mjs";
 import { fileRoute } from "../shared/file-route.mjs";
+import { isSessionPdf, sessionPdfFile, forgetSessionPdfs } from "./session-pdf.mjs";
 import { t as tr } from "./importer-hub-shared.mjs";
 
 /** Cached ESM import of Foundry's bundled PDF.js (loaded once per session). */
@@ -63,8 +64,47 @@ async function _lib() {
   return pdfjs;
 }
 
+/**
+ * Open a book the GM gave us from their computer (session-pdf.mjs). Read into
+ * memory only while it is being read, and only one such book at a time: a host
+ * small enough to refuse a 145 MB upload is small enough to feel two of them.
+ */
+async function _openSessionDoc(path) {
+  if (_docCache.has(path)) return _docCache.get(path);
+  const file = sessionPdfFile(path);
+  if (!file) throw new Error("This PDF was released when the import finished. Pick the file from your computer again.");
+  await _closeSessionDocs();
+  const p = _lib().then(async (pdfjs) => {
+    const data = new Uint8Array(await file.arrayBuffer());
+    return Promise.race([pdfjs.getDocument({ data, worker: _worker }).promise, _workerFailed]);
+  });
+  _docCache.set(path, p);
+  try {
+    return await p;
+  } catch (err) {
+    _docCache.delete(path);   // don't cache a failed open
+    throw err;
+  }
+}
+
+/** Destroy every opened session book, freeing the copy pdf.js holds. */
+async function _closeSessionDocs() {
+  for (const [key, p] of [..._docCache]) {
+    if (!isSessionPdf(key)) continue;
+    _docCache.delete(key);
+    await p.then((doc) => doc.destroy(), () => {});
+  }
+}
+
+/** Let go of every book given from this computer: the files and the opened copies. Call when the import is done. */
+export async function releaseLocalPdfs() {
+  forgetSessionPdfs();
+  await _closeSessionDocs();
+}
+
 /** Open (and cache) a PDF document for a served file path. */
 async function _openDoc(filePath) {
+  if (isSessionPdf(filePath)) return _openSessionDoc(filePath);
   const route = fileRoute(filePath);
   if (_docCache.has(route)) return _docCache.get(route);
   const p = _lib().then((pdfjs) => Promise.race([
@@ -935,6 +975,10 @@ export const _internals = {
   _cropTablePrefix,
   _readingSpace,
   PRICED_ROW_RE,
+  /** Test seam: use this pdf.js (and optionally its PDFWorker) instead of Foundry's bundled copy. */
+  _useLib(pdfjs, worker = undefined) { _pdfjs = pdfjs; _worker = worker; _workerFailed = new Promise(() => {}); },
+  _openDoc,
+  _docCache,
 };
 
 /**

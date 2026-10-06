@@ -176,6 +176,11 @@ Link the file where it lies instead of uploading it:
    server** and pick the file. Nothing is uploaded, and the book links exactly
    as an upload would.
 
+If you cannot put the file on the server at all (The Forge has no SFTP, and
+its per-file limit follows your plan), choose the book under **Tools → Source
+PDFs** and press **Use once**. The importer reads the PDF from your
+machine without uploading it, and lets it go when the import finishes.
+
 Up to 0.17.3 a refused upload reported success: it linked the book to a file
 that was never written, so the library showed it as linked and every **Grab
 text** or batch import for that book failed later for no visible reason.

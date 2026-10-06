@@ -60,6 +60,19 @@ export const CHAR_SOURCES = {
 // resolveSourcePdf() prefers a world's uploaded (library-journal) PDF and falls
 // back to these, so every world auto-links the deep-link viewer without a
 // per-world upload. Keep these filenames in sync with the files in Data/assets/.
+//
+// The page cites in this module were built on these versions. The Arcane Library has since reissued some
+// (checked 2026-10-03 by comparing every page's text, and by running the hex-key parser on both):
+//   CS1 V4-3, CS2 V2-2, CS3 V3-5, CS4 V1-4, the Player's Guide, House of Rogues: byte-identical to the download.
+//   CS5 V1 -> V1-3: same 68 pages, none moved, 9 changed (typos, a credit date, a few words). The Morzomotha hex
+//     key is renumbered: 10 of its 23 locations changed hex (Wailing Tunnel 100 -> 010, Nightbound Sea 1208 ->
+//     1109 ...); the map image is identical, and the parser still reads all 23. A world that imported V1's key
+//     keeps those pages under the old numbers; re-importing V1-3 adds the new ones beside them.
+//   CS6 V1 -> V1-1: same 68 pages, 2 changed (credits, one rules sentence).
+//   GM's Guide: the file above is the "Horizontal Pages" edition; the standard edition has the same 312 pages
+//     with identical text on every one, so either works.
+//   Core V4-9 -> V4-9-2: same 332 pages, 6 errata (two spell ranges, a DC 14 -> 15, punctuation).
+// The Core Rulebook's file name changed too: it now ships as "Shadowdark RPG - V4-9-2.pdf", with no title in it.
 export const SOURCE_PDFS = {
   CORE: "assets/[Shadowdark RPG] - Core Rulebook - Shadowdark RPG (V4-9).pdf",
   WR:   "assets/Player_s_Guide_to_the_Western_Reaches_V1.pdf",

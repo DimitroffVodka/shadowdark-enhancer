@@ -24,6 +24,7 @@ import { CATEGORIES, CUSTOM_ID } from "./tables/table-categories.mjs";
 import { summarizeStructuralWarnings, isInformationalWarning } from "./tables/table-importer.mjs";
 import { CHAR_SOURCES } from "./char-content/char-content-manifest.mjs";
 import { sourcePdfHref, sourcePdfTarget } from "./source-pdf-registry.mjs";
+import { releaseLocalPdfs } from "./pdf-text-extract.mjs";
 import { findSuitePack } from "../shared/compendium-suite.mjs";
 import { extrasHexApi } from "./hex/hex-handoff.mjs";
 import { MODULE_ID } from "../shared/module-id.mjs";
@@ -376,6 +377,7 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
     if (this._contentHookId) { Hooks.off(`${MODULE_ID}.contentUnlocked`, this._contentHookId); this._contentHookId = null; }
     this._toolsAbort?.abort();   // drop the document-level Tools-menu listeners
     this._toolsAbort = null;
+    await releaseLocalPdfs();   // books given from this computer are not kept past the window
     return super.close(options);
   }
 
