@@ -1,60 +1,60 @@
-<div class="sde-wiz" data-page="{{page}}">
+<div class="ui-shell sde-wiz" data-page="{{page}}">
 
-  <header class="sde-wiz-head">
-    <div class="sde-wiz-titles">
-      <h2 class="sde-wiz-title">{{title}}</h2>
-      <p class="sde-wiz-sub">{{subtitle}}</p>
+  <header class="ui-head">
+    <div class="ui-head-text">
+      <h2 class="ui-title">{{title}}</h2>
+      <p class="ui-sub">{{subtitle}}</p>
     </div>
     <ol class="sde-wiz-dots" aria-label="{{stepLabel}}">
       {{#each dots}}<li class="{{#if current}}is-current{{/if}}{{#if done}} is-done{{/if}}"></li>{{/each}}
     </ol>
   </header>
 
-  <div class="sde-wiz-body">
+  <div class="ui-body sde-wiz-body">
 
     {{#if isWelcome}}
-    <div class="sde-wiz-card">
+    <div class="ui-card">
       <p>{{#if update}}{{update.lead}}{{else}}{{localize "SDE.importer.wizard.welcome.what"}}{{/if}}</p>
     </div>
-    <div class="sde-wiz-card">
-      <h3>{{localize "SDE.importer.wizard.welcome.needTitle"}}</h3>
+    <div class="ui-card">
+      <h3 class="ui-h">{{localize "SDE.importer.wizard.welcome.needTitle"}}</h3>
       <ul class="sde-wiz-list">
         <li><i class="fas fa-file-pdf"></i> {{localize "SDE.importer.wizard.welcome.needBooks"}}</li>
         <li><i class="fas fa-map"></i> {{localize "SDE.importer.wizard.welcome.needMaps"}}</li>
       </ul>
-      <p class="sde-wiz-muted">{{localize "SDE.importer.wizard.welcome.safe"}}</p>
+      <p class="ui-muted">{{localize "SDE.importer.wizard.welcome.safe"}}</p>
     </div>
     {{/if}}
 
     {{#if isKeep}}
-    <label class="sde-wiz-opt{{#if keepOnce}} is-picked{{/if}}">
+    <label class="ui-card sde-wiz-opt{{#if keepOnce}} sel{{/if}}">
       <input type="radio" name="keep" value="once" data-action="setKeep" {{#if keepOnce}}checked{{/if}}>
       <span><strong>{{localize "SDE.importer.wizard.keep.once"}}</strong><small>{{localize "SDE.importer.wizard.keep.onceHelp"}}</small></span>
     </label>
-    <label class="sde-wiz-opt{{#unless keepOnce}} is-picked{{/unless}}">
+    <label class="ui-card sde-wiz-opt{{#unless keepOnce}} sel{{/unless}}">
       <input type="radio" name="keep" value="keep" data-action="setKeep" {{#unless keepOnce}}checked{{/unless}}>
       <span><strong>{{localize "SDE.importer.wizard.keep.keep"}}</strong><small>{{keepHelp}}</small></span>
     </label>
-    <p class="sde-wiz-muted">{{localize "SDE.importer.wizard.keep.maps"}}</p>
-    {{#if forgeNote}}<div class="sde-wiz-card sde-wiz-note"><i class="fas fa-circle-info"></i><p>{{forgeNote}}</p></div>{{/if}}
+    <p class="ui-muted">{{localize "SDE.importer.wizard.keep.maps"}}</p>
+    {{#if forgeNote}}<div class="ui-note warn"><p><i class="fas fa-circle-info"></i> {{forgeNote}}</p></div>{{/if}}
     {{/if}}
 
     {{#if isBooks}}
     <div class="sde-wiz-drop" data-dropzone>
       <i class="fas fa-file-pdf"></i>
       <p>{{localize "SDE.importer.wizard.books.drop"}}</p>
-      <button type="button" class="sde-import-primary" data-action="choose">{{localize "SDE.importer.wizard.choose"}}</button>
+      <button type="button" class="ui-btn" data-action="choose"><i class="fas fa-folder-open"></i> {{localize "SDE.importer.wizard.choose"}}</button>
       <input type="file" multiple accept=".pdf,.zip,application/pdf,application/zip" hidden data-picker>
     </div>
     <p class="sde-wiz-count"><strong>{{books.have}}</strong> {{localize "SDE.importer.wizard.books.ofTotal" total=books.total}}</p>
-    {{#if notice}}<div class="sde-wiz-card sde-wiz-note"><i class="fas fa-circle-info"></i><p>{{notice}}</p></div>{{/if}}
-    <ul class="sde-wiz-files">
+    {{#if notice}}<div class="ui-note"><p><i class="fas fa-circle-info"></i> {{notice}}</p></div>{{/if}}
+    <ul class="ui-list">
       {{#each books.rows}}
-      <li class="sde-wiz-file{{#if added}} is-added{{/if}}">
+      <li class="ui-row sde-wiz-file{{#if added}} is-added{{/if}}">
         <i class="fas {{#if added}}fa-circle-check{{else}}fa-circle{{/if}}"></i>
-        <span class="sde-wiz-file-name">{{title}}{{#if fileName}}<small>{{fileName}}</small>{{/if}}</span>
-        <span class="sde-wiz-file-size">{{size}}</span>
-        {{#if added}}<button type="button" class="sde-wiz-x" data-action="remove" data-kind="book" data-id="{{id}}" aria-label="{{../removeLabel}}"><i class="fas fa-xmark"></i></button>{{/if}}
+        <span class="ui-row-main"><span class="ui-row-name">{{title}}</span>{{#if fileName}}<span class="ui-row-sub">{{fileName}}</span>{{/if}}</span>
+        <span class="ui-row-meta sde-wiz-size">{{size}}</span>
+        {{#if added}}<button type="button" class="ui-icon danger" data-action="remove" data-kind="book" data-id="{{id}}" aria-label="{{../removeLabel}}"><i class="fas fa-xmark"></i></button>{{/if}}
       </li>
       {{/each}}
     </ul>
@@ -64,25 +64,29 @@
     <div class="sde-wiz-drop" data-dropzone>
       <i class="fas fa-map"></i>
       <p>{{localize "SDE.importer.wizard.maps.drop"}}</p>
-      <button type="button" class="sde-import-primary" data-action="choose">{{localize "SDE.importer.wizard.choose"}}</button>
+      <button type="button" class="ui-btn" data-action="choose"><i class="fas fa-folder-open"></i> {{localize "SDE.importer.wizard.choose"}}</button>
       <input type="file" multiple accept="image/*,.zip,application/zip" hidden data-picker>
     </div>
     <p class="sde-wiz-count"><strong>{{maps.have}}</strong> {{localize "SDE.importer.wizard.maps.ofTotal" total=maps.total}}</p>
-    {{#if notice}}<div class="sde-wiz-card sde-wiz-note"><i class="fas fa-circle-info"></i><p>{{notice}}</p></div>{{/if}}
+    {{#if notice}}<div class="ui-note"><p><i class="fas fa-circle-info"></i> {{notice}}</p></div>{{/if}}
     {{#each maps.groups}}
-    <section class="sde-wiz-group{{#if open}} is-open{{/if}}">
+    <section class="ui-group">
       <button type="button" class="sde-wiz-group-head" data-action="toggleGroup" data-id="{{src}}" aria-expanded="{{#if open}}true{{else}}false{{/if}}">
         <i class="fas {{#if open}}fa-chevron-down{{else}}fa-chevron-right{{/if}}"></i>
         <span>{{title}}</span><em>{{have}} / {{rows.length}}</em>
       </button>
       {{#if open}}
-      <ul class="sde-wiz-files">
+      <ul class="ui-list">
         {{#each rows}}
-        <li class="sde-wiz-file{{#if added}} is-added{{/if}}">
+        <li class="ui-row sde-wiz-file{{#if added}} is-added{{/if}}">
           <i class="fas {{#if added}}fa-circle-check{{else}}fa-circle{{/if}}"></i>
-          <span class="sde-wiz-file-name">{{title}}{{#if fileName}}<small>{{fileName}}</small>{{/if}}{{#if extra}}<small class="sde-wiz-extra">{{../../extraLabel}}</small>{{/if}}</span>
-          <span class="sde-wiz-file-size">{{size}}</span>
-          {{#if fileName}}<button type="button" class="sde-wiz-x" data-action="remove" data-kind="map" data-id="{{id}}" aria-label="{{../../removeLabel}}"><i class="fas fa-xmark"></i></button>{{/if}}
+          <span class="ui-row-main">
+            <span class="ui-row-name">{{title}}</span>
+            {{#if fileName}}<span class="ui-row-sub">{{fileName}}</span>{{/if}}
+            {{#if extra}}<span class="ui-row-sub sde-wiz-extra">{{../../extraLabel}}</span>{{/if}}
+          </span>
+          <span class="ui-row-meta sde-wiz-size">{{size}}</span>
+          {{#if fileName}}<button type="button" class="ui-icon danger" data-action="remove" data-kind="map" data-id="{{id}}" aria-label="{{../../removeLabel}}"><i class="fas fa-xmark"></i></button>{{/if}}
         </li>
         {{/each}}
       </ul>
@@ -93,85 +97,77 @@
 
     {{#if isCheck}}
     {{#if check.running}}
-    <div class="sde-wiz-card sde-wiz-run">
-      <div class="sde-wiz-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{check.pct}}"><span style="width:{{check.pct}}%"></span></div>
-      <p class="sde-wiz-muted">{{check.label}}</p>
+    <div class="ui-card sde-wiz-run">
+      <div class="ui-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{check.pct}}"><i style="width:{{check.pct}}%"></i></div>
+      <p class="ui-muted">{{check.label}}</p>
     </div>
     {{else}}
-    <div class="sde-wiz-card">
-      <p class="sde-wiz-count"><strong>{{check.ready}}</strong> {{localize "SDE.importer.wizard.check.readyOf" total=check.total}}</p>
-    </div>
+    <p class="sde-wiz-count"><strong>{{check.ready}}</strong> {{localize "SDE.importer.wizard.check.readyOf" total=check.total}}</p>
     {{#each check.problems}}
-    <div class="sde-wiz-card sde-wiz-problem">
-      <div class="sde-wiz-problem-head"><i class="fas fa-triangle-exclamation"></i><strong>{{title}}</strong></div>
+    <div class="ui-card warn">
+      <div class="ui-card-head"><i class="fas fa-triangle-exclamation sde-wiz-warn"></i><strong class="ui-card-name">{{title}}</strong></div>
       <p>{{why}}</p>
-      <div class="sde-wiz-actions">
-        {{#each fixes}}<button type="button" class="sde-import-secondary" data-action="fix" data-fix="{{id}}" data-kind="{{../kind}}" data-target="{{../id}}">{{label}}</button>{{/each}}
+      <div class="ui-inline">
+        {{#each fixes}}<button type="button" class="ui-btn" data-action="fix" data-fix="{{id}}" data-kind="{{../kind}}" data-target="{{../id}}">{{label}}</button>{{/each}}
       </div>
     </div>
     {{/each}}
     {{#each check.warnings}}
-    <div class="sde-wiz-card sde-wiz-note"><i class="fas fa-circle-info"></i><p><strong>{{title}}</strong> {{why}}</p></div>
+    <div class="ui-note warn"><p><i class="fas fa-circle-info"></i> <strong>{{title}}</strong> {{why}}</p></div>
     {{/each}}
     {{/if}}
     {{/if}}
 
     {{#if isReady}}
-    <label class="sde-wiz-opt{{#if everything}} is-picked{{/if}}">
+    <label class="ui-card sde-wiz-opt{{#if everything}} sel{{/if}}">
       <input type="radio" name="choice" value="everything" data-action="setChoice" {{#if everything}}checked{{/if}}>
       <span><strong>{{localize "SDE.importer.wizard.ready.everything"}}</strong><small>{{ready.summary}}</small></span>
     </label>
-    <label class="sde-wiz-opt{{#unless everything}} is-picked{{/unless}}">
+    <label class="ui-card sde-wiz-opt{{#unless everything}} sel{{/unless}}">
       <input type="radio" name="choice" value="custom" data-action="setChoice" {{#unless everything}}checked{{/unless}}>
       <span><strong>{{localize "SDE.importer.wizard.ready.custom"}}</strong><small>{{localize "SDE.importer.wizard.ready.customHelp"}}</small></span>
     </label>
     {{#if ready.hexNote}}
-    <div class="sde-wiz-card sde-wiz-note">
-      <i class="fas fa-map"></i>
-      <div>
-        <strong>{{localize "SDE.importer.wizard.hex.title"}}</strong>
-        <p>{{localize "SDE.importer.wizard.hex.body"}}</p>
-        <ol class="sde-wiz-steps">
-          <li>{{localize "SDE.importer.wizard.hex.step1"}}</li>
-          <li>{{localize "SDE.importer.wizard.hex.step2"}}</li>
-          <li>{{localize "SDE.importer.wizard.hex.step3"}}</li>
-        </ol>
-      </div>
+    <div class="ui-note">
+      <strong><i class="fas fa-map"></i> {{localize "SDE.importer.wizard.hex.title"}}</strong>
+      <p>{{localize "SDE.importer.wizard.hex.body"}}</p>
+      <ol class="sde-wiz-steps">
+        <li>{{localize "SDE.importer.wizard.hex.step1"}}</li>
+        <li>{{localize "SDE.importer.wizard.hex.step2"}}</li>
+        <li>{{localize "SDE.importer.wizard.hex.step3"}}</li>
+      </ol>
     </div>
     {{/if}}
     {{/if}}
 
     {{#if isImport}}
-    <div class="sde-wiz-card sde-wiz-run">
-      <div class="sde-wiz-pct">{{run.pct}}<small>%</small></div>
-      <div class="sde-wiz-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{run.pct}}"><span style="width:{{run.pct}}%"></span></div>
-      <p class="sde-wiz-muted">{{run.phase}}</p>
+    <div class="ui-card sde-wiz-run">
+      <div class="ui-hero">{{run.pct}}<small>%</small></div>
+      <div class="ui-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{run.pct}}"><i style="width:{{run.pct}}%"></i></div>
+      <p class="ui-muted">{{run.phase}}</p>
     </div>
     {{/if}}
 
     {{#if isDone}}
-    <div class="sde-wiz-card">
-      <div class="sde-wiz-stats">
-        <div><span class="sde-wiz-label">{{localize "SDE.importer.wizard.done.imported"}}</span><strong>{{done.imported}}</strong></div>
-        <div><span class="sde-wiz-label">{{localize "SDE.importer.wizard.done.already"}}</span><strong>{{done.already}}</strong></div>
-        <div><span class="sde-wiz-label">{{localize "SDE.importer.wizard.done.attention"}}</span><strong>{{done.attention}}</strong></div>
+    <div class="ui-card">
+      <div class="ui-pairs">
+        <div class="ui-pair"><span class="ui-label">{{localize "SDE.importer.wizard.done.imported"}}</span><strong class="ui-value sde-wiz-big">{{done.imported}}</strong></div>
+        <div class="ui-pair"><span class="ui-label">{{localize "SDE.importer.wizard.done.already"}}</span><strong class="ui-value sde-wiz-big">{{done.already}}</strong></div>
+        <div class="ui-pair"><span class="ui-label">{{localize "SDE.importer.wizard.done.attention"}}</span><strong class="ui-value sde-wiz-big">{{done.attention}}</strong></div>
       </div>
     </div>
     {{#each done.items}}
-    <div class="sde-wiz-card sde-wiz-problem">
-      <div class="sde-wiz-problem-head"><i class="fas fa-triangle-exclamation"></i><strong>{{title}}</strong></div>
+    <div class="ui-card warn">
+      <div class="ui-card-head"><i class="fas fa-triangle-exclamation sde-wiz-warn"></i><strong class="ui-card-name">{{title}}</strong></div>
       <p>{{why}}</p>
     </div>
     {{/each}}
     {{#if done.hexMaps.length}}
-    <div class="sde-wiz-card sde-wiz-note">
-      <i class="fas fa-map"></i>
-      <div>
-        <strong>{{localize "SDE.importer.wizard.done.hexTitle"}}</strong>
-        <p>{{localize "SDE.importer.wizard.done.hexBody"}}</p>
-        <div class="sde-wiz-actions">
-          {{#each done.hexMaps}}<button type="button" class="sde-import-secondary" data-action="openHex" data-id="{{id}}">{{label}}</button>{{/each}}
-        </div>
+    <div class="ui-note">
+      <strong><i class="fas fa-map"></i> {{localize "SDE.importer.wizard.done.hexTitle"}}</strong>
+      <p>{{localize "SDE.importer.wizard.done.hexBody"}}</p>
+      <div class="ui-inline">
+        {{#each done.hexMaps}}<button type="button" class="ui-btn" data-action="openHex" data-id="{{id}}">{{label}}</button>{{/each}}
       </div>
     </div>
     {{/if}}
@@ -179,12 +175,12 @@
 
   </div>
 
-  <footer class="sde-wiz-foot">
+  <footer class="ui-footer">
     <a class="sde-wiz-advanced" data-action="advanced" role="button" tabindex="0">{{localize "SDE.importer.wizard.advanced"}}</a>
-    <span class="sde-wiz-buttons">
-      {{#if foot.back}}<button type="button" class="sde-import-secondary" data-action="back">{{localize "SDE.importer.wizard.back"}}</button>{{/if}}
-      {{#if foot.next}}<button type="button" class="sde-import-primary" data-action="next" {{#if foot.next.disabled}}disabled title="{{foot.next.reason}}"{{/if}}>{{foot.next.label}}</button>{{/if}}
-      {{#if foot.cancel}}<button type="button" class="sde-import-secondary" data-action="cancel">{{foot.cancel}}</button>{{/if}}
+    <span class="ui-right">
+      {{#if foot.back}}<button type="button" class="ui-btn" data-action="back">{{localize "SDE.importer.wizard.back"}}</button>{{/if}}
+      {{#if foot.cancel}}<button type="button" class="ui-btn" data-action="cancel">{{foot.cancel}}</button>{{/if}}
+      {{#if foot.next}}<button type="button" class="ui-btn primary" data-action="next" {{#if foot.next.disabled}}disabled title="{{foot.next.reason}}"{{/if}}>{{foot.next.label}}</button>{{/if}}
     </span>
   </footer>
 </div>
