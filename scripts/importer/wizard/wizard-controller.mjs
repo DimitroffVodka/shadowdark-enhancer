@@ -34,21 +34,22 @@ const mbLabel = (mb) => (mb == null ? "" : mb < 0.1 ? `${Math.max(1, Math.round(
 const TITLES = {
   welcome: "SDE.importer.wizard.title.welcome", keep: "SDE.importer.wizard.title.keep", books: "SDE.importer.wizard.title.books",
   maps: "SDE.importer.wizard.title.maps", check: "SDE.importer.wizard.title.check", ready: "SDE.importer.wizard.title.ready",
-  import: "SDE.importer.wizard.title.import", done: "SDE.importer.wizard.title.done",
+  import: "SDE.importer.wizard.title.import", terrain: "SDE.importer.wizard.title.terrain", done: "SDE.importer.wizard.title.done",
 };
 const SUBTITLES = {
   welcome: "SDE.importer.wizard.sub.welcome", keep: "SDE.importer.wizard.sub.keep", books: "SDE.importer.wizard.sub.books",
   maps: "SDE.importer.wizard.sub.maps", check: "SDE.importer.wizard.sub.check", ready: "SDE.importer.wizard.sub.ready",
-  import: "SDE.importer.wizard.sub.import", done: "SDE.importer.wizard.sub.done",
+  import: "SDE.importer.wizard.sub.import", terrain: "SDE.importer.wizard.sub.terrain", done: "SDE.importer.wizard.sub.done",
 };
 
 /** What the Done page says of a hex map; keys are written out in full. */
 const HEX_STATUS = {
   ready: "SDE.importer.wizard.done.hexStatus.ready", already: "SDE.importer.wizard.done.hexStatus.already", needsLook: "SDE.importer.wizard.done.hexStatus.needsLook",
+  named: "SDE.importer.wizard.done.hexStatus.named",
 };
 
 /** Names a click may carry in data-action; wizard-app.mjs maps each to dispatch(). */
-export const ACTIONS = ["next", "back", "cancel", "choose", "remove", "setKeep", "setChoice", "toggleGroup", "fix", "openHex", "openLegend", "advanced"];
+export const ACTIONS = ["next", "back", "cancel", "choose", "remove", "setKeep", "setChoice", "toggleGroup", "fix", "openHex", "openLegend", "legendAnswer", "legendPick", "advanced"];
 
 export class WizardController {
   /** @param {object} env  see the file header  @param {() => void} onChange  called after every change worth redrawing */
@@ -59,6 +60,8 @@ export class WizardController {
     this.state.openGroups = new Set(["WR"]);
     this.notice = "";
     this.stopRequested = false;
+    /** The Legend of the hex map on the Terrain page (env.legendOpen), while there is one. */
+    this.legend = null;
   }
 
   t(key, args) { return this.env.t(key, args); }
@@ -80,6 +83,9 @@ export class WizardController {
       case "fix": return this.fix(data);
       case "openHex": return this.env.openHex?.(filesOfHex(this.state, data.id), data.id);
       case "openLegend": return this.env.openLegend?.(data.scene);
+      // A card's name is held by the Legend itself; only a card that opened up (several hexes to name) needs redrawing.
+      case "legendAnswer": if (this.legend?.answer(Number(data.idx), data.value, data.other)) this.changed(); return undefined;
+      case "legendPick": this.legend?.pick(Number(data.idx), Number(data.num), data.value, data.other); return undefined;
       case "advanced": return this.env.openAdvanced?.();
       default: return undefined;
     }
@@ -124,6 +130,7 @@ export class WizardController {
   async next() {
     const s = this.state;
     if (s.page === "done") return this.finish();
+    if (s.page === "terrain") return s.terrain?.stage === "failed" ? this.terrainNext() : this.terrainApply();
     if (s.page === "ready" && s.choice === "custom") { await this.env.release?.(); return this.env.openAdvanced?.(); }
     const before = s.page;
     if (go(s, "next") === before) return this.changed();
@@ -142,12 +149,14 @@ export class WizardController {
 
   async cancel() {
     if (this.state.page === "import") { this.stopRequested = true; return this.changed(); }
+    if (this.state.page === "terrain") return this.terrainSkip();
     if (!(await this.env.confirmCancel?.())) return;
     await this.env.release?.();
     this.env.close?.();
   }
 
   async finish() {
+    await this.legend?.close?.();
     await this.env.release?.();
     this.env.close?.();
   }
@@ -194,8 +203,53 @@ export class WizardController {
       s.result = { imported: 0, already: 0, needsYou: [{ title: this.t("SDE.importer.wizard.run.failedTitle"), why: String(err?.message ?? err) }] };
     }
     await this.env.release?.();
+    // Each hex map the run set up still needs its terrain named, once; that is the page before the last.
+    const need = (s.result.hex ?? []).filter((h) => h.legend && h.sceneId);
+    s.terrain = need.length ? { queue: need.map(({ id, title, sceneId }) => ({ id, title, sceneId })), i: 0, stage: "reading", error: "", named: [] } : null;
+    s.page = s.terrain ? "terrain" : "done";
+    this.changed();
+    if (s.terrain) await this.openTerrainMap();
+  }
+
+  /** Read the current hex map and build its cards. A map that cannot be read is left for the Hex Tagger. */
+  async openTerrainMap() {
+    const T = this.state.terrain;
+    T.stage = "reading"; T.error = ""; this.legend = null;
+    this.changed();
+    try {
+      this.legend = await this.env.legendOpen(T.queue[T.i]);
+      T.stage = "cards";
+    } catch (err) {
+      console.warn("shadowdark-enhancer | wizard terrain failed", err);
+      T.stage = "failed"; T.error = String(err?.message ?? err);
+    }
+    this.changed();
+  }
+
+  /** Name every hex of this map from the cards, then on to the next map. A card still in question, or a refusal, stays on the page. */
+  async terrainApply() {
+    const T = this.state.terrain;
+    if (T?.stage !== "cards") return undefined;
+    T.stage = "applying"; T.error = "";
+    this.changed();
+    const done = await this.legend.apply().catch((err) => { T.error = String(err?.message ?? err); return false; });
+    if (!done) { T.stage = "cards"; this.changed(); return undefined; }
+    T.named.push(T.queue[T.i].id);
+    return this.terrainNext();
+  }
+
+  /** Leave this map's terrain for the Hex Tagger and go on. */
+  async terrainSkip() { return this.terrainNext(); }
+
+  async terrainNext() {
+    const s = this.state, T = s.terrain;
+    await this.legend?.close?.();
+    this.legend = null;
+    for (const h of s.result.hex ?? []) if (T.named.includes(h.id)) { h.legend = false; h.named = true; }
+    if (T.i + 1 < T.queue.length) { T.i += 1; return this.openTerrainMap(); }
     s.page = "done";
     this.changed();
+    return undefined;
   }
 
   // ── What the template draws ────────────────────────────────────────────────────────────────
@@ -250,6 +304,14 @@ export class WizardController {
       };
     }
     if (s.page === "import") vm.run = { pct: s.progress.pct, phase: s.progress.phase };
+    if (s.page === "terrain" && s.terrain) {
+      const T = s.terrain;
+      vm.terrain = {
+        heading: t("SDE.importer.wizard.terrain.heading", { title: T.queue[T.i].title, n: T.i + 1, of: T.queue.length }),
+        reading: T.stage === "reading", applying: T.stage === "applying", failed: T.stage === "failed", error: T.error,
+        cards: T.stage === "cards" || T.stage === "applying" ? (this.legend?.cards() ?? []) : [],
+      };
+    }
     if (s.page === "done") {
       const r = s.result ?? { imported: 0, already: 0, needsYou: [] };
       vm.done = {
@@ -257,19 +319,22 @@ export class WizardController {
         skipped: r.skipped?.n ? t(r.skipped.books.length ? "SDE.importer.wizard.done.skippedBooks" : "SDE.importer.wizard.done.skipped", { n: r.skipped.n, books: r.skipped.books.join(", ") }) : "",
         hexMaps: (r.hex ?? []).map((h) => ({
           id: h.id, title: h.title, sceneId: h.sceneId, legend: h.legend, look: h.look,
-          line: t(HEX_STATUS[h.status] ?? HEX_STATUS.needsLook, { n: h.pinned ?? 0 }),
+          line: t(h.named ? HEX_STATUS.named : (HEX_STATUS[h.status] ?? HEX_STATUS.needsLook), { n: h.pinned ?? 0 }),
         })),
         hexLegend: (r.hex ?? []).some((h) => h.legend),
       };
     }
 
     const why = blocker(s);
+    const T = s.page === "terrain" ? s.terrain : null;
     vm.foot = {
       back: canBack(s) && idx > 0,
       next: s.page === "import" ? null
+        : T ? (T.stage === "failed" ? { label: t("SDE.importer.wizard.terrain.continue") }
+          : { label: t("SDE.importer.wizard.terrain.apply"), disabled: T.stage !== "cards", reason: T.stage === "cards" ? "" : t("SDE.importer.wizard.terrain.wait") })
         : s.page === "done" ? { label: t("SDE.importer.wizard.finish") }
         : { label: s.page === "ready" ? t(s.choice === "custom" ? "SDE.importer.wizard.ready.openAdvanced" : "SDE.importer.wizard.ready.start") : t("SDE.importer.wizard.next"), disabled: !!why, reason: why ? t(why) : "" },
-      cancel: s.page === "done" ? null : s.page === "import" ? t("SDE.importer.wizard.stop") : t("SDE.importer.wizard.cancel"),
+      cancel: s.page === "done" ? null : s.page === "import" ? t("SDE.importer.wizard.stop") : T ? (T.stage === "failed" ? null : t("SDE.importer.wizard.terrain.skip")) : t("SDE.importer.wizard.cancel"),
     };
     return vm;
   }

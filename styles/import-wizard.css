@@ -63,3 +63,8 @@
 
 /* The hub the wizard drives while it imports: rendered so the batch can read it, never seen. */
 .application.sde-wiz-hidden { display: none !important; }
+
+/* The Terrain page's cards: a card's pictures sit side by side (the system gives every figure the full width, which stacks them one to a row). */
+.sde-wiz .hxt-fig { flex: 0 0 auto; width: auto; }
+.sde-wiz .hxt-sheet .ui-card { gap: 8px; }
+.sde-wiz .hxt-sheet select { width: 100%; }

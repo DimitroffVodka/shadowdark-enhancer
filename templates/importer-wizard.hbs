@@ -140,6 +140,53 @@
     </div>
     {{/if}}
 
+    {{#if isTerrain}}
+    <p class="sde-wiz-count"><strong>{{terrain.heading}}</strong></p>
+    {{#if terrain.reading}}
+    <div class="ui-card sde-wiz-run">
+      <p class="ui-muted"><i class="fas fa-circle-notch fa-spin"></i> {{localize "SDE.importer.wizard.terrain.reading"}}</p>
+    </div>
+    {{/if}}
+    {{#if terrain.failed}}
+    <div class="ui-card warn">
+      <div class="ui-card-head"><i class="fas fa-triangle-exclamation sde-wiz-warn"></i><strong class="ui-card-name">{{localize "SDE.importer.wizard.terrain.failedTitle"}}</strong></div>
+      <p>{{localize "SDE.importer.wizard.terrain.failedBody"}}</p>
+      <p class="ui-muted">{{terrain.error}}</p>
+    </div>
+    {{/if}}
+    {{#if terrain.cards.length}}
+    <div class="ui-note"><p><i class="fas fa-list-ul"></i> {{{localize "SDE.hexMap.legend.howTo"}}}<br>{{{localize "SDE.hexMap.legend.skipSplit"}}}</p></div>
+    {{#if terrain.applying}}<div class="ui-note"><p><i class="fas fa-circle-notch fa-spin"></i> {{localize "SDE.importer.wizard.terrain.applying"}}</p></div>{{/if}}
+    {{#if terrain.error}}<div class="ui-note bad"><p>{{terrain.error}}</p></div>{{/if}}
+    <div class="hxt-sheet">
+      {{#each terrain.cards as |g|}}
+      {{#if g.expand}}
+      <div class="ui-card hxt-wide">
+        <span class="ui-label">{{localize "SDE.hexMap.legend.opened" size=g.size picks=g.picks.length}}</span>
+        <div class="hxt-sheet">
+          {{#each g.picks as |p|}}
+          <div class="ui-card raised">
+            <img class="hxt-thumb" src="{{p.thumb}}" alt="" width="72" height="72">
+            <span class="ui-label">{{p.label}}</span>
+            <select data-wiz-pick data-idx="{{g.idx}}" data-num="{{p.num}}"><option value="">{{localize "SDE.hexMap.label.skip"}}</option>{{#each p.terrainOptions as |o|}}<option value="{{o.value}}" {{#if o.selected}}selected{{/if}}>{{o.label}}</option>{{/each}}</select>
+            <input type="text" data-wiz-pick-other data-idx="{{g.idx}}" data-num="{{p.num}}" value="{{p.other}}" placeholder="{{localize 'SDE.hexMap.label.otherTerrain'}}" aria-label="{{localize 'SDE.hexMap.label.otherTerrainAria'}}" {{#unless p.other}}hidden{{/unless}}>
+          </div>
+          {{/each}}
+        </div>
+      </div>
+      {{else}}
+      <div class="ui-card">
+        <div class="ui-inline">{{#each g.thumbs as |t|}}<figure class="hxt-fig"><img class="hxt-thumb" src="{{t.src}}" alt="" width="72" height="72"><figcaption class="ui-label">{{t.label}}</figcaption></figure>{{/each}}</div>
+        <span class="ui-label">{{localize "SDE.hexMap.legend.cardSize" size=g.size}}{{#if g.split}} <span class="ui-muted">{{localize "SDE.hexMap.legend.fromSplit"}}</span>{{/if}}</span>
+        <select data-wiz-legend data-idx="{{g.idx}}"><option value="">{{localize "SDE.hexMap.label.skip"}}</option>{{#each g.terrainOptions as |o|}}<option value="{{o.value}}" {{#if o.selected}}selected{{/if}}>{{o.label}}</option>{{/each}}</select>
+        <input type="text" data-wiz-legend-other data-idx="{{g.idx}}" value="{{g.terrainOther}}" placeholder="{{localize 'SDE.hexMap.label.otherTerrain'}}" aria-label="{{localize 'SDE.hexMap.label.otherTerrainAria'}}" {{#unless g.terrainOther}}hidden{{/unless}}>
+      </div>
+      {{/if}}
+      {{/each}}
+    </div>
+    {{/if}}
+    {{/if}}
+
     {{#if isDone}}
     <div class="ui-card">
       <div class="ui-pairs">

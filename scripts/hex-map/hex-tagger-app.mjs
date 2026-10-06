@@ -560,6 +560,12 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
   /** @type {Array<{size:number, members:number[], core:number[], samples:number[]}>|null} the legend's cards while they are shown */
   _legend = null;
   _autoLegend = false;
+  /**
+   * A tagger used as an engine without its window (hex-legend-session.mjs, the import wizard's Terrain page): every
+   * redraw is skipped, so nothing opens, and what the window would have read from its form comes from the cards.
+   */
+  _headless = false;
+  async render(...args) { return this._headless ? this : super.render(...args); }
   /** Whether the palette box is open; undefined until the GM toggles it (it opens itself while no palette is set). */
   _paletteOpen = undefined;
   /** @type {{key:string, cells:Object<string,{select:string, other:string, features:string[]}>}|null} unconfirmed sheet answers (_sheetDrafts) */
@@ -982,6 +988,54 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
     return out;
   }
 
+  /**
+   * The choices a card or a hex can be named: the map's own terrains once the GM has ticked some (the Palette box), the
+   * whole printed list until then, then the settlement sizes and a keyed location.
+   */
+  _terrainChoices(state) {
+    const terrainValues = [...paletteTags(state.palette), ...Object.values(SETTLEMENTS), KEYED_TERRAIN];
+    return { terrainValues, terrainOptions: terrainValues.map((v) => ({ value: v, label: v.replace(/_/g, " ") })) };
+  }
+
+  /** The Legend's cards as the window draws them, or null with no Legend: sample pictures, the select and, once opened, each picked hex. */
+  _legendCards(state) {
+    const { terrainValues, terrainOptions } = this._terrainChoices(state);
+    // The legend's cards: a few member pictures each, the select pre-filled
+    // with what most of its members are tagged already (a re-run after fixes).
+    return this._legend?.map((cl, idx) => {
+      const counts = new Map();
+      for (const n of cl.members) {
+        const cell = state.cells.get(String(n)); if (!cell?.terrain) continue;
+        counts.set(cell.terrain, (counts.get(cell.terrain) ?? 0) + 1);
+      }
+      // A choice already made survives a split of some OTHER card.
+      const majority = cl.chosen ?? ([...counts.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? "");
+      const terrainOther = majority && majority !== SPLIT && !terrainValues.includes(majority) ? majority : "";
+      const selected = terrainOther ? "__other" : majority;
+      const pickOptions = (num) => {
+        const was = cl.picked?.[num] ?? state.cells.get(String(num))?.terrain ?? "";
+        const isOther = was && !terrainValues.includes(was);
+        return [...terrainOptions, { value: "__other", label: t("SDE.hexMap.label.otherOption") }]
+          .map((o) => ({ ...o, selected: o.value === (isOther ? "__other" : was) }));
+      };
+      return {
+        idx, size: cl.size, terrainOther, split: cl.split ? cl.split : null,
+        expand: !!cl.expand,
+        picks: cl.expand ? (cl.picks ?? []).map((num) => {
+          const c = this._numbered.get(num);
+          const was = cl.picked?.[num] ?? "";
+          return c ? { num, label: String(num).padStart(4, "0"), thumb: this._thumb(c), terrainOptions: pickOptions(num),
+                       other: terrainValues.includes(was) ? "" : was } : null;
+        }).filter(Boolean) : [],
+        // Each picture says which hex it is, and a click takes the map to it: a card of pictures the GM
+        // cannot place on the map is a card they cannot judge.
+        thumbs: cl.samples.map((n) => { const c = this._numbered.get(n); return c ? { src: this._thumb(c), num: n, label: String(n).padStart(4, "0") } : null; }).filter(Boolean),
+        terrainOptions: [...terrainOptions, { value: "__other", label: t("SDE.hexMap.label.otherOption") }, { value: SPLIT, label: t("SDE.hexMap.label.notAllSame") }]
+          .map((o) => ({ ...o, selected: o.value === selected })),
+      };
+    }) ?? null;
+  }
+
   async _prepareContext() {
     this._syncScene();
     if (!this._state) this._loadState();
@@ -998,8 +1052,7 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
     // to invent a word for them through "other…" is how "Keyed Location" ended
     // up as a free-text terrain on the first map that met them.
     // The map's own terrains once the GM has ticked some (the Palette box), the whole printed list until then.
-    const terrainValues = [...paletteTags(state.palette), ...Object.values(SETTLEMENTS), KEYED_TERRAIN];
-    const terrainOptions = terrainValues.map((v) => ({ value: v, label: v.replace(/_/g, " ") }));
+    const { terrainValues, terrainOptions } = this._terrainChoices(state);
     const paletteTerms = [...new Set([...Object.values(TERRAIN_TAGS), ...(state.palette ?? [])])]
       .map((v) => ({ value: v, label: v.replace(/_/g, " "), checked: !!state.palette?.includes(v) }));
 
@@ -1037,40 +1090,7 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
         };
       });
     }
-    // The legend's cards: a few member pictures each, the select pre-filled
-    // with what most of its members are tagged already (a re-run after fixes).
-    const legend = this._legend?.map((cl, idx) => {
-      const counts = new Map();
-      for (const n of cl.members) {
-        const cell = state.cells.get(String(n)); if (!cell?.terrain) continue;
-        counts.set(cell.terrain, (counts.get(cell.terrain) ?? 0) + 1);
-      }
-      // A choice already made survives a split of some OTHER card.
-      const majority = cl.chosen ?? ([...counts.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? "");
-      const terrainOther = majority && majority !== SPLIT && !terrainValues.includes(majority) ? majority : "";
-      const selected = terrainOther ? "__other" : majority;
-      const pickOptions = (num) => {
-        const was = cl.picked?.[num] ?? state.cells.get(String(num))?.terrain ?? "";
-        const isOther = was && !terrainValues.includes(was);
-        return [...terrainOptions, { value: "__other", label: t("SDE.hexMap.label.otherOption") }]
-          .map((o) => ({ ...o, selected: o.value === (isOther ? "__other" : was) }));
-      };
-      return {
-        idx, size: cl.size, terrainOther, split: cl.split ? cl.split : null,
-        expand: !!cl.expand,
-        picks: cl.expand ? (cl.picks ?? []).map((num) => {
-          const c = this._numbered.get(num);
-          const was = cl.picked?.[num] ?? "";
-          return c ? { num, label: String(num).padStart(4, "0"), thumb: this._thumb(c), terrainOptions: pickOptions(num),
-                       other: terrainValues.includes(was) ? "" : was } : null;
-        }).filter(Boolean) : [],
-        // Each picture says which hex it is, and a click takes the map to it: a card of pictures the GM
-        // cannot place on the map is a card they cannot judge.
-        thumbs: cl.samples.map((n) => { const c = this._numbered.get(n); return c ? { src: this._thumb(c), num: n, label: String(n).padStart(4, "0") } : null; }).filter(Boolean),
-        terrainOptions: [...terrainOptions, { value: "__other", label: t("SDE.hexMap.label.otherOption") }, { value: SPLIT, label: t("SDE.hexMap.label.notAllSame") }]
-          .map((o) => ({ ...o, selected: o.value === selected })),
-      };
-    }) ?? null;
+    const legend = this._legendCards(state);
     // What to do next: nothing, once every numbered cell is tagged; the review queue is optional.
     const summary = summarize(state, total);
     let reviewCount = 0;
@@ -1328,13 +1348,27 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
   async _onApplyLegend() {
     if (!this._requireCurrentScene() || !this._legend) return;
     this._readHeader();
+    this._readLegendAnswers();   // what the selects say now, into the cards
+    await this.applyLegend();
+  }
+
+  /**
+   * The Legend's Apply, from the cards alone (the window's button and the wizard's Terrain page both end here).
+   * @returns {Promise<boolean>} whether the names were applied and the map classified from them
+   */
+  async applyLegend() {
+    if (!this._requireCurrentScene() || !this._legend) return false;
     const answers = {}, cores = new Set(), splits = [];
-    for (const sel of this.element.querySelectorAll("select[data-hxt-legend]")) {
-      const idx = Number(sel.dataset.idx), card = this._legend[idx];
-      if (!card) continue;
-      const other = this.element.querySelector(`input[data-hxt-legend-other][data-idx="${idx}"]`)?.value.trim();
-      const terrain = sel.value === "__other" ? other : sel.value;
-      card.chosen = sel.value === "__other" ? (other || "") : sel.value;    // survives a re-render
+    for (const [idx, card] of this._legend.entries()) {
+      // An opened card's hexes are answered one at a time, and each answer is a hand tag on that hex alone.
+      if (card.expand) {
+        for (const [num, terrain] of Object.entries(card.picked ?? {})) {
+          if (!terrain || terrain === SPLIT) continue;
+          answers[Number(num)] = { terrain, features: [] }; cores.add(Number(num));
+        }
+        continue;
+      }
+      const terrain = card.chosen;
       if (terrain === SPLIT) { splits.push(idx); continue; }
       if (!terrain) continue;
       // No features here: a card is a terrain. Rivers, paths and coasts are
@@ -1342,21 +1376,10 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
       // stamped its dozen core cells with whatever the pictures happened to show.
       for (const n of card.core) { answers[n] = { terrain, features: [] }; cores.add(n); }
     }
-    // An opened card's hexes are answered one at a time, and each answer is a
-    // hand tag on that hex alone.
-    for (const sel of this.element.querySelectorAll("select[data-hxt-pick]")) {
-      const num = Number(sel.dataset.num);
-      const other = this.element.querySelector(`input[data-hxt-pick-other][data-num="${num}"]`)?.value.trim();
-      const terrain = sel.value === "__other" ? other : sel.value;
-      const card = this._legend[Number(sel.dataset.idx)];
-      if (card) (card.picked ??= {})[num] = sel.value === "__other" ? (other || "") : sel.value;
-      if (!terrain || terrain === SPLIT) continue;
-      answers[num] = { terrain, features: [] }; cores.add(num);
-    }
     // "These are not all the same" is the one thing only the GM can see. Take it
     // literally: open that card up so its hexes can be answered individually,
     // applying nothing this pass so no answer is acted on while it is in question.
-    if (splits.length) { this._expandCards(splits); return; }
+    if (splits.length) { this._expandCards(splits); return false; }
     // What was ANSWERED, written down before anything acts on it. Everything
     // else in the log records what the classifier did; this records what it was
     // told, which is the half that was missing when a run came out badly.
@@ -1380,9 +1403,9 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
           <p>${t("SDE.hexMap.suspect.why")}</p>`,
         yes: { label: t("SDE.hexMap.btn.applyAnyway") }, no: { label: t("SDE.hexMap.btn.goBackLook") }, rejectClose: false, modal: true,
       });
-      if (!ok) return;
+      if (!ok) return false;
     }
-    if (!cores.size) { ui.notifications?.warn(t("SDE.hexMap.notify.nameOneCard")); return; }
+    if (!cores.size) { ui.notifications?.warn(t("SDE.hexMap.notify.nameOneCard")); return false; }
     // A big card left unnamed is the expensive mistake and it is silent: its
     // cells are guessed from the OTHER cards, so a whole terrain with no card
     // named for it lands on whatever looks closest. On the Western Reaches a
@@ -1402,7 +1425,7 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
           <p>${t("SDE.hexMap.unnamed.why")}</p>`,
         yes: { label: t("SDE.hexMap.btn.applyAnyway") }, no: { label: t("SDE.hexMap.btn.goBack") }, rejectClose: false, modal: true,
       });
-      if (!ok) return;
+      if (!ok) return false;
     }
     applySheet(this._state, answers);
     // Persist the answers beside the corrections, and freeze a baseline if this
@@ -1421,7 +1444,9 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
     if (!(await this._classify(cores))) {
       this._sheet = nextSheet(this._state, { nums: [...this._numbered.keys()], size: SHEET_SIZE, mode: this._mode, keyed: this._keyedNumbers(), reviewMargin: this._log().margin });
       this.render();
+      return false;
     }
+    return true;
   }
 
   _thumb(cell) {

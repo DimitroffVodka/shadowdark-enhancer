@@ -14,8 +14,8 @@ import { allSites } from "../adventure/adventure-manifest.mjs";
 import { normalizeName, siteForImage } from "../adventure/map-detect.mjs";
 import { nameAllowed, variantRank } from "./map-master.mjs";
 
-/** The pages, in order. */
-export const PAGES = ["welcome", "keep", "books", "maps", "check", "ready", "import", "done"];
+/** The pages, in order. "terrain" comes only after an import that set up hex maps (the Legend, one map at a time). */
+export const PAGES = ["welcome", "keep", "books", "maps", "check", "ready", "import", "terrain", "done"];
 
 /**
  * The hex maps: the Western Reaches print and the hex crawl of each of Cursed Scrolls 1 to 5. They are not adventure
@@ -164,6 +164,7 @@ export const newState = () => ({
   choice: "everything",   // "everything" | "custom"
   progress: { pct: 0, phase: "" },
   result: null,
+  terrain: null,  // after an import that set up hex maps: { queue, i, stage, error, named }, one map at a time (wizard-controller.mjs)
   update: null,   // set by startUpdate(): the wizard opened because a release added content
 });
 
@@ -262,7 +263,7 @@ export function blocker(state) {
 }
 
 /** Can Back be used? Not at the start, and not while the work runs or after it is done. */
-export const canBack = (state) => !["welcome", "import", "done"].includes(state.page) && !(state.update && !state.update.needed.length);
+export const canBack = (state) => !["welcome", "import", "terrain", "done"].includes(state.page) && !(state.update && !state.update.needed.length);
 
 /** Move one page on (when allowed) or back. Returns the page the wizard is now on. */
 export function go(state, dir) {

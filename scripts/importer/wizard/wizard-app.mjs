@@ -11,7 +11,7 @@ import { WizardController, ACTIONS } from "./wizard-controller.mjs";
 import { startUpdate, filesOfHex, HEX_MAPS } from "./wizard-core.mjs";
 import { hexPrint } from "../../hex-map/hex-prints.mjs";
 import { runWizardImport } from "./wizard-run.mjs";
-import { wireFiles, openPicker, actionData } from "./wizard-dom.mjs";
+import { wireFiles, wireLegend, openPicker, actionData } from "./wizard-dom.mjs";
 import { useSessionPdf, sessionPdfPath, onTheForge, FORGE_UPLOAD_LIMIT_MB } from "../session-pdf.mjs";
 import { resolveSourcePdf, uploadSourcePdf, findLibraryJournal, listSourcePdfs } from "../source-pdf-registry.mjs";
 import { extractPdfText, releaseLocalPdfs } from "../pdf-text-extract.mjs";
@@ -83,6 +83,8 @@ export class ImportWizardApp extends HandlebarsApplicationMixin(ApplicationV2) {
     if (update) startUpdate(this.ctl.state, update, (src) => have.has(src));
     this._leaving = false;
     this._scroll = { page: null, top: 0 };
+    this._viewedAtStart = game.scenes?.viewed?.id ?? null;   // the Terrain page takes the canvas to each hex map; closing puts it back
+    this._tookCanvas = false;
   }
 
   // ── What Foundry supplies to the controller ────────────────────────────────
@@ -110,7 +112,13 @@ export class ImportWizardApp extends HandlebarsApplicationMixin(ApplicationV2) {
         const title = HEX_MAPS.find((h) => h.id === id)?.title;
         if (files.length) await hexMapFromFile(files, { name: title, mapId: id, firstNum: hexPrint(id)?.firstNum ?? "0000" });
       },
-      // The one thing left for a hex map: name its printed terrain pictures, in the tagger's Legend, on that map.
+      // The Terrain page: read a hex map and build its Legend cards (hex-legend-session.mjs), on this page rather than the tagger's.
+      legendOpen: async ({ id, sceneId }) => {
+        app._tookCanvas = true;
+        const { openLegendSession } = await import("../../hex-map/hex-legend-session.mjs");
+        return openLegendSession({ sceneId, folder: hexPrint(id)?.folder });
+      },
+      // A map whose terrain was left for later: the tagger's own Legend, on that map.
       openLegend: async (sceneId) => {
         const scene = game.scenes.get(sceneId);
         if (!scene) return;
@@ -131,6 +139,7 @@ export class ImportWizardApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const { AdventurePlacer } = await import("../adventure/adventure-placer.mjs");
     const { CHAR_SOURCES } = await import("../char-content/char-content-manifest.mjs");
     const { importKeyLocations, keyLocationBooks } = await import("../hex/hex-book-import.mjs");
+    const { legendNamed } = await import("../../hex-map/hex-legend-session.mjs");
     const { hexMapFromFile } = await import("../../hex-map/hex-map-flow.mjs");
     let hub = null;
     // Building a scene opens the placer, which takes the GM's view to it; the GM's view goes back where it was afterwards.
@@ -151,7 +160,7 @@ export class ImportWizardApp extends HandlebarsApplicationMixin(ApplicationV2) {
           const made = await hexMapFromFile(files, { name: title, mapId: id, firstNum: firstNum ?? "0000", auto: true });
           const scene = made.scene;
           // A scene made now still needs its Legend; one found from an earlier run needs it only until the GM has applied one.
-          const legend = made.status === "ready" ? !!made.legend : !!scene && !scene.getFlag(MODULE_ID, "hexTags")?.palette?.length;
+          const legend = made.status === "ready" ? !!made.legend : !!scene && !legendNamed(scene);
           return { status: made.status, sceneId: scene?.id, legend, pinned: made.pinned };
         },
         siteOf: (id) => { const site = findSite(id); return site && { ...site, src: CHAR_SOURCES[site.src]?.label ?? site.src }; },
@@ -211,6 +220,7 @@ export class ImportWizardApp extends HandlebarsApplicationMixin(ApplicationV2) {
   _onRender(context, options) {
     super._onRender(context, options);
     wireFiles(this.element, this.ctl);
+    wireLegend(this.element, this.ctl);
     const body = this.element.querySelector(".sde-wiz-body");
     if (body && this._scroll.page === this.ctl.state.page) body.scrollTop = this._scroll.top;
   }
@@ -222,7 +232,10 @@ export class ImportWizardApp extends HandlebarsApplicationMixin(ApplicationV2) {
       if (this.ctl.state.page !== "done" && !(await this._confirmLeave())) return this;
     }
     await releaseLocalPdfs();
+    await this.ctl.legend?.close?.();
     ImportWizardApp._instance = null;
+    const start = this._viewedAtStart && game.scenes.get(this._viewedAtStart);
+    if (this._tookCanvas && start && game.scenes.viewed?.id !== start.id) await start.view();
     return super.close(options);
   }
 }

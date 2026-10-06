@@ -371,6 +371,12 @@ trusting a single hex.
 
 ## The legend
 
+The import wizard's last page before Done shows the same cards for each hex map it
+set up, one map at a time (**Apply the names** for a map, **Skip this map** to leave
+it for the tagger), so a first import never needs the tagger at all. A map already
+named on an earlier run is not asked about again. Everything below is the same Legend,
+in the tagger's own window.
+
 The tagger's **Legend** button (the image flow presses it for you) reads
 every cell once and groups the cells by their glyph, without knowing what any
 glyph means. One card per group follows, biggest groups first (48 at most):

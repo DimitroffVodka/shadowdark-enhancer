@@ -40,6 +40,25 @@ export function wireFiles(root, controller) {
 }
 
 /**
+ * Wire the Terrain page's cards: a name chosen on a card or on one hex of an opened card goes to the controller as it is
+ * given (a card is only redrawn when it opens up), and "other…" shows its text box. Call after every render.
+ * @param {HTMLElement} root
+ * @param {{dispatch:(action:string, data:object)=>any}} controller
+ */
+export function wireLegend(root, controller) {
+  for (const sel of root.querySelectorAll("select[data-wiz-legend], select[data-wiz-pick]")) {
+    const pick = sel.hasAttribute("data-wiz-pick");
+    const box = root.querySelector(pick ? `input[data-wiz-pick-other][data-num="${sel.dataset.num}"]` : `input[data-wiz-legend-other][data-idx="${sel.dataset.idx}"]`);
+    const send = () => controller.dispatch(pick ? "legendPick" : "legendAnswer", { idx: sel.dataset.idx, num: sel.dataset.num, value: sel.value, other: box?.value.trim() ?? "" });
+    sel.addEventListener("change", () => {
+      if (box) { box.hidden = sel.value !== "__other"; if (!box.hidden) box.focus(); }
+      send();
+    });
+    box?.addEventListener("change", send);
+  }
+}
+
+/**
  * One listener for every [data-action] under `root` (the preview's; Foundry's window has its own action map).
  * "choose" opens the file dialog; the rest go to the controller.
  */

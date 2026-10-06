@@ -23,7 +23,7 @@ const MAPS = [
 ];
 
 /** A controller on a state; `fill` picks files, `at` the page, `check` the check's outcome. */
-function make({ page, books = 0, maps = 0, check, update, keep = "once", forge = true, notice = "", progress, result, open }) {
+function make({ page, books = 0, maps = 0, check, update, keep = "once", forge = true, notice = "", progress, result, open, terrain }) {
   const c = new WizardController({ t, forge, limitMB: 50, canUpload: true }, () => {});
   const s = c.state;
   s.keep = keep;
@@ -35,11 +35,24 @@ function make({ page, books = 0, maps = 0, check, update, keep = "once", forge =
   if (progress) s.progress = progress;
   if (result) s.result = result;
   c.notice = notice;
+  if (terrain) {
+    s.result ??= { imported: 0, already: 0, needsYou: [], hex: [] };
+    s.terrain = { queue: [{ id: "hex-cs1", title: "The Gloaming hex map", sceneId: "g" }, { id: "hex-cs2", title: "The Djurum hex map", sceneId: "d" }], i: 0, stage: terrain.stage, error: terrain.error ?? "", named: [] };
+    c.legend = { cards: () => CARDS };
+  }
   return c.viewModel();
 }
 
 const readyIds = (s, skip = []) => [...Object.keys(s.books).map((id) => `book:${id}`), ...Object.keys(s.maps).map((id) => `map:${id}`)].filter((id) => !skip.includes(id));
 const items = (s) => [...Object.keys(s.books).map((id) => ({ id, kind: "book", title: id })), ...Object.keys(s.maps).map((id) => ({ id, kind: "map", title: id }))];
+
+/** Invented hex pictures (a hexagon and a few strokes) for the Terrain page: the real ones are crops of the GM's own map. */
+const pic = (seed) => `data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="72" height="72" viewBox="0 0 72 72"><rect width="72" height="72" fill="#f4f0e6"/><polygon points="62,36 49,58 23,58 10,36 23,14 49,14" fill="#fff" stroke="#222" stroke-width="2"/>${[0, 1, 2, 3, 4].map((i) => `<path d="M${22 + ((seed * 7 + i * 11) % 28)} ${48 - ((seed * 5 + i * 9) % 22)} l4 -12 l4 12 z" fill="none" stroke="#222" stroke-width="1.6"/>`).join("")}</svg>`)}`;
+const TERRAINS = ["arctic", "desert", "forest", "grassland", "hills", "jungle", "mountains", "swamp", "village", "keyed_location"];
+const opts = (selected = "") => [...TERRAINS.map((v) => ({ value: v, label: v.replace(/_/g, " "), selected: v === selected })), { value: "__other", label: "other…", selected: false }];
+const card = (idx, size, selected = "") => ({ idx, size, thumbs: [1, 2, 3, 4].map((k) => ({ src: pic(idx * 10 + k), num: idx * 100 + k, label: String(idx * 100 + k).padStart(4, "0") })), terrainOptions: [...opts(selected), { value: "__split", label: "these are not all the same", selected: false }], terrainOther: "", split: null, expand: false, picks: [] });
+const opened = { idx: 3, size: 38, expand: true, thumbs: [], terrainOptions: [], picks: [1, 2, 3, 4].map((k) => ({ num: 300 + k, label: String(300 + k).padStart(4, "0"), thumb: pic(30 + k), terrainOptions: opts(k === 1 ? "hills" : ""), other: "" })) };
+const CARDS = [card(0, 61, "forest"), card(1, 48, "forest"), card(2, 40), opened, card(4, 22, "mountains"), card(5, 9)];
 
 const STATES = {
   welcome: () => make({ page: "welcome" }),
@@ -62,6 +75,9 @@ const STATES = {
   }),
   ready: () => make({ page: "ready", books: 9, maps: 4, check: (s) => ({ done: true, ready: readyIds(s).concat(["map:hex-wr"]), items: items(s), problems: [] }) }),
   import: () => make({ page: "import", books: 9, maps: 4, progress: { pct: 62, phase: "Filing the adventure The Hideous Halls of Mugdulblub" } }),
+  "terrain-reading": () => make({ page: "terrain", terrain: { stage: "reading" } }),
+  terrain: () => make({ page: "terrain", terrain: { stage: "cards" } }),
+  "terrain-failed": () => make({ page: "terrain", terrain: { stage: "failed", error: "The map could not be read." } }),
   done: () => make({
     page: "done", books: 9, maps: 4, check: (s) => ({ done: true, ready: readyIds(s).concat([`map:${HEX_MAPS[0].id}`]), items: items(s), problems: [] }),
     result: { imported: 412, already: 38, skipped: { n: 257, books: ["Player's Guide to the Western Reaches", "Cursed Scroll 6: City of Masks"] }, needsYou: [
