@@ -4,8 +4,9 @@
  * Three stages, in the order the pieces depend on each other:
  *   1. the library   every monster, spell, item, class, table and journal the added books can give
  *   2. adventures    each added book's numbered-location adventures, filed as journals
- *   3. site maps     a scene for each added adventure map, with every pin the module knows already placed
- * The hex maps are not imported here; the Done page leads the GM through them.
+ *   3. key locations each added book's keyed hexes (a hex map's pins come from these, so they go first)
+ *   4. site maps     a scene for each added adventure map, with every pin the module knows already placed
+ *   5. hex maps      a scene for each added hex map, numbered and pinned; the terrain Legend is the GM's, once, on the Done page
  *
  * Nothing in this file touches Foundry. The pieces that do arrive as `deps` (wizard-app.mjs builds the real
  * ones), so a Node test runs the whole flow with stand-ins and checks the numbers it reports.
@@ -17,11 +18,17 @@
  *   deps.siteOf(mapId)                                                  → { id, title, src } | null
  *   deps.isFiled(siteId)                                                → whether the site's journal exists
  *   deps.buildScene(siteId, path)                                       → { status:"built"|"already"|"failed", placed, left, known }
+ *   deps.keyBooks                                                       → the source keys whose key locations can be imported
+ *   deps.keyLocations(src, { onRegion(region, i, n) })                  → { regions, hexes, created, failed:[{region, error}] }
+ *   deps.hexMap(id, { title, firstNum })                                → { status:"ready"|"already"|"needsLook"|"cancelled"|"failed", sceneId, legend, pinned }
  */
-import { bookRows, isHexMap, bookTitle } from "./wizard-core.mjs";
+import { bookRows, isHexMap, bookTitle, HEX_MAPS } from "./wizard-core.mjs";
+import { hexPrint } from "../../hex-map/hex-prints.mjs";
 
 /** How much of the bar each stage owns. */
-const WEIGHTS = { library: [0, 62], adventures: [62, 82], maps: [82, 98] };
+const WEIGHTS = { library: [0, 55], adventures: [55, 68], keys: [68, 78], maps: [78, 88], hex: [88, 98] };
+/** Why a map is left for the GM; keys are written out in full (the i18n test finds them by scanning for them). */
+const BY_HAND = { black: "SDE.importer.wizard.hex.by.black", halves: "SDE.importer.wizard.hex.by.halves" };
 /** A source key's book title, or "" for a key the wizard has no book for. */
 const titleOf = (src) => { try { return src ? bookTitle(src) : ""; } catch { return ""; } };
 const span = ([from, to], fraction) => from + (to - from) * Math.max(0, Math.min(1, fraction));
@@ -30,13 +37,13 @@ const span = ([from, to], fraction) => from + (to - from) * Math.max(0, Math.min
  * @param {object} state  wizard state (check.ready, maps, uploaded)
  * @param {{onProgress:(pct:number, phase:string)=>void, cancelled:()=>boolean}} hooks
  * @param {object} deps   see the file header
- * @returns {Promise<{imported:number, already:number, needsYou:Array<{title:string, why:string}>, skipped:{n:number, books:string[]}, stopped:boolean}>}
+ * @returns {Promise<{imported:number, already:number, needsYou:Array<{title:string, why:string}>, skipped:{n:number, books:string[]}, hex:Array<{id:string, title:string, status:string, legend:boolean, sceneId?:string, why?:string}>, stopped:boolean}>}
  */
 export async function runWizardImport(state, hooks, deps) {
   const { t } = deps;
   const ready = new Set(state.check?.ready ?? []);
   const books = bookRows(state).filter((b) => ready.has(`book:${b.id}`));
-  const result = { imported: 0, already: 0, needsYou: [], skipped: { n: 0, books: [] }, stopped: false };
+  const result = { imported: 0, already: 0, needsYou: [], skipped: { n: 0, books: [] }, hex: [], stopped: false };
   const stop = () => { if (hooks.cancelled()) { result.stopped = true; return true; } return false; };
 
   // 1. The library
@@ -74,7 +81,21 @@ export async function runWizardImport(state, hooks, deps) {
     for (const f of report?.failed ?? []) result.needsYou.push({ title: f.title, why: f.error });
   }
 
-  // 3. Adventure maps (the hex maps are the Done page's)
+  // 3. Key locations: the keyed hexes of each added book that has them
+  const keySources = books.map((b) => b.id).filter((src) => deps.keyBooks.includes(src));
+  for (const [i, src] of keySources.entries()) {
+    if (stop()) return result;
+    const report = await deps.keyLocations(src, {
+      onRegion: (region, n, of) => hooks.onProgress(span(WEIGHTS.keys, (i + (n - 1) / of) / keySources.length), t("SDE.importer.wizard.run.keys", { region })),
+    });
+    // A second run reads the same pages again: only the new ones are imported, the rest were already there.
+    const created = report?.created ?? report?.hexes ?? 0;
+    result.imported += created;
+    result.already += Math.max(0, (report?.hexes ?? 0) - created);
+    for (const f of report?.failed ?? []) result.needsYou.push({ title: f.region, why: f.error });
+  }
+
+  // 4. Adventure maps (the hex maps follow)
   const maps = Object.keys(state.maps).filter((id) => ready.has(`map:${id}`) && !isHexMap(id));
   for (const [i, id] of maps.entries()) {
     if (stop()) return result;
@@ -93,6 +114,19 @@ export async function runWizardImport(state, hooks, deps) {
       if (!built.known) result.needsYou.push({ title: site.title, why: t("SDE.importer.wizard.run.pinsByHand") });
       else if (built.left > 0) result.needsYou.push({ title: site.title, why: t("SDE.importer.wizard.run.pinsLeft", { n: built.left }) });
     }
+  }
+  // 5. Hex maps. A map the wizard cannot do alone, or is unsure of, is left for the Done page rather than asked about mid-run.
+  const hexMaps = HEX_MAPS.filter((h) => ready.has(`map:${h.id}`));
+  for (const [i, h] of hexMaps.entries()) {
+    if (stop()) return result;
+    const print = hexPrint(h.id);
+    if (print?.byHand) { result.hex.push({ id: h.id, title: h.title, status: "byHand", legend: false, look: print.byHand !== "halves", why: t(BY_HAND[print.byHand]) }); continue; }
+    hooks.onProgress(span(WEIGHTS.hex, i / hexMaps.length), t("SDE.importer.wizard.run.hex", { title: h.title }));
+    const made = await deps.hexMap(h.id, { title: h.title, firstNum: print?.firstNum });
+    if (made.status === "failed") { result.needsYou.push({ title: h.title, why: t("SDE.importer.wizard.run.hexFailed") }); continue; }
+    if (made.status === "ready") result.imported += 1;
+    else if (made.status === "already") result.already += 1;
+    result.hex.push({ id: h.id, title: h.title, status: made.status, legend: !!made.legend, look: made.status === "needsLook", sceneId: made.sceneId, pinned: made.pinned ?? 0 });
   }
   hooks.onProgress(100, t("SDE.importer.wizard.run.finishing"));
   return result;

@@ -31,6 +31,9 @@ const deps = (over = {}) => {
     siteOf: (id) => ({ id, title: "The Hideous Halls", src: "CS1" }),
     isFiled: async () => true,
     buildScene: async (id) => { calls.push(`scene:${id}`); return { status: "built", placed: 33, left: 0, known: true }; },
+    keyBooks: ["GMWR", "CS1", "CS2", "CS3", "CS4", "CS5"],
+    keyLocations: async (src, o) => { calls.push(`keys:${src}`); o.onRegion("Gloaming", 1, 1); return { hexes: 40, created: 40, failed: [] }; },
+    hexMap: async (id) => { calls.push(`hex:${id}`); return { status: "ready", sceneId: `scene-${id}`, legend: true, pinned: 12 }; },
     ...over,
   };
 };
@@ -39,8 +42,8 @@ const hooks = () => { const seen = []; return { seen, onProgress: (pct, phase) =
 test("stages run library, then adventures, then maps, and the numbers add up", async () => {
   const d = deps(), h = hooks();
   const r = await runWizardImport(stateWith(CS1(), MAP1()), h, d);
-  assert.deepEqual(d.calls, ["library", "adventures:CS1", "scene:cs1-mugdulblub"]);
-  assert.equal(r.imported, 40 + 33 + 1);
+  assert.deepEqual(d.calls, ["library", "adventures:CS1", "keys:CS1", "scene:cs1-mugdulblub"]);
+  assert.equal(r.imported, 40 + 33 + 40 + 1);
   assert.equal(r.already, 3);
   assert.deepEqual(r.needsYou, []);
   const pcts = h.seen.map((x) => x[0]);
@@ -51,8 +54,8 @@ test("stages run library, then adventures, then maps, and the numbers add up", a
 test("a book with no adventures files none, and a map-only run still builds the scene", async () => {
   const d = deps({ adventureBooks: [] });
   const r = await runWizardImport(stateWith(CS1(), MAP1()), hooks(), d);
-  assert.deepEqual(d.calls, ["library", "scene:cs1-mugdulblub"]);
-  assert.equal(r.imported, 41);
+  assert.deepEqual(d.calls, ["library", "keys:CS1", "scene:cs1-mugdulblub"]);
+  assert.equal(r.imported, 40 + 40 + 1);
 });
 
 test("a map whose adventure was never filed asks for the book instead of failing", async () => {
@@ -81,7 +84,7 @@ test("failures from the library, an adventure and a scene all come back as thing
   });
   const r = await runWizardImport(stateWith(CS1(), MAP1()), hooks(), d);
   assert.deepEqual(r.needsYou.map((x) => x.title), ["Goblin", "Halls", "Tower", "The Hideous Halls"]);   // a skipped entry is not among them
-  assert.equal(r.imported, 30);
+  assert.equal(r.imported, 30 + 40);   // the adventure's 30 pages and the key locations' 40
 });
 
 test("Stop ends the run after the stage in flight and says so", async () => {
@@ -93,11 +96,6 @@ test("Stop ends the run after the stage in flight and says so", async () => {
   assert.equal(r.imported, 5);
 });
 
-test("hex maps are left for the Done page", async () => {
-  const d = deps();
-  await runWizardImport(stateWith(file("Western Reaches GM Map A0.jpg", 21)), hooks(), d);
-  assert.ok(!d.calls.some((c) => c.startsWith("scene:")));
-});
 
 test("entries whose books were not added are counted and named by book, never listed as problems", async () => {
   const blocked = (src, n) => Array.from({ length: n }, (_, i) => ({ status: "blocked", name: `${src} row ${i}`, note: "no linked PDF", src }));
@@ -111,6 +109,6 @@ test("entries whose books were not added are counted and named by book, never li
 test("adventure pages that were already filed count as already had, not imported", async () => {
   const d = deps({ fileAdventures: async () => ({ sites: [{ title: "The Hideous Halls", locations: 33, created: 0, updated: 34, missing: [] }], failed: [] }) });
   const r = await runWizardImport(stateWith(CS1(), MAP1()), hooks(), d);
-  assert.equal(r.imported, 40 + 1);       // the library's 40 and the scene; no adventure page is new
+  assert.equal(r.imported, 40 + 40 + 1);  // the library's 40, the key locations' 40 and the scene; no adventure page is new
   assert.equal(r.already, 3 + 34);        // the library's 3 and the 34 pages read again
 });

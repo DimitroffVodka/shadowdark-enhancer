@@ -128,15 +128,7 @@
       <span><strong>{{localize "SDE.importer.wizard.ready.custom"}}</strong><small>{{localize "SDE.importer.wizard.ready.customHelp"}}</small></span>
     </label>
     {{#if ready.hexNote}}
-    <div class="ui-note">
-      <strong><i class="fas fa-map"></i> {{localize "SDE.importer.wizard.hex.title"}}</strong>
-      <p>{{localize "SDE.importer.wizard.hex.body"}}</p>
-      <ol class="sde-wiz-steps">
-        <li>{{localize "SDE.importer.wizard.hex.step1"}}</li>
-        <li>{{localize "SDE.importer.wizard.hex.step2"}}</li>
-        <li>{{localize "SDE.importer.wizard.hex.step3"}}</li>
-      </ol>
-    </div>
+    <div class="ui-note"><p><i class="fas fa-map"></i> {{localize "SDE.importer.wizard.hex.ready"}}</p></div>
     {{/if}}
     {{/if}}
 
@@ -164,13 +156,19 @@
     </div>
     {{/each}}
     {{#if done.hexMaps.length}}
-    <div class="ui-note">
-      <strong><i class="fas fa-map"></i> {{localize "SDE.importer.wizard.done.hexTitle"}}</strong>
-      <p>{{localize "SDE.importer.wizard.done.hexBody"}}</p>
-      <div class="ui-inline">
-        {{#each done.hexMaps}}<button type="button" class="ui-btn" data-action="openHex" data-id="{{id}}">{{label}}</button>{{/each}}
-      </div>
-    </div>
+    <section class="ui-group">
+      <h3 class="ui-h">{{localize "SDE.importer.wizard.done.hexTitle"}}</h3>
+      {{#if done.hexLegend}}<p class="ui-muted">{{localize "SDE.importer.wizard.done.hexBody"}}</p>{{/if}}
+      <ul class="ui-list">
+        {{#each done.hexMaps}}
+        <li class="ui-row sde-wiz-hex">
+          <span class="ui-row-main"><span class="ui-row-name">{{title}}</span><span class="ui-row-sub">{{line}}</span></span>
+          {{#if legend}}<button type="button" class="ui-btn" data-action="openLegend" data-scene="{{sceneId}}"><i class="fas fa-palette"></i> {{localize "SDE.importer.wizard.done.hexLegend"}}</button>{{/if}}
+          {{#if look}}<button type="button" class="ui-btn" data-action="openHex" data-id="{{id}}">{{localize "SDE.importer.wizard.done.hexLook"}}</button>{{/if}}
+        </li>
+        {{/each}}
+      </ul>
+    </section>
     {{/if}}
     {{/if}}
 

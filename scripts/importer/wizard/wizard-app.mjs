@@ -8,7 +8,8 @@
  */
 import { MODULE_ID } from "../../shared/module-id.mjs";
 import { WizardController, ACTIONS } from "./wizard-controller.mjs";
-import { startUpdate } from "./wizard-core.mjs";
+import { startUpdate, filesOfHex, HEX_MAPS } from "./wizard-core.mjs";
+import { hexPrint } from "../../hex-map/hex-prints.mjs";
 import { runWizardImport } from "./wizard-run.mjs";
 import { wireFiles, openPicker, actionData } from "./wizard-dom.mjs";
 import { useSessionPdf, sessionPdfPath, onTheForge, FORGE_UPLOAD_LIMIT_MB } from "../session-pdf.mjs";
@@ -103,7 +104,19 @@ export class ImportWizardApp extends HandlebarsApplicationMixin(ApplicationV2) {
       release: () => releaseLocalPdfs(),
       confirmCancel: () => app._confirmLeave(),
       openAdvanced: async () => { await app._leave(); (await import("../importer-hub-app.mjs")).ImporterHubApp.open(); },
-      openHex: async () => { ui.notifications.info(t("SDE.importer.wizard.hexLater")); },
+      // A map the wizard was unsure of, or cannot do alone: the full Hex map from image flow, with its grid window.
+      openHex: async (files, id) => {
+        const { hexMapFromFile } = await import("../../hex-map/hex-map-flow.mjs");
+        const title = HEX_MAPS.find((h) => h.id === id)?.title;
+        if (files[0]) await hexMapFromFile(files[0], { name: title, mapId: id, firstNum: hexPrint(id)?.firstNum ?? "0000" });
+      },
+      // The one thing left for a hex map: name its printed terrain pictures, in the tagger's Legend, on that map.
+      openLegend: async (sceneId) => {
+        const scene = game.scenes.get(sceneId);
+        if (!scene) return;
+        await scene.view();
+        (await import("../../hex-map/hex-tagger-app.mjs")).HexTaggerApp.open({ legend: true });
+      },
       close: () => app._leave(),
     };
   }
@@ -117,6 +130,8 @@ export class ImportWizardApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const { hasKnownPositions } = await import("../adventure/adventure-layouts.mjs");
     const { AdventurePlacer } = await import("../adventure/adventure-placer.mjs");
     const { CHAR_SOURCES } = await import("../char-content/char-content-manifest.mjs");
+    const { importKeyLocations, keyLocationBooks } = await import("../hex/hex-book-import.mjs");
+    const { hexMapFromFile } = await import("../../hex-map/hex-map-flow.mjs");
     let hub = null;
     // Building a scene opens the placer, which takes the GM's view to it; the GM's view goes back where it was afterwards.
     const viewed = game.scenes?.viewed ?? null;
@@ -127,6 +142,18 @@ export class ImportWizardApp extends HandlebarsApplicationMixin(ApplicationV2) {
         // The hub's own "Import everything", on a window nobody sees; its toasts are captured, not shown.
         library: async (opts) => { hub ??= await ImporterHubApp.openHidden(); return hub._onBatchImport(null, null, { quiet: true, ...opts }); },
         fileAdventures: (src, opts) => importAdventures(src, opts),
+        keyBooks: keyLocationBooks(),
+        keyLocations: (src, opts) => importKeyLocations(src, opts),
+        // The hex map's file is the one the GM picked; nothing is asked, and a scene made on an earlier run is left alone.
+        hexMap: async (id, { title, firstNum }) => {
+          const file = filesOfHex(state, id)[0];
+          if (!file) return { status: "failed" };
+          const made = await hexMapFromFile(file, { name: title, mapId: id, firstNum: firstNum ?? "0000", auto: true });
+          const scene = made.scene;
+          // A scene made now still needs its Legend; one found from an earlier run needs it only until the GM has applied one.
+          const legend = made.status === "ready" ? !!made.legend : !!scene && !scene.getFlag(MODULE_ID, "hexTags")?.palette?.length;
+          return { status: made.status, sceneId: scene?.id, legend, pinned: made.pinned };
+        },
         siteOf: (id) => { const site = findSite(id); return site && { ...site, src: CHAR_SOURCES[site.src]?.label ?? site.src }; },
         isFiled: async (id) => (await scenes.filedSiteIds()).has(id),
         buildScene: async (id, path) => {

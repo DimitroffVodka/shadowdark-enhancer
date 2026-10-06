@@ -27,8 +27,11 @@ import { detectLattice, latticeCentre, latticeFromCorners, cornerSupport } from 
 import { foundryOffsetToCube, framesTopRow, withAnchorNumber, extrasNumbersAlike } from "./geometry.mjs";
 import { emptyState, encodeTags } from "./tag-store.mjs";
 import { A0_PRINT, isA0 } from "./a0-print.mjs";
+import { hexPrint } from "./hex-prints.mjs";
 
 const TAGS_FLAG = "hexTags";
+/** On a scene this flow made: which of the book's hex maps it is, so setting it up again finds it instead of making a second. */
+export const HEXMAP_FLAG = "hexMapId";
 /** Working width for detection: enough for sub-pixel pitches, small enough for a tab. */
 const WORK_WIDTH = 5000;
 
@@ -73,7 +76,7 @@ async function pickFile() {
  * @returns {Promise<{lat:object, cols:number, rows:number, rowsLowered?:number, lowered:"odd"|"even", firstNum:string}|null>}
  *   `lat` is the lattice shown when Create scene was pressed: the detector's, or the hand-set one
  */
-export async function confirmLattice({ preview, full, file, lat: detected, imageW, corners: support = [] }) {
+export async function confirmLattice({ preview, full, file, lat: detected, imageW, corners: support = [], firstNum: knownNum = "0000" }) {
   const pw = preview.width, ph = preview.height, k = pw / imageW, imageH = ph / k;
   const labels = ["SDE.hexMap.corner.topLeft", "SDE.hexMap.corner.topRight",
     "SDE.hexMap.corner.bottomLeft", "SDE.hexMap.corner.bottomRight"].map((k) => t(k));
@@ -100,7 +103,7 @@ export async function confirmLattice({ preview, full, file, lat: detected, image
           <input type="number" name="rows" value="${detected?.rows ?? ""}" min="1" max="99"></div></div>
         <div class="form-group"><label>${t("SDE.hexMap.flow.whichLower")}</label><select name="lowered"><option value="odd" ${detected?.lowered !== "even" ? "selected" : ""}>${t("SDE.hexMap.label.loweredOdd")}</option><option value="even" ${detected?.lowered === "even" ? "selected" : ""}>${t("SDE.hexMap.label.loweredEven")}</option></select></div>
         <div class="form-group"><label>${t("SDE.hexMap.flow.lowShort")}</label><input type="checkbox" name="short" ${detected?.rowsLowered < detected?.rows ? "checked" : ""}></div>
-        <div class="form-group"><label>${t("SDE.hexMap.flow.firstNum")}</label><input type="text" name="firstNum" value="0000" maxlength="4"><p class="hint">${t("SDE.hexMap.flow.firstNumHint")}</p></div>
+        <div class="form-group"><label>${t("SDE.hexMap.flow.firstNum")}</label><input type="text" name="firstNum" value="${esc(knownNum)}" maxlength="4"><p class="hint">${t("SDE.hexMap.flow.firstNumHint")}</p></div>
       </div>
     </div>`;
   /** Rows in a column: the lowered parity may end one short. */
@@ -253,8 +256,9 @@ const sceneHasLevels = () => !!globalThis.foundry?.documents?.BaseScene?.schema?
  *   centres the unshifted columns' first row on the scene's top edge, so half of it falls outside the scene; one row
  *   above the print puts that whole row inside. The print's first cell then sits at Foundry row `topRows`.
  * @param {boolean} [opts.levels]  emit the 14+ `levels` form (default: what the running schema has)
+ * @param {string} [opts.mapId]  which of the book's hex maps this is (hex-prints.mjs), kept on the scene so a second setup finds it
  */
-export function alignedSceneData({ name, src, imageW, imageH, lat, firstNum = "0000", cols, rows, rowsLowered, frameCut, topRows = 0, levels = sceneHasLevels() }) {
+export function alignedSceneData({ name, src, imageW, imageH, lat, firstNum = "0000", cols, rows, rowsLowered, frameCut, topRows = 0, levels = sceneHasLevels(), mapId = "" }) {
   const size = Math.max(CONST?.GRID_MIN_SIZE ?? 20, Math.round(lat.pitchY));
   const sizeX = size * 2 / Math.sqrt(3);
   const kx = (0.75 * sizeX) / lat.pitchX, ky = size / lat.pitchY;
@@ -296,7 +300,7 @@ export function alignedSceneData({ name, src, imageW, imageH, lat, firstNum = "0
     name,
     width, height, padding: 0,
     grid: { type: even ? CONST.GRID_TYPES.HEXEVENQ : CONST.GRID_TYPES.HEXODDQ, size, distance: 6, units: "mi" },
-    flags: { [MODULE_ID]: { [TAGS_FLAG]: encodeTags(state) } },
+    flags: { [MODULE_ID]: { [TAGS_FLAG]: encodeTags(state), ...(mapId ? { [HEXMAP_FLAG]: mapId } : {}) } },
   };
   if (levels) data.levels = [{ name: "Map", background: { src }, textures }];   // a Level needs a name
   else data.background = { src, ...textures };
@@ -331,74 +335,122 @@ export function topRowsFor({ lat, firstNum = "0000", frameCut = false }) {
 /**
  * The scene for a confirmed lattice: what the flow creates, in one place so it can be checked without a world.
  * A hand-set lattice says nothing about the frame: its first row is map (no `frameCut`).
- * @param {{name:string, src:string, imageW:number, imageH:number, answer:object}} args  answer: from confirmLattice
+ * @param {{name:string, src:string, imageW:number, imageH:number, answer:object, mapId?:string}} args  answer: from confirmLattice
  */
-export function sceneDataFromAnswer({ name, src, imageW, imageH, answer }) {
+export function sceneDataFromAnswer({ name, src, imageW, imageH, answer, mapId = "" }) {
   const frameCut = answer.lat.frameCut ?? false;
   const lat = { ...answer.lat, lowered: answer.lowered };
   const { firstNum } = answer;
-  return alignedSceneData({ name, src, imageW, imageH, lat, firstNum, cols: answer.cols, rows: answer.rows, rowsLowered: answer.rowsLowered, frameCut, topRows: topRowsFor({ lat, firstNum, frameCut }) });
+  return alignedSceneData({ name, src, imageW, imageH, lat, firstNum, cols: answer.cols, rows: answer.rows, rowsLowered: answer.rowsLowered, frameCut, topRows: topRowsFor({ lat, firstNum, frameCut }), mapId });
 }
 
 /**
  * The Western Reaches A0: its lattice is known (a0-print.mjs), so there is
  * nothing to detect or confirm. The scene is made to fit the print, then Make
  * this map playable does the rest.
- * @returns {Promise<Scene>}
+ * @param {{mapId?:string, quiet?:boolean}} [opts]  quiet: no checklist or Legend window; the answer says whether the Legend is still to do
+ * @returns {Promise<{status:"ready", scene:Scene, legend:boolean, pinned:number}>}
  */
-async function a0Scene(file, name) {
+async function a0Scene(file, name, { mapId = "", quiet = false } = {}) {
   const src = await uploadMap(file);
   const { width, height, lat, firstNum, bounds } = A0_PRINT;
-  const data = alignedSceneData({ name, src, imageW: width, imageH: height, lat, firstNum, cols: bounds.cols, rows: bounds.rows, rowsLowered: bounds.rowsLowered });
+  const data = alignedSceneData({ name, src, imageW: width, imageH: height, lat, firstNum, cols: bounds.cols, rows: bounds.rows, rowsLowered: bounds.rowsLowered, mapId });
   const scene = await Scene.create(data);
-  ui.notifications?.info(t("SDE.hexMap.notify.sceneCreated", { name: scene.name, cols: bounds.cols, rows: bounds.rows, size: data.grid.size }));
+  if (!quiet) ui.notifications?.info(t("SDE.hexMap.notify.sceneCreated", { name: scene.name, cols: bounds.cols, rows: bounds.rows, size: data.grid.size }));
   await scene.view();
-  await (await import("./hex-tagger-app.mjs")).HexTaggerApp.makePlayable();
-  return scene;
+  const made = await (await import("./hex-tagger-app.mjs")).HexTaggerApp.makePlayable({ quiet });
+  return { status: "ready", scene, legend: made?.legend ?? true, pinned: scene.notes.size };
 }
 
-/** The whole flow, GM only. @returns {Promise<Scene|null>} */
-export async function startHexMapFlow() {
-  if (!game.user?.isGM) { ui.notifications?.warn(t("SDE.hexMap.notify.gmOnlySetup")); return null; }
-  const picked = await pickFile();
-  if (!picked) return null;
-  const { file, name } = picked;
+/**
+ * Pin a book's keyed hexes on the scene being viewed: every crawl filed from that book's key locations
+ * (importKeyLocations), which this map's numbering has to match. Nothing is pinned when none are filed yet.
+ * @returns {Promise<number>} how many pins the scene now has
+ */
+async function pinBookKey(mapId) {
+  const print = hexPrint(mapId);
+  if (!print) return 0;
+  const [{ crawlEntries }, { pinCrawlOnActiveScene }, { sourceFolderName }, { HEX_FLAG }] = await Promise.all([
+    import("./hex-region.mjs"), import("./hex-pins.mjs"), import("../shared/compendium-suite.mjs"), import("../importer/hex/hex-commit.mjs"),
+  ]);
+  for (const entry of await crawlEntries()) {
+    if (sourceFolderName(entry.getFlag(MODULE_ID, HEX_FLAG)?.source) === print.folder) await pinCrawlOnActiveScene(entry);
+  }
+  return canvas.scene?.notes.size ?? 0;
+}
+
+/**
+ * Make the scene for a hex map image the GM already has, GM only.
+ *
+ * `auto` is the wizard's way in: nothing is asked. A print whose grid the finder is sure of (all four corners sit on a
+ * printed hex) becomes a scene at once; a print it is unsure of is NOT sent to the confirm window mid-run, the answer is
+ * `needsLook` and the GM opens the full flow (auto off) when they choose. Either way the scene is flagged with `mapId`,
+ * so a second run finds it and leaves it alone, and the book's keyed hexes are pinned on it.
+ * @param {File} file
+ * @param {{name?:string, mapId?:string, firstNum?:string, auto?:boolean}} [opts]  firstNum: the printed number of the first hex
+ *   (hex-prints.mjs), used when nothing is asked
+ * @returns {Promise<{status:"ready"|"already"|"needsLook"|"cancelled"|"failed", scene?:Scene, legend?:boolean, pinned?:number}>}
+ */
+export async function hexMapFromFile(file, { name, mapId = "", firstNum = "0000", auto = false } = {}) {
+  if (!game.user?.isGM) { ui.notifications?.warn(t("SDE.hexMap.notify.gmOnlySetup")); return { status: "failed" }; }
+  name ||= file.name.replace(/\.[^.]+$/, "");
+  const have = mapId && game.scenes.find((s) => s.getFlag(MODULE_ID, HEXMAP_FLAG) === mapId);
+  if (have) return { status: "already", scene: have };
   let full, working;
   try {
     full = await createImageBitmap(file);
   } catch (err) {
-    ui.notifications?.error(t("SDE.hexMap.notify.notAnImage", { file: file.name, error: err.message })); return null;
+    ui.notifications?.error(t("SDE.hexMap.notify.notAnImage", { file: file.name, error: err.message })); return { status: "failed" };
   }
   const imageW = full.width, imageH = full.height;
   const scale = Math.min(1, WORK_WIDTH / imageW);
-  ui.notifications?.info(t("SDE.hexMap.notify.readingImage", { file: file.name, w: imageW, h: imageH }));
+  if (!auto) ui.notifications?.info(t("SDE.hexMap.notify.readingImage", { file: file.name, w: imageW, h: imageH }));
   try {
-    if (isA0(imageW, imageH)) return await a0Scene(file, name);
+    if (isA0(imageW, imageH)) return await a0Scene(file, name, { mapId, quiet: auto });
     working = scale < 1 ? await createImageBitmap(full, { resizeWidth: Math.round(imageW * scale), resizeHeight: Math.round(imageH * scale), resizeQuality: "medium" }) : full;
     const { ink, w, h } = await imageInk(working, { scale: 1, onProgress: () => new Promise((r) => setTimeout(r, 0)) });
     const det = detectLattice(ink, w, h);
     // No grid found is not the end: the confirmation window lets the GM set the corners by hand.
     const s = w / imageW;
     const lat = det && { x0: det.x0 / s, y0: det.y0 / s, pitchX: det.pitchX / s, pitchY: det.pitchY / s, cols: det.cols, rows: det.rows, rowsLowered: det.rowsLowered, lowered: det.lowered, frameCut: det.frameCut };
-    // The overview: up to 1200 px on the long side, scaled by CSS to the window; the corners are cut from the full image.
-    const long = Math.min(1200, Math.max(imageW, imageH));
-    const pw = Math.round(imageW >= imageH ? long : long * imageW / imageH);
-    const preview = await createImageBitmap(working, { resizeWidth: pw, resizeHeight: Math.round(pw * imageH / imageW), resizeQuality: "medium" });
-    const answer = await confirmLattice({ preview, full, file, lat, imageW, corners: det ? cornerSupport(ink, w, h, det) : [] });
-    preview.close?.();
-    if (!answer) return null;
+    const support = det ? cornerSupport(ink, w, h, det) : [];
+    let answer;
+    if (auto) {
+      if (!det || support.length !== 4 || !support.every((c) => c.ok)) return { status: "needsLook" };
+      answer = { lat, cols: det.cols, rows: det.rows, lowered: det.lowered, firstNum, short: det.rowsLowered < det.rows };
+      if (answer.short) answer.rowsLowered = Math.max(1, answer.rows - 1);
+    } else {
+      // The overview: up to 1200 px on the long side, scaled by CSS to the window; the corners are cut from the full image.
+      const long = Math.min(1200, Math.max(imageW, imageH));
+      const pw = Math.round(imageW >= imageH ? long : long * imageW / imageH);
+      const preview = await createImageBitmap(working, { resizeWidth: pw, resizeHeight: Math.round(pw * imageH / imageW), resizeQuality: "medium" });
+      answer = await confirmLattice({ preview, full, file, lat, imageW, corners: support, firstNum });
+      preview.close?.();
+      if (!answer) return { status: "cancelled" };
+    }
     const src = await uploadMap(file);
-    const data = sceneDataFromAnswer({ name, src, imageW, imageH, answer });
+    const data = sceneDataFromAnswer({ name, src, imageW, imageH, answer, mapId });
     const scene = await Scene.create(data);
-    ui.notifications?.info(t("SDE.hexMap.notify.sceneCreated", { name: scene.name, cols: answer.cols, rows: answer.rows, size: data.grid.size }));
+    if (!auto) ui.notifications?.info(t("SDE.hexMap.notify.sceneCreated", { name: scene.name, cols: answer.cols, rows: answer.rows, size: data.grid.size }));
     await scene.view();
-    (await import("./hex-tagger-app.mjs")).HexTaggerApp.open({ legend: true });
-    return scene;
+    const pinned = await pinBookKey(mapId);
+    // Run by hand, the tagger opens on the Legend; run by the wizard, the Done page offers it once for every map.
+    if (!auto) (await import("./hex-tagger-app.mjs")).HexTaggerApp.open({ legend: true });
+    return { status: "ready", scene, legend: true, pinned };
   } catch (err) {
     console.error(`${MODULE_ID} | hex map from image`, err);
     ui.notifications?.error(t("SDE.hexMap.notify.setupFailed", { error: err.message }));
-    return null;
+    return { status: "failed" };
   } finally {
     working?.close?.(); if (working !== full) full?.close?.();
   }
+}
+
+/** The whole flow with its own file window, GM only. @returns {Promise<Scene|null>} */
+export async function startHexMapFlow() {
+  if (!game.user?.isGM) { ui.notifications?.warn(t("SDE.hexMap.notify.gmOnlySetup")); return null; }
+  const picked = await pickFile();
+  if (!picked) return null;
+  const { scene } = await hexMapFromFile(picked.file, { name: picked.name });
+  return scene ?? null;
 }

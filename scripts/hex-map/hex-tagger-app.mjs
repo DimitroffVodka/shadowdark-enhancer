@@ -363,9 +363,12 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
    * second press after it does the rest. Each step runs only when it is
    * missing, on a tagger instance that is never shown; then the checklist
    * says what the map has.
-   * @returns {Promise<boolean>} whether it ran
+   * `quiet` (the import wizard's) says nothing along the way and opens no window: no toasts, no
+   * checklist, no Legend. The answer says whether the Legend is still to be done.
+   * @param {{quiet?:boolean}} [opts]
+   * @returns {Promise<false|{legend:boolean}>} false when it did not run
    */
-  static async makePlayable() {
+  static async makePlayable({ quiet = false } = {}) {
     if (!game.user?.isGM) { ui.notifications?.warn(t("SDE.hexMap.notify.gmOnly")); return false; }
     const scene = canvas?.scene;
     const tf = backgroundTransform(canvas);
@@ -378,7 +381,7 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
     app._entryUuid = app._entries.length ? ALL_CRAWLS : "";
     const facts = await playableFacts(scene, app, tf);
     const { run, confirm } = playablePlan(facts);
-    const say = (key, data) => ui.notifications?.info(t(key, data));
+    const say = (key, data) => { if (!quiet) ui.notifications?.info(t(key, data)); };
     try {
       if (run.includes("anchor")) {
         if (confirm && !(await foundry.applications.api.DialogV2.confirm({
@@ -436,11 +439,12 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
     // An open tagger shows the new state; the Legend opens in it, or in a new one.
     const shown = [...foundry.applications.instances.values()].find((a) => a instanceof HexTaggerApp);
     if (shown) { shown._loadState(); shown._renumber(); }
+    if (quiet) { shown?.render(); return { legend: run.includes("legend") }; }
     if (run.includes("legend")) {
       if (shown) { shown._autoLegend = true; shown.render(); } else HexTaggerApp.open({ legend: true });
     } else shown?.render();
     await showPlayableChecklist(scene, await playableFacts(scene, app, backgroundTransform(canvas)));
-    return true;
+    return { legend: run.includes("legend") };
   }
 
   /**

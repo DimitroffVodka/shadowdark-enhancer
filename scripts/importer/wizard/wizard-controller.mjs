@@ -42,8 +42,13 @@ const SUBTITLES = {
   import: "SDE.importer.wizard.sub.import", done: "SDE.importer.wizard.sub.done",
 };
 
+/** What the Done page says of a hex map; keys are written out in full. */
+const HEX_STATUS = {
+  ready: "SDE.importer.wizard.done.hexStatus.ready", already: "SDE.importer.wizard.done.hexStatus.already", needsLook: "SDE.importer.wizard.done.hexStatus.needsLook",
+};
+
 /** Names a click may carry in data-action; wizard-app.mjs maps each to dispatch(). */
-export const ACTIONS = ["next", "back", "cancel", "choose", "remove", "setKeep", "setChoice", "toggleGroup", "fix", "openHex", "advanced"];
+export const ACTIONS = ["next", "back", "cancel", "choose", "remove", "setKeep", "setChoice", "toggleGroup", "fix", "openHex", "openLegend", "advanced"];
 
 export class WizardController {
   /** @param {object} env  see the file header  @param {() => void} onChange  called after every change worth redrawing */
@@ -74,6 +79,7 @@ export class WizardController {
       case "toggleGroup": this.toggle(data.id); return this.changed();
       case "fix": return this.fix(data);
       case "openHex": return this.env.openHex?.(filesOfHex(this.state, data.id), data.id);
+      case "openLegend": return this.env.openLegend?.(data.scene);
       case "advanced": return this.env.openAdvanced?.();
       default: return undefined;
     }
@@ -249,8 +255,11 @@ export class WizardController {
       vm.done = {
         imported: r.imported, already: r.already, attention: r.needsYou.length, items: r.needsYou,
         skipped: r.skipped?.n ? t(r.skipped.books.length ? "SDE.importer.wizard.done.skippedBooks" : "SDE.importer.wizard.done.skipped", { n: r.skipped.n, books: r.skipped.books.join(", ") }) : "",
-        hexMaps: HEX_MAPS.filter((h) => s.check?.ready.includes(`map:${h.id}`))
-          .map((h) => ({ id: h.id, label: t("SDE.importer.wizard.done.hexButton", { title: h.title }) })),
+        hexMaps: (r.hex ?? []).map((h) => ({
+          id: h.id, title: h.title, sceneId: h.sceneId, legend: h.legend, look: h.look,
+          line: h.why ?? t(HEX_STATUS[h.status] ?? HEX_STATUS.needsLook, { n: h.pinned ?? 0 }),
+        })),
+        hexLegend: (r.hex ?? []).some((h) => h.legend),
       };
     }
 
