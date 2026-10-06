@@ -52,7 +52,7 @@ test("the data is inside the map, and every outline is a loop of three or more p
 });
 
 /** Pins the book puts outside the walls on purpose: Iron Fortress 19, the stalagmite in the cave around the fortress. */
-const OUTSIDE = { "cs2-iron-fortress": [19] };
+const OUTSIDE = { "cs2-iron-fortress": [19], "wrma-fallen-keep-emerald-knight": [1] };
 
 /** Walls drawn onto a coarse grid (a quarter of a square a cell is plenty), then flood-filled from the page's corner. */
 function sealed(id, { doorsClosed }) {

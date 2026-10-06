@@ -418,8 +418,11 @@ back the next time. For pins you placed by hand, press the skull button once the
 **Walls, doors and light come with the scene for some maps.** The module carries the wall and
 door positions of the maps it has measured (positions only, no map and no book text), and builds
 them with the pins: a wall along every room, corridor and cave, a closed door where the map
-draws one, and the book's fixed lights. Today that is the Hideous Halls of Mugdulblub and the
-Iron Fortress (the Fortress of the Burning Brothers); the other maps follow one at a time. The
+draws one, and the book's fixed lights. Today that is every adventure's dungeon map: the Hideous Halls of Mugdulblub, the Iron Fortress
+and the Mines, the Sea Wolf King's caves, Wortwick Monastery, the nine Cursed Scroll 4 minis, the
+two Libraries of Leng and the six Western Reaches minis (not the City of Masks, which is a city
+and not a dungeon). Where a book names a secret door that its map does not draw, no door is
+built, so a room the map shows no way into stays sealed until you open the wall yourself. The
 creatures filed under a room are placed in that room's own squares, never in the rock, in
 another room or behind a closed door. Building again replaces only the walls and lights the
 module made, never ones you added, and a scene whose picture is not the shape of the book's
