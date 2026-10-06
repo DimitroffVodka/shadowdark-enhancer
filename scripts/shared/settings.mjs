@@ -538,6 +538,13 @@ export function registerSettings() {
     scope: "world", config: false, type: Object, default: {},
   });
 
+  // The import wizard finished a run in this world: { at, version, books }. The importer's front door
+  // reads it (a world that has imported shows the hub, not the first-time wizard), and it is the only
+  // record of an import done from books used once, which leave no linked file behind.
+  game.settings.register(MODULE_ID, "importerWizardRun", {
+    scope: "world", config: false, type: Object, default: {},
+  });
+
   // The one-time rewrite of hex pages filed one <p> per printed line has run
   // (reflowLegacyHexPages). Once, because later imports share that shape.
   game.settings.register(MODULE_ID, "hexReflowDone", {

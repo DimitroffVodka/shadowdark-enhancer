@@ -14,7 +14,7 @@
 
     {{#if isWelcome}}
     <div class="sde-wiz-card">
-      <p>{{localize "SDE.importer.wizard.welcome.what"}}</p>
+      <p>{{#if update}}{{update.lead}}{{else}}{{localize "SDE.importer.wizard.welcome.what"}}{{/if}}</p>
     </div>
     <div class="sde-wiz-card">
       <h3>{{localize "SDE.importer.wizard.welcome.needTitle"}}</h3>

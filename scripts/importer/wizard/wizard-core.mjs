@@ -164,7 +164,27 @@ export const newState = () => ({
   choice: "everything",   // "everything" | "custom"
   progress: { pct: 0, phase: "" },
   result: null,
+  update: null,   // set by startUpdate(): the wizard opened because a release added content
 });
+
+/**
+ * Open the wizard for a release's new content instead of a first import. `books` are the books the new
+ * rows come from; `have` says which of them the world can already read (linked files). The Books page
+ * then asks only for the others, and when there are none it starts on Ready: the import has everything.
+ * @param {object} state
+ * @param {{n:number, books:string[]}} update
+ * @param {(src:string)=>boolean} have
+ */
+export function startUpdate(state, { n, books }, have) {
+  const known = books.filter((src) => SOURCE_PDFS[src]);
+  const needed = known.filter((src) => !have(src));
+  state.update = { n, books: known, needed };
+  if (!needed.length) {
+    state.page = "ready";
+    state.check = { done: true, pct: 100, label: "", items: [], ready: known.map((src) => `book:${src}`), problems: [] };
+  }
+  return state;
+}
 
 /** Add picked files to the state; names nothing recognised are kept so the page can say so. */
 export function addFiles(state, files) {
@@ -198,9 +218,10 @@ export function bookTitle(src) {
   return CHAR_SOURCES[src].label;
 }
 
-/** One row per book the module can read, in book order. */
+/** One row per book the module can read, in book order; in update mode, only the books still needed. */
 export function bookRows(state) {
-  return Object.keys(SOURCE_PDFS).map((src) => {
+  const only = state.update?.needed.length ? state.update.needed : null;
+  return Object.keys(SOURCE_PDFS).filter((src) => !only || only.includes(src) || state.books[src]).map((src) => {
     const file = state.books[src];
     return { id: src, title: bookTitle(src), expectedMB: BOOK_MB[src] ?? null, added: !!file, fileName: file?.name ?? "", bytes: file?.size ?? 0 };
   });
@@ -241,7 +262,7 @@ export function blocker(state) {
 }
 
 /** Can Back be used? Not at the start, and not while the work runs or after it is done. */
-export const canBack = (state) => !["welcome", "import", "done"].includes(state.page);
+export const canBack = (state) => !["welcome", "import", "done"].includes(state.page) && !(state.update && !state.update.needed.length);
 
 /** Move one page on (when allowed) or back. Returns the page the wizard is now on. */
 export function go(state, dir) {

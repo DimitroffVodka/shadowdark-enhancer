@@ -22,7 +22,7 @@
  *   openAdvanced(), openHex(file), close()
  */
 import {
-  PAGES, HEX_MAPS, filesOfHex, isUsefulName, newState, addFiles, removeFile, bookRows, mapGroups, blocker, canBack, go,
+  PAGES, HEX_MAPS, bookTitle, filesOfHex, isUsefulName, newState, addFiles, removeFile, bookRows, mapGroups, blocker, canBack, go,
 } from "./wizard-core.mjs";
 import { runCheck } from "./wizard-check.mjs";
 import { expandPicked, materialize } from "./zip-reader.mjs";
@@ -199,8 +199,8 @@ export class WizardController {
     const picked = Object.keys(s.books).length + Object.keys(s.maps).length;
     const vm = {
       page: s.page,
-      title: t(TITLES[s.page]),
-      subtitle: t(SUBTITLES[s.page]),
+      title: t(s.update && s.page === "welcome" ? "SDE.importer.wizard.title.update" : TITLES[s.page]),
+      subtitle: t(s.update && s.page === "welcome" ? "SDE.importer.wizard.sub.update" : SUBTITLES[s.page]),
       stepLabel: t("SDE.importer.wizard.stepOf", { n: idx + 1, total: PAGES.length }),
       dots: PAGES.map((_, i) => ({ current: i === idx, done: i < idx })),
       notice: this.notice,
@@ -209,6 +209,9 @@ export class WizardController {
       [`is${s.page[0].toUpperCase()}${s.page.slice(1)}`]: true,
       picked,
     };
+    if (s.update && s.page === "welcome") {
+      vm.update = { lead: t(s.update.needed.length ? "SDE.importer.wizard.update.lead" : "SDE.importer.wizard.update.leadLinked", { n: s.update.n, books: s.update.books.map(bookTitle).join(", ") }) };
+    }
     const size = (row) => mbLabel(row.bytes ? row.bytes / MB : row.expectedMB);   // what was picked, else what to expect
 
     if (s.page === "keep") {

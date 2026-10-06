@@ -8,6 +8,7 @@
  */
 import { MODULE_ID } from "../../shared/module-id.mjs";
 import { WizardController, ACTIONS } from "./wizard-controller.mjs";
+import { startUpdate } from "./wizard-core.mjs";
 import { runWizardImport } from "./wizard-run.mjs";
 import { wireFiles, openPicker, actionData } from "./wizard-dom.mjs";
 import { useSessionPdf, sessionPdfPath, onTheForge, FORGE_UPLOAD_LIMIT_MB } from "../session-pdf.mjs";
@@ -24,11 +25,26 @@ const ACTION_MAP = {
   choose(_event, target) { openPicker(target); },
 };
 
+/** The world setting a finished run writes: { at, version, books }. */
+const RUN_SETTING = "importerWizardRun";
+
 /**
- * Does this world still need its first import? A world with no linked book has nothing to open the
- * advanced importer's tree on, so the wizard is the front door; the advanced importer stays one link away.
+ * Does this world still need its first import? Not when a wizard run has finished here, and not when a book
+ * is linked (a hub import, or a kept upload). A world with neither has nothing to open the advanced importer
+ * on, so the wizard is the front door; the advanced importer stays one link away.
  */
-export const wizardFirst = () => !findLibraryJournal()?.pages.some((p) => p.type === "pdf");
+export const wizardFirst = () => !game.settings.get(MODULE_ID, RUN_SETTING)?.at
+  && !findLibraryJournal()?.pages.some((p) => p.type === "pdf");
+
+/** Remember that this world has imported: when, with which module version, and from which books. */
+async function recordRun(books) {
+  const before = game.settings.get(MODULE_ID, RUN_SETTING) ?? {};
+  await game.settings.set(MODULE_ID, RUN_SETTING, {
+    at: new Date().toISOString(),
+    version: String(game.modules.get(MODULE_ID)?.version ?? ""),
+    books: [...new Set([...(before.books ?? []), ...books])],
+  });
+}
 
 export class ImportWizardApp extends HandlebarsApplicationMixin(ApplicationV2) {
   static DEFAULT_OPTIONS = {
@@ -44,17 +60,21 @@ export class ImportWizardApp extends HandlebarsApplicationMixin(ApplicationV2) {
   /** The one open wizard, or null. */
   static _instance = null;
 
-  /** Open the wizard, or bring forward the one that is open. */
-  static open() {
+  /**
+   * Open the wizard, or bring forward the one that is open.
+   * @param {{update?:{n:number, books:string[]}}} [opts]  update: a release added content (see importer-hub-news.mjs)
+   */
+  static open({ update = null } = {}) {
     if (!game.user?.isGM) { ui.notifications.warn(t("SDE.importer.notify.gmOnly")); return null; }
-    this._instance ??= new ImportWizardApp();
+    this._instance ??= new ImportWizardApp({}, update);
     this._instance.render({ force: true });
     return this._instance;
   }
 
-  constructor(options = {}) {
+  constructor(options = {}, update = null) {
     super(options);
     this.ctl = new WizardController(this._env(), () => this.render());
+    if (update) startUpdate(this.ctl.state, update, (src) => !!resolveSourcePdf(src));
     this._leaving = false;
     this._scroll = { page: null, top: 0 };
   }
@@ -94,7 +114,7 @@ export class ImportWizardApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const { CHAR_SOURCES } = await import("../char-content/char-content-manifest.mjs");
     let hub = null;
     try {
-      return await runWizardImport(state, hooks, {
+      const result = await runWizardImport(state, hooks, {
         t,
         adventureBooks: adventureBooks(),
         // The hub's own "Import everything", on a window nobody sees; its toasts are captured, not shown.
@@ -116,6 +136,8 @@ export class ImportWizardApp extends HandlebarsApplicationMixin(ApplicationV2) {
           return { status: "built", placed, left, known };
         },
       });
+      if (!result.stopped) await recordRun(state.check.ready.filter((id) => id.startsWith("book:")).map((id) => id.slice(5)));
+      return result;
     } finally {
       await hub?.close();
     }
