@@ -16,7 +16,8 @@
  *   solids  closed loops around things standing in the floor (pillars, a pit): wall all the way round
  *   doors   one segment across each doorway [x1, y1, x2, y2], a closed door
  *   lights  fixed light sources the book names, each {at:[x, y], bright, dim, color, label} with the radii in feet
- *   dark    the scene's darkness (0 to 1) when the map is a dungeon whose light comes from what the party carries
+ *   dark    optional: the scene's darkness (0 to 1). No map sets it yet: a fully dark scene hides even the hidden creatures from
+ *           the GM, who has no vision of their own, so darkening is left to the GM (the scene's Darkness slider)
  *
  * The same walls also say where a creature may stand: a room's floor and its closed doors decide which squares belong to
  * the room a creature was filed under (reachableSquares).
@@ -407,7 +408,6 @@ export const ADVENTURE_WALLS = {
     ],
     // Room 4 is the Howlers' camp: "gnawing raw catfish around campfire". The book names no other fixed light in these halls.
     lights: [{ at: [0.6269, 0.0553], bright: 20, dim: 40, color: "#ff9329", label: "Howler campfire" }],
-    dark: 1,
   },
 };
 
