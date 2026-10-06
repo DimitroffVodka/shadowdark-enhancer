@@ -222,7 +222,7 @@
   </div>
 
   <footer class="ui-footer">
-    <a class="sde-wiz-advanced" data-action="advanced" role="button" tabindex="0">{{localize "SDE.importer.wizard.advanced"}}</a>
+    {{#if foot.advanced}}<button type="button" class="ui-btn ghost sde-wiz-advanced" data-action="advanced">{{localize "SDE.importer.wizard.advanced"}}</button>{{/if}}
     {{#if foot.status}}<span class="sde-wiz-foot-status" role="status"><i class="fas fa-circle-notch fa-spin"></i> {{foot.status}}</span>{{/if}}
     <span class="ui-right">
       {{#if foot.back}}<button type="button" class="ui-btn" data-action="back">{{localize "SDE.importer.wizard.back"}}</button>{{/if}}

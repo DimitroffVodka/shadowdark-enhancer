@@ -370,22 +370,6 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
    * every unlock entry point shares one seeding path.
    * @param {{name:string, src?:string, type?:string, contentId?:string|null, page?:string|null, manifestId?:string|null}} seed
    */
-  /**
-   * Open the hub already filtered to what this module version added — the
-   * action behind the update prompt (importer-hub-news.mjs). The filter is set
-   * BEFORE open() renders so the GM never sees a flash of the full tree.
-   * @returns {ImporterHubApp}
-   */
-  static openNewContent() {
-    this._instance ??= new ImporterHubApp();
-    this._instance._manageFilter = "new";
-    // And OPEN the Manage strip. It is collapsed by default (its census is
-    // lazy), so setting the filter alone landed the GM on a hub showing
-    // nothing — the one thing the prompt promised to show them.
-    this._instance._manageExpanded = true;
-    return this.open();
-  }
-
   static async openContentUnlock(seed) {
     const inst = this.open();
     await inst._seedGenericUnlock(seed);
@@ -393,7 +377,7 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
   }
 
   async close(options = {}) {
-    ImporterHubApp._instance = null;
+    if (ImporterHubApp._instance === this) ImporterHubApp._instance = null;   // the wizard's hidden hub is not the singleton
     if (this._contentHookId) { Hooks.off(`${MODULE_ID}.contentUnlocked`, this._contentHookId); this._contentHookId = null; }
     await releaseLocalPdfs();   // books given from this computer are not kept past the window
     return super.close(options);

@@ -92,8 +92,8 @@ test("a map the grid finder is unsure of is left for the Done page, and a failur
   assert.equal(unsure.hex[0].look, true);
   assert.deepEqual(unsure.needsYou, []);
   const failed = await runWizardImport(ready(file(HEX_FILES["hex-cs2"])), hooks(), deps({ hexMap: async () => ({ status: "failed" }) }));
-  assert.equal(failed.needsYou.length, 1);
-  assert.deepEqual(failed.hex, []);
+  assert.deepEqual(failed.needsYou, []);
+  assert.deepEqual(failed.hex.map((h) => [h.status, h.look, h.legend]), [["failed", true, false]], "its row offers the by-hand setup, since the GM still holds the file");
 });
 
 test("key-location failures are things to look at; progress still only moves forward", async () => {

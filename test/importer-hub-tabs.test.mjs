@@ -8,7 +8,7 @@ let ImporterHubApp;
 before(async () => {
   globalThis.foundry = {
     applications: {
-      api: { ApplicationV2: class { }, HandlebarsApplicationMixin: (B) => class extends B { } },
+      api: { ApplicationV2: class { async close() { this.closed = true; } }, HandlebarsApplicationMixin: (B) => class extends B { } },
       handlebars: { renderTemplate() { }, loadTemplates() { }, getTemplate() { } },
       ux: {}, apps: {}, sheets: {},
     },
@@ -127,4 +127,16 @@ test("the Monster Importer marks the attack or feature row a warning names", asy
   assert.deepEqual(monsters[0].actions.map((a) => a.flagged), [true, false]);
   assert.deepEqual(monsters[0].features.map((f) => f.flagged), [true]);
   assert.equal(monsters[0].draft.actions[0].flagged, undefined, "the draft itself is not touched");
+});
+
+test("closing the wizard's hidden hub leaves the visible hub as the singleton", async () => {
+  const visible = hub();
+  ImporterHubApp._instance = visible;
+  const hidden = new ImporterHubApp({ id: "sde-importer-hub-wizard" });
+  await hidden.close();
+  assert.equal(hidden.closed, true);
+  assert.equal(visible.closed, undefined);
+  assert.equal(ImporterHubApp._instance, visible, "the next open() reuses the window the GM already has");
+  await visible.close();
+  assert.equal(ImporterHubApp._instance, null, "closing the singleton itself still clears it");
 });

@@ -105,7 +105,7 @@ export class ImportWizardApp extends HandlebarsApplicationMixin(ApplicationV2) {
       run: (state, hooks) => app._run(state, hooks),
       release: () => releaseLocalPdfs(),
       confirmCancel: () => app._confirmLeave(),
-      openAdvanced: async () => { await app._leave(); (await import("../importer-hub-app.mjs")).ImporterHubApp.open(); },
+      openAdvanced: async () => { await app._leave({ keepBooks: true }); (await import("../importer-hub-app.mjs")).ImporterHubApp.open(); },
       // A map the wizard was unsure of, or cannot do alone: the full Hex map from image flow, with its grid window.
       openHex: async (files, id) => {
         const { hexMapFromFile } = await import("../../hex-map/hex-map-flow.mjs");
@@ -150,9 +150,9 @@ export class ImportWizardApp extends HandlebarsApplicationMixin(ApplicationV2) {
         adventureBooks: adventureBooks(),
         // The hub's own "Import everything", on a window nobody sees; its toasts are captured, not shown.
         library: async (opts) => { hub ??= await ImporterHubApp.openHidden(); return hub._onBatchImport(null, null, { quiet: true, ...opts }); },
-        fileAdventures: (src, opts) => importAdventures(src, opts),
+        fileAdventures: (src, opts) => importAdventures(src, { ...opts, keepExisting: true }),   // "Nothing you already have will be overwritten"
         keyBooks: keyLocationBooks(),
-        keyLocations: (src, opts) => importKeyLocations(src, opts),
+        keyLocations: (src, opts) => importKeyLocations(src, { ...opts, keepExisting: true }),
         // The hex map's file is the one the GM picked; nothing is asked, and a scene made on an earlier run is left alone.
         hexMap: async (id, { title, firstNum }) => {
           const files = filesOfHex(state, id);   // a print that ships as two halves has two, in order
@@ -199,8 +199,10 @@ export class ImportWizardApp extends HandlebarsApplicationMixin(ApplicationV2) {
     }).catch(() => false);
   }
 
-  async _leave() {
+  /** Close without asking. keepBooks: the checked "use once" PDFs are handed on (to the advanced importer) instead of let go. */
+  async _leave({ keepBooks = false } = {}) {
     this._leaving = true;
+    this._keepBooks = keepBooks;
     await this.close();
   }
 
@@ -229,9 +231,10 @@ export class ImportWizardApp extends HandlebarsApplicationMixin(ApplicationV2) {
   async close(options = {}) {
     if (!this._leaving) {
       if (this.ctl.state.page === "import") { this.ctl.stopRequested = true; this.ctl.changed(); return this; }
-      if (this.ctl.state.page !== "done" && !(await this._confirmLeave())) return this;
+      // By the Terrain page the import has happened: only a map's names are left, and the Hex Tagger can still take them.
+      if (!["done", "terrain"].includes(this.ctl.state.page) && !(await this._confirmLeave())) return this;
     }
-    await releaseLocalPdfs();
+    if (!this._keepBooks) await releaseLocalPdfs();
     await this.ctl.legend?.close?.();
     ImportWizardApp._instance = null;
     const start = this._viewedAtStart && game.scenes.get(this._viewedAtStart);

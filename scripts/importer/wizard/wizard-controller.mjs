@@ -45,7 +45,7 @@ const SUBTITLES = {
 /** What the Done page says of a hex map; keys are written out in full. */
 const HEX_STATUS = {
   ready: "SDE.importer.wizard.done.hexStatus.ready", already: "SDE.importer.wizard.done.hexStatus.already", needsLook: "SDE.importer.wizard.done.hexStatus.needsLook",
-  named: "SDE.importer.wizard.done.hexStatus.named",
+  named: "SDE.importer.wizard.done.hexStatus.named", failed: "SDE.importer.wizard.done.hexStatus.failed",
 };
 
 /** Names a click may carry in data-action; wizard-app.mjs maps each to dispatch(). */
@@ -86,7 +86,8 @@ export class WizardController {
       // A card's name is held by the Legend itself; only a card that opened up (several hexes to name) needs redrawing.
       case "legendAnswer": if (this.legend?.answer(Number(data.idx), data.value, data.other)) this.changed(); return undefined;
       case "legendPick": this.legend?.pick(Number(data.idx), Number(data.num), data.value, data.other); return undefined;
-      case "advanced": return this.env.openAdvanced?.();
+      // Not while the import runs: it would close this window under the run and free the books it is reading.
+      case "advanced": return this.state.page === "import" ? undefined : this.env.openAdvanced?.();
       default: return undefined;
     }
   }
@@ -131,7 +132,8 @@ export class WizardController {
     const s = this.state;
     if (s.page === "done") return this.finish();
     if (s.page === "terrain") return s.terrain?.stage === "failed" ? this.terrainNext() : this.terrainApply();
-    if (s.page === "ready" && s.choice === "custom") { await this.env.release?.(); return this.env.openAdvanced?.(); }
+    // The books checked for "use once" go with the GM to the advanced importer, which lets them go when it closes.
+    if (s.page === "ready" && s.choice === "custom") return this.env.openAdvanced?.();
     const before = s.page;
     if (go(s, "next") === before) return this.changed();
     this.notice = "";
@@ -334,6 +336,7 @@ export class WizardController {
     const why = blocker(s);
     const T = s.page === "terrain" ? s.terrain : null;
     vm.foot = {
+      advanced: s.page !== "import",
       back: canBack(s) && idx > 0,
       next: s.page === "import" ? null
         : T ? (T.stage === "failed" ? { label: t("SDE.importer.wizard.terrain.continue") }

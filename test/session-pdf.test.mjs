@@ -125,3 +125,22 @@ test("a failed open is not cached, so picking a good file afterwards works", asy
   useSessionPdf("CS1", book("a.pdf", "Brine drips"));
   assert.match((await extractPdfText(sessionPdfPath("CS1"), { pages: [1] })).text, /Brine drips/);
 });
+
+test("replacing a session book makes the next read use the new file, and frees the old copy", async () => {
+  useSessionPdf("CS1", book("old.pdf", "MARKER ONE"));
+  assert.match((await extractPdfText(sessionPdfPath("CS1"), { pages: [1] })).text, /MARKER ONE/);
+  const old = await _internals._docCache.get("session-pdf:CS1");
+  useSessionPdf("CS1", book("new.pdf", "MARKER TWO"));   // going back on the Check page and picking the right edition
+  const out = (await extractPdfText(sessionPdfPath("CS1"), { pages: [1] })).text;
+  assert.match(out, /MARKER TWO/);
+  assert.doesNotMatch(out, /MARKER ONE/);
+  assert.equal(old.loadingTask.destroyed, true);
+});
+
+test("the same file read again is not parsed again", async () => {
+  useSessionPdf("CS1", book("a.pdf", "Brine drips"));
+  await extractPdfText(sessionPdfPath("CS1"), { pages: [1] });
+  const first = await _internals._docCache.get("session-pdf:CS1");
+  await extractPdfText(sessionPdfPath("CS1"), { pages: [1] });
+  assert.equal(await _internals._docCache.get("session-pdf:CS1"), first);
+});

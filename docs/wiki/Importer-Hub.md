@@ -36,7 +36,9 @@ the hub. You add your files once and it does the rest.
    **Skip this map** leaves it for later.
 
 The last page (**Done**) lists what was set up, what was already there, and
-anything that needs you, each with the button for it.
+anything that needs you. Each hex map has its own row there: **Name the terrain** for one whose terrain
+is still to name, and **Set it up** for one the guide could not set up on its own. The other things that
+need you are plain notes saying what to do.
 
 **Hex maps need nothing from you but the terrain.** All six hex maps are set up
 on their own: the Western Reaches A0 and the Cursed Scroll maps (the Gloaming,
@@ -44,12 +46,14 @@ the Djurum, the Isles of Andrik, the Black River, Morzomotha). The guide builds
 the scene, numbers the hexes the way the book prints them, and pins the book's
 key locations onto it. The Black River arrives as two halves and the guide
 joins them. A map it does not recognise (a different size than the print it
-knows) is marked *needs a look* and opens the [Hex map from image](Hex-Maps.md)
+knows) is marked *needs a look*, and a map that could not be built says so; either way its
+row on the Done page has **Set it up**, which opens the [Hex map from image](Hex-Maps.md)
 window with the grid step. The A0 is a 14043 px picture, so reading it needs a graphics card
 whose texture limit is at least that. See [Hex Maps](Hex-Maps.md) for the numbering and the Legend.
 
 **Run it again whenever you like.** The guide is safe to repeat: what is already
-imported is counted as *already had* and left alone, a hex map found by its
+imported is counted as *already had* and left alone (a room or hex page you
+edited after the first import stays as you left it), a hex map found by its
 id is reused, and a map whose terrain you already named is not asked again. A
 full first import of every book takes a long time (the library stage alone can run
 to half an hour); leave the window open.

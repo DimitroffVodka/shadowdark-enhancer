@@ -86,9 +86,10 @@ const STATES = {
     ], hex: [
       { id: "hex-wr", title: "Western Reaches hex map (A0)", status: "ready", legend: true, look: false, sceneId: "a0", pinned: 270 },
       { id: "hex-cs1", title: "The Gloaming hex map", status: "ready", legend: true, look: false, sceneId: "g", pinned: 31 },
+      { id: "hex-cs3", title: "The Isles of Andrik hex map", status: "already", legend: false, look: false, sceneId: "i", pinned: 12 },
       { id: "hex-cs2", title: "The Djurum hex map", status: "needsLook", legend: false, look: true },
-      { id: "hex-cs4", title: "The Black River hex map (Jungle)", status: "byHand", legend: false, look: false, why: "This map comes in two halves that have to be joined, which the importer cannot do yet." },
-      { id: "hex-cs5", title: "Morzomotha hex map", status: "byHand", legend: false, look: true, why: "This map is filled with black, so its grid cannot be found by itself. Its corners are set by hand." },
+      { id: "hex-cs4", title: "The Black River hex map (Jungle)", status: "failed", legend: false, look: true, pinned: 0 },
+      { id: "hex-cs5", title: "Morzomotha hex map", status: "already", legend: false, look: false, named: true, sceneId: "m", pinned: 23 },
     ] },
   }),
 };

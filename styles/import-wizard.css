@@ -58,7 +58,7 @@
 .sde-wiz-big { font-size: 24px; }
 
 /* Footer: the same three buttons in the same place on every page. The one link on the left is the way out to the advanced importer. */
-.sde-wiz-advanced { font-size: 11.5px; color: var(--ui-muted); cursor: pointer; }
+.sde-wiz-advanced { font-size: 11.5px; color: var(--ui-muted); }
 .sde-wiz-advanced:hover { color: var(--ui-text); }
 
 /* The hub the wizard drives while it imports: rendered so the batch can read it, never seen. */

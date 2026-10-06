@@ -73,7 +73,7 @@ export async function runWizardImport(state, hooks, deps) {
     for (const site of report?.sites ?? []) {
       // Only pages that were new count as imported; pages the compendium already had are "already had" (a re-run reads them again).
       result.imported += site.created ?? site.locations;
-      result.already += site.updated ?? 0;
+      result.already += (site.updated ?? 0) + (site.kept ?? 0);
       if (site.missing?.length) result.needsYou.push({ title: site.title, why: t("SDE.importer.wizard.run.siteShort", { what: site.missing.join(", ") }) });
     }
     for (const f of report?.failed ?? []) result.needsYou.push({ title: f.title, why: f.error });
@@ -120,10 +120,10 @@ export async function runWizardImport(state, hooks, deps) {
     const print = hexPrint(h.id);
     hooks.onProgress(span(WEIGHTS.hex, i / hexMaps.length), t("SDE.importer.wizard.run.hex", { title: h.title }));
     const made = await deps.hexMap(h.id, { title: h.title, firstNum: print?.firstNum });
-    if (made.status === "failed") { result.needsYou.push({ title: h.title, why: t("SDE.importer.wizard.run.hexFailed") }); continue; }
+    // A map that could not be made still gets its row, with the button to try it again by hand: the GM still holds the file.
     if (made.status === "ready") result.imported += 1;
     else if (made.status === "already") result.already += 1;
-    result.hex.push({ id: h.id, title: h.title, status: made.status, legend: !!made.legend, look: made.status === "needsLook", sceneId: made.sceneId, pinned: made.pinned ?? 0 });
+    result.hex.push({ id: h.id, title: h.title, status: made.status, legend: !!made.legend, look: made.status === "needsLook" || made.status === "failed", sceneId: made.sceneId, pinned: made.pinned ?? 0 });
   }
   hooks.onProgress(100, t("SDE.importer.wizard.run.finishing"));
   return result;

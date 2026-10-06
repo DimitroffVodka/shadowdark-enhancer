@@ -41,6 +41,8 @@ let _worker = null;
 let _workerFailed = null;
 /** path → Promise<PDFDocumentProxy>, so a 100 MB book is parsed once per session. */
 const _docCache = new Map();
+/** session path → the File its cached document was read from, so a replaced file is not answered from the old copy. */
+const _sessionFiles = new Map();
 
 /** Load (and cache) Foundry's bundled PDF.js and spawn the worker it will use. */
 async function _lib() {
@@ -70,8 +72,8 @@ async function _lib() {
  * small enough to refuse a 145 MB upload is small enough to feel two of them.
  */
 async function _openSessionDoc(path) {
-  if (_docCache.has(path)) return _docCache.get(path);
   const file = sessionPdfFile(path);
+  if (_docCache.has(path) && _sessionFiles.get(path) === file) return _docCache.get(path);
   if (!file) throw new Error("This PDF was released when the import finished. Pick the file from your computer again.");
   await _closeSessionDocs();
   const p = _lib().then(async (pdfjs) => {
@@ -79,10 +81,12 @@ async function _openSessionDoc(path) {
     return Promise.race([pdfjs.getDocument({ data, worker: _worker }).promise, _workerFailed]);
   });
   _docCache.set(path, p);
+  _sessionFiles.set(path, file);
   try {
     return await p;
   } catch (err) {
     _docCache.delete(path);   // don't cache a failed open
+    _sessionFiles.delete(path);
     throw err;
   }
 }
@@ -92,6 +96,7 @@ async function _closeSessionDocs() {
   for (const [key, p] of [..._docCache]) {
     if (!isSessionPdf(key)) continue;
     _docCache.delete(key);
+    _sessionFiles.delete(key);
     await p.then((doc) => doc.destroy(), () => {});
   }
 }

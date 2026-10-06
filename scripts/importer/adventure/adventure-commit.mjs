@@ -118,15 +118,15 @@ export async function findSiteEntry(siteId) {
  * File a site's locations as pages. GM-gated like every other commit.
  * @param {{id:string,title:string}} site  manifest row
  * @param {Array<{num:number,name:string,bodyLines:string[]}>} locations
- * @param {{source?:string, intro?:string[], introBold?:string[], resolve?:(phrase:string)=>string|undefined}} [opts]
+ * @param {{source?:string, intro?:string[], introBold?:string[], resolve?:(phrase:string)=>string|undefined, keepExisting?:boolean}} [opts]
  *   source label, for the folder; intro = the lines printed before the first location, filed
  *   as an Introduction page (introBold: the same lines with bold markers); resolve = a
  *   creature link target for a bold name (adventure-creatures.mjs creatureResolver), so the
  *   bold names the bestiary knows are filed as links
  * @returns {Promise<{entryUuid:string|null, created:string[], updated:string[], collisions:number[]}>}
  */
-export async function commitAdventure(site, locations, { source = "", intro = [], introBold, resolve } = {}) {
-  const report = { entryUuid: null, created: [], updated: [], collisions: [] };
+export async function commitAdventure(site, locations, { source = "", intro = [], introBold, resolve, keepExisting = false } = {}) {
+  const report = { entryUuid: null, created: [], updated: [], kept: [], collisions: [] };
   if (!game.user?.isGM) { ui.notifications?.warn(game.i18n.localize("SDE.importer.gm.adventure")); return report; }
   if (!locations?.length) return report;
 
@@ -160,7 +160,9 @@ export async function commitAdventure(site, locations, { source = "", intro = []
     const made = await entry.createEmbeddedDocuments("JournalEntryPage", creates);
     report.created.push(...made.map((p) => p.name));
   }
-  const updates = [...(introDoc ? [{ _id: introDoc.id, ...introPayload() }] : []),
+  // keepExisting: a page that is already there is the GM's now (they may have edited it), so it is left exactly as it is.
+  if (keepExisting) report.kept.push(...(introDoc ? [introDoc.id] : []), ...plan.update.map(({ pageId }) => pageId));
+  const updates = keepExisting ? [] : [...(introDoc ? [{ _id: introDoc.id, ...introPayload() }] : []),
     ...plan.update.map(({ loc, pageId }) => ({ _id: pageId, ...payload(loc) }))];
   if (updates.length) {
     await entry.updateEmbeddedDocuments("JournalEntryPage", updates);
