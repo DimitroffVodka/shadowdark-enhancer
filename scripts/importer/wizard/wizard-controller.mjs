@@ -152,6 +152,7 @@ export class WizardController {
   async cancel() {
     if (this.state.page === "import") { this.stopRequested = true; return this.changed(); }
     if (this.state.page === "terrain") return this.terrainSkip();
+    if (this.state.page === "done") return;   // the footer has no cancel here; a double click or a click mid page change can still land
     if (!(await this.env.confirmCancel?.())) return;
     await this.env.release?.();
     this.env.close?.();

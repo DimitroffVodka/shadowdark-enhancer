@@ -7,7 +7,7 @@ import { ROUTE } from "../scripts/importer/batch-import.mjs";
 // No journal → the registry's static per-book fallback paths apply, which is
 // exactly the state a fresh world is in.
 globalThis.game = { journal: null, user: { isGM: true } };
-const { installHubBatch } = await import("../scripts/importer/importer-hub-batch.mjs");
+const { installHubBatch, WIZARD_BATCH_CLASS } = await import("../scripts/importer/importer-hub-batch.mjs");
 
 /** A bare object carrying the installed batch methods, with no Foundry app. */
 function hub(state = {}) {
@@ -426,4 +426,34 @@ test("a partly-reprinted bestiary reports both halves", async () => {
   assert.equal(result.created, 1);
   assert.equal(result.status, "created");
   assert.equal(result.note, 'SDE.importer.count.created{"n":1}; SDE.importer.batchNote.inLibraryN{"n":2}');
+});
+
+/** Runs one job through _runBatch with a stand-in <body> and reports whether the wizard's hide class was up during the job and after it. */
+async function bodyClassDuringBatch(opts) {
+  const previous = { ui: globalThis.ui, document: globalThis.document };
+  const classes = new Set();
+  globalThis.document = { body: { classList: { add: (c) => classes.add(c), remove: (c) => classes.delete(c) } } };
+  globalThis.ui = { notifications: { info() {}, warn() {} } };
+  const h = hub();
+  h.render = async () => {};
+  h._batchCaptureNotifications = () => () => {};
+  h._invalidateManageTree = () => {};
+  h._onHubClear = () => {};
+  h._batchReportDialog = async () => {};
+  let during;
+  h._runBatchJob = async () => { during = classes.has(WIZARD_BATCH_CLASS); return { status: "ok", created: 1 }; };
+  try {
+    await h._runBatch({ jobs: [{ label: "A" }], blocked: [] }, "scope", opts);
+    return { during, after: classes.has(WIZARD_BATCH_CLASS) };
+  } finally {
+    for (const [k, v] of Object.entries(previous)) { if (v === undefined) delete globalThis[k]; else globalThis[k] = v; }
+  }
+}
+
+test("the wizard's quiet batch hides the helper windows it opens, and puts them back when it ends", async () => {
+  assert.deepEqual(await bodyClassDuringBatch({ quiet: true }), { during: true, after: false });
+});
+
+test("the normal batch (the advanced hub) leaves its helper windows visible", async () => {
+  assert.deepEqual(await bodyClassDuringBatch({}), { during: false, after: false });
 });
