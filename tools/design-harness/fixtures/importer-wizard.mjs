@@ -67,6 +67,12 @@ const STATES = {
     result: { imported: 412, already: 38, skipped: { n: 257, books: ["Player's Guide to the Western Reaches", "Cursed Scroll 6: City of Masks"] }, needsYou: [
       { title: "Fallen Keep of the Emerald Knight", why: "The scene is built. The module does not know where this map's locations sit yet, so you place them by clicking: Importer, Tools, Adventure map." },
       { title: "Goblin", why: "This could not be imported. The advanced importer can show why." },
+    ], hex: [
+      { id: "hex-wr", title: "Western Reaches hex map (A0)", status: "ready", legend: true, look: false, sceneId: "a0", pinned: 270 },
+      { id: "hex-cs1", title: "The Gloaming hex map", status: "ready", legend: true, look: false, sceneId: "g", pinned: 31 },
+      { id: "hex-cs2", title: "The Djurum hex map", status: "needsLook", legend: false, look: true },
+      { id: "hex-cs4", title: "The Black River hex map (Jungle)", status: "byHand", legend: false, look: false, why: "This map comes in two halves that have to be joined, which the importer cannot do yet." },
+      { id: "hex-cs5", title: "Morzomotha hex map", status: "byHand", legend: false, look: true, why: "This map is filled with black, so its grid cannot be found by itself. Its corners are set by hand." },
     ] },
   }),
 };
