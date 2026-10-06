@@ -143,7 +143,7 @@ const STYLESHEET_REV = "b9a2f158b07c";
 // stale); module.json carries the same hash and is fetched fresh at runtime. A
 // mismatch is a stale cache by construction — it cannot be anything else. Both
 // stamps are written by `npm run inventory` and gated by `inventory:check`.
-const BUILD_REV = "e5bead3c98bc";
+const BUILD_REV = "7fd1e662530c";
 
 /**
  * Tell the user when their browser is running an old build of this module, and
@@ -789,6 +789,8 @@ Hooks.once("init", () => {
           : (await import("./importer/importer-hub-app.mjs")).ImporterHubApp.open("import");
       },
       openWizard: async () => (await import("./importer/wizard/wizard-app.mjs")).ImportWizardApp.open(),
+      // The walls and doors window over an adventure scene (a scene or its id): the draft is found, corrected there, and added.
+      wallsAndDoors: async (scene) => (await import("./importer/adventure/walls-doors-app.mjs")).WallsDoorsApp.open(typeof scene === "string" ? game.scenes.get(scene) : (scene ?? canvas.scene)),
       // Importer hub — 4-tab shell (Import / Tables / Monsters / Items).
       // Back-compat: legacy tab="dashboard" maps to "tables"; retired
       // "journal"/"scenes" tabs coerce to Import; seed forces Import tab.

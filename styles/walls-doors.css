@@ -1,0 +1,20 @@
+/* The walls and doors window. The look is the shared kit (styles/sde-ui.css); this file holds only the map stage and
+   the edge lines, in the kit's tokens. No colour is written out here, and nothing is theme-specific. */
+
+.sde-wd { min-height: 0; }
+.sde-wd .ui-note p { margin: 0; line-height: 1.45; }
+.sde-wd-body { display: flex; flex-direction: column; gap: 8px; min-height: 0; }
+.sde-wd-bar { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex: 0 0 auto; }
+.sde-wd-zoom { display: inline-flex; gap: 4px; }
+
+/* The map scrolls inside its own box, so the header and footer stay put. */
+.sde-wd-scroll { flex: 1 1 auto; min-height: 0; overflow: auto; border: 1px solid var(--ui-line); border-radius: var(--ui-r2); background: var(--ui-page); }
+.sde-wd-stage { position: relative; margin: 0 auto; }
+.sde-wd-stage img { display: block; width: 100%; height: auto; user-select: none; }
+.sde-wd-stage svg { position: absolute; inset: 0; width: 100%; height: 100%; touch-action: none; }
+
+/* One line per grid edge: clear (but clickable) until it is a wall or a door. */
+.sde-wd-e { stroke: transparent; stroke-linecap: round; cursor: crosshair; }
+.sde-wd-e:hover { stroke: var(--ui-muted); opacity: .55; }
+.sde-wd-e.is-wall { stroke: var(--ui-danger-text); opacity: .9; }
+.sde-wd-e.is-door { stroke: var(--ui-gold); opacity: 1; }

@@ -53,6 +53,7 @@ export class AdventurePlacer extends HandlebarsApplicationMixin(ApplicationV2) {
       advStop: function (...a) { return this._onStop(...a); },
       advSkip: function (...a) { return this._onSkip(...a); },
       advClear: function (...a) { return this._onClear(...a); },
+      advWalls: function (...a) { return this._onWalls(...a); },
     },
   };
 
@@ -287,6 +288,12 @@ export class AdventurePlacer extends HandlebarsApplicationMixin(ApplicationV2) {
       ui.notifications?.error(t("SDE.adventure.placer.monstersFailed"));
       return null;
     }
+  }
+
+  /** The Walls and doors button: the map's walls and doors, found and shown for the GM to correct. */
+  async _onWalls() {
+    const { WallsDoorsApp } = await import("./walls-doors-app.mjs");
+    return WallsDoorsApp.open(this.scene);
   }
 
   /** The Place monsters button: the creatures alone, for pins placed by click or a scene built before they were placed. */

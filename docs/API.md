@@ -349,6 +349,7 @@ api.tables.encounterTables();     // encounter-flagged tables
 await api.tables.organize(opts);  // GM-only: file tables into their folders
 
 // Windows (async — these UIs parse on first open):
+await api.tables.wallsAndDoors(scene);    // the walls and doors window over an adventure scene (a scene or its id; the open scene if omitted)
 await api.tables.openHub();               // the Importer Hub (one scrolling view;
                                           //   the legacy tab argument is ignored)
 await api.tables.openClassImporter();     // dedicated Class Importer workspace

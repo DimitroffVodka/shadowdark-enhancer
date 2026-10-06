@@ -386,6 +386,24 @@ name does not say which adventure it is, choose it from the list. Choosing an ad
 that already has a scene picks it up where you left it. A **Place locations** window
 opens over the scene for anything left to place.
 
+**Walls and doors.** A dungeon map is a picture, so movement and lighting see no walls
+until some exist. The **Place locations** window has a dungeon button, and the import
+guide's last page lists each adventure map with a **Walls and doors** button; both open a
+window with the map and the walls and doors the module found laid over it (walls in red,
+doors in gold). It reads the map along the book's printed grid: a heavy stroke along a
+grid edge is a wall, and a small closed rounded rectangle in a wall line is a door. It is
+a first draft: choose **Wall**, **Door** or **Erase** and click or drag along the edges to
+correct it, and nothing is written until you press **Add walls and doors**. Adding again
+replaces only the walls the module made before; walls you drew yourself stay. It
+only recognises the art style it was built for: walls drawn as clean heavy lines along the
+grid and doors drawn as small rounded rectangles. That is how The Hideous Halls of
+Mugdulblub, The Basilisk Cult and The Black Ziggurat are drawn, and their room and corridor
+walls come out clean (a pillar is sometimes taken for a door, and a few real doors are
+missed). It does not find cave outlines, slanted walls, walls drawn as a band of stones
+(The Iron Fortress and The Mines) or doors drawn as solid black bars; for those the window
+still shows the map and the grid edges, and you paint what is missing, or draw them with
+Foundry's own wall tool.
+
 The pins are numbered chips drawn in the style of the books' GM key (black with a white
 number); hovering one shows the room's name, and clicking it opens the room's journal page.
 They are placed **automatically** as soon as the scene is built, with no

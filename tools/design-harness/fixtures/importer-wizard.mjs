@@ -80,7 +80,7 @@ const STATES = {
   "terrain-failed": () => make({ page: "terrain", terrain: { stage: "failed", error: "The map could not be read." } }),
   done: () => make({
     page: "done", books: 9, maps: 4, check: (s) => ({ done: true, ready: readyIds(s).concat([`map:${HEX_MAPS[0].id}`]), items: items(s), problems: [] }),
-    result: { imported: 412, already: 38, skipped: { n: 257, books: ["Player's Guide to the Western Reaches", "Cursed Scroll 6: City of Masks"] }, needsYou: [
+    result: { imported: 412, already: 38, siteMaps: [{ id: "cs1-mugdulblub", title: "The Hideous Halls of Mugdulblub", sceneId: "h" }, { id: "cs2-mines", title: "Fortress of the Burning Brothers: The Mines", sceneId: "m" }], skipped: { n: 257, books: ["Player's Guide to the Western Reaches", "Cursed Scroll 6: City of Masks"] }, needsYou: [
       { title: "Fallen Keep of the Emerald Knight", why: "The scene is built. The module does not know where this map's locations sit yet, so you place them by clicking: Importer, Tools, Adventure map." },
       { title: "Goblin", why: "This could not be imported. The advanced importer can show why." },
     ], hex: [

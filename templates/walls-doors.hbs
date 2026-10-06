@@ -1,0 +1,42 @@
+<div class="ui-shell sde-wd">
+  <header class="ui-head">
+    <div class="ui-head-text">
+      <h2 class="ui-title">{{localize "SDE.walls.heading"}}</h2>
+      <p class="ui-sub">{{sceneName}}</p>
+    </div>
+  </header>
+
+  <div class="ui-body sde-wd-body">
+    {{#if error}}
+    <div class="ui-note warn"><p><i class="fas fa-triangle-exclamation"></i> {{error}}</p></div>
+    {{else if reading}}
+    <div class="ui-empty"><i class="fas fa-circle-notch fa-spin"></i><span>{{localize "SDE.walls.reading"}}</span></div>
+    {{else}}
+    <div class="ui-note"><p><i class="fas fa-circle-info"></i> {{localize "SDE.walls.lead"}}</p></div>
+    {{#if note}}<div class="ui-note"><p><i class="fas fa-layer-group"></i> {{note}}</p></div>{{/if}}
+    <div class="sde-wd-bar">
+      <div class="ui-tabs" role="group" aria-label="{{localize 'SDE.walls.modeAria'}}">
+        {{#each modes}}<button type="button" class="ui-tab{{#if active}} active{{/if}}" data-action="wdMode" data-mode="{{id}}">{{label}}</button>{{/each}}
+      </div>
+      <span class="sde-wd-zoom">
+        <button type="button" class="ui-icon" data-action="wdZoom" data-dir="out" title="{{localize 'SDE.walls.zoomOut'}}" aria-label="{{localize 'SDE.walls.zoomOut'}}"><i class="fas fa-magnifying-glass-minus"></i></button>
+        <button type="button" class="ui-icon" data-action="wdZoom" data-dir="in" title="{{localize 'SDE.walls.zoomIn'}}" aria-label="{{localize 'SDE.walls.zoomIn'}}"><i class="fas fa-magnifying-glass-plus"></i></button>
+      </span>
+    </div>
+    <div class="sde-wd-scroll">
+      <div class="sde-wd-stage" data-wd-stage>
+        <img src="{{src}}" alt="" draggable="false">
+        <svg data-wd-svg preserveAspectRatio="xMidYMid meet"></svg>
+      </div>
+    </div>
+    {{/if}}
+  </div>
+
+  <footer class="ui-footer">
+    <span class="ui-muted" data-wd-count role="status">{{counts}}</span>
+    <span class="ui-right">
+      <button type="button" class="ui-btn" data-action="wdCancel">{{localize "SDE.importer.btn.cancel"}}</button>
+      <button type="button" class="ui-btn primary" data-action="wdApply" {{#unless counts}}disabled{{/unless}}><i class="fas fa-dungeon"></i> {{localize "SDE.walls.apply"}}</button>
+    </span>
+  </footer>
+</div>

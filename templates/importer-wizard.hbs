@@ -210,6 +210,20 @@
       </ul>
     </section>
     {{/if}}
+    {{#if done.siteMaps.length}}
+    <section class="ui-group">
+      <h3 class="ui-h">{{localize "SDE.importer.wizard.done.wallsTitle"}}</h3>
+      <p class="ui-muted">{{localize "SDE.importer.wizard.done.wallsBody"}}</p>
+      <ul class="ui-list">
+        {{#each done.siteMaps}}
+        <li class="ui-row sde-wiz-hex">
+          <span class="ui-row-main"><span class="ui-row-name">{{title}}</span></span>
+          <button type="button" class="ui-btn" data-action="openWalls" data-scene="{{sceneId}}"><i class="fas fa-dungeon"></i> {{localize "SDE.importer.wizard.done.wallsButton"}}</button>
+        </li>
+        {{/each}}
+      </ul>
+    </section>
+    {{/if}}
     {{#if done.skipped}}<div class="ui-note"><p><i class="fas fa-circle-info"></i> {{done.skipped}}</p></div>{{/if}}
     {{#each done.items}}
     <div class="ui-card warn">

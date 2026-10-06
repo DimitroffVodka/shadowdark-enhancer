@@ -49,7 +49,7 @@ const HEX_STATUS = {
 };
 
 /** Names a click may carry in data-action; wizard-app.mjs maps each to dispatch(). */
-export const ACTIONS = ["next", "back", "cancel", "choose", "remove", "setKeep", "setChoice", "toggleGroup", "fix", "openHex", "openLegend", "legendAnswer", "legendPick", "advanced"];
+export const ACTIONS = ["next", "back", "cancel", "choose", "remove", "setKeep", "setChoice", "toggleGroup", "fix", "openHex", "openLegend", "openWalls", "legendAnswer", "legendPick", "advanced"];
 
 export class WizardController {
   /** @param {object} env  see the file header  @param {() => void} onChange  called after every change worth redrawing */
@@ -83,6 +83,7 @@ export class WizardController {
       case "fix": return this.fix(data);
       case "openHex": return this.env.openHex?.(filesOfHex(this.state, data.id), data.id);
       case "openLegend": return this.env.openLegend?.(data.scene);
+      case "openWalls": return this.env.openWalls?.(data.scene);
       // A card's name is held by the Legend itself; only a card that opened up (several hexes to name) needs redrawing.
       case "legendAnswer": if (this.legend?.answer(Number(data.idx), data.value, data.other)) this.changed(); return undefined;
       case "legendPick": this.legend?.pick(Number(data.idx), Number(data.num), data.value, data.other); return undefined;
@@ -336,6 +337,7 @@ export class WizardController {
           id: h.id, title: h.title, sceneId: h.sceneId, legend: h.legend, look: h.look,
           line: t(h.named ? HEX_STATUS.named : (HEX_STATUS[h.status] ?? HEX_STATUS.needsLook), { n: h.pinned ?? 0 }),
         })),
+        siteMaps: (r.siteMaps ?? []).filter((m) => m.sceneId),
         hexLegend: (r.hex ?? []).some((h) => h.legend),
       };
     }

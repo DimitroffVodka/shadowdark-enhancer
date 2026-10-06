@@ -118,6 +118,8 @@ export class ImportWizardApp extends HandlebarsApplicationMixin(ApplicationV2) {
         const { openLegendSession } = await import("../../hex-map/hex-legend-session.mjs");
         return openLegendSession({ sceneId, folder: hexPrint(id)?.folder, onProgress });
       },
+      // An adventure scene's walls and doors: the window that finds them and lets the GM correct them.
+      openWalls: async (sceneId) => (await import("../adventure/walls-doors-app.mjs")).WallsDoorsApp.open(game.scenes.get(sceneId)),
       // A map whose terrain was left for later: the tagger's own Legend, on that map.
       openLegend: async (sceneId) => {
         const scene = game.scenes.get(sceneId);
@@ -167,7 +169,8 @@ export class ImportWizardApp extends HandlebarsApplicationMixin(ApplicationV2) {
         isFiled: async (id) => (await scenes.filedSiteIds()).has(id),
         buildScene: async (id, path) => {
           const site = findSite(id);
-          if (scenes.findSiteScene(id)) return { status: "already", placed: 0, left: 0, known: true };
+          const have = scenes.findSiteScene(id);
+          if (have) return { status: "already", placed: 0, left: 0, known: true, sceneId: have.id };
           const built = path ? await scenes.buildSiteScene(site, path) : null;
           if (!built) return { status: "failed", placed: 0, left: 0, known: false };
           // The module places every pin it knows the position of; the rest are the GM's, in the placer.
@@ -176,7 +179,7 @@ export class ImportWizardApp extends HandlebarsApplicationMixin(ApplicationV2) {
           const placed = known ? (await placer?.placeFromBook())?.placed ?? 0 : 0;
           const left = placer?._rows().filter((r) => r.state === "pending").length ?? 0;
           await placer?.close();
-          return { status: "built", placed, left, known };
+          return { status: "built", placed, left, known, sceneId: built.scene.id };
         },
       });
       if (!result.stopped) await recordRun(state.check.ready.filter((id) => id.startsWith("book:")).map((id) => id.slice(5)));

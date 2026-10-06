@@ -41,7 +41,7 @@ export async function runWizardImport(state, hooks, deps) {
   const { t } = deps;
   const ready = new Set(state.check?.ready ?? []);
   const books = bookRows(state).filter((b) => ready.has(`book:${b.id}`));
-  const result = { imported: 0, already: 0, needsYou: [], skipped: { n: 0, books: [] }, hex: [], stopped: false };
+  const result = { imported: 0, already: 0, needsYou: [], skipped: { n: 0, books: [] }, hex: [], siteMaps: [], stopped: false };
   const stop = () => { if (hooks.cancelled()) { result.stopped = true; return true; } return false; };
 
   // 1. The library
@@ -105,6 +105,8 @@ export async function runWizardImport(state, hooks, deps) {
       continue;
     }
     const built = await deps.buildScene(site.id, state.uploaded?.[id]);
+    // Every adventure scene, new or already there, is offered its walls and doors on the Done page.
+    if (built.status !== "failed" && built.sceneId) result.siteMaps.push({ id: site.id, title: site.title, sceneId: built.sceneId });
     if (built.status === "failed") result.needsYou.push({ title: site.title, why: t("SDE.importer.wizard.run.mapFailed") });
     else if (built.status === "already") result.already += 1;
     else {
