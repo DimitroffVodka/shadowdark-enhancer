@@ -101,3 +101,6 @@
 .sde-wiz .sde-import-primary:disabled { opacity: .4; cursor: not-allowed; }
 .sde-wiz .sde-import-secondary { background: #1a1a1a; color: #e0e0e0; border: 1px solid #333; }
 .sde-wiz-foot .sde-import-primary { min-height: 32px; }
+
+/* The hub the wizard drives while it imports: rendered so the batch can read it, never seen. */
+.application.sde-wiz-hidden { display: none !important; }

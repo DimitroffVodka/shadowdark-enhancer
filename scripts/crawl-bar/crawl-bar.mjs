@@ -36,8 +36,8 @@ const frequencyLabel = (n) => (n === 1
 const TOOL_OPENERS = {
   // Foundry's own Roll Tables tab: the entry rolls a table, it is not the importer (that is the next one).
   rollTables:  () => { ui.sidebar?.expand?.(); ui.sidebar?.changeTab("tables", "primary"); },
-  // The Importer is the hub's front door — land on the Import tab (D-01).
-  importer:    (api) => api.tables.openHub("import"),
+  // The Importer's front door: the wizard until a first import has linked a book, then the hub's Import tab (D-01).
+  importer:    (api) => api.tables.openImporter(),
   lootGen:     (api) => api.loot.open(),
   magicForge:  (api) => api.forge.open(),
   merchant:    (api) => api.merchant.openLocally(),

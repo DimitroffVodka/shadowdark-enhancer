@@ -143,7 +143,7 @@ const STYLESHEET_REV = "b9a2f158b07c";
 // stale); module.json carries the same hash and is fetched fresh at runtime. A
 // mismatch is a stale cache by construction — it cannot be anything else. Both
 // stamps are written by `npm run inventory` and gated by `inventory:check`.
-const BUILD_REV = "0a9196e3ac31";
+const BUILD_REV = "83fbd3cb0428";
 
 /**
  * Tell the user when their browser is running an old build of this module, and
@@ -780,6 +780,15 @@ Hooks.once("init", () => {
       encounterTables: () => TableRegistry.encounterTables(),
       groups: () => TableRegistry.groups(),
       organize: (opts) => TableRegistry.organize(opts),
+      // The importer's front door: the step-by-step wizard for a world that has imported nothing yet,
+      // the hub for one that has. Either is also reachable directly (openWizard, openHub).
+      openImporter: async () => {
+        const { ImportWizardApp, wizardFirst } = await import("./importer/wizard/wizard-app.mjs");
+        return wizardFirst()
+          ? ImportWizardApp.open()
+          : (await import("./importer/importer-hub-app.mjs")).ImporterHubApp.open("import");
+      },
+      openWizard: async () => (await import("./importer/wizard/wizard-app.mjs")).ImportWizardApp.open(),
       // Importer hub — 4-tab shell (Import / Tables / Monsters / Items).
       // Back-compat: legacy tab="dashboard" maps to "tables"; retired
       // "journal"/"scenes" tabs coerce to Import; seed forces Import tab.

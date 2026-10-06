@@ -1,0 +1,90 @@
+/**
+ * Shadowdark Enhancer — what the wizard's Import page does.
+ *
+ * Three stages, in the order the pieces depend on each other:
+ *   1. the library   every monster, spell, item, class, table and journal the added books can give
+ *   2. adventures    each added book's numbered-location adventures, filed as journals
+ *   3. site maps     a scene for each added adventure map, with every pin the module knows already placed
+ * The hex maps are not imported here; the Done page leads the GM through them.
+ *
+ * Nothing in this file touches Foundry. The pieces that do arrive as `deps` (wizard-app.mjs builds the real
+ * ones), so a Node test runs the whole flow with stand-ins and checks the numbers it reports.
+ *
+ *   deps.t(key, args)
+ *   deps.library({ onProgress(done, total, label), cancelled() })       → batch summary (importer-hub-batch)
+ *   deps.adventureBooks                                                 → the source keys that hold adventures
+ *   deps.fileAdventures(src, { onSite(title, i, n) })                   → { sites:[{title, locations, missing}], failed:[{title, error}] }
+ *   deps.siteOf(mapId)                                                  → { id, title, src } | null
+ *   deps.isFiled(siteId)                                                → whether the site's journal exists
+ *   deps.buildScene(siteId, path)                                       → { status:"built"|"already"|"failed", placed, left, known }
+ */
+import { bookRows, isHexMap } from "./wizard-core.mjs";
+
+/** How much of the bar each stage owns. */
+const WEIGHTS = { library: [0, 62], adventures: [62, 82], maps: [82, 98] };
+const span = ([from, to], fraction) => from + (to - from) * Math.max(0, Math.min(1, fraction));
+
+/**
+ * @param {object} state  wizard state (check.ready, maps, uploaded)
+ * @param {{onProgress:(pct:number, phase:string)=>void, cancelled:()=>boolean}} hooks
+ * @param {object} deps   see the file header
+ * @returns {Promise<{imported:number, already:number, needsYou:Array<{title:string, why:string}>, stopped:boolean}>}
+ */
+export async function runWizardImport(state, hooks, deps) {
+  const { t } = deps;
+  const ready = new Set(state.check?.ready ?? []);
+  const books = bookRows(state).filter((b) => ready.has(`book:${b.id}`));
+  const result = { imported: 0, already: 0, needsYou: [], stopped: false };
+  const stop = () => { if (hooks.cancelled()) { result.stopped = true; return true; } return false; };
+
+  // 1. The library
+  hooks.onProgress(WEIGHTS.library[0], t("SDE.importer.wizard.run.library"));
+  const summary = await deps.library({
+    onProgress: (done, total, label) => hooks.onProgress(span(WEIGHTS.library, total ? done / total : 1), label || t("SDE.importer.wizard.run.library")),
+    cancelled: hooks.cancelled,
+  });
+  result.imported += summary?.documents ?? 0;
+  result.already += summary?.nothing ?? 0;
+  for (const line of summary?.lines ?? []) {
+    if (line.status === "failed") result.needsYou.push({ title: line.name, why: line.note || t("SDE.importer.wizard.run.failedBook") });
+    else if (line.status === "blocked") result.needsYou.push({ title: line.name, why: line.note });
+  }
+  if (stop()) return result;
+
+  // 2. Adventures
+  const sources = books.map((b) => b.id).filter((src) => deps.adventureBooks.includes(src));
+  for (const [i, src] of sources.entries()) {
+    if (stop()) return result;
+    const report = await deps.fileAdventures(src, {
+      onSite: (title, n, of) => hooks.onProgress(span(WEIGHTS.adventures, (i + (n - 1) / of) / sources.length), t("SDE.importer.wizard.run.adventure", { title })),
+    });
+    for (const site of report?.sites ?? []) {
+      result.imported += site.locations;
+      if (site.missing?.length) result.needsYou.push({ title: site.title, why: t("SDE.importer.wizard.run.siteShort", { what: site.missing.join(", ") }) });
+    }
+    for (const f of report?.failed ?? []) result.needsYou.push({ title: f.title, why: f.error });
+  }
+
+  // 3. Adventure maps (the hex maps are the Done page's)
+  const maps = Object.keys(state.maps).filter((id) => ready.has(`map:${id}`) && !isHexMap(id));
+  for (const [i, id] of maps.entries()) {
+    if (stop()) return result;
+    const site = deps.siteOf(id);
+    if (!site) continue;
+    hooks.onProgress(span(WEIGHTS.maps, i / maps.length), t("SDE.importer.wizard.run.map", { title: site.title }));
+    if (!(await deps.isFiled(site.id))) {
+      result.needsYou.push({ title: site.title, why: t("SDE.importer.wizard.run.mapNoBook", { book: site.src }) });
+      continue;
+    }
+    const built = await deps.buildScene(site.id, state.uploaded?.[id]);
+    if (built.status === "failed") result.needsYou.push({ title: site.title, why: t("SDE.importer.wizard.run.mapFailed") });
+    else if (built.status === "already") result.already += 1;
+    else {
+      result.imported += 1;
+      if (!built.known) result.needsYou.push({ title: site.title, why: t("SDE.importer.wizard.run.pinsByHand") });
+      else if (built.left > 0) result.needsYou.push({ title: site.title, why: t("SDE.importer.wizard.run.pinsLeft", { n: built.left }) });
+    }
+  }
+  hooks.onProgress(100, t("SDE.importer.wizard.run.finishing"));
+  return result;
+}

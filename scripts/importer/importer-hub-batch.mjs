@@ -57,10 +57,16 @@ class HubBatchMethods {
    * "Import everything" / a folder's "Import all". Plans the run, confirms it,
    * then executes. `data-node-id` scopes the run to one Manage-tree branch;
    * absent = the whole tree.
+   *
+   * `opts.quiet` is the import wizard's way in: no confirm dialog, no toasts and no
+   * report dialog, and the summary is returned instead. `opts.onProgress(done, total, label)`
+   * hears each job and `opts.cancelled()` is asked between jobs. The books the GM gave from
+   * their computer are NOT released afterwards, because the wizard still has adventures to read.
    */
-  async _onBatchImport(event, target) {
+  async _onBatchImport(event, target, opts = {}) {
     if (!game.user?.isGM) { ui.notifications.warn(t("SDE.importer.notify.gmOnly")); return; }
     if (this._batchState) { ui.notifications.warn(t("SDE.importer.batch.alreadyRunning")); return; }
+    const quiet = !!opts.quiet;
 
     const rootId = target?.dataset?.nodeId || null;
     const scopeLabel = rootId ? (target?.dataset?.label || t("SDE.importer.batch.thisFolder")) : t("SDE.importer.batch.wholeLibrary");
@@ -80,21 +86,27 @@ class HubBatchMethods {
         const why = plan.blocked.length
           ? t(plan.blocked.length === 1 ? "SDE.importer.batch.noneRunnableOne" : "SDE.importer.batch.noneRunnableMany", { n: plan.blocked.length })
           : t("SDE.importer.batch.nothingLeft");
+        if (quiet) {
+          const summary = summarizeBatch([], plan.blocked);
+          if (!rootId) await this._batchRulesData();
+          return summary;
+        }
         ui.notifications.info(why);
         if (plan.blocked.length) await this._batchReportDialog(summarizeBatch([], plan.blocked), scopeLabel);
         // Nothing to run in the library, but the Rules Data is part of "everything".
         if (!rootId) await this._batchRulesData();
         return;
       }
-      if (!(await this._batchConfirmDialog(plan, scopeLabel))) return;
+      if (!quiet && !(await this._batchConfirmDialog(plan, scopeLabel))) return;
     } finally {
       // _runBatch installs its own state; anything that returns above must not
       // leave the hub thinking a run is in flight.
       this._batchState = null;
     }
-    await this._runBatch(plan, scopeLabel);
+    const summary = await this._runBatch(plan, scopeLabel, opts);
     // The Rules Data is the last step of the whole library (#299), not of a folder.
     if (!rootId) await this._batchRulesData();
+    return quiet ? summary : undefined;
   }
 
   /** Cancel the running batch after the job in flight finishes. */
@@ -159,8 +171,9 @@ class HubBatchMethods {
    * manual flow uses; only the dialogs are pre-answered (see `_batchAuto`) and
    * the toasts are collected instead of stacking two hundred deep.
    */
-  async _runBatch(plan, scopeLabel) {
+  async _runBatch(plan, scopeLabel, opts = {}) {
     const results = [];
+    const quiet = !!opts.quiet;
     this._batchState = {
       total: plan.jobs.length, done: 0, cancelled: false,
       label: scopeLabel, current: plan.jobs[0]?.label ?? "",
@@ -188,11 +201,13 @@ class HubBatchMethods {
         // comment above always intended, instead of the next entry dying on a
         // DOM TypeError.
         if (this.rendered === false || !this.element) this._batchState.cancelled = true;
+        if (opts.cancelled?.()) this._batchState.cancelled = true;
         if (this._batchState.cancelled) {
           results.push({ job, status: "cancelled", note: t("SDE.importer.batchNote.stopped"), created: 0 });
           continue;
         }
         this._batchState.current = job.label;
+        opts.onProgress?.(this._batchState.done, plan.jobs.length, job.label);
         // Per-JOB sink: _batchFirstProblem must report THIS entry's problem,
         // not a warning left over from the entry before it.
         if (this._batchNotices) this._batchNotices.length = 0;
@@ -216,7 +231,7 @@ class HubBatchMethods {
       await this._batchCloseApps();
       // A book the GM gave us from their computer is let go the moment the run is
       // done with it. A stopped run keeps it, so Import everything can pick up again.
-      if (!stopped) await releaseLocalPdfs();
+      if (!stopped && !quiet) await releaseLocalPdfs();
       // The run created content, so every census the tree is built from is
       // stale. Rebuild once at the end rather than after each job — a census
       // pass per entry would cost more than the imports themselves.
@@ -228,6 +243,8 @@ class HubBatchMethods {
     }
 
     const summary = summarizeBatch(results, plan.blocked);
+    opts.onProgress?.(plan.jobs.length, plan.jobs.length, "");
+    if (quiet) return summary;
     // Only the Mount spread route expands one job into per-name outcomes. Keep
     // the original job denominator (and separate blocked suffix) for boats,
     // ordinary monsters, and every other route's page-level bulk semantics.

@@ -279,6 +279,19 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
   static _instance = null;
 
   /**
+   * A hub nobody sees, for the import wizard. The batch import reads the hub's own window
+   * (its paste box and tree), so the wizard keeps one rendered and hidden for the length of
+   * a run. It has its own id so a hub the GM already has open is left alone, and it is not
+   * the singleton: closing it is the caller's job.
+   * @returns {Promise<ImporterHubApp>}
+   */
+  static async openHidden() {
+    const hub = new ImporterHubApp({ id: "sde-importer-hub-wizard", classes: ["sde-ui", "sde-imp", "sde-wiz-hidden"] });
+    await hub.render({ force: true });
+    return hub;
+  }
+
+  /**
    * Open (or bring forward) the single-view importer.
    * @param {*} [_tab] - Ignored (legacy tab arg; the hub is one view now).
    * @param {object|null} [seed=null] - Optional per-row Import seed for the paste box.
