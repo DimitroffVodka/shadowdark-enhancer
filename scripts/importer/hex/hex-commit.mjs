@@ -118,11 +118,12 @@ async function ensureCrawlEntry(pack, { title, source, folder }) {
 /**
  * Commit hex drafts as pages. GM-gated like every other commit.
  * @param {object[]} drafts   hex-parser drafts
- * @param {{source?:string, crawlTitle?:string, keyed?:object[]}} [opts]  keyed = hex-summary rows to file on the entry
- * @returns {Promise<{entryUuid:string|null, title:string, pages:Map<string,string>, created:string[], updated:string[], collisions:string[], keyed:number}>}
+ * @param {{source?:string, crawlTitle?:string, keyed?:object[], keepExisting?:boolean}} [opts]  keyed = hex-summary rows to file on the entry;
+ *   keepExisting = write only the pages and keyed rows that are not there yet (the import wizard re-runs unattended)
+ * @returns {Promise<{entryUuid:string|null, title:string, pages:Map<string,string>, created:string[], updated:string[], kept:string[], collisions:string[], keyed:number}>}
  */
-export async function commitHexDrafts(drafts, { source = "", crawlTitle = "", keyed = [] } = {}) {
-  const report = { entryUuid: null, title: "", pages: new Map(), created: [], updated: [], collisions: [], keyed: 0 };
+export async function commitHexDrafts(drafts, { source = "", crawlTitle = "", keyed = [], keepExisting = false } = {}) {
+  const report = { entryUuid: null, title: "", pages: new Map(), created: [], updated: [], kept: [], collisions: [], keyed: 0 };
   if (!game.user?.isGM) { ui.notifications?.warn(game.i18n.localize("SDE.importer.gm.hexes")); return report; }
   drafts = drafts ?? [];
   if (!drafts.length && !keyed?.length) return report;
@@ -140,7 +141,8 @@ export async function commitHexDrafts(drafts, { source = "", crawlTitle = "", ke
   // hand-off or the tagger rebuilds the dataset without re-pasting the table.
   if (keyed?.length) {
     const flag = entry.getFlag(MODULE_ID, HEX_FLAG) ?? {};
-    const merged = mergeKeyedRows(flag.keyed ?? [], keyed);
+    // keepExisting: the rows already on the entry win over the book's (the GM may have corrected one), and new numbers are added.
+    const merged = keepExisting ? mergeKeyedRows(keyed, flag.keyed ?? []) : mergeKeyedRows(flag.keyed ?? [], keyed);
     await entry.update({ [`flags.${MODULE_ID}.${HEX_FLAG}`]: { ...flag, keyed: merged } });
     report.keyed = merged.length;
   }
@@ -163,7 +165,8 @@ export async function commitHexDrafts(drafts, { source = "", crawlTitle = "", ke
     const created = await entry.createEmbeddedDocuments("JournalEntryPage", plan.create.map(payload));
     report.created.push(...created.map((p) => p.name));
   }
-  if (plan.update.length) {
+  if (keepExisting) report.kept.push(...plan.update.map((u) => u.pageId));   // already there: the GM's now, left as it is
+  else if (plan.update.length) {
     await entry.updateEmbeddedDocuments("JournalEntryPage",
       plan.update.map(({ draft, pageId }) => ({ _id: pageId, ...payload(draft) })));
     report.updated.push(...plan.update.map((u) => hexPageName(u.draft)));

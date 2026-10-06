@@ -34,7 +34,7 @@ class HubRulesMethods {
   static async openRulesData() {
     // The step sits inside the Manage strip (#311), which is collapsed by
     // default and computes its census lazily: expand it BEFORE opening, or the
-    // render has no step in the DOM to scroll to. Same shape as openNewContent().
+    // render has no step in the DOM to scroll to.
     if (!this._instance) this._instance = new this();
     this._instance._manageExpanded = true;
     const hub = this.open();

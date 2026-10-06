@@ -257,7 +257,7 @@ export function summarizeBatch(results, blocked = []) {
       ...buckets.nothing.map((r) => ({ status: "nothing", name: r.job.label, note: r.note ?? "" })),
       ...buckets.failed.map((r) => ({ status: "failed", name: r.job.label, note: r.note ?? "" })),
       ...buckets.cancelled.map((r) => ({ status: "cancelled", name: r.job.label, note: r.note ?? "" })),
-      ...(blocked ?? []).map((b) => ({ status: "blocked", name: b.entry?.name ?? "", note: b.reason ?? "" })),
+      ...(blocked ?? []).map((b) => ({ status: "blocked", name: b.entry?.name ?? "", note: b.reason ?? "", src: b.entry?.src ?? "" })),
     ],
   };
 }

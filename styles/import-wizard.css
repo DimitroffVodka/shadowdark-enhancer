@@ -1,0 +1,77 @@
+/* The import wizard. The look is the shared kit (styles/sde-ui.css, the `ui-` parts); this file holds only what is
+   particular to a wizard, in the kit's tokens. No colour is written out here, and nothing is theme-specific. */
+
+.sde-wiz { min-height: 0; }
+
+/* Where in the wizard we are: one dot a page; the page you are on is gold, the ones behind you silver. */
+.sde-wiz-dots { display: flex; gap: 5px; list-style: none; margin: 0; padding: 0; flex: 0 0 auto; }
+.sde-wiz-dots li { width: 9px; height: 9px; border-radius: 2px; border: 1px solid var(--ui-line); background: transparent; }
+.sde-wiz-dots li.is-done { background: var(--ui-frame); border-color: var(--ui-frame); }
+.sde-wiz-dots li.is-current { background: var(--ui-gold); border-color: var(--ui-gold); }
+
+.sde-wiz .ui-card p, .sde-wiz .ui-note p { margin: 0; line-height: 1.45; }
+.sde-wiz ul.ui-list { margin: 0; padding: 0; list-style: none; }   /* the page ground gives a ul its own indent */
+.sde-wiz .ui-note { display: flex; flex-direction: column; gap: 6px; }
+.sde-wiz-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.sde-wiz-list i { width: 18px; color: var(--ui-gold); }
+.sde-wiz-steps { margin: 2px 0 0; padding-left: 18px; color: var(--ui-muted); }
+.sde-wiz-warn { color: var(--ui-gold); }
+
+/* An either/or choice, as an installer's radio rows: the kit's selected card is the picked one. */
+/* (prefixed: the kit's .ui-card sets a column, and which sheet loads last must not matter) */
+.sde-wiz .sde-wiz-opt { flex-direction: row; align-items: flex-start; gap: 10px; cursor: pointer; }
+.sde-wiz-opt input { margin: 3px 0 0; flex: 0 0 auto; }
+.sde-wiz-opt > span { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.sde-wiz-opt small { color: var(--ui-muted); font-size: 12px; line-height: 1.4; }
+
+/* Where files are dropped. */
+.sde-wiz-drop {
+  display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 18px 12px;
+  border: 2px dashed var(--ui-line); border-radius: var(--ui-r2); text-align: center; color: var(--ui-muted);
+}
+.sde-wiz-drop > i { font-size: 28px; opacity: .7; }
+.sde-wiz-drop p { margin: 0; }
+.sde-wiz-drop.is-over { border-color: var(--ui-frame); background: var(--ui-panel); color: var(--ui-text); }
+.sde-wiz-count { margin: 0; color: var(--ui-muted); }
+.sde-wiz-count strong { color: var(--ui-text); font-size: 16px; }
+
+/* A row of the expected files: a ring until it is added, a check once it is (silver; green is for switches only). */
+.sde-wiz-file > i { flex: 0 0 18px; color: var(--ui-muted); opacity: .6; }
+.sde-wiz-file.is-added > i { color: var(--ui-frame); opacity: 1; }
+.sde-wiz .ui-row-sub { overflow-wrap: anywhere; }   /* a file name has no spaces to wrap at */
+.sde-wiz-size { font-weight: 500; color: var(--ui-muted); font-size: 12px; white-space: nowrap; }
+.sde-wiz .sde-wiz-extra { color: var(--ui-gold); }
+
+.sde-wiz-group-head {
+  display: flex; align-items: center; gap: 8px; width: 100%; min-height: 30px; padding: 4px 10px; margin: 0;
+  background: var(--ui-panel); border: 1px solid var(--ui-line); border-radius: var(--ui-r); color: var(--ui-text); cursor: pointer; text-align: left;
+}
+.sde-wiz-group-head:hover { background: var(--ui-raised); }
+.sde-wiz-group-head i { width: 12px; color: var(--ui-muted); font-size: 11px; }
+.sde-wiz-group-head span { flex: 1 1 auto; font-weight: 700; }
+.sde-wiz-group-head em { font-style: normal; color: var(--ui-muted); font-size: 12px; }
+
+/* Progress, for the check and for the import itself. */
+.sde-wiz-run { align-items: stretch; text-align: center; gap: 12px; padding: 22px 14px; }
+.sde-wiz-run .ui-hero small { font-size: .5em; color: var(--ui-muted); }
+.sde-wiz-run .ui-bar > i { transition: width .2s ease; }
+.sde-wiz-big { font-size: 24px; }
+
+/* Footer: the same three buttons in the same place on every page. The one link on the left is the way out to the advanced importer. */
+.sde-wiz-advanced { font-size: 11.5px; color: var(--ui-muted); }
+.sde-wiz-advanced:hover { color: var(--ui-text); }
+
+/* The hub the wizard drives while it imports: rendered so the batch can read it, never seen. */
+.application.sde-wiz-hidden { display: none !important; }
+
+/* The Terrain page's cards: a card's pictures sit side by side (the system gives every figure the full width, which stacks them one to a row). */
+.sde-wiz .hxt-fig { flex: 0 0 auto; width: auto; }
+.sde-wiz .hxt-sheet .ui-card { gap: 8px; }
+.sde-wiz .hxt-sheet select { width: 100%; }
+
+/* What the engine is doing on the Terrain page: a line of figures that changes, kept from jumping as the numbers do. */
+.sde-wiz-progress { margin: 0; color: var(--ui-text); font-variant-numeric: tabular-nums; }
+
+/* The wait of Apply, in the footer beside the buttons it is waiting on. */
+.sde-wiz-foot-status { flex: 1 1 auto; min-width: 0; margin-left: 12px; color: var(--ui-text); font-size: 12px; font-variant-numeric: tabular-nums; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sde-wiz-foot-status i { color: var(--ui-muted); margin-right: 4px; }

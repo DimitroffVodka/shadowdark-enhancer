@@ -1,7 +1,7 @@
 # Shadowdark Enhancer — File Inventory
 
 <!-- inventory:stats:start -->
-1731 tracked files · ~215,500 lines of code/markup across scripts+templates+styles+test.
+1760 tracked files · ~219,400 lines of code/markup across scripts+templates+styles+test.
 `v0.17.3` in both `module.json` and `package.json`.
 <!-- inventory:stats:end -->
 **Layout reflects the 2026-07-21 feature-folder reorganization (v0.11.0 cycle).**
@@ -46,7 +46,7 @@
 
 | File | Lines | Description |
 |---|---:|---|
-| `shadowdark-enhancer.mjs` | 1367 | **Entry point** (module.json esmodules). Registers hooks, settings, sheets, actor sub-types, the public `game.shadowdarkEnhancer` API, and wires every sub-system. |
+| `shadowdark-enhancer.mjs` | 1379 | **Entry point** (module.json esmodules). Registers hooks, settings, sheets, actor sub-types, the public `game.shadowdarkEnhancer` API, and wires every sub-system. |
 | `luck-reroll/luck-reroll.mjs` | 172 | Wraps the system's `_onReroll` to enforce nat-1 prevention and log Luck rerolls to the session recap. |
 | `spell-mishap/spell-mishap.mjs` | 271 | Nat-1 spellcasting failures auto-roll the class's mishap table (wizard / witch / necromancer sets); divine casters are exempt. |
 | `scavenger/scavenger-core.mjs` | 171 | Pure Delver Scavenger rules: the 5-6 success range and Master Scavenger's widening (floored at 3-6), what counts as expending a consumable's last use (a 1→0 decrement or a delete at quantity 1 — never a stack deleted whole), and which single client rolls. |
@@ -81,13 +81,15 @@
 | `hex-map/hex-explorer.mjs` | 198 | Player-safe Hexplorer canvas hover/select observer and GM writes over authoritative terrain tags and rich offset records; preserves discovery and imported metadata. |
 | `hex-map/hex-fog-core.mjs` | 60 | Pure shared terrain/location disclosure, lossless fog/history migration, native-grid sight and arrival/overlap decisions. |
 | `hex-map/hex-fog.mjs` | 147 | Adopted-scene native static fog overlay, GM disclosure, selected-party committed visits/arrival history and SDX ownership guard. |
-| `hex-map/hex-map-flow.mjs` | 404 | Hex map from an image: file dialog, lattice detection, confirmation preview with corners set by hand, upload into the world folder, an aligned scene (stretch to Foundry's pitches, offset to cell 0,0), tagger opened on its legend. |
+| `hex-map/hex-legend-session.mjs` | 68 | The Hex Tagger's Legend without its window: runs the tagger unshown as the engine (reads the map, builds the picture cards, applies the names) and hands a page just the cards and four calls, so the import wizard can show them on its Terrain page. Also legendNamed(scene). |
+| `hex-map/hex-map-flow.mjs` | 504 | Hex map from an image: file dialog, lattice detection, confirmation preview with corners set by hand, upload into the world folder, an aligned scene (stretch to Foundry's pitches, offset to cell 0,0), tagger opened on its legend. |
 | `hex-map/hex-number-api.mjs` | 47 | `hexMaps.numberAt` / `hasNumbering`: the tagger's published hex number for a Foundry offset on a numbered scene, synchronous, so Shadowdark Extras' Map Coordinates shows what the tagger shows. |
 | `hex-map/hex-picture.mjs` | 188 | What the hex brush shows per terrain (pure): the Legend palette's terrains only, which tagged hex stands for each, the hexagon mask and printed-number patch geometry, and the edge-ink test that rejects a neighbour's border bleeding in. |
 | `hex-map/hex-pins.mjs` | 129 | Keyed hexes as map notes: deploys the crawl journal into the world with stable ids (links rewritten), plans one Note per keyed page at its hex centre (pure planner), moves existing pins on re-run. |
+| `hex-map/hex-prints.mjs` | 81 | What is known of each book's hex map, pure: which book's key locations pin onto it, where its crawls are filed, the printed number of its first hex, and for the two black maps the grid finder cannot read (the Black River, joined from two halves, and Morzomotha) their measured grids. Numbers and names only, no part of the print. |
 | `hex-map/hex-records.mjs` | 205 | Scene-offset native rich-record facade over existing tags, keyed pins/pages and regions, private compendium records and allowlisted public disclosure projections. |
 | `hex-map/hex-region.mjs` | 289 | Which region is a hex in: the book's own word for a keyed hex, the nearest keyed hex's region for any other (84.8% on the Western Reaches, leave-one-out over the book's own keyed rows). Seeds come from the filed crawls; nothing is stored. |
-| `hex-map/hex-tagger-app.mjs` | 1827 | Hex Tagger AppV2: contact sheet over the active hex scene, anchor numbering, tags on the scene flag, dataset hand-off. |
+| `hex-map/hex-tagger-app.mjs` | 1859 | Hex Tagger AppV2: contact sheet over the active hex scene, anchor numbering, tags on the scene flag, dataset hand-off. |
 | `hex-map/hex-tagger-tabs.mjs` | 14 | Hex Tagger tab list and the pure rule that keeps the chosen tab when the scene still offers it, else Sheet. |
 | `hex-map/ink.mjs` | 62 | Whole-image 0/1 ink bitmap at a working scale, one browser resize then strip reads; ink threshold from the paper's brightness. Browser-bound. |
 | `hex-map/lattice.mjs` | 448 | Hex lattice detection from a map's ink: row and column pitch by autocorrelation, phase by folding long horizontal runs, the hex field by outline support with frame-cut half cells, edge-band pitch refinement, and a lattice hung on two hand-placed corner cells. Pure. |
@@ -161,7 +163,7 @@
 | `curated-icon-maps/sea-wolf-plunder-icons.mjs` | 38 | The N3 §5.1/D4 Sea Wolf Plunder map: exactly 20 CS3 p68 source-qualified item phrases and reviewed native Foundry `icons/**.webp` paths, keyed without each row's terminal gp price. |
 | `curated-icon-maps/weapon-icons.mjs` | 47 | N3's 37 reviewed Foundry-native weapon icons, keyed by source-agnostic normalized final Item name and registered through the A4 discovery seam. |
 | `attack-card.mjs` | 107 | Reading a Shadowdark attack card — was it an attack at all (a targeted spell is not), did it land, who was it aimed at, who swung. Shared by Parry and Taunt so the two can never disagree about the target (they once did, silently). |
-| `settings.mjs` | 883 | All `game.settings.register` calls + migration-safe defaults. |
+| `settings.mjs` | 890 | All `game.settings.register` calls + migration-safe defaults. |
 | `icons.mjs` | 101 | Centralized icon registry — FontAwesome snippets and vendored SVG references. |
 | `compendium-suite.mjs` | 459 | Find-or-create layer for managed world packs, ownership, sidebar folders, and source folders. |
 | `loading-dialog-guard.mjs` | 112 | Guards the system's leaked `LoadingSD` spinner when `ItemSheetSD.getData` throws. |
@@ -312,20 +314,20 @@
 | `importer-hub-paste.mjs` | 1584 | Paste box, type selector, parse dispatch, per-type preview field/row wiring. |
 | `importer-hub-commit.mjs` | 975 | Conflict dialogs, quality gates, magic-bundle plan, all per-type commit flows. |
 | `importer-hub-manage.mjs` | 1294 | Manage strip: censuses + caches, manage tree, gap/seed/cull, source-PDF grab/extract. |
-| `importer-hub-batch.mjs` | 731 | Batch “Import everything” runner: seeds, grabs, parses and commits each planned entry unattended. |
+| `importer-hub-batch.mjs` | 753 | Batch “Import everything” runner: seeds, grabs, parses and commits each planned entry unattended. |
 | `importer-hub-rules.mjs` | 113 | Importer Hub Rules Data step (#299; first in the Manage strip since #311): lists each Western Reaches lookup table with its book, page and filled or empty state, runs the settings window's own import (importAndSave) from the hub, opens the Edit window, and is Import everything's last step when a book is linked. |
 | `importer-hub-shared.mjs` | 110 | Hub-shared constants/helpers + `installMethods` (the split's descriptor copier). |
-| `importer-hub-news.mjs` | 124 | What a module update added to the import library: snapshots every Manage-tree row once per module version, diffs the new snapshot against the last, and hands the hub the rows this release added but the GM has not imported (the "New" filter and badge) plus a one-time notice. |
-| `importer-hub-maintenance.mjs` | 285 | Tools-menu bodies (bundle export/import, source-PDF library). |
+| `importer-hub-news.mjs` | 136 | What a module update added to the import library: snapshots every Manage-tree row once per module version, diffs the new snapshot against the last, and hands the hub the rows this release added but the GM has not imported (the "New" filter and badge) plus a one-time notice. |
+| `importer-hub-maintenance.mjs` | 316 | Tools-menu bodies (bundle export/import, source-PDF library). |
 | `dump-segmenter.mjs` | 308 | Routes a mixed dump through the recognizer registry: hexcrawl → spell → monster → item → table. |
 | `bundle-io.mjs` | 410 | Whole-suite export/import as one JSON; validates, skips existing, never overwrites. |
 | `manage-tree.mjs` | 705 | Composes the folder/sub-folder unlock-review tree the Manage strip renders. |
 | `batch-import.mjs` | 263 | Pure batch planner: locked tree rows → deduped import jobs, routes, and the run report. |
-| `pdf-text-extract.mjs` | 965 | Clean reading-ordered PDF text via Foundry's bundled PDF.js; column-aware gutter detection. |
+| `pdf-text-extract.mjs` | 1014 | Clean reading-ordered PDF text via Foundry's bundled PDF.js; column-aware gutter detection. |
 | `pdf-text-utils.mjs` | 167 | Shared PDF-text helpers + the HTML-safety contract. |
-| `source-pdf-registry.mjs` | 319 | Content source → the user's own uploaded PDF, for page deep-links. |
+| `source-pdf-registry.mjs` | 327 | Content source → the user's own uploaded PDF, for page deep-links. |
 | `source-pdf-viewer.mjs` | 66 | Singleton ApplicationV2 embedding Foundry's PDF.js viewer at a given page. |
-| `char-content/char-content-manifest.mjs` | 1904 | Metadata-only manifest of CS4–6 + WR char-builder content (names/types/sources, no rules text) + `parseCharContent` + census. |
+| `char-content/char-content-manifest.mjs` | 1917 | Metadata-only manifest of CS4–6 + WR char-builder content (names/types/sources, no rules text) + `parseCharContent` + census. |
 | `char-content/class-parser.mjs` | 1100 | Class section → structured unit (writeup, talents, tables, spellcasting). Pure. |
 | `char-content/class-importer-app.mjs` | 803 | Purpose-built single-view class workspace. |
 | `char-content/class-unit-importer.mjs` | 1449 | Class unit → real documents in dependency order. |
@@ -378,8 +380,8 @@
 | `boats/boat-importer.mjs` | 50 | Boat drafts → `shadowdark-enhancer.boat` actors in `sde-actors`. |
 | `boats/siege-parser.mjs` | 440 | Parses the WR p119 siege-weapons table → Weapon drafts + ammunition (pure). |
 | `boats/siege-importer.mjs` | 43 | Materializes Blast/Exploding Property items for the siege weapons in `sde-items`. |
-| `adventure/adventure-book-import.mjs` | 131 | A Cursed Scroll's adventures in one pass: each site's pages out of the linked PDF, parsed and filed, one site failing never costing the rest; and who each location names, read from the book when tokens are placed. Page map only; no book text. |
-| `adventure/adventure-commit.mjs` | 186 | Parsed locations → one JournalEntry per adventure in sde-journal, one page per location (plus an Introduction page when the book prints one before the first), filed under the adventure flag (not the hex flag, so the tagger never lists a dungeon as a crawl); pure planner plus a two-pass link rewrite, same contract as hex-commit. |
+| `adventure/adventure-book-import.mjs` | 133 | A Cursed Scroll's adventures in one pass: each site's pages out of the linked PDF, parsed and filed, one site failing never costing the rest; and who each location names, read from the book when tokens are placed. Page map only; no book text. |
+| `adventure/adventure-commit.mjs` | 188 | Parsed locations → one JournalEntry per adventure in sde-journal, one page per location (plus an Introduction page when the book prints one before the first), filed under the adventure flag (not the hex flag, so the tagger never lists a dungeon as a crawl); pure planner plus a two-pass link rewrite, same contract as hex-commit. |
 | `adventure/adventure-creatures.mjs` | 174 | Who is in each keyed location (pure): a creature the book sets in bold with a count beside it ("12 unruly Howlers", "Three." after a bold bullet label), matched to the world's bestiary by name (and linked in the filed text: a bold creature name becomes an @UUID link); dice rolls, chances and creatures said to be in another Area place nothing. Reads the GM's own book text at run time; ships none. |
 | `adventure/adventure-layouts.mjs` | 362 | Where each adventure's room numbers sit on its map, as fractions of the map (positions only; no art, no book text), so a scene can place its pins without the GM clicking each one; plus the pure helpers that turn a placed scene into a layout to paste here and a layout into placement points; also where the book's map marks creatures (a letter per kind), as positions only. |
 | `adventure/adventure-manifest.mjs` | 151 | Where each Cursed Scroll adventure's numbered key is: per site (a dungeon, a mini-adventure, a city district) its title, printed pages, the numbers the book prints, the heading style, and the map's printed grid. Page numbers and titles only; no book text, no art. |
@@ -389,15 +391,24 @@
 | `adventure/map-detect.mjs` | 57 | Which adventure a map image is of (pure): the file name's words, minus sizes and version words, matched against each site's title and map names, the longest name winning and a tie meaning the GM is asked. |
 | `adventure/map-labels.mjs` | 48 | Where the book puts each room number on its own map (pure): the page reads of a keyed map (one picture per page, numbers as text over it, two pages for a spread) stitched into one point per number as a fraction of the map, plus the shape check against the GM's image. No coordinates ship; they come from the GM's own PDF. |
 | `chapter-journal.mjs` | 317 | Chapter to journal (#194): a printed page range of a linked book → one JournalEntry in the journals pack, split at ALL-CAPS headings (or a preset's sections, e.g. the GM Guide's City-States) and reflowed, with page furniture dropped. Identity by flag, so a re-import updates in place and keeps GM pages; pages naming a key location link to its hex page and back. Presets are page numbers only. |
-| `hex/hex-book-import.mjs` | 154 | A book's whole hex key in one pass: per region, the keyed-location table and the pages of write-ups after it → one crawl entry per region. Page map only; no book text. |
-| `hex/hex-commit.mjs` | 229 | Hex-key drafts → JournalEntry pages in sde-journal (one entry per crawl, one page per hex); pure planner + two-pass link rewrite. |
+| `hex/hex-book-import.mjs` | 157 | A book's whole hex key in one pass: per region, the keyed-location table and the pages of write-ups after it → one crawl entry per region. Page map only; no book text. |
+| `hex/hex-commit.mjs` | 232 | Hex-key drafts → JournalEntry pages in sde-journal (one entry per crawl, one page per hex); pure planner + two-pass link rewrite. |
 | `hex/hex-dataset.mjs` | 349 | Drafts + summary rows + tags → the Shadowdark Extras hexcrawl dataset (numbers only at the boundary); river, path and coast as record features, merged by id with what Extras holds. Pure. |
 | `hex/hex-handoff.mjs` | 384 | Crawl entry → dataset; puts it on the tagged print through Extras (adoptHexcrawl), merging each hex's features into the record Extras holds, builds a painted Extras scene, or downloads JSON. |
 | `hex/hex-summary.mjs` | 174 | Keyed hex summary rows (number, region, terrain, name) → structured rows; zone/terrain split decided by the table. Pure. |
 | `importer-hub-adventures.mjs` | 186 | Hub Tools → Adventures (file a Cursed Scroll's adventures as journals) and Adventure map (build the scene from the GM's image and open the placer); installed onto the hub class. |
 | `items/record-boundary.mjs` | 210 | Where one pasted description record ends and the next begins. Pure. |
+| `session-pdf.mjs` | 61 | Source PDFs given from the GM's own computer for one session, for hosts that refuse a book-sized upload (The Forge): the picked files, the `session-pdf:` pseudo-path they resolve to, and the Forge check. Never uploaded or saved; released when the import is done. |
 | `tables/cursed-scroll-tables.mjs` | 190 | The Cursed Scrolls' hexcrawl and adventure tables (rumors, region and site encounters, weather, points of interest, NPC rosters, d20 treasure lists): one entry per Manage row with its catalogue id, page cite and recipe, read by the shape registry, the Manage tree and the catalogue's names. The regions are named as the key-location entries are, so a CS hex finds its zone tables. Structure only. |
 | `tables/patron-items.mjs` | 223 | Patron Items for the imported WR boon tables (#167): find-or-create in `patrons-and-deities`, plus the ready-time rename/link backfill. |
+| `wizard/map-master.mjs` | 81 | Master list of the books' own maps: each map's measured pixel shape, which names a file must or must not carry to be it (not a GM's overlay, a later copy or a stitched whole), and which of two shipped copies to prefer. Pure data. |
+| `wizard/wizard-app.mjs` | 244 | Import wizard window: an ApplicationV2 around the controller that draws its pages, hands clicks and drops back, and supplies the Foundry parts (uploads, the PDF reader, the hub's quiet batch import, adventure scenes). Also wizardFirst(), which says whether a world still needs its first import. |
+| `wizard/wizard-check.mjs` | 136 | Import wizard Check page: makes sure each picked book opens (and uploads, when kept) and each map opens, has the right shape and is uploaded; a problem carries a plain reason and its fixes. Foundry calls come in as env. |
+| `wizard/wizard-controller.mjs` | 376 | Import wizard controller: owns the state, answers clicks and file drops, and describes the current page as plain data for the template. The Foundry window and the browser preview both drive it. |
+| `wizard/wizard-core.mjs` | 278 | Import wizard brain, pure: the page flow and its guards, which book or map a picked file is (from the module's own manifests), and the catalogue of everything the wizard asks for. |
+| `wizard/wizard-dom.mjs` | 74 | Import wizard browser wiring: the file dialog, drop zones and click delegation, shared by the Foundry window and the preview. |
+| `wizard/wizard-run.mjs` | 130 | Import wizard Import page: runs the library, then each book's adventures, then each adventure map's scene, and reports what was imported, what was already there and what needs the GM. Foundry parts come in as deps, so Node tests the flow. |
+| `wizard/zip-reader.mjs` | 103 | Reads a downloaded .zip in the browser with no library (the browser's own DecompressionStream): lists the files in it and inflates only the books and maps the wizard wants, so a new user never unzips anything. |
 
 ### 3.13 `scripts/actors/` — Mount, Warband & Boat sub-types
 

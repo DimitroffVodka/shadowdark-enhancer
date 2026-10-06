@@ -1,0 +1,233 @@
+<div class="ui-shell sde-wiz" data-page="{{page}}">
+
+  <header class="ui-head">
+    <div class="ui-head-text">
+      <h2 class="ui-title">{{title}}</h2>
+      <p class="ui-sub">{{subtitle}}</p>
+    </div>
+    <ol class="sde-wiz-dots" aria-label="{{stepLabel}}">
+      {{#each dots}}<li class="{{#if current}}is-current{{/if}}{{#if done}} is-done{{/if}}"></li>{{/each}}
+    </ol>
+  </header>
+
+  <div class="ui-body sde-wiz-body">
+
+    {{#if isWelcome}}
+    <div class="ui-card">
+      <p>{{#if update}}{{update.lead}}{{else}}{{localize "SDE.importer.wizard.welcome.what"}}{{/if}}</p>
+    </div>
+    <div class="ui-card">
+      <h3 class="ui-h">{{localize "SDE.importer.wizard.welcome.needTitle"}}</h3>
+      <ul class="sde-wiz-list">
+        <li><i class="fas fa-file-pdf"></i> {{localize "SDE.importer.wizard.welcome.needBooks"}}</li>
+        <li><i class="fas fa-map"></i> {{localize "SDE.importer.wizard.welcome.needMaps"}}</li>
+      </ul>
+      <p class="ui-muted">{{localize "SDE.importer.wizard.welcome.safe"}}</p>
+    </div>
+    {{/if}}
+
+    {{#if isKeep}}
+    <label class="ui-card sde-wiz-opt{{#if keepOnce}} sel{{/if}}">
+      <input type="radio" name="keep" value="once" data-action="setKeep" {{#if keepOnce}}checked{{/if}}>
+      <span><strong>{{localize "SDE.importer.wizard.keep.once"}}</strong><small>{{localize "SDE.importer.wizard.keep.onceHelp"}}</small></span>
+    </label>
+    <label class="ui-card sde-wiz-opt{{#unless keepOnce}} sel{{/unless}}">
+      <input type="radio" name="keep" value="keep" data-action="setKeep" {{#unless keepOnce}}checked{{/unless}}>
+      <span><strong>{{localize "SDE.importer.wizard.keep.keep"}}</strong><small>{{keepHelp}}</small></span>
+    </label>
+    <p class="ui-muted">{{localize "SDE.importer.wizard.keep.maps"}}</p>
+    {{#if forgeNote}}<div class="ui-note warn"><p><i class="fas fa-circle-info"></i> {{forgeNote}}</p></div>{{/if}}
+    {{/if}}
+
+    {{#if isBooks}}
+    <div class="sde-wiz-drop" data-dropzone>
+      <i class="fas fa-file-pdf"></i>
+      <p>{{localize "SDE.importer.wizard.books.drop"}}</p>
+      <button type="button" class="ui-btn" data-action="choose"><i class="fas fa-folder-open"></i> {{localize "SDE.importer.wizard.choose"}}</button>
+      <input type="file" multiple accept=".pdf,.zip,application/pdf,application/zip" hidden data-picker>
+    </div>
+    <p class="sde-wiz-count"><strong>{{books.have}}</strong> {{localize "SDE.importer.wizard.books.ofTotal" total=books.total}}</p>
+    {{#if notice}}<div class="ui-note"><p><i class="fas fa-circle-info"></i> {{notice}}</p></div>{{/if}}
+    <ul class="ui-list">
+      {{#each books.rows}}
+      <li class="ui-row sde-wiz-file{{#if added}} is-added{{/if}}">
+        <i class="fas {{#if added}}fa-circle-check{{else}}fa-circle{{/if}}"></i>
+        <span class="ui-row-main"><span class="ui-row-name">{{title}}</span>{{#if fileName}}<span class="ui-row-sub">{{fileName}}</span>{{/if}}</span>
+        <span class="ui-row-meta sde-wiz-size">{{size}}</span>
+        {{#if added}}<button type="button" class="ui-icon danger" data-action="remove" data-kind="book" data-id="{{id}}" aria-label="{{../removeLabel}}"><i class="fas fa-xmark"></i></button>{{/if}}
+      </li>
+      {{/each}}
+    </ul>
+    {{/if}}
+
+    {{#if isMaps}}
+    <div class="sde-wiz-drop" data-dropzone>
+      <i class="fas fa-map"></i>
+      <p>{{localize "SDE.importer.wizard.maps.drop"}}</p>
+      <button type="button" class="ui-btn" data-action="choose"><i class="fas fa-folder-open"></i> {{localize "SDE.importer.wizard.choose"}}</button>
+      <input type="file" multiple accept="image/*,.zip,application/zip" hidden data-picker>
+    </div>
+    <p class="sde-wiz-count"><strong>{{maps.have}}</strong> {{localize "SDE.importer.wizard.maps.ofTotal" total=maps.total}}</p>
+    {{#if notice}}<div class="ui-note"><p><i class="fas fa-circle-info"></i> {{notice}}</p></div>{{/if}}
+    {{#each maps.groups}}
+    <section class="ui-group">
+      <button type="button" class="sde-wiz-group-head" data-action="toggleGroup" data-id="{{src}}" aria-expanded="{{#if open}}true{{else}}false{{/if}}">
+        <i class="fas {{#if open}}fa-chevron-down{{else}}fa-chevron-right{{/if}}"></i>
+        <span>{{title}}</span><em>{{have}} / {{rows.length}}</em>
+      </button>
+      {{#if open}}
+      <ul class="ui-list">
+        {{#each rows}}
+        <li class="ui-row sde-wiz-file{{#if added}} is-added{{/if}}">
+          <i class="fas {{#if added}}fa-circle-check{{else}}fa-circle{{/if}}"></i>
+          <span class="ui-row-main">
+            <span class="ui-row-name">{{title}}</span>
+            {{#if fileName}}<span class="ui-row-sub">{{fileName}}</span>{{/if}}
+            {{#if extra}}<span class="ui-row-sub sde-wiz-extra">{{../../extraLabel}}</span>{{/if}}
+          </span>
+          <span class="ui-row-meta sde-wiz-size">{{size}}</span>
+          {{#if fileName}}<button type="button" class="ui-icon danger" data-action="remove" data-kind="map" data-id="{{id}}" aria-label="{{../../removeLabel}}"><i class="fas fa-xmark"></i></button>{{/if}}
+        </li>
+        {{/each}}
+      </ul>
+      {{/if}}
+    </section>
+    {{/each}}
+    {{/if}}
+
+    {{#if isCheck}}
+    {{#if check.running}}
+    <div class="ui-card sde-wiz-run">
+      <div class="ui-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{check.pct}}"><i style="width:{{check.pct}}%"></i></div>
+      <p class="ui-muted">{{check.label}}</p>
+    </div>
+    {{else}}
+    <p class="sde-wiz-count"><strong>{{check.ready}}</strong> {{localize "SDE.importer.wizard.check.readyOf" total=check.total}}</p>
+    {{#each check.problems}}
+    <div class="ui-card warn">
+      <div class="ui-card-head"><i class="fas fa-triangle-exclamation sde-wiz-warn"></i><strong class="ui-card-name">{{title}}</strong></div>
+      <p>{{why}}</p>
+      <div class="ui-inline">
+        {{#each fixes}}<button type="button" class="ui-btn" data-action="fix" data-fix="{{id}}" data-kind="{{../kind}}" data-target="{{../id}}">{{label}}</button>{{/each}}
+      </div>
+    </div>
+    {{/each}}
+    {{#each check.warnings}}
+    <div class="ui-note warn"><p><i class="fas fa-circle-info"></i> <strong>{{title}}</strong> {{why}}</p></div>
+    {{/each}}
+    {{/if}}
+    {{/if}}
+
+    {{#if isReady}}
+    <label class="ui-card sde-wiz-opt{{#if everything}} sel{{/if}}">
+      <input type="radio" name="choice" value="everything" data-action="setChoice" {{#if everything}}checked{{/if}}>
+      <span><strong>{{localize "SDE.importer.wizard.ready.everything"}}</strong><small>{{ready.summary}}</small></span>
+    </label>
+    <label class="ui-card sde-wiz-opt{{#unless everything}} sel{{/unless}}">
+      <input type="radio" name="choice" value="custom" data-action="setChoice" {{#unless everything}}checked{{/unless}}>
+      <span><strong>{{localize "SDE.importer.wizard.ready.custom"}}</strong><small>{{localize "SDE.importer.wizard.ready.customHelp"}}</small></span>
+    </label>
+    {{#if ready.hexNote}}
+    <div class="ui-note"><p><i class="fas fa-map"></i> {{localize "SDE.importer.wizard.hex.ready"}}</p></div>
+    {{/if}}
+    {{/if}}
+
+    {{#if isImport}}
+    <div class="ui-card sde-wiz-run">
+      <div class="ui-hero">{{run.pct}}<small>%</small></div>
+      <div class="ui-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{run.pct}}"><i style="width:{{run.pct}}%"></i></div>
+      <p class="ui-muted">{{run.phase}}</p>
+    </div>
+    {{/if}}
+
+    {{#if isTerrain}}
+    <p class="sde-wiz-count"><strong>{{terrain.heading}}</strong></p>
+    {{#if terrain.reading}}
+    <div class="ui-card sde-wiz-run">
+      <p class="ui-muted"><i class="fas fa-circle-notch fa-spin"></i> {{localize "SDE.importer.wizard.terrain.reading"}}</p>
+      {{#if terrain.progress}}<p class="sde-wiz-progress">{{terrain.progress}}</p>{{/if}}
+    </div>
+    {{/if}}
+    {{#if terrain.failed}}
+    <div class="ui-card warn">
+      <div class="ui-card-head"><i class="fas fa-triangle-exclamation sde-wiz-warn"></i><strong class="ui-card-name">{{localize "SDE.importer.wizard.terrain.failedTitle"}}</strong></div>
+      <p>{{localize "SDE.importer.wizard.terrain.failedBody"}}</p>
+      <p class="ui-muted">{{terrain.error}}</p>
+    </div>
+    {{/if}}
+    {{#if terrain.cards.length}}
+    <div class="ui-note"><p><i class="fas fa-list-ul"></i> {{{localize "SDE.hexMap.legend.howTo"}}}<br>{{{localize "SDE.hexMap.legend.skipSplit"}}}</p></div>
+    {{#if terrain.error}}<div class="ui-note bad"><p>{{terrain.error}}</p></div>{{/if}}
+    <div class="hxt-sheet">
+      {{#each terrain.cards as |g|}}
+      {{#if g.expand}}
+      <div class="ui-card hxt-wide">
+        <span class="ui-label">{{localize "SDE.hexMap.legend.opened" size=g.size picks=g.picks.length}}</span>
+        <div class="hxt-sheet">
+          {{#each g.picks as |p|}}
+          <div class="ui-card raised">
+            <img class="hxt-thumb" src="{{p.thumb}}" alt="" width="72" height="72">
+            <span class="ui-label">{{p.label}}</span>
+            <select data-wiz-pick data-idx="{{g.idx}}" data-num="{{p.num}}"><option value="">{{localize "SDE.hexMap.label.skip"}}</option>{{#each p.terrainOptions as |o|}}<option value="{{o.value}}" {{#if o.selected}}selected{{/if}}>{{o.label}}</option>{{/each}}</select>
+            <input type="text" data-wiz-pick-other data-idx="{{g.idx}}" data-num="{{p.num}}" value="{{p.other}}" placeholder="{{localize 'SDE.hexMap.label.otherTerrain'}}" aria-label="{{localize 'SDE.hexMap.label.otherTerrainAria'}}" {{#unless p.other}}hidden{{/unless}}>
+          </div>
+          {{/each}}
+        </div>
+      </div>
+      {{else}}
+      <div class="ui-card">
+        <div class="ui-inline">{{#each g.thumbs as |t|}}<figure class="hxt-fig"><img class="hxt-thumb" src="{{t.src}}" alt="" width="72" height="72"><figcaption class="ui-label">{{t.label}}</figcaption></figure>{{/each}}</div>
+        <span class="ui-label">{{localize "SDE.hexMap.legend.cardSize" size=g.size}}{{#if g.split}} <span class="ui-muted">{{localize "SDE.hexMap.legend.fromSplit"}}</span>{{/if}}</span>
+        <select data-wiz-legend data-idx="{{g.idx}}"><option value="">{{localize "SDE.hexMap.label.skip"}}</option>{{#each g.terrainOptions as |o|}}<option value="{{o.value}}" {{#if o.selected}}selected{{/if}}>{{o.label}}</option>{{/each}}</select>
+        <input type="text" data-wiz-legend-other data-idx="{{g.idx}}" value="{{g.terrainOther}}" placeholder="{{localize 'SDE.hexMap.label.otherTerrain'}}" aria-label="{{localize 'SDE.hexMap.label.otherTerrainAria'}}" {{#unless g.terrainOther}}hidden{{/unless}}>
+      </div>
+      {{/if}}
+      {{/each}}
+    </div>
+    {{/if}}
+    {{/if}}
+
+    {{#if isDone}}
+    <div class="ui-card">
+      <div class="ui-pairs">
+        <div class="ui-pair"><span class="ui-label">{{localize "SDE.importer.wizard.done.imported"}}</span><strong class="ui-value sde-wiz-big">{{done.imported}}</strong></div>
+        <div class="ui-pair"><span class="ui-label">{{localize "SDE.importer.wizard.done.already"}}</span><strong class="ui-value sde-wiz-big">{{done.already}}</strong></div>
+        <div class="ui-pair"><span class="ui-label">{{localize "SDE.importer.wizard.done.attention"}}</span><strong class="ui-value sde-wiz-big">{{done.attention}}</strong></div>
+      </div>
+    </div>
+    {{#if done.hexMaps.length}}
+    <section class="ui-group">
+      <h3 class="ui-h">{{localize "SDE.importer.wizard.done.hexTitle"}}</h3>
+      {{#if done.hexLegend}}<p class="ui-muted">{{localize "SDE.importer.wizard.done.hexBody"}}</p>{{/if}}
+      <ul class="ui-list">
+        {{#each done.hexMaps}}
+        <li class="ui-row sde-wiz-hex">
+          <span class="ui-row-main"><span class="ui-row-name">{{title}}</span><span class="ui-row-sub">{{line}}</span></span>
+          {{#if legend}}<button type="button" class="ui-btn" data-action="openLegend" data-scene="{{sceneId}}"><i class="fas fa-palette"></i> {{localize "SDE.importer.wizard.done.hexLegend"}}</button>{{/if}}
+          {{#if look}}<button type="button" class="ui-btn" data-action="openHex" data-id="{{id}}">{{localize "SDE.importer.wizard.done.hexLook"}}</button>{{/if}}
+        </li>
+        {{/each}}
+      </ul>
+    </section>
+    {{/if}}
+    {{#if done.skipped}}<div class="ui-note"><p><i class="fas fa-circle-info"></i> {{done.skipped}}</p></div>{{/if}}
+    {{#each done.items}}
+    <div class="ui-card warn">
+      <div class="ui-card-head"><i class="fas fa-triangle-exclamation sde-wiz-warn"></i><strong class="ui-card-name">{{title}}</strong></div>
+      <p>{{why}}</p>
+    </div>
+    {{/each}}
+    {{/if}}
+
+  </div>
+
+  <footer class="ui-footer">
+    {{#if foot.advanced}}<button type="button" class="ui-btn ghost sde-wiz-advanced" data-action="advanced">{{localize "SDE.importer.wizard.advanced"}}</button>{{/if}}
+    {{#if foot.status}}<span class="sde-wiz-foot-status" role="status"><i class="fas fa-circle-notch fa-spin"></i> {{foot.status}}</span>{{/if}}
+    <span class="ui-right">
+      {{#if foot.back}}<button type="button" class="ui-btn" data-action="back">{{localize "SDE.importer.wizard.back"}}</button>{{/if}}
+      {{#if foot.cancel}}<button type="button" class="ui-btn" data-action="cancel">{{foot.cancel}}</button>{{/if}}
+      {{#if foot.next}}<button type="button" class="ui-btn primary" data-action="next" {{#if foot.next.disabled}}disabled title="{{foot.next.reason}}"{{/if}}>{{foot.next.label}}</button>{{/if}}
+    </span>
+  </footer>
+</div>

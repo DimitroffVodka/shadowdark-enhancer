@@ -24,6 +24,7 @@ import { CATEGORIES, CUSTOM_ID } from "./tables/table-categories.mjs";
 import { summarizeStructuralWarnings, isInformationalWarning } from "./tables/table-importer.mjs";
 import { CHAR_SOURCES } from "./char-content/char-content-manifest.mjs";
 import { sourcePdfHref, sourcePdfTarget } from "./source-pdf-registry.mjs";
+import { releaseLocalPdfs } from "./pdf-text-extract.mjs";
 import { findSuitePack } from "../shared/compendium-suite.mjs";
 import { extrasHexApi } from "./hex/hex-handoff.mjs";
 import { MODULE_ID } from "../shared/module-id.mjs";
@@ -100,6 +101,7 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
       hubImportBundle:        function (...args) { return this._onImportBundle(...args); },
       // Source PDF library
       hubManageSourcePdfs:    function (...args) { return this._onManageSourcePdfs(...args); },
+      hubOpenWizard:          async () => (await import("./wizard/wizard-app.mjs")).ImportWizardApp.open(),
       // PDF → text extraction (Foundry's bundled PDF.js; no external tool)
       hubGrabPdfText:         function (...args) { return this._onGrabPdfText(...args); },
       hubExtractPdf:          function (...args) { return this._onExtractPdf(...args); },
@@ -278,6 +280,19 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
   static _instance = null;
 
   /**
+   * A hub nobody sees, for the import wizard. The batch import reads the hub's own window
+   * (its paste box and tree), so the wizard keeps one rendered and hidden for the length of
+   * a run. It has its own id so a hub the GM already has open is left alone, and it is not
+   * the singleton: closing it is the caller's job.
+   * @returns {Promise<ImporterHubApp>}
+   */
+  static async openHidden() {
+    const hub = new ImporterHubApp({ id: "sde-importer-hub-wizard", classes: ["sde-ui", "sde-imp", "sde-wiz-hidden"] });
+    await hub.render({ force: true });
+    return hub;
+  }
+
+  /**
    * Open (or bring forward) the single-view importer.
    * @param {*} [_tab] - Ignored (legacy tab arg; the hub is one view now).
    * @param {object|null} [seed=null] - Optional per-row Import seed for the paste box.
@@ -355,22 +370,6 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
    * every unlock entry point shares one seeding path.
    * @param {{name:string, src?:string, type?:string, contentId?:string|null, page?:string|null, manifestId?:string|null}} seed
    */
-  /**
-   * Open the hub already filtered to what this module version added — the
-   * action behind the update prompt (importer-hub-news.mjs). The filter is set
-   * BEFORE open() renders so the GM never sees a flash of the full tree.
-   * @returns {ImporterHubApp}
-   */
-  static openNewContent() {
-    this._instance ??= new ImporterHubApp();
-    this._instance._manageFilter = "new";
-    // And OPEN the Manage strip. It is collapsed by default (its census is
-    // lazy), so setting the filter alone landed the GM on a hub showing
-    // nothing — the one thing the prompt promised to show them.
-    this._instance._manageExpanded = true;
-    return this.open();
-  }
-
   static async openContentUnlock(seed) {
     const inst = this.open();
     await inst._seedGenericUnlock(seed);
@@ -378,8 +377,9 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
   }
 
   async close(options = {}) {
-    ImporterHubApp._instance = null;
+    if (ImporterHubApp._instance === this) ImporterHubApp._instance = null;   // the wizard's hidden hub is not the singleton
     if (this._contentHookId) { Hooks.off(`${MODULE_ID}.contentUnlocked`, this._contentHookId); this._contentHookId = null; }
+    await releaseLocalPdfs();   // books given from this computer are not kept past the window
     return super.close(options);
   }
 

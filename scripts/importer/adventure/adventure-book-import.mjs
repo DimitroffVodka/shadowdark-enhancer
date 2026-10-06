@@ -89,10 +89,11 @@ export async function readSiteCreatures(site) {
 /**
  * File every adventure site of one book, or of the listed site ids. GM-gated.
  * @param {string} src  source key ("CS1")
- * @param {{ids?:string[], onSite?:(title:string, i:number, total:number)=>void}} [opts]
- * @returns {Promise<{label:string, sites:Array<{id:string,title:string,locations:number,expected:number,missing:string[],uuid:string|null}>, locations:number, failed:Array<{title:string,error:string}>}>}
+ * @param {{ids?:string[], onSite?:(title:string, i:number, total:number)=>void, keepExisting?:boolean}} [opts]
+ *   keepExisting: pages already filed are left as they are (the import wizard, which promises not to overwrite)
+ * @returns {Promise<{label:string, sites:Array<{id:string,title:string,locations:number,expected:number,missing:string[],uuid:string|null,created:number,updated:number,kept:number}>, locations:number, failed:Array<{title:string,error:string}>}>}
  */
-export async function importAdventures(src, { ids, onSite } = {}) {
+export async function importAdventures(src, { ids, onSite, keepExisting = false } = {}) {
   const label = CHAR_SOURCES[src]?.label ?? src;
   const report = { label, sites: [], locations: 0, failed: [] };
   if (!game.user?.isGM) { ui.notifications?.warn(t("SDE.importer.gm.adventure")); return report; }
@@ -111,10 +112,11 @@ export async function importAdventures(src, { ids, onSite } = {}) {
     try {
       const pages = planSitePages(site, (p) => sourcePdfTarget(src, String(p))?.page ?? null);
       const { locations, warnings, intro, introBold } = await readSite({ ...pdf, notifyGutterWarnings: collect }, file, site, pages);
-      const res = await commitAdventure(site, locations, { source: label, intro, introBold, resolve: await creatureLinks(site) });
+      const res = await commitAdventure(site, locations, { source: label, intro, introBold, resolve: await creatureLinks(site), keepExisting });
       report.sites.push({
         id: site.id, title: site.title, locations: locations.length,
         expected: site.range[1] - site.range[0] + 1, missing: warnings, uuid: res.entryUuid,
+        created: res.created.length, updated: res.updated.length, kept: res.kept.length,   // pages added, pages already there that were read again, and pages left as they were
       });
       report.locations += locations.length;
     } catch (err) {

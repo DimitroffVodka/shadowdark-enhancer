@@ -236,3 +236,38 @@ test("frameCut decides the first row whatever the counts say, and absent keeps t
   assert.equal(bounds({ rowsLowered: 8 }).firstRow, 1, "absent: one short is the guess");
   assert.equal(bounds({}).firstRow, undefined, "absent: nothing to assume");
 });
+
+test("a scene made for one of the book's hex maps carries which one it is, so a second setup finds it", () => {
+  const withId = alignedSceneData({ name: "Map", src: "x.jpg", ...image, lat, cols: 64, rows: 75, levels: true, mapId: "hex-cs1" });
+  assert.equal(withId.flags["shadowdark-enhancer"].hexMapId, "hex-cs1");
+  assert.ok(withId.flags["shadowdark-enhancer"].hexTags, "the numbering is still written beside it");
+  const without = alignedSceneData({ name: "Map", src: "x.jpg", ...image, lat, cols: 64, rows: 75, levels: true });
+  assert.equal("hexMapId" in without.flags["shadowdark-enhancer"], false);
+  const viaAnswer = sceneDataFromAnswer({ name: "Map", src: "x.jpg", ...image, answer: { lat: { ...lat, frameCut: false }, lowered: "odd", cols: 64, rows: 75, firstNum: "0001" }, mapId: "hex-cs2" });
+  assert.equal(viaAnswer.flags["shadowdark-enhancer"].hexMapId, "hex-cs2");
+});
+
+test("a measured print becomes a scene with its own numbering: both run from a lowered even first column, numbered from 0001", async () => {
+  const { knownAnswer, hexPrint } = await import("../scripts/hex-map/hex-prints.mjs");
+  for (const id of ["hex-cs4", "hex-cs5"]) {
+    const [w, h] = hexPrint(id).size;
+    const data = sceneDataFromAnswer({ name: "M", src: "m.jpg", imageW: w, imageH: h, answer: knownAnswer(id), mapId: id, });
+    const flag = data.flags["shadowdark-enhancer"], tags = decodeTags(flag.hexTags);
+    assert.equal(flag.hexMapId, id);
+    assert.ok(tags.origin && tags.origin.bounds, `${id}: numbered`);
+    if (id === "hex-cs5") {
+      assert.equal(tags.origin.num, "0001");
+      assert.deepEqual(tags.origin.bounds.base, { col: 0, row: 1 });
+      assert.equal(tags.origin.bounds.firstRow, 0, "every column's first visible hex is row 1: none is frame");
+      assert.deepEqual([tags.origin.bounds.cols, tags.origin.bounds.rows, tags.origin.bounds.rowsLowered], [17, 11, 10]);
+      assert.equal(data.grid.type, 5, "even columns lowered: HEXEVENQ");
+    } else {
+      assert.equal(tags.origin.num, "0001");
+      assert.deepEqual(tags.origin.bounds.base, { col: 0, row: 1 });
+      assert.equal(tags.origin.bounds.firstRow, 0);
+      assert.deepEqual([tags.origin.bounds.rows, tags.origin.bounds.rowsLowered], [22, 21]);
+      assert.equal(data.grid.type, 5, "even columns lowered: HEXEVENQ");
+    }
+    assert.ok(data.width >= w - 2 && data.height >= h - 2, "the scene holds the whole image");
+  }
+});

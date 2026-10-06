@@ -82,12 +82,14 @@ async function readRegion({ extractPdfText, notifyGutterWarnings }, file, { hexP
  * A region that throws is reported and the rest still run: one unreadable
  * spread must not cost the other fourteen.
  * @param {string} src  source key ("GMWR")
- * @param {{onRegion?: (region:string, i:number, total:number) => void}} [opts]
- * @returns {Promise<{label:string, regions:Array<{region:string, hexes:number, keyed:number, uuid:string|null}>, hexes:number, keyed:number, failed:Array<{region:string, error:string}>}>}
+ * @param {{onRegion?: (region:string, i:number, total:number) => void, keepExisting?: boolean}} [opts]
+ *   keepExisting: pages already filed are left as they are (the import wizard, which promises not to overwrite)
+ * @returns {Promise<{label:string, regions:Array<{region:string, hexes:number, keyed:number, uuid:string|null}>, hexes:number, created:number, keyed:number, failed:Array<{region:string, error:string}>}>}
+ *   hexes counts pages written; created is the part of them that was new (a second run reads the same pages again)
  */
-export async function importKeyLocations(src, { onRegion } = {}) {
+export async function importKeyLocations(src, { onRegion, keepExisting = false } = {}) {
   const label = CHAR_SOURCES[src]?.label ?? src;
-  const report = { label, regions: [], hexes: 0, keyed: 0, failed: [] };
+  const report = { label, regions: [], hexes: 0, created: 0, keyed: 0, failed: [] };
   if (!game.user?.isGM) { ui.notifications?.warn(t("SDE.importer.hex.book.gmOnly")); return report; }
 
   const file = resolveSourcePdf(src);
@@ -108,10 +110,11 @@ export async function importKeyLocations(src, { onRegion } = {}) {
     onRegion?.(region.region, i + 1, plan.length);
     try {
       const { rows, drafts } = await readRegion({ ...pdf, notifyGutterWarnings: collect }, file, region);
-      const res = await commitHexDrafts(drafts, { source: label, crawlTitle: region.region, keyed: rows });
-      const hexes = res.created.length + res.updated.length;
+      const res = await commitHexDrafts(drafts, { source: label, crawlTitle: region.region, keyed: rows, keepExisting });
+      const hexes = res.created.length + res.updated.length + res.kept.length;
       report.regions.push({ region: region.region, hexes, keyed: res.keyed, uuid: res.entryUuid });
       report.hexes += hexes;
+      report.created += res.created.length;
       report.keyed += res.keyed;
     } catch (err) {
       console.error(`Shadowdark Enhancer | key locations: ${region.region} failed`, err);

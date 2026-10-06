@@ -143,7 +143,7 @@ const STYLESHEET_REV = "b9a2f158b07c";
 // stale); module.json carries the same hash and is fetched fresh at runtime. A
 // mismatch is a stale cache by construction — it cannot be anything else. Both
 // stamps are written by `npm run inventory` and gated by `inventory:check`.
-const BUILD_REV = "c81819a83635";
+const BUILD_REV = "ee14625bbc87";
 
 /**
  * Tell the user when their browser is running an old build of this module, and
@@ -780,6 +780,15 @@ Hooks.once("init", () => {
       encounterTables: () => TableRegistry.encounterTables(),
       groups: () => TableRegistry.groups(),
       organize: (opts) => TableRegistry.organize(opts),
+      // The importer's front door: the step-by-step wizard for a world that has imported nothing yet,
+      // the hub for one that has. Either is also reachable directly (openWizard, openHub).
+      openImporter: async () => {
+        const { ImportWizardApp, wizardFirst } = await import("./importer/wizard/wizard-app.mjs");
+        return wizardFirst()
+          ? ImportWizardApp.open()
+          : (await import("./importer/importer-hub-app.mjs")).ImporterHubApp.open("import");
+      },
+      openWizard: async () => (await import("./importer/wizard/wizard-app.mjs")).ImportWizardApp.open(),
       // Importer hub — 4-tab shell (Import / Tables / Monsters / Items).
       // Back-compat: legacy tab="dashboard" maps to "tables"; retired
       // "journal"/"scenes" tabs coerce to Import; seed forces Import tab.
@@ -1215,12 +1224,15 @@ Hooks.once("ready", () => {
     setTimeout(async () => {
       if (!isActiveGM()) return;
       try {
-        const { checkImporterNews, CATALOG_SETTING } = await import("./importer/importer-hub-news.mjs");
+        const { checkImporterNews, promptImporterUpdate, CATALOG_SETTING } = await import("./importer/importer-hub-news.mjs");
+        // A world that has imported nothing yet is not told "new content": all of it is new to them, and
+        // the first-time wizard is already the importer's front door there.
+        const { wizardFirst } = await import("./importer/wizard/wizard-app.mjs");
         await checkImporterNews({
           version: String(game.modules.get(MODULE_ID)?.version ?? ""),
           read: () => game.settings.get(MODULE_ID, CATALOG_SETTING),
           write: (value) => game.settings.set(MODULE_ID, CATALOG_SETTING, value),
-          // `announce` defaults to the prompt; only tests pass their own.
+          announce: wizardFirst() ? () => {} : promptImporterUpdate,
         });
       } catch (err) {
         console.error(`${MODULE_ID} | importer news check failed:`, err);

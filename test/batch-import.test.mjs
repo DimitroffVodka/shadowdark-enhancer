@@ -210,7 +210,7 @@ test("summarizeBatch buckets outcomes and totals the documents created", () => {
     [2, 1, 1, 1, 1]);
   // Every row reaches the report, blocked ones included.
   assert.equal(summary.lines.length, 6);
-  assert.deepEqual(summary.lines.at(-1), { status: "blocked", name: "Torch", note: "no page citation" });
+  assert.deepEqual(summary.lines.at(-1), { status: "blocked", name: "Torch", note: "no page citation", src: "CS1" });   // src: which book the entry needs
 });
 
 test("summarizeBatch expands a bulk job into explicit per-entry outcomes", () => {
