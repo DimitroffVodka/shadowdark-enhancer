@@ -257,7 +257,7 @@ export class WizardController {
         skipped: r.skipped?.n ? t(r.skipped.books.length ? "SDE.importer.wizard.done.skippedBooks" : "SDE.importer.wizard.done.skipped", { n: r.skipped.n, books: r.skipped.books.join(", ") }) : "",
         hexMaps: (r.hex ?? []).map((h) => ({
           id: h.id, title: h.title, sceneId: h.sceneId, legend: h.legend, look: h.look,
-          line: h.why ?? t(HEX_STATUS[h.status] ?? HEX_STATUS.needsLook, { n: h.pinned ?? 0 }),
+          line: t(HEX_STATUS[h.status] ?? HEX_STATUS.needsLook, { n: h.pinned ?? 0 }),
         })),
         hexLegend: (r.hex ?? []).some((h) => h.legend),
       };

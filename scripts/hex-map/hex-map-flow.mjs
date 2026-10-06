@@ -27,7 +27,7 @@ import { detectLattice, latticeCentre, latticeFromCorners, cornerSupport } from 
 import { foundryOffsetToCube, framesTopRow, withAnchorNumber, extrasNumbersAlike } from "./geometry.mjs";
 import { emptyState, encodeTags } from "./tag-store.mjs";
 import { A0_PRINT, isA0 } from "./a0-print.mjs";
-import { hexPrint } from "./hex-prints.mjs";
+import { hexPrint, printBySize, knownAnswer } from "./hex-prints.mjs";
 
 const TAGS_FLAG = "hexTags";
 /** On a scene this flow made: which of the book's hex maps it is, so setting it up again finds it instead of making a second. */
@@ -363,6 +363,30 @@ async function a0Scene(file, name, { mapId = "", quiet = false } = {}) {
 }
 
 /**
+ * One image from a print that ships as two files (hex-prints.mjs `join`): the second is laid `dy` pixels below the first,
+ * where the two lattices are one. The halves' margins overlap there and are white, so multiplying the two together keeps
+ * every pixel of both. Null when a file is not the size the print says (another edition).
+ * @param {File[]} files  [first, second], in the print's order
+ * @returns {Promise<File|null>}
+ */
+export async function joinHalves(files, { width, height, dy }) {
+  if (files.length !== 2) return null;
+  const [a, b] = await Promise.all(files.map((f) => createImageBitmap(f)));
+  try {
+    if ([a, b].some((m) => m.width !== width || m.height !== height)) return null;
+    const canvas = document.createElement("canvas");
+    canvas.width = width; canvas.height = dy + height;
+    const ctx = canvas.getContext("2d");
+    ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(a, 0, 0);
+    ctx.globalCompositeOperation = "multiply";
+    ctx.drawImage(b, 0, dy);
+    const blob = await new Promise((resolve) => canvas.toBlob(resolve, "image/jpeg", 0.92));
+    return blob ? new File([blob], "joined-hex-map.jpg", { type: "image/jpeg" }) : null;
+  } finally { a.close?.(); b.close?.(); }
+}
+
+/**
  * Pin a book's keyed hexes on the scene being viewed: every crawl filed from that book's key locations
  * (importKeyLocations), which this map's numbering has to match. Nothing is pinned when none are filed yet.
  * @returns {Promise<number>} how many pins the scene now has
@@ -386,16 +410,26 @@ async function pinBookKey(mapId) {
  * printed hex) becomes a scene at once; a print it is unsure of is NOT sent to the confirm window mid-run, the answer is
  * `needsLook` and the GM opens the full flow (auto off) when they choose. Either way the scene is flagged with `mapId`,
  * so a second run finds it and leaves it alone, and the book's keyed hexes are pinned on it.
- * @param {File} file
+ * A print the module has measured (hex-prints.mjs `grid`) needs nothing asked in either mode: it is used as it is when the
+ * image is that print's size, and a print that ships as two files is joined first.
+ * @param {File|File[]} files  one image, or the two halves of a joined print in order
  * @param {{name?:string, mapId?:string, firstNum?:string, auto?:boolean}} [opts]  firstNum: the printed number of the first hex
  *   (hex-prints.mjs), used when nothing is asked
  * @returns {Promise<{status:"ready"|"already"|"needsLook"|"cancelled"|"failed", scene?:Scene, legend?:boolean, pinned?:number}>}
  */
-export async function hexMapFromFile(file, { name, mapId = "", firstNum = "0000", auto = false } = {}) {
+export async function hexMapFromFile(files, { name, mapId = "", firstNum = "0000", auto = false } = {}) {
   if (!game.user?.isGM) { ui.notifications?.warn(t("SDE.hexMap.notify.gmOnlySetup")); return { status: "failed" }; }
+  const list = [files].flat().filter(Boolean);
+  let file = list[0];
+  if (!file) return { status: "failed" };
   name ||= file.name.replace(/\.[^.]+$/, "");
   const have = mapId && game.scenes.find((s) => s.getFlag(MODULE_ID, HEXMAP_FLAG) === mapId);
   if (have) return { status: "already", scene: have };
+  const joined = hexPrint(mapId)?.join;
+  if (joined) {
+    file = await joinHalves(list, joined);
+    if (!file) { ui.notifications?.error(t("SDE.hexMap.notify.halvesShape")); return { status: "failed" }; }
+  }
   let full, working;
   try {
     full = await createImageBitmap(file);
@@ -407,6 +441,20 @@ export async function hexMapFromFile(file, { name, mapId = "", firstNum = "0000"
   if (!auto) ui.notifications?.info(t("SDE.hexMap.notify.readingImage", { file: file.name, w: imageW, h: imageH }));
   try {
     if (isA0(imageW, imageH)) return await a0Scene(file, name, { mapId, quiet: auto });
+    // A print the module has measured is used as it is; one that is not the print's size is not trusted to it.
+    if (!mapId) mapId = printBySize(imageW, imageH)?.id ?? "";
+    const print = hexPrint(mapId);
+    const sized = print?.grid && Math.abs(imageW - print.size[0]) <= 2 && Math.abs(imageH - print.size[1]) <= 2;
+    if (sized) {
+      const answer = knownAnswer(mapId);
+      const src = await uploadMap(file);
+      const scene = await Scene.create(sceneDataFromAnswer({ name, src, imageW, imageH, answer, mapId }));
+      if (!auto) ui.notifications?.info(t("SDE.hexMap.notify.sceneCreated", { name: scene.name, cols: answer.cols, rows: answer.rows, size: scene.grid.size }));
+      await scene.view();
+      const pinned = await pinBookKey(mapId);
+      if (!auto) (await import("./hex-tagger-app.mjs")).HexTaggerApp.open({ legend: true });
+      return { status: "ready", scene, legend: true, pinned };
+    }
     working = scale < 1 ? await createImageBitmap(full, { resizeWidth: Math.round(imageW * scale), resizeHeight: Math.round(imageH * scale), resizeQuality: "medium" }) : full;
     const { ink, w, h } = await imageInk(working, { scale: 1, onProgress: () => new Promise((r) => setTimeout(r, 0)) });
     const det = detectLattice(ink, w, h);

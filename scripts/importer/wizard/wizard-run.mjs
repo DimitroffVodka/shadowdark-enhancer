@@ -27,8 +27,6 @@ import { hexPrint } from "../../hex-map/hex-prints.mjs";
 
 /** How much of the bar each stage owns. */
 const WEIGHTS = { library: [0, 55], adventures: [55, 68], keys: [68, 78], maps: [78, 88], hex: [88, 98] };
-/** Why a map is left for the GM; keys are written out in full (the i18n test finds them by scanning for them). */
-const BY_HAND = { black: "SDE.importer.wizard.hex.by.black", halves: "SDE.importer.wizard.hex.by.halves" };
 /** A source key's book title, or "" for a key the wizard has no book for. */
 const titleOf = (src) => { try { return src ? bookTitle(src) : ""; } catch { return ""; } };
 const span = ([from, to], fraction) => from + (to - from) * Math.max(0, Math.min(1, fraction));
@@ -37,7 +35,7 @@ const span = ([from, to], fraction) => from + (to - from) * Math.max(0, Math.min
  * @param {object} state  wizard state (check.ready, maps, uploaded)
  * @param {{onProgress:(pct:number, phase:string)=>void, cancelled:()=>boolean}} hooks
  * @param {object} deps   see the file header
- * @returns {Promise<{imported:number, already:number, needsYou:Array<{title:string, why:string}>, skipped:{n:number, books:string[]}, hex:Array<{id:string, title:string, status:string, legend:boolean, sceneId?:string, why?:string}>, stopped:boolean}>}
+ * @returns {Promise<{imported:number, already:number, needsYou:Array<{title:string, why:string}>, skipped:{n:number, books:string[]}, hex:Array<{id:string, title:string, status:string, legend:boolean, look:boolean, sceneId?:string, pinned:number}>, stopped:boolean}>}
  */
 export async function runWizardImport(state, hooks, deps) {
   const { t } = deps;
@@ -115,12 +113,11 @@ export async function runWizardImport(state, hooks, deps) {
       else if (built.left > 0) result.needsYou.push({ title: site.title, why: t("SDE.importer.wizard.run.pinsLeft", { n: built.left }) });
     }
   }
-  // 5. Hex maps. A map the wizard cannot do alone, or is unsure of, is left for the Done page rather than asked about mid-run.
+  // 5. Hex maps. A map the wizard is unsure of is left for the Done page rather than asked about mid-run.
   const hexMaps = HEX_MAPS.filter((h) => ready.has(`map:${h.id}`));
   for (const [i, h] of hexMaps.entries()) {
     if (stop()) return result;
     const print = hexPrint(h.id);
-    if (print?.byHand) { result.hex.push({ id: h.id, title: h.title, status: "byHand", legend: false, look: print.byHand !== "halves", why: t(BY_HAND[print.byHand]) }); continue; }
     hooks.onProgress(span(WEIGHTS.hex, i / hexMaps.length), t("SDE.importer.wizard.run.hex", { title: h.title }));
     const made = await deps.hexMap(h.id, { title: h.title, firstNum: print?.firstNum });
     if (made.status === "failed") { result.needsYou.push({ title: h.title, why: t("SDE.importer.wizard.run.hexFailed") }); continue; }

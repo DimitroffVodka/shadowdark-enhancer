@@ -47,8 +47,8 @@ test("every hex map the wizard asks for has a print entry, its key book's data, 
   assert.equal(hexPrint("hex-cs4:north"), HEX_PRINTS["hex-cs4"], "a half of a split map is the map");
 });
 
-test("the Gloaming, Djurum and Isles of Andrik are numbered from 0001, the A0 needs no number", () => {
-  assert.deepEqual(["hex-cs1", "hex-cs2", "hex-cs3"].map((id) => hexPrint(id).firstNum), ["0001", "0001", "0001"]);
+test("every Cursed Scroll hex map is numbered from 0001, the A0 needs no number", () => {
+  assert.deepEqual(["hex-cs1", "hex-cs2", "hex-cs3", "hex-cs4", "hex-cs5"].map((id) => hexPrint(id).firstNum), ["0001", "0001", "0001", "0001", "0001"]);
   assert.equal(hexPrint("hex-wr").firstNum, undefined);
 });
 
@@ -66,15 +66,13 @@ test("the A0 is set up with no first number", async () => {
   assert.deepEqual(d.calls, ["keys:GMWR", "hex:hex-wr:"]);
 });
 
-test("a map the wizard cannot do alone is listed for the GM and never attempted mid-run", async () => {
-  const d = deps();
+test("the Black River (both halves, in order) and Morzomotha are set up like any other map, with their own first numbers", async () => {
+  const seen = [];
+  const d = deps({ hexMap: async (id, o) => { seen.push([id, o.firstNum]); return { status: "ready", sceneId: `s-${id}`, legend: true, pinned: 20 }; } });
   const r = await runWizardImport(ready(file(HEX_FILES["hex-cs4:north"]), file(HEX_FILES["hex-cs4:south"]), file(HEX_FILES["hex-cs5"])), hooks(), d);
-  assert.deepEqual(d.calls, []);
-  const by = Object.fromEntries(r.hex.map((h) => [h.id, h]));
-  assert.equal(by["hex-cs4"].status, "byHand");
-  assert.equal(by["hex-cs4"].look, false, "two halves cannot be joined, so there is nothing to open");
-  assert.equal(by["hex-cs5"].look, true, "a black map's corners can be set by hand in the full flow");
-  assert.match(by["hex-cs5"].why, /hex\.by\.black/);
+  assert.deepEqual(seen, [["hex-cs4", "0001"], ["hex-cs5", "0001"]]);
+  assert.deepEqual(r.hex.map((h) => [h.id, h.status, h.legend]), [["hex-cs4", "ready", true], ["hex-cs5", "ready", true]]);
+  assert.deepEqual(r.needsYou, []);
 });
 
 test("a second run leaves finished hex maps alone and counts the re-read key pages as already had", async () => {
@@ -112,16 +110,48 @@ test("the Done page lists each hex map with its status and offers only what is l
   ctl.state.result = { imported: 1, already: 0, needsYou: [], hex: [
     { id: "hex-wr", title: "Western Reaches hex map (A0)", status: "ready", legend: true, look: false, sceneId: "a0", pinned: 270 },
     { id: "hex-cs2", title: "The Djurum hex map", status: "needsLook", legend: false, look: true },
-    { id: "hex-cs4", title: "The Black River hex map (Jungle)", status: "byHand", legend: false, look: false, why: "two halves" },
+    { id: "hex-cs4", title: "The Black River hex map (Jungle)", status: "already", legend: false, look: false, sceneId: "br" },
     { id: "hex-cs1", title: "The Gloaming hex map", status: "already", legend: false, look: false, sceneId: "g" },
   ] };
   const done = ctl.viewModel().done;
   assert.equal(done.hexMaps.length, 4);
   assert.deepEqual(done.hexMaps.map((h) => [h.id, !!h.legend, !!h.look]), [["hex-wr", true, false], ["hex-cs2", false, true], ["hex-cs4", false, false], ["hex-cs1", false, false]]);
   assert.match(done.hexMaps[0].line, /hexStatus\.ready.*"n":270/);
-  assert.equal(done.hexMaps[2].line, "two halves");
+  assert.match(done.hexMaps[2].line, /hexStatus\.already/);
   assert.equal(done.hexLegend, true);
   // With no map left to name, the explanation of the Legend is not shown.
   ctl.state.result.hex[0].legend = false;
   assert.equal(ctl.viewModel().done.hexLegend, false);
+});
+
+test("the measured grids are hexes, sit inside their print, and describe a field of the right shape", async () => {
+  const { latticeCentre } = await import("../scripts/hex-map/lattice.mjs");
+  const { printBySize, knownAnswer } = await import("../scripts/hex-map/hex-prints.mjs");
+  for (const id of ["hex-cs4", "hex-cs5"]) {
+    const p = hexPrint(id), { lat, cols, rows, rowsLowered } = p.grid, [w, h] = p.size;
+    // regular hexes: the column pitch is 0.866 of the row pitch
+    assert.ok(Math.abs(lat.pitchX / lat.pitchY - Math.sqrt(3) / 2) < 0.003, `${id}: pitches are not a regular hex's`);
+    const lowered = (col) => (lat.lowered === "odd") === (col % 2 === 1);
+    for (const [col, row] of [[0, 0], [cols - 1, 0], [0, (lowered(0) ? rowsLowered : rows) - 1], [cols - 1, (lowered(cols - 1) ? rowsLowered : rows) - 1]]) {
+      const c = latticeCentre(lat, col, row);
+      assert.ok(c.u > 0 && c.u < w && c.v > 0 && c.v < h, `${id}: cell ${col},${row} at ${c.u},${c.v} is outside ${w}x${h}`);
+    }
+    // the field fills its print: the last cell's far edge is within a hex of the image's
+    const last = latticeCentre(lat, cols - 1, rows - 1);
+    assert.ok(w - (last.u + lat.pitchX / 0.75 / 2) < lat.pitchX, `${id}: field stops short of the image's right edge`);
+  }
+  // Morzomotha's print is found by its size alone (the old Hex map from image flow has no id to give), the Black River's halves are not
+  assert.equal(printBySize(4500, 3348)?.id, "hex-cs5");
+  assert.equal(printBySize(2250, 1674), null);
+  assert.equal(printBySize(2250, 3169), null, "the joined image only exists inside the flow");
+  assert.equal(knownAnswer("hex-cs1"), null, "the Gloaming is read from its print, not looked up");
+});
+
+test("the Black River's second half is laid exactly eleven rows below the first, so the two lattices are one", () => {
+  const { grid, join, size } = hexPrint("hex-cs4");
+  assert.equal(join.dy, Math.round(11 * grid.lat.pitchY), "dy is eleven row pitches");
+  assert.equal(size[1], join.dy + join.height);
+  assert.equal(size[0], join.width);
+  // 11 rows in each half: the joined field has the raised columns' 22 and the lowered columns' 21 (the south half's lowered columns end a row short)
+  assert.deepEqual([grid.rows, grid.rowsLowered], [22, 21]);
 });

@@ -257,12 +257,16 @@ digits, column then row. When you make the scene with **Hex map from image**, se
 **Top-left hex is number** so the numbers agree. For The Gloaming, The Djurum and
 the Isles of Andrik it is **0001** (columns count from 0, rows from 1); on all 62
 keyed hexes of those three books, each number lands on the hex the map outlines.
-The Black River and Morzomotha work the same way, but their maps are filled with
-black and the grid finder can't read them: use **Set the corners by hand**, and
-choose the top-left number so a keyed hex you can recognise carries its own page's
-number (the Black River's key starts at column 0 and row 1; Morzomotha's at row 0).
-The Black River map comes in a north and a south half; the south half's rows
-continue from the north's (row 12 on).
+The Black River and Morzomotha are numbered from **0001** too, but their maps are
+mostly black, so the grid finder can't read them. The module carries their grids
+instead (the cell size and where the first cell sits, measured once from the books'
+downloads; no part of the picture), and the import wizard sets both up with nothing
+to fill in. Of the 36 keyed hexes of the Black River and the 23 of Morzomotha, every
+one lands on the hex the map outlines. The Black River map comes in a north and a
+south half; the wizard joins them into one scene, 22 rows tall, where the south half's
+rows continue the north's (row 12 on). It only does that for the files as the book
+ships them: a map of another size is not trusted to these numbers, and the wizard says
+it needs a look. **Hex map from image** also knows Morzomotha's file by its size.
 
 If you left the dialog on 0000 and the numbers are off by a row or a column,
 you do not have to start over: open the scene in the Hex Tagger, **More**, type

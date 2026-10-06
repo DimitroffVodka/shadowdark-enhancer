@@ -108,7 +108,7 @@ export class ImportWizardApp extends HandlebarsApplicationMixin(ApplicationV2) {
       openHex: async (files, id) => {
         const { hexMapFromFile } = await import("../../hex-map/hex-map-flow.mjs");
         const title = HEX_MAPS.find((h) => h.id === id)?.title;
-        if (files[0]) await hexMapFromFile(files[0], { name: title, mapId: id, firstNum: hexPrint(id)?.firstNum ?? "0000" });
+        if (files.length) await hexMapFromFile(files, { name: title, mapId: id, firstNum: hexPrint(id)?.firstNum ?? "0000" });
       },
       // The one thing left for a hex map: name its printed terrain pictures, in the tagger's Legend, on that map.
       openLegend: async (sceneId) => {
@@ -146,9 +146,9 @@ export class ImportWizardApp extends HandlebarsApplicationMixin(ApplicationV2) {
         keyLocations: (src, opts) => importKeyLocations(src, opts),
         // The hex map's file is the one the GM picked; nothing is asked, and a scene made on an earlier run is left alone.
         hexMap: async (id, { title, firstNum }) => {
-          const file = filesOfHex(state, id)[0];
-          if (!file) return { status: "failed" };
-          const made = await hexMapFromFile(file, { name: title, mapId: id, firstNum: firstNum ?? "0000", auto: true });
+          const files = filesOfHex(state, id);   // a print that ships as two halves has two, in order
+          if (!files.length) return { status: "failed" };
+          const made = await hexMapFromFile(files, { name: title, mapId: id, firstNum: firstNum ?? "0000", auto: true });
           const scene = made.scene;
           // A scene made now still needs its Legend; one found from an earlier run needs it only until the GM has applied one.
           const legend = made.status === "ready" ? !!made.legend : !!scene && !scene.getFlag(MODULE_ID, "hexTags")?.palette?.length;
