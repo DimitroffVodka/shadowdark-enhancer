@@ -15,6 +15,11 @@
  *           doorway or opening is just floor that continues, so a loop has no gap where a door is
  *   solids  closed loops around things standing in the floor (pillars, a pit): wall all the way round
  *   doors   one segment across each doorway [x1, y1, x2, y2], a closed door
+ *   lights  fixed light sources the book names, each {at:[x, y], bright, dim, color, label} with the radii in feet
+ *   dark    the scene's darkness (0 to 1) when the map is a dungeon whose light comes from what the party carries
+ *
+ * The same walls also say where a creature may stand: a room's floor and its closed doors decide which squares belong to
+ * the room a creature was filed under (reachableSquares).
  */
 
 export const ADVENTURE_WALLS = {
@@ -400,6 +405,9 @@ export const ADVENTURE_WALLS = {
       [0.4124, 0.2273, 0.4124, 0.2731],
       [0.5431, 0.0687, 0.5431, 0.1108],
     ],
+    // Room 4 is the Howlers' camp: "gnawing raw catfish around campfire". The book names no other fixed light in these halls.
+    lights: [{ at: [0.6269, 0.0553], bright: 20, dim: 40, color: "#ff9329", label: "Howler campfire" }],
+    dark: 1,
   },
 };
 
@@ -441,4 +449,101 @@ export function wallTypes(C = globalThis.CONST ?? {}) {
     wall: { ...base, door: C.WALL_DOOR_TYPES?.NONE ?? 0, ds: C.WALL_DOOR_STATES?.CLOSED ?? 0 },
     door: { ...base, door: C.WALL_DOOR_TYPES?.DOOR ?? 1, ds: C.WALL_DOOR_STATES?.CLOSED ?? 0 },
   };
+}
+
+/** Flag on every light this module made from this data. */
+export const LIGHT_FLAG = "adventureLight";
+
+/**
+ * Pure: the ambient lights for a site's data on a scene.
+ * @param {{lights?:Array<{at:number[], bright:number, dim:number, color:string, label?:string}>}} data
+ * @param {{x:number, y:number, width:number, height:number}} rect  the scene's image area, in scene pixels
+ */
+export function planLights(data, rect) {
+  return (data?.lights ?? []).map((l) => ({
+    x: Math.round(rect.x + l.at[0] * rect.width), y: Math.round(rect.y + l.at[1] * rect.height),
+    config: { bright: l.bright, dim: l.dim, color: l.color, alpha: 0.4, animation: { type: "torch", speed: 3, intensity: 3 } },
+    flags: { [WALL_MODULE]: { [LIGHT_FLAG]: l.label ?? true } },
+  }));
+}
+const WALL_MODULE = "shadowdark-enhancer";
+
+/** Does the open segment a-b properly cross the open segment c-d? */
+function crosses(ax, ay, bx, by, cx, cy, dx, dy) {
+  const d1 = (bx - ax) * (cy - ay) - (by - ay) * (cx - ax), d2 = (bx - ax) * (dy - ay) - (by - ay) * (dx - ax);
+  const d3 = (dx - cx) * (ay - cy) - (dy - cy) * (ax - cx), d4 = (dx - cx) * (by - cy) - (dy - cy) * (bx - cx);
+  return d1 * d2 < 0 && d3 * d4 < 0;
+}
+
+/** Is the point on floor? Floor outlines fill, solids inside them cut a hole (even-odd over every ring). */
+function onFloor(rings, x, y) {
+  let inside = false;
+  for (const ring of rings) {
+    for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+      const [xi, yi] = ring[i], [xj, yj] = ring[j];
+      if ((yi > y) !== (yj > y) && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi) inside = !inside;
+    }
+  }
+  return inside;
+}
+
+/**
+ * Pure: the squares of the room a location's pin stands in, nearest first: squares whose middle is floor and that can be
+ * walked to from the pin's square without crossing a wall or a closed door, so a creature filed under a room stands in
+ * that room and never in the rock, the next room or behind a door.
+ * @param {{loops:number[][][], solids?:number[][][], doors?:number[][]}} data
+ * @param {{x:number, y:number, width:number, height:number}} rect  the scene's image area, in scene pixels
+ * @param {number} gridSize
+ * @param {{x:number, y:number}} pin  in scene pixels
+ * @param {number} [limit=200]  stop after this many squares
+ * @returns {Array<[number, number]>} [column, row] of each square, columns and rows counted from the image's corner
+ */
+export function reachableSquares(data, rect, gridSize, pin, limit = 200) {
+  const cols = Math.floor(rect.width / gridSize), rows = Math.floor(rect.height / gridSize);
+  const at = ([u, v]) => [rect.x + u * rect.width, rect.y + v * rect.height];
+  const rings = [...(data?.loops ?? []), ...(data?.solids ?? [])].map((r) => r.map(at));
+  const segs = [];
+  for (const ring of rings) for (let i = 0; i < ring.length; i++) segs.push([...ring[i], ...ring[(i + 1) % ring.length]]);
+  for (const [u1, v1, u2, v2] of data?.doors ?? []) segs.push([...at([u1, v1]), ...at([u2, v2])]);
+  // Which walls pass through each square, so a step between two squares tests a handful and not all of them.
+  const bucket = new Map();
+  for (const s of segs) {
+    const c0 = Math.floor((Math.min(s[0], s[2]) - rect.x) / gridSize), c1 = Math.floor((Math.max(s[0], s[2]) - rect.x) / gridSize);
+    const r0 = Math.floor((Math.min(s[1], s[3]) - rect.y) / gridSize), r1 = Math.floor((Math.max(s[1], s[3]) - rect.y) / gridSize);
+    for (let c = c0; c <= c1; c++) for (let r = r0; r <= r1; r++) { const k = r * (cols + 2) + c; (bucket.get(k) ?? bucket.set(k, []).get(k)).push(s); }
+  }
+  const mid = (c, r) => [rect.x + (c + 0.5) * gridSize, rect.y + (r + 0.5) * gridSize];
+  const blocked = (c1, r1, c2, r2) => {
+    const [ax, ay] = mid(c1, r1), [bx, by] = mid(c2, r2), seen = new Set();
+    for (const k of [r1 * (cols + 2) + c1, r2 * (cols + 2) + c2]) {
+      for (const s of bucket.get(k) ?? []) if (!seen.has(s)) { seen.add(s); if (crosses(ax, ay, bx, by, s[0], s[1], s[2], s[3])) return true; }
+    }
+    return false;
+  };
+  const inMap = (c, r) => c >= 0 && r >= 0 && c < cols && r < rows;
+  const floor = (c, r) => inMap(c, r) && onFloor(rings, ...mid(c, r));
+  const pc = Math.floor((pin.x - rect.x) / gridSize), pr = Math.floor((pin.y - rect.y) / gridSize);
+  let start = null;
+  for (let ring = 0; ring <= 2 && !start; ring++) {
+    for (let dr = -ring; dr <= ring && !start; dr++) for (let dc = -ring; dc <= ring && !start; dc++) {
+      if (Math.max(Math.abs(dc), Math.abs(dr)) === ring && floor(pc + dc, pr + dr)) start = [pc + dc, pr + dr];
+    }
+  }
+  if (!start) return [];
+  const out = [], seen = new Set([`${start}`]);
+  let layer = [start];
+  while (layer.length && out.length < limit) {
+    layer.sort((a, b) => Math.atan2(a[1] - pr, a[0] - pc) - Math.atan2(b[1] - pr, b[0] - pc));
+    out.push(...layer);
+    const next = [];
+    for (const [c, r] of layer) {
+      for (const [dc, dr] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+        const n = [c + dc, r + dr], key = `${n}`;
+        if (seen.has(key) || !floor(...n) || blocked(c, r, ...n)) continue;
+        seen.add(key); next.push(n);
+      }
+    }
+    layer = next;
+  }
+  return out.slice(0, limit);
 }

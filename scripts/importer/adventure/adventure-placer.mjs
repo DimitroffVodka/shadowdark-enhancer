@@ -14,7 +14,7 @@
  */
 
 import { MODULE_ID } from "../../shared/module-id.mjs";
-import { MAP_FLAG, placeSiteWalls, entryPages, scenePins, placementRows, nextPending, noteData, setSkipped, placementGate, restoreSiteJournal, planBookPins, refreshPinArt, placeMarkerTokens, placeCreatureTokens } from "./adventure-scene.mjs";
+import { MAP_FLAG, placeSiteWalls, placeSiteLights, entryPages, scenePins, placementRows, nextPending, noteData, setSkipped, placementGate, restoreSiteJournal, planBookPins, refreshPinArt, placeMarkerTokens, placeCreatureTokens } from "./adventure-scene.mjs";
 import { findSite } from "./adventure-manifest.mjs";
 import { stitchMapLabels, mapFits } from "./map-labels.mjs";
 import { layoutFor, layoutPoints, layoutFromPins, layoutSnippet, markersFor } from "./adventure-layouts.mjs";
@@ -294,6 +294,8 @@ export class AdventurePlacer extends HandlebarsApplicationMixin(ApplicationV2) {
   async _placeWalls(site) {
     try {
       const built = await placeSiteWalls(this.scene, site);
+      const lit = await placeSiteLights(this.scene, site);
+      if (lit.status === "built") ui.notifications?.info(t("SDE.adventure.placer.lightsDone", { lights: lit.lights }));
       if (built.status === "built") ui.notifications?.info(t("SDE.adventure.placer.wallsDone", { walls: built.walls - built.doors, doors: built.doors }));
       else if (built.status === "mismatch") ui.notifications?.warn(t("SDE.adventure.placer.wallsMismatch"));
       return built;

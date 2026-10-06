@@ -99,3 +99,69 @@ test("leak test: the doors are what separate those areas, so opened they join th
   assert.ok(open.regions.length < closed.regions.length, `${open.regions.length} areas open, ${closed.regions.length} closed`);
   assert.deepEqual(open.outside, []);
 });
+
+// ── lights, and where a creature may stand ──
+import { planLights, reachableSquares } from "../scripts/importer/adventure/adventure-walls.mjs";
+import { planCreatureTokens } from "../scripts/importer/adventure/adventure-scene.mjs";
+
+/** A 80 x 30 hall of 10 px squares with a dividing wall at x = 40 that has one doorway (a closed door, y 10 to 20), and a pillar at (10..20, 10..20). */
+const HALL = {
+  loops: [[[0, 0], [1, 0], [1, 1], [0, 1]]],
+  solids: [[[0.125, 1 / 3], [0.25, 1 / 3], [0.25, 2 / 3], [0.125, 2 / 3]], [[0.4875, 0], [0.5125, 0], [0.5125, 1 / 3], [0.4875, 1 / 3]], [[0.4875, 2 / 3], [0.5125, 2 / 3], [0.5125, 1], [0.4875, 1]]],
+  doors: [[0.5, 1 / 3, 0.5, 2 / 3]],
+};
+const RECT = { x: 0, y: 0, width: 80, height: 30 };
+
+test("the squares of a room: nearest first, never the pillar's, and never past a closed door or a wall", () => {
+  const sq = reachableSquares(HALL, RECT, 10, { x: 5, y: 5 });
+  assert.deepEqual(sq[0], [0, 0], "the pin's own square first");
+  assert.equal(sq.length, 11, "the 4 x 3 room less the pillar's square");
+  assert.ok(sq.every(([c]) => c < 4), "the other room is behind the closed door");
+  assert.ok(!sq.some(([c, r]) => c === 1 && r === 1), "not on the pillar");
+  const dist = sq.map(([c, r]) => c + r);
+  assert.deepEqual(dist, [...dist].sort((a, b) => a - b), "nearest first (steps from the pin)");
+});
+
+test("a pin in the rock has no squares, and a pin just off the floor starts from the nearest floor", () => {
+  assert.deepEqual(reachableSquares(HALL, RECT, 10, { x: 400, y: 400 }), []);
+  assert.ok(reachableSquares(HALL, RECT, 10, { x: 5, y: 31 }).length > 0);
+  assert.ok(reachableSquares(HALL, RECT, 10, { x: 15, y: 15 }).length > 0, "a pin on the pillar starts beside it");
+});
+
+test("creatures stand in their own room's squares when the walls are known, and around the pin when they are not", () => {
+  const args = { creatures: { 1: [{ monster: "Gribble", count: 4 }] }, pins: { 1: { x: 5, y: 5 } }, rect: RECT, gridSize: 10 };
+  const walled = planCreatureTokens({ ...args, roomSquares: (n, pin) => reachableSquares(HALL, RECT, 10, pin) });
+  assert.equal(walled.length, 4);
+  assert.ok(walled.every((p) => p.x < 40 && !(p.x === 10 && p.y === 10) && !(p.x === 0 && p.y === 0)), "in the room, off the pillar, off the pin's square");
+  assert.equal(planCreatureTokens(args).length, 4, "no walls: the old squares around the pin");
+});
+
+test("more creatures than the room has squares fill the room and stop, rather than spill through a door", () => {
+  const plan = planCreatureTokens({ creatures: { 1: [{ monster: "Gribble", count: 30 }] }, pins: { 1: { x: 5, y: 5 } }, rect: RECT, gridSize: 10, roomSquares: (n, pin) => reachableSquares(HALL, RECT, 10, pin) });
+  assert.equal(plan.length, 10, "eleven squares less the pin's own");
+  assert.ok(plan.every((p) => p.x < 40));
+});
+
+test("the Halls: a creature filed under a room never stands in rock, another room, or past a door", () => {
+  const d = ADVENTURE_WALLS["cs1-mugdulblub"], rect = { x: 0, y: 0, width: 3600, height: 2329 }, pins = ADVENTURE_LAYOUTS["cs1-mugdulblub"].pins;
+  const pinPx = (n) => ({ x: pins[n][0] * rect.width, y: pins[n][1] * rect.height });
+  const squareOf = (p) => [Math.floor(p.x / 53), Math.floor(p.y / 53)].join(",");
+  const cache = new Map();
+  const mine = (n) => cache.get(n) ?? cache.set(n, new Set(reachableSquares(d, rect, 53, pinPx(n), 400).map((s) => s.join(",")))).get(n);
+  assert.ok(mine(12).size >= 15 && mine(12).size < 80, `room 12 has its own squares (${mine(12).size})`);
+  for (const n of [4, 8, 9, 10, 11, 12, 18, 21, 25]) assert.ok(mine(n).size > 0, `room ${n} has floor to stand on`);
+  // The sealed areas the closed doors make (the leak test above): a creature never reaches a pin in another area.
+  const areaOf = new Map();
+  for (const area of sealed("cs1-mugdulblub", { doorsClosed: true }).regions) for (const n of area) areaOf.set(n, area);
+  const leaks = [];
+  for (const [a, area] of areaOf) for (const b of areaOf.keys()) if (a !== b && !area.includes(b) && mine(a).has(squareOf(pinPx(b)))) leaks.push(`${a}->${b}`);
+  assert.deepEqual(leaks, [], "no room's squares reach a pin the walls and closed doors separate it from");
+});
+
+test("the lights ship in the scene's pixels with the fire's radii, flagged for a re-run", () => {
+  const l = planLights(ADVENTURE_WALLS["cs1-mugdulblub"], { x: 100, y: 0, width: 3600, height: 2329 });
+  assert.equal(l.length, 1);
+  assert.deepEqual([l[0].config.bright, l[0].config.dim], [20, 40]);
+  assert.ok(l[0].x > 100 && l[0].y > 0 && l[0].flags["shadowdark-enhancer"].adventureLight);
+  assert.deepEqual(planLights(null, RECT), []);
+});
