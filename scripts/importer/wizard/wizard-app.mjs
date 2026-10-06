@@ -105,7 +105,7 @@ export class ImportWizardApp extends HandlebarsApplicationMixin(ApplicationV2) {
       run: (state, hooks) => app._run(state, hooks),
       release: () => releaseLocalPdfs(),
       confirmCancel: () => app._confirmLeave(),
-      openAdvanced: async () => { await app._leave({ keepBooks: true }); (await import("../importer-hub-app.mjs")).ImporterHubApp.open(); },
+      openAdvanced: async () => { if (!(await app._terrainLeaveOk())) return; await app._leave({ keepBooks: true }); (await import("../importer-hub-app.mjs")).ImporterHubApp.open(); },
       // A map the wizard was unsure of, or cannot do alone: the full Hex map from image flow, with its grid window.
       openHex: async (files, id) => {
         const { hexMapFromFile } = await import("../../hex-map/hex-map-flow.mjs");
@@ -187,6 +187,12 @@ export class ImportWizardApp extends HandlebarsApplicationMixin(ApplicationV2) {
     }
   }
 
+  /** On the Terrain page with maps still unnamed, ask before the window goes (the X and Advanced both). True to go ahead. */
+  async _terrainLeaveOk() {
+    const left = this.ctl.state.page === "terrain" ? this.ctl.terrainLeft() : 0;
+    return !left || this._confirmLeave(t("SDE.importer.wizard.leave.terrainBody", { n: left }));
+  }
+
   /** Ask before the window goes. No body: the picks would be lost (nothing asked when there are none); a body: that sentence. */
   async _confirmLeave(body = "") {
     if (!body && !Object.keys(this.ctl.state.books).length && !Object.keys(this.ctl.state.maps).length) return true;
@@ -234,8 +240,7 @@ export class ImportWizardApp extends HandlebarsApplicationMixin(ApplicationV2) {
       if (this.ctl.state.page === "import") { this.ctl.stopRequested = true; this.ctl.changed(); return this; }
       const page = this.ctl.state.page;
       // By the Terrain page the import has happened; what leaving loses is the naming of the maps still waiting.
-      const left = page === "terrain" ? this.ctl.terrainLeft() : 0;
-      if (left ? !(await this._confirmLeave(t("SDE.importer.wizard.leave.terrainBody", { n: left }))) : !["done", "terrain"].includes(page) && !(await this._confirmLeave())) return this;
+      if (page === "terrain" ? !(await this._terrainLeaveOk()) : page !== "done" && !(await this._confirmLeave())) return this;
     }
     if (!this._keepBooks) await releaseLocalPdfs();
     await this.ctl.legend?.close?.();

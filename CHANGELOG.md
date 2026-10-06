@@ -96,6 +96,7 @@
   earlier "Include mounts" had already placed on a scene is still recalled by Place / Recall.
 
 ### Fixed
+- **Closing the import wizard on its Terrain page asks while hex maps are still unnamed.** The question says how many are waiting and that the Hex Tagger's Legend step can name them later; the footer's Advanced importer asks the same. Once every map is named it closes without asking.
 - **The Importer Hub opens again.** It failed with "The partial sdeTreeNodeUi could not be found" (the Manage tree called a partial name only the design harness registers).
 - **The Magic Item Forge and the Monster Creator find tables you already imported.** Core tables imported from the Manage tree or with Import everything carry no identity stamp, so both windows called the book locked and asked you to import it again (and then offered to replace the table that was already there). A table now counts when it is the only one under the name the importer gives it. Nothing in your world is changed.
 - **The Monster Generator imports.** Its Combat and Quality columns are on the numbered lines and Strength and Weakness are in a block below under their own header; the importer only knew the one-leading-column layout, so every row warned "only 3 of 4 columns had text". It reads both layouts now. The Generator and Make It Weird are also in the Manage tree under Roll Tables > Core Rulebook, so Import everything reaches them.

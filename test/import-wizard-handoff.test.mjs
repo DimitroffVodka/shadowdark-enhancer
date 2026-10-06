@@ -94,6 +94,14 @@ test("closing on the Terrain page with maps still unnamed asks, in its own words
     await c.close();
     assert.equal(bodies.length, 0);
     assert.equal(c.closed, true);
+    // The footer's Advanced is the other way out of this page, and asks the same question.
+    globalThis.foundry.applications.api.DialogV2.confirm = async (o) => { bodies.push(o.content); return false; };
+    const d = app("terrain"); bodies.length = 0;
+    d.ctl.state.terrain = { queue: [{ id: "hex-cs1" }, { id: "hex-cs2" }], i: 0, stage: "cards", error: "", named: [] };
+    const env = d._env(); await env.openAdvanced();
+    assert.equal(bodies.length, 1, "Advanced asks too");
+    assert.equal(d.closed, undefined, "declining keeps the wizard open");
+    assert.equal(d._keepBooks, undefined, "and the hand-off to the hub never started");
   } finally { globalThis.foundry.applications.api.DialogV2.confirm = keep; globalThis.game.i18n.format = keepFormat; }
   confirmed = 0;
   const b = app("check");
