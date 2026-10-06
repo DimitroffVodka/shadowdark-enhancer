@@ -92,8 +92,8 @@ export async function promptImporterUpdate(n, info = {}) {
     content: `<p>${books.length
       ? t("SDE.importer.news.bodyBooks", { n, books: books.map(bookTitle).join(", ") })
       : t("SDE.importer.news.body", { n })}</p>`,
-    yes: { label: t("SDE.importer.news.review"), icon: "fa-solid fa-sparkles" },
-    no: { label: t("SDE.importer.news.later") },
+    yes: { label: t("SDE.importer.news.review"), icon: "fa-solid fa-sparkles", default: true },   // not destructive: the offer is the default
+    no: { label: t("SDE.importer.news.later"), default: false },
     rejectClose: false,   // dismissing the window is "Not now", not an error
   });
   if (!go) return false;

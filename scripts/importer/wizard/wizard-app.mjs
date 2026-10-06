@@ -12,7 +12,7 @@ import { startUpdate } from "./wizard-core.mjs";
 import { runWizardImport } from "./wizard-run.mjs";
 import { wireFiles, openPicker, actionData } from "./wizard-dom.mjs";
 import { useSessionPdf, sessionPdfPath, onTheForge, FORGE_UPLOAD_LIMIT_MB } from "../session-pdf.mjs";
-import { resolveSourcePdf, uploadSourcePdf, findLibraryJournal } from "../source-pdf-registry.mjs";
+import { resolveSourcePdf, uploadSourcePdf, findLibraryJournal, listSourcePdfs } from "../source-pdf-registry.mjs";
 import { extractPdfText, releaseLocalPdfs } from "../pdf-text-extract.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
@@ -64,17 +64,22 @@ export class ImportWizardApp extends HandlebarsApplicationMixin(ApplicationV2) {
    * Open the wizard, or bring forward the one that is open.
    * @param {{update?:{n:number, books:string[]}}} [opts]  update: a release added content (see importer-hub-news.mjs)
    */
-  static open({ update = null } = {}) {
+  static async open({ update = null } = {}) {
     if (!game.user?.isGM) { ui.notifications.warn(t("SDE.importer.notify.gmOnly")); return null; }
-    this._instance ??= new ImportWizardApp({}, update);
+    if (!this._instance) {
+      // "Is this book already here?" is asked of the server (listSourcePdfs checks each file); a default path nobody has
+      // probed yet looks linked to resolveSourcePdf, and a book used once is not anywhere on the server.
+      const have = update ? new Set((await listSourcePdfs()).filter((r) => r.linked).map((r) => r.src)) : null;
+      this._instance = new ImportWizardApp({}, update, have);
+    }
     this._instance.render({ force: true });
     return this._instance;
   }
 
-  constructor(options = {}, update = null) {
+  constructor(options = {}, update = null, have = new Set()) {
     super(options);
     this.ctl = new WizardController(this._env(), () => this.render());
-    if (update) startUpdate(this.ctl.state, update, (src) => !!resolveSourcePdf(src));
+    if (update) startUpdate(this.ctl.state, update, (src) => have.has(src));
     this._leaving = false;
     this._scroll = { page: null, top: 0 };
   }
