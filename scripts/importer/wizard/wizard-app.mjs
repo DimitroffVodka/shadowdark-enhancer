@@ -187,12 +187,13 @@ export class ImportWizardApp extends HandlebarsApplicationMixin(ApplicationV2) {
     }
   }
 
-  async _confirmLeave() {
-    if (!Object.keys(this.ctl.state.books).length && !Object.keys(this.ctl.state.maps).length) return true;
+  /** Ask before the window goes. No body: the picks would be lost (nothing asked when there are none); a body: that sentence. */
+  async _confirmLeave(body = "") {
+    if (!body && !Object.keys(this.ctl.state.books).length && !Object.keys(this.ctl.state.maps).length) return true;
     return foundry.applications.api.DialogV2.confirm({
       classes: ["sde-ui", "sde-dialog"],
       window: { title: t("SDE.importer.wizard.leave.title"), icon: "fas fa-door-open" },
-      content: `<p>${t("SDE.importer.wizard.leave.body")}</p>`,
+      content: `<p>${body || t("SDE.importer.wizard.leave.body")}</p>`,
       yes: { label: t("SDE.importer.wizard.leave.yes") },
       no: { label: t("SDE.importer.wizard.leave.no"), default: true },
       rejectClose: false,
@@ -231,8 +232,10 @@ export class ImportWizardApp extends HandlebarsApplicationMixin(ApplicationV2) {
   async close(options = {}) {
     if (!this._leaving) {
       if (this.ctl.state.page === "import") { this.ctl.stopRequested = true; this.ctl.changed(); return this; }
-      // By the Terrain page the import has happened: only a map's names are left, and the Hex Tagger can still take them.
-      if (!["done", "terrain"].includes(this.ctl.state.page) && !(await this._confirmLeave())) return this;
+      const page = this.ctl.state.page;
+      // By the Terrain page the import has happened; what leaving loses is the naming of the maps still waiting.
+      const left = page === "terrain" ? this.ctl.terrainLeft() : 0;
+      if (left ? !(await this._confirmLeave(t("SDE.importer.wizard.leave.terrainBody", { n: left }))) : !["done", "terrain"].includes(page) && !(await this._confirmLeave())) return this;
     }
     if (!this._keepBooks) await releaseLocalPdfs();
     await this.ctl.legend?.close?.();

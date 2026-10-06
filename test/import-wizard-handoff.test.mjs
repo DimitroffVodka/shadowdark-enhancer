@@ -66,12 +66,35 @@ const app = (page, withFiles = true) => {
   return a;
 };
 
-test("closing on the Terrain page does not say nothing has been imported", async () => {
-  confirmed = 0;
-  const a = app("terrain");
-  await a.close();
-  assert.equal(confirmed, 0);
-  assert.equal(a.closed, true);
+test("closing on the Terrain page with maps still unnamed asks, in its own words, and never says nothing was imported", async () => {
+  const bodies = [];
+  const keep = globalThis.foundry.applications.api.DialogV2.confirm, keepFormat = globalThis.game.i18n.format;
+  globalThis.game.i18n.format = (k, a) => `${k}${JSON.stringify(a)}`;
+  globalThis.foundry.applications.api.DialogV2.confirm = async (o) => { bodies.push(o.content); return true; };
+  try {
+    const a = app("terrain");
+    a.ctl.state.terrain = { queue: [{ id: "hex-cs1" }, { id: "hex-cs2" }, { id: "hex-cs3" }], i: 1, stage: "cards", error: "", named: ["hex-cs1"] };
+    assert.equal(a.ctl.terrainLeft(), 2, "the one named is not counted; the current one and the one after are");
+    await a.close();
+    assert.equal(bodies.length, 1);
+    assert.match(bodies[0], /terrainBody/);
+    assert.match(bodies[0], /"n":2/);
+    assert.doesNotMatch(bodies[0], /Nothing has been imported|leave\.body/);
+    assert.equal(a.closed, true);
+    // Declining stays on the page.
+    globalThis.foundry.applications.api.DialogV2.confirm = async () => false;
+    const b = app("terrain");
+    b.ctl.state.terrain = { queue: [{ id: "hex-cs1" }], i: 0, stage: "cards", error: "", named: [] };
+    await b.close();
+    assert.equal(b.closed, undefined);
+    // Every map named: nothing left to lose, so no question.
+    bodies.length = 0; globalThis.foundry.applications.api.DialogV2.confirm = async (o) => { bodies.push(o.content); return true; };
+    const c = app("terrain");
+    c.ctl.state.terrain = { queue: [{ id: "hex-cs1" }], i: 0, stage: "cards", error: "", named: ["hex-cs1"] };
+    await c.close();
+    assert.equal(bodies.length, 0);
+    assert.equal(c.closed, true);
+  } finally { globalThis.foundry.applications.api.DialogV2.confirm = keep; globalThis.game.i18n.format = keepFormat; }
   confirmed = 0;
   const b = app("check");
   await b.close();

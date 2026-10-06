@@ -33,7 +33,8 @@ the hub. You add your files once and it does the rest.
    map's printed pictures sorted into cards. Name each card once (forest,
    mountains, swamp) and **Apply** names every hex. A card that mixes terrains
    can be opened ("these are not all the same") to name its hexes one by one.
-   **Skip this map** leaves it for later.
+   **Skip this map** leaves it for later. Closing the window here asks first when maps are still
+   unnamed; they can be named later in the [Hex Tagger](Hex-Maps.md)'s Legend step.
 
 The last page (**Done**) lists what was set up, what was already there, and
 anything that needs you. Each hex map has its own row there: **Name the terrain** for one whose terrain

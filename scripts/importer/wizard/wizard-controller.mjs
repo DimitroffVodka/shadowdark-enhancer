@@ -249,6 +249,12 @@ export class WizardController {
   /** Leave this map's terrain for the Hex Tagger and go on. */
   async terrainSkip() { return this.terrainNext(); }
 
+  /** How many of the run's hex maps still have their terrain unnamed (the current one, those after it, and any skipped). */
+  terrainLeft() {
+    const T = this.state.terrain;
+    return T ? T.queue.length - T.named.length : 0;
+  }
+
   async terrainNext() {
     const s = this.state, T = s.terrain;
     await this.legend?.close?.();
