@@ -14,7 +14,7 @@
  */
 
 import { MODULE_ID } from "../../shared/module-id.mjs";
-import { MAP_FLAG, entryPages, scenePins, placementRows, nextPending, noteData, setSkipped, placementGate, restoreSiteJournal, planBookPins, refreshPinArt, placeMarkerTokens, placeCreatureTokens } from "./adventure-scene.mjs";
+import { MAP_FLAG, placeSiteWalls, entryPages, scenePins, placementRows, nextPending, noteData, setSkipped, placementGate, restoreSiteJournal, planBookPins, refreshPinArt, placeMarkerTokens, placeCreatureTokens } from "./adventure-scene.mjs";
 import { findSite } from "./adventure-manifest.mjs";
 import { stitchMapLabels, mapFits } from "./map-labels.mjs";
 import { layoutFor, layoutPoints, layoutFromPins, layoutSnippet, markersFor } from "./adventure-layouts.mjs";
@@ -253,6 +253,7 @@ export class AdventurePlacer extends HandlebarsApplicationMixin(ApplicationV2) {
       if (create.length) await this.scene.createEmbeddedDocuments("Note", create);
       ui.notifications?.info(t("SDE.adventure.placer.fromBookDone", { placed: create.length, left: left.length }));
       await this._placeMonsters(site, rect);
+      await this._placeWalls(site);
       return { placed: create.length, left: left.length };
     } catch (err) {
       console.error(`${MODULE_ID} | adventure placer: placing from known positions failed`, err);
@@ -285,6 +286,20 @@ export class AdventurePlacer extends HandlebarsApplicationMixin(ApplicationV2) {
     } catch (err) {
       console.error(`${MODULE_ID} | adventure placer: placing the book's creatures failed`, err);
       ui.notifications?.error(t("SDE.adventure.placer.monstersFailed"));
+      return null;
+    }
+  }
+
+  /** The module's walls and doors for this map, when it has them. A failure here never costs the pins that were just placed. */
+  async _placeWalls(site) {
+    try {
+      const built = await placeSiteWalls(this.scene, site);
+      if (built.status === "built") ui.notifications?.info(t("SDE.adventure.placer.wallsDone", { walls: built.walls - built.doors, doors: built.doors }));
+      else if (built.status === "mismatch") ui.notifications?.warn(t("SDE.adventure.placer.wallsMismatch"));
+      return built;
+    } catch (err) {
+      console.error(`${MODULE_ID} | adventure placer: building the walls failed`, err);
+      ui.notifications?.error(t("SDE.adventure.placer.wallsFailed"));
       return null;
     }
   }

@@ -17,6 +17,8 @@ import { replaceModuleFlag } from "../../shared/module-flags.mjs";
 import { deployCrawlJournal } from "../../hex-map/hex-pins.mjs";
 import { ADVENTURE_FLAG, findSiteEntry, pageNum } from "./adventure-commit.mjs";
 import { markersFor } from "./adventure-layouts.mjs";
+import { wallsFor, planWalls, wallTypes, WALL_FLAG } from "./adventure-walls.mjs";
+import { mapFits } from "./map-labels.mjs";
 import { resolveMentions, bestiaryLookup } from "./adventure-creatures.mjs";
 
 /** Scene flag: { site, entryId, skipped:[numbers] }. */
@@ -467,6 +469,27 @@ export async function placeCreatureTokens(scene, site, rect, mentions) {
   const pins = Object.fromEntries(scenePins(scene).map((p) => [p.num, p]));
   const plan = planCreatureTokens({ creatures, pins, rect, gridSize: scene.grid?.size, placed: placedKeys(scene) });
   return spawnHiddenTokens(scene, site.id, plan);
+}
+
+/**
+ * Build a site's walls and doors on its scene from the data that ships with the module (adventure-walls.mjs). Run again,
+ * it replaces only the walls it made before (by their flag, deleted by id) and leaves any wall the GM drew.
+ * @param {Scene} scene
+ * @param {{id:string}} site
+ * @returns {Promise<{status:"built"|"none"|"mismatch", walls:number, doors:number, replaced:number}>}
+ *   none: the module has no walls for this map; mismatch: the scene's picture is not the shape the data was made on
+ */
+export async function placeSiteWalls(scene, site) {
+  const none = { status: "none", walls: 0, doors: 0, replaced: 0 };
+  const data = wallsFor(site?.id);
+  if (!data) return none;
+  const rect = scene.dimensions?.sceneRect ?? { x: 0, y: 0, width: scene.width, height: scene.height };
+  if (!mapFits(data.aspect, rect.width, rect.height)) return { ...none, status: "mismatch" };
+  const docs = planWalls(data, rect, wallTypes()).map((w) => ({ ...w, flags: { [MODULE_ID]: { [WALL_FLAG]: true } } }));
+  const old = scene.walls.filter((w) => w.getFlag(MODULE_ID, WALL_FLAG)).map((w) => w.id);
+  if (old.length) await scene.deleteEmbeddedDocuments("Wall", old);
+  const made = await scene.createEmbeddedDocuments("Wall", docs);
+  return { status: "built", walls: made.length, doors: made.filter((w) => w.door).length, replaced: old.length };
 }
 
 /** Mark a location skipped (or not) on its scene. Written whole, never merged. */
