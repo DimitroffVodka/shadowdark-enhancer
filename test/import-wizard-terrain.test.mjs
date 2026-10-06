@@ -170,3 +170,30 @@ test("progress during Apply is shown on the page (classifying done of total) and
   assert.match(ctl.viewModel().terrain.heading, /"n":2/);
   assert.equal(ctl.viewModel().terrain.progress, "reading hex-cs2", "the second map shows its own reading, not the last map's classifying");
 });
+
+test("while Apply works the cards stay on the page (the engine empties its own list) and the footer says what it is doing", async () => {
+  const live = fakeLegend();
+  const shown = live.cards();
+  let during;
+  const { ctl } = await afterRun([HEX("hex-cs1"), HEX("hex-cs2")], { legends: { "hex-cs1": live } });
+  live.cards = () => (during ? [] : shown);          // once Apply has taken the names the engine's list is gone
+  live.apply = async () => {
+    during = true;
+    const vm = ctl.viewModel();
+    ctl.state.terrain.progress = "Classifying 400 of 4466…";
+    live.snapshot = { cards: vm.terrain.cards.length, applying: vm.terrain.applying, status: ctl.viewModel().foot.status, next: vm.foot.next.disabled };
+    return true;
+  };
+  await ctl.dispatch("next");
+  assert.deepEqual(live.snapshot, { cards: shown.length, applying: true, status: "Classifying 400 of 4466…", next: true });
+});
+
+test("before the engine has said anything, the footer's wait says what is happening in words", async () => {
+  const live = fakeLegend();
+  const { ctl } = await afterRun([HEX("hex-cs1"), HEX("hex-cs2")], { legends: { "hex-cs1": live } });
+  let status;
+  live.apply = async () => { status = ctl.viewModel().foot.status; return true; };
+  await ctl.dispatch("next");
+  assert.match(status, /terrain\.applying/);
+  assert.equal(ctl.viewModel().foot.status, "", "and nothing once the next map is being read");
+});

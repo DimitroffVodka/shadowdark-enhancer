@@ -157,7 +157,6 @@
     {{/if}}
     {{#if terrain.cards.length}}
     <div class="ui-note"><p><i class="fas fa-list-ul"></i> {{{localize "SDE.hexMap.legend.howTo"}}}<br>{{{localize "SDE.hexMap.legend.skipSplit"}}}</p></div>
-    {{#if terrain.applying}}<div class="ui-note"><p><i class="fas fa-circle-notch fa-spin"></i> {{localize "SDE.importer.wizard.terrain.applying"}}{{#if terrain.progress}} <span class="sde-wiz-progress">{{terrain.progress}}</span>{{/if}}</p></div>{{/if}}
     {{#if terrain.error}}<div class="ui-note bad"><p>{{terrain.error}}</p></div>{{/if}}
     <div class="hxt-sheet">
       {{#each terrain.cards as |g|}}
@@ -224,6 +223,7 @@
 
   <footer class="ui-footer">
     <a class="sde-wiz-advanced" data-action="advanced" role="button" tabindex="0">{{localize "SDE.importer.wizard.advanced"}}</a>
+    {{#if foot.status}}<span class="sde-wiz-foot-status" role="status"><i class="fas fa-circle-notch fa-spin"></i> {{foot.status}}</span>{{/if}}
     <span class="ui-right">
       {{#if foot.back}}<button type="button" class="ui-btn" data-action="back">{{localize "SDE.importer.wizard.back"}}</button>{{/if}}
       {{#if foot.cancel}}<button type="button" class="ui-btn" data-action="cancel">{{foot.cancel}}</button>{{/if}}

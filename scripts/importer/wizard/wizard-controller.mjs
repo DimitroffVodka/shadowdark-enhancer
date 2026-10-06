@@ -232,10 +232,13 @@ export class WizardController {
   async terrainApply() {
     const T = this.state.terrain;
     if (T?.stage !== "cards") return undefined;
+    // Apply empties the engine's card list as soon as the names are taken, so the cards are kept as they were for the wait.
+    T.frozen = this.legend.cards();
     T.stage = "applying"; T.error = ""; T.progress = "";
     this.changed();
     const done = await this.legend.apply().catch((err) => { T.error = String(err?.message ?? err); return false; });
-    if (!done) { T.stage = "cards"; this.changed(); return undefined; }
+    T.frozen = null;
+    if (!done) { T.stage = "cards"; T.progress = ""; this.changed(); return undefined; }
     T.progress = "";
     T.named.push(T.queue[T.i].id);
     return this.terrainNext();
@@ -312,7 +315,7 @@ export class WizardController {
       vm.terrain = {
         heading: t("SDE.importer.wizard.terrain.heading", { title: T.queue[T.i].title, n: T.i + 1, of: T.queue.length }),
         reading: T.stage === "reading", applying: T.stage === "applying", failed: T.stage === "failed", error: T.error, progress: T.progress ?? "",
-        cards: T.stage === "cards" || T.stage === "applying" ? (this.legend?.cards() ?? []) : [],
+        cards: T.stage === "cards" ? (this.legend?.cards() ?? []) : T.stage === "applying" ? (T.frozen ?? []) : [],
       };
     }
     if (s.page === "done") {
@@ -337,6 +340,8 @@ export class WizardController {
           : { label: t("SDE.importer.wizard.terrain.apply"), disabled: T.stage !== "cards", reason: T.stage === "cards" ? "" : t("SDE.importer.wizard.terrain.wait") })
         : s.page === "done" ? { label: t("SDE.importer.wizard.finish") }
         : { label: s.page === "ready" ? t(s.choice === "custom" ? "SDE.importer.wizard.ready.openAdvanced" : "SDE.importer.wizard.ready.start") : t("SDE.importer.wizard.next"), disabled: !!why, reason: why ? t(why) : "" },
+      // while a map is named, what the engine is doing, where it cannot scroll out of sight
+      status: T?.stage === "applying" ? (T.progress || t("SDE.importer.wizard.terrain.applying")) : "",
       cancel: s.page === "done" ? null : s.page === "import" ? t("SDE.importer.wizard.stop") : T ? (T.stage === "failed" ? null : t("SDE.importer.wizard.terrain.skip")) : t("SDE.importer.wizard.cancel"),
     };
     return vm;
