@@ -76,6 +76,8 @@ export class PreviewStep extends BaseStep {
 
     return {
       name: st.name || L("SDE.charBuilder.defaultName"),
+      // The step heading's one-line summary: the character's name.
+      summary: st.name || L("SDE.charBuilder.defaultName"),
       ancestry: st.ancestry?.name ?? null,
       class: st.class?.name ?? null,
       background: st.background?.name ?? null,

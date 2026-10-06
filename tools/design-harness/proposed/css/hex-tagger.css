@@ -1,0 +1,29 @@
+/* Hex tagger: CSS-only tabs (hidden radios + labels in the .ui-tabs row), the sheet as a grid of cell cards. Kit
+   candidate: tab-by-radio ("ui-tabs.radio"), which needs no script. Tokens only. */
+.hxt-art { display: flex; align-items: center; justify-content: center; color: var(--ui-muted); font-size: 22px; }
+.hxt-tabradio { position: absolute; opacity: 0; pointer-events: none; width: 0; height: 0; }
+.hxt-tabs .ui-tab { cursor: pointer; }
+.hxt-panel { display: none; flex-direction: column; gap: 12px; }
+#hxt-t1:checked ~ .hxt-body .hxt-p1, #hxt-t2:checked ~ .hxt-body .hxt-p2, #hxt-t3:checked ~ .hxt-body .hxt-p3, #hxt-t4:checked ~ .hxt-body .hxt-p4, #hxt-t5:checked ~ .hxt-body .hxt-p5 { display: flex; }
+#hxt-t1:checked ~ .hxt-tabs label[for=hxt-t1], #hxt-t2:checked ~ .hxt-tabs label[for=hxt-t2], #hxt-t3:checked ~ .hxt-tabs label[for=hxt-t3], #hxt-t4:checked ~ .hxt-tabs label[for=hxt-t4], #hxt-t5:checked ~ .hxt-tabs label[for=hxt-t5] { color: var(--ui-text); background: var(--ui-panel); border-bottom-color: var(--ui-frame); }
+.hxt-sheet { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 10px; }
+.hxt-wide { grid-column: 1 / -1; }
+.hxt-thumb { width: 72px; height: 72px; object-fit: contain; flex: 0 0 auto; border-radius: var(--ui-r); background: var(--ui-raised); border: 1px solid var(--ui-line); }
+.hxt-cellhead { gap: 2px; min-width: 0; }
+.hxt-fig { margin: 0; display: flex; flex-direction: column; align-items: center; gap: 2px; cursor: pointer; }
+.hxt-auto { width: auto !important; }
+.hxt-settings { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; }
+.hxt .hxt-body > .hxt-panel .ui-note i { margin-right: 4px; color: var(--ui-muted); }
+.hxt .ui-status { min-height: 26px; }
+.sde-ui .ui-body > * { flex-shrink: 0; }
+.sde-ui input[type=radio]::before, .sde-ui input[type=radio]::after { content: none !important; }
+.hxt-panel p { margin: 0; }
+.hxt-panel .ui-note { padding: 6px 12px; }
+@container (max-width: 560px) {
+  .hxt-tabs { padding-inline: 6px; }
+  .hxt-tabs .ui-tab { padding: 6px 8px; font-size: 14px; gap: 0; }
+  .hxt-tabs .ui-tab i { display: none; }
+}
+/* the footer is the Sheet tab's: Confirm and Show me others mean nothing on another tab */
+.hxt-foot { display: none; }
+#hxt-t1:checked ~ .hxt-foot { display: flex; }

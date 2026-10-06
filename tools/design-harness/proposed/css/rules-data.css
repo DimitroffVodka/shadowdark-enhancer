@@ -1,0 +1,35 @@
+/* Rules data: CSS-only tabs (hidden radios + labels in the .ui-tabs row), tables that become cards on a narrow window,
+   cells that hold an input and a select stacked so neither truncates. Tokens only. */
+.rd-art { display: flex; align-items: center; justify-content: center; color: var(--ui-muted); font-size: 22px; }
+.rd-tabradio { position: absolute; opacity: 0; pointer-events: none; width: 0; height: 0; }
+.rd-tabs .ui-tab { cursor: pointer; }
+.rd-panel { display: none; flex-direction: column; gap: 16px; }
+#rd-t1:checked ~ .sde-rd-body .rd-p1, #rd-t2:checked ~ .sde-rd-body .rd-p2, #rd-t3:checked ~ .sde-rd-body .rd-p3, #rd-t4:checked ~ .sde-rd-body .rd-p4 { display: flex; }
+#rd-t1:checked ~ .rd-tabs label[for=rd-t1], #rd-t2:checked ~ .rd-tabs label[for=rd-t2], #rd-t3:checked ~ .rd-tabs label[for=rd-t3], #rd-t4:checked ~ .rd-tabs label[for=rd-t4] { color: var(--ui-text); background: var(--ui-panel); border-bottom-color: var(--ui-frame); }
+.rd-sets { flex-direction: row; flex-wrap: wrap; align-items: flex-end; }
+.rd-sets .ui-field { flex: 1 1 220px; }
+.rd-setbtns { flex-wrap: wrap; justify-content: flex-end; max-width: 52%; }
+.rd-flats { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 16px; align-items: start; }
+.rd-name { text-transform: capitalize; white-space: nowrap; font-weight: 600; color: var(--ui-text); }
+.rd-val { width: 90px; }
+.rd-terrain td:nth-child(3), .rd-terrain td:nth-child(4) { width: 90px; }
+.rd-terrain td:nth-child(2), .rd-terrain td:nth-child(5) { width: 130px; }
+.rd-remove { width: 36px; text-align: right; }
+.rd-cell { display: none; }
+.rd-cellpair { min-width: 150px; }
+.rd-cellpair input, .rd-cellpair select { margin-bottom: 4px; }
+.rd-add .ui-grow { flex: 1 1 160px; }
+@container (max-width: 560px) {
+  .rd-setbtns { max-width: none; justify-content: flex-start; }
+  .sde-rd .ui-head { flex-wrap: wrap; }
+  .rd-table thead { display: none; }
+  .rd-table, .rd-table tbody { display: block; }
+  .rd-table tr { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 10px; padding: 8px 0; border-bottom: 1px solid var(--ui-line); position: relative; }
+  .rd-table td { display: block; border: 0; padding: 0; width: auto !important; min-width: 0 !important; }
+  .rd-table td:first-child { grid-column: 1 / -1; padding-right: 36px; }
+  .rd-cell { display: block; margin-bottom: 2px; }
+  .rd-terrain .rd-remove { position: absolute; top: 4px; right: 0; width: auto; }
+  .rd-climate tr { grid-template-columns: 1fr; }
+}
+.sde-ui .ui-body > * { flex-shrink: 0; }
+.sde-ui input[type=radio]::before, .sde-ui input[type=radio]::after { content: none !important; }

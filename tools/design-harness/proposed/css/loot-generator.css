@@ -1,0 +1,16 @@
+/* Loot Generator proposal: only what the kit cannot do. Tokens only. */
+.sde-ui [hidden] { display: none !important; }
+.sde-ui .ui-art.lg-art { display: grid; place-items: center; font-size: 22px; color: var(--ui-frame); }
+.sde-ui .ui-h .ui-icon { margin-left: auto; }
+.sde-ui .lg-give { flex-wrap: nowrap; }
+.sde-ui .lg-give .lg-recipient { flex: 1 1 auto; width: auto; min-width: 0; }
+.sde-ui .lg-give .ui-btn { flex: 0 0 auto; }
+.sde-ui .lg-setup.needs-setup.ghost { border-color: var(--ui-gold); color: var(--ui-gold); }
+@container (max-width: 560px) {
+  .sde-ui .ui-footer .ui-right { margin-left: 0; width: 100%; justify-content: flex-end; }
+}
+.sde-ui .ui-icon { flex: 0 0 auto; }
+.sde-ui .ui-head { flex-wrap: nowrap; }
+.sde-ui .ui-head .ui-stats { flex-wrap: nowrap; }
+.sde-ui .ui-body > * { flex-shrink: 0; }
+.sde-ui input[type=radio]::before, .sde-ui input[type=radio]::after { content: none !important; }

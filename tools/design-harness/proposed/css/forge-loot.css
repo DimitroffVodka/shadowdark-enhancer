@@ -1,0 +1,25 @@
+/* Forge and Loot proposal. Tokens only. */
+.sde-ui .ui-art.fl-art { display: grid; place-items: center; font-size: 22px; color: var(--ui-frame); }
+.sde-ui .ui-icon { flex: 0 0 auto; }
+.sde-ui .ui-head, .sde-ui .ui-head .ui-stats { flex-wrap: nowrap; }
+.sde-ui .ui-head .ui-sub { max-width: 52ch; }
+.sde-ui .fl-seed { font-family: monospace; font-size: 13px; }
+/* generator tiles are buttons: core gives every button a fixed height, which is what clipped them */
+.sde-ui .fl-gens { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
+.sde-ui button.fl-gen { height: auto; min-height: 56px; width: 100%; text-align: left; align-items: stretch; justify-content: flex-start; font: inherit; color: var(--ui-body); cursor: pointer; line-height: 1.35; }
+.sde-ui button.fl-gen:hover { background: var(--ui-raised); }
+.sde-ui .fl-gen .ui-card-head { align-items: center; }
+.sde-ui .fl-gen-icon { color: var(--ui-muted); }
+.sde-ui .fl-gen.sel .fl-gen-icon { color: var(--ui-text); }
+.sde-ui .fl-gen .ui-card-sub { font-style: normal; white-space: normal; }
+.sde-ui .fl-wide { grid-column: 1 / -1; }
+.sde-ui .fl-check { align-self: end; padding-bottom: 4px; }
+.sde-ui .fl-kv .ui-label { flex: 0 0 110px; }
+.sde-ui .ui-details > summary .ui-chip { margin-left: auto; }
+.sde-ui .ui-note small { font-size: 11.5px; }
+.sde-ui .ui-footer { flex-wrap: wrap; }
+@container (max-width: 560px) {
+  .sde-ui .ui-footer .ui-right { margin-left: 0; width: 100%; justify-content: flex-end; flex-wrap: wrap; }
+}
+.sde-ui .ui-body > * { flex-shrink: 0; }
+.sde-ui input[type=radio]::before, .sde-ui input[type=radio]::after { content: none !important; }

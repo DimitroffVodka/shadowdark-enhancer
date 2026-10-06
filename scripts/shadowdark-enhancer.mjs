@@ -31,6 +31,7 @@ import { PartyApp, registerParty } from "./party/party-app.mjs";
 import { registerPartyMovement, requestMovement, configureMovement, movementStatus } from "./party/party-movement.mjs";
 import { registerPartyHUD } from "./party/party-hud.mjs";
 import { registerPartyLight } from "./party/party-light.mjs";
+import { registerPartyRoll } from "./party/party-roll.mjs";
 import { registerRoute } from "./overland/route.mjs";
 import { registerSky, registerWeatherVisuals } from "./overland/sky.mjs";
 import { CrawlState } from "./crawl-strip/crawl-state.mjs";
@@ -127,7 +128,7 @@ import { initRivalClassTable } from "./forge-loot/rival-class-table-adapter.mjs"
 // templates, producing unstyled block-flow UI. Keep the manifest stylesheet as
 // the startup fallback, then layer a content-addressed copy above it. The layout
 // contract test requires this revision to change whenever the CSS file changes.
-const STYLESHEET_REV = "373e943abdfc";
+const STYLESHEET_REV = "b9a2f158b07c";
 
 // The same problem for the SCRIPTS, which cannot be solved the same way: their
 // URLs come from the manifest, which Foundry validates as real package paths,
@@ -142,7 +143,7 @@ const STYLESHEET_REV = "373e943abdfc";
 // stale); module.json carries the same hash and is fetched fresh at runtime. A
 // mismatch is a stale cache by construction — it cannot be anything else. Both
 // stamps are written by `npm run inventory` and gated by `inventory:check`.
-const BUILD_REV = "13106788758f";
+const BUILD_REV = "c81819a83635";
 
 /**
  * Tell the user when their browser is running an old build of this module, and
@@ -200,6 +201,7 @@ async function checkBuildRev() {
 
     console.warn(`${MODULE_ID} | stale scripts: running ${BUILD_REV}, ${onDisk} is installed.`);
     const reload = await foundry.applications.api.DialogV2.confirm({
+      classes: ["sde-ui", "sde-dialog"],
       // Old cached code reads these keys from whatever en.json is installed,
       // so renaming one blanks the very dialog meant to rescue that build.
       window: { title: "SDE.staleBuild.title" },
@@ -297,6 +299,12 @@ Hooks.on("canvasReady", async (cv) => {
   if (!game.user?.isActiveGM || !scene?.getFlag(MODULE_ID, "adventureMap")) return;
   try { await (await import("./importer/adventure/adventure-scene.mjs")).refreshPinArt(scene); }
   catch (err) { console.warn(`${MODULE_ID} | adventure pins: could not refresh`, err); }
+});
+
+// DialogV2 only marks the default button with `autofocus`; give it the class the Enhancer's dialog look styles.
+Hooks.on("renderDialogV2", (app, element) => {
+  if (!app.options.classes?.includes("sde-dialog")) return;
+  element.querySelector(".form-footer button[autofocus]")?.classList.add("default");
 });
 
 Hooks.once("init", () => {
@@ -432,6 +440,7 @@ Hooks.once("init", () => {
   registerPartyMovement();
   registerPartyHUD();
   registerPartyLight();
+  registerPartyRoll();
   registerCamping();
   registerCarousing();
 

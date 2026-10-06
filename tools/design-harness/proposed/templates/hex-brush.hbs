@@ -1,0 +1,39 @@
+{{!-- Hex brush, proposed. Same context and data-hxb-* / data-action attributes as templates/hex-brush.hbs; the tile keeps the
+      .hex and .n children and the .on class the window script reads. --}}
+<div class="ui-shell hxb">
+  <div class="ui-body">
+    <p class="ui-note info">{{localize "SDE.hexMap.brush.howTo"}}</p>
+
+    <section class="ui-card hxb-now">
+      <button type="button" class="ui-btn step" data-action="hxbStep" data-step="-1" aria-label="{{localize 'SDE.hexMap.brush.prev'}}"><i class="fas fa-chevron-left"></i></button>
+      <div class="big">
+        <div class="hex" data-hxb-big-hex>{{#if current.img}}<img src="{{current.img}}" alt="">{{else}}<span class="ico" style="--c:{{current.color}}"><i class="fas {{current.icon}}"></i></span>{{/if}}</div>
+        <strong class="ui-card-name" data-hxb-big-name>{{current.label}}</strong>
+      </div>
+      <button type="button" class="ui-btn step" data-action="hxbStep" data-step="1" aria-label="{{localize 'SDE.hexMap.brush.next'}}"><i class="fas fa-chevron-right"></i></button>
+    </section>
+
+    <section class="ui-group">
+      <h3 class="ui-h">{{localize "SDE.hexMap.brush.onThisMap"}}</h3>
+      <div class="hxb-strip" role="radiogroup" aria-label="{{localize 'SDE.hexMap.brush.terrain'}}" data-hxb-strip>
+        {{#each tiles as |o|}}
+        <button type="button" class="t{{#if o.selected}} on{{/if}}" role="radio" aria-checked="{{o.selected}}" tabindex="{{o.tab}}" data-hxb-tile="{{o.value}}" title="{{o.label}}">
+          <span class="hex">{{#if o.img}}<img src="{{o.img}}" alt="">{{else}}<span class="ico" style="--c:{{o.color}}"><i class="fas {{o.icon}}"></i></span>{{/if}}</span>
+          <span class="n">{{o.label}}</span>
+        </button>
+        {{/each}}
+      </div>
+      <input type="text" class="sde-hxb-other" data-hxb data-hxb-other value="{{otherWord}}" placeholder="{{localize 'SDE.hexMap.brush.ownWord'}}" aria-label="{{localize 'SDE.hexMap.label.otherTerrainAria'}}"{{#unless otherSelected}} hidden{{/unless}}>
+    </section>
+
+    <section class="ui-group">
+      <h3 class="ui-h">{{localize "SDE.hexMap.brush.onTheHex"}}</h3>
+      <div class="ui-inline">
+        {{#each features as |o|}}<label class="ui-chip ui-check f"><input type="checkbox" data-hxb data-hxb-feature value="{{o.value}}" {{#if o.checked}}checked{{/if}}><i class="fas {{o.icon}}"></i> {{o.label}}</label>{{/each}}
+      </div>
+    </section>
+  </div>
+  <footer class="ui-footer">
+    <button type="button" data-action="hxbUndo" class="ui-btn ghost"><i class="fas fa-rotate-left"></i> {{localize "SDE.hexMap.btn.undoStroke"}}<span data-hxb-undo-count></span></button>
+  </footer>
+</div>

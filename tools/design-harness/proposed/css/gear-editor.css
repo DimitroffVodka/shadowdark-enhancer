@@ -1,0 +1,14 @@
+/* Extra Gear editor: the folder list and its rows. The old template embedded all of this as an inline <style>. Tokens only. */
+.sde-ege-body { overflow: hidden; }
+.sde-ege-body .sde-ege-list { flex: 1 1 auto; min-height: 0; overflow-y: auto; gap: 8px; }
+.sde-ege-toolbar .ege-source { flex: 0 1 200px; width: auto; }
+.sde-ege .sde-ege-row[hidden], .sde-ege .sde-ege-folder[hidden] { display: none; }
+.sde-ege .sde-ege-row { cursor: pointer; min-height: 34px; }
+.sde-ege .sde-ege-row.is-default { cursor: default; }
+.sde-ege .sde-ege-row.is-default input { opacity: .6; }
+.sde-ege .sde-ege-row img { width: 22px; height: 22px; }
+.sde-ege .ui-details > summary { min-height: 34px; font-size: 15px; }
+.sde-ege .ui-details > .ui-details-body { padding: 0 8px 8px; }
+.sde-ege .ui-row-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
+.sde-ege .ui-row-main { overflow: hidden; }
+.sde-ege-body .ui-stack, .sde-ege-body { gap: 10px; }

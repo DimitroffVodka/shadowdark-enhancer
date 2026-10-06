@@ -80,7 +80,7 @@ export class ShadowdarkCharBuilder extends HandlebarsApplicationMixin(Applicatio
 
   static DEFAULT_OPTIONS = {
     id: "sde-char-builder",
-    classes: ["shadowdark", "sde-char-builder"],
+    classes: ["shadowdark", "sde-ui", "sde-char-builder"],
     window: {
       title: "SDE.charBuilder.title",
       icon: "fa-solid fa-user-plus",
@@ -348,6 +348,7 @@ export class ShadowdarkCharBuilder extends HandlebarsApplicationMixin(Applicatio
       + "</ul></div>";
 
     const ok = await foundry.applications.api.DialogV2.confirm({
+      classes: ["sde-ui", "sde-dialog"],
       window: { title: L("SDE.charBuilder.commit.title"), icon: "fa-solid fa-user-plus" },
       content: summary,
       yes: { label: L(actor ? "SDE.charBuilder.commit.update" : "SDE.charBuilder.commit.create"), icon: "fa-solid fa-check" },

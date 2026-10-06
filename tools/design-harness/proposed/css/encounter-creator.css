@@ -1,0 +1,56 @@
+/* Monster Creator panel: two panes (core on the left, one tab on the right), and the small grids inside the cards.
+   Kit candidates: "ui-panes" (fixed-left + fluid-right that stacks when narrow), "ui-quickgrid". Tokens only. */
+.mc, .mc-shell { min-height: 0; }
+.mc-top { align-items: center; }
+.mc-top .ui-title { font-size: 22px; }
+.mc-source { margin: 12px 16px 0; display: flex; align-items: center; gap: 8px; }
+.mc-panes { display: grid; grid-template-columns: minmax(280px, 340px) minmax(0, 1fr); gap: 16px; align-items: start; }
+.mc-core { display: flex; flex-direction: column; gap: 12px; min-width: 0; position: sticky; top: 0; }
+.mc-work { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.mc-panel { display: flex; flex-direction: column; gap: 12px; }
+.mc-two { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.mc-three { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.mc-cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; }
+.mc-abil { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.mc-ab input { text-align: center; }
+.mc-hp { flex-wrap: nowrap; }
+.mc-step { flex-wrap: nowrap; }
+.mc-img { flex-wrap: nowrap; }
+.mc-img img { width: 40px; height: 40px; object-fit: cover; border-radius: var(--ui-r); border: 1px solid var(--ui-line); flex: 0 0 auto; }
+.mc-colctl { flex-wrap: nowrap; }
+.mc-cardname { font-weight: 700 !important; }
+.mc-quickgrid { display: flex; flex-wrap: wrap; gap: 6px; }
+.mc-qbtn { height: auto; cursor: pointer; }
+.mc-spellsearch { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) minmax(0, 1fr); gap: 8px; }
+.mc .ui-row.is-added { opacity: .6; }
+.mc-none { padding: 40px 16px; }
+.mc-tabs { margin: 0; padding: 0; }
+.mc-preview { overflow-wrap: anywhere; font-size: 12px; max-width: 70%; }
+.mc .sde-baseline-spell ul { margin: 6px 0 0 18px; padding: 0; }
+.mc .mc-range input { width: 80px !important; flex: 1 1 0; min-width: 0; }
+.mc .mc-range { flex-wrap: nowrap; }
+.mc-loader-body { grid-template-columns: minmax(200px, 240px) minmax(0, 1fr); align-items: start; }
+.mc-filters { gap: 10px; }
+.mc-results { padding: 0; overflow: auto; }
+.mc-pick { cursor: pointer; }
+.mc-name { font-weight: 700; color: var(--ui-text); }
+.mc .mc-sort { min-width: 24px; height: 24px; min-height: 24px; display: inline-flex; align-items: center; padding: 0; border: 0; background: transparent; color: inherit; font: inherit; text-transform: inherit; letter-spacing: inherit; cursor: pointer; box-shadow: none; }
+.mc-table td i { margin-left: 4px; color: var(--ui-muted); }
+.mc-sources > summary { font: 500 13px/1.2 var(--ui-font); min-height: 28px; padding: 4px 10px; }
+@container (max-width: 800px) {
+  .mc-panes, .mc-loader-body { grid-template-columns: minmax(0, 1fr); }
+  .mc-core { position: static; }
+  .mc-spellsearch { grid-template-columns: minmax(0, 1fr); }
+  .mc-three { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .mc-preview { max-width: none; }
+}
+@container (max-width: 560px) {
+  .mc-tabs .ui-tab { padding: 6px 7px; font-size: 13px; gap: 0; }
+  .mc-tabs .ui-tab i { display: none; }
+  .mc-top { flex-wrap: wrap; }
+}
+.mc-id { grid-template-columns: auto minmax(0, 1fr); }
+.mc-id .ui-chip { padding: 2px 7px; }
+.mc-id .ui-inline { gap: 4px; flex-wrap: nowrap; }
+.mc .ui-icon { flex: 0 0 auto; min-width: 24px; }
+.mc-is-added { opacity: .6; }

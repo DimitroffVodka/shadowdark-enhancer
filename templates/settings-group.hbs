@@ -1,100 +1,34 @@
-<div class="sde-sg">
-<style>
-/* Embedded rather than in the module stylesheet — Foundry caches module CSS
-   aggressively and a settings window must render correctly on first open.
-   Unlayered so these win over the core cascade. Theme-neutral gray alphas. */
-.sde-settings-group .window-content { padding: 0; }
-.sde-settings-group .sde-sg { display: flex; flex-direction: column; flex: 1 1 auto; min-height: 0; }
-.sde-settings-group .sde-sg-scroll { flex: 1 1 auto; min-height: 0; overflow-y: auto; padding: 2px 16px 10px; }
-
-/* One setting per row: label + hint stacked on the left, control on the right. */
-.sde-settings-group .form-group {
-  display: grid; grid-template-columns: minmax(0, 1fr) auto; column-gap: 20px; row-gap: 3px;
-  align-items: center; margin: 0; padding: 10px 0; border-top: 1px solid rgba(127, 127, 127, 0.28);
-}
-.sde-settings-group .sde-sg-scroll > .form-group:first-child,
-.sde-settings-group legend + .form-group { border-top: 0; }
-.sde-settings-group .form-group > label { grid-column: 1; grid-row: 1; font-weight: 700; font-size: 13.5px; line-height: 1.3; }
-.sde-settings-group .form-group > .hint {
-  grid-column: 1; grid-row: 2; margin: 0; font-size: 12px; line-height: 1.45; opacity: 0.85;
-}
-.sde-settings-group .form-group > .form-fields {
-  grid-column: 2; grid-row: 1 / span 2; display: flex; justify-content: flex-end; align-items: center; flex: 0 0 auto;
-}
-.sde-settings-group .form-fields > input[type="number"] { width: 6.5em; }
-.sde-settings-group .form-fields > input[type="text"] { width: 20em; }
-.sde-settings-group .form-fields > select { width: 15em; }
-.sde-settings-group .form-fields > range-picker { width: 17em; }
-.sde-settings-group .form-fields > file-picker { width: 20em; }
-.sde-settings-group .form-fields > button { width: auto; white-space: nowrap; }
-
-/* Folder lists: one Foundry folder picker per row, full width under the hint. */
-.sde-settings-group .sde-sg-folders { grid-column: 1 / -1; display: flex; flex-direction: column; gap: 4px; margin-top: 4px; }
-.sde-settings-group .sde-sg-folder { display: flex; gap: 4px; align-items: center; }
-.sde-settings-group .sde-sg-folder > file-picker { flex: 1 1 auto; }
-.sde-settings-group .sde-sg-folder > button { flex: 0 0 auto; width: auto; }
-.sde-settings-group .sde-sg-folder-add { align-self: flex-start; width: auto; }
-
-/* Sub-groups (Duelist, Delver, Renown…) are collapsible and start closed, so a
-   long list of classes stays a short list of headers. */
-.sde-settings-group details { margin: 6px 0 0; border-top: 1px solid rgba(127, 127, 127, 0.28); }
-.sde-settings-group summary {
-  padding: 8px 0 6px; font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
-  opacity: 0.75; cursor: pointer; list-style: none; display: flex; align-items: center; gap: 6px;
-}
-.sde-settings-group summary::-webkit-details-marker { display: none; }
-.sde-settings-group summary::before {
-  content: "\25B8"; display: inline-block; width: 1em; font-size: 12px; transition: transform 0.15s;
-}
-.sde-settings-group details[open] > summary::before { transform: rotate(90deg); }
-.sde-settings-group summary + .form-group { border-top: 0; }
-
-/* Modes of Play: always-open fieldsets, the mode's switch in the legend. */
-.sde-settings-group fieldset.sde-sg-mode { margin: 10px 0 0; padding: 4px 12px 6px; border: 1px solid rgba(127, 127, 127, 0.35); border-radius: 4px; }
-.sde-settings-group fieldset.sde-sg-mode > legend { display: flex; align-items: center; gap: 8px; padding: 0 6px; font-weight: 700; font-size: 13.5px; }
-.sde-settings-group fieldset.sde-sg-mode > legend input { margin: 0; }
-.sde-settings-group .sde-sg-mode-hint { margin: 0 0 2px; font-size: 12px; opacity: 0.8; }
-.sde-settings-group .sde-sg-note { margin: 0; padding: 8px 0; font-size: 12px; line-height: 1.45; opacity: 0.85; border-top: 1px solid rgba(127, 127, 127, 0.28); }
-.sde-settings-group .sde-sg-pending { margin: -6px 0 0; padding: 0 0 8px; font-size: 11.5px; font-style: italic; opacity: 0.7; }
-
-.sde-settings-group .form-footer { flex: 0 0 auto; margin: 0; padding: 8px 16px; border-top: 1px solid rgba(127, 127, 127, 0.28); }
-</style>
-<div class="sde-sg-scroll">
+<div class="ui-shell sde-sg sg">
+<div class="ui-body sde-sg-scroll">
 {{#each sections as |section|}}
-{{#if section.mode}}<fieldset class="sde-sg-mode" data-mode>
-<legend><input type="checkbox" data-mode-switch aria-label="{{localize section.switchLabel}}" data-tooltip="{{localize section.switchLabel}}"> {{localize section.label}}</legend>
-{{#if section.hint}}<p class="sde-sg-mode-hint">{{localize section.hint}}</p>{{/if}}
-{{else if section.label}}<details><summary>{{localize section.label}}</summary>{{/if}}
+{{#if section.mode}}<fieldset class="ui-card sde-sg-mode sg-mode" data-mode>
+<legend class="sg-legend"><input type="checkbox" data-mode-switch aria-label="{{localize section.switchLabel}}" data-tooltip="{{localize section.switchLabel}}"> <span class="ui-h-text">{{localize section.label}}</span></legend>
+{{#if section.hint}}<p class="ui-muted sg-hint">{{localize section.hint}}</p>{{/if}}
+{{else if section.label}}<details class="ui-details sg-details"><summary>{{localize section.label}}</summary><div class="ui-details-body">
+{{else}}<section class="ui-card sg-plain">{{/if}}
 {{#each section.entries as |entry|}}
 {{#if entry.note}}
-<p class="sde-sg-note">{{localize entry.note}}</p>
+<p class="ui-note">{{localize entry.note}}</p>
 {{else if entry.menu}}
 <div class="form-group">
   <label>{{localize entry.label}}</label>
   <div class="form-fields">
-    <button type="button" data-action="openMenu" data-key="{{entry.key}}">
-      <i class="{{entry.icon}}" inert></i>
-      <span>{{localize entry.buttonText}}</span>
-    </button>
+    <button type="button" class="ui-btn" data-action="openMenu" data-key="{{entry.key}}"><i class="{{entry.icon}}" inert></i><span>{{localize entry.buttonText}}</span></button>
   </div>
   <p class="hint">{{localize entry.hint}}</p>
 </div>
 {{else if entry.folders}}
-<div class="form-group">
+<div class="form-group sg-folders-group">
   <label>{{entry.label}}</label>
   <p class="hint">{{entry.hint}}</p>
-  <div class="sde-sg-folders" data-folder-list="{{entry.name}}">
+  <div class="sg-folders" data-folder-list="{{entry.name}}">
     {{#each entry.values as |path|}}
-    <div class="sde-sg-folder">
+    <div class="sde-sg-folder sg-folder">
       <file-picker type="folder" value="{{path}}"></file-picker>
-      <button type="button" data-action="removeFolder" data-tooltip="{{localize "SDE.settingsGroup.removeFolder"}}">
-        <i class="fa-solid fa-xmark" inert></i>
-      </button>
+      <button type="button" class="ui-icon danger" data-action="removeFolder" data-tooltip="{{localize "SDE.settingsGroup.removeFolder"}}" aria-label="{{localize "SDE.settingsGroup.removeFolder"}}"><i class="fa-solid fa-xmark" inert></i></button>
     </div>
     {{/each}}
-    <button type="button" class="sde-sg-folder-add" data-action="addFolder">
-      <i class="fa-solid fa-folder-plus" inert></i> {{localize "SDE.settingsGroup.addFolder"}}
-    </button>
+    <div><button type="button" class="ui-btn" data-action="addFolder"><i class="fa-solid fa-folder-plus" inert></i> {{localize "SDE.settingsGroup.addFolder"}}</button></div>
   </div>
 </div>
 {{else if entry.option}}
@@ -103,13 +37,11 @@
 <div data-show-if="{{entry.showIf}}">{{formGroup entry.field value=entry.value input=entry.input rootId=@root.rootId localize=true}}</div>
 {{else}}
 {{formGroup entry.field value=entry.value input=entry.input rootId=@root.rootId localize=true}}
-{{#if entry.pending}}<p class="sde-sg-pending">{{localize "SDE.settingsGroup.pending"}}</p>{{/if}}
+{{#if entry.pending}}<p class="ui-muted sg-pending">{{localize "SDE.settingsGroup.pending"}}</p>{{/if}}
 {{/if}}
 {{/each}}
-{{#if section.mode}}</fieldset>{{else if section.label}}</details>{{/if}}
+{{#if section.mode}}</fieldset>{{else if section.label}}</div></details>{{else}}</section>{{/if}}
 {{/each}}
 </div>
-<footer class="form-footer">
-  <button type="submit"><i class="fa-solid fa-floppy-disk" inert></i> {{localize "SETTINGS.Save"}}</button>
-</footer>
+<footer class="ui-footer"><div class="ui-right"><button type="submit" class="ui-btn primary"><i class="fa-solid fa-floppy-disk" inert></i> {{localize "SETTINGS.Save"}}</button></div></footer>
 </div>

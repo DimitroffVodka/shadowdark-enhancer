@@ -1,0 +1,104 @@
+/* SDE chat cards (proposal). Card-scale parts on top of the UI kit (sde-ui.css): tokens only, no colours of its own,
+   no theme selectors (the kit's tokens switch on .theme-light). A card is a self-contained panel, so it reads the same on
+   any chat ground. Root: <div class="sde-ui ui-cc [compact] [hit|good|warn|bad]">. Fits 260-300px.
+   Rules: one card = one thing; one title line; at most 2 visible controls per line (extras sit behind .cc-more);
+   text never loose on the chat ground. Prefix: cc- (card-scale), ui- (kit parts reused as they are). */
+
+.sde-ui.ui-cc {
+  display: flex; flex-direction: column; width: 100%; max-width: 100%; min-width: 0; margin: 0; padding: 0; box-sizing: border-box;
+  background: var(--ui-panel); color: var(--ui-body); border: 1px solid var(--ui-line); border-radius: var(--ui-r2);
+  font: 500 13px/1.4 var(--ui-font); text-align: left; box-shadow: none;
+}
+.sde-ui.ui-cc * { box-sizing: border-box; }
+:where(.sde-ui.ui-cc) :where(p, ul, ol) { margin: 0; padding: 0; list-style: none; }
+.sde-ui.ui-cc.hit { border-left: 4px solid var(--ui-warn); }
+.sde-ui.ui-cc.good { border-left: 4px solid var(--ui-ok); }
+.sde-ui.ui-cc.warn { border-left: 4px solid var(--ui-warn); }
+.sde-ui.ui-cc.bad { border-left: 4px solid var(--ui-danger); }
+
+/* head: icon, one-line title, optional tag. The only place the blackletter face appears. */
+.cc-head { display: flex; align-items: center; gap: 8px; min-width: 0; padding: 7px 10px; background: var(--ui-page); border-bottom: 1px solid var(--ui-line); border-radius: var(--ui-r2) var(--ui-r2) 0 0; }
+.cc-head > i { flex: 0 0 auto; width: 16px; text-align: center; color: var(--ui-gold); font-size: 13px; }
+.cc-title { flex: 1 1 auto; min-width: 0; margin: 0; padding: 0; border: 0; background: none; font: 400 17px/1.15 var(--ui-title); color: var(--ui-text); overflow-wrap: anywhere; }
+.cc-head .ui-chip { flex: 0 0 auto; }
+.ui-cc .ui-chip { white-space: normal; min-width: 0; border-radius: 2px; }
+.cc-body { display: flex; flex-direction: column; gap: 8px; min-width: 0; padding: 10px; }
+.cc-sub { margin: 0; color: var(--ui-muted); font-size: 12px; font-style: italic; overflow-wrap: anywhere; }
+.cc-text { margin: 0; color: var(--ui-body); overflow-wrap: anywhere; }
+.cc-fine { margin: 0; color: var(--ui-muted); font-size: 11.5px; overflow-wrap: anywhere; }
+
+/* a number that is the point of the card (a roll total) */
+.cc-big { flex: 0 0 auto; min-width: 44px; text-align: center; font: 700 34px/1 var(--ui-font); color: var(--ui-text); font-variant-numeric: tabular-nums; }
+.cc-big.hit { color: var(--ui-warn); } .cc-big.miss { color: var(--ui-muted); }
+.cc-split { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.cc-split > .cc-main { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+
+/* label / value rows (facets). The value wraps; the roll is a muted second line, never a third column. */
+.cc-rows { display: flex; flex-direction: column; border: 1px solid var(--ui-line); border-radius: var(--ui-r); background: var(--ui-page); }
+.cc-row { display: flex; align-items: flex-start; gap: 10px; min-width: 0; padding: 5px 8px; border-bottom: 1px solid var(--ui-line); }
+.cc-row:last-child { border-bottom: 0; }
+.cc-label { flex: 0 0 88px; display: inline-flex; align-items: center; gap: 5px; min-height: 20px; font: 600 10.5px/1.2 var(--ui-head); text-transform: uppercase; letter-spacing: .03em; color: var(--ui-muted); }
+.cc-label > i { width: 12px; text-align: center; }
+.cc-main { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; }
+.cc-val { font: 700 14px/1.3 var(--ui-font); color: var(--ui-text); overflow-wrap: anywhere; }
+.cc-aux { font: 500 11px/1.3 var(--ui-font); color: var(--ui-muted); font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.cc-val.cc-react-Hostile { color: var(--ui-danger-text); }
+.cc-val.cc-react-Friendly { color: var(--ui-text); }
+.cc-val.cc-react-Neutral { color: var(--ui-text); }
+.cc-val.cc-react-Curious { color: var(--ui-text); }
+.cc-val.cc-react-Suspicious { color: var(--ui-warn); }
+
+/* a creature or an item: picture, count, name (wraps) */
+.cc-thing { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.cc-thing > img { flex: 0 0 auto; width: 40px; height: 40px; object-fit: cover; border: 1px solid var(--ui-line); border-radius: var(--ui-r); background: var(--ui-page); }
+.cc-thing .cc-count { flex: 0 0 auto; font: 700 20px/1 var(--ui-font); color: var(--ui-gold); }
+.cc-thing .cc-name { flex: 1 1 auto; min-width: 0; font: 700 15px/1.2 var(--ui-font); color: var(--ui-text); overflow-wrap: anywhere; }
+.cc-thing .cc-name small { display: block; margin-top: 2px; font: 500 12px/1.3 var(--ui-font); color: var(--ui-muted); }
+
+/* notes and quotes */
+.cc-note { margin: 0; padding: 6px 9px; border: 1px solid var(--ui-line); border-left: 3px solid var(--ui-frame); border-radius: var(--ui-r); background: var(--ui-page); color: var(--ui-body); font-size: 12px; overflow-wrap: anywhere; }
+.cc-note > i { margin-right: 5px; color: var(--ui-muted); }
+.cc-note.warn { border-left-color: var(--ui-warn); } .cc-note.bad { border-left-color: var(--ui-danger-text); } .cc-note.good { border-left-color: var(--ui-ok); } .cc-note.info { border-left-color: var(--ui-info); }
+.cc-quote { margin: 0; padding: 6px 10px; border-left: 3px solid var(--ui-gold); background: var(--ui-gold-bg); color: var(--ui-body); font-style: italic; overflow-wrap: anywhere; }
+
+/* ordered or plain lists inside a card (initiative order, rumors, luck) */
+.cc-list { display: flex; flex-direction: column; border: 1px solid var(--ui-line); border-radius: var(--ui-r); background: var(--ui-page); }
+.cc-li { display: flex; align-items: baseline; gap: 8px; min-width: 0; padding: 5px 8px; border-bottom: 1px solid var(--ui-line); }
+.cc-li:last-child { border-bottom: 0; }
+.cc-li .cc-rank { flex: 0 0 18px; color: var(--ui-muted); font-variant-numeric: tabular-nums; }
+.cc-li .cc-who { flex: 1 1 auto; min-width: 0; font-weight: 700; color: var(--ui-text); overflow-wrap: anywhere; }
+.cc-li .cc-num { flex: 0 0 auto; font: 700 14px/1.2 var(--ui-font); color: var(--ui-text); font-variant-numeric: tabular-nums; }
+.cc-li .cc-fine { flex: 0 0 auto; }
+.cc-li.quote { border-left: 3px solid var(--ui-gold); font-style: italic; overflow-wrap: anywhere; }
+
+/* loot rows: picture, name over value line, one claim button, one more-icon */
+.cc-item { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; min-width: 0; padding: 6px 8px; border-bottom: 1px solid var(--ui-line); }
+.cc-item:last-child { border-bottom: 0; }
+.cc-item > img { flex: 0 0 auto; width: 28px; height: 28px; border: 1px solid var(--ui-line); border-radius: var(--ui-r); object-fit: cover; }
+.cc-item .cc-main { flex: 1 1 0; min-width: 72px; }
+.cc-item .cc-val { font-size: 13px; }
+.cc-got { flex: 0 0 auto; display: inline-flex; align-items: center; gap: 5px; color: var(--ui-body); font-weight: 700; font-size: 12px; }
+
+/* controls: at most 2 visible per line. Card-scale buttons are the kit's .ui-btn; icon-only ones are .cc-icon (28px). */
+.cc-icon { display: inline-flex; align-items: center; justify-content: center; flex: 0 0 auto; width: 28px; height: 28px; padding: 0; margin: 0; border: 1px solid var(--ui-line); border-radius: var(--ui-r); background: transparent; color: var(--ui-muted); cursor: pointer; font-size: 12px; list-style: none; }
+.cc-icon::-webkit-details-marker { display: none; }
+.cc-icon:hover { color: var(--ui-text); border-color: var(--ui-frame); background: var(--ui-raised); }
+.cc-foot { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 8px 10px; border-top: 1px solid var(--ui-line); background: var(--ui-page); border-radius: 0 0 var(--ui-r2) var(--ui-r2); }
+.cc-foot .cc-fine { flex: 1 1 auto; }
+.cc-foot .ui-right { margin-left: auto; display: flex; gap: 6px; align-items: center; }
+
+/* the extra actions (GM-only) behind one icon; opens as its own line under the row */
+.cc-more { display: contents; }
+.cc-more > summary { cursor: pointer; }
+.cc-more:not([open]) > .cc-more-body { display: none; }
+.cc-more > .cc-more-body { flex: 1 0 100%; order: 9; display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 6px 0 2px 36px; min-width: 0; }
+.cc-more > .cc-more-body select { flex: 1 1 110px; width: auto; }
+
+/* compact: one line, no head (dying, parry, pickup, forge, days passed) */
+.sde-ui.ui-cc.compact { flex-direction: row; align-items: center; gap: 10px; padding: 8px 10px; }
+.ui-cc.compact > i { flex: 0 0 auto; width: 18px; text-align: center; color: var(--ui-gold); font-size: 15px; }
+.ui-cc.compact > img { flex: 0 0 auto; width: 32px; height: 32px; object-fit: cover; border: 1px solid var(--ui-line); border-radius: var(--ui-r); }
+.ui-cc.compact > .cc-main { flex: 1 1 auto; }
+.ui-cc.compact .cc-text strong { color: var(--ui-text); }
+.sde-ui .ui-body > * { flex-shrink: 0; }
+.sde-ui input[type=radio]::before, .sde-ui input[type=radio]::after { content: none !important; }

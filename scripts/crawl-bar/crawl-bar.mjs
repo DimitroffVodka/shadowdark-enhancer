@@ -34,7 +34,8 @@ const frequencyLabel = (n) => (n === 1
 
 /** What each Tools entry opens: the module's API (game.shadowdarkEnhancer) handed in. */
 const TOOL_OPENERS = {
-  rollTables:  (api) => api.tables.openHub("tables"),
+  // Foundry's own Roll Tables tab: the entry rolls a table, it is not the importer (that is the next one).
+  rollTables:  () => { ui.sidebar?.expand?.(); ui.sidebar?.changeTab("tables", "primary"); },
   // The Importer is the hub's front door — land on the Import tab (D-01).
   importer:    (api) => api.tables.openHub("import"),
   lootGen:     (api) => api.loot.open(),
@@ -449,7 +450,7 @@ export const CrawlBar = {
         break;
 
       case "endCrawl": {
-        const ok = await this._confirm("SDE.crawlBar.confirm.endCrawlTitle", "SDE.crawlBar.confirm.endCrawl");
+        const ok = await this._confirm("SDE.crawlBar.confirm.endCrawlTitle", "SDE.crawlBar.confirm.endCrawl", "SDE.crawlBar.confirm.endCrawlYes", "SDE.crawlBar.confirm.endCrawlNo");
         if (ok) {
           await CrawlState.endCrawl();
           this.render();
@@ -489,7 +490,7 @@ export const CrawlBar = {
 
       case "deleteEncounter":
         if (game.combat) {
-          const ok = await this._confirm("SDE.crawlBar.deleteEncounterTitle", "SDE.crawlBar.deleteEncounterConfirm");
+          const ok = await this._confirm("SDE.crawlBar.deleteEncounterTitle", "SDE.crawlBar.deleteEncounterConfirm", "SDE.crawlBar.deleteEncounterYes", "SDE.crawlBar.deleteEncounterNo");
           if (ok) {
             // Hunter, Loot drops and Session Recap skip a combat deleted with this.
             await game.combat.delete({ [MODULE_ID]: { discard: true } });
@@ -767,10 +768,13 @@ export const CrawlBar = {
   },
 
   /** Yes/no confirm; `titleKey` and `contentKey` are en.json keys. */
-  async _confirm(titleKey, contentKey) {
+  async _confirm(titleKey, contentKey, yesKey, noKey) {
     return foundry.applications.api.DialogV2.confirm({
+      classes: ["sde-ui", "sde-dialog"],
       window: { title: titleKey },
       content: `<p>${game.i18n.localize(contentKey)}</p>`,
+      yes: { label: yesKey, icon: "fa-solid fa-check" },
+      no: { label: noKey, icon: "fa-solid fa-xmark", default: true },
       rejectClose: false,
     });
   },

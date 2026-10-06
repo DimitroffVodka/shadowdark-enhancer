@@ -1,0 +1,65 @@
+/* shared fixes (kit candidates): flex children that must not shrink, header that keeps one line below 560px */
+.ui-num { flex: 0 0 20px; }
+.ui-row > .ui-btn, .ui-row > .ui-chip, .ui-row > .ui-tag, .ui-row > .ui-icon, .ui-card-head > .ui-btn, .ui-card-head > .ui-chip { flex: 0 0 auto; }
+.ui-head { flex-wrap: nowrap; }
+.ui-head-text { flex: 1 1 0; }
+.ui-head > .ui-art, .ui-head > img { flex: 0 0 auto; }
+@container (max-width: 560px) { .ui-head { flex-wrap: nowrap; } }
+.ui-details > summary::before { font-family: "Font Awesome 7 Pro", "Font Awesome 6 Free"; }
+/* Encounter Roller. Kit candidates: .er-split (two panes that stack), .er-scroll (table that scrolls inside its card), .ui-table .er-acts (icon column), button.ui-chip toggles. */
+.er-body { padding: 14px 16px; }
+.er-tab { display: none; flex-direction: column; gap: 14px; min-height: 0; }
+.er-tab.active { display: flex; }
+.er-pick select { flex: 1 1 200px; width: auto; min-width: 0; }
+.er-split { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); gap: 14px; align-items: start; }
+.er-split > .ui-card.er-preview { padding-bottom: 6px; }
+.er-scroll { overflow-x: auto; max-width: 100%; }
+.er-preview .er-scroll { max-height: 420px; overflow-y: auto; }
+.er-range { width: 56px; color: var(--ui-muted); white-space: nowrap; }
+.er-acts { width: 1%; white-space: nowrap; text-align: right; }
+.er-flavor td { font-style: italic; color: var(--ui-muted); }
+.er-monster { padding: 4px 0; border: 0; }
+.er-monster img { width: 48px; height: 48px; }
+.er-mname { font-size: 16px; }
+.er-facets th { text-align: left; white-space: nowrap; font-weight: 600; color: var(--ui-text); text-transform: none; letter-spacing: 0; font-size: 12.5px; border-bottom: 1px solid var(--ui-line); }
+.er-facets td { font-size: 12.5px; }
+.er-fres { font-weight: 700; color: var(--ui-text) !important; }
+.er-mods { gap: 12px; }
+.er-step { display: inline-flex; align-items: center; gap: 2px; }
+.er-step input { width: 44px !important; padding: 0 4px; }
+.er-on { border-color: var(--ui-gold); background: var(--ui-gold-bg); color: var(--ui-gold); }
+.er-buildhead { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 10px; }
+.er-die { flex: 0 0 90px; }
+.er-slots td { vertical-align: middle; }
+.er-srange { display: flex; align-items: center; gap: 4px; white-space: nowrap; border-bottom: 1px solid var(--ui-line); }
+.er-srange input { width: 52px !important; text-align: center; }
+.er-sbody input { width: 100%; }
+.er-sapp { width: 22%; min-width: 110px; }
+.er-empty .er-sbody input { border-style: dashed; }
+.er-save { margin-top: 2px; }
+.er-browse { display: grid; grid-template-columns: minmax(200px, 250px) minmax(0, 1fr); gap: 14px; align-items: start; }
+.er-fgrid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; }
+.er-range-in { display: flex; align-items: center; gap: 6px; }
+.er-range-in input { width: 100%; }
+.er-sum { font: 600 12.5px/1.2 var(--ui-font); min-height: 28px; padding: 4px 10px; }
+.er-sources { background: var(--ui-panel); }
+.er-sources .ui-details-body { padding-top: 0; max-height: 160px; overflow-y: auto; }
+.er-align { min-width: 30px; justify-content: center; cursor: pointer; }
+.er-checks { flex-direction: column; gap: 4px; }
+.er-count { margin: 0 0 6px; }
+.er-tablewrap { border: 1px solid var(--ui-line); border-radius: var(--ui-r2); background: var(--ui-panel); }
+.er-browse-table { min-width: 560px; }
+.er-browse-table td, .er-browse-table th { white-space: nowrap; }
+.er-sort { padding: 0; margin: 0; border: 0; background: none; color: inherit; font: inherit; text-transform: inherit; letter-spacing: inherit; cursor: pointer; }
+.er-sort:hover { color: var(--ui-text); }
+.er-img { border-radius: var(--ui-r); border: 1px solid var(--ui-line); display: block; }
+.er-browse-row[draggable] { cursor: grab; }
+@container (max-width: 760px) { .er-split, .er-browse { grid-template-columns: minmax(0, 1fr); } .er-preview .er-scroll { max-height: 260px; } .er-filters .er-fgrid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@container (max-width: 420px) { .er-facets th { white-space: normal; } }
+/* old unscoped rule [data-tab="browse"] { container-type: inline-size } also matches the tab button */
+.ui-tab[data-tab] { container-type: normal; container-name: none; }
+.ui-table { margin: 0; }
+.ui-details > summary.er-sum { font: 600 12.5px/1.2 var(--ui-font); min-height: 28px; padding: 4px 10px; }
+.er-sort { min-height: 22px; min-width: 22px; }
+/* kit bug candidate: the kit's input rule out-ranks .ui-search > input, so the icon sat on the text */
+.sde-ui .ui-search input:not([type=checkbox],[type=radio],[type=range],[type=file],[type=color]) { padding-left: 28px; }

@@ -1,0 +1,5 @@
+/* Crawl order tab: core's combat-tracker markup and theme colours are kept on purpose (the tab must look like Combat in
+   both themes), so this only fixes what core has no counterpart for. currentColor follows the theme, no colour is named. */
+.sde-tracker-tab .token-initiative .roll { filter: drop-shadow(0 0 1px currentColor) drop-shadow(0 0 1px currentColor); }
+.sde-tracker-tab .token-initiative .sde-tracker-pending { opacity: .75; }
+.sde-tracker-tab .combatant .token-name .name { overflow-wrap: anywhere; }

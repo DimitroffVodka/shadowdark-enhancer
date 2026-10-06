@@ -33,9 +33,12 @@ function register(S) {
     isFinite: (v) => Number.isFinite(v), checked: (v) => (v ? "checked" : ""), select: (v, o) => o.fn ? o.fn(this) : v,
     selectOptions: (choices, o) => new Handlebars.SafeString(Object.entries(choices ?? {}).map(([k, v]) => `<option value="${k}"${String(k) === String(o.hash.selected) ? " selected" : ""}>${v?.label ?? v}</option>`).join("")),
     formGroup: (f, o) => new Handlebars.SafeString(`<div class="form-group"><label>${o.hash.label ?? ""}</label><div class="form-fields"><input type="text" value="${o.hash.value ?? ""}"></div></div>`),
-    numberFormat: (n) => Number(n).toLocaleString(), ifThen: (c, a, b) => (c ? a : b),
+    numberFormat: (n, o) => (o?.hash?.sign && Number(n) >= 0 ? "+" : "") + Number(n).toLocaleString(), ifThen: (c, a, b) => (c ? a : b),
+    concat: (...a) => a.slice(0, -1).join(""), editor: (c) => new Handlebars.SafeString(`<div class="editor-content">${c ?? ""}</div>`),
+    numberInput: (v, o) => new Handlebars.SafeString(`<input type="number" name="${o.hash.name}" value="${v ?? ""}" class="${o.hash.class ?? ""}" placeholder="${o.hash.placeholder ?? ""}">`),
   });
   const walk = (d) => fs.readdirSync(d, { withFileTypes: true }).flatMap((e) => e.isDirectory() ? walk(path.join(d, e.name)) : e.name.endsWith(".hbs") ? [path.join(d, e.name)] : []);
+  for (const f of walk(path.join(SYSTEM, "templates"))) hb.registerPartial(path.relative(path.join(SYSTEM, "templates"), f).replace(/\.hbs$/, ""), fs.readFileSync(f, "utf8"));   // the system's own partials (actors/npc/..., ui/sd-box)
   for (const f of walk(path.join(ROOT, "templates"))) hb.registerPartial(`modules/${MODULE_ID}/${path.relative(ROOT, f)}`, fs.readFileSync(f, "utf8"));
   return hb;
 }
@@ -100,7 +103,7 @@ ${moduleStyles().map((s) => `@import url("/modules/${MODULE_ID}/${s}") layer(mod
 ${w.css ? `<style>${w.css}</style><style>@layer reset{${w.css}}</style>` : ""}
 ${q.get("embed") ? "<style>#design-check{position:static;display:inline-block;margin:10px 0 0;max-width:none}</style>" : ""}
 <style>body{display:block;height:auto;min-height:100vh;padding:16px;background:#2b2b2b url("/ui/denim075.png")}
-.application{position:relative!important;inset:auto!important;margin:0 0 16px;width:${px(width)};height:${px(h)}}
+.application{position:relative!important;inset:auto!important;margin:0 0 16px;width:${px(width)};height:${px(h)};max-height:calc(100vh - 80px)}
 .harness-toolbar{display:flex;gap:6px;align-items:center;margin:0 0 10px;font:12px sans-serif;color:#aaa}.harness-toolbar button{padding:3px 10px;border:1px solid #555;border-radius:4px;background:#222;color:#ddd;cursor:pointer}
 #design-check{position:fixed;right:8px;bottom:8px;max-width:360px;margin:0;padding:8px 10px;font:12px/1.3 monospace;white-space:pre-wrap;color:#fff;background:#000c;border:1px solid #888;border-radius:4px;z-index:9999;user-select:text}</style>
 </head><body class="vtt game system-shadowdark theme-${theme}">
@@ -125,7 +128,7 @@ document.addEventListener("click", async (e) => {
 }
 
 const TYPES = { ".css": "text/css", ".js": "text/javascript", ".mjs": "text/javascript", ".json": "application/json", ".png": "image/png", ".jpg": "image/jpeg", ".webp": "image/webp", ".svg": "image/svg+xml", ".woff2": "font/woff2", ".woff": "font/woff", ".ttf": "font/ttf", ".TTF": "font/ttf", ".hbs": "text/plain" };
-const roots = [["/systems/shadowdark/", SYSTEM], ["/modules/game-icons-net/", path.join(FOUNDRY, "../Data/modules/game-icons-net")], [`/modules/${MODULE_ID}/`, ROOT], ["/", path.join(FOUNDRY, "public")]];
+const roots = [["/systems/shadowdark/", SYSTEM], ["/modules/game-icons-net/", path.join(FOUNDRY, "../Data/modules/game-icons-net")], ["/modules/shadowdark-extras/", path.join(FOUNDRY, "../Data/modules/shadowdark-extras")], ["/cache/", path.join(os.homedir(), ".cache/sde-design-harness")], [`/modules/${MODULE_ID}/`, ROOT], ["/", path.join(FOUNDRY, "public")]];
 
 http.createServer(async (req, res) => {
   const u = new URL(req.url, "http://x"), p = decodeURIComponent(u.pathname);

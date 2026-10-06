@@ -33,6 +33,7 @@ import { relayToGM, authorizeActorFor, refuseQuery, isActiveGM, registerQuery } 
 import { esc } from "../shared/esc.mjs";
 import { canParry, reversalPlan, defeatStatusesFor } from "./parry-core.mjs";
 import { cardHit, isAttackCard, targetActorOf, attackerActorOf } from "../shared/attack-card.mjs";
+import { compactCard } from "../shared/chat-cards.mjs";
 
 /** The one authenticated player→GM channel for parries. */
 export const PARRY_QUERY = `${MODULE_ID}.parry`;
@@ -396,11 +397,11 @@ export const Parry = {
 
     await ChatMessage.create({
       speaker: { alias: actor.name },
-      content: `<div class="sde-parry-card"><i class="fa-solid fa-shield-halved"></i> `
-        + `${esc(game.i18n.format("SDE.parry.announce", { name: actor.name }))}`
-        + (reversed > 0
-          ? ` <em>${esc(game.i18n.format("SDE.parry.reversed", { hp: reversed }))}</em>` : "")
-        + `</div>`,
+      content: compactCard({
+        icon: "shield-halved", tone: "good",
+        html: esc(game.i18n.format("SDE.parry.announce", { name: actor.name })),
+        aux: reversed > 0 ? game.i18n.format("SDE.parry.reversed", { hp: reversed }) : "",
+      }),
     });
     return { ok: true, reversed };
   },

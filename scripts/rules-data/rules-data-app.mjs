@@ -18,7 +18,7 @@ import { MODULE_ID } from "../shared/module-id.mjs";
 import { esc } from "../shared/esc.mjs";
 import {
   rulesFrom, readReferenceTables, importOverwrites, applyImport, canonicalRegion, partlyRead,
-  rulesSetsFrom, newRulesetId, terrainWords, addTerrain, removeTerrain, TERRAIN_KEYS,
+  rulesSetsFrom, rulesTabs, RULES_TABS, newRulesetId, terrainWords, addTerrain, removeTerrain, TERRAIN_KEYS,
   TERRAIN_TYPES, COSTED_TYPES, ELEVATIONS, SEASONS, HARSH, TRAVEL_METHODS, VISIBILITY_KEYS, SETTLEMENT_KINDS,
 } from "./rules-data-core.mjs";
 import { RULES_SETTING, RULESETS_SETTING, rulesetOf, setSceneRuleset } from "./rules-data-scope.mjs";
@@ -152,6 +152,7 @@ async function confirmOverwrites(list) {
     + `<td>${esc(shown(c.field, c.from))}</td><td>${esc(shown(c.field, c.to))}</td></tr>`).join("");
   const head = ["table", "row", "now", "imported"].map((k) => `<th>${esc(L(`SDE.rulesData.preview.${k}`))}</th>`).join("");
   const answer = await DialogV2.confirm({
+    classes: ["sde-ui", "sde-dialog"],
     window: { title: L("SDE.rulesData.preview.title") },
     position: { width: 600 },
     content: `<p>${esc(F("SDE.rulesData.preview.intro", { n: list.length }))}</p>`
@@ -167,7 +168,7 @@ export class RulesDataApp extends HandlebarsApplicationMixin(ApplicationV2) {
   static DEFAULT_OPTIONS = {
     id: "sde-rules-data",
     tag: "form",
-    classes: ["shadowdark", "sde-rules-data"],
+    classes: ["shadowdark", "sde-rules-data", "sde-ui"],
     window: { title: "SDE.rulesData.title", icon: "fa-solid fa-scroll", resizable: true },
     position: { width: 780, height: 760 },
     form: { handler: RulesDataApp._onSubmit, closeOnSubmit: true },
@@ -193,6 +194,9 @@ export class RulesDataApp extends HandlebarsApplicationMixin(ApplicationV2) {
    * being that map.
    */
   _all = null;
+
+  /** The tab showing. Kept here, not in the DOM, so a re-render (adding a terrain, switching ruleset) stays on it. */
+  _tab = RULES_TABS[0].id;
 
   /**
    * The map the window was opened for, when it is a hex map: the only kind a
@@ -257,6 +261,7 @@ export class RulesDataApp extends HandlebarsApplicationMixin(ApplicationV2) {
       rows: keys.map((k) => ({ name: `${table}.${k}`, label: labelOf(k), value: r[table][k] ?? "", placeholder })),
     });
     return {
+      tabs: rulesTabs(this._tab),
       rulesets: rulesets.map((c) => ({ ...c, selected: c.id === a.current })),
       custom: !!a.current,
       canImport: !a.current,   // the GM Guide import fills the Western Reaches' ruleset, the default one
@@ -314,6 +319,9 @@ export class RulesDataApp extends HandlebarsApplicationMixin(ApplicationV2) {
       this._store().current = event.currentTarget.value;
       this.render();
     });
+    for (const radio of this.element.querySelectorAll("input[name='_rdTab']")) {
+      radio.addEventListener("change", () => { if (radio.checked) this._tab = radio.value; });
+    }
     // Enter in the Add terrain box adds; it must not save and close the window.
     this.element.querySelector("input[name='newTerrain']")?.addEventListener("keydown", (event) => {
       if (event.key !== "Enter") return;
@@ -343,6 +351,7 @@ export class RulesDataApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const starts = [["", L("SDE.rulesData.set.blank")], ["default", F("SDE.rulesData.set.copyOf", { name: L("SDE.rulesData.set.default") })],
       ...Object.entries(a.sets).map(([id, s]) => [id, F("SDE.rulesData.set.copyOf", { name: s.name })])];
     const out = await DialogV2.prompt({
+      classes: ["sde-ui", "sde-dialog"],
       window: { title: L("SDE.rulesData.set.newTitle") },
       content: `<div class="form-group"><label>${esc(L("SDE.rulesData.set.name"))}</label><input type="text" name="name" autofocus></div>`
         + `<div class="form-group"><label>${esc(L("SDE.rulesData.set.startFrom"))}</label><select name="from">`
@@ -370,6 +379,7 @@ export class RulesDataApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const a = this._store(), set = a.sets[a.current];
     if (!set) return;
     const out = await DialogV2.prompt({
+      classes: ["sde-ui", "sde-dialog"],
       window: { title: L("SDE.rulesData.set.renameTitle") },
       content: `<div class="form-group"><label>${esc(L("SDE.rulesData.set.name"))}</label><input type="text" name="name" value="${esc(set.name)}" autofocus></div>`,
       ok: { label: L("SDE.rulesData.set.rename"), icon: "fa-solid fa-pen", callback: (_event, button) => new foundry.applications.ux.FormDataExtended(button.form).object },
@@ -386,8 +396,11 @@ export class RulesDataApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const a = this._store(), set = a.sets[a.current];
     if (!set) return;
     const yes = await DialogV2.confirm({
+      classes: ["sde-ui", "sde-dialog"],
       window: { title: L("SDE.rulesData.set.deleteTitle") },
       content: `<p>${esc(F("SDE.rulesData.set.deleteConfirm", { name: set.name }))}</p>`,
+      yes: { label: "SDE.rulesData.set.delete", icon: "fa-solid fa-trash" },
+      no: { label: "SDE.rulesData.set.keep", icon: "fa-solid fa-xmark", default: true },
       rejectClose: false,
     }).catch(() => false);
     if (yes !== true) return;

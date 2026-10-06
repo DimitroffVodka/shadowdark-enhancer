@@ -40,6 +40,7 @@ class HubCommitMethods {
       if (this._batchAuto) return this._batchAuto.conflict;
       const safe = foundry.utils.escapeHTML(name);
       const choice = await foundry.applications.api.DialogV2.wait({
+        classes: ["sde-ui", "sde-dialog"],
         window: { title: t("SDE.importer.conflict.monsterTitle") },
         content: `<p>${t("SDE.importer.conflict.monster", { name: safe })}</p>`,
         buttons: [
@@ -61,6 +62,7 @@ class HubCommitMethods {
       if (this._batchAuto) return this._batchAuto.tableConflict;
       const safe = foundry.utils.escapeHTML(name);
       const choice = await foundry.applications.api.DialogV2.wait({
+        classes: ["sde-ui", "sde-dialog"],
         window: { title: t("SDE.importer.conflict.tableTitle") },
         content: `<p>${t("SDE.importer.conflict.table", { name: safe })}</p>`,
         buttons: [
@@ -80,6 +82,7 @@ class HubCommitMethods {
       if (this._batchAuto) return this._batchAuto.conflict;
       const safe = foundry.utils.escapeHTML(name);
       const choice = await foundry.applications.api.DialogV2.wait({
+        classes: ["sde-ui", "sde-dialog"],
         window: { title: t("SDE.importer.conflict.itemTitle") },
         content: `<p>${t("SDE.importer.conflict.item", { name: safe })}</p>`,
         buttons: [
@@ -357,6 +360,7 @@ class HubCommitMethods {
     if (this._batchAuto) return this._batchAuto.downtimeDowngrade === "replace" ? "replace" : "cancel";
     const safe = foundry.utils.escapeHTML(label);
     const choice = await foundry.applications.api.DialogV2.wait({
+      classes: ["sde-ui", "sde-dialog"],
       window: { title: t("SDE.importer.conflict.downtimeTitle") },
       content: `<p>${t("SDE.importer.conflict.downtime", { book: safe, existing: existingCount, total: DOWNTIME_SLOT_COUNT, matched: newCount })}</p>`
         + `<p>${t(existingCount - newCount === 1 ? "SDE.importer.conflict.downtimeRelockOne" : "SDE.importer.conflict.downtimeRelockMany", { n: existingCount - newCount })}</p>`,
@@ -435,6 +439,7 @@ class HubCommitMethods {
     const items = flagged.map(({ draft, blockers }) =>
       `<li><strong>${esc(draft.name ?? t("SDE.importer.quality.untitled"))}</strong><ul style="margin:0.2em 0 0.4em 1.1em;">${blockers.map((b) => `<li>${esc(b.message)}</li>`).join("")}</ul></li>`).join("");
     const choice = await foundry.applications.api.DialogV2.wait({
+      classes: ["sde-ui", "sde-dialog"],
       window: { title: t("SDE.importer.quality.title") },
       position: { width: 480 },
       content: `<p>${t(flagged.length === 1 ? "SDE.importer.quality.leadOne" : "SDE.importer.quality.leadMany",

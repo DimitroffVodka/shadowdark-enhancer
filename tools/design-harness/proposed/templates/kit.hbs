@@ -1,0 +1,49 @@
+<div class="ui-shell">
+  <header class="ui-head">
+    <div class="ui-art"></div>
+    <div class="ui-head-text"><h2 class="ui-title">Window name</h2><p class="ui-sub">What this window is, in one line</p></div>
+    <div class="ui-stats">
+      <div class="ui-stat"><span class="ui-label">Level</span><span class="ui-value">3</span></div>
+      <div class="ui-stat"><span class="ui-label">Gold</span><span class="ui-value">134 gp</span></div>
+      <div class="ui-stat"><span class="ui-label">Renown</span><span class="ui-value">+2</span></div>
+    </div>
+  </header>
+  <nav class="ui-tabs"><button class="ui-tab active" data-action="tab">Overview</button><button class="ui-tab" data-action="tab">Members <span class="ui-count">4</span></button><button class="ui-tab" data-action="tab">Log</button></nav>
+  <div class="ui-body">
+    <div class="ui-note info">A note: one sentence that says what happens on this screen.</div>
+    <div class="ui-cols-2">
+      <section class="ui-card">
+        <div class="ui-card-head"><h3 class="ui-card-name">Creeg Greythorn</h3><span class="ui-card-sub">Fighter, level 3</span><div class="ui-card-actions"><button class="ui-icon" title="Open"><i class="fa-solid fa-up-right-from-square"></i></button><button class="ui-icon danger" title="Remove"><i class="fa-solid fa-trash"></i></button></div></div>
+        <div class="ui-pairs">
+          <div class="ui-pair"><span class="ui-label">HP</span><span class="ui-value">18 / 24</span></div>
+          <div class="ui-pair"><span class="ui-label">AC</span><span class="ui-value">15</span></div>
+          <div class="ui-pair"><span class="ui-label">XP</span><span class="ui-value">12 / 20</span></div>
+        </div>
+        <div class="ui-bar hp"><i style="width:75%"></i></div>
+        <div class="ui-inline"><span class="ui-chip">Poisoned</span><span class="ui-chip sel">Blessed</span><span class="ui-chip warn">Torch low</span><span class="ui-chip on">Fed</span><span class="ui-chip bad">Unfed</span><span class="ui-chip off">Unavailable</span></div>
+        <div class="ui-inline"><label class="ui-switch"><input type="checkbox" checked><span>Marching order</span></label><label class="ui-switch"><input type="checkbox"><span>Off state</span></label></div>
+        <div class="ui-bar ok" title="Bastion health"><i style="width:60%"></i></div>
+      </section>
+      <section class="ui-card sel">
+        <div class="ui-card-head"><h3 class="ui-card-name">Selected card with a long name that has to wrap properly</h3></div>
+        <div class="ui-field"><span class="ui-label">Character</span><select><option>Creeg Greythorn</option></select></div>
+        <div class="ui-field"><span class="ui-label">Notes</span><input type="text" placeholder="Placeholder text"></div>
+        <label class="ui-check"><input type="checkbox" checked> Remember my choice</label>
+      </section>
+    </div>
+    <section class="ui-group">
+      <h3 class="ui-h">Items <small>5 for sale</small></h3>
+      <div class="ui-list">
+        <div class="ui-row sel"><div class="ui-art"></div><div class="ui-row-main"><span class="ui-row-name">Leather armor</span><span class="ui-row-sub">List 5 gp</span></div><span class="ui-row-meta">6 gp</span><input class="ui-num-in" type="number" value="1"><button class="ui-btn">Buy</button></div>
+        <div class="ui-row"><div class="ui-art"></div><div class="ui-row-main"><span class="ui-row-name">Mithral chain shirt of the Lantern Hold</span><span class="ui-row-sub">List 17 gp</span></div><span class="ui-row-meta">18 gp</span><input class="ui-num-in" type="number" value="1"><button class="ui-btn">Buy</button></div>
+      </div>
+    </section>
+    <section class="ui-group">
+      <h3 class="ui-h">Table, tier 1 and level 3 <small>2 rows</small></h3>
+      <table class="ui-table"><thead><tr><th>Terrain</th><th>Type</th><th class="num">Cost</th></tr></thead><tbody><tr><td>Forest</td><td><select><option>Normal</option></select></td><td class="num">1</td></tr><tr><td>Mountain</td><td><select><option>Difficult</option></select></td><td class="num">3</td></tr></tbody></table>
+    </section>
+    <details class="ui-details" open><summary>Accordion section</summary><div class="ui-details-body"><div class="ui-note warn">Warning note</div><div class="ui-note bad">Danger note</div><div class="ui-note good">Good note</div></div></details>
+    <div class="ui-empty"><i class="fa-solid fa-scroll"></i><span>Nothing here yet. Drop an item to start.</span></div>
+  </div>
+  <footer class="ui-footer"><button class="ui-btn ghost">Dismiss</button><button class="ui-btn danger">Delete</button><div class="ui-right"><button class="ui-btn">Back</button><button class="ui-btn primary">Create character</button></div></footer>
+</div>

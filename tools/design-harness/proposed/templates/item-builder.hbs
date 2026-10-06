@@ -1,0 +1,73 @@
+{{!-- Item Builder, proposed. Same context and data attributes as templates/item-builder.hbs. --}}
+<div class="ui-shell">
+  <header class="ui-head">
+    <div class="ui-art imp-art"><i class="fa-solid fa-boxes-stacked"></i></div>
+    <div class="ui-head-text"><h2 class="ui-title">{{localize "SDE.importer.itemBuilder.title"}}</h2><p class="ui-sub">{{localize "SDE.importer.ui.itemSub"}}</p></div>
+    <div class="ui-stats">
+      <div class="ui-stat"><span class="ui-label">{{localize "SDE.importer.itemBuilder.building"}}</span><span class="ui-value">{{typeLabel}}</span></div>
+      <div class="ui-stat"><span class="ui-label">{{localize "SDE.importer.type.items"}}</span><span class="ui-value">{{itemCount}}</span></div>
+    </div>
+  </header>
+
+  <div class="ui-body">
+    <div class="ui-cols-2">
+      <label class="ui-field"><span class="ui-label">{{localize "SDE.importer.source.label"}}</span>
+        <input type="text" data-ib-source list="sde-ib-sources" value="{{source}}" placeholder="{{localize 'SDE.importer.itemBuilder.sourcePlaceholder'}}">
+        <datalist id="sde-ib-sources">{{#each sourceList as |s|}}<option value="{{s}}"></option>{{/each}}</datalist></label>
+      <label class="ui-field"><span class="ui-label">{{localize "SDE.charBuilder.gear.type"}}</span>
+        <select data-ib-type>{{#each gearTypes as |g|}}<option value="{{g.value}}" {{#if g.selected}}selected{{/if}}>{{g.label}}</option>{{/each}}</select></label>
+    </div>
+
+    <section class="ui-card">
+      <div class="ui-card-head"><h3 class="ui-card-name">{{localize "SDE.importer.itemBuilder.stage1"}}</h3><span class="ui-chip off">{{localize "SDE.importer.itemBuilder.stage1Status"}}</span></div>
+      <div class="ui-muted">{{{localize "SDE.importer.itemBuilder.stage1Note"}}}</div>
+      <textarea data-ib-table rows="5" placeholder="{{localize 'SDE.importer.itemBuilder.tablePlaceholder'}}">{{tableText}}</textarea>
+      <div class="ui-inline">
+        <button type="button" class="ui-btn" data-action="ibParseTable"><i class="fas fa-eye"></i> {{localize "SDE.importer.itemBuilder.parseTable"}}</button>
+        {{#if tablePage}}<button type="button" class="ui-btn ghost" data-action="ibGrabTable" title="{{localize 'SDE.importer.itemBuilder.grabTableTip'}}"><i class="fas fa-wand-magic-sparkles"></i> {{localize "SDE.importer.itemBuilder.grabTable" page=tablePage}}</button>{{/if}}
+        {{#if tablePdf}}<button type="button" class="ui-btn ghost" data-action="ibOpenPdf" data-href="{{tablePdf}}" data-title="{{localize 'SDE.importer.itemBuilder.pdfTitleTable' type=typeLabel page=tablePage}}"><i class="fas fa-file-pdf"></i> {{localize "SDE.importer.itemBuilder.openPdf" page=tablePage}}</button>{{/if}}
+      </div>
+      {{#if systemDupeCount}}<div class="ui-note good"><i class="fas fa-circle-check"></i> {{localize "SDE.importer.itemBuilder.systemDupes" n=systemDupeCount}} <span class="ui-inline imp-optrow">{{#each systemDupes as |n|}}<span class="ui-chip">{{n}}</span>{{/each}}</span></div>{{/if}}
+      {{#if droppedCount}}<div class="ui-note info"><i class="fas fa-broom"></i> {{localize "SDE.importer.itemBuilder.dropped" n=droppedCount}} <span class="ui-inline imp-optrow">{{#each dropped as |d|}}<span class="ui-chip off" title="{{d.reason}}">{{d.text}}</span>{{/each}}</span></div>{{/if}}
+    </section>
+
+    <section class="ui-card">
+      <div class="ui-card-head"><h3 class="ui-card-name">{{localize "SDE.importer.itemBuilder.stage2"}}</h3><span class="ui-chip {{#if itemCount}}gold{{else}}off{{/if}}">{{#if itemCount}}{{localize "SDE.importer.itemBuilder.stage2Filled" filled=withDesc total=itemCount}}{{else}}{{localize "SDE.importer.itemBuilder.stage2Empty"}}{{/if}}</span></div>
+      <div class="ui-muted">{{{localize "SDE.importer.itemBuilder.stage2Note"}}}</div>
+      <textarea data-ib-desc rows="5" placeholder="{{localize 'SDE.importer.itemBuilder.descPlaceholder'}}">{{descText}}</textarea>
+      <div class="ui-inline">
+        <button type="button" class="ui-btn" data-action="ibMatchDesc"><i class="fas fa-link"></i> {{localize "SDE.importer.itemBuilder.matchDesc"}}</button>
+        {{#if descPage}}<button type="button" class="ui-btn ghost" data-action="ibGrabDesc" title="{{localize 'SDE.importer.itemBuilder.grabDescTip'}}"><i class="fas fa-wand-magic-sparkles"></i> {{localize "SDE.importer.itemBuilder.grabDesc" page=descPage}}</button>{{/if}}
+        {{#if descPdf}}<button type="button" class="ui-btn ghost" data-action="ibOpenPdf" data-href="{{descPdf}}" data-title="{{localize 'SDE.importer.itemBuilder.pdfTitleDesc' type=typeLabel page=descPage}}"><i class="fas fa-file-pdf"></i> {{localize "SDE.importer.itemBuilder.openPdf" page=descPage}}</button>{{/if}}
+      </div>
+      <div class="ui-muted"><i class="fas fa-circle-info"></i> {{localize "SDE.importer.itemBuilder.stage2Hint"}}</div>
+    </section>
+
+    <section class="ui-group">
+      <h3 class="ui-h"><span>{{localize "SDE.importer.items.title" n=itemCount}}</span>{{#if needDesc}}<small>{{localize "SDE.importer.itemBuilder.needDesc" n=needDesc}}</small>{{/if}}</h3>
+      {{#if itemCount}}
+      <table class="ui-table imp-resp items">
+        <thead><tr><th>{{localize "SDE.importer.common.nameCap"}}</th><th class="w96">{{localize "SDE.importer.boats.cost"}}</th><th class="w44 num">{{localize "SDE.importer.boats.slots"}}</th><th>{{localize "SDE.importer.common.descriptionCap"}}</th><th class="w32"></th></tr></thead>
+        <tbody>{{#each items as |it|}}
+        <tr data-ib-row="{{it.idx}}" class="{{#unless it.hasDesc}}imp-flagged{{/unless}}">
+          <td data-label="{{localize 'SDE.importer.common.nameCap'}}"><input type="text" data-ib-field="name" value="{{it.name}}" aria-label="{{localize 'SDE.importer.items.nameAria'}}">
+            {{#if it.stats}}<div class="ui-row-sub">{{it.stats}}</div>{{/if}}
+            {{#if it.flag}}<div class="ui-row-sub imp-warnic" title="{{it.flag}}"><i class="fas fa-triangle-exclamation"></i> {{localize "SDE.importer.common.review"}}</div>{{/if}}</td>
+          <td class="w96" data-label="{{localize 'SDE.importer.boats.cost'}}"><input type="text" data-ib-field="cost" value="{{it.cost}}" aria-label="{{localize 'SDE.importer.boats.cost'}}"></td>
+          <td class="w44 num" data-label="{{localize 'SDE.importer.boats.slots'}}">{{it.slots}}</td>
+          <td data-label="{{localize 'SDE.importer.common.descriptionCap'}}"><input type="text" data-ib-field="description" value="{{it.description}}" placeholder="{{#unless it.hasDesc}}{{localize 'SDE.importer.itemBuilder.noDescPlaceholder'}}{{/unless}}" aria-label="{{localize 'SDE.importer.common.descriptionCap'}}"></td>
+          <td class="w32"><button type="button" class="ui-icon danger" data-action="ibRowDel" title="{{localize 'SDE.importer.items.removeAria'}}" aria-label="{{localize 'SDE.importer.items.removeAria'}}"><i class="fas fa-trash"></i></button></td>
+        </tr>{{/each}}</tbody>
+      </table>
+      {{else}}
+      <div class="ui-empty"><i class="fa-solid fa-boxes-stacked"></i><span>{{localize "SDE.importer.itemBuilder.readyEmpty"}}</span></div>
+      {{/if}}
+    </section>
+  </div>
+
+  <footer class="ui-footer">
+    <button type="button" class="ui-btn ghost" data-action="ibStartOver" title="{{localize 'SDE.importer.itemBuilder.startOverTip'}}"><i class="fas fa-rotate-left"></i> {{localize "SDE.importer.itemBuilder.startOver"}}</button>
+    <span class="ui-muted imp-pending">{{#if itemCount}}{{localize "SDE.importer.itemBuilder.ready" n=itemCount type=typeLabel filled=withDesc}}{{else}}{{localize "SDE.importer.itemBuilder.readyEmpty"}}{{/if}}{{#if report}} &middot; <i class="fas fa-circle-check imp-ok"></i> {{localize "SDE.importer.itemBuilder.reportCreated" n=report.created}}{{#if report.replaced}}{{localize "SDE.importer.itemBuilder.reportUpdated" n=report.replaced}}{{/if}}{{/if}}</span>
+    <div class="ui-right"><button type="button" class="ui-btn primary sde-import-primary" data-action="ibCreate"{{#unless itemCount}} disabled{{/unless}}><i class="fas fa-circle-plus"></i> {{localize "SDE.importer.itemBuilder.createN" n=itemCount}}</button></div>
+  </footer>
+</div>

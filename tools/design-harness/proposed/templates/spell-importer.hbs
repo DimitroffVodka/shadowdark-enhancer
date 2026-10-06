@@ -1,0 +1,76 @@
+{{!-- Spell Importer, proposed. Same context and data attributes as templates/spell-importer.hbs. --}}
+<div class="ui-shell">
+  <header class="ui-head">
+    <div class="ui-art imp-art"><i class="fa-solid fa-wand-sparkles"></i></div>
+    <div class="ui-head-text"><h2 class="ui-title">{{localize "SDE.importer.spellImporter.title"}}</h2><p class="ui-sub">{{localize "SDE.importer.ui.spellSub"}}</p></div>
+    <div class="ui-stats">{{#if spellCount}}<span class="ui-chip gold">{{localize "SDE.importer.spellImporter.parsedChip" n=spellCount}}</span>{{else}}<span class="ui-chip off">{{localize "SDE.importer.spellImporter.noSpellsYet"}}</span>{{/if}}</div>
+  </header>
+
+  <div class="ui-body">
+    <section class="ui-card">
+      <div class="imp-fields wide">
+        <label class="ui-field"><span class="ui-label">{{localize "SDE.importer.cls.spellListAria"}}</span>
+          <select data-si-list><option value="">{{localize "SDE.importer.spellImporter.pickList"}}</option>{{#each spellLists as |l|}}<option value="{{l.key}}"{{#if l.selected}} selected{{/if}}>{{l.label}}</option>{{/each}}</select></label>
+        <label class="ui-field"><span class="ui-label">{{localize "SDE.importer.source.label"}}</span>
+          <input type="text" data-si-source list="sde-si-sources" value="{{source}}" placeholder="{{localize 'SDE.importer.spellImporter.sourcePlaceholder'}}">
+          <datalist id="sde-si-sources">{{#each sourceList as |s|}}<option value="{{s}}"></option>{{/each}}</datalist></label>
+      </div>
+      {{#if listPdf}}<div><button type="button" class="ui-btn ghost" data-action="siOpenPdf" data-href="{{listPdf}}" title="{{localize 'SDE.importer.spellImporter.openListTip' label=listLabel}}"><i class="fas fa-file-pdf"></i> {{#if listPage}}{{localize "SDE.importer.spellImporter.openPdfPage" page=listPage}}{{else}}{{localize "SDE.importer.seed.openPdf"}}{{/if}}</button></div>{{/if}}
+    </section>
+
+    {{#if imported}}
+    <div class="ui-note good"><div class="ui-inline">
+      <span class="ui-chip ok"><i class="fas fa-circle-check"></i> {{#if imported.created}}{{localize "SDE.importer.spellImporter.importedNoS" n=imported.created}}{{else}}{{localize "SDE.importer.spellImporter.importedS" n=imported.created}}{{/if}}{{#if imported.skipped}} {{localize "SDE.importer.spellImporter.importedSkipped" n=imported.skipped}}{{/if}}</span>
+      <span class="ui-chip ok"><i class="fas fa-circle-check"></i> {{localize "SDE.importer.spellImporter.importedTags" classes=imported.classes alignments=imported.alignments}}</span>
+    </div></div>
+    {{/if}}
+
+    <section class="ui-card">
+      <div class="ui-card-head imp-wrap"><h3 class="ui-card-name">{{localize "SDE.importer.spellImporter.bulkLabel"}}</h3>
+        {{#if spellCount}}<div class="ui-card-actions"><button type="button" class="ui-btn" data-action="siApplyBulk" title="{{localize 'SDE.importer.spellImporter.applyTip'}}">{{localize "SDE.importer.spellImporter.applyAll"}}</button></div>{{/if}}</div>
+      <div class="imp-fields wide">
+        <label class="ui-field"><span class="ui-label">{{localize "SDE.importer.spells.class"}}</span>
+          <input type="text" data-si-bulkclass list="sde-si-classes" value="{{bulkClass}}" placeholder="{{localize 'SDE.importer.spells.classPlaceholder'}}">
+          <datalist id="sde-si-classes"><option value="Wizard"></option><option value="Priest"></option><option value="Necromancer"></option><option value="Witch"></option><option value="Seer"></option><option value="Warlock"></option></datalist></label>
+        <label class="ui-field"><span class="ui-label">{{localize "SDE.charBuilder.step.alignment"}}</span>
+          <select data-si-bulkalign>{{#each bulkAlignOptions as |o|}}<option value="{{o.value}}"{{#if o.selected}} selected{{/if}}>{{o.label}}</option>{{/each}}</select></label>
+      </div>
+      <div class="ui-muted"><i class="fas fa-circle-info"></i> {{{localize "SDE.importer.spellImporter.presetNote"}}}</div>
+    </section>
+
+    <section class="ui-group">
+      <textarea data-si-paste rows="{{#if spellCount}}4{{else}}9{{/if}}" placeholder="{{localize 'SDE.importer.spellImporter.pastePlaceholder'}}">{{pasteText}}</textarea>
+      <div class="ui-inline">
+        <button type="button" class="ui-btn{{#unless spellCount}} primary sde-import-primary{{/unless}}" data-action="siParse"><i class="fas fa-wand-magic"></i> {{localize "SDE.importer.spellImporter.parseSpells"}}</button>
+        <button type="button" class="ui-btn ghost" data-action="siGrabPdf" title="{{localize 'SDE.importer.spellImporter.grabTip'}}"><i class="fas fa-wand-magic-sparkles"></i> {{localize "SDE.importer.seed.grabFromPdf"}}</button>
+      </div>
+    </section>
+
+    {{#if spellCount}}
+    {{#each groups as |g|}}
+    <section class="ui-group">
+      <h3 class="ui-h plain"><span>{{localize "SDE.importer.spellImporter.groupHead" class=g.class tier=g.tier alignment=g.alignmentLabel}}</span><small>{{g.spells.length}}</small></h3>
+      <div class="ui-list">
+        {{#each g.spells as |sp|}}
+        <div class="ui-row imp-spellrow" data-si-spell="{{sp.idx}}">
+          <span class="ui-row-name{{#if sp.warn}} imp-warnic{{/if}}" title="{{sp.desc}}">{{#if sp.warn}}<i class="fas fa-triangle-exclamation"></i> {{/if}}{{sp.name}}</span>
+          <label class="imp-tier"><span class="ui-label">T</span><input type="number" min="1" max="5" data-si-field="tier" value="{{sp.tier}}"></label>
+          <input type="text" data-si-field="class" value="{{sp.className}}" aria-label="{{localize 'SDE.importer.spellImporter.castingClassAria'}}">
+          <select data-si-field="alignment">{{#each sp.alignOptions as |a|}}<option value="{{a.value}}"{{#if a.selected}} selected{{/if}}>{{a.label}}</option>{{/each}}</select>
+          <button type="button" class="ui-icon danger" data-action="siRemove" title="{{localize 'SDE.quests.remove'}}" aria-label="{{localize 'SDE.quests.remove'}}"><i class="fas fa-trash"></i></button>
+        </div>
+        {{/each}}
+      </div>
+    </section>
+    {{/each}}
+    {{else}}
+    <div class="ui-empty"><i class="fa-solid fa-wand-sparkles"></i><span>{{localize "SDE.importer.spellImporter.noSpellsYet"}}</span></div>
+    {{/if}}
+  </div>
+
+  <footer class="ui-footer">
+    <button type="button" class="ui-btn ghost" data-action="siStartOver"><i class="fas fa-rotate-left"></i> {{localize "SDE.importer.classImporter.startOver"}}</button>
+    <span class="ui-muted imp-pending">{{summary}}</span>
+    {{#if spellCount}}<div class="ui-right"><button type="button" class="ui-btn primary sde-import-primary" data-action="siImport"><i class="fas fa-download"></i> {{#if spellCount}}{{localize "SDE.importer.spellImporter.importNoS" n=spellCount}}{{else}}{{localize "SDE.importer.spellImporter.importS" n=spellCount}}{{/if}}</button></div>{{/if}}
+  </footer>
+</div>

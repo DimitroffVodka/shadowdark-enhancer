@@ -27,7 +27,7 @@ const { ActorSheetV2 } = foundry.applications.sheets;
 
 export class BastionSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   static DEFAULT_OPTIONS = {
-    classes: ["shadowdark", "shadowdark-enhancer", "sde-bastion-sheet"],
+    classes: ["shadowdark", "shadowdark-enhancer", "sde-ui", "sde-parchment", "sde-bastion-sheet"],
     position: { width: 980, height: 760 },
     window: { icon: "fa-solid fa-chess-rook", resizable: true },
     form: { submitOnChange: true, closeOnSubmit: false },
@@ -68,6 +68,9 @@ export class BastionSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   get state() { return stateOf(this.document); }
 
   // ── Context ────────────────────────────────────────────────────────────────
+
+  /** Just the bastion's name — AppV2's default "Bastion: Bastion" repeats the type for a bastion left at its default name. */
+  get title() { return this.document.name; }
 
   async _prepareContext(options) {
     const context = await super._prepareContext(options);
@@ -173,8 +176,11 @@ export class BastionSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   async _confirmTakeDown(id) {
     const upgrade = core.upgradeOf(id);
     const sure = await foundry.applications.api.DialogV2.confirm({
+      classes: ["sde-ui", "sde-dialog"],
       window: { title: "SDE.bastion.takeDown.title" },
       content: `<p>${esc(format("SDE.bastion.takeDown.question", { upgrade: t(upgrade?.name ?? "") }))}</p>`,
+      yes: { label: "SDE.bastion.takeDown.yes", icon: "fa-solid fa-trash" },
+      no: { label: "SDE.bastion.takeDown.keep", icon: "fa-solid fa-xmark", default: true },
       rejectClose: false,
     });
     if (sure) return this._apply((s) => core.takeDown(s, id));

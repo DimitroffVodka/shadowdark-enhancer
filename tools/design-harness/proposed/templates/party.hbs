@@ -1,0 +1,129 @@
+{{!-- The Party sheet: header band, status bar, tabs, one body. A GM sees every control; a player sees the same sheet read-only. Design: docs/design-contract.md; look at it with tools/design-harness (fixture "party"). --}}
+<div class="sde-party-body flexcol ui-shell pt" data-tokenizer-skip="true">
+{{#if picker}}<div class="sde-party-picker"><select data-party-choice aria-label="{{localize 'SDE.party.choose'}}"><option value="">{{localize "SDE.party.choose"}}</option>{{#each parties}}<option value="{{uuid}}" {{#if selected}}selected{{/if}}>{{name}}</option>{{/each}}</select>{{#if isGM}}<button type="button" data-action="create">{{localize "SDE.party.create"}}</button>{{/if}}</div>{{/if}}
+{{#if hasParty}}
+	<header class="sdp-head ui-head">
+		{{#if emblemEdit}}<button type="button" class="sdp-emblem" data-mode="emblem" style="--c: #{{emblem.color}}; --ic: #{{#if emblem.iconColor}}{{emblem.iconColor}}{{else}}ffffff{{/if}}" data-action="emblem" data-tooltip="{{localize 'SDE.party.emblem.title'}}" aria-label="{{localize 'SDE.party.emblem.title'}}" aria-expanded="{{#if emblemOpen}}true{{else}}false{{/if}}"><span class="sdp-glyph" style="--icon: url('{{emblem.path}}')"></span></button>{{else}}<span class="sdp-emblem" style="--c: #{{emblem.color}}; --ic: #{{#if emblem.iconColor}}{{emblem.iconColor}}{{else}}ffffff{{/if}}"><span class="sdp-glyph" style="--icon: url('{{emblem.path}}')"></span></span>{{/if}}
+		<div class="sdp-id">
+			<input name="name" type="text" value="{{actor.name}}" placeholder="{{localize 'SDE.party.sheet.extras.name_placeholder'}}" aria-label="{{localize 'SDE.party.sheet.extras.name_placeholder'}}" {{#unless canEdit}}readonly{{/unless}}>
+			<div class="sdp-stats">
+				<span data-tooltip="{{localize 'SDE.party.sheet.extras.tab.members'}}"><i class="fas fa-users"></i>{{memberCount}}</span>
+				<span data-tooltip="{{localize 'SDE.party.sheet.hp'}}"><i class="fas fa-heart"></i>{{partyStats.totalHp}}<small>/{{partyStats.maxHp}}</small></span>
+				<span data-tooltip="{{localize 'SDE.party.sheet.ac'}}"><i class="fas fa-shield-halved"></i>{{partyStats.avgAc}}</span>
+				<span data-tooltip="{{localize 'SHADOWDARK.sheet.player.level.label'}}"><i class="fas fa-star"></i>{{partyStats.avgLevel}}</span>
+			</div>
+		</div>
+		<div class="sdp-march {{#unless followLeader}}off{{/unless}}">
+			<div class="sdp-marchrow">
+				<div class="sdp-controls">
+					<label class="ui-switch" data-tooltip="{{localize 'SDE.party.movement.follow'}}"><input type="checkbox" data-movement-setting="followLeader" {{#if followLeader}}checked{{/if}} {{#unless canEdit}}disabled{{/unless}}><span>{{localize "SDE.party.movement.marchingOrder"}}</span></label>
+					{{#if march.text}}<div class="sdp-status {{#if march.warn}}warn{{/if}}" role="status">{{march.text}}</div>{{/if}}
+					{{#if canEdit}}<button type="button" class="ui-btn sdp-pin" data-action="placeRecall" {{#if movementDisabled}}disabled{{/if}} title="{{movementReason}}"><i class="fas fa-location-dot"></i> {{localize "SDE.party.movement.placeRecall"}}</button>{{/if}}
+				</div>
+				<div class="sdp-gridwrap" {{#unless members.length}}{{#if canEdit}}data-drop-members{{/if}}{{/unless}}>
+					<div class="sdp-grid" aria-label="{{localize 'SDE.party.movement.marchingOrder'}}">{{#each slots}}<button type="button" class="sdp-slot{{#if leader}} leader{{/if}}" data-formation-slot data-row="{{row}}" data-col="{{col}}" data-uuid="{{uuid}}" {{#if uuid}}data-action="leader" draggable="true"{{/if}} {{#if disabled}}disabled{{/if}} title="{{name}}" aria-label="{{#if name}}{{name}}{{else}}{{localize 'SDE.party.movement.emptySlot'}}{{/if}}">{{#if img}}<img src="{{img}}" alt="">{{/if}}</button>{{/each}}</div>
+				</div>
+			</div>
+			{{#if members.length}}{{#if canEdit}}<small class="sdp-caption">{{localize "SDE.party.movement.dragHint"}}<br>{{localize "SDE.party.movement.leadHint"}}</small>{{/if}}{{else}}{{#if canEdit}}<small class="sdp-caption">{{localize "SDE.party.movement.dropHint"}}</small>{{/if}}{{/if}}
+		</div>
+		{{#if emblemOpen}}<div class="sdp-pop sdp-emblems">
+			<h4>{{localize "SDE.party.emblem.title"}}</h4>
+			<div class="icons">{{#each emblemIcons}}<button type="button" class="{{#if selected}}on{{/if}}" data-action="pickEmblem" data-icon="{{name}}" data-tooltip="{{label}}" aria-label="{{label}}" aria-pressed="{{#if selected}}true{{else}}false{{/if}}"><img src="{{path}}" alt=""></button>{{/each}}</div>
+			<h4>{{localize "SDE.party.emblem.boxColor"}}</h4>
+			<div class="colors">{{#each emblemColors}}<button type="button" class="{{#if selected}}on{{/if}}" style="--c: #{{color}}" data-action="pickEmblem" data-color="{{color}}" data-tooltip="{{label}}" aria-label="{{label}}" aria-pressed="{{#if selected}}true{{else}}false{{/if}}"></button>{{/each}}<label class="pt-custom {{#if emblemCustomBox}}on{{/if}}" style="--c: #{{emblem.color}}" data-tooltip="{{localize 'SDE.party.emblem.custom'}}"><input type="color" value="#{{emblem.color}}" data-color-input="box" aria-label="{{localize 'SDE.party.emblem.custom'}}"><input type="text" class="pt-hex" value="#{{emblem.color}}" maxlength="7" pattern="#[0-9a-fA-F]{6}" data-color-hex="box" aria-label="{{localize 'SDE.party.emblem.custom'}}"></label></div>
+			<h4>{{localize "SDE.party.emblem.iconColor"}}</h4>
+			<div class="colors">{{#each emblemIconColors}}<button type="button" class="{{#if selected}}on{{/if}}" style="--c: #{{color}}" data-action="pickEmblem" data-icon-color="{{color}}" data-tooltip="{{label}}" aria-label="{{label}}" aria-pressed="{{#if selected}}true{{else}}false{{/if}}"></button>{{/each}}<label class="pt-custom {{#if emblemCustomIcon}}on{{/if}}" style="--c: #{{emblem.iconColor}}" data-tooltip="{{localize 'SDE.party.emblem.custom'}}"><input type="color" value="#{{emblem.iconColor}}" data-color-input="icon" aria-label="{{localize 'SDE.party.emblem.custom'}}"><input type="text" class="pt-hex" value="#{{emblem.iconColor}}" maxlength="7" pattern="#[0-9a-fA-F]{6}" data-color-hex="icon" aria-label="{{localize 'SDE.party.emblem.custom'}}"></label></div>
+			<div class="sdp-pop-foot"><button type="button" class="ui-btn" data-action="emblem" data-mode="-">{{localize "SDE.party.emblem.done"}}</button></div>
+		</div>{{/if}}
+	</header>
+{{#if status.length}}<div class="sdp-bar">{{#each status}}<div class="{{#if low}}low{{/if}}"><span class="l"><i class="fas {{icon}}"></i>{{label}}</span><span class="v">{{value}}</span></div>{{/each}}</div>{{/if}}
+<nav class="sdp-tabs" role="tablist">{{#each tabs}}<a class="sdp-tab {{#if active}}active{{/if}}" data-action="partyTab" data-tab="{{key}}" role="tab" aria-selected="{{#if active}}true{{else}}false{{/if}}" tabindex="0"><i class="{{icon}}"></i>{{label}}</a>{{/each}}</nav>
+<section class="SD-content-body sdp-body flex1">
+{{#if unsupported}}<p>{{localize "SDE.party.sdxNotAdopted"}}</p>{{else}}{{#if unknown}}<p>{{localize "SDE.party.unknownRoster"}}</p>{{else}}
+{{#if needsAdoption}}<button type="button" data-action="adopt">{{localize "SDE.party.adopt"}}</button>{{/if}}
+{{#if formationReview}}<p>{{localize "SDE.party.movement.review"}}</p>{{/if}}
+<div class="tab tab-members {{#if membersTab}}active{{/if}}">
+{{#if isGM}}{{#if members.length}}<div class="sdp-gm sdp-gmbar">
+	<details class="sdp-who" {{#if whoOpen}}open{{/if}}><summary class="ui-btn"><span class="sdp-who-k">{{localize "SDE.party.roll.who"}}:</span> {{whoLabel}}</summary><div class="sdp-who-list">
+		<label class="ui-check sdp-who-all"><input type="checkbox" data-roll-all {{#if whoAll}}checked{{/if}}> {{localize "SDE.partyXp.selectAll"}}</label>
+		{{#each members}}{{#if (eq group "characters")}}<label class="ui-check"><input type="checkbox" data-roll-member value="{{uuid}}" {{#if selected}}checked{{/if}}> {{name}}</label>{{/if}}{{/each}}
+	</div></details>
+	<select data-roll-stat aria-label="{{localize 'SDE.party.roll.stat'}}"><option value="str">{{localize "SDE.party.sheet.str"}}</option><option value="dex">{{localize "SDE.party.sheet.dex"}}</option><option value="con">{{localize "SDE.party.sheet.con"}}</option><option value="int">{{localize "SDE.party.sheet.int"}}</option><option value="wis">{{localize "SDE.party.sheet.wis"}}</option><option value="cha">{{localize "SDE.party.sheet.cha"}}</option></select>
+	<input type="number" data-roll-dc value="12" min="1" max="30" placeholder="{{localize 'SDE.party.roll.dc'}}" aria-label="{{localize 'SDE.party.roll.dc'}}">
+	<button type="button" class="ui-btn" data-action="requestRoll">{{localize "SDE.party.roll.request"}}</button>
+	<span class="sdp-sep"></span>
+	<input type="number" data-award-xp min="0" step="1" placeholder="{{localize 'SDE.party.award.xp'}}" aria-label="{{localize 'SDE.party.award.xp'}}">
+	<button type="button" class="ui-btn" data-action="awardParty">{{localize "SDE.partyXp.award"}}</button>
+</div>{{/if}}{{/if}}
+<div class="members-list">{{#each groups}}{{#if rows.length}}<h3 class="sdp-group">{{label}}</h3><div class="sdp-cards">{{#each rows as |member|}}
+<article class="sdp-card{{#if member.missing}} missing{{/if}}" data-uuid="{{member.uuid}}" data-member-id="{{member.memberKey}}">
+	<div class="sdp-portrait">
+		<img class="sdp-face" src="{{member.img}}" alt="" data-action="member" data-uuid="{{member.uuid}}">
+		{{#unless member.missing}}<div class="sdp-under">{{#unless member.isNPC}}<a class="sdp-luck {{#unless member.luck}}empty{{/unless}}" data-action="spendLuck" data-actor-id="{{member.uuid}}" data-tooltip="{{localize 'SHADOWDARK.sheet.player.luck'}}" aria-label="{{localize 'SHADOWDARK.sheet.player.luck'}} {{member.luck}}"><span class="sdp-clover"></span>{{member.luck}}</a>{{/unless}}<a class="sdp-light {{#if member.lightOn}}lit{{/if}}" data-action="toggleLight" data-actor-id="{{member.uuid}}" data-tooltip="{{localize 'SDE.party.status.light'}}" aria-label="{{localize 'SDE.party.status.light'}}" aria-pressed="{{#if member.lightOn}}true{{else}}false{{/if}}"><i class="fas fa-fire"></i></a></div>{{/unless}}
+	</div>
+	<div class="sdp-main">
+		<div class="sdp-line"><a class="sdp-name" data-action="member" data-uuid="{{member.uuid}}">{{member.name}}</a>{{#if member.className}}<em>{{member.className}}</em>{{/if}}</div>
+		{{#unless member.missing}}
+		<div class="sdp-hp" data-tooltip="{{localize 'SDE.party.sheet.hp'}}"><div class="sdp-hpbar" style="width: {{member.hpPercent}}%"></div><span>{{member.hp.value}} / {{member.hp.max}}</span></div>
+		<div class="sdp-chips"><span><b>{{localize "SDE.party.sheet.ac"}}</b> {{member.ac}}</span>{{#unless member.isNPC}}<span><b>{{localize "SDE.party.sheet.level"}}</b> {{member.level}}</span><span data-tooltip="{{localize 'SHADOWDARK.inventory.slots'}}"><b>{{localize "SDE.party.sheet.slots"}}</b> {{member.slots.used}}/{{member.slots.max}}</span><span><b>{{localize "SDE.party.sheet.xp"}}</b> {{member.xp.current}}/{{member.xp.next}}</span>{{/unless}}</div>
+		{{#if member.showAbilities}}<div class="sdp-abil">
+			<span data-tooltip="{{localize 'SHADOWDARK.ability.str.long'}}">{{localize "SDE.party.sheet.str"}} <b>{{member.abilityLabels.str}}</b></span>
+			<span data-tooltip="{{localize 'SHADOWDARK.ability.dex.long'}}">{{localize "SDE.party.sheet.dex"}} <b>{{member.abilityLabels.dex}}</b></span>
+			<span data-tooltip="{{localize 'SHADOWDARK.ability.con.long'}}">{{localize "SDE.party.sheet.con"}} <b>{{member.abilityLabels.con}}</b></span>
+			<span data-tooltip="{{localize 'SHADOWDARK.ability.int.long'}}">{{localize "SDE.party.sheet.int"}} <b>{{member.abilityLabels.int}}</b></span>
+			<span data-tooltip="{{localize 'SHADOWDARK.ability.wis.long'}}">{{localize "SDE.party.sheet.wis"}} <b>{{member.abilityLabels.wis}}</b></span>
+			<span data-tooltip="{{localize 'SHADOWDARK.ability.cha.long'}}">{{localize "SDE.party.sheet.cha"}} <b>{{member.abilityLabels.cha}}</b></span>
+		</div>{{/if}}
+		{{/unless}}
+	</div>
+	{{#if member.spellTiers.length}}<div class="sdp-spells">{{#each member.spellTiers}}<span class="sdp-tier"><b>{{localize "SDE.party.spells.tierShort" tier=tier}}</b>{{#each spells}}<span class="sdp-spell {{#if lost}}lost{{/if}}" data-tooltip="{{name}} - {{localize 'SDE.party.spells.tierShort' tier=../tier}}{{#if lost}} - {{localize 'SHADOWDARK.class-ability.lost.label'}}{{/if}}" aria-label="{{name}} {{localize 'SDE.party.spells.tierShort' tier=../tier}}{{#if lost}} {{localize 'SHADOWDARK.class-ability.lost.label'}}{{/if}}"><img src="{{img}}" alt=""></span>{{/each}}</span>{{/each}}</div>{{/if}}
+	{{#if member.canEdit}}<a class="sdp-remove" data-action="remove" data-uuid="{{member.uuid}}" data-tooltip="{{localize 'SDE.party.sheet.extras.remove_member'}}" aria-label="{{localize 'SDE.party.sheet.extras.remove_member'}}"><i class="fas fa-times"></i></a>{{/if}}
+</article>{{/each}}</div>{{/if}}{{/each}}{{#unless members.length}}<div class="sdp-empty {{#if canEdit}}drop{{/if}}"><i class="fas fa-users"></i><p>{{#if canEdit}}{{localize "SDE.party.sheet.dropMembers"}}{{else}}{{localize "SDE.party.noMembers"}}{{/if}}</p></div>{{/unless}}</div>
+</div>
+<div class="tab tab-inventory {{#if itemsTab}}active{{/if}}"><div class="sdp-inv">
+<div class="sdp-inv-main">
+<div class="sdp-box"><h3 class="sdp-boxhead"><span>{{localize "SDE.party.items"}}</span><small class="sdp-cap {{#if (gt inventorySlots.used inventorySlots.max)}}over{{/if}}">{{localize "SDE.party.sheet.slots"}}: {{inventorySlots.used}} / {{inventorySlots.max}}</small>{{#if isGM}}<details class="sdp-menu" {{#if addItemOpen}}open{{/if}}><summary class="ui-btn">{{localize "SDE.party.items.add"}}</summary><div class="sdp-menu-list"><a data-action="addItemCompendium"><i class="fas fa-book"></i> {{localize "SDE.party.items.fromCompendium"}}</a><a data-action="addItemForge"><i class="fas fa-hammer"></i> {{localize "SDE.party.items.forge"}}</a></div></details>{{/if}}</h3>
+<ol class="sdp-itemlist">
+<li class="head"><span class="n">{{localize "SDE.party.items.name"}}</span><span class="q">{{localize "SDE.party.items.qty"}}</span><span class="s">{{localize "SDE.party.sheet.slots"}}</span><span class="act"></span></li>
+{{#each items}}<li class="item" data-item-id="{{id}}"><img src="{{img}}" alt=""><a class="n" data-action="item" data-id="{{id}}">{{name}}</a><span class="q">{{#if ../canEdit}}<a data-action="quantity" data-id="{{id}}" data-delta="-1" aria-label="{{localize 'SDE.party.sheet.decrease'}}"><i class="fas fa-minus"></i></a>{{/if}}{{quantity}}{{#if ../canEdit}}<a data-action="quantity" data-id="{{id}}" data-delta="1" aria-label="{{localize 'SDE.party.sheet.increase'}}"><i class="fas fa-plus"></i></a>{{/if}}</span><span class="s" data-tooltip="{{localize 'SHADOWDARK.inventory.slots'}}">{{slots}}</span><span class="act">{{#if @root.isGM}}<details class="sdp-give" {{#if (eq id @root.giveOpenId)}}open{{/if}}><summary class="ui-icon" data-tooltip="{{localize 'SDE.party.items.giveTo'}}" aria-label="{{localize 'SDE.party.items.giveTo'}}"><i class="fas fa-share"></i></summary><div class="sdp-menu-list">{{#each @root.members}}{{#if (eq group "characters")}}<a data-action="giveItem" data-id="{{../id}}" data-uuid="{{uuid}}">{{name}}</a>{{/if}}{{/each}}</div></details>{{/if}}</span></li>{{else}}<li class="empty-list">{{localize "SDE.party.empty"}}</li>{{/each}}
+</ol></div>
+</div>
+<div class="sdp-inv-side"><div class="sdp-box"><h3 class="sdp-boxhead"><span>{{localize "SDE.party.sheet.treasury"}}</span></h3>
+<div class="sdp-coins">{{#each coinList}}<label><span class="coin {{key}}"></span><em>{{localize labelKey}}</em><input type="number" class="coin-value" data-coin="{{key}}" value="{{value}}" min="0" aria-label="{{localize labelKey}}" {{#unless ../canEdit}}disabled{{/unless}}></label>{{/each}}</div>
+{{#if coinSlots}}<div class="sdp-coinslots" data-tooltip="{{localize 'SDE.party.coins.slotsTip'}}"><i class="fas fa-weight-hanging"></i> {{coinSlots}} {{localize "SDE.party.sheet.slots"}}</div>{{/if}}
+{{#if isGM}}<div class="sdp-coinbtns">
+<details class="sdp-coinform" {{#if addCoinsOpen}}open{{/if}}><summary class="ui-btn">{{localize "SDE.party.coins.add"}}</summary><div class="sdp-addrow">{{#each coinList}}<label><span class="coin {{key}}"></span><input type="number" data-add-coin="{{key}}" value="0" aria-label="{{localize labelKey}}"></label>{{/each}}<button type="button" class="ui-btn" data-action="addCoins">{{localize "SDE.party.coins.addGo"}}</button></div></details>
+<details class="sdp-coinform" {{#if giveCoinsOpen}}open{{/if}}><summary class="ui-btn">{{localize "SDE.party.coins.give"}}</summary><div class="sdp-addrow">{{#each coinList}}<label><span class="coin {{key}}"></span><input type="number" data-give-coin="{{key}}" value="0" min="0" aria-label="{{localize labelKey}}"></label>{{/each}}<select data-give-to aria-label="{{localize 'SDE.party.coins.giveTo'}}"><option value="">{{localize "SDE.party.coins.allPcs"}}</option>{{#each members}}{{#if (eq group "characters")}}<option value="{{uuid}}">{{name}}</option>{{/if}}{{/each}}</select><button type="button" class="ui-btn" data-action="giveCoins">{{localize "SDE.party.coins.giveGo"}}</button></div></details>
+<button type="button" class="ui-btn" data-action="divideCoins">{{localize "SDE.party.coins.divide"}}</button>
+</div>{{/if}}
+</div>
+<div class="sdp-box"><h3 class="sdp-boxhead"><span>{{localize "SHADOWDARK.inventory.gems"}}</span>{{#if gems.length}}<small>{{gemTotal}} {{localize "SHADOWDARK.coins.gp"}}</small>{{/if}}</h3>
+<ol class="sdp-itemlist sdp-gems">{{#each gems}}<li class="item" data-item-id="{{id}}"><img src="{{img}}" alt=""><a class="n" data-action="item" data-id="{{id}}" data-tooltip="{{name}}">{{name}}</a><span class="q">&times;{{quantity}}</span><span class="s">{{value}} {{localize "SHADOWDARK.coins.gp"}}</span><span class="act"></span></li>{{else}}<li class="empty-list">{{localize "SDE.party.empty"}}</li>{{/each}}</ol></div>
+</div>
+</div></div>
+<div class="tab tab-travel {{#if travelTab}}active{{/if}}"><div class="party-actions sde-party-activities"><a data-action="camp" aria-pressed="{{campingActive}}"><i class="fas fa-campground"></i> {{localize "SDE.camping.title"}}</a><a data-action="carouse" aria-pressed="{{carousingActive}}"><i class="fas fa-beer-mug-empty"></i> {{localize "SDE.carousing.title"}}</a></div>{{{activityHTML}}}</div>
+<div class="tab tab-quests {{#if questsTab}}active{{/if}}">{{{questHTML}}}</div>
+<div class="tab tab-downtime {{#if downtimeTab}}active{{/if}}">
+{{#if downtime.inSession}}
+<div class="sdp-dtstatus"><span class="ui-chip gold"><i class="fas fa-book"></i> {{downtime.session.sourceLabel}}</span>{{#if downtime.session.days}}<span class="ui-chip"><i class="fas fa-hourglass-half"></i> {{downtime.session.days}}</span>{{/if}}<span class="ui-chip">{{localize "SDE.downtime.ui.sessionStat" picks=downtime.session.pickCount results=downtime.session.resultCount}}</span>{{#if isGM}}<span class="ui-muted sdp-hint">{{#if downtime.session.locked}}{{localize "SDE.downtime.ui.diceUnlocked"}}{{else}}{{localize "SDE.downtime.ui.playersChoosing"}}{{/if}}</span>{{/if}}</div>
+<ul class="sdp-dtlist">{{#each downtime.rows}}<li class="{{#if rolled}}done{{/if}}"><span class="n">{{name}}</span><span class="pick">{{#if picked}}{{pickLabel}} <em class="ui-muted">({{advantage}})</em>{{else}}<span class="ui-muted">{{localize "SDE.downtime.ui.choosing"}}</span>{{/if}}</span><span class="res">{{#if rolled}}{{localize "SDE.downtime.ui.totalVs" total=total dc=dc}} - {{#if success}}{{localize "SDE.downtime.card.success"}}{{else}}{{localize "SDE.downtime.card.failure"}}{{/if}}{{/if}}</span>{{#if @root.isGM}}<span class="act">{{#unless rolled}}{{#if picked}}<a class="ui-icon" data-action="gmClearPick" data-actor-id="{{actorId}}" aria-label="{{localize 'SDE.downtime.ui.clearPickTip'}}" data-tooltip="{{localize 'SDE.downtime.ui.clearPickTip'}}"><i class="fas fa-eraser"></i></a><a class="ui-icon" data-action="gmRollFor" data-actor-id="{{actorId}}" aria-label="{{localize 'SDE.downtime.ui.rollForTip'}}" data-tooltip="{{localize 'SDE.downtime.ui.rollForTip'}}"><i class="fas fa-dice-d20"></i></a>{{/if}}{{/unless}}</span>{{/if}}</li>{{/each}}</ul>
+{{else}}
+<div class="sdp-empty"><i class="fas fa-mug-hot"></i><p>{{localize "SDE.party.downtime.none"}}</p></div>
+{{/if}}
+<div class="sdp-dtbtns">{{#if isGM}}{{#if downtime.inSession}}<button type="button" class="ui-btn" data-action="lockRolls">{{localize "SDE.downtime.ui.lockDice"}}</button><button type="button" class="ui-btn" data-action="endSession">{{localize "SDE.downtime.ui.endSession"}}</button>{{else}}<button type="button" class="ui-btn" data-action="startSession">{{localize "SDE.downtime.ui.startSession"}}</button>{{/if}}{{/if}}<button type="button" class="ui-btn sdp-dtopen" data-action="openDowntime"><i class="fas fa-mug-hot"></i> {{localize "SDE.party.downtime.open"}}</button></div>
+</div>
+<div class="tab tab-warbands {{#if warbandsTab}}active{{/if}}">
+{{#if warbandGroups.length}}{{#each warbandGroups}}<section class="sdp-wbgroup"><h3 class="sdp-group">{{commander}}</h3><ul class="sdp-wblist">{{#each rows}}<li data-uuid="{{uuid}}"><img src="{{img}}" alt="" data-action="warband" data-uuid="{{uuid}}"><div class="who"><a class="sdp-name" data-action="warband" data-uuid="{{uuid}}">{{name}}</a><span class="sub">{{localize "SDE.party.sheet.level"}} {{level}} &middot; {{localize "SDE.party.sheet.hp"}} {{hp.value}} / {{hp.max}}</span></div><div class="sdp-hp"><div class="sdp-hpbar" style="width: {{hpPercent}}%"></div></div><span class="up {{#if arrears}}owe{{/if}}">{{#if arrears}}{{localize "SDE.party.warbands.owes" gp=arrears}}{{else}}{{localize "SDE.party.warbands.paid"}}{{/if}}<small>{{localize "SDE.party.warbands.upkeep" gp=upkeepGp}}</small></span>{{#if @root.isGM}}<span class="act">{{#if arrears}}<button type="button" class="ui-btn" data-action="payArrears" data-uuid="{{uuid}}">{{localize "SDE.party.warbands.payArrears"}}</button>{{/if}}{{#if out}}<button type="button" class="ui-btn" data-action="returnToService" data-uuid="{{uuid}}">{{localize "SDE.party.warbands.returnToService"}}</button>{{/if}}</span>{{/if}}</li>{{/each}}</ul></section>{{/each}}{{#if isGM}}<div class="sdp-dtbtns"><button type="button" class="ui-btn" data-action="runMonth">{{localize "SDE.party.warbands.runMonth"}}</button></div>{{/if}}
+{{else}}<div class="sdp-empty"><i class="fas fa-flag"></i><p>{{localize "SDE.party.warbands.empty"}}</p></div>{{/if}}
+</div>
+{{#if bastion}}<div class="tab tab-bastion {{#if bastionTab}}active{{/if}}"><div class="sdp-box sdp-bastion">
+<img class="art" src="{{bastion.img}}" alt="">
+<div class="info"><h3>{{bastion.name}}</h3><p class="sub">{{bastion.type}}</p>
+<div class="sdp-chips"><span><b>{{localize "SDE.bastion.stat.ac"}}</b> {{bastion.ac}}</span><span class="{{#if bastion.breached}}bad{{/if}}"><b>{{localize "SDE.bastion.stat.hp"}}</b> {{bastion.hp}} / {{bastion.maxHp}}</span><span><b>{{localize "SDE.party.bastion.rooms"}}</b> {{bastion.used}} / {{bastion.slots}}</span><span><b>{{localize "SDE.bastion.stat.treasury"}}</b> {{bastion.treasury}} {{localize "SDE.bastion.gp"}}</span></div>
+{{#unless bastion.standing}}<p class="log">{{bastion.building}}</p>{{/unless}}
+{{#if bastion.rooms.length}}<div class="sdp-rooms">{{#each bastion.rooms}}<span class="{{#if building}}building{{/if}}" {{#if tip}}data-tooltip="{{tip}}"{{/if}}><i class="fas {{icon}}"></i>{{name}}</span>{{/each}}</div>{{/if}}
+{{#if bastion.lastMonth}}<p class="log"><span>{{localize "SDE.party.bastion.lastMonth"}}</span> {{bastion.lastMonth}}</p>{{/if}}
+{{!-- An anchor, not a button: a sheet a player cannot edit has every form control disabled by core, and this one must work for them. --}}<a class="sdp-btn" data-action="openBastion"><i class="fas fa-chess-rook"></i> {{#if isGM}}{{localize "SDE.party.bastion.open"}}{{else}}{{localize "SDE.party.bastion.view"}}{{/if}}</a>
+</div></div></div>{{/if}}
+<div class="tab tab-description {{#if descriptionTab}}active{{/if}}"><div class="SD-box description-box"><div class="header"><label>{{localize "SDE.party.sheet.description"}}</label>{{#if canEdit}}<button type="button" data-action="editDescription" title="{{localize 'SDE.party.sheet.edit'}}"><i class="fas fa-edit"></i> {{localize "SDE.party.sheet.edit"}}</button>{{/if}}</div><div class="content description-content">{{#if editingDescription}}<textarea data-party-description rows="8" aria-label="{{localize 'SDE.party.sheet.description'}}">{{description}}</textarea><div class="party-actions"><button type="button" data-action="saveDescription">{{localize "SDE.party.sheet.save"}}</button><button type="button" data-action="cancelDescription">{{localize "SDE.camping.cancel"}}</button></div>{{else}}{{#if descriptionHTML}}{{{descriptionHTML}}}{{else}}<p class="empty-description">{{localize "SDE.party.sheet.noDescription"}}</p>{{/if}}{{/if}}</div></div></div>
+{{/if}}{{/if}}</section>{{else}}<p>{{localize "SDE.party.choose"}}</p>{{/if}}</div>

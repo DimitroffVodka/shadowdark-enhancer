@@ -1,0 +1,24 @@
+{{!-- Shared NPC stat block (Mount and Warband sheets): hit points, then armor class and level side by side. --}}
+      <div class="SD-box">
+        <div class="header">
+          <label>{{localize "SHADOWDARK.sheet.actor.hp"}}</label>
+          <span>{{#if owner}}<a class="fas fa-dice" data-action="rollHp"></a>{{/if}}</span>
+        </div>
+        <div class="content larger">
+          <div class="value-grid">
+            <input type="number" name="system.attributes.hp.value" value="{{system.attributes.hp.value}}" placeholder="0" />
+            <div>/</div>
+            <input type="number" name="system.attributes.hp.max" value="{{system.attributes.hp.max}}" placeholder="0" step="1" />
+          </div>
+        </div>
+      </div>
+      <div class="sde-mount-pair">
+        <div class="SD-box">
+          <div class="header"><label>{{localize "SHADOWDARK.sheet.actor.ac"}}</label><span></span></div>
+          <div class="content centered larger"><input type="number" name="system.attributes.ac.value" value="{{system.attributes.ac.value}}" placeholder="0" /></div>
+        </div>
+        <div class="SD-box">
+          <div class="header"><label>{{localize "SHADOWDARK.sheet.actor.level"}}</label><span></span></div>
+          <div class="content centered larger"><input type="number" name="system.level.value" value="{{system.level.value}}" placeholder="0" /></div>
+        </div>
+      </div>

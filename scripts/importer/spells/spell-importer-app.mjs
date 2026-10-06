@@ -39,6 +39,7 @@ const _titleCase = (s) => String(s ?? "").replace(/\S+/g, (w) => w.charAt(0).toU
 export class SpellImporterApp extends HandlebarsApplicationMixin(ApplicationV2) {
   static DEFAULT_OPTIONS = {
     id: "sde-spell-importer",
+    classes: ["sde-ui", "sde-imp"],
     window: { title: "SDE.importer.spellImporter.title", icon: "fa-solid fa-wand-sparkles", resizable: true },
     position: { width: 760, height: 820 },
     actions: {
@@ -334,6 +335,7 @@ export class SpellImporterApp extends HandlebarsApplicationMixin(ApplicationV2) 
       .join("");
 
     const picked = await foundry.applications.api.DialogV2.wait({
+      classes: ["sde-ui", "sde-dialog"],
       window: { title: "SDE.importer.spellImporter.grab.title", icon: "fas fa-wand-sparkles" },
       content: `
         <p>${tr("SDE.importer.spellImporter.grab.lead")}</p>

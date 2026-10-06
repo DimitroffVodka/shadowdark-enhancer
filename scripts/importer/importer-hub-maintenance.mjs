@@ -51,6 +51,7 @@ export async function importSuiteBundle(app) {
 
   // File picker dialog.
   const picked = await foundry.applications.api.DialogV2.wait({
+    classes: ["sde-ui", "sde-dialog"],
     window: { title: t("SDE.importer.bundle.title") },
     content: `<p>${t("SDE.importer.bundle.pick")}</p>
       <input type="file" name="bundle-file" accept=".json,application/json">`,
@@ -86,6 +87,7 @@ export async function importSuiteBundle(app) {
     .map(([k, p]) => `<li>${t("SDE.importer.bundle.packRow", { pack: foundry.utils.escapeHTML(k), docs: p.docs.length, folders: p.folders.length })}</li>`)
     .join("");
   const choice = await foundry.applications.api.DialogV2.wait({
+    classes: ["sde-ui", "sde-dialog"],
     window: { title: t("SDE.importer.bundle.title") },
     content: `<p>${t("SDE.importer.bundle.from", {
       world: foundry.utils.escapeHTML(bundle.world ?? "?"),
@@ -172,6 +174,7 @@ export async function manageSourcePdfs(app) {
   };
 
   const picked = await foundry.applications.api.DialogV2.wait({
+    classes: ["sde-ui", "sde-dialog"],
     // Without a width DialogV2 sizes to content, and the intro paragraph is one
     // long line — the dialog came out nearly as wide as the screen.
     window: { title: t("SDE.importer.srcpdf.title"), icon: "fas fa-file-pdf", resizable: true },

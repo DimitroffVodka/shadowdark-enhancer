@@ -54,3 +54,21 @@ test("resolving a camp without a canvas declines the fire instead of blocking th
   assert.equal(flags[M].camping.phase, "awaitingRest");
   assert.equal(flags[M].camping.fire, undefined, "the fire is declined, not lit");
 });
+test("a recalled party counts as at the fire through its token, a deployed or never-deployed one does not", async () => {
+  for (const [movement, lit] of [[{ packed: [{ actorId: "pc" }], deployed: false }, true], [{ packed: [{ actorId: "pc" }], deployed: true }, false], [{ packed: [], deployed: false }, false], [undefined, false]]) {
+    const pc = { id: "pc", uuid: "Actor.pc" }, camp = { id: "camp", anchor: { sceneId: "scene", x: 550, y: 550 }, participants: [{ uuid: pc.uuid, participate: true }], fire: { lit: true, started: 0, lightId: "fire" } };
+    const flags = { [M]: { party: true, camping: camp } };
+    globalThis._replace = value => value;
+    const party = { id: "party", type: "NPC", flags, update: async data => { flags[M].camping = data[`flags.${M}.camping`]; } };
+    let deleted = 0;
+    const light = { flags: { [M]: { campFire: { campId: "camp" } } }, delete: async () => { deleted++; } };
+    const far = { actorId: "pc", x: 3000, y: 3000, width: 1, height: 1 };
+    const partyToken = { actorId: "party", x: 500, y: 500, width: 1, height: 1, flags: { [M]: { partyMovement: movement } } };
+    const scene = { grid: { size: 100, distance: 5 }, tokens: { contents: [far, partyToken] }, lights: new Map([["fire", light]]) };
+    const user = { id: "gm", isGM: true };
+    globalThis.game = { user, users: { activeGM: user }, time: { worldTime: 1 }, actors: { contents: [party, pc] }, scenes: new Map([["scene", scene]]) };
+    await refreshCampFires();
+    assert.equal(flags[M].camping.fire.lit, lit, JSON.stringify(movement));
+    assert.equal(deleted, lit ? 0 : 1);
+  }
+});

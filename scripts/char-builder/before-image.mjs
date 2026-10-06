@@ -36,8 +36,8 @@ export const ACTOR_KEYS = [
   ...ABILITIES.map((k) => `system.abilities.${k}.value`),
   "system.alignment", "system.background", "system.deity",
   "system.coins.gp", "system.coins.sp", "system.coins.cp", "system.languages",
-  // a level-up writes these three (#168 P7); current hit points and luck are never written
-  "system.level.value", "system.level.xp", "system.attributes.hp.max",
+  // a level-up writes these (#168 P7); luck is never written
+  "system.level.value", "system.level.xp", "system.attributes.hp.max", "system.attributes.hp.value",
 ];
 
 const getPath = (obj, path) => path.split(".").reduce((a, k) => a?.[k], obj);

@@ -1,0 +1,82 @@
+/* Sheet family (Mount, Boat, Warband, Bastion): window-specific parts the kit does not have yet.
+   Tokens only (var(--ui-*)), no colours, no theme selectors. Kit candidates are marked (candidate). */
+
+/* (candidate) editable window title inside .ui-head: an <input name="name"> that reads as the kit's .ui-title */
+.sde-ui .ui-head input.ui-title-input { height: auto; width: 100%; padding: 0; border: 0; border-bottom: 1px solid transparent; border-radius: 0; background: transparent; font: 400 26px/1.1 var(--ui-title); color: var(--ui-text); }
+.sde-ui .ui-head input.ui-title-input:hover { border-bottom-color: var(--ui-line); }
+.sde-ui .ui-head input.ui-title-input:focus { border-bottom-color: var(--ui-frame); box-shadow: none; }
+.ui-head > img[data-action] { cursor: pointer; }
+
+/* (candidate) editable number inside a headline stat */
+.ui-stat .ui-inputs { display: flex; align-items: center; gap: 4px; }
+.sde-ui .ui-stat input[type=number] { width: 52px; height: 26px; padding: 0 4px; text-align: center; font-weight: 700; font-variant-numeric: tabular-nums; }
+.ui-stat .ui-inputs > span { color: var(--ui-muted); }
+
+/* (candidate) segmented control: a row of ghost buttons, one .on */
+.ui-seg { display: inline-flex; flex: 0 0 auto; }
+.ui-seg > .ui-btn { border-radius: 0; margin-left: -1px; }
+.ui-seg > .ui-btn:first-child { border-radius: var(--ui-r) 0 0 var(--ui-r); margin-left: 0; }
+.ui-seg > .ui-btn:last-child { border-radius: 0 var(--ui-r) var(--ui-r) 0; }
+.ui-seg > .ui-btn.on { background: var(--ui-raised); border-color: var(--ui-frame); color: var(--ui-text); position: relative; z-index: 1; }
+
+/* (candidate) drop target: dashed frame that lights up while something is dragged over it */
+.ui-drop { border: 1px dashed var(--ui-line); border-radius: var(--ui-r2); padding: 8px; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.ui-drop.sde-drag-over { border-color: var(--ui-gold); background: var(--ui-gold-bg); }
+
+/* (candidate) roll link: a label that rolls when clicked */
+.ui-roll { display: inline-flex; align-items: center; gap: 5px; color: var(--ui-muted); font: 600 10.5px/1.2 var(--ui-head); text-transform: uppercase; letter-spacing: .06em; cursor: pointer; text-decoration: none; }
+.sde-ui a.ui-roll { color: var(--ui-muted); }
+.sde-ui a.ui-roll:hover { color: var(--ui-text); }
+
+/* system-made attack and feature markup (display HTML), made to sit in a kit card */
+.ui-attack { padding: 3px 0; border-bottom: 1px solid var(--ui-line); }
+.ui-attack:last-child { border-bottom: 0; }
+.ui-attack a.rollable { color: var(--ui-text); text-decoration: none; cursor: pointer; }
+.ui-attack a.rollable b { font: 700 13px/1.3 var(--ui-font); }
+.ui-attack p { margin: 2px 0 0; color: var(--ui-body); }
+
+/* rows that expand in place (the system's show-details toggles .expanded and adds .item-details inside) */
+.ui-row.ui-wrap { flex-wrap: wrap; }
+.ui-row.ui-wrap > .item-details { flex: 1 0 100%; padding: 4px 0 4px 38px; color: var(--ui-body); }
+.ui-row a[data-action] { color: var(--ui-text); cursor: pointer; text-decoration: none; }
+.ui-row .strike-through { text-decoration: line-through; color: var(--ui-muted); }
+.ui-dim { color: var(--ui-muted); }
+.is-damaged { color: var(--ui-danger-text); font-weight: 700; }
+
+/* key/value fields that must stay one per line label-over-input but share a row when there is room */
+.ui-fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px 12px; align-items: end; }
+.ui-fields .ui-check { min-height: 28px; }
+.sde-ui input.ui-ro { background: transparent; border-style: dashed; }
+.ui-abilities { display: grid; grid-template-columns: repeat(auto-fit, minmax(92px, 1fr)); gap: 10px; }
+.ui-ability { display: flex; flex-direction: column; gap: 3px; padding: 8px 10px; border: 1px solid var(--ui-line); border-radius: var(--ui-r); background: var(--ui-raised); }
+.ui-ability .ui-value { font-size: 18px; }
+.ui-ability .ui-value small { font: 600 12px/1 var(--ui-font); color: var(--ui-muted); margin-left: 4px; }
+.ui-ability input { width: 100%; }
+.ui-two { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 16px; align-items: start; }
+@container (max-width: 560px) { .ui-two { grid-template-columns: minmax(0, 1fr); } }
+.sde-ui prose-mirror, .sde-ui .editor-content { display: block; min-height: 120px; padding: 8px 10px; border: 1px solid var(--ui-line); border-radius: var(--ui-r); background: var(--ui-panel); color: var(--ui-body); }
+
+/* (candidate) tab strip that still fits five tabs in a narrow window */
+@container (max-width: 560px) { .ui-tabs .ui-tab { padding: 6px 8px; font-size: 14px; } .ui-tabs { padding-inline: 6px; } }
+
+.ui-icon { flex: 0 0 24px; }
+.ui-row.ui-rider { flex-wrap: wrap; }
+.ui-rider .ui-row-main { flex: 1 1 150px; }
+.ui-rolesel { flex: 0 0 120px; }
+.ui-rolesel select { width: 100%; }
+.ui-chips { margin-top: 4px; }
+.ui-rider .ui-row-main { flex: 1 1 140px; }
+.ui-checks { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 4px 12px; }
+.sde-ui .ui-body > * { flex-shrink: 0; }
+.sde-ui input[type=radio]::before, .sde-ui input[type=radio]::after { content: none !important; }
+/* kit fixes (candidates): the accordion chevron names "Font Awesome 6 Free", which Foundry v14 does not load (it ships FA 7 Pro); a disabled icon button must look disabled */
+.sde-ui .ui-details > summary::before { font-family: "Font Awesome 7 Pro", "Font Awesome 6 Free", "FontAwesome"; font-weight: 900; }
+.ui-icon:disabled, .ui-icon[disabled] { opacity: .35; cursor: not-allowed; }
+.ui-icon:disabled:hover { color: var(--ui-muted); border-color: transparent; background: transparent; }
+
+/* (candidate) panes: every tab's content is in the DOM and the sheet's changeTab toggles .active on [data-tab-content] and [data-tab] without re-rendering */
+.sde-ui .ui-pane:not(.active) { display: none; }
+.ui-seg > .ui-btn.active { background: var(--ui-raised); border-color: var(--ui-frame); color: var(--ui-text); position: relative; z-index: 1; }
+/* a grouped tab ("More") stays lit while any of its sub-panes is the active one; the sheet only marks the tab whose data-tab it matches */
+.ui-shell:has(.ui-pane.active[data-group="more"]) .ui-tab[data-group="more"] { color: var(--ui-text); background: var(--ui-panel); border-bottom-color: var(--ui-frame); }
+@container (max-width: 700px) { .sde-ui .ui-head input.ui-title-input { font-size: 22px; } }

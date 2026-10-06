@@ -1,0 +1,50 @@
+{{!-- Settings group pop-out, proposed. Same context (rootId, sections), data-mode / data-mode-switch / data-mode-option /
+      data-show-if / data-folder-list / data-action as templates/settings-group.hbs. Rows are Foundry's own .form-group markup
+      (what {{formGroup}} writes), laid out by the window css. --}}
+<div class="ui-shell sde-sg sg">
+<div class="ui-body sde-sg-scroll">
+{{#each sections as |section|}}
+{{#if section.mode}}<fieldset class="ui-card sde-sg-mode sg-mode" data-mode>
+<legend class="sg-legend"><input type="checkbox" data-mode-switch aria-label="{{localize section.switchLabel}}" data-tooltip="{{localize section.switchLabel}}"> <span class="ui-h-text">{{localize section.label}}</span></legend>
+{{#if section.hint}}<p class="ui-muted sg-hint">{{localize section.hint}}</p>{{/if}}
+{{else if section.label}}<details class="ui-details sg-details"><summary>{{localize section.label}}</summary><div class="ui-details-body">
+{{else}}<section class="ui-card sg-plain">{{/if}}
+{{#each section.entries as |entry|}}
+{{#if entry.note}}
+<p class="ui-note">{{localize entry.note}}</p>
+{{else if entry.menu}}
+<div class="form-group">
+  <label>{{localize entry.label}}</label>
+  <div class="form-fields">
+    <button type="button" class="ui-btn" data-action="openMenu" data-key="{{entry.key}}"><i class="{{entry.icon}}" inert></i><span>{{localize entry.buttonText}}</span></button>
+  </div>
+  <p class="hint">{{localize entry.hint}}</p>
+</div>
+{{else if entry.folders}}
+<div class="form-group sg-folders-group">
+  <label>{{entry.label}}</label>
+  <p class="hint">{{entry.hint}}</p>
+  <div class="sg-folders" data-folder-list="{{entry.name}}">
+    {{#each entry.values as |path|}}
+    <div class="sde-sg-folder sg-folder">
+      <file-picker type="folder" value="{{path}}"></file-picker>
+      <button type="button" class="ui-icon danger" data-action="removeFolder" data-tooltip="{{localize "SDE.settingsGroup.removeFolder"}}" aria-label="{{localize "SDE.settingsGroup.removeFolder"}}"><i class="fa-solid fa-xmark" inert></i></button>
+    </div>
+    {{/each}}
+    <div><button type="button" class="ui-btn" data-action="addFolder"><i class="fa-solid fa-folder-plus" inert></i> {{localize "SDE.settingsGroup.addFolder"}}</button></div>
+  </div>
+</div>
+{{else if entry.option}}
+<div data-mode-option>{{formGroup entry.field value=entry.value input=entry.input rootId=@root.rootId localize=true}}</div>
+{{else if entry.showIf}}
+<div data-show-if="{{entry.showIf}}">{{formGroup entry.field value=entry.value input=entry.input rootId=@root.rootId localize=true}}</div>
+{{else}}
+{{formGroup entry.field value=entry.value input=entry.input rootId=@root.rootId localize=true}}
+{{#if entry.pending}}<p class="ui-muted sg-pending">{{localize "SDE.settingsGroup.pending"}}</p>{{/if}}
+{{/if}}
+{{/each}}
+{{#if section.mode}}</fieldset>{{else if section.label}}</div></details>{{else}}</section>{{/if}}
+{{/each}}
+</div>
+<footer class="ui-footer"><div class="ui-right"><button type="submit" class="ui-btn primary"><i class="fa-solid fa-floppy-disk" inert></i> {{localize "SETTINGS.Save"}}</button></div></footer>
+</div>

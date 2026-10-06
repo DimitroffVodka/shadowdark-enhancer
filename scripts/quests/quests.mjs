@@ -219,9 +219,9 @@ export function questPayoutContent(quest, name, { partyScope = null } = {}) {
     ${(r.xp > 0 || r.renown || r.coins) ? `<fieldset><legend>${esc(t("SDE.quests.payout.recipients"))}</legend>
       ${candidates.map((u) => `<label class="checkbox"><input type="checkbox" name="recipients" value="${esc(u)}" ${defaults.includes(u) ? "checked" : ""}> ${esc(actorName(u))}</label>`).join("")}
     </fieldset>` : ""}
-    ${r.items.map((item, i) => `<div class="form-group"><label>${esc(t("SDE.quests.payout.itemTo", { item: item.name || item.uuid }))}</label>
+    ${r.items.map((item, i) => `<div class="ui-field"><label class="ui-label">${esc(t("SDE.quests.payout.itemTo", { item: item.name || item.uuid }))}</label>
       <select name="item${i}">${options(first)}</select></div>`).join("")}
-    ${r.training ? `<div class="form-group"><label>${esc(t("SDE.quests.payout.openTraining", { trainer: trainerLabel(r.training) }))}</label>
+    ${r.training ? `<div class="ui-field"><label class="ui-label">${esc(t("SDE.quests.payout.openTraining", { trainer: trainerLabel(r.training) }))}</label>
       <select name="trainingFor">${options(first)}</select></div>` : ""}
   </div>`;
 }
@@ -229,6 +229,7 @@ export function questPayoutContent(quest, name, { partyScope = null } = {}) {
 async function askPayout(quest, name) {
   const r = quest.rewards;
   const answer = await foundry.applications.api.DialogV2.wait({
+    classes: ["sde-ui", "sde-dialog"],
     window: { title: t("SDE.quests.payout.title"), icon: "fa-solid fa-trophy" },
     content: questPayoutContent(quest, name),
     buttons: [

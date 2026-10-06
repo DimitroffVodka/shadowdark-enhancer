@@ -28,6 +28,7 @@ import { SessionRecap } from "../session-recap/session-recap.mjs";
 import { esc } from "../shared/esc.mjs";
 import { addToPurse } from "../shared/coins.mjs";
 import { relayToGM, authorizeActorFor, refuseQuery, registerQuery } from "../shared/gm-relay.mjs";
+import { compactCard } from "../shared/chat-cards.mjs";
 
 /** One string from `languages/en.json`; the key when no i18n is mounted (node tests). */
 const L = (key, data) => {
@@ -80,6 +81,21 @@ function _isLightSource(item) {
 /* -------------------------------------------- */
 /*  Item Drops Singleton                        */
 /* -------------------------------------------- */
+
+/**
+ * Is a canvas point inside the GM's current view? The stage sits at the screen centre and the pivot is the
+ * canvas point there (v14 board.mjs), so the view is the screen size divided by the zoom, around the pivot.
+ * Anything missing counts as in view: better no pan than a pan from guessed numbers. Pure.
+ * @param {{x:number,y:number}} point
+ * @param {{x:number,y:number}} pivot  canvas.stage.pivot
+ * @param {number} scale  canvas.stage.scale.x
+ * @param {{width:number,height:number}} screen  canvas.app.renderer.screen
+ */
+export function pointInView(point, pivot, scale, screen) {
+  if (!pivot || !(scale > 0) || !screen?.width || !screen?.height) return true;
+  const halfW = screen.width / 2 / scale, halfH = screen.height / 2 / scale;
+  return Math.abs(point.x - pivot.x) <= halfW && Math.abs(point.y - pivot.y) <= halfH;
+}
 
 export const ItemDrops = {
 
@@ -278,6 +294,7 @@ export const ItemDrops = {
   async _promptDropQuantity(name, max) {
     const safeName = Handlebars.escapeExpression(name ?? "");
     const result = await foundry.applications.api.DialogV2.wait({
+      classes: ["sde-ui", "sde-dialog"],
       window: { title: "SDE.loot.itemDrops.dropTitle" },
       content: `<div style="padding:8px;">
         <label>${L("SDE.loot.itemDrops.dropQtyPrompt", { name: `<strong>${safeName}</strong>`, max })}<br>
@@ -403,7 +420,8 @@ export const ItemDrops = {
 
   /**
    * Default drop point for GM-initiated drops: the controlled token's centre,
-   * else the current view centre, else the scene centre.
+   * else the current view centre, else the scene centre. (A forgotten selection wins over
+   * the view, which is why the drop is pinged and panned to afterwards.)
    */
   defaultDropPoint(scene) {
     const sel = canvas.tokens?.controlled?.[0];
@@ -413,6 +431,20 @@ export const ItemDrops = {
       x: (scene.dimensions?.width ?? scene.width ?? 0) / 2,
       y: (scene.dimensions?.height ?? scene.height ?? 0) / 2,
     };
+  },
+
+  /**
+   * Show the GM where a pile just landed: a 0.5-size token is a few pixels on a zoomed-out map, so
+   * ping the spot and, when it is off screen, pan there. Only for the scene being viewed.
+   */
+  async _revealDrop(scene, x, y) {
+    if (canvas.scene?.id !== scene.id) return;
+    try {
+      canvas.ping?.({ x, y });
+      if (!pointInView({ x, y }, canvas.stage?.pivot, canvas.stage?.scale?.x, canvas.app?.renderer?.screen)) {
+        await canvas.animatePan?.({ x, y, duration: 400 });
+      }
+    } catch (err) { console.warn(`${MODULE_ID} | could not reveal the drop`, err); }
   },
 
   /**
@@ -438,6 +470,7 @@ export const ItemDrops = {
       y: dropY,
       sceneId: scene.id,
     });
+    await this._revealDrop(scene, dropX, dropY);
     return true;
   },
 
@@ -498,6 +531,7 @@ export const ItemDrops = {
     }]);
 
     console.log(`${MODULE_ID} | Coins dropped: ${label} on ${scene.name}`);
+    await this._revealDrop(scene, dropX, dropY);
     return actor;
   },
 
@@ -520,10 +554,13 @@ export const ItemDrops = {
     const col = el.querySelector(".col.right") || el.querySelector(".right");
     if (!col) return;
 
-    const btn = document.createElement("div");
-    btn.classList.add("control-icon");
-    btn.title = L("SDE.loot.itemDrops.pickUpTip", { name: actor.name });
-    btn.innerHTML = `<i class="fas fa-hand-holding" style="font-size:1.2em;"></i>`;
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "control-icon sde-hud-btn";
+    const tip = L("SDE.loot.itemDrops.pickUpTip", { name: actor.name });
+    btn.dataset.tooltip = tip;
+    btn.setAttribute("aria-label", tip);
+    btn.innerHTML = `<i class="fas fa-hand-holding" style="font-size:1.2em;" inert></i>`;
     btn.addEventListener("click", async (ev) => {
       ev.preventDefault();
       ev.stopPropagation();
@@ -670,13 +707,10 @@ export const ItemDrops = {
     ui.notifications.info(L("SDE.loot.itemDrops.notify.pickedUp", { name: recipient.name, label: cardLabel }));
     await ChatMessage.create({
       speaker: ChatMessage.getSpeaker({ actor: recipient }),
-      content: `<div class="shadowdark-enhancer item-pickup-card" style="display:flex;align-items:center;gap:8px;padding:6px 4px;">
-        <img src="${esc(cardImg)}" alt="" width="36" height="36" style="border:none;flex:0 0 auto;">
-        <div style="line-height:1.2;">
-          ${L("SDE.loot.itemDrops.pickedUpCard", { name: `<strong>${esc(recipient.name)}</strong>` })}<br>
-          <span>${esc(cardLabel)}</span>
-        </div>
-      </div>`,
+      content: compactCard({
+        img: cardImg,
+        html: `${L("SDE.loot.itemDrops.pickedUpCard", { name: `<strong>${esc(recipient.name)}</strong>` })} <strong>${esc(cardLabel)}</strong>`,
+      }),
     });
 
     // Log to the session recap (no-op when no session is active)

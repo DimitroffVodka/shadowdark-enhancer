@@ -120,7 +120,7 @@ class HubPasteMethods {
         } else {
           this._setDraftScalarField(draft, field, ev.target);
         }
-        ev.target.classList.remove("sde-mimport-warn");
+        ev.target.classList.remove("imp-warn");
       });
     });
   }
@@ -140,7 +140,7 @@ class HubPasteMethods {
       if (hi < lo) [lo, hi] = [hi, lo];
       return { lo, hi };
     };
-    this.element.querySelectorAll(".sde-class-preview [data-cu-field]").forEach((input) => {
+    this.element.querySelectorAll("[data-char-idx] [data-cu-field]").forEach((input) => {
       input.addEventListener("change", (ev) => {
         const field = ev.target.dataset.cuField;
         const v = ev.target.value;
@@ -607,6 +607,7 @@ class HubPasteMethods {
     if (!this._importText.trim()) { ui.notifications.warn(t("SDE.importer.parse.needTableCompound")); return; }
 
     const spec = await foundry.applications.api.DialogV2.wait({
+      classes: ["sde-ui", "sde-dialog"],
       window: { title: t("SDE.importer.compound.title"), icon: "fas fa-dice-d6" },
       content: `
         <p>${t("SDE.importer.compound.lead")}</p>
@@ -641,6 +642,7 @@ class HubPasteMethods {
     if (!this._importText.trim()) { ui.notifications.warn(t("SDE.importer.parse.needTableCartesian")); return; }
 
     const spec = await foundry.applications.api.DialogV2.wait({
+      classes: ["sde-ui", "sde-dialog"],
       window: { title: t("SDE.importer.cartesian.title"), icon: "fas fa-table-cells" },
       content: `
         <p>${t("SDE.importer.cartesian.lead")}</p>
@@ -1314,6 +1316,7 @@ class HubPasteMethods {
     this._importChar = [];
     this._importSkipped = [];
     this._importSeed = null;
+    this._tab = "paste";
     this.render();
   }
 

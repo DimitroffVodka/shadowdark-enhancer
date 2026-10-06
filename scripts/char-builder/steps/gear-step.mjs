@@ -320,6 +320,8 @@ export class GearStep extends ListStep {
       slotLimit: this.slotLimit,
       overSlots: totals.slots > this.slotLimit,
       remaining: this._fmtCoins(totals.remainingCp),
+      // The step heading's one-line summary: what is left to spend.
+      summary: `${game.i18n.localize("SDE.charBuilder.gear.remaining")}: ${this._fmtCoins(totals.remainingCp)}`,
       overBudget: totals.remainingCp < 0,
       gold: this._fmtCoins(this.goldCp),
     };

@@ -1,0 +1,5 @@
+// AdventurePlacer, real template. Audit fixture. state: busy | armed
+const rows = Array.from({ length: 22 }, (_, i) => { const st = i < 9 ? "placed" : i === 12 ? "skipped" : "pending"; return { num: i + 1, name: i === 3 ? `${i + 1}. The Hall of the Drowned Kings and Their Forgotten Court` : `${i + 1}. Location name ${i + 1}`, state: st, placed: st === "placed", skipped: st === "skipped", armed: false, label: { placed: "Placed", skipped: "Skipped", pending: "Waiting" }[st] }; });
+const build = (state) => { const armed = state === "armed"; if (armed) rows[10].armed = true; return { context: { sceneName: "Cursed Scroll 5: Dwellers in the Deep - Ground Level", missing: false, armed, rows,
+  summary: "9 placed, 1 skipped, 12 waiting of 22", hint: armed ? "Click the map to place 11. Esc to stop." : "Pick a location, then click the map." } }; };
+export default { id: "sde-adventure-placer", title: "SDE.adventure.placer.title", icon: "fa-solid fa-location-dot", classes: ["sde-ui", "sde-imp", "sde-adventure-placer"], width: 340, height: 520, template: "templates/adventure-placer.hbs", initial: "busy", build, resizable: true, actions: {} };

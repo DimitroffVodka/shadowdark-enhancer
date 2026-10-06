@@ -1,0 +1,19 @@
+/* Party XP proposal. Tokens only. */
+.sde-ui .ui-art.px-art { display: grid; place-items: center; font-size: 22px; color: var(--ui-frame); }
+.sde-ui .ui-icon { flex: 0 0 auto; }
+.sde-ui .ui-head { flex-wrap: nowrap; }
+.sde-ui .px-item-img { width: 40px; height: 40px; flex: 0 0 auto; border: 1px solid var(--ui-line); border-radius: var(--ui-r); }
+.sde-ui .px-fields { display: grid; grid-template-columns: minmax(90px, 130px) minmax(0, 1fr); gap: 12px; }
+.sde-ui .px-drop { border: 1px dashed var(--ui-line); border-radius: var(--ui-r2); background: var(--ui-panel); }
+.sde-ui .px-drop.dragover { border-color: var(--ui-frame); background: var(--ui-raised); }
+.sde-ui .px-tools { gap: 4px; flex-wrap: nowrap; }
+.sde-ui .px-tools .ui-btn { height: 24px; padding: 0 10px; }
+.sde-ui .px-member { cursor: pointer; }
+.sde-ui .ui-h > span:first-child { flex: 1 1 auto; min-width: 0; font-size: 15px; }
+.sde-ui .ui-body > * { flex-shrink: 0; }
+.sde-ui .ui-head .ui-sub { max-width: 60ch; }
+@container (max-width: 420px) { .sde-ui .px-fields { grid-template-columns: minmax(0, 1fr); } .sde-ui .ui-h { flex-wrap: wrap; } }
+.sde-ui .px-member { display: grid; grid-template-columns: 16px minmax(0, 1fr) 34px 68px; align-items: center; gap: 10px; }
+.sde-ui .px-name { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; overflow-wrap: anywhere; }
+.sde-ui .px-lvl { grid-column: 3; text-align: center; }
+.sde-ui .px-xp { grid-column: 4; text-align: right; white-space: nowrap; }

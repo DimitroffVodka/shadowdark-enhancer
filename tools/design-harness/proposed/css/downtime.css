@@ -1,0 +1,41 @@
+/* shared fixes (kit candidates): flex children that must not shrink, header that keeps one line below 560px */
+.ui-num { flex: 0 0 20px; }
+.ui-row > .ui-btn, .ui-row > .ui-chip, .ui-row > .ui-tag, .ui-row > .ui-icon, .ui-card-head > .ui-btn, .ui-card-head > .ui-chip { flex: 0 0 auto; }
+.ui-head { flex-wrap: nowrap; }
+.ui-head-text { flex: 1 1 0; }
+.ui-head > .ui-art, .ui-head > img { flex: 0 0 auto; }
+@container (max-width: 560px) { .ui-head { flex-wrap: nowrap; } }
+/* Downtime. Kit candidates: .dt-head (header with pickers), .dt-slot (row with description under the name), chip-as-toggle button. */
+.dt-head { flex-wrap: wrap; align-items: flex-end; row-gap: 10px; }
+.dt-pickers { flex: 1 1 100%; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; min-width: 0; }
+.dt-purse { flex: 1 1 100%; gap: 28px; }
+@container (max-width: 560px) { .dt-head { flex-wrap: wrap; } .dt-pickers { grid-template-columns: minmax(0, 1fr); flex-basis: 100%; } .dt-purse { flex-basis: 100%; } }
+.dt-hint { margin: 0; }
+.dt-ov-name { flex: 0 0 130px; }
+.dt-ov-pick { align-self: center; }
+.dt-done { box-shadow: inset 3px 0 0 var(--ui-ok); }
+.ui-details > summary .dt-check { margin-left: auto; font-family: var(--ui-font); }
+.dt-slot { align-items: flex-start; flex-wrap: wrap; row-gap: 6px; padding: 10px; }
+.dt-slot-main { flex: 1 1 220px; }
+.dt-desc { font-size: 12px; line-height: 1.45; }
+.dt-block { color: var(--ui-warn); }
+.dt-slot-meta { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; flex: 0 0 auto; }
+.dt-stepper { display: inline-flex; flex: 0 0 auto; }
+.dt-slot > .ui-btn { flex: 0 0 auto; min-width: 84px; align-self: center; }
+.dt-off { opacity: .55; }
+.dt-sub { margin-top: 4px; }
+.dt-choice { display: flex; flex-direction: column; gap: 10px; padding: 10px; border: 1px dashed var(--ui-line); border-radius: var(--ui-r2); }
+.dt-trade { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.dt-free .ui-inline input { flex: 1 1 160px; width: auto; }
+.dt-target { flex: 1 1 160px; width: auto; }
+.dt-notice { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.dt-locked .ui-btn { align-self: flex-start; }
+.dt-foot { margin: 0; text-align: center; font-size: 12px; }
+.dt-startnote { font-size: 12px; text-align: right; }
+.ui-chip { cursor: default; } button.ui-chip { cursor: pointer; }
+@container (max-width: 560px) { .dt-startnote { display: none; } .dt-ov-name { flex-basis: 100px; } }
+.sde-ui .ui-body > * { flex-shrink: 0; }
+.sde-ui input[type=radio]::before, .sde-ui input[type=radio]::after { content: none !important; }
+/* kit fix candidate: Foundry v14 ships Font Awesome 7 Pro, not "6 Free", so the accordion chevron was blank */
+.ui-details > summary::before { font-family: "Font Awesome 7 Pro", "Font Awesome 6 Free"; }
+.dt-purse { align-items: flex-end; } .dt-clear { margin-left: auto; align-self: center; } .dt-sign { width: 32px; border-color: var(--ui-line); font-weight: 700; }

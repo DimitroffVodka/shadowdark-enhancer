@@ -1,236 +1,154 @@
-<div class="sde-pit">
+{{!-- Pit Fighting: four stages as numbered cards. Window root carries sde-ui (styles/sde-ui.css). --}}
+<div class="ui-shell">
 
-  {{#unless hasParty}}
-  <p class="notes"><i class="fa-solid fa-circle-info"></i> {{localize "SDE.pitFighting.ui.noParty"}}</p>
-  {{/unless}}
+  <header class="ui-head">
+    <div class="ui-head-text"><h2 class="ui-title">{{localize "SDE.pitFighting.title"}}</h2>
+      <p class="ui-sub">{{#unless hasParty}}{{localize "SDE.pitFighting.ui.noParty"}}{{else}}{{localize "SDE.pitFighting.ui.offerNote"}}{{/unless}}</p></div>
+    <div class="ui-stats">
+      <div class="ui-stat" title="{{localize 'SDE.pitFighting.ui.aplTip'}}"><span class="ui-value">{{localize "SDE.pitFighting.ui.partyApl" apl=apl}}</span>{{#if aplRounded}}<span class="ui-label">{{localize "SDE.pitFighting.ui.aplMean" mean=aplMeanText}}</span>{{/if}}</div>
+      {{#if hasOffer}}<div class="ui-stat"><span class="ui-label">{{localize "SDE.pitFighting.ui.whoStepsUp"}}</span><span class="ui-value" data-fighter-count>{{fighterCount}}</span></div>{{/if}}
+    </div>
+  </header>
 
-  {{!-- ── 1. THE OFFER ───────────────────────────────────────────────────── --}}
-  <div class="sde-pit-section-head">
-    <span>{{localize "SDE.pitFighting.ui.theOffer"}}</span>
-    <span class="sde-pit-apl" title="{{localize 'SDE.pitFighting.ui.aplTip'}}">
-      {{localize "SDE.pitFighting.ui.partyApl" apl=apl}}{{#if aplRounded}} <em>{{localize "SDE.pitFighting.ui.aplMean" mean=aplMeanText}}</em>{{/if}}
-    </span>
-  </div>
+  <div class="ui-body">
 
-  <p class="notes">{{localize "SDE.pitFighting.ui.offerNote"}}</p>
+    {{!-- 1. THE OFFER --}}
+    <section class="ui-card pit-stage {{#unless hasOffer}}sel{{/unless}}">
+      <div class="ui-card-head"><span class="ui-num">1</span><h3 class="ui-card-name">{{localize "SDE.pitFighting.ui.theOffer"}}</h3></div>
 
-  <div class="sde-pit-row">
-    <span class="sde-pit-label">{{localize "SDE.pitFighting.ui.venue"}}</span>
-    <span class="sde-pit-roll-total" title="2d6">{{#if hasVenue}}{{bout.venue.total}}{{/if}}</span>
-    <span class="sde-pit-text">
-      <button type="button" class="sde-pit-mini" data-action="rollVenue"><i class="fas fa-dice"></i> {{localize "SDE.pitFighting.ui.roll"}}</button>
-      <select data-venue-select aria-label="{{localize 'SDE.pitFighting.ui.chooseVenue'}}">
-        <option value="">{{localize "SDE.pitFighting.ui.orPick"}}</option>
-        {{#each venueOptions as |v|}}
-        <option value="{{v.total}}" {{#if v.selected}}selected{{/if}}>{{v.range}} · {{#if v.text}}{{v.text}}{{else}}{{localize "SDE.pitFighting.ui.row" row=v.row}}{{/if}}</option>
-        {{/each}}
-      </select>
-      <button type="button" class="sde-pit-mini" data-action="openArena"
-              title="{{localize 'SDE.pitFighting.ui.arenaTip'}}">
-        <i class="fas fa-map"></i> {{localize "SDE.pitFighting.ui.arenaMap"}}
-      </button>
-      {{#if venueText}}<div class="sde-pit-drawn">{{venueText}}</div>{{/if}}
-    </span>
-  </div>
+      <div class="pit-line">
+        <span class="ui-label">{{localize "SDE.pitFighting.ui.venue"}}</span>
+        <div class="pit-pick">
+          <button type="button" class="ui-icon" data-action="rollVenue" title="{{localize 'SDE.pitFighting.ui.roll'}}"><i class="fas fa-dice"></i></button>
+          <select data-venue-select aria-label="{{localize 'SDE.pitFighting.ui.chooseVenue'}}">
+            <option value="">{{localize "SDE.pitFighting.ui.orPick"}}</option>
+            {{#each venueOptions as |v|}}<option value="{{v.total}}" {{#if v.selected}}selected{{/if}}>{{v.range}} · {{#if v.text}}{{v.text}}{{else}}{{localize "SDE.pitFighting.ui.row" row=v.row}}{{/if}}</option>{{/each}}
+          </select>
+          <button type="button" class="ui-icon" data-action="openArena" title="{{localize 'SDE.pitFighting.ui.arenaTip'}}"><i class="fas fa-map"></i></button>
+        </div>
+        {{#if hasVenue}}<span class="ui-chip gold pit-total" title="2d6">{{bout.venue.total}}</span>{{/if}}
+        {{#if venueText}}<p class="pit-drawn">{{venueText}}</p>{{/if}}
+      </div>
 
-  <div class="sde-pit-row">
-    <span class="sde-pit-label">{{localize "SDE.pitFighting.ui.stakes"}}</span>
-    <span class="sde-pit-roll-total" title="{{localize 'SDE.pitFighting.ui.stakesTip'}}">{{#if hasStakes}}{{bout.stakes.total}}{{/if}}</span>
-    <span class="sde-pit-text">
-      <button type="button" class="sde-pit-mini" data-action="rollStakes"><i class="fas fa-dice"></i> {{localize "SDE.pitFighting.ui.roll"}}</button>
-      <select data-stakes-select aria-label="{{localize 'SDE.pitFighting.ui.chooseStakes'}}">
-        <option value="">{{localize "SDE.pitFighting.ui.orPick"}}</option>
-        {{#each stakesOptions as |s|}}
-        <option value="{{s.total}}" {{#if s.selected}}selected{{/if}}>{{s.label}}</option>
-        {{/each}}
-      </select>
-      {{!-- The tier alone would only repeat the dropdown beside it. Say it
-            when the twist MOVED it, which the dropdown cannot show. --}}
-      {{#if bout.stakes.raised}}
-      <div class="sde-pit-drawn">
-        <strong>{{bout.stakes.label}}</strong>
-        <em class="sde-pit-raised">{{localize "SDE.pitFighting.ui.raisedStep"}}</em>
+      <div class="pit-line">
+        <span class="ui-label">{{localize "SDE.pitFighting.ui.stakes"}}</span>
+        <div class="pit-pick">
+          <button type="button" class="ui-icon" data-action="rollStakes" title="{{localize 'SDE.pitFighting.ui.roll'}}"><i class="fas fa-dice"></i></button>
+          <select data-stakes-select aria-label="{{localize 'SDE.pitFighting.ui.chooseStakes'}}">
+            <option value="">{{localize "SDE.pitFighting.ui.orPick"}}</option>
+            {{#each stakesOptions as |s|}}<option value="{{s.total}}" {{#if s.selected}}selected{{/if}}>{{s.label}}</option>{{/each}}
+          </select>
+        </div>
+        {{#if hasStakes}}<span class="ui-chip gold pit-total" title="{{localize 'SDE.pitFighting.ui.stakesTip'}}">{{bout.stakes.total}}</span>{{/if}}
+        {{#if bout.stakes.raised}}<p class="pit-drawn"><strong>{{bout.stakes.label}}</strong> <em class="ui-muted">{{localize "SDE.pitFighting.ui.raisedStep"}}</em></p>{{/if}}
+      </div>
+
+      {{#if hasOffer}}
+      <div class="pit-two">
+        <div class="ui-field"><span class="ui-label">{{localize "SDE.pitFighting.ui.size"}}</span>
+          <button type="button" class="ui-btn {{#if group}}pit-on{{/if}}" data-action="toggleSize" title="{{localize 'SDE.pitFighting.ui.sizeTip'}}"><i class="fas fa-users"></i> {{sizeLabel}}</button></div>
+        <div class="ui-field"><span class="ui-label">{{localize "SDE.pitFighting.ui.danger"}}</span>
+          <select data-danger-select aria-label="{{localize 'SDE.pitFighting.ui.dangerLevel'}}">{{#each dangerOptions as |d|}}<option value="{{d.key}}" {{#if d.selected}}selected{{/if}}>{{d.label}}</option>{{/each}}</select>
+          {{#if bout.danger.overridden}}<span class="ui-row-sub">{{localize "SDE.pitFighting.ui.yourCall"}}</span>{{/if}}</div>
+      </div>
+
+      <div class="pit-line">
+        <span class="ui-label">{{localize "SDE.pitFighting.ui.foe"}}</span>
+        <div class="pit-pick">
+          <p class="pit-drawn grow">{{#if foeText}}{{foeText}}{{else}}<em>{{localize "SDE.pitFighting.ui.notImported" table=bout.encounterTable}}</em>{{/if}}</p>
+          <button type="button" class="ui-icon" data-action="drawFoe" title="{{localize 'SDE.pitFighting.ui.draw'}}"><i class="fas fa-rotate"></i></button>
+          {{#if canPlaceFoes}}<button type="button" class="ui-icon" data-action="placeFoes" title="{{localize 'SDE.pitFighting.ui.placeTip'}}"><i class="fas fa-bullseye"></i></button>{{/if}}
+        </div>
+        {{#if foes.length}}
+        <div class="ui-inline">
+          {{#each foes as |f|}}<span class="ui-chip {{#unless f.uuid}}off{{/unless}}"><i class="fas {{#if f.uuid}}fa-circle-check{{else}}fa-circle-question{{/if}}"></i>{{#unless (eq f.count "1")}}{{f.count}}&times;{{/unless}} {{f.display}}{{#if f.note}} <em>({{f.note}})</em>{{/if}}{{#unless f.uuid}} {{localize "SDE.pitFighting.ui.notInCompendium"}}{{/unless}}</span>{{/each}}
+        </div>
+        {{/if}}
       </div>
       {{/if}}
-    </span>
-  </div>
 
-  {{#if hasOffer}}
-  <div class="sde-pit-row">
-    <span class="sde-pit-label">{{localize "SDE.pitFighting.ui.size"}}</span>
-    <span class="sde-pit-roll-total sde-pit-no-die"></span>
-    <span class="sde-pit-text">
-      <button type="button" class="sde-pit-mini {{#if group}}sde-pit-on{{/if}}" data-action="toggleSize"
-              title="{{localize 'SDE.pitFighting.ui.sizeTip'}}">
-        <i class="fas fa-users"></i> {{sizeLabel}}
-      </button>
-    </span>
-  </div>
-
-  <div class="sde-pit-row">
-    <span class="sde-pit-label">{{localize "SDE.pitFighting.ui.danger"}}</span>
-    <span class="sde-pit-roll-total sde-pit-no-die"></span>
-    <span class="sde-pit-text">
-      <select data-danger-select aria-label="{{localize 'SDE.pitFighting.ui.dangerLevel'}}">
-        {{#each dangerOptions as |d|}}
-        <option value="{{d.key}}" {{#if d.selected}}selected{{/if}}>{{d.label}}</option>
-        {{/each}}
-      </select>
-      {{#if bout.danger.overridden}}<em>{{localize "SDE.pitFighting.ui.yourCall"}}</em>{{/if}}
-    </span>
-  </div>
-
-  <div class="sde-pit-row">
-    <span class="sde-pit-label">{{localize "SDE.pitFighting.ui.foe"}}</span>
-    <span class="sde-pit-roll-total sde-pit-no-die" title="{{bout.encounterTable}}"><i class="fas fa-table-list"></i></span>
-    <span class="sde-pit-text">
-      <button type="button" class="sde-pit-mini" data-action="drawFoe"><i class="fas fa-rotate"></i> {{localize "SDE.pitFighting.ui.draw"}}</button>
-      {{#if canPlaceFoes}}
-      <button type="button" class="sde-pit-mini" data-action="placeFoes"
-              title="{{localize 'SDE.pitFighting.ui.placeTip'}}">
-        <i class="fas fa-bullseye"></i> {{localize "SDE.pitFighting.ui.place"}}
-      </button>
+      {{#if hasMissing}}
+      <div class="ui-note warn">
+        <p><i class="fa-solid fa-triangle-exclamation"></i> {{localize "SDE.pitFighting.ui.missingNote"}}</p>
+        <ul class="pit-missing">{{#each missing as |m|}}<li>{{m}}</li>{{/each}}</ul>
+        <button type="button" class="ui-btn" data-action="openImporter"><i class="fas fa-file-import"></i> {{localize "SDE.pitFighting.ui.openImporter"}}</button>
+      </div>
       {{/if}}
-      <div class="sde-pit-drawn">{{#if foeText}}{{foeText}}{{else}}<em>{{localize "SDE.pitFighting.ui.notImported" table=bout.encounterTable}}</em>{{/if}}</div>
-      {{#if foes.length}}
-      <ul class="sde-pit-foes">
-        {{#each foes as |f|}}
-        <li class="sde-pit-foe{{#unless f.uuid}} sde-pit-foe-missing{{/unless}}">
-          {{#if f.uuid}}<i class="fas fa-circle-check"></i>{{else}}<i class="fas fa-circle-question"></i>{{/if}}
-          {{#unless (eq f.count "1")}}<span class="sde-pit-foe-count">{{f.count}}&times;</span>{{/unless}}
-          <span class="sde-pit-foe-name">{{f.display}}</span>
-          {{#if f.note}}<em class="sde-pit-foe-note">({{f.note}})</em>{{/if}}
-          {{#unless f.uuid}}<span class="sde-pit-foe-why">{{localize "SDE.pitFighting.ui.notInCompendium"}}</span>{{/unless}}
-        </li>
-        {{/each}}
-      </ul>
-      {{/if}}
-    </span>
-  </div>
-  {{else}}
-  <div class="sde-pit-footer">
-    <button type="button" class="sde-pit-roll" data-action="rollOffer" {{#unless hasParty}}disabled{{/unless}}>
-      <i class="fas fa-dice"></i> {{localize "SDE.pitFighting.ui.rollOffer"}}
-    </button>
-  </div>
-  {{/if}}
+    </section>
 
-  {{#if hasMissing}}
-  <div class="sde-pit-missing">
-    <p><i class="fa-solid fa-triangle-exclamation"></i> {{localize "SDE.pitFighting.ui.missingNote"}}</p>
-    <ul>{{#each missing as |m|}}<li>{{m}}</li>{{/each}}</ul>
-    <button type="button" class="sde-pit-mini" data-action="openImporter">
-      <i class="fas fa-file-import"></i> {{localize "SDE.pitFighting.ui.openImporter"}}
-    </button>
-  </div>
-  {{/if}}
-
-  {{!-- ── 2. THE TWIST — secret until revealed ───────────────────────────── --}}
-  {{#if hasOffer}}
-  <div class="sde-pit-row sde-pit-twist">
-    <span class="sde-pit-label">{{localize "SDE.pitFighting.ui.twist"}}</span>
-    <span class="sde-pit-roll-total" title="2d6">{{#if hasTwist}}{{bout.twist.total}}{{/if}}</span>
-    <span class="sde-pit-text">
+    {{!-- 2. THE TWIST: secret until revealed --}}
+    {{#if hasOffer}}
+    <section class="ui-card pit-stage">
+      <div class="ui-card-head"><span class="ui-num">2</span><h3 class="ui-card-name">{{localize "SDE.pitFighting.ui.twist"}}</h3>{{#if hasTwist}}<span class="ui-chip gold" title="2d6">{{bout.twist.total}}</span>{{/if}}</div>
       {{#if twistRevealed}}
-        <div class="sde-pit-drawn">
-          {{#if twistText}}{{twistText}}{{else}}<em>{{localize "SDE.pitFighting.ui.twistNotImported"}}</em>{{/if}}
-          {{#if twistSub}}<em>(1d4: {{twistSub}})</em>{{/if}}
-        </div>
+        <p class="pit-drawn">{{#if twistText}}{{twistText}}{{else}}<em>{{localize "SDE.pitFighting.ui.twistNotImported"}}</em>{{/if}}{{#if twistSub}} <em class="ui-muted">(1d4: {{twistSub}})</em>{{/if}}</p>
       {{else}}
-        <button type="button" class="sde-pit-mini" data-action="rollTwist"><i class="fas fa-dice"></i> {{localize "SDE.pitFighting.ui.reroll"}}</button>
-        <select data-twist-select aria-label="{{localize 'SDE.pitFighting.ui.chooseTwist'}}">
-          <option value="">{{localize "SDE.pitFighting.ui.orPick"}}</option>
-          {{#each twistOptions as |t|}}
-          <option value="{{t.total}}" {{#if t.selected}}selected{{/if}}>{{t.range}} · {{#if t.text}}{{t.text}}{{else}}{{t.key}}{{/if}}</option>
-          {{/each}}
-        </select>
-        <button type="button" class="sde-pit-mini" data-action="revealTwist"><i class="fas fa-eye"></i> {{localize "SDE.pitFighting.ui.reveal"}}</button>
-        <div class="sde-pit-hidden">{{#if twistIsNone}}{{localize "SDE.pitFighting.ui.hiddenNone"}}{{else}}{{localize "SDE.pitFighting.ui.hiddenWaiting"}}{{/if}}</div>
+        <div class="pit-pick">
+          <button type="button" class="ui-icon" data-action="rollTwist" title="{{localize 'SDE.pitFighting.ui.reroll'}}"><i class="fas fa-dice"></i></button>
+          <select data-twist-select aria-label="{{localize 'SDE.pitFighting.ui.chooseTwist'}}">
+            <option value="">{{localize "SDE.pitFighting.ui.orPick"}}</option>
+            {{#each twistOptions as |t|}}<option value="{{t.total}}" {{#if t.selected}}selected{{/if}}>{{t.range}} · {{#if t.text}}{{t.text}}{{else}}{{t.key}}{{/if}}</option>{{/each}}
+          </select>
+          <button type="button" class="ui-icon" data-action="revealTwist" title="{{localize 'SDE.pitFighting.ui.reveal'}}"><i class="fas fa-eye"></i></button>
+        </div>
+        <p class="ui-row-sub"><i class="fas fa-eye-slash"></i> {{#if twistIsNone}}{{localize "SDE.pitFighting.ui.hiddenNone"}}{{else}}{{localize "SDE.pitFighting.ui.hiddenWaiting"}}{{/if}}</p>
       {{/if}}
-    </span>
-  </div>
-  {{/if}}
+    </section>
 
-  {{!-- ── 3. THE ANSWER — only once there is a bout to answer ────────────── --}}
-  {{#if hasOffer}}
-  <div class="sde-pit-section-head">
-    <span>{{localize "SDE.pitFighting.ui.whoStepsUp"}} (<span data-fighter-count>{{fighterCount}}</span>)</span>
-  </div>
+    {{!-- 3. THE ANSWER --}}
+    <section class="ui-card pit-stage {{#if undecided}}sel{{/if}}">
+      <div class="ui-card-head"><span class="ui-num">3</span><h3 class="ui-card-name">{{localize "SDE.pitFighting.ui.whoStepsUp"}}</h3></div>
+      {{#if declined}}<div class="ui-note"><i class="fas fa-hand"></i> {{localize "SDE.pitFighting.ui.declined"}}</div>{{/if}}
+      {{#if hasParty}}
+      <div class="ui-list">
+        {{#each party as |p|}}
+        <label class="ui-row">
+          <input type="checkbox" data-fighter="{{p.id}}" {{#if p.checked}}checked{{/if}} {{#if ../accepted}}disabled{{/if}}>
+          <span class="ui-row-main"><span class="ui-row-name">{{p.name}}</span></span>
+          {{#if p.level}}<span class="ui-chip">{{localize "SDE.pitFighting.ui.levelShort" level=p.level}}</span>{{/if}}
+          <span class="ui-chip gold" title="{{localize 'SDE.pitFighting.ui.currentRenown'}}"><i class="fas fa-crown"></i> {{p.renown}}</span>
+        </label>
+        {{/each}}
+      </div>
+      {{/if}}
+    </section>
 
-  {{#if declined}}
-  <p class="notes sde-pit-declined"><i class="fas fa-hand"></i> {{localize "SDE.pitFighting.ui.declined"}}</p>
-  {{/if}}
-
-  {{#if hasParty}}
-  <ul class="sde-pit-members">
-    {{#each party as |p|}}
-    <li class="sde-pit-member">
-      <label>
-        <input type="checkbox" data-fighter="{{p.id}}" {{#if p.checked}}checked{{/if}} {{#if ../accepted}}disabled{{/if}}>
-        <span class="sde-pit-member-name">{{p.name}}</span>
-      </label>
-      <span class="sde-pit-member-stats">
-        {{#if p.level}}<span class="sde-pit-lvl">{{localize "SDE.pitFighting.ui.levelShort" level=p.level}}</span>{{/if}}
-        <span class="sde-pit-ren" title="{{localize 'SDE.pitFighting.ui.currentRenown'}}"><i class="fas fa-crown"></i> {{p.renown}}</span>
-      </span>
-    </li>
-    {{/each}}
-  </ul>
-  {{/if}}
-
-  {{#if undecided}}
-  <div class="sde-pit-footer">
-    <button type="button" class="sde-pit-apply" data-action="accept" {{#unless fighterCount}}disabled{{/unless}}>
-      <i class="fas fa-check"></i> {{localize "SDE.pitFighting.ui.accept"}}
-    </button>
-    <button type="button" class="sde-pit-mini" data-action="decline">
-      <i class="fas fa-xmark"></i> {{localize "SDE.pitFighting.ui.decline"}}
-    </button>
-    <button type="button" class="sde-pit-mini" data-action="clearBout">{{localize "SDE.pitFighting.ui.newOffer"}}</button>
-  </div>
-  {{/if}}
-  {{/if}}
-
-  {{!-- ── 4. THE RESULT ──────────────────────────────────────────────────── --}}
-  {{#if accepted}}
-  <div class="sde-pit-section-head"><span>{{localize "SDE.pitFighting.ui.result"}}</span></div>
-
-  <div class="sde-pit-outcome">
-    <button type="button" class="sde-pit-mini {{#if isWin}}sde-pit-on{{/if}}" data-action="setOutcome" data-outcome="win">
-      <i class="fas fa-trophy"></i> {{localize "SDE.pitFighting.ui.won"}}
-    </button>
-    <button type="button" class="sde-pit-mini {{#if isLoss}}sde-pit-on{{/if}}" data-action="setOutcome" data-outcome="loss">
-      <i class="fas fa-skull"></i> {{localize "SDE.pitFighting.ui.lost"}}
-    </button>
-    <button type="button" class="sde-pit-mini" data-action="rollPrize">
-      <i class="fas fa-sack-dollar"></i> {{localize "SDE.pitFighting.ui.rollTable" table=bout.stakes.table}}
-    </button>
+    {{!-- 4. THE RESULT --}}
+    {{#if accepted}}
+    <section class="ui-card pit-stage sel">
+      <div class="ui-card-head"><span class="ui-num">4</span><h3 class="ui-card-name">{{localize "SDE.pitFighting.ui.result"}}</h3></div>
+      <div class="ui-inline">
+        <button type="button" class="ui-btn {{#if isWin}}pit-on{{/if}}" data-action="setOutcome" data-outcome="win"><i class="fas fa-trophy"></i> {{localize "SDE.pitFighting.ui.won"}}</button>
+        <button type="button" class="ui-btn {{#if isLoss}}pit-on{{/if}}" data-action="setOutcome" data-outcome="loss"><i class="fas fa-skull"></i> {{localize "SDE.pitFighting.ui.lost"}}</button>
+        <button type="button" class="ui-btn" data-action="rollPrize"><i class="fas fa-sack-dollar"></i> {{localize "SDE.pitFighting.ui.rollTable" table=bout.stakes.table}}</button>
+      </div>
+      {{#if prize}}<div class="ui-pair"><span class="ui-label">{{localize "SDE.pitFighting.ui.prize"}}</span><span class="ui-value pit-prize">{{prize}}</span></div>{{/if}}
+      {{#if outcome}}
+      <div class="ui-field">
+        <label class="ui-label" for="pit-renown">{{localize "SDE.pitFighting.ui.renownEach"}}</label>
+        <input id="pit-renown" class="ui-num-in" type="number" step="1" value="{{renownDelta}}" data-renown-delta aria-label="{{localize 'SDE.pitFighting.ui.renownEachTip'}}">
+        <span class="ui-row-sub">{{localize "SDE.pitFighting.ui.renownNote"}}</span>
+      </div>
+      {{/if}}
+    </section>
+    {{/if}}
+    {{/if}}
   </div>
 
-  {{#if prize}}
-  <div class="sde-pit-row">
-    <span class="sde-pit-label">{{localize "SDE.pitFighting.ui.prize"}}</span>
-    <span class="sde-pit-roll-total sde-pit-no-die"></span>
-    <span class="sde-pit-text">{{prize}}</span>
-  </div>
-  {{/if}}
-
-  {{#if outcome}}
-  <div class="sde-pit-fame">
-    <label>
-      {{localize "SDE.pitFighting.ui.renownEach"}}
-      <input type="number" step="1" value="{{renownDelta}}" data-renown-delta aria-label="{{localize 'SDE.pitFighting.ui.renownEachTip'}}">
-    </label>
-    <p class="notes">{{localize "SDE.pitFighting.ui.renownNote"}}</p>
-  </div>
-  {{/if}}
-
-  <div class="sde-pit-footer">
-    <button type="button" class="sde-pit-apply" data-action="applyResults" {{#unless canApply}}disabled{{/unless}}>
-      <i class="fas fa-check"></i> {{#if applied}}{{localize "SDE.pitFighting.ui.applied"}}{{else}}{{localize "SDE.pitFighting.ui.applyResult"}}{{/if}}
-    </button>
-    <button type="button" class="sde-pit-mini" data-action="clearBout">{{localize "SDE.pitFighting.ui.newOffer"}}</button>
-  </div>
-  {{/if}}
-
+  <footer class="ui-footer">
+    {{#if hasOffer}}
+      <button type="button" class="ui-btn ghost" data-action="clearBout">{{localize "SDE.pitFighting.ui.newOffer"}}</button>
+      <div class="ui-right">
+        {{#if undecided}}
+          <button type="button" class="ui-btn" data-action="decline"><i class="fas fa-xmark"></i> {{localize "SDE.pitFighting.ui.decline"}}</button>
+          <button type="button" class="ui-btn primary" data-action="accept" {{#unless fighterCount}}disabled{{/unless}}><i class="fas fa-check"></i> {{localize "SDE.pitFighting.ui.accept"}}</button>
+        {{/if}}
+        {{#if accepted}}
+          <button type="button" class="ui-btn primary" data-action="applyResults" {{#unless canApply}}disabled{{/unless}}><i class="fas fa-check"></i> {{#if applied}}{{localize "SDE.pitFighting.ui.applied"}}{{else}}{{localize "SDE.pitFighting.ui.applyResult"}}{{/if}}</button>
+        {{/if}}
+      </div>
+    {{else}}
+      <div class="ui-right"><button type="button" class="ui-btn primary" data-action="rollOffer" {{#unless hasParty}}disabled{{/unless}}><i class="fas fa-dice"></i> {{localize "SDE.pitFighting.ui.rollOffer"}}</button></div>
+    {{/if}}
+  </footer>
 </div>

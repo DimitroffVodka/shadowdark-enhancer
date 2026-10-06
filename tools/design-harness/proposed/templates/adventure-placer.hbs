@@ -1,0 +1,35 @@
+{{!-- Adventure Placer, proposed. Same context and data attributes as templates/adventure-placer.hbs. --}}
+<div class="ui-shell">
+  <header class="ui-head">
+    <div class="ui-head-text"><h2 class="ui-title imp-small">{{sceneName}}</h2><p class="ui-sub">{{summary}}</p></div>
+  </header>
+  <div class="ui-body imp-tight">
+    <div class="ui-note {{#if armed}}warn{{else}}info{{/if}}"><i class="fas {{#if armed}}fa-crosshairs{{else}}fa-circle-info{{/if}}"></i> {{hint}}</div>
+    {{#if missing}}
+    <div class="ui-empty"><i class="fa-solid fa-location-dot"></i><span>{{localize "SDE.adventure.placer.noJournal"}}</span></div>
+    {{else}}
+    <div class="ui-list">
+      {{#each rows as |r|}}
+      <div class="ui-row imp-placerow{{#if r.armed}} sel{{/if}}{{#if r.skipped}} is-skipped{{/if}}">
+        <div class="ui-row-main"><span class="ui-row-name">{{r.name}}</span></div>
+        <span class="ui-chip {{#if r.placed}}ok{{else if r.skipped}}off{{else if r.armed}}gold{{/if}}">{{r.label}}</span>
+        <div class="ui-card-actions">
+          <button type="button" class="ui-icon" data-action="advPlace" data-num="{{r.num}}" title="{{localize 'SDE.adventure.placer.placeTip'}}" aria-label="{{localize 'SDE.adventure.placer.placeTip'}}"><i class="fas fa-location-dot"></i></button>
+          <button type="button" class="ui-icon" data-action="advSkip" data-num="{{r.num}}" title="{{localize 'SDE.adventure.placer.skipTip'}}" aria-label="{{localize 'SDE.adventure.placer.skipTip'}}"><i class="fas {{#if r.skipped}}fa-rotate-left{{else}}fa-forward{{/if}}"></i></button>
+          <button type="button" class="ui-icon danger" data-action="advClear" data-num="{{r.num}}" title="{{localize 'SDE.adventure.placer.clearTip'}}" aria-label="{{localize 'SDE.adventure.placer.clearTip'}}" {{#unless r.placed}}disabled{{/unless}}><i class="fas fa-eraser"></i></button>
+        </div>
+      </div>
+      {{/each}}
+    </div>
+    {{/if}}
+  </div>
+  <footer class="ui-footer imp-wrap">
+    <button type="button" class="ui-btn" data-action="advBook" title="{{localize 'SDE.adventure.placer.fromBookTip'}}"><i class="fas fa-wand-magic-sparkles"></i> {{localize "SDE.adventure.placer.fromBook"}}</button>
+    <button type="button" class="ui-icon" data-action="advMonsters" title="{{localize 'SDE.adventure.placer.monstersTip'}}" aria-label="{{localize 'SDE.adventure.placer.monstersTip'}}"><i class="fas fa-skull"></i></button>
+    <button type="button" class="ui-icon" data-action="advExport" title="{{localize 'SDE.adventure.placer.exportTip'}}" aria-label="{{localize 'SDE.adventure.placer.exportTip'}}"><i class="fas fa-copy"></i></button>
+    <div class="ui-right">
+      <button type="button" class="ui-btn ghost" data-action="advStop" {{#unless armed}}disabled{{/unless}}><i class="fas fa-xmark"></i> {{localize "SDE.adventure.placer.stop"}}</button>
+      <button type="button" class="ui-btn primary sde-import-primary" data-action="advNext"><i class="fas fa-location-crosshairs"></i> {{localize "SDE.adventure.placer.placeNext"}}</button>
+    </div>
+  </footer>
+</div>

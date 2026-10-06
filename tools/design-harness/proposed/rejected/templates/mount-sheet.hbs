@@ -1,0 +1,308 @@
+<div class="ui-shell sde-mount-ui">
+
+  <header class="ui-head">
+    <img src="{{actor.img}}" data-action="editImage" data-edit="img" data-tooltip="{{actor.name}}" alt="">
+    <div class="ui-head-text">
+      <input class="ui-title-input" type="text" name="name" value="{{actor.name}}" placeholder="{{localize 'SHADOWDARK.sheet.actor.placeholder.name'}}">
+      <p class="ui-sub">{{#each choices.rarities}}{{#if selected}}{{label}}{{/if}}{{/each}}{{#if mount.trained}} &middot; {{localize "SDE.mount.trained"}}{{/if}}</p>
+    </div>
+    <div class="ui-stats">
+      <div class="ui-stat"><span class="ui-label">{{localize "SHADOWDARK.sheet.actor.hp"}}</span>
+        <div class="ui-inputs">
+          <input type="number" name="system.attributes.hp.value" value="{{system.attributes.hp.value}}" placeholder="0">
+          <span>/</span>
+          <input type="number" name="system.attributes.hp.max" value="{{system.attributes.hp.max}}" placeholder="0" step="1">
+          {{#if owner}}<button type="button" class="ui-icon" data-action="rollHp" data-tooltip="{{localize 'SHADOWDARK.sheet.actor.hp'}}"><i class="fa-solid fa-dice"></i></button>{{/if}}
+        </div>
+      </div>
+      <div class="ui-stat"><span class="ui-label">{{localize "SHADOWDARK.sheet.actor.ac"}}</span><div class="ui-inputs"><input type="number" name="system.attributes.ac.value" value="{{system.attributes.ac.value}}" placeholder="0"></div></div>
+      <div class="ui-stat"><span class="ui-label">{{localize "SHADOWDARK.sheet.actor.level"}}</span><div class="ui-inputs"><input type="number" name="system.level.value" value="{{system.level.value}}" placeholder="0"></div></div>
+      <div class="ui-stat"><span class="ui-label">{{localize "SDE.vehicle.slots"}}</span><span class="ui-value">{{derived.slotsUsed}}{{#if derived.gearSlotsMax}} / {{derived.gearSlotsMax}}{{/if}}</span></div>
+    </div>
+  </header>
+
+  <nav class="ui-tabs">
+    <button type="button" class="ui-tab {{#if tab.stats}}active{{/if}}" data-action="changeTab" data-tab="stats">{{localize "SHADOWDARK.sheet.npc.tab.abilities"}}</button>
+    <button type="button" class="ui-tab {{#if tab.riders}}active{{/if}}" data-action="changeTab" data-tab="riders">{{localize "SDE.mount.riders"}}{{#if occupantCount}} <span class="ui-count">{{occupantCount}}</span>{{/if}}</button>
+    <button type="button" class="ui-tab {{#if tab.gear}}active{{/if}}" data-action="changeTab" data-tab="gear">{{localize "SDE.mount.inventory"}}</button>
+    <button type="button" class="ui-tab {{#if tab.mount}}active{{/if}}" data-action="changeTab" data-tab="mount">{{localize "SDE.mount.tabMount"}}</button>
+    <button type="button" class="ui-tab {{#if tab.spells}}active{{else if tab.notes}}active{{else if tab.effects}}active{{/if}}" data-group="more" data-action="changeTab" data-tab="notes">{{localize "SDE.ui.mountMore"}}</button>
+  </nav>
+
+  <div class="ui-body sde-mount-body">
+
+    {{!-- Abilities --}}
+    <section class="ui-two ui-pane {{#if tab.stats}}active{{/if}}" data-tab-content="stats">
+      <div class="ui-stack">
+        <div class="ui-card">
+          <div class="ui-card-head">
+            <h3 class="ui-card-name">{{localize "SHADOWDARK.sheet.abilities.stats"}}</h3>
+            {{#if owner}}<div class="ui-card-actions"><button type="button" class="ui-icon" data-action="toggleEditStats" data-tooltip="{{localize 'SHADOWDARK.sheet.player.toggle_edit_stats'}}"><i class="fa-solid {{#if editingStats}}fa-square-xmark{{else}}fa-pen-to-square{{/if}}"></i></button></div>{{/if}}
+          </div>
+          <div class="ui-abilities">
+            {{#each mountAbilities}}
+              <div class="ui-ability">
+                <a class="ui-roll" data-action="rollAbility" data-ability="{{key}}"><i class="fa-solid fa-dice-d20"></i> {{label}}</a>
+                {{#if ../editingStats}}
+                  <input name="flags.shadowdark-enhancer.mountScores.base.{{key}}" type="number" value="{{base}}" step="1" placeholder="10">
+                {{else}}
+                  <span class="ui-value"><span {{#if damage}}class="is-damaged" data-tooltip="{{localize 'SDE.mount.damagedScore' base=base damage=damage}}"{{/if}}>{{value}}</span><small>{{numberFormat mod decimals=0 sign=true}}</small></span>
+                {{/if}}
+              </div>
+            {{/each}}
+          </div>
+        </div>
+        <div class="ui-card">
+          <div class="ui-fields">
+            <div class="ui-field"><span class="ui-label">{{localize "SHADOWDARK.sheet.npc.movement"}}</span><select name="system.move">{{#each moves}}<option value="{{value}}" {{#if selected}}selected{{/if}}>{{label}}</option>{{/each}}</select></div>
+            <div class="ui-field"><span class="ui-label">{{localize "SHADOWDARK.sheet.actor.alignment"}}</span><select name="system.alignment">{{#each alignments}}<option value="{{value}}" {{#if selected}}selected{{/if}}>{{label}}</option>{{/each}}</select></div>
+          </div>
+          <div class="ui-field"><span class="ui-label">{{localize "SDE.mount.note"}}</span><input type="text" name="system.moveNote" value="{{system.moveNote}}"></div>
+          <label class="ui-check"><input type="checkbox" name="system.darkAdapted" {{#if system.darkAdapted}}checked{{/if}}> {{localize "SHADOWDARK.sheet.npc.dark_adapted"}}</label>
+        </div>
+      </div>
+      <div class="ui-stack">
+        <section class="ui-card">
+          <div class="ui-card-head"><h3 class="ui-card-name">{{localize "SHADOWDARK.sheet.npc.attacks_label"}}</h3><div class="ui-card-actions"><button type="button" class="ui-icon" data-action="itemCreate" data-item-type="NPC Attack" data-tooltip="{{localize 'SHADOWDARK.sheet.general.item_create.tooltip' type='NPC Attack'}}"><i class="fa-solid fa-plus"></i></button></div></div>
+          <div>{{#each attacks}}<div class="item attack ui-attack" data-item-id="{{itemId}}">{{{display}}}</div>{{/each}}</div>
+        </section>
+        <section class="ui-card">
+          <div class="ui-card-head"><h3 class="ui-card-name">{{localize "SHADOWDARK.sheet.npc.specials_label"}}</h3><div class="ui-card-actions"><button type="button" class="ui-icon" data-action="itemCreate" data-item-type="NPC Special Attack" data-tooltip="{{localize 'SHADOWDARK.sheet.general.item_create.tooltip' type='NPC Special Attack'}}"><i class="fa-solid fa-plus"></i></button></div></div>
+          <div>{{#each specials}}<div class="item attack ui-attack" data-item-id="{{itemId}}">{{{display}}}</div>{{/each}}</div>
+        </section>
+        <section class="ui-card">
+          <div class="ui-card-head"><h3 class="ui-card-name">{{localize "SHADOWDARK.sheet.npc.features_label"}}</h3><div class="ui-card-actions"><button type="button" class="ui-icon" data-action="itemCreate" data-item-type="NPC Feature" data-tooltip="{{localize 'SHADOWDARK.sheet.general.item_create.tooltip' type='NPC Feature'}}"><i class="fa-solid fa-plus"></i></button></div></div>
+          <div>
+            {{#each features}}
+              <div class="item attack ui-attack" data-item-id="{{itemId}}">
+                <a class="rollable" data-action="display-feature" data-item-id="{{itemId}}"><i class="fa-solid fa-comment"></i> <b>{{name}}.</b></a>
+                {{{description}}}
+              </div>
+            {{/each}}
+          </div>
+        </section>
+      </div>
+    </section>
+
+    {{!-- Riders --}}
+    <section class="ui-group ui-pane {{#if tab.riders}}active{{/if}}" data-tab-content="riders">
+      <h3 class="ui-h">{{localize "SDE.mount.riders"}} <small>{{occupantCount}}</small></h3>
+      <div class="ui-inline"><button type="button" class="ui-btn primary" data-action="placeTokens"><i class="fa-solid fa-map-pin"></i> {{localize "SDE.vehicle.placeTokens"}}</button></div>
+      <div class="ui-drop" data-drop="occupant">
+        {{#if occupantCount}}
+          <div class="ui-list">
+            {{#each occupants}}
+              <div class="ui-row ui-rider" data-uuid="{{uuid}}">
+                {{#if broken}}
+                  <div class="ui-row-main"><span class="ui-row-name is-damaged"><i class="fa-solid fa-triangle-exclamation"></i> {{name}}</span></div>
+                {{else}}
+                  <img src="{{img}}" data-action="openOccupant" title="{{localize 'SDE.vehicle.openSheet'}}" alt="">
+                  <div class="ui-row-main">
+                    <span class="ui-row-name">{{name}} <span class="ui-dim">{{subtitle}}</span></span>
+                    <span class="ui-row-sub">{{localize "SDE.vehicle.stat.str"}} {{abilities.str}} &middot; {{localize "SDE.vehicle.stat.dex"}} {{abilities.dex}} &middot; {{localize "SDE.vehicle.stat.con"}} {{abilities.con}} &middot; {{localize "SDE.vehicle.stat.int"}} {{abilities.int}} &middot; {{localize "SDE.vehicle.stat.wis"}} {{abilities.wis}} &middot; {{localize "SDE.vehicle.stat.cha"}} {{abilities.cha}}</span>
+                    <div class="ui-inline ui-chips"><span class="ui-chip">{{localize "SDE.vehicle.stat.hp"}} {{hp.value}}/{{hp.max}}</span>
+                  <span class="ui-chip">{{localize "SDE.vehicle.stat.ac"}} {{ac}}</span>
+                  {{#if level}}<span class="ui-chip">{{localize "SDE.vehicle.stat.lvl"}} {{level}}</span>{{/if}}</div>
+                  </div>
+                  
+                {{/if}}
+                <button type="button" class="ui-icon danger" data-action="removeOccupant" title="{{localize 'SDE.vehicle.remove'}}"><i class="fa-solid fa-xmark"></i></button>
+              </div>
+            {{/each}}
+          </div>
+        {{else}}
+          <div class="ui-empty"><i class="fa-solid fa-horse-head"></i><span>{{localize "SDE.mount.ridersEmpty"}}</span></div>
+        {{/if}}
+      </div>
+    </section>
+
+    {{!-- Inventory --}}
+    <section class="ui-group ui-pane {{#if tab.gear}}active{{/if}}" data-tab-content="gear">
+      <h3 class="ui-h">{{localize "SDE.mount.inventory"}} <small>{{derived.slotsTotal}}</small></h3>
+      <div class="ui-inline">
+        <span class="ui-chip gold"><i class="fa-solid fa-box"></i> {{localize "SDE.vehicle.slots"}} {{derived.slotsUsed}}{{#if derived.gearSlotsMax}} / {{derived.gearSlotsMax}}{{/if}}</span>
+        {{#if derived.riderSlots}}<span class="ui-muted">{{localize "SDE.mount.riderSlots" slots=derived.riderSlots total=derived.slotsTotal}}</span>{{/if}}
+      </div>
+      <div class="ui-drop" data-drop="inventory">
+        {{#if inventory.length}}
+          <div class="ui-list">
+            {{#each inventory}}
+              <div class="ui-row" data-item-id="{{id}}">
+                <img src="{{img}}" data-action="openItem" alt="">
+                <div class="ui-row-main"><span class="ui-row-name" data-action="openItem">{{name}}</span></div>
+                <span class="ui-chip">&times;{{quantity}}</span>
+                <span class="ui-row-meta">{{localize "SDE.vehicle.slotsShort" slots=slots}}</span>
+                <button type="button" class="ui-icon danger" data-action="deleteItem" title="{{localize 'SDE.vehicle.delete'}}"><i class="fa-solid fa-trash"></i></button>
+              </div>
+            {{/each}}
+          </div>
+        {{else}}
+          <div class="ui-empty"><i class="fa-solid fa-box-open"></i><span>{{localize "SDE.mount.inventoryEmpty"}}</span></div>
+        {{/if}}
+      </div>
+    </section>
+
+    {{!-- Mount rules --}}
+    <section class="ui-stack ui-pane {{#if tab.mount}}active{{/if}}" data-tab-content="mount">
+      <div class="ui-inline">
+        <button type="button" class="ui-btn primary" data-action="levelUp"><i class="fa-solid fa-arrow-up"></i> {{localize "SDE.mount.levelUp"}}</button>
+        <button type="button" class="ui-btn" data-action="push"><i class="fa-solid fa-person-walking-arrow-right"></i> {{localize "SDE.mount.pushCheck"}}</button>
+        <button type="button" class="ui-btn" data-action="morale"><i class="fa-solid fa-heart-pulse"></i> {{localize "SDE.mount.moraleCheck"}}</button>
+      </div>
+      <div class="ui-cols-2">
+        <section class="ui-card">
+          <div class="ui-card-head"><h3 class="ui-card-name">{{localize "SDE.mount.rarityTraining"}}</h3></div>
+          <div class="ui-fields">
+            <div class="ui-field"><span class="ui-label">{{localize "SDE.mount.rarityLabel"}}</span><select name="flags.shadowdark-enhancer.mount.rarity">{{#each choices.rarities}}<option value="{{value}}" {{#if selected}}selected{{/if}}>{{label}}</option>{{/each}}</select></div>
+            <div class="ui-field"><span class="ui-label">{{localize "SDE.mount.attackBonus"}}</span><input class="ui-ro" type="text" value="+{{derived.attackBonus}}" disabled title="{{localize 'SDE.mount.attackBonusTip'}}"></div>
+          </div>
+          <label class="ui-check"><input type="checkbox" name="flags.shadowdark-enhancer.mount.trained" {{#if mount.trained}}checked{{/if}}> {{localize "SDE.mount.trained"}}</label>
+          {{#if derived.needsTraining}}<div class="ui-note warn">{{localize "SDE.mount.needsTraining"}}</div>{{/if}}
+        </section>
+        <section class="ui-card">
+          <div class="ui-card-head"><h3 class="ui-card-name">{{localize "SDE.mount.personalityHeader"}}</h3><div class="ui-card-actions"><button type="button" class="ui-btn" data-action="personality"><i class="fa-solid fa-dice-d20"></i> {{localize "SDE.vehicle.rollButton"}}</button></div></div>
+          <div class="ui-field"><span class="ui-label">{{localize "SDE.mount.disposition"}}</span><select name="flags.shadowdark-enhancer.mount.personality">{{#each choices.personalities}}<option value="{{value}}" {{#if selected}}selected{{/if}}>{{label}}</option>{{/each}}</select></div>
+          <div class="ui-field"><span class="ui-label">{{localize "SDE.mount.note"}}</span><input type="text" name="flags.shadowdark-enhancer.mount.personalityNote" value="{{mount.personalityNote}}"></div>
+        </section>
+        <section class="ui-card">
+          <div class="ui-card-head"><h3 class="ui-card-name">{{localize "SDE.vehicle.properties"}}</h3></div>
+          <div class="ui-inline">
+            <label class="ui-check"><input type="checkbox" name="flags.shadowdark-enhancer.mount.properties.armor" {{#if mount.properties.armor}}checked{{/if}}> {{localize "SDE.mount.prop.armor"}}</label>
+            <label class="ui-check"><input type="checkbox" name="flags.shadowdark-enhancer.mount.properties.flying" {{#if mount.properties.flying}}checked{{/if}}> {{localize "SDE.mount.prop.flying"}}</label>
+            <label class="ui-check"><input type="checkbox" name="flags.shadowdark-enhancer.mount.properties.goodTempered" {{#if mount.properties.goodTempered}}checked{{/if}}> {{localize "SDE.mount.prop.goodTempered"}}</label>
+            <label class="ui-check"><input type="checkbox" name="flags.shadowdark-enhancer.mount.properties.sturdy" {{#if mount.properties.sturdy}}checked{{/if}}> {{localize "SDE.mount.prop.sturdy"}}</label>
+          </div>
+          <div class="ui-field"><span class="ui-label">{{localize "SDE.vehicle.other"}}</span><input type="text" name="flags.shadowdark-enhancer.mount.propertiesNote" value="{{mount.propertiesNote}}"></div>
+        </section>
+        <section class="ui-card">
+          <div class="ui-card-head"><h3 class="ui-card-name">{{localize "SDE.mount.tackHeader"}}</h3></div>
+          <div class="ui-inline">
+            <label class="ui-check"><input type="checkbox" name="flags.shadowdark-enhancer.mount.tack.saddle" {{#if mount.tack.saddle}}checked{{/if}}> {{localize "SDE.mount.tack.saddle"}}</label>
+            <label class="ui-check"><input type="checkbox" name="flags.shadowdark-enhancer.mount.tack.wagon" {{#if mount.tack.wagon}}checked{{/if}}> {{localize "SDE.mount.tack.wagon"}}</label>
+          </div>
+          <div class="ui-field"><span class="ui-label">{{localize "SDE.mount.gearMax"}}</span><input class="ui-ro" type="text" value="{{derived.gearSlotsMax}}" disabled title="{{localize 'SDE.mount.gearMaxTip'}}"></div>
+        </section>
+      </div>
+      <section class="ui-card">
+        <div class="ui-card-head"><h3 class="ui-card-name">{{localize "SDE.mount.careHeader"}}</h3></div>
+        <label class="ui-check"><input type="checkbox" name="flags.shadowdark-enhancer.mount.properties.grazing" {{#if mount.properties.grazing}}checked{{/if}}> {{localize "SDE.mount.grazing"}}</label>
+        <div class="ui-fields">
+          <div class="ui-field"><span class="ui-label">{{localize "SDE.mount.metabolism"}}</span><select name="flags.shadowdark-enhancer.mount.bloodType">{{#each choices.bloodTypes}}<option value="{{value}}" {{#if selected}}selected{{/if}}>{{label}}</option>{{/each}}</select></div>
+          <div class="ui-field"><span class="ui-label">{{localize "SDE.mount.daysSinceFood"}}</span><input type="number" name="flags.shadowdark-enhancer.mount.feeding.daysSinceFood" value="{{mount.feeding.daysSinceFood}}"></div>
+          <div class="ui-field"><span class="ui-label">{{localize "SDE.mount.daysSinceWater"}}</span><input type="number" name="flags.shadowdark-enhancer.mount.feeding.daysSinceWater" value="{{mount.feeding.daysSinceWater}}"></div>
+          <div class="ui-field"><span class="ui-label">{{localize "SDE.mount.pushDays"}}</span><input type="number" name="flags.shadowdark-enhancer.mount.pushing.consecutiveDays" value="{{mount.pushing.consecutiveDays}}"></div>
+          <div class="ui-field"><span class="ui-label">{{localize "SDE.mount.pushHexes"}}</span><input class="ui-ro" type="text" value="{{derived.pushHexesPerDay}}" disabled title="{{localize 'SDE.mount.pushHexesTip'}}"></div>
+        </div>
+        {{#if derived.thirstDanger}}<div class="ui-note bad">{{localize "SDE.mount.thirstWarn"}}</div>{{/if}}
+        {{#if derived.starveDanger}}<div class="ui-note bad">{{localize "SDE.mount.starveWarn"}}</div>{{/if}}
+        <div class="ui-field"><span class="ui-label">{{localize "SDE.mount.stabledAt"}}</span>
+          <select name="flags.shadowdark-enhancer.mount.bastion">
+            <option value="">{{localize "SDE.mount.stabledNone"}}</option>
+            {{#each stabling.bastions}}<option value="{{uuid}}" {{#if selected}}selected{{/if}}>{{name}}</option>{{/each}}
+          </select>
+        </div>
+        {{#if stabling.missing}}<div class="ui-note warn">{{localize "SDE.mount.stabledMissing"}}</div>{{/if}}
+        {{#if stabling.line}}<div class="ui-note info">{{stabling.line}}</div>{{/if}}
+      </section>
+      <details class="ui-details sde-veh-basebox" data-drop="base-npc">
+        <summary>{{localize "SDE.mount.baseCreature"}}</summary>
+        <div class="ui-details-body">
+          <div class="ui-inline">
+            <div class="ui-field ui-grow"><span class="ui-label">{{localize "SDE.mount.copyFrom"}}</span>
+              <select data-sde-base-select><option value="">{{localize "SDE.mount.chooseNpc"}}</option>{{#each npcChoices}}<option value="{{uuid}}">{{name}}</option>{{/each}}</select>
+            </div>
+            <button type="button" class="ui-btn" data-action="applyBase"><i class="fa-solid fa-clone"></i> {{localize "SDE.mount.apply"}}</button>
+          </div>
+          <div class="ui-note info">{{localize "SDE.mount.baseDropHint"}}</div>
+        </div>
+      </details>
+    </section>
+
+    {{!-- Spells, Description, Effects: one grouped tab with a switch --}}
+    <section class="ui-stack ui-pane {{#if tab.spells}}active{{/if}}" data-tab-content="spells" data-group="more">
+      <div class="ui-seg"><button type="button" class="ui-btn ghost active" data-action="changeTab" data-tab="spells">{{localize "SHADOWDARK.sheet.npc.tab.spells"}}</button><button type="button" class="ui-btn ghost" data-action="changeTab" data-tab="notes">{{localize "SHADOWDARK.sheet.npc.tab.description"}}</button><button type="button" class="ui-btn ghost" data-action="changeTab" data-tab="effects">{{localize "SHADOWDARK.sheet.item.tab.effects"}}</button></div>
+      <section class="ui-card">
+        <div class="ui-card-head"><h3 class="ui-card-name">{{localize "SHADOWDARK.sheet.npc.tab.spells"}}</h3><div class="ui-card-actions"><button type="button" class="ui-icon" data-action="itemCreate" data-item-type="Spell" data-tooltip="{{localize 'SHADOWDARK.sheet.general.item_create.tooltip' type='Spell'}}"><i class="fa-solid fa-plus"></i></button></div></div>
+        <div class="ui-fields">
+          <div class="ui-field"><span class="ui-label">{{localize "SHADOWDARK.item.npc.spell_count"}}</span><input type="number" name="system.spellcasting.attacks" value="{{system.spellcasting.attacks}}" placeholder="0"></div>
+          <div class="ui-field"><span class="ui-label">{{localize "SHADOWDARK.item.npc.spell_bonus"}}</span><input type="number" name="system.spellcasting.bonus" value="{{system.spellcasting.bonus}}" placeholder="0"></div>
+          <div class="ui-field"><span class="ui-label">{{localize "SHADOWDARK.item.npc.spell_ability"}}</span><select name="system.spellcasting.ability"><option value="">&mdash;</option>{{#each castingAbilities}}<option value="{{value}}" {{#if selected}}selected{{/if}}>{{label}}</option>{{/each}}</select></div>
+        </div>
+        {{#if spells.length}}
+        <div class="ui-list">
+          {{#each spells}}
+            <div class="ui-row ui-wrap item expanded" data-item-id="{{id}}" data-uuid="{{uuid}}">
+              <img src="{{img}}" alt="">
+              <div class="ui-row-main"><a class="ui-row-name {{#if lost}}strike-through{{/if}}" data-action="show-details">{{name}}</a><span class="ui-row-sub">{{localize "SHADOWDARK.class-ability.dc.label"}} {{dc}} &middot; {{duration}} &middot; {{range}}</span></div>
+              {{#unless lost}}
+                {{#if focus}}<button type="button" class="ui-icon" data-action="focus-npc-spell" data-item-id="{{id}}" data-item-uuid="{{uuid}}" data-tooltip="{{localize 'SHADOWDARK.sheet.player.tooltip.focus_on_spell'}}"><i class="fa-solid fa-brain"></i></button>{{/if}}
+                <button type="button" class="ui-icon" data-action="cast-npc-spell" data-item-id="{{id}}" data-item-uuid="{{uuid}}" data-tooltip="{{localize 'SHADOWDARK.sheet.player.tooltip.cast_spell'}}"><i class="fa-solid fa-hand-sparkles"></i></button>
+              {{/unless}}
+              <button type="button" class="ui-icon" data-action="toggle-lost" data-item-id="{{id}}" data-tooltip="{{localize 'SHADOWDARK.sheet.player.toggle_spell_lost'}}"><i class="fa-solid {{#if lost}}fa-xmark{{else}}fa-check{{/if}}"></i></button>
+              <div class="item-details">{{{description}}}</div>
+            </div>
+          {{/each}}
+        </div>
+        {{else}}
+          <div class="ui-empty"><i class="fa-solid fa-hand-sparkles"></i><span>{{localize "SDE.ui.spellsEmpty"}}</span></div>
+        {{/if}}
+      </section>
+    </section>
+
+    <section class="ui-stack ui-pane {{#if tab.notes}}active{{/if}}" data-tab-content="notes" data-group="more">
+      <div class="ui-seg"><button type="button" class="ui-btn ghost" data-action="changeTab" data-tab="spells">{{localize "SHADOWDARK.sheet.npc.tab.spells"}}</button><button type="button" class="ui-btn ghost active" data-action="changeTab" data-tab="notes">{{localize "SHADOWDARK.sheet.npc.tab.description"}}</button><button type="button" class="ui-btn ghost" data-action="changeTab" data-tab="effects">{{localize "SHADOWDARK.sheet.item.tab.effects"}}</button></div>
+      <section class="ui-card">
+        <div class="ui-card-head"><h3 class="ui-card-name">{{localize "SHADOWDARK.sheet.npc.tab.description"}}</h3></div>
+        <prose-mirror name="system.notes" value="{{system.notes}}" toggled="true" collaborate="false">{{{enrichedNotes}}}</prose-mirror>
+      </section>
+    </section>
+
+    <section class="ui-stack ui-pane {{#if tab.effects}}active{{/if}}" data-tab-content="effects" data-group="more">
+      <div class="ui-seg"><button type="button" class="ui-btn ghost" data-action="changeTab" data-tab="spells">{{localize "SHADOWDARK.sheet.npc.tab.spells"}}</button><button type="button" class="ui-btn ghost" data-action="changeTab" data-tab="notes">{{localize "SHADOWDARK.sheet.npc.tab.description"}}</button><button type="button" class="ui-btn ghost active" data-action="changeTab" data-tab="effects">{{localize "SHADOWDARK.sheet.item.tab.effects"}}</button></div>
+      <section class="ui-card">
+        <div class="ui-card-head"><h3 class="ui-card-name">{{localize "SHADOWDARK.sheet.general.effects_and_conditions.title"}}</h3></div>
+        {{#each effects}}
+          <div class="ui-group">
+            <span class="ui-label">{{label}}</span>
+            {{#if items.length}}
+              <div class="ui-list">
+                {{#each items}}
+                  <div class="ui-row item effect" data-item-id="{{id}}" data-uuid="{{uuid}}">
+                    <img src="{{img}}" alt="">
+                    <div class="ui-row-main"><a class="ui-row-name effect-name" data-action="show-details">{{name}}</a></div>
+                    <span class="ui-row-meta">{{#if unlimited}}<i class="fa-solid fa-infinity"></i>{{else}}<i class="fa-solid fa-clock"></i>{{/if}}</span>
+                  </div>
+                {{/each}}
+              </div>
+            {{else}}<span class="ui-muted">&mdash;</span>{{/if}}
+          </div>
+        {{/each}}
+      </section>
+      <section class="ui-card">
+        <div class="ui-card-head"><h3 class="ui-card-name">{{localize "SHADOWDARK.app.active_effects.title"}}</h3><div class="ui-card-actions"><button type="button" class="ui-icon" data-action="effectControl" data-effect-action="create" data-tooltip="{{localize 'SHADOWDARK.app.active_effects.title'}}"><i class="fa-solid fa-plus"></i></button></div></div>
+        <div class="ui-field"><span class="ui-label">{{localize "SHADOWDARK.item.effect.pre-defined.title"}}</span>
+          <input list="sde-mount-predefined-effects" name="predefinedEffects" type="text" value="" placeholder="{{localize 'SHADOWDARK.dialog.type_here'}}">
+          <datalist id="sde-mount-predefined-effects">{{#each predefinedEffects}}<option value="{{key}}" label="{{name}}"></option>{{/each}}</datalist>
+        </div>
+        {{#if activeEffects.length}}
+        <div class="ui-list">
+          {{#each activeEffects}}
+            <div class="ui-row effect" data-effect-uuid="{{uuid}}">
+              <img src="{{img}}" alt="">
+              <div class="ui-row-main"><span class="ui-row-name">{{name}}</span><span class="ui-row-sub">{{source}}</span></div>
+              <span class="ui-row-meta">{{#if unlimited}}<i class="fa-solid fa-infinity"></i>{{else if duration}}{{duration}}{{else}}<i class="fa-solid fa-clock"></i>{{/if}}</span>
+              <button type="button" class="ui-icon" data-action="effectControl" data-effect-action="toggle" data-tooltip="{{localize 'SHADOWDARK.sheet.general.active_effects.toggle_effect.tooltip'}}"><i class="fa-solid {{#if disabled}}fa-circle-xmark{{else}}fa-circle-check{{/if}}"></i></button>
+              <button type="button" class="ui-icon" data-action="effectControl" data-effect-action="toggle-situational" data-tooltip="{{localize 'SHADOWDARK.sheet.general.active_effects.toggle_situational.tooltip'}}"><i class="{{#if situational}}fa-solid{{else}}fa-regular{{/if}} fa-circle-question"></i></button>
+              <button type="button" class="ui-icon" data-action="effectControl" data-effect-action="edit" data-tooltip="{{localize 'SHADOWDARK.sheet.general.active_effects.edit_effect.tooltip'}}"><i class="fa-solid fa-pen-to-square"></i></button>
+              <button type="button" class="ui-icon danger" data-action="effectControl" data-effect-action="delete" data-tooltip="{{localize 'SHADOWDARK.sheet.general.active_effects.delete_effect.tooltip'}}"><i class="fa-solid fa-trash"></i></button>
+            </div>
+          {{/each}}
+        </div>
+        {{else}}
+          <div class="ui-empty"><i class="fa-solid fa-wand-magic-sparkles"></i><span>{{localize "SDE.ui.effectsEmpty"}}</span></div>
+        {{/if}}
+      </section>
+    </section>
+
+  </div>
+</div>

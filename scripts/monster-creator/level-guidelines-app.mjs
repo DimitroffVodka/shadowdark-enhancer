@@ -27,7 +27,7 @@ export class LevelGuidelinesEditor extends HandlebarsApplicationMixin(Applicatio
   static DEFAULT_OPTIONS = {
     id: "sde-level-guidelines",
     tag: "form",
-    classes: ["shadowdark", "sde-level-guidelines"],
+    classes: ["shadowdark", "sde-level-guidelines", "sde-ui"],
     window: {
       title: "SDE.settings.levelGuidelines.title",
       icon: "fa-solid fa-scale-balanced",
@@ -118,8 +118,11 @@ export class LevelGuidelinesEditor extends HandlebarsApplicationMixin(Applicatio
   /** Drop every stored edit — back to the shipped, derived defaults. */
   static async _onReset() {
     const ok = await DialogV2.confirm({
+      classes: ["sde-ui", "sde-dialog"],
       window: { title: game.i18n.localize("SDE.settings.levelGuidelines.resetTitle") },
       content: `<p>${game.i18n.localize("SDE.settings.levelGuidelines.resetPrompt")}</p>`,
+      yes: { label: "SDE.settings.levelGuidelines.reset", icon: "fa-solid fa-rotate-left" },
+      no: { label: "SDE.settings.levelGuidelines.resetKeep", icon: "fa-solid fa-xmark", default: true },
     });
     if (!ok) return;
     this._working = foundry.utils.deepClone(BASE_GUIDELINES);
@@ -185,6 +188,7 @@ export class LevelGuidelinesEditor extends HandlebarsApplicationMixin(Applicatio
       },
     );
     const form = await DialogV2.prompt({
+      classes: ["sde-ui", "sde-dialog"],
       window: { title: game.i18n.localize("SDE.settings.levelGuidelines.importTitle") },
       content,
       ok: {

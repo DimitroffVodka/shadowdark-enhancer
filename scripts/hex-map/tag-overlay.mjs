@@ -706,6 +706,7 @@ export class HexTagOverlay {
       ${size > 1 ? `<div class="form-group"><div class="form-fields"><label class="checkbox"><input type="checkbox" name="whole"> ${t("SDE.hexMap.label.wholeEnclosure", { n: size })}</label></div></div>` : ""}
     </form>`;
     const answer = await foundry.applications.api.DialogV2.prompt({
+      classes: ["sde-ui", "sde-dialog"],
       window: { title: t("SDE.hexMap.edit.title", { num }), icon: "fa-solid fa-draw-polygon" },
       content,
       render: (_event, dialog) => {
@@ -766,6 +767,7 @@ export class HexTagOverlay {
       </div></div>
     </form>`;
     const answer = await foundry.applications.api.DialogV2.prompt({
+      classes: ["sde-ui", "sde-dialog"],
       window: { title: t("SDE.hexMap.edit.title", { num }), icon: "fa-solid fa-hexagon" },
       content,
       // The free-text box appears only for "other…", as it does in the tagger.

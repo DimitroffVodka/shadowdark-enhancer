@@ -24,7 +24,7 @@ const L = (key, data) => (data ? game.i18n.format(key, data) : game.i18n.localiz
 export class SessionRecapApp extends HandlebarsApplicationMixin(ApplicationV2) {
   static DEFAULT_OPTIONS = {
     id: "shadowdark-enhancer-session-recap",
-    classes: ["shadowdark-enhancer", "sde-session-recap"],
+    classes: ["shadowdark-enhancer", "sde-session-recap", "sde-ui"],
     tag: "div",
     window: { title: "SDE.sessionRecap.title", icon: "fas fa-scroll", resizable: true },
     position: { width: 660, height: 560 },
@@ -42,7 +42,7 @@ export class SessionRecapApp extends HandlebarsApplicationMixin(ApplicationV2) {
   static PARTS = {
     body: {
       template: "modules/shadowdark-enhancer/templates/session-recap.hbs",
-      scrollable: [".sr-tab-content"],
+      scrollable: [".ui-body"],
     },
   };
 
@@ -308,8 +308,11 @@ export class SessionRecapApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const id = target.dataset.sessionId;
     if (!id) return;
     const ok = await foundry.applications.api.DialogV2.confirm({
+      classes: ["sde-ui", "sde-dialog"],
       window: { title: "SDE.sessionRecap.dialog.deleteTitle" },
       content: `<p>${L("SDE.sessionRecap.dialog.deleteBody")}</p>`,
+      yes: { label: "SDE.sessionRecap.dialog.deleteYes", icon: "fa-solid fa-trash" },
+      no: { label: "SDE.sessionRecap.dialog.keep", icon: "fa-solid fa-xmark", default: true },
       rejectClose: false,
     }).catch(() => false);
     if (!ok) return;
@@ -339,8 +342,11 @@ export class SessionRecapApp extends HandlebarsApplicationMixin(ApplicationV2) {
 
   static async _onClearSession() {
     const ok = await foundry.applications.api.DialogV2.confirm({
+      classes: ["sde-ui", "sde-dialog"],
       window: { title: "SDE.sessionRecap.dialog.clearTitle" },
       content: `<p>${L("SDE.sessionRecap.dialog.clearBody")}</p>`,
+      yes: { label: "SDE.sessionRecap.dialog.clearYes", icon: "fa-solid fa-trash" },
+      no: { label: "SDE.sessionRecap.dialog.keep", icon: "fa-solid fa-xmark", default: true },
       rejectClose: false,
     }).catch(() => false);
     if (ok) { await SessionRecap.clear(); this.render(); }

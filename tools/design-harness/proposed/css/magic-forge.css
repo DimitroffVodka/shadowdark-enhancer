@@ -1,0 +1,46 @@
+/* Magic Item Forge proposal: three numbered steps on the left, a live preview on the right; one column when narrow.
+   Tokens only. Old hook classes (sde-forge-*) are kept on elements because the JS selects on them. */
+.sde-ui [hidden] { display: none !important; }
+.sde-ui .ui-art.mf-art { display: grid; place-items: center; font-size: 22px; color: var(--ui-frame); }
+.sde-ui .ui-icon { flex: 0 0 auto; }
+.sde-ui .ui-head, .sde-ui .ui-head .ui-stats { flex-wrap: nowrap; }
+.sde-ui .mf-cols { display: grid; grid-template-columns: minmax(0, 1fr) minmax(190px, 240px); gap: 16px; align-items: start; }
+.sde-ui .mf-build { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.sde-ui .mf-preview { position: sticky; top: 0; }
+.sde-ui .mf-lines { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 4px; }
+.sde-ui .mf-lines li { margin: 0; padding: 0 0 4px; border-bottom: 1px solid var(--ui-line); color: var(--ui-body); font-size: 12.5px; }
+.sde-ui .mf-lines li:last-child { border-bottom: 0; }
+.sde-ui .ui-h > span { display: inline-flex; align-items: center; gap: 8px; }
+.sde-ui .ui-h .ui-num { font-family: var(--ui-font); }
+/* segmented chip rows are buttons */
+.sde-ui button.ui-chip { cursor: pointer; font: inherit; font-size: 12px; height: auto; min-height: 26px; padding: 2px 11px; }
+.sde-ui button.ui-chip:hover { border-color: var(--ui-frame); }
+.sde-ui .mf-seg { gap: 6px; }
+/* rows */
+.sde-ui .mf-pick .ui-row, .sde-ui .mf-spells .ui-row { cursor: pointer; }
+.sde-ui .mf-spells { border: 0; border-radius: 0; background: transparent; }
+.sde-ui .ui-row.selected { background: var(--ui-raised); box-shadow: inset 3px 0 0 var(--ui-frame); }
+.sde-ui .mf-check { display: none; color: var(--ui-ok); }
+.sde-ui .ui-row.selected .mf-check { display: inline-block; }
+.sde-ui .mf-spells .ui-icon { opacity: .55; }
+.sde-ui .mf-spells .ui-row:hover .ui-icon, .sde-ui .mf-spells .ui-row.selected .ui-icon { opacity: 1; }
+.sde-ui .mf-count { margin-left: auto; min-height: 20px; font-size: 11px; }
+.sde-ui .ui-details > summary { justify-content: flex-start; }
+/* core sets */
+.sde-ui .mf-set { gap: 8px; }
+.sde-ui .mf-set .ui-card-head { align-items: flex-start; flex-wrap: wrap; }
+.sde-ui .mf-field { padding-top: 8px; border-top: 1px solid var(--ui-line); }
+.sde-ui .mf-ctrl { flex-wrap: nowrap; gap: 4px; }
+.sde-ui .mf-ctrl select { flex: 1 1 auto; width: auto; min-width: 0; }
+.sde-ui .mf-picked { font-style: italic; }
+.sde-ui .mf-field .ui-label .ui-tag { margin-left: 6px; vertical-align: 1px; }
+.sde-ui .ui-btn.mf-wrap { height: auto; min-height: 28px; padding: 6px 12px; white-space: normal; text-align: left; line-height: 1.25; justify-content: flex-start; }
+@container (max-width: 560px) {
+  .sde-ui .mf-cols { grid-template-columns: minmax(0, 1fr); }
+  .sde-ui .mf-preview { position: static; order: -1; }
+  .sde-ui .ui-tab { padding: 6px 10px; font-size: 14px; }
+}
+.sde-ui .ui-search > input[type] { padding-left: 28px; }
+.sde-ui .mf-pick { max-height: 300px; overflow-y: auto; }
+.sde-ui .ui-body > * { flex-shrink: 0; }
+.sde-ui input[type=radio]::before, .sde-ui input[type=radio]::after { content: none !important; }

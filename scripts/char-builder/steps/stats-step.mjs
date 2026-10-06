@@ -1,6 +1,6 @@
 import { BaseStep } from "./base-step.mjs";
 import {
-  ABILITY_ORDER, ABILITY_LABELS, ABILITY_INFO,
+  ABILITY_ORDER, abilityLabel, abilityInfo,
   STAT_METHODS, POINT_BUY_BUDGET, POINT_BUY_MIN, POINT_BUY_MAX,
   pointBuyCost, pointBuySpent, modLabel, builderDiceAnimation,
 } from "../constants.mjs";
@@ -70,7 +70,7 @@ export class StatsStep extends BaseStep {
 
     const abilities = ABILITY_ORDER.map((k) => ({
       key: k,
-      label: ABILITY_LABELS[k],
+      label: abilityLabel(k),
       value: st.values[k] || null,
       mod: modLabel(st.values[k]),
       empty: !(st.values[k] > 0),
@@ -80,7 +80,7 @@ export class StatsStep extends BaseStep {
       pointBuyCost: this.isPointBuy ? pointBuyCost(st.values[k]) : null,
       canIncrease: this._canAdjustPointBuy(k, 1),
       canDecrease: this._canAdjustPointBuy(k, -1),
-      info: ABILITY_INFO[k],   // description shown directly beneath the tile
+      info: abilityInfo(k),   // description shown directly beneath the tile
     }));
 
     const poolChips = (assign && rolled)
@@ -89,6 +89,9 @@ export class StatsStep extends BaseStep {
 
     return {
       methodLabel: game.i18n.localize(m.label),
+      // The step heading's one-line summary: the method, and that a GM set it unless values are typed.
+      summary: `${game.i18n.localize("SDE.charBuilder.stats.method.label")}: ${game.i18n.localize(m.label)}`
+        + (this.isManual ? "" : ` (${game.i18n.localize("SDE.charBuilder.stats.methodGm")})`),
       isAssign: assign,
       isFixed: this.isFixed,
       isPointBuy: this.isPointBuy,
@@ -338,7 +341,7 @@ export class StatsStep extends BaseStep {
     const methodLabel = game.i18n.localize(this.method.label);
     const heading = game.i18n.localize(`SDE.charBuilder.stats.card.${actionKey}`);
     const rows = rolls.map((r, i) => {
-      const key = isAssign ? `#${i + 1}` : ABILITY_LABELS[ABILITY_ORDER[i]];
+      const key = isAssign ? `#${i + 1}` : abilityLabel(ABILITY_ORDER[i]);
       const dice = (r.dice[0]?.results || [])
         .map((d) => (d.discarded || d.rerolled ? `<span class="dropped">${d.result}</span>` : `${d.result}`))
         .join(" ");

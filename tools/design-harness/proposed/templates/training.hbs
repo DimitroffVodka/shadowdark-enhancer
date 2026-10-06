@@ -1,0 +1,86 @@
+{{!-- Regional Training, proposed. Same context and data-* as templates/training.hbs. --}}
+<div class="ui-shell">
+
+  <header class="ui-head">
+    {{#if art}}<img class="ui-art" src="{{art}}" alt="" />{{/if}}
+    <div class="ui-head-text">
+      <h2 class="ui-title">{{trainer.trainer}}</h2>
+      <p class="ui-sub">{{trainer.topic}}{{#if trainer.region}} · {{trainer.region}}{{/if}} · {{localize "SDE.training.page" page=trainer.page}}</p>
+    </div>
+    <div class="ui-stats">
+      <div class="ui-stat"><span class="ui-value tr-left">{{remaining}}</span><span class="ui-label">{{localize "SDE.training.ofFour"}}</span></div>
+    </div>
+  </header>
+
+  <div class="ui-body">
+
+    <div class="ui-cols-2">
+      <div class="ui-field">
+        <label class="ui-label" for="sde-trn-actor">{{localize "SDE.training.character"}}</label>
+        <select id="sde-trn-actor" data-trn-select="actor">
+          <option value="">{{localize "SDE.training.pickCharacter"}}</option>
+          {{#each actors}}<option value="{{id}}" {{#if selected}}selected{{/if}}>{{name}}</option>{{/each}}
+        </select>
+      </div>
+      <div class="ui-field">
+        <label class="ui-label" for="sde-trn-trainer">{{localize "SDE.training.trainer"}}</label>
+        <select id="sde-trn-trainer" data-trn-select="trainer">
+          {{#each groups}}<optgroup label="{{region}}">{{#each trainers}}<option value="{{key}}" {{#if selected}}selected{{/if}}>{{name}}</option>{{/each}}</optgroup>{{/each}}
+        </select>
+      </div>
+    </div>
+
+    {{#if description}}<div class="ui-note">{{description}}</div>{{/if}}
+    {{#if tableMissing}}<div class="ui-note warn">{{localize "SDE.training.tableMissing" table=trainer.table}}</div>{{/if}}
+
+    <section class="ui-group">
+      <h3 class="ui-h">{{localize "SDE.training.tasks"}}
+        {{#if journalUuid}}<small><a data-action="trnOpenJournal">{{localize "SDE.training.openJournal"}}</a></small>{{/if}}
+      </h3>
+      {{#if tasks.length}}
+        <div class="ui-list tr-numbered">
+          {{#each tasks}}
+            <div class="ui-row">
+              <span class="ui-num" aria-hidden="true"></span>
+              <div class="ui-row-main"><span class="ui-row-name tr-task">{{text}}</span></div>
+              {{#if quest}}
+                <span class="ui-chip {{#if done}}ok{{else}}off{{/if}}">{{#if done}}{{localize "SDE.training.taskDone"}}{{else}}{{localize "SDE.training.taskTaken"}}{{/if}}</span>
+              {{else if canTake}}
+                <button type="button" class="ui-btn" data-action="trnTakeTask" data-task="{{index}}">{{localize "SDE.training.takeTask"}}</button>
+              {{else if needsActor}}
+                <button type="button" class="ui-btn" disabled data-tooltip="{{localize "SDE.training.takeTaskNeedsCharacter"}}">{{localize "SDE.training.takeTask"}}</button>
+              {{/if}}
+            </div>
+          {{/each}}
+        </div>
+      {{else}}
+        <div class="ui-empty"><i class="fa-solid fa-scroll"></i><span>{{localize "SDE.training.noTasks"}}</span>
+          {{#if canImport}}<button type="button" class="ui-btn" data-action="trnImport"><i class="fa-solid fa-book-open"></i> {{localize "SDE.training.importJournals"}}</button>{{/if}}
+        </div>
+      {{/if}}
+    </section>
+
+    <section class="ui-group">
+      <h3 class="ui-h">{{localize "SDE.training.benefits"}} <small>{{localize "SDE.training.onceEach"}}</small></h3>
+      <div class="ui-list">
+        {{#each benefits}}
+          <div class="ui-row {{#if taken}}sel{{/if}}">
+            <span class="ui-num">{{roll}}</span>
+            <div class="ui-row-main">
+              <span class="ui-row-name {{#if taken}}tr-taken{{/if}}">{{#if printed}}{{printed}}{{else}}{{label}}{{/if}}</span>
+              {{#if todo}}<span class="ui-row-sub">{{todo}}</span>{{/if}}
+            </div>
+            <span class="ui-chip {{#if taken}}gold{{else if mechanical}}ok{{else}}off{{/if}}">
+              {{#if taken}}{{localize "SDE.training.tagTaught"}}{{else if mechanical}}{{localize "SDE.training.tagAuto"}}{{else}}{{localize "SDE.training.tagTable"}}{{/if}}
+            </span>
+          </div>
+        {{/each}}
+      </div>
+    </section>
+  </div>
+
+  <footer class="ui-footer">
+    {{#if spent}}<span class="ui-muted">{{localize "SDE.training.spent"}}</span>{{/if}}
+    <div class="ui-right"><button type="button" class="ui-btn primary" data-action="trnRoll" {{#unless canRoll}}disabled{{/unless}}><i class="fa-solid fa-dice-d4"></i> {{localize "SDE.training.roll"}}</button></div>
+  </footer>
+</div>

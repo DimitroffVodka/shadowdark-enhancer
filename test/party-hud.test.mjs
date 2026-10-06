@@ -44,7 +44,7 @@ function fixture() {
   globalThis._replace = v => v;
   globalThis.PIXI = { Rectangle: class { constructor(x, y, width, height) { Object.assign(this, { x, y, width, height, right: x + width, bottom: y + height }); } contains(x, y) { return x >= this.x && x < this.right && y >= this.y && y < this.bottom; } } };
   const hooks = new Map(); globalThis.Hooks = { on: (name, fn) => hooks.set(name, fn), once: (name, fn) => hooks.set(name, fn), callAll() {} };
-  const scene = { id: "s", walls: { contents: [] }, grid: { sizeX: 100, sizeY: 100, getOffset: p => ({ i: Math.floor(p.y / 100), j: Math.floor(p.x / 100) }), getTopLeftPoint: o => ({ x: o.j * 100, y: o.i * 100 }) }, dimensions: { sceneRect: { x: 0, y: 0, width: 600, height: 600 } } };
+  const scene = { id: "s", walls: { contents: [] }, grid: { sizeX: 100, sizeY: 100, getOffset: p => ({ i: Math.floor(p.y / 100), j: Math.floor(p.x / 100) }), getTopLeftPoint: o => ({ x: o.j * 100, y: o.i * 100 }), getAdjacentOffsets: o => [-1, 0, 1].flatMap(di => [-1, 0, 1].filter(dj => di || dj).map(dj => ({ i: o.i + di, j: o.j + dj }))) }, dimensions: { sceneRect: { x: 0, y: 0, width: 600, height: 600 } } };
   const makeToken = source => {
     const actor = source.actorId === "p" ? party : member;
     const doc = { ...source, id: source._id, uuid: `Scene.s.Token.${source._id}`, actor, parent: scene, _source: source, flags: source.flags ?? {}, toObject: () => ({ ...source, flags: doc.flags, x: doc.x, y: doc.y }),
@@ -98,37 +98,6 @@ test("owner gather/release uses requested scene and level while GM views elsewhe
   assert.ok(configs.length > 0); assert.ok(configs.every(c => c.level === level));
   assert.equal(globalThis.canvas.scene.id, "other"); assert.equal(f.scene.tokens.get("pcToken").actor, f.member);
 });
-test("GM driving a Party pauses on navigation and requires Resume; relay GM navigation does not pause player", async () => {
-  const f = fixture(); registerPartyMovement();
-  globalThis.ui = { notifications: { warn() {} } };
-  f.hooks.get("canvasReady")();
-  const flush = () => new Promise(resolve => setImmediate(resolve));
-  const status = () => f.pt.flags[MOD].partyMovement;
-  assert.equal((await executeMovement({ ...f.payload, action: "deploy" }, globalThis.game.user)).ok, true);
-  f.hooks.get("canvasTearDown")(); await flush();
-  assert.equal(status().pause, "scene");
-  assert.equal(status().driverUserId, "gm");
-  f.hooks.get("canvasReady")(); await flush();
-  assert.equal(status().pause, "scene", "returning must preserve scene pause");
-  assert.equal((await executeMovement({ ...f.payload, action: "resume" }, globalThis.game.user)).ok, true);
-  assert.equal(status().pause, "");
-  globalThis.game.scenes.contents = [f.scene];
-  f.hooks.get("ready")(); await flush();
-  assert.equal(status().pause, "reload", "driving GM client reload pauses too");
-  const owner = { id: "owner", isGM: false, hasPermission: () => true };
-  await executeMovement({ ...f.payload, action: "resume" }, owner);
-  assert.equal(status().driverUserId, "owner");
-  f.hooks.get("canvasTearDown")(); f.hooks.get("canvasReady")(); await flush();
-  assert.equal(status().pause, "", "unrelated authority navigation cannot disarm player marching");
-  globalThis.game.user = owner;
-  globalThis.game.users.activeGM.query = (_name, payload) => executeMovement(payload, owner);
-  f.hooks.get("canvasTearDown")(); await flush();
-  assert.equal(status().pause, "scene", "driving player uses relay on navigation");
-  await executeMovement({ ...f.payload, action: "resume" }, owner);
-  globalThis.canvas = { scene: { id: "other", tokens: { contents: [] } } };
-  f.hooks.get("ready")(); await flush();
-  assert.equal(status().pause, "reload", "player reload pauses driven Party even when initially viewing another scene");
-});
 test("Party light uses current then packed state, never extinguished placement defaults", () => {
   const f = fixture();
   const off = { dim: 0, bright: 0 }, on = { dim: 20, bright: 10 };
@@ -162,7 +131,6 @@ test("gather checks combat before its first save, so a mid-save combat cannot ha
   assert.equal(result.ok, true, "the guard runs before the first write; combat starting during it cannot abort a persisted gather");
   assert.equal(f.scene.tokens.get("pcToken"), undefined);
   assert.equal(f.pt.flags[MOD].partyMovement.deployed, false);
-  assert.equal(f.pt.flags[MOD].partyMovement.pause, "gathered");
 });
 test("a roster edit while deployed is swept when the party is recalled", async () => {
   const f = fixture(), owner = { id: "owner", isGM: false };
@@ -173,55 +141,6 @@ test("a roster edit while deployed is swept when the party is recalled", async (
   assert.equal(f.scene.tokens.contents.length, 1, "the removed member's deployed token is recalled too");
   assert.equal(f.scene.tokens.get("pcToken"), undefined);
   assert.ok(f.operations.some(op => op.deleted?.includes("pcToken")));
-});
-test("the reload pause queues behind an in-flight movement write on the same token", async () => {
-  const f = fixture(); registerPartyMovement();
-  globalThis.ui = { notifications: { warn() {} } };
-  globalThis.game.scenes.contents = [f.scene];
-  assert.equal((await executeMovement({ ...f.payload, action: "deploy" }, globalThis.game.user)).ok, true);
-  let release; const gate = new Promise(resolve => { release = resolve; });
-  const base = f.pt.update; let first = true;
-  f.pt.update = changes => { if (first) { first = false; return gate.then(() => base(changes)); } return base(changes); };
-  const resume = executeMovement({ ...f.payload, action: "resume" }, globalThis.game.user);
-  await new Promise(resolve => setImmediate(resolve));
-  f.hooks.get("ready")();
-  await new Promise(resolve => setImmediate(resolve));
-  assert.equal(f.pt.flags[MOD].partyMovement.pause, "", "the reload pause must wait for the in-flight movement write");
-  release();
-  await resume;
-  await new Promise(resolve => setImmediate(resolve));
-  assert.equal(f.pt.flags[MOD].partyMovement.pause, "reload");
-});
-test("a deleted leader token pauses with the missing member named", async () => {
-  const f = fixture(); registerPartyMovement();
-  f.party.flags[MOD].partyData = { members: [f.member.uuid], leaderUuid: f.member.uuid, followLeader: true };
-  assert.equal((await executeMovement({ ...f.payload, action: "deploy" }, { id: "owner", isGM: false })).ok, true);
-  f.hooks.get("deleteToken")(f.scene.tokens.get("pcToken"));
-  await new Promise(resolve => setImmediate(resolve));
-  assert.equal(f.pt.flags[MOD].partyMovement.pause, "missing");
-  assert.equal(f.pt.flags[MOD].partyMovement.pausedMemberUuid, f.member.uuid, "the sheet can name the missing member");
-});
-test("a second tab of the same GM user cannot pause the driving tab's march", async () => {
-  const f = fixture(); registerPartyMovement();
-  globalThis.ui = { notifications: { warn() {} } };
-  const store = () => { const m = new Map(); return { getItem: key => m.get(key) ?? null, setItem: (key, value) => m.set(key, String(value)) }; };
-  const tabA = store(), tabB = store();
-  tabA.setItem(`${MOD}.movementDriverClient`, "client-a");
-  tabB.setItem(`${MOD}.movementDriverClient`, "client-b");
-  const flush = () => new Promise(resolve => setImmediate(resolve));
-  const status = () => f.pt.flags[MOD].partyMovement;
-  try {
-    globalThis.sessionStorage = tabA;
-    assert.equal((await executeMovement({ ...f.payload, action: "deploy", clientId: "client-a" }, globalThis.game.user)).ok, true);
-    globalThis.sessionStorage = tabB;
-    f.hooks.get("canvasTearDown")(); await flush();
-    assert.equal(status().pause, "", "a second tab navigating must not pause the driving tab's march");
-    f.hooks.get("canvasReady")(); await flush();
-    assert.equal(status().pause, "");
-    globalThis.sessionStorage = tabA;
-    f.hooks.get("canvasTearDown")(); await flush();
-    assert.equal(status().pause, "scene", "the driving tab itself still pauses");
-  } finally { delete globalThis.sessionStorage; }
 });
 test("a leader drag during a recall queues behind it and the recall lands clean", async () => {
   const f = fixture(); registerPartyMovement();
@@ -236,13 +155,6 @@ test("a leader drag during a recall queues behind it and the recall lands clean"
   const pc2Token = { ...source2, id: "pc2Token", uuid: "Scene.s.Token.pc2Token", actor: m2, parent: f.scene, _source: source2, toObject: () => ({ ...source2 }) };
   f.scene.tokens.contents.push(pc2Token);
   f.party.flags[MOD].partyData.members = [f.member.uuid, m2.uuid];
-  const deleteBase = f.scene.deleteEmbeddedDocuments;
-  f.scene.deleteEmbeddedDocuments = async (type, ids) => {
-    const docs = ids.map(id => f.scene.tokens.get(id)).filter(Boolean);
-    const result = await deleteBase(type, ids);
-    for (const doc of docs) f.hooks.get("deleteToken")(doc);
-    return result;
-  };
   let release; const gate = new Promise(resolve => { release = resolve; });
   const base = f.pt.update; let first = true;
   f.pt.update = changes => { if (first) { first = false; return gate.then(() => base(changes)); } return base(changes); };
@@ -255,7 +167,6 @@ test("a leader drag during a recall queues behind it and the recall lands clean"
   assert.equal((await gather).ok, true);
   await new Promise(resolve => setImmediate(resolve));
   assert.deepEqual(moves, [], "the leader drag must not move followers mid-recall");
-  assert.equal(f.pt.flags[MOD].partyMovement.pause, "gathered", "the recall's own leader deletion cannot pause it as missing");
   assert.equal(f.pt.flags[MOD].partyMovement.deployed, false);
 });
 test("party light refresh only pays perception updates when a party token's light changed", () => {
@@ -285,4 +196,82 @@ test("character rosters follow the system's isPC getter, not the raw document ty
   const party = { id: "p2", uuid: "Actor.p2", type: "NPC", flags: { [MOD]: { party: true, partyData: { members: [mislabeled.uuid, real.uuid] } } }, testUserPermission: () => true };
   globalThis.game = { user: { id: "gm", isGM: true }, actors: { contents: [party, mislabeled, real], get: id => id === "p2" ? party : null } };
   assert.deepEqual(Party.members(party, { charactersOnly: true }), [real.uuid]);
+});
+test("a follower that cannot step stays put and the party keeps following; nothing is paused", async () => {
+  const f = fixture(); registerPartyMovement();
+  globalThis.CONFIG.Token = { movement: { actions: {} } };
+  f.party.flags[MOD].partyData = { members: [f.member.uuid], leaderUuid: f.member.uuid, followLeader: true };
+  const owner = { id: "owner", isGM: false };
+  assert.equal((await executeMovement({ ...f.payload, action: "deploy" }, owner)).ok, true);
+  const m2 = { id: "pc2", uuid: "Actor.pc2", type: "Player", name: "PC2", testUserPermission: () => true };
+  globalThis.game.actors.contents.push(m2);
+  const source2 = { _id: "pc2Token", actorId: "pc2", actorLink: true, x: 100, y: 0, width: 1, height: 1, name: "PC2", flags: { [MOD]: { partyMovement: { partyUuid: f.party.uuid } } } };
+  const pc2 = { ...source2, id: "pc2Token", uuid: "Scene.s.Token.pc2Token", actor: m2, parent: f.scene, _source: source2, toObject: () => ({ ...source2 }) };
+  f.scene.tokens.contents.push(pc2);
+  f.party.flags[MOD].partyData.members = [f.member.uuid, m2.uuid];
+  const moves = []; pc2.move = async path => { moves.push(path.length); return false; };
+  const leaderMove = () => f.hooks.get("moveToken")(f.scene.tokens.get("pcToken"), { passed: { waypoints: [{ x: 350, y: 300, elevation: 0, action: "walk", checkpoint: true }] }, origin: { x: 300, y: 300 } }, {}, { id: "owner" });
+  leaderMove(); await new Promise(resolve => setImmediate(resolve));
+  assert.deepEqual(moves, [1], "the blocked follower was tried");
+  assert.equal(f.pt.flags[MOD].partyMovement.deployed, true);
+  assert.equal(f.pt.flags[MOD].partyMovement.pause, undefined, "no pause state exists");
+  pc2.move = async path => { moves.push(path.length); return true; };
+  leaderMove(); await new Promise(resolve => setImmediate(resolve));
+  assert.deepEqual(moves, [1, 1], "the next leader move simply tries again, no resume");
+});
+function marchFixture(at = { x: 100, y: 0 }) {
+  const f = fixture(); registerPartyMovement();
+  globalThis.CONFIG.Token = { movement: { actions: {} } };
+  const m2 = { id: "pc2", uuid: "Actor.pc2", type: "Player", name: "PC2", testUserPermission: () => true };
+  globalThis.game.actors.contents.push(m2);
+  // Leader is slot (col 0, row -1), PC2 sits one row below it (col 0, row 0).
+  f.party.flags[MOD].partyData = { members: [f.member.uuid, m2.uuid], leaderUuid: f.member.uuid, followLeader: true,
+    formation: { slots: [{ memberUuid: f.member.uuid, col: 0, row: -1 }, { memberUuid: m2.uuid, col: 0, row: 0 }] } };
+  const source2 = { _id: "pc2Token", actorId: "pc2", actorLink: true, ...at, width: 1, height: 1, name: "PC2", flags: { [MOD]: { partyMovement: { partyUuid: f.party.uuid } } } };
+  const pc2 = { ...source2, id: "pc2Token", uuid: "Scene.s.Token.pc2Token", actor: m2, parent: f.scene, _source: source2, toObject: () => ({ ...source2 }) };
+  f.scene.tokens.contents.push(pc2);
+  f.pt.flags[MOD] = { partyMovement: { deployed: true } };
+  const paths = []; pc2.move = async path => { paths.push(path.map(p => [p.x, p.y])); return true; };
+  const way = { north: [0, -1], east: [1, 0], south: [0, 1], west: [-1, 0] };
+  const leaderMove = async (heading = "north") => {
+    const [dx, dy] = way[heading], at = n => ({ x: 300 + dx * 100 * n, y: 300 + dy * 100 * n, elevation: 0, action: "walk", checkpoint: true });
+    f.hooks.get("moveToken")(f.scene.tokens.get("pcToken"), { passed: { waypoints: [at(1), at(2)] }, origin: { x: 300, y: 300 } }, {}, { id: "owner" });
+    await new Promise(resolve => setImmediate(resolve));
+  };
+  return { f, paths, leaderMove };
+}
+test("followers keep their formation slot, turned to face the way the leader walks", async () => {
+  // PC2 sits one row behind the leader (col 0, row +1): behind means opposite the heading.
+  for (const [heading, expected] of [["north", [300, 200]], ["east", [400, 300]], ["south", [300, 400]], ["west", [200, 300]]]) {
+    const { paths, leaderMove } = marchFixture({ x: 100, y: 500 });
+    globalThis.CONFIG.Canvas.polygonBackends.move.testCollision = () => false;
+    await leaderMove(heading);
+    assert.deepEqual(paths, [[expected]], heading);
+  }
+});
+test("turning the leader around reverses the order", async () => {
+  const north = marchFixture({ x: 100, y: 500 }), south = marchFixture({ x: 100, y: 500 });
+  await north.leaderMove("north"); await south.leaderMove("south");
+  assert.equal(north.paths[0][0][1] > 100, true, "behind a northbound leader is south of him");
+  assert.equal(south.paths[0][0][1] < 500, true);
+  assert.notDeepEqual(north.paths, south.paths);
+});
+test("a follower whose slot is walled off goes to the nearest square it can reach", async () => {
+  const { paths, leaderMove } = marchFixture();
+  // The whole row y=200 (the slot's row for a northbound leader) is rock.
+  globalThis.CONFIG.Canvas.polygonBackends.move.testCollision = (a, b) => a.y === 250 || b.y === 250;
+  await leaderMove("north");
+  assert.equal(paths.length, 1);
+  assert.ok(paths[0].every(([, y]) => y !== 200), "never enters the walled row");
+  assert.equal(paths[0].at(-1)[1], 100, "ends level with the leader, the reachable row nearest the slot");
+});
+test("a follower shut in a room with the door elsewhere walks round to its slot instead of being stranded", async () => {
+  // A wall along y=500 with one gap in the column x=300; PC2 starts below it, the slot is above it.
+  const { paths, leaderMove } = marchFixture({ x: 100, y: 600 });
+  globalThis.CONFIG.Canvas.polygonBackends.move.testCollision = (a, b) => (a.y < 500) !== (b.y < 500) && !(a.x === 350 && b.x === 350);
+  await leaderMove("north");
+  assert.equal(paths.length, 1);
+  assert.deepEqual(paths[0].at(-1), [300, 200], "reaches its slot");
+  assert.ok(paths[0].some(([x, y]) => x === 300 && y === 400), "comes through the gap in the wall");
+  assert.ok(paths[0].every((p, i) => i === 0 || Math.max(Math.abs(p[0] - paths[0][i - 1][0]), Math.abs(p[1] - paths[0][i - 1][1])) === 100), "one square at a time");
 });

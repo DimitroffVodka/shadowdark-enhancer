@@ -1,0 +1,30 @@
+/* shared fixes (kit candidates): flex children that must not shrink, header that keeps one line below 560px */
+.ui-num { flex: 0 0 20px; }
+.ui-row > .ui-btn, .ui-row > .ui-chip, .ui-row > .ui-tag, .ui-row > .ui-icon, .ui-card-head > .ui-btn, .ui-card-head > .ui-chip { flex: 0 0 auto; }
+.ui-head { flex-wrap: nowrap; }
+.ui-head-text { flex: 1 1 0; }
+.ui-head > .ui-art, .ui-head > img { flex: 0 0 auto; }
+@container (max-width: 560px) { .ui-head { flex-wrap: nowrap; } }
+/* Pit Fighting: stage cards. Kit candidates: .ui-card-head > .ui-num stage badge, button.pit-on (toggled button). */
+.pit-line { display: grid; grid-template-columns: 70px minmax(0, 1fr) auto; gap: 4px 10px; align-items: center; }
+.pit-line > .ui-label { grid-column: 1; }
+.pit-line > .pit-pick { grid-column: 2; }
+.pit-line > .pit-total { grid-column: 3; }
+.pit-line > .pit-drawn, .pit-line > .ui-inline { grid-column: 2 / -1; }
+.pit-pick { display: flex; align-items: center; gap: 4px; min-width: 0; }
+.pit-pick select { flex: 1 1 0; min-width: 0; }
+.pit-drawn { margin: 0; color: var(--ui-body); }
+.pit-drawn.grow { flex: 1 1 auto; }
+.pit-on { border-color: var(--ui-gold); background: var(--ui-gold-bg); color: var(--ui-gold); }
+.pit-stage > .ui-card-head > .ui-num { width: 22px; height: 22px; flex-basis: 22px; border-color: var(--ui-frame); color: var(--ui-text); }
+.pit-stage:not(.sel) > .ui-card-head .ui-card-name { color: var(--ui-body); }
+.pit-missing { margin: 4px 0 8px; padding-left: 18px; }
+.pit-prize { font-weight: 500; }
+label.ui-row { cursor: pointer; }
+@container (max-width: 480px) { .pit-line { grid-template-columns: minmax(0, 1fr) auto; } .pit-line > .ui-label { grid-column: 1 / -1; } .pit-line > .pit-pick { grid-column: 1; } .pit-line > .pit-total { grid-column: 2; } .pit-line > .pit-drawn, .pit-line > .ui-inline { grid-column: 1 / -1; } }
+.pit-two { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+@container (max-width: 340px) { .pit-two { grid-template-columns: minmax(0, 1fr); } }
+.pit-two .ui-btn { white-space: normal; height: auto; min-height: 28px; padding: 4px 10px; text-align: left; justify-content: flex-start; }
+.pit-two .ui-btn { line-height: 1.25; }
+.sde-ui .ui-body > * { flex-shrink: 0; }
+.sde-ui input[type=radio]::before, .sde-ui input[type=radio]::after { content: none !important; }

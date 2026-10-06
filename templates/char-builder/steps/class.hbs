@@ -1,234 +1,147 @@
-<div class="sde-cb-anc is-class">
+<div class="cbu-step split cbu-anc is-class">
+  <h2 class="ui-h">{{localize "SDE.charBuilder.step.class"}} <small>{{step.summary}}</small></h2>
 
-  {{!-- Class art occupies the empty header space left of the title band --}}
-  {{#if step.detail.hasPortrait}}
-  <div class="sde-cb-class-portrait">
-    <img src="{{step.detail.img}}" alt="{{step.detail.name}}">
-  </div>
-  {{/if}}
-
-  <div class="sde-cb-page-title sd-band">
-    <h1>{{localize "SDE.charBuilder.step.class"}}</h1>
-  </div>
-
-  {{!-- Always rendered — pre-selection it is invisible but keeps its height,
-        so picking an option doesn't shove the whole body down. --}}
-  <div class="sde-cb-anc-subhead sd-band sd-band--tight{{#unless step.hasSelection}} is-empty{{/unless}}">
-    <h2>{{#if step.hasSelection}}{{step.detail.name}}{{else}}&nbsp;{{/if}}</h2>
-  </div>
-
-  <div class="sde-cb-anc-body">
-
+  <div class="cbu-split">
     {{> sde-cb-list step.list}}
 
-    <div class="sde-cb-anc-main">
-      {{#if step.readOnly}}<p class="sde-cb-hint"><i class="fa-solid fa-lock"></i> {{localize "SDE.charBuilder.existing.classHint"}}</p>{{/if}}
+    <div class="sde-cb-anc-main cbu-main">
+      {{#if step.readOnly}}<div class="ui-note"><i class="fa-solid fa-lock"></i> {{localize "SDE.charBuilder.existing.classHint"}}</div>{{/if}}
       {{#if step.hasSelection}}
+      <div class="ui-cols-2 cbu-class-cols">
 
-      <div class="sde-cb-anc-detail">
-        <div class="sde-cb-anc-text">
-
-          <div class="sde-cb-desc">{{{step.detail.description}}}</div>
-
-          {{!-- Rulebook-style stat lines — replaces the old right aside --}}
-          {{#each step.infoLines}}
-          <p class="sde-cb-anc-langs"><b>{{label}}:</b> {{value}}</p>
-          {{/each}}
-
-          {{!-- Level-1 features: fixed talents + class abilities --}}
+        {{!-- Left: what the class is --}}
+        <div class="ui-stack">
+          <section class="ui-card">
+            <div class="cbu-detail{{#if step.detail.hasPortrait}} with-portrait{{/if}}">
+              <div class="cbu-desc">{{{step.detail.description}}}</div>
+              {{#if step.detail.hasPortrait}}<img class="cbu-portrait" src="{{step.detail.img}}" alt="{{step.detail.name}}">{{/if}}
+            </div>
+            <div class="ui-pairs">
+              {{#each step.infoLines}}<div class="ui-pair"><span class="ui-label">{{label}}</span><span class="ui-value">{{value}}</span></div>{{/each}}
+            </div>
+          </section>
           {{#if step.traits.length}}
-          <div class="sde-cb-anc-traits">
-            {{#each step.traits}}
-            <div class="sde-cb-anc-trait"><b class="tn">{{name}}.</b> {{{descInline}}}{{#if asksOnCreate}} <span class="sde-cb-choice-badge" title="{{localize 'SDE.charBuilder.class.asksOnCreateHint'}}"><i class="fa-solid fa-circle-question"></i> {{localize "SDE.charBuilder.class.asksOnCreate"}}</span>{{/if}}</div>
-            {{/each}}
-          </div>
-          {{/if}}
-
-        </div>
-      </div>
-
-      {{!-- Talent choices (Weapon Mastery weapon, Armor Mastery armor…) --}}
-      {{#if step.choices.length}}
-      <div class="sde-cb-subpanel">
-        <span class="sde-cb-panel-title">{{localize "SDE.charBuilder.class.talentChoices"}}</span>
-        {{#each step.choices}}
-        <div class="sde-cb-talent-choice{{#unless chosen}} pending{{/unless}}">
-          <b>{{talentName}}</b>
-          <select data-cb-talent-choice="{{key}}">
-            <option value="">{{localize "SDE.charBuilder.chooseOption"}}</option>
-            {{#each options}}<option value="{{slug}}" {{#if selected}}selected{{/if}}>{{label}}</option>{{/each}}
-          </select>
-          {{#unless chosen}}<i class="fa-solid fa-triangle-exclamation warn" title="{{localize 'SDE.charBuilder.class.choiceNeeded'}}"></i>{{/unless}}
-        </div>
-        {{/each}}
-      </div>
-      {{/if}}
-
-      {{!-- Additional creation rolls (Corruption, patron boons, Ambitious extra
-            talent…) — shown ABOVE the class talent since e.g. the Wyrdling rolls
-            its level-1 Corruption before rolling on the talent table. --}}
-      {{#if step.bonusRolls.length}}
-      <div class="sde-cb-subpanel">
-        <span class="sde-cb-panel-title">{{localize "SDE.charBuilder.class.bonusRolls"}}</span>
-        {{#each step.bonusRolls}}
-        <div class="sde-cb-bonus-roll">
-          <div class="sde-cb-subpanel-head">
-            <span class="sde-cb-bonus-label"><b>{{label}}</b>{{#if tableName}} <small>({{tableName}})</small>{{/if}}</span>
-            {{#if rolled}}
-              {{#if canReroll}}
-              <button type="button" class="sde-cb-btn dice sm" data-cb-roll-bonus="{{key}}">
-                <i class="fa-solid fa-dice"></i> {{localize "SDE.charBuilder.class.rerollTalent"}}
-              </button>
-              {{/if}}
-            {{else}}
-            <button type="button" class="sde-cb-btn dice sm" data-cb-roll-bonus="{{key}}">
-              <i class="fa-solid fa-dice"></i> {{localize "SDE.charBuilder.class.bonusRollBtn"}}
-            </button>
-            {{/if}}
-          </div>
-          {{#if rolled}}
-            {{#if needsChoice}}
-            <p class="sde-cb-hint warn">{{localize "SDE.charBuilder.class.chooseOne"}}</p>
-            <div class="sde-cb-chip-row">
-              {{#each options}}
-              <span class="sde-cb-chip{{#if selected}} selected{{/if}}" data-cb-bonus-opt="{{uuid}}" data-cb-bonus-key="{{../key}}">{{name}}</span>
+          <section class="ui-card">
+            <div class="ui-card-head"><h3 class="ui-card-name">{{localize "SDE.charBuilder.preview.features"}}</h3></div>
+            <div class="ui-list">
+              {{#each step.traits}}
+              <div class="ui-row cbu-anc-trait"><div class="ui-row-main"><span class="ui-row-name">{{name}}{{#if asksOnCreate}} <span class="ui-chip gold" title="{{localize 'SDE.charBuilder.class.asksOnCreateHint'}}"><i class="fa-solid fa-circle-question"></i> {{localize "SDE.charBuilder.class.asksOnCreate"}}</span>{{/if}}</span><span class="ui-row-sub">{{{descInline}}}</span></div></div>
               {{/each}}
             </div>
-            {{else}}
-              {{#if chosenName}}
-              <p class="sde-cb-talent-result"><i class="fa-solid fa-star"></i> <b>{{chosenName}}</b></p>
-              {{#if chosenDesc}}<div class="sde-cb-talent-desc">{{{chosenDesc}}}</div>{{/if}}
-              {{else}}{{#if textResult}}
-              <p class="sde-cb-talent-result"><i class="fa-solid fa-star"></i> <b>{{textResult}}</b></p>
-              <p class="sde-cb-hint">{{localize "SDE.charBuilder.class.talentManual"}}</p>
-              {{/if}}{{/if}}
-            {{/if}}
-            {{#if duplicate}}
-            <p class="sde-cb-hint warn">{{localize "SDE.charBuilder.class.duplicateReroll"}}</p>
-            {{else}}{{#unless canReroll}}
-            <p class="sde-cb-hint">{{localize "SDE.charBuilder.class.bonusLocked"}}</p>
-            {{/unless}}{{/if}}
-          {{else}}
-          <p class="sde-cb-hint">{{localize "SDE.charBuilder.class.bonusRollPrompt"}}</p>
-          {{/if}}
-        </div>
-        {{/each}}
-      </div>
-      {{/if}}
-
-      {{!-- Talent (rolled) --}}
-      {{#if step.talent.hasTable}}
-      <div class="sde-cb-subpanel">
-        <div class="sde-cb-subpanel-head">
-          <span class="sde-cb-panel-title">{{localize "SDE.charBuilder.class.talent"}}</span>
-          {{#if step.talent.canRoll}}
-          <button type="button" class="sde-cb-btn dice sm" data-cb-roll-talent>
-            <i class="fa-solid fa-dice"></i> {{#if step.talent.rolled}}{{localize "SDE.charBuilder.class.rerollTalent"}}{{else}}{{localize "SDE.charBuilder.class.rollTalent"}}{{/if}}
-          </button>
-          {{else}}
-          <span class="sde-cb-hint"><i class="fa-solid fa-lock"></i> {{localize "SDE.charBuilder.lockedRoll"}}</span>
+          </section>
           {{/if}}
         </div>
 
-        {{#if step.talent.table}}
-        <table class="sde-cb-talent-table">
-          <thead><tr><th>2d6</th><th>{{localize "SDE.charBuilder.class.tableEffect"}}</th></tr></thead>
-          <tbody>
-            {{#each step.talent.table}}
-            <tr><td class="rng">{{range}}</td><td>{{outcome}}</td></tr>
-            {{/each}}
-          </tbody>
-        </table>
-        {{/if}}
-
-        {{#if step.talent.rolled}}
-          <p class="sde-cb-hint">{{localize "SDE.charBuilder.class.rolled"}} 2d6 = <b>{{step.talent.total}}</b></p>
-          {{#if step.talent.needsChoice}}
-          <p class="sde-cb-hint warn">{{localize "SDE.charBuilder.class.chooseOne"}}</p>
-          <div class="sde-cb-chip-row">
-            {{#each step.talent.options}}
-            <span class="sde-cb-chip{{#if selected}} selected{{/if}}" data-cb-talent-opt="{{uuid}}">{{name}}</span>
-            {{/each}}
-          </div>
-          {{else}}
-            {{#if step.talent.chosenName}}
-            <p class="sde-cb-talent-result"><i class="fa-solid fa-star"></i> <b>{{step.talent.chosenName}}</b></p>
-            {{else}}
-              {{#if step.talent.textResult}}
-              <p class="sde-cb-talent-result"><i class="fa-solid fa-star"></i> <b>{{step.talent.textResult}}</b></p>
-              <p class="sde-cb-hint">{{localize "SDE.charBuilder.class.talentManual"}}</p>
-              {{else}}
-              <p class="sde-cb-hint warn">{{localize "SDE.charBuilder.class.noTalentRolled"}}</p>
-              {{/if}}
-            {{/if}}
-          {{/if}}
-        {{else}}
-        <p class="sde-cb-hint">{{localize "SDE.charBuilder.class.rollPrompt"}}</p>
-        {{/if}}
-      </div>
-      {{/if}}
-
-      {{!-- Spells (casters) --}}
-      {{#if step.spells.caster}}
-      <div class="sde-cb-subpanel">
-        <span class="sde-cb-panel-title">{{localize "SDE.charBuilder.class.spells"}} <small>({{step.spells.ability}})</small></span>
-        {{#each step.spells.tiers}}
-        <div class="sde-cb-spell-tier">
-          <div class="sde-cb-spell-tier-head">
-            {{localize "SDE.charBuilder.class.tier"}} {{tier}} — {{localize "SDE.charBuilder.class.choose"}} {{count}}
-            <span class="sde-cb-count{{#if full}} full{{/if}}">{{chosen}}/{{count}}</span>
-          </div>
-          <div class="sde-cb-spell-list">
-            {{#each options}}
-            <div class="sde-cb-spell-row{{#if expanded}} expanded{{/if}}">
-              <div class="sde-cb-spell-row-head">
-                <span class="sde-cb-chip{{#if selected}} selected{{/if}}" data-cb-spell="{{uuid}}">{{name}}</span>
-                <button type="button" class="sde-cb-spell-expand" data-cb-spell-expand="{{uuid}}"
-                  title="{{localize 'SDE.charBuilder.class.spellPreview'}}">
-                  <i class="fa-solid fa-chevron-{{#if expanded}}up{{else}}down{{/if}}"></i>
-                </button>
+        {{!-- Right: what you choose, folded; sections that need an answer are open --}}
+        <div class="ui-stack">
+          {{#if step.choices.length}}
+          <details class="ui-details cbu-subpanel" open>
+            <summary>{{localize "SDE.charBuilder.class.talentChoices"}}</summary>
+            <div class="ui-details-body">
+              {{#each step.choices}}
+              <div class="ui-field cbu-talent-choice{{#unless chosen}} pending{{/unless}}">
+                <span class="ui-label">{{talentName}} {{#unless chosen}}<i class="fa-solid fa-triangle-exclamation" title="{{localize 'SDE.charBuilder.class.choiceNeeded'}}"></i>{{/unless}}</span>
+                <select data-cb-talent-choice="{{key}}"><option value="">{{localize "SDE.charBuilder.chooseOption"}}</option>{{#each options}}<option value="{{slug}}" {{#if selected}}selected{{/if}}>{{label}}</option>{{/each}}</select>
               </div>
-              {{#if expanded}}{{#if detail}}
-              <div class="sde-cb-spell-detail">
-                <p class="sde-cb-spell-meta">
-                  {{localize "SDE.charBuilder.class.tier"}} {{detail.tier}}
-                  · {{localize "SDE.charBuilder.class.spellRange"}}: {{detail.range}}
-                  · {{localize "SDE.charBuilder.class.spellDuration"}}: {{detail.duration}}
-                </p>
-                <div class="sde-cb-desc">{{{detail.description}}}</div>
-              </div>
-              {{/if}}{{/if}}
+              {{/each}}
             </div>
-            {{/each}}
-          </div>
+          </details>
+          {{/if}}
+
+          {{#if step.bonusRolls.length}}
+          <details class="ui-details cbu-subpanel">
+            <summary>{{localize "SDE.charBuilder.class.bonusRolls"}}</summary>
+            <div class="ui-details-body">
+              {{#each step.bonusRolls}}
+              <div class="ui-card raised cbu-bonus-roll">
+                <div class="ui-card-head">
+                  <span class="ui-card-name">{{label}}{{#if tableName}} <small class="ui-muted">({{tableName}})</small>{{/if}}</span>
+                  {{#if rolled}}{{#if canReroll}}<button type="button" class="ui-btn" data-cb-roll-bonus="{{key}}"><i class="fa-solid fa-dice"></i> {{localize "SDE.charBuilder.class.rerollTalent"}}</button>{{/if}}
+                  {{else}}<button type="button" class="ui-btn" data-cb-roll-bonus="{{key}}"><i class="fa-solid fa-dice"></i> {{localize "SDE.charBuilder.class.bonusRollBtn"}}</button>{{/if}}
+                </div>
+                {{#if rolled}}
+                  {{#if needsChoice}}
+                  <div class="ui-note warn">{{localize "SDE.charBuilder.class.chooseOne"}}</div>
+                  <div class="ui-inline">{{#each options}}<span class="ui-chip{{#if selected}} sel{{/if}}" data-cb-bonus-opt="{{uuid}}" data-cb-bonus-key="{{../key}}">{{name}}</span>{{/each}}</div>
+                  {{else}}
+                    {{#if chosenName}}<div class="cbu-talent-result"><i class="fa-solid fa-star"></i> <b>{{chosenName}}</b></div>{{#if chosenDesc}}<div class="cbu-talent-desc">{{{chosenDesc}}}</div>{{/if}}
+                    {{else}}{{#if textResult}}<div class="cbu-talent-result"><i class="fa-solid fa-star"></i> <b>{{textResult}}</b></div><span class="ui-muted">{{localize "SDE.charBuilder.class.talentManual"}}</span>{{/if}}{{/if}}
+                  {{/if}}
+                  {{#if duplicate}}<div class="ui-note warn">{{localize "SDE.charBuilder.class.duplicateReroll"}}</div>{{else}}{{#unless canReroll}}<span class="ui-muted">{{localize "SDE.charBuilder.class.bonusLocked"}}</span>{{/unless}}{{/if}}
+                {{else}}<span class="ui-muted">{{localize "SDE.charBuilder.class.bonusRollPrompt"}}</span>{{/if}}
+              </div>
+              {{/each}}
+            </div>
+          </details>
+          {{/if}}
+
+          {{#if step.talent.hasTable}}
+          <details class="ui-details cbu-subpanel">
+            <summary>{{localize "SDE.charBuilder.class.talent"}} {{#if step.talent.rolled}}<span class="ui-chip">2d6 = {{step.talent.total}}</span>{{/if}}</summary>
+            <div class="ui-details-body">
+              <div class="ui-inline">
+                {{#if step.talent.canRoll}}<button type="button" class="ui-btn" data-cb-roll-talent><i class="fa-solid fa-dice"></i> {{#if step.talent.rolled}}{{localize "SDE.charBuilder.class.rerollTalent"}}{{else}}{{localize "SDE.charBuilder.class.rollTalent"}}{{/if}}</button>
+                {{else}}<span class="ui-muted"><i class="fa-solid fa-lock"></i> {{localize "SDE.charBuilder.lockedRoll"}}</span>{{/if}}
+              </div>
+              {{#if step.talent.table}}
+              <table class="ui-table cbu-talent-table"><thead><tr><th>2d6</th><th>{{localize "SDE.charBuilder.class.tableEffect"}}</th></tr></thead><tbody>{{#each step.talent.table}}<tr><td class="rng">{{range}}</td><td>{{outcome}}</td></tr>{{/each}}</tbody></table>
+              {{/if}}
+              {{#if step.talent.rolled}}
+                {{#if step.talent.needsChoice}}
+                <div class="ui-note warn">{{localize "SDE.charBuilder.class.chooseOne"}}</div>
+                <div class="ui-inline">{{#each step.talent.options}}<span class="ui-chip{{#if selected}} sel{{/if}}" data-cb-talent-opt="{{uuid}}">{{name}}</span>{{/each}}</div>
+                {{else}}
+                  {{#if step.talent.chosenName}}<div class="cbu-talent-result"><i class="fa-solid fa-star"></i> <b>{{step.talent.chosenName}}</b></div>
+                  {{else}}{{#if step.talent.textResult}}<div class="cbu-talent-result"><i class="fa-solid fa-star"></i> <b>{{step.talent.textResult}}</b></div><span class="ui-muted">{{localize "SDE.charBuilder.class.talentManual"}}</span>
+                  {{else}}<div class="ui-note warn">{{localize "SDE.charBuilder.class.noTalentRolled"}}</div>{{/if}}{{/if}}
+                {{/if}}
+              {{else}}<span class="ui-muted">{{localize "SDE.charBuilder.class.rollPrompt"}}</span>{{/if}}
+            </div>
+          </details>
+          {{/if}}
+
+          {{#if step.spells.caster}}
+          <details class="ui-details cbu-subpanel" open>
+            <summary>{{localize "SDE.charBuilder.class.spells"}} <span class="ui-muted">({{step.spells.ability}})</span></summary>
+            <div class="ui-details-body">
+              {{#each step.spells.tiers}}
+              <div class="ui-group cbu-spell-tier">
+                <span class="ui-label">{{localize "SDE.charBuilder.class.tier"}} {{tier}} &mdash; {{localize "SDE.charBuilder.class.choose"}} {{count}} <span class="ui-chip {{#if full}}ok{{else}}warn{{/if}}">{{chosen}}/{{count}}</span></span>
+                <div class="ui-inline cbu-spell-list">
+                  {{#each options}}
+                  <span class="cbu-spell-row{{#if expanded}} expanded{{/if}}">
+                    <span class="ui-chip{{#if selected}} sel{{/if}}" data-cb-spell="{{uuid}}">{{name}}</span><button type="button" class="ui-icon cbu-spell-expand" data-cb-spell-expand="{{uuid}}" title="{{localize 'SDE.charBuilder.class.spellPreview'}}"><i class="fa-solid fa-chevron-{{#if expanded}}up{{else}}down{{/if}}"></i></button>
+                  </span>
+                  {{/each}}
+                </div>
+                {{#each options}}{{#if expanded}}{{#if detail}}
+                <div class="ui-note info cbu-spell-detail"><b>{{name}}</b> &middot; {{localize "SDE.charBuilder.class.tier"}} {{detail.tier}} &middot; {{localize "SDE.charBuilder.class.spellRange"}}: {{detail.range}} &middot; {{localize "SDE.charBuilder.class.spellDuration"}}: {{detail.duration}}<div class="cbu-desc">{{{detail.description}}}</div></div>
+                {{/if}}{{/if}}{{/each}}
+              </div>
+              {{/each}}
+            </div>
+          </details>
+          {{/if}}
+
+          {{#if step.patron.required}}
+          <details class="ui-details cbu-subpanel">
+            <summary>{{localize "SDE.charBuilder.class.patron"}} {{#if step.patron.chosenName}}<span class="ui-chip sel">{{step.patron.chosenName}}</span>{{/if}}</summary>
+            <div class="ui-details-body">
+              <span class="ui-muted">{{localize "SDE.charBuilder.class.patronPrompt"}} {{#if step.patron.startingBoons}}({{step.patron.startingBoons}} {{localize "SDE.charBuilder.class.boons"}}){{/if}}</span>
+              <div class="ui-inline">{{#each step.patron.options}}<span class="ui-chip{{#if selected}} sel{{/if}}" data-cb-patron="{{uuid}}">{{name}}</span>{{/each}}</div>
+            </div>
+          </details>
+          {{/if}}
+
+          <details class="ui-details cbu-subpanel" data-cb-class-langs open>
+            <summary>{{localize "SDE.charBuilder.step.languages"}}</summary>
+            <div class="ui-details-body">{{> sde-cb-languages step=step.languages}}</div>
+          </details>
         </div>
-        {{/each}}
       </div>
-      {{/if}}
-
-      {{!-- Patron (required classes) --}}
-      {{#if step.patron.required}}
-      <div class="sde-cb-subpanel">
-        <span class="sde-cb-panel-title">{{localize "SDE.charBuilder.class.patron"}}</span>
-        <p class="sde-cb-hint">{{localize "SDE.charBuilder.class.patronPrompt"}} {{#if step.patron.startingBoons}}({{step.patron.startingBoons}} {{localize "SDE.charBuilder.class.boons"}}){{/if}}</p>
-        <div class="sde-cb-chip-row">
-          {{#each step.patron.options}}
-          <span class="sde-cb-chip{{#if selected}} selected{{/if}}" data-cb-patron="{{uuid}}">{{name}}</span>
-          {{/each}}
-        </div>
-      </div>
-      {{/if}}
-
-      {{!-- Languages (ancestry + class pools; choices tracked by the retained LanguagesStep) --}}
-      <div class="sde-cb-subpanel" data-cb-class-langs>
-        <span class="sde-cb-panel-title">{{localize "SDE.charBuilder.step.languages"}}</span>
-        {{> sde-cb-languages step=step.languages}}
-      </div>
-
       {{else}}
-      {{#unless step.readOnly}}<div class="sde-cb-empty">{{localize "SDE.charBuilder.selectPrompt"}}</div>{{/unless}}
+      {{#unless step.readOnly}}<div class="ui-empty"><i class="fa-solid fa-hand-pointer"></i><span>{{localize "SDE.charBuilder.selectPrompt"}}</span></div>{{/unless}}
       {{/if}}
     </div>
-
   </div>
 </div>

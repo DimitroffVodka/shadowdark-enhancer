@@ -1,474 +1,271 @@
-<div class="sdems-container">
+<div class="ui-shell">
+  <header class="ui-head">
+    <div class="ui-art ms-art"><i class="fas fa-shop"></i></div>
+    <div class="ui-head-text"><h2 class="ui-title">{{shopName}}</h2></div>
+    <div class="ui-stats">
+      {{#if hasActor}}
+      <div class="ui-stat"><span class="ui-label">{{actorName}}</span><span class="ui-value ms-wallet"><i class="fas fa-coins"></i> {{walletDetail}}</span></div>
+      {{else}}
+      <span class="ui-chip off"><i class="fas fa-user-slash"></i> {{localize "SDE.merchant.noCharacter"}}</span>
+      {{/if}}
+    </div>
+  </header>
 
-  {{!-- Header --}}
-  <div class="sdems-header">
-    <i class="fas fa-shop sdems-header-icon"></i>
-    <h2 class="sdems-title">{{shopName}}</h2>
-    {{#if hasActor}}
-    <span class="sdems-wallet"><i class="fas fa-coins"></i> {{actorName}}: {{walletDetail}}</span>
-    {{else}}
-    <span class="sdems-wallet sdems-no-actor"><i class="fas fa-user-slash"></i> {{localize "SDE.merchant.noCharacter"}}</span>
-    {{/if}}
-  </div>
-
-  {{!-- Tabs --}}
-  <div class="sdems-tab-bar">
+  <nav class="ui-tabs">
     {{#each tabs}}
-    <button class="sdems-tab-btn {{#if active}}active{{/if}}" data-tab="{{id}}" type="button">
-      <i class="fas {{icon}}"></i> {{label}}
-    </button>
+    <button type="button" class="ui-tab sdems-tab-btn {{#if active}}active{{/if}}" data-tab="{{id}}"><i class="fas {{icon}}"></i> {{label}}</button>
     {{/each}}
-  </div>
+  </nav>
 
-  {{!-- Tab content --}}
-  <div class="sdems-body">
+  <div class="ui-body">
 
-    {{!-- ═══ BUY TAB ═══ --}}
     {{#if (eq tab "buy")}}
-    <div class="sdems-tab-content sdems-buy-tab">
-
-      {{!-- Filters --}}
-      <div class="sdems-filters">
-        <input type="text" class="sdems-search-input" placeholder="{{localize 'SDE.merchant.searchItems'}}" value="{{searchFilter}}">
-        <select class="sdems-category-select">
-          <option value="all">{{localize "SDE.merchant.allCategories"}}</option>
-          {{#each categories}}
-          <option value="{{this}}" {{#if (eq this ../categoryFilter)}}selected{{/if}}>{{this}}</option>
-          {{/each}}
-        </select>
-      </div>
-
-      {{!-- Item list, grouped into collapsible category sections --}}
-      <div class="sdems-item-list">
-        {{#if inventoryCount}}
-        {{#each inventorySections}}
-        <div class="sdems-shop-section {{#if collapsed}}sdems-section-collapsed{{/if}}" data-section="{{key}}">
-          <div class="sdems-section-header" data-section-toggle="{{key}}" role="button" tabindex="0"
-               aria-expanded="{{#if collapsed}}false{{else}}true{{/if}}">
-            <i class="fas fa-chevron-down sdems-section-caret"></i>
-            <span class="sdems-section-title">{{label}}</span>
-            <span class="sdems-section-count">{{count}}</span>
-          </div>
-          <div class="sdems-section-body">
-            {{#each items}}
-            <div
-              class="sdems-item-row {{#if outOfStock}}sdems-out-of-stock{{/if}} {{#unless canAfford}}sdems-cant-afford{{/unless}}"
-              data-shop-item-id="{{id}}">
-              <img class="sdems-item-icon" src="{{img}}" alt="{{name}}" width="32" height="32">
-              <div class="sdems-item-info">
-                <span class="sdems-item-name">{{name}}</span>
-                <span class="sdems-item-cat">{{category}}</span>
-              </div>
-              <span class="sdems-item-price">{{priceDisplay}}</span>
-              <span class="sdems-item-stock" title="{{#if outOfStock}}{{localize 'SDE.merchant.stockOut'}}{{else}}{{#if (eq stockDisplay "
-                ∞")}}{{localize 'SDE.merchant.stockUnlimited'}}{{else}}{{localize 'SDE.merchant.stockRemaining' n=stockDisplay}}{{/if}}{{/if}}">
-                {{stockDisplay}}
-              </span>
-              <div class="sdems-item-actions">
-                <input type="number" class="sdems-qty-input" value="1" min="1" max="99">
-                <button class="sdems-buy-btn" type="button" {{#unless canAfford}}disabled{{/unless}}>
-                  <i class="fas fa-cart-plus"></i> {{localize "SDE.merchant.btn.buy"}}
-                </button>
-              </div>
-            </div>
-            {{/each}}
+    <div class="ui-inline ms-filters">
+      <div class="ui-search ui-grow"><i class="fa-solid fa-magnifying-glass"></i><input type="text" class="sdems-search-input" placeholder="{{localize 'SDE.merchant.searchItems'}}" value="{{searchFilter}}"></div>
+      <select class="sdems-category-select ms-select">
+        <option value="all">{{localize "SDE.merchant.allCategories"}}</option>
+        {{#each categories}}<option value="{{this}}" {{#if (eq this ../categoryFilter)}}selected{{/if}}>{{this}}</option>{{/each}}
+      </select>
+    </div>
+    {{#if inventoryCount}}
+    {{#each inventorySections}}
+    <section class="ui-group sdems-shop-section {{#if collapsed}}sdems-section-collapsed{{/if}}" data-section="{{key}}">
+      <h3 class="ui-h sdems-section-header" data-section-toggle="{{key}}" role="button" tabindex="0" aria-expanded="{{#if collapsed}}false{{else}}true{{/if}}">
+        <span><i class="fas fa-chevron-down ms-caret"></i> {{label}}</span><small>{{count}}</small>
+      </h3>
+      <div class="ui-list ms-section-body">
+        {{#each items}}
+        <div class="ui-row sdems-item-row ms-row ms-r-buy {{#if outOfStock}}ms-out{{/if}} {{#unless canAfford}}ms-poor{{/unless}}" data-shop-item-id="{{id}}">
+          <img src="{{img}}" alt="">
+          <div class="ui-row-main"><span class="ui-row-name ms-name" title="{{name}}">{{name}}</span><span class="ui-row-sub">{{category}}</span></div>
+          <span class="ui-row-meta">{{priceDisplay}}</span>
+          <span class="ui-chip ms-stock" title="{{#if outOfStock}}{{localize 'SDE.merchant.stockOut'}}{{else if unlimited}}{{localize 'SDE.merchant.stockUnlimited'}}{{else}}{{localize 'SDE.merchant.stockRemaining' n=stockDisplay}}{{/if}}">{{stockDisplay}}</span>
+          <div class="ui-inline sdems-item-actions ms-actions">
+            <input type="number" class="sdems-qty-input ui-num-in" value="1" min="1" max="99" aria-label="{{localize 'SDE.merchant.btn.buy'}}">
+            <button type="button" class="ui-btn sdems-buy-btn" {{#unless canAfford}}disabled{{/unless}}><i class="fas fa-cart-plus"></i> {{localize "SDE.merchant.btn.buy"}}</button>
           </div>
         </div>
         {{/each}}
-        {{else}}
-        <div class="sdems-empty">
-          <i class="fas fa-shop-slash"></i>
-          <p>{{localize "SDE.merchant.noItems"}}</p>
-        </div>
-        {{/if}}
       </div>
-    </div>
+    </section>
+    {{/each}}
+    {{else}}
+    <div class="ui-empty"><i class="fa-solid fa-shop-slash"></i><span>{{localize "SDE.merchant.noItems"}}</span></div>
+    {{/if}}
     {{/if}}
 
-    {{!-- ═══ CATALOG TAB ═══ --}}
     {{#if (eq tab "catalog")}}
-    <div class="sdems-tab-content sdems-catalog-tab">
-
-      {{!-- Filters --}}
-      <div class="sdems-catalog-filters">
-        <select class="sdems-catalog-pack">
-          <option value="all" {{#if (eq catalogPack "all" )}}selected{{/if}}>{{localize "SDE.merchant.allPacks"}}</option>
-          {{#each catalogPacks}}
-          <option value="{{id}}" {{#if selected}}selected{{/if}}>{{label}}</option>
-          {{/each}}
-        </select>
-
-        {{#if showFolderFilter}}
-        <select class="sdems-catalog-folder">
-          <option value="all" {{#if (eq catalogFolder "all" )}}selected{{/if}}>{{localize "SDE.merchant.allFolders"}}</option>
-          {{#each catalogFolders}}
-          <option value="{{id}}" {{#if selected}}selected{{/if}}>{{name}}</option>
-          {{/each}}
-        </select>
-        {{/if}}
-
-        <input type="text" class="sdems-catalog-search" placeholder="{{localize 'SDE.merchant.searchItems'}}" value="{{catalogSearch}}">
-
-        <select class="sdems-catalog-sort">
-          <option value="name" {{#if (eq catalogSort "name" )}}selected{{/if}}>{{localize "SDE.merchant.sort.name"}}</option>
-          <option value="value-asc" {{#if (eq catalogSort "value-asc" )}}selected{{/if}}>{{localize "SDE.merchant.sort.valueAsc"}}</option>
-          <option value="value-desc" {{#if (eq catalogSort "value-desc" )}}selected{{/if}}>{{localize "SDE.merchant.sort.valueDesc"}}</option>
-        </select>
-      </div>
-
-      {{!-- Item list --}}
-      <div class="sdems-item-list">
-        {{#if catalogItems.length}}
-        {{#each catalogItems}}
-        <div class="sdems-item-row {{#unless canAfford}}sdems-cant-afford{{/unless}}" data-item-uuid="{{uuid}}">
-          <img class="sdems-item-icon" src="{{img}}" alt="{{name}}" width="32" height="32">
-          <div class="sdems-item-info">
-            <span class="sdems-item-name">{{name}}</span>
-            <span class="sdems-item-cat">
-              <span class="sdems-catalog-tag">{{packLabel}}</span>
-              {{#if folderName}}<span class="sdems-catalog-tag sdems-folder-tag">{{folderName}}</span>{{/if}}
-            </span>
-          </div>
-          <span class="sdems-item-price">{{priceDisplay}}</span>
-          <div class="sdems-item-actions">
-            <input type="number" class="sdems-qty-input" value="1" min="1" max="99">
-            <button class="sdems-catalog-buy-btn" type="button" {{#unless canAfford}}disabled{{/unless}}>
-              <i class="fas fa-cart-plus"></i> {{localize "SDE.merchant.btn.buy"}}
-            </button>
-          </div>
-        </div>
-        {{/each}}
-        {{else}}
-        <div class="sdems-empty">
-          <i class="fas fa-book-open"></i>
-          <p>{{localize "SDE.merchant.noMatches"}}</p>
-        </div>
-        {{/if}}
-      </div>
+    <div class="ui-inline ms-filters">
+      <select class="sdems-catalog-pack ms-select">
+        <option value="all" {{#if (eq catalogPack "all")}}selected{{/if}}>{{localize "SDE.merchant.allPacks"}}</option>
+        {{#each catalogPacks}}<option value="{{id}}" {{#if selected}}selected{{/if}}>{{label}}</option>{{/each}}
+      </select>
+      {{#if showFolderFilter}}
+      <select class="sdems-catalog-folder ms-select">
+        <option value="all" {{#if (eq catalogFolder "all")}}selected{{/if}}>{{localize "SDE.merchant.allFolders"}}</option>
+        {{#each catalogFolders}}<option value="{{id}}" {{#if selected}}selected{{/if}}>{{name}}</option>{{/each}}
+      </select>
+      {{/if}}
+      <select class="sdems-catalog-sort ms-select">
+        <option value="name" {{#if (eq catalogSort "name")}}selected{{/if}}>{{localize "SDE.merchant.sort.name"}}</option>
+        <option value="value-asc" {{#if (eq catalogSort "value-asc")}}selected{{/if}}>{{localize "SDE.merchant.sort.valueAsc"}}</option>
+        <option value="value-desc" {{#if (eq catalogSort "value-desc")}}selected{{/if}}>{{localize "SDE.merchant.sort.valueDesc"}}</option>
+      </select>
+      <div class="ui-search ui-grow ms-wide"><i class="fa-solid fa-magnifying-glass"></i><input type="text" class="sdems-catalog-search" placeholder="{{localize 'SDE.merchant.searchItems'}}" value="{{catalogSearch}}"></div>
     </div>
+    {{#if catalogItems.length}}
+    <div class="ui-list">
+      {{#each catalogItems}}
+      <div class="ui-row sdems-item-row ms-row ms-r-cat {{#unless canAfford}}ms-poor{{/unless}}" data-item-uuid="{{uuid}}">
+        <img src="{{img}}" alt="">
+        <div class="ui-row-main"><span class="ui-row-name ms-name" title="{{name}}">{{name}}</span><span class="ui-row-sub"><span class="ui-tag">{{packLabel}}</span>{{#if folderName}} <span class="ui-tag">{{folderName}}</span>{{/if}}</span></div>
+        <span class="ui-row-meta">{{priceDisplay}}</span>
+        <div class="ui-inline sdems-item-actions ms-actions">
+          <input type="number" class="sdems-qty-input ui-num-in" value="1" min="1" max="99" aria-label="{{localize 'SDE.merchant.btn.buy'}}">
+          <button type="button" class="ui-btn sdems-catalog-buy-btn" {{#unless canAfford}}disabled{{/unless}}><i class="fas fa-cart-plus"></i> {{localize "SDE.merchant.btn.buy"}}</button>
+        </div>
+      </div>
+      {{/each}}
+    </div>
+    {{else}}
+    <div class="ui-empty"><i class="fa-solid fa-book-open"></i><span>{{localize "SDE.merchant.noMatches"}}</span></div>
+    {{/if}}
     {{/if}}
 
-    {{!-- ═══ GAMBLE TAB ═══ --}}
     {{#if (eq tab "gamble")}}
-    <div class="sdems-tab-content sdems-gamble-tab">
-      <div class="sdems-gamble-header">
-        <i class="fas fa-dice"></i> {{localize "SDE.merchant.gambleIntro"}}
+    <div class="ui-note info"><i class="fas fa-dice"></i> {{localize "SDE.merchant.gambleIntro"}}</div>
+    {{#if gambleOptions.length}}
+    <div class="ui-list">
+      {{#each gambleOptions}}
+      <div class="ui-row ms-row ms-r-gamble {{#unless canAfford}}ms-poor{{/unless}}" data-gamble-id="{{id}}">
+        <div class="ui-row-main"><span class="ui-row-name ms-name" title="{{name}}">{{name}}</span></div>
+        <span class="ui-row-meta">{{costDisplay}}</span>
+        <button type="button" class="ui-btn sdems-gamble-btn" {{#unless canAfford}}disabled{{/unless}}><i class="fas fa-dice"></i> {{localize "SDE.merchant.btn.gamble"}}</button>
       </div>
-      <div class="sdems-item-list">
-        {{#if gambleOptions.length}}
-        {{#each gambleOptions}}
-        <div class="sdems-item-row {{#unless canAfford}}sdems-cant-afford{{/unless}}" data-gamble-id="{{id}}">
-          <div class="sdems-item-info">
-            <span class="sdems-item-name">{{name}}</span>
-          </div>
-          <span class="sdems-item-price">{{costDisplay}}</span>
-          <div class="sdems-item-actions">
-            <button class="sdems-gamble-btn" type="button" {{#unless canAfford}}disabled{{/unless}}>
-              <i class="fas fa-dice"></i> {{localize "SDE.merchant.btn.gamble"}}
-            </button>
-          </div>
-        </div>
-        {{/each}}
-        {{else}}
-        <div class="sdems-empty">
-          <i class="fas fa-dice"></i>
-          <p>{{localize "SDE.merchant.noGamble"}}</p>
-        </div>
-        {{/if}}
-      </div>
+      {{/each}}
     </div>
+    {{else}}
+    <div class="ui-empty"><i class="fa-solid fa-dice"></i><span>{{localize "SDE.merchant.noGamble"}}</span></div>
+    {{/if}}
     {{/if}}
 
-    {{!-- ═══ SELL TAB ═══ --}}
     {{#if (eq tab "sell")}}
-    <div class="sdems-tab-content sdems-sell-tab">
-
-      <div class="sdems-sell-header">
-        <span>{{localize "SDE.merchant.yourEquipment"}}</span>
-        <span class="sdems-sell-ratio">{{localize "SDE.merchant.sellRatioLabel"}} <strong>{{sellRatio}}%</strong></span>
-        {{#if hasJunk}}
-        <button class="sdems-sell-all-junk" type="button">
-          <i class="fas fa-trash-can"></i> {{localize "SDE.merchant.btn.sellAllJunk"}}
-        </button>
-        {{/if}}
-      </div>
-
-      <div class="sdems-item-list">
-        {{#if sellItems.length}}
-        {{#each sellItems}}
-        <div class="sdems-item-row {{#if isJunk}}sdems-junk-item{{/if}}" data-item-id="{{id}}">
-          <img class="sdems-item-icon" src="{{img}}" alt="{{name}}" width="32" height="32">
-          <div class="sdems-item-info">
-            <span class="sdems-item-name">{{#if isJunk}}<i class="fas fa-trash-can"
-                style="color:#e74c3c;margin-right:4px;"></i>{{/if}}{{name}}{{#if (gt quantity 1)}}
-              ×{{quantity}}{{/if}}</span>
-            <span class="sdems-item-cat">{{localize "SDE.merchant.valueLabel" cost=costDisplay}}</span>
-          </div>
-          <span class="sdems-item-price sdems-sell-price">{{sellPriceDisplay}}</span>
-          <div class="sdems-item-actions">
-            <input type="number" class="sdems-qty-input" value="1" min="1" max="{{quantity}}">
-            <button class="sdems-sell-btn" type="button">
-              <i class="fas fa-coins"></i> {{localize "SDE.merchant.btn.sell"}}
-            </button>
-          </div>
-        </div>
-        {{/each}}
-        {{else}}
-        <div class="sdems-empty">
-          <i class="fas fa-box-open"></i>
-          <p>{{localize "SDE.merchant.nothingToSell"}}</p>
-        </div>
-        {{/if}}
-      </div>
+    <div class="ui-inline ms-sellhead">
+      <h3 class="ui-h ui-grow">{{localize "SDE.merchant.yourEquipment"}} <small>{{localize "SDE.merchant.sellRatioLabel"}} {{sellRatio}}%</small></h3>
+      {{#if hasJunk}}<button type="button" class="ui-btn sdems-sell-all-junk"><i class="fas fa-trash-can"></i> {{localize "SDE.merchant.btn.sellAllJunk"}}</button>{{/if}}
     </div>
+    {{#if sellItems.length}}
+    <div class="ui-list">
+      {{#each sellItems}}
+      <div class="ui-row sdems-item-row ms-row ms-r-sell {{#if isJunk}}ms-junk{{/if}}" data-item-id="{{id}}">
+        <img src="{{img}}" alt="">
+        <div class="ui-row-main"><span class="ui-row-name ms-name" title="{{name}}">{{#if isJunk}}<i class="fas fa-trash-can ms-junk-ic"></i> {{/if}}{{name}}{{#if (gt quantity 1)}} ×{{quantity}}{{/if}}</span><span class="ui-row-sub">{{localize "SDE.merchant.valueLabel" cost=costDisplay}}</span></div>
+        <span class="ui-row-meta ms-sell">{{sellPriceDisplay}}</span>
+        <div class="ui-inline sdems-item-actions ms-actions">
+          <input type="number" class="sdems-qty-input ui-num-in" value="1" min="1" max="{{quantity}}" aria-label="{{localize 'SDE.merchant.btn.sell'}}">
+          <button type="button" class="ui-btn sdems-sell-btn"><i class="fas fa-coins"></i> {{localize "SDE.merchant.btn.sell"}}</button>
+        </div>
+      </div>
+      {{/each}}
+    </div>
+    {{else}}
+    <div class="ui-empty"><i class="fa-solid fa-box-open"></i><span>{{localize "SDE.merchant.nothingToSell"}}</span></div>
+    {{/if}}
     {{/if}}
 
-    {{!-- ═══ LOG TAB ═══ --}}
     {{#if (eq tab "log")}}
-    <div class="sdems-tab-content sdems-log-tab">
-
-      <div class="sdems-log-toolbar">
-        <button class="sdems-copy-discord" type="button">
-          <i class="fab fa-discord"></i> {{localize "SDE.merchant.btn.shopLog"}}
-        </button>
-        <button class="sdems-copy-session" type="button">
-          <i class="fab fa-discord"></i> {{localize "SDE.merchant.btn.sessionSummary"}}
-        </button>
-        {{#if isGM}}
-        <button class="sdems-clear-log" type="button">
-          <i class="fas fa-trash"></i> {{localize "SDE.merchant.btn.clearLog"}}
-        </button>
-        {{/if}}
-      </div>
-
-      <div class="sdems-log-list">
-        {{#if logEntries.length}}
-        {{#each logEntries}}
-        <div class="sdems-log-entry">
-          <span class="sdems-log-time">{{time}}</span>
-          <span class="sdems-log-icon {{#if isBuy}}sdems-log-buy{{else}}sdems-log-sell{{/if}}">
-            <i class="fas {{#if isGamble}}fa-dice{{else}}{{#if isBuy}}fa-cart-shopping{{else}}fa-coins{{/if}}{{/if}}"></i>
-          </span>
-          <span class="sdems-log-player">{{player}}</span>
-          <span class="sdems-log-action">{{#if isBuy}}{{localize "SDE.merchant.log.bought"}}{{else}}{{localize "SDE.merchant.log.sold"}}{{/if}}</span>
-          <span class="sdems-log-detail">{{item}}{{qtyStr}}</span>
-          <span class="sdems-log-price">{{priceDisplay}}</span>
-        </div>
-        {{/each}}
-        {{else}}
-        <div class="sdems-empty">
-          <i class="fas fa-clipboard-list"></i>
-          <p>{{localize "SDE.merchant.noTransactions"}}</p>
-        </div>
-        {{/if}}
-      </div>
+    <div class="ui-inline">
+      <button type="button" class="ui-btn sdems-copy-discord"><i class="fab fa-discord"></i> {{localize "SDE.merchant.btn.shopLog"}}</button>
+      <button type="button" class="ui-btn sdems-copy-session"><i class="fab fa-discord"></i> {{localize "SDE.merchant.btn.sessionSummary"}}</button>
+      {{#if isGM}}<button type="button" class="ui-btn danger ui-right sdems-clear-log"><i class="fas fa-trash"></i> {{localize "SDE.merchant.btn.clearLog"}}</button>{{/if}}
     </div>
+    {{#if logEntries.length}}
+    <div class="ui-list">
+      {{#each logEntries}}
+      <div class="ui-row ms-log">
+        <i class="fas {{#if isGamble}}fa-dice{{else}}{{#if isBuy}}fa-cart-shopping{{else}}fa-coins{{/if}}{{/if}} ms-log-ic {{#if isBuy}}buy{{else}}sell{{/if}}"></i>
+        <div class="ui-row-main"><span class="ui-row-name">{{item}}{{qtyStr}}</span><span class="ui-row-sub">{{player}} · {{#if isBuy}}{{localize "SDE.merchant.log.bought"}}{{else}}{{localize "SDE.merchant.log.sold"}}{{/if}} · {{time}}</span></div>
+        <span class="ui-row-meta">{{priceDisplay}}</span>
+      </div>
+      {{/each}}
+    </div>
+    {{else}}
+    <div class="ui-empty"><i class="fa-solid fa-clipboard-list"></i><span>{{localize "SDE.merchant.noTransactions"}}</span></div>
+    {{/if}}
     {{/if}}
 
-    {{!-- ═══ MANAGE TAB (GM) ═══ --}}
     {{#if (eq tab "manage")}}
-    <div class="sdems-tab-content sdems-manage-tab">
-
-      {{!-- Shop config --}}
-      <div class="sdems-manage-section">
-        <div class="sdems-manage-row">
-          <label>{{localize "SDE.merchant.manage.shopName"}}</label>
-          <input type="text" class="sdems-shop-name-input" value="{{shopName}}">
-        </div>
-        <div class="sdems-manage-row">
-          <label>{{localize "SDE.merchant.manage.buyMarkup"}}</label>
-          <input type="number" class="sdems-markup-input" value="{{buyMultiplier}}" min="10" max="500" step="10">
-          <span style="font-size:0.85em;color:var(--vcb-text-muted,#666);">{{localize "SDE.merchant.manage.markupHint"}}</span>
-        </div>
-        <div class="sdems-manage-row">
-          <label>{{localize "SDE.merchant.manage.sellRatio"}}</label>
-          <input type="number" class="sdems-ratio-input" value="{{sellRatio}}" min="0" max="100" step="5">
-        </div>
-        <div class="sdems-manage-row">
-          <label>{{localize "SDE.merchant.manage.playerCatalog"}}</label>
-          <label class="sdems-toggle-label">
-            <input type="checkbox" class="sdems-catalog-toggle" {{#if catalogEnabled}}checked{{/if}}>
-            {{localize "SDE.merchant.manage.catalogToggle"}}
-          </label>
-        </div>
-        <div class="sdems-manage-row">
-          <label>{{localize "SDE.merchant.manage.gambleTable"}}</label>
-          <label class="sdems-toggle-label">
-            <input type="checkbox" class="sdems-gamble-toggle" {{#if gambleEnabled}}checked{{/if}}>
-            {{localize "SDE.merchant.manage.gambleToggle"}}
-          </label>
-        </div>
+    <section class="ui-card">
+      <div class="ui-cols-2">
+        <label class="ui-field ms-span"><span class="ui-label">{{localize "SDE.merchant.manage.shopName"}}</span><input type="text" class="sdems-shop-name-input" value="{{shopName}}"></label>
+        <label class="ui-field"><span class="ui-label">{{localize "SDE.merchant.manage.buyMarkup"}}</span><input type="number" class="sdems-markup-input" value="{{buyMultiplier}}" min="10" max="500" step="10"><span class="ui-sub">{{localize "SDE.merchant.manage.markupHint"}}</span></label>
+        <label class="ui-field"><span class="ui-label">{{localize "SDE.merchant.manage.sellRatio"}}</span><input type="number" class="sdems-ratio-input" value="{{sellRatio}}" min="0" max="100" step="5"></label>
       </div>
+      <label class="ui-check"><input type="checkbox" class="sdems-catalog-toggle" {{#if catalogEnabled}}checked{{/if}}> <span><strong>{{localize "SDE.merchant.manage.playerCatalog"}}</strong> <span class="ui-muted">{{localize "SDE.merchant.manage.catalogToggle"}}</span></span></label>
+      <label class="ui-check"><input type="checkbox" class="sdems-gamble-toggle" {{#if gambleEnabled}}checked{{/if}}> <span><strong>{{localize "SDE.merchant.manage.gambleTable"}}</strong> <span class="ui-muted">{{localize "SDE.merchant.manage.gambleToggle"}}</span></span></label>
+    </section>
 
-      {{!-- Mode selector --}}
-      <div class="sdems-manage-section">
-        <h3>{{localize "SDE.merchant.manage.inventorySource"}}</h3>
-        <div class="sdems-mode-selector">
-          <label>
-            <input type="radio" class="sdems-mode-radio" name="sdems-mode" value="compendium" {{#if (eq mode "compendium"
-              )}}checked{{/if}}>
-            {{localize "SDE.merchant.manage.modeCompendium"}}
-          </label>
-          <label>
-            <input type="radio" class="sdems-mode-radio" name="sdems-mode" value="actor" {{#if (eq mode "actor"
-              )}}checked{{/if}}>
-            {{localize "SDE.merchant.manage.modeActor"}}
-          </label>
-        </div>
-
-        {{#if (eq mode "actor")}}
-        <select class="sdems-actor-select">
-          <option value="">{{localize "SDE.merchant.manage.selectActor"}}</option>
-          {{#each npcActors}}
-          <option value="{{id}}" {{#if selected}}selected{{/if}}>{{name}} ({{type}})</option>
-          {{/each}}
+    <section class="ui-card">
+      <div class="ui-label">{{localize "SDE.merchant.manage.inventorySource"}}</div>
+      <div class="ui-inline">
+        <label class="ui-check"><input type="radio" class="sdems-mode-radio" name="sdems-mode" value="compendium" {{#if (eq mode "compendium")}}checked{{/if}}> {{localize "SDE.merchant.manage.modeCompendium"}}</label>
+        <label class="ui-check"><input type="radio" class="sdems-mode-radio" name="sdems-mode" value="actor" {{#if (eq mode "actor")}}checked{{/if}}> {{localize "SDE.merchant.manage.modeActor"}}</label>
+      </div>
+      {{#if (eq mode "actor")}}
+      <select class="sdems-actor-select">
+        <option value="">{{localize "SDE.merchant.manage.selectActor"}}</option>
+        {{#each npcActors}}<option value="{{id}}" {{#if selected}}selected{{/if}}>{{name}} ({{type}})</option>{{/each}}
+      </select>
+      {{/if}}
+      {{#if (eq mode "compendium")}}
+      <div class="ui-label">{{localize "SDE.merchant.manage.savedMerchants"}}</div>
+      <div class="ui-inline ms-saved">
+        <select class="sdems-load-config-select">
+          <option value="">{{localize "SDE.merchant.manage.selectMerchant"}}</option>
+          {{#each savedConfigs}}<option value="{{@key}}">{{this.name}}</option>{{/each}}
         </select>
-        {{/if}}
-      </div>
-
-      {{#if (eq mode "compendium")}}
-      {{!-- Saved merchants --}}
-      <div class="sdems-manage-section">
-        <h3>{{localize "SDE.merchant.manage.savedMerchants"}}</h3>
-        <div class="sdems-saved-configs-row">
-          <select class="sdems-load-config-select">
-            <option value="">{{localize "SDE.merchant.manage.selectMerchant"}}</option>
-            {{#each savedConfigs}}
-            <option value="{{@key}}">{{this.name}}</option>
-            {{/each}}
-          </select>
-          <button class="sdems-load-merchant-btn" type="button">
-            <i class="fas fa-upload"></i> {{localize "SDE.merchant.manage.load"}}
-          </button>
-          <button class="sdems-delete-merchant-btn" type="button">
-            <i class="fas fa-trash"></i> {{localize "SDE.merchant.manage.delete"}}
-          </button>
-        </div>
+        <button type="button" class="ui-btn sdems-load-merchant-btn"><i class="fas fa-upload"></i> {{localize "SDE.merchant.manage.load"}}</button>
+        <button type="button" class="ui-icon danger sdems-delete-merchant-btn" title="{{localize 'SDE.merchant.manage.delete'}}" aria-label="{{localize 'SDE.merchant.manage.delete'}}"><i class="fas fa-trash"></i></button>
       </div>
       {{/if}}
+    </section>
 
-      {{!-- Broadcast controls --}}
-      <div class="sdems-manage-section sdems-broadcast-controls">
-        <button class="sdems-open-for-all" type="button">
-          <i class="fas fa-bullhorn"></i>{{localize "SDE.merchant.manage.makeAvailable"}}
-        </button>
-        <button class="sdems-close-for-all" type="button">
-          <i class="fas fa-door-closed"></i>{{localize "SDE.merchant.manage.closeShop"}}
-        </button>
-        <button class="sdems-save-config-btn" type="button">
-          <i class="fas fa-book"></i>{{localize "SDE.merchant.manage.save"}}
-        </button>
-      </div>
-
-      {{!-- Compendium mode: inventory editor --}}
-      {{#if (eq mode "compendium")}}
-      <div class="sdems-manage-section">
-        <h3>{{localize "SDE.merchant.manage.shopInventory"}}</h3>
-
-        {{!-- Drop zone --}}
-        <div class="sdems-drop-zone">
-          <i class="fas fa-cloud-arrow-down"></i> {{localize "SDE.merchant.manage.dropZone"}}
-        </div>
-
-        {{!-- Current inventory --}}
-        <div class="sdems-manage-inventory">
-          {{#each inventory}}
-          <div class="sdems-manage-item-row" data-shop-item-id="{{id}}">
-            <img src="{{img}}" alt="{{name}}" width="24" height="24">
-            <span class="sdems-manage-item-name">{{name}}</span>
-            <div class="sdems-manage-price">
-              <input type="number" class="sdems-price-gold" value="{{cost.gp}}" min="0" title="{{localize 'SDE.merchant.manage.gold'}}"
-                placeholder="{{localize 'SDE.merchant.manage.gp'}}">
-              <span>{{localize "SDE.merchant.manage.gp"}}</span>
-              <input type="number" class="sdems-price-silver" value="{{cost.sp}}" min="0" title="{{localize 'SDE.merchant.manage.silver'}}"
-                placeholder="{{localize 'SDE.merchant.manage.sp'}}">
-              <span>{{localize "SDE.merchant.manage.sp"}}</span>
-              <input type="number" class="sdems-price-copper" value="{{cost.cp}}" min="0" title="{{localize 'SDE.merchant.manage.copper'}}"
-                placeholder="{{localize 'SDE.merchant.manage.cp'}}">
-              <span>{{localize "SDE.merchant.manage.cp"}}</span>
-            </div>
-            <div class="sdems-manage-stock">
-              <input type="number" class="sdems-stock-input" value="{{stock}}" min="-1" title="{{localize 'SDE.merchant.manage.stockTip'}}">
-              <span class="sdems-stock-hint">(-1 = ∞)</span>
-            </div>
-            <button class="sdems-remove-item-btn" type="button" title="{{localize 'SDE.merchant.manage.removeFromShop'}}">
-              <i class="fas fa-xmark"></i>
-            </button>
+    {{#if (eq mode "compendium")}}
+    <section class="ui-group">
+      <h3 class="ui-h">{{localize "SDE.merchant.manage.shopInventory"}} <small>{{inventory.length}}</small></h3>
+      <div class="ui-note sdems-drop-zone"><i class="fas fa-cloud-arrow-down"></i> {{localize "SDE.merchant.manage.dropZone"}}</div>
+      {{#if inventory.length}}
+      <div class="ui-list">
+        {{#each inventory}}
+        <div class="ui-row ms-edit" data-shop-item-id="{{id}}">
+          <img src="{{img}}" alt="">
+          <div class="ui-row-main"><span class="ui-row-name ms-name" title="{{name}}">{{name}}</span></div>
+          <div class="ms-price">
+            <label class="ms-coin"><input type="number" class="sdems-price-gold" value="{{cost.gp}}" min="0" title="{{localize 'SDE.merchant.manage.gold'}}" aria-label="{{localize 'SDE.merchant.manage.gold'}}"><span>{{localize "SDE.merchant.manage.gp"}}</span></label>
+            <label class="ms-coin"><input type="number" class="sdems-price-silver" value="{{cost.sp}}" min="0" title="{{localize 'SDE.merchant.manage.silver'}}" aria-label="{{localize 'SDE.merchant.manage.silver'}}"><span>{{localize "SDE.merchant.manage.sp"}}</span></label>
+            <label class="ms-coin"><input type="number" class="sdems-price-copper" value="{{cost.cp}}" min="0" title="{{localize 'SDE.merchant.manage.copper'}}" aria-label="{{localize 'SDE.merchant.manage.copper'}}"><span>{{localize "SDE.merchant.manage.cp"}}</span></label>
+            <label class="ms-coin"><input type="number" class="sdems-stock-input" value="{{stock}}" min="-1" title="{{localize 'SDE.merchant.manage.stockTip'}}" aria-label="{{localize 'SDE.merchant.manage.stockTip'}}"><i class="fas fa-boxes-stacked"></i></label>
           </div>
-          {{/each}}
+          <button type="button" class="ui-icon danger sdems-remove-item-btn" title="{{localize 'SDE.merchant.manage.removeFromShop'}}" aria-label="{{localize 'SDE.merchant.manage.removeFromShop'}}"><i class="fas fa-xmark"></i></button>
         </div>
-
-        {{!-- Compendium browser --}}
-        <h3>{{localize "SDE.merchant.manage.addFromCompendium"}}</h3>
-        <div class="sdems-comp-browser">
-          <div class="sdems-comp-controls">
-            <select class="sdems-pack-select">
-              {{#each compendiumPacks}}
-              <option value="{{id}}" {{#if selected}}selected{{/if}}>{{label}}</option>
-              {{/each}}
-            </select>
-            <input type="text" class="sdems-comp-search" placeholder="{{localize 'SDE.merchant.manage.filter'}}" value="{{compendiumFilter}}">
-          </div>
-          <div class="sdems-comp-list">
-            {{#each compendiumItems}}
-            <div class="sdems-comp-item">
-              <img src="{{img}}" alt="{{name}}" width="20" height="20">
-              <span>{{name}}</span>
-              <button class="sdems-add-item-btn" type="button" data-uuid="{{uuid}}" title="{{localize 'SDE.merchant.manage.addToShop'}}">
-                <i class="fas fa-plus"></i>
-              </button>
-            </div>
-            {{/each}}
-          </div>
-        </div>
+        {{/each}}
       </div>
       {{/if}}
+    </section>
 
-      {{!-- Gamble options config --}}
-      <div class="sdems-manage-section">
-        <h3>{{localize "SDE.merchant.manage.gambleOptions"}}</h3>
+    <section class="ui-group">
+      <h3 class="ui-h">{{localize "SDE.merchant.manage.addFromCompendium"}}</h3>
+      <div class="ui-inline ms-filters">
+        <select class="sdems-pack-select ms-select">
+          {{#each compendiumPacks}}<option value="{{id}}" {{#if selected}}selected{{/if}}>{{label}}</option>{{/each}}
+        </select>
+        <div class="ui-search ui-grow"><i class="fa-solid fa-magnifying-glass"></i><input type="text" class="sdems-comp-search" placeholder="{{localize 'SDE.merchant.manage.filter'}}" value="{{compendiumFilter}}"></div>
+      </div>
+      <div class="ui-list ms-comp">
+        {{#each compendiumItems}}
+        <div class="ui-row"><img src="{{img}}" alt=""><div class="ui-row-main"><span class="ui-row-name ms-name" title="{{name}}">{{name}}</span></div>
+          <button type="button" class="ui-icon sdems-add-item-btn" data-uuid="{{uuid}}" title="{{localize 'SDE.merchant.manage.addToShop'}}" aria-label="{{localize 'SDE.merchant.manage.addToShop'}}"><i class="fas fa-plus"></i></button></div>
+        {{/each}}
+      </div>
+    </section>
+    {{/if}}
 
-        {{!-- Existing options --}}
-        <div class="sdems-manage-inventory">
+    <details class="ui-details">
+      <summary>{{localize "SDE.merchant.manage.gambleOptions"}} <span class="ui-chip">{{gambleOptions.length}}</span></summary>
+      <div class="ui-details-body">
+        <div class="ui-list">
           {{#each gambleOptions}}
-          <div class="sdems-manage-item-row" data-gamble-config-id="{{id}}">
-            <span class="sdems-manage-item-name">{{name}}</span>
-            <div class="sdems-manage-price">
-              <input type="number" class="sdems-gamble-cost-gold" value="{{cost.gp}}" min="0" title="{{localize 'SDE.merchant.manage.gold'}}"
-                placeholder="{{localize 'SDE.merchant.manage.gp'}}">
-              <span>{{localize "SDE.merchant.manage.gp"}}</span>
-              <input type="number" class="sdems-gamble-cost-silver" value="{{cost.sp}}" min="0" title="{{localize 'SDE.merchant.manage.silver'}}"
-                placeholder="{{localize 'SDE.merchant.manage.sp'}}">
-              <span>{{localize "SDE.merchant.manage.sp"}}</span>
+          <div class="ui-row ms-edit" data-gamble-config-id="{{id}}">
+            <div class="ui-row-main"><span class="ui-row-name ms-name" title="{{name}}">{{name}}</span></div>
+            <div class="ms-price">
+              <label class="ms-coin"><input type="number" class="sdems-gamble-cost-gold" value="{{cost.gp}}" min="0" title="{{localize 'SDE.merchant.manage.gold'}}" aria-label="{{localize 'SDE.merchant.manage.gold'}}"><span>{{localize "SDE.merchant.manage.gp"}}</span></label>
+              <label class="ms-coin"><input type="number" class="sdems-gamble-cost-silver" value="{{cost.sp}}" min="0" title="{{localize 'SDE.merchant.manage.silver'}}" aria-label="{{localize 'SDE.merchant.manage.silver'}}"><span>{{localize "SDE.merchant.manage.sp"}}</span></label>
             </div>
-            <button class="sdems-gamble-remove-btn" type="button" title="{{localize 'SDE.merchant.manage.remove'}}">
-              <i class="fas fa-xmark"></i>
-            </button>
+            <button type="button" class="ui-icon danger sdems-gamble-remove-btn" title="{{localize 'SDE.merchant.manage.remove'}}" aria-label="{{localize 'SDE.merchant.manage.remove'}}"><i class="fas fa-xmark"></i></button>
           </div>
           {{/each}}
         </div>
-
-        {{!-- Add new option --}}
-        <div class="sdems-gamble-add-row">
-          <input type="text" class="sdems-gamble-new-name" placeholder="{{localize 'SDE.merchant.manage.displayName'}}">
-          <select class="sdems-gamble-new-source">
-            {{#each gambleSources}}
-            <optgroup label="{{label}}">
-              {{#each options}}
-              <option value="{{id}}">{{label}}</option>
-              {{/each}}
-            </optgroup>
-            {{/each}}
+        <div class="ui-inline ms-filters">
+          <input type="text" class="sdems-gamble-new-name ui-grow" placeholder="{{localize 'SDE.merchant.manage.displayName'}}">
+          <select class="sdems-gamble-new-source ms-select">
+            {{#each gambleSources}}<optgroup label="{{label}}">{{#each options}}<option value="{{id}}">{{label}}</option>{{/each}}</optgroup>{{/each}}
           </select>
-          <input type="number" class="sdems-gamble-new-gold" value="5" min="0" placeholder="{{localize 'SDE.merchant.manage.gpCost'}}">
-          <button class="sdems-gamble-add-btn" type="button">
-            <i class="fas fa-plus"></i> {{localize "SDE.merchant.manage.add"}}
-          </button>
+          <input type="number" class="sdems-gamble-new-gold ui-num-in" value="5" min="0" placeholder="{{localize 'SDE.merchant.manage.gpCost'}}" aria-label="{{localize 'SDE.merchant.manage.gpCost'}}">
+          <button type="button" class="ui-btn sdems-gamble-add-btn"><i class="fas fa-plus"></i> {{localize "SDE.merchant.manage.add"}}</button>
         </div>
       </div>
-
-    </div>
+    </details>
     {{/if}}
 
   </div>
+
+  {{#if isGM}}
+  <footer class="ui-footer">
+    {{#if (eq tab "manage")}}<button type="button" class="ui-btn ghost sdems-save-config-btn"><i class="fas fa-book"></i> {{localize "SDE.merchant.manage.save"}}</button>{{/if}}
+    <div class="ui-right">
+      <button type="button" class="ui-btn sdems-close-for-all"><i class="fas fa-door-closed"></i> {{localize "SDE.merchant.manage.closeShop"}}</button>
+      <button type="button" class="ui-btn primary sdems-open-for-all"><i class="fas fa-bullhorn"></i> {{localize "SDE.merchant.manage.makeAvailable"}}</button>
+    </div>
+  </footer>
+  {{/if}}
 </div>

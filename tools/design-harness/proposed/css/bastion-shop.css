@@ -1,0 +1,31 @@
+/* Bastion Shop proposal. Tokens only. */
+.sde-ui [hidden] { display: none !important; }
+.sde-ui .ui-art.bs-art { display: grid; place-items: center; font-size: 22px; color: var(--ui-frame); }
+.sde-ui .ui-icon { flex: 0 0 auto; }
+.sde-ui .ui-head, .sde-ui .ui-head .ui-stats { flex-wrap: nowrap; }
+.sde-ui .bs-purse { color: var(--ui-gold); white-space: nowrap; }
+.sde-ui .bs-tools { flex: 0 0 auto; display: flex; gap: 10px; align-items: flex-end; padding: 10px 16px; border-bottom: 1px solid var(--ui-line); background: var(--ui-page); }
+.sde-ui .bs-buyer { flex: 0 1 220px; }
+.sde-ui .bs-search { flex: 1 1 auto; }
+.sde-ui .ui-search > input[type] { padding-left: 28px; }
+/* one grid, fixed control columns: the name takes what is left and wraps (two lines, then clipped, full text in the tooltip) */
+.sde-ui .sde-bs-row { background: transparent; border-radius: 0; margin: 0; display: grid; grid-template-columns: 28px minmax(0, 1fr) 104px 56px 84px; align-items: center; gap: 10px; }
+.sde-ui .bs-name { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; overflow-wrap: anywhere; }
+.sde-ui .bs-price { text-align: right; white-space: nowrap; }
+.sde-ui .bs-row .ui-btn { width: 100%; padding: 0 6px; min-width: 0; }
+.sde-ui .sde-bs-row:hover { background: var(--ui-hover); }
+.sde-ui .bs-row .ui-num-in { width: 100% !important; }
+.sde-ui .ui-body > * { flex-shrink: 0; }
+@container (max-width: 480px) {
+  .sde-ui .bs-tools { flex-wrap: wrap; }
+  .sde-ui .bs-buyer { flex: 1 1 100%; }
+  .sde-ui .sde-bs-row { grid-template-columns: 28px minmax(0, 1fr) 56px 84px; }
+  .sde-ui .sde-bs-row > img { grid-column: 1; grid-row: 1; }
+  .sde-ui .sde-bs-row > .ui-row-main { grid-column: 2 / -1; grid-row: 1; }
+  .sde-ui .bs-price { grid-column: 2; grid-row: 2; text-align: left; }
+  .sde-ui .bs-row .ui-num-in { grid-column: 3; grid-row: 2; }
+  .sde-ui .bs-row .ui-btn { grid-column: 4; grid-row: 2; }
+  .sde-ui .ui-head { flex-wrap: wrap; }
+  .sde-ui .ui-head-text { flex: 1 1 55%; }
+  .sde-ui .ui-head .ui-stats { flex-wrap: wrap; }
+}

@@ -152,6 +152,7 @@ export const PartyXP = {
 export class PartyXpApp extends HandlebarsApplicationMixin(ApplicationV2) {
   static DEFAULT_OPTIONS = {
     id: "sde-party-xp",
+    classes: ["sde-ui", "sde-party-xp"],
     tag: "form",
     window: { title: "SDE.partyXp.title", icon: "fas fa-star", resizable: true },
     position: { width: 460, height: "auto" },

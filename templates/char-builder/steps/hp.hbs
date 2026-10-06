@@ -1,47 +1,25 @@
-<div class="sde-cb-roll-step">
+<div class="ui-stack cbu-roll-step">
   {{#if step.existing}}
-  <p class="sde-cb-hint"><i class="fa-solid fa-lock"></i> {{localize "SDE.charBuilder.hp.existingHint"}}</p>
-  <div class="sde-cb-big-number">
-    <span class="val">{{#if step.hp}}{{step.hp}}{{else}}–{{/if}}</span>
-    <span class="unit">{{localize "SDE.charBuilder.hp.unit"}}</span>
-  </div>
+  <div class="ui-note"><i class="fa-solid fa-lock"></i> {{localize "SDE.charBuilder.hp.existingHint"}}</div>
+  <div class="cbu-big-number"><span class="val">{{#if step.hp}}{{step.hp}}{{else}}&ndash;{{/if}}</span> <span class="unit">{{localize "SDE.charBuilder.hp.unit"}}</span></div>
   {{else}}
   {{#if step.hasClass}}
-  <p class="sde-cb-method-label">
-    {{localize "SDE.charBuilder.hp.formula"}}: <b>{{step.hitDie}}{{#if step.multiLevel}} × {{step.level}}{{/if}}{{#if step.conModLabel}} + CON ({{step.conModLabel}}){{/if}}{{#if step.hpBonus}} + {{step.hpBonus}}{{/if}}</b>
-    {{#if step.multiLevel}} · <span class="gm">{{localize "SDE.charBuilder.hp.perLevel"}}</span>{{/if}}
-    {{#if step.advantage}} · <span class="gm">{{localize "SDE.charBuilder.hp.advTag"}}</span>{{/if}}
-    {{#if step.maxSetting}} · <span class="gm">{{localize "SDE.charBuilder.hp.maxOn"}}</span>{{/if}}
-  </p>
-
-  {{#if step.levelUpHint}}<p class="sde-cb-hint">{{step.levelUpHint}}</p>{{/if}}
-
-  <div class="sde-cb-stats-btns">
-    {{#if step.rollLocked}}
-    <span class="sde-cb-hint"><i class="fa-solid fa-lock"></i> {{localize "SDE.charBuilder.lockedRoll"}}</span>
+  <div class="ui-note info">
+    {{localize "SDE.charBuilder.hp.formula"}}: <b>{{step.hitDie}}{{#if step.multiLevel}} &times; {{step.level}}{{/if}}{{#if step.conModLabel}} + {{localize "SDE.charBuilder.ability.con.short"}} ({{step.conModLabel}}){{/if}}{{#if step.hpBonus}} + {{step.hpBonus}}{{/if}}</b>
+    {{#if step.multiLevel}} &middot; {{localize "SDE.charBuilder.hp.perLevel"}}{{/if}}{{#if step.advantage}} &middot; {{localize "SDE.charBuilder.hp.advTag"}}{{/if}}{{#if step.maxSetting}} &middot; {{localize "SDE.charBuilder.hp.maxOn"}}{{/if}}
+  </div>
+  {{#if step.levelUpHint}}<div class="ui-note">{{step.levelUpHint}}</div>{{/if}}
+  <div class="cbu-big-number"><span class="val">{{#if step.hp}}{{step.hp}}{{else}}&ndash;{{/if}}</span> <span class="unit">{{localize "SDE.charBuilder.hp.unit"}}</span></div>
+  {{#if step.diceLabel}}<span class="ui-muted">{{step.hitDie}}: {{step.diceLabel}}</span>{{/if}}
+  <div class="ui-inline cbu-stats-btns">
+    {{#if step.rollLocked}}<span class="ui-muted"><i class="fa-solid fa-lock"></i> {{localize "SDE.charBuilder.lockedRoll"}}</span>
     {{else}}
-    <button type="button" class="sde-cb-btn dice" data-action="cb-roll-hp">
-      <i class="fa-solid fa-dice"></i> {{#if step.hp}}{{localize "SDE.charBuilder.hp.rollAgain"}}{{else}}{{localize "SDE.charBuilder.hp.roll"}}{{/if}}
-    </button>
-    {{#if step.maxSetting}}
-    <button type="button" class="sde-cb-btn" data-action="cb-max-hp">
-      <i class="fa-solid fa-heart"></i> {{localize "SDE.charBuilder.hp.max"}}
-    </button>
-    {{/if}}
+    <button type="button" class="ui-btn" data-action="cb-roll-hp"><i class="fa-solid fa-dice"></i> {{#if step.hp}}{{localize "SDE.charBuilder.hp.rollAgain"}}{{else}}{{localize "SDE.charBuilder.hp.roll"}}{{/if}}</button>
+    {{#if step.maxSetting}}<button type="button" class="ui-btn" data-action="cb-max-hp"><i class="fa-solid fa-heart"></i> {{localize "SDE.charBuilder.hp.max"}}</button>{{/if}}
     {{/if}}
   </div>
-
-  <div class="sde-cb-big-number">
-    <span class="val">{{#if step.hp}}{{step.hp}}{{else}}–{{/if}}</span>
-    <span class="unit">{{localize "SDE.charBuilder.hp.unit"}}</span>
-  </div>
-
-  {{#if step.diceLabel}}
-  <p class="sde-cb-hint">{{step.hitDie}}: {{step.diceLabel}}</p>
-  {{/if}}
-
   {{else}}
-  <div class="sde-cb-empty">{{localize "SDE.charBuilder.hp.needClass"}}</div>
+  <div class="ui-empty"><i class="fa-solid fa-heart-crack"></i><span>{{localize "SDE.charBuilder.hp.needClass"}}</span></div>
   {{/if}}
   {{/if}}
 </div>

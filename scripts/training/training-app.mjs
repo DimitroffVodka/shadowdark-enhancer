@@ -43,7 +43,7 @@ const t = (key, data) => {
 export class TrainingApp extends HandlebarsApplicationMixin(ApplicationV2) {
   static DEFAULT_OPTIONS = {
     id: "sde-training",
-    classes: ["shadowdark", "sde-training"],
+    classes: ["shadowdark", "sde-training", "sde-ui"],
     window: { title: "SDE.training.title", icon: "fa-solid fa-dumbbell", resizable: true },
     position: { width: 520, height: "auto" },
     actions: {
@@ -243,7 +243,8 @@ export class TrainingApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const button = this.element.querySelector("[data-action='trnImport']");
     if (button) button.disabled = true;
     try {
-      const r = await importTrainerJournals();
+      // Only the trainers with no entry yet: pressing it again, or after a partial read, redoes nothing.
+      const r = await importTrainerJournals({ missingOnly: true });
       if (!r.ok) { ui.notifications?.error(t(`SDE.training.notify.${r.error}`)); return; }
       ui.notifications?.info(t("SDE.training.notify.imported", { created: r.created, updated: r.updated }));
       for (const p of r.problems) console.warn(`${MODULE_ID} | training journal`, p);
@@ -285,6 +286,7 @@ export class TrainingApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const buttons = benefit.choice.map((c) => ({ action: c.key, label: c.label }));
     try {
       return await DialogV2.wait({
+        classes: ["sde-ui", "sde-dialog"],
         window: { title: t("SDE.training.choiceTitle") },
         content: `<p>${benefit.label}</p>`,
         buttons,

@@ -79,6 +79,7 @@ import { refuseQuery, registerQuery } from "../shared/gm-relay.mjs";
 import { advanceOffDuty } from "../time/off-duty.mjs";
 import { secondsPerDay } from "../time/time-core.mjs";
 import { CarousingFeed } from "../session-recap/carousing-feed.mjs";
+import { downtimeAnnounceCard } from "../shared/chat-cards.mjs";
 
 /** One string from `languages/en.json`; the key when no i18n is mounted. */
 const L = (key, data) => {
@@ -1095,15 +1096,10 @@ export const DowntimeSession = {
 
   async _postAnnouncement(sourceSlug, roll) {
     const label = SOURCES?.[sourceSlug]?.label ?? sourceSlug;
-    const content = `
-      <div class="sde-downtime-card sde-dt-announce">
-        <header class="sde-dt-head"><i class="fas fa-mug-hot"></i> ${L("SDE.downtime.title")}</header>
-        <p class="sde-dt-line">${L("SDE.downtime.card.announce")}</p>
-        <p class="sde-dt-line sde-dt-book">${esc(label)}</p>
-        <p class="sde-dt-line"><i class="fas fa-hourglass-half"></i> ${L("SDE.downtime.card.days", { days: roll.total })}</p>
-        <button type="button" class="sde-dt-open-btn"><i class="fas fa-mug-hot"></i> ${L("SDE.downtime.card.open")}</button>
-        <footer class="sde-dt-foot">${L("SDE.downtime.card.noLuck")}</footer>
-      </div>`;
+    const content = downtimeAnnounceCard({
+      title: L("SDE.downtime.title"), announce: L("SDE.downtime.card.announce"), book: label,
+      days: L("SDE.downtime.card.days", { days: roll.total }), open: L("SDE.downtime.card.open"), foot: L("SDE.downtime.card.noLuck"),
+    });
     return ChatMessage.create({
       content,
       speaker: { alias: L("SDE.downtime.title") },

@@ -7,7 +7,7 @@ import { foodPreview } from "./camping-nutrition.mjs";
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 const t = (key) => game.i18n.localize(key);
 export class CampingApp extends HandlebarsApplicationMixin(ApplicationV2) {
-  static DEFAULT_OPTIONS = { classes: ["shadowdark", "sde-camping"], position: { width: 820, height: 700 }, window: { title: "SDE.camping.title", resizable: true }, actions: {
+  static DEFAULT_OPTIONS = { classes: ["shadowdark", "sde-camping", "sde-ui"], position: { width: 820, height: 700 }, window: { title: "SDE.camping.title", resizable: true }, actions: {
     begin: function () { return this.change("begin"); }, resolve: function () { return this.change("resolve"); },
     resume: function () { return this.change("resume"); }, cancel: function () { return this.change("cancel"); },
     acceptFuel: function () { return this.change("fuel", { accept: true, deductions: this.fuelPreview }); },
@@ -40,12 +40,12 @@ export class CampingApp extends HandlebarsApplicationMixin(ApplicationV2) {
   }
   async _prepareContext() {
     const camp = campOf(this.party), manager = Party.canManage(this.party);
-    if (!camp) return { title: this.party.name, manager, empty: true, error: this.error };
+    if (!camp) return { title: this.party.name, embedded: !!this.host, manager, empty: true, error: this.error };
     const setup = camp.phase === "setup", fuel = camp.phase === "fuel", plan = campTorchPlan(this.party, camp);
     const { campContext } = await import("../overland/overland.mjs");
     const context = campContext(), food = foodPreview(this.party, camp, camp.each ?? context.each, camp.day ?? context.day);
     this.fuelPreview = plan.deductions;
-    return { title: this.party.name, manager, setup, fuel, isGM: game.user.isGM, error: this.error,
+    return { title: this.party.name, embedded: !!this.host, manager, setup, fuel, isGM: game.user.isGM, error: this.error,
       phase: t(CAMP_LABELS.phase[camp.phase]), fire: t(camp.fire?.lit ? "SDE.camping.fireLit" : "SDE.camping.noFire"), hasResults: Object.keys(camp.results).length > 0,
       awaitingRest: camp.phase === "awaitingRest", complete: camp.phase === "complete", shortageWarning: camp.shortageWarning,
       canNight: manager && camp.phase === "awaitingRest", canResolve: manager && setup, canResume: manager && (camp.phase === "complete" ? !game.messages.has(camp.reportId) : !setup && !fuel && camp.phase !== "awaitingRest"),
@@ -54,15 +54,14 @@ export class CampingApp extends HandlebarsApplicationMixin(ApplicationV2) {
       deductions: plan.deductions.map(d => { const a = game.actors.contents.find(a => a.uuid === d.actorUuid); return { ...d, name: a?.name, item: a?.items.get(d.id)?.name }; }),
       mounts: (camp.mounts ?? []).map(p => {
         const actor = game.actors.contents.find(a => a.uuid === p.uuid), meal = food.find(f => f.actorId === p.actorId);
-        return { ...p, meal, name: actor?.name ?? t("SDE.party.missing"), foodEditable: !!actor?.testUserPermission(game.user, "OWNER") && !camp.foodCommitted && ["setup", "awaitingRest"].includes(camp.phase), foodStatus: t(meal.fed ? "SDE.camping.fed" : "SDE.camping.unfed"), deathWarning: !meal.fed && meal.con <= (meal.saved ? 0 : 1) };
+        return { ...p, meal, name: actor?.name ?? t("SDE.party.missing"), deathWarning: !meal.fed && meal.con <= (meal.saved ? 0 : 1) };
       }),
       rows: camp.participants.map(p => {
         const actor = game.actors.contents.find(a => a.uuid === p.uuid), task = camp.tasks.find(t => t.key === p.task), result = camp.results[p.actorId];
         const description = task?.descriptionKey ? t(task.descriptionKey) : task?.description;
         const meal = food.find(f => f.actorId === p.actorId);
-        return { ...p, meal, foodEditable: !!actor?.testUserPermission(game.user, "OWNER") && !camp.foodCommitted && ["setup", "awaitingRest"].includes(camp.phase),
-          foodStatus: t(meal.fed ? "SDE.camping.fed" : "SDE.camping.unfed"), deathWarning: !meal.fed && meal.con <= (meal.saved ? 0 : 1),
-          restStatus: meal.rest === null ? null : t(meal.rest ? "SDE.camping.rested" : "SDE.camping.noRest"),
+        return { ...p, meal,
+          deathWarning: !meal.fed && meal.con <= (meal.saved ? 0 : 1),
           name: actor?.name ?? t("SDE.party.missing"), editable: setup && !!actor?.testUserPermission(game.user, "OWNER"),
           tasks: [{ key: "", name: t("SDE.camping.noTask"), selected: !p.task }, ...camp.tasks.map(v => ({ key: v.key, name: v.name ?? t(v.label), selected: p.task === v.key }))],
           abilities: (task?.abilities ?? []).map(value => ({ value, label: value.toUpperCase(), selected: p.ability === value })),
@@ -88,7 +87,6 @@ export class CampingApp extends HandlebarsApplicationMixin(ApplicationV2) {
       void this.change("select", { uuid: row.dataset.uuid, patch });
     });
     root.querySelector("[data-fuel]")?.addEventListener("change", event => { void this.change("fuelChoice", { fuel: event.target.value }); });
-    for (const el of root.querySelectorAll("[data-food]")) el.addEventListener("change", () => { void this.change("foodConsent", { uuid: el.closest("[data-uuid]").dataset.uuid, accept: el.checked }); });
     for (const el of root.querySelectorAll("[data-dc]")) el.addEventListener("change", () => { void this.change("dc", { task: el.dataset.dc, dc: Number(el.value) }); });
   }
   async _onFirstRender(context, options) {

@@ -17,11 +17,12 @@ export class TokenArtManagerApp extends HandlebarsApplicationMixin(ApplicationV2
 
   static DEFAULT_OPTIONS = {
     id: "sde-token-art-manager",
-    classes: ["sde-token-art-manager"],
+    classes: ["sde-ui", "sde-imp", "sde-token-art-manager"],
     tag: "div",
     window: { title: "SDE.tokenArt.manager.title", icon: "fa-solid fa-images", resizable: true },
     position: { width: 720, height: 760 },
     actions: {
+      tamTab: TokenArtManagerApp._onTab,
       sourceUp: TokenArtManagerApp._onSourceMove,
       sourceDown: TokenArtManagerApp._onSourceMove,
       folderAdd: TokenArtManagerApp._onFolderAdd,
@@ -48,6 +49,7 @@ export class TokenArtManagerApp extends HandlebarsApplicationMixin(ApplicationV2
   _thumbPx = 56;     // image-browser thumbnail size (zoom slider)
   _collapsedSources = new Set();   // image-browser source groups collapsed by the user
   _collapsedPanels = new Set();    // `data-remember` keys of panels the user folded away
+  _tab = "monsters";   // "monsters" | "sources"
   _filter = "";
   _conflictsOnly = false;
 
@@ -137,14 +139,15 @@ export class TokenArtManagerApp extends HandlebarsApplicationMixin(ApplicationV2
         isLast: i === orderedSources.length - 1,
       })),
       sourceCount: orderedSources.length,
+      tab: this._tab === "sources" ? "sources" : "monsters",
       // Collapsed state is app state, not DOM state: the body re-renders on
       // every reorder, and a bare <details> would spring back open each time.
       // Optional chaining because the context builder is exercised against a
       // plain object in tests, where class field initialisers never ran. A
       // missing set means nothing was folded, which is the right default.
-      sourcesOpen: !this._collapsedPanels?.has("sources"),
       blurbOpen: !this._collapsedPanels?.has("blurb"),
       rows,
+      shown: TokenArtManagerApp._shownRows(rows, this._filter, this._conflictsOnly),
       folders: state.folders,
       stats: res.stats,
       enabled,
@@ -152,6 +155,12 @@ export class TokenArtManagerApp extends HandlebarsApplicationMixin(ApplicationV2
       conflictsOnly: this._conflictsOnly,
       total: rows.length,
     };
+  }
+
+  /** How many rows the search text and conflicts toggle leave visible (what `_applyFilter` counts in the DOM). */
+  static _shownRows(rows, filter, conflictsOnly) {
+    const q = (filter ?? "").trim().toLowerCase();
+    return rows.filter((r) => (!q || r.name.toLowerCase().includes(q)) && (!conflictsOnly || r.multi)).length;
   }
 
   /** Show/hide rows by the search text + conflicts toggle, purely in the DOM —
@@ -170,7 +179,7 @@ export class TokenArtManagerApp extends HandlebarsApplicationMixin(ApplicationV2
       if (visible) shown++;
     }
     const count = root.querySelector(".sde-tam-count");
-    if (count) count.textContent = `${shown} / ${rows.length}`;
+    if (count && rows.length) count.textContent = `${shown} / ${rows.length}`;   // the Sources tab has no rows to count
   }
 
   _onRender(_ctx, _opts) {
@@ -329,6 +338,7 @@ export class TokenArtManagerApp extends HandlebarsApplicationMixin(ApplicationV2
     }
     const esc = foundry.utils.escapeHTML;
     const result = await DialogV2.prompt({
+      classes: ["sde-ui", "sde-dialog"],
       window: { title: editing ? "SDE.tokenArt.folder.editTitle" : "SDE.tokenArt.folder.addTitle" },
       content: `<div class="sde-tam-folder-form">
         <label>${game.i18n.localize("SDE.tokenArt.folder.label")}<input type="text" name="label" value="${esc(editing?.label ?? "")}" maxlength="120" autofocus></label>
@@ -393,8 +403,11 @@ export class TokenArtManagerApp extends HandlebarsApplicationMixin(ApplicationV2
     const DialogV2 = foundry.applications?.api?.DialogV2;
     if (!DialogV2?.confirm) return false;
     const confirmed = await DialogV2.confirm({
+      classes: ["sde-ui", "sde-dialog"],
       window: { title: "SDE.tokenArt.folder.removeTitle" },
       content: `<p>${game.i18n.format("SDE.tokenArt.folder.removeQuestion", { label: `<strong>${foundry.utils.escapeHTML(folder.label)}</strong>` })}</p>`,
+      yes: { label: "SDE.tokenArt.folder.removeYes", icon: "fa-solid fa-trash" },
+      no: { label: "SDE.tokenArt.folder.removeKeep", icon: "fa-solid fa-xmark", default: true },
       rejectClose: false,
     }).catch(() => false);
     if (!confirmed) return false;
@@ -424,7 +437,7 @@ export class TokenArtManagerApp extends HandlebarsApplicationMixin(ApplicationV2
    * cached catalog and of how far the list has drifted from it.
    */
   _wireSourceDrag(root) {
-    const list = root.querySelector("details.sde-tam-sources");
+    const list = root.querySelector(".sde-tam-sources");
     if (!list || list._sdeDrag) return;
     list._sdeDrag = true;
     const rows = () => [...list.querySelectorAll(".sde-tam-source")];
@@ -479,6 +492,14 @@ export class TokenArtManagerApp extends HandlebarsApplicationMixin(ApplicationV2
     // immediately — otherwise the change only shows after a close/reopen.
     if (this._catalog) TokenArtCatalog.reorder(this._catalog, order);
     this.render({ parts: ["body"] });
+  }
+
+  /** Monsters / Sources tab. The tab is app state; the body re-renders on every reorder. */
+  static _onTab(event, target) {
+    const tab = target.dataset.tab === "sources" ? "sources" : "monsters";
+    if (tab === this._tab) return;
+    this._tab = tab;
+    this.render();
   }
 
   static async _onSourceMove(event, target) {

@@ -1,0 +1,123 @@
+<div class="sde-vehicle-sheet-body flexcol">
+
+  {{!-- Header and tab bar (Shadowdark system chrome), as on the system's NPC sheet --}}
+  {{> "modules/shadowdark-enhancer/templates/actors/npc-stat/header.hbs"}}
+
+  <div class="sde-mount-body flex1">
+
+    {{!-- Abilities: the NPC stat block (shared with the Mount sheet) --}}
+    <section class="sde-veh-tab-content {{#if tab.stats}}active{{/if}}" data-tab-content="stats">
+     <div class="sde-mount-abilities">
+      <div class="sde-mount-left">
+      {{> "modules/shadowdark-enhancer/templates/actors/npc-stat/top.hbs"}}
+      <div class="SD-box">
+        <div class="header"><label>{{localize "SHADOWDARK.sheet.abilities.modifiers"}}</label><span></span></div>
+        <div class="content grid-2-columns">
+          {{#each warbandAbilities}}
+            <div class="ability-score">
+              <a data-action="rollAbility" data-ability="{{key}}">{{label}}</a>
+              <div><input type="number" name="system.abilities.{{key}}.mod" value="{{mod}}" placeholder="0" /></div>
+            </div>
+          {{/each}}
+        </div>
+      </div>
+
+      {{> "modules/shadowdark-enhancer/templates/actors/npc-stat/traits.hbs"}}
+      </div>
+      <div class="sde-mount-right">
+      {{> "modules/shadowdark-enhancer/templates/actors/npc-stat/attacks.hbs"}}
+      </div>
+     </div>
+    </section>
+
+    {{!-- Warband: commander, allowance, upgrades --}}
+    <section class="sde-veh-tab-content sde-warband-tab {{#if tab.warband}}active{{/if}}" data-tab-content="warband">
+      <div class="SD-box">
+        <div class="header"><label>{{localize "SDE.warband.commander"}}</label><span></span></div>
+        <div class="content">
+          <div class="sde-veh-droplist sde-warband-commander" data-drop="commander">
+            {{#if warband.commander}}
+              <div class="sde-veh-member" data-uuid="{{warband.commander.uuid}}">
+                <img class="sde-veh-member-img" src="{{warband.commander.img}}" data-action="openCommander" data-tooltip="{{localize 'SDE.vehicle.openSheet'}}" />
+                <div class="sde-veh-member-main">
+                  <div class="sde-veh-member-name">{{warband.commander.name}}{{#if warband.tier}} <span class="sde-veh-member-sub">{{warband.tier}}</span>{{/if}}</div>
+                  {{#if warband.morale}}<div class="sde-veh-member-stats"><span>{{warband.morale}}</span></div>{{/if}}
+                </div>
+                <button type="button" class="sde-veh-member-remove" data-action="clearCommander" data-tooltip="{{localize 'SDE.warband.clearCommander'}}"><i class="fa-solid fa-xmark"></i></button>
+              </div>
+            {{else}}
+              {{#if warband.commanderMissing}}
+                <p class="sde-veh-empty"><i class="fa-solid fa-triangle-exclamation"></i> {{localize "SDE.warband.commanderMissing"}}</p>
+              {{/if}}
+              <p class="sde-veh-empty">{{localize "SDE.warband.commanderEmpty"}}</p>
+            {{/if}}
+          </div>
+          {{#if warband.allowance}}
+            <p class="sde-warband-allowance">{{warband.allowance.warbands}} · {{warband.allowance.upgrades}}</p>
+          {{/if}}
+          {{#if warband.commander}}
+            <label class="checkbox sde-warband-leading" data-tooltip="{{localize 'SDE.warband.leadingTip'}}"><input type="checkbox" data-sde-leading {{#if warband.leading}}checked{{/if}} /> {{localize "SDE.warband.leading"}}</label>
+          {{/if}}
+          {{#if warband.routed}}<p class="sde-warband-alert"><i class="fa-solid fa-skull"></i> {{localize "SDE.warband.routedLine"}}</p>{{/if}}
+        </div>
+      </div>
+
+      <div class="SD-box">
+        <div class="header"><label>{{localize "SDE.warband.upkeepHead"}}</label><span></span></div>
+        <div class="content">
+          {{#if warband.deserted}}<p class="sde-warband-alert"><i class="fa-solid fa-person-running"></i> {{localize "SDE.warband.desertedLine"}}</p>{{/if}}
+          <p>{{warband.upkeep}}</p>
+          {{#if warband.arrears}}<p class="sde-warband-alert">{{warband.arrears}}</p>{{/if}}
+          {{#if warband.retraining}}<p>{{warband.retraining}}</p>{{/if}}
+          {{#if warband.isGM}}
+            <div class="sde-veh-occ-actions">
+              <button type="button" class="sde-veh-btn" data-action="runMonth" data-tooltip="{{localize 'SDE.warband.runMonthTip'}}"><i class="fa-solid fa-coins"></i> {{localize "SDE.warband.runMonth"}}</button>
+              {{#if warband.arrears}}<button type="button" class="sde-veh-btn" data-action="payArrears"><i class="fa-solid fa-hand-holding-dollar"></i> {{localize "SDE.warband.payArrears"}}</button>{{/if}}
+              {{#if warband.outOfService}}<button type="button" class="sde-veh-btn" data-action="returnToService" data-tooltip="{{localize 'SDE.warband.returnToServiceTip'}}"><i class="fa-solid fa-flag"></i> {{localize "SDE.warband.returnToService"}}</button>{{/if}}
+            </div>
+          {{/if}}
+        </div>
+      </div>
+
+      <div class="SD-box">
+        <div class="header"><label>{{localize "SDE.warband.garrison"}}</label><span></span></div>
+        <div class="content">
+          <select data-sde-garrison>
+            <option value="">{{localize "SDE.warband.garrisonNone"}}</option>
+            {{#each warband.bastions}}<option value="{{uuid}}" {{#if selected}}selected{{/if}}>{{name}}</option>{{/each}}
+          </select>
+          {{#if warband.garrisonMissing}}<p class="sde-warband-alert"><i class="fa-solid fa-triangle-exclamation"></i> {{localize "SDE.warband.garrisonMissing"}}</p>{{/if}}
+          {{#each warband.garrisonLines}}<p>{{this}}</p>{{/each}}
+          <p class="sde-veh-hint">{{localize "SDE.warband.garrisonHint"}}</p>
+        </div>
+      </div>
+
+      <div class="SD-box">
+        <div class="header"><label>{{localize "SDE.warband.upgrades"}}</label><span></span></div>
+        <div class="content">
+          {{#if warband.noCommanderCap}}<p class="sde-warband-allowance">{{warband.noCommanderCap}}</p>{{/if}}
+          <div class="sde-warband-upgrades">
+            {{#each warband.upgrades}}
+              <label class="checkbox" {{#if tip}}data-tooltip-text="{{tip}}"{{/if}}><input type="checkbox" data-sde-upgrade="{{key}}" {{#if checked}}checked{{/if}} /> {{label}}</label>
+            {{/each}}
+          </div>
+          {{#if warband.textMissing}}<button type="button" class="sde-veh-btn" data-action="readUpgradeText" data-tooltip="{{localize 'SDE.warband.readTextTip'}}"><i class="fa-solid fa-book-open"></i> {{localize "SDE.warband.readText"}}</button>{{/if}}
+        </div>
+      </div>
+
+      <div class="SD-box">
+        <div class="header"><label>{{localize "SDE.warband.rules"}}</label><span></span></div>
+        <div class="content">
+          <p>{{localize "SDE.warband.size"}}</p>
+          <p>{{localize "SDE.warband.unique"}}</p>
+        </div>
+      </div>
+    </section>
+
+    {{!-- Spells, Description and Effects: shared with the Mount sheet --}}
+    {{> "modules/shadowdark-enhancer/templates/actors/npc-stat/spells.hbs"}}
+    {{> "modules/shadowdark-enhancer/templates/actors/npc-stat/notes.hbs"}}
+    {{> "modules/shadowdark-enhancer/templates/actors/npc-stat/effects.hbs"}}
+
+  </div>
+</div>

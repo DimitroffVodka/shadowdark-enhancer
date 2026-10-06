@@ -223,6 +223,28 @@ export function importNameFor(entry) {
   return _importNames.get(entry.id) ?? entry.name;
 }
 
+/**
+ * Identity for tables that carry no manifestId. The ones imported from the Manage tree or by Import
+ * everything are never stamped, so the Monster Creator and the Magic Forge saw an imported book as
+ * locked and asked for it again. A table is adopted as an entry when it is the only UNSTAMPED one
+ * with the name the importer creates that entry under (and, when it records its book, the entry's
+ * book, by id ("CORE") or by label ("Core Rulebook")). Two candidates adopt neither. Pure: nothing is written to the world.
+ * @param {Array<{manifestId?:string|null, name:string, source?:string|null}>} tables
+ * @param {Array<{manifestId:string, name:string, sources?:string[]}>} wanted
+ * @returns {Array} copies of `tables`, the adopted ones carrying their manifestId
+ */
+export function adoptUnstamped(tables, wanted) {
+  const norm = (s) => String(s ?? "").trim().toLowerCase();
+  const have = new Set(tables.map((t) => t.manifestId).filter(Boolean));
+  const out = tables.map((t) => ({ ...t }));
+  for (const w of wanted) {
+    if (have.has(w.manifestId)) continue;
+    const hits = out.filter((t) => !t.manifestId && norm(t.name) === norm(w.name) && (!t.source || !w.sources?.length || w.sources.some((x) => norm(x) === norm(t.source))));
+    if (hits.length === 1) hits[0].manifestId = w.manifestId;
+  }
+  return out;
+}
+
 let _sharedNames = null;
 /**
  * Is this bare table name printed by MORE THAN ONE book?

@@ -1,0 +1,187 @@
+<div class="ui-shell sde-boat-ui">
+
+  <header class="ui-head">
+    <img src="{{document.img}}" data-edit="img" data-tooltip="{{document.name}}" alt="">
+    <div class="ui-head-text">
+      <input class="ui-title-input" type="text" name="name" value="{{document.name}}" placeholder="{{localize 'SDE.boat.namePlaceholder'}}">
+      <p class="ui-sub">{{localize "SDE.boat.combatSpeed" feet=derived.combatSpeedFeet}}</p>
+    </div>
+    <div class="ui-stats">
+      <div class="ui-stat"><span class="ui-label">{{localize "SDE.vehicle.stat.hp"}}</span>
+        <div class="ui-inputs"><input type="number" name="system.hp.value" value="{{system.hp.value}}"><span>/</span><input type="number" name="system.hp.max" value="{{system.hp.max}}"></div></div>
+      <div class="ui-stat"><span class="ui-label">{{localize "SDE.vehicle.stat.ac"}}</span><div class="ui-inputs"><input type="number" name="system.ac" value="{{system.ac}}"></div></div>
+      <div class="ui-stat"><span class="ui-label">{{localize "SDE.boat.move"}}</span><div class="ui-inputs"><input type="number" name="system.speed" value="{{system.speed}}" title="{{localize 'SDE.boat.moveTip'}}"></div></div>
+      <div class="ui-stat"><span class="ui-label">{{localize "SDE.boat.tab.passengers"}}</span><span class="ui-value">{{occupantCount}} / {{derived.capacity}}</span></div>
+    </div>
+  </header>
+
+  <nav class="ui-tabs">
+    <button type="button" class="ui-tab {{#if tab.overview}}active{{/if}}" data-action="changeTab" data-tab="overview">{{localize "SDE.boat.tab.overview"}}</button>
+    <button type="button" class="ui-tab {{#if tab.occupants}}active{{/if}}" data-action="changeTab" data-tab="occupants">{{localize "SDE.boat.tab.passengers"}}{{#if occupantCount}} <span class="ui-count">{{occupantCount}}</span>{{/if}}</button>
+    <button type="button" class="ui-tab {{#if tab.inventory}}active{{/if}}" data-action="changeTab" data-tab="inventory">{{localize "SDE.boat.tab.cargo"}}</button>
+    <button type="button" class="ui-tab {{#if tab.weapons}}active{{/if}}" data-action="changeTab" data-tab="weapons">{{localize "SDE.boat.tab.weapons"}}{{#if weaponCount}} <span class="ui-count">{{weaponCount}}</span>{{/if}}</button>
+    <button type="button" class="ui-tab {{#if tab.description}}active{{/if}}" data-action="changeTab" data-tab="description">{{localize "SDE.boat.tab.description"}}</button>
+  </nav>
+
+  <div class="ui-body">
+
+    <section class="ui-stack ui-pane {{#if tab.overview}}active{{/if}}" data-tab-content="overview">
+      <div class="ui-note info">{{localize "SDE.boat.overviewHint"}}</div>
+      <div class="ui-two">
+        <div class="ui-stack">
+          <section class="ui-card">
+            <div class="ui-card-head"><h3 class="ui-card-name">{{localize "SDE.boat.command"}}</h3></div>
+            <div class="ui-pairs">
+              <div class="ui-pair"><span class="ui-label"><i class="fa-solid fa-anchor"></i> {{localize "SDE.vehicle.role.captain"}}</span><span class="ui-value">{{#if captain}}{{captain.name}}{{else}}<span class="ui-muted">{{localize "SDE.boat.unassigned"}}</span>{{/if}}</span></div>
+              <div class="ui-pair"><span class="ui-label"><i class="fa-solid fa-crosshairs"></i> {{localize "SDE.boat.gunners"}}</span><span class="ui-value">{{#if gunners.length}}{{#each gunners}}{{name}}{{#unless @last}}, {{/unless}}{{/each}}{{else}}<span class="ui-muted">{{localize "SDE.boat.none"}}</span>{{/if}}</span></div>
+            </div>
+            <div class="ui-inline"><button type="button" class="ui-btn" data-action="rightShip" title="{{localize 'SDE.boat.rightShipTip'}}"><i class="fa-solid fa-ship"></i> {{localize "SDE.boat.rightShip"}}</button><span class="ui-tag">{{localize "SDE.boat.cs3Tag"}}</span></div>
+            <p class="ui-muted">{{{localize "SDE.boat.commandHint"}}}</p>
+          </section>
+          <section class="ui-card {{#if system.sinking.active}}bad{{/if}}">
+            <div class="ui-card-head"><h3 class="ui-card-name">{{localize "SDE.boat.sinking"}}</h3>{{#if system.sinking.active}}<span class="ui-chip bad">{{localize "SDE.boat.roundsLeft"}} {{system.sinking.roundsRemaining}}</span>{{/if}}</div>
+            <div class="ui-inline">
+              {{#if system.sinking.active}}
+                <button type="button" class="ui-btn" data-action="advanceSinking"><i class="fa-solid fa-forward-step"></i> {{localize "SDE.boat.nextRound"}}</button>
+                <button type="button" class="ui-btn" data-action="stopSinking"><i class="fa-solid fa-life-ring"></i> {{localize "SDE.boat.stopSinking"}}</button>
+              {{else}}
+                <button type="button" class="ui-btn" data-action="beginSinking"><i class="fa-solid fa-water"></i> {{localize "SDE.boat.beginSinking"}}</button>
+              {{/if}}
+              <button type="button" class="ui-btn ghost" data-action="sinkChance"><i class="fa-solid fa-dice-one"></i> {{localize "SDE.boat.chat.sinkChance"}}</button>
+            </div>
+          </section>
+        </div>
+        <div class="ui-stack">
+          <section class="ui-card">
+            <div class="ui-card-head"><h3 class="ui-card-name">{{localize "SDE.boat.crewCargo"}}</h3></div>
+            <div class="ui-fields">
+              <div class="ui-field"><span class="ui-label">{{localize "SDE.boat.cost"}} ({{localize "SDE.vehicle.gp"}})</span><input type="number" name="system.cost" value="{{system.cost}}"></div>
+              <div class="ui-field"><span class="ui-label">{{localize "SDE.boat.cargoSlots"}}</span><input type="number" name="system.gearSlots.max" value="{{system.gearSlots.max}}"></div>
+              <div class="ui-field"><span class="ui-label">{{localize "SDE.boat.crewRequired"}}</span><input type="number" name="system.crew.required" value="{{system.crew.required}}"></div>
+              <div class="ui-field"><span class="ui-label">{{localize "SDE.boat.hiredCrew"}}</span><input type="number" name="system.crew.current" value="{{system.crew.current}}" title="{{localize 'SDE.boat.hiredCrewTip'}}"></div>
+              <div class="ui-field"><span class="ui-label">{{localize "SDE.boat.crewAboard"}}</span><input class="ui-ro" type="text" value="{{derived.crewAboard}}" disabled title="{{localize 'SDE.boat.crewAboardTip'}}"></div>
+              <div class="ui-field"><span class="ui-label">{{localize "SDE.boat.repairCost"}}</span><input class="ui-ro" type="text" value="{{localize 'SDE.boat.repairCostValue' cost=derived.repairCost}}" disabled></div>
+            </div>
+            {{#if derived.crewShort}}<div class="ui-note warn">{{localize "SDE.boat.crewShort" aboard=derived.crewAboard required=system.crew.required}}</div>{{/if}}
+          </section>
+          <section class="ui-card">
+            <div class="ui-card-head"><h3 class="ui-card-name">{{localize "SDE.vehicle.properties"}}</h3></div>
+            <div class="ui-inline">
+              <label class="ui-check"><input type="checkbox" name="system.properties.crew" {{#if system.properties.crew}}checked{{/if}}> {{localize "SDE.boat.prop.crew"}}</label>
+              <label class="ui-check"><input type="checkbox" name="system.properties.fast" {{#if system.properties.fast}}checked{{/if}}> {{localize "SDE.boat.prop.fast"}}</label>
+              <label class="ui-check"><input type="checkbox" name="system.properties.rowGalley" {{#if system.properties.rowGalley}}checked{{/if}}> {{localize "SDE.boat.prop.rowGalley"}}</label>
+              <label class="ui-check"><input type="checkbox" name="system.properties.unseaworthy" {{#if system.properties.unseaworthy}}checked{{/if}}> {{localize "SDE.boat.prop.unseaworthy"}}</label>
+              <label class="ui-check"><input type="checkbox" name="system.properties.weapons" {{#if system.properties.weapons}}checked{{/if}}> {{localize "SDE.boat.prop.weapons"}}</label>
+            </div>
+            <div class="ui-field"><span class="ui-label">{{localize "SDE.vehicle.other"}}</span><input type="text" name="system.propertiesNote" value="{{system.propertiesNote}}"></div>
+          </section>
+        </div>
+      </div>
+      <details class="ui-details">
+        <summary>{{localize "SDE.boat.weather.title"}}</summary>
+        <div class="ui-details-body">
+          <div class="ui-pairs">
+            <div class="ui-pair"><span class="ui-label">{{localize "SDE.boat.weather.driving"}}</span><span>{{localize "SDE.boat.weather.drivingText"}}</span></div>
+            <div class="ui-pair"><span class="ui-label">{{localize "SDE.boat.weather.gusty"}}</span><span>{{localize "SDE.boat.weather.gustyText"}}</span></div>
+            <div class="ui-pair"><span class="ui-label">{{localize "SDE.boat.weather.noWind"}}</span><span>{{localize "SDE.boat.weather.noWindText"}}</span></div>
+            <div class="ui-pair"><span class="ui-label">{{localize "SDE.boat.weather.tempest"}}</span><span>{{localize "SDE.boat.weather.tempestText"}}</span></div>
+          </div>
+        </div>
+      </details>
+    </section>
+
+    <section class="ui-group ui-pane {{#if tab.occupants}}active{{/if}}" data-tab-content="occupants">
+      <h3 class="ui-h">{{occupantLabel}} <small>{{occupantCount}}</small></h3>
+      <div class="ui-inline"><button type="button" class="ui-btn primary" data-action="placeTokens"><i class="fa-solid fa-map-pin"></i> {{localize "SDE.vehicle.placeTokens"}}</button></div>
+      <div class="ui-drop" data-drop="occupant">
+        {{#if occupantCount}}
+        <div class="ui-list">
+          {{#each occupants}}
+            <div class="ui-row ui-rider" data-uuid="{{uuid}}">
+              {{#if broken}}
+                <div class="ui-row-main"><span class="ui-row-name is-damaged"><i class="fa-solid fa-triangle-exclamation"></i> {{name}}</span></div>
+              {{else}}
+                <img src="{{img}}" data-action="openOccupant" title="{{localize 'SDE.vehicle.openSheet'}}" alt="">
+                <div class="ui-row-main">
+                  <span class="ui-row-name">{{name}} <span class="ui-dim">{{subtitle}}</span></span>
+                  <span class="ui-row-sub">{{localize "SDE.vehicle.stat.str"}} {{abilities.str}} &middot; {{localize "SDE.vehicle.stat.dex"}} {{abilities.dex}} &middot; {{localize "SDE.vehicle.stat.con"}} {{abilities.con}} &middot; {{localize "SDE.vehicle.stat.int"}} {{abilities.int}} &middot; {{localize "SDE.vehicle.stat.wis"}} {{abilities.wis}} &middot; {{localize "SDE.vehicle.stat.cha"}} {{abilities.cha}}</span>
+                  <div class="ui-inline ui-chips">
+{{#if isCaptain}}<span class="ui-chip gold"><i class="fa-solid fa-anchor"></i> {{localize "SDE.vehicle.role.captain"}}</span>{{/if}}
+                {{#if isGunner}}<span class="ui-chip gold"><i class="fa-solid fa-crosshairs"></i> {{localize "SDE.vehicle.role.gunner"}}</span>{{/if}}
+                {{#if isCrew}}<span class="ui-chip gold"><i class="fa-solid fa-users"></i> {{localize "SDE.vehicle.role.crew"}}</span>{{/if}}
+                <span class="ui-chip">{{localize "SDE.vehicle.stat.hp"}} {{hp.value}}/{{hp.max}}</span>
+                <span class="ui-chip">{{localize "SDE.vehicle.stat.ac"}} {{ac}}</span>
+                {{#if level}}<span class="ui-chip">{{localize "SDE.vehicle.stat.lvl"}} {{level}}</span>{{/if}}
+                <label class="ui-rolesel" title="{{localize 'SDE.vehicle.roleTip'}}">
+                  <select data-role data-uuid="{{uuid}}">
+                    <option value="" {{#unless role}}selected{{/unless}}>{{localize "SDE.vehicle.role.passenger"}}</option>
+                    <option value="captain" {{#if isCaptain}}selected{{/if}}>{{localize "SDE.vehicle.role.captain"}}</option>
+                    <option value="gunner" {{#if isGunner}}selected{{/if}}>{{localize "SDE.vehicle.role.gunner"}}</option>
+                    <option value="crew" {{#if isCrew}}selected{{/if}}>{{localize "SDE.vehicle.role.crew"}}</option>
+                  </select>
+                </label>
+                  </div>
+                </div>
+                
+              {{/if}}
+              <button type="button" class="ui-icon danger" data-action="removeOccupant" title="{{localize 'SDE.vehicle.remove'}}"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+          {{/each}}
+        </div>
+        {{else}}
+          <div class="ui-empty"><i class="fa-solid fa-people-group"></i><span>{{localize "SDE.vehicle.occupantsEmpty"}}</span></div>
+        {{/if}}
+      </div>
+    </section>
+
+    <section class="ui-group ui-pane {{#if tab.inventory}}active{{/if}}" data-tab-content="inventory">
+      <h3 class="ui-h">{{localize "SDE.boat.tab.cargo"}} <small>{{slotInfo.used}}{{#if slotInfo.max}}/{{slotInfo.max}}{{/if}}</small></h3>
+      <div class="ui-inline"><span class="ui-chip gold"><i class="fa-solid fa-box"></i> {{localize "SDE.vehicle.slots"}} {{slotInfo.used}}{{#if slotInfo.max}} / {{slotInfo.max}}{{/if}}</span>{{#if slotInfo.note}}<span class="ui-muted">{{slotInfo.note}}</span>{{/if}}</div>
+      <div class="ui-drop" data-drop="inventory">
+        {{#if items.length}}
+        <div class="ui-list">
+          {{#each items}}
+            <div class="ui-row" data-item-id="{{id}}">
+              <img src="{{img}}" data-action="openItem" alt="">
+              <div class="ui-row-main"><span class="ui-row-name" data-action="openItem">{{name}}</span></div>
+              <span class="ui-chip">&times;{{quantity}}</span>
+              <span class="ui-row-meta">{{localize "SDE.vehicle.slotsShort" slots=slots}}</span>
+              <button type="button" class="ui-icon danger" data-action="deleteItem" title="{{localize 'SDE.vehicle.delete'}}"><i class="fa-solid fa-trash"></i></button>
+            </div>
+          {{/each}}
+        </div>
+        {{else}}
+          <div class="ui-empty"><i class="fa-solid fa-box-open"></i><span>{{localize "SDE.vehicle.cargoEmpty"}}</span></div>
+        {{/if}}
+      </div>
+    </section>
+
+    <section class="ui-group ui-pane {{#if tab.weapons}}active{{/if}}" data-tab-content="weapons">
+      <h3 class="ui-h">{{localize "SDE.vehicle.siegeWeapons"}} <small>{{weaponCount}}</small></h3>
+      <div class="ui-drop" data-drop="weapon">
+        {{#if weapons.length}}
+        <div class="ui-list">
+          {{#each weapons}}
+            <div class="ui-row" data-item-id="{{id}}">
+              <img src="{{img}}" data-action="openItem" alt="">
+              <div class="ui-row-main"><span class="ui-row-name" data-action="openItem">{{name}}</span></div>
+              {{#if damage}}<span class="ui-chip">{{damage}}</span>{{/if}}
+              <button type="button" class="ui-icon" data-action="weaponAttack" title="{{localize 'SDE.vehicle.attackTip'}}"><i class="fa-solid fa-crosshairs"></i></button>
+              <button type="button" class="ui-icon" data-action="weaponDamage" title="{{localize 'SDE.vehicle.damageTip'}}"><i class="fa-solid fa-burst"></i></button>
+              <button type="button" class="ui-icon danger" data-action="deleteItem" title="{{localize 'SDE.vehicle.remove'}}"><i class="fa-solid fa-trash"></i></button>
+            </div>
+          {{/each}}
+        </div>
+        {{else}}
+          <div class="ui-empty"><i class="fa-solid fa-bullseye"></i><span>{{localize "SDE.vehicle.weaponsEmpty" occupants=occupantLabel}}</span></div>
+        {{/if}}
+      </div>
+    </section>
+
+    <section class="ui-group ui-pane {{#if tab.description}}active{{/if}}" data-tab-content="description">
+      <h3 class="ui-h">{{localize "SDE.boat.tab.description"}}</h3>
+      <textarea name="system.notes" rows="10">{{system.notes}}</textarea>
+    </section>
+
+  </div>
+</div>

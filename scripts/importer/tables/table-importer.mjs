@@ -3475,11 +3475,21 @@ async function _autoEnrich(table, pt) {
  * @returns {Array<object>|null}
  */
 function _parseSplitPlaneMatrix(text, columns, widths) {
+  // How many columns print on the numbered lines: the Core Rulebook's Monster Generator carries two
+  // (Combat, Quality) with the other two in the plane below; the Magic tables carry one.
+  for (let lead = 1; lead < columns.length; lead++) {
+    const parsed = _parseSplitPlaneWith(text, columns, widths, lead);
+    if (parsed) return parsed;
+  }
+  return null;
+}
+
+function _parseSplitPlaneWith(text, columns, widths, lead) {
   const N = columns.length;
   if (N < 2 || !Array.isArray(widths)) return null;
   const lines = String(text ?? "").split(/\r?\n/).map((l) => l.trim());
 
-  // 1) The numbered first-column block: the maximal leading run of numbered
+  // 1) The numbered leading-column block: the maximal leading run of numbered
   //    lines whose face equals its 1-based position (1, 2, 3, … M).
   const numbered = [];
   for (let i = 0; i < lines.length; i++) {
@@ -3491,13 +3501,13 @@ function _parseSplitPlaneMatrix(text, columns, widths) {
     if (numbered[k].face === k + 1) M = k + 1; else break;
   }
   if (M < 2) return null;
-  const col0 = numbered.slice(0, M).map((n) => n.text);
+  const lead0 = numbered.slice(0, M).map((n) => n.text);
   const blockEndIdx = numbered[M - 1].lineIdx;
 
   // 2) The plane header — the first line AFTER the numbered block that names ALL
-  //    remaining columns. Its presence is what distinguishes split-plane from a
-  //    row-major table (whose data is entirely on the numbered lines).
-  const remaining = columns.slice(1).map((c) => String(c).toLowerCase());
+  //    the columns not on the numbered lines. Its presence is what distinguishes
+  //    split-plane from a row-major table (whose data is entirely on the numbered lines).
+  const remaining = columns.slice(lead).map((c) => String(c).toLowerCase());
   let headerIdx = -1;
   for (let i = blockEndIdx + 1; i < lines.length; i++) {
     const low = lines[i].toLowerCase();
@@ -3512,25 +3522,28 @@ function _parseSplitPlaneMatrix(text, columns, widths) {
     if (lines[i]) planeRows.push(lines[i]);
   }
 
-  // 4) Split each plane row by the per-row remaining-column word counts
-  //    (widths[r].slice(1)). A row whose token count doesn't match its widths
-  //    leaves those cells empty → blocked, never silently mis-assigned.
+  // 4) Split each row by the per-row word counts of the columns it carries
+  //    (widths[r].slice(0, lead) on the numbered line, widths[r].slice(lead) in the plane).
+  //    A row whose token count doesn't match its widths leaves those cells empty →
+  //    blocked, never silently mis-assigned. A single leading column takes the whole line.
+  const split = (line, w, count) => {
+    if (count === 1 && !w) return [line];
+    const toks = line.split(/\s+/).filter(Boolean);
+    if (!w || w.length !== count || w.reduce((a, b) => a + b, 0) !== toks.length) return new Array(count).fill("");
+    let k = 0;
+    return w.map((ww) => { const cell = toks.slice(k, k + ww).join(" "); k += ww; return cell; });
+  };
   const cols = columns.map(() => []);
   for (let r = 0; r < M; r++) {
-    cols[0].push({ min: r + 1, max: r + 1, text: col0[r] });
-    const w = Array.isArray(widths[r]) ? widths[r].slice(1) : null;
-    const toks = (planeRows[r] ?? "").split(/\s+/).filter(Boolean);
-    let cells = new Array(N - 1).fill("");
-    if (w && w.length === N - 1 && w.reduce((a, b) => a + b, 0) === toks.length) {
-      let k = 0;
-      cells = w.map((ww) => { const s = toks.slice(k, k + ww).join(" "); k += ww; return s; });
-    }
-    for (let c = 1; c < N; c++) cols[c].push({ min: r + 1, max: r + 1, text: cells[c - 1] ?? "" });
+    const row = Array.isArray(widths[r]) ? widths[r] : null;
+    const first = lead === 1 ? [lead0[r]] : split(lead0[r], row?.slice(0, lead), lead);
+    const rest = split(planeRows[r] ?? "", row?.slice(lead), N - lead);
+    [...first, ...rest].forEach((cell, c) => cols[c].push({ min: r + 1, max: r + 1, text: cell ?? "" }));
   }
 
   const formula = `1d${M}`;
   const warnings = [
-    `Detected column-major (split-plane) layout — first column numbered 1..${M}, ${remaining.length} further column(s) read from the plane below.`,
+    `Detected column-major (split-plane) layout — ${lead} column(s) numbered 1..${M}, ${remaining.length} further column(s) read from the plane below.`,
   ];
   if (planeRows.length < M) {
     warnings.push(`Second plane has only ${planeRows.length} of ${M} rows — the remaining columns are incomplete.`);

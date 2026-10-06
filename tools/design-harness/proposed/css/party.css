@@ -1,0 +1,345 @@
+/* Party sheet: the CURRENT sheet's layout and markup (templates/party/party.hbs), restyled with the kit's tokens and
+   fonts only. The class names are the sheet's own (sdp-*); every rule is scoped by .pt (the root of this template).
+   Changes asked for by Patrick: a bigger emblem filling the header height (5% gap), Place button left of the Marching
+   order switch (switch right-most), the old slim cards with a Luck counter and a light flame under the portrait, and
+   Torches in the status strip. Candidates for the kit: ui-title-input, the slim member card. Tokens only. */
+.pt { min-height: 0; }
+.pt .tab:not(.active) { display: none; }
+.pt .tab.active { display: block; }
+
+/* header: the emblem is 90% of the header height (5% above, 5% below) */
+.pt .sdp-head { position: relative; gap: 16px; height: 124px; padding: 0 16px; align-items: center; flex-wrap: nowrap; }
+.pt button.sdp-emblem { cursor: pointer; }
+.pt button.sdp-emblem:hover { box-shadow: 0 0 0 2px var(--ui-frame); }
+.pt .sdp-id { flex: 0 1 auto; min-width: 0; }
+.pt .sdp-id input[name="name"] { width: 100%; min-width: 0; height: auto; margin: 0 0 5px; padding: 0; border: 0; border-bottom: 1px solid transparent; border-radius: 0; background: transparent; color: var(--ui-text); font: 400 26px/1.1 var(--ui-title); }
+.pt .sdp-id input[name="name"]:hover:not([readonly]), .pt .sdp-id input[name="name"]:focus { border-bottom-color: var(--ui-line); box-shadow: none; }
+.pt .sdp-stats { display: flex; flex-wrap: wrap; gap: 4px 14px; font: 600 13px/1.3 var(--ui-font); color: var(--ui-text); }
+.pt .sdp-stats i { margin-right: 5px; color: var(--ui-muted); font-size: 12px; }
+.pt .sdp-stats small { color: var(--ui-muted); }
+.pt .sdp-gridwrap { display: flex; flex-direction: column; align-items: center; gap: 3px; }
+.pt .sdp-grid { display: grid; grid-template-columns: repeat(3, 28px); gap: 3px; }
+.pt .sdp-march.off .sdp-grid { opacity: .45; }
+.pt .sdp-slot { position: relative; width: 28px; height: 28px; min-width: 0; min-height: 0; padding: 0; overflow: hidden; border: 1px solid var(--ui-line); border-radius: 4px; background: var(--ui-raised); cursor: pointer; }
+.pt .sdp-slot img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.pt .sdp-slot:disabled { cursor: default; opacity: 1; }
+.pt .sdp-slot.leader { border-color: var(--ui-gold); box-shadow: 0 0 0 1px var(--ui-gold); }
+.pt .sdp-caption { max-width: 120px; font: 600 9px/1.25 var(--ui-head); letter-spacing: .04em; text-align: center; text-transform: uppercase; color: var(--ui-muted); }
+.pt [data-drop-members] .sdp-grid { outline: 1px dashed var(--ui-muted); outline-offset: 3px; }
+.pt .sdp-pin:disabled { opacity: .45; cursor: default; }
+.pt .sdp-pop { position: absolute; top: 100%; left: 16px; z-index: 6; display: flex; flex-direction: column; gap: 7px; width: 300px; margin-top: 4px; padding: 10px 12px; border: 1px solid var(--ui-line); border-radius: var(--ui-r2); background: var(--ui-panel); box-shadow: var(--ui-shadow); font-size: 13px; }
+.pt .sdp-pop h4 { margin: 0; font: 600 11px/1 var(--ui-head); letter-spacing: .06em; text-transform: uppercase; color: var(--ui-muted); }
+.pt .sdp-emblems .icons { display: grid; grid-template-columns: repeat(6, 1fr); gap: 5px; }
+.pt .sdp-emblems .icons button { display: grid; place-items: center; height: 38px; min-height: 0; padding: 0; border: 1px solid var(--ui-line); border-radius: var(--ui-r); background: color-mix(in srgb, var(--ui-page) 30%, black); cursor: pointer; }
+.pt .sdp-emblems .icons img { width: 24px; height: 24px; border: 0; opacity: .85; }
+.pt .sdp-emblems .icons button:hover { border-color: var(--ui-frame); }
+.pt .sdp-emblems .icons button.on { border-color: var(--ui-frame); box-shadow: 0 0 0 1px var(--ui-frame); }
+.pt .sdp-emblems .icons button.on img { opacity: 1; }
+.pt .sdp-emblems .colors { display: flex; gap: 7px; }
+.pt .sdp-emblems .colors button { flex: none; width: 26px; height: 26px; min-height: 0; padding: 0; border: 2px solid transparent; border-radius: 3px; background: var(--c); cursor: pointer; }
+.pt .sdp-emblems .colors button.on { border-color: var(--ui-frame); box-shadow: 0 0 0 1px var(--ui-page) inset; }
+.pt .sdp-empty { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; min-height: 180px; padding: 24px; border: 1px solid var(--ui-line); border-radius: var(--ui-r2); color: var(--ui-muted); text-align: center; }
+.pt .sdp-empty.drop { border: 2px dashed var(--ui-line); }
+.pt .sdp-empty i { font-size: 36px; opacity: .6; }
+.pt .sdp-empty p { margin: 0; font-size: 14px; }
+
+/* status strip: Today, Light, Torches, Rations */
+.pt .sdp-bar { display: flex; flex: 0 0 auto; flex-wrap: wrap; gap: 4px 26px; padding: 7px 16px; border-bottom: 1px solid var(--ui-line); background: var(--ui-panel); }
+.pt .sdp-bar > div { display: flex; align-items: baseline; gap: 8px; min-width: 0; }
+.pt .sdp-bar .l { font: 600 10px/1 var(--ui-head); letter-spacing: .06em; text-transform: uppercase; color: var(--ui-muted); }
+.pt .sdp-bar .l i { margin-right: 5px; font-size: 10px; }
+.pt .sdp-bar .v { font: 600 13px/1.2 var(--ui-font); color: var(--ui-text); }
+.pt .sdp-bar .low .v { color: var(--ui-danger-text); }
+
+/* tabs */
+.pt .sdp-tabs { display: flex; flex: 0 0 auto; gap: 2px; padding: 6px 12px 0; border-bottom: 1px solid var(--ui-line); background: var(--ui-page); overflow-x: auto; }
+.pt .sdp-tab { display: inline-flex; align-items: center; gap: 7px; min-height: 30px; padding: 6px 14px; border-bottom: 3px solid transparent; border-radius: 5px 5px 0 0; color: var(--ui-muted); font: 400 15px/1 var(--ui-title); text-decoration: none; white-space: nowrap; cursor: pointer; }
+.pt .sdp-tab i { font-size: 12px; }
+.pt .sdp-tab:hover { color: var(--ui-text); background: var(--ui-panel); }
+.pt .sdp-tab.active { color: var(--ui-text); background: var(--ui-panel); border-bottom-color: var(--ui-frame); }
+.pt .sdp-body { flex: 1; min-height: 0; overflow: auto; padding: 12px 16px 16px; background: var(--ui-page); }
+.pt .sdp-group { display: block; margin: 14px 0 8px; padding: 0 0 4px; border: 0; border-bottom: 1px solid var(--ui-line); font: 400 18px/1.15 var(--ui-title); color: var(--ui-text); }
+.pt .sdp-group:first-child { margin-top: 2px; }
+
+/* the slim member card */
+.pt .sdp-cards { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.pt .sdp-card { position: relative; display: flex; gap: 10px; padding: 9px; border: 1px solid var(--ui-line); border-radius: var(--ui-r2); background: var(--ui-panel); }
+.pt .sdp-portrait { flex: none; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.pt .sdp-face { flex: none; width: 62px; height: 62px; object-fit: cover; object-position: top; border: 1px solid var(--ui-line); border-radius: var(--ui-r); cursor: pointer; }
+.pt .sdp-under { display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 16px; }
+.pt .sdp-main { flex: 1; display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+.pt .sdp-line { display: flex; align-items: baseline; gap: 7px; min-width: 0; padding-right: 14px; }
+.pt .sdp-name { overflow: hidden; font: 700 14px/1.2 var(--ui-font); color: var(--ui-text); white-space: nowrap; text-overflow: ellipsis; text-decoration: none; cursor: pointer; }
+.pt .sdp-name:hover { text-decoration: underline; }
+.pt .sdp-line em { font-size: 12px; color: var(--ui-muted); white-space: nowrap; }
+.pt .sdp-hp { position: relative; height: 16px; overflow: hidden; border-radius: 4px; background: var(--ui-raised); border: 1px solid var(--ui-line); }
+.pt .sdp-hpbar { position: absolute; inset: 0 auto 0 0; background: linear-gradient(90deg, var(--ui-hp-from), var(--ui-hp-to)); }
+.pt .sdp-hp span { position: relative; display: block; font: 700 11px/14px var(--ui-font); text-align: center; color: #fff; text-shadow: 0 0 2px #000, 0 0 2px #000, 0 1px 2px #000; }
+.pt .sdp-chips { display: flex; flex-wrap: wrap; gap: 4px 10px; font: 600 12px/1.3 var(--ui-font); color: var(--ui-text); }
+.pt .sdp-chips b { margin-right: 3px; font: 600 10px/1 var(--ui-head); letter-spacing: .06em; text-transform: uppercase; color: var(--ui-muted); }
+.pt .sdp-chips .bad { color: var(--ui-danger-text); }
+.pt .sdp-abil { display: flex; flex-wrap: nowrap; justify-content: space-between; white-space: nowrap; gap: 0 4px; font: 600 10px/1.4 var(--ui-head); text-transform: uppercase; color: var(--ui-muted); }
+.pt .sdp-abil b { font-size: 11px; color: var(--ui-text); }
+.pt .sdp-remove { position: absolute; top: 5px; right: 6px; display: grid; place-items: center; width: 18px; height: 18px; color: var(--ui-muted); opacity: 0; cursor: pointer; text-decoration: none; }
+.pt .sdp-card:hover .sdp-remove, .pt .sdp-remove:focus-visible { opacity: 1; }
+.pt .sdp-remove:hover { color: var(--ui-danger-text); }
+.pt .sdp-card.missing { opacity: .7; }
+
+/* items, treasury, gems */
+.pt .sdp-box { padding: 10px 12px; border: 1px solid var(--ui-line); border-radius: var(--ui-r2); background: var(--ui-panel); }
+.pt .sdp-boxhead { display: flex; align-items: baseline; gap: 8px; margin: 0 0 8px; padding: 0; border: 0; font: 600 11px/1 var(--ui-head); letter-spacing: .06em; text-transform: uppercase; color: var(--ui-muted); }
+.pt .sdp-boxhead small { margin-left: auto; font-weight: 400; letter-spacing: .03em; }
+.pt .sdp-boxhead small + a { margin-left: 0; }
+.pt .sdp-boxhead a { color: var(--ui-text); cursor: pointer; text-decoration: none; }
+.pt .coin { flex: none; display: inline-block; width: 14px; height: 14px; border: 1px solid var(--ui-line); border-radius: 50%; }
+.pt .coin.gp { background: var(--ui-gold); } .pt .coin.sp { background: var(--ui-frame); } .pt .coin.cp { background: var(--ui-muted); }
+
+/* bastion tab */
+.pt .sdp-bastion { display: flex; gap: 16px; padding: 14px; }
+.pt .sdp-bastion .art { flex: none; width: 150px; height: 150px; padding: 8px; object-fit: contain; border: 1px solid var(--ui-line); border-radius: var(--ui-r2); background: var(--ui-page); }
+.pt .sdp-bastion .info { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.pt .sdp-bastion h3 { margin: 0; padding: 0; border: 0; font: 400 26px/1.1 var(--ui-title); color: var(--ui-text); }
+.pt .sdp-bastion .sub { margin: -8px 0 0; font-size: 13px; color: var(--ui-muted); }
+.pt .sdp-bastion .log { margin: 0; font-size: 13px; color: var(--ui-body); }
+.pt .sdp-bastion .log span { margin-right: 5px; color: var(--ui-muted); }
+.pt .sdp-rooms { display: flex; flex-wrap: wrap; gap: 6px; }
+.pt .sdp-rooms span { display: flex; align-items: center; gap: 6px; padding: 3px 9px; border: 1px solid var(--ui-line); border-radius: 2px; font-size: 12px; }
+.pt .sdp-rooms span.building { opacity: .6; border-style: dashed; }
+.pt .sdp-rooms i { font-size: 11px; color: var(--ui-gold); }
+.pt .sdp-btn { display: inline-flex; align-items: center; gap: 6px; align-self: flex-start; height: 28px; padding: 0 14px; border: 1px solid var(--ui-frame); border-radius: var(--ui-r); background: var(--ui-panel); color: var(--ui-text); font: 600 12px/1 var(--ui-head); text-decoration: none; cursor: pointer; }
+.pt .sdp-btn:hover { background: var(--ui-raised); }
+
+/* description and the injected travel / quest panes */
+.pt .description-box { padding: 12px; border: 1px solid var(--ui-line); border-radius: var(--ui-r2); background: var(--ui-panel); }
+.pt .description-box .header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+.pt .description-box .header label { font: 400 18px/1.15 var(--ui-title); color: var(--ui-text); }
+.pt .description-content textarea { width: 100%; min-height: 200px; resize: vertical; }
+.pt .party-actions { display: flex; gap: 10px; margin-bottom: 15px; }
+.pt .party-actions button, .pt .party-actions a { display: inline-flex; align-items: center; gap: 6px; flex: 1; justify-content: center; height: 28px; border: 1px solid var(--ui-frame); border-radius: var(--ui-r); background: var(--ui-panel); color: var(--ui-text); font: 600 12px/1 var(--ui-head); text-decoration: none; cursor: pointer; }
+.pt .party-actions .primary, .pt .party-actions [data-action="saveDescription"] { background: var(--ui-btn-bg); border-color: var(--ui-btn-bg); color: var(--ui-btn-fg); }
+.pt .sde-party-picker { display: flex; gap: 8px; padding: 8px 16px; border-bottom: 1px solid var(--ui-line); }
+.pt .sde-party-picker select { width: auto; }
+
+@container (max-width: 560px) {
+  .pt .sdp-head { height: auto; flex-wrap: wrap; padding: 10px 12px; }
+      .pt .sdp-tab { padding: 6px 7px; font-size: 13px; gap: 0; }
+  .pt .sdp-tab i { display: none; }
+  .pt .sdp-tabs { padding-inline: 6px; gap: 0; }
+  .pt .sdp-bastion { flex-direction: column; }
+  .pt .sdp-pop { left: 8px; }
+}
+
+/* ---- round 3: header, emblem, luck and light, spells, GM bars ---- */
+/* emblem: the picture fills 72% of the box and is a mask, so the same box can show it in any colour (--ic) */
+.pt .sdp-emblem { position: relative; display: block; flex: 0 0 auto; height: 90%; aspect-ratio: 1; width: auto; padding: 0; overflow: hidden; border: 1px solid var(--ui-frame); border-radius: 12px; background: var(--c); }
+.pt .sdp-glyph { position: absolute; inset: 14%; background-color: var(--ic, #fff); -webkit-mask: var(--icon) center / contain no-repeat; mask: var(--icon) center / contain no-repeat; }
+.pt button.sdp-emblem { cursor: pointer; }
+.pt button.sdp-emblem:hover { box-shadow: 0 0 0 2px var(--ui-frame); }
+/* controls: one row, every control 28px high, left of the grid */
+.pt .sdp-id { flex: 1 1 auto; min-width: 0; }
+.pt .sdp-march { display: flex; align-items: center; flex: 0 0 auto; margin-left: 0; }
+.pt .sdp-gridwrap { display: flex; flex-direction: column; align-items: center; gap: 3px; }
+.pt .sdp-march.off .sdp-grid { opacity: .45; }
+.pt .sdp-pop h4 + .colors, .pt .sdp-pop .icons + h4 { margin-top: 2px; }
+.pt .sdp-pop-foot { display: flex; justify-content: flex-end; }
+.pt .sdp-pop-foot .ui-btn { height: 28px; }
+/* a member card: select box on the portrait (GM), luck token and light always shown under it, spells under the card */
+.pt .sdp-card { flex-wrap: wrap; }
+.pt .sdp-portrait { position: relative; }
+.pt .sdp-under { display: flex; align-items: center; justify-content: flex-start; gap: 4px; width: 62px; min-height: 22px; }
+.pt .sdp-clover { width: 12px; height: 12px; background-color: currentColor; -webkit-mask: url(/modules/shadowdark-enhancer/icons/shamrock.svg) center / contain no-repeat; mask: url(/modules/shadowdark-enhancer/icons/shamrock.svg) center / contain no-repeat; }
+/* GM bars on the Members tab */
+@container (max-width: 560px) {
+    .pt .sdp-march { width: 100%; justify-content: flex-start; }
+  .pt .sdp-head .sdp-id { flex: 1 1 200px; }
+}
+
+@container (max-width: 560px) {
+  .pt .sdp-head { height: auto; flex-wrap: wrap; align-items: flex-start; padding: 10px 12px; }
+  .pt .sdp-emblem { height: 72px; width: 72px; }
+  .pt .sdp-id { flex: 1 1 240px; }
+      .pt .sdp-march { width: auto; margin-left: auto; }
+}
+
+/* ---- round 4: calm pass. Header controls = the switch and the Place button; leader = click a slot (as the current sheet) ---- */
+.pt .sdp-controls { display: flex; align-items: center; gap: 12px; margin-top: 8px; }
+.pt .sdp-controls > * { flex: 0 0 auto; height: 28px; margin: 0; }
+.pt .sdp-controls .ui-switch { min-height: 28px; white-space: nowrap; }
+.pt .sdp-controls .sdp-pin { width: auto; padding: 0 12px; }
+.pt .sdp-id > .sdp-status { max-width: 100%; margin-top: 4px; font-size: 11px; line-height: 1.3; color: var(--ui-muted); }
+.pt .sdp-id > .sdp-status.warn { color: var(--ui-gold); }
+/* luck and light: two small marks under the portrait, no boxes. Luck is the strip's shamrock in green, dim at 0; light is a flame, gold when lit, dim when off */
+.pt .sdp-luck, .pt .sdp-light { display: inline-flex; align-items: center; gap: 3px; height: 20px; padding: 0; color: var(--ui-on); font: 700 12px/1 var(--ui-font); font-variant-numeric: tabular-nums; text-decoration: none; cursor: pointer; }
+.pt .sdp-luck.empty { color: var(--ui-muted); opacity: .6; }
+.pt .sdp-light { margin-left: auto; color: var(--ui-muted); opacity: .55; font-size: 13px; }
+.pt .sdp-light.lit { color: var(--ui-gold); opacity: 1; }
+.pt .sdp-under { width: 62px; min-height: 20px; gap: 6px; }
+/* GM bar: one quiet row, no box */
+.pt .sdp-gm > * { height: 28px; margin: 0; }
+.pt .sdp-gm > .sdp-sep { height: 0; }
+.pt .sdp-gm select { width: auto; min-width: 70px; }
+.pt .sdp-gm input[type=number] { width: 64px; text-align: center; }
+.pt .sdp-sep { flex: 0 0 auto; width: 1px; height: 20px; margin: 0 4px; background: var(--ui-line); }
+@container (max-width: 560px) { .pt .sdp-head .sdp-id { flex: 1 1 200px; } }
+
+/* ---- round 4b: selection only when the GM bar is open; spells by tier with real icons ---- */
+.pt .sdp-gmtools { margin-bottom: 10px; }
+.pt .sdp-gmtools > summary { display: inline-flex; list-style: none; cursor: pointer; }
+.pt .sdp-gmtools > summary::-webkit-details-marker { display: none; }
+.pt .sdp-gmtools[open] > summary { background: var(--ui-raised); }
+.pt .sdp-gm { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+.pt .sdp-gm > * { height: 28px; margin: 0; }
+.pt .sdp-sel { display: none; position: absolute; top: 6px; right: 26px; align-items: center; gap: 5px; margin: 0; padding: 0 6px; height: 20px; border: 1px solid var(--ui-line); border-radius: 2px; background: var(--ui-panel); color: var(--ui-muted); font: 600 10.5px/1 var(--ui-head); cursor: pointer; }
+.pt .sdp-sel input { width: 13px; height: 13px; }
+.pt .sdp-sel { display: inline-flex; }   /* the GM bar is always visible, so the per-card Select boxes are too (GM only: the markup is behind isGM) */
+.pt:has(.sdp-sel) .sdp-line { padding-right: 78px; }
+.pt .sdp-card:has(.sdp-sel input:checked) { border-color: var(--ui-frame); box-shadow: inset 0 0 0 1px var(--ui-frame); }
+.pt .sdp-spells { flex: 1 0 100%; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; }
+.pt .sdp-tier { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 4px; max-width: 100%; }   /* a tier moves to the next line as a whole; one tier longer than a line wraps inside itself, its T-label staying first */
+.pt .sdp-tier > b { margin-right: 2px; font: 700 10px/1 var(--ui-head); letter-spacing: .04em; color: var(--ui-muted); }
+.pt .sdp-spell { position: relative; display: inline-block; width: 26px; height: 26px; }
+.pt .sdp-spell img { display: block; width: 100%; height: 100%; object-fit: contain; border: 0; border-radius: 3px; }
+.pt .sdp-spell.lost img { opacity: .3; filter: grayscale(1); }
+.pt .sdp-spell.lost::after { content: ""; position: absolute; inset: 0; background: linear-gradient(to top right, transparent calc(50% - 1px), var(--ui-danger-text) calc(50% - 1px), var(--ui-danger-text) calc(50% + 1px), transparent calc(50% + 1px)); }
+
+/* round 5 (Patrick's Photon mock-up): the controls are a column left of the formation grid. Switch aligns with the grid's first row, the
+   'leads' line sits between, the button aligns with the last row; all share the column's left edge and width. The caption sits under the grid. */
+.pt .sdp-march { flex-direction: column; align-items: flex-end; gap: 4px; }
+.pt .sdp-marchrow { display: flex; align-items: stretch; gap: 10px; }
+.pt .sdp-controls { display: flex; flex-direction: column; justify-content: space-evenly; align-items: stretch; gap: 0; width: max-content; min-width: 128px; max-width: 160px; margin: 0; }
+.pt .sdp-controls > * { flex: 0 0 auto; margin: 0; }
+.pt .sdp-controls .ui-switch { width: 100%; height: 28px; min-height: 28px; justify-content: center; }
+.pt .sdp-controls .sdp-pin { width: 100%; height: 28px; padding: 0 12px; }
+.pt .sdp-controls .sdp-status { height: auto; min-height: 0; display: flex; align-items: center; justify-content: center; max-width: 100%; font-size: 11px; line-height: 1.3; color: var(--ui-muted); text-align: center; }
+.pt .sdp-controls .sdp-status.warn { color: var(--ui-gold); }
+.pt .sdp-march > .sdp-caption { align-self: flex-end; width: 120px; max-width: none; margin-right: -15px; }
+@container (max-width: 560px) {
+  .pt .sdp-march { width: 100%; align-items: flex-start; }
+  .pt .sdp-marchrow { width: 100%; }
+  .pt .sdp-controls { flex: 1 1 auto; width: auto; min-width: 0; gap: 6px; justify-content: flex-start; }
+  .pt .sdp-march > .sdp-caption { align-self: flex-end; margin-right: 0; width: 100px; }
+}
+
+/* ---- round 4d: Items tab in the SDX layout (inventory-grid: 1fr main + 200px sidebar; Items box, Treasure box; Treasury box) ---- */
+.pt .sdp-inv { display: grid; grid-template-columns: minmax(0, 1fr) 200px; gap: 15px; align-items: start; }
+.pt .sdp-inv-main, .pt .sdp-inv-side { display: flex; flex-direction: column; gap: 15px; min-width: 0; }
+.pt .sdp-boxhead { align-items: center; min-height: 28px; }
+.pt .sdp-cap.over { color: var(--ui-danger-text); font-weight: 700; }
+.pt .sdp-itemlist { margin: 0; padding: 0; list-style: none; }
+.pt .sdp-itemlist li { display: grid; grid-template-columns: 24px minmax(0, 1fr) 64px 44px 28px; gap: 6px; align-items: center; padding: 5px 4px; border-top: 1px solid var(--ui-line); font-size: 13px; }
+.pt .sdp-itemlist li.head { grid-template-columns: minmax(0, 1fr) 64px 44px 28px; padding: 4px; border-top: 0; border-bottom: 1px solid var(--ui-frame); font: 600 10.5px/1.2 var(--ui-head); letter-spacing: .06em; text-transform: uppercase; color: var(--ui-muted); }
+.pt .sdp-itemlist li.empty-list { display: block; color: var(--ui-muted); }
+.pt .sdp-itemlist img { width: 24px; height: 24px; border: 0; border-radius: 3px; object-fit: cover; }
+.pt .sdp-itemlist .n { min-width: 0; overflow: hidden; color: var(--ui-text); text-overflow: ellipsis; white-space: nowrap; text-decoration: none; cursor: pointer; }
+.pt .sdp-itemlist .n:hover { text-decoration: underline; }
+.pt .sdp-itemlist .q { display: flex; align-items: center; justify-content: center; gap: 6px; color: var(--ui-text); }
+.pt .sdp-itemlist .q a { padding: 3px; color: var(--ui-muted); font-size: 10px; cursor: pointer; text-decoration: none; }
+.pt .sdp-itemlist .q a:hover { color: var(--ui-text); }
+.pt .sdp-itemlist .s { text-align: center; color: var(--ui-muted); font-weight: 600; }
+.pt .sdp-itemlist li.head .q, .pt .sdp-itemlist li.head .s { justify-content: center; text-align: center; }
+.pt .sdp-itemlist .act { display: flex; justify-content: flex-end; }
+.pt .sdp-gems li { grid-template-columns: 24px minmax(0, 1fr) auto auto; }   /* the gem list lives in the narrow right column: name first, then the count and value at their own width */
+.pt .sdp-gems .act { display: none; }
+.pt .sdp-gems .s { text-align: right; }
+.pt .sdp-menu, .pt .sdp-give { position: relative; }
+.pt .sdp-menu { margin-left: 4px; }
+.pt .sdp-menu > summary, .pt .sdp-give > summary, .pt .sdp-coinform > summary { list-style: none; cursor: pointer; }
+.pt .sdp-menu > summary { display: inline-flex; text-transform: none; letter-spacing: .02em; }
+.pt .sdp-menu > summary::-webkit-details-marker, .pt .sdp-give > summary::-webkit-details-marker, .pt .sdp-coinform > summary::-webkit-details-marker { display: none; }
+.pt .sdp-menu[open] > summary, .pt .sdp-coinform[open] > summary { background: var(--ui-raised); }
+.pt .sdp-menu-list { position: absolute; z-index: 5; top: calc(100% + 4px); right: 0; min-width: 170px; display: flex; flex-direction: column; border: 1px solid var(--ui-frame); border-radius: var(--ui-r); background: var(--ui-panel); box-shadow: var(--ui-shadow); text-transform: none; }
+.pt .sdp-menu-list a { display: flex; align-items: center; gap: 8px; padding: 7px 12px; color: var(--ui-text); font: 600 12px/1.2 var(--ui-head); letter-spacing: .02em; text-decoration: none; white-space: nowrap; cursor: pointer; }
+.pt .sdp-menu-list a + a { border-top: 1px solid var(--ui-line); }
+.pt .sdp-menu-list a:hover { background: var(--ui-raised); }
+/* treasury sidebar */
+.pt .sdp-coins { display: grid; grid-template-columns: auto auto 1fr; gap: 8px 8px; align-items: center; }
+.pt .sdp-coins label { display: contents; }
+.pt .sdp-coins .coin { grid-column: 1; }
+.pt .sdp-coins em { grid-column: 2; font: 600 10.5px/1 var(--ui-head); letter-spacing: .06em; text-transform: uppercase; font-style: normal; color: var(--ui-muted); }
+.pt .sdp-coins input { grid-column: 3; width: 100%; min-width: 0; height: 28px; text-align: right; }
+.pt .sdp-coinslots { display: flex; align-items: center; gap: 6px; margin-top: 8px; padding: 6px 8px; border: 1px solid var(--ui-line); border-radius: var(--ui-r); font-size: 12px; color: var(--ui-muted); }
+.pt .sdp-coinbtns { display: flex; flex-direction: column; gap: 6px; margin-top: 10px; }
+.pt .sdp-coinbtns > .ui-btn, .pt .sdp-coinform > summary { width: 100%; height: 28px; }
+.pt .sdp-coinform { display: flex; flex-direction: column; gap: 6px; }
+.pt .sdp-addrow { display: flex; flex-direction: column; gap: 6px; padding: 8px; border: 1px solid var(--ui-line); border-radius: var(--ui-r); background: var(--ui-page); }
+.pt .sdp-addrow label { display: flex; align-items: center; gap: 8px; margin: 0; }
+.pt .sdp-addrow input, .pt .sdp-addrow select { width: 100%; height: 28px; text-align: right; }
+.pt .sdp-addrow select { text-align: left; }
+@container (max-width: 560px) { .pt .sdp-inv { grid-template-columns: minmax(0, 1fr); } .pt .sdp-sep { display: none; } .pt .sdp-head .sdp-id { flex: 1 1 200px; } }
+
+.pt .sdp-gmbar { margin: 0 0 12px; }
+
+/* all six ability scores always on one line: below this width the member cards go to one column so their text column stays wide enough */
+@container (max-width: 700px) { .pt .sdp-cards { grid-template-columns: minmax(0, 1fr); } }
+
+/* ---- round 4e: name above class, Who popover, Downtime and Warbands tabs, eight tabs that fit, custom colour ---- */
+.pt .sdp-line { display: flex; flex-direction: column; align-items: flex-start; gap: 1px; padding-right: 18px; }
+.pt .sdp-name { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pt .sdp-line em { font-size: 11.5px; font-style: italic; line-height: 1.2; color: var(--ui-muted); }
+.pt .sdp-tab { padding: 6px 10px; gap: 6px; }
+@container (max-width: 820px) { .pt .sdp-tab { padding: 6px 9px; gap: 0; } .pt .sdp-tab i { display: none; } }
+@container (max-width: 560px) { .pt .sdp-tabs { flex-wrap: wrap; overflow-x: visible; } .pt .sdp-tab { padding: 5px 8px; } }
+.pt .sdp-who { position: relative; }
+.pt .sdp-who > summary { list-style: none; display: inline-flex; cursor: pointer; }
+.pt .sdp-who > summary::-webkit-details-marker { display: none; }
+.pt .sdp-who > summary::after { content: ""; width: 6px; height: 6px; margin-left: 4px; border-right: 2px solid var(--ui-muted); border-bottom: 2px solid var(--ui-muted); transform: rotate(45deg) translateY(-2px); }
+.pt .sdp-who[open] > summary { background: var(--ui-raised); }
+.pt .sdp-who-k { color: var(--ui-muted); font-weight: 600; }
+.pt .sdp-who-list { position: absolute; z-index: 6; top: calc(100% + 4px); left: 0; min-width: 200px; display: flex; flex-direction: column; gap: 6px; padding: 8px 10px; border: 1px solid var(--ui-frame); border-radius: var(--ui-r); background: var(--ui-panel); box-shadow: var(--ui-shadow); }
+.pt .sdp-who-list label { height: auto; min-height: 22px; white-space: nowrap; }
+.pt .sdp-who-all { padding-bottom: 6px; border-bottom: 1px solid var(--ui-line); font-weight: 700; }
+.pt .sdp-gm { flex-wrap: wrap; }
+/* downtime */
+.pt .sdp-dtstatus { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; margin-bottom: 10px; }
+.pt .sdp-hint { font-size: 12px; color: var(--ui-muted); }
+.pt .sdp-dtlist { margin: 0; padding: 0; list-style: none; }
+.pt .sdp-dtlist li { display: grid; grid-template-columns: minmax(110px, 170px) minmax(0, 1fr) auto auto; gap: 4px 12px; align-items: center; padding: 7px 4px; border-top: 1px solid var(--ui-line); font-size: 13px; }
+.pt .sdp-dtlist li:first-child { border-top: 0; }
+.pt .sdp-dtlist .n { font-weight: 700; color: var(--ui-text); }
+.pt .sdp-dtlist .res { font: 700 12px/1.2 var(--ui-font); color: var(--ui-text); white-space: nowrap; }
+.pt .sdp-dtlist .act { display: flex; gap: 2px; min-width: 52px; justify-content: flex-end; }
+.pt .sdp-dtbtns { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+/* warbands */
+.pt .sdp-wblist { margin: 0 0 12px; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 6px; }
+.pt .sdp-wblist li { display: grid; grid-template-columns: 40px minmax(0, 1fr) 90px 110px auto; gap: 10px; align-items: center; padding: 8px 10px; border: 1px solid var(--ui-line); border-radius: var(--ui-r2); background: var(--ui-panel); }
+.pt .sdp-wblist img { width: 40px; height: 40px; border: 1px solid var(--ui-line); border-radius: var(--ui-r); object-fit: cover; cursor: pointer; }
+.pt .sdp-wblist .who { display: flex; flex-direction: column; min-width: 0; }
+.pt .sdp-wblist .sub { font-size: 12px; color: var(--ui-muted); }
+.pt .sdp-wblist .sdp-hp { height: 8px; }
+.pt .sdp-wblist .up { display: flex; flex-direction: column; font: 700 13px/1.2 var(--ui-font); color: var(--ui-text); }
+.pt .sdp-wblist .up small { font: 400 11px/1.2 var(--ui-font); color: var(--ui-muted); }
+.pt .sdp-wblist .up.owe { color: var(--ui-danger-text); }
+.pt .sdp-wblist .act { display: flex; gap: 6px; justify-content: flex-end; min-width: 0; }
+.pt .sdp-wbgroup .sdp-group { margin-top: 2px; }
+@container (max-width: 560px) {
+  .pt .sdp-dtlist li { grid-template-columns: minmax(0, 1fr) auto; }
+  .pt .sdp-dtlist .pick { grid-column: 1 / -1; order: 3; }
+  .pt .sdp-wblist li { grid-template-columns: 40px minmax(0, 1fr) auto; }
+  .pt .sdp-wblist .sdp-hp { grid-column: 2 / -1; }
+  .pt .sdp-wblist .act { grid-column: 1 / -1; justify-content: flex-start; }
+}
+/* custom colour: a swatch of the same size as the presets that holds a native colour input, and a small hex field beside it */
+.pt .pt-custom { display: inline-flex; align-items: center; gap: 4px; margin: 0; }
+.pt .pt-custom input[type=color] { width: 26px; height: 26px; min-height: 0; padding: 0; border: 2px solid transparent; border-radius: 3px; background: none; cursor: pointer; }
+.pt .pt-custom input[type=color]::-webkit-color-swatch-wrapper { padding: 0; }
+.pt .pt-custom input[type=color]::-webkit-color-swatch { border: 1px solid var(--ui-line); border-radius: 2px; }
+.pt .pt-custom.on input[type=color] { border-color: var(--ui-frame); box-shadow: 0 0 0 1px var(--ui-page) inset; }
+.pt .pt-custom .pt-hex { width: 76px; height: 26px; padding: 0 6px; font: 600 12px/1 var(--ui-font); text-transform: lowercase; }
+.pt .sdp-dtlist .act:empty, .pt .sdp-wblist .act:empty { display: none; }
+.pt .sdp-wblist .up { white-space: nowrap; }
+@container (max-width: 560px) {
+  .pt .sdp-dtlist li { grid-template-columns: minmax(0, 1fr) auto; row-gap: 2px; }
+  .pt .sdp-dtlist .n { grid-column: 1; grid-row: 1; }
+  .pt .sdp-dtlist .res { grid-column: 2; grid-row: 1; }
+  .pt .sdp-dtlist .pick { grid-column: 1 / -1; grid-row: 2; order: 0; }
+  .pt .sdp-dtlist .act { grid-column: 1 / -1; grid-row: 3; justify-content: flex-start; }
+  .pt .sdp-wblist li { grid-template-columns: 40px minmax(0, 1fr); }
+  .pt .sdp-wblist .sdp-hp { grid-column: 1 / -1; }
+  .pt .sdp-wblist .up { grid-column: 1 / -1; flex-direction: row; gap: 8px; align-items: baseline; }
+  .pt .sdp-who-list { min-width: 0; width: max-content; max-width: calc(100cqw - 32px); }
+}
+
+/* the tab row fills its whole width: every tab takes an equal share of the spare room, label centred, so there is no dead space at the right end */
+.pt .sdp-tab { flex: 1 1 auto; justify-content: center; }
+@container (max-width: 560px) { .pt .sdp-tab { flex: 1 1 auto; } }
+@container (max-width: 560px) { .pt .sdp-tabs { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); flex-wrap: nowrap; } .pt .sdp-tab { min-width: 0; padding-inline: 4px; } }

@@ -1,0 +1,70 @@
+<div class="cbu-step cbu-stats">
+  <h2 class="ui-h">{{localize "SDE.charBuilder.step.stats"}} <small>{{localize "SDE.charBuilder.stats.method.label"}}: {{step.methodLabel}}{{#unless step.isManual}} ({{localize "SDE.charBuilder.stats.methodGm"}}){{/unless}}</small></h2>
+
+  <div class="ui-note info">
+    {{#if step.isManual}}{{localize "SDE.charBuilder.stats.manualHint"}}
+    {{else if step.isPointBuy}}{{localize "SDE.charBuilder.stats.pointBuyHint"}}
+    {{else if step.isFixed}}{{localize "SDE.charBuilder.stats.standardArrayHint"}}
+    {{else}}{{localize "SDE.charBuilder.stats.desc"}}{{/if}}
+  </div>
+
+  {{#unless step.isManual}}
+  <div class="ui-inline cbu-stats-bar">
+    {{#unless step.isFixed}}{{#unless step.isPointBuy}}{{#unless step.rollLocked}}
+    <button type="button" class="ui-btn" data-action="cb-roll-stats"><i class="fa-solid fa-dice"></i> {{#if step.rolled}}{{localize "SDE.charBuilder.stats.rollAgain"}}{{else}}{{localize "SDE.charBuilder.stats.roll"}}{{/if}}</button>
+    {{/unless}}{{/unless}}{{/unless}}
+    {{#unless step.isFixed}}{{#unless step.isPointBuy}}{{#if step.showReroll}}
+    <button type="button" class="ui-btn" data-action="cb-reroll-stats" {{#unless step.canReroll}}disabled{{/unless}}><i class="fa-solid fa-rotate"></i> {{localize "SDE.charBuilder.stats.reroll"}}</button>
+    {{/if}}{{/unless}}{{/unless}}
+    {{#if step.showReset}}<button type="button" class="ui-icon" data-action="cb-reset-stats" title="{{localize 'SDE.charBuilder.stats.reset'}}"><i class="fa-solid fa-arrow-rotate-left"></i></button>{{/if}}
+    {{#if step.isPointBuy}}<span class="ui-chip gold">{{localize "SDE.charBuilder.stats.pointBuyRemaining"}}: <b>{{step.remaining}}</b> / {{step.pointBuyBudget}}</span>{{/if}}
+    {{#if step.complete}}<span class="ui-chip ok"><i class="fa-solid fa-check"></i> {{localize "SDE.charBuilder.stats.complete"}}</span>{{/if}}
+  </div>
+  {{/unless}}
+
+  {{#if step.canReroll}}<div class="ui-note warn"><i class="fa-solid fa-triangle-exclamation"></i> {{localize "SDE.charBuilder.stats.rerollEligible"}}</div>
+  {{else if step.rollLocked}}<div class="ui-note"><i class="fa-solid fa-lock"></i> {{localize "SDE.charBuilder.lockedRoll"}}</div>{{/if}}
+
+  {{#if step.isAssign}}{{#if step.rolled}}
+  <div class="ui-card cbu-pool" data-cb-pool-drop>
+    <div class="ui-inline">
+      <span class="ui-label">{{#if step.isFixed}}{{localize "SDE.charBuilder.stats.standardArrayScores"}}{{else}}{{localize "SDE.charBuilder.stats.rolledDice"}}{{/if}}</span>
+      {{#each step.poolChips}}<span class="ui-chip cbu-pool-chip{{#if used}} used{{/if}}{{#if picked}} sel{{/if}}" data-cb-pool="{{idx}}">{{value}}</span>{{/each}}
+      <span class="ui-right ui-muted">{{localize "SDE.charBuilder.stats.total"}}: <b>{{step.total}}</b></span>
+    </div>
+    <span class="ui-muted"><i class="fa-solid fa-hand-pointer"></i> {{localize "SDE.charBuilder.stats.assignHint"}}</span>
+  </div>
+  {{/if}}{{/if}}
+
+  <div class="cbu-abil-grid">
+    {{#each step.abilities}}
+    <div class="cbu-abil-col">
+      <div class="ui-card cbu-abil-tile{{#unless empty}} filled{{/unless}}{{#if empty}} empty{{/if}}{{#if isAssign}} assignable{{/if}}{{#if pointBuy}} point-buy{{/if}}" {{#if isAssign}}data-cb-tile="{{key}}"{{/if}}>
+        <span class="ui-label">{{label}}</span>
+        {{#if manual}}
+        <input type="number" class="tile-val" min="0" step="1" data-cb-manual="{{key}}" value="{{value}}" aria-label="{{label}}">
+        {{else}}
+        <div class="tile-val">{{#if value}}{{value}}{{else}}<span class="ph">&ndash;</span>{{/if}}</div>
+        {{/if}}
+        <div class="tile-mod">{{mod}}</div>
+        {{#if pointBuy}}
+        <div class="ui-inline cbu-point-buy-controls">
+          <button type="button" class="ui-icon" data-action="cb-point-buy-decrease" data-ability="{{key}}" {{#unless canDecrease}}disabled{{/unless}} aria-label="{{localize 'SDE.charBuilder.stats.pointBuyDecrease' ability=label}}"><i class="fa-solid fa-minus"></i></button>
+          <span class="ui-muted">{{localize "SDE.charBuilder.stats.pointBuyCost"}}: {{pointBuyCost}}</span>
+          <button type="button" class="ui-icon" data-action="cb-point-buy-increase" data-ability="{{key}}" {{#unless canIncrease}}disabled{{/unless}} aria-label="{{localize 'SDE.charBuilder.stats.pointBuyIncrease' ability=label}}"><i class="fa-solid fa-plus"></i></button>
+        </div>
+        {{/if}}
+      </div>
+      <details class="ui-details cbu-abil-info-card">
+        <summary>{{info.label}}</summary>
+        <div class="ui-details-body">
+          <span class="ui-card-sub">{{info.represents}}</span>
+          <div><span class="ui-label">{{localize "SDE.charBuilder.stats.infoChecks"}}</span><p>{{info.checks}}</p></div>
+          <div><span class="ui-label">{{localize "SDE.charBuilder.stats.infoMechanics"}}</span><p>{{info.mechanics}}</p></div>
+          <div><span class="ui-label">{{localize "SDE.charBuilder.stats.infoKeyClasses"}}</span><p>{{info.keyClasses}}</p></div>
+        </div>
+      </details>
+    </div>
+    {{/each}}
+  </div>
+</div>

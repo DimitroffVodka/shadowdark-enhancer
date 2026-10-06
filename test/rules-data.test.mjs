@@ -5,6 +5,7 @@ import { parseByShape } from "../scripts/importer/tables/table-importer.mjs";
 import { RULES_TABLES } from "../scripts/importer/tables/table-shapes.mjs";
 import { TERRAIN_TAGS } from "../scripts/importer/hex/hex-summary.mjs";
 import {
+  rulesTabs, RULES_TABS,
   rulesFrom, rulesApi, stormEffects, readReferenceTables, importOverwrites, applyImport, partlyRead, READERS,
   ruleKey, regionKey, canonicalRegion, cellNumber, filledTables,
   pickRules, rulesSetsFrom, newRulesetId, terrainWords, addTerrain, removeTerrain,
@@ -388,4 +389,13 @@ test("adding and removing terrain rows: several words at once, blank rows, nothi
   assert.deepEqual(Object.keys(removed.terrain), ["forest", "marsh"]);
   assert.equal(removeTerrain(rulesFrom({}), "forest").terrain.forest !== undefined, true, "a printed word on the default ruleset is not removed: its row is the structure");
   assert.equal(removeTerrain(rulesFrom({ terrain: { hills: {} } }), "hills").terrain.hills, undefined, "a word of the GM's own is");
+});
+
+test("rulesTabs marks the chosen tab and falls back to the first", () => {
+  const on = (chosen) => rulesTabs(chosen).filter((t) => t.on).map((t) => t.id);
+  assert.deepEqual(rulesTabs("climate").map((t) => t.id), RULES_TABS.map((t) => t.id));
+  assert.deepEqual(on("climate"), ["climate"]);
+  assert.deepEqual(on("settlements"), ["settlements"]);
+  assert.deepEqual(on("nope"), ["terrain"]);
+  assert.deepEqual(on(undefined), ["terrain"]);
 });

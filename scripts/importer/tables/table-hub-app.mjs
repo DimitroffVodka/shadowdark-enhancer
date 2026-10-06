@@ -28,6 +28,7 @@ const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 export class RollTablesApp extends HandlebarsApplicationMixin(ApplicationV2) {
   static DEFAULT_OPTIONS = {
     id: "sde-roll-tables",
+    classes: ["sde-ui", "sde-imp"],
     window: { title: "SDE.importer.tableHub.title", icon: "fas fa-table-list", resizable: true },
     position: { width: 820, height: 720 },
     actions: {
@@ -569,6 +570,7 @@ export class RollTablesApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const onConflict = async (name) => {
       const safe = foundry.utils.escapeHTML(name);
       const choice = await foundry.applications.api.DialogV2.wait({
+        classes: ["sde-ui", "sde-dialog"],
         window: { title: "SDE.importer.conflict.tableTitle" },
         content: `<p>${game.i18n.format("SDE.importer.conflict.table", { name: safe })}</p>`,
         buttons: [

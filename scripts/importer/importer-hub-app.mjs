@@ -49,11 +49,14 @@ const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
   static DEFAULT_OPTIONS = {
     id: "sde-importer-hub",
+    classes: ["sde-ui", "sde-imp"],
     window: { title: "SDE.importer.app.title", icon: "fas fa-file-import", resizable: true },
     position: { width: 860, height: 780 },
     actions: {
+      // Tab row: Paste / Preview / Manage / Tools
+      hubTab:                 function (...args) { return this._onHubTab(...args); },
       // Parse / clear
-      hubParse:               function (...args) { return this._onHubParse(...args); },
+      hubParse:               function (...args) { return this._onHubParseAndShow(...args); },
       hubParseCompound:       function (...args) { return this._onHubParseCompound(...args); },
       hubParseCartesian:      function (...args) { return this._onHubParseCartesian(...args); },
       hubClear:               function (...args) { return this._onHubClear(...args); },
@@ -210,15 +213,18 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
    *  @type {{filled: object, unmatchedBullets: object[], unfilledSlots: string[], warnings: object[]}|null} */
   _downtimeParse = null;
 
-  // ── Manage strip (collapsible, lazy) ───────────────────────────────────────
-  /** Whether the Manage strip is expanded (its census is computed only then). */
+  // ── Tabs (Paste / Preview / Manage / Tools) ───────────────────────────────
+  /** The open tab. The Manage census is computed only while it is "manage". @type {"paste"|"preview"|"manage"|"tools"} */
+  _tab = "paste";
+  /** One-shot: open on the Manage tab at the next render (openers set it before open()). */
   _manageExpanded = false;
+  /** The seed the tab was last pointed at; a new one switches to Paste. */
+  _seedSeen = null;
+  /** Open state of the preview and tools `details`, by key, kept across renders. @type {Map<string, boolean>} */
+  _detailsOpen = new Map();
   /** Hook id for the `contentUnlocked` subscription (refreshes the census when a
    *  dedicated Class/Spell importer commits). @type {number|null} */
   _contentHookId = null;
-  /** Aborts the Tools-menu listeners (incl. document-level ones) on re-render
-   *  and close. @type {AbortController|null} */
-  _toolsAbort = null;
   /** Built Manage tree (top-level nodes), invalidated on cull/commit/migrate. @type {Array|null} */
   _manageTreeCache = null;
   /** Node ids currently expanded in the Manage tree (starts fully collapsed). */
@@ -375,8 +381,6 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
   async close(options = {}) {
     ImporterHubApp._instance = null;
     if (this._contentHookId) { Hooks.off(`${MODULE_ID}.contentUnlocked`, this._contentHookId); this._contentHookId = null; }
-    this._toolsAbort?.abort();   // drop the document-level Tools-menu listeners
-    this._toolsAbort = null;
     await releaseLocalPdfs();   // books given from this computer are not kept past the window
     return super.close(options);
   }
@@ -814,9 +818,15 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
       ],
     };
 
-    // ── Manage strip — lazy: census/duplicate scans run only when expanded ────
+    // ── Tab choice ────────────────────────────────────────────────────────────
+    // An opener's "show Manage" flag and a fresh seed both pick the tab for this render.
+    if (this._manageExpanded) { this._tab = "manage"; this._manageExpanded = false; }
+    if (this._importSeed && this._importSeed !== this._seedSeen) this._tab = "paste";
+    this._seedSeen = this._importSeed;
+
+    // ── Manage tab — lazy: census/duplicate scans run only while it is open ───
     let manage = null;
-    if (this._manageExpanded) {
+    if (this._tab === "manage") {
       const [monstersData, itemsData, tree] = await Promise.all([
         this._prepareMonstersContext(),
         this._prepareItemsContext(),
@@ -864,7 +874,11 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
         ? Math.round((this._batchState.done / this._batchState.total) * 100) : 0,
     } : null;
 
-    return { importData, manageExpanded: this._manageExpanded, manage, batch, rulesStep: this._rulesStep() };
+    const previewTotal = this._tab === "preview"
+      ? importData.monstersCount + importData.itemsCount + importData.spellsCount + importData.tablesCount
+        + importData.generatorsCount + importData.charsCount + importData.hexCount + importData.boats.length
+      : 0;
+    return { importData, tab: this._tab, previewTotal, manage, batch, rulesStep: this._rulesStep() };
   }
 
   // ── Render wiring ─────────────────────────────────────────────────────────
@@ -882,68 +896,51 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
     this._wireHubTableFieldEdits();
     this._wireHubGeneratorFieldEdits();
     this._wireHubClassRowEdits();
-    this._wireHubToolsMenu();
     this._wireManageTreeOpen();
     this._wireManageSearch();
+    this._wireDetailsMemory();
+  }
 
-    // Manage strip: prepare its census lazily the first time it's expanded, so
-    // opening the importer never triggers a world scan.
-    const manage = this.element.querySelector("details[data-manage]");
-    if (manage) {
-      manage.addEventListener("toggle", () => {
-        if (manage.open && !this._manageExpanded) { this._manageExpanded = true; this.render(); }
-      });
-    }
+  /** Parse, then show what was found; with nothing to show, stay on Paste (its notice is a toast). */
+  async _onHubParseAndShow(...args) {
+    this._tab = "preview";
+    await this._onHubParse(...args);
+    if (this._hasPreview()) return;
+    this._tab = "paste";
+    this.render();
+  }
+
+  /** Whether the Preview tab has anything to list (mirrors the template's empty state). */
+  _hasPreview() {
+    return [this._importMonsters, this._importItems, this._importSpells, this._importTables, this._importGenerators,
+      this._importChar, this._importBoats, this._importHexes, this._importHexSummary, this._importSkipped]
+      .some((list) => list?.length) || !!(this._downtimeParse || this._lastHexCrawl);
+  }
+
+  /** Switch tab. Manage is the only one that scans the world, so it is computed only when asked for. */
+  _onHubTab(event, target) {
+    const tab = target.dataset.tab;
+    if (!["paste", "preview", "manage", "tools"].includes(tab) || tab === this._tab) return;
+    this._tab = tab;
+    this.render();
   }
 
   /**
-   * Tools menu placement. The menu is a popover, so it renders in the top layer
-   * and escapes the clipping the hub's own `overflow:auto` body — and Foundry's
-   * `.window-content` / `.application`, both `overflow:hidden` — used to impose:
-   * with Manage collapsed the window is shorter than the menu and the bottom
-   * items were simply cut off.
-   *
-   * Being in the top layer means nothing positions it for us, so pin it under
-   * the Tools button here, flipping above when there isn't room below and
-   * clamping into the viewport either way. Listeners hang off a per-render
-   * AbortController because `_onRender` runs again on every re-render.
+   * A preview card or tools group stays as the GM left it across the renders every edit
+   * triggers. Keyed by the card's index attribute, else its summary text; a card with no
+   * remembered state keeps the template's default (flagged ones start open).
    */
-  _wireHubToolsMenu() {
-    const details = this.element.querySelector("details.sde-hub-tools");
-    const menu = details?.querySelector(".sde-hub-tools-menu");
-    const summary = details?.querySelector("summary");
-    if (!details || !menu || !summary) return;
-
-    this._toolsAbort?.abort();
-    this._toolsAbort = new AbortController();
-    const { signal } = this._toolsAbort;
-    const usePopover = typeof menu.showPopover === "function";
-
-    const place = () => {
-      const s = summary.getBoundingClientRect();
-      const { offsetWidth: w, offsetHeight: h } = menu;
-      const gap = 4;
-      const roomBelow = window.innerHeight - s.bottom - gap;
-      const up = roomBelow < h && s.top - gap > roomBelow;   // flip only if above is roomier
-      menu.style.left = `${Math.round(Math.max(gap, Math.min(s.right - w, window.innerWidth - w - gap)))}px`;
-      menu.style.top = `${Math.round(up ? Math.max(gap, s.top - h - gap) : s.bottom + gap)}px`;
+  _wireDetailsMemory() {
+    const keyOf = (d) => {
+      const idx = d.dataset.monsterIdx ?? d.dataset.itemIdx ?? d.dataset.spellIdx;
+      const kind = d.dataset.monsterIdx != null ? "m" : d.dataset.itemIdx != null ? "i" : "s";
+      return `${this._tab}:${idx != null ? kind + idx : d.querySelector("summary")?.textContent.trim()}`;
     };
-
-    details.addEventListener("toggle", () => {
-      if (!usePopover) return;
-      if (details.open) { menu.showPopover(); place(); }
-      else if (menu.matches(":popover-open")) menu.hidePopover();
-    }, { signal });
-
-    // Picking a tool, clicking away, or Escape all close it.
-    menu.addEventListener("click", () => { details.open = false; }, { signal });
-    document.addEventListener("pointerdown", (ev) => {
-      if (details.open && !details.contains(ev.target) && !menu.contains(ev.target)) details.open = false;
-    }, { signal });
-    document.addEventListener("keydown", (ev) => {
-      if (ev.key === "Escape" && details.open) details.open = false;
-    }, { signal });
-    window.addEventListener("resize", () => { if (details.open) place(); }, { signal });
+    this.element.querySelectorAll("details.ui-details").forEach((d) => {
+      const key = keyOf(d);
+      if (this._detailsOpen.has(key)) d.open = this._detailsOpen.get(key);
+      d.addEventListener("toggle", () => this._detailsOpen.set(key, d.open));
+    });
   }
 
   /** Subscribe ONCE per instance to `contentUnlocked` so the Manage census

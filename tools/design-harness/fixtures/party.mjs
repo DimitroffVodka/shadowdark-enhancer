@@ -6,6 +6,7 @@
 //   view  gm | player          who is looking (the buttons above the window are the harness's, not the sheet's)
 //   tab   members | items | travel | quests | bastion | description
 //   mode  -        marching, the party token placed and following
+//   notoken -       the scene has no party token: the warning strip under the header
 //         paused   following stopped on a blocked path (a GM gets Resume)
 //         off      Marching order switched off
 //         emblem   the GM's emblem picker open
@@ -32,7 +33,7 @@ const member = (name, className, hp, max, ac, level, group = "characters", effec
   abilityLabels: Object.fromEntries(["str", "dex", "con", "int", "wis", "cha"].map((k, i) => [k, mod(((i * 3 + level) % 7) - 2)])),
 });
 const roster = [
-  member("Creeg Greythorn", "Fighter", 14, 18, 15, 3), member("Elbin Grizzlegut", "Priest", 9, 12, 13, 3, "characters", [{ name: "Blessed", img: svg("#a80", "B") }]),
+  member("Creeg Greythorn", "Fighter", 14, 18, 15, 3), member("Elbin Grizzlegut", "Priest", 9, 12, 13, 3),
   member("Iraga Draguul", "Thief", 6, 8, 12, 2), member("Jorbin Ironhelm", "Fighter", 11, 11, 14, 2), member("Martin Rast", "Wizard", 4, 4, 10, 2),
   member("Bram", "Porter", 5, 5, 10, 1, "hirelings"), member("Dusty", "Mule", 11, 11, 9, 1, "mounts"),
 ];
@@ -55,20 +56,20 @@ const build = (state) => {
   const emblem = emblemOf({ icon: icon ?? DEFAULT_EMBLEM.icon, color: color ?? DEFAULT_EMBLEM.color });
   const picker = emblemChoices(emblem, say);
   const follow = mode !== "off";
-  const march = marchText(marchState({ follow, hasToken: true, deployed: true, reason: mode === "paused" ? "blocked" : "", pausedMember: "Actor.Iraga Draguul", manager: v.canEdit, hasLeader: !empty }),
+  const march = marchText(marchState({ follow, hasToken: mode !== "notoken", deployed: true, reason: mode === "paused" ? "blocked" : "", pausedMember: "Actor.Iraga Draguul", manager: v.canEdit, hasLeader: !empty }),
     { leaderName: "Creeg Greythorn", pausedName: "Iraga Draguul", missing: say("SDE.party.missing") }, words);
   const gems = gemSummary(gemItems);
   const slots = Array.from({ length: 9 }, (_, i) => { const m = walkers[i]; return { row: Math.floor(i / 3) - 1, col: (i % 3) - 1, uuid: m?.uuid ?? "", name: m?.name, img: m?.img, leader: m?.name === "Creeg Greythorn", disabled: !v.canEdit || !m }; });
   const status = quiet ? [] : statusBar({ travel: { terrain: "forest", weather: "Fair", hexesLeft: 3, budget: 4 }, light: { name: "Torch", mins: 38 }, rations: 12 }, words);
   return {
-    title: "The Lantern Guild", icon: "fa-solid fa-users", classes: ["shadowdark", "sheet", "party", "sde-party"], resizable: true, width: 750, height: 650, template: "templates/party/party.hbs",
+    title: "The Lantern Guild", icon: "fa-solid fa-users", classes: ["shadowdark", "sheet", "party", "sde-party", "sde-ui"], resizable: true, width: 750, height: 650, template: "templates/party/party.hbs",
     toolbar: `<span>Marching order:</span><button data-action="setMode" data-mode="-">on</button><button data-action="setMode" data-mode="paused">paused</button><button data-action="setMode" data-mode="off">off</button><span style="margin-left:14px">Party:</span><button data-action="setMode" data-mode="empty">no members</button><button data-action="setMode" data-mode="quiet">no bastion or status</button><span style="margin-left:14px">View as</span><button data-action="asView" data-view="gm">GM</button><button data-action="asView" data-view="player">Player</button>`,
     context: {
       picker: false, hasParty: true, isGM, canEdit: v.canEdit, actor: { name: "The Lantern Guild" }, memberCount: members.length,
       partyStats: { totalHp: members.reduce((n, m) => n + m.hp.value, 0), maxHp: members.reduce((n, m) => n + m.hp.max, 0), avgAc: members.length ? Math.round(members.reduce((n, m) => n + m.ac, 0) / members.length) : 0, avgLevel: characters.length ? Math.round(characters.reduce((n, m) => n + m.level, 0) / characters.length) : 0 },
-      emblem: { ...emblem, path: "/" + emblemIconPath(emblem.icon) }, emblemEdit: v.emblemEdit, emblemOpen: v.emblemEdit && mode === "emblem",
+      emblem: { ...emblem, path: "/" + emblemIconPath(emblem.icon), maskUrl: "/" + emblemIconPath(emblem.icon) }, emblemEdit: v.emblemEdit, emblemOpen: v.emblemEdit && mode === "emblem",
       emblemIcons: picker.icons.map((i) => ({ ...i, path: "/" + i.path })), emblemColors: picker.colors,
-      slots, followLeader: follow, march, hasLeader: !empty, leaderName: "Creeg Greythorn", canResume: !!march.canResume, movementDisabled: !v.canEdit, movementReason: say("SDE.party.movement.importExport"),
+      slots, followLeader: follow, march: { ...march, warn: march.mode === "notice" }, hasLeader: !empty, leaderName: "Creeg Greythorn", canResume: !!march.canResume, movementDisabled: !v.canEdit, movementReason: say("SDE.party.movement.importExport"),
       status, tabs: tabRow(keys, tab, say),
       membersTab: tab === "members", itemsTab: tab === "items", travelTab: tab === "travel", questsTab: tab === "quests", bastionTab: tab === "bastion", descriptionTab: tab === "description",
       members, groups: [["characters", "Characters"], ["hirelings", "Hirelings"], ["mounts", "Mounts"], ["missing", "Missing member"]].map(([k, label]) => ({ label, rows: members.filter((m) => m.group === k).map((m) => ({ ...m, canEdit: v.canEdit })) })),

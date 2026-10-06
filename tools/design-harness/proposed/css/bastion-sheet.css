@@ -1,0 +1,21 @@
+/* Bastion sheet: the plan frame, the upgrade card art and the hover card the sheet's JS fills. Tokens only. */
+.sde-bastion-ui .sde-bast-planbody { display: grid; grid-template-columns: minmax(0, 1fr) 200px; gap: 12px; align-items: start; }
+.sde-bastion-ui .sde-bastion-map { width: 100%; height: auto; height: clamp(300px, 56cqw, 600px); border: 1px solid var(--ui-line); border-radius: var(--ui-r2); cursor: grab; user-select: none; touch-action: none; background: var(--ui-panel); }
+.sde-bastion-ui .sde-bastion-map .roof { transition: opacity .22s; } .sde-bastion-ui .sde-bastion-map .roof:hover { opacity: 0; }
+.sde-bastion-ui .sde-bastion-map g[data-id] { cursor: pointer; }
+.sde-bastion-ui .sde-bastion-card { padding: 10px; font-size: 12px; align-self: start; gap: 6px; }
+.sde-bastion-ui .sde-bastion-card figure { margin: 0 0 6px; }
+.sde-bastion-ui .sde-bastion-card svg { width: 100%; height: auto; display: block; border-radius: var(--ui-r); background: var(--ui-raised); }
+.sde-bastion-ui .sde-bastion-card figcaption { color: var(--ui-muted); font: 600 10px/1.2 var(--ui-head); letter-spacing: .08em; text-transform: uppercase; margin: 2px 0 0; }
+.sde-bastion-ui .sde-bastion-card strong { color: var(--ui-text); } .sde-bastion-ui .sde-bastion-card p { margin: 4px 0 0; color: var(--ui-body); }
+.sde-bastion-ui .sde-bastion-card .cost { float: right; color: var(--ui-muted); }
+@container (max-width: 560px) { .sde-bastion-ui .sde-bast-planbody { grid-template-columns: minmax(0, 1fr); } .sde-bastion-ui .sde-bastion-map { height: auto; } }
+.sde-bastion-ui .ui-up .ui-card-head { align-items: flex-start; }
+.sde-bastion-ui .ui-up-art { flex: 0 0 44px; width: 44px; height: 44px; border: 1px solid var(--ui-line); border-radius: var(--ui-r); color: var(--ui-raised); }
+.sde-bastion-ui .ui-up .ui-card-name { font-size: 14px; }
+.sde-bastion-ui .ui-up.good { border-color: var(--ui-line); box-shadow: inset 3px 0 0 var(--ui-ok); }
+.sde-bastion-ui .ui-up.warn { border-color: var(--ui-line); box-shadow: inset 3px 0 0 var(--ui-warn); }
+.sde-bastion-ui .sde-bast-notes { color: var(--ui-body); }
+.sde-bastion-ui .ui-count { font: 600 11px/1 var(--ui-font); }
+.sde-ui .ui-body > * { flex-shrink: 0; }
+.sde-ui input[type=radio]::before, .sde-ui input[type=radio]::after { content: none !important; }
