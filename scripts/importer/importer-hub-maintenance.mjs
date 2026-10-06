@@ -302,6 +302,7 @@ export async function manageSourcePdfs(app) {
     console.error("[SDE] source PDF upload failed", err);
     // The file is already in the browser: offer to use it from there instead of making them start over.
     const useHere = !label && await foundry.applications.api.DialogV2.confirm({   // a new custom book cannot come from here
+      classes: ["sde-ui", "sde-dialog"],
       window: { title: t("SDE.importer.srcpdf.title"), icon: "fas fa-file-pdf" },
       content: `<p>${t("SDE.importer.srcpdf.uploadFailed")}</p><p>${t("SDE.importer.srcpdf.useInstead", { file: foundry.utils.escapeHTML(picked.file.name) })}</p>`,
       rejectClose: false,
