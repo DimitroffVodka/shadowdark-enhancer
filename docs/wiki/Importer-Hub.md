@@ -11,20 +11,65 @@ managed compendium packs.
 
 ---
 
-## Quick start: the fast path
+## Quick start: the import guide
 
-If you have your book PDFs ready, you do not need to paste hundreds of entries
-by hand.
+The first time you open the importer, it opens a step-by-step guide instead of
+the hub. You add your files once and it does the rest.
 
-1. **Upload your PDFs:** Go to **Tools → Source PDFs** and link your PDF copies
-   of the Core rules, Cursed Scrolls, or Western Reaches.
-2. **Click Import everything:** Expand the **Manage** review tree and click
-   **Import everything (N)** (or **Import all N in <folder>** for a specific
-   book). The runner grabs pages, parses entries, commits clean records,
-   closes background workspaces when finished, and gives you a summary report.
-3. **Handle any exceptions:** If a row in the report says *Needs your attention*
-   or *Import by hand*, click its **Import** button to review the draft in the
-   preview, make any adjustments, and commit it manually.
+1. **Add your files.** Drop in your book PDFs (the Shadowdark rules, the
+   Cursed Scrolls, the Western Reaches books) and your map images. You can drop
+   the Arcane Library zips as they came; the guide finds the PDF and the maps
+   inside. The Player's Guide is a loose PDF and is recognised by name.
+2. **Choose how to keep them.** *Use once* reads each PDF now and lets it go
+   when you close the window, so nothing is uploaded. *Keep and upload* stores
+   them in your world so the Open-PDF buttons work later. A host with an upload
+   limit (Forge) names any file that is too big and offers use-once for it.
+3. **Check.** The guide opens each file, tells you which book it is and whether
+   it can be read, and lists what it cannot do and why. Nothing is imported yet.
+4. **Import.** One button. The guide imports the library, the adventures, each
+   book's key locations, the site maps and the hex maps, with a progress bar.
+   The guide drives the hub for you, out of sight.
+5. **Name the terrain.** For each hex map, the **Terrain** page shows the
+   map's printed pictures sorted into cards. Name each card once (forest,
+   mountains, swamp) and **Apply** names every hex. A card that mixes terrains
+   can be opened ("these are not all the same") to name its hexes one by one.
+   **Skip this map** leaves it for later.
+
+The last page (**Done**) lists what was set up, what was already there, and
+anything that needs you, each with the button for it.
+
+**Hex maps need nothing from you but the terrain.** All six hex maps are set up
+on their own: the Western Reaches A0 and the Cursed Scroll maps (the Gloaming,
+the Djurum, the Isles of Andrik, the Black River, Morzomotha). The guide builds
+the scene, numbers the hexes the way the book prints them, and pins the book's
+key locations onto it. The Black River arrives as two halves and the guide
+joins them. A map it does not recognise (a different size than the print it
+knows) is marked *needs a look* and opens the [Hex map from image](Hex-Maps.md)
+window with the grid step. The A0 is a 14043 px picture, so reading it needs a graphics card
+whose texture limit is at least that. See [Hex Maps](Hex-Maps.md) for the numbering and the Legend.
+
+**Run it again whenever you like.** The guide is safe to repeat: what is already
+imported is counted as *already had* and left alone, a hex map found by its
+id is reused, and a map whose terrain you already named is not asked again. A
+full first import of every book takes a long time (the library stage alone can run
+to half an hour); leave the window open.
+
+### Updates
+
+The guide remembers the books it imported. When a module update adds content
+that needs a book, you get a notice naming the books, and **Import it** opens
+the guide on only those books (or straight on the last step when they are all
+already linked). Books you already imported are not asked for again. **Not now**
+keeps the new rows in the hub's *Manage* tree under the *New* filter; the
+notice is shown once per version.
+
+### The advanced hub
+
+Everything the guide does is also in the hub, one piece at a time, for when you
+want to paste a single entry, review a draft, or import one book by hand. Open
+it from the guide's **Ready** page (choose to pick what to import yourself),
+or from the hub's own route below. The hub's **Tools** tab has **Import more
+books**, which opens the guide again.
 
 ---
 
@@ -65,8 +110,9 @@ icons, and files documents into organized world compendiums.
 
 | Route | How |
 |---|---|
-| **Crawl Bar** | **Tools** → **Importer** (under *Set up*). |
-| **API** | `game.shadowdarkEnhancer.tables.openHub()` |
+| **Crawl Bar** | **Tools** → **Importer** (under *Set up*): the guide the first time, the hub after that. |
+| **From the hub** | **Tools** tab → **Import more books** opens the guide. |
+| **API** | `game.shadowdarkEnhancer.tables.openHub()` (the hub), `openWizard()` (the guide), `openImporter()` (whichever suits) |
 
 Opening the hub is instant; scanning your world compendiums is lazy and only
 runs when you expand the Manage review strip.
