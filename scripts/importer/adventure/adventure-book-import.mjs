@@ -16,7 +16,7 @@ import { parsePageRange } from "../pdf-text-extract.mjs";
 import { allSites } from "./adventure-manifest.mjs";
 import { parseAdventurePages } from "./adventure-parser.mjs";
 import { creatureMentions, creatureResolver } from "./adventure-creatures.mjs";
-import { commitAdventure } from "./adventure-commit.mjs";
+import { commitAdventure, addOverviewToWorldCopy } from "./adventure-commit.mjs";
 import { summariseGutter } from "../hex/hex-book-import.mjs";
 
 const t = (key, data) => {
@@ -49,6 +49,45 @@ async function readSite({ extractPdfText, notifyGutterWarnings }, file, site, pa
   return parseAdventurePages(
     (result.pages ?? []).map((p) => p.lines ?? []),
     { style: site.style, range: site.range, skip: skipOf(site), intro: !!site.intro });
+}
+
+/**
+ * Pure: the overview of a one-page adventure (the Cursed Scroll 4 and Western Reaches mini adventures) as one page. Their
+ * intro page is a blurb, a Random Encounters table and the map with its legend, and cutting it at the headings leaves a
+ * page per map-label scrap ("M M", "S S P P"). The blurb and the table stay, the Random Encounters heading is kept, and
+ * the paragraphs left from the map's labels (numbers and single letters) go.
+ * @param {Array<{key:string, name:string, html:string}>} parts  chapter-journal buildChapterPages pages
+ * @returns {Array<{key:string, name:string, html:string}>}
+ */
+export function inlineOverview(parts) {
+  const words = (html) => (String(html).replace(/<[^>]+>/g, " ").match(/[A-Za-z'’]{3,}/g) ?? []).length;
+  const html = [];
+  for (const p of parts ?? []) {
+    const paragraphs = String(p.html).split(/(?<=<\/p>)\s*/).filter(Boolean);
+    const kept = p.key === "lead" ? paragraphs : paragraphs.filter((q) => words(q) >= 3);
+    if (!kept.length) continue;
+    if (p.key === "random-encounters") html.push(`<h3>${p.name}</h3>`);
+    html.push(...kept);
+  }
+  return html.length ? [{ key: "overview", name: parts[0]?.name === "Overview" ? "Overview" : (parts[0]?.name ?? "Overview"), html: html.join("\n") }] : [];
+}
+
+/**
+ * The adventure's overview pages (its background, rumors, random encounters, what light there is), read from the printed
+ * pages the manifest names. A book that cannot be read for them costs the overview and nothing else: the locations are
+ * still filed.
+ * @returns {Promise<Array<{key:string, name:string, html:string}>>}
+ */
+async function readOverview(src, site) {
+  if (!site.overview) return [];
+  try {
+    const { readChapter } = await import("../chapter-journal.mjs");
+    const read = await readChapter({ src, pages: site.overview, name: t("SDE.importer.adventure.overviewPage") });
+    return site.style === "inline" ? inlineOverview(read?.pages) : (read?.pages ?? []);
+  } catch (err) {
+    console.warn(`Shadowdark Enhancer | adventures: ${site.title} overview could not be read`, err);
+    return [];
+  }
 }
 
 /**
@@ -112,7 +151,10 @@ export async function importAdventures(src, { ids, onSite, keepExisting = false 
     try {
       const pages = planSitePages(site, (p) => sourcePdfTarget(src, String(p))?.page ?? null);
       const { locations, warnings, intro, introBold } = await readSite({ ...pdf, notifyGutterWarnings: collect }, file, site, pages);
-      const res = await commitAdventure(site, locations, { source: label, intro, introBold, resolve: await creatureLinks(site), keepExisting });
+      const overview = await readOverview(src, site);
+      const res = await commitAdventure(site, locations, { source: label, intro, introBold, resolve: await creatureLinks(site), keepExisting, overview });
+      // The world's copy of the journal (when the scene has deployed one) gets the overview too, without touching its other pages.
+      try { if (overview.length) await addOverviewToWorldCopy(await fromUuid(res.entryUuid)); } catch (err) { console.warn(`Shadowdark Enhancer | adventures: ${site.title} overview not added to the world copy`, err); }
       report.sites.push({
         id: site.id, title: site.title, locations: locations.length,
         expected: site.range[1] - site.range[0] + 1, missing: warnings, uuid: res.entryUuid,

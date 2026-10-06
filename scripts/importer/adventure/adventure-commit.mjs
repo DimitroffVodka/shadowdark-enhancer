@@ -70,6 +70,42 @@ export function introPagePayload(lines, known, { boldLines, resolve } = {}) {
   };
 }
 
+/** The overview pages sort ahead of the Introduction, and in the order the book prints them. */
+const OVERVIEW_SORT = -100000;
+
+/**
+ * Pure: one overview page (the adventure's background, rumors, random encounters...) as journal page data.
+ * @param {{key:string, name:string, html:string}} part  a buildChapterPages page
+ * @param {number} i  its place among the overview pages
+ */
+export function overviewPagePayload(part, i) {
+  return {
+    name: part.name,
+    type: "text",
+    sort: OVERVIEW_SORT + i * 100,
+    text: { content: part.html, format: globalThis.CONST?.JOURNAL_ENTRY_PAGE_FORMATS?.HTML ?? 1 },
+    flags: { [MODULE_ID]: { [ADVENTURE_FLAG]: { overview: part.key } } },
+  };
+}
+
+/** The overview key a page carries, or null. Works on documents and plain index rows. */
+export const overviewKey = (page) =>
+  page?.getFlag?.(MODULE_ID, ADVENTURE_FLAG)?.overview ?? page?.flags?.[MODULE_ID]?.[ADVENTURE_FLAG]?.overview ?? null;
+
+/**
+ * Give a site's world copy (the journal deployed from the pack, whose pages keep the pack's ids) the overview pages it
+ * does not have yet. Pages it has are left as they are, edited or not.
+ * @param {JournalEntry} packEntry  the entry in the Journals pack
+ * @returns {Promise<number>} how many pages were added
+ */
+export async function addOverviewToWorldCopy(packEntry) {
+  const world = game.journal?.get(packEntry?.id);
+  if (!world) return 0;
+  const missing = packEntry.pages.contents.filter((p) => overviewKey(p) && !world.pages.has(p.id)).map((p) => p.toObject());
+  if (missing.length) await world.createEmbeddedDocuments("JournalEntryPage", missing, { keepId: true });
+  return missing.length;
+}
+
 /** Whether a page is a site's Introduction page. Works on documents and plain index rows. */
 export const isIntroPage = (page) =>
   (page?.getFlag?.(MODULE_ID, ADVENTURE_FLAG)?.intro ?? page?.flags?.[MODULE_ID]?.[ADVENTURE_FLAG]?.intro) === true;
@@ -122,10 +158,11 @@ export async function findSiteEntry(siteId) {
  *   source label, for the folder; intro = the lines printed before the first location, filed
  *   as an Introduction page (introBold: the same lines with bold markers); resolve = a
  *   creature link target for a bold name (adventure-creatures.mjs creatureResolver), so the
- *   bold names the bestiary knows are filed as links
+ *   bold names the bestiary knows are filed as links; overview = the adventure's overview pages [{key, name, html}]
+ *   (chapter-journal buildChapterPages), filed ahead of the locations
  * @returns {Promise<{entryUuid:string|null, created:string[], updated:string[], collisions:number[]}>}
  */
-export async function commitAdventure(site, locations, { source = "", intro = [], introBold, resolve, keepExisting = false } = {}) {
+export async function commitAdventure(site, locations, { source = "", intro = [], introBold, resolve, keepExisting = false, overview = [] } = {}) {
   const report = { entryUuid: null, created: [], updated: [], kept: [], collisions: [] };
   if (!game.user?.isGM) { ui.notifications?.warn(game.i18n.localize("SDE.importer.gm.adventure")); return report; }
   if (!locations?.length) return report;
@@ -155,14 +192,19 @@ export async function commitAdventure(site, locations, { source = "", intro = []
     p.text.content = cleanImportHtml(p.text.content);
     return p;
   };
-  const creates = [...(intro.length && !introDoc ? [introPayload()] : []), ...plan.create.map(payload)];
+  // The adventure's overview (its background, rumors, random encounters): pages ahead of the locations, found by their key.
+  const overviewDocs = new Map(entry.pages.map((p) => [overviewKey(p), p]).filter(([k]) => k));
+  const overviewPayload = (part, i) => ({ ...overviewPagePayload(part, i), text: { content: cleanImportHtml(part.html), format: globalThis.CONST?.JOURNAL_ENTRY_PAGE_FORMATS?.HTML ?? 1 } });
+  const overviewNew = overview.map((part, i) => [part, i]).filter(([part]) => !overviewDocs.has(part.key));
+  const overviewOld = overview.map((part, i) => [part, i]).filter(([part]) => overviewDocs.has(part.key));
+  const creates = [...overviewNew.map(([part, i]) => overviewPayload(part, i)), ...(intro.length && !introDoc ? [introPayload()] : []), ...plan.create.map(payload)];
   if (creates.length) {
     const made = await entry.createEmbeddedDocuments("JournalEntryPage", creates);
     report.created.push(...made.map((p) => p.name));
   }
   // keepExisting: a page that is already there is the GM's now (they may have edited it), so it is left exactly as it is.
-  if (keepExisting) report.kept.push(...(introDoc ? [introDoc.id] : []), ...plan.update.map(({ pageId }) => pageId));
-  const updates = keepExisting ? [] : [...(introDoc ? [{ _id: introDoc.id, ...introPayload() }] : []),
+  if (keepExisting) report.kept.push(...overviewOld.map(([part]) => overviewDocs.get(part.key).id), ...(introDoc ? [introDoc.id] : []), ...plan.update.map(({ pageId }) => pageId));
+  const updates = keepExisting ? [] : [...overviewOld.map(([part, i]) => ({ _id: overviewDocs.get(part.key).id, ...overviewPayload(part, i) })), ...(introDoc ? [{ _id: introDoc.id, ...introPayload() }] : []),
     ...plan.update.map(({ loc, pageId }) => ({ _id: pageId, ...payload(loc) }))];
   if (updates.length) {
     await entry.updateEmbeddedDocuments("JournalEntryPage", updates);

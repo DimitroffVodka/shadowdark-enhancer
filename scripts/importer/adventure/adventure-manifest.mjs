@@ -17,6 +17,9 @@
  *          from a read is reported against it
  *   style  "caps" ("12. METEORITE ROOM", body below) or "inline"
  *          ("12. Meteorite Room. Body…"), see adventure-parser.mjs
+ *   overview  the printed pages before the key that describe the whole adventure (background, rumors, factions, random
+ *          encounters, what light there is), filed as pages ahead of the keyed locations. Never a page that holds a keyed
+ *          location: those are read as locations. Absent: the journal is the keyed locations alone
  *   grid   [columns, rows] of squares on the map the book ships, from the
  *          printed size ("68 wide x 44 high"); the scene's grid size is the
  *          image width over it. Absent: a 100 px grid
@@ -59,7 +62,7 @@ const WORTWICK_FURNITURE = "^(?:[AKPN](?: [AKPN])*|\\d{1,2}(?: \\d{1,2})*|60\\S?
  * two-column text only raised column-gutter warnings for nothing the import uses.
  */
 const cs4 = (id, title, intro, last, grid) => ({
-  id: `cs4-${id}`, title, pages: String(intro + 1), range: [1, last], style: "inline", grid,
+  id: `cs4-${id}`, title, pages: String(intro + 1), range: [1, last], style: "inline", grid, overview: String(intro),
 });
 
 /**
@@ -68,7 +71,7 @@ const cs4 = (id, title, intro, last, grid) => ({
  * location, so only the key page is read.
  */
 const mini = (id, title, last, grid) => ({
-  id: `wrma-${id}`, title, pages: "2", range: [1, last], style: "inline", grid,
+  id: `wrma-${id}`, title, pages: "2", range: [1, last], style: "inline", grid, overview: "1",
 });
 
 /** City of Masks: one district per two-page spread, the numbers run on through the city. */
@@ -79,15 +82,15 @@ const district = (id, title, pages, range) => ({
 
 export const ADVENTURE_SITES = {
   CS1: [
-    { id: "cs1-mugdulblub", title: "The Hideous Halls of Mugdulblub", pages: "53-64", range: [1, 33], style: "caps", grid: [68, 44], mapPages: "66-67", mapNames: ["Ruins of Bittermold Keep"] },
+    { id: "cs1-mugdulblub", title: "The Hideous Halls of Mugdulblub", pages: "53-64", range: [1, 33], style: "caps", grid: [68, 44], mapPages: "66-67", mapNames: ["Ruins of Bittermold Keep"], overview: "50-52" },
   ],
   CS2: [
-    { id: "cs2-iron-fortress", title: "Fortress of the Burning Brothers: The Iron Fortress", pages: "49-55", range: [1, 19], style: "caps", grid: [45, 35], mapNames: ["The Iron Fortress"] },
-    { id: "cs2-mines", title: "Fortress of the Burning Brothers: The Mines", pages: "56-62", range: [20, 35], style: "caps", grid: [45, 34], mapNames: ["The Mines"] },
+    { id: "cs2-iron-fortress", title: "Fortress of the Burning Brothers: The Iron Fortress", pages: "49-55", range: [1, 19], style: "caps", grid: [45, 35], mapNames: ["The Iron Fortress"], overview: "46-48" },
+    { id: "cs2-mines", title: "Fortress of the Burning Brothers: The Mines", pages: "56-62", range: [20, 35], style: "caps", grid: [45, 34], mapNames: ["The Mines"], overview: "46-47,56" },
   ],
   CS3: [
     { id: "cs3-wortwick", title: "Wortwick Monastery", pages: "24-25", range: [1, 7], style: "caps", grid: [28, 28], intro: true, skip: WORTWICK_FURNITURE, creatureAliases: { monk: "Acolyte" } },
-    { id: "cs3-sea-wolf", title: "Hoard of the Sea Wolf King", pages: "53-64", range: [1, 29], style: "caps", grid: [68, 44], mapPages: "66-67", mapNames: ["Sea Caves and Tombs"] },
+    { id: "cs3-sea-wolf", title: "Hoard of the Sea Wolf King", pages: "53-64", range: [1, 29], style: "caps", grid: [68, 44], mapPages: "66-67", mapNames: ["Sea Caves and Tombs"], overview: "50-52" },
   ],
   CS4: [
     cs4("army-ants", "Army Ants", 40, 9, [36, 30]),
@@ -101,7 +104,7 @@ export const ADVENTURE_SITES = {
     cs4("tsibalba", "Tsibalba", 56, 10, [20, 19]),
   ],
   CS5: [
-    { id: "cs5-leng-1", title: "The Ghoulish Library of Leng: Level 1", pages: "41-50", range: [1, 28], style: "caps", grid: [66, 42], mapPages: "64-65", mapNames: ["Library of Leng Level 1"] },
+    { id: "cs5-leng-1", title: "The Ghoulish Library of Leng: Level 1", pages: "41-50", range: [1, 28], style: "caps", grid: [66, 42], mapPages: "64-65", mapNames: ["Library of Leng Level 1"], overview: "38-40" },
     { id: "cs5-leng-2", title: "The Ghoulish Library of Leng: Level 2", pages: "51-63", range: [29, 64], style: "caps", grid: [66, 42], mapPages: "66-67", mapNames: ["Library of Leng Level 2"] },
   ],
   CS6: [
@@ -115,7 +118,7 @@ export const ADVENTURE_SITES = {
     district("the-rooks", "The Rooks", "64-65", [44, 50]),
     // The whole city on its one overview map: the same fifty locations again, so
     // one scene carries every pin. A district's journal stays as it is.
-    { id: "cs6-city", title: "City of Masks", pages: "50-65", range: [1, 50], style: "caps", skip: DISTRICT_BANNER, mapNames: ["City of Masks Fully Keyed"] },
+    { id: "cs6-city", title: "City of Masks", pages: "50-65", range: [1, 50], style: "caps", skip: DISTRICT_BANNER, mapNames: ["City of Masks Fully Keyed"], overview: "39-49" },
   ],
   WRMA_HOR: [
     mini("house-of-rogues", "House of Rogues", 9, [30, 18]),
