@@ -63,6 +63,8 @@
 
 /* The hub the wizard drives while it imports: rendered so the batch can read it, never seen. */
 .application.sde-wiz-hidden { display: none !important; }
+/* Likewise the Class Importer, Spell Importer and Item Builder its batch opens: they must render, not show. */
+body.sde-wiz-batch #sde-class-importer, body.sde-wiz-batch #sde-spell-importer, body.sde-wiz-batch #sde-item-builder { display: none !important; }
 
 /* The Terrain page's cards: a card's pictures sit side by side (the system gives every figure the full width, which stacks them one to a row). */
 .sde-wiz .hxt-fig { flex: 0 0 auto; width: auto; }

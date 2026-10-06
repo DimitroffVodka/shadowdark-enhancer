@@ -197,3 +197,14 @@ test("before the engine has said anything, the footer's wait says what is happen
   assert.match(status, /terrain\.applying/);
   assert.equal(ctl.viewModel().foot.status, "", "and nothing once the next map is being read");
 });
+
+test("cancel on the Done page does nothing: no leave confirm, no release, no close", async () => {
+  const calls = [];
+  const { ctl } = await afterRun([]);
+  assert.equal(ctl.state.page, "done");
+  ctl.env.confirmCancel = async () => { calls.push("confirm"); return true; };
+  ctl.env.release = async () => { calls.push("release"); };
+  ctl.env.close = () => calls.push("close");
+  await ctl.dispatch("cancel");
+  assert.deepEqual(calls, []);
+});

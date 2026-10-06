@@ -44,6 +44,8 @@ const DOWNTIME_PDF_KEYS = { "cs6": "CS6", "western-reaches": "WR" };
 
 /** Let the browser paint (and any pending render settle) before the next job,
  *  so a long run stays responsive and the Stop button stays clickable. */
+/** On <body> for the length of the import wizard's quiet batch; the hidden-windows rule in styles/import-wizard.css keys on it. */
+export const WIZARD_BATCH_CLASS = "sde-wiz-batch";
 const breathe = () => new Promise((resolve) => setTimeout(resolve, 0));
 
 const esc = (s) => String(s ?? "")
@@ -187,6 +189,10 @@ class HubBatchMethods {
       downtimeDowngrade: "keep", // never re-lock outcomes already unlocked
     };
     const restoreNotifications = this._batchCaptureNotifications();
+    // The wizard's run has no windows of its own to show: the helper workspaces the routes
+    // open (rendered, because the routes read their DOM) are hidden by this class, which
+    // styles/import-wizard.css keys on. The window does not exist yet when it is set.
+    if (quiet) document.body.classList.add(WIZARD_BATCH_CLASS);
 
     try {
       for (const job of plan.jobs) {
@@ -226,6 +232,7 @@ class HubBatchMethods {
     } finally {
       const stopped = this._batchState?.cancelled;
       restoreNotifications();
+      if (quiet) document.body.classList.remove(WIZARD_BATCH_CLASS);
       this._batchAuto = null;
       this._batchState = null;
       await this._batchCloseApps();
