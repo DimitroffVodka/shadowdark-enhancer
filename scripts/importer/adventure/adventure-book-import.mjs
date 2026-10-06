@@ -82,7 +82,7 @@ async function readOverview(src, site) {
   if (!site.overview) return [];
   try {
     const { readChapter } = await import("../chapter-journal.mjs");
-    const read = await readChapter({ src, pages: site.overview, name: t("SDE.importer.adventure.overviewPage") });
+    const read = await readChapter({ src, pages: site.overview, name: t("SDE.importer.adventure.overviewPage"), rowNumbers: true });
     return site.style === "inline" ? inlineOverview(read?.pages) : (read?.pages ?? []);
   } catch (err) {
     console.warn(`Shadowdark Enhancer | adventures: ${site.title} overview could not be read`, err);
