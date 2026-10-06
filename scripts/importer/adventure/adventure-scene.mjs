@@ -25,6 +25,9 @@ import { resolveMentions, bestiaryLookup } from "./adventure-creatures.mjs";
 export const MAP_FLAG = "adventureMap";
 /** Note flag: { num } of the location it pins. */
 export const PIN_FLAG = "adventurePin";
+/** The tint a creature with only the placeholder figure gets, so it can be seen on a white map. */
+export const PLACEHOLDER_TINT = "#5a1414";
+
 /** Token flag: { site, key } of what a creature was placed from: a book marker ("A3") or a location ("4/Howler/2"). */
 export const MARKER_FLAG = "adventureMarker";
 
@@ -246,8 +249,13 @@ export function planCreatureTokens({ creatures, pins, rect, gridSize = DEFAULT_G
  * @param {string} actorId
  */
 export function markerTokenData(source, spot, siteId, actorId) {
+  // A hidden token shows to the GM at half strength, so the GM must be able to find it: its name is shown to its owners, and
+  // a creature with only Foundry's placeholder figure (white, which vanishes on a paper map) gets a dark red tint.
+  const placeholder = String(source?.texture?.src ?? "").endsWith("mystery-man.svg");
   const data = {
     ...source, x: spot.x, y: spot.y, actorId, hidden: true,
+    displayName: globalThis.CONST?.TOKEN_DISPLAY_MODES?.OWNER ?? 40,
+    ...(placeholder ? { texture: { ...source.texture, tint: PLACEHOLDER_TINT } } : {}),
     flags: { ...(source.flags ?? {}), [MODULE_ID]: { ...(source.flags?.[MODULE_ID] ?? {}), [MARKER_FLAG]: { site: siteId, key: spot.key } } },
   };
   delete data._id;

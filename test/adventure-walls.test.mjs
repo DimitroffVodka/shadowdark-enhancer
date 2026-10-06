@@ -163,5 +163,6 @@ test("the lights ship in the scene's pixels with the fire's radii, flagged for a
   assert.equal(l.length, 1);
   assert.deepEqual([l[0].config.bright, l[0].config.dim], [20, 40]);
   assert.ok(l[0].x > 100 && l[0].y > 0 && l[0].flags["shadowdark-enhancer"].adventureLight);
+  assert.deepEqual(l[0].config.darkness, { min: 0.5, max: 1 }, "it only lights up once the GM darkens the scene");
   assert.deepEqual(planLights(null, RECT), []);
 });

@@ -241,3 +241,13 @@ test("planCreatureTokens: more creatures than squares around a pin fill what the
   const plan = planCreatureTokens({ creatures: { 1: [{ monster: "Gribble", count: 20 }] }, pins: { 1: { x: 150, y: 150 } }, rect: tiny, gridSize: 100 });
   assert.equal(plan.length, 8);
 });
+
+test("markerTokenData: a hidden creature can be found by its GM: name shown to owners, and the placeholder figure is tinted so it shows on a white map", () => {
+  const plain = markerTokenData({ name: "Skeleton", texture: { src: "tokens/skeleton.webp" } }, { key: "A1", x: 0, y: 0 }, "s", "ACT");
+  assert.equal(plain.displayName, 40);
+  assert.equal(plain.texture.tint, undefined, "real art is left as it is");
+  const ph = markerTokenData({ name: "Howler", texture: { src: "icons/svg/mystery-man.svg", scaleX: 1 } }, { key: "A2", x: 0, y: 0 }, "s", "ACT");
+  assert.equal(ph.texture.tint, "#5a1414");
+  assert.equal(ph.texture.src, "icons/svg/mystery-man.svg");
+  assert.equal(ph.hidden, true);
+});

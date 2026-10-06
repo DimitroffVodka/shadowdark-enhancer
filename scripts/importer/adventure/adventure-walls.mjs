@@ -462,7 +462,8 @@ export const LIGHT_FLAG = "adventureLight";
 export function planLights(data, rect) {
   return (data?.lights ?? []).map((l) => ({
     x: Math.round(rect.x + l.at[0] * rect.width), y: Math.round(rect.y + l.at[1] * rect.height),
-    config: { bright: l.bright, dim: l.dim, color: l.color, alpha: 0.4, animation: { type: "torch", speed: 3, intensity: 3 } },
+    // Only when the GM darkens the scene: on a white paper map at full daylight a light just bleaches the room.
+    config: { bright: l.bright, dim: l.dim, color: l.color, alpha: 0.4, animation: { type: "torch", speed: 3, intensity: 3 }, darkness: { min: 0.5, max: 1 } },
     flags: { [WALL_MODULE]: { [LIGHT_FLAG]: l.label ?? true } },
   }));
 }
