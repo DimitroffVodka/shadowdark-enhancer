@@ -101,6 +101,7 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
       hubImportBundle:        function (...args) { return this._onImportBundle(...args); },
       // Source PDF library
       hubManageSourcePdfs:    function (...args) { return this._onManageSourcePdfs(...args); },
+      hubOpenWizard:          async () => (await import("./wizard/wizard-app.mjs")).ImportWizardApp.open(),
       // PDF → text extraction (Foundry's bundled PDF.js; no external tool)
       hubGrabPdfText:         function (...args) { return this._onGrabPdfText(...args); },
       hubExtractPdf:          function (...args) { return this._onExtractPdf(...args); },
