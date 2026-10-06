@@ -123,7 +123,7 @@ export async function runWizardImport(state, hooks, deps) {
     // A map that could not be made still gets its row, with the button to try it again by hand: the GM still holds the file.
     if (made.status === "ready") result.imported += 1;
     else if (made.status === "already") result.already += 1;
-    result.hex.push({ id: h.id, title: h.title, status: made.status, legend: !!made.legend, look: made.status === "needsLook" || made.status === "failed", sceneId: made.sceneId, pinned: made.pinned ?? 0 });
+    result.hex.push({ id: h.id, title: h.title, status: made.status, legend: !!made.legend, look: made.status === "needsLook" || made.status === "failed", optional: !!print?.drawn, sceneId: made.sceneId, pinned: made.pinned ?? 0 });
   }
   hooks.onProgress(100, t("SDE.importer.wizard.run.finishing"));
   return result;

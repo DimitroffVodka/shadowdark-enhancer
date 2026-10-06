@@ -85,7 +85,7 @@ const STATES = {
       { title: "Goblin", why: "This could not be imported. The advanced importer can show why." },
     ], hex: [
       { id: "hex-wr", title: "Western Reaches hex map (A0)", status: "ready", legend: true, look: false, sceneId: "a0", pinned: 270 },
-      { id: "hex-cs1", title: "The Gloaming hex map", status: "ready", legend: true, look: false, sceneId: "g", pinned: 31 },
+      { id: "hex-cs1", title: "The Gloaming hex map", status: "ready", legend: true, look: false, optional: true, sceneId: "g", pinned: 31 },
       { id: "hex-cs3", title: "The Isles of Andrik hex map", status: "already", legend: false, look: false, sceneId: "i", pinned: 12 },
       { id: "hex-cs2", title: "The Djurum hex map", status: "needsLook", legend: false, look: true },
       { id: "hex-cs4", title: "The Black River hex map (Jungle)", status: "failed", legend: false, look: true, pinned: 0 },
