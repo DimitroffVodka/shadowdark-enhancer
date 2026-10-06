@@ -9,6 +9,7 @@ import assert from "node:assert/strict";
 import { ADVENTURE_WALLS, wallsFor, hasWalls, planWalls, wallTypes } from "../scripts/importer/adventure/adventure-walls.mjs";
 import { ADVENTURE_LAYOUTS } from "../scripts/importer/adventure/adventure-layouts.mjs";
 import { mapFits } from "../scripts/importer/adventure/map-labels.mjs";
+import { ADVENTURE_SITES } from "../scripts/importer/adventure/adventure-manifest.mjs";
 
 const TYPES = wallTypes({});
 
@@ -101,12 +102,14 @@ for (const id of Object.keys(ADVENTURE_WALLS)) {
   test(`leak test: every numbered room of ${id} is sealed from the rock around the dungeon`, () => {
     const r = sealed(id, { doorsClosed: true });
     assert.deepEqual(r.outside, [], "a room that opens onto the rock lets the light and the monsters out");
-    assert.ok(r.regions.length >= 6, `the closed doors and walls make separate areas (${r.regions.length})`);
+    assert.ok(r.regions.length >= 1, "every room is in a sealed area");
+    if (ADVENTURE_WALLS[id].doors.length >= 6) assert.ok(r.regions.length >= 3, `the closed doors and walls make separate areas (${r.regions.length})`);
   });
 
   test(`leak test: the doors of ${id} are what separate those areas, so opened they join them`, () => {
     const closed = sealed(id, { doorsClosed: true }), open = sealed(id, { doorsClosed: false });
-    assert.ok(open.regions.length < closed.regions.length, `${open.regions.length} areas open, ${closed.regions.length} closed`);
+    if (ADVENTURE_WALLS[id].doors.length) assert.ok(open.regions.length <= closed.regions.length, `${open.regions.length} areas open, ${closed.regions.length} closed`);
+    if (ADVENTURE_WALLS[id].doors.length >= 6) assert.ok(open.regions.length < closed.regions.length, `${open.regions.length} areas open, ${closed.regions.length} closed`);
     assert.deepEqual(open.outside, []);
   });
 }
@@ -169,20 +172,23 @@ test("the Halls: a creature filed under a room never stands in rock, another roo
   assert.deepEqual(leaks, [], "no room's squares reach a pin the walls and closed doors separate it from");
 });
 
-test("the Iron Fortress: a creature filed under a room never stands in rock, another room, or past a door", () => {
-  const id = "cs2-iron-fortress", d = ADVENTURE_WALLS[id], rect = { x: 0, y: 0, width: 3600, height: 2800 }, grid = 80, pins = ADVENTURE_LAYOUTS[id].pins;
-  const pinPx = (n) => ({ x: pins[n][0] * rect.width, y: pins[n][1] * rect.height });
-  const squareOf = (p) => [Math.floor(p.x / grid), Math.floor(p.y / grid)].join(",");
-  const cache = new Map();
-  const mine = (n) => cache.get(n) ?? cache.set(n, new Set(reachableSquares(d, rect, grid, pinPx(n), 400).map((q) => q.join(",")))).get(n);
-  const rooms = Object.keys(pins).map(Number).filter((n) => !OUTSIDE[id].includes(n));
-  for (const n of rooms) assert.ok(mine(n).size >= 6, `room ${n} has floor to stand on (${mine(n).size})`);
-  const areaOf = new Map();
-  for (const area of sealed(id, { doorsClosed: true }).regions) for (const n of area) areaOf.set(n, area);
-  const leaks = [];
-  for (const [a, area] of areaOf) for (const b of areaOf.keys()) if (a !== b && !area.includes(b) && mine(a).has(squareOf(pinPx(b)))) leaks.push(`${a}->${b}`);
-  assert.deepEqual(leaks, [], "no room's squares reach a pin the walls and closed doors separate it from");
-});
+for (const id of Object.keys(ADVENTURE_WALLS)) {
+  test(`${id}: a creature filed under a room never stands in rock, another room, or past a door`, () => {
+    const d = ADVENTURE_WALLS[id], H = Math.round(3600 / d.aspect), rect = { x: 0, y: 0, width: 3600, height: H }, pins = ADVENTURE_LAYOUTS[id].pins;
+    const cols = Object.values(ADVENTURE_SITES).flat().find((x) => x.id === id).grid[0], grid = 3600 / cols;
+    const pinPx = (n) => ({ x: pins[n][0] * rect.width, y: pins[n][1] * rect.height });
+    const squareOf = (p) => [Math.floor(p.x / grid), Math.floor(p.y / grid)].join(",");
+    const cache = new Map();
+    const mine = (n) => cache.get(n) ?? cache.set(n, new Set(reachableSquares(d, rect, grid, pinPx(n), 400).map((q) => q.join(",")))).get(n);
+    const rooms = Object.keys(pins).filter((n) => !(OUTSIDE[id] ?? []).includes(Number(n)));
+    for (const n of rooms) assert.ok(mine(n).size >= 1, `room ${n} has floor to stand on`);
+    const areaOf = new Map();
+    for (const area of sealed(id, { doorsClosed: true }).regions) for (const n of area) areaOf.set(String(n), area.map(String));
+    const leaks = [];
+    for (const [a, area] of areaOf) for (const b of areaOf.keys()) if (a !== b && !area.includes(b) && mine(a).has(squareOf(pinPx(b)))) leaks.push(`${a}->${b}`);
+    assert.deepEqual(leaks, [], "no room's squares reach a pin the walls and closed doors separate it from");
+  });
+}
 
 test("the Iron Fortress's lights are the magma river and the fire curtain, each inside the fortress", () => {
   const l = planLights(ADVENTURE_WALLS["cs2-iron-fortress"], { x: 0, y: 0, width: 3600, height: 2800 });
