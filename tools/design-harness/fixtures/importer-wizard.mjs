@@ -64,7 +64,7 @@ const STATES = {
   import: () => make({ page: "import", books: 9, maps: 4, progress: { pct: 62, phase: "Filing the adventure The Hideous Halls of Mugdulblub" } }),
   done: () => make({
     page: "done", books: 9, maps: 4, check: (s) => ({ done: true, ready: readyIds(s).concat([`map:${HEX_MAPS[0].id}`]), items: items(s), problems: [] }),
-    result: { imported: 412, already: 38, needsYou: [
+    result: { imported: 412, already: 38, skipped: { n: 257, books: ["Player's Guide to the Western Reaches", "Cursed Scroll 6: City of Masks"] }, needsYou: [
       { title: "Fallen Keep of the Emerald Knight", why: "The scene is built. The module does not know where this map's locations sit yet, so you place them by clicking: Importer, Tools, Adventure map." },
       { title: "Goblin", why: "This could not be imported. The advanced importer can show why." },
     ] },

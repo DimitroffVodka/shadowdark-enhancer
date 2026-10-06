@@ -248,6 +248,7 @@ export class WizardController {
       const r = s.result ?? { imported: 0, already: 0, needsYou: [] };
       vm.done = {
         imported: r.imported, already: r.already, attention: r.needsYou.length, items: r.needsYou,
+        skipped: r.skipped?.n ? t(r.skipped.books.length ? "SDE.importer.wizard.done.skippedBooks" : "SDE.importer.wizard.done.skipped", { n: r.skipped.n, books: r.skipped.books.join(", ") }) : "",
         hexMaps: HEX_MAPS.filter((h) => s.check?.ready.includes(`map:${h.id}`))
           .map((h) => ({ id: h.id, label: t("SDE.importer.wizard.done.hexButton", { title: h.title }) })),
       };

@@ -18,23 +18,25 @@
  *   deps.isFiled(siteId)                                                → whether the site's journal exists
  *   deps.buildScene(siteId, path)                                       → { status:"built"|"already"|"failed", placed, left, known }
  */
-import { bookRows, isHexMap } from "./wizard-core.mjs";
+import { bookRows, isHexMap, bookTitle } from "./wizard-core.mjs";
 
 /** How much of the bar each stage owns. */
 const WEIGHTS = { library: [0, 62], adventures: [62, 82], maps: [82, 98] };
+/** A source key's book title, or "" for a key the wizard has no book for. */
+const titleOf = (src) => { try { return src ? bookTitle(src) : ""; } catch { return ""; } };
 const span = ([from, to], fraction) => from + (to - from) * Math.max(0, Math.min(1, fraction));
 
 /**
  * @param {object} state  wizard state (check.ready, maps, uploaded)
  * @param {{onProgress:(pct:number, phase:string)=>void, cancelled:()=>boolean}} hooks
  * @param {object} deps   see the file header
- * @returns {Promise<{imported:number, already:number, needsYou:Array<{title:string, why:string}>, stopped:boolean}>}
+ * @returns {Promise<{imported:number, already:number, needsYou:Array<{title:string, why:string}>, skipped:{n:number, books:string[]}, stopped:boolean}>}
  */
 export async function runWizardImport(state, hooks, deps) {
   const { t } = deps;
   const ready = new Set(state.check?.ready ?? []);
   const books = bookRows(state).filter((b) => ready.has(`book:${b.id}`));
-  const result = { imported: 0, already: 0, needsYou: [], stopped: false };
+  const result = { imported: 0, already: 0, needsYou: [], skipped: { n: 0, books: [] }, stopped: false };
   const stop = () => { if (hooks.cancelled()) { result.stopped = true; return true; } return false; };
 
   // 1. The library
@@ -47,7 +49,12 @@ export async function runWizardImport(state, hooks, deps) {
   result.already += summary?.nothing ?? 0;
   for (const line of summary?.lines ?? []) {
     if (line.status === "failed") result.needsYou.push({ title: line.name, why: line.note || t("SDE.importer.wizard.run.failedBook") });
-    else if (line.status === "blocked") result.needsYou.push({ title: line.name, why: line.note });
+    // An entry whose book was not added is not a problem: it is what the GM chose to leave out. Counted, and named by book.
+    else if (line.status === "blocked") {
+      result.skipped.n += 1;
+      const title = titleOf(line.src);
+      if (title && !result.skipped.books.includes(title)) result.skipped.books.push(title);
+    }
   }
   if (stop()) return result;
 
@@ -59,7 +66,9 @@ export async function runWizardImport(state, hooks, deps) {
       onSite: (title, n, of) => hooks.onProgress(span(WEIGHTS.adventures, (i + (n - 1) / of) / sources.length), t("SDE.importer.wizard.run.adventure", { title })),
     });
     for (const site of report?.sites ?? []) {
-      result.imported += site.locations;
+      // Only pages that were new count as imported; pages the compendium already had are "already had" (a re-run reads them again).
+      result.imported += site.created ?? site.locations;
+      result.already += site.updated ?? 0;
       if (site.missing?.length) result.needsYou.push({ title: site.title, why: t("SDE.importer.wizard.run.siteShort", { what: site.missing.join(", ") }) });
     }
     for (const f of report?.failed ?? []) result.needsYou.push({ title: f.title, why: f.error });

@@ -90,7 +90,7 @@ export async function readSiteCreatures(site) {
  * File every adventure site of one book, or of the listed site ids. GM-gated.
  * @param {string} src  source key ("CS1")
  * @param {{ids?:string[], onSite?:(title:string, i:number, total:number)=>void}} [opts]
- * @returns {Promise<{label:string, sites:Array<{id:string,title:string,locations:number,expected:number,missing:string[],uuid:string|null}>, locations:number, failed:Array<{title:string,error:string}>}>}
+ * @returns {Promise<{label:string, sites:Array<{id:string,title:string,locations:number,expected:number,missing:string[],uuid:string|null,created:number,updated:number}>, locations:number, failed:Array<{title:string,error:string}>}>}
  */
 export async function importAdventures(src, { ids, onSite } = {}) {
   const label = CHAR_SOURCES[src]?.label ?? src;
@@ -115,6 +115,7 @@ export async function importAdventures(src, { ids, onSite } = {}) {
       report.sites.push({
         id: site.id, title: site.title, locations: locations.length,
         expected: site.range[1] - site.range[0] + 1, missing: warnings, uuid: res.entryUuid,
+        created: res.created.length, updated: res.updated.length,   // pages added, and pages already there that were read again
       });
       report.locations += locations.length;
     } catch (err) {

@@ -75,12 +75,12 @@ test("pins the module cannot place, or only part of them, are the GM's to finish
 
 test("failures from the library, an adventure and a scene all come back as things to look at", async () => {
   const d = deps({
-    library: async () => ({ documents: 0, nothing: 0, lines: [{ status: "failed", name: "Goblin", note: "page unreadable" }, { status: "blocked", name: "Mounts", note: "no book" }, { status: "created", name: "x", note: "" }] }),
+    library: async () => ({ documents: 0, nothing: 0, lines: [{ status: "failed", name: "Goblin", note: "page unreadable" }, { status: "blocked", name: "Mounts", note: "no book", src: "WR" }, { status: "created", name: "x", note: "" }] }),
     fileAdventures: async () => ({ sites: [{ title: "Halls", locations: 30, missing: ["31", "32"] }], failed: [{ title: "Tower", error: "boom" }] }),
     buildScene: async () => ({ status: "failed" }),
   });
   const r = await runWizardImport(stateWith(CS1(), MAP1()), hooks(), d);
-  assert.deepEqual(r.needsYou.map((x) => x.title), ["Goblin", "Mounts", "Halls", "Tower", "The Hideous Halls"]);
+  assert.deepEqual(r.needsYou.map((x) => x.title), ["Goblin", "Halls", "Tower", "The Hideous Halls"]);   // a skipped entry is not among them
   assert.equal(r.imported, 30);
 });
 
@@ -97,4 +97,20 @@ test("hex maps are left for the Done page", async () => {
   const d = deps();
   await runWizardImport(stateWith(file("Western Reaches GM Map A0.jpg", 21)), hooks(), d);
   assert.ok(!d.calls.some((c) => c.startsWith("scene:")));
+});
+
+test("entries whose books were not added are counted and named by book, never listed as problems", async () => {
+  const blocked = (src, n) => Array.from({ length: n }, (_, i) => ({ status: "blocked", name: `${src} row ${i}`, note: "no linked PDF", src }));
+  const d = deps({ library: async () => ({ documents: 10, nothing: 0, lines: [...blocked("WR", 50), ...blocked("GMWR", 90), ...blocked("CS4", 3), ...blocked("", 2)] }) });
+  const r = await runWizardImport(stateWith(CS1()), hooks(), d);
+  assert.deepEqual(r.needsYou, []);
+  assert.equal(r.skipped.n, 145);
+  assert.deepEqual(r.skipped.books, ["Player's Guide to the Western Reaches", "Game Master's Guide to the Western Reaches", "Cursed Scroll 4: River of Night"]);
+});
+
+test("adventure pages that were already filed count as already had, not imported", async () => {
+  const d = deps({ fileAdventures: async () => ({ sites: [{ title: "The Hideous Halls", locations: 33, created: 0, updated: 34, missing: [] }], failed: [] }) });
+  const r = await runWizardImport(stateWith(CS1(), MAP1()), hooks(), d);
+  assert.equal(r.imported, 40 + 1);       // the library's 40 and the scene; no adventure page is new
+  assert.equal(r.already, 3 + 34);        // the library's 3 and the 34 pages read again
 });

@@ -297,7 +297,7 @@ test("Mount bulk toasts exclude planner-blocked rows from the denominator", asyn
   assert.equal(reports[0].blocked, 1);
   assert.deepEqual(
     reports[0].lines.filter((line) => line.status === "blocked"),
-    [{ status: "blocked", name: "Missing Mount", note: "PDF isn't linked" }],
+    [{ status: "blocked", name: "Missing Mount", note: "PDF isn't linked", src: "" }],
   );
 });
 

@@ -113,6 +113,8 @@ export class ImportWizardApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const { AdventurePlacer } = await import("../adventure/adventure-placer.mjs");
     const { CHAR_SOURCES } = await import("../char-content/char-content-manifest.mjs");
     let hub = null;
+    // Building a scene opens the placer, which takes the GM's view to it; the GM's view goes back where it was afterwards.
+    const viewed = game.scenes?.viewed ?? null;
     try {
       const result = await runWizardImport(state, hooks, {
         t,
@@ -140,6 +142,7 @@ export class ImportWizardApp extends HandlebarsApplicationMixin(ApplicationV2) {
       return result;
     } finally {
       await hub?.close();
+      if (viewed && game.scenes.viewed?.id !== viewed.id && game.scenes.has(viewed.id)) await viewed.view();
     }
   }
 

@@ -2740,6 +2740,8 @@
   "SDE.importer.wizard.done.imported": "Imported",
   "SDE.importer.wizard.done.already": "Already had",
   "SDE.importer.wizard.done.attention": "Need you",
+  "SDE.importer.wizard.done.skipped": "{n} entries were left out because their books were not added. Add those books later and the importer picks up exactly what is missing.",
+  "SDE.importer.wizard.done.skippedBooks": "{n} entries were left out because their books were not added: {books}. Add those books later and the importer picks up exactly what is missing.",
   "SDE.importer.wizard.done.hexTitle": "One more thing: your hex maps",
   "SDE.importer.wizard.done.hexBody": "Your hex maps are ready to set up. Each takes three short steps, and the tool leads you through them. To do it later, use Tools, Hex map from image, in the advanced importer; you will pick the map file again.",
   "SDE.importer.wizard.done.hexButton": "Set up {title}",

@@ -156,6 +156,7 @@
         <div class="ui-pair"><span class="ui-label">{{localize "SDE.importer.wizard.done.attention"}}</span><strong class="ui-value sde-wiz-big">{{done.attention}}</strong></div>
       </div>
     </div>
+    {{#if done.skipped}}<div class="ui-note"><p><i class="fas fa-circle-info"></i> {{done.skipped}}</p></div>{{/if}}
     {{#each done.items}}
     <div class="ui-card warn">
       <div class="ui-card-head"><i class="fas fa-triangle-exclamation sde-wiz-warn"></i><strong class="ui-card-name">{{title}}</strong></div>
