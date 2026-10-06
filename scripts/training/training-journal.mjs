@@ -76,16 +76,17 @@ export function trainerPageHtml(trainer, parsed, tableUuid = null) {
  *
  * @param {object}   [opts]
  * @param {string[]} [opts.only]      trainer keys to do; omit for all 21
+ * @param {boolean}  [opts.missingOnly] skip a trainer that already has a filed entry (no PDF read, no write)
  * @param {Function} [opts.onProgress] (done, total, trainerKey)
  * @returns {Promise<{ok:boolean, error?:string, created:number, updated:number, problems:object[]}>}
  */
-export async function importTrainerJournals({ only = null, onProgress = null } = {}) {
+export async function importTrainerJournals({ only = null, missingOnly = false, onProgress = null } = {}) {
   if (!game.user?.isGM) return { ok: false, error: "GMOnly", created: 0, updated: 0, problems: [] };
 
   const file = resolveSourcePdf("GMWR");
   if (!file) return { ok: false, error: "NoPdf", created: 0, updated: 0, problems: [] };
 
-  const wanted = only?.length
+  const chosen = only?.length
     ? TRAINERS.filter((t) => only.includes(t.key))
     : TRAINERS;
 
@@ -102,6 +103,7 @@ export async function importTrainerJournals({ only = null, onProgress = null } =
     if (key) existing.set(key, doc);
   }
 
+  const wanted = missingOnly ? chosen.filter((t) => !existing.has(t.key)) : chosen;
   let created = 0;
   let updated = 0;
   const problems = [];

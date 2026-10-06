@@ -6,7 +6,8 @@
  * dropped on the ground as pickup-able tokens, or given to a chosen player.
  */
 import { MODULE_ID } from "../shared/module-id.mjs";
-import { boundCount, gatherLootTables } from "./loot-table-catalog.mjs";
+import { boundCount, gatherLootTables, getFavourites, splitFavourites } from "./loot-table-catalog.mjs";
+import { Party } from "../party/party.mjs";
 import { LootGenerator } from "./loot-generator.mjs";
 import { LootDelivery } from "./loot-delivery.mjs";
 import { inferSeedFromName } from "../magic-forge/magic-forge.mjs";
@@ -31,6 +32,8 @@ export class LootGeneratorApp extends HandlebarsApplicationMixin(ApplicationV2) 
       clearHistory:   LootGeneratorApp.prototype._onClearHistory,
       forgeEntryItem: LootGeneratorApp.prototype._onForgeEntryItem,
       openSetup: LootGeneratorApp.prototype._onOpenSetup,
+      toggleFavourite: LootGeneratorApp.prototype._onToggleFavourite,
+      toggleFavOnly:   LootGeneratorApp.prototype._onToggleFavOnly,
     },
   };
 
@@ -54,6 +57,7 @@ export class LootGeneratorApp extends HandlebarsApplicationMixin(ApplicationV2) 
     /** @type {{id:string,tableName:string,batch:object}[]} newest-first */
     this._history = [];
     this._selectedTableUuid = null;
+    this._favOnly = false;
   }
 
   async close(options = {}) {
@@ -75,10 +79,15 @@ export class LootGeneratorApp extends HandlebarsApplicationMixin(ApplicationV2) 
   }
 
   async _prepareContext() {
-    const { tables, noneMarked } = await this._lootTables();
+    const { tables: allTables, noneMarked } = await this._lootTables();
+    // Starred tables lead the picker; "Favourites only" hides the rest (never with nothing starred).
+    const starred = splitFavourites(allTables, getFavourites());
+    const favOnly = this._favOnly && starred.favourites.length > 0;
+    const tables = favOnly ? starred.favourites : [...starred.favourites, ...starred.others];
     // Reset the selection if it was filtered out (e.g. a now-unmarked table).
     if (this._selectedTableUuid && !tables.some(t => t.uuid === this._selectedTableUuid)) this._selectedTableUuid = null;
     if (!this._selectedTableUuid && tables.length) this._selectedTableUuid = tables[0].uuid;
+    const isFav = (uuid) => starred.favourites.some(t => t.uuid === uuid);
 
     const party = game.actors
       .filter(a => a.type === "Player" && a.hasPlayerOwner)
@@ -98,11 +107,18 @@ export class LootGeneratorApp extends HandlebarsApplicationMixin(ApplicationV2) 
         coinsLabel: coinsParts.join(", "),
         isEmpty: !items.length && coinsParts.length === 0 && !notes.length,
         party,
+        hasParty: Party.list().length > 0,
       };
     });
 
     return {
       tables: tables.map(t => ({ ...t, isSelected: t.uuid === this._selectedTableUuid })),
+      favouriteTables: starred.favourites.map(t => ({ ...t, isSelected: t.uuid === this._selectedTableUuid })),
+      otherTables: favOnly ? [] : starred.others.map(t => ({ ...t, isSelected: t.uuid === this._selectedTableUuid })),
+      hasFavourites: starred.favourites.length > 0,
+      favOnly,
+      selectedIsFav: !!this._selectedTableUuid && isFav(this._selectedTableUuid),
+      hasParty: Party.list().length > 0,
       hasTables: tables.length > 0,
       noneMarked,
       history,
@@ -116,7 +132,32 @@ export class LootGeneratorApp extends HandlebarsApplicationMixin(ApplicationV2) 
   _onRender(context, options) {
     super._onRender?.(context, options);
     const sel = this.element.querySelector("select[data-loot-table]");
-    if (sel) sel.addEventListener("change", () => { this._selectedTableUuid = sel.value || null; });
+    // The star follows the selection without a redraw (the table list is not re-read).
+    if (sel) sel.addEventListener("change", () => {
+      this._selectedTableUuid = sel.value || null;
+      const on = getFavourites().includes(this._selectedTableUuid);
+      const star = this.element.querySelector(".lg-fav");
+      star?.classList.toggle("on", on);
+      star?.setAttribute("aria-pressed", String(on));
+      star?.querySelector("i")?.classList.toggle("fas", on);
+      star?.querySelector("i")?.classList.toggle("far", !on);
+    });
+  }
+
+  // ─── Favourites ───
+
+  /** Star or unstar the table in the picker. */
+  async _onToggleFavourite() {
+    const uuid = this._selectedTableUuid;
+    if (!uuid) return;
+    const favs = getFavourites();
+    await game.settings.set(MODULE_ID, "lootFavouriteTables", favs.includes(uuid) ? favs.filter(u => u !== uuid) : [...favs, uuid]);
+    this.render();
+  }
+
+  _onToggleFavOnly() {
+    this._favOnly = !this._favOnly;
+    this.render();
   }
 
   // ─── Rolling ───
@@ -168,6 +209,14 @@ export class LootGeneratorApp extends HandlebarsApplicationMixin(ApplicationV2) 
       await LootDelivery.postCard({ ...entry.batch, source: entry.tableName });
       return;
     }
+    // The party actor: the shared stash everyone can see on the Party sheet.
+    if (sel.value === "partyStash") {
+      const party = Party.selected();
+      if (!party) { ui.notifications.warn(game.i18n.localize("SDE.loot.generator.notify.noParty")); return; }
+      await LootDelivery.depositToParty(party, entry.batch);
+      ui.notifications.info(game.i18n.format("SDE.loot.generator.notify.gave", { table: entry.tableName, name: party.name }));
+      return;
+    }
     const actor = game.actors.get(sel.value);
     if (!actor) { ui.notifications.warn(game.i18n.localize("SDE.loot.generator.notify.pickRecipient")); return; }
     await LootDelivery.depositToActor(actor, entry.batch);
@@ -178,11 +227,12 @@ export class LootGeneratorApp extends HandlebarsApplicationMixin(ApplicationV2) 
   async _onDropCoinsPrompt() {
     const result = await foundry.applications.api.DialogV2.wait({
       classes: ["sde-ui", "sde-dialog"],
-      window: { title: "SDE.loot.generator.dropCoinsTitle", icon: "fas fa-coins" },
+      window: { title: "SDE.loot.generator.dropCoinsTitle", icon: "fas fa-coins", resizable: true },
+      position: { width: 420 },
       content: `<div style="padding:8px;display:flex;gap:12px;align-items:flex-end;">
-        <label style="display:flex;flex-direction:column;gap:2px;">${game.i18n.localize("SDE.loot.coins.gp")}<input type="number" name="gp" value="0" min="0" step="1" style="width:5em;"></label>
-        <label style="display:flex;flex-direction:column;gap:2px;">${game.i18n.localize("SDE.loot.coins.sp")}<input type="number" name="sp" value="0" min="0" step="1" style="width:5em;"></label>
-        <label style="display:flex;flex-direction:column;gap:2px;">${game.i18n.localize("SDE.loot.coins.cp")}<input type="number" name="cp" value="0" min="0" step="1" style="width:5em;"></label>
+        <label style="display:flex;flex-direction:column;gap:2px;flex:1;">${game.i18n.localize("SDE.loot.coins.gp")}<input type="number" name="gp" value="0" min="0" step="1" style="flex:1;min-width:5em;"></label>
+        <label style="display:flex;flex-direction:column;gap:2px;flex:1;">${game.i18n.localize("SDE.loot.coins.sp")}<input type="number" name="sp" value="0" min="0" step="1" style="flex:1;min-width:5em;"></label>
+        <label style="display:flex;flex-direction:column;gap:2px;flex:1;">${game.i18n.localize("SDE.loot.coins.cp")}<input type="number" name="cp" value="0" min="0" step="1" style="flex:1;min-width:5em;"></label>
       </div>
       <p class="notes" style="padding:0 8px;">${game.i18n.localize("SDE.loot.generator.dropCoinsHint")}</p>`,
       buttons: [

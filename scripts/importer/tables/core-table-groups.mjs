@@ -91,6 +91,18 @@ export const CORE_TABLE_GROUPS = [
     ],
   },
   {
+    // The two matrices the Monster Creator's Generator and Make It Weird read. They used to be reachable only
+    // from the Creator's own Unlock button, so importing everything left them locked.
+    unit: "core-monsters", section: "rolltables", key: "monsters",
+    header: "Monster Generator", icon: "fa-dragon",
+    rep: "Core PDF p190: Monster Generator", startPage: 190,
+    pasteHint: "Monster Generator and Make It Weird (Core pg 190–191)",
+    tables: [
+      { name: "Monster Generator", page: 190, manifestId: "core-monster-generator" },
+      { name: "Monster Mutations", page: 191, manifestId: "core-monster-mutations" },
+    ],
+  },
+  {
     unit: "core-tavern", section: "rolltables", key: "tavern",
     header: "Taverns, Food & Drink", icon: "fa-beer-mug-empty",
     rep: "Core PDF p137: Drinks", startPage: 132,

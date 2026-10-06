@@ -187,3 +187,35 @@ test("split-plane detection does NOT fire on a normal row-major matrix", () => {
   // Row-major path emits no split-plane detection warning.
   assert.equal(split[0].warnings.some((w) => /column-major/i.test(w)), false);
 });
+
+// The Monster Generator prints TWO columns on its numbered lines and the other two in a plane below,
+// under their own header. INVENTED words, shaped by the manifest's real per-cell word counts.
+function synthTwoLeadingColumns(entry) {
+  const word = (r, c, n) => Array.from({ length: n }, (_, i) => `w${r}c${c}n${i}`).join(" ");
+  const lines = ["Some intro prose.", "MONSTER GENERATOR", `d20 ${entry.columns[0]} ${entry.columns[1]}`];
+  entry.widths.forEach((w, r) => lines.push(`${r + 1} ${word(r + 1, 0, w[0])} ${word(r + 1, 1, w[1])}`));
+  lines.push("190", "Monster Generator", "A line of prose that mentions a Combat result.", `${entry.columns[2]} ${entry.columns[3]}`);
+  entry.widths.forEach((w, r) => lines.push(`${word(r + 1, 2, w[2])} ${word(r + 1, 3, w[3])}`));
+  return lines.join("\n");
+}
+
+test("the Generator splits into four complete columns when two sit on the numbered lines and two in a plane", () => {
+  const split = parseMatrixByColumns(synthTwoLeadingColumns(GEN), GEN.columns, GEN.widths, { manifestId: GEN.id });
+  assert.equal(split.length, 4);
+  for (const [c, table] of split.entries()) {
+    assert.equal(table.rows.length, 20, `${GEN.columns[c]} has 20 rows`);
+    table.rows.forEach((row, r) => {
+      const want = Array.from({ length: GEN.widths[r][c] }, (_, i) => `w${r + 1}c${c}n${i}`).join(" ");
+      assert.equal(row.text, want, `${GEN.columns[c]} roll ${r + 1}`);
+    });
+  }
+  assert.ok(!split.some((t) => t.warnings.some((w) => /only \d+ of 4/.test(w))), "no column-count warnings");
+});
+
+test("a plane row with the wrong word count leaves its cells empty rather than guessing", () => {
+  const text = synthTwoLeadingColumns(GEN).replace(/^w3c2n0 /m, "extra w3c2n0 ");
+  const split = parseMatrixByColumns(text, GEN.columns, GEN.widths, { manifestId: GEN.id });
+  assert.equal(split[2].rows[2].text, "");
+  assert.equal(split[3].rows[2].text, "");
+  assert.equal(split[2].rows[3].text.startsWith("w4c2"), true, "the other rows are fine");
+});

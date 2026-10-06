@@ -14,7 +14,8 @@
  * sanitization, selection resolution, feature/provenance builders) so it can be
  * unit-tested with invented fixtures. Only `catalog()` /
  * `resolveResultRefs()` touch Foundry, and they do so exclusively through
- * `findSuitePack("sde-tables")` — never `game.tables`, never name matching.
+ * `findSuitePack("sde-tables")` — never `game.tables`. A table counts by its manifestId, or, when it was imported
+ * without a stamp, by being the only one under the name the importer gives that child (adoptUnstamped).
  *
  * DESIGN CONTRACT (do not re-derive a second identity scheme):
  *   - Child identities reuse the EXACT flag values produced by
@@ -36,6 +37,8 @@ import {
   columnSlug,
   formulaFromDie,
   isMatrix,
+  adoptUnstamped,
+  importNameFor,
 } from "../importer/tables/table-manifest.mjs";
 import { escapeHtml } from "../importer/pdf-text-utils.mjs";
 import { findSuitePack } from "../shared/compendium-suite.mjs";
@@ -549,12 +552,28 @@ export function buildProvenanceV2(results, meta = {}) {
 /*  Live loader (Foundry-bound — the only impure surface).                    */
 /* -------------------------------------------------------------------------- */
 
-/** Convert a live RollTable document into a validation descriptor. */
-function _toDescriptor(doc) {
-  const manifestId =
-    (typeof doc.getFlag === "function" ? doc.getFlag(MODULE_ID, "manifestId") : null) ??
+/** The manifestId a table was stamped with at import, or null. */
+function _stampedId(doc) {
+  return (typeof doc.getFlag === "function" ? doc.getFlag(MODULE_ID, "manifestId") : null) ??
     doc.flags?.[MODULE_ID]?.manifestId ??
     null;
+}
+
+/** The names the importer creates each of the seven child tables under: "<table> - <column>". */
+function _wantedChildren() {
+  return Object.values(SET_DEFS).flatMap((def) => {
+    const entry = findById(def.manifestId);
+    return def.identities.map((idn) => ({
+      manifestId: idn.manifestId,
+      name: `${importNameFor(entry)} - ${idn.columnLabel}`,
+      sources: [entry?.source, entry?.sourceLabel],
+    }));
+  });
+}
+
+/** Convert a live RollTable document into a validation descriptor. */
+function _toDescriptor(doc, adoptedId = null) {
+  const manifestId = _stampedId(doc) ?? adoptedId;
   const results = [...(doc.results ?? [])].map((r) => ({
     id:    r.id ?? r._id ?? null,
     range: Array.isArray(r.range) ? [...r.range] : [r.range, r.range],
@@ -566,7 +585,7 @@ function _toDescriptor(doc) {
 /**
  * Read the managed sde-tables pack and return descriptors for every table that
  * carries one of the seven child manifestIds. Reads FULL documents (results are
- * required); never touches game.tables and never matches by name.
+ * required); never touches game.tables.
  * @returns {Promise<object[]>}
  */
 export async function loadManagedDescriptors() {
@@ -580,7 +599,12 @@ export async function loadManagedDescriptors() {
     console.warn(`${MODULE_ID} | monster-table-runtime: failed reading sde-tables`, err);
     return [];
   }
-  return docs.map(_toDescriptor).filter((d) => wanted.has(d.manifestId));
+  // A table imported without its stamp still counts when it is the only one under its child's name.
+  const adopted = adoptUnstamped(
+    docs.map((doc) => ({ doc, manifestId: _stampedId(doc), name: doc.name, source: doc.flags?.[MODULE_ID]?.source ?? null })),
+    _wantedChildren(),
+  );
+  return adopted.filter((t) => wanted.has(t.manifestId)).map((t) => _toDescriptor(t.doc, t.manifestId));
 }
 
 /**

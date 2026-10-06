@@ -34,7 +34,8 @@ const frequencyLabel = (n) => (n === 1
 
 /** What each Tools entry opens: the module's API (game.shadowdarkEnhancer) handed in. */
 const TOOL_OPENERS = {
-  rollTables:  (api) => api.tables.openHub("tables"),
+  // Foundry's own Roll Tables tab: the entry rolls a table, it is not the importer (that is the next one).
+  rollTables:  () => { ui.sidebar?.expand?.(); ui.sidebar?.changeTab("tables", "primary"); },
   // The Importer is the hub's front door — land on the Import tab (D-01).
   importer:    (api) => api.tables.openHub("import"),
   lootGen:     (api) => api.loot.open(),

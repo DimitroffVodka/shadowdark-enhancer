@@ -382,7 +382,7 @@ body.theme-light .sde-bar-start-btn:hover {
    One labelled panel behind the Tools button. The bar sits at the bottom of the
    screen, so it opens upward from the button's right edge. Hidden while closed. */
 
-.sde-bar-gap { flex: 1; min-width: 12px; }
+.sde-bar-gap { flex: none; width: 4px; } /* a width, not a flex-basis: only a width counts toward the bar's max-content, and 4px short wraps the last button */
 .sde-bar-tools { position: relative; display: inline-block; }
 .sde-bar-menu {
   position: absolute;
@@ -2408,6 +2408,7 @@ body.theme-light .sde-hub-monsters-row td {
 .sde-session-recap .sr-unclaimed { box-shadow: inset 3px 0 0 var(--ui-warn); }
 .sde-session-recap .sr-icon { flex: 0 0 18px; text-align: center; color: var(--ui-gold); }
 .sde-session-recap .sr-viewing { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+@container (max-width: 560px) { .sde-ui.sde-merchant .ui-tabs { flex-wrap: wrap; overflow-x: visible; } .sde-ui.sde-merchant .ui-tab i { display: none; } .sde-ui.sde-merchant .ui-tab { padding: 6px 9px; } }
 @container (max-width: 560px) { .sde-session-recap .ui-tabs { flex-wrap: wrap; overflow-x: visible; } .sde-session-recap .ui-tab i { display: none; } .sde-session-recap .ui-tab { padding: 6px 9px; } }
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -4555,12 +4556,17 @@ button.sde-hud-day:hover { border-color: var(--sd-frame); }
    DialogV2's own `buttons` array: `default: true` is the filled button, `class: "danger"` the red outline, `class: "ghost"` the quiet one. */
 
 .sde-dialog .window-content { padding: 0; gap: 0; }
+/* container-type on .window-content (sde-ui.css) zeroes its intrinsic width, so an auto-width dialog collapsed to ~200px:
+   buttons stacked and right-shifted, the title clipped, inputs cut off. Give dialogs a real width; a call that passes
+   position.width still wins (inline style). 460 fits three buttons (End & Save / Pause Session / Discard) on one row. */
+.application.sde-dialog { width: 460px; max-width: calc(100vw - 24px); }
+.sde-dialog form.dialog-form { flex: 1 1 auto; min-height: 0; }
 .sde-dialog .dialog-content { flex: 1 1 auto; display: flex; flex-direction: column; gap: 14px; min-height: 0; margin: 0; padding: 16px; overflow-y: auto; background: var(--ui-page); }
 .sde-dialog .dialog-content > form, .sde-dialog form.dialog-content { display: contents; }
 
 /* footer: DialogV2's own buttons, restyled to the kit */
 .sde-dialog .form-footer { flex: 0 0 auto; display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 8px; margin: 0; padding: 10px 16px; border-top: 1px solid var(--ui-line); background: var(--ui-page); }
-.sde-dialog .form-footer button { display: inline-flex; align-items: center; justify-content: center; gap: 6px; flex: 0 0 auto; height: 30px; min-width: 88px; margin: 0; padding: 0 16px; border: 1px solid var(--ui-frame); border-radius: var(--ui-r); background: var(--ui-panel); color: var(--ui-text); font: 600 12px/1 var(--ui-head); letter-spacing: .02em; text-shadow: none; box-shadow: none; cursor: pointer; }
+.sde-dialog .form-footer button { display: inline-flex; align-items: center; justify-content: center; gap: 6px; flex: 1 1 auto; height: 30px; min-width: 88px; margin: 0; padding: 0 16px; border: 1px solid var(--ui-frame); border-radius: var(--ui-r); background: var(--ui-panel); color: var(--ui-text); font: 600 12px/1 var(--ui-head); letter-spacing: .02em; text-shadow: none; box-shadow: none; cursor: pointer; }
 .sde-dialog .form-footer button:hover { background: var(--ui-raised); }
 .sde-dialog .form-footer button.default { height: 32px; background: var(--ui-btn-bg); border-color: var(--ui-btn-bg); color: var(--ui-btn-fg); font-weight: 700; }
 .sde-dialog .form-footer button.default:hover { background: var(--ui-btn-bg); filter: brightness(1.12); }
@@ -4571,7 +4577,7 @@ button.sde-hud-day:hover { border-color: var(--sd-frame); }
 
 /* a list of actions: the footer becomes rows, one action each (the dying menu). Same buttons array, no JS change. */
 .sde-dialog.dlg-choices .form-footer { flex-direction: column; align-items: stretch; justify-content: flex-start; gap: 6px; padding: 0 16px 14px; border-top: 0; }
-.sde-dialog.dlg-choices .form-footer button { justify-content: flex-start; width: 100%; height: 38px; padding: 0 12px; text-align: left; font: 600 13px/1.2 var(--ui-font); background: var(--ui-panel); border-color: var(--ui-line); color: var(--ui-text); }
+.sde-dialog.dlg-choices .form-footer button { flex: 0 0 auto; justify-content: flex-start; width: 100%; height: 38px; padding: 0 12px; text-align: left; font: 600 13px/1.2 var(--ui-font); background: var(--ui-panel); border-color: var(--ui-line); color: var(--ui-text); }
 .sde-dialog.dlg-choices .form-footer button:hover { border-color: var(--ui-frame); background: var(--ui-raised); }
 .sde-dialog.dlg-choices .form-footer button > i { flex: 0 0 18px; width: 18px; text-align: center; color: var(--ui-gold); }
 .sde-dialog.dlg-choices .form-footer button.default { height: 38px; background: var(--ui-btn-bg); color: var(--ui-btn-fg); }
@@ -4846,6 +4852,13 @@ button.sde-hud-day:hover { border-color: var(--sd-frame); }
 .sde-ui.sde-lootgen .lg-give { flex-wrap: nowrap; }
 .sde-ui.sde-lootgen .lg-give .lg-recipient { flex: 1 1 auto; width: auto; min-width: 0; }
 .sde-ui.sde-lootgen .lg-give .ui-btn { flex: 0 0 auto; }
+.sde-ui.sde-lootgen .lg-picker { flex-wrap: nowrap; }
+.sde-ui.sde-lootgen .lg-picker select { flex: 1 1 auto; min-width: 0; width: auto; }
+.sde-ui.sde-lootgen .lg-picker .ui-btn { flex: 0 0 auto; }
+.sde-ui.sde-lootgen .lg-fav.on { color: var(--ui-gold); border-color: var(--ui-gold); }
+.sde-ui.sde-lootgen .lg-fav-only.on { color: var(--ui-gold); border-color: var(--ui-gold); }
+.sde-ui.sde-lootgen .ui-footer { flex-wrap: wrap; }
+.sde-ui.sde-lootgen .ui-footer .ui-btn { flex: 0 0 auto; }
 .sde-ui.sde-lootgen .lg-setup.needs-setup.ghost { border-color: var(--ui-gold); color: var(--ui-gold); }
 @container (max-width: 560px) {
   .sde-ui.sde-lootgen .ui-footer .ui-right { margin-left: 0; width: 100%; justify-content: flex-end; }
@@ -4999,8 +5012,6 @@ button.sde-hud-day:hover { border-color: var(--sd-frame); }
 .sde-ui.sde-merchant .ui-icon { flex: 0 0 auto; }
 .sde-ui.sde-merchant .ui-head, .sde-ui.sde-merchant .ui-head .ui-stats { flex-wrap: nowrap; }
 .sde-ui.sde-merchant .ms-wallet { color: var(--ui-gold); white-space: nowrap; }
-.sde-ui.sde-merchant .ms-tools { display: flex; gap: 4px; flex: 0 0 auto; }
-.sde-ui.sde-merchant .ms-tools .ui-icon.on { color: var(--ui-text); border-color: var(--ui-frame); background: var(--ui-raised); }
 .sde-ui.sde-merchant .ms-filters > select, .sde-ui.sde-merchant .ms-filters > .ui-search { min-width: 120px; }
 .sde-ui.sde-merchant .ms-filters > select { flex: 1 1 130px; width: auto; }
 .sde-ui.sde-merchant .ms-filters > .ui-grow { flex: 2 1 180px; }

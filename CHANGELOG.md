@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 ### Added
+- **The Loot Generator can give a roll to the Party sheet.** "Party sheet (shared items and coins)" is a new choice next to Give: the items go onto the Party actor and the coins into its shared pool, where the Party sheet shows them. It uses the selected Party (or the only one).
+- **The Loot Generator has favourite tables.** A star next to the table picker marks the selected table; starred tables are listed first under Favourites, and a Favourites only button hides the rest. The stars are yours alone (they are saved per GM).
 - **The Request roll card shows the results.** Once a character rolls, their link on the card turns green for a pass or red for a fail (no colour when there was no DC) and shows the total, so you can read the whole card at a glance. Each character rolls once per card.
 - **The Party sheet has Downtime and Warbands tabs.** Downtime shows the session's status and a row for each character (their pick and result), with the GM's Start session, Lock dice, End session and per-row Clear and Roll for, and an Open Downtime window button. Warbands lists the warbands under a party member's command, grouped by commander, with upkeep Paid or Owes N gp, open sheet, and the GM's Run month, Pay arrears and Return to service.
 - **The Party Members tab has a GM bar and a spell row on casters.** One always-visible line: Who (a list of the PCs with an All box), an ability, a DC (12, blank for none), Request roll, then XP and Award XP. Request roll posts one chat card with a Roll link per character asked; its owner clicks it, the system's ability check runs, and the result is posted with pass or fail when there was a DC. A caster's card shows its spells by tier with the lost ones struck through.
@@ -10,6 +12,7 @@
   redesign. No window uses it yet, so nothing looks different.
 
 ### Changed
+- **The Merchant window's Log and Settings are tabs in the tab bar** instead of two small icons in the header, and the Make Shop Available and Close Shop buttons stay at the bottom of every tab for the GM, so you can open the shop without going into Settings first.
 - **The Boat sheet header keeps the boat name whole at the default width** (the stats wrap instead), the unused vehicle tabs partial is gone, and the bastion, boat and character builder design-harness fixtures carry the windows' current classes.
 - **Character Builder steps have a simpler structure.** Each step has one heading line with a summary of the choice (the ancestry or class picked, the stat method, gold left, the character's name) instead of the two bordered bands; the Class step is two columns with folded sections, the used dice are readable, the ability guides and art actions fold away, and Create Character is the one primary button. The window keeps its black-and-silver look.
 - **Boat sheet uses the new design.** A header band (name, hit points, AC, move, passengers), five tabs, and Overview cards for Command, Sinking, Crew and cargo and Properties, with weather folded away; passengers, cargo and siege weapons are rows with icon buttons. It keeps the Shadowdark parchment look.
@@ -91,6 +94,16 @@
   earlier "Include mounts" had already placed on a scene is still recalled by Place / Recall.
 
 ### Fixed
+- **The Importer Hub opens again.** It failed with "The partial sdeTreeNodeUi could not be found" (the Manage tree called a partial name only the design harness registers).
+- **The Magic Item Forge and the Monster Creator find tables you already imported.** Core tables imported from the Manage tree or with Import everything carry no identity stamp, so both windows called the book locked and asked you to import it again (and then offered to replace the table that was already there). A table now counts when it is the only one under the name the importer gives it. Nothing in your world is changed.
+- **The Monster Generator imports.** Its Combat and Quality columns are on the numbered lines and Strength and Weakness are in a block below under their own header; the importer only knew the one-leading-column layout, so every row warned "only 3 of 4 columns had text". It reads both layouts now. The Generator and Make It Weird are also in the Manage tree under Roll Tables > Core Rulebook, so Import everything reaches them.
+- **Tools > Roll tables opens the Roll Tables tab** instead of the Importer.
+- **Regional Training says what is missing, and only reads that.** The window's "Not imported yet" is the trainers' descriptions and tasks (read from your Game Master's Guide PDF), not the benefit tables. The button is now "Read trainer pages" and skips trainers that already have an entry.
+- **The Monster Creator no longer shows Make It Weird as locked right after an import.** A table read that started before the last change could finish last and be kept.
+- **Dialogs are no longer crooked.** Session Tracking, Table Already Exists, Drop Coins and every other dialog opened at a squeezed ~200px, which stacked and right-shifted the buttons and clipped the title and inputs. They now open at a normal width and the buttons share one row (or fill each row evenly when there are too many).
+- **Drop Coins can be resized, and the pile is pointed out.** After coins (or a loot item) are dropped from the Loot Generator, the spot is pinged and the view pans to it if it is off screen, so a half-size token is not lost on a big map. The Loot Generator's bottom buttons no longer overlap.
+- **The crawl bar has a small gap between Combat and Tools** instead of a wide one.
+- **Levelling up in the Character Builder raises current hit points as well as the maximum.** The character gains the rolled amount on both (current is capped at the new maximum), so a hurt character stays as hurt as before, and Undo puts both back. It used to raise only the maximum, which left a sheet reading 8/14.
 - **Request roll works.** The Roll links on the chat card did nothing because the click handler was never registered. Clicking your character's link now runs the ability check and posts the result, with pass or fail when there is a DC.
 - **The Party emblem icon shows again in the header.** Its picture was loaded from a path that resolved inside the styles folder, so the box drew empty. The picker tiles were fine.
 - **The Party sheet header no longer stretches when the scene has no party token.** The long "drag the party onto the scene" warning now sits in a full-width strip under the header, so Marching order, Place / Recall and the grid stay in line.

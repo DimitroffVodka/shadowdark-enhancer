@@ -1013,13 +1013,19 @@ export class MonsterCreatorApp {
 
   /** Live adapter catalog, cached until sde-tables tables change. */
   async _getMutStates() {
-    if (!this._mutStatesCache) this._mutStatesCache = await monsterTableCatalog();
-    return this._mutStatesCache;
+    if (this._mutStatesCache) return this._mutStatesCache;
+    // A replace-in-place fires dozens of table hooks, each starting a read. A read that began before the
+    // last change must not be cached (it can have caught a table half-written and shown it locked).
+    const gen = this._mutGen = (this._mutGen ?? 0) + 1;
+    const states = await monsterTableCatalog();
+    if (gen === this._mutGen) this._mutStatesCache = states;
+    return states;
   }
 
   /** Invalidate the cached catalog and re-render if the section is visible. */
   _onTablesChanged() {
     this._mutStatesCache = null;
+    this._mutGen = (this._mutGen ?? 0) + 1;
     if (this._mountHost && this._sectionOpen.mutations) this.render();
   }
 

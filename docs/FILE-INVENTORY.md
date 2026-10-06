@@ -1,7 +1,7 @@
 # Shadowdark Enhancer — File Inventory
 
 <!-- inventory:stats:start -->
-1725 tracked files · ~215,100 lines of code/markup across scripts+templates+styles+test.
+1731 tracked files · ~215,500 lines of code/markup across scripts+templates+styles+test.
 `v0.17.3` in both `module.json` and `package.json`.
 <!-- inventory:stats:end -->
 **Layout reflects the 2026-07-21 feature-folder reorganization (v0.11.0 cycle).**
@@ -137,11 +137,11 @@
 | `time/off-duty.mjs` | 236 | time.advanceOffDuty (#228, Overland O2): the off-duty clock move. GM only; runs on the Shadowdark system's primary light GM (a GM-to-GM query when that is another GM), refuses when two GM tabs hold the flag, stops the system's real-time light clock for the move, puts out every lit Basic light the player-owned PCs carry with the sheet toggle's steps minus its per-light card (remainingSecs kept, one chat line saying whether the clock moved), rebuilds the tracker's cache and waits until it holds no PC's Basic light, re-checks the flag, then advances with the offDuty reason. A refusal or a throw never advances and reports what was put out. Pure decisions (who, which lights, where it runs, the last flag check) are exported for tests. 0 seconds only puts the lights out (Overland's camp, #233). |
 | `time/time-core.mjs` | 342 | Time (#227, Overland O1), pure: readings on the core world calendar (a CalendarData) and a worldTime. Season from core's components, keyed by where its months fall in the year, sunrise/sunset on a solstice-to-solstice cosine (9 to 15 hours, ported from Calendaria, MIT), isNight, the moon's phase from an epoch on the synodic month, anchors (equinoxes, solstices, cross-quarters read back as the date the calendar shows, lastFullMoon), what a clock move crosses (days, weeks, dawns and dusks by arithmetic; season changes by jumping from one to the next, the list capped at one per season), the date's parts, and the nth dawn after a time (dawnAfter, for Overland's weather). |
 | `time/time.mjs` | 81 | game.shadowdarkEnhancer.time (#227): now, season, isNight, sun, moonPhase, anchor, format over game.time.calendar and the moonEpoch world setting, and the shadowdark-enhancer.timeAdvanced hook, fired on the active GM once per world-time change with what it crossed and the offDuty reason from the advance options. Also carries advanceOffDuty and registers its GM-to-GM query. isNight takes { region } for the Isles of Andrik's skies (#235). |
-| `training/training-app.mjs` | 296 | The Regional Training window (AppV2): pick a character, pick a trainer grouped by region, see all four benefits with the ones already taught struck through, and roll the trainer's d4. Each task can be taken as a Quest Log quest for the character (GM) and shows Taken or Done. Names a benefits table that has not been imported instead of inventing its contents. |
+| `training/training-app.mjs` | 297 | The Regional Training window (AppV2): pick a character, pick a trainer grouped by region, see all four benefits with the ones already taught struck through, and roll the trainer's d4. Each task can be taken as a Quest Log quest for the character (GM) and shows Taken or Done. Names a benefits table that has not been imported instead of inventing its contents. |
 | `training/training-art.mjs` | 61 | One game-icons.net emblem per regional trainer, pre-tinted gold in the SVG the way the Character Builder's class art is. Fifteen reuse a vendored class emblem (often the honest pick — the assassin trainer leads the Ras-Godai); six are vendored under icons/game-icons/trainers/. Returns null rather than a placeholder path. |
 | `training/training-core.mjs` | 573 | Pure metadata for the Game Master's Guide's 21 regional trainers: trainer and region names, page numbers, the benefits table each one imports as, and a recipe per d4 face — Active Effect changes, one-time actions, either/or branches, or a stated reason the table must handle it. Ships no rules text; the book's wording is read from the GM's own imported table. Also the "once each" helpers and the roll walk. |
 | `training/training-grant.mjs` | 311 | Grants one training benefit for real: finds the GM's imported benefits table by name, reads the book's line for that d4 face, writes the Talent with its effects and provenance flag, and runs the one-time actions (permanent HP, a renown award through the ledger, an ability reroll, a granted weapon or item). Enforces "once each" off the character's own Talents. |
-| `training/training-journal.mjs` | 213 | Files the 21 trainer spreads as journal entries in the managed sde-journal pack, one entry per trainer foldered by region, read from the GM's own registered GM Guide PDF. Identity is a flag, so re-running updates in place and adopts a page whose flag went missing rather than adding a second. |
+| `training/training-journal.mjs` | 215 | Files the 21 trainer spreads as journal entries in the managed sde-journal pack, one entry per trainer foldered by region, read from the GM's own registered GM Guide PDF. Identity is a flag, so re-running updates in place and adopts a page whose flag went missing rather than adding a second. |
 | `training/training-parser.mjs` | 109 | Reads one trainer spread out of column-split PDF text: the trainer's description and the four numbered TASKS. Knows the page's shape only — the display title sorting after the tasks, a bare page number landing inside the task block, tasks wrapping across lines — and never the benefits, which import as a RollTable. Pure; ships no book text. |
 | `troubles/trouble-core.mjs` | 117 | The Trouble tracker's rules, pure (#193): the weekly check's growing chance, the week starts a clock jump crosses, the Region table's printed names matched to the imported regions (", The" moved, abbreviated words), the settlement kind a row names, an inline Type of Trouble list, Urgency Level rows, and the countdown's stage times. |
 | `troubles/troubles.mjs` | 450 | The Trouble tracker (#193): the weekly check on every week start the world clock passes (timeAdvanced, active GM, queued), stirring a trouble in a settlement picked from the imported key locations, one GM-only page per trouble in a flagged Troubles journal entry with its state in the page's trouble flag, stage whispers as the clock passes each stage, the page's status bar and buttons (heard, promote to quest), resolving on its quest's completion, the Journal sidebar's Check for trouble button, and the troubles API. |
@@ -161,7 +161,7 @@
 | `curated-icon-maps/sea-wolf-plunder-icons.mjs` | 38 | The N3 §5.1/D4 Sea Wolf Plunder map: exactly 20 CS3 p68 source-qualified item phrases and reviewed native Foundry `icons/**.webp` paths, keyed without each row's terminal gp price. |
 | `curated-icon-maps/weapon-icons.mjs` | 47 | N3's 37 reviewed Foundry-native weapon icons, keyed by source-agnostic normalized final Item name and registered through the A4 discovery seam. |
 | `attack-card.mjs` | 107 | Reading a Shadowdark attack card — was it an attack at all (a targeted spell is not), did it land, who was it aimed at, who swung. Shared by Parry and Taunt so the two can never disagree about the target (they once did, silently). |
-| `settings.mjs` | 874 | All `game.settings.register` calls + migration-safe defaults. |
+| `settings.mjs` | 883 | All `game.settings.register` calls + migration-safe defaults. |
 | `icons.mjs` | 101 | Centralized icon registry — FontAwesome snippets and vendored SVG references. |
 | `compendium-suite.mjs` | 459 | Find-or-create layer for managed world packs, ownership, sidebar folders, and source folders. |
 | `loading-dialog-guard.mjs` | 112 | Guards the system's leaked `LoadingSD` spinner when `ItemSheetSD.getData` throws. |
@@ -207,7 +207,7 @@
 
 | File | Lines | Description |
 |---|---:|---|
-| `crawl-bar.mjs` | 780 | GM-only persistent bottom bar above the macro bar (mode toggles, tools, launchers). |
+| `crawl-bar.mjs` | 781 | GM-only persistent bottom bar above the macro bar (mode toggles, tools, launchers). |
 | `crawl-bar-core.mjs` | 126 | The crawl bar's Foundry-free half: which controls each mode shows, the overland badge text, and the Tools panel's sections. |
 
 ### 3.5 `scripts/encounter/` — the Encounter Roller
@@ -228,13 +228,13 @@
 
 | File | Lines | Description |
 |---|---:|---|
-| `encounter-creator.mjs` | 1964 | Monster Creator — multi-section NPC authoring tool mounted in the roller. |
+| `encounter-creator.mjs` | 1970 | Monster Creator — multi-section NPC authoring tool mounted in the roller. |
 | `action-templates.mjs` | 126 | Quick-pick NPC attack/action catalog (FA6 Free glyphs only). |
 | `feature-templates.mjs` | 83 | Quick-pick NPC feature catalog. |
 | `monster-effect-runtime.mjs` | 552 | Provenance-backed effect overlay engine for the Creator draft. |
 | `monster-mechanical-adapters.mjs` | 330 | Sole authority for what mechanics a generator result actually applies. |
 | `monster-mutator.mjs` | 142 | Clone an existing NPC and apply imported matrix results. |
-| `monster-table-runtime.mjs` | 593 | Reads the GM's own imported Core matrix tables to drive the Generator/Mutator. |
+| `monster-table-runtime.mjs` | 617 | Reads the GM's own imported Core matrix tables to drive the Generator/Mutator. |
 | `core-monster-spell-icons.mjs` | 107 | Curated Foundry-native icon mapping for generated Core and Cursed Scroll monster spells. |
 | `monster-spell-library-core.mjs` | 496 | Pure extraction, validation, identity, materialization, and refresh reconciliation for embedded monster spells. |
 | `monster-spell-library.mjs` | 511 | Foundry adapter for GM-controlled Monster Spell Library preview, build, and refresh. |
@@ -251,13 +251,13 @@
 
 | File | Lines | Description |
 |---|---:|---|
-| `loot-generator-app.mjs` | 267 | Roll a loot table, work a running batch, whisper claimable cards. |
+| `loot-generator-app.mjs` | 317 | Roll a loot table, work a running batch, whisper claimable cards. |
 | `loot-generator.mjs` | 234 | RollTable → structured loot batch (documents, coins, flavor). |
-| `loot-delivery.mjs` | 451 | Shared claimable chat card; first-claim-wins, GM-authoritative over an authenticated relay query. |
+| `loot-delivery.mjs` | 474 | Shared claimable chat card; first-claim-wins, GM-authoritative over an authenticated relay query. |
 | `loot-drops.mjs` | 195 | Auto-drop loot on NPC defeat at combat end. |
 | `loot-setup-app.mjs` | 238 | Browsable Loot & Treasure library; rows unlock from the GM's own PDF. |
 | `loot-value.mjs` | 68 | gp value → Shadowdark XP quality tiers. |
-| `loot-table-catalog.mjs` | 312 | Loot/treasure table catalog + classifier across Core, CS1–6, WR (metadata only). |
+| `loot-table-catalog.mjs` | 329 | Loot/treasure table catalog + classifier across Core, CS1–6, WR (metadata only). |
 | `loot-table-tag.mjs` | 80 | Sidebar context-menu "Mark as Loot Table" toggle. |
 | `loot-catalog.mjs` | 131 | Rewrites loot tables so entries become DOCUMENT results, routing the exact Sea Wolf Plunder, Dead Bandit Loot, and Diabolical Treasure tables through their source-qualified generated-item materializers before the generic resolver. |
 | `diabolical-treasure.mjs` | 919 | D6/#59's exact CS1 Diabolical Treasure seam: reduces the source's 20×20 Item/Feature expansion to 20 source-qualified Basic/Magic/Treasure/Unidentified Items, puts physical wording on the unidentified face and feature text behind identification, stamps curated art plus A7 replace-always identity, and keeps collisions, failures, and unsafe table writes visible and retryable. |
@@ -267,7 +267,7 @@
 | `sea-wolf-plunder.mjs` | 576 | D4/#57's exact CS3 Sea Wolf Plunder seam: recognizes only the manifest/content identity or exact table name, strips only a terminal `(N gp)` for the generated Item name, stamps curated art plus A7 source-qualified generated identity, and keeps row-level unresolved, ambiguous, or reconciliation failures as raw TEXT with their priced source phrase. A TableResult write failure is a separate outcome: source preservation is guaranteed only when snapshot restoration reports `restored: true`; `restored: false` may require manual recovery. |
 | `subroll.mjs` | 95 | Resolve "Meteorite 1d4: 1. lute…" table rows to the object rolled. |
 | `treasure-data.mjs` | 15 | Level → tier band boundaries. |
-| `item-drops.mjs` | 699 | Drag items to canvas as pickup tokens; TokenHUD pickup; light sources burn. |
+| `item-drops.mjs` | 731 | Drag items to canvas as pickup tokens; TokenHUD pickup; light sources burn. |
 | `loot-resolution.mjs` | 243 | Precise loot-row → Item resolution (pure), replacing the containment regex that lived in `loot-linker.mjs`. That matcher asked whether a row CONTAINED any known item name as a word (`\b<name>s?\b`, longest candidate first), which made every generic container, material and body part in the system gear pack a landmine: "Unopened bottle of exceptionally potent Murgazi wine (25 gp)" resolved to the plain system `Bottle` and the GM's 25 gp vintage became a 1 gp empty bottle (#58) — with "A flask of oil" → `Flask` and "Bolt of fine silk" → `Bolt` behind it. The replacement resolves the row AS A NAME in two tiers: `exact` (the priced row, stripped, IS the item's name modulo case and spacing) and `alias` (that name modulo a leading article or count, a trailing parenthetical, and the plural of its FINAL word). Every fold is anchored, so none of them can shorten a phrase to one of its interior words — the containment bug is structurally unreachable, not merely tuned away. A row landing on two distinct items at the same tier is `ambiguous` and resolves to nothing, because picking one by index order is the same bug with extra steps; ambiguity is reachable because the alias fold is looser than `buildItemIndex`'s lowercased-name dedupe. Recall is traded for precision DELIBERATELY (D4/D5 accept "an explicit unresolved case" and put loose generic fallback out of scope): an unresolved row keeps its text and can be fabricated, while a false positive silently hands the player the wrong object and looks like it worked. Also owns `stripPrice`, moved verbatim from `loot-pack.mjs` (which re-exports it) because its output is a fabricated Item's NAME and must not acquire any of the matching folds. Foundry-free, node-tested. |
 | `monster-loot-review-app.mjs` | 86 | Monster Loot Overrides window: every world NPC with its loot table and drop chance, edited inline via LootDrops.setOverrides. Opened from the Loot & XP settings pop-out. |
 
@@ -277,7 +277,7 @@
 |---|---:|---|
 | `magic-forge-app.mjs` | 748 | Magic Item Forge window (weapons/armor with working +N, benefit/curse riders). |
 | `magic-forge.mjs` | 292 | Core engine building items that actually function in the system. |
-| `magic-table-runtime.mjs` | 727 | Drives forge recipes off the GM's own imported magic-item tables. |
+| `magic-table-runtime.mjs` | 738 | Drives forge recipes off the GM's own imported magic-item tables. |
 
 ### 3.9 `scripts/merchant/`
 
@@ -335,7 +335,7 @@
 | `char-content/language-resolver.mjs` | 16 | Language names → system UUIDs. |
 | `spells/spell-parser.mjs` | 290 | Spell blocks → Spell drafts. Pure. |
 | `spells/spell-importer-app.mjs` | 477 | Spell workspace organized by class / tier / alignment. |
-| `tables/table-importer.mjs` | 3968 | Roll-table text → structure. The big one; includes `repairSharedStartRanges`. |
+| `tables/table-importer.mjs` | 3981 | Roll-table text → structure. The big one; includes `repairSharedStartRanges`. |
 | `tables/table-shapes.mjs` | 860 | Per-unlock deterministic table SHAPE recipes (prayer/grid/lookup/reflow kinds). |
 | `tables/table-hub.mjs` | 449 | Reconciles the shipped manifest against the live world (system / imported / missing). |
 | `tables/table-hub-app.mjs` | 597 | "Set up ALL tables" window — dashboard + import view. |
@@ -345,7 +345,7 @@
 | `tables/table-folders.mjs` | 426 | Single source of truth for where a table files in `sde-tables` — **owns the Gameplay vs Roll Tables split**. |
 | `tables/table-categories.mjs` | 65 | Table-type taxonomy + classifier. |
 | `tables/table-enrich.mjs` | 342 | Brings imported tables to "Ruin Encounters" standard; owns the debounced auto-relink sweep. |
-| `tables/core-table-groups.mjs` | 277 | Core Rulebook table groups (`section: "gameplay"` vs roll tables) for the Manage tree. |
+| `tables/core-table-groups.mjs` | 289 | Core Rulebook table groups (`section: "gameplay"` vs roll tables) for the Manage tree. |
 | `tables/compound-table.mjs` | 93 | Mad-libs generator roll behaviour. |
 | `tables/hex-parser.mjs` | 488 | Hex-key dumps → per-hex draft journal pages. Pure. |
 | `monsters/statblock-parser.mjs` | 553 | Monster statblock dump → draft objects. Pure. |
@@ -370,7 +370,7 @@
 | `items/item-builder-gear.mjs` | 299 | Pure stage-①/③ logic for the Item Builder. |
 | `items/item-census-live.mjs` | 201 | Items census adapter (same shape as monsters). |
 | `items/shikashi-icons.mjs` | 235 | Item name → bundled Shikashi icon matcher (284 icons). |
-| `tables/table-manifest.mjs` | 314 | Table manifest logic — the registry of catalogued tables (id, name, source, page) that drives the Manage-tree census. |
+| `tables/table-manifest.mjs` | 336 | Table manifest logic — the registry of catalogued tables (id, name, source, page) that drives the Manage-tree census. |
 | `tables/table-manifest-data.mjs` | 506 | The `TABLE_MANIFEST` data array — every catalogued table's metadata (names/sources/pages; no rules text). |
 | `boats/mount-parser.mjs` | 65 | Names-only WR mount manifest + selection of the requested mount from parsed statblock drafts. |
 | `boats/mount-importer.mjs` | 174 | Mount drafts → `shadowdark-enhancer.mount` actors in `sde-actors`, reusing the monster import pipeline. |
@@ -432,7 +432,7 @@
 | `commit.mjs` | 304 | `commitCharacter` — final actor creation + `coinsAfterGear`. |
 | `item-source.mjs` | 19 | `stampSource` — records the compendium link on items the builder creates. |
 | `hydrate.mjs` | 259 | Existing actor -> builder state (reads `_source` only); `describeActor` console dry run. |
-| `commit-plan.mjs` | 260 | `planCommit` — pure three-way plan (baseline, builder, live) of what Finish changes on an existing actor. |
+| `commit-plan.mjs` | 265 | `planCommit` — pure three-way plan (baseline, builder, live) of what Finish changes on an existing actor. |
 | `commit-apply.mjs` | 209 | `applyPlan` — resumable executor for a merge-aware plan: creates, item updates, one actor update, deletes last, each read back so a write rejected after saving is not repeated. |
 | `before-image.mjs` | 178 | `takeBeforeImage` / `restoreBeforeImage` — one actor flag holding the builder-writable fields and every item's source, and a restore that puts the character back with the executor's write discipline. |
 | `existing-finish.mjs` | 218 | The builder on an existing character: `hydrateActor`, `finishExisting` (diff dialog, before-image, `applyPlan`, then re-hydrate from the live actor) and `undoLastSave`. |
