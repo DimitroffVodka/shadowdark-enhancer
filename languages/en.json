@@ -2772,6 +2772,7 @@
   "SDE.importer.wizard.update.leadLinked": "This update added {n} things you can import, from {books}, which are already linked to this world. Nothing more is needed from you.",
   "SDE.importer.wizard.leave.title": "Leave the importer?",
   "SDE.importer.wizard.leave.body": "Nothing has been imported yet, and the files you chose will be forgotten.",
+  "SDE.importer.wizard.leave.terrainBody": "Hex maps still waiting for their terrain to be named: {n}. Leave now and they stay as they are; you can name them later in the Hex Tagger, in its Legend step.",
   "SDE.importer.wizard.leave.yes": "Leave",
   "SDE.importer.wizard.leave.no": "Stay",
   "SDE.importer.wizard.run.library": "Reading your books",
