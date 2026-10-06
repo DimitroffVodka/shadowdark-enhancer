@@ -82,6 +82,21 @@ function _isLightSource(item) {
 /*  Item Drops Singleton                        */
 /* -------------------------------------------- */
 
+/**
+ * Is a canvas point inside the GM's current view? The stage sits at the screen centre and the pivot is the
+ * canvas point there (v14 board.mjs), so the view is the screen size divided by the zoom, around the pivot.
+ * Anything missing counts as in view: better no pan than a pan from guessed numbers. Pure.
+ * @param {{x:number,y:number}} point
+ * @param {{x:number,y:number}} pivot  canvas.stage.pivot
+ * @param {number} scale  canvas.stage.scale.x
+ * @param {{width:number,height:number}} screen  canvas.app.renderer.screen
+ */
+export function pointInView(point, pivot, scale, screen) {
+  if (!pivot || !(scale > 0) || !screen?.width || !screen?.height) return true;
+  const halfW = screen.width / 2 / scale, halfH = screen.height / 2 / scale;
+  return Math.abs(point.x - pivot.x) <= halfW && Math.abs(point.y - pivot.y) <= halfH;
+}
+
 export const ItemDrops = {
 
   registerSettings() {
@@ -426,8 +441,9 @@ export const ItemDrops = {
     if (canvas.scene?.id !== scene.id) return;
     try {
       canvas.ping?.({ x, y });
-      const view = canvas.visibleRect;
-      if (view && !view.contains?.(x, y)) await canvas.animatePan?.({ x, y, duration: 400 });
+      if (!pointInView({ x, y }, canvas.stage?.pivot, canvas.stage?.scale?.x, canvas.app?.renderer?.screen)) {
+        await canvas.animatePan?.({ x, y, duration: 400 });
+      }
     } catch (err) { console.warn(`${MODULE_ID} | could not reveal the drop`, err); }
   },
 

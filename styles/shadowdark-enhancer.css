@@ -2408,6 +2408,7 @@ body.theme-light .sde-hub-monsters-row td {
 .sde-session-recap .sr-unclaimed { box-shadow: inset 3px 0 0 var(--ui-warn); }
 .sde-session-recap .sr-icon { flex: 0 0 18px; text-align: center; color: var(--ui-gold); }
 .sde-session-recap .sr-viewing { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+@container (max-width: 560px) { .sde-ui.sde-merchant .ui-tabs { flex-wrap: wrap; overflow-x: visible; } .sde-ui.sde-merchant .ui-tab i { display: none; } .sde-ui.sde-merchant .ui-tab { padding: 6px 9px; } }
 @container (max-width: 560px) { .sde-session-recap .ui-tabs { flex-wrap: wrap; overflow-x: visible; } .sde-session-recap .ui-tab i { display: none; } .sde-session-recap .ui-tab { padding: 6px 9px; } }
 
 /* ═══════════════════════════════════════════════════════════════════════════

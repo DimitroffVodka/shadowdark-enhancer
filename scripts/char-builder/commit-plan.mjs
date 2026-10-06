@@ -104,8 +104,9 @@ export function planCommit(existing, state, live) {
       const liveMax = Number(Ls.attributes?.hp?.max) || 0;
       if (gain > 0) {
         system["system.attributes.hp.max"] = liveMax + gain;
-        // The sheet shows value/max: current HP rises by the same gain (clamped to the new max),
-        // like the system's own level-up, so a hurt character stays as hurt as before.
+        // The sheet shows value/max: current HP rises by the same gain (clamped to the new max), as the
+        // system's own level-up adds it (it does not clamp; only an actor already above its max differs),
+        // so a hurt character stays as hurt as before.
         const liveHp = Number(Ls.attributes?.hp?.value) || 0;
         system["system.attributes.hp.value"] = Math.min(liveMax + gain, liveHp + gain);
         lines.push({ kind: "set", key: "hpMax", from: liveMax, to: liveMax + gain });
