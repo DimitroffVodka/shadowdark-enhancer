@@ -17,7 +17,9 @@ import { allSites } from "./adventure-manifest.mjs";
 import { parseAdventurePages } from "./adventure-parser.mjs";
 import { creatureMentions, creatureResolver } from "./adventure-creatures.mjs";
 import { commitAdventure, addOverviewToWorldCopy } from "./adventure-commit.mjs";
-import { assembleOverview } from "./adventure-journal.mjs";
+import { assembleOverview, linkableItems } from "./adventure-journal.mjs";
+import { findSuitePack } from "../../shared/compendium-suite.mjs";
+import { MODULE_ID } from "../../shared/module-id.mjs";
 import { summariseGutter } from "../hex/hex-book-import.mjs";
 
 const t = (key, data) => {
@@ -79,17 +81,57 @@ export function inlineOverview(parts) {
  * still filed.
  * @returns {Promise<Array<{key:string, name:string, html:string}>>}
  */
-async function readOverview(src, site) {
+async function readOverview(src, site, { tables, items } = {}) {
   if (!site.overview) return [];
   try {
     const { readChapter } = await import("../chapter-journal.mjs");
     const read = await readChapter({ src, pages: site.overview, name: t("SDE.importer.adventure.overviewPage"), rowNumbers: true });
     const parts = site.style === "inline" ? inlineOverview(read?.pages) : (read?.pages ?? []);
     // A city's gazetteer is not an adventure's overview: it keeps its pages as the book's headings cut them.
-    return site.noun === "" ? parts : assembleOverview(parts, { range: site.range });
+    return site.noun === "" ? parts : assembleOverview(parts, { range: site.range, tables, items });
   } catch (err) {
     console.warn(`Shadowdark Enhancer | adventures: ${site.title} overview could not be read`, err);
     return [];
+  }
+}
+
+/**
+ * The magic items and treasure of the world, to link by name in an adventure's text: the system's magic items and the
+ * ones the importer made from the books' treasure. Undefined when there is nothing to look in.
+ */
+async function itemLinks() {
+  try {
+    const rows = [];
+    for (const pack of [game.packs.get("shadowdark.magic-items"), findSuitePack("items")].filter(Boolean)) {
+      const core = /^shadowdark\./.test(pack.collection);
+      const idx = await pack.getIndex({ fields: ["type", "system.magicItem", "system.treasure"] });
+      // The system's magic items are all worth a link; of the importer's items, only the treasure (its weapon variants are not).
+      for (const e of idx.contents) rows.push({ name: e.name, uuid: e.uuid, type: e.type, system: { magicItem: core ? e.system?.magicItem : e.system?.treasure } });
+    }
+    return linkableItems(rows);
+  } catch (err) {
+    console.warn("Shadowdark Enhancer | adventures: item names are filed without links", err);
+    return undefined;
+  }
+}
+
+/**
+ * The roll tables the table importer made for a site (its manifest row names them), as { rumors, encounters } link targets;
+ * empty when the world has not imported them.
+ * @param {{tables?:{rumors?:string, encounters?:string}}} site
+ */
+async function tableLinks(site) {
+  if (!site.tables) return {};
+  try {
+    const pack = findSuitePack("tables") ?? game.packs.find((p) => p.collection.endsWith("--roll-tables"));
+    if (!pack) return {};
+    const idx = await pack.getIndex({ fields: [`flags.${MODULE_ID}.manifestId`] });
+    const byId = new Map(idx.contents.map((e) => [e.flags?.[MODULE_ID]?.manifestId, e]).filter(([k]) => k));
+    const link = (id) => { const e = byId.get(id); return e ? { uuid: e.uuid, name: e.name } : undefined; };
+    return { rumors: link(site.tables.rumors), encounters: link(site.tables.encounters) };
+  } catch (err) {
+    console.warn(`Shadowdark Enhancer | adventures: ${site.title} roll tables are not linked`, err);
+    return {};
   }
 }
 
@@ -149,13 +191,15 @@ export async function importAdventures(src, { ids, onSite, keepExisting = false 
   const gutter = [];
   const collect = (result) => { for (const w of result?.warnings ?? []) gutter.push(w); };
   const sites = allSites(src).filter((s) => !ids || ids.includes(s.id));
+  const items = await itemLinks();
   for (const [i, site] of sites.entries()) {
     onSite?.(site.title, i + 1, sites.length);
     try {
       const pages = planSitePages(site, (p) => sourcePdfTarget(src, String(p))?.page ?? null);
       const { locations, warnings, intro, introBold } = await readSite({ ...pdf, notifyGutterWarnings: collect }, file, site, pages);
-      const overview = await readOverview(src, site);
-      const res = await commitAdventure(site, locations, { source: label, intro, introBold, resolve: await creatureLinks(site), keepExisting, overview });
+      const tables = await tableLinks(site);
+      const overview = await readOverview(src, site, { tables, items });
+      const res = await commitAdventure(site, locations, { source: label, intro, introBold, resolve: await creatureLinks(site), items, keepExisting, overview });
       // The world's copy of the journal (when the scene has deployed one) gets the overview too, without touching its other pages.
       try { if (overview.length) await addOverviewToWorldCopy(await fromUuid(res.entryUuid)); } catch (err) { console.warn(`Shadowdark Enhancer | adventures: ${site.title} overview not added to the world copy`, err); }
       report.sites.push({

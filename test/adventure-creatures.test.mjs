@@ -137,3 +137,21 @@ test("linkCreatureNames: an all-caps line is a sub-heading and is left alone; an
   assert.equal(linkCreatureNames(b("GRIBBLES"), r), "GRIBBLES");
   assert.equal(linkCreatureNames(`Two ${O}Gribbles go on`, r), "Two Gribbles go on");
 });
+
+test("creatureResolver: a book calls an imported NPC by its first name, and by its possessive; the system's creatures and a shared first name do not", () => {
+  const index = [
+    { name: "Gordock Breeg", uuid: "Compendium.world.x.Actor.GORD", type: "NPC" },
+    { name: "Plogrina B.", uuid: "Compendium.world.x.Actor.PLOG", type: "NPC" },
+    { name: "Sister Marjory", uuid: "Compendium.world.x.Actor.MARJ", type: "NPC" },
+    { name: "Sister Agnes", uuid: "Compendium.world.x.Actor.AGN", type: "NPC" },
+    { name: "Red Knight", uuid: "Compendium.shadowdark.monsters.Actor.RK", type: "NPC" },
+  ];
+  const r = creatureResolver(index);
+  assert.equal(r("Gordock"), "Compendium.world.x.Actor.GORD");
+  assert.equal(r("Gordock Breeg"), "Compendium.world.x.Actor.GORD");
+  assert.equal(r("Plogrina's"), "Compendium.world.x.Actor.PLOG");
+  assert.equal(r("Plogrina Bittermold"), undefined, "a longer phrase is not its first word");
+  assert.equal(r("Sister"), undefined, "two actors share it");
+  assert.equal(r("Red"), undefined, "the system's creatures answer only to their names");
+  assert.ok(phraseKeys("Plogrina's").includes("plogrina"));
+});

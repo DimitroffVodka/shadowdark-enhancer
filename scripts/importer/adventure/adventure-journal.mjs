@@ -25,6 +25,40 @@ const PROSE_RE = /^(?:background|room-key|lead|overview)$/;
 const textOf = (html) => String(html).replace(/<[^>]+>/g, "");
 const esc = (s) => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
+const escapeRe = (s) => String(s).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+/**
+ * Pure: which of a world's items are worth a link in an adventure's text: the magic items and the treasure (the Lost Citadel
+ * links its pearls and statuettes, not its rope and daggers), by names a sentence can hold.
+ * @param {Array<{name:string, uuid:string, type?:string, system?:{magicItem?:boolean, treasure?:boolean}}>} rows  index rows with those fields
+ * @returns {Array<{name:string, uuid:string}>}
+ */
+export function linkableItems(rows) {
+  const seen = new Set();
+  return (rows ?? []).filter((r) => r?.name && r.uuid && r.type !== "Property" && (r.system?.magicItem === true || r.system?.treasure === true)
+    && !/[,()]/.test(r.name) && r.name.length >= 5 && !seen.has(r.name.toLowerCase()) && seen.add(r.name.toLowerCase())).map((r) => ({ name: r.name, uuid: r.uuid }));
+}
+
+/**
+ * The item names in a page's text as links: "Scarab of Protection" → @UUID[Item…]{Scarab of Protection}. Only text is read, never
+ * markup, an existing link or an inline roll; a name of one word has to be written exactly as the item is (a capital
+ * letter), so "bloodlust" in a sentence is not the item, and a longer name wins over a shorter one inside it.
+ * @param {string} html
+ * @param {Array<{name:string, uuid:string}>} items  linkableItems
+ * @returns {string}
+ */
+export function linkItems(html, items) {
+  const list = [...(items ?? [])].sort((a, b) => b.name.length - a.name.length);
+  if (!list.length || !html) return html;
+  const byLower = new Map(list.map((i) => [i.name.toLowerCase(), i]));
+  const re = new RegExp(`(?<![\\w@])(?:${list.map((i) => escapeRe(i.name)).join("|")})(?![\\w])`, "gi");
+  return String(html).split(/(<[^>]+>|@UUID\[[^\]]*\]\{[^}]*\}|\[\[[^\]]*\]\]|@@LOC\[[^\]]*\]\{[^}]*\}@@)/).map((seg, i) => (i % 2 ? seg : seg.replace(re, (m) => {
+    const item = byLower.get(m.toLowerCase());
+    if (!item || (!/\s/.test(item.name) && m !== item.name)) return m;
+    return `@UUID[${item.uuid}]{${m}}`;
+  }))).join("");
+}
+
 /** One row of a table, cells as paragraphs the way the editor writes them; the first cell is the die or number, centred. */
 const tr = (cells, { boldFirst = false } = {}) => `<tr>${cells.map((c, i) => (i === 0
   ? `<td style="${boldFirst ? "font-weight:bold;" : ""}text-align:center"><p>${boldFirst ? `<strong>${c}</strong>` : c}</p></td>`
@@ -140,11 +174,19 @@ const sectionBody = (s) => {
  * The overview pages of an adventure laid out as the quickstart does.
  * @param {Array<{key:string, name:string, html:string}>} parts  chapter-journal buildChapterPages pages (or the one page of
  *   a one-page adventure, whose Random Encounters heading splits the two)
+ * @param {{range?:number[], tables?:{rumors?:{uuid:string,name:string}, encounters?:{uuid:string,name:string}}, items?:Array<{name:string,uuid:string}>}} [opts]
+ *   tables: the world's roll tables for this adventure; each is linked just above the printed table it is (as the Lost Citadel
+ *   does), or at the top of the areas page when the book prints none. items: linkableItems
  * @returns {Array<{key:"overview"|"areas", name:string, html:string}>}  the Overview, then the page for the areas when the book has area-wide text
  */
-export function assembleOverview(parts, { range } = {}) {
+export function assembleOverview(parts, { range, tables = {}, items } = {}) {
   // A one-page adventure's page is jumbled map labels and a flattened table: it stays the one Overview page the reader made of it.
-  if (parts?.length === 1 && parts[0].key === "overview") return [{ key: "overview", name: "Overview", html: enrichContextualText(parts[0].html, { context: "journal" }) }];
+  const finish = (html) => linkItems(enrichContextualText(html, { context: "journal" }), items);
+  const linkLine = (t) => `<p>@UUID[${t.uuid}]{${esc(t.name)}}</p>`;
+  if (parts?.length === 1 && parts[0].key === "overview") {
+    const tail = tables.encounters ? `\n${linkLine(tables.encounters)}` : "";
+    return [{ key: "overview", name: "Overview", html: finish(parts[0].html + tail) }];
+  }
   const overview = [], areas = [];
   const sections = [];
   for (const p of parts ?? []) {
@@ -170,9 +212,18 @@ export function assembleOverview(parts, { range } = {}) {
     if (AREA_WIDE_RE.test(s.key)) areas.push(UNTITLED_AREA_RE.test(s.key) ? body : `<h2>${esc(s.name)}</h2>\n${body}`);
     else overview.push(s.key === "overview" || s.key === "lead" ? body : `<h2>${esc(s.name)}</h2>\n${body}`);
   }
-  const enrich = (html) => enrichContextualText(html, { context: "journal" });
+  // The roll tables the importer made for this adventure are linked just above the printed table they are.
+  const above = (html, caption, table) => {
+    if (!table) return { html, done: false };
+    const mark = `<table style="width:100%"><caption>${caption}</caption>`;
+    return html.includes(mark) ? { html: html.replace(mark, `${linkLine(table)}\n${mark}`), done: true } : { html, done: false };
+  };
+  let overviewHtml = overview.join("\n"), areasHtml = areas.join("\n");
+  overviewHtml = above(overviewHtml, "Rumors", tables.rumors).html;
+  const enc = above(areasHtml, "Random Encounters", tables.encounters);
+  areasHtml = enc.done || !tables.encounters || !areas.length ? enc.html : `${linkLine(tables.encounters)}\n${areasHtml}`;
   const out = [];
-  if (overview.length) out.push({ key: "overview", name: "Overview", html: enrich(overview.join("\n")) });
-  if (areas.length) out.push({ key: "areas", name: range ? `Areas ${range[0]}-${range[1]}` : "Areas", html: enrich(areas.join("\n")) });
+  if (overview.length) out.push({ key: "overview", name: "Overview", html: finish(overviewHtml) });
+  if (areas.length) out.push({ key: "areas", name: range ? `Areas ${range[0]}-${range[1]}` : "Areas", html: finish(areasHtml) });
   return out;
 }

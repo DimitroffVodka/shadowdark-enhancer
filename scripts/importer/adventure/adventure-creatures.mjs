@@ -52,6 +52,7 @@ export function phraseKeys(text) {
   if (/men$/.test(last)) forms.add(`${last.slice(0, -3)}man`);
   if (/(?:ch|sh|x|ss)es$/.test(last)) forms.add(last.slice(0, -2));
   if (/[^s]s$/.test(last)) forms.add(last.slice(0, -1));
+  if (/['’]s$/.test(last)) forms.add(last.slice(0, -2));   // "Plogrina's" is Plogrina
   return [...forms].map((f) => [...head, f].join(" "));
 }
 
@@ -146,9 +147,18 @@ export function creatureResolver(index, aliases = {}) {
   const lookup = bestiaryLookup(npcs.map((e) => e.name));
   const uuidOf = new Map(npcs.map((e) => [e.name, e.uuid]));
   const alias = Object.fromEntries(Object.entries(aliases ?? {}).map(([k, v]) => [k.toLowerCase(), v]));
+  // The books call a person by their first name after the first time ("Gordock", for "Gordock Breeg"): an NPC the GM
+  // imported answers to it, unless two of them share it. The system's own creatures never do ("Red Knight" is not "Red").
+  const first = new Map(), shared = new Set();
+  for (const e of npcs) {
+    const w = words(e.name);
+    if (w.length < 2 || /^Compendium\.shadowdark\./.test(e.uuid ?? "")) continue;
+    if (first.has(w[0]) && first.get(w[0]) !== e.name) shared.add(w[0]); else first.set(w[0], e.name);
+  }
   return (phrase) => {
     const keys = phraseKeys(phrase);
-    const name = keys.map(lookup).find(Boolean) ?? keys.map((k) => alias[k]).find(Boolean);
+    const name = keys.map(lookup).find(Boolean) ?? keys.map((k) => alias[k]).find(Boolean)
+      ?? (keys.length && !/\s/.test(keys[0]) ? first.get(keys.find((k) => first.has(k) && !shared.has(k))) : undefined);
     return name ? uuidOf.get(name) : undefined;
   };
 }

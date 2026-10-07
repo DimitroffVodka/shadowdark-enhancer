@@ -52,14 +52,14 @@ const INTRO_SORT = -1;
 const LOCATION_SORT = 1000;
 
 /** Pass-1 payload for the Introduction page (placeholders still inside). */
-export function introPagePayload(lines, known, { boldLines, resolve } = {}) {
+export function introPagePayload(lines, known, { boldLines, resolve, items } = {}) {
   return {
     name: t("SDE.importer.adventure.introPage"),
     type: "text",
     title: { show: true, level: 1 },
     sort: INTRO_SORT,
     text: {
-      content: buildLocationHtml({ bodyLines: lines, boldLines }, known, { resolve }),
+      content: buildLocationHtml({ bodyLines: lines, boldLines }, known, { resolve, items }),
       format: globalThis.CONST?.JOURNAL_ENTRY_PAGE_FORMATS?.HTML ?? 1,
     },
     flags: { [MODULE_ID]: { [ADVENTURE_FLAG]: { intro: true } } },
@@ -108,7 +108,7 @@ export const isIntroPage = (page) =>
   (page?.getFlag?.(MODULE_ID, ADVENTURE_FLAG)?.intro ?? page?.flags?.[MODULE_ID]?.[ADVENTURE_FLAG]?.intro) === true;
 
 /** Pass-1 page payload for one location (placeholders still inside). */
-export function locationPagePayload(loc, known, { resolve, noun, level = 2 } = {}) {
+export function locationPagePayload(loc, known, { resolve, noun, level = 2, items } = {}) {
   return {
     name: locationPageName(loc, noun),
     type: "text",
@@ -116,7 +116,7 @@ export function locationPagePayload(loc, known, { resolve, noun, level = 2 } = {
     title: { show: true, level },
     sort: LOCATION_SORT + loc.num * 100,   // by number, whatever order the pages were made in
     text: {
-      content: buildLocationHtml({ bodyLines: loc.bodyLines ?? [], boldLines: loc.boldLines }, known, { resolve }),
+      content: buildLocationHtml({ bodyLines: loc.bodyLines ?? [], boldLines: loc.boldLines }, known, { resolve, items }),
       format: globalThis.CONST?.JOURNAL_ENTRY_PAGE_FORMATS?.HTML ?? 1,
     },
     flags: { [MODULE_ID]: { [ADVENTURE_FLAG]: { num: loc.num } } },
@@ -158,11 +158,11 @@ export async function findSiteEntry(siteId) {
  *   source label, for the folder; intro = the lines printed before the first location, filed
  *   as an Introduction page (introBold: the same lines with bold markers); resolve = a
  *   creature link target for a bold name (adventure-creatures.mjs creatureResolver), so the
- *   bold names the bestiary knows are filed as links; overview = the adventure's overview pages [{key, name, html}]
+ *   bold names the bestiary knows are filed as links; items = the magic items and treasure to link by name (adventure-journal linkableItems); overview = the adventure's overview pages [{key, name, html}]
  *   (chapter-journal buildChapterPages), filed ahead of the locations
  * @returns {Promise<{entryUuid:string|null, created:string[], updated:string[], collisions:number[]}>}
  */
-export async function commitAdventure(site, locations, { source = "", intro = [], introBold, resolve, keepExisting = false, overview = [] } = {}) {
+export async function commitAdventure(site, locations, { source = "", intro = [], introBold, resolve, items, keepExisting = false, overview = [] } = {}) {
   const report = { entryUuid: null, created: [], updated: [], kept: [], collisions: [] };
   if (!game.user?.isGM) { ui.notifications?.warn(game.i18n.localize("SDE.importer.gm.adventure")); return report; }
   if (!locations?.length) return report;
@@ -182,7 +182,7 @@ export async function commitAdventure(site, locations, { source = "", intro = []
   // The locations sit under the page for the areas (level 2) when the book has one; without it they stand on their own.
   const level = overview.some((o) => o.key === "areas") ? 2 : 1;
   const payload = (loc) => {
-    const p = locationPagePayload(loc, known, { resolve, noun: site.noun, level });
+    const p = locationPagePayload(loc, known, { resolve, noun: site.noun, level, items });
     p.text.content = cleanImportHtml(p.text.content);
     return p;
   };
@@ -190,7 +190,7 @@ export async function commitAdventure(site, locations, { source = "", intro = []
   // The Introduction is one more page, found by its flag and kept up to date like the rest.
   const introDoc = intro.length ? entry.pages.find(isIntroPage) : null;
   const introPayload = () => {
-    const p = introPagePayload(intro, known, { boldLines: introBold, resolve });
+    const p = introPagePayload(intro, known, { boldLines: introBold, resolve, items });
     p.text.content = cleanImportHtml(p.text.content);
     return p;
   };

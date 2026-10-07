@@ -81,3 +81,44 @@ test("listify: bullets become nested lists, a broken line goes on from the one a
   const lone = "<p>• A single bullet.</p>";
   assert.equal(listify(lone), lone, "one bullet is not a list");
 });
+
+import { linkableItems, linkItems } from "../scripts/importer/adventure/adventure-journal.mjs";
+
+test("linkableItems: magic items and treasure with a name a sentence can hold; not properties, not names with a comma", () => {
+  const rows = [
+    { name: "Scarab of Protection", uuid: "I.1", type: "Basic", system: { magicItem: true } },
+    { name: "Rusty key", uuid: "I.2", type: "Basic", system: { treasure: true } },
+    { name: "Rapier", uuid: "I.3", type: "Weapon", system: {} },
+    { name: "Charge", uuid: "I.4", type: "Property", system: { magicItem: true } },
+    { name: "Glow Paste, Jar", uuid: "I.5", type: "Basic", system: { treasure: true } },
+    { name: "Orb", uuid: "I.6", type: "Basic", system: { magicItem: true } },
+    { name: "rusty KEY", uuid: "I.7", type: "Basic", system: { magicItem: true } },
+  ];
+  assert.deepEqual(linkableItems(rows).map((i) => i.name), ["Scarab of Protection", "Rusty key"]);
+});
+
+test("linkItems: names in the text become links, in the text's own spelling; markup, links and rolls are left alone; a one-word name must match exactly", () => {
+  const items = [{ name: "Scarab of Protection", uuid: "Item.A" }, { name: "Rusty key", uuid: "Item.B" }, { name: "Bloodlust", uuid: "Item.C" }, { name: "Rusty key to the vault", uuid: "Item.D" }];
+  assert.equal(linkItems("<p>The wight wears a <em>scarab of protection</em>. A rusty key hangs here.</p>", items),
+    "<p>The wight wears a <em>@UUID[Item.A]{scarab of protection}</em>. A @UUID[Item.B]{rusty key} hangs here.</p>");
+  assert.equal(linkItems("<p>Bloodlust, the axe. His bloodlust grows.</p>", items), "<p>@UUID[Item.C]{Bloodlust}, the axe. His bloodlust grows.</p>");
+  assert.equal(linkItems("<p>A Rusty key to the vault.</p>", items), "<p>A @UUID[Item.D]{Rusty key to the vault}.</p>", "the longer name wins");
+  const marked = "<p>[[/r 1d4]] <strong>@UUID[Actor.X]{Scarab of Protection}</strong> <a href=\"rusty key\">x</a></p>";
+  assert.equal(linkItems(marked, items), marked);
+  assert.equal(linkItems("<p>Plain.</p>", []), "<p>Plain.</p>");
+});
+
+test("assembleOverview: the roll tables are linked just above the printed tables, and at the top of the areas page when none is printed", () => {
+  const tables = { rumors: { uuid: "Compendium.w.RollTable.R", name: "Halls Rumors" }, encounters: { uuid: "Compendium.w.RollTable.E", name: "Halls Random Encounters" } };
+  const [overview, areas] = assembleOverview([
+    { key: "rumors", name: "Rumors", html: "<p>1 One</p>\n<p>2 Two</p>\n<p>3 Three</p>" },
+    { key: "random-encounters", name: "Random Encounters", html: "<p>d4 Details</p>\n<p>1 A bat</p>\n<p>2 A rat</p>" },
+  ], { range: [1, 9], tables });
+  assert.match(overview.html, /^<h2>Rumors<\/h2>\n<p>@UUID\[Compendium\.w\.RollTable\.R\]\{Halls Rumors\}<\/p>\n<table/);
+  assert.match(areas.html, /^<p>@UUID\[Compendium\.w\.RollTable\.E\]\{Halls Random Encounters\}<\/p>\n<table/);
+  const noTable = assembleOverview([{ key: "features", name: "Features", html: "<p>• Light. Dim.</p>\n<p>• Walls. Stone.</p>" }], { range: [1, 9], tables });
+  assert.match(noTable[0].html, /^<p>@UUID\[Compendium\.w\.RollTable\.E\]/);
+  const onePage = assembleOverview([{ key: "overview", name: "Overview", html: "<p>A nest.</p>" }], { range: [1, 9], tables });
+  assert.match(onePage[0].html, /<p>@UUID\[Compendium\.w\.RollTable\.E\]\{Halls Random Encounters\}<\/p>$/);
+  assert.doesNotMatch(assembleOverview([{ key: "rumors", name: "Rumors", html: "<p>1 a b</p><p>2 c d</p><p>3 e f</p>" }], { range: [1, 9] })[0].html, /RollTable/, "no table in the world, no link");
+});

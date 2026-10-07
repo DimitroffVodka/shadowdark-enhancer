@@ -24,6 +24,7 @@
 import { PAGE_FURNITURE_RE } from "../tables/hex-parser.mjs";
 import { BOLD_OPEN, BOLD_CLOSE, stripBold, mergeBold } from "../pdf-text-utils.mjs";
 import { enrichContextualText } from "../../shared/contextual-enricher.mjs";
+import { linkItems } from "./adventure-journal.mjs";
 
 /** A step bigger than this between two headings reads as a stray, not a run. */
 export const MAX_GAP = 3;
@@ -260,10 +261,10 @@ function listHtml(items, known, resolve) {
  * rolls and requests, the bold creature names the bestiary knows as links.
  * @param {{bodyLines:string[], boldLines?:string[]}} draft  boldLines: bodyLines with the bold markers
  * @param {Set<number>} known
- * @param {{resolve?:(phrase:string)=>string|undefined}} [opts]
+ * @param {{resolve?:(phrase:string)=>string|undefined, items?:Array<{name:string,uuid:string}>}} [opts]  resolve: creature links; items: the magic items and treasure to link (adventure-journal linkableItems)
  * @returns {string}
  */
-export function buildLocationHtml(draft, known, { resolve } = {}) {
+export function buildLocationHtml(draft, known, { resolve, items } = {}) {
   const marked = draft?.boldLines?.length && draft.boldLines.length === (draft.bodyLines ?? []).length ? draft.boldLines : draft?.bodyLines;
   const blocks = bodyBlocks(marked);
   if (!blocks.length) return "<p></p>";
@@ -279,7 +280,7 @@ export function buildLocationHtml(draft, known, { resolve } = {}) {
     out.push(b.kind === "h" ? `<p><strong>${escapeHtml(titleCaseName(b.text))}</strong></p>` : `<p>${inlineHtml(b.text, known, resolve)}</p>`);
     i++;
   }
-  return enrichContextualText(out.join("\n"), { context: "journal" });
+  return linkItems(enrichContextualText(out.join("\n"), { context: "journal" }), items);
 }
 
 const LOC_PLACEHOLDER_RE = /@@LOC\[(\d+)\]\{([^}]*)\}@@/g;
