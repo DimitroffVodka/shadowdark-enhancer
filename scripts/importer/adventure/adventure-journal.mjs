@@ -87,6 +87,23 @@ export function linkCreatures(html, vocabulary) {
   }))).join("");
 }
 
+/**
+ * The named members of a creature the book lists right after it: "Four young adult <b>Bittermolds</b>: Vort, Globriella, Murdock,
+ * Rogart." or "<b>Howlers.</b> Clove, Gabby, Merv, Tobin." Each name is an individual of that creature and links to its stat
+ * block (there is no separate one). Two or more single capitalised words straight after a creature's link, closing the sentence.
+ * @param {string} html
+ * @param {Array<{form:string, uuid:string}>} vocabulary  creatureVocabulary
+ * @returns {string}
+ */
+export function linkMembers(html, vocabulary) {
+  const uuids = new Set((vocabulary ?? []).map((v) => v.uuid));
+  if (!uuids.size || !html) return html;
+  const NAME = "[A-Z][\\p{L}'’-]{2,}";
+  const re = new RegExp(`(@UUID\\[([^\\]]+)\\]\\{[^}]*\\})((?:[.:])?(?:</strong>)?[.:]?\\s+)(${NAME}(?:,\\s+${NAME})+(?:,?\\s+and\\s+${NAME})?)(?=[.;:<])`, "gu");
+  return String(html).replace(re, (m, link, uuid, sep, list) => (uuids.has(uuid)
+    ? `${link}${sep}${list.replace(new RegExp(NAME, "gu"), (n) => (/^(?:and)$/i.test(n) ? n : `@UUID[${uuid}]{${n}}`))}` : m));
+}
+
 /** One row of a table, cells as paragraphs the way the editor writes them; the first cell is the die or number, centred. */
 const tr = (cells, { boldFirst = false } = {}) => `<tr>${cells.map((c, i) => (i === 0
   ? `<td style="${boldFirst ? "font-weight:bold;" : ""}text-align:center"><p>${boldFirst ? `<strong>${c}</strong>` : c}</p></td>`

@@ -229,3 +229,10 @@ test("City of Masks districts run on through the city, 1 to 50, and the whole ci
   assert.equal(d[0].range[0], 1);
   assert.equal(d.at(-1).range[1], 50);
 });
+
+test("a creature's name set in one bold run with its run-in label still links", async () => {
+  const { inlineHtml } = await import("../scripts/importer/adventure/adventure-parser.mjs");
+  const resolve = (p) => (p === "Mugdulblub" ? "Actor.m1" : undefined);
+  const html = inlineHtml("\u0001Pool. Mugdulblub\u0002, a primordial ooze.", new Set(), resolve);
+  assert.equal(html, "<strong>Pool. @UUID[Actor.m1]{Mugdulblub}</strong>, a primordial ooze.");
+});

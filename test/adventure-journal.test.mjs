@@ -152,3 +152,15 @@ test("linkCreatures: a creature printed plain is linked once a page, never twice
   assert.equal(linkCreatures("<p>Plate says \"Sir Reginald Bittermold.\" A Bittermold watches.</p>", people), "<p>Plate says \"Sir Reginald Bittermold.\" A @UUID[A.B]{Bittermold} watches.</p>", "a surname is not the creature");
   assert.equal(linkCreatures("<p>The Howlers' camp.</p>", vocab), "<p>The @UUID[A.H]{Howlers}' camp.</p>");
 });
+
+test("the named members a book lists after a creature link to that creature's stat block", async () => {
+  const { linkMembers } = await import("../scripts/importer/adventure/adventure-journal.mjs");
+  const vocab = [{ form: "bittermolds", uuid: "Actor.b1" }, { form: "howlers", uuid: "Actor.h1" }];
+  const a = linkMembers("<p>Four young adults <strong>@UUID[Actor.b1]{Bittermolds}</strong>: Vort, Globriella and Rogart. Vort has keys.</p>", vocab);
+  assert.equal(a, "<p>Four young adults <strong>@UUID[Actor.b1]{Bittermolds}</strong>: @UUID[Actor.b1]{Vort}, @UUID[Actor.b1]{Globriella} and @UUID[Actor.b1]{Rogart}. Vort has keys.</p>");
+  const b = linkMembers("<p><strong>@UUID[Actor.h1]{Howlers}.</strong> Clove, Gabby, Merv. Territorial.</p>", vocab);
+  assert.match(b, /\{Clove\}, @UUID\[Actor\.h1\]\{Gabby\}, @UUID\[Actor\.h1\]\{Merv\}\./);
+  // a link that is not a creature, or one name alone, is left as it is
+  assert.equal(linkMembers("<p>@UUID[Item.x]{Pearl}: Gold, Silver.</p>", vocab), "<p>@UUID[Item.x]{Pearl}: Gold, Silver.</p>");
+  assert.equal(linkMembers("<p>@UUID[Actor.h1]{Howlers}: Clove.</p>", vocab), "<p>@UUID[Actor.h1]{Howlers}: Clove.</p>");
+});

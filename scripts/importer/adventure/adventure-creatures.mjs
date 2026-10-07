@@ -198,9 +198,11 @@ export function creatureVocabulary(locations, resolve) {
   for (const loc of locations ?? []) {
     const text = (loc.boldLines ?? []).join(" ");
     for (const m of text.matchAll(new RegExp(`${BOLD_OPEN}([^${BOLD_CLOSE}]*)${BOLD_CLOSE}`, "g"))) {
-      const phrase = phraseOf(m[1]);
+      let phrase = phraseOf(m[1]);
       if (!phrase || phrase.length > 40 || !/[a-z]/.test(phrase)) continue;
-      const uuid = resolve(phrase);
+      let uuid = resolve(phrase);
+      // "Pool. Mugdulblub": a run-in label and a name in one bold run.
+      if (!uuid && phrase.includes(". ")) { phrase = phrase.slice(phrase.lastIndexOf(". ") + 2); uuid = resolve(phrase); }
       if (!uuid) continue;
       const lower = words(phrase).join(" ");
       for (const f of [lower, ...phraseKeys(phrase)]) { add(f, uuid); if (!f.endsWith("s")) add(`${f}s`, uuid); }

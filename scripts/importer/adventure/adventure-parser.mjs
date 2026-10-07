@@ -24,7 +24,7 @@
 import { PAGE_FURNITURE_RE } from "../tables/hex-parser.mjs";
 import { BOLD_OPEN, BOLD_CLOSE, stripBold, mergeBold } from "../pdf-text-utils.mjs";
 import { enrichContextualText } from "../../shared/contextual-enricher.mjs";
-import { linkItems, linkCreatures } from "./adventure-journal.mjs";
+import { linkItems, linkCreatures, linkMembers } from "./adventure-journal.mjs";
 
 /** A step bigger than this between two headings reads as a stray, not a run. */
 export const MAX_GAP = 3;
@@ -234,7 +234,12 @@ export function inlineHtml(marked, known, resolve) {
     const [, lead, core, tail] = /^(\s*)([\s\S]*?)(\s*)$/.exec(m[1]);
     const label = /^(.*?)([.:,;]*)$/.exec(core);
     const uuid = label[1] && label[1].length <= 40 && resolve ? resolve(label[1]) : undefined;
-    const inner = uuid ? `@UUID[${uuid}]{${escapeHtml(label[1])}}${escapeHtml(label[2])}` : linkRefs(core, known);
+    // "Pool. Mugdulblub": a run-in label and the creature's name set in one bold run; the name is what links.
+    const cut = uuid || !resolve ? -1 : label[1].lastIndexOf(". ");
+    const named = cut > 0 && label[1].length - cut - 2 <= 40 ? resolve(label[1].slice(cut + 2)) : undefined;
+    const inner = uuid ? `@UUID[${uuid}]{${escapeHtml(label[1])}}${escapeHtml(label[2])}`
+      : named ? `${linkRefs(label[1].slice(0, cut + 2), known)}@UUID[${named}]{${escapeHtml(label[1].slice(cut + 2))}}${escapeHtml(label[2])}`
+        : linkRefs(core, known);
     out.push(lead, inner ? `<strong>${inner}</strong>` : "", tail);
     last = m.index + m[0].length;
   }
@@ -280,7 +285,7 @@ export function buildLocationHtml(draft, known, { resolve, items, creatures } = 
     out.push(b.kind === "h" ? `<p><strong>${escapeHtml(titleCaseName(b.text))}</strong></p>` : `<p>${inlineHtml(b.text, known, resolve)}</p>`);
     i++;
   }
-  return linkItems(linkCreatures(enrichContextualText(out.join("\n"), { context: "journal" }), creatures), items);
+  return linkItems(linkMembers(linkCreatures(enrichContextualText(out.join("\n"), { context: "journal" }), creatures), creatures), items);
 }
 
 const LOC_PLACEHOLDER_RE = /@@LOC\[(\d+)\]\{([^}]*)\}@@/g;
