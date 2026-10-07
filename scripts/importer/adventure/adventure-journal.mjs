@@ -101,7 +101,7 @@ export function linkMembers(html, vocabulary) {
   const uuids = new Set((vocabulary ?? []).map((v) => v.uuid));
   if (!uuids.size || !html) return html;
   const NAME = "[A-Z][\\p{L}'’-]{2,}";
-  const ITEM = `${NAME}(?:\\s+\\([^)]*\\))?`;
+  const ITEM = `(?:<strong>)?${NAME}(?:</strong>)?(?:\\s+\\([^)]*\\))?`;   // a name may itself be set in bold
   const JOIN = ",?\\s+and\\s+|,\\s+";
   const LIST = `${ITEM}(?:(?:${JOIN})${ITEM})*`;
   const re = new RegExp(`(@UUID\\[([^\\]]+)\\]\\{[^}]*\\})(</strong>)?((?:[.:]</strong>[.:]?\\s+|[.:]\\s+)|(?:\\s+of\\s+[A-Z][\\p{L}]+)?\\s+named\\s+|,\\s+)(${LIST})(?![\\p{L}'’-])`, "gu");

@@ -177,3 +177,12 @@ test("named members after 'named' or with a trait in brackets link too", async (
   // a comma and a name with no trait is just the sentence going on
   assert.equal(linkMembers("<p>Two @UUID[Actor.d1]{deep ones}, Borbin and Mulko argue.</p>", vocab), "<p>Two @UUID[Actor.d1]{deep ones}, Borbin and Mulko argue.</p>");
 });
+
+test("members the book sets in bold link inside their bold", async () => {
+  const { linkMembers } = await import("../scripts/importer/adventure/adventure-journal.mjs");
+  const vocab = [{ form: "librarian of leng", uuid: "Actor.l1" }, { form: "trolls", uuid: "Actor.t1" }];
+  assert.equal(linkMembers("<p>A @UUID[Actor.l1]{Librarian of Leng} named <strong>Terkule</strong> on duty.</p>", vocab),
+    "<p>A @UUID[Actor.l1]{Librarian of Leng} named <strong>@UUID[Actor.l1]{Terkule}</strong> on duty.</p>");
+  assert.equal(linkMembers("<p>@UUID[Actor.t1]{Trolls}: <strong>Sibolg</strong> (ringleader), <strong>Erdak</strong> (aggressive).</p>", vocab),
+    "<p>@UUID[Actor.t1]{Trolls}: <strong>@UUID[Actor.t1]{Sibolg}</strong> (ringleader), <strong>@UUID[Actor.t1]{Erdak}</strong> (aggressive).</p>");
+});
