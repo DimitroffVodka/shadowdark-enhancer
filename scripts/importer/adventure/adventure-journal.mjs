@@ -92,7 +92,7 @@ export function linkCreatures(html, vocabulary) {
  * (there is no separate one). Three shapes, straight after the creature's link: a list closing its sentence, "Four young adult
  * <b>Bittermolds</b>: Vort, Globriella, Rogart." or "<b>Howlers.</b> Clove, Gabby, Merv, Tobin."; "named", with one name or
  * more, "Librarian of Leng named Terkule"; and a comma and names that each carry a trait in brackets, "deep ones, Borbin
- * (hot-headed) and Mulko (greedy)".
+ * (hot-headed) and Mulko (greedy)", or one name the book sets in bold, "the head Librarian of Leng, Xenoxes".
  * @param {string} html
  * @param {Array<{form:string, uuid:string}>} vocabulary  creatureVocabulary
  * @returns {string}
@@ -104,7 +104,7 @@ export function linkMembers(html, vocabulary) {
   const ITEM = `(?:<strong>)?${NAME}(?:</strong>)?(?:\\s+\\([^)]*\\))?`;   // a name may itself be set in bold
   const JOIN = ",?\\s+and\\s+|,\\s+";
   const LIST = `${ITEM}(?:(?:${JOIN})${ITEM})*`;
-  const re = new RegExp(`(@UUID\\[([^\\]]+)\\]\\{[^}]*\\})(</strong>)?((?:[.:]</strong>[.:]?\\s+|[.:]\\s+)|(?:\\s+of\\s+[A-Z][\\p{L}]+)?\\s+named\\s+|,\\s+)(${LIST})(?![\\p{L}'’-])`, "gu");
+  const re = new RegExp(`(@UUID\\[([^\\]]+)\\]\\{[^}]*\\})(</strong>)?((?:[.:]</strong>[.:]?\\s+|[.:]\\s+)|(?:\\s+of\\s+[A-Z][\\p{L}]+)?(?:</strong>)?\\s+named\\s+|,\\s+)(${LIST})(?![\\p{L}'’-])`, "gu");
   const src = String(html);
   return src.replace(re, (m, link, uuid, strong = "", sep, list, offset) => {
     if (!uuids.has(uuid)) return m;
@@ -115,7 +115,8 @@ export function linkMembers(html, vocabulary) {
     const count = [...list.matchAll(new RegExp(ITEM, "gu"))].length;
     const traits = [...list.matchAll(/\([^)]*\)/g)].length;
     const comma = /^,\s+$/.test(sep);
-    if (comma ? traits < 2 || count < 2 : !named && count < 2) return m;
+    // after a comma: names with a trait each, or the one name the book set in bold ("the head Librarian of Leng, Xenoxes")
+    if (comma ? !((traits >= 2 && count >= 2) || (count === 1 && list.startsWith("<strong>"))) : !named && count < 2) return m;
     return `${link}${strong}${sep}${list.replace(new RegExp(`${NAME}(?![^(]*\\))`, "gu"), (n) => (names.includes(n) ? `@UUID[${uuid}]{${n}}` : n))}`;
   });
 }

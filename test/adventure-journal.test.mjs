@@ -186,3 +186,13 @@ test("members the book sets in bold link inside their bold", async () => {
   assert.equal(linkMembers("<p>@UUID[Actor.t1]{Trolls}: <strong>Sibolg</strong> (ringleader), <strong>Erdak</strong> (aggressive).</p>", vocab),
     "<p>@UUID[Actor.t1]{Trolls}: <strong>@UUID[Actor.t1]{Sibolg}</strong> (ringleader), <strong>@UUID[Actor.t1]{Erdak}</strong> (aggressive).</p>");
 });
+
+test("a bold that closes after 'of Leng', and one bold name after a comma, link", async () => {
+  const { linkMembers } = await import("../scripts/importer/adventure/adventure-journal.mjs");
+  const vocab = [{ form: "librarians", uuid: "Actor.l1" }];
+  assert.equal(linkMembers("<p>4 <strong>@UUID[Actor.l1]{Librarians} of Leng</strong> named <strong>Cirroc</strong> (irritable) and <strong>Vireen</strong> (fussy).</p>", vocab),
+    "<p>4 <strong>@UUID[Actor.l1]{Librarians} of Leng</strong> named <strong>@UUID[Actor.l1]{Cirroc}</strong> (irritable) and <strong>@UUID[Actor.l1]{Vireen}</strong> (fussy).</p>");
+  assert.equal(linkMembers("<p>The head @UUID[Actor.l1]{Librarian}, <strong>Xenoxes</strong>. Ruthless.</p>", vocab),
+    "<p>The head @UUID[Actor.l1]{Librarian}, <strong>@UUID[Actor.l1]{Xenoxes}</strong>. Ruthless.</p>");
+  assert.equal(linkMembers("<p>The @UUID[Actor.l1]{Librarian}, Xenoxes. Ruthless.</p>", vocab), "<p>The @UUID[Actor.l1]{Librarian}, Xenoxes. Ruthless.</p>");
+});
