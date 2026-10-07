@@ -23,6 +23,8 @@
  *   grid   [columns, rows] of squares on the map the book ships, from the
  *          printed size ("68 wide x 44 high"); the scene's grid size is the
  *          image width over it. Absent: a 100 px grid
+ *   noun   what a location is called in its page's name: "Area" ("Area 12: Meteorite Room") unless the row says otherwise;
+ *          "" for a city, whose pages are "12. Meteorite Room" and whose overview keeps the book's own sections
  *   skip   banner lines to drop (a regexp source)
  *   creatureAliases  what the book calls a creature the bestiary names otherwise, so
  *          its bold name is still linked ({ monk: "Acolyte" }): a singular, lower
@@ -76,7 +78,7 @@ const mini = (id, title, last, grid) => ({
 
 /** City of Masks: one district per two-page spread, the numbers run on through the city. */
 const district = (id, title, pages, range) => ({
-  id: `cs6-${id}`, title: `City of Masks: ${title} District`, pages, range, style: "caps", skip: DISTRICT_BANNER,
+  id: `cs6-${id}`, title: `City of Masks: ${title} District`, pages, range, style: "caps", noun: "", skip: DISTRICT_BANNER,
   mapNames: [`${title} District`],
 });
 
@@ -118,7 +120,7 @@ export const ADVENTURE_SITES = {
     district("the-rooks", "The Rooks", "64-65", [44, 50]),
     // The whole city on its one overview map: the same fifty locations again, so
     // one scene carries every pin. A district's journal stays as it is.
-    { id: "cs6-city", title: "City of Masks", pages: "50-65", range: [1, 50], style: "caps", skip: DISTRICT_BANNER, mapNames: ["City of Masks Fully Keyed"], overview: "39-49" },
+    { id: "cs6-city", title: "City of Masks", pages: "50-65", range: [1, 50], style: "caps", noun: "", skip: DISTRICT_BANNER, mapNames: ["City of Masks Fully Keyed"], overview: "39-49" },
   ],
   WRMA_HOR: [
     mini("house-of-rogues", "House of Rogues", 9, [30, 18]),

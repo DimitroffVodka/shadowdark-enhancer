@@ -17,6 +17,7 @@ import { allSites } from "./adventure-manifest.mjs";
 import { parseAdventurePages } from "./adventure-parser.mjs";
 import { creatureMentions, creatureResolver } from "./adventure-creatures.mjs";
 import { commitAdventure, addOverviewToWorldCopy } from "./adventure-commit.mjs";
+import { assembleOverview } from "./adventure-journal.mjs";
 import { summariseGutter } from "../hex/hex-book-import.mjs";
 
 const t = (key, data) => {
@@ -83,7 +84,9 @@ async function readOverview(src, site) {
   try {
     const { readChapter } = await import("../chapter-journal.mjs");
     const read = await readChapter({ src, pages: site.overview, name: t("SDE.importer.adventure.overviewPage"), rowNumbers: true });
-    return site.style === "inline" ? inlineOverview(read?.pages) : (read?.pages ?? []);
+    const parts = site.style === "inline" ? inlineOverview(read?.pages) : (read?.pages ?? []);
+    // A city's gazetteer is not an adventure's overview: it keeps its pages as the book's headings cut them.
+    return site.noun === "" ? parts : assembleOverview(parts, { range: site.range });
   } catch (err) {
     console.warn(`Shadowdark Enhancer | adventures: ${site.title} overview could not be read`, err);
     return [];

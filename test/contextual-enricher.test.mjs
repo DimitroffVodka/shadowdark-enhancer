@@ -77,7 +77,7 @@ describe("A5 — syntax the system can actually enrich", () => {
   });
 
   test("the context map is the contract, and it is frozen", () => {
-    assert.deepEqual(ENRICH_CONTEXTS, { table: "check", environment: "check", monster: "request" });
+    assert.deepEqual(ENRICH_CONTEXTS, { table: "check", environment: "check", monster: "request", journal: "request" });
     assert.ok(Object.isFrozen(ENRICH_CONTEXTS));
   });
 });

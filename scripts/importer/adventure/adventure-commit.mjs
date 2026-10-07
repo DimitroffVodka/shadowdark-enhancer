@@ -20,7 +20,6 @@
 import { MODULE_ID } from "../../shared/module-id.mjs";
 import { ensureSuite, ensureSourceFolder, cleanImportHtml, sourceFolderName, findSuitePack } from "../../shared/compendium-suite.mjs";
 import { buildLocationHtml, locationPageName, rewriteLocPlaceholders } from "./adventure-parser.mjs";
-import { linkCreatureNames } from "./adventure-creatures.mjs";
 
 /** Flag key under `flags.shadowdark-enhancer` on the entry and its pages. */
 export const ADVENTURE_FLAG = "adventure";
@@ -49,21 +48,18 @@ const t = (key) => globalThis.game?.i18n?.localize?.(key) ?? key;
 /** An Introduction page sorts ahead of the numbered pages, whenever it is filed. */
 const INTRO_SORT = -1;
 
-/**
- * The lines of a page with the bold creature names the bestiary knows turned into
- * links; the plain lines when there are no marked lines or no bestiary to look in.
- */
-const linked = (lines, boldLines, resolve) =>
-  resolve && boldLines?.length === lines.length ? boldLines.map((l) => linkCreatureNames(l, resolve)) : lines;
+/** The numbered pages sort by their number from here on, so a page filed later still lands in its place. */
+const LOCATION_SORT = 1000;
 
 /** Pass-1 payload for the Introduction page (placeholders still inside). */
 export function introPagePayload(lines, known, { boldLines, resolve } = {}) {
   return {
     name: t("SDE.importer.adventure.introPage"),
     type: "text",
+    title: { show: true, level: 1 },
     sort: INTRO_SORT,
     text: {
-      content: buildLocationHtml({ bodyLines: linked(lines, boldLines, resolve) }, known),
+      content: buildLocationHtml({ bodyLines: lines, boldLines }, known, { resolve }),
       format: globalThis.CONST?.JOURNAL_ENTRY_PAGE_FORMATS?.HTML ?? 1,
     },
     flags: { [MODULE_ID]: { [ADVENTURE_FLAG]: { intro: true } } },
@@ -82,6 +78,7 @@ export function overviewPagePayload(part, i) {
   return {
     name: part.name,
     type: "text",
+    title: { show: true, level: 1 },
     sort: OVERVIEW_SORT + i * 100,
     text: { content: part.html, format: globalThis.CONST?.JOURNAL_ENTRY_PAGE_FORMATS?.HTML ?? 1 },
     flags: { [MODULE_ID]: { [ADVENTURE_FLAG]: { overview: part.key } } },
@@ -111,12 +108,15 @@ export const isIntroPage = (page) =>
   (page?.getFlag?.(MODULE_ID, ADVENTURE_FLAG)?.intro ?? page?.flags?.[MODULE_ID]?.[ADVENTURE_FLAG]?.intro) === true;
 
 /** Pass-1 page payload for one location (placeholders still inside). */
-export function locationPagePayload(loc, known, { resolve } = {}) {
+export function locationPagePayload(loc, known, { resolve, noun, level = 2 } = {}) {
   return {
-    name: locationPageName(loc),
+    name: locationPageName(loc, noun),
     type: "text",
+    // Level 2: a location sits under the "Areas" page in the journal's contents, as in the Lost Citadel.
+    title: { show: true, level },
+    sort: LOCATION_SORT + loc.num * 100,   // by number, whatever order the pages were made in
     text: {
-      content: buildLocationHtml({ bodyLines: linked(loc.bodyLines ?? [], loc.boldLines, resolve) }, known),
+      content: buildLocationHtml({ bodyLines: loc.bodyLines ?? [], boldLines: loc.boldLines }, known, { resolve }),
       format: globalThis.CONST?.JOURNAL_ENTRY_PAGE_FORMATS?.HTML ?? 1,
     },
     flags: { [MODULE_ID]: { [ADVENTURE_FLAG]: { num: loc.num } } },
@@ -179,8 +179,10 @@ export async function commitAdventure(site, locations, { source = "", intro = []
   const plan = planAdventureCommit(locations, existing);
   report.collisions = plan.collisions;
   const known = new Set([...existing.keys(), ...locations.map((l) => l.num)]);
+  // The locations sit under the page for the areas (level 2) when the book has one; without it they stand on their own.
+  const level = overview.some((o) => o.key === "areas") ? 2 : 1;
   const payload = (loc) => {
-    const p = locationPagePayload(loc, known, { resolve });
+    const p = locationPagePayload(loc, known, { resolve, noun: site.noun, level });
     p.text.content = cleanImportHtml(p.text.content);
     return p;
   };
@@ -204,6 +206,10 @@ export async function commitAdventure(site, locations, { source = "", intro = []
   }
   // keepExisting: a page that is already there is the GM's now (they may have edited it), so it is left exactly as it is.
   if (keepExisting) report.kept.push(...overviewOld.map(([part]) => overviewDocs.get(part.key).id), ...(introDoc ? [introDoc.id] : []), ...plan.update.map(({ pageId }) => pageId));
+  // The overview this site was filed with before it had the quickstart's layout (a page for the background, one for the
+  // factions...) is replaced by it: the module's own pages that the new read no longer has go, unless the GM's copies are to be kept.
+  const staleOverview = keepExisting || !overview.length ? [] : entry.pages.filter((p) => overviewKey(p) && !overview.some((o) => o.key === overviewKey(p))).map((p) => p.id);
+  if (staleOverview.length) await entry.deleteEmbeddedDocuments("JournalEntryPage", staleOverview);
   const updates = keepExisting ? [] : [...overviewOld.map(([part, i]) => ({ _id: overviewDocs.get(part.key).id, ...overviewPayload(part, i) })), ...(introDoc ? [{ _id: introDoc.id, ...introPayload() }] : []),
     ...plan.update.map(({ loc, pageId }) => ({ _id: pageId, ...payload(loc) }))];
   if (updates.length) {
