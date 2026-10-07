@@ -14,7 +14,7 @@ and Forge & Loot features.
 [`merchant`](#merchant--shop-window--transaction-log) ·
 [`partyXp`](#partyxp--party-xp-awards) · [`recap`](#recap--session-recap) ·
 [`charBuilder`](#charbuilder--guided-character-creation) ·
-[`actors`](#actors--western-reaches-boats) · [`bastion`](#bastion--bastions) ·
+[`actors`](#actors--western-reaches-boats) · [`bastion`](#bastion--bastions) · [`traps`](#traps--trap-regions) ·
 [`statDamage`](#statdamage--tracked-ability-damage) · [`quests`](#quests--the-quest-log) ·
 [`dying`](#dying--death-timers-and-stabilizing) ·
 [`hexMaps`](#hexmaps--hex-map-tagging-and-the-extras-dataset) ·
@@ -93,6 +93,35 @@ await api.actors.importBoats();
 Boats import through the standard paste → preview → commit flow, exactly like
 monsters and items. The Importer Hub's **Manage → Vehicles → Boats** tree opens the
 same flow (as does `api.actors.importBoats()`).
+
+## `traps` — trap regions
+
+A trap is a Scene Region with a `shadowdark-enhancer.trap` behavior: `trap` (its name), `trigger` (words only: what sets it
+off), `effect`, `checkAbility` (`none`, `str`, `dex`, `con`, `int`, `wis` or `cha`) and `checkDc`, a `damage` dice formula,
+`applyDamage` (take the damage off the characters, default on), `holds`, `when` (`enter`, `round` or `manual`), `chance`
+(`"1:6"`; blank for always), `gmNotes`, `resets` and `sprung`. Added in `1.28.0`.
+
+- **Firing.** One GM client posts the trap's card: when a token moves in (`enter`: once, then `sprung`, unless `resets`), on
+  entry and again each round the token stays (`round`: a combat round during a fight, otherwise a crawl round), or only when a
+  GM springs it (`manual`). A `chance` gates each firing.
+- **A check** puts a Roll link for each character on the card (the party Request roll card): their owners roll, the card shows
+  who passed, and each who fails takes the `damage`.
+- **`holds`** (quicksand) works the other way round: each character is caught where they stand, takes the damage at once and
+  every round after, pass or fail, and cannot be moved by a player (the token carries a `held` flag); the check is their escape
+  roll, and a pass frees them. A hold on a trap that is gone, disabled or no longer around the token lets go by itself.
+
+```js
+api.traps.type;                  // "shadowdark-enhancer.trap"
+await api.traps.roll();          // { trap, trigger, effect, damage } from the system's Trap tables, or null
+await api.traps.spring(regionOrId, { token });  // GM only: fire the trap by hand (for the token, else every token in it); false if the region has no trap
+await api.traps.release(token);  // GM only: free a held token; false if it was not held
+await api.traps.create({         // GM only; returns the Region
+  scene,                         // default: the viewed scene
+  points: [x1, y1, x2, y2, …],   // scene pixels, or [{x, y}, …]; default: one square at the scene centre
+  generate: true,                // fill from the system's Trap tables first
+  trap: { trap: "Pit", effect: "Fall 20 ft", checkAbility: "dex", checkDc: 12, damage: "2d6", when: "enter", gmNotes: "DC 12" },
+});
+```
 
 ## `bastion` — bastions
 

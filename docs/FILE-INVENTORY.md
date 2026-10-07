@@ -1,7 +1,7 @@
 # Shadowdark Enhancer — File Inventory
 
 <!-- inventory:stats:start -->
-1766 tracked files · ~222,600 lines of code/markup across scripts+templates+styles+test.
+1769 tracked files · ~223,200 lines of code/markup across scripts+templates+styles+test.
 `v0.17.3` in both `module.json` and `package.json`.
 <!-- inventory:stats:end -->
 **Layout reflects the 2026-07-21 feature-folder reorganization (v0.11.0 cycle).**
@@ -46,7 +46,7 @@
 
 | File | Lines | Description |
 |---|---:|---|
-| `shadowdark-enhancer.mjs` | 1379 | **Entry point** (module.json esmodules). Registers hooks, settings, sheets, actor sub-types, the public `game.shadowdarkEnhancer` API, and wires every sub-system. |
+| `shadowdark-enhancer.mjs` | 1384 | **Entry point** (module.json esmodules). Registers hooks, settings, sheets, actor sub-types, the public `game.shadowdarkEnhancer` API, and wires every sub-system. |
 | `luck-reroll/luck-reroll.mjs` | 172 | Wraps the system's `_onReroll` to enforce nat-1 prevention and log Luck rerolls to the session recap. |
 | `spell-mishap/spell-mishap.mjs` | 271 | Nat-1 spellcasting failures auto-roll the class's mishap table (wizard / witch / necromancer sets); divine casters are exempt. |
 | `scavenger/scavenger-core.mjs` | 171 | Pure Delver Scavenger rules: the 5-6 success range and Master Scavenger's widening (floored at 3-6), what counts as expending a consumable's last use (a 1→0 decrement or a delete at quantity 1 — never a stack deleted whole), and which single client rolls. |
@@ -127,8 +127,8 @@
 | `party/party-light.mjs` | 49 | Runtime-only dungeon Party light mirror without duplicated fuel items; hex lights and stored vision unchanged. |
 | `party/party-movement-core.mjs` | 128 | Fixed formation fill, follow ordering, heading turns, and the wall tests: centre-line placement and a breadth-first route round walls. |
 | `party/party-movement.mjs` | 192 | Authenticated Party-owner gather/deploy relay, linked token configuration preservation and native marching: followers keep the formation, turned to the leader's heading, and never pause. |
-| `party/party-roll.mjs` | 90 | Request roll from the Party sheet's GM bar: posts one chat card with a Roll link per character asked; the owner's click runs the system's ability check against the DC and posts pass or fail. |
-| `party/party-sheet-core.mjs` | 475 | Pure Party sheet decisions: the tab row and view flags (GM vs player), the Marching order status line, Gems, the linked Bastion and its last month, and the Today / Light / Rations status bar. |
+| `party/party-roll.mjs` | 123 | Request roll from the Party sheet's GM bar: posts one chat card with a Roll link per character asked; the owner's click runs the system's ability check against the DC and posts pass or fail. |
+| `party/party-sheet-core.mjs` | 488 | Pure Party sheet decisions: the tab row and view flags (GM vs player), the Marching order status line, Gems, the linked Bastion and its last month, and the Today / Light / Rations status bar. |
 | `party/party.mjs` | 91 | Explicit native Party provider, safe in-place NPC adoption and owner-scoped membership writes. |
 | `rules-data/rules-data-app.mjs` | 423 | The GM-only Rules data window (AppV2, Configure Settings menu): shows and edits every rules table, staged until Save. Its import (importFromBooks, also the Importer Hub step's importAndSave) runs table-shapes RULES_TABLES over the GM's own linked GM Guide and Player's Guide PDFs (lazy-loaded), canonicalises region names through hex-region knownRegions, and previews every filled value it would replace. |
 | `rules-data/rules-data-core.mjs` | 471 | Rules data (#195), pure: the Western Reaches lookup tables (terrain cost and elevation, terrain types, hexes per day, hex visibility, climate by region and season, carousing and recruiting limits) as one sparse world setting laid over an empty structure, the game.shadowdarkEnhancer.rules lookups over it, the readers that turn the importer's `reference` rows into those tables, and the overwrite preview and merge for an import. Ships structure only (tagger terrain words, travel methods, conditions, seasons, settlement kinds), never a value. |
@@ -145,6 +145,8 @@
 | `training/training-grant.mjs` | 311 | Grants one training benefit for real: finds the GM's imported benefits table by name, reads the book's line for that d4 face, writes the Talent with its effects and provenance flag, and runs the one-time actions (permanent HP, a renown award through the ledger, an ability reroll, a granted weapon or item). Enforces "once each" off the character's own Talents. |
 | `training/training-journal.mjs` | 215 | Files the 21 trainer spreads as journal entries in the managed sde-journal pack, one entry per trainer foldered by region, read from the GM's own registered GM Guide PDF. Identity is a flag, so re-running updates in place and adopts a page whose flag went missing rather than adding a second. |
 | `training/training-parser.mjs` | 109 | Reads one trainer spread out of column-split PDF text: the trainer's description and the four numbered TASKS. Knows the page's shape only — the display title sorting after the tasks, a bare page number landing inside the task block, tasks wrapping across lines — and never the benefits, which import as a RollTable. Pure; ships no book text. |
+| `traps/trap-core.mjs` | 137 | Trap logic that needs no Foundry: reads a Core Traps roll or an adventure's printed trap line into a trap record (check, damage, every round, chance), decides whether a trap can spring, builds the chat card. |
+| `traps/traps.mjs` | 284 | The `shadowdark-enhancer.trap` Region behavior (fires on entry, every round, or by hand; posts a pass/fail roll card), the Core Traps generator, the behavior form's buttons, and `game.shadowdarkEnhancer.traps`. |
 | `troubles/trouble-core.mjs` | 117 | The Trouble tracker's rules, pure (#193): the weekly check's growing chance, the week starts a clock jump crosses, the Region table's printed names matched to the imported regions (", The" moved, abbreviated words), the settlement kind a row names, an inline Type of Trouble list, Urgency Level rows, and the countdown's stage times. |
 | `troubles/troubles.mjs` | 450 | The Trouble tracker (#193): the weekly check on every week start the world clock passes (timeAdvanced, active GM, queued), stirring a trouble in a settlement picked from the imported key locations, one GM-only page per trouble in a flagged Troubles journal entry with its state in the page's trouble flag, stage whispers as the clock passes each stage, the page's status bar and buttons (heard, promote to quest), resolving on its quest's completion, the Journal sidebar's Check for trouble button, and the troubles API. |
 

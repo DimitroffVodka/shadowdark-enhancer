@@ -16,15 +16,19 @@ export const PARTY_ROLL_QUERY = `${MODULE_ID}.partyRollResult`;
 const t = (key) => game.i18n.localize(key);
 const sayWith = (key, data) => game.i18n.format(key, data);
 
-/** Post the card for a request from the GM bar: { stat, dc, targets: [{uuid, name}] }. Returns the message, or null. */
-export async function postRollRequest(form) {
+/**
+ * Post the card for a request: { stat, dc, targets: [{uuid, name}] } from the GM bar, or the same with a trap's
+ * heading, intro and damage (see rollRequest). `speaker` is the alias the card is posted under (the Party's, by
+ * default). Returns the message, or null.
+ */
+export async function postRollRequest(form, { speaker = t("SDE.party.roll.speaker") } = {}) {
   if (!game.user?.isGM) return null;
   const request = rollRequest(form);
   if (!request) { ui.notifications.warn(t("SDE.party.roll.noTargets")); return null; }
   const statLabel = t(ROLL_STAT_LABELS[request.stat]);
   return ChatMessage.create({
     content: rollCardHtml(request, { sayWith, statLabel, esc }),
-    speaker: { alias: t("SDE.party.roll.speaker") },
+    speaker: { alias: speaker },
     flags: { [MODULE_ID]: { [PARTY_ROLL_FLAG]: request } },
   });
 }
@@ -36,6 +40,31 @@ export async function postRollRequest(form) {
 async function recordRollResult(message, result) {
   if (game.user?.isGM) return applyRollResult({ messageId: message.id, ...result }, game.user);
   return queryActiveGM(PARTY_ROLL_QUERY, { messageId: message.id, ...result }, { label: t("SDE.party.roll.speaker") });
+}
+
+/**
+ * A character takes a trap's damage: the dice are rolled in chat, where everyone sees them, and the system applies them (it
+ * keeps HP between 0 and the maximum, and marks a character at 0 as defeated). A formula Foundry cannot roll warns the GM and
+ * costs nobody hit points.
+ */
+export async function takeTrapDamage(actor, formula, source = "") {
+  try {
+    const roll = await new Roll(formula).evaluate();
+    await roll.toMessage({ speaker: ChatMessage.getSpeaker({ actor }), flavor: sayWith("SDE.trap.damageFlavor", { name: actor.name, trap: source }) });
+    await actor.applyDamage(roll.total);
+  } catch (error) {
+    console.error(`${MODULE_ID} | trap damage`, error);
+    ui.notifications.warn(sayWith("SDE.trap.damageFailed", { name: actor.name, formula }));
+  }
+}
+
+/** A pass on a card whose trap holds its victims frees the token that character stands for. */
+async function freeFromHold(request, uuid) {
+  const entry = request.targets.find((target) => target.uuid === uuid);
+  const token = entry?.token ? await fromUuid(entry.token) : null;
+  if (!token?.getFlag(MODULE_ID, "held")) return;
+  await token.unsetFlag(MODULE_ID, "held");
+  await ChatMessage.create({ content: `<p>${esc(sayWith("SDE.trap.freed", { name: entry.name, trap: request.source ?? "" }))}</p>`, speaker: { alias: request.source || t("SDE.trap.label") } });
 }
 
 /** On the GM's client: write the result into the card, once per character, for that character's owner. */
@@ -50,6 +79,10 @@ async function applyRollResult(data, user) {
   const next = withRollResult(request, { uuid, total: typeof total === "number" ? total : null, outcome });
   if (next === request) return { ok: true };
   await replaceModuleFlag(message, PARTY_ROLL_FLAG, next, { content: rollCardHtml(next, { sayWith, statLabel: t(ROLL_STAT_LABELS[next.stat]), esc }) });
+  // Only the roll that was just recorded can hurt: a result already on the card returned above.
+  const recorded = next.results.find((r) => r.uuid === uuid)?.outcome;
+  if (next.damage && recorded === "fail") await takeTrapDamage(actor, next.damage, next.source ?? "");
+  if (next.hold && recorded === "pass") await freeFromHold(next, uuid);
   return { ok: true };
 }
 

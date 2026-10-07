@@ -510,6 +510,8 @@
 
 /* ---- The Request roll chat card: one Roll link per character asked. Anchors, not buttons, so they work for every viewer; chat renders outside the app root, so hard values only. ---- */
 .sde-party-roll header { font-weight: 700; margin-bottom: 4px; }
+.sde-party-roll-heading { font-weight: 700; margin-bottom: 2px; }
+.sde-party-roll-intro { margin: 0 0 2px; }
 .sde-party-roll-list { display: flex; flex-wrap: wrap; gap: 4px; }
 .sde-party-roll .sde-party-roll-go { display: inline-flex; align-items: center; gap: 6px; min-height: 24px; padding: 2px 10px; border: 1px solid #c9c9c9; border-radius: 3px; background: #f0f0f0; color: #111; font-weight: 700; text-decoration: none; cursor: pointer; }
 .sde-party-roll .sde-party-roll-go:hover { background: #fff; }
