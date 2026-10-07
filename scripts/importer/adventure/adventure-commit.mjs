@@ -18,9 +18,11 @@
  */
 
 import { MODULE_ID } from "../../shared/module-id.mjs";
-import { ensureSuite, ensureSourceFolder, cleanImportHtml, sourceFolderName, findSuitePack } from "../../shared/compendium-suite.mjs";
+import { ensureSuite, ensureSourceFolder, ensureFolderPath, cleanImportHtml, sourceFolderName, findSuitePack } from "../../shared/compendium-suite.mjs";
 import { buildLocationHtml, locationPageName, rewriteLocPlaceholders } from "./adventure-parser.mjs";
 import { creatureVocabulary } from "./adventure-creatures.mjs";
+import { linkItems } from "./adventure-journal.mjs";
+import { findTreasure, findScrolls, treasureItemData, scrollItemData } from "./adventure-treasure.mjs";
 
 /** Flag key under `flags.shadowdark-enhancer` on the entry and its pages. */
 export const ADVENTURE_FLAG = "adventure";
@@ -152,6 +154,45 @@ export async function findSiteEntry(siteId) {
 }
 
 /**
+ * The adventure's treasure as items, the way the Lost Citadel quickstart has them: each priced thing the key names ("a blue
+ * pearl (40 gp)") is an item worth that, each spell scroll is a scroll that points at its spell, in a folder per area. An item
+ * the importer made on an earlier run is found by its flag and reused as it is (the GM may have changed it), never made twice.
+ * @param {CompendiumCollection} pack  the importer's items pack
+ * @param {{site:{id:string,title:string}, source:string, pages:Array<{loc:{num:number,name:string}, html:string}>, items?:Array<{name:string}>, spells?:Array<{name:string,uuid:string}>}} opts
+ * @returns {Promise<Map<number, Array<{name:string, uuid:string}>>>}  per area number, the links to put in its text (name = the words as the page has them)
+ */
+export async function fileTreasure(pack, { site, source, pages, items = [], spells = [] }) {
+  const links = new Map();
+  if (!pack?.getIndex) return links;
+  try {
+    const have = new Set(items.map((i) => i.name.toLowerCase()));
+    const flagPath = `flags.${MODULE_ID}.adventureTreasure`;
+    const index = await pack.getIndex({ fields: [flagPath] });
+    const filed = new Map(index.contents.map((e) => [e.flags?.[MODULE_ID]?.adventureTreasure?.key, e.uuid]).filter(([k]) => k));
+    for (const { loc, html } of pages) {
+      const wanted = [
+        ...findTreasure(html).map((found) => ({ phrase: found.phrase, key: `${site.id}|${loc.num}|${found.name}|${JSON.stringify(found.cost)}`, data: treasureItemData(found, { source }) })),
+        ...findScrolls(html, spells, have).map((sc) => ({ phrase: sc.phrase, key: `${site.id}|${loc.num}|${sc.name}`, data: scrollItemData(sc, { source }) })),
+      ];
+      if (!wanted.length) continue;
+      const folder = await ensureFolderPath(pack, [sourceFolderName(source), site.title, locationPageName(loc, site.noun)]);
+      for (const w of wanted) {
+        let uuid = filed.get(w.key);
+        if (!uuid) {
+          const [made] = await Item.createDocuments([{ ...w.data, folder, flags: { [MODULE_ID]: { adventureTreasure: { site: site.id, num: loc.num, key: w.key } } } }], { pack: pack.collection });
+          uuid = made?.uuid;
+          if (uuid) filed.set(w.key, uuid);
+        }
+        if (uuid) links.set(loc.num, [...(links.get(loc.num) ?? []), { name: w.phrase, uuid }]);
+      }
+    }
+  } catch (err) {
+    console.warn(`${MODULE_ID} | adventures: ${site.title} treasure is filed without items`, err);
+  }
+  return links;
+}
+
+/**
  * File a site's locations as pages. GM-gated like every other commit.
  * @param {{id:string,title:string}} site  manifest row
  * @param {Array<{num:number,name:string,bodyLines:string[]}>} locations
@@ -159,11 +200,11 @@ export async function findSiteEntry(siteId) {
  *   source label, for the folder; intro = the lines printed before the first location, filed
  *   as an Introduction page (introBold: the same lines with bold markers); resolve = a
  *   creature link target for a bold name (adventure-creatures.mjs creatureResolver), so the
- *   bold names the bestiary knows are filed as links; items = the magic items and treasure to link by name (adventure-journal linkableItems); overview = the adventure's overview pages [{key, name, html}]
+ *   bold names the bestiary knows are filed as links; items = the magic items and treasure to link by name (adventure-journal linkableItems); spells = the system's spells ({name, uuid}), for the scrolls the key names; phraseLinks = words of the book that link to a roll table ({name: words, uuid}); overview = the adventure's overview pages [{key, name, html}]
  *   (chapter-journal buildChapterPages), filed ahead of the locations
  * @returns {Promise<{entryUuid:string|null, created:string[], updated:string[], collisions:number[]}>}
  */
-export async function commitAdventure(site, locations, { source = "", intro = [], introBold, resolve, items, keepExisting = false, overview = [] } = {}) {
+export async function commitAdventure(site, locations, { source = "", intro = [], introBold, resolve, items, spells, phraseLinks = [], keepExisting = false, overview = [] } = {}) {
   const report = { entryUuid: null, created: [], updated: [], kept: [], collisions: [] };
   if (!game.user?.isGM) { ui.notifications?.warn(game.i18n.localize("SDE.importer.gm.adventure")); return report; }
   if (!locations?.length) return report;
@@ -184,9 +225,17 @@ export async function commitAdventure(site, locations, { source = "", intro = []
   const creatures = creatureVocabulary(locations, resolve);
   // The locations sit under the page for the areas (level 2) when the book has one; without it they stand on their own.
   const level = overview.some((o) => o.key === "areas") ? 2 : 1;
-  const payload = (loc) => {
+  const basePayload = (loc) => {
     const p = locationPagePayload(loc, known, { resolve, noun: site.noun, level, items, creatures });
     p.text.content = cleanImportHtml(p.text.content);
+    return p;
+  };
+  // The treasure the key prices becomes items first (the page's text is read for it), then each page links them.
+  const treasure = await fileTreasure(packs.items, { site: { ...site, noun: site.noun }, source, items, spells,
+    pages: [...plan.create, ...plan.update.map((u) => u.loc)].map((loc) => ({ loc, html: basePayload(loc).text.content })) });
+  const payload = (loc) => {
+    const p = basePayload(loc);
+    p.text.content = linkItems(p.text.content, [...(treasure.get(loc.num) ?? []), ...phraseLinks]);
     return p;
   };
 

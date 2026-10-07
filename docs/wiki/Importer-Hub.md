@@ -419,7 +419,7 @@ back the next time. For pins you placed by hand, press the skull button once the
 Overview page, an "Areas 1-27" page for the rules that hold everywhere (danger level, light, doors, the random encounters
 table), and one page per area ("Area 12: Meteorite Room") listed under it. An area opens with its player-safe description
 as bold labels, then the GM's bullets with the book's arrows nested beneath. Dice in the text (2d4) are inline rolls, a
-"DC 12 DEX" is a request you can click to ask the players, and creature names (an NPC by its first name too) link to their stat blocks. A magic item or treasure the text names links to the item, and the adventure's rumors and random encounters roll tables (when you have imported them) are linked above the tables printed in the journal. The wizard files
+"DC 12 DEX" is a request you can click to ask the players, and creature names (an NPC by its first name too) link to their stat blocks. A magic item or treasure the text names links to the item; a thing the key prices ("a blue pearl (40 gp)") becomes an item of its own, a Gem or a treasure item worth that, in the importer's Items compendium under the adventure and the area, and a spell scroll the key names becomes a scroll that points at its spell; and the adventure's rumors and random encounters roll tables (when you have imported them) are linked above the tables printed in the journal. The wizard files
 a journal once and never overwrites it; **Adventures** in the importer replaces the module's pages with the new layout.
 
 **Monster names are links.** In a room's journal page, every creature name the book sets in

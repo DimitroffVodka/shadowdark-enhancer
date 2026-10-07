@@ -25,6 +25,8 @@
  *          image width over it. Absent: a 100 px grid
  *   tables ids of the roll tables the table importer made for this adventure (tables/cursed-scroll-tables.mjs), { rumors, encounters }:
  *          its journal links each one just above the printed table it is, when the world has it
+ *   phraseTables words of the key that name a roll table of the book, { "random diabolical treasure": "Diabolical Treasure" }:
+ *          each is linked to the table the table importer made under that name
  *   noun   what a location is called in its page's name: "Area" ("Area 12: Meteorite Room") unless the row says otherwise;
  *          "" for a city, whose pages are "12. Meteorite Room" and whose overview keeps the book's own sections
  *   skip   banner lines to drop (a regexp source)
@@ -86,7 +88,7 @@ const district = (id, title, pages, range) => ({
 
 export const ADVENTURE_SITES = {
   CS1: [
-    { id: "cs1-mugdulblub", title: "The Hideous Halls of Mugdulblub", pages: "53-64", range: [1, 33], style: "caps", grid: [68, 44], mapPages: "66-67", mapNames: ["Ruins of Bittermold Keep"], overview: "50-52", tables: { rumors: "cs1-rumors-the-hideous-halls-of-mugdulblub", encounters: "cs1-random-encounters" } },
+    { id: "cs1-mugdulblub", title: "The Hideous Halls of Mugdulblub", pages: "53-64", range: [1, 33], style: "caps", grid: [68, 44], mapPages: "66-67", mapNames: ["Ruins of Bittermold Keep"], overview: "50-52", tables: { rumors: "cs1-rumors-the-hideous-halls-of-mugdulblub", encounters: "cs1-random-encounters" }, phraseTables: { "random diabolical treasure": "Diabolical Treasure" } },
   ],
   CS2: [
     { id: "cs2-iron-fortress", title: "Fortress of the Burning Brothers: The Iron Fortress", pages: "49-55", range: [1, 19], style: "caps", grid: [45, 35], mapNames: ["The Iron Fortress"], overview: "46-48", tables: { rumors: "cs2-rumors-fortress-of-the-burning-brothers", encounters: "cs2-iron-fortress-1-19-random-encounters" } },

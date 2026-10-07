@@ -116,19 +116,37 @@ async function itemLinks() {
 }
 
 /**
+ * The system's spells by name, for the scrolls an adventure's key names. Undefined when there is nothing to look in.
+ * @returns {Promise<Array<{name:string, uuid:string}>|undefined>}
+ */
+async function spellLinks() {
+  try {
+    const pack = game.packs.get("shadowdark.spells");
+    if (!pack) return undefined;
+    const seen = new Set();
+    return (await pack.getIndex()).contents.filter((e) => e.name && !seen.has(e.name.toLowerCase()) && seen.add(e.name.toLowerCase())).map((e) => ({ name: e.name, uuid: e.uuid }));
+  } catch (err) {
+    console.warn("Shadowdark Enhancer | adventures: spell scrolls are filed without items", err);
+    return undefined;
+  }
+}
+
+/**
  * The roll tables the table importer made for a site (its manifest row names them), as { rumors, encounters } link targets;
  * empty when the world has not imported them.
  * @param {{tables?:{rumors?:string, encounters?:string}}} site
  */
 async function tableLinks(site) {
-  if (!site.tables) return {};
+  if (!site.tables && !site.phraseTables) return {};
   try {
     const pack = findSuitePack("tables") ?? game.packs.find((p) => p.collection.endsWith("--roll-tables"));
     if (!pack) return {};
     const idx = await pack.getIndex({ fields: [`flags.${MODULE_ID}.manifestId`] });
     const byId = new Map(idx.contents.map((e) => [e.flags?.[MODULE_ID]?.manifestId, e]).filter(([k]) => k));
     const link = (id) => { const e = byId.get(id); return e ? { uuid: e.uuid, name: e.name } : undefined; };
-    return { rumors: link(site.tables.rumors), encounters: link(site.tables.encounters) };
+    // Words of the key that name a table ("a random diabolical treasure", from the back cover) link to it; the table is found by its name.
+    const phrases = Object.entries(site.phraseTables ?? {}).map(([phrase, name]) => ({ phrase, e: idx.contents.find((e) => e.name === name || e.name.endsWith(`: ${name}`)) })).filter((p) => p.e).map((p) => ({ name: p.phrase, uuid: p.e.uuid }));
+    return { rumors: link(site.tables?.rumors), encounters: link(site.tables?.encounters), phrases };
   } catch (err) {
     console.warn(`Shadowdark Enhancer | adventures: ${site.title} roll tables are not linked`, err);
     return {};
@@ -192,6 +210,7 @@ export async function importAdventures(src, { ids, onSite, keepExisting = false 
   const collect = (result) => { for (const w of result?.warnings ?? []) gutter.push(w); };
   const sites = allSites(src).filter((s) => !ids || ids.includes(s.id));
   const items = await itemLinks();
+  const spells = await spellLinks();
   for (const [i, site] of sites.entries()) {
     onSite?.(site.title, i + 1, sites.length);
     try {
@@ -200,7 +219,7 @@ export async function importAdventures(src, { ids, onSite, keepExisting = false 
       const tables = await tableLinks(site);
       const resolve = await creatureLinks(site);
       const overview = await readOverview(src, site, { tables, items, creatures: creatureVocabulary(locations, resolve) });
-      const res = await commitAdventure(site, locations, { source: label, intro, introBold, resolve, items, keepExisting, overview });
+      const res = await commitAdventure(site, locations, { source: label, intro, introBold, resolve, items, spells, phraseLinks: tables.phrases, keepExisting, overview });
       // The world's copy of the journal (when the scene has deployed one) gets the overview too, without touching its other pages.
       try { if (overview.length) await addOverviewToWorldCopy(await fromUuid(res.entryUuid)); } catch (err) { console.warn(`Shadowdark Enhancer | adventures: ${site.title} overview not added to the world copy`, err); }
       report.sites.push({
