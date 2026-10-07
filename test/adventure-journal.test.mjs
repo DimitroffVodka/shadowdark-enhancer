@@ -164,3 +164,16 @@ test("the named members a book lists after a creature link to that creature's st
   assert.equal(linkMembers("<p>@UUID[Item.x]{Pearl}: Gold, Silver.</p>", vocab), "<p>@UUID[Item.x]{Pearl}: Gold, Silver.</p>");
   assert.equal(linkMembers("<p>@UUID[Actor.h1]{Howlers}: Clove.</p>", vocab), "<p>@UUID[Actor.h1]{Howlers}: Clove.</p>");
 });
+
+test("named members after 'named' or with a trait in brackets link too", async () => {
+  const { linkMembers } = await import("../scripts/importer/adventure/adventure-journal.mjs");
+  const vocab = [{ form: "librarian of leng", uuid: "Actor.l1" }, { form: "deep ones", uuid: "Actor.d1" }, { form: "librarians", uuid: "Actor.l1" }];
+  assert.equal(linkMembers("<p>A @UUID[Actor.l1]{Librarian of Leng} named Terkule on duty. Grudge.</p>", vocab),
+    "<p>A @UUID[Actor.l1]{Librarian of Leng} named @UUID[Actor.l1]{Terkule} on duty. Grudge.</p>");
+  assert.equal(linkMembers("<p>Two @UUID[Actor.l1]{Librarians} of Leng named Darog (cool-headed) and Nuriok (gossipy).</p>", vocab),
+    "<p>Two @UUID[Actor.l1]{Librarians} of Leng named @UUID[Actor.l1]{Darog} (cool-headed) and @UUID[Actor.l1]{Nuriok} (gossipy).</p>");
+  assert.equal(linkMembers("<p>Two @UUID[Actor.d1]{deep ones}, Borbin (hot-headed, sarcastic) and Mulko (irritable). Each cheated.</p>", vocab),
+    "<p>Two @UUID[Actor.d1]{deep ones}, @UUID[Actor.d1]{Borbin} (hot-headed, sarcastic) and @UUID[Actor.d1]{Mulko} (irritable). Each cheated.</p>");
+  // a comma and a name with no trait is just the sentence going on
+  assert.equal(linkMembers("<p>Two @UUID[Actor.d1]{deep ones}, Borbin and Mulko argue.</p>", vocab), "<p>Two @UUID[Actor.d1]{deep ones}, Borbin and Mulko argue.</p>");
+});
