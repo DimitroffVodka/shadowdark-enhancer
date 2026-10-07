@@ -196,3 +196,23 @@ test("a bold that closes after 'of Leng', and one bold name after a comma, link"
     "<p>The head @UUID[Actor.l1]{Librarian}, <strong>@UUID[Actor.l1]{Xenoxes}</strong>. Ruthless.</p>");
   assert.equal(linkMembers("<p>The @UUID[Actor.l1]{Librarian}, Xenoxes. Ruthless.</p>", vocab), "<p>The @UUID[Actor.l1]{Librarian}, Xenoxes. Ruthless.</p>");
 });
+
+test("a bold person described as a creature links to that creature", async () => {
+  const { linkIndividuals } = await import("../scripts/importer/adventure/adventure-journal.mjs");
+  const vocab = [{ form: "duergar", uuid: "Actor.d1" }, { form: "stone shaman", uuid: "Actor.s1" }, { form: "efreeti", uuid: "Actor.e1" }];
+  const resolve = (p) => ({ efreeti: "Actor.e1" })[p.toLowerCase()];
+  // under a creature's bullet, in the paragraph and in a bullet nested under it; a labelled bullet ends it
+  const html = "<ul><li><p><strong>@UUID[Actor.d1]{Duergar}.</strong> Forgemaster <strong>Torgrim</strong> (burly, dour) watches.</p><ul><li><p>Then <strong>Morgid</strong> (white mohawk, brash) barks.</p></li></ul></li><li><p><strong>Forges.</strong> Four. <strong>Smith</strong> (hot, loud).</p></li></ul>";
+  const out = linkIndividuals(html, vocab, resolve);
+  assert.match(out, /<strong>@UUID\[Actor\.d1\]\{Torgrim\}<\/strong> \(burly, dour\)/);
+  assert.match(out, /<strong>@UUID\[Actor\.d1\]\{Morgid\}<\/strong> \(white mohawk, brash\)/);
+  assert.match(out, /<strong>Smith<\/strong> \(hot, loud\)/);
+  // a description that ends in a creature's link
+  assert.equal(linkIndividuals("<p><strong>Uzaru</strong>, a bent old <strong>@UUID[Actor.s1]{stone shaman}</strong>, coos.</p>", vocab, resolve),
+    "<p><strong>@UUID[Actor.s1]{Uzaru}</strong>, a bent old <strong>@UUID[Actor.s1]{stone shaman}</strong>, coos.</p>");
+  // a bracket that starts with a creature
+  assert.equal(linkIndividuals("<ul><li><p><strong>Gaspar</strong> (efreeti, LV 12, +9 melee). He is here.</p></li></ul>", vocab, resolve),
+    "<ul><li><p><strong>@UUID[Actor.e1]{Gaspar}</strong> (efreeti, LV 12, +9 melee). He is here.</p></li></ul>");
+  // one trait, or no creature context, is not enough
+  assert.equal(linkIndividuals("<p>See <strong>Door</strong> (iron).</p>", vocab, resolve), "<p>See <strong>Door</strong> (iron).</p>");
+});

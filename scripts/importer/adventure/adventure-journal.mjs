@@ -121,6 +121,44 @@ export function linkMembers(html, vocabulary) {
   });
 }
 
+/**
+ * A person the book sets in bold and describes as a creature, linked to that creature's stat block, in three shapes:
+ *  - under a creature's bullet ("<b>Duergar.</b> Kennelmaster <b>Morgid</b> (white mohawk, brash)"), a bold name followed by two or
+ *    more traits in brackets, also in the bullets nested under it;
+ *  - "<b>Uzaru</b>, a bent old <b>stone shaman</b>": a bold name, a comma and a description that ends in a creature's link;
+ *  - "<b>Gaspar</b> (efreeti, LV 12, +9 melee)": a bold name whose first bracket word is a creature.
+ * @param {string} html
+ * @param {Array<{form:string, uuid:string}>} vocabulary  creatureVocabulary
+ * @param {(phrase:string)=>string|undefined} [resolve]  creatureResolver
+ * @returns {string}
+ */
+export function linkIndividuals(html, vocabulary, resolve) {
+  const uuids = new Set((vocabulary ?? []).map((v) => v.uuid));
+  if (!uuids.size || !html) return html;
+  const NAME = "[A-Z][\\p{L}'’-]+(?:\\s+(?:the\\s+|of\\s+)?[A-Z][\\p{L}'’-]+){0,2}";
+  const re = new RegExp([
+    `<li><p><strong>@UUID\\[(?<label>[^\\]]+)\\]\\{[^}]*\\}[.:]</strong>`,   // a creature's bullet
+    `<li><p>(?=<strong>(?!@UUID))`,                                                      // any other labelled bullet ends it
+    `(?<!<li>)<p>(?!<strong>)`,                                                                // so does a paragraph that is not in a list
+    `(?<=[\\s>])<strong>(?<name>${NAME})</strong>(?<after>,\\s+an?\\s+(?:[\\p{L}-]+\\s+){0,4}(?:<strong>)?@UUID\\[(?<aside>[^\\]]+)\\]|\\s+\\((?<brackets>[^)]*)\\))?`,
+  ].join("|"), "gu");
+  let context = null;
+  return String(html).replace(re, (m, ...args) => {
+    const g = args.at(-1);
+    if (g.label !== undefined) { context = uuids.has(g.label) ? g.label : null; return m; }
+    if (g.name === undefined) { context = null; return m; }
+    const link = (uuid) => `<strong>@UUID[${uuid}]{${g.name}}</strong>${m.slice(`<strong>${g.name}</strong>`.length)}`;
+    if (g.aside && uuids.has(g.aside)) return link(g.aside);
+    if (g.brackets !== undefined) {
+      const first = g.brackets.split(",")[0].trim();
+      const named = resolve && first && first.length <= 30 ? resolve(first) : undefined;
+      if (named && uuids.has(named)) return link(named);
+      if (context && g.brackets.split(",").length >= 2) return link(context);
+    }
+    return m;
+  });
+}
+
 /** One row of a table, cells as paragraphs the way the editor writes them; the first cell is the die or number, centred. */
 const tr = (cells, { boldFirst = false } = {}) => `<tr>${cells.map((c, i) => (i === 0
   ? `<td style="${boldFirst ? "font-weight:bold;" : ""}text-align:center"><p>${boldFirst ? `<strong>${c}</strong>` : c}</p></td>`

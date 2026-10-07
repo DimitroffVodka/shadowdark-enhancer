@@ -24,7 +24,7 @@
 import { PAGE_FURNITURE_RE } from "../tables/hex-parser.mjs";
 import { BOLD_OPEN, BOLD_CLOSE, stripBold, mergeBold } from "../pdf-text-utils.mjs";
 import { enrichContextualText } from "../../shared/contextual-enricher.mjs";
-import { linkItems, linkCreatures, linkMembers } from "./adventure-journal.mjs";
+import { linkItems, linkCreatures, linkMembers, linkIndividuals } from "./adventure-journal.mjs";
 
 /** A step bigger than this between two headings reads as a stray, not a run. */
 export const MAX_GAP = 3;
@@ -285,7 +285,7 @@ export function buildLocationHtml(draft, known, { resolve, items, creatures } = 
     out.push(b.kind === "h" ? `<p><strong>${escapeHtml(titleCaseName(b.text))}</strong></p>` : `<p>${inlineHtml(b.text, known, resolve)}</p>`);
     i++;
   }
-  return linkItems(linkMembers(linkCreatures(enrichContextualText(out.join("\n"), { context: "journal" }), creatures), creatures), items);
+  return linkItems(linkIndividuals(linkMembers(linkCreatures(enrichContextualText(out.join("\n"), { context: "journal" }), creatures), creatures), creatures, resolve), items);
 }
 
 const LOC_PLACEHOLDER_RE = /@@LOC\[(\d+)\]\{([^}]*)\}@@/g;
