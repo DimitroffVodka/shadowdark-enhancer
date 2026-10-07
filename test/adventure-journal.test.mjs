@@ -122,3 +122,33 @@ test("assembleOverview: the roll tables are linked just above the printed tables
   assert.match(onePage[0].html, /<p>@UUID\[Compendium\.w\.RollTable\.E\]\{Halls Random Encounters\}<\/p>$/);
   assert.doesNotMatch(assembleOverview([{ key: "rumors", name: "Rumors", html: "<p>1 a b</p><p>2 c d</p><p>3 e f</p>" }], { range: [1, 9] })[0].html, /RollTable/, "no table in the world, no link");
 });
+
+import { linkCreatures } from "../scripts/importer/adventure/adventure-journal.mjs";
+import { creatureVocabulary } from "../scripts/importer/adventure/adventure-creatures.mjs";
+
+test("creatureVocabulary: the bold phrases that are creatures, in the forms a sentence may use", () => {
+  const O = "\u0001", C = "\u0002";
+  const resolve = (p) => ({ howlers: "A.H", "howler": "A.H", "gordock breeg": "A.G", gordock: "A.G", "ichor oozes": "A.O", "ichor ooze": "A.O" })[p.toLowerCase()];
+  const vocab = creatureVocabulary([
+    { boldLines: [`12 unruly ${O}Howlers${C} make camp. ${O}Gordock Breeg${C}, their leader.`, `${O}• People.${C} Three ${O}ichor oozes${C} nest.`] },
+  ], resolve);
+  const forms = Object.fromEntries(vocab.map((v) => [v.form, v.uuid]));
+  assert.equal(forms.howlers, "A.H"); assert.equal(forms.howler, "A.H");
+  assert.equal(forms["ichor ooze"], "A.O"); assert.equal(forms["ichor oozes"], "A.O");
+  assert.equal(forms["gordock breeg"], "A.G"); assert.equal(forms.gordock, "A.G", "an NPC's first name");
+  assert.equal(forms.people, undefined, "a label that is not a creature");
+  assert.deepEqual(vocab.map((v) => v.form.length), [...vocab.map((v) => v.form.length)].sort((a, b) => b - a), "longest first");
+  assert.deepEqual(creatureVocabulary([{ boldLines: [] }], undefined), []);
+});
+
+test("linkCreatures: a creature printed plain is linked once a page, never twice, never over a link or a roll", () => {
+  const vocab = [{ form: "ichor oozes", uuid: "A.O" }, { form: "howlers", uuid: "A.H" }, { form: "howler", uuid: "A.H" }];
+  assert.equal(linkCreatures("<p>Snarling if Howlers are there. The howlers wait. Three ichor oozes.</p>", vocab),
+    "<p>Snarling if @UUID[A.H]{Howlers} are there. The howlers wait. Three @UUID[A.O]{ichor oozes}.</p>");
+  const already = "<p><strong>@UUID[A.H]{Howlers}</strong> and more Howlers. [[/r 1d4]] howlers</p>";
+  assert.equal(linkCreatures(already, vocab), already, "a page that links it already is left alone");
+  assert.equal(linkCreatures("<p>Plain.</p>", []), "<p>Plain.</p>");
+  const people = [{ form: "bittermold", uuid: "A.B" }];
+  assert.equal(linkCreatures("<p>Plate says \"Sir Reginald Bittermold.\" A Bittermold watches.</p>", people), "<p>Plate says \"Sir Reginald Bittermold.\" A @UUID[A.B]{Bittermold} watches.</p>", "a surname is not the creature");
+  assert.equal(linkCreatures("<p>The Howlers' camp.</p>", vocab), "<p>The @UUID[A.H]{Howlers}' camp.</p>");
+});

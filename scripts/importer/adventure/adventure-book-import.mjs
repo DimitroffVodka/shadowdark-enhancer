@@ -15,7 +15,7 @@ import { resolveSourcePdf, sourcePdfTarget } from "../source-pdf-registry.mjs";
 import { parsePageRange } from "../pdf-text-extract.mjs";
 import { allSites } from "./adventure-manifest.mjs";
 import { parseAdventurePages } from "./adventure-parser.mjs";
-import { creatureMentions, creatureResolver } from "./adventure-creatures.mjs";
+import { creatureMentions, creatureResolver, creatureVocabulary } from "./adventure-creatures.mjs";
 import { commitAdventure, addOverviewToWorldCopy } from "./adventure-commit.mjs";
 import { assembleOverview, linkableItems } from "./adventure-journal.mjs";
 import { findSuitePack } from "../../shared/compendium-suite.mjs";
@@ -81,14 +81,14 @@ export function inlineOverview(parts) {
  * still filed.
  * @returns {Promise<Array<{key:string, name:string, html:string}>>}
  */
-async function readOverview(src, site, { tables, items } = {}) {
+async function readOverview(src, site, { tables, items, creatures } = {}) {
   if (!site.overview) return [];
   try {
     const { readChapter } = await import("../chapter-journal.mjs");
     const read = await readChapter({ src, pages: site.overview, name: t("SDE.importer.adventure.overviewPage"), rowNumbers: true });
     const parts = site.style === "inline" ? inlineOverview(read?.pages) : (read?.pages ?? []);
     // A city's gazetteer is not an adventure's overview: it keeps its pages as the book's headings cut them.
-    return site.noun === "" ? parts : assembleOverview(parts, { range: site.range, tables, items });
+    return site.noun === "" ? parts : assembleOverview(parts, { range: site.range, tables, items, creatures });
   } catch (err) {
     console.warn(`Shadowdark Enhancer | adventures: ${site.title} overview could not be read`, err);
     return [];
@@ -198,8 +198,9 @@ export async function importAdventures(src, { ids, onSite, keepExisting = false 
       const pages = planSitePages(site, (p) => sourcePdfTarget(src, String(p))?.page ?? null);
       const { locations, warnings, intro, introBold } = await readSite({ ...pdf, notifyGutterWarnings: collect }, file, site, pages);
       const tables = await tableLinks(site);
-      const overview = await readOverview(src, site, { tables, items });
-      const res = await commitAdventure(site, locations, { source: label, intro, introBold, resolve: await creatureLinks(site), items, keepExisting, overview });
+      const resolve = await creatureLinks(site);
+      const overview = await readOverview(src, site, { tables, items, creatures: creatureVocabulary(locations, resolve) });
+      const res = await commitAdventure(site, locations, { source: label, intro, introBold, resolve, items, keepExisting, overview });
       // The world's copy of the journal (when the scene has deployed one) gets the overview too, without touching its other pages.
       try { if (overview.length) await addOverviewToWorldCopy(await fromUuid(res.entryUuid)); } catch (err) { console.warn(`Shadowdark Enhancer | adventures: ${site.title} overview not added to the world copy`, err); }
       report.sites.push({

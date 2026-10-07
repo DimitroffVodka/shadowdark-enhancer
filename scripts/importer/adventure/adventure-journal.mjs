@@ -59,6 +59,34 @@ export function linkItems(html, items) {
   }))).join("");
 }
 
+/**
+ * The creatures an adventure names, in the text where the book printed them plain: "Howlers" in a sentence is a link to the
+ * Howler, once a page (the first mention), unless that page already links it. Text only, never markup, an existing link or an
+ * inline roll.
+ * @param {string} html
+ * @param {Array<{form:string, uuid:string}>} vocabulary  creatureVocabulary
+ * @returns {string}
+ */
+export function linkCreatures(html, vocabulary) {
+  const list = vocabulary ?? [];
+  if (!list.length || !html) return html;
+  const byForm = new Map(list.map((v) => [v.form, v.uuid]));
+  const re = new RegExp(`(?<![\\w@'’-])(?:${list.map((v) => escapeRe(v.form)).join("|")})(?![\\w-])`, "gi");
+  const done = new Set(list.map((v) => v.uuid).filter((u) => String(html).includes(`@UUID[${u}]`)));
+  // "Sir Reginald Bittermold" is a person with a family's name, not a Bittermold: a capitalised word in front of the name, in the
+  // middle of a sentence, makes it a surname.
+  const surname = (before) => {
+    const w = /([A-Z][\p{L}'’-]*)\s+$/u.exec(before);
+    return !!w && before.slice(0, w.index).trim() !== "" && !/[.!?:"“”]\s*$/.test(before.slice(0, w.index));
+  };
+  return String(html).split(/(<[^>]+>|@UUID\[[^\]]*\]\{[^}]*\}|\[\[[^\]]*\]\]|@@LOC\[[^\]]*\]\{[^}]*\}@@)/).map((seg, i) => (i % 2 ? seg : seg.replace(re, (m, offset) => {
+    const uuid = byForm.get(m.toLowerCase().replace(/\s+/g, " "));
+    if (!uuid || done.has(uuid) || surname(seg.slice(0, offset))) return m;
+    done.add(uuid);
+    return `@UUID[${uuid}]{${m}}`;
+  }))).join("");
+}
+
 /** One row of a table, cells as paragraphs the way the editor writes them; the first cell is the die or number, centred. */
 const tr = (cells, { boldFirst = false } = {}) => `<tr>${cells.map((c, i) => (i === 0
   ? `<td style="${boldFirst ? "font-weight:bold;" : ""}text-align:center"><p>${boldFirst ? `<strong>${c}</strong>` : c}</p></td>`
@@ -176,10 +204,11 @@ const sectionBody = (s) => {
  *   a one-page adventure, whose Random Encounters heading splits the two)
  * @param {{range?:number[], tables?:{rumors?:{uuid:string,name:string}, encounters?:{uuid:string,name:string}}, items?:Array<{name:string,uuid:string}>}} [opts]
  *   tables: the world's roll tables for this adventure; each is linked just above the printed table it is (as the Lost Citadel
- *   does), or at the top of the areas page when the book prints none. items: linkableItems
+ *   does), or at the top of the areas page when the book prints none. items: linkableItems. creatures: creatureVocabulary, linked
+ *   on the areas page (the encounters name them; the overview does not link them, as the quickstart's)
  * @returns {Array<{key:"overview"|"areas", name:string, html:string}>}  the Overview, then the page for the areas when the book has area-wide text
  */
-export function assembleOverview(parts, { range, tables = {}, items } = {}) {
+export function assembleOverview(parts, { range, tables = {}, items, creatures } = {}) {
   // A one-page adventure's page is jumbled map labels and a flattened table: it stays the one Overview page the reader made of it.
   const finish = (html) => linkItems(enrichContextualText(html, { context: "journal" }), items);
   const linkLine = (t) => `<p>@UUID[${t.uuid}]{${esc(t.name)}}</p>`;
@@ -224,6 +253,6 @@ export function assembleOverview(parts, { range, tables = {}, items } = {}) {
   areasHtml = enc.done || !tables.encounters || !areas.length ? enc.html : `${linkLine(tables.encounters)}\n${areasHtml}`;
   const out = [];
   if (overview.length) out.push({ key: "overview", name: "Overview", html: finish(overviewHtml) });
-  if (areas.length) out.push({ key: "areas", name: range ? `Areas ${range[0]}-${range[1]}` : "Areas", html: finish(areasHtml) });
+  if (areas.length) out.push({ key: "areas", name: range ? `Areas ${range[0]}-${range[1]}` : "Areas", html: finish(linkCreatures(areasHtml, creatures)) });
   return out;
 }

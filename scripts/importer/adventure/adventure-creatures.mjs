@@ -182,3 +182,31 @@ export function linkCreatureNames(marked, resolve) {
   });
   return stripBold(linked);   // a marker the pairs did not close never reaches the page
 }
+
+/**
+ * Pure: every way an adventure's text names the creatures it sets in bold, to link a mention that the book printed in plain
+ * type too ("if Howlers are there", beside the room that has them in bold). One entry per surface form: the bold phrase,
+ * its singular and its plural, and an NPC's first name ("Gordock" for "Gordock Breeg").
+ * @param {Array<{boldLines?:string[]}>} locations  a site's parsed locations
+ * @param {(phrase:string)=>string|undefined} resolve  creatureResolver
+ * @returns {Array<{form:string, uuid:string}>}  longest form first
+ */
+export function creatureVocabulary(locations, resolve) {
+  if (!resolve) return [];
+  const forms = new Map();
+  const add = (form, uuid) => { if (form.length >= 4 && !forms.has(form)) forms.set(form, uuid); };
+  for (const loc of locations ?? []) {
+    const text = (loc.boldLines ?? []).join(" ");
+    for (const m of text.matchAll(new RegExp(`${BOLD_OPEN}([^${BOLD_CLOSE}]*)${BOLD_CLOSE}`, "g"))) {
+      const phrase = phraseOf(m[1]);
+      if (!phrase || phrase.length > 40 || !/[a-z]/.test(phrase)) continue;
+      const uuid = resolve(phrase);
+      if (!uuid) continue;
+      const lower = words(phrase).join(" ");
+      for (const f of [lower, ...phraseKeys(phrase)]) { add(f, uuid); if (!f.endsWith("s")) add(`${f}s`, uuid); }
+      const first = words(phrase)[0];
+      if (first && first !== lower && resolve(first) === uuid) add(first, uuid);
+    }
+  }
+  return [...forms].map(([form, uuid]) => ({ form, uuid })).sort((a, b) => b.form.length - a.form.length);
+}

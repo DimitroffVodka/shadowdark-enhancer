@@ -20,6 +20,7 @@
 import { MODULE_ID } from "../../shared/module-id.mjs";
 import { ensureSuite, ensureSourceFolder, cleanImportHtml, sourceFolderName, findSuitePack } from "../../shared/compendium-suite.mjs";
 import { buildLocationHtml, locationPageName, rewriteLocPlaceholders } from "./adventure-parser.mjs";
+import { creatureVocabulary } from "./adventure-creatures.mjs";
 
 /** Flag key under `flags.shadowdark-enhancer` on the entry and its pages. */
 export const ADVENTURE_FLAG = "adventure";
@@ -52,14 +53,14 @@ const INTRO_SORT = -1;
 const LOCATION_SORT = 1000;
 
 /** Pass-1 payload for the Introduction page (placeholders still inside). */
-export function introPagePayload(lines, known, { boldLines, resolve, items } = {}) {
+export function introPagePayload(lines, known, { boldLines, resolve, items, creatures } = {}) {
   return {
     name: t("SDE.importer.adventure.introPage"),
     type: "text",
     title: { show: true, level: 1 },
     sort: INTRO_SORT,
     text: {
-      content: buildLocationHtml({ bodyLines: lines, boldLines }, known, { resolve, items }),
+      content: buildLocationHtml({ bodyLines: lines, boldLines }, known, { resolve, items, creatures }),
       format: globalThis.CONST?.JOURNAL_ENTRY_PAGE_FORMATS?.HTML ?? 1,
     },
     flags: { [MODULE_ID]: { [ADVENTURE_FLAG]: { intro: true } } },
@@ -108,7 +109,7 @@ export const isIntroPage = (page) =>
   (page?.getFlag?.(MODULE_ID, ADVENTURE_FLAG)?.intro ?? page?.flags?.[MODULE_ID]?.[ADVENTURE_FLAG]?.intro) === true;
 
 /** Pass-1 page payload for one location (placeholders still inside). */
-export function locationPagePayload(loc, known, { resolve, noun, level = 2, items } = {}) {
+export function locationPagePayload(loc, known, { resolve, noun, level = 2, items, creatures } = {}) {
   return {
     name: locationPageName(loc, noun),
     type: "text",
@@ -116,7 +117,7 @@ export function locationPagePayload(loc, known, { resolve, noun, level = 2, item
     title: { show: true, level },
     sort: LOCATION_SORT + loc.num * 100,   // by number, whatever order the pages were made in
     text: {
-      content: buildLocationHtml({ bodyLines: loc.bodyLines ?? [], boldLines: loc.boldLines }, known, { resolve, items }),
+      content: buildLocationHtml({ bodyLines: loc.bodyLines ?? [], boldLines: loc.boldLines }, known, { resolve, items, creatures }),
       format: globalThis.CONST?.JOURNAL_ENTRY_PAGE_FORMATS?.HTML ?? 1,
     },
     flags: { [MODULE_ID]: { [ADVENTURE_FLAG]: { num: loc.num } } },
@@ -179,10 +180,12 @@ export async function commitAdventure(site, locations, { source = "", intro = []
   const plan = planAdventureCommit(locations, existing);
   report.collisions = plan.collisions;
   const known = new Set([...existing.keys(), ...locations.map((l) => l.num)]);
+  // Every way this adventure's text names its creatures, so a mention printed plain is linked like one printed bold.
+  const creatures = creatureVocabulary(locations, resolve);
   // The locations sit under the page for the areas (level 2) when the book has one; without it they stand on their own.
   const level = overview.some((o) => o.key === "areas") ? 2 : 1;
   const payload = (loc) => {
-    const p = locationPagePayload(loc, known, { resolve, noun: site.noun, level, items });
+    const p = locationPagePayload(loc, known, { resolve, noun: site.noun, level, items, creatures });
     p.text.content = cleanImportHtml(p.text.content);
     return p;
   };
@@ -190,7 +193,7 @@ export async function commitAdventure(site, locations, { source = "", intro = []
   // The Introduction is one more page, found by its flag and kept up to date like the rest.
   const introDoc = intro.length ? entry.pages.find(isIntroPage) : null;
   const introPayload = () => {
-    const p = introPagePayload(intro, known, { boldLines: introBold, resolve, items });
+    const p = introPagePayload(intro, known, { boldLines: introBold, resolve, items, creatures });
     p.text.content = cleanImportHtml(p.text.content);
     return p;
   };
