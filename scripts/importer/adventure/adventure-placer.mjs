@@ -14,9 +14,10 @@
  */
 
 import { MODULE_ID } from "../../shared/module-id.mjs";
-import { MAP_FLAG, placeSiteWalls, placeSiteLights, entryPages, scenePins, placementRows, nextPending, noteData, setSkipped, placementGate, restoreSiteJournal, planBookPins, refreshPinArt, placeMarkerTokens, placeCreatureTokens } from "./adventure-scene.mjs";
+import { MAP_FLAG, placeSiteWalls, placeSiteLights, entryPages, scenePins, placementRows, nextPending, noteData, setSkipped, placementGate, restoreSiteJournal, planBookPins, refreshPinArt, placeMarkerTokens, placeCreatureTokens, placeSiteTraps } from "./adventure-scene.mjs";
 import { findSite } from "./adventure-manifest.mjs";
 import { stitchMapLabels, mapFits } from "./map-labels.mjs";
+import { trapsFor } from "./adventure-traps.mjs";
 import { layoutFor, layoutPoints, layoutFromPins, layoutSnippet, markersFor } from "./adventure-layouts.mjs";
 import { resolveSourcePdf, sourcePdfTarget } from "../source-pdf-registry.mjs";
 import { parsePageRange } from "../pdf-text-extract.mjs";
@@ -50,6 +51,7 @@ export class AdventurePlacer extends HandlebarsApplicationMixin(ApplicationV2) {
       advBook: function (...a) { return this._onBook(...a); },
       advExport: function (...a) { return this._onExport(...a); },
       advMonsters: function (...a) { return this._onMonsters(...a); },
+      advTraps: function (...a) { return this._onTraps(...a); },
       advStop: function (...a) { return this._onStop(...a); },
       advSkip: function (...a) { return this._onSkip(...a); },
       advClear: function (...a) { return this._onClear(...a); },
@@ -254,6 +256,7 @@ export class AdventurePlacer extends HandlebarsApplicationMixin(ApplicationV2) {
       ui.notifications?.info(t("SDE.adventure.placer.fromBookDone", { placed: create.length, left: left.length }));
       await this._placeMonsters(site, rect);
       await this._placeWalls(site);
+      await this._placeTraps(site, rect);
       return { placed: create.length, left: left.length };
     } catch (err) {
       console.error(`${MODULE_ID} | adventure placer: placing from known positions failed`, err);
@@ -290,6 +293,28 @@ export class AdventurePlacer extends HandlebarsApplicationMixin(ApplicationV2) {
     }
   }
 
+  /**
+   * The traps the book prints for this map, as hidden Regions around their pins, when the module knows where they sit. Needs
+   * the walls (they bound a trap to its room) and the GM's book (it says what each trap is). Only adds what is missing,
+   * so a re-run never touches a trap the GM edited. A failure here never costs the pins that were just placed.
+   */
+  async _placeTraps(site, rect) {
+    try {
+      if (!trapsFor(site.id)) return null;
+      const { readSiteTraps } = await import("./adventure-book-import.mjs");
+      const texts = await readSiteTraps(site);
+      if (!texts) { ui.notifications?.warn(t("SDE.importer.pdf.bookNotLinked")); return null; }
+      const built = await placeSiteTraps(this.scene, site, rect, texts);
+      if (built.placed) ui.notifications?.info(t("SDE.adventure.placer.trapsDone", { placed: built.placed }));
+      if (built.skipped.length) ui.notifications?.warn(t("SDE.adventure.placer.trapsSkipped", { n: built.skipped.length, pins: built.skipped.map((x) => x.pin).join(", ") }));
+      return built;
+    } catch (err) {
+      console.error(`${MODULE_ID} | adventure placer: placing the traps failed`, err);
+      ui.notifications?.error(t("SDE.adventure.placer.trapsFailed"));
+      return null;
+    }
+  }
+
   /** The module's walls and doors for this map, when it has them. A failure here never costs the pins that were just placed. */
   async _placeWalls(site) {
     try {
@@ -314,6 +339,25 @@ export class AdventurePlacer extends HandlebarsApplicationMixin(ApplicationV2) {
       const rect = this.scene.dimensions?.sceneRect ?? { x: 0, y: 0, width: this.scene.width, height: this.scene.height };
       const found = await this._placeMonsters(site, rect);
       if (found && !found.placed && !found.missing.length) ui.notifications?.info(t("SDE.adventure.placer.monstersNone"));
+    } finally {
+      this._gate.release();
+    }
+  }
+
+  /**
+   * The Add traps button: the traps alone, for a scene built before they were placed, or one whose walls the GM has been
+   * correcting by hand (it never touches walls, and never replaces a trap that is already there).
+   */
+  async _onTraps() {
+    const site = findSite(this.scene.getFlag(MODULE_ID, MAP_FLAG)?.site);
+    if (!site || this._gate.claim() === null) return;
+    try {
+      const rect = this.scene.dimensions?.sceneRect ?? { x: 0, y: 0, width: this.scene.width, height: this.scene.height };
+      const built = await this._placeTraps(site, rect);
+      if (!built) return;
+      if (built.status === "none") ui.notifications?.info(t("SDE.adventure.placer.trapsNoData"));
+      else if (built.status === "mismatch") ui.notifications?.warn(t("SDE.adventure.placer.trapsMismatch"));
+      else if (!built.placed && !built.skipped.length) ui.notifications?.info(t("SDE.adventure.placer.trapsNone"));
     } finally {
       this._gate.release();
     }

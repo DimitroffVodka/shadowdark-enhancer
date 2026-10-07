@@ -430,6 +430,17 @@ map gets none. A light only shows once the scene is darkened (the Darkness slide
 scene's settings): the module leaves the scene as it is, because a fully dark scene hides even
 your own hidden creatures from you.
 
+**Traps come with the scene for the Hideous Halls of Mugdulblub.** The module knows where each of the
+Halls' ten traps sits on its map (positions only), and your book says what each one is: when the scene
+is built, each trap line is read from the PDF you linked and becomes a hidden Region around its
+room with a Trap behavior (the one you can add to any Region by hand), already filled in from the
+book: its check and DC, its damage, whether it fires once or every round, and its chance. Quicksand
+and gas fire on entry and again each round; a shrine fires when you press Spring this trap now. Building
+again only adds traps that are missing: a trap you reshaped or edited is never touched or replaced.
+The areas that read like hazards but are not traps (a table of what the river carries, a chance of an
+encounter) get none. A trap whose line in your copy of the book no longer matches what the module
+expects is left out, and the scene tells you which areas.
+
 **Monster names are links.** In a room's journal page, every creature name the book sets in
 bold that your bestiary knows (the core bestiary first, then your imported monsters) is a
 link to that monster, so a room opens the stat block it names; a bold word that is not a

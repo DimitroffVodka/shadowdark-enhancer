@@ -278,7 +278,32 @@ export async function createTrap({ scene = canvas?.scene, points, generate = fal
   return region ?? null;
 }
 
+/**
+ * Add the traps an adventure's book prints to its scene, as hidden Regions (importer/adventure/adventure-traps.mjs), and say
+ * what happened. It touches no pins, creatures or walls and leaves a trap that is already there as it is, so it is safe on a
+ * scene whose walls have been corrected by hand. GM only.
+ * @param {Scene} [scene]  defaults to the viewed scene
+ * @returns {Promise<{status:string, placed:number, existing:number, skipped:object[]}|null>}
+ */
+export async function placeAdventureTraps(scene = canvas?.scene) {
+  if (!game.user?.isGM || !scene) return null;
+  const { addSiteTraps } = await import("../importer/adventure/adventure-book-import.mjs");
+  const built = await addSiteTraps(scene);
+  const say = (key, data) => game.i18n.format(key, data ?? {});
+  if (built.status === "not-adventure") ui.notifications.warn(say("SDE.trap.notify.notAdventure"));
+  else if (built.status === "no-book") ui.notifications.warn(say("SDE.importer.pdf.bookNotLinked"));
+  else if (built.status === "none") ui.notifications.info(say("SDE.adventure.placer.trapsNoData"));
+  else if (built.status === "mismatch") ui.notifications.warn(say("SDE.adventure.placer.trapsMismatch"));
+  else {
+    if (built.placed) ui.notifications.info(say("SDE.adventure.placer.trapsDone", { placed: built.placed }));
+    if (built.skipped.length) ui.notifications.warn(say("SDE.adventure.placer.trapsSkipped", { n: built.skipped.length, pins: built.skipped.map((x) => x.pin).join(", ") }));
+    if (!built.placed && !built.skipped.length) ui.notifications.info(say("SDE.adventure.placer.trapsNone"));
+  }
+  return built;
+}
+
 export const trapsApi = () => ({
   type: TRAP_TYPE, roll: () => rollTrap(), create: (options) => createTrap(options), spring: (region, options) => springTrap(region, options),
+  placeAdventure: (scene) => placeAdventureTraps(scene),
   release: (token) => releaseToken(token),
 });

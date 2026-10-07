@@ -2790,9 +2790,11 @@ function onFloor(rings, x, y) {
  * @param {number} gridSize
  * @param {{x:number, y:number}} pin  in scene pixels
  * @param {number} [limit=200]  stop after this many squares
- * @returns {Array<[number, number]>} [column, row] of each square, columns and rows counted from the image's corner
+ * @param {boolean} [withDepth=false]  add how many steps each square is from the pin's, walking (a square across a thin wall is
+ *   close in a straight line and far on foot)
+ * @returns {Array<[number, number]|[number, number, number]>} [column, row] of each square, columns and rows counted from the image's corner (and its depth)
  */
-export function reachableSquares(data, rect, gridSize, pin, limit = 200) {
+export function reachableSquares(data, rect, gridSize, pin, limit = 200, withDepth = false) {
   const cols = Math.floor(rect.width / gridSize), rows = Math.floor(rect.height / gridSize);
   const at = ([u, v]) => [rect.x + u * rect.width, rect.y + v * rect.height];
   const rings = [...(data?.loops ?? []), ...(data?.solids ?? [])].map((r) => r.map(at));
@@ -2825,10 +2827,11 @@ export function reachableSquares(data, rect, gridSize, pin, limit = 200) {
   }
   if (!start) return [];
   const out = [], seen = new Set([`${start}`]);
-  let layer = [start];
+  let layer = [start], depth = 0;
   while (layer.length && out.length < limit) {
     layer.sort((a, b) => Math.atan2(a[1] - pr, a[0] - pc) - Math.atan2(b[1] - pr, b[0] - pc));
-    out.push(...layer);
+    out.push(...(withDepth ? layer.map(([c, r]) => [c, r, depth]) : layer));
+    depth++;
     const next = [];
     for (const [c, r] of layer) {
       for (const [dc, dr] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
