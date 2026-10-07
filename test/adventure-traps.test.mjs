@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { trapCandidates, squareOutline, planSiteTraps, trapsFor, ADVENTURE_TRAPS } from "../scripts/importer/adventure/adventure-traps.mjs";
+import { trapCandidates, squareOutline, planSiteTraps, trapsFor, ADVENTURE_TRAPS, PLACE_ADVENTURE_TRAPS } from "../scripts/importer/adventure/adventure-traps.mjs";
 import { ADVENTURE_LAYOUTS } from "../scripts/importer/adventure/adventure-layouts.mjs";
 import { ADVENTURE_WALLS } from "../scripts/importer/adventure/adventure-walls.mjs";
 
@@ -115,4 +115,10 @@ test("a site with trap data also has the pins and walls that place them", () => 
     }
   }
   assert.equal(trapsFor("nowhere"), null);
+});
+
+test("the importer places a map's book traps only while the switch is on; the data is kept either way", () => {
+  assert.ok(ADVENTURE_TRAPS["cs1-mugdulblub"].length > 0);
+  assert.deepEqual(trapsFor("cs1-mugdulblub"), PLACE_ADVENTURE_TRAPS ? ADVENTURE_TRAPS["cs1-mugdulblub"] : null);
+  assert.equal(PLACE_ADVENTURE_TRAPS, false);   // held back for a later release
 });

@@ -104,6 +104,7 @@ export class AdventurePlacer extends HandlebarsApplicationMixin(ApplicationV2) {
       sceneName: this.scene.name,
       missing: !this.journal,
       armed: this.armed,
+      canPlaceTraps: !!trapsFor(this.scene.getFlag(MODULE_ID, MAP_FLAG)?.site),
       rows: rows.map((r) => ({
         ...r,
         placed: r.state === "placed", skipped: r.state === "skipped",

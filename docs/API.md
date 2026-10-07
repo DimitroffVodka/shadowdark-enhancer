@@ -117,7 +117,8 @@ await api.traps.spring(regionOrId, { token });  // GM only: fire the trap by han
 await api.traps.release(token);  // GM only: free a held token; false if it was not held
 await api.traps.placeAdventure(scene);  // GM only: add the traps an adventure's book prints to its scene (default: the viewed scene),
                                  // as hidden regions; touches no pins, creatures or walls, and leaves a trap that is already there
-                                 // alone. Resolves { status, placed, existing, skipped }
+                                 // alone. Resolves { status, placed, existing, skipped }. No map has its book traps built in yet,
+                                 // so for now it answers status "none"
 await api.traps.create({         // GM only; returns the Region
   scene,                         // default: the viewed scene
   points: [x1, y1, x2, y2, …],   // scene pixels, or [{x, y}, …]; default: one square at the scene centre

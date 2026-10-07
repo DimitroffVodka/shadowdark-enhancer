@@ -39,7 +39,14 @@ export const ADVENTURE_TRAPS = {
   ],
 };
 
-export const trapsFor = (siteId) => ADVENTURE_TRAPS[siteId] ?? null;
+/**
+ * Whether the importer places these traps on a scene. Off for now: the Trap behavior ships (a GM adds it to any Region), but no
+ * map gets its book traps built in yet. Turn it on and the build, the placer's Add traps button and
+ * `game.shadowdarkEnhancer.traps.placeAdventure()` use the data below again.
+ */
+export const PLACE_ADVENTURE_TRAPS = false;
+
+export const trapsFor = (siteId) => (PLACE_ADVENTURE_TRAPS ? ADVENTURE_TRAPS[siteId] : null) ?? null;
 
 /** Flag on every region this module made from this data, so a run can tell its own traps from the GM's. */
 export const TRAP_REGION_FLAG = "adventureTrap";
