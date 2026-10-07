@@ -34,6 +34,17 @@ export const DEAD_STATUS = "dead";
 /** Shadowdark's "near": up to 30 feet. */
 export const NEAR_FEET = 30;
 
+/** Shadowdark's "close": 5 feet, the reach of first aid (p.89). */
+export const CLOSE_FEET = 5;
+
+/**
+ * Is a helper within close range? An unknown distance (no tokens on the scene
+ * to measure) counts as close: the table decides there.
+ * @param {number|null|undefined} feet
+ * @returns {boolean}
+ */
+export const isClose = (feet) => !Number.isFinite(feet) || feet <= CLOSE_FEET;
+
 const FLAG_NAMES = {
   timerDie: "dyingTimerDie",
   timerBonus: "dyingTimerBonus",
@@ -183,13 +194,14 @@ export function shouldTick(last, scope, round) {
  * Does a stabilize check's chat card stabilize? Anyone can post a card, and a
  * reroll repeats the original's config, so nothing on the card is taken on
  * trust but the dice: its author must be a GM or own the helper, the helper
- * is not the dying character, and the roll's total meets the DC the GM works
- * out itself, never the one the card carries.
+ * is not the dying character and is within close range, and the roll's total
+ * meets the DC the GM works out itself, never the one the card carries.
  * @param {object} p
+ * @param {boolean} [p.close]  the helper is within close range (default: yes)
  * @returns {boolean}
  */
-export function cardStabilizes({ authorIsGM, authorOwnsHelper, helperIsTarget, total, dc }) {
-  if (helperIsTarget || !(authorIsGM || authorOwnsHelper)) return false;
+export function cardStabilizes({ authorIsGM, authorOwnsHelper, helperIsTarget, total, dc, close = true }) {
+  if (helperIsTarget || !close || !(authorIsGM || authorOwnsHelper)) return false;
   return Number.isFinite(total) && Number.isFinite(dc) && total >= dc;
 }
 

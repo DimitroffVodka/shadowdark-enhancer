@@ -14,6 +14,8 @@
   redesign. No window uses it yet, so nothing looks different.
 
 ### Changed
+- **Stabilizing a dying character needs close range.** The book's first aid reaches 5 feet; the helper's token must be within 5 feet of the dying character's, or the check is refused with a note before it rolls. With no token to measure, the table decides as before.
+- **The Crawl Strip no longer shows a row of status-condition icons on each card.** The Dying badge and the light badge stay.
 - **The Merchant window's Log and Settings are tabs in the tab bar** instead of two small icons in the header, and the Make Shop Available and Close Shop buttons stay at the bottom of every tab for the GM, so you can open the shop without going into Settings first.
 - **The Boat sheet header keeps the boat name whole at the default width** (the stats wrap instead), the unused vehicle tabs partial is gone, and the bastion, boat and character builder design-harness fixtures carry the windows' current classes.
 - **Character Builder steps have a simpler structure.** Each step has one heading line with a summary of the choice (the ancestry or class picked, the stat method, gold left, the character's name) instead of the two bordered bands; the Class step is two columns with folded sections, the used dice are readable, the ability guides and art actions fold away, and Create Character is the one primary button. The window keeps its black-and-silver look.

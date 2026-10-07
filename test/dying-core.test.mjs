@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   DYING_KEYS, modifier, timerRoll, deathTimer, stabilizeDC, riseMin, turnOutcome, hpAction, shouldTick, badge,
-  checkedNatural, cardStabilizes, timerChat,
+  checkedNatural, cardStabilizes, timerChat, isClose,
 } from "../scripts/dying/dying-core.mjs";
 
 const actorWith = (flags) => ({ flags: { "shadowdark-enhancer": flags } });
@@ -137,6 +137,15 @@ test("a stabilize card counts only from the helper's owner or a GM, on the GM's 
   assert.equal(cardStabilizes({ ...card, helperIsTarget: true }), false, "nobody stabilizes themselves");
   assert.equal(cardStabilizes({ ...card, total: undefined }), false);
   assert.equal(cardStabilizes({ ...card, total: 20, dc: 18 }), true, "Deadly");
+  assert.equal(cardStabilizes({ ...card, close: false }), false, "first aid needs close range");
+});
+
+test("first aid reaches 5 feet; no distance to measure counts as close", () => {
+  assert.equal(isClose(0), true);
+  assert.equal(isClose(5), true);
+  assert.equal(isClose(10), false);
+  assert.equal(isClose(null), true, "no tokens on the scene");
+  assert.equal(isClose(undefined), true);
 });
 
 test("who sees the death timer roll: everyone, the GM alone, or nobody", () => {
