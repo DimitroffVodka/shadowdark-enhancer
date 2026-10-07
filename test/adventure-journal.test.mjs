@@ -200,7 +200,7 @@ test("a bold that closes after 'of Leng', and one bold name after a comma, link"
 test("a bold person described as a creature links to that creature", async () => {
   const { linkIndividuals } = await import("../scripts/importer/adventure/adventure-journal.mjs");
   const vocab = [{ form: "duergar", uuid: "Actor.d1" }, { form: "stone shaman", uuid: "Actor.s1" }, { form: "efreeti", uuid: "Actor.e1" }];
-  const resolve = (p) => ({ efreeti: "Actor.e1" })[p.toLowerCase()];
+  const resolve = (p) => ({ efreeti: "Actor.e1" })[p.toLowerCase()];   // the bestiary knows the efreeti whether or not the page has linked one
   // under a creature's bullet, in the paragraph and in a bullet nested under it; a labelled bullet ends it
   const html = "<ul><li><p><strong>@UUID[Actor.d1]{Duergar}.</strong> Forgemaster <strong>Torgrim</strong> (burly, dour) watches.</p><ul><li><p>Then <strong>Morgid</strong> (white mohawk, brash) barks.</p></li></ul></li><li><p><strong>Forges.</strong> Four. <strong>Smith</strong> (hot, loud).</p></li></ul>";
   const out = linkIndividuals(html, vocab, resolve);

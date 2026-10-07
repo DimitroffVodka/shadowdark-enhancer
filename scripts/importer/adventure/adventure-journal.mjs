@@ -134,7 +134,7 @@ export function linkMembers(html, vocabulary) {
  */
 export function linkIndividuals(html, vocabulary, resolve) {
   const uuids = new Set((vocabulary ?? []).map((v) => v.uuid));
-  if (!uuids.size || !html) return html;
+  if (!html || (!uuids.size && !resolve)) return html;
   const NAME = "[A-Z][\\p{L}'’-]+(?:\\s+(?:the\\s+|of\\s+)?[A-Z][\\p{L}'’-]+){0,2}";
   const re = new RegExp([
     `<li><p><strong>@UUID\\[(?<label>[^\\]]+)\\]\\{[^}]*\\}[.:]</strong>`,   // a creature's bullet
@@ -152,7 +152,7 @@ export function linkIndividuals(html, vocabulary, resolve) {
     if (g.brackets !== undefined) {
       const first = g.brackets.split(",")[0].trim();
       const named = resolve && first && first.length <= 30 ? resolve(first) : undefined;
-      if (named && uuids.has(named)) return link(named);
+      if (named) return link(named);
       if (context && g.brackets.split(",").length >= 2) return link(context);
     }
     return m;
