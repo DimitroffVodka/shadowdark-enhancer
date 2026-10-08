@@ -1,7 +1,7 @@
 # Shadowdark Enhancer — File Inventory
 
 <!-- inventory:stats:start -->
-1760 tracked files · ~219,500 lines of code/markup across scripts+templates+styles+test.
+1761 tracked files · ~219,600 lines of code/markup across scripts+templates+styles+test.
 `v0.17.3` in both `module.json` and `package.json`.
 <!-- inventory:stats:end -->
 **Layout reflects the 2026-07-21 feature-folder reorganization (v0.11.0 cycle).**
@@ -86,7 +86,7 @@
 | `hex-map/hex-number-api.mjs` | 47 | `hexMaps.numberAt` / `hasNumbering`: the tagger's published hex number for a Foundry offset on a numbered scene, synchronous, so Shadowdark Extras' Map Coordinates shows what the tagger shows. |
 | `hex-map/hex-picture.mjs` | 188 | What the hex brush shows per terrain (pure): the Legend palette's terrains only, which tagged hex stands for each, the hexagon mask and printed-number patch geometry, and the edge-ink test that rejects a neighbour's border bleeding in. |
 | `hex-map/hex-pins.mjs` | 129 | Keyed hexes as map notes: deploys the crawl journal into the world with stable ids (links rewritten), plans one Note per keyed page at its hex centre (pure planner), moves existing pins on re-run. |
-| `hex-map/hex-prints.mjs` | 81 | What is known of each book's hex map, pure: which book's key locations pin onto it, where its crawls are filed, the printed number of its first hex, and for the two black maps the grid finder cannot read (the Black River, joined from two halves, and Morzomotha) their measured grids. Numbers and names only, no part of the print. |
+| `hex-map/hex-prints.mjs` | 86 | What is known of each book's hex map, pure: which book's key locations pin onto it, where its crawls are filed, the printed number of its first hex, and for the two black maps the grid finder cannot read (the Black River, joined from two halves, and Morzomotha) their measured grids. Numbers and names only, no part of the print. |
 | `hex-map/hex-records.mjs` | 205 | Scene-offset native rich-record facade over existing tags, keyed pins/pages and regions, private compendium records and allowlisted public disclosure projections. |
 | `hex-map/hex-region.mjs` | 289 | Which region is a hex in: the book's own word for a keyed hex, the nearest keyed hex's region for any other (84.8% on the Western Reaches, leave-one-out over the book's own keyed rows). Seeds come from the filed crawls; nothing is stored. |
 | `hex-map/hex-tagger-app.mjs` | 1859 | Hex Tagger AppV2: contact sheet over the active hex scene, anchor numbering, tags on the scene flag, dataset hand-off. |
@@ -404,7 +404,7 @@
 | `wizard/map-master.mjs` | 81 | Master list of the books' own maps: each map's measured pixel shape, which names a file must or must not carry to be it (not a GM's overlay, a later copy or a stitched whole), and which of two shipped copies to prefer. Pure data. |
 | `wizard/wizard-app.mjs` | 252 | Import wizard window: an ApplicationV2 around the controller that draws its pages, hands clicks and drops back, and supplies the Foundry parts (uploads, the PDF reader, the hub's quiet batch import, adventure scenes). Also wizardFirst(), which says whether a world still needs its first import. |
 | `wizard/wizard-check.mjs` | 136 | Import wizard Check page: makes sure each picked book opens (and uploads, when kept) and each map opens, has the right shape and is uploaded; a problem carries a plain reason and its fixes. Foundry calls come in as env. |
-| `wizard/wizard-controller.mjs` | 383 | Import wizard controller: owns the state, answers clicks and file drops, and describes the current page as plain data for the template. The Foundry window and the browser preview both drive it. |
+| `wizard/wizard-controller.mjs` | 387 | Import wizard controller: owns the state, answers clicks and file drops, and describes the current page as plain data for the template. The Foundry window and the browser preview both drive it. |
 | `wizard/wizard-core.mjs` | 278 | Import wizard brain, pure: the page flow and its guards, which book or map a picked file is (from the module's own manifests), and the catalogue of everything the wizard asks for. |
 | `wizard/wizard-dom.mjs` | 74 | Import wizard browser wiring: the file dialog, drop zones and click delegation, shared by the Foundry window and the preview. |
 | `wizard/wizard-run.mjs` | 130 | Import wizard Import page: runs the library, then each book's adventures, then each adventure map's scene, and reports what was imported, what was already there and what needs the GM. Foundry parts come in as deps, so Node tests the flow. |

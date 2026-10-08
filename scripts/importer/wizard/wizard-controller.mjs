@@ -25,6 +25,7 @@ import {
   PAGES, HEX_MAPS, bookTitle, filesOfHex, isUsefulName, newState, addFiles, removeFile, bookRows, mapGroups, blocker, canBack, go,
 } from "./wizard-core.mjs";
 import { runCheck } from "./wizard-check.mjs";
+import { hexPrint } from "../../hex-map/hex-prints.mjs";
 import { expandPicked, materialize } from "./zip-reader.mjs";
 
 const MB = 1048576;
@@ -45,7 +46,7 @@ const SUBTITLES = {
 /** What the Done page says of a hex map; keys are written out in full. */
 const HEX_STATUS = {
   ready: "SDE.importer.wizard.done.hexStatus.ready", already: "SDE.importer.wizard.done.hexStatus.already", needsLook: "SDE.importer.wizard.done.hexStatus.needsLook",
-  named: "SDE.importer.wizard.done.hexStatus.named", failed: "SDE.importer.wizard.done.hexStatus.failed",
+  named: "SDE.importer.wizard.done.hexStatus.named", readyDrawn: "SDE.importer.wizard.done.hexStatus.readyDrawn", alreadyDrawn: "SDE.importer.wizard.done.hexStatus.alreadyDrawn", failed: "SDE.importer.wizard.done.hexStatus.failed",
 };
 
 /** Names a click may carry in data-action; wizard-app.mjs maps each to dispatch(). */
@@ -207,7 +208,8 @@ export class WizardController {
     }
     await this.env.release?.();
     // Each hex map the run set up still needs its terrain named, once; that is the page before the last.
-    const need = (s.result.hex ?? []).filter((h) => h.legend && h.sceneId);
+    // A drawn map's terrain is a choice, not a step (hex-prints.mjs): its Done row offers the Legend instead.
+    const need = (s.result.hex ?? []).filter((h) => h.legend && h.sceneId && !h.optional);
     s.terrain = need.length ? { queue: need.map(({ id, title, sceneId }) => ({ id, title, sceneId })), i: 0, stage: "reading", error: "", named: [] } : null;
     s.page = s.terrain ? "terrain" : "done";
     this.changed();
@@ -316,6 +318,7 @@ export class WizardController {
       vm.ready = {
         summary: t("SDE.importer.wizard.ready.summary", { books, maps }),
         hexNote: HEX_MAPS.some((h) => ok.has(`map:${h.id}`)),
+        hexDrawnOnly: HEX_MAPS.some((h) => ok.has(`map:${h.id}`)) && !HEX_MAPS.some((h) => ok.has(`map:${h.id}`) && !hexPrint(h.id)?.drawn),
       };
     }
     if (s.page === "import") vm.run = { pct: s.progress.pct, phase: s.progress.phase };
@@ -334,9 +337,10 @@ export class WizardController {
         skipped: r.skipped?.n ? t(r.skipped.books.length ? "SDE.importer.wizard.done.skippedBooks" : "SDE.importer.wizard.done.skipped", { n: r.skipped.n, books: r.skipped.books.join(", ") }) : "",
         hexMaps: (r.hex ?? []).map((h) => ({
           id: h.id, title: h.title, sceneId: h.sceneId, legend: h.legend, look: h.look,
-          line: t(h.named ? HEX_STATUS.named : (HEX_STATUS[h.status] ?? HEX_STATUS.needsLook), { n: h.pinned ?? 0 }),
+          line: t(h.named ? HEX_STATUS.named : (h.optional && h.legend && h.status === "ready" ? HEX_STATUS.readyDrawn : h.optional && h.legend && h.status === "already" ? HEX_STATUS.alreadyDrawn : HEX_STATUS[h.status] ?? HEX_STATUS.needsLook), { n: h.pinned ?? 0 }),
         })),
-        hexLegend: (r.hex ?? []).some((h) => h.legend),
+        hexLegend: (r.hex ?? []).some((h) => h.legend && !h.optional),
+        hexLegendOptional: !(r.hex ?? []).some((h) => h.legend && !h.optional) && (r.hex ?? []).some((h) => h.legend),
       };
     }
 
