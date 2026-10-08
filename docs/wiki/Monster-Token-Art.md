@@ -29,6 +29,8 @@ Open the manager through either method (GM-only):
 * **Actors sidebar:** Click the **Monster Art** button at the top of the sidebar.
 * **API:** Run `game.shadowdarkEnhancer.tokenArt.openManager()`.
 
+The [import guide](Importer-Hub.md) offers the same Apply on its Done page after monsters are imported.
+
 ---
 
 ## Supported art sources

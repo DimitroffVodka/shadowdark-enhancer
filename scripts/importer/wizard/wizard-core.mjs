@@ -165,6 +165,7 @@ export const newState = () => ({
   progress: { pct: 0, phase: "" },
   result: null,
   terrain: null,  // after an import that set up hex maps: { queue, i, stage, error, named }, one map at a time (wizard-controller.mjs)
+  art: null,      // on Done, when installed art can skin the imported monsters: { sources, stage: offer | applying | done | failed, line }
   update: null,   // set by startUpdate(): the wizard opened because a release added content
 });
 

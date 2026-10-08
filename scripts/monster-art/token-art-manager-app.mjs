@@ -677,19 +677,8 @@ export class TokenArtManagerApp extends HandlebarsApplicationMixin(ApplicationV2
     // leaves the compendium overlay pointing at nothing, and a green "applied"
     // toast over a red server error is how this went unnoticed on live servers.
     try {
-      // Seed N6's reviewed imported rows through the same per-document pick
-      // state used by Browse. This runs before resolve() so later GM picks and
-      // explicit source overrides retain precedence, while zero-option rows
-      // still remain visible with Browse.
-      const curated = await TokenArtCatalog.applyCuratedImportedArt({ library: this._library ?? undefined });
-      // The curation pass re-reads the managed pack (including Actors imported
-      // after this window was opened). Rebuild the index-shaped catalog before
-      // producing the per-pack overlay so a newly imported row cannot miss the
-      // pick that was just prepared.
-      if (curated?.status === "completed") this._catalog = null;
-      const cat = this._catalog ?? (this._catalog = await TokenArtCatalog.build());
-      const { tables, stats } = TokenArtCatalog.resolve(cat);
-      await MonsterTokenArt.applyResolvedMapping(tables);
+      const { stats, catalog } = await TokenArtCatalog.applyAll({ catalog: this._catalog, library: this._library ?? undefined });
+      this._catalog = catalog;
       const per = Object.entries(stats.perSource).map(([s, n]) => `${n} ${s.replace(/-tokens.*|-monster.*|dnd-/g, "").replace(/-/g, " ").trim()}`).join(", ");
       ui.notifications.info(game.i18n.format("SDE.tokenArt.notify.applied", { mapped: stats.mapped, total: stats.total, per }));
     } catch (e) {

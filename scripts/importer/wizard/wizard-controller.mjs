@@ -19,6 +19,8 @@
  *   run(state, hooks)       do the import: hooks.onProgress(pct, phase), hooks.cancelled()
  *   release()               let go of the books given from this computer
  *   confirmCancel()         ask whether to leave; resolves true to leave
+ *   artOffer()              the installed monster-art sources the Done page can offer, {sources:string[]}, or null
+ *   applyArt()             apply them to the imported monsters; resolves {mapped, total}
  *   openAdvanced(), openHex(file), close()
  */
 import {
@@ -50,7 +52,7 @@ const HEX_STATUS = {
 };
 
 /** Names a click may carry in data-action; wizard-app.mjs maps each to dispatch(). */
-export const ACTIONS = ["next", "back", "cancel", "choose", "remove", "setKeep", "setChoice", "toggleGroup", "fix", "openHex", "openLegend", "legendAnswer", "legendPick", "advanced"];
+export const ACTIONS = ["next", "back", "cancel", "choose", "remove", "setKeep", "setChoice", "toggleGroup", "fix", "openHex", "openLegend", "legendAnswer", "legendPick", "applyArt", "advanced"];
 
 export class WizardController {
   /** @param {object} env  see the file header  @param {() => void} onChange  called after every change worth redrawing */
@@ -84,6 +86,7 @@ export class WizardController {
       case "fix": return this.fix(data);
       case "openHex": return this.env.openHex?.(filesOfHex(this.state, data.id), data.id);
       case "openLegend": return this.env.openLegend?.(data.scene);
+      case "applyArt": return this.applyArt();
       // A card's name is held by the Legend itself; only a card that opened up (several hexes to name) needs redrawing.
       case "legendAnswer": if (this.legend?.answer(Number(data.idx), data.value, data.other)) this.changed(); return undefined;
       case "legendPick": this.legend?.pick(Number(data.idx), Number(data.num), data.value, data.other); return undefined;
@@ -214,6 +217,7 @@ export class WizardController {
     s.page = s.terrain ? "terrain" : "done";
     this.changed();
     if (s.terrain) await this.openTerrainMap();
+    else await this.offerArt();
   }
 
   /** Read the current hex map and build its cards. A map that cannot be read is left for the Hex Tagger. */
@@ -266,7 +270,33 @@ export class WizardController {
     if (T.i + 1 < T.queue.length) { T.i += 1; return this.openTerrainMap(); }
     s.page = "done";
     this.changed();
-    return undefined;
+    return this.offerArt();
+  }
+
+  /** On Done: ask the game whether installed art can skin the imported monsters. Best effort; no offer is no card. */
+  async offerArt() {
+    const s = this.state;
+    s.art = null;
+    try {
+      const offer = await this.env.artOffer?.();
+      if (offer?.sources?.length) s.art = { sources: offer.sources, stage: "offer", line: "" };
+    } catch (err) { console.warn("shadowdark-enhancer | wizard art offer failed", err); }
+    this.changed();
+  }
+
+  /** The Done page's button: apply the art once; the result replaces the button. */
+  async applyArt() {
+    const A = this.state.art;
+    if (!A || !["offer", "failed"].includes(A.stage)) return;
+    A.stage = "applying"; this.changed();
+    try {
+      const r = await this.env.applyArt();
+      A.stage = "done"; A.line = this.t("SDE.importer.wizard.done.art.applied", { mapped: r.mapped, total: r.total });
+    } catch (err) {
+      console.warn("shadowdark-enhancer | wizard art failed", err);
+      A.stage = "failed"; A.line = this.t("SDE.importer.wizard.done.art.failed", { error: String(err?.message ?? err) });
+    }
+    this.changed();
   }
 
   // ── What the template draws ────────────────────────────────────────────────────────────────
@@ -339,6 +369,7 @@ export class WizardController {
           id: h.id, title: h.title, sceneId: h.sceneId, legend: h.legend, look: h.look,
           line: t(h.named ? HEX_STATUS.named : (h.optional && h.legend && h.status === "ready" ? HEX_STATUS.readyDrawn : h.optional && h.legend && h.status === "already" ? HEX_STATUS.alreadyDrawn : HEX_STATUS[h.status] ?? HEX_STATUS.needsLook), { n: h.pinned ?? 0 }),
         })),
+        art: s.art && { sources: s.art.sources.join(", "), offer: s.art.stage === "offer" || s.art.stage === "failed", applying: s.art.stage === "applying", line: s.art.line },
         hexLegend: (r.hex ?? []).some((h) => h.legend && !h.optional),
         hexLegendOptional: !(r.hex ?? []).some((h) => h.legend && !h.optional) && (r.hex ?? []).some((h) => h.legend),
       };
