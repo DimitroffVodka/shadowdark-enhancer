@@ -92,10 +92,12 @@ export class TokenArtCatalog {
     //
     // Worth knowing WHY folder entries are needed at all: this pack also ships
     // a `shadowdark.monsters` compendium-art mapping, which discoverSources
-    // would pick up on its own — but only by walking `game.modules`, and
-    // Foundry never registers this module because its manifest caps
-    // compatibility at v13. The folder probe below reads the disk instead, so
-    // it works whether or not the module is registered or active.
+    // would pick up on its own — but only by walking `game.modules`, and an
+    // older manifest capped compatibility at v13, so Foundry did not register
+    // it. The folder probe below reads the disk instead, so it works whether
+    // or not the module is registered or active. Where it does register (the
+    // current manifest has no cap), the same pack is found twice under one
+    // label: importOffer names it once, build() still sees both entries.
     {
       id: "shadowdark-community-tokens",
       label: "Shadowdark Community Tokens",
