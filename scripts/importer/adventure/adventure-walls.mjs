@@ -16,8 +16,8 @@
  *   solids  closed loops around things standing in the floor (pillars, a pit): wall all the way round
  *   doors   one segment across each doorway [x1, y1, x2, y2], a closed door
  *   lights  fixed light sources the book names, each {at:[x, y], bright, dim, color, label} with the radii in feet
- *   dark    optional: the scene's darkness (0 to 1). No map sets it yet: a fully dark scene hides even the hidden creatures from
- *           the GM, who has no vision of their own, so darkening is left to the GM (the scene's Darkness slider)
+ *   dark    optional: the scene's darkness (0 to 1), set once when the lights are built. Keep it partial: a fully dark scene hides
+ *           even the hidden creatures from the GM, who has no vision of their own
  *
  * The same walls also say where a creature may stand: a room's floor and its closed doors decide which squares belong to
  * the room a creature was filed under (reachableSquares).
@@ -705,6 +705,7 @@ export const ADVENTURE_WALLS = {
     ],
     // The magma river is the fortress's light: "A glowing river of magma" (Areas 1, 4, 12), "magma-light" in the Gate of Fire; Area 15 is a "billowing curtain of fire".
     // Dots along the river's middle, 2 to 3 squares apart; the book names no other fixed light.
+    dark: 0.6,   // lit by magma and what the party carries: the glow only reads as orange against a darkened map
     lights: [
       { at: [0.6242, 0.1656], bright: 5, dim: 25, color: "#ff6a1f", label: "Magma river, north gate" },
       { at: [0.6242, 0.2628], bright: 5, dim: 25, color: "#ff6a1f", label: "Magma river, courtyard" },
@@ -2747,8 +2748,8 @@ export const LIGHT_FLAG = "adventureLight";
 export function planLights(data, rect) {
   return (data?.lights ?? []).map((l) => ({
     x: Math.round(rect.x + l.at[0] * rect.width), y: Math.round(rect.y + l.at[1] * rect.height),
-    // Only when the GM darkens the scene: on a white paper map at full daylight a light just bleaches the room.
-    config: { bright: l.bright, dim: l.dim, color: l.color, alpha: 0.4, animation: { type: "torch", speed: 3, intensity: 3 }, darkness: { min: 0.5, max: 1 } },
+    // No darkness range: the scenes are built at darkness 0 and a range starting above 0 kept every light off until the GM darkened the scene.
+    config: { bright: l.bright, dim: l.dim, color: l.color, alpha: 0.7, luminosity: 0.15, animation: { type: "torch", speed: 3, intensity: 3 } },
     flags: { [WALL_MODULE]: { [LIGHT_FLAG]: l.label ?? true } },
   }));
 }
