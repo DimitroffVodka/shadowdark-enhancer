@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { pinIcon, pinLabelSize, PIN_LABEL_COLOR, pinArtFixes, PIN_ICON, placementGate, sceneSize, placementRows, nextPending, noteData, sceneData, planMarkerTokens, planCreatureTokens, markerTokenData, MAP_FLAG, PIN_FLAG, MARKER_FLAG, DEFAULT_GRID_SIZE } from "../scripts/importer/adventure/adventure-scene.mjs";
+import { ADVENTURE_WALLS } from "../scripts/importer/adventure/adventure-walls.mjs";
+import { placeSiteWalls, placeSiteLights, pinIcon, pinLabelSize, PIN_LABEL_COLOR, pinArtFixes, PIN_ICON, placementGate, sceneSize, placementRows, nextPending, noteData, sceneData, planMarkerTokens, planCreatureTokens, markerTokenData, MAP_FLAG, PIN_FLAG, MARKER_FLAG, DEFAULT_GRID_SIZE } from "../scripts/importer/adventure/adventure-scene.mjs";
 import { planAdventureCommit, locationPagePayload, introPagePayload, isIntroPage, pageNum, ADVENTURE_FLAG } from "../scripts/importer/adventure/adventure-commit.mjs";
 
 // Invented data throughout.
@@ -252,4 +253,33 @@ test("markerTokenData: a hidden creature can be found by its GM: name shown to o
   assert.equal(ph.texture.tint, "#5a1414");
   assert.equal(ph.texture.src, "icons/svg/mystery-man.svg");
   assert.equal(ph.hidden, true);
+});
+
+// A scene stub that records every write; `walls` and `lights` are the flags each existing document carries.
+function stubScene({ walls = [], lights = [], aspect = 1.5457 } = {}) {
+  const doc = (flags) => ({ id: Math.random().toString(36).slice(2), getFlag: (m, k) => flags?.[m]?.[k] });
+  const width = Math.round(1000 * aspect), writes = [];
+  return {
+    writes, width, height: 1000, dimensions: { sceneRect: { x: 0, y: 0, width, height: 1000 } },
+    walls: walls.map(doc), lights: lights.map(doc), getFlag: () => undefined,
+    deleteEmbeddedDocuments: async (type, ids) => { writes.push(["delete", type, ids.length]); return []; },
+    createEmbeddedDocuments: async (type, docs) => { writes.push(["create", type, docs.length]); return docs; },
+    update: async () => { writes.push(["update"]); },
+  };
+}
+
+test("building the walls again keeps every wall already on the scene, hand-corrected ones included", async () => {
+  const scene = stubScene({ walls: [{ "shadowdark-enhancer": { adventureWall: true } }, {}] });
+  assert.equal((await placeSiteWalls(scene, { id: "cs1-mugdulblub" })).status, "kept");
+  assert.deepEqual(scene.writes, [], "nothing deleted, nothing added");
+  const fresh = stubScene({ walls: [{}] });
+  assert.equal((await placeSiteWalls(fresh, { id: "cs1-mugdulblub" })).status, "built");
+  assert.ok(fresh.writes.every(([op]) => op !== "delete"), "a GM's own wall is never touched");
+});
+
+test("placing the lights again keeps every light the module made before", async () => {
+  const [site, data] = Object.entries(ADVENTURE_WALLS).find(([, d]) => d.lights?.length);
+  const scene = stubScene({ lights: [{ "shadowdark-enhancer": { adventureLight: "x" } }], aspect: data.aspect });
+  assert.equal((await placeSiteLights(scene, { id: site })).status, "kept");
+  assert.deepEqual(scene.writes, []);
 });
