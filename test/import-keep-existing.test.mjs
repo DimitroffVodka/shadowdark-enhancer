@@ -33,6 +33,7 @@ function entryWith(flagKey, flag, pages) {
     id: "e1", uuid: "uuid.e1", pages: pages.map(make), calls: { create: 0, update: [] },
     getFlag: (m, k) => (m === MODULE && k === flagKey ? flag : undefined), update: async (d) => { entry.updated = d; },
     async createEmbeddedDocuments(_t, docs) { entry.calls.create += docs.length; const made = docs.map(make); entry.pages.push(...made); return made; },
+    async deleteEmbeddedDocuments(_t, ids) { entry.pages = entry.pages.filter((p) => !ids.includes(p.id)); return ids; },
     async updateEmbeddedDocuments(_t, docs) { entry.calls.update.push(...docs); for (const d of docs) { const p = entry.pages.find((x) => x.id === d._id); if (!p) continue; if (d.name) p.name = d.name; if (d.text) p.text = d.text; if (d["text.content"]) p.text.content = d["text.content"]; } return docs; },
   };
   return entry;
@@ -118,6 +119,32 @@ test("a re-run replaces overview pages by key, and the wizard's keepExisting lea
   await commitAdventure(SITE, locs, { source: "CS1", overview: OV });   // the advanced importer re-reads
   assert.match(entry.pages.find((p) => p.id === "po").text.content, /Long ago/);
   assert.equal(entry.pages.filter((p) => overviewKey(p)).length, 3, "no second copy");
+});
+
+test("the pre-quickstart overview pages are swept by a new-layout read, but a partial read never deletes current pages or the GM's own", async () => {
+  const page = (id, key) => ({ id, name: id, text: { content: `<p>${id}</p>` }, flags: { [MODULE]: { adventure: { overview: key } } } });
+  const keys = (e) => e.pages.filter((p) => overviewKey(p)).map((p) => overviewKey(p)).sort();
+  const AREAS = { key: "areas", name: "Areas 1-2", html: "<p>Danger.</p>" };
+  const mixed = () => entryWith("adventure", { site: SITE.id }, [page("a", "background"), page("b", "rumors"), page("c", "overview"), page("d", "areas"), page("e", "gm-map"), page("f", "my-notes")]);
+
+  // A read that brings only the Areas page: the old seven-section pages go; Overview (not read this time), the GM's pages stay.
+  const partial = mixed();
+  world(partial);
+  await commitAdventure(SITE, locs, { source: "CS1", overview: [AREAS] });
+  assert.deepEqual(keys(partial), ["areas", "gm-map", "my-notes", "overview"]);
+
+  // A read in the old layout (the City of Masks keeps its own sections) sweeps nothing; its page is only added.
+  const city = mixed();
+  world(city);
+  await commitAdventure(SITE, locs, { source: "CS1", overview: [OV[0]] });
+  assert.deepEqual(keys(city), ["areas", "background", "gm-map", "lead", "my-notes", "overview", "rumors"]);
+
+  // An empty read and the wizard's keepExisting sweep nothing either.
+  const empty = mixed();
+  world(empty);
+  await commitAdventure(SITE, locs, { source: "CS1", overview: [] });
+  await commitAdventure(SITE, locs, { source: "CS1", overview: [AREAS], keepExisting: true });
+  assert.equal(keys(empty).length, 6);
 });
 
 test("no overview in the manifest leaves the journal as the locations alone", async () => {

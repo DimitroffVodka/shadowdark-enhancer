@@ -11,8 +11,8 @@
  * to roll, so it places nothing either.
  *
  * The same bold names are linked in the filed text: a bold run the bestiary knows
- * becomes an `@UUID` link to that creature (linkCreatureNames), so a room's journal
- * page opens the stat block it names.
+ * becomes an `@UUID` link to that creature (`inlineHtml` in adventure-parser), so a room's
+ * journal page opens the stat block it names.
  *
  * Works on the marked lines the parser keeps (`boldLines`); reads the GM's own
  * book at run time, ships no text. Every string in the tests is invented.
@@ -161,26 +161,6 @@ export function creatureResolver(index, aliases = {}) {
       ?? (keys.length && !/\s/.test(keys[0]) ? first.get(keys.find((k) => first.has(k) && !shared.has(k))) : undefined);
     return name ? uuidOf.get(name) : undefined;
   };
-}
-
-/**
- * Pure: one marked line as plain text with a link on every bold run that names a
- * creature. A run the bestiary does not know stays plain (it is only bold). Bullets
- * and a trailing full stop stay outside the link ("• Skeletons." → "• @UUID[…]{Skeletons}."),
- * and a line that is nothing but capitals stays as it is: it is a sub-heading.
- * @param {string} marked  a line with bold markers
- * @param {(phrase:string)=>string|undefined} resolve  creatureResolver
- * @returns {string}
- */
-export function linkCreatureNames(marked, resolve) {
-  const plain = stripBold(marked);
-  if (!resolve || !/[a-z]/.test(plain)) return plain;
-  const linked = String(marked ?? "").replace(new RegExp(`${BOLD_OPEN}([^${BOLD_CLOSE}]*)${BOLD_CLOSE}`, "g"), (run, inner) => {
-    const [, lead, core, tail] = /^([•▶►\s]*)([\s\S]*?)([.:,;\s]*)$/.exec(inner);
-    const uuid = core && core.length <= 40 ? resolve(core) : undefined;
-    return uuid ? `${lead}@UUID[${uuid}]{${core}}${tail}` : inner;
-  });
-  return stripBold(linked);   // a marker the pairs did not close never reaches the page
 }
 
 /**

@@ -68,7 +68,9 @@ const WORTWICK_FURNITURE = "^(?:[AKPN](?: [AKPN])*|\\d{1,2}(?: \\d{1,2})*|60\\S?
  * two-column text only raised column-gutter warnings for nothing the import uses.
  */
 const cs4 = (id, title, intro, last, grid) => ({
-  id: `cs4-${id}`, title, pages: String(intro + 1), range: [1, last], style: "inline", grid, overview: String(intro), tables: { encounters: `cs4-random-encounters-${id}` },
+  id: `cs4-${id}`, title, pages: String(intro + 1), range: [1, last], style: "inline", grid, overview: String(intro),
+  // The Black Seed prints no Random Encounters table, so there is no roll table to point at.
+  ...(id === "black-seed" ? {} : { tables: { encounters: `cs4-random-encounters-${id}` } }),
 });
 
 /**

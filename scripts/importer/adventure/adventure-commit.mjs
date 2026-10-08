@@ -69,6 +69,13 @@ export function introPagePayload(lines, known, { boldLines, resolve, items, crea
   };
 }
 
+/**
+ * The keys of the overview pages from before the quickstart layout: the Overview ("lead"), the room key, the background, the
+ * factions, the rumors, the environs, the order of battle and the random encounters, each a slug of the book's own heading.
+ * Only these are swept when an import brings the new layout; nothing the new layout files, or the GM adds, is ever on this list.
+ */
+export const LEGACY_OVERVIEW_KEYS = new Set(["lead", "room-key", "background", "factions", "rumors", "environs-and-entrances", "order-of-battle", "random-encounters"]);
+
 /** The overview pages sort ahead of the Introduction, and in the order the book prints them. */
 const OVERVIEW_SORT = -100000;
 
@@ -259,8 +266,10 @@ export async function commitAdventure(site, locations, { source = "", intro = []
   // keepExisting: a page that is already there is the GM's now (they may have edited it), so it is left exactly as it is.
   if (keepExisting) report.kept.push(...overviewOld.map(([part]) => overviewDocs.get(part.key).id), ...(introDoc ? [introDoc.id] : []), ...plan.update.map(({ pageId }) => pageId));
   // The overview this site was filed with before it had the quickstart's layout (a page for the background, one for the
-  // factions...) is replaced by it: the module's own pages that the new read no longer has go, unless the GM's copies are to be kept.
-  const staleOverview = keepExisting || !overview.length ? [] : entry.pages.filter((p) => overviewKey(p) && !overview.some((o) => o.key === overviewKey(p))).map((p) => p.id);
+  // factions...) is replaced by it: those pages, and only those, go once this read brings the new layout (an Overview or an Areas
+  // page), unless the GM's copies are to be kept. A page of the current layout the read lacks is left alone, as a location is.
+  const newLayout = overview.some((o) => o.key === "overview" || o.key === "areas");
+  const staleOverview = keepExisting || !newLayout ? [] : entry.pages.filter((p) => LEGACY_OVERVIEW_KEYS.has(overviewKey(p)) && !overview.some((o) => o.key === overviewKey(p))).map((p) => p.id);
   if (staleOverview.length) await entry.deleteEmbeddedDocuments("JournalEntryPage", staleOverview);
   const updates = keepExisting ? [] : [...overviewOld.map(([part, i]) => ({ _id: overviewDocs.get(part.key).id, ...overviewPayload(part, i) })), ...(introDoc ? [{ _id: introDoc.id, ...introPayload() }] : []),
     ...plan.update.map(({ loc, pageId }) => ({ _id: pageId, ...payload(loc) }))];

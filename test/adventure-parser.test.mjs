@@ -236,3 +236,15 @@ test("a creature's name set in one bold run with its run-in label still links", 
   const html = inlineHtml("\u0001Pool. Mugdulblub\u0002, a primordial ooze.", new Set(), resolve);
   assert.equal(html, "<strong>Pool. @UUID[Actor.m1]{Mugdulblub}</strong>, a primordial ooze.");
 });
+
+test("every roll table the manifest points at is one the table importer makes", async () => {
+  const { findById, catalogEntries, importNameFor } = await import("../scripts/importer/tables/table-manifest.mjs");
+  const names = new Set(catalogEntries().map((e) => importNameFor(e)));
+  for (const s of allSites()) {
+    for (const [what, id] of Object.entries(s.tables ?? {})) assert.ok(findById(id), `${s.id}: ${what} table "${id}" is not in the table catalogue`);
+    // Looked up by name in the world (the way tableLinks finds them), so the name must be one an import creates.
+    for (const name of Object.values(s.phraseTables ?? {})) assert.ok([...names].some((n) => n === name || n.endsWith(`: ${name}`)), `${s.id}: no table is imported as "${name}"`);
+  }
+  assert.equal(findSite("cs4-black-seed").tables, undefined, "the Black Seed prints no Random Encounters table");
+  assert.equal(findSite("cs4-tsibalba").tables.encounters, "cs4-random-encounters-tsibalba");
+});
