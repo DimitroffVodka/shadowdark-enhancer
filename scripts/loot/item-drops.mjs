@@ -29,6 +29,13 @@ import { esc } from "../shared/esc.mjs";
 import { addToPurse } from "../shared/coins.mjs";
 import { relayToGM, authorizeActorFor, refuseQuery, registerQuery } from "../shared/gm-relay.mjs";
 import { compactCard } from "../shared/chat-cards.mjs";
+import { replaceModuleFlag } from "../shared/module-flags.mjs";
+
+/**
+ * Scene flag holding what a pile really holds. Every player owns a pile actor (the Token HUD pickup button needs it),
+ * so its own flags are theirs to rewrite; pickup trusts only this copy, on a scene only a GM can write.
+ */
+const pileKey = (actorId) => `pile-${actorId}`;
 
 /** One string from `languages/en.json`; the key when no i18n is mounted (node tests). */
 const L = (key, data) => {
@@ -409,6 +416,7 @@ export const ItemDrops = {
       width: 0.5,
       height: 0.5,
     }]);
+    await replaceModuleFlag(scene, pileKey(actor.id), { item: itemData });
 
     console.log(`${MODULE_ID} | Item dropped: ${itemData.name} at (${x}, ${y})`);
     return { ok: true };
@@ -529,6 +537,7 @@ export const ItemDrops = {
       width: 0.5,
       height: 0.5,
     }]);
+    await replaceModuleFlag(scene, pileKey(actor.id), { coins: coinData });
 
     console.log(`${MODULE_ID} | Coins dropped: ${label} on ${scene.name}`);
     await this._revealDrop(scene, dropX, dropY);
@@ -616,17 +625,22 @@ export const ItemDrops = {
     if (this._pickupInFlight.has(actorId)) return { ok: false, error: L("SDE.loot.itemDrops.error.pickupInFlight") };
     this._pickupInFlight.add(actorId);
     try {
-      await this._doPickup(dropActor, recipient, tokenId, sceneId);
-      return { ok: true };
+      return (await this._doPickup(dropActor, recipient, tokenId, sceneId, requester)) ?? { ok: true };
     } finally {
       this._pickupInFlight.delete(actorId);
     }
   },
 
   /** Inner pickup body, run under the in-flight lock in `_handlePickup`. */
-  async _doPickup(dropActor, recipient, tokenId, sceneId) {
-    const coinData = dropActor.getFlag(MODULE_ID, "droppedCoinData");
-    const itemData = dropActor.getFlag(MODULE_ID, "droppedItemData");
+  async _doPickup(dropActor, recipient, tokenId, sceneId, requester = game.user) {
+    const key = pileKey(dropActor.id);
+    const recordScene = game.scenes.find((s) => s.getFlag(MODULE_ID, key));
+    // A pile dropped before the scene record existed: only a GM is trusted with what the pile's own flags say.
+    const held = recordScene?.getFlag(MODULE_ID, key) ?? (requester?.isGM
+      ? { coins: dropActor.getFlag(MODULE_ID, "droppedCoinData"), item: dropActor.getFlag(MODULE_ID, "droppedItemData") }
+      : null);
+    if (!held) return { ok: false, error: L("SDE.loot.itemDrops.error.gmPickup") };
+    const coinData = held.coins, itemData = held.item;
     if (!coinData && !itemData) return;
 
     let cardImg, cardLabel, recapEntry;
@@ -702,6 +716,7 @@ export const ItemDrops = {
     const token = scene.tokens.get(tokenId);
     if (token) await token.delete();
     await dropActor.delete();
+    await recordScene?.unsetFlag(MODULE_ID, key);
 
     // Notify + chat card
     ui.notifications.info(L("SDE.loot.itemDrops.notify.pickedUp", { name: recipient.name, label: cardLabel }));
