@@ -26,7 +26,6 @@ const { gatherCharContentEntries, CURSED_SCROLL_KEY_LOCATIONS, tablePagesFor } =
 const { _testBuildRollTables } = await import("../scripts/importer/manage-tree.mjs");
 const { planBatch, ROUTE } = await import("../scripts/importer/batch-import.mjs");
 const { parseZoneTableName, pickZoneTable, hexTableUuid } = await import("../scripts/encounter/encounter-terrain.mjs");
-const { suiteMembersOf, suiteStatusOf, normalizeName } = await import("../scripts/importer/tables/table-hub.mjs");
 
 const norm = (s) => String(s).toLowerCase().replace(/\s+/g, " ").trim();
 const presenceWith = (names) => ({
@@ -174,22 +173,6 @@ test("the Guide's tables are untouched: Manage still lists its regions under its
   const guide = entries.filter((e) => e.src === "GMWR" && e.type === "Table").map((e) => e.name);
   assert.ok(guide.includes("The Gloaming Rumors") && guide.includes("The Gloaming Encounter Zone"));
   assert.ok(!CS_TABLES.some((t) => guide.includes(t.name)), "no Cursed Scroll table takes a Guide name");
-});
-
-test("the Roll Tables hub sees a grid as imported when its columns are there, though the catalogue names the row bare", () => {
-  // The hub finds a grid's member names by the catalogue row's OWN name ("Encounter Zone"), and the registry
-  // holds it under the map's region name, so without an alias every one of these grids read "missing" here
-  // while the Manage tree showed them imported.
-  for (const t of CS_TABLES.filter((x) => x.shape.kind === "suite")) {
-    const row = findById(t.id);
-    const members = suiteMembersOf(row);
-    assert.deepEqual(members, t.shape.members.map((m) => m.name), `${t.id}: the hub finds the columns`);
-    const book = `Cursed Scroll ${t.src.slice(2)}`;
-    const world = new Map(members.map((m) => [normalizeName(`${book} - ${m}`), [{ name: `${book} - ${m}` }]]));
-    assert.equal(suiteStatusOf(members, world).state, "imported", `${t.id}: all columns`);
-    world.delete([...world.keys()][0]);
-    assert.equal(suiteStatusOf(members, world).state, "partial", `${t.id}: one column short`);
-  }
 });
 
 test("a bare catalogue name only resolves inside its own book, so the aliases take nothing from another", () => {

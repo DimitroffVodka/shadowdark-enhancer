@@ -29,7 +29,7 @@ function synthMatrix(columns, rows, cellText) {
   return lines.join("\n");
 }
 
-// Replicate the hub's `seed.matrix` split (importer-hub-app / table-hub-app).
+// Replicate the hub's `seed.matrix` split (importer-hub-app).
 function splitAsHub(entry, text) {
   const split = parseMatrixByColumns(text, entry.columns, entry.widths);
   split.forEach((t, i) => {
