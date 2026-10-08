@@ -125,6 +125,12 @@ export class ImportWizardApp extends HandlebarsApplicationMixin(ApplicationV2) {
         await scene.view();
         (await import("../../hex-map/hex-tagger-app.mjs")).HexTaggerApp.open({ legend: true });
       },
+      // The Done page's Monster art card: the Token Art manager's own discovery and Apply, so the two cannot disagree.
+      artOffer: async () => (await import("../../monster-art/token-art-catalog.mjs")).TokenArtCatalog.importOffer(),
+      applyArt: async () => {
+        const { stats } = await (await import("../../monster-art/token-art-catalog.mjs")).TokenArtCatalog.applyAll();
+        return { mapped: stats.mapped, total: stats.total };
+      },
       close: () => app._leave(),
     };
   }

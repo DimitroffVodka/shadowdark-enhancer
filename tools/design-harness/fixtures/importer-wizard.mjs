@@ -23,7 +23,7 @@ const MAPS = [
 ];
 
 /** A controller on a state; `fill` picks files, `at` the page, `check` the check's outcome. */
-function make({ page, books = 0, maps = 0, check, update, keep = "once", forge = true, notice = "", progress, result, open, terrain }) {
+function make({ page, books = 0, maps = 0, check, update, keep = "once", forge = true, notice = "", progress, result, open, terrain, art }) {
   const c = new WizardController({ t, forge, limitMB: 50, canUpload: true }, () => {});
   const s = c.state;
   s.keep = keep;
@@ -34,6 +34,7 @@ function make({ page, books = 0, maps = 0, check, update, keep = "once", forge =
   if (check) s.check = check(s);
   if (progress) s.progress = progress;
   if (result) s.result = result;
+  if (art) s.art = art;
   c.notice = notice;
   if (terrain) {
     s.result ??= { imported: 0, already: 0, needsYou: [], hex: [] };
@@ -79,6 +80,7 @@ const STATES = {
   terrain: () => make({ page: "terrain", terrain: { stage: "cards" } }),
   "terrain-failed": () => make({ page: "terrain", terrain: { stage: "failed", error: "The map could not be read." } }),
   done: () => make({
+    art: { sources: ["Monster Manual", "Shadowdark Community Tokens", "Pathfinder: Monster Core"], stage: "offer", line: "" },
     page: "done", books: 9, maps: 4, check: (s) => ({ done: true, ready: readyIds(s).concat([`map:${HEX_MAPS[0].id}`]), items: items(s), problems: [] }),
     result: { imported: 412, already: 38, skipped: { n: 257, books: ["Player's Guide to the Western Reaches", "Cursed Scroll 6: City of Masks"] }, needsYou: [
       { title: "Fallen Keep of the Emerald Knight", why: "The scene is built. The module does not know where this map's locations sit yet, so you place them by clicking: Importer, Tools, Adventure map." },

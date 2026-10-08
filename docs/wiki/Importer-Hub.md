@@ -45,6 +45,12 @@ anything that needs you. Each hex map has its own row there: **Name the terrain*
 is still to name, and **Set it up** for one the guide could not set up on its own. The other things that
 need you are plain notes saying what to do.
 
+If monsters were imported and you have token art installed (see
+[Monster Token Art](Monster-Token-Art.md) for the sources), Done also has a **Monster art**
+card naming what it found. **Apply monster art** does what the manager's Apply does: default
+art is replaced, tokens you picked yourself are not, and nothing is copied. It is yours to
+click; the guide never applies art on its own.
+
 **Hex maps need nothing from you but the terrain.** All six hex maps are set up
 on their own: the Western Reaches A0 and the Cursed Scroll maps (the Gloaming,
 the Djurum, the Isles of Andrik, the Black River, Morzomotha). The guide builds

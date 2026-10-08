@@ -751,6 +751,34 @@ export class TokenArtCatalog {
   }
 
   /**
+   * What the import wizard offers once monsters are in the world: the labels of the installed art sources, or null when
+   * there are no imported monsters or nothing installed to skin them with.
+   * @returns {Promise<{sources: string[]}|null>}
+   */
+  static async importOffer() {
+    const pack = findMonsterPack({ game: globalThis.game });
+    if (!pack || !(await pack.getIndex()).size) return null;
+    const sources = (await this.discoverSources()).map((s) => s.label ?? s.id);
+    return sources.length ? { sources } : null;
+  }
+
+  /**
+   * The manager's Apply and the wizard's button: seed the reviewed imported-monster rows, resolve the catalog, write the mapping.
+   * @param {{catalog?: object|null, library?: Array}} [from] a catalog/library the caller already built
+   * @returns {Promise<{stats: object, catalog: object|null}>} `catalog` is null when the curation pass changed the pack's records (the caller's is stale)
+   */
+  static async applyAll({ catalog = null, library } = {}) {
+    // Seed N6's reviewed imported rows through the same per-document pick state used by Browse, before resolve(), so later
+    // GM picks and explicit source overrides keep precedence; zero-option rows stay visible with Browse. The curation pass
+    // re-reads the managed pack, so a catalog built before it must be rebuilt to include a just-imported row.
+    const curated = await this.applyCuratedImportedArt({ library });
+    const cat = curated?.status === "completed" || !catalog ? await this.build() : catalog;
+    const { tables, stats } = this.resolve(cat);
+    await MonsterTokenArt.applyResolvedMapping(tables);
+    return { stats, catalog: cat };
+  }
+
+  /**
    * Monster id → the reviewed row as a ready-made option, for every managed
    * monster whose curated row resolves against the installed library.
    *
