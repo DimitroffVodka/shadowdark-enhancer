@@ -400,7 +400,7 @@ export const PitFighting = {
       const res = await Renown.award({
         actor, delta, reason: reason || "Pit fighting", source: "pit-fighting",
       });
-      out.push({ name: actor.name, ok: !!res?.ok, error: res?.error });
+      out.push({ id, name: actor.name, ok: !!res?.ok, error: res?.error });
     }
     return out;
   },
@@ -495,6 +495,8 @@ export class PitFightingApp extends HandlebarsApplicationMixin(ApplicationV2) {
     this._outcome = null;
     this._renownDelta = 0;
     this._applied = false;
+    /** @type {Set<string>} fighters whose renown for this bout has landed: a retried Apply skips them */
+    this._awarded = new Set();
   }
 
   /** True once there is something a fighter could actually say yes to. */
@@ -536,6 +538,7 @@ export class PitFightingApp extends HandlebarsApplicationMixin(ApplicationV2) {
       outcome: this._outcome,
       renownDelta: this._renownDelta,
       applied: this._applied,
+      awarded: [...this._awarded],
     };
     try {
       await game.settings.set(MODULE_ID, "pitFightingBout", state);
@@ -582,6 +585,7 @@ export class PitFightingApp extends HandlebarsApplicationMixin(ApplicationV2) {
     this._outcome = state.outcome ?? null;
     this._renownDelta = Number(state.renownDelta) || 0;
     this._applied = !!state.applied;
+    this._awarded = new Set(Array.isArray(state.awarded) ? state.awarded : []);
     return true;
   }
 
@@ -988,19 +992,30 @@ export class PitFightingApp extends HandlebarsApplicationMixin(ApplicationV2) {
 
   async _onApplyResults() {
     const setUp = this._setUp;
-    if (!setUp || !this._outcome) return;
+    if (!setUp || !this._outcome || this._applying) return;
+    // A second click before the re-render disables the button, or a retry after a refusal, must not pay anyone twice:
+    // one Apply at a time, and only fighters whose renown has not landed yet.
+    this._applying = true;
+    try {
+      await this._applyResults(setUp);
+    } finally {
+      this._applying = false;
+    }
+  }
 
+  async _applyResults(setUp) {
     const reason = `Pit fight — ${setUp.bout.stakes.label} stakes (${this._outcome === "win" ? "won" : "lost"})`;
     const results = this._renownDelta === 0
       ? []
       : await PitFighting.awardFame({
-        fighterIds: [...this._fighters],
+        fighterIds: [...this._fighters].filter((id) => !this._awarded.has(id)),
         delta: this._renownDelta,
         reason,
       });
 
     const awarded = results.filter((r) => r.ok);
     const failed = results.filter((r) => !r.ok);
+    for (const r of awarded) this._awarded.add(r.id);
 
     if (failed.length) {
       // Carry the reason through. `Renown.award` refuses for real causes — a

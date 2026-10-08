@@ -324,6 +324,29 @@ test("rerolling the twist keeps the drawn foe pinned", async () => {
   assert.equal(app._setUp.foeText, "first foe");
 });
 
+test("Apply pays each fighter once: a double click or a retry after a refusal never awards twice", async () => {
+  const { PitFighting, PitFightingApp } = await load({});
+  const asked = [];
+  let refuse = new Set(["b"]);
+  PitFighting.awardFame = async ({ fighterIds }) => {
+    asked.push([...fighterIds]);
+    await new Promise((resolve) => setTimeout(resolve, 5));
+    return fighterIds.map((id) => ({ id, name: id, ok: !refuse.has(id) }));
+  };
+  const app = new PitFightingApp();
+  Object.assign(app, { _setUp: { bout: { stakes: { label: "Low" } } }, _outcome: "win", _renownDelta: 2, _fighters: new Set(["a", "b"]) });
+  app._postBoutCard = async () => {};
+
+  await Promise.all([app._onApplyResults(), app._onApplyResults()]);
+  assert.deepEqual(asked, [["a", "b"]], "the second click does nothing while the first runs");
+  assert.equal(app._applied, false, "b was refused, so Apply stays open");
+
+  refuse = new Set();
+  await app._onApplyResults();
+  assert.deepEqual(asked.at(-1), ["b"], "the retry pays only the fighter who was refused");
+  assert.equal(app._applied, true);
+});
+
 test("a row that carries only a description still reads", async () => {
   // v14 maps a legacy `text` field onto `description`. Reading `_source.text`
   // would fire the deprecation getter, so neither is touched.
