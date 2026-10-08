@@ -99,6 +99,7 @@ export class BastionShopApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const qty = Number(target.closest(".sde-bs-row")?.querySelector("input[name=qty]")?.value);
     const done = await buyItem({ shopId: this.shopId, buyer, uuid: target.dataset.uuid, qty }, { log: (p) => SessionRecap.logPurchase(p) });
     if (done.ok) ui.notifications?.info(format("SDE.bastion.shop.done", { buyer: buyer.name, item: qty > 1 ? `${done.name} \u00d7${qty}` : done.name, price: formatPrice(done.price) }));
+    else if (done.error === "refund") ui.notifications?.error(format("SDE.bastion.shop.notRefunded", { buyer: buyer.name, price: formatPrice(done.price) }));
     else ui.notifications?.warn(t({ broke: "SDE.bastion.shop.broke", qty: "SDE.bastion.shop.qty" }[done.error] ?? "SDE.bastion.shop.failed"));
     this.render();
   }

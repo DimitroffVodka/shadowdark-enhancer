@@ -165,3 +165,19 @@ test("the gold for an item that could not be made goes back on top of the purse 
     assert.deepEqual(a.system.coins, { gp: 150, sp: 0, cp: 0 }, "the 50 gp that landed meanwhile stay");
   } finally { globalThis.Item.create = realCreate; console.error = quiet; }
 });
+
+test("gold that cannot be given back for an item that could not be made is reported, with the price", async () => {
+  docs.set("Compendium.shadowdark.gear.Item.a", chainmail());
+  const a = buyer({ gp: 100, sp: 0, cp: 0 });
+  const apply = a.update;
+  let writes = 0;
+  a.update = async (data) => (++writes === 1 ? apply(data) : undefined);   // the charge lands; the refund is vetoed
+  const realCreate = globalThis.Item.create, quiet = console.error;
+  globalThis.Item.create = async () => { throw new Error("no"); };
+  console.error = () => {};
+  try {
+    const done = await buyItem({ shopId: "armorer", buyer: a, uuid: "Compendium.shadowdark.gear.Item.a", qty: 1 });
+    assert.equal(done.error, "refund");
+    assert.deepEqual(done.price, { gp: 66, sp: 0, cp: 0 });
+  } finally { globalThis.Item.create = realCreate; console.error = quiet; }
+});

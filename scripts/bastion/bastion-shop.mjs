@@ -40,7 +40,7 @@ export const isShopUuid = (uuid) => typeof uuid === "string" && SHOP_PACKS.some(
 
 /**
  * `buyer` buys `qty` of the item `uuid` from shop `shopId` (a finished room: the caller checks). Returns
- * `{ ok, error, name, price }`: error is "gm" | "item" | "qty" | "free" | "broke" | "write".
+ * `{ ok, error, name, price }`: error is "gm" | "item" | "qty" | "free" | "broke" | "write" | "refund" (the item could not be made and `price` could not be given back).
  * `log` records the purchase for the session recap.
  */
 export async function buyItem({ shopId, buyer, uuid, qty }, { log = () => {} } = {}) {
@@ -57,12 +57,13 @@ export async function buyItem({ shopId, buyer, uuid, qty }, { log = () => {} } =
   data._id = foundry.utils.randomID();
   data.system.quantity = (Number(data.system.quantity) || 1) * qty;   // a bundle (20 arrows) comes qty times
   const made = await Item.create(data, { parent: buyer, keepId: true }).catch((err) => { console.error(`${MODULE_ID} | bastion shop: item`, err); return null; });
-  if (!buyer.items.get(made?.id ?? data._id)) {
-    // Given back on top of the purse as it is now, so a payment that landed meanwhile stays.
-    await buyer.update(purseUpdate(addToPurse(purseOf(buyer), fromCopper(plan.total)))).catch((err) => console.error(`${MODULE_ID} | bastion shop: refund`, err));
-    return { ok: false, error: "write" };
-  }
   const price = fromCopper(plan.total);
+  if (!buyer.items.get(made?.id ?? data._id)) {
+    // Given back on top of the purse as it is now, so a payment that landed meanwhile stays; read back too.
+    const back = addToPurse(purseOf(buyer), price);
+    await buyer.update(purseUpdate(back)).catch((err) => console.error(`${MODULE_ID} | bastion shop: refund`, err));
+    return { ok: false, error: samePurse(purseOf(buyer), back) ? "write" : "refund", price };
+  }
   log({ player: buyer.name, item: doc.name, qty, price });
   await ChatMessage.create({
     speaker: { alias: game.i18n.localize(shop.name) },

@@ -629,3 +629,54 @@ test("gamble winnings that cannot be saved are told to the GM to add by hand", a
   assert.equal(copperOf(buyer), 900);
   assert.equal(kit.toasts.filter(([kind, m]) => kind === "error" && m.startsWith("SDE.merchant.notify.coinsNotSaved")).length, 1);
 });
+
+// A refund that does not land: the buyer must not be told nothing was charged, and the GM settles it by hand.
+const vetoAfterFirst = (actor) => {
+  const apply = actor.update.bind(actor);
+  let writes = 0;
+  actor.update = async (changes) => (++writes === 1 ? apply(changes) : undefined);   // the charge lands; the refund is vetoed
+};
+
+test("a catalog buy whose item and refund both fail tells the buyer the coins are owed, and the GM", async () => {
+  const buyer = makeActor({ id: "pc1", name: "Vella's PC", ownerId: PLAYER.id, coins: { gp: 100, sp: 0, cp: 0 } });
+  const kit = await harness({ actors: { pc1: buyer }, settings: PUBLISHED });
+  stubPacks({ [gearPack]: [], "shadowdark.magic-items": [], [IMPORTED]: [packItem({ id: "paste", name: "Glow paste, jar", cost: { gp: 2, sp: 0, cp: 0 } })] });
+  globalThis.Item.create = async () => { throw new Error("validation failed"); };
+  globalThis.ui.notifications.error = (m) => kit.toasts.push(["error", m]);
+  vetoAfterFirst(buyer);
+  const quiet = console.error;
+  console.error = () => {};
+  try {
+    const reply = await kit.MerchantShop._handleCatalogBuy({ buyerActorId: "pc1", itemUuid: `Compendium.${IMPORTED}.Item.paste`, quantity: 1 }, PLAYER);
+    assert.equal(reply?.ok, false);
+    assert.match(reply.error, /notRefunded$/);
+    assert.equal(kit.toasts.filter(([kind, m]) => kind === "error" && m.startsWith("SDE.merchant.notify.coinsNotSaved")).length, 1);
+  } finally { console.error = quiet; }
+});
+
+test("a gamble whose prize and refund both fail tells the buyer the coins are owed", async () => {
+  const buyer = makeActor({ id: "pc1", name: "Vella's PC", ownerId: PLAYER.id, coins: { gp: 10, sp: 0, cp: 0 } });
+  buyer.deleteEmbeddedDocuments = async () => {};
+  const { MerchantShop } = await gambleHarness(buyer);
+  globalThis.Item.create = async () => { throw new Error("validation failed"); };
+  vetoAfterFirst(buyer);
+  const quiet = console.error;
+  console.error = () => {};
+  try {
+    const reply = await MerchantShop._handleGamble({ buyerActorId: "pc1", gambleId: "g1" }, PLAYER);
+    assert.equal(reply?.ok, false);
+    assert.match(reply.error, /notRefunded$/);
+  } finally { console.error = quiet; }
+});
+
+test("a sale whose payment cannot be saved is told to the GM to add by hand, and the sale still logs", async () => {
+  const sword = makeItem({ id: "i1", name: "Longsword", quantity: 1 });
+  const seller = makeActor({ id: "pc1", name: "Vella's PC", ownerId: PLAYER.id, items: [sword] });
+  seller.update = async () => undefined;   // a hook vetoed the payment: nothing saved
+  const kit = await harness({ actors: { pc1: seller }, settings: PUBLISHED });
+  globalThis.ui.notifications.error = (m) => kit.toasts.push(["error", m]);
+  await kit.MerchantShop._handleSell({ sellerActorId: "pc1", itemId: "i1", quantity: 1 }, PLAYER);
+  assert.equal(sword.deleted, true);
+  assert.equal(kit.toasts.filter(([kind, m]) => kind === "error" && m.startsWith("SDE.merchant.notify.coinsNotSaved")).length, 1);
+  assert.equal(kit.store.shopLog.length, 1, "the sale is logged");
+});

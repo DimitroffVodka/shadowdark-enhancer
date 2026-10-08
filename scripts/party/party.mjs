@@ -98,8 +98,9 @@ export const Party = {
  * client, and a player who owns the party can write its flag directly. Everything the GM runs from the roster —
  * Deploy and Gather, camping, overland, quest rewards, the party light — trusts it. So the active GM re-checks every
  * roster a player writes: a member that player could not have added (not theirs, and not already on the roster
- * the GM last saw) is taken off again. A legacy Extras party not yet adopted is read from Extras' `members` flag
- * (Party.data), so a write there gets the same check; adopting it then copies only what the GM accepted.
+ * the GM last saw) is taken off again. Party.data reads `partyData` once a party has it, on a legacy Extras party
+ * too, and Extras' `members` flag before that, so a write to whichever list it reads gets the check; adopting a
+ * legacy party then copies only what the GM accepted.
  * ponytail: the "last seen" roster is in memory, seeded on ready; a roster written while no GM is online is
  * accepted as found. A per-party flag only a GM writes would close that, if it ever matters.
  */
@@ -108,10 +109,10 @@ export function registerPartyRosterGuard() {
   const remember = (actor) => seen.set(actor.id, new Set(Party.data(actor).members));
   Hooks.once("ready", () => { for (const a of game.actors?.contents ?? []) if (isNativeParty(a) || isLegacyParty(a)) remember(a); });
   Hooks.on("updateActor", async (actor, changes, _options, userId) => {
-    const native = isNativeParty(actor);
-    const legacy = !native && isLegacyParty(actor) && flags(actor).partyData === undefined;
-    const written = native ? changes?.flags?.[MODULE_ID]?.[PARTY_DATA] : legacy ? changes?.flags?.[EXTRAS]?.members : undefined;
-    if (written === undefined || !isActiveGM()) return;
+    // Judged after the write: a player who writes partyData onto an unadopted legacy party has made it the roster.
+    const adopted = flags(actor).partyData !== undefined;
+    const written = changes?.flags?.[MODULE_ID]?.[PARTY_DATA] ?? (adopted ? undefined : changes?.flags?.[EXTRAS]?.members);
+    if (!(isNativeParty(actor) || isLegacyParty(actor)) || written === undefined || !isActiveGM()) return;
     const user = game.users?.get(userId);
     const before = seen.get(actor.id) ?? new Set();
     const data = Party.data(actor);
@@ -121,7 +122,7 @@ export function registerPartyRosterGuard() {
     if (!forged.length) { remember(actor); return; }
     const kept = forged.reduce((d, uuid) => removeMember(d, uuid), data);
     seen.set(actor.id, new Set(kept.members));
-    if (native) await replaceModuleFlag(actor, PARTY_DATA, kept);
+    if (adopted) await replaceModuleFlag(actor, PARTY_DATA, kept);
     else await actor.update({ [`flags.${EXTRAS}.members`]: actor.flags[EXTRAS].members.filter((u) => !forged.includes(legacyUuid(u))) });
   });
 }
