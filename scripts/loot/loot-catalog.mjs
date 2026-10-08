@@ -62,54 +62,33 @@ export const LootCatalog = {
     if (isDiabolicalTreasureTable(table)) return materializeDiabolicalTreasure(table);
     const items = await LootLinker.buildItemIndex();
     const DOC = CONST.TABLE_RESULT_TYPES.DOCUMENT;
-    const TEXT = CONST.TABLE_RESULT_TYPES.TEXT;
     const summary = { linked: 0, coins: 0, unresolved: 0 };
-    const newResults = [];
+    // Each row is changed where it stands, and only when something changes:
+    // its range, weight, drawn state, image, description and flags stay as the
+    // GM left them, and a failed write leaves every row in place. Deleting and
+    // recreating every row used to lose all of that, and an empty table was
+    // what a failed create left behind.
+    const updates = [];
 
     for (const r of table.results) {
-      const base = { range: r.range, weight: r.weight ?? 1, drawn: false };
-      // Preserve rows already linked to a document verbatim — re-resolving by
-      // name could drop a good link the item index doesn't cover (e.g. the
-      // Shadowdark system's own Treasure 0-3 items). Keep the existing linkage.
-      if (r.type === DOC) {
-        const o = r.toObject();
-        delete o._id;
-        newResults.push(o);
-        summary.linked++;
-        continue;
-      }
+      // Rows already linked to a document are kept — re-resolving by name could
+      // drop a good link the item index doesn't cover (e.g. the Shadowdark
+      // system's own Treasure 0-3 items).
+      if (r.type === DOC) { summary.linked++; continue; }
       const text = _resultText(r);
-      if (isCoinEntry(text)) {
-        newResults.push({ ...base, type: TEXT, name: text });
-        summary.coins++;
-        continue;
-      }
-      const uuid = await _resolveUuid(text, items);
-      if (uuid) {
-        // Write the v13 canonical field. documentCollection/documentId are
-        // deprecation getters (removed in v15) — see resultUuid() in
-        // loot-generator.mjs, and the importer's own create path.
-        newResults.push({ ...base, type: DOC, documentUuid: uuid });
-        summary.linked++;
-      } else {
-        newResults.push({ ...base, type: TEXT, name: text });
-        summary.unresolved++;
-      }
+      const coin = isCoinEntry(text);
+      const uuid = coin ? null : await _resolveUuid(text, items);
+      if (coin) summary.coins++;
+      else if (uuid) summary.linked++;
+      else summary.unresolved++;
+      // Write the v13 canonical field. documentCollection/documentId are
+      // deprecation getters (removed in v15) — see resultUuid() in
+      // loot-generator.mjs, and the importer's own create path.
+      if (uuid) updates.push({ _id: r.id, type: DOC, documentUuid: uuid });
     }
 
-    // Skip the rebuild when nothing would change. The unconditional
-    // delete+recreate reshuffled row order every run, so each re-link
-    // dirtied content-identical tables (live-caught, 12-01 checkpoint).
-    const keyOf = (o) => [
-      String(o.range), o.weight ?? 1, o.type,
-      o.type === DOC ? (o.documentUuid ?? "") : (o.name ?? o.description ?? ""),
-    ].join("|");
-    const current = table.results.map(r => keyOf(r.toObject())).sort().join("\n");
-    const desired = newResults.map(keyOf).sort().join("\n");
-    if (current === desired) return { ...summary, unchanged: true };
-
-    await table.deleteEmbeddedDocuments("TableResult", table.results.map(r => r.id));
-    await table.createEmbeddedDocuments("TableResult", newResults);
+    if (!updates.length) return { ...summary, unchanged: true };
+    await table.updateEmbeddedDocuments("TableResult", updates);
     ui.notifications?.info(game.i18n.format("SDE.loot.catalog.notify.linked", {
       table: table.name, linked: summary.linked, coins: summary.coins, unresolved: summary.unresolved,
     }));
