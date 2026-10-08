@@ -204,6 +204,36 @@ test("bundled gear sells per unit: 20 arrows bought for 1 gp sell for half of 1 
   assert.equal(gp * 100 + sp * 10 + cp, 50);
 });
 
+test("arrows sold back to the shop can be bought again: a part bundle sells at its share of the price", async () => {
+  const arrows = makeItem({ id: "i4", name: "Arrows", cost: { gp: 1, sp: 0, cp: 0 }, quantity: 13 });
+  arrows.system.slots = { per_slot: 20 };
+  arrows.toObject = () => ({ _id: "i4", name: "Arrows", type: "Basic", system: structuredClone(arrows.system) });
+  const seller = makeActor({ id: "pc1", name: "Vella's PC", ownerId: PLAYER.id, items: [arrows] });
+  const buyer = makeActor({ id: "pc2", name: "Tobin's PC", ownerId: PLAYER.id, coins: { gp: 10, sp: 0, cp: 0 } });
+  const { MerchantShop, store } = await harness({ actors: { pc1: seller, pc2: buyer }, settings: PUBLISHED });
+  const made = [];
+  globalThis.Item.create = async (data, { parent }) => {
+    made.push(data.system.quantity);
+    const doc = { id: `made${made.length}` };
+    parent?.items?.add?.(doc);
+    return doc;
+  };
+
+  await MerchantShop._handleSell({ sellerActorId: "pc1", itemId: "i4", quantity: 13 }, PLAYER);
+  const entry = store.shopInventory.find((e) => e.name === "Arrows");
+  assert.equal(entry.stock, 13, "the shop holds the 13 sold back");
+
+  made.length = 0;
+  await MerchantShop._handleBuy({ buyerActorId: "pc2", shopItemId: entry.id, quantity: 1 }, PLAYER);
+  assert.deepEqual(made, [13], "the buyer gets the 13 the shop has");
+  assert.equal(buyer.system.coins.gp * 100 + buyer.system.coins.sp * 10 + buyer.system.coins.cp, 1000 - 65,
+    "and pays 13/20 of 1 gp");
+  assert.equal(store.shopInventory.find((e) => e.name === "Arrows").stock, 0);
+
+  const refused = await MerchantShop._handleBuy({ buyerActorId: "pc2", shopItemId: entry.id, quantity: 1 }, PLAYER);
+  assert.equal(refused?.ok, false, "an empty shelf still sells nothing");
+});
+
 test("the sell ratio rounds once on the whole sale, not once per item", async () => {
   const torches = makeItem({ id: "i2", name: "Torch", cost: { gp: 0, sp: 0, cp: 5 }, quantity: 10 });
   const seller = makeActor({ id: "pc1", name: "Vella's PC", ownerId: PLAYER.id, items: [torches] });

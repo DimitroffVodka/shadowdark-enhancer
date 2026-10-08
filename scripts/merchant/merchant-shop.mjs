@@ -72,6 +72,19 @@ const _formatPrice = formatPrice;
  * bundles; selling pays per unit, so 20 arrows bought for 1 gp sell for half of 1 gp, not twenty times that.
  */
 const _bundleOf = (data) => Math.max(1, Math.floor(Number(data?.system?.slots?.per_slot)) || 1);
+/**
+ * The units a buy of `quantity` bundles takes from `stock` (units; -1 is unlimited), or 0 when the shop cannot fill
+ * it. A shop holding less than the last bundle asked for sells what it has: 13 arrows a player sold back are one buy
+ * of 13, charged at the bundle price shared out per unit (_buyCopper). Shared by the GM handler and the player's
+ * pre-check so the two never disagree.
+ */
+const _buyUnits = (quantity, bundle, stock) => {
+  const units = quantity * bundle;
+  if (stock === -1 || stock >= units) return units;
+  return quantity <= Math.ceil(stock / bundle) ? stock : 0;
+};
+/** List price in copper for `units` of an item priced per `bundle`, before extortion. */
+const _buyCopper = (cost, mult, units, bundle) => Math.round(_toCopper(cost) * mult * units / bundle);
 const _addToPurse = addToPurse;
 const _spendFromPurse = spendFromPurse;
 const _parseCoinsFromText = parseCoinsFromText;
@@ -789,15 +802,16 @@ export const MerchantShop = {
     if (!entry) return this._broadcastError(game.i18n.localize("SDE.merchant.notify.itemNotInShop"), userId);
 
     // Check stock: `quantity` is bundles, stock is counted in units.
-    const units = quantity * _bundleOf(entry.itemData);
-    if (entry.stock !== -1 && entry.stock < units) {
+    const bundle = _bundleOf(entry.itemData);
+    const units = _buyUnits(quantity, bundle, entry.stock);
+    if (!units) {
       return this._broadcastError(game.i18n.localize("SDE.merchant.notify.notEnoughStock"), userId);
     }
 
     // Calculate total cost with the GM-side (never client-supplied) multiplier,
     // then apply this buyer's own one-shot downtime extortion swing (if any).
     const mult = ctx.buyMultiplier / 100;
-    const listCopper = Math.round(_toCopper(entry.cost) * mult * quantity);
+    const listCopper = _buyCopper(entry.cost, mult, units, bundle);
     const swing = applyExtortion(listCopper, readExtortion(buyer), "buy");
     const totalCopper = swing.copper;
     const totalCost = _fromCopper(totalCopper);
@@ -2637,7 +2651,9 @@ class MerchantShopApp extends HandlebarsApplicationMixin(ApplicationV2) {
     // Client-side pre-check
     const entry = this._inventory.find(e => e.id === shopItemId);
     if (!entry) return;
-    if (entry.stock !== -1 && entry.stock < quantity * _bundleOf(entry.itemData)) {
+    const bundle = _bundleOf(entry.itemData);
+    const units = _buyUnits(quantity, bundle, entry.stock);
+    if (!units) {
       ui.notifications.warn(game.i18n.localize("SDE.merchant.notify.notEnoughStock"));
       return;
     }
@@ -2645,7 +2661,7 @@ class MerchantShopApp extends HandlebarsApplicationMixin(ApplicationV2) {
     // pre-check never rejects a purchase the handler would have allowed.
     const mult = this._buyMultiplier / 100;
     const totalCost = _fromCopper(applyExtortion(
-      Math.round(_toCopper(entry.cost) * mult * quantity), readExtortion(actor), "buy",
+      _buyCopper(entry.cost, mult, units, bundle), readExtortion(actor), "buy",
     ).copper);
     if (!_canAfford(actor, totalCost)) {
       ui.notifications.warn(game.i18n.localize("SDE.merchant.notify.insufficientFunds"));
