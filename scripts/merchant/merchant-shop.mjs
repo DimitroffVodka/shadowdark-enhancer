@@ -736,6 +736,24 @@ export const MerchantShop = {
     return null;
   },
 
+  /**
+   * Take the coins, then hand over the item, reading each write back. A purse write that did not land (an update
+   * can throw after saving, or resolve undefined when a hook vetoes it) charges nothing and gives nothing; an item
+   * that did not appear puts the purse back as it was.
+   * @returns {Promise<boolean>} true when both landed
+   */
+  async _chargeAndGive(buyer, purse, itemData) {
+    const coins = (c) => ({ "system.coins.gp": c.gp, "system.coins.sp": c.sp, "system.coins.cp": c.cp });
+    const was = { ...buyer.system.coins };
+    const paid = await buyer.update(coins(purse)).catch((err) => { console.error(`${MODULE_ID} | merchant: purse`, err); return null; });
+    const now = buyer.system.coins;
+    if (!paid || now.gp !== purse.gp || now.sp !== purse.sp || now.cp !== purse.cp) return false;
+    const made = await Item.create(itemData, { parent: buyer }).catch((err) => { console.error(`${MODULE_ID} | merchant: item`, err); return null; });
+    if (made && buyer.items.get(made.id)) return true;
+    await buyer.update(coins(was)).catch((err) => console.error(`${MODULE_ID} | merchant: refund`, err));
+    return false;
+  },
+
   /** Clamp a client-supplied quantity to a positive integer. */
   _sanitizeQty(qty) {
     return Math.max(1, Math.floor(Number(qty) || 1));
@@ -783,15 +801,8 @@ export const MerchantShop = {
       return this._broadcastError(game.i18n.localize("SDE.merchant.notify.insufficientFunds"), userId);
     }
 
-    // Execute: deduct currency (preserving the player's coin denominations)
-    const remaining = _spendFromPurse(buyer.system.coins, totalCopper);
-    await buyer.update({
-      "system.coins.gp": remaining.gp,
-      "system.coins.sp": remaining.sp,
-      "system.coins.cp": remaining.cp,
-    });
-
-    // Execute: create item(s) on buyer. ALWAYS override quantity — the
+    // Execute: deduct currency (preserving the player's coin denominations),
+    // then create item(s) on buyer. ALWAYS override quantity — the
     // source itemData is cloned from the merchant's inventory (NPC mode)
     // or the compendium entry, and its existing `quantity` reflects the
     // merchant's stack size, not what the buyer requested. Leaving the
@@ -800,7 +811,9 @@ export const MerchantShop = {
     const itemData = foundry.utils.deepClone(entry.itemData);
     if (!itemData.system) itemData.system = {};
     itemData.system.quantity = quantity;
-    await Item.create(itemData, { parent: buyer });
+    if (!(await this._chargeAndGive(buyer, _spendFromPurse(buyer.system.coins, totalCopper), itemData))) {
+      return this._broadcastError(game.i18n.localize("SDE.merchant.notify.notSaved"), userId);
+    }
 
     // Execute: update stock
     let newStock = entry.stock;
@@ -1029,18 +1042,12 @@ export const MerchantShop = {
       return this._broadcastError(game.i18n.localize("SDE.merchant.notify.insufficientFunds"), userId);
     }
 
-    // Deduct currency (preserving the player's coin denominations)
-    const remaining = _spendFromPurse(buyer.system.coins, totalCopper);
-    await buyer.update({
-      "system.coins.gp": remaining.gp,
-      "system.coins.sp": remaining.sp,
-      "system.coins.cp": remaining.cp,
-    });
-
-    // Create item on buyer
+    // Deduct currency (preserving the player's coin denominations), then create the item on the buyer
     const itemData = doc.toObject();
     if (quantity > 1) itemData.system.quantity = quantity;
-    await Item.create(itemData, { parent: buyer });
+    if (!(await this._chargeAndGive(buyer, _spendFromPurse(buyer.system.coins, totalCopper), itemData))) {
+      return this._broadcastError(game.i18n.localize("SDE.merchant.notify.notSaved"), userId);
+    }
 
     // Spend the one-shot downtime extortion swing now the purchase has landed.
     if (swing.applied) await spendExtortion(buyer);

@@ -103,12 +103,18 @@ function makeActor({ id, name, ownerId = null, coins = { gp: 0, sp: 0, cp: 0 }, 
   return {
     id, name,
     system: { coins: { ...coins } },
-    items: { get: (i) => byId.get(i), find: () => null, contents: [...byId.values()] },
+    items: { get: (i) => byId.get(i), add: (i) => byId.set(i.id, i), find: () => null, contents: [...byId.values()] },
     testUserPermission(user, permission) {
       const level = user.isGM ? OWNER : (user.id === ownerId ? OWNER : 0);
       return level >= (permission === "OWNER" ? OWNER : 0);
     },
-    async update() {},
+    async update(changes) {
+      for (const [path, v] of Object.entries(changes)) {
+        const coin = path.match(/^system\.coins\.(gp|sp|cp)$/)?.[1];
+        if (coin) this.system.coins[coin] = v;
+      }
+      return this;
+    },
     async createEmbeddedDocuments() { return []; },
   };
 }
@@ -376,7 +382,12 @@ test("#291: a catalog buy of imported gear works; a forged buy of an unpriced it
     ],
   });
   const created = [];
-  globalThis.Item.create = async (data) => { created.push(data.name); return {}; };
+  globalThis.Item.create = async (data, { parent }) => {
+    created.push(data.name);
+    const made = { id: `made${created.length}` };
+    parent.items.add(made);
+    return made;
+  };
   const buy = (pack, id) => MerchantShop._handleCatalogBuy(
     { buyerActorId: "pc1", itemUuid: `Compendium.${pack}.Item.${id}`, quantity: 1 }, PLAYER);
 
@@ -390,4 +401,12 @@ test("#291: a catalog buy of imported gear works; a forged buy of an unpriced it
   const paste = await buy(IMPORTED, "paste");
   assert.notEqual(paste?.ok, false, `expected the imported gear to sell, got ${JSON.stringify(paste)}`);
   assert.deepEqual(created, ["Glow paste, jar"]);
+  assert.equal(buyer.system.coins.gp, 98);
+
+  // The item cannot be made: the coins go back and the buyer is told.
+  globalThis.Item.create = async () => { throw new Error("validation failed"); };
+  const failed = await buy(IMPORTED, "paste");
+  assert.equal(failed?.ok, false);
+  assert.match(failed.error, /notSaved$/);
+  assert.equal(buyer.system.coins.gp, 98, "nothing was charged for the item that never arrived");
 });

@@ -4527,6 +4527,7 @@
   "SDE.merchant.notify.itemNotInShop": "Item not found in shop.",
   "SDE.merchant.notify.notEnoughStock": "Not enough stock.",
   "SDE.merchant.notify.insufficientFunds": "Insufficient funds.",
+  "SDE.merchant.notify.notSaved": "The purchase could not be saved. Nothing was charged.",
   "SDE.merchant.notify.itemNotInInventory": "Item not found in inventory.",
   "SDE.merchant.notify.catalogUnavailable": "The catalog isn't available.",
   "SDE.merchant.notify.notInCatalog": "That item isn't available in the catalog.",
