@@ -15,7 +15,7 @@ import { esc } from "../shared/esc.mjs";
 import { copyText } from "../shared/clipboard.mjs";
 import { relayToGM, notifyPlayers, authorizeActorFor, refuseQuery, registerQuery } from "../shared/gm-relay.mjs";
 import {
-  toCopper, fromCopper, formatPrice, canAfford, applySellRatio,
+  toCopper, fromCopper, formatPrice, canAfford,
   addToPurse, spendFromPurse, parseCoinsFromText,
 } from "../shared/coins.mjs";
 // Gamble folds a drawn table into loot with the Loot Generator's rules, so the
@@ -66,7 +66,12 @@ const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 const _toCopper = toCopper;
 const _fromCopper = fromCopper;
 const _formatPrice = formatPrice;
-const _applySellRatio = applySellRatio;
+/**
+ * How many units a listed price buys. The system prices bundled gear per slot-full (Arrows 1 gp buys 20, Rations
+ * 5 sp buy 3, Iron Spikes 1 gp buy 10), and `per_slot` is that bundle on every one of them. Buying takes whole
+ * bundles; selling pays per unit, so 20 arrows bought for 1 gp sell for half of 1 gp, not twenty times that.
+ */
+const _bundleOf = (data) => Math.max(1, Math.floor(Number(data?.system?.slots?.per_slot)) || 1);
 const _addToPurse = addToPurse;
 const _spendFromPurse = spendFromPurse;
 const _parseCoinsFromText = parseCoinsFromText;
@@ -783,8 +788,9 @@ export const MerchantShop = {
     const entry = inv.find(e => e.id === shopItemId);
     if (!entry) return this._broadcastError(game.i18n.localize("SDE.merchant.notify.itemNotInShop"), userId);
 
-    // Check stock
-    if (entry.stock !== -1 && entry.stock < quantity) {
+    // Check stock: `quantity` is bundles, stock is counted in units.
+    const units = quantity * _bundleOf(entry.itemData);
+    if (entry.stock !== -1 && entry.stock < units) {
       return this._broadcastError(game.i18n.localize("SDE.merchant.notify.notEnoughStock"), userId);
     }
 
@@ -810,7 +816,7 @@ export const MerchantShop = {
     // the entire stack by accident.
     const itemData = foundry.utils.deepClone(entry.itemData);
     if (!itemData.system) itemData.system = {};
-    itemData.system.quantity = quantity;
+    itemData.system.quantity = units;
     if (!(await this._chargeAndGive(buyer, _spendFromPurse(buyer.system.coins, totalCopper), itemData))) {
       return this._broadcastError(game.i18n.localize("SDE.merchant.notify.notSaved"), userId);
     }
@@ -818,7 +824,7 @@ export const MerchantShop = {
     // Execute: update stock
     let newStock = entry.stock;
     if (entry.stock !== -1) {
-      newStock = entry.stock - quantity;
+      newStock = entry.stock - units;
       await this._updateStock(entry.id, newStock, ctx);
     }
 
@@ -894,10 +900,10 @@ export const MerchantShop = {
     const sellRatio = ctx.sellRatio ?? game.settings.get(MODULE_ID, "shopSellRatio") ?? 50;
     const cost = item.system.cost ?? { gp: 0, sp: 0, cp: 0 };
     // The ratio applies to the whole sale and rounds once: ten 5 cp torches at half price pay 25 cp, where
-    // rounding each torch down to 2 cp paid 20.
-    const salePrice = _applySellRatio(_fromCopper(_toCopper(cost) * quantity), sellRatio);
+    // rounding each torch down to 2 cp paid 20. A bundle's price is shared out per unit (_bundleOf).
+    const saleCopper = Math.floor(_toCopper(cost) * quantity * sellRatio / (100 * _bundleOf(item)));
     // The same one-shot downtime extortion swing, in the seller's favour.
-    const swing = applyExtortion(_toCopper(salePrice), readExtortion(seller), "sell");
+    const swing = applyExtortion(saleCopper, readExtortion(seller), "sell");
     const totalCopper = swing.copper;
     const totalSellPrice = _fromCopper(totalCopper);
 
@@ -1046,7 +1052,8 @@ export const MerchantShop = {
 
     // Deduct currency (preserving the player's coin denominations), then create the item on the buyer
     const itemData = doc.toObject();
-    if (quantity > 1) itemData.system.quantity = quantity;
+    // `quantity` is bundles at the listed price: two Arrows are 40 arrows for 2 gp, never 2 arrows.
+    itemData.system.quantity = quantity * _bundleOf(itemData);
     if (!(await this._chargeAndGive(buyer, _spendFromPurse(buyer.system.coins, totalCopper), itemData))) {
       return this._broadcastError(game.i18n.localize("SDE.merchant.notify.notSaved"), userId);
     }
@@ -1811,7 +1818,8 @@ class MerchantShopApp extends HandlebarsApplicationMixin(ApplicationV2) {
         .map(i => {
           const cost = i.system.cost ?? { gp: 0, sp: 0, cp: 0 };
           const sellPrice = _fromCopper(
-            applyExtortion(_toCopper(_applySellRatio(cost, this._sellRatio)), extortion, "sell").copper,
+            // What one unit sells for (a bundle's price shared out), as the GM-side sale pays it.
+            applyExtortion(Math.floor(_toCopper(cost) * this._sellRatio / (100 * _bundleOf(i))), extortion, "sell").copper,
           );
           return {
             id: i.id,
@@ -2629,7 +2637,7 @@ class MerchantShopApp extends HandlebarsApplicationMixin(ApplicationV2) {
     // Client-side pre-check
     const entry = this._inventory.find(e => e.id === shopItemId);
     if (!entry) return;
-    if (entry.stock !== -1 && entry.stock < quantity) {
+    if (entry.stock !== -1 && entry.stock < quantity * _bundleOf(entry.itemData)) {
       ui.notifications.warn(game.i18n.localize("SDE.merchant.notify.notEnoughStock"));
       return;
     }

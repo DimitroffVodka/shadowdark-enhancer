@@ -192,6 +192,18 @@ test("selling more than the seller holds sells and pays for what they hold", asy
   assert.equal(paid.at(-1)["system.coins.gp"], 40, "two 40 gp swords at half price, not a thousand");
 });
 
+test("bundled gear sells per unit: 20 arrows bought for 1 gp sell for half of 1 gp, not 10 gp", async () => {
+  const arrows = makeItem({ id: "i3", name: "Arrows", cost: { gp: 1, sp: 0, cp: 0 }, quantity: 20 });
+  arrows.system.slots = { per_slot: 20 };
+  const seller = makeActor({ id: "pc1", name: "Vella's PC", ownerId: PLAYER.id, items: [arrows] });
+  const { MerchantShop } = await harness({ actors: { pc1: seller }, settings: PUBLISHED });
+
+  await MerchantShop._handleSell({ sellerActorId: "pc1", itemId: "i3", quantity: 20 }, PLAYER);
+
+  const { gp, sp, cp } = seller.system.coins;
+  assert.equal(gp * 100 + sp * 10 + cp, 50);
+});
+
 test("the sell ratio rounds once on the whole sale, not once per item", async () => {
   const torches = makeItem({ id: "i2", name: "Torch", cost: { gp: 0, sp: 0, cp: 5 }, quantity: 10 });
   const seller = makeActor({ id: "pc1", name: "Vella's PC", ownerId: PLAYER.id, items: [torches] });
@@ -318,12 +330,12 @@ const PUBLISHED = {
 };
 
 /** A compendium item as an index row / document carries it. */
-function packItem({ id, name, type = "Basic", cost = { gp: 1, sp: 0, cp: 0 }, flags = {}, folder = null, pack = IMPORTED }) {
+function packItem({ id, name, type = "Basic", cost = { gp: 1, sp: 0, cp: 0 }, flags = {}, folder = null, pack = IMPORTED, system = {} }) {
   return {
     _id: id, id, name, type, folder, img: "x.webp", flags,
     uuid: `Compendium.${pack}.Item.${id}`,
-    system: { cost },
-    toObject() { return { _id: id, name, type, system: { cost } }; },
+    system: { cost, ...system },
+    toObject() { return { _id: id, name, type, system: structuredClone({ cost, ...system }) }; },
   };
 }
 
@@ -420,4 +432,24 @@ test("#291: a catalog buy of imported gear works; a forged buy of an unpriced it
   assert.equal(failed?.ok, false);
   assert.match(failed.error, /notSaved$/);
   assert.equal(buyer.system.coins.gp, 98, "nothing was charged for the item that never arrived");
+});
+
+test("a catalog buy of bundled gear gives whole bundles: two Arrows are 40 arrows for 2 gp", async () => {
+  const buyer = makeActor({ id: "pc1", name: "Vella's PC", ownerId: PLAYER.id, coins: { gp: 10, sp: 0, cp: 0 } });
+  const { MerchantShop } = await harness({ actors: { pc1: buyer }, settings: PUBLISHED });
+  stubPacks({
+    [gearPack]: [packItem({ id: "arrows", name: "Arrows", pack: gearPack, system: { quantity: 20, slots: { per_slot: 20 } } })],
+    "shadowdark.magic-items": [],
+    [IMPORTED]: [],
+  });
+  const made = [];
+  globalThis.Item.create = async (data, { parent }) => {
+    made.push(data.system.quantity);
+    const doc = { id: `made${made.length}` };
+    parent.items.add(doc);
+    return doc;
+  };
+  await MerchantShop._handleCatalogBuy({ buyerActorId: "pc1", itemUuid: `Compendium.${gearPack}.Item.arrows`, quantity: 2 }, PLAYER);
+  assert.deepEqual(made, [40]);
+  assert.equal(buyer.system.coins.gp, 8);
 });
