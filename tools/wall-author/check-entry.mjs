@@ -56,7 +56,7 @@ const need = creaturesFile ? Object.fromEntries(Object.entries(JSON.parse(readFi
 const sq = {}, key = (p) => `${Math.floor(p.x / grid)},${Math.floor(p.y / grid)}`;
 for (const n of Object.keys(layout.pins)) {
   if (OUTSIDE.includes(n)) continue;
-  sq[n] = new Set(reachableSquares(data, rect, grid, px(n), 600).map((s) => s.join(",")));
+  sq[n] = new Set(reachableSquares(data, rect, grid, px(n)).map((s) => s.join(",")));
   const c = need[n] ?? 0;
   if (!sq[n].size) bad(`pin ${n} has no floor to stand on`);
   else if (c && sq[n].size - 1 < c) bad(`room ${n} has ${sq[n].size} squares for ${c} creatures (a pin in a cell, or a wall through the room?)`);
