@@ -426,3 +426,33 @@ test("init(): a legacy (missing _v) setting is upgraded and persisted, priorMode
     assert.equal(persisted.oocTurn, null);
   } finally { env.restore(); }
 });
+
+test("round 1: initiative rolled before anyone acts puts the turn on the top; rolled after a turn passed, it stays", async () => {
+  const { CrawlState } = await import("../scripts/crawl-strip/crawl-state.mjs");
+  const env = setup({
+    users: [GM_A], activeGMId: GM_A.id,
+    crawlState: { _v: STATE_VERSION, mode: "combat", crawlTurn: 0, oocInitiative: {}, members: [], priorMode: "off" },
+  });
+  const combat = (turn) => {
+    const c = { round: 1, turn, turns: [{ initiative: 18 }, { initiative: 12 }, { initiative: 7 }], writes: [] };
+    c.update = async (data) => { c.writes.push(data); Object.assign(c, data); };
+    return c;
+  };
+  const settle = () => new Promise((resolve) => setTimeout(resolve, 200));
+  try {
+    env.game.user = GM_A;
+    CrawlState.init();
+
+    const sorted = combat(2);   // everyone just rolled; the sort left the pointer at 2
+    env.Hooks.callAll("updateCombatant", { parent: sorted }, { initiative: 7 });
+    await settle();
+    assert.deepEqual(sorted.writes, [{ turn: 0 }]);
+
+    const lateJoiner = combat(2);   // two turns were passed, then a goblin joins and rolls
+    env.Hooks.callAll("updateCombat", lateJoiner, { turn: 1 }, { direction: 1 });
+    env.Hooks.callAll("updateCombat", lateJoiner, { turn: 2 }, { direction: 1 });
+    env.Hooks.callAll("updateCombatant", { parent: lateJoiner }, { initiative: 9 });
+    await settle();
+    assert.deepEqual(lateJoiner.writes, [], "the turn stays where it is");
+  } finally { env.restore(); }
+});
