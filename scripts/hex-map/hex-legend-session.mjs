@@ -41,15 +41,21 @@ export async function openLegendSession({ sceneId, folder = "", onProgress = nul
   app._headless = true;
   app._onProgress = onProgress;
   app._loadState();
-  await app._loadEntries();
-  if (folder) app._entries = app._entries.filter((e) => sourceFolderName(e.doc.getFlag(MODULE_ID, HEX_FLAG)?.source) === folder);
-  app._entryUuid = app._entries.length ? ALL_CRAWLS : "";
-  onProgress?.(game.i18n.localize("SDE.hexMap.progress.image"));
-  // As the image flow does: read the map, read its region borders (they finish without asking anything), then the cards.
-  if (!(await app._onSample())) throw new Error(app._error || "The map could not be read.");
-  await app._onScanRegions();
-  await app._onLegend();
-  if (!app._legend?.length) throw new Error("The map gave no pictures to name.");
+  // As the window does: tags painted elsewhere meanwhile (brush, overlay, Hexplorer) are taken in, so Apply and Confirm
+  // never write an old copy back over them.
+  const hook = app._hearOutsideTags();
+  const stop = () => Hooks.off("updateScene", hook);
+  try {
+    await app._loadEntries();
+    if (folder) app._entries = app._entries.filter((e) => sourceFolderName(e.doc.getFlag(MODULE_ID, HEX_FLAG)?.source) === folder);
+    app._entryUuid = app._entries.length ? ALL_CRAWLS : "";
+    onProgress?.(game.i18n.localize("SDE.hexMap.progress.image"));
+    // As the image flow does: read the map, read its region borders (they finish without asking anything), then the cards.
+    if (!(await app._onSample())) throw new Error(app._error || "The map could not be read.");
+    await app._onScanRegions();
+    await app._onLegend();
+    if (!app._legend?.length) throw new Error("The map gave no pictures to name.");
+  } catch (err) { stop(); throw err; }
   const text = (value, other) => (value === OTHER ? String(other ?? "").trim() : value);
   return {
     cards: () => app._legendCards(app._state) ?? [],
@@ -77,6 +83,6 @@ export async function openLegendSession({ sceneId, folder = "", onProgress = nul
       // Another scene on the canvas: nothing is written, and the wizard shows why (terrainReview puts this in T.error).
       if (!(await app._confirmSheet(sheetAnswers(app._sheet, app._sheetDrafts(), app._state.cells)))) throw new Error(game.i18n.localize("SDE.hexMap.notify.sceneChanged"));
     },
-    close() { app._legend = null; app._sheet = []; },
+    close() { stop(); app._legend = null; app._sheet = []; },
   };
 }

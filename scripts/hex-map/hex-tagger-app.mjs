@@ -454,7 +454,14 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
    */
   _onFirstRender(context, options) {
     super._onFirstRender(context, options);
-    this._sceneHook = Hooks.on("updateScene", (doc, changed, options) => {
+    this._sceneHook = this._hearOutsideTags();
+  }
+
+  /** The updateScene listener that takes in other writers' tags; the headless engine (hex-legend-session.mjs) needs it too. */
+  _hearOutsideTags() {
+    // Named now, not at the first save: the brush and the Hexplorer write unstamped, and an unset id would take them for ours.
+    this._writerId ??= foundry.utils.randomID();
+    return Hooks.on("updateScene", (doc, changed, options) => {
       if (!tagsWrittenElsewhere(doc, changed, options, { sceneId: this._stateSceneId, writer: this._writerId })) return;
       // Mid-save, the scene is about to change again under this window's own write: read it when that settles.
       if (this._saving) this._tagsHeard = true; else this._takeInTags();
@@ -636,8 +643,7 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
    * that one key whole, without deleting the module's OTHER flags on the scene
    * the way `recursive: false` does (module-flags.mjs).
    */
-  async _saveState() {
-    const scene = this._scene();
+  async _saveState(scene = this._scene()) {
     if (!scene) return;
     // The write is stamped, so the updateScene hook that takes in other writers' tags knows ours.
     this._writerId ??= foundry.utils.randomID();
@@ -1549,10 +1555,12 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
    */
   async _confirmSheet(answers) {
     if (!this._requireCurrentScene()) return false;
+    // Both writes go to the scene just checked, even if the canvas moves on between them.
+    const scene = this._scene();
     const verdicts = applySheet(this._state, answers);
     this._sheetDraft = null;   // confirmed: the saved tags say it now
-    await this._saveState();
-    await this._recordVerdicts(verdicts);
+    await this._saveState(scene);
+    await this._recordVerdicts(verdicts, scene);
     this._sheet = nextSheet(this._state, { nums: [...this._numbered.keys()], size: SHEET_SIZE, mode: this._mode, keyed: this._keyedNumbers(), reviewMargin: this._log().margin });
     this.render();
     return true;
@@ -1562,8 +1570,7 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
    * Keep what the GM judged, before the classifier's guess is overwritten.
    * Its own scene flag, so the tag flag's wholesale write never touches it.
    */
-  async _recordVerdicts(transitions) {
-    const scene = this._scene();
+  async _recordVerdicts(transitions, scene = this._scene()) {
     if (!scene) return;
     const log = decodeFixes(scene.getFlag(MODULE_ID, FIXES_FLAG));
     const { judged } = recordEdits(log, transitions);

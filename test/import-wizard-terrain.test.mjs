@@ -264,6 +264,24 @@ test("a failed save keeps the sheet and says why; the stage is not left stuck on
   assert.match(ctl.viewModel().terrain.review.error, /refused/);
 });
 
+test("after a refused Confirm the emptied sheet offers no Confirm: the map's check is not quietly ended", async () => {
+  const a = reviewLegend([2]);
+  let refused = false;
+  a.reviewConfirm = async () => { refused = true; throw new Error("sceneChanged"); };
+  const { ctl } = await afterRun([HEX("hex-cs1"), HEX("hex-cs2")], { legends: { "hex-cs1": a, "hex-cs2": fakeLegend() } });
+  await ctl.dispatch("next");     // Apply
+  await ctl.dispatch("next");     // Confirm, refused: the engine moved to the other scene and its sheet is empty
+  assert.equal(refused, true);
+  a.reviewCards = () => [];
+  const vm = ctl.viewModel();
+  assert.equal(vm.foot.next, null, "no 'Confirm 0'");
+  assert.match(vm.foot.cancel, /terrain\.skipReview/, "Skip is still there");
+  a.reviewConfirm = async () => assert.fail("an empty sheet is not confirmed");
+  await ctl.dispatch("next");
+  assert.equal(ctl.state.terrain.stage, "review");
+  assert.equal(ctl.state.terrain.i, 0, "still on the first map");
+});
+
 test("cancel on the Done page does nothing: no leave confirm, no release, no close", async () => {
   const calls = [];
   const { ctl } = await afterRun([]);

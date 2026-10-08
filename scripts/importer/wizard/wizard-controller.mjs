@@ -268,7 +268,8 @@ export class WizardController {
   /** Confirm the doubtful hexes on screen as they stand (the GM's changes taken); the next sheet of them, or on to the next map. */
   async terrainReview() {
     const T = this.state.terrain;
-    if (T?.stage !== "review") return undefined;
+    // An empty sheet (a refused Confirm reloads the engine on the other scene) has nothing to confirm; Skip stays.
+    if (T?.stage !== "review" || !this.legend?.reviewCards().length) return undefined;
     T.stage = "saving"; this.changed();
     try {
       await this.legend.reviewConfirm();
@@ -420,7 +421,7 @@ export class WizardController {
       advanced: s.page !== "import",
       back: canBack(s) && idx > 0,
       next: s.page === "import" ? null
-        : T && (T.stage === "review" || T.stage === "saving") ? { label: t("SDE.importer.wizard.terrain.confirm", { n: this.legend?.reviewCards().length ?? 0 }), disabled: T.stage === "saving", reason: "" }
+        : T && (T.stage === "review" || T.stage === "saving") ? (this.legend?.reviewCards().length ? { label: t("SDE.importer.wizard.terrain.confirm", { n: this.legend.reviewCards().length }), disabled: T.stage === "saving", reason: "" } : null)
         : T ? (T.stage === "failed" ? { label: t("SDE.importer.wizard.terrain.continue") }
           : { label: t("SDE.importer.wizard.terrain.apply"), disabled: T.stage !== "cards", reason: T.stage === "cards" ? "" : t("SDE.importer.wizard.terrain.wait") })
         : s.page === "done" ? { label: t("SDE.importer.wizard.finish") }
