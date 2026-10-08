@@ -125,7 +125,8 @@ test("titleCaseName: book style, apostrophes, small words, mixed case left alone
   assert.equal(titleCaseName("MUGDULBLUB'S HALL"), "Mugdulblub's Hall");
   assert.equal(titleCaseName("OF THE DEEP"), "Of the Deep");
   assert.equal(titleCaseName("Dmitri In Disguise"), "Dmitri In Disguise");
-  assert.equal(locationPageName({ num: 7, name: "SPORE HALL" }), "7. Spore Hall");
+  assert.equal(locationPageName({ num: 7, name: "SPORE HALL" }), "Area 7: Spore Hall");
+  assert.equal(locationPageName({ num: 7, name: "SPORE HALL" }, ""), "7. Spore Hall", "a city keeps the number first");
 });
 
 test("bodyBlocks: items run until the next item, caps lines are sub-headings, hyphen breaks rejoin", () => {
@@ -137,8 +138,27 @@ test("bodyBlocks: items run until the next item, caps lines are sub-headings, hy
 
 test("buildLocationHtml: lists, escaping, and links only to known locations", () => {
   const html = buildLocationHtml({ bodyLines: ["Lead <b>.", "• See Area 2 and Area 9.", "• Second."] }, new Set([2]));
-  assert.match(html, /^<p>Lead &lt;b&gt;\.<\/p>\n<ul>\n<li>See Area @@LOC\[2\]\{2\}@@ and Area 9\.<\/li>\n<li>Second\.<\/li>\n<\/ul>$/);
+  assert.equal(html, "<p>Lead &lt;b&gt;.</p>\n<ul><li><p>See Area @@LOC[2]{2}@@ and Area 9.</p></li><li><p>Second.</p></li></ul>");
   assert.equal(buildLocationHtml({ bodyLines: [] }, new Set()), "<p></p>");
+});
+
+test("buildLocationHtml: the quickstart's layout: bold labels, arrows nested under their bullet, dice and DC checks as links", () => {
+  const O = "\u0001", C = "\u0002";
+  const marked = [`${O}Walls:${C} Damp. ${O}Floor:${C}`, "Slick.", `${O}• Webs.${C} Sticky. DC 12 STR to break free (1d4 damage).`, `▶ ${O}Rolled Parchment.${C} Stuck in webs.`, `▶ ${O}Chittering.${C} From Area 4.`, `${O}• Door.${C} DC 15 Dexterity or 2d6 damage.`];
+  const plain = marked.map((l) => l.replaceAll(O, "").replaceAll(C, ""));
+  const html = buildLocationHtml({ bodyLines: plain, boldLines: marked }, new Set([4]));
+  assert.equal(html, [
+    "<p><strong>Walls:</strong> Damp. <strong>Floor:</strong> Slick.</p>",
+    "<ul><li><p><strong>Webs.</strong> Sticky. [[request 12 str]] to break free ([[/r 1d4]] damage).</p>"
+      + "<ul><li><p><strong>Rolled Parchment.</strong> Stuck in webs.</p></li><li><p><strong>Chittering.</strong> From Area @@LOC[4]{4}@@.</p></li></ul></li>"
+      + "<li><p><strong>Door.</strong> [[request 15 dex]] or [[/r 2d6]] damage.</p></li></ul>",
+  ].join("\n"));
+});
+
+test("buildLocationHtml: a bold creature name the bestiary knows is a link inside its bold, and an arrow with no bullet above it still lists", () => {
+  const O = "\u0001", C = "\u0002", resolve = (n) => (/^howlers?$/i.test(n) ? "Actor.H" : undefined);
+  const html = buildLocationHtml({ bodyLines: ["12 Howlers.", "▶ Alone."], boldLines: [`12 ${O}Howlers${C}.`, "▶ Alone."] }, new Set(), { resolve });
+  assert.equal(html, "<p>12 <strong>@UUID[Actor.H]{Howlers}</strong>.</p>\n<ul><li><p>Alone.</p></li></ul>");
 });
 
 test("linkRefs: lists of numbers, Room as well as Area", () => {
@@ -208,4 +228,23 @@ test("City of Masks districts run on through the city, 1 to 50, and the whole ci
   d.slice(1).forEach((s, i) => assert.equal(s.range[0], d[i].range[1] + 1));
   assert.equal(d[0].range[0], 1);
   assert.equal(d.at(-1).range[1], 50);
+});
+
+test("a creature's name set in one bold run with its run-in label still links", async () => {
+  const { inlineHtml } = await import("../scripts/importer/adventure/adventure-parser.mjs");
+  const resolve = (p) => (p === "Mugdulblub" ? "Actor.m1" : undefined);
+  const html = inlineHtml("\u0001Pool. Mugdulblub\u0002, a primordial ooze.", new Set(), resolve);
+  assert.equal(html, "<strong>Pool. @UUID[Actor.m1]{Mugdulblub}</strong>, a primordial ooze.");
+});
+
+test("every roll table the manifest points at is one the table importer makes", async () => {
+  const { findById, catalogEntries, importNameFor } = await import("../scripts/importer/tables/table-manifest.mjs");
+  const names = new Set(catalogEntries().map((e) => importNameFor(e)));
+  for (const s of allSites()) {
+    for (const [what, id] of Object.entries(s.tables ?? {})) assert.ok(findById(id), `${s.id}: ${what} table "${id}" is not in the table catalogue`);
+    // Looked up by name in the world (the way tableLinks finds them), so the name must be one an import creates.
+    for (const name of Object.values(s.phraseTables ?? {})) assert.ok([...names].some((n) => n === name || n.endsWith(`: ${name}`)), `${s.id}: no table is imported as "${name}"`);
+  }
+  assert.equal(findSite("cs4-black-seed").tables, undefined, "the Black Seed prints no Random Encounters table");
+  assert.equal(findSite("cs4-tsibalba").tables.encounters, "cs4-random-encounters-tsibalba");
 });

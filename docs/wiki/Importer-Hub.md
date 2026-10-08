@@ -419,6 +419,13 @@ Building a scene, **Auto-place**, or the **skull button** in the Place locations
 them down; a creature already on the map is never placed twice, and one you delete comes
 back the next time. For pins you placed by hand, press the skull button once they are down.
 
+**An adventure's journal reads like the quickstart's.** The Lost Citadel in the Shadowdark system is the model: an
+Overview page, an "Areas 1-27" page for the rules that hold everywhere (danger level, light, doors, the random encounters
+table), and one page per area ("Area 12: Meteorite Room") listed under it. An area opens with its player-safe description
+as bold labels, then the GM's bullets with the book's arrows nested beneath. Dice in the text (2d4) are inline rolls, a
+"DC 12 DEX" is a request you can click to ask the players, and creature names (an NPC by its first name too) link to their stat blocks. A magic item or treasure the text names links to the item; a thing the key prices ("a blue pearl (40 gp)") becomes an item of its own, a Gem or a treasure item worth that, in the importer's Items compendium under the adventure and the area, and a spell scroll the key names becomes a scroll that points at its spell; and the adventure's rumors and random encounters roll tables (when you have imported them) are linked above the tables printed in the journal. The wizard files
+a journal once and never overwrites it; **Adventures** in the importer replaces the module's pages with the new layout.
+
 **Monster names are links.** In a room's journal page, every creature name the book sets in
 bold that your bestiary knows (the core bestiary first, then your imported monsters) is a
 link to that monster, so a room opens the stat block it names; a bold word that is not a

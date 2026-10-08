@@ -11,8 +11,8 @@
  * to roll, so it places nothing either.
  *
  * The same bold names are linked in the filed text: a bold run the bestiary knows
- * becomes an `@UUID` link to that creature (linkCreatureNames), so a room's journal
- * page opens the stat block it names.
+ * becomes an `@UUID` link to that creature (`inlineHtml` in adventure-parser), so a room's
+ * journal page opens the stat block it names.
  *
  * Works on the marked lines the parser keeps (`boldLines`); reads the GM's own
  * book at run time, ships no text. Every string in the tests is invented.
@@ -52,6 +52,7 @@ export function phraseKeys(text) {
   if (/men$/.test(last)) forms.add(`${last.slice(0, -3)}man`);
   if (/(?:ch|sh|x|ss)es$/.test(last)) forms.add(last.slice(0, -2));
   if (/[^s]s$/.test(last)) forms.add(last.slice(0, -1));
+  if (/['’]s$/.test(last)) forms.add(last.slice(0, -2));   // "Plogrina's" is Plogrina
   return [...forms].map((f) => [...head, f].join(" "));
 }
 
@@ -146,29 +147,48 @@ export function creatureResolver(index, aliases = {}) {
   const lookup = bestiaryLookup(npcs.map((e) => e.name));
   const uuidOf = new Map(npcs.map((e) => [e.name, e.uuid]));
   const alias = Object.fromEntries(Object.entries(aliases ?? {}).map(([k, v]) => [k.toLowerCase(), v]));
+  // The books call a person by their first name after the first time ("Gordock", for "Gordock Breeg"): an NPC the GM
+  // imported answers to it, unless two of them share it. The system's own creatures never do ("Red Knight" is not "Red").
+  const first = new Map(), shared = new Set();
+  for (const e of npcs) {
+    const w = words(e.name);
+    if (w.length < 2 || /^Compendium\.shadowdark\./.test(e.uuid ?? "")) continue;
+    if (first.has(w[0]) && first.get(w[0]) !== e.name) shared.add(w[0]); else first.set(w[0], e.name);
+  }
   return (phrase) => {
     const keys = phraseKeys(phrase);
-    const name = keys.map(lookup).find(Boolean) ?? keys.map((k) => alias[k]).find(Boolean);
+    const name = keys.map(lookup).find(Boolean) ?? keys.map((k) => alias[k]).find(Boolean)
+      ?? (keys.length && !/\s/.test(keys[0]) ? first.get(keys.find((k) => first.has(k) && !shared.has(k))) : undefined);
     return name ? uuidOf.get(name) : undefined;
   };
 }
 
 /**
- * Pure: one marked line as plain text with a link on every bold run that names a
- * creature. A run the bestiary does not know stays plain (it is only bold). Bullets
- * and a trailing full stop stay outside the link ("• Skeletons." → "• @UUID[…]{Skeletons}."),
- * and a line that is nothing but capitals stays as it is: it is a sub-heading.
- * @param {string} marked  a line with bold markers
+ * Pure: every way an adventure's text names the creatures it sets in bold, to link a mention that the book printed in plain
+ * type too ("if Howlers are there", beside the room that has them in bold). One entry per surface form: the bold phrase,
+ * its singular and its plural, and an NPC's first name ("Gordock" for "Gordock Breeg").
+ * @param {Array<{boldLines?:string[]}>} locations  a site's parsed locations
  * @param {(phrase:string)=>string|undefined} resolve  creatureResolver
- * @returns {string}
+ * @returns {Array<{form:string, uuid:string}>}  longest form first
  */
-export function linkCreatureNames(marked, resolve) {
-  const plain = stripBold(marked);
-  if (!resolve || !/[a-z]/.test(plain)) return plain;
-  const linked = String(marked ?? "").replace(new RegExp(`${BOLD_OPEN}([^${BOLD_CLOSE}]*)${BOLD_CLOSE}`, "g"), (run, inner) => {
-    const [, lead, core, tail] = /^([•▶►\s]*)([\s\S]*?)([.:,;\s]*)$/.exec(inner);
-    const uuid = core && core.length <= 40 ? resolve(core) : undefined;
-    return uuid ? `${lead}@UUID[${uuid}]{${core}}${tail}` : inner;
-  });
-  return stripBold(linked);   // a marker the pairs did not close never reaches the page
+export function creatureVocabulary(locations, resolve) {
+  if (!resolve) return [];
+  const forms = new Map();
+  const add = (form, uuid) => { if (form.length >= 4 && !forms.has(form)) forms.set(form, uuid); };
+  for (const loc of locations ?? []) {
+    const text = (loc.boldLines ?? []).join(" ");
+    for (const m of text.matchAll(new RegExp(`${BOLD_OPEN}([^${BOLD_CLOSE}]*)${BOLD_CLOSE}`, "g"))) {
+      let phrase = phraseOf(m[1]);
+      if (!phrase || phrase.length > 40 || !/[a-z]/.test(phrase)) continue;
+      let uuid = resolve(phrase);
+      // "Pool. Mugdulblub": a run-in label and a name in one bold run.
+      if (!uuid && phrase.includes(". ")) { phrase = phrase.slice(phrase.lastIndexOf(". ") + 2); uuid = resolve(phrase); }
+      if (!uuid) continue;
+      const lower = words(phrase).join(" ");
+      for (const f of [lower, ...phraseKeys(phrase)]) { add(f, uuid); if (!f.endsWith("s")) add(`${f}s`, uuid); }
+      const first = words(phrase)[0];
+      if (first && first !== lower && resolve(first) === uuid) add(first, uuid);
+    }
+  }
+  return [...forms].map(([form, uuid]) => ({ form, uuid })).sort((a, b) => b.form.length - a.form.length);
 }
