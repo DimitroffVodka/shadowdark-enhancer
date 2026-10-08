@@ -430,14 +430,6 @@ export function resetRivalClassTableListener() {
   freshnessInFlight = null;
 }
 
-export const RivalClassTableAdapter = Object.freeze({
-  find: findRivalClassTable,
-  regenerate: regenerateRivalClassTable,
-  refresh: refreshRivalClassTable,
-  ensureFresh: ensureRivalClassTableFresh,
-  install: installRivalClassTableListener,
-});
-
 // Keep the pure projection reachable to consumers that need to compare a
 // snapshot without importing the selector module separately.
 export { rivalClassTableContent, rivalClassTableFingerprint };

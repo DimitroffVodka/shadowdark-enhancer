@@ -159,11 +159,6 @@ export function bySource(source) {
   return catalogEntries().filter(e => citesOf(e).some(c => c.src === source));
 }
 
-/** All entries in a given top-level category. */
-export function byCategory(category) {
-  return TABLE_MANIFEST.filter(e => e.category === category);
-}
-
 /** Look up a single entry by its stable id. */
 export function findById(id) {
   return TABLE_MANIFEST.find(e => e.id === id) ?? null;

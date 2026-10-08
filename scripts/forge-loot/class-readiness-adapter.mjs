@@ -299,6 +299,4 @@ export async function collectClassReadiness({
   });
 }
 
-export const buildClassReadinessReportFromFoundry = collectClassReadiness;
 export const buildClassReadinessReport = collectClassReadiness;
-export const readClassReadiness = collectClassReadiness;

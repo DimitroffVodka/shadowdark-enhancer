@@ -58,9 +58,6 @@ export const G6A_UNSUPPORTED_TO_READINESS = Object.freeze({
   "missing-metadata": READINESS_CODES.MISSING_CHOICE_METADATA,
 });
 
-// Public aliases make the mapping discoverable without introducing a second
-// vocabulary.  Consumers should use G6A_UNSUPPORTED_TO_READINESS.
-export const UNSUPPORTED_CODE_TO_BLOCKER = G6A_UNSUPPORTED_TO_READINESS;
 export const DEFAULT_DEFECT_QUEUE_LIMIT = 64;
 
 const OWN = Object.prototype.hasOwnProperty;
@@ -241,7 +238,6 @@ export function normalizeTalentRows(rows = []) {
   });
 }
 
-export const collapseTalentRows = normalizeTalentRows;
 
 function parseDie(formula) {
   const match = String(formula ?? "").trim().match(/^(\d*)d(\d+)$/i);
@@ -701,8 +697,6 @@ export function assessClassReadiness(input = {}, options = {}) {
   };
 }
 
-export const validateClassReadiness = assessClassReadiness;
-export const classReadiness = assessClassReadiness;
 
 function compareRecords(a, b) {
   return compareText(a.source, b.source) || compareText(a.name, b.name) || compareText(a.classId, b.classId);
@@ -748,7 +742,6 @@ export function buildClassReadinessReport(candidates = [], options = {}) {
   };
 }
 
-export const classReadinessReport = buildClassReadinessReport;
 
 /** Return the G6a vocabulary this report validates, for adapter diagnostics. */
 export function supportedChoiceVocabulary() {

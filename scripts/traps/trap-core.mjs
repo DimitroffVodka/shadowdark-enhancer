@@ -13,13 +13,6 @@ import { esc } from "../shared/esc.mjs";
 /** Fields a trap record carries, in the order the config form shows them. */
 export const TRAP_FIELDS = ["trap", "trigger", "effect", "checkAbility", "checkDc", "damage", "applyDamage", "holds", "when", "chance", "gmNotes"];
 
-/**
- * When a trap fires: `enter` once as a token moves in, `round` on entry and again every round the
- * token stays (a crawl round, or a combat round in a fight), `manual` only when the GM springs it
- * (a shrine that fires when touched, a door that fires when opened).
- */
-export const TRAP_WHEN = ["enter", "round", "manual"];
-
 /** The abilities a trap's check can ask for (the `[[request DC abil]]` link takes these). */
 export const TRAP_ABILITIES = ["str", "dex", "con", "int", "wis", "cha"];
 

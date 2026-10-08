@@ -175,10 +175,3 @@ export async function recordDowntime(entry) {
 
   return result;
 }
-
-/** Open the log journal for the GM, creating it if it doesn't exist yet. */
-export async function openDowntimeLog() {
-  const journal = await ensureDowntimeJournal();
-  journal?.sheet?.render(true);
-  return journal;
-}

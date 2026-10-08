@@ -785,8 +785,6 @@ const HANDLERS = {
   "divine-trade-spell": (actor, choice) => tradeSpell(actor, choice),
 };
 
-/** Slot keys with a real mechanical writer (the rest are GM-adjudicated). */
-export const MECHANICAL_SLOT_KEYS = Object.keys(HANDLERS);
 
 /* ────────────────────────────────────────────────────────────────────────── */
 /* Merchant-side extortion consumption helpers                                */

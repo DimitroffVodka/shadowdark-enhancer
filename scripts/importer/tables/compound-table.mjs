@@ -90,4 +90,3 @@ async function postCompoundCard(table, combined, detail, options = {}) {
   return ChatMessage.create(data);
 }
 
-export const CompoundTable = { install: installCompoundRollTable, isCompoundTable, draw: sdeCompoundDraw };

@@ -9,7 +9,7 @@
 import { MODULE_ID } from "../shared/module-id.mjs";
 import { LootLinker } from "./loot-linker.mjs";
 import { stripPrice } from "./loot-resolution.mjs";
-import { findSuitePack, ensureSuite, ensureSourceFolder } from "../shared/compendium-suite.mjs";
+import { findSuitePack, ensureSuite } from "../shared/compendium-suite.mjs";
 import { pickShikashiIcon, shikashiIcon } from "../importer/items/shikashi-icons.mjs";
 import { sourceTitleSlug } from "../importer/items/item-builder-gear.mjs";
 
@@ -147,25 +147,4 @@ export async function ensureLootPack() {
   if (!pack) pack = (await ensureSuite())?.items;
   if (pack?.locked) { try { await pack.configure({ locked: false }); } catch (_) {} }
   return pack;
-}
-
-/** Dedup-by-name create into the pack, filed under the "Custom" source folder. Returns {uuid,name,created}. */
-export async function ensureItemInPack(pack, itemData) {
-  const index = await pack.getIndex();
-  const existing = [...index].find(e => (e.name ?? "").toLowerCase() === itemData.name.toLowerCase());
-  if (existing) {
-    const uuid = existing.uuid ?? `Compendium.${pack.collection}.Item.${existing._id}`;
-    return { uuid, name: existing.name, created: false };
-  }
-  const data = { ...itemData };
-  if (!data.folder) {
-    const folderId = await ensureSourceFolder(pack, "");
-    if (folderId) data.folder = folderId;
-  }
-  data.flags = {
-    ...(data.flags ?? {}),
-    [MODULE_ID]: { ...(data.flags?.[MODULE_ID] ?? {}), source: "", imported: true },
-  };
-  const doc = await Item.create(data, { pack: pack.collection });
-  return { uuid: doc.uuid, name: doc.name, created: true };
 }

@@ -22,7 +22,6 @@ import { MODULE_ID } from "../shared/module-id.mjs";
 import { esc } from "../shared/esc.mjs";
 
 export const TYPE_LABELS = { weapon: "Weapon", armor: "Armor", scroll: "Scroll", wand: "Wand", potion: "Potion", utility: "Utility" };
-export const TYPE_IDS = Object.keys(TYPE_LABELS);
 
 /** Forge types that produce a fully working item in this rebuild. */
 export const WORKING_TYPES = ["weapon", "armor", "scroll", "wand"];

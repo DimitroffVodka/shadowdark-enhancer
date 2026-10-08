@@ -64,12 +64,6 @@ export function sourceKey(src) {
   return CANON[s] ?? s;
 }
 
-/** True when two spellings mean the same book. */
-export function sameSource(a, b) {
-  const x = sourceKey(a), y = sourceKey(b);
-  return !!x && !!y && x === y;
-}
-
 /** CHAR_SOURCES key ("CS6") for any spelling, or null if it isn't a known book. */
 export function charSourceKey(src) {
   return CHAR_KEY[sourceKey(src)] ?? null;

@@ -25,7 +25,6 @@ export const RIVAL_CLASS_TABLE_NAME = "Rival Crawler Classes";
  * which is where it landed, as the pack's only unfiled document.
  */
 export const RIVAL_CLASS_TABLE_FOLDER = ["Roll Tables", "Core Rulebook", "Rival Crawlers"];
-export const RIVAL_CLASS_TABLE_KEY = "forgeLoot.rivalClassTable";
 export const RIVAL_CLASS_TABLE_VERSION = 1;
 
 /** This text is also persisted in the generated table's description. */
@@ -235,7 +234,6 @@ export function buildRivalClassTablePayload(winners = []) {
   };
 }
 
-export const buildRivalClassTable = buildRivalClassTablePayload;
 
 /** Read the stored generator marker without accepting name-based identity. */
 export function rivalClassTableMarker(document) {
