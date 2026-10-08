@@ -164,6 +164,28 @@ test("F4: selling works once the GM has published the shop", async () => {
   assert.equal(sword.deleted, true, "a legitimate sale still removes the item");
 });
 
+test("selling more than the seller holds sells and pays for what they hold", async () => {
+  const sword = makeItem({ id: "i1", name: "Longsword", quantity: 2 });
+  const seller = makeActor({ id: "pc1", name: "Vella's PC", ownerId: PLAYER.id, items: [sword] });
+  const paid = [];
+  seller.update = async (c) => { paid.push(c); };
+  const { MerchantShop } = await harness({
+    actors: { pc1: seller },
+    settings: {
+      shopAvailableToPlayers: true,
+      shopAvailabilityData: {
+        mode: "compendium", actorId: null, sellRatio: 50,
+        buyMultiplier: 100, catalogEnabled: true, gambleEnabled: false,
+      },
+    },
+  });
+
+  await MerchantShop._handleSell({ sellerActorId: "pc1", itemId: "i1", quantity: 1000 }, PLAYER);
+
+  assert.equal(sword.deleted, true);
+  assert.equal(paid.at(-1)["system.coins.gp"], 40, "two 40 gp swords at half price, not a thousand");
+});
+
 // ─── F6: broadcast authenticity ─────────────────────────────────────────────
 
 test("F6: a transaction notice from a non-GM sender is refused", async () => {

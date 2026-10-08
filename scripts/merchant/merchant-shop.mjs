@@ -864,12 +864,13 @@ export const MerchantShop = {
     const { sellerActorId, itemId } = data;
     // Identity comes from the query context, never from `data`.
     const userId = user?.id;
-    const quantity = this._sanitizeQty(data.quantity);
     const seller = this._resolveOwnedActor(sellerActorId, user);
     if (!seller) return this._broadcastError(game.i18n.localize("SDE.merchant.notify.actorNotFound"), userId);
 
     const item = seller.items.get(itemId);
     if (!item) return this._broadcastError(game.i18n.localize("SDE.merchant.notify.itemNotInInventory"), userId);
+    // Never more than the seller holds: a typed 1000 for one sword sells (and pays for) one sword.
+    const quantity = Math.min(this._sanitizeQty(data.quantity), item.system.quantity ?? 1);
 
     // Sell needs the same shop-open gate buy, catalogBuy and gamble already
     // have. Without it the `?.` below swallowed a missing context and the
