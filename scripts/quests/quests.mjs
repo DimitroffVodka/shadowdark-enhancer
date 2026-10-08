@@ -29,18 +29,13 @@ import {
   canSee, defaultRecipients, makeQueue, matchesFilter, mergeQuest, normalizeQuest, ownershipFor, payoutPlan,
   pickPin, planStatusChange, playerPageHtml, rewardLines, summarize, trainerLabel, trainerTaskQuests,
 } from "./quest-core.mjs";
+import { L as t } from "../shared/i18n.mjs";
 
 /** Fires on every client after any quest is created, changed or deleted. */
 export const QUESTS_CHANGED = `${MODULE_ID}.questsChanged`;
 
 const EXTRAS = "shadowdark-extras";
 
-/** One string from `languages/en.json`; the key when no i18n is mounted. */
-const t = (key, data) => {
-  const i18n = globalThis.game?.i18n;
-  if (!i18n) return key;
-  return data ? i18n.format(key, data) : i18n.localize(key);
-};
 
 const newId = () => foundry.utils.randomID();
 

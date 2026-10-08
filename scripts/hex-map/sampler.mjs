@@ -18,13 +18,8 @@
 
 import { foundryOffsetToCube } from "./geometry.mjs";
 import { pictureLayout, PICTURE_SCALE } from "./hex-picture.mjs";
+import { L as t } from "../shared/i18n.mjs";
 
-/** One string from `languages/en.json`; the key when no i18n is mounted. */
-const t = (key, data) => {
-  const i18n = globalThis.game?.i18n;
-  if (!i18n) return key;
-  return data ? i18n.format(key, data) : i18n.localize(key);
-};
 
 /** Scene → image transform from the drawn background sprite, or null. */
 export function backgroundTransform(canvasRef = globalThis.canvas) {

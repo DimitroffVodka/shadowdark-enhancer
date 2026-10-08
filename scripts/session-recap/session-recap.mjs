@@ -28,13 +28,8 @@ import {
 import { CarousingFeed } from "./carousing-feed.mjs";
 import { isActiveGM } from "../shared/gm-relay.mjs";
 import { format as formatGameTime } from "../time/time.mjs";
+import { L } from "../shared/i18n.mjs";
 
-/** One string from `languages/en.json`; the key when no i18n is mounted. */
-const L = (key, data) => {
-  const i18n = globalThis.game?.i18n;
-  if (!i18n) return key;
-  return data ? i18n.format(key, data) : i18n.localize(key);
-};
 
 const SETTING_KEY = "sessionRecap";
 const HISTORY_KEY = "sessionHistory";

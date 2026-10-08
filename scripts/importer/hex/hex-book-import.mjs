@@ -27,13 +27,8 @@ import { parsePageRange } from "../pdf-text-extract.mjs";
 import { hexcrawlRecognizer } from "../tables/hex-parser.mjs";
 import { splitSummaryRows } from "./hex-summary.mjs";
 import { commitHexDrafts } from "./hex-commit.mjs";
+import { L as t } from "../../shared/i18n.mjs";
 
-/** One string from `languages/en.json`; the key when no i18n is mounted. */
-const t = (key, data) => {
-  const i18n = globalThis.game?.i18n;
-  if (!i18n) return key;
-  return data ? i18n.format(key, data) : i18n.localize(key);
-};
 
 /** Books this can import key locations from, newest map first. */
 export const keyLocationBooks = () => Object.keys(KEY_LOCATION_PAGES);

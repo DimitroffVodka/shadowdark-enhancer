@@ -31,6 +31,7 @@ import { Troubles } from "../troubles/troubles.mjs";
 import { SessionRecap } from "../session-recap/session-recap.mjs";
 import * as core from "./rumor-core.mjs";
 import { rumorsCard } from "../shared/chat-cards.mjs";
+import { L as t } from "../shared/i18n.mjs";
 
 /** `shadowdark-enhancer.rumorsChanged`, `{ ids }`: ledger pages that changed, on every client. */
 export const RUMORS_CHANGED = `${MODULE_ID}.rumorsChanged`;
@@ -38,7 +39,6 @@ const LEDGER_FLAG = "rumorLedger";
 const PAGE_FLAG = "rumorPage";
 const MAX_COUNT = 20;
 
-const t = (key, data) => (data ? game.i18n.format(key, data) : game.i18n.localize(key));
 const sameRegion = (a, b) => regionKey(a) === regionKey(b);
 
 /** One write at a time on this client. */

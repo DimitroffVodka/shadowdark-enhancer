@@ -7,13 +7,8 @@
  */
 
 import { MODULE_ID } from "../shared/module-id.mjs";
+import { L as t } from "../shared/i18n.mjs";
 
-/** One string from `languages/en.json`; the key when no i18n is mounted. */
-const t = (key, data) => {
-  const i18n = globalThis.game?.i18n;
-  if (!i18n) return key;
-  return data ? i18n.format(key, data) : i18n.localize(key);
-};
 
 /**
  * Supported die formulas for Build Table.

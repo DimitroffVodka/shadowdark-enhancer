@@ -15,6 +15,7 @@
 import { MODULE_ID } from "../shared/module-id.mjs";
 import { makeQueue } from "../quests/quest-core.mjs";
 import { UPGRADES, cleanUpgrades, upgradeActorChanges, upgradeAttackChanges, parseUpgradeLines } from "./warband-core.mjs";
+import { L as t } from "../shared/i18n.mjs";
 
 export const UPGRADE_TEXT_SETTING = "warbandUpgradeText";
 const ATTACK_FLAG = "warbandUpgrade";
@@ -31,7 +32,6 @@ const ATTACK_UPGRADES = ["training", "weaponsUpgrade"];
 // ponytail: one client's queue; two GMs writing one warband at the same instant can still race.
 export const warbandWrites = makeQueue();
 
-const t = (key, data) => (data ? game.i18n.format(key, data) : game.i18n.localize(key));
 
 /** The book text for each upgrade the GM has read in: key → text. */
 export function upgradeText() {

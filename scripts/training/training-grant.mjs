@@ -18,18 +18,13 @@ import { findSuitePack } from "../shared/compendium-suite.mjs";
 import { esc } from "../shared/esc.mjs";
 import { benefitFor, trainerByKey } from "./training-core.mjs";
 import { trainerArt } from "./training-art.mjs";
+import { L } from "../shared/i18n.mjs";
 
 /** Our bookkeeping block on a granted Talent. One flag, one shape. */
 export const TRAINING_FLAG = "regionTraining";
 
 const ICON = "icons/sundries/scrolls/scroll-writing-tan-red.webp";
 
-/** One string from `languages/en.json`; the key when no i18n is mounted. */
-const L = (key, data) => {
-  const i18n = globalThis.game?.i18n;
-  if (!i18n) return key;
-  return data ? i18n.format(key, data) : i18n.localize(key);
-};
 
 /* ────────────────────────────────────────────────────────────────────────── */
 /* The GM's own tables                                                        */

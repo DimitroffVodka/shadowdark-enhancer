@@ -11,15 +11,10 @@ import {
   SUITE_PACKS,
 } from "../shared/compendium-suite.mjs";
 import { findMonsterPack, SDE_ACTORS_LABEL } from "../importer/monsters/monster-pack.mjs";
+import { L } from "../shared/i18n.mjs";
 
 const MODULE_ID = "shadowdark-enhancer";
 
-/** One string from `languages/en.json`; the key when no i18n is mounted. */
-const L = (key, data) => {
-  const i18n = globalThis.game?.i18n;
-  if (!i18n) return key;
-  return data ? i18n.format(key, data) : i18n.localize(key);
-};
 
 /**
  * Generated Monster Spells live in the managed Items pack, not in a pack of

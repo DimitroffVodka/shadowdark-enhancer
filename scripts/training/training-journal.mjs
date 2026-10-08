@@ -26,6 +26,7 @@ import { resolveSourcePdf } from "../importer/source-pdf-registry.mjs";
 import { TRAINERS, trainerByKey } from "./training-core.mjs";
 import { findBenefitsTable } from "./training-grant.mjs";
 import { parseTrainerPage } from "./training-parser.mjs";
+import { L } from "../shared/i18n.mjs";
 
 /** Shared with the granted Talents: one flag key for everything this feature owns. */
 const TRAINING_FLAG = "regionTraining";
@@ -36,12 +37,6 @@ const ROOT_FOLDER = "Regional Training";
 /** Trainers the book keys to a hex rather than to one of the fifteen regions. */
 const LOOSE_FOLDER = "Elsewhere in the Reaches";
 
-/** One string from `languages/en.json`; the key when no i18n is mounted. */
-const L = (key, data) => {
-  const i18n = globalThis.game?.i18n;
-  if (!i18n) return key;
-  return data ? i18n.format(key, data) : i18n.localize(key);
-};
 
 /**
  * The page body for one trainer.

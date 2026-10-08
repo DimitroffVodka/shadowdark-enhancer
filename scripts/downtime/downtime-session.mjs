@@ -80,13 +80,8 @@ import { advanceOffDuty } from "../time/off-duty.mjs";
 import { secondsPerDay } from "../time/time-core.mjs";
 import { CarousingFeed } from "../session-recap/carousing-feed.mjs";
 import { downtimeAnnounceCard } from "../shared/chat-cards.mjs";
+import { L } from "../shared/i18n.mjs";
 
-/** One string from `languages/en.json`; the key when no i18n is mounted. */
-const L = (key, data) => {
-  const i18n = globalThis.game?.i18n;
-  if (!i18n) return key;
-  return data ? i18n.format(key, data) : i18n.localize(key);
-};
 
 const SETTING_KEY = "downtimeSession";
 const CONTENT_KEY = "downtimeContent";

@@ -20,8 +20,8 @@ import { leaderCombatant } from "../crawl-strip/turn-skip-core.mjs";
 import * as core from "./warband-core.mjs";
 import { WARBAND_FLAG, warbandState, warbandWrites } from "./warband-npc-sheet.mjs";
 import { warbandNote } from "../shared/chat-cards.mjs";
+import { L as t } from "../shared/i18n.mjs";
 
-const t = (key, data) => (data ? game.i18n.format(key, data) : game.i18n.localize(key));
 
 /** The combat's own writes (initiative), one at a time; a warband's flag goes on warbandWrites. */
 let queue = Promise.resolve();

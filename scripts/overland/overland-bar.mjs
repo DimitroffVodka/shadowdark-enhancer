@@ -40,9 +40,9 @@ import { travelPanel } from "./travel-panel.mjs";
 import { encounterCard, encounterPanel, encounterStrip } from "./encounter-panel.mjs";
 import { postEncounter } from "../encounter/encounter-draw.mjs";
 import { DIAL, DIAL_STARS, clockShown, clockSteps, dateToTime, dialModel, monthGrid, seasonHatch, starPoint } from "./hud-core.mjs";
+import { L as t } from "../shared/i18n.mjs";
 
 const BAR_ID = "shadowdark-enhancer-travel";
-const t = (key, data) => (data ? game.i18n.format(key, data) : game.i18n.localize(key));
 
 /** Each moon phase's name (literal keys, so i18n-keys can see them). */
 const MOON_NAME = {

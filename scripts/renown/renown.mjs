@@ -54,6 +54,7 @@ import {
   signedRenown,
   startingRenown,
 } from "./renown-core.mjs";
+import { L } from "../shared/i18n.mjs";
 
 export {
   RENOWN_BANDS, RENOWN_HISTORY_CAP, RENOWN_SOURCE_LABELS, RENOWN_TRIGGERS,
@@ -70,12 +71,6 @@ export {
  */
 const LEVEL_UP_SETTING = "renownOnLevelUp";
 
-/** One string from `languages/en.json`; the key when no i18n is mounted. */
-const L = (key, data) => {
-  const i18n = globalThis.game?.i18n;
-  if (!i18n) return key;
-  return data ? i18n.format(key, data) : i18n.localize(key);
-};
 
 /**
  * World setting: seed a new character's renown from their CHA modifier.

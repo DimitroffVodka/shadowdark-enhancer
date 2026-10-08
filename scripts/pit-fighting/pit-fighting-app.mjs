@@ -41,18 +41,13 @@ import {
   venueRowFor,
 } from "./pit-fighting-core.mjs";
 import { pitTwistCard } from "../shared/chat-cards.mjs";
+import { L } from "../shared/i18n.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
 /** The three set-up tables, by the name the importer gives them. */
 const SETUP_TABLES = { venue: "Venue", twist: "Twist" };
 
-/** One string from `languages/en.json`; the key when no i18n is mounted. */
-const L = (key, data) => {
-  const i18n = globalThis.game?.i18n;
-  if (!i18n) return key;
-  return data ? i18n.format(key, data) : i18n.localize(key);
-};
 
 /* ────────────────────────────────────────────────────────────────────────── */
 /* Table access                                                               */

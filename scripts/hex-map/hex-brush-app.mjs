@@ -30,6 +30,7 @@ import { HexTagOverlay, OTHER, FEATURE_LABELS, terrainColor } from "./tag-overla
 import { HexTaggerApp } from "./hex-tagger-app.mjs";
 import { cellNumber, originFromFlag } from "./geometry.mjs";
 import { brushTerrains, exemplarCandidates, chooseExemplar, edgeInk, glyphRunsIntoNumber, TERRAIN_ICONS, MAP_ICON } from "./hex-picture.mjs";
+import { L as t } from "../shared/i18n.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
@@ -85,12 +86,6 @@ function terrainPictures(scene, state, terrains) {
   return pictures;
 }
 
-/** One string from `languages/en.json`; the key when no i18n is mounted. */
-const t = (key, data) => {
-  const i18n = globalThis.game?.i18n;
-  if (!i18n) return key;
-  return data ? i18n.format(key, data) : i18n.localize(key);
-};
 
 export class HexBrushApp extends HandlebarsApplicationMixin(ApplicationV2) {
   static DEFAULT_OPTIONS = {

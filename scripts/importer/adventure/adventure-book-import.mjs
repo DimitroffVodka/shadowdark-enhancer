@@ -22,12 +22,8 @@ import { commitAdventure, addOverviewToWorldCopy } from "./adventure-commit.mjs"
 import { assembleOverview, linkableItems } from "./adventure-journal.mjs";
 import { findSuitePack } from "../../shared/compendium-suite.mjs";
 import { summariseGutter } from "../hex/hex-book-import.mjs";
+import { L as t } from "../../shared/i18n.mjs";
 
-const t = (key, data) => {
-  const i18n = globalThis.game?.i18n;
-  if (!i18n) return key;
-  return data ? i18n.format(key, data) : i18n.localize(key);
-};
 
 /**
  * Pure: a site's printed page cite → the PDF pages to read.

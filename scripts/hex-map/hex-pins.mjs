@@ -17,6 +17,7 @@ import { HEX_FLAG } from "../importer/hex/hex-commit.mjs";
 import { hexNum } from "../importer/hex/hex-dataset.mjs";
 import { sceneCells } from "./sampler.mjs";
 import { cellNumber, originFromFlag } from "./geometry.mjs";
+import { L as t } from "../shared/i18n.mjs";
 
 /** Flag key on a Note: { num } of the keyed hex it pins. */
 export const PIN_FLAG = "hexPin";
@@ -99,12 +100,6 @@ export async function deployCrawlJournal(packEntry, { flag = HEX_FLAG, idKey = "
  * @param {JournalEntry} packEntry  the crawl entry in the Journals pack
  * @returns {Promise<{created:number, moved:number, missing:number[], journal:JournalEntry}|null>}
  */
-/** One string from `languages/en.json`; the key when no i18n is mounted. */
-const t = (key, data) => {
-  const i18n = globalThis.game?.i18n;
-  if (!i18n) return key;
-  return data ? i18n.format(key, data) : i18n.localize(key);
-};
 
 export async function pinCrawlOnActiveScene(packEntry, { iconSize } = {}) {
   if (!game.user?.isGM) { ui.notifications?.warn(t("SDE.hexMap.notify.gmOnlyPin")); return null; }

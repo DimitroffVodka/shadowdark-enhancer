@@ -27,6 +27,7 @@ import { FIXES_FLAG, DEFAULT_REVIEW_MARGIN, decodeFixes, encodeFixes, recordEdit
 import { SETTLEMENTS } from "../importer/hex/hex-summary.mjs";
 import { pickZoneTable, encounterZonesByRegion, worldClock, isNight, regionRowRanges, inNorthHalf } from "../encounter/encounter-terrain.mjs";
 import { neighbourNumbers, encodeRegions, REGIONS_FLAG } from "./region-scan.mjs";
+import { L as t } from "../shared/i18n.mjs";
 
 /** Scene flag key holding the tag store (hex-tagger-app.mjs owns it; the literal avoids an import cycle). */
 const TAGS_FLAG = "hexTags";
@@ -259,12 +260,6 @@ export function terrainOptions(cells = new Map(), palette = null) {
  * The overlay on the active scene. One instance; toggled from the tagger's
  * header or game.shadowdarkEnhancer.hexMaps.showTags().
  */
-/** One string from `languages/en.json`; the key when no i18n is mounted. */
-const t = (key, data) => {
-  const i18n = globalThis.game?.i18n;
-  if (!i18n) return key;
-  return data ? i18n.format(key, data) : i18n.localize(key);
-};
 
 export class HexTagOverlay {
   /** @type {HexTagOverlay|null} */

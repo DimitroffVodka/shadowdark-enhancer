@@ -30,6 +30,7 @@ import { addToPurse } from "../shared/coins.mjs";
 import { relayToGM, authorizeActorFor, refuseQuery, registerQuery } from "../shared/gm-relay.mjs";
 import { compactCard } from "../shared/chat-cards.mjs";
 import { replaceModuleFlag } from "../shared/module-flags.mjs";
+import { L } from "../shared/i18n.mjs";
 
 /**
  * Scene flag holding what a pile really holds. Every player owns a pile actor (the Token HUD pickup button needs it),
@@ -37,12 +38,6 @@ import { replaceModuleFlag } from "../shared/module-flags.mjs";
  */
 const pileKey = (actorId) => `pile-${actorId}`;
 
-/** One string from `languages/en.json`; the key when no i18n is mounted (node tests). */
-const L = (key, data) => {
-  const i18n = globalThis.game?.i18n;
-  if (!i18n) return key;
-  return data ? i18n.format(key, data) : i18n.localize(key);
-};
 
 /* -------------------------------------------- */
 /*  Droppable Item Types                        */

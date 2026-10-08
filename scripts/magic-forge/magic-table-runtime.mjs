@@ -41,13 +41,8 @@ import { MODULE_ID } from "../shared/module-id.mjs";
 import { findById, formulaFromDie, adoptUnstamped, importNameFor } from "../importer/tables/table-manifest.mjs";
 import { escapeHtml } from "../importer/pdf-text-utils.mjs";
 import { findSuitePack } from "../shared/compendium-suite.mjs";
+import { L } from "../shared/i18n.mjs";
 
-/** One string from `languages/en.json`; the key when no i18n is mounted. */
-const L = (key, data) => {
-  const i18n = globalThis.game?.i18n;
-  if (!i18n) return key;
-  return data ? i18n.format(key, data) : i18n.localize(key);
-};
 
 /** "p.292" / "pp.292/293" for a set's source pages. */
 export function pageLabel({ pages, page }) {

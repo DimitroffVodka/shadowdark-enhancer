@@ -13,8 +13,8 @@ import { esc } from "../shared/esc.mjs";
 import { dateParts } from "../time/time-core.mjs";
 import { BOOK_CHECKS, encounterChance, forageDC } from "./overland-state-core.mjs";
 import { TRAVEL_STEPS, currentStep, sightParts } from "./hud-core.mjs";
+import { L as t } from "../shared/i18n.mjs";
 
-const t = (key, data) => (data ? game.i18n.format(key, data) : game.i18n.localize(key));
 
 const STEP_NAME = {
   weather: "SDE.travel.step.weather", sight: "SDE.travel.step.sight", method: "SDE.travel.step.method",

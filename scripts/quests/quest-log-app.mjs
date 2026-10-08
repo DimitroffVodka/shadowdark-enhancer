@@ -17,18 +17,13 @@ import {
   textToParagraphs, trainerLabel, visibleStatuses,
 } from "./quest-core.mjs";
 import { QUESTS_CHANGED, Quests, actorName, partiesAvailable, partyActors, partyMembers, questPayoutContent } from "./quests.mjs";
+import { L as t } from "../shared/i18n.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
 /** Fields a GM types into; a redraw waits while one of them has focus. */
 const TEXT_FIELDS = "textarea, input:not([type]), input[type='text'], input[type='number']";
 
-/** One string from `languages/en.json`; the key when no i18n is mounted. */
-const t = (key, data) => {
-  const i18n = globalThis.game?.i18n;
-  if (!i18n) return key;
-  return data ? i18n.format(key, data) : i18n.localize(key);
-};
 
 export class QuestLogApp extends HandlebarsApplicationMixin(ApplicationV2) {
   static DEFAULT_OPTIONS = {

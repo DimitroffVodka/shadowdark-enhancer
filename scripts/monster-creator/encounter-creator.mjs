@@ -46,6 +46,7 @@ import { buildNpcNotes, extractFlavor } from "./npc-statblock.mjs";
 import { titleCaseName } from "../importer/monsters/statblock-parser.mjs";
 import { normalizeMonsterSpellAttachment } from "./monster-spell-library-core.mjs";
 import { esc } from "../shared/esc.mjs";
+import { L } from "../shared/i18n.mjs";
 
 const { renderTemplate } = foundry.applications.handlebars;
 
@@ -53,11 +54,6 @@ const TEMPLATE_PATH = "modules/shadowdark-enhancer/templates/encounter-creator.h
 
 /** One string from `languages/en.json`; the key when no i18n is mounted
  *  (node tests load this module through a minimal Foundry shim). */
-const L = (key, data) => {
-  const i18n = globalThis.game?.i18n;
-  if (!i18n) return key;
-  return data ? i18n.format(key, data) : i18n.localize(key);
-};
 
 /**
  * Default shape for a fresh-from-scratch monster. Mirrors the

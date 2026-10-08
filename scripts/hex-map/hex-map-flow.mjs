@@ -28,6 +28,7 @@ import { foundryOffsetToCube, framesTopRow, withAnchorNumber, extrasNumbersAlike
 import { emptyState, encodeTags } from "./tag-store.mjs";
 import { A0_PRINT, isA0 } from "./a0-print.mjs";
 import { hexPrint, printBySize, knownAnswer } from "./hex-prints.mjs";
+import { L as t } from "../shared/i18n.mjs";
 
 const TAGS_FLAG = "hexTags";
 /** On a scene this flow made: which of the book's hex maps it is, so setting it up again finds it instead of making a second. */
@@ -37,12 +38,6 @@ const WORK_WIDTH = 5000;
 
 const esc = (s) => foundry.utils.escapeHTML(String(s ?? ""));
 
-/** One string from `languages/en.json`; the key when no i18n is mounted. */
-const t = (key, data) => {
-  const i18n = globalThis.game?.i18n;
-  if (!i18n) return key;
-  return data ? i18n.format(key, data) : i18n.localize(key);
-};
 
 /** The file picker dialog. @returns {Promise<{file:File, name:string}|null>} */
 async function pickFile() {

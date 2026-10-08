@@ -29,12 +29,12 @@ import { warbandWrites } from "../actors/warband-upgrades.mjs";
 import {
   recruitDC, recruitOffers, recruitRefusal, settlementKindAt, settlementLimit, settlementNow,
 } from "./downtime-recruit-core.mjs";
+import { L as t } from "../shared/i18n.mjs";
 
 /** The GM's settlement choice: "" (the party's hex), a settlement kind, or "none". */
 export const SETTLEMENT_SETTING = "downtimeSettlement";
 
 const WARBAND_TYPE = `${MODULE_ID}.warband`;
-const t = (key, data) => (data ? game.i18n.format(key, data) : game.i18n.localize(key));
 const levelOf = (actor) => Number(actor?.system?.level?.value ?? 0);
 const KIND_KEYS = Object.fromEntries(SETTLEMENT_KINDS.map((k) => [k, `SDE.rulesData.settlement.${k}`]));
 

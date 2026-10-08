@@ -22,6 +22,7 @@ import { mapFits } from "./map-labels.mjs";
 import { trapsFor, planSiteTraps, TRAP_REGION_FLAG } from "./adventure-traps.mjs";
 import { TRAP_TYPE } from "../../traps/traps.mjs";
 import { resolveMentions, bestiaryLookup } from "./adventure-creatures.mjs";
+import { L as t } from "../../shared/i18n.mjs";
 
 /** Scene flag: { site, entryId, skipped:[numbers] }. */
 export const MAP_FLAG = "adventureMap";
@@ -62,11 +63,6 @@ export const PIN_LABEL_COLOR = "#000000";
 
 export const pinLabelSize = (gridSize = DEFAULT_GRID_SIZE) => Math.min(128, Math.max(24, Math.round(pinSize(gridSize) / 2)));
 
-const t = (key, data) => {
-  const i18n = globalThis.game?.i18n;
-  if (!i18n) return key;
-  return data ? i18n.format(key, data) : i18n.localize(key);
-};
 
 /**
  * Pure: the scene's size and grid for an image.

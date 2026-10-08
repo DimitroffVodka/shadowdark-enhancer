@@ -62,6 +62,7 @@ import { isPartyDeployed } from "../party/party-movement.mjs";
 import { prepareCampNight, finishCampNight } from "../camping/camping.mjs";
 import { ownsHexFog, revealParty } from "../hex-map/hex-fog.mjs";
 import { weatherCard } from "../shared/chat-cards.mjs";
+import { L as t } from "../shared/i18n.mjs";
 
 export const OVERLAND_SETTING = "overlandState";
 export const OVERLAND_QUERY = `${MODULE_ID}.overland`;
@@ -69,7 +70,6 @@ export const OVERLAND_CHANGED = `${MODULE_ID}.overlandChanged`;
 export const WEATHER_RULE_SETTING = "overlandWeatherRule";
 const SOCKET = `module.${MODULE_ID}`;
 
-const t = (key, data) => (data ? game.i18n.format(key, data) : game.i18n.localize(key));
 const serialize = makeQueue();
 
 /** Each forageRefusal() reason's message (literal keys, so i18n-keys can see them). */

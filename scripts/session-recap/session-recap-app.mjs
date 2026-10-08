@@ -16,10 +16,10 @@ import {
 } from "./carousing-feed-core.mjs";
 import { esc } from "../shared/esc.mjs";
 import { copyText } from "../shared/clipboard.mjs";
+import { L } from "../shared/i18n.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
-const L = (key, data) => (data ? game.i18n.format(key, data) : game.i18n.localize(key));
 
 export class SessionRecapApp extends HandlebarsApplicationMixin(ApplicationV2) {
   static DEFAULT_OPTIONS = {

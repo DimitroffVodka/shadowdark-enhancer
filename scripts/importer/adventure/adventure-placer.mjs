@@ -21,14 +21,10 @@ import { trapsFor } from "./adventure-traps.mjs";
 import { layoutFor, layoutPoints, layoutFromPins, layoutSnippet, markersFor } from "./adventure-layouts.mjs";
 import { resolveSourcePdf, sourcePdfTarget } from "../source-pdf-registry.mjs";
 import { parsePageRange } from "../pdf-text-extract.mjs";
+import { L as t } from "../../shared/i18n.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
-const t = (key, data) => {
-  const i18n = globalThis.game?.i18n;
-  if (!i18n) return key;
-  return data ? i18n.format(key, data) : i18n.localize(key);
-};
 
 const ID = "sde-adventure-placer";
 
