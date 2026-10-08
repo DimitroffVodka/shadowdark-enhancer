@@ -893,9 +893,11 @@ export const MerchantShop = {
     if (!ctx) return this._broadcastError(game.i18n.localize("SDE.merchant.notify.unavailable"), userId);
     const sellRatio = ctx.sellRatio ?? game.settings.get(MODULE_ID, "shopSellRatio") ?? 50;
     const cost = item.system.cost ?? { gp: 0, sp: 0, cp: 0 };
-    const unitSellPrice = _applySellRatio(cost, sellRatio);
+    // The ratio applies to the whole sale and rounds once: ten 5 cp torches at half price pay 25 cp, where
+    // rounding each torch down to 2 cp paid 20.
+    const salePrice = _applySellRatio(_fromCopper(_toCopper(cost) * quantity), sellRatio);
     // The same one-shot downtime extortion swing, in the seller's favour.
-    const swing = applyExtortion(_toCopper(unitSellPrice) * quantity, readExtortion(seller), "sell");
+    const swing = applyExtortion(_toCopper(salePrice), readExtortion(seller), "sell");
     const totalCopper = swing.copper;
     const totalSellPrice = _fromCopper(totalCopper);
 

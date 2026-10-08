@@ -192,6 +192,17 @@ test("selling more than the seller holds sells and pays for what they hold", asy
   assert.equal(paid.at(-1)["system.coins.gp"], 40, "two 40 gp swords at half price, not a thousand");
 });
 
+test("the sell ratio rounds once on the whole sale, not once per item", async () => {
+  const torches = makeItem({ id: "i2", name: "Torch", cost: { gp: 0, sp: 0, cp: 5 }, quantity: 10 });
+  const seller = makeActor({ id: "pc1", name: "Vella's PC", ownerId: PLAYER.id, items: [torches] });
+  const { MerchantShop } = await harness({ actors: { pc1: seller }, settings: PUBLISHED });
+
+  await MerchantShop._handleSell({ sellerActorId: "pc1", itemId: "i2", quantity: 10 }, PLAYER);
+
+  const { gp, sp, cp } = seller.system.coins;
+  assert.equal(gp * 100 + sp * 10 + cp, 25, "ten 5 cp torches at half price pay 25 cp, not 10 × 2");
+});
+
 // ─── F6: broadcast authenticity ─────────────────────────────────────────────
 
 test("F6: a transaction notice from a non-GM sender is refused", async () => {
