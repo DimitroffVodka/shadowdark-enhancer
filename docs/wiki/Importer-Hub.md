@@ -434,9 +434,10 @@ two Libraries of Leng and the six Western Reaches minis (not the City of Masks, 
 and not a dungeon). Where a book names a secret door that its map does not draw, no door is
 built, so a room the map shows no way into stays sealed until you open the wall yourself. The
 creatures filed under a room are placed in that room's own squares, never in the rock, in
-another room or behind a closed door. Building again replaces only the walls and lights the
-module made, never ones you added, and a scene whose picture is not the shape of the book's
-map gets none. A light only shows once the scene is darkened (the Darkness slider in the
+another room or behind a closed door. Building again on a scene that already has the module's
+walls or lights changes nothing, so walls and lights you corrected by hand stay as they are
+(delete the module's walls yourself to get the book's back), and a scene whose picture is not
+the shape of the book's map gets none. A light only shows once the scene is darkened (the Darkness slider in the
 scene's settings): the module leaves the scene as it is, because a fully dark scene hides even
 your own hidden creatures from you.
 

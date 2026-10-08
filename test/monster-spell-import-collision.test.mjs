@@ -180,6 +180,14 @@ test("nothing is invented when there is nothing to rescue", () => {
   assert.equal(preservedModuleFlags({ [MODULE_ID]: { imported: true } }, undefined), null);
 });
 
+test("another package's namespace is merged key by key too: a spell re-import keeps Extras' animationFx", () => {
+  const merged = preservedModuleFlags(
+    { "shadowdark-extras": { alignment: "lawful" } },
+    { "shadowdark-extras": { alignment: "chaotic", animationFx: "fire" } },
+  );
+  assert.deepEqual(merged["shadowdark-extras"], { alignment: "lawful", animationFx: "fire" });
+});
+
 test("a payload that drops our namespace entirely still keeps the module block", () => {
   const merged = preservedModuleFlags({ "shadowdark-extras": { alignment: "chaotic" } }, monsterSpellFlags());
   assert.deepEqual(merged[MODULE_ID], monsterSpellFlags()[MODULE_ID]);

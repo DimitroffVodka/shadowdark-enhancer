@@ -80,8 +80,10 @@ export function moduleFlags(document) {
 /**
  * The flags to write when `payloadFlags` replaces `existingFlags` wholesale.
  * Every namespace the payload does not declare survives (another package's
- * automation, `core`), and inside this module's namespace declared keys win
- * while undeclared ones survive.
+ * automation, `core`), and a namespace both carry is merged key by key —
+ * declared keys win, undeclared ones survive — for ours and every other
+ * package's alike (a spell re-import declares Extras' `alignment` and must not
+ * drop its `animationFx`).
  *
  * Returns `null` when there is nothing to rescue — either the payload declares
  * no flags at all (in which case the update never touches the stored flags, and
@@ -94,10 +96,9 @@ export function moduleFlags(document) {
  */
 export function preservedModuleFlags(payloadFlags, existingFlags) {
   if (!isObject(payloadFlags) || !isObject(existingFlags) || !Object.keys(existingFlags).length) return null;
-  const existingOwn = existingFlags[MODULE_ID], payloadOwn = payloadFlags[MODULE_ID];
   const merged = { ...existingFlags, ...payloadFlags };
-  if (isObject(existingOwn) || isObject(payloadOwn)) {
-    merged[MODULE_ID] = { ...(isObject(existingOwn) ? existingOwn : {}), ...(isObject(payloadOwn) ? payloadOwn : {}) };
+  for (const [scope, value] of Object.entries(payloadFlags)) {
+    if (isObject(value) && isObject(existingFlags[scope])) merged[scope] = { ...existingFlags[scope], ...value };
   }
   return merged;
 }
