@@ -419,6 +419,21 @@ Building a scene, **Auto-place**, or the **skull button** in the Place locations
 them down; a creature already on the map is never placed twice, and one you delete comes
 back the next time. For pins you placed by hand, press the skull button once they are down.
 
+**Walls, doors and light come with the scene for some maps.** The module carries the wall and
+door positions of the maps it has measured (positions only, no map and no book text), and builds
+them with the pins: a wall along every room, corridor and cave, a closed door where the map
+draws one, and the book's fixed lights. Today that is every adventure's dungeon map: the Hideous Halls of Mugdulblub, the Iron Fortress
+and the Mines, the Sea Wolf King's caves, Wortwick Monastery, the nine Cursed Scroll 4 minis, the
+two Libraries of Leng and the six Western Reaches minis (not the City of Masks, which is a city
+and not a dungeon). Where a book names a secret door that its map does not draw, no door is
+built, so a room the map shows no way into stays sealed until you open the wall yourself. The
+creatures filed under a room are placed in that room's own squares, never in the rock, in
+another room or behind a closed door. Building again replaces only the walls and lights the
+module made, never ones you added, and a scene whose picture is not the shape of the book's
+map gets none. A light only shows once the scene is darkened (the Darkness slider in the
+scene's settings): the module leaves the scene as it is, because a fully dark scene hides even
+your own hidden creatures from you.
+
 **An adventure's journal reads like the quickstart's.** The Lost Citadel in the Shadowdark system is the model: an
 Overview page, an "Areas 1-27" page for the rules that hold everywhere (danger level, light, doors, the random encounters
 table), and one page per area ("Area 12: Meteorite Room") listed under it. An area opens with its player-safe description

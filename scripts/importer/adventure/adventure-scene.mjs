@@ -17,12 +17,17 @@ import { replaceModuleFlag } from "../../shared/module-flags.mjs";
 import { deployCrawlJournal } from "../../hex-map/hex-pins.mjs";
 import { ADVENTURE_FLAG, findSiteEntry, pageNum } from "./adventure-commit.mjs";
 import { markersFor } from "./adventure-layouts.mjs";
+import { wallsFor, planWalls, wallTypes, WALL_FLAG, LIGHT_FLAG, planLights, reachableSquares } from "./adventure-walls.mjs";
+import { mapFits } from "./map-labels.mjs";
 import { resolveMentions, bestiaryLookup } from "./adventure-creatures.mjs";
 
 /** Scene flag: { site, entryId, skipped:[numbers] }. */
 export const MAP_FLAG = "adventureMap";
 /** Note flag: { num } of the location it pins. */
 export const PIN_FLAG = "adventurePin";
+/** The tint a creature with only the placeholder figure gets, so it can be seen on a white map. */
+export const PLACEHOLDER_TINT = "#5a1414";
+
 /** Token flag: { site, key } of what a creature was placed from: a book marker ("A3") or a location ("4/Howler/2"). */
 export const MARKER_FLAG = "adventureMarker";
 
@@ -191,10 +196,11 @@ function ringSquares(radius) {
  * is in a room and how many, not where in the room, so they are gathered at the
  * number for the GM to move. A creature already in `placed` keeps its square and is
  * left out, so running this twice never doubles one.
+ * @param {{roomSquares?:(num:number, pin:{x:number,y:number})=>Array<[number,number]>|null}} [args.roomSquares]  the squares of the room a pin is in, nearest first
  * @param {{creatures:Record<number,Array<{monster:string,count:number}>>, pins:Record<number,{x:number,y:number}>, rect:{x:number,y:number,width:number,height:number}, gridSize?:number, placed?:Iterable<string>}} args
  * @returns {Array<{key:string, monster:string, x:number, y:number}>}  x, y: the square's top left, in scene pixels
  */
-export function planCreatureTokens({ creatures, pins, rect, gridSize = DEFAULT_GRID_SIZE, placed = [] }) {
+export function planCreatureTokens({ creatures, pins, rect, gridSize = DEFAULT_GRID_SIZE, placed = [], roomSquares = null }) {
   const done = new Set(placed), out = [];
   const cols = Math.floor(rect.width / gridSize), rows = Math.floor(rect.height / gridSize);
   const squareOf = (p) => [Math.floor((p.x - rect.x) / gridSize), Math.floor((p.y - rect.y) / gridSize)];
@@ -204,7 +210,17 @@ export function planCreatureTokens({ creatures, pins, rect, gridSize = DEFAULT_G
     if (!pins[num]) continue;   // no pin, no place to gather them
     const [c0, r0] = squareOf(pins[num]);
     let next = 0;
+    // With the map's walls (adventure-walls.mjs) the room's own squares are known, nearest first: a creature stands in the
+    // room it was filed under. Without them, the squares around the pin.
+    const room = roomSquares?.(num, pins[num]);
     const free = () => {
+      if (room?.length) {
+        while (next < room.length) {
+          const [c, r] = room[next++];
+          if (!taken.has(`${c},${r}`)) { taken.add(`${c},${r}`); return [c, r]; }
+        }
+        return null;
+      }
       while (next < around.length) {
         const [dx, dy] = around[next++];
         const c = c0 + dx, r = r0 + dy;
@@ -233,8 +249,13 @@ export function planCreatureTokens({ creatures, pins, rect, gridSize = DEFAULT_G
  * @param {string} actorId
  */
 export function markerTokenData(source, spot, siteId, actorId) {
+  // A hidden token shows to the GM at half strength, so the GM must be able to find it: its name is shown to its owners, and
+  // a creature with only Foundry's placeholder figure (white, which vanishes on a paper map) gets a dark red tint.
+  const placeholder = String(source?.texture?.src ?? "").endsWith("mystery-man.svg");
   const data = {
     ...source, x: spot.x, y: spot.y, actorId, hidden: true,
+    displayName: globalThis.CONST?.TOKEN_DISPLAY_MODES?.OWNER ?? 40,
+    ...(placeholder ? { texture: { ...source.texture, tint: PLACEHOLDER_TINT } } : {}),
     flags: { ...(source.flags ?? {}), [MODULE_ID]: { ...(source.flags?.[MODULE_ID] ?? {}), [MARKER_FLAG]: { site: siteId, key: spot.key } } },
   };
   delete data._id;
@@ -465,8 +486,59 @@ export async function placeCreatureTokens(scene, site, rect, mentions) {
   }
   if (unknown.size) console.info(`${MODULE_ID} | adventure creatures: counted but not in the bestiary, left out:`, [...unknown]);
   const pins = Object.fromEntries(scenePins(scene).map((p) => [p.num, p]));
-  const plan = planCreatureTokens({ creatures, pins, rect, gridSize: scene.grid?.size, placed: placedKeys(scene) });
+  const walls = wallsFor(site.id);
+  const gridSize = scene.grid?.size;
+  const roomSquares = walls && mapFits(walls.aspect, rect.width, rect.height) ? (num, pin) => reachableSquares(walls, rect, gridSize ?? DEFAULT_GRID_SIZE, pin) : null;
+  const plan = planCreatureTokens({ creatures, pins, rect, gridSize, placed: placedKeys(scene), roomSquares });
   return spawnHiddenTokens(scene, site.id, plan);
+}
+
+/**
+ * Build a site's walls and doors on its scene from the data that ships with the module (adventure-walls.mjs). Run again,
+ * it replaces only the walls it made before (by their flag, deleted by id) and leaves any wall the GM drew.
+ * @param {Scene} scene
+ * @param {{id:string}} site
+ * @returns {Promise<{status:"built"|"none"|"mismatch", walls:number, doors:number, replaced:number}>}
+ *   none: the module has no walls for this map; mismatch: the scene's picture is not the shape the data was made on
+ */
+export async function placeSiteWalls(scene, site) {
+  const none = { status: "none", walls: 0, doors: 0, replaced: 0 };
+  const data = wallsFor(site?.id);
+  if (!data) return none;
+  const rect = scene.dimensions?.sceneRect ?? { x: 0, y: 0, width: scene.width, height: scene.height };
+  if (!mapFits(data.aspect, rect.width, rect.height)) return { ...none, status: "mismatch" };
+  const docs = planWalls(data, rect, wallTypes()).map((w) => ({ ...w, flags: { [MODULE_ID]: { [WALL_FLAG]: true } } }));
+  const old = scene.walls.filter((w) => w.getFlag(MODULE_ID, WALL_FLAG)).map((w) => w.id);
+  if (old.length) await scene.deleteEmbeddedDocuments("Wall", old);
+  const made = await scene.createEmbeddedDocuments("Wall", docs);
+  return { status: "built", walls: made.length, doors: made.filter((w) => w.door).length, replaced: old.length };
+}
+
+/** Scene flag: set once the module has darkened a dungeon scene, so a GM who lightens it again is not overruled by a re-run. */
+export const LIT_FLAG = "adventureLit";
+
+/**
+ * Build a site's lights from the data that ships with the module, and darken the scene when the map is a dungeon lit by
+ * what the party carries. Run again, it replaces only the lights it made, and darkens only once.
+ * @returns {Promise<{status:"built"|"none"|"mismatch", lights:number, darkened:boolean}>}
+ */
+export async function placeSiteLights(scene, site) {
+  const none = { status: "none", lights: 0, darkened: false };
+  const data = wallsFor(site?.id);
+  if (!data || (!data.lights?.length && data.dark === undefined)) return none;
+  const rect = scene.dimensions?.sceneRect ?? { x: 0, y: 0, width: scene.width, height: scene.height };
+  if (!mapFits(data.aspect, rect.width, rect.height)) return { ...none, status: "mismatch" };
+  const old = scene.lights.filter((l) => l.getFlag(MODULE_ID, LIGHT_FLAG) !== undefined).map((l) => l.id);
+  if (old.length) await scene.deleteEmbeddedDocuments("AmbientLight", old);
+  const docs = planLights(data, rect);
+  const made = docs.length ? await scene.createEmbeddedDocuments("AmbientLight", docs) : [];
+  let darkened = false;
+  if (data.dark !== undefined && !scene.getFlag(MODULE_ID, LIT_FLAG)) {
+    await scene.update({ "environment.darknessLevel": data.dark });
+    await replaceModuleFlag(scene, LIT_FLAG, { darkness: data.dark });
+    darkened = true;
+  }
+  return { status: "built", lights: made.length, darkened };
 }
 
 /** Mark a location skipped (or not) on its scene. Written whole, never merged. */

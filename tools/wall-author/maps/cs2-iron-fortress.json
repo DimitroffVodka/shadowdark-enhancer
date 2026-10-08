@@ -1,0 +1,218 @@
+{
+ "image": "The Iron Fortress (45 wide x 35 high).png",
+ "site": "cs2-iron-fortress",
+ "pitch": 80.06,
+ "origin": [
+  77.4,
+  79.3
+ ],
+ "min_room_px": 12000,
+ "doors": [
+  0,
+  1,
+  2,
+  3,
+  4,
+  5,
+  6,
+  7,
+  8,
+  9,
+  10,
+  11,
+  12,
+  13,
+  14,
+  15,
+  16,
+  17,
+  18,
+  19
+ ],
+ "erase": [
+  [
+   [
+    25.3,
+    7.7
+   ],
+   [
+    29.4,
+    7.7
+   ],
+   [
+    29.1,
+    9.5
+   ],
+   [
+    27.6,
+    12.2
+   ],
+   [
+    25.6,
+    14.5
+   ],
+   [
+    24.6,
+    15.9
+   ],
+   [
+    17.7,
+    15.9
+   ],
+   [
+    17.7,
+    14.8
+   ],
+   [
+    21.0,
+    14.2
+   ],
+   [
+    23.2,
+    12.0
+   ],
+   [
+    24.8,
+    9.8
+   ]
+  ],
+  [
+   [
+    17.6,
+    15.6
+   ],
+   [
+    24.6,
+    15.6
+   ],
+   [
+    24.6,
+    18.5
+   ],
+   [
+    17.6,
+    18.5
+   ]
+  ],
+  [
+   [
+    18.3,
+    18.3
+   ],
+   [
+    22.9,
+    18.3
+   ],
+   [
+    22.9,
+    26.4
+   ],
+   [
+    18.3,
+    26.4
+   ]
+  ]
+ ],
+ "lights": [
+  {
+   "at": [
+    27.1,
+    4.8
+   ],
+   "bright": 5,
+   "dim": 25,
+   "color": "#ff6a1f",
+   "label": "Magma river, north gate"
+  },
+  {
+   "at": [
+    27.1,
+    8.2
+   ],
+   "bright": 5,
+   "dim": 25,
+   "color": "#ff6a1f",
+   "label": "Magma river, courtyard"
+  },
+  {
+   "at": [
+    26.2,
+    10.5
+   ],
+   "bright": 5,
+   "dim": 25,
+   "color": "#ff6a1f",
+   "label": "Magma river, courtyard"
+  },
+  {
+   "at": [
+    24.6,
+    12.7
+   ],
+   "bright": 5,
+   "dim": 25,
+   "color": "#ff6a1f",
+   "label": "Magma river, courtyard"
+  },
+  {
+   "at": [
+    22.4,
+    14.7
+   ],
+   "bright": 5,
+   "dim": 25,
+   "color": "#ff6a1f",
+   "label": "Magma river, courtyard"
+  },
+  {
+   "at": [
+    21.0,
+    17.0
+   ],
+   "bright": 5,
+   "dim": 25,
+   "color": "#ff6a1f",
+   "label": "Magma river, bridge"
+  },
+  {
+   "at": [
+    20.2,
+    20.5
+   ],
+   "bright": 5,
+   "dim": 25,
+   "color": "#ff6a1f",
+   "label": "Magma river, courtyard"
+  },
+  {
+   "at": [
+    20.2,
+    24.0
+   ],
+   "bright": 5,
+   "dim": 25,
+   "color": "#ff6a1f",
+   "label": "Magma river, courtyard"
+  },
+  {
+   "at": [
+    20.2,
+    28.2
+   ],
+   "bright": 5,
+   "dim": 25,
+   "color": "#ff6a1f",
+   "label": "Magma river, Gate of Fire"
+  },
+  {
+   "at": [
+    7.6,
+    11.2
+   ],
+   "bright": 20,
+   "dim": 40,
+   "color": "#ff4d1a",
+   "label": "Fire curtain, Extraplanar Portal"
+  }
+ ]
+}
