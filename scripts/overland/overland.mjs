@@ -384,10 +384,11 @@ function boatActor(uuid) {
   try { const a = uuid ? fromUuidSync(uuid) : null; return a?.type === BOAT_TYPE ? a : null; } catch { return null; }
 }
 
-/** "2 h" or "1 h 20 min": how long one point of cost takes today. */
+/** "2 h" or "1 h 20 min": how long one point of cost takes today, in the calendar's own hours and minutes. */
 function pointDuration() {
-  const minutes = Math.round(_state.pointSeconds / (hourSeconds() / 60));
-  const h = Math.floor(minutes / 60), m = minutes % 60;
+  const perHour = game.time.calendar?.days?.minutesPerHour ?? 60;
+  const minutes = Math.round(_state.pointSeconds / (hourSeconds() / perHour));
+  const h = Math.floor(minutes / perHour), m = minutes % perHour;
   return m ? t("SDE.overland.day.hoursMinutes", { h, m }) : t("SDE.overland.day.hours", { h });
 }
 
