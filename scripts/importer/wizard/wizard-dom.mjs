@@ -56,7 +56,11 @@ export function wireLegend(root, controller) {
     });
     box?.addEventListener("change", send);
   }
-  // A hex picture is hard to judge alone (a coast depends on where it sits): a double click takes the map to it.
+  // A doubtful hex's name, held by the Legend until the sheet is confirmed.
+  for (const sel of root.querySelectorAll("select[data-wiz-review]")) {
+    sel.addEventListener("change", () => controller.dispatch("reviewAnswer", { num: sel.dataset.num, value: sel.value }));
+  }
+  // A doubtful hex is hard to judge alone (a coast depends on where it sits): a double click takes the map to it.
   for (const img of root.querySelectorAll("img[data-wiz-locate]")) img.addEventListener("dblclick", () => controller.legend?.locate(img.dataset.num));
 }
 

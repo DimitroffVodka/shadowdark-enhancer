@@ -198,6 +198,72 @@ test("before the engine has said anything, the footer's wait says what is happen
   assert.equal(ctl.viewModel().foot.status, "", "and nothing once the next map is being read");
 });
 
+/** A Legend that also has doubtful hexes to review: `left` lists how many are left before each confirm. */
+const reviewLegend = (left) => {
+  const base = fakeLegend();
+  Object.assign(base.log, { confirmed: 0, nexts: 0 });
+  return { ...base,
+    doubtfulCount: () => left[0] ?? 0,
+    reviewNext() { base.log.nexts += 1; return 2; },
+    reviewCards: () => [{ num: 7, label: "0007", thumb: "", terrain: "forest", terrainOptions: [{ value: "forest", label: "forest", selected: true }, { value: "__other", label: "other" }] }],
+    reviewAnswer(num, value, other) { base.log.answers.push([num, value, other]); },
+    async reviewConfirm() { base.log.confirmed += 1; left.shift(); } };
+};
+
+test("after Apply the doubtful hexes come before the next map: confirm until none are left, then on", async () => {
+  const a = reviewLegend([3, 1]), b = fakeLegend();
+  const { ctl, opened } = await afterRun([HEX("hex-cs1"), HEX("hex-cs2")], { legends: { "hex-cs1": a, "hex-cs2": b } });
+  await ctl.dispatch("next");     // Apply the names
+  assert.equal(ctl.state.terrain.stage, "review");
+  assert.equal(a.log.closed, 0, "the map is held while its doubtful hexes are looked at");
+  const vm = ctl.viewModel();
+  assert.deepEqual([vm.terrain.review.left, vm.terrain.review.total], [3, 3]);
+  assert.deepEqual(vm.terrain.review.cards[0].terrainOptions.map((o) => o.value), ["forest"], "no 'other' on a doubtful hex");
+  assert.match(vm.foot.next.label, /terrain\.confirm.*"n":1/);
+  assert.match(vm.foot.cancel, /terrain\.skipReview/);
+  await ctl.dispatch("reviewAnswer", { num: "7", value: "swamp" });
+  assert.deepEqual(a.log.answers, [[7, "swamp", undefined]]);
+  await ctl.dispatch("next");     // Confirm: a sheet is left
+  assert.equal(a.log.confirmed, 1);
+  assert.equal(ctl.state.terrain.stage, "review");
+  assert.equal(a.log.nexts, 2, "the next sheet was put up");
+  await ctl.dispatch("next");     // Confirm: none left
+  assert.equal(a.log.closed, 1);
+  assert.deepEqual(opened.map((m) => m.id), ["hex-cs1", "hex-cs2"]);
+  assert.equal(ctl.state.terrain.stage, "cards", "the next map opens as usual");
+});
+
+test("a doubtful hex tagged with a word the list lacks shows that word selected, not the first terrain", async () => {
+  const a = reviewLegend([1]);
+  a.reviewCards = () => [{ num: 7, label: "0007", thumb: "", terrain: "salt flat", terrainOther: "salt flat",
+    terrainOptions: [{ value: "forest", label: "forest", selected: false }, { value: "__other", label: "other", selected: true }] }];
+  const { ctl } = await afterRun([HEX("hex-cs1")], { legends: { "hex-cs1": a } });
+  await ctl.dispatch("next");
+  assert.deepEqual(ctl.viewModel().terrain.review.cards[0].terrainOptions, [{ value: "forest", label: "forest", selected: false }, { value: "salt flat", label: "salt flat", selected: true }]);
+});
+
+test("skipping the review leaves the rest as the engine named it, and the map still counts as named", async () => {
+  const a = reviewLegend([5]);
+  const { ctl } = await afterRun([HEX("hex-cs1")], { legends: { "hex-cs1": a } });
+  await ctl.dispatch("next");
+  await ctl.dispatch("cancel");   // Skip the rest
+  assert.equal(a.log.confirmed, 0);
+  assert.equal(ctl.state.page, "done");
+  const [row] = ctl.viewModel().done.hexMaps;
+  assert.equal(row.legend, false);
+  assert.equal(row.brush, true, "Done offers the brush on a map whose terrain was named");
+});
+
+test("a failed save keeps the sheet and says why; the stage is not left stuck on saving", async () => {
+  const a = reviewLegend([2]);
+  a.reviewConfirm = async () => { throw new Error("the scene refused"); };
+  const { ctl } = await afterRun([HEX("hex-cs1")], { legends: { "hex-cs1": a } });
+  await ctl.dispatch("next");
+  await ctl.dispatch("next");
+  assert.equal(ctl.state.terrain.stage, "review");
+  assert.match(ctl.viewModel().terrain.review.error, /refused/);
+});
+
 test("cancel on the Done page does nothing: no leave confirm, no release, no close", async () => {
   const calls = [];
   const { ctl } = await afterRun([]);

@@ -38,8 +38,8 @@ function make({ page, books = 0, maps = 0, check, update, keep = "once", forge =
   c.notice = notice;
   if (terrain) {
     s.result ??= { imported: 0, already: 0, needsYou: [], hex: [] };
-    s.terrain = { queue: [{ id: "hex-cs1", title: "The Gloaming hex map", sceneId: "g" }, { id: "hex-cs2", title: "The Djurum hex map", sceneId: "d" }], i: 0, stage: terrain.stage, error: terrain.error ?? "", named: [] };
-    c.legend = { cards: () => CARDS };
+    s.terrain = { queue: [{ id: "hex-cs1", title: "The Gloaming hex map", sceneId: "g" }, { id: "hex-cs2", title: "The Djurum hex map", sceneId: "d" }], i: 0, stage: terrain.stage, error: terrain.error ?? "", named: [], doubtful: 178 };
+    c.legend = { cards: () => CARDS, doubtfulCount: () => 138, reviewCards: () => REVIEW };
   }
   return c.viewModel();
 }
@@ -53,6 +53,9 @@ const TERRAINS = ["arctic", "desert", "forest", "grassland", "hills", "jungle", 
 const opts = (selected = "") => [...TERRAINS.map((v) => ({ value: v, label: v.replace(/_/g, " "), selected: v === selected })), { value: "__other", label: "other…", selected: false }];
 const card = (idx, size, selected = "") => ({ idx, size, thumbs: [1, 2, 3, 4].map((k) => ({ src: pic(idx * 10 + k), num: idx * 100 + k, label: String(idx * 100 + k).padStart(4, "0") })), terrainOptions: [...opts(selected), { value: "__split", label: "these are not all the same", selected: false }], terrainOther: "", split: null, expand: false, picks: [] });
 const opened = { idx: 3, size: 38, expand: true, thumbs: [], terrainOptions: [], picks: [1, 2, 3, 4].map((k) => ({ num: 300 + k, label: String(300 + k).padStart(4, "0"), thumb: pic(30 + k), terrainOptions: opts(k === 1 ? "hills" : ""), other: "" })) };
+/** The doubtful hexes of the Terrain page's review: what the engine guessed, with the terrains to change it to. */
+const REVIEW = [[1403, "forest"], [1508, "swamp"], [2011, "hills"], [2217, "desert"], [2306, "mountains"], [2412, "grassland"]]
+  .map(([num, terrain], k) => ({ num, label: String(num).padStart(4, "0"), thumb: pic(60 + k), terrain, terrainOptions: opts(terrain).filter((o) => o.value !== "__other") }));
 const CARDS = [card(0, 61, "forest"), card(1, 48, "forest"), card(2, 40), opened, card(4, 22, "mountains"), card(5, 9)];
 
 const STATES = {
@@ -78,6 +81,7 @@ const STATES = {
   import: () => make({ page: "import", books: 9, maps: 4, progress: { pct: 62, phase: "Filing the adventure The Hideous Halls of Mugdulblub" } }),
   "terrain-reading": () => make({ page: "terrain", terrain: { stage: "reading" } }),
   terrain: () => make({ page: "terrain", terrain: { stage: "cards" } }),
+  "terrain-review": () => make({ page: "terrain", terrain: { stage: "review" } }),
   "terrain-failed": () => make({ page: "terrain", terrain: { stage: "failed", error: "The map could not be read." } }),
   done: () => make({
     art: { sources: ["Monster Manual", "Shadowdark Community Tokens", "Pathfinder: Monster Core"], stage: "offer", line: "" },
