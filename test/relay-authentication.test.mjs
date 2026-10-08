@@ -283,6 +283,26 @@ test("a pile from before the scene record is the GM's to pick up, not a player's
   assert.equal(reply.error, "SDE.loot.itemDrops.error.gmPickup");
 });
 
+test("a drop whose pile cannot be placed leaves the item on the character", async () => {
+  const dagger = makeItem({ id: "item1", name: "Dagger", quantity: 2 });
+  const mine = makeActor({ id: "pc1", name: "Vella's PC", ownerId: PLAYER.id, items: [dagger] });
+  const { ItemDrops, created, scene } = await itemDropHarness({ actors: { pc1: mine } });
+  scene.createEmbeddedDocuments = async () => { throw new Error("token refused"); };
+  const realCreate = globalThis.Actor.create;
+  globalThis.Actor.create = async (data) => {
+    const actor = await realCreate(data);
+    actor.delete = async () => { actor.deleted = true; };
+    return actor;
+  };
+  globalThis.game.i18n = { localize: (k) => k, format: (k) => k };
+
+  const reply = await ItemDrops._createDroppedItemToken({ sourceActorId: "pc1", sourceItemId: "item1", dropQty: 2, x: 0, y: 0, sceneId: "scene1" }, PLAYER);
+  assert.equal(reply.ok, false);
+  assert.equal(dagger.deleted, false, "the dagger never left the sheet");
+  assert.equal(dagger.updates.length, 0);
+  assert.equal(created.actors[0].deleted, true, "and the half-made pile is cleaned up");
+});
+
 test("a GM may still drop item data with no source actor (the Loot Generator path)", async () => {
   // `dropItemData` hands generated loot straight in. The no-source-actor branch
   // has to stay open for a GM or that feature breaks.

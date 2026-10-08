@@ -356,20 +356,11 @@ export const ItemDrops = {
     }
     if (!itemData) return { ok: false, error: L("SDE.loot.itemDrops.error.nothingToDrop") };
 
-    // Remove item from source actor (or decrement quantity). World/compendium
-    // drops carry no source actor, so there is nothing to take from.
-    if (sourceActorId) {
-      const sourceActor = game.actors.get(sourceActorId);
-      const sourceItem = sourceActor?.items.get(sourceItemId);
-      if (sourceItem) {
-        const qty = Math.max(1, Math.floor(Number(sourceItem.system?.quantity ?? 1)) || 1);
-        if (qtyToDrop >= qty) {
-          await sourceItem.delete();
-        } else {
-          await sourceItem.update({ "system.quantity": qty - qtyToDrop });
-        }
-      }
-    }
+    // The pile is made first and the item taken off the character only once it
+    // stands on the scene: a pile that failed used to leave the item nowhere.
+    const scene = game.scenes.get(sceneId) || canvas.scene;
+    const failed = { ok: false, error: L("SDE.loot.itemDrops.error.dropFailed") };
+    if (!scene) return failed;
 
     // The dropped token carries exactly the quantity that was dropped.
     if (itemData.system) itemData.system.quantity = qtyToDrop;
@@ -399,19 +390,41 @@ export const ItemDrops = {
       },
     });
 
+    if (!actor) return failed;
+
     // Place token on the scene — explicitly set texture to the item's icon
-    const scene = game.scenes.get(sceneId) || canvas.scene;
     const tokenImg = itemData.img || "icons/svg/item-bag.svg";
-    await scene.createEmbeddedDocuments("Token", [{
-      actorId: actor.id,
-      name: itemData.name,
-      texture: { src: tokenImg },
-      x: x - 25, // Center the 0.5-size token
-      y: y - 25,
-      width: 0.5,
-      height: 0.5,
-    }]);
-    await replaceModuleFlag(scene, pileKey(actor.id), { item: itemData });
+    try {
+      await scene.createEmbeddedDocuments("Token", [{
+        actorId: actor.id,
+        name: itemData.name,
+        texture: { src: tokenImg },
+        x: x - 25, // Center the 0.5-size token
+        y: y - 25,
+        width: 0.5,
+        height: 0.5,
+      }]);
+      await replaceModuleFlag(scene, pileKey(actor.id), { item: itemData });
+    } catch (err) {
+      // Only the pile actor this call made is removed; the item never left the character.
+      console.error(`${MODULE_ID} | item drop: the pile could not be placed`, err);
+      await actor.delete?.().catch(() => {});
+      return failed;
+    }
+
+    // Now take it from the source actor (or lower its quantity). World/compendium
+    // drops carry no source actor, so there is nothing to take from.
+    if (sourceActorId) {
+      const sourceItem = game.actors.get(sourceActorId)?.items.get(sourceItemId);
+      if (sourceItem) {
+        const qty = Math.max(1, Math.floor(Number(sourceItem.system?.quantity ?? 1)) || 1);
+        if (qtyToDrop >= qty) {
+          await sourceItem.delete();
+        } else {
+          await sourceItem.update({ "system.quantity": qty - qtyToDrop });
+        }
+      }
+    }
 
     console.log(`${MODULE_ID} | Item dropped: ${itemData.name} at (${x}, ${y})`);
     return { ok: true };

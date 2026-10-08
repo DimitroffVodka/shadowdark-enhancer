@@ -4248,6 +4248,7 @@
   "SDE.loot.itemDrops.error.gmOnlyLooseItem": "Only the GM can drop an item that isn't from a character sheet.",
   "SDE.loot.itemDrops.error.nothingToDrop": "Nothing to drop.",
   "SDE.loot.itemDrops.error.pileGone": "That pile is already gone.",
+  "SDE.loot.itemDrops.error.dropFailed": "The item could not be dropped here. It stays on the character.",
   "SDE.loot.itemDrops.error.gmPickup": "This pile was dropped before the last update. Ask the GM to pick it up.",
   "SDE.loot.itemDrops.error.pickupInFlight": "Someone is already picking that up.",
   "SDE.loot.itemDrops.dropTitle": "Drop Item",
