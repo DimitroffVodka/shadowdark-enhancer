@@ -1,5 +1,6 @@
 {{!-- Hex tagger: header, tabs, one body, a status bar. The tabs are hidden radios (name _hxtTab); the app records the chosen one
-      (`tab`) and renders it checked again after every re-render. --}}
+      (`tab`) and renders it checked again after every re-render. Every button sits in a .hxt-row with a plain sentence beside it:
+      a GM should not have to press a button to find out what it does. --}}
 <div class="ui-shell hxt">
   <header class="ui-head">
     <div class="ui-art hxt-art"><i class="fa-solid fa-map-location-dot"></i></div>
@@ -31,12 +32,6 @@
       {{#if origin}}<p class="ui-note info">{{{localize "SDE.hexMap.note.aligned"}}}</p>{{else}}<p class="ui-note info">{{{localize "SDE.hexMap.note.align"}}}</p>{{/if}}
       {{/unless}}
 
-      {{#if baseline}}<p class="ui-note"><i class="fas fa-flag-checkered"></i> {{localize "SDE.hexMap.fact.baseline" right=baseline.right checked=baseline.checked accuracy=baseline.accuracy}}{{#if baseline.worst}} {{localize "SDE.hexMap.fact.worst"}} {{#each baseline.worst as |w|}}{{#unless @first}}, {{/unless}}{{lookup w 1}}× {{lookup w 0}}{{/each}}{{/if}}</p>{{/if}}
-      {{#if legendLog}}<p class="ui-note"><i class="fas fa-clipboard-list"></i> {{localize "SDE.hexMap.fact.legend" cards=legendLog.cards named=legendLog.named skipped=legendLog.skipped opened=legendLog.opened}}
-        {{#if legendLog.suspect}}<br><strong>{{localize "SDE.hexMap.fact.suspect" name=legendLog.suspect.name wrong=legendLog.suspect.wrong core=legendLog.suspect.core size=legendLog.suspect.size}}</strong>{{/if}}</p>{{/if}}
-      {{#if report}}<p class="ui-note"><i class="fas fa-chart-simple"></i> {{localize "SDE.hexMap.fact.corrections" wrong=report.wrong judged=report.judged}}{{#if report.wrong}} {{localize "SDE.hexMap.fact.ring" margin=reviewMargin ringed=reviewCount caught=report.caught}}{{/if}}
-        {{#if report.retag}}<br><strong>{{localize "SDE.hexMap.fact.retag"}}</strong>{{/if}}
-        {{#if report.suggested}}<br><button type="button" data-action="hxtUseMargin" data-margin="{{report.suggested}}" class="ui-btn">{{localize "SDE.hexMap.btn.ringAt" suggested=report.suggested}}</button> <span class="ui-muted">{{localize "SDE.hexMap.fact.suggested" count=report.suggestedCount}}</span>{{/if}}</p>{{/if}}
       {{#if origin}}{{#if sampled}}{{#unless hasLegend}}{{#unless done}}
       {{#if summary.tagged}}<p class="ui-muted">{{localize "SDE.hexMap.fact.some" untagged=summary.untagged}}</p>{{else}}<p class="ui-muted">{{localize "SDE.hexMap.fact.none"}}</p>{{/if}}
       {{/unless}}{{/unless}}{{/if}}{{/if}}
@@ -116,21 +111,31 @@
 
     {{!-- ===== Map: what to do to the map itself ===== --}}
     <div class="hxt-panel hxt-p2">
+      {{#if a0}}
       <section class="ui-card">
-        <h3 class="ui-h">{{localize "SDE.hexMap.tab.map"}}</h3>
-        <div class="ui-inline">
-          {{#if a0}}<button type="button" data-action="hxtPlayable" class="ui-btn{{#if primaryPlayable}} primary{{/if}}" title="{{localize 'SDE.hexMap.tip.playable'}}"><i class="fas fa-map"></i> {{localize "SDE.hexMap.btn.playable"}}</button>{{/if}}
-          {{#unless sampled}}<button type="button" data-action="hxtSample" class="ui-btn{{#if primarySample}} primary{{/if}}" title="{{localize 'SDE.hexMap.tip.read'}}"><i class="fas fa-crop-simple"></i> {{localize "SDE.hexMap.btn.read"}}</button>{{/unless}}
-          {{#if origin}}
-          <button type="button" data-action="hxtLegend" class="ui-btn{{#if primaryLegend}} primary{{/if}}" title="{{localize 'SDE.hexMap.tip.legend'}}"><i class="fas fa-list-ul"></i> {{localize "SDE.hexMap.btn.legend"}}</button>
-          {{#if canClassify}}<button type="button" data-action="hxtClassify" class="ui-btn" title="{{localize 'SDE.hexMap.tip.classify'}}"><i class="fas fa-wand-magic-sparkles"></i> {{localize "SDE.hexMap.btn.classify"}}</button>{{/if}}
-          <button type="button" data-action="hxtBrush" class="ui-btn" title="{{localize 'SDE.hexMap.tip.brush'}}"><i class="fas fa-paintbrush"></i> {{localize "SDE.hexMap.btn.brush"}}</button>
-          {{/if}}
-        </div>
+        <h3 class="ui-h">{{localize "SDE.hexMap.group.setup"}}</h3>
+        <div class="hxt-row"><button type="button" data-action="hxtPlayable" class="ui-btn{{#if primaryPlayable}} primary{{/if}}" title="{{localize 'SDE.hexMap.tip.playable'}}"><i class="fas fa-map"></i> {{localize "SDE.hexMap.btn.playable"}}</button><p class="ui-muted">{{localize "SDE.hexMap.help.playable"}}</p></div>
+      </section>
+      {{/if}}
+      {{#if origin}}
+      <section class="ui-card">
+        <h3 class="ui-h">{{localize "SDE.hexMap.group.edit"}}</h3>
+        <div class="hxt-row"><button type="button" data-action="hxtBrush" class="ui-btn" title="{{localize 'SDE.hexMap.tip.brush'}}"><i class="fas fa-paintbrush"></i> {{localize "SDE.hexMap.btn.brush"}}</button><p class="ui-muted">{{localize "SDE.hexMap.help.brush"}}</p></div>
+      </section>
+      {{/if}}
+      <section class="ui-card">
+        <h3 class="ui-h">{{localize "SDE.hexMap.group.auto"}}</h3>
+        <p class="ui-muted">{{localize "SDE.hexMap.help.auto"}}</p>
+        {{#unless sampled}}<div class="hxt-row"><button type="button" data-action="hxtSample" class="ui-btn{{#if primarySample}} primary{{/if}}" title="{{localize 'SDE.hexMap.tip.read'}}"><i class="fas fa-crop-simple"></i> {{localize "SDE.hexMap.btn.read"}}</button><p class="ui-muted">{{localize "SDE.hexMap.help.read"}}</p></div>{{/unless}}
+        {{#if origin}}
+        <div class="hxt-row"><button type="button" data-action="hxtLegend" class="ui-btn{{#if primaryLegend}} primary{{/if}}" title="{{localize 'SDE.hexMap.tip.legend'}}"><i class="fas fa-list-ul"></i> {{localize "SDE.hexMap.btn.legend"}}</button><p class="ui-muted">{{localize "SDE.hexMap.help.legend"}}</p></div>
+        {{#if canClassify}}<div class="hxt-row"><button type="button" data-action="hxtClassify" class="ui-btn" title="{{localize 'SDE.hexMap.tip.classify'}}"><i class="fas fa-wand-magic-sparkles"></i> {{localize "SDE.hexMap.btn.classify"}}</button><p class="ui-muted">{{localize "SDE.hexMap.help.classify"}}</p></div>{{/if}}
+        {{/if}}
       </section>
       {{#if origin}}
       <section class="ui-card">
-        <h3 class="ui-h">{{localize "SDE.hexMap.btn.showTags"}}</h3>
+        <h3 class="ui-h">{{localize "SDE.hexMap.group.show"}}</h3>
+        <p class="ui-muted">{{localize "SDE.hexMap.help.show"}}</p>
         <div class="ui-inline">
           <button type="button" data-action="hxtShowTags" data-mode="terrain" class="ui-btn" title="{{localize 'SDE.hexMap.tip.showTags'}}"><i class="fas fa-eye"></i> {{#if (eq overlayMode "terrain")}}{{localize "SDE.hexMap.btn.hideTags"}}{{else}}{{localize "SDE.hexMap.btn.showTags"}}{{/if}}</button>
           {{#if hasRegions}}
@@ -142,6 +147,7 @@
       {{#if hasKey}}
       <section class="ui-card">
         <h3 class="ui-h">{{localize "SDE.hexMap.label.hexKey"}}</h3>
+        <p class="ui-muted">{{localize "SDE.hexMap.help.hexKey"}}</p>
         <div class="ui-inline">
           <select class="ui-grow" data-hxt-entry title="{{localize 'SDE.hexMap.tip.hexKey'}}"><option value="">{{localize "SDE.hexMap.label.none"}}</option>{{#if allCrawls}}<option value="*" {{#if allSelected}}selected{{/if}}>{{localize "SDE.hexMap.label.allCrawls"}}</option>{{/if}}{{#each entries as |e|}}<option value="{{e.uuid}}" {{#if e.selected}}selected{{/if}}>{{e.name}}</option>{{/each}}</select>
           <button type="button" data-action="hxtPinKeyed" class="ui-btn" title="{{localize 'SDE.hexMap.tip.pinKeyed'}}"><i class="fas fa-map-pin"></i> {{localize "SDE.hexMap.btn.pinKeyed"}}</button>
@@ -171,42 +177,63 @@
     {{!-- ===== Data: what comes in and goes out ===== --}}
     <div class="hxt-panel hxt-p4">
       {{#if showMore}}
-      <section class="ui-card">
-        <div class="ui-inline">
-          {{#if sampled}}<button type="button" data-action="hxtSample" class="ui-btn" title="{{localize 'SDE.hexMap.tip.readAgain'}}"><i class="fas fa-crop-simple"></i> {{localize "SDE.hexMap.btn.readAgain"}}</button>{{/if}}
-          <button type="button" data-action="hxtLearnFrom" class="ui-btn" title="{{localize 'SDE.hexMap.tip.learnFrom'}}"><i class="fas fa-graduation-cap"></i> {{localize "SDE.hexMap.btn.learnFrom"}}</button>
-          <button type="button" data-action="hxtImport" class="ui-btn" title="{{localize 'SDE.hexMap.tip.import'}}"><i class="fas fa-file-import"></i> {{localize "SDE.hexMap.btn.import"}}</button>
-          <button type="button" data-action="hxtExport" class="ui-btn" title="{{localize 'SDE.hexMap.tip.export'}}"><i class="fas fa-file-export"></i> {{localize "SDE.hexMap.btn.export"}}</button>
-          <button type="button" data-action="hxtArt" class="ui-btn" title="{{localize 'SDE.hexMap.tip.art'}}"><i class="fas fa-palette"></i> {{localize "SDE.hexMap.btn.art"}}{{#if artCount}} ({{artCount}}){{/if}}</button>
-          {{#if origin}}
-          {{#if viaExtras}}{{#if hasTags}}<button type="button" data-action="hxtBuildPainted" class="ui-btn" title="{{localize 'SDE.hexMap.tip.buildPainted'}}"><i class="fas fa-paint-roller"></i> {{localize "SDE.hexMap.btn.buildPainted"}}</button>{{/if}}{{/if}}
-          <button type="button" data-action="hxtReference" class="ui-btn" title="{{localize 'SDE.hexMap.tip.reference'}}"><i class="fas fa-layer-group"></i> {{localize "SDE.hexMap.btn.reference"}}</button>
-          <button type="button" data-action="hxtClearTags" class="ui-btn danger" title="{{localize 'SDE.hexMap.tip.clear'}}"><i class="fas fa-eraser"></i> {{localize "SDE.hexMap.btn.clear"}}</button>
-          {{/if}}
-        </div>
-      </section>
       {{#if origin}}{{#if hasTags}}
       <section class="ui-card">
-        <div class="ui-inline"><button type="button" data-action="hxtBuildDataset" class="ui-btn{{#if primaryBuild}} primary{{/if}}"{{#if viaExtras}} title="{{localize 'SDE.hexMap.tip.sendExtras'}}"{{/if}}>{{#if viaExtras}}<i class="fas fa-paper-plane"></i> {{localize "SDE.hexMap.btn.sendExtras"}}{{else}}<i class="fas fa-download"></i> {{localize "SDE.hexMap.btn.download"}}{{/if}}</button></div>
+        <h3 class="ui-h">{{localize "SDE.hexMap.group.finish"}}</h3>
+        <div class="hxt-row"><button type="button" data-action="hxtBuildDataset" class="ui-btn{{#if primaryBuild}} primary{{/if}}"{{#if viaExtras}} title="{{localize 'SDE.hexMap.tip.sendExtras'}}"{{/if}}>{{#if viaExtras}}<i class="fas fa-paper-plane"></i> {{localize "SDE.hexMap.btn.sendExtras"}}{{else}}<i class="fas fa-download"></i> {{localize "SDE.hexMap.btn.download"}}{{/if}}</button><p class="ui-muted">{{#if viaExtras}}{{localize "SDE.hexMap.help.sendExtras"}}{{else}}{{localize "SDE.hexMap.help.download"}}{{/if}}</p></div>
+        {{#if viaExtras}}<div class="hxt-row"><button type="button" data-action="hxtBuildPainted" class="ui-btn" title="{{localize 'SDE.hexMap.tip.buildPainted'}}"><i class="fas fa-paint-roller"></i> {{localize "SDE.hexMap.btn.buildPainted"}}</button><p class="ui-muted">{{localize "SDE.hexMap.help.buildPainted"}}</p></div>{{/if}}
       </section>
       {{/if}}{{/if}}
+      <section class="ui-card">
+        <h3 class="ui-h">{{localize "SDE.hexMap.group.share"}}</h3>
+        <div class="hxt-row"><button type="button" data-action="hxtImport" class="ui-btn" title="{{localize 'SDE.hexMap.tip.import'}}"><i class="fas fa-file-import"></i> {{localize "SDE.hexMap.btn.import"}}</button><p class="ui-muted">{{localize "SDE.hexMap.help.import"}}</p></div>
+        <div class="hxt-row"><button type="button" data-action="hxtExport" class="ui-btn" title="{{localize 'SDE.hexMap.tip.export'}}"><i class="fas fa-file-export"></i> {{localize "SDE.hexMap.btn.export"}}</button><p class="ui-muted">{{localize "SDE.hexMap.help.export"}}</p></div>
+      </section>
+      <section class="ui-card">
+        <h3 class="ui-h">{{localize "SDE.hexMap.group.more"}}</h3>
+        {{#if sampled}}<div class="hxt-row"><button type="button" data-action="hxtSample" class="ui-btn" title="{{localize 'SDE.hexMap.tip.readAgain'}}"><i class="fas fa-crop-simple"></i> {{localize "SDE.hexMap.btn.readAgain"}}</button><p class="ui-muted">{{localize "SDE.hexMap.help.readAgain"}}</p></div>{{/if}}
+        <div class="hxt-row"><button type="button" data-action="hxtLearnFrom" class="ui-btn" title="{{localize 'SDE.hexMap.tip.learnFrom'}}"><i class="fas fa-graduation-cap"></i> {{localize "SDE.hexMap.btn.learnFrom"}}</button><p class="ui-muted">{{localize "SDE.hexMap.help.learnFrom"}}</p></div>
+        <div class="hxt-row"><button type="button" data-action="hxtArt" class="ui-btn" title="{{localize 'SDE.hexMap.tip.art'}}"><i class="fas fa-palette"></i> {{localize "SDE.hexMap.btn.art"}}{{#if artCount}} ({{artCount}}){{/if}}</button><p class="ui-muted">{{localize "SDE.hexMap.help.art"}}</p></div>
+        {{#if origin}}<div class="hxt-row"><button type="button" data-action="hxtReference" class="ui-btn" title="{{localize 'SDE.hexMap.tip.reference'}}"><i class="fas fa-layer-group"></i> {{localize "SDE.hexMap.btn.reference"}}</button><p class="ui-muted">{{localize "SDE.hexMap.help.reference"}}</p></div>{{/if}}
+      </section>
+      {{#if origin}}
+      <section class="ui-card">
+        <h3 class="ui-h">{{localize "SDE.hexMap.group.danger"}}</h3>
+        <div class="hxt-row"><button type="button" data-action="hxtClearTags" class="ui-btn danger" title="{{localize 'SDE.hexMap.tip.clear'}}"><i class="fas fa-eraser"></i> {{localize "SDE.hexMap.btn.clear"}}</button><p class="ui-muted">{{localize "SDE.hexMap.help.clear"}}</p></div>
+      </section>
+      {{/if}}
       {{/if}}
     </div>
 
-    {{!-- ===== Settings: grid anchor and map size ===== --}}
+    {{!-- ===== Settings: grid anchor, map size, and the auto-tag accuracy figures ===== --}}
     <div class="hxt-panel hxt-p5">
       {{#if showMore}}{{#if origin}}
       <section class="ui-card">
+        <h3 class="ui-h">{{localize "SDE.hexMap.group.settings"}}</h3>
+        <p class="ui-muted">{{localize "SDE.hexMap.help.settings"}}</p>
         <div class="hxt-settings">
-          <label class="ui-field" title="{{localize 'SDE.hexMap.tip.anchorNumber'}}"><span class="ui-label">{{localize "SDE.hexMap.label.anchorNumber"}}</span><input type="text" data-hxt-anchor value="{{anchorNum}}" maxlength="4"><span class="ui-muted">{{originText}}</span></label>
-          <label class="ui-field"><span class="ui-label">{{localize "SDE.hexMap.label.mapSize"}} ({{localize "SDE.hexMap.label.cols"}})</span><input type="number" data-hxt-cols value="{{boundsCols}}" min="1" max="99" placeholder="{{localize 'SDE.hexMap.label.cols'}}"></label>
-          <label class="ui-field"><span class="ui-label">× {{localize "SDE.hexMap.label.rows"}}</span><input type="number" data-hxt-rows value="{{boundsRows}}" min="1" max="99" placeholder="{{localize 'SDE.hexMap.label.rows'}}"></label>
-          {{#if canClassify}}<label class="ui-field" title="{{localize 'SDE.hexMap.tip.sensitivity'}}"><span class="ui-label">{{localize "SDE.hexMap.label.sensitivity"}}</span><input type="number" data-hxt-sensitivity value="{{sensitivity}}" min="0.3" max="3" step="0.1"></label>{{/if}}
+          <label class="ui-field" title="{{localize 'SDE.hexMap.tip.anchorNumber'}}"><span class="ui-label">{{localize "SDE.hexMap.label.anchorNumber"}}</span><input type="text" data-hxt-anchor value="{{anchorNum}}" maxlength="4"><span class="ui-muted">{{originText}}</span><span class="ui-muted">{{localize "SDE.hexMap.help.anchor"}}</span></label>
+          <div class="ui-field"><span class="ui-label">{{localize "SDE.hexMap.label.mapSize"}}</span>
+            <div class="ui-inline"><input type="number" data-hxt-cols value="{{boundsCols}}" min="1" max="99" placeholder="{{localize 'SDE.hexMap.label.cols'}}" aria-label="{{localize 'SDE.hexMap.label.cols'}}"> <span>×</span> <input type="number" data-hxt-rows value="{{boundsRows}}" min="1" max="99" placeholder="{{localize 'SDE.hexMap.label.rows'}}" aria-label="{{localize 'SDE.hexMap.label.rows'}}"></div>
+            <span class="ui-muted">{{localize "SDE.hexMap.help.mapSize"}} {{localize "SDE.hexMap.note.skipped"}}</span></div>
+          {{#if canClassify}}<label class="ui-field" title="{{localize 'SDE.hexMap.tip.sensitivity'}}"><span class="ui-label">{{localize "SDE.hexMap.label.sensitivity"}}</span><input type="number" data-hxt-sensitivity value="{{sensitivity}}" min="0.3" max="3" step="0.1"><span class="ui-muted">{{localize "SDE.hexMap.help.sensitivity"}}</span></label>{{/if}}
         </div>
         <label class="ui-check" title="{{localize 'SDE.hexMap.tip.skipTop'}}"><input type="checkbox" data-hxt-skip-top {{#if skipTopRow}}checked{{/if}}> {{localize "SDE.hexMap.label.skipTop"}}</label>
-        <p class="ui-muted">{{localize "SDE.hexMap.note.skipped"}}</p>
+        <p class="ui-muted">{{localize "SDE.hexMap.help.skipTop"}}</p>
         <div><button type="button" data-action="hxtSetBounds" class="ui-btn">{{localize "SDE.hexMap.btn.apply"}}</button></div>
       </section>
+      {{#if (or baseline legendLog report)}}
+      <section class="ui-card">
+        <h3 class="ui-h">{{localize "SDE.hexMap.group.accuracy"}}</h3>
+        <p class="ui-muted">{{localize "SDE.hexMap.help.accuracy"}}</p>
+        {{#if baseline}}<p class="ui-note"><i class="fas fa-flag-checkered"></i> {{localize "SDE.hexMap.fact.baseline" right=baseline.right checked=baseline.checked accuracy=baseline.accuracy}}{{#if baseline.worst}} {{localize "SDE.hexMap.fact.worst"}} {{#each baseline.worst as |w|}}{{#unless @first}}, {{/unless}}{{lookup w 1}}× {{lookup w 0}}{{/each}}{{/if}}</p>{{/if}}
+        {{#if legendLog}}<p class="ui-note"><i class="fas fa-clipboard-list"></i> {{localize "SDE.hexMap.fact.legend" cards=legendLog.cards named=legendLog.named skipped=legendLog.skipped opened=legendLog.opened}}
+          {{#if legendLog.suspect}}<br><strong>{{localize "SDE.hexMap.fact.suspect" name=legendLog.suspect.name wrong=legendLog.suspect.wrong core=legendLog.suspect.core size=legendLog.suspect.size}}</strong>{{/if}}</p>{{/if}}
+        {{#if report}}<p class="ui-note"><i class="fas fa-chart-simple"></i> {{localize "SDE.hexMap.fact.corrections" wrong=report.wrong judged=report.judged}}{{#if report.wrong}} {{localize "SDE.hexMap.fact.ring" margin=reviewMargin ringed=reviewCount caught=report.caught}}{{/if}}
+          {{#if report.retag}}<br><strong>{{localize "SDE.hexMap.fact.retag"}}</strong>{{/if}}
+          {{#if report.suggested}}<br><button type="button" data-action="hxtUseMargin" data-margin="{{report.suggested}}" class="ui-btn">{{localize "SDE.hexMap.btn.ringAt" suggested=report.suggested}}</button> <span class="ui-muted">{{localize "SDE.hexMap.fact.suggested" count=report.suggestedCount}}</span>{{/if}}</p>{{/if}}
+      </section>
+      {{/if}}
       {{/if}}{{/if}}
     </div>
   </div>
