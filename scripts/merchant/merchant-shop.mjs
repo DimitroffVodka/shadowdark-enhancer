@@ -104,6 +104,10 @@ export const MerchantShop = {
   // near-simultaneous requests both pass the check and double-spend / oversell.
   // A single promise chain is simpler than per-actor locks and more than fast
   // enough for tabletop throughput.
+  // ponytail: a second GM's own window runs its transactions on that GM's client,
+  // so two GMs buying the last of a stack in the same instant can both get it.
+  // Routing GM clicks through the active GM would close it, at the cost of each
+  // GM window's own mode and prices; worth it only if a table ever hits it.
   _txQueue: Promise.resolve(),
 
   _enqueueTx(fn) {
@@ -761,30 +765,51 @@ export const MerchantShop = {
    * promise: an update can resolve undefined when a hook vetoes it (nothing saved), or throw after it saved.
    * @returns {Promise<object|null>} the purse as it was before, when the charge landed; null when it did not
    */
-  async _charge(buyer, purse) {
+  async _setPurse(buyer, purse) {
     const was = { ...buyer.system.coins };
     await buyer.update(_purseFields(purse)).catch((err) => console.error(`${MODULE_ID} | merchant: purse`, err));
     const now = buyer.system.coins;
     return now.gp === purse.gp && now.sp === purse.sp && now.cp === purse.cp ? was : null;
   },
 
-  /** Put a purse back as `_charge` found it. */
-  async _refund(buyer, was) {
-    await buyer.update(_purseFields(was)).catch((err) => console.error(`${MODULE_ID} | merchant: refund`, err));
+  /**
+   * Add `coins` (a refund, a sale, or a gamble's winnings) to the purse as it is now, never as it was at the charge:
+   * a payment that landed in between stays. Read back; a miss is told to the GM to settle by hand.
+   * @returns {Promise<boolean>} true when the coins landed
+   */
+  async _pay(buyer, coins) {
+    if (await this._setPurse(buyer, _addToPurse(buyer.system.coins, coins))) return true;
+    ui.notifications.error(game.i18n.format("SDE.merchant.notify.coinsNotSaved", { player: buyer.name, price: _formatPrice(coins) }));
+    return false;
+  },
+
+  /** The buyer's notice for a purchase that did not land: whether the refund `_pay` made did. */
+  _unsavedNotice(refunded) {
+    return game.i18n.localize(refunded ? "SDE.merchant.notify.notSaved" : "SDE.merchant.notify.notRefunded");
+  },
+
+  /**
+   * Make `itemData` on the buyer and return its id once it is there. Judged by reading back an id chosen here, not
+   * by the promise: a create can save and then throw (core runs `_onCreate` outside a try), and that item is theirs.
+   * @returns {Promise<string|null>}
+   */
+  async _give(buyer, itemData) {
+    const data = { ...itemData, _id: foundry.utils.randomID() };
+    const made = await Item.create(data, { parent: buyer, keepId: true }).catch((err) => { console.error(`${MODULE_ID} | merchant: item`, err); return null; });
+    const id = made?.id ?? data._id;
+    return buyer.items.get(id) ? id : null;
   },
 
   /**
    * Take the coins, then hand over the item, reading each write back. A charge that did not land gives nothing;
-   * an item that did not appear puts the purse back as it was.
-   * @returns {Promise<boolean>} true when both landed
+   * an item that did not appear gives the coins back.
+   * @returns {Promise<string|null>} null when both landed, else the notice for the buyer
    */
   async _chargeAndGive(buyer, purse, itemData) {
-    const was = await this._charge(buyer, purse);
-    if (!was) return false;
-    const made = await Item.create(itemData, { parent: buyer }).catch((err) => { console.error(`${MODULE_ID} | merchant: item`, err); return null; });
-    if (made && buyer.items.get(made.id)) return true;
-    await this._refund(buyer, was);
-    return false;
+    const was = await this._setPurse(buyer, purse);
+    if (!was) return this._unsavedNotice(true);
+    if (await this._give(buyer, itemData)) return null;
+    return this._unsavedNotice(await this._pay(buyer, _fromCopper(_toCopper(was) - _toCopper(purse))));
   },
 
   /** Clamp a client-supplied quantity to a positive integer. */
@@ -846,9 +871,8 @@ export const MerchantShop = {
     const itemData = foundry.utils.deepClone(entry.itemData);
     if (!itemData.system) itemData.system = {};
     itemData.system.quantity = units;
-    if (!(await this._chargeAndGive(buyer, _spendFromPurse(buyer.system.coins, totalCopper), itemData))) {
-      return this._broadcastError(game.i18n.localize("SDE.merchant.notify.notSaved"), userId);
-    }
+    const unsaved = await this._chargeAndGive(buyer, _spendFromPurse(buyer.system.coins, totalCopper), itemData);
+    if (unsaved) return this._broadcastError(unsaved, userId);
 
     // Execute: update stock
     let newStock = entry.stock;
@@ -950,13 +974,9 @@ export const MerchantShop = {
       await item.update({ "system.quantity": currentQty - quantity });
     }
 
-    // Add currency to seller (field-wise so their denominations are preserved)
-    const newTotal = _addToPurse(seller.system.coins, totalSellPrice);
-    await seller.update({
-      "system.coins.gp": newTotal.gp,
-      "system.coins.sp": newTotal.sp,
-      "system.coins.cp": newTotal.cp,
-    });
+    // Pay the seller (field-wise so their denominations are preserved), read back: the item is already gone, so a
+    // payment that does not land is told to the GM to add by hand, and the sale still restocks and logs.
+    await this._pay(seller, totalSellPrice);
 
     // The extortion swing is spent once the sale has landed.
     if (swing.applied) await spendExtortion(seller);
@@ -1083,9 +1103,8 @@ export const MerchantShop = {
     const itemData = doc.toObject();
     // `quantity` is bundles at the listed price: two Arrows are 40 arrows for 2 gp, never 2 arrows.
     itemData.system.quantity = quantity * _bundleOf(itemData);
-    if (!(await this._chargeAndGive(buyer, _spendFromPurse(buyer.system.coins, totalCopper), itemData))) {
-      return this._broadcastError(game.i18n.localize("SDE.merchant.notify.notSaved"), userId);
-    }
+    const unsaved = await this._chargeAndGive(buyer, _spendFromPurse(buyer.system.coins, totalCopper), itemData);
+    if (unsaved) return this._broadcastError(unsaved, userId);
 
     // Spend the one-shot downtime extortion swing now the purchase has landed.
     if (swing.applied) await spendExtortion(buyer);
@@ -1286,8 +1305,8 @@ export const MerchantShop = {
 
     // Deduct cost (preserving the player's coin denominations), read back: a
     // charge that did not land rolls nothing, so the table is never free.
-    const was = await this._charge(buyer, _spendFromPurse(buyer.system.coins, costCopper));
-    if (!was) return this._broadcastError(game.i18n.localize("SDE.merchant.notify.notSaved"), userId);
+    const charged = await this._setPurse(buyer, _spendFromPurse(buyer.system.coins, costCopper));
+    if (!charged) return this._broadcastError(game.i18n.localize("SDE.merchant.notify.notSaved"), userId);
 
     // Roll loot from the configured source
     const result = { currency: { gp: 0, sp: 0, cp: 0 }, items: [], notes: [] };
@@ -1300,8 +1319,8 @@ export const MerchantShop = {
       // The draw blew up after the player paid — give the coins back rather
       // than pocketing them, then report it.
       console.error(`${MODULE_ID} | Gamble draw failed for "${table.name}":`, err);
-      await this._refund(buyer, was);
-      return this._broadcastError(game.i18n.localize("SDE.merchant.notify.gambleRefunded"), userId);
+      const refunded = await this._pay(buyer, option.cost);
+      return this._broadcastError(refunded ? game.i18n.localize("SDE.merchant.notify.gambleRefunded") : this._unsavedNotice(false), userId);
     }
 
     // Create items on buyer, each read back. If any prize cannot be made, the
@@ -1309,20 +1328,16 @@ export const MerchantShop = {
     // never pays for a prize that never arrived.
     const madeIds = [];
     for (const itemData of result.items) {
-      const made = await Item.create(itemData, { parent: buyer }).catch((err) => { console.error(`${MODULE_ID} | gamble: item`, err); return null; });
-      if (!made || !buyer.items.get(made.id)) {
+      const id = await this._give(buyer, itemData);
+      if (!id) {
         if (madeIds.length) await buyer.deleteEmbeddedDocuments("Item", madeIds).catch((err) => console.error(`${MODULE_ID} | gamble: undo`, err));
-        await this._refund(buyer, was);
-        return this._broadcastError(game.i18n.localize("SDE.merchant.notify.notSaved"), userId);
+        return this._broadcastError(this._unsavedNotice(await this._pay(buyer, option.cost)), userId);
       }
-      madeIds.push(made.id);
+      madeIds.push(id);
     }
 
     // Add currency to buyer (field-wise so their denominations are preserved)
-    if (result.currency.gp || result.currency.sp || result.currency.cp) {
-      const newTotal = _addToPurse(buyer.system.coins, result.currency);
-      await buyer.update(_purseFields(newTotal));
-    }
+    if (result.currency.gp || result.currency.sp || result.currency.cp) await this._pay(buyer, result.currency);
 
     // Build description
     const lootParts = [];
@@ -1772,8 +1787,10 @@ class MerchantShopApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const mult = this._buyMultiplier / 100;
     const extortion = readExtortion(playerActor);
     const inventory = (this._inventory || []).map(entry => {
+      // One bundle, or what is left of one (_buyUnits): 13 arrows show their share of the bundle price.
+      const bundle = _bundleOf(entry.itemData);
       const adjustedCopper = applyExtortion(
-        Math.round(_toCopper(entry.cost) * mult), extortion, "buy",
+        _buyCopper(entry.cost, mult, _buyUnits(1, bundle, entry.stock) || bundle, bundle), extortion, "buy",
       ).copper;
       const adjustedCost = _fromCopper(adjustedCopper);
       const canAfford = walletCopper >= adjustedCopper;

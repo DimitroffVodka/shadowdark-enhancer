@@ -9,7 +9,7 @@
 
 import { MODULE_ID } from "../shared/module-id.mjs";
 import { esc } from "../shared/esc.mjs";
-import { toCopper, fromCopper, formatPrice } from "../shared/coins.mjs";
+import { toCopper, fromCopper, formatPrice, addToPurse } from "../shared/coins.mjs";
 import { IMPORTED_ITEMS_PACK } from "../merchant/catalog-stock.mjs";
 import { purseUpdate, purseOf } from "./bastion-funding.mjs";
 import { planBuy, inStock, shopOf, unitCopper } from "./bastion-shop-core.mjs";
@@ -40,7 +40,7 @@ export const isShopUuid = (uuid) => typeof uuid === "string" && SHOP_PACKS.some(
 
 /**
  * `buyer` buys `qty` of the item `uuid` from shop `shopId` (a finished room: the caller checks). Returns
- * `{ ok, error, name, price }`: error is "gm" | "item" | "qty" | "free" | "broke" | "write".
+ * `{ ok, error, name, price }`: error is "gm" | "item" | "qty" | "free" | "broke" | "write" | "refund" (the item could not be made and `price` could not be given back).
  * `log` records the purchase for the session recap.
  */
 export async function buyItem({ shopId, buyer, uuid, qty }, { log = () => {} } = {}) {
@@ -50,18 +50,20 @@ export async function buyItem({ shopId, buyer, uuid, qty }, { log = () => {} } =
   if (!doc || !inStock(doc, shop)) return { ok: false, error: "item" };
   const plan = planBuy(buyer.system.coins, doc.system.cost, qty);
   if (!plan.ok) return { ok: false, error: plan.error };
-  const was = purseOf(buyer);
-  const paid = await buyer.update(purseUpdate(plan.coins)).catch((err) => { console.error(`${MODULE_ID} | bastion shop: purse`, err); return null; });
-  if (!paid || !samePurse(purseOf(buyer), plan.coins)) return { ok: false, error: "write" };
+  // Each write is judged by reading it back, never by its promise: an update or a create can save and then throw.
+  await buyer.update(purseUpdate(plan.coins)).catch((err) => console.error(`${MODULE_ID} | bastion shop: purse`, err));
+  if (!samePurse(purseOf(buyer), plan.coins)) return { ok: false, error: "write" };
   const data = doc.toObject();
-  delete data._id;
+  data._id = foundry.utils.randomID();
   data.system.quantity = (Number(data.system.quantity) || 1) * qty;   // a bundle (20 arrows) comes qty times
-  const made = await Item.create(data, { parent: buyer }).catch((err) => { console.error(`${MODULE_ID} | bastion shop: item`, err); return null; });
-  if (!made || !buyer.items.get(made.id)) {
-    await buyer.update(purseUpdate(was));
-    return { ok: false, error: "write" };
-  }
+  const made = await Item.create(data, { parent: buyer, keepId: true }).catch((err) => { console.error(`${MODULE_ID} | bastion shop: item`, err); return null; });
   const price = fromCopper(plan.total);
+  if (!buyer.items.get(made?.id ?? data._id)) {
+    // Given back on top of the purse as it is now, so a payment that landed meanwhile stays; read back too.
+    const back = addToPurse(purseOf(buyer), price);
+    await buyer.update(purseUpdate(back)).catch((err) => console.error(`${MODULE_ID} | bastion shop: refund`, err));
+    return { ok: false, error: samePurse(purseOf(buyer), back) ? "write" : "refund", price };
+  }
   log({ player: buyer.name, item: doc.name, qty, price });
   await ChatMessage.create({
     speaker: { alias: game.i18n.localize(shop.name) },

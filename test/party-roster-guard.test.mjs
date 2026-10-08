@@ -19,12 +19,22 @@ const party = actor("party", "NPC", ["p1"]);
 const writes = [];
 party.flags = { [MOD]: { party: true, partyData: { members: ["Actor.theirs"] } } };
 party.update = async (changes) => { writes.push(changes); party.flags[MOD].partyData = changes[`flags.${MOD}.partyData`]; };
+// An Extras party not yet adopted: its roster is still Extras' `members` flag (actor ids).
+const EX = "shadowdark-extras";
+const old = actor("old", "NPC", ["p1"]);
+old.flags = { [EX]: { isParty: true, members: ["mine"] } };
+old.update = async (changes) => { writes.push(changes); old.flags[EX].members = changes[`flags.${EX}.members`]; };
+// Another unadopted Extras party, for a player writing Enhancer's partyData onto it instead.
+const old2 = actor("old2", "NPC", ["p1"]);
+old2.flags = { [EX]: { isParty: true, members: ["mine"] } };
+old2.update = async (changes) => { writes.push(changes); old2.flags[MOD].partyData = changes[`flags.${MOD}.partyData`]; };
+const all = [mine, theirs, boss, party, old, old2];
 globalThis.game = {
   user: GM, users: Object.assign([GM, P1, P2], { activeGM: GM, get: (id) => [GM, P1, P2].find((u) => u.id === id) }),
-  actors: { contents: [mine, theirs, boss, party], get: (id) => [mine, theirs, boss, party].find((a) => a.id === id) },
+  actors: { contents: all, get: (id) => all.find((a) => a.id === id) },
 };
 
-const { registerPartyRosterGuard } = await import("../scripts/party/party.mjs");
+const { registerPartyRosterGuard, Party } = await import("../scripts/party/party.mjs");
 registerPartyRosterGuard();
 hooks.get("ready")();   // the GM sees the roster as it stands: the other player's PC, added by the GM
 
@@ -52,4 +62,21 @@ test("a GM may put anyone on the roster", async () => {
   await write(["Actor.theirs", "Actor.mine", "Actor.boss"], "gm");
   assert.deepEqual(writes, []);
   assert.ok(party.flags[MOD].partyData.members.includes("Actor.boss"));
+});
+
+test("a legacy Extras party not yet adopted gets the same check on Extras' member list", async () => {
+  writes.length = 0;
+  old.flags[EX].members = ["mine", "boss"];
+  await hooks.get("updateActor")(old, { flags: { [EX]: { members: old.flags[EX].members } } }, {}, "p1");
+  assert.equal(writes.length, 1);
+  assert.deepEqual(old.flags[EX].members, ["mine"], "the boss the player wrote in is taken off again");
+  assert.deepEqual(Party.data(old).members, ["Actor.mine"], "and the flows, and a later adoption, read only the PC");
+});
+
+test("a player writing Enhancer's partyData onto a legacy party not yet adopted gets the same check", async () => {
+  writes.length = 0;
+  old2.flags[MOD] = { partyData: { members: ["Actor.mine", "Actor.boss"] } };
+  await hooks.get("updateActor")(old2, { flags: { [MOD]: { partyData: old2.flags[MOD].partyData } } }, {}, "p1");
+  assert.equal(writes.length, 1);
+  assert.deepEqual(Party.data(old2).members, ["Actor.mine"], "the boss is taken off the roster Party.data now reads");
 });

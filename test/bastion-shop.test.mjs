@@ -7,6 +7,8 @@ const docs = new Map();
 globalThis.game = { user: { isGM: true }, i18n: { localize: (k) => k, format: (k, d) => `${k} ${JSON.stringify(d)}` } };
 globalThis.ChatMessage = { create: async (m) => { chat.push(m); } };
 globalThis.fromUuid = async (uuid) => docs.get(uuid) ?? null;
+let ids = 0;
+globalThis.foundry = { utils: { randomID: () => `r${++ids}` } };
 
 const core = await import("../scripts/bastion/bastion-core.mjs");
 const { SHOPS, shopOf, openShops, inStock, unitCopper, planBuy, SHOP_MARKUP_PCT } = await import("../scripts/bastion/bastion-shop-core.mjs");
@@ -134,4 +136,48 @@ test("a purse that refuses the charge, or an item that can't be made, leaves the
     finally { globalThis.Item.create = realCreate; }
     assert.deepEqual(a.system.coins, { gp: 100, sp: 0, cp: 0 }, "the gold was given back");
   } finally { console.error = quiet; }
+});
+
+test("an item that saves and then throws is the buyer's: the purchase stands and nothing is given back", async () => {
+  docs.set("Compendium.shadowdark.gear.Item.a", chainmail());
+  const a = buyer({ gp: 100, sp: 0, cp: 0 });
+  const realCreate = globalThis.Item.create, quiet = console.error;
+  // core runs _onCreate outside a try: the item is on the actor under the id it was given, and the promise rejects
+  globalThis.Item.create = async (data, { parent }) => { parent.made.push({ ...data, id: data._id }); throw new Error("_onCreate"); };
+  console.error = () => {};
+  try {
+    const done = await buyItem({ shopId: "armorer", buyer: a, uuid: "Compendium.shadowdark.gear.Item.a", qty: 1 });
+    assert.equal(done.ok, true);
+    assert.equal(a.made.length, 1);
+    assert.deepEqual(a.system.coins, { gp: 34, sp: 0, cp: 0 }, "paid once, not given back");
+  } finally { globalThis.Item.create = realCreate; console.error = quiet; }
+});
+
+test("the gold for an item that could not be made goes back on top of the purse as it is now", async () => {
+  docs.set("Compendium.shadowdark.gear.Item.a", chainmail());
+  const a = buyer({ gp: 100, sp: 0, cp: 0 });
+  const realCreate = globalThis.Item.create, quiet = console.error;
+  // 50 gp land in the purse (a loot claim) while the item is being made, and then the item fails
+  globalThis.Item.create = async () => { a.system.coins = { ...a.system.coins, gp: a.system.coins.gp + 50 }; throw new Error("no"); };
+  console.error = () => {};
+  try {
+    assert.equal((await buyItem({ shopId: "armorer", buyer: a, uuid: "Compendium.shadowdark.gear.Item.a", qty: 1 })).error, "write");
+    assert.deepEqual(a.system.coins, { gp: 150, sp: 0, cp: 0 }, "the 50 gp that landed meanwhile stay");
+  } finally { globalThis.Item.create = realCreate; console.error = quiet; }
+});
+
+test("gold that cannot be given back for an item that could not be made is reported, with the price", async () => {
+  docs.set("Compendium.shadowdark.gear.Item.a", chainmail());
+  const a = buyer({ gp: 100, sp: 0, cp: 0 });
+  const apply = a.update;
+  let writes = 0;
+  a.update = async (data) => (++writes === 1 ? apply(data) : undefined);   // the charge lands; the refund is vetoed
+  const realCreate = globalThis.Item.create, quiet = console.error;
+  globalThis.Item.create = async () => { throw new Error("no"); };
+  console.error = () => {};
+  try {
+    const done = await buyItem({ shopId: "armorer", buyer: a, uuid: "Compendium.shadowdark.gear.Item.a", qty: 1 });
+    assert.equal(done.error, "refund");
+    assert.deepEqual(done.price, { gp: 66, sp: 0, cp: 0 });
+  } finally { globalThis.Item.create = realCreate; console.error = quiet; }
 });
