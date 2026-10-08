@@ -128,7 +128,7 @@
       <span><strong>{{localize "SDE.importer.wizard.ready.custom"}}</strong><small>{{localize "SDE.importer.wizard.ready.customHelp"}}</small></span>
     </label>
     {{#if ready.hexNote}}
-    <div class="ui-note"><p><i class="fas fa-map"></i> {{localize "SDE.importer.wizard.hex.ready"}}</p></div>
+    <div class="ui-note"><p><i class="fas fa-map"></i> {{#if ready.hexDrawnOnly}}{{localize "SDE.importer.wizard.hex.readyDrawn"}}{{else}}{{localize "SDE.importer.wizard.hex.ready"}}{{/if}}</p></div>
     {{/if}}
     {{/if}}
 
@@ -198,7 +198,7 @@
     {{#if done.hexMaps.length}}
     <section class="ui-group">
       <h3 class="ui-h">{{localize "SDE.importer.wizard.done.hexTitle"}}</h3>
-      {{#if done.hexLegend}}<p class="ui-muted">{{localize "SDE.importer.wizard.done.hexBody"}}</p>{{/if}}
+      {{#if done.hexLegend}}<p class="ui-muted">{{localize "SDE.importer.wizard.done.hexBody"}}</p>{{else if done.hexLegendOptional}}<p class="ui-muted">{{localize "SDE.importer.wizard.done.hexBodyOptional"}}</p>{{/if}}
       <ul class="ui-list">
         {{#each done.hexMaps}}
         <li class="ui-row sde-wiz-hex">

@@ -15,6 +15,11 @@
  *             the same terms as the A0's (a0-print.mjs): the centre of the first cell and the two pitches, in pixels
  *             of a print of `size`, with the field's shape. A file of any other size is not this print, and the
  *             wizard says "needs a look" instead of trusting numbers measured on another one.
+ *   drawn     a map that is a drawing with a hex grid laid over it, not a printed hex map like the Western Reaches'. The
+ *             same terrain is drawn differently from hex to hex (a hex half black river, half jungle), so the Legend's
+ *             cards come out mixed and need most of their hexes named one by one. The import wizard sets such a map up
+ *             and pins it like any other, but leaves its terrain as a choice instead of a step (Patrick, 2026-10-06,
+ *             after naming all five: "really hard to do scans for the non-Western Reaches hex maps").
  *   join      a print that ships as two files: both are `width` by `height`, and the second sits `dy` pixels below the
  *             first so the two lattices are one (dy is whole rows of the grid, and the halves' own margins overlap).
  *             `size` is then the joined image's.
@@ -30,13 +35,13 @@
 
 export const HEX_PRINTS = Object.freeze({
   "hex-wr":  { keySrc: "GMWR", folder: "Western Reaches" },
-  "hex-cs1": { keySrc: "CS1", folder: "CS1", firstNum: "0001" },
-  "hex-cs2": { keySrc: "CS2", folder: "CS2", firstNum: "0001" },
-  "hex-cs3": { keySrc: "CS3", folder: "CS3", firstNum: "0001" },
+  "hex-cs1": { keySrc: "CS1", folder: "CS1", firstNum: "0001", drawn: true },
+  "hex-cs2": { keySrc: "CS2", folder: "CS2", firstNum: "0001", drawn: true },
+  "hex-cs3": { keySrc: "CS3", folder: "CS3", firstNum: "0001", drawn: true },
   // The Black River: two 2250 x 1674 halves of 11 rows each; the south half's lowered columns end one row short.
   // Like The Gloaming, its first column is the lowered one and its key starts at column 0, row 1.
   "hex-cs4": {
-    keySrc: "CS4", folder: "CS4", firstNum: "0001",
+    keySrc: "CS4", folder: "CS4", firstNum: "0001", drawn: true,
     size: Object.freeze([2250, 3169]),
     join: Object.freeze({ width: 2250, height: 1674, dy: 1495 }),
     grid: Object.freeze({
@@ -49,7 +54,7 @@ export const HEX_PRINTS = Object.freeze({
   // frame. (The finder's own reading puts the first cell half a hex above the field, as on the A0, and a number
   // counted from there lands every keyed hex a row under its outlined hex.)
   "hex-cs5": {
-    keySrc: "CS5", folder: "CS5", firstNum: "0001",
+    keySrc: "CS5", folder: "CS5", firstNum: "0001", drawn: true,
     size: Object.freeze([4500, 3348]),
     grid: Object.freeze({
       lat: Object.freeze({ x0: 290.0, y0: 402.1, pitchX: 244.15, pitchY: 282.1, lowered: "even" }),

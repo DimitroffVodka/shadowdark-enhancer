@@ -29,12 +29,16 @@ the hub. You add your files once and it does the rest.
 4. **Import.** One button. The guide imports the library, the adventures, each
    book's key locations, the site maps and the hex maps, with a progress bar.
    The guide drives the hub for you, out of sight.
-5. **Name the terrain.** For each hex map, the **Terrain** page shows the
+5. **Name the terrain.** For the Western Reaches' A0, the **Terrain** page shows the
    map's printed pictures sorted into cards. Name each card once (forest,
    mountains, swamp) and **Apply** names every hex. A card that mixes terrains
    can be opened ("these are not all the same") to name its hexes one by one.
    **Skip this map** leaves it for later. Closing the window here asks first when maps are still
    unnamed; they can be named later in the [Hex Tagger](Hex-Maps.md)'s Legend step.
+   The other five hex maps are drawings with a grid laid over them, so the same
+   land looks different from hex to hex and their cards come out mixed. They are
+   set up, numbered and pinned, but their terrain is optional: no Terrain page,
+   just a **Name the terrain** button on their row on the Done page.
 
 The last page (**Done**) lists what was set up, what was already there, and
 anything that needs you. Each hex map has its own row there: **Name the terrain** for one whose terrain
