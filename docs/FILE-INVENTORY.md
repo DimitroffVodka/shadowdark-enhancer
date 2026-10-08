@@ -1,7 +1,7 @@
 # Shadowdark Enhancer — File Inventory
 
 <!-- inventory:stats:start -->
-1782 tracked files · ~225,600 lines of code/markup across scripts+templates+styles+test.
+1782 tracked files · ~225,800 lines of code/markup across scripts+templates+styles+test.
 `v0.17.3` in both `module.json` and `package.json`.
 <!-- inventory:stats:end -->
 **Layout reflects the 2026-07-21 feature-folder reorganization (v0.11.0 cycle).**
@@ -271,7 +271,7 @@
 | `sea-wolf-plunder.mjs` | 576 | D4/#57's exact CS3 Sea Wolf Plunder seam: recognizes only the manifest/content identity or exact table name, strips only a terminal `(N gp)` for the generated Item name, stamps curated art plus A7 source-qualified generated identity, and keeps row-level unresolved, ambiguous, or reconciliation failures as raw TEXT with their priced source phrase. A TableResult write failure is a separate outcome: source preservation is guaranteed only when snapshot restoration reports `restored: true`; `restored: false` may require manual recovery. |
 | `subroll.mjs` | 95 | Resolve "Meteorite 1d4: 1. lute…" table rows to the object rolled. |
 | `treasure-data.mjs` | 15 | Level → tier band boundaries. |
-| `item-drops.mjs` | 731 | Drag items to canvas as pickup tokens; TokenHUD pickup; light sources burn. |
+| `item-drops.mjs` | 746 | Drag items to canvas as pickup tokens; TokenHUD pickup; light sources burn. |
 | `loot-resolution.mjs` | 243 | Precise loot-row → Item resolution (pure), replacing the containment regex that lived in `loot-linker.mjs`. That matcher asked whether a row CONTAINED any known item name as a word (`\b<name>s?\b`, longest candidate first), which made every generic container, material and body part in the system gear pack a landmine: "Unopened bottle of exceptionally potent Murgazi wine (25 gp)" resolved to the plain system `Bottle` and the GM's 25 gp vintage became a 1 gp empty bottle (#58) — with "A flask of oil" → `Flask` and "Bolt of fine silk" → `Bolt` behind it. The replacement resolves the row AS A NAME in two tiers: `exact` (the priced row, stripped, IS the item's name modulo case and spacing) and `alias` (that name modulo a leading article or count, a trailing parenthetical, and the plural of its FINAL word). Every fold is anchored, so none of them can shorten a phrase to one of its interior words — the containment bug is structurally unreachable, not merely tuned away. A row landing on two distinct items at the same tier is `ambiguous` and resolves to nothing, because picking one by index order is the same bug with extra steps; ambiguity is reachable because the alias fold is looser than `buildItemIndex`'s lowercased-name dedupe. Recall is traded for precision DELIBERATELY (D4/D5 accept "an explicit unresolved case" and put loose generic fallback out of scope): an unresolved row keeps its text and can be fabricated, while a false positive silently hands the player the wrong object and looks like it worked. Also owns `stripPrice`, moved verbatim from `loot-pack.mjs` (which re-exports it) because its output is a fabricated Item's NAME and must not acquire any of the matching folds. Foundry-free, node-tested. |
 | `monster-loot-review-app.mjs` | 86 | Monster Loot Overrides window: every world NPC with its loot table and drop chance, edited inline via LootDrops.setOverrides. Opened from the Loot & XP settings pop-out. |
 
@@ -287,7 +287,7 @@
 
 | File | Lines | Description |
 |---|---:|---|
-| `merchant-shop.mjs` | 2730 | Two-mode shop system (compendium global or actor NPC inventory); GM opens for all players. |
+| `merchant-shop.mjs` | 2731 | Two-mode shop system (compendium global or actor NPC inventory); GM opens for all players. |
 | `merchant-defaults.mjs` | 209 | The two shipped merchant configs (Base, Western Reaches). |
 | `catalog-stock.mjs` | 37 | What the Catalog tab may sell: gear types with a list price, not loot-table props. |
 
@@ -390,7 +390,7 @@
 | `adventure/adventure-manifest.mjs` | 162 | Where each Cursed Scroll adventure's numbered key is: per site (a dungeon, a mini-adventure, a city district) its title, printed pages, the numbers the book prints, the heading style, and the map's printed grid. Page numbers and titles only; no book text, no art. |
 | `adventure/adventure-parser.mjs` | 310 | Numbered-location parser for printed adventures (pure): "12. METEORITE ROOM" and "12. Meteorite Room. Body" headings, a run rule that keeps a numbered list inside a room out of the key, missing-number reports, page HTML with bullets and "Area 12" links. |
 | `adventure/adventure-placer.mjs` | 420 | The keyed-location placer (AppV2): lists a map's locations and turns the canvas into a one-click target, dropping each numbered Note and arming the next; skip and clear per location, resumable. |
-| `adventure/adventure-scene.mjs` | 583 | A filed adventure as a map Scene: scene sized from the GM's image and the book's printed grid, the journal deployed into the world, and the pure rules for which locations are placed, skipped or still to do (remembered on the scene's notes and flag); also the hidden tokens for the creatures the book's map marks and the ones each location's text names, spread on free squares around its pin. |
+| `adventure/adventure-scene.mjs` | 584 | A filed adventure as a map Scene: scene sized from the GM's image and the book's printed grid, the journal deployed into the world, and the pure rules for which locations are placed, skipped or still to do (remembered on the scene's notes and flag); also the hidden tokens for the creatures the book's map marks and the ones each location's text names, spread on free squares around its pin. |
 | `adventure/adventure-traps.mjs` | 163 | Where an adventure's traps sit on its map (positions only, no book text): which printed trap line of which area, how far it reaches, and the planning that turns them into Region shapes. |
 | `adventure/adventure-treasure.mjs` | 154 | An adventure's treasure as items, the way the Lost Citadel quickstart has them (pure): each thing the key prices ("a blue pearl (40 gp)", "20 meteorite chunks (30 gp each)") becomes a Gem or treasure item worth that, a spell scroll the key names becomes a scroll item pointing at its spell; read at import time from the GM's own book, never shipped. |
 | `adventure/adventure-walls.mjs` | 2846 | The walls, doors and solid furniture of each adventure's map as positions (fractions of the map picture), made ahead of time and checked by a leak test; the pure planner that turns them into Wall documents. No map art or book text. |
