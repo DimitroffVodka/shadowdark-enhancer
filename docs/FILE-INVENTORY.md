@@ -1,7 +1,7 @@
 # Shadowdark Enhancer — File Inventory
 
 <!-- inventory:stats:start -->
-1782 tracked files · ~225,600 lines of code/markup across scripts+templates+styles+test.
+1782 tracked files · ~225,700 lines of code/markup across scripts+templates+styles+test.
 `v0.17.3` in both `module.json` and `package.json`.
 <!-- inventory:stats:end -->
 **Layout reflects the 2026-07-21 feature-folder reorganization (v0.11.0 cycle).**
@@ -482,7 +482,7 @@
 |---|---:|---|
 | `imported-monster-art.mjs` | 830 | N6's exact source-aware curated art map and F4's Foundry-free pick-state planner; missing rows stay available to Browse. |
 | `monster-token-art.mjs` | 727 | Applies licensed art to monsters **by path reference**, never bundled. |
-| `token-art-catalog.mjs` | 1135 | Name→art matching catalog. |
+| `token-art-catalog.mjs` | 1159 | Name→art matching catalog. |
 | `token-art-manager-app.mjs` | 715 | GM window to review/apply matches. |
 | `token-art-manager-state.mjs` | 79 | Normalizes the persistent Token Art Manager state and named Browse folders. |
 
