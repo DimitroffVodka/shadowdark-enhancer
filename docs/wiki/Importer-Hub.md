@@ -437,9 +437,9 @@ creatures filed under a room are placed in that room's own squares, never in the
 another room or behind a closed door. Building again on a scene that already has the module's
 walls or lights changes nothing, so walls and lights you corrected by hand stay as they are
 (delete the module's walls yourself to get the book's back), and a scene whose picture is not
-the shape of the book's map gets none. A light only shows once the scene is darkened (the Darkness slider in the
-scene's settings): the module leaves the scene as it is, because a fully dark scene hides even
-your own hidden creatures from you.
+the shape of the book's map gets none. The lights shine as soon as they are built. The Iron Fortress map is also
+darkened part way the first time its lights are built, so the magma glows; the module never darkens a scene fully,
+because a fully dark scene hides even your own hidden creatures from you.
 
 **An adventure's journal reads like the quickstart's.** The Lost Citadel in the Shadowdark system is the model: an
 Overview page, an "Areas 1-27" page for the rules that hold everywhere (danger level, light, doors, the random encounters
