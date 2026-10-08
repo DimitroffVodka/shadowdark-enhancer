@@ -277,6 +277,29 @@ test("an in-place replacement keeps the module block the payload never mentioned
   assert.equal(written[MODULE_ID].imported, true);
 });
 
+test("a re-import keeps another module's flags and the item's effects, which the payload never mentions", async () => {
+  const bleed = { id: "e1", toObject: () => ({ _id: "e1", name: "Bleeding" }) };
+  const old = storedSpell({
+    effects: [bleed],
+    flags: { ...monsterSpellFlags(), "shadowdark-extras": { automation: "fire" }, core: { sheetClass: "x" } },
+  });
+  await replaceDocument(
+    old,
+    { name: "Fireball - Goblin Shaman", type: "Spell", flags: { [MODULE_ID]: { imported: true } } },
+    fakePack,
+  );
+  const written = old.updateCalls[0].data.flags;
+  assert.deepEqual(written["shadowdark-extras"], { automation: "fire" });
+  assert.deepEqual(written.core, { sheetClass: "x" });
+  assert.equal(written[MODULE_ID].imported, true);
+  assert.deepEqual(old.effects, [bleed], "no effects key in the payload: the effects stay");
+
+  FakeItem.created = [];
+  const failing = storedSpell({ updateFails: true, effects: [bleed] });
+  await replaceDocument(failing, { name: "Fireball - Goblin Shaman", type: "Spell" }, fakePack);
+  assert.deepEqual(FakeItem.created[0].payload.effects, [{ _id: "e1", name: "Bleeding" }], "a recreate carries them over");
+});
+
 test("the create-then-delete fallback carries the module block too", async () => {
   FakeItem.created = [];
   const old = storedSpell({ updateFails: true });

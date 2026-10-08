@@ -79,25 +79,27 @@ export function moduleFlags(document) {
 
 /**
  * The flags to write when `payloadFlags` replaces `existingFlags` wholesale.
+ * Every namespace the payload does not declare survives (another package's
+ * automation, `core`), and inside this module's namespace declared keys win
+ * while undeclared ones survive.
  *
  * Returns `null` when there is nothing to rescue — either the payload declares
  * no flags at all (in which case the update never touches the stored flags, and
  * inventing a flags key would write bookkeeping that no import asked for), or
- * the stored document carries none of ours.
+ * the stored document carries no flags.
  *
  * @param {object|undefined} payloadFlags   flags the replacement payload carries
  * @param {object|undefined} existingFlags  flags on the document being replaced
  * @returns {object|null} the merged flags object, or null to change nothing
  */
 export function preservedModuleFlags(payloadFlags, existingFlags) {
-  if (!isObject(payloadFlags)) return null;
-  const existingOwn = existingFlags?.[MODULE_ID];
-  if (!isObject(existingOwn) || !Object.keys(existingOwn).length) return null;
-  const payloadOwn = payloadFlags[MODULE_ID];
-  return {
-    ...payloadFlags,
-    [MODULE_ID]: { ...existingOwn, ...(isObject(payloadOwn) ? payloadOwn : {}) },
-  };
+  if (!isObject(payloadFlags) || !isObject(existingFlags) || !Object.keys(existingFlags).length) return null;
+  const existingOwn = existingFlags[MODULE_ID], payloadOwn = payloadFlags[MODULE_ID];
+  const merged = { ...existingFlags, ...payloadFlags };
+  if (isObject(existingOwn) || isObject(payloadOwn)) {
+    merged[MODULE_ID] = { ...(isObject(existingOwn) ? existingOwn : {}), ...(isObject(payloadOwn) ? payloadOwn : {}) };
+  }
+  return merged;
 }
 
 /**
