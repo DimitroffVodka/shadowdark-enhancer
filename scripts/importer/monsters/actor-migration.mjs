@@ -92,17 +92,36 @@ export function effectiveSource(actor) {
  *       stamps the key regardless of value, so even "" qualifies), or
  *   (b) its folder name infers a source (pre-flag-era imports — see
  *       inferSourceFromFolder; ambiguous folders never match).
- * Actors already carrying migratedToSuite=true are excluded (idempotence).
+ * Actors already carrying migratedToSuite=true are excluded (idempotence), and
+ * so is any actor made from a compendium: a monster placed on a scene from the
+ * suite pack carries the pack copy's `source` flag, and is not an import.
  *
- * @param {object[]} actors - Actor-likes: { flags?, folder?: { name? } }
+ * @param {object[]} actors - Actor-likes: { flags?, folder?: { name? }, _stats? }
  * @returns {object[]}
  */
 export function selectWorldImportedActors(actors) {
   return (actors ?? []).filter((a) => {
     if (effectiveSource(a) === null) return false;
+    if (a?._stats?.compendiumSource) return false;
     return !isAlreadyMigrated(a);
   });
 }
+
+/**
+ * The name|source keys of the copies already in the suite pack, from its index. A run cut short after the copy but
+ * before the original was stamped finds its copy here, and stamps the original instead of copying it again.
+ * @param {Iterable<{name?:string, flags?:object}>} entries
+ * @returns {Set<string>}
+ */
+export function migratedCopies(entries) {
+  const keys = new Set();
+  for (const e of entries ?? []) {
+    const own = e?.flags?.[MODULE_ID];
+    if (own?.migratedToSuite) keys.add(copyKey(e.name, own.source));
+  }
+  return keys;
+}
+const copyKey = (name, source) => `${name ?? ""}|${source ?? ""}`;
 
 /**
  * Count actors by their source id. Returns `{ [sourceId]: count, total: n }`.
@@ -265,15 +284,23 @@ export async function migrateActors({ dryRun = false } = {}) {
 
   // ── Find-or-create the _Backup (pre-suite) world actor folder ─────────────
   const backupFolder = await _ensureBackupFolder();
+  const copies = migratedCopies(await actorsPack.getIndex({ fields: [`flags.${MODULE_ID}.source`, `flags.${MODULE_ID}.migratedToSuite`] }));
 
   // ── Migrate world actors ──────────────────────────────────────────────────
   for (const actor of worldCandidates) {
     try {
+      const sourceId = effectiveSource(actor) ?? "";
+      if (copies.has(copyKey(actor.name, sourceId))) {
+        // Copied by a run that stopped before stamping the original: finish that, copy nothing.
+        await actor.update({ folder: backupFolder?.id ?? null, [`flags.${MODULE_ID}.migratedToSuite`]: true });
+        report.backedUp++;
+        continue;
+      }
+
       // 1. Backfill to current fidelity (D-01).
       await backfillActor(actor, { dryRun: false });
 
       // 2. Build pack payload — fresh toObject() post-backfill, strip _id.
-      const sourceId = effectiveSource(actor) ?? "";
       const folderId = await ensureSourceFolder(actorsPack, sourceId);
       const payload = actor.toObject();
       delete payload._id;
@@ -294,6 +321,7 @@ export async function migrateActors({ dryRun = false } = {}) {
         report.failures++;
         continue;
       }
+      copies.add(copyKey(actor.name, sourceId));
       report.copied++;
 
       // 4. Move world original to backup folder + stamp migratedToSuite (D-02 — no delete).
@@ -311,11 +339,18 @@ export async function migrateActors({ dryRun = false } = {}) {
   // ── Migrate legacy pack docs ──────────────────────────────────────────────
   for (const doc of legacyPackCandidates) {
     try {
+      const sourceId = doc.flags?.[MODULE_ID]?.source ?? "";
+      if (copies.has(copyKey(doc.name, sourceId))) {
+        // Already copied (a run that stopped, or a pack already locked so the stamp below threw): stamp, copy nothing.
+        await doc.update({ [`flags.${MODULE_ID}.migratedToSuite`]: true });
+        report.legacyMigrated++;
+        continue;
+      }
+
       // 1. Backfill the in-pack doc first (D-01).
       await backfillActor(doc, { dryRun: false });
 
       // 2. Build pack payload for sde-actors.
-      const sourceId = doc.flags?.[MODULE_ID]?.source ?? "";
       const folderId = await ensureSourceFolder(actorsPack, sourceId);
       const payload = doc.toObject();
       delete payload._id;
@@ -330,6 +365,7 @@ export async function migrateActors({ dryRun = false } = {}) {
         report.failures++;
         continue;
       }
+      copies.add(copyKey(doc.name, sourceId));
       report.copied++;
 
       // 4. Stamp the original in the legacy pack as migrated (idempotence — no delete, D-06).
@@ -345,7 +381,9 @@ export async function migrateActors({ dryRun = false } = {}) {
   // v14: pack.configure has no `label` key (labels are metadata-only) and
   // CompendiumCollection has no setFlag — retirement = LOCK the pack. The
   // padlock signals "no longer written to"; the docs stay readable forever.
-  if (legacyPack && legacyPackCandidates.length > 0) {
+  // Only once every legacy doc is stamped: a locked pack refuses the stamp, so a doc that failed this run could
+  // never be marked migrated, and each later run would copy it again.
+  if (legacyPack && legacyPackCandidates.length > 0 && report.legacyMigrated === legacyPackCandidates.length) {
     try {
       await legacyPack.configure({ locked: true });
     } catch (err) {
