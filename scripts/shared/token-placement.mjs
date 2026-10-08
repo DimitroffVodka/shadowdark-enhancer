@@ -45,9 +45,10 @@ const fmt = (key, data = {}) => globalThis.game?.i18n?.format(key, data) ?? key;
  * their own portrait keeps it.
  *
  * @param {Actor} actor  a world or compendium actor
+ * @param {{folder?:string}} [opts]  world folder id for an actor made here (an existing one stays where it is)
  * @returns {Promise<Actor|null>} the world actor to hang tokens off
  */
-export async function worldActorFor(actor) {
+export async function worldActorFor(actor, { folder } = {}) {
   if (!actor) return null;
   if (!actor.pack) return actor;
 
@@ -58,7 +59,7 @@ export async function worldActorFor(actor) {
     (a) => a.type === compendiumActor.type && a.name === compendiumActor.name,
   );
   if (!existing) {
-    return Actor.implementation.create(compendiumActor.toObject());
+    return Actor.implementation.create({ ...compendiumActor.toObject(), ...(folder ? { folder } : {}) });
   }
 
   const fromSource = await _bestArtForActor(existing);
