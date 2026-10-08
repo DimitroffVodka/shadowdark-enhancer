@@ -8,6 +8,7 @@ import assert from "node:assert/strict";
 import { newState, addFiles } from "../scripts/importer/wizard/wizard-core.mjs";
 import { runWizardImport } from "../scripts/importer/wizard/wizard-run.mjs";
 import { WizardController } from "../scripts/importer/wizard/wizard-controller.mjs";
+import { readFileSync } from "node:fs";
 import { HEX_PRINTS } from "../scripts/hex-map/hex-prints.mjs";
 
 const t = (key, args) => `${key}${args ? JSON.stringify(args) : ""}`;
@@ -82,4 +83,18 @@ test("the Ready page's hex note is the optional one only when every chosen map i
   assert.deepEqual([ctl.viewModel().ready.hexNote, ctl.viewModel().ready.hexDrawnOnly], [true, true]);
   ctl.state.check = { done: true, ready: ["map:hex-cs1", "map:hex-wr"], problems: [], items: [] };
   assert.deepEqual([ctl.viewModel().ready.hexNote, ctl.viewModel().ready.hexDrawnOnly], [true, false]);
+});
+
+test("a drawn map that was already set up and is still unnamed says its terrain is optional, without a pin count", async () => {
+  const { ctl } = await afterRun([HEX("hex-cs1", { optional: true, status: "already", pinned: 0 })]);
+  const lines = ctl.viewModel().done.hexMaps.map((h) => h.line);
+  assert.match(lines[0], /hexStatus\.alreadyDrawn/);
+  assert.doesNotMatch(JSON.parse(readFileSync(new URL("../languages/en.json", import.meta.url), "utf8"))["SDE.importer.wizard.done.hexStatus.alreadyDrawn"], /\{n\}/, "the string has no count to print");
+});
+
+test("the Ready page's drawing-only note is false when no hex map is chosen", () => {
+  const ctl = new WizardController({ t }, () => {});
+  ctl.state.page = "ready";
+  ctl.state.check = { done: true, ready: ["book:x"], problems: [], items: [] };
+  assert.deepEqual([ctl.viewModel().ready.hexNote, ctl.viewModel().ready.hexDrawnOnly], [false, false]);
 });

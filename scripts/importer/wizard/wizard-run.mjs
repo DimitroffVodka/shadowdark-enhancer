@@ -35,7 +35,7 @@ const span = ([from, to], fraction) => from + (to - from) * Math.max(0, Math.min
  * @param {object} state  wizard state (check.ready, maps, uploaded)
  * @param {{onProgress:(pct:number, phase:string)=>void, cancelled:()=>boolean}} hooks
  * @param {object} deps   see the file header
- * @returns {Promise<{imported:number, already:number, needsYou:Array<{title:string, why:string}>, skipped:{n:number, books:string[]}, hex:Array<{id:string, title:string, status:string, legend:boolean, look:boolean, sceneId?:string, pinned:number}>, stopped:boolean}>}
+ * @returns {Promise<{imported:number, already:number, needsYou:Array<{title:string, why:string}>, skipped:{n:number, books:string[]}, hex:Array<{id:string, title:string, status:string, legend:boolean, look:boolean, optional:boolean, named?:boolean, sceneId?:string, pinned:number}>, stopped:boolean}>}
  */
 export async function runWizardImport(state, hooks, deps) {
   const { t } = deps;

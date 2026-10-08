@@ -2765,6 +2765,7 @@
   "SDE.importer.wizard.done.hexStatus.readyDrawn": "Set up and numbered, {n} locations pinned. Naming its terrain is optional.",
   "SDE.importer.wizard.done.hexStatus.ready": "Set up and numbered, {n} locations pinned.",
   "SDE.importer.wizard.done.hexStatus.already": "Already set up.",
+  "SDE.importer.wizard.done.hexStatus.alreadyDrawn": "Already set up. Naming its terrain is optional.",
   "SDE.importer.wizard.done.hexStatus.failed": "The scene could not be set up from this map. You can try it by hand.",
   "SDE.importer.wizard.done.hexStatus.needsLook": "The grid needs a look before it can be set up.",
   "SDE.importer.wizard.run.keys": "Reading the keyed hexes: {region}",
