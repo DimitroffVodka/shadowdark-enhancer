@@ -520,6 +520,8 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
       inp?.addEventListener("input", () => this._noteSheetDraft(num));
     }
     for (const box of this.element.querySelectorAll("input[data-hxt-feature]")) box.addEventListener("change", () => this._noteSheetDraft(box.dataset.num));
+    // A review tile is hard to judge alone (coast or not depends on where it sits): a double click takes the map to it.
+    for (const img of this.element.querySelectorAll("img[data-hxt-locate]")) img.addEventListener("dblclick", (ev) => this._onPingHex(ev, img));
     // The map's terrain palette: every tick is saved at once and redraws the dropdowns.
     for (const box of this.element.querySelectorAll("input[data-hxt-palette]")) box.addEventListener("change", () => this._setPalette(this._paletteFromBoxes()));
     const own = this.element.querySelector("input[data-hxt-palette-own]");
@@ -998,7 +1000,9 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
    * whole printed list until then, then the settlement sizes and a keyed location.
    */
   _terrainChoices(state) {
-    const terrainValues = [...paletteTags(state.palette), ...Object.values(SETTLEMENTS), KEYED_TERRAIN];
+    // Alphabetical by the label shown, like the on-map editor's list, so the browser's type-ahead lands where you expect.
+    const terrainValues = [...paletteTags(state.palette), ...Object.values(SETTLEMENTS), KEYED_TERRAIN]
+      .sort((a, b) => a.replace(/_/g, " ").localeCompare(b.replace(/_/g, " ")));
     return { terrainValues, terrainOptions: terrainValues.map((v) => ({ value: v, label: v.replace(/_/g, " ") })) };
   }
 
