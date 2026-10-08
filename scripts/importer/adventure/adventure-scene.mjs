@@ -19,6 +19,8 @@ import { ADVENTURE_FLAG, findSiteEntry, pageNum } from "./adventure-commit.mjs";
 import { markersFor } from "./adventure-layouts.mjs";
 import { wallsFor, planWalls, wallTypes, WALL_FLAG, LIGHT_FLAG, planLights, reachableSquares } from "./adventure-walls.mjs";
 import { mapFits } from "./map-labels.mjs";
+import { trapsFor, planSiteTraps, TRAP_REGION_FLAG } from "./adventure-traps.mjs";
+import { TRAP_TYPE } from "../../traps/traps.mjs";
 import { resolveMentions, bestiaryLookup } from "./adventure-creatures.mjs";
 
 /** Scene flag: { site, entryId, skipped:[numbers] }. */
@@ -539,6 +541,37 @@ export async function placeSiteLights(scene, site) {
     darkened = true;
   }
   return { status: "built", lights: made.length, darkened };
+}
+
+/**
+ * Build the traps a site's book prints on its scene, from the positions that ship with the module (adventure-traps.mjs) and
+ * the trap lines read out of the GM's own book. Each is a hidden Region around its pin with a Trap behavior (the one a GM
+ * adds by hand), filled in from the book's words. Run again, it only adds traps that are missing: a Region the module
+ * made before is left exactly as it is, so a GM who reshaped or edited one keeps it, and nothing is ever deleted.
+ * @param {Scene} scene
+ * @param {{id:string}} site
+ * @param {{x:number,y:number,width:number,height:number}} rect  the scene's image area
+ * @param {Record<number,string[]>} texts  trapCandidates per location number, read from the book
+ * @returns {Promise<{status:"built"|"none"|"mismatch", placed:number, existing:number, skipped:Array<{pin:number, nth:number, why:string}>}>}
+ *   none: the module has no traps (or no walls to bound them) for this map; mismatch: the picture is not the shape the data was made on
+ */
+export async function placeSiteTraps(scene, site, rect, texts) {
+  const none = { status: "none", placed: 0, existing: 0, skipped: [] };
+  const entries = trapsFor(site?.id), walls = wallsFor(site?.id);
+  if (!entries?.length || !walls) return none;
+  if (!mapFits(walls.aspect, rect.width, rect.height)) return { ...none, status: "mismatch" };
+  const gridSize = scene.grid?.size ?? DEFAULT_GRID_SIZE;
+  const pins = Object.fromEntries(scenePins(scene).map((p) => [p.num, p]));
+  const have = new Set(scene.regions.map((r) => r.getFlag(MODULE_ID, TRAP_REGION_FLAG)).filter(Boolean).map((f) => `${f.pin}/${f.nth}`));
+  const todo = entries.filter((e) => !have.has(`${e.pin}/${e.nth}`));
+  const { traps, skipped } = planSiteTraps({ entries: todo, texts, pins, rect, gridSize, squaresOf: (pin) => reachableSquares(walls, rect, gridSize, pin, true) });
+  const docs = traps.map((trap) => ({
+    name: trap.name, color: "#c0392b", shapes: trap.shapes,
+    behaviors: [{ type: TRAP_TYPE, name: trap.name, system: trap.system }],
+    flags: { [MODULE_ID]: { [TRAP_REGION_FLAG]: { site: site.id, pin: trap.pin, nth: trap.nth } } },
+  }));
+  const made = docs.length ? await scene.createEmbeddedDocuments("Region", docs) : [];
+  return { status: "built", placed: made.length, existing: entries.length - todo.length, skipped };
 }
 
 /** Mark a location skipped (or not) on its scene. Written whole, never merged. */

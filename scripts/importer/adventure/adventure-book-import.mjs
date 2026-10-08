@@ -14,12 +14,13 @@ import { CHAR_SOURCES } from "../char-content/char-content-manifest.mjs";
 import { resolveSourcePdf, sourcePdfTarget } from "../source-pdf-registry.mjs";
 import { parsePageRange } from "../pdf-text-extract.mjs";
 import { allSites } from "./adventure-manifest.mjs";
-import { parseAdventurePages } from "./adventure-parser.mjs";
+import { MODULE_ID } from "../../shared/module-id.mjs";
+import { parseAdventurePages, bodyBlocks } from "./adventure-parser.mjs";
+import { trapCandidates } from "./adventure-traps.mjs";
 import { creatureMentions, creatureResolver, creatureVocabulary } from "./adventure-creatures.mjs";
 import { commitAdventure, addOverviewToWorldCopy } from "./adventure-commit.mjs";
 import { assembleOverview, linkableItems } from "./adventure-journal.mjs";
 import { findSuitePack } from "../../shared/compendium-suite.mjs";
-import { MODULE_ID } from "../../shared/module-id.mjs";
 import { summariseGutter } from "../hex/hex-book-import.mjs";
 
 const t = (key, data) => {
@@ -186,6 +187,38 @@ export async function readSiteCreatures(site) {
   const result = await extractPdfText(file, { pages, columns: "auto", markBold: true });
   const { locations } = parseAdventurePages((result.pages ?? []).map((p) => p.lines ?? []), { style: site.style, range: site.range, skip: skipOf(site) });
   return Object.fromEntries(locations.map((l) => [l.num, creatureMentions(l.boldLines)]));
+}
+
+/**
+ * The lines of each location of a site that may be its traps, read out of the GM's own book (adventure-traps.mjs
+ * trapCandidates), per location number. Read when the traps are placed, never stored.
+ * @returns {Promise<Record<number,string[]>|null>} null when the book is not linked
+ */
+export async function readSiteTraps(site) {
+  const file = resolveSourcePdf(site.src);
+  if (!file) return null;
+  const { extractPdfText } = await import("../pdf-text-extract.mjs");
+  const pages = planSitePages(site, (p) => sourcePdfTarget(site.src, String(p))?.page ?? null);
+  const result = await extractPdfText(file, { pages, columns: "auto", markBold: true });
+  const { locations } = parseAdventurePages((result.pages ?? []).map((p) => p.lines ?? []), { style: site.style, range: site.range, skip: skipOf(site) });
+  return Object.fromEntries(locations.map((l) => [l.num, trapCandidates(bodyBlocks(l.bodyLines))]));
+}
+
+/**
+ * Add a site's traps to its scene and nothing else: no pins, creatures or walls are touched, and a trap already there is
+ * left as it is. The safe way to give a scene its traps once its walls have been corrected by hand.
+ * @param {Scene} scene
+ * @returns {Promise<{status:"built"|"none"|"mismatch"|"no-book"|"not-adventure", placed:number, existing:number, skipped:Array<{pin:number, nth:number, why:string}>}>}
+ */
+export async function addSiteTraps(scene) {
+  const { MAP_FLAG, placeSiteTraps } = await import("./adventure-scene.mjs");
+  const site = allSites().find((s) => s.id === scene?.getFlag(MODULE_ID, MAP_FLAG)?.site);
+  const out = (status) => ({ status, placed: 0, existing: 0, skipped: [] });
+  if (!site) return out("not-adventure");
+  const texts = await readSiteTraps(site);
+  if (!texts) return out("no-book");
+  const rect = scene.dimensions?.sceneRect ?? { x: 0, y: 0, width: scene.width, height: scene.height };
+  return placeSiteTraps(scene, site, rect, texts);
 }
 
 /**

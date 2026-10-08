@@ -898,6 +898,9 @@
     "scripts/bastion/bastion-aviary.mjs": "The Aviary's pigeon: one message a world-clock day, the day marked on the bastion before the message is posted and put back if it can't be.",
     "scripts/bastion/bastion-shop-core.mjs": "The bastion shops' rules (pure): the Armorer, Blacksmith and Trading Post, which gear each sells, the 10% markup and a purchase's price.",
     "scripts/bastion/bastion-shop.mjs": "Buying at a bastion shop: the Catalog's ordinary gear for a kind, the purse paid and the item made, each read back, the gold returned if the item can't be made.",
-    "scripts/bastion/bastion-shop-app.mjs": "The bastion shop window: pick a character of the party, search the stock, buy; opened from the Shops box on the Bastion sheet (GM)."
+    "scripts/bastion/bastion-shop-app.mjs": "The bastion shop window: pick a character of the party, search the stock, buy; opened from the Shops box on the Bastion sheet (GM).",
+    "scripts/traps/trap-core.mjs": "Trap logic that needs no Foundry: reads a Core Traps roll or an adventure's printed trap line into a trap record (check, damage, every round, chance), decides whether a trap can spring, builds the chat card.",
+    "scripts/traps/traps.mjs": "The `shadowdark-enhancer.trap` Region behavior (fires on entry, every round, or by hand; posts a pass/fail roll card), the Core Traps generator, the behavior form's buttons, and `game.shadowdarkEnhancer.traps`.",
+    "scripts/importer/adventure/adventure-traps.mjs": "Where an adventure's traps sit on its map (positions only, no book text): which printed trap line of which area, how far it reaches, and the planning that turns them into Region shapes."
   }
 }

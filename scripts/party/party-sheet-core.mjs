@@ -351,16 +351,27 @@ export function whoAfter(pcUuids = [], current = null, { all, uuid, on } = {}) {
 
 /**
  * A roll request, or null when there is nobody to ask or the ability is not one of the six. The DC is cleaned
- * (blank: no DC).
- * @param {{ stat: string, dc?: string|number|null, targets: Array<{ uuid: string, name: string }> }} form
- * @returns {{ stat: string, dc: number|null, targets: Array<{ uuid: string, name: string }> }|null}
+ * (blank: no DC). A request that comes from a trap also carries what the card says about it: a `heading` (the
+ * trap's name), `intro` lines of plain text, and `damage`, a dice formula each character who fails takes
+ * (`source` names where it came from); each target may carry the `token` it stands for, and `hold` says a pass on this card
+ * frees that token. They are kept only when given, so the GM bar's request is unchanged.
+ * @param {{ stat: string, dc?: string|number|null, targets: Array<{ uuid: string, name: string }>, heading?: string, intro?: string[], damage?: string, source?: string }} form
+ * @returns {{ stat: string, dc: number|null, targets: Array<{ uuid: string, name: string }>, heading?: string, intro?: string[], damage?: string, source?: string }|null}
  */
-export function rollRequest({ stat, dc = null, targets = [] } = {}) {
+export function rollRequest({ stat, dc = null, targets = [], heading, intro, damage, source, hold } = {}) {
   const key = String(stat ?? "").toLowerCase();
   const seen = new Set();
-  const asked = (targets ?? []).filter((t) => t?.uuid && !seen.has(t.uuid) && seen.add(t.uuid)).map((t) => ({ uuid: t.uuid, name: String(t.name ?? "") }));
+  const asked = (targets ?? []).filter((t) => t?.uuid && !seen.has(t.uuid) && seen.add(t.uuid)).map((t) => ({ uuid: t.uuid, name: String(t.name ?? ""), ...(t.token ? { token: String(t.token) } : {}) }));
   if (!ROLL_STATS.includes(key) || !asked.length) return null;
-  return { stat: key, dc: cleanDc(dc), targets: asked };
+  const request = { stat: key, dc: cleanDc(dc), targets: asked };
+  const text = (value) => String(value ?? "").trim();
+  if (text(heading)) request.heading = text(heading);
+  const lines = (Array.isArray(intro) ? intro : []).map(text).filter(Boolean);
+  if (lines.length) request.intro = lines;
+  if (text(damage)) request.damage = text(damage);
+  if (text(source)) request.source = text(source);
+  if (hold === true) request.hold = true;
+  return request;
 }
 
 /** Pass or fail of a total against a DC; null when there was no DC to beat (or no total). */
@@ -399,7 +410,9 @@ export function rollCardHtml(request, { sayWith, statLabel, esc }) {
     const total = done && done.total !== null ? ` <b class="sde-party-roll-total">${esc(done.total)}</b>` : "";
     return `<a class="sde-party-roll-go${state}" data-party-roll data-uuid="${esc(t.uuid)}"${done ? ' aria-disabled="true"' : ""}><i class="fas fa-dice-d20"></i> ${esc(sayWith("SDE.party.roll.button", { name: t.name }))}${total}</a>`;
   }).join("");
-  return `<div class="sde-party-roll"><header>${esc(title)}</header><div class="sde-party-roll-list">${links}</div></div>`;
+  const heading = request.heading ? `<div class="sde-party-roll-heading"><i class="fa-solid fa-triangle-exclamation"></i> ${esc(request.heading)}</div>` : "";
+  const intro = (request.intro ?? []).map((line) => `<p class="sde-party-roll-intro">${esc(line)}</p>`).join("");
+  return `<div class="sde-party-roll">${heading}${intro}<header>${esc(title)}</header><div class="sde-party-roll-list">${links}</div></div>`;
 }
 
 /**

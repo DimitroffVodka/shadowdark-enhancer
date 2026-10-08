@@ -107,6 +107,7 @@ import { Troubles, registerTroubles } from "./troubles/troubles.mjs";
 import { Rumors, registerRumors } from "./rumors/rumors.mjs";
 import { registerActorTypes, WARBAND_TYPE } from "./actors/register-actors.mjs";
 import { bastionApi } from "./bastion/register-bastion.mjs";
+import { registerTraps, trapsApi } from "./traps/traps.mjs";
 import { registerWarbandUpkeep } from "./actors/warband-upkeep.mjs";
 import { registerWarbandUpgrades } from "./actors/warband-upgrades.mjs";
 import { registerWarbandCombat } from "./actors/warband-combat.mjs";
@@ -143,7 +144,7 @@ const STYLESHEET_REV = "59fea7266a1e";
 // stale); module.json carries the same hash and is fetched fresh at runtime. A
 // mismatch is a stale cache by construction — it cannot be anything else. Both
 // stamps are written by `npm run inventory` and gated by `inventory:check`.
-const BUILD_REV = "a64b9619c203";
+const BUILD_REV = "f7232ac38699";
 
 /**
  * Tell the user when their browser is running an old build of this module, and
@@ -291,6 +292,7 @@ function dropStaleModuleStylesheet(cssPath, keepId) {
 // is too late — it fires after the documents are built.
 Hooks.once("i18nInit", () => {
   registerActorTypes();
+  registerTraps();
 });
 
 // Adventure maps built before the pin art, or its label size, existed take the current look when a GM views them.
@@ -520,7 +522,8 @@ Hooks.once("init", () => {
     // 1.26.0 — additive: hexMaps.numberAt and hexMaps.hasNumbering, the tagger's hex numbers for
     //   Shadowdark Extras' Map Coordinates.
     // 1.27.0 — additive: the bastion namespace, the Bastion actor type and its sheet.
-    apiVersion: "1.27.0",
+    // 1.28.0 — additive: the traps namespace and the trap Region behavior.
+    apiVersion: "1.28.0",
     // The one travel state per world (scripts/overland/overland.mjs): a copy
     // with hexes left, climate, storm, harshness and night derived; whether
     // travel is on; today's weather roll, the travel day's start, Continue
@@ -583,6 +586,8 @@ Hooks.once("init", () => {
     },
     // Bastions: the actor type, its rules and the places the party owns.
     bastion: bastionApi(),
+    // Traps for map making: a Region behavior that springs when a token moves in, and the Core Traps generator.
+    traps: trapsApi(),
     // Universal dump segmentation (D9): one paste → typed buckets.
     import: {
       // Pure, synchronous. Returns { monsters, items, tables, skipped }.

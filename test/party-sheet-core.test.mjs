@@ -447,3 +447,32 @@ test("a result is recorded once per character, for characters on the card only, 
   const open = rollCardHtml(request, { sayWith, statLabel: "STR", esc });
   assert.ok(!open.includes("rolled") && !open.includes("aria-disabled"), "an unrolled card has no result state");
 });
+
+test("a request from a trap keeps its heading, intro lines and damage; the GM bar's request has none of them", () => {
+  const targets = [{ uuid: "Actor.a", name: "Ana" }];
+  assert.deepEqual(rollRequest({ stat: "con", dc: 15, targets, heading: " Gas trap ", intro: ["Trigger: a lever", "", "Effect: gas"], damage: "1d4", source: "Gas trap" }),
+    { stat: "con", dc: 15, targets, heading: "Gas trap", intro: ["Trigger: a lever", "Effect: gas"], damage: "1d4", source: "Gas trap" });
+  assert.deepEqual(Object.keys(rollRequest({ stat: "con", dc: 15, targets, heading: "", intro: [], damage: "  " })), ["stat", "dc", "targets"]);
+});
+
+test("the card shows a trap's heading and intro, escaped, above its title", () => {
+  const sayWith = (key) => key;
+  const html = rollCardHtml({ stat: "dex", dc: 12, targets: [{ uuid: "Actor.a", name: "Ana" }], heading: "<i>Pit</i>", intro: ["Effect: <b>fall</b>"] }, { sayWith, statLabel: "DEX", esc });
+  assert.ok(html.indexOf("sde-party-roll-heading") < html.indexOf("<header>"), "the trap comes before the check");
+  assert.ok(html.includes("&lt;i&gt;Pit&lt;/i&gt;") && html.includes("Effect: &lt;b&gt;fall&lt;/b&gt;") && !html.includes("<b>fall"));
+  assert.ok(!rollCardHtml({ stat: "dex", dc: 12, targets: [{ uuid: "Actor.a", name: "Ana" }] }, { sayWith, statLabel: "DEX", esc }).includes("sde-party-roll-heading"));
+});
+
+test("a trap's damage and heading survive a recorded result", () => {
+  const request = rollRequest({ stat: "dex", dc: 12, targets: [{ uuid: "Actor.a", name: "Ana" }], heading: "Pit", damage: "1d6" });
+  const next = withRollResult(request, { uuid: "Actor.a", total: 5, outcome: "fail" });
+  assert.equal(next.damage, "1d6");
+  assert.equal(next.heading, "Pit");
+});
+
+test("a request keeps the token each target stands for and whether a pass frees it", () => {
+  const targets = [{ uuid: "Actor.a", name: "Ana", token: "Scene.s.Token.t" }, { uuid: "Actor.b", name: "Bo" }];
+  assert.deepEqual(rollRequest({ stat: "dex", dc: 12, targets, hold: true }),
+    { stat: "dex", dc: 12, targets: [{ uuid: "Actor.a", name: "Ana", token: "Scene.s.Token.t" }, { uuid: "Actor.b", name: "Bo" }], hold: true });
+  assert.equal(rollRequest({ stat: "dex", dc: 12, targets, hold: "yes" }).hold, undefined, "only an actual true");
+});
