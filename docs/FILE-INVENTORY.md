@@ -1,7 +1,7 @@
 # Shadowdark Enhancer — File Inventory
 
 <!-- inventory:stats:start -->
-1779 tracked files · ~224,700 lines of code/markup across scripts+templates+styles+test.
+1780 tracked files · ~224,500 lines of code/markup across scripts+templates+styles+test.
 `v0.17.3` in both `module.json` and `package.json`.
 <!-- inventory:stats:end -->
 **Layout reflects the 2026-07-21 feature-folder reorganization (v0.11.0 cycle).**
@@ -59,10 +59,10 @@
 | `stat-damage/stat-damage.mjs` | 150 | `statDamage.{apply, heal, of}`: writes replace an ability's effects with one holding the new total (serialized per client), and a stat-damage effect taking CON to 0 hands the character to dying's onConZero on the active GM (dead, unless noDeathAtZeroCon). |
 | `stat-damage/stat-riders.mjs` | 127 | Applies a monster attack's stat-damage riders when its card HIT a character, reading the attack's rider and the NPC feature it names (or shares its name with). Only a card posted by a GM or the attacker's owner, naming the attacker's own item, counts. A rider behind a save asks the owning player to roll it (GM→player user query, GM sender required) and falls back to the GM's client. StatRiders.save also takes a title, for Overland's forage and underground checks (#233). |
 | `camping/camping-app.mjs` | 97 | Camping controller hosted inline in Party Travel for native owner-choice task setup, food/fuel decisions and persistent results. |
-| `camping/camping-cook.mjs` | 37 | Post-eligible-rest Cook seam and active-benefit-scoped native damage/healing/expiry compatibility. |
-| `camping/camping-core.mjs` | 100 | Pure PC task choices, lock, exact shared-first torch cost and scoped Cook surplus/expiry rules. |
+| `camping/camping-cook.mjs` | 38 | Post-eligible-rest Cook seam and active-benefit-scoped native damage/healing/expiry compatibility. |
+| `camping/camping-core.mjs` | 102 | Pure PC task choices, lock, exact shared-first torch cost and scoped Cook surplus/expiry rules. |
 | `camping/camping-nutrition.mjs` | 120 | Actor/day whole-meal accounting, personal-first then automatic Party rations, per-effect starvation and eligible normal-rest receipts across parties/reloads. |
-| `camping/camping.mjs` | 244 | Authenticated owner-choice camp task relay, persistent results/rewards, nearby-PC fire and deferred native nutrition/rest seams for Overland nights. |
+| `camping/camping.mjs` | 245 | Authenticated owner-choice camp task relay, persistent results/rewards, nearby-PC fire and deferred native nutrition/rest seams for Overland nights. |
 | `carousing/carousing-app.mjs` | 65 | Carousing controller hosted inline in Party Travel, with GM table/manual-place setup, each PC owner's own-spend choices, persistent results and independent history. |
 | `carousing/carousing-core.mjs` | 75 | Pure imported basic table adapters, owner choices/funds/holiday/cooldown preflight, supported effects and stable recap shaping. |
 | `carousing/carousing.mjs` | 186 | Authenticated native per-PC carousing authority, saved rolls/atomic costs and effect progress, off-duty time, independent history and recap upsert. |
@@ -110,8 +110,8 @@
 | `overland/encounter-panel.mjs` | 109 | The clock HUD's Encounter panel (#257): a quiet travel check's hit as the GMs see it until Continue: the check (step 6 or 8, its hour and chance), the chain of tables it went through as chips (zone and its roll, category, the region's table and its roll), the creature with its art and number appearing, the distance, activity and reaction rolls in words, a second category's draw, and Post to chat and Continue; encounterCard gives the chat card's data at CHA +0. |
 | `overland/hex-rules.mjs` | 163 | Hex rules on hex maps (#257): at init, the Token class never lights a hex-rules scene (a tagged print or an Extras hexcrawl) and the visibility group gives it no token vision, at runtime with no data written; the Enhancer party actor (flag party) placed as a hex token when travel starts with no party on the map; the travel token made to wear the black party hex (icons/party-hex.svg). |
 | `overland/hud-core.mjs` | 218 | The clock HUD, pure (#253): who sees the bar, the GM's steps in the calendar's units, the sky dial's model (15 degrees an hour, now at the bottom, day and twilight sectors, the moon on its track by phase), the season band's hatch, the month grid read back day by day from the calendar (moon quarters, today, holidays by a callback) and a typed date to a worldTime. |
-| `overland/overland-bar-core.mjs` | 60 | The travel bar (#234, O8), pure: where the sun (sunrise to sunset) or the moon (sunset to the next sunrise) stands on the sky dome's arc, the moon's shadow offset by phase, and the bar's model for one viewer (members' rations and forage state, Forage only on owned members of an open unpushed day, and the check hours for a GM only). |
-| `overland/overland-bar.mjs` | 573 | The clock HUD (#253, #257 look; was the travel bar #234): on hex maps only (any hex grid, #298), for whom the clockBar setting says, hidden in combat. The bar: date with the year, time, Stopped while an encounter holds the travel clock, the sky chevron, on a hex map the travel plate (hexes left) or Start travel, and for a GM the rewind/advance step columns, the Time panel (jump to the next dawn/noon/dusk/midnight, set a date, the real-time clock) and the month view (moon quarters, imported holidays, a day click jumps). Under it the season band and the sky dial SVG. Steps go through Overland's clock action; calendar jumps forward go off duty. The Crawl Strip moves under it (body.sde-clock-on). |
+| `overland/overland-bar-core.mjs` | 70 | The travel bar (#234, O8), pure: where the sun (sunrise to sunset) or the moon (sunset to the next sunrise) stands on the sky dome's arc, the moon's shadow offset by phase, and the bar's model for one viewer (members' rations and forage state, Forage only on owned members of an open unpushed day, and the check hours for a GM only). |
+| `overland/overland-bar.mjs` | 567 | The clock HUD (#253, #257 look; was the travel bar #234): on hex maps only (any hex grid, #298), for whom the clockBar setting says, hidden in combat. The bar: date with the year, time, Stopped while an encounter holds the travel clock, the sky chevron, on a hex map the travel plate (hexes left) or Start travel, and for a GM the rewind/advance step columns, the Time panel (jump to the next dawn/noon/dusk/midnight, set a date, the real-time clock) and the month view (moon quarters, imported holidays, a day click jumps). Under it the season band and the sky dial SVG. Steps go through Overland's clock action; calendar jumps forward go off duty. The Crawl Strip moves under it (body.sde-clock-on). |
 | `overland/overland-state-core.mjs` | 638 | Overland travel state (#229, O3), pure: the one travel state's shape (token, members, method, the open day and its budget, weather, checks, forage, the travel token's hex), its normalization, the startTravel / setHex / recordForage reducers, the travel-token choice (the one Extras party token, else the one selected token), the forage refusal rules, and the weather (#230, O4): the setWeather reducer, whether a weather holds, the advantage a roll has (a Western Reaches 6 gives the next roll 2d6kh; a reroll keeps the replaced roll's), the weather from a d6 under the Western Reaches or core rule, whether today is harsh, and a hex's cost with the weather; and the travel day (#231, O5): openDay (budget, push, clock rate fixed at the day's start), spendMove, priceMove (displaced legs free, unknown terrain 1) and moveVerdict (no day, pending, impassable, bounce); and the encounter checks (#232, O6): dayChecks (two by day 06-17, two at night 18-05, 1 or 2 in 6), dueChecks, markCheck and setPending; and the day's end (#233, O7): forageRefusal's travel rules (no day, pushed, harsh storm), forageDC, closeDay and planRations (each member's own, a single ration none when harsh, mounts from what's left). |
 | `overland/overland.mjs` | 1307 | Overland travel (#229): the overlandState world setting (active-GM writes in one queue, payload-free re-read nudge), Start and End travel (another GM's forwarded to the active GM), the players' relayed Forage with the sender checked from the query context, overland.state() with hexes left, climate, storm, harshness and night derived, rollWeather (GM; dice rolled on the active GM, one chat card, the overlandWeatherRule setting), startDay and its dialog (the weather first, then the budget; a boat actor's speed when sailing aboard one), the travel token's moves (preMoveToken refuses on the mover's client; moveToken on the active GM spends, records the hex and advances the clock, or sends an overdrawn move back with a displace), advanceTravel (rolls each check due at its hour through encounter.check; a hit stops the clock and leaves pending) and resume (Continue), forage (the owner rolls INT through StatRiders.save after the queue; a success adds a ration), makeCamp (lights out through advanceOffDuty(0), the clock to dawn or the last night check, then Extras' camping.open or Overland's own rations, the day closed and the weather rolled), the underground season check on timeAdvanced, and the overlandChanged / overlandStart / overlandEnd hooks. |
 | `overland/route.mjs` | 339 | The route on the hex map (#257): with the travel token selected while travelling on a tagged hex map, the cheapest route (overland-state-core cheapestRoute over the grid's neighbours, priced as a move) is drawn to the hovered hex with each hex's cost and a tooltip (hexes, miles, points, hours, or why there's no way); a click walks the party there one hex a move, stopping at an encounter, a bounce or the end of the day's points. |
@@ -199,7 +199,7 @@
 | `crawl-tracker.mjs` | 346 | The out-of-combat tracker as a real sidebar tab (`AbstractSidebarTab`), registered into `Sidebar.TABS` + `CONFIG.ui` beside Combat. Hidden unless a crawl is running; carries the roll-all / advance / reset controls. |
 | `crawl-tracker-core.mjs` | 138 | Pure view model for the tracker tab: `buildTrackerRows()` (rolled first, unrolled last, holder flagged), `showOocReset()`, and `parseInitiativeInput()` — which treats a blanked box as "no change" rather than the initiative of 0 that `Number("")` yields. Node-testable. |
 | `initiative-manager.mjs` | 137 | Combat/initiative state machine glue for the strip. |
-| `hidden-sync.mjs` | 66 | Bidirectional `token.hidden` ↔ `combatant.hidden` sync, GM-only. |
+| `hidden-sync.mjs` | 69 | Bidirectional `token.hidden` ↔ `combatant.hidden` sync, GM-only. |
 | `turn-skip.mjs` | 163 | Auto-advances past combatants the strip renders no card for (dead enemies). Active-GM gated. Also drives Chaos Mode: queues each held Chaos round (updateCombat) and replays it under the same lock (#259). |
 | `turn-skip-core.mjs` | 164 | Pure strip-visibility test shared by the strip and the auto-skip, so the two can't drift. |
 | `movement-tracker.mjs` | 817 | Crawl-mode movement budget enforcement + turn-start rollback (`displace` waypoints). |
@@ -264,7 +264,7 @@
 | `loot-value.mjs` | 68 | gp value → Shadowdark XP quality tiers. |
 | `loot-table-catalog.mjs` | 317 | Loot/treasure table catalog + classifier across Core, CS1–6, WR (metadata only). |
 | `loot-table-tag.mjs` | 80 | Sidebar context-menu "Mark as Loot Table" toggle. |
-| `loot-catalog.mjs` | 131 | Rewrites loot tables so entries become DOCUMENT results, routing the exact Sea Wolf Plunder, Dead Bandit Loot, and Diabolical Treasure tables through their source-qualified generated-item materializers before the generic resolver. |
+| `loot-catalog.mjs` | 110 | Rewrites loot tables so entries become DOCUMENT results, routing the exact Sea Wolf Plunder, Dead Bandit Loot, and Diabolical Treasure tables through their source-qualified generated-item materializers before the generic resolver. |
 | `diabolical-treasure.mjs` | 914 | D6/#59's exact CS1 Diabolical Treasure seam: reduces the source's 20×20 Item/Feature expansion to 20 source-qualified Basic/Magic/Treasure/Unidentified Items, puts physical wording on the unidentified face and feature text behind identification, stamps curated art plus A7 replace-always identity, and keeps collisions, failures, and unsafe table writes visible and retryable. |
 | `loot-linker.mjs` | 118 | Loot row text → confident compendium item link. |
 | `loot-pack.mjs` | 150 | Classify/fabricate treasure entries + world "Loot" pack ops. |
@@ -272,7 +272,7 @@
 | `sea-wolf-plunder.mjs` | 571 | D4/#57's exact CS3 Sea Wolf Plunder seam: recognizes only the manifest/content identity or exact table name, strips only a terminal `(N gp)` for the generated Item name, stamps curated art plus A7 source-qualified generated identity, and keeps row-level unresolved, ambiguous, or reconciliation failures as raw TEXT with their priced source phrase. A TableResult write failure is a separate outcome: source preservation is guaranteed only when snapshot restoration reports `restored: true`; `restored: false` may require manual recovery. |
 | `subroll.mjs` | 95 | Resolve "Meteorite 1d4: 1. lute…" table rows to the object rolled. |
 | `treasure-data.mjs` | 15 | Level → tier band boundaries. |
-| `item-drops.mjs` | 741 | Drag items to canvas as pickup tokens; TokenHUD pickup; light sources burn. |
+| `item-drops.mjs` | 754 | Drag items to canvas as pickup tokens; TokenHUD pickup; light sources burn. |
 | `loot-resolution.mjs` | 243 | Precise loot-row → Item resolution (pure), replacing the containment regex that lived in `loot-linker.mjs`. That matcher asked whether a row CONTAINED any known item name as a word (`\b<name>s?\b`, longest candidate first), which made every generic container, material and body part in the system gear pack a landmine: "Unopened bottle of exceptionally potent Murgazi wine (25 gp)" resolved to the plain system `Bottle` and the GM's 25 gp vintage became a 1 gp empty bottle (#58) — with "A flask of oil" → `Flask` and "Bolt of fine silk" → `Bolt` behind it. The replacement resolves the row AS A NAME in two tiers: `exact` (the priced row, stripped, IS the item's name modulo case and spacing) and `alias` (that name modulo a leading article or count, a trailing parenthetical, and the plural of its FINAL word). Every fold is anchored, so none of them can shorten a phrase to one of its interior words — the containment bug is structurally unreachable, not merely tuned away. A row landing on two distinct items at the same tier is `ambiguous` and resolves to nothing, because picking one by index order is the same bug with extra steps; ambiguity is reachable because the alias fold is looser than `buildItemIndex`'s lowercased-name dedupe. Recall is traded for precision DELIBERATELY (D4/D5 accept "an explicit unresolved case" and put loose generic fallback out of scope): an unresolved row keeps its text and can be fabricated, while a false positive silently hands the player the wrong object and looks like it worked. Also owns `stripPrice`, moved verbatim from `loot-pack.mjs` (which re-exports it) because its output is a fabricated Item's NAME and must not acquire any of the matching folds. Foundry-free, node-tested. |
 | `monster-loot-review-app.mjs` | 86 | Monster Loot Overrides window: every world NPC with its loot table and drop chance, edited inline via LootDrops.setOverrides. Opened from the Loot & XP settings pop-out. |
 
@@ -288,7 +288,7 @@
 
 | File | Lines | Description |
 |---|---:|---|
-| `merchant-shop.mjs` | 2740 | Two-mode shop system (compendium global or actor NPC inventory); GM opens for all players. |
+| `merchant-shop.mjs` | 2748 | Two-mode shop system (compendium global or actor NPC inventory); GM opens for all players. |
 | `merchant-defaults.mjs` | 209 | The two shipped merchant configs (Base, Western Reaches). |
 | `catalog-stock.mjs` | 37 | What the Catalog tab may sell: gear types with a list price, not loot-table props. |
 
@@ -304,7 +304,7 @@
 | File | Lines | Description |
 |---|---:|---|
 | `session-recap.mjs` | 797 | Session event tracker singleton (loot, sales, XP, combats, per-PC stats). |
-| `session-recap-core.mjs` | 425 | Pure data shape, currency math, duration format, Discord-markdown export. |
+| `session-recap-core.mjs` | 424 | Pure data shape, currency math, duration format, Discord-markdown export. |
 | `session-recap-app.mjs` | 354 | Recap window: Overview / Combat / Loot / XP / History. |
 | `carousing-feed.mjs` | 121 | Explicit legacy SDX result-capture compatibility and native/SDX downtime overlap read. Native outings push one stable Session Recap row directly; no hidden journal watcher or actor-effect replay. |
 | `carousing-feed-core.mjs` | 234 | Pure normalizer for both SDX carousing result shapes — original (d8 outcome + one benefit, GM applies) and expanded (d8 → XP + d100 benefit/mishap arrays, self-applying) — detected off the payload, not off SDX's mode setting, so a carouse rolled before the GM flipped it still reads. Also the shared `recapRow`, `carousingSubtotal` and `tierLine` wording the recap window and the Discord export both use. Foundry-free, node-tested. |
@@ -327,7 +327,7 @@
 | `manage-tree.mjs` | 703 | Composes the folder/sub-folder unlock-review tree the Manage strip renders. |
 | `batch-import.mjs` | 263 | Pure batch planner: locked tree rows → deduped import jobs, routes, and the run report. |
 | `pdf-text-extract.mjs` | 1014 | Clean reading-ordered PDF text via Foundry's bundled PDF.js; column-aware gutter detection. |
-| `pdf-text-utils.mjs` | 167 | Shared PDF-text helpers + the HTML-safety contract. |
+| `pdf-text-utils.mjs` | 161 | Shared PDF-text helpers + the HTML-safety contract. |
 | `source-pdf-registry.mjs` | 327 | Content source → the user's own uploaded PDF, for page deep-links. |
 | `source-pdf-viewer.mjs` | 66 | Singleton ApplicationV2 embedding Foundry's PDF.js viewer at a given page. |
 | `char-content/char-content-manifest.mjs` | 1877 | Metadata-only manifest of CS4–6 + WR char-builder content (names/types/sources, no rules text) + `parseCharContent` + census. |
@@ -367,7 +367,6 @@
 | `items/item-parser.mjs` | 493 | Generic item recognizer (name/cost/slots). Pure. |
 | `items/gear-parser.mjs` | 576 | Real Weapon/Armor stat parser (WR letter codes, treasure flags). Pure. |
 | `items/wr-property-importer.mjs` | 202 | Foundry-bound shared materializer for canonical Western Reaches Weapon Properties (siege Blast/Exploding and Lance Charge/Devastating/Mounted), with root migration, idempotent reuse and fail-closed preparation. |
-| `items/gear-join.mjs` | 257 | Joins split cost-table + description layouts into one item. Pure. |
 | `items/item-importer.mjs` | 1068 | Drafts → Items in `sde-items`, foldered by source. |
 | `items/item-builder-app.mjs` | 402 | Guided multi-stage equipment-section workspace. |
 | `items/item-builder-gear.mjs` | 299 | Pure stage-①/③ logic for the Item Builder. |
@@ -402,7 +401,7 @@
 | `hex/hex-handoff.mjs` | 384 | Crawl entry → dataset; puts it on the tagged print through Extras (adoptHexcrawl), merging each hex's features into the record Extras holds, builds a painted Extras scene, or downloads JSON. |
 | `hex/hex-summary.mjs` | 174 | Keyed hex summary rows (number, region, terrain, name) → structured rows; zone/terrain split decided by the table. Pure. |
 | `importer-hub-adventures.mjs` | 186 | Hub Tools → Adventures (file a Cursed Scroll's adventures as journals) and Adventure map (build the scene from the GM's image and open the placer); installed onto the hub class. |
-| `items/record-boundary.mjs` | 210 | Where one pasted description record ends and the next begins. Pure. |
+| `items/record-boundary.mjs` | 208 | Where one pasted description record ends and the next begins. Pure. |
 | `session-pdf.mjs` | 61 | Source PDFs given from the GM's own computer for one session, for hosts that refuse a book-sized upload (The Forge): the picked files, the `session-pdf:` pseudo-path they resolve to, and the Forge check. Never uploaded or saved; released when the import is done. |
 | `tables/cursed-scroll-tables.mjs` | 190 | The Cursed Scrolls' hexcrawl and adventure tables (rumors, region and site encounters, weather, points of interest, NPC rosters, d20 treasure lists): one entry per Manage row with its catalogue id, page cite and recipe, read by the shape registry, the Manage tree and the catalogue's names. The regions are named as the key-location entries are, so a CS hex finds its zone tables. Structure only. |
 | `tables/patron-items.mjs` | 223 | Patron Items for the imported WR boon tables (#167): find-or-create in `patrons-and-deities`, plus the ready-time rename/link backfill. |
