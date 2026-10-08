@@ -322,7 +322,8 @@ export class HexTagOverlay {
     const geom = sceneCells(canvas);
     if (geom.error) { ui.notifications?.warn(t(geom.error)); return false; }
     const extra = await HexTagOverlay._regionContext(mode, scene);
-    if (showing) { showing.mode = mode; Object.assign(showing, extra); showing.draw(); return true; }
+    // A switch changes which picture is on, so the toolbar redraws as it does for show and hide.
+    if (showing) { showing.mode = mode; Object.assign(showing, extra); showing.draw(); Hooks.callAll(TOOLS_HOOK); return true; }
     const o = flag.origin;
     const overlay = new HexTagOverlay(scene, geom, originFromFlag(o));
     overlay.mode = mode;

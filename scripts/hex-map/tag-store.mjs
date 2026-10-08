@@ -318,6 +318,9 @@ export function nextSheet(state, { nums, size = 40, mode = "random", keyed = new
   return a.slice(0, size).sort((x, y) => x - y);
 }
 
+/** Sentinel value of the "other…" option in every terrain select. */
+export const OTHER = "__other";
+
 /**
  * The answers of a sheet read off its drafts: a hex the GM changed takes the draft's terrain (its own word when the
  * draft is "__other"), every other hex keeps the tag it has. The result is what applySheet takes.
@@ -325,9 +328,6 @@ export function nextSheet(state, { nums, size = 40, mode = "random", keyed = new
  * @param {Record<string, {select:string, other?:string, features?:string[]}>} drafts  by hex number
  * @param {Map<string, {terrain:string, features?:string[]}>} cells  the saved tags
  */
-/** Sentinel value of the "other…" option in every terrain select. */
-export const OTHER = "__other";
-
 export function sheetAnswers(sheet, drafts, cells) {
   const answers = {};
   for (const num of sheet) {

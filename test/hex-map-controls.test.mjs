@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { hexMapTools } from "../scripts/hex-map/hex-map-controls.mjs";
+import { hexMapTools, refreshOptions } from "../scripts/hex-map/hex-map-controls.mjs";
 
 const scene = (flags) => ({ getFlag: (_mod, key) => flags[key] });
 
@@ -28,4 +28,10 @@ test("the picture that is up shows as on, and the brush follows its window", () 
   const off = hexMapTools(read, { isGM: true });
   assert.equal(Object.values(off).some((t) => t.active), false);
   assert.equal(off.hexReview.button && off.hexTagger.button, true, "review and the tagger are buttons, not toggles");
+});
+
+test("the toolbar falls back to Tokens when the selected Hex map group goes away", () => {
+  assert.deepEqual(refreshOptions("sdeHexMap", false), { reset: true, control: "tokens" });
+  assert.deepEqual(refreshOptions("sdeHexMap", true), { reset: true });
+  assert.deepEqual(refreshOptions("tiles", false), { reset: true }, "another group stays where it is");
 });

@@ -1544,14 +1544,18 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
   /**
    * Take the sheet's answers as the GM's. Every cell on it was looked at, so every one is a verdict on the
    * classifier — the corrections AND the ones left alone (tag-corrections.mjs).
+   * The scene check lives here because the wizard calls this too, and the tags are written to whatever scene is on the canvas.
+   * @returns {Promise<boolean>} false when the scene changed under the sheet and nothing was written
    */
   async _confirmSheet(answers) {
+    if (!this._requireCurrentScene()) return false;
     const verdicts = applySheet(this._state, answers);
     this._sheetDraft = null;   // confirmed: the saved tags say it now
     await this._saveState();
     await this._recordVerdicts(verdicts);
     this._sheet = nextSheet(this._state, { nums: [...this._numbered.keys()], size: SHEET_SIZE, mode: this._mode, keyed: this._keyedNumbers(), reviewMargin: this._log().margin });
     this.render();
+    return true;
   }
 
   /**

@@ -90,3 +90,10 @@ test("a potion the system has no item for becomes a potion with the key's words 
   assert.equal(data.type, "Potion");
   assert.equal(data.system.description, "<p>Immunity to fire for 5 rounds.</p>");
 });
+
+test("a plural potion is filed under its singular name and linked by the words as printed", () => {
+  const [found] = findPotions("<p>The chest holds two Potions of Fire Protection (immunity to fire for 5 rounds).</p>");
+  assert.equal(found.name, "Potion of Fire Protection");
+  assert.equal(found.phrase, "Potions of Fire Protection");
+  assert.equal(found.text, "immunity to fire for 5 rounds");
+});

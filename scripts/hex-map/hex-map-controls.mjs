@@ -16,8 +16,13 @@ import { HexTagOverlay, TOOLS_HOOK } from "./tag-overlay.mjs";
 const BRUSH_ID = "sde-hex-brush";
 
 const brushOpen = () => !!foundry.applications.instances?.get?.(BRUSH_ID);
+/**
+ * The options for the reset render. v14 keeps the selected group's name across a reset and has no fallback when that
+ * group is gone (scene-controls.mjs #preActivate), so every redraw would throw: the Tokens group is selected instead.
+ */
+export const refreshOptions = (selected, stays) => (selected === "sdeHexMap" && !stays ? { reset: true, control: "tokens" } : { reset: true });
 /** Foundry rebuilds the toolbar's controls (and so runs getSceneControlButtons again) only on a reset render. */
-const refresh = () => ui.controls?.render({ reset: true });
+const refresh = () => ui.controls?.render(refreshOptions(ui.controls?.control?.name, !!hexMapTools(canvas?.scene, { isGM: !!game.user?.isGM })));
 
 /** The tools for a scene, or null when it has no hex numbering (nothing to show, paint or review). */
 export function hexMapTools(scene, { mode = "", brush = false, isGM = false } = {}) {

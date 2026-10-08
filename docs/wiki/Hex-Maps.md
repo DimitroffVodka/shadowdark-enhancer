@@ -24,10 +24,11 @@ These work without Extras. Each user's **Show hex coordinates** setting follows
 `hexMaps.numberAt`, preserving leading zeroes and calibration. Flat-top odd/even
 column grids are supported; unsupported grids and unnumbered cells get no invented
 labels. Eligible scenes adopt native records once; unnumbered adopted maps use
-scene UUID plus offset. Hover for disclosed terrain/public notes; a short click
-keeps the small card with permitted links. GM Edit saves terrain, line features,
-rich locations, notes and discovery; travel prices update immediately. Pins,
-token drags and long-press pings retain their handlers.
+scene UUID plus offset. Hover for disclosed terrain/public notes; a player's
+short click keeps the small card with permitted links. The GM gets no pinned
+card or Edit button: a double click opens the Hexplorer, which saves terrain,
+line features, rich locations, notes and discovery; travel prices update
+immediately. Pins, token drags and long-press pings retain their handlers.
 
 The GM's edit window also has a **Random encounters** card: the table a
 wandering check on this hex would roll now, the same one the check picks (its

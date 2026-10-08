@@ -158,7 +158,8 @@ export function findPotions(html, have = new Set()) {
       const name = `Potion of ${m[1]}`;
       if (have.has(name.toLowerCase()) || seen.has(name)) continue;
       seen.add(name);
-      out.push({ phrase: name, name, text: m[2] ?? "" });
+      // The words as printed ("two Potions of Fire Protection" links "Potions of Fire Protection"), without the description.
+      out.push({ phrase: m[0].replace(/\s*\(.*$/s, ""), name, text: m[2] ?? "" });
     }
   }
   return out;

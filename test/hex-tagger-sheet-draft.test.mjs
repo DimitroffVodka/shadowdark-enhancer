@@ -235,3 +235,13 @@ test("the header's Show mode is kept across a palette change", async () => {
 
   assert.equal(app.element.querySelector("select[data-hxt-mode]").value, "keyed");
 });
+
+test("Confirm with another scene on the canvas writes nothing to it", async () => {
+  const { app } = newApp({ palette: ["forest", "lake"] });
+  let written = false;
+  app._recordVerdicts = async () => { written = true; };
+  app._bitmaps = new Map();
+  globalThis.canvas = { scene: { id: "s2", getFlag: () => undefined, update: async () => { written = true; } } };
+  assert.equal(await app._confirmSheet({ 101: { terrain: "lake", features: [] } }), false);
+  assert.equal(written, false, "neither the tags nor the fixes log of the other scene were replaced");
+});

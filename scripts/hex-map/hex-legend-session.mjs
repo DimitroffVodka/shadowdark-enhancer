@@ -73,7 +73,10 @@ export async function openLegendSession({ sceneId, folder = "", onProgress = nul
     locate: (num) => app._onPingHex(null, { dataset: { num } }),
     reviewAnswer(num, value, other = "") { app._sheetDrafts()[num] = { select: value, other, features: app._state.cells.get(String(num))?.features ?? [] }; },
     // What was not touched is confirmed as it stands: leaving a guess alone is the verdict "this one is right".
-    async reviewConfirm() { await app._confirmSheet(sheetAnswers(app._sheet, app._sheetDrafts(), app._state.cells)); },
+    async reviewConfirm() {
+      // Another scene on the canvas: nothing is written, and the wizard shows why (terrainReview puts this in T.error).
+      if (!(await app._confirmSheet(sheetAnswers(app._sheet, app._sheetDrafts(), app._state.cells)))) throw new Error(game.i18n.localize("SDE.hexMap.notify.sceneChanged"));
+    },
     close() { app._legend = null; app._sheet = []; },
   };
 }
