@@ -69,10 +69,12 @@ export function fireDecision(camp, results) {
   if (results.some(r => r.task === "firewood" && r.success)) return "wood";
   return camp.fuel !== "none" || camp.participants.some(p => p.task === "firewood") ? "fuel" : "none";
 }
-export const fireAlive = (fire, time, near) => !!fire?.lit && near && time < fire.started + 28800;
-export function cookGrant(hp, previous, campId, time, eligible) {
+// `day` is the calendar's seconds per day (time-core's secondsPerDay): a calendar with longer hours or days keeps
+// the fire's eight hours and the meal's one day in its own time.
+export const fireAlive = (fire, time, near, day = 86400) => !!fire?.lit && near && time < fire.started + day / 3;
+export function cookGrant(hp, previous, campId, time, eligible, day = 86400) {
   if (!eligible || previous?.campId === campId || (previous?.expires > time && !previous.expired)) return null;
-  return { value: hp.value + 2, benefit: { campId, remaining: 2, expires: time + 86400, expired: false } };
+  return { value: hp.value + 2, benefit: { campId, remaining: 2, expires: time + day, expired: false } };
 }
 export function cookHp(hp, benefit, amount) {
   const value = amount >= 0 ? Math.max(0, hp.value - amount) : Math.min(Math.max(hp.max, hp.value), hp.value - amount);
