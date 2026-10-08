@@ -3489,7 +3489,7 @@ body.theme-light .sde-parry-note { color: #2e6b2e; }
 .hxt-row { display: grid; grid-template-columns: minmax(150px, 220px) 1fr; gap: 6px 14px; align-items: center; }
 .hxt-row .ui-btn { justify-self: start; }
 .hxt-settings .ui-inline input[type=number] { width: 6em; flex: 0 0 auto; }
-@media (max-width: 520px) { .hxt-row { grid-template-columns: 1fr; } }
+@container (max-width: 520px) { .hxt-row { grid-template-columns: 1fr; } }
 .hxt .hxt-body > .hxt-panel .ui-note i { margin-right: 4px; color: var(--ui-muted); }
 .hxt .ui-status { min-height: 26px; }
 .hxt-panel p { margin: 0; }
