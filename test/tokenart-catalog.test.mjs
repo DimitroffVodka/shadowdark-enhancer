@@ -367,6 +367,57 @@ test("final catalog maps namespaced managed mounts, isolates CS2/WR names, and k
   }
 });
 
+test("build merges one pack found twice under one id into a single source with one option per monster", async () => {
+  const original = {
+    presentPacks: MonsterTokenArt.presentPacks,
+    discoverSources: TokenArtCatalog.discoverSources,
+    sourceArt: TokenArtCatalog._sourceArt,
+    packs: globalThis.game.packs,
+  };
+  const packs = {
+    "shadowdark.monsters": {
+      getIndex: async () => [
+        { _id: "m-alpha", name: "Alpha", type: "NPC" },
+        { _id: "m-beta", name: "Beta", type: "NPC" },
+        { _id: "m-gamma", name: "Gamma", type: "NPC" },
+      ],
+    },
+  };
+  MonsterTokenArt.presentPacks = () => Object.keys(packs);
+  // One pack discovered twice under one id: its own compendium-art map first,
+  // then the folder probe (#408 — Community Tokens on v14).
+  TokenArtCatalog.discoverSources = async () => [
+    { id: "shadowdark-community-tokens", label: "Community", kind: "mapping" },
+    { id: "shadowdark-community-tokens", label: "Community", kind: "folder" },
+  ];
+  const token = (tag) => ({ portrait: `port/${tag}`, tokenObj: { texture: { src: `tok/${tag}` } } });
+  TokenArtCatalog._sourceArt = async (source) => (source.kind === "mapping"
+    ? { "m-alpha": token("mapped-alpha"), "m-beta": token("mapped-beta") }
+    : { "m-beta": token("folded-beta"), "m-gamma": token("folded-gamma") });
+  globalThis.game.packs = { get: (id) => packs[id] };
+  try {
+    const built = await TokenArtCatalog.build();
+    assert.deepEqual(built.sources.map((s) => ({ id: s.id, count: s.count })), [
+      { id: "shadowdark-community-tokens", count: 3 },
+    ], "the pack is listed once, and its count covers every monster it can skin");
+    const byId = Object.fromEntries(built.byMonster.map((m) => [m.id, m]));
+    assert.deepEqual(byId["m-alpha"].options.map((o) => o.tokenObj.texture.src), ["tok/mapped-alpha"]);
+    assert.deepEqual(byId["m-beta"].options.map((o) => o.tokenObj.texture.src), ["tok/mapped-beta"],
+      "the mapping entry wins where both entries have art");
+    assert.deepEqual(byId["m-gamma"].options.map((o) => o.tokenObj.texture.src), ["tok/folded-gamma"],
+      "the folder entry still fills what the mapping lacks");
+    for (const m of built.byMonster) {
+      const sources = m.options.map((o) => o.source);
+      assert.equal(new Set(sources).size, sources.length, `at most one option per source on ${m.id}`);
+    }
+  } finally {
+    MonsterTokenArt.presentPacks = original.presentPacks;
+    TokenArtCatalog.discoverSources = original.discoverSources;
+    TokenArtCatalog._sourceArt = original.sourceArt;
+    globalThis.game.packs = original.packs;
+  }
+});
+
 // --- resolveByName(): name → chosen art for re-skinning placed tokens ------
 test("resolveByName maps monster names to the chosen art", () => {
   SETTINGS = { priority: ["src-a", "src-b"], overrides: {} };
