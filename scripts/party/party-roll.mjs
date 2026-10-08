@@ -67,8 +67,23 @@ async function freeFromHold(request, uuid) {
   await ChatMessage.create({ content: `<p>${esc(sayWith("SDE.trap.freed", { name: entry.name, trap: request.source ?? "" }))}</p>`, speaker: { alias: request.source || t("SDE.trap.label") } });
 }
 
-/** On the GM's client: write the result into the card, once per character, for that character's owner. */
-async function applyRollResult(data, user) {
+const cardQueues = new Map();
+
+/**
+ * On the GM's client: results for one card are written one at a time, each reading the card the previous one wrote.
+ * Two players rolling at once otherwise both read the same card, and the second write erased the first: that roll's
+ * link came back, and a second fail hit for trap damage again.
+ */
+function applyRollResult(data, user) {
+  const key = data?.messageId;
+  const next = (cardQueues.get(key) ?? Promise.resolve()).catch(() => {}).then(() => writeRollResult(data, user));
+  cardQueues.set(key, next);
+  next.finally(() => { if (cardQueues.get(key) === next) cardQueues.delete(key); }).catch(() => {});
+  return next;
+}
+
+/** Write the result into the card, once per character, for that character's owner. */
+async function writeRollResult(data, user) {
   const { messageId, uuid, total = null, outcome = null } = data && typeof data === "object" ? data : {};
   if (typeof messageId !== "string" || typeof uuid !== "string") return { ok: false };
   const message = game.messages?.get(messageId);
