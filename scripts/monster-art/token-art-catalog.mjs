@@ -880,15 +880,19 @@ export class TokenArtCatalog {
         // resolved all of them happily against the library.
         const injected = curatedOptions.get(m.id);
         if (injected) {
-          // SUPERSEDES a same-source/same-token option rather than deferring to
-          // it. The two disagree on the portrait for at least one source: name
-          // matching pairs from the source's `portraitDir`, while the library
-          // pairs from the source's own token map, and the Monster Manual's map
-          // names `journal-art/` where the folder is `portraits/`. Same token,
-          // different portrait, and the status test needs all three to match —
-          // so skipping on source+token left Werebear `path-unavailable` while
-          // its art sat right there in the list.
-          const dup = options.findIndex((o) => o.source === injected.source && o.token === injected.token);
+          // SUPERSEDES the same source's name-matched option rather than
+          // deferring to it. The two disagree on the portrait for at least one
+          // source: name matching pairs from the source's `portraitDir`, while
+          // the library pairs from the source's own token map, and the Monster
+          // Manual's map names `journal-art/` where the folder is `portraits/`.
+          // Same token, different portrait, and the status test needs all three
+          // to match — so skipping on source+token left Werebear
+          // `path-unavailable` while its art sat right there in the list. A
+          // different token from the same source goes too: the reviewed pick is
+          // that source's answer, overrides choose by source so the second
+          // option could never be chosen, and keeping it gave the row a false
+          // choice ("Troll, Deep": troll-night.webp reviewed, troll.webp matched).
+          const dup = options.findIndex((o) => o.source === injected.source);
           if (dup >= 0) options.splice(dup, 1);
           options.unshift(injected);
         }

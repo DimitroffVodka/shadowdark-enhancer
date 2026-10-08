@@ -418,6 +418,61 @@ test("build merges one pack found twice under one id into a single source with o
   }
 });
 
+test("a reviewed pick replaces its source's name-matched option even when the token differs", async () => {
+  const original = {
+    presentPacks: MonsterTokenArt.presentPacks,
+    discoverSources: TokenArtCatalog.discoverSources,
+    sourceArt: TokenArtCatalog._sourceArt,
+    curatedOptions: TokenArtCatalog._curatedImportedArtOptions,
+    packs: globalThis.game.packs,
+    settings: SETTINGS,
+  };
+  const row = IMPORTED_MONSTER_ART["CS3:troll, deep"];
+  const troll = { _id: "cs3-troll", name: "Troll, Deep", type: "NPC", flags: { "shadowdark-enhancer": { source: "CS3" } } };
+  const managed = {
+    collection: "world.sde-actors",
+    documentName: "Actor",
+    metadata: { packageType: "world", label: "Shadowdark Enhancer — Actors" },
+    getDocuments: async () => [troll],
+    getIndex: async () => [troll],
+  };
+  const packs = { "shadowdark.monsters": { getIndex: async () => [] }, "world.sde-actors": managed };
+  MonsterTokenArt.presentPacks = () => Object.keys(packs);
+  TokenArtCatalog.discoverSources = async () => [
+    { id: row.source, label: "Monster24", kind: "folder" },
+    { id: "dnd-monster-manual", label: "Monster Manual", kind: "folder" },
+  ];
+  // Name matching finds the plain troll in the reviewed pick's own pack, and another pack has one too.
+  TokenArtCatalog._sourceArt = async (source) => ({
+    "cs3-troll": pathOpt(source.id, source.id === row.source
+      ? "modules/shadowdark-community-tokens/monster24/tokens/troll.webp"
+      : "modules/dnd-monster-manual/assets/tokens/troll.webp"),
+  });
+  TokenArtCatalog._curatedImportedArtOptions = async () => new Map([
+    ["cs3-troll", pathOpt(row.source, row.token, row.portrait)],
+  ]);
+  globalThis.game.packs = { get: (id) => packs[id] };
+  SETTINGS = { priority: [row.source, "dnd-monster-manual"], overrides: {}, picks: {} };
+  try {
+    const built = await TokenArtCatalog.build();
+    const entry = built.byMonster.find((m) => m.id === "cs3-troll");
+    assert.deepEqual(entry.options.map((o) => [o.source, o.token]), [
+      [row.source, row.token],
+      ["dnd-monster-manual", "modules/dnd-monster-manual/assets/tokens/troll.webp"],
+    ], "one option per source: the reviewed pick, plus the other pack's match");
+    assert.equal(entry.curatedImportedArt.status, "curated");
+    const { tables } = TokenArtCatalog.resolve(built);
+    assert.equal(tables["world.sde-actors"]["cs3-troll"].token.texture.src, row.token, "the pack's option is the reviewed pick");
+  } finally {
+    MonsterTokenArt.presentPacks = original.presentPacks;
+    TokenArtCatalog.discoverSources = original.discoverSources;
+    TokenArtCatalog._sourceArt = original.sourceArt;
+    TokenArtCatalog._curatedImportedArtOptions = original.curatedOptions;
+    globalThis.game.packs = original.packs;
+    SETTINGS = original.settings;
+  }
+});
+
 // --- resolveByName(): name → chosen art for re-skinning placed tokens ------
 test("resolveByName maps monster names to the chosen art", () => {
   SETTINGS = { priority: ["src-a", "src-b"], overrides: {} };
