@@ -2811,7 +2811,7 @@
   "SDE.importer.wizard.done.art.body": "Token art you already own is installed: {sources}. Use it for the monsters you just imported? It only replaces default art, never a token you picked yourself, and nothing is copied.",
   "SDE.importer.wizard.done.art.apply": "Apply monster art",
   "SDE.importer.wizard.done.art.applying": "Matching art to the monsters...",
-  "SDE.importer.wizard.done.art.applied": "Monster art applied: {mapped} of {total} monsters have art. The Monster Art button in the Actors sidebar changes any of them.",
+  "SDE.importer.wizard.done.art.applied": "Monster art applied: {mapped} of {total} monsters have art, counting the Shadowdark bestiary and your imports together. The Monster Art button in the Actors sidebar changes any of them.",
   "SDE.importer.wizard.done.art.failed": "The art could not be applied ({error}). The Monster Art button in the Actors sidebar can try again.",
   "SDE.importer.wizard.done.hexTitle": "Your hex maps",
   "SDE.importer.wizard.done.hexBody": "The maps are set up. Name the printed terrain pictures once each, so encounters know the land.",
