@@ -1862,6 +1862,7 @@
   "SDE.hexMap.legend.opened": "{size} cells — answer these {picks} one by one; the rest go to the classifier",
   "SDE.hexMap.legend.cardSize": "{size} cells",
   "SDE.hexMap.legend.locate": "Hex {num}: click to show it on the map",
+  "SDE.hexMap.legend.locateDouble": "Hex {num}: double-click to show it on the map",
   "SDE.hexMap.palette.title": "Terrains on this map",
   "SDE.hexMap.palette.unset": "not set yet: every terrain is offered",
   "SDE.hexMap.palette.set": "only these are offered",

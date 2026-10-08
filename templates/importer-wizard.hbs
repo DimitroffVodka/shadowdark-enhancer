@@ -166,7 +166,7 @@
         <div class="hxt-sheet">
           {{#each g.picks as |p|}}
           <div class="ui-card raised">
-            <img class="hxt-thumb" src="{{p.thumb}}" alt="" width="72" height="72">
+            <img class="hxt-thumb" src="{{p.thumb}}" alt="" width="72" height="72" data-wiz-locate data-num="{{p.num}}" title="{{localize 'SDE.hexMap.legend.locateDouble' num=p.label}}">
             <span class="ui-label">{{p.label}}</span>
             <select data-wiz-pick data-idx="{{g.idx}}" data-num="{{p.num}}"><option value="">{{localize "SDE.hexMap.label.skip"}}</option>{{#each p.terrainOptions as |o|}}<option value="{{o.value}}" {{#if o.selected}}selected{{/if}}>{{o.label}}</option>{{/each}}</select>
             <input type="text" data-wiz-pick-other data-idx="{{g.idx}}" data-num="{{p.num}}" value="{{p.other}}" placeholder="{{localize 'SDE.hexMap.label.otherTerrain'}}" aria-label="{{localize 'SDE.hexMap.label.otherTerrainAria'}}" {{#unless p.other}}hidden{{/unless}}>
@@ -176,7 +176,7 @@
       </div>
       {{else}}
       <div class="ui-card">
-        <div class="ui-inline">{{#each g.thumbs as |t|}}<figure class="hxt-fig"><img class="hxt-thumb" src="{{t.src}}" alt="" width="72" height="72"><figcaption class="ui-label">{{t.label}}</figcaption></figure>{{/each}}</div>
+        <div class="ui-inline">{{#each g.thumbs as |t|}}<figure class="hxt-fig"><img class="hxt-thumb" src="{{t.src}}" alt="" width="72" height="72" data-wiz-locate data-num="{{t.num}}" title="{{localize 'SDE.hexMap.legend.locateDouble' num=t.label}}"><figcaption class="ui-label">{{t.label}}</figcaption></figure>{{/each}}</div>
         <span class="ui-label">{{localize "SDE.hexMap.legend.cardSize" size=g.size}}{{#if g.split}} <span class="ui-muted">{{localize "SDE.hexMap.legend.fromSplit"}}</span>{{/if}}</span>
         <select data-wiz-legend data-idx="{{g.idx}}"><option value="">{{localize "SDE.hexMap.label.skip"}}</option>{{#each g.terrainOptions as |o|}}<option value="{{o.value}}" {{#if o.selected}}selected{{/if}}>{{o.label}}</option>{{/each}}</select>
         <input type="text" data-wiz-legend-other data-idx="{{g.idx}}" value="{{g.terrainOther}}" placeholder="{{localize 'SDE.hexMap.label.otherTerrain'}}" aria-label="{{localize 'SDE.hexMap.label.otherTerrainAria'}}" {{#unless g.terrainOther}}hidden{{/unless}}>

@@ -144,7 +144,7 @@ const STYLESHEET_REV = "59fea7266a1e";
 // stale); module.json carries the same hash and is fetched fresh at runtime. A
 // mismatch is a stale cache by construction — it cannot be anything else. Both
 // stamps are written by `npm run inventory` and gated by `inventory:check`.
-const BUILD_REV = "771307266309";
+const BUILD_REV = "c2c702056f35";
 
 /**
  * Tell the user when their browser is running an old build of this module, and
@@ -950,7 +950,7 @@ Hooks.once("init", () => {
       // Does the scene carry a numbering at all? Tells "off the map" from "never numbered".
       hasNumbering: (scene) => hasHexNumbering(scene),
       // The contact-sheet tagger for the active scene (GM only). Lazy.
-      openTagger: async () => (await import("./hex-map/hex-tagger-app.mjs")).HexTaggerApp.open(),
+      openTagger: async (opts) => (await import("./hex-map/hex-tagger-app.mjs")).HexTaggerApp.open(opts),
       // Make the viewed Western Reaches A0 scene playable: numbered, keyed, pinned, handed to Extras (GM only).
       makePlayable: async () => (await import("./hex-map/hex-tagger-app.mjs")).HexTaggerApp.makePlayable(),
       // The active scene's tags drawn on the map for review; toggles (GM only).

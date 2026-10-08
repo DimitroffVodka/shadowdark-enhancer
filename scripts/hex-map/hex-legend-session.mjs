@@ -63,6 +63,8 @@ export async function openLegendSession({ sceneId, folder = "", onProgress = nul
       if (card) (card.picked ??= {})[num] = text(value, other);
     },
     apply: () => app.applyLegend(),
+    // The tagger's own pan-and-pulse, for the pictures' double click.
+    locate: (num) => app._onPingHex(null, { dataset: { num } }),
     close() { app._legend = null; },
   };
 }
