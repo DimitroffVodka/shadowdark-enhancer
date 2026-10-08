@@ -7,6 +7,7 @@
  */
 
 import { esc } from "../shared/esc.mjs";
+import { MODULE_ID } from "../shared/module-id.mjs";
 import * as core from "./bastion-core.mjs";
 import { stateOf, updateOf } from "./bastion-core.mjs";
 import { fundingActors, planDeposit, planWithdraw, purseUpdate, purseOf } from "./bastion-funding.mjs";
@@ -159,6 +160,13 @@ function promptFunding(direction, people) {
 }
 
 /**
+ * Await a write and swallow its error: an update can throw after it saved (#284), so the caller decides by reading
+ * the document back, never by the promise.
+ */
+const settle = (write) => write.catch((err) => { console.error(`${MODULE_ID} | bastion funding`, err); return null; });
+const treasuryIs = (actor, next) => stateOf(actor).treasury === next.treasury;
+
+/**
  * A character pays in: their purse first, then the treasury. Each write is read back, and if the
  * treasury refuses the purse is put back as it was.
  */
@@ -170,13 +178,14 @@ async function deposit(actor, person, gp) {
   }
   const { state: next, error } = core.deposit(before, gp, person.name);
   if (error) { ui.notifications?.warn(t(WHY[error] ?? WHY.unknown)); return false; }
-  const paid = await person.update(purseUpdate(plan.coins));
-  if (!paid || !samePurse(purseOf(person), plan.coins)) { ui.notifications?.warn(t("SDE.bastion.notify.notSaved")); return false; }
-  if (await writeState(actor, next)) {
+  await settle(person.update(purseUpdate(plan.coins)));
+  if (!samePurse(purseOf(person), plan.coins)) { ui.notifications?.warn(t("SDE.bastion.notify.notSaved")); return false; }
+  await settle(writeState(actor, next));
+  if (treasuryIs(actor, next)) {
     ui.notifications?.info(logText(next.log.at(-1)));
     return true;
   }
-  await person.update(purseUpdate(was));
+  await settle(person.update(purseUpdate(was)));
   ui.notifications?.warn(t("SDE.bastion.fund.undone"));
   return false;
 }
@@ -187,13 +196,14 @@ async function withdraw(actor, person, gp) {
   if (!plan.ok) { ui.notifications?.warn(t(WHY[plan.error])); return false; }
   const { state: next, error } = core.withdraw(before, gp, person.name);
   if (error) { ui.notifications?.warn(t(WHY[error] ?? WHY.unknown)); return false; }
-  if (!(await writeState(actor, next))) return false;
-  const paid = await person.update(purseUpdate(plan.coins));
-  if (paid && samePurse(purseOf(person), plan.coins)) {
+  await settle(writeState(actor, next));
+  if (!treasuryIs(actor, next)) return false;
+  await settle(person.update(purseUpdate(plan.coins)));
+  if (samePurse(purseOf(person), plan.coins)) {
     ui.notifications?.info(logText(next.log.at(-1)));
     return true;
   }
-  await writeState(actor, before);
+  await settle(writeState(actor, before));
   ui.notifications?.warn(t("SDE.bastion.fund.undone"));
   return false;
 }
