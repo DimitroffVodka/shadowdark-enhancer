@@ -1,7 +1,7 @@
 # Shadowdark Enhancer — File Inventory
 
 <!-- inventory:stats:start -->
-1779 tracked files · ~225,300 lines of code/markup across scripts+templates+styles+test.
+1781 tracked files · ~225,500 lines of code/markup across scripts+templates+styles+test.
 `v0.17.3` in both `module.json` and `package.json`.
 <!-- inventory:stats:end -->
 **Layout reflects the 2026-07-21 feature-folder reorganization (v0.11.0 cycle).**
@@ -408,10 +408,10 @@
 | `tables/cursed-scroll-tables.mjs` | 190 | The Cursed Scrolls' hexcrawl and adventure tables (rumors, region and site encounters, weather, points of interest, NPC rosters, d20 treasure lists): one entry per Manage row with its catalogue id, page cite and recipe, read by the shape registry, the Manage tree and the catalogue's names. The regions are named as the key-location entries are, so a CS hex finds its zone tables. Structure only. |
 | `tables/patron-items.mjs` | 223 | Patron Items for the imported WR boon tables (#167): find-or-create in `patrons-and-deities`, plus the ready-time rename/link backfill. |
 | `wizard/map-master.mjs` | 81 | Master list of the books' own maps: each map's measured pixel shape, which names a file must or must not carry to be it (not a GM's overlay, a later copy or a stitched whole), and which of two shipped copies to prefer. Pure data. |
-| `wizard/wizard-app.mjs` | 254 | Import wizard window: an ApplicationV2 around the controller that draws its pages, hands clicks and drops back, and supplies the Foundry parts (uploads, the PDF reader, the hub's quiet batch import, adventure scenes). Also wizardFirst(), which says whether a world still needs its first import. |
+| `wizard/wizard-app.mjs` | 260 | Import wizard window: an ApplicationV2 around the controller that draws its pages, hands clicks and drops back, and supplies the Foundry parts (uploads, the PDF reader, the hub's quiet batch import, adventure scenes). Also wizardFirst(), which says whether a world still needs its first import. |
 | `wizard/wizard-check.mjs` | 136 | Import wizard Check page: makes sure each picked book opens (and uploads, when kept) and each map opens, has the right shape and is uploaded; a problem carries a plain reason and its fixes. Foundry calls come in as env. |
-| `wizard/wizard-controller.mjs` | 387 | Import wizard controller: owns the state, answers clicks and file drops, and describes the current page as plain data for the template. The Foundry window and the browser preview both drive it. |
-| `wizard/wizard-core.mjs` | 278 | Import wizard brain, pure: the page flow and its guards, which book or map a picked file is (from the module's own manifests), and the catalogue of everything the wizard asks for. |
+| `wizard/wizard-controller.mjs` | 418 | Import wizard controller: owns the state, answers clicks and file drops, and describes the current page as plain data for the template. The Foundry window and the browser preview both drive it. |
+| `wizard/wizard-core.mjs` | 279 | Import wizard brain, pure: the page flow and its guards, which book or map a picked file is (from the module's own manifests), and the catalogue of everything the wizard asks for. |
 | `wizard/wizard-dom.mjs` | 74 | Import wizard browser wiring: the file dialog, drop zones and click delegation, shared by the Foundry window and the preview. |
 | `wizard/wizard-run.mjs` | 130 | Import wizard Import page: runs the library, then each book's adventures, then each adventure map's scene, and reports what was imported, what was already there and what needs the GM. Foundry parts come in as deps, so Node tests the flow. |
 | `wizard/zip-reader.mjs` | 103 | Reads a downloaded .zip in the browser with no library (the browser's own DecompressionStream): lists the files in it and inflates only the books and maps the wizard wants, so a new user never unzips anything. |
@@ -482,8 +482,8 @@
 |---|---:|---|
 | `imported-monster-art.mjs` | 830 | N6's exact source-aware curated art map and F4's Foundry-free pick-state planner; missing rows stay available to Browse. |
 | `monster-token-art.mjs` | 727 | Applies licensed art to monsters **by path reference**, never bundled. |
-| `token-art-catalog.mjs` | 1104 | Name→art matching catalog. |
-| `token-art-manager-app.mjs` | 726 | GM window to review/apply matches. |
+| `token-art-catalog.mjs` | 1132 | Name→art matching catalog. |
+| `token-art-manager-app.mjs` | 715 | GM window to review/apply matches. |
 | `token-art-manager-state.mjs` | 79 | Normalizes the persistent Token Art Manager state and named Browse folders. |
 
 ### 3.16 `scripts/pdf-export/`

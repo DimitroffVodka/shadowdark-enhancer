@@ -195,6 +195,17 @@
         <div class="ui-pair"><span class="ui-label">{{localize "SDE.importer.wizard.done.attention"}}</span><strong class="ui-value sde-wiz-big">{{done.attention}}</strong></div>
       </div>
     </div>
+    {{#if done.art}}
+    <section class="ui-group">
+      <h3 class="ui-h">{{localize "SDE.importer.wizard.done.art.title"}}</h3>
+      {{#if done.art.line}}<p class="ui-muted">{{done.art.line}}</p>{{/if}}
+      {{#if done.art.offer}}
+      <p class="ui-muted">{{localize "SDE.importer.wizard.done.art.body" sources=done.art.sources}}</p>
+      <button type="button" class="ui-btn" data-action="applyArt"><i class="fas fa-paw"></i> {{localize "SDE.importer.wizard.done.art.apply"}}</button>
+      {{/if}}
+      {{#if done.art.applying}}<p class="ui-muted"><i class="fas fa-circle-notch fa-spin"></i> {{localize "SDE.importer.wizard.done.art.applying"}}</p>{{/if}}
+    </section>
+    {{/if}}
     {{#if done.hexMaps.length}}
     <section class="ui-group">
       <h3 class="ui-h">{{localize "SDE.importer.wizard.done.hexTitle"}}</h3>
