@@ -143,11 +143,13 @@ export class HexBrushApp extends HandlebarsApplicationMixin(ApplicationV2) {
     // A stroke happens on the canvas, not in this window: without this the
     // Undo count never changes after the first render.
     this._strokeHook ??= Hooks.on(`${MODULE_ID}.hexStroke`, () => this._sync());
+    this._pickHook ??= Hooks.on(`${MODULE_ID}.hexPick`, (cell) => this._take(cell));
     this._sync();
   }
 
   _onClose(options) {
     if (this._strokeHook) { Hooks.off(`${MODULE_ID}.hexStroke`, this._strokeHook); this._strokeHook = null; }
+    if (this._pickHook) { Hooks.off(`${MODULE_ID}.hexPick`, this._pickHook); this._pickHook = null; }
     if (HexTagOverlay.current) HexTagOverlay.current.brush = null;
     super._onClose(options);
   }
@@ -194,6 +196,18 @@ export class HexBrushApp extends HandlebarsApplicationMixin(ApplicationV2) {
     this._sync();
     // Arrowing onto Other keeps the focus on the group (Tab reaches the word box); a click or Space goes straight to it.
     if (tile.dataset.hxbTile === OTHER && !focus) this.element.querySelector("input[data-hxb-other]")?.focus();
+  }
+
+  /** Right click on a hex: the brush becomes that hex's terrain and features, a good result to paint over a bad one. */
+  _take(cell) {
+    if (!cell?.terrain) { ui.notifications?.warn(t("SDE.hexMap.brush.nothingToTake")); return; }
+    const tiles = this._tiles();
+    const tile = tiles.find((el) => el.dataset.hxbTile === cell.terrain);
+    // A word the palette lacks is the Other tile, with the word in its box.
+    if (!tile) this.element.querySelector("input[data-hxb-other]").value = cell.terrain.replace(/_/g, " ");
+    for (const box of this.element.querySelectorAll("input[data-hxb-feature]")) box.checked = !!cell.features?.includes(box.value);
+    this._select(tile ?? tiles.find((el) => el.dataset.hxbTile === OTHER), { focus: !tile });
+    tile?.scrollIntoView?.({ block: "nearest" });
   }
 
   /** The previous or next terrain; from nothing picked, the last or the first. */

@@ -92,10 +92,12 @@ export class TokenArtCatalog {
     //
     // Worth knowing WHY folder entries are needed at all: this pack also ships
     // a `shadowdark.monsters` compendium-art mapping, which discoverSources
-    // would pick up on its own — but only by walking `game.modules`, and
-    // Foundry never registers this module because its manifest caps
-    // compatibility at v13. The folder probe below reads the disk instead, so
-    // it works whether or not the module is registered or active.
+    // would pick up on its own — but only by walking `game.modules`, and an
+    // older manifest capped compatibility at v13, so Foundry did not register
+    // it. The folder probe below reads the disk instead, so it works whether
+    // or not the module is registered or active. Where it does register (the
+    // current manifest has no cap), the same pack is found twice under one
+    // label: importOffer names it once, build() still sees both entries.
     {
       id: "shadowdark-community-tokens",
       label: "Shadowdark Community Tokens",
@@ -758,7 +760,8 @@ export class TokenArtCatalog {
   static async importOffer() {
     const pack = findMonsterPack({ game: globalThis.game });
     if (!pack || !(await pack.getIndex()).size) return null;
-    const sources = (await this.discoverSources()).map((s) => s.label ?? s.id);
+    // One source can be found twice (a module's own art mapping and the folder probe), under the same name.
+    const sources = [...new Set((await this.discoverSources()).map((s) => s.label ?? s.id))];
     return sources.length ? { sources } : null;
   }
 
