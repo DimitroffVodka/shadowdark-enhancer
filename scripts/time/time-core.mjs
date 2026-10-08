@@ -59,6 +59,12 @@ export function secondsPerDay(cal) {
   return d ? d.hoursPerDay * d.minutesPerHour * d.secondsPerMinute : 86400;
 }
 
+/** Seconds in one hour of the calendar (3600 without one). */
+export function secondsPerHour(cal) {
+  const d = cal?.days;
+  return d ? d.minutesPerHour * d.secondsPerMinute : 3600;
+}
+
 /** Whole days since worldTime 0. A day starts at 00:00. */
 export const absDay = (cal, t) => Math.floor(t / secondsPerDay(cal));
 

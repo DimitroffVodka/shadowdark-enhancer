@@ -58,11 +58,12 @@ test("Cook grants once only after eligible rest with unchanged max", () => {
   assert.equal(cookGrant({ value: 5, max: 3 }, grant.benefit, "camp", 11, true), null);
   assert.equal(cookGrant({ value: 5, max: 3 }, grant.benefit, "next", 11, true), null);
 });
-test("on a calendar with a longer day the meal lasts that day and the fire a third of it", () => {
-  const day = 24 * 100 * 60;   // 100-minute hours
+test("on a calendar with other hours or days the meal lasts its day and the fire eight of its hours", () => {
+  const hour = 100 * 60, day = 26 * hour;   // 100-minute hours, 26-hour days
   assert.equal(cookGrant({ value: 3, max: 3 }, null, "camp", 10, true, day).benefit.expires, 10 + day);
-  assert.equal(fireAlive({ started: 10, lit: true }, 28810, true, day), true, "8 of its hours, not 8 of ours");
-  assert.equal(fireAlive({ started: 10, lit: true }, 10 + day / 3, true, day), false);
+  assert.equal(fireAlive({ started: 10, lit: true }, 28810, true, hour), true, "8 of its hours, not 8 of ours");
+  assert.equal(fireAlive({ started: 10, lit: true }, 9 + 8 * hour, true, hour), true);
+  assert.equal(fireAlive({ started: 10, lit: true }, 10 + 8 * hour, true, hour), false, "not a third of a 26-hour day");
 });
 test("Cook surplus spends first; healing preserves unspent but cannot restore spent bonus", () => {
   const b = cookGrant({ value: 3, max: 3 }, null, "camp", 10, true).benefit;
