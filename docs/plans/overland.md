@@ -473,8 +473,9 @@ the player-owned PCs, and Overland runs its own camp rations. The only thing mis
 - **Outdoor scenes.** Scene config gets a "Follows the sky" choice, stored as a scene flag with the
   values default, on and off. The default is on for hex-map scenes and off everywhere else. Dungeons
   stay untouched unless the GM marks them.
-- **Darkness** is 0 by day. It ramps linearly over a one-hour twilight after sunset and before
-  sunrise, up to a night level of `1 − 0.2 × moon illumination`, so a full-moon night sits at 0.8.
+- **Darkness** is 0 by day. The light eases over the four hours around each sun event — from an
+  hour before sunrise or sunset to three hours after — on the cosine curve measured on Ember
+  (#389), up to a night level of `1 − 0.2 × moon illumination`, so a full-moon night sits at 0.8.
   Hex maps are capped (Q7).
 - **Writes.** The active GM writes `environment.darknessLevel` (`common/documents/scene.mjs:116-117`)
   on the active scene and on the party's scene (the one the travel token is on, #294) when time
@@ -526,7 +527,7 @@ and SDX#151's duration start. Neither needs the bar.
 | O6 | **Encounter checks** | O5; #197 (with `pickTable` as fallback) | — | A full day posts four checks with hours. A pushed day checks at 2-in-6. A hit at 20:00 during camp stops the clock at 20:00, and Continue finishes to dawn. With #197, a Myre Swamp night check rolls the Night column. |
 | O7 | **Forage, rations, camp, underground** | O5, stat damage (#213, #215, merged) | X1 | Forage works once per PC per day, is refused on a pushed day, is DC 18 when harsh, and is impossible when stormy and harsh. Camp without Extras: 1 ration each (2 when harsh), and a PC without one takes 1 CON. A season change with the party on deep tunnels prompts DC 12 CHA, and a failure costs 1d4 CHA. |
 | O8 | **The bar** (§4) | O3; O4–O7 for its controls | — | The slim bar shows date, time, weather and hexes left; the expanded view shows the dome and travel details. It appears only in overland on a hex map, hides during combat and returns after. Players see no check hours. Every string is in `en.json`. |
-| O9 | **Sky on scenes** (§6.2) | O1, O4 | — | An outdoor scene darkens over the twilight hour after sunset; an indoor one is untouched; the hex map stops at the cap. Stormy sets `rainStorm`, or `blizzard` in the cold. The Isles in summer never go dark and in winter never get light. No other module is read (#255). |
+| O9 | **Sky on scenes** (§6.2) | O1, O4 | — | An outdoor scene darkens on the four-hour twilight ease around sunrise and sunset; an indoor one is untouched; the hex map stops at the cap. Stormy sets `rainStorm`, or `blizzard` in the cold. The Isles in summer never go dark and in winter never get light. No other module is read (#255). |
 | X1 | **One SDX issue**: weather hand-off, `camping.open` with the WR food rules, the party-sheet travel view (§6.1), with an acceptance check and a not-needed list | O3's API names | — | Filed complete in one go, the way SDX#151 and SDX#152 were. |
 
 O4 to O7 can land in one PR if they come out small. The split is there so the encounter work can

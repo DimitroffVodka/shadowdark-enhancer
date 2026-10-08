@@ -8,14 +8,22 @@ import {
 
 const SUN = { sunrise: 6, sunset: 18 };
 
-test("darkness: 0 by day, a one-hour twilight each way, and the moon lightens the night", () => {
-  assert.equal(darknessAt({ hour: 12, ...SUN, illumination: 1 }), 0);
-  assert.equal(darknessAt({ hour: 18, ...SUN, illumination: 1 }), 0, "at sunset");
-  assert.equal(darknessAt({ hour: 18.5, ...SUN, illumination: 1 }), 0.4, "halfway through twilight, full moon");
-  assert.equal(darknessAt({ hour: 21, ...SUN, illumination: 1 }), 0.8, "a full-moon night");
+test("darkness: 0 by day, Ember's four-hour cosine ease each way, and the moon lightens the night (#389)", () => {
+  // Sunrise 6, sunset 18. The ease on its own (no moon): 0.5 × (1 ± cos(π × (h − sun ± 1) / 4)).
+  // The full-moon column is the same ease × 0.8, to two decimals.
+  const CURVE = [
+    [5, 1, 0.8], [5.5, 0.962, 0.77], [6.5, 0.691, 0.55], [7, 0.5, 0.4], [8, 0.146, 0.12],
+    [9, 0, 0], [13, 0, 0], [17, 0, 0], [18, 0.146, 0.12], [19, 0.5, 0.4], [20, 0.854, 0.68],
+    [21, 1, 0.8], [1, 1, 0.8],
+  ];
+  for (const [hour, ease, full] of CURVE) {
+    const got = darknessAt({ hour, ...SUN, illumination: 0 });
+    assert.ok(Math.abs(got - ease) <= 0.005, `${hour}:00 reads ${got}, the ease is ${ease}`);
+    assert.equal(darknessAt({ hour, ...SUN, illumination: 1 }), full, `${hour}:00 at a full moon`);
+  }
   assert.equal(darknessAt({ hour: 21, ...SUN, illumination: 0 }), 1, "a new-moon night");
-  assert.equal(darknessAt({ hour: 5.5, ...SUN, illumination: 0 }), 0.5, "half an hour before sunrise");
   assert.equal(darknessAt({ hour: 21, ...SUN, illumination: 0, cap: HEX_MAP_CAP }), 0.6, "the hex map stops at its cap");
+  assert.equal(darknessAt({ hour: 5.5, ...SUN, illumination: 1, cap: HEX_MAP_CAP }), 0.6, "5:30's 0.77 caps to 0.6 on the map");
 });
 
 test("the Isles of Andrik: the Midnight Sun in spring and summer, the Long Dark in winter", () => {
@@ -262,11 +270,11 @@ test("twilight follows the calendar's own hours: a 100-minute hour (#251 review)
   sky();
   const saved = globalThis.game.time.calendar;
   globalThis.game.time.calendar = { days: { hoursPerDay: 24, minutesPerHour: 100, secondsPerMinute: 60 } };
-  globalThis.game.time.worldTime = 18.5 * 100 * 60;             // 18:50 on this clock, halfway through twilight
+  globalThis.game.time.worldTime = 18.5 * 100 * 60;             // 18:50 on this clock, an hour and a half into the dusk ease
   const s = scene({ hex: false, follows: "on" });
   await applySky(s);
   globalThis.game.time.calendar = saved;
-  assert.equal(s.writes[0].changes["environment.darknessLevel"], 0.4);
+  assert.equal(s.writes[0].changes["environment.darknessLevel"], 0.25);
 });
 
 test("on the Isles of Andrik the winter noon is night, and the summer night stays light", async () => {
