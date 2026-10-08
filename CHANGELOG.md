@@ -20,6 +20,12 @@
   redesign. No window uses it yet, so nothing looks different.
 
 ### Changed
+- **The sky's twilight is a soft four-hour ease (Ember's measured cosine curve).** The light
+  used to move over a one-hour linear ramp after sunset and before sunrise; it now eases over
+  the four hours around each sun event — from an hour before sunrise or sunset to three hours
+  after. At a full moon the hex map's dim window moves from about 18:45–05:15 to about
+  19:40–06:20: dimming begins at 17:00, and the map is fully bright by 09:00. Dawn, dusk and
+  everything the rules read from them are unchanged. (#389)
 - **The Hex Tagger says what each button does.** Every button on the Map and Data tabs has a sentence beside it, and the buttons are grouped by job: Set up this map, Tag by hand (Brush), Auto-tag (optional: Read the map, Legend, Classify), Show on the map and the book's keyed hexes on Map; Use this map, Back up and share, Other tools and a Danger zone (Clear) on Data. The Sheet no longer opens with four lines of accuracy figures; they moved to the bottom of Settings under Auto-tag accuracy, where Ring at is still one click. Settings explains the anchor hex, the map size, the top-row frame and Sensitivity. "Hex key" is now "Keyed hexes from the book", with a line saying it pins one note per keyed hex and which crawl it pins from.
 - **"These are not all the same" on a Legend card asks about the pictures you were shown.** The opened card now starts with the card's own four pictures, so the hexes you flagged are among the eight you name, and an even spread across the card fills the rest. Before, it asked about eight hexes spaced through the card and could skip the ones you were looking at.
 - **The import wizard's Terrain step is only for the Western Reaches map.** The other five hex maps (The Gloaming, The Djurum, Isles of Andrik, The Black River, Morzomotha) are drawings with a hex grid laid over them, so the same land looks different from hex to hex and the Legend's cards come out mixed. They are still set up, numbered and pinned; their Done row says naming the terrain is optional and keeps the "Name the terrain" button. Running the wizard again says the same on a drawn map that is already set up.
@@ -625,9 +631,10 @@ it needs.
   Before, Start day refused, and every move of the token then bounced. (#231)
 - **The sky on outdoor scenes.** The hex map, and any scene set to **Follows
   the sky** in Scene Configuration's Environment tab, darkens with the clock.
-  It is 0 by day, deepens over an hour of twilight to a night the moon
-  lightens, and lifts again before dawn. The hex map only darkens to a
-  readable tint. Stormy weather shows as Foundry's rain storm, or a blizzard
+  It is 0 by day, and it eases between day and night over the four hours
+  around sunrise and sunset — an hour before each to three hours after — to
+  a night the moon lightens. The hex map only darkens to a readable tint.
+  Stormy weather shows as Foundry's rain storm, or a blizzard
   in the cold. The Isles of Andrik keep their Midnight Sun and Long Dark.
   Locked scenes and a weather effect you chose are left alone. It needs no
   other module. (#235)
