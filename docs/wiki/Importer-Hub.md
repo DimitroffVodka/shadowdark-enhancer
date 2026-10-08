@@ -29,12 +29,16 @@ the hub. You add your files once and it does the rest.
 4. **Import.** One button. The guide imports the library, the adventures, each
    book's key locations, the site maps and the hex maps, with a progress bar.
    The guide drives the hub for you, out of sight.
-5. **Name the terrain.** For each hex map, the **Terrain** page shows the
+5. **Name the terrain.** For the Western Reaches' A0, the **Terrain** page shows the
    map's printed pictures sorted into cards. Name each card once (forest,
    mountains, swamp) and **Apply** names every hex. A card that mixes terrains
    can be opened ("these are not all the same") to name its hexes one by one.
    **Skip this map** leaves it for later. Closing the window here asks first when maps are still
    unnamed; they can be named later in the [Hex Tagger](Hex-Maps.md)'s Legend step.
+   The other five hex maps are drawings with a grid laid over them, so the same
+   land looks different from hex to hex and their cards come out mixed. They are
+   set up, numbered and pinned, but their terrain is optional: no Terrain page,
+   just a **Name the terrain** button on their row on the Done page.
 
 The last page (**Done**) lists what was set up, what was already there, and
 anything that needs you. Each hex map has its own row there: **Name the terrain** for one whose terrain
@@ -429,6 +433,13 @@ module made, never ones you added, and a scene whose picture is not the shape of
 map gets none. A light only shows once the scene is darkened (the Darkness slider in the
 scene's settings): the module leaves the scene as it is, because a fully dark scene hides even
 your own hidden creatures from you.
+
+**An adventure's journal reads like the quickstart's.** The Lost Citadel in the Shadowdark system is the model: an
+Overview page, an "Areas 1-27" page for the rules that hold everywhere (danger level, light, doors, the random encounters
+table), and one page per area ("Area 12: Meteorite Room") listed under it. An area opens with its player-safe description
+as bold labels, then the GM's bullets with the book's arrows nested beneath. Dice in the text (2d4) are inline rolls, a
+"DC 12 DEX" is a request you can click to ask the players, and creature names (an NPC by its first name too) link to their stat blocks. A magic item or treasure the text names links to the item; a thing the key prices ("a blue pearl (40 gp)") becomes an item of its own, a Gem or a treasure item worth that, in the importer's Items compendium under the adventure and the area, and a spell scroll the key names becomes a scroll that points at its spell; and the adventure's rumors and random encounters roll tables (when you have imported them) are linked above the tables printed in the journal. The wizard files
+a journal once and never overwrites it; **Adventures** in the importer replaces the module's pages with the new layout.
 
 **Monster names are links.** In a room's journal page, every creature name the book sets in
 bold that your bestiary knows (the core bestiary first, then your imported monsters) is a

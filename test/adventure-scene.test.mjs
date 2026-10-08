@@ -109,7 +109,9 @@ test("planAdventureCommit: creates, updates by number, reports a collision once"
 
 test("locationPagePayload: page name, html, and the number on the flag", () => {
   const p = locationPagePayload({ num: 4, name: "SPORE HALL", bodyLines: ["Damp."] }, new Set([4]));
-  assert.equal(p.name, "4. Spore Hall");
+  assert.equal(p.name, "Area 4: Spore Hall");
+  assert.deepEqual(p.title, { show: true, level: 2 }, "under the page for the areas");
+  assert.equal(locationPagePayload({ num: 4, name: "SPORE HALL", bodyLines: ["Damp."] }, new Set([4]), { noun: "", level: 1 }).name, "4. Spore Hall");
   assert.match(p.text.content, /<p>Damp\.<\/p>/);
   assert.deepEqual(p.flags["shadowdark-enhancer"][ADVENTURE_FLAG], { num: 4 });
   assert.equal(pageNum({ flags: { "shadowdark-enhancer": { [ADVENTURE_FLAG]: { num: 4 } } } }), 4);
@@ -120,11 +122,11 @@ test("page payloads link the bold creature names they are given, and are plain w
   const O = "\u0001", C = "\u0002";
   const resolve = (phrase) => (/^gribbles?$/i.test(phrase) ? "Compendium.x.Actor.GRIB" : undefined);
   const loc = { num: 1, name: "PEN", bodyLines: ["Two Gribbles bark."], boldLines: [`Two ${O}Gribbles${C} bark.`] };
-  assert.match(locationPagePayload(loc, new Set([1]), { resolve }).text.content, /Two @UUID\[Compendium\.x\.Actor\.GRIB\]\{Gribbles\} bark\./);
-  assert.match(locationPagePayload(loc, new Set([1])).text.content, /<p>Two Gribbles bark\.<\/p>/);
+  assert.match(locationPagePayload(loc, new Set([1]), { resolve }).text.content, /Two <strong>@UUID\[Compendium\.x\.Actor\.GRIB\]\{Gribbles\}<\/strong> bark\./);
+  assert.match(locationPagePayload(loc, new Set([1])).text.content, /<p>Two <strong>Gribbles<\/strong> bark\.<\/p>/, "no bestiary: the book's bold stays");
   assert.match(locationPagePayload({ ...loc, boldLines: undefined }, new Set([1]), { resolve }).text.content, /<p>Two Gribbles bark\.<\/p>/);
   const intro = introPagePayload(["A gribble."], new Set(), { boldLines: [`A ${O}gribble${C}.`], resolve });
-  assert.match(intro.text.content, /A @UUID\[Compendium\.x\.Actor\.GRIB\]\{gribble\}\./);
+  assert.match(intro.text.content, /A <strong>@UUID\[Compendium\.x\.Actor\.GRIB\]\{gribble\}<\/strong>\./);
   assert.match(introPagePayload(["A gribble."], new Set(), { boldLines: [], resolve }).text.content, /<p>A gribble\.<\/p>/, "marked lines that do not match the plain ones are not used");
 });
 

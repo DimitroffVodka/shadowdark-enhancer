@@ -47,7 +47,7 @@ import { replaceModuleFlag } from "../shared/module-flags.mjs";
 import { esc } from "../shared/esc.mjs";
 import { isActiveGM, refuseQuery, queryActiveGM, registerQuery } from "../shared/gm-relay.mjs";
 import {
-  DYING_STATUS, DEAD_STATUS, DYING_KEYS, NEAR_FEET, modifier, timerRoll, deathTimer, stabilizeDC,
+  DYING_STATUS, DEAD_STATUS, DYING_KEYS, NEAR_FEET, isClose, modifier, timerRoll, deathTimer, stabilizeDC,
   riseMin, turnOutcome, hpAction, shouldTick, cardStabilizes, badge, checkedNatural, timerChat,
 } from "./dying-core.mjs";
 import { compactCard } from "../shared/chat-cards.mjs";
@@ -164,6 +164,25 @@ function nearby(actor, { allies = false } = {}) {
     .filter((o) => o !== token && o.actor && (!allies || o.document.disposition === token.document.disposition))
     .filter((o) => canvas.grid.measurePath([token.center, o.center]).distance <= NEAR_FEET)
     .map((o) => o.actor);
+}
+
+/**
+ * Feet between two characters' tokens on the scene this client is viewing, edge
+ * to edge (a larger token's centre sits further out), or null when either has no
+ * token here: nothing to measure.
+ */
+function distanceFeet(actor, by) {
+  if (!canvas?.ready) return null;
+  let best = null;
+  for (const a of actor.getActiveTokens?.() ?? []) {
+    for (const b of by.getActiveTokens?.() ?? []) {
+      // ponytail: edge allowance is exact for squares side by side, close enough on diagonals.
+      const slack = Math.max(0, (a.document.width + b.document.width) / 2 - 1) * canvas.grid.distance;
+      const d = canvas.grid.measurePath([a.center, b.center]).distance - slack;
+      best = best === null ? d : Math.min(best, d);
+    }
+  }
+  return best;
 }
 
 /** The DC `by` needs to stabilize `actor`, as this client sees the scene. */
@@ -327,6 +346,7 @@ async function stabilizeFromCard(actor, message, config) {
     helperIsTarget: by.uuid === actor.uuid,
     total: main?.total,
     dc: localStabilizeDC(actor, by),
+    close: isClose(distanceFeet(actor, by)),
   });
   if (ok) await applyStable(actor);
 }
@@ -374,6 +394,11 @@ export async function stabilize(actor, { by = null } = {}) {
   if (by.uuid === actor.uuid) return false;
   if (!by.system?.abilities?.int || typeof by.system.rollStatCheck !== "function") {
     ui.notifications.warn(fmt("SDE.dying.noInt", { name: by.name }));
+    return false;
+  }
+  // The active GM re-checks when the card lands; this spares a roll that cannot count.
+  if (!isClose(distanceFeet(actor, by))) {
+    ui.notifications.warn(fmt("SDE.dying.notClose", { name: by.name, target: actor.name }));
     return false;
   }
   const roll = await by.system.rollStatCheck("int", {

@@ -78,6 +78,7 @@ export class AdventurePlacer extends HandlebarsApplicationMixin(ApplicationV2) {
     if (!scene?.getFlag(MODULE_ID, MAP_FLAG)) { ui.notifications?.warn(t("SDE.adventure.notify.notAdventureScene")); return null; }
     if (canvas?.scene?.id !== scene.id) await scene.view();
     await restoreSiteJournal(scene);
+    try { await (await import("../world-folders.mjs")).organizeWorld(); } catch (err) { console.warn(`${MODULE_ID} | adventure placer: filing into folders failed`, err); }
     await refreshPinArt(scene);
     const open = foundry.applications.instances?.get?.(ID);
     if (open) { open.disarm(); open.scene = scene; open.render(true); return open; }

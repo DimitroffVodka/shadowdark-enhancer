@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { creatureMentions, resolveMentions, bestiaryLookup, phraseKeys, nameKeys, creatureResolver, linkCreatureNames } from "../scripts/importer/adventure/adventure-creatures.mjs";
+import { creatureMentions, resolveMentions, bestiaryLookup, phraseKeys, nameKeys, creatureResolver } from "../scripts/importer/adventure/adventure-creatures.mjs";
 import { parseAdventurePages } from "../scripts/importer/adventure/adventure-parser.mjs";
 import { _internals } from "../scripts/importer/pdf-text-extract.mjs";
 import { BOLD_OPEN as O, BOLD_CLOSE as C, stripBold } from "../scripts/importer/pdf-text-utils.mjs";
@@ -117,23 +117,20 @@ test("creatureResolver: an alias names a creature the book calls something else,
   assert.equal(creatureResolver(INDEX, { pixie: "Nobody" })("pixies"), undefined, "an alias to a creature the world lacks links nothing");
 });
 
-test("linkCreatureNames: a bold creature becomes a link, a bold word that is not one stays plain, nothing else changes", () => {
-  const r = creatureResolver(INDEX);
-  assert.equal(linkCreatureNames(`Two ${b("Gribbles")} guard the ${b("Treasure")} door.`, r),
-    "Two @UUID[Compendium.x.Actor.GRIB]{Gribbles} guard the Treasure door.");
-  assert.equal(linkCreatureNames("No bold here.", r), "No bold here.");
-  assert.equal(linkCreatureNames(`Two ${b("Gribbles")}.`, null), "Two Gribbles.");
-});
-
-test("linkCreatureNames: a bullet and the full stop stay outside the link; the link keeps the book's own wording", () => {
-  const r = creatureResolver(INDEX);
-  assert.equal(linkCreatureNames(`${b("• Giant Moths.")} Three of them.`, r), "• @UUID[Compendium.x.Actor.MOTH]{Giant Moths}. Three of them.");
-  assert.equal(linkCreatureNames(`Abbot (${b("gribble")}), twelve (${b("gribbles")})`, r),
-    "Abbot (@UUID[Compendium.x.Actor.GRIB]{gribble}), twelve (@UUID[Compendium.x.Actor.GRIB]{gribbles})");
-});
-
-test("linkCreatureNames: an all-caps line is a sub-heading and is left alone; an unclosed marker never reaches the page", () => {
-  const r = creatureResolver(INDEX);
-  assert.equal(linkCreatureNames(b("GRIBBLES"), r), "GRIBBLES");
-  assert.equal(linkCreatureNames(`Two ${O}Gribbles go on`, r), "Two Gribbles go on");
+test("creatureResolver: a book calls an imported NPC by its first name, and by its possessive; the system's creatures and a shared first name do not", () => {
+  const index = [
+    { name: "Gordock Breeg", uuid: "Compendium.world.x.Actor.GORD", type: "NPC" },
+    { name: "Plogrina B.", uuid: "Compendium.world.x.Actor.PLOG", type: "NPC" },
+    { name: "Sister Marjory", uuid: "Compendium.world.x.Actor.MARJ", type: "NPC" },
+    { name: "Sister Agnes", uuid: "Compendium.world.x.Actor.AGN", type: "NPC" },
+    { name: "Red Knight", uuid: "Compendium.shadowdark.monsters.Actor.RK", type: "NPC" },
+  ];
+  const r = creatureResolver(index);
+  assert.equal(r("Gordock"), "Compendium.world.x.Actor.GORD");
+  assert.equal(r("Gordock Breeg"), "Compendium.world.x.Actor.GORD");
+  assert.equal(r("Plogrina's"), "Compendium.world.x.Actor.PLOG");
+  assert.equal(r("Plogrina Bittermold"), undefined, "a longer phrase is not its first word");
+  assert.equal(r("Sister"), undefined, "two actors share it");
+  assert.equal(r("Red"), undefined, "the system's creatures answer only to their names");
+  assert.ok(phraseKeys("Plogrina's").includes("plogrina"));
 });

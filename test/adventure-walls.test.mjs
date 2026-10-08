@@ -6,7 +6,7 @@
  */
 import test from "node:test";
 import assert from "node:assert/strict";
-import { ADVENTURE_WALLS, wallsFor, hasWalls, planWalls, wallTypes } from "../scripts/importer/adventure/adventure-walls.mjs";
+import { ADVENTURE_WALLS, wallsFor, hasWalls, planWalls, wallTypes, onFloor } from "../scripts/importer/adventure/adventure-walls.mjs";
 import { ADVENTURE_LAYOUTS } from "../scripts/importer/adventure/adventure-layouts.mjs";
 import { mapFits } from "../scripts/importer/adventure/map-labels.mjs";
 import { ADVENTURE_SITES } from "../scripts/importer/adventure/adventure-manifest.mjs";
@@ -55,8 +55,8 @@ test("the data is inside the map, and every outline is a loop of three or more p
 const OUTSIDE = { "cs2-iron-fortress": [19], "wrma-fallen-keep-emerald-knight": [1] };
 
 /** Walls drawn onto a coarse grid (a quarter of a square a cell is plenty), then flood-filled from the page's corner. */
-function sealed(id, { doorsClosed }) {
-  const d = ADVENTURE_WALLS[id], W = 3600, H = Math.round(3600 / d.aspect), K = 4, w = Math.ceil(W / K) + 2, h = Math.ceil(H / K) + 2;
+function sealed(id, { doorsClosed, data }) {
+  const d = data ?? ADVENTURE_WALLS[id], W = 3600, H = Math.round(3600 / d.aspect), K = 4, w = Math.ceil(W / K) + 2, h = Math.ceil(H / K) + 2;
   const wall = new Uint8Array(w * h);
   const line = (x1, y1, x2, y2) => {
     const n = Math.max(1, Math.ceil(Math.hypot(x2 - x1, y2 - y1) / K));
@@ -95,13 +95,26 @@ function sealed(id, { doorsClosed }) {
     const r = region[y * w + x];
     if (r === outside) rooms.set(`out:${num}`, r); else rooms.set(r, [...(rooms.get(r) ?? []), Number(num)]);
   }
-  return { outside: [...rooms.keys()].filter((k) => String(k).startsWith("out:")), regions: [...rooms.entries()].filter(([k]) => !String(k).startsWith("out:")).map(([, v]) => v) };
+  // The corner fill cannot tell a room from an enclosed pocket of rock the walls also seal off. So: a room's region must
+  // hold no cell the data's own floor test (loops filled, solids cut out) calls rock. Every 4th cell each way is plenty:
+  // a gap that opens a room into a pocket opens it into thousands of cells. (A wall drawn at pixel p fills cells p/K and
+  // p/K + 1, so cell x stands at pixel (x - 0.5) * K.)
+  const rings = [...d.loops, ...d.solids].map((ring) => ring.map(([u, v]) => [u * W, v * H]));
+  const rockRooms = [];
+  for (const [rid, nums] of rooms) {
+    if (String(rid).startsWith("out:")) continue;
+    let rock = 0;
+    for (let y = 0; y < h; y += 4) for (let x = 0; x < w; x += 4) if (region[y * w + x] === rid && !onFloor(rings, (x - 0.5) * K, (y - 0.5) * K)) rock++;
+    if (rock) rockRooms.push({ rooms: nums, rock });
+  }
+  return { rockRooms, outside: [...rooms.keys()].filter((k) => String(k).startsWith("out:")), regions: [...rooms.entries()].filter(([k]) => !String(k).startsWith("out:")).map(([, v]) => v) };
 }
 
 for (const id of Object.keys(ADVENTURE_WALLS)) {
   test(`leak test: every numbered room of ${id} is sealed from the rock around the dungeon`, () => {
     const r = sealed(id, { doorsClosed: true });
     assert.deepEqual(r.outside, [], "a room that opens onto the rock lets the light and the monsters out");
+    assert.deepEqual(r.rockRooms, [], "a room that opens into an enclosed pocket of rock has a gap in its walls");
     assert.ok(r.regions.length >= 1, "every room is in a sealed area");
     if (ADVENTURE_WALLS[id].doors.length >= 6) assert.ok(r.regions.length >= 3, `the closed doors and walls make separate areas (${r.regions.length})`);
   });
@@ -111,6 +124,21 @@ for (const id of Object.keys(ADVENTURE_WALLS)) {
     if (ADVENTURE_WALLS[id].doors.length) assert.ok(open.regions.length <= closed.regions.length, `${open.regions.length} areas open, ${closed.regions.length} closed`);
     if (ADVENTURE_WALLS[id].doors.length >= 6) assert.ok(open.regions.length < closed.regions.length, `${open.regions.length} areas open, ${closed.regions.length} closed`);
     assert.deepEqual(open.outside, []);
+  });
+}
+
+// Mutation check on the leak test itself: take away the whole outline of a room and the test must notice. Without the rock
+// check only a room that falls open to the page margin is noticed; one that falls open into an enclosed pocket is not.
+for (const id of Object.keys(ADVENTURE_WALLS)) {
+  test(`leak test: ${id} notices a room whose whole outline is gone`, () => {
+    const d = ADVENTURE_WALLS[id], H = Math.round(3600 / d.aspect), pins = Object.entries(ADVENTURE_LAYOUTS[id].pins).filter(([n]) => !(OUTSIDE[id] ?? []).includes(Number(n)));
+    const hit = d.loops.map((loop, i) => ({ i, ring: loop.map(([u, v]) => [u * 3600, v * H]) })).filter(({ ring }) => pins.some(([, [u, v]]) => onFloor([ring], u * 3600, v * H)));
+    assert.ok(hit.length > 0, "some outline holds a room");
+    const missed = hit.filter(({ i }) => {
+      const r = sealed(id, { doorsClosed: true, data: { ...d, loops: d.loops.filter((_, j) => j !== i) } });
+      return !r.outside.length && !r.rockRooms.length;
+    }).map(({ i }) => i);
+    assert.deepEqual(missed, [], "outlines whose removal the leak test did not flag");
   });
 }
 
@@ -161,7 +189,7 @@ test("the Halls: a creature filed under a room never stands in rock, another roo
   const pinPx = (n) => ({ x: pins[n][0] * rect.width, y: pins[n][1] * rect.height });
   const squareOf = (p) => [Math.floor(p.x / 53), Math.floor(p.y / 53)].join(",");
   const cache = new Map();
-  const mine = (n) => cache.get(n) ?? cache.set(n, new Set(reachableSquares(d, rect, 53, pinPx(n), 400).map((s) => s.join(",")))).get(n);
+  const mine = (n) => cache.get(n) ?? cache.set(n, new Set(reachableSquares(d, rect, 53, pinPx(n)).map((s) => s.join(",")))).get(n);
   assert.ok(mine(12).size >= 15 && mine(12).size < 80, `room 12 has its own squares (${mine(12).size})`);
   for (const n of [4, 8, 9, 10, 11, 12, 18, 21, 25]) assert.ok(mine(n).size > 0, `room ${n} has floor to stand on`);
   // The sealed areas the closed doors make (the leak test above): a creature never reaches a pin in another area.
@@ -179,7 +207,7 @@ for (const id of Object.keys(ADVENTURE_WALLS)) {
     const pinPx = (n) => ({ x: pins[n][0] * rect.width, y: pins[n][1] * rect.height });
     const squareOf = (p) => [Math.floor(p.x / grid), Math.floor(p.y / grid)].join(",");
     const cache = new Map();
-    const mine = (n) => cache.get(n) ?? cache.set(n, new Set(reachableSquares(d, rect, grid, pinPx(n), 400).map((q) => q.join(",")))).get(n);
+    const mine = (n) => cache.get(n) ?? cache.set(n, new Set(reachableSquares(d, rect, grid, pinPx(n)).map((q) => q.join(",")))).get(n);
     const rooms = Object.keys(pins).filter((n) => !(OUTSIDE[id] ?? []).includes(Number(n)));
     for (const n of rooms) assert.ok(mine(n).size >= 1, `room ${n} has floor to stand on`);
     const areaOf = new Map();
@@ -189,6 +217,18 @@ for (const id of Object.keys(ADVENTURE_WALLS)) {
     assert.deepEqual(leaks, [], "no room's squares reach a pin the walls and closed doors separate it from");
   });
 }
+
+test("a room of more than 200 squares is filled whole: the Sea Wolf's room 4 takes 300 creatures, none dropped", () => {
+  const id = "cs3-sea-wolf", d = ADVENTURE_WALLS[id], H = Math.round(3600 / d.aspect), rect = { x: 0, y: 0, width: 3600, height: H }, pins = ADVENTURE_LAYOUTS[id].pins;
+  const grid = 3600 / Object.values(ADVENTURE_SITES).flat().find((x) => x.id === id).grid[0], px = { 4: { x: pins[4][0] * 3600, y: pins[4][1] * H } };
+  const room = reachableSquares(d, rect, grid, px[4]);
+  assert.ok(room.length > 800, `room 4 has ${room.length} squares`);
+  const plan = planCreatureTokens({ creatures: { 4: [{ monster: "Sea Rat", count: 300 }] }, pins: px, rect, gridSize: grid, roomSquares: (n, pin) => reachableSquares(d, rect, grid, pin) });
+  assert.equal(plan.length, 300, "every creature has a square");
+  assert.equal(new Set(plan.map((p) => `${p.x},${p.y}`)).size, 300, "no two share one");
+  const mine = new Set(room.map(([c, r]) => `${c * grid},${r * grid}`));
+  assert.ok(plan.every((p) => mine.has(`${p.x},${p.y}`)), "all in the room");
+});
 
 test("the Iron Fortress's lights are the magma river and the fire curtain, each inside the fortress", () => {
   const l = planLights(ADVENTURE_WALLS["cs2-iron-fortress"], { x: 0, y: 0, width: 3600, height: 2800 });

@@ -564,7 +564,7 @@ export async function placeSiteTraps(scene, site, rect, texts) {
   const pins = Object.fromEntries(scenePins(scene).map((p) => [p.num, p]));
   const have = new Set(scene.regions.map((r) => r.getFlag(MODULE_ID, TRAP_REGION_FLAG)).filter(Boolean).map((f) => `${f.pin}/${f.nth}`));
   const todo = entries.filter((e) => !have.has(`${e.pin}/${e.nth}`));
-  const { traps, skipped } = planSiteTraps({ entries: todo, texts, pins, rect, gridSize, squaresOf: (pin) => reachableSquares(walls, rect, gridSize, pin, 400, true) });
+  const { traps, skipped } = planSiteTraps({ entries: todo, texts, pins, rect, gridSize, squaresOf: (pin) => reachableSquares(walls, rect, gridSize, pin, true) });
   const docs = traps.map((trap) => ({
     name: trap.name, color: "#c0392b", shapes: trap.shapes,
     behaviors: [{ type: TRAP_TYPE, name: trap.name, system: trap.system }],

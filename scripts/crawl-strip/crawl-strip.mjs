@@ -797,23 +797,6 @@ export const CrawlStrip = {
         }
       }
 
-      // Active effects row — status conditions only
-      let effectsRow = "";
-      if (actor) {
-        const activeEffects = actor.effects.filter(e => !e.disabled && e.statuses?.size > 0);
-        if (activeEffects.length) {
-          const icons = activeEffects.map(e => {
-            const icon = esc(e.img || "icons/svg/aura.svg");
-            const label = esc(e.name || game.i18n.localize("SDE.crawlStrip.effectFallback"));
-            const durationInfo = e.duration?.rounds
-              ? ` ${esc(game.i18n.format("SDE.crawlStrip.effectRounds", { rounds: e.duration.rounds }))}`
-              : "";
-            return `<img class="sde-strip-effect-icon" src="${icon}" title="${label}${durationInfo}" alt="${label}" width="18" height="18" />`;
-          }).join("");
-          effectsRow = `<div class="sde-strip-effects-row">${icons}</div>`;
-        }
-      }
-
       // Light-source badge — PC cards only, in both crawl and combat. Shows
       // whether a light is burning (and roughly how much life is left) and lets
       // the owner/GM light or snuff a torch/lantern with one click. Rendered as
@@ -831,7 +814,6 @@ export const CrawlStrip = {
           <div class="sde-strip-overlay">
             ${displayName ? `<div class="sde-strip-name">${displayName}</div>` : ""}
             ${acLine}
-            ${effectsRow}
             <div class="sde-strip-bottom">
               <div class="sde-strip-hp-bar-wrap">
                 <div class="sde-strip-hp-bar ${hpClass}" style="width:${hpPct}%"></div>
