@@ -316,11 +316,25 @@ export const ItemDrops = {
    * Create a token on the canvas representing a dropped item.
    * GM-only execution (players arrive through `handleQuery`).
    *
+   * Drops from one character's stack run one at a time, each re-reading the
+   * stack the last one left: two quick drops of 5 from 10 arrows both read 10
+   * and both wrote 5, so two piles of 5 appeared and the character kept 5.
+   *
    * @param {object} data
    * @param {User} [requester]  The AUTHENTICATED user this acts for. Defaults
    *                            to the GM running it directly.
    */
-  async _createDroppedItemToken(data, requester = game.user) {
+  _createDroppedItemToken(data, requester = game.user) {
+    const key = data?.sourceActorId && data?.sourceItemId ? `${data.sourceActorId}:${data.sourceItemId}` : null;
+    if (!key) return this._dropItem(data, requester);
+    this._dropQueues ??= new Map();
+    const next = (this._dropQueues.get(key) ?? Promise.resolve()).catch(() => {}).then(() => this._dropItem(data, requester));
+    this._dropQueues.set(key, next);
+    next.finally(() => { if (this._dropQueues.get(key) === next) this._dropQueues.delete(key); }).catch(() => {});
+    return next;
+  },
+
+  async _dropItem(data, requester) {
     const { sourceActorId, sourceItemId, x, y, sceneId } = data;
     let itemData = data.itemData;
     let qtyToDrop = Math.max(1, Math.floor(Number(data.dropQty)) || 1);

@@ -283,6 +283,22 @@ test("a pile from before the scene record is the GM's to pick up, not a player's
   assert.equal(reply.error, "SDE.loot.itemDrops.error.gmPickup");
 });
 
+test("two quick drops from one stack never make more than the stack held", async () => {
+  const dagger = makeItem({ id: "item1", name: "Dagger", quantity: 10 });
+  // Writes land a tick later, as a server round-trip does.
+  dagger.update = async (c) => { await new Promise((r) => setTimeout(r, 5)); dagger.system.quantity = c["system.quantity"]; };
+  dagger.delete = async () => { await new Promise((r) => setTimeout(r, 5)); dagger.deleted = true; };
+  const mine = makeActor({ id: "pc1", name: "Vella's PC", ownerId: PLAYER.id, items: [dagger] });
+  const { ItemDrops, created } = await itemDropHarness({ actors: { pc1: mine } });
+  globalThis.game.i18n = { localize: (k) => k, format: (k) => k };
+  const drop = () => ItemDrops._createDroppedItemToken({ sourceActorId: "pc1", sourceItemId: "item1", dropQty: 5, x: 0, y: 0, sceneId: "scene1" }, PLAYER);
+
+  await Promise.all([drop(), drop()]);
+  const piled = created.actors.reduce((n, a) => n + a.flags["shadowdark-enhancer"].droppedItemData.system.quantity, 0);
+  const left = dagger.deleted ? 0 : dagger.system.quantity;
+  assert.equal(piled + left, 10, `piles ${piled} + left ${left}: nothing made from nothing`);
+});
+
 test("a drop whose pile cannot be placed leaves the item on the character", async () => {
   const dagger = makeItem({ id: "item1", name: "Dagger", quantity: 2 });
   const mine = makeActor({ id: "pc1", name: "Vella's PC", ownerId: PLAYER.id, items: [dagger] });
