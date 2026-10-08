@@ -556,3 +556,76 @@ test("a purse write that saves and then throws still counts as paid: the buyer g
   assert.deepEqual(made, ["Glow paste, jar"], "the coins left, so the item arrives");
   assert.equal(buyer.system.coins.gp, 98);
 });
+
+// ─── #412: refunds land on the purse as it is now; a create is judged by reading the item back ─────────────
+
+test("a gamble refund goes on top of the purse as it is now: coins that landed during the draw stay", async () => {
+  const buyer = makeActor({ id: "pc1", name: "Vella's PC", ownerId: PLAYER.id, coins: { gp: 10, sp: 0, cp: 0 } });
+  const { MerchantShop } = await gambleHarness(buyer);
+  const { LootLinker } = await import("../scripts/loot/loot-linker.mjs");
+  // A loot claim pays 50 gp while the table rolls, and then the draw fails.
+  LootLinker.buildItemIndex = async () => { await buyer.update({ "system.coins.gp": buyer.system.coins.gp + 50 }); throw new Error("draw failed"); };
+  const quiet = console.error;
+  console.error = () => {};
+  try {
+    const reply = await MerchantShop._handleGamble({ buyerActorId: "pc1", gambleId: "g1" }, PLAYER);
+    assert.match(reply.error, /gambleRefunded$/);
+    assert.equal(copperOf(buyer), 6000, "10 gp, less the 1 gp gamble, plus the 50 gp claim, plus the 1 gp refund");
+  } finally { console.error = quiet; }
+});
+
+/** Item.create the way core does it when `_onCreate` throws: the item is on the actor, the promise rejects. */
+const saveThenThrow = (made) => async (data, { parent }) => {
+  made.push(data.name);
+  parent.items.add({ id: data._id });
+  throw new Error("_onCreate threw");
+};
+
+test("an item that saves and then throws is the buyer's: the purchase stands and nothing is given back", async () => {
+  const buyer = makeActor({ id: "pc1", name: "Vella's PC", ownerId: PLAYER.id, coins: { gp: 100, sp: 0, cp: 0 } });
+  const { MerchantShop } = await harness({ actors: { pc1: buyer }, settings: PUBLISHED });
+  stubPacks({ [gearPack]: [], "shadowdark.magic-items": [], [IMPORTED]: [packItem({ id: "paste", name: "Glow paste, jar", cost: { gp: 2, sp: 0, cp: 0 } })] });
+  const made = [];
+  globalThis.Item.create = saveThenThrow(made);
+  const quiet = console.error;
+  console.error = () => {};
+  try {
+    const reply = await MerchantShop._handleCatalogBuy({ buyerActorId: "pc1", itemUuid: `Compendium.${IMPORTED}.Item.paste`, quantity: 1 }, PLAYER);
+    assert.equal(reply?.ok, undefined, "no refusal");
+    assert.deepEqual(made, ["Glow paste, jar"]);
+    assert.equal(buyer.system.coins.gp, 98, "paid, and not refunded for an item they have");
+  } finally { console.error = quiet; }
+});
+
+test("a gamble prize that saves and then throws is kept: no refund and no prize taken back", async () => {
+  const buyer = makeActor({ id: "pc1", name: "Vella's PC", ownerId: PLAYER.id, coins: { gp: 10, sp: 0, cp: 0 } });
+  const deleted = [];
+  buyer.deleteEmbeddedDocuments = async (_type, ids) => { deleted.push(...ids); };
+  const { MerchantShop } = await gambleHarness(buyer);
+  let n = 0;
+  globalThis.foundry.utils.randomID = () => `prize${++n}`;
+  const made = [];
+  globalThis.Item.create = saveThenThrow(made);
+  const quiet = console.error;
+  console.error = () => {};
+  try {
+    const reply = await MerchantShop._handleGamble({ buyerActorId: "pc1", gambleId: "g1" }, PLAYER);
+    assert.equal(reply?.ok, undefined, "no refusal");
+    assert.deepEqual(made, ["Ring", "Locket"]);
+    assert.deepEqual(deleted, []);
+    assert.equal(copperOf(buyer), 900);
+  } finally { console.error = quiet; }
+});
+
+test("gamble winnings that cannot be saved are told to the GM to add by hand", async () => {
+  const buyer = makeActor({ id: "pc1", name: "Vella's PC", ownerId: PLAYER.id, coins: { gp: 10, sp: 0, cp: 0 } });
+  const kit = await gambleHarness(buyer);
+  kit.MerchantShop._collectGambleLoot = async (_results, result) => { result.currency.gp += 5; };
+  globalThis.ui.notifications.error = (m) => kit.toasts.push(["error", m]);
+  const apply = buyer.update.bind(buyer);
+  let writes = 0;
+  buyer.update = async (changes) => (++writes === 1 ? apply(changes) : undefined);   // the charge lands; the winnings are vetoed
+  await kit.MerchantShop._handleGamble({ buyerActorId: "pc1", gambleId: "g1" }, PLAYER);
+  assert.equal(copperOf(buyer), 900);
+  assert.equal(kit.toasts.filter(([kind, m]) => kind === "error" && m.startsWith("SDE.merchant.notify.coinsNotSaved")).length, 1);
+});
