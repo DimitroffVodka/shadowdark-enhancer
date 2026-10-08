@@ -5556,7 +5556,7 @@
   "SDE.adventure.map.alreadyBuilt": "{title} already has a scene. Picking it up where it was left.",
   "SDE.adventure.placer.wallsDone": "Added {walls} walls and {doors} doors to the map.",
   "SDE.adventure.placer.wallsMismatch": "This map's picture is not the shape the module's walls were made on, so no walls were added.",
-  "SDE.adventure.placer.lightsDone": "Added {lights} fixed light to the map (the Darkness slider in the scene's settings makes it matter).",
+  "SDE.adventure.placer.lightsDone": "Added {lights} fixed light to the map.",
   "SDE.adventure.placer.wallsFailed": "The walls could not be added to this map.",
   "SDE.adventure.placer.trapsDone": "Added {placed} traps to the map as hidden regions, filled in from your book.",
   "SDE.adventure.placer.trapsSkipped": "{n} traps were left out because the book's text did not match what the module expects (areas {pins}).",
