@@ -31,6 +31,7 @@ import { WARBAND_FLAG, warbandState, warbandWrites } from "./warband-npc-sheet.m
 import { garrisonFor } from "./warband-garrison.mjs";
 import { GRANARY_SAVING_GP, BARRACKS_HEAL } from "../bastion/bastion-core.mjs";
 import { isActiveGM } from "../shared/gm-relay.mjs";
+import { L as t } from "../shared/i18n.mjs";
 
 /** World setting: the last month key charged, so a clock set back and moved on again doesn't charge a month twice. */
 export const LAST_MONTH_SETTING = "warbandLastMonth";
@@ -54,7 +55,6 @@ const withMark = (list, key, keep) => [...new Set([...list, key])].sort((a, b) =
 const MAX_DAYS = 366;
 const MAX_WEEKS = 8;
 
-const t = (key, data) => (data ? game.i18n.format(key, data) : game.i18n.localize(key));
 
 /**
  * The warband's commander, a world PC, or null: one in a compendium can't pay or be paid from.

@@ -12,13 +12,8 @@
 
 import { hexNum } from "../importer/hex/hex-dataset.mjs";
 import { SETTLEMENT_KINDS } from "../rules-data/rules-data-core.mjs";
+import { L } from "../shared/i18n.mjs";
 
-/** One string from `languages/en.json`; the key when no i18n is mounted. */
-const L = (key, data) => {
-  const i18n = globalThis.game?.i18n;
-  if (!i18n) return key;
-  return data ? i18n.format(key, data) : i18n.localize(key);
-};
 
 /**
  * A pick, roll and result name their activity by `slotKey`. Recruiting's is

@@ -46,6 +46,7 @@ import {
   withDieStep,
   withTrainingGrant,
 } from "./downtime-effects-core.mjs";
+import { L } from "../shared/i18n.mjs";
 
 export {
   ARCANE_POTION_NAMES,
@@ -59,12 +60,6 @@ export {
 };
 
 /** v14 string change type. Numeric `mode` is deprecated since v14, gone in v16. */
-/** One string from `languages/en.json`; the key when no i18n is mounted. */
-const L = (key, data) => {
-  const i18n = globalThis.game?.i18n;
-  if (!i18n) return key;
-  return data ? i18n.format(key, data) : i18n.localize(key);
-};
 
 const AE_CHANGE_ADD = "add";
 
@@ -785,8 +780,6 @@ const HANDLERS = {
   "divine-trade-spell": (actor, choice) => tradeSpell(actor, choice),
 };
 
-/** Slot keys with a real mechanical writer (the rest are GM-adjudicated). */
-export const MECHANICAL_SLOT_KEYS = Object.keys(HANDLERS);
 
 /* ────────────────────────────────────────────────────────────────────────── */
 /* Merchant-side extortion consumption helpers                                */

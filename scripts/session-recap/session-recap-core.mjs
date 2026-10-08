@@ -24,13 +24,9 @@ import { recapRow as renownRecapRow } from "../renown/renown-core.mjs";
 import {
   recapRow as carousingRecapRow, carousingSubtotal, tierLine,
 } from "./carousing-feed-core.mjs";
+import { L } from "../shared/i18n.mjs";
+import { toCopper } from "../shared/coins.mjs";
 
-/** One string from `languages/en.json`; the key when no i18n is mounted. */
-const L = (key, data) => {
-  const i18n = globalThis.game?.i18n;
-  if (!i18n) return key;
-  return data ? i18n.format(key, data) : i18n.localize(key);
-};
 
 /** Empty session payload. Cloned on session start / clear. */
 export const DEFAULT_DATA = {
@@ -63,10 +59,8 @@ export function emptyPlayerStat(name) {
   };
 }
 
-/** Reduce a `{gp, sp, cp}` price to a single copper total (1gp = 100cp). */
-export function toCopper(price) {
-  return (price?.gp ?? 0) * 100 + (price?.sp ?? 0) * 10 + (price?.cp ?? 0);
-}
+/** Reduce a `{gp, sp, cp}` price to a single copper total (1gp = 100cp): the shared coins helper, re-exported for the recap window. */
+export { toCopper };
 
 /** Format a copper total as a short `gp/sp/cp` string, e.g. `"5gp 3sp"`. */
 export function formatCurrency(cpTotal) {

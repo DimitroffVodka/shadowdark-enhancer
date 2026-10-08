@@ -19,6 +19,7 @@ import {
   startOverland, endOverland, rollWeather, weatherNow, weatherName, startDayFromParty, resume, overlandState, OVERLAND_CHANGED,
   askForage, forage, makeCamp,
 } from "../overland/overland.mjs";
+import { L as loc } from "../shared/i18n.mjs";
 
 const BAR_ID = "shadowdark-enhancer-bar";
 
@@ -148,7 +149,6 @@ export const CrawlBar = {
     if (!this._el) return;
     const state = CrawlState;
     this._weatherShown = this._badgeWeather();
-    const loc = (key, data) => (data ? game.i18n.format(key, data) : game.i18n.localize(key));
 
     // COMBAT state
     if (state.mode === "combat") {

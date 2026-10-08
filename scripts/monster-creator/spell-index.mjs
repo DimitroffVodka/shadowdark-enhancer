@@ -9,15 +9,10 @@
  * Mirrors the EncounterBrowse data-layer shape (listSources / loadAll /
  * filter / sort / invalidate) but for Item packs + world items.
  */
+import { L } from "../shared/i18n.mjs";
 
 const DEFAULT_IMG = "icons/svg/daze.svg";
 
-/** One string from `languages/en.json`; the key when no i18n is mounted. */
-const L = (key, data) => {
-  const i18n = globalThis.game?.i18n;
-  if (!i18n) return key;
-  return data ? i18n.format(key, data) : i18n.localize(key);
-};
 
 // In-memory cache: sourceId → array<row>. Cleared on browser refresh.
 const _cache = new Map();

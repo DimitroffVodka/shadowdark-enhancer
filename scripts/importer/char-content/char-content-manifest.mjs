@@ -176,11 +176,6 @@ export const SPELL_LIST_VARIANTS = {
 export const SPELL_LIST_CLASS_ALIASES = Object.fromEntries(
   Object.entries(SPELL_LIST_VARIANTS).map(([list, v]) => [list, v.casterClass]));
 
-/** SPELL_LISTS source key → the char-builder source slug the importer stamps. */
-export const LIST_SOURCE_SLUG = {
-  CS4: "cursed-scroll-4", CS5: "cursed-scroll-5", CS6: "cursed-scroll-6", WR: "western-reaches",
-};
-
 /**
  * Live presence of each SPELL_LISTS caster list. Reads every Spell's
  * alignment flag and class links (from the compendium INDICES — cheap, no
@@ -1019,41 +1014,6 @@ export const TALENT_CLASSES = {
   "spellcasting (green knight)": ["Green Knight"],
   "spellcasting (necromancer)": ["Necromancer"],
 };
-
-/**
- * Resolve the class(es) a talent belongs to. Order: explicit TALENT_CLASSES →
- * trailing "(Class Name)" that matches a known class → [] (→ Multi node).
- * @returns {string[]}
- */
-export function classesForTalent(name) {
-  const key = _norm(name);
-  if (TALENT_CLASSES[key]) return TALENT_CLASSES[key];
-  const m = String(name).match(/\(([^)]+)\)\s*$/);
-  if (m) {
-    const hit = MANIFEST_CLASSES.find((c) => _norm(c) === _norm(m[1]));
-    if (hit) return [hit];
-  }
-  return [];
-}
-
-/**
- * Feature labels that are structural class SECTIONS, not importable ability
- * items (e.g. every SD class lists "Languages", but a class's languages live on
- * the class item's system.languages — there's no item named "Languages"). These
- * are excluded from the Class Abilities census so they don't show as false gaps.
- */
-const NON_ABILITY_FEATURES = new Set(["languages", "hit points", "weapons", "armor", "titles"]);
-
-/**
- * Per-class ability (feature) name lists for the Manage tree's "Class Abilities"
- * leaf, seeded from the CLASS_SPECS.features (structural sections filtered out).
- * Classes absent here render an empty placeholder — fill in per class as sections
- * are confirmed.
- */
-export const CLASS_ABILITIES = Object.fromEntries(
-  Object.entries(CLASS_SPECS).map(([cls, spec]) =>
-    [cls, (spec.features ?? []).filter((f) => !NON_ABILITY_FEATURES.has(_norm(f)))]),
-);
 
 /**
  * Public: is a live table present under this display/manifest name? Suffix-aware

@@ -523,7 +523,6 @@ export function deriveClassIdiom(classItem = {}, talentDocs = []) {
   };
 }
 
-export const deriveClassIdiomSignals = deriveClassIdiom;
 
 /** Find the pure choice family for a builder effect name. */
 export function choiceSpecFor(effectName) {
@@ -702,8 +701,6 @@ export function resolveAbilityScores(first, second = null, third = null, fourth 
   })]);
 }
 
-export const resolveStats = resolveAbilityScores;
-export const resolveAbilityAllocation = resolveAbilityScores;
 
 function optionAbility(value) {
   if (isObject(value)) return normalizeAbility(value.ability ?? value.key ?? value.stat)
@@ -755,9 +752,6 @@ export function resolvePlusTwoChoice(first, second = null, third = null) {
   })], fallback);
 }
 
-export const resolveStatChoice = resolvePlusTwoChoice;
-export const resolveAbilityChoice = resolvePlusTwoChoice;
-export const resolvePlusTwo = resolvePlusTwoChoice;
 
 function optionAbilities(option) {
   const document = candidateDocument(option);
@@ -816,7 +810,6 @@ export function resolveTalentChoice(first, second = null, third = null) {
 }
 
 export const resolveTalent = resolveTalentChoice;
-export const resolveChooseOneTalent = resolveTalentChoice;
 
 function normalizeChoiceConfig(first, second, third, fourth) {
   if (Array.isArray(first)) {
@@ -853,8 +846,6 @@ export function resolveWeaponChoice(first, second = null, third = null, fourth =
   })], fallback);
 }
 
-export const resolveWeaponMastery = resolveWeaponChoice;
-export const resolveMasteryChoice = resolveWeaponChoice;
 
 /** Resolve Armor Mastery by legal AC, with stable name tie-break. */
 export function resolveArmorChoice(first, second = null, third = null, fourth = null) {
@@ -870,7 +861,6 @@ export function resolveArmorChoice(first, second = null, third = null, fourth = 
   })]);
 }
 
-export const resolveArmorMastery = resolveArmorChoice;
 
 function tierOf(spell) {
   const value = candidateDocument(spell)?.system?.tier ?? spell?.tier;
@@ -925,7 +915,6 @@ export function resolveSpellcastingAdvantage(first, second = null, third = null)
   })], fallback);
 }
 
-export const resolveSpellAdvantage = resolveSpellcastingAdvantage;
 
 function quotasOf(value, level = null) {
   const source = value?.spellcasting?.spellsknown ?? value?.spellsknown ?? value?.quotas ?? value;
@@ -990,8 +979,6 @@ export function resolveSpellSelection(first, second = null, third = null) {
   })], fallback);
 }
 
-export const resolveSpells = resolveSpellSelection;
-export const resolveSpellChoices = resolveSpellSelection;
 
 function stablePool(candidates) {
   return [...candidates].sort(stableCandidateCompare);
@@ -1163,13 +1150,7 @@ export function resolveLoadout(first, second = null, third = null, fourth = null
   })], fallback);
 }
 
-export const resolveGearLoadout = resolveLoadout;
 
-export const resolvePatronChoice = resolvePatron;
-export const resolveDeityChoice = resolveDeity;
-export const resolveArmor = resolveArmorChoice;
-export const resolveWeapon = resolveWeaponChoice;
-export const resolveSpell = resolveSpellSelection;
 
 /** Dispatch a supported REPLACEME family without importing builder code. */
 export function resolveChoice(specOrEffect, config = {}) {
@@ -1224,7 +1205,6 @@ export function resolveChoosableEffects(document, config = {}) {
   return decision(values, signals, fallbackUsed);
 }
 
-export const resolveAllChoosableEffects = resolveChoosableEffects;
 
 /**
  * Convenience aggregate for a level-1 planner.  It intentionally only calls

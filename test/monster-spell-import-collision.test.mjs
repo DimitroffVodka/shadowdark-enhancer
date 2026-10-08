@@ -180,6 +180,14 @@ test("nothing is invented when there is nothing to rescue", () => {
   assert.equal(preservedModuleFlags({ [MODULE_ID]: { imported: true } }, undefined), null);
 });
 
+test("another package's namespace is merged key by key too: a spell re-import keeps Extras' animationFx", () => {
+  const merged = preservedModuleFlags(
+    { "shadowdark-extras": { alignment: "lawful" } },
+    { "shadowdark-extras": { alignment: "chaotic", animationFx: "fire" } },
+  );
+  assert.deepEqual(merged["shadowdark-extras"], { alignment: "lawful", animationFx: "fire" });
+});
+
 test("a payload that drops our namespace entirely still keeps the module block", () => {
   const merged = preservedModuleFlags({ "shadowdark-extras": { alignment: "chaotic" } }, monsterSpellFlags());
   assert.deepEqual(merged[MODULE_ID], monsterSpellFlags()[MODULE_ID]);
@@ -275,6 +283,29 @@ test("an in-place replacement keeps the module block the payload never mentioned
   assert.equal(old.updateCalls[0].options.recursive, false, "still the wholesale update");
   assert.deepEqual(written[MODULE_ID].monsterSpell, monsterSpellFlags()[MODULE_ID].monsterSpell);
   assert.equal(written[MODULE_ID].imported, true);
+});
+
+test("a re-import keeps another module's flags and the item's effects, which the payload never mentions", async () => {
+  const bleed = { id: "e1", toObject: () => ({ _id: "e1", name: "Bleeding" }) };
+  const old = storedSpell({
+    effects: [bleed],
+    flags: { ...monsterSpellFlags(), "shadowdark-extras": { automation: "fire" }, core: { sheetClass: "x" } },
+  });
+  await replaceDocument(
+    old,
+    { name: "Fireball - Goblin Shaman", type: "Spell", flags: { [MODULE_ID]: { imported: true } } },
+    fakePack,
+  );
+  const written = old.updateCalls[0].data.flags;
+  assert.deepEqual(written["shadowdark-extras"], { automation: "fire" });
+  assert.deepEqual(written.core, { sheetClass: "x" });
+  assert.equal(written[MODULE_ID].imported, true);
+  assert.deepEqual(old.effects, [bleed], "no effects key in the payload: the effects stay");
+
+  FakeItem.created = [];
+  const failing = storedSpell({ updateFails: true, effects: [bleed] });
+  await replaceDocument(failing, { name: "Fireball - Goblin Shaman", type: "Spell" }, fakePack);
+  assert.deepEqual(FakeItem.created[0].payload.effects, [{ _id: "e1", name: "Bleeding" }], "a recreate carries them over");
 });
 
 test("the create-then-delete fallback carries the module block too", async () => {

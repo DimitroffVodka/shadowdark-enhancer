@@ -5,6 +5,7 @@
  * syntax, statics included) and installMethods copies the property
  * descriptors onto ImporterHubApp.
  */
+import { L as t } from "../shared/i18n.mjs";
 
 
 /**
@@ -15,11 +16,7 @@
  * worth throwing over. Falls back to the key, which is what Foundry shows for
  * a missing translation anyway.
  */
-export const t = (key, data) => {
-  const i18n = globalThis.game?.i18n;
-  if (!i18n) return key;
-  return data ? i18n.format(key, data) : i18n.localize(key);
-};
+export { t };
 
 /** Common source labels offered as datalist suggestions. */
 export const SOURCE_SUGGESTIONS = ["CS1", "CS2", "CS3", "CS4", "CS5", "CS6",

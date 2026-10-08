@@ -1,10 +1,10 @@
-// Roll Tables, Adventure Placer and Token Art Manager on the new design: window classes, the Token Art Manager's
+// Adventure Placer and Token Art Manager on the new design: window classes, the Token Art Manager's
 // Monsters / Sources tab and its row count.
 import { test, before } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 
-let TokenArtManagerApp, RollTablesApp, AdventurePlacer;
+let TokenArtManagerApp, AdventurePlacer;
 before(async () => {
   globalThis.foundry = {
     applications: {
@@ -19,12 +19,10 @@ before(async () => {
   globalThis.ui = {};
   globalThis.CONFIG = {};
   ({ TokenArtManagerApp } = await import("../scripts/monster-art/token-art-manager-app.mjs"));
-  ({ RollTablesApp } = await import("../scripts/importer/tables/table-hub-app.mjs"));
   ({ AdventurePlacer } = await import("../scripts/importer/adventure/adventure-placer.mjs"));
 });
 
-test("the three windows carry the kit and importer classes; the placer no longer borrows the system's look", () => {
-  assert.deepEqual(RollTablesApp.DEFAULT_OPTIONS.classes, ["sde-ui", "sde-imp"]);
+test("both windows carry the kit and importer classes; the placer no longer borrows the system's look", () => {
   assert.deepEqual(TokenArtManagerApp.DEFAULT_OPTIONS.classes.slice(0, 2), ["sde-ui", "sde-imp"]);
   assert.deepEqual(AdventurePlacer.DEFAULT_OPTIONS.classes.slice(0, 2), ["sde-ui", "sde-imp"]);
   assert.ok(!AdventurePlacer.DEFAULT_OPTIONS.classes.includes("shadowdark"));

@@ -33,6 +33,7 @@ import { columnManifestId, findById, isSharedTableName } from "./table-manifest.
 import { sourceKey as _sourceKey, sourceLabel as _sourceLabel } from "../../shared/source-keys.mjs";
 import { ensurePatronItem, patronBlurbFromPage, patronNameFromTable } from "./patron-items.mjs";
 import { t as loc } from "../importer-hub-shared.mjs";
+import { replacementFlags } from "../../shared/module-flags.mjs";
 
 // Trailing "+" (e.g. "14+" = the top row of a d14 table) is accepted and
 // treated as the plain number — the shape's size caps the die, so "14+" is row 14.
@@ -3815,15 +3816,19 @@ export function findExistingByManifestOrName(index, manifestId, name) {
  * @param {object} data  full table data (may carry a `results` array)
  * @returns {Promise<RollTable>} the same document
  */
-async function replaceRollTableInPlace(target, data) {
+async function replaceRollTableInPlace(target, data, { exact = false } = {}) {
   const rows = Array.isArray(data?.results) ? data.results.map((r) => foundry.utils.deepClone(r)) : [];
   const top = { ...data };
   delete top.results;
   delete top._id;
+  // `recursive: false` replaces `flags` whole: carry over every namespace (and key of ours) the bundle does not
+  // declare. A rollback (`exact`) writes its snapshot back as it was.
+  const flags = exact ? null : replacementFlags(top.flags, target.flags).update;
+  if (flags) top.flags = flags;
   await target.update(top, { recursive: false });
   const oldIds = [...(target.results ?? [])].map((r) => r.id ?? r._id).filter(Boolean);
-  if (oldIds.length) await target.deleteEmbeddedDocuments("TableResult", oldIds);
   if (rows.length) await target.createEmbeddedDocuments("TableResult", rows);
+  if (oldIds.length) await target.deleteEmbeddedDocuments("TableResult", oldIds);
   return target;
 }
 
@@ -3952,7 +3957,7 @@ export async function commitTableBundle(drafts, { onConflict } = {}) {
     remove: async (doc) => { await doc?.delete?.(); },
     restore: async (existing, token) => {
       const target = await pack.getDocument(existing._id);
-      if (target) await replaceRollTableInPlace(target, token);
+      if (target) await replaceRollTableInPlace(target, token, { exact: true });
     },
   };
 

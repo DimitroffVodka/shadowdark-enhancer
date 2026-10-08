@@ -45,6 +45,22 @@ export const LootDelivery = {
   // JS; only the active GM processes, so one Set is authoritative).
   _claimsInFlight: new Set(),
 
+  // Every write to one card runs in turn, each re-reading the card the last one wrote. Each writes the whole row list
+  // back, so a claim of row 1 landing beside a claim of row 0 used to un-claim row 0 after its item was handed out,
+  // and a GM's Give or Assign raced a player's claim of the same row or coins.
+  _cardQueues: new Map(),
+  _onCard(messageId, work) {
+    const next = (this._cardQueues.get(messageId) ?? Promise.resolve()).catch(() => {}).then(work);
+    this._cardQueues.set(messageId, next);
+    next.finally(() => { if (this._cardQueues.get(messageId) === next) this._cardQueues.delete(messageId); }).catch(() => {});
+    return next;
+  },
+  _handleClaimItem(data, user = game.user) { return this._onCard(data?.messageId, () => this._claimItem(data, user)); },
+  _handleClaimCoins(data, user = game.user) { return this._onCard(data?.messageId, () => this._claimCoins(data, user)); },
+  _handleAssignCoins(data) { return this._onCard(data?.messageId, () => this._assignCoins(data)); },
+  _handleGiveItem(data) { return this._onCard(data?.messageId, () => this._giveItem(data)); },
+  _handleForgedReplace(messageId, itemIndex, forged) { return this._onCard(messageId, () => this._forgedReplace(messageId, itemIndex, forged)); },
+
   /** Register the claim query + chat-card wiring. Call once at init. */
   init() {
     registerQuery(LOOT_QUERY, (data, { user } = {}) => LootDelivery.handleQuery(data, user));
@@ -318,7 +334,7 @@ export const LootDelivery = {
    *                       naming a GM opened this gate for anyone, because
    *                       `testUserPermission` returns OWNER for every GM.
    */
-  async _handleClaimItem({ messageId, itemIndex, actorId }, user = game.user) {
+  async _claimItem({ messageId, itemIndex, actorId }, user = game.user) {
     const message = game.messages.get(messageId);
     const flags = message?.flags?.[MODULE_ID];
     if (!flags?.lootCard) return { ok: false, error: game.i18n.localize("SDE.loot.card.error.cardGone") };
@@ -351,7 +367,7 @@ export const LootDelivery = {
   },
 
   /** GM assigns the coin pile to a chosen character. */
-  async _handleAssignCoins({ messageId, actorId }) {
+  async _assignCoins({ messageId, actorId }) {
     const message = game.messages.get(messageId);
     const flags = message?.flags?.[MODULE_ID];
     if (!flags?.lootCard || flags.coinsAssigned) return;
@@ -377,16 +393,16 @@ export const LootDelivery = {
    * First claim wins via the shared coinsAssigned lock; coins are added to the
    * actor's system.coins. Validates the claimer owns the actor (or is GM).
    */
-  async _handleClaimCoins({ messageId, actorId }, user = game.user) {
+  async _claimCoins({ messageId, actorId }, user = game.user) {
     const message = game.messages.get(messageId);
     const flags = message?.flags?.[MODULE_ID];
     if (!flags?.lootCard) return { ok: false, error: game.i18n.localize("SDE.loot.card.error.cardGone") };
     if (flags.coinsAssigned) return { ok: false, error: game.i18n.localize("SDE.loot.card.error.coinsClaimed") };
-    const auth = authorizeActorFor(actorId, user);   // see _handleClaimItem
+    const auth = authorizeActorFor(actorId, user);   // see _claimItem
     if (!auth.ok) return auth;
     const actor = auth.actor;
 
-    // Synchronous in-memory lock (see _handleClaimItem) so two concurrent coin
+    // Synchronous in-memory lock (see _claimItem) so two concurrent coin
     // claims can't both credit before either persists the coinsAssigned flag.
     const lockKey = `${messageId}:coins`;
     if (this._claimsInFlight.has(lockKey)) return { ok: false, error: game.i18n.localize("SDE.loot.card.error.coinsClaimed") };
@@ -433,7 +449,7 @@ export const LootDelivery = {
   },
 
   /** GM gives an item to a chosen actor (no socket — GM-initiated). */
-  async _handleGiveItem({ messageId, itemIndex, actorId }) {
+  async _giveItem({ messageId, itemIndex, actorId }) {
     const message = game.messages.get(messageId);
     const flags = message?.flags?.[MODULE_ID];
     if (!flags?.lootCard) return;
@@ -454,7 +470,7 @@ export const LootDelivery = {
   },
 
   /** Upgrade a forged-from-loot placeholder in place: point the card item at the real item. */
-  async _handleForgedReplace(messageId, itemIndex, forged) {
+  async _forgedReplace(messageId, itemIndex, forged) {
     const message = game.messages.get(messageId);
     const flags = message?.flags?.[MODULE_ID];
     if (!flags?.lootCard || !forged) return;

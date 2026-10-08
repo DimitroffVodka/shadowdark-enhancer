@@ -315,15 +315,3 @@ export async function gatherLootLibraryCensus() {
     }),
   }));
 }
-
-/**
- * Resolve the present table matching a single tier entry (world/pack/system),
- * or null. Used by the Loot Setup tier slots to offer a one-click bind.
- */
-export async function findTierTable(tier) {
-  const entry = LOOT_TIER_ENTRIES.find((t) => t.tier === tier);
-  if (!entry) return null;
-  const all = await scanAllTables();
-  const hit = all.find((t) => nameMatches(t.name, entry.name));
-  return hit ? { uuid: hit.uuid, name: hit.name, where: hit.group } : null;
-}

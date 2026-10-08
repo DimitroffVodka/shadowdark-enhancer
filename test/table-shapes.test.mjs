@@ -429,7 +429,7 @@ test("folder resolver mirrors the Manage tree (category-first)", () => {
 
 // Every hub seed stamps `category = custom, customLabel = <the book's own
 // sub-heading>` and `folderPath = [category, sub]` onto the parsed table
-// (table-hub-app._applyImportSeed). Step 1 used to honour that outright, so
+// (importer-hub-paste._applyImportSeed). Step 1 used to honour that outright, so
 // each of the ~90 headings claimed a TOP-LEVEL pack folder — "Djurum Desert"
 // beside "Roll Tables" — while the catalog's browse list was grouped by region
 // all along. A manifestId now says the manifest places this table, not a label.

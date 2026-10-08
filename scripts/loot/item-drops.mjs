@@ -29,13 +29,15 @@ import { esc } from "../shared/esc.mjs";
 import { addToPurse } from "../shared/coins.mjs";
 import { relayToGM, authorizeActorFor, refuseQuery, registerQuery } from "../shared/gm-relay.mjs";
 import { compactCard } from "../shared/chat-cards.mjs";
+import { replaceModuleFlag } from "../shared/module-flags.mjs";
+import { L } from "../shared/i18n.mjs";
 
-/** One string from `languages/en.json`; the key when no i18n is mounted (node tests). */
-const L = (key, data) => {
-  const i18n = globalThis.game?.i18n;
-  if (!i18n) return key;
-  return data ? i18n.format(key, data) : i18n.localize(key);
-};
+/**
+ * Scene flag holding what a pile really holds. Every player owns a pile actor (the Token HUD pickup button needs it),
+ * so its own flags are theirs to rewrite; pickup trusts only this copy, on a scene only a GM can write.
+ */
+const pileKey = (actorId) => `pile-${actorId}`;
+
 
 /* -------------------------------------------- */
 /*  Droppable Item Types                        */
@@ -314,11 +316,25 @@ export const ItemDrops = {
    * Create a token on the canvas representing a dropped item.
    * GM-only execution (players arrive through `handleQuery`).
    *
+   * Drops from one character's stack run one at a time, each re-reading the
+   * stack the last one left: two quick drops of 5 from 10 arrows both read 10
+   * and both wrote 5, so two piles of 5 appeared and the character kept 5.
+   *
    * @param {object} data
    * @param {User} [requester]  The AUTHENTICATED user this acts for. Defaults
    *                            to the GM running it directly.
    */
-  async _createDroppedItemToken(data, requester = game.user) {
+  _createDroppedItemToken(data, requester = game.user) {
+    const key = data?.sourceActorId && data?.sourceItemId ? `${data.sourceActorId}:${data.sourceItemId}` : null;
+    if (!key) return this._dropItem(data, requester);
+    this._dropQueues ??= new Map();
+    const next = (this._dropQueues.get(key) ?? Promise.resolve()).catch(() => {}).then(() => this._dropItem(data, requester));
+    this._dropQueues.set(key, next);
+    next.finally(() => { if (this._dropQueues.get(key) === next) this._dropQueues.delete(key); }).catch(() => {});
+    return next;
+  },
+
+  async _dropItem(data, requester) {
     const { sourceActorId, sourceItemId, x, y, sceneId } = data;
     let itemData = data.itemData;
     let qtyToDrop = Math.max(1, Math.floor(Number(data.dropQty)) || 1);
@@ -354,20 +370,11 @@ export const ItemDrops = {
     }
     if (!itemData) return { ok: false, error: L("SDE.loot.itemDrops.error.nothingToDrop") };
 
-    // Remove item from source actor (or decrement quantity). World/compendium
-    // drops carry no source actor, so there is nothing to take from.
-    if (sourceActorId) {
-      const sourceActor = game.actors.get(sourceActorId);
-      const sourceItem = sourceActor?.items.get(sourceItemId);
-      if (sourceItem) {
-        const qty = Math.max(1, Math.floor(Number(sourceItem.system?.quantity ?? 1)) || 1);
-        if (qtyToDrop >= qty) {
-          await sourceItem.delete();
-        } else {
-          await sourceItem.update({ "system.quantity": qty - qtyToDrop });
-        }
-      }
-    }
+    // The pile is made first and the item taken off the character only once it
+    // stands on the scene: a pile that failed used to leave the item nowhere.
+    const scene = game.scenes.get(sceneId) || canvas.scene;
+    const failed = { ok: false, error: L("SDE.loot.itemDrops.error.dropFailed") };
+    if (!scene) return failed;
 
     // The dropped token carries exactly the quantity that was dropped.
     if (itemData.system) itemData.system.quantity = qtyToDrop;
@@ -397,18 +404,41 @@ export const ItemDrops = {
       },
     });
 
+    if (!actor) return failed;
+
     // Place token on the scene — explicitly set texture to the item's icon
-    const scene = game.scenes.get(sceneId) || canvas.scene;
     const tokenImg = itemData.img || "icons/svg/item-bag.svg";
-    await scene.createEmbeddedDocuments("Token", [{
-      actorId: actor.id,
-      name: itemData.name,
-      texture: { src: tokenImg },
-      x: x - 25, // Center the 0.5-size token
-      y: y - 25,
-      width: 0.5,
-      height: 0.5,
-    }]);
+    try {
+      await scene.createEmbeddedDocuments("Token", [{
+        actorId: actor.id,
+        name: itemData.name,
+        texture: { src: tokenImg },
+        x: x - 25, // Center the 0.5-size token
+        y: y - 25,
+        width: 0.5,
+        height: 0.5,
+      }]);
+      await replaceModuleFlag(scene, pileKey(actor.id), { item: itemData });
+    } catch (err) {
+      // Only the pile actor this call made is removed; the item never left the character.
+      console.error(`${MODULE_ID} | item drop: the pile could not be placed`, err);
+      await actor.delete?.().catch(() => {});
+      return failed;
+    }
+
+    // Now take it from the source actor (or lower its quantity). World/compendium
+    // drops carry no source actor, so there is nothing to take from.
+    if (sourceActorId) {
+      const sourceItem = game.actors.get(sourceActorId)?.items.get(sourceItemId);
+      if (sourceItem) {
+        const qty = Math.max(1, Math.floor(Number(sourceItem.system?.quantity ?? 1)) || 1);
+        if (qtyToDrop >= qty) {
+          await sourceItem.delete();
+        } else {
+          await sourceItem.update({ "system.quantity": qty - qtyToDrop });
+        }
+      }
+    }
 
     console.log(`${MODULE_ID} | Item dropped: ${itemData.name} at (${x}, ${y})`);
     return { ok: true };
@@ -529,6 +559,7 @@ export const ItemDrops = {
       width: 0.5,
       height: 0.5,
     }]);
+    await replaceModuleFlag(scene, pileKey(actor.id), { coins: coinData });
 
     console.log(`${MODULE_ID} | Coins dropped: ${label} on ${scene.name}`);
     await this._revealDrop(scene, dropX, dropY);
@@ -616,17 +647,22 @@ export const ItemDrops = {
     if (this._pickupInFlight.has(actorId)) return { ok: false, error: L("SDE.loot.itemDrops.error.pickupInFlight") };
     this._pickupInFlight.add(actorId);
     try {
-      await this._doPickup(dropActor, recipient, tokenId, sceneId);
-      return { ok: true };
+      return (await this._doPickup(dropActor, recipient, tokenId, sceneId, requester)) ?? { ok: true };
     } finally {
       this._pickupInFlight.delete(actorId);
     }
   },
 
   /** Inner pickup body, run under the in-flight lock in `_handlePickup`. */
-  async _doPickup(dropActor, recipient, tokenId, sceneId) {
-    const coinData = dropActor.getFlag(MODULE_ID, "droppedCoinData");
-    const itemData = dropActor.getFlag(MODULE_ID, "droppedItemData");
+  async _doPickup(dropActor, recipient, tokenId, sceneId, requester = game.user) {
+    const key = pileKey(dropActor.id);
+    const recordScene = game.scenes.find((s) => s.getFlag(MODULE_ID, key));
+    // A pile dropped before the scene record existed: only a GM is trusted with what the pile's own flags say.
+    const held = recordScene?.getFlag(MODULE_ID, key) ?? (requester?.isGM
+      ? { coins: dropActor.getFlag(MODULE_ID, "droppedCoinData"), item: dropActor.getFlag(MODULE_ID, "droppedItemData") }
+      : null);
+    if (!held) return { ok: false, error: L("SDE.loot.itemDrops.error.gmPickup") };
+    const coinData = held.coins, itemData = held.item;
     if (!coinData && !itemData) return;
 
     let cardImg, cardLabel, recapEntry;
@@ -702,6 +738,7 @@ export const ItemDrops = {
     const token = scene.tokens.get(tokenId);
     if (token) await token.delete();
     await dropActor.delete();
+    await recordScene?.unsetFlag(MODULE_ID, key);
 
     // Notify + chat card
     ui.notifications.info(L("SDE.loot.itemDrops.notify.pickedUp", { name: recipient.name, label: cardLabel }));

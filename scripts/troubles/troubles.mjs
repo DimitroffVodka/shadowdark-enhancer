@@ -27,6 +27,7 @@ import { secondsPerDay } from "../time/time-core.mjs";
 import { Quests, openQuestLog, jumpToHex } from "../quests/quests.mjs";
 import * as core from "./trouble-core.mjs";
 import { troubleCard } from "../shared/chat-cards.mjs";
+import { L as t } from "../shared/i18n.mjs";
 
 /** World setting: the quiet weeks since trouble last stirred. */
 export const QUIET_SETTING = "troubleQuietWeeks";
@@ -48,7 +49,6 @@ const TABLES = {
   urgency: "Trouble Urgency Level",
 };
 
-const t = (key, data) => (data ? game.i18n.format(key, data) : game.i18n.localize(key));
 const resultText = (r) => String(r?.name || r?.description || "").replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
 const rollDie = async (formula) => (await new Roll(formula).evaluate()).total;
 

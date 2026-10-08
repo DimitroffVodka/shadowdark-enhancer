@@ -21,18 +21,13 @@
 
 import { MODULE_ID } from "../shared/module-id.mjs";
 import { DEFAULT_ARENA_MAP_ID, getArenaMap } from "./arena-maps.mjs";
+import { L } from "../shared/i18n.mjs";
 
 /** The per-map flag namespace key: which scene holds which map. */
 const ARENA_FLAG_KEY = "arenaMap";
 
 const SCENE_PREFIX = "Arena:";
 
-/** One string from `languages/en.json`; the key when no i18n is mounted. */
-const L = (key, data) => {
-  const i18n = globalThis.game?.i18n;
-  if (!i18n) return key;
-  return data ? i18n.format(key, data) : i18n.localize(key);
-};
 
 /**
  * The scene name for a map, e.g. "Arena: Large Arena".

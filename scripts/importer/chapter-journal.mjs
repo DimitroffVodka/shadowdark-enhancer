@@ -28,6 +28,7 @@ import { escapeHtml } from "./pdf-text-utils.mjs";
 import { PAGE_FURNITURE_RE, isHeading, reflowBodyLines } from "./tables/hex-parser.mjs";
 import { titleCaseName } from "./monsters/statblock-parser.mjs";
 import { HEX_FLAG } from "./hex/hex-commit.mjs";
+import { L as t } from "../shared/i18n.mjs";
 
 /** Flag key under `flags.shadowdark-enhancer` on the entry and its pages. */
 export const CHAPTER_FLAG = "chapter";
@@ -243,7 +244,6 @@ export function withLink(content, uuid, paragraph) {
 
 // ── Foundry-bound ─────────────────────────────────────────────────────────────
 
-const t = (key, data) => (data ? game.i18n.format(key, data) : game.i18n.localize(key));
 
 /**
  * Read a chapter out of the GM's own PDF. Printed pages are offset to PDF

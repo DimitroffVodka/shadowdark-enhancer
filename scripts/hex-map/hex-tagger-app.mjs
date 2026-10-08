@@ -36,6 +36,7 @@ import { resolveTab } from "./hex-tagger-tabs.mjs";
 import { datasetFromEntries, handoffDataset, handoffToPrint, extrasHexApi } from "../importer/hex/hex-handoff.mjs";
 import { buildHexDataset, validateHexDataset, hexNum, assignmentsFromManifest } from "../importer/hex/hex-dataset.mjs";
 import { A0_PRINT, A0_TOTAL, isA0, a0Origin, copyTags, copiedTerrain, copySource, regionSource, playablePlan } from "./a0-print.mjs";
+import { L as t } from "../shared/i18n.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
@@ -54,11 +55,6 @@ export const ALL_CRAWLS = "*";
  * never worth throwing over. Falls back to the key, which is what Foundry shows
  * for a missing translation anyway.
  */
-const t = (key, data) => {
-  const i18n = globalThis.game?.i18n;
-  if (!i18n) return key;
-  return data ? i18n.format(key, data) : i18n.localize(key);
-};
 export const SHEET_SIZE = 40;
 /** Legend answer meaning "these pictures are not one thing": break the card up and ask again. */
 export const SPLIT = "__split";

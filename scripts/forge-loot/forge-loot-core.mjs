@@ -471,10 +471,6 @@ export function canGeneratePreview(state) {
   );
 }
 
-export function isPreviewImmutable(state) {
-  return !!state?.preview && Object.isFrozen(state.preview);
-}
-
 // Empty on purpose, and there is no longer a factory for "unavailable"
 // placeholder adapters.  A placeholder rendered as a live button in the picker
 // and read as a shipped feature, so an unimplemented generator advertised
@@ -828,13 +824,3 @@ export function buildPreviewDisplay({ preview = null, view = null, generator = n
     sections: [{ title: L("SDE.forgeLoot.preview.proposal"), rows }],
   });
 }
-
-/** Names kept explicit so future generator tickets can discover the seam. */
-export const createState = createForgeLootState;
-export const reduceState = transitionForgeLootState;
-export const ForgeLootState = Object.freeze({
-  create: createForgeLootState,
-  transition: transitionForgeLootState,
-  canApprove: canApprovePreview,
-  canPreview: canGeneratePreview,
-});

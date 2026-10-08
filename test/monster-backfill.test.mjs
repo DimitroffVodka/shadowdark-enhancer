@@ -403,8 +403,8 @@ test("a failed structural create restores the source Item, keeps the Actor faile
     assert.equal(actor.items[0]._id, sourceItem._id, "keepId preserves the source Item _id");
     assert.equal(actor.items[0].uuid, sourceItem.uuid, "keepId preserves the source Item UUID");
     assert.deepEqual(actor.writes.map(([kind]) => kind), [
-      "update", "deleteEmbeddedDocuments", "createEmbeddedDocuments", "createEmbeddedDocuments",
-    ]);
+      "deleteEmbeddedDocuments", "createEmbeddedDocuments", "createEmbeddedDocuments",
+    ], "HTML notes are not rewritten, so the Actor itself takes no update");
     assert.deepEqual(actor.writes.at(-1)[1][0], restored, "the second create is the source snapshot");
     assert.deepEqual(actor.writes.at(-1)[2], { keepId: true }, "compensation opts into identity preservation");
     assert.equal(actor.items[0].id, actor.writes.at(-1)[1][0]._id, "the restored document id comes from its _id");
@@ -477,6 +477,24 @@ test("complete success has an empty failed list, while dryRun never writes or in
   assert.deepEqual(dryActor.writes, []);
   assert.deepEqual(dryGame.writes, []);
   assert.equal(dry.invalidations, 0);
+});
+
+test("a backfill keeps a GM's notes paragraph, and a rebuilt attack keeps other modules' flags and its effects", async () => {
+  const notes = `${STATS_NOTES}\n<p>Serves the Hag, see the Bog journal.</p>`;
+  const claw = Object.assign(structuralAttack(), {
+    flags: { "shadowdark-extras": { automation: "bleed" }, [MODULE_ID]: { gmNote: "kept" } },
+    effects: [{ _id: "e1", name: "Bleeding" }],
+  });
+  const actor = actorDouble({ id: "gm", name: "Edited Monster", notes, items: [claw] });
+
+  const result = await runPack(makeGame(), [actor]);
+  assert.deepEqual(result.failed, []);
+  assert.equal(actor.system.notes, notes, "the GM's paragraph survives");
+  const rebuilt = actor.items.find((i) => i.name === "Claw");
+  assert.ok(rebuilt, "the attack was rebuilt (name cased, icon set)");
+  assert.equal(rebuilt.flags["shadowdark-extras"].automation, "bleed");
+  assert.equal(rebuilt.flags[MODULE_ID].gmNote, "kept");
+  assert.deepEqual(rebuilt.effects.map((e) => e.name), ["Bleeding"]);
 });
 
 test("value-equal Actor art and notes are not redundantly rewritten, so the real backfill reaches a fixed point", async () => {

@@ -2,11 +2,12 @@ import { MODULE_ID } from "../shared/module-id.mjs";
 import { replaceModuleFlag } from "../shared/module-flags.mjs";
 import { cookGrant, cookHp, cookExpiry } from "./camping-core.mjs";
 import { isActiveGM } from "../shared/gm-relay.mjs";
+import { secondsPerDay } from "../time/time-core.mjs";
 const hp = actor => actor.system.attributes.hp;
 const benefit = actor => actor.flags?.[MODULE_ID]?.campCook;
 /** Internal C2 seam: call only AFTER this actor's fed, eligible full rest. No rest is performed here. */
 export async function applyCookAfterRest(actor, campId, eligible) {
-  const grant = cookGrant(hp(actor), benefit(actor), campId, game.time.worldTime, eligible);
+  const grant = cookGrant(hp(actor), benefit(actor), campId, game.time.worldTime, eligible, secondsPerDay(game.time.calendar));
   if (grant) await replaceModuleFlag(actor, "campCook", grant.benefit, { "system.attributes.hp.value": grant.value });
   return !!grant;
 }

@@ -22,6 +22,7 @@ import { mapFits } from "./map-labels.mjs";
 import { trapsFor, planSiteTraps, TRAP_REGION_FLAG } from "./adventure-traps.mjs";
 import { TRAP_TYPE } from "../../traps/traps.mjs";
 import { resolveMentions, bestiaryLookup } from "./adventure-creatures.mjs";
+import { L as t } from "../../shared/i18n.mjs";
 
 /** Scene flag: { site, entryId, skipped:[numbers] }. */
 export const MAP_FLAG = "adventureMap";
@@ -62,11 +63,6 @@ export const PIN_LABEL_COLOR = "#000000";
 
 export const pinLabelSize = (gridSize = DEFAULT_GRID_SIZE) => Math.min(128, Math.max(24, Math.round(pinSize(gridSize) / 2)));
 
-const t = (key, data) => {
-  const i18n = globalThis.game?.i18n;
-  if (!i18n) return key;
-  return data ? i18n.format(key, data) : i18n.localize(key);
-};
 
 /**
  * Pure: the scene's size and grid for an image.
@@ -497,23 +493,24 @@ export async function placeCreatureTokens(scene, site, rect, mentions) {
 
 /**
  * Build a site's walls and doors on its scene from the data that ships with the module (adventure-walls.mjs). Run again,
- * it replaces only the walls it made before (by their flag, deleted by id) and leaves any wall the GM drew.
+ * it changes nothing: once the scene has any wall the module made, every wall stays exactly as it is, so a GM who moved
+ * or retyped one keeps the correction. Nothing is ever deleted.
  * @param {Scene} scene
  * @param {{id:string}} site
- * @returns {Promise<{status:"built"|"none"|"mismatch", walls:number, doors:number, replaced:number}>}
- *   none: the module has no walls for this map; mismatch: the scene's picture is not the shape the data was made on
+ * @returns {Promise<{status:"built"|"kept"|"none"|"mismatch", walls:number, doors:number}>}
+ *   kept: the module's walls are already on the scene; none: the module has no walls for this map;
+ *   mismatch: the scene's picture is not the shape the data was made on
  */
 export async function placeSiteWalls(scene, site) {
-  const none = { status: "none", walls: 0, doors: 0, replaced: 0 };
+  const none = { status: "none", walls: 0, doors: 0 };
   const data = wallsFor(site?.id);
   if (!data) return none;
+  if (scene.walls.some((w) => w.getFlag(MODULE_ID, WALL_FLAG))) return { ...none, status: "kept" };
   const rect = scene.dimensions?.sceneRect ?? { x: 0, y: 0, width: scene.width, height: scene.height };
   if (!mapFits(data.aspect, rect.width, rect.height)) return { ...none, status: "mismatch" };
   const docs = planWalls(data, rect, wallTypes()).map((w) => ({ ...w, flags: { [MODULE_ID]: { [WALL_FLAG]: true } } }));
-  const old = scene.walls.filter((w) => w.getFlag(MODULE_ID, WALL_FLAG)).map((w) => w.id);
-  if (old.length) await scene.deleteEmbeddedDocuments("Wall", old);
   const made = await scene.createEmbeddedDocuments("Wall", docs);
-  return { status: "built", walls: made.length, doors: made.filter((w) => w.door).length, replaced: old.length };
+  return { status: "built", walls: made.length, doors: made.filter((w) => w.door).length };
 }
 
 /** Scene flag: set once the module has darkened a dungeon scene, so a GM who lightens it again is not overruled by a re-run. */
@@ -521,17 +518,17 @@ export const LIT_FLAG = "adventureLit";
 
 /**
  * Build a site's lights from the data that ships with the module, and darken the scene when the map is a dungeon lit by
- * what the party carries. Run again, it replaces only the lights it made, and darkens only once.
- * @returns {Promise<{status:"built"|"none"|"mismatch", lights:number, darkened:boolean}>}
+ * what the party carries. Run again, it leaves every light it made before exactly as it is (a GM may have moved or tuned
+ * one), and darkens only once. Nothing is ever deleted.
+ * @returns {Promise<{status:"built"|"kept"|"none"|"mismatch", lights:number, darkened:boolean}>}
  */
 export async function placeSiteLights(scene, site) {
   const none = { status: "none", lights: 0, darkened: false };
   const data = wallsFor(site?.id);
   if (!data || (!data.lights?.length && data.dark === undefined)) return none;
+  if (scene.lights.some((l) => l.getFlag(MODULE_ID, LIGHT_FLAG) !== undefined)) return { ...none, status: "kept" };
   const rect = scene.dimensions?.sceneRect ?? { x: 0, y: 0, width: scene.width, height: scene.height };
   if (!mapFits(data.aspect, rect.width, rect.height)) return { ...none, status: "mismatch" };
-  const old = scene.lights.filter((l) => l.getFlag(MODULE_ID, LIGHT_FLAG) !== undefined).map((l) => l.id);
-  if (old.length) await scene.deleteEmbeddedDocuments("AmbientLight", old);
   const docs = planLights(data, rect);
   const made = docs.length ? await scene.createEmbeddedDocuments("AmbientLight", docs) : [];
   let darkened = false;

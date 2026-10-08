@@ -13,7 +13,6 @@ import { secondsPerDay, startOfDay, moonPhase, anchor } from "../time/time-core.
  * Who sees the bar: the `clockBar` setting's choices, on a hex map only (#298).
  * Nobody while a combat runs, and nobody on a scene with no hex grid.
  */
-export const CLOCK_SHOWN = ["all", "gm", "off"];
 export const clockShown = ({ setting, isGM, combat, hex }) =>
   !!hex && !combat && (setting === "all" || (setting === "gm" && isGM));
 

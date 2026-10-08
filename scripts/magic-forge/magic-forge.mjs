@@ -20,9 +20,9 @@
  */
 import { MODULE_ID } from "../shared/module-id.mjs";
 import { esc } from "../shared/esc.mjs";
+import { L } from "../shared/i18n.mjs";
 
 export const TYPE_LABELS = { weapon: "Weapon", armor: "Armor", scroll: "Scroll", wand: "Wand", potion: "Potion", utility: "Utility" };
-export const TYPE_IDS = Object.keys(TYPE_LABELS);
 
 /** Forge types that produce a fully working item in this rebuild. */
 export const WORKING_TYPES = ["weapon", "armor", "scroll", "wand"];
@@ -35,12 +35,6 @@ const SD_TYPE = { weapon: "Weapon", armor: "Armor", scroll: "Scroll", wand: "Wan
 // under node --test. Numeric `mode` is deprecated since v14, removed in v16.
 const AE_CHANGE_ADD = "add";
 
-/** One string from `languages/en.json`; the key when no i18n is mounted. */
-const L = (key, data) => {
-  const i18n = globalThis.game?.i18n;
-  if (!i18n) return key;
-  return data ? i18n.format(key, data) : i18n.localize(key);
-};
 
 // Generic label for a Core-mode descriptive rider role (never book prose).
 // Keys, localized when the description is written.

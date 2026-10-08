@@ -6,8 +6,11 @@
  *
  * GM-only. Each handler guards against unnecessary writes by checking that
  * the target side's value differs from the new value — this prevents an
- * infinite hook loop (token→combatant→token→…).
+ * infinite hook loop (token→combatant→token→…). Only the active GM's working
+ * tab writes: every GM client sees the update, and the always-on Bridge made
+ * each sync write twice.
  */
+import { isActiveGM } from "../shared/gm-relay.mjs";
 
 export function registerHiddenSync() {
   // Adding a hidden token to combat creates a combatant with hidden=false
@@ -47,7 +50,7 @@ export function registerHiddenSync() {
 
   Hooks.on("updateToken", async (tokenDoc, changes) => {
     if (!("hidden" in changes)) return;
-    if (!game.user.isGM) return;
+    if (!isActiveGM()) return;
     if (!game.combat) return;
     const combatant = game.combat.combatants.find(c => c.tokenId === tokenDoc.id);
     if (!combatant) return;
@@ -57,7 +60,7 @@ export function registerHiddenSync() {
 
   Hooks.on("updateCombatant", async (combatant, changes) => {
     if (!("hidden" in changes)) return;
-    if (!game.user.isGM) return;
+    if (!isActiveGM()) return;
     const tokenDoc = combatant.token;
     if (!tokenDoc) return;
     if (tokenDoc.hidden === changes.hidden) return;

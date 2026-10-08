@@ -19,7 +19,10 @@ const t = (key, data = {}) => game.i18n.format(MOVEMENT_LABELS[key], data);
 const state = token => token?.flags?.[MODULE_ID]?.[FLAG] ?? {};
 export const isPartyDeployed = token => isParty(token?.actor) && state(token).deployed === true;
 export const inPartyCombat = scene => (game.combats?.contents ?? []).some(c => c.started && (!c.scene || c.scene.id === scene?.id));
-const roster = actor => Party.rows(actor).filter(r => r.actor && ["characters", "hirelings", "mounts"].includes(r.group));
+// With `user`, only members that user can see: the party's owner can write any uuid into its member list, and on
+// the GM's client every actor reads as visible, so a forged entry would deploy a hidden boss or move another PC.
+const roster = (actor, user = null) => Party.rows(actor).filter(r => r.actor && ["characters", "hirelings", "mounts"].includes(r.group)
+  && (!user || r.actor.testUserPermission(user, "OBSERVER")));
 const linked = (scene, uuid, partyUuid) => scene.tokens.contents.filter(d => d.actorLink && d.actor?.uuid === uuid && (!state(d).partyUuid || state(d).partyUuid === partyUuid));
 const serial = (key, work) => { const next = (queues.get(key) ?? Promise.resolve()).catch(() => {}).then(work); queues.set(key, next); return next; };
 function partyToken(ref, scene = globalThis.canvas?.scene) {
@@ -68,11 +71,12 @@ const collisionFor = (scene, token) => (a, b) => CONFIG.Canvas.polygonBackends.m
   { ...a, elevation: token.elevation }, { ...b, elevation: token.elevation },
   { type: "move", mode: "any", level: scene.levels.get(token._source.level) ?? scene.initialLevel });
 const dimensions = (scene, token) => ({ grid: scene.grid, sizeX: scene.grid.sizeX, sizeY: scene.grid.sizeY, bounds: scene.dimensions.sceneRect, blocked: collisionFor(scene, token) });
-async function gather({ actor, scene, token }) {
-  const eligible = roster(actor);
+async function gather({ actor, scene, token, user }) {
+  const eligible = roster(actor, user);
   const tokens = eligible.flatMap(r => linked(scene, r.uuid, actor.uuid));
-  // A roster edit while deployed orphans that member's flagged token; recall it too.
-  const members = new Set(eligible.map(r => r.uuid));
+  // A roster edit while deployed orphans that member's flagged token; recall it too. A member the requester
+  // cannot see is still a member, not an orphan.
+  const members = new Set(roster(actor).map(r => r.uuid));
   const orphans = scene.tokens.contents.filter(d => state(d).partyUuid === actor.uuid && !members.has(d.actor?.uuid));
   // Fail before the first write: combat that starts mid-save must not be aborted after persisting.
   if (inPartyCombat(scene)) throw new Error("SDE.party.movement.combat");
@@ -86,8 +90,8 @@ async function gather({ actor, scene, token }) {
   if (orphans.length) await scene.deleteEmbeddedDocuments("Token", orphans.map(d => d.id));
   return { ok: true, gathered: [...tokens, ...orphans].map(d => d.id) };
 }
-async function deploy({ actor, scene, token }) {
-  const data = Party.data(actor), rows = roster(actor), sources = new Map((state(token).packed ?? []).map(s => [s.actorId, s]));
+async function deploy({ actor, scene, token, user }) {
+  const data = Party.data(actor), rows = roster(actor, user), sources = new Map((state(token).packed ?? []).map(s => [s.actorId, s]));
   const entries = [];
   for (const slot of deploymentOrder(data, rows)) {
     const member = rows.find(r => r.uuid === slot.memberUuid)?.actor;
@@ -151,7 +155,7 @@ async function follow(token, leader, movement, user) {
   const waypoints = movement.passed.waypoints;
   if (waypoints.some(w => CONFIG.Token.movement.actions[w.action]?.teleport)) return;
   const scene = token.parent, { grid } = scene, { sizeX, sizeY } = grid, bounds = scene.dimensions.sceneRect;
-  const slots = new Map(deploymentOrder(data, roster(actor)).map(s => [s.memberUuid, s]));
+  const slots = new Map(deploymentOrder(data, roster(actor, user)).map(s => [s.memberUuid, s]));
   const lead = slots.get(data.leaderUuid) ?? { col: 0, row: 0 }, end = waypoints.at(-1);
   // Facing is the leader's last step; the grid's top row is the front. Hex grids keep it north-up.
   const points = [movement.origin, ...waypoints];
@@ -162,7 +166,7 @@ async function follow(token, leader, movement, user) {
   const cellOf = p => grid.getOffset({ x: p.x + sizeX / 2, y: p.y + sizeY / 2 }), key = o => `${o.i},${o.j}`;
   const leaderCell = cellOf(end), taken = new Set([key(leaderCell)]);
   const step = p => ({ x: p.x, y: p.y, elevation: end.elevation, action: "walk", checkpoint: true });
-  for (const uuid of followOrder(data, roster(actor)).filter(u => u !== data.leaderUuid)) {
+  for (const uuid of followOrder(data, roster(actor, user)).filter(u => u !== data.leaderUuid)) {
     if (inPartyCombat(scene)) return;
     const doc = linked(scene, uuid, actor.uuid)[0];
     if (!doc) continue;

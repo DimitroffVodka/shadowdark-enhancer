@@ -76,6 +76,17 @@ test("authoritative gather/deploy cycles retain linked Actor and saved token con
   assert.equal(f.scene.tokens.contents.length, 2); assert.equal(f.scene.tokens.get("pcToken").actor, f.member);
   assert.deepEqual(f.party.flags[MOD].partyData.members, [f.member.uuid]);
 });
+test("a member the requester cannot see is never gathered or deployed for them", async () => {
+  const f = fixture(), owner = { id: "owner", isGM: false };
+  f.member.testUserPermission = u => !!u.isGM;   // a hidden actor the party's owner wrote into the member list
+  const gathered = await executeMovement({ ...f.payload, action: "gather" }, owner);
+  assert.deepEqual(gathered.gathered, []);
+  assert.equal(f.scene.tokens.get("pcToken")?.actor, f.member, "its token stays where the GM put it");
+  f.scene.tokens.contents = [f.pt];
+  await executeMovement({ ...f.payload, action: "deploy" }, owner);
+  assert.equal(f.scene.tokens.contents.length, 1, "and no token of it is placed");
+});
+
 test("relay checks authenticated sender and combat at execution, not the payload or button", async () => {
   const f = fixture(); registerPartyMovement();
   const request = globalThis.CONFIG.queries[`${MOD}.partyMovement`];

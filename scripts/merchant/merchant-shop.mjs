@@ -15,7 +15,7 @@ import { esc } from "../shared/esc.mjs";
 import { copyText } from "../shared/clipboard.mjs";
 import { relayToGM, notifyPlayers, authorizeActorFor, refuseQuery, registerQuery } from "../shared/gm-relay.mjs";
 import {
-  toCopper, fromCopper, formatPrice, canAfford, applySellRatio,
+  toCopper, fromCopper, formatPrice, canAfford,
   addToPurse, spendFromPurse, parseCoinsFromText,
 } from "../shared/coins.mjs";
 // Gamble folds a drawn table into loot with the Loot Generator's rules, so the
@@ -66,7 +66,27 @@ const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 const _toCopper = toCopper;
 const _fromCopper = fromCopper;
 const _formatPrice = formatPrice;
-const _applySellRatio = applySellRatio;
+/**
+ * How many units a listed price buys. The system prices bundled gear per slot-full (Arrows 1 gp buys 20, Rations
+ * 5 sp buy 3, Iron Spikes 1 gp buy 10), and `per_slot` is that bundle on every one of them. Buying takes whole
+ * bundles; selling pays per unit, so 20 arrows bought for 1 gp sell for half of 1 gp, not twenty times that.
+ */
+/** A purse as the three fields an update writes. */
+const _purseFields = (c) => ({ "system.coins.gp": c.gp, "system.coins.sp": c.sp, "system.coins.cp": c.cp });
+const _bundleOf = (data) => Math.max(1, Math.floor(Number(data?.system?.slots?.per_slot)) || 1);
+/**
+ * The units a buy of `quantity` bundles takes from `stock` (units; -1 is unlimited), or 0 when the shop cannot fill
+ * it. A shop holding less than the last bundle asked for sells what it has: 13 arrows a player sold back are one buy
+ * of 13, charged at the bundle price shared out per unit (_buyCopper). Shared by the GM handler and the player's
+ * pre-check so the two never disagree.
+ */
+const _buyUnits = (quantity, bundle, stock) => {
+  const units = quantity * bundle;
+  if (stock === -1 || stock >= units) return units;
+  return quantity <= Math.ceil(stock / bundle) ? stock : 0;
+};
+/** List price in copper for `units` of an item priced per `bundle`, before extortion. */
+const _buyCopper = (cost, mult, units, bundle) => Math.round(_toCopper(cost) * mult * units / bundle);
 const _addToPurse = addToPurse;
 const _spendFromPurse = spendFromPurse;
 const _parseCoinsFromText = parseCoinsFromText;
@@ -736,6 +756,37 @@ export const MerchantShop = {
     return null;
   },
 
+  /**
+   * Set the buyer's purse to `purse` and say whether it landed, judged by reading the purse back, never by the
+   * promise: an update can resolve undefined when a hook vetoes it (nothing saved), or throw after it saved.
+   * @returns {Promise<object|null>} the purse as it was before, when the charge landed; null when it did not
+   */
+  async _charge(buyer, purse) {
+    const was = { ...buyer.system.coins };
+    await buyer.update(_purseFields(purse)).catch((err) => console.error(`${MODULE_ID} | merchant: purse`, err));
+    const now = buyer.system.coins;
+    return now.gp === purse.gp && now.sp === purse.sp && now.cp === purse.cp ? was : null;
+  },
+
+  /** Put a purse back as `_charge` found it. */
+  async _refund(buyer, was) {
+    await buyer.update(_purseFields(was)).catch((err) => console.error(`${MODULE_ID} | merchant: refund`, err));
+  },
+
+  /**
+   * Take the coins, then hand over the item, reading each write back. A charge that did not land gives nothing;
+   * an item that did not appear puts the purse back as it was.
+   * @returns {Promise<boolean>} true when both landed
+   */
+  async _chargeAndGive(buyer, purse, itemData) {
+    const was = await this._charge(buyer, purse);
+    if (!was) return false;
+    const made = await Item.create(itemData, { parent: buyer }).catch((err) => { console.error(`${MODULE_ID} | merchant: item`, err); return null; });
+    if (made && buyer.items.get(made.id)) return true;
+    await this._refund(buyer, was);
+    return false;
+  },
+
   /** Clamp a client-supplied quantity to a positive integer. */
   _sanitizeQty(qty) {
     return Math.max(1, Math.floor(Number(qty) || 1));
@@ -765,15 +816,17 @@ export const MerchantShop = {
     const entry = inv.find(e => e.id === shopItemId);
     if (!entry) return this._broadcastError(game.i18n.localize("SDE.merchant.notify.itemNotInShop"), userId);
 
-    // Check stock
-    if (entry.stock !== -1 && entry.stock < quantity) {
+    // Check stock: `quantity` is bundles, stock is counted in units.
+    const bundle = _bundleOf(entry.itemData);
+    const units = _buyUnits(quantity, bundle, entry.stock);
+    if (!units) {
       return this._broadcastError(game.i18n.localize("SDE.merchant.notify.notEnoughStock"), userId);
     }
 
     // Calculate total cost with the GM-side (never client-supplied) multiplier,
     // then apply this buyer's own one-shot downtime extortion swing (if any).
     const mult = ctx.buyMultiplier / 100;
-    const listCopper = Math.round(_toCopper(entry.cost) * mult * quantity);
+    const listCopper = _buyCopper(entry.cost, mult, units, bundle);
     const swing = applyExtortion(listCopper, readExtortion(buyer), "buy");
     const totalCopper = swing.copper;
     const totalCost = _fromCopper(totalCopper);
@@ -783,15 +836,8 @@ export const MerchantShop = {
       return this._broadcastError(game.i18n.localize("SDE.merchant.notify.insufficientFunds"), userId);
     }
 
-    // Execute: deduct currency (preserving the player's coin denominations)
-    const remaining = _spendFromPurse(buyer.system.coins, totalCopper);
-    await buyer.update({
-      "system.coins.gp": remaining.gp,
-      "system.coins.sp": remaining.sp,
-      "system.coins.cp": remaining.cp,
-    });
-
-    // Execute: create item(s) on buyer. ALWAYS override quantity — the
+    // Execute: deduct currency (preserving the player's coin denominations),
+    // then create item(s) on buyer. ALWAYS override quantity — the
     // source itemData is cloned from the merchant's inventory (NPC mode)
     // or the compendium entry, and its existing `quantity` reflects the
     // merchant's stack size, not what the buyer requested. Leaving the
@@ -799,13 +845,15 @@ export const MerchantShop = {
     // the entire stack by accident.
     const itemData = foundry.utils.deepClone(entry.itemData);
     if (!itemData.system) itemData.system = {};
-    itemData.system.quantity = quantity;
-    await Item.create(itemData, { parent: buyer });
+    itemData.system.quantity = units;
+    if (!(await this._chargeAndGive(buyer, _spendFromPurse(buyer.system.coins, totalCopper), itemData))) {
+      return this._broadcastError(game.i18n.localize("SDE.merchant.notify.notSaved"), userId);
+    }
 
     // Execute: update stock
     let newStock = entry.stock;
     if (entry.stock !== -1) {
-      newStock = entry.stock - quantity;
+      newStock = entry.stock - units;
       await this._updateStock(entry.id, newStock, ctx);
     }
 
@@ -864,12 +912,13 @@ export const MerchantShop = {
     const { sellerActorId, itemId } = data;
     // Identity comes from the query context, never from `data`.
     const userId = user?.id;
-    const quantity = this._sanitizeQty(data.quantity);
     const seller = this._resolveOwnedActor(sellerActorId, user);
     if (!seller) return this._broadcastError(game.i18n.localize("SDE.merchant.notify.actorNotFound"), userId);
 
     const item = seller.items.get(itemId);
     if (!item) return this._broadcastError(game.i18n.localize("SDE.merchant.notify.itemNotInInventory"), userId);
+    // Never more than the seller holds: a typed 1000 for one sword sells (and pays for) one sword.
+    const quantity = Math.min(this._sanitizeQty(data.quantity), item.system.quantity ?? 1);
 
     // Sell needs the same shop-open gate buy, catalogBuy and gamble already
     // have. Without it the `?.` below swallowed a missing context and the
@@ -879,9 +928,11 @@ export const MerchantShop = {
     if (!ctx) return this._broadcastError(game.i18n.localize("SDE.merchant.notify.unavailable"), userId);
     const sellRatio = ctx.sellRatio ?? game.settings.get(MODULE_ID, "shopSellRatio") ?? 50;
     const cost = item.system.cost ?? { gp: 0, sp: 0, cp: 0 };
-    const unitSellPrice = _applySellRatio(cost, sellRatio);
+    // The ratio applies to the whole sale and rounds once: ten 5 cp torches at half price pay 25 cp, where
+    // rounding each torch down to 2 cp paid 20. A bundle's price is shared out per unit (_bundleOf).
+    const saleCopper = Math.floor(_toCopper(cost) * quantity * sellRatio / (100 * _bundleOf(item)));
     // The same one-shot downtime extortion swing, in the seller's favour.
-    const swing = applyExtortion(_toCopper(unitSellPrice) * quantity, readExtortion(seller), "sell");
+    const swing = applyExtortion(saleCopper, readExtortion(seller), "sell");
     const totalCopper = swing.copper;
     const totalSellPrice = _fromCopper(totalCopper);
 
@@ -1028,18 +1079,13 @@ export const MerchantShop = {
       return this._broadcastError(game.i18n.localize("SDE.merchant.notify.insufficientFunds"), userId);
     }
 
-    // Deduct currency (preserving the player's coin denominations)
-    const remaining = _spendFromPurse(buyer.system.coins, totalCopper);
-    await buyer.update({
-      "system.coins.gp": remaining.gp,
-      "system.coins.sp": remaining.sp,
-      "system.coins.cp": remaining.cp,
-    });
-
-    // Create item on buyer
+    // Deduct currency (preserving the player's coin denominations), then create the item on the buyer
     const itemData = doc.toObject();
-    if (quantity > 1) itemData.system.quantity = quantity;
-    await Item.create(itemData, { parent: buyer });
+    // `quantity` is bundles at the listed price: two Arrows are 40 arrows for 2 gp, never 2 arrows.
+    itemData.system.quantity = quantity * _bundleOf(itemData);
+    if (!(await this._chargeAndGive(buyer, _spendFromPurse(buyer.system.coins, totalCopper), itemData))) {
+      return this._broadcastError(game.i18n.localize("SDE.merchant.notify.notSaved"), userId);
+    }
 
     // Spend the one-shot downtime extortion swing now the purchase has landed.
     if (swing.applied) await spendExtortion(buyer);
@@ -1238,13 +1284,10 @@ export const MerchantShop = {
       return this._broadcastError(game.i18n.localize("SDE.merchant.notify.insufficientFunds"), userId);
     }
 
-    // Deduct cost (preserving the player's coin denominations)
-    const remaining = _spendFromPurse(buyer.system.coins, costCopper);
-    await buyer.update({
-      "system.coins.gp": remaining.gp,
-      "system.coins.sp": remaining.sp,
-      "system.coins.cp": remaining.cp,
-    });
+    // Deduct cost (preserving the player's coin denominations), read back: a
+    // charge that did not land rolls nothing, so the table is never free.
+    const was = await this._charge(buyer, _spendFromPurse(buyer.system.coins, costCopper));
+    if (!was) return this._broadcastError(game.i18n.localize("SDE.merchant.notify.notSaved"), userId);
 
     // Roll loot from the configured source
     const result = { currency: { gp: 0, sp: 0, cp: 0 }, items: [], notes: [] };
@@ -1257,28 +1300,28 @@ export const MerchantShop = {
       // The draw blew up after the player paid — give the coins back rather
       // than pocketing them, then report it.
       console.error(`${MODULE_ID} | Gamble draw failed for "${table.name}":`, err);
-      const refunded = _addToPurse(buyer.system.coins, option.cost);
-      await buyer.update({
-        "system.coins.gp": refunded.gp,
-        "system.coins.sp": refunded.sp,
-        "system.coins.cp": refunded.cp,
-      });
+      await this._refund(buyer, was);
       return this._broadcastError(game.i18n.localize("SDE.merchant.notify.gambleRefunded"), userId);
+    }
+
+    // Create items on buyer, each read back. If any prize cannot be made, the
+    // ones this gamble made are taken back and the coins returned: the player
+    // never pays for a prize that never arrived.
+    const madeIds = [];
+    for (const itemData of result.items) {
+      const made = await Item.create(itemData, { parent: buyer }).catch((err) => { console.error(`${MODULE_ID} | gamble: item`, err); return null; });
+      if (!made || !buyer.items.get(made.id)) {
+        if (madeIds.length) await buyer.deleteEmbeddedDocuments("Item", madeIds).catch((err) => console.error(`${MODULE_ID} | gamble: undo`, err));
+        await this._refund(buyer, was);
+        return this._broadcastError(game.i18n.localize("SDE.merchant.notify.notSaved"), userId);
+      }
+      madeIds.push(made.id);
     }
 
     // Add currency to buyer (field-wise so their denominations are preserved)
     if (result.currency.gp || result.currency.sp || result.currency.cp) {
       const newTotal = _addToPurse(buyer.system.coins, result.currency);
-      await buyer.update({
-        "system.coins.gp": newTotal.gp,
-        "system.coins.sp": newTotal.sp,
-        "system.coins.cp": newTotal.cp,
-      });
-    }
-
-    // Create items on buyer
-    for (const itemData of result.items) {
-      await Item.create(itemData, { parent: buyer });
+      await buyer.update(_purseFields(newTotal));
     }
 
     // Build description
@@ -1801,7 +1844,8 @@ class MerchantShopApp extends HandlebarsApplicationMixin(ApplicationV2) {
         .map(i => {
           const cost = i.system.cost ?? { gp: 0, sp: 0, cp: 0 };
           const sellPrice = _fromCopper(
-            applyExtortion(_toCopper(_applySellRatio(cost, this._sellRatio)), extortion, "sell").copper,
+            // What one unit sells for (a bundle's price shared out), as the GM-side sale pays it.
+            applyExtortion(Math.floor(_toCopper(cost) * this._sellRatio / (100 * _bundleOf(i))), extortion, "sell").copper,
           );
           return {
             id: i.id,
@@ -2619,7 +2663,9 @@ class MerchantShopApp extends HandlebarsApplicationMixin(ApplicationV2) {
     // Client-side pre-check
     const entry = this._inventory.find(e => e.id === shopItemId);
     if (!entry) return;
-    if (entry.stock !== -1 && entry.stock < quantity) {
+    const bundle = _bundleOf(entry.itemData);
+    const units = _buyUnits(quantity, bundle, entry.stock);
+    if (!units) {
       ui.notifications.warn(game.i18n.localize("SDE.merchant.notify.notEnoughStock"));
       return;
     }
@@ -2627,7 +2673,7 @@ class MerchantShopApp extends HandlebarsApplicationMixin(ApplicationV2) {
     // pre-check never rejects a purchase the handler would have allowed.
     const mult = this._buyMultiplier / 100;
     const totalCost = _fromCopper(applyExtortion(
-      Math.round(_toCopper(entry.cost) * mult * quantity), readExtortion(actor), "buy",
+      _buyCopper(entry.cost, mult, units, bundle), readExtortion(actor), "buy",
     ).copper);
     if (!_canAfford(actor, totalCost)) {
       ui.notifications.warn(game.i18n.localize("SDE.merchant.notify.insufficientFunds"));

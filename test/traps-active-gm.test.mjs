@@ -38,6 +38,17 @@ test("the active GM posts exactly one card for a move in", async () => {
   assert.equal(cards.length, 1);
 });
 
+test("a fires-once trap entered by a group at once posts one card, not one per token", async () => {
+  cards.length = 0;
+  const once = { ...trap(), resets: false, parent: { id: "b2", uuid: "Scene.s.Region.r.RegionBehavior.b2" } };
+  once.parent.update = async () => { await new Promise((resolve) => setTimeout(resolve, 5)); once.sprung = true; };
+  await Promise.all([1, 2, 3].map(() => onTokenMoveIn.call(once, event)));
+  assert.equal(cards.length, 1);
+  assert.equal(once.sprung, true);
+  await onTokenMoveIn.call(once, event);
+  assert.equal(cards.length, 1, "once sprung, it stays quiet");
+});
+
 test("a player never acts, even when the GM seat is theirs to read", async () => {
   cards.length = 0;
   globalThis.game.user = { id: "p1", isGM: false };

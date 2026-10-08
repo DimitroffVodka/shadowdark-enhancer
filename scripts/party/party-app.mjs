@@ -1,7 +1,7 @@
 import { MODULE_ID } from "../shared/module-id.mjs";
 import { CampingApp } from "../camping/camping-app.mjs";
 import { CarousingApp } from "../carousing/carousing-app.mjs";
-import { Party, isNativeParty, isLegacyParty } from "./party.mjs";
+import { Party, isNativeParty, isLegacyParty, registerPartyRosterGuard } from "./party.mjs";
 import { offerParty } from "./party-create-option.mjs";
 import { scopedQuests } from "./party-core.mjs";
 import { fillFormation } from "./party-movement-core.mjs";
@@ -514,6 +514,7 @@ for (const name of ["_prepareContext", "_change", "_pickEmblem", "_pool", "_coin
 
 /** Only native/adopted flagged Parties route here; ordinary NPC sheets stay intact. */
 export function registerParty() {
+  registerPartyRosterGuard();
   const ActorClass = globalThis.CONFIG?.Actor?.documentClass;
   if (ActorClass) {
     foundry.applications.apps.DocumentSheetConfig.registerSheet(ActorClass, MODULE_ID, PartySheet, { types: ["NPC"], makeDefault: false, label: "SDE.party.title" });

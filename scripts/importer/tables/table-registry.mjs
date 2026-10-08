@@ -49,13 +49,6 @@ export function parseTableName(name, folderName) {
   return { source, page, displayName, subCategory: subM ? subM[1].trim() : null };
 }
 
-/** Seed-map-first, classifier-fallback. Returns one of GROUP_IDS. */
-export function categorize(parsed, folderName) {
-  const seed = CORE_TABLE_GROUPS[(parsed.displayName ?? "").toLowerCase()];
-  if (seed) return seed;
-  return classifyByKeyword(parsed, folderName);
-}
-
 /** Keyword fallback categorizer -> group id (pure). Ordered; first match wins. */
 export function classifyByKeyword({ displayName, subCategory }, folderName) {
   if (folderName === "The Lost Citadel") return "adventure";

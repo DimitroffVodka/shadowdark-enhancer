@@ -16,6 +16,7 @@
  * the pure detectChanges helper can be imported in Foundry-free node:test suites.
  */
 import { t as tr } from "../importer-hub-shared.mjs";
+import { MODULE_ID } from "../../shared/module-id.mjs";
 
 /** Item types the backfill rebuilds (matches what a fresh import creates). */
 const BACKFILL_ITEM_TYPES = new Set(["NPC Attack", "NPC Special Attack", "NPC Feature", "Spell"]);
@@ -274,7 +275,10 @@ export async function backfillActor(actor, { dryRun = false } = {}) {
       && actor.prototypeToken?.texture?.src !== actorData.prototypeToken.texture.src) {
     actorUpdate["prototypeToken.texture.src"] = actorData.prototypeToken.texture.src;
   }
-  if (actorData.system?.notes !== undefined && actor.system?.notes !== actorData.system.notes) {
+  // Notes are rebuilt only from the legacy plain-text shape (the rule item descriptions follow): HTML notes may hold
+  // a GM's own paragraphs, which the rebuilt stat block would overwrite.
+  if (actorData.system?.notes !== undefined && actor.system?.notes !== actorData.system.notes
+      && !_isHtml(actor.system?.notes || "")) {
     actorUpdate["system.notes"] = actorData.system.notes;
   }
 
@@ -295,6 +299,7 @@ export async function backfillActor(actor, { dryRun = false } = {}) {
 
   const descUpdates = [];   // [{_id, "system.description": ...}]
   const idsToDelete = [];   // item ids to delete before recreate
+  const replacedByKey = new Map(); // type+name key → the current item a rebuilt one replaces
   const toCreate = [];      // item create-data (no _id)
 
   // IDs of current (XXX Spell) NPC Features that will be superseded by real Spell items.
@@ -328,6 +333,7 @@ export async function backfillActor(actor, { dryRun = false } = {}) {
     } else if (nameDiffers || iconDiffers || descDiffers) {
       // Structural change → delete + recreate.
       idsToDelete.push(item.id);
+      replacedByKey.set(key, item);
     }
     // No change → leave alone.
   }
@@ -350,6 +356,13 @@ export async function backfillActor(actor, { dryRun = false } = {}) {
     if (!coveredByDescUpdate && !survivingKeys.has(key)) {
       const src = { ...bi };
       delete src._id;
+      // The replacement keeps what was put on the old item: other modules' flags (Extras automation) and its effects.
+      const old = replacedByKey.has(key) ? _snapshotItem(replacedByKey.get(key)) : null;
+      if (old) {
+        src.flags = { ...old.flags, ...src.flags };
+        if (old.flags?.[MODULE_ID] || src.flags[MODULE_ID]) src.flags[MODULE_ID] = { ...old.flags?.[MODULE_ID], ...src.flags[MODULE_ID] };
+        if (!src.effects?.length && old.effects?.length) src.effects = old.effects;
+      }
       toCreate.push(src);
     }
   }

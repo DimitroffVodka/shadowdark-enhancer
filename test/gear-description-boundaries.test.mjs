@@ -26,7 +26,6 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { splitDescriptionsByNames } from "../scripts/importer/items/item-parser.mjs";
 import { findRecordStarts, isRecordStartLine } from "../scripts/importer/items/record-boundary.mjs";
-import { joinGear } from "../scripts/importer/items/gear-join.mjs";
 
 /** The description text as the two-column grab hands it over: no blank lines. */
 const grab = (...lines) => lines.join("\n");
@@ -251,66 +250,4 @@ test("a known start is never also reported as an unknown one", () => {
   const starts = findRecordStarts("Net. Close range, one target.", { knownNames: ["Net"] });
   assert.equal(starts.length, 1);
   assert.equal(starts[0].kind, "known");
-});
-
-// ── The second consumer: the cost-table / description join ────────────────────
-
-test("joinGear ends a body at an unmatched record start too", () => {
-  // Same rule, the other consumer. "Coin" has no cost row (currency), so it
-  // used to be swallowed by the row above it.
-  const costText = [
-    "Item Cost Quantity Per Gear Slot",
-    "Charcoal, jar 1 gp 1",
-    "Crowbar 5 sp 1",
-  ].join("\n");
-  const descText = grab(
-    "Charcoal. One use. It leeches the",
-    "poison from an edible item.",
-    "Coin. One gold piece buys a night",
-    "at a quiet inn.",
-    "Crowbar. Grants an edge on prying.",
-  );
-  const { drafts, unclaimedDescriptions } = joinGear(costText, descText);
-  const charcoal = drafts.find((d) => /charcoal/i.test(d.name));
-  assert.match(charcoal.description, /leeches the poison/);
-  assert.doesNotMatch(charcoal.description, /gold piece/, "Coin must not bleed into Charcoal, jar");
-  const crowbar = drafts.find((d) => /crowbar/i.test(d.name));
-  assert.match(crowbar.description, /edge on prying/);
-  // The orphan is surfaced rather than silently absorbed.
-  assert.ok(unclaimedDescriptions.some((u) => /coin/i.test(u.phrase)));
-});
-
-test("joinGear keeps a multiline body whole across a line-initial sentence", () => {
-  const costText = ["Lantern 5 gp 1", "Lantern hook 5 sp 1"].join("\n");
-  const descText = grab(
-    "Lantern. Casts light to a double near",
-    "distance. One flask of oil fuels it",
-    "for an hour of real time.",
-    "Has a shutter to hide the light.",
-    "Lantern hook. Connects to a belt.",
-  );
-  const { drafts } = joinGear(costText, descText);
-  const lantern = drafts.find((d) => d.name.toLowerCase() === "lantern");
-  assert.match(lantern.description, /Has a shutter to hide the light/);
-  assert.doesNotMatch(lantern.description, /Connects to a belt/);
-});
-
-test("joinGear ownership remains stable for Oil flask and both Rope headers", () => {
-  const costText = [
-    "Net 1 gp 1",
-    "Oil, flask 1 gp 1",
-    "Rope, 60' 1 gp 1",
-    "Rope, morzo silk 2 gp 1",
-  ].join("\n");
-  const descText = grab(
-    "Net. A snared creature may cut free.",
-    "Oil flask. One flask covers a close area.",
-    "Rope. Braided hemp, sixty feet long.",
-    "Rope, morzo silk. A pencil-thin silk rope.",
-  );
-  const { drafts, unclaimedDescriptions } = joinGear(costText, descText);
-  assert.equal(unclaimedDescriptions.length, 0);
-  assert.match(drafts.find((draft) => draft.name === "Oil, Flask").description, /close area/);
-  assert.match(drafts.find((draft) => draft.name === "Rope, 60'").description, /Braided hemp/);
-  assert.match(drafts.find((draft) => draft.name === "Rope, Morzo Silk").description, /pencil-thin/);
 });

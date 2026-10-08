@@ -95,7 +95,10 @@ export function renderScripts(data) {
     const configuredSet = new Set(configured);
     const added = present.filter((p) => !configuredSet.has(p)).sort();
     const removed = (data.order[sec.id] ?? []).filter((p) => !presentSet.has(p));
-    if (added.length) warnings.push(`new in §${sec.id} (needs a description): ${added.join(", ")}`);
+    // Only a file with no description needs a human; one that has a description but no place in `order` is listed
+    // after the ordered rows, which is fine, and warning on it buried the real ones under 145 every run.
+    const undescribed = added.filter((p) => !data.descriptions[p]);
+    if (undescribed.length) warnings.push(`new in §${sec.id} (needs a description): ${undescribed.join(", ")}`);
     if (removed.length) warnings.push(`gone from §${sec.id} (row dropped): ${removed.join(", ")}`);
 
     out.push(`### ${sec.id} ${sec.title}`, "");

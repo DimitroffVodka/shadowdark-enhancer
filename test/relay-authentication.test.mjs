@@ -132,10 +132,18 @@ test("EXPLOIT: naming a GM in the payload buys nothing", async () => {
  */
 async function itemDropHarness({ actors = {} } = {}) {
   const created = { actors: [], tokens: [] };
+  const flags = {};
   const scene = {
-    id: "scene1",
+    id: "scene1", flags,
     createEmbeddedDocuments: async (_type, docs) => { created.tokens.push(...docs); return docs; },
+    tokens: { get: () => null },
+    getFlag: (m, k) => (m === "shadowdark-enhancer" ? flags[k] : undefined),
+    update: async (changes) => {
+      for (const [path, v] of Object.entries(changes)) flags[path.replace("flags.shadowdark-enhancer.", "")] = v;
+    },
+    unsetFlag: async (_m, k) => { delete flags[k]; },
   };
+  globalThis._replace = (v) => v;
 
   globalThis.foundry = {
     applications: { handlebars: { renderTemplate: async () => "" } },
@@ -150,7 +158,7 @@ async function itemDropHarness({ actors = {} } = {}) {
     user: GM,
     users: { activeGM: GM, get: (id) => USERS.find((u) => u.id === id) },
     actors: { get: (id) => actors[id] ?? null },
-    scenes: { get: (id) => (id === scene.id ? scene : null) },
+    scenes: { get: (id) => (id === scene.id ? scene : null), find: (fn) => [scene].find(fn) },
   };
   globalThis.Actor = {
     create: async (data) => {
@@ -161,7 +169,17 @@ async function itemDropHarness({ actors = {} } = {}) {
   };
 
   const { ItemDrops } = await import("../scripts/loot/item-drops.mjs");
-  return { ItemDrops, created };
+  return { ItemDrops, created, scene };
+}
+
+/** A pile actor as `_createDroppedItemToken` made it, with the module's flags readable and writable by its owner. */
+function pileActor(created) {
+  const a = created.actors[0];
+  return Object.assign(makeActor({ id: a.id, name: a.name, type: "NPC" }), {
+    flags: a.flags, img: a.img,
+    getFlag: (m, k) => a.flags[m]?.[k],
+    async delete() { this.deleted = true; },
+  });
 }
 
 test("EXPLOIT: a player cannot fabricate an item into a world Actor and Scene Token", async () => {
@@ -227,6 +245,78 @@ test("the drop path re-reads the item off the actor instead of trusting the payl
   assert.equal(carried.system.quantity, 2, "quantity is clamped to what the stack actually holds");
   assert.equal(carried.system.cost.gp, 1, "and the price comes off the document");
   assert.equal(dagger.deleted, true, "the whole stack left the sheet, so nothing was duped");
+});
+
+test("EXPLOIT: rewriting a dropped pile's own flags buys nothing at pickup", async () => {
+  // Every player owns a pile actor, so its flags are theirs to edit. Pickup must pay out what the GM recorded.
+  const dagger = makeItem({ id: "item1", name: "Dagger", quantity: 2 });
+  const recipient = makeActor({ id: "pc1", name: "Vella's PC", ownerId: PLAYER.id, items: [dagger] });
+  const { ItemDrops, created, scene } = await itemDropHarness({ actors: { pc1: recipient } });
+  await ItemDrops._createDroppedItemToken({ sourceActorId: "pc1", sourceItemId: "item1", dropQty: 2, x: 0, y: 0, sceneId: "scene1" }, PLAYER);
+
+  const pile = pileActor(created);
+  pile.flags["shadowdark-enhancer"].droppedItemData = { name: "Sword +3", type: "Weapon", system: { quantity: 50 } };
+  const made = [];
+  recipient.items.filter = () => [];
+  globalThis.Item = { create: async (d) => { made.push(d); } };
+  globalThis.ChatMessage = { create: async () => {}, getSpeaker: () => ({}) };
+  globalThis.ui = { notifications: { info: () => {}, warn: () => {} } };
+  globalThis.game.actors = { get: (id) => ({ pc1: recipient, [pile.id]: pile }[id] ?? null) };
+  globalThis.game.i18n = { localize: (k) => k, format: (k) => k };
+  globalThis.game.settings = { get: () => null };   // no session recap running
+
+  const reply = await ItemDrops._handlePickup({ tokenId: "t1", actorId: pile.id, recipientId: "pc1", sceneId: "scene1" }, PLAYER);
+  assert.equal(reply.ok, true);
+  assert.deepEqual(made.map((d) => [d.name, d.system.quantity]), [["Dagger", 1], ["Dagger", 1]], "the recorded two daggers, one per slot");
+  assert.equal(scene.getFlag("shadowdark-enhancer", `pile-${pile.id}`), undefined, "the record goes with the pile");
+});
+
+test("a pile from before the scene record is the GM's to pick up, not a player's", async () => {
+  const recipient = makeActor({ id: "pc1", name: "Vella's PC", ownerId: PLAYER.id });
+  const pile = Object.assign(makeActor({ id: "old1", name: "Coins", type: "NPC" }), {
+    getFlag: (_m, k) => (k === "droppedCoinData" ? { gp: 100000, sp: 0, cp: 0 } : undefined),
+  });
+  const { ItemDrops } = await itemDropHarness({ actors: { pc1: recipient, old1: pile } });
+  globalThis.game.i18n = { localize: (k) => k, format: (k) => k };
+  const reply = await ItemDrops._handlePickup({ tokenId: "t1", actorId: "old1", recipientId: "pc1", sceneId: "scene1" }, PLAYER);
+  assert.equal(reply.ok, false);
+  assert.equal(reply.error, "SDE.loot.itemDrops.error.gmPickup");
+});
+
+test("two quick drops from one stack never make more than the stack held", async () => {
+  const dagger = makeItem({ id: "item1", name: "Dagger", quantity: 10 });
+  // Writes land a tick later, as a server round-trip does.
+  dagger.update = async (c) => { await new Promise((r) => setTimeout(r, 5)); dagger.system.quantity = c["system.quantity"]; };
+  dagger.delete = async () => { await new Promise((r) => setTimeout(r, 5)); dagger.deleted = true; };
+  const mine = makeActor({ id: "pc1", name: "Vella's PC", ownerId: PLAYER.id, items: [dagger] });
+  const { ItemDrops, created } = await itemDropHarness({ actors: { pc1: mine } });
+  globalThis.game.i18n = { localize: (k) => k, format: (k) => k };
+  const drop = () => ItemDrops._createDroppedItemToken({ sourceActorId: "pc1", sourceItemId: "item1", dropQty: 5, x: 0, y: 0, sceneId: "scene1" }, PLAYER);
+
+  await Promise.all([drop(), drop()]);
+  const piled = created.actors.reduce((n, a) => n + a.flags["shadowdark-enhancer"].droppedItemData.system.quantity, 0);
+  const left = dagger.deleted ? 0 : dagger.system.quantity;
+  assert.equal(piled + left, 10, `piles ${piled} + left ${left}: nothing made from nothing`);
+});
+
+test("a drop whose pile cannot be placed leaves the item on the character", async () => {
+  const dagger = makeItem({ id: "item1", name: "Dagger", quantity: 2 });
+  const mine = makeActor({ id: "pc1", name: "Vella's PC", ownerId: PLAYER.id, items: [dagger] });
+  const { ItemDrops, created, scene } = await itemDropHarness({ actors: { pc1: mine } });
+  scene.createEmbeddedDocuments = async () => { throw new Error("token refused"); };
+  const realCreate = globalThis.Actor.create;
+  globalThis.Actor.create = async (data) => {
+    const actor = await realCreate(data);
+    actor.delete = async () => { actor.deleted = true; };
+    return actor;
+  };
+  globalThis.game.i18n = { localize: (k) => k, format: (k) => k };
+
+  const reply = await ItemDrops._createDroppedItemToken({ sourceActorId: "pc1", sourceItemId: "item1", dropQty: 2, x: 0, y: 0, sceneId: "scene1" }, PLAYER);
+  assert.equal(reply.ok, false);
+  assert.equal(dagger.deleted, false, "the dagger never left the sheet");
+  assert.equal(dagger.updates.length, 0);
+  assert.equal(created.actors[0].deleted, true, "and the half-made pile is cleaned up");
 });
 
 test("a GM may still drop item data with no source actor (the Loot Generator path)", async () => {
@@ -496,6 +586,35 @@ test("a PC-to-PC gift still goes through", async () => {
     assert.equal(reply.ok, true);
     assert.deepEqual(updates, [{ id: "pc2", "system.luck.remaining": 1 }]);
     assert.equal(chat.length, 1, "and the table is told");
+  } finally {
+    restore();
+  }
+});
+
+test("two luck gifts to one character at once both land (pulp)", async () => {
+  const { CrawlStrip, restore } = await luckHarness();
+  // Writes land a tick later, as a server round-trip does; each reads its own counter fresh.
+  const pc = (id, remaining) => ({
+    id, name: id, type: "Player",
+    system: {
+      luck: { remaining },
+      async useLuckToken() {
+        if (this.luck.remaining < 1) return false;
+        const left = this.luck.remaining - 1;
+        await new Promise((resolve) => setTimeout(resolve, 5));
+        this.luck.remaining = left;
+        return true;
+      },
+    },
+    async update(u) {
+      await new Promise((resolve) => setTimeout(resolve, 5));
+      this.system.luck.remaining = u["system.luck.remaining"];
+    },
+  });
+  const [a, b, receiver] = [pc("a", 1), pc("b", 1), pc("r", 0)];
+  try {
+    await Promise.all([CrawlStrip._giveLuckToken(a, receiver), CrawlStrip._giveLuckToken(b, receiver)]);
+    assert.equal(receiver.system.luck.remaining, 2, "two spent, two received");
   } finally {
     restore();
   }

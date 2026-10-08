@@ -677,8 +677,6 @@ function buildDowntime() {
   };
 }
 
-/** Pure test seam for the settings-censused downtime rows. */
-export const _testBuildDowntime = buildDowntime;
 
 export async function buildManageTree() {
   const presence = await gatherPresence();

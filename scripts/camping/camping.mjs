@@ -6,6 +6,7 @@ import { queryActiveGM, registerQuery, refuseQuery, isActiveGM } from "../shared
 import { registerCook, expireCook } from "./camping-cook.mjs";
 import { foodPreview, feedCamp, restCamp } from "./camping-nutrition.mjs";
 import { isMount, adoptMountScores } from "../actors/mount-scores.mjs";
+import { secondsPerHour } from "../time/time-core.mjs";
 const QUERY = `${MODULE_ID}.camping`, queues = new Map();
 const actorOf = uuid => game.actors.contents.find(a => a.uuid === uuid);
 const own = (a, u) => !!a?.testUserPermission(u, "OWNER");
@@ -228,7 +229,7 @@ export async function refreshCampFires() {
   if (!isActiveGM()) return;
   for (const party of game.actors.contents.filter(isNativeParty)) {
     await queued(party, async () => {
-      const camp = campOf(party); if (!camp?.fire?.lit || fireAlive(camp.fire, game.time.worldTime, nearFire(party, camp))) return;
+      const camp = campOf(party); if (!camp?.fire?.lit || fireAlive(camp.fire, game.time.worldTime, nearFire(party, camp), secondsPerHour(game.time.calendar))) return;
       const scene = game.scenes.get(camp.anchor.sceneId), light = scene?.lights.get(camp.fire.lightId);
       if (light?.flags?.[MODULE_ID]?.campFire?.campId === camp.id) await light.delete();
       await save(party, { ...camp, fire: { ...camp.fire, lit: false } });

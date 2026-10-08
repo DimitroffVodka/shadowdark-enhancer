@@ -71,6 +71,15 @@ Items are organized into collapsible category sections:
   price.
 - **Selling:** Removes the item from inventory and awards coin based on the
   **Sell Ratio** (the percentage of base item value paid out).
+- **Bundles:** Gear the book prices by the bundle (Arrows 1 gp for 20, Crossbow
+  Bolts 1 gp for 20, Iron Spikes 1 gp for 10, Rations 5 sp for 3) is bought a
+  whole bundle at a time: a quantity of 2 Arrows is 40 arrows. Selling pays the
+  bundle price shared out over what is sold, so 13 arrows fetch 13/20 of the
+  bundle's sale price, and a shop holding less than a bundle (arrows a player
+  sold back) sells what it has at its share of the price.
+- **A purchase that cannot be saved charges nothing.** If the coins cannot be
+  taken, nothing is bought; if an item does not arrive, the coins go back and
+  the player is told. This holds for the Buy, Catalog and Gamble tabs.
 
 ![The Sell tab: Your Equipment listed with each item's value, the payout at the current sell ratio, a quantity box and a Sell button](images/sell-tab.png)
 

@@ -30,15 +30,10 @@ import { importTrainerJournals, trainerJournal } from "./training-journal.mjs";
 import { trainerArt } from "./training-art.mjs";
 import { QUESTS_CHANGED, Quests } from "../quests/quests.mjs";
 import { trainerTaskQuests } from "../quests/quest-core.mjs";
+import { L as t } from "../shared/i18n.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin, DialogV2 } = foundry.applications.api;
 
-/** One string from `languages/en.json`; the key when no i18n is mounted. */
-const t = (key, data) => {
-  const i18n = globalThis.game?.i18n;
-  if (!i18n) return key;
-  return data ? i18n.format(key, data) : i18n.localize(key);
-};
 
 export class TrainingApp extends HandlebarsApplicationMixin(ApplicationV2) {
   static DEFAULT_OPTIONS = {

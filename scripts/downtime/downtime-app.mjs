@@ -76,6 +76,7 @@ import { withLibrary } from "../bastion/bastion-library.mjs";
 import {
   SETTLEMENT_SETTING, checkRecruit, commandedWarbands, recruitView, recruitWarband,
 } from "./downtime-recruit.mjs";
+import { L } from "../shared/i18n.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
@@ -85,12 +86,6 @@ const DOWNTIME_FLAG = "downtime";
 /** Fills "…needs a reload before X can land" when a relay can't be delivered. */
 const DOWNTIME_RELAY_LABEL = "SDE.downtime.relayLabel";
 
-/** One string from `languages/en.json`; the key when no i18n is mounted. */
-const L = (key, data) => {
-  const i18n = globalThis.game?.i18n;
-  if (!i18n) return key;
-  return data ? i18n.format(key, data) : i18n.localize(key);
-};
 
 // ADV_MODES / advMode now live in downtime-session.mjs so the player's window,
 // the GM's window and the GM-side validator all read the same dice formulas.

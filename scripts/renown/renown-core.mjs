@@ -13,13 +13,8 @@
  * ship as mechanics, exactly like the reaction bands in encounter-result.mjs;
  * the book's own social paragraphs do not ship. See docs/wiki/Renown.md.
  */
+import { L } from "../shared/i18n.mjs";
 
-/** One string from `languages/en.json`; the key when no i18n is mounted. */
-const L = (key, data) => {
-  const i18n = globalThis.game?.i18n;
-  if (!i18n) return key;
-  return data ? i18n.format(key, data) : i18n.localize(key);
-};
 
 /**
  * The four bands, low to high. `max` is inclusive; the top band is open-ended.

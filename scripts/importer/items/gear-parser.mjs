@@ -574,4 +574,3 @@ export function parseGear(text, kind, { onDrop } = {}) {
   return keep.map(parseOne);
 }
 
-export const gearParser = { parseGear, WR_ARMOR_CODES, WR_WEAPON_CODES };

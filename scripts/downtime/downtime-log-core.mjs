@@ -11,13 +11,8 @@
  */
 
 import { esc } from "../shared/esc.mjs";
+import { L } from "../shared/i18n.mjs";
 
-/** One string from `languages/en.json`; the key when no i18n is mounted. */
-const L = (key, data) => {
-  const i18n = globalThis.game?.i18n;
-  if (!i18n) return key;
-  return data ? i18n.format(key, data) : i18n.localize(key);
-};
 
 /** Marks the per-day section heading so grouping never depends on its text. */
 export const DAY_ATTR = "data-sde-day";

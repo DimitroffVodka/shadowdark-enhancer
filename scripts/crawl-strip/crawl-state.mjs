@@ -168,17 +168,24 @@ export const CrawlState = {
     // 1 and every combatant has an initiative, jump turn to 0 — which is now
     // the top of initiative after Foundry's resort. Gated on isActiveGM —
     // this hook also fires on every connected GM client per combatant update.
+    // Only until a turn is passed: a late joiner rolling at turn 3 must not
+    // send the turn back to the top, so the first combatants act twice.
+    // ponytail: in memory, so a reload mid-round-1 forgets it; a combat flag if that ever matters.
+    const turnPassed = new WeakSet();
+    Hooks.on("updateCombat", (combat, changes, options) => {
+      if (options?.direction && ("turn" in changes || "round" in changes)) turnPassed.add(combat);
+    });
     let _resetTimer = null;
     Hooks.on("updateCombatant", (combatant, changes) => {
       if (!isActiveGM()) return;
       if (!("initiative" in changes)) return;
       const combat = combatant.parent;
-      if (!combat || combat.round !== 1) return;
+      if (!combat || combat.round !== 1 || turnPassed.has(combat)) return;
       if (_resetTimer) clearTimeout(_resetTimer);
       _resetTimer = setTimeout(async () => {
         _resetTimer = null;
         const c = combatant.parent;
-        if (!c || c.round !== 1) return;
+        if (!c || c.round !== 1 || turnPassed.has(c)) return;
         if (c.turn === 0) return;
         if (!c.turns.every(t => t.initiative != null)) return;
         await c.update({ turn: 0 });

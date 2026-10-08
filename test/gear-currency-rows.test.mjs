@@ -1,14 +1,13 @@
 // The Basic Gear table lists Coin and Gem next to real equipment, but neither
 // is gear: both print a "Varies" cost because their worth is whatever the GM
 // says. Importing them minted 0 gp "Coin"/"Gem" items that then sat in
-// Importer > Items > Basic Gear forever. These cover the three places that
-// rule now holds — the force-mode paste path, the cost-table join, and the
+// Importer > Items > Basic Gear forever. These cover the places that rule
+// holds — the force-mode paste path, the Item Builder's gear table, and the
 // Manage tree's Items leaves (which must also hide copies an older import
 // already made). Fixtures are invented, per the no-book-content rule.
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { itemRecognizer, isCurrencyName } from "../scripts/importer/items/item-parser.mjs";
-import { parseCostTable } from "../scripts/importer/items/gear-join.mjs";
 import { _testBuildItems } from "../scripts/importer/manage-tree.mjs";
 import { parseGearTable } from "../scripts/importer/items/item-builder-gear.mjs";
 
@@ -52,11 +51,6 @@ test("the Item Builder's Basic stage drops currency rows and reports them", () =
   const rows = parseGearTable(GEAR_TABLE, "Basic", { onDrop: (text, reason) => dropped.push({ text, reason }) });
   assert.deepEqual(rows.map((r) => r.name), ["Ball Bearing", "Lantern Hook", "Coin Purse"]);
   assert.deepEqual(dropped.map((d) => d.text), ["Coin", "Gem"]);
-});
-
-test("the cost-table join keeps currency rows out of the spine", () => {
-  const { rows } = parseCostTable(GEAR_TABLE);
-  assert.deepEqual(rows.map((r) => r.name), ["Ball Bearing", "Lantern Hook", "Coin Purse"]);
 });
 
 test("Items > Basic Gear hides currency an older import already created", () => {

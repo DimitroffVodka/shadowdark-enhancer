@@ -14,8 +14,8 @@
 import { esc } from "../shared/esc.mjs";
 import { dateParts } from "../time/time-core.mjs";
 import { facetWords } from "../encounter/encounter-result.mjs";
+import { L as t } from "../shared/i18n.mjs";
 
-const t = (key, data) => (data ? game.i18n.format(key, data) : game.i18n.localize(key));
 const gold = (v) => `<span class="sde-hud-gold">${esc(v)}</span>`;
 const key = (action, label, { cls = "", hint = "" } = {}) =>
   `<button type="button" class="sde-hud-key ${cls}" data-action="${action}"${hint ? ` data-tooltip="${esc(hint)}"` : ""}>${esc(label)}</button>`;

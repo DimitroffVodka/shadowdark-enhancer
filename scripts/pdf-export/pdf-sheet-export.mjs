@@ -14,6 +14,7 @@
  * (that enriches notes into a live document, a system-side XSS sink).
  */
 import { MODULE_ID } from "../shared/module-id.mjs";
+import { L } from "../shared/i18n.mjs";
 
 const TEMPLATE_PATH = `modules/${MODULE_ID}/assets/pdf/shadowdark-character-sheet.pdf`;
 const PDFLIB_PATH = `modules/${MODULE_ID}/scripts/pdf-export/lib/pdf-lib.esm.min.js`;
@@ -28,12 +29,6 @@ async function getPdfLib() {
 
 /* ---------------------------------------------------------------- helpers */
 
-/** One string from `languages/en.json`; the key when no i18n is mounted. */
-const L = (key, data) => {
-  const i18n = globalThis.game?.i18n;
-  if (!i18n) return key;
-  return data ? i18n.format(key, data) : i18n.localize(key);
-};
 
 const cap = (s) => (s ? String(s)[0].toUpperCase() + String(s).slice(1) : "");
 const fmtMod = (n) => (Number(n) >= 0 ? `+${Number(n)}` : `${Number(n)}`);

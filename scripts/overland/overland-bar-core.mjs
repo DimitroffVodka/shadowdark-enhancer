@@ -55,6 +55,16 @@ export function barModel({ state, isGM, owns, actors }) {
 export const redrawStamp = (worldTime, secondsPerMinute, weather, pending = null) =>
   `${Math.floor(worldTime / (secondsPerMinute || 60))}|${weather ?? ""}|${pending ? 1 : 0}`;
 
+/**
+ * "19:10" from hours with a fraction, in the calendar's own hours and minutes (`days` is
+ * `game.time.calendar.days`): a 100-minute hour reads "19:75", not "20:15".
+ */
+export const hhmm = (hours, days = globalThis.game?.time?.calendar?.days) => {
+  const perHour = days?.minutesPerHour ?? 60, perDay = days?.hoursPerDay ?? 24;
+  const minutes = Math.round(hours * perHour);
+  return `${String(Math.floor(minutes / perHour) % perDay).padStart(2, "0")}:${String(minutes % perHour).padStart(2, "0")}`;
+};
+
 /** Does an Item change touch the bar: an item on one of the travelling members (their rations)? */
 export const itemTouchesBar = (item, members) =>
   item?.parent?.documentName === "Actor" && members.includes(item.parent.id);

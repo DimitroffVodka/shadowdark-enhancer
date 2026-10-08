@@ -15,13 +15,8 @@ import { sourceKey } from "../shared/source-keys.mjs";
 import { ensureFolderPath } from "../shared/compendium-suite.mjs";
 import { fabricateTreasureItem, isCoinEntry, parseValue, ensureLootPack } from "./loot-pack.mjs";
 import { SEA_WOLF_PLUNDER_ROWS } from "../shared/curated-icon-maps/sea-wolf-plunder-icons.mjs";
+import { L } from "../shared/i18n.mjs";
 
-/** One string from `languages/en.json`; the key when no i18n is mounted (node tests). */
-const L = (key, data) => {
-  const i18n = globalThis.game?.i18n;
-  if (!i18n) return key;
-  return data ? i18n.format(key, data) : i18n.localize(key);
-};
 
 /** The book table's own name, filled into this file's GM warnings. */
 const NOTIFY_TABLE = "Sea Wolf Plunder";

@@ -3,7 +3,6 @@ import assert from "node:assert/strict";
 import {
   TABLE_MANIFEST, findById, citesOf, aliasedIds, catalogEntries, bySource, sources,
 } from "../scripts/importer/tables/table-manifest.mjs";
-import { TableHub, normalizeName } from "../scripts/importer/tables/table-hub.mjs";
 
 /**
  * Reprints. Western Reaches reprints Cursed Scroll tables verbatim, and the
@@ -13,8 +12,6 @@ import { TableHub, normalizeName } from "../scripts/importer/tables/table-hub.mj
  * that row has to answer for all of them — presence, filters, search, and the
  * PDF the import is seeded from.
  */
-
-const MOD = "shadowdark-enhancer";
 
 // ── citesOf ─────────────────────────────────────────────────────────────────
 
@@ -91,62 +88,6 @@ test("absorbing twins never empties a book's filter chip", () => {
     assert.ok(bySource(src).length > 0, `${src} lost every row`);
     assert.ok(sources().includes(src), `${src} disappeared from the source list`);
   }
-});
-
-// ── presence: a copy committed under EITHER book still counts ───────────────
-
-const world = (rows) => {
-  const byFlag = new Map();
-  const byNorm = new Map();
-  for (const r of rows) {
-    const t = { name: r.name, uuid: `RollTable.${r.name}`, results: { size: r.rows ?? 5 },
-      flags: r.mid ? { [MOD]: { manifestId: r.mid } } : {} };
-    if (r.mid) byFlag.set(r.mid, t);
-    const n = normalizeName(t.name);
-    if (!byNorm.has(n)) byNorm.set(n, []);
-    byNorm.get(n).push(t);
-  }
-  return { byFlag, byNorm };
-};
-
-const KNIGHT = () => findById("pgwr-knight-of-st-ydris-talents");
-
-test("a table flagged with the CURSED SCROLL id satisfies the merged row", () => {
-  const w = world([{ name: "Knight of St. Ydris Talents", mid: "cs1-class-talents-knight-of-st-ydris" }]);
-  assert.ok(TableHub._matchWorld(KNIGHT(), w), "an old CS1 import must not read as missing");
-});
-
-test("a table flagged with the row's OWN id still satisfies it", () => {
-  const w = world([{ name: "Whatever The GM Renamed It", mid: "pgwr-knight-of-st-ydris-talents" }]);
-  assert.ok(TableHub._matchWorld(KNIGHT(), w));
-});
-
-test("an UNFLAGGED table named the way the CURSED SCROLL prints it matches", () => {
-  // The pre-flag case: imported under the book's own wording, which is not the
-  // wording this row is filed under.
-  const w = world([{ name: "Knight of St. Ydris Talents" }]);
-  assert.ok(TableHub._matchWorld(KNIGHT(), w), "the CS1 printing's name is one of this row's names");
-});
-
-test("the Cursed Scroll's own import prefix is accepted as this row's book", () => {
-  const w = world([{ name: "Cursed Scroll 1: Knight of St. Ydris Talents" }]);
-  assert.ok(
-    TableHub._matchWorld(KNIGHT(), w),
-    "the CS1 source hint is one of this row's books, so it must not be rejected",
-  );
-});
-
-test("another manifest entry's table is still NOT this row's", () => {
-  const w = world([{ name: "Knight of St. Ydris Talents", mid: "core-carousing-event" }]);
-  assert.equal(TableHub._matchWorld(KNIGHT(), w), null);
-});
-
-test("a book this row is not printed in is still rejected", () => {
-  const w = world([{ name: "Cursed Scroll 4: Knight of St. Ydris Talents" }]);
-  assert.equal(
-    TableHub._matchWorld(KNIGHT(), w), null,
-    "CS4 does not print this table; matching it would be the cross-book bug again",
-  );
 });
 
 // ── the refusals ────────────────────────────────────────────────────────────

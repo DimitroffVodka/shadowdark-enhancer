@@ -652,7 +652,6 @@ export function importedMonsterArtDisposition(source, name) {
 // Descriptive aliases keep the map discoverable to callers without creating a
 // second mutable data set.
 export const CURATED_IMPORTED_MONSTER_ART = IMPORTED_MONSTER_ART;
-export const IMPORTED_MONSTER_ART_MAP = IMPORTED_MONSTER_ART;
 
 /**
  * Exact source-aware lookup. No fuzzy, alias, substring, or bare-name fallback

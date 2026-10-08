@@ -103,12 +103,18 @@ function makeActor({ id, name, ownerId = null, coins = { gp: 0, sp: 0, cp: 0 }, 
   return {
     id, name,
     system: { coins: { ...coins } },
-    items: { get: (i) => byId.get(i), find: () => null, contents: [...byId.values()] },
+    items: { get: (i) => byId.get(i), add: (i) => byId.set(i.id, i), find: () => null, contents: [...byId.values()] },
     testUserPermission(user, permission) {
       const level = user.isGM ? OWNER : (user.id === ownerId ? OWNER : 0);
       return level >= (permission === "OWNER" ? OWNER : 0);
     },
-    async update() {},
+    async update(changes) {
+      for (const [path, v] of Object.entries(changes)) {
+        const coin = path.match(/^system\.coins\.(gp|sp|cp)$/)?.[1];
+        if (coin) this.system.coins[coin] = v;
+      }
+      return this;
+    },
     async createEmbeddedDocuments() { return []; },
   };
 }
@@ -162,6 +168,81 @@ test("F4: selling works once the GM has published the shop", async () => {
 
   assert.notEqual(reply?.ok, false, `expected the sale to go through, got ${JSON.stringify(reply)}`);
   assert.equal(sword.deleted, true, "a legitimate sale still removes the item");
+});
+
+test("selling more than the seller holds sells and pays for what they hold", async () => {
+  const sword = makeItem({ id: "i1", name: "Longsword", quantity: 2 });
+  const seller = makeActor({ id: "pc1", name: "Vella's PC", ownerId: PLAYER.id, items: [sword] });
+  const paid = [];
+  seller.update = async (c) => { paid.push(c); };
+  const { MerchantShop } = await harness({
+    actors: { pc1: seller },
+    settings: {
+      shopAvailableToPlayers: true,
+      shopAvailabilityData: {
+        mode: "compendium", actorId: null, sellRatio: 50,
+        buyMultiplier: 100, catalogEnabled: true, gambleEnabled: false,
+      },
+    },
+  });
+
+  await MerchantShop._handleSell({ sellerActorId: "pc1", itemId: "i1", quantity: 1000 }, PLAYER);
+
+  assert.equal(sword.deleted, true);
+  assert.equal(paid.at(-1)["system.coins.gp"], 40, "two 40 gp swords at half price, not a thousand");
+});
+
+test("bundled gear sells per unit: 20 arrows bought for 1 gp sell for half of 1 gp, not 10 gp", async () => {
+  const arrows = makeItem({ id: "i3", name: "Arrows", cost: { gp: 1, sp: 0, cp: 0 }, quantity: 20 });
+  arrows.system.slots = { per_slot: 20 };
+  const seller = makeActor({ id: "pc1", name: "Vella's PC", ownerId: PLAYER.id, items: [arrows] });
+  const { MerchantShop } = await harness({ actors: { pc1: seller }, settings: PUBLISHED });
+
+  await MerchantShop._handleSell({ sellerActorId: "pc1", itemId: "i3", quantity: 20 }, PLAYER);
+
+  const { gp, sp, cp } = seller.system.coins;
+  assert.equal(gp * 100 + sp * 10 + cp, 50);
+});
+
+test("arrows sold back to the shop can be bought again: a part bundle sells at its share of the price", async () => {
+  const arrows = makeItem({ id: "i4", name: "Arrows", cost: { gp: 1, sp: 0, cp: 0 }, quantity: 13 });
+  arrows.system.slots = { per_slot: 20 };
+  arrows.toObject = () => ({ _id: "i4", name: "Arrows", type: "Basic", system: structuredClone(arrows.system) });
+  const seller = makeActor({ id: "pc1", name: "Vella's PC", ownerId: PLAYER.id, items: [arrows] });
+  const buyer = makeActor({ id: "pc2", name: "Tobin's PC", ownerId: PLAYER.id, coins: { gp: 10, sp: 0, cp: 0 } });
+  const { MerchantShop, store } = await harness({ actors: { pc1: seller, pc2: buyer }, settings: PUBLISHED });
+  const made = [];
+  globalThis.Item.create = async (data, { parent }) => {
+    made.push(data.system.quantity);
+    const doc = { id: `made${made.length}` };
+    parent?.items?.add?.(doc);
+    return doc;
+  };
+
+  await MerchantShop._handleSell({ sellerActorId: "pc1", itemId: "i4", quantity: 13 }, PLAYER);
+  const entry = store.shopInventory.find((e) => e.name === "Arrows");
+  assert.equal(entry.stock, 13, "the shop holds the 13 sold back");
+
+  made.length = 0;
+  await MerchantShop._handleBuy({ buyerActorId: "pc2", shopItemId: entry.id, quantity: 1 }, PLAYER);
+  assert.deepEqual(made, [13], "the buyer gets the 13 the shop has");
+  assert.equal(buyer.system.coins.gp * 100 + buyer.system.coins.sp * 10 + buyer.system.coins.cp, 1000 - 65,
+    "and pays 13/20 of 1 gp");
+  assert.equal(store.shopInventory.find((e) => e.name === "Arrows").stock, 0);
+
+  const refused = await MerchantShop._handleBuy({ buyerActorId: "pc2", shopItemId: entry.id, quantity: 1 }, PLAYER);
+  assert.equal(refused?.ok, false, "an empty shelf still sells nothing");
+});
+
+test("the sell ratio rounds once on the whole sale, not once per item", async () => {
+  const torches = makeItem({ id: "i2", name: "Torch", cost: { gp: 0, sp: 0, cp: 5 }, quantity: 10 });
+  const seller = makeActor({ id: "pc1", name: "Vella's PC", ownerId: PLAYER.id, items: [torches] });
+  const { MerchantShop } = await harness({ actors: { pc1: seller }, settings: PUBLISHED });
+
+  await MerchantShop._handleSell({ sellerActorId: "pc1", itemId: "i2", quantity: 10 }, PLAYER);
+
+  const { gp, sp, cp } = seller.system.coins;
+  assert.equal(gp * 100 + sp * 10 + cp, 25, "ten 5 cp torches at half price pay 25 cp, not 10 × 2");
 });
 
 // ─── F6: broadcast authenticity ─────────────────────────────────────────────
@@ -279,12 +360,12 @@ const PUBLISHED = {
 };
 
 /** A compendium item as an index row / document carries it. */
-function packItem({ id, name, type = "Basic", cost = { gp: 1, sp: 0, cp: 0 }, flags = {}, folder = null, pack = IMPORTED }) {
+function packItem({ id, name, type = "Basic", cost = { gp: 1, sp: 0, cp: 0 }, flags = {}, folder = null, pack = IMPORTED, system = {} }) {
   return {
     _id: id, id, name, type, folder, img: "x.webp", flags,
     uuid: `Compendium.${pack}.Item.${id}`,
-    system: { cost },
-    toObject() { return { _id: id, name, type, system: { cost } }; },
+    system: { cost, ...system },
+    toObject() { return { _id: id, name, type, system: structuredClone({ cost, ...system }) }; },
   };
 }
 
@@ -354,7 +435,12 @@ test("#291: a catalog buy of imported gear works; a forged buy of an unpriced it
     ],
   });
   const created = [];
-  globalThis.Item.create = async (data) => { created.push(data.name); return {}; };
+  globalThis.Item.create = async (data, { parent }) => {
+    created.push(data.name);
+    const made = { id: `made${created.length}` };
+    parent.items.add(made);
+    return made;
+  };
   const buy = (pack, id) => MerchantShop._handleCatalogBuy(
     { buyerActorId: "pc1", itemUuid: `Compendium.${pack}.Item.${id}`, quantity: 1 }, PLAYER);
 
@@ -368,4 +454,105 @@ test("#291: a catalog buy of imported gear works; a forged buy of an unpriced it
   const paste = await buy(IMPORTED, "paste");
   assert.notEqual(paste?.ok, false, `expected the imported gear to sell, got ${JSON.stringify(paste)}`);
   assert.deepEqual(created, ["Glow paste, jar"]);
+  assert.equal(buyer.system.coins.gp, 98);
+
+  // The item cannot be made: the coins go back and the buyer is told.
+  globalThis.Item.create = async () => { throw new Error("validation failed"); };
+  const failed = await buy(IMPORTED, "paste");
+  assert.equal(failed?.ok, false);
+  assert.match(failed.error, /notSaved$/);
+  assert.equal(buyer.system.coins.gp, 98, "nothing was charged for the item that never arrived");
+});
+
+test("a catalog buy of bundled gear gives whole bundles: two Arrows are 40 arrows for 2 gp", async () => {
+  const buyer = makeActor({ id: "pc1", name: "Vella's PC", ownerId: PLAYER.id, coins: { gp: 10, sp: 0, cp: 0 } });
+  const { MerchantShop } = await harness({ actors: { pc1: buyer }, settings: PUBLISHED });
+  stubPacks({
+    [gearPack]: [packItem({ id: "arrows", name: "Arrows", pack: gearPack, system: { quantity: 20, slots: { per_slot: 20 } } })],
+    "shadowdark.magic-items": [],
+    [IMPORTED]: [],
+  });
+  const made = [];
+  globalThis.Item.create = async (data, { parent }) => {
+    made.push(data.system.quantity);
+    const doc = { id: `made${made.length}` };
+    parent.items.add(doc);
+    return doc;
+  };
+  await MerchantShop._handleCatalogBuy({ buyerActorId: "pc1", itemUuid: `Compendium.${gearPack}.Item.arrows`, quantity: 2 }, PLAYER);
+  assert.deepEqual(made, [40]);
+  assert.equal(buyer.system.coins.gp, 8);
+});
+
+// ─── Gamble: the third way to pay the shop ──────────────────────────────────
+
+async function gambleHarness(buyer) {
+  const kit = await harness({
+    actors: { pc1: buyer },
+    settings: {
+      shopAvailableToPlayers: true,
+      shopAvailabilityData: { mode: "compendium", actorId: null, sellRatio: 50, buyMultiplier: 100, catalogEnabled: true, gambleEnabled: true },
+      gambleOptions: [{ id: "g1", name: "Mystery box", cost: { gp: 1, sp: 0, cp: 0 }, source: "RollTable.t1" }],
+    },
+  });
+  globalThis.fromUuid = async () => ({ name: "Box", draw: async () => ({ results: [{}] }) });
+  const { LootLinker } = await import("../scripts/loot/loot-linker.mjs");
+  LootLinker.buildItemIndex = async () => [];
+  kit.MerchantShop._collectGambleLoot = async (_results, result) => {
+    result.items.push({ name: "Ring", type: "Basic", system: {} }, { name: "Locket", type: "Basic", system: {} });
+  };
+  return kit;
+}
+const copperOf = (actor) => actor.system.coins.gp * 100 + actor.system.coins.sp * 10 + actor.system.coins.cp;
+
+test("a gamble whose prize cannot be made takes back what it made and returns the coins", async () => {
+  const buyer = makeActor({ id: "pc1", name: "Vella's PC", ownerId: PLAYER.id, coins: { gp: 10, sp: 0, cp: 0 } });
+  const deleted = [];
+  buyer.deleteEmbeddedDocuments = async (_type, ids) => { deleted.push(...ids); };
+  const { MerchantShop } = await gambleHarness(buyer);
+  let n = 0;
+  globalThis.Item.create = async (_data, { parent }) => {
+    if (++n === 2) throw new Error("validation failed");   // the Ring lands, the Locket does not
+    const doc = { id: `made${n}` };
+    parent.items.add(doc);
+    return doc;
+  };
+
+  const reply = await MerchantShop._handleGamble({ buyerActorId: "pc1", gambleId: "g1" }, PLAYER);
+  assert.equal(reply?.ok, false);
+  assert.match(reply.error, /notSaved$/);
+  assert.equal(copperOf(buyer), 1000, "the 1 gp came back");
+  assert.deepEqual(deleted, ["made1"], "and the Ring it did make was taken back");
+});
+
+test("a gamble whose charge does not land rolls nothing", async () => {
+  const buyer = makeActor({ id: "pc1", name: "Vella's PC", ownerId: PLAYER.id, coins: { gp: 10, sp: 0, cp: 0 } });
+  buyer.update = async () => undefined;   // a hook vetoed the purse write: nothing saved
+  const { MerchantShop } = await gambleHarness(buyer);
+  const made = [];
+  globalThis.Item.create = async (data) => { made.push(data.name); return { id: "x" }; };
+
+  const reply = await MerchantShop._handleGamble({ buyerActorId: "pc1", gambleId: "g1" }, PLAYER);
+  assert.equal(reply?.ok, false);
+  assert.deepEqual(made, [], "no free prize");
+  assert.equal(copperOf(buyer), 1000);
+});
+
+test("a purse write that saves and then throws still counts as paid: the buyer gets the item", async () => {
+  const buyer = makeActor({ id: "pc1", name: "Vella's PC", ownerId: PLAYER.id, coins: { gp: 100, sp: 0, cp: 0 } });
+  const apply = buyer.update.bind(buyer);
+  let first = true;
+  buyer.update = async (changes) => {
+    await apply(changes);
+    if (first) { first = false; throw new Error("_onUpdate failed"); }
+    return buyer;
+  };
+  const { MerchantShop } = await harness({ actors: { pc1: buyer }, settings: PUBLISHED });
+  stubPacks({ [gearPack]: [], "shadowdark.magic-items": [], [IMPORTED]: [packItem({ id: "paste", name: "Glow paste, jar", cost: { gp: 2, sp: 0, cp: 0 } })] });
+  const made = [];
+  globalThis.Item.create = async (data, { parent }) => { made.push(data.name); const doc = { id: "m1" }; parent.items.add(doc); return doc; };
+
+  await MerchantShop._handleCatalogBuy({ buyerActorId: "pc1", itemUuid: `Compendium.${IMPORTED}.Item.paste`, quantity: 1 }, PLAYER);
+  assert.deepEqual(made, ["Glow paste, jar"], "the coins left, so the item arrives");
+  assert.equal(buyer.system.coins.gp, 98);
 });

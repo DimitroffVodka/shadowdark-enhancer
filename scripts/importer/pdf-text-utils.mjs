@@ -10,15 +10,9 @@
  * for preview-edited HTML.
  */
 
-/** Escape HTML metacharacters so pasted text can be embedded in markup. */
-export function escapeHtml(s) {
-  return String(s ?? "")
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#39;");
-}
+/** Escape HTML metacharacters so pasted text can be embedded in markup: the shared `esc`, under its importer name. */
+import { esc as escapeHtml } from "../shared/esc.mjs";
+export { escapeHtml };
 
 /**
  * Plain pasted text → one `<p>…</p>` paragraph: whitespace collapsed, HTML

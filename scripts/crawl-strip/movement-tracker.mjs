@@ -722,22 +722,25 @@ export const MovementTracker = {
    * Called from CrawlState.startCrawl / nextCrawlTurn / addMembers.
    *
    * `actorIds` (defaulting to the world-scoped roster) are resolved to their
-   * token on the CURRENT scene — a member with no token here is simply skipped
-   * (its movement is only tracked on scenes where it's actually placed). The
+   * token on the scene this GM views AND the active scene, the one players are
+   * on: the party may stand on another map than the GM is looking at, and the
+   * Bridge has no canvas at all. A member with no token there is skipped (its
+   * movement is only tracked on scenes where it's actually placed). The
    * `_turnStartPos` snapshot is keyed by the resolved token id so rollback,
    * which reads it by token id, stays consistent.
    */
   async resetCrawl(actorIds = null) {
     const ids = actorIds ?? CrawlState.members;
-    const scene = canvas.scene;
-    for (const actorId of ids) {
-      const tokenDoc = scene?.tokens.find(t => t.actorId === actorId);
-      if (!tokenDoc) continue;
-      await this.resetToken(tokenDoc);
-      this._turnStartPos[tokenDoc.id] = {
-        x: tokenDoc._source?.x ?? tokenDoc.x,
-        y: tokenDoc._source?.y ?? tokenDoc.y,
-      };
+    for (const scene of new Set([canvas?.scene, game.scenes?.active].filter(Boolean))) {
+      for (const actorId of ids) {
+        const tokenDoc = scene.tokens.find(t => t.actorId === actorId);
+        if (!tokenDoc) continue;
+        await this.resetToken(tokenDoc);
+        this._turnStartPos[tokenDoc.id] = {
+          x: tokenDoc._source?.x ?? tokenDoc.x,
+          y: tokenDoc._source?.y ?? tokenDoc.y,
+        };
+      }
     }
     CrawlStrip.queueRender();
   },
@@ -797,8 +800,10 @@ export const MovementTracker = {
 
   async clearCrawlAnchors() {
     if (!game.user.isGM) return;
-    const scene = canvas.scene;
-    const tokens = scene?.tokens?.contents ?? [];
+    // Every scene, and only tokens that carry an anchor: one left on a map the GM was not viewing would send a
+    // rollback in the next crawl back to where this one began.
+    const anchored = (t) => t.flags?.[MODULE_ID]?.moveRemaining !== undefined || t.flags?.[MODULE_ID]?.turnStart !== undefined;
+    const tokens = (game.scenes?.contents ?? []).flatMap((s) => s.tokens.contents.filter(anchored));
     for (const t of tokens) {
       // One update deleting both flags (the turnStart snapshot now lives
       // document-side too) — same round-trip count as the old unsetFlag.

@@ -62,8 +62,6 @@ export function creatureTypeKey(actor) {
   return source && name ? `${source}:${name}` : null;
 }
 
-/** Alias named for callers that prefer lookup terminology. */
-export const creatureTypeMapKey = creatureTypeKey;
 
 /**
  * Resolve a source-scoped key against N4's map, falling back to the same NAME
@@ -118,8 +116,6 @@ export function resolveSdxRuntimeMap(gameRef = globalThis.game) {
   return (name) => record.api.getMappedCreatureType(name);
 }
 
-/** Alias for explicitness at call sites/tests. */
-export const resolveSdxMappedType = resolveSdxRuntimeMap;
 
 function flagValue(actor, namespace) {
   return actor?.flags?.[namespace]?.creatureType;
@@ -205,8 +201,6 @@ export function transformCreatureType(
   };
 }
 
-/** Alias matching the other backfill consumers' transform naming. */
-export const transformCreatureTypeBackfill = transformCreatureType;
 
 function withCounts(result, missingMap) {
   const missing = missingMap.length;
@@ -266,5 +260,3 @@ export async function runCreatureTypeBackfill({
   return withCounts(result, missingMap);
 }
 
-/** Alias for consumers that call all backfills by their subject. */
-export const runCreatureTypeBackfillAfterStartup = runCreatureTypeBackfill;

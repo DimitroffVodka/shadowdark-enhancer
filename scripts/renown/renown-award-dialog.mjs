@@ -19,10 +19,10 @@ import { Renown } from "./renown.mjs";
 import {
   RENOWN_HISTORY_CAP, RENOWN_TRIGGERS, historyRow, showsSourceTag, signedRenown, sourceLabel,
 } from "./renown-core.mjs";
+import { L } from "../shared/i18n.mjs";
 
 const { DialogV2 } = foundry.applications.api;
 
-const L = (key, data) => (data ? game.i18n.format(key, data) : game.i18n.localize(key));
 
 export const RenownAwardDialog = {
 

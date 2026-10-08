@@ -36,13 +36,8 @@
  * advisory only (displayed to help a GM pick a DC) and is never applied to a
  * document. Treat it as a hint and edit it freely.
  */
+import { L } from "../shared/i18n.mjs";
 
-/** One string from `languages/en.json`; the key when no i18n is mounted. */
-const L = (key, data) => {
-  const i18n = globalThis.game?.i18n;
-  if (!i18n) return key;
-  return data ? i18n.format(key, data) : i18n.localize(key);
-};
 
 /** Stat-block abbreviation for each ability key (STR, DEX, …), as en.json keys. */
 export const ABILITY_LABEL_KEYS = {

@@ -33,16 +33,11 @@
  * which shapes the journal table the GM already sees — that function is the
  * reference for anything ambiguous here.
  */
+import { L } from "../shared/i18n.mjs";
 
 /** Fallback character label, matching SDX's own log table. */
 const UNKNOWN = "?";
 
-/** One string from `languages/en.json`; the key when no i18n is mounted. */
-const L = (key, data) => {
-  const i18n = globalThis.game?.i18n;
-  if (!i18n) return key;
-  return data ? i18n.format(key, data) : i18n.localize(key);
-};
 
 /** Expanded mode is the one that carries benefit/mishap ARRAYS. */
 export function isExpandedResult(result) {

@@ -26,6 +26,7 @@ import {
   DIABOLICAL_TREASURE_ICONS,
   DIABOLICAL_TREASURE_ROWS as ICON_ROWS,
 } from "../shared/curated-icon-maps/diabolical-treasure-icons.mjs";
+import { L } from "../shared/i18n.mjs";
 
 export const DIABOLICAL_TREASURE_SOURCE = "cs1";
 export const DIABOLICAL_TREASURE_CONTENT_ID = "cs1/diabolical-treasure";
@@ -37,12 +38,6 @@ export const DIABOLICAL_TREASURE_MANIFEST_IDS = Object.freeze([
 export const DIABOLICAL_TREASURE_TABLE_NAME = "Diabolical Treasure";
 export const DIABOLICAL_TREASURE_FOLDER_PATH = Object.freeze(["Cursed Scroll 1", "Treasure"]);
 
-/** One string from `languages/en.json`; the key when no i18n is mounted (node tests). */
-const L = (key, data) => {
-  const i18n = globalThis.game?.i18n;
-  if (!i18n) return key;
-  return data ? i18n.format(key, data) : i18n.localize(key);
-};
 
 /** The book table's own name, filled into this file's GM warnings. */
 const NOTIFY_TABLE = "Diabolical Treasure";

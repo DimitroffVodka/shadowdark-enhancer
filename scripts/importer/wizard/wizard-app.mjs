@@ -15,9 +15,9 @@ import { wireFiles, wireLegend, openPicker, actionData } from "./wizard-dom.mjs"
 import { useSessionPdf, sessionPdfPath, onTheForge, FORGE_UPLOAD_LIMIT_MB } from "../session-pdf.mjs";
 import { resolveSourcePdf, uploadSourcePdf, findLibraryJournal, listSourcePdfs } from "../source-pdf-registry.mjs";
 import { extractPdfText, releaseLocalPdfs } from "../pdf-text-extract.mjs";
+import { L as t } from "../../shared/i18n.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
-const t = (key, args) => (args ? game.i18n.format(key, args) : game.i18n.localize(key));
 
 /** One click handler per template action; "choose" opens the file dialog itself, "pick" arrives from a drop or the dialog. */
 const act = (name) => function onAction(_event, target) { return this.ctl.dispatch(name, actionData(target)); };

@@ -2,7 +2,14 @@
 // the clock HUD redraws.
 import test from "node:test";
 import assert from "node:assert/strict";
-import { barModel, itemTouchesBar, redrawStamp } from "../scripts/overland/overland-bar-core.mjs";
+import { barModel, itemTouchesBar, redrawStamp, hhmm } from "../scripts/overland/overland-bar-core.mjs";
+
+test("sunrise and sunset labels read in the calendar's own hours and minutes", () => {
+  assert.equal(hhmm(19.75, { minutesPerHour: 60, hoursPerDay: 24 }), "19:45");
+  assert.equal(hhmm(19.75, { minutesPerHour: 100, hoursPerDay: 24 }), "19:75");
+  assert.equal(hhmm(25.5, { minutesPerHour: 60, hoursPerDay: 26 }), "25:30", "a 26-hour day does not wrap at 24");
+  assert.equal(hhmm(6.5, undefined), "06:30", "no calendar: Foundry's own 60 and 24");
+});
 
 const STATE = {
   day: 100, budget: 4, spent: 1, hexesLeft: 3, method: "walking", pushed: false, mounts: 2,

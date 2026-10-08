@@ -2,11 +2,11 @@
  * record-boundary.mjs — where one pasted description record ends and the next
  * begins. Pure (Foundry-free, node-testable).
  *
- * THE RULE THIS OWNS (C1 / #69). Both description consumers used to end a
- * record at the next header they had CLAIMED — item-parser's
- * splitDescriptionsByNames at the next anchored name, gear-join's bodyFor at
- * the next matched header. Any real record start neither of them claimed
- * therefore failed to close the record above it, and that record swallowed it.
+ * THE RULE THIS OWNS (C1 / #69). The description splitter used to end a
+ * record at the next header it had CLAIMED — item-parser's
+ * splitDescriptionsByNames at the next anchored name. Any real record start
+ * it had not claimed therefore failed to close the record above it, and that
+ * record swallowed it.
  * Four ways a real start goes unclaimed, all seen on one book's gear pages:
  *
  *   • the importer refuses the row — Coin and Gem are currency, never items,
@@ -105,13 +105,11 @@ export function stripPageFurniture(text) {
 }
 
 /**
- * Is a lead-in shaped like an item NAME rather than a sentence? Exported so a
- * caller that has already extracted a header phrase (gear-join's orphan review
- * list) applies exactly the shape test the boundary rule applied.
+ * Is a lead-in shaped like an item NAME rather than a sentence?
  * @param {string} phrase
  * @returns {boolean}
  */
-export function isNameShapedPhrase(phrase) {
+function isNameShapedPhrase(phrase) {
   if (String(phrase ?? "").length > MAX_HEADER_LEAD) return false;
   if (SENTENCE_LEAD_RE.test(phrase)) return false;
   const words = phrase.split(/\s+/).filter(Boolean);

@@ -389,8 +389,13 @@ export async function ensureFolderPath(pack, names) {
  * every other pipeline's — so replacing the object outright deletes blocks the
  * import was never in a position to have an opinion on, up to and including the
  * `monsterSpell.libraryId` that makes a generated spell visible to its planner.
- * `replacementFlags` re-merges this module's namespace: declared keys win,
- * undeclared ones survive. It answers for each branch separately, because the
+ * `replacementFlags` re-merges the stored flags: every namespace the payload
+ * does not declare survives (Extras automation, `core`), and inside this
+ * module's namespace declared keys win, undeclared ones survive. Embedded rows
+ * are swapped only when the payload carries that field: an Item import says
+ * nothing about effects, so a GM's effects stay. The new rows are created
+ * before the old ones are deleted, so a failed create leaves the old rows in
+ * place rather than none. It answers for each branch separately, because the
  * two are not symmetric — an update that omits `flags` leaves the stored object
  * alone, while a recreate DELETES the original and must therefore carry those
  * blocks itself. Both branches end at the same document either way.
@@ -408,16 +413,17 @@ export async function replaceDocument(oldDoc, payload, pack) {
   const createData = flags.create ? { ...payload, flags: flags.create } : payload;
   const docData = { ...payload, ...(flags.update ? { flags: flags.update } : {}) };
   delete docData._id;
-  const rows = field ? (docData[field] ?? []) : [];
+  const swapRows = !!field && field in docData;
+  const rows = swapRows ? (docData[field] ?? []) : [];
   if (field) delete docData[field];
 
   if (!docData.type || docData.type === oldDoc.type) {
     try {
       await oldDoc.update(docData, { recursive: false });
-      if (field) {
+      if (swapRows) {
         const oldIds = oldDoc.getEmbeddedCollection(embeddedName).map((r) => r.id);
-        if (oldIds.length) await oldDoc.deleteEmbeddedDocuments(embeddedName, oldIds);
         if (rows.length) await oldDoc.createEmbeddedDocuments(embeddedName, rows);
+        if (oldIds.length) await oldDoc.deleteEmbeddedDocuments(embeddedName, oldIds);
       }
       return { doc: oldDoc, mode: "updated" };
     } catch (err) {
@@ -426,7 +432,11 @@ export async function replaceDocument(oldDoc, payload, pack) {
   }
 
   const cls = oldDoc.constructor;
-  const created = await cls.create(createData, { pack: pack.collection });
+  // The recreate deletes the original, so rows the payload is silent about must travel with it.
+  const carried = field && !swapRows
+    ? { ...createData, [field]: oldDoc.getEmbeddedCollection(embeddedName).map((r) => r.toObject()) }
+    : createData;
+  const created = await cls.create(carried, { pack: pack.collection });
   if (!created) throw new Error(`replacement create for "${payload?.name}" returned nothing — original kept`);
   await oldDoc.delete();
   return { doc: created, mode: "recreated" };

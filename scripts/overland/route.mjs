@@ -18,8 +18,8 @@ import { isHexMapScene, hexReader } from "../encounter/encounter-terrain.mjs";
 import { cheapestRoute } from "./overland-state-core.mjs";
 import { overlandState, travelStepCost, travelSettled } from "./overland.mjs";
 import { ownsHexFog, hexDisclosure } from "../hex-map/hex-fog.mjs";
+import { L as t } from "../shared/i18n.mjs";
 
-const t = (key, data) => (data ? game.i18n.format(key, data) : game.i18n.localize(key));
 const offsetKey = (o) => `${o.i},${o.j}`;
 
 let _graphics = null;
