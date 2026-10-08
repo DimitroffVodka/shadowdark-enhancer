@@ -3485,7 +3485,11 @@ body.theme-light .sde-parry-note { color: #2e6b2e; }
 .hxt .hxt-cellhead { gap: 2px; min-width: 0; }
 .hxt-fig { margin: 0; display: flex; flex-direction: column; align-items: center; gap: 2px; cursor: pointer; }
 .hxt-auto { width: auto !important; }
-.hxt-settings { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; }
+.hxt-settings { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; align-items: start; }
+.hxt-row { display: grid; grid-template-columns: minmax(150px, 220px) 1fr; gap: 6px 14px; align-items: center; }
+.hxt-row .ui-btn { justify-self: start; }
+.hxt-settings .ui-inline input[type=number] { width: 6em; flex: 0 0 auto; }
+@media (max-width: 520px) { .hxt-row { grid-template-columns: 1fr; } }
 .hxt .hxt-body > .hxt-panel .ui-note i { margin-right: 4px; color: var(--ui-muted); }
 .hxt .ui-status { min-height: 26px; }
 .hxt-panel p { margin: 0; }
