@@ -60,8 +60,13 @@ status) stops rolling.
 ## Stabilizing
 
 Another character can stabilize a dying one with an **Intelligence check, DC
-15**. Anyone with an Intelligence score can do it, NPC allies included. The
-rule's close range is left to the table.
+15**. Anyone with an Intelligence score can do it, NPC allies included, from
+**close range**. The helper must be adjacent to the dying character (about 5
+feet; a larger token counts from its edge); a check from further away is refused before it rolls,
+and one that still lands (a Luck reroll, a macro) does not stabilize. When
+either character has no token on the scene the GM is viewing, there is nothing
+to measure and the table decides. Stabilizing costs no action: the book names
+none.
 
 1. Select the helper's token (a player's own character works without selecting).
 2. Click the **Dying** badge on the dying character's strip card.
