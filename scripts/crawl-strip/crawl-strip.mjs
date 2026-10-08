@@ -1638,9 +1638,20 @@ export const CrawlStrip = {
    * `relayToGM` shows it to the player who asked; `_executeGive` shows it to a
    * GM acting directly.
    *
+   * Gifts run one at a time: each checks and spends from what the previous one wrote. Two gifts landing together
+   * used to read the same counts, so two givers spent and the receiver gained one, or one giver's two gifts both
+   * read the same remaining and minted a token.
+   *
    * @returns {Promise<{ok: boolean, error?: string}>}
    */
-  async _giveLuckToken(giver, receiver) {
+  _giveLuckToken(giver, receiver) {
+    const run = this._luckChain.catch(() => {}).then(() => this._transferLuckToken(giver, receiver));
+    this._luckChain = run;
+    return run;
+  },
+  _luckChain: Promise.resolve(),
+
+  async _transferLuckToken(giver, receiver) {
     const pulp = game.settings.get("shadowdark", "usePulpMode") === true;
     const rSystem = receiver.system;
 

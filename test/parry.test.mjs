@@ -187,3 +187,18 @@ test("defeat statuses follow the actor type the system branches on", () => {
   assert.deepEqual(defeatStatusesFor("NPC"), ["dead"]);
   assert.deepEqual(defeatStatusesFor(undefined), ["dead"]);
 });
+
+test("two parries on two different cards run one after the other, never side by side", async () => {
+  globalThis.game = { i18n: { localize: (k) => k, format: (k) => k } };
+  const { Parry } = await import("../scripts/parry/parry.mjs");
+  let running = 0, overlapped = false;
+  Parry._resolveParry = async () => {
+    running += 1;
+    if (running > 1) overlapped = true;
+    await new Promise((resolve) => setTimeout(resolve, 5));
+    running -= 1;
+    return { ok: true };
+  };
+  await Promise.all([Parry._handleParry({ messageId: "m1" }), Parry._handleParry({ messageId: "m2" })]);
+  assert.equal(overlapped, false, "each reads the use count the other one wrote");
+});

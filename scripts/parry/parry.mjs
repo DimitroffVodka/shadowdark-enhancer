@@ -67,6 +67,7 @@ const PENDING_TTL_MS = 30000;
  * client (`refuseQuery` sends every relay to the active GM).
  */
 const _inFlight = new Set();
+let _parryChain = Promise.resolve();
 
 let _installed = false;
 let _originalOnApplyDamage = null;
@@ -309,7 +310,11 @@ export const Parry = {
     if (_inFlight.has(messageId)) return { ok: false, error: game.i18n.localize("SDE.parry.error.inFlight") };
     _inFlight.add(messageId);
     try {
-      return await this._resolveParry(request, user);
+      // One parry at a time across all cards: two parries on two attacks against one PC both read the same
+      // uses.available and both reversed their damage on one use.
+      const run = _parryChain.catch(() => {}).then(() => this._resolveParry(request, user));
+      _parryChain = run;
+      return await run;
     } finally {
       _inFlight.delete(messageId);
     }

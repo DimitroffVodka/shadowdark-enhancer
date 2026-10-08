@@ -555,6 +555,35 @@ test("a PC-to-PC gift still goes through", async () => {
   }
 });
 
+test("two luck gifts to one character at once both land (pulp)", async () => {
+  const { CrawlStrip, restore } = await luckHarness();
+  // Writes land a tick later, as a server round-trip does; each reads its own counter fresh.
+  const pc = (id, remaining) => ({
+    id, name: id, type: "Player",
+    system: {
+      luck: { remaining },
+      async useLuckToken() {
+        if (this.luck.remaining < 1) return false;
+        const left = this.luck.remaining - 1;
+        await new Promise((resolve) => setTimeout(resolve, 5));
+        this.luck.remaining = left;
+        return true;
+      },
+    },
+    async update(u) {
+      await new Promise((resolve) => setTimeout(resolve, 5));
+      this.system.luck.remaining = u["system.luck.remaining"];
+    },
+  });
+  const [a, b, receiver] = [pc("a", 1), pc("b", 1), pc("r", 0)];
+  try {
+    await Promise.all([CrawlStrip._giveLuckToken(a, receiver), CrawlStrip._giveLuckToken(b, receiver)]);
+    assert.equal(receiver.system.luck.remaining, 2, "two spent, two received");
+  } finally {
+    restore();
+  }
+});
+
 test("classic mode: the gift flips the receiver's boolean, not a counter", async () => {
   // Classic is the DEFAULT luck mode and took a different branch through
   // `_giveLuckToken` than pulp — it was the untested half of a transfer the
