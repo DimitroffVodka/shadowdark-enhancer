@@ -491,7 +491,7 @@
     "scripts/party/party-item-picker.mjs": "The Party sheet's Add item > From compendium window: an ApplicationV2 that reads every Item compendium's index once, filters it by name as the GM types (searchItemIndex), and hands the picked entry to the sheet to copy onto the party actor.",
     "scripts/party/party-create-option.mjs": "Adds the Enhancer's Party entry to the Create Actor type list and drops Extras' duplicate Party entry.",
     "scripts/party/party-light.mjs": "Runtime-only dungeon Party light mirror without duplicated fuel items; hex lights and stored vision unchanged.",
-    "scripts/party/party.mjs": "Explicit native Party provider, safe in-place NPC adoption and owner-scoped membership writes.",
+    "scripts/party/party.mjs": "Explicit native Party provider, safe in-place NPC adoption and owner-scoped membership writes; the active GM re-checks every roster a player writes and takes off a member that player could not have added.",
     "scripts/party/party-app.mjs": "Native ApplicationV2 Party actor sheet and directory/token-HUD entry points, preserving detailed member cards with inline activities, scoped quests/payouts and description editing.",
     "scripts/shadowdark-enhancer.mjs": "**Entry point** (module.json esmodules). Registers hooks, settings, sheets, actor sub-types, the public `game.shadowdarkEnhancer` API, and wires every sub-system.",
     "scripts/shared/module-id.mjs": "Single source of truth for the module ID (highest fan-in file: 58 importers).",
