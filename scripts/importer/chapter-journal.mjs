@@ -104,6 +104,48 @@ export function stripPageFurniture(lines, printed, dropped = []) {
 const RUN_IN = /^[A-Z][^.!?]{0,30}\.\s+[A-Z]/;
 
 /**
+ * Pure: a numbered table's rows, one paragraph each, with each row's number at the start of its first line. The book
+ * centres a row's number beside its middle line, so the extractor hands it over as a line of its own ("1") or at the front
+ * of a middle line ("1 book that transported her…"), and the row reads "…a forbidden 1 book". Rows are numbered 1, 2, 3 in
+ * order, which is what finds them: a line that is only the next number, or the next number then lower-case text, belongs
+ * to the row that begins after the last line that ended a sentence (or after the heading); a line that starts with the next
+ * number then a capital is a row's first line already. A paragraph break goes before each row.
+ * @param {string[]} lines
+ * @returns {string[]}
+ */
+export function moveRowNumbers(lines) {
+  const out = [];
+  let expected = 1, dice = false;   // dice: inside a "d12 Details" table, whose rows are one-liners that need no full stop
+  const ends = (l) => /[.!?]["”’')]?$/.test(String(l).trim());
+  const rowAt = (l) => /^(\d{1,2})(?:\s+(.*))?$/.exec(String(l).trim());
+  for (const l of lines) {
+    if (isHeading(l) || /^d\d+\b/i.test(String(l).trim())) { expected = 1; dice = !isHeading(l); if (dice) out.push(""); out.push(l); continue; }
+    // A d100 table's rows start with a number or a range ("01", "02-03"); each is a paragraph of its own.
+    if (dice && /^\d{1,3}(?:[-–]\d{1,3})?\s+\S/.test(String(l).trim()) && !/^\d{1,2}\s/.test(String(l).trim())) { out.push("", l); continue; }
+    const m = rowAt(l);
+    if (m && Number(m[1]) === expected) {
+      const text = m[2] ?? "";
+      const prev = out.at(-1);
+      const rowStart = dice || prev === undefined || prev === "" || ends(prev) || isHeading(prev);
+      if (/^[A-Z"“(\d]/.test(text) && rowStart) { out.push("", `${m[1]} ${text}`); expected++; continue; }   // the row's first line
+      if (!text || /^[a-zA-Z"“(\d]/.test(text)) {                                                // beside the middle of its row
+        let start = out.length - 1;
+        while (start > 0 && out[start] !== "" && !ends(out[start - 1]) && !isHeading(out[start - 1]) && !/^d\d+\b/i.test(out[start - 1]) && out[start - 1] !== "") start--;
+        if (start >= 0 && out[start] && !isHeading(out[start])) {
+          out[start] = `${m[1]} ${out[start]}`;
+          out.splice(start, 0, "");
+          if (text) out.push(text);
+          expected++;
+          continue;
+        }
+      }
+    }
+    out.push(l);
+  }
+  return out;
+}
+
+/**
  * Mark each paragraph's end with the blank line reflowBodyLines splits on. A
  * PDF gives printed lines and no blank lines, so what is left is a sentence
  * that ends well short of the column's width, or one followed by the next
@@ -159,9 +201,11 @@ function splitAtHeadings(lines, leadName) {
  *   titles, for the preview to show.
  * @returns {Array<{key:string, name:string, html:string}>}
  */
-export function buildChapterPages(pages, { name = "", sections = null, lead = true, dropped = [] } = {}) {
-  const linesOf = (nums) => (pages ?? []).filter((p) => !nums || nums.includes(p.page))
-    .flatMap((p) => stripPageFurniture(p.lines, p.page, dropped));
+export function buildChapterPages(pages, { name = "", sections = null, lead = true, dropped = [], rowNumbers = false } = {}) {
+  const linesOf = (nums) => {
+    const lines = (pages ?? []).filter((p) => !nums || nums.includes(p.page)).flatMap((p) => stripPageFurniture(p.lines, p.page, dropped));
+    return rowNumbers ? moveRowNumbers(lines) : lines;
+  };
   const parts = sections?.length
     ? sections.map((s) => ({ name: s.name, lines: linesOf(s.pages) }))
     : splitAtHeadings(linesOf(null), name).slice(lead ? 0 : 1);
@@ -208,7 +252,7 @@ const t = (key, data) => (data ? game.i18n.format(key, data) : game.i18n.localiz
  * @returns {Promise<{pages:Array<{key,name,html}>, warnings:string[], dropped:string[]}|null>}
  *   null when the book has no PDF; `dropped` = lines removed as page titles
  */
-export async function readChapter({ src, pages, name, sections = null, lead = true }) {
+export async function readChapter({ src, pages, name, sections = null, lead = true, rowNumbers = false }) {
   const { resolveSourcePdf, sourcePdfTarget } = await import("./source-pdf-registry.mjs");
   const { extractPdfText, parsePageRange, notifyGutterWarnings } = await import("./pdf-text-extract.mjs");
   const file = resolveSourcePdf(src);
@@ -222,7 +266,7 @@ export async function readChapter({ src, pages, name, sections = null, lead = tr
   const printed = (result.pages ?? []).map((p) => ({ ...p, page: p.page - offset }));
   const secs = sections?.map((s) => ({ name: s.name, pages: parsePageRange(s.pages) })) ?? null;
   const dropped = [];
-  return { pages: buildChapterPages(printed, { name, sections: secs, lead, dropped }), warnings: result.warnings, dropped };
+  return { pages: buildChapterPages(printed, { name, sections: secs, lead, dropped, rowNumbers }), warnings: result.warnings, dropped };
 }
 
 /** Pure: extractor warnings ("p98: …") renumbered to the printed page ("p94: …"). */

@@ -33,6 +33,7 @@ function entryWith(flagKey, flag, pages) {
     id: "e1", uuid: "uuid.e1", pages: pages.map(make), calls: { create: 0, update: [] },
     getFlag: (m, k) => (m === MODULE && k === flagKey ? flag : undefined), update: async (d) => { entry.updated = d; },
     async createEmbeddedDocuments(_t, docs) { entry.calls.create += docs.length; const made = docs.map(make); entry.pages.push(...made); return made; },
+    async deleteEmbeddedDocuments(_t, ids) { entry.pages = entry.pages.filter((p) => !ids.includes(p.id)); return ids; },
     async updateEmbeddedDocuments(_t, docs) { entry.calls.update.push(...docs); for (const d of docs) { const p = entry.pages.find((x) => x.id === d._id); if (!p) continue; if (d.name) p.name = d.name; if (d.text) p.text = d.text; if (d["text.content"]) p.text.content = d["text.content"]; } return docs; },
   };
   return entry;
@@ -91,4 +92,99 @@ test("without keepExisting the advanced importer still replaces a hex page and i
   assert.match(entry.pages[0].text.content, /watermill/);
   assert.equal(report.updated.length, 1);
   assert.equal(entry.updated[`flags.${MODULE}.hex`].keyed[0].name, "Book name");
+});
+
+// ── the adventure's overview pages ──
+import { overviewPagePayload, overviewKey } from "../scripts/importer/adventure/adventure-commit.mjs";
+
+const OV = [{ key: "lead", name: "Overview", html: "<p>Room key.</p>" }, { key: "background", name: "Background", html: "<p>Long ago.</p>" }, { key: "rumors", name: "Rumors", html: "<p>1 A rumour.</p>" }];
+
+test("overview pages are filed ahead of the locations, in the order the book prints them, each keyed", async () => {
+  const entry = entryWith("adventure", { site: SITE.id }, []);
+  world(entry);
+  const report = await commitAdventure(SITE, locs, { source: "CS1", overview: OV });
+  assert.equal(report.created.length, 5, "three overview pages and two locations");
+  assert.deepEqual(entry.pages.filter((p) => overviewKey(p)).map((p) => [p.name, overviewKey(p)]), [["Overview", "lead"], ["Background", "background"], ["Rumors", "rumors"]]);
+  const sorts = OV.map((_, i) => overviewPagePayload(OV[i], i).sort);
+  assert.ok(sorts[0] < sorts[1] && sorts[1] < sorts[2] && sorts[2] < -1, "ahead of the introduction page, which is ahead of the numbered ones");
+});
+
+test("a re-run replaces overview pages by key, and the wizard's keepExisting leaves an edited one and adds a new one", async () => {
+  const entry = entryWith("adventure", { site: SITE.id }, [{ id: "po", name: "Background", text: { content: "<p>GM EDITED</p>" }, flags: { [MODULE]: { adventure: { overview: "background" } } } }]);
+  world(entry);
+  const kept = await commitAdventure(SITE, locs, { source: "CS1", overview: OV, keepExisting: true });
+  assert.equal(entry.pages.find((p) => p.id === "po").text.content, "<p>GM EDITED</p>");
+  assert.equal(entry.pages.filter((p) => overviewKey(p)).length, 3, "the two missing ones were added");
+  assert.ok(kept.kept.includes("po"));
+  await commitAdventure(SITE, locs, { source: "CS1", overview: OV });   // the advanced importer re-reads
+  assert.match(entry.pages.find((p) => p.id === "po").text.content, /Long ago/);
+  assert.equal(entry.pages.filter((p) => overviewKey(p)).length, 3, "no second copy");
+});
+
+test("the pre-quickstart overview pages are swept by a new-layout read, but a partial read never deletes current pages or the GM's own", async () => {
+  const page = (id, key) => ({ id, name: id, text: { content: `<p>${id}</p>` }, flags: { [MODULE]: { adventure: { overview: key } } } });
+  const keys = (e) => e.pages.filter((p) => overviewKey(p)).map((p) => overviewKey(p)).sort();
+  const AREAS = { key: "areas", name: "Areas 1-2", html: "<p>Danger.</p>" };
+  const mixed = () => entryWith("adventure", { site: SITE.id }, [page("a", "background"), page("b", "rumors"), page("c", "overview"), page("d", "areas"), page("e", "gm-map"), page("f", "my-notes")]);
+
+  // A read that brings only the Areas page: the old seven-section pages go; Overview (not read this time), the GM's pages stay.
+  const partial = mixed();
+  world(partial);
+  await commitAdventure(SITE, locs, { source: "CS1", overview: [AREAS] });
+  assert.deepEqual(keys(partial), ["areas", "gm-map", "my-notes", "overview"]);
+
+  // A read in the old layout (the City of Masks keeps its own sections) sweeps nothing; its page is only added.
+  const city = mixed();
+  world(city);
+  await commitAdventure(SITE, locs, { source: "CS1", overview: [OV[0]] });
+  assert.deepEqual(keys(city), ["areas", "background", "gm-map", "lead", "my-notes", "overview", "rumors"]);
+
+  // An empty read and the wizard's keepExisting sweep nothing either.
+  const empty = mixed();
+  world(empty);
+  await commitAdventure(SITE, locs, { source: "CS1", overview: [] });
+  await commitAdventure(SITE, locs, { source: "CS1", overview: [AREAS], keepExisting: true });
+  assert.equal(keys(empty).length, 6);
+});
+
+test("no overview in the manifest leaves the journal as the locations alone", async () => {
+  const entry = entryWith("adventure", { site: SITE.id }, []);
+  world(entry);
+  await commitAdventure(SITE, locs, { source: "CS1" });
+  assert.equal(entry.pages.filter((p) => overviewKey(p)).length, 0);
+});
+
+import { inlineOverview } from "../scripts/importer/adventure/adventure-book-import.mjs";
+
+test("a one-page adventure's overview is one page: the blurb and the table stay, the map's label scraps go", () => {
+  const parts = [
+    { key: "lead", name: "Overview", html: "<p>Army Ants Death walks again in the flooded dark.</p>" },
+    { key: "random-encounters", name: "Random Encounters", html: "<p>d4 Details 1 1d6 lichen-covered skeletons 2 1d6 giant ants on patrol</p>" },
+    { key: "m-m", name: "M M", html: "<p>15&#39; underwater A 22 A 66 A</p>" },
+    { key: "a-a", name: "A a", html: "<p>For level 3 characters. Written by a person.</p>" },
+  ];
+  const out = inlineOverview(parts);
+  assert.equal(out.length, 1);
+  assert.equal(out[0].name, "Overview");
+  assert.match(out[0].html, /Army Ants/);
+  assert.match(out[0].html, /<h3>Random Encounters<\/h3>/);
+  assert.match(out[0].html, /lichen-covered skeletons/);
+  assert.match(out[0].html, /For level 3 characters/);
+  assert.doesNotMatch(out[0].html, /underwater|22 A 66/);
+  assert.deepEqual(inlineOverview([]), []);
+});
+
+import { addOverviewToWorldCopy } from "../scripts/importer/adventure/adventure-commit.mjs";
+
+test("the world's copy of a journal gets the overview pages it lacks and keeps every page it has", async () => {
+  const mk = (id, over) => ({ id, name: id, toObject: () => ({ _id: id, name: id }), getFlag: (m, k) => (m === MODULE && k === "adventure" && over ? { overview: id } : undefined), flags: over ? { [MODULE]: { adventure: { overview: id } } } : {} });
+  const pack = { id: "J1", pages: { contents: [mk("o1", true), mk("o2", true), mk("p1", false)] } };
+  const created = [];
+  const world = { pages: new Set(["o1", "p1"]), createEmbeddedDocuments: async (_t, docs) => { created.push(...docs); } };
+  world.pages.has = world.pages.has.bind(world.pages);
+  globalThis.game = { journal: { get: (id) => (id === "J1" ? world : null) } };
+  assert.equal(await addOverviewToWorldCopy(pack), 1);
+  assert.deepEqual(created.map((d) => d._id), ["o2"]);
+  globalThis.game = { journal: { get: () => null } };
+  assert.equal(await addOverviewToWorldCopy(pack), 0, "no world copy yet: nothing to do");
 });

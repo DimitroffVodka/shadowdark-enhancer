@@ -128,7 +128,7 @@ import { initRivalClassTable } from "./forge-loot/rival-class-table-adapter.mjs"
 // templates, producing unstyled block-flow UI. Keep the manifest stylesheet as
 // the startup fallback, then layer a content-addressed copy above it. The layout
 // contract test requires this revision to change whenever the CSS file changes.
-const STYLESHEET_REV = "b9a2f158b07c";
+const STYLESHEET_REV = "59fea7266a1e";
 
 // The same problem for the SCRIPTS, which cannot be solved the same way: their
 // URLs come from the manifest, which Foundry validates as real package paths,
@@ -143,7 +143,7 @@ const STYLESHEET_REV = "b9a2f158b07c";
 // stale); module.json carries the same hash and is fetched fresh at runtime. A
 // mismatch is a stale cache by construction — it cannot be anything else. Both
 // stamps are written by `npm run inventory` and gated by `inventory:check`.
-const BUILD_REV = "e41e964dfe8f";
+const BUILD_REV = "a64b9619c203";
 
 /**
  * Tell the user when their browser is running an old build of this module, and
@@ -788,6 +788,8 @@ Hooks.once("init", () => {
           ? ImportWizardApp.open()
           : (await import("./importer/importer-hub-app.mjs")).ImporterHubApp.open("import");
       },
+      // File the journals and scenes the importer made into folders for their books (GM only).
+      organizeWorld: async () => (await import("./importer/world-folders.mjs")).organizeWorld(),
       openWizard: async () => (await import("./importer/wizard/wizard-app.mjs")).ImportWizardApp.open(),
       // Importer hub — 4-tab shell (Import / Tables / Monsters / Items).
       // Back-compat: legacy tab="dashboard" maps to "tables"; retired

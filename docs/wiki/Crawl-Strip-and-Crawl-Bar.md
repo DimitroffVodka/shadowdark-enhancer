@@ -12,7 +12,7 @@ bar that launches the rest of the suite.
 ## What it does
 
 The **Crawl Strip** is a horizontal row of cards—one per party member—showing
-live HP, movement budgets, Luck tokens, AC, and active status effects without
+live HP, movement budgets, Luck tokens, and AC without
 opening a character sheet.
 
 The **Crawl Bar** sits directly underneath, changing controls based on whether
@@ -363,7 +363,6 @@ Each card displays live actor data:
 | **AC** | Displayed as `AC n` |
 | **Luck pill** | PCs only. On your own PC: left-click spends a token, right-click adds one (the GM can do both on any PC). On another player's PC: left- or right-click gives them one of yours. Each posts a chat card. |
 | **Movement pill** | `remaining / budget ft`. Turns red when over budget. |
-| **Active effects** | Icons for current effects with hover tooltips for duration |
 | **Light source** | PC cards: click to toggle character light source |
 | **Initiative** | d20 button when unrolled; badge showing result once rolled |
 | **Current turn** | Active combatant card is outlined in accent color; others dim |

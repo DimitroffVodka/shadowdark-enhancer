@@ -59,7 +59,7 @@ Each row links to its full manual page.
 
 | | |
 |---|---|
-| **[Crawl Strip & Crawl Bar](docs/wiki/Crawl-Strip-and-Crawl-Bar.md)** | Live HP, movement, Luck, AC and active effects for the whole party. Marching order out of combat, initiative order in it. Per-actor action menus so players can attack and cast without a sheet. |
+| **[Crawl Strip & Crawl Bar](docs/wiki/Crawl-Strip-and-Crawl-Bar.md)** | Live HP, movement, Luck and AC for the whole party. Marching order out of combat, initiative order in it. Per-actor action menus so players can attack and cast without a sheet. |
 | **[Dying & Death Timers](docs/wiki/Dying-and-Death-Timers.md)** | A character at 0 HP is dying: a death timer of 1d4 + CON modifier, a d20 each turn that rises at 1 HP on a natural 20, and a DC 15 Intelligence check for a friend to stabilize them. |
 | **[Modes of Play](docs/wiki/Modes-of-Play.md)** | The core rulebook's optional modes and the Western Reaches' Hard Luck, every rule its own switch: 30-minute torches, initiative rerolled each round, XP for defeated monsters, luck crits and forced GM rerolls. |
 |  **[Movement Budgets](docs/wiki/Movement-Budgets.md)** | A coloured ruler while you drag, per-turn allowances, optional refusal of over-budget moves, and one-click rollback to where a token started its turn. |

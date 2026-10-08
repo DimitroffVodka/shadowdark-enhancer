@@ -14,6 +14,7 @@
  *   | `table`       | `DC 15 DEX`  | `[[check 15 dex]]`       |
  *   | `environment` | `DC 15 DEX`  | `[[check 15 dex]]`       |
  *   | `monster`     | `DC 15 DEX`  | `[[request 15 dex]]`     |
+ *   | `journal`     | `DC 15 DEX`  | `[[request 15 dex]]`     |
  *   | any           | `2d4`        | `[[/r 2d4]]`             |
  *
  * `table` and `environment` share a command TODAY and are still separate names:
@@ -59,6 +60,8 @@ export const ENRICH_CONTEXTS = Object.freeze({
   table: "check",
   environment: "check",
   monster: "request",
+  // An adventure's journal is the GM's: the Lost Citadel writes every DC in it as a request to the players.
+  journal: "request",
 });
 
 /** Book spellings → the three-letter key the system's enricher requires. */
@@ -163,7 +166,7 @@ function enrich(text, command) {
  *
  * @param {string} text
  * @param {object} options
- * @param {"table"|"environment"|"monster"} options.context  REQUIRED; never inferred.
+ * @param {"table"|"environment"|"monster"|"journal"} options.context  REQUIRED; never inferred.
  * @returns {string}
  * @throws {TypeError} on a missing or unknown context.
  */

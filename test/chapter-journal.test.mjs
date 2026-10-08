@@ -140,3 +140,37 @@ test("every preset section lies inside the preset's range, in order, without gap
     assert.deepEqual(covered, all, preset.id);
   }
 });
+
+// ── numbered table rows (moveRowNumbers, buildChapterPages' rowNumbers) ──
+import { moveRowNumbers } from "../scripts/importer/chapter-journal.mjs";
+
+test("a rumor table's numbers go back on the first line of their row, whether the book left them alone or at the front of a middle line", () => {
+  const lines = [
+    "RUMORS",
+    "The wealthy family once lived in the keep, but", "1", "their line suddenly died out and the whole place fell into ruin.",
+    "A fisher caught a catfish with four legs in a stream behind the", "2", "keep. It took the hook out of its own mouth and dove back in!",
+    "3 The castle stones are melting like wax from a horrible curse.",
+    "Even the mightiest beings hold a measure of respect for the", "4 Librarians. They may be willing to serve as", "intermediaries for a price.",
+  ];
+  const out = moveRowNumbers(lines).filter(Boolean);
+  assert.deepEqual(out, [
+    "RUMORS",
+    "1 The wealthy family once lived in the keep, but", "their line suddenly died out and the whole place fell into ruin.",
+    "2 A fisher caught a catfish with four legs in a stream behind the", "keep. It took the hook out of its own mouth and dove back in!",
+    "3 The castle stones are melting like wax from a horrible curse.",
+    "4 Even the mightiest beings hold a measure of respect for the", "Librarians. They may be willing to serve as", "intermediaries for a price.",
+  ]);
+  const html = buildChapterPages([{ page: 9, lines }], { name: "Overview", rowNumbers: true }).map((p) => p.html).join("");
+  assert.equal((html.match(/<p>/g) ?? []).length, 4, "a paragraph a row");
+  assert.match(html, /<p>2 A fisher caught a catfish with four legs in a stream behind the keep\./);
+});
+
+test("a dice table's one-line rows, and a d100 table's ranges, each start a paragraph; numbers outside a table are left alone", () => {
+  const lines = ["RANDOM ENCOUNTERS", "d12 Details", "1 Plogrina with 1d6 Bittermolds looking for something", "2 1d6 Howlers wrestling a mutant catfish", "3 An ichor ooze", "d100 Details", "01 A mutant creature has escaped", "02-03 Something in the river"];
+  const html = buildChapterPages([{ page: 9, lines }], { name: "Overview", rowNumbers: true }).map((p) => p.html).join("");
+  assert.equal((html.match(/<p>/g) ?? []).length, 7, "the two table headers and five rows");
+  const prose = ["The party carries", "5", "gold pieces each."];
+  assert.deepEqual(moveRowNumbers(prose), prose, "no table, no sequence: nothing moves");
+  const plain = (opts) => buildChapterPages([{ page: 9, lines: ["INTRO", "Text one", "1", "text two"] }], { name: "x", ...opts }).map((p) => p.html).join("");
+  assert.equal(plain({}), plain({ rowNumbers: false }), "off by default");
+});

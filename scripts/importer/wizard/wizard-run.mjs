@@ -35,7 +35,7 @@ const span = ([from, to], fraction) => from + (to - from) * Math.max(0, Math.min
  * @param {object} state  wizard state (check.ready, maps, uploaded)
  * @param {{onProgress:(pct:number, phase:string)=>void, cancelled:()=>boolean}} hooks
  * @param {object} deps   see the file header
- * @returns {Promise<{imported:number, already:number, needsYou:Array<{title:string, why:string}>, skipped:{n:number, books:string[]}, hex:Array<{id:string, title:string, status:string, legend:boolean, look:boolean, sceneId?:string, pinned:number}>, stopped:boolean}>}
+ * @returns {Promise<{imported:number, already:number, needsYou:Array<{title:string, why:string}>, skipped:{n:number, books:string[]}, hex:Array<{id:string, title:string, status:string, legend:boolean, look:boolean, optional:boolean, named?:boolean, sceneId?:string, pinned:number}>, stopped:boolean}>}
  */
 export async function runWizardImport(state, hooks, deps) {
   const { t } = deps;
@@ -123,7 +123,7 @@ export async function runWizardImport(state, hooks, deps) {
     // A map that could not be made still gets its row, with the button to try it again by hand: the GM still holds the file.
     if (made.status === "ready") result.imported += 1;
     else if (made.status === "already") result.already += 1;
-    result.hex.push({ id: h.id, title: h.title, status: made.status, legend: !!made.legend, look: made.status === "needsLook" || made.status === "failed", sceneId: made.sceneId, pinned: made.pinned ?? 0 });
+    result.hex.push({ id: h.id, title: h.title, status: made.status, legend: !!made.legend, look: made.status === "needsLook" || made.status === "failed", optional: !!print?.drawn, sceneId: made.sceneId, pinned: made.pinned ?? 0 });
   }
   hooks.onProgress(100, t("SDE.importer.wizard.run.finishing"));
   return result;
