@@ -154,8 +154,8 @@ for (const g of CORE_TABLE_GROUPS) {
  * `sub` is the heading the BOOK prints the table under: a REGION through the
  * hexcrawl chapters ("Djurum Desert", "Tal-Yool Jungle", "The Black River"),
  * a topic everywhere else ("Training", "Rumors", "Traps", "Shops"). It is what
- * the Roll Tables catalog has always grouped its browse rows by
- * (table-hub.mjs) — the pack folders were the only surface ignoring it, so a
+ * the Roll Tables catalog grouped its browse rows by — the pack folders were
+ * the only surface ignoring it, so a
  * list organized by region imported into one undifferentiated pile per book.
  *
  * The book comes from the entry rather than from the caller's free-text
@@ -361,8 +361,8 @@ export function resolveTableFolderPath(pt) {
   //
   //    Except when the "custom" label is not the GM's at all: every hub seed
   //    stamps `category = CUSTOM_ID, customLabel = <the book's own
-  //    sub-heading>` onto the parsed table (table-hub-app._applyImportSeed and
-  //    the paste path). That made each of the ~90 headings claim a TOP-LEVEL
+  //    sub-heading>` onto the parsed table (table-importer's seeding and
+  //    importer-hub-paste's _applyImportSeed). That made each of the ~90 headings claim a TOP-LEVEL
   //    pack folder of its own — "Djurum Desert" and "Training" sitting beside
   //    "Roll Tables" — while steps 2-10 below never ran at all. A label that
   //    is exactly this table's own manifest section IS that stamp; anything
