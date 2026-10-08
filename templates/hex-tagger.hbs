@@ -77,7 +77,7 @@
         {{#each sheet as |c|}}
         <div class="ui-card{{#if c.keyed}} sel{{/if}}">
           <div class="ui-card-head">
-            <img class="hxt-thumb" src="{{c.thumb}}" alt="" width="72" height="72">
+            <img class="hxt-thumb" src="{{c.thumb}}" alt="" width="72" height="72"{{#unless c.align}} data-hxt-locate data-num="{{c.num}}" title="{{localize 'SDE.hexMap.legend.locateDouble' num=c.label}}"{{/unless}}>
             <div class="ui-stack hxt-cellhead">
               {{#if c.align}}
               <span class="ui-muted">{{localize "SDE.hexMap.label.grid" i=c.i j=c.j}}</span>

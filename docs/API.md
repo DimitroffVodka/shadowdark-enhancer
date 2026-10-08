@@ -1248,7 +1248,7 @@ works on the GM's own scene image and book text.
 |---|---|---|
 | `hexMaps.numberAt({ i, j }, scene?)` | any | Since 1.26.0. The published hex number of the cell at Foundry offset `{ i, j }` on a scene the Hex Tagger has numbered: a plain integer, column then row (`1403` is column 14, row 03), never a column and row pair. `null` in the frame around the map, past its size, on a scene with no numbering, or on a grid that is not flat-top hex columns. `scene` is a Scene or its id; the viewed scene when left out. Synchronous and cheap, so an overlay can ask for every cell. Shadowdark Extras' Map Coordinates can read it once the Extras version with that integration is installed, so the overlay and the tagger agree; an Enhancer update alone does not change the overlay. |
 | `hexMaps.hasNumbering(scene?)` | any | Since 1.26.0. Whether the scene carries a numbering at all, which is what tells `numberAt`'s `null` for "off the map" from "never numbered". |
-| `hexMaps.openTagger()` | GM | Open the Hex Tagger on the active hex scene (see the wiki page *Hex Maps*). Lazy. |
+| `hexMaps.openTagger({ legend })` | GM | Open the Hex Tagger on the active hex scene (see the wiki page *Hex Maps*). `legend: true` reads the map and opens the Legend at once. Lazy. |
 | `hexMaps.buildDataset({ name, source, drafts, summaryRows, tags, gridHint })` | any | Pure builder for the Shadowdark Extras hexcrawl dataset. `tags` is `{ [num]: { terrain, features } }`, where `features` lists `river`, `path` and `coast` (`overlays`, the old name, is still read). Each hex's river, path and coast come out as entries in its Extras `features` list. |
 | `hexMaps.compare(csvText, { sources })` | GM + `hexMapsDevTools` | Score the active scene's tags against a truth CSV (`hex_id` plus `tags` or `terrain_tags`); returns terrain accuracy and river/path precision and recall. Dev check, ships no data. |
 | `hexMaps.importDetails(entriesOrDataset, sceneId?, { regionScene?, repaint? })` | GM | Write hex details onto a scene Extras already built (default: the active scene) through its `hex.upsertHexRecords`, then repaint the tiles unless `repaint: false`. Given crawl entries (one, a list, or `[]` for zones alone), every hex the print's region scan covers also gets `zone` and `zoneColor`; `regionScene` names the scanned print scene, needed when the world has more than one. |
@@ -2124,9 +2124,10 @@ yes for a tagged hex map and no everywhere else. Dungeons and interiors are
 untouched unless marked.
 
 **Darkness.**
-- It is 0 by day. Over a one-hour twilight after sunset it deepens to the
-  night level, `1 − 0.2 × the moon's illumination` (0.8 at full moon, 1 at
-  new), and it lifts over the hour before sunrise.
+- It is 0 by day. The light eases between day and night over the four hours
+  around each sun event — from an hour before sunrise or sunset to three
+  hours after — on the cosine curve measured on Ember (#389). The night
+  level is `1 − 0.2 × the moon's illumination` (0.8 at full moon, 1 at new).
 - A tagged hex map stops at 0.6, so the overview stays readable.
 - The party's region applies the Isles of Andrik's skies: the Midnight Sun
   never goes above 0.3, and the Long Dark holds the night level all day.

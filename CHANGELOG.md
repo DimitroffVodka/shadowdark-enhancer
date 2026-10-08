@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 ### Added
+- **Double-click a hex's picture to see it on the map.** In the hex tagger's review sheet and on the import wizard's Legend cards, a tile on its own is hard to call a coast or not; the double click pans the map to that hex and pulses it for you alone (the players see nothing).
+- **The hex tagger's terrain dropdowns are alphabetical.** The review sheet, the Legend cards and the import wizard's Legend cards listed terrains in the book's printed order; they now sort like the on-map editor's list, with (untagged) first and other... last.
 - **Right-click a hex with the Hex Brush open to copy its terrain and features.** The brush picks up whatever the hex under the cursor says (a terrain the map's list lacks lands in the Other box), so a good result can be painted straight over a bad one. A right-drag still pans the map.
 - **The import guide offers monster art.** When the guide finishes and monsters were imported, its Done page shows a Monster art card naming the token art you have installed (Monster Manual, the Pathfinder token packs, Shadowdark Community Tokens and so on). Apply monster art uses it for the imported monsters, the same as the Monster Art manager's Apply: it replaces only default art, never a token you picked, and copies nothing. With no art installed there is no card. The Monster Art button in the Actors sidebar still changes any monster by hand.
 - **Traps for map making.** Give any Scene Region a **Trap** behavior (Region config, Behaviors, add): its name, what sets it off, its effect, the ability check and DC (Dexterity DC 12 to start; None skips it), a damage roll, a chance (written 1:6, a 1 in 6 chance each time) and GM notes. It fires once when a token moves in, on entry and every round after (a combat round during a fight, otherwise a crawl round), or only when you press **Spring this trap now**, for a shrine that fires when touched. The chat card is the Party's Request roll card: each character caught has a Roll link, the card shows who passed and who failed, and each who fails has the damage rolled in chat and taken off their hit points (turn that off with Damage those who fail). **Holds those caught** makes quicksand: whoever moves in takes the damage at once and every round after, pass or fail, and cannot move; the check is their escape roll, and a pass frees them. A **Roll a random trap** button fills the name, trigger, effect and damage from the Shadowdark system's own Trap tables, and `game.shadowdarkEnhancer.traps` makes, springs and releases traps from a macro. Regions are hidden from players, so a trap stays hidden.
@@ -20,6 +22,12 @@
   redesign. No window uses it yet, so nothing looks different.
 
 ### Changed
+- **The sky's twilight is a soft four-hour ease (Ember's measured cosine curve).** The light
+  used to move over a one-hour linear ramp after sunset and before sunrise; it now eases over
+  the four hours around each sun event — from an hour before sunrise or sunset to three hours
+  after. At a full moon the hex map's dim window moves from about 18:45–05:15 to about
+  19:40–06:20: dimming begins at 17:00, and the map is fully bright by 09:00. Dawn, dusk and
+  everything the rules read from them are unchanged. (#389)
 - **The Hex Tagger says what each button does.** Every button on the Map and Data tabs has a sentence beside it, and the buttons are grouped by job: Set up this map, Tag by hand (Brush), Auto-tag (optional: Read the map, Legend, Classify), Show on the map and the book's keyed hexes on Map; Use this map, Back up and share, Other tools and a Danger zone (Clear) on Data. The Sheet no longer opens with four lines of accuracy figures; they moved to the bottom of Settings under Auto-tag accuracy, where Ring at is still one click. Settings explains the anchor hex, the map size, the top-row frame and Sensitivity. "Hex key" is now "Keyed hexes from the book", with a line saying it pins one note per keyed hex and which crawl it pins from.
 - **"These are not all the same" on a Legend card asks about the pictures you were shown.** The opened card now starts with the card's own four pictures, so the hexes you flagged are among the eight you name, and an even spread across the card fills the rest. Before, it asked about eight hexes spaced through the card and could skip the ones you were looking at.
 - **The import wizard's Terrain step is only for the Western Reaches map.** The other five hex maps (The Gloaming, The Djurum, Isles of Andrik, The Black River, Morzomotha) are drawings with a hex grid laid over them, so the same land looks different from hex to hex and the Legend's cards come out mixed. They are still set up, numbered and pinned; their Done row says naming the terrain is optional and keeps the "Name the terrain" button. Running the wizard again says the same on a drawn map that is already set up.
@@ -108,6 +116,7 @@
 
 ### Fixed
 - **Shadowdark Community Tokens is one source in the Monster Art manager, not two.** When Foundry registers the module, the manager also found the same art folder on disk, so the pack was listed twice, a monster could be shown two options from it even where both were the same art, and part of the "Only monsters with a choice" count was not a choice. The two findings now merge into one source — the module's own art map first, the folder filling anything it lacks — and a source's count says how many monsters it can actually skin. Apply writes exactly the art it wrote before (#408).
+- **`game.shadowdarkEnhancer.hexMaps.openTagger({ legend: true })` now does what it says.** The macro entry point dropped its options, so the window opened in plain mode without reading the map; it now passes them through.
 - **The import wizard no longer flashes importer windows over its progress.** While it imports the library, the Class Importer, Spell Importer and Item Builder it drives stay out of sight; they still open normally by hand and from the advanced hub. Cancel on the Done page does nothing instead of asking "Leave the importer?".
 - **Closing the import wizard on its Terrain page asks while hex maps are still unnamed.** The question says how many are waiting and that the Hex Tagger's Legend step can name them later; the footer's Advanced importer asks the same. Once every map is named it closes without asking.
 - **The Importer Hub opens again.** It failed with "The partial sdeTreeNodeUi could not be found" (the Manage tree called a partial name only the design harness registers).
@@ -626,9 +635,10 @@ it needs.
   Before, Start day refused, and every move of the token then bounced. (#231)
 - **The sky on outdoor scenes.** The hex map, and any scene set to **Follows
   the sky** in Scene Configuration's Environment tab, darkens with the clock.
-  It is 0 by day, deepens over an hour of twilight to a night the moon
-  lightens, and lifts again before dawn. The hex map only darkens to a
-  readable tint. Stormy weather shows as Foundry's rain storm, or a blizzard
+  It is 0 by day, and it eases between day and night over the four hours
+  around sunrise and sunset — an hour before each to three hours after — to
+  a night the moon lightens. The hex map only darkens to a readable tint.
+  Stormy weather shows as Foundry's rain storm, or a blizzard
   in the cold. The Isles of Andrik keep their Midnight Sun and Long Dark.
   Locked scenes and a weather effect you chose are left alone. It needs no
   other module. (#235)
