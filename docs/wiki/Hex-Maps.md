@@ -587,6 +587,10 @@ time is the wrong shape for that. **Brush** in the tagger's header (or
 terrain once, tick river, path or coast if the hexes have them, then click or
 drag across the wrong hexes on the map. They take what the brush says.
 
+**Right-click a hex** to copy it: the brush takes that hex's terrain and
+features (a terrain the map's list lacks goes in the *other…* box), so a good
+result can be painted over a bad one. A right-drag still pans the map.
+
 The window shows the terrain you are painting as a big picture, with previous
 and next buttons, and below it one tile per terrain in **Terrains on this map**
 (*other…* takes any word of your own). Each tile is a picture of one of that

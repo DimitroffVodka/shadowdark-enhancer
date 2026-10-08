@@ -410,6 +410,7 @@ export class HexTagOverlay {
       if (this._down && this.brush && (event.buttons & 1)) this._paintAt(event.getLocalPosition(container));
     });
     container.on("pointerdown", (event) => {
+      if (event.button === 2) { this._rightDown = event.getLocalPosition(container); return; }
       if (event.button !== 0) return;
       this._down = event.getLocalPosition(container);
       if (this.brush) this._paintAt(this._down);
@@ -606,6 +607,7 @@ export class HexTagOverlay {
   /** A stroke ends here; without a brush, a click (not a drag) opens the editor. */
   _onUp(event, container) {
     const up = event.getLocalPosition(container);
+    if (event.button === 2) { this._pickAt(up); return; }
     const down = this._down;
     this._down = null;
     if (this.stroke.size) { this._endStroke(); return; }
@@ -613,6 +615,15 @@ export class HexTagOverlay {
     if (!down || Math.hypot(up.x - down.x, up.y - down.y) > 8) return;
     const num = this.numberAt(up);
     if (num !== null) this.edit(num);
+  }
+
+  /** A right click (a drag is the canvas pan) on a hex offers its tags to the brush window, if one is open. */
+  _pickAt(up) {
+    const down = this._rightDown;
+    this._rightDown = null;
+    if (!down || Math.hypot(up.x - down.x, up.y - down.y) > 8) return;
+    const num = this.numberAt(up);
+    if (num !== null) Hooks.callAll(`${MODULE_ID}.hexPick`, this.state.cells.get(String(num)) ?? null);
   }
 
   /** Paint one hex in memory; the scene is written once, when the stroke ends. */

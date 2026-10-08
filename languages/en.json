@@ -2051,6 +2051,7 @@
   "SDE.hexMap.brush.onThisMap": "On this map",
   "SDE.hexMap.brush.prev": "Previous terrain",
   "SDE.hexMap.brush.next": "Next terrain",
+  "SDE.hexMap.brush.nothingToTake": "That hex has no terrain to copy.",
   "SDE.hexMap.brush.nothingToUndo": "No stroke to undo: Undo puts back the last one, and only the last one.",
   "SDE.hexMap.brush.undoOne": "Put {n} hex back.",
   "SDE.hexMap.brush.undoMany": "Put {n} hexes back.",

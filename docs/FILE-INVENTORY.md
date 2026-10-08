@@ -1,7 +1,7 @@
 # Shadowdark Enhancer — File Inventory
 
 <!-- inventory:stats:start -->
-1781 tracked files · ~225,500 lines of code/markup across scripts+templates+styles+test.
+1781 tracked files · ~225,600 lines of code/markup across scripts+templates+styles+test.
 `v0.17.3` in both `module.json` and `package.json`.
 <!-- inventory:stats:end -->
 **Layout reflects the 2026-07-21 feature-folder reorganization (v0.11.0 cycle).**
@@ -76,7 +76,7 @@
 | `hex-map/extras-records.mjs` | 27 | Read-only SDX legacy/authoring record reader, retained for painter-feature merges and unadopted gameplay; native adopted scenes use hex-records instead. |
 | `hex-map/geometry.mjs` | 221 | Hex numbering by cube difference from one anchor cell; printed offset ↔ cube under the map's column-shift rule. Pure. |
 | `hex-map/hex-adoption.mjs` | 145 | Read-once SDX record adoption with negative offset parsing, lossless original archives, existing-native conflict precedence, reports and automatic eligibility hooks. |
-| `hex-map/hex-brush-app.mjs` | 251 | The hex brush: a small window that sets one terrain (a picture tile per Legend terrain) plus features, so clicking or dragging across the tag overlay retags whole patches; a stroke is one scene write and Undo puts it back. |
+| `hex-map/hex-brush-app.mjs` | 265 | The hex brush: a small window that sets one terrain (a picture tile per Legend terrain) plus features, so clicking or dragging across the tag overlay retags whole patches; a stroke is one scene write and Undo puts it back. |
 | `hex-map/hex-explorer-app.mjs` | 73 | Small scene-offset GM Hexplorer editor for terrain, line/structured features, public/private notes, document links and discovery. |
 | `hex-map/hex-explorer.mjs` | 198 | Player-safe Hexplorer canvas hover/select observer and GM writes over authoritative terrain tags and rich offset records; preserves discovery and imported metadata. |
 | `hex-map/hex-fog-core.mjs` | 60 | Pure shared terrain/location disclosure, lossless fog/history migration, native-grid sight and arrival/overlap decisions. |
@@ -98,7 +98,7 @@
 | `hex-map/region-scan.mjs` | 238 | Region borders read off the print: the thick line a hexcrawl map draws along a hex edge, measured across the whole edge so a river crossing it is not mistaken for one, then flood-filled into enclosures. Reuses the cell bitmaps the tagger already built, so it costs no extra image reads (45 ms for 4768 hexes). Pure. |
 | `hex-map/sampler.mjs` | 190 | Reads the active scene's background per hex cell (one drawImage each) for bitmaps, thumbnails and the brush's masked hex pictures; scene→image transform from the drawn sprite. |
 | `hex-map/tag-corrections.mjs` | 337 | What the GM judged about the classifier, kept on the scene: per-cell corrections (was, now, margin, whether it was flagged) and wrong/judged counts per margin band, plus the scene's review margin and the report that says what it catches. Pure. |
-| `hex-map/tag-overlay.mjs` | 797 | The tag overlay: every numbered hex drawn on the map in its terrain colour, dots for river/path/coast, an amber ring on unsure automatic cells; hover names a hex, a click edits it through the same scene-flag write. |
+| `hex-map/tag-overlay.mjs` | 808 | The tag overlay: every numbered hex drawn on the map in its terrain colour, dots for river/path/coast, an amber ring on unsure automatic cells; hover names a hex, a click edits it through the same scene-flag write. |
 | `hex-map/tag-store.mjs` | 496 | The tagger's scene-flag store: compact `terrain;feature\|source` strings (terrain is what a hex is, features what runs through it), coast derivation, sheet selection (random/keyed/review), dataset tags. Pure. |
 | `holidays/holidays.mjs` | 211 | Holidays for carousing (#191): the four City of Masks holidays (CS6 pp.46-47) as recipes (name, page, place, `when` anchor, carousing mechanics, garb questions with modifiers), no book wording; pure `whenMatches(rule, dateInfo)` / `placeMatches`, and `holidays.list()` / `today({place})`, which list a holiday once its page is imported by the Chapter-to-journal preset. `currentDateInfo()` reads the core calendar, with `isLastFullMoonOfYear` from the time API's `anchor("lastFullMoon")` (#227), so Lastmoon falls. |
 | `luck-reroll/hard-luck.mjs` | 57 | Hard Luck Mode (GMWR p.30, #186), pure: the system's criticalFailure test with a plain-d20 fallback, and the luck-granting spell/ability (Bless, Trance, Omen) a roll came from, by name. |
