@@ -71,6 +71,8 @@ const _formatPrice = formatPrice;
  * 5 sp buy 3, Iron Spikes 1 gp buy 10), and `per_slot` is that bundle on every one of them. Buying takes whole
  * bundles; selling pays per unit, so 20 arrows bought for 1 gp sell for half of 1 gp, not twenty times that.
  */
+/** A purse as the three fields an update writes. */
+const _purseFields = (c) => ({ "system.coins.gp": c.gp, "system.coins.sp": c.sp, "system.coins.cp": c.cp });
 const _bundleOf = (data) => Math.max(1, Math.floor(Number(data?.system?.slots?.per_slot)) || 1);
 /**
  * The units a buy of `quantity` bundles takes from `stock` (units; -1 is unlimited), or 0 when the shop cannot fill
@@ -755,20 +757,33 @@ export const MerchantShop = {
   },
 
   /**
-   * Take the coins, then hand over the item, reading each write back. A purse write that did not land (an update
-   * can throw after saving, or resolve undefined when a hook vetoes it) charges nothing and gives nothing; an item
-   * that did not appear puts the purse back as it was.
+   * Set the buyer's purse to `purse` and say whether it landed, judged by reading the purse back, never by the
+   * promise: an update can resolve undefined when a hook vetoes it (nothing saved), or throw after it saved.
+   * @returns {Promise<object|null>} the purse as it was before, when the charge landed; null when it did not
+   */
+  async _charge(buyer, purse) {
+    const was = { ...buyer.system.coins };
+    await buyer.update(_purseFields(purse)).catch((err) => console.error(`${MODULE_ID} | merchant: purse`, err));
+    const now = buyer.system.coins;
+    return now.gp === purse.gp && now.sp === purse.sp && now.cp === purse.cp ? was : null;
+  },
+
+  /** Put a purse back as `_charge` found it. */
+  async _refund(buyer, was) {
+    await buyer.update(_purseFields(was)).catch((err) => console.error(`${MODULE_ID} | merchant: refund`, err));
+  },
+
+  /**
+   * Take the coins, then hand over the item, reading each write back. A charge that did not land gives nothing;
+   * an item that did not appear puts the purse back as it was.
    * @returns {Promise<boolean>} true when both landed
    */
   async _chargeAndGive(buyer, purse, itemData) {
-    const coins = (c) => ({ "system.coins.gp": c.gp, "system.coins.sp": c.sp, "system.coins.cp": c.cp });
-    const was = { ...buyer.system.coins };
-    const paid = await buyer.update(coins(purse)).catch((err) => { console.error(`${MODULE_ID} | merchant: purse`, err); return null; });
-    const now = buyer.system.coins;
-    if (!paid || now.gp !== purse.gp || now.sp !== purse.sp || now.cp !== purse.cp) return false;
+    const was = await this._charge(buyer, purse);
+    if (!was) return false;
     const made = await Item.create(itemData, { parent: buyer }).catch((err) => { console.error(`${MODULE_ID} | merchant: item`, err); return null; });
     if (made && buyer.items.get(made.id)) return true;
-    await buyer.update(coins(was)).catch((err) => console.error(`${MODULE_ID} | merchant: refund`, err));
+    await this._refund(buyer, was);
     return false;
   },
 
@@ -1269,13 +1284,10 @@ export const MerchantShop = {
       return this._broadcastError(game.i18n.localize("SDE.merchant.notify.insufficientFunds"), userId);
     }
 
-    // Deduct cost (preserving the player's coin denominations)
-    const remaining = _spendFromPurse(buyer.system.coins, costCopper);
-    await buyer.update({
-      "system.coins.gp": remaining.gp,
-      "system.coins.sp": remaining.sp,
-      "system.coins.cp": remaining.cp,
-    });
+    // Deduct cost (preserving the player's coin denominations), read back: a
+    // charge that did not land rolls nothing, so the table is never free.
+    const was = await this._charge(buyer, _spendFromPurse(buyer.system.coins, costCopper));
+    if (!was) return this._broadcastError(game.i18n.localize("SDE.merchant.notify.notSaved"), userId);
 
     // Roll loot from the configured source
     const result = { currency: { gp: 0, sp: 0, cp: 0 }, items: [], notes: [] };
@@ -1288,28 +1300,28 @@ export const MerchantShop = {
       // The draw blew up after the player paid — give the coins back rather
       // than pocketing them, then report it.
       console.error(`${MODULE_ID} | Gamble draw failed for "${table.name}":`, err);
-      const refunded = _addToPurse(buyer.system.coins, option.cost);
-      await buyer.update({
-        "system.coins.gp": refunded.gp,
-        "system.coins.sp": refunded.sp,
-        "system.coins.cp": refunded.cp,
-      });
+      await this._refund(buyer, was);
       return this._broadcastError(game.i18n.localize("SDE.merchant.notify.gambleRefunded"), userId);
+    }
+
+    // Create items on buyer, each read back. If any prize cannot be made, the
+    // ones this gamble made are taken back and the coins returned: the player
+    // never pays for a prize that never arrived.
+    const madeIds = [];
+    for (const itemData of result.items) {
+      const made = await Item.create(itemData, { parent: buyer }).catch((err) => { console.error(`${MODULE_ID} | gamble: item`, err); return null; });
+      if (!made || !buyer.items.get(made.id)) {
+        if (madeIds.length) await buyer.deleteEmbeddedDocuments("Item", madeIds).catch((err) => console.error(`${MODULE_ID} | gamble: undo`, err));
+        await this._refund(buyer, was);
+        return this._broadcastError(game.i18n.localize("SDE.merchant.notify.notSaved"), userId);
+      }
+      madeIds.push(made.id);
     }
 
     // Add currency to buyer (field-wise so their denominations are preserved)
     if (result.currency.gp || result.currency.sp || result.currency.cp) {
       const newTotal = _addToPurse(buyer.system.coins, result.currency);
-      await buyer.update({
-        "system.coins.gp": newTotal.gp,
-        "system.coins.sp": newTotal.sp,
-        "system.coins.cp": newTotal.cp,
-      });
-    }
-
-    // Create items on buyer
-    for (const itemData of result.items) {
-      await Item.create(itemData, { parent: buyer });
+      await buyer.update(_purseFields(newTotal));
     }
 
     // Build description
