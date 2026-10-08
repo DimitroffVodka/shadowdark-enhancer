@@ -191,13 +191,16 @@ export const TableEnricher = {
   async enrichEncounters(table) {
     if (!game.user?.isGM || !table) return { rows: 0, linked: 0, updated: 0 };
     const index = await MonsterLinker.buildIndex();
-    const contextual = isArcticSeaEncounterTable(table);
+    // Arctic Sea rolls its own checks; another Cursed Scroll's rows are the GM's to request; Core stays dice-only.
+    const context = isArcticSeaEncounterTable(table) ? "table"
+      : /^cs\d/.test(sourceKey(table.flags?.[MODULE_ID]?.source) ?? "") ? "encounter"
+      : null;
     const updates = [];
     let linked = 0;
     for (const r of table.results.contents) {
       const src = r.toObject();
       const enriched = enrichEncounterText(resultText(r), index,
-        contextual ? { context: "table" } : undefined);
+        context ? { context } : undefined);
       linked += (enriched.match(/@UUID\[/g) || []).length;
       if (src.description !== enriched || src.name) {
         updates.push({ _id: r.id, description: enriched, name: "" });

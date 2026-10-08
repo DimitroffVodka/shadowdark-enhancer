@@ -22,7 +22,7 @@ import { ensureSuite, ensureSourceFolder, ensureFolderPath, cleanImportHtml, sou
 import { buildLocationHtml, locationPageName, rewriteLocPlaceholders } from "./adventure-parser.mjs";
 import { creatureVocabulary } from "./adventure-creatures.mjs";
 import { linkItems } from "./adventure-journal.mjs";
-import { findTreasure, findScrolls, treasureItemData, scrollItemData } from "./adventure-treasure.mjs";
+import { findTreasure, findScrolls, findPotions, treasureItemData, scrollItemData, potionItemData } from "./adventure-treasure.mjs";
 
 /** Flag key under `flags.shadowdark-enhancer` on the entry and its pages. */
 export const ADVENTURE_FLAG = "adventure";
@@ -180,6 +180,7 @@ export async function fileTreasure(pack, { site, source, pages, items = [], spel
       const wanted = [
         ...findTreasure(html).map((found) => ({ phrase: found.phrase, key: `${site.id}|${loc.num}|${found.name}|${JSON.stringify(found.cost)}`, data: treasureItemData(found, { source }) })),
         ...findScrolls(html, spells, have).map((sc) => ({ phrase: sc.phrase, key: `${site.id}|${loc.num}|${sc.name}`, data: scrollItemData(sc, { source }) })),
+        ...findPotions(html, have).map((po) => ({ phrase: po.phrase, key: `${site.id}|${loc.num}|${po.name}`, data: potionItemData(po, { source }) })),
       ];
       if (!wanted.length) continue;
       const folder = await ensureFolderPath(pack, [sourceFolderName(source), site.title, locationPageName(loc, site.noun)]);

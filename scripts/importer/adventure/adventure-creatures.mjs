@@ -99,6 +99,8 @@ export function creatureMentions(boldLines) {
     // three plain words, then the bold name.
     const lead = new RegExp(`(?:^|[^\\w:])(${NUM})\\s+(?:[A-Za-z'’-]+\\s+){0,3}\\(?$`, "i").exec(before);
     if (lead && !NOT_A_COUNT.test(before.slice(0, lead.index + lead[0].indexOf(lead[1])))) { add(phrase, numberOf(lead[1])); continue; }
+    // "A [duergar] named Rotid crouches": a named individual with no number is one.
+    if (/^\s+named\s+[A-Z]/.test(stripBold(after))) { add(phrase, 1); continue; }
     // "[• Skeletons.] Three.", "[• Duergar.] Two chip at the stone": a bold label, then its number.
     if (/[.:]$/.test(m[1].trim()) || /^[•▶►]/.test(m[1].trim())) {
       const tail = new RegExp(`^\\s*(${NUM})(?![\\d:dD/-])\\b`, "i").exec(stripBold(after));

@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { findTreasure, findScrolls, treasurePhrase, singular, treasureItemData, scrollItemData } from "../scripts/importer/adventure/adventure-treasure.mjs";
+import { findTreasure, findScrolls, findPotions, potionItemData, treasurePhrase, singular, treasureItemData, scrollItemData } from "../scripts/importer/adventure/adventure-treasure.mjs";
 import { linkItems } from "../scripts/importer/adventure/adventure-journal.mjs";
 
 const one = (text) => findTreasure(`<p>${text}</p>`);
@@ -80,4 +80,13 @@ test("the page's links use the words as the page has them, and the rest of the t
   const html = "<p>Sifting reveals a blue pearl (40 gp) and a Blue Pearl.</p>";
   const out = linkItems(html, [{ name: "blue pearl", uuid: "Item.p1" }]);
   assert.equal(out, "<p>Sifting reveals a @UUID[Item.p1]{blue pearl} (40 gp) and a @UUID[Item.p1]{Blue Pearl}.</p>");
+});
+
+test("a potion the system has no item for becomes a potion with the key's words as its description", () => {
+  const found = findPotions("<p>A flagstone lifts to reveal a Potion of Fire Protection (immunity to fire for 5 rounds) and a Potion of Healing.</p>", new Set(["potion of healing"]));
+  assert.equal(found.length, 1);
+  assert.equal(found[0].name, "Potion of Fire Protection");
+  const data = potionItemData(found[0]);
+  assert.equal(data.type, "Potion");
+  assert.equal(data.system.description, "<p>Immunity to fire for 5 rounds.</p>");
 });

@@ -62,6 +62,8 @@ export const ENRICH_CONTEXTS = Object.freeze({
   monster: "request",
   // An adventure's journal is the GM's: the Lost Citadel writes every DC in it as a request to the players.
   journal: "request",
+  // An encounter row is read by the GM, who asks the players: "DC 12 DEX to escape" is a request, not a roll for the GM.
+  encounter: "request",
 });
 
 /** Book spellings → the three-letter key the system's enricher requires. */
@@ -166,7 +168,7 @@ function enrich(text, command) {
  *
  * @param {string} text
  * @param {object} options
- * @param {"table"|"environment"|"monster"|"journal"} options.context  REQUIRED; never inferred.
+ * @param {"table"|"environment"|"monster"|"journal"|"encounter"} options.context  REQUIRED; never inferred.
  * @returns {string}
  * @throws {TypeError} on a missing or unknown context.
  */

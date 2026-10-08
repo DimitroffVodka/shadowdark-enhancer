@@ -21,6 +21,7 @@ const GEMS = [
 const GEM_HEAD_RE = /^(?:pearl|ruby|emerald|sapphire|amethyst|topaz|citrine|diamond|opal|moonstone|gem|crystal|geode|jewel|chip|chunk)$/i;
 const GEM_DIR = "icons/commodities/gems/";
 const TREASURE_ICON = "icons/commodities/currency/coins-plain-pouch-gold.webp";
+const POTION_ICON = "icons/consumables/potions/vial-cork-empty.webp";
 const SCROLL_ICON = "icons/sundries/scrolls/scroll-bound-green.webp";
 
 /** Words that end a thing's name: where the key goes on to say where it is or what it is set with. */
@@ -140,6 +141,34 @@ export function findScrolls(html, spells, have = new Set()) {
   }
   return out;
 }
+
+/**
+ * The potions a page's text names ("a Potion of Fire Protection (immunity to fire for 5 rounds)") that the system has no item for,
+ * each once. The parenthesis after the name, when there is one, is the potion's description.
+ * @param {string} html
+ * @param {Set<string>} [have]  lower-case names of the items that already exist
+ * @returns {Array<{phrase:string, name:string, text:string}>}
+ */
+export function findPotions(html, have = new Set()) {
+  const out = [];
+  const seen = new Set();
+  for (const [i, seg] of String(html ?? "").split(/(<[^>]+>|@UUID\[[^\]]*\]\{[^}]*\}|\[\[[^\]]*\]\]|@@LOC\[[^\]]*\]\{[^}]*\}@@)/).entries()) {
+    if (i % 2) continue;
+    for (const m of seg.matchAll(/\bPotions? of ([A-Z][a-z]+(?: [A-Z][a-z]+){0,3})(?:\s*\(([^)]*)\))?/g)) {
+      const name = `Potion of ${m[1]}`;
+      if (have.has(name.toLowerCase()) || seen.has(name)) continue;
+      seen.add(name);
+      out.push({ phrase: name, name, text: m[2] ?? "" });
+    }
+  }
+  return out;
+}
+
+/** The item data of one found potion: a magic Potion whose description is what the key says of it. */
+export const potionItemData = (p, { source = "" } = {}) => ({
+  name: p.name, type: "Potion", img: POTION_ICON,
+  system: { magicItem: true, description: p.text ? `<p>${p.text.charAt(0).toUpperCase()}${p.text.slice(1)}.</p>` : "", source: { title: source } },
+});
 
 /** The item data of one found treasure: a Gem for a gem, a treasure Basic item for the rest. */
 export function treasureItemData(t, { source = "" } = {}) {
