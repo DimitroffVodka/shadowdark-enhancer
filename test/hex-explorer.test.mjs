@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { explorerView, planExplorerEdit, explorerClick } from "../scripts/hex-map/hex-explorer.mjs";
+import { explorerView, planExplorerEdit, explorerClick, encounterReadout } from "../scripts/hex-map/hex-explorer.mjs";
 const record = { sceneUuid: "Scene.a", offset: { i: -2, j: 3 }, num: 101, terrain: "forest", title: "Cave", features: [{ type: "river", discovered: true, secret: "private" }, { type: "dungeon", name: "Secret cave", discovered: true, custom: { x: 1 } }], notes: [{ text: "Bridge", visible: true }, { text: "GM SECRET", visible: false }], links: [{ uuid: "JournalEntry.a", label: "Clue", visible: true }], keyed: [{ title: "Keyed cave", uuid: "JournalEntry.a.JournalEntryPage.b" }], discovery: { revealed: true, visited: false } };
 test("tooltip discloses only safe terrain/public notes until location disclosure", () => {
   const view = explorerView(record, true);
@@ -65,4 +65,15 @@ test("pre-filtered player input still drops explicitly hidden markers", () => {
   assert.deepEqual(view.links, [{ uuid: "JournalEntry.a", label: "Clue" }, { uuid: "JournalEntry.a.JournalEntryPage.b", label: "Keyed cave" }]);
   assert.ok(!JSON.stringify(view).includes("SECRET"));
   assert.ok(!JSON.stringify(view).includes("HIDDEN"));
+});
+test("the encounter readout says where the hex's table came from", () => {
+  const column = { column: "Forest", uuid: "RollTable.f" };
+  assert.deepEqual(encounterReadout({ uuid: "RollTable.f", zone: "Lowland Moor", verdict: { status: "ok", column } }, "Moor: Forest"),
+    { state: "region", uuid: "RollTable.f", name: "Moor: Forest", zone: "Lowland Moor", column: "Forest", options: "" });
+  const two = encounterReadout({ uuid: "RollTable.t", zone: "Moor", verdict: { status: "ambiguous", columns: [{ column: "Forest Day" }, { column: "Full Moon" }] } }, "Terrain");
+  assert.equal(two.state, "ambiguous"); assert.equal(two.options, "Forest Day, Full Moon");
+  assert.equal(encounterReadout({ uuid: "RollTable.t", zone: null, verdict: { status: "none" } }, "Forest").state, "terrain");
+  assert.equal(encounterReadout({ uuid: "RollTable.a", zone: null, verdict: { status: "none" } }, "Wandering", "RollTable.a").state, "active");
+  assert.equal(encounterReadout({ uuid: "", zone: null, verdict: { status: "none" } }).state, "none");
+  assert.equal(encounterReadout().state, "none");
 });

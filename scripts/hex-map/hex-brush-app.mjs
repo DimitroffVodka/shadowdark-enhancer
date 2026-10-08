@@ -26,7 +26,7 @@
 
 import { MODULE_ID } from "../shared/module-id.mjs";
 import { decodeTags, FEATURES } from "./tag-store.mjs";
-import { HexTagOverlay, OTHER, FEATURE_LABELS, terrainColor } from "./tag-overlay.mjs";
+import { HexTagOverlay, OTHER, FEATURE_LABELS, terrainColor, TOOLS_HOOK } from "./tag-overlay.mjs";
 import { HexTaggerApp } from "./hex-tagger-app.mjs";
 import { cellNumber, originFromFlag } from "./geometry.mjs";
 import { brushTerrains, exemplarCandidates, chooseExemplar, edgeInk, glyphRunsIntoNumber, TERRAIN_ICONS, MAP_ICON } from "./hex-picture.mjs";
@@ -140,6 +140,7 @@ export class HexBrushApp extends HandlebarsApplicationMixin(ApplicationV2) {
     this._strokeHook ??= Hooks.on(`${MODULE_ID}.hexStroke`, () => this._sync());
     this._pickHook ??= Hooks.on(`${MODULE_ID}.hexPick`, (cell) => this._take(cell));
     this._sync();
+    if (!this._announced) { this._announced = true; Hooks.callAll(TOOLS_HOOK); }   // the toolbar's brush shows as on
   }
 
   _onClose(options) {
@@ -147,6 +148,7 @@ export class HexBrushApp extends HandlebarsApplicationMixin(ApplicationV2) {
     if (this._pickHook) { Hooks.off(`${MODULE_ID}.hexPick`, this._pickHook); this._pickHook = null; }
     if (HexTagOverlay.current) HexTagOverlay.current.brush = null;
     super._onClose(options);
+    Hooks.callAll(TOOLS_HOOK);
   }
 
   /** Hand the overlay the brush the form currently describes. */

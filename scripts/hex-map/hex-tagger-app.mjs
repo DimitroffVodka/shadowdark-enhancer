@@ -21,13 +21,15 @@
 import { MODULE_ID } from "../shared/module-id.mjs";
 import { replaceModuleFlag } from "../shared/module-flags.mjs";
 import { findSuitePack, sourceFolderName } from "../shared/compendium-suite.mjs";
+import { hexPrint } from "./hex-prints.mjs";
 import { sceneCells, sourceImage, CellSampler, backgroundTransform } from "./sampler.mjs";
 import { cellNumber, neighbours, framesTopRow, extrasNumbersAlike, withAnchorNumber, boundsFromRow, originFromFlag } from "./geometry.mjs";
-import { decodeTags, encodeTags, nextSheet, applySheet, tagsForDataset, summarize, importTags, rowsFromJson, sheetRisk, deriveCoasts, paletteTags, normalizeTerrainWord, tagsWrittenElsewhere, WRITER_OPTION, FEATURES } from "./tag-store.mjs";
+import { decodeTags, encodeTags, nextSheet, applySheet, strandedRiver, tagsForDataset, summarize, importTags, rowsFromJson, sheetRisk, deriveCoasts, paletteTags, normalizeTerrainWord, tagsWrittenElsewhere, WRITER_OPTION, FEATURES, OTHER } from "./tag-store.mjs";
 import { FIXES_FLAG, BASELINE_FLAG, emptyLog, decodeFixes, encodeFixes, recordEdits, recordLegend, legendReport, accuracyReport, encodeBaseline, decodeBaseline, baselineReport } from "./tag-corrections.mjs";
 import { cellBoxOf, referenceTilePlacement, gridCellBox, loweredColumns, placeReferenceTile } from "./reference-tile.mjs";
 import { createClassifier, compareTags, parseTruthCsv, featureVector, keepMask, scoreClassifier, smoothTerrain } from "./classify.mjs";
 import { buildLegend } from "./legend.mjs";
+import { needsReview } from "./tag-overlay.mjs";
 import { scanRegions, encodeRegions, decodeRegions, decodeRegionFixes, REGIONS_FLAG } from "./region-scan.mjs";
 import { regionSeeds, nameComponents } from "./hex-region.mjs";
 import { TERRAIN_TAGS, SETTLEMENTS, rowTag } from "../importer/hex/hex-summary.mjs";
@@ -328,10 +330,12 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
    * GM-only entry point (also game.shadowdarkEnhancer.hexMaps.openTagger).
    * `legend` samples the scene and opens the legend at once (the image flow).
    */
-  static open({ legend = false } = {}) {
+  static open({ legend = false, review = false } = {}) {
     if (!game.user?.isGM) { ui.notifications?.warn(t("SDE.hexMap.notify.gmOnly")); return null; }
     const app = new HexTaggerApp();
     app._autoLegend = legend;
+    // The toolbar's "Review doubtful hexes": read the map and show the most-likely-wrong sheet at once.
+    if (review) { app._mode = "review"; app._autoReview = true; }
     app.render(true);
     return app;
   }
@@ -501,7 +505,7 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
         // the unread ones with it.
         if (sel.hasAttribute("data-hxt-legend") || sel.hasAttribute("data-hxt-pick")) this._readLegendAnswers();
         if (!inp) return;
-        inp.hidden = sel.value !== "__other";
+        inp.hidden = sel.value !== OTHER;
         if (!inp.hidden) inp.focus();
       });
     }
@@ -511,7 +515,7 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
     for (const sel of this.element.querySelectorAll("select[data-hxt-terrain]")) {
       const num = sel.dataset.num;
       const inp = this.element.querySelector(`input[data-hxt-terrain-other][data-num="${num}"]`);
-      if (inp) inp.hidden = sel.value !== "__other";   // an "other…" not typed into yet is still "other…"
+      if (inp) inp.hidden = sel.value !== OTHER;   // an "other…" not typed into yet is still "other…"
       sel.addEventListener("change", () => this._noteSheetDraft(num));
       inp?.addEventListener("input", () => this._noteSheetDraft(num));
     }
@@ -525,6 +529,10 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
     this.element.querySelector("details[data-hxt-palette-box]")?.addEventListener("toggle", (ev) => { this._paletteOpen = ev.currentTarget.open; });
     // The tabs are hidden radios (no script switches them), so the choice is written down here and put back by _prepareContext.
     for (const radio of this.element.querySelectorAll("input[name='_hxtTab']")) radio.addEventListener("change", () => { if (radio.checked) this._tab = radio.dataset.hxtTab; });
+    if (this._autoReview) {
+      this._autoReview = false;
+      this._onSample().catch((err) => console.warn(`${MODULE_ID} | review`, err));
+    }
     if (!this._autoLegend) return;
     this._autoLegend = false;
     this._onSample()
@@ -558,6 +566,7 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
   /** @type {Array<{size:number, members:number[], core:number[], samples:number[]}>|null} the legend's cards while they are shown */
   _legend = null;
   _autoLegend = false;
+  _autoReview = false;
   /**
    * A tagger used as an engine without its window (hex-legend-session.mjs, the import wizard's Terrain page): every
    * redraw is skipped, so nothing opens, and what the window would have read from its form comes from the cards.
@@ -724,6 +733,11 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
     if (!pack) { this._entries = []; return; }
     const docs = await pack.getDocuments();
     this._entries = docs.filter((d) => d.getFlag(MODULE_ID, HEX_FLAG)?.crawl).map((d) => ({ uuid: d.uuid, name: d.name, doc: d }));
+    // A map the importer made knows its own book: another book's keyed hexes have numbers of their own, and "all
+    // crawls" would star a Western Reaches hex for a Cursed Scroll 5 location that happens to share its number.
+    // (HEXMAP_FLAG, hex-map-flow.mjs, which this file only loads on demand.)
+    const folder = hexPrint(this._scene()?.getFlag(MODULE_ID, "hexMapId"))?.folder;
+    if (folder) this._entries = this._entries.filter((e) => sourceFolderName(e.doc.getFlag(MODULE_ID, HEX_FLAG)?.source) === folder);
     // One filed crawl is the obvious choice; several filed crawls are one BOOK
     // imported per region, and the obvious choice there is all of them. Left on
     // "(none)" a whole imported hex key looks like it did not arrive: the Pin
@@ -827,14 +841,14 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
       const card = this._legend?.[Number(sel.dataset.idx)];
       if (!card) continue;
       const other = this.element.querySelector(`input[data-hxt-legend-other][data-idx="${sel.dataset.idx}"]`)?.value.trim();
-      card.chosen = sel.value === "__other" ? (other || "") : sel.value;
+      card.chosen = sel.value === OTHER ? (other || "") : sel.value;
     }
     for (const sel of this.element.querySelectorAll("select[data-hxt-pick]")) {
       const card = this._legend?.[Number(sel.dataset.idx)];
       if (!card) continue;
       const num = Number(sel.dataset.num);
       const other = this.element.querySelector(`input[data-hxt-pick-other][data-num="${num}"]`)?.value.trim();
-      (card.picked ??= {})[num] = sel.value === "__other" ? (other || "") : sel.value;
+      (card.picked ??= {})[num] = sel.value === OTHER ? (other || "") : sel.value;
     }
   }
 
@@ -1016,12 +1030,12 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
       // A choice already made survives a split of some OTHER card.
       const majority = cl.chosen ?? ([...counts.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? "");
       const terrainOther = majority && majority !== SPLIT && !terrainValues.includes(majority) ? majority : "";
-      const selected = terrainOther ? "__other" : majority;
+      const selected = terrainOther ? OTHER : majority;
       const pickOptions = (num) => {
         const was = cl.picked?.[num] ?? state.cells.get(String(num))?.terrain ?? "";
         const isOther = was && !terrainValues.includes(was);
-        return [...terrainOptions, { value: "__other", label: t("SDE.hexMap.label.otherOption") }]
-          .map((o) => ({ ...o, selected: o.value === (isOther ? "__other" : was) }));
+        return [...terrainOptions, { value: OTHER, label: t("SDE.hexMap.label.otherOption") }]
+          .map((o) => ({ ...o, selected: o.value === (isOther ? OTHER : was) }));
       };
       return {
         idx, size: cl.size, terrainOther, split: cl.split ? cl.split : null,
@@ -1035,10 +1049,52 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
         // Each picture says which hex it is, and a click takes the map to it: a card of pictures the GM
         // cannot place on the map is a card they cannot judge.
         thumbs: cl.samples.map((n) => { const c = this._numbered.get(n); return c ? { src: this._thumb(c), num: n, label: String(n).padStart(4, "0") } : null; }).filter(Boolean),
-        terrainOptions: [...terrainOptions, { value: "__other", label: t("SDE.hexMap.label.otherOption") }, { value: SPLIT, label: t("SDE.hexMap.label.notAllSame") }]
+        terrainOptions: [...terrainOptions, { value: OTHER, label: t("SDE.hexMap.label.otherOption") }, { value: SPLIT, label: t("SDE.hexMap.label.notAllSame") }]
           .map((o) => ({ ...o, selected: o.value === selected })),
       };
     }) ?? null;
+  }
+
+  /**
+   * The cards of the sheet on screen: each hex's picture, its tag and the controls' state. What the GM has put on a hex
+   * and not confirmed yet wins over the saved tag, so a redraw does not undo it. The window and the import wizard's
+   * review both draw from this.
+   */
+  _sheetCards(state) {
+    // The printed terrain words, plus what a hex can be that is not terrain: the settlement sizes and a keyed location
+    // (the map draws those as symbols; making the GM invent a word for them is how "Keyed Location" became free text).
+    const { terrainValues, terrainOptions } = this._terrainChoices(state);
+    const keyed = this._keyedNumbers();
+    return this._sheet.map((num) => {
+      const c = this._numbered.get(num); const cell = state.cells.get(String(num));
+      let terrainOther = cell?.terrain && !terrainValues.includes(cell.terrain) ? cell.terrain : "";
+      let selected = terrainOther ? OTHER : (cell?.terrain ?? "");
+      let features = cell?.features ?? [];
+      const draft = this._sheetDrafts()[num];
+      if (draft) {
+        features = draft.features;
+        if (draft.select === OTHER) { terrainOther = draft.other; selected = OTHER; }
+        // The palette may have just dropped the word: it stays as typed text instead of falling to the first option.
+        else if (draft.select && !terrainValues.includes(draft.select)) { terrainOther = draft.select; selected = OTHER; }
+        else { terrainOther = ""; selected = draft.select; }
+      }
+      return {
+        num, label: String(num).padStart(4, "0"), i: c?.i, j: c?.j, thumb: c ? this._thumb(c) : "",
+        terrain: cell?.terrain ?? "", source: cell?.source ?? "", keyed: keyed.has(num),
+        margin: cell?.margin !== undefined ? Number(cell.margin).toFixed(2) : "", review: !!cell?.review,
+        features: Object.fromEntries(FEATURES.map((o) => [o, features.includes(o)])),
+        terrainOther,
+        terrainOptions: [...terrainOptions, { value: OTHER, label: t("SDE.hexMap.label.otherOption") }]
+          .map((o) => ({ ...o, selected: o.value === selected })),
+      };
+    });
+  }
+
+  /** The hexes the classifier was unsure of (the amber rings), riskiest first and `size` at most; with no size, `.length` is how many are left. */
+  _doubtful(size = Infinity) {
+    const margin = this._log().margin;
+    const nums = [...this._numbered.keys()].filter((n) => needsReview(this._state.cells.get(String(n)), margin, strandedRiver(this._state, n)));
+    return nextSheet(this._state, { nums, size, mode: "review" });
   }
 
   async _prepareContext() {
@@ -1051,13 +1107,6 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const total = this._numbered.size;
     const origin = state.origin;
     const sampled = this._cells.length > 0;
-    // The printed terrain words, plus the things a hex can be that are not
-    // terrain at all: the book's settlement sizes and a keyed location. The map
-    // draws those as their own symbols, so they get their own cards, and having
-    // to invent a word for them through "other…" is how "Keyed Location" ended
-    // up as a free-text terrain on the first map that met them.
-    // The map's own terrains once the GM has ticked some (the Palette box), the whole printed list until then.
-    const { terrainValues, terrainOptions } = this._terrainChoices(state);
     const paletteTerms = [...new Set([...Object.values(TERRAIN_TAGS), ...(state.palette ?? [])])]
       .map((v) => ({ value: v, label: v.replace(/_/g, " "), checked: !!state.palette?.includes(v) }));
 
@@ -1069,31 +1118,7 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
         i: c.i, j: c.j, thumb: this._thumb(c), align: true,
       }));
     } else if (sampled) {
-      const keyed = this._keyedNumbers();
-      sheet = this._sheet.map((num) => {
-        const c = this._numbered.get(num); const cell = state.cells.get(String(num));
-        let terrainOther = cell?.terrain && !terrainValues.includes(cell.terrain) ? cell.terrain : "";
-        let selected = terrainOther ? "__other" : (cell?.terrain ?? "");
-        let features = cell?.features ?? [];
-        // What the GM has put on this hex and not confirmed yet wins over the saved tag, so a redraw does not undo it.
-        const draft = this._sheetDrafts()[num];
-        if (draft) {
-          features = draft.features;
-          if (draft.select === "__other") { terrainOther = draft.other; selected = "__other"; }
-          // The palette may have just dropped the word: it stays as typed text instead of falling to the first option.
-          else if (draft.select && !terrainValues.includes(draft.select)) { terrainOther = draft.select; selected = "__other"; }
-          else { terrainOther = ""; selected = draft.select; }
-        }
-        return {
-          num, label: String(num).padStart(4, "0"), i: c?.i, j: c?.j, thumb: c ? this._thumb(c) : "",
-          terrain: cell?.terrain ?? "", source: cell?.source ?? "", keyed: keyed.has(num),
-          margin: cell?.margin !== undefined ? Number(cell.margin).toFixed(2) : "", review: !!cell?.review,
-          features: Object.fromEntries(FEATURES.map((o) => [o, features.includes(o)])),
-          terrainOther,
-          terrainOptions: [...terrainOptions, { value: "__other", label: t("SDE.hexMap.label.otherOption") }]
-            .map((o) => ({ ...o, selected: o.value === selected })),
-        };
-      });
+      sheet = this._sheetCards(state);
     }
     const legend = this._legendCards(state);
     // What to do next: nothing, once every numbered cell is tagged; the review queue is optional.
@@ -1511,10 +1536,16 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
       const num = sel.dataset.num;
       const features = [...this.element.querySelectorAll(`input[data-hxt-feature][data-num="${num}"]:checked`)].map((i) => i.value);
       const other = this.element.querySelector(`input[data-hxt-terrain-other][data-num="${num}"]`)?.value.trim();
-      answers[num] = { terrain: sel.value === "__other" ? other : sel.value, features };
+      answers[num] = { terrain: sel.value === OTHER ? other : sel.value, features };
     }
-    // Every cell on the sheet was looked at, so every one is a verdict on the
-    // classifier — the corrections AND the ones left alone (tag-corrections.mjs).
+    await this._confirmSheet(answers);
+  }
+
+  /**
+   * Take the sheet's answers as the GM's. Every cell on it was looked at, so every one is a verdict on the
+   * classifier — the corrections AND the ones left alone (tag-corrections.mjs).
+   */
+  async _confirmSheet(answers) {
     const verdicts = applySheet(this._state, answers);
     this._sheetDraft = null;   // confirmed: the saved tags say it now
     await this._saveState();

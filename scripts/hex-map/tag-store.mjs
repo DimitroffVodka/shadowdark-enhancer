@@ -319,6 +319,27 @@ export function nextSheet(state, { nums, size = 40, mode = "random", keyed = new
 }
 
 /**
+ * The answers of a sheet read off its drafts: a hex the GM changed takes the draft's terrain (its own word when the
+ * draft is "__other"), every other hex keeps the tag it has. The result is what applySheet takes.
+ * @param {number[]} sheet  the hex numbers on the sheet
+ * @param {Record<string, {select:string, other?:string, features?:string[]}>} drafts  by hex number
+ * @param {Map<string, {terrain:string, features?:string[]}>} cells  the saved tags
+ */
+/** Sentinel value of the "other…" option in every terrain select. */
+export const OTHER = "__other";
+
+export function sheetAnswers(sheet, drafts, cells) {
+  const answers = {};
+  for (const num of sheet) {
+    const draft = drafts[num], cell = cells.get(String(num));
+    answers[num] = draft
+      ? { terrain: draft.select === OTHER ? String(draft.other ?? "").trim() : draft.select, features: draft.features ?? cell?.features ?? [] }
+      : { terrain: cell?.terrain ?? "", features: cell?.features ?? [] };
+  }
+  return answers;
+}
+
+/**
  * Apply a sheet's answers. `answers` = { num: { terrain, features } }; an empty
  * terrain clears the cell. GM answers always carry source "gm".
  *
@@ -400,7 +421,7 @@ export function readTags(words) {
 }
 
 /** What sits on a hex rather than the ground under it: never a neighbour's terrain. */
-const NOT_GROUND = new Set([...Object.values(SETTLEMENTS), "keyed_location"]);
+export const NOT_GROUND = new Set([...Object.values(SETTLEMENTS), "keyed_location"]);
 
 /**
  * One stored cell read by readTags, the ground filled in from the hex's

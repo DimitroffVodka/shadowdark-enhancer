@@ -12,6 +12,7 @@
 import { MODULE_ID } from "../shared/module-id.mjs";
 import { FIXES_FLAG, decodeFixes, legendReport } from "./tag-corrections.mjs";
 import { HEX_FLAG } from "../importer/hex/hex-commit.mjs";
+import { sheetAnswers, OTHER } from "./tag-store.mjs";
 
 /** Has the GM named this scene's terrain pictures? Applying the Legend writes down what it was told (recordLegend). */
 export const legendNamed = (scene) => !!legendReport(decodeFixes(scene?.getFlag(MODULE_ID, FIXES_FLAG)));
@@ -35,7 +36,7 @@ export async function openLegendSession({ sceneId, folder = "", onProgress = nul
   const scene = game.scenes.get(sceneId);
   if (!game.user?.isGM || !scene) throw new Error("This map is not here to read.");
   await scene.view();
-  const [{ HexTaggerApp, ALL_CRAWLS, SPLIT }, { sourceFolderName }] = await Promise.all([import("./hex-tagger-app.mjs"), import("../shared/compendium-suite.mjs")]);
+  const [{ HexTaggerApp, ALL_CRAWLS, SPLIT, SHEET_SIZE },{ sourceFolderName }] = await Promise.all([import("./hex-tagger-app.mjs"), import("../shared/compendium-suite.mjs")]);
   const app = new HexTaggerApp();
   app._headless = true;
   app._onProgress = onProgress;
@@ -49,7 +50,7 @@ export async function openLegendSession({ sceneId, folder = "", onProgress = nul
   await app._onScanRegions();
   await app._onLegend();
   if (!app._legend?.length) throw new Error("The map gave no pictures to name.");
-  const text = (value, other) => (value === "__other" ? String(other ?? "").trim() : value);
+  const text = (value, other) => (value === OTHER ? String(other ?? "").trim() : value);
   return {
     cards: () => app._legendCards(app._state) ?? [],
     answer(idx, value, other = "") {
@@ -64,8 +65,15 @@ export async function openLegendSession({ sceneId, folder = "", onProgress = nul
       if (card) (card.picked ??= {})[num] = text(value, other);
     },
     apply: () => app.applyLegend(),
-    // The tagger's own pan-and-pulse, for the pictures' double click.
+    // After Apply: the hexes the classifier was unsure of, a sheet at a time, riskiest first (the tagger's amber rings).
+    doubtfulCount: () => app._doubtful().length,
+    reviewNext() { app._sheetDraft = null; app._sheet = app._doubtful(SHEET_SIZE); return app._sheet.length; },
+    reviewCards: () => app._sheetCards(app._state),
+    // The tagger's own pan-and-pulse, for the review pictures' double click.
     locate: (num) => app._onPingHex(null, { dataset: { num } }),
-    close() { app._legend = null; },
+    reviewAnswer(num, value, other = "") { app._sheetDrafts()[num] = { select: value, other, features: app._state.cells.get(String(num))?.features ?? [] }; },
+    // What was not touched is confirmed as it stands: leaving a guess alone is the verdict "this one is right".
+    async reviewConfirm() { await app._confirmSheet(sheetAnswers(app._sheet, app._sheetDrafts(), app._state.cells)); },
+    close() { app._legend = null; app._sheet = []; },
   };
 }

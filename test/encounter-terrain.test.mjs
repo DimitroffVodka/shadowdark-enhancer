@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
-  terrainKey, pickTable, sceneTerrains, isHexRulesScene, isHexMapScene, hexReader, hasHexTerrain, partyHex,
+  terrainKey, pickTable, sceneTerrains, isHexRulesScene, isHexMapScene, hexReader, hasHexTerrain, partyHex, withGround, pickZoneTable,
 } from "../scripts/encounter/encounter-terrain.mjs";
 
 const TABLES = { forest: "RollTable.forest1", salt_flat: "Compendium.world.sde-tables.RollTable.salt1" };
@@ -149,4 +149,23 @@ test("ambiguous native parties never combine all players or choose the first Par
   assert.equal(partyHex(w), null);
   w.tokens.controlled = w.tokens.placeables;
   assert.equal(partyHex(w).terrain, "forest", "explicit controlled location remains valid");
+});
+
+test("withGround: a keyed or settlement hex rolls on the ground its book row names; any other hex is untouched", () => {
+  const ground = { terrain: "mountain", features: ["coast"] };
+  assert.deepEqual(withGround({ num: 3472, terrain: "keyed_location", features: [] }, ground), { num: 3472, terrain: "mountain", features: ["coast"] });
+  assert.deepEqual(withGround({ terrain: "Village", features: [{ type: "river" }] }, ground).features, ["river", "coast"]);
+  const forest = { terrain: "forest", features: [] };
+  assert.equal(withGround(forest, ground), forest);
+  const keyed = { terrain: "keyed_location", features: [] };
+  assert.equal(withGround(keyed, undefined), keyed);                                  // no row: left as it is
+  assert.equal(withGround({ terrain: "city", features: [] }, { terrain: null, features: ["coast"] }).terrain, "city");   // a row that names no ground keeps the tag
+});
+
+test("a keyed hex finds its region's column once its ground is known, and none without it", () => {
+  const byRegion = new Map([["Dhalpurna Mountains", [{ column: "Mountain", uuid: "RollTable.m" }, { column: "Forest", uuid: "RollTable.f" }]]]);
+  const keyed = { terrain: "keyed_location", features: [] };
+  assert.equal(pickZoneTable("Dhalpurna Mountains", keyed.terrain, keyed.features, byRegion).status, "none");
+  const read = withGround(keyed, { terrain: "mountain", features: [] });
+  assert.equal(pickZoneTable("Dhalpurna Mountains", read.terrain, read.features, byRegion).column.uuid, "RollTable.m");
 });

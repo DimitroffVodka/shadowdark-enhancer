@@ -39,6 +39,7 @@ import { offsetToCube, originOffset, hexDistance } from "./geometry.mjs";
 import { decodeRegions, decodeRegionFixes, REGIONS_FLAG } from "./region-scan.mjs";
 import { KEY_LOCATION_PAGES } from "../importer/char-content/char-content-manifest.mjs";
 import { hexNum } from "../importer/hex/hex-dataset.mjs";
+import { readTags } from "./tag-store.mjs";
 import { HEX_FLAG } from "../importer/hex/hex-commit.mjs";
 import { MODULE_ID } from "../shared/module-id.mjs";
 import { findSuitePack } from "../shared/compendium-suite.mjs";
@@ -90,6 +91,29 @@ export function regionSeeds(entries) {
     }
   }
   return [...byNum.values()];
+}
+
+/**
+ * The ground under each keyed hex, from the book's own row: its terrain words
+ * ("Swamp, coast") read like a tag. A keyed hex is tagged with what sits on it
+ * (keyed_location, village, town...), so the row is the only place that says
+ * what it stands on, and an encounter check needs that. First row per number
+ * wins, as with the seeds.
+ * @param {Array<JournalEntry|{flags:object}>} entries  crawl entries (hex-commit)
+ * @returns {Map<number, {terrain:string|null, features:string[]}>}
+ */
+export function keyedGround(entries) {
+  const out = new Map();
+  for (const entry of entries ?? []) {
+    const flag = entry?.getFlag?.(MODULE_ID, HEX_FLAG) ?? entry?.flags?.[MODULE_ID]?.[HEX_FLAG] ?? {};
+    for (const row of flag.keyed ?? []) {
+      const num = hexNum(row?.num);
+      if (num === null || out.has(num)) continue;
+      const { terrain, features } = readTags(row.terrain);
+      if (terrain || features.length) out.set(num, { terrain, features });
+    }
+  }
+  return out;
 }
 
 /**
@@ -262,14 +286,18 @@ export function hexZones({ components = new Map(), fixes = new Map(), seeds = []
  * @param {object|null} scene  the PRINT scene carrying the scan, not the Extras scene
  */
 export async function sceneZones(scene) {
-  if (!scene) return hexZones();
-  return hexZones({
-    components: sceneRegions(scene),
-    fixes: sceneRegionFixes(scene),
-    seeds: regionSeeds(await crawlEntries()),
-    shifted: sceneShift(scene),
-    palette: extrasPalette() ?? REGION_COLORS,
-  });
+  if (!scene) return { ...hexZones(), ground: new Map() };
+  const entries = await crawlEntries();
+  return {
+    ...hexZones({
+      components: sceneRegions(scene),
+      fixes: sceneRegionFixes(scene),
+      seeds: regionSeeds(entries),
+      shifted: sceneShift(scene),
+      palette: extrasPalette() ?? REGION_COLORS,
+    }),
+    ground: keyedGround(entries),
+  };
 }
 
 /**

@@ -7,6 +7,7 @@ import { MODULE_ID } from "./shared/module-id.mjs";
 import { registerA0Prompt } from "./hex-map/a0-prompt.mjs";
 import { hexNumberAt, hasHexNumbering } from "./hex-map/hex-number-api.mjs";
 import { registerHexCoordinates } from "./hex-map/coordinate-overlay.mjs";
+import { registerHexMapControls } from "./hex-map/hex-map-controls.mjs";
 import { HexExplorer, registerHexExplorer } from "./hex-map/hex-explorer.mjs";
 import { HexRecords, isHexAdopted } from "./hex-map/hex-records.mjs";
 import { adoptHexScene, registerHexAdoption } from "./hex-map/hex-adoption.mjs";
@@ -144,7 +145,7 @@ const STYLESHEET_REV = "7fa72453e2e5";
 // stale); module.json carries the same hash and is fetched fresh at runtime. A
 // mismatch is a stale cache by construction — it cannot be anything else. Both
 // stamps are written by `npm run inventory` and gated by `inventory:check`.
-const BUILD_REV = "103cbfd7676a";
+const BUILD_REV = "78a60d2f06fd";
 
 /**
  * Tell the user when their browser is running an old build of this module, and
@@ -351,6 +352,7 @@ Hooks.once("init", () => {
   registerHexRules();
   registerHexFog();
   registerHexCoordinates();
+  registerHexMapControls();
   registerHexExplorer();
   registerHexAdoption();
   // The route and click-to-travel on the hex map (#257).

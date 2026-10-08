@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { terrainColor, needsReview, cellLabel, terrainOptions, TERRAIN_COLORS, SPARE_COLORS, FEATURE_COLORS } from "../scripts/hex-map/tag-overlay.mjs";
+import { terrainColor, needsReview, cellLabel, terrainOptions, TERRAIN_COLORS, SPARE_COLORS, FEATURE_COLORS, shadeColor, columnShade } from "../scripts/hex-map/tag-overlay.mjs";
 import { DEFAULT_REVIEW_MARGIN } from "../scripts/hex-map/tag-corrections.mjs";
 import { TERRAIN_TAGS } from "../scripts/importer/hex/hex-summary.mjs";
 import { FEATURES } from "../scripts/hex-map/tag-store.mjs";
@@ -74,4 +74,29 @@ test("terrainOptions with a palette: only the map's own terrains, its settlement
   assert.ok(!values.includes("arctic_sea") && !values.includes("volcano"), "a map without them is not asked about them");
   for (const e of ["village", "town", "city", "city_state", "keyed_location"]) assert.ok(values.includes(e), `${e} stays sayable`);
   assert.deepEqual(terrainOptions(new Map(), null).map((o) => o.value).sort(), terrainOptions().map((o) => o.value).sort(), "no palette: as before");
+});
+
+test("columnShade: one region's columns spread from darker to lighter by name, so two columns never look alike", () => {
+  const columns = ["Forest", "Mountain", "Coast"].map((column) => ({ column }));
+  const shades = ["Coast", "Forest", "Mountain"].map((c) => columnShade(c, columns));
+  assert.equal(new Set(shades).size, 3);
+  assert.ok(shades[0] < shades[1] && shades[1] < shades[2]);
+  assert.equal(columnShade("Forest", [{ column: "Forest" }]), 0);                     // a single column keeps the region's colour
+  assert.equal(columnShade("Nope", columns), 0);
+});
+
+test("shadeColor: towards white or black, and unchanged at zero", () => {
+  assert.equal(shadeColor(0x336699, 0), 0x336699);
+  assert.equal(shadeColor(0x336699, 1), 0xffffff);
+  assert.equal(shadeColor(0x336699, -1), 0x000000);
+  const lighter = shadeColor(0x336699, 0.3), darker = shadeColor(0x336699, -0.3);
+  assert.ok((lighter >> 16 & 255) > 0x33 && (darker >> 16 & 255) < 0x33);
+});
+test("a second click on the same hex inside the window is a double click, once", async () => {
+  const { isDoubleClick, DOUBLE_CLICK_MS } = await import("../scripts/hex-map/tag-overlay.mjs");
+  const prev = { key: 3051, at: 1000 };
+  assert.equal(isDoubleClick(prev, 3051, 1000 + DOUBLE_CLICK_MS - 1), true);
+  assert.equal(isDoubleClick(prev, 3051, 1000 + DOUBLE_CLICK_MS), false);
+  assert.equal(isDoubleClick(prev, 3052, 1100), false);
+  assert.equal(isDoubleClick(null, 3051, 1100), false);
 });
