@@ -817,7 +817,9 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
    * hexes — the rest of the card is left to the classifier, which is what a
    * genuinely mixed card should get anyway.
    *
-   * The spread is taken across the card's members rather than off the top:
+   * The card's own pictures (its samples, the modes the GM just looked at) come
+   * first, so the hexes they flagged are among the ones they are asked about.
+   * The rest is a spread across the card's members rather than off the top:
    * members come nearest-the-centre first, so the first eight would all look
    * alike and show none of the mixing that made the GM say so.
    */
@@ -846,8 +848,9 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
       if (members.length < 2) { card.chosen = ""; continue; }
       const want = Math.min(EXPAND_PICKS, members.length);
       const step = members.length / want;
-      const picks = [];
-      for (let i = 0; i < want; i++) {
+      // The card's own pictures come first: they are what the GM looked at when they said "not all the same".
+      const picks = (card.samples ?? []).filter((n) => members.includes(n)).slice(0, want);
+      for (let i = 0; i < want && picks.length < want; i++) {
         const n = members[Math.min(members.length - 1, Math.floor(i * step))];
         if (!picks.includes(n)) picks.push(n);
       }

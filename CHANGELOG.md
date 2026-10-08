@@ -19,6 +19,7 @@
   redesign. No window uses it yet, so nothing looks different.
 
 ### Changed
+- **"These are not all the same" on a Legend card asks about the pictures you were shown.** The opened card now starts with the card's own four pictures, so the hexes you flagged are among the eight you name, and an even spread across the card fills the rest. Before, it asked about eight hexes spaced through the card and could skip the ones you were looking at.
 - **The import wizard's Terrain step is only for the Western Reaches map.** The other five hex maps (The Gloaming, The Djurum, Isles of Andrik, The Black River, Morzomotha) are drawings with a hex grid laid over them, so the same land looks different from hex to hex and the Legend's cards come out mixed. They are still set up, numbered and pinned; their Done row says naming the terrain is optional and keeps the "Name the terrain" button. Running the wizard again says the same on a drawn map that is already set up.
 - **Stabilizing a dying character needs close range.** The book's first aid reaches 5 feet; the helper must be adjacent to the dying character (about 5 feet; a larger token counts from its edge), or the check is refused with a note before it rolls. With no token to measure, the table decides as before.
 - **The Crawl Strip no longer shows a row of status-condition icons on each card.** The Dying badge and the light badge stay.
