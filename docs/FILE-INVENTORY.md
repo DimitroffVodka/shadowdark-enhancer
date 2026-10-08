@@ -1,7 +1,7 @@
 # Shadowdark Enhancer — File Inventory
 
 <!-- inventory:stats:start -->
-1771 tracked files · ~223,700 lines of code/markup across scripts+templates+styles+test.
+1772 tracked files · ~223,700 lines of code/markup across scripts+templates+styles+test.
 `v0.17.3` in both `module.json` and `package.json`.
 <!-- inventory:stats:end -->
 **Layout reflects the 2026-07-21 feature-folder reorganization (v0.11.0 cycle).**
@@ -146,7 +146,7 @@
 | `training/training-journal.mjs` | 215 | Files the 21 trainer spreads as journal entries in the managed sde-journal pack, one entry per trainer foldered by region, read from the GM's own registered GM Guide PDF. Identity is a flag, so re-running updates in place and adopts a page whose flag went missing rather than adding a second. |
 | `training/training-parser.mjs` | 109 | Reads one trainer spread out of column-split PDF text: the trainer's description and the four numbered TASKS. Knows the page's shape only — the display title sorting after the tasks, a bare page number landing inside the task block, tasks wrapping across lines — and never the benefits, which import as a RollTable. Pure; ships no book text. |
 | `traps/trap-core.mjs` | 137 | Trap logic that needs no Foundry: reads a Core Traps roll or an adventure's printed trap line into a trap record (check, damage, every round, chance), decides whether a trap can spring, builds the chat card. |
-| `traps/traps.mjs` | 309 | The `shadowdark-enhancer.trap` Region behavior (fires on entry, every round, or by hand; posts a pass/fail roll card), the Core Traps generator, the behavior form's buttons, and `game.shadowdarkEnhancer.traps`. |
+| `traps/traps.mjs` | 310 | The `shadowdark-enhancer.trap` Region behavior (fires on entry, every round, or by hand; posts a pass/fail roll card), the Core Traps generator, the behavior form's buttons, and `game.shadowdarkEnhancer.traps`. |
 | `troubles/trouble-core.mjs` | 117 | The Trouble tracker's rules, pure (#193): the weekly check's growing chance, the week starts a clock jump crosses, the Region table's printed names matched to the imported regions (", The" moved, abbreviated words), the settlement kind a row names, an inline Type of Trouble list, Urgency Level rows, and the countdown's stage times. |
 | `troubles/troubles.mjs` | 450 | The Trouble tracker (#193): the weekly check on every week start the world clock passes (timeAdvanced, active GM, queued), stirring a trouble in a settlement picked from the imported key locations, one GM-only page per trouble in a flagged Troubles journal entry with its state in the page's trouble flag, stage whispers as the clock passes each stage, the page's status bar and buttons (heard, promote to quest), resolving on its quest's completion, the Journal sidebar's Check for trouble button, and the troubles API. |
 

@@ -7,7 +7,7 @@
  * behavior's form carries a "Roll a random trap" button that fills it from the
  * Shadowdark system's own Trap tables (the Core Rulebook's generator). The trap fires when a token moves in (once), on entry and
  * every round after (a crawl round, or a combat round in a fight), or only when the GM springs it. One
- * GM client posts the card to chat. With a check the card has a Roll link for each character caught: their
+ * GM client (the active GM's working tab, `isActiveGM`) posts the card to chat. With a check the card has a Roll link for each character caught: their
  * owners roll, the card shows who passed and who failed, and each who failed takes the damage. An entry trap
  * is then marked sprung unless it resets. Re-arm it by clearing "Sprung". Regions are GM-only unless made always visible,
  * so a trap stays hidden by default.
@@ -18,6 +18,7 @@
 import { MODULE_ID } from "../shared/module-id.mjs";
 import { postRollRequest, takeTrapDamage } from "../party/party-roll.mjs";
 import { replaceModuleFlag } from "../shared/module-flags.mjs";
+import { isActiveGM } from "../shared/gm-relay.mjs";
 import { trapFromTexts, canSpring, trapCard, trapIntro, chanceOf, checkOf, blocksHeldMove, TRAP_FIELDS } from "./trap-core.mjs";
 
 export const TRAP_TYPE = `${MODULE_ID}.trap`;
@@ -94,12 +95,12 @@ async function chanceHolds(trap) {
   return !chance || (await new Roll(`1d${chance.d}`).evaluate()).total <= chance.n;
 }
 
-/** One client acts, so a card posts once however many clients see the event. */
-const isTheGm = () => game.user.isDesignated((u) => u.active && u.isGM);
-
-/** A token moves into the area; `this` is the behavior's data model. */
-async function onTokenMoveIn(event) {
-  if (!isTheGm() || this.when === "manual") return;
+/**
+ * A token moves into the area; `this` is the behavior's data model. Every client sees the event;
+ * only the active GM's working tab acts, so a card posts (and damage lands) once.
+ */
+export async function onTokenMoveIn(event) {
+  if (!isActiveGM() || this.when === "manual") return;
   if (this.when === "enter" && !this.holds && !canSpring(this)) return;
   if (!(await chanceHolds(this))) return;
   await springCard(this, [event.data.token]);
@@ -107,8 +108,8 @@ async function onTokenMoveIn(event) {
 }
 
 /** A combat round starts with a token inside the area. */
-async function onTokenRound(event) {
-  if (!isTheGm() || this.when !== "round" || (this.holds && !heldBy(this, event.data.token)) || !(await chanceHolds(this))) return;
+export async function onTokenRound(event) {
+  if (!isActiveGM() || this.when !== "round" || (this.holds && !heldBy(this, event.data.token)) || !(await chanceHolds(this))) return;
   await springCard(this, [event.data.token]);
 }
 
