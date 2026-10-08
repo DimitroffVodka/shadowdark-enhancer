@@ -35,7 +35,7 @@ import {
   overlandState, weatherNow, weatherName, methodName, rollWeather, startDayFromParty, setTravelPace, partyReading, makeCamp,
   endOverland, resume, forage, startOverland, advanceClock, checkNow, encounterSettings, ENCOUNTER_SETTINGS, OVERLAND_CHANGED,
 } from "./overland.mjs";
-import { barModel, itemTouchesBar, redrawStamp } from "./overland-bar-core.mjs";
+import { barModel, itemTouchesBar, redrawStamp, hhmm } from "./overland-bar-core.mjs";
 import { travelPanel } from "./travel-panel.mjs";
 import { encounterCard, encounterPanel, encounterStrip } from "./encounter-panel.mjs";
 import { postEncounter } from "../encounter/encounter-draw.mjs";
@@ -57,12 +57,6 @@ const MOON_NAME = {
 };
 const MOON_MARK = { new: "SDE.clock.moon.new", q1: "SDE.clock.moon.firstQuarter", full: "SDE.clock.moon.full", q3: "SDE.clock.moon.lastQuarter" };
 const JUMPS = { dawn: "SDE.clock.jump.dawn", noon: "SDE.clock.jump.noon", dusk: "SDE.clock.jump.dusk", midnight: "SDE.clock.jump.midnight" };
-
-/** "19:10" from hours with a fraction. */
-const hhmm = (hours) => {
-  const minutes = Math.round(hours * 60);
-  return `${String(Math.floor(minutes / 60) % 24).padStart(2, "0")}:${String(minutes % 60).padStart(2, "0")}`;
-};
 
 /** An icon button on the bar; `pressed` marks the panel or column it opened. */
 const ib = (action, icon, label, { id = "", pressed = null } = {}) =>
