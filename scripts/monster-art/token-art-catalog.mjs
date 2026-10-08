@@ -96,8 +96,10 @@ export class TokenArtCatalog {
     // older manifest capped compatibility at v13, so Foundry did not register
     // it. The folder probe below reads the disk instead, so it works whether
     // or not the module is registered or active. Where it does register (the
-    // current manifest has no cap), the same pack is found twice under one
-    // label: importOffer names it once, build() still sees both entries.
+    // current manifest has no cap), the pack is found twice under one id: its
+    // own compendium-art map AND this folder probe. importOffer names it once,
+    // and build() folds the two entries into a single source (#408) — mapping
+    // art first, the folder entry only fills monsters the mapping lacks.
     {
       id: "shadowdark-community-tokens",
       label: "Shadowdark Community Tokens",
@@ -846,11 +848,28 @@ export class TokenArtCatalog {
     discovered.sort((a, b) => priority.indexOf(a.id) - priority.indexOf(b.id));
     for (const s of discovered) s._art = await this._sourceArt(s, monsters);
 
+    // One pack can be discovered twice under one id (#408: Community Tokens on
+    // v14, from its own compendium-art map AND the folder probe). Fold each
+    // later entry's art into the first, per monster, so the catalog carries at
+    // most one option per (monster, source id) and lists the id once. The first
+    // entry wins where both have art for a monster — the mapping is discovered
+    // before the folders and the priority sort is stable, so that is exactly
+    // the option resolve() picks today and Apply's written mapping is
+    // unchanged; the folder entry only fills what the mapping lacks.
+    const uniqueSources = [];
+    const sourceById = new Map();
+    for (const s of discovered) {
+      const first = sourceById.get(s.id);
+      if (first) first._art = { ...s._art, ...first._art };
+      else { sourceById.set(s.id, s); uniqueSources.push(s); }
+    }
+
     const curatedOptions = await this._curatedImportedArtOptions(monsters);
 
+    const sourceCount = new Map();
     const byMonster = monsters
       .map((m) => {
-        const options = discovered
+        const options = uniqueSources
           .filter((s) => s._art[m.id])
           .map((s) => ({ source: s.id, ...s._art[m.id] }));
         // A reviewed row enters the option list on its own evidence. Options are
@@ -873,6 +892,11 @@ export class TokenArtCatalog {
           if (dup >= 0) options.splice(dup, 1);
           options.unshift(injected);
         }
+        // A source's count is the number of monsters it can actually skin —
+        // the rows carrying at least one option from it (#408).
+        for (const id of new Set(options.map((o) => o.source))) {
+          sourceCount.set(id, (sourceCount.get(id) ?? 0) + 1);
+        }
         const curatedImportedArt = this._curatedImportedArtStatus(m, options);
         return {
           id: m.id,
@@ -884,9 +908,9 @@ export class TokenArtCatalog {
       })
       .sort((a, b) => a.name.localeCompare(b.name));
 
-    const sources = discovered.map((s) => ({
+    const sources = uniqueSources.map((s) => ({
       id: s.id, label: s.label, kind: s.kind, credit: s.credit ?? null,
-      count: Object.keys(s._art).length,
+      count: sourceCount.get(s.id) ?? 0,
     }));
     return { sources, byMonster };
   }

@@ -107,6 +107,7 @@
   earlier "Include mounts" had already placed on a scene is still recalled by Place / Recall.
 
 ### Fixed
+- **Shadowdark Community Tokens is one source in the Monster Art manager, not two.** When Foundry registers the module, the manager also found the same art folder on disk, so the pack was listed twice, a monster could be shown two options from it even where both were the same art, and part of the "Only monsters with a choice" count was not a choice. The two findings now merge into one source — the module's own art map first, the folder filling anything it lacks — and a source's count says how many monsters it can actually skin. Apply writes exactly the art it wrote before (#408).
 - **The import wizard no longer flashes importer windows over its progress.** While it imports the library, the Class Importer, Spell Importer and Item Builder it drives stay out of sight; they still open normally by hand and from the advanced hub. Cancel on the Done page does nothing instead of asking "Leave the importer?".
 - **Closing the import wizard on its Terrain page asks while hex maps are still unnamed.** The question says how many are waiting and that the Hex Tagger's Legend step can name them later; the footer's Advanced importer asks the same. Once every map is named it closes without asking.
 - **The Importer Hub opens again.** It failed with "The partial sdeTreeNodeUi could not be found" (the Manage tree called a partial name only the design harness registers).
