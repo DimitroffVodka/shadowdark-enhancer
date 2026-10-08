@@ -102,10 +102,24 @@ async function chanceHolds(trap) {
 export async function onTokenMoveIn(event) {
   if (!isActiveGM() || this.when === "manual") return;
   if (this.when === "enter" && !this.holds && !canSpring(this)) return;
-  if (!(await chanceHolds(this))) return;
-  await springCard(this, [event.data.token]);
-  if (this.when === "enter" && !this.holds && !this.resets) await this.parent.update({ "system.sprung": true });
+  // A fires-once trap is claimed before the first wait: a group entering together raises one event per token, all
+  // before `sprung` is saved, and each used to post its own card and deal its own damage.
+  const once = this.when === "enter" && !this.holds && !this.resets ? this.parent?.uuid ?? this.parent?.id : null;
+  if (once) {
+    if (springing.has(once)) return;
+    springing.add(once);
+  }
+  try {
+    if (!(await chanceHolds(this))) return;
+    await springCard(this, [event.data.token]);
+    if (once) await this.parent.update({ "system.sprung": true });
+  } finally {
+    if (once) springing.delete(once);
+  }
 }
+
+/** Fires-once traps going off right now, by behavior: the claim `onTokenMoveIn` takes. */
+const springing = new Set();
 
 /** A combat round starts with a token inside the area. */
 export async function onTokenRound(event) {
