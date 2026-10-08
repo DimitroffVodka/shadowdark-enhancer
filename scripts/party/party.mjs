@@ -2,6 +2,7 @@
 import { MODULE_ID } from "../shared/module-id.mjs";
 import { replaceModuleFlag } from "../shared/module-flags.mjs";
 import { normalizeParty, removeMember, mayManage, mayAdd, memberGroup } from "./party-core.mjs";
+import { isActiveGM } from "../shared/gm-relay.mjs";
 
 const EXTRAS = "shadowdark-extras";
 export const PARTY_FLAG = "party";
@@ -89,3 +90,31 @@ export const Party = {
     return Actor.create({ name: game.i18n.localize("SDE.overland.party.name"), type: "NPC", img: "icons/environment/people/group.webp", flags: { [MODULE_ID]: { party: true, partyData: normalizeParty() } } });
   },
 };
+
+/**
+ * The roster rule `add` follows (mayAdd: a player adds only an actor they own) is checked on the player's own
+ * client, and a player who owns the party can write its flag directly. Everything the GM runs from the roster —
+ * Deploy and Gather, camping, overland, quest rewards, the party light — trusts it. So the active GM re-checks every
+ * roster a player writes: a member that player could not have added (not theirs, and not already on the roster
+ * the GM last saw) is taken off again.
+ * ponytail: the "last seen" roster is in memory, seeded on ready; a roster written while no GM is online is
+ * accepted as found. A per-party flag only a GM writes would close that, if it ever matters.
+ */
+export function registerPartyRosterGuard() {
+  const seen = new Map();   // party actor id -> Set of member uuids the GM has accepted
+  const remember = (actor) => seen.set(actor.id, new Set(Party.data(actor).members));
+  Hooks.once("ready", () => { for (const a of game.actors?.contents ?? []) if (isNativeParty(a) || isLegacyParty(a)) remember(a); });
+  Hooks.on("updateActor", async (actor, changes, _options, userId) => {
+    if (!isNativeParty(actor) || changes?.flags?.[MODULE_ID]?.[PARTY_DATA] === undefined || !isActiveGM()) return;
+    const user = game.users?.get(userId);
+    const before = seen.get(actor.id) ?? new Set();
+    const data = Party.data(actor);
+    const forged = user && !user.isGM
+      ? data.members.filter((uuid) => !before.has(uuid) && !worldMember(uuid)?.testUserPermission?.(user, "OWNER"))
+      : [];
+    if (!forged.length) { remember(actor); return; }
+    const kept = forged.reduce((d, uuid) => removeMember(d, uuid), data);
+    seen.set(actor.id, new Set(kept.members));
+    await replaceModuleFlag(actor, PARTY_DATA, kept);
+  });
+}
