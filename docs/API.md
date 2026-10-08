@@ -2124,9 +2124,10 @@ yes for a tagged hex map and no everywhere else. Dungeons and interiors are
 untouched unless marked.
 
 **Darkness.**
-- It is 0 by day. Over a one-hour twilight after sunset it deepens to the
-  night level, `1 − 0.2 × the moon's illumination` (0.8 at full moon, 1 at
-  new), and it lifts over the hour before sunrise.
+- It is 0 by day. The light eases between day and night over the four hours
+  around each sun event — from an hour before sunrise or sunset to three
+  hours after — on the cosine curve measured on Ember (#389). The night
+  level is `1 − 0.2 × the moon's illumination` (0.8 at full moon, 1 at new).
 - A tagged hex map stops at 0.6, so the overview stays readable.
 - The party's region applies the Isles of Andrik's skies: the Midnight Sun
   never goes above 0.3, and the Long Dark holds the night level all day.

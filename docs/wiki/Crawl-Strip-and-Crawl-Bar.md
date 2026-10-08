@@ -318,8 +318,9 @@ the party token travels.
   - The next day's weather is rolled, and you press **Start day** when the
     party sets out.
 - **The sky.** Outdoor scenes darken with the clock:
-  - Darkness is 0 by day. It deepens over the hour after sunset, to a night
-    that a full moon lightens, and lifts over the hour before sunrise.
+  - Darkness is 0 by day. The fades are soft: it eases between day and
+    night over the four hours around sunrise and sunset — from an hour
+    before to three hours after — to a night that a full moon lightens.
   - A storm shows as rain, or as a blizzard in a cold climate. A fair day
     shows the season, and the rules for a fair day are unchanged:
 

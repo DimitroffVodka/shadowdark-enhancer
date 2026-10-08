@@ -10,8 +10,10 @@
 export const HEX_MAP_CAP = 0.6;
 /** A darkness change smaller than this isn't written. */
 export const MIN_STEP = 0.02;
-/** How long a twilight lasts, in hours: after sunset and before sunrise. */
-const TWILIGHT = 1;
+/** The twilight's ease runs this many hours around each sun event (#389). */
+const TWILIGHT = 4;
+/** The ease starts this many hours before its sun event. */
+const LEAD = 1;
 
 /** The Isles of Andrik, by the region name the hex scan gives. */
 const ISLES = /^\s*(the\s+)?isles?\s+of\s+andrik\s*$/i;
@@ -39,9 +41,10 @@ export function nightWithOverride(isNight, override) {
 }
 
 /**
- * How dark an outdoor scene is: 0 by day; over a one-hour twilight after
- * sunset it deepens to the night level, and in the hour before sunrise it
- * lifts again. The night level is 1 − 0.2 × the moon's illumination, so a
+ * How dark an outdoor scene is: 0 by day; around each sun event the light
+ * eases between the day and the night level over four hours, from an hour
+ * before the event to three hours after it, on the cosine curve measured on
+ * Ember (#389). The night level is 1 − 0.2 × the moon's illumination, so a
  * full-moon night is 0.8. The hex map stops at its cap.
  * The Midnight Sun never goes above 0.3; the Long Dark holds the night level all day.
  * @param {{hour:number, sunrise:number, sunset:number, illumination:number,
@@ -50,11 +53,13 @@ export function nightWithOverride(isNight, override) {
  */
 export function darknessAt({ hour, sunrise, sunset, illumination, cap = 1, override = null }) {
   const night = 1 - 0.2 * Math.min(1, Math.max(0, illumination));
+  const dawnEase = 0.5 * (1 + Math.cos((Math.PI * (hour - sunrise + LEAD)) / TWILIGHT));
+  const duskEase = 0.5 * (1 - Math.cos((Math.PI * (hour - sunset + LEAD)) / TWILIGHT));
   let level;
   if (override === "longDark") level = night;
-  else if (hour >= sunrise && hour < sunset) level = 0;
-  else if (hour >= sunset && hour < sunset + TWILIGHT) level = night * ((hour - sunset) / TWILIGHT);
-  else if (hour < sunrise && hour >= sunrise - TWILIGHT) level = night * ((sunrise - hour) / TWILIGHT);
+  else if (hour >= sunrise - LEAD && hour < sunrise - LEAD + TWILIGHT) level = night * dawnEase;
+  else if (hour >= sunset - LEAD && hour < sunset - LEAD + TWILIGHT) level = night * duskEase;
+  else if (hour >= sunrise - LEAD + TWILIGHT && hour < sunset - LEAD) level = 0;
   else level = night;
   if (override === "midnightSun") level = Math.min(level, 0.3);
   return Math.round(Math.min(level, cap) * 100) / 100;
