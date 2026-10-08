@@ -758,7 +758,8 @@ export class TokenArtCatalog {
   static async importOffer() {
     const pack = findMonsterPack({ game: globalThis.game });
     if (!pack || !(await pack.getIndex()).size) return null;
-    const sources = (await this.discoverSources()).map((s) => s.label ?? s.id);
+    // One source can be found twice (a module's own art mapping and the folder probe), under the same name.
+    const sources = [...new Set((await this.discoverSources()).map((s) => s.label ?? s.id))];
     return sources.length ? { sources } : null;
   }
 
