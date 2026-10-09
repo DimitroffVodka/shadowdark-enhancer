@@ -296,10 +296,13 @@ export async function startOverland() {
     await wearPartyHex(token).catch((err) => console.error(`${MODULE_ID} | party hex token`, err));
   }
   const hex = await withRegion(chosen.hex);
+  const fromOff = CrawlState.mode === "off";
   const data = { action: "start", tokenUuid: chosen.tokenUuid, actorId: chosen.actorId, hex };
   const reply = isActiveGM() ? await applyAction(data, game.user) : await queryActiveGM(OVERLAND_QUERY, data, { label: t("SDE.overland.relayLabel") });
   if (!reply?.ok) { if (reply?.error) ui.notifications?.warn(reply.error); return false; }
   Hooks.callAll(`${MODULE_ID}.overlandStart`, overlandState());
+  // From nothing, Start is also the session boundary a crawl's Start is (Session Recap); End travel is its pair.
+  if (fromOff) Hooks.callAll(`${MODULE_ID}.crawlStart`, CrawlState._state);
   return true;
 }
 
@@ -310,6 +313,7 @@ export async function endOverland() {
   const reply = isActiveGM() ? await applyAction(data, game.user) : await queryActiveGM(OVERLAND_QUERY, data, { label: t("SDE.overland.relayLabel") });
   if (!reply?.ok) { if (reply?.error) ui.notifications?.warn(reply.error); return false; }
   Hooks.callAll(`${MODULE_ID}.overlandEnd`, overlandState());
+  Hooks.callAll(`${MODULE_ID}.crawlEnd`, CrawlState._state);
   return true;
 }
 
