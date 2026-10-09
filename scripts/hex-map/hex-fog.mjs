@@ -10,7 +10,7 @@ import { adoptHexScene, withHexLock } from "./hex-adoption.mjs";
 import { disclosure, overlapAllowed, revealRadius, revealCells, arrivalDue } from "./hex-fog-core.mjs";
 
 let overlay = null, warned = false, playerView = false;
-/** The GM sees the unexplored hexes through a 35% veil; this draws them as a player does, solid black. */
+/** The GM sees the unexplored hexes through a 60% veil; this draws them as a player does, solid black. */
 export const playerViewOn = () => playerView;
 export function togglePlayerView() { playerView = !playerView; refreshHexFog(); return playerView; }
 /** SDX must explicitly advertise the full writer/overlay/disclosure stand-down contract. */
@@ -52,7 +52,7 @@ export function refreshHexFog() {
   const scene = globalThis.canvas?.scene;
   if (!canvas?.ready || !ownsHexFog(scene)) return;
   overlay = new PIXI.Graphics(); overlay.name = "sde-hex-fog"; overlay.eventMode = "none";
-  overlay.beginFill(0x000000, game.user.isGM && !playerView ? 0.35 : 1);
+  overlay.beginFill(0x000000, game.user.isGM && !playerView ? 0.6 : 1);
   // One pass for every cell: the store journal, decoded tags and pin index are read once.
   const pass = readPass(scene);
   for (const offset of fogCells(scene)) if (!hexDisclosure(scene, offset, "terrain", {}, pass)) overlay.drawPolygon(scene.grid.getVertices(offset).flatMap(p => [p.x, p.y]));
