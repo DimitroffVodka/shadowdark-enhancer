@@ -527,8 +527,9 @@ export class PartySheet extends HandlebarsApplicationMixin(foundry.applications.
     const source = item.parent, result = await super._onDropItem(event, item);
     if (result && source && source.uuid !== this.actor.uuid && !event.ctrlKey && (game.user?.isGM || source.isOwner)) {
       // A Shadowdark Extras backpack: Extras unpacked its contents onto the party, so move the children too, as Extras' own move does.
-      if (item.type === "Basic" && item.getFlag?.("shadowdark-extras", "isContainer")) {
-        for (const child of source.items.filter((i) => i.getFlag?.("shadowdark-extras", "containerId") === item.id)) await child.delete({ sdxInternal: true });
+      // Flags are read raw: getFlag throws for the Extras scope when Extras is not installed.
+      if (item.type === "Basic" && item.flags?.["shadowdark-extras"]?.isContainer) {
+        for (const child of source.items.filter((i) => i.flags?.["shadowdark-extras"]?.containerId === item.id)) await child.delete({ sdxInternal: true });
         await item.delete({ sdxInternal: true });
       } else await item.delete();
     }
@@ -554,7 +555,8 @@ export function registerPartyItemMove() {
     const item = data?.type === "Item" && actor?.type === "Player" ? fromUuidSync(data.uuid) : null;
     // The drop event is still the current one here; Foundry passes it to the hook's caller, not to the hook.
     // Another remover owns the drop when Extras' move patch is on the character sheets, or for a light (the system moves it itself).
-    const otherMover = foundry.appv1?.sheets?.ActorSheet?.prototype?._sdxCtrlMovePatched || item?.isLight?.();
+    // But the system sends an item with Active Effects straight to createEmbeddedDocuments, past both of them, so that one is ours.
+    const otherMover = !item?.effects?.size && (foundry.appv1?.sheets?.ActorSheet?.prototype?._sdxCtrlMovePatched || item?.isLight?.());
     pending = item?.isOwner && isParty(item.parent) && !otherMover && !globalThis.event?.ctrlKey ? { item, actor, at: Date.now() } : null;
   });
   Hooks.on("createItem", async (made, _options, userId) => {
