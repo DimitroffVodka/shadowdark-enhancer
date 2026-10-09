@@ -74,6 +74,8 @@ test("the encounter readout says where the hex's table came from", () => {
   assert.equal(two.state, "ambiguous"); assert.equal(two.options, "Forest Day, Full Moon");
   assert.equal(encounterReadout({ uuid: "RollTable.t", zone: null, verdict: { status: "none" } }, "Forest").state, "terrain");
   assert.equal(encounterReadout({ uuid: "RollTable.a", zone: null, verdict: { status: "none" } }, "Wandering", "RollTable.a").state, "active");
+  assert.equal(encounterReadout({ uuid: "RollTable.a", zone: null, verdict: { status: "none" } }, "Wandering", "RollTable.a", "RollTable.a").state, "terrain",
+    "the terrain's own table is named as such even when it is also the active one");
   assert.equal(encounterReadout({ uuid: "", zone: null, verdict: { status: "none" } }).state, "none");
   assert.equal(encounterReadout().state, "none");
 });

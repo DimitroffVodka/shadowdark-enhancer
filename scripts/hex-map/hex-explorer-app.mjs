@@ -3,7 +3,7 @@ import { HexRecords, sceneRef, offsetKey } from "./hex-records.mjs";
 import { HexExplorer, explorerCell, encounterReadout } from "./hex-explorer.mjs";
 import { FEATURES, decodeTags } from "./tag-store.mjs";
 import { terrainOptions, OTHER } from "./tag-overlay.mjs";
-import { tableForCheck } from "../encounter/encounter-terrain.mjs";
+import { tableForCheck, pickTable, TERRAIN_TABLES } from "../encounter/encounter-terrain.mjs";
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 const t = key => game.i18n.localize(key);
 const LABELS = { river: "SDE.hexMap.feature.river", path: "SDE.hexMap.feature.path", coast: "SDE.hexMap.feature.coast" };
@@ -51,7 +51,8 @@ export class HexExplorerApp extends HandlebarsApplicationMixin(ApplicationV2) {
     // The saved cell, as a travel check reads it; tableForCheck never throws, so a bad lookup shows as no table.
     const hex = { num: record.num ?? undefined, terrain: record.terrain, features: (record.features ?? []).map(f => f?.type).filter(type => FEATURES.includes(type)) };
     const res = await tableForCheck(hex, { scene: this.scene });
-    const enc = encounterReadout(res, res.uuid ? (await fromUuid(res.uuid).catch(() => null))?.name ?? "" : "", game.settings.get(MODULE_ID, "encounterTableUuid"));
+    const enc = encounterReadout(res, res.uuid ? (await fromUuid(res.uuid).catch(() => null))?.name ?? "" : "", game.settings.get(MODULE_ID, "encounterTableUuid"),
+      pickTable(game.settings.get(MODULE_ID, TERRAIN_TABLES), hex.terrain));
     this.encounterUuid = enc.uuid;
     return { ...d, rootId: this.id, encounter: { ...enc, note: game.i18n.format(ENCOUNTER_NOTES[enc.state], enc) }, isGM: true, saving: this.saving, sceneName: this.scene.name,
       number: record.num === null ? game.i18n.format("SDE.hexExplorer.offset", this.offset) : String(record.num).padStart(4, "0"),

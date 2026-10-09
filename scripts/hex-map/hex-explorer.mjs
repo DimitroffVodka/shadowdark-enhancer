@@ -53,11 +53,12 @@ export function planExplorerEdit(record, input, flag) {
  * What a wandering check on a hex would roll, as the editor words it. `res` is
  * tableForCheck's answer; `name` is that table's name. `state` says where the
  * table came from: the region's printed column, two columns the check could not
- * choose between (it rolls the first), the active table (`active` is its uuid),
- * the table mapped to the terrain, or none.
+ * choose between (it rolls the first), the table mapped to the terrain (`mapped`
+ * is its uuid, which wins when the active table is the same one), the active
+ * table (`active` is its uuid), or none.
  */
-export function encounterReadout({ uuid, zone, verdict } = {}, name = "", active = "") {
-  const state = !uuid ? "none" : verdict?.status === "ambiguous" ? "ambiguous" : verdict?.column ? "region" : uuid === active ? "active" : "terrain";
+export function encounterReadout({ uuid, zone, verdict } = {}, name = "", active = "", mapped = "") {
+  const state = !uuid ? "none" : verdict?.status === "ambiguous" ? "ambiguous" : verdict?.column ? "region" : uuid === active && uuid !== mapped ? "active" : "terrain";
   return { state, uuid: uuid ?? "", name, zone: zone ?? "", column: verdict?.column?.column ?? "", options: (verdict?.columns ?? []).map(c => c.column).join(", ") };
 }
 export const HexExplorer = {
