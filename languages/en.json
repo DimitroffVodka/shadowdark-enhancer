@@ -2103,6 +2103,7 @@
   "SDE.hexMap.controls.review": "Review the hexes most likely wrong",
   "SDE.hexMap.controls.tagger": "Open the Hex Tagger",
   "SDE.hexMap.controls.playerView": "See the fog as the players do",
+  "SDE.hexMap.controls.tooltip": "Hide the hex hover card",
   "SDE.hexMap.brush.howTo": "Pick a terrain, then click or drag over hexes on the map to paint them.",
   "SDE.hexMap.brush.onThisMap": "On this map",
   "SDE.hexMap.brush.prev": "Previous terrain",

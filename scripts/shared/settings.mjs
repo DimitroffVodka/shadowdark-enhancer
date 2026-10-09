@@ -849,6 +849,14 @@ export function registerSettings() {
   });
 
   // Developer-only hex-map CSV comparison; hidden from the normal settings UI.
+  // The GM's own switch (Hex map toolbar) to stop the hover card following the mouse over the hex map.
+  game.settings.register(MODULE_ID, "hexTooltipHidden", {
+    scope: "client",
+    config: false,
+    type: Boolean,
+    default: false,
+  });
+
   game.settings.register(MODULE_ID, "hexMapsDevTools", {
     name: "SDE.settings.hexMapsDevTools.name",
     hint: "SDE.settings.hexMapsDevTools.hint",

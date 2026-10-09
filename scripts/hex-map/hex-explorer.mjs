@@ -130,9 +130,14 @@ function atEvent(event) {
 function line(parent, text, tag = "div") {
   const el = document.createElement(tag); el.textContent = text; parent.append(el); return el;
 }
+export const hexTooltipHidden = () => !!game.user?.isGM && !!game.settings.get(MODULE_ID, "hexTooltipHidden");
+export async function toggleHexTooltip() {
+  await game.settings.set(MODULE_ID, "hexTooltipHidden", !hexTooltipHidden());
+  refreshHexExplorer();
+}
 export function refreshHexExplorer() {
   const cell = selected ?? hovered;
-  if (!cell || !enabled(cell.scene)) { tip?.remove(); tip = null; return; }
+  if (!cell || !enabled(cell.scene) || hexTooltipHidden()) { tip?.remove(); tip = null; return; }
   const view = HexExplorer.read(cell.offset, cell.scene);
   // Concealed cells show nothing to players, including their number.
   if (!view && !game.user.isGM) { tip?.remove(); tip = null; return; }
@@ -157,7 +162,9 @@ export function refreshHexExplorer() {
         });
       } else line(tip, link.label || link.uuid);
     }
-  } else line(tip, t("SDE.hexExplorer.concealed"));
+  // The GM is not a player: an undiscovered hex still shows its real terrain.
+  } else if (game.user.isGM) line(tip, HexRecords.read(cell.offset, cell.scene)?.terrain ?? t("SDE.hexExplorer.unknown"));
+  else line(tip, t("SDE.hexExplorer.concealed"));
   if (selected) {
     const close = line(tip, t("SDE.hexExplorer.close"), "button"); close.type = "button";
     close.addEventListener("click", () => { selected = null; hovered = null; refreshHexExplorer(); });

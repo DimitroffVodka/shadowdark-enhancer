@@ -13,10 +13,10 @@ test("no toolbar group for a player, or for a scene with no hex numbering", () =
 
 test("a numbered scene gets terrain, brush, review and the tagger; regions and zones only once its borders are read", () => {
   const numbered = scene({ hexTags: { origin: { num: "0000" } } });
-  assert.deepEqual(Object.keys(hexMapTools(numbered, { isGM: true })), ["hexTerrain", "hexBrush", "hexReview", "hexTagger"]);
+  assert.deepEqual(Object.keys(hexMapTools(numbered, { isGM: true })), ["hexTerrain", "hexBrush", "hexReview", "hexTagger", "hexTooltip"]);
   const read = scene({ hexTags: { origin: { num: "0000" } }, hexRegions: { v: 1 } });
   const tools = hexMapTools(read, { isGM: true });
-  assert.deepEqual(Object.keys(tools), ["hexTerrain", "hexRegions", "hexZones", "hexBrush", "hexReview", "hexTagger"]);
+  assert.deepEqual(Object.keys(tools), ["hexTerrain", "hexRegions", "hexZones", "hexBrush", "hexReview", "hexTagger", "hexTooltip"]);
   const order = Object.values(tools).map((t) => t.order);
   assert.deepEqual(order, [...order].sort((a, b) => a - b));
 });
@@ -44,4 +44,10 @@ test("the player-view switch is there only where the module draws the fog, and s
   const all = Object.values(hexMapTools(numbered, { isGM: true, fog: true }));
   assert.equal(all[0].name, "hexPlayerView", "it leads the group");
   assert.deepEqual(all.map((t) => t.order), all.map((t) => t.order).sort((a, b) => a - b));
+});
+
+test("the hover-card switch is last in the group and shows as on while the card is hidden", () => {
+  const numbered = scene({ hexTags: { origin: { num: "0000" } } });
+  assert.equal(hexMapTools(numbered, { isGM: true }).hexTooltip.active, false);
+  assert.equal(hexMapTools(numbered, { isGM: true, tooltipHidden: true }).hexTooltip.active, true);
 });
