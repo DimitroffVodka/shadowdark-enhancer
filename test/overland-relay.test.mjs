@@ -697,7 +697,7 @@ test("camp without Extras: to dawn with the night's checks; 1 ration each, and 1
   dice.push(4);                                    // the new day's weather
   const res = await applyAction({ action: "camp" }, gm);
   assert.deepEqual(res, { ok: true, stopped: false });
-  assert.equal(globalThis.game.time.worldTime, at(1301, 6, 22, 5), "the 05:00 night check, after a 04:30 sunrise");
+  assert.equal(globalThis.game.time.worldTime, at(1301, 6, 22, 6), "the 05:00 night check rolled on the way; camp breaks at 06:00, not at the 04:30 sunrise");
   assert.equal(actors.mine.items.includes(stack), false, "Mine ate the one ration");
   assert.deepEqual(damage, [["theirs", "con", 1]], "Theirs had none");
   assert.equal(stored.overlandState.day, null, "the day is closed until the GM starts the next");
@@ -814,7 +814,7 @@ test("the underground check: a season change on deep tunnels asks each member fo
   assert.equal(statRolls.length, 0, "no season change, or not on deep tunnels: nothing");
 });
 
-test("camp breaks at sunrise when both night checks come before it", async () => {
+test("camp breaks at 06:00 when both night checks come before it, not at the 04:30 sunrise", async () => {
   campWorld();
   dice.push(3, 2, 9, 1, 1);                       // night checks at 18:00 and 18:00
   globalThis.game.time.worldTime = at(1301, 6, 21, 8);
@@ -822,20 +822,20 @@ test("camp breaks at sunrise when both night checks come before it", async () =>
   dice.push(4);
   await applyAction({ action: "camp" }, gm);
   const t = globalThis.game.time.worldTime;
-  assert.ok(t > at(1301, 6, 22, 4) && t < at(1301, 6, 22, 5), "at the next sunrise");
+  assert.equal(t, at(1301, 6, 22, 6));
 });
 
-test("camp's last check hitting at its very end still leaves the camp for Continue (#247 review)", async () => {
+test("camp's last night check hitting stops the night there and leaves the camp for Continue (#247 review)", async () => {
   const damage = campWorld();
-  dice.push(3, 2, 9, 1, 12);                       // night checks at 18:00 and 05:00, after a 04:30 sunrise
+  dice.push(3, 2, 9, 1, 12);                       // night checks at 18:00 and 05:00, before the 06:00 camp end
   globalThis.game.time.worldTime = at(1301, 6, 21, 8);
   await applyAction({ action: "startDay", method: "walking" }, gm);
-  const hits = [false, false, true];               // 14:00, 18:00 miss; 05:00, camp's end, hits
+  const hits = [false, false, true];               // 14:00, 18:00 miss; 05:00, the last, hits
   globalThis.game.shadowdarkEnhancer.encounter.check = async () => ({ hit: hits.shift() ?? false });
   const res = await applyAction({ action: "camp" }, gm);
   assert.deepEqual(res, { ok: true, stopped: true });
   assert.equal(globalThis.game.time.worldTime, at(1301, 6, 22, 5));
-  assert.deepEqual(stored.overlandState.pending, { until: at(1301, 6, 22, 5), reason: "camp" });
+  assert.deepEqual(stored.overlandState.pending, { until: at(1301, 6, 22, 6), reason: "camp" }, "Continue goes on to 06:00");
   dice.push(4);
   assert.deepEqual(await applyAction({ action: "resume" }, gm), { ok: true, stopped: false });
   assert.equal(stored.overlandState.day, null, "the camp is finished");
@@ -985,7 +985,7 @@ test("a camp whose Extras rest can't be finished at dawn waits for Extras, then 
   // Extras is turned off before Continue: its rest is still on the party, so the camp waits for it.
   reload({ active: false });
   const res = await applyAction({ action: "resume" }, gm);
-  const dawn = at(1301, 6, 22, 5);
+  const dawn = at(1301, 6, 22, 6);
   const held = () => ({ dawns: dawns.length, dayOpen: stored.overlandState.day !== null, camp: stored.overlandState.camp, pending: stored.overlandState.pending });
   assert.deepEqual({ ...held(), warned }, {
     dawns: 0, dayOpen: true, camp: { party: party.uuid, interrupted: null, ate: true, until: dawn, lightsOut: true }, pending: { until: dawn, reason: "camp" },
@@ -1075,7 +1075,7 @@ test("Make camp pressed again after the night failed goes on from where the camp
   assert.deepEqual(stacks.map((s) => s.system.quantity), [2, 2], "a ration each, once");
   assert.deepEqual(damage, []);
   assert.equal(lights.n, 1, "the lights went out once");
-  assert.equal(globalThis.game.time.worldTime, at(1301, 6, 22, 5), "one night, to its 05:00 check");
+  assert.equal(globalThis.game.time.worldTime, at(1301, 6, 22, 6), "one night, to 06:00");
   assert.equal(stored.overlandState.day, null, "the camp is done");
   assert.deepEqual(["SDE.overland.camp.made", "SDE.overland.camp.dawn"].map((k) => posted.filter((c) => c.includes(k)).length), [1, 1]);
 });
@@ -1098,7 +1098,7 @@ test("a creature's interruption survives a Continue that failed, a reload and Ma
   globalThis.game.modules = { get: () => null };
   assert.equal(opened.length, 1, "the tasks and rations aren't done again");
   assert.deepEqual(granted, [true], "the rest is finished once, interrupted by the wolf");
-  assert.equal(globalThis.game.time.worldTime, at(1301, 6, 22, 5), "the night went on to its 05:00 check");
+  assert.equal(globalThis.game.time.worldTime, at(1301, 6, 22, 6), "the night went on to 06:00");
   assert.equal(stored.overlandState.day, null);
 });
 
@@ -1235,7 +1235,7 @@ test("with Extras the camp is saved before its window opens: a lost save, or a t
   assert.deepEqual(await applyAction({ action: "camp" }, gm), { ok: true, stopped: false });
   globalThis.game.modules = { get: () => null };
   assert.deepEqual([opened.length, granted], [1, [false]], "one window, one rest");
-  assert.deepEqual([globalThis.game.time.worldTime, stored.overlandState.day], [at(1301, 6, 22, 5), null], "one night, to its 05:00 check");
+  assert.deepEqual([globalThis.game.time.worldTime, stored.overlandState.day], [at(1301, 6, 22, 6), null], "one night, to 06:00");
 });
 
 test("the camp's save lost and no reload: Make camp again in the same tab eats once (#282 pre-review)", async () => {
@@ -1368,7 +1368,7 @@ test("a camp held or on its way keeps its dawn to itself (#294)", async () => {
   dice.length = rolled.length = cards.length = 0;
   globalThis.ChatMessage.create = async (data) => { cards.push(data); };
   CrawlState._state = { ...CrawlState._state, mode: "overland" };
-  stored.overlandState = { ...stored.overlandState, weather: null, camp: { party: null, interrupted: null, ate: true, until: at(1301, 6, 22, 5), lightsOut: true } };
+  stored.overlandState = { ...stored.overlandState, weather: null, camp: { party: null, interrupted: null, ate: true, until: at(1301, 6, 22, 6), lightsOut: true } };
   registerOverland();
   globalThis.game.time.worldTime = at(1301, 6, 21, 20);
   await step(at(1301, 6, 22, 8));
@@ -1509,6 +1509,26 @@ test("native travel Party owner opens camp setup without any SDX provider", asyn
     const reply = await applyAction({ action: "camp", partyId: party.id }, { id: "player1", isGM: false });
     assert.deepEqual(reply, { ok: true, setup: true });
     assert.equal(opened, 1); assert.equal(overlandState().camp, null);
+  } finally {
+    globalThis.fromUuidSync = lookup; globalThis.game.modules = modules; globalThis.game.shadowdarkEnhancer = api;
+  }
+});
+
+test("the bar's Make camp only reopens the window when the tasks are done; Night in the window, which names the party, runs the night", async () => {
+  travelling(["mine"]);
+  const lookup = globalThis.fromUuidSync, modules = globalThis.game.modules;
+  const api = globalThis.game.shadowdarkEnhancer;
+  const party = { id: "native", uuid: "Actor.native", type: "NPC", flags: { "shadowdark-enhancer": { party: true, camping: { id: "camp", phase: "awaitingRest", day: null } } }, ...owner("player1") };
+  let opened = 0;
+  globalThis.game.modules = { get: () => null };
+  globalThis.game.shadowdarkEnhancer = { ...api, camping: { open: () => { opened++; } } };
+  globalThis.fromUuidSync = uuid => uuid === "Scene.s.Token.native" ? { actor: party } : null;
+  stored.overlandState = { ...stored.overlandState, tokenUuid: "Scene.s.Token.native" };
+  registerOverland();
+  const before = globalThis.game.time.worldTime;
+  try {
+    assert.deepEqual(await applyAction({ action: "camp" }, gm), { ok: true, setup: true });
+    assert.deepEqual([opened, globalThis.game.time.worldTime, overlandState().camp], [1, before, null], "no night, no clock");
   } finally {
     globalThis.fromUuidSync = lookup; globalThis.game.modules = modules; globalThis.game.shadowdarkEnhancer = api;
   }

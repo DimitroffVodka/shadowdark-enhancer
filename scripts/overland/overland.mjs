@@ -42,7 +42,7 @@ import { authorizeActorFor, isActiveGM, queryActiveGM, refuseQuery, registerQuer
 import { makeQueue } from "../quests/quest-core.mjs";
 import { hasHexTerrain, hexReader, hexZonesFor, isHexMapScene, partyHex } from "../encounter/encounter-terrain.mjs";
 import { BOAT_TYPE, MOUNT_TYPE } from "../actors/register-actors.mjs";
-import { dawnAfter, dateParts, hourOfDay, startOfDay } from "../time/time-core.mjs";
+import { dawnAfter, dateParts, hourOfDay, secondsPerDay, startOfDay } from "../time/time-core.mjs";
 import { advanceOffDuty } from "../time/off-duty.mjs";
 import { StatRiders } from "../stat-damage/stat-riders.mjs";
 import { esc } from "../shared/esc.mjs";
@@ -59,7 +59,7 @@ import {
 import { PARTY_FLAG, extrasParties, joinExtras, placePartyToken, wearPartyHex } from "./hex-rules.mjs";
 import { Party, isNativeParty, isLegacyParty } from "../party/party.mjs";
 import { isPartyDeployed } from "../party/party-movement.mjs";
-import { prepareCampNight, finishCampNight } from "../camping/camping.mjs";
+import { prepareCampNight, finishCampNight, campOf } from "../camping/camping.mjs";
 import { ownsHexFog, revealParty } from "../hex-map/hex-fog.mjs";
 import { weatherCard } from "../shared/chat-cards.mjs";
 import { L as t } from "../shared/i18n.mjs";
@@ -913,14 +913,13 @@ export async function makeCamp(party = null, acceptShortages = false) {
 }
 
 /**
- * When camp breaks: the next sunrise, or the last night check if it falls
- * later. A summer sunrise at 04:30 comes before a 05:00 check, and both night
- * checks are the camp's (§5.5 step 2).
+ * When camp breaks: the next 06:00, or the next sunrise if that falls later (a winter dawn). A fixed hour keeps
+ * the days from starting at a summer 04:30; every night check (§5.5 step 2) falls by 05:00, so they all come first.
  */
 function campEnd() {
-  const dawn = dawnAfter(game.time.calendar, game.time.worldTime);
-  const night = _state.checks.filter((c) => c.half === "night" && !c.rolled).map((c) => c.at);
-  return Math.max(dawn, ...night);
+  const cal = game.time.calendar, now = game.time.worldTime;
+  const six = startOfDay(cal, now) + 6 * hourSeconds();
+  return Math.max(dawnAfter(cal, now), six > now ? six : six + secondsPerDay(cal));
 }
 
 /** The native or provider party the persisted travel token stands for, or null. */
@@ -1274,6 +1273,8 @@ export function applyAction(data, user) {
         if (_state.day === null) return { ok: false, error: t("SDE.overland.notify.campNoDay") };
         // Each step is kept in the camp as it's done, so a camp already made (pressed again after
         // something failed, in this tab or after a reload) goes on from the next step (#282 review).
+        // Tasks already rolled and the window closed: the bar's Make camp opens it again. Night inside it names the party and runs the night.
+        if (!_state.camp && !data.partyId && isNativeParty(party) && campOf(party)?.phase === "awaitingRest") { game.shadowdarkEnhancer.camping.open(party); return { ok: true, setup: true }; }
         if (!_state.camp && !(await pitchCamp(user, data.acceptShortages === true))) return isNativeParty(party) ? { ok: true, setup: true } : { ok: false, error: t("SDE.overland.notify.campNotMade") };
         if (!_state.camp.lightsOut) {
           // Q8: carried lights go out and keep their time, through the off-duty

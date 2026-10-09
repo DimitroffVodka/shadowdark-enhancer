@@ -137,6 +137,13 @@ test("the travel day's step: weather before a day, traveling during it, 6 or 8 w
   assert.equal(currentStep({ dayOpen: true, pending: { reason: "camp" }, heldHalf: "day" }), 6);
 });
 
+test("the travel day's step stands on Resting while a camp is set up and on Night while it runs", () => {
+  assert.equal(currentStep({ dayOpen: true, pending: null, camp: "setup" }), 7);
+  assert.equal(currentStep({ dayOpen: true, pending: null, camp: "night" }), 8);
+  assert.equal(currentStep({ dayOpen: true, pending: { reason: "move" }, camp: "night" }), 6, "a held encounter still wins");
+  assert.equal(currentStep({ dayOpen: false, pending: null, camp: "setup" }), 1);
+});
+
 test("sight in hexes: the book's sum, as Extras' hex fog counts it; nothing without the rules data", () => {
   const rules = { darkness: -1, stormy: -1, excellent: 1, slight: 1, high: 3, elevation: { mountain: "high", hills: "slight" } };
   assert.equal(sightParts(rules, { terrain: "grassland", night: false, weather: "fair" }).radius, 1);

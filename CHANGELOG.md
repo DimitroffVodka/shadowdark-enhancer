@@ -122,6 +122,7 @@
   earlier "Include mounts" had already placed on a scene is still recalled by Place / Recall.
 
 ### Fixed
+- **Make camp opens the camp window first, the night ends at 06:00, and the Travel panel shows the camp.** The bar's Make camp no longer runs the night straight through when the tasks were already rolled and the window closed: it opens the window again, and Night inside it runs the night. Camp now breaks at the next 06:00 (or the next sunrise if that is later) instead of a summer 04:30, and the next day waits for Start day. The Travel panel's step list stands on Resting (7) while the camp is being set up and on Night (8) while the night runs.
 - **No more "failed to register sdeVehicleBody partial" error in the console at start-up.** The Mount and Boat sheets stopped using that shared tabs template, but a merge put its registration back; it is gone again. Nothing on screen changed.
 - **Building an adventure map again no longer undoes hand-corrected walls and lights.** Tools → Adventure map on a scene that was already built, or the placer's From book button, used to delete every wall and light the module had made and put the shipped ones back. Now, once a scene has them, they are left exactly as they are.
 - **A merchant sale never pays for more than the seller holds.** Typing a quantity larger than the stack in the Sell tab paid for that many and restocked the merchant with them; the sale now stops at what the character carries.

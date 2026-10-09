@@ -307,7 +307,7 @@ the party token travels.
     on a harsh night. Anyone without one takes 1 CON damage, and mounts eat
     what's left. Closing Extras' window makes no camp.
   - Then carried lights go out, keeping their time, as with the off-duty move.
-  - The clock runs to dawn, rolling the rest of the day's checks and the
+  - The clock runs to 06:00 (or sunrise, if that is later), rolling the rest of the day's checks and the
     night's. A hit stops the night until you press **Continue**.
   - A creature met in the night's checks interrupts the rest; a rockslide
     doesn't, nor does a creature from a day check still to roll when you

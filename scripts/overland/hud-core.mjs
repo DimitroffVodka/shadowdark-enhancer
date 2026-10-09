@@ -188,11 +188,13 @@ export const TRAVEL_STEPS = ["weather", "sight", "method", "speed", "traveling",
  * The step the day stands at, 1 to 8: before a day opens, the weather; an
  * encounter holding the clock, 6 for a day check and 8 for a night one (by
  * the half of the check that hit when known, else by why the clock stopped:
- * 8 for a camp); otherwise travelling, 5.
- * @param {{dayOpen:boolean, pending:{reason:string}|null, heldHalf?:"day"|"night"|null}} day
+ * 8 for a camp); a camp being set up (its tasks and rations), 7, and the night
+ * running, 8; otherwise travelling, 5.
+ * @param {{dayOpen:boolean, pending:{reason:string}|null, heldHalf?:"day"|"night"|null, camp?:"setup"|"night"|null}} day
  */
-export function currentStep({ dayOpen, pending, heldHalf = null }) {
+export function currentStep({ dayOpen, pending, heldHalf = null, camp = null }) {
   if (pending) return (heldHalf ?? (pending.reason === "camp" ? "night" : "day")) === "night" ? 8 : 6;
+  if (dayOpen && camp) return camp === "night" ? 8 : 7;
   return dayOpen ? 5 : 1;
 }
 
