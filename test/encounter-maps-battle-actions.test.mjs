@@ -626,3 +626,19 @@ test("the readout uses the HUD's own green, red and amber, and every word and th
   }
   assert.ok(contrast(page, ok) >= 4.5, `the Ready button's label (${page}) on its green (${ok}) is ${contrast(page, ok).toFixed(2)}:1`);
 });
+
+test("the reaction words on the Encounter panel use the HUD's own colours as well, and read at 4.5:1 on its panel", () => {
+  const css = readFileSync(new URL("../styles/shadowdark-enhancer.css", import.meta.url), "utf8");
+  const declared = Object.fromEntries([...css.matchAll(/#shadowdark-enhancer-travel\s*\{([^}]*)\}/g)]
+    .flatMap((m) => [...m[1].matchAll(/--([\w-]+):\s*(#[0-9a-f]{3,6})\b/gi)].map((p) => [p[1], p[2]])));
+  // Hostile and Friendly used --sde-bar-hit and -miss, which turn darker under body.theme-light (3.5:1 on this black), and
+  // Curious the accent, which does too (4.1:1)
+  const inkOf = { Hostile: "sde-hud-bad", Suspicious: "sde-hud-warn", Curious: "sd-gold", Friendly: "sde-hud-ok" };
+  for (const [reaction, name] of Object.entries(inkOf)) {
+    const rule = css.split("\n").find((line) => line.includes(`.sde-hud-v.sde-reaction-${reaction} {`));
+    assert.ok(rule, `${reaction}: a rule for it`);
+    assert.ok(rule.includes(`var(--${name})`) && !/--sde-bar-/.test(rule), `${reaction}: ${rule.trim()}`);
+    const [ink, panel] = [declared[name], declared["sd-panel"]];
+    assert.ok(ink && panel && contrast(ink, panel) >= 4.5, `${reaction}: ${ink} on ${panel} is ${ink && panel ? contrast(ink, panel).toFixed(2) : "?"}:1`);
+  }
+});

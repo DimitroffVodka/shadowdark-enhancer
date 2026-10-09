@@ -39,8 +39,10 @@ hidden.
 The first click. The map's scene is made the first time it is used and reused every
 time after. The party's characters (the members of your [Party](Party.md)) and the
 monsters from the roll are placed on it, the monsters at the distance the roll gave
-them (close, near or far) on the side of the map with the most room. Then the scene
-opens for **you**, and only you. Nobody else is moved.
+them (close, near or far) on the side of the map with the most room. On the few maps
+where that strip would run through water, lava or a chasm, the monsters start on the
+ground across it instead, whatever the roll said. Then the scene opens for **you**, and
+only you. Nobody else is moved.
 
 A map holds one battle at a time. Setting up on a map that already has a battle
 tells you so, opens that battle again and places nothing more. A character who

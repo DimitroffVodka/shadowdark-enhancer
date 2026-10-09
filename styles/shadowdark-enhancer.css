@@ -4183,10 +4183,10 @@ button.sde-hud-day:hover { border-color: var(--sd-frame); }
   background: var(--sd-panel);
 }
 .sde-hud-v { font-family: "JSL Blackletter", serif; font-size: 20px; color: var(--sd-text); }
-.sde-hud-v.sde-reaction-Hostile { color: var(--sde-bar-hit); }
-.sde-hud-v.sde-reaction-Suspicious { color: #d08030; }
-.sde-hud-v.sde-reaction-Curious { color: var(--sde-bar-accent); }
-.sde-hud-v.sde-reaction-Friendly { color: var(--sde-bar-miss); }
+.sde-hud-v.sde-reaction-Hostile { color: var(--sde-hud-bad); }
+.sde-hud-v.sde-reaction-Suspicious { color: var(--sde-hud-warn); }
+.sde-hud-v.sde-reaction-Curious { color: var(--sd-gold); }
+.sde-hud-v.sde-reaction-Friendly { color: var(--sde-hud-ok); }
 /* Its header carries the fold chevron; folded, the encounter is a strip under
    the bar with Continue (#257). */
 .sde-hud-enc .sde-hud-ph { padding: 8px 10px 6px 20px; }

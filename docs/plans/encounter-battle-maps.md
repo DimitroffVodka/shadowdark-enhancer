@@ -230,7 +230,10 @@ images) and may have a `foes` zone. `resolveDefaultMap`: nothing saved for the t
 pin that is still on gives the pin; a saved entry with no enabled pin picks at random. So a window that writes an entry
 writes the pin the GM sees, and `pinned: null` only for "Pick at random". The jungle wetland was dropped (its canoe holds a
 quarter of a party, the rest is pond). Twelve maps have explicit party zones, after rendering the real layout over every
-map: the default centre was water, lava or a chasm on those. Nine pack maps state no grid in their file name and were
+map: the default centre was water, lava or a chasm on those. Eight maps also name where the foes start (`foes`), because
+the strip at the rolled distance runs through water or lava on them: both swamp bogs, Rocky Coast, Driftwood Cove, Rock
+Pools and Pooling Caverns, beside the Stone Bridge and Scattered Islands that had one from the start. A second render, of
+the foes at close, near and far over every map, found the rest of them on ground. Nine pack maps state no grid in their file name and were
 scaled as 23x16 squares at 140 DPI (Highland Pass, Beach Dunes, Rocky Coast, Jagged Cave, Luminescent Cave, Cobblestone
 Highway, WildRoad, Haunted Marsh; the ninth, Roadside Wilderness, as 22x17 at 70 px): judged by eye against the art, not
 measured.
@@ -243,7 +246,9 @@ base actor, which the Hunter XP, loot drop and session recap hooks read when a c
 and if a token will not go it stops and keeps the record so Return can be pressed again. Day scenes have global light on
 while darkness is 0.5 or less (the arena's "off" suits a night-only map); a scene made earlier is repaired once, marked by
 the `encounterMapLight` flag. Token positions snap to the scene's own grid. The two folders have localized names and are
-found by flag, then by localized name, then by the old English name.
+found by flag, then by localized name, then by the old English name. Foes are numbered one by one when their prototype
+token numbers its tokens, and a prototype token that picks its picture at random is asked for its list (`getTokenImages`),
+from which each foe is dealt one (`dealPictures`) instead of all wearing the first.
 
 **Preload.** A player finishes when the last file has loaded; it never calls `game.scenes.preload`, which waits on the
 browser's audio unlock (a freshly reloaded or idle player would stay "not ready" forever) and flashes a loading bar on the
