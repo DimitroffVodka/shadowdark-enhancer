@@ -4,10 +4,11 @@ import { replaceModuleFlag } from "../shared/module-flags.mjs";
 import { rulesApi } from "../rules-data/rules-data-core.mjs";
 import { storedRulesFor } from "../rules-data/rules-data-scope.mjs";
 import { timeApi } from "../time/time.mjs";
-import { Party } from "../party/party.mjs";
+import { Party, isParty } from "../party/party.mjs";
+import { isActiveGM } from "../shared/gm-relay.mjs";
 import { HexRecords, isHexAdopted, sceneRef, recordJournal, offsetKey, readPass, RECORD_FLAG, publishHexProjection, assertPrivateJournal, loadHexRecords } from "./hex-records.mjs";
 import { adoptHexScene, withHexLock } from "./hex-adoption.mjs";
-import { disclosure, overlapAllowed, revealRadius, revealCells, arrivalDue } from "./hex-fog-core.mjs";
+import { disclosure, effectiveDiscovery, withPartyDiscovery, overlapAllowed, revealRadius, revealCells, arrivalDue } from "./hex-fog-core.mjs";
 
 let overlay = null, warned = false;
 /** The GM sees the unexplored hexes through a 60% veil; this draws them as a player does, solid black. Kept per browser. */
@@ -31,8 +32,20 @@ export function ownsHexFog(target) {
   }
   return allowed;
 }
+/** The party whose map the GM sees: the one selected, else the one travelling. A player's own parties are chosen in HexRecords.read. */
+export function viewedPartyIds() {
+  const chosen = Party.selected();
+  if (chosen) return [chosen.id];
+  try {
+    const uuid = game.settings.get(MODULE_ID, "overlandState")?.tokenUuid, actor = uuid ? fromUuidSync(uuid)?.actor : null;
+    return isParty(actor) ? [actor.id] : [];
+  } catch { return []; }
+}
 export function hexDisclosure(scene, offset, kind = "terrain", exceptions = {}, pass = null) {
-  return disclosure(HexRecords.read(offset, scene, pass)?.discovery, kind, exceptions);
+  const discovery = HexRecords.read(offset, scene, pass)?.discovery;
+  if (!game.user?.isGM) return disclosure(discovery, kind, exceptions);
+  const ids = pass ? (pass.viewed ??= viewedPartyIds()) : viewedPartyIds();
+  return disclosure(effectiveDiscovery(discovery, ids), kind, exceptions);
 }
 export function positionDisclosed(scene, point, kind = "terrain", exceptions = {}, pass = null) {
   return hexDisclosure(scene, scene.grid.getOffset(point), kind, exceptions, pass);
@@ -89,8 +102,9 @@ export async function setHexDisclosure(offset, patch, target) {
 }
 /** Only Overland's paid, committed travel path may visit or roll; dawn is reveal-only. */
 export async function revealParty(token, { path = null, weather = null, committed = false } = {}) {
-  const scene = token?.parent, party = Party.selected();
-  if (!game.user?.isGM || !ownsHexFog(scene) || !party || token.actor?.uuid !== party.uuid) return null;
+  // The party is the token's own: what it finds is its alone, whichever party this GM has selected.
+  const scene = token?.parent, party = isParty(token?.actor) ? token.actor : null;
+  if (!game.user?.isGM || !ownsHexFog(scene) || !party) return null;
   const origin = scene.grid.getOffset(token.getCenterPoint()), entered = committed ? (path ?? []) : [];
   const rules = rulesApi(() => storedRulesFor(scene)).visibility();
   const validRules = ["darkness", "stormy", "excellent", "slight", "high"].every(k => Number.isFinite(rules[k]));
@@ -111,17 +125,17 @@ export async function revealParty(token, { path = null, weather = null, committe
     }
     for (const key of reveal) {
       const cell = cells[key] ??= {};
-      cell.discovery = { ...cell.discovery, revealed: true, visited: !!cell.discovery?.visited };
+      cell.discovery = withPartyDiscovery(cell.discovery, party.id, { revealed: true });
     }
     for (const at of entered) {
       const key = offsetKey(at), cell = cells[key] ??= {};
-      cell.discovery = { ...cell.discovery, revealed: true, visited: true };
-      if (!arrivalDue(cell, { entered: true })) continue;
+      cell.discovery = withPartyDiscovery(cell.discovery, party.id, { revealed: true, visited: true });
+      if (!arrivalDue(cell, { entered: true, partyId: party.id })) continue;
       if (Math.random() * 100 >= (cell.rollTableChance ?? 100)) continue;
       const table = await fromUuid(cell.rollTable);
       if (!(table instanceof RollTable)) continue;
       // First-entry history rides the single saveCells write below, before any chat.
-      if (cell.rollTableFirstOnly) cell.arrivalRolled = true;
+      if (cell.rollTableFirstOnly) cell.arrivalRolledBy = [...new Set([...(cell.arrivalRolledBy ?? []), party.id])];
       draws.push(table);
     }
     return { revealed: [...reveal], visited: entered.map(offsetKey) };
@@ -157,6 +171,13 @@ export function registerHexFog() {
   // A reveal writes the GM's records and then the players' view: each screen redraws for the one it draws from.
   Hooks.on("createJournalEntry", journal => { if (drawnFrom(journal)) queueHexFog(); });
   Hooks.on("updateJournalEntry", journal => { if (drawnFrom(journal)) queueHexFog(); });
+  // The GM's veil follows the party they look at; a roster change reaches the players' maps (the projection names each party's members).
+  Hooks.on(`${MODULE_ID}.partySelected`, queueHexFog);
+  Hooks.on("updateActor", (actor, changes) => {
+    const scene = globalThis.canvas?.scene;
+    if (!changes?.flags?.[MODULE_ID]?.partyData || !isActiveGM() || !ownsHexFog(scene)) return;
+    withHexLock(scene, () => publishHexProjection(scene)).catch(console.error);
+  });
 }
 function drawnFrom(journal) {
   try { return journal?.id === recordJournal(canvas?.scene, { publicOnly: !game.user?.isGM })?.id; } catch { return true; }

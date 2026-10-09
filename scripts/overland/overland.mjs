@@ -58,6 +58,7 @@ import {
 } from "./overland-state-core.mjs";
 import { PARTY_FLAG, extrasParties, joinExtras, placePartyToken, wearPartyHex } from "./hex-rules.mjs";
 import { Party, isNativeParty, isLegacyParty } from "../party/party.mjs";
+import { chooseParty } from "./party-choice.mjs";
 import { isPartyDeployed } from "../party/party-movement.mjs";
 import { prepareCampNight, finishCampNight } from "../camping/camping.mjs";
 import { ownsHexFog, revealParty } from "../hex-map/hex-fog.mjs";
@@ -181,20 +182,26 @@ const chanceNow = () => encounterChance(encounterSettings().chance, _state.pushe
 
 export const isOverland = () => CrawlState.isOverland;
 
+/** A party this module can travel with (not an unadopted Shadowdark Extras Party type). */
+const isOwnParty = (actor) => isNativeParty(actor) || isLegacyParty(actor);
+
 // ── The travel token, its members and its hex (on the clicking GM's client) ──
 
 /** The travel token and its hex, from this client's canvas. */
-function chooseToken() {
+function chooseToken(only = null) {
   const parties = new Set(extrasParties().map((a) => a.id));
   const tokens = canvas?.tokens?.placeables ?? [];
   const controlled = canvas?.tokens?.controlled ?? [];
   const isParty = (tok) => parties.has(tok.actor?.id) || !!tok.actor?.getFlag?.(MODULE_ID, PARTY_FLAG);
+  // `only`: the party the GM named when several have a token here.
+  const partyTokens = tokens.filter(isParty).filter((tok) => !only || tok.actor?.id === only);
+  const partyActors = [...new Map(tokens.filter(isParty).map((tok) => [tok.actor.id, tok.actor])).values()];
   const pick = pickTravelToken({
-    partyTokens: tokens.filter(isParty).map((tok) => tok.document.uuid),
+    partyTokens: partyTokens.map((tok) => tok.document.uuid),
     controlled: controlled.map((tok) => tok.document.uuid),
     players: controlled.filter((tok) => tok.actor?.type === "Player").map((tok) => tok.document.uuid),
   });
-  if (!pick.uuid) return { tokenUuid: null, reason: pick.reason };
+  if (!pick.uuid) return { tokenUuid: null, reason: pick.reason, partyActors };
   const token = tokens.find((tok) => tok.document.uuid === pick.uuid);
   const hex = token ? partyHex({ grid: canvas.grid, scene: canvas.scene, tokens: { controlled: [token], placeables: [] } }) : null;
   return { tokenUuid: pick.uuid, actorId: token?.actor?.id ?? null, hex, isParty: !!token && isParty(token) };
@@ -258,7 +265,18 @@ export async function startOverland() {
   // one (#257): the Extras party when there is exactly one, else the module's own.
   if (chosen.reason === "none") {
     const extras = extrasParties();
-    if (extras.length <= 1 && await placePartyToken(extras[0] ?? null)) chosen = chooseToken();
+    if (extras.length <= 1 && Party.list().filter(isOwnParty).length <= 1 && await placePartyToken(extras[0] ?? null)) chosen = chooseToken();
+  }
+  // Several parties could travel here: the GM says which, and that party is the one this GM then sees (its map, its sheet).
+  if (!chosen.tokenUuid && ["pick", "none"].includes(chosen.reason)) {
+    const choices = chosen.reason === "pick" ? chosen.partyActors : Party.list().filter(isOwnParty);
+    if (choices.length > 1) {
+      const party = await chooseParty(choices);
+      if (!party) return false;
+      Party.select(party);
+      if (chosen.reason === "none") await placePartyToken(party);
+      chosen = chooseToken(party.id);
+    }
   }
   if (!chosen.tokenUuid) { ui.notifications?.warn(t("SDE.overland.notify.pickToken")); return false; }
   // A hex map that says nothing about its terrain (no tags, no Extras records)
@@ -270,6 +288,8 @@ export async function startOverland() {
   // A party token wears the party's hex; a selected NPC travels in its own art.
   if (chosen.isParty) {
     const token = fromUuidSync(chosen.tokenUuid);
+    // The party that travels is the one this GM sees, however its token was found (selected, the only one, or asked for).
+    if (isOwnParty(token?.actor)) Party.select(token.actor);
     // A party made before Extras took part is an Extras party from here on (once).
     await joinExtras(token?.actor).catch((err) => console.error(`${MODULE_ID} | party joins Extras`, err));
     await wearPartyHex(token).catch((err) => console.error(`${MODULE_ID} | party hex token`, err));

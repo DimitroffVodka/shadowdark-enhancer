@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { disclosure, importFog, revealCells, revealRadius, arrivalDue, overlapAllowed } from "../scripts/hex-map/hex-fog-core.mjs";
+import { disclosure, importFog, revealCells, revealRadius, arrivalDue, overlapAllowed, effectiveDiscovery, withPartyDiscovery, bestProjection } from "../scripts/hex-map/hex-fog-core.mjs";
 import { revealParty, refreshHexFog, registerHexFog } from "../scripts/hex-map/hex-fog.mjs";
 import { cacheHexJournal, recordJournal } from "../scripts/hex-map/hex-records.mjs";
 const grid = { getAdjacentOffsets: ({ i, j }) => [{ i: i - 1, j }, { i: i + 1, j }], getDirectPath: ([a, b]) => Array.from({ length: Math.abs(b.i - a.i) + 1 }, (_, n) => ({ i: a.i + Math.sign(b.i - a.i) * n, j: a.j })) };
@@ -165,6 +165,86 @@ test("the first fog draw waits for the GM's records, so a reload does not veil w
     assert.equal(recordJournal(scene)?.id, "late-records", "the records are there by the first draw");
   } finally {
     for (const [key, value] of [["Hooks", saved.Hooks], ["CONFIG", saved.CONFIG], ["canvas", saved.canvas], ["game", saved.game]]) {
+      if (value === undefined) delete globalThis[key]; else globalThis[key] = value;
+    }
+  }
+});
+
+test("each party sees what it found plus what everyone knows, never another party's finds", () => {
+  const d = withPartyDiscovery({ revealed: false, visited: false }, "A", { revealed: true, visited: true });
+  assert.equal(disclosure(effectiveDiscovery(d, ["A"])), true);
+  assert.equal(disclosure(effectiveDiscovery(d, ["B"])), false, "party B has not been there");
+  assert.equal(disclosure(effectiveDiscovery(d, [])), false, "nobody in particular sees nothing of it");
+  assert.equal(disclosure(effectiveDiscovery(d, ["B", "A"]), "location"), true, "a player in two parties sees both maps");
+  const everyone = { revealed: true, visited: false };
+  assert.equal(disclosure(effectiveDiscovery(everyone, ["B"])), true, "what the GM revealed to all, or the world held before parties kept their own");
+  const hidden = withPartyDiscovery(everyone, "A", { revealed: false });
+  assert.equal(disclosure(effectiveDiscovery(hidden, ["A"])), false, "a party's own conceal wins for that party");
+  assert.equal(disclosure(effectiveDiscovery(hidden, ["B"])), true);
+});
+test("a party patch removes an undefined field and mutates nothing", () => {
+  const before = { revealed: false, by: { A: { revealed: true, locationRevealed: false } } };
+  const after = withPartyDiscovery(before, "A", { locationRevealed: undefined });
+  assert.deepEqual(after.by.A, { revealed: true });
+  assert.deepEqual(before.by.A, { revealed: true, locationRevealed: false });
+  assert.equal(effectiveDiscovery(after, ["A"]).locationRevealed, undefined);
+});
+test("the most revealing projection a player has is the one shown", () => {
+  const seen = { discovery: { revealed: true, visited: false, locationRevealed: false } };
+  const visited = { discovery: { revealed: true, visited: true, locationRevealed: true } };
+  assert.equal(bestProjection([undefined, seen, visited]), visited);
+  assert.equal(bestProjection([undefined]), null);
+});
+test("a first-entry table is rolled once per party", () => {
+  const r = { rollTable: "RollTable.a", rollTableFirstOnly: true, arrivalRolledBy: ["A"] };
+  assert.equal(arrivalDue(r, { entered: true, partyId: "A" }), false);
+  assert.equal(arrivalDue(r, { entered: true, partyId: "B" }), true);
+});
+test("two parties on one map: each reveals its own hexes, and a player sees only their own party's", async () => {
+  const MOD = "shadowdark-enhancer";
+  const flags = { version: 1, sceneUuid: "Scene.s4", fogImported: true, cells: {} };
+  const stored = () => journal.flags[MOD].hexRecords;
+  const apply = target => async data => { for (const [key, value] of Object.entries(data)) { const [, mod, flag] = key.split("."); (target.flags[mod] ??= {})[flag] = value; } };
+  const journal = { id: "j4", ownership: { default: 0 }, flags: { [MOD]: { hexRecords: flags } } };
+  journal.update = apply(journal);
+  cacheHexJournal(journal);
+  const publicJournal = { id: "pub4", flags: { [MOD]: { hexRecordProjection: { sceneUuid: "Scene.s4", cells: {} } } } };
+  publicJournal.update = apply(publicJournal);
+  const scene = { id: "s4", uuid: "Scene.s4", flags: { [MOD]: { hexFog: { enabled: true }, hexRecords: { adopted: true } } },
+    getFlag: (mod, key) => scene.flags[mod]?.[key],
+    grid: { isHexagonal: true, sizeX: 100, sizeY: 100, getOffset: point => ({ i: Math.floor(point.y / 100), j: Math.floor(point.x / 100) }), getCenterPoint: offset => ({ x: offset.j * 100 + 50, y: offset.i * 100 + 50 }) },
+    dimensions: { sceneRect: { x: 0, y: 0, width: 300, height: 300, contains: (x, y) => x >= 0 && y >= 0 && x < 300 && y < 300 } } };
+  const pc = id => ({ id, uuid: `Actor.${id}`, type: "Player", isOwner: false });
+  const mine = pc("mine"), theirs = pc("theirs");
+  const party = (id, member) => ({ id, uuid: `Actor.${id}`, type: "NPC", name: id, flags: { [MOD]: { party: true, partyData: { members: [`Actor.${member}`] } } }, testUserPermission: () => true });
+  const A = party("A", "mine"), B = party("B", "theirs");
+  const tokenOf = (actor, at) => ({ parent: scene, actor, getCenterPoint: () => at });
+  const actors = [A, B, mine, theirs];
+  const saved = { game: globalThis.game, canvas: globalThis.canvas, CONST: globalThis.CONST, replace: globalThis._replace };
+  globalThis._replace = value => value;
+  globalThis.CONST = { GRID_TYPES: { HEXODDQ: 4, HEXEVENQ: 5 } };
+  globalThis.canvas = {};
+  globalThis.game = { user: { id: "gm", isGM: true }, actors: { contents: actors, get: id => actors.find(a => a.id === id) ?? null },
+    journal: { contents: [publicJournal] }, packs: { get: () => ({ ownership: { PLAYER: "NONE", TRUSTED: "NONE", ASSISTANT: "NONE" }, getDocuments: async () => [journal] }) },
+    modules: { get: () => undefined }, settings: { get: () => { throw new Error("not registered"); } }, time: { worldTime: 0 }, i18n: { localize: key => key, format: key => key } };
+  try {
+    await revealParty(tokenOf(A, { x: 50, y: 50 }), { path: [{ i: 0, j: 0 }], committed: true });
+    await revealParty(tokenOf(B, { x: 250, y: 250 }), { path: [{ i: 2, j: 2 }], committed: true });
+    assert.equal(stored().cells["0_0"].discovery.by.A.visited, true);
+    assert.equal(stored().cells["0_0"].discovery.by.B, undefined, "B was never on A's hex");
+    assert.equal(stored().cells["0_0"].discovery.revealed, undefined, "nothing was revealed to everyone");
+    assert.equal(stored().cells["2_2"].discovery.by.B.visited, true);
+    const projection = publicJournal.flags[MOD].hexRecordProjection;
+    assert.deepEqual(projection.cells, {}, "nothing is known to every party");
+    assert.deepEqual(projection.parties.A.members, ["mine"]);
+    // A player who owns a character of party A.
+    mine.isOwner = true;
+    globalThis.game.user = { id: "p1", isGM: false };
+    const { HexRecords } = await import("../scripts/hex-map/hex-records.mjs");
+    assert.equal(HexRecords.read({ i: 0, j: 0 }, scene)?.discovery.visited, true, "sees where their party has been");
+    assert.equal(HexRecords.read({ i: 2, j: 2 }, scene), null, "does not see where the other party has been");
+  } finally {
+    for (const [key, value] of [["game", saved.game], ["canvas", saved.canvas], ["CONST", saved.CONST], ["_replace", saved.replace]]) {
       if (value === undefined) delete globalThis[key]; else globalThis[key] = value;
     }
   }

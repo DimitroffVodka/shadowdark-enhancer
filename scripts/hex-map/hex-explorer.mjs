@@ -6,7 +6,8 @@ import { HexRecords, playerProjection, offsetKey, sceneRef, recordJournal, RECOR
 import { hasHexNumbering, hexNumberAt } from "./hex-number-api.mjs";
 import { adoptHexScene, withHexLock } from "./hex-adoption.mjs";
 import { decodeFixes, encodeFixes, recordEdits, FIXES_FLAG } from "./tag-corrections.mjs";
-import { disclosure } from "./hex-fog-core.mjs";
+import { disclosure, withPartyDiscovery } from "./hex-fog-core.mjs";
+import { viewedPartyIds } from "./hex-fog.mjs";
 import { HexTagOverlay, isDoubleClick } from "./tag-overlay.mjs";
 
 const pick = (v, keys) => Object.fromEntries(keys.filter(k => typeof v?.[k] === "string").map(k => [k, v[k]]));
@@ -27,7 +28,8 @@ export function explorerView(record, isGM = false) {
 function rows(previous, submitted, fields) {
   return (submitted ?? []).map(row => ({ ...(Number.isInteger(row.index) ? structuredClone(previous?.[row.index] ?? {}) : {}), ...Object.fromEntries(fields.map(k => [k, row[k]])) }));
 }
-export function planExplorerEdit(record, input, flag) {
+/** `partyId`: the party the GM is looking at; the reveal boxes are then that party's own, not everyone's. */
+export function planExplorerEdit(record, input, flag, partyId = null) {
   if (!offsetKey(record?.offset) || flag?.origin && !Number.isInteger(record?.num)) throw new Error("SDE.hexRecords.invalidCell");
   const terrain = normalizeTerrainWord(input.terrain);
   if (!terrain || /[;|]/.test(terrain) || FEATURES.includes(terrain) && terrain !== "river") throw new Error("SDE.hexExplorer.invalidTerrain");
@@ -43,9 +45,9 @@ export function planExplorerEdit(record, input, flag) {
     const old = record.features?.find(f => f.type === type);
     features.push({ ...(old ?? {}), type, discovered: input.lineDiscovery?.[type] ?? old?.discovered ?? false });
   }
-  const discovery = { ...record.discovery, revealed: !!input.revealed, visited: !!input.visited };
-  if (input.location === "auto") delete discovery.locationRevealed;
-  else discovery.locationRevealed = input.location === "show";
+  const seen = { revealed: !!input.revealed, visited: !!input.visited, locationRevealed: input.location === "auto" ? undefined : input.location === "show" };
+  const discovery = partyId ? withPartyDiscovery(record.discovery, partyId, seen) : { ...record.discovery, ...seen };
+  if (!partyId && seen.locationRevealed === undefined) delete discovery.locationRevealed;
   return { tags, verdicts, patch: { ...(!numbered ? { terrain } : {}), title: String(input.title ?? ""), features,
     notes: rows(record.notes, input.notes, ["text", "visible", "location"]), links: rows(record.links, input.links, ["uuid", "label", "visible"]), discovery } };
 }
@@ -72,7 +74,7 @@ export const HexExplorer = {
       const journal = recordJournal(scene);
       if (!journal) throw new Error("SDE.hexRecords.unreadable");
       assertPrivateJournal(journal);
-      const plan = planExplorerEdit(HexRecords.read(offset, scene), input, scene.getFlag(MODULE_ID, "hexTags"));
+      const plan = planExplorerEdit(HexRecords.read(offset, scene), input, scene.getFlag(MODULE_ID, "hexTags"), viewedPartyIds()[0] ?? null);
       const saved = structuredClone(journal.flags[MODULE_ID][RECORD_FLAG]);
       saved.cells[offsetKey(offset)] = { ...saved.cells[offsetKey(offset)], ...plan.patch };
       await replaceModuleFlag(journal, RECORD_FLAG, saved);
