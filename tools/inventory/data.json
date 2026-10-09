@@ -206,6 +206,7 @@
       "scripts/encounter/encounter-build.mjs",
       "scripts/encounter/encounter-browse.mjs",
       "scripts/encounter/npc-index.mjs",
+      "scripts/encounter/npc-preview.mjs",
       "scripts/encounter/encounter-sources.mjs",
       "scripts/encounter/encounter-terrain.mjs"
     ],
@@ -539,6 +540,7 @@
     "scripts/encounter/encounter-build.mjs": "Build-a-table data layer (slots, die formats, save to RollTable).",
     "scripts/encounter/encounter-browse.mjs": "Browse-NPCs data layer (sources, loading, cache, filter/sort).",
     "scripts/encounter/npc-index.mjs": "NPC actors → compact browse row model.",
+    "scripts/encounter/npc-preview.mjs": "Hover stat card for a rolled creature (roller rows, result card, clock HUD panel).",
     "scripts/monster-creator/encounter-creator.mjs": "Monster Creator — multi-section NPC authoring tool mounted in the roller.",
     "scripts/monster-creator/action-templates.mjs": "Quick-pick NPC attack/action catalog (FA6 Free glyphs only).",
     "scripts/monster-creator/feature-templates.mjs": "Quick-pick NPC feature catalog.",

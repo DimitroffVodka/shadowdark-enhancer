@@ -1704,7 +1704,8 @@ body.theme-light .sde-hub-monsters-row td {
 .er-range { width: 56px; color: var(--ui-muted); white-space: nowrap; }
 .er-acts { width: 1%; white-space: nowrap; text-align: right; }
 .er-flavor td { font-style: italic; color: var(--ui-muted); }
-.er-monster { padding: 4px 0; border: 0; }
+.er-monster { padding: 4px 0; border: 0; cursor: pointer; }
+.er-preview tr[data-actor-uuid] { cursor: pointer; }
 .er-monster img { width: 48px; height: 48px; }
 .er-mname { font-size: 16px; }
 .er-facets th { text-align: left; white-space: nowrap; font-weight: 600; color: var(--ui-text); text-transform: none; letter-spacing: 0; font-size: 12.5px; border-bottom: 1px solid var(--ui-line); }
@@ -4164,6 +4165,7 @@ button.sde-hud-day:hover { border-color: var(--sd-frame); }
 }
 .sde-hud-cat { font-family: "Montserrat-SemiBold", sans-serif; font-size: 12px; color: var(--sd-text); }
 .sde-hud-what { display: flex; align-items: center; gap: 10px; font-size: 30px; }
+.sde-hud-what[data-uuid] { cursor: pointer; }
 .sde-hud-what img { width: 48px; height: 48px; border: 0; border-radius: 4px; object-fit: cover; }
 .sde-hud-what .sde-hud-bl { font-size: 32px; }
 .sde-hud-facets { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; width: 100%; }
@@ -5226,3 +5228,15 @@ button.sde-hud-day:hover { border-color: var(--sd-frame); }
   .sde-settings-group .form-group > .form-fields { grid-column: 1; grid-row: 3; justify-content: flex-start; margin-top: 4px; }
   .sde-settings-group .form-fields > input[type=text], .sde-settings-group .form-fields > select, .sde-settings-group .form-fields > range-picker, .sde-settings-group .form-fields > file-picker { width: 100%; }
 }
+
+/* The creature card on hover (npc-preview.mjs): Foundry's tooltip, themed dark whatever the window's theme. */
+.sde-npc-tip { max-width: 340px; text-align: left; }
+.sde-npc-preview header { display: flex; align-items: center; gap: 8px; }
+.sde-npc-preview header img { width: 40px; height: 40px; border: 0; border-radius: 4px; object-fit: cover; flex: none; }
+.sde-npc-preview .sde-np-sub { display: block; font-size: var(--font-size-12, 12px); opacity: 0.75; }
+.sde-npc-preview .sde-np-stats { display: flex; flex-wrap: wrap; gap: 4px 12px; margin: 6px 0 0; }
+.sde-npc-preview h4 { margin: 8px 0 2px; font-size: var(--font-size-12, 12px); text-transform: uppercase; letter-spacing: 0.04em; opacity: 0.75; border: 0; }
+.sde-npc-preview ul { margin: 0; padding: 0; list-style: none; }
+.sde-npc-preview li { margin: 2px 0; line-height: 1.3; }
+.sde-npc-preview em { font-style: normal; opacity: 0.8; }
+.sde-npc-preview .sde-np-hint { margin: 8px 0 0; font-size: var(--font-size-11, 11px); opacity: 0.6; }

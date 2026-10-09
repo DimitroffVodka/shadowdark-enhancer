@@ -7,6 +7,7 @@
  * matches the final design from day one.
  */
 
+import { bindNpcPreview } from "./npc-preview.mjs";
 import { MODULE_ID } from "../shared/module-id.mjs";
 import { facetWords } from "./encounter-result.mjs";
 import { Renown } from "../renown/renown.mjs";
@@ -410,6 +411,7 @@ export class EncounterRollerApp extends HandlebarsApplicationMixin(ApplicationV2
       const body = _resultBody(r);
       let name = r.name || body || game.i18n.localize("SDE.encounter.roller.emptyEntry");
       let flavor = true;
+      let actorUuid = null;
       try {
         // v13 canonical: TableResult.uuid is the linked document reference.
         // Resolve it; if it's an Actor, this is a monster row.
@@ -418,6 +420,7 @@ export class EncounterRollerApp extends HandlebarsApplicationMixin(ApplicationV2
           if (doc instanceof Actor) {
             name = doc.name;
             flavor = false;
+            actorUuid = doc.uuid;
           }
         }
         // Fallback: scan body for embedded @UUID[…] references.
@@ -428,6 +431,7 @@ export class EncounterRollerApp extends HandlebarsApplicationMixin(ApplicationV2
             if (doc?.name) {
               name = doc.name;
               flavor = false;
+              if (doc instanceof Actor) actorUuid = doc.uuid;
             }
           }
         }
@@ -443,7 +447,7 @@ export class EncounterRollerApp extends HandlebarsApplicationMixin(ApplicationV2
                       : inlineMatch ? inlineMatch[1]
                       : "";
 
-      rows.push({ id: r.id, range, name, appearing, flavor });
+      rows.push({ id: r.id, range, name, appearing, flavor, actorUuid });
     }
 
     return {
@@ -581,6 +585,15 @@ export class EncounterRollerApp extends HandlebarsApplicationMixin(ApplicationV2
         this._browseAbilityFocused = false;
       });
     }
+
+    // The rolled creature opens its sheet on a double click, like a Browse row.
+    this.element.querySelector(".er-monster")?.addEventListener("dblclick", () => this._openBrowseActor(this._lastResult?.uuid));
+    bindNpcPreview(this.element, ".er-monster", () => this._lastResult?.uuid);
+
+    this.element.querySelectorAll(".er-preview tr[data-actor-uuid]").forEach(row => {
+      row.addEventListener("dblclick", ev => { if (!ev.target.closest("button")) this._openBrowseActor(row.dataset.actorUuid); });
+    });
+    bindNpcPreview(this.element, ".er-preview tr[data-actor-uuid]", row => row.dataset.actorUuid);
 
     // Drag-to-canvas (and to anything else that accepts Foundry's Actor
     // drag payload — sidebar, other modules, future Build Table tab).

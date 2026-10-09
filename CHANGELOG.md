@@ -2,6 +2,7 @@
 
 ## [Unreleased]
 ### Added
+- **Hover a rolled creature for its stat card, double-click to open its sheet.** In the Encounter Roller's result card and table preview rows, and in the hex clock HUD's Encounter panel, hovering the creature shows its level, AC, HP, movement, attacks and features, and a double click opens its actor sheet, so a werewolf on a travel roll can be read before the table is told anything.
 - **Right-click a hex with the Hex Brush open to copy its terrain and features.** The brush picks up whatever the hex under the cursor says (a terrain the map's list lacks lands in the Other box), so a good result can be painted straight over a bad one. A right-drag still pans the map.
 - **The Hexplorer's terrain is a dropdown, not a text box.** It offers the map's own terrains (the same list as the on-map editor, alphabetical); to name a new one you pick "other…" and type it there. Nothing is typed by default any more.
 - **The hex tagger's terrain dropdowns are alphabetical.** The review sheet, the Legend cards and the import wizard's hex check listed terrains in the book's printed order; they now sort like the on-map editor's list, with (untagged) first and other... last.
