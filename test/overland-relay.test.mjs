@@ -1601,3 +1601,30 @@ test("fast travel: the GM jumps the party with nothing priced, no time and no di
   assert.equal((await applyAction({ action: "fastTravel", i: 1, j: 1 }, gm)).ok, false, "a held encounter refuses it");
   assert.equal(updates.length, 1);
 });
+
+// ── The session boundary of travel (#423 review) ──────────────────────────────
+
+test("Start from nothing and End travel are the session's two boundaries, from the bar and the clock alike", async () => {
+  const { startOverland, endOverland } = await import("../scripts/overland/overland.mjs");
+  const fired = [];
+  const { callAll } = globalThis.Hooks;
+  globalThis.Hooks.callAll = (name) => { fired.push(name.replace("shadowdark-enhancer.", "")); };
+  const token = { actor: { id: "npc", type: "NPC" }, document: { uuid: "Scene.s.Token.npc" } };
+  globalThis.canvas = { grid: { isHexagonal: true }, scene: {}, tokens: { placeables: [token], controlled: [token] } };
+  try {
+    stored.overlandState = {};
+    registerOverland();
+    CrawlState._state = { ...CrawlState._state, mode: "off" };
+    assert.equal(await startOverland(), true);
+    assert.deepEqual(fired.filter((n) => n.startsWith("crawl")), ["crawlStart"], "Start from off opens the session prompt");
+    assert.equal(await endOverland(), true);
+    assert.deepEqual(fired.filter((n) => n.startsWith("crawl")), ["crawlStart", "crawlEnd"], "End travel closes it");
+    fired.length = 0;
+    CrawlState._state = { ...CrawlState._state, mode: "crawl" };
+    assert.equal(await startOverland(), true);
+    assert.deepEqual(fired.filter((n) => n.startsWith("crawl")), [], "a running crawl that becomes travel keeps its session");
+  } finally {
+    globalThis.Hooks.callAll = callAll;
+    delete globalThis.canvas;
+  }
+});
