@@ -326,7 +326,7 @@
   "SDE.camping.phases.setup": "Choose tasks",
   "SDE.camping.phases.firewood": "Firewood first; choices locked",
   "SDE.camping.phases.fuel": "Choose torch fallback; tasks stay locked",
-  "SDE.camping.torchShortage": "No campfire: only {available} of the 3 torches were available, so campfire tasks rolled at disadvantage. Add torches, or have more PCs consent to contribute theirs.",
+  "SDE.camping.torchShortage": "No campfire: only {available} of the 3 torches were available, so campfire tasks rolled at disadvantage. Add torches to the party or a character's pack.",
   "SDE.camping.phases.tasks": "Resolving locked tasks",
   "SDE.camping.phases.awaitingRest": "Task results ready; nutrition and rest pending",
   "SDE.camping.tasks.battenDown.name": "Bed Down",

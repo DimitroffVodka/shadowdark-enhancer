@@ -5287,8 +5287,9 @@ button.sde-hud-day:hover { border-color: var(--sd-frame); }
 }
 
 /* Plain Roll.toMessage cards: the system's flex row (built for its own .dice-text markup) let the full-width
-   formula push the total out of the box. Formula and total share the line; the tooltip wraps below. */
-.chat-message .message-content .dice-roll > .dice-result { flex-wrap: wrap; }
-.chat-message .message-content .dice-roll > .dice-result > .dice-formula { flex: 1 1 0; min-width: 0; order: 0; }
-.chat-message .message-content .dice-roll > .dice-result > .dice-total { order: 1; }
-.chat-message .message-content .dice-roll > .dice-result > .dice-tooltip { order: 2; }
+   formula push the total out of the box. Formula and total share the line; the tooltip wraps below. Core's markup
+   only (its .dice-formula is a direct child of .dice-result): the system's own cards keep their total on the left. */
+.chat-message .message-content .dice-roll > .dice-result:has(> .dice-formula) { flex-wrap: wrap; }
+.chat-message .message-content .dice-roll > .dice-result:has(> .dice-formula) > .dice-formula { flex: 1 1 0; min-width: 0; order: 0; }
+.chat-message .message-content .dice-roll > .dice-result:has(> .dice-formula) > .dice-total { order: 1; }
+.chat-message .message-content .dice-roll > .dice-result:has(> .dice-formula) > .dice-tooltip { order: 2; }

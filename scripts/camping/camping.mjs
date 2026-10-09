@@ -7,6 +7,7 @@ import { registerCook, expireCook } from "./camping-cook.mjs";
 import { foodPreview, feedCamp, restCamp } from "./camping-nutrition.mjs";
 import { isMount, adoptMountScores } from "../actors/mount-scores.mjs";
 import { secondsPerHour } from "../time/time-core.mjs";
+import { esc } from "../shared/esc.mjs";
 const QUERY = `${MODULE_ID}.camping`, queues = new Map();
 const actorOf = uuid => game.actors.contents.find(a => a.uuid === uuid);
 const own = (a, u) => !!a?.testUserPermission(u, "OWNER");
@@ -71,7 +72,7 @@ async function rollTask(party, camp, p) {
   camp.results[p.actorId] = result; await save(party, camp);
   // Reporting is deliberately outside the saved result: failure never makes a roll replayable.
   try {
-    const name = game.i18n.localize(task.label ?? "SDE.camping.customTask");
+    const name = esc(game.i18n.localize(task.label ?? "SDE.camping.customTask"));
     const outcome = game.i18n.localize(result.success ? "SDE.camping.success" : "SDE.camping.failure");
     const what = result.success && !yieldRoll ? outcomeText(p) : "";
     await roll.toMessage({ speaker: ChatMessage.getSpeaker({ actor }), flavor: game.i18n.format("SDE.camping.rollFlavor", { task: name, outcome, dc: task.dc }) + (what ? `: ${what}` : "") });
@@ -82,7 +83,7 @@ async function rollTask(party, camp, p) {
 const OUTCOME = { battenDown: "SDE.camping.outcome.battenDown", cook: "SDE.camping.outcome.cook", craftTorch: "SDE.camping.outcome.craftTorch", craftRepair: "SDE.camping.outcome.craftRepair", entertain: "SDE.camping.outcome.entertain", firewood: "SDE.camping.outcome.firewood", keepWatch: "SDE.camping.outcome.keepWatch", predict: "SDE.camping.outcome.predict" };
 function outcomeText(p) {
   const key = OUTCOME[p.task === "craft" ? (p.craft === "repair" ? "craftRepair" : "craftTorch") : p.task];
-  return key ? game.i18n.format(key, { name: actorOf(p.recipientUuid)?.name ?? "", half: game.i18n.localize(CAMP_LABELS.half[p.watchHalf] ?? "") }) : "";
+  return key ? game.i18n.format(key, { name: esc(actorOf(p.recipientUuid)?.name), half: esc(game.i18n.localize(CAMP_LABELS.half[p.watchHalf] ?? "")) }) : "";
 }
 async function reward(actor, camp, p, result) {
   const previous = actor.items.find(i => flag(i, "campReward")?.campId === camp.id && flag(i, "campReward")?.task === p.task);

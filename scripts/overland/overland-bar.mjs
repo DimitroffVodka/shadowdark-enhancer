@@ -187,8 +187,11 @@ export const TravelBar = {
     };
     for (const hook of ["createItem", "updateItem", "deleteItem"]) Hooks.on(hook, onItem);
     // The day's forage result lands on the actor's flag, after the roll.
+    // A camp lives on the travelling party's own flag (#440): setting one up, locking or rolling it moves the Resting step.
     Hooks.on("updateActor", (actor, change) => {
-      if (this._open === "travel" && change.flags?.[MODULE_ID] && overlandState().members.includes(actor.id)) this.render();
+      if (this._open !== "travel" || !change.flags?.[MODULE_ID]) return;
+      const { members, tokenUuid } = overlandState();
+      if (members.includes(actor.id) || (tokenUuid && fromUuidSync(tokenUuid)?.actor?.id === actor.id)) this.render();
     });
   },
 
